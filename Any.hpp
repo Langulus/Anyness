@@ -1,5 +1,5 @@
 #pragma once
-#include "Block.hpp"
+#include "inner/Block.hpp"
 
 namespace Langulus::Anyness
 {
@@ -9,7 +9,7 @@ namespace Langulus::Anyness
 	/// Can contain any number of copy constructible or movable type				
 	/// Additionally extended to safely contain sparse data							
 	///																								
-	class PC_API_MMS Any : public Block {
+	class LANGULUS_MODULE(Anyness) Any : public Block {
 		REFLECT(Any);
 	public:
 		template<class T>

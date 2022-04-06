@@ -1,6 +1,5 @@
 #pragma once
 #include "Any.hpp"
-#include "Text.hpp"
 
 namespace Langulus::Anyness
 {
@@ -30,7 +29,7 @@ namespace Langulus::Anyness
 	///																								
 	///	DATA CONTAINER SPECIALIZATION FOR KEY-VALUE PAIRS							
 	///																								
-	class PC_API_MMS Map : public Any {
+	class LANGULUS_MODULE(Anyness) Map : public Any {
 		REFLECT(Map);
 	public:
 		Map() noexcept = default;

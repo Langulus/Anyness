@@ -1,7 +1,7 @@
-#include "Block.inl"
-#include "../Containers/Any.hpp"
+#include "inner/Block.hpp"
+#include "../Any.hpp"
 
-namespace Langulus::Anyness
+namespace Langulus::Anyness::Inner
 {
 
 	/// Encrypt data																				
@@ -12,7 +12,7 @@ namespace Langulus::Anyness
 	/// encoding prior to writing a file. Enable PC_PARANOID to automatically	
 	/// nullify and remove encrypted RAM (if that RAM has only a single			
 	/// reference of use!)																		
-	pcptr Block::Encrypt(Block& result, const pcu32* keys, pcptr key_count) const {
+	Count Block::Encrypt(Block& result, const pcu32* keys, Count key_count) const {
 		// First compress the data, to avoid repeating bytes					
 		auto compressed_size = Compress(result, Compression::Fastest);
 		if (0 == compressed_size)
@@ -29,7 +29,7 @@ namespace Langulus::Anyness
 
 		// XOR the contents																
 		//TODO mix with a PRNG
-		for (pcptr i = 0; i < compressed_size / sizeof(pcu32); ++i)
+		for (Count i = 0; i < compressed_size / sizeof(pcu32); ++i)
 			static_cast<pcu32*>(result.mRaw)[i] ^= keys[i % key_count];
 
 		// Done																				
@@ -37,14 +37,14 @@ namespace Langulus::Anyness
 	}
 
 	/// Decrypt data																				
-	pcptr Block::Decrypt(Block& result, const pcu32* keys, pcptr key_count) const {
+	Count Block::Decrypt(Block& result, const pcu32* keys, Count key_count) const {
 		// Copy this encrypted data													
 		Block decrypted;
 		Clone(decrypted);
 
 		// XOR the contents to decrypt them											
 		//TODO mix with a PRNG
-		for (pcptr i = 0; i < mCount / sizeof(pcu32); ++i)
+		for (Count i = 0; i < mCount / sizeof(pcu32); ++i)
 			static_cast<pcu32*>(decrypted.mRaw)[i] ^= keys[i % key_count];
 
 		// Get the hash part																
@@ -72,4 +72,4 @@ namespace Langulus::Anyness
 		return decompressed_size;
 	}
 
-} // namespace Langulus::Anyness
+} // namespace Langulus::Anyness::Inner

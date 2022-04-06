@@ -1,0 +1,5 @@
+namespace Langulus::Anyness::Inner
+{
+   
+ 
+}

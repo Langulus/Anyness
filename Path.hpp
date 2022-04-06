@@ -7,7 +7,7 @@ namespace Langulus::Anyness
 	///																								
 	///	FILENAME CONTAINER																	
 	///																								
-	class PC_API_MMS Path : public Text {
+	class LANGULUS_MODULE(Anyness) Path : public Text {
 		REFLECT(Path);
 	public:
 		using Text::Text;

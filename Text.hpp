@@ -1,19 +1,16 @@
 #pragma once
-#include "../TConverter.hpp"
+#include "inner/Block.hpp"
 
 namespace Langulus::Anyness
 {
-
-	class AMeta;
-
-
+	
 	///																								
 	///	COUNT-TERMINATED TEXT WRAPPER														
 	///																								
-	/// Convenient wrapper for strings. Specialization for a memory block		
-	/// which references the memory. Internally, it always contains UTF8 text	
+	///	Convenient wrapper for strings. Specialization for a Block,				
+	/// which references its memory. Internally, it always contains UTF8 text	
 	///																								
-	class PC_API_MMS Text : public Block, NOT_DEEP {
+	class LANGULUS_MODULE(Anyness) LANGULUS(REFLECT) Text {
 		REFLECT(Text);
 	public:
 		Text();

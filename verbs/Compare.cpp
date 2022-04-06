@@ -1,9 +1,9 @@
-#include "../include/PCFW.Memory.hpp"
+#include "../inner/Block.hpp"
 
-#define PC_COMPARE_VERBOSE(a) //pcLogFuncVerbose << a
-#define PC_COMPARE_VERBOSE_TAB(a) //ScopedTab tab; pcLogFuncVerbose << a << tab
+#define VERBOSE(a) //pcLogFuncVerbose << a
+#define VERBOSE_TAB(a) //ScopedTab tab; pcLogFuncVerbose << a << tab
 
-namespace Langulus::Anyness
+namespace Langulus::Anyness::Inner
 {
 
 	/// Compare the relevant states of two blocks										
@@ -18,34 +18,34 @@ namespace Langulus::Anyness
 	///	@param right - the memory block to compare against							
 	///	@return true if the two memory blocks are identical						
 	bool Block::Compare(const Block& right, bool resolve) const {
-		PC_COMPARE_VERBOSE_TAB("Comparing "
+		VERBOSE_TAB("Comparing "
 			<< ccPush << ccWhite << mCount << " elements of " << GetToken()
 			<< ccPop << " with "
 			<< ccPush << ccWhite << right.mCount << " elements of " << right.GetToken());
 
 		if (mCount != right.mCount) {
 			// Cheap early return for differently sized blocks					
-			PC_COMPARE_VERBOSE(ccRed << "Data count is different: " 
+			VERBOSE(ccRed << "Data count is different: " 
 				<< mCount << " != " << right.mCount);
 			return false;
 		}
 
 		if (mType != right.mType && (IsUntyped() || right.IsUntyped())) {
 			// Cheap early return for blocks of differing undefined type	
-			PC_COMPARE_VERBOSE(ccRed << "One of the containers is untyped: "
+			VERBOSE(ccRed << "One of the containers is untyped: "
 				<< GetToken() << " != " << right.GetToken());
 			return false;
 		}
 
 		if (!CompareStates(right)) {
 			// Quickly return if memory and relevant states are same			
-			PC_COMPARE_VERBOSE(ccRed << "Data states are not compatible");
+			VERBOSE(ccRed << "Data states are not compatible");
 			return false;
 		}
 
 		if (mType == right.mType && mRaw == right.mRaw) {
 			// Quickly return if memory and relevant states are same			
-			PC_COMPARE_VERBOSE(ccGreen << "Blocks are the same "
+			VERBOSE(ccGreen << "Blocks are the same "
 				<< ccCyan << "(optimal)");
 			return true;
 		}
@@ -53,20 +53,20 @@ namespace Langulus::Anyness
 		if (!mType || !mType->InterpretsAs(right.mType)) {
 			// Data is not similar at all, because either types or states	
 			// are incompatible															
-			PC_COMPARE_VERBOSE(ccRed << "Data types are not compatible: "
+			VERBOSE(ccRed << "Data types are not compatible: "
 				<< GetToken() << " != " << right.GetToken());
 			return false;
 		}
 
 		if (mType->mStaticDescriptor.mComparer) {
 			// Call the reflected == operator										
-			PC_COMPARE_VERBOSE("Comparing using reflected operator ==");
-			for (pcptr i = 0; i < mCount; ++i) {
+			VERBOSE("Comparing using reflected operator ==");
+			for (Count i = 0; i < mCount; ++i) {
 				auto lhs = resolve ? GetElementResolved(i) : GetElement(i);
 				auto rhs = resolve ? right.GetElementResolved(i) : right.GetElement(i);
 				if (lhs.GetDataID() != rhs.GetDataID()) {
 					// Fail comparison on first mismatch							
-					PC_COMPARE_VERBOSE(ccRed << "Element " << i << " differs by type: "
+					VERBOSE(ccRed << "Element " << i << " differs by type: "
 						<< lhs.GetToken() << " != " << rhs.GetToken());
 					return false;
 				}
@@ -76,37 +76,37 @@ namespace Langulus::Anyness
 
 				if (!lhs.mRaw || !rhs.mRaw || !mType->mStaticDescriptor.mComparer(lhs.mRaw, rhs.mRaw)) {
 					// Fail comparison on first mismatch							
-					PC_COMPARE_VERBOSE(ccRed << "Element " << i << " differs: "
+					VERBOSE(ccRed << "Element " << i << " differs: "
 						<< lhs.GetToken() << " != " << rhs.GetToken());
 					return false;
 				}
 			}
 
-			PC_COMPARE_VERBOSE(ccGreen << "Data is the same, all elements match "
+			VERBOSE(ccGreen << "Data is the same, all elements match "
 				<< ccDarkYellow << "(slow)");
 			return true;
 		}
 
 		if (mType->IsPOD() && right.mType->IsPOD() && mType->GetStride() == right.mType->GetStride()) {
 			// Just compare the memory directly (optimization)					
-			PC_COMPARE_VERBOSE("Comparing POD memory");
+			VERBOSE("Comparing POD memory");
 			const auto code = memcmp(mRaw, right.mRaw, mCount * mType->GetStride());
 			if (code == 0) 
-				PC_COMPARE_VERBOSE(ccGreen << "POD memory is the same (fast)");
+				VERBOSE(ccGreen << "POD memory is the same (fast)");
 			else
-				PC_COMPARE_VERBOSE(ccRed << "POD memory is not the same "
+				VERBOSE(ccRed << "POD memory is not the same "
 					<< ccRed << "(fast)");
 			return code == 0;
 		}
 
 		// Compare all elements, one by one											
-		pcptr compared_members = 0;
-		for (pcptr i = 0; i < mCount; ++i) {
+		Count compared_members = 0;
+		for (Count i = 0; i < mCount; ++i) {
 			auto lhs = resolve ? GetElementResolved(i) : GetElement(i);
 			auto rhs = resolve ? right.GetElementResolved(i) : right.GetElement(i);
 			if (!lhs.CompareMembers(rhs, compared_members)) {
 				// Fail comparison on first mismatch								
-				PC_COMPARE_VERBOSE(ccRed << "Members in element " << i << " differ: "
+				VERBOSE(ccRed << "Members in element " << i << " differ: "
 					<< lhs.GetToken() << " != " << rhs.GetToken());
 				return false;
 			}
@@ -115,7 +115,7 @@ namespace Langulus::Anyness
 		SAFETY(if (compared_members == 0 && mCount > 0)
 			pcLogFuncError << "Comparing checked no members");
 
-		PC_COMPARE_VERBOSE(ccGreen << "Data is the same, all members match " 
+		VERBOSE(ccGreen << "Data is the same, all members match " 
 			<< ccRed << "(slowest)");
 		return true;
 	}
@@ -124,8 +124,8 @@ namespace Langulus::Anyness
 	///	@param right - block to compare against										
 	///	@param compared - [in/out] the number of compared members				
 	///	@return false if any member differs												
-	bool Block::CompareMembers(const Block& right, pcptr& compared) const {
-		PC_COMPARE_VERBOSE_TAB("Comparing the members of " << GetToken());
+	bool Block::CompareMembers(const Block& right, Count& compared) const {
+		VERBOSE_TAB("Comparing the members of " << GetToken());
 
 		// Take care of memory blocks directly										
 		if (Is<Block>() || Is<Any>()) {
@@ -170,4 +170,4 @@ namespace Langulus::Anyness
 		return true;
 	}
 
-} // namespace Langulus::Anyness
+} // namespace Langulus::Anyness::Inner

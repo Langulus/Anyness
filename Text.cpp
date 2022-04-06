@@ -1,12 +1,11 @@
-#include "../include/PCFW.Memory.hpp"
-#include <utf8.h>
+#include "Text.hpp"
 
 namespace Langulus::Anyness
 {
 
 	/// Default construction																	
 	Text::Text()
-		: Block {DState::Typed, PCMEMORY.GetFallbackMetaChar(), 0, static_cast<void*>(nullptr)} {}
+		: Block {DataState::Typed, PCMEMORY.GetFallbackMetaChar(), 0, static_cast<void*>(nullptr)} {}
 
 	/// Do a shallow copy																		
 	///	@param other - the text to shallow-copy										
@@ -19,8 +18,8 @@ namespace Langulus::Anyness
 	/// Construct manually from text memory and count									
 	///	@param text - text memory to reference											
 	///	@param count - number of characters inside text								
-	Text::Text(const char* text, pcptr count)
-		: Block {DState::Constant + DState::Typed, PCMEMORY.GetFallbackMetaChar(), count, text} {
+	Text::Text(const char* text, Count count)
+		: Block {DataState::Constant + DataState::Typed, PCMEMORY.GetFallbackMetaChar(), count, text} {
 		bool no_jury;
 		PCMEMORY.Reference(mType, mRaw, 1, no_jury);
 		if (no_jury) {
@@ -34,7 +33,7 @@ namespace Langulus::Anyness
 	/// Construct manually from wide text memory and count							
 	///	@param text - wide text memory to reference									
 	///	@param count - number of characters inside wide text						
-	Text::Text(const wchar_t* text, pcptr count)
+	Text::Text(const wchar_t* text, Count count)
 		: Text{} {
 		try {
 			#if WCHAR_MAX > 0xffff
@@ -152,7 +151,7 @@ namespace Langulus::Anyness
 		PCMEMORY.Reference(mType, mRaw, -1);
 		mRaw = nullptr;
 		mCount = mReserved = 0;
-		mState = DState::Typed;
+		mState = DataState::Typed;
 	}
 
 	/// Hash the text																				
@@ -163,12 +162,12 @@ namespace Langulus::Anyness
 
 	/// Count the number of newline characters											
 	///	@return the number of newline characters + 1, or zero if empty			
-	NOD() pcptr Text::GetLineCount() const noexcept {
+	NOD() Count Text::GetLineCount() const noexcept {
 		if (mCount == 0)
 			return 0;
 
-		pcptr lines = 1;
-		for (pcptr i = 0; i < mCount; ++i) {
+		Count lines = 1;
+		for (Count i = 0; i < mCount; ++i) {
 			if ((*this)[i] == '\n')
 				++lines;
 		}
@@ -206,7 +205,7 @@ namespace Langulus::Anyness
 		mState = other.mState;
 		other.mRaw = nullptr;
 		other.mCount = other.mReserved = 0;
-		other.mState = DState::Typed;
+		other.mState = DataState::Typed;
 		return *this;
 	}
 
@@ -236,21 +235,21 @@ namespace Langulus::Anyness
 	/// Compare with another																	
 	///	@param other - text to compare with												
 	///	@return the number of matching symbols											
-	pcptr Text::Matches(const Text& other) const noexcept {
+	Count Text::Matches(const Text& other) const noexcept {
 		return pcStrMatches(GetRaw(), mCount, other.GetRaw(), other.mCount);
 	}
 
 	/// Compare loosely with another, ignoring upper-case								
 	///	@param other - text to compare with												
 	///	@return the number of matching symbols											
-	pcptr Text::MatchesLoose(const Text& other) const noexcept {
+	Count Text::MatchesLoose(const Text& other) const noexcept {
 		return pcStrMatchesLoose(GetRaw(), mCount, other.GetRaw(), other.mCount);
 	}
 
 	/// Access specific character (unsafe)													
 	///	@param i - index of character														
 	///	@return constant reference to the character									
-	const char& Text::operator[] (const pcptr i) const {
+	const char& Text::operator[] (const Count i) const {
 		SAFETY(if (i >= mCount)
 			throw Except::BadAccess("Text access index is out of range"));
 		return GetRaw()[i];
@@ -259,7 +258,7 @@ namespace Langulus::Anyness
 	/// Access specific character (unsafe)													
 	///	@param i - index of character														
 	///	@return constant reference to the character									
-	char& Text::operator[] (const pcptr i) {
+	char& Text::operator[] (const Count i) {
 		SAFETY(if (i >= mCount)
 			throw Except::BadAccess("Text access index is out of range"));
 		return GetRaw()[i];
@@ -273,7 +272,7 @@ namespace Langulus::Anyness
 
 		TAny<pcu16> to;
 		to.Allocate(mCount);
-		pcptr newCount = 0;
+		Count newCount = 0;
 		try {
 			newCount = (pcP2N(utf8::utf8to16(begin(), end(), to.begin())) - pcP2N(to.begin())) / 2;
 		}
@@ -292,7 +291,7 @@ namespace Langulus::Anyness
 
 		TAny<pcu32> to;
 		to.Allocate(mCount);
-		pcptr newCount = 0;
+		Count newCount = 0;
 		try {
 			newCount = (pcP2N(utf8::utf8to32(begin(), end(), to.begin())) - pcP2N(to.begin())) / 4;
 		}
@@ -367,8 +366,8 @@ namespace Langulus::Anyness
 	///	@param pattern - the pattern to search for									
 	///	@param offset - [out] offset to set if found									
 	///	@return true if pattern was found												
-	bool Text::FindOffset(const Text& pattern, pcptr& offset) const {
-		for (pcptr i = offset; i < mCount; ++i) {
+	bool Text::FindOffset(const Text& pattern, Count& offset) const {
+		for (Count i = offset; i < mCount; ++i) {
 			if (pcStrMatches(GetRaw() + i, mCount - i, pattern.GetRaw(), pattern.mCount) == pattern.mCount) {
 				offset = i;
 				return true;
@@ -381,13 +380,13 @@ namespace Langulus::Anyness
 	///	@param pattern - the pattern to search for									
 	///	@param offset - [out] offset to set if found									
 	///	@return true if pattern was found												
-	bool Text::FindOffsetReverse(const Text& pattern, pcptr& offset) const {
+	bool Text::FindOffsetReverse(const Text& pattern, Count& offset) const {
 		if (pattern.mCount >= mCount)
 			return pcStrMatches(GetRaw(), mCount, pattern.GetRaw(), pattern.mCount) == pattern.mCount;
 
 		for (int i = int(mCount) - int(pattern.mCount) - int(offset); i >= 0 && i < int(mCount); --i) {
 			if (pcStrMatches(GetRaw() + i, mCount - i, pattern.GetRaw(), pattern.mCount) == pattern.mCount) {
-				offset = pcptr(i);
+				offset = Count(i);
 				return true;
 			}
 		}
@@ -399,7 +398,7 @@ namespace Langulus::Anyness
 	///	@param pattern - the pattern to search for									
 	///	@return true on first match														
 	bool Text::Find(const Text& pattern) const {
-		for (pcptr i = 0; i < mCount; ++i) {
+		for (Count i = 0; i < mCount; ++i) {
 			if (pcStrMatches(GetRaw() + i, mCount - i, pattern.GetRaw(), pattern.mCount) == pattern.mCount)
 				return true;
 		}
@@ -411,13 +410,13 @@ namespace Langulus::Anyness
 	///	@param pattern - the pattern with the wildcards								
 	///	@return true on first match														
 	bool Text::FindWild(const Text& pattern) const {
-		pcptr scan_offset = 0;
-		for (pcptr i = 0; i < pattern.mCount; ++i) {
+		Count scan_offset = 0;
+		for (Count i = 0; i < pattern.mCount; ++i) {
 			if (pattern[i] == '*')
 				continue;
 
 			// Get every substring between *s										
-			pcptr accum = 0;
+			Count accum = 0;
 			while (i + accum < pattern.mCount && pattern[i + accum] != '*')
 				++accum;
 
@@ -437,7 +436,7 @@ namespace Langulus::Anyness
 	///	@param start - offset of the starting character								
 	///	@param count - the number of characters after 'start'						
 	///	@return a new container that references the original memory				
-	Text Text::Crop(pcptr start, pcptr count) const {
+	Text Text::Crop(Count start, Count count) const {
 		Text result;
 		static_cast<Block&>(result) = Block::Crop(start, count);
 		result.ReferenceBlock(1);
@@ -449,8 +448,8 @@ namespace Langulus::Anyness
 	///	@return a new container with the text stripped								
 	Text Text::Strip(char symbol) const {
 		Text result;
-		pcptr start = 0, end = 0;
-		for (pcptr i = 0; i <= mCount; ++i) {
+		Count start = 0, end = 0;
+		for (Count i = 0; i <= mCount; ++i) {
 			if (i == mCount || (*this)[i] == symbol) {
 				const auto size = end - start;
 				if (size) {
@@ -471,7 +470,7 @@ namespace Langulus::Anyness
 	///	@param start - the starting character											
 	///	@param end - the ending character												
 	///	@return a reference to this text													
-	Text& Text::Remove(pcptr start, pcptr end) {
+	Text& Text::Remove(Count start, Count end) {
 		const auto removed = end - start;
 		if (0 == mCount || 0 == removed)
 			return *this;
@@ -488,7 +487,7 @@ namespace Langulus::Anyness
 	/// Extend the string, change count, and if data is out of jurisdiction -	
 	/// move it to a new place where we own it											
 	///	@return an array that represents the extended part							
-	TArray<char> Text::Extend(pcptr count) {
+	TArray<char> Text::Extend(Count count) {
 		const auto lastCount = mCount;
 		if (mCount + count <= mReserved) {
 			mCount += count;
@@ -518,7 +517,7 @@ namespace Langulus::Anyness
 	///	@param pattern - the text to select												
 	///	@return the selection																
 	Text::Selection Text::Select(const ME& pattern) {
-		pcptr offset = 0;
+		Count offset = 0;
 		if (!FindOffset(pattern, offset))
 			return {};
 		return {this, offset, offset + pattern.mCount};
@@ -528,7 +527,7 @@ namespace Langulus::Anyness
 	///	@param start - the starting character											
 	///	@param end - the ending character												
 	///	@return the selection																
-	Text::Selection Text::Select(pcptr start, pcptr end) {
+	Text::Selection Text::Select(Count start, Count end) {
 		if (start > mCount || end > mCount || end < start)
 			return {};
 		return {this, start, end};
@@ -537,7 +536,7 @@ namespace Langulus::Anyness
 	/// Move the text marker																	
 	///	@param marker - cursor position													
 	///	@return the selection																
-	Text::Selection Text::Select(pcptr marker) {
+	Text::Selection Text::Select(Count marker) {
 		if (marker > mCount)
 			return {};
 		return {this, marker, marker};

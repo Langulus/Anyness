@@ -22,7 +22,7 @@ namespace Langulus::Anyness
 	/// Return the lowercase file extension (the part after the last '.')		
 	///	@return a cloned text container with the extension							
 	Text Path::GetExtension() const {
-		pcptr offset = 0;
+		Count offset = 0;
 		if (Text::FindOffsetReverse(".", offset))
 			return Text::Crop(offset + 1, mCount - offset - 1).Lowercase();
 		return {};
@@ -31,7 +31,7 @@ namespace Langulus::Anyness
 	/// Return the directory part of the path												
 	///	@return the directory part, including the last '/'							
 	Path Path::GetDirectory() const {
-		pcptr offset = 0;
+		Count offset = 0;
 		if (Text::FindOffsetReverse("/", offset))
 			return Text::Crop(0, offset + 1);
 		return {};
@@ -40,7 +40,7 @@ namespace Langulus::Anyness
 	/// Return the filename part of the path												
 	///	@return the filename part (after the last '/')								
 	Path Path::GetFilename() const {
-		pcptr offset = 0;
+		Count offset = 0;
 		if (Text::FindOffsetReverse("/", offset))
 			return Text::Crop(offset + 1, mCount - offset - 1);
 		return *this;

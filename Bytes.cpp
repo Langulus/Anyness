@@ -1,11 +1,11 @@
-#include "../include/PCFW.Memory.hpp"
+#include "Bytes.hpp"
 
 namespace Langulus::Anyness
 {
 
 	/// Default construction																	
 	Bytes::Bytes()
-		: Block{ DState::Typed, PCMEMORY.GetFallbackMetaByte(), 0, static_cast<void*>(nullptr) } { }
+		: Block{ DataState::Typed, PCMEMORY.GetFallbackMetaByte(), 0, static_cast<void*>(nullptr) } { }
 
 	/// Do a shallow copy																		
 	///	@param other - the text to shallow-copy										
@@ -18,8 +18,8 @@ namespace Langulus::Anyness
 	/// Construct manually from byte memory and count									
 	///	@param raw - raw memory to reference											
 	///	@param count - number of bytes inside 'raw'									
-	Bytes::Bytes(const void* raw, pcptr count)
-		: Block{ DState::Constant + DState::Typed, PCMEMORY.GetFallbackMetaByte(), count, raw } {
+	Bytes::Bytes(const void* raw, Count count)
+		: Block{ DataState::Constant + DataState::Typed, PCMEMORY.GetFallbackMetaByte(), count, raw } {
 		bool no_jury;
 		PCMEMORY.Reference(mType, mRaw, 1, no_jury);
 		if (no_jury) {
@@ -48,7 +48,7 @@ namespace Langulus::Anyness
 		PCMEMORY.Reference(mType, mRaw, -1);
 		mRaw = nullptr;
 		mCount = mReserved = 0;
-		mState = DState::Typed;
+		mState = DataState::Typed;
 	}
 
 	/// Hash the byte sequence																	
@@ -58,7 +58,7 @@ namespace Langulus::Anyness
 	}
 
 	/// Allocate 'count' elements and fill the container with zeroes				
-	void Bytes::Null(pcptr count) {
+	void Bytes::Null(Count count) {
 		Allocate(count, false, true);
 		pcFillMemory(mRaw, {}, mCount);
 	}
@@ -93,7 +93,7 @@ namespace Langulus::Anyness
 		mState = other.mState;
 		other.mRaw = nullptr;
 		other.mCount = other.mReserved = 0;
-		other.mState = DState::Typed;
+		other.mState = DataState::Typed;
 		return *this;
 	}
 
@@ -113,14 +113,14 @@ namespace Langulus::Anyness
 	/// Compare with another																	
 	///	@param other - text to compare with												
 	///	@return the number of matching symbols											
-	pcptr Bytes::Matches(const Bytes& other) const noexcept {
+	Count Bytes::Matches(const Bytes& other) const noexcept {
 		return pcMatchBytes(GetRaw(), mCount, other.GetRaw(), other.mCount);
 	}
 
 	/// Access specific character (unsafe)													
 	///	@param i - index of character														
 	///	@return constant reference to the character									
-	const pcbyte& Bytes::operator[] (const pcptr i) const {
+	const pcbyte& Bytes::operator[] (const Count i) const {
 		SAFETY(if (i >= mCount)
 			throw Except::BadAccess("Byte access index is out of range"));
 		return GetRaw()[i];
@@ -129,7 +129,7 @@ namespace Langulus::Anyness
 	/// Access specific character (unsafe)													
 	///	@param i - index of character														
 	///	@return constant reference to the character									
-	pcbyte& Bytes::operator[] (const pcptr i) {
+	pcbyte& Bytes::operator[] (const Count i) {
 		SAFETY(if (i >= mCount)
 			throw Except::BadAccess("Byte access index is out of range"));
 		return GetRaw()[i];
@@ -153,7 +153,7 @@ namespace Langulus::Anyness
 	///	@param start - the starting byte offset										
 	///	@param count - the number of bytes after 'start' to remain				
 	///	@return a new container that references the original memory				
-	Bytes Bytes::Crop(pcptr start, pcptr count) const {
+	Bytes Bytes::Crop(Count start, Count count) const {
 		Bytes result;
 		static_cast<Block&>(result) = Block::Crop(start, count);
 		result.ReferenceBlock(1);
@@ -165,7 +165,7 @@ namespace Langulus::Anyness
 	///	@param start - the starting character											
 	///	@param end - the ending character												
 	///	@return a reference to this text													
-	Bytes& Bytes::Remove(pcptr start, pcptr end) {
+	Bytes& Bytes::Remove(Count start, Count end) {
 		const auto removed = end - start;
 		if (0 == mCount || 0 == removed)
 			return *this;
@@ -182,7 +182,7 @@ namespace Langulus::Anyness
 	/// Extend the byte sequence, change count, and if data is out of				
 	/// jurisdiction - move it to a new place where we own it						
 	///	@return an array that represents the extended part							
-	TArray<pcbyte> Bytes::Extend(pcptr count) {
+	TArray<pcbyte> Bytes::Extend(Count count) {
 		const auto lastCount = mCount;
 		if (mCount + count <= mReserved) {
 			mCount += count;

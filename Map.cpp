@@ -1,6 +1,4 @@
 #include "Map.hpp"
-#include "../Block/Block.inl"
-#include "../TConverter.hpp"
 
 namespace Langulus::Anyness
 {
@@ -21,7 +19,7 @@ namespace Langulus::Anyness
 		, mKeys{ keys } { }
 
 	/// Create a typed map container															
-	Map Map::From(DMeta keyType, DMeta valueType, const DState& state) noexcept {
+	Map Map::From(DMeta keyType, DMeta valueType, const DataState& state) noexcept {
 		return Map(
 			Block(state, keyType, 0, static_cast<void*>(nullptr)), 
 			Block(state, valueType, 0, static_cast<void*>(nullptr))

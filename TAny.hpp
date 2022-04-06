@@ -1,5 +1,5 @@
 #pragma once
-#include "Text.hpp"
+#include "inner/Block.hpp"
 
 namespace Langulus::Anyness
 {

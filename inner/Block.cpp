@@ -1,9 +1,9 @@
-#include "../include/PCFW.Memory.hpp"
+#include "Block.hpp"
 
 #define PC_VERBOSE_DECAY_ERRORS(a) //pcLogFuncError << a
 #define PC_VERBOSE_HASHING(a) //pcLogSpecial << a
 
-namespace Langulus::Anyness
+namespace Langulus::Anyness::Inner
 {
 
 	/// Get the token of the contained type												
@@ -48,7 +48,7 @@ namespace Langulus::Anyness
 	///	@param elements - number of elements to allocate							
 	///	@param construct - set to true in order to construct memory & count	
 	///	@param setcount - set the count even if not constructed					
-	void Block::Allocate(pcptr elements, bool construct, bool setcount) {
+	void Block::Allocate(Count elements, bool construct, bool setcount) {
 		if (!mType) {
 			throw Except::BadAllocation(pcLogFuncError
 				<< "Attempting to allocate " << elements 
@@ -122,13 +122,13 @@ namespace Langulus::Anyness
 	///	@param elements - number of elements to append								
 	///	@param construct - true to default-initialize new memory					
 	///	@param setcount - true to force set count without initializing			
-	void Block::Extend(pcptr elements, bool construct, bool setcount) {
+	void Block::Extend(Count elements, bool construct, bool setcount) {
 		Allocate(mReserved + elements, construct, setcount);
 	}
 
 	/// Shrink the block, depending on currently reserved	elements					
 	///	@param elements - number of elements to shrink by (relative)			
-	void Block::Shrink(pcptr elements) {
+	void Block::Shrink(Count elements) {
 		Allocate(mReserved - std::min(elements, mReserved));
 	}
 
@@ -150,7 +150,7 @@ namespace Langulus::Anyness
 	///	@param start - starting element index											
 	///	@param count - number of elements												
 	///	@return the block representing the region										
-	Block Block::CropInner(const pcptr start, const pcptr count) {
+	Block Block::CropInner(const Count start, const Count count) {
 		Block result {
 			mState, mType, 
 			std::min(start < mCount ? mCount - start : 0, count), 
@@ -166,7 +166,7 @@ namespace Langulus::Anyness
 	///	@param start - starting element index											
 	///	@param count - number of elements to remain after 'start'				
 	///	@return the block representing the region										
-	Block Block::Crop(pcptr start, pcptr count) {
+	Block Block::Crop(Count start, Count count) {
 		#if LANGULUS_SAFE()
 			if (start > mCount) {
 				start = mCount;
@@ -184,7 +184,7 @@ namespace Langulus::Anyness
 			return Block { mState, mType };
 
 		return Block {
-			mState + DState::Static + DState::Typed, mType,
+			mState + DataState::Static + DataState::Typed, mType,
 			count, At(start * mType->GetStride())
 		};
 	}
@@ -194,9 +194,9 @@ namespace Langulus::Anyness
 	///	@param start - starting element index											
 	///	@param count - number of elements												
 	///	@return the block representing the region										
-	Block Block::Crop(const pcptr start, const pcptr count) const {
+	Block Block::Crop(const Count start, const Count count) const {
 		auto result = const_cast<Block*>(this)->Crop(start, count);
-		result.mState += DState::Constant;
+		result.mState += DataState::Constant;
 		return result;
 	}
 
@@ -234,7 +234,7 @@ namespace Langulus::Anyness
 	Block Block::GetBaseMemory(DMeta meta, const Memory::LinkedBase& base) const {
 		if (base.mStaticBase.mMapping) {
 			return Block {
-				DState::Static + DState::Typed, meta,
+				DataState::Static + DataState::Typed, meta,
 				GetCount() * base.mStaticBase.mCount,
 				Get<pcbyte*>()
 			};
@@ -242,13 +242,13 @@ namespace Langulus::Anyness
 
 		if (IsEmpty()) {
 			return Block {
-				DState::Default, meta, 0, 
+				DataState::Default, meta, 0, 
 				static_cast<const void*>(nullptr)
 			};
 		}
 
 		return Block {
-			DState::Static + DState::Typed, meta, 1, 
+			DataState::Static + DataState::Typed, meta, 1, 
 			Get<pcbyte*>(0, base.mStaticBase.mLocalOffset)
 		};
 	}
@@ -260,7 +260,7 @@ namespace Langulus::Anyness
 	Block Block::GetBaseMemory(DMeta meta, const Memory::LinkedBase& base) {
 		if (base.mStaticBase.mMapping) {
 			return Block {
-				DState::Static + DState::Typed, meta, 
+				DataState::Static + DataState::Typed, meta, 
 				GetCount() * base.mStaticBase.mCount, 
 				Get<pcbyte*>()
 			};
@@ -268,12 +268,12 @@ namespace Langulus::Anyness
 
 		if (IsEmpty()) {
 			return Block {
-				DState::Default, meta, 0, static_cast<void*>(nullptr)
+				DataState::Default, meta, 0, static_cast<void*>(nullptr)
 			};
 		}
 
 		return Block {
-			DState::Static + DState::Typed, meta, 1, 
+			DataState::Static + DataState::Typed, meta, 1, 
 			Get<pcbyte*>(0, base.mStaticBase.mLocalOffset)
 		};
 	}
@@ -383,7 +383,7 @@ namespace Langulus::Anyness
 	/// Toggle memory state																		
 	///	@param state - the state to toggle												
 	///	@param toggle - whether to enable the forementioned state or not		
-	void Block::ToggleState(const DState& state, bool toggle) {
+	void Block::ToggleState(const DataState& state, bool toggle) {
 		if (toggle)	mState += state;
 		else			mState -= state;
 	}
@@ -391,42 +391,42 @@ namespace Langulus::Anyness
 	/// Make memory block vacuum (a.k.a. missing)										
 	///	@return reference to itself														
 	Block& Block::MakeMissing() {
-		mState += DState::Missing;
+		mState += DataState::Missing;
 		return *this;
 	}
 
 	/// Make memory block static (unmovable and unresizable)							
 	///	@return reference to itself														
 	Block& Block::MakeStatic() {
-		mState += DState::Static;
+		mState += DataState::Static;
 		return *this;
 	}
 
 	/// Make memory block constant (unresizable and unchangable)					
 	///	@return reference to itself														
 	Block& Block::MakeConstant() {
-		mState += DState::Constant;
+		mState += DataState::Constant;
 		return *this;
 	}
 
 	/// Make memory block type-immutable													
 	///	@return reference to itself														
 	Block& Block::MakeTypeConstrained() {
-		mState += DState::Typed;
+		mState += DataState::Typed;
 		return *this;
 	}
 
 	/// Make memory block exlusive (a.k.a. OR container)								
 	///	@return reference to itself														
 	Block& Block::MakeOr() {
-		mState += DState::Or;
+		mState += DataState::Or;
 		return *this;
 	}
 
 	/// Make memory block inclusive (a.k.a. AND container)							
 	///	@return reference to itself														
 	Block& Block::MakeAnd() {
-		mState -= DState::Or;
+		mState -= DataState::Or;
 		return *this;
 	}
 
@@ -453,7 +453,7 @@ namespace Langulus::Anyness
 		if (mType->mStaticDescriptor.mHasher) {
 			// Custom hasher - use it													
 			Hash cumulativeHash;
-			for (pcptr i = 0; i < mCount; ++i) {
+			for (Count i = 0; i < mCount; ++i) {
 				auto element = GetElementDense(i);
 				const auto h = mType->mStaticDescriptor.mHasher(element.mRaw);
 				PC_VERBOSE_HASHING("Hash: " << h << " via " << GetToken());
@@ -472,7 +472,7 @@ namespace Langulus::Anyness
 		// Slow fallback																	
 		// Execute hash on each hashable element and then combine hashes	
 		Hash cumulativeHash;
-		for (pcptr i = 0; i < mCount; ++i)
+		for (Count i = 0; i < mCount; ++i)
 			cumulativeHash |= GetElementResolved(i).GetHash();
 		return cumulativeHash;
 	}
@@ -485,7 +485,7 @@ namespace Langulus::Anyness
 
 	/// Get the data switch (checks only against dense IDs)							
 	///	@return the data id																	
-	pcptr Block::GetDataSwitch() const noexcept {
+	Count Block::GetDataSwitch() const noexcept {
 		return mType ? mType->GetSwitch() : 0;
 	}
 
@@ -553,26 +553,26 @@ namespace Langulus::Anyness
 
 	/// Get the number of sub-blocks (this one included)								
 	///	@return at least 1																	
-	pcptr Block::GetCountDeep() const noexcept {
+	Count Block::GetCountDeep() const noexcept {
 		if (!IsDeep())
 			return 1;
 
-		pcptr counter = 1;
-		for (pcptr i = 0; i < mCount; ++i)
+		Count counter = 1;
+		for (Count i = 0; i < mCount; ++i)
 			counter += As<Block>(i).GetCountDeep();
 		return counter;
 	}
 
 	/// Get the sum of elements in all sub-blocks										
 	///	@returns the deep count of elements												
-	pcptr Block::GetCountElementsDeep() const noexcept {
+	Count Block::GetCountElementsDeep() const noexcept {
 		if (!mType)
 			return 0;
 		if (!IsDeep())
 			return mCount;
 
-		pcptr counter = 0;
-		for (pcptr i = 0; i < mCount; ++i)
+		Count counter = 0;
+		for (Count i = 0; i < mCount; ++i)
 			counter += As<Block>(i).GetCountElementsDeep();
 		return counter;
 	}
@@ -601,7 +601,7 @@ namespace Langulus::Anyness
 	/// inaccurate for containers that have an abstract type. You should			
 	/// resolve an element prior to checking its size!									
 	///	@return the byte size																
-	pcptr Block::GetStride() const noexcept {
+	Count Block::GetStride() const noexcept {
 		return !mType ? 0 : mType->GetStride();
 	}
 
@@ -633,7 +633,7 @@ namespace Langulus::Anyness
 	///	@param type - the type check if current type interprets to				
 	///	@param count - the number of elements to interpret as						
 	///	@return true if able to interpret current type to 'type'					
-	bool Block::InterpretsAs(DMeta type, pcptr count) const {
+	bool Block::InterpretsAs(DMeta type, Count count) const {
 		return !mType || !type || mType->InterpretsAs(type, count);
 	}
 
@@ -648,9 +648,9 @@ namespace Langulus::Anyness
 	/// Get a specific element block without doing any type checks					
 	///	@param index - the index element													
 	///	@return the element's block														
-	Block Block::GetElement(pcptr index) noexcept {
+	Block Block::GetElement(Count index) noexcept {
 		return Block {
-			(mState + DState::Static) - DState::Or,
+			(mState + DataState::Static) - DataState::Or,
 			mType, 1, At(index * mType->GetStride())
 		};
 	}
@@ -658,9 +658,9 @@ namespace Langulus::Anyness
 	/// Get a specific element block without doing any type checks (const)		
 	///	@param index - the index element													
 	///	@return the element's block														
-	const Block Block::GetElement(pcptr index) const noexcept {
+	const Block Block::GetElement(Count index) const noexcept {
 		return Block {
-			(mState + DState::Static) - DState::Or,
+			(mState + DataState::Static) - DataState::Or,
 			mType, 1, At(index * mType->GetStride())
 		};
 	}
@@ -669,7 +669,7 @@ namespace Langulus::Anyness
 	///	@attention the element might be empty if a sparse nullptr				
 	///	@param index - index of the element inside the block						
 	///	@return the dense memory block for the element								
-	Block Block::GetElementDense(pcptr index) {
+	Block Block::GetElementDense(Count index) {
 		auto element = GetElement(index);
 		if (mType->IsSparse()) {
 			element.mType = element.mType->GetDenseMeta();
@@ -684,7 +684,7 @@ namespace Langulus::Anyness
 	/// Get the dense block of an element inside the block							
 	///	@param index - index of the element inside the block						
 	///	@return the dense memory block for the element								
-	const Block Block::GetElementDense(pcptr index) const {
+	const Block Block::GetElementDense(Count index) const {
 		return const_cast<Block*>(this)->GetElementDense(index);
 	}
 	
@@ -692,7 +692,7 @@ namespace Langulus::Anyness
 	///	@attention the element might be empty if resolved a sparse nullptr	
 	///	@param index - index of the element inside the block						
 	///	@return the dense resolved memory block for the element					
-	Block Block::GetElementResolved(pcptr index) {
+	Block Block::GetElementResolved(Count index) {
 		auto element = GetElementDense(index);
 		if (!element.mRaw || !mType->IsResolvable())
 			return element;
@@ -704,22 +704,22 @@ namespace Langulus::Anyness
 	/// Get the dense const block of an element inside the block					
 	///	@param index - index of the element inside the block						
 	///	@return the dense resolved memory block for the element					
-	const Block Block::GetElementResolved(pcptr index) const {
+	const Block Block::GetElementResolved(Count index) const {
 		return const_cast<Block*>(this)->GetElementResolved(index);
 	}
 	
 	/// Get a deep memory sub-block															
 	///	@param index - the index to get, where 0 corresponds to this			
 	///	@return a pointer to the block or nullptr if index is invalid			
-	Block* Block::GetBlockDeep(pcptr index) noexcept {
+	Block* Block::GetBlockDeep(Count index) noexcept {
 		if (index == 0)
 			return this;
 		if (!IsDeep())
 			return nullptr;
 
 		--index;
-		for (pcptr i = 0; i < mCount; i += 1) {
-			auto ith = As<Block*>(pcptr(i));
+		for (Count i = 0; i < mCount; i += 1) {
+			auto ith = As<Block*>(Count(i));
 			const auto count = ith->GetCountDeep();
 			if (index <= count) {
 				auto subpack = ith->GetBlockDeep(index);
@@ -736,22 +736,22 @@ namespace Langulus::Anyness
 	/// Get a deep memory sub-block (const)												
 	///	@param index - the index to get													
 	///	@return a pointer to the block or nullptr if index is invalid			
-	const Block* Block::GetBlockDeep(pcptr index) const noexcept {
+	const Block* Block::GetBlockDeep(Count index) const noexcept {
 		return const_cast<Block*>(this)->GetBlockDeep(index);
 	}
 
 	/// Get a deep element block																
 	///	@param index - the index to get													
 	///	@return the element block															
-	Block Block::GetElementDeep(pcptr index) noexcept {
+	Block Block::GetElementDeep(Count index) noexcept {
 		if (!mType)
 			return {};
 
 		if (!IsDeep())
 			return index < mCount ? GetElement(index) : Block();
 
-		for (pcptr i = 0; i != mCount; i += 1) {
-			auto ith = As<Block*>(pcptr(i));
+		for (Count i = 0; i != mCount; i += 1) {
+			auto ith = As<Block*>(Count(i));
 			const auto count = ith->GetCountElementsDeep();
 			if (index < count) 
 				return ith->GetElementDeep(index);
@@ -765,7 +765,7 @@ namespace Langulus::Anyness
 	/// Get a deep element block (const)													
 	///	@param index - the index to get													
 	///	@return the element block															
-	const Block Block::GetElementDeep(pcptr index) const noexcept {
+	const Block Block::GetElementDeep(Count index) const noexcept {
 		return const_cast<Block*>(this)->GetElementDeep(index);
 	}
 
@@ -786,7 +786,7 @@ namespace Langulus::Anyness
 		}
 
 		// Construct every UNINITIALIZED element									
-		for (pcptr i = 0; i < mReserved; ++i) {
+		for (Count i = 0; i < mReserved; ++i) {
 			auto element = GetElement(i);
 			mType->mStaticDescriptor.mDefaultConstructor(element.mRaw);
 		}
@@ -808,7 +808,7 @@ namespace Langulus::Anyness
 				// dense memory behind each one of them							
 				const auto densed = mType->GetDenseMeta();
 				auto pointers = GetPointers();
-				pcptr c = 0;
+				Count c = 0;
 				while (c < mReserved) {
 					// Reference each pointer											
 					PCMEMORY.Reference(densed, pointers[c], 1);
@@ -824,7 +824,7 @@ namespace Langulus::Anyness
 			// LHS is pointer, RHS must be dense									
 			// Copy each pointer from RHS, and reference it						
 			auto pointers = GetPointers();
-			for (pcptr i = 0; i < mReserved; ++i) {
+			for (Count i = 0; i < mReserved; ++i) {
 				const auto element = source.GetElement(i);
 				pointers[i] = element.mRaw;
 				PCMEMORY.Reference(mType->GetDenseMeta(), pointers[i], 1);
@@ -837,7 +837,7 @@ namespace Langulus::Anyness
 				// Block's copy constructors don't reference, so we must		
 				// compensate for that here											
 				auto pointers = source.GetPointers();
-				for (pcptr i = 0; i < mReserved; ++i) {
+				for (Count i = 0; i < mReserved; ++i) {
 					Block& block = Get<Block>(i);
 					new (&block) Block { *static_cast<const Block*>(pointers[i]) };
 					block.Keep();
@@ -852,7 +852,7 @@ namespace Langulus::Anyness
 				}
 
 				auto pointers = source.GetPointers();
-				for (pcptr i = 0; i < mReserved; ++i) {
+				for (Count i = 0; i < mReserved; ++i) {
 					auto element = GetElement(i);
 					mType->mStaticDescriptor
 						.mCopyConstructor(element.mRaw, pointers[i]);
@@ -864,7 +864,7 @@ namespace Langulus::Anyness
 			if (mType->Is<Block>()) {
 				// Block's copy constructors don't reference, so we must		
 				// compensate for that here											
-				for (pcptr i = 0; i < mReserved; ++i) {
+				for (Count i = 0; i < mReserved; ++i) {
 					Block& blockTo = Get<Block>(i);
 					const Block& blockFrom = source.Get<Block>(i);
 					new (&blockTo) Block { blockFrom };
@@ -879,7 +879,7 @@ namespace Langulus::Anyness
 						<< GetToken() << " because no copy constructor was reflected");
 				}
 
-				for (pcptr i = 0; i < mReserved; ++i) {
+				for (Count i = 0; i < mReserved; ++i) {
 					auto lhs = GetElement(i);
 					auto rhs = source.GetElement(i);
 					mType->mStaticDescriptor
@@ -911,7 +911,7 @@ namespace Langulus::Anyness
 			}
 
 			auto pointers = source.GetPointers();
-			for (pcptr i = 0; i < mReserved; ++i) {
+			for (Count i = 0; i < mReserved; ++i) {
 				auto element = GetElement(i);
 				mType->mStaticDescriptor.mMoveConstructor(
 					element.mRaw, pointers[i]);
@@ -921,7 +921,7 @@ namespace Langulus::Anyness
 			// LHS is pointer, RHS must be dense									
 			// Copy each element pointer from RHS and reference it			
 			auto pointers = GetPointers();
-			for (pcptr i = 0; i < mReserved; ++i)
+			for (Count i = 0; i < mReserved; ++i)
 				pointers[i] = source.GetElement(i).mRaw;
 
 			// Can't actually move, you know, just reference rhs by count	
@@ -935,7 +935,7 @@ namespace Langulus::Anyness
 					<< GetToken() << " because no move constructor was reflected");
 			}
 
-			for (pcptr i = 0; i < mReserved; ++i) {
+			for (Count i = 0; i < mReserved; ++i) {
 				auto lhs = GetElement(i);
 				auto rhs = source.GetElement(i);
 				mType->mStaticDescriptor.mMoveConstructor(
@@ -956,7 +956,7 @@ namespace Langulus::Anyness
 		if (IsSparse()) {
 			// We dereference each pointer - destructors will be called		
 			// only if data behind those pointers is fully dereferenced		
-			for (pcptr i = 0; i < mCount; ++i) {
+			for (Count i = 0; i < mCount; ++i) {
 				auto element = GetElementResolved(i);
 				element.ReferenceBlock(-1);
 			}
@@ -969,7 +969,7 @@ namespace Langulus::Anyness
 		else if (mType->Is<Block>()) {
 			// Special care for Blocks, because their destructors don't		
 			// dereference - we must compensate										
-			for (pcptr i = 0; i < mCount; ++i) {
+			for (Count i = 0; i < mCount; ++i) {
 				Block& block = Get<Block>(i);
 				block.Free();
 				block.ResetInner();
@@ -984,7 +984,7 @@ namespace Langulus::Anyness
 					<< " because no destructor was reflected");
 			}
 
-			for (pcptr i = 0; i < mCount; ++i) {
+			for (Count i = 0; i < mCount; ++i) {
 				auto element = GetElement(i);
 				mType->mStaticDescriptor.mDestructor(element.mRaw);
 			}
@@ -1023,7 +1023,7 @@ namespace Langulus::Anyness
 	///	@param index - special index														
 	///	@param count - number of items to remove										
 	///	@return the number of removed elements											
-	pcptr Block::RemoveIndex(const Index& index, const pcptr count) {
+	Count Block::RemoveIndex(const Index& index, const Count count) {
 		if (index == uiAll) {
 			const auto oldCount = mCount;
 			Free();
@@ -1036,14 +1036,14 @@ namespace Langulus::Anyness
 		if (starter.IsSpecial())
 			return 0;
 
-		return RemoveIndex(pcptr(starter.mIndex), count);
+		return RemoveIndex(Count(starter.mIndex), count);
 	}
 
 	/// Remove sequential raw indices in a given range									
 	///	@param starter - simple index to start removing from						
 	///	@param count - number of elements to remove									
 	///	@return the number of removed elements											
-	pcptr Block::RemoveIndex(const pcptr starter, const pcptr count) {
+	Count Block::RemoveIndex(const Count starter, const Count count) {
 		SAFETY(if (starter >= mCount)
 			throw Except::BadAccess(pcLogFuncError 
 				<< "Index " << starter << " out of range " << mCount));
@@ -1095,8 +1095,8 @@ namespace Langulus::Anyness
 			PCMEMORY.Reference(mType, mRaw, -1);
 			mRaw = nullptr;
 			mReserved = 0;
-			mState -= DState::Static;
-			mState -= DState::Constant;
+			mState -= DataState::Static;
+			mState -= DataState::Constant;
 		}
 
 		return removed;
@@ -1105,16 +1105,16 @@ namespace Langulus::Anyness
 	/// Remove a raw deep index corresponding to a whole block inside				
 	///	@param index - simple index to remove											
 	///	@return 1 if removed																	
-	pcptr Block::RemoveIndexDeep(pcptr index) {
+	Count Block::RemoveIndexDeep(Count index) {
 		if (!IsDeep())
 			return 0;
 
 		--index;
-		for (pcptr i = 0; i != mCount; i += 1) {
+		for (Count i = 0; i != mCount; i += 1) {
 			if (index == 0)
 				return RemoveIndex(i);
 
-			auto ith = As<Block*>(pcptr(i));
+			auto ith = As<Block*>(Count(i));
 			const auto count = ith->GetCountDeep();
 			if (index <= count && ith->RemoveIndexDeep(index))
 				return 1;
@@ -1128,7 +1128,7 @@ namespace Langulus::Anyness
 	/// Remove elements on the back															
 	///	@param count - the new count														
 	///	@return a reference to this block												
-	Block& Block::Trim(const pcptr count) {
+	Block& Block::Trim(const Count count) {
 		if (count >= mCount)
 			return *this;
 
@@ -1141,7 +1141,7 @@ namespace Langulus::Anyness
 	/// @param idx - the place we'll be inserting at									
 	/// @param region - the newly allocated region (no mCount, only mReserved)	
 	/// @return number if inserted items in case of mutation							
-	pcptr Block::AllocateRegion(const Block& other, const Index& idx, Block& region) {
+	Count Block::AllocateRegion(const Block& other, const Index& idx, Block& region) {
 		if (other.IsEmpty())
 			return 0;
 
@@ -1157,7 +1157,7 @@ namespace Langulus::Anyness
 		}
 
 		// Allocate the required memory - this will not initialize it		
-		const auto starter = pcptr(constrained.mIndex);
+		const auto starter = Count(constrained.mIndex);
 		Allocate(mCount + other.mCount);
 
 		// Move memory if required														
@@ -1180,7 +1180,7 @@ namespace Langulus::Anyness
 	///	@param other - the block to insert												
 	///	@param idx - place to insert them at											
 	///	@return the number of inserted elements										
-	pcptr Block::InsertBlock(const Block& other, const Index& idx) {
+	Count Block::InsertBlock(const Block& other, const Index& idx) {
 		Block region;
 		if (AllocateRegion(other, idx, region))
 			return 1;
@@ -1199,7 +1199,7 @@ namespace Langulus::Anyness
 	///	@param other - the block to move													
 	///	@param idx - place to insert them at											
 	///	@return the number of moved elements											
-	pcptr Block::InsertBlock(Block&& other, const Index& idx) {
+	Count Block::InsertBlock(Block&& other, const Index& idx) {
 		Block region;
 		if (AllocateRegion(other, idx, region))
 			return 1;
@@ -1218,9 +1218,9 @@ namespace Langulus::Anyness
 	///	@param other - the block to insert												
 	///	@param idx - place to insert them at											
 	///	@return the number of inserted elements										
-	pcptr Block::MergeBlock(const Block& other, const Index& idx) {
-		pcptr inserted = 0;
-		for (pcptr i = 0; i < other.GetCount(); ++i) {
+	Count Block::MergeBlock(const Block& other, const Index& idx) {
+		Count inserted = 0;
+		for (Count i = 0; i < other.GetCount(); ++i) {
 			auto right = other.GetElementResolved(i);
 			if (uiNone == FindRTTI(right))
 				inserted += InsertBlock(right, idx);
@@ -1235,17 +1235,17 @@ namespace Langulus::Anyness
 	///	@param output - [in/out] container that collects results					
 	///	@param direction - the direction to search from								
 	///	@return the number of gathered elements										
-	pcptr GatherInner(const Block& input, Block& output, const Index direction) {
-		pcptr count = 0;
+	Count GatherInner(const Block& input, Block& output, const Index direction) {
+		Count count = 0;
 		if (input.IsDeep() && !output.IsDeep()) {
 			// Iterate all subpacks														
 			if (direction == uiFront) {
-				for (pcptr i = 0; i < input.GetCount(); ++i) {
+				for (Count i = 0; i < input.GetCount(); ++i) {
 					count += GatherInner(input.As<Block>(i), output, direction);
 				}
 			}
 			else {
-				for (pcptr i = input.GetCount(); i > 0; --i) {
+				for (Count i = input.GetCount(); i > 0; --i) {
 					count += GatherInner(input.As<Block>(i - 1), output, direction);
 				}
 			}
@@ -1266,7 +1266,7 @@ namespace Langulus::Anyness
 	///	@param output - [in/out] container that collects results					
 	///	@param direction - the direction to search from								
 	///	@return the number of gathered elements										
-	pcptr Block::Gather(Block& output, const Index direction) const {
+	Count Block::Gather(Block& output, const Index direction) const {
 		if (output.IsUntyped())
 			return output.InsertBlock(*this);
 		return GatherInner(*this, output, direction);
@@ -1280,20 +1280,20 @@ namespace Langulus::Anyness
 	///	@param direction - the direction to search from								
 	///	@param polarity - polarity filter												
 	///	@return the number of gathered elements										
-	pcptr GatherPolarInner(DMeta target_type, const Block& input, Block& output, const Index direction, Block::Polarity polarity) {
+	Count GatherPolarInner(DMeta target_type, const Block& input, Block& output, const Index direction, Block::Polarity polarity) {
 		if (input.GetPolarity() != polarity) {
 			if (input.GetPolarity() == Block::Now && input.IsDeep()) {
 				// Polarities don't match, but we can dig deeper if deep		
 				// and neutral, since neutral polarity is permissive			
 				auto localOutput = Memory::Any::From(target_type, input.GetUnconstrainedState());
 				if (direction == uiFront) {
-					for (pcptr i = 0; i < input.GetCount(); ++i) {
+					for (Count i = 0; i < input.GetCount(); ++i) {
 						GatherPolarInner(target_type, input.As<Block>(i), 
 							localOutput, direction, polarity);
 					}
 				}
 				else {
-					for (pcptr i = input.GetCount(); i > 0; --i) {
+					for (Count i = input.GetCount(); i > 0; --i) {
 						GatherPolarInner(target_type, input.As<Block>(i - 1), 
 							localOutput, direction, polarity);
 					}
@@ -1323,7 +1323,7 @@ namespace Langulus::Anyness
 	/// Gather items from this container based on polarity. Output type			
 	/// matters - it decides what you'll gather. Preserves hierarchy only if	
 	/// output is deep																			
-	pcptr Block::Gather(Block& output, Polarity polarity, const Index direction) const {
+	Count Block::Gather(Block& output, Polarity polarity, const Index direction) const {
 		return GatherPolarInner(output.GetMeta(), *this, output, direction, polarity);
 	}
 
@@ -1351,7 +1351,7 @@ namespace Langulus::Anyness
 		}
 
 		if (GetCount() > 1 && IsDeep()) {
-			for (pcptr i = 0; i < mCount; ++i) {
+			for (Count i = 0; i < mCount; ++i) {
 				auto& subBlock = As<Block>(i);
 				subBlock.Optimize();
 				if (subBlock.IsEmpty()) {
@@ -1365,9 +1365,9 @@ namespace Langulus::Anyness
 	/// Iterate each element block															
 	///	@param call - the call to execute for each element block					
 	///	@return the number of iterations done											
-	pcptr Block::ForEachElement(TFunctor<bool(const Block&)>&& call) const {
+	Count Block::ForEachElement(TFunctor<bool(const Block&)>&& call) const {
 		const auto count = GetCount();
-		pcptr index = 0;
+		Count index = 0;
 		while (index < count) {
 			auto block = GetElement(index);
 			if (!call(block))
@@ -1381,9 +1381,9 @@ namespace Langulus::Anyness
 	/// Iterate each element block															
 	///	@param call - the call to execute for each element block					
 	///	@return the number of iterations done											
-	pcptr Block::ForEachElement(TFunctor<void(const Block&)>&& call) const {
+	Count Block::ForEachElement(TFunctor<void(const Block&)>&& call) const {
 		const auto count = GetCount();
-		pcptr index = 0;
+		Count index = 0;
 		while (index < count) {
 			auto block = GetElement(index);
 			call(block);
@@ -1396,8 +1396,8 @@ namespace Langulus::Anyness
 	/// Iterate each element block															
 	///	@param call - the call to execute for each element block					
 	///	@return the number of iterations done											
-	pcptr Block::ForEachElement(TFunctor<bool(Block&)>&& call) {
-		pcptr index = 0;
+	Count Block::ForEachElement(TFunctor<bool(Block&)>&& call) {
+		Count index = 0;
 		while (index < GetCount()) {
 			auto block = GetElement(index);
 			if (!call(block))
@@ -1411,8 +1411,8 @@ namespace Langulus::Anyness
 	/// Iterate each element block															
 	///	@param call - the call to execute for each element block					
 	///	@return the number of iterations done											
-	pcptr Block::ForEachElement(TFunctor<void(Block&)>&& call) {
-		pcptr index = 0;
+	Count Block::ForEachElement(TFunctor<void(Block&)>&& call) {
+		Count index = 0;
 		while (index < GetCount()) {
 			auto block = GetElement(index);
 			call(block);

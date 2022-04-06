@@ -1,10 +1,4 @@
-#pragma once
-#include "Block.hpp"
-#include "../Manager/Manager.hpp"
-#include "../Containers/Any.hpp"
-#include "../Containers/Text.hpp"
-
-namespace Langulus::Anyness
+namespace Langulus::Anyness::Inner
 {
 
 	PC_LEAKSAFETY Block::Block(Block&& other) noexcept

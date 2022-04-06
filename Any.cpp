@@ -1,4 +1,4 @@
-#include "../include/PCFW.Memory.hpp"
+#include "Any.hpp"
 
 namespace Langulus::Anyness
 {
@@ -46,7 +46,7 @@ namespace Langulus::Anyness
 				mRaw = other.mRaw;
 				mCount = other.mCount;
 				mReserved = other.mReserved;
-				mState = other.mState + DState::Typed;
+				mState = other.mState + DataState::Typed;
 				Block::Keep();
 				return *this;
 			}
@@ -82,7 +82,7 @@ namespace Langulus::Anyness
 				mRaw = other.mRaw;
 				mCount = other.mCount;
 				mReserved = other.mReserved;
-				mState = other.mState + DState::Typed;
+				mState = other.mState + DataState::Typed;
 				other.ResetInner();
 				return *this;
 			}
@@ -156,7 +156,7 @@ namespace Langulus::Anyness
 	///	@param start - starting element index											
 	///	@param count - number of elements												
 	///	@return the block																		
-	Any Any::Crop(pcptr start, pcptr count) const {
+	Any Any::Crop(Count start, Count count) const {
 		return Any {Block::Crop(start, count)};
 	}
 

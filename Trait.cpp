@@ -1,4 +1,4 @@
-#include "../include/PCFW.Memory.hpp"
+#include "Trait.hpp"
 
 namespace Langulus::Anyness
 {
@@ -90,7 +90,7 @@ namespace Langulus::Anyness
 
 	/// Get the trait ID																			
 	///	@return the trait ID																	
-	pcptr Trait::GetTraitSwitch() const noexcept {
+	Count Trait::GetTraitSwitch() const noexcept {
 		return GetTraitID().GetHash().GetValue();
 	}
 

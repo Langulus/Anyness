@@ -1,8 +1,8 @@
-#include "Block.inl"
+#include "inner/Block.hpp"
 #include <zlib.h>
 #include <assert.h>
 
-namespace Langulus::Anyness
+namespace Langulus::Anyness::Inner
 {
 
 	/// Report a zlib error																		
@@ -30,7 +30,7 @@ namespace Langulus::Anyness
 	/// Containers should always decompress data before deallocating it.			
 	/// Can be used to compress RAM with live links, too.								
 	/// Make sure you serialize, before compressing prior to writing a file.	
-	pcptr Block::Compress(Block& result, Compression compression_ratio) const {
+	Count Block::Compress(Block& result, Compression compression_ratio) const {
 		if (!IsAllocated())
 			return 0;
 
@@ -49,10 +49,10 @@ namespace Langulus::Anyness
 
 		// Source and destination buffers											
 		auto out = new pcbyte[COMPRESSION_CHUNK];
-		pcptr written = 0;
+		Count written = 0;
 
 		// Compress the whole source memory, divided into chunks				
-		for (pcptr i = 0; i < mCount; i += COMPRESSION_CHUNK) {
+		for (Count i = 0; i < mCount; i += COMPRESSION_CHUNK) {
 			strm.avail_in = uInt(mCount - i > COMPRESSION_CHUNK ? COMPRESSION_CHUNK : mCount - i);
 			strm.next_in = reinterpret_cast<pcu8*>(const_cast<pcbyte*>(At(i)));
 			strm.avail_out = COMPRESSION_CHUNK;
@@ -83,7 +83,7 @@ namespace Langulus::Anyness
 	}
 
 	/// Decompress data																			
-	pcptr Block::Decompress(Block& result) const {
+	Count Block::Decompress(Block& result) const {
 		if (!IsAllocated())
 			return 0;
 
@@ -104,10 +104,10 @@ namespace Langulus::Anyness
 
 		// Source and destination buffers											
 		auto out = new pcbyte[COMPRESSION_CHUNK];
-		pcptr written = 0;
+		Count written = 0;
 
 		// Decompress until deflate stream ends or end of file				
-		for (pcptr i = 0; i < mCount; i += COMPRESSION_CHUNK) {
+		for (Count i = 0; i < mCount; i += COMPRESSION_CHUNK) {
 			strm.avail_in = uInt(mCount - i > COMPRESSION_CHUNK ? COMPRESSION_CHUNK : mCount - i);
 			strm.next_in = reinterpret_cast<pcu8*>(const_cast<pcbyte*>(At(i)));
 			strm.avail_out = COMPRESSION_CHUNK;
@@ -143,4 +143,4 @@ namespace Langulus::Anyness
 		return written;
 	}
 
-} // namespace Langulus::Anyness
+} // namespace Langulus::Anyness::Inner

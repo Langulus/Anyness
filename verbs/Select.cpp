@@ -1,8 +1,8 @@
-#include "../include/PCFW.Memory.hpp"
+#include "inner/Block.hpp"
 
-#define PC_SELECT_VERBOSE(a) //pcLogFuncVerbose << a
+#define VERBOSE(a) //pcLogFuncVerbose << a
 
-namespace Langulus::Anyness
+namespace Langulus::Anyness::Inner
 {
 
 	/// Get the memory block corresponding to a local member variable				
@@ -11,10 +11,10 @@ namespace Langulus::Anyness
 	///	@return a static memory block														
 	Block Block::GetMember(const LinkedMember& member) {
 		if (!IsAllocated())
-			return Block(DState::Default, member.mType);
+			return Block(DataState::Default, member.mType);
 
 		return { 
-			DState::Static + DState::Typed, member.mType, 
+			DataState::Static + DataState::Typed, member.mType, 
 			member.mStaticMember.mCount, const_cast<void*>(member.Get(mRaw))
 		};
 	}
@@ -25,7 +25,7 @@ namespace Langulus::Anyness
 	///	@return a static constant memory block											
 	const Block Block::GetMember(const LinkedMember& member) const {
 		auto result = const_cast<Block*>(this)->GetMember(member);
-		result.mState += DState::Constant;
+		result.mState += DataState::Constant;
 		return result;
 	}
 
@@ -34,9 +34,9 @@ namespace Langulus::Anyness
 	///	@param trait - the trait to get													
 	///	@param index - the trait index to get											
 	///	@return a static memory block (constant if block is constant)			
-	Block Block::GetMember(TMeta trait, pcptr index) {
+	Block Block::GetMember(TMeta trait, Count index) {
 		// Scan members																	
-		pcptr counter = 0;
+		Count counter = 0;
 		for (auto& member : mType->GetMemberList()) {
 			if (trait && member.mTrait != trait)
 				continue;
@@ -49,7 +49,7 @@ namespace Langulus::Anyness
 
 			// Found one																	
 			auto found = GetMember(member);
-			PC_SELECT_VERBOSE("Selected " << GetToken() << "::" << member.mName
+			VERBOSE("Selected " << GetToken() << "::" << member.mName
 				<< " (" << member.mType << (member.mCount > 1 ? (pcLog << "[" << member.mCount
 					<< "]") : (pcLog << "")) << ", with current value(s) " << found << ")"
 			);
@@ -74,9 +74,9 @@ namespace Langulus::Anyness
 	///	@param trait - the trait to get													
 	///	@param index - the trait index to get											
 	///	@return a static constant memory block											
-	const Block Block::GetMember(TMeta trait, pcptr index) const {
+	const Block Block::GetMember(TMeta trait, Count index) const {
 		auto result = const_cast<Block*>(this)->GetMember(trait, index);
-		result.mState += DState::Constant;
+		result.mState += DataState::Constant;
 		return result;
 	}
 	
@@ -85,9 +85,9 @@ namespace Langulus::Anyness
 	///	@param data - the type to get														
 	///	@param index - the member index to get											
 	///	@return a static memory block (constant if block is constant)			
-	Block Block::GetMember(DMeta data, pcptr index) {
+	Block Block::GetMember(DMeta data, Count index) {
 		// Scan members																	
-		pcptr counter = 0;
+		Count counter = 0;
 		for (auto& member : mType->GetMemberList()) {
 			if (data && !member.mType->InterpretsAs(data))
 			//if (data && !data->InterpretsAs(member.mType))
@@ -101,7 +101,7 @@ namespace Langulus::Anyness
 
 			// Found one																	
 			auto found = GetMember(member);
-			PC_SELECT_VERBOSE("Selected " << GetToken() << "::" << member.mName
+			VERBOSE("Selected " << GetToken() << "::" << member.mName
 				<< " (" << member.mType << (member.mCount > 1 ? (pcLog << "[" << member.mCount
 				<< "]") : (pcLog << "")) << ", with current value(s) " << found << ")"
 			);
@@ -126,9 +126,9 @@ namespace Langulus::Anyness
 	///	@param data - the type to get														
 	///	@param index - the trait index to get											
 	///	@return a static constant memory block											
-	const Block Block::GetMember(DMeta data, pcptr index) const {
+	const Block Block::GetMember(DMeta data, Count index) const {
 		auto result = const_cast<Block*>(this)->GetMember(data, index);
-		result.mState += DState::Constant;
+		result.mState += DataState::Constant;
 		return result;
 	}
 
@@ -137,11 +137,11 @@ namespace Langulus::Anyness
 	///	@param data - the type to get														
 	///	@param index - the member index to get											
 	///	@return a static memory block (constant if block is constant)			
-	Block Block::GetMember(std::nullptr_t, pcptr index) {
+	Block Block::GetMember(std::nullptr_t, Count index) {
 		if (index < mType->GetMemberList().GetCount()) {
 			auto& member = mType->GetMemberList()[index];
 			auto found = GetMember(member);
-			PC_SELECT_VERBOSE("Selected " << GetToken() << "::" << member.mName
+			VERBOSE("Selected " << GetToken() << "::" << member.mName
 				<< " (" << member.mType << (member.mCount > 1 ? (pcLog << "[" << member.mCount
 					<< "]") : (pcLog << "")) << ", with current value(s) " << found << ")"
 			);
@@ -166,9 +166,9 @@ namespace Langulus::Anyness
 	///	@param data - the type to get														
 	///	@param index - the trait index to get											
 	///	@return a static constant memory block											
-	const Block Block::GetMember(std::nullptr_t, pcptr index) const {
+	const Block Block::GetMember(std::nullptr_t, Count index) const {
 		auto result = const_cast<Block*>(this)->GetMember(nullptr, index);
-		result.mState += DState::Constant;
+		result.mState += DataState::Constant;
 		return result;
 	}
 
@@ -220,4 +220,4 @@ namespace Langulus::Anyness
 		return uiNone;
 	}
 
-} // namespace Langulus::Anyness
+} // namespace Langulus::Anyness::Inner

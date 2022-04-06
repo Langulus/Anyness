@@ -1,10 +1,10 @@
-#include "Block.inl"
-#include "../Containers/Any.hpp"
+#include "inner/Block.hpp"
+#include "../Any.hpp"
 
-#define PC_CLONE_VERBOSE_TAB(a) //ScopedTab tab; pcLogFuncVerbose << a << tab
-#define PC_CLONE_VERBOSE(a) //pcLogFuncVerbose << a
+#define VERBOSE_TAB(a) //ScopedTab tab; pcLogFuncVerbose << a << tab
+#define VERBOSE(a) //pcLogFuncVerbose << a
 
-namespace Langulus::Anyness
+namespace Langulus::Anyness::Inner
 {
 
 	/// Clone any data using RTTI																
@@ -12,7 +12,7 @@ namespace Langulus::Anyness
 	/// as depth allows it. It will allocate and call constructors, as well as	
 	/// invoke Clone() routines if available												
 	///	@param result - the resulting container										
-	pcptr Block::Clone(Block& result) const {
+	Count Block::Clone(Block& result) const {
 		// Always clone the state, but make it unconstrained					
 		result.SetDataID(mType, false);
 		result.mState += GetUnconstrainedState();
@@ -22,7 +22,7 @@ namespace Langulus::Anyness
 			return 1;
 		}
 
-		PC_CLONE_VERBOSE_TAB("Cloning " << mCount
+		VERBOSE_TAB("Cloning " << mCount
 			<< " elements of type " << GetToken() 
 			<< " (" << GetStride() << " bytes each)");
 
@@ -30,13 +30,13 @@ namespace Langulus::Anyness
 			// Data is sparse - no escape from this scope						
 			if (!result.IsAllocated()) {
 				// Allocate the array of pointers if not allocated yet		
-				result.mState -= DState::Static;
-				result.mState -= DState::Constant;
+				result.mState -= DataState::Static;
+				result.mState -= DataState::Constant;
 				result.Allocate(mCount, false, true);
 			}
 
 			// Clone data behind each valid pointer								
-			for (pcptr i = 0; i < mCount; ++i) {
+			for (Count i = 0; i < mCount; ++i) {
 				auto ptrFrom = GetPointers()[i];
 				auto& ptrTo = result.GetPointers()[i];
 				if (!ptrFrom) {
@@ -52,7 +52,7 @@ namespace Langulus::Anyness
 				ptrTo = to.mRaw;
 			}
 
-			PC_CLONE_VERBOSE("Cloned sparse data " << ccRed << "(slowest)");
+			VERBOSE("Cloned sparse data " << ccRed << "(slowest)");
 			return mCount;
 		}
 
@@ -68,14 +68,14 @@ namespace Langulus::Anyness
 				if (result.IsEmpty())
 					result.Allocate(mCount, false, true);
 
-				for (pcptr index = 0; index < mCount; ++index) {
+				for (Count index = 0; index < mCount; ++index) {
 					const auto from = GetElement(index);
 					auto to = result.GetElement(index);
 					result.mType->mStaticDescriptor.mCloneInUninitilizedMemory(
 						from.mRaw, to.mRaw);
 				}
 
-				PC_CLONE_VERBOSE("Cloned non-resolvable dense by move-placement new " 
+				VERBOSE("Cloned non-resolvable dense by move-placement new " 
 					<< ccDarkYellow << "(slow)");
 			}
 			else if (mType->mStaticDescriptor.mCloneInInitializedMemory) {
@@ -83,14 +83,14 @@ namespace Langulus::Anyness
 				if (result.IsEmpty())
 					result.Allocate(mCount, true);
 
-				for (pcptr index = 0; index < mCount; ++index) {
+				for (Count index = 0; index < mCount; ++index) {
 					const auto from = GetElement(index);
 					auto to = result.GetElement(index);
 					result.mType->mStaticDescriptor.mCloneInInitializedMemory(
 						from.mRaw, to.mRaw);
 				}
 
-				PC_CLONE_VERBOSE("Cloned non-resolvable dense by shallow copy " 
+				VERBOSE("Cloned non-resolvable dense by shallow copy " 
 					<< ccRed << "(slowest)");
 			}
 			else if (mType->GetCTTI().mPOD) {
@@ -99,7 +99,7 @@ namespace Langulus::Anyness
 					result.Allocate(mCount, false, true);
 				pcCopyMemory(mRaw, result.mRaw, GetSize());
 
-				PC_CLONE_VERBOSE("Cloned non-resolvable dense POD by memcpy " 
+				VERBOSE("Cloned non-resolvable dense POD by memcpy " 
 					<< ccGreen << "(fast)");
 			}
 			else {
@@ -109,7 +109,7 @@ namespace Langulus::Anyness
 		}
 		else {
 			const bool preallocatedResult = !result.IsEmpty();
-			for (pcptr index = 0; index < mCount; ++index) {
+			for (Count index = 0; index < mCount; ++index) {
 				// Type is resolvable, so allocate and clone each resolved	
 				const auto from = GetElementResolved(index);
 				auto to = Any::From(from.GetMeta());
@@ -120,7 +120,7 @@ namespace Langulus::Anyness
 					to.Allocate(1, false, true);
 					from.mType->mStaticDescriptor.mCloneInUninitilizedMemory(
 						from.mRaw, to.mRaw);
-					PC_CLONE_VERBOSE("Cloned resolved dense by move-placement new" 
+					VERBOSE("Cloned resolved dense by move-placement new" 
 						<< ccRed << "(slowest)");
 				}
 				else if (mType->mStaticDescriptor.mCloneInInitializedMemory) {
@@ -128,14 +128,14 @@ namespace Langulus::Anyness
 					to.Allocate(1, true);
 					from.mType->mStaticDescriptor.mCloneInInitializedMemory(
 						from.mRaw, to.mRaw);
-					PC_CLONE_VERBOSE("Cloned resolved dense by shallow copy " 
+					VERBOSE("Cloned resolved dense by shallow copy " 
 						<< ccRed << "(slowest)");
 				}
 				else if (from.mType->GetCTTI().mPOD) {
 					// Just memcpy simple POD data									
 					to.Allocate(1, false, true);
 					pcCopyMemory(from.mRaw, to.mRaw, from.GetSize());
-					PC_CLONE_VERBOSE("Cloned resolved dense POD by memcpy " 
+					VERBOSE("Cloned resolved dense POD by memcpy " 
 						<< ccDarkYellow << "(slow)");
 				}
 				else {
@@ -155,4 +155,4 @@ namespace Langulus::Anyness
 		return mCount;
 	}
 
-} // namespace Langulus::Anyness
+} // namespace Langulus::Anyness::Inner

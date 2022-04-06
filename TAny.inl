@@ -1,7 +1,7 @@
+#define TEMPLATE template<ReflectedData T>
+
 namespace Langulus::Anyness
 {
-
-	#define TEMPLATE template<RTTI::ReflectedData T>
 
 	/// Default construction																	
 	TEMPLATE

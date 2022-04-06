@@ -1,9 +1,9 @@
-#include "Block.inl"
-#include "../Containers/Any.hpp"
+#include "inner/Block.hpp"
+#include "../Any.hpp"
 
-#define PC_REFERENCE_VERBOSE(a)
+#define VERBOSE(a)
 
-namespace Langulus::Anyness
+namespace Langulus::Anyness::Inner
 {
 
 	/// Reference memory block (internal use)												
@@ -32,4 +32,4 @@ namespace Langulus::Anyness
 		return pool->Reference(entry, times);
 	}
 	
-} // namespace Langulus::Anyness
+} // namespace Langulus::Anyness::Inner
