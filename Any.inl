@@ -1,0 +1,134 @@
+namespace Langulus::Anyness
+{
+
+	/// Construct by moving another container												
+	///	@param other - the container to move											
+	PC_LEAKSAFETY Any::Any(Any&& other) noexcept
+		: Block {pcForward<Block>(other)} {}
+
+	/// Construct by moving a dense value of non-block type							
+	///	@param other - the dense value to forward and emplace						
+	template <RTTI::ReflectedData T>
+	Any::Any(T&& other) requires (Any::NotCustom<T>) {
+		Block::SetDataID<T>(false);
+		Block::Emplace<T, false>(pcForward<T>(other));
+	}
+
+	/// Construct by copying/referencing value of non-block type					
+	///	@param other - the dense value to shallow-copy								
+	template <RTTI::ReflectedData T>
+	Any::Any(const T& other) requires (Any::NotCustom<T>) {
+		Block::SetDataID<T>(false);
+		Block::Insert<T, false>(&other, 1);
+	}
+
+	/// Construct by copying/referencing value of non-block type					
+	/// Required to not move other by mistake												
+	///	@param other - the dense value to shallow-copy								
+	template <RTTI::ReflectedData T>
+	Any::Any(T& other) requires (Any::NotCustom<T>)
+		: Any {const_cast<const T&>(other)} {}
+
+	/// Create an empty Any from the unconstrained state of another block		
+	///	@param block - block to get state of											
+	///	@return the new container															
+	inline Any Any::FromStateOf(const Block& block) noexcept {
+		return Any::From(block.GetUnconstrainedState());
+	}
+
+	/// Create an empty Any from a dynamic type and state								
+	///	@param type - type of the container												
+	///	@param state - optional state of the container								
+	///	@return the new any																	
+	inline Any Any::From(DataID type, const DState& state) noexcept {
+		return Any::From(type.GetMeta(), state);
+	}
+
+	/// Create an empty Any from a dynamic type and state								
+	///	@param type - type of the container												
+	///	@param state - optional state of the container								
+	///	@return the new any																	
+	inline Any Any::From(DMeta type, const DState& state) noexcept {
+		return Any{ Block{state, type} };
+	}
+
+	/// Create an empty Any by copying type and state of a block					
+	///	@param type - type of the container												
+	///	@param state - additional state of the container							
+	///	@return the new any																	
+	inline Any Any::From(const Block& type, const DState& state) noexcept {
+		return Any::From(type.GetMeta(), type.GetUnconstrainedState() + state);
+	}
+
+	/// Create an empty Any from a static type and state								
+	///	@param state - optional state of the container								
+	///	@return the new any																	
+	template<RTTI::ReflectedData T>
+	Any Any::From(const DState& state) noexcept {
+		return Any{ Block{state, DataID::Reflect<T>()} };
+	}
+
+	/// Pack any number of elements sequentially											
+	///	@param elements - sequential elements											
+	///	@returns the pack containing the data											
+	template<RTTI::ReflectedData... Args>
+	Any Any::Wrap(Args... elements) {
+		Any wrapped[] { Any(elements)... };
+		Any result;
+		for (auto& it : wrapped)
+			result.Emplace<Any>(pcMove(it));
+		return result;
+	}
+
+	/// Pack any number of elements sequentially											
+	///	@param elements - sequential elements											
+	///	@returns the pack containing the data											
+	template<RTTI::ReflectedData T, RTTI::ReflectedData... Args>
+	Any Any::WrapOne(const T& head, Args... tail) {
+		T wrapped[] { head, tail... };
+		Any result { Any::From<T>() };
+		for (auto& it : wrapped)
+			result.Emplace<T>(pcMove(it));
+		return result;
+	}
+
+	/// Pack any number of elements sequentially	in an OR container				
+	///	@param elements - sequential elements											
+	///	@returns the pack containing the data											
+	template<RTTI::ReflectedData... Args>
+	Any Any::WrapOr(Args... elements) {
+		Any result { Wrap(elements...) };
+		result.mState += DState::Or;
+		return result;
+	}
+
+	/// Pack any number of elements sequentially in an OR container				
+	///	@param elements - sequential elements											
+	///	@returns the pack containing the data											
+	template<RTTI::ReflectedData T, RTTI::ReflectedData... Args>
+	Any Any::WrapOneOr(const T& head, Args... tail) {
+		Any result { WrapOne(head, tail...) };
+		result.mState += DState::Or;
+		return result;
+	}
+
+	/// Assign by shallow-copying some value different from Any						
+	///	@param value - the value to copy													
+	template<RTTI::ReflectedData T>
+	Any& Any::operator = (const T& value) requires (Any::NotCustom<T>) {
+		return operator = (Any { value });
+	}
+
+	template<RTTI::ReflectedData T>
+	Any& Any::operator = (T& value) requires (Any::NotCustom<T>) {
+		return operator = (const_cast<const T&>(value));
+	}
+
+	/// Assign by moving some value different from Any									
+	///	@param value - the value to move													
+	template<RTTI::ReflectedData T>
+	Any& Any::operator = (T&& value) requires (Any::NotCustom<T>) {
+		return operator = (Any { pcForward<T>(value) });
+	}
+
+} // namespace Langulus::Anyness
