@@ -27,7 +27,7 @@ namespace Langulus::Anyness
 		NOD() DMeta GetMeta() const;
 		NOD() Block GetBlock() const;
 		NOD() bool CheckJurisdiction() const;
-		NOD() pcref GetBlockReferences() const;
+		NOD() RefCount GetBlockReferences() const;
 
 		void Reset() noexcept;
 
@@ -108,7 +108,7 @@ namespace Langulus::Anyness
 		NOD() DMeta GetMeta() const;
 		NOD() Block GetBlock() const;
 		NOD() bool CheckJurisdiction() const;
-		NOD() pcref GetBlockReferences() const;
+		NOD() RefCount GetBlockReferences() const;
 
 		NOD() static ME Create(const pcDecay<T>&) requires CopyConstructible<pcDecay<T>>;
 		NOD() static ME Create(pcDecay<T>&&) requires MoveConstructible<pcDecay<T>>;

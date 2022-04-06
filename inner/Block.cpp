@@ -6,6 +6,16 @@
 namespace Langulus::Anyness::Inner
 {
 
+	PC_LEAKSAFETY Block::Block(Block&& other) noexcept
+		: mRaw {other.mRaw}
+		, mType {other.mType}
+		, mCount {other.mCount}
+		, mReserved {other.mReserved}
+		, mState {other.mState} {
+		other.ResetInner();
+		PC_EXTENSIVE_LEAK_TEST(*this);
+	}
+
 	/// Get the token of the contained type												
 	///	@return the token																		
 	LiteralText Block::GetToken() const noexcept {
@@ -134,13 +144,13 @@ namespace Langulus::Anyness::Inner
 
 	/// Dereference memory block once														
 	///	@return the remaining references for the block								
-	pcref Block::Free() {
+	RefCount Block::Free() {
 		return ReferenceBlock(-1);
 	}
 
 	/// Reference memory block once															
 	///	@return the remaining references for the block								
-	pcref Block::Keep() {
+	RefCount Block::Keep() {
 		return ReferenceBlock(1);
 	}
 		
@@ -223,7 +233,7 @@ namespace Langulus::Anyness::Inner
 
 	/// Get the number of references for the memory block								
 	///	@return the references for the block (always returns 1 if not owned)	
-	pcref Block::GetBlockReferences() const {
+	RefCount Block::GetBlockReferences() const {
 		return PCMEMORY.GetReferences(mType, mRaw);
 	}
 
@@ -925,7 +935,7 @@ namespace Langulus::Anyness::Inner
 				pointers[i] = source.GetElement(i).mRaw;
 
 			// Can't actually move, you know, just reference rhs by count	
-			PCMEMORY.Reference(source.mType, source.mRaw, static_cast<pcref>(mReserved));
+			PCMEMORY.Reference(source.mType, source.mRaw, static_cast<RefCount>(mReserved));
 		}
 		else {
 			// Both RHS and LHS must be dense										

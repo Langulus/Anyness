@@ -6,6 +6,8 @@
 	/// We have to define missing stuff here												
 	#include <type_traits>
 	#include <typeinfo>
+	#include <cstddef>
+	#include <functional>
 	
 	#define LANGULUS(a) LANGULUS_##a()
 	#define LANGULUS_MODULE(a) LANGULUS(MODULE_##a)
@@ -17,8 +19,16 @@
 	namespace Langulus
 	{
 		
+		using Index = ::std::ptrdiff_t;
+		using Byte = ::std::byte;
 		using Count = ::std::size_t;
+		using RefCount = signed long;
+		using Stride = ::std::size_t;
+		using Offset = ::std::size_t;
+		template<class T>
+		using TFunctor = ::std::function<T>;
 		
+
 		///																							
 		/// Concepts																				
 		///																							
@@ -46,12 +56,12 @@
 		struct DataID {
 			::std::size_t mID;
 			
-			template<class T>
-			static constexpr DataID Of;
+			/*template<class T>
+			static constexpr DataID Of;*/
 		};
 		
-		template<class T>
-		constexpr DataID DataID::Of = [](){ return typeid(T).hash_code(); };
+		/*template<class T>
+		constexpr DataID DataID::Of = typeid(T).hash_code();*/
 		
 		using DMeta = const DataID&;
 		

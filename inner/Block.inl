@@ -1,23 +1,13 @@
 namespace Langulus::Anyness::Inner
 {
 
-	PC_LEAKSAFETY Block::Block(Block&& other) noexcept
-		: mRaw {other.mRaw}
-		, mType {other.mType}
-		, mCount {other.mCount}
-		, mReserved {other.mReserved}
-		, mState {other.mState} {
-		other.ResetInner();
-		PC_EXTENSIVE_LEAK_TEST(*this);
-	}
-
 	/// Manual construction via state and type											
 	/// No allocation will happen																
 	///	@param state - the initial state of the container							
 	///	@param meta - the type of the memory block									
-	constexpr Block::Block(const DState& state, DMeta meta) noexcept
+	constexpr Block::Block(const DataState& state, DMeta meta) noexcept
 		: mState {state}
-		, mType {meta} {}
+		, mType {meta} { }
 
 	/// Manual construction from constant data											
 	/// No referencing shall occur and changes data state to dsConstant			
@@ -25,14 +15,12 @@ namespace Langulus::Anyness::Inner
 	///	@param meta - the type of the memory block									
 	///	@param count - initial element count and reserve							
 	///	@param raw - pointer to the constant memory - safety is on you			
-	PC_LEAKSAFETY Block::Block(const DState& state, DMeta meta, pcptr count, const void* raw) noexcept
+	constexpr Block::Block(const DataState& state, DMeta meta, Count count, const void* raw) noexcept
 		: mRaw {const_cast<void*>(raw)}
 		, mType {meta}
 		, mCount {count}
 		, mReserved {count}
-		, mState {state + DState::Constant} {
-		PC_EXTENSIVE_LEAK_TEST(*this);
-	}
+		, mState {state.mState | DataState::Constant} { }
 
 	/// Manual construction from mutable data												
 	/// No referencing shall occur and changes data state to dsConstant			
@@ -40,87 +28,68 @@ namespace Langulus::Anyness::Inner
 	///	@param meta - the type of the memory block									
 	///	@param count - initial element count and reserve							
 	///	@param raw - pointer to the mutable memory - safety is on you			
-	PC_LEAKSAFETY Block::Block(const DState& state, DMeta meta, pcptr count, void* raw) noexcept
+	constexpr Block::Block(const DataState& state, DMeta meta, Count count, void* raw) noexcept
 		: mRaw {raw}
 		, mType {meta}
 		, mCount {count}
 		, mReserved {count}
-		, mState {state} {
-		PC_EXTENSIVE_LEAK_TEST(*this);
-	}
+		, mState {state} { }
 
 	/// Create a memory block from a typed pointer										
 	/// No referencing shall occur, this simply initializes the block				
 	///	@return the block																		
-	template<RTTI::ReflectedData T>
+	template<ReflectedData T>
 	Block Block::From(T value) requires Sparse<T> {
-		static_assert(!Same<T, Block>, 
-			"Block of Blocks is disallowed - Block is only for internal use, "
-			"because there's danger of memory leaks - use Any instead");
-
 		const Block block {
-			DState::Static, 
+			DataState::Static, 
 			DataID::Reflect<pcDecay<T>>(), 
 			1, value
 		};
 
-		PC_EXTENSIVE_LEAK_TEST(block);
 		return block;
 	}
 
 	///	@return the block																		
-	template<RTTI::ReflectedData T>
-	Block Block::From(T value, pcptr count) requires Sparse<T> {
-		static_assert(!Same<T, Block>, 
-			"Block of Blocks is disallowed - Block is only for internal use, "
-			"because there's danger of memory leaks - use Any instead");
-
+	template<ReflectedData T>
+	Block Block::From(T value, Count count) requires Sparse<T> {
 		const Block block {
-			DState::Static, 
+			DataState::Static, 
 			DataID::Reflect<pcDecay<T>>(), 
 			count, value
 		};
 
-		PC_EXTENSIVE_LEAK_TEST(block);
 		return block;
 	}
 
 	/// Create a memory block from a value reference									
 	/// No referencing shall occur, this simply initializes the block				
 	///	@return the block																		
-	template<RTTI::ReflectedData T>
+	template<ReflectedData T>
 	Block Block::From(T& value) requires Dense<T> {
 		if constexpr (!IsText<T> && pcIsDeep<T> && sizeof(T) == sizeof(Block)) {
-			PC_EXTENSIVE_LEAK_TEST(value);
 			return static_cast<const Block&>(value);
 		}
 		else if constexpr (Resolvable<T>) {
 			const auto block = value.GetBlock();
-			PC_EXTENSIVE_LEAK_TEST(block);
 			return block;
 		}
 		else {
 			const Block block {
-				DState::Static,
+				DataState::Static,
 				DataID::Reflect<pcDecay<T>>(),
 				1, &value
 			};
 
-			PC_EXTENSIVE_LEAK_TEST(block);
 			return block;
 		}
 	}
 
 	/// Create an empty memory block from a static type								
 	///	@return the block																		
-	template<RTTI::ReflectedData T>
+	template<ReflectedData T>
 	Block Block::From() {
-		static_assert(!Same<T, Block>, 
-			"Block of Blocks is disallowed - Block is only for internal use, "
-			"because there's danger of memory leaks - use Any instead");
-
 		return Block {
-			DState::Default, 
+			DataState::Default, 
 			DataID::Reflect<T>(), 
 			0, static_cast<void*>(nullptr)
 		};
@@ -133,13 +102,12 @@ namespace Langulus::Anyness::Inner
 	/// and never references - it's an unsafe low level function					
 	///	@param other - the memory block to copy										
 	///	@return a reference to this block												
-	PC_LEAKSAFETY Block& Block::operator = (const Block& other) noexcept {
+	constexpr Block& Block::operator = (const Block& other) noexcept {
 		mRaw = other.mRaw;
 		mType = other.mType;
 		mCount = other.mCount;
 		mReserved = other.mReserved;
 		mState = other.mState;
-		PC_EXTENSIVE_LEAK_TEST(*this);
 		return *this;
 	}
 
@@ -148,14 +116,13 @@ namespace Langulus::Anyness::Inner
 	/// Other will retain its type-constraints after the reset						
 	///	@param other - the memory block to move										
 	///	@return a reference to this block												
-	PC_LEAKSAFETY Block& Block::operator = (Block&& other) noexcept {
+	Block& Block::operator = (Block&& other) noexcept {
 		mRaw = other.mRaw;
 		mType = other.mType;
 		mCount = other.mCount;
 		mReserved = other.mReserved;
 		mState = other.mState;
 		other.ResetInner();
-		PC_EXTENSIVE_LEAK_TEST(*this);
 		return *this;
 	}
 
@@ -169,23 +136,20 @@ namespace Langulus::Anyness::Inner
 		mRaw = nullptr;
 		mCount = mReserved = 0;
 
-		if (IsTypeConstrained())
-			mState = DState::Typed;
+		if (IsTypeConstrained()) {
+			mState = DataState::Typed;
+		}
 		else {
 			mType = nullptr;
-			mState = DState::Default;
+			mState = DataState::Default;
 		}
 	}
 
 	/// Set the contained type, using a static type										
 	///	@tparam T - the type to reflect and set										
 	///	@param constrain - whether or not to enable type-constraints			
-	template<RTTI::ReflectedData T>
+	template<ReflectedData T>
 	void Block::SetDataID(bool constrain) {
-		static_assert(!Same<T, Block>, 
-			"Block of type Block is disallowed - Block is only for internal use, "
-			"because there's danger of memory leaks - use type Any instead");
-
 		SetDataID(DataID::Reflect<T>(), constrain);
 	}
 
@@ -195,37 +159,37 @@ namespace Langulus::Anyness::Inner
 		return mType;
 	}
 
+	constexpr Count Block::GetCount() const noexcept {
+		return mCount;
+	}
+
 	/// Get the number of reserved (maybe unconstructed) elements					
 	///	@return the number of reserved (probably not constructed) elements	
-	constexpr pcptr Block::GetReserved() const noexcept {
+	constexpr Count Block::GetReserved() const noexcept {
 		return mReserved;
 	}
 
 	/// Get a constant byte array																
 	///	@return a constant pointer to the beginning of the raw contained data
-	PC_LEAKSAFETY const pcbyte* Block::GetBytes() const noexcept {
-		PC_EXTENSIVE_LEAK_TEST(*this);
-		return static_cast<const pcbyte*>(mRaw);
+	constexpr const Byte* Block::GetBytes() const noexcept {
+		return static_cast<const Byte*>(mRaw);
 	}
 
 	/// Get a byte array																			
 	///	@return a pointer to the beginning of the raw contained data			
-	PC_LEAKSAFETY pcbyte* Block::GetBytes() noexcept {
-		PC_EXTENSIVE_LEAK_TEST(*this);
-		return static_cast<pcbyte*>(mRaw);
+	constexpr Byte* Block::GetBytes() noexcept {
+		return static_cast<Byte*>(mRaw);
 	}
 
 	/// Get a constant pointer array - useful for sparse containers				
 	///	@return the raw data as an array of constant pointers						
 	inline const void* const* Block::GetPointers() const noexcept {
-		PC_EXTENSIVE_LEAK_TEST(*this);
 		return reinterpret_cast<const void* const*>(mRaw);
 	}
 
 	/// Get a pointer array - useful for sparse containers							
 	///	@return the raw data as an array of pointers									
 	inline void** Block::GetPointers() noexcept {
-		PC_EXTENSIVE_LEAK_TEST(*this);
 		return reinterpret_cast<void**>(mRaw);
 	}
 
@@ -237,74 +201,74 @@ namespace Langulus::Anyness::Inner
 
 	/// Check if block is left-polarized													
 	///	@returns true if this container is left-polarized							
-	constexpr bool Block::IsLeft() const noexcept {
-		return GetPolarity() == Past;
+	constexpr bool Block::IsPast() const noexcept {
+		return GetPhase() == Phase::Past;
 	}
 
 	/// Check if block is right-polarized													
 	///	@returns true if this container is right-polarized							
-	constexpr bool Block::IsRight() const noexcept {
-		return GetPolarity() == Future;
+	constexpr bool Block::IsFuture() const noexcept {
+		return GetPhase() == Phase::Future;
 	}
 
 	/// Check if block is not polarized														
 	///	@returns true if this container is not polarized							
-	constexpr bool Block::IsNeutral() const noexcept {
-		return GetPolarity() == Now;
+	constexpr bool Block::IsNow() const noexcept {
+		return GetPhase() == Phase::Now;
 	}
 
 	/// Check if block is marked as missing												
 	///	@returns true if this container is marked as vacuum						
 	constexpr bool Block::IsMissing() const noexcept {
-		return mState & DState::Missing;
+		return mState & DataState::Missing;
 	}
 
 	/// Check if block has a data type														
 	///	@returns true if data contained in this pack is unspecified				
 	constexpr bool Block::IsUntyped() const noexcept {
-		return nullptr == mType;
+		return !mType;
 	}
 
 	/// Check if block has a data type, and is type-constrained						
 	///	@return true if type-constrained													
 	constexpr bool Block::IsTypeConstrained() const noexcept {
-		return mType && (mState & DState::Typed);
+		return mType && (mState.mState & DataState::Typed);
 	}
 
 	/// Check if block is polarized															
 	///	@returns true if this pack is either left-, or right-polar				
-	constexpr bool Block::IsPolar() const noexcept {
-		return mState & DState::Polar;
+	constexpr bool Block::IsPhased() const noexcept {
+		return mState.mState & DataState::Phased;
 	}
 
 	/// Check if block is encrypted															
 	///	@returns true if the contents of this pack are encrypted					
 	constexpr bool Block::IsEncrypted() const noexcept {
-		return mState & DState::Encrypted;
+		return mState.mState & DataState::Encrypted;
 	}
 
 	/// Check if block is compressed															
 	///	@returns true if the contents of this pack are compressed				
 	constexpr bool Block::IsCompressed() const noexcept {
-		return mState & DState::Compressed;
+		return mState.mState & DataState::Compressed;
 	}
 
 	/// Check if block is constant															
 	///	@returns true if the contents of this pack are constant					
 	constexpr bool Block::IsConstant() const noexcept {
-		return mState & DState::Constant;
+		return mState.mState & DataState::Constant;
 	}
 
 	/// Check if block is static																
 	///	@returns true if the contents of this pack are constant					
 	constexpr bool Block::IsStatic() const noexcept {
-		return mState & DState::Static;
+		return mState.mState & DataState::Static;
 	}
 
 	/// Check if block is inhibitory (or) container										
 	///	@returns true if this is an inhibitory container							
 	constexpr bool Block::IsOr() const noexcept {
-		return mState & DState::Or;
+		return mState.mState & DataState::Or;
 	}
 
 	/// Check if block contains no created elements (it may still have state)	
@@ -316,7 +280,7 @@ namespace Langulus::Anyness::Inner
 	/// Check if block contains either created elements, or relevant state		
 	///	@returns true if this is not an empty stateless container				
 	constexpr bool Block::IsValid() const noexcept {
-		return mCount > 0 || GetUnconstrainedState() || mType;
+		return mCount || GetUnconstrainedState() || mType;
 	}
 
 	/// Check if block contains no elements and no relevant state					
@@ -333,27 +297,25 @@ namespace Langulus::Anyness::Inner
 
 	/// Get polarity																				
 	///	@return the polarity of the contained data									
-	constexpr Block::Polarity Block::GetPolarity() const noexcept {
-		if (!IsPolar())
-			return Now;
-		return mState & DState::Positive ? Future : Past;
+	constexpr Phase Block::GetPhase() const noexcept {
+		if (!IsPhased())
+			return Phase::Now;
+		return mState.mState & DataState::Future ? Phase::Future : Phase::Past;
 	}
 
 	/// Set polarity																				
 	///	@param p - polarity to enable														
-	inline void Block::SetPolarity(const Polarity p) noexcept {
+	inline void Block::SetPhase(const Phase p) noexcept {
 		switch (p) {
-		case Past:
-			mState += DState::Polar;
-			mState -= DState::Positive;
+		case Phase::Past:
+			mState.mState &= ~DataState::Future;
+			mState.mState |= DataState::Phased;
 			return;
-		case Now:
-			mState -= DState::Polar;
-			mState -= DState::Positive;
+		case Phase::Now:
+			mState.mState &= ~(DataState::Phased | DataState::Future);
 			return;
-		case Future:
-			mState += DState::Polar;
-			mState += DState::Positive;
+		case Phase::Future:
+			mState.mState |= DataState::Future | DataState::Phased;
 			return;
 		}
 	}
@@ -361,10 +323,10 @@ namespace Langulus::Anyness::Inner
 	/// Check polarity compatibility															
 	///	@param other - the polarity to check											
 	///	@return true if polarity is compatible											
-	inline bool Block::CanFitPolarity(const Polarity& other) const noexcept {
+	inline bool Block::CanFitPhase(const Phase& other) const noexcept {
 		// As long as polarities are not opposite, they are compatible		
-		const auto local_polarity = GetPolarity();
-		return local_polarity != -other || (other == Now && local_polarity == other);
+		const auto p = GetPhase();
+		return int(p) != -int(other) || (other == Phase::Now && p == other);
 	}
 
 	/// Check state compatibility																
@@ -373,84 +335,78 @@ namespace Langulus::Anyness::Inner
 	inline bool Block::CanFitState(const Block& other) const noexcept {
 		const bool orCompat = IsOr() == other.IsOr() || other.GetCount() <= 1 || IsEmpty();
 		const bool typeCompat = !IsTypeConstrained() || (IsTypeConstrained() && other.InterpretsAs(mType));
-		return typeCompat && (mState == other.mState || (orCompat && CanFitPolarity(other.GetPolarity())));
+		return typeCompat && (mState == other.mState || (orCompat && CanFitPhase(other.GetPhase())));
 	}
 
 	/// Get the size of the contained data, in bytes									
 	///	@return the byte size																
-	inline pcptr Block::GetSize() const noexcept {
+	inline Stride Block::GetSize() const noexcept {
 		return GetCount() * GetStride();
 	}
 
 	/// Check if a type can be inserted														
-	template<RTTI::ReflectedData T>
+	template<ReflectedData T>
 	bool Block::IsInsertable() const noexcept {
-		if constexpr (Same<T, Block>)
-			return false;
-		else
-			return IsInsertable(DataID::Reflect<T>());
+		return IsInsertable(DataID::Reflect<T>());
 	}
 
 	/// Get the raw data inside the container												
 	///	@attention as unsafe as it gets, but as fast as it gets					
 	inline void* Block::GetRaw() noexcept {
-		PC_EXTENSIVE_LEAK_TEST(*this);
 		return mRaw;
 	}
 
 	/// Get the raw data inside the container (const)									
 	///	@attention as unsafe as it gets, but as fast as it gets					
 	inline const void* Block::GetRaw() const noexcept {
-		PC_EXTENSIVE_LEAK_TEST(*this);
 		return mRaw;
 	}
 
 	/// Get the end raw data pointer inside the container								
 	///	@attention as unsafe as it gets, but as fast as it gets					
 	inline const void* Block::GetRawEnd() const noexcept {
-		PC_EXTENSIVE_LEAK_TEST(*this);
 		return GetBytes() + GetSize();
 	}
 
 	/// Get the raw data inside the container, reinterpreted as some type		
 	///	@attention as unsafe as it gets, but as fast as it gets					
-	template<RTTI::ReflectedData T>
+	template<ReflectedData T>
 	inline T* Block::GetRawAs() noexcept {
 		return reinterpret_cast<T*>(GetRaw());
 	}
 
 	/// Get the raw data inside the container, reinterpreted (const)				
 	///	@attention as unsafe as it gets, but as fast as it gets					
-	template<RTTI::ReflectedData T>
+	template<ReflectedData T>
 	inline const T* Block::GetRawAs() const noexcept {
 		return reinterpret_cast<const T*>(GetRaw());
 	}
 
 	/// Get the end raw data pointer inside the container								
 	///	@attention as unsafe as it gets, but as fast as it gets					
-	template<RTTI::ReflectedData T>
+	template<ReflectedData T>
 	inline const T* Block::GetRawEndAs() const noexcept {
 		return reinterpret_cast<const T*>(GetRawEnd());
 	}
 
 	/// Get the data state of the container												
-	constexpr DState Block::GetState() const noexcept {
+	constexpr DataState Block::GetState() const noexcept {
 		return mState;
 	}
 
 	/// Set the current data state, overwriting the current							
 	/// You can not remove type-constraints												
-	inline void Block::SetState(DState state) noexcept {
-		const bool typeConstrained = mState & DState::Typed;
+	inline void Block::SetState(DataState state) noexcept {
+		const bool typeConstrained = mState & DataState::Typed;
 		mState = state;
 		if (typeConstrained)
-			mState += DState::Typed;
+			mState += DataState::Typed;
 	}
 
 	/// Get the relevant state when relaying one block	to another					
 	/// Relevant states exclude memory and type constraints							
-	constexpr DState Block::GetUnconstrainedState() const noexcept {
-		return mState - (DState::Static + DState::Constant + DState::Typed);
+	constexpr DataState Block::GetUnconstrainedState() const noexcept {
+		return mState - (DataState::Static + DataState::Constant + DataState::Typed);
 	}
 
 	/// Compare memory blocks. This is a slow RTTI check								
@@ -466,8 +422,7 @@ namespace Langulus::Anyness::Inner
 	/// This is lowest level access and checks nothing									
 	///	@param byte_offset - number of bytes to add									
 	///	@return the selected byte															
-	inline pcbyte* Block::At(pcptr byte_offset) {
-		PC_EXTENSIVE_LEAK_TEST(*this);
+	inline Byte* Block::At(Offset byte_offset) {
 		#if LANGULUS_SAFE()
 			if (!mRaw) 
 				throw Except::BadAccess(pcLogFuncError
@@ -476,44 +431,39 @@ namespace Langulus::Anyness::Inner
 		return GetBytes() + byte_offset;
 	}
 
-	inline const pcbyte* Block::At(pcptr byte_offset) const {
-		PC_EXTENSIVE_LEAK_TEST(*this);
+	inline const Byte* Block::At(Offset byte_offset) const {
 		return const_cast<Block&>(*this).At(byte_offset);
 	}
 
 	/// Get templated element																	
 	/// Checks only density																		
-	template<RTTI::ReflectedData T>
-	decltype(auto) Block::Get(pcptr idx, pcptr baseOffset) const {
-		PC_EXTENSIVE_LEAK_TEST(*this);
+	template<ReflectedData T>
+	decltype(auto) Block::Get(Offset idx, Offset baseOffset) const {
 		return const_cast<Block&>(*this).Get<T>(idx, baseOffset);
 	}
 
 	/// Get templated element																	
 	/// Checks density and type																
-	template<RTTI::ReflectedData T>
-	decltype(auto) Block::As(pcptr idx) const {
-		PC_EXTENSIVE_LEAK_TEST(*this);
+	template<ReflectedData T>
+	decltype(auto) Block::As(Offset idx) const {
 		return const_cast<Block&>(*this).As<T>(idx);
 	}
 
 	/// Get templated element																	
 	/// Checks range, density, type and special indices								
-	template<RTTI::ReflectedData T>
+	template<ReflectedData T>
 	decltype(auto) Block::As(Index index) {
-		PC_EXTENSIVE_LEAK_TEST(*this);
 		index = ConstrainMore<T>(index);
 		if (index.IsSpecial()) {
-			throw Except::BadAccess(pcLogFuncError 
-				<< "Can't reference special index");
+			throw Except::BadAccess(
+				pcLogFuncError << "Can't reference special index");
 		}
 
 		return As<T>(pcptr(index.mIndex));
 	}
 
-	template<RTTI::ReflectedData T>
+	template<ReflectedData T>
 	decltype(auto) Block::As(Index index) const {
-		PC_EXTENSIVE_LEAK_TEST(*this);
 		return const_cast<Block&>(*this).As<T>(index);
 	}
 
@@ -521,7 +471,6 @@ namespace Langulus::Anyness::Inner
 	///	@param ptr - the pointer to check												
 	///	@return true if inside the memory block										
 	inline bool Block::Owns(const void* ptr) const noexcept {
-		PC_EXTENSIVE_LEAK_TEST(*this);
 		return mRaw	&& pcP2N(ptr) >= pcP2N(mRaw) 
 			&& pcP2N(ptr) < pcP2N(mRaw) + GetSize();
 	}
@@ -529,22 +478,16 @@ namespace Langulus::Anyness::Inner
 	/// Decay the block to some base type, if sizes are compatible					
 	///	@tparam T - the base type to decay to											
 	///	@return the decayed block															
-	template<RTTI::ReflectedData T>
+	template<ReflectedData T>
 	Block Block::Decay() const {
-		static_assert(!Same<T, Block>, 
-			"Decaying Block to Block is disallowed - Block is only for internal use, "
-			"because there's danger of memory leaks - Decay as Any instead");
 		return Decay(MetaData::Of<T>());
 	}
 
 	/// Mutate the block to a different type, if possible								
 	///	@tparam T - the type to change to												
 	///	@return true if block was deepened to incorporate the new type			
-	template<RTTI::ReflectedData T>
+	template<ReflectedData T>
 	bool Block::Mutate() {
-		static_assert(!Same<T, Block>, 
-			"Mutating Block to Block is disallowed - Block is only for internal use, "
-			"because there's danger of memory leaks - mutate as Any instead");
 		return Mutate(DataID::Reflect<T>());
 	}
 
@@ -555,15 +498,10 @@ namespace Langulus::Anyness::Inner
 	///	@param setcount - true to set the count, too									
 	///	@attention beware of blocks with unconstructed elements, but with		
 	///				  set count - could cause undefined behavior						
-	template<RTTI::ReflectedData T>
-	void Block::Allocate(pcptr count, bool construct, bool setcount) {
-		static_assert(!Same<T, Block>, 
-			"Allocating Blocks inside Block is disallowed - Block is only for internal use, "
-			"because there's danger of memory leaks - allocate Any instead");
-
+	template<ReflectedData T>
+	void Block::Allocate(Count count, bool construct, bool setcount) {
 		SetDataID<T>(false);
 		Allocate(count, construct, setcount);
-		PC_EXTENSIVE_LEAK_TEST(*this);
 	}
 
 	/// Constrain an index to the limits of the current block						
@@ -589,7 +527,7 @@ namespace Langulus::Anyness::Inner
 	/// Supports additional type-dependent constraints									
 	///	@param idx - the index to constrain												
 	///	@return the constrained index or a special one of constrain fails		
-	template<RTTI::ReflectedData T>
+	template<ReflectedData T>
 	Index Block::ConstrainMore(const Index& idx) const noexcept {
 		const auto result = Constrain(idx);
 		if (result.IsSpecial()) {
@@ -616,22 +554,22 @@ namespace Langulus::Anyness::Inner
 		return result;
 	}
 
-	template<RTTI::ReflectedData T>
+	template<ReflectedData T>
 	bool Block::CanFit() const {
 		return CanFit(MetaData::Of<T>());
 	}
 
-	template<RTTI::ReflectedData T>
+	template<ReflectedData T>
 	bool Block::InterpretsAs() const {
 		return InterpretsAs(MetaData::Of<T>());
 	}
 
-	template<RTTI::ReflectedData T>
-	bool Block::InterpretsAs(pcptr count) const {
+	template<ReflectedData T>
+	bool Block::InterpretsAs(Count count) const {
 		return InterpretsAs(MetaData::Of<T>(), count);
 	}
 
-	template<RTTI::ReflectedData T>
+	template<ReflectedData T>
 	bool Block::Is() const {
 		return Is(DataID::Of<pcDecay<T>>);
 	}
@@ -639,9 +577,8 @@ namespace Langulus::Anyness::Inner
 	/// Swap two elements (with raw indices)												
 	///	@param from - first element index												
 	///	@param to - second element index													
-	template<RTTI::ReflectedData T>
-	void Block::Swap(pcptr from, pcptr to) {
-		PC_EXTENSIVE_LEAK_TEST(*this);
+	template<ReflectedData T>
+	void Block::Swap(Offset from, Offset to) {
 		if (from >= mCount || to >= mCount || from == to)
 			return;
 
@@ -654,9 +591,8 @@ namespace Langulus::Anyness::Inner
 	/// Swap two elements (with special indices)											
 	///	@param from - first element index												
 	///	@param to - second element index													
-	template<RTTI::ReflectedData T>
+	template<ReflectedData T>
 	void Block::Swap(Index from, Index to) {
-		PC_EXTENSIVE_LEAK_TEST(*this);
 		if (from == to)
 			return;
 
@@ -674,14 +610,8 @@ namespace Langulus::Anyness::Inner
 	///	@param item - item to move															
 	///	@param index - use uiFront or uiBack for pushing to ends					
 	///	@return number of inserted elements												
-	template<RTTI::ReflectedData T, bool MUTABLE>
-	pcptr Block::Emplace(T&& item, const Index& index) {
-		PC_EXTENSIVE_LEAK_TEST(*this);
-
-		static_assert(!Same<T, Block>, 
-			"Emplacing Block inside Block is disallowed - Block is only for internal use, "
-			"because there's danger of memory leaks - wrap your block in an Any first");
-
+	template<ReflectedData T, bool MUTABLE>
+	Count Block::Emplace(T&& item, const Index& index) {
 		// Check errors before actually doing anything							
 		if constexpr (Sparse<T>) {
 			if (!item) {
@@ -744,14 +674,8 @@ namespace Langulus::Anyness::Inner
 	///	@param count - number of items inside											
 	///	@param index - use uiFront or uiBack for pushing to ends					
 	///	@return number of inserted elements												
-	template<RTTI::ReflectedData T, bool MUTABLE>
-	pcptr Block::Insert(const T* items, const pcptr count, const Index& index) {
-		PC_EXTENSIVE_LEAK_TEST(*this);
-
-		static_assert(!Same<T, Block>, 
-			"Inserting Block inside Block is disallowed - Block is only for internal use, "
-			"because there's danger of memory leaks - wrap your block in an Any first");
-
+	template<ReflectedData T, bool MUTABLE>
+	Count Block::Insert(const T* items, const Count count, const Index& index) {
 		// Constrain index																
 		auto tidx = ConstrainMore<T>(index);
 		const auto starter = static_cast<pcptr>(tidx);
@@ -832,7 +756,7 @@ namespace Langulus::Anyness::Inner
 	///	@param count - number of items inside array									
 	///	@param index - the index to start searching from							
 	///	@return the number of removed items												
-	template<RTTI::ReflectedData T>
+	template<ReflectedData T>
 	pcptr Block::Remove(const T* items, const pcptr count, const Index& index) {
 		PC_EXTENSIVE_LEAK_TEST(*this);
 		pcptr removed = 0;
@@ -849,7 +773,7 @@ namespace Langulus::Anyness::Inner
 	///	@param item - the item to search for											
 	///	@param idx - index to start searching from									
 	///	@return the index of the found item, or uiNone if not found				
-	template<RTTI::ReflectedData T>
+	template<ReflectedData T>
 	Index Block::Find(const T& item, const Index& idx) const {
 		PC_EXTENSIVE_LEAK_TEST(*this);
 		if (!mCount || !mType)
@@ -943,7 +867,7 @@ namespace Langulus::Anyness::Inner
 	///	@param item - the item to search for											
 	///	@param idx - index to start searching from									
 	///	@return the index of the found item, or uiNone if not found				
-	template<RTTI::ReflectedData T>
+	template<ReflectedData T>
 	Index Block::FindDeep(const T& item, const Index& idx) const {
 		PC_EXTENSIVE_LEAK_TEST(*this);
 		auto found = uiNone;
@@ -961,7 +885,7 @@ namespace Langulus::Anyness::Inner
 	///	@param count - number of items to push											
 	///	@param idx - use uiFront or uiBack for pushing to ends					
 	///	@return the number of inserted elements										
-	template<RTTI::ReflectedData T, bool MUTABLE>
+	template<ReflectedData T, bool MUTABLE>
 	pcptr Block::Merge(const T* items, const pcptr count, const Index& idx) {
 		PC_EXTENSIVE_LEAK_TEST(*this);
 
@@ -979,7 +903,7 @@ namespace Langulus::Anyness::Inner
 	}
 
 	/// Get the index of the biggest dense element										
-	template<RTTI::ReflectedData T>
+	template<ReflectedData T>
 	Index Block::GetIndexMax() const noexcept requires Sortable<T> {
 		if (IsEmpty())
 			return uiNone;
@@ -995,7 +919,7 @@ namespace Langulus::Anyness::Inner
 	}
 
 	/// Get the index of the smallest dense element										
-	template<RTTI::ReflectedData T>
+	template<ReflectedData T>
 	Index Block::GetIndexMin() const noexcept requires Sortable<T> {
 		if (IsEmpty())
 			return uiNone;
@@ -1013,8 +937,8 @@ namespace Langulus::Anyness::Inner
 	/// Get the index of dense element that repeats the most times					
 	///	@param count - [out] count the number of repeats for the mode			
 	///	@return the index of the first found mode										
-	template<RTTI::ReflectedData T>
-	Index Block::GetIndexMode(pcptr& count) const noexcept {
+	template<ReflectedData T>
+	Index Block::GetIndexMode(Count& count) const noexcept {
 		if (IsEmpty()) {
 			count = 0;
 			return uiNone;
@@ -1055,7 +979,7 @@ namespace Langulus::Anyness::Inner
 	/// Sort the contents of this container using a static type						
 	///	@param first - what will the first element be after sorting?			
 	///					 - use uiSmallest for 123, or anything else for 321		
-	template<RTTI::ReflectedData T>
+	template<ReflectedData T>
 	void Block::Sort(const Index& first) noexcept {
 		auto data = Get<pcDecay<T>*>();
 		if (nullptr == data)
@@ -1096,8 +1020,8 @@ namespace Langulus::Anyness::Inner
 	///	@param attemptDeepen - whether or not deepening is allowed				
 	///	@param index - the index at which to insert (if needed)					
 	///	@return the number of pushed items (zero if unsuccessful)				
-	template<RTTI::ReflectedData T>
-	pcptr Block::SmartPush(const T& pack, DState finalState, 
+	template<ReflectedData T>
+	pcptr Block::SmartPush(const T& pack, DataState finalState, 
 		bool attemptConcat, bool attemptDeepen, Index index) {
 		PC_EXTENSIVE_LEAK_TEST(*this);
 
@@ -1177,7 +1101,7 @@ namespace Langulus::Anyness::Inner
 
 	/// Wrap all contained elements inside a sub-block, making this one deep	
 	///	@param moveState - whether or not to move the current state over		
-	template<RTTI::ReflectedData T>
+	template<ReflectedData T>
 	T& Block::Deepen(bool moveState) {
 		PC_EXTENSIVE_LEAK_TEST(*this);
 
@@ -1219,7 +1143,7 @@ namespace Langulus::Anyness::Inner
 	///	@param idx - simple index for accessing										
 	///	@param baseOffset - byte offset from the element to apply				
 	///	@return either pointer or reference to the element (depends on T)		
-	template<RTTI::ReflectedData T>
+	template<ReflectedData T>
 	decltype(auto) Block::Get(const pcptr idx, const pcptr baseOffset) {
 		PC_EXTENSIVE_LEAK_TEST(*this);
 
@@ -1245,7 +1169,7 @@ namespace Langulus::Anyness::Inner
 	/// arithmetic based on CTTI or RTTI													
 	///	@param idx - simple index for accessing										
 	///	@return either pointer or reference to the element (depends on T)		
-	template<RTTI::ReflectedData T>
+	template<ReflectedData T>
 	decltype(auto) Block::As(const pcptr idx) {
 		PC_EXTENSIVE_LEAK_TEST(*this);
 
@@ -1284,7 +1208,7 @@ namespace Langulus::Anyness::Inner
 	/// Insert any data (including arrays) at the back									
 	///	@param other - the data to insert												
 	///	@return a reference to this memory block for chaining						
-	template<RTTI::ReflectedData T>
+	template<ReflectedData T>
 	Block& Block::operator << (const T& other) {
 		PC_EXTENSIVE_LEAK_TEST(*this);
 		if constexpr (pcIsArray<T>)
@@ -1299,7 +1223,7 @@ namespace Langulus::Anyness::Inner
 	///	@tparam T - the type of the instance to push									
 	///	@param other - the instance to push												
 	///	@return a reference to this memory block for chaining						
-	template<RTTI::ReflectedData T>
+	template<ReflectedData T>
 	Block& Block::operator << (T& other) {
 		PC_EXTENSIVE_LEAK_TEST(*this);
 		return operator << (const_cast<const T&>(other));
@@ -1308,7 +1232,7 @@ namespace Langulus::Anyness::Inner
 	/// Emplace any data at the back															
 	///	@param other - the data to insert												
 	///	@return a reference to this memory block for chaining						
-	template<RTTI::ReflectedData T>
+	template<ReflectedData T>
 	Block& Block::operator << (T&& other) {
 		PC_EXTENSIVE_LEAK_TEST(*this);
 		Emplace<T>(pcForward<T>(other), uiBack);
@@ -1318,7 +1242,7 @@ namespace Langulus::Anyness::Inner
 	/// Insert any data (including arrays) at the front								
 	///	@param other - the data to insert												
 	///	@return a reference to this memory block for chaining						
-	template<RTTI::ReflectedData T>
+	template<ReflectedData T>
 	Block& Block::operator >> (const T& other) {
 		PC_EXTENSIVE_LEAK_TEST(*this);
 		if constexpr (pcIsArray<T>)
@@ -1333,7 +1257,7 @@ namespace Langulus::Anyness::Inner
 	///	@tparam T - the type of the instance to push									
 	///	@param other - the instance to push												
 	///	@return a reference to this memory block for chaining						
-	template<RTTI::ReflectedData T>
+	template<ReflectedData T>
 	Block& Block::operator >> (T& other) {
 		PC_EXTENSIVE_LEAK_TEST(*this);
 		return operator >> (const_cast<const T&>(other));
@@ -1342,7 +1266,7 @@ namespace Langulus::Anyness::Inner
 	/// Emplace any data at the front														
 	///	@param other - the data to insert												
 	///	@return a reference to this memory block for chaining						
-	template<RTTI::ReflectedData T>
+	template<ReflectedData T>
 	Block& Block::operator >> (T&& other) {
 		PC_EXTENSIVE_LEAK_TEST(*this);
 		Emplace<T>(pcForward<T>(other), uiFront);
@@ -1352,7 +1276,7 @@ namespace Langulus::Anyness::Inner
 	/// Merge data (including arrays) at the back										
 	///	@param other - the data to insert												
 	///	@return a reference to this memory block for chaining						
-	template<RTTI::ReflectedData T>
+	template<ReflectedData T>
 	Block& Block::operator <<= (const T& other) {
 		PC_EXTENSIVE_LEAK_TEST(*this);
 		if constexpr (pcIsArray<T>)
@@ -1365,7 +1289,7 @@ namespace Langulus::Anyness::Inner
 	/// Merge data at the front																
 	///	@param other - the data to insert												
 	///	@return a reference to this memory block for chaining						
-	template<RTTI::ReflectedData T>
+	template<ReflectedData T>
 	Block& Block::operator >>= (const T& other) {
 		PC_EXTENSIVE_LEAK_TEST(*this);
 		if constexpr (pcIsArray<T>)

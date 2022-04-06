@@ -386,11 +386,11 @@ namespace Langulus::Anyness
 
 	/// Check memory references																
 	///	@return the number of references													
-	TEMPLATE1 pcref TOwned<T>::GetBlockReferences() const {
+	TEMPLATE1 RefCount TOwned<T>::GetBlockReferences() const {
 		return PCMEMORY.GetReferences(GetMeta(), mValue);
 	}
 
-	TEMPLATE pcref TPointer<T, DR>::GetBlockReferences() const {
+	TEMPLATE RefCount TPointer<T, DR>::GetBlockReferences() const {
 		return PCMEMORY.GetReferences(sMeta, BASE::mValue);
 	}
 

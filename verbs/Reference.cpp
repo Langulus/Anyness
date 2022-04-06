@@ -12,7 +12,7 @@ namespace Langulus::Anyness::Inner
 	/// fully dereferenced. It is your responsibility to clear your container	
 	///	@param times - number of references to add or subtract					
 	///	@return the remaining references for the memory block						
-	pcref Block::ReferenceBlock(pcref times) {
+	RefCount Block::ReferenceBlock(RefCount times) {
 		if (!IsAllocated())
 			return 1;
 
