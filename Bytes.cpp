@@ -82,7 +82,7 @@ namespace Langulus::Anyness
 	Bytes& Bytes::operator = (Bytes&& other) SAFE_NOEXCEPT() {
 		PCMEMORY.Reference(mType, mRaw, -1);
 		SAFETY(if (other.CheckJurisdiction() && !other.CheckUsage())
-			throw Except::BadMove(pcLogFuncError
+			throw Except::Move(Logger::Error()
 				<< "You've hit a really nasty corner case, where trying to move a container destroys it, "
 				<< "due to a circular referencing. Try to move a shallow-copy, instead of a reference to "
 				<< "the original. Data may be incorrect at this point. "));
@@ -122,7 +122,7 @@ namespace Langulus::Anyness
 	///	@return constant reference to the character									
 	const pcbyte& Bytes::operator[] (const Count i) const {
 		SAFETY(if (i >= mCount)
-			throw Except::BadAccess("Byte access index is out of range"));
+			throw Except::Access("Byte access index is out of range"));
 		return GetRaw()[i];
 	}
 
@@ -131,7 +131,7 @@ namespace Langulus::Anyness
 	///	@return constant reference to the character									
 	pcbyte& Bytes::operator[] (const Count i) {
 		SAFETY(if (i >= mCount)
-			throw Except::BadAccess("Byte access index is out of range"));
+			throw Except::Access("Byte access index is out of range"));
 		return GetRaw()[i];
 	}
 

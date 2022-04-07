@@ -10,6 +10,8 @@
 	#include <cstddef>
 	#include <functional>
 	#include <span>
+	#include <string_view>
+	#include <limits>
 	
 	#define LANGULUS(a) LANGULUS_##a()
 	#define LANGULUS_MODULE(a) LANGULUS(MODULE_##a)
@@ -17,13 +19,21 @@
 	#define LANGULUS_DISABLED() 0
 	#define LANGULUS_ENABLED() 1
 	
-	#define LANGULUS_DEEP() public: static constexpr bool Deep = true
 	#define NOD() [[nodiscard]]
+	#define LANGULUS_SAFE() LANGULUS_ENABLED()
 	
 	#if defined(DEBUG) || !defined(NDEBUG) || defined(_DEBUG) || defined(CB_DEBUG) || defined(QT_QML_DEBUG)
 		#define LANGULUS_DEBUG() LANGULUS_ENABLED()
+		#define DEBUGGERY(a) a
 	#else
 		#define LANGULUS_DEBUG() LANGULUS_DISABLED()
+		#define DEBUGGERY(a)
+	#endif
+
+	#if LANGULUS_SAFE()
+		#define SAFETY(a) a
+	#else
+		#define SAFETY(a)
 	#endif
 
 	namespace Langulus
@@ -40,7 +50,7 @@
 		using Hash = ::std::size_t;
 		template<class T>
 		using TFunctor = ::std::function<T>;
-		using Token = ::std::span<char>;
+		using Token = ::std::basic_string_view<char>;
 
 
 		///																							
@@ -94,26 +104,8 @@
 		template<class T>
 		concept Dense = !Sparse<T>;
 
-		/// A reflected type is a type that has a public Reflection field			
-		/// This field is automatically added when using LANGULUS(REFLECT) macro
-		/// inside the type you want to reflect											
-		template<class T>
-		concept Reflected = requires { Decay<T>::Reflection; };
-		
-		/// A reflected data type is any type that is not void, and is either	
-		/// manually reflected, or an implicitly reflected fundamental type		
-		template<class T>
-		concept ReflectedData = !::std::is_void_v<Decay<T>> && (Reflected<T> || ::std::is_fundamental_v<Decay<T>>);
-	
-		/// A deep type is any type with a static member T::Deep set to true		
-		/// If no such member exists, the type is assumed NOT deep by default	
-		/// Deep types are considered iteratable, and verbs are executed in each
-		/// of their elements, instead on the container itself						
-		template<class T>
-		concept Deep = T::Deep == true;
-
 		/// Sortable concept																		
-		/// Any class with an adequate <, >, <=, >=, or combined <=> operator	
+		/// Any class with an adequate <, >, or combined <=> operator				
 		template<class T, class U = T>
 		concept Sortable = requires(Decay<T> t, Decay<U> u) {
 			{ t < u } -> Boolean;
@@ -121,9 +113,6 @@
 		};
 
 	} // namespace Langulus
-
-	#include "Reflection.hpp"
-	#include "Index.hpp"
 
 #else
 

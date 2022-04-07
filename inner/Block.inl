@@ -1,3 +1,6 @@
+#pragma once
+#include "Block.hpp"
+
 namespace Langulus::Anyness::Inner
 {
 
@@ -41,8 +44,8 @@ namespace Langulus::Anyness::Inner
 	template<ReflectedData T>
 	Block Block::From(T value) requires Sparse<T> {
 		const Block block {
-			DataState::Static, 
-			DataID::Reflect<pcDecay<T>>(), 
+			DataState::Static,
+			MetaData::From<T>(), 
 			1, value
 		};
 
@@ -54,7 +57,7 @@ namespace Langulus::Anyness::Inner
 	Block Block::From(T value, Count count) requires Sparse<T> {
 		const Block block {
 			DataState::Static, 
-			DataID::Reflect<pcDecay<T>>(), 
+			MetaData::From<T>(), 
 			count, value
 		};
 
@@ -70,17 +73,14 @@ namespace Langulus::Anyness::Inner
 			return static_cast<const Block&>(value);
 		}
 		else if constexpr (Resolvable<T>) {
-			const auto block = value.GetBlock();
-			return block;
+			return value.GetBlock();
 		}
 		else {
-			const Block block {
+			return Block {
 				DataState::Static,
-				DataID::Reflect<pcDecay<T>>(),
+				MetaData::From<T>(), 
 				1, &value
 			};
-
-			return block;
 		}
 	}
 
@@ -90,7 +90,7 @@ namespace Langulus::Anyness::Inner
 	Block Block::From() {
 		return Block {
 			DataState::Default, 
-			DataID::Reflect<T>(), 
+			MetaData::From<T>(), 
 			0, static_cast<void*>(nullptr)
 		};
 	}
@@ -137,11 +137,11 @@ namespace Langulus::Anyness::Inner
 		mCount = mReserved = 0;
 
 		if (IsTypeConstrained()) {
-			mState = DataState::Typed;
+			mState.mState = DataState::Typed;
 		}
 		else {
 			mType = nullptr;
-			mState = DataState::Default;
+			mState.mState = DataState::Default;
 		}
 	}
 
@@ -212,7 +212,7 @@ namespace Langulus::Anyness::Inner
 	/// Check if block is marked as missing												
 	///	@returns true if this container is marked as vacuum						
 	constexpr bool Block::IsMissing() const noexcept {
-		return mState & DataState::Missing;
+		return mState.mState & DataState::Missing;
 	}
 
 	/// Check if block has a data type														
@@ -339,7 +339,7 @@ namespace Langulus::Anyness::Inner
 	/// Check if a type can be inserted														
 	template<ReflectedData T>
 	bool Block::IsInsertable() const noexcept {
-		return IsInsertable(DataID::Reflect<T>());
+		return IsInsertable(MetaData::Of<T>());
 	}
 
 	/// Get the raw data inside the container												
@@ -387,18 +387,17 @@ namespace Langulus::Anyness::Inner
 	}
 
 	/// Set the current data state, overwriting the current							
-	/// You can not remove type-constraints												
+	/// You can not remove constraints														
 	inline void Block::SetState(DataState state) noexcept {
-		const bool typeConstrained = mState & DataState::Typed;
-		mState = state;
-		if (typeConstrained)
-			mState += DataState::Typed;
+		mState.mState = state.mState | (mState.mState & (DataState::Static | DataState::Constant | DataState::Typed));
 	}
 
 	/// Get the relevant state when relaying one block	to another					
 	/// Relevant states exclude memory and type constraints							
 	constexpr DataState Block::GetUnconstrainedState() const noexcept {
-		return mState - (DataState::Static + DataState::Constant + DataState::Typed);
+		return {
+			mState.mState & ~(DataState::Static | DataState::Constant | DataState::Typed)
+		};
 	}
 
 	/// Compare memory blocks. This is a slow RTTI check								
@@ -416,9 +415,10 @@ namespace Langulus::Anyness::Inner
 	///	@return the selected byte															
 	inline Byte* Block::At(Offset byte_offset) {
 		#if LANGULUS_SAFE()
-			if (!mRaw) 
-				throw Except::BadAccess(pcLogFuncError
+			if (!mRaw) {
+				throw Except::Access(Logger::Error()
 					<< "Byte offset in invalid memory of type " << GetToken());
+			}
 		#endif
 		return GetBytes() + byte_offset;
 	}
@@ -447,8 +447,8 @@ namespace Langulus::Anyness::Inner
 	decltype(auto) Block::As(Index index) {
 		index = ConstrainMore<T>(index);
 		if (index.IsSpecial()) {
-			throw Except::BadAccess(
-				pcLogFuncError << "Can't reference special index");
+			throw Except::Access(Logger::Error()
+				<< "Can't reference special index");
 		}
 
 		return As<T>(pcptr(index.mIndex));
@@ -480,7 +480,7 @@ namespace Langulus::Anyness::Inner
 	///	@return true if block was deepened to incorporate the new type			
 	template<ReflectedData T>
 	bool Block::Mutate() {
-		return Mutate(DataID::Reflect<T>());
+		return Mutate(MetaData::Of<T>());
 	}
 
 	/// Reserve a number of elements															
@@ -501,17 +501,18 @@ namespace Langulus::Anyness::Inner
 	///	@return the constrained index or a special one of constrain fails		
 	constexpr Index Block::Constrain(const Index& idx) const noexcept {
 		switch (idx.mIndex) {
-		case uiAuto.mIndex: case uiFirst.mIndex: case uiFront.mIndex:
+		case Index::Auto: case Index::First: case Index::Front:
 			return 0;
-		case uiAll.mIndex: case uiBack.mIndex:
-			return Index(mCount);
-		case uiLast.mIndex:
-			return mCount != 0 ? Index(mCount - 1) : uiNone;
-		case uiMiddle.mIndex:
+		case Index::All: case Index::Back:
+			return Index {mCount};
+		case Index::Last:
+			return mCount ? Index {mCount - 1} : Index::None;
+		case Index::Middle:
 			return mCount / 2;
-		case uiNone.mIndex:
-			return uiNone;
+		case Index::None:
+			return Index::None;
 		}
+		
 		return idx.Constrained(mCount);
 	}
 
@@ -524,17 +525,17 @@ namespace Langulus::Anyness::Inner
 		const auto result = Constrain(idx);
 		if (result.IsSpecial()) {
 			switch (result.mIndex) {
-			case uiBiggest.mIndex:
+			case Index::Biggest:
 				if constexpr (Sortable<T>)
 					return GetIndexMax<T>();
 				else return uiNone;
 				break;
-			case uiSmallest.mIndex:
+			case Index::Smallest:
 				if constexpr (Sortable<T>)
 					return GetIndexMin<T>();
 				else return uiNone;
 				break;
-			case uiMode.mIndex:
+			case Index::Mode:
 				if constexpr (Sortable<T>) {
 					pcptr unused;
 					return GetIndexMode<T>(unused);
@@ -563,7 +564,7 @@ namespace Langulus::Anyness::Inner
 
 	template<ReflectedData T>
 	bool Block::Is() const {
-		return Is(DataID::Of<pcDecay<T>>);
+		return Is(MetaData::Of<T>);
 	}
 
 	/// Swap two elements (with raw indices)												
@@ -607,7 +608,7 @@ namespace Langulus::Anyness::Inner
 		// Check errors before actually doing anything							
 		if constexpr (Sparse<T>) {
 			if (!item) {
-				throw Except::BadReference(pcLogFuncError
+				throw Except::Reference(Logger::Error()
 					<< "Move-insertion of a null pointer of type "
 					<< GetToken() << " is not allowed");
 			}
@@ -629,7 +630,7 @@ namespace Langulus::Anyness::Inner
 		// Move memory if required														
 		if (starter < mCount) {
 			SAFETY(if (GetBlockReferences() > 1)
-				throw Except::BadReference(pcLogFuncError
+				throw Except::Reference(Logger::Error()
 					<< "Moving elements that are used from multiple places"));
 
 			CropInner(starter + 1, mCount - starter)
@@ -687,7 +688,7 @@ namespace Langulus::Anyness::Inner
 		// Move memory if required														
 		if (starter < mCount) {
 			SAFETY(if (GetBlockReferences() > 1)
-				throw Except::BadReference(pcLogFuncError
+				throw Except::Reference(Logger::Error()
 					<< "Moving elements that are used from multiple places"));
 
 			CropInner(starter + count, mCount - starter)
@@ -704,7 +705,7 @@ namespace Langulus::Anyness::Inner
 			pcptr c = 0;
 			while (c < count) {
 				if (!items[c]) {
-					throw Except::BadReference(pcLogFuncError
+					throw Except::Reference(Logger::Error()
 						<< "Copy-insertion of a null pointer of type "
 						<< GetToken() << " is not allowed");
 				}
@@ -749,12 +750,11 @@ namespace Langulus::Anyness::Inner
 	///	@param index - the index to start searching from							
 	///	@return the number of removed items												
 	template<ReflectedData T>
-	pcptr Block::Remove(const T* items, const pcptr count, const Index& index) {
-		PC_EXTENSIVE_LEAK_TEST(*this);
-		pcptr removed = 0;
-		for (pcptr i = 0; i < count; ++i) {
+	Count Block::Remove(const T* items, const Count count, const Index& index) {
+		Count removed = 0;
+		for (Count i = 0; i < count; ++i) {
 			const auto idx = Find<T>(items[i], index);
-			if (idx != uiNone)
+			if (idx)
 				removed += RemoveIndex(static_cast<pcptr>(idx), 1);
 		}
 
@@ -767,19 +767,18 @@ namespace Langulus::Anyness::Inner
 	///	@return the index of the found item, or uiNone if not found				
 	template<ReflectedData T>
 	Index Block::Find(const T& item, const Index& idx) const {
-		PC_EXTENSIVE_LEAK_TEST(*this);
 		if (!mCount || !mType)
-			return uiNone;
+			return Index::None;
 
 		if (!mType->IsSparse()) {
 			if (!InterpretsAs<T>()) {
 				// If dense and not forward compatible - fail					
-				return uiNone;
+				return Index::None;
 			}
 		}
-		else if (!DataID::Reflect<T>()->InterpretsAs(mType)) {
+		else if (!MetaData::Of<T>()->InterpretsAs(mType)) {
 			// If sparse and not backwards compatible - fail					
-			return uiNone;
+			return Index::None;
 		}
 
 		// Setup the iterator															
@@ -861,7 +860,6 @@ namespace Langulus::Anyness::Inner
 	///	@return the index of the found item, or uiNone if not found				
 	template<ReflectedData T>
 	Index Block::FindDeep(const T& item, const Index& idx) const {
-		PC_EXTENSIVE_LEAK_TEST(*this);
 		auto found = uiNone;
 		ForEachDeep([&](const Block& group) {
 			found = group.Find<T>(item, idx);
@@ -878,15 +876,9 @@ namespace Langulus::Anyness::Inner
 	///	@param idx - use uiFront or uiBack for pushing to ends					
 	///	@return the number of inserted elements										
 	template<ReflectedData T, bool MUTABLE>
-	pcptr Block::Merge(const T* items, const pcptr count, const Index& idx) {
-		PC_EXTENSIVE_LEAK_TEST(*this);
-
-		static_assert(!Same<T, Block>, 
-			"Merge Block inside Block is disallowed - Block is only for internal use, "
-			"because there's danger of memory leaks - wrap your block in an Any first");
-
+	Count Block::Merge(const T* items, const Count count, const Index& idx) {
 		pcptr added = 0;
-		for (pcptr i = 0; i < count; ++i) {
+		for (Count i = 0; i < count; ++i) {
 			if (uiNone == Find<T>(items[i]))
 				added += Insert<T, MUTABLE>(items + i, 1, idx);
 		}
@@ -898,11 +890,11 @@ namespace Langulus::Anyness::Inner
 	template<ReflectedData T>
 	Index Block::GetIndexMax() const noexcept requires Sortable<T> {
 		if (IsEmpty())
-			return uiNone;
+			return Index::None;
 
-		auto data = Get<pcDecay<T>*>();
+		auto data = Get<Decay<T>*>();
 		auto max = data;
-		for (pcptr i = 1; i < mCount; ++i) {
+		for (Count i = 1; i < mCount; ++i) {
 			if (*pcPtr(data[i]) > *pcPtr(*max))
 				max = data + i;
 		}
@@ -914,11 +906,11 @@ namespace Langulus::Anyness::Inner
 	template<ReflectedData T>
 	Index Block::GetIndexMin() const noexcept requires Sortable<T> {
 		if (IsEmpty())
-			return uiNone;
+			return Index::None;
 
-		auto data = Get<pcDecay<T>*>();
+		auto data = Get<Decay<T>*>();
 		auto min = data;
-		for (pcptr i = 1; i < mCount; ++i) {
+		for (Count i = 1; i < mCount; ++i) {
 			if (*pcPtr(data[i]) < *pcPtr(*min))
 				min = data + i;
 		}
@@ -933,14 +925,14 @@ namespace Langulus::Anyness::Inner
 	Index Block::GetIndexMode(Count& count) const noexcept {
 		if (IsEmpty()) {
 			count = 0;
-			return uiNone;
+			return Index::None;
 		}
 
-		auto data = Get<pcDecay<T>*>();
+		auto data = Get<Decay<T>*>();
 		decltype(data) best = nullptr;
-		pcptr best_count = 0;
-		for (pcptr i = 0; i < mCount; ++i) {
-			pcptr counter = 0;
+		Count best_count = 0;
+		for (Count i = 0; i < mCount; ++i) {
+			Count counter = 0;
 			for (pcptr j = i; j < mCount; ++j) {
 				if constexpr (Comparable<T, T>) {
 					// First we compare by memory pointer, then by ==			
@@ -973,12 +965,12 @@ namespace Langulus::Anyness::Inner
 	///					 - use uiSmallest for 123, or anything else for 321		
 	template<ReflectedData T>
 	void Block::Sort(const Index& first) noexcept {
-		auto data = Get<pcDecay<T>*>();
+		auto data = Get<Decay<T>*>();
 		if (nullptr == data)
 			return;
 
-		pcptr j = 0, i = 0;
-		if (first == uiSmallest) {
+		Count j = 0, i = 0;
+		if (first == Index::Smallest) {
 			for (; i < mCount; ++i) {
 				for (; j < i; ++j) {
 					if (*pcPtr(data[i]) > *pcPtr(data[j]))
@@ -1013,14 +1005,8 @@ namespace Langulus::Anyness::Inner
 	///	@param index - the index at which to insert (if needed)					
 	///	@return the number of pushed items (zero if unsuccessful)				
 	template<ReflectedData T>
-	pcptr Block::SmartPush(const T& pack, DataState finalState, 
+	Count Block::SmartPush(const T& pack, DataState finalState, 
 		bool attemptConcat, bool attemptDeepen, Index index) {
-		PC_EXTENSIVE_LEAK_TEST(*this);
-
-		static_assert(!Same<T, Block>, 
-			"SmartPush Block inside Block is disallowed - Block is only for internal use, "
-			"because there's danger of memory leaks - wrap your block in an Any first");
-
 		if constexpr (pcHasBase<T, Block>) {
 			// Early exit if nothing to push											
 			if (!pack.IsValid())
@@ -1095,12 +1081,6 @@ namespace Langulus::Anyness::Inner
 	///	@param moveState - whether or not to move the current state over		
 	template<ReflectedData T>
 	T& Block::Deepen(bool moveState) {
-		PC_EXTENSIVE_LEAK_TEST(*this);
-
-		static_assert(!Same<T, Block>, 
-			"Deepen Block as Block is disallowed - Block is only for internal use, "
-			"because there's danger of memory leaks - wrap your block in an Any first");
-
 		static_assert(pcHasBase<T, Block>, 
 			"The deepening type must inherit Block");
 
@@ -1124,7 +1104,7 @@ namespace Langulus::Anyness::Inner
 		*this = wrapper;
 		if (!moveState)
 			ToggleState(movedStates);
-		PC_EXTENSIVE_LEAK_TEST(*this);
+
 		return Get<T>();
 	}
 
@@ -1137,8 +1117,6 @@ namespace Langulus::Anyness::Inner
 	///	@return either pointer or reference to the element (depends on T)		
 	template<ReflectedData T>
 	decltype(auto) Block::Get(const pcptr idx, const pcptr baseOffset) {
-		PC_EXTENSIVE_LEAK_TEST(*this);
-
 		// Get pointer via some arithmetic											
 		auto pointer = pcP2N(At(mType->GetStride() * idx));
 		if (mType->IsSparse()) {
@@ -1163,8 +1141,6 @@ namespace Langulus::Anyness::Inner
 	///	@return either pointer or reference to the element (depends on T)		
 	template<ReflectedData T>
 	decltype(auto) Block::As(const pcptr idx) {
-		PC_EXTENSIVE_LEAK_TEST(*this);
-
 		// First quick type stage for fast access									
 		if (mType->Is<T>())
 			return Get<T>(idx);
@@ -1187,7 +1163,7 @@ namespace Langulus::Anyness::Inner
 			// All stages of interpretation failed									
 			// Don't log this, because it will spam the crap out of us		
 			// That throw is used by ForEach to handle irrelevant types		
-			throw Except::BadAccess("Type mismatch on Block::As");
+			throw Except::Access("Type mismatch on Block::As");
 		}
 
 		// Get base memory of the required element and access					
@@ -1202,9 +1178,8 @@ namespace Langulus::Anyness::Inner
 	///	@return a reference to this memory block for chaining						
 	template<ReflectedData T>
 	Block& Block::operator << (const T& other) {
-		PC_EXTENSIVE_LEAK_TEST(*this);
-		if constexpr (pcIsArray<T>)
-			Insert<pcDecay<T>>(other, pcExtentOf<T>, uiBack);
+		if constexpr (Array<T>)
+			Insert<Decay<T>>(other, pcExtentOf<T>, uiBack);
 		else
 			Insert<T>(&other, 1, uiBack);
 		return *this;
@@ -1217,7 +1192,6 @@ namespace Langulus::Anyness::Inner
 	///	@return a reference to this memory block for chaining						
 	template<ReflectedData T>
 	Block& Block::operator << (T& other) {
-		PC_EXTENSIVE_LEAK_TEST(*this);
 		return operator << (const_cast<const T&>(other));
 	}
 
@@ -1226,7 +1200,6 @@ namespace Langulus::Anyness::Inner
 	///	@return a reference to this memory block for chaining						
 	template<ReflectedData T>
 	Block& Block::operator << (T&& other) {
-		PC_EXTENSIVE_LEAK_TEST(*this);
 		Emplace<T>(pcForward<T>(other), uiBack);
 		return *this;
 	}
@@ -1236,9 +1209,8 @@ namespace Langulus::Anyness::Inner
 	///	@return a reference to this memory block for chaining						
 	template<ReflectedData T>
 	Block& Block::operator >> (const T& other) {
-		PC_EXTENSIVE_LEAK_TEST(*this);
-		if constexpr (pcIsArray<T>)
-			Insert<pcDecay<T>>(other, pcExtentOf<T>, uiFront);
+		if constexpr (Array<T>)
+			Insert<Decay<T>>(other, pcExtentOf<T>, uiFront);
 		else
 			Insert<T>(&other, 1, uiFront);
 		return *this;
@@ -1251,7 +1223,6 @@ namespace Langulus::Anyness::Inner
 	///	@return a reference to this memory block for chaining						
 	template<ReflectedData T>
 	Block& Block::operator >> (T& other) {
-		PC_EXTENSIVE_LEAK_TEST(*this);
 		return operator >> (const_cast<const T&>(other));
 	}
 
@@ -1260,7 +1231,6 @@ namespace Langulus::Anyness::Inner
 	///	@return a reference to this memory block for chaining						
 	template<ReflectedData T>
 	Block& Block::operator >> (T&& other) {
-		PC_EXTENSIVE_LEAK_TEST(*this);
 		Emplace<T>(pcForward<T>(other), uiFront);
 		return *this;
 	}
@@ -1270,9 +1240,8 @@ namespace Langulus::Anyness::Inner
 	///	@return a reference to this memory block for chaining						
 	template<ReflectedData T>
 	Block& Block::operator <<= (const T& other) {
-		PC_EXTENSIVE_LEAK_TEST(*this);
-		if constexpr (pcIsArray<T>)
-			Merge<pcDecay<T>>(other, pcExtentOf<T>, uiBack);
+		if constexpr (Array<T>)
+			Merge<Decay<T>>(other, pcExtentOf<T>, uiBack);
 		else
 			Merge<T>(&other, 1, uiBack);
 		return *this;
@@ -1283,17 +1252,15 @@ namespace Langulus::Anyness::Inner
 	///	@return a reference to this memory block for chaining						
 	template<ReflectedData T>
 	Block& Block::operator >>= (const T& other) {
-		PC_EXTENSIVE_LEAK_TEST(*this);
-		if constexpr (pcIsArray<T>)
-			Merge<pcDecay<T>>(other, pcExtentOf<T>, uiFront);
+		if constexpr (Array<T>)
+			Merge<Decay<T>>(other, pcExtentOf<T>, uiFront);
 		else
 			Merge<T>(&other, 1, uiFront);
 		return *this;
 	}
 
 	template<bool MUTABLE, class FUNCTION>
-	pcptr Block::ForEach(FUNCTION&& call) {
-		PC_EXTENSIVE_LEAK_TEST(*this);
+	Count Block::ForEach(FUNCTION&& call) {
 		using ArgumentType = decltype(GetLambdaArgument(&FUNCTION::operator()));
 		using ReturnType = decltype(call(std::declval<ArgumentType>()));
 		return ForEachInner<ReturnType, ArgumentType, false, MUTABLE
@@ -1301,8 +1268,7 @@ namespace Langulus::Anyness::Inner
 	}
 
 	template<class FUNCTION>
-	pcptr Block::ForEach(FUNCTION&& call) const {
-		PC_EXTENSIVE_LEAK_TEST(*this);
+	Count Block::ForEach(FUNCTION&& call) const {
 		using ArgumentType = decltype(GetLambdaArgument(&FUNCTION::operator()));
 		static_assert(Constant<ArgumentType>, 
 			"Non constant iterator for constant memory block");
@@ -1311,8 +1277,7 @@ namespace Langulus::Anyness::Inner
 	}
 
 	template<bool MUTABLE, class FUNCTION>
-	pcptr Block::ForEachRev(FUNCTION&& call) {
-		PC_EXTENSIVE_LEAK_TEST(*this);
+	Count Block::ForEachRev(FUNCTION&& call) {
 		using ArgumentType = decltype(GetLambdaArgument(&FUNCTION::operator()));
 		using ReturnType = decltype(call(std::declval<ArgumentType>()));
 		return ForEachInner<ReturnType, ArgumentType, true, MUTABLE
@@ -1320,8 +1285,7 @@ namespace Langulus::Anyness::Inner
 	}
 
 	template<class FUNCTION>
-	pcptr Block::ForEachRev(FUNCTION&& call) const {
-		PC_EXTENSIVE_LEAK_TEST(*this);
+	Count Block::ForEachRev(FUNCTION&& call) const {
 		using ArgumentType = decltype(GetLambdaArgument(&FUNCTION::operator()));
 		static_assert(Constant<ArgumentType>, 
 			"Non constant iterator for constant memory block");
@@ -1330,8 +1294,7 @@ namespace Langulus::Anyness::Inner
 	}
 
 	template<bool SKIP_DEEP_OR_EMPTY, bool MUTABLE, class FUNCTION>
-	pcptr Block::ForEachDeep(FUNCTION&& call) {
-		PC_EXTENSIVE_LEAK_TEST(*this);
+	Count Block::ForEachDeep(FUNCTION&& call) {
 		using ArgumentType = decltype(GetLambdaArgument(&FUNCTION::operator()));
 		using ReturnType = decltype(call(std::declval<ArgumentType>()));
 		if constexpr (pcIsDeep<ArgumentType>) {
@@ -1348,8 +1311,7 @@ namespace Langulus::Anyness::Inner
 	}
 
 	template<bool SKIP_DEEP_OR_EMPTY, class FUNCTION>
-	pcptr Block::ForEachDeep(FUNCTION&& call) const {
-		PC_EXTENSIVE_LEAK_TEST(*this);
+	Count Block::ForEachDeep(FUNCTION&& call) const {
 		using ArgumentType = decltype(GetLambdaArgument(&FUNCTION::operator()));
 		static_assert(Constant<ArgumentType>, 
 			"Non constant iterator for constant memory block");
@@ -1358,8 +1320,7 @@ namespace Langulus::Anyness::Inner
 	}
 
 	template<bool SKIP_DEEP_OR_EMPTY, bool MUTABLE, class FUNCTION>
-	pcptr Block::ForEachDeepRev(FUNCTION&& call) {
-		PC_EXTENSIVE_LEAK_TEST(*this);
+	Count Block::ForEachDeepRev(FUNCTION&& call) {
 		using ArgumentType = decltype(GetLambdaArgument(&FUNCTION::operator()));
 		using ReturnType = decltype(call(std::declval<ArgumentType>()));
 		if constexpr (pcIsDeep<ArgumentType>) {
@@ -1376,8 +1337,7 @@ namespace Langulus::Anyness::Inner
 	}
 
 	template<bool SKIP_DEEP_OR_EMPTY, class FUNCTION>
-	pcptr Block::ForEachDeepRev(FUNCTION&& call) const {
-		PC_EXTENSIVE_LEAK_TEST(*this);
+	Count Block::ForEachDeepRev(FUNCTION&& call) const {
 		using ArgumentType = decltype(GetLambdaArgument(&FUNCTION::operator()));
 		static_assert(Constant<ArgumentType>, 
 			"Non constant iterator for constant memory block");
@@ -1389,8 +1349,7 @@ namespace Langulus::Anyness::Inner
 	///	@param call - the function to execute for each element of type T		
 	///	@return the number of executions that occured								
 	template<class RETURN, RTTI::ReflectedData ARGUMENT, bool REVERSE, bool MUTABLE>
-	pcptr Block::ForEachInner(TFunctor<RETURN(ARGUMENT)>&& call) {
-		PC_EXTENSIVE_LEAK_TEST(*this);
+	Count Block::ForEachInner(TFunctor<RETURN(ARGUMENT)>&& call) {
 		if (IsEmpty())
 			return 0;
 		 
@@ -1527,8 +1486,7 @@ namespace Langulus::Anyness::Inner
 	///	@param call - the function to execute for each element of type T		
 	///	@return the number of executions that occured								
 	template<class RETURN, RTTI::ReflectedData ARGUMENT, bool REVERSE>
-	pcptr Block::ForEachInner(TFunctor<RETURN(ARGUMENT)>&& call) const {
-		PC_EXTENSIVE_LEAK_TEST(*this);
+	Count Block::ForEachInner(TFunctor<RETURN(ARGUMENT)>&& call) const {
 		return const_cast<Block*>(this)->ForEachInner<RETURN, ARGUMENT, REVERSE, false
 			>(pcForward<decltype(call)>(call));
 	}
@@ -1537,8 +1495,7 @@ namespace Langulus::Anyness::Inner
 	///	@param call - the function to execute for each element of type T		
 	///	@return the number of executions that occured								
 	template<class RETURN, RTTI::ReflectedData ARGUMENT, bool REVERSE, bool SKIP_DEEP_OR_EMPTY, bool MUTABLE>
-	pcptr Block::ForEachDeepInner(TFunctor<RETURN(ARGUMENT)>&& call) {
-		PC_EXTENSIVE_LEAK_TEST(*this);
+	Count Block::ForEachDeepInner(TFunctor<RETURN(ARGUMENT)>&& call) {
 		constexpr bool HasBreaker = Same<bool, RETURN>;
 		UNUSED() bool atLeastOneChange = false;
 		auto count = GetCountDeep();
@@ -1597,24 +1554,10 @@ namespace Langulus::Anyness::Inner
 	///	@param call - the function to execute for each element of type T		
 	///	@return the number of executions that occured								
 	template<class RETURN, RTTI::ReflectedData ARGUMENT, bool REVERSE, bool SKIP_DEEP_OR_EMPTY>
-	pcptr Block::ForEachDeepInner(TFunctor<RETURN(ARGUMENT)>&& call) const {
-		PC_EXTENSIVE_LEAK_TEST(*this);
+	Count Block::ForEachDeepInner(TFunctor<RETURN(ARGUMENT)>&& call) const {
 		return const_cast<Block*>(this)->ForEachDeepInner<RETURN, ARGUMENT, REVERSE, false
 			>(pcForward<decltype(call)>(call));
 	}
 
 } // namespace Langulus::Anyness
 
-/// Start an OR sequence of operations, that relies on short-circuiting to		
-/// abort on a successful operation															
-#define EitherDoThis [[maybe_unused]] volatile pcptr _____________________sequence = 0 <
-
-/// Add another operation to an OR sequence of operations, relying on			
-/// short-circuiting to abort on a successful operation								
-#define OrThis || 0 <
-
-/// Return if any of the OR sequence operations succeeded							
-#define AndReturnIfDone ; if (_____________________sequence) return
-
-/// Enter scope if any of the OR sequence operations succeeded						
-#define AndIfDone ; if (_____________________sequence)

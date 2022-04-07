@@ -59,12 +59,12 @@ namespace Langulus::Anyness::Inner
 	///	@param setcount - set the count even if not constructed					
 	void Block::Allocate(Count elements, bool construct, bool setcount) {
 		if (!mType) {
-			throw Except::BadAllocation(pcLogFuncError
+			throw Except::Allocate(Logger::Error()
 				<< "Attempting to allocate " << elements 
 				<< " element(s) of an invalid type");
 		}
 		else if (mType->IsAbstract()) {
-			throw Except::BadAllocation(pcLogFuncError
+			throw Except::Allocate(Logger::Error()
 				<< "Attempting to allocate " << elements 
 				<< " element(s) of abstract type " << GetToken());
 		}
@@ -92,7 +92,7 @@ namespace Langulus::Anyness::Inner
 		// Check if we're allocating abstract data								
 		auto local_type = mType->GetConcreteMeta();
 		if (local_type->IsAbstract()) {
-			throw Except::BadAllocation(pcLogFuncError
+			throw Except::Allocate(Logger::Error()
 				<< "Allocating abstract data without any concretization: " << GetToken());
 		}
 
@@ -100,7 +100,7 @@ namespace Langulus::Anyness::Inner
 		const auto stride = local_type->GetStride();
 		if (IsAllocated()) {
 			if (IsStatic()) {
-				throw Except::BadAllocation(pcLogFuncError
+				throw Except::Allocate(Logger::Error()
 					<< "Attempting to reallocate unmovable block");
 			}
 
@@ -109,7 +109,7 @@ namespace Langulus::Anyness::Inner
 		else mRaw = PCMEMORY.Allocate(local_type, stride * elements);
 
 		if (!mRaw) {
-			throw Except::BadAllocation(pcLogFuncError
+			throw Except::Allocate(Logger::Error()
 				<< "(Re)allocation returned nullptr");
 		}
 		
@@ -179,21 +179,21 @@ namespace Langulus::Anyness::Inner
 		#if LANGULUS_SAFE()
 			if (start > mCount) {
 				start = mCount;
-				throw Except::BadAccess(
-					pcLogFuncError << "Crop left offset is out of limits");
+				throw Except::Access(Logger::Error()
+					<< "Crop left offset is out of limits");
 			}
 			if (start + count > mCount) {
 				count = mCount - start;
-				throw Except::BadAccess(
-					pcLogFuncError << "Crop count is out of limits");
+				throw Except::Access(Logger::Error()
+					<< "Crop count is out of limits");
 			}
 		#endif
 
 		if (count == 0)
-			return Block { mState, mType };
+			return Block {mState, mType};
 
 		return Block {
-			mState + DataState::Static + DataState::Typed, mType,
+			mState.mState | DataState::Static | DataState::Typed, mType,
 			count, At(start * mType->GetStride())
 		};
 	}
@@ -205,7 +205,7 @@ namespace Langulus::Anyness::Inner
 	///	@return the block representing the region										
 	Block Block::Crop(const Count start, const Count count) const {
 		auto result = const_cast<Block*>(this)->Crop(start, count);
-		result.mState += DataState::Constant;
+		result.mState.mState |= DataState::Constant;
 		return result;
 	}
 
@@ -375,13 +375,13 @@ namespace Langulus::Anyness::Inner
 				Deepen<Memory::Any>();
 				return true;
 			}
-			else throw Except::BadMutation(pcLogFuncError
+			else throw Except::Mutate(pcLogFuncError
 				<< "Attempting to deepen incompatible type-constrained container from "
 				<< GetToken() << " to " << meta->GetToken());
 		}
 
 		SAFETY(if (!InterpretsAs(meta)) {
-			throw Except::BadMutation(pcLogFuncError
+			throw Except::Mutate(pcLogFuncError
 				<< "Mutation results in incompatible data " << meta->GetToken()
 				<< " (container of type " << GetToken() << ")");
 		})
@@ -524,7 +524,7 @@ namespace Langulus::Anyness::Inner
 		// At this point, the container has and initialized type				
 		if (IsTypeConstrained()) {
 			// You can't set type of an initialized typed block				
-			throw Except::BadMutation(pcLogFuncError 
+			throw Except::Mutate(pcLogFuncError 
 				<< "Changing typed block is disallowed: from " 
 				<< GetToken() << " to " << type->GetToken());
 		}
@@ -535,7 +535,7 @@ namespace Langulus::Anyness::Inner
 			// might be wrong later														
 			if (mType->IsSparse())
 				mType = type;
-			else throw Except::BadMutation(pcLogFuncError
+			else throw Except::Mutate(pcLogFuncError
 				<< "Changing to compatible dense type is disallowed: from " 
 				<< GetToken() << " to " << type->GetToken());
 		}
@@ -544,7 +544,7 @@ namespace Langulus::Anyness::Inner
 			// it has no constructed elements, we can still mutate it		
 			if (IsEmpty())
 				mType = type;
-			else throw Except::BadMutation(pcLogFuncError 
+			else throw Except::Mutate(pcLogFuncError 
 				<< "Changing to incompatible type while there's constructed "
 				<< "data is disallowed: from " << GetToken() 
 				<< " to " << type->GetToken());
@@ -789,7 +789,7 @@ namespace Langulus::Anyness::Inner
 			return;
 		}
 		else if (!mType->mStaticDescriptor.mDefaultConstructor) {
-			throw Except::BadConstruction(pcLogFuncError
+			throw Except::Construct(pcLogFuncError
 				<< "Can't default-construct " << mReserved - mCount << " elements of "
 				<< GetToken() << " because no default constructor was reflected");
 		}
@@ -855,7 +855,7 @@ namespace Langulus::Anyness::Inner
 			else {
 				// Call the reflected copy-constructor for each element		
 				if (!mType->mStaticDescriptor.mCopyConstructor) {
-					throw Except::BadConstruction(pcLogFuncError
+					throw Except::Construct(pcLogFuncError
 						<< "Can't copy-construct " << source.mCount << " elements of "
 						<< GetToken() << " because no copy constructor was reflected");
 				}
@@ -883,7 +883,7 @@ namespace Langulus::Anyness::Inner
 			else {
 				// Call the reflected copy-constructor for each element		
 				if (!mType->mStaticDescriptor.mCopyConstructor) {
-					throw Except::BadConstruction(pcLogFuncError
+					throw Except::Construct(pcLogFuncError
 						<< "Can't copy-construct " << source.mCount << " elements of "
 						<< GetToken() << " because no copy constructor was reflected");
 				}
@@ -914,7 +914,7 @@ namespace Langulus::Anyness::Inner
 			// RHS is pointer, LHS must be dense									
 			// Copy each dense element from RHS										
 			if (!mType->mStaticDescriptor.mMoveConstructor) {
-				throw Except::BadConstruction(pcLogFuncError
+				throw Except::Construct(pcLogFuncError
 					<< "Can't move-construct " << source.mCount << " elements of "
 					<< GetToken() << " because no move constructor was reflected");
 			}
@@ -939,7 +939,7 @@ namespace Langulus::Anyness::Inner
 		else {
 			// Both RHS and LHS must be dense										
 			if (!mType->mStaticDescriptor.mMoveConstructor) {
-				throw Except::BadConstruction(pcLogFuncError
+				throw Except::Construct(pcLogFuncError
 					<< "Can't move-construct " << source.mCount << " elements of "
 					<< GetToken() << " because no move constructor was reflected");
 			}
@@ -988,7 +988,7 @@ namespace Langulus::Anyness::Inner
 			// Destroy every dense element, one by one, using the 			
 			// reflected destructors													
 			if (!mType->mStaticDescriptor.mDestructor) {
-				throw Except::BadDestruction(pcLogFuncError
+				throw Except::Destruct(pcLogFuncError
 					<< "Can't destroy " << GetToken()
 					<< " because no destructor was reflected");
 			}
@@ -1054,13 +1054,13 @@ namespace Langulus::Anyness::Inner
 	///	@return the number of removed elements											
 	Count Block::RemoveIndex(const Count starter, const Count count) {
 		SAFETY(if (starter >= mCount)
-			throw Except::BadAccess(pcLogFuncError 
+			throw Except::Access(pcLogFuncError 
 				<< "Index " << starter << " out of range " << mCount));
 		SAFETY(if (count > mCount || starter + count > mCount)
-			throw Except::BadAccess(pcLogFuncError
+			throw Except::Access(pcLogFuncError
 				<< "Index " << starter << " out of range " << mCount));
 		SAFETY(if (GetBlockReferences() > 1)
-			throw Except::BadReference(pcLogFuncError
+			throw Except::Reference(pcLogFuncError
 				<< "Removing elements from a memory block, that is used from multiple places"));
 
 		if (IsConstant() || IsStatic()) {
@@ -1172,7 +1172,7 @@ namespace Langulus::Anyness::Inner
 		// Move memory if required														
 		if (starter < mCount) {
 			SAFETY(if (GetBlockReferences() > 1)
-				throw Except::BadReference(pcLogFuncError
+				throw Except::Reference(pcLogFuncError
 					<< "Moving elements that are used from multiple places"));
 
 			CropInner(starter + other.mCount, mCount - starter)

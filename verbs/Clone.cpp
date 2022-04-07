@@ -103,7 +103,7 @@ namespace Langulus::Anyness::Inner
 					<< ccGreen << "(fast)");
 			}
 			else {
-				throw Except::BadCopy(pcLogError
+				throw Except::Copy(pcLogError
 					<< "Trying to clone unclonable complex type: " << GetToken());
 			}
 		}
@@ -139,7 +139,7 @@ namespace Langulus::Anyness::Inner
 						<< ccDarkYellow << "(slow)");
 				}
 				else {
-					throw Except::BadCopy(pcLogError
+					throw Except::Copy(pcLogError
 						<< "Trying to clone unclonable complex type (resolved): " << from.GetToken());
 				}
 

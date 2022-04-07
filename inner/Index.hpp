@@ -1,6 +1,5 @@
 #pragma once
-#include <cstddef>
-#include <limits>
+#include "Exceptions.hpp"
 
 namespace Langulus::Anyness
 {
@@ -23,10 +22,10 @@ namespace Langulus::Anyness
 			Single,
 
 			// Back, Middle, Front, and None must be compared separately	
-			Back,
-			Middle,
-			Front,
 			None,
+			Front,
+			Middle,
+			Back,
 
 			// These can't be compared													
 			Mode,
@@ -48,18 +47,19 @@ namespace Langulus::Anyness
 		#if LANGULUS_DEBUG()
 			union {
 				// Named index (useful for debugging)								
-				SpecialIndices mNamedIndex;
+				SpecialIndices mNamedIndex {SpecialIndices::None};
 				// Raw index																
 				Type mIndex;
 			};
 		#else
-			Type mIndex;
+			Type mIndex {SpecialIndices::None};
 		#endif
 
 	public:
 		constexpr Index() noexcept;
 		constexpr Index(const SpecialIndices&) noexcept;
 		constexpr Index(const Type&) noexcept;
+		constexpr Index(const Count&);
 
 	public:
 		NOD() constexpr Index Constrained(Count) const noexcept;

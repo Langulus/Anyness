@@ -1,39 +1,46 @@
-namespace PCFW::Memory
+#pragma once
+#include "Exceptions.hpp"
+#include <limits>
+
+namespace Langulus::Anyness
 {
 
-	/// By default, an index is always uiNone												
-	constexpr Index::Index() noexcept
-		: mIndex(uiNoneInner) { }
+	/// Constructor from special index														
+	constexpr Index::Index(const SpecialIndices& value) noexcept
+		: mIndex {value} { }
 
-	/// Cast constructor from arbitrary arithmetic types								
-	constexpr Index::Index(const ReservedIndices& value) noexcept
-		: mIndex(value) { }
-
-	/// Cast constructor from arbitrary arithmetic types								
-	template<Number T>
-	constexpr Index::Index(const T& value) noexcept
-		: mIndex(static_cast<pcidx>(value)) { }
+	/// Constructor from raw type																
+	constexpr Index::Index(const Type& value) noexcept
+		: mIndex {value} { }
+	
+	/// Constructor from Count																	
+	constexpr Index::Index(const Count& value)
+		: mIndex {static_cast<Type>(value)} {
+		SAFETY(if (value > static_cast<Count>(::std::numeric_limits<Type>::max()))
+			throw Except::Overflow());
+	}
 
 	/// Constrain the index to some count (immutable)									
-	///   If index is out of scope, return uiNone										
+	///   If index is out of scope, return None											
 	///   If index is special - return it as it is										
-	constexpr Index Index::Constrained(const pcptr count) const noexcept {
+	constexpr Index Index::Constrained(const Count count) const noexcept {
+		const Type c = static_cast<Type>(count);
 		if (IsSpecial()) {
 			if (IsArithmetic()) {
 				// Index is negative, wrap it around (if in range)				
-				return pcidx(count) + mIndex >= 0 ? pcidx(count) + mIndex : uiNoneInner;
+				return c + mIndex >= 0 ? c + mIndex : None;
 			}
 
 			// Index is a special value, so don't change anything				
 			return mIndex;
 		}
 
-		return mIndex >= pcidx(count) ? uiNoneInner : mIndex;
+		return mIndex >= c ? None : mIndex;
 	}
 
 	/// Constrain the index to some count (destructive)								
 	///	@param count - the count to constrain to										
-	constexpr void Index::Constrain(const pcptr count) noexcept {
+	constexpr void Index::Constrain(const Count count) noexcept {
 		*this = Constrained(count); 
 	}
 
@@ -54,12 +61,12 @@ namespace PCFW::Memory
 
 	/// Check validity																			
 	constexpr bool Index::IsValid() const noexcept {
-		return mIndex != uiNoneInner; 
+		return mIndex != None; 
 	}
 
 	/// Check invalidity																			
 	constexpr bool Index::IsInvalid() const noexcept {
-		return mIndex == uiNoneInner; 
+		return mIndex == None; 
 	}
 
 	/// Check if index is special																
@@ -74,7 +81,7 @@ namespace PCFW::Memory
 
 	/// Check if index is special																
 	constexpr bool Index::IsArithmetic() const noexcept {
-		return mIndex >= uiMinInner;
+		return mIndex >= SpecialIndexCounter;
 	}
 
 	/// Return true if index is valid														
@@ -83,12 +90,8 @@ namespace PCFW::Memory
 	}
 
 	/// Convert to any kind of number														
-	template<Number T>
-	constexpr Index::operator T () const noexcept {
-		if constexpr (Signed<T>)
-			return IsSpecial() ? T(0) : static_cast<T>(mIndex);
-		else
-			return static_cast<T>(mIndex);
+	constexpr Index::operator const Type& () const noexcept {
+		return mIndex;
 	}
 
 	/// Destructive increment by 1															
@@ -135,7 +138,7 @@ namespace PCFW::Memory
 	}
 
 	constexpr Index Index::operator - (const Index& v) const noexcept {
-		if (!IsArithmetic() || !v.IsArithmetic() || mIndex - v.mIndex < uiMinInner)
+		if (!IsArithmetic() || !v.IsArithmetic() || mIndex - v.mIndex < SpecialIndexCounter)
 			return *this; 
 		return mIndex - v.mIndex; 
 	}
@@ -169,47 +172,33 @@ namespace PCFW::Memory
 
 	constexpr bool Index::operator < (const Index& v) const noexcept {
 		switch (mIndex) {
-		case uiAllInner:
-		case uiManyInner:
-		case uiSingleInner:
-			// uiSingleInner < uiManyInner < uiAllInner							
+		case All: case Many: case Single:
+			// Single < Many < All														
 			switch (v.mIndex) {
-			case uiAllInner:
-			case uiManyInner:
-			case uiSingleInner:
+			case All: case Many: case Single:
 				return mIndex < v.mIndex;
 			default:
 				return false;
 			};
 
-		case uiBackInner:
-		case uiMiddleInner:
-		case uiFrontInner:
-		case uiNoneInner:
-			// uiNoneInner < uiFrontInner												
-			// < uiMiddleInner < uiBackInner											
+		case Back: case Middle: case Front: case None:
+			// None < Front < Middle < Back											
 			switch (v.mIndex) {
-			case uiBackInner:
-			case uiMiddleInner:
-			case uiFrontInner:
-			case uiNoneInner:
+			case Back: case Middle: case Front: case None:
 				return mIndex < v.mIndex;
 			default:
 				return false;
 			};
 
-		case uiModeInner:
-		case uiBiggestInner:
-		case uiSmallestInner:
-		case uiAutoInner:
-		case uiRandomInner:
+		case Mode: case Biggest: case Smallest: case Auto: case Random:
 			// Uncomparable																
 			return false;
+			
 		default:
 			// Index is not special														
 			if (mIndex < 0) {
 				// Comparison is inverted												
-				if (v.mIndex < 0 && v.mIndex >= uiMinInner)
+				if (v.mIndex < 0 && v.mIndex >= SpecialIndexCounter)
 					return mIndex > v.mIndex;
 			}
 			else {
@@ -233,4 +222,4 @@ namespace PCFW::Memory
 		return *this == v || !(*this < v);
 	}
 
-} // namespace PCFW::Memory
+} // namespace Langulus::Anyness

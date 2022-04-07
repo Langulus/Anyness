@@ -51,7 +51,7 @@ namespace Langulus::Anyness
 				return *this;
 			}
 			else {
-				throw Except::BadCopy(pcLogFuncError
+				throw Except::Copy(Logger::Error()
 					<< "Bad memory assignment for type-constrained any: from "
 					<< GetToken() << " to " << other.GetToken());
 			}
@@ -69,7 +69,7 @@ namespace Langulus::Anyness
 		SAFETY(const Block otherProbe = other);
 		Block::Free();
 		SAFETY(if (otherProbe != other || (other.CheckJurisdiction() && !other.CheckUsage()))
-			throw Except::BadMove(pcLogFuncError
+			throw Except::Move(Logger::Error()
 				<< "You've hit a really nasty corner case, where trying to move a container destroys it, "
 				<< "due to a circular referencing. Try to move a shallow-copy, instead of a reference to "
 				<< "the original. Data may be incorrect at this point, but the moved container was: " << other.GetToken());
@@ -87,7 +87,7 @@ namespace Langulus::Anyness
 				return *this;
 			}
 			else {
-				throw Except::BadMove(pcLogFuncError
+				throw Except::Move(Logger::Error()
 					<< "Bad memory assignment for type-constrained any: from "
 					<< GetToken() << " to " << other.GetToken());
 			}

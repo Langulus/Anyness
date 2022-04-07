@@ -1,6 +1,8 @@
 #pragma once
-#include "Integration.hpp"
+#include "Reflection.hpp"
 #include "DataState.hpp"
+#include "Index.hpp"
+#include "Exceptions.hpp"
 
 namespace Langulus::Anyness
 {
@@ -92,7 +94,7 @@ namespace Langulus::Anyness
 			void SetPhase(const Phase) noexcept;
 			void SetState(DataState) noexcept;
 	
-			NOD() constexpr DMeta GetMeta() const noexcept;
+			NOD() constexpr DMeta GetType() const noexcept;
 			NOD() constexpr Count GetCount() const noexcept;
 			NOD() Count GetCountDeep() const noexcept;
 			NOD() Count GetCountElementsDeep() const noexcept;
@@ -303,14 +305,14 @@ namespace Langulus::Anyness
 			NOD() Hash GetHash() const;
 	
 			template<ReflectedData T>
-			NOD() Index Find(const T&, const Index& = uiFront) const;
+			NOD() Index Find(const T&, const Index& = Index::Front) const;
 	
 			template<ReflectedData T>
-			NOD() Index FindDeep(const T&, const Index& = uiFront) const;
-			NOD() Index FindRTTI(const Block&, const Index& = uiFront) const;
+			NOD() Index FindDeep(const T&, const Index& = Index::Front) const;
+			NOD() Index FindRTTI(const Block&, const Index& = Index::Front) const;
 	
-			Count Gather(Block&, Index = uiFront) const;
-			Count Gather(Block&, Phase, Index = uiFront) const;
+			Count Gather(Block&, Index = Index::Front) const;
+			Count Gather(Block&, Phase, Index = Index::Front) const;
 	
 			template<ReflectedData T>
 			void Swap(Offset, Offset);
@@ -319,12 +321,12 @@ namespace Langulus::Anyness
 			void Swap(Index, Index);
 	
 			template<ReflectedData T, bool MUTABLE = true>
-			Count Emplace(T&&, const Index& = uiBack);
+			Count Emplace(T&&, const Index& = Index::Back);
 	
 			template<ReflectedData T, bool MUTABLE = true>
-			Count Insert(const T*, Count = 1, const Index& = uiBack);
-			Count InsertBlock(const Block&, const Index& = uiBack);
-			Count InsertBlock(Block&&, const Index& = uiBack);
+			Count Insert(const T*, Count = 1, const Index& = Index::Back);
+			Count InsertBlock(const Block&, const Index& = Index::Back);
+			Count InsertBlock(Block&&, const Index& = Index::Back);
 	
 			template<ReflectedData T>
 			Count SmartPush(const T&, DataState = {}
@@ -355,8 +357,8 @@ namespace Langulus::Anyness
 			Block& operator >> (T&&);
 	
 			template<ReflectedData T, bool MUTABLE = true>
-			Count Merge(const T*, Count = 1, const Index& = uiBack);
-			Count MergeBlock(const Block&, const Index& = uiBack);
+			Count Merge(const T*, Count = 1, const Index& = Index::Back);
+			Count MergeBlock(const Block&, const Index& = Index::Back);
 	
 			template<ReflectedData T>
 			Block& operator <<= (const T&);
@@ -365,7 +367,7 @@ namespace Langulus::Anyness
 			Block& operator >>= (const T&);
 	
 			template<ReflectedData T>
-			Count Remove(const T*, Count = 1, const Index& = uiFront);
+			Count Remove(const T*, Count = 1, const Index& = Index::Front);
 			Count RemoveIndex(const Index&, Count = 1);
 			Count RemoveIndex(Offset, Count = 1);
 			Count RemoveIndexDeep(Offset);

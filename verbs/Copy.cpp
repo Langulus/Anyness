@@ -14,13 +14,13 @@ namespace Langulus::Anyness::Inner
 	Count Block::Copy(Block& result, bool allocate) const {
 		// Check if there's anything to copy at all								
 		if (IsEmpty()) {
-			throw Except::BadCopy(VERBOSE(pcLogFuncError
+			throw Except::Copy(VERBOSE(pcLogFuncError
 				<< "Nothing to copy"));
 		}
 
 		// Check if resulting container is allocated and initialized		
 		if (!allocate && result.IsEmpty()) {
-			throw Except::BadCopy(VERBOSE(pcLogFuncError
+			throw Except::Copy(VERBOSE(pcLogFuncError
 				<< "Trying to copy " << GetToken()
 				<< " to an uninitialized memory block " << result.GetToken()));
 		}
@@ -28,14 +28,14 @@ namespace Langulus::Anyness::Inner
 		// Check if types are compatible												
 		if (!mType->Is(result.GetDataID())) {
 			// Check if result decays to this block's type						
-			Block decayedResult{ result.Decay(mType) };
+			Block decayedResult {result.Decay(mType)};
 			if (!decayedResult.IsEmpty() && decayedResult.GetCount() <= GetCount()) {
 				// Attempt copy inside decayed type									
 				return Copy(decayedResult, false);
 			}
 			else if (!mType->InterpretsAs(result.GetMeta())) {
 				// Fail if types are totally not compatible						
-				throw Except::BadCopy(VERBOSE(pcLogFuncError
+				throw Except::Copy(VERBOSE(pcLogFuncError
 					<< "Can't copy " << GetToken()
 					<< " to incompatible block of type " << result.GetToken()));
 			}
@@ -44,7 +44,7 @@ namespace Langulus::Anyness::Inner
 		// Check if sizes match															
 		if (mCount != result.mCount) {
 			if (!allocate || !result.IsEmpty()) {
-				throw Except::BadCopy(VERBOSE(pcLogFuncError
+				throw Except::Copy(VERBOSE(pcLogFuncError
 					<< "Trying to copy " << GetToken()
 					<< " differently sized memory block " << result.GetToken()));
 			}
@@ -62,7 +62,7 @@ namespace Langulus::Anyness::Inner
 
 		// Check if resulting container is constant								
 		if (result.IsConstant()) {
-			throw Except::BadCopy(VERBOSE(pcLogFuncError
+			throw Except::Copy(VERBOSE(pcLogFuncError
 				<< "Trying to copy " << GetToken()
 				<< " to constant block " << result.GetToken()));
 		}
@@ -105,7 +105,7 @@ namespace Langulus::Anyness::Inner
 
 					// Type may not be compatible after resolve					
 					if (from.mType->GetID() != to.mType->GetID()) {
-						throw Except::BadCopy(pcLogFuncError
+						throw Except::Copy(pcLogFuncError
 							<< "Trying to copy uncompatible types after resolving source: "
 							<< from.GetToken() << " -> " << to.GetToken());
 					}
@@ -123,7 +123,7 @@ namespace Langulus::Anyness::Inner
 			else {
 				// Check if a copy operation is available							
 				if (!result.mType->mStaticDescriptor.mCopier) {
-					throw Except::BadCopy(pcLogFuncError
+					throw Except::Copy(pcLogFuncError
 						<< "Trying to copy uncopiable " << result.GetToken());
 				}
 
@@ -134,7 +134,7 @@ namespace Langulus::Anyness::Inner
 
 					// Type may not be compatible after resolve					
 					if (from.mType->GetID() != to.mType->GetID()) {
-						throw Except::BadCopy(pcLogFuncError
+						throw Except::Copy(pcLogFuncError
 							<< "Trying to copy uncompatible types after resolving source: "
 							<< from.GetToken() << " -> " << to.GetToken());
 					}
@@ -208,18 +208,18 @@ namespace Langulus::Anyness::Inner
 				<< ccRed << " (slow)");
 		}
 		else {
-			// Check if a copy operation is available									
+			// Check if a copy operation is available								
 			if (!mType->mStaticDescriptor.mCopier) {
-				throw Except::BadCopy(VERBOSE(pcLogFuncError
+				throw Except::Copy(VERBOSE(pcLogFuncError
 					<< "Trying to copy uncopiable " << result.GetToken()));
 			}
 
-			// Iterate each instance in memory											
+			// Iterate each instance in memory										
 			for (Count i = 0; i < mCount; ++i) {
 				const auto from = GetElement(i);
 				auto to = result.GetElement(i);
 
-				// And call the copy operator												
+				// And call the copy operator											
 				result.mType->mStaticDescriptor.mCopier(from.mRaw, to.mRaw);
 			}
 

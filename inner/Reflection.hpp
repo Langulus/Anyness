@@ -1,5 +1,8 @@
 /// Include this only when building standalone											
 #pragma once
+#include "Integration.hpp"
+
+#define LANGULUS_DEEP() public: static constexpr bool Deep = true
 
 namespace Langulus::Flow
 {
@@ -8,18 +11,52 @@ namespace Langulus::Flow
 
 namespace Langulus::Anyness
 {
+	
+	class Trait;
+	
+	/// A reflected type is a type that has a public Reflection field				
+	/// This field is automatically added when using LANGULUS(REFLECT) macro	
+	/// inside the type you want to reflect												
+	template<class T>
+	concept Reflected = requires { Decay<T>::Reflection; };
+	
+	/// A reflected data type is any type that is not void, and is either		
+	/// manually reflected, or an implicitly reflected fundamental type			
+	template<class T>
+	concept ReflectedData = !::std::is_void_v<Decay<T>> && (Reflected<T> || ::std::is_fundamental_v<Decay<T>>);
 
+	/// A reflected verb type is any type that inherits Verb							
+	template<class T>
+	concept ReflectedVerb = ::std::is_base_of_v<Flow::Verb, T>;
+
+	/// A reflected trait type is any type that inherits Trait						
+	template<class T>
+	concept ReflectedTrait = ::std::is_base_of_v<Trait, T>;
+
+	
+	/// A deep type is any type with a static member T::Deep set to true			
+	/// If no such member exists, the type is assumed NOT deep by default		
+	/// Deep types are considered iteratable, and verbs are executed in each	
+	/// of their elements, instead on the container itself							
+	template<class T>
+	concept Deep = Decay<T>::Deep == true;
+	
 	namespace Inner
 	{
 		class Block;
 	}
 
-	/// Reflected data																			
-	struct MetaData {
-		const ::std::type_info* mID;
-	};
-
-	using DMeta = const MetaData&;
+	struct Member;
+	struct Base;
+	struct Ability;
+	struct Meta;
+	struct MetaData;
+	struct MetaVerb;
+	struct MetaTrait;
+	
+	using DMeta = const MetaData*;
+	using TMeta = const MetaTrait*;
+	using VMeta = const MetaVerb*;
 
 	///																								
 	///	These methods are sought in each reflected type								
@@ -68,6 +105,7 @@ namespace Langulus::Anyness
 	/// A custom verb dispatcher, wrapped in a lambda expression					
 	/// Takes the pointer to the instance that will dispatch, and a verb			
 	using FDispatch = TFunctor<void(void*, Flow::Verb&)>;
+	using FVerb = FDispatch;
 
 
 	///																								
@@ -75,47 +113,43 @@ namespace Langulus::Anyness
 	/// You can reflect arrays of elements, tag members as traits, etc.			
 	///																								
 	struct Member {
-		constexpr Member() noexcept = default;
-		constexpr Member(DMeta, Offset, Count, const Token&, const TraitID&) noexcept;
-
-		template<class UNIQUE, class T>
-		NOD() static Member From(Offset, const Token&, TraitID);
-
-		NOD() constexpr bool operator == (const Member&) const noexcept;
-		NOD() constexpr bool operator != (const Member&) const noexcept;
-
-	public:
 		// Type of data																	
-		DataID mType = udInvalid;
+		DMeta mType {};
 		// Member offset. This is relative to the type it is offsetted		
 		// in! If accessed through a derived type, that offset might		
 		// be wrong! Type must be resolved first!									
-		Offset mOffset = 0;
+		Offset mOffset {};
 		// Number of elements in mData (in case of an array)					
-		Count mCount = 1;
+		Count mCount {1};
 		// Trait tag																		
-		TraitID mTrait = utInvalid;
+		TMeta mTrait {};
 		// Member token																	
-		Token mName;
+		Token mName {};
+
+	public:		
+		template<ReflectedData OWNER, ReflectedData DATA>
+		NOD() static Member From(Offset, const Token& = {}, TMeta trait = {});
+		NOD() constexpr bool operator == (const Member&) const noexcept;
+		NOD() constexpr bool operator != (const Member&) const noexcept;
 	};
 
 	using MemberList = ::std::span<const Member>;
 
+	
 	///																								
 	///	Used to reflect data capabilities												
 	///																								
 	struct Ability {
-		constexpr Ability() = default;
-		Ability(const VerbID&, const FVerb&, const Token& = {}) noexcept;
+		// The verb ID																		
+		VMeta mVerb {};
+		// Address of function to call												
+		FVerb mFunction {};
+		
+	public:		
+		Ability(const MetaVerb&, const FVerb&) noexcept;
 
 		NOD() constexpr bool operator == (const Ability&) const noexcept;
 		NOD() constexpr bool operator != (const Ability&) const noexcept;
-
-	public:
-		// The verb ID																		
-		VerbID mVerb = uvInvalid;
-		// Address of function to call												
-		FVerb mFunction = nullptr;
 	};
 
 	using AbilityList = ::std::span<const Ability>;
@@ -126,11 +160,11 @@ namespace Langulus::Anyness
 	///																								
 	struct Base {
 		// Type of the base																
-		DataID mType = udInvalid;
+		DMeta mType {};
 		// Number of bases that fit in the type									
-		Count mCount = 1;
+		Count mCount {1};
 		// Offset of the base, relative to the derived type					
-		Offset mOffset = 0;
+		Offset mOffset {};
 		// Whether this base is binary mapped to derived class				
 		// Allows for the seamless mapping of one type to another			
 		// Used for compatibility checks and  decaying containers			
@@ -156,44 +190,39 @@ namespace Langulus::Anyness
 	using BaseList = ::std::span<const Base>;
 
 
-	///																							
-	///	TReflect																				
-	///																							
-	/// Base for RTTI reflection primitives											
-	///																							
-	template<class INTERNAL>
-	struct TReflect {
-		// Each reflection primitive has a token. Token must be			
-		// unique for the given type of primitive.							
-		// Some primitives, like data reflections, support multiple		
-		// tokens, separated by commas											
+	///																								
+	///	Meta																						
+	///																								
+	/// Base for meta definitions																
+	///																								
+	struct Meta {
+		// Each reflection primitive has a token. Token must be				
+		// unique for the given type of primitive.								
+		// Some primitives, like data reflections, support multiple			
+		// tokens, separated by commas												
 		Token mToken;
-
-		// Each reflection may or may not have some info string			
-		// attached to it.															
+		// Each reflection may or may not have some info string				
+		// attached to it.																
 		Token mInfo;
-
-		// Each reflected type has an unique hash								
+		// Each reflected type has an unique hash									
 		Hash mHash;
 	};
 
 
-	///																							
-	///	ReflectData																			
-	///																							
-	/// Used for constructing meta data definitions and RTTI. May contain	
-	/// member descriptions, abilities, traits, info. Useful for cloning,	
-	/// serialization, conversion.														
-	///																							
-	struct ReflectData : public TReflect<DataID> {
-		// List of statically reflected members								
-		MemberList mMembers;
-		// List of statically reflected abilities								
-		AbilityList mAbilities;
-		// List of statically reflected bases									
-		BaseList mBases;
+	///																								
+	///	Meta data																				
+	///																								
+	/// Contains member descriptions, abilities, traits, information				
+	///																								
+	struct MetaData : public Meta {
+		// List of reflected members													
+		MemberList mMembers {};
+		// List of reflected abilities												
+		AbilityList mAbilities {};
+		// List of reflected bases														
+		BaseList mBases {};
 		// Default concretization													
-		DataID mConcrete = udInvalid;
+		DMeta mConcrete {};
 		// True if reflected data is POD (optimization)						
 		// POD data can be directly memcpy-ed, or binary-serialized		
 		bool mPOD = false;
@@ -203,7 +232,7 @@ namespace Langulus::Anyness
 		bool mNullifiable = false;
 		// Dynamic producer of the type											
 		// Types with producers can be created only via a verb			
-		DataID mProducer = udInvalid;
+		DMeta mProducer {};
 		// If reflected type is a sparse (pointer) type						
 		bool mIsSparse = false;
 		// If reflected type is a constant type								
@@ -215,11 +244,11 @@ namespace Langulus::Anyness
 		// If type will be interpreted as a memory block and iterated	
 		bool mIsDeep = false;
 		// Size of the reflected type (in bytes)								
-		Stride mSize = 0;
+		Stride mSize {};
 		// Alignof (in bytes)														
-		Stride mAlignment = 0;
+		Stride mAlignment {};
 		// File extensions used, separated by commas							
-		Token mFileExtension;
+		Token mFileExtension {};
 
 		// Default constructor wrapped in a lambda upon reflection		
 		FDefaultConstruct mDefaultConstructor;
@@ -248,27 +277,15 @@ namespace Langulus::Anyness
 
 	public:
 		template<Dense T>
-		NOD() static ReflectData From(const Token&, const Token& = {});
+		NOD() static DMeta Of();
 
-		template<class T>
-		NOD() ReflectData Finalize() const;
-
-		template<class UNIQUE>
-		void SetBases() noexcept;
-
-		template<class UNIQUE, class... Args>
+		template<Dense T, class... Args>
 		void SetBases(Base&&, Args&& ...) noexcept;
 
-		template<class UNIQUE>
-		void SetAbilities() noexcept;
-
-		template<class UNIQUE, class... Args>
+		template<Dense T, class... Args>
 		void SetAbilities(Ability&&, Args&& ...) noexcept;
 
-		template<class UNIQUE>
-		void SetMembers() noexcept;
-
-		template<class UNIQUE, class... Args>
+		template<Dense T, class... Args>
 		void SetMembers(Member&&, Args&& ...) noexcept;
 
 		void MakeAbstract() noexcept;
@@ -276,47 +293,33 @@ namespace Langulus::Anyness
 
 
 	///																								
-	///	ReflectTrait																			
+	///	Meta trait																				
 	///																								
-	/// Used for constructing meta trait definitions and RTTI						
+	/// A trait definition																		
 	///																								
-	class ReflectTrait : public TReflect<TraitID> {
+	struct MetaTrait : public Meta {
 		// Data filter for the trait													
-		DataID mDataType = udInvalid;
+		DMeta mDataType {};
 
 	public:
 		template<ReflectedTrait T>
-		NOD() static ReflectTrait From(const Token&, const Token& = {});
-		NOD() bool operator == (const ReflectTrait&) const noexcept;
+		NOD() static TMeta Of();
+		NOD() bool operator == (const MetaTrait&) const noexcept;
 	};
 
 
 	///																								
-	///	ReflectVerb																				
+	///	Meta verb																				
 	///																								
-	/// Used for constructing meta verb definitions and RTTI							
+	/// A verb definition																		
 	///																								
-	class ReflectVerb : public TReflect<VerbID> {
+	struct MetaVerb : public Meta {
 		Token mTokenReverse;
 
 	public:
-		NOD() bool operator == (const ReflectVerb&) const noexcept;
+		template<ReflectedVerb T>
+		NOD() static VMeta Of();
+		NOD() bool operator == (const MetaVerb&) const noexcept;
 	};
-
-
-	///																								
-	///	ReflectConst																			
-	///																								
-	/// Used for constructing meta const definitions and RTTI						
-	///																								
-	class ReflectConst : public TReflect<ConstID> {
-		// The type of data contained in mData										
-		DataID mDataType = udInvalid;
-		// Contained data																	
-		const void* mData = nullptr;
-
-	public:
-		NOD() bool operator == (const ReflectConst&) const noexcept;
-	};
-
+	
 } // namespace Langulus::Anyness

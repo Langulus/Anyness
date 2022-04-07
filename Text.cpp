@@ -38,10 +38,10 @@ namespace Langulus::Anyness
 		try {
 			#if WCHAR_MAX > 0xffff
 				Allocate(count * 4);
-				mCount = pcP2N(utf8::utf32to8(text, text + count, begin())) - pcP2N(begin());
+				mCount = P2N(utf8::utf32to8(text, text + count, begin())) - P2N(begin());
 			#elif WCHAR_MAX > 0xff
 				Allocate(count * 2);
-				mCount = pcP2N(utf8::utf16to8(text, text + count, begin())) - pcP2N(begin());
+				mCount = P2N(utf8::utf16to8(text, text + count, begin())) - P2N(begin());
 			#else
 				Allocate(count, false, true);
 				pcCopyMemory(text, begin(), count);
@@ -49,7 +49,7 @@ namespace Langulus::Anyness
 			#endif
 		}
 		catch (utf8::exception&) {
-			throw Except::ConvertText("utfw -> utf8 conversion error");
+			throw Except::Convert("utfw -> utf8 conversion error");
 		}
 	}
 
@@ -129,11 +129,11 @@ namespace Langulus::Anyness
 		Text result;
 		result.Allocate(sizeof(cp));
 		try {
-			const auto count = pcP2N(utf8::utf32to8(&cp, &cp + 1, result.begin())) - pcP2N(result.begin());
+			const auto count = P2N(utf8::utf32to8(&cp, &cp + 1, result.begin())) - P2N(result.begin());
 			result.Trim(count);
 		}
 		catch (utf8::exception&) {
-			throw Except::ConvertText("utf32 -> utf8 conversion error");
+			throw Except::Convert("utf32 -> utf8 conversion error");
 		}
 		return result;
 	}
@@ -191,13 +191,13 @@ namespace Langulus::Anyness
 	/// Move text container																		
 	///	@param text - the text container to move										
 	///	@return a reference to this container											
-	Text& Text::operator = (Text&& other) SAFE_NOEXCEPT() {
+	Text& Text::operator = (Text&& other) noexcept {
 		PCMEMORY.Reference(mType, mRaw, -1);
 		SAFETY(if (other.CheckJurisdiction() && !other.CheckUsage())
-			throw Except::BadMove(pcLogFuncError
+			throw Except::Move(Logger::Error()
 				<< "You've hit a really nasty corner case, where trying to move a container destroys it, "
 				<< "due to a circular referencing. Try to move a shallow-copy, instead of a reference to "
-				<< "the original. Data may be incorrect at this point, but the moved container was: " << Token{ other }));
+				<< "the original. Data may be incorrect at this point, but the moved container was: " << Token {other}));
 
 		mRaw = other.mRaw;
 		mCount = other.mCount;
@@ -251,7 +251,7 @@ namespace Langulus::Anyness
 	///	@return constant reference to the character									
 	const char& Text::operator[] (const Count i) const {
 		SAFETY(if (i >= mCount)
-			throw Except::BadAccess("Text access index is out of range"));
+			throw Except::Access("Text access index is out of range"));
 		return GetRaw()[i];
 	}
 
@@ -260,7 +260,7 @@ namespace Langulus::Anyness
 	///	@return constant reference to the character									
 	char& Text::operator[] (const Count i) {
 		SAFETY(if (i >= mCount)
-			throw Except::BadAccess("Text access index is out of range"));
+			throw Except::Access("Text access index is out of range"));
 		return GetRaw()[i];
 	}
 
@@ -274,10 +274,10 @@ namespace Langulus::Anyness
 		to.Allocate(mCount);
 		Count newCount = 0;
 		try {
-			newCount = (pcP2N(utf8::utf8to16(begin(), end(), to.begin())) - pcP2N(to.begin())) / 2;
+			newCount = (P2N(utf8::utf8to16(begin(), end(), to.begin())) - P2N(to.begin())) / 2;
 		}
 		catch (utf8::exception&) {
-			throw Except::ConvertText("utf8 -> utf16 conversion error");
+			throw Except::Convert("utf8 -> utf16 conversion error");
 		}
 
 		return to.Trim(newCount);
@@ -293,10 +293,10 @@ namespace Langulus::Anyness
 		to.Allocate(mCount);
 		Count newCount = 0;
 		try {
-			newCount = (pcP2N(utf8::utf8to32(begin(), end(), to.begin())) - pcP2N(to.begin())) / 4;
+			newCount = (P2N(utf8::utf8to32(begin(), end(), to.begin())) - P2N(to.begin())) / 4;
 		}
 		catch (utf8::exception&) {
-			throw Except::ConvertText("utf8 -> utf16 conversion error");
+			throw Except::Convert("utf8 -> utf16 conversion error");
 		}
 
 		return to.Trim(newCount);
