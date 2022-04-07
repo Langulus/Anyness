@@ -3,7 +3,7 @@ namespace Langulus::Anyness
 
 	/// Construct from literal																	
 	///	@param text - the text to contain												
-	inline Text::Text(const LiteralText& text)
+	inline Text::Text(const Token& text)
 		: Text {text.begin(), text.size()} {}
 
 	/// Construct from standard array														
@@ -121,7 +121,7 @@ namespace Langulus::Anyness
 
 	/// Interpret text container as a literal												
 	///	@attention the string is null-terminated only after Terminate()		
-	constexpr Text::operator LiteralText() const noexcept {
+	constexpr Text::operator Token() const noexcept {
 		return { GetRaw(), mCount };
 	}
 

@@ -6,8 +6,6 @@ namespace Langulus::Anyness
 {
 	
 	/// Predeclarations																			
-	class Block;
-	
 	class Any;
 	template<ReflectedData T>
 	class TAny;
@@ -87,14 +85,9 @@ namespace Langulus::Anyness
 			void Optimize();
 	
 		public:
-			NOD() DataID GetDataID() const noexcept;
-			NOD() Count GetDataSwitch() const noexcept;
-	
-			void SetDataID(DataID, bool);
-			void SetDataID(DMeta, bool);
-	
+			void SetType(DMeta, bool);
 			template<ReflectedData T>
-			void SetDataID(bool);
+			void SetType(bool);
 	
 			void SetPhase(const Phase) noexcept;
 			void SetState(DataState) noexcept;
@@ -141,7 +134,7 @@ namespace Langulus::Anyness
 			template<ReflectedData T>
 			NOD() bool IsInsertable() const noexcept;
 	
-			NOD() LiteralText GetToken() const noexcept;
+			NOD() Block GetToken() const noexcept;
 			NOD() Stride GetStride() const noexcept;
 			NOD() void* GetRaw() noexcept;
 			NOD() const void* GetRaw() const noexcept;
@@ -304,8 +297,8 @@ namespace Langulus::Anyness
 			Stride Compress(Block&, Compression = Compression::Default) const;
 			Stride Decompress(Block&) const;
 	
-			Stride Encrypt(Block&, const pcu32* keys, Count key_count) const;
-			Stride Decrypt(Block&, const pcu32* keys, Count key_count) const;
+			Stride Encrypt(Block&, const Hash*, Count) const;
+			Stride Decrypt(Block&, const Hash*, Count) const;
 	
 			NOD() Hash GetHash() const;
 	
@@ -329,7 +322,7 @@ namespace Langulus::Anyness
 			Count Emplace(T&&, const Index& = uiBack);
 	
 			template<ReflectedData T, bool MUTABLE = true>
-			Count Insert(const T*, pcptr = 1, const Index& = uiBack);
+			Count Insert(const T*, Count = 1, const Index& = uiBack);
 			Count InsertBlock(const Block&, const Index& = uiBack);
 			Count InsertBlock(Block&&, const Index& = uiBack);
 	
@@ -412,7 +405,7 @@ namespace Langulus::Anyness
 			template<ReflectedData T>
 			NOD() bool InterpretsAs(Count) const;
 	
-			NOD() bool Is(DataID) const;
+			NOD() bool Is(DMeta) const;
 	
 			template<ReflectedData T>
 			NOD() bool Is() const;

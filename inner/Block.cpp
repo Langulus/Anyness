@@ -6,20 +6,19 @@
 namespace Langulus::Anyness::Inner
 {
 
-	PC_LEAKSAFETY Block::Block(Block&& other) noexcept
+	Block::Block(Block&& other) noexcept
 		: mRaw {other.mRaw}
 		, mType {other.mType}
 		, mCount {other.mCount}
 		, mReserved {other.mReserved}
 		, mState {other.mState} {
 		other.ResetInner();
-		PC_EXTENSIVE_LEAK_TEST(*this);
 	}
 
 	/// Get the token of the contained type												
 	///	@return the token																		
-	LiteralText Block::GetToken() const noexcept {
-		return IsUntyped() ? LiteralText(DataID::DefaultToken) : mType->GetToken();
+	Token Block::GetToken() const noexcept {
+		return IsUntyped() ? Token(DataID::DefaultToken) : mType->GetToken();
 	}
 
 	/// Check if a memory block can be concatenated to this one						

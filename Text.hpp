@@ -20,7 +20,7 @@ namespace Langulus::Anyness
 		Text(const char*, pcptr);
 		Text(const wchar_t*, pcptr);
 
-		Text(const LiteralText&);
+		Text(const Token&);
 		explicit Text(pcbyte);
 		explicit Text(const char8&);
 		explicit Text(const charw&);
@@ -56,7 +56,7 @@ namespace Langulus::Anyness
 
 		TArray<char> Extend(pcptr);
 
-		NOD() constexpr operator LiteralText () const noexcept;
+		NOD() constexpr operator Token () const noexcept;
 
 		NOD() static Text FromCodepoint(pcu32);
 		NOD() TAny<pcu16> Widen16() const;

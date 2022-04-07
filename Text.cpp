@@ -197,7 +197,7 @@ namespace Langulus::Anyness
 			throw Except::BadMove(pcLogFuncError
 				<< "You've hit a really nasty corner case, where trying to move a container destroys it, "
 				<< "due to a circular referencing. Try to move a shallow-copy, instead of a reference to "
-				<< "the original. Data may be incorrect at this point, but the moved container was: " << LiteralText{ other }));
+				<< "the original. Data may be incorrect at this point, but the moved container was: " << Token{ other }));
 
 		mRaw = other.mRaw;
 		mCount = other.mCount;

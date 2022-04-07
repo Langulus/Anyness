@@ -145,17 +145,9 @@ namespace Langulus::Anyness::Inner
 		}
 	}
 
-	/// Set the contained type, using a static type										
-	///	@tparam T - the type to reflect and set										
-	///	@param constrain - whether or not to enable type-constraints			
-	template<ReflectedData T>
-	void Block::SetDataID(bool constrain) {
-		SetDataID(DataID::Reflect<T>(), constrain);
-	}
-
 	/// Get the contained type meta definition											
 	///	@return the meta data																
-	constexpr DMeta Block::GetMeta() const noexcept {
+	constexpr DMeta Block::GetType() const noexcept {
 		return mType;
 	}
 
