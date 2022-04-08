@@ -51,6 +51,7 @@
 		template<class T>
 		using TFunctor = ::std::function<T>;
 		using Token = ::std::basic_string_view<char>;
+		using Pointer = ::std::uintptr_t;
 
 
 		///																							

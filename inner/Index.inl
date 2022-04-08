@@ -76,7 +76,7 @@ namespace Langulus::Anyness
 
 	/// Check if index is special																
 	constexpr bool Index::IsReverse() const noexcept {
-		return mIndex < 0 && IsArithmetic();
+		return IsSpecial() && IsArithmetic();
 	}
 
 	/// Check if index is special																

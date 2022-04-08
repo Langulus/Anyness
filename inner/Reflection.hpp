@@ -2,7 +2,7 @@
 #pragma once
 #include "Integration.hpp"
 
-#define LANGULUS_DEEP() public: static constexpr bool Deep = true
+#define LANGULUS_DEEP() public: static constexpr bool CTTI_Deep = true
 
 namespace Langulus::Flow
 {
@@ -39,7 +39,7 @@ namespace Langulus::Anyness
 	/// Deep types are considered iteratable, and verbs are executed in each	
 	/// of their elements, instead on the container itself							
 	template<class T>
-	concept Deep = Decay<T>::Deep == true;
+	concept Deep = Decay<T>::CTTI_Deep == true;
 	
 	namespace Inner
 	{
@@ -233,8 +233,6 @@ namespace Langulus::Anyness
 		// Dynamic producer of the type											
 		// Types with producers can be created only via a verb			
 		DMeta mProducer {};
-		// If reflected type is a sparse (pointer) type						
-		bool mIsSparse = false;
 		// If reflected type is a constant type								
 		bool mIsConst = false;
 		// If reflected type is abstract											
@@ -289,6 +287,13 @@ namespace Langulus::Anyness
 		void SetMembers(Member&&, Args&& ...) noexcept;
 
 		void MakeAbstract() noexcept;
+
+		/// Get the size of the reflected type												
+		///	@attention returns zero if type is abstract								
+		///	@return the size of the type in bytes										
+		constexpr auto& GetStride() const noexcept {
+			return mSize;
+		}
 	};
 
 

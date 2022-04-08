@@ -147,42 +147,18 @@ namespace Langulus::Anyness::Inner
 
 	/// Get the contained type meta definition											
 	///	@return the meta data																
-	constexpr DMeta Block::GetType() const noexcept {
+	constexpr const DMeta& Block::GetType() const noexcept {
 		return mType;
 	}
 
-	constexpr Count Block::GetCount() const noexcept {
+	constexpr const Count& Block::GetCount() const noexcept {
 		return mCount;
 	}
 
 	/// Get the number of reserved (maybe unconstructed) elements					
 	///	@return the number of reserved (probably not constructed) elements	
-	constexpr Count Block::GetReserved() const noexcept {
+	constexpr const Count& Block::GetReserved() const noexcept {
 		return mReserved;
-	}
-
-	/// Get a constant byte array																
-	///	@return a constant pointer to the beginning of the raw contained data
-	constexpr const Byte* Block::GetBytes() const noexcept {
-		return static_cast<const Byte*>(mRaw);
-	}
-
-	/// Get a byte array																			
-	///	@return a pointer to the beginning of the raw contained data			
-	constexpr Byte* Block::GetBytes() noexcept {
-		return static_cast<Byte*>(mRaw);
-	}
-
-	/// Get a constant pointer array - useful for sparse containers				
-	///	@return the raw data as an array of constant pointers						
-	inline const void* const* Block::GetPointers() const noexcept {
-		return reinterpret_cast<const void* const*>(mRaw);
-	}
-
-	/// Get a pointer array - useful for sparse containers							
-	///	@return the raw data as an array of pointers									
-	inline void** Block::GetPointers() noexcept {
-		return reinterpret_cast<void**>(mRaw);
 	}
 
 	/// Check if memory is allocated															
@@ -325,9 +301,10 @@ namespace Langulus::Anyness::Inner
 	///	@param other - the state to check												
 	///	@return true if state is compatible												
 	inline bool Block::CanFitState(const Block& other) const noexcept {
+		const bool sparseness = IsSparse() == other.IsSparse();
 		const bool orCompat = IsOr() == other.IsOr() || other.GetCount() <= 1 || IsEmpty();
 		const bool typeCompat = !IsTypeConstrained() || (IsTypeConstrained() && other.InterpretsAs(mType));
-		return typeCompat && (mState == other.mState || (orCompat && CanFitPhase(other.GetPhase())));
+		return sparseness && typeCompat && (mState == other.mState || (orCompat && CanFitPhase(other.GetPhase())));
 	}
 
 	/// Get the size of the contained data, in bytes									
@@ -344,20 +321,32 @@ namespace Langulus::Anyness::Inner
 
 	/// Get the raw data inside the container												
 	///	@attention as unsafe as it gets, but as fast as it gets					
-	inline void* Block::GetRaw() noexcept {
+	inline Byte* Block::GetRaw() noexcept {
 		return mRaw;
 	}
 
 	/// Get the raw data inside the container (const)									
 	///	@attention as unsafe as it gets, but as fast as it gets					
-	inline const void* Block::GetRaw() const noexcept {
+	inline const Byte* Block::GetRaw() const noexcept {
 		return mRaw;
 	}
 
 	/// Get the end raw data pointer inside the container								
 	///	@attention as unsafe as it gets, but as fast as it gets					
-	inline const void* Block::GetRawEnd() const noexcept {
-		return GetBytes() + GetSize();
+	inline const Byte* Block::GetRawEnd() const noexcept {
+		return GetRaw() + GetSize();
+	}
+
+	/// Get a constant pointer array - useful for sparse containers				
+	///	@return the raw data as an array of constant pointers						
+	inline const Byte* const* Block::GetRawSparse() const noexcept {
+		return mRawSparse;
+	}
+
+	/// Get a pointer array - useful for sparse containers							
+	///	@return the raw data as an array of pointers									
+	inline Byte** Block::GetRawSparse() noexcept {
+		return mRawSparse;
 	}
 
 	/// Get the raw data inside the container, reinterpreted as some type		
@@ -382,22 +371,21 @@ namespace Langulus::Anyness::Inner
 	}
 
 	/// Get the data state of the container												
-	constexpr DataState Block::GetState() const noexcept {
+	///	@return the current block state													
+	constexpr const DataState& Block::GetState() const noexcept {
 		return mState;
 	}
 
 	/// Set the current data state, overwriting the current							
 	/// You can not remove constraints														
 	inline void Block::SetState(DataState state) noexcept {
-		mState.mState = state.mState | (mState.mState & (DataState::Static | DataState::Constant | DataState::Typed));
+		mState.mState = state.mState | (mState.mState & DataState::Constrained);
 	}
 
 	/// Get the relevant state when relaying one block	to another					
 	/// Relevant states exclude memory and type constraints							
 	constexpr DataState Block::GetUnconstrainedState() const noexcept {
-		return {
-			mState.mState & ~(DataState::Static | DataState::Constant | DataState::Typed)
-		};
+		return mState.mState & ~DataState::Constrained;
 	}
 
 	/// Compare memory blocks. This is a slow RTTI check								
@@ -420,7 +408,7 @@ namespace Langulus::Anyness::Inner
 					<< "Byte offset in invalid memory of type " << GetToken());
 			}
 		#endif
-		return GetBytes() + byte_offset;
+		return GetRaw() + byte_offset;
 	}
 
 	inline const Byte* Block::At(Offset byte_offset) const {
@@ -463,8 +451,7 @@ namespace Langulus::Anyness::Inner
 	///	@param ptr - the pointer to check												
 	///	@return true if inside the memory block										
 	inline bool Block::Owns(const void* ptr) const noexcept {
-		return mRaw	&& pcP2N(ptr) >= pcP2N(mRaw) 
-			&& pcP2N(ptr) < pcP2N(mRaw) + GetSize();
+		return ptr >= GetRaw() && ptr < GetRawEnd();
 	}
 
 	/// Decay the block to some base type, if sizes are compatible					
@@ -492,7 +479,7 @@ namespace Langulus::Anyness::Inner
 	///				  set count - could cause undefined behavior						
 	template<ReflectedData T>
 	void Block::Allocate(Count count, bool construct, bool setcount) {
-		SetDataID<T>(false);
+		SetType<T>(false);
 		Allocate(count, construct, setcount);
 	}
 
@@ -502,7 +489,7 @@ namespace Langulus::Anyness::Inner
 	constexpr Index Block::Constrain(const Index& idx) const noexcept {
 		switch (idx.mIndex) {
 		case Index::Auto: case Index::First: case Index::Front:
-			return 0;
+			return Index {0};
 		case Index::All: case Index::Back:
 			return Index {mCount};
 		case Index::Last:
@@ -528,19 +515,19 @@ namespace Langulus::Anyness::Inner
 			case Index::Biggest:
 				if constexpr (Sortable<T>)
 					return GetIndexMax<T>();
-				else return uiNone;
+				else return Index::None;
 				break;
 			case Index::Smallest:
 				if constexpr (Sortable<T>)
 					return GetIndexMin<T>();
-				else return uiNone;
+				else return Index::None;
 				break;
 			case Index::Mode:
 				if constexpr (Sortable<T>) {
 					pcptr unused;
 					return GetIndexMode<T>(unused);
 				}
-				else return uiNone;
+				else return Index::None;
 				break;
 			}
 		}
@@ -615,8 +602,7 @@ namespace Langulus::Anyness::Inner
 		}
 
 		// Constrain index																
-		auto tidx = ConstrainMore<T>(index);
-		const auto starter = static_cast<pcptr>(tidx);
+		const auto starter = ConstrainMore<T>(index).GetOffset();
 
 		if constexpr (MUTABLE) {
 			// Type may mutate															
@@ -639,11 +625,10 @@ namespace Langulus::Anyness::Inner
 		}
 
 		// Insert new data																
-		auto data = GetBytes();
-		data += starter * sizeof(T);
 		if constexpr (Sparse<T>) {
 			// Sparse data insertion (moving a pointer)							
-			*reinterpret_cast<pcptr*>(data) = pcP2N(item);
+			auto data = GetRawSparse() + starter;
+			data = reinterpret_cast<Byte*>(item);
 
 			// Reference the pointer's memory										
 			PCMEMORY.Reference(mType, item, 1);
@@ -652,6 +637,7 @@ namespace Langulus::Anyness::Inner
 			static_assert(!pcIsAbstract<T>, "Can't emplace abstract item");
 
 			// Dense data insertion (placement move-construction)				
+			auto data = GetRaw() + starter * sizeof(T);
 			if constexpr (::std::is_move_constructible<T>())
 				new (data) T { pcForward<T>(item) };
 			else
@@ -670,8 +656,7 @@ namespace Langulus::Anyness::Inner
 	template<ReflectedData T, bool MUTABLE>
 	Count Block::Insert(const T* items, const Count count, const Index& index) {
 		// Constrain index																
-		auto tidx = ConstrainMore<T>(index);
-		const auto starter = static_cast<pcptr>(tidx);
+		const auto starter = ConstrainMore<T>(index).GetOffset();
 
 		if constexpr (MUTABLE) {
 			// Type may mutate															
@@ -702,7 +687,7 @@ namespace Langulus::Anyness::Inner
 		if constexpr (Sparse<T>) {
 			// Sparse data insertion (copying pointers and referencing)		
 			pcCopyMemory(items, data, sizeof(T) * count);
-			pcptr c = 0;
+			Count c {};
 			while (c < count) {
 				if (!items[c]) {
 					throw Except::Reference(Logger::Error()
@@ -751,7 +736,7 @@ namespace Langulus::Anyness::Inner
 	///	@return the number of removed items												
 	template<ReflectedData T>
 	Count Block::Remove(const T* items, const Count count, const Index& index) {
-		Count removed = 0;
+		Count removed {};
 		for (Count i = 0; i < count; ++i) {
 			const auto idx = Find<T>(items[i], index);
 			if (idx)
@@ -770,7 +755,7 @@ namespace Langulus::Anyness::Inner
 		if (!mCount || !mType)
 			return Index::None;
 
-		if (!mType->IsSparse()) {
+		if (IsDense()) {
 			if (!InterpretsAs<T>()) {
 				// If dense and not forward compatible - fail					
 				return Index::None;
@@ -782,27 +767,26 @@ namespace Langulus::Anyness::Inner
 		}
 
 		// Setup the iterator															
-		const auto pcount = pcidx(mCount);
-		pcidx starti, istep;
+		Index starti, istep;
 		switch (idx.mIndex) {
-		case uiFront.mIndex:
+		case Index::Front:
 			starti = 0;
 			istep = 1;
 			break;
-		case uiBack.mIndex:
-			starti = pcount - 1;
+		case Index::Back:
+			starti = mCount - 1;
 			istep = -1;
 			break;
 		default:
-			starti = Constrain(idx).mIndex;
+			starti = Constrain(idx);
 			istep = 1;
-			if (starti + 1 >= pcidx(mCount))
-				return uiNone;
+			if (starti + 1 >= mCount)
+				return Index::None;
 		}
 
 		// Search																			
 		auto item_ptr = pcPtr(item);
-		for (auto i = starti; i < pcount && i >= 0; i += istep) {
+		for (auto i = starti; i < mCount && i >= 0; i += istep) {
 			auto left = pcPtr(Get<T>(i));
 			if (left == item_ptr) {
 				// Early success if pointers match									
@@ -828,11 +812,11 @@ namespace Langulus::Anyness::Inner
 							return i;
 					}
 					else {
-						pcLogFuncWarning << "Dynamically resolved type " << lhs.GetToken() 
+						Logger::Warning() << "Dynamically resolved type " << lhs.GetToken()
 							<< " missing compare operator implementation and/or reflection";
-						pcLogFuncWarning << "This means that any Find, Merge, "
+						Logger::Warning() << "This means that any Find, Merge, "
 							"Select, etc. will fail for that type";
-						pcLogFuncWarning << "Implement operator == and != either in type "
+						Logger::Warning() << "Implement operator == and != either in type "
 							"or in any relevant bases to fix this problem";
 					}
 				}
@@ -851,7 +835,7 @@ namespace Langulus::Anyness::Inner
 		}
 
 		// If this is reached, then no match was found							
-		return uiNone;
+		return Index::None;
 	}
 	
 	/// Find first matching element position inside container, deeply				
@@ -860,10 +844,10 @@ namespace Langulus::Anyness::Inner
 	///	@return the index of the found item, or uiNone if not found				
 	template<ReflectedData T>
 	Index Block::FindDeep(const T& item, const Index& idx) const {
-		auto found = uiNone;
+		Index found;
 		ForEachDeep([&](const Block& group) {
 			found = group.Find<T>(item, idx);
-			return found == uiNone;
+			return !found;
 		});
 
 		return found;
@@ -877,9 +861,9 @@ namespace Langulus::Anyness::Inner
 	///	@return the number of inserted elements										
 	template<ReflectedData T, bool MUTABLE>
 	Count Block::Merge(const T* items, const Count count, const Index& idx) {
-		pcptr added = 0;
+		Count added {};
 		for (Count i = 0; i < count; ++i) {
-			if (uiNone == Find<T>(items[i]))
+			if (!Find<T>(items[i]))
 				added += Insert<T, MUTABLE>(items + i, 1, idx);
 		}
 
@@ -899,7 +883,7 @@ namespace Langulus::Anyness::Inner
 				max = data + i;
 		}
 
-		return (pcP2N(max) - pcP2N(data)) / sizeof(T);
+		return max - data;
 	}
 
 	/// Get the index of the smallest dense element										
@@ -915,7 +899,7 @@ namespace Langulus::Anyness::Inner
 				min = data + i;
 		}
 
-		return (pcP2N(min) - pcP2N(data)) / sizeof(T);
+		return min - data;
 	}
 
 	/// Get the index of dense element that repeats the most times					
@@ -930,10 +914,10 @@ namespace Langulus::Anyness::Inner
 
 		auto data = Get<Decay<T>*>();
 		decltype(data) best = nullptr;
-		Count best_count = 0;
+		Count best_count {};
 		for (Count i = 0; i < mCount; ++i) {
-			Count counter = 0;
-			for (pcptr j = i; j < mCount; ++j) {
+			Count counter {};
+			for (Count j = i; j < mCount; ++j) {
 				if constexpr (Comparable<T, T>) {
 					// First we compare by memory pointer, then by ==			
 					if (pcPtr(data[i]) == pcPtr(data[j]) ||
@@ -957,7 +941,7 @@ namespace Langulus::Anyness::Inner
 		}
 
 		count = best_count;
-		return (pcP2N(best) - pcP2N(data)) / sizeof(T);
+		return best - data;
 	}
 
 	/// Sort the contents of this container using a static type						
@@ -966,10 +950,10 @@ namespace Langulus::Anyness::Inner
 	template<ReflectedData T>
 	void Block::Sort(const Index& first) noexcept {
 		auto data = Get<Decay<T>*>();
-		if (nullptr == data)
+		if (!data)
 			return;
 
-		Count j = 0, i = 0;
+		Count j {}, i {};
 		if (first == Index::Smallest) {
 			for (; i < mCount; ++i) {
 				for (; j < i; ++j) {
@@ -1005,9 +989,8 @@ namespace Langulus::Anyness::Inner
 	///	@param index - the index at which to insert (if needed)					
 	///	@return the number of pushed items (zero if unsuccessful)				
 	template<ReflectedData T>
-	Count Block::SmartPush(const T& pack, DataState finalState, 
-		bool attemptConcat, bool attemptDeepen, Index index) {
-		if constexpr (pcHasBase<T, Block>) {
+	Count Block::SmartPush(const T& pack, DataState finalState, bool attemptConcat, bool attemptDeepen, Index index) {
+		if constexpr (Deep<T>) {
 			// Early exit if nothing to push											
 			if (!pack.IsValid())
 				return 0;
@@ -1015,13 +998,13 @@ namespace Langulus::Anyness::Inner
 
 		// Check if unmovable															
 		if (IsStatic()) {
-			pcLogFuncError << "Can't smart-push in static data region";
+			Logger::Error() << "Can't smart-push in static data region";
 			return 0;
 		}
 
 		DMeta meta;
-		if constexpr (pcHasBase<T, Block>)
-			meta = pack.GetMeta();
+		if constexpr (Deep<T>)
+			meta = pack.GetType();
 		else
 			meta = MetaData::Of<T>();
 
@@ -1029,18 +1012,18 @@ namespace Langulus::Anyness::Inner
 		// do a shallow copy and directly reference data						
 		const bool isTypeCompliant = (!IsTypeConstrained() && IsEmpty()) || CanFit(meta);
 		const bool isStateCompliant = CanFitState(pack);
-		if (IsSparse() == pack.IsSparse() && IsEmpty() && isTypeCompliant && isStateCompliant) {
-			const auto type_retainment = (!mType ? meta : mType);
+		if (IsEmpty() && isTypeCompliant && isStateCompliant) {
+			const auto type_retainment = !mType ? meta : mType;
 			const auto state_retainment = mState;
 			*this = pack;
 			Keep();
-			ToggleState(DState::Typed, false);
+			ToggleState(DataState::Typed, false);
 			ToggleState(state_retainment + finalState);
 
 			// Retain type only if original package was sparse, to keep		
 			// the initial pointer type												
-			if (type_retainment && type_retainment->IsSparse())
-				SetDataID(type_retainment, false);
+			if (IsSparse())
+				SetType(type_retainment, false);
 			return 1;
 		}
 
@@ -1048,10 +1031,9 @@ namespace Langulus::Anyness::Inner
 		// try concatenating the two containers. Concatenation will not	
 		// be allowed if final state is OR, and there are multiple items	
 		// in this container.															
-		pcptr catenated = 0;
-		const bool isOrCompliant = !(mCount > 1 && !IsOr() && finalState & DState::Or);
-		if (attemptConcat && isTypeCompliant && isStateCompliant && isOrCompliant 
-			&& 0 < (catenated = InsertBlock(pack, index))) {
+		Count catenated {};
+		const bool isOrCompliant = !(mCount > 1 && !IsOr() && finalState.mState & DataState::Or);
+		if (attemptConcat && isTypeCompliant && isStateCompliant && isOrCompliant && 0 < (catenated = InsertBlock(pack, index))) {
 			ToggleState(finalState);
 			return catenated;
 		}
@@ -1079,19 +1061,16 @@ namespace Langulus::Anyness::Inner
 
 	/// Wrap all contained elements inside a sub-block, making this one deep	
 	///	@param moveState - whether or not to move the current state over		
-	template<ReflectedData T>
+	template<Deep T>
 	T& Block::Deepen(bool moveState) {
-		static_assert(pcHasBase<T, Block>, 
-			"The deepening type must inherit Block");
-
 		if (IsTypeConstrained() && !Is<T>()) {
-			throw Except::BadMutation(pcLogFuncError 
+			throw Except::Mutate(Logger::Error()
 				<< "Attempting to deepen incompatible typed container");
 		}
 
 		#if LANGULUS_SAFE()
 			if (GetBlockReferences() > 1)
-				pcLogFuncWarning << "Container used from multiple places";
+				Logger::Warning() << "Container used from multiple places";
 		#endif
 
 		const auto movedStates = GetUnconstrainedState();
@@ -1116,22 +1095,17 @@ namespace Langulus::Anyness::Inner
 	///	@param baseOffset - byte offset from the element to apply				
 	///	@return either pointer or reference to the element (depends on T)		
 	template<ReflectedData T>
-	decltype(auto) Block::Get(const pcptr idx, const pcptr baseOffset) {
-		// Get pointer via some arithmetic											
-		auto pointer = pcP2N(At(mType->GetStride() * idx));
-		if (mType->IsSparse()) {
-			// Dereference and offset inner pointer								
-			pointer = *reinterpret_cast<pcptr*>(pointer) + baseOffset;
-		}
-		else {
-			// Offset pointer																
-			pointer += baseOffset;
-		}
+	decltype(auto) Block::Get(const Offset idx, const Offset baseOffset) {
+		Byte* pointer;
+		if (IsSparse())
+			pointer = GetRawSparse() + baseOffset;
+		else
+			pointer = At(mType->GetStride() * idx) + baseOffset;
 
 		if constexpr (Dense<T>)
-			return *reinterpret_cast<pcDeref<T>*>(pointer);
+			return *reinterpret_cast<Deref<T>*>(pointer);
 		else
-			return reinterpret_cast<pcDeref<T>>(pointer);
+			return reinterpret_cast<Deref<T>>(pointer);
 	}
 
 	/// Get an element with a given index, trying to interpret it as T			
@@ -1140,13 +1114,13 @@ namespace Langulus::Anyness::Inner
 	///	@param idx - simple index for accessing										
 	///	@return either pointer or reference to the element (depends on T)		
 	template<ReflectedData T>
-	decltype(auto) Block::As(const pcptr idx) {
+	decltype(auto) Block::As(const Offset idx) {
 		// First quick type stage for fast access									
 		if (mType->Is<T>())
 			return Get<T>(idx);
 
 		// Second fallback stage for compatible bases and mappings			
-		LinkedBase base;
+		Base base;
 		if (!mType->GetBase<T>(0, base)) {
 			// There's still a chance if this container is resolvable		
 			// This is the third and final stage									
@@ -1179,9 +1153,9 @@ namespace Langulus::Anyness::Inner
 	template<ReflectedData T>
 	Block& Block::operator << (const T& other) {
 		if constexpr (Array<T>)
-			Insert<Decay<T>>(other, pcExtentOf<T>, uiBack);
+			Insert<Decay<T>>(other, pcExtentOf<T>, Index::Back);
 		else
-			Insert<T>(&other, 1, uiBack);
+			Insert<T>(&other, 1, Index::Back);
 		return *this;
 	}
 
@@ -1200,7 +1174,7 @@ namespace Langulus::Anyness::Inner
 	///	@return a reference to this memory block for chaining						
 	template<ReflectedData T>
 	Block& Block::operator << (T&& other) {
-		Emplace<T>(pcForward<T>(other), uiBack);
+		Emplace<T>(pcForward<T>(other), Index::Back);
 		return *this;
 	}
 
@@ -1210,9 +1184,9 @@ namespace Langulus::Anyness::Inner
 	template<ReflectedData T>
 	Block& Block::operator >> (const T& other) {
 		if constexpr (Array<T>)
-			Insert<Decay<T>>(other, pcExtentOf<T>, uiFront);
+			Insert<Decay<T>>(other, pcExtentOf<T>, Index::Front);
 		else
-			Insert<T>(&other, 1, uiFront);
+			Insert<T>(&other, 1, Index::Front);
 		return *this;
 	}
 
@@ -1231,7 +1205,7 @@ namespace Langulus::Anyness::Inner
 	///	@return a reference to this memory block for chaining						
 	template<ReflectedData T>
 	Block& Block::operator >> (T&& other) {
-		Emplace<T>(pcForward<T>(other), uiFront);
+		Emplace<T>(pcForward<T>(other), Index::Front);
 		return *this;
 	}
 
@@ -1241,9 +1215,9 @@ namespace Langulus::Anyness::Inner
 	template<ReflectedData T>
 	Block& Block::operator <<= (const T& other) {
 		if constexpr (Array<T>)
-			Merge<Decay<T>>(other, pcExtentOf<T>, uiBack);
+			Merge<Decay<T>>(other, pcExtentOf<T>, Index::Back);
 		else
-			Merge<T>(&other, 1, uiBack);
+			Merge<T>(&other, 1, Index::Back);
 		return *this;
 	}
 
@@ -1253,9 +1227,9 @@ namespace Langulus::Anyness::Inner
 	template<ReflectedData T>
 	Block& Block::operator >>= (const T& other) {
 		if constexpr (Array<T>)
-			Merge<Decay<T>>(other, pcExtentOf<T>, uiFront);
+			Merge<Decay<T>>(other, pcExtentOf<T>, Index::Front);
 		else
-			Merge<T>(&other, 1, uiFront);
+			Merge<T>(&other, 1, Index::Front);
 		return *this;
 	}
 
@@ -1348,7 +1322,7 @@ namespace Langulus::Anyness::Inner
 	/// Iterate and execute call for each element										
 	///	@param call - the function to execute for each element of type T		
 	///	@return the number of executions that occured								
-	template<class RETURN, RTTI::ReflectedData ARGUMENT, bool REVERSE, bool MUTABLE>
+	template<class RETURN, ReflectedData ARGUMENT, bool REVERSE, bool MUTABLE>
 	Count Block::ForEachInner(TFunctor<RETURN(ARGUMENT)>&& call) {
 		if (IsEmpty())
 			return 0;
@@ -1485,7 +1459,7 @@ namespace Langulus::Anyness::Inner
 	/// Iterate and execute call for each element										
 	///	@param call - the function to execute for each element of type T		
 	///	@return the number of executions that occured								
-	template<class RETURN, RTTI::ReflectedData ARGUMENT, bool REVERSE>
+	template<class RETURN, ReflectedData ARGUMENT, bool REVERSE>
 	Count Block::ForEachInner(TFunctor<RETURN(ARGUMENT)>&& call) const {
 		return const_cast<Block*>(this)->ForEachInner<RETURN, ARGUMENT, REVERSE, false
 			>(pcForward<decltype(call)>(call));
@@ -1494,7 +1468,7 @@ namespace Langulus::Anyness::Inner
 	/// Iterate and execute call for each element										
 	///	@param call - the function to execute for each element of type T		
 	///	@return the number of executions that occured								
-	template<class RETURN, RTTI::ReflectedData ARGUMENT, bool REVERSE, bool SKIP_DEEP_OR_EMPTY, bool MUTABLE>
+	template<class RETURN, ReflectedData ARGUMENT, bool REVERSE, bool SKIP_DEEP_OR_EMPTY, bool MUTABLE>
 	Count Block::ForEachDeepInner(TFunctor<RETURN(ARGUMENT)>&& call) {
 		constexpr bool HasBreaker = Same<bool, RETURN>;
 		UNUSED() bool atLeastOneChange = false;
@@ -1553,7 +1527,7 @@ namespace Langulus::Anyness::Inner
 	/// Iterate and execute call for each element										
 	///	@param call - the function to execute for each element of type T		
 	///	@return the number of executions that occured								
-	template<class RETURN, RTTI::ReflectedData ARGUMENT, bool REVERSE, bool SKIP_DEEP_OR_EMPTY>
+	template<class RETURN, ReflectedData ARGUMENT, bool REVERSE, bool SKIP_DEEP_OR_EMPTY>
 	Count Block::ForEachDeepInner(TFunctor<RETURN(ARGUMENT)>&& call) const {
 		return const_cast<Block*>(this)->ForEachDeepInner<RETURN, ARGUMENT, REVERSE, false
 			>(pcForward<decltype(call)>(call));

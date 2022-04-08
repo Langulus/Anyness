@@ -2,13 +2,18 @@
 #include "Logger.hpp"
 #include <stdexcept>
 
-namespace Langulus::Except
+namespace Langulus
 {
-   
+
    struct Exception : public std::runtime_error {
-      Exception() noexcept : std::runtime_error{"Exception: "} { }
+      Exception() noexcept : std::runtime_error {"Exception: "} { }
       Exception(Logger::Instance&) noexcept { }
    };
+
+} // namespace Langulus
+
+namespace Langulus::Except
+{
   
    struct Copy : public Exception {
       using Exception::Exception;

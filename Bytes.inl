@@ -1,11 +1,14 @@
+#pragma once
+#include "Bytes.hpp"
+
 namespace Langulus::Anyness
 {
 
-	/// Construct from anything																
+	/// Construct from anything dense														
 	///	@param value - the id to serialize												
 	template<Dense T>
 	Bytes::Bytes(const T& value) requires (pcIsPOD<T> || pcHasBase<T, InternalID>)
-		: Bytes{} {
+		: Bytes {} {
 		if constexpr (pcHasBase<T, InternalID>) {
 			if (!value) {
 				(*this) += pcptr(0);
@@ -37,18 +40,6 @@ namespace Langulus::Anyness
 			// POD types are easily represented as bytes							
 			(*this) += Bytes{ &value, sizeof(T) };
 		}
-	}
-
-	/// Raw byte access (unsafe)																
-	///	@return the pointer to the first byte inside byte container				
-	constexpr pcbyte* Bytes::GetRaw() noexcept {
-		return static_cast<pcbyte*>(mRaw);
-	}
-
-	/// Raw constant byte access (unsafe)													
-	///	@return the pointer to the first byte inside byte container				
-	constexpr const pcbyte* Bytes::GetRaw() const noexcept {
-		return static_cast<const pcbyte*>(mRaw);
 	}
 
 	/// Concatenate bytes with bytes															

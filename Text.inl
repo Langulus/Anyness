@@ -1,3 +1,6 @@
+#pragma once
+#include "Text.hpp"
+
 namespace Langulus::Anyness
 {
 

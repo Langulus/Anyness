@@ -3,6 +3,7 @@
 #include "DataState.hpp"
 #include "Index.hpp"
 #include "Exceptions.hpp"
+#include "Utilities.hpp"
 
 namespace Langulus::Anyness
 {
@@ -62,7 +63,32 @@ namespace Langulus::Anyness
 		///																							
 		class Block {
 			LANGULUS(DEEP);
-		public:	
+
+		protected:
+			// The raw pointer to the first element inside the memory block
+			#if LANGULUS_DEBUG()
+				union { 
+					char* mRawChar;
+					Byte* mRaw {};
+					Byte** mRawSparse;
+				};
+			#else
+				union {
+					Byte* mRaw {};
+					Byte** mRawSparse;
+				}
+			#endif
+	
+			// Type of the instances inside the memory block					
+			DMeta mType {};
+			// Number of written instances inside memory block					
+			Count mCount {};
+			// Number of allocated instances in the memory block				
+			Count mReserved {};
+			// The data state																
+			DataState mState {DataState::Default};
+
+		public:
 			constexpr Block() noexcept = default;
 			constexpr Block(const Block&) noexcept = default;
 			
@@ -94,15 +120,11 @@ namespace Langulus::Anyness
 			void SetPhase(const Phase) noexcept;
 			void SetState(DataState) noexcept;
 	
-			NOD() constexpr DMeta GetType() const noexcept;
-			NOD() constexpr Count GetCount() const noexcept;
+			NOD() constexpr const DMeta& GetType() const noexcept;
+			NOD() constexpr const Count& GetCount() const noexcept;
+			NOD() constexpr const Count& GetReserved() const noexcept;
 			NOD() Count GetCountDeep() const noexcept;
 			NOD() Count GetCountElementsDeep() const noexcept;
-			NOD() constexpr Count GetReserved() const noexcept;
-			NOD() constexpr const Byte* GetBytes() const noexcept;
-			NOD() constexpr Byte* GetBytes() noexcept;
-			NOD() const void* const* GetPointers() const noexcept;
-			NOD() void** GetPointers() noexcept;
 			NOD() constexpr bool IsAllocated() const noexcept;
 			NOD() constexpr bool IsPast() const noexcept;
 			NOD() constexpr bool IsFuture() const noexcept;
@@ -132,22 +154,23 @@ namespace Langulus::Anyness
 			NOD() bool IsConcatable(const Block&) const noexcept;
 	
 			NOD() bool IsInsertable(DMeta) const noexcept;
-	
 			template<ReflectedData T>
 			NOD() bool IsInsertable() const noexcept;
 	
 			NOD() Block GetToken() const noexcept;
 			NOD() Stride GetStride() const noexcept;
-			NOD() void* GetRaw() noexcept;
-			NOD() const void* GetRaw() const noexcept;
-			NOD() const void* GetRawEnd() const noexcept;
+			NOD() Byte* GetRaw() noexcept;
+			NOD() const Byte* GetRaw() const noexcept;
+			NOD() const Byte* GetRawEnd() const noexcept;
+			NOD() Byte** GetRawSparse() noexcept;
+			NOD() const Byte* const* GetRawSparse() const noexcept;
 			template<ReflectedData T>
 			NOD() T* GetRawAs() noexcept;
 			template<ReflectedData T>
 			NOD() const T* GetRawAs() const noexcept;
 			template<ReflectedData T>
 			NOD() const T* GetRawEndAs() const noexcept;
-			NOD() constexpr DataState GetState() const noexcept;
+			NOD() constexpr const DataState& GetState() const noexcept;
 			NOD() constexpr DataState GetUnconstrainedState() const noexcept;
 	
 			NOD() bool operator == (const Block&) const noexcept;
@@ -158,19 +181,16 @@ namespace Langulus::Anyness
 	
 			template<ReflectedData T>
 			NOD() decltype(auto) Get(Offset = 0, Offset = 0);
-	
 			template<ReflectedData T>
 			NOD() decltype(auto) Get(Offset = 0, Offset = 0) const;
 	
 			template<ReflectedData T>
 			NOD() decltype(auto) As(Offset = 0);
-	
 			template<ReflectedData T>
 			NOD() decltype(auto) As(Offset = 0) const;
 	
 			template<ReflectedData T>
 			NOD() decltype(auto) As(Index);
-	
 			template<ReflectedData T>
 			NOD() decltype(auto) As(Index) const;
 	
@@ -335,7 +355,7 @@ namespace Langulus::Anyness
 				, Index = uiBack
 			);
 	
-			template<ReflectedData T>
+			template<Deep T>
 			T& Deepen(bool moveState = true);
 	
 			template<ReflectedData T>
@@ -407,7 +427,7 @@ namespace Langulus::Anyness
 			template<ReflectedData T>
 			NOD() bool InterpretsAs(Count) const;
 	
-			NOD() bool Is(DMeta) const;
+			NOD() bool Is(DMeta) const noexcept;
 	
 			template<ReflectedData T>
 			NOD() bool Is() const;
@@ -433,25 +453,59 @@ namespace Langulus::Anyness
 			static Count ConvertDataBatched(const Block&, Block&, const Index&);
 			template<class FROM>
 			static Count ConvertToTextBlock(const Block&, Block&);
+		};
 
-			// The raw pointer to the first element inside the memory block
-			#if LANGULUS_DEBUG()
-				union { 
-					char* mRawChar;
-					void* mRaw = nullptr;
-				};
-			#else
-				void* mRaw = nullptr;
-			#endif
-	
-			// Type of the instances inside the memory block					
-			DMeta mType {};
-			// Number of written instances inside memory block					
-			Count mCount {};
-			// Number of allocated instances in the memory block				
-			Count mReserved {};
-			// The data state																
-			DataState mState {DataState::Default};
+		
+		/// Macro used to implement the standard container interface used in		
+		/// range-for-statements like for (auto& item : array)						
+		/// In addition, a Reverse() function is added for reverse iteration		
+		#define RANGED_FOR_INTEGRATION(containerType, iteratorType) \
+			NOD() constexpr iteratorType* begin() noexcept { return GetRaw(); } \
+			NOD() constexpr iteratorType* end() noexcept { return GetRawEnd(); } \
+			NOD() constexpr iteratorType& last() noexcept { return *(GetRawEnd() - 1); } \
+			NOD() constexpr const iteratorType* begin() const noexcept { return GetRaw(); } \
+			NOD() constexpr const iteratorType* end() const noexcept { return GetRawEnd(); } \
+			NOD() constexpr const iteratorType& last() const noexcept { return *(GetRawEnd() - 1); } \
+			NOD() constexpr auto& size() const noexcept { return GetCount(); } \
+			NOD() constexpr Inner::TReverse<const containerType, iteratorType> Reverse() const noexcept { return {*this}; } \
+			NOD() constexpr Inner::TReverse<containerType, iteratorType> Reverse() noexcept { return {*this}; }
+
+
+		///																							
+		/// Reverse adaptor for ranged-for expressions									
+		///																							
+		template<class T, class E>
+		class TReverse {
+		private:
+			using ITERATOR = std::conditional_t<::std::is_const_v<T>, const E*, E*>;
+		public:
+			TReverse() = delete;
+			TReverse(const TReverse&) = delete;
+			TReverse(TReverse&&) = delete;
+			TReverse(T&) noexcept;
+
+			struct PointerWrapper {
+				PointerWrapper() = delete;
+				PointerWrapper(const PointerWrapper&) noexcept = default;
+				PointerWrapper(PointerWrapper&&) noexcept = default;
+				PointerWrapper(ITERATOR) noexcept;
+
+				bool operator == (ITERATOR) const noexcept;
+				bool operator != (ITERATOR) const noexcept;
+				PointerWrapper& operator ++ () noexcept;
+				PointerWrapper& operator -- () noexcept;
+				operator ITERATOR () const noexcept;
+
+				ITERATOR mPointer;
+			};
+
+			NOD() PointerWrapper begin() const noexcept;
+			NOD() PointerWrapper end() const noexcept;
+			NOD() E& last() const noexcept;
+			NOD() Count size() const noexcept;
+
+		private:
+			T& mContainer;
 		};
 
 	} // namespace Langulus::Anyness::Inner

@@ -9,14 +9,13 @@ namespace Langulus::Anyness
 	///																								
 	/// Convenient wrapper for raw byte sequences										
 	///																								
-	class LANGULUS_MODULE(Anyness) Bytes : public Block {
-		REFLECT(Bytes);
+	class Bytes : public Inner::Block {
 	public:
 		Bytes();
 		Bytes(const Bytes&);
 		Bytes(Bytes&&) noexcept = default;
 
-		Bytes(const void*, pcptr);
+		Bytes(const Byte*, Count);
 
 		template<Dense T>
 		explicit Bytes(const T&) requires (pcIsPOD<T> || pcHasBase<T, InternalID>);
@@ -25,34 +24,29 @@ namespace Langulus::Anyness
 
 	public:
 		NOD() Bytes Clone() const;
-		NOD() Bytes Crop(pcptr, pcptr) const;
-		Bytes& Remove(pcptr, pcptr);
-		void Null(pcptr);
+		NOD() Bytes Crop(Offset, Count) const;
+		Bytes& Remove(Offset, Count);
+		void Null(Count);
 		void Clear() noexcept;
 		void Reset();
-
-		TArray<pcbyte> Extend(pcptr);
-
-		NOD() constexpr pcbyte* GetRaw() noexcept;
-		NOD() constexpr const pcbyte* GetRaw() const noexcept;
-
+		Bytes Extend(Count);
 		Hash GetHash() const;
 
 		Bytes& operator = (const Bytes&);
-		Bytes& operator = (Bytes&&) SAFE_NOEXCEPT();
+		Bytes& operator = (Bytes&&) noexcept;
 
 		bool operator == (const Bytes&) const noexcept;
 		bool operator != (const Bytes&) const noexcept;
 
-		NOD() const pcbyte& operator[] (const pcptr) const;
-		NOD() pcbyte& operator[] (const pcptr);
+		NOD() const Byte& operator[] (Index) const;
+		NOD() Byte& operator[] (Index);
 
-		pcptr Matches(const Bytes&) const noexcept;
+		Count Matches(const Bytes&) const noexcept;
 
-		PC_RANGED_FOR_INTEGRATION(pcbyte, GetRaw(), mCount)
+		RANGED_FOR_INTEGRATION(Bytes, Byte);
 
-		template<class ANYTHING>
-		Bytes& operator += (const ANYTHING&);
+		template<class T>
+		Bytes& operator += (const T&);
 	};
 
 	/// Compile time check for text items													
@@ -68,15 +62,5 @@ namespace Langulus::Anyness
 	NOD() Bytes operator + (const Bytes&, const T&) requires (!IsBytes<T>);
 
 } // namespace Langulus::Anyness
-
-namespace PCFW
-{
-
-	/// Explicit specialization for making bytes not deep								
-	template<> constexpr bool pcIsDeep<Memory::Bytes> = false;
-	template<> constexpr bool pcIsDeep<Memory::Bytes*> = false;
-	template<> constexpr bool pcIsDeep<const Memory::Bytes*> = false;
-
-}
 
 #include "Bytes.inl"

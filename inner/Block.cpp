@@ -6,6 +6,8 @@
 namespace Langulus::Anyness::Inner
 {
 
+	/// Move-construction for block															
+	///	@param other - the block instance to move										
 	Block::Block(Block&& other) noexcept
 		: mRaw {other.mRaw}
 		, mType {other.mType}
@@ -18,7 +20,7 @@ namespace Langulus::Anyness::Inner
 	/// Get the token of the contained type												
 	///	@return the token																		
 	Token Block::GetToken() const noexcept {
-		return IsUntyped() ? Token(DataID::DefaultToken) : mType->GetToken();
+		return IsUntyped() ? Token(MetaData::DefaultToken) : mType->GetToken();
 	}
 
 	/// Check if a memory block can be concatenated to this one						
@@ -175,7 +177,7 @@ namespace Langulus::Anyness::Inner
 	///	@param start - starting element index											
 	///	@param count - number of elements to remain after 'start'				
 	///	@return the block representing the region										
-	Block Block::Crop(Count start, Count count) {
+	Block Block::Crop(Offset start, Count count) {
 		#if LANGULUS_SAFE()
 			if (start > mCount) {
 				start = mCount;
@@ -203,7 +205,7 @@ namespace Langulus::Anyness::Inner
 	///	@param start - starting element index											
 	///	@param count - number of elements												
 	///	@return the block representing the region										
-	Block Block::Crop(const Count start, const Count count) const {
+	Block Block::Crop(const Offset start, const Count count) const {
 		auto result = const_cast<Block*>(this)->Crop(start, count);
 		result.mState.mState |= DataState::Constant;
 		return result;
@@ -240,7 +242,7 @@ namespace Langulus::Anyness::Inner
 	///	@param meta - the descriptor to scan for a base								
 	///	@param base - the base to search for											
 	///	@return the block for the base (static and immutable)						
-	Block Block::GetBaseMemory(DMeta meta, const Memory::LinkedBase& base) const {
+	Block Block::GetBaseMemory(DMeta meta, const Base& base) const {
 		if (base.mStaticBase.mMapping) {
 			return Block {
 				DataState::Static + DataState::Typed, meta,
@@ -266,7 +268,7 @@ namespace Langulus::Anyness::Inner
 	///	@param meta - the descriptor to scan for a base								
 	///	@param base - the base to search for											
 	///	@return the block for the base (static and immutable)						
-	Block Block::GetBaseMemory(DMeta meta, const Memory::LinkedBase& base) {
+	Block Block::GetBaseMemory(DMeta meta, const Base& base) {
 		if (base.mStaticBase.mMapping) {
 			return Block {
 				DataState::Static + DataState::Typed, meta, 
@@ -288,26 +290,26 @@ namespace Langulus::Anyness::Inner
 	}
 
 	/// Get the memory block corresponding to a base									
-	/// This performs only pointer arithmetic based on RTTI							
+	/// This performs only pointer arithmetic												
 	///	@param base - the base to search for											
 	///	@return the block for the base (static and immutable)						
-	Block Block::GetBaseMemory(const Memory::LinkedBase& base) const {
-		return GetBaseMemory(base.mBase, base);
+	Block Block::GetBaseMemory(const Base& base) const {
+		return GetBaseMemory(base.mType, base);
 	}
 
-	Block Block::GetBaseMemory(const Memory::LinkedBase& base) {
-		return GetBaseMemory(base.mBase, base);
+	Block Block::GetBaseMemory(const Base& base) {
+		return GetBaseMemory(base.mType, base);
 	}
 
 	/// Decay continuous memory into some base type										
-	/// This performs only pointer arithmetic based on RTTI							
+	/// This performs only pointer arithmetic												
 	///	@param meta - the type to decay into											
 	///	@return the decayed type block of continuous memory						
 	Block Block::Decay(DMeta meta) const {
 		if (mCount == 0 || !mType || mType->IsSparse() != meta->IsSparse())
 			return {};
 
-		Memory::LinkedBase base;
+		Base base;
 		if (!mType->GetBase(meta, 0, base)) {
 			// There's still a chance if this container is sparse, is		
 			// resolvable, and contains only a single element					
@@ -351,37 +353,37 @@ namespace Langulus::Anyness::Inner
 		return {};
 	}
 
-	/// Mutate to a more concrete type, adapting the container if allowed		
+	/// Mutate to another compatible type, deepening the container if allowed	
 	///	@param meta - the type to mutate into											
 	///	@return true if block was deepened												
 	bool Block::Mutate(DMeta meta) {
 		if (IsUntyped()) {
-			// Undefined containers can mutate once								
-			SetDataID(meta, false);
+			// Undefined containers can mutate freely								
+			SetType(meta, false);
 		}
-		else if (mType->Is(meta->GetID())) {
-			// No need to mutate															
+		else if (mType->Is(meta)) {
+			// No need to mutate - types are the same								
 			return false;
 		}
 		else if (IsAbstract() && IsEmpty() && meta->InterpretsAs(mType)) {
 			// Abstract compatible containers can be concretized				
-			SetDataID(meta, false);
+			SetType(meta, false);
 		}
 		else if (!IsInsertable(meta)) {
 			// Not insertable due to some reasons									
 			if (!IsTypeConstrained()) {
 				// Container is not type-constrained, so we can safely		
 				// deepen it, to incorporate the new data							
-				Deepen<Memory::Any>();
+				Deepen<Any>();
 				return true;
 			}
-			else throw Except::Mutate(pcLogFuncError
+			else throw Except::Mutate(Logger::Error()
 				<< "Attempting to deepen incompatible type-constrained container from "
 				<< GetToken() << " to " << meta->GetToken());
 		}
 
 		SAFETY(if (!InterpretsAs(meta)) {
-			throw Except::Mutate(pcLogFuncError
+			throw Except::Mutate(Logger::Error()
 				<< "Mutation results in incompatible data " << meta->GetToken()
 				<< " (container of type " << GetToken() << ")");
 		})
@@ -393,63 +395,63 @@ namespace Langulus::Anyness::Inner
 	///	@param state - the state to toggle												
 	///	@param toggle - whether to enable the forementioned state or not		
 	void Block::ToggleState(const DataState& state, bool toggle) {
-		if (toggle)	mState += state;
-		else			mState -= state;
+		if (toggle)	mState.mState |= state.mState;
+		else			mState.mState &= ~state.mState;
 	}
 
 	/// Make memory block vacuum (a.k.a. missing)										
 	///	@return reference to itself														
 	Block& Block::MakeMissing() {
-		mState += DataState::Missing;
+		mState.mState |= DataState::Missing;
 		return *this;
 	}
 
 	/// Make memory block static (unmovable and unresizable)							
 	///	@return reference to itself														
 	Block& Block::MakeStatic() {
-		mState += DataState::Static;
+		mState.mState |= DataState::Static;
 		return *this;
 	}
 
 	/// Make memory block constant (unresizable and unchangable)					
 	///	@return reference to itself														
 	Block& Block::MakeConstant() {
-		mState += DataState::Constant;
+		mState.mState |= DataState::Constant;
 		return *this;
 	}
 
 	/// Make memory block type-immutable													
 	///	@return reference to itself														
 	Block& Block::MakeTypeConstrained() {
-		mState += DataState::Typed;
+		mState.mState |= DataState::Typed;
 		return *this;
 	}
 
 	/// Make memory block exlusive (a.k.a. OR container)								
 	///	@return reference to itself														
 	Block& Block::MakeOr() {
-		mState += DataState::Or;
+		mState.mState |= DataState::Or;
 		return *this;
 	}
 
 	/// Make memory block inclusive (a.k.a. AND container)							
 	///	@return reference to itself														
 	Block& Block::MakeAnd() {
-		mState -= DataState::Or;
+		mState.mState &= ~DataState::Or;
 		return *this;
 	}
 
 	/// Make memory block left-polar															
 	///	@return reference to itself														
 	Block& Block::MakeLeft() {
-		SetPolarity(Past);
+		SetPhase(Phase::Past);
 		return *this;
 	}
 
 	/// Make memory block right-polar														
 	///	@return reference to itself														
 	Block& Block::MakeRight() {
-		SetPolarity(Future);
+		SetPhase(Phase::Future);
 		return *this;
 	}
 
@@ -488,27 +490,14 @@ namespace Langulus::Anyness::Inner
 
 	/// Get the data ID																			
 	///	@return the data id																	
-	DataID Block::GetDataID() const noexcept {
-		return mType ? mType->GetID() : udAny;
-	}
-
-	/// Get the data switch (checks only against dense IDs)							
-	///	@return the data id																	
-	Count Block::GetDataSwitch() const noexcept {
-		return mType ? mType->GetSwitch() : 0;
-	}
-
-	/// Set the data ID - use this only if you really know what you're doing	
-	///	@param type - the type ID to set													
-	///	@param constrain - whether or not to enable type-constraints			
-	void Block::SetDataID(DataID type, bool constrain) {
-		SetDataID(type.GetMeta(), constrain);
+	DMeta Block::GetType() const noexcept {
+		return mType;
 	}
 
 	/// Set the data ID - use this only if you really know what you're doing	
 	///	@param type - the type meta to set												
 	///	@param constrain - whether or not to enable type-constraints			
-	void Block::SetDataID(DMeta type, bool constrain) {
+	void Block::SetType(DMeta type, bool constrain) {
 		if (mType == type) {
 			if (constrain)
 				MakeTypeConstrained();
@@ -524,7 +513,7 @@ namespace Langulus::Anyness::Inner
 		// At this point, the container has and initialized type				
 		if (IsTypeConstrained()) {
 			// You can't set type of an initialized typed block				
-			throw Except::Mutate(pcLogFuncError 
+			throw Except::Mutate(Logger::Error()
 				<< "Changing typed block is disallowed: from " 
 				<< GetToken() << " to " << type->GetToken());
 		}
@@ -535,7 +524,7 @@ namespace Langulus::Anyness::Inner
 			// might be wrong later														
 			if (mType->IsSparse())
 				mType = type;
-			else throw Except::Mutate(pcLogFuncError
+			else throw Except::Mutate(Logger::Error()
 				<< "Changing to compatible dense type is disallowed: from " 
 				<< GetToken() << " to " << type->GetToken());
 		}
@@ -544,7 +533,7 @@ namespace Langulus::Anyness::Inner
 			// it has no constructed elements, we can still mutate it		
 			if (IsEmpty())
 				mType = type;
-			else throw Except::Mutate(pcLogFuncError 
+			else throw Except::Mutate(Logger::Error()
 				<< "Changing to incompatible type while there's constructed "
 				<< "data is disallowed: from " << GetToken() 
 				<< " to " << type->GetToken());
@@ -552,12 +541,6 @@ namespace Langulus::Anyness::Inner
 
 		if (constrain)
 			MakeTypeConstrained();
-	}
-
-	/// Get the memory type descriptor														
-	///	@return pointer to the reflected data, or nullptr if none				
-	const RTTI::ReflectData* Block::GetDescriptor() const noexcept {
-		return !mType ? nullptr : &mType->mStaticDescriptor;
 	}
 
 	/// Get the number of sub-blocks (this one included)								
@@ -593,7 +576,8 @@ namespace Langulus::Anyness::Inner
 	}
 
 	/// Check if contained type is constructible											
-	///	@returns true if the contents of this pack are constructable			
+	/// Some are only referencable, such as abstract types							
+	///	@returns true if the contents of this pack are constructible			
 	bool Block::IsConstructible() const noexcept {
 		return mType && mType->IsConstructible();
 	}
@@ -601,17 +585,17 @@ namespace Langulus::Anyness::Inner
 	/// Check if block contains pointers													
 	///	@return true if the block contains pointers									
 	bool Block::IsSparse() const {
-		return mType && mType->IsSparse();
+		return mState.mState & DataState::Sparse;
 	}
 
 	/// Get the size of a single element (in bytes)										
-	/// @attention this always returns size of pointer if container is sparse	
-	/// @attention this returns the size of the current mType, and that may be	
-	/// inaccurate for containers that have an abstract type. You should			
-	/// resolve an element prior to checking its size!									
-	///	@return the byte size																
+	///	@attention this returns size of pointer if container is sparse			
+	///	@attention this returns zero if block is untyped							
+	///	@return the size is bytes															
 	Count Block::GetStride() const noexcept {
-		return !mType ? 0 : mType->GetStride();
+		return mState.mState & DataState::Sparse 
+			? sizeof(void*) 
+			: (mType ? mType->GetStride() : 0);
 	}
 
 	/// Check if you can push a type to this container									
@@ -637,7 +621,8 @@ namespace Langulus::Anyness::Inner
 		return !mType || !type || mType->InterpretsAs(type);
 	}
 
-	/// Check if contained data can be interpreted as a given type and count	
+	/// Check if contained data can be interpreted as a given coung of type		
+	/// For example: a vec4 can interpret as float[4]									
 	/// Beware, direction matters (this is the inverse of CanFit)					
 	///	@param type - the type check if current type interprets to				
 	///	@param count - the number of elements to interpret as						
@@ -646,30 +631,29 @@ namespace Langulus::Anyness::Inner
 		return !mType || !type || mType->InterpretsAs(type, count);
 	}
 
-	/// Check if contained data completely matches a given type						
-	/// Sparseness, however, is ignored														
-	///	@param type - the type to check for (must be a dense type)				
-	///	@returns if this block contains data of exactly 'type'					
-	bool Block::Is(DataID type) const {
-		return mType && mType->Is(type);
+	/// Check if contained data exactly matches a given type							
+	///	@param type - the type to check for												
+	///	@return if this block contains data of exactly 'type'						
+	bool Block::Is(DMeta type) const noexcept {
+		return mType == type || (mType && mType->Is(type));
 	}
 
-	/// Get a specific element block without doing any type checks					
-	///	@param index - the index element													
+	/// Get a specific element block (unsafe)												
+	///	@param index - the element's index												
 	///	@return the element's block														
-	Block Block::GetElement(Count index) noexcept {
+	Block Block::GetElement(Offset index) noexcept {
 		return Block {
-			(mState + DataState::Static) - DataState::Or,
+			(mState.mState | DataState::Static) & ~DataState::Or,
 			mType, 1, At(index * mType->GetStride())
 		};
 	}
 
-	/// Get a specific element block without doing any type checks (const)		
+	/// Get a specific element block (const, unsafe)									
 	///	@param index - the index element													
 	///	@return the element's block														
-	const Block Block::GetElement(Count index) const noexcept {
+	const Block Block::GetElement(Offset index) const noexcept {
 		return Block {
-			(mState + DataState::Static) - DataState::Or,
+			(mState.mState | DataState::Static) & ~DataState::Or,
 			mType, 1, At(index * mType->GetStride())
 		};
 	}
@@ -678,10 +662,10 @@ namespace Langulus::Anyness::Inner
 	///	@attention the element might be empty if a sparse nullptr				
 	///	@param index - index of the element inside the block						
 	///	@return the dense memory block for the element								
-	Block Block::GetElementDense(Count index) {
+	Block Block::GetElementDense(Offset index) {
 		auto element = GetElement(index);
-		if (mType->IsSparse()) {
-			element.mType = element.mType->GetDenseMeta();
+		if (IsSparse()) {
+			element.mState.mState &= ~DataState::Sparse;
 			element.mRaw = *element.GetPointers();
 			if (!element.mRaw)
 				return {};
@@ -693,7 +677,7 @@ namespace Langulus::Anyness::Inner
 	/// Get the dense block of an element inside the block							
 	///	@param index - index of the element inside the block						
 	///	@return the dense memory block for the element								
-	const Block Block::GetElementDense(Count index) const {
+	const Block Block::GetElementDense(Offset index) const {
 		return const_cast<Block*>(this)->GetElementDense(index);
 	}
 	
@@ -701,7 +685,7 @@ namespace Langulus::Anyness::Inner
 	///	@attention the element might be empty if resolved a sparse nullptr	
 	///	@param index - index of the element inside the block						
 	///	@return the dense resolved memory block for the element					
-	Block Block::GetElementResolved(Count index) {
+	Block Block::GetElementResolved(Offset index) {
 		auto element = GetElementDense(index);
 		if (!element.mRaw || !mType->IsResolvable())
 			return element;

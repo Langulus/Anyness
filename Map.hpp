@@ -7,8 +7,11 @@ namespace Langulus::Anyness
 	///																								
 	/// A helper structure for pairing keys and values of any type					
 	///																								
-	template<RTTI::ReflectedData KEY, RTTI::ReflectedData VALUE>
+	template<ReflectedData KEY, ReflectedData VALUE>
 	struct TPair {
+	public:
+		KEY Key;
+		VALUE Value;
 	public:
 		using KeyType = KEY;
 		using ValueType = VALUE;
@@ -20,9 +23,6 @@ namespace Langulus::Anyness
 			: Key{ key }
 			, Value{ value } {}
 
-	public:
-		KEY Key;
-		VALUE Value;
 	};
 
 

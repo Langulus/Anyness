@@ -56,13 +56,14 @@ namespace Langulus::Anyness
 		#endif
 
 	public:
-		constexpr Index() noexcept;
+		constexpr Index() noexcept = default;
 		constexpr Index(const SpecialIndices&) noexcept;
 		constexpr Index(const Type&) noexcept;
 		constexpr Index(const Count&);
 
 	public:
 		NOD() constexpr Index Constrained(Count) const noexcept;
+		NOD() constexpr Offset GetOffset() const;
 
 		constexpr void Constrain(Count) noexcept;
 		constexpr void Concat(const Index&) noexcept;

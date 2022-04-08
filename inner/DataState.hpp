@@ -1,6 +1,6 @@
 #pragma once
 
-namespace Langulus::Anyness::Inner
+namespace Langulus::Anyness
 {
 
 	///																								
@@ -61,10 +61,23 @@ namespace Langulus::Anyness::Inner
 			Typed = 256,
 
 			// Data is sparse, essentially made of pointers						
-			Sparse = 512
+			Sparse = 512,
+
+			// Data is constrained														
+			Constrained = Static | Constant | Typed
 		};
 
-		std::underlying_type_t<Enum> mState;
+		using Type = std::underlying_type_t<Enum>;
+
+		Type mState {Default};
+
+	public:
+		constexpr DataState() noexcept = default;
+		constexpr DataState(const Type& state) noexcept
+			: mState {state} {}
+
+		constexpr bool operator == (const DataState&) const noexcept = default;
+		constexpr bool operator != (const DataState&) const noexcept = default;
 	};
 
-} // namespace Langulus::Anyness::Inner
+} // namespace Langulus::Anyness

@@ -46,7 +46,7 @@ namespace Langulus::Anyness
 				mRaw = other.mRaw;
 				mCount = other.mCount;
 				mReserved = other.mReserved;
-				mState = other.mState + DataState::Typed;
+				mState = other.mState.mState | DataState::Typed;
 				Block::Keep();
 				return *this;
 			}
@@ -82,7 +82,7 @@ namespace Langulus::Anyness
 				mRaw = other.mRaw;
 				mCount = other.mCount;
 				mReserved = other.mReserved;
-				mState = other.mState + DataState::Typed;
+				mState = other.mState.mState | DataState::Typed;
 				other.ResetInner();
 				return *this;
 			}
@@ -93,7 +93,7 @@ namespace Langulus::Anyness
 			}
 		}
 
-		Block::operator = (pcForward<Block>(other));
+		Block::operator = (Forward<Block>(other));
 		return *this;
 	}
 
@@ -101,14 +101,14 @@ namespace Langulus::Anyness
 	///	@param other - the memory block to reference									
 	///	@return a reference to this container											
 	Any& Any::operator = (const Block& other) {
-		return Any::operator = (Any{ other });
+		return Any::operator = (Any {other});
 	}
 
 	/// Assign by moving a memory block														
 	///	@param other - the memory block to reference									
 	///	@return a reference to this container											
 	Any& Any::operator = (Block&& other) {
-		return Any::operator = (Any{ pcForward<Block>(other) });
+		return Any::operator = (Any {Forward<Block>(other)});
 	}
 
 	/// Clone anyness																				
@@ -135,7 +135,7 @@ namespace Langulus::Anyness
 				const auto meta = mType;
 				Reset();
 				mType = meta;
-				mState += state;
+				mState.mState |= state.mState;
 			}
 		}
 	}
@@ -149,7 +149,7 @@ namespace Langulus::Anyness
 	/// Swap two anies																			
 	///	@param other - the container to swap contents with							
 	void Any::Swap(Any& other) noexcept {
-		other = ::std::exchange(*this, pcMove(other));
+		other = ::std::exchange(*this, Move(other));
 	}
 
 	/// Pick a region																				

@@ -5,60 +5,61 @@ namespace Langulus::Anyness
 {
 
 	///																								
-	/// A piception spin-off of std::any													
-	/// Can contain any number of copy constructible or movable type				
-	/// Additionally extended to safely contain sparse data							
+	///	Any																						
 	///																								
-	class LANGULUS_MODULE(Anyness) Any : public Block {
-		REFLECT(Any);
+	///	More of an equivalent to std::vector, instead of std::any, since		
+	/// it can contain any number of similarly-typed type-erased elements.		
+	/// It gracefully wraps sparse and dense arrays, keeping track of static	
+	/// and constand data blocks.																
+	///	For a faster statically-optimized equivalent of this, use TAny			
+	///																								
+	class Any : public Inner::Block {
 	public:
 		template<class T>
-		static constexpr bool NotCustom = 
-			Sparse<T> || (!Same<T, Any> && !Same<T, Block>);
+		static constexpr bool NotCustom = Sparse<T> || (!Same<T,Any> && !Same<T,Block>);
 
 		constexpr Any() noexcept {}
 
 		Any(const Any&);
-		PC_LEAKSAFETY Any(Any&&) noexcept;
+		Any(Any&&) noexcept;
 		Any(const Block&);
 		Any(Block&&);
 
-		template<RTTI::ReflectedData T>
+		template<ReflectedData T>
 		Any(T&&) requires (Any::NotCustom<T>);
-		template<RTTI::ReflectedData T>
+		template<ReflectedData T>
 		Any(const T&) requires (Any::NotCustom<T>);
-		template<RTTI::ReflectedData T>
+		template<ReflectedData T>
 		Any(T&) requires (Any::NotCustom<T>);
 
 		~Any();
 
 	public:
 		NOD() static Any FromStateOf(const Block&) noexcept;
-		NOD() static Any From(DataID, const DState& = {}) noexcept;
-		NOD() static Any From(DMeta, const DState& = {}) noexcept;
-		NOD() static Any From(const Block&, const DState& = {}) noexcept;
-		template<RTTI::ReflectedData T = void>
-		NOD() static Any From(const DState& = {}) noexcept;
+		NOD() static Any From(DMeta, const DataState& = {}) noexcept;
+		NOD() static Any From(const Block&, const DataState& = {}) noexcept;
+		template<ReflectedData T>
+		NOD() static Any From(const DataState& = {}) noexcept;
 
-		template<RTTI::ReflectedData... Args>
-		NOD() static Any Wrap(Args...);
-		template<RTTI::ReflectedData T, RTTI::ReflectedData... Args>
-		NOD() static Any WrapOne(const T&, Args...);
-		template<RTTI::ReflectedData... Args>
-		NOD() static Any WrapOr(Args...);
-		template<RTTI::ReflectedData T, RTTI::ReflectedData... Args>
-		NOD() static Any WrapOneOr(const T&, Args...);
+		template<ReflectedData... Args>
+		NOD() static Any Wrap(Args&&...);
+		template<ReflectedData... Args>
+		NOD() static Any WrapOne(Args&&...);
+		template<ReflectedData... Args>
+		NOD() static Any WrapOr(Args&&...);
+		template<ReflectedData... Args>
+		NOD() static Any WrapOneOr(Args&&...);
 
 		Any& operator = (const Any&);
 		Any& operator = (Any&&);
 		Any& operator = (const Block&);
 		Any& operator = (Block&&);
 
-		template<RTTI::ReflectedData T>
+		template<ReflectedData T>
 		Any& operator = (const T&) requires (Any::NotCustom<T>);
-		template<RTTI::ReflectedData T>
+		template<ReflectedData T>
 		Any& operator = (T&) requires (Any::NotCustom<T>);
-		template<RTTI::ReflectedData T>
+		template<ReflectedData T>
 		Any& operator = (T&&) requires (Any::NotCustom<T>);
 
 		Any& MakeMissing();
@@ -77,7 +78,7 @@ namespace Langulus::Anyness
 		using Block::Swap;
 		void Swap(Any&) noexcept;
 
-		NOD() Any Crop(pcptr, pcptr) const;
+		NOD() Any Crop(Offset, Count) const;
 	};
 
 } // namespace Langulus::Anyness
