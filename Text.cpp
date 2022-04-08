@@ -1,4 +1,5 @@
 #include "Text.hpp"
+#include <cctype>
 
 namespace Langulus::Anyness
 {
@@ -15,82 +16,10 @@ namespace Langulus::Anyness
 		PCMEMORY.Reference(mType, mRaw, 1);
 	}
 
-	/// Construct manually from text memory and count									
-	///	@param text - text memory to reference											
-	///	@param count - number of characters inside text								
-	Text::Text(const char* text, Count count)
-		: Block {DataState::Constant + DataState::Typed, PCMEMORY.GetFallbackMetaChar(), count, text} {
-		bool no_jury;
-		PCMEMORY.Reference(mType, mRaw, 1, no_jury);
-		if (no_jury) {
-			// We should monopolize the memory to avoid segfaults, in the	
-			// case of the text container being initialized with temporary	
-			// data																			
-			TakeJurisdiction();
-		}
-	}
-
-	/// Construct manually from wide text memory and count							
-	///	@param text - wide text memory to reference									
-	///	@param count - number of characters inside wide text						
-	Text::Text(const wchar_t* text, Count count)
-		: Text{} {
-		try {
-			#if WCHAR_MAX > 0xffff
-				Allocate(count * 4);
-				mCount = P2N(utf8::utf32to8(text, text + count, begin())) - P2N(begin());
-			#elif WCHAR_MAX > 0xff
-				Allocate(count * 2);
-				mCount = P2N(utf8::utf16to8(text, text + count, begin())) - P2N(begin());
-			#else
-				Allocate(count, false, true);
-				pcCopyMemory(text, begin(), count);
-				return result;
-			#endif
-		}
-		catch (utf8::exception&) {
-			throw Except::Convert("utfw -> utf8 conversion error");
-		}
-	}
-
-	/// Construct from a byte, returning a hex string									
-	///	@param value - the byte to stringify											
-	Text::Text(pcbyte value)
-		: Text {pcToHex(static_cast<unsigned char>(value))} {}
-
-	/// Construct from a character															
-	///	@param value - the character to stringify										
-	Text::Text(const char8& value)
-		: Text {&value.mValue, 1} {}
-
-	/// Construct from a wide character														
-	///	@param value - the character to stringify										
-	Text::Text(const charw& value)
-		: Text {&value.mValue, 1} {}
-
-	/// Construct from a data ID																
-	///	@param value - the id to stringify												
-	Text::Text(const DataID& value)
-		: Text {!value ? DataID::DefaultToken : value.GetMeta()->GetToken()} {}
-
-	/// Construct from a trait ID																
-	///	@param value - the id to stringify												
-	Text::Text(const TraitID& value)
-		: Text {!value ? TraitID::DefaultToken : value.GetMeta()->GetToken()} {}
-
-	/// Construct from a const ID																
-	///	@param value - the id to stringify												
-	Text::Text(const ConstID& value)
-		: Text {!value ? ConstID::DefaultToken : value.GetMeta()->GetToken()} {}
-
-	/// Construct from a verb ID																
-	///	@param value - the id to stringify												
-	Text::Text(const VerbID& value)
-		: Text {!value ? VerbID::DefaultToken : value.GetMeta()->GetToken()} {}
 
 	/// Construct from an exception															
 	///	@param from - the exception to stringify										
-	Text::Text(const AException& from)
+	Text::Text(const Exception& from)
 		: Text { } {
 		(*this) += from.GetExceptionName();
 		(*this) += "(";
@@ -104,7 +33,7 @@ namespace Langulus::Anyness
 		: Text { } {
 		// Convert an index																
 		if (!from.IsArithmetic()) {
-			(*this) += Index::Names[from.mIndex - uiMinIndex];
+			(*this) += Index::Names[from.mIndex - Index::SpecialIndexCounter];
 			return;
 		}
 
@@ -114,28 +43,12 @@ namespace Langulus::Anyness
 
 	/// Stringify meta																			
 	///	@param meta - the definition to stringify										
-	Text::Text(const AMeta& meta)
-		: Text {meta.GetToken()} {}
+	Text::Text(const Meta& meta)
+		: Text {meta.mToken} {}
 
 	/// Destructor																					
 	Text::~Text() {
 		PCMEMORY.Reference(mType, mRaw, -1);
-	}
-
-	/// Create UTF8 text from an UTF32 codepoint											
-	///	@param cp - the codepoint															
-	///	@return a text container containing the UTF8 equivalent					
-	Text Text::FromCodepoint(pcu32 cp) {
-		Text result;
-		result.Allocate(sizeof(cp));
-		try {
-			const auto count = P2N(utf8::utf32to8(&cp, &cp + 1, result.begin())) - P2N(result.begin());
-			result.Trim(count);
-		}
-		catch (utf8::exception&) {
-			throw Except::Convert("utf32 -> utf8 conversion error");
-		}
-		return result;
 	}
 
 	/// Clear the contents, but do not deallocate memory if possible				
@@ -266,7 +179,7 @@ namespace Langulus::Anyness
 
 	/// Widen the text container to the utf16												
 	///	@return the widened text container												
-	TAny<pcu16> Text::Widen16() const {
+	Text Text::Widen16() const {
 		if (IsEmpty())
 			return {};
 
@@ -285,7 +198,7 @@ namespace Langulus::Anyness
 
 	/// Widen the text container to the utf32												
 	///	@return the widened text container												
-	TAny<pcu32> Text::Widen32() const {
+	Text Text::Widen32() const {
 		if (IsEmpty())
 			return {};
 
@@ -304,11 +217,11 @@ namespace Langulus::Anyness
 
 	/// Widen the text container to the default wchar_t								
 	#if WCHAR_MAX > 0xffff
-		TAny<pcu32> Text::Widen() const {
+		Text Text::Widen() const {
 			return Widen32();
 		}
 	#elif WCHAR_MAX > 0xff
-		TAny<pcu16> Text::Widen() const {
+		Text Text::Widen() const {
 			return Widen16();
 		}
 	#else
@@ -476,7 +389,7 @@ namespace Langulus::Anyness
 			return *this;
 
 		if (end < mCount) {
-			TakeJurisdiction();
+			TakeAuthority();
 			pcMoveMemory(GetRaw() + end, GetRaw() + start, mCount - removed);
 		}
 
@@ -487,7 +400,7 @@ namespace Langulus::Anyness
 	/// Extend the string, change count, and if data is out of jurisdiction -	
 	/// move it to a new place where we own it											
 	///	@return an array that represents the extended part							
-	TArray<char> Text::Extend(Count count) {
+	Text Text::Extend(Count count) {
 		const auto lastCount = mCount;
 		if (mCount + count <= mReserved) {
 			mCount += count;
@@ -511,35 +424,6 @@ namespace Langulus::Anyness
 		mCount += count;
 		mReserved = mCount;
 		return {GetRaw() + lastCount, count};
-	}
-
-	/// Find a token in the text, and return a selection								
-	///	@param pattern - the text to select												
-	///	@return the selection																
-	Text::Selection Text::Select(const ME& pattern) {
-		Count offset = 0;
-		if (!FindOffset(pattern, offset))
-			return {};
-		return {this, offset, offset + pattern.mCount};
-	}
-
-	/// Select a region of text [start; end)												
-	///	@param start - the starting character											
-	///	@param end - the ending character												
-	///	@return the selection																
-	Text::Selection Text::Select(Count start, Count end) {
-		if (start > mCount || end > mCount || end < start)
-			return {};
-		return {this, start, end};
-	}
-
-	/// Move the text marker																	
-	///	@param marker - cursor position													
-	///	@return the selection																
-	Text::Selection Text::Select(Count marker) {
-		if (marker > mCount)
-			return {};
-		return {this, marker, marker};
 	}
 
 } // namespace Langulus::Anyness

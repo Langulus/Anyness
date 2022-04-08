@@ -7,13 +7,9 @@ namespace Langulus::Anyness
 	///																								
 	///	FILENAME CONTAINER																	
 	///																								
-	class LANGULUS_MODULE(Anyness) Path : public Text {
-		REFLECT(Path);
+	class Path : public Text {
 	public:
 		using Text::Text;
-
-		Path(const Text&);
-		Path(Text&&) noexcept;
 
 		NOD() Path Clone() const;
 		NOD() Text GetExtension() const;

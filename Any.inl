@@ -36,7 +36,7 @@ namespace Langulus::Anyness
 	///	@param block - block to get state of											
 	///	@return the new container															
 	inline Any Any::FromStateOf(const Block& block) noexcept {
-		return Any::From(block.GetUnconstrainedState());
+		return Any::From({}, block.GetUnconstrainedState());
 	}
 
 	/// Create an empty Any from a dynamic type and state								
@@ -52,7 +52,7 @@ namespace Langulus::Anyness
 	///	@param state - additional state of the container							
 	///	@return the new any																	
 	inline Any Any::From(const Block& type, const DataState& state) noexcept {
-		return Any::From(type.GetType(), type.GetUnconstrainedState() + state);
+		return Any::From(type.GetType(), type.GetUnconstrainedState().mState | state.mState);
 	}
 
 	/// Create an empty Any from a static type and state								
@@ -85,11 +85,15 @@ namespace Langulus::Anyness
 	///	@returns the pack containing the data											
 	template<ReflectedData... Args>
 	Any Any::WrapOne(Args&&... elements) {
-		T wrapped[] { head, tail... };
-		Any result { Any::From<T>() };
-		for (auto& it : wrapped)
-			result.Emplace<T>(pcMove(it));
-		return result;
+		if constexpr (sizeof...(Args) == 0)
+			return {};
+		else {
+			auto wrapped[] {Forward<Args>(elements)...};
+			Any result {Any::From<Decay<decltype(wrapped)>>()};
+			for (auto& it : wrapped)
+				result.Emplace<Decay<decltype(wrapped)>>(Move(it));
+			return result;
+		}
 	}
 
 	/// Pack any number of elements sequentially	in an OR container				

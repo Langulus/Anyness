@@ -22,38 +22,38 @@ namespace Langulus::Anyness
 	}
 
 	/// Create a strictly typed container, using templates							
-	template<RTTI::ReflectedData KEY, RTTI::ReflectedData VALUE>
-	Map Map::From(const DState& state) noexcept {
-		return Map{
-			Block{ state, DataID::Reflect<KEY>() },
-			Block{ state, DataID::Reflect<VALUE>() }
+	template<ReflectedData KEY, ReflectedData VALUE>
+	Map Map::From(const DataState& state) noexcept {
+		return {
+			Block {state, MetaData::Of<KEY>()},
+			Block {state, MetaData::Of<VALUE>()}
 		};
 	}
 
-	/// Get the meta definition associated with the contained key type			
-	inline DMeta Map::KeyMeta() const {
-		return mKeys.GetMeta();
+	/// Get the key type																			
+	inline DMeta Map::KeyType() const {
+		return mKeys.GetType();
 	}
 
-	/// Get the meta definition associated with the contained value type			
-	inline DMeta Map::ValueMeta() const {
-		return Any::GetMeta();
+	/// Get the value type																		
+	inline DMeta Map::ValueType() const {
+		return Any::GetType();
 	}
 
 	/// Get the index of a key																	
-	template<RTTI::ReflectedData KEY>
+	template<ReflectedData KEY>
 	Index Map::FindKey(const KEY& key) const {
 		return mKeys.Find<KEY>(key);
 	}
 
 	/// Get the index of a value																
-	template<RTTI::ReflectedData VALUE>
+	template<ReflectedData VALUE>
 	Index Map::FindValue(const VALUE& value) const {
 		return Any::Find<VALUE>(value);
 	}
 
 	/// Get pair at a special index															
-	template<RTTI::ReflectedData KEY, RTTI::ReflectedData VALUE>
+	template<ReflectedData KEY, ReflectedData VALUE>
 	auto Map::GetPair(const Index& index) {
 		const auto idx = mKeys.ConstrainMore<KEY>(index);
 		if (idx.IsSpecial())
@@ -61,14 +61,14 @@ namespace Langulus::Anyness
 		return GetPair<KEY, VALUE>(static_cast<pcptr>(idx.mIndex));
 	}
 
-	template<RTTI::ReflectedData KEY, RTTI::ReflectedData VALUE>
+	template<ReflectedData KEY, ReflectedData VALUE>
 	auto Map::GetPair(const Index& index) const {
 		return const_cast<Map*>(this)->GetPair<KEY, VALUE>(index);
 	}
 
 	/// Get pair at a raw index																
-	template<RTTI::ReflectedData KEY, RTTI::ReflectedData VALUE>
-	auto Map::GetPair(pcptr index) {
+	template<ReflectedData KEY, ReflectedData VALUE>
+	auto Map::GetPair(const Offset index) {
 		return TPair<decltype(GetKey<KEY>(index)), decltype(GetValue<VALUE>(index))>{
 			GetKey<KEY>(index), 
 			GetValue<VALUE>(index)
@@ -76,17 +76,17 @@ namespace Langulus::Anyness
 	}
 
 	/// Get pair at a raw index (const)														
-	template<RTTI::ReflectedData KEY, RTTI::ReflectedData VALUE>
-	auto Map::GetPair(pcptr index) const {
+	template<ReflectedData KEY, ReflectedData VALUE>
+	auto Map::GetPair(const Offset index) const {
 		return const_cast<Map*>(this)->GetPair<KEY, VALUE>(index);
 	}
 
-	template<RTTI::ReflectedData KEY, RTTI::ReflectedData VALUE>
+	template<ReflectedData KEY, ReflectedData VALUE>
 	bool Map::IsMapInsertable() {
 		if (mKeys.IsUntyped())
-			mKeys.SetDataID<KEY>(false);
+			mKeys.SetType<KEY>(false);
 		if (Any::IsUntyped())
-			Any::SetDataID<VALUE>(false);
+			Any::SetType<VALUE>(false);
 		return mKeys.IsInsertable<KEY>() && Any::IsInsertable<VALUE>();
 	}
 
@@ -94,90 +94,90 @@ namespace Langulus::Anyness
 	/// Get the key by special index (const)												
 	///	@param idx - the index																
 	///	@return a constant reference to the key										
-	template<RTTI::ReflectedData K>
+	template<ReflectedData T>
 	decltype(auto) Map::GetKey(const Index& idx) const {
-		return Keys().As<K>(idx);
+		return Keys().As<T>(idx);
 	}
 
 	/// Get the key by special index															
 	///	@param idx - the index																
 	///	@return a reference to the key													
-	template<RTTI::ReflectedData K>
+	template<ReflectedData T>
 	decltype(auto) Map::GetKey(const Index& idx) {
-		return Keys().As<K>(idx);
+		return Keys().As<T>(idx);
 	}
 
 	/// Get a key by simple index (const)													
 	///	@param idx - the index																
 	///	@return a reference to the key													
-	template<RTTI::ReflectedData K>
-	decltype(auto) Map::GetKey(const pcptr idx) const {
-		return Keys().As<K>(idx);
+	template<ReflectedData T>
+	decltype(auto) Map::GetKey(const Offset idx) const {
+		return Keys().As<T>(idx);
 	}
 
 	/// Get a key by simple index																
 	///	@param idx - the index																
 	///	@return a constant reference to the key										
-	template<RTTI::ReflectedData K>
-	decltype(auto) Map::GetKey(const pcptr idx) {
-		return Keys().As<K>(idx);
+	template<ReflectedData K>
+	decltype(auto) Map::GetKey(const Offset idx) {
+		return Keys().As<T>(idx);
 	}
 
 	/// Get the value by special index (const)											
 	///	@param idx - the index																
 	///	@return a constant reference to the value										
-	template<RTTI::ReflectedData K>
+	template<ReflectedData T>
 	decltype(auto) Map::GetValue(const Index& idx) const {
-		return Values().As<K>(idx);
+		return Values().As<T>(idx);
 	}
 
 	/// Get the value by special index														
 	///	@param idx - the index																
 	///	@return a reference to the value													
-	template<RTTI::ReflectedData K>
+	template<ReflectedData T>
 	decltype(auto) Map::GetValue(const Index& idx) {
-		return Values().As<K>(idx);
+		return Values().As<T>(idx);
 	}
 
 	/// Get a value by simple index (const)												
 	///	@param idx - the index																
 	///	@return a constant reference to the value										
-	template<RTTI::ReflectedData K>
-	decltype(auto) Map::GetValue(const pcptr idx) const {
-		return Values().As<K>(idx);
+	template<ReflectedData T>
+	decltype(auto) Map::GetValue(const Offset idx) const {
+		return Values().As<T>(idx);
 	}
 
 	/// Get a value by simple index															
 	///	@param idx - the index																
 	///	@return a reference to the value													
-	template<RTTI::ReflectedData K>
-	decltype(auto) Map::GetValue(const pcptr idx) {
-		return Values().As<K>(idx);
+	template<ReflectedData T>
+	decltype(auto) Map::GetValue(const Offset idx) {
+		return Values().As<T>(idx);
 	}
 
 	/// Emplace anything compatible to container											
-	template<RTTI::ReflectedData KEY, RTTI::ReflectedData VALUE>
-	pcptr Map::Emplace(TPair<KEY, VALUE>&& item, const Index& index) {
+	template<ReflectedData KEY, ReflectedData VALUE>
+	Count Map::Emplace(TPair<KEY, VALUE>&& item, const Index& index) {
 		if (!IsMapInsertable<KEY, VALUE>())
-			throw Except::BadMove("Bad emplace in map - type not insertable");
+			throw Except::Move("Bad emplace in map - type not insertable");
 
-		const auto insertedKeys = mKeys.Emplace<KEY>(pcMove(item.Key), index);
-		const auto insertedValues = Any::Emplace<VALUE>(pcMove(item.Value), index);
+		const auto insertedKeys = mKeys.Emplace<KEY>(Move(item.Key), index);
+		const auto insertedValues = Any::Emplace<VALUE>(Move(item.Value), index);
 		if (insertedKeys != insertedValues)
-			throw Except::BadMove("Bad emplace in map - move failed");
+			throw Except::Move("Bad emplace in map - move failed");
 
 		return insertedKeys;
 	}
 
 	/// Insert anything compatible to container											
-	template<RTTI::ReflectedData KEY, RTTI::ReflectedData VALUE>
-	pcptr Map::Insert(const TPair<KEY, VALUE>* items, const pcptr count, const Index& index) {
+	template<ReflectedData KEY, ReflectedData VALUE>
+	Count Map::Insert(const TPair<KEY, VALUE>* items, const Count count, const Index& index) {
 		if (!IsMapInsertable<KEY, VALUE>())
-			throw Except::BadCopy("Bad insert in map");
+			throw Except::Copy("Bad insert in map");
 
-		pcptr insertedKeys = 0;
-		pcptr insertedValues = 0;
-		for (pcptr i = 0; i < count; ++i) {
+		Count insertedKeys = 0;
+		Count insertedValues = 0;
+		for (Count i = 0; i < count; ++i) {
 			insertedKeys += mKeys.Insert<KEY>(&items[i].Key, 1, index);
 			insertedValues += Any::Insert<VALUE>(&items[i].Value, 1, index);
 		}
@@ -186,34 +186,34 @@ namespace Langulus::Anyness
 	}
 
 	/// Push any data at the back																
-	template<RTTI::ReflectedData KEY, RTTI::ReflectedData VALUE>
+	template<ReflectedData KEY, ReflectedData VALUE>
 	Map& Map::operator << (const TPair<KEY, VALUE>& other) {
-		Insert<KEY, VALUE>(&other, 1, uiBack);
+		Insert<KEY, VALUE>(&other, 1, Index::Back);
 		return *this;
 	}
 
-	template<RTTI::ReflectedData KEY, RTTI::ReflectedData VALUE>
+	template<ReflectedData KEY, ReflectedData VALUE>
 	Map& Map::operator << (TPair<KEY, VALUE>&& other) {
-		Emplace<KEY, VALUE>(pcForward<TPair<KEY, VALUE>>(other), uiBack);
+		Emplace<KEY, VALUE>(Forward<TPair<KEY, VALUE>>(other), Index::Back);
 		return *this;
 	}
 
 	/// Push any data at the front															
-	template<RTTI::ReflectedData KEY, RTTI::ReflectedData VALUE>
+	template<ReflectedData KEY, ReflectedData VALUE>
 	Map& Map::operator >> (const TPair<KEY, VALUE>& other) {
-		Insert<KEY, VALUE>(&other, 1, uiFront);
+		Insert<KEY, VALUE>(&other, 1, Index::Front);
 		return *this;
 	}
 
-	template<RTTI::ReflectedData KEY, RTTI::ReflectedData VALUE>
+	template<ReflectedData KEY, ReflectedData VALUE>
 	Map& Map::operator >> (TPair<KEY, VALUE>&& other) {
-		Emplace<KEY, VALUE>(pcForward<TPair<KEY, VALUE>>(other), uiFront);
+		Emplace<KEY, VALUE>(Forward<TPair<KEY, VALUE>>(other), Index::Front);
 		return *this;
 	}
 
 	/// Iteration																					
 	template<class FUNCTION>
-	pcptr Map::ForEachPair(FUNCTION&& call) {
+	Count Map::ForEachPair(FUNCTION&& call) {
 		using PairType = decltype(GetLambdaArguments(&FUNCTION::operator()));
 		using KeyType = typename PairType::KeyType;
 		using ValueType = typename PairType::ValueType;
@@ -223,7 +223,7 @@ namespace Langulus::Anyness
 	}
 
 	template<class FUNCTION>
-	pcptr Map::ForEachPairRev(FUNCTION&& call) {
+	Count Map::ForEachPairRev(FUNCTION&& call) {
 		using PairType = decltype(GetLambdaArguments(&FUNCTION::operator()));
 		using KeyType = typename PairType::KeyType;
 		using ValueType = typename PairType::ValueType;
@@ -233,7 +233,7 @@ namespace Langulus::Anyness
 	}
 
 	template<class FUNCTION>
-	pcptr Map::ForEachPair(FUNCTION&& call) const {
+	Count Map::ForEachPair(FUNCTION&& call) const {
 		using PairType = decltype(GetLambdaArguments(&FUNCTION::operator()));
 		using KeyType = typename PairType::KeyType;
 		using ValueType = typename PairType::ValueType;
@@ -245,7 +245,7 @@ namespace Langulus::Anyness
 	}
 
 	template<class FUNCTION>
-	pcptr Map::ForEachPairRev(FUNCTION&& call) const {
+	Count Map::ForEachPairRev(FUNCTION&& call) const {
 		using PairType = decltype(GetLambdaArguments(&FUNCTION::operator()));
 		using KeyType = typename PairType::KeyType;
 		using ValueType = typename PairType::ValueType;
@@ -257,14 +257,14 @@ namespace Langulus::Anyness
 	}
 
 	/// Constant iteration																		
-	template<class RETURN, RTTI::ReflectedData KEY, RTTI::ReflectedData VALUE, bool REVERSE>
-	pcptr Map::ForEachPairInner(TFunctor<RETURN(KEY, VALUE)>&& call) {
+	template<class RETURN, ReflectedData KEY, ReflectedData VALUE, bool REVERSE>
+	Count Map::ForEachPairInner(TFunctor<RETURN(KEY, VALUE)>&& call) {
 		if (!mCount || !mKeys.InterpretsAs<KEY>() || !InterpretsAs<VALUE>())
 			return 0;
 
 		constexpr bool HasBreaker = Same<bool, RETURN>;
 		const auto count = GetCount();
-		pcptr index = 0;
+		Count index = 0;
 		while (index < count) {
 			if constexpr (Dense<VALUE>) {
 				// Value iterator is dense												
@@ -376,9 +376,9 @@ namespace Langulus::Anyness
 	}
 
 	/// Constant iteration																		
-	template<class RETURN, RTTI::ReflectedData KEY, RTTI::ReflectedData VALUE, bool REVERSE>
-	pcptr Map::ForEachPairInner(TFunctor<RETURN(KEY, VALUE)>&& call) const {
-		return const_cast<Map*>(this)->ForEachPairInner<RETURN, KEY, VALUE, REVERSE>(pcForward<decltype(call)>(call));
+	template<class RETURN, ReflectedData KEY, ReflectedData VALUE, bool REVERSE>
+	Count Map::ForEachPairInner(TFunctor<RETURN(KEY, VALUE)>&& call) const {
+		return const_cast<Map*>(this)->ForEachPairInner<RETURN, KEY, VALUE, REVERSE>(Forward<decltype(call)>(call));
 	}
 
 } // namespace Langulus::Anyness

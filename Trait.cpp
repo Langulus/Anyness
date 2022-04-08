@@ -3,25 +3,25 @@
 namespace Langulus::Anyness
 {
 
-	/// Copy construction																		
+	/// Copy construction from Any															
 	///	@param copy - the block to copy													
 	Trait::Trait(const Any& copy)
 		: Any {copy} { }
 
-	/// Move construction																		
+	/// Move construction from Any															
 	///	@param copy - the block to copy													
 	Trait::Trait(Any&& copy) noexcept
-		: Any {pcForward<Any>(copy)} { }
+		: Any {Forward<Any>(copy)} { }
 
-	/// Copy construction																		
+	/// Copy construction from Block															
 	///	@param copy - the block to copy													
 	Trait::Trait(const Block& copy)
 		: Any {copy} { }
 
-	/// Move construction																		
+	/// Move construction from Block															
 	///	@param copy - the block to copy													
 	Trait::Trait(Block&& copy) noexcept
-		: Any {pcForward<Block>(copy)} { }
+		: Any {Forward<Block>(copy)} { }
 
 	/// Copy construction																		
 	///	@param copy - the trait to copy													
@@ -32,19 +32,8 @@ namespace Langulus::Anyness
 	/// Move construction																		
 	///	@param copy - the trait to copy													
 	Trait::Trait(Trait&& copy) noexcept
-		: Any {pcForward<Any>(copy)}
-		, mTraitType {pcMove(copy.mTraitType)} { }
-
-	/// Manual construction																		
-	///	@param type - the trait id															
-	Trait::Trait(TraitID type)
-		: Trait {type.GetMeta()} {}
-
-	/// Manual construction																		
-	///	@param type - the trait meta														
-	Trait::Trait(TMeta type)
-		: Any { }
-		, mTraitType {type} { }
+		: Any {Forward<Any>(copy)}
+		, mTraitType {Move(copy.mTraitType)} { }
 
 	/// Manual construction (reference memory block)									
 	///	@param type - the trait meta														
@@ -57,7 +46,7 @@ namespace Langulus::Anyness
 	///	@param type - the trait meta														
 	///	@param data - the data for the trait											
 	Trait::Trait(TMeta type, Any&& data) noexcept
-		: Any {pcForward<Any>(data)}
+		: Any {Forward<Any>(data)}
 		, mTraitType {type} { }
 
 	/// Manual construction (reference memory block)									
@@ -73,43 +62,25 @@ namespace Langulus::Anyness
 	///	@param type - the trait meta														
 	///	@param data - the data for the trait											
 	Trait::Trait(TMeta type, Block&& data) noexcept
-		: Any {pcForward<Block>(data)}
+		: Any {Forward<Block>(data)}
 		, mTraitType {type} { }
 
 	/// Clone the trait																			
 	///	@return the cloned trait															
 	Trait Trait::Clone() const {
-		return { mTraitType, Any::Clone() };
+		return {mTraitType, Any::Clone()};
 	}
 
-	/// Get the trait ID																			
-	///	@return the trait ID																	
-	TraitID Trait::GetTraitID() const noexcept {
-		return mTraitType ? mTraitType->GetID() : utInvalid;
-	}
-
-	/// Get the trait ID																			
-	///	@return the trait ID																	
-	Count Trait::GetTraitSwitch() const noexcept {
-		return GetTraitID().GetHash().GetValue();
-	}
-
-	/// Set the trait ID																			
-	///	@param type - the trait ID															
-	void Trait::SetTraitID(const TraitID& type) noexcept {
-		mTraitType = type.GetMeta();
-	}
-
-	/// Return the meta trait associated with this trait instance					
-	///	@return the trait meta definition												
-	TMeta Trait::GetTraitMeta() const noexcept {
+	/// Get the trait type																		
+	///	@return the trait type																
+	TMeta Trait::GetTrait() const noexcept {
 		return mTraitType;
 	}
 
 	/// Check if trait is valid																
 	///	@return true if trait is valid													
 	bool Trait::IsTraitValid() const noexcept {
-		return mTraitType && GetCount() > 0;
+		return mTraitType && !Any::IsEmpty();
 	}
 
 	/// Check if trait is similar to another												
@@ -119,21 +90,19 @@ namespace Langulus::Anyness
 		return (!mTraitType || other.mTraitType == mTraitType) && other.InterpretsAs(mType);
 	}
 
-	/// Check if trait is a specific ID														
+	/// Check if trait is a specific type													
 	///	@param traitId - the id to match													
 	///	@return true if ID matches															
-	bool Trait::TraitIs(TraitID traitId) const {
-		return (!mTraitType && !traitId) || (mTraitType->GetID() == traitId);
+	bool Trait::TraitIs(TMeta trait) const {
+		return mTraitType == trait || (mTraitType && trait && *mTraitType == *trait);
 	}
 
-	/// Check if trait has the correct data												
-	///	@return true if meta trait definition filter is compatible				
+	/// Check if trait has correct data (always true if trait has no filter)	
+	///	@return true if trait definition filter is compatible						
 	bool Trait::HasCorrectData() const {
 		if (!mTraitType)
 			return true;
-
-		auto filter = mTraitType->GetDataMeta();
-		return InterpretsAs(filter);
+		return InterpretsAs(mTraitType->mDataType);
 	}
 
 	/// Compare traits																			
@@ -146,8 +115,8 @@ namespace Langulus::Anyness
 	/// Compare trait type																		
 	///	@param other - the trait ID to compare with									
 	///	@return true if same																	
-	bool Trait::operator == (const TraitID& other) const noexcept {
-		return (!other && !mTraitType) || (mTraitType && mTraitType->GetID() == other);
+	bool Trait::operator == (TMeta other) const noexcept {
+		return TraitIs(other);
 	}
 
 	/// Reset the trait																			
@@ -159,7 +128,7 @@ namespace Langulus::Anyness
 	/// Move operator																				
 	///	@param other - the trait to move													
 	Trait& Trait::operator = (Trait&& other) noexcept {
-		Any::operator = (pcForward<Any>(other));
+		Any::operator = (Forward<Any>(other));
 		mTraitType = other.mTraitType;
 		other.mTraitType = nullptr;
 		return *this;
@@ -183,7 +152,7 @@ namespace Langulus::Anyness
 	/// Move copy operator for block only, leaving trait unchanged					
 	///	@param other - the block to move													
 	Trait& Trait::operator = (Block&& other) noexcept {
-		Any::operator = (pcForward<Block>(other));
+		Any::operator = (Forward<Block>(other));
 		return *this;
 	}
 

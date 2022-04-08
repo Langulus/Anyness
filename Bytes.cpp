@@ -26,7 +26,7 @@ namespace Langulus::Anyness
 			// We should monopolize the memory to avoid segfaults, in the	
 			// case of the byte container being initialized with temporary	
 			// data																			
-			TakeJurisdiction();
+			TakeAuthority();
 		}
 	}
 
@@ -171,7 +171,7 @@ namespace Langulus::Anyness
 			return *this;
 
 		if (end < mCount) {
-			TakeJurisdiction();
+			TakeAuthority();
 			pcMoveMemory(GetRaw() + end, GetRaw() + start, mCount - removed);
 		}
 

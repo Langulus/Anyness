@@ -1,22 +1,23 @@
 #include "Map.hpp"
+#include "Text.hpp"
 
 namespace Langulus::Anyness
 {
 
 	/// Copy construction																		
 	Map::Map(const Map& copy)
-		: Any{ static_cast<const Any&>(copy) }
-		, mKeys{ copy.mKeys } { }
+		: Any {static_cast<const Any&>(copy)}
+		, mKeys {copy.mKeys} { }
 
 	/// Move construction																		
 	Map::Map(Map&& copy) noexcept
-		: Any{ pcForward<Any>(copy) }
-		, mKeys{ pcMove(copy.mKeys) } { }
+		: Any {Forward<Any>(copy)}
+		, mKeys {Move(copy.mKeys)} { }
 
 	/// Manual construction of a constant container										
 	Map::Map(const Block& keys, const Block& values)
-		: Any{ values }
-		, mKeys{ keys } { }
+		: Any {values}
+		, mKeys {keys} { }
 
 	/// Create a typed map container															
 	Map Map::From(DMeta keyType, DMeta valueType, const DataState& state) noexcept {
@@ -29,9 +30,9 @@ namespace Langulus::Anyness
 	/// Get the map token for serialization and logging								
 	Text Map::GetMapToken(DMeta keytype, DMeta valuetype) {
 		Text name;
-		name += keytype ? keytype->GetToken() : DataID::DefaultToken;
+		name += keytype ? keytype->GetToken() : MetaData::DefaultToken;
 		name += "Mapped";
-		name += valuetype ? valuetype->GetToken() : DataID::DefaultToken;
+		name += valuetype ? valuetype->GetToken() : MetaData::DefaultToken;
 		return name;
 	}
 
@@ -57,17 +58,17 @@ namespace Langulus::Anyness
 
 	/// Copy operator. Doesn't clone data, only references it						
 	/// Never copies if types are not compatible, only clears.						
-	Map& Map::operator = (const ME& anypack) {
+	Map& Map::operator = (const Map& anypack) {
 		Reset();
-		new (this) ME(anypack);
+		new (this) Map {anypack};
 		return *this;
 	}
 
 	/// Copy operator. Doesn't clone data, only references it						
 	/// Never copies if types are not compatible, only clears.						
-	Map& Map::operator = (ME&& anypack) noexcept {
+	Map& Map::operator = (Map&& anypack) noexcept {
 		Reset();
-		new (this) ME(pcForward<ME>(anypack));
+		new (this) Map {Forward<Map>(anypack)};
 		return *this;
 	}
 

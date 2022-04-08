@@ -15,28 +15,24 @@ namespace Langulus::Anyness
 		Text(const Text&);
 		Text(Text&&) noexcept = default;
 
-		Text(const char8_t*, Count);
-		Text(const char16_t*, Count);
-		Text(const char32_t*, Count);
-
-		explicit Text(const char8_t&);
-		explicit Text(const char16_t&);
-		explicit Text(const char32_t&);
-
 		explicit Text(const Token&);
 		explicit Text(const Byte&);
 		explicit Text(const Exception&);
 		explicit Text(const Index&);
 		explicit Text(const Meta&);
 
-		template<LiterallyNamed T>
-		explicit Text(const T&) requires Dense<T>;
-		template<Number T>
-		explicit Text(const T&) requires Dense<T>;
-		template<class T>
-		Text(const T*) requires Dense<T>;
-		template<pcptr S>
-		Text(const std::array<char, S>&);
+		template<Dense T>
+		explicit Text(const T&) requires Character<T>;
+		template<Dense T>
+		explicit Text(const T*) requires Character<T>;
+		template<Dense T>
+		explicit Text(const T*, Count) requires Character<T>;
+		template<Dense T>
+		explicit Text(const T&) requires Number<T>;
+		template<Dense T>
+		explicit Text(const T&) requires StaticallyConvertible<T, Text>;
+		template<Dense T>
+		explicit Text(const T*) requires StaticallyConvertible<T, Text>;
 
 		~Text();
 
@@ -50,27 +46,22 @@ namespace Langulus::Anyness
 		Text& Remove(Offset, Count);
 		void Clear() noexcept;
 		void Reset();
-
 		Text Extend(Count);
 
 		NOD() constexpr operator Token () const noexcept;
 
-		NOD() static Text FromCodepoint(pcu32);
-		NOD() TAny<pcu16> Widen16() const;
-		NOD() TAny<pcu32> Widen32() const;
+		NOD() Text Widen16() const;
+		NOD() Text Widen32() const;
+		NOD() Text Widen() const;
 
-		#if WCHAR_MAX > 0xffff
-			NOD() TAny<pcu32> Widen() const;
-		#elif WCHAR_MAX > 0xff
-			NOD() TAny<pcu16> Widen() const;
-		#endif
-
-		NOD() constexpr char* GetRaw() noexcept;
-		NOD() constexpr const char* GetRaw() const noexcept;
+		NOD() char8_t* GetRaw() noexcept;
+		NOD() const char8_t* GetRaw() const noexcept;
+		NOD() char8_t* GetRawEnd() noexcept;
+		NOD() const char8_t* GetRawEnd() const noexcept;
 
 		Hash GetHash() const;
 
-		NOD() pcptr GetLineCount() const noexcept;
+		NOD() Count GetLineCount() const noexcept;
 
 		Text& operator = (const Text&);
 		Text& operator = (Text&&) noexcept;
@@ -85,7 +76,7 @@ namespace Langulus::Anyness
 		Count Matches(const Text&) const noexcept;
 		NOD() Count MatchesLoose(const Text&) const noexcept;
 
-		RANGED_FOR_INTEGRATION(Text, char8_t)
+		RANGED_FOR_INTEGRATION(Text, char8_t);
 
 		NOD() bool FindOffset(const Text&, Offset&) const;
 		NOD() bool FindOffsetReverse(const Text&, Offset&) const;

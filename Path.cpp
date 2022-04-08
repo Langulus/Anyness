@@ -3,16 +3,6 @@
 namespace Langulus::Anyness
 {
 
-	/// Path from text construction															
-	///	@param other - text container to reference									
-	Path::Path(const Text& other)
-		: Text{ other } {}
-
-	/// Path from text movement																
-	///	@param other - text container to move											
-	Path::Path(Text&& other) noexcept
-		: Text{ pcForward<Text>(other) } {}
-
 	/// Clone the path, preserving type														
 	///	@return the cloned path																
 	Path Path::Clone() const {

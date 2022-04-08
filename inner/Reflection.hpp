@@ -288,12 +288,46 @@ namespace Langulus::Anyness
 
 		void MakeAbstract() noexcept;
 
-		/// Get the size of the reflected type												
-		///	@attention returns zero if type is abstract								
-		///	@return the size of the type in bytes										
-		constexpr auto& GetStride() const noexcept {
-			return mSize;
-		}
+		constexpr auto& GetStride() const noexcept;
+
+		NOD() bool GetBase(DMeta, Offset, Base&) const;
+		template<ReflectedData T>
+		NOD() bool GetBase(Offset, Base&) const;
+
+		NOD() bool HasBase(DMeta) const;
+		template<ReflectedData T>
+		NOD() bool HasBase() const;
+
+		NOD() bool IsChildOf(DMeta) const;
+		template<ReflectedData T>
+		NOD() bool IsChildOf() const;
+
+		NOD() bool IsAbleTo(VMeta) const;
+		template<ReflectedVerb T>
+		NOD() bool IsAbleTo() const;
+
+		NOD() bool InterpretsAs(DMeta) const;
+		template<ReflectedData T>
+		NOD() bool InterpretsAs() const;
+
+		NOD() bool InterpretsAs(DMeta, Count) const;
+		template<ReflectedData T>
+		NOD() bool InterpretsAs(Count) const;
+
+		NOD() bool IsRelatedTo(DMeta) const;
+		template<ReflectedData T>
+		NOD() bool IsRelatedTo() const;
+
+		NOD() Count GetDistanceTo(DMeta) const;
+		template<ReflectedData T>
+		NOD() Count GetDistanceTo() const;
+
+		NOD() bool Is(DMeta) const;
+		template<ReflectedData T>
+		NOD() bool Is() const;
+
+		NOD() bool operator == (const MetaData&) const noexcept;
+		NOD() bool operator != (const MetaData&) const noexcept;
 	};
 
 

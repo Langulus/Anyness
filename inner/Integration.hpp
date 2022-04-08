@@ -50,7 +50,7 @@
 		using Hash = ::std::size_t;
 		template<class T>
 		using TFunctor = ::std::function<T>;
-		using Token = ::std::basic_string_view<char>;
+		using Token = ::std::basic_string_view<char8_t>;
 		using Pointer = ::std::uintptr_t;
 
 
@@ -112,6 +112,44 @@
 			{ t < u } -> Boolean;
 			{ t > u } -> Boolean;
 		};
+
+		/// Character concept																	
+		template<class T>
+		concept Character = Same<T, char8_t> || Same<T, char16_t> || Same<T, char32_t> || Same<T, wchar_t>;
+
+		/// Integer number concept (either sparse or dense)							
+		/// Excludes boolean types																
+		template<class... T>
+		concept Integer = (... && (::std::is_integral_v<Decay<T>> && !Boolean<T> && !Character<T>));
+
+		/// Real number concept (either sparse or dense)								
+		template<class... T>
+		concept Real = (... && (::std::is_floating_point_v<Decay<T>>));
+
+		/// Built-in number concept (either sparse or dense)							
+		template<class T>
+		concept BuiltinNumber = Integer<T> || Real<T>;
+
+		/// Number concept (either sparse or dense)										
+		template<class T>
+		concept Number = BuiltinNumber<T>;
+
+		/// Check if type is signed (either sparse or dense)							
+		/// Doesn't apply to only number, but anything where T(-1) < T(0)			
+		template<class T>
+		concept Signed = ::std::is_signed_v<Decay<T>>;
+
+		/// Check if type is unsigned (either sparse or dense)						
+		template<class T>
+		concept Unsigned = !Signed<T>;
+
+		/// Check if type is statically convertible to another						
+		/// Types are not decayed and are as provided to preserve operators		
+		/// Concept apply if you have an explicit/implicit cast operator 			
+		/// `FROM::operator TO() const`, or if you have explicit/implicit			
+		/// constructor TO::TO(const FROM&)													
+		template<class FROM, class TO>
+		concept StaticallyConvertible = ::std::convertible_to<FROM, TO>;
 
 	} // namespace Langulus
 

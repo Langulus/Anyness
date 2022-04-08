@@ -43,6 +43,12 @@ namespace Langulus::Anyness
 	};
 	
 	/// Data can have a temporal phase														
+	/// Temporal data phases are used extensively by Langulus, but not at all	
+	/// in standalone use. Either way - overhead is literally two bits, so		
+	/// I've not taken the initiative to remove them - use them as you wish		
+	/// Two bits for free! Free bits, yo! Check Block::GetState() and				
+	/// DataState::Phased and DataState::Future for the aforementioned 2 bits	
+	/// Remember, these are free only if you're using Anyness as standalone		
 	enum class Phase : int {
 		Past = -1,
 		Now = 0,
@@ -65,15 +71,16 @@ namespace Langulus::Anyness
 			LANGULUS(DEEP);
 
 		protected:
-			// The raw pointer to the first element inside the memory block
 			#if LANGULUS_DEBUG()
 				union { 
 					char* mRawChar;
+					// Raw pointer to first element inside the memory block	
 					Byte* mRaw {};
 					Byte** mRawSparse;
 				};
 			#else
 				union {
+					// Raw pointer to first element inside the memory block	
 					Byte* mRaw {};
 					Byte** mRawSparse;
 				}
@@ -109,7 +116,7 @@ namespace Langulus::Anyness
 			constexpr Block& operator = (const Block&) noexcept;
 			Block& operator = (Block&&) noexcept;
 			
-			Block& TakeJurisdiction();
+			Block& TakeAuthority();
 			void Optimize();
 	
 		public:
@@ -252,8 +259,8 @@ namespace Langulus::Anyness
 	
 			/// This function declaration is used to decompose a lambda				
 			/// You can use it to extract the argument type of the lambda, using	
-			/// decltype on the return type. Useful for template deduction in the
-			/// ForEach functions above, purely for convenience						
+			/// decltype on the return type. Useful for template deduction in		
+			/// the ForEach functions above, purely for convenience					
 			template<typename RETURN, typename FUNCTION, typename ARGUMENT>
 			ARGUMENT GetLambdaArgument(RETURN(FUNCTION::*)(ARGUMENT) const) const;
 	
@@ -460,15 +467,15 @@ namespace Langulus::Anyness
 		/// range-for-statements like for (auto& item : array)						
 		/// In addition, a Reverse() function is added for reverse iteration		
 		#define RANGED_FOR_INTEGRATION(containerType, iteratorType) \
-			NOD() constexpr iteratorType* begin() noexcept { return GetRaw(); } \
-			NOD() constexpr iteratorType* end() noexcept { return GetRawEnd(); } \
-			NOD() constexpr iteratorType& last() noexcept { return *(GetRawEnd() - 1); } \
-			NOD() constexpr const iteratorType* begin() const noexcept { return GetRaw(); } \
-			NOD() constexpr const iteratorType* end() const noexcept { return GetRawEnd(); } \
-			NOD() constexpr const iteratorType& last() const noexcept { return *(GetRawEnd() - 1); } \
-			NOD() constexpr auto& size() const noexcept { return GetCount(); } \
-			NOD() constexpr Inner::TReverse<const containerType, iteratorType> Reverse() const noexcept { return {*this}; } \
-			NOD() constexpr Inner::TReverse<containerType, iteratorType> Reverse() noexcept { return {*this}; }
+			NOD() inline iteratorType* begin() noexcept { return GetRaw(); } \
+			NOD() inline iteratorType* end() noexcept { return GetRawEnd(); } \
+			NOD() inline iteratorType& last() noexcept { return *(GetRawEnd() - 1); } \
+			NOD() inline const iteratorType* begin() const noexcept { return GetRaw(); } \
+			NOD() inline const iteratorType* end() const noexcept { return GetRawEnd(); } \
+			NOD() inline const iteratorType& last() const noexcept { return *(GetRawEnd() - 1); } \
+			NOD() inline auto& size() const noexcept { return GetCount(); } \
+			NOD() inline Inner::TReverse<const containerType, iteratorType> Reverse() const noexcept { return {*this}; } \
+			NOD() inline Inner::TReverse<containerType, iteratorType> Reverse() noexcept { return {*this}; }
 
 
 		///																							
@@ -477,7 +484,7 @@ namespace Langulus::Anyness
 		template<class T, class E>
 		class TReverse {
 		private:
-			using ITERATOR = std::conditional_t<::std::is_const_v<T>, const E*, E*>;
+			using ITERATOR = ::std::conditional_t<::std::is_const_v<T>, const E*, E*>;
 		public:
 			TReverse() = delete;
 			TReverse(const TReverse&) = delete;

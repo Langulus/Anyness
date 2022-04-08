@@ -1,4 +1,5 @@
 #include "Block.hpp"
+#include "../Any.hpp"
 
 #define PC_VERBOSE_DECAY_ERRORS(a) //pcLogFuncError << a
 #define PC_VERBOSE_HASHING(a) //pcLogSpecial << a
@@ -226,14 +227,22 @@ namespace Langulus::Anyness::Inner
 	/// Reallocates the same memory inside our memory manager						
 	/// If we have jurisdiction, the memory won't move									
 	///	@return a reference to this byte sequence										
-	Block& Block::TakeJurisdiction() {
-		if (mRaw && mType && mReserved)
-			mRaw = PCMEMORY.Reallocate(mType, mRaw, mReserved, mReserved);
+	Block& Block::TakeAuthority() {
+		if (mRaw && mType && mReserved) {
+			auto newRaw = PCMEMORY.Reallocate(mType, mRaw, mReserved, mReserved);
+			if (newRaw != mRaw) {
+				// Memory moved, which means data is transfered to MMS,		
+				// so it's about time to remove the static state				
+				mState.mState &= ~DataState::Static;
+			}
+		}
+
 		return *this;
 	}
 
-	/// Get the number of references for the memory block								
-	///	@return the references for the block (always returns 1 if not owned)	
+	/// Get the number of references for the allocated memory block				
+	///	@attention always returns 1 if memory is outside authority				
+	///	@return the references for the memory block									
 	RefCount Block::GetBlockReferences() const {
 		return PCMEMORY.GetReferences(mType, mRaw);
 	}
@@ -488,12 +497,6 @@ namespace Langulus::Anyness::Inner
 		return cumulativeHash;
 	}
 
-	/// Get the data ID																			
-	///	@return the data id																	
-	DMeta Block::GetType() const noexcept {
-		return mType;
-	}
-
 	/// Set the data ID - use this only if you really know what you're doing	
 	///	@param type - the type meta to set												
 	///	@param constrain - whether or not to enable type-constraints			
@@ -522,7 +525,7 @@ namespace Langulus::Anyness::Inner
 			// Type is compatible, but only sparse data can mutate freely	
 			// Dense containers can't mutate because their destructors		
 			// might be wrong later														
-			if (mType->IsSparse())
+			if (IsSparse())
 				mType = type;
 			else throw Except::Mutate(Logger::Error()
 				<< "Changing to compatible dense type is disallowed: from " 
@@ -773,7 +776,7 @@ namespace Langulus::Anyness::Inner
 			return;
 		}
 		else if (!mType->mStaticDescriptor.mDefaultConstructor) {
-			throw Except::Construct(pcLogFuncError
+			throw Except::Construct(Logger::Error()
 				<< "Can't default-construct " << mReserved - mCount << " elements of "
 				<< GetToken() << " because no default constructor was reflected");
 		}
@@ -839,7 +842,7 @@ namespace Langulus::Anyness::Inner
 			else {
 				// Call the reflected copy-constructor for each element		
 				if (!mType->mStaticDescriptor.mCopyConstructor) {
-					throw Except::Construct(pcLogFuncError
+					throw Except::Construct(Logger::Error()
 						<< "Can't copy-construct " << source.mCount << " elements of "
 						<< GetToken() << " because no copy constructor was reflected");
 				}
@@ -847,8 +850,7 @@ namespace Langulus::Anyness::Inner
 				auto pointers = source.GetPointers();
 				for (Count i = 0; i < mReserved; ++i) {
 					auto element = GetElement(i);
-					mType->mStaticDescriptor
-						.mCopyConstructor(element.mRaw, pointers[i]);
+					mType->mStaticDescriptor.mCopyConstructor(element.mRaw, pointers[i]);
 				}
 			}
 		}
@@ -867,7 +869,7 @@ namespace Langulus::Anyness::Inner
 			else {
 				// Call the reflected copy-constructor for each element		
 				if (!mType->mStaticDescriptor.mCopyConstructor) {
-					throw Except::Construct(pcLogFuncError
+					throw Except::Construct(Logger::Error()
 						<< "Can't copy-construct " << source.mCount << " elements of "
 						<< GetToken() << " because no copy constructor was reflected");
 				}
@@ -875,8 +877,7 @@ namespace Langulus::Anyness::Inner
 				for (Count i = 0; i < mReserved; ++i) {
 					auto lhs = GetElement(i);
 					auto rhs = source.GetElement(i);
-					mType->mStaticDescriptor
-						.mCopyConstructor(lhs.mRaw, rhs.mRaw);
+					mType->mStaticDescriptor.mCopyConstructor(lhs.mRaw, rhs.mRaw);
 				}
 			}
 		}
@@ -923,7 +924,7 @@ namespace Langulus::Anyness::Inner
 		else {
 			// Both RHS and LHS must be dense										
 			if (!mType->mStaticDescriptor.mMoveConstructor) {
-				throw Except::Construct(pcLogFuncError
+				throw Except::Construct(Logger::Error()
 					<< "Can't move-construct " << source.mCount << " elements of "
 					<< GetToken() << " because no move constructor was reflected");
 			}
@@ -972,7 +973,7 @@ namespace Langulus::Anyness::Inner
 			// Destroy every dense element, one by one, using the 			
 			// reflected destructors													
 			if (!mType->mStaticDescriptor.mDestructor) {
-				throw Except::Destruct(pcLogFuncError
+				throw Except::Destruct(Logger::Error()
 					<< "Can't destroy " << GetToken()
 					<< " because no destructor was reflected");
 			}
@@ -1017,7 +1018,7 @@ namespace Langulus::Anyness::Inner
 	///	@param count - number of items to remove										
 	///	@return the number of removed elements											
 	Count Block::RemoveIndex(const Index& index, const Count count) {
-		if (index == uiAll) {
+		if (index == Index::All) {
 			const auto oldCount = mCount;
 			Free();
 			ResetInner();
@@ -1038,13 +1039,13 @@ namespace Langulus::Anyness::Inner
 	///	@return the number of removed elements											
 	Count Block::RemoveIndex(const Count starter, const Count count) {
 		SAFETY(if (starter >= mCount)
-			throw Except::Access(pcLogFuncError 
+			throw Except::Access(Logger::Error()
 				<< "Index " << starter << " out of range " << mCount));
 		SAFETY(if (count > mCount || starter + count > mCount)
-			throw Except::Access(pcLogFuncError
+			throw Except::Access(Logger::Error()
 				<< "Index " << starter << " out of range " << mCount));
 		SAFETY(if (GetBlockReferences() > 1)
-			throw Except::Reference(pcLogFuncError
+			throw Except::Reference(Logger::Error()
 				<< "Removing elements from a memory block, that is used from multiple places"));
 
 		if (IsConstant() || IsStatic()) {
@@ -1058,11 +1059,11 @@ namespace Langulus::Anyness::Inner
 			}
 			else {
 				if (IsConstant()) {
-					pcLogFuncError << "Attempting to RemoveIndex in a "
+					Logger::Error() << "Attempting to RemoveIndex in a "
 						"constant container";
 				}
 				if (IsStatic()) {
-					pcLogFuncError << "Attempting to RemoveIndex in a "
+					Logger::Error() << "Attempting to RemoveIndex in a "
 						"static container";
 				}
 				return 0;
@@ -1088,8 +1089,7 @@ namespace Langulus::Anyness::Inner
 			PCMEMORY.Reference(mType, mRaw, -1);
 			mRaw = nullptr;
 			mReserved = 0;
-			mState -= DataState::Static;
-			mState -= DataState::Constant;
+			mState.mState &= ~DataState::Static | DataState::Constant;
 		}
 
 		return removed;
@@ -1146,7 +1146,7 @@ namespace Langulus::Anyness::Inner
 		// Type may mutate																
 		if (Mutate(other.mType)) {
 			// Block was deepened, so emplace a container inside				
-			return Emplace<Memory::Any>(Memory::Any(other), idx);
+			return Emplace<Any>(Any(other), idx);
 		}
 
 		// Allocate the required memory - this will not initialize it		
@@ -1156,7 +1156,7 @@ namespace Langulus::Anyness::Inner
 		// Move memory if required														
 		if (starter < mCount) {
 			SAFETY(if (GetBlockReferences() > 1)
-				throw Except::Reference(pcLogFuncError
+				throw Except::Reference(Logger::Error()
 					<< "Moving elements that are used from multiple places"));
 
 			CropInner(starter + other.mCount, mCount - starter)
@@ -1199,7 +1199,7 @@ namespace Langulus::Anyness::Inner
 
 		if (region.IsAllocated()) {
 			// Call move-constructors in the new region							
-			region.CallMoveConstructors(pcForward<Block>(other));
+			region.CallMoveConstructors(Forward<Block>(other));
 			mCount += region.mReserved;
 			return region.mReserved;
 		}
@@ -1215,7 +1215,7 @@ namespace Langulus::Anyness::Inner
 		Count inserted = 0;
 		for (Count i = 0; i < other.GetCount(); ++i) {
 			auto right = other.GetElementResolved(i);
-			if (uiNone == FindRTTI(right))
+			if (!FindRTTI(right))
 				inserted += InsertBlock(right, idx);
 		}
 
@@ -1232,7 +1232,7 @@ namespace Langulus::Anyness::Inner
 		Count count = 0;
 		if (input.IsDeep() && !output.IsDeep()) {
 			// Iterate all subpacks														
-			if (direction == uiFront) {
+			if (direction == Index::Front) {
 				for (Count i = 0; i < input.GetCount(); ++i) {
 					count += GatherInner(input.As<Block>(i), output, direction);
 				}
@@ -1273,26 +1273,26 @@ namespace Langulus::Anyness::Inner
 	///	@param direction - the direction to search from								
 	///	@param polarity - polarity filter												
 	///	@return the number of gathered elements										
-	Count GatherPolarInner(DMeta target_type, const Block& input, Block& output, const Index direction, Block::Polarity polarity) {
-		if (input.GetPolarity() != polarity) {
-			if (input.GetPolarity() == Block::Now && input.IsDeep()) {
+	Count GatherPolarInner(DMeta target_type, const Block& input, Block& output, const Index direction, Phase phase) {
+		if (input.GetPhase() != phase) {
+			if (input.GetPhase() == Phase::Now && input.IsDeep()) {
 				// Polarities don't match, but we can dig deeper if deep		
 				// and neutral, since neutral polarity is permissive			
-				auto localOutput = Memory::Any::From(target_type, input.GetUnconstrainedState());
-				if (direction == uiFront) {
+				auto localOutput = Any::From(target_type, input.GetUnconstrainedState());
+				if (direction == Index::Front) {
 					for (Count i = 0; i < input.GetCount(); ++i) {
 						GatherPolarInner(target_type, input.As<Block>(i), 
-							localOutput, direction, polarity);
+							localOutput, direction, phase);
 					}
 				}
 				else {
 					for (Count i = input.GetCount(); i > 0; --i) {
 						GatherPolarInner(target_type, input.As<Block>(i - 1), 
-							localOutput, direction, polarity);
+							localOutput, direction, phase);
 					}
 				}
 
-				localOutput.SetPolarity(Block::Now);
+				localOutput.SetPhase(Phase::Now);
 				return output.SmartPush(localOutput);
 			}
 
@@ -1303,21 +1303,21 @@ namespace Langulus::Anyness::Inner
 		// Input is flat and neutral/same											
 		if (!target_type) {
 			// Output is any, so no need to iterate								
-			return output.SmartPush(Memory::Any{ input });
+			return output.SmartPush(Any {input});
 		}
 
 		// Iterate subpacks if any														
-		auto localOutput = Memory::Any::From(target_type, input.GetState());
+		auto localOutput = Any::From(target_type, input.GetState());
 		GatherInner(input, localOutput, direction);
-		localOutput.SetPolarity(Block::Now);
+		localOutput.SetPhase(Phase::Now);
 		return output.InsertBlock(localOutput);
 	}
 
 	/// Gather items from this container based on polarity. Output type			
 	/// matters - it decides what you'll gather. Preserves hierarchy only if	
 	/// output is deep																			
-	Count Block::Gather(Block& output, Polarity polarity, const Index direction) const {
-		return GatherPolarInner(output.GetMeta(), *this, output, direction, polarity);
+	Count Block::Gather(Block& output, Phase phase, const Index direction) const {
+		return GatherPolarInner(output.GetType(), *this, output, direction, phase);
 	}
 
 	/// Flattens unnecessarily deep containers and combines their states			
@@ -1338,9 +1338,9 @@ namespace Langulus::Anyness::Inner
 				return;
 			}
 
-			Block temporary { pcMove(subPack) };
+			Block temporary {Move(subPack)};
 			Free();
-			*this = pcMove(temporary);
+			*this = Move(temporary);
 		}
 
 		if (GetCount() > 1 && IsDeep()) {

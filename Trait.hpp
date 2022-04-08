@@ -11,7 +11,6 @@ namespace Langulus::Anyness
 	///																								
 	class Trait : public Any {
 	protected:
-		// The trait tag																	
 		TMeta mTraitType {};
 
 	public:
