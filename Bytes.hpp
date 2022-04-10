@@ -14,22 +14,17 @@ namespace Langulus::Anyness
 		Bytes();
 		Bytes(const Bytes&);
 		Bytes(Bytes&&) noexcept = default;
-
-		Bytes(const Byte*, Count);
-
-		template<Dense T>
-		explicit Bytes(const T&) requires (pcIsPOD<T> || pcHasBase<T, InternalID>);
-
+		Bytes(const Byte*, const Count&);
 		~Bytes();
 
 	public:
 		NOD() Bytes Clone() const;
-		NOD() Bytes Crop(Offset, Count) const;
-		Bytes& Remove(Offset, Count);
-		void Null(Count);
+		NOD() Bytes Crop(const Offset&, const Count&) const;
+		Bytes& Remove(const Offset&, const Count&);
+		void Null(const Count&);
 		void Clear() noexcept;
 		void Reset();
-		Bytes Extend(Count);
+		Bytes Extend(const Count&);
 		Hash GetHash() const;
 
 		Bytes& operator = (const Bytes&);
@@ -38,8 +33,10 @@ namespace Langulus::Anyness
 		bool operator == (const Bytes&) const noexcept;
 		bool operator != (const Bytes&) const noexcept;
 
-		NOD() const Byte& operator[] (Index) const;
-		NOD() Byte& operator[] (Index);
+		NOD() const Byte& operator[] (const Offset&) const;
+		NOD() Byte& operator[] (const Offset&);
+		NOD() const Byte& operator[] (const Index&) const;
+		NOD() Byte& operator[] (const Index&);
 
 		Count Matches(const Bytes&) const noexcept;
 

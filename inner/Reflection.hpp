@@ -3,6 +3,7 @@
 #include "Integration.hpp"
 
 #define LANGULUS_DEEP() public: static constexpr bool CTTI_Deep = true
+#define LANGULUS_POD() public: static constexpr bool CTTI_POD = true
 
 namespace Langulus::Flow
 {
@@ -18,12 +19,12 @@ namespace Langulus::Anyness
 	/// This field is automatically added when using LANGULUS(REFLECT) macro	
 	/// inside the type you want to reflect												
 	template<class T>
-	concept Reflected = requires { Decay<T>::Reflection; };
+	concept ExplicitlyReflected = requires { Decay<T>::Reflection; };
 	
 	/// A reflected data type is any type that is not void, and is either		
 	/// manually reflected, or an implicitly reflected fundamental type			
 	template<class T>
-	concept ReflectedData = !::std::is_void_v<Decay<T>> && (Reflected<T> || ::std::is_fundamental_v<Decay<T>>);
+	concept ReflectedData = !::std::is_void_v<Decay<T>>;
 
 	/// A reflected verb type is any type that inherits Verb							
 	template<class T>
@@ -33,13 +34,22 @@ namespace Langulus::Anyness
 	template<class T>
 	concept ReflectedTrait = ::std::is_base_of_v<Trait, T>;
 
-	
-	/// A deep type is any type with a static member T::Deep set to true			
+	/// A deep type is any type with a static member T::CTTI_Deep set to true	
 	/// If no such member exists, the type is assumed NOT deep by default		
 	/// Deep types are considered iteratable, and verbs are executed in each	
 	/// of their elements, instead on the container itself							
+	/// Use LANGULUS_DEEP() macro as member to tag deep types						
 	template<class T>
 	concept Deep = Decay<T>::CTTI_Deep == true;
+	
+	/// A POD (Plain Old Data) type is any type with a static member				
+	/// T::CTTI_POD set to true. If no such member exists, the type is assumed	
+	/// NOT POD by default. POD types ignore constructors and destructors when	
+	/// allocating, deallocating, copying, etc. allowing use to use some			
+	/// batching runtime optimizations there												
+	/// Use LANGULUS_POD() macro as member to tag POD types							
+	template<class T>
+	concept POD = Decay<T>::CTTI_POD == true;
 	
 	namespace Inner
 	{
@@ -215,6 +225,7 @@ namespace Langulus::Anyness
 	/// Contains member descriptions, abilities, traits, information				
 	///																								
 	struct MetaData : public Meta {
+		static constexpr Token DefaultToken = u8"udInvalid";
 		// List of reflected members													
 		MemberList mMembers {};
 		// List of reflected abilities												
@@ -288,8 +299,6 @@ namespace Langulus::Anyness
 
 		void MakeAbstract() noexcept;
 
-		constexpr auto& GetStride() const noexcept;
-
 		NOD() bool GetBase(DMeta, Offset, Base&) const;
 		template<ReflectedData T>
 		NOD() bool GetBase(Offset, Base&) const;
@@ -337,7 +346,7 @@ namespace Langulus::Anyness
 	/// A trait definition																		
 	///																								
 	struct MetaTrait : public Meta {
-		// Data filter for the trait													
+		// Data filter for the trait (optional)									
 		DMeta mDataType {};
 
 	public:
@@ -353,6 +362,9 @@ namespace Langulus::Anyness
 	/// A verb definition																		
 	///																								
 	struct MetaVerb : public Meta {
+		// Verbs have antonyms, denoted via this 'negative' token			
+		// For example, 'Destroy' is the reverse of 'Create'					
+		// This is mainly syntax sugar - reverse token just does mass*=-1	
 		Token mTokenReverse;
 
 	public:

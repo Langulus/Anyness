@@ -1,5 +1,7 @@
 #include "Text.hpp"
+#include "TAny.hpp"
 #include <cctype>
+#include <locale>
 
 namespace Langulus::Anyness
 {
@@ -16,12 +18,11 @@ namespace Langulus::Anyness
 		PCMEMORY.Reference(mType, mRaw, 1);
 	}
 
-
 	/// Construct from an exception															
 	///	@param from - the exception to stringify										
 	Text::Text(const Exception& from)
 		: Text { } {
-		(*this) += from.GetExceptionName();
+		(*this) += from.GetName();
 		(*this) += "(";
 		(*this) += from.what();
 		(*this) += ")";
@@ -70,16 +71,16 @@ namespace Langulus::Anyness
 	/// Hash the text																				
 	///	@return a hash of the contained text											
 	Hash Text::GetHash() const {
-		return pcHash(GetRaw(), mCount);
+		return ::std::hash<::std::u8string_view>()({GetRaw(), GetCount()});
 	}
 
 	/// Count the number of newline characters											
 	///	@return the number of newline characters + 1, or zero if empty			
 	NOD() Count Text::GetLineCount() const noexcept {
-		if (mCount == 0)
+		if (IsEmpty())
 			return 0;
 
-		Count lines = 1;
+		Count lines {1};
 		for (Count i = 0; i < mCount; ++i) {
 			if ((*this)[i] == '\n')
 				++lines;
@@ -162,7 +163,7 @@ namespace Langulus::Anyness
 	/// Access specific character (unsafe)													
 	///	@param i - index of character														
 	///	@return constant reference to the character									
-	const char& Text::operator[] (const Count i) const {
+	const char8_t& Text::operator[] (const Count i) const {
 		SAFETY(if (i >= mCount)
 			throw Except::Access("Text access index is out of range"));
 		return GetRaw()[i];
@@ -171,7 +172,7 @@ namespace Langulus::Anyness
 	/// Access specific character (unsafe)													
 	///	@param i - index of character														
 	///	@return constant reference to the character									
-	char& Text::operator[] (const Count i) {
+	char8_t& Text::operator[] (const Count i) {
 		SAFETY(if (i >= mCount)
 			throw Except::Access("Text access index is out of range"));
 		return GetRaw()[i];
@@ -179,15 +180,15 @@ namespace Langulus::Anyness
 
 	/// Widen the text container to the utf16												
 	///	@return the widened text container												
-	Text Text::Widen16() const {
+	TAny<char16_t> Text::Widen16() const {
 		if (IsEmpty())
 			return {};
 
-		TAny<pcu16> to;
+		TAny<char16_t> to;
 		to.Allocate(mCount);
 		Count newCount = 0;
 		try {
-			newCount = (P2N(utf8::utf8to16(begin(), end(), to.begin())) - P2N(to.begin())) / 2;
+			newCount = utf8::utf8to16(begin(), end(), to.begin()) - to.begin();
 		}
 		catch (utf8::exception&) {
 			throw Except::Convert("utf8 -> utf16 conversion error");
@@ -198,15 +199,15 @@ namespace Langulus::Anyness
 
 	/// Widen the text container to the utf32												
 	///	@return the widened text container												
-	Text Text::Widen32() const {
+	TAny<char32_t> Text::Widen32() const {
 		if (IsEmpty())
 			return {};
 
-		TAny<pcu32> to;
+		TAny<char32_t> to;
 		to.Allocate(mCount);
 		Count newCount = 0;
 		try {
-			newCount = (P2N(utf8::utf8to32(begin(), end(), to.begin())) - P2N(to.begin())) / 4;
+			newCount = utf8::utf8to32(begin(), end(), to.begin()) - to.begin();
 		}
 		catch (utf8::exception&) {
 			throw Except::Convert("utf8 -> utf16 conversion error");
@@ -214,19 +215,6 @@ namespace Langulus::Anyness
 
 		return to.Trim(newCount);
 	}
-
-	/// Widen the text container to the default wchar_t								
-	#if WCHAR_MAX > 0xffff
-		Text Text::Widen() const {
-			return Widen32();
-		}
-	#elif WCHAR_MAX > 0xff
-		Text Text::Widen() const {
-			return Widen16();
-		}
-	#else
-		#error "Your compiler doesn't support text widening"
-	#endif
 
 	/// Clone the text container																
 	///	@return a new container that owns its memory									
@@ -262,7 +250,7 @@ namespace Langulus::Anyness
 	Text Text::Lowercase() const {
 		Text result = Clone();
 		for (auto& i : result)
-			i = static_cast<char>(std::tolower(i));
+			i = static_cast<char8_t>(std::tolower(i));
 		return result;
 	}
 
@@ -271,7 +259,7 @@ namespace Langulus::Anyness
 	Text Text::Uppercase() const {
 		Text result = Clone();
 		for (auto& i : result)
-			i = static_cast<char>(std::toupper(i));
+			i = static_cast<char8_t>(std::toupper(i));
 		return result;
 	}
 
@@ -323,13 +311,13 @@ namespace Langulus::Anyness
 	///	@param pattern - the pattern with the wildcards								
 	///	@return true on first match														
 	bool Text::FindWild(const Text& pattern) const {
-		Count scan_offset = 0;
+		Count scan_offset {};
 		for (Count i = 0; i < pattern.mCount; ++i) {
 			if (pattern[i] == '*')
 				continue;
 
 			// Get every substring between *s										
-			Count accum = 0;
+			Count accum {};
 			while (i + accum < pattern.mCount && pattern[i + accum] != '*')
 				++accum;
 
@@ -359,9 +347,9 @@ namespace Langulus::Anyness
 	/// Remove all instances of a symbol from the text container					
 	///	@param symbol - the character to remove										
 	///	@return a new container with the text stripped								
-	Text Text::Strip(char symbol) const {
+	Text Text::Strip(char8_t symbol) const {
 		Text result;
-		Count start = 0, end = 0;
+		Count start {}, end {};
 		for (Count i = 0; i <= mCount; ++i) {
 			if (i == mCount || (*this)[i] == symbol) {
 				const auto size = end - start;

@@ -38,6 +38,18 @@ namespace Langulus::Anyness
 		return mIndex >= c ? None : mIndex;
 	}
 
+	/// Get an unsigned offset from the index, if possible							
+	/// Throws Except::Access if not possible to extract index						
+	///	@return a valid offset																
+	constexpr Offset Index::GetOffset() const {
+		if (IsSpecial()) {
+			throw Except::Access(Logger::Error()
+				<< "Can't reference special index");
+		}
+
+		return static_cast<Offset>(mIndex);
+	}
+
 	/// Constrain the index to some count (destructive)								
 	///	@param count - the count to constrain to										
 	constexpr void Index::Constrain(const Count count) noexcept {

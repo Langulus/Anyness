@@ -121,22 +121,23 @@ namespace Langulus::Anyness
 
 	/// Destroy all elements, but retain allocated memory if possible				
 	void Any::Clear() {
-		if (mCount) {
-			if (GetBlockReferences() == 1) {
-				// Only one use - just destroy elements and reset count,		
-				// reusing the allocation for later									
-				Block::CallDestructors();
-				Block::ClearInner();
-			}
-			else {
-				// We're forced to reset the memory, because it's in use		
-				// Keep the type and state, though									
-				const auto state = GetUnconstrainedState();
-				const auto meta = mType;
-				Reset();
-				mType = meta;
-				mState.mState |= state.mState;
-			}
+		if (IsEmpty())
+			return;
+
+		if (GetBlockReferences() == 1) {
+			// Only one use - just destroy elements and reset count,			
+			// reusing the allocation for later										
+			Block::CallDestructors();
+			Block::ClearInner();
+		}
+		else {
+			// We're forced to reset the memory, because it's in use			
+			// Keep the type and state, though										
+			const auto state = GetUnconstrainedState();
+			const auto meta = mType;
+			Reset();
+			mType = meta;
+			mState.mState |= state.mState;
 		}
 	}
 
@@ -156,7 +157,7 @@ namespace Langulus::Anyness
 	///	@param start - starting element index											
 	///	@param count - number of elements												
 	///	@return the block																		
-	Any Any::Crop(Count start, Count count) const {
+	Any Any::Crop(const Offset& start, const Count& count) const {
 		return Any {Block::Crop(start, count)};
 	}
 
@@ -204,15 +205,15 @@ namespace Langulus::Anyness
 
 	/// Make memory block left-polar															
 	///	@return reference to itself														
-	Any& Any::MakeLeft() {
-		Block::MakeLeft();
+	Any& Any::MakePast() {
+		Block::MakePast();
 		return *this;
 	}
 
 	/// Make memory block right-polar														
 	///	@return reference to itself														
-	Any& Any::MakeRight() {
-		Block::MakeRight();
+	Any& Any::MakeFuture() {
+		Block::MakeFuture();
 		return *this;
 	}
 

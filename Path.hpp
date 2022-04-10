@@ -5,7 +5,7 @@ namespace Langulus::Anyness
 {
 
 	///																								
-	///	FILENAME CONTAINER																	
+	///	File path container																	
 	///																								
 	class Path : public Text {
 	public:

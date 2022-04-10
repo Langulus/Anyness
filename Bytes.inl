@@ -4,44 +4,6 @@
 namespace Langulus::Anyness
 {
 
-	/// Construct from anything dense														
-	///	@param value - the id to serialize												
-	template<Dense T>
-	Bytes::Bytes(const T& value) requires (pcIsPOD<T> || pcHasBase<T, InternalID>)
-		: Bytes {} {
-		if constexpr (pcHasBase<T, InternalID>) {
-			if (!value) {
-				(*this) += pcptr(0);
-				return;
-			}
-
-			// Serializing internals to binary needs special care				
-			Bytes result;
-			#if LANGULUS_RTTI_IS(NAMED)
-				const auto meta = value.GetMeta();
-				const auto count = meta->GetToken().GetCount();
-				result.Allocate(sizeof(count) + count);
-				result += count;
-				result += Bytes{meta->GetToken().GetRaw(), count};
-			#elif LANGULUS_RTTI_IS(HASHED)
-				result += Bytes{&value, sizeof(InternalID)};
-			#else
-				#error RTTI tactic not implemented
-			#endif
-
-			(*this) += result;
-		}
-		else if constexpr (Boolean<T>) {
-			// Make sure booleans are always a single byte, either 1 or 0	
-			const uchar byte { value ? 1 : 0 };
-			(*this) += Bytes{ &byte, sizeof(uchar) };
-		}
-		else {
-			// POD types are easily represented as bytes							
-			(*this) += Bytes{ &value, sizeof(T) };
-		}
-	}
-
 	/// Concatenate bytes with bytes															
 	inline Bytes operator + (const Bytes& lhs, const Bytes& rhs) {
 		Bytes result;

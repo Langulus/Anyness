@@ -68,8 +68,8 @@ namespace Langulus::Anyness
 		Any& MakeTypeConstrained();
 		Any& MakeOr();
 		Any& MakeAnd();
-		Any& MakeLeft();
-		Any& MakeRight();
+		Any& MakePast();
+		Any& MakeFuture();
 
 		void Clear();
 		void Reset();
@@ -78,7 +78,7 @@ namespace Langulus::Anyness
 		using Block::Swap;
 		void Swap(Any&) noexcept;
 
-		NOD() Any Crop(Offset, Count) const;
+		NOD() Any Crop(const Offset&, const Count&) const;
 	};
 
 } // namespace Langulus::Anyness

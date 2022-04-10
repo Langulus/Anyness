@@ -30,9 +30,9 @@ namespace Langulus::Anyness
 	/// Get the map token for serialization and logging								
 	Text Map::GetMapToken(DMeta keytype, DMeta valuetype) {
 		Text name;
-		name += keytype ? keytype->GetToken() : MetaData::DefaultToken;
+		name += keytype ? keytype->mToken : MetaData::DefaultToken;
 		name += "Mapped";
-		name += valuetype ? valuetype->GetToken() : MetaData::DefaultToken;
+		name += valuetype ? valuetype->mToken : MetaData::DefaultToken;
 		return name;
 	}
 

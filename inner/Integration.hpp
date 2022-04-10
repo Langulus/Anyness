@@ -21,7 +21,8 @@
 	
 	#define NOD() [[nodiscard]]
 	#define LANGULUS_SAFE() LANGULUS_ENABLED()
-	
+	#define LANGULUS_PARANOID() LANGULUS_DISABLED()
+
 	#if defined(DEBUG) || !defined(NDEBUG) || defined(_DEBUG) || defined(CB_DEBUG) || defined(QT_QML_DEBUG)
 		#define LANGULUS_DEBUG() LANGULUS_ENABLED()
 		#define DEBUGGERY(a) a
@@ -35,6 +36,11 @@
 	#else
 		#define SAFETY(a)
 	#endif
+
+	/// Trigger a static assert (without condition)										
+	/// This form is required in order of it to work in 'if constexpr - else'	
+	/// https://stackoverflow.com/questions/38304847									
+	#define LANGULUS_ASSERT(text) []<bool flag = false>() { static_assert(flag, "FAILED ASSERTION: " text); }()
 
 	namespace Langulus
 	{
@@ -50,7 +56,7 @@
 		using Hash = ::std::size_t;
 		template<class T>
 		using TFunctor = ::std::function<T>;
-		using Token = ::std::basic_string_view<char8_t>;
+		using Token = ::std::u8string_view;
 		using Pointer = ::std::uintptr_t;
 
 
@@ -105,6 +111,10 @@
 		template<class T>
 		concept Dense = !Sparse<T>;
 
+		/// Get the extent of an array, or 1 if dense, or 0 if sparse				
+		template<class T>
+		constexpr Count ExtentOf = Array<T> ? ::std::extent_v<Deref<T>> : (Dense<T> ? 1 : 0);
+
 		/// Sortable concept																		
 		/// Any class with an adequate <, >, or combined <=> operator				
 		template<class T, class U = T>
@@ -150,6 +160,14 @@
 		/// constructor TO::TO(const FROM&)													
 		template<class FROM, class TO>
 		concept StaticallyConvertible = ::std::convertible_to<FROM, TO>;
+
+		/// Pick between two types, based on a condition								
+		template<bool CONDITION, class TRUETYPE, class FALSETYPE>
+		using Conditional = ::std::conditional_t<CONDITION, TRUETYPE, FALSETYPE>;
+
+		/// Make a type constant reference or constant pointer						
+		template<class T>
+		using MakeConst = Conditional<Dense<T>, const Decay<T>&, const Decay<T>*>;
 
 	} // namespace Langulus
 

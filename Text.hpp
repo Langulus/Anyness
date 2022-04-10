@@ -1,5 +1,5 @@
 #pragma once
-#include "inner/Block.hpp"
+#include "TAny.hpp"
 
 namespace Langulus::Anyness
 {
@@ -15,24 +15,24 @@ namespace Langulus::Anyness
 		Text(const Text&);
 		Text(Text&&) noexcept = default;
 
-		explicit Text(const Token&);
-		explicit Text(const Byte&);
-		explicit Text(const Exception&);
-		explicit Text(const Index&);
-		explicit Text(const Meta&);
+		Text(const Token&);
+		Text(const Byte&);
+		Text(const Exception&);
+		Text(const Index&);
+		Text(const Meta&);
 
 		template<Dense T>
-		explicit Text(const T&) requires Character<T>;
+		Text(const T&) requires Character<T>;
 		template<Dense T>
-		explicit Text(const T*) requires Character<T>;
+		Text(const T*) requires Character<T>;
 		template<Dense T>
-		explicit Text(const T*, Count) requires Character<T>;
+		Text(const T*, Count) requires Character<T>;
 		template<Dense T>
-		explicit Text(const T&) requires Number<T>;
+		Text(const T&) requires Number<T>;
 		template<Dense T>
-		explicit Text(const T&) requires StaticallyConvertible<T, Text>;
+		Text(const T&) requires StaticallyConvertible<T, Text>;
 		template<Dense T>
-		explicit Text(const T*) requires StaticallyConvertible<T, Text>;
+		Text(const T*) requires StaticallyConvertible<T, Text>;
 
 		~Text();
 
@@ -42,7 +42,7 @@ namespace Langulus::Anyness
 		NOD() Text Lowercase() const;
 		NOD() Text Uppercase() const;
 		NOD() Text Crop(Offset, Count) const;
-		NOD() Text Strip(char) const;
+		NOD() Text Strip(char8_t) const;
 		Text& Remove(Offset, Count);
 		void Clear() noexcept;
 		void Reset();
@@ -50,9 +50,8 @@ namespace Langulus::Anyness
 
 		NOD() constexpr operator Token () const noexcept;
 
-		NOD() Text Widen16() const;
-		NOD() Text Widen32() const;
-		NOD() Text Widen() const;
+		NOD() TAny<char16_t> Widen16() const;
+		NOD() TAny<char32_t> Widen32() const;
 
 		NOD() char8_t* GetRaw() noexcept;
 		NOD() const char8_t* GetRaw() const noexcept;
@@ -69,8 +68,8 @@ namespace Langulus::Anyness
 		bool operator == (const Text&) const noexcept;
 		bool operator != (const Text&) const noexcept;
 
-		NOD() const char& operator[] (Offset) const;
-		NOD() char& operator[] (Offset);
+		NOD() const char8_t& operator[] (Offset) const;
+		NOD() char8_t& operator[] (Offset);
 
 		bool CompareLoose(const Text&) const noexcept;
 		Count Matches(const Text&) const noexcept;
@@ -83,8 +82,15 @@ namespace Langulus::Anyness
 		NOD() bool Find(const Text&) const;
 		NOD() bool FindWild(const Text&) const;
 
-		template<class ANYTHING>
-		Text& operator += (const ANYTHING&);
+		template<class T>
+		Text& operator += (const T&);
+
+		template<class T>
+		friend NOD() Text operator + (const T&, const Text&);
+
+		template<class T>
+		NOD() friend Text operator + (const Text&, const T&);
+
 	};
 
 	/// Compile time check for text items													

@@ -64,7 +64,9 @@ namespace Langulus::Anyness
 			Sparse = 512,
 
 			// Data is constrained														
-			Constrained = Static | Constant | Typed
+			Constrained = Static | Constant | Typed,
+			Member = Static | Typed,
+			ConstantMember = Constrained
 		};
 
 		using Type = std::underlying_type_t<Enum>;
@@ -76,6 +78,7 @@ namespace Langulus::Anyness
 		constexpr DataState(const Type& state) noexcept
 			: mState {state} {}
 
+		explicit operator bool() const noexcept { return mState != 0; }
 		constexpr bool operator == (const DataState&) const noexcept = default;
 		constexpr bool operator != (const DataState&) const noexcept = default;
 	};

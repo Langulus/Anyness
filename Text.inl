@@ -29,7 +29,7 @@ namespace Langulus::Anyness
 	}
 
 	/// Construct from a character															
-	///	@param value - the character to stringify										
+	///	@param anyCharacter - the character to stringify							
 	template<Dense T>
 	Text::Text(const T& anyCharacter) requires Character<T>
 		: Text {&anyCharacter, 1} {}
@@ -108,6 +108,9 @@ namespace Langulus::Anyness
 	}
 
 	/// Concatenate text with text															
+	///	@param lhs - left text																
+	///	@param rhs - right text																
+	///	@return a new container with concatenated text								
 	inline Text operator + (const Text& lhs, const Text& rhs) {
 		Text result;
 		result.Allocate(lhs.GetCount() + rhs.GetCount(), false, true);
@@ -117,6 +120,9 @@ namespace Langulus::Anyness
 	}
 
 	/// Concatenate anything but text with text											
+	///	@param lhs - anything convertible to text										
+	///	@param rhs - right text																
+	///	@return a new container with concatenated text								
 	template<class T>
 	Text operator + (const T& lhs, const Text& rhs) requires (!IsText<T>) {
 		Text converted;
@@ -126,6 +132,9 @@ namespace Langulus::Anyness
 	}
 
 	/// Concatenate text with anything but text											
+	///	@param lhs - left text																
+	///	@param rhs - anything convertible to text										
+	///	@return a new container with concatenated text								
 	template<class T>
 	Text operator + (const Text& lhs, const T& rhs) requires (!IsText<T>) {
 		Text converted;

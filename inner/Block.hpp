@@ -100,9 +100,12 @@ namespace Langulus::Anyness
 			constexpr Block(const Block&) noexcept = default;
 			
 			Block(Block&&) noexcept;
+			constexpr Block(DMeta) noexcept;
+			constexpr Block(DMeta, Count, const Byte*) noexcept;
+			constexpr Block(DMeta, Count, Byte*) noexcept;
 			constexpr Block(const DataState&, DMeta) noexcept;
-			constexpr Block(const DataState&, DMeta, Count, const void*) noexcept;
-			constexpr Block(const DataState&, DMeta, Count, void*) noexcept;
+			constexpr Block(const DataState&, DMeta, Count, const Byte*) noexcept;
+			constexpr Block(const DataState&, DMeta, Count, Byte*) noexcept;
 	
 			template<ReflectedData T>
 			NOD() static Block From(T) requires Sparse<T>;
@@ -164,7 +167,7 @@ namespace Langulus::Anyness
 			template<ReflectedData T>
 			NOD() bool IsInsertable() const noexcept;
 	
-			NOD() Block GetToken() const noexcept;
+			NOD() Token GetToken() const noexcept;
 			NOD() Stride GetStride() const noexcept;
 			NOD() Byte* GetRaw() noexcept;
 			NOD() const Byte* GetRaw() const noexcept;
@@ -183,23 +186,23 @@ namespace Langulus::Anyness
 			NOD() bool operator == (const Block&) const noexcept;
 			NOD() bool operator != (const Block&) const noexcept;
 	
-			NOD() Byte* At(Offset = 0);
-			NOD() const Byte* At(Offset = 0) const;
+			NOD() Byte* At(const Offset& = 0);
+			NOD() const Byte* At(const Offset& = 0) const;
 	
 			template<ReflectedData T>
-			NOD() decltype(auto) Get(Offset = 0, Offset = 0);
+			NOD() decltype(auto) Get(const Offset& = 0, const Offset& = 0);
 			template<ReflectedData T>
-			NOD() decltype(auto) Get(Offset = 0, Offset = 0) const;
+			NOD() decltype(auto) Get(const Offset& = 0, const Offset& = 0) const;
 	
 			template<ReflectedData T>
-			NOD() decltype(auto) As(Offset = 0);
+			NOD() decltype(auto) As(const Offset& = 0);
 			template<ReflectedData T>
-			NOD() decltype(auto) As(Offset = 0) const;
+			NOD() decltype(auto) As(const Offset& = 0) const;
 	
 			template<ReflectedData T>
-			NOD() decltype(auto) As(Index);
+			NOD() decltype(auto) As(const Index&);
 			template<ReflectedData T>
-			NOD() decltype(auto) As(Index) const;
+			NOD() decltype(auto) As(const Index&) const;
 	
 			template<ReflectedData T, bool FATAL_FAILURE = true>
 			NOD() T AsCast(Index) const;
@@ -288,13 +291,7 @@ namespace Langulus::Anyness
 			NOD() Block GetBaseMemory(const Base&) const;
 			NOD() Block GetBaseMemory(const Base&);
 	
-			NOD() Block Decay(DMeta) const;
-	
-			template<ReflectedData T>
-			NOD() Block Decay() const;
-	
 			NOD() bool Mutate(DMeta);
-	
 			template<ReflectedData T>
 			NOD() bool Mutate();
 	
@@ -305,8 +302,8 @@ namespace Langulus::Anyness
 			Block& MakeTypeConstrained();
 			Block& MakeOr();
 			Block& MakeAnd();
-			Block& MakeLeft();
-			Block& MakeRight();
+			Block& MakePast();
+			Block& MakeFuture();
 	
 			Count Copy(Block&, bool allocate = false) const;
 			Count Clone(Block&) const;
@@ -359,7 +356,7 @@ namespace Langulus::Anyness
 			Count SmartPush(const T&, DataState = {}
 				, bool attemptConcat = true
 				, bool attemptDeepen = true
-				, Index = uiBack
+				, Index = Index::Back
 			);
 	
 			template<Deep T>

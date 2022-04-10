@@ -55,10 +55,7 @@ namespace Langulus::Anyness
 	/// Get pair at a special index															
 	template<ReflectedData KEY, ReflectedData VALUE>
 	auto Map::GetPair(const Index& index) {
-		const auto idx = mKeys.ConstrainMore<KEY>(index);
-		if (idx.IsSpecial())
-			return {};
-		return GetPair<KEY, VALUE>(static_cast<pcptr>(idx.mIndex));
+		return GetPair<KEY, VALUE>(mKeys.ConstrainMore<KEY>(index).GetOffset());
 	}
 
 	template<ReflectedData KEY, ReflectedData VALUE>
