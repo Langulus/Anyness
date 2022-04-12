@@ -14,28 +14,28 @@ namespace Langulus::Anyness::Inner
 	Count Block::Copy(Block& result, bool allocate) const {
 		// Check if there's anything to copy at all								
 		if (IsEmpty()) {
-			throw Except::Copy(VERBOSE(pcLogFuncError
+			throw Except::Copy(VERBOSE(Logger::Error()
 				<< "Nothing to copy"));
 		}
 
 		// Check if resulting container is allocated and initialized		
 		if (!allocate && result.IsEmpty()) {
-			throw Except::Copy(VERBOSE(pcLogFuncError
+			throw Except::Copy(VERBOSE(Logger::Error()
 				<< "Trying to copy " << GetToken()
 				<< " to an uninitialized memory block " << result.GetToken()));
 		}
 
 		// Check if types are compatible												
-		if (!mType->Is(result.GetDataID())) {
+		if (!mType->Is(result.GetType())) {
 			// Check if result decays to this block's type						
 			Block decayedResult {result.Decay(mType)};
 			if (!decayedResult.IsEmpty() && decayedResult.GetCount() <= GetCount()) {
 				// Attempt copy inside decayed type									
 				return Copy(decayedResult, false);
 			}
-			else if (!mType->InterpretsAs(result.GetMeta())) {
+			else if (!mType->InterpretsAs(result.GetType())) {
 				// Fail if types are totally not compatible						
-				throw Except::Copy(VERBOSE(pcLogFuncError
+				throw Except::Copy(VERBOSE(Logger::Error()
 					<< "Can't copy " << GetToken()
 					<< " to incompatible block of type " << result.GetToken()));
 			}
@@ -44,7 +44,7 @@ namespace Langulus::Anyness::Inner
 		// Check if sizes match															
 		if (mCount != result.mCount) {
 			if (!allocate || !result.IsEmpty()) {
-				throw Except::Copy(VERBOSE(pcLogFuncError
+				throw Except::Copy(VERBOSE(Logger::Error()
 					<< "Trying to copy " << GetToken()
 					<< " differently sized memory block " << result.GetToken()));
 			}
@@ -53,7 +53,7 @@ namespace Langulus::Anyness::Inner
 
 		// Check if memory is the same after checking size						
 		if (mRaw == result.mRaw) {
-			VERBOSE(pcLogFuncVerbose 
+			VERBOSE(Logger::Verbose()
 				<< "Data is already copied (pointers are the same)" 
 				<< ccCyan << " (optimal)"
 			);
@@ -62,38 +62,37 @@ namespace Langulus::Anyness::Inner
 
 		// Check if resulting container is constant								
 		if (result.IsConstant()) {
-			throw Except::Copy(VERBOSE(pcLogFuncError
+			throw Except::Copy(VERBOSE(Logger::Error()
 				<< "Trying to copy " << GetToken()
 				<< " to constant block " << result.GetToken()));
 		}
 
 		// Start copying																	
-		VERBOSE(ScopedTab tab; pcLogFuncVerbose 
+		VERBOSE(ScopedTab tab; Logger::Verbose()
 			<< "Copying " << mCount
 			<< " elements of " << GetToken() << " (" << GetStride()
 			<< " bytes each) to " << result.GetToken() << tab);
 
-		if (mType->IsSparse() && result.mType->IsSparse()) {
+		if (IsSparse() && result.IsSparse()) {
 			// Won't copy anything but pointers										
-			VERBOSE(pcLogFuncVerbose
+			VERBOSE(Logger::Verbose()
 				<< "Sparse -> Sparse referencing copy");
 
 			pcCopyMemory(mRaw, result.mRaw, mCount * sizeof(Count));
 
 			// Cycle all pointers and reference their memories					
-			auto denseMeta = mType->GetDenseMeta();
-			auto from_ptrarray = GetPointers();
+			auto from_ptrarray = GetRawSparse();
 			for (Count i = 0; i < mCount; ++i)
-				PCMEMORY.Reference(denseMeta, from_ptrarray[i], 1);
+				PCMEMORY.Reference(mType, from_ptrarray[i], 1);
 
-			VERBOSE(pcLogFuncVerbose
+			VERBOSE(Logger::Verbose()
 				<< "Copied " << mCount << " pointers"
 				<< ccGreen << " (fast)");
 			return mCount;
 		}
-		else if (mType->IsSparse() && !result.mType->IsSparse()) {
+		else if (IsSparse() && !result.IsSparse()) {
 			// Copy sparse items to a dense container								
-			VERBOSE(pcLogFuncVerbose << "Sparse -> Dense shallow copy");
+			VERBOSE(Logger::Verbose() << "Sparse -> Dense shallow copy");
 
 			if (result.mType->Is<Block>()) {
 				// Blocks don't have keep/free in their reflected copy		
@@ -104,8 +103,8 @@ namespace Langulus::Anyness::Inner
 					Block& to = result.Get<Block>(i);
 
 					// Type may not be compatible after resolve					
-					if (from.mType->GetID() != to.mType->GetID()) {
-						throw Except::Copy(pcLogFuncError
+					if (!from.mType->Is(to.mType)) {
+						throw Except::Copy(Logger::Error()
 							<< "Trying to copy uncompatible types after resolving source: "
 							<< from.GetToken() << " -> " << to.GetToken());
 					}
@@ -116,14 +115,14 @@ namespace Langulus::Anyness::Inner
 					to.Keep();
 				}
 
-				VERBOSE(pcLogFuncVerbose
+				VERBOSE(Logger::Verbose()
 					<< "Copied " << mCount << " blocks"
 					<< ccRed << " (slow)");
 			}
 			else {
 				// Check if a copy operation is available							
-				if (!result.mType->mStaticDescriptor.mCopier) {
-					throw Except::Copy(pcLogFuncError
+				if (!result.mType->mCopier) {
+					throw Except::Copy(Logger::Error()
 						<< "Trying to copy uncopiable " << result.GetToken());
 				}
 
@@ -133,31 +132,31 @@ namespace Langulus::Anyness::Inner
 					auto to = result.GetElement(i);
 
 					// Type may not be compatible after resolve					
-					if (from.mType->GetID() != to.mType->GetID()) {
-						throw Except::Copy(pcLogFuncError
+					if (!from.mType->Is(to.mType)) {
+						throw Except::Copy(Logger::Error()
 							<< "Trying to copy uncompatible types after resolving source: "
 							<< from.GetToken() << " -> " << to.GetToken());
 					}
 
 					// Call copy operator												
-					result.mType->mStaticDescriptor.mCopier(from.mRaw, to.mRaw);
+					result.mType->mCopier(from.mRaw, to.mRaw);
 				}
 
-				VERBOSE(pcLogFuncVerbose
+				VERBOSE(Logger::Verbose()
 					<< "Copied " << mCount << " elements"
 					<< ccRed << " (slow)");
 			}
 
 			return mCount;
 		}
-		else if (!mType->IsSparse() && result.mType->IsSparse()) {
+		else if (!IsSparse() && result.IsSparse()) {
 			// Copy dense items to a sparse container								
-			VERBOSE(pcLogFuncVerbose << "Dense -> Sparse referencing copy");
+			VERBOSE(Logger::Verbose() << "Dense -> Sparse referencing copy");
 
 			// This is dangerous, because original memory might move if		
 			// it's not static															
 			if (!IsStatic()) {
-				pcLogFuncWarning 
+				Logger::Warning()
 					<< "Instantiating dense elements in a sparse container "
 					<< "You're seeing this because source memory was not static, "
 					<< "and undefined behavior awaits if original memory moves even a bit";
@@ -167,23 +166,23 @@ namespace Langulus::Anyness::Inner
 			for (Count i = 0; i < mCount; ++i) {
 				const auto from = GetElement(i);
 				auto to = result.GetElement(i);
-				to.GetPointers()[0] = from.mRaw;
+				to.GetRawSparse()[0] = from.mRaw;
 
 				// Reference each copied pointer!									
 				PCMEMORY.Reference(from.mType, from.mRaw, 1);
 			}
 
-			VERBOSE(pcLogFuncVerbose
+			VERBOSE(Logger::Verbose()
 				<< "Copied " << mCount << " pointers"
 				<< ccGreen << " (fast)");
 			return mCount;
 		}
 
 		// If this is reached, both source and destination are dense		
-		if (result.mType->GetCTTI().mPOD) {
+		if (result.mType->mPOD) {
 			// If data is not complex just do a memcpy and we're done		
 			pcCopyMemory(mRaw, result.mRaw, GetSize());
-			VERBOSE(pcLogFuncVerbose
+			VERBOSE(Logger::Verbose()
 				<< "Copied " << GetSize() << " bytes via memcpy" 
 				<< ccGreen << " (fast copy)");
 			return mCount;
@@ -203,14 +202,14 @@ namespace Langulus::Anyness::Inner
 				to.Keep();
 			}
 
-			VERBOSE(pcLogFuncVerbose
+			VERBOSE(Logger::Verbose()
 				<< "Copied " << mCount << " blocks"
 				<< ccRed << " (slow)");
 		}
 		else {
 			// Check if a copy operation is available								
-			if (!mType->mStaticDescriptor.mCopier) {
-				throw Except::Copy(VERBOSE(pcLogFuncError
+			if (!mType->mCopier) {
+				throw Except::Copy(VERBOSE(Logger::Error()
 					<< "Trying to copy uncopiable " << result.GetToken()));
 			}
 
@@ -220,10 +219,10 @@ namespace Langulus::Anyness::Inner
 				auto to = result.GetElement(i);
 
 				// And call the copy operator											
-				result.mType->mStaticDescriptor.mCopier(from.mRaw, to.mRaw);
+				result.mType->mCopier(from.mRaw, to.mRaw);
 			}
 
-			VERBOSE(pcLogFuncVerbose
+			VERBOSE(Logger::Verbose()
 				<< "Copied " << mCount << " elements" 
 				<< ccRed << " (slow)");
 		}

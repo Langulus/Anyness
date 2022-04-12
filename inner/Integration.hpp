@@ -22,6 +22,7 @@
 	#define NOD() [[nodiscard]]
 	#define LANGULUS_SAFE() LANGULUS_ENABLED()
 	#define LANGULUS_PARANOID() LANGULUS_DISABLED()
+	#define LANGULUS_ALIGN() ::std::size_t{16}
 
 	#if defined(DEBUG) || !defined(NDEBUG) || defined(_DEBUG) || defined(CB_DEBUG) || defined(QT_QML_DEBUG)
 		#define LANGULUS_DEBUG() LANGULUS_ENABLED()

@@ -5,7 +5,7 @@ namespace Langulus::Anyness
 
 	/// Default construction																	
 	Bytes::Bytes()
-		: Block {DataState::Typed, PCMEMORY.GetFallbackMetaByte(), 0, static_cast<void*>(nullptr)} { }
+		: Block {DataState::Typed, PCMEMORY.GetFallbackMetaByte()} { }
 
 	/// Do a shallow copy																		
 	///	@param other - the text to shallow-copy										
@@ -18,7 +18,7 @@ namespace Langulus::Anyness
 	/// Construct manually from byte memory and count									
 	///	@param raw - raw memory to reference											
 	///	@param count - number of bytes inside 'raw'									
-	Bytes::Bytes(const void* raw, const Count& count)
+	Bytes::Bytes(const Byte* raw, const Count& count)
 		: Block {DataState::Constant + DataState::Typed, PCMEMORY.GetFallbackMetaByte(), count, raw} {
 		bool no_jury;
 		PCMEMORY.Reference(mType, mRaw, 1, no_jury);
@@ -26,7 +26,7 @@ namespace Langulus::Anyness
 			// We should monopolize the memory to avoid segfaults, in the	
 			// case of the byte container being initialized with temporary	
 			// data																			
-			TakeAuthority();
+			Block::TakeAuthority();
 		}
 	}
 

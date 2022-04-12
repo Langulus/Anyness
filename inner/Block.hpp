@@ -323,8 +323,8 @@ namespace Langulus::Anyness
 			Stride Compress(Block&, Compression = Compression::Default) const;
 			Stride Decompress(Block&) const;
 	
-			Stride Encrypt(Block&, const Hash*, Count) const;
-			Stride Decrypt(Block&, const Hash*, Count) const;
+			Stride Encrypt(Block&, const Hash*, const Count&) const;
+			Stride Decrypt(Block&, const Hash*, const Count&) const;
 	
 			NOD() Hash GetHash() const;
 	

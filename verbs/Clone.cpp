@@ -14,8 +14,8 @@ namespace Langulus::Anyness::Inner
 	///	@param result - the resulting container										
 	Count Block::Clone(Block& result) const {
 		// Always clone the state, but make it unconstrained					
-		result.SetDataID(mType, false);
-		result.mState += GetUnconstrainedState();
+		result.SetType(mType, false);
+		result.mState.mState |= GetUnconstrainedState().mState;
 
 		if (!IsAllocated()) {
 			// Nothing to actually clone, except the state						
@@ -26,7 +26,7 @@ namespace Langulus::Anyness::Inner
 			<< " elements of type " << GetToken() 
 			<< " (" << GetStride() << " bytes each)");
 
-		if (mType->IsSparse()) {
+		if (IsSparse()) {
 			// Data is sparse - no escape from this scope						
 			if (!result.IsAllocated()) {
 				// Allocate the array of pointers if not allocated yet		
@@ -37,8 +37,8 @@ namespace Langulus::Anyness::Inner
 
 			// Clone data behind each valid pointer								
 			for (Count i = 0; i < mCount; ++i) {
-				auto ptrFrom = GetPointers()[i];
-				auto& ptrTo = result.GetPointers()[i];
+				auto ptrFrom = GetRawSparse()[i];
+				auto& ptrTo = result.GetRawSparse()[i];
 				if (!ptrFrom) {
 					// Pointer points nowhere, so just set to nullptr			
 					ptrTo = nullptr;
@@ -58,12 +58,12 @@ namespace Langulus::Anyness::Inner
 
 		// If this is reached, then data is dense									
 		// Iterate each instance in memory											
-		if (!mType->IsResolvable()) {
+		if (!mType->mResolver) {
 			// Type is not resolvable, so preallocate safely					
 			if (mType->Is<Block>()) {
 				TODO();
 			}
-			else if (mType->mStaticDescriptor.mCloneInUninitilizedMemory) {
+			else if (mType->mCloneInUninitilizedMemory) {
 				// Cloning by placement is available								
 				if (result.IsEmpty())
 					result.Allocate(mCount, false, true);
@@ -71,14 +71,13 @@ namespace Langulus::Anyness::Inner
 				for (Count index = 0; index < mCount; ++index) {
 					const auto from = GetElement(index);
 					auto to = result.GetElement(index);
-					result.mType->mStaticDescriptor.mCloneInUninitilizedMemory(
-						from.mRaw, to.mRaw);
+					result.mType->mCloneInUninitilizedMemory(from.mRaw, to.mRaw);
 				}
 
 				VERBOSE("Cloned non-resolvable dense by move-placement new " 
 					<< ccDarkYellow << "(slow)");
 			}
-			else if (mType->mStaticDescriptor.mCloneInInitializedMemory) {
+			else if (mType->mCloneInInitializedMemory) {
 				// Cloning by copy is available										
 				if (result.IsEmpty())
 					result.Allocate(mCount, true);
@@ -86,14 +85,13 @@ namespace Langulus::Anyness::Inner
 				for (Count index = 0; index < mCount; ++index) {
 					const auto from = GetElement(index);
 					auto to = result.GetElement(index);
-					result.mType->mStaticDescriptor.mCloneInInitializedMemory(
-						from.mRaw, to.mRaw);
+					result.mType->mCloneInInitializedMemory(from.mRaw, to.mRaw);
 				}
 
 				VERBOSE("Cloned non-resolvable dense by shallow copy " 
 					<< ccRed << "(slowest)");
 			}
-			else if (mType->GetCTTI().mPOD) {
+			else if (mType->mPOD) {
 				// Just memcpy simple POD data										
 				if (result.IsEmpty())
 					result.Allocate(mCount, false, true);
@@ -103,7 +101,7 @@ namespace Langulus::Anyness::Inner
 					<< ccGreen << "(fast)");
 			}
 			else {
-				throw Except::Copy(pcLogError
+				throw Except::Copy(Logger::Error()
 					<< "Trying to clone unclonable complex type: " << GetToken());
 			}
 		}
@@ -112,26 +110,24 @@ namespace Langulus::Anyness::Inner
 			for (Count index = 0; index < mCount; ++index) {
 				// Type is resolvable, so allocate and clone each resolved	
 				const auto from = GetElementResolved(index);
-				auto to = Any::From(from.GetMeta());
+				auto to = Any::From(from.GetType());
 
 				// Check if a clone operation is available for element		
-				if (mType->mStaticDescriptor.mCloneInUninitilizedMemory) {
+				if (mType->mCloneInUninitilizedMemory) {
 					// Placement-clone													
 					to.Allocate(1, false, true);
-					from.mType->mStaticDescriptor.mCloneInUninitilizedMemory(
-						from.mRaw, to.mRaw);
+					from.mType->mCloneInUninitilizedMemory(from.mRaw, to.mRaw);
 					VERBOSE("Cloned resolved dense by move-placement new" 
 						<< ccRed << "(slowest)");
 				}
-				else if (mType->mStaticDescriptor.mCloneInInitializedMemory) {
+				else if (mType->mCloneInInitializedMemory) {
 					// Clone and copy inside initialized elements				
 					to.Allocate(1, true);
-					from.mType->mStaticDescriptor.mCloneInInitializedMemory(
-						from.mRaw, to.mRaw);
+					from.mType->mCloneInInitializedMemory(from.mRaw, to.mRaw);
 					VERBOSE("Cloned resolved dense by shallow copy " 
 						<< ccRed << "(slowest)");
 				}
-				else if (from.mType->GetCTTI().mPOD) {
+				else if (from.mType->mPOD) {
 					// Just memcpy simple POD data									
 					to.Allocate(1, false, true);
 					pcCopyMemory(from.mRaw, to.mRaw, from.GetSize());
@@ -139,7 +135,7 @@ namespace Langulus::Anyness::Inner
 						<< ccDarkYellow << "(slow)");
 				}
 				else {
-					throw Except::Copy(pcLogError
+					throw Except::Copy(Logger::Error()
 						<< "Trying to clone unclonable complex type (resolved): " << from.GetToken());
 				}
 
@@ -148,7 +144,7 @@ namespace Langulus::Anyness::Inner
 					auto element = result.GetElementResolved(index);
 					to.Copy(element); //TODO move instead?
 				}
-				else result.InsertBlock(pcMove(to));
+				else result.InsertBlock(Move(to));
 			}
 		}
 

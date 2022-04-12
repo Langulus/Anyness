@@ -17,7 +17,7 @@ namespace Langulus::Anyness
 
 		enum SpecialIndices : Type {
 			// All, Many, and Single must be compared in separate context	
-			All = MaxIndex + 1,
+			All = MinIndex,
 			Many,
 			Single,
 
@@ -42,6 +42,23 @@ namespace Langulus::Anyness
 
 			// These fit into the non-special category							
 			First = 0
+		};
+
+		static constexpr Token Names[SpecialIndexCounter - MinIndex] = {
+			u8"All",
+			u8"Many",
+			u8"Single",
+
+			u8"None",
+			u8"Front",
+			u8"Middle",
+			u8"Back",
+
+			u8"Mode",
+			u8"Biggest",
+			u8"Smallest",
+			u8"Auto",
+			u8"Random"
 		};
 
 		#if LANGULUS_DEBUG()

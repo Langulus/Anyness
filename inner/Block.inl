@@ -43,25 +43,21 @@ namespace Langulus::Anyness::Inner
 	///	@return the block																		
 	template<ReflectedData T>
 	Block Block::From(T value) requires Sparse<T> {
-		const Block block {
+		return {
 			DataState::Static,
 			MetaData::Of<T>(), 
 			1, value
 		};
-
-		return block;
 	}
 
 	///	@return the block																		
 	template<ReflectedData T>
 	Block Block::From(T value, Count count) requires Sparse<T> {
-		const Block block {
+		return {
 			DataState::Static, 
 			MetaData::Of<T>(), 
 			count, value
 		};
-
-		return block;
 	}
 
 	/// Create a memory block from a value reference									
@@ -69,26 +65,20 @@ namespace Langulus::Anyness::Inner
 	///	@return the block																		
 	template<ReflectedData T>
 	Block Block::From(T& value) requires Dense<T> {
-		if constexpr (!IsText<T> && Deep<T> && sizeof(T) == sizeof(Block)) {
-			return static_cast<const Block&>(value);
-		}
-		else if constexpr (Resolvable<T>) {
+		if constexpr (Resolvable<T>)
 			return value.GetBlock();
-		}
-		else {
-			return Block {
-				DataState::Static,
-				MetaData::Of<T>(), 
-				1, &value
-			};
-		}
+		else return {
+			DataState::Static,
+			MetaData::Of<T>(), 
+			1, &value
+		};
 	}
 
 	/// Create an empty memory block from a static type								
 	///	@return the block																		
 	template<ReflectedData T>
 	Block Block::From() {
-		return Block {
+		return {
 			DataState::Default, 
 			MetaData::Of<T>(), 
 			0, static_cast<void*>(nullptr)
@@ -136,9 +126,8 @@ namespace Langulus::Anyness::Inner
 		mRaw = nullptr;
 		mCount = mReserved = 0;
 
-		if (IsTypeConstrained()) {
+		if (IsTypeConstrained())
 			mState.mState = DataState::Typed;
-		}
 		else {
 			mType = nullptr;
 			mState.mState = DataState::Default;
@@ -268,7 +257,9 @@ namespace Langulus::Anyness::Inner
 	constexpr Phase Block::GetPhase() const noexcept {
 		if (!IsPhased())
 			return Phase::Now;
-		return mState.mState & DataState::Future ? Phase::Future : Phase::Past;
+		return mState.mState & DataState::Future 
+			? Phase::Future 
+			: Phase::Past;
 	}
 
 	/// Set polarity																				

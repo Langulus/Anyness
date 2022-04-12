@@ -58,13 +58,13 @@ namespace Langulus::Anyness::Inner
 			return false;
 		}
 
-		if (mType->mStaticDescriptor.mComparer) {
+		if (mType->mComparer) {
 			// Call the reflected == operator										
 			VERBOSE("Comparing using reflected operator ==");
 			for (Count i = 0; i < mCount; ++i) {
 				auto lhs = resolve ? GetElementResolved(i) : GetElement(i);
 				auto rhs = resolve ? right.GetElementResolved(i) : right.GetElement(i);
-				if (lhs.GetDataID() != rhs.GetDataID()) {
+				if (lhs.GetType() != rhs.GetType()) {
 					// Fail comparison on first mismatch							
 					VERBOSE(ccRed << "Element " << i << " differs by type: "
 						<< lhs.GetToken() << " != " << rhs.GetToken());
@@ -74,7 +74,7 @@ namespace Langulus::Anyness::Inner
 				if (lhs.mRaw == rhs.mRaw)
 					continue;
 
-				if (!lhs.mRaw || !rhs.mRaw || !mType->mStaticDescriptor.mComparer(lhs.mRaw, rhs.mRaw)) {
+				if (!lhs.mRaw || !rhs.mRaw || !mType->mComparer(lhs.mRaw, rhs.mRaw)) {
 					// Fail comparison on first mismatch							
 					VERBOSE(ccRed << "Element " << i << " differs: "
 						<< lhs.GetToken() << " != " << rhs.GetToken());
@@ -87,10 +87,10 @@ namespace Langulus::Anyness::Inner
 			return true;
 		}
 
-		if (mType->IsPOD() && right.mType->IsPOD() && mType->GetStride() == right.mType->GetStride()) {
+		if (mType->mPOD && right.mType->mPOD && mType->mSize == right.mType->mSize) {
 			// Just compare the memory directly (optimization)					
 			VERBOSE("Comparing POD memory");
-			const auto code = memcmp(mRaw, right.mRaw, mCount * mType->GetStride());
+			const auto code = memcmp(mRaw, right.mRaw, mCount * mType->mSize);
 			if (code == 0) 
 				VERBOSE(ccGreen << "POD memory is the same (fast)");
 			else
@@ -113,7 +113,7 @@ namespace Langulus::Anyness::Inner
 		}
 
 		SAFETY(if (compared_members == 0 && mCount > 0)
-			pcLogFuncError << "Comparing checked no members");
+			Logger::Error() << "Comparing checked no members");
 
 		VERBOSE(ccGreen << "Data is the same, all members match " 
 			<< ccRed << "(slowest)");
@@ -136,9 +136,9 @@ namespace Langulus::Anyness::Inner
 		}
 
 		// First we check all bases													
-		for (auto& base : mType->GetBaseList()) {
-			auto baseMeta = base.mBase;
-			if (baseMeta && baseMeta->GetStride() > 0) {
+		for (auto& base : mType->mBases) {
+			auto& baseMeta = base.mType;
+			if (baseMeta && baseMeta->mSize > 0) {
 				++compared;
 				auto lhs_base = GetBaseMemory(baseMeta, base);
 				auto rhs_base = right.GetBaseMemory(baseMeta, base);
@@ -148,7 +148,7 @@ namespace Langulus::Anyness::Inner
 		}
 
 		// Iterate members for each element											
-		for (auto& member : mType->GetMemberList()) {
+		for (auto& member : mType->mMembers) {
 			if (member.Is<Block>() || member.Is<Any>()) {
 				// If member is a memory block, nest								
 				++compared;

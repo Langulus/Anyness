@@ -15,5 +15,7 @@ namespace Langulus::Logger
    Instance& Error(T...) noexcept;
    template<class... T>
    Instance& Warning(T...) noexcept;
+   template<class... T>
+   Instance& Verbose(T...) noexcept;
    
 } // Langulus::Logger

@@ -32,9 +32,9 @@ namespace Langulus::Anyness
 	///	@param from - the index to stringify											
 	Text::Text(const Index& from)
 		: Text { } {
-		// Convert an index																
+		// Convert an index to text													
 		if (!from.IsArithmetic()) {
-			(*this) += Index::Names[from.mIndex - Index::SpecialIndexCounter];
+			(*this) += Index::Names[from.mIndex - Index::MinIndex];
 			return;
 		}
 

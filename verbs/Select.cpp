@@ -9,13 +9,13 @@ namespace Langulus::Anyness::Inner
 	/// Never references data																	
 	///	@param member - the member to get												
 	///	@return a static memory block														
-	Block Block::GetMember(const LinkedMember& member) {
+	Block Block::GetMember(const Member& member) {
 		if (!IsAllocated())
-			return Block(DataState::Default, member.mType);
+			return {member.mType};
 
 		return { 
-			DataState::Static + DataState::Typed, member.mType, 
-			member.mStaticMember.mCount, const_cast<void*>(member.Get(mRaw))
+			DataState::Member, member.mType, 
+			member.mCount, const_cast<void*>(member.Get(mRaw))
 		};
 	}
 
@@ -23,9 +23,9 @@ namespace Langulus::Anyness::Inner
 	/// Never references data																	
 	///	@param member - the member to get												
 	///	@return a static constant memory block											
-	const Block Block::GetMember(const LinkedMember& member) const {
+	const Block Block::GetMember(const Member& member) const {
 		auto result = const_cast<Block*>(this)->GetMember(member);
-		result.mState += DataState::Constant;
+		result.mState.mState |= DataState::Constant;
 		return result;
 	}
 
@@ -37,7 +37,7 @@ namespace Langulus::Anyness::Inner
 	Block Block::GetMember(TMeta trait, Count index) {
 		// Scan members																	
 		Count counter = 0;
-		for (auto& member : mType->GetMemberList()) {
+		for (auto& member : mType->mMembers) {
 			if (trait && member.mTrait != trait)
 				continue;
 
@@ -60,8 +60,8 @@ namespace Langulus::Anyness::Inner
 		// No such trait found, so check in bases									
 		//TODO fix indices shadowing later bases
 		index -= counter;
-		for (auto& base : mType->GetBaseList()) {
-			auto found = GetBaseMemory(base.mBase, base).GetMember(trait, index);
+		for (auto& base : mType->mBases) {
+			auto found = GetBaseMemory(base.mType, base).GetMember(trait, index);
 			if (!found.IsUntyped())
 				return found;
 		}
@@ -76,7 +76,7 @@ namespace Langulus::Anyness::Inner
 	///	@return a static constant memory block											
 	const Block Block::GetMember(TMeta trait, Count index) const {
 		auto result = const_cast<Block*>(this)->GetMember(trait, index);
-		result.mState += DataState::Constant;
+		result.mState.mState |= DataState::Constant;
 		return result;
 	}
 	
@@ -88,9 +88,8 @@ namespace Langulus::Anyness::Inner
 	Block Block::GetMember(DMeta data, Count index) {
 		// Scan members																	
 		Count counter = 0;
-		for (auto& member : mType->GetMemberList()) {
+		for (auto& member : mType->mMembers) {
 			if (data && !member.mType->InterpretsAs(data))
-			//if (data && !data->InterpretsAs(member.mType))
 				continue;
 
 			// Matched, but check index first										
@@ -112,8 +111,8 @@ namespace Langulus::Anyness::Inner
 		// No such data found, so check in bases									
 		//TODO fix indices shadowing later bases
 		index -= counter;
-		for (auto& base : mType->GetBaseList()) {
-			auto found = GetBaseMemory(base.mBase, base).GetMember(data, index);
+		for (auto& base : mType->mBases) {
+			auto found = GetBaseMemory(base.mType, base).GetMember(data, index);
 			if (!found.IsUntyped())
 				return found;
 		}
@@ -128,7 +127,7 @@ namespace Langulus::Anyness::Inner
 	///	@return a static constant memory block											
 	const Block Block::GetMember(DMeta data, Count index) const {
 		auto result = const_cast<Block*>(this)->GetMember(data, index);
-		result.mState += DataState::Constant;
+		result.mState.mState |= DataState::Constant;
 		return result;
 	}
 
@@ -138,8 +137,8 @@ namespace Langulus::Anyness::Inner
 	///	@param index - the member index to get											
 	///	@return a static memory block (constant if block is constant)			
 	Block Block::GetMember(std::nullptr_t, Count index) {
-		if (index < mType->GetMemberList().GetCount()) {
-			auto& member = mType->GetMemberList()[index];
+		if (index < mType->mMembers.size()) {
+			auto& member = mType->mMembers[index];
 			auto found = GetMember(member);
 			VERBOSE("Selected " << GetToken() << "::" << member.mName
 				<< " (" << member.mType << (member.mCount > 1 ? (pcLog << "[" << member.mCount
@@ -151,9 +150,9 @@ namespace Langulus::Anyness::Inner
 
 		// No such data found, so check in bases									
 		//TODO fix indices shadowing later bases
-		index -= mType->GetMemberList().GetCount();
-		for (auto& base : mType->GetBaseList()) {
-			auto found = GetBaseMemory(base.mBase, base).GetMember(nullptr, index);
+		index -= mType->mMembers.size();
+		for (auto& base : mType->mBases) {
+			auto found = GetBaseMemory(base.mType, base).GetMember(nullptr, index);
 			if (!found.IsUntyped())
 				return found;
 		}
@@ -168,7 +167,7 @@ namespace Langulus::Anyness::Inner
 	///	@return a static constant memory block											
 	const Block Block::GetMember(std::nullptr_t, Count index) const {
 		auto result = const_cast<Block*>(this)->GetMember(nullptr, index);
-		result.mState += DataState::Constant;
+		result.mState.mState |= DataState::Constant;
 		return result;
 	}
 
@@ -179,32 +178,31 @@ namespace Langulus::Anyness::Inner
 	///	@return the index of the found item, or uiNone if not found				
 	Index Block::FindRTTI(const Block& item, const Index& idx) const {
 		if (item.IsEmpty())
-			return uiNone;
+			return Index::None;
 
 		// Setup the iterator															
-		const auto pcount = pcidx(mCount);
-		pcidx starti, istep;
+		Index starti, istep;
 		switch (idx.mIndex) {
-		case uiFront.mIndex:
+		case Index::Front:
 			starti = 0;
 			istep = 1;
 			break;
-		case uiBack.mIndex:
-			starti = pcount - 1;
+		case Index::Back:
+			starti = mCount - 1;
 			istep = -1;
 			break;
 		default:
 			starti = Constrain(idx).mIndex;
 			istep = 1;
-			if (starti + 1 >= pcidx(mCount))
-				return uiNone;
+			if (starti + 1 >= mCount)
+				return Index::None;
 		}
 
 		// Compare all elements															
-		for (pcidx i = starti; i < pcount && i >= 0; i += istep) {
+		for (Index i = starti; i < mCount && i >= 0; i += istep) {
 			auto left = GetElementResolved(i);
 			bool failure = false;
-			for (pcidx j = 0; j < pcidx(item.GetCount()) && !failure && (i + istep * j) >= 0 && (i + istep * j) < pcount; ++j) {
+			for (Index j = 0; j < item.GetCount() && !failure && (i + istep * j) >= 0 && (i + istep * j) < mCount; ++j) {
 				auto right = item.GetElementResolved(j);
 				if (!left.Compare(right)) {
 					failure = true;
@@ -217,7 +215,7 @@ namespace Langulus::Anyness::Inner
 		}
 
 		// If this is reached, then no match was found							
-		return uiNone;
+		return Index::None;
 	}
 
 } // namespace Langulus::Anyness::Inner

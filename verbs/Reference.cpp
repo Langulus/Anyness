@@ -1,8 +1,6 @@
 #include "inner/Block.hpp"
 #include "../Any.hpp"
 
-#define VERBOSE(a)
-
 namespace Langulus::Anyness::Inner
 {
 

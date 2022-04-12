@@ -1,5 +1,6 @@
 #pragma once
 #include "Exceptions.hpp"
+#include "Utilities.hpp"
 #include <limits>
 
 namespace Langulus::Anyness
@@ -16,8 +17,8 @@ namespace Langulus::Anyness
 	/// Constructor from Count																	
 	constexpr Index::Index(const Count& value)
 		: mIndex {static_cast<Type>(value)} {
-		SAFETY(if (value > static_cast<Count>(::std::numeric_limits<Type>::max()))
-			throw Except::Overflow());
+		if (value > static_cast<Count>(MaxIndex))
+			throw Except::Overflow();
 	}
 
 	/// Constrain the index to some count (immutable)									
@@ -44,7 +45,7 @@ namespace Langulus::Anyness
 	constexpr Offset Index::GetOffset() const {
 		if (IsSpecial()) {
 			throw Except::Access(Logger::Error()
-				<< "Can't reference special index");
+				<< "Can't convert special index to offset");
 		}
 
 		return static_cast<Offset>(mIndex);
@@ -62,7 +63,7 @@ namespace Langulus::Anyness
 		if (IsSpecial())
 			return;
 
-		auto digits = pcNumDigits(other.mIndex);
+		auto digits = DigitsOf(other.mIndex);
 		while (digits) {
 			mIndex *= 10;
 			--digits;
