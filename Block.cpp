@@ -13,7 +13,10 @@ namespace Langulus::Anyness
 		, mReserved {other.mReserved}
 		, mState {other.mState}
 		, mEntry {other.mEntry} {
-		other.ResetInner();
+		if (IsTypeConstrained())
+			other.ResetInner<true>();
+		else
+			other.ResetInner<false>();
 	}
 
 	/// Get the token of the contained type												
@@ -873,7 +876,10 @@ namespace Langulus::Anyness
 		}
 
 		// Reset the block																
-		source.ResetInner();
+		if (source.IsTypeConstrained())
+			source.ResetInner<true>();
+		else
+			source.ResetInner<false>();
 	}
 
 	/// Call destructors in a region - after this call the memory is not			
@@ -901,7 +907,7 @@ namespace Langulus::Anyness
 			for (Count i = 0; i < mCount; ++i) {
 				Block& block = Get<Block>(i);
 				block.Free();
-				block.ResetInner();
+				//block.ResetInner(); //TODO is this required?
 			}
 		}
 		else if (!mType->mPOD) {
@@ -954,7 +960,10 @@ namespace Langulus::Anyness
 		if (index == Index::All) {
 			const auto oldCount = mCount;
 			Free();
-			ResetInner();
+			if (IsTypeConstrained())
+				ResetInner<true>();
+			else
+				ResetInner<false>();
 			return oldCount;
 		}
 
@@ -977,7 +986,7 @@ namespace Langulus::Anyness
 		SAFETY(if (count > mCount || starter + count > mCount)
 			throw Except::Access(Logger::Error()
 				<< "Index " << starter << " out of range " << mCount));
-		SAFETY(if (GetBlockReferences() > 1)
+		SAFETY(if (GetReferences() > 1)
 			throw Except::Reference(Logger::Error()
 				<< "Removing elements from a memory block, that is used from multiple places"));
 
@@ -1083,7 +1092,7 @@ namespace Langulus::Anyness
 
 		// Move memory if required														
 		if (starter < mCount) {
-			SAFETY(if (GetBlockReferences() > 1)
+			SAFETY(if (GetReferences() > 1)
 				throw Except::Reference(Logger::Error()
 					<< "Moving elements that are used from multiple places"));
 
@@ -1260,7 +1269,10 @@ namespace Langulus::Anyness
 				subPack.Optimize();
 				if (subPack.IsEmpty()) {
 					Free();
-					ResetInner();
+					if (IsTypeConstrained())
+						ResetInner<true>();
+					else
+						ResetInner<false>();
 				}
 
 				return;

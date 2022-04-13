@@ -1,7 +1,7 @@
-#include "inner/Block.hpp"
+#include "Block.hpp"
 #define VERBOSE(a) //a
 
-namespace Langulus::Anyness::Inner
+namespace Langulus::Anyness
 {
 
 	/// Invoke the shallow copy operators of all elements inside block			
@@ -230,4 +230,4 @@ namespace Langulus::Anyness::Inner
 		return mCount;
 	}
 
-} // namespace Langulus::Anyness::Inner
+} // namespace Langulus::Anyness

@@ -1,7 +1,7 @@
-#include "inner/Block.hpp"
-#include "../Any.hpp"
+#include "Block.hpp"
+#include "Any.hpp"
 
-namespace Langulus::Anyness::Inner
+namespace Langulus::Anyness
 {
 
 	/// Encrypt data																				
@@ -65,4 +65,4 @@ namespace Langulus::Anyness::Inner
 		return decompressed_size;
 	}
 
-} // namespace Langulus::Anyness::Inner
+} // namespace Langulus::Anyness

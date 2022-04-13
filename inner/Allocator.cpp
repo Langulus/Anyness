@@ -71,5 +71,10 @@ namespace Langulus::Anyness
 	bool Allocator::Dereference(Entry*, Count) {
 
 	}
+	
+	/// Deallocate an entry, removing it from its owning pool						
+	void Entry::Deallocate() {
+		
+	}
 
 } // namespace Langulus::Anyness

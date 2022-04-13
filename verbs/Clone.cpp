@@ -1,10 +1,10 @@
-#include "inner/Block.hpp"
-#include "../Any.hpp"
+#include "Block.hpp"
+#include "Any.hpp"
 
 #define VERBOSE_TAB(a) //ScopedTab tab; pcLogFuncVerbose << a << tab
 #define VERBOSE(a) //pcLogFuncVerbose << a
 
-namespace Langulus::Anyness::Inner
+namespace Langulus::Anyness
 {
 
 	/// Clone any data using RTTI																
@@ -151,4 +151,4 @@ namespace Langulus::Anyness::Inner
 		return mCount;
 	}
 
-} // namespace Langulus::Anyness::Inner
+} // namespace Langulus::Anyness

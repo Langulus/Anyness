@@ -1,8 +1,8 @@
-#include "inner/Block.hpp"
+#include "Block.hpp"
 #include <zlib.h>
 #include <assert.h>
 
-namespace Langulus::Anyness::Inner
+namespace Langulus::Anyness
 {
 
 	/// Report a zlib error																		
@@ -143,4 +143,4 @@ namespace Langulus::Anyness::Inner
 		return written;
 	}
 
-} // namespace Langulus::Anyness::Inner
+} // namespace Langulus::Anyness

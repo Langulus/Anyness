@@ -95,12 +95,12 @@ namespace Langulus::Anyness
 		constexpr Block(const Block&) noexcept = default;
 			
 		Block(Block&&) noexcept;
-		constexpr Block(DMeta) noexcept;
-		constexpr Block(DMeta, Count, const Byte*) noexcept;
-		constexpr Block(DMeta, Count, Byte*) noexcept;
+		explicit constexpr Block(DMeta) noexcept;
+		Block(DMeta, Count, const Byte*) noexcept;
+		Block(DMeta, Count, Byte*) noexcept;
 		constexpr Block(const DataState&, DMeta) noexcept;
-		constexpr Block(const DataState&, DMeta, Count, const Byte*) noexcept;
-		constexpr Block(const DataState&, DMeta, Count, Byte*) noexcept;
+		Block(const DataState&, DMeta, Count, const Byte*) noexcept;
+		Block(const DataState&, DMeta, Count, Byte*) noexcept;
 	
 		template<ReflectedData T>
 		NOD() static Block From(T) requires Sparse<T>;

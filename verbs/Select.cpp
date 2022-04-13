@@ -1,8 +1,8 @@
-#include "inner/Block.hpp"
+#include "Block.hpp"
 
 #define VERBOSE(a) //pcLogFuncVerbose << a
 
-namespace Langulus::Anyness::Inner
+namespace Langulus::Anyness
 {
 
 	/// Get the memory block corresponding to a local member variable				
@@ -218,4 +218,4 @@ namespace Langulus::Anyness::Inner
 		return Index::None;
 	}
 
-} // namespace Langulus::Anyness::Inner
+} // namespace Langulus::Anyness

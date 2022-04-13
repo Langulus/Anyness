@@ -1,9 +1,9 @@
-#include "../inner/Block.hpp"
+#include "Block.hpp"
 
 #define VERBOSE(a) //pcLogFuncVerbose << a
 #define VERBOSE_TAB(a) //ScopedTab tab; pcLogFuncVerbose << a << tab
 
-namespace Langulus::Anyness::Inner
+namespace Langulus::Anyness
 {
 
 	/// Compare the relevant states of two blocks										
@@ -170,4 +170,4 @@ namespace Langulus::Anyness::Inner
 		return true;
 	}
 
-} // namespace Langulus::Anyness::Inner
+} // namespace Langulus::Anyness

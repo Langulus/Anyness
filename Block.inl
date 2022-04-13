@@ -18,7 +18,7 @@ namespace Langulus::Anyness
 	///	@param meta - the type of the memory block									
 	///	@param count - initial element count and reserve							
 	///	@param raw - pointer to the constant memory - safety is on you			
-	constexpr Block::Block(const DataState& state, DMeta meta, Count count, const Byte* raw) noexcept
+	inline Block::Block(const DataState& state, DMeta meta, Count count, const Byte* raw) noexcept
 		: mRaw {const_cast<Byte*>(raw)}
 		, mType {meta}
 		, mCount {count}
@@ -32,7 +32,7 @@ namespace Langulus::Anyness
 	///	@param meta - the type of the memory block									
 	///	@param count - initial element count and reserve							
 	///	@param raw - pointer to the mutable memory - safety is on you			
-	constexpr Block::Block(const DataState& state, DMeta meta, Count count, Byte* raw) noexcept
+	inline Block::Block(const DataState& state, DMeta meta, Count count, Byte* raw) noexcept
 		: mRaw {raw}
 		, mType {meta}
 		, mCount {count}
@@ -95,7 +95,10 @@ namespace Langulus::Anyness
 		mReserved = other.mReserved;
 		mState = other.mState;
 		mEntry = other.mEntry;
-		other.ResetInner();
+		if (IsTypeConstrained())
+			other.ResetInner<true>();
+		else
+			other.ResetInner<false>();
 		return *this;
 	}
 
@@ -523,7 +526,7 @@ namespace Langulus::Anyness
 				break;
 			case Index::Mode:
 				if constexpr (Sortable<T>) {
-					pcptr unused;
+					[[maybe_unused]] Count unused;
 					return GetIndexMode<T>(unused);
 				}
 				else return Index::None;
@@ -611,7 +614,7 @@ namespace Langulus::Anyness
 
 		// Move memory if required														
 		if (starter < mCount) {
-			SAFETY(if (GetBlockReferences() > 1)
+			SAFETY(if (GetReferences() > 1)
 				throw Except::Reference(Logger::Error()
 					<< "Moving elements that are used from multiple places"));
 
@@ -667,7 +670,7 @@ namespace Langulus::Anyness
 
 		// Move memory if required														
 		if (starter < mCount) {
-			SAFETY(if (GetBlockReferences() > 1)
+			SAFETY(if (GetReferences() > 1)
 				throw Except::Reference(Logger::Error()
 					<< "Moving elements that are used from multiple places"));
 
@@ -691,7 +694,7 @@ namespace Langulus::Anyness
 				}
 
 				// Reference each pointer												
-				PCMEMORY.Reference(mType, items[c], 1);
+				Allocator::Reference(mType, items[c], 1);
 				++c;
 			}
 		}
@@ -1064,7 +1067,7 @@ namespace Langulus::Anyness
 		}
 
 		#if LANGULUS_SAFE()
-			if (GetBlockReferences() > 1)
+			if (GetReferences() > 1)
 				Logger::Warning() << "Container used from multiple places";
 		#endif
 
