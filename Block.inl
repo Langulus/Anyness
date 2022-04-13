@@ -1,7 +1,7 @@
 #pragma once
 #include "Block.hpp"
 
-namespace Langulus::Anyness::Inner
+namespace Langulus::Anyness
 {
 
 	/// Manual construction via state and type											
@@ -23,7 +23,8 @@ namespace Langulus::Anyness::Inner
 		, mType {meta}
 		, mCount {count}
 		, mReserved {count}
-		, mState {state.mState | DataState::Constant} { }
+		, mState {state.mState | DataState::Constant}
+		, mEntry {Allocator::Find(meta, raw)} { }
 
 	/// Manual construction from mutable data												
 	/// No referencing shall occur and changes data state to dsConstant			
@@ -36,7 +37,8 @@ namespace Langulus::Anyness::Inner
 		, mType {meta}
 		, mCount {count}
 		, mReserved {count}
-		, mState {state} { }
+		, mState {state}
+		, mEntry {Allocator::Find(meta, raw)} { }
 
 	/// Create a memory block from a typed pointer										
 	/// No referencing shall occur, this simply initializes the block				
@@ -78,27 +80,7 @@ namespace Langulus::Anyness::Inner
 	///	@return the block																		
 	template<ReflectedData T>
 	Block Block::From() {
-		return {
-			DataState::Default, 
-			MetaData::Of<T>(), 
-			0, static_cast<void*>(nullptr)
-		};
-	}
-
-	/// Shallow copy memory block																
-	/// No referencing will occur - this simply copies the other block			
-	/// This is not an alternative to Block::Copy! This operator simply			
-	/// overwrites the instance, it does not check for type-constraints			
-	/// and never references - it's an unsafe low level function					
-	///	@param other - the memory block to copy										
-	///	@return a reference to this block												
-	constexpr Block& Block::operator = (const Block& other) noexcept {
-		mRaw = other.mRaw;
-		mType = other.mType;
-		mCount = other.mCount;
-		mReserved = other.mReserved;
-		mState = other.mState;
-		return *this;
+		return {MetaData::Of<T>()};
 	}
 
 	/// Move memory block																		
@@ -112,8 +94,43 @@ namespace Langulus::Anyness::Inner
 		mCount = other.mCount;
 		mReserved = other.mReserved;
 		mState = other.mState;
+		mEntry = other.mEntry;
 		other.ResetInner();
 		return *this;
+	}
+
+	/// Reference memory block																	
+	///	@param times - number of references to add									
+	inline void Block::Reference(const Count& times) noexcept {
+		if (!mEntry)
+			// Data is static - don't touch it										
+			return;
+
+		mEntry->mReferences += times;
+	}
+	
+	/// Dereference memory block																
+	/// Upon full dereference, element destructors are called if DESTROY			
+	/// It is your responsibility to clear your Block after that					
+	///	@param times - number of references to subtract								
+	///	@return true if entry has been deallocated 									
+	template<bool DESTROY>
+	bool Block::Dereference(const Count& times) {
+		if (!mEntry)
+			// Data is static - don't touch it										
+			return false;
+
+		if (mEntry->mReferences <= times) {
+			// Destroy all elements and deallocate the entry					
+			if constexpr (DESTROY)
+				CallDestructors();
+			mEntry->Deallocate();
+			mEntry = nullptr;
+			return true;
+		}
+
+		mEntry->mReferences -= times;
+		return false;
 	}
 
 	/// Clear the block, only zeroing its size											
@@ -122,13 +139,18 @@ namespace Langulus::Anyness::Inner
 	}
 
 	/// Reset the block, by zeroing everything, except type-constraints			
+	template<bool TYPED>
 	constexpr void Block::ResetInner() noexcept {
 		mRaw = nullptr;
+		mEntry = nullptr;
 		mCount = mReserved = 0;
 
-		if (IsTypeConstrained())
+		if constexpr (TYPED) {
+			// Don't clear type, and restore typed state							
 			mState.mState = DataState::Typed;
+		}
 		else {
+			// Clear both type and typed state										
 			mType = nullptr;
 			mState.mState = DataState::Default;
 		}

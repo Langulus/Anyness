@@ -8,7 +8,7 @@ namespace Langulus::Anyness
 
 	/// Default construction																	
 	Text::Text()
-		: Block {DataState::Typed, PCMEMORY.GetFallbackMetaChar(), 0, static_cast<void*>(nullptr)} {}
+		: Block {DataState::Typed, PCMEMORY.GetFallbackMetaChar()} {}
 
 	/// Do a shallow copy																		
 	///	@param other - the text to shallow-copy										
@@ -54,7 +54,7 @@ namespace Langulus::Anyness
 
 	/// Clear the contents, but do not deallocate memory if possible				
 	void Text::Clear() noexcept {
-		if (GetBlockReferences() == 1)
+		if (GetReferences() == 1)
 			mCount = 0;
 		else Reset();
 	}
@@ -340,7 +340,7 @@ namespace Langulus::Anyness
 	Text Text::Crop(Count start, Count count) const {
 		Text result;
 		static_cast<Block&>(result) = Block::Crop(start, count);
-		result.ReferenceBlock(1);
+		result.Keep();
 		return result;
 	}
 

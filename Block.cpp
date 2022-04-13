@@ -1,7 +1,7 @@
 #include "Block.hpp"
-#include "../Any.hpp"
+#include "Any.hpp"
 
-namespace Langulus::Anyness::Inner
+namespace Langulus::Anyness
 {
 
 	/// Move-construction for block															
@@ -11,7 +11,8 @@ namespace Langulus::Anyness::Inner
 		, mType {other.mType}
 		, mCount {other.mCount}
 		, mReserved {other.mReserved}
-		, mState {other.mState} {
+		, mState {other.mState}
+		, mEntry {other.mEntry} {
 		other.ResetInner();
 	}
 
@@ -143,14 +144,14 @@ namespace Langulus::Anyness::Inner
 
 	/// Dereference memory block once														
 	///	@return the remaining references for the block								
-	RefCount Block::Free() {
-		return ReferenceBlock(-1);
+	bool Block::Free() {
+		return Dereference(-1);
 	}
 
 	/// Reference memory block once															
 	///	@return the remaining references for the block								
-	RefCount Block::Keep() {
-		return ReferenceBlock(1);
+	void Block::Keep() {
+		Reference(1);
 	}
 		
 	/// Select region from the memory block - unsafe and may return memory		
@@ -225,13 +226,14 @@ namespace Langulus::Anyness::Inner
 	/// If we have jurisdiction, the memory won't move									
 	///	@return a reference to this byte sequence										
 	Block& Block::TakeAuthority() {
-		if (mRaw && mType && mReserved) {
-			auto newRaw = PCMEMORY.Reallocate(mType, mRaw, mReserved, mReserved);
-			if (newRaw != mRaw) {
-				// Memory moved, which means data is transfered to MMS,		
-				// so it's about time to remove the static constraints		
-				mState.mState &= ~DataState::Static;
-			}
+		if (mEntry)
+			return *this;
+
+		auto newRaw = PCMEMORY.Reallocate(mType, mRaw, mReserved, mReserved);
+		if (newRaw != mRaw) {
+			// Memory moved, which means data is transfered to MMS,		
+			// so it's about time to remove the static constraints		
+			mState.mState &= ~DataState::Static;
 		}
 
 		return *this;
@@ -240,7 +242,7 @@ namespace Langulus::Anyness::Inner
 	/// Get the number of references for the allocated memory block				
 	///	@attention always returns 1 if memory is outside authority				
 	///	@return the references for the memory block									
-	RefCount Block::GetBlockReferences() const {
+	Count Block::GetReferences() const {
 		return PCMEMORY.GetReferences(mType, mRaw);
 	}
 
@@ -853,7 +855,7 @@ namespace Langulus::Anyness::Inner
 				pointers[i] = source.GetElement(i).mRaw;
 
 			// Can't actually move, you know, just reference rhs by count	
-			PCMEMORY.Reference(source.mType, source.mRaw, static_cast<RefCount>(mReserved));
+			PCMEMORY.Reference(source.mType, source.mRaw, mReserved);
 		}
 		else {
 			// Both RHS and LHS must be dense										
@@ -885,7 +887,7 @@ namespace Langulus::Anyness::Inner
 			// only if data behind those pointers is fully dereferenced		
 			for (Count i = 0; i < mCount; ++i) {
 				auto element = GetElementResolved(i);
-				element.ReferenceBlock(-1);
+				element.Free();
 			}
 
 			// Always null the pointers after destruction						

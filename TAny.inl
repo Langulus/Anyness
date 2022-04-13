@@ -237,7 +237,7 @@ namespace Langulus::Anyness
 		if (!mCount)
 			return;
 
-		if (GetBlockReferences() == 1) {
+		if (GetReferences() == 1) {
 			// Only one use - just destroy elements and reset count,			
 			// reusing the allocation for later										
 			Block::CallDestructors();

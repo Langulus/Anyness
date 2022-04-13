@@ -51,11 +51,7 @@ namespace Langulus::Anyness
 	template<class T>
 	concept POD = Decay<T>::CTTI_POD == true;
 	
-	namespace Inner
-	{
-		class Block;
-	}
-
+	class Block;
 	struct Member;
 	struct Base;
 	struct Ability;
@@ -105,7 +101,7 @@ namespace Langulus::Anyness
 
 	/// The class type function, wrapped in a lambda expression						
 	/// Returns the typed memory block of the class instance							
-	using FResolve = TFunctor<Inner::Block(const void*)>;
+	using FResolve = TFunctor<Block(const void*)>;
 
 	/// The hash getter, wrapped in a lambda expression								
 	/// Takes the pointer to the instance for hashing									

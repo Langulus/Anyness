@@ -1,5 +1,5 @@
 #pragma once
-#include "inner/Block.hpp"
+#include "Block.hpp"
 
 namespace Langulus::Anyness
 {
@@ -13,7 +13,7 @@ namespace Langulus::Anyness
 	/// and constand data blocks.																
 	///	For a faster statically-optimized equivalent of this, use TAny			
 	///																								
-	class Any : public Inner::Block {
+	class Any : public Block {
 	public:
 		template<class T>
 		static constexpr bool NotCustom = Sparse<T> || (!Same<T,Any> && !Same<T,Block>);

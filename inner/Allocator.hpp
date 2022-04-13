@@ -1,7 +1,8 @@
 #pragma once
 #include "Integration.hpp"
+#include "Reflection.hpp"
 
-namespace Langulus::Anyness::Inner
+namespace Langulus::Anyness
 {
 
 	/// Round to the upper power-of-two														
@@ -20,6 +21,8 @@ namespace Langulus::Anyness::Inner
 			n |= n >> 16;
 		if constexpr (sizeof(T) > 4)
 			n |= n >> 32;
+		if constexpr (sizeof(T) > 8)
+			TODO();
 		++n;
 		return n;
 	}
@@ -30,6 +33,12 @@ namespace Langulus::Anyness::Inner
 	/// This is a single allocation record inside a memory pool						
 	///																								
 	class Entry {
+	public:
+		// Allocated bytes for this chunk											
+		Stride mAllocatedBytes {};
+		// The number of references to this memory								
+		Count mReferences {};
+
 	public:
 		constexpr Entry() noexcept = default;
 
@@ -100,12 +109,6 @@ namespace Langulus::Anyness::Inner
 				(blockStart2 - blockStart1) > mAllocatedBytes &&
 				(blockStart1 - blockStart2) > other.mAllocatedBytes;
 		}
-
-	public:
-		// Allocated bytes for this chunk											
-		Stride mAllocatedBytes {};
-		// The number of references to this memory								
-		Count mReferences {};
 	};
 
 
@@ -118,9 +121,10 @@ namespace Langulus::Anyness::Inner
 	public:
 		static Entry* Allocate(DMeta, Count);
 		static Entry* Reallocate(DMeta, Count, Entry*);
+		static Entry* Find(DMeta, const void*);
 		static void Deallocate(DMeta, Entry*);
 		static void Reference(Entry*, Count);
 		static bool Dereference(Entry*, Count);
 	};
 
-} // namespace Langulus::Anyness::Inner
+} // namespace Langulus::Anyness

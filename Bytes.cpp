@@ -5,39 +5,37 @@ namespace Langulus::Anyness
 
 	/// Default construction																	
 	Bytes::Bytes()
-		: Block {DataState::Typed, PCMEMORY.GetFallbackMetaByte()} { }
+		: Block {DataState::Typed, MetaData::Of<Byte>()} { }
 
 	/// Do a shallow copy																		
 	///	@param other - the text to shallow-copy										
 	Bytes::Bytes(const Bytes& other)
 		: Block {other} {
-		MakeConstant();
-		PCMEMORY.Reference(mType, mRaw, 1);
+		Block::MakeConstant();
+		Block::Keep();
 	}
 
 	/// Construct manually from byte memory and count									
 	///	@param raw - raw memory to reference											
 	///	@param count - number of bytes inside 'raw'									
 	Bytes::Bytes(const Byte* raw, const Count& count)
-		: Block {DataState::Constant + DataState::Typed, PCMEMORY.GetFallbackMetaByte(), count, raw} {
-		bool no_jury;
-		PCMEMORY.Reference(mType, mRaw, 1, no_jury);
-		if (no_jury) {
-			// We should monopolize the memory to avoid segfaults, in the	
-			// case of the byte container being initialized with temporary	
-			// data																			
-			Block::TakeAuthority();
-		}
+		: Block {DataState::TypedConstant, MetaData::Of<Byte>(), count, raw} {
+		// Data is not owned by us, it may be on the stack						
+		// We should monopolize the memory to avoid segfaults, in the		
+		// case of the byte container being initialized with data			
+		// on the stack																	
+		Block::TakeAuthority();
 	}
 
 	/// Destructor																					
 	Bytes::~Bytes() {
-		PCMEMORY.Reference(mType, mRaw, -1);
+		// A byte container needs no destructor calls, so just dereference
+		Block::Dereference<false>(1);
 	}
 
 	/// Clear the contents, but do not deallocate memory if possible				
 	void Bytes::Clear() noexcept {
-		if (GetBlockReferences() == 1)
+		if (GetReferences() == 1)
 			mCount = 0;
 		else Reset();
 	}
@@ -45,10 +43,8 @@ namespace Langulus::Anyness
 	/// Reset the contents, deallocating any memory										
 	/// Byte containers are always type-constrained, and retain that				
 	void Bytes::Reset() {
-		PCMEMORY.Reference(mType, mRaw, -1);
-		mRaw = nullptr;
-		mCount = mReserved = 0;
-		mState = DataState::Typed;
+		Block::Dereference<false>(1);
+		Block::ResetInner<true>();
 	}
 
 	/// Hash the byte sequence																	
@@ -67,12 +63,11 @@ namespace Langulus::Anyness
 	///	@param other - the byte container to reference								
 	///	@return a reference to this container											
 	Bytes& Bytes::operator = (const Bytes& other) {
-		PCMEMORY.Reference(mType, mRaw, -1);
-		mRaw = other.mRaw;
-		mCount = other.mCount;
-		mReserved = other.mReserved;
-		mState = other.mState;
-		PCMEMORY.Reference(mType, mRaw, 1);
+		// First we keep, in order to make sure data is not freed			
+		// before being dereferenced													
+		other.Keep();
+		Block::Dereference<false>(1);
+		Block::operator=(other);
 		return *this;
 	}
 
@@ -80,26 +75,13 @@ namespace Langulus::Anyness
 	///	@param other - the container to move											
 	///	@return a reference to this container											
 	Bytes& Bytes::operator = (Bytes&& other) {
-		PCMEMORY.Reference(mType, mRaw, -1);
-		if (other.CheckJurisdiction() && !other.CheckUsage()) {
-			//TODO is this relevant? test it
-			throw Except::Move(Logger::Error()
-				<< "You've hit a really nasty corner case, where trying to move a container destroys it, "
-				<< "due to a circular referencing. Try to move a shallow-copy, instead of a reference to "
-				<< "the original. Data may be incorrect at this point. ");
-		}
-
-		mRaw = other.mRaw;
-		mCount = other.mCount;
-		mReserved = other.mReserved;
-		mState = other.mState;
-		other.mRaw = nullptr;
-		other.mCount = other.mReserved = 0;
-		other.mState = DataState::Typed;
+		Block::Dereference<false>(1);
+		Block::operator=(other);
+		other.ResetInner<true>();
 		return *this;
 	}
 
-	/// Compare with another text container												
+	/// Compare with another byte container												
 	bool Bytes::operator == (const Bytes& other) const noexcept {
 		return other.mCount == mCount && (
 			mRaw == other.mRaw || 
@@ -107,7 +89,7 @@ namespace Langulus::Anyness
 		);
 	}
 
-	/// Compare with another text container												
+	/// Compare with another byte container												
 	bool Bytes::operator != (const Bytes& other) const noexcept {
 		return !(*this == other);
 	}
@@ -123,8 +105,6 @@ namespace Langulus::Anyness
 	///	@param i - index of character														
 	///	@return constant reference to the character									
 	const Byte& Bytes::operator[] (const Offset& i) const {
-		SAFETY(if (i >= mCount)
-			throw Except::Access("Byte access index is out of range"));
 		return GetRaw()[i];
 	}
 
@@ -132,8 +112,6 @@ namespace Langulus::Anyness
 	///	@param i - index of character														
 	///	@return constant reference to the character									
 	Byte& Bytes::operator[] (const Offset& i) {
-		SAFETY(if (i >= mCount)
-			throw Except::Access("Byte access index is out of range"));
 		return GetRaw()[i];
 	}
 
@@ -144,7 +122,8 @@ namespace Langulus::Anyness
 		result.mReserved = mReserved;
 		result.mCount = mCount;
 		if (mReserved > 0) {
-			result.mRaw = PCMEMORY.Allocate(mType, mReserved);
+			result.mEntry = Allocator::Allocate(mType, mReserved);
+			result.mRaw = result.mEntry->GetBlockStart();
 			pcCopyMemory(mRaw, result.mRaw, mReserved);
 		}
 		return result;
@@ -157,7 +136,7 @@ namespace Langulus::Anyness
 	Bytes Bytes::Crop(const Offset& start, const Count& count) const {
 		Bytes result;
 		static_cast<Block&>(result) = Block::Crop(start, count);
-		result.ReferenceBlock(1);
+		result.Keep();
 		return result;
 	}
 

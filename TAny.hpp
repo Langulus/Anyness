@@ -25,8 +25,8 @@ namespace Langulus::Anyness
 		TAny(const Any&);
 		TAny(Any&&);
 
-		TAny(const Inner::Block&);
-		TAny(Inner::Block&&);
+		TAny(const Block&);
+		TAny(Block&&);
 
 		TAny(T&&) requires (TAny<T>::NotCustom);
 		TAny(const T&) requires (TAny<T>::NotCustom);
@@ -38,8 +38,8 @@ namespace Langulus::Anyness
 		TAny& operator = (const Any&);
 		TAny& operator = (Any&&);
 
-		TAny& operator = (const Inner::Block&);
-		TAny& operator = (Inner::Block&&);
+		TAny& operator = (const Block&);
+		TAny& operator = (Block&&);
 
 		TAny& operator = (const T&) requires (TAny<T>::NotCustom);
 		TAny& operator = (T&) requires (TAny<T>::NotCustom);

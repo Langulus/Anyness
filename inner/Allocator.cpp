@@ -2,7 +2,7 @@
 #include "Exceptions.hpp"
 #include "Reflection.hpp"
 
-namespace Langulus::Anyness::Inner
+namespace Langulus::Anyness
 {
 
 	/// Credit for malloc wrappers goes to:												
@@ -52,6 +52,14 @@ namespace Langulus::Anyness::Inner
 
 	}
 
+	/// Find a memory entry from pointer													
+	///	@param meta - the type of data to allocate									
+	///	@param memory - memory pointer													
+	///	@return the reallocated memory entry											
+	Entry* Allocator::Find(DMeta meta, const void* memory) {
+
+	}
+
 	void Allocator::Deallocate(DMeta, Entry*) {
 
 	}
@@ -64,4 +72,4 @@ namespace Langulus::Anyness::Inner
 
 	}
 
-} // namespace Langulus::Anyness::Inner
+} // namespace Langulus::Anyness

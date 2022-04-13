@@ -1,5 +1,5 @@
 #pragma once
-#include "inner/Block.hpp"
+#include "Block.hpp"
 
 namespace Langulus::Anyness
 {
@@ -9,7 +9,7 @@ namespace Langulus::Anyness
 	///																								
 	/// Convenient wrapper for raw byte sequences										
 	///																								
-	class Bytes : public Inner::Block {
+	class Bytes : public Block {
 	public:
 		Bytes();
 		Bytes(const Bytes&);

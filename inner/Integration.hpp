@@ -42,6 +42,7 @@
 	/// This form is required in order of it to work in 'if constexpr - else'	
 	/// https://stackoverflow.com/questions/38304847									
 	#define LANGULUS_ASSERT(text) []<bool flag = false>() { static_assert(flag, "FAILED ASSERTION: " text); }()
+	#define TODO() LANGULUS_ASSERT("TODO")
 
 	namespace Langulus
 	{
@@ -51,7 +52,6 @@
 		///																							
 		using Byte = ::std::byte;
 		using Count = ::std::size_t;
-		using RefCount = ::std::ptrdiff_t;
 		using Stride = ::std::size_t;
 		using Offset = ::std::size_t;
 		using Hash = ::std::size_t;

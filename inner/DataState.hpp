@@ -41,8 +41,10 @@ namespace Langulus::Anyness
 			Or = 16,
 
 			// Future phase, when phased												
+			Future = 32 | Phased,
+
 			// If state is only Phased, then it is considered past			
-			Future = 32,
+			Past = Phased,
 
 			// Data won't move, reallocate, deallocate, etc.					
 			// Used to constrain the memory manipulations. That way you		
@@ -63,10 +65,13 @@ namespace Langulus::Anyness
 			// Data is sparse, essentially made of pointers						
 			Sparse = 512,
 
-			// Data is constrained														
+			// Data is fully constrained												
+			// Useful set of states to interface a constant member			
 			Constrained = Static | Constant | Typed,
+			// Useful set of states to interface a mutable member				
 			Member = Static | Typed,
-			ConstantMember = Constrained
+			ConstantMember = Constrained,
+			TypedConstant = Constant | Typed
 		};
 
 		using Type = std::underlying_type_t<Enum>;

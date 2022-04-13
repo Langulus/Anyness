@@ -9,7 +9,7 @@ namespace Langulus::Anyness
 	///																								
 	///	Convenient wrapper for UTF strings												
 	///																								
-	class Text : public Inner::Block {
+	class Text : public Block {
 	public:
 		Text();
 		Text(const Text&);
