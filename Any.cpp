@@ -66,34 +66,34 @@ namespace Langulus::Anyness
 	///	@param other - the container to move											
 	///	@return a reference to this container											
 	Any& Any::operator = (Any&& other) {
-		SAFETY(const Block otherProbe = other);
 		Block::Free();
-		SAFETY(if (otherProbe != other || (other.CheckJurisdiction() && !other.CheckUsage()))
-			throw Except::Move(Logger::Error()
-				<< "You've hit a really nasty corner case, where trying to move a container destroys it, "
-				<< "due to a circular referencing. Try to move a shallow-copy, instead of a reference to "
-				<< "the original. Data may be incorrect at this point, but the moved container was: " << other.GetToken());
-		);
-
+		
 		if (IsTypeConstrained() && other.mType != mType) {
-			// This Any is type-constrained											
+			// Container is type-constrained, so check compatibility			
+			// The type of this container shall not change						
 			if (!other.mType || mType->InterpretsAs(other.mType)) {
-				// Overwrite everything except the type-constraint				
 				mRaw = other.mRaw;
 				mCount = other.mCount;
 				mReserved = other.mReserved;
 				mState = other.mState.mState | DataState::Typed;
-				other.ResetInner();
+				mEntry = other.mEntry;
+				other.ResetMemory();
+				if (other.IsTypeConstrained())
+					other.ResetState<true>();
+				else
+					other.ResetState<false>();
 				return *this;
 			}
-			else {
-				throw Except::Move(Logger::Error()
-					<< "Bad memory assignment for type-constrained any: from "
-					<< GetToken() << " to " << other.GetToken());
-			}
+			else throw Except::Move(Logger::Error()
+				<< "Bad memory assignment for type-constrained any: from "
+				<< GetToken() << " to " << other.GetToken());
 		}
 
 		Block::operator = (Forward<Block>(other));
+		if (other.IsTypeConstrained())
+			other.ResetState<true>();
+		else
+			other.ResetState<false>();
 		return *this;
 	}
 
@@ -141,10 +141,14 @@ namespace Langulus::Anyness
 		}
 	}
 
-	/// Deallocate all elements, but retain type-constraints							
+	/// Deallocate all elements, but retain type-constraints if any				
 	void Any::Reset() {
 		Block::Free();
-		Block::ResetInner();
+		Block::ResetMemory();
+		if (IsTypeConstrained())
+			Block::ResetState<true>();
+		else
+			Block::ResetState<false>();
 	}
 
 	/// Swap two anies																			

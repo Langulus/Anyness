@@ -4,21 +4,6 @@
 namespace Langulus::Anyness
 {
 
-	/// Move-construction for block															
-	///	@param other - the block instance to move										
-	Block::Block(Block&& other) noexcept
-		: mRaw {other.mRaw}
-		, mType {other.mType}
-		, mCount {other.mCount}
-		, mReserved {other.mReserved}
-		, mState {other.mState}
-		, mEntry {other.mEntry} {
-		if (IsTypeConstrained())
-			other.ResetInner<true>();
-		else
-			other.ResetInner<false>();
-	}
-
 	/// Get the token of the contained type												
 	///	@return the token																		
 	Token Block::GetToken() const noexcept {
@@ -148,15 +133,9 @@ namespace Langulus::Anyness
 	/// Dereference memory block once														
 	///	@return the remaining references for the block								
 	bool Block::Free() {
-		return Dereference(-1);
+		return Dereference(1);
 	}
 
-	/// Reference memory block once															
-	///	@return the remaining references for the block								
-	void Block::Keep() {
-		Reference(1);
-	}
-		
 	/// Select region from the memory block - unsafe and may return memory		
 	/// that has not been initialized yet - use only at your own risk				
 	/// Never references																			
@@ -180,19 +159,7 @@ namespace Langulus::Anyness
 	///	@param count - number of elements to remain after 'start'				
 	///	@return the block representing the region										
 	Block Block::Crop(Offset start, Count count) {
-		#if LANGULUS_SAFE()
-			if (start > mCount) {
-				start = mCount;
-				throw Except::Access(Logger::Error()
-					<< "Crop left offset is out of limits");
-			}
-			if (start + count > mCount) {
-				count = mCount - start;
-				throw Except::Access(Logger::Error()
-					<< "Crop count is out of limits");
-			}
-		#endif
-
+		CheckRange(start, count);
 		if (count == 0)
 			return {mState, mType};
 
@@ -229,24 +196,19 @@ namespace Langulus::Anyness
 	/// If we have jurisdiction, the memory won't move									
 	///	@return a reference to this byte sequence										
 	Block& Block::TakeAuthority() {
-		if (mEntry)
+		if (mEntry) {
+			// We already own this memory												
 			return *this;
+		}
 
 		auto newRaw = PCMEMORY.Reallocate(mType, mRaw, mReserved, mReserved);
 		if (newRaw != mRaw) {
-			// Memory moved, which means data is transfered to MMS,		
-			// so it's about time to remove the static constraints		
+			// Memory moved, which means data is transfered to MMS,			
+			// so it's about time to remove the static constraints			
 			mState.mState &= ~DataState::Static;
 		}
 
 		return *this;
-	}
-
-	/// Get the number of references for the allocated memory block				
-	///	@attention always returns 1 if memory is outside authority				
-	///	@return the references for the memory block									
-	Count Block::GetReferences() const {
-		return PCMEMORY.GetReferences(mType, mRaw);
 	}
 
 	/// Get the memory block corresponding to a base (constant)						
@@ -351,62 +313,6 @@ namespace Langulus::Anyness
 	void Block::ToggleState(const DataState& state, bool toggle) {
 		if (toggle)	mState.mState |= state.mState;
 		else			mState.mState &= ~state.mState;
-	}
-
-	/// Make memory block vacuum (a.k.a. missing)										
-	///	@return reference to itself														
-	Block& Block::MakeMissing() {
-		mState.mState |= DataState::Missing;
-		return *this;
-	}
-
-	/// Make memory block static (unmovable and unresizable)							
-	///	@return reference to itself														
-	Block& Block::MakeStatic() {
-		mState.mState |= DataState::Static;
-		return *this;
-	}
-
-	/// Make memory block constant (unresizable and unchangable)					
-	///	@return reference to itself														
-	Block& Block::MakeConstant() {
-		mState.mState |= DataState::Constant;
-		return *this;
-	}
-
-	/// Make memory block type-immutable													
-	///	@return reference to itself														
-	Block& Block::MakeTypeConstrained() {
-		mState.mState |= DataState::Typed;
-		return *this;
-	}
-
-	/// Make memory block exlusive (a.k.a. OR container)								
-	///	@return reference to itself														
-	Block& Block::MakeOr() {
-		mState.mState |= DataState::Or;
-		return *this;
-	}
-
-	/// Make memory block inclusive (a.k.a. AND container)							
-	///	@return reference to itself														
-	Block& Block::MakeAnd() {
-		mState.mState &= ~DataState::Or;
-		return *this;
-	}
-
-	/// Set memory block phase to past														
-	///	@return reference to itself														
-	Block& Block::MakePast() {
-		SetPhase(Phase::Past);
-		return *this;
-	}
-
-	/// Set memory block phase to future													
-	///	@return reference to itself														
-	Block& Block::MakeFuture() {
-		SetPhase(Phase::Future);
-		return *this;
 	}
 
 	/// Hash data inside memory block														

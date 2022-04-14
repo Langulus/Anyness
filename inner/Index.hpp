@@ -74,10 +74,10 @@ namespace Langulus::Anyness
 
 	public:
 		constexpr Index() noexcept = default;
+		constexpr Index(const Index&) noexcept = default;
 		constexpr Index(const SpecialIndices&) noexcept;
 		constexpr Index(const Type&) noexcept;
 		constexpr Index(const Count&);
-
 	public:
 		NOD() constexpr Index Constrained(Count) const noexcept;
 		NOD() constexpr Offset GetOffset() const;
@@ -92,7 +92,7 @@ namespace Langulus::Anyness
 		NOD() constexpr bool IsArithmetic() const noexcept;
 
 		NOD() explicit constexpr operator bool() const noexcept;
-		NOD() constexpr operator const Type& () const noexcept;
+		NOD() explicit constexpr operator const Type& () const noexcept;
 
 		constexpr void operator ++ () noexcept;
 		constexpr void operator -- () noexcept;

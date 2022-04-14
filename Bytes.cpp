@@ -7,23 +7,32 @@ namespace Langulus::Anyness
 	Bytes::Bytes()
 		: Block {DataState::Typed, MetaData::Of<Byte>()} { }
 
-	/// Do a shallow copy																		
-	///	@param other - the text to shallow-copy										
+	/// Construct via shallow copy															
+	///	@param other - the bytes to shallow-copy										
 	Bytes::Bytes(const Bytes& other)
 		: Block {other} {
-		Block::MakeConstant();
 		Block::Keep();
 	}
 
-	/// Construct manually from byte memory and count									
+	/// Construct via disowned copy															
+	///	@param other - the bytes to move													
+	Bytes::Bytes(const Disowned<Bytes>& other) noexcept
+		: Block {other.Value} { }
+	
+	/// Construct via abandoned move															
+	///	@param other - the bytes to move													
+	Bytes::Bytes(Abandoned<Bytes>&& other) noexcept
+		: Block {other.Forward<Block>()} { }
+
+	/// Construct manually																		
 	///	@param raw - raw memory to reference											
 	///	@param count - number of bytes inside 'raw'									
 	Bytes::Bytes(const Byte* raw, const Count& count)
-		: Block {DataState::TypedConstant, MetaData::Of<Byte>(), count, raw} {
+		: Block {DataState::Constrained, MetaData::Of<Byte>(), count, raw} {
 		// Data is not owned by us, it may be on the stack						
 		// We should monopolize the memory to avoid segfaults, in the		
-		// case of the byte container being initialized with data			
-		// on the stack																	
+		// case of the byte container being initialized with					
+		// temporary data on the stack												
 		Block::TakeAuthority();
 	}
 
@@ -44,7 +53,8 @@ namespace Langulus::Anyness
 	/// Byte containers are always type-constrained, and retain that				
 	void Bytes::Reset() {
 		Block::Dereference<false>(1);
-		Block::ResetInner<true>();
+		Block::ResetMemory();
+		Block::ResetState<true>();
 	}
 
 	/// Hash the byte sequence																	
@@ -77,7 +87,7 @@ namespace Langulus::Anyness
 	Bytes& Bytes::operator = (Bytes&& other) {
 		Block::Dereference<false>(1);
 		Block::operator=(other);
-		other.ResetInner<true>();
+		other.ResetState<true>();
 		return *this;
 	}
 
@@ -116,76 +126,87 @@ namespace Langulus::Anyness
 	}
 
 	/// Clone the byte container																
-	///	@return a new container that owns its memory									
+	///	@return the cloned byte container												
 	Bytes Bytes::Clone() const {
-		Bytes result;
-		result.mReserved = mReserved;
-		result.mCount = mCount;
-		if (mReserved > 0) {
-			result.mEntry = Allocator::Allocate(mType, mReserved);
+		Bytes result {Disown(*this)};
+		if (mCount) {
+			result.mEntry = Allocator::Allocate(mType, mCount);
 			result.mRaw = result.mEntry->GetBlockStart();
-			pcCopyMemory(mRaw, result.mRaw, mReserved);
 		}
-		return result;
+		else {
+			result.mEntry = nullptr;
+			result.mRaw = nullptr;
+		}
+		
+		result.mCount = result.mReserved = mCount;
+		pcCopyMemory(mRaw, result.mRaw, mReserved);
+		return Abandon(result);
 	}
 
-	/// Pick a part of the byte array - doesn't copy or monopolize data			
+	/// Pick a part of the byte array														
 	///	@param start - the starting byte offset										
 	///	@param count - the number of bytes after 'start' to remain				
 	///	@return a new container that references the original memory				
 	Bytes Bytes::Crop(const Offset& start, const Count& count) const {
-		Bytes result;
-		static_cast<Block&>(result) = Block::Crop(start, count);
-		result.Keep();
-		return result;
+		Block::CheckRange(start, cound);
+		Bytes result {*this};
+		result.MakeStatic();
+		result.mRaw += start;
+		result.mCount = result.mReserved = count;
+		return Abandon(result);
 	}
 
-	/// Remove a part of the text. If memory is out of jurisdiction, we're		
-	/// monopolizing it in a new allocation												
-	///	@param start - the starting character											
-	///	@param end - the ending character												
-	///	@return a reference to this text													
+	/// Remove a region of bytes																
+	/// Can't remove bytes from static containers 										
+	///	@param start - the starting offset												
+	///	@param end - the ending offset													
+	///	@return a reference to the byte container										
 	Bytes& Bytes::Remove(const Offset& start, const Offset& end) {
-		const auto removed = end - start;
-		if (0 == mCount || 0 == removed)
+		if (IsEmpty() || IsStatic() || start >= end)
 			return *this;
-
+		
+		const auto removed = end - start;
 		if (end < mCount) {
-			TakeAuthority();
-			pcMoveMemory(GetRaw() + end, GetRaw() + start, mCount - removed);
+			// Removing in the middle, so memory has to move					
+			pcMoveMemory(mRaw + end, mRaw + start, mCount - removed);
 		}
 
 		mCount -= removed;
 		return *this;
 	}
 
-	/// Extend the byte sequence, change count, and if data is out of				
-	/// jurisdiction - move it to a new place where we own it						
-	///	@return an array that represents the extended part							
+	/// Extend the byte sequence, change count, and return the new range			
+	/// Static byte containers can't be extended											
+	///	@param count - the number of bytes to append									
+	///	@return the extended part - you will not be allowed to resize it		
 	Bytes Bytes::Extend(const Count& count) {
-		const auto lastCount = mCount;
-		if (mCount + count <= mReserved) {
+		if (IsStatic())
+			// You can not extend static containers								
+			return {};
+		
+		const auto newCount = mCount + count;
+		const auto oldCount = mCount;
+		if (newCount <= mReserved) {
+			// There is enough available space										
 			mCount += count;
-			return {GetRaw() + lastCount, count};
+			
+			Bytes result {*this};
+			result.MakeStatic();
+			result.mRaw += oldCount;
+			result.mCount = result.mReserved = count;
+			return Abandon(result);
 		}
 
-		if (!mRaw) {
-			// If text container is empty - allocate								
-			mRaw = PCMEMORY.Allocate(mType, mCount + count);
-		}
-		else if (!IsStatic()) {
-			// If text is not unmovable and already allocated - resize		
-			mRaw = PCMEMORY.Reallocate(mType, mRaw, mCount + count, mCount);
-		}
-		else {
-			// In case memory is unmovable - clone and reallocate				
-			*this = Clone();
-			mRaw = PCMEMORY.Reallocate(mType, mRaw, mCount + count, mCount);
-		}
-
-		mCount += count;
-		mReserved = mCount;
-		return {GetRaw() + lastCount, count};
+		// Allocate more space															
+		mEntry = Allocator::Reallocate(mType, newCount, mEntry);
+		mRaw = mEntry->GetBlockStart();
+		mCount = mReserved = newCount;
+		
+		Bytes result {*this};
+		result.MakeStatic();
+		result.mRaw += oldCount;
+		result.mCount = result.mReserved = count;
+		return Abandon(result);
 	}
 
 } // namespace Langulus::Anyness

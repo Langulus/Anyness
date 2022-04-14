@@ -50,14 +50,14 @@ namespace Langulus::Anyness
 	///																								
 	class Allocator {
 	public:
-		static Entry* Allocate(DMeta, Count);
-		static Entry* Reallocate(DMeta, Count, Entry*);
-		static Entry* Find(DMeta, const void*);
+		NOD() static Entry* Allocate(DMeta, Count);
+		NOD() static Entry* Reallocate(DMeta, Count, Entry*);
+		NOD() static Entry* Find(DMeta, const void*);
 		static void Deallocate(DMeta, Entry*);
 		static void Reference(Entry*, Count);
-		static bool Dereference(Entry*, Count);
 		static void Reference(DMeta, const void*, Count);
-		static bool Dereference(DMeta, const void*, Count);
+		NOD() static bool Dereference(Entry*, Count);
+		NOD() static bool Dereference(DMeta, const void*, Count);
 	};
 
 } // namespace Langulus::Anyness

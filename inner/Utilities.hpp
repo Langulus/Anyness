@@ -25,6 +25,39 @@ namespace Langulus
 		return static_cast<Deref<T>&&>(_Arg);
 	}
 
+	/// Abandon a value																			
+	/// Same as Move, but resets only mandatory data inside source after move	
+	/// essentially saving up on a couple of instructions								
+	template<class T>
+	struct Abandoned {
+		T&& Value;
+		
+		/// Forward as abandoned																
+		template<class ALT_T>
+		NOD() constexpr Abandoned<ALT_T> Forward() const noexcept {
+			return Abandoned<ALT_T>{
+				Langulus::Forward<ALT_T>(Value)
+			};
+		}
+	};
+	
+	template<class T>
+	NOD() constexpr Abandoned<T> Abandon(T&& _Arg) noexcept {
+		return Abandoned<T>{Forward<T>(_Arg)};
+	}
+
+	/// Disown a value																			
+	/// Same as a shallow-copy, but never references									
+	template<class T>
+	struct Disowned {
+		const T& Value;
+	};
+	
+	template<class T>
+	NOD() constexpr Disowned<T> Disown(const T& item) noexcept {
+		return Disowned<T>{item};
+	}
+	
 	/// Get number of digits inside an integer											
 	/// The routine is as statically optimized as possible							
 	///	@param n - value																		

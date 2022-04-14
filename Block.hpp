@@ -93,8 +93,10 @@ namespace Langulus::Anyness
 	public:
 		constexpr Block() noexcept = default;
 		constexpr Block(const Block&) noexcept = default;
+		~Block() noexcept = default;
 			
 		Block(Block&&) noexcept;
+		explicit Block(Abandoned<Block>&&) noexcept;
 		explicit constexpr Block(DMeta) noexcept;
 		Block(DMeta, Count, const Byte*) noexcept;
 		Block(DMeta, Count, Byte*) noexcept;
@@ -113,6 +115,7 @@ namespace Langulus::Anyness
 
 		constexpr Block& operator = (const Block&) noexcept = default;
 		Block& operator = (Block&&) noexcept;
+		Block& operator = (Abandoned<Block>&&) noexcept;
 			
 		Block& TakeAuthority();
 		void Optimize();
@@ -244,6 +247,9 @@ namespace Langulus::Anyness
 		template<bool SKIP_DEEP_OR_EMPTY = true, class FUNCTION>
 		Count ForEachDeepRev(FUNCTION&&) const;
 	
+	protected:
+		void CheckRange(const Offset& start, const Count& count) const;
+		
 	private:
 		template<class RETURN, ReflectedData ARGUMENT, bool REVERSE, bool MUTABLE = true>
 		Count ForEachInner(TFunctor<RETURN(ARGUMENT)>&&);
@@ -268,7 +274,7 @@ namespace Langulus::Anyness
 		NOD() bool Owns(const void*) const noexcept;
 		NOD() bool CheckJurisdiction() const;
 		NOD() bool CheckUsage() const;
-		NOD() Count GetReferences() const;
+		constexpr NOD() Count GetReferences() const noexcept;
 		NOD() Block Crop(Offset, Count);
 		NOD() Block Crop(Offset, Count) const;
 	
@@ -291,14 +297,14 @@ namespace Langulus::Anyness
 		NOD() bool Mutate();
 	
 		void ToggleState(const DataState&, bool toggle = true);
-		Block& MakeMissing();
-		Block& MakeStatic();
-		Block& MakeConstant();
-		Block& MakeTypeConstrained();
-		Block& MakeOr();
-		Block& MakeAnd();
-		Block& MakePast();
-		Block& MakeFuture();
+		void MakeMissing() noexcept;
+		void MakeStatic() noexcept;
+		void MakeConstant() noexcept;
+		void MakeTypeConstrained() noexcept;
+		void MakeOr() noexcept;
+		void MakeAnd() noexcept;
+		void MakePast() noexcept;
+		void MakeFuture() noexcept;
 	
 		Count Copy(Block&, bool allocate = false) const;
 		Count Clone(Block&) const;
@@ -433,13 +439,17 @@ namespace Langulus::Anyness
 	
 	protected:
 		constexpr void ClearInner() noexcept;
+		constexpr void ResetMemory() noexcept;
 		template<bool TYPED>
-		constexpr void ResetInner() noexcept;
+		constexpr void ResetState() noexcept;
 	
+		void Reference(const Count&) const noexcept;
 		void Reference(const Count&) noexcept;
+		void Keep() const noexcept;
+		void Keep() noexcept;
+		
 		template<bool DESTROY = true>
 		bool Dereference(const Count&);
-		void Keep();
 		bool Free();
 	
 		void CallDefaultConstructors();

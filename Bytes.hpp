@@ -15,8 +15,17 @@ namespace Langulus::Anyness
 		Bytes(const Bytes&);
 		Bytes(Bytes&&) noexcept = default;
 		Bytes(const Byte*, const Count&);
+		
+		explicit Bytes(const Disowned<Bytes>&) noexcept;
+		explicit Bytes(Abandoned<Bytes>&&) noexcept;
+		
 		~Bytes();
 
+		Bytes& operator = (const Bytes&);
+		Bytes& operator = (Bytes&&) noexcept;
+		Bytes& operator = (const Disowned<Bytes>&);
+		Bytes& operator = (Abandoned<Bytes>&&) noexcept;
+		
 	public:
 		NOD() Bytes Clone() const;
 		NOD() Bytes Crop(const Offset&, const Count&) const;
@@ -26,9 +35,6 @@ namespace Langulus::Anyness
 		void Reset();
 		Bytes Extend(const Count&);
 		Hash GetHash() const;
-
-		Bytes& operator = (const Bytes&);
-		Bytes& operator = (Bytes&&) noexcept;
 
 		bool operator == (const Bytes&) const noexcept;
 		bool operator != (const Bytes&) const noexcept;

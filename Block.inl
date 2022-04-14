@@ -3,7 +3,32 @@
 
 namespace Langulus::Anyness
 {
-
+	
+	/// Move-construction for block															
+	///	@attention type and state is never erased in source						
+	///	@param other - the block instance to move										
+	inline Block::Block(Block&& other) noexcept
+		: mRaw {other.mRaw}
+		, mType {other.mType}
+		, mCount {other.mCount}
+		, mReserved {other.mReserved}
+		, mState {other.mState}
+		, mEntry {other.mEntry} {
+		other.ResetMemory();
+	}
+	
+	/// Move-construction for abandoned block												
+	///	@param other - the block instance to move										
+	inline Block::Block(Abandoned<Block>&& other) noexcept
+		: mRaw {other.Value.mRaw}
+		, mType {other.Value.mType}
+		, mCount {other.Value.mCount}
+		, mReserved {other.Value.mReserved}
+		, mState {other.Value.mState}
+		, mEntry {other.Value.mEntry} {
+		other.Value.mEntry = nullptr;
+	}
+	
 	/// Manual construction via state and type											
 	/// No allocation will happen																
 	///	@param state - the initial state of the container							
@@ -85,7 +110,7 @@ namespace Langulus::Anyness
 
 	/// Move memory block																		
 	/// No referencing will occur - this simply copies and resets the other		
-	/// Other will retain its type-constraints after the reset						
+	/// Other block will retain its state and type after the move					
 	///	@param other - the memory block to move										
 	///	@return a reference to this block												
 	Block& Block::operator = (Block&& other) noexcept {
@@ -95,10 +120,22 @@ namespace Langulus::Anyness
 		mReserved = other.mReserved;
 		mState = other.mState;
 		mEntry = other.mEntry;
-		if (IsTypeConstrained())
-			other.ResetInner<true>();
-		else
-			other.ResetInner<false>();
+		other.ResetMemory();
+		return *this;
+	}
+	
+	/// Move an abandoned memory block														
+	/// No referencing will occur - this simply copies and resets the other		
+	///	@param other - the memory block to move										
+	///	@return a reference to this block												
+	Block& Block::operator = (Abandoned<Block>&& other) noexcept {
+		mRaw = other.Value.mRaw;
+		mType = other.Value.mType;
+		mCount = other.Value.mCount;
+		mReserved = other.Value.mReserved;
+		mState = other.Value.mState;
+		mEntry = other.Value.mEntry;
+		other.Value.mEntry = nullptr;
 		return *this;
 	}
 
@@ -106,12 +143,30 @@ namespace Langulus::Anyness
 	///	@param times - number of references to add									
 	inline void Block::Reference(const Count& times) noexcept {
 		if (!mEntry)
-			// Data is static - don't touch it										
+			// We don't own the data - don't touch it								
 			return;
 
 		mEntry->mReferences += times;
 	}
 	
+	/// Reference memory block (const)														
+	///	@param times - number of references to add									
+	inline void Block::Reference(const Count& times) const noexcept {
+		const_cast<Block&>(*this).Reference(times);
+	}
+	
+	/// Reference memory block once															
+	///	@return the remaining references for the block								
+	inline void Block::Keep() noexcept {
+		Reference(1);
+	}
+	
+	/// Reference memory block once (const)												
+	///	@return the remaining references for the block								
+	inline void Block::Keep() const noexcept {
+		const_cast<Block&>(*this).Keep();
+	}
+			
 	/// Dereference memory block																
 	/// Upon full dereference, element destructors are called if DESTROY			
 	/// It is your responsibility to clear your Block after that					
@@ -120,7 +175,7 @@ namespace Langulus::Anyness
 	template<bool DESTROY>
 	bool Block::Dereference(const Count& times) {
 		if (!mEntry)
-			// Data is static - don't touch it										
+			// Data is either static or unallocated - don't touch it			
 			return false;
 
 		if (mEntry->mReferences <= times) {
@@ -141,23 +196,43 @@ namespace Langulus::Anyness
 		mCount = 0;
 	}
 
-	/// Reset the block, by zeroing everything, except type-constraints			
-	template<bool TYPED>
-	constexpr void Block::ResetInner() noexcept {
+	/// Reset the memory inside the block													
+	constexpr void Block::ResetMemory() noexcept {
 		mRaw = nullptr;
 		mEntry = nullptr;
 		mCount = mReserved = 0;
-
+	}
+	
+	/// Reset the block's state																
+	template<bool TYPED>
+	constexpr void Block::ResetState() noexcept {
 		if constexpr (TYPED) {
 			// Don't clear type, and restore typed state							
+			//mType = nullptr;
 			mState.mState = DataState::Typed;
 		}
 		else {
-			// Clear both type and typed state										
+			// Clear both type and state												
 			mType = nullptr;
 			mState.mState = DataState::Default;
 		}
 	}
+	
+	/// Check if a range is inside the block												
+	/// This function throws on error only if LANGULUS(SAFE) is enabled			
+	inline void Block::CheckRange(const Offset& start, const Count& count) const {
+		#if LANGULUS_SAFE()
+			if (start > mCount) {
+				throw Except::Access(Logger::Error()
+					<< "Crop left offset is out of limits");
+			}
+			
+			if (start + count > mCount) {
+				throw Except::Access(Logger::Error()
+					<< "Crop count is out of limits");
+			}
+		#endif
+	}	
 
 	/// Get the contained type meta definition											
 	///	@return the meta data																
@@ -173,6 +248,13 @@ namespace Langulus::Anyness
 	///	@return the number of reserved (probably not constructed) elements	
 	constexpr const Count& Block::GetReserved() const noexcept {
 		return mReserved;
+	}
+	
+	/// Get the number of references for the allocated memory block				
+	///	@attention always returns 1 if memory is outside authority				
+	///	@return the references for the memory block									
+	constexpr Count Block::GetReferences() const noexcept {
+		return mEntry ? mEntry->mReferences : 1;
 	}
 
 	/// Check if memory is allocated															
@@ -236,15 +318,15 @@ namespace Langulus::Anyness
 	}
 
 	/// Check if block is constant															
-	///	@returns true if the contents of this pack are constant					
+	///	@returns true if the contents are immutable									
 	constexpr bool Block::IsConstant() const noexcept {
 		return mState.mState & DataState::Constant;
 	}
 
 	/// Check if block is static																
-	///	@returns true if the contents of this pack are constant					
+	///	@returns true if the contents are static (size-constrained)				
 	constexpr bool Block::IsStatic() const noexcept {
-		return mState.mState & DataState::Static;
+		return mState.mState & DataState::Static || !mEntry;
 	}
 
 	/// Check if block is inhibitory (or) container										
@@ -276,12 +358,61 @@ namespace Langulus::Anyness
 	inline bool Block::IsDense() const {
 		return !IsSparse();
 	}
+	
+	/// Make memory block vacuum (a.k.a. missing)										
+	///	@return reference to itself														
+	void Block::MakeMissing() noexcept {
+		mState.mState |= DataState::Missing;
+	}
 
+	/// Make memory block static (unmovable and unresizable)							
+	///	@return reference to itself														
+	void Block::MakeStatic() noexcept {
+		mState.mState |= DataState::Static;
+	}
+
+	/// Make memory block constant (unresizable and unchangable)					
+	///	@return reference to itself														
+	void Block::MakeConstant() noexcept {
+		mState.mState |= DataState::Constant;
+	}
+
+	/// Make memory block type-immutable													
+	///	@return reference to itself														
+	void Block::MakeTypeConstrained() noexcept {
+		mState.mState |= DataState::Typed;
+	}
+
+	/// Make memory block exlusive (a.k.a. OR container)								
+	///	@return reference to itself														
+	void Block::MakeOr() noexcept {
+		mState.mState |= DataState::Or;
+	}
+
+	/// Make memory block inclusive (a.k.a. AND container)							
+	///	@return reference to itself														
+	void Block::MakeAnd() noexcept {
+		mState.mState &= ~DataState::Or;
+	}
+
+	/// Set memory block phase to past														
+	///	@return reference to itself														
+	void Block::MakePast() noexcept {
+		SetPhase(Phase::Past);
+	}
+
+	/// Set memory block phase to future													
+	///	@return reference to itself														
+	void Block::MakeFuture() noexcept {
+		SetPhase(Phase::Future);
+	}
+	
 	/// Get polarity																				
 	///	@return the polarity of the contained data									
 	constexpr Phase Block::GetPhase() const noexcept {
 		if (!IsPhased())
 			return Phase::Now;
+		
 		return mState.mState & DataState::Future 
 			? Phase::Future 
 			: Phase::Past;
@@ -594,15 +725,6 @@ namespace Langulus::Anyness
 	Count Block::Emplace(T&& item, const Index& index) {
 		const auto starter = ConstrainMore<T>(index).GetOffset();
 
-		// Check errors before actually doing anything							
-		if constexpr (Sparse<T>) {
-			if (!item) {
-				throw Except::Reference(Logger::Error()
-					<< "Move-insertion of a null pointer of type "
-					<< GetToken() << " is not allowed");
-			}
-		}
-
 		if constexpr (MUTABLE) {
 			// Type may mutate															
 			if (Mutate<T>())
@@ -618,9 +740,9 @@ namespace Langulus::Anyness
 				throw Except::Reference(Logger::Error()
 					<< "Moving elements that are used from multiple places"));
 
-			CropInner(starter + 1, mCount - starter)
+			Block::CropInner(starter + 1, mCount - starter)
 				.CallMoveConstructors(
-					CropInner(starter, mCount - starter));
+					Block::CropInner(starter, mCount - starter));
 		}
 
 		// Insert new data																
@@ -630,7 +752,7 @@ namespace Langulus::Anyness
 			data = reinterpret_cast<Byte*>(item);
 
 			// Reference the pointer's memory										
-			PCMEMORY.Reference(mType, item, 1);
+			Allocator::Reference(mType, item, 1);
 		}
 		else {
 			static_assert(!pcIsAbstract<T>, "Can't emplace abstract item");
