@@ -11,11 +11,11 @@ namespace Langulus::Anyness
 	///	@return a static memory block														
 	Block Block::GetMember(const Member& member) {
 		if (!IsAllocated())
-			return {member.mType};
+			return Block {member.mType};
 
 		return { 
 			DataState::Member, member.mType, 
-			member.mCount, const_cast<void*>(member.Get(mRaw))
+			member.mCount, member.Get(mRaw)
 		};
 	}
 
@@ -200,10 +200,10 @@ namespace Langulus::Anyness
 
 		// Compare all elements															
 		for (Index i = starti; i < mCount && i >= 0; i += istep) {
-			auto left = GetElementResolved(i);
+			auto left = GetElementResolved(i.GetOffset());
 			bool failure = false;
 			for (Index j = 0; j < item.GetCount() && !failure && (i + istep * j) >= 0 && (i + istep * j) < mCount; ++j) {
-				auto right = item.GetElementResolved(j);
+				auto right = item.GetElementResolved(j.GetOffset());
 				if (!left.Compare(right)) {
 					failure = true;
 					break;

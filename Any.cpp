@@ -46,7 +46,7 @@ namespace Langulus::Anyness
 				mRaw = other.mRaw;
 				mCount = other.mCount;
 				mReserved = other.mReserved;
-				mState = other.mState.mState | DataState::Typed;
+				mState = other.mState + DataState::Typed;
 				Block::Keep();
 				return *this;
 			}
@@ -75,7 +75,7 @@ namespace Langulus::Anyness
 				mRaw = other.mRaw;
 				mCount = other.mCount;
 				mReserved = other.mReserved;
-				mState = other.mState.mState | DataState::Typed;
+				mState = other.mState + DataState::Typed;
 				mEntry = other.mEntry;
 				other.ResetMemory();
 				if (other.IsTypeConstrained())
@@ -137,7 +137,7 @@ namespace Langulus::Anyness
 			const auto meta = mType;
 			Reset();
 			mType = meta;
-			mState.mState |= state.mState;
+			mState += state;
 		}
 	}
 

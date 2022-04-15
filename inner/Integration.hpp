@@ -123,6 +123,13 @@
 			{ t < u } -> Boolean;
 			{ t > u } -> Boolean;
 		};
+		
+		/// Convertible concept																	
+		/// Checks if a static_cast is possible between the provided types		
+		template<class FROM, class TO>
+		concept Convertible = requires(FROM from, TO to) {
+			to = static_cast<TO>(from);
+		};
 
 		/// Character concept																	
 		template<class T>

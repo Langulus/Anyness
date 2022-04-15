@@ -1,6 +1,6 @@
 /// Include this only when building standalone											
 #pragma once
-#include "Integration.hpp"
+#include "DataState.hpp"
 
 #define LANGULUS_DEEP() public: static constexpr bool CTTI_Deep = true
 #define LANGULUS_POD() public: static constexpr bool CTTI_POD = true
@@ -121,6 +121,8 @@ namespace Langulus::Anyness
 	struct Member {
 		// Type of data																	
 		DMeta mType {};
+		// State of the data																
+		DataState mState {};
 		// Member offset. This is relative to the type it is offsetted		
 		// in! If accessed through a derived type, that offset might		
 		// be wrong! Type must be resolved first!									
@@ -137,6 +139,17 @@ namespace Langulus::Anyness
 		NOD() static Member From(Offset, const Token& = {}, TMeta trait = {});
 		NOD() constexpr bool operator == (const Member&) const noexcept;
 		NOD() constexpr bool operator != (const Member&) const noexcept;
+		
+		template<ReflectedData T>
+		NOD() constexpr bool Is() const noexcept;
+		
+		template<ReflectedData T>
+		NOD() const T& As(const Byte*) const noexcept;
+		template<ReflectedData T>
+		NOD() T& As(Byte*) const noexcept;
+		
+		NOD() constexpr const Byte* Get(const Byte*) const noexcept;
+		NOD() constexpr Byte* Get(Byte*) const noexcept;
 	};
 
 	using MemberList = ::std::span<const Member>;
@@ -370,3 +383,5 @@ namespace Langulus::Anyness
 	};
 	
 } // namespace Langulus::Anyness
+
+#include "Reflection.inl"

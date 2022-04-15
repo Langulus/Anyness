@@ -50,19 +50,11 @@ namespace Langulus::Anyness
 
 		template<class T>
 		Bytes& operator += (const T&);
+		template<class T>
+		Bytes operator + (const T&) const;
+		template<class T>
+		friend NOD() Bytes operator + (const T&, const Bytes&) requires NotSame<T, Bytes>;
 	};
-
-	/// Compile time check for text items													
-	template<class T>
-	concept IsBytes = pcHasBase<T, Bytes>;
-
-	NOD() Bytes operator + (const Bytes&, const Bytes&);
-
-	template<class T>
-	NOD() Bytes operator + (const T&, const Bytes&) requires (!IsBytes<T>);
-
-	template<class T>
-	NOD() Bytes operator + (const Bytes&, const T&) requires (!IsBytes<T>);
 
 } // namespace Langulus::Anyness
 

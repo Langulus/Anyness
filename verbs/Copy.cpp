@@ -4,7 +4,7 @@
 namespace Langulus::Anyness
 {
 
-	/// Invoke the shallow copy operators of all elements inside block			
+	/// Invoke the shallow copy operators of all elements inside this block		
 	/// This function does not allocate and must always work on initialized		
 	/// memory to avoid undefined behavior													
 	///	@param result - the resulting block (must be preinitialized)			
@@ -27,8 +27,8 @@ namespace Langulus::Anyness
 
 		// Check if types are compatible												
 		if (!mType->Is(result.GetType())) {
-			// Check if result decays to this block's type						
-			Block decayedResult {result.Decay(mType)};
+			// Check if result reinterprets to this block's type				
+			Block decayedResult = result.ReinterpretAs(*this);
 			if (!decayedResult.IsEmpty() && decayedResult.GetCount() <= GetCount()) {
 				// Attempt copy inside decayed type									
 				return Copy(decayedResult, false);
@@ -78,12 +78,12 @@ namespace Langulus::Anyness
 			VERBOSE(Logger::Verbose()
 				<< "Sparse -> Sparse referencing copy");
 
-			pcCopyMemory(mRaw, result.mRaw, mCount * sizeof(Count));
+			CopyMemory(mRaw, result.mRaw, mCount * sizeof(Count));
 
 			// Cycle all pointers and reference their memories					
 			auto from_ptrarray = GetRawSparse();
 			for (Count i = 0; i < mCount; ++i)
-				PCMEMORY.Reference(mType, from_ptrarray[i], 1);
+				Allocator::Reference(mType, from_ptrarray[i], 1);
 
 			VERBOSE(Logger::Verbose()
 				<< "Copied " << mCount << " pointers"
@@ -169,7 +169,7 @@ namespace Langulus::Anyness
 				to.GetRawSparse()[0] = from.mRaw;
 
 				// Reference each copied pointer!									
-				PCMEMORY.Reference(from.mType, from.mRaw, 1);
+				Allocator::Reference(from.mType, from.mRaw, 1);
 			}
 
 			VERBOSE(Logger::Verbose()
@@ -181,7 +181,7 @@ namespace Langulus::Anyness
 		// If this is reached, both source and destination are dense		
 		if (result.mType->mPOD) {
 			// If data is not complex just do a memcpy and we're done		
-			pcCopyMemory(mRaw, result.mRaw, GetSize());
+			CopyMemory(mRaw, result.mRaw, GetSize());
 			VERBOSE(Logger::Verbose()
 				<< "Copied " << GetSize() << " bytes via memcpy" 
 				<< ccGreen << " (fast copy)");

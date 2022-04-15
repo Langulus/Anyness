@@ -227,7 +227,7 @@ namespace Langulus::Anyness
 	TEMPLATE()
 	void TAny<T>::Null(const Count& count) {
 		Allocate(count, false, true);
-		pcFillMemory(mRaw, {}, GetSize());
+		FillMemory(mRaw, {}, GetSize());
 	}
 
 	/// Clear the container, destroying all elements,									

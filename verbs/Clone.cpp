@@ -14,8 +14,8 @@ namespace Langulus::Anyness
 	///	@param result - the resulting container										
 	Count Block::Clone(Block& result) const {
 		// Always clone the state, but make it unconstrained					
-		result.SetType(mType, false);
-		result.mState.mState |= GetUnconstrainedState().mState;
+		result.SetType<false>(mType);
+		result.mState += GetUnconstrainedState();
 
 		if (!IsAllocated()) {
 			// Nothing to actually clone, except the state						
@@ -95,7 +95,8 @@ namespace Langulus::Anyness
 				// Just memcpy simple POD data										
 				if (result.IsEmpty())
 					result.Allocate(mCount, false, true);
-				pcCopyMemory(mRaw, result.mRaw, GetSize());
+				
+				CopyMemory(mRaw, result.mRaw, GetSize());
 
 				VERBOSE("Cloned non-resolvable dense POD by memcpy " 
 					<< ccGreen << "(fast)");
@@ -130,7 +131,7 @@ namespace Langulus::Anyness
 				else if (from.mType->mPOD) {
 					// Just memcpy simple POD data									
 					to.Allocate(1, false, true);
-					pcCopyMemory(from.mRaw, to.mRaw, from.GetSize());
+					CopyMemory(from.mRaw, to.mRaw, from.GetSize());
 					VERBOSE("Cloned resolved dense POD by memcpy " 
 						<< ccDarkYellow << "(slow)");
 				}

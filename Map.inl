@@ -115,7 +115,7 @@ namespace Langulus::Anyness
 	/// Get a key by simple index																
 	///	@param idx - the index																
 	///	@return a constant reference to the key										
-	template<ReflectedData K>
+	template<ReflectedData T>
 	decltype(auto) Map::GetKey(const Offset idx) {
 		return Keys().As<T>(idx);
 	}

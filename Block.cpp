@@ -85,23 +85,21 @@ namespace Langulus::Anyness
 				<< "Allocating abstract data without any concretization: " << GetToken());
 		}
 
-		// Request the memory block from the memory manager					
-		const auto stride = concrete->mSize;
 		if (IsAllocated()) {
+			// Do a reallocation															
 			if (IsStatic()) {
 				throw Except::Allocate(Logger::Error()
 					<< "Attempting to reallocate unmovable block");
 			}
 
-			mRaw = PCMEMORY.Reallocate(concrete, mRaw, stride * elements, stride * mReserved);
+			mEntry = Allocator::Reallocate(concrete, elements, mEntry);
 		}
-		else mRaw = PCMEMORY.Allocate(concrete, stride * elements);
-
-		if (!mRaw) {
-			throw Except::Allocate(Logger::Error()
-				<< "(Re)allocation returned nullptr");
+		else {
+			// Do a fresh allocation													
+			mEntry = Allocator::Allocate(concrete, elements);
 		}
 		
+		mRaw = mEntry->GetBlockStart();
 		mReserved = elements;
 		
 		// Construct elements (and set count) if requested						
@@ -130,10 +128,11 @@ namespace Langulus::Anyness
 		Allocate(mReserved - ::std::min(elements, mReserved));
 	}
 
-	/// Dereference memory block once														
+	/// Dereference memory block once and destroy all elements if data was		
+	/// fully dereferenced																		
 	///	@return the remaining references for the block								
 	bool Block::Free() {
-		return Dereference(1);
+		return Dereference<true>(1);
 	}
 
 	/// Select region from the memory block - unsafe and may return memory		
@@ -164,7 +163,7 @@ namespace Langulus::Anyness
 			return {mState, mType};
 
 		return {
-			mState.mState | DataState::Member, 
+			mState + DataState::Member, 
 			mType, count, At(start * mType->mSize)
 		};
 	}
@@ -176,39 +175,23 @@ namespace Langulus::Anyness
 	///	@return the block representing the region										
 	Block Block::Crop(const Offset start, const Count count) const {
 		auto result = const_cast<Block*>(this)->Crop(start, count);
-		result.mState.mState |= DataState::Constant;
+		result.MakeConstant();
 		return result;
-	}
-
-	/// Check if we have jurisdiction over the contained memory						
-	///	@return true if memory is managed												
-	bool Block::CheckJurisdiction() const {
-		return PCMEMORY.CheckJurisdiction(mType, mRaw);
-	}
-
-	/// Check if we have jurisdiction over the contained memory						
-	///	@return true if memory is managed												
-	bool Block::CheckUsage() const {
-		return PCMEMORY.CheckUsage(mType, mRaw);
 	}
 
 	/// Reallocates the same memory inside our memory manager						
 	/// If we have jurisdiction, the memory won't move									
 	///	@return a reference to this byte sequence										
 	Block& Block::TakeAuthority() {
-		if (mEntry) {
-			// We already own this memory												
+		if (mEntry)
+			// We already own this memory, don't touch anything				
 			return *this;
-		}
 
-		auto newRaw = PCMEMORY.Reallocate(mType, mRaw, mReserved, mReserved);
-		if (newRaw != mRaw) {
-			// Memory moved, which means data is transfered to MMS,			
-			// so it's about time to remove the static constraints			
-			mState.mState &= ~DataState::Static;
-		}
-
-		return *this;
+		// Clone everything and overwrite this block								
+		// At the end it should have exactly one reference						
+		Any clone;
+		Clone(clone);
+		return operator = (Abandon<Block>(clone));
 	}
 
 	/// Get the memory block corresponding to a base (constant)						
@@ -247,9 +230,8 @@ namespace Langulus::Anyness
 			};
 		}
 
-		if (IsEmpty()) {
-			return {meta};
-		}
+		if (IsEmpty())
+			return Block {meta};
 
 		return {
 			DataState::Member, meta, 1,
@@ -275,7 +257,7 @@ namespace Langulus::Anyness
 	bool Block::Mutate(DMeta meta) {
 		if (IsUntyped()) {
 			// Undefined containers can mutate freely								
-			SetType(meta, false);
+			SetType<false>(meta);
 		}
 		else if (mType->Is(meta)) {
 			// No need to mutate - types are the same								
@@ -283,7 +265,7 @@ namespace Langulus::Anyness
 		}
 		else if (IsAbstract() && IsEmpty() && meta->InterpretsAs(mType)) {
 			// Abstract compatible containers can be concretized				
-			SetType(meta, false);
+			SetType<false>(meta);
 		}
 		else if (!IsInsertable(meta)) {
 			// Not insertable due to some reasons									
@@ -305,14 +287,6 @@ namespace Langulus::Anyness
 		})
 
 		return false;
-	}
-
-	/// Toggle memory state																		
-	///	@param state - the state to toggle												
-	///	@param toggle - whether to enable the forementioned state or not		
-	void Block::ToggleState(const DataState& state, bool toggle) {
-		if (toggle)	mState.mState |= state.mState;
-		else			mState.mState &= ~state.mState;
 	}
 
 	/// Hash data inside memory block														
@@ -436,7 +410,7 @@ namespace Langulus::Anyness
 	/// Check if block contains pointers													
 	///	@return true if the block contains pointers									
 	bool Block::IsSparse() const {
-		return mState.mState & DataState::Sparse;
+		return mState.IsSparse();
 	}
 
 	/// Get the size of a single element (in bytes)										
@@ -444,9 +418,7 @@ namespace Langulus::Anyness
 	///	@attention this returns zero if block is untyped							
 	///	@return the size is bytes															
 	Stride Block::GetStride() const noexcept {
-		return mState.mState & DataState::Sparse 
-			? sizeof(void*) 
-			: (mType ? mType->mSize : 0);
+		return mState.IsSparse() ? sizeof(void*) : (mType ? mType->mSize : 0);
 	}
 
 	/// Check if you can push a type to this container									
@@ -494,7 +466,7 @@ namespace Langulus::Anyness
 	///	@return the element's block														
 	Block Block::GetElement(Offset index) noexcept {
 		return {
-			(mState.mState | DataState::Static) & ~DataState::Or,
+			(mState + DataState::Static) - DataState::Or,
 			mType, 1, At(index * mType->mSize)
 		};
 	}
@@ -504,7 +476,7 @@ namespace Langulus::Anyness
 	///	@return the element's block														
 	const Block Block::GetElement(Offset index) const noexcept {
 		return {
-			(mState.mState | DataState::Static) & ~DataState::Or,
+			(mState + DataState::Static) - DataState::Or,
 			mType, 1, At(index * mType->mSize)
 		};
 	}
@@ -516,7 +488,7 @@ namespace Langulus::Anyness
 	Block Block::GetElementDense(Offset index) {
 		auto element = GetElement(index);
 		if (IsSparse()) {
-			element.mState.mState &= ~DataState::Sparse;
+			element.mState -= DataState::Sparse;
 			element.mRaw = *element.GetRawSparse();
 			if (!element.mRaw)
 				return {};
@@ -937,7 +909,7 @@ namespace Langulus::Anyness
 			PCMEMORY.Reference(mType, mRaw, -1);
 			mRaw = nullptr;
 			mReserved = 0;
-			mState.mState &= ~(DataState::Static | DataState::Constant);
+			mState -= DataState::Static | DataState::Constant;
 		}
 
 		return removed;

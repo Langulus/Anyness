@@ -8,21 +8,21 @@ namespace Langulus
 
 	/// Forward lvalue as either lvalue or rvalue										
 	template<class T>
-	NOD() constexpr T&& Forward(Deref<T>& _Arg) noexcept {
-		return static_cast<T&&>(_Arg);
+	NOD() constexpr T&& Forward(Deref<T>& a) noexcept {
+		return static_cast<T&&>(a);
 	}
 
 	/// Forward rvalue as rvalue																
 	template<class T>
-	NOD() constexpr T&& Forward(Deref<T>&& _Arg) noexcept {
+	NOD() constexpr T&& Forward(Deref<T>&& a) noexcept {
 		static_assert(!::std::is_lvalue_reference_v<T>, "Bad forward call");
-		return static_cast<T&&>(_Arg);
+		return static_cast<T&&>(a);
 	}
 
 	/// Forward as movable																		
 	template<class T>
-	NOD() constexpr Deref<T>&& Move(T&& _Arg) noexcept {
-		return static_cast<Deref<T>&&>(_Arg);
+	NOD() constexpr Deref<T>&& Move(T&& a) noexcept {
+		return static_cast<Deref<T>&&>(a);
 	}
 
 	/// Abandon a value																			
@@ -30,27 +30,33 @@ namespace Langulus
 	/// essentially saving up on a couple of instructions								
 	template<class T>
 	struct Abandoned {
-		T&& Value;
+		T&& mValue;
 		
 		/// Forward as abandoned																
 		template<class ALT_T>
 		NOD() constexpr Abandoned<ALT_T> Forward() const noexcept {
 			return Abandoned<ALT_T>{
-				Langulus::Forward<ALT_T>(Value)
+				Langulus::Forward<ALT_T>(mValue)
 			};
 		}
 	};
 	
 	template<class T>
-	NOD() constexpr Abandoned<T> Abandon(T&& _Arg) noexcept {
-		return Abandoned<T>{Forward<T>(_Arg)};
+	NOD() constexpr Abandoned<T> Abandon(T&& a) noexcept {
+		return Abandoned<T>{Langulus::Forward<T>(a)};
+	}
+	template<class T>
+	NOD() constexpr Abandoned<T> Abandon(T& a) noexcept {
+		return Abandoned<T>{Langulus::Move(a)};
 	}
 
 	/// Disown a value																			
-	/// Same as a shallow-copy, but never references									
+	/// Same as a shallow-copy, but never references, saving some instructions	
+	///	@attention values initialized using Disowned should be Abandoned		
+	///				  before the end of their scope										
 	template<class T>
 	struct Disowned {
-		const T& Value;
+		const T& mValue;
 	};
 	
 	template<class T>

@@ -1,4 +1,5 @@
 #pragma once
+#include "Integration.hpp"
 
 namespace Langulus::Anyness
 {
@@ -14,7 +15,7 @@ namespace Langulus::Anyness
 			Default = 0,
 
 			// Enables phase for the data				 								
-			// Phases is very useful to mark data dependencies without		
+			// Phases are very useful to mark data dependencies without		
 			// actually changing the data itself									
 			Phased = 1,
 
@@ -80,12 +81,34 @@ namespace Langulus::Anyness
 
 	public:
 		constexpr DataState() noexcept = default;
-		constexpr DataState(const Type& state) noexcept
-			: mState {state} {}
+		constexpr DataState(const Type& state) noexcept;
 
-		explicit operator bool() const noexcept { return mState != 0; }
+		explicit constexpr operator bool() const noexcept;
 		constexpr bool operator == (const DataState&) const noexcept = default;
 		constexpr bool operator != (const DataState&) const noexcept = default;
+		
+		NOD() constexpr DataState operator + (const DataState&) const noexcept;
+		NOD() constexpr DataState operator - (const DataState&) const noexcept;
+		constexpr DataState& operator += (const DataState&) noexcept;
+		constexpr DataState& operator -= (const DataState&) noexcept;
+		
+		NOD() constexpr bool IsDefault() const noexcept;
+		NOD() constexpr bool IsPhased() const noexcept;
+		NOD() constexpr bool IsMissing() const noexcept;
+		NOD() constexpr bool IsCompressed() const noexcept;
+		NOD() constexpr bool IsEncrypted() const noexcept;
+		NOD() constexpr bool IsOr() const noexcept;
+		NOD() constexpr bool IsFuture() const noexcept;
+		NOD() constexpr bool IsPast() const noexcept;
+		NOD() constexpr bool IsStatic() const noexcept;
+		NOD() constexpr bool IsConstant() const noexcept;
+		NOD() constexpr bool IsTyped() const noexcept;
+		NOD() constexpr bool IsSparse() const noexcept;
+		NOD() constexpr bool IsConstrained() const noexcept;
+		
+		constexpr void Reset() noexcept;
 	};
-
+	
 } // namespace Langulus::Anyness
+
+#include "DataState.inl"

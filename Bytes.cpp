@@ -11,13 +11,14 @@ namespace Langulus::Anyness
 	///	@param other - the bytes to shallow-copy										
 	Bytes::Bytes(const Bytes& other)
 		: Block {other} {
+		Block::MakeConstant();
 		Block::Keep();
 	}
 
 	/// Construct via disowned copy															
 	///	@param other - the bytes to move													
 	Bytes::Bytes(const Disowned<Bytes>& other) noexcept
-		: Block {other.Value} { }
+		: Block {other.mValue} { }
 	
 	/// Construct via abandoned move															
 	///	@param other - the bytes to move													
@@ -60,13 +61,14 @@ namespace Langulus::Anyness
 	/// Hash the byte sequence																	
 	///	@return a hash of the contained byte sequence								
 	Hash Bytes::GetHash() const {
-		return ::std::hash<::std::span<Byte>>()({GetRaw(), GetCount()});
+		const auto asString = reinterpret_cast<const char*>(GetRaw());
+		return ::std::hash<::std::string_view>()({asString, GetCount()});
 	}
 
-	/// Allocate 'count' elements and fill the container with zeroes				
+	/// Allocate a number of bytes and zero them											
 	void Bytes::Null(const Count& count) {
-		Allocate(count, false, true);
-		pcFillMemory(mRaw, {}, mCount);
+		Block::Allocate(count, false, true);
+		Block::FillMemory(mRaw, {}, mCount);
 	}
 
 	/// Do a shallow copy																		
@@ -77,16 +79,16 @@ namespace Langulus::Anyness
 		// before being dereferenced													
 		other.Keep();
 		Block::Dereference<false>(1);
-		Block::operator=(other);
+		Block::operator = (other);
 		return *this;
 	}
 
 	/// Move byte container																		
 	///	@param other - the container to move											
 	///	@return a reference to this container											
-	Bytes& Bytes::operator = (Bytes&& other) {
+	Bytes& Bytes::operator = (Bytes&& other) noexcept {
 		Block::Dereference<false>(1);
-		Block::operator=(other);
+		Block::operator = (Forward<Block>(other));
 		other.ResetState<true>();
 		return *this;
 	}
@@ -139,7 +141,7 @@ namespace Langulus::Anyness
 		}
 		
 		result.mCount = result.mReserved = mCount;
-		pcCopyMemory(mRaw, result.mRaw, mReserved);
+		CopyMemory(mRaw, result.mRaw, mCount);
 		return Abandon(result);
 	}
 
@@ -168,7 +170,7 @@ namespace Langulus::Anyness
 		const auto removed = end - start;
 		if (end < mCount) {
 			// Removing in the middle, so memory has to move					
-			pcMoveMemory(mRaw + end, mRaw + start, mCount - removed);
+			MoveMemory(mRaw + end, mRaw + start, mCount - removed);
 		}
 
 		mCount -= removed;

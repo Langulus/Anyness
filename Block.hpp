@@ -121,9 +121,10 @@ namespace Langulus::Anyness
 		void Optimize();
 	
 	public:
-		void SetType(DMeta, bool);
-		template<ReflectedData T>
-		void SetType(bool);
+		template<bool CONSTRAIN>
+		void SetType(DMeta);
+		template<ReflectedData T, bool CONSTRAIN>
+		void SetType();
 	
 		void SetPhase(const Phase) noexcept;
 		void SetState(DataState) noexcept;
@@ -167,20 +168,28 @@ namespace Langulus::Anyness
 	
 		NOD() Token GetToken() const noexcept;
 		NOD() Stride GetStride() const noexcept;
+		NOD() constexpr const DataState& GetState() const noexcept;
+		NOD() constexpr DataState GetUnconstrainedState() const noexcept;
+		
 		NOD() Byte* GetRaw() noexcept;
 		NOD() const Byte* GetRaw() const noexcept;
+		
+		NOD() Byte* GetRawEnd() noexcept;
 		NOD() const Byte* GetRawEnd() const noexcept;
+		
 		NOD() Byte** GetRawSparse() noexcept;
 		NOD() const Byte* const* GetRawSparse() const noexcept;
+		
 		template<ReflectedData T>
 		NOD() T* GetRawAs() noexcept;
 		template<ReflectedData T>
 		NOD() const T* GetRawAs() const noexcept;
+		
+		template<ReflectedData T>
+		NOD() T* GetRawEndAs() noexcept;
 		template<ReflectedData T>
 		NOD() const T* GetRawEndAs() const noexcept;
-		NOD() constexpr const DataState& GetState() const noexcept;
-		NOD() constexpr DataState GetUnconstrainedState() const noexcept;
-	
+		
 		NOD() bool operator == (const Block&) const noexcept;
 		NOD() bool operator != (const Block&) const noexcept;
 	
@@ -272,8 +281,7 @@ namespace Langulus::Anyness
 	
 	public:
 		NOD() bool Owns(const void*) const noexcept;
-		NOD() bool CheckJurisdiction() const;
-		NOD() bool CheckUsage() const;
+		constexpr NOD() bool HasAuthority() const noexcept;
 		constexpr NOD() Count GetReferences() const noexcept;
 		NOD() Block Crop(Offset, Count);
 		NOD() Block Crop(Offset, Count) const;
@@ -296,7 +304,6 @@ namespace Langulus::Anyness
 		template<ReflectedData T>
 		NOD() bool Mutate();
 	
-		void ToggleState(const DataState&, bool toggle = true);
 		void MakeMissing() noexcept;
 		void MakeStatic() noexcept;
 		void MakeConstant() noexcept;
@@ -314,7 +321,6 @@ namespace Langulus::Anyness
 		NOD() bool Compare(const Block&, bool resolve = true) const;
 	
 		void Allocate(Count, bool construct = false, bool setcount = false);
-	
 		template<ReflectedData T>
 		void Allocate(Count, bool construct = false, bool setcount = false);
 	
@@ -353,31 +359,23 @@ namespace Langulus::Anyness
 		Count InsertBlock(const Block&, const Index& = Index::Back);
 		Count InsertBlock(Block&&, const Index& = Index::Back);
 	
-		template<ReflectedData T>
-		Count SmartPush(const T&, DataState = {}
-			, bool attemptConcat = true
-			, bool attemptDeepen = true
-			, Index = Index::Back
-		);
+		template<ReflectedData T, bool ALLOW_CONCAT = true, bool ALLOW_DEEPEN = true>
+		Count SmartPush(const T&, DataState = {}, Index = Index::Back);
 	
-		template<Deep T>
-		T& Deepen(bool moveState = true);
+		template<Deep T, bool MOVE_STATE = true>
+		T& Deepen();
 	
 		template<ReflectedData T>
 		Block& operator << (const T&);
-	
 		template<ReflectedData T>
 		Block& operator << (T&);
-	
 		template<ReflectedData T>
 		Block& operator << (T&&);
 	
 		template<ReflectedData T>
 		Block& operator >> (const T&);
-	
 		template<ReflectedData T>
 		Block& operator >> (T&); 
-	
 		template<ReflectedData T>
 		Block& operator >> (T&&);
 	
@@ -418,26 +416,29 @@ namespace Langulus::Anyness
 	
 		NOD() bool CanFit(DMeta) const;
 		NOD() bool CanFit(const Block&) const;
-	
 		template<ReflectedData T>
 		NOD() bool CanFit() const;
 	
 		NOD() bool InterpretsAs(DMeta) const;
-	
 		template<ReflectedData T>
 		NOD() bool InterpretsAs() const;
 	
 		NOD() bool InterpretsAs(DMeta, Count) const;
-	
 		template<ReflectedData T>
 		NOD() bool InterpretsAs(Count) const;
 	
 		NOD() bool Is(DMeta) const noexcept;
-	
 		template<ReflectedData T>
 		NOD() bool Is() const;
+		
+		NOD() Block ReinterpretAs(const Block&) const;
 	
 	protected:
+		static void CopyMemory(const void*, void*, const Stride&) noexcept;
+		static void MoveMemory(const void*, void*, const Stride&) noexcept;
+		static void FillMemory(void*, Byte, const Stride&) noexcept;
+		NOD() static int CompareMemory(const void*, const void*, const Stride&) noexcept;
+		
 		constexpr void ClearInner() noexcept;
 		constexpr void ResetMemory() noexcept;
 		template<bool TYPED>
@@ -448,7 +449,7 @@ namespace Langulus::Anyness
 		void Keep() const noexcept;
 		void Keep() noexcept;
 		
-		template<bool DESTROY = true>
+		template<bool DESTROY>
 		bool Dereference(const Count&);
 		bool Free();
 	
@@ -468,9 +469,9 @@ namespace Langulus::Anyness
 	};
 
 		
-	/// Macro used to implement the standard container interface used in		
-	/// range-for-statements like for (auto& item : array)						
-	/// In addition, a Reverse() function is added for reverse iteration		
+	/// Macro used to implement the standard container interface used in			
+	/// range-for-statements like for (auto& item : array)							
+	/// In addition, a Reverse() function is added for reverse iteration			
 	#define RANGED_FOR_INTEGRATION(containerType, iteratorType) \
 		NOD() inline iteratorType* begin() noexcept { return GetRaw(); } \
 		NOD() inline iteratorType* end() noexcept { return GetRawEnd(); } \

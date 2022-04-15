@@ -16,14 +16,14 @@ namespace Langulus::Anyness
 
 		// Append the hash to the back of the compressed memory				
 		result.Allocate(compressed_size + sizeof(hash));
-		pcCopyMemory(&hash, result.At(compressed_size), sizeof(hash));
+		CopyMemory(&hash, result.At(compressed_size), sizeof(hash));
 		compressed_size += sizeof(hash);
 		result.mCount = compressed_size;
 
 		// XOR the contents																
 		//TODO mix with a PRNG
 		for (Count i = 0; i < compressed_size / sizeof(Hash); ++i)
-			static_cast<Hash*>(result.mRaw)[i] ^= keys[i % key_count];
+			reinterpret_cast<Hash*>(result.mRaw)[i] ^= keys[i % key_count];
 
 		// Done																				
 		return result.mCount;
@@ -38,7 +38,7 @@ namespace Langulus::Anyness
 		// XOR the contents to decrypt them											
 		//TODO mix with a PRNG
 		for (Count i = 0; i < mCount / sizeof(Hash); ++i)
-			static_cast<Hash*>(decrypted.mRaw)[i] ^= keys[i % key_count];
+			reinterpret_cast<Hash*>(decrypted.mRaw)[i] ^= keys[i % key_count];
 
 		// Get the hash part																
 		const auto real_size = mCount - sizeof(Hash);

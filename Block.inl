@@ -20,13 +20,13 @@ namespace Langulus::Anyness
 	/// Move-construction for abandoned block												
 	///	@param other - the block instance to move										
 	inline Block::Block(Abandoned<Block>&& other) noexcept
-		: mRaw {other.Value.mRaw}
-		, mType {other.Value.mType}
-		, mCount {other.Value.mCount}
-		, mReserved {other.Value.mReserved}
-		, mState {other.Value.mState}
-		, mEntry {other.Value.mEntry} {
-		other.Value.mEntry = nullptr;
+		: mRaw {other.mValue.mRaw}
+		, mType {other.mValue.mType}
+		, mCount {other.mValue.mCount}
+		, mReserved {other.mValue.mReserved}
+		, mState {other.mValue.mState}
+		, mEntry {other.mValue.mEntry} {
+		other.mValue.mEntry = nullptr;
 	}
 	
 	/// Manual construction via state and type											
@@ -129,13 +129,13 @@ namespace Langulus::Anyness
 	///	@param other - the memory block to move										
 	///	@return a reference to this block												
 	Block& Block::operator = (Abandoned<Block>&& other) noexcept {
-		mRaw = other.Value.mRaw;
-		mType = other.Value.mType;
-		mCount = other.Value.mCount;
-		mReserved = other.Value.mReserved;
-		mState = other.Value.mState;
-		mEntry = other.Value.mEntry;
-		other.Value.mEntry = nullptr;
+		mRaw = other.mValue.mRaw;
+		mType = other.mValue.mType;
+		mCount = other.mValue.mCount;
+		mReserved = other.mValue.mReserved;
+		mState = other.mValue.mState;
+		mEntry = other.mValue.mEntry;
+		other.mValue.mEntry = nullptr;
 		return *this;
 	}
 
@@ -207,14 +207,13 @@ namespace Langulus::Anyness
 	template<bool TYPED>
 	constexpr void Block::ResetState() noexcept {
 		if constexpr (TYPED) {
-			// Don't clear type, and restore typed state							
-			//mType = nullptr;
-			mState.mState = DataState::Typed;
+			// DON'T clear type, and restore typed state							
+			mState = DataState::Typed;
 		}
 		else {
 			// Clear both type and state												
 			mType = nullptr;
-			mState.mState = DataState::Default;
+			mState.Reset();
 		}
 	}
 	
@@ -248,6 +247,12 @@ namespace Langulus::Anyness
 	///	@return the number of reserved (probably not constructed) elements	
 	constexpr const Count& Block::GetReserved() const noexcept {
 		return mReserved;
+	}
+	
+	/// Check if we have jurisdiction over the contained memory						
+	///	@return true if memory is under our authority								
+	constexpr bool Block::HasAuthority() const noexcept {
+		return mEntry != nullptr;
 	}
 	
 	/// Get the number of references for the allocated memory block				
@@ -684,7 +689,7 @@ namespace Langulus::Anyness
 
 	template<ReflectedData T>
 	bool Block::Is() const {
-		return Is(MetaData::Of<T>);
+		return Is(MetaData::Of<T>());
 	}
 
 	/// Swap two elements (with raw indices)												
@@ -1108,8 +1113,8 @@ namespace Langulus::Anyness
 	///	@param attemptDeepen - whether or not deepening is allowed				
 	///	@param index - the index at which to insert (if needed)					
 	///	@return the number of pushed items (zero if unsuccessful)				
-	template<ReflectedData T>
-	Count Block::SmartPush(const T& pack, DataState finalState, bool attemptConcat, bool attemptDeepen, Index index) {
+	template<ReflectedData T, bool ALLOW_CONCAT, bool ALLOW_DEEPEN>
+	Count Block::SmartPush(const T& pack, DataState state, Index index) {
 		if constexpr (Deep<T>) {
 			// Early exit if nothing to push											
 			if (!pack.IsValid())
@@ -1133,46 +1138,51 @@ namespace Langulus::Anyness
 		const bool isTypeCompliant = (!IsTypeConstrained() && IsEmpty()) || CanFit(meta);
 		const bool isStateCompliant = CanFitState(pack);
 		if (IsEmpty() && isTypeCompliant && isStateCompliant) {
-			const auto type_retainment = !mType ? meta : mType;
-			const auto state_retainment = mState;
+			const auto previousType = !mType ? meta : mType;
+			const auto previousState = mState - DataState::Sparse;
 			*this = pack;
 			Keep();
-			ToggleState(DataState::Typed, false);
-			ToggleState(state_retainment + finalState);
+			SetState((mState + previousState + state) - DataState::Typed);
 
-			// Retain type only if original package was sparse, to keep		
-			// the initial pointer type												
-			if (IsSparse())
-				SetType(type_retainment, false);
+			if (previousState.IsTyped())
+				// Retain type if original package was constrained				
+				SetType<true>(previousType);
+			else if (IsSparse())
+				// Retain type if current package is sparse						
+				SetType<false>(previousType);
 			return 1;
 		}
 
-		// If this container is compatible and concatenation is enabled	
-		// try concatenating the two containers. Concatenation will not	
-		// be allowed if final state is OR, and there are multiple items	
-		// in this container.															
-		Count catenated {};
-		const bool isOrCompliant = !(mCount > 1 && !IsOr() && finalState.mState & DataState::Or);
-		if (attemptConcat && isTypeCompliant && isStateCompliant && isOrCompliant && 0 < (catenated = InsertBlock(pack, index))) {
-			ToggleState(finalState);
-			return catenated;
+		[[maybe_unused]] const bool isOrCompliant = 
+				!(mCount > 1 && !IsOr() && state.IsOr());
+		
+		if constexpr (ALLOW_CONCAT) {
+			// If this container is compatible and concatenation is enabled
+			// try concatenating the two containers. Concatenation will not
+			// be allowed if final state is OR, and there are multiple		
+			// items	in this container.												
+			Count catenated {};
+			if (isTypeCompliant && isStateCompliant && isOrCompliant && 0 < (catenated = InsertBlock(pack, index))) {
+				SetState(mState + state);
+				return catenated;
+			}
 		}
 
 		// If this container is deep, directly push the pack inside			
 		// This will be disallowed if final state is OR, and there are		
 		// multiple items	in this container.										
 		if (isOrCompliant && IsDeep() && CanFit<T>()) {
-			ToggleState(finalState);
+			SetState(mState + state);
 			return Insert<T>(&pack, 1, index);
 		}
 
 		// Finally, if allowed, force make the container deep in order to	
 		// push the pack inside															
-		if constexpr (Deep<T>) {
-			if (attemptDeepen && !IsTypeConstrained()) {
+		if constexpr (Deep<T> && ALLOW_DEEPEN) {
+			if (!IsTypeConstrained()) {
 				Deepen<T>();
-				ToggleState(finalState);
-				return SmartPush<T>(pack, {}, attemptConcat, false, index);
+				SetState(mState + state);
+				return SmartPush<T, ALLOW_CONCAT, false>(pack, {}, index);
 			}
 		}
 
@@ -1180,9 +1190,9 @@ namespace Langulus::Anyness
 	}
 
 	/// Wrap all contained elements inside a sub-block, making this one deep	
-	///	@param moveState - whether or not to move the current state over		
-	template<Deep T>
-	T& Block::Deepen(bool moveState) {
+	///	@tparam MOVE_STATE - whether or not to send the current state over	
+	template<Deep T, bool MOVE_STATE>
+	T& Block::Deepen() {
 		if (IsTypeConstrained() && !Is<T>()) {
 			throw Except::Mutate(Logger::Error()
 				<< "Attempting to deepen incompatible typed container");
@@ -1193,24 +1203,27 @@ namespace Langulus::Anyness
 				Logger::Warning() << "Container used from multiple places";
 		#endif
 
-		const auto movedStates = GetUnconstrainedState();
-		if (!moveState)
-			ToggleState(movedStates, false);
+		// Back up the state so that we can restore it if not moved over	
+		[[maybe_unused]] const auto state {GetUnconstrainedState()};
+		if constexpr (!MOVE_STATE)
+			mState -= state;
 
-		Block wrapper = Block::From<T>();
-		wrapper.Allocate(1, true);
+		// Allocate a new T and move this inside it								
+		Block wrapper;
+		wrapper.Allocate<T>(1, true);
 		wrapper.Get<Block>() = Move(*this);
-		*this = wrapper;
-		if (!moveState)
-			ToggleState(movedStates);
+		*this = Abandon(wrapper);
+		
+		// Restore the state of not moved over										
+		if constexpr (!MOVE_STATE)
+			mState += state;
 
 		return Get<T>();
 	}
 
 	/// Get an element pointer or reference with a given index						
 	/// This is a lower-level routine that does no type checking					
-	/// No conversion or copying shall occur in this routine, only pointer		
-	/// arithmetic based on CTTI or RTTI													
+	/// No conversion or copying occurs, only pointer arithmetic					
 	///	@param idx - simple index for accessing										
 	///	@param baseOffset - byte offset from the element to apply				
 	///	@return either pointer or reference to the element (depends on T)		
@@ -1218,7 +1231,7 @@ namespace Langulus::Anyness
 	decltype(auto) Block::Get(const Offset& idx, const Offset& baseOffset) {
 		Byte* pointer;
 		if (IsSparse())
-			pointer = GetRawSparse() + baseOffset;
+			pointer = GetRawSparse()[idx] + baseOffset;
 		else
 			pointer = At(mType->mSize * idx) + baseOffset;
 
@@ -1653,5 +1666,40 @@ namespace Langulus::Anyness
 			Forward<decltype(call)>(call));
 	}
 
+	/// Wrapper for memcpy																		
+	///	@param from - source of data to copy											
+	///	@param to - [out] destination memory											
+	///	@param size - number of bytes to copy											
+	void Block::CopyMemory(const void* from, void* to, const Stride& size) noexcept {
+		::std::memcpy(to, from, size);
+	}
+	
+	/// Wrapper for memmove																		
+	///	@param from - source of data to move											
+	///	@param to - [out] destination memory											
+	///	@param size - number of bytes to move											
+	void Block::MoveMemory(const void* from, void* to, const Stride& size) noexcept {
+		::std::memmove(to, from, size);
+		#if LANGULUS(PARANOID)
+			TODO() // zero old memory, but beware - `from` and `to` might overlap
+		#endif
+	}
+	
+	/// Wrapper for memset																		
+	///	@param to - [out] destination memory											
+	///	@param filler - the byte to fill with											
+	///	@param size - number of bytes to move											
+	void Block::FillMemory(void* to, Byte filler, const Stride& size) noexcept {
+		::std::memset(to, static_cast<int>(filler), size);
+	}
+	
+	/// Wrapper for memcmp																		
+	///	@param a1 - size of first array													
+	///	@param a2 - size of second array													
+	///	@param size - number of bytes to compare										
+	int Block::CompareMemory(const void* a1, const void* a2, const Stride& size) noexcept {
+		return ::std::memcmp(a1, a2, size);
+	}
+	
 } // namespace Langulus::Anyness
 

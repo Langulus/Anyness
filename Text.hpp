@@ -11,6 +11,8 @@ namespace Langulus::Anyness
 	///																								
 	class Text : public Block {
 	public:
+		using Letter = char8_t;
+		
 		Text();
 		Text(const Text&);
 		Text(Text&&) noexcept = default;
@@ -42,7 +44,7 @@ namespace Langulus::Anyness
 		NOD() Text Lowercase() const;
 		NOD() Text Uppercase() const;
 		NOD() Text Crop(Offset, Count) const;
-		NOD() Text Strip(char8_t) const;
+		NOD() Text Strip(Letter) const;
 		Text& Remove(Offset, Count);
 		void Clear() noexcept;
 		void Reset();
@@ -53,10 +55,10 @@ namespace Langulus::Anyness
 		NOD() TAny<char16_t> Widen16() const;
 		NOD() TAny<char32_t> Widen32() const;
 
-		NOD() char8_t* GetRaw() noexcept;
-		NOD() const char8_t* GetRaw() const noexcept;
-		NOD() char8_t* GetRawEnd() noexcept;
-		NOD() const char8_t* GetRawEnd() const noexcept;
+		NOD() Letter* GetRaw() noexcept;
+		NOD() const Letter* GetRaw() const noexcept;
+		NOD() Letter* GetRawEnd() noexcept;
+		NOD() const Letter* GetRawEnd() const noexcept;
 
 		Hash GetHash() const;
 
@@ -68,14 +70,14 @@ namespace Langulus::Anyness
 		bool operator == (const Text&) const noexcept;
 		bool operator != (const Text&) const noexcept;
 
-		NOD() const char8_t& operator[] (Offset) const;
-		NOD() char8_t& operator[] (Offset);
+		NOD() const Letter& operator[] (Offset) const;
+		NOD() Letter& operator[] (Offset);
 
 		bool CompareLoose(const Text&) const noexcept;
 		Count Matches(const Text&) const noexcept;
 		NOD() Count MatchesLoose(const Text&) const noexcept;
 
-		RANGED_FOR_INTEGRATION(Text, char8_t);
+		RANGED_FOR_INTEGRATION(Text, Letter);
 
 		NOD() bool FindOffset(const Text&, Offset&) const;
 		NOD() bool FindOffsetReverse(const Text&, Offset&) const;

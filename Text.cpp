@@ -8,14 +8,14 @@ namespace Langulus::Anyness
 
 	/// Default construction																	
 	Text::Text()
-		: Block {DataState::Typed, PCMEMORY.GetFallbackMetaChar()} {}
+		: Block {DataState::Typed, MetaData::Of<Letter>()} { }
 
 	/// Do a shallow copy																		
 	///	@param other - the text to shallow-copy										
 	Text::Text(const Text& other)
 		: Block {other} {
-		MakeConstant();
-		PCMEMORY.Reference(mType, mRaw, 1);
+		Block::MakeConstant();
+		Block::Keep();
 	}
 
 	/// Construct from an exception															
@@ -49,7 +49,7 @@ namespace Langulus::Anyness
 
 	/// Destructor																					
 	Text::~Text() {
-		PCMEMORY.Reference(mType, mRaw, -1);
+		Block::Dereference<false>(1);
 	}
 
 	/// Clear the contents, but do not deallocate memory if possible				
@@ -62,10 +62,9 @@ namespace Langulus::Anyness
 	/// Reset the contents, deallocating any memory										
 	/// Text containers are always type-constrained, and retain that				
 	void Text::Reset() {
-		PCMEMORY.Reference(mType, mRaw, -1);
-		mRaw = nullptr;
-		mCount = mReserved = 0;
-		mState = DataState::Typed;
+		Block::Dereference<false>(1);
+		Block::ResetMemory();
+		Block::ResetState<true>();
 	}
 
 	/// Hash the text																				
@@ -76,7 +75,7 @@ namespace Langulus::Anyness
 
 	/// Count the number of newline characters											
 	///	@return the number of newline characters + 1, or zero if empty			
-	NOD() Count Text::GetLineCount() const noexcept {
+	Count Text::GetLineCount() const noexcept {
 		if (IsEmpty())
 			return 0;
 
@@ -89,37 +88,23 @@ namespace Langulus::Anyness
 		return lines;
 	}
 
-	/// Do a shallow copy																		
-	///	@param text - the text container to reference								
+	/// Shallow copy																				
+	///	@param rhs - the text container to copy										
 	///	@return a reference to this container											
-	Text& Text::operator = (const Text& other) {
-		PCMEMORY.Reference(mType, mRaw, -1);
-		mRaw = other.mRaw;
-		mCount = other.mCount;
-		mReserved = other.mReserved;
-		mState = other.mState;
-		PCMEMORY.Reference(mType, mRaw, 1);
+	Text& Text::operator = (const Text& rhs) {
+		rhs.Keep();
+		Block::Dereference<false>(1);
+		Block::operator = (rhs);
 		return *this;
 	}
 
 	/// Move text container																		
-	///	@param text - the text container to move										
+	///	@param rhs - the text container to move										
 	///	@return a reference to this container											
-	Text& Text::operator = (Text&& other) noexcept {
-		PCMEMORY.Reference(mType, mRaw, -1);
-		SAFETY(if (other.CheckJurisdiction() && !other.CheckUsage())
-			throw Except::Move(Logger::Error()
-				<< "You've hit a really nasty corner case, where trying to move a container destroys it, "
-				<< "due to a circular referencing. Try to move a shallow-copy, instead of a reference to "
-				<< "the original. Data may be incorrect at this point, but the moved container was: " << Token {other}));
-
-		mRaw = other.mRaw;
-		mCount = other.mCount;
-		mReserved = other.mReserved;
-		mState = other.mState;
-		other.mRaw = nullptr;
-		other.mCount = other.mReserved = 0;
-		other.mState = DataState::Typed;
+	Text& Text::operator = (Text&& rhs) noexcept {
+		Block::Dereference<false>(1);
+		Block::operator = (rhs);
+		rhs.ResetState<true>();
 		return *this;
 	}
 
