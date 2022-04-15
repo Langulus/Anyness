@@ -107,56 +107,67 @@ namespace Langulus::Anyness
 		return {GetRaw(), mCount};
 	}
 
-	/// Concatenate text with text															
-	///	@param lhs - left text																
-	///	@param rhs - right text																
-	///	@return a new container with concatenated text								
-	inline Text operator + (const Text& lhs, const Text& rhs) {
-		Text result;
-		result.Allocate(lhs.GetCount() + rhs.GetCount(), false, true);
-		pcCopyMemory(lhs.GetRaw(), result.GetRaw(), lhs.GetCount());
-		pcCopyMemory(rhs.GetRaw(), result.GetRaw() + lhs.GetCount(), rhs.GetCount());
-		return result;
-	}
-
-	/// Concatenate anything but text with text											
-	///	@param lhs - anything convertible to text										
-	///	@param rhs - right text																
-	///	@return a new container with concatenated text								
-	template<class T>
-	Text operator + (const T& lhs, const Text& rhs) requires (!IsText<T>) {
-		Text converted;
-		converted += lhs;
-		converted += rhs;
-		return converted;
-	}
-
-	/// Concatenate text with anything but text											
-	///	@param lhs - left text																
-	///	@param rhs - anything convertible to text										
-	///	@return a new container with concatenated text								
-	template<class T>
-	Text operator + (const Text& lhs, const T& rhs) requires (!IsText<T>) {
-		Text converted;
-		converted += lhs;
-		converted += rhs;
-		return converted;
-	}
-
-	/// String concatenation in place														
+	/// Destructive text concatenation														
 	template<class T>
 	Text& Text::operator += (const T& rhs) {
-		if constexpr (IsText<T>) {
-			auto mpoint = Extend(pcVal(rhs).GetCount());
-			pcCopyMemory(pcVal(rhs).GetRaw(), mpoint.GetRaw(), pcVal(rhs).GetCount());
+		if constexpr (Sparse<T>)
+			return operator += (*rhs);
+		else if constexpr (Same<T, Text>) {
+			// Concatenate bytes															
+			const auto count = rhs.GetCount();
+			Block::Allocate(mCount + count, false, false);
+			Block::CopyMemory(rhs.mRaw, mRaw, count);
+			Block::mCount += count;
+			return *this;
 		}
-		else {
+		else if constexpr (Convertible<T, Text>) {
 			// Finally, attempt converting											
-			Text converted;
-			TConverter<T, Text>::Convert(rhs, converted);
-			operator += (converted);
+			return operator += (static_cast<Text>(rhs));
 		}
-		return *this;
+		else LANGULUS_ASSERT("Can't concatenate to Text - RHS is not convertible");
+	}
+
+	/// Concatenate byte containers															
+	template<class T>
+	Text Text::operator + (const T& rhs) const {
+		if constexpr (Sparse<T>)
+			return operator + (*rhs);
+		else if constexpr (Same<T, Text>) {
+			// Concatenate bytes															
+			Text result = Disown(*this);
+			result.mCount += rhs.mCount;
+			result.mReserved = result.mCount;
+			if (result.mCount) {
+				result.mEntry = Allocator::Allocate(result.mType, result.mCount);
+				result.mRaw = result.mEntry->GetBlockStart();
+			}
+			else {
+				result.mEntry = nullptr;
+				result.mRaw = nullptr;
+			}
+
+			CopyMemory(mRaw, result.mRaw, mCount);
+			CopyMemory(rhs.mRaw, result.mRaw + mCount, rhs.mCount);
+			return Abandon(result);
+		}
+		else if constexpr (Convertible<T, Text>) {
+			// Attempt converting														
+			return operator + (static_cast<Text>(rhs));
+		}
+		else LANGULUS_ASSERT("Can't concatenate to Text - RHS is not convertible");
+	}
+
+	/// Concatenate anything with bytes														
+	template<class T>
+	Text operator + (const T& lhs, const Text& rhs) requires NotSame<T, Text> {
+		if constexpr (Sparse<T>)
+			return operator + (*lhs, rhs);
+		else if constexpr (Convertible<T, Text>) {
+			auto result = static_cast<Text>(lhs);
+			result += rhs;
+			return result;
+		}
+		else LANGULUS_ASSERT("Can't concatenate to Text - LHS is not convertible");
 	}
 
 } // namespace Langulus::Anyness

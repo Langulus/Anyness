@@ -179,19 +179,18 @@ namespace Langulus::Anyness
 		return result;
 	}
 
-	/// Reallocates the same memory inside our memory manager						
+	/// Clone all elements inside a new memory block									
 	/// If we have jurisdiction, the memory won't move									
-	///	@return a reference to this byte sequence										
-	Block& Block::TakeAuthority() {
+	void Block::TakeAuthority() {
 		if (mEntry)
 			// We already own this memory, don't touch anything				
-			return *this;
+			return;
 
 		// Clone everything and overwrite this block								
 		// At the end it should have exactly one reference						
 		Any clone;
 		Clone(clone);
-		return operator = (Abandon<Block>(clone));
+		operator = (Abandon<Block>(clone));
 	}
 
 	/// Get the memory block corresponding to a base (constant)						
@@ -317,55 +316,6 @@ namespace Langulus::Anyness
 		}
 
 		return cumulativeHash;
-	}
-
-	/// Set the data ID - use this only if you really know what you're doing	
-	///	@param type - the type meta to set												
-	///	@param constrain - whether or not to enable type-constraints			
-	void Block::SetType(DMeta type, bool constrain) {
-		if (mType == type) {
-			if (constrain)
-				MakeTypeConstrained();
-			return;
-		}
-		else if (!mType) {
-			mType = type;
-			if (constrain)
-				MakeTypeConstrained();
-			return;
-		}
-
-		// At this point, the container has and initialized type				
-		if (IsTypeConstrained()) {
-			// You can't set type of an initialized typed block				
-			throw Except::Mutate(Logger::Error()
-				<< "Changing typed block is disallowed: from " 
-				<< GetToken() << " to " << type->mToken);
-		}
-
-		if (mType->InterpretsAs(type)) {
-			// Type is compatible, but only sparse data can mutate freely	
-			// Dense containers can't mutate because their destructors		
-			// might be wrong later														
-			if (IsSparse())
-				mType = type;
-			else throw Except::Mutate(Logger::Error()
-				<< "Changing to compatible dense type is disallowed: from " 
-				<< GetToken() << " to " << type->mToken);
-		}
-		else {
-			// Type is not compatible, but container is not typed, so if	
-			// it has no constructed elements, we can still mutate it		
-			if (IsEmpty())
-				mType = type;
-			else throw Except::Mutate(Logger::Error()
-				<< "Changing to incompatible type while there's constructed "
-				<< "data is disallowed: from " << GetToken() 
-				<< " to " << type->mToken);
-		}
-
-		if (constrain)
-			MakeTypeConstrained();
 	}
 
 	/// Get the number of sub-blocks (this one included)								
@@ -591,7 +541,7 @@ namespace Langulus::Anyness
 	void Block::CallDefaultConstructors() {
 		if (mType->mNullifiable) {
 			// Just zero the memory (optimization)									
-			pcFillMemory(mRaw, {}, mReserved * GetStride());
+			FillMemory(mRaw, {}, mReserved * GetStride());
 			return;
 		}
 		else if (!mType->mDefaultConstructor) {
@@ -616,7 +566,7 @@ namespace Langulus::Anyness
 	void Block::CallCopyConstructors(const Block& source) {
 		if ((IsSparse() && source.IsSparse()) || mType->mPOD) {
 			// Just copy the POD/pointer memory (optimization)					
-			pcCopyMemory(source.mRaw, mRaw, GetStride() * mReserved);
+			CopyMemory(source.mRaw, mRaw, GetStride() * mReserved);
 
 			if (IsSparse()) {
 				// Since we're copying pointers, we have to reference the	
@@ -625,7 +575,7 @@ namespace Langulus::Anyness
 				Count c = 0;
 				while (c < mReserved) {
 					// Reference each pointer											
-					PCMEMORY.Reference(mType, pointers[c], 1);
+					Allocator::Reference(mType, pointers[c], 1);
 					++c;
 				}
 			}
@@ -641,7 +591,7 @@ namespace Langulus::Anyness
 			for (Count i = 0; i < mReserved; ++i) {
 				const auto element = source.GetElement(i);
 				pointers[i] = element.mRaw;
-				PCMEMORY.Reference(mType, pointers[i], 1);
+				element.Keep();
 			}
 		}
 		else if (source.IsSparse()) {
@@ -653,7 +603,9 @@ namespace Langulus::Anyness
 				auto pointers = source.GetRawSparse();
 				for (Count i = 0; i < mReserved; ++i) {
 					Block& block = Get<Block>(i);
-					new (&block) Block {*reinterpret_cast<const Block*>(pointers[i])};
+					new (&block) Block {
+						*reinterpret_cast<const Block*>(pointers[i])
+					};
 					block.Keep();
 				}
 			}
@@ -710,8 +662,7 @@ namespace Langulus::Anyness
 	void Block::CallMoveConstructors(Block&& source) {
 		if (mType->mPOD || (IsSparse() && source.IsSparse())) {
 			// Copy pointers, and then null them									
-			const auto count = GetStride() * mReserved;
-			pcMoveMemory(source.mRaw, mRaw, count);
+			MoveMemory(source.mRaw, mRaw, GetStride() * mReserved);
 		}
 		else if (source.IsSparse()) {
 			// RHS is pointer, LHS must be dense									
@@ -736,7 +687,7 @@ namespace Langulus::Anyness
 				pointers[i] = source.GetElement(i).mRaw;
 
 			// Can't actually move, you know, just reference rhs by count	
-			PCMEMORY.Reference(source.mType, source.mRaw, mReserved);
+			source.Reference(mReserved);
 		}
 		else {
 			// Both RHS and LHS must be dense										
@@ -753,16 +704,17 @@ namespace Langulus::Anyness
 			}
 		}
 
-		// Reset the block																
+		// Reset the source																
+		source.ResetMemory();
 		if (source.IsTypeConstrained())
-			source.ResetInner<true>();
+			source.ResetState<true>();
 		else
-			source.ResetInner<false>();
+			source.ResetState<false>();
 	}
 
 	/// Call destructors in a region - after this call the memory is not			
 	/// considered initialized, but mCount is still valid, so be careful			
-	/// This function is intended for internal use										
+	///	@attention this function is intended for internal use						
 	///	@attention this operates on initialized memory only, and any			
 	///				  misuse will result in undefined behavior						
 	void Block::CallDestructors() {
@@ -776,7 +728,7 @@ namespace Langulus::Anyness
 
 			// Always null the pointers after destruction						
 			// It is quite obscure, but this is where TPointers are reset	
-			pcFillMemory(mRaw, {}, GetSize());
+			FillMemory(mRaw, {}, GetSize());
 			return;
 		}
 		else if (mType->Is<Block>()) {
@@ -805,13 +757,13 @@ namespace Langulus::Anyness
 
 		#if LANGULUS_PARANOID()
 			// Nullify upon destruction only if we're paranoid					
-			pcFillMemory(mRaw, pcbyte(0), GetSize());
+			FillMemory(mRaw, {}, GetSize());
 		#endif
 	}
 
 	/// Check if the memory block contains memory blocks								
 	///	@return true if the memory block contains memory blocks					
-	bool Block::IsDeep() const {
+	bool Block::IsDeep() const noexcept {
 		return mType && mType->mIsDeep;
 	}
 
@@ -838,10 +790,11 @@ namespace Langulus::Anyness
 		if (index == Index::All) {
 			const auto oldCount = mCount;
 			Free();
+			ResetMemory();
 			if (IsTypeConstrained())
-				ResetInner<true>();
+				ResetState<true>();
 			else
-				ResetInner<false>();
+				ResetState<false>();
 			return oldCount;
 		}
 
@@ -904,10 +857,12 @@ namespace Langulus::Anyness
 
 		// Change count																	
 		mCount -= removed;
+
 		if (mCount == 0) {
 			// It is safe to release the memory - it's no longer in use		
-			PCMEMORY.Reference(mType, mRaw, -1);
+			Dereference<false>(1);
 			mRaw = nullptr;
+			mEntry = nullptr;
 			mReserved = 0;
 			mState -= DataState::Static | DataState::Constant;
 		}
@@ -1135,6 +1090,41 @@ namespace Langulus::Anyness
 		return GatherPolarInner(output.GetType(), *this, output, direction, phase);
 	}
 
+	/// Destroy all elements, but don't deallocate memory								
+	void Block::Clear() {
+		if (!mEntry) {
+			// Data is either static or unallocated								
+			// Don't call destructors, just clear it up							
+			mRaw = nullptr;
+			mCount = mReserved = 0;
+			return;
+		}
+
+		if (mEntry->mReferences == 1) {
+			// Destroy all elements but don't deallocate the entry			
+			CallDestructors();
+			mCount = 0;
+			return;
+		}
+		
+		// If reached, then data is referenced from multiple places			
+		// Don't call destructors, just clear it up and dereference			
+		--mEntry->mReferences;
+		mRaw = nullptr;
+		mEntry = nullptr;
+		mCount = mReserved = 0;
+	}
+
+	/// Destroy all elements, deallocate block and reset state						
+	void Block::Reset() {
+		Free();
+		ResetMemory();
+		if (IsTypeConstrained())
+			ResetState<true>();
+		else
+			ResetState<false>();
+	}
+
 	/// Flattens unnecessarily deep containers and combines their states			
 	/// when possible. Discards ORness if container has only one element			
 	void Block::Optimize() {
@@ -1145,14 +1135,8 @@ namespace Langulus::Anyness
 			auto& subPack = As<Block>();
 			if (!CanFitState(subPack)) {
 				subPack.Optimize();
-				if (subPack.IsEmpty()) {
-					Free();
-					if (IsTypeConstrained())
-						ResetInner<true>();
-					else
-						ResetInner<false>();
-				}
-
+				if (subPack.IsEmpty())
+					Reset();
 				return;
 			}
 

@@ -13,7 +13,7 @@ namespace Langulus::Anyness
 	///	@param other - the dense value to forward and emplace						
 	template <ReflectedData T>
 	Any::Any(T&& other) requires (Any::NotCustom<T>) {
-		Block::SetType<T>(false);
+		Block::SetType<T, false>();
 		Block::Emplace<T, false>(Forward<T>(other));
 	}
 
@@ -21,7 +21,7 @@ namespace Langulus::Anyness
 	///	@param other - the dense value to shallow-copy								
 	template <ReflectedData T>
 	Any::Any(const T& other) requires (Any::NotCustom<T>) {
-		Block::SetType<T>(false);
+		Block::SetType<T, false>();
 		Block::Insert<T, false>(&other, 1);
 	}
 

@@ -96,7 +96,7 @@ namespace Langulus::Anyness
 		~Block() noexcept = default;
 			
 		Block(Block&&) noexcept;
-		explicit Block(Abandoned<Block>&&) noexcept;
+		Block(Abandoned<Block>&&) noexcept;
 		explicit constexpr Block(DMeta) noexcept;
 		Block(DMeta, Count, const Byte*) noexcept;
 		Block(DMeta, Count, Byte*) noexcept;
@@ -117,7 +117,7 @@ namespace Langulus::Anyness
 		Block& operator = (Block&&) noexcept;
 		Block& operator = (Abandoned<Block>&&) noexcept;
 			
-		Block& TakeAuthority();
+		void TakeAuthority();
 		void Optimize();
 	
 	public:
@@ -155,7 +155,7 @@ namespace Langulus::Anyness
 		NOD() constexpr bool IsInvalid() const noexcept;
 		NOD() bool IsDense() const;
 		NOD() bool IsSparse() const;
-		NOD() bool IsDeep() const;
+		NOD() bool IsDeep() const noexcept;
 		NOD() constexpr Phase GetPhase() const noexcept;
 		NOD() bool CanFitPhase(const Phase&) const noexcept;
 		NOD() bool CanFitState(const Block&) const noexcept;
@@ -433,6 +433,9 @@ namespace Langulus::Anyness
 		
 		NOD() Block ReinterpretAs(const Block&) const;
 	
+		void Clear();
+		void Reset();
+
 	protected:
 		static void CopyMemory(const void*, void*, const Stride&) noexcept;
 		static void MoveMemory(const void*, void*, const Stride&) noexcept;

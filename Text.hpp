@@ -1,5 +1,5 @@
 #pragma once
-#include "TAny.hpp"
+#include "Bytes.hpp"
 
 namespace Langulus::Anyness
 {
@@ -7,9 +7,9 @@ namespace Langulus::Anyness
 	///																								
 	///	COUNT-TERMINATED TEXT WRAPPER														
 	///																								
-	///	Convenient wrapper for UTF strings												
+	/// Convenient wrapper for UTF8 strings												
 	///																								
-	class Text : public Block {
+	class Text : public Bytes {
 	public:
 		using Letter = char8_t;
 		
@@ -36,19 +36,26 @@ namespace Langulus::Anyness
 		template<Dense T>
 		Text(const T*) requires StaticallyConvertible<T, Text>;
 
-		~Text();
+		Text(const Disowned<Text>&) noexcept;
+		Text(Abandoned<Text>&&) noexcept;
+
+		Text& operator = (const Text&);
+		Text& operator = (Text&&) noexcept;
+
+		Text& operator = (const Disowned<Text>&);
+		Text& operator = (Abandoned<Text>&&) noexcept;
 
 	public:
 		NOD() Text Clone() const;
 		NOD() Text Terminate() const;
 		NOD() Text Lowercase() const;
 		NOD() Text Uppercase() const;
-		NOD() Text Crop(Offset, Count) const;
+		NOD() Text Crop(const Offset&, const Count&) const;
 		NOD() Text Strip(Letter) const;
-		Text& Remove(Offset, Count);
-		void Clear() noexcept;
-		void Reset();
-		Text Extend(Count);
+		Text& Remove(const Offset&, const Count&);
+		Text Extend(const Count&);
+		void TakeAuthority();
+
 
 		NOD() constexpr operator Token () const noexcept;
 
@@ -60,12 +67,7 @@ namespace Langulus::Anyness
 		NOD() Letter* GetRawEnd() noexcept;
 		NOD() const Letter* GetRawEnd() const noexcept;
 
-		Hash GetHash() const;
-
 		NOD() Count GetLineCount() const noexcept;
-
-		Text& operator = (const Text&);
-		Text& operator = (Text&&) noexcept;
 
 		bool operator == (const Text&) const noexcept;
 		bool operator != (const Text&) const noexcept;
@@ -77,27 +79,21 @@ namespace Langulus::Anyness
 		Count Matches(const Text&) const noexcept;
 		NOD() Count MatchesLoose(const Text&) const noexcept;
 
-		RANGED_FOR_INTEGRATION(Text, Letter);
 
 		NOD() bool FindOffset(const Text&, Offset&) const;
 		NOD() bool FindOffsetReverse(const Text&, Offset&) const;
 		NOD() bool Find(const Text&) const;
 		NOD() bool FindWild(const Text&) const;
 
+		RANGED_FOR_INTEGRATION(Text, Letter);
+
 		template<class T>
 		Text& operator += (const T&);
-
 		template<class T>
-		friend NOD() Text operator + (const T&, const Text&);
-
+		Text operator + (const T&) const;
 		template<class T>
-		NOD() friend Text operator + (const Text&, const T&);
-
+		friend Text operator + (const T&, const Text&) requires NotSame<T, Text>;
 	};
-
-	/// Compile time check for text items													
-	template<class T>
-	concept IsText = pcHasBase<T, Text>;
 
 } // namespace Langulus::Anyness
 

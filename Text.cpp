@@ -10,7 +10,7 @@ namespace Langulus::Anyness
 	Text::Text()
 		: Block {DataState::Typed, MetaData::Of<Letter>()} { }
 
-	/// Do a shallow copy																		
+	/// Shallow-copy construction																
 	///	@param other - the text to shallow-copy										
 	Text::Text(const Text& other)
 		: Block {other} {
@@ -46,32 +46,6 @@ namespace Langulus::Anyness
 	///	@param meta - the definition to stringify										
 	Text::Text(const Meta& meta)
 		: Text {meta.mToken} {}
-
-	/// Destructor																					
-	Text::~Text() {
-		Block::Dereference<false>(1);
-	}
-
-	/// Clear the contents, but do not deallocate memory if possible				
-	void Text::Clear() noexcept {
-		if (GetReferences() == 1)
-			mCount = 0;
-		else Reset();
-	}
-
-	/// Reset the contents, deallocating any memory										
-	/// Text containers are always type-constrained, and retain that				
-	void Text::Reset() {
-		Block::Dereference<false>(1);
-		Block::ResetMemory();
-		Block::ResetState<true>();
-	}
-
-	/// Hash the text																				
-	///	@return a hash of the contained text											
-	Hash Text::GetHash() const {
-		return ::std::hash<::std::u8string_view>()({GetRaw(), GetCount()});
-	}
 
 	/// Count the number of newline characters											
 	///	@return the number of newline characters + 1, or zero if empty			
@@ -204,30 +178,34 @@ namespace Langulus::Anyness
 	/// Clone the text container																
 	///	@return a new container that owns its memory									
 	Text Text::Clone() const {
-		Text result;
-		result.mReserved = mReserved;
-		result.mCount = mCount;
-		if (mReserved > 0) {
-			// Accounted for the terminating character if any					
-			result.mRaw = PCMEMORY.Allocate(mType, mReserved);
-			pcCopyMemory(mRaw, result.mRaw, mReserved);
+		Text result {Disown(*this)};
+		if (mCount) {
+			result.mEntry = Allocator::Allocate(mType, mCount);
+			result.mRaw = result.mEntry->GetBlockStart();
 		}
-		return result;
+		else {
+			result.mEntry = nullptr;
+			result.mRaw = nullptr;
+		}
+
+		result.mCount = result.mReserved = mCount;
+		CopyMemory(mRaw, result.mRaw, mCount);
+		return Abandon(result);
 	}
 
-	/// Terminate text so that it ends with a zero character							
+	/// Terminate text so that it ends with a zero character at the end			
 	///	@return a new container that ownes its memory								
 	Text Text::Terminate() const {
 		if (mReserved > mCount && GetRaw()[mCount] == '\0')
 			return *this;
 
-		Text result;
-		result.mCount = mCount; // count should never change!!!
-		result.mReserved = mCount + 1;
-		result.mRaw = PCMEMORY.Allocate(mType, result.mReserved);
-		pcCopyMemory(mRaw, result.mRaw, mCount);
+		Text result {Disown(*this)};
+		++result.mReserved;
+		result.mEntry = Allocator::Allocate(mType, result.mReserved);
+		result.mRaw = result.mEntry->GetBlockStart();
+		CopyMemory(mRaw, result.mRaw, mCount);
 		result.GetRaw()[mCount] = '\0';
-		return result;
+		return Abandon(result);
 	}
 
 	/// Make all letters lowercase															
@@ -322,7 +300,7 @@ namespace Langulus::Anyness
 	///	@param start - offset of the starting character								
 	///	@param count - the number of characters after 'start'						
 	///	@return a new container that references the original memory				
-	Text Text::Crop(Count start, Count count) const {
+	Text Text::Crop(const Count& start, const Count& count) const {
 		Text result;
 		static_cast<Block&>(result) = Block::Crop(start, count);
 		result.Keep();
@@ -340,7 +318,7 @@ namespace Langulus::Anyness
 				const auto size = end - start;
 				if (size) {
 					auto segment = result.Extend(size);
-					pcCopyMemory(GetRaw() + start, segment.GetRaw(), size);
+					CopyMemory(GetRaw() + start, segment.GetRaw(), size);
 				}
 
 				start = end = i + 1;
@@ -356,14 +334,14 @@ namespace Langulus::Anyness
 	///	@param start - the starting character											
 	///	@param end - the ending character												
 	///	@return a reference to this text													
-	Text& Text::Remove(Count start, Count end) {
+	Text& Text::Remove(const Count& start, const Count& end) {
 		const auto removed = end - start;
 		if (0 == mCount || 0 == removed)
 			return *this;
 
 		if (end < mCount) {
 			TakeAuthority();
-			pcMoveMemory(GetRaw() + end, GetRaw() + start, mCount - removed);
+			Block::MoveMemory(mRaw + end, mRaw + start, mCount - removed);
 		}
 
 		mCount -= removed;
@@ -373,30 +351,43 @@ namespace Langulus::Anyness
 	/// Extend the string, change count, and if data is out of jurisdiction -	
 	/// move it to a new place where we own it											
 	///	@return an array that represents the extended part							
-	Text Text::Extend(Count count) {
-		const auto lastCount = mCount;
-		if (mCount + count <= mReserved) {
+	Text Text::Extend(const Count& count) {
+		if (IsStatic())
+			// You can not extend static containers								
+			return {};
+
+		const auto newCount = mCount + count;
+		const auto oldCount = mCount;
+		if (newCount <= mReserved) {
+			// There is enough available space										
 			mCount += count;
-			return {GetRaw() + lastCount, count};
+			Text result {*this};
+			result.MakeStatic();
+			result.mRaw += oldCount;
+			result.mCount = result.mReserved = count;
+			return Abandon(result);
 		}
 
-		if (!mRaw) {
-			// If text container is empty - allocate								
-			mRaw = PCMEMORY.Allocate(mType, mCount + count);
-		}
-		else if (!IsStatic()) {
-			// If text is not unmovable and already allocated - resize		
-			mRaw = PCMEMORY.Reallocate(mType, mRaw, mCount + count, mCount);
-		}
-		else {
-			// In case memory is unmovable - clone and reallocate				
-			*this = Clone();
-			mRaw = PCMEMORY.Reallocate(mType, mRaw, mCount + count, mCount);
-		}
+		// Allocate more space															
+		mEntry = Allocator::Reallocate(mType, newCount, mEntry);
+		mRaw = mEntry->GetBlockStart();
+		mCount = mReserved = newCount;
 
-		mCount += count;
-		mReserved = mCount;
-		return {GetRaw() + lastCount, count};
+		Text result {*this};
+		result.MakeStatic();
+		result.mRaw += oldCount;
+		result.mCount = result.mReserved = count;
+		return Abandon(result);
 	}
+
+	/// Clone text array into a new owned memory block									
+	/// If we have jurisdiction, the memory won't move									
+	void Text::TakeAuthority() {
+		if (mEntry)
+			return;
+
+		operator = (Clone());
+	}
+
 
 } // namespace Langulus::Anyness

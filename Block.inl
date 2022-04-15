@@ -183,7 +183,6 @@ namespace Langulus::Anyness
 			if constexpr (DESTROY)
 				CallDestructors();
 			mEntry->Deallocate();
-			mEntry = nullptr;
 			return true;
 		}
 
@@ -690,6 +689,56 @@ namespace Langulus::Anyness
 	template<ReflectedData T>
 	bool Block::Is() const {
 		return Is(MetaData::Of<T>());
+	}
+
+	/// Set the data ID - use this only if you really know what you're doing	
+	///	@param type - the type meta to set												
+	///	@param constrain - whether or not to enable type-constraints			
+	template<bool CONSTRAIN>
+	void Block::SetType(DMeta type) {
+		if (mType == type) {
+			if constexpr (CONSTRAIN)
+				MakeTypeConstrained();
+			return;
+		}
+		else if (!mType) {
+			mType = type;
+			if constexpr (CONSTRAIN)
+				MakeTypeConstrained();
+			return;
+		}
+
+		// At this point, the container has and initialized type				
+		if (IsTypeConstrained()) {
+			// You can't set type of an initialized typed block				
+			throw Except::Mutate(Logger::Error()
+				<< "Changing typed block is disallowed: from "
+				<< GetToken() << " to " << type->mToken);
+		}
+
+		if (mType->InterpretsAs(type)) {
+			// Type is compatible, but only sparse data can mutate freely	
+			// Dense containers can't mutate because their destructors		
+			// might be wrong later														
+			if (IsSparse())
+				mType = type;
+			else throw Except::Mutate(Logger::Error()
+				<< "Changing to compatible dense type is disallowed: from "
+				<< GetToken() << " to " << type->mToken);
+		}
+		else {
+			// Type is not compatible, but container is not typed, so if	
+			// it has no constructed elements, we can still mutate it		
+			if (IsEmpty())
+				mType = type;
+			else throw Except::Mutate(Logger::Error()
+				<< "Changing to incompatible type while there's constructed "
+				<< "data is disallowed: from " << GetToken()
+				<< " to " << type->mToken);
+		}
+
+		if constexpr (CONSTRAIN)
+			MakeTypeConstrained();
 	}
 
 	/// Swap two elements (with raw indices)												

@@ -97,7 +97,7 @@ namespace Langulus::Anyness
 	bool Bytes::operator == (const Bytes& other) const noexcept {
 		return other.mCount == mCount && (
 			mRaw == other.mRaw || 
-			pcMatchBytes(GetRaw(), mCount, other.GetRaw(), other.mCount) == other.mCount
+			MatchBytes(GetRaw(), mCount, other.GetRaw(), other.mCount) == other.mCount
 		);
 	}
 
@@ -110,7 +110,7 @@ namespace Langulus::Anyness
 	///	@param other - text to compare with												
 	///	@return the number of matching symbols											
 	Count Bytes::Matches(const Bytes& other) const noexcept {
-		return pcMatchBytes(GetRaw(), mCount, other.GetRaw(), other.mCount);
+		return MatchBytes(GetRaw(), mCount, other.GetRaw(), other.mCount);
 	}
 
 	/// Access specific character (const, unsafe)										
@@ -150,7 +150,7 @@ namespace Langulus::Anyness
 	///	@param count - the number of bytes after 'start' to remain				
 	///	@return a new container that references the original memory				
 	Bytes Bytes::Crop(const Offset& start, const Count& count) const {
-		Block::CheckRange(start, cound);
+		Block::CheckRange(start, count);
 		Bytes result {*this};
 		result.MakeStatic();
 		result.mRaw += start;

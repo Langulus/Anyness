@@ -37,26 +37,13 @@ namespace Langulus::Anyness
 	///	@param other - the container to shallow copy									
 	///	@return a reference to this container											
 	Any& Any::operator = (const Any& other) {
-		Block::Free();
-
-		if (IsTypeConstrained() && other.mType != mType) {
-			// This Any is type-constrained											
-			if (!other.mType || mType->InterpretsAs(other.mType)) {
-				// Overwrite everything except the type-constraint				
-				mRaw = other.mRaw;
-				mCount = other.mCount;
-				mReserved = other.mReserved;
-				mState = other.mState + DataState::Typed;
-				Block::Keep();
-				return *this;
-			}
-			else {
-				throw Except::Copy(Logger::Error()
-					<< "Bad memory assignment for type-constrained any: from "
-					<< GetToken() << " to " << other.GetToken());
-			}
+		if (IsTypeConstrained() && !InterpretsAs(other.mType)) {
+			throw Except::Copy(Logger::Error()
+				<< "Bad shallow-copy-assignment for Any: from "
+				<< GetToken() << " to " << other.GetToken());
 		}
 
+		Block::Free();
 		Block::operator = (other);
 		Block::Keep();
 		return *this;
@@ -66,34 +53,15 @@ namespace Langulus::Anyness
 	///	@param other - the container to move											
 	///	@return a reference to this container											
 	Any& Any::operator = (Any&& other) {
-		Block::Free();
-		
-		if (IsTypeConstrained() && other.mType != mType) {
-			// Container is type-constrained, so check compatibility			
-			// The type of this container shall not change						
-			if (!other.mType || mType->InterpretsAs(other.mType)) {
-				mRaw = other.mRaw;
-				mCount = other.mCount;
-				mReserved = other.mReserved;
-				mState = other.mState + DataState::Typed;
-				mEntry = other.mEntry;
-				other.ResetMemory();
-				if (other.IsTypeConstrained())
-					other.ResetState<true>();
-				else
-					other.ResetState<false>();
-				return *this;
-			}
-			else throw Except::Move(Logger::Error()
-				<< "Bad memory assignment for type-constrained any: from "
+		if (IsTypeConstrained() && !InterpretsAs(other.mType)) {
+			throw Except::Copy(Logger::Error()
+				<< "Bad move-copy-assignment for Any: from "
 				<< GetToken() << " to " << other.GetToken());
 		}
 
+		Block::Free();
 		Block::operator = (Forward<Block>(other));
-		if (other.IsTypeConstrained())
-			other.ResetState<true>();
-		else
-			other.ResetState<false>();
+		other.ResetState();
 		return *this;
 	}
 
@@ -116,7 +84,7 @@ namespace Langulus::Anyness
 	Any Any::Clone() const {
 		Any clone;
 		Block::Clone(clone);
-		return clone;
+		return Abandon(clone);
 	}
 
 	/// Destroy all elements, but retain allocated memory if possible				
@@ -141,10 +109,15 @@ namespace Langulus::Anyness
 		}
 	}
 
-	/// Deallocate all elements, but retain type-constraints if any				
+	/// Reset the container																		
 	void Any::Reset() {
 		Block::Free();
 		Block::ResetMemory();
+		ResetState();
+	}
+
+	/// Reset container state																	
+	void Any::ResetState() {
 		if (IsTypeConstrained())
 			Block::ResetState<true>();
 		else

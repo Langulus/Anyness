@@ -33,7 +33,7 @@ namespace Langulus::Anyness
 		TAny(T&) requires (TAny<T>::NotCustom);
 
 		TAny& operator = (const TAny&);
-		TAny& operator = (TAny&&) noexcept;
+		TAny& operator = (TAny&&);
 
 		TAny& operator = (const Any&);
 		TAny& operator = (Any&&);
@@ -46,6 +46,9 @@ namespace Langulus::Anyness
 		TAny& operator = (T&&) requires (TAny<T>::NotCustom);
 
 	public:
+		NOD() bool InterpretsAs(DMeta) const;
+		NOD() bool InterpretsAs(DMeta, Count) const;
+		
 		NOD() static TAny Wrap(const T&);
 		template<Count COUNT>
 		NOD() static TAny Wrap(const T(&anything)[COUNT]);
@@ -54,6 +57,8 @@ namespace Langulus::Anyness
 		void Null(const Count&);
 		void Clear();
 		void Reset();
+		void ResetState() noexcept;
+
 		NOD() TAny Clone() const;
 
 		NOD() const T* GetRaw() const noexcept;
@@ -157,6 +162,10 @@ namespace Langulus::Anyness
 
 		void Swap(const Offset&, const Offset&);
 		void Swap(const Index&, const Index&);
+
+	protected:
+		template<bool OVERWRITE_STATE>
+		void CopyProperties(const Block&) noexcept;
 	};
 
 } // namespace Langulus::Anyness

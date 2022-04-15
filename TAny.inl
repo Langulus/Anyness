@@ -7,65 +7,61 @@ namespace Langulus::Anyness
 {
 
 	/// Default construction																	
+	/// TAny is type-constrained and always has a type									
 	TEMPLATE()
 	TAny<T>::TAny()
-		: Any {Block{ DataState::Typed, MetaData::Of<T>() }} { }
+		: Any {Block {DataState::Typed, MetaData::Of<T>()}} { }
 
-	/// Shallow copy construction																
-	///	@param copy - the anyness to reference											
+	/// Shallow-copy construction																
+	///	@param copy - the TAny to reference												
 	TEMPLATE()
-	TAny<T>::TAny(const TAny<T>& copy)
-		: Any {static_cast<const Any&>(copy)} { }
+	TAny<T>::TAny(const TAny<T>& other)
+		: Any {static_cast<const Any&>(other)} { }
 
 	/// Move construction																		
-	///	@param copy - the anyness to move												
+	///	@param copy - the TAny to move													
 	TEMPLATE()
-	TAny<T>::TAny(TAny<T>&& copy) noexcept
-		: Any {Forward<Any>(copy)} { }
+	TAny<T>::TAny(TAny<T>&& other) noexcept
+		: Any {Forward<Any>(other)} { }
 
-	/// Shallow copy construction from anyness, that checks type					
+	/// Shallow copy construction from Any, that checks type							
+	/// Any can contain anything, so there's a bit of type-checking overhead	
 	///	@param copy - the anyness to reference											
 	TEMPLATE()
-	TAny<T>::TAny(const Any& copy)
+	TAny<T>::TAny(const Any& other)
 		: TAny { } {
-		if (copy.mType && !mType->InterpretsAs(copy.mType)) {
+		if (!InterpretsAs(other.mType)) {
 			throw Except::Copy(Logger::Error()
-				<< "Bad memory assignment for type-constrained any: from "
-				<< GetToken() << " to " << copy.GetToken());
+				<< "Bad shallow-copy-construction for TAny: from "
+				<< GetToken() << " to " << other.GetToken());
 		}
 
-		// Overwrite everything except the type-constraint						
-		mRaw = copy.mRaw;
-		mCount = copy.mCount;
-		mReserved = copy.mReserved;
-		mState = copy.mState.mState | DataState::Typed;
+		CopyProperties<false>(other);
 		Block::Keep();
 	}
 
-	/// Move construction from anyness, that checks type								
-	///	@param copy - the anyness to move												
+	/// Move-construction from Any, that checks type									
+	/// Any can contain anything, so there's a bit of type-checking overhead	
+	///	@param other - the container to move											
 	TEMPLATE()
-	TAny<T>::TAny(Any&& copy)
+	TAny<T>::TAny(Any&& other)
 		: TAny { } {
-		if (copy.mType && !mType->InterpretsAs(copy.mType)) {
-			throw Except::Move(Logger::Error()
-				<< "Bad memory assignment for type-constrained any: from "
-				<< GetToken() << " to " << copy.GetToken());
+		if (!InterpretsAs(other.mType)) {
+			throw Except::Copy(Logger::Error()
+				<< "Bad move-construction for TAny: from "
+				<< GetToken() << " to " << other.GetToken());
 		}
 
-		// Overwrite everything except the type-constraint						
-		mRaw = copy.mRaw;
-		mCount = copy.mCount;
-		mReserved = copy.mReserved;
-		mState = copy.mState.mState | DataState::Typed;
-		copy.ResetInner();
+		CopyProperties<false>(other);
+		other.ResetMemory();
+		other.ResetState();
 	}
 
 	/// Shallow copy construction from blocks, that checks type						
 	///	@param copy - the anyness to reference											
 	TEMPLATE()
 	TAny<T>::TAny(const Block& copy)
-		: TAny {Any { copy }} { }
+		: TAny {Any {copy}} { }
 
 	/// Move construction - moves block and references content						
 	/// Since we are not aware if that block is referenced, we reference it		
@@ -73,7 +69,7 @@ namespace Langulus::Anyness
 	///	@param other - the block to move													
 	TEMPLATE()
 	TAny<T>::TAny(Block&& copy)
-		: TAny {Any { Forward<Block>(copy) }} { }
+		: TAny {Any {Forward<Block>(copy)}} { }
 
 	/// Construct by moving a dense value of non-block type							
 	///	@param initial - the dense value to forward and emplace					
@@ -97,34 +93,34 @@ namespace Langulus::Anyness
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator = (const TAny<T>& other) {
 		Block::Free();
-		Block::operator = (other);
+		CopyProperties<true>(other);
 		Block::Keep();
 		return *this;
 	}
 
 	/// Move operator																				
 	TEMPLATE()
-	TAny<T>& TAny<T>::operator = (TAny<T>&& other) noexcept {
+	TAny<T>& TAny<T>::operator = (TAny<T>&& other) {
 		Block::Free();
-		Block::operator = (Forward<Block>(other));
+		CopyProperties<true>(other);
+		other.ResetMemory();
+		other.ResetState();
 		return *this;
 	}
 
 	/// Shallow copy operator																	
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator = (const Any& other) {
-		Block::Free();
-		if (other.mType && !mType->InterpretsAs(other.mType)) {
+		if (!InterpretsAs(other.mType)) {
 			throw Except::Copy(Logger::Error()
-				<< "Bad memory assignment for type-constrained any: from "
+				<< "Bad shallow-copy-assignment for TAny: from "
 				<< GetToken() << " to " << other.GetToken());
 		}
 
 		// Overwrite everything except the type-constraint						
-		mRaw = other.mRaw;
-		mCount = other.mCount;
-		mReserved = other.mReserved;
-		mState = other.mState.mState | DataState::Typed;
+		Block::Free();
+		ResetState();
+		CopyProperties<false>(other);
 		Block::Keep();
 		return *this;
 	}
@@ -132,27 +128,18 @@ namespace Langulus::Anyness
 	/// Move operator																				
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator = (Any&& other) {
-		SAFETY(const Block otherProbe = other);
-		Block::Free();
-		SAFETY(if (otherProbe != other || (other.CheckJurisdiction() && !other.CheckUsage()))
-			throw Except::Move(Logger::Error()
-				<< "You've hit a really nasty corner case, where trying to move a container destroys it, "
-				<< "due to a circular referencing. Try to move a shallow-copy, instead of a reference to "
-				<< "the original. Data may be incorrect at this point, but the moved container was: " << otherProbe.GetToken());
-		);
-
-		if (other.mType && !mType->InterpretsAs(other.mType)) {
-			throw Except::Move(Logger::Error()
-				<< "Bad memory assignment for type-constrained any: from "
+		if (!InterpretsAs(other.mType)) {
+			throw Except::Copy(Logger::Error()
+				<< "Bad move-copy-assignment for TAny: from "
 				<< GetToken() << " to " << other.GetToken());
 		}
 
 		// Overwrite everything except the type-constraint						
-		mRaw = other.mRaw;
-		mCount = other.mCount;
-		mReserved = other.mReserved;
-		mState = other.mState.mState | DataState::Typed;
-		other.ResetInner();
+		Block::Free();
+		ResetState();
+		CopyProperties<false>(other);
+		other.ResetMemory();
+		other.ResetState();
 		return *this;
 	}
 
@@ -172,7 +159,7 @@ namespace Langulus::Anyness
 	///	@param value - the value to copy													
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator = (const T& value) requires (TAny<T>::NotCustom) {
-		return TAny<T>::operator = (TAny<T> { value });
+		return TAny<T>::operator = (TAny<T> {value});
 	}
 
 	TEMPLATE()
@@ -184,7 +171,49 @@ namespace Langulus::Anyness
 	///	@param value - the value to move													
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator = (T&& value) requires (TAny<T>::NotCustom) {
-		return TAny<T>::operator = (TAny<T> { Forward<T>(value) });
+		return TAny<T>::operator = (TAny<T> {Forward<T>(value)});
+	}
+
+	/// An internal function used to copy members, without copying type and		
+	/// without overwriting type-constraints												
+	///	@param other - the block to copy from											
+	TEMPLATE()
+	template<bool OVERWRITE_STATE>
+	void TAny<T>::CopyProperties(const Block& other) noexcept {
+		mRaw = other.mRaw;
+		mCount = other.mCount;
+		mReserved = other.mReserved;
+		if constexpr (OVERWRITE_STATE)
+			mState = other.mState;
+		else
+			mState += other.mState;
+		mEntry = other.mEntry;
+	}
+
+	/// Reset container state																	
+	TEMPLATE()
+	void TAny<T>::ResetState() noexcept {
+		Block::ResetState<true>();
+	}
+
+	/// Check if contained data can be interpreted as a given type					
+	/// Beware, direction matters (this is the inverse of CanFit)					
+	///	@param type - the type check if current type interprets to				
+	///	@return true if able to interpret current type to 'type'					
+	TEMPLATE()
+	bool TAny<T>::InterpretsAs(DMeta type) const {
+		return !type || mType->InterpretsAs(type);
+	}
+
+	/// Check if contained data can be interpreted as a given count of type		
+	/// For example: a vec4 can interpret as float[4]									
+	/// Beware, direction matters (this is the inverse of CanFit)					
+	///	@param type - the type check if current type interprets to				
+	///	@param count - the number of elements to interpret as						
+	///	@return true if able to interpret current type to 'type'					
+	TEMPLATE()
+	bool TAny<T>::InterpretsAs(DMeta type, Count count) const {
+		return !type || mType->InterpretsAs(type, count);
 	}
 
 	/// Wrap stuff in a container																
@@ -256,9 +285,8 @@ namespace Langulus::Anyness
 	TEMPLATE()
 	void TAny<T>::Reset() {
 		Block::Free();
-		mRaw = nullptr;
-		mCount = mReserved = 0;
-		mState.mState = DataState::Typed;
+		Block::ResetMemory();
+		ResetState();
 	}
 
 	/// Clone the templated container														

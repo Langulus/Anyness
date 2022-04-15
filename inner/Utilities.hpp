@@ -42,11 +42,11 @@ namespace Langulus
 	};
 	
 	template<class T>
-	NOD() constexpr Abandoned<T> Abandon(T&& a) noexcept {
+	NOD() constexpr Abandoned<T>&& Abandon(T&& a) noexcept {
 		return Abandoned<T>{Langulus::Forward<T>(a)};
 	}
 	template<class T>
-	NOD() constexpr Abandoned<T> Abandon(T& a) noexcept {
+	NOD() constexpr Abandoned<T>&& Abandon(T& a) noexcept {
 		return Abandoned<T>{Langulus::Move(a)};
 	}
 

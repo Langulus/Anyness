@@ -161,6 +161,14 @@
 		template<class T>
 		concept Unsigned = !Signed<T>;
 
+		/// Check if type is any signed integer (either sparse or dense)			
+		template<class T>
+		concept SignedInteger = Integer<T> && Signed<T>;
+
+		/// Check if type is any unsigned integer (either sparse or dense)		
+		template<class T>
+		concept UnsignedInteger = Integer<T> && Unsigned<T>;
+
 		/// Check if type is statically convertible to another						
 		/// Types are not decayed and are as provided to preserve operators		
 		/// Concept apply if you have an explicit/implicit cast operator 			

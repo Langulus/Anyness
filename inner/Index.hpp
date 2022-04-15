@@ -76,8 +76,11 @@ namespace Langulus::Anyness
 		constexpr Index() noexcept = default;
 		constexpr Index(const Index&) noexcept = default;
 		constexpr Index(const SpecialIndices&) noexcept;
-		constexpr Index(const Type&) noexcept;
-		constexpr Index(const Count&);
+		template<SignedInteger T>
+		constexpr Index(const T&) noexcept;
+		template<UnsignedInteger T>
+		constexpr Index(const T&);
+
 	public:
 		NOD() constexpr Index Constrained(Count) const noexcept;
 		NOD() constexpr Offset GetOffset() const;

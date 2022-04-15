@@ -73,6 +73,7 @@ namespace Langulus::Anyness
 
 		void Clear();
 		void Reset();
+		void ResetState();
 		NOD() Any Clone() const;
 
 		using Block::Swap;

@@ -10,12 +10,14 @@ namespace Langulus::Anyness
 	constexpr Index::Index(const SpecialIndices& value) noexcept
 		: mIndex {value} { }
 
-	/// Constructor from raw type																
-	constexpr Index::Index(const Type& value) noexcept
+	/// Constructor from signed integer														
+	template<SignedInteger T>
+	constexpr Index::Index(const T& value) noexcept
 		: mIndex {value} { }
 	
-	/// Constructor from Count																	
-	constexpr Index::Index(const Count& value)
+	/// Constructor from unsigned integer													
+	template<UnsignedInteger T>
+	constexpr Index::Index(const T& value)
 		: mIndex {static_cast<Type>(value)} {
 		if (value > static_cast<Count>(MaxIndex))
 			throw Except::Overflow();

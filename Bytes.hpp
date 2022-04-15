@@ -16,13 +16,14 @@ namespace Langulus::Anyness
 		Bytes(Bytes&&) noexcept = default;
 		Bytes(const Byte*, const Count&);
 		
-		explicit Bytes(const Disowned<Bytes>&) noexcept;
-		explicit Bytes(Abandoned<Bytes>&&) noexcept;
+		Bytes(const Disowned<Bytes>&) noexcept;
+		Bytes(Abandoned<Bytes>&&) noexcept;
 		
 		~Bytes();
 
 		Bytes& operator = (const Bytes&);
 		Bytes& operator = (Bytes&&) noexcept;
+
 		Bytes& operator = (const Disowned<Bytes>&);
 		Bytes& operator = (Abandoned<Bytes>&&) noexcept;
 		

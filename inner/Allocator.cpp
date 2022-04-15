@@ -63,14 +63,6 @@ namespace Langulus::Anyness
 	void Allocator::Deallocate(DMeta, Entry*) {
 
 	}
-
-	void Allocator::Reference(Entry*, Count) {
-
-	}
-
-	bool Allocator::Dereference(Entry*, Count) {
-
-	}
 	
 	/// Deallocate an entry, removing it from its owning pool						
 	void Entry::Deallocate() {

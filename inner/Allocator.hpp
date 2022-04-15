@@ -54,10 +54,7 @@ namespace Langulus::Anyness
 		NOD() static Entry* Reallocate(DMeta, Count, Entry*);
 		NOD() static Entry* Find(DMeta, const void*);
 		static void Deallocate(DMeta, Entry*);
-		static void Reference(Entry*, Count);
 		static void Reference(DMeta, const void*, Count);
-		NOD() static bool Dereference(Entry*, Count);
-		NOD() static bool Dereference(DMeta, const void*, Count);
 	};
 
 } // namespace Langulus::Anyness
