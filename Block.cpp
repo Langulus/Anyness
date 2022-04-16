@@ -68,8 +68,7 @@ namespace Langulus::Anyness
 			// Required memory is already available								
 			if (construct && mCount < elements) {
 				// But is not yet initialized, so initialize it					
-				CropInner(mCount, elements - mCount).CallDefaultConstructors();
-				mCount = elements;
+				CallDefaultConstructors(elements - mCount);
 				return;
 			}
 
@@ -104,8 +103,7 @@ namespace Langulus::Anyness
 		
 		// Construct elements (and set count) if requested						
 		if (construct && mCount < elements) {
-			CropInner(mCount, elements - mCount).CallDefaultConstructors();
-			mCount = elements;
+			CallDefaultConstructors(elements - mCount);
 			return;
 		}
 
@@ -128,57 +126,6 @@ namespace Langulus::Anyness
 		Allocate(mReserved - ::std::min(elements, mReserved));
 	}
 
-	/// Dereference memory block once and destroy all elements if data was		
-	/// fully dereferenced																		
-	///	@return the remaining references for the block								
-	bool Block::Free() {
-		return Dereference<true>(1);
-	}
-
-	/// Select region from the memory block - unsafe and may return memory		
-	/// that has not been initialized yet - use only at your own risk				
-	/// Never references																			
-	///	@param start - starting element index											
-	///	@param count - number of elements												
-	///	@return the block representing the region										
-	Block Block::CropInner(const Count start, const Count count) {
-		Block result {
-			mState, mType, 
-			std::min(start < mCount ? mCount - start : 0, count), 
-			At(start * mType->mSize)
-		};
-
-		result.mReserved = std::min(count, mReserved - start);
-		return result;
-	}
-
-	/// Select an initialized region from the memory block					 		
-	/// Never references																			
-	///	@param start - starting element index											
-	///	@param count - number of elements to remain after 'start'				
-	///	@return the block representing the region										
-	Block Block::Crop(Offset start, Count count) {
-		CheckRange(start, count);
-		if (count == 0)
-			return {mState, mType};
-
-		return {
-			mState + DataState::Member, 
-			mType, count, At(start * mType->mSize)
-		};
-	}
-
-	/// Select a constant region from the memory block 								
-	/// Never references																			
-	///	@param start - starting element index											
-	///	@param count - number of elements												
-	///	@return the block representing the region										
-	Block Block::Crop(const Offset start, const Count count) const {
-		auto result = const_cast<Block*>(this)->Crop(start, count);
-		result.MakeConstant();
-		return result;
-	}
-
 	/// Clone all elements inside a new memory block									
 	/// If we have jurisdiction, the memory won't move									
 	void Block::TakeAuthority() {
@@ -188,9 +135,10 @@ namespace Langulus::Anyness
 
 		// Clone everything and overwrite this block								
 		// At the end it should have exactly one reference						
-		Any clone;
+		Block clone;
 		Clone(clone);
-		operator = (Abandon<Block>(clone));
+		Free();
+		operator = (clone);
 	}
 
 	/// Get the memory block corresponding to a base (constant)						
@@ -535,26 +483,28 @@ namespace Langulus::Anyness
 	}
 
 	/// Call default constructors in a region and initialize memory				
-	///	@attention this operates on uninitialized memory only, and any			
-	///		misuse will result in loss of data and undefined behavior			
-	///	@param newCount - the new count that will be saved after init			
-	void Block::CallDefaultConstructors() {
+	///	@attention this is a type-erased call and has quite the overhead		
+	///	@param count - the number of elements to initialize						
+	void Block::CallDefaultConstructors(const Count& count) {
 		if (mType->mNullifiable) {
 			// Just zero the memory (optimization)									
-			FillMemory(mRaw, {}, mReserved * GetStride());
+			FillMemory(GetRawEnd(), {}, count * GetStride());
+			mCount += count;
 			return;
 		}
 		else if (!mType->mDefaultConstructor) {
 			throw Except::Construct(Logger::Error()
-				<< "Can't default-construct " << mReserved - mCount << " elements of "
+				<< "Can't default-construct " << count << " elements of "
 				<< GetToken() << " because no default constructor was reflected");
 		}
 
-		// Construct every UNINITIALIZED element									
-		for (Count i = 0; i < mReserved; ++i) {
+		// Construct requested elements one by one								
+		for (Offset i = mCount; i < mCount + count; ++i) {
 			auto element = GetElement(i);
 			mType->mDefaultConstructor(element.mRaw);
 		}
+
+		mCount += count;
 	}
 
 	/// Call copy constructors in a region and initialize memory					

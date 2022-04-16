@@ -28,25 +28,23 @@ namespace Langulus::Anyness
 	/// Any can contain anything, so there's a bit of type-checking overhead	
 	///	@param copy - the anyness to reference											
 	TEMPLATE()
-	TAny<T>::TAny(const Any& other)
-		: TAny { } {
-		if (!InterpretsAs(other.mType)) {
+	TAny<T>::TAny(const Any& other) {
+		if (!InterpretsAs(other.GetType())) {
 			throw Except::Copy(Logger::Error()
 				<< "Bad shallow-copy-construction for TAny: from "
 				<< GetToken() << " to " << other.GetToken());
 		}
 
 		CopyProperties<false>(other);
-		Block::Keep();
+		Keep();
 	}
 
 	/// Move-construction from Any, that checks type									
 	/// Any can contain anything, so there's a bit of type-checking overhead	
 	///	@param other - the container to move											
 	TEMPLATE()
-	TAny<T>::TAny(Any&& other)
-		: TAny { } {
-		if (!InterpretsAs(other.mType)) {
+	TAny<T>::TAny(Any&& other) {
+		if (!InterpretsAs(other.GetType())) {
 			throw Except::Copy(Logger::Error()
 				<< "Bad move-construction for TAny: from "
 				<< GetToken() << " to " << other.GetToken());
@@ -57,7 +55,8 @@ namespace Langulus::Anyness
 		other.ResetState();
 	}
 
-	/// Shallow copy construction from blocks, that checks type						
+	/// Shallow copy construction from blocks												
+	/// Block can contain anything, so there's a bit of type-checking overhead	
 	///	@param copy - the anyness to reference											
 	TEMPLATE()
 	TAny<T>::TAny(const Block& copy)
@@ -89,19 +88,32 @@ namespace Langulus::Anyness
 	TAny<T>::TAny(T& other) requires (TAny<T>::NotCustom)
 		: TAny {const_cast<const T&>(other)} { }
 
+	/// Construct manually from an array													
+	///	@param raw - raw memory to reference											
+	///	@param count - number of items inside 'raw'									
+	TEMPLATE()
+	TAny<T>::TAny(const T* raw, const Count& count)
+		: Any {Block {DataState::Constrained, MetaData::Of<T>(), count, raw}} {
+		// Data is not owned by us, it may be on the stack						
+		// We should monopolize the memory to avoid segfaults, in the		
+		// case of the byte container being initialized with					
+		// temporary data on the stack												
+		TakeAuthority();
+	}
+
 	/// Shallow copy operator																	
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator = (const TAny<T>& other) {
-		Block::Free();
+		other.Keep();
+		Free();
 		CopyProperties<true>(other);
-		Block::Keep();
 		return *this;
 	}
 
 	/// Move operator																				
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator = (TAny<T>&& other) {
-		Block::Free();
+		Free();
 		CopyProperties<true>(other);
 		other.ResetMemory();
 		other.ResetState();
@@ -118,10 +130,10 @@ namespace Langulus::Anyness
 		}
 
 		// Overwrite everything except the type-constraint						
-		Block::Free();
+		other.Keep();
+		Free();
 		ResetState();
 		CopyProperties<false>(other);
-		Block::Keep();
 		return *this;
 	}
 
@@ -135,7 +147,7 @@ namespace Langulus::Anyness
 		}
 
 		// Overwrite everything except the type-constraint						
-		Block::Free();
+		Free();
 		ResetState();
 		CopyProperties<false>(other);
 		other.ResetMemory();
@@ -175,15 +187,15 @@ namespace Langulus::Anyness
 	}
 
 	/// An internal function used to copy members, without copying type and		
-	/// without overwriting type-constraints												
+	/// without overwriting states, if required											
 	///	@param other - the block to copy from											
 	TEMPLATE()
-	template<bool OVERWRITE_STATE>
+	template<bool OVERWRITE>
 	void TAny<T>::CopyProperties(const Block& other) noexcept {
 		mRaw = other.mRaw;
 		mCount = other.mCount;
 		mReserved = other.mReserved;
-		if constexpr (OVERWRITE_STATE)
+		if constexpr (OVERWRITE)
 			mState = other.mState;
 		else
 			mState += other.mState;
@@ -269,23 +281,23 @@ namespace Langulus::Anyness
 		if (GetReferences() == 1) {
 			// Only one use - just destroy elements and reset count,			
 			// reusing the allocation for later										
-			Block::CallDestructors();
-			Block::ClearInner();
+			CallDestructors();
+			ClearInner();
 		}
 		else {
 			// We're forced to reset the memory, because it's in use			
 			// Keep the type and state, though										
 			const auto state = GetUnconstrainedState();
 			Reset();
-			mState.mState |= state.mState;
+			mState += state;
 		}
 	}
 
 	/// Reset the container, destroying all elements, and deallocating			
 	TEMPLATE()
 	void TAny<T>::Reset() {
-		Block::Free();
-		Block::ResetMemory();
+		Free();
+		ResetMemory();
 		ResetState();
 	}
 
@@ -393,12 +405,12 @@ namespace Langulus::Anyness
 	///	@return a constant reference to the element									
 	TEMPLATE()
 	typename TAny<T>::SparseElement TAny<T>::operator [] (const Index& index) requires Sparse<T> {
-		return {Get<T>(Block::ConstrainMore<T>(index).GetOffset())};
+		return {Get<T>(ConstrainMore<T>(index).GetOffset())};
 	}
 
 	TEMPLATE()
 	decltype(auto) TAny<T>::operator [] (const Index& index) const requires Sparse<T> {
-		return Get<T>(Block::ConstrainMore<T>(index).GetOffset());
+		return Get<T>(ConstrainMore<T>(index).GetOffset());
 	}
 
 	/// Access last element (unsafe)															
@@ -519,13 +531,13 @@ namespace Langulus::Anyness
 	/// Find element(s) position inside container										
 	TEMPLATE()
 	Index TAny<T>::Find(MakeConst<T> item, const Index& idx) const {
-		return Any::Find(pcVal(item), idx);
+		return Any::Find(item, idx);
 	}
 
 	/// Remove matching items																	
 	TEMPLATE()
 	Count TAny<T>::Remove(MakeConst<T> item, const Index& idx) {
-		return Any::Remove(pcPtr(item), 1, idx);
+		return Any::Remove(item, 1, idx);
 	}
 
 	/// Sort the pack																				
@@ -533,13 +545,7 @@ namespace Langulus::Anyness
 	void TAny<T>::Sort(const Index& first) {
 		if constexpr (Sortable<T>)
 			Any::Sort<T>(first);
-		else LANGULUS_ASSERT("Can't sort container");
-	}
-
-	/// Pick a region																				
-	TEMPLATE()
-	TAny<T> TAny<T>::Crop(const Offset& start, const Count& count) const {
-		return Any::Crop(start, count);
+		else LANGULUS_ASSERT("Can't sort container - T is not sortable");
 	}
 
 	/// Remove elements on the back															
@@ -563,6 +569,193 @@ namespace Langulus::Anyness
 	TEMPLATE()
 	void TAny<T>::Swap(const Index& from, const Index& to) {
 		Any::Swap<T>(from, to);
+	}
+
+	/// Clone container array into a new owned memory block							
+	/// If we have jurisdiction, the memory won't move at all						
+	TEMPLATE()
+	void TAny<T>::TakeAuthority() {
+		if (mEntry)
+			return;
+
+		operator = (Clone());
+	}
+
+
+
+	///																								
+	///	Sparse element implementation														
+	///																								
+	
+	/// When overwriting the element, the previous pointer must be dereference	
+	/// and the new one - referenced															
+	///	@param pointer - the pointer to set												
+	///	@return a reference to this sparse element									
+	TEMPLATE()
+	TAny<T>::SparseElement& TAny<T>::SparseElement::operator = (T pointer) {
+		if (mElement == pointer)
+			return *this;
+
+		const auto meta = MetaData::Of<T>();
+		if (mElement) {
+			// Dereference/destroy the previous element							
+			auto entry = Allocator::Find(meta, mElement);
+			if (entry->mReferences == 1) {
+				delete mElement;
+				entry->Deallocate();
+			}
+
+			--entry->mReferences;
+		}
+
+		// Set and reference the new element										
+		mElement = pointer;
+		Allocator::Reference(meta, mElement, 1);
+		return *this;
+	}
+
+	/// When overwriting with nullptr, just dereference/destroy previous			
+	///	@param pointer - null pointer														
+	///	@return a reference to this sparse element									
+	TEMPLATE()
+	TAny<T>::SparseElement& TAny<T>::SparseElement::operator = (::std::nullptr_t) {
+		if (!mElement)
+			return *this;
+
+		// Dereference/destroy the previous element								
+		const auto meta = MetaData::Of<T>();
+		auto entry = Allocator::Find(meta, mElement);
+		if (entry->mReferences == 1) {
+			delete mElement;
+			entry->Deallocate();
+		}
+
+		--entry->mReferences;
+		return *this;
+	}
+
+	/// Implicit cast to a constant pointer												
+	TEMPLATE()
+	TAny<T>::SparseElement::operator const T() const noexcept {
+		return mElement;
+	}
+
+	/// Implicit cast to a mutable pointer													
+	TEMPLATE()
+	TAny<T>::SparseElement::operator T () noexcept {
+		return mElement;
+	}
+
+	/// Pointer dereferencing (const)														
+	TEMPLATE()
+	auto TAny<T>::SparseElement::operator -> () const {
+		if (!mElement)
+			throw Except::Access("Invalid pointer");
+		return mElement;
+	}
+
+	/// Pointer dereferencing																	
+	TEMPLATE()
+	auto TAny<T>::SparseElement::operator -> () {
+		if (!mElement)
+			throw Except::Access("Invalid pointer");
+		return mElement;
+	}
+
+	/// Pointer dereferencing (const)														
+	TEMPLATE()
+	decltype(auto) TAny<T>::SparseElement::operator * () const {
+		if (!mElement)
+			throw Except::Access("Invalid pointer");
+		return *mElement;
+	}
+
+	/// Pointer dereferencing																	
+	TEMPLATE()
+	decltype(auto) TAny<T>::SparseElement::operator * () {
+		if (!mElement)
+			throw Except::Access("Invalid pointer");
+		return *mElement;
+	}
+
+	/// Call default constructors in a region and initialize memory				
+	///	@param count - the number of elements to initialize						
+	TEMPLATE()
+	void TAny<T>::CallDefaultConstructors(const Count& count) {
+		if constexpr (Nullifiable<T>) {
+			// Just zero the memory (optimization)									
+			FillMemory(GetRawEnd(), {}, count * GetStride());
+			mCount += count;
+			return;
+		}
+		else if constexpr (DefaultConstructible<T>) {
+			// Construct requested elements in place								
+			new (GetRawEnd()) T {}[count];
+			mCount += count;
+		}
+		else LANGULUS_ASSERT("Trying to default-construct elements that are incapable of default-construction");
+	}
+
+	/// Get a constant part of this container												
+	///	@tparam WRAPPER - the container to use for the part						
+	///			            use Block for unreferenced container					
+	///	@return a container that represents the cropped part						
+	TEMPLATE()
+	template<class WRAPPER>
+	WRAPPER TAny<T>::Crop(const Offset& start, const Count& count) const {
+		return WRAPPER {Block::Crop(start, count)};
+	}
+	
+	/// Get a part of this container															
+	///	@tparam WRAPPER - the container to use for the part						
+	///			            use Block for unreferenced container					
+	///	@return a container that represents the cropped part						
+	TEMPLATE()
+	template<class WRAPPER>
+	WRAPPER TAny<T>::Crop(const Offset& start, const Count& count) {
+		return WRAPPER {Block::Crop(start, count)};
+	}
+	
+	/// Extend the container and return the new part									
+	///	@tparam WRAPPER - the container to use for the extended part			
+	///			            use Block for unreferenced container					
+	///	@return a container that represents the extended part						
+	TEMPLATE()
+	template<class WRAPPER>
+	WRAPPER TAny<T>::Extend(const Count& count) {
+		if (!count || IsStatic())
+			// You can not extend static containers								
+			return {};
+
+		const auto newCount = mCount + count;
+		const auto oldCount = mCount;
+		if (newCount <= mReserved) {
+			// There is enough available space										
+			if constexpr (POD<T>)
+				// No need to call constructors for POD items					
+				mCount += count;
+			else
+				CallDefaultConstructors(count);
+		}
+		else {
+			// Allocate more space														
+			mEntry = Allocator::Reallocate(mType, newCount, mEntry);
+			mRaw = mEntry->GetBlockStart();
+			if constexpr (POD<T>) {
+				// No need to call constructors for POD items					
+				mCount = mReserved = newCount;
+			}
+			else {
+				mReserved = newCount;
+				CallDefaultConstructors(count);
+			}
+		}
+
+		WRAPPER result {*this};
+		result.MakeStatic();
+		result.mRaw += oldCount;
+		result.mCount = result.mReserved = count;
+		return Abandon(result);
 	}
 
 } // namespace Langulus::Anyness

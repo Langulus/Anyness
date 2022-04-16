@@ -4,6 +4,7 @@
 
 #define LANGULUS_DEEP() public: static constexpr bool CTTI_Deep = true
 #define LANGULUS_POD() public: static constexpr bool CTTI_POD = true
+#define LANGULUS_NULLIFIABLE() public: static constexpr bool CTTI_Nullifiable = true
 
 namespace Langulus::Flow
 {
@@ -38,18 +39,28 @@ namespace Langulus::Anyness
 	/// If no such member exists, the type is assumed NOT deep by default		
 	/// Deep types are considered iteratable, and verbs are executed in each	
 	/// of their elements, instead on the container itself							
-	/// Use LANGULUS_DEEP() macro as member to tag deep types						
+	/// Use LANGULUS(DEEP) macro as member to tag deep types							
 	template<class T>
 	concept Deep = Decay<T>::CTTI_Deep == true;
 	
 	/// A POD (Plain Old Data) type is any type with a static member				
 	/// T::CTTI_POD set to true. If no such member exists, the type is assumed	
-	/// NOT POD by default. POD types ignore constructors and destructors when	
-	/// allocating, deallocating, copying, etc. allowing use to use some			
-	/// batching runtime optimizations there												
-	/// Use LANGULUS_POD() macro as member to tag POD types							
+	/// NOT POD by default, unless ::std::is_trivial.									
+	/// POD types improve construction, destruction, copying, and cloning by	
+	/// using some batching runtime optimizations										
+	/// All POD types are also directly serializable to binary						
+	/// Use LANGULUS(POD) macro as member to tag POD types							
 	template<class T>
-	concept POD = Decay<T>::CTTI_POD == true;
+	concept POD = ::std::is_trivial_v<Decay<T>> || Decay<T>::CTTI_POD == true;
+	
+	/// A nullifiable type is any type with a static member							
+	/// T::CTTI_Nullifiable set to true. If no such member exists, the type is 
+	/// assumed	NOT nullifiable by default													
+	/// Nullifiable types improve construction by using some batching runtime	
+	/// optimizations																				
+	/// Use LANGULUS(NULLIFIABLE) macro as member to tag nullifiable types		
+	template<class T>
+	concept Nullifiable = Decay<T>::CTTI_Nullifiable == true;
 	
 	class Block;
 	struct Member;

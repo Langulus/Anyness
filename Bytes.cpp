@@ -3,59 +3,30 @@
 namespace Langulus::Anyness
 {
 
-	/// Default construction																	
-	Bytes::Bytes()
-		: Block {DataState::Typed, MetaData::Of<Byte>()} { }
-
 	/// Construct via shallow copy															
 	///	@param other - the bytes to shallow-copy										
 	Bytes::Bytes(const Bytes& other)
-		: Block {other} {
-		Block::MakeConstant();
-		Block::Keep();
-	}
+		: TAny {other} { }
 
 	/// Construct via disowned copy															
 	///	@param other - the bytes to move													
 	Bytes::Bytes(const Disowned<Bytes>& other) noexcept
-		: Block {other.mValue} { }
+		: TAny {other.mValue} { }
 	
 	/// Construct via abandoned move															
 	///	@param other - the bytes to move													
 	Bytes::Bytes(Abandoned<Bytes>&& other) noexcept
-		: Block {other.Forward<Block>()} { }
+		: TAny {other.Forward<TAny>()} { }
 
 	/// Construct manually																		
 	///	@param raw - raw memory to reference											
 	///	@param count - number of bytes inside 'raw'									
 	Bytes::Bytes(const Byte* raw, const Count& count)
-		: Block {DataState::Constrained, MetaData::Of<Byte>(), count, raw} {
-		// Data is not owned by us, it may be on the stack						
-		// We should monopolize the memory to avoid segfaults, in the		
-		// case of the byte container being initialized with					
-		// temporary data on the stack												
-		Block::TakeAuthority();
-	}
+		: TAny {raw, count} { }
 
 	/// Destructor																					
 	Bytes::~Bytes() {
-		// A byte container needs no destructor calls, so just dereference
-		Block::Dereference<false>(1);
-	}
-
-	/// Clear the contents, but do not deallocate memory if possible				
-	void Bytes::Clear() noexcept {
-		if (GetReferences() == 1)
-			mCount = 0;
-		else Reset();
-	}
-
-	/// Reset the contents, deallocating any memory										
-	/// Byte containers are always type-constrained, and retain that				
-	void Bytes::Reset() {
-		Block::Dereference<false>(1);
-		Block::ResetMemory();
-		Block::ResetState<true>();
+		Free();
 	}
 
 	/// Hash the byte sequence																	
@@ -67,64 +38,81 @@ namespace Langulus::Anyness
 
 	/// Allocate a number of bytes and zero them											
 	void Bytes::Null(const Count& count) {
-		Block::Allocate(count, false, true);
-		Block::FillMemory(mRaw, {}, mCount);
+		Allocate(count, false, true);
+		FillMemory(mRaw, {}, mCount);
 	}
 
-	/// Do a shallow copy																		
-	///	@param other - the byte container to reference								
+	/// Shallow copy assignment																
+	///	@param rhs - the byte container to shallow-copy								
 	///	@return a reference to this container											
-	Bytes& Bytes::operator = (const Bytes& other) {
-		// First we keep, in order to make sure data is not freed			
-		// before being dereferenced													
-		other.Keep();
-		Block::Dereference<false>(1);
-		Block::operator = (other);
+	Bytes& Bytes::operator = (const Bytes& rhs) {
+		TAny::operator = (rhs);
 		return *this;
 	}
 
 	/// Move byte container																		
-	///	@param other - the container to move											
+	///	@param rhs - the container to move												
 	///	@return a reference to this container											
-	Bytes& Bytes::operator = (Bytes&& other) noexcept {
-		Block::Dereference<false>(1);
-		Block::operator = (Forward<Block>(other));
-		other.ResetState<true>();
+	Bytes& Bytes::operator = (Bytes&& rhs) noexcept {
+		TAny::operator = (Forward<TAny>(rhs));
 		return *this;
 	}
 
 	/// Compare with another byte container												
+	///	@param other - the byte container to compare with							
+	///	@return true if both containers are identical								
 	bool Bytes::operator == (const Bytes& other) const noexcept {
-		return other.mCount == mCount && (
-			mRaw == other.mRaw || 
-			MatchBytes(GetRaw(), mCount, other.GetRaw(), other.mCount) == other.mCount
-		);
+		return Compare(other);
 	}
 
 	/// Compare with another byte container												
+	///	@param other - the byte container to compare with							
+	///	@return true if both containers are not identical							
 	bool Bytes::operator != (const Bytes& other) const noexcept {
 		return !(*this == other);
 	}
 
-	/// Compare with another																	
-	///	@param other - text to compare with												
-	///	@return the number of matching symbols											
+	/// Compare with another byte array														
+	///	@param other - bytes to compare with											
+	///	@return true if both containers match completely							
+	bool Bytes::Compare(const Bytes& other) const noexcept {
+		if (mRaw == other.mRaw)
+			return mCount == other.mCount;
+		else if (mCount != other.mCount)
+			return false;
+
+		auto t1 = GetRaw();
+		auto t2 = other.GetRaw();
+		while (*t1 == *t2) {
+			++t1;
+			++t2;
+		}
+
+		return (t1 - GetRaw()) == mCount;
+	}
+
+
+	/// Compare byte sequences and return matching bytes								
+	///	@param other - bytes to compare with											
+	///	@return the number of matching bytes											
 	Count Bytes::Matches(const Bytes& other) const noexcept {
-		return MatchBytes(GetRaw(), mCount, other.GetRaw(), other.mCount);
-	}
+		if (mRaw == other.mRaw)
+			return ::std::min(mCount, other.mCount);
 
-	/// Access specific character (const, unsafe)										
-	///	@param i - index of character														
-	///	@return constant reference to the character									
-	const Byte& Bytes::operator[] (const Offset& i) const {
-		return GetRaw()[i];
-	}
+		auto t1 = GetRaw();
+		auto t2 = other.GetRaw();
+		while (*t1 == *t2) {
+			++t1;
+			++t2;
+		}
 
-	/// Access specific character (unsafe)													
-	///	@param i - index of character														
-	///	@return constant reference to the character									
-	Byte& Bytes::operator[] (const Offset& i) {
-		return GetRaw()[i];
+		/*
+		__m128i first = _mm_loadu_si128( reinterpret_cast<__m128i*>( &arr1 ) );
+		__m128i second = _mm_loadu_si128( reinterpret_cast<__m128i*>( &arr2 ) );
+		return std::popcount(_mm_movemask_epi8( _mm_cmpeq_epi8( first, second ) ));
+		*/
+
+		return t1 - GetRaw();
 	}
 
 	/// Clone the byte container																
@@ -145,17 +133,20 @@ namespace Langulus::Anyness
 		return Abandon(result);
 	}
 
-	/// Pick a part of the byte array														
+	/// Pick a constant part of the byte array											
 	///	@param start - the starting byte offset										
 	///	@param count - the number of bytes after 'start' to remain				
 	///	@return a new container that references the original memory				
 	Bytes Bytes::Crop(const Offset& start, const Count& count) const {
-		Block::CheckRange(start, count);
-		Bytes result {*this};
-		result.MakeStatic();
-		result.mRaw += start;
-		result.mCount = result.mReserved = count;
-		return Abandon(result);
+		return TAny::Crop<Bytes>(start, count);
+	}
+
+	/// Pick a part of the byte array														
+	///	@param start - the starting byte offset										
+	///	@param count - the number of bytes after 'start' to remain				
+	///	@return a new container that references the original memory				
+	Bytes Bytes::Crop(const Offset& start, const Count& count) {
+		return TAny::Crop<Bytes>(start, count);
 	}
 
 	/// Remove a region of bytes																
@@ -182,33 +173,7 @@ namespace Langulus::Anyness
 	///	@param count - the number of bytes to append									
 	///	@return the extended part - you will not be allowed to resize it		
 	Bytes Bytes::Extend(const Count& count) {
-		if (IsStatic())
-			// You can not extend static containers								
-			return {};
-		
-		const auto newCount = mCount + count;
-		const auto oldCount = mCount;
-		if (newCount <= mReserved) {
-			// There is enough available space										
-			mCount += count;
-			
-			Bytes result {*this};
-			result.MakeStatic();
-			result.mRaw += oldCount;
-			result.mCount = result.mReserved = count;
-			return Abandon(result);
-		}
-
-		// Allocate more space															
-		mEntry = Allocator::Reallocate(mType, newCount, mEntry);
-		mRaw = mEntry->GetBlockStart();
-		mCount = mReserved = newCount;
-		
-		Bytes result {*this};
-		result.MakeStatic();
-		result.mRaw += oldCount;
-		result.mCount = result.mReserved = count;
-		return Abandon(result);
+		return TAny::Extend<Bytes>(count);
 	}
 
 } // namespace Langulus::Anyness

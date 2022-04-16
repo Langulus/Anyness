@@ -43,7 +43,7 @@ namespace Langulus::Anyness
 	/// Get the size of the Entry structure, rounded up for alignment				
 	///	@return the byte size of the entry, including alignment					
 	constexpr Stride Entry::GetSize() noexcept {
-		return Roof2(::std::max(sizeof(Entry), LANGULUS_ALIGN()));
+		return sizeof(Entry) + (sizeof(Entry) % LANGULUS_ALIGN());
 	}
 
 	/// Check if the memory of the entry is in use										

@@ -1,5 +1,5 @@
 #pragma once
-#include "Block.hpp"
+#include "TAny.hpp"
 
 namespace Langulus::Anyness
 {
@@ -9,9 +9,9 @@ namespace Langulus::Anyness
 	///																								
 	/// Convenient wrapper for raw byte sequences										
 	///																								
-	class Bytes : public Block {
+	class Bytes : public TAny<Byte> {
 	public:
-		Bytes();
+		Bytes() = default;
 		Bytes(const Bytes&);
 		Bytes(Bytes&&) noexcept = default;
 		Bytes(const Byte*, const Count&);
@@ -30,31 +30,24 @@ namespace Langulus::Anyness
 	public:
 		NOD() Bytes Clone() const;
 		NOD() Bytes Crop(const Offset&, const Count&) const;
+		NOD() Bytes Crop(const Offset&, const Count&);
 		Bytes& Remove(const Offset&, const Count&);
 		void Null(const Count&);
-		void Clear() noexcept;
-		void Reset();
 		Bytes Extend(const Count&);
 		Hash GetHash() const;
 
 		bool operator == (const Bytes&) const noexcept;
 		bool operator != (const Bytes&) const noexcept;
 
-		NOD() const Byte& operator[] (const Offset&) const;
-		NOD() Byte& operator[] (const Offset&);
-		NOD() const Byte& operator[] (const Index&) const;
-		NOD() Byte& operator[] (const Index&);
-
-		Count Matches(const Bytes&) const noexcept;
-
-		RANGED_FOR_INTEGRATION(Bytes, Byte);
+		NOD() bool Compare(const Bytes&) const noexcept;
+		NOD() Count Matches(const Bytes&) const noexcept;
 
 		template<class T>
 		Bytes& operator += (const T&);
 		template<class T>
-		Bytes operator + (const T&) const;
+		NOD() Bytes operator + (const T&) const;
 		template<class T>
-		friend NOD() Bytes operator + (const T&, const Bytes&) requires NotSame<T, Bytes>;
+		friend Bytes operator + (const T&, const Bytes&) requires NotSame<T, Bytes>;
 	};
 
 } // namespace Langulus::Anyness

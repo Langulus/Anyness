@@ -4,33 +4,17 @@
 namespace Langulus::Anyness
 {
 	
-	/// Move-construction for block															
-	///	@attention type and state is never erased in source						
+	/// Copy-construction from constant block												
 	///	@param other - the block instance to move										
-	inline Block::Block(Block&& other) noexcept
+	constexpr Block::Block(const Block& other) noexcept
 		: mRaw {other.mRaw}
 		, mType {other.mType}
 		, mCount {other.mCount}
 		, mReserved {other.mReserved}
-		, mState {other.mState}
-		, mEntry {other.mEntry} {
-		other.ResetMemory();
-	}
-	
-	/// Move-construction for abandoned block												
-	///	@param other - the block instance to move										
-	inline Block::Block(Abandoned<Block>&& other) noexcept
-		: mRaw {other.mValue.mRaw}
-		, mType {other.mValue.mType}
-		, mCount {other.mValue.mCount}
-		, mReserved {other.mValue.mReserved}
-		, mState {other.mValue.mState}
-		, mEntry {other.mValue.mEntry} {
-		other.mValue.mEntry = nullptr;
-	}
+		, mState {other.mState + DataState::Constant}
+		, mEntry {other.mEntry} { }
 	
 	/// Manual construction via state and type											
-	/// No allocation will happen																
 	///	@param state - the initial state of the container							
 	///	@param meta - the type of the memory block									
 	constexpr Block::Block(const DataState& state, DMeta meta) noexcept
@@ -38,25 +22,23 @@ namespace Langulus::Anyness
 		, mType {meta} { }
 
 	/// Manual construction from constant data											
-	/// No referencing shall occur and changes data state to dsConstant			
 	///	@param state - the initial state of the container							
 	///	@param meta - the type of the memory block									
 	///	@param count - initial element count and reserve							
-	///	@param raw - pointer to the constant memory - safety is on you			
+	///	@param raw - pointer to the constant memory									
 	inline Block::Block(const DataState& state, DMeta meta, Count count, const Byte* raw) noexcept
 		: mRaw {const_cast<Byte*>(raw)}
 		, mType {meta}
 		, mCount {count}
 		, mReserved {count}
-		, mState {state.mState | DataState::Constant}
+		, mState {state + DataState::Constant}
 		, mEntry {Allocator::Find(meta, raw)} { }
 
 	/// Manual construction from mutable data												
-	/// No referencing shall occur and changes data state to dsConstant			
 	///	@param state - the initial state of the container							
 	///	@param meta - the type of the memory block									
 	///	@param count - initial element count and reserve							
-	///	@param raw - pointer to the mutable memory - safety is on you			
+	///	@param raw - pointer to the mutable memory									
 	inline Block::Block(const DataState& state, DMeta meta, Count count, Byte* raw) noexcept
 		: mRaw {raw}
 		, mType {meta}
@@ -66,25 +48,16 @@ namespace Langulus::Anyness
 		, mEntry {Allocator::Find(meta, raw)} { }
 
 	/// Create a memory block from a typed pointer										
-	/// No referencing shall occur, this simply initializes the block				
 	///	@return the block																		
 	template<ReflectedData T>
 	Block Block::From(T value) requires Sparse<T> {
-		return {
-			DataState::Static,
-			MetaData::Of<T>(), 
-			1, value
-		};
+		return {DataState::Static, MetaData::Of<T>(), 1, value};
 	}
 
 	///	@return the block																		
 	template<ReflectedData T>
 	Block Block::From(T value, Count count) requires Sparse<T> {
-		return {
-			DataState::Static, 
-			MetaData::Of<T>(), 
-			count, value
-		};
+		return {DataState::Static, MetaData::Of<T>(), count, value};
 	}
 
 	/// Create a memory block from a value reference									
@@ -94,11 +67,7 @@ namespace Langulus::Anyness
 	Block Block::From(T& value) requires Dense<T> {
 		if constexpr (Resolvable<T>)
 			return value.GetBlock();
-		else return {
-			DataState::Static,
-			MetaData::Of<T>(), 
-			1, &value
-		};
+		else return {DataState::Static, MetaData::Of<T>(), 1, &value};
 	}
 
 	/// Create an empty memory block from a static type								
@@ -106,37 +75,6 @@ namespace Langulus::Anyness
 	template<ReflectedData T>
 	Block Block::From() {
 		return {MetaData::Of<T>()};
-	}
-
-	/// Move memory block																		
-	/// No referencing will occur - this simply copies and resets the other		
-	/// Other block will retain its state and type after the move					
-	///	@param other - the memory block to move										
-	///	@return a reference to this block												
-	Block& Block::operator = (Block&& other) noexcept {
-		mRaw = other.mRaw;
-		mType = other.mType;
-		mCount = other.mCount;
-		mReserved = other.mReserved;
-		mState = other.mState;
-		mEntry = other.mEntry;
-		other.ResetMemory();
-		return *this;
-	}
-	
-	/// Move an abandoned memory block														
-	/// No referencing will occur - this simply copies and resets the other		
-	///	@param other - the memory block to move										
-	///	@return a reference to this block												
-	Block& Block::operator = (Abandoned<Block>&& other) noexcept {
-		mRaw = other.mValue.mRaw;
-		mType = other.mValue.mType;
-		mCount = other.mValue.mCount;
-		mReserved = other.mValue.mReserved;
-		mState = other.mValue.mState;
-		mEntry = other.mValue.mEntry;
-		other.mValue.mEntry = nullptr;
-		return *this;
 	}
 
 	/// Reference memory block																	
@@ -616,7 +554,7 @@ namespace Langulus::Anyness
 	///				  set count - could cause undefined behavior						
 	template<ReflectedData T>
 	void Block::Allocate(Count count, bool construct, bool setcount) {
-		SetType<T>(false);
+		SetType<T, false>();
 		Allocate(count, construct, setcount);
 	}
 
@@ -809,7 +747,7 @@ namespace Langulus::Anyness
 			Allocator::Reference(mType, item, 1);
 		}
 		else {
-			static_assert(!pcIsAbstract<T>, "Can't emplace abstract item");
+			static_assert(!Abstract<T>, "Can't emplace abstract item");
 
 			// Dense data insertion (placement move-construction)				
 			auto data = GetRaw() + starter * sizeof(T);
@@ -875,7 +813,7 @@ namespace Langulus::Anyness
 			}
 		}
 		else {
-			static_assert(!pcIsAbstract<T>, "Can't insert abstract item");
+			static_assert(!Abstract<T>, "Can't insert abstract item");
 
 			if constexpr (sizeof(T) == 1 || Same<T, wchar_t>) {
 				// Optimized byte/char/wchar_t insertion							
@@ -1466,13 +1404,11 @@ namespace Langulus::Anyness
 		}
 	}
 
-	template<bool SKIP_DEEP_OR_EMPTY, class FUNCTION>
-	Count Block::ForEachDeep(FUNCTION&& call) const {
-		using ArgumentType = decltype(GetLambdaArgument(&FUNCTION::operator()));
-		static_assert(Constant<ArgumentType>, 
-			"Non constant iterator for constant memory block");
-		return const_cast<Block*>(this)->ForEachDeep<SKIP_DEEP_OR_EMPTY, false>(
-			Forward<FUNCTION>(call));
+	template<bool SKIP, class F>
+	Count Block::ForEachDeep(F&& call) const {
+		using A = decltype(GetLambdaArgument(&F::operator()));
+		static_assert(Constant<A>, "Non constant iterator for constant memory block");
+		return const_cast<Block*>(this)->ForEachDeep<SKIP, false>(Forward<F>(call));
 	}
 
 	template<bool SKIP_DEEP_OR_EMPTY, bool MUTABLE, class FUNCTION>
@@ -1719,7 +1655,7 @@ namespace Langulus::Anyness
 	///	@param from - source of data to copy											
 	///	@param to - [out] destination memory											
 	///	@param size - number of bytes to copy											
-	void Block::CopyMemory(const void* from, void* to, const Stride& size) noexcept {
+	inline void Block::CopyMemory(const void* from, void* to, const Stride& size) noexcept {
 		::std::memcpy(to, from, size);
 	}
 	
@@ -1727,7 +1663,7 @@ namespace Langulus::Anyness
 	///	@param from - source of data to move											
 	///	@param to - [out] destination memory											
 	///	@param size - number of bytes to move											
-	void Block::MoveMemory(const void* from, void* to, const Stride& size) noexcept {
+	inline void Block::MoveMemory(const void* from, void* to, const Stride& size) noexcept {
 		::std::memmove(to, from, size);
 		#if LANGULUS(PARANOID)
 			TODO() // zero old memory, but beware - `from` and `to` might overlap
@@ -1738,7 +1674,7 @@ namespace Langulus::Anyness
 	///	@param to - [out] destination memory											
 	///	@param filler - the byte to fill with											
 	///	@param size - number of bytes to move											
-	void Block::FillMemory(void* to, Byte filler, const Stride& size) noexcept {
+	inline void Block::FillMemory(void* to, Byte filler, const Stride& size) noexcept {
 		::std::memset(to, static_cast<int>(filler), size);
 	}
 	
@@ -1746,8 +1682,55 @@ namespace Langulus::Anyness
 	///	@param a1 - size of first array													
 	///	@param a2 - size of second array													
 	///	@param size - number of bytes to compare										
-	int Block::CompareMemory(const void* a1, const void* a2, const Stride& size) noexcept {
+	inline int Block::CompareMemory(const void* a1, const void* a2, const Stride& size) noexcept {
 		return ::std::memcmp(a1, a2, size);
+	}
+
+	/// Dereference memory block once and destroy all elements if data was		
+	/// fully dereferenced																		
+	///	@return the remaining references for the block								
+	inline bool Block::Free() {
+		return Dereference<true>(1);
+	}
+
+	/// Select region from the memory block - unsafe and may return memory		
+	/// that has not been initialized yet (for internal use only)					
+	///	@param start - starting element index											
+	///	@param count - number of elements												
+	///	@return the block representing the region										
+	inline Block Block::CropInner(const Offset& start, const Count& count) noexcept {
+		Block result {*this};
+		result.mCount = std::min(start < mCount ? mCount - start : 0, count);
+		result.mRaw += start * mType->mSize;
+		result.mReserved = std::min(count, mReserved - start);
+		return result;
+	}
+
+	/// Select an initialized region from the memory block					 		
+	///	@param start - starting element index											
+	///	@param count - number of elements to remain after 'start'				
+	///	@return the block representing the region										
+	inline Block Block::Crop(const Offset& start, const Count& count) {
+		CheckRange(start, count);
+		if (count == 0)
+			return {mState, mType};
+
+		Block result {*this};
+		result.mCount = result.mReserved = count;
+		result.mRaw += start * mType->mSize;
+		result.mState += DataState::Member;
+		return result;
+	}
+
+	/// Select a constant region from the memory block 								
+	/// Never references																			
+	///	@param start - starting element index											
+	///	@param count - number of elements												
+	///	@return the block representing the region										
+	inline Block Block::Crop(const Offset& start, const Count& count) const {
+		auto result = const_cast<Block*>(this)->Crop(start, count);
+		result.MakeConstant();
+		return result;
 	}
 	
 } // namespace Langulus::Anyness

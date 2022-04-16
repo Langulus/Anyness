@@ -3,35 +3,6 @@
 namespace Langulus::Anyness
 {
 
-	/// Copy construction - does a shallow copy and references content			
-	///	@param other - the container to shallow-copy									
-	Any::Any(const Any& other) 
-		: Block {other} {
-		Block::Keep();
-	}
-
-	/// Copy construction - does a shallow copy and references content			
-	///	@param other - the container to shallow-copy									
-	Any::Any(const Block& other) 
-		: Block {other} {
-		Block::Keep();
-	}
-
-	/// Move construction - moves block and references content						
-	/// Since we are not aware if that block is referenced or not, we				
-	/// reference it just in case, and we also do not reset the other block		
-	/// to avoid memory leaks - it will be freed if it has been kept				
-	///	@param other - the block to move													
-	Any::Any(Block&& other) 
-		: Block {static_cast<const Block&>(other)} {
-		Block::Keep();
-	}
-
-	/// Destruction																				
-	Any::~Any() {
-		Block::Free();
-	}
-
 	/// Assign by referencing another Any													
 	/// Dereferences old contents, and does a type-constraint before copy		
 	///	@param other - the container to shallow copy									
@@ -43,9 +14,9 @@ namespace Langulus::Anyness
 				<< GetToken() << " to " << other.GetToken());
 		}
 
-		Block::Free();
+		other.Keep();
+		Free();
 		Block::operator = (other);
-		Block::Keep();
 		return *this;
 	}
 
@@ -59,8 +30,9 @@ namespace Langulus::Anyness
 				<< GetToken() << " to " << other.GetToken());
 		}
 
-		Block::Free();
+		Free();
 		Block::operator = (Forward<Block>(other));
+		other.ResetMemory();
 		other.ResetState();
 		return *this;
 	}
@@ -72,8 +44,10 @@ namespace Langulus::Anyness
 		return Any::operator = (Any {other});
 	}
 
-	/// Assign by moving a memory block														
-	///	@param other - the memory block to reference									
+	/// Assign by shallow-copying a memory block											
+	///	@attention this is not actually a move, data will be referenced and	
+	///				  'other' will not be reset to avoid memory leaks				
+	///	@param other - the memory block to shallow-copy								
 	///	@return a reference to this container											
 	Any& Any::operator = (Block&& other) {
 		return Any::operator = (Any {Forward<Block>(other)});
@@ -95,8 +69,8 @@ namespace Langulus::Anyness
 		if (GetReferences() == 1) {
 			// Only one use - just destroy elements and reset count,			
 			// reusing the allocation for later										
-			Block::CallDestructors();
-			Block::ClearInner();
+			CallDestructors();
+			ClearInner();
 		}
 		else {
 			// We're forced to reset the memory, because it's in use			
@@ -111,8 +85,8 @@ namespace Langulus::Anyness
 
 	/// Reset the container																		
 	void Any::Reset() {
-		Block::Free();
-		Block::ResetMemory();
+		Free();
+		ResetMemory();
 		ResetState();
 	}
 
@@ -124,74 +98,26 @@ namespace Langulus::Anyness
 			Block::ResetState<false>();
 	}
 
-	/// Swap two anies																			
-	///	@param other - the container to swap contents with							
+	/// Swap two container's contents														
+	///	@param other - [in/out] the container to swap contents with				
 	void Any::Swap(Any& other) noexcept {
 		other = ::std::exchange(*this, Move(other));
 	}
 
-	/// Pick a region																				
+	/// Pick a constant region and reference it from another container			
 	///	@param start - starting element index											
 	///	@param count - number of elements												
-	///	@return the block																		
+	///	@return the container																
 	Any Any::Crop(const Offset& start, const Count& count) const {
 		return Any {Block::Crop(start, count)};
 	}
 
-	/// Make memory block vacuum (a.k.a. missing)										
-	///	@return reference to itself														
-	Any& Any::MakeMissing() {
-		Block::MakeMissing();
-		return *this;
-	}
-
-	/// Make memory block static (unmovable and unresizable)							
-	///	@return reference to itself														
-	Any& Any::MakeStatic() {
-		Block::MakeStatic();
-		return *this;
-	}
-
-	/// Make memory block constant (unresizable and unchangable)					
-	///	@return reference to itself														
-	Any& Any::MakeConstant() {
-		Block::MakeConstant();
-		return *this;
-	}
-
-	/// Make memory block type-immutable													
-	///	@return reference to itself														
-	Any& Any::MakeTypeConstrained() {
-		Block::MakeTypeConstrained();
-		return *this;
-	}
-
-	/// Make memory block exlusive (a.k.a. OR container)								
-	///	@return reference to itself														
-	Any& Any::MakeOr() {
-		Block::MakeOr();
-		return *this;
-	}
-
-	/// Make memory block inclusive (a.k.a. AND container)							
-	///	@return reference to itself														
-	Any& Any::MakeAnd() {
-		Block::MakeAnd();
-		return *this;
-	}
-
-	/// Make memory block left-polar															
-	///	@return reference to itself														
-	Any& Any::MakePast() {
-		Block::MakePast();
-		return *this;
-	}
-
-	/// Make memory block right-polar														
-	///	@return reference to itself														
-	Any& Any::MakeFuture() {
-		Block::MakeFuture();
-		return *this;
+	/// Pick a region and reference it from another container						
+	///	@param start - starting element index											
+	///	@param count - number of elements												
+	///	@return the container																
+	Any Any::Crop(const Offset& start, const Count& count) {
+		return Any {Block::Crop(start, count)};
 	}
 
 } // namespace Langulus::Anyness

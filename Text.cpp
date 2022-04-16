@@ -1,27 +1,18 @@
 #include "Text.hpp"
-#include "TAny.hpp"
 #include <cctype>
 #include <locale>
 
 namespace Langulus::Anyness
 {
 
-	/// Default construction																	
-	Text::Text()
-		: Block {DataState::Typed, MetaData::Of<Letter>()} { }
-
 	/// Shallow-copy construction																
 	///	@param other - the text to shallow-copy										
 	Text::Text(const Text& other)
-		: Block {other} {
-		Block::MakeConstant();
-		Block::Keep();
-	}
+		: TAny {other} { }
 
 	/// Construct from an exception															
 	///	@param from - the exception to stringify										
-	Text::Text(const Exception& from)
-		: Text { } {
+	Text::Text(const Exception& from) {
 		(*this) += from.GetName();
 		(*this) += "(";
 		(*this) += from.what();
@@ -30,9 +21,7 @@ namespace Langulus::Anyness
 
 	/// Construct from an index																
 	///	@param from - the index to stringify											
-	Text::Text(const Index& from)
-		: Text { } {
-		// Convert an index to text													
+	Text::Text(const Index& from) {
 		if (!from.IsArithmetic()) {
 			(*this) += Index::Names[from.mIndex - Index::MinIndex];
 			return;
@@ -62,13 +51,11 @@ namespace Langulus::Anyness
 		return lines;
 	}
 
-	/// Shallow copy																				
+	/// Shallow copy assignment																
 	///	@param rhs - the text container to copy										
 	///	@return a reference to this container											
 	Text& Text::operator = (const Text& rhs) {
-		rhs.Keep();
-		Block::Dereference<false>(1);
-		Block::operator = (rhs);
+		TAny::operator = (rhs);
 		return *this;
 	}
 
@@ -76,65 +63,101 @@ namespace Langulus::Anyness
 	///	@param rhs - the text container to move										
 	///	@return a reference to this container											
 	Text& Text::operator = (Text&& rhs) noexcept {
-		Block::Dereference<false>(1);
-		Block::operator = (rhs);
-		rhs.ResetState<true>();
+		TAny::operator = (Forward<TAny>(rhs));
 		return *this;
 	}
 
 	/// Compare with another text container												
+	///	@param other - the text container to compare with							
+	///	@return true if both containers are identical								
 	bool Text::operator == (const Text& other) const noexcept {
-		return other.mCount == mCount && (
-			mRaw == other.mRaw || 
-			pcStrMatches(GetRaw(), mCount, other.GetRaw(), other.mCount) == other.mCount
-		);
+		return Compare(other);
 	}
 
 	/// Compare with another text container												
+	///	@param other - the text container to compare with							
+	///	@return true if both containers are not identical							
 	bool Text::operator != (const Text& other) const noexcept {
 		return !(*this == other);
+	}
+
+	/// Compare with another string															
+	///	@param other - text to compare with												
+	///	@return true if both containers match completely							
+	bool Text::Compare(const Text& other) const noexcept {
+		if (mRaw == other.mRaw)
+			return mCount == other.mCount;
+		else if (mCount != other.mCount)
+			return false;
+
+		auto t1 = GetRaw();
+		auto t2 = other.GetRaw();
+		while (*t1 == *t2 && *t1) {
+			++t1;
+			++t2;
+		}
+
+		return (t1 - GetRaw()) == mCount;
 	}
 
 	/// Compare loosely with another, ignoring upper-case								
 	///	@param other - text to compare with												
 	///	@return true if both containers match loosely								
 	bool Text::CompareLoose(const Text& other) const noexcept {
-		return other.mCount == mCount && (
-			mRaw == other.mRaw || 
-			pcStrMatchesLoose(GetRaw(), mCount, other.GetRaw(), other.mCount) == other.mCount
-		);
+		if (mRaw == other.mRaw)
+			return mCount == other.mCount;
+		else if (mCount != other.mCount)
+			return false;
+
+		auto t1 = GetRaw();
+		auto t2 = other.GetRaw();
+		while (*t1 && *t2 && (*t1 == *t2 || (::std::isalpha(*t1) && ::std::isalpha(*t2) && (*t1 + 32 == *t2 || *t1 == *t2 + 32)))) {
+			++t1;
+			++t2;
+		}
+
+		return (t1 - GetRaw()) == mCount;
 	}
 
-	/// Compare with another																	
+	/// Count how many consecutive letters match in two strings						
 	///	@param other - text to compare with												
 	///	@return the number of matching symbols											
 	Count Text::Matches(const Text& other) const noexcept {
-		return pcStrMatches(GetRaw(), mCount, other.GetRaw(), other.mCount);
+		if (mRaw == other.mRaw)
+			return ::std::min(mCount, other.mCount);
+
+		auto t1 = GetRaw();
+		auto t2 = other.GetRaw();
+		while (*t1 == *t2 && *t1) {
+			++t1;
+			++t2;
+		}
+
+		/*
+		__m128i first = _mm_loadu_si128( reinterpret_cast<__m128i*>( &arr1 ) );
+		__m128i second = _mm_loadu_si128( reinterpret_cast<__m128i*>( &arr2 ) );
+		return std::popcount(_mm_movemask_epi8( _mm_cmpeq_epi8( first, second ) ));
+		*/
+
+		return t1 - GetRaw();
 	}
 
 	/// Compare loosely with another, ignoring upper-case								
+	/// Count how many consecutive letters match in two strings						
 	///	@param other - text to compare with												
 	///	@return the number of matching symbols											
 	Count Text::MatchesLoose(const Text& other) const noexcept {
-		return pcStrMatchesLoose(GetRaw(), mCount, other.GetRaw(), other.mCount);
-	}
+		if (mRaw == other.mRaw)
+			return ::std::min(mCount, other.mCount);
 
-	/// Access specific character (unsafe)													
-	///	@param i - index of character														
-	///	@return constant reference to the character									
-	const char8_t& Text::operator[] (const Count i) const {
-		SAFETY(if (i >= mCount)
-			throw Except::Access("Text access index is out of range"));
-		return GetRaw()[i];
-	}
+		auto t1 = GetRaw();
+		auto t2 = other.GetRaw();
+		while (*t1 && *t2 && (*t1 == *t2 || (::std::isalpha(*t1) && ::std::isalpha(*t2) && (*t1 + 32 == *t2 || *t1 == *t2 + 32)))) {
+			++t1;
+			++t2;
+		}
 
-	/// Access specific character (unsafe)													
-	///	@param i - index of character														
-	///	@return constant reference to the character									
-	char8_t& Text::operator[] (const Count i) {
-		SAFETY(if (i >= mCount)
-			throw Except::Access("Text access index is out of range"));
-		return GetRaw()[i];
+		return t1 - GetRaw();
 	}
 
 	/// Widen the text container to the utf16												
@@ -213,7 +236,7 @@ namespace Langulus::Anyness
 	Text Text::Lowercase() const {
 		Text result = Clone();
 		for (auto& i : result)
-			i = static_cast<char8_t>(std::tolower(i));
+			i = static_cast<Letter>(std::tolower(i));
 		return result;
 	}
 
@@ -222,16 +245,17 @@ namespace Langulus::Anyness
 	Text Text::Uppercase() const {
 		Text result = Clone();
 		for (auto& i : result)
-			i = static_cast<char8_t>(std::toupper(i));
+			i = static_cast<Letter>(std::toupper(i));
 		return result;
 	}
 
-	/// Find a substring and set offset to its location								
+	/// Find a substring and set 'offset' to its location								
 	///	@param pattern - the pattern to search for									
-	///	@param offset - [out] offset to set if found									
+	///	@param offset - [in/out] offset to set if found								
 	///	@return true if pattern was found												
 	bool Text::FindOffset(const Text& pattern, Count& offset) const {
-		for (Count i = offset; i < mCount; ++i) {
+		auto remaining = Block::CropInner(offset, mCount - offset);
+		for (Offset i = offset; i < mCount; ++i) {
 			if (pcStrMatches(GetRaw() + i, mCount - i, pattern.GetRaw(), pattern.mCount) == pattern.mCount) {
 				offset = i;
 				return true;
@@ -262,7 +286,7 @@ namespace Langulus::Anyness
 	///	@param pattern - the pattern to search for									
 	///	@return true on first match														
 	bool Text::Find(const Text& pattern) const {
-		for (Count i = 0; i < mCount; ++i) {
+		for (Offset i = 0; i < mCount; ++i) {
 			if (pcStrMatches(GetRaw() + i, mCount - i, pattern.GetRaw(), pattern.mCount) == pattern.mCount)
 				return true;
 		}
@@ -296,21 +320,26 @@ namespace Langulus::Anyness
 		return true;
 	}
 
-	/// Pick a part of the text - doesn't copy or monopolize data					
+	/// Pick a part of the text (const)														
 	///	@param start - offset of the starting character								
 	///	@param count - the number of characters after 'start'						
-	///	@return a new container that references the original memory				
+	///	@return new text that references the original memory						
 	Text Text::Crop(const Count& start, const Count& count) const {
-		Text result;
-		static_cast<Block&>(result) = Block::Crop(start, count);
-		result.Keep();
-		return result;
+		return TAny::Crop<Text>(start, count);
+	}
+
+	/// Pick a part of the text																
+	///	@param start - offset of the starting character								
+	///	@param count - the number of characters after 'start'						
+	///	@return new text that references the original memory						
+	Text Text::Crop(const Count& start, const Count& count) {
+		return TAny::Crop<Text>(start, count);
 	}
 
 	/// Remove all instances of a symbol from the text container					
 	///	@param symbol - the character to remove										
 	///	@return a new container with the text stripped								
-	Text Text::Strip(char8_t symbol) const {
+	Text Text::Strip(Letter symbol) const {
 		Text result;
 		Count start {}, end {};
 		for (Count i = 0; i <= mCount; ++i) {
@@ -329,65 +358,30 @@ namespace Langulus::Anyness
 		return result;
 	}
 
-	/// Remove a part of the text. If memory is out of jurisdiction, we're		
-	/// monopolizing it in a new allocation												
+	/// Remove a part of the text																
+	///	@attention assumes end >= start													
 	///	@param start - the starting character											
 	///	@param end - the ending character												
 	///	@return a reference to this text													
 	Text& Text::Remove(const Count& start, const Count& end) {
-		const auto removed = end - start;
+		const auto removed = ::std::min(end, mCount) - ::std::min(start, mCount);
 		if (0 == mCount || 0 == removed)
 			return *this;
 
-		if (end < mCount) {
-			TakeAuthority();
-			Block::MoveMemory(mRaw + end, mRaw + start, mCount - removed);
-		}
+		if (IsConstant())
+			throw Except::Destruct("Can't remove from constant text container");
+
+		if (end < mCount)
+			Block::MoveMemory(mRaw + end, mRaw + start, mCount - end);
 
 		mCount -= removed;
 		return *this;
 	}
 
-	/// Extend the string, change count, and if data is out of jurisdiction -	
-	/// move it to a new place where we own it											
+	/// Extend the text container and return a referenced part of it				
 	///	@return an array that represents the extended part							
 	Text Text::Extend(const Count& count) {
-		if (IsStatic())
-			// You can not extend static containers								
-			return {};
-
-		const auto newCount = mCount + count;
-		const auto oldCount = mCount;
-		if (newCount <= mReserved) {
-			// There is enough available space										
-			mCount += count;
-			Text result {*this};
-			result.MakeStatic();
-			result.mRaw += oldCount;
-			result.mCount = result.mReserved = count;
-			return Abandon(result);
-		}
-
-		// Allocate more space															
-		mEntry = Allocator::Reallocate(mType, newCount, mEntry);
-		mRaw = mEntry->GetBlockStart();
-		mCount = mReserved = newCount;
-
-		Text result {*this};
-		result.MakeStatic();
-		result.mRaw += oldCount;
-		result.mCount = result.mReserved = count;
-		return Abandon(result);
+		return TAny::Extend<Text>(count);
 	}
-
-	/// Clone text array into a new owned memory block									
-	/// If we have jurisdiction, the memory won't move									
-	void Text::TakeAuthority() {
-		if (mEntry)
-			return;
-
-		operator = (Clone());
-	}
-
 
 } // namespace Langulus::Anyness

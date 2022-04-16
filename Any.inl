@@ -4,25 +4,57 @@
 namespace Langulus::Anyness
 {
 
+	/// Copy construction via Any - does a shallow copy and references 			
+	///	@param other - the container to shallow-copy									
+	Any::Any(const Any& other) 
+		: Block {other} {
+		Keep();
+	}
+
 	/// Construct by moving another container												
 	///	@param other - the container to move											
 	Any::Any(Any&& other) noexcept
-		: Block {Forward<Block>(other)} {}
+		: Block {Forward<Block>(other)} {
+		other.ResetMemory();
+		other.ResetState();
+	}
+
+	/// Copy construction via Block - does a shallow copy, and references		
+	///	@param other - the container to shallow-copy									
+	Any::Any(const Block& other) 
+		: Block {other} {
+		Keep();
+	}
+
+	/// Move construction via Block (well, not actually)								
+	///	@attention since we are not aware if that block is referenced or not	
+	///				  we reference it just in case, and we also do not reset		
+	///              'other' to avoid memory leaks										
+	///	@param other - the block to shallow-copy										
+	Any::Any(Block&& other) 
+		: Block {static_cast<const Block&>(other)} {
+		Keep();
+	}
+
+	/// Destruction																				
+	Any::~Any() {
+		Free();
+	}
 
 	/// Construct by moving a dense value of non-block type							
 	///	@param other - the dense value to forward and emplace						
 	template <ReflectedData T>
 	Any::Any(T&& other) requires (Any::NotCustom<T>) {
-		Block::SetType<T, false>();
-		Block::Emplace<T, false>(Forward<T>(other));
+		SetType<T, false>();
+		Emplace<T, false>(Forward<T>(other));
 	}
 
 	/// Construct by copying/referencing value of non-block type					
 	///	@param other - the dense value to shallow-copy								
 	template <ReflectedData T>
 	Any::Any(const T& other) requires (Any::NotCustom<T>) {
-		Block::SetType<T, false>();
-		Block::Insert<T, false>(&other, 1);
+		SetType<T, false>();
+		Insert<T, false>(&other, 1);
 	}
 
 	/// Construct by copying/referencing value of non-block type					
@@ -31,13 +63,6 @@ namespace Langulus::Anyness
 	template <ReflectedData T>
 	Any::Any(T& other) requires (Any::NotCustom<T>)
 		: Any {const_cast<const T&>(other)} {}
-
-	/// Create an empty Any from the unconstrained state of another block		
-	///	@param block - block to get state of											
-	///	@return the new container															
-	inline Any Any::FromStateOf(const Block& block) noexcept {
-		return Any::From({}, block.GetUnconstrainedState());
-	}
 
 	/// Create an empty Any from a dynamic type and state								
 	///	@param type - type of the container												
@@ -52,7 +77,7 @@ namespace Langulus::Anyness
 	///	@param state - additional state of the container							
 	///	@return the new any																	
 	inline Any Any::From(const Block& type, const DataState& state) noexcept {
-		return Any::From(type.GetType(), type.GetUnconstrainedState().mState | state.mState);
+		return Any::From(type.GetType(), type.GetUnconstrainedState() + state);
 	}
 
 	/// Create an empty Any from a static type and state								
@@ -102,7 +127,7 @@ namespace Langulus::Anyness
 	template<ReflectedData... Args>
 	Any Any::WrapOr(Args&&... elements) {
 		Any result {Wrap(Forward<Args>(elements)...)};
-		result.mState.mState |= DataState::Or;
+		result.MakeOr();
 		return result;
 	}
 
@@ -112,7 +137,7 @@ namespace Langulus::Anyness
 	template<ReflectedData... Args>
 	Any Any::WrapOneOr(Args&&... elements) {
 		Any result {WrapOne(Forward<Args>(elements)...)};
-		result.mState.mState |= DataState::Or;
+		result.MakeOr();
 		return result;
 	}
 

@@ -68,6 +68,29 @@ namespace Langulus::Anyness
 	class Block {
 		LANGULUS(DEEP);
 
+		friend class Any;
+		template<ReflectedData T>
+		friend class TAny;
+
+		friend class Map;
+		template<ReflectedData K, ReflectedData V>
+		friend class TMap;
+		template<ReflectedData K, ReflectedData V>
+		friend class THashMap;
+
+		friend class Set;
+		template<ReflectedData T>
+		friend class TSet;
+
+		friend class Bytes;
+		friend class Text;
+		friend class Path;
+
+		template<ReflectedData T>
+		friend class TOwned;
+		template<ReflectedData T, bool REFERENCED>
+		friend class TPointer;
+
 	protected:
 		union { 
 			#if LANGULUS_DEBUG()
@@ -92,11 +115,11 @@ namespace Langulus::Anyness
 
 	public:
 		constexpr Block() noexcept = default;
-		constexpr Block(const Block&) noexcept = default;
+		constexpr Block(const Block&) noexcept;
+		constexpr Block(Block&) noexcept = default;
+		constexpr Block(Block&&) noexcept = default;
 		~Block() noexcept = default;
 			
-		Block(Block&&) noexcept;
-		Block(Abandoned<Block>&&) noexcept;
 		explicit constexpr Block(DMeta) noexcept;
 		Block(DMeta, Count, const Byte*) noexcept;
 		Block(DMeta, Count, Byte*) noexcept;
@@ -114,8 +137,7 @@ namespace Langulus::Anyness
 		NOD() static Block From();
 
 		constexpr Block& operator = (const Block&) noexcept = default;
-		Block& operator = (Block&&) noexcept;
-		Block& operator = (Abandoned<Block>&&) noexcept;
+		constexpr Block& operator = (Block&&) noexcept = default;
 			
 		void TakeAuthority();
 		void Optimize();
@@ -277,14 +299,14 @@ namespace Langulus::Anyness
 		template<typename RETURN, typename FUNCTION, typename ARGUMENT>
 		ARGUMENT GetLambdaArgument(RETURN(FUNCTION::*)(ARGUMENT) const) const;
 	
-		NOD() Block CropInner(Offset, Count);
+		NOD() Block CropInner(const Offset&, const Count&) noexcept;
 	
 	public:
 		NOD() bool Owns(const void*) const noexcept;
 		constexpr NOD() bool HasAuthority() const noexcept;
 		constexpr NOD() Count GetReferences() const noexcept;
-		NOD() Block Crop(Offset, Count);
-		NOD() Block Crop(Offset, Count) const;
+		NOD() Block Crop(const Offset&, const Count&);
+		NOD() Block Crop(const Offset&, const Count&) const;
 	
 		NOD() const Block GetMember(const Member&) const;
 		NOD() Block GetMember(const Member&);
@@ -456,7 +478,7 @@ namespace Langulus::Anyness
 		bool Dereference(const Count&);
 		bool Free();
 	
-		void CallDefaultConstructors();
+		void CallDefaultConstructors(const Count&);
 		void CallCopyConstructors(const Block&);
 		void CallMoveConstructors(Block&&);
 		void CallDestructors();

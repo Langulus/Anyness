@@ -56,7 +56,7 @@ namespace Langulus::Anyness
 	
 	/// Concatenate anything with bytes														
 	template<class T>
-	Bytes operator + (const T& lhs, const Bytes& rhs) requires NotSame<T, Bytes> {
+	NOD() Bytes operator + (const T& lhs, const Bytes& rhs) requires NotSame<T, Bytes> {
 		if constexpr (Sparse<T>)
 			return operator + (*lhs, rhs);
 		else if constexpr (Convertible<T, Bytes>) {

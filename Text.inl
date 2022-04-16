@@ -8,27 +8,21 @@ namespace Langulus::Anyness
 {
 
 	/// Construct from token																	
+	/// Data will be cloned if we don't have authority over the memory			
 	///	@param text - the text to wrap													
 	inline Text::Text(const Token& text)
 		: Text {&text.front(), text.size()} {}
 
 	/// Construct manually from count-terminated text									
+	/// Data will be cloned if we don't have authority over the memory			
 	///	@param text - text memory to reference											
 	///	@param count - number of characters inside text								
 	template<Dense T>
-	inline Text::Text(const T* text, Count count) requires Character<T>
-		: Block {DataState::Constrained, PCMEMORY.GetFallbackMetaChar(), count, text} {
-		bool no_jury;
-		PCMEMORY.Reference(mType, mRaw, 1, no_jury);
-		if (no_jury) {
-			// We should monopolize the memory to avoid segfaults, in the	
-			// case of the text container being initialized with temporary	
-			// or static data																
-			TakeAuthority();
-		}
-	}
+	inline Text::Text(const T* text, const Count& count) requires Character<T>
+		: TAny {text, count} { }
 
-	/// Construct from a character															
+	/// Construct from a single character													
+	/// Data will be cloned if we don't have authority over the memory			
 	///	@param anyCharacter - the character to stringify							
 	template<Dense T>
 	Text::Text(const T& anyCharacter) requires Character<T>
@@ -37,8 +31,7 @@ namespace Langulus::Anyness
 	/// Convert a number type to text														
 	///	@param from - the number to stringify											
 	template<Dense T>
-	Text::Text(const T& number) requires Number<T>
-		: Text {} {
+	Text::Text(const T& number) requires Number<T> {
 		if constexpr (Real<T>) {
 			// Stringify a real number													
 			constexpr auto size = ::std::numeric_limits<T>::max_digits10 * 2;
@@ -69,6 +62,7 @@ namespace Langulus::Anyness
 	}
 
 	/// Construct from null-terminated string												
+	/// Data will be cloned if we don't have authority over the memory			
 	///	@param text - text memory to reference											
 	template<Dense T>
 	inline Text::Text(const T* nullterminatedText) requires Character<T>
@@ -77,28 +71,11 @@ namespace Langulus::Anyness
 	/// Convert any pointer to text															
 	///	@param from - the pointer to dereference and stringify					
 	template<Dense T>
-	Text::Text(const T* pointer) requires StaticallyConvertible<T, Text>
-		: Text {} {
+	Text::Text(const T* pointer) requires StaticallyConvertible<T, Text> {
 		if (!pointer)
 			(*this) += "null";
 		else
 			(*this) += *pointer;
-	}
-
-	/// Raw character access (unsafe)														
-	///	@attention the string is guaranteed to be null-terminated only after 
-	///				  Terminate()																
-	///	@return the pointer to the first character inside container				
-	inline char8_t* Text::GetRaw() noexcept {
-		return reinterpret_cast<char8_t*>(mRaw);
-	}
-
-	/// Raw constant character access (unsafe)											
-	///	@attention the string is guaranteed to be null-terminated only after 
-	///				  Terminate()																
-	///	@return the pointer to the first character inside container				
-	inline const char8_t* Text::GetRaw() const noexcept {
-		return reinterpret_cast<const char8_t*>(mRaw);
 	}
 
 	/// Interpret text container as a literal												
@@ -124,10 +101,10 @@ namespace Langulus::Anyness
 			// Finally, attempt converting											
 			return operator += (static_cast<Text>(rhs));
 		}
-		else LANGULUS_ASSERT("Can't concatenate to Text - RHS is not convertible");
+		else LANGULUS_ASSERT("Can't concatenate Text - RHS is not convertible to Text");
 	}
 
-	/// Concatenate byte containers															
+	/// Concatenate text containers															
 	template<class T>
 	Text Text::operator + (const T& rhs) const {
 		if constexpr (Sparse<T>)
@@ -154,12 +131,12 @@ namespace Langulus::Anyness
 			// Attempt converting														
 			return operator + (static_cast<Text>(rhs));
 		}
-		else LANGULUS_ASSERT("Can't concatenate to Text - RHS is not convertible");
+		else LANGULUS_ASSERT("Can't concatenate Text - RHS is not convertible to Text");
 	}
 
-	/// Concatenate anything with bytes														
+	/// Concatenate anything with text														
 	template<class T>
-	Text operator + (const T& lhs, const Text& rhs) requires NotSame<T, Text> {
+	NOD() Text operator + (const T& lhs, const Text& rhs) requires NotSame<T, Text> {
 		if constexpr (Sparse<T>)
 			return operator + (*lhs, rhs);
 		else if constexpr (Convertible<T, Text>) {
@@ -167,7 +144,7 @@ namespace Langulus::Anyness
 			result += rhs;
 			return result;
 		}
-		else LANGULUS_ASSERT("Can't concatenate to Text - LHS is not convertible");
+		else LANGULUS_ASSERT("Can't concatenate Text - LHS is not convertible to Text");
 	}
 
 } // namespace Langulus::Anyness

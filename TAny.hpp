@@ -18,19 +18,17 @@ namespace Langulus::Anyness
 			Sparse<T> || (!Same<T, TAny<T>> && !Same<T, Any> && !Same<T, Block>);
 
 		TAny();
-
 		TAny(const TAny&);
 		TAny(TAny&&) noexcept;
-
 		TAny(const Any&);
 		TAny(Any&&);
-
 		TAny(const Block&);
 		TAny(Block&&);
 
 		TAny(T&&) requires (TAny<T>::NotCustom);
 		TAny(const T&) requires (TAny<T>::NotCustom);
 		TAny(T&) requires (TAny<T>::NotCustom);
+		TAny(const T*, const Count&);
 
 		TAny& operator = (const TAny&);
 		TAny& operator = (TAny&&);
@@ -58,11 +56,16 @@ namespace Langulus::Anyness
 		void Clear();
 		void Reset();
 		void ResetState() noexcept;
+		void TakeAuthority();
 
 		NOD() TAny Clone() const;
 
 		NOD() const T* GetRaw() const noexcept;
 		NOD() T* GetRaw() noexcept;
+		NOD() const T* GetRawEnd() const noexcept;
+		NOD() T* GetRawEnd() noexcept;
+		NOD() decltype(auto) Last() const;
+		NOD() decltype(auto) Last();
 
 		template<ReflectedData ALT_T = T>
 		NOD() decltype(auto) Get(const Offset&) const noexcept;
@@ -74,65 +77,12 @@ namespace Langulus::Anyness
 		NOD() decltype(auto) operator [] (const Index&) const requires Dense<T>;
 		NOD() decltype(auto) operator [] (const Index&) requires Dense<T>;
 
-		struct SparseElement {
-			Conditional<Constant<T>, const T&, T&> mElement;
-
-			SparseElement& operator = (T newPtr) {
-				if (mElement == newPtr)
-					return *this;
-
-				auto meta = MetaData::Of<T>();
-				if (mElement) {
-					auto refs = PCMEMORY.GetReferences(meta, mElement);
-					if (refs - 1 <= 0)
-						delete mElement;
-					PCMEMORY.Reference(meta, mElement, -1);
-				}
-
-				mElement = newPtr;
-				PCMEMORY.Reference(meta, newPtr, 1);
-				return *this;
-			}
-
-			operator const T () const noexcept {
-				return mElement;
-			}
-			operator T () noexcept {
-				return mElement;
-			}
-
-			auto operator -> () const {
-				if (!mElement)
-					throw Except::Access("Invalid pointer");
-				return mElement;
-			}
-
-			auto operator -> () {
-				if (!mElement)
-					throw Except::Access("Invalid pointer");
-				return mElement;
-			}
-
-			decltype(auto) operator * () const {
-				if (!mElement)
-					throw Except::Access("Invalid pointer");
-				return *mElement;
-			}
-
-			decltype(auto) operator * () {
-				if (!mElement)
-					throw Except::Access("Invalid pointer");
-				return *mElement;
-			}
-		};
+		struct SparseElement;
 
 		NOD() decltype(auto) operator [] (const Offset&) const noexcept requires Sparse<T>;
-		NOD() SparseElement operator [] (const Offset&) noexcept requires Sparse<T>;
+		NOD() SparseElement  operator [] (const Offset&) noexcept requires Sparse<T>;
 		NOD() decltype(auto) operator [] (const Index&) const requires Sparse<T>;
-		NOD() SparseElement operator [] (const Index&) requires Sparse<T>;
-
-		NOD() decltype(auto) Last();
-		NOD() decltype(auto) Last() const;
+		NOD() SparseElement  operator [] (const Index&) requires Sparse<T>;
 
 		NOD() constexpr bool IsSparse() const noexcept;
 		NOD() constexpr bool IsDense() const noexcept;
@@ -157,15 +107,42 @@ namespace Langulus::Anyness
 
 		void Sort(const Index&);
 
-		NOD() TAny Crop(const Offset&, const Count&) const;
 		NOD() TAny& Trim(const Count&);
+		template<class WRAPPER = TAny>
+		NOD() WRAPPER Crop(const Offset&, const Count&) const;
+		template<class WRAPPER = TAny>
+		NOD() WRAPPER Crop(const Offset&, const Count&);
+		template<class WRAPPER = TAny>
+		NOD() WRAPPER Extend(const Count&);
 
 		void Swap(const Offset&, const Offset&);
 		void Swap(const Index&, const Index&);
 
 	protected:
-		template<bool OVERWRITE_STATE>
+		template<bool OVERWRITE>
 		void CopyProperties(const Block&) noexcept;
+		void CallDefaultConstructors(const Count&);
+	};
+
+
+	///																								
+	/// A sparse element access that dereferences on overwrite						
+	///																								
+	template<ReflectedData T>
+	struct TAny<T>::SparseElement {
+		Conditional<Constant<T>, const T&, T&> mElement;
+
+		SparseElement& operator = (T);
+		SparseElement& operator = (::std::nullptr_t);
+
+		operator const T() const noexcept;
+		operator T () noexcept;
+
+		auto operator -> () const;
+		auto operator -> ();
+
+		decltype(auto) operator * () const;
+		decltype(auto) operator * ();
 	};
 
 } // namespace Langulus::Anyness

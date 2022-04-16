@@ -10,11 +10,14 @@ namespace Langulus::Anyness
 	///	More of an equivalent to std::vector, instead of std::any, since		
 	/// it can contain any number of similarly-typed type-erased elements.		
 	/// It gracefully wraps sparse and dense arrays, keeping track of static	
-	/// and constand data blocks.																
+	/// and constant data blocks.																
 	///	For a faster statically-optimized equivalent of this, use TAny			
 	///																								
 	class Any : public Block {
 	public:
+		template<ReflectedData T>
+		friend class TAny;
+
 		template<class T>
 		static constexpr bool NotCustom = Sparse<T> || (!Same<T,Any> && !Same<T,Block>);
 
@@ -34,8 +37,19 @@ namespace Langulus::Anyness
 
 		~Any();
 
+		Any& operator = (const Any&);
+		Any& operator = (Any&&);
+		Any& operator = (const Block&);
+		Any& operator = (Block&&);
+
+		template<ReflectedData T>
+		Any& operator = (const T&) requires (Any::NotCustom<T>);
+		template<ReflectedData T>
+		Any& operator = (T&) requires (Any::NotCustom<T>);
+		template<ReflectedData T>
+		Any& operator = (T&&) requires (Any::NotCustom<T>);
+
 	public:
-		NOD() static Any FromStateOf(const Block&) noexcept;
 		NOD() static Any From(DMeta, const DataState& = {}) noexcept;
 		NOD() static Any From(const Block&, const DataState& = {}) noexcept;
 		template<ReflectedData T>
@@ -50,36 +64,18 @@ namespace Langulus::Anyness
 		template<ReflectedData... Args>
 		NOD() static Any WrapOneOr(Args&&...);
 
-		Any& operator = (const Any&);
-		Any& operator = (Any&&);
-		Any& operator = (const Block&);
-		Any& operator = (Block&&);
-
-		template<ReflectedData T>
-		Any& operator = (const T&) requires (Any::NotCustom<T>);
-		template<ReflectedData T>
-		Any& operator = (T&) requires (Any::NotCustom<T>);
-		template<ReflectedData T>
-		Any& operator = (T&&) requires (Any::NotCustom<T>);
-
-		Any& MakeMissing();
-		Any& MakeStatic();
-		Any& MakeConstant();
-		Any& MakeTypeConstrained();
-		Any& MakeOr();
-		Any& MakeAnd();
-		Any& MakePast();
-		Any& MakeFuture();
-
 		void Clear();
 		void Reset();
-		void ResetState();
 		NOD() Any Clone() const;
 
 		using Block::Swap;
 		void Swap(Any&) noexcept;
 
 		NOD() Any Crop(const Offset&, const Count&) const;
+		NOD() Any Crop(const Offset&, const Count&);
+
+	protected:
+		void ResetState();
 	};
 
 } // namespace Langulus::Anyness

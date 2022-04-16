@@ -185,6 +185,22 @@
 		template<class T>
 		using MakeConst = Conditional<Dense<T>, const Decay<T>&, const Decay<T>*>;
 
+		/// Check if type is cv-qualified													
+		template<class T>
+		concept Constant = ::std::is_const_v<Deptr<Deref<T>>>;
+
+		/// Check if type is not cv-qualified												
+		template<class T>
+		concept Mutable = !Constant<T>;
+
+		/// Check if T is abstract (has at least one pure virtual function)		
+		template<class T>
+		constexpr bool Abstract = ::std::is_abstract_v<T>;
+
+		/// Check if T is default-constructible											
+		template<class T>
+		constexpr bool DefaultConstructible = ::std::default_initializable<T>;
+
 	} // namespace Langulus
 
 #else
