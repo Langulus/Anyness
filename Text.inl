@@ -21,6 +21,10 @@ namespace Langulus::Anyness
 	inline Text::Text(const T* text, const Count& count) requires Character<T>
 		: TAny {text, count} { }
 
+	template<Dense T, Count C>
+	inline Text::Text(const T(&text)[C]) requires Character<T>
+		: TAny {text, C - 1} { }
+
 	/// Construct from a single character													
 	/// Data will be cloned if we don't have authority over the memory			
 	///	@param anyCharacter - the character to stringify							
@@ -68,83 +72,10 @@ namespace Langulus::Anyness
 	inline Text::Text(const T* nullterminatedText) requires Character<T>
 		: Text {nullterminatedText, ::std::strlen(nullterminatedText)} {}
 
-	/// Convert any pointer to text															
-	///	@param from - the pointer to dereference and stringify					
-	template<Dense T>
-	Text::Text(const T* pointer) requires StaticallyConvertible<T, Text> {
-		if (!pointer)
-			(*this) += "null";
-		else
-			(*this) += *pointer;
-	}
-
 	/// Interpret text container as a literal												
 	///	@attention the string is null-terminated only after Terminate()		
 	constexpr Text::operator Token() const noexcept {
 		return {GetRaw(), mCount};
-	}
-
-	/// Destructive text concatenation														
-	template<class T>
-	Text& Text::operator += (const T& rhs) {
-		if constexpr (Sparse<T>)
-			return operator += (*rhs);
-		else if constexpr (Same<T, Text>) {
-			// Concatenate bytes															
-			const auto count = rhs.GetCount();
-			Block::Allocate(mCount + count, false, false);
-			Block::CopyMemory(rhs.mRaw, mRaw, count);
-			Block::mCount += count;
-			return *this;
-		}
-		else if constexpr (Convertible<T, Text>) {
-			// Finally, attempt converting											
-			return operator += (static_cast<Text>(rhs));
-		}
-		else LANGULUS_ASSERT("Can't concatenate Text - RHS is not convertible to Text");
-	}
-
-	/// Concatenate text containers															
-	template<class T>
-	Text Text::operator + (const T& rhs) const {
-		if constexpr (Sparse<T>)
-			return operator + (*rhs);
-		else if constexpr (Same<T, Text>) {
-			// Concatenate bytes															
-			Text result = Disown(*this);
-			result.mCount += rhs.mCount;
-			result.mReserved = result.mCount;
-			if (result.mCount) {
-				result.mEntry = Allocator::Allocate(result.mType, result.mCount);
-				result.mRaw = result.mEntry->GetBlockStart();
-			}
-			else {
-				result.mEntry = nullptr;
-				result.mRaw = nullptr;
-			}
-
-			CopyMemory(mRaw, result.mRaw, mCount);
-			CopyMemory(rhs.mRaw, result.mRaw + mCount, rhs.mCount);
-			return Abandon(result);
-		}
-		else if constexpr (Convertible<T, Text>) {
-			// Attempt converting														
-			return operator + (static_cast<Text>(rhs));
-		}
-		else LANGULUS_ASSERT("Can't concatenate Text - RHS is not convertible to Text");
-	}
-
-	/// Concatenate anything with text														
-	template<class T>
-	NOD() Text operator + (const T& lhs, const Text& rhs) requires NotSame<T, Text> {
-		if constexpr (Sparse<T>)
-			return operator + (*lhs, rhs);
-		else if constexpr (Convertible<T, Text>) {
-			auto result = static_cast<Text>(lhs);
-			result += rhs;
-			return result;
-		}
-		else LANGULUS_ASSERT("Can't concatenate Text - LHS is not convertible to Text");
 	}
 
 } // namespace Langulus::Anyness

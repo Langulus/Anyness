@@ -77,7 +77,7 @@ namespace Langulus::Anyness
 		: Any {Forward<T>(initial)} { }
 
 	/// Construct by copying/referencing value of non-block type					
-	///	@param other - the dense value to shallow-copy								
+	///	@param initial - the dense value to shallow-copy							
 	TEMPLATE()
 	TAny<T>::TAny(const T& initial) requires (TAny<T>::NotCustom)
 		: Any {initial} { }
@@ -93,11 +93,14 @@ namespace Langulus::Anyness
 	///	@param count - number of items inside 'raw'									
 	TEMPLATE()
 	TAny<T>::TAny(const T* raw, const Count& count)
-		: Any {Block {DataState::Constrained, MetaData::Of<T>(), count, raw}} {
+		: Any {Block {
+			DataState::Constrained, MetaData::Of<T>(), count, 
+			reinterpret_cast<const Byte*>(raw)
+		}} {
 		// Data is not owned by us, it may be on the stack						
 		// We should monopolize the memory to avoid segfaults, in the		
-		// case of the byte container being initialized with					
-		// temporary data on the stack												
+		// case of the byte container being initialized with temporary		
+		// data on the stack																
 		TakeAuthority();
 	}
 
@@ -701,9 +704,11 @@ namespace Langulus::Anyness
 	///			            use Block for unreferenced container					
 	///	@return a container that represents the cropped part						
 	TEMPLATE()
-	template<class WRAPPER>
+	template<Deep WRAPPER>
 	WRAPPER TAny<T>::Crop(const Offset& start, const Count& count) const {
-		return WRAPPER {Block::Crop(start, count)};
+		auto result = const_cast<TAny*>(this)->Crop<WRAPPER>(start, count);
+		result.MakeConstant();
+		return Abandon(result);
 	}
 	
 	/// Get a part of this container															
@@ -711,9 +716,20 @@ namespace Langulus::Anyness
 	///			            use Block for unreferenced container					
 	///	@return a container that represents the cropped part						
 	TEMPLATE()
-	template<class WRAPPER>
+	template<Deep WRAPPER>
 	WRAPPER TAny<T>::Crop(const Offset& start, const Count& count) {
-		return WRAPPER {Block::Crop(start, count)};
+		CheckRange(start, count);
+		if (count == 0) {
+			WRAPPER result {Disown(*this)};
+			result.ResetMemory();
+			return Abandon(result);
+		}
+
+		WRAPPER result {*this};
+		result.MakeStatic();
+		result.mCount = result.mReserved = count;
+		result.mRaw += start * mType->mSize;
+		return Abandon(result);
 	}
 	
 	/// Extend the container and return the new part									
@@ -721,7 +737,7 @@ namespace Langulus::Anyness
 	///			            use Block for unreferenced container					
 	///	@return a container that represents the extended part						
 	TEMPLATE()
-	template<class WRAPPER>
+	template<Deep WRAPPER>
 	WRAPPER TAny<T>::Extend(const Count& count) {
 		if (!count || IsStatic())
 			// You can not extend static containers								
@@ -756,6 +772,58 @@ namespace Langulus::Anyness
 		result.mRaw += oldCount;
 		result.mCount = result.mReserved = count;
 		return Abandon(result);
+	}
+	
+	/// Destructive concatenation																
+	TEMPLATE()
+	template<class WRAPPER, class RHS>
+	WRAPPER& TAny<T>::operator += (const RHS& rhs) {
+		if constexpr (Sparse<RHS>)
+			return operator += (*rhs);
+		else if constexpr (POD<T> && Inherits<RHS, TAny>) {
+			// Concatenate bytes directly (optimization)							
+			const auto count = rhs.GetCount();
+			Allocate(mCount + count, false, false);
+			CopyMemory(rhs.mRaw, mRaw, count);
+			mCount += count;
+			return *this;
+		}
+		else if constexpr (Convertible<RHS, WRAPPER>) {
+			// Finally, attempt converting											
+			return operator += (static_cast<WRAPPER>(rhs));
+		}
+		else LANGULUS_ASSERT("Can't concatenate - RHS is not convertible to WRAPPER");
+	}
+
+	/// Concatenate containers																	
+	TEMPLATE()
+	template<class WRAPPER, class RHS>
+	WRAPPER TAny<T>::operator + (const RHS& rhs) const {
+		if constexpr (Sparse<RHS>)
+			return operator + (*rhs);
+		else if constexpr (POD<T> && Inherits<RHS, TAny>) {
+			// Concatenate bytes															
+			WRAPPER result {Disown(*this)};
+			result.mCount += rhs.mCount;
+			result.mReserved = result.mCount;
+			if (result.mCount) {
+				result.mEntry = Allocator::Allocate(result.mType, result.mCount);
+				result.mRaw = result.mEntry->GetBlockStart();
+			}
+			else {
+				result.mEntry = nullptr;
+				result.mRaw = nullptr;
+			}
+
+			CopyMemory(mRaw, result.mRaw, mCount);
+			CopyMemory(rhs.mRaw, result.mRaw + mCount, rhs.mCount);
+			return Abandon(result);
+		}
+		else if constexpr (Convertible<RHS, WRAPPER>) {
+			// Attempt converting														
+			return operator + (static_cast<WRAPPER>(rhs));
+		}
+		else LANGULUS_ASSERT("Can't concatenate - RHS is not convertible to WRAPPER");
 	}
 
 } // namespace Langulus::Anyness

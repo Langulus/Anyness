@@ -3,32 +3,6 @@
 namespace Langulus::Anyness
 {
 
-	/// Construct via shallow copy															
-	///	@param other - the bytes to shallow-copy										
-	Bytes::Bytes(const Bytes& other)
-		: TAny {other} { }
-
-	/// Construct via disowned copy															
-	///	@param other - the bytes to move													
-	Bytes::Bytes(const Disowned<Bytes>& other) noexcept
-		: TAny {other.mValue} { }
-	
-	/// Construct via abandoned move															
-	///	@param other - the bytes to move													
-	Bytes::Bytes(Abandoned<Bytes>&& other) noexcept
-		: TAny {other.Forward<TAny>()} { }
-
-	/// Construct manually																		
-	///	@param raw - raw memory to reference											
-	///	@param count - number of bytes inside 'raw'									
-	Bytes::Bytes(const Byte* raw, const Count& count)
-		: TAny {raw, count} { }
-
-	/// Destructor																					
-	Bytes::~Bytes() {
-		Free();
-	}
-
 	/// Hash the byte sequence																	
 	///	@return a hash of the contained byte sequence								
 	Hash Bytes::GetHash() const {
@@ -40,22 +14,6 @@ namespace Langulus::Anyness
 	void Bytes::Null(const Count& count) {
 		Allocate(count, false, true);
 		FillMemory(mRaw, {}, mCount);
-	}
-
-	/// Shallow copy assignment																
-	///	@param rhs - the byte container to shallow-copy								
-	///	@return a reference to this container											
-	Bytes& Bytes::operator = (const Bytes& rhs) {
-		TAny::operator = (rhs);
-		return *this;
-	}
-
-	/// Move byte container																		
-	///	@param rhs - the container to move												
-	///	@return a reference to this container											
-	Bytes& Bytes::operator = (Bytes&& rhs) noexcept {
-		TAny::operator = (Forward<TAny>(rhs));
-		return *this;
 	}
 
 	/// Compare with another byte container												

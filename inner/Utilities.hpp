@@ -42,11 +42,11 @@ namespace Langulus
 	};
 	
 	template<class T>
-	NOD() constexpr Abandoned<T>&& Abandon(T&& a) noexcept {
+	NOD() constexpr Abandoned<T> Abandon(T&& a) noexcept {
 		return Abandoned<T>{Langulus::Forward<T>(a)};
 	}
 	template<class T>
-	NOD() constexpr Abandoned<T>&& Abandon(T& a) noexcept {
+	NOD() constexpr Abandoned<T> Abandon(T& a) noexcept {
 		return Abandoned<T>{Langulus::Move(a)};
 	}
 
@@ -92,6 +92,88 @@ namespace Langulus
 			// Reached the numeric limit												
 			return RESULT;
 		}
+	}
+
+	/// A somewhat safer reinterpret_cast for dense instances						
+	///	@param what - reference to reinterpret											
+	///	@return the result of reinterpret_cast<TO&>									
+	template<Dense TO, Dense FROM>
+	NOD() constexpr Decay<TO>& ReinterpretCast(FROM& what) noexcept {
+		static_assert(sizeof(Decay<TO>) == sizeof(Decay<FROM>),
+			"Size mismatch on a reference reinterpret_cast");
+		return reinterpret_cast<Decay<TO>&>(what);
+	}
+
+	/// A somewhat safer reinterpret_cast for dense instances (const)				
+	///	@param what - reference to reinterpret											
+	///	@return the result of reinterpret_cast<const TO&>							
+	template<Dense TO, Dense FROM>
+	NOD() constexpr const Decay<TO>& ReinterpretCast(const FROM& what) noexcept {
+		static_assert(sizeof(Decay<TO>) == sizeof(Decay<FROM>),
+			"Size mismatch on a reference reinterpret_cast");
+		return reinterpret_cast<const Decay<TO>&>(what);
+	}
+
+	/// A somewhat safer reinterpret_cast for sparse instances						
+	///	@param what - what to reinterpret												
+	///	@return the result of reinterpret_cast<TO*>									
+	template<Dense TO, Dense FROM>
+	NOD() constexpr Decay<TO>* ReinterpretCast(FROM* what) noexcept {
+		static_assert(sizeof(Decay<TO>) == sizeof(Decay<FROM>),
+			"Size mismatch on a pointer reinterpret_cast");
+		return reinterpret_cast<Decay<TO>*>(what);
+	}
+
+	/// A somewhat safer reinterpret_cast for sparse instances (const)			
+	///	@param what - what to reinterpret												
+	///	@return the result of reinterpret_cast<TO*>									
+	template<Dense TO, Dense FROM>
+	NOD() constexpr const Decay<TO>* ReinterpretCast(const FROM* what) noexcept {
+		static_assert(sizeof(Decay<TO>) == sizeof(Decay<FROM>),
+			"Size mismatch on a pointer reinterpret_cast");
+		return reinterpret_cast<const Decay<TO>*>(what);
+	}
+
+	/// Always returns a pointer to the argument											
+	template<class T>
+	NOD() constexpr decltype(auto) MakeSparse(T& a) noexcept {
+		if constexpr (Sparse<T>)
+			return a;
+		else
+			return &a;
+	}
+
+	/// Always returns a pointer to the argument (const)								
+	template<class T>
+	NOD() constexpr decltype(auto) MakeSparse(const T& a) noexcept {
+		if constexpr (Sparse<T>)
+			return a;
+		else
+			return &a;
+	}
+
+	/// Always returns a value reference to the argument								
+	/// If argument is an array, return a value reference to the first element	
+	template<class T>
+	NOD() constexpr decltype(auto) MakeDense(T& a) noexcept {
+		if constexpr (Array<T>)
+			return MakeDense(a[0]);
+		else if constexpr (Sparse<T>)
+			return *a;
+		else
+			return a;
+	}
+
+	/// Always returns a value reference to the argument (const)					
+	/// If argument is an array, return a value reference to the first element	
+	template<class T>
+	NOD() constexpr decltype(auto) MakeDense(const T& a) noexcept {
+		if constexpr (Array<T>)
+			return MakeDense(a[0]);
+		else if constexpr (Sparse<T>)
+			return *a;
+		else
+			return a;
 	}
 
 } // namespace Langulus

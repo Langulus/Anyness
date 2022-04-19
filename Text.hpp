@@ -14,6 +14,8 @@ namespace Langulus::Anyness
 	///																								
 	class Text : public TAny<Letter> {
 	public:
+		using TAny::TAny;
+
 		Text() = default;
 		Text(const Text&);
 		Text(Text&&) noexcept = default;
@@ -28,17 +30,16 @@ namespace Langulus::Anyness
 		Text(const Meta&);
 
 		template<Dense T>
+		Text(const T*, const Count&) requires Character<T>;
+		template<Dense T, Count C>
+		Text(const T(&)[C]) requires Character<T>;
+
+		template<Dense T>
 		Text(const T&) requires Character<T>;
 		template<Dense T>
 		Text(const T*) requires Character<T>;
 		template<Dense T>
-		Text(const T*, const Count&) requires Character<T>;
-		template<Dense T>
 		Text(const T&) requires Number<T>;
-		template<Dense T>
-		Text(const T&) requires StaticallyConvertible<T, Text>;
-		template<Dense T>
-		Text(const T*) requires StaticallyConvertible<T, Text>;
 
 		Text& operator = (const Text&);
 		Text& operator = (Text&&) noexcept;
@@ -59,8 +60,10 @@ namespace Langulus::Anyness
 
 		NOD() constexpr operator Token () const noexcept;
 
-		NOD() TAny<char16_t> Widen16() const;
-		NOD() TAny<char32_t> Widen32() const;
+		#if LANGULUS_FEATURE(UTFCPP)
+			NOD() TAny<char16_t> Widen16() const;
+			NOD() TAny<char32_t> Widen32() const;
+		#endif
 
 		NOD() Count GetLineCount() const noexcept;
 
@@ -76,13 +79,6 @@ namespace Langulus::Anyness
 		NOD() bool FindOffsetReverse(const Text&, Offset&) const;
 		NOD() bool Find(const Text&) const;
 		NOD() bool FindWild(const Text&) const;
-
-		template<class T>
-		Text& operator += (const T&);
-		template<class T>
-		NOD() Text operator + (const T&) const;
-		template<class T>
-		friend Text operator + (const T&, const Text&) requires NotSame<T, Text>;
 	};
 
 } // namespace Langulus::Anyness

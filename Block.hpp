@@ -299,7 +299,7 @@ namespace Langulus::Anyness
 		template<typename RETURN, typename FUNCTION, typename ARGUMENT>
 		ARGUMENT GetLambdaArgument(RETURN(FUNCTION::*)(ARGUMENT) const) const;
 	
-		NOD() Block CropInner(const Offset&, const Count&) noexcept;
+		NOD() Block CropInner(const Offset&, const Count&) const noexcept;
 	
 	public:
 		NOD() bool Owns(const void*) const noexcept;
@@ -349,9 +349,11 @@ namespace Langulus::Anyness
 		void Extend(Count, bool construct = false, bool setcount = false);
 		void Shrink(Count);
 	
-		Stride Compress(Block&, Compression = Compression::Default) const;
-		Stride Decompress(Block&) const;
-	
+		#if LANGULUS_FEATURE(ZLIB)
+			Stride Compress(Block&, Compression = Compression::Default) const;
+			Stride Decompress(Block&) const;
+		#endif
+
 		Stride Encrypt(Block&, const Hash*, const Count&) const;
 		Stride Decrypt(Block&, const Hash*, const Count&) const;
 	

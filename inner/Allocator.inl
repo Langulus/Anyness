@@ -93,8 +93,8 @@ namespace Langulus::Anyness
 		const auto blockStart1 = GetBlockStart();
 		const auto blockStart2 = other.GetBlockStart();
 		return 
-			(blockStart2 - blockStart1) > mAllocatedBytes &&
-			(blockStart1 - blockStart2) > other.mAllocatedBytes;
+			(blockStart2 - blockStart1) > ::std::ptrdiff_t(mAllocatedBytes) &&
+			(blockStart1 - blockStart2) > ::std::ptrdiff_t(other.mAllocatedBytes);
 	}
    
 } // namespace Langulus::Anyness

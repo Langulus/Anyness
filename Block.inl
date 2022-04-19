@@ -817,7 +817,7 @@ namespace Langulus::Anyness
 
 			if constexpr (sizeof(T) == 1 || Same<T, wchar_t>) {
 				// Optimized byte/char/wchar_t insertion							
-				pcCopyMemory(items, data, count * sizeof(T));
+				CopyMemory(items, data, count * sizeof(T));
 			}
 			else if constexpr (std::is_copy_constructible<T>()) {
 				// Dense data insertion (placement copy-construction)			
@@ -1177,7 +1177,9 @@ namespace Langulus::Anyness
 	}
 
 	/// Wrap all contained elements inside a sub-block, making this one deep	
+	///	@tparam T - the type of deep container to use								
 	///	@tparam MOVE_STATE - whether or not to send the current state over	
+	///	@return a reference to this container											
 	template<Deep T, bool MOVE_STATE>
 	T& Block::Deepen() {
 		if (IsTypeConstrained() && !Is<T>()) {
@@ -1199,7 +1201,7 @@ namespace Langulus::Anyness
 		Block wrapper;
 		wrapper.Allocate<T>(1, true);
 		wrapper.Get<Block>() = Move(*this);
-		*this = Abandon(wrapper);
+		*this = wrapper;
 		
 		// Restore the state of not moved over										
 		if constexpr (!MOVE_STATE)
@@ -1593,7 +1595,7 @@ namespace Langulus::Anyness
 		auto count {GetCountDeep()};
 		Count index {};
 		while (index < count) {
-			auto block = pcReinterpret<ARGUMENT>(GetBlockDeep(index));
+			auto block = ReinterpretCast<ARGUMENT>(GetBlockDeep(index));
 			if constexpr (MUTABLE) {
 				if (!block)
 					break;
@@ -1698,7 +1700,7 @@ namespace Langulus::Anyness
 	///	@param start - starting element index											
 	///	@param count - number of elements												
 	///	@return the block representing the region										
-	inline Block Block::CropInner(const Offset& start, const Count& count) noexcept {
+	inline Block Block::CropInner(const Offset& start, const Count& count) const noexcept {
 		Block result {*this};
 		result.mCount = std::min(start < mCount ? mCount - start : 0, count);
 		result.mRaw += start * mType->mSize;

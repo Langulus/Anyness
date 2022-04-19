@@ -36,7 +36,7 @@ namespace Langulus::Anyness
 			}
 
 			// Clone data behind each valid pointer								
-			for (Count i = 0; i < mCount; ++i) {
+			for (Offset i = 0; i < mCount; ++i) {
 				auto ptrFrom = GetRawSparse()[i];
 				auto& ptrTo = result.GetRawSparse()[i];
 				if (!ptrFrom) {
@@ -60,15 +60,12 @@ namespace Langulus::Anyness
 		// Iterate each instance in memory											
 		if (!mType->mResolver) {
 			// Type is not resolvable, so preallocate safely					
-			if (mType->Is<Block>()) {
-				TODO();
-			}
-			else if (mType->mCloneInUninitilizedMemory) {
+			if (mType->mCloneInUninitilizedMemory) {
 				// Cloning by placement is available								
 				if (result.IsEmpty())
 					result.Allocate(mCount, false, true);
 
-				for (Count index = 0; index < mCount; ++index) {
+				for (Offset index = 0; index < mCount; ++index) {
 					const auto from = GetElement(index);
 					auto to = result.GetElement(index);
 					result.mType->mCloneInUninitilizedMemory(from.mRaw, to.mRaw);
@@ -82,7 +79,7 @@ namespace Langulus::Anyness
 				if (result.IsEmpty())
 					result.Allocate(mCount, true);
 
-				for (Count index = 0; index < mCount; ++index) {
+				for (Offset index = 0; index < mCount; ++index) {
 					const auto from = GetElement(index);
 					auto to = result.GetElement(index);
 					result.mType->mCloneInInitializedMemory(from.mRaw, to.mRaw);
@@ -108,7 +105,7 @@ namespace Langulus::Anyness
 		}
 		else {
 			const bool preallocatedResult = !result.IsEmpty();
-			for (Count index = 0; index < mCount; ++index) {
+			for (Offset index = 0; index < mCount; ++index) {
 				// Type is resolvable, so allocate and clone each resolved	
 				const auto from = GetElementResolved(index);
 				auto to = Any::From(from.GetType());

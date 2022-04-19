@@ -12,6 +12,7 @@
 	#include <span>
 	#include <string_view>
 	#include <limits>
+	#include <concepts>
 	
 	#define LANGULUS(a) LANGULUS_##a()
 	#define LANGULUS_MODULE(a) LANGULUS(MODULE_##a)
@@ -37,6 +38,10 @@
 	#else
 		#define SAFETY(a)
 	#endif
+
+	#define LANGULUS_FEATURE(a) LANGULUS_FEATURE_##a()
+	#define LANGULUS_FEATURE_UTFCPP() LANGULUS_DISABLED()
+	#define LANGULUS_FEATURE_ZLIB() LANGULUS_DISABLED()
 
 	/// Trigger a static assert (without condition)										
 	/// This form is required in order of it to work in 'if constexpr - else'	
@@ -110,7 +115,7 @@
 
 		/// True if T is not a pointer (and has no extent with[])					
 		template<class T>
-		concept Dense = !Sparse<T>;
+		concept Dense = not Sparse<T>;
 
 		/// Get the extent of an array, or 1 if dense, or 0 if sparse				
 		template<class T>
@@ -138,7 +143,7 @@
 		/// Integer number concept (either sparse or dense)							
 		/// Excludes boolean types																
 		template<class... T>
-		concept Integer = (... && (::std::is_integral_v<Decay<T>> && !Boolean<T> && !Character<T>));
+		concept Integer = (... && (::std::is_integral_v<Decay<T>> && not Boolean<T> && not Character<T>));
 
 		/// Real number concept (either sparse or dense)								
 		template<class... T>
@@ -159,7 +164,7 @@
 
 		/// Check if type is unsigned (either sparse or dense)						
 		template<class T>
-		concept Unsigned = !Signed<T>;
+		concept Unsigned = not Signed<T>;
 
 		/// Check if type is any signed integer (either sparse or dense)			
 		template<class T>
@@ -191,15 +196,19 @@
 
 		/// Check if type is not cv-qualified												
 		template<class T>
-		concept Mutable = !Constant<T>;
+		concept Mutable = not Constant<T>;
 
 		/// Check if T is abstract (has at least one pure virtual function)		
 		template<class T>
-		constexpr bool Abstract = ::std::is_abstract_v<T>;
+		concept Abstract = ::std::is_abstract_v<T>;
 
 		/// Check if T is default-constructible											
 		template<class T>
-		constexpr bool DefaultConstructible = ::std::default_initializable<T>;
+		concept DefaultConstructible = ::std::default_initializable<T>;
+
+		/// Check if T inherits BASE															
+		template<class T, class BASE>
+		concept Inherits = ::std::derived_from<T, BASE>;
 
 	} // namespace Langulus
 

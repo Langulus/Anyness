@@ -11,10 +11,10 @@ namespace Langulus::Anyness
 	/// a custom portable routine that's almost the same								
 	/// https://stackoverflow.com/questions/62962839									
 	///	@param align - the number of bytes to align to								
-	///	@param size - the number of byte to align										
+	///	@param size - the number of bytes to allocate								
 	///	@return a newly allocated memory that is correctly aligned				
 	///	@attention you are responsible for deallocating via AlignedFree 		
-	inline Byte* AlignedMalloc(const Stride& align, const Stride& size) {
+	inline Byte* AlignedAllocate(const Stride& align, const Stride& size) {
 		const auto padding = align + sizeof(void*);
 		auto mem = malloc(size + padding);
 		if (!mem)
@@ -22,7 +22,7 @@ namespace Langulus::Anyness
 
 		auto ptr = (reinterpret_cast<Stride>(mem) + padding) & ~(align - 1);
 		reinterpret_cast<void**>(ptr)[-1] = mem;
-		return reinterpret_cast<Byte**>(ptr)[0];
+		return *reinterpret_cast<Byte**>(ptr);
 	}
 
 	/// Free aligned memory that has been allocated via AlignedMalloc				
@@ -32,12 +32,33 @@ namespace Langulus::Anyness
 		free(reinterpret_cast<void**>(ptr)[-1]);
 	}
 
+	/// Reallocate aligned memory that has been allocated via AlignedMalloc		
+	///	@param ptr - the aligned pointer to reallocate								
+	///					 must've been prior allocated via AlignedMalloc				
+	///	@param align - the number of bytes to align to								
+	///	@param size - the number of bytes to allocate								
+	///	@return a newly allocated memory that is correctly aligned				
+	///	@attention you are responsible for deallocating via AlignedFree 		
+	inline Byte* AlignedReallocate(Byte* old, const Stride& align, const Stride& size) {
+		const auto padding = align + sizeof(void*);
+		auto mem = realloc(reinterpret_cast<void**>(old)[-1], size + padding);
+		if (!mem)
+			throw Except::Allocate(Logger::Error() << "Out of memory");
+
+		auto ptr = (reinterpret_cast<Stride>(mem) + padding) & ~(align - 1);
+		reinterpret_cast<void**>(ptr)[-1] = mem;
+		return *reinterpret_cast<Byte**>(ptr);
+	}
+
 	/// Allocate a memory entry																
 	///	@param meta - the type of data to allocate									
 	///	@param count - number of instances of the data type to allocate		
 	///	@return the allocated memory entry												
 	Entry* Allocator::Allocate(DMeta meta, Count count) {
-
+		return reinterpret_cast<Entry*>(AlignedAllocate(
+			LANGULUS_ALIGN(),
+			count * meta->mSize
+		));
 	}
 
 	/// Reallocate a memory entry																
@@ -50,6 +71,11 @@ namespace Langulus::Anyness
 		if (!previous)
 			return Allocate(meta, count);
 
+		return reinterpret_cast<Entry*>(AlignedReallocate(
+			reinterpret_cast<Byte*>(previous), 
+			LANGULUS_ALIGN(), 
+			count * meta->mSize
+		));
 	}
 
 	/// Find a memory entry from pointer													
@@ -57,11 +83,15 @@ namespace Langulus::Anyness
 	///	@param memory - memory pointer													
 	///	@return the reallocated memory entry											
 	Entry* Allocator::Find(DMeta meta, const void* memory) {
-
+		return nullptr;
 	}
 
-	void Allocator::Deallocate(DMeta, Entry*) {
-
+	/// Deallocate a memory allocation														
+	///	@param meta - the type of data to deallocate									
+	///	@param previous - the previous memory entry									
+	void Allocator::Deallocate(DMeta meta, Entry* entry) {
+		entry->Deallocate();
+		AlignedFree(reinterpret_cast<Byte*>(entry));
 	}
 	
 	/// Deallocate an entry, removing it from its owning pool						

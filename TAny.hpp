@@ -25,6 +25,9 @@ namespace Langulus::Anyness
 		TAny(const Block&);
 		TAny(Block&&);
 
+		TAny(const Disowned<TAny>&) noexcept;
+		TAny(Abandoned<TAny>&&) noexcept;
+
 		TAny(T&&) requires (TAny<T>::NotCustom);
 		TAny(const T&) requires (TAny<T>::NotCustom);
 		TAny(T&) requires (TAny<T>::NotCustom);
@@ -38,6 +41,9 @@ namespace Langulus::Anyness
 
 		TAny& operator = (const Block&);
 		TAny& operator = (Block&&);
+
+		TAny& operator = (const Disowned<TAny>&);
+		TAny& operator = (Abandoned<TAny>&&) noexcept;
 
 		TAny& operator = (const T&) requires (TAny<T>::NotCustom);
 		TAny& operator = (T&) requires (TAny<T>::NotCustom);
@@ -108,15 +114,33 @@ namespace Langulus::Anyness
 		void Sort(const Index&);
 
 		NOD() TAny& Trim(const Count&);
-		template<class WRAPPER = TAny>
+		template<Deep WRAPPER = TAny>
 		NOD() WRAPPER Crop(const Offset&, const Count&) const;
-		template<class WRAPPER = TAny>
+		template<Deep WRAPPER = TAny>
 		NOD() WRAPPER Crop(const Offset&, const Count&);
-		template<class WRAPPER = TAny>
+		template<Deep WRAPPER = TAny>
 		NOD() WRAPPER Extend(const Count&);
 
 		void Swap(const Offset&, const Offset&);
 		void Swap(const Index&, const Index&);
+
+		template<class WRAPPER = TAny, class RHS>
+		WRAPPER& operator += (const RHS&);
+		template<class WRAPPER = TAny, class RHS>
+		NOD() WRAPPER operator + (const RHS&) const;
+
+		/// Concatenate anything with this container										
+		template<class WRAPPER = TAny, class LHS>
+		NOD() friend WRAPPER operator + (const LHS& lhs, const TAny<T>& rhs) requires (!Inherits<LHS, TAny<T>>) {
+			if constexpr (Sparse<LHS>)
+				return operator + (*lhs, rhs);
+			else if constexpr (Convertible<LHS, WRAPPER>) {
+				auto result = static_cast<WRAPPER>(lhs);
+				result += rhs;
+				return result;
+			}
+			else LANGULUS_ASSERT("Can't concatenate - LHS is not convertible to WRAPPER");
+		}
 
 	protected:
 		template<bool OVERWRITE>

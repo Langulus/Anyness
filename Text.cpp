@@ -160,43 +160,45 @@ namespace Langulus::Anyness
 		return t1 - GetRaw();
 	}
 
-	/// Widen the text container to the utf16												
-	///	@return the widened text container												
-	TAny<char16_t> Text::Widen16() const {
-		if (IsEmpty())
-			return {};
+	#if LANGULUS_FEATURE(UTFCPP)
+		/// Widen the text container to the utf16											
+		///	@return the widened text container											
+		TAny<char16_t> Text::Widen16() const {
+			if (IsEmpty())
+				return {};
 
-		TAny<char16_t> to;
-		to.Allocate(mCount);
-		Count newCount = 0;
-		try {
-			newCount = utf8::utf8to16(begin(), end(), to.begin()) - to.begin();
-		}
-		catch (utf8::exception&) {
-			throw Except::Convert("utf8 -> utf16 conversion error");
-		}
+			TAny<char16_t> to;
+			to.Allocate(mCount);
+			Count newCount = 0;
+			try {
+				newCount = utf8::utf8to16(begin(), end(), to.begin()) - to.begin();
+			}
+			catch (utf8::exception&) {
+				throw Except::Convert("utf8 -> utf16 conversion error");
+			}
 
-		return to.Trim(newCount);
-	}
-
-	/// Widen the text container to the utf32												
-	///	@return the widened text container												
-	TAny<char32_t> Text::Widen32() const {
-		if (IsEmpty())
-			return {};
-
-		TAny<char32_t> to;
-		to.Allocate(mCount);
-		Count newCount = 0;
-		try {
-			newCount = utf8::utf8to32(begin(), end(), to.begin()) - to.begin();
-		}
-		catch (utf8::exception&) {
-			throw Except::Convert("utf8 -> utf16 conversion error");
+			return to.Trim(newCount);
 		}
 
-		return to.Trim(newCount);
-	}
+		/// Widen the text container to the utf32											
+		///	@return the widened text container											
+		TAny<char32_t> Text::Widen32() const {
+			if (IsEmpty())
+				return {};
+
+			TAny<char32_t> to;
+			to.Allocate(mCount);
+			Count newCount = 0;
+			try {
+				newCount = utf8::utf8to32(begin(), end(), to.begin()) - to.begin();
+			}
+			catch (utf8::exception&) {
+				throw Except::Convert("utf8 -> utf16 conversion error");
+			}
+
+			return to.Trim(newCount);
+		}
+	#endif
 
 	/// Clone the text container																
 	///	@return a new container that owns its memory									
@@ -253,14 +255,20 @@ namespace Langulus::Anyness
 	///	@param pattern - the pattern to search for									
 	///	@param offset - [in/out] offset to set if found								
 	///	@return true if pattern was found												
-	bool Text::FindOffset(const Text& pattern, Count& offset) const {
-		auto remaining = Block::CropInner(offset, mCount - offset);
-		for (Offset i = offset; i < mCount; ++i) {
-			if (pcStrMatches(GetRaw() + i, mCount - i, pattern.GetRaw(), pattern.mCount) == pattern.mCount) {
+	bool Text::FindOffset(const Text& pattern, Offset& offset) const {
+		if (pattern.IsEmpty() || offset >= mCount || pattern.mCount > mCount - offset)
+			return false;
+
+		const auto end = mCount - pattern.mCount;
+		for (Offset i = offset; i < end; ++i) {
+			auto remaining = Block::CropInner(i, pattern.mCount);
+			auto& asText = ReinterpretCast<Text&>(remaining);
+			if (asText.Compare(pattern)) {
 				offset = i;
 				return true;
 			}
 		}
+
 		return false;
 	}
 
@@ -268,13 +276,16 @@ namespace Langulus::Anyness
 	///	@param pattern - the pattern to search for									
 	///	@param offset - [out] offset to set if found									
 	///	@return true if pattern was found												
-	bool Text::FindOffsetReverse(const Text& pattern, Count& offset) const {
-		if (pattern.mCount >= mCount)
-			return pcStrMatches(GetRaw(), mCount, pattern.GetRaw(), pattern.mCount) == pattern.mCount;
+	bool Text::FindOffsetReverse(const Text& pattern, Offset& offset) const {
+		if (pattern.IsEmpty() || offset >= mCount || pattern.mCount > mCount - offset)
+			return false;
 
-		for (int i = int(mCount) - int(pattern.mCount) - int(offset); i >= 0 && i < int(mCount); --i) {
-			if (pcStrMatches(GetRaw() + i, mCount - i, pattern.GetRaw(), pattern.mCount) == pattern.mCount) {
-				offset = Count(i);
+		const auto start = mCount - pattern.mCount - offset;
+		for (auto i = ::std::ptrdiff_t(start); i >= 0; --i) {
+			auto remaining = Block::CropInner(i, pattern.mCount);
+			auto& asText = ReinterpretCast<Text&>(remaining);
+			if (asText.Compare(pattern)) {
+				offset = Offset(i);
 				return true;
 			}
 		}
@@ -286,33 +297,32 @@ namespace Langulus::Anyness
 	///	@param pattern - the pattern to search for									
 	///	@return true on first match														
 	bool Text::Find(const Text& pattern) const {
-		for (Offset i = 0; i < mCount; ++i) {
-			if (pcStrMatches(GetRaw() + i, mCount - i, pattern.GetRaw(), pattern.mCount) == pattern.mCount)
-				return true;
-		}
-
-		return false;
+		[[maybe_unused]] Offset unused;
+		return FindOffset(pattern, unused);
 	}
 
 	/// Find a match using wildcards in a pattern										
 	///	@param pattern - the pattern with the wildcards								
 	///	@return true on first match														
 	bool Text::FindWild(const Text& pattern) const {
-		Count scan_offset {};
-		for (Count i = 0; i < pattern.mCount; ++i) {
+		if (pattern.IsEmpty() || pattern.mCount > mCount)
+			return false;
+
+		Offset offset {};
+		for (Offset i = 0; i < pattern.mCount; ++i) {
 			if (pattern[i] == '*')
 				continue;
 
 			// Get every substring between *s										
-			Count accum {};
+			Offset accum {};
 			while (i + accum < pattern.mCount && pattern[i + accum] != '*')
 				++accum;
 
-			if (accum > 0 && !FindOffset(pattern.Crop(i, accum), scan_offset))
+			if (accum > 0 && !FindOffset(pattern.Crop(i, accum), offset))
 				// Mismatch																	
 				return false;
 
-			scan_offset += accum;
+			offset += accum;
 			i += accum;
 		}
 

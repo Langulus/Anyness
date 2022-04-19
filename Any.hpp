@@ -51,7 +51,7 @@ namespace Langulus::Anyness
 
 	public:
 		NOD() static Any From(DMeta, const DataState& = {}) noexcept;
-		NOD() static Any From(const Block&, const DataState& = {}) noexcept;
+		NOD() static Any FromBlock(const Block&, const DataState& = {}) noexcept;
 		template<ReflectedData T>
 		NOD() static Any From(const DataState& = {}) noexcept;
 

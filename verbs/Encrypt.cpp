@@ -7,7 +7,13 @@ namespace Langulus::Anyness
 	/// Encrypt data																				
 	Stride Block::Encrypt(Block& result, const Hash* keys, const Count& key_count) const {
 		// First compress the data, to avoid repeating bytes					
-		auto compressed_size = Compress(result, Compression::Fastest);
+		#if LANGULUS_FEATURE(ZLIB)
+			auto compressed_size = Compress(result, Compression::Fastest);
+		#else
+			Clone(result);
+			auto compressed_size = result.GetSize();
+		#endif
+
 		if (0 == compressed_size)
 			return 0;
 
@@ -57,12 +63,17 @@ namespace Langulus::Anyness
 			return 0;
 		}
 
-		// Decompress data																
-		const auto decompressed_size = decrypted.Decompress(result);
+		#if LANGULUS_FEATURE(ZLIB)
+			// Decompress data															
+			const auto decompressed_size = decrypted.Decompress(result);
 
-		// Cleanup and we're done														
-		decrypted.Free();
-		return decompressed_size;
+			// Cleanup and we're done													
+			decrypted.Free();
+			return decompressed_size;
+		#else
+			result = Move(decrypted);
+			return result.GetSize();
+		#endif
 	}
 
 } // namespace Langulus::Anyness

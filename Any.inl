@@ -76,7 +76,7 @@ namespace Langulus::Anyness
 	///	@param type - type of the container												
 	///	@param state - additional state of the container							
 	///	@return the new any																	
-	inline Any Any::From(const Block& type, const DataState& state) noexcept {
+	inline Any Any::FromBlock(const Block& type, const DataState& state) noexcept {
 		return Any::From(type.GetType(), type.GetUnconstrainedState() + state);
 	}
 
