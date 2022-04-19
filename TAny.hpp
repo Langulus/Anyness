@@ -18,11 +18,17 @@ namespace Langulus::Anyness
 			Sparse<T> || (!Same<T, TAny<T>> && !Same<T, Any> && !Same<T, Block>);
 
 		TAny();
+		
 		TAny(const TAny&);
+		TAny(TAny&);
 		TAny(TAny&&) noexcept;
+		
 		TAny(const Any&);
+		TAny(Any&);
 		TAny(Any&&);
+		
 		TAny(const Block&);
+		TAny(Block&);
 		TAny(Block&&);
 
 		TAny(const Disowned<TAny>&) noexcept;
@@ -34,12 +40,15 @@ namespace Langulus::Anyness
 		TAny(const T*, const Count&);
 
 		TAny& operator = (const TAny&);
+		TAny& operator = (TAny&);
 		TAny& operator = (TAny&&);
 
 		TAny& operator = (const Any&);
+		TAny& operator = (Any&);
 		TAny& operator = (Any&&);
 
 		TAny& operator = (const Block&);
+		TAny& operator = (Block&);
 		TAny& operator = (Block&&);
 
 		TAny& operator = (const Disowned<TAny>&);

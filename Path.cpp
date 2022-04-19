@@ -3,6 +3,16 @@
 namespace Langulus::Anyness
 {
 
+	/// Copy other but do not reference it, because it is disowned					
+	///	@param other - the block to copy													
+	Path::Path(const Disowned<Path>& other) noexcept
+		: Text {other.Forward<Text>()} { }	
+	
+	/// Move other, but do not bother cleaning it up, because it is disowned	
+	///	@param other - the block to move													
+	Path::Path(Abandoned<Path>&& other) noexcept
+		: Text {other.Forward<Text>()} { }	
+	
 	/// Clone the path, preserving type														
 	///	@return the cloned path																
 	Path Path::Clone() const {

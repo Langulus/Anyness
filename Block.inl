@@ -7,33 +7,23 @@ namespace Langulus::Anyness
 	/// Copy-construction from constant block												
 	///	@param other - the block instance to move										
 	constexpr Block::Block(const Block& other) noexcept
-		: mRaw {other.mRaw}
-		, mType {other.mType}
-		, mCount {other.mCount}
-		, mReserved {other.mReserved}
-		, mState {other.mState + DataState::Constant}
-		, mEntry {other.mEntry} { }
+		: Block {const_cast<Block&>(other)} {
+		MakeConstant();
+	}
 	
+	/// Manual construction via type															
+	///	@param state - the initial state of the container							
+	///	@param meta - the type of the memory block									
+	constexpr Block::Block(DMeta meta) noexcept
+		: mType {meta} { }
+
 	/// Manual construction via state and type											
 	///	@param state - the initial state of the container							
 	///	@param meta - the type of the memory block									
 	constexpr Block::Block(const DataState& state, DMeta meta) noexcept
 		: mState {state}
 		, mType {meta} { }
-
-	/// Manual construction from constant data											
-	///	@param state - the initial state of the container							
-	///	@param meta - the type of the memory block									
-	///	@param count - initial element count and reserve							
-	///	@param raw - pointer to the constant memory									
-	inline Block::Block(const DataState& state, DMeta meta, Count count, const Byte* raw) noexcept
-		: mRaw {const_cast<Byte*>(raw)}
-		, mType {meta}
-		, mCount {count}
-		, mReserved {count}
-		, mState {state + DataState::Constant}
-		, mEntry {Allocator::Find(meta, raw)} { }
-
+	
 	/// Manual construction from mutable data												
 	///	@param state - the initial state of the container							
 	///	@param meta - the type of the memory block									
@@ -46,6 +36,16 @@ namespace Langulus::Anyness
 		, mReserved {count}
 		, mState {state}
 		, mEntry {Allocator::Find(meta, raw)} { }
+	
+	/// Manual construction from constant data											
+	///	@param state - the initial state of the container							
+	///	@param meta - the type of the memory block									
+	///	@param count - initial element count and reserve							
+	///	@param raw - pointer to the constant memory									
+	inline Block::Block(const DataState& state, DMeta meta, Count count, const Byte* raw) noexcept
+		: Block {state, meta, count, const_cast<Byte*>(raw)} {
+		MakeConstant();
+	}
 
 	/// Create a memory block from a typed pointer										
 	///	@return the block																		
@@ -67,7 +67,8 @@ namespace Langulus::Anyness
 	Block Block::From(T& value) requires Dense<T> {
 		if constexpr (Resolvable<T>)
 			return value.GetBlock();
-		else return {DataState::Static, MetaData::Of<T>(), 1, &value};
+		else
+			return {DataState::Static, MetaData::Of<T>(), 1, &value};
 	}
 
 	/// Create an empty memory block from a static type								
@@ -120,7 +121,7 @@ namespace Langulus::Anyness
 			// Destroy all elements and deallocate the entry					
 			if constexpr (DESTROY)
 				CallDestructors();
-			mEntry->Deallocate();
+			Allocator::Deallocate(mType, mEntry);
 			return true;
 		}
 
@@ -297,55 +298,55 @@ namespace Langulus::Anyness
 
 	/// Check if block contains dense data													
 	///	@returns true if this container refers to dense memory					
-	inline bool Block::IsDense() const {
+	constexpr bool Block::IsDense() const {
 		return !IsSparse();
 	}
 	
 	/// Make memory block vacuum (a.k.a. missing)										
 	///	@return reference to itself														
-	void Block::MakeMissing() noexcept {
+	constexpr void Block::MakeMissing() noexcept {
 		mState.mState |= DataState::Missing;
 	}
 
 	/// Make memory block static (unmovable and unresizable)							
 	///	@return reference to itself														
-	void Block::MakeStatic() noexcept {
+	constexpr void Block::MakeStatic() noexcept {
 		mState.mState |= DataState::Static;
 	}
 
-	/// Make memory block constant (unresizable and unchangable)					
+	/// Make memory block constant															
 	///	@return reference to itself														
-	void Block::MakeConstant() noexcept {
+	constexpr void Block::MakeConstant() noexcept {
 		mState.mState |= DataState::Constant;
 	}
 
 	/// Make memory block type-immutable													
 	///	@return reference to itself														
-	void Block::MakeTypeConstrained() noexcept {
+	constexpr void Block::MakeTypeConstrained() noexcept {
 		mState.mState |= DataState::Typed;
 	}
 
 	/// Make memory block exlusive (a.k.a. OR container)								
 	///	@return reference to itself														
-	void Block::MakeOr() noexcept {
+	constexpr void Block::MakeOr() noexcept {
 		mState.mState |= DataState::Or;
 	}
 
 	/// Make memory block inclusive (a.k.a. AND container)							
 	///	@return reference to itself														
-	void Block::MakeAnd() noexcept {
+	constexpr void Block::MakeAnd() noexcept {
 		mState.mState &= ~DataState::Or;
 	}
 
 	/// Set memory block phase to past														
 	///	@return reference to itself														
-	void Block::MakePast() noexcept {
+	constexpr void Block::MakePast() noexcept {
 		SetPhase(Phase::Past);
 	}
 
 	/// Set memory block phase to future													
 	///	@return reference to itself														
-	void Block::MakeFuture() noexcept {
+	constexpr void Block::MakeFuture() noexcept {
 		SetPhase(Phase::Future);
 	}
 	
@@ -355,24 +356,25 @@ namespace Langulus::Anyness
 		if (!IsPhased())
 			return Phase::Now;
 		
-		return mState.mState & DataState::Future 
+		return mState & DataState::Future 
 			? Phase::Future 
 			: Phase::Past;
 	}
 
 	/// Set polarity																				
 	///	@param p - polarity to enable														
-	inline void Block::SetPhase(const Phase p) noexcept {
+	constexpr void Block::SetPhase(const Phase p) noexcept {
 		switch (p) {
 		case Phase::Past:
-			mState.mState &= ~DataState::Future;
-			mState.mState |= DataState::Phased;
+			mState -= DataState::Future;
+			mState += DataState::Past;
 			return;
 		case Phase::Now:
-			mState.mState &= ~(DataState::Phased | DataState::Future);
+			mState -= DataState::Future;
+			mState += DataState::Phased;
 			return;
 		case Phase::Future:
-			mState.mState |= DataState::Future | DataState::Phased;
+			mState += DataState::Future;
 			return;
 		}
 	}
@@ -380,7 +382,7 @@ namespace Langulus::Anyness
 	/// Check polarity compatibility															
 	///	@param other - the polarity to check											
 	///	@return true if polarity is compatible											
-	inline bool Block::CanFitPhase(const Phase& other) const noexcept {
+	constexpr bool Block::CanFitPhase(const Phase& other) const noexcept {
 		// As long as polarities are not opposite, they are compatible		
 		const auto p = GetPhase();
 		return int(p) != -int(other) || (other == Phase::Now && p == other);
@@ -389,7 +391,7 @@ namespace Langulus::Anyness
 	/// Check state compatibility																
 	///	@param other - the state to check												
 	///	@return true if state is compatible												
-	inline bool Block::CanFitState(const Block& other) const noexcept {
+	constexpr bool Block::CanFitState(const Block& other) const noexcept {
 		const bool sparseness = IsSparse() == other.IsSparse();
 		const bool orCompat = IsOr() == other.IsOr() || other.GetCount() <= 1 || IsEmpty();
 		const bool typeCompat = !IsTypeConstrained() || (IsTypeConstrained() && other.InterpretsAs(mType));
@@ -398,7 +400,7 @@ namespace Langulus::Anyness
 
 	/// Get the size of the contained data, in bytes									
 	///	@return the byte size																
-	inline Stride Block::GetSize() const noexcept {
+	constexpr Stride Block::GetSize() const noexcept {
 		return GetCount() * GetStride();
 	}
 
@@ -410,31 +412,37 @@ namespace Langulus::Anyness
 
 	/// Get the raw data inside the container												
 	///	@attention as unsafe as it gets, but as fast as it gets					
-	inline Byte* Block::GetRaw() noexcept {
+	constexpr Byte* Block::GetRaw() noexcept {
 		return mRaw;
 	}
 
 	/// Get the raw data inside the container (const)									
 	///	@attention as unsafe as it gets, but as fast as it gets					
-	inline const Byte* Block::GetRaw() const noexcept {
+	constexpr const Byte* Block::GetRaw() const noexcept {
 		return mRaw;
 	}
 
 	/// Get the end raw data pointer inside the container								
 	///	@attention as unsafe as it gets, but as fast as it gets					
-	inline const Byte* Block::GetRawEnd() const noexcept {
+	constexpr Byte* Block::GetRawEnd() noexcept {
 		return GetRaw() + GetSize();
 	}
 
-	/// Get a constant pointer array - useful for sparse containers				
+	/// Get the end raw data pointer inside the container (const)					
+	///	@attention as unsafe as it gets, but as fast as it gets					
+	constexpr const Byte* Block::GetRawEnd() const noexcept {
+		return GetRaw() + GetSize();
+	}
+
+	/// Get a constant pointer array - useful for sparse containers (const)		
 	///	@return the raw data as an array of constant pointers						
-	inline const Byte* const* Block::GetRawSparse() const noexcept {
+	constexpr const Byte* const* Block::GetRawSparse() const noexcept {
 		return mRawSparse;
 	}
 
 	/// Get a pointer array - useful for sparse containers							
 	///	@return the raw data as an array of pointers									
-	inline Byte** Block::GetRawSparse() noexcept {
+	constexpr Byte** Block::GetRawSparse() noexcept {
 		return mRawSparse;
 	}
 
@@ -458,23 +466,77 @@ namespace Langulus::Anyness
 	inline const T* Block::GetRawEndAs() const noexcept {
 		return reinterpret_cast<const T*>(GetRawEnd());
 	}
+	
+	/// Check if contained type is abstract												
+	///	@returns true if the type of this pack is abstract							
+	constexpr bool Block::IsAbstract() const noexcept {
+		return mType && mType->mIsAbstract;
+	}
 
+	/// Check if contained type is constructible											
+	/// Some are only referencable, such as abstract types							
+	///	@returns true if the contents of this pack are constructible			
+	constexpr bool Block::IsConstructible() const noexcept {
+		return mType && mType->mDefaultConstructor;
+	}
+
+	/// Check if block contains pointers													
+	///	@return true if the block contains pointers									
+	constexpr bool Block::IsSparse() const {
+		return mState.IsSparse();
+	}
+	
+	/// Check if the memory block contains memory blocks								
+	///	@return true if the memory block contains memory blocks					
+	constexpr bool Block::IsDeep() const noexcept {
+		return mType && mType->mIsDeep;
+	}
+
+	/// Deep (slower) check if there's anything missing inside nested blocks	
+	///	@return true if the deep or flat memory block contains missing stuff	
+	constexpr bool Block::IsMissingDeep() const {
+		if (IsMissing())
+			return true;
+
+		bool result = false;
+		ForEachDeep([&result](const Block& group) {
+			result = group.IsMissing();
+			return !result;
+		});
+
+		return result;
+	}
+	
+	/// Get the size of a single element (in bytes)										
+	///	@attention this returns size of pointer if container is sparse			
+	///	@attention this returns zero if block is untyped							
+	///	@return the size is bytes															
+	constexpr Stride Block::GetStride() const noexcept {
+		return mState.IsSparse() ? sizeof(void*) : (mType ? mType->mSize : 0);
+	}
+	
+	/// Get the token of the contained type												
+	///	@return the token																		
+	constexpr Token Block::GetToken() const noexcept {
+		return IsUntyped() ? MetaData::DefaultToken : mType->mToken;
+	}
+	
 	/// Get the data state of the container												
 	///	@return the current block state													
 	constexpr const DataState& Block::GetState() const noexcept {
 		return mState;
 	}
 
-	/// Set the current data state, overwriting the current							
+	/// Overwrite the current data state													
 	/// You can not remove constraints														
-	inline void Block::SetState(DataState state) noexcept {
-		mState.mState = state.mState | (mState.mState & DataState::Constrained);
+	constexpr void Block::SetState(DataState state) noexcept {
+		mState = state - DataState::Constrained;
 	}
 
 	/// Get the relevant state when relaying one block	to another					
 	/// Relevant states exclude memory and type constraints							
 	constexpr DataState Block::GetUnconstrainedState() const noexcept {
-		return mState.mState & ~DataState::Constrained;
+		return mState - DataState::Constrained;
 	}
 
 	/// Compare memory blocks. This is a slow RTTI check								
@@ -630,8 +692,8 @@ namespace Langulus::Anyness
 	}
 
 	/// Set the data ID - use this only if you really know what you're doing	
+	///	@tparam CONSTRAIN - whether or not to enable type-constraints			
 	///	@param type - the type meta to set												
-	///	@param constrain - whether or not to enable type-constraints			
 	template<bool CONSTRAIN>
 	void Block::SetType(DMeta type) {
 		if (mType == type) {
@@ -677,6 +739,14 @@ namespace Langulus::Anyness
 
 		if constexpr (CONSTRAIN)
 			MakeTypeConstrained();
+	}
+	
+	/// Set the data ID - use this only if you really know what you're doing	
+	///	@tparam T - the type to set														
+	///	@tparam CONSTRAIN - whether or not to enable type-constraints			
+	template<ReflectedData T, bool CONSTRAIN>
+	void Block::SetType() {
+		SetType<CONSTRAIN>(MetaData::Of<T>());
 	}
 
 	/// Swap two elements (with raw indices)												
@@ -751,7 +821,7 @@ namespace Langulus::Anyness
 
 			// Dense data insertion (placement move-construction)				
 			auto data = GetRaw() + starter * sizeof(T);
-			if constexpr (::std::is_move_constructible<T>())
+			if constexpr (MoveConstructible<T>)
 				new (data) T {Forward<T>(item)};
 			else
 				LANGULUS_ASSERT("Can't emplace non-move-constructible item");
@@ -798,7 +868,7 @@ namespace Langulus::Anyness
 		if constexpr (Sparse<T>) {
 			// Sparse data insertion (copying pointers and referencing)		
 			// Doesn't care about abstract items									
-			pcCopyMemory(items, data, sizeof(T) * count);
+			CopyMemory(items, data, sizeof(T) * count);
 			Count c {};
 			while (c < count) {
 				if (!items[c]) {
@@ -819,7 +889,7 @@ namespace Langulus::Anyness
 				// Optimized byte/char/wchar_t insertion							
 				CopyMemory(items, data, count * sizeof(T));
 			}
-			else if constexpr (std::is_copy_constructible<T>()) {
+			else if constexpr (CopyConstructible<T>) {
 				// Dense data insertion (placement copy-construction)			
 				Count c {};
 				while (c < count) {
@@ -849,7 +919,7 @@ namespace Langulus::Anyness
 	template<ReflectedData T>
 	Count Block::Remove(const T* items, const Count count, const Index& index) {
 		Count removed {};
-		for (Count i = 0; i < count; ++i) {
+		for (Offset i = 0; i < count; ++i) {
 			const auto idx = Find<T>(items[i], index);
 			if (idx)
 				removed += RemoveIndex(idx.GetOffset(), 1);
@@ -897,9 +967,9 @@ namespace Langulus::Anyness
 		}
 
 		// Search																			
-		auto item_ptr = pcPtr(item);
+		auto item_ptr = MakeSparse(item);
 		for (auto i = starti; i < mCount && i >= 0; i += istep) {
-			auto left = pcPtr(Get<T>(i));
+			auto left = MakeSparse(Get<T>(i));
 			if (left == item_ptr) {
 				// Early success if pointers match									
 				return i;
@@ -909,40 +979,38 @@ namespace Langulus::Anyness
 				// If searching for pointers - cease after pointer check		
 				continue;
 			}
-			else {
-				if constexpr (Resolvable<T>) {
-					// Pointers didn't match, but we have ClassBlock 			
-					// so we attempt to call reflected comparison operator	
-					// for the concrete types											
-					auto lhs = left->GetBlock();
-					auto rhs = item_ptr->GetBlock();
-					if (lhs.GetMeta() != rhs.GetMeta())
-						continue;
+			else if constexpr (Resolvable<T>) {
+				// Pointers didn't match, but we have ClassBlock				
+				// so we attempt to call reflected comparison operator		
+				// for the concrete types												
+				auto lhs = left->GetBlock();
+				auto rhs = item_ptr->GetBlock();
+				if (lhs.GetMeta() != rhs.GetMeta())
+					continue;
 
-					if (lhs.GetType()->mComparer) {
-						if (lhs.GetType()->mComparer(lhs.GetRaw(), rhs.GetRaw()))
-							return i;
-					}
-					else {
-						Logger::Warning() << "Dynamically resolved type " << lhs.GetToken()
-							<< " missing compare operator implementation and/or reflection";
-						Logger::Warning() << "This means that any Find, Merge, "
-							"Select, etc. will fail for that type";
-						Logger::Warning() << "Implement operator == and != either in type "
-							"or in any relevant bases to fix this problem";
-					}
-				}
-				else if constexpr (Comparable<T, T>) {
-					// Pointers didn't match, but we have dense & comparable	
-					// type, so attempt to compare using == operator			
-					if (*left == *item_ptr)
+				if (lhs.GetType()->mComparer) {
+					if (lhs.GetType()->mComparer(lhs.GetRaw(), rhs.GetRaw()))
 						return i;
 				}
 				else {
-					// A dense type that has no == operator results in			
-					// failure, since it is uncomparable							
-					LANGULUS_ASSERT("Type is not comparable in order to search for it");
+					Logger::Warning() << "Dynamically resolved type " << lhs.GetToken()
+						<< " missing compare operator implementation and/or reflection";
+					Logger::Warning() << "This means that any Find, Merge, "
+						"Select, etc. will fail for that type";
+					Logger::Warning() << "Implement operator == and != either in type "
+						"or in any relevant bases to fix this problem";
 				}
+			}
+			else if constexpr (Comparable<T>) {
+				// Pointers didn't match, but we have dense & comparable		
+				// type, so attempt to compare using == operator				
+				if (*left == *item_ptr)
+					return i;
+			}
+			else {
+				// A dense type that has no == operator results in				
+				// failure, since it is uncomparable								
+				LANGULUS_ASSERT("Type is not comparable in order to search for it");
 			}
 		}
 
@@ -974,7 +1042,7 @@ namespace Langulus::Anyness
 	template<ReflectedData T, bool MUTABLE>
 	Count Block::Merge(const T* items, const Count count, const Index& idx) {
 		Count added {};
-		for (Count i = 0; i < count; ++i) {
+		for (Offset i = 0; i < count; ++i) {
 			if (!Find<T>(items[i]))
 				added += Insert<T, MUTABLE>(items + i, 1, idx);
 		}
@@ -990,8 +1058,8 @@ namespace Langulus::Anyness
 
 		auto data = Get<Decay<T>*>();
 		auto max = data;
-		for (Count i = 1; i < mCount; ++i) {
-			if (*pcPtr(data[i]) > *pcPtr(*max))
+		for (Offset i = 1; i < mCount; ++i) {
+			if (MakeDense(data[i]) > MakeDense(*max))
 				max = data + i;
 		}
 
@@ -1006,8 +1074,8 @@ namespace Langulus::Anyness
 
 		auto data = Get<Decay<T>*>();
 		auto min = data;
-		for (Count i = 1; i < mCount; ++i) {
-			if (*pcPtr(data[i]) < *pcPtr(*min))
+		for (Offset i = 1; i < mCount; ++i) {
+			if (MakeDense(data[i]) < MakeDense(*min))
 				min = data + i;
 		}
 
@@ -1027,18 +1095,18 @@ namespace Langulus::Anyness
 		auto data = Get<Decay<T>*>();
 		decltype(data) best = nullptr;
 		Count best_count {};
-		for (Count i = 0; i < mCount; ++i) {
+		for (Offset i = 0; i < mCount; ++i) {
 			Count counter {};
 			for (Count j = i; j < mCount; ++j) {
 				if constexpr (Comparable<T, T>) {
 					// First we compare by memory pointer, then by ==			
-					if (pcPtr(data[i]) == pcPtr(data[j]) ||
-						*pcPtr(data[i]) == *pcPtr(data[j]))
+					if (MakeSparse(data[i]) == MakeSparse(data[j]) ||
+						 MakeDense(data[i])  == MakeDense(data[j]))
 						++counter;
 				}
 				else {
 					// No == operator, so just compare by memory	pointer		
-					if (pcPtr(data[i]) == pcPtr(data[j]))
+					if (MakeSparse(data[i]) == MakeSparse(data[j]))
 						++counter;
 				}
 

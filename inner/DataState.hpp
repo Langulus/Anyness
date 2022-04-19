@@ -81,7 +81,7 @@ namespace Langulus::Anyness
 
 	public:
 		constexpr DataState() noexcept = default;
-		constexpr DataState(const Type& state) noexcept;
+		constexpr DataState(const Type&) noexcept;
 
 		explicit constexpr operator bool() const noexcept;
 		constexpr bool operator == (const DataState&) const noexcept = default;
@@ -91,6 +91,9 @@ namespace Langulus::Anyness
 		NOD() constexpr DataState operator - (const DataState&) const noexcept;
 		constexpr DataState& operator += (const DataState&) noexcept;
 		constexpr DataState& operator -= (const DataState&) noexcept;
+		
+		NOD() constexpr bool operator & (const DataState&) const noexcept;
+		NOD() constexpr bool operator % (const DataState&) const noexcept;
 		
 		NOD() constexpr bool IsDefault() const noexcept;
 		NOD() constexpr bool IsPhased() const noexcept;

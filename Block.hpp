@@ -148,8 +148,8 @@ namespace Langulus::Anyness
 		template<ReflectedData T, bool CONSTRAIN>
 		void SetType();
 	
-		void SetPhase(const Phase) noexcept;
-		void SetState(DataState) noexcept;
+		constexpr void SetPhase(const Phase) noexcept;
+		constexpr void SetState(DataState) noexcept;
 	
 		NOD() constexpr const DMeta& GetType() const noexcept;
 		NOD() constexpr const Count& GetCount() const noexcept;
@@ -161,7 +161,6 @@ namespace Langulus::Anyness
 		NOD() constexpr bool IsFuture() const noexcept;
 		NOD() constexpr bool IsNow() const noexcept;
 		NOD() constexpr bool IsMissing() const noexcept;
-		NOD() bool IsMissingDeep() const;
 		NOD() constexpr bool IsUntyped() const noexcept;
 		NOD() constexpr bool IsTypeConstrained() const noexcept;
 		NOD() constexpr bool IsPhased() const noexcept;
@@ -169,38 +168,31 @@ namespace Langulus::Anyness
 		NOD() constexpr bool IsCompressed() const noexcept;
 		NOD() constexpr bool IsConstant() const noexcept;
 		NOD() constexpr bool IsStatic() const noexcept;
-		NOD() bool IsAbstract() const noexcept;
-		NOD() bool IsConstructible() const noexcept;
+		NOD() constexpr bool IsAbstract() const noexcept;
+		NOD() constexpr bool IsConstructible() const noexcept;
 		NOD() constexpr bool IsOr() const noexcept;
 		NOD() constexpr bool IsEmpty() const noexcept;
 		NOD() constexpr bool IsValid() const noexcept;
 		NOD() constexpr bool IsInvalid() const noexcept;
-		NOD() bool IsDense() const;
-		NOD() bool IsSparse() const;
-		NOD() bool IsDeep() const noexcept;
+		NOD() constexpr bool IsDense() const;
+		NOD() constexpr bool IsSparse() const;
+		NOD() constexpr bool IsDeep() const noexcept;
 		NOD() constexpr Phase GetPhase() const noexcept;
-		NOD() bool CanFitPhase(const Phase&) const noexcept;
-		NOD() bool CanFitState(const Block&) const noexcept;
-		NOD() Count GetSize() const noexcept;
-		NOD() bool IsConcatable(const Block&) const noexcept;
-	
-		NOD() bool IsInsertable(DMeta) const noexcept;
-		template<ReflectedData T>
-		NOD() bool IsInsertable() const noexcept;
-	
-		NOD() Token GetToken() const noexcept;
-		NOD() Stride GetStride() const noexcept;
+		NOD() constexpr bool CanFitPhase(const Phase&) const noexcept;
+		NOD() constexpr bool CanFitState(const Block&) const noexcept;
+		NOD() constexpr Count GetSize() const noexcept;
+		NOD() constexpr Token GetToken() const noexcept;
+		NOD() constexpr Stride GetStride() const noexcept;
 		NOD() constexpr const DataState& GetState() const noexcept;
 		NOD() constexpr DataState GetUnconstrainedState() const noexcept;
+		NOD() constexpr Byte* GetRaw() noexcept;
+		NOD() constexpr const Byte* GetRaw() const noexcept;
+		NOD() constexpr Byte* GetRawEnd() noexcept;
+		NOD() constexpr const Byte* GetRawEnd() const noexcept;
+		NOD() constexpr Byte** GetRawSparse() noexcept;
+		NOD() constexpr const Byte* const* GetRawSparse() const noexcept;
 		
-		NOD() Byte* GetRaw() noexcept;
-		NOD() const Byte* GetRaw() const noexcept;
-		
-		NOD() Byte* GetRawEnd() noexcept;
-		NOD() const Byte* GetRawEnd() const noexcept;
-		
-		NOD() Byte** GetRawSparse() noexcept;
-		NOD() const Byte* const* GetRawSparse() const noexcept;
+		NOD() constexpr bool IsMissingDeep() const;
 		
 		template<ReflectedData T>
 		NOD() T* GetRawAs() noexcept;
@@ -211,7 +203,13 @@ namespace Langulus::Anyness
 		NOD() T* GetRawEndAs() noexcept;
 		template<ReflectedData T>
 		NOD() const T* GetRawEndAs() const noexcept;
+
+		NOD() bool IsConcatable(const Block&) const noexcept;
 		
+		NOD() bool IsInsertable(DMeta) const noexcept;
+		template<ReflectedData T>
+		NOD() bool IsInsertable() const noexcept;
+	
 		NOD() bool operator == (const Block&) const noexcept;
 		NOD() bool operator != (const Block&) const noexcept;
 	
@@ -326,14 +324,14 @@ namespace Langulus::Anyness
 		template<ReflectedData T>
 		NOD() bool Mutate();
 	
-		void MakeMissing() noexcept;
-		void MakeStatic() noexcept;
-		void MakeConstant() noexcept;
-		void MakeTypeConstrained() noexcept;
-		void MakeOr() noexcept;
-		void MakeAnd() noexcept;
-		void MakePast() noexcept;
-		void MakeFuture() noexcept;
+		constexpr void MakeMissing() noexcept;
+		constexpr void MakeStatic() noexcept;
+		constexpr void MakeConstant() noexcept;
+		constexpr void MakeTypeConstrained() noexcept;
+		constexpr void MakeOr() noexcept;
+		constexpr void MakeAnd() noexcept;
+		constexpr void MakePast() noexcept;
+		constexpr void MakeFuture() noexcept;
 	
 		Count Copy(Block&, bool allocate = false) const;
 		Count Clone(Block&) const;

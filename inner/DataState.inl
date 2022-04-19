@@ -45,6 +45,14 @@ namespace Langulus::Anyness
       return *this;
    }
    
+   constexpr bool DataState::operator & (const DataState& rhs) const noexcept {
+      return (mState & rhs.mState) == rhs.mState;
+   }
+   
+   constexpr bool DataState::operator % (const DataState& rhs) const noexcept {
+      return (mState & rhs.mState) == 0;
+   }
+   
    /// Check if default data state                                            
    /// Default state is inclusive, mutable, nonpolar, nonvacuum, nonstatic,   
    /// nonencrypted, noncompressed, untyped, and dense                        

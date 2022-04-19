@@ -38,8 +38,6 @@ namespace Langulus::Anyness
 		constexpr const Stride& Allocated() const noexcept;
 		bool Contains(const Byte* address) const noexcept;
 		bool CollisionFree(const Entry& other) const noexcept;
-		
-		void Deallocate();
 	};
 
 

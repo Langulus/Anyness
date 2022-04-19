@@ -6,22 +6,36 @@ namespace Langulus::Anyness
 
 	/// Copy construction via Any - does a shallow copy and references 			
 	///	@param other - the container to shallow-copy									
-	Any::Any(const Any& other) 
-		: Block {other} {
+	inline Any::Any(const Any& other) 
+		: Block {static_cast<const Block&>(other)} {
+		Keep();
+	}
+
+	/// Copy construction via Any - does a shallow copy and references 			
+	///	@param other - the container to shallow-copy									
+	inline Any::Any(Any& other) 
+		: Block {static_cast<Block&>(other)} {
 		Keep();
 	}
 
 	/// Construct by moving another container												
 	///	@param other - the container to move											
-	Any::Any(Any&& other) noexcept
+	inline Any::Any(Any&& other) noexcept
 		: Block {Forward<Block>(other)} {
 		other.ResetMemory();
 		other.ResetState();
 	}
 
-	/// Copy construction via Block - does a shallow copy, and references		
+	/// Copy construct via Block - does a shallow copy, and references (const)	
 	///	@param other - the container to shallow-copy									
-	Any::Any(const Block& other) 
+	inline Any::Any(const Block& other) 
+		: Block {other} {
+		Keep();
+	}
+	
+	/// Copy construct via Block - does a shallow copy, and references			
+	///	@param other - the container to shallow-copy									
+	inline Any::Any(Block& other) 
 		: Block {other} {
 		Keep();
 	}
@@ -31,13 +45,13 @@ namespace Langulus::Anyness
 	///				  we reference it just in case, and we also do not reset		
 	///              'other' to avoid memory leaks										
 	///	@param other - the block to shallow-copy										
-	Any::Any(Block&& other) 
+	inline Any::Any(Block&& other) 
 		: Block {static_cast<const Block&>(other)} {
 		Keep();
 	}
 
 	/// Destruction																				
-	Any::~Any() {
+	inline Any::~Any() {
 		Free();
 	}
 

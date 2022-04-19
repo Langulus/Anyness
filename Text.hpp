@@ -18,6 +18,7 @@ namespace Langulus::Anyness
 
 		Text() = default;
 		Text(const Text&);
+		Text(Text&);
 		Text(Text&&) noexcept = default;
 
 		Text(const Disowned<Text>&) noexcept;

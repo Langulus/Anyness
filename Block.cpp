@@ -4,12 +4,6 @@
 namespace Langulus::Anyness
 {
 
-	/// Get the token of the contained type												
-	///	@return the token																		
-	Token Block::GetToken() const noexcept {
-		return IsUntyped() ? MetaData::DefaultToken : mType->mToken;
-	}
-
 	/// Check if a memory block can be concatenated to this one						
 	///	@param other - the block to concatenate										
 	///	@return true if able to concatenate												
@@ -290,33 +284,6 @@ namespace Langulus::Anyness
 		for (Count i = 0; i < mCount; ++i)
 			counter += As<Block>(i).GetCountElementsDeep();
 		return counter;
-	}
-
-	/// Check if contained type is abstract												
-	///	@returns true if the type of this pack is abstract							
-	bool Block::IsAbstract() const noexcept {
-		return mType && mType->mIsAbstract;
-	}
-
-	/// Check if contained type is constructible											
-	/// Some are only referencable, such as abstract types							
-	///	@returns true if the contents of this pack are constructible			
-	bool Block::IsConstructible() const noexcept {
-		return mType && mType->mDefaultConstructor;
-	}
-
-	/// Check if block contains pointers													
-	///	@return true if the block contains pointers									
-	bool Block::IsSparse() const {
-		return mState.IsSparse();
-	}
-
-	/// Get the size of a single element (in bytes)										
-	///	@attention this returns size of pointer if container is sparse			
-	///	@attention this returns zero if block is untyped							
-	///	@return the size is bytes															
-	Stride Block::GetStride() const noexcept {
-		return mState.IsSparse() ? sizeof(void*) : (mType ? mType->mSize : 0);
 	}
 
 	/// Check if you can push a type to this container									
@@ -709,27 +676,6 @@ namespace Langulus::Anyness
 			// Nullify upon destruction only if we're paranoid					
 			FillMemory(mRaw, {}, GetSize());
 		#endif
-	}
-
-	/// Check if the memory block contains memory blocks								
-	///	@return true if the memory block contains memory blocks					
-	bool Block::IsDeep() const noexcept {
-		return mType && mType->mIsDeep;
-	}
-
-	/// Deep (slower) check if there's anything missing inside nested blocks	
-	///	@return true if the deep or flat memory block contains missing stuff	
-	bool Block::IsMissingDeep() const {
-		if (IsMissing())
-			return true;
-
-		bool result = false;
-		ForEachDeep([&result](const Block& group) {
-			result = group.IsMissing();
-			return !result;
-		});
-
-		return result;
 	}
 
 	/// Remove sequential special indices													

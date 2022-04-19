@@ -18,4 +18,6 @@ namespace Langulus::Logger
    template<class... T>
    Instance& Verbose(T...) noexcept;
    
-} // Langulus::Logger
+} // namespace Langulus::Logger
+
+#include "Logger.inl"

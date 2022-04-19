@@ -87,14 +87,14 @@ namespace Langulus::Anyness
 	///	@param other - the trait to test against										
 	///	@return true if trait is valid													
 	bool Trait::IsSimilar(const Trait& other) const noexcept {
-		return (!mTraitType || other.mTraitType == mTraitType) && other.InterpretsAs(mType);
+		return mTraitType->Is(other.mTraitType) && other.InterpretsAs(mType);
 	}
 
 	/// Check if trait is a specific type													
 	///	@param traitId - the id to match													
 	///	@return true if ID matches															
 	bool Trait::TraitIs(TMeta trait) const {
-		return mTraitType == trait || (mTraitType && trait && *mTraitType == *trait);
+		return mTraitType->Is(trait);
 	}
 
 	/// Check if trait has correct data (always true if trait has no filter)	

@@ -14,8 +14,8 @@ namespace Langulus::Anyness
 		Path(const Disowned<Path>&) noexcept;
 		Path(Abandoned<Path>&&) noexcept;
 
-		Path(const Disowned<TAny<Letter>>&) noexcept;
-		Path(Abandoned<TAny<Letter>>&&) noexcept;
+		/*Path(const Disowned<TAny<Letter>>&) noexcept;
+		Path(Abandoned<TAny<Letter>>&&) noexcept;*/
 
 	public:
 		NOD() Path Clone() const;

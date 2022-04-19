@@ -79,24 +79,43 @@ namespace Langulus::Anyness
 	}
 
 	/// Find a memory entry from pointer													
-	///	@param meta - the type of data to allocate									
+	/// If LANGULUS_FEATURE(MANAGED_MEMORY) is enabled, this function will		
+	/// attempt to find memory entry from the memory manager							
+	/// This allows us to safely interface unknown memory, possible reusing it	
+	///	@param meta - the type of data to search for (optional)					
 	///	@param memory - memory pointer													
 	///	@return the reallocated memory entry											
 	Entry* Allocator::Find(DMeta meta, const void* memory) {
-		return nullptr;
+		#if LANGULUS_FEATURE(MANAGED_MEMORY)
+			return nullptr;
+		#else
+			return nullptr;
+		#endif
 	}
 
 	/// Deallocate a memory allocation														
-	///	@param meta - the type of data to deallocate									
-	///	@param previous - the previous memory entry									
+	///	@param meta - the type of data to deallocate (optional)					
+	///	@param entry - the memory entry to deallocate								
 	void Allocator::Deallocate(DMeta meta, Entry* entry) {
-		entry->Deallocate();
 		AlignedFree(reinterpret_cast<Byte*>(entry));
 	}
 	
-	/// Deallocate an entry, removing it from its owning pool						
-	void Entry::Deallocate() {
-		
+	/// Reference some memory, which we do not know if owned or not				
+	/// If LANGULUS_FEATURE(MANAGED_MEMORY) is enabled, this function will		
+	/// attempt to find memory entry from the memory manager and reference it	
+	///	@attention this function does nothing if										
+	///              LANGULUS_FEATURE(MANAGED_MEMORY) is disabled. This has		
+	///				  dire consequences on sparse containers, since one can not	
+	///				  determine if a pointer is owned or not without it!			
+	///	@param meta - the type of data to search for (optional)					
+	///	@param memory - memory pointer													
+	///	@param count - the number of references to add								
+	void Allocator::Reference(DMeta meta, const void* memory, Count count) {
+		#if LANGULUS_FEATURE(MANAGED_MEMORY)
+			auto found = Find(meta, memory);
+			if (found)
+				found->mReferences += count;
+		#endif
 	}
 
 } // namespace Langulus::Anyness

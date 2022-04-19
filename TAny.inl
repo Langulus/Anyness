@@ -12,23 +12,29 @@ namespace Langulus::Anyness
 	TAny<T>::TAny()
 		: Any {Block {DataState::Typed, MetaData::Of<T>()}} { }
 
-	/// Shallow-copy construction																
-	///	@param copy - the TAny to reference												
+	/// Shallow-copy construction (const)													
+	///	@param other - the TAny to reference											
 	TEMPLATE()
-	TAny<T>::TAny(const TAny<T>& other)
+	TAny<T>::TAny(const TAny& other)
 		: Any {static_cast<const Any&>(other)} { }
 
-	/// Move construction																		
-	///	@param copy - the TAny to move													
+	/// Shallow-copy construction																
+	///	@param other - the TAny to reference											
 	TEMPLATE()
-	TAny<T>::TAny(TAny<T>&& other) noexcept
+	TAny<T>::TAny(TAny& other)
+		: Any {static_cast<Any&>(other)} { }
+
+	/// Move construction																		
+	///	@param other - the TAny to move													
+	TEMPLATE()
+	TAny<T>::TAny(TAny&& other) noexcept
 		: Any {Forward<Any>(other)} { }
 
 	/// Shallow copy construction from Any, that checks type							
 	/// Any can contain anything, so there's a bit of type-checking overhead	
-	///	@param copy - the anyness to reference											
+	///	@param other - the anyness to reference										
 	TEMPLATE()
-	TAny<T>::TAny(const Any& other) {
+	TAny<T>::TAny(Any& other) {
 		if (!InterpretsAs(other.GetType())) {
 			throw Except::Copy(Logger::Error()
 				<< "Bad shallow-copy-construction for TAny: from "
@@ -37,6 +43,15 @@ namespace Langulus::Anyness
 
 		CopyProperties<false>(other);
 		Keep();
+	}
+
+	/// Shallow copy construction from Any, that checks type							
+	/// Any can contain anything, so there's a bit of type-checking overhead	
+	///	@param other - the anyness to reference										
+	TEMPLATE()
+	TAny<T>::TAny(const Any& other)
+		: TAny{const_cast<Any&>(other)} {
+		MakeConstant();
 	}
 
 	/// Move-construction from Any, that checks type									
@@ -55,11 +70,18 @@ namespace Langulus::Anyness
 		other.ResetState();
 	}
 
-	/// Shallow copy construction from blocks												
+	/// Shallow copy construction from blocks (const)									
 	/// Block can contain anything, so there's a bit of type-checking overhead	
-	///	@param copy - the anyness to reference											
+	///	@param copy - the block to reference											
 	TEMPLATE()
 	TAny<T>::TAny(const Block& copy)
+		: TAny {Any {copy}} { }
+	
+	/// Shallow copy construction from blocks												
+	/// Block can contain anything, so there's a bit of type-checking overhead	
+	///	@param copy - the block to reference											
+	TEMPLATE()
+	TAny<T>::TAny(Block& copy)
 		: TAny {Any {copy}} { }
 
 	/// Move construction - moves block and references content						
@@ -70,6 +92,18 @@ namespace Langulus::Anyness
 	TAny<T>::TAny(Block&& copy)
 		: TAny {Any {Forward<Block>(copy)}} { }
 
+	/// Copy other but do not reference it, because it is disowned					
+	///	@param other - the block to copy													
+	TEMPLATE()
+	TAny<T>::TAny(const Disowned<TAny>& other) noexcept
+		: Any {other.Forward<Any>()} { }	
+	
+	/// Move other, but do not bother cleaning it up, because it is disowned	
+	///	@param other - the block to move													
+	TEMPLATE()
+	TAny<T>::TAny(Abandoned<TAny>&& other) noexcept
+		: Any {other.Forward<Any>()} { }	
+	
 	/// Construct by moving a dense value of non-block type							
 	///	@param initial - the dense value to forward and emplace					
 	TEMPLATE()
@@ -93,10 +127,12 @@ namespace Langulus::Anyness
 	///	@param count - number of items inside 'raw'									
 	TEMPLATE()
 	TAny<T>::TAny(const T* raw, const Count& count)
-		: Any {Block {
-			DataState::Constrained, MetaData::Of<T>(), count, 
-			reinterpret_cast<const Byte*>(raw)
-		}} {
+		: Any {
+			Block {
+				DataState::Constrained, MetaData::Of<T>(), count, 
+				reinterpret_cast<const Byte*>(raw)
+			}
+		} {
 		// Data is not owned by us, it may be on the stack						
 		// We should monopolize the memory to avoid segfaults, in the		
 		// case of the byte container being initialized with temporary		
@@ -311,15 +347,31 @@ namespace Langulus::Anyness
 	}
 
 	/// Return the typed raw data (const)													
+	///	@return a constant pointer to the first element in the array			
 	TEMPLATE()
 	const T* TAny<T>::GetRaw() const noexcept {
 		return Any::GetRawAs<T>();
 	}
 
 	/// Return the typed raw data																
+	///	@return a mutable pointer to the first element in the array				
 	TEMPLATE()
 	T* TAny<T>::GetRaw() noexcept {
 		return Any::GetRawAs<T>();
+	}
+
+	/// Return the typed raw data end pointer (const)									
+	///	@return a constant pointer to one past the last element in the array	
+	TEMPLATE()
+	const T* TAny<T>::GetRawEnd() const noexcept {
+		return Any::GetRawAs<T>() + mCount;
+	}
+
+	/// Return the typed raw data	end pointer												
+	///	@return a mutable pointer to one past the last element in the array	
+	TEMPLATE()
+	T* TAny<T>::GetRawEnd() noexcept {
+		return Any::GetRawAs<T>() + mCount;
 	}
 
 	/// Get an element in the way you want (const, unsafe)							

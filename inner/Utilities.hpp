@@ -57,6 +57,12 @@ namespace Langulus
 	template<class T>
 	struct Disowned {
 		const T& mValue;
+		
+		/// Forward as disowned																	
+		template<class ALT_T>
+		NOD() constexpr Disowned<ALT_T> Forward() const noexcept {
+			return Disowned<ALT_T>{mValue};
+		}		
 	};
 	
 	template<class T>

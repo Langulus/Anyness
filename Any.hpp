@@ -24,8 +24,11 @@ namespace Langulus::Anyness
 		constexpr Any() noexcept {}
 
 		Any(const Any&);
+		Any(Any&);
 		Any(Any&&) noexcept;
+		
 		Any(const Block&);
+		Any(Block&);
 		Any(Block&&);
 
 		template<ReflectedData T>
@@ -38,8 +41,11 @@ namespace Langulus::Anyness
 		~Any();
 
 		Any& operator = (const Any&);
+		Any& operator = (Any&);
 		Any& operator = (Any&&);
+		
 		Any& operator = (const Block&);
+		Any& operator = (Block&);
 		Any& operator = (Block&&);
 
 		template<ReflectedData T>

@@ -40,8 +40,32 @@
 	#endif
 
 	#define LANGULUS_FEATURE(a) LANGULUS_FEATURE_##a()
+
+	/// Use the utfcpp library to convert between utf types							
+	/// No overhead, requires utfcpp to be linked										
 	#define LANGULUS_FEATURE_UTFCPP() LANGULUS_DISABLED()
+
+	/// Enable memory compression via the use of zlib									
+	/// Gives a tiny runtime overhead, requires zlib to be linked					
 	#define LANGULUS_FEATURE_ZLIB() LANGULUS_DISABLED()
+
+	/// Enable memory encryption and decryption											
+	/// Gives a tiny runtime overhead, no dependencies									
+	#define LANGULUS_FEATURE_ENCRYPTION() LANGULUS_DISABLED()
+
+	/// Memory allocations will be pooled, authority will be tracked,				
+	/// memory will be reused whenever possible, and you can also tweak			
+	/// runtime allocation strategies on per-type basis								
+	/// Significantly improves performance, no dependencies							
+	#define LANGULUS_FEATURE_MANAGED_MEMORY() LANGULUS_DISABLED()
+
+	/// Reflections will be registered in a centralized location, allowing for	
+	/// runtime type modification. Meta primitives will always be in the same	
+	/// place in memory regardless of translation unit, which significantly		
+	/// speeds up meta definition comparisons.											
+	/// Naming collisions will be detected upon type registration					
+	/// Gives a significant overhead on program launch, no dependencies			
+	#define LANGULUS_FEATURE_MANAGED_REFLECTION() LANGULUS_DISABLED()
 
 	/// Trigger a static assert (without condition)										
 	/// This form is required in order of it to work in 'if constexpr - else'	
@@ -129,6 +153,11 @@
 			{ t > u } -> Boolean;
 		};
 		
+		/// Equality comparable concept														
+		/// Any class with an adequate == operator										
+		template<class T, class U = T>
+		concept Comparable = ::std::equality_comparable_with<Decay<T>, Decay<U>>;
+		
 		/// Convertible concept																	
 		/// Checks if a static_cast is possible between the provided types		
 		template<class FROM, class TO>
@@ -143,11 +172,11 @@
 		/// Integer number concept (either sparse or dense)							
 		/// Excludes boolean types																
 		template<class... T>
-		concept Integer = (... && (::std::is_integral_v<Decay<T>> && not Boolean<T> && not Character<T>));
+		concept Integer = (... && (::std::integral<Decay<T>> && not Boolean<T> && not Character<T>));
 
 		/// Real number concept (either sparse or dense)								
 		template<class... T>
-		concept Real = (... && (::std::is_floating_point_v<Decay<T>>));
+		concept Real = (... && (::std::floating_point<Decay<T>>));
 
 		/// Built-in number concept (either sparse or dense)							
 		template<class T>
@@ -206,9 +235,17 @@
 		template<class T>
 		concept DefaultConstructible = ::std::default_initializable<T>;
 
+		/// Check if T is copy-constructible												
+		template<class T>
+		concept CopyConstructible = ::std::copy_constructible<T>;
+		
+		/// Check if T is copy-constructible												
+		template<class T>
+		concept MoveConstructible = ::std::move_constructible<T>;
+		
 		/// Check if T inherits BASE															
 		template<class T, class BASE>
-		concept Inherits = ::std::derived_from<T, BASE>;
+		concept Inherits = ::std::derived_from<Decay<T>, Decay<BASE>>;
 
 	} // namespace Langulus
 

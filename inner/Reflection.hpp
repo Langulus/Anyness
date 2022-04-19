@@ -14,6 +14,7 @@ namespace Langulus::Flow
 namespace Langulus::Anyness
 {
 	
+	class Block;
 	class Trait;
 	
 	/// A reflected type is a type that has a public Reflection field				
@@ -25,23 +26,24 @@ namespace Langulus::Anyness
 	/// A reflected data type is any type that is not void, and is either		
 	/// manually reflected, or an implicitly reflected fundamental type			
 	template<class T>
-	concept ReflectedData = !::std::is_void_v<Decay<T>>;
+	concept ReflectedData = not ::std::is_void_v<Decay<T>>;
 
 	/// A reflected verb type is any type that inherits Verb							
 	template<class T>
-	concept ReflectedVerb = ::std::is_base_of_v<Flow::Verb, T>;
+	concept ReflectedVerb = Inherits<T, Flow::Verb>;
 
 	/// A reflected trait type is any type that inherits Trait						
 	template<class T>
-	concept ReflectedTrait = ::std::is_base_of_v<Trait, T>;
+	concept ReflectedTrait = Inherits<T, Trait>;
 
 	/// A deep type is any type with a static member T::CTTI_Deep set to true	
-	/// If no such member exists, the type is assumed NOT deep by default		
+	/// and a common interface with Block													
+	/// If no such member/base exists, the type is assumed NOT deep by default	
 	/// Deep types are considered iteratable, and verbs are executed in each	
 	/// of their elements, instead on the container itself							
 	/// Use LANGULUS(DEEP) macro as member to tag deep types							
 	template<class T>
-	concept Deep = Decay<T>::CTTI_Deep == true;
+	concept Deep = Inherits<T, Block> && Decay<T>::CTTI_Deep == true;
 	
 	/// A POD (Plain Old Data) type is any type with a static member				
 	/// T::CTTI_POD set to true. If no such member exists, the type is assumed	
@@ -242,10 +244,11 @@ namespace Langulus::Anyness
 	///																								
 	///	Meta data																				
 	///																								
-	/// Contains member descriptions, abilities, traits, information				
-	///																								
 	struct MetaData : public Meta {
+		using Distance = int;
+		
 		static constexpr Token DefaultToken = u8"udInvalid";
+		
 		// List of reflected members													
 		MemberList mMembers {};
 		// List of reflected abilities												
@@ -305,19 +308,17 @@ namespace Langulus::Anyness
 		FDispatch mDispatcher;
 
 	public:
-		template<Dense T>
+		template<ReflectedData T>
 		NOD() static DMeta Of();
 
-		template<Dense T, class... Args>
-		void SetBases(Base&&, Args&& ...) noexcept;
+		template<Dense... Args>
+		void SetBases(Args&& ...) noexcept requires (... && Same<Args, Base>);
 
-		template<Dense T, class... Args>
-		void SetAbilities(Ability&&, Args&& ...) noexcept;
+		template<Dense... Args>
+		void SetAbilities(Args&& ...) noexcept requires (... && Same<Args, Ability>);
 
-		template<Dense T, class... Args>
-		void SetMembers(Member&&, Args&& ...) noexcept;
-
-		void MakeAbstract() noexcept;
+		template<Dense... Args>
+		void SetMembers(Args&& ...) noexcept requires (... && Same<Args, Member>);
 
 		NOD() bool GetBase(DMeta, Offset, Base&) const;
 		template<ReflectedData T>
@@ -327,9 +328,9 @@ namespace Langulus::Anyness
 		template<ReflectedData T>
 		NOD() bool HasBase() const;
 
-		NOD() bool IsChildOf(DMeta) const;
+		NOD() bool HasDerivation(DMeta) const;
 		template<ReflectedData T>
-		NOD() bool IsChildOf() const;
+		NOD() bool HasDerivation() const;
 
 		NOD() bool IsAbleTo(VMeta) const;
 		template<ReflectedVerb T>
@@ -347,23 +348,23 @@ namespace Langulus::Anyness
 		template<ReflectedData T>
 		NOD() bool IsRelatedTo() const;
 
-		NOD() Count GetDistanceTo(DMeta) const;
+		NOD() Distance GetDistanceTo(DMeta) const;
 		template<ReflectedData T>
-		NOD() Count GetDistanceTo() const;
+		NOD() Distance GetDistanceTo() const;
 
 		NOD() bool Is(DMeta) const;
 		template<ReflectedData T>
 		NOD() bool Is() const;
 
-		NOD() bool operator == (const MetaData&) const noexcept;
-		NOD() bool operator != (const MetaData&) const noexcept;
+		#if LANGULUS_FEATURE(MANAGED_REFLECTION)
+			NOD() bool operator == (const MetaData&) const noexcept;
+			NOD() bool operator != (const MetaData&) const noexcept;
+		#endif
 	};
 
 
 	///																								
 	///	Meta trait																				
-	///																								
-	/// A trait definition																		
 	///																								
 	struct MetaTrait : public Meta {
 		// Data filter for the trait (optional)									
@@ -372,14 +373,20 @@ namespace Langulus::Anyness
 	public:
 		template<ReflectedTrait T>
 		NOD() static TMeta Of();
-		NOD() bool operator == (const MetaTrait&) const noexcept;
+		
+		NOD() bool Is(TMeta) const;
+		template<ReflectedTrait T>
+		NOD() bool Is() const;
+		
+		#if LANGULUS_FEATURE(MANAGED_REFLECTION)
+			NOD() bool operator == (const MetaTrait&) const noexcept;
+			NOD() bool operator != (const MetaTrait&) const noexcept;
+		#endif
 	};
 
 
 	///																								
 	///	Meta verb																				
-	///																								
-	/// A verb definition																		
 	///																								
 	struct MetaVerb : public Meta {
 		// Verbs have antonyms, denoted via this 'negative' token			
@@ -390,7 +397,15 @@ namespace Langulus::Anyness
 	public:
 		template<ReflectedVerb T>
 		NOD() static VMeta Of();
-		NOD() bool operator == (const MetaVerb&) const noexcept;
+		
+		NOD() bool Is(VMeta) const;
+		template<ReflectedVerb T>
+		NOD() bool Is() const;
+		
+		#if LANGULUS_FEATURE(MANAGED_REFLECTION)
+			NOD() bool operator == (const MetaVerb&) const noexcept;
+			NOD() bool operator != (const MetaVerb&) const noexcept;
+		#endif
 	};
 	
 } // namespace Langulus::Anyness
