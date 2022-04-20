@@ -87,7 +87,7 @@ namespace Langulus::Anyness
 			return true;
 		}
 
-		if (mType->mPOD && right.mType->mPOD && mType->mSize == right.mType->mSize) {
+		if (mType->mIsPOD && right.mType->mIsPOD && mType->mSize == right.mType->mSize) {
 			// Just compare the memory directly (optimization)					
 			VERBOSE("Comparing POD memory");
 			const auto code = memcmp(mRaw, right.mRaw, mCount * mType->mSize);

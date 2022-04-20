@@ -88,7 +88,7 @@ namespace Langulus::Anyness
 				VERBOSE("Cloned non-resolvable dense by shallow copy " 
 					<< ccRed << "(slowest)");
 			}
-			else if (mType->mPOD) {
+			else if (mType->mIsPOD) {
 				// Just memcpy simple POD data										
 				if (result.IsEmpty())
 					result.Allocate(mCount, false, true);
@@ -125,7 +125,7 @@ namespace Langulus::Anyness
 					VERBOSE("Cloned resolved dense by shallow copy " 
 						<< ccRed << "(slowest)");
 				}
-				else if (from.mType->mPOD) {
+				else if (from.mType->mIsPOD) {
 					// Just memcpy simple POD data									
 					to.Allocate(1, false, true);
 					CopyMemory(from.mRaw, to.mRaw, from.GetSize());

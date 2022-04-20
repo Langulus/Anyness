@@ -76,6 +76,16 @@
 	namespace Langulus
 	{
 		
+		namespace Anyness
+		{
+			class Block;
+		}
+
+		namespace Flow
+		{
+			class Verb;
+		}
+
 		///																							
 		/// Fundamental types																	
 		///																							
@@ -242,6 +252,38 @@
 		/// Check if T is copy-constructible												
 		template<class T>
 		concept MoveConstructible = ::std::move_constructible<T>;
+		
+		/// Check if T is clonable																
+		template<class T>
+		concept Clonable = requires (Decay<T> a) { 
+			{a = a.Clone()};
+		};
+		
+		/// Check if T is copy-assignable													
+		template<class T>
+		concept Copyable = ::std::copyable<Decay<T>>;
+		
+		/// Check if T is move-assignable													
+		template<class T>
+		concept Movable = ::std::movable<Decay<T>>;
+		
+		/// Check if T is move-assignable													
+		template<class T>
+		concept Resolvable = requires (Decay<T> a) {
+			{a.GetBlock()} -> Same<Anyness::Block>;
+		};
+		
+		/// Check if T is move-assignable													
+		template<class T>
+		concept Hashable = requires (Decay<T> a) {
+			{a.GetHash()} -> Same<Hash>;
+		};
+		
+		/// Check if T is move-assignable													
+		template<class T>
+		concept Dispatcher = requires (Decay<T> a, Flow::Verb& b) {
+			{a.Do(b)};
+		};
 		
 		/// Check if T inherits BASE															
 		template<class T, class BASE>

@@ -179,7 +179,7 @@ namespace Langulus::Anyness
 		}
 
 		// If this is reached, both source and destination are dense		
-		if (result.mType->mPOD) {
+		if (result.mType->mIsPOD) {
 			// If data is not complex just do a memcpy and we're done		
 			CopyMemory(mRaw, result.mRaw, GetSize());
 			VERBOSE(Logger::Verbose()

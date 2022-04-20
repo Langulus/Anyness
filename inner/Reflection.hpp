@@ -16,12 +16,24 @@ namespace Langulus::Anyness
 	
 	class Block;
 	class Trait;
+	struct Member;
+	struct Base;
+	struct Ability;
+	struct Meta;
+	struct MetaData;
+	struct MetaVerb;
+	struct MetaTrait;
+
+	using DMeta = const MetaData*;
+	using TMeta = const MetaTrait*;
+	using VMeta = const MetaVerb*;
+
 	
 	/// A reflected type is a type that has a public Reflection field				
 	/// This field is automatically added when using LANGULUS(REFLECT) macro	
 	/// inside the type you want to reflect												
 	template<class T>
-	concept ExplicitlyReflected = requires { Decay<T>::Reflection; };
+	concept Reflectable = requires { {Decay<T>::Reflect()} -> Same<MetaData>; };
 	
 	/// A reflected data type is any type that is not void, and is either		
 	/// manually reflected, or an implicitly reflected fundamental type			
@@ -64,19 +76,6 @@ namespace Langulus::Anyness
 	template<class T>
 	concept Nullifiable = Decay<T>::CTTI_Nullifiable == true;
 	
-	class Block;
-	struct Member;
-	struct Base;
-	struct Ability;
-	struct Meta;
-	struct MetaData;
-	struct MetaVerb;
-	struct MetaTrait;
-	
-	using DMeta = const MetaData*;
-	using TMeta = const MetaTrait*;
-	using VMeta = const MetaVerb*;
-
 	///																								
 	///	These methods are sought in each reflected type								
 	///																								
@@ -228,16 +227,21 @@ namespace Langulus::Anyness
 	/// Base for meta definitions																
 	///																								
 	struct Meta {
-		// Each reflection primitive has a token. Token must be				
-		// unique for the given type of primitive.								
-		// Some primitives, like data reflections, support multiple			
-		// tokens, separated by commas												
+		// Each reflection primitive has a unique token, but that			
+		// uniqueness is checked only if MANAGED_REFLECTION feature is		
+		// enabled																			
 		Token mToken;
-		// Each reflection may or may not have some info string				
-		// attached to it.																
+		// Each reflection may or may not have some info						
 		Token mInfo;
+		// Original name of the type													
+		Token mName;
 		// Each reflected type has an unique hash									
 		Hash mHash;
+
+		template<ReflectedData T>
+		static constexpr Hash Hash() noexcept;
+		template<ReflectedData T>
+		static constexpr Token Name() noexcept;
 	};
 
 
@@ -257,18 +261,16 @@ namespace Langulus::Anyness
 		BaseList mBases {};
 		// Default concretization													
 		DMeta mConcrete {};
-		// True if reflected data is POD (optimization)						
-		// POD data can be directly memcpy-ed, or binary-serialized		
-		bool mPOD = false;
-		// True if reflected data is nullifiable (optimization)			
-		// Nullifiable data can be constructed AND destructed via		
-		// memset(0) without hitting undefined behavior						
-		bool mNullifiable = false;
 		// Dynamic producer of the type											
 		// Types with producers can be created only via a verb			
 		DMeta mProducer {};
-		// If reflected type is a constant type								
-		bool mIsConst = false;
+		// True if reflected data is POD (optimization)						
+		// POD data can be directly memcpy-ed, or binary-serialized		
+		bool mIsPOD = false;
+		// True if reflected data is nullifiable (optimization)			
+		// Nullifiable data can be constructed AND destructed via		
+		// memset(0) without hitting undefined behavior						
+		bool mIsNullifiable = false;
 		// If reflected type is abstract											
 		bool mIsAbstract = false;
 		// If type is named (will avoid scope decoration)					

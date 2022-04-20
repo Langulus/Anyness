@@ -453,7 +453,7 @@ namespace Langulus::Anyness
 	///	@attention this is a type-erased call and has quite the overhead		
 	///	@param count - the number of elements to initialize						
 	void Block::CallDefaultConstructors(const Count& count) {
-		if (mType->mNullifiable) {
+		if (mType->mIsNullifiable) {
 			// Just zero the memory (optimization)									
 			FillMemory(GetRawEnd(), {}, count * GetStride());
 			mCount += count;
@@ -481,7 +481,7 @@ namespace Langulus::Anyness
 	///	@attention this must have zero count, and mReserved						
 	///	@param source - the elements to copy											
 	void Block::CallCopyConstructors(const Block& source) {
-		if ((IsSparse() && source.IsSparse()) || mType->mPOD) {
+		if ((IsSparse() && source.IsSparse()) || mType->mIsPOD) {
 			// Just copy the POD/pointer memory (optimization)					
 			CopyMemory(source.mRaw, mRaw, GetStride() * mReserved);
 
@@ -577,7 +577,7 @@ namespace Langulus::Anyness
 	///	@attention this must have zero count, and source.mCount reserved		
 	///	@param source - the elements to move											
 	void Block::CallMoveConstructors(Block&& source) {
-		if (mType->mPOD || (IsSparse() && source.IsSparse())) {
+		if (mType->mIsPOD || (IsSparse() && source.IsSparse())) {
 			// Copy pointers, and then null them									
 			MoveMemory(source.mRaw, mRaw, GetStride() * mReserved);
 		}
@@ -657,7 +657,7 @@ namespace Langulus::Anyness
 				//block.ResetInner(); //TODO is this required?
 			}
 		}
-		else if (!mType->mPOD) {
+		else if (!mType->mIsPOD) {
 			// Destroy every dense element, one by one, using the 			
 			// reflected destructors													
 			if (!mType->mDestructor) {
@@ -718,7 +718,7 @@ namespace Langulus::Anyness
 				<< "Removing elements from a memory block, that is used from multiple places"));
 
 		if (IsConstant() || IsStatic()) {
-			if (mType->mPOD && starter + count >= mCount) {
+			if (mType->mIsPOD && starter + count >= mCount) {
 				// If data is POD and elements are on the back, we can get	
 				// around constantness and staticness, by simply				
 				// truncating the count without any reprecussions				
