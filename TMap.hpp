@@ -1,6 +1,5 @@
 #pragma once
 #include "Map.hpp"
-#include "Trait.hpp"
 
 namespace Langulus::Anyness
 {
@@ -8,125 +7,120 @@ namespace Langulus::Anyness
 	///																								
 	///	DATA CONTAINER SPECIALIZATION FOR KEY-VALUE PAIRS							
 	///																								
-	template<RTTI::ReflectedData KEY, RTTI::ReflectedData VALUE> 
+	template<ReflectedData K, ReflectedData V> 
 	class TMap : public Map {
-		REFLECT_MANUALLY(TMap) {
-			auto keyType = DataID::Reflect<KEY>();
-			auto valueType = DataID::Reflect<VALUE>();
-
-			static Text name, info;
-			if (name.IsEmpty()) {
-				name += Map::GetMapToken(keyType, valueType);
-				name = name + "," + name + "Ptr," + name + "ConstPtr";
-				info += "a container that maps ";
-				info += keyType->GetToken();
-				info += " to ";
-				info += valueType->GetToken();
-			}
-
-			auto reflection = RTTI::ReflectData::From<ME>(name, info);
-			reflection.mIsDeep = true;
-			reflection.template SetBases<ME>(
-				REFLECT_BASE(Map));
-			return reflection;
-		}
-
 	public:
-		using Pair = TPair<KEY, VALUE>;
+		using Pair = TPair<K, V>;
+		using PairRef = TPair<K&, V&>;
+		using PairConstRef = TPair<const K&, const V&>;
+		using PairPtr = TPair<K*, V*>;
+		using PairConstPtr = TPair<const K*, const V*>;
+		using Key = K;
+		using KeyList = TAny<K>;
+		using Value = V;
+		using ValueList = TAny<V>;
 
 		TMap();
 		TMap(const TMap&);
 		TMap(TMap&&) noexcept;
-		TMap(const DState&, KEY*, VALUE*, pcptr);
+		TMap(const DataState&, Key*, Value*, const Count&);
 
-		ME& operator = (const ME&);
-		ME& operator = (ME&&) noexcept;
+		TMap& operator = (const TMap&);
+		TMap& operator = (TMap&&) noexcept;
 
 	public:
-		/// Range-based for-statement integration											
-		PC_RANGED_FOR_INTEGRATION(VALUE, Values().GetRaw(), Values().GetCount())
+		RANGED_FOR_INTEGRATION(TMap, V)
 
 		void Clear();
 		void Reset();
 
-		NOD() ME Clone() const;
+		NOD() TMap Clone() const;
 
-		NOD() const TAny<KEY>& Keys() const noexcept;
-		NOD() TAny<KEY>& Keys() noexcept;
+		NOD() decltype(auto) Keys() const noexcept;
+		NOD() decltype(auto) Keys() noexcept;
 
-		NOD() const TAny<VALUE>& Values() const noexcept;
-		NOD() TAny<VALUE>& Values() noexcept;
+		NOD() decltype(auto) Values() const noexcept;
+		NOD() decltype(auto) Values() noexcept;
 		
-		NOD() Index FindKey(const KEY&) const;
-		NOD() Index FindValue(const VALUE&) const;
+		NOD() Index FindKey(const Key&) const;
+		NOD() Index FindValue(const Value&) const;
 		
-		NOD() TPair<KEY*, VALUE*> GetPair(const Index&);
-		NOD() TPair<const KEY*, const VALUE*> GetPair(const Index&) const;
+		NOD() auto GetPair(const Index&);
+		NOD() auto GetPair(const Index&) const;
 
-		NOD() TPair<KEY*, VALUE*> GetPair(pcptr);
-		NOD() TPair<const KEY*, const VALUE*> GetPair(pcptr) const;
+		NOD() auto GetPair(const Offset&) noexcept;
+		NOD() auto GetPair(const Offset&) const noexcept;
 
-		NOD() auto& operator [] (const KEY&);
-		NOD() auto& operator [] (const KEY&) const;
+		NOD() decltype(auto) operator [] (const Key&);
+		NOD() decltype(auto) operator [] (const Key&) const;
 
-		template<RTTI::ReflectedData K = KEY>
+		template<ReflectedData = K>
 		NOD() decltype(auto) GetKey(const Index&) const;
-		template<RTTI::ReflectedData K = KEY>
-		NOD() decltype(auto) GetKey(Index);
-		template<RTTI::ReflectedData K = KEY>
-		NOD() decltype(auto) GetKey(pcptr) const;
-		template<RTTI::ReflectedData K = KEY>
-		NOD() decltype(auto) GetKey(pcptr);
+		template<ReflectedData = K>
+		NOD() decltype(auto) GetKey(const Index&);
+		template<ReflectedData = K>
+		NOD() decltype(auto) GetKey(const Offset&) const noexcept;
+		template<ReflectedData = K>
+		NOD() decltype(auto) GetKey(const Offset&) noexcept;
 
-		template<RTTI::ReflectedData V = VALUE>
+		template<ReflectedData = V>
 		NOD() decltype(auto) GetValue(const Index&) const;
-		template<RTTI::ReflectedData V = VALUE>
-		NOD() decltype(auto) GetValue(Index);
-		template<RTTI::ReflectedData V = VALUE>
-		NOD() decltype(auto) GetValue(pcptr) const;
-		template<RTTI::ReflectedData V = VALUE>
-		NOD() decltype(auto) GetValue(pcptr);
+		template<ReflectedData = V>
+		NOD() decltype(auto) GetValue(const Index&);
+		template<ReflectedData = V>
+		NOD() decltype(auto) GetValue(const Offset&) const noexcept;
+		template<ReflectedData = V>
+		NOD() decltype(auto) GetValue(const Offset&) noexcept;
 
-		pcptr RemoveKey(const KEY&);
-		pcptr RemoveValue(const VALUE&);
+		Count RemoveKey(const Key&);
+		Count RemoveValue(const Value&);
 
-		template<class MERGED_VALUE>
-		pcptr Merge(const KEY&, const MERGED_VALUE&) requires CopyConstructible<KEY> && CopyConstructible<VALUE>;
+		template<class ALT_V>
+		Count Merge(const K&, const ALT_V&)
+			requires CopyConstructible<K> && CopyConstructible<V>;
 
-		pcptr Merge(const ME&) requires CopyConstructible<KEY> && CopyConstructible<VALUE>;
+		Count Merge(const TMap&)
+			requires CopyConstructible<K> && CopyConstructible<V>;
 
-		pcptr Emplace(Pair&&, const Index& = uiBack);
-		pcptr Insert(const Pair*, const pcptr = 1, const Index& = uiBack);
+		Count Emplace(Pair&&, const Index& = Index::Back);
+		Count Insert(const Pair*, const Count& = 1, const Index& = Index::Back);
 
-		ME& operator << (Pair&&);
-		ME& operator >> (Pair&&);
+		TMap& operator << (Pair&&);
+		TMap& operator >> (Pair&&);
 
-		pcptr Add(KEY&&, VALUE&&, const Index& = uiBack) requires MoveConstructible<KEY> && MoveConstructible<VALUE>;
-		pcptr Add(const KEY&, VALUE&&, const Index& = uiBack) requires CopyConstructible<KEY> && MoveConstructible<VALUE>;
-		pcptr Add(KEY&&, const VALUE&, const Index& = uiBack) requires MoveConstructible<KEY> && CopyConstructible<VALUE>;
-		pcptr Add(const KEY&, const VALUE&, const Index& = uiBack) requires CopyConstructible<KEY> && CopyConstructible<VALUE>;
-		pcptr Add(KEY&, VALUE&, const Index& = uiBack) requires CopyConstructible<KEY> && CopyConstructible<VALUE>;
+		Count Add(K&&, V&&, const Index& = Index::Back)
+			requires MoveConstructible<K> && MoveConstructible<V>;
+		
+		Count Add(const K&, V&&, const Index& = Index::Back)
+			requires CopyConstructible<K> && MoveConstructible<V>;
+		
+		Count Add(K&&, const V&, const Index& = Index::Back) 
+			requires MoveConstructible<K> && CopyConstructible<V>;
+		
+		Count Add(const K&, const V&, const Index& = Index::Back) 
+			requires CopyConstructible<K> && CopyConstructible<V>;
+		
+		Count Add(K&, V&, const Index& = Index::Back)
+			requires CopyConstructible<K> && CopyConstructible<V>;
 
 		void Sort(const Index&);
 
-		template<class FUNCTION>
-		pcptr ForEach(FUNCTION&&);
+		template<Function F>
+		Count ForEach(F&&);
+		template<Function F>
+		Count ForEach(F&&) const;
 
-		template<class FUNCTION>
-		pcptr ForEachRev(FUNCTION&&);
-
-		template<class FUNCTION>
-		pcptr ForEach(FUNCTION&&) const;
-
-		template<class FUNCTION>
-		pcptr ForEachRev(FUNCTION&&) const;
+		template<Function F>
+		Count ForEachRev(F&&);
+		template<Function F>
+		Count ForEachRev(F&&) const;
 
 	private:
-		template<class RETURN, RTTI::ReflectedData ALT_KEY, RTTI::ReflectedData ALT_VALUE, bool REVERSE>
-		pcptr ForEachInner(TFunctor<RETURN(ALT_KEY, ALT_VALUE)>&&);
+		template<class RETURN, ReflectedData ALT_KEY, ReflectedData ALT_VALUE, bool REVERSE>
+		Count ForEachInner(TFunctor<RETURN(ALT_KEY, ALT_VALUE)>&&);
 
-		template<class RETURN, RTTI::ReflectedData ALT_KEY, RTTI::ReflectedData ALT_VALUE, bool REVERSE>
-		pcptr ForEachInner(TFunctor<RETURN(ALT_KEY, ALT_VALUE)>&&) const;
+		template<class RETURN, ReflectedData ALT_KEY, ReflectedData ALT_VALUE, bool REVERSE>
+		Count ForEachInner(TFunctor<RETURN(ALT_KEY, ALT_VALUE)>&&) const;
 	};
 
 } // namespace Langulus::Anyness

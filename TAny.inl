@@ -253,7 +253,7 @@ namespace Langulus::Anyness
 	///	@return true if able to interpret current type to 'type'					
 	TEMPLATE()
 	bool TAny<T>::InterpretsAs(DMeta type) const {
-		return !type || mType->InterpretsAs(type);
+		return mType->InterpretsAs<Sparse<T>>(type);
 	}
 
 	/// Check if contained data can be interpreted as a given count of type		
@@ -264,7 +264,7 @@ namespace Langulus::Anyness
 	///	@return true if able to interpret current type to 'type'					
 	TEMPLATE()
 	bool TAny<T>::InterpretsAs(DMeta type, Count count) const {
-		return !type || mType->InterpretsAs(type, count);
+		return mType->InterpretsAs(type, count);
 	}
 
 	/// Wrap stuff in a container																

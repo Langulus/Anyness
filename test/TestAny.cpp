@@ -4,16 +4,15 @@
 SCENARIO("Any", "[containers]") {
 	GIVEN("An Any instance") {
 		int original_value = 555;
-		auto meta = DataID::Reflect<int>();
-		auto metas = DataID::Reflect<int*>();
+		auto meta = MetaData::Of<int>();
+		auto metas = MetaData::Of<int*>();
 		Text original_pct = "Lorep Ipsum";
 		Any pack;
 
-		REQUIRE(meta != nullptr);
-		REQUIRE(metas != nullptr);
-		REQUIRE(pack.GetMeta() == nullptr);
-		REQUIRE(pack.GetDataID() == udAny);
-		REQUIRE(pack.GetRaw() == nullptr);
+		REQUIRE(meta);
+		REQUIRE(metas);
+		REQUIRE_FALSE(pack.GetType());
+		REQUIRE_FALSE(pack.GetRaw());
 
 		WHEN("Using new statements") {
 			int* original_int = new int(original_value);

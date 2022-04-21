@@ -29,7 +29,7 @@ namespace Langulus::Anyness::Inner
    /// Once we wrap and stringify it, we can isolate the typename itself      
    template<typename T>
    constexpr Token TypeAsTemplateArgument() {
-      return LANGULUS_FUNCTION();
+      return reinterpret_cast<const char8_t*>(LANGULUS_FUNCTION());
    }
 
    /// Filter a literal matching at the front                                 

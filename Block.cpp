@@ -20,19 +20,9 @@ namespace Langulus::Anyness
 	///	@param other - check if a given type is insertable to the block		
 	///	@return true if able to insert													
 	bool Block::IsInsertable(DMeta other) const noexcept {
-		if (IsStatic() || IsConstant() || IsDeep() != other->mIsDeep) {
-			// If unmovable or constant - then unresizable						
+		if (IsStatic() || IsConstant() || IsDeep() != other->mIsDeep)
 			return false;
-		}
-		else if (!IsSparse() && !InterpretsAs(other)) {
-			// If dense and not forward compatible - fail						
-			return false;
-		}
-		else if (IsSparse() && !other->InterpretsAs(mType)) {
-			// If sparse and not backwards compatible - fail					
-			return false;
-		}
-		return true;
+		return InterpretsAs(other);
 	}
 
 	/// (Re)allocation of memory with optional default-construction				
@@ -140,7 +130,7 @@ namespace Langulus::Anyness
 	///	@param base - the base to search for											
 	///	@return the block for the base (static and immutable)						
 	Block Block::GetBaseMemory(DMeta meta, const Base& base) const {
-		if (base.mMapping) {
+		if (base.mBinaryCompatible) {
 			return {
 				DataState::ConstantMember, meta,
 				GetCount() * base.mCount,
@@ -148,9 +138,8 @@ namespace Langulus::Anyness
 			};
 		}
 
-		if (IsEmpty()) {
+		if (IsEmpty())
 			return {DataState::Constant, meta};
-		}
 
 		return {
 			DataState::ConstantMember, meta, 1,
@@ -163,7 +152,7 @@ namespace Langulus::Anyness
 	///	@param base - the base to search for											
 	///	@return the block for the base (static and immutable)						
 	Block Block::GetBaseMemory(DMeta meta, const Base& base) {
-		if (base.mMapping) {
+		if (base.mBinaryCompatible) {
 			return {
 				DataState::Member, meta,
 				GetCount() * base.mCount, 
@@ -204,7 +193,7 @@ namespace Langulus::Anyness
 			// No need to mutate - types are the same								
 			return false;
 		}
-		else if (IsAbstract() && IsEmpty() && meta->InterpretsAs(mType)) {
+		else if (IsAbstract() && IsEmpty() && meta->InterpretsAs<false>(mType)) {
 			// Abstract compatible containers can be concretized				
 			SetType<false>(meta);
 		}
@@ -291,7 +280,10 @@ namespace Langulus::Anyness
 	///	@param type - the type to check if able to fit								
 	///	@return true if able to interpret current type to 'type'					
 	bool Block::CanFit(DMeta type) const {
-		return !mType || !type || type->InterpretsAs(mType);
+		if (IsSparse())
+			return type && type->InterpretsAs<true>(mType);
+		else
+			return type && type->InterpretsAs<false>(mType);
 	}
 
 	/// Check if two containers are concatenable											
@@ -306,7 +298,10 @@ namespace Langulus::Anyness
 	///	@param type - the type check if current type interprets to				
 	///	@return true if able to interpret current type to 'type'					
 	bool Block::InterpretsAs(DMeta type) const {
-		return !mType || !type || mType->InterpretsAs(type);
+		if (IsSparse())
+			return mType && mType->InterpretsAs<true>(type);
+		else
+			return mType && mType->InterpretsAs<false>(type);
 	}
 
 	/// Check if contained data can be interpreted as a given coung of type		
@@ -326,6 +321,13 @@ namespace Langulus::Anyness
 		return mType == type || (mType && mType->Is(type));
 	}
 
+	/// Reinterpret contents of this Block as the type and state of another		
+	/// You can interpret vec4 as float[4] for example, or any other such		
+	/// reinterpretation, as long as data remains tightly packed					
+	Block Block::ReinterpretAs(const Block&) const {
+		return {}; //TODO
+	}
+	
 	/// Get a specific element block (unsafe)												
 	///	@param index - the element's index												
 	///	@return the element's block														

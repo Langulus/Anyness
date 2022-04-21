@@ -3,16 +3,16 @@
 
 SCENARIO("Testing new/delete operators", "[new][delete]") {
 	GIVEN("POD dynamic memory allocated with overriden new operator") {
-		auto meta = DataID::Reflect<int>();
+		auto meta = MetaData::Of<int>();
 		auto a = new int[1024];
 		int static_memory[64] = {};
 
-		REQUIRE(PCMEMORY.CheckUsage(meta, a) == true);
-		REQUIRE(PCMEMORY.CheckJurisdiction(meta, a) == true);
+		REQUIRE(PCMEMORY.CheckUsage(meta, a));
+		REQUIRE(PCMEMORY.CheckJurisdiction(meta, a));
 		REQUIRE(PCMEMORY.GetReferences(meta, a) == 1);
 
-		REQUIRE(PCMEMORY.CheckUsage(meta, static_memory) == false);
-		REQUIRE(PCMEMORY.CheckJurisdiction(meta, static_memory) == false);
+		REQUIRE_FALSE(PCMEMORY.CheckUsage(meta, static_memory));
+		REQUIRE_FALSE(PCMEMORY.CheckJurisdiction(meta, static_memory));
 		REQUIRE(PCMEMORY.GetReferences(meta, static_memory) == 1);
 
 		PCMEMORY.Reference(nullptr, a, 1);

@@ -153,13 +153,13 @@ namespace Langulus::Anyness
 	}
 
 	/// Emplace anything compatible to container											
-	template<ReflectedData KEY, ReflectedData VALUE>
-	Count Map::Emplace(TPair<KEY, VALUE>&& item, const Index& index) {
-		if (!IsMapInsertable<KEY, VALUE>())
+	template<ReflectedData K, ReflectedData V>
+	Count Map::Emplace(TPair<K, V>&& item, const Index& index) {
+		if (!IsMapInsertable<K, V>())
 			throw Except::Move("Bad emplace in map - type not insertable");
 
-		const auto insertedKeys = mKeys.Emplace<KEY>(Move(item.Key), index);
-		const auto insertedValues = Any::Emplace<VALUE>(Move(item.Value), index);
+		const auto insertedKeys = mKeys.Emplace<K>(Move(item.Key), index);
+		const auto insertedValues = Any::Emplace<V>(Move(item.Value), index);
 		if (insertedKeys != insertedValues)
 			throw Except::Move("Bad emplace in map - move failed");
 
@@ -167,31 +167,31 @@ namespace Langulus::Anyness
 	}
 
 	/// Insert anything compatible to container											
-	template<ReflectedData KEY, ReflectedData VALUE>
-	Count Map::Insert(const TPair<KEY, VALUE>* items, const Count count, const Index& index) {
-		if (!IsMapInsertable<KEY, VALUE>())
+	template<ReflectedData K, ReflectedData V>
+	Count Map::Insert(const TPair<K, V>* items, const Count& count, const Index& index) {
+		if (!IsMapInsertable<K, V>())
 			throw Except::Copy("Bad insert in map");
 
 		Count insertedKeys = 0;
 		Count insertedValues = 0;
 		for (Count i = 0; i < count; ++i) {
-			insertedKeys += mKeys.Insert<KEY>(&items[i].Key, 1, index);
-			insertedValues += Any::Insert<VALUE>(&items[i].Value, 1, index);
+			insertedKeys += mKeys.Insert<K>(&items[i].Key, 1, index);
+			insertedValues += Any::Insert<V>(&items[i].Value, 1, index);
 		}
 
 		return insertedKeys;
 	}
 
 	/// Push any data at the back																
-	template<ReflectedData KEY, ReflectedData VALUE>
-	Map& Map::operator << (const TPair<KEY, VALUE>& other) {
-		Insert<KEY, VALUE>(&other, 1, Index::Back);
+	template<ReflectedData K, ReflectedData V>
+	Map& Map::operator << (const TPair<K, V>& other) {
+		Insert<K, V>(&other, 1, Index::Back);
 		return *this;
 	}
 
-	template<ReflectedData KEY, ReflectedData VALUE>
-	Map& Map::operator << (TPair<KEY, VALUE>&& other) {
-		Emplace<KEY, VALUE>(Forward<TPair<KEY, VALUE>>(other), Index::Back);
+	template<ReflectedData K, ReflectedData V>
+	Map& Map::operator << (TPair<K, V>&& other) {
+		Emplace<K, V>(Forward<TPair<K, V>>(other), Index::Back);
 		return *this;
 	}
 

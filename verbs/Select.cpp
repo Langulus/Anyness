@@ -1,4 +1,4 @@
-#include "Block.hpp"
+#include "../Any.hpp"
 
 #define VERBOSE(a) //pcLogFuncVerbose << a
 
@@ -19,18 +19,16 @@ namespace Langulus::Anyness
 		};
 	}
 
-	/// Get the memory block corresponding to a local member variable (const)	
-	/// Never references data																	
+	/// Get the memory Block corresponding to a local member variable (const)	
 	///	@param member - the member to get												
 	///	@return a static constant memory block											
 	const Block Block::GetMember(const Member& member) const {
 		auto result = const_cast<Block*>(this)->GetMember(member);
-		result.mState.mState |= DataState::Constant;
+		result.MakeConstant();
 		return result;
 	}
 
-	/// Select a member via trait or index (or both)									
-	/// Never references data																	
+	/// Select a member Block via trait or index (or both)							
 	///	@param trait - the trait to get													
 	///	@param index - the trait index to get											
 	///	@return a static memory block (constant if block is constant)			
@@ -69,19 +67,17 @@ namespace Langulus::Anyness
 		return {};
 	}
 
-	/// Select a member via trait or index (or both) (const)							
-	/// Never references data																	
+	/// Select a member Block via trait or index (or both) (const)					
 	///	@param trait - the trait to get													
 	///	@param index - the trait index to get											
 	///	@return a static constant memory block											
 	const Block Block::GetMember(TMeta trait, Count index) const {
 		auto result = const_cast<Block*>(this)->GetMember(trait, index);
-		result.mState.mState |= DataState::Constant;
+		result.MakeConstant();
 		return result;
 	}
 	
-	/// Select a member via type or index (or both)										
-	/// Never references data																	
+	/// Select a member Block via type or index (or both)								
 	///	@param data - the type to get														
 	///	@param index - the member index to get											
 	///	@return a static memory block (constant if block is constant)			
@@ -89,7 +85,7 @@ namespace Langulus::Anyness
 		// Scan members																	
 		Count counter = 0;
 		for (auto& member : mType->mMembers) {
-			if (data && !member.mType->InterpretsAs(data))
+			if (data && !member.mType->InterpretsAs<false>(data))
 				continue;
 
 			// Matched, but check index first										

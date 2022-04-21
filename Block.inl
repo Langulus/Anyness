@@ -708,15 +708,15 @@ namespace Langulus::Anyness
 			return;
 		}
 
-		// At this point, the container has and initialized type				
+		// At this point, the container has a set type							
 		if (IsTypeConstrained()) {
-			// You can't set type of an initialized typed block				
+			// You can't change type of a type-constrained block				
 			throw Except::Mutate(Logger::Error()
 				<< "Changing typed block is disallowed: from "
 				<< GetToken() << " to " << type->mToken);
 		}
 
-		if (mType->InterpretsAs(type)) {
+		if (mType->InterpretsAs<false>(type)) {
 			// Type is compatible, but only sparse data can mutate freely	
 			// Dense containers can't mutate because their destructors		
 			// might be wrong later														

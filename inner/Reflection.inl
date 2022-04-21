@@ -1,6 +1,7 @@
 #pragma once
 #include "Reflection.hpp"
 #include "NameOf.hpp"
+#include "Utilities.hpp"
 
 namespace Langulus::Anyness
 {
@@ -122,7 +123,6 @@ namespace Langulus::Anyness
 			meta->mIsNullifiable = Nullifiable<Decayed>;
 			meta->mSize = Abstract<Decayed> ? 0 : sizeof(Decayed);
 			meta->mAlignment = alignof(Decayed);
-			meta->mIsNamed = Named<T>;
 			meta->mIsPOD = POD<T>;
 			meta->mIsDeep = Deep<T>;
 
@@ -256,41 +256,33 @@ namespace Langulus::Anyness
 	///	@param base - [in/out] base info ends up here if found					
 	///	@return true if a base is available												
 	inline bool MetaData::GetBase(DMeta type, Offset offset, Base& base) const {
-		pcptr scanned = 0;
-		for (auto& b : GetBaseList()) {
+		Count scanned {};
+		for (auto& b : mBases) {
 			// Check base																	
-			if (base->Is(b.mStaticBase.mType)) {
-				if (scanned == index) {
-					baseOutput = b;
+			if (type->Is(b.mType)) {
+				if (scanned == offset) {
+					base = b;
 					return true;
 				}
 				else ++scanned;
 			}
 
 			// Dig deeper																	
-			LinkedBase localBase;
-			pcptr localIndex = 0;
-			while (b.mBase->GetBase(base, localIndex, localBase)) {
-				if (scanned == index) {
-					// Propagate local base offset									
-					localBase.mStaticBase.mLocalOffset += b.mStaticBase.mLocalOffset;
-
-					// Multiply counts													
-					localBase.mStaticBase.mCount *= b.mStaticBase.mCount;
-
-					// Propagate mapping state if conditions allow				
-					localBase.mStaticBase.mMapping = b.mStaticBase.mMapping
-						&& localBase.mStaticBase.mMapping;
-
-					// Propagate OR state if conditions allow						
-					localBase.mStaticBase.mOr = b.mStaticBase.mOr
-						|| localBase.mStaticBase.mOr;
-
-					baseOutput = localBase;
+			Base local {};
+			Offset index {};
+			while (b.mType->GetBase(type, index, local)) {
+				if (scanned == offset) {
+					local.mOffset += b.mOffset;
+					local.mCount *= b.mCount;
+					local.mBinaryCompatible = 
+						b.mBinaryCompatible && local.mBinaryCompatible;
+					local.mImposed = b.mImposed || local.mImposed;
+					base = local;
 					return true;
 				}
 				else ++scanned;
-				++localIndex;
+				
+				++index;
 			}
 		}
 
@@ -313,8 +305,8 @@ namespace Langulus::Anyness
 	///	@param type - the type of base to search for									
 	///	@return true if a base is available												
 	inline bool MetaData::HasBase(DMeta type) const {
-		for (auto& b : GetBaseList()) {
-			if (base->Is(b.mStaticBase.mType) || b.mBase->HasBase(base))
+		for (auto& b : mBases) {
+			if (type->Is(b.mType) || b.mType->HasBase(type))
 				return true;
 		}
 
@@ -351,8 +343,8 @@ namespace Langulus::Anyness
 	///	@param verb - the verb to check if able										
 	///	@return true if this data type is able to do verb							
 	inline bool MetaData::IsAbleTo(VMeta verb) const {
-		for (auto& v : GetAbilityList()) {
-			if (v.mStaticAbility.mVerb == verb)
+		for (auto& v : mAbilities) {
+			if (verb->Is(v.mVerb))
 				return true;
 		}
 
@@ -370,86 +362,61 @@ namespace Langulus::Anyness
 	/// Check if this type interprets as another without conversion				
 	///	@param other - the type to try interpreting as								
 	///	@return true if this type interprets as other								
-	inline bool MetaData::InterpretsAs(DMeta other) const {
-		// Matching types always fit													
+	template<bool ADVANCED>
+	bool MetaData::InterpretsAs(DMeta other) const {
 		if (Is(other))
 			return true;
 
-		// Different types might be compatible										
-		// Check if this inherits other												
-		if (IsChildOf(other)) {
-			// This definition is derived from other								
-			// Examples:																	
-			//		R32 interprets as ANumber, because ANumber is base			
-			//		Vec4 interprets as R32, because R32 is a mapping			
+		// Different types might be compatible via inheritance				
+		if (HasBase(other))
 			return true;
+
+		if constexpr (ADVANCED) {
+			// Do reverse inheritance check, in search of mappings			
+			Base found {};
+			if (other->GetBase(this, 0, found))
+				return mResolver || found.mBinaryCompatible;
 		}
 
-		// Do reverse inheritance check, in search of mappings				
-		LinkedBase foundBase;
-		if (IsSparse() && other->GetBase(this, 0, foundBase)) {
-			// Other is derived from this												
-			if (foundBase.mStaticBase.mMapping) {
-				// Examples:																
-				//		CGeneratorGeometry interprets as CSphere, because		
-				//		the generator is mapped to CSphere exactly, despite	
-				//		the inversed inheritance order								
-				return true;
-			}
-			else {
-				// Interpretation will later rely on a runtime resolve via	
-				// the ClassBlock functionality -- it's anologous to an		
-				// automated RTTI dynamic_cast										
-				//	Examples:																
-				//		AContext* is interpretable as AUnit* if runtime type	
-				//		check passes, despite the inversed inheritance			
-				return IsResolvable();
-			}
-		}
-
-		// At this point we're pretty much sure that types						
-		// aren't compatible																
+		// At this point we're pretty sure that types are incompatible		
 		return false;
 	}
 	
 	/// Check if this type interprets as another without conversion				
 	///	@tparam T - the type to try interpreting as									
 	///	@return true if this type interprets as other								
-	template<ReflectedData T>
+	template<ReflectedData T, bool ADVANCED>
 	bool MetaData::InterpretsAs() const {
-		return InterpretsAs(MetaData::Of<T>());
+		return InterpretsAs<ADVANCED>(MetaData::Of<T>());
 	}
 
 	/// Check if this type interprets as an exact number of another without		
 	/// conversion																					
 	///	@param other - the type to try interpreting as								
+	///	@param count - the number of items to interpret as							
 	///	@return true if this type interprets as other								
 	inline bool MetaData::InterpretsAs(DMeta other, Count count) const {
-		SAFETY(if (!other) throw Except::BadOperation(pcLogFuncError << "Bad type"));
-		SAFETY(if (!count) throw Except::BadOperation(pcLogFuncError << "Bad count"));
-		if (Is(other->GetID()) && count == 1)
+		if (Is(other) && count == 1)
 			return true;
 
-		// Do forward inheritance check and count matches						
-		LinkedBase found;
-		pcptr scanned = 0;
+		Base found {};
+		Count scanned {};
 		while (GetBase(other, scanned, found)) {
-			if (found.mStaticBase.mLocalOffset != 0) {
+			if (found.mOffset != 0)
 				// Base caused a memory gap, so early failure occurs			
+				// All bases must fit neatly into the original type			
 				return false;
-			}
 
-			if ((other->IsAbstract() || found.mStaticBase.mMapping)
-				&& count == found.mStaticBase.mCount)
+			if ((other->mIsAbstract || found.mBinaryCompatible) && count == found.mCount)
 				return true;
-			scanned += found.mStaticBase.mCount;
+			
+			scanned += found.mCount;
 		}
 
-		if (scanned == count && !other->IsAbstract())
+		if (scanned == count && !other->mIsAbstract)
 			return true;
 
-		// At this point we're pretty much sure that types						
-		// aren't compatible																
+		// At this point we're pretty sure that types are incompatible		
 		return false;
 	}
 	
@@ -480,24 +447,22 @@ namespace Langulus::Anyness
 	/// Get the number of conversions required to map one type to another		
 	///	@param other - the type to check distance to									
 	///	@return the distance																	
-	inline MetaData::Distance MetaData::GetDistanceTo(DMeta) const {
-		SAFETY(if (!other) throw Except::BadOperation(pcLogFuncError << "Bad type"));
-		if (Is(other->GetID()))
-			return 0;
+	inline MetaData::Distance MetaData::GetDistanceTo(DMeta other) const {
+		if (Is(other))
+			return Distance{0};
 
 		// Check bases																		
-		constexpr auto maxDistance = std::numeric_limits<pcptr>::max();
-		pcptr smallestDistance = maxDistance;
-		for (auto& b : GetBaseList()) {
-			if (b.mStaticBase.mOr)
+		Distance jumps = Distance::Infinite;
+		for (auto& b : mBases) {
+			if (b.mImposed)
 				continue;
 
-			auto d = b.mBase->GetDistanceTo(other);
-			if (d != maxDistance && d + 1 < smallestDistance)
-				smallestDistance = d + 1;
+			auto d = b.mType->GetDistanceTo(other);
+			if (d != Distance::Infinite && d + 1 < jumps)
+				jumps = Distance{d + 1};
 		}
 
-		return smallestDistance;
+		return jumps;
 	}
 	
 	/// Get the number of conversions required to map one type to another		
@@ -511,14 +476,15 @@ namespace Langulus::Anyness
 	/// Check if two meta definitions match exactly										
 	///	@param other - the type to compare against									
 	///	@return true if types match														
-	inline bool MetaData::Is(DMeta other) const {
+	constexpr bool MetaData::Is(DMeta other) const {
 		#if LANGULUS_FEATURE(MANAGED_REFLECTION)
 			// This function is reduced to a pointer match, if the meta		
-			// database is centralized, because it guarantees that definitions in		
-			// separate translation units are always the same instance of MetaData		
+			// database is centralized, because it guarantees that			
+			// definitions in separate translation units are always the		
+			// same instance																
 			return this == other;
 		#else
-			return false;
+			return mHash == other->mHash && mToken == other->mToken;
 		#endif
 	}
 	
@@ -526,7 +492,7 @@ namespace Langulus::Anyness
 	///	@tparam T - the type to compare against										
 	///	@return true if types match														
 	template<ReflectedData T>
-	bool MetaData::Is() const {
+	constexpr bool MetaData::Is() const {
 		return Is(MetaData::Of<T>());
 	}
 
@@ -546,10 +512,25 @@ namespace Langulus::Anyness
    ///                                                                        
    
    /// Check if two meta definitions match exactly										
+	///	@param other - the trait to compare against									
+	///	@return true if traits match														
+	constexpr bool MetaTrait::Is(TMeta other) const {
+		#if LANGULUS_FEATURE(MANAGED_REFLECTION)
+			// This function is reduced to a pointer match, if the meta		
+			// database is centralized, because it guarantees that			
+			// definitions in separate translation units are always the		
+			// same instance																
+			return this == other;
+		#else
+			return mHash == other->mHash && mToken == other->mToken;
+		#endif
+	}	
+	
+	/// Check if two meta definitions match exactly										
 	///	@tparam T - the trait to compare against										
 	///	@return true if traits match														
 	template<ReflectedTrait T>
-	bool MetaTrait::Is() const {
+	constexpr bool MetaTrait::Is() const {
 		return Is(MetaTrait::Of<T>());
 	}	
 	
@@ -559,10 +540,25 @@ namespace Langulus::Anyness
    ///                                                                        
    
    /// Check if two meta definitions match exactly										
+	///	@param other - the verb to compare against									
+	///	@return true if verbs match														
+	constexpr bool MetaVerb::Is(VMeta other) const {
+		#if LANGULUS_FEATURE(MANAGED_REFLECTION)
+			// This function is reduced to a pointer match, if the meta		
+			// database is centralized, because it guarantees that			
+			// definitions in separate translation units are always the		
+			// same instance																
+			return this == other;
+		#else
+			return mHash == other->mHash && mToken == other->mToken;
+		#endif
+	}	
+   
+   /// Check if two meta definitions match exactly										
 	///	@tparam T - the verb to compare against										
 	///	@return true if verbs match														
 	template<ReflectedVerb T>
-	bool MetaVerb::Is() const {
+	constexpr bool MetaVerb::Is() const {
 		return Is(MetaVerb::Of<T>());
 	}
 	

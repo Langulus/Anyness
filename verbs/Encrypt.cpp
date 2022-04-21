@@ -1,5 +1,4 @@
-#include "Block.hpp"
-#include "Any.hpp"
+#include "../Any.hpp"
 
 namespace Langulus::Anyness
 {

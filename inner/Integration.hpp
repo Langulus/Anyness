@@ -259,6 +259,13 @@
 			{a = a.Clone()};
 		};
 		
+		/// Check if T is referencable														
+		template<class T>
+		concept Referencable = requires (const Decay<T> a) { 
+			{a.Keep()};
+			{a.Free()} -> Same<Count>;
+		};
+		
 		/// Check if T is copy-assignable													
 		template<class T>
 		concept Copyable = ::std::copyable<Decay<T>>;
@@ -288,6 +295,10 @@
 		/// Check if T inherits BASE															
 		template<class T, class BASE>
 		concept Inherits = ::std::derived_from<Decay<T>, Decay<BASE>>;
+
+		/// Check if T is a function															
+		template<class T>
+		concept Function = ::std::is_function_v<T>;
 
 	} // namespace Langulus
 

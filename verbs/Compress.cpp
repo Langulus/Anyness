@@ -1,7 +1,5 @@
-#include "Block.hpp"
-#include <assert.h>
-
 #if LANGULUS_FEATURE(ZLIB)
+#include "../Any.hpp"
 #include <zlib.h>
 
 namespace Langulus::Anyness

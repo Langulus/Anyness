@@ -196,14 +196,14 @@ namespace Langulus::Anyness
 		Count mCount {1};
 		// Offset of the base, relative to the derived type					
 		Offset mOffset {};
-		// Whether this base is binary mapped to derived class				
-		// Allows for the seamless mapping of one type to another			
-		// Used for compatibility checks and  decaying containers			
-		bool mMapping = false;
-		// Whether this base is explicitly defined as an alternative		
-		// It is not as much base, as a mapping in this case					
-		// Bases marked OR are usually skipped in serialization				
-		bool mOr = false;
+		// Used to map one type onto another										
+		// Usually true when base completely fills the derived type			
+		bool mBinaryCompatible {false};
+		// Whether or not this base is considered an imposed base or not	
+		// Basically, imposed bases are not serialized and don't act in	
+		// distance computation or dispatching										
+		// An imposed base can be added only manually							
+		bool mImposed {false};
 
 	public:
 		constexpr Base() noexcept = default;
@@ -249,7 +249,9 @@ namespace Langulus::Anyness
 	///	Meta data																				
 	///																								
 	struct MetaData : public Meta {
-		using Distance = int;
+		enum Distance : int {
+			Infinite = ::std::numeric_limits<int>::max()
+		};
 		
 		static constexpr Token DefaultToken = u8"udInvalid";
 		
@@ -273,8 +275,6 @@ namespace Langulus::Anyness
 		bool mIsNullifiable = false;
 		// If reflected type is abstract											
 		bool mIsAbstract = false;
-		// If type is named (will avoid scope decoration)					
-		bool mIsNamed = false;
 		// If type will be interpreted as a memory block and iterated	
 		bool mIsDeep = false;
 		// Size of the reflected type (in bytes)								
@@ -338,8 +338,9 @@ namespace Langulus::Anyness
 		template<ReflectedVerb T>
 		NOD() bool IsAbleTo() const;
 
+		template<bool ADVANCED>
 		NOD() bool InterpretsAs(DMeta) const;
-		template<ReflectedData T>
+		template<ReflectedData T, bool ADVANCED>
 		NOD() bool InterpretsAs() const;
 
 		NOD() bool InterpretsAs(DMeta, Count) const;
@@ -354,9 +355,9 @@ namespace Langulus::Anyness
 		template<ReflectedData T>
 		NOD() Distance GetDistanceTo() const;
 
-		NOD() bool Is(DMeta) const;
+		NOD() constexpr bool Is(DMeta) const;
 		template<ReflectedData T>
-		NOD() bool Is() const;
+		NOD() constexpr bool Is() const;
 
 		#if LANGULUS_FEATURE(MANAGED_REFLECTION)
 			NOD() bool operator == (const MetaData&) const noexcept;
@@ -376,9 +377,9 @@ namespace Langulus::Anyness
 		template<ReflectedTrait T>
 		NOD() static TMeta Of();
 		
-		NOD() bool Is(TMeta) const;
+		NOD() bool constexpr Is(TMeta) const;
 		template<ReflectedTrait T>
-		NOD() bool Is() const;
+		NOD() bool constexpr Is() const;
 		
 		#if LANGULUS_FEATURE(MANAGED_REFLECTION)
 			NOD() bool operator == (const MetaTrait&) const noexcept;
@@ -400,9 +401,9 @@ namespace Langulus::Anyness
 		template<ReflectedVerb T>
 		NOD() static VMeta Of();
 		
-		NOD() bool Is(VMeta) const;
+		NOD() bool constexpr Is(VMeta) const;
 		template<ReflectedVerb T>
-		NOD() bool Is() const;
+		NOD() bool constexpr Is() const;
 		
 		#if LANGULUS_FEATURE(MANAGED_REFLECTION)
 			NOD() bool operator == (const MetaVerb&) const noexcept;

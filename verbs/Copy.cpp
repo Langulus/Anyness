@@ -1,12 +1,10 @@
-#include "Block.hpp"
+#include "../Any.hpp"
 #define VERBOSE(a) //a
 
 namespace Langulus::Anyness
 {
 
 	/// Invoke the shallow copy operators of all elements inside this block		
-	/// This function does not allocate and must always work on initialized		
-	/// memory to avoid undefined behavior													
 	///	@param result - the resulting block (must be preinitialized)			
 	///	@param allocate - whether or not to allocate elements in result		
 	///							(will be performed only if result is empty)			
@@ -26,22 +24,22 @@ namespace Langulus::Anyness
 		}
 
 		// Check if types are compatible												
-		if (!mType->Is(result.GetType())) {
-			// Check if result reinterprets to this block's type				
+		if (!mType->Is(result.mType)) {
 			Block decayedResult = result.ReinterpretAs(*this);
 			if (!decayedResult.IsEmpty() && decayedResult.GetCount() <= GetCount()) {
 				// Attempt copy inside decayed type									
 				return Copy(decayedResult, false);
 			}
-			else if (!mType->InterpretsAs(result.GetType())) {
-				// Fail if types are totally not compatible						
+			else {
+				// Data is incompatible for copying									
 				throw Except::Copy(VERBOSE(Logger::Error()
 					<< "Can't copy " << GetToken()
 					<< " to incompatible block of type " << result.GetToken()));
 			}
 		}
 
-		// Check if sizes match															
+		// This is reached only if types are exactly the same					
+		// Check if counts match														
 		if (mCount != result.mCount) {
 			if (!allocate || !result.IsEmpty()) {
 				throw Except::Copy(VERBOSE(Logger::Error()
@@ -52,6 +50,7 @@ namespace Langulus::Anyness
 		}
 
 		// Check if memory is the same after checking size						
+		// After all, there is no point in copying over the copy				
 		if (mRaw == result.mRaw) {
 			VERBOSE(Logger::Verbose()
 				<< "Data is already copied (pointers are the same)" 
@@ -78,7 +77,7 @@ namespace Langulus::Anyness
 			VERBOSE(Logger::Verbose()
 				<< "Sparse -> Sparse referencing copy");
 
-			CopyMemory(mRaw, result.mRaw, mCount * sizeof(Count));
+			CopyMemory(mRaw, result.mRaw, mCount * sizeof(void*));
 
 			// Cycle all pointers and reference their memories					
 			auto from_ptrarray = GetRawSparse();

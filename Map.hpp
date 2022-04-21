@@ -3,26 +3,35 @@
 
 namespace Langulus::Anyness
 {
-
+	
+	namespace Inner
+	{
+		/// An abstract pair																		
+		struct APair {
+			//TODO make abstract, forbid containment
+		};
+	}
+	
+	
 	///																								
 	/// A helper structure for pairing keys and values of any type					
 	///																								
-	template<ReflectedData KEY, ReflectedData VALUE>
-	struct TPair {
-	public:
-		KEY Key;
-		VALUE Value;
-
-	public:
-		using KeyType = KEY;
-		using ValueType = VALUE;
+	template<ReflectedData K, ReflectedData V>
+	struct TPair : public Inner::APair {
+		//TODO forbid containment, it's just an intermediate type
+		// use std::pair instead for that
+		using Key = K;
+		using Value = V;
+		
+		Key mKey;
+		Value mValue;
 
 		TPair() = delete;
-		TPair(const TPair&) = default;
-		TPair(TPair&&) noexcept = default;
-		TPair(KEY key, VALUE value)
-			: Key {key}
-			, Value {value} {}
+		constexpr TPair(const TPair&) = default;
+		constexpr TPair(TPair&&) noexcept = default;
+		constexpr TPair(Key key, Value value)
+			: mKey {key}
+			, mValue {value} {}
 	};
 
 
@@ -32,6 +41,7 @@ namespace Langulus::Anyness
 	class Map : public Any {
 	public:
 		Map() noexcept = default;
+		
 		Map(const Map&);
 		Map(Map&&) noexcept;
 		Map(const Block&, const Block&);
@@ -79,41 +89,41 @@ namespace Langulus::Anyness
 		template<ReflectedData KEY, ReflectedData VALUE>
 		NOD() bool IsMapInsertable();
 
-		template<ReflectedData KEY>
+		template<ReflectedData>
 		NOD() decltype(auto) GetKey(const Index&) const;
-		template<ReflectedData KEY>
+		template<ReflectedData>
 		NOD() decltype(auto) GetKey(const Index&);
-		template<ReflectedData KEY>
+		template<ReflectedData>
 		NOD() decltype(auto) GetKey(Offset) const;
-		template<ReflectedData KEY>
+		template<ReflectedData>
 		NOD() decltype(auto) GetKey(Offset);
 
-		template<ReflectedData VALUE>
+		template<ReflectedData>
 		NOD() decltype(auto) GetValue(const Index&) const;
-		template<ReflectedData VALUE>
+		template<ReflectedData>
 		NOD() decltype(auto) GetValue(const Index&);
-		template<ReflectedData VALUE>
+		template<ReflectedData>
 		NOD() decltype(auto) GetValue(Offset) const;
-		template<ReflectedData VALUE>
+		template<ReflectedData>
 		NOD() decltype(auto) GetValue(Offset);
 
-		template<ReflectedData KEY, ReflectedData VALUE>
-		Count Emplace(TPair<KEY, VALUE>&&, const Index& = Index::Back);
+		template<ReflectedData K, ReflectedData V>
+		Count Emplace(TPair<K, V>&&, const Index& = Index::Back);
 
-		template<ReflectedData KEY, ReflectedData VALUE>
-		Count Insert(const TPair<KEY, VALUE>*, Count = 1, const Index& = Index::Back);
+		template<ReflectedData K, ReflectedData V>
+		Count Insert(const TPair<K, V>*, const Count& = 1, const Index& = Index::Back);
 
-		template<ReflectedData KEY, ReflectedData VALUE>
-		Map& operator << (const TPair<KEY, VALUE>&);
+		template<ReflectedData K, ReflectedData V>
+		Map& operator << (const TPair<K, V>&);
 
-		template<ReflectedData KEY, ReflectedData VALUE>
-		Map& operator << (TPair<KEY, VALUE>&&);
+		template<ReflectedData K, ReflectedData V>
+		Map& operator << (TPair<K, V>&&);
 
-		template<ReflectedData KEY, ReflectedData VALUE>
-		Map& operator >> (const TPair<KEY, VALUE>&);
+		template<ReflectedData K, ReflectedData V>
+		Map& operator >> (const TPair<K, V>&);
 
-		template<ReflectedData KEY, ReflectedData VALUE>
-		Map& operator >> (TPair<KEY, VALUE>&&);
+		template<ReflectedData K, ReflectedData V>
+		Map& operator >> (TPair<K, V>&&);
 
 		template<class FUNCTION>
 		Count ForEachPair(FUNCTION&&);

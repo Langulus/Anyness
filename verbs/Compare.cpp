@@ -1,4 +1,4 @@
-#include "Block.hpp"
+#include "../Any.hpp"
 
 #define VERBOSE(a) //pcLogFuncVerbose << a
 #define VERBOSE_TAB(a) //ScopedTab tab; pcLogFuncVerbose << a << tab
@@ -50,7 +50,7 @@ namespace Langulus::Anyness
 			return true;
 		}
 
-		if (!mType || !mType->InterpretsAs(right.mType)) {
+		if (!InterpretsAs(right.mType)) {
 			// Data is not similar at all, because either types or states	
 			// are incompatible															
 			VERBOSE(ccRed << "Data types are not compatible: "

@@ -7,7 +7,7 @@ SCENARIO("Text manipulation", "[text]") {
 
 		WHEN("More capacity is reserved, via Extend()") {
 			text.Allocate(500);
-			auto memory = text.GetBytes();
+			auto memory = text.GetRaw();
 
 			REQUIRE(text.IsEmpty());
 			REQUIRE(text.GetCount() == 0);
@@ -17,24 +17,23 @@ SCENARIO("Text manipulation", "[text]") {
 			THEN("The capacity and size change") {
 				REQUIRE(text.GetCount() == 10);
 				REQUIRE(text.GetReserved() >= 500);
-				REQUIRE(text.GetBytes() == memory);
-				REQUIRE(true == text.CheckJurisdiction());
-
+				REQUIRE(text.GetRaw() == memory);
+				REQUIRE(text.HasAuthority());
 				REQUIRE(region.GetCount() == 10);
-				REQUIRE(region.GetRaw() == reinterpret_cast<char*>(memory));
+				REQUIRE(region.GetRaw() == memory);
 			}
 		}
 	}
 
 	GIVEN("A filled utf8 text container") {
-		Text text{ "tests" };
-		auto memory = text.GetBytes();
+		Text text {"tests"};
+		auto memory = text.GetRaw();
 
 		REQUIRE(text.GetCount() == 5);
 		REQUIRE(text.GetReserved() >= 5);
-		REQUIRE(text.Is<char8>());
-		REQUIRE(text.GetBytes() != nullptr);
-		REQUIRE(true == text.CheckJurisdiction());
+		REQUIRE(text.Is<char8_t>());
+		REQUIRE(text.GetRaw());
+		REQUIRE(text.HasAuthority());
 		REQUIRE(text[0] == 't');
 		REQUIRE(text[1] == 'e');
 		REQUIRE(text[2] == 's');
@@ -46,13 +45,13 @@ SCENARIO("Text manipulation", "[text]") {
 			THEN("The size and capacity change, type will never change") {
 				REQUIRE(text.GetCount() == 10);
 				REQUIRE(text.GetReserved() >= 10);
-				REQUIRE(text.GetBytes() == memory);
-				REQUIRE(true == text.CheckJurisdiction());
-				REQUIRE(text.Is<char8>());
+				REQUIRE(text.GetRaw() == memory);
+				REQUIRE(text.HasAuthority());
+				REQUIRE(text.Is<char8_t>());
 			}
 		}
 
-		WHEN("We select parts of text") {
+		/*WHEN("We select parts of text") {
 			auto selection = text.Select("st");
 			THEN("Nothing really changes, but the selection must be valid") {
 				REQUIRE(selection[0] == 's');
@@ -74,15 +73,15 @@ SCENARIO("Text manipulation", "[text]") {
 				REQUIRE(text.GetBytes() == memory);
 				REQUIRE(true == text.CheckJurisdiction());
 			}
-		}
+		}*/
 
 		WHEN("More capacity is reserved") {
 			text.Allocate(20);
 			THEN("The capacity changes but not the size, memory will move in order to have jurisdiction") {
 				REQUIRE(text.GetCount() == 5);
 				REQUIRE(text.GetReserved() >= 20);
-				REQUIRE(text.GetBytes() == memory);
-				REQUIRE(true == text.CheckJurisdiction());
+				REQUIRE(text.GetRaw() == memory);
+				REQUIRE(text.HasAuthority());
 			}
 		}
 
@@ -91,11 +90,10 @@ SCENARIO("Text manipulation", "[text]") {
 			THEN("The capacity and size change") {
 				REQUIRE(text.GetCount() == 15);
 				REQUIRE(text.GetReserved() >= 15);
-				REQUIRE(text.GetBytes() == memory);
-				REQUIRE(true == text.CheckJurisdiction());
-
+				REQUIRE(text.GetRaw() == memory);
+				REQUIRE(text.HasAuthority());
 				REQUIRE(region.GetCount() == 10);
-				REQUIRE(region.GetRaw() == reinterpret_cast<char*>(memory) + 5);
+				REQUIRE(region.GetRaw() == memory + 5);
 			}
 		}
 
@@ -104,8 +102,8 @@ SCENARIO("Text manipulation", "[text]") {
 			THEN("Capacity is not changed, but count is trimmed; memory will not move, and memory will still be outside jurisdiction") {
 				REQUIRE(text.GetCount() == 2);
 				REQUIRE(text.GetReserved() >= 5);
-				REQUIRE(text.GetBytes() == memory);
-				REQUIRE(true == text.CheckJurisdiction());
+				REQUIRE(text.GetRaw() == memory);
+				REQUIRE(text.HasAuthority());
 			}
 		}
 
@@ -114,9 +112,9 @@ SCENARIO("Text manipulation", "[text]") {
 			THEN("Size goes to zero, capacity and type are unchanged") {
 				REQUIRE(text.GetCount() == 0);
 				REQUIRE(text.GetReserved() >= 5);
-				REQUIRE(text.GetBytes() == memory);
-				REQUIRE(true == text.CheckJurisdiction());
-				REQUIRE(text.Is<char8>());
+				REQUIRE(text.GetRaw() == memory);
+				REQUIRE(text.HasAuthority());
+				REQUIRE(text.Is<char8_t>());
 			}
 		}
 
@@ -125,8 +123,8 @@ SCENARIO("Text manipulation", "[text]") {
 			THEN("Size and capacity goes to zero, type is unchanged, because it's a templated container") {
 				REQUIRE(text.GetCount() == 0);
 				REQUIRE(text.GetReserved() == 0);
-				REQUIRE(text.GetBytes() == nullptr);
-				REQUIRE(text.Is<char8>());
+				REQUIRE_FALSE(text.GetRaw());
+				REQUIRE(text.Is<char8_t>());
 			}
 		}
 
@@ -135,12 +133,12 @@ SCENARIO("Text manipulation", "[text]") {
 			THEN("Size and capacity goes to zero, type is unchanged, because it's a templated container") {
 				REQUIRE(text.GetCount() == copy.GetCount());
 				REQUIRE(text.GetReserved() == copy.GetReserved());
-				REQUIRE(text.GetBytes() == copy.GetBytes());
-				REQUIRE(text.GetDataID() == copy.GetDataID());
-				REQUIRE(text.CheckJurisdiction() == true);
-				REQUIRE(copy.CheckJurisdiction() == true);
-				REQUIRE(copy.GetBlockReferences() == 2);
-				REQUIRE(text.GetBlockReferences() == 2);
+				REQUIRE(text.GetRaw() == copy.GetRaw());
+				REQUIRE(text.GetType() == copy.GetType());
+				REQUIRE(text.HasAuthority());
+				REQUIRE(copy.HasAuthority());
+				REQUIRE(copy.GetReferences() == 2);
+				REQUIRE(text.GetReferences() == 2);
 			}
 		}
 
@@ -149,12 +147,12 @@ SCENARIO("Text manipulation", "[text]") {
 			THEN("Size and capacity goes to zero, type is unchanged, because it's a templated container") {
 				REQUIRE(text.GetCount() == copy.GetCount());
 				REQUIRE(text.GetReserved() == copy.GetReserved());
-				REQUIRE(text.GetBytes() != copy.GetBytes());
-				REQUIRE(text.GetDataID() == copy.GetDataID());
-				REQUIRE(text.CheckJurisdiction() == true);
-				REQUIRE(copy.CheckJurisdiction() == true);
-				REQUIRE(copy.GetBlockReferences() == 1);
-				REQUIRE(text.GetBlockReferences() == 1);
+				REQUIRE(text.GetRaw() != copy.GetRaw());
+				REQUIRE(text.GetType() == copy.GetType());
+				REQUIRE(text.HasAuthority());
+				REQUIRE(copy.HasAuthority());
+				REQUIRE(copy.GetReferences() == 1);
+				REQUIRE(text.GetReferences() == 1);
 			}
 		}
 
@@ -164,9 +162,9 @@ SCENARIO("Text manipulation", "[text]") {
 			THEN("Block manager should reuse the memory") {
 				REQUIRE(text.GetCount() == 5);
 				REQUIRE(text.GetReserved() >= 5);
-				REQUIRE(text.GetBytes() != memory);
-				REQUIRE(true == text.CheckJurisdiction());
-				REQUIRE(text.Is<char8>());
+				REQUIRE(text.GetRaw() != memory);
+				REQUIRE(text.HasAuthority());
+				REQUIRE(text.Is<char8_t>());
 			}
 		}
 

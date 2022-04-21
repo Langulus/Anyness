@@ -1,304 +1,284 @@
+#pragma once
+#include "TMap.hpp"
+
+#define TEMPLATE() template<ReflectedData K, ReflectedData V>
+#define MAP() TMap<K, V>
+
 namespace Langulus::Anyness
 {
 
-	#define TEMPLATE template<RTTI::ReflectedData KEY, RTTI::ReflectedData VALUE>
-
 	/// Default templated map construction													
-	TEMPLATE
-	TMap<KEY, VALUE>::TMap()
-		: Map{ } {
-		// Initialize the non-templated containers manually					
-		Map::mKeys.SetDataID<KEY>(true);
-		Any::SetDataID<VALUE>(true);
+	TEMPLATE()
+	MAP()::TMap()
+		: Map { } {
+		Map::mKeys.SetType<K>(true);
+		Any::SetType<V>(true);
 	}
 
 	/// Copy construction																		
 	///	@param copy - the map to shallow copy											
-	TEMPLATE
-	TMap<KEY, VALUE>::TMap(const TMap<KEY, VALUE>& copy)
-		: Map{ static_cast<const Map&>(copy) } { }
+	TEMPLATE()
+	MAP()::TMap(const TMap& copy)
+		: Map {static_cast<const Map&>(copy)} {}
 
 	/// Move construction																		
-	TEMPLATE
-	TMap<KEY, VALUE>::TMap(TMap<KEY, VALUE>&& copy) noexcept
-		: Map{ pcForward<Map>(copy) } {}
+	TEMPLATE()
+	MAP()::TMap(TMap&& copy) noexcept
+		: Map {Forward<Map>(copy)} {}
 
 	/// Manual construction																		
-	TEMPLATE
-	TMap<KEY, VALUE>::TMap(const DState& state, KEY* keydata, VALUE* valuedata, const pcptr count)
-		: Map{ state, keydata, valuedata, count } {}
+	TEMPLATE()
+	MAP()::TMap(const DataState& state, Key* keydata, Value* valuedata, const Count& count)
+		: Map {state, keydata, valuedata, count} {}
 
 	/// Copy operator. Doesn't clone data, only references it						
 	/// Never copies if types are not compatible, only clears.						
-	TEMPLATE
-	TMap<KEY, VALUE>& TMap<KEY, VALUE>::operator = (const ME& anypack) {
+	TEMPLATE()
+	MAP()& MAP()::operator = (const TMap& anypack) {
 		Reset();
-		new (this) ME(anypack);
+		new (this) TMap(anypack);
 		return *this;
 	}
 
 	/// Copy operator. Doesn't clone data, only references it						
 	/// Never copies if types are not compatible, only clears.						
-	TEMPLATE
-	TMap<KEY, VALUE>& TMap<KEY, VALUE>::operator = (ME&& anypack) noexcept {
+	TEMPLATE()
+	MAP()& MAP()::operator = (TMap&& anypack) noexcept {
 		Reset();
-		new (this) ME(pcForward<ME>(anypack));
+		new (this) TMap(Forward<TMap>(anypack));
 		return *this;
 	}
 
 	/// Clear the map by dereferencing each pointer										
-	TEMPLATE
-	void TMap<KEY, VALUE>::Clear() {
+	TEMPLATE()
+	void MAP()::Clear() {
 		Map::Clear();
 		mKeys.Clear();
 	}
 
 	/// Reset a map by dereferencing each pointer										
-	TEMPLATE
-	void TMap<KEY, VALUE>::Reset() {
+	TEMPLATE()
+	void MAP()::Reset() {
 		Map::Reset();
 		mKeys.Reset();
 	}
 
 	/// Clone the map																				
-	TEMPLATE
-	TMap<KEY, VALUE> TMap<KEY, VALUE>::Clone() const {
-		TMap<KEY, VALUE> clone;
+	TEMPLATE()
+	MAP() MAP()::Clone() const {
+		MAP() clone;
 		static_cast<Map&>(clone) = Map::Clone();
 		clone.mKeys = mKeys.Clone();
 		return clone;
 	}
 
 	/// Get the keys																				
-	TEMPLATE
-	const TAny<KEY>& TMap<KEY, VALUE>::Keys() const noexcept {
-		return pcReinterpret<const TAny<KEY>&>(mKeys);
+	TEMPLATE()
+	decltype(auto) MAP()::Keys() const noexcept {
+		return ReinterpretCast<const KeyList&>(mKeys);
 	}
 
-	TEMPLATE
-	TAny<KEY>& TMap<KEY, VALUE>::Keys() noexcept {
-		return pcReinterpret<TAny<KEY>&>(mKeys);
+	TEMPLATE()
+	decltype(auto) MAP()::Keys() noexcept {
+		return ReinterpretCast<KeyList&>(mKeys);
 	}
 
 	/// Get the values																			
-	TEMPLATE
-	const TAny<VALUE>& TMap<KEY, VALUE>::Values() const noexcept {
-		return pcReinterpret<const TAny<VALUE>&>(static_cast<const Any&>(*this));
+	TEMPLATE()
+	decltype(auto) MAP()::Values() const noexcept {
+		return ReinterpretCast<const ValueList&>(static_cast<const Any&>(*this));
 	}
 
-	TEMPLATE
-	TAny<VALUE>& TMap<KEY, VALUE>::Values() noexcept {
-		return pcReinterpret<TAny<VALUE>&>(static_cast<Any&>(*this));
+	TEMPLATE()
+	decltype(auto) MAP()::Values() noexcept {
+		return ReinterpretCast<ValueList&>(static_cast<Any&>(*this));
 	}
 		
 	/// Get the index of a key 																
 	///	@return the index key, or uiNone if such key exists						
-	TEMPLATE
-	Index TMap<KEY, VALUE>::FindKey(const KEY& key) const {
+	TEMPLATE()
+	Index MAP()::FindKey(const Key& key) const {
 		return Keys().Find(key);
 	}
 
 	/// Get the index of a value																
 	///	@return the index key, or uiNone if such key exists						
-	TEMPLATE
-	Index TMap<KEY, VALUE>::FindValue(const VALUE& value) const {
+	TEMPLATE()
+	Index MAP()::FindValue(const Value& value) const {
 		return Values().Find(value);
 	}
 		
 	/// Get pair at a special index															
-	TEMPLATE
-	TPair<KEY*, VALUE*> TMap<KEY, VALUE>::GetPair(const Index& index) {
-		const auto idx = Keys().ConstrainMore(index);
-		if (idx.IsSpecial())
-			return {};
-
-		return GetPair(pcptr(idx.mIndex));
+	TEMPLATE()
+	auto MAP()::GetPair(const Index& index) {
+		return GetPair(Keys().ConstrainMore(index).GetOffset());
 	}
 
-	TEMPLATE
-	TPair<const KEY*, const VALUE*> TMap<KEY, VALUE>::GetPair(const Index& index) const {
-		return const_cast<TMap<KEY, VALUE>*>(this)->GetPair(index);
+	TEMPLATE()
+	auto MAP()::GetPair(const Index& index) const {
+		return GetPair(Keys().ConstrainMore(index).GetOffset());
 	}
 
 	/// Get pair at a raw index																
-	TEMPLATE
-	TPair<KEY*, VALUE*> TMap<KEY, VALUE>::GetPair(pcptr index) {
-		return { &Keys()[index], &Values()[index] };
+	TEMPLATE()
+	auto MAP()::GetPair(const Offset& offset) noexcept {
+		return PairPtr {&Keys()[offset], &Values()[offset]};
 	}
 
-	TEMPLATE
-	TPair<const KEY*, const VALUE*> TMap<KEY, VALUE>::GetPair(pcptr index) const {
-		return const_cast<TMap<KEY, VALUE>*>(this)->GetPair(index);
+	TEMPLATE()
+	auto MAP()::GetPair(const Offset& offset) const noexcept {
+		return PairConstPtr {&Keys()[offset], &Values()[offset]};
 	}
 
 	/// Access values																				
-	TEMPLATE
-	auto& TMap<KEY, VALUE>::operator [] (const KEY& key) {
-		const auto index = FindKey(key);
-		if (index.IsSpecial())
-			throw Except::BadAccess("Invalid key index");
-		return Values()[static_cast<pcptr>(index)];
+	TEMPLATE()
+	decltype(auto) MAP()::operator [] (const Key& key) {
+		return Values()[FindKey(key).GetOffset()];
 	}
 
-	TEMPLATE
-	auto& TMap<KEY, VALUE>::operator [] (const KEY& idx) const {
-		return const_cast<TMap<KEY, VALUE>&>(*this)[idx];
+	TEMPLATE()
+	decltype(auto) MAP()::operator [] (const Key& key) const {
+		return Values()[FindKey(key).GetOffset()];
 	}
 
 	/// Get the key by special index (const)												
 	///	@param index - the index															
 	///	@return a constant reference to the key										
-	TEMPLATE
-	template<RTTI::ReflectedData K>
-	decltype(auto) TMap<KEY, VALUE>::GetKey(const Index& idx) const {
-		return const_cast<TMap<KEY, VALUE>*>(this)->GetKey<K>(idx);
+	TEMPLATE()
+	template<ReflectedData ALT_K>
+	decltype(auto) MAP()::GetKey(const Index& i) const {
+		return Keys().Get<ALT_K>(Keys().ConstrainMore<K>(i).GetOffset());
 	}
 
 	/// Get the key by special index															
 	///	@param index - the index															
 	///	@return a reference to the key													
-	TEMPLATE
-	template<RTTI::ReflectedData K>
-	decltype(auto) TMap<KEY, VALUE>::GetKey(Index index) {
-		index = Keys().template ConstrainMore<KEY>(index);
-		if (index.IsSpecial())
-			throw Except::BadAccess("Can't reference special index");
-		return Keys().template Get<K>(static_cast<pcptr>(index));
+	TEMPLATE()
+	template<ReflectedData ALT_K>
+	decltype(auto) MAP()::GetKey(const Index& i) {
+		return Keys().Get<ALT_K>(Keys().ConstrainMore<K>(i).GetOffset());
 	}
 
 	/// Get a key by simple index (const)													
 	///	@param index - the index															
 	///	@return a reference to the key													
-	TEMPLATE
-	template<RTTI::ReflectedData K>
-	decltype(auto) TMap<KEY, VALUE>::GetKey(const pcptr index) const {
-		return Keys().template Get<K>(index);
+	TEMPLATE()
+	template<ReflectedData ALT_K>
+	decltype(auto) MAP()::GetKey(const Offset& i) const noexcept {
+		return Keys().Get<ALT_K>(i);
 	}
 
 	/// Get a key by simple index																
 	///	@param index - the index															
 	///	@return a constant reference to the key										
-	TEMPLATE
-	template<RTTI::ReflectedData K>
-	decltype(auto) TMap<KEY, VALUE>::GetKey(const pcptr index) {
-		return Keys().template Get<K>(index);
+	TEMPLATE()
+	template<ReflectedData ALT_K>
+	decltype(auto) MAP()::GetKey(const Offset& i) noexcept {
+		return Keys().Get<ALT_K>(i);
 	}
 
 	/// Get the value by special index (const)											
 	///	@param index - the index															
 	///	@return a constant reference to the value										
-	TEMPLATE
-	template<RTTI::ReflectedData K>
-	decltype(auto) TMap<KEY, VALUE>::GetValue(const Index& index) const {
-		return const_cast<TMap<KEY, VALUE>*>(this)->template GetValue<K>(index);
+	TEMPLATE()
+	template<ReflectedData ALT_V>
+	decltype(auto) MAP()::GetValue(const Index& i) const {
+		return Values().Get<ALT_V>(Values().ConstrainMore<V>(i).GetOffset());
 	}
 
 	/// Get the value by special index														
 	///	@param index - the index															
 	///	@return a reference to the value													
-	TEMPLATE
-	template<RTTI::ReflectedData K>
-	decltype(auto) TMap<KEY, VALUE>::GetValue(Index index) {
-		index = Values().template ConstrainMore<VALUE>(index);
-		if (index.IsSpecial())
-			throw Except::BadAccess("Can't reference special index");
-		return Values().template Get<K>(static_cast<pcptr>(index));
+	TEMPLATE()
+	template<ReflectedData ALT_V>
+	decltype(auto) MAP()::GetValue(const Index& i) {
+		return Values().Get<ALT_V>(Values().ConstrainMore<V>(i).GetOffset());
 	}
 
 	/// Get a value by simple index (const)												
 	///	@param index - the index															
 	///	@return a constant reference to the value										
-	TEMPLATE
-	template<RTTI::ReflectedData K>
-	decltype(auto) TMap<KEY, VALUE>::GetValue(const pcptr index) const {
-		return Values().template Get<K>(index);
+	TEMPLATE()
+	template<ReflectedData ALT_V>
+	decltype(auto) MAP()::GetValue(const Offset& i) const noexcept {
+		return Values().Get<ALT_V>(i);
 	}
 
 	/// Get a value by simple index															
 	///	@param index - the index															
 	///	@return a reference to the value													
-	TEMPLATE
-	template<RTTI::ReflectedData K>
-	decltype(auto) TMap<KEY, VALUE>::GetValue(const pcptr index) {
-		return Values().template Get<K>(index);
+	TEMPLATE()
+	template<ReflectedData ALT_V>
+	decltype(auto) MAP()::GetValue(const Offset& i) noexcept {
+		return Values().Get<ALT_V>(i);
 	}
 
 	/// Remove matching pairs by key															
-	TEMPLATE
-	pcptr TMap<KEY, VALUE>::RemoveKey(const KEY& item) {
-		const auto index = FindKey(item);
-		if (index.IsSpecial())
-			return 0;
-
-		return Keys().RemoveIndex(index.mIndex) && Values().RemoveIndex(index.mIndex) 
-			? 1 : 0;
+	TEMPLATE()
+	Count MAP()::RemoveKey(const Key& item) {
+		const auto i = FindKey(item).GetOffset();
+		return Keys().RemoveIndex(i) == Values().RemoveIndex(i) ? 1 : 0;
 	}
 
 	/// Remove matching pairs by value														
-	TEMPLATE
-	pcptr TMap<KEY, VALUE>::RemoveValue(const VALUE& item) {
-		const auto index = FindValue(item);
-		if (index.IsSpecial())
-			return 0;
-
-		return Keys().RemoveIndex(index.mIndex) && Values().RemoveIndex(index.mIndex)
-			? 1 : 0;
+	TEMPLATE()
+	Count MAP()::RemoveValue(const Value& item) {
+		const auto i = FindValue(item).GetOffset();
+		return Keys().RemoveIndex(i) == Values().RemoveIndex(i) ? 1 : 0;
 	}
 
 	/// Merge if value is a container. Pushes only if not already there			
-	TEMPLATE template<class MERGED_VALUE>
-	pcptr TMap<KEY, VALUE>::Merge(const KEY& key, const MERGED_VALUE& value)
-	requires CopyConstructible<KEY> && CopyConstructible<VALUE> {
+	TEMPLATE()
+	template<class ALT_V>
+	Count MAP()::Merge(const Key& key, const ALT_V& value)
+	requires CopyConstructible<K> && CopyConstructible<V> {
 		const auto found = FindKey(key);
-		if constexpr (pcIsDeep<VALUE>) {
-			if constexpr (pcIsDeep<MERGED_VALUE>) {
-				if (found.IsSpecial())
+		if constexpr (Deep<Value>) {
+			if constexpr (Deep<ALT_V>) {
+				if (!found)
 					return Add(key, value);
-
-				return GetValue(pcptr(found.mIndex)).Merge(value);
+				return GetValue(found.GetOffset()).Merge(value);
 			}
 			else {
-				if (found.IsSpecial()) {
-					VALUE temp;
+				if (!found) {
+					V temp;
 					temp << value;
-					return Add(key, pcMove(temp));
+					return Add(key, Move(temp));
 				}
 
-				return GetValue(pcptr(found.mIndex)).Merge(&value);
+				return GetValue(found.GetOffset()).Merge(&value);
 			}
 		}
 		else {
-			if (found.IsSpecial())
+			if (!found)
 				return Add(key, value);
-
 			return Values().Insert(&value, 1, found);
 		}
 	}
 
 	/// Merge two maps																			
-	TEMPLATE
-	pcptr TMap<KEY, VALUE>::Merge(const ME& other)
-	requires CopyConstructible<KEY> && CopyConstructible<VALUE> {
-		pcptr added = 0;
-		for (pcptr i = 0; i < other.Count(); ++i) {
+	TEMPLATE()
+	Count MAP()::Merge(const TMap& other)
+	requires CopyConstructible<K> && CopyConstructible<V> {
+		Count added {};
+		for (Count i = 0; i < other.Count(); ++i) {
 			auto pair = other.GetPair(i);
-			added += Merge(*pair.Key, *pair.Value);
+			added += Merge(*pair.mKey, *pair.mValue);
 		}
-
 		return added;
 	}
 
 	/// Emplace anything compatible to container											
-	TEMPLATE
-	pcptr TMap<KEY, VALUE>::Emplace(Pair&& item, const Index& index) {
-		Keys().Emplace(pcMove(item.Key), index);
-		return Values().Emplace(pcMove(item.Value), index);
+	TEMPLATE()
+	Count MAP()::Emplace(Pair&& item, const Index& index) {
+		Keys().Emplace(Move(item.Key), index);
+		return Values().Emplace(Move(item.Value), index);
 	}
 
 	/// Insert anything compatible to container											
-	TEMPLATE
-	pcptr TMap<KEY, VALUE>::Insert(const Pair* items, const pcptr count, const Index& index) {
-		for (pcptr i = 0; i < count; ++i) {
+	TEMPLATE()
+	Count MAP()::Insert(const Pair* items, const Count& count, const Index& index) {
+		for (Count i = 0; i < count; ++i) {
 			Keys().Insert(&items[i].Key, 1, index);
 			Values().Insert(&items[i].Value, 1, index);
 		}
@@ -306,68 +286,68 @@ namespace Langulus::Anyness
 	}
 
 	/// Push any data at the back																
-	TEMPLATE
-	TMap<KEY, VALUE>& TMap<KEY, VALUE>::operator << (Pair&& other) {
-		Emplace(pcForward<Pair>(other), uiBack);
+	TEMPLATE()
+	MAP()& MAP()::operator << (Pair&& other) {
+		Emplace(Forward<Pair>(other), Index::Back);
 		return *this;
 	}
 
 	/// Push any data at the front															
-	TEMPLATE
-	TMap<KEY, VALUE>& TMap<KEY, VALUE>::operator >> (Pair&& other) {
-		Emplace(pcForward<Pair>(other), uiFront);
+	TEMPLATE()
+	MAP()& MAP()::operator >> (Pair&& other) {
+		Emplace(Forward<Pair>(other), Index::Front);
 		return *this;
 	}
 
 	/// Add a pair																					
-	TEMPLATE
-	pcptr TMap<KEY, VALUE>::Add(KEY&& k, VALUE&& v, const Index& index)
-	requires MoveConstructible<KEY> && MoveConstructible<VALUE> {
-		return Emplace(Pair(pcForward<KEY>(k), pcForward<VALUE>(v)), index);
+	TEMPLATE()
+	Count MAP()::Add(Key&& k, Value&& v, const Index& index)
+	requires MoveConstructible<K> && MoveConstructible<V> {
+		return Emplace(Pair(Forward<Key>(k), Forward<Value>(v)), index);
 	}
 
-	TEMPLATE
-	pcptr TMap<KEY, VALUE>::Add(const KEY& k, VALUE&& v, const Index& index)
-	requires CopyConstructible<KEY> && MoveConstructible<VALUE> {
-		return Emplace(Pair(k, pcForward<VALUE>(v)), index);
+	TEMPLATE()
+	Count MAP()::Add(const Key& k, Value&& v, const Index& index)
+	requires CopyConstructible<K> && MoveConstructible<V> {
+		return Emplace(Pair(k, Forward<Value>(v)), index);
 	}
 
-	TEMPLATE
-	pcptr TMap<KEY, VALUE>::Add(KEY&& k, const VALUE& v, const Index& index)
-	requires MoveConstructible<KEY> && CopyConstructible<VALUE> {
-		return Emplace(Pair(pcForward<KEY>(k), v), index);
+	TEMPLATE()
+	Count MAP()::Add(Key&& k, const Value& v, const Index& index)
+	requires MoveConstructible<K> && CopyConstructible<V> {
+		return Emplace(Pair(Forward<Key>(k), v), index);
 	}
 
-	TEMPLATE
-	pcptr TMap<KEY, VALUE>::Add(const KEY& k, const VALUE& v, const Index& index)
-	requires CopyConstructible<KEY> && CopyConstructible<VALUE> {
+	TEMPLATE()
+	Count MAP()::Add(const Key& k, const Value& v, const Index& index)
+	requires CopyConstructible<K> && CopyConstructible<V> {
 		return Emplace(Pair(k, v), index);
 	}
 
-	TEMPLATE
-	pcptr TMap<KEY, VALUE>::Add(KEY& k, VALUE& v, const Index& index)
-	requires CopyConstructible<KEY> && CopyConstructible<VALUE> {
+	TEMPLATE()
+	Count MAP()::Add(Key& k, Value& v, const Index& index)
+	requires CopyConstructible<K> && CopyConstructible<V> {
 		return Emplace(Pair(k, v), index);
 	}
 
 	/// Sort the map																				
-	TEMPLATE 
-	void TMap<KEY, VALUE>::Sort(const Index& first) {
+	TEMPLATE() 
+	void MAP()::Sort(const Index& first) {
 		auto data = Keys().GetRaw();
 		if (!data)
 			return;
 
-		pcptr j = 0, i = 0;
-		if (first == uiSmallest) {
+		Count j {}, i {};
+		if (first == Index::Smallest) {
 			for (; i < GetCount(); ++i) {
 				for (; j < i; ++j) {
-					if (*pcPtr(data[i]) > *pcPtr(data[j])) {
+					if (MakeDense(data[i]) > MakeDense(data[j])) {
 						Keys().Swap(i, j);
 						Values().Swap(i, j);
 					}
 				}
 				for (j = i + 1; j < GetCount(); ++j) {
-					if (*pcPtr(data[i]) > *pcPtr(data[j])) {
+					if (MakeDense(data[i]) > MakeDense(data[j])) {
 						Keys().Swap(i, j);
 						Values().Swap(i, j);
 					}
@@ -377,13 +357,13 @@ namespace Langulus::Anyness
 		else {
 			for (; i < GetCount(); ++i) {
 				for (; j < i; ++j) {
-					if (*pcPtr(data[i]) < *pcPtr(data[j])) {
+					if (MakeDense(data[i]) < MakeDense(data[j])) {
 						Keys().Swap(i, j);
 						Values().Swap(i, j);
 					}
 				}
 				for (j = i + 1; j < GetCount(); ++j) {
-					if (*pcPtr(data[i]) < *pcPtr(data[j])) {
+					if (MakeDense(data[i]) < MakeDense(data[j])) {
 						Keys().Swap(i, j);
 						Values().Swap(i, j);
 					}
@@ -391,74 +371,87 @@ namespace Langulus::Anyness
 			}
 		}
 	}
-
+	
 	/// Iteration																					
-	TEMPLATE
-	template<class FUNCTION>
-	pcptr TMap<KEY, VALUE>::ForEach(FUNCTION&& call) {
-		using PairType = decltype(GetLambdaArguments(&FUNCTION::operator()));
-		using KeyType = typename PairType::KeyType;
-		using ValueType = typename PairType::ValueType;
-		static_assert(pcHasBase<KEY, KeyType>, "Incompatible key type for map iteration");
-		static_assert(pcHasBase<VALUE, ValueType>, "Incompatible value type for map iteration");
-		using ReturnType = decltype(call(std::declval<KeyType>(), std::declval<ValueType>()));
-		return ForEachInner<ReturnType, KeyType, ValueType, false>(
-			pcForward<FUNCTION>(call));
+	TEMPLATE()
+	template<Function F>
+	Count MAP()::ForEach(F&& call) {
+		using Iterator = decltype(GetLambdaArguments(&F::operator()));
+		if constexpr (Inherits<Iterator, Inner::APair>) {
+			// We're iterating pairs													
+			using ItKey = typename Iterator::Key;
+			using ItVal = typename Iterator::Value;
+			static_assert(Inherits<Key, ItKey>, "Incompatible key type for map iteration");
+			static_assert(Inherits<Value, ItVal>, "Incompatible value type for map iteration");
+			using R = decltype(call(::std::declval<ItKey>(), ::std::declval<ItVal>()));
+			return ForEachInner<R, ItKey, ItVal, false>(Forward<F>(call));
+		}
+		else TODO();
 	}
 
-	TEMPLATE
-	template<class FUNCTION>
-	pcptr TMap<KEY, VALUE>::ForEachRev(FUNCTION&& call) {
-		using PairType = decltype(GetLambdaArguments(&FUNCTION::operator()));
-		using KeyType = typename PairType::KeyType;
-		using ValueType = typename PairType::ValueType;
-		static_assert(pcHasBase<KEY, KeyType>, "Incompatible key type for map iteration");
-		static_assert(pcHasBase<VALUE, ValueType>, "Incompatible value type for map iteration");
-		using ReturnType = decltype(call(std::declval<KeyType>(), std::declval<ValueType>()));
-		return ForEachInner<ReturnType, KeyType, ValueType, true>(
-			pcForward<FUNCTION>(call));
+	/// Reverse iteration																		
+	TEMPLATE()
+	template<Function F>
+	Count MAP()::ForEachRev(F&& call) {
+		using Iterator = decltype(GetLambdaArguments(&F::operator()));
+		if constexpr (Inherits<Iterator, Inner::APair>) {
+			// We're iterating pairs													
+			using ItKey = typename Iterator::Key;
+			using ItVal = typename Iterator::Value;
+			static_assert(Inherits<Key, ItKey>, "Incompatible key type for map iteration");
+			static_assert(Inherits<Value, ItVal>, "Incompatible value type for map iteration");
+			using R = decltype(call(::std::declval<ItKey>(), ::std::declval<ItVal>()));
+			return ForEachInner<R, ItKey, ItVal, true>(Forward<F>(call));
+		}
+		else TODO();
 	}
 
-	TEMPLATE
-	template<class FUNCTION>
-	pcptr TMap<KEY, VALUE>::ForEach(FUNCTION&& call) const {
-		using PairType = decltype(GetLambdaArguments(&FUNCTION::operator()));
-		using KeyType = typename PairType::KeyType;
-		using ValueType = typename PairType::ValueType;
-		using ReturnType = decltype(call(std::declval<KeyType>(), std::declval<ValueType>()));
-		static_assert(pcHasBase<KEY, KeyType>, "Incompatible key type for map iteration");
-		static_assert(pcHasBase<VALUE, ValueType>, "Incompatible value type for map iteration");
-		static_assert(Constant<KeyType>, "Non constant key iterator for constant map");
-		static_assert(Constant<ValueType>, "Non constant value iterator for constant map");
-		return ForEachInner<ReturnType, KeyType, ValueType, false>(
-			pcForward<FUNCTION>(call));
+	TEMPLATE()
+	template<Function F>
+	Count MAP()::ForEach(F&& call) const {
+		using Iterator = decltype(GetLambdaArguments(&F::operator()));
+		if constexpr (Inherits<Iterator, Inner::APair>) {
+			// We're iterating pairs													
+			using ItKey = typename Iterator::Key;
+			using ItVal = typename Iterator::Value;
+			static_assert(Inherits<Key, ItKey>, "Incompatible key type for map iteration");
+			static_assert(Inherits<Value, ItVal>, "Incompatible value type for map iteration");
+			static_assert(Constant<ItKey>, "Non constant key iterator for constant map");
+			static_assert(Constant<ItVal>, "Non constant value iterator for constant map");
+			using R = decltype(call(::std::declval<ItKey>(), ::std::declval<ItVal>()));
+			return ForEachInner<R, ItKey, ItVal, false>(Forward<F>(call));
+		}
+		else TODO();
 	}
 
-	TEMPLATE
-	template<class FUNCTION>
-	pcptr TMap<KEY, VALUE>::ForEachRev(FUNCTION&& call) const {
-		using PairType = decltype(GetLambdaArguments(&FUNCTION::operator()));
-		using KeyType = typename PairType::KeyType;
-		using ValueType = typename PairType::ValueType;
-		using ReturnType = decltype(call(std::declval<KeyType>(), std::declval<ValueType>()));
-		static_assert(pcHasBase<KEY, KeyType>, "Incompatible key type for map iteration");
-		static_assert(pcHasBase<VALUE, ValueType>, "Incompatible value type for map iteration");
-		static_assert(Constant<KeyType>, "Non constant key iterator for constant map");
-		static_assert(Constant<ValueType>, "Non constant value iterator for constant map");
-		return ForEachInner<ReturnType, KeyType, ValueType, true>(
-			pcForward<FUNCTION>(call));
+	TEMPLATE()
+	template<Function F>
+	Count MAP()::ForEachRev(F&& call) const {
+		using Iterator = decltype(GetLambdaArguments(&F::operator()));
+		if constexpr (Inherits<Iterator, Inner::APair>) {
+			// We're iterating pairs													
+			using ItKey = typename Iterator::Key;
+			using ItVal = typename Iterator::Value;
+			static_assert(Inherits<Key, ItKey>, "Incompatible key type for map iteration");
+			static_assert(Inherits<Value, ItVal>, "Incompatible value type for map iteration");
+			static_assert(Constant<ItKey>, "Non constant key iterator for constant map");
+			static_assert(Constant<ItVal>, "Non constant value iterator for constant map");
+			using R = decltype(call(::std::declval<ItKey>(), ::std::declval<ItVal>()));
+			return ForEachInner<R, ItKey, ItVal, true>(Forward<F>(call));
+		}
+		else TODO();
 	}
 
 	/// Constant iteration																		
-	TEMPLATE
-	template<class RETURN, RTTI::ReflectedData ALT_KEY, RTTI::ReflectedData ALT_VALUE, bool REVERSE>
-	pcptr TMap<KEY, VALUE>::ForEachInner(TFunctor<RETURN(ALT_KEY, ALT_VALUE)>&& call) {
+	TEMPLATE()
+	template<class RETURN, ReflectedData ALT_KEY, ReflectedData ALT_VALUE, bool REVERSE>
+	Count MAP()::ForEachInner(TFunctor<RETURN(ALT_KEY, ALT_VALUE)>&& call) {
 		if (IsEmpty())
 			return 0;
 
 		constexpr bool HasBreaker = Same<bool, RETURN>;
 		const auto count = GetCount();
-		pcptr index = 0;
+		Count index {};
 		while (index < count) {
 			if constexpr (REVERSE) {
 				const auto i = count - index - 1;
@@ -483,14 +476,16 @@ namespace Langulus::Anyness
 	}
 
 	/// Constant iteration																		
-	TEMPLATE
-	template<class RETURN, RTTI::ReflectedData ALT_KEY, RTTI::ReflectedData ALT_VALUE, bool REVERSE>
-	pcptr TMap<KEY, VALUE>::ForEachInner(TFunctor<RETURN(ALT_KEY, ALT_VALUE)>&& call) const {
-		return const_cast<TMap<KEY, VALUE>*>(this)
-			->ForEachInner<RETURN, ALT_KEY, ALT_VALUE, REVERSE>(
-				pcForward<decltype(call)>(call));
+	TEMPLATE()
+	template<class R, ReflectedData ALT_K, ReflectedData ALT_V, bool REVERSE>
+	Count MAP()::ForEachInner(TFunctor<R(ALT_K, ALT_V)>&& call) const {
+		return const_cast<TMap*>(this)
+			->ForEachInner<R, ALT_K, ALT_V, REVERSE>(Forward<decltype(call)>(call));
 	}
 
-	#undef TEMPLATE
-
 } // namespace Langulus::Anyness
+
+#undef MAP()
+	
+#undef TEMPLATE() 
+	
