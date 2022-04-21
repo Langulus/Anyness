@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
+include(cmake/DownloadProject.cmake)
+
 project(Anyness)
-add_subdirectory(test)
 
 #Check if this project is used as a subdirectory
 #Potential issue with this: https://gitlab.kitware.com/cmake/cmake/-/issues/18862
@@ -22,4 +23,5 @@ target_include_directories(Anyness
 install(TARGETS Anyness DESTINATION lib)
 
 #Testing
+add_subdirectory(test)
 add_test(NAME TestAnyness COMMAND TestAnyness)

@@ -1,4 +1,5 @@
 #pragma once
-#include <map>
+#include <Langulus.Anyness.hpp>
+using namespace Langulus::Anyness;
 
 #define CATCH_CONFIG_ENABLE_BENCHMARKING
