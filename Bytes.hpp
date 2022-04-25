@@ -13,10 +13,14 @@ namespace Langulus::Anyness
 	public:
 		Bytes() = default;
 		Bytes(const Bytes&);
+		Bytes(Bytes&);
 		Bytes(Bytes&&) noexcept = default;
 		Bytes(const TAny&);
+		Bytes(TAny&);
 		Bytes(TAny&&) noexcept;
-		Bytes(const Byte*, const Count&);
+
+		Bytes(const void*, const Size&);
+		Bytes(void*, const Size&);
 		
 		Bytes(const Disowned<Bytes>&) noexcept;
 		Bytes(Abandoned<Bytes>&&) noexcept;
@@ -49,13 +53,6 @@ namespace Langulus::Anyness
 
 		NOD() bool Compare(const Bytes&) const noexcept;
 		NOD() Count Matches(const Bytes&) const noexcept;
-
-		/*template<class T>
-		Bytes& operator += (const T&);
-		template<class T>
-		NOD() Bytes operator + (const T&) const;
-		template<class T>
-		friend Bytes operator + (const T&, const Bytes&) requires NotSame<T, Bytes>;*/
 	};
 
 } // namespace Langulus::Anyness

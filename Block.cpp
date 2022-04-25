@@ -194,7 +194,7 @@ namespace Langulus::Anyness
 			return false;
 		}
 		else if (IsAbstract() && IsEmpty() && meta->InterpretsAs<false>(mType)) {
-			// Abstract compatible containers can be concretized				
+			// IsAbstract compatible containers can be concretized				
 			SetType<false>(meta);
 		}
 		else if (!IsInsertable(meta)) {
@@ -484,7 +484,7 @@ namespace Langulus::Anyness
 	///	@param source - the elements to copy											
 	void Block::CallCopyConstructors(const Block& source) {
 		if ((IsSparse() && source.IsSparse()) || mType->mIsPOD) {
-			// Just copy the POD/pointer memory (optimization)					
+			// Just copy the IsPOD/pointer memory (optimization)					
 			CopyMemory(source.mRaw, mRaw, GetStride() * mReserved);
 
 			if (IsSparse()) {
@@ -494,7 +494,7 @@ namespace Langulus::Anyness
 				Count c = 0;
 				while (c < mReserved) {
 					// Reference each pointer											
-					Allocator::Reference(mType, pointers[c], 1);
+					Allocator::Keep(mType, pointers[c], 1);
 					++c;
 				}
 			}
@@ -721,7 +721,7 @@ namespace Langulus::Anyness
 
 		if (IsConstant() || IsStatic()) {
 			if (mType->mIsPOD && starter + count >= mCount) {
-				// If data is POD and elements are on the back, we can get	
+				// If data is IsPOD and elements are on the back, we can get	
 				// around constantness and staticness, by simply				
 				// truncating the count without any reprecussions				
 				const auto removed = mCount - starter;
@@ -941,21 +941,21 @@ namespace Langulus::Anyness
 	///	@param direction - the direction to search from								
 	///	@param polarity - polarity filter												
 	///	@return the number of gathered elements										
-	Count GatherPolarInner(DMeta target_type, const Block& input, Block& output, const Index direction, Phase phase) {
+	Count GatherPolarInner(DMeta type, const Block& input, Block& output, const Index direction, Phase phase) {
 		if (input.GetPhase() != phase) {
 			if (input.GetPhase() == Phase::Now && input.IsDeep()) {
 				// Polarities don't match, but we can dig deeper if deep		
 				// and neutral, since neutral polarity is permissive			
-				auto localOutput = Any::From(target_type, input.GetUnconstrainedState());
+				auto localOutput = Any::FromMeta(type, input.GetUnconstrainedState());
 				if (direction == Index::Front) {
 					for (Count i = 0; i < input.GetCount(); ++i) {
-						GatherPolarInner(target_type, input.As<Block>(i), 
+						GatherPolarInner(type, input.As<Block>(i),
 							localOutput, direction, phase);
 					}
 				}
 				else {
 					for (Count i = input.GetCount(); i > 0; --i) {
-						GatherPolarInner(target_type, input.As<Block>(i - 1), 
+						GatherPolarInner(type, input.As<Block>(i - 1),
 							localOutput, direction, phase);
 					}
 				}
@@ -969,13 +969,13 @@ namespace Langulus::Anyness
 		}
 
 		// Input is flat and neutral/same											
-		if (!target_type) {
+		if (!type) {
 			// Output is any, so no need to iterate								
 			return output.SmartPush(Any {input});
 		}
 
 		// Iterate subpacks if any														
-		auto localOutput = Any::From(target_type, input.GetState());
+		auto localOutput = Any::FromMeta(type, input.GetState());
 		GatherInner(input, localOutput, direction);
 		localOutput.SetPhase(Phase::Now);
 		return output.InsertBlock(localOutput);

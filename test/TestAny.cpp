@@ -1,16 +1,19 @@
 #include "TestMain.hpp"
 #include <catch2/catch.hpp>
 
+using uint = unsigned int;
+
 SCENARIO("Any", "[containers]") {
 	GIVEN("An Any instance") {
 		int original_value = 555;
 		auto meta = MetaData::Of<int>();
 		auto metas = MetaData::Of<int*>();
-		Text original_pct = "Lorep Ipsum";
-		Any pack;
+		Text original_pct = u8"Lorep Ipsum";
 
 		REQUIRE(meta);
-		REQUIRE(metas);
+		REQUIRE(metas == meta);
+
+		Any pack;
 		REQUIRE_FALSE(pack.GetType());
 		REQUIRE_FALSE(pack.GetRaw());
 
@@ -19,16 +22,16 @@ SCENARIO("Any", "[containers]") {
 
 			THEN("We should have jurisdiction over that memory") {
 				REQUIRE(original_int != nullptr);
-				REQUIRE(PCMEMORY.CheckJurisdiction(metas, original_int));
-				REQUIRE(PCMEMORY.GetReferences(metas, original_int) == 1);
+				REQUIRE(Allocator::CheckAuthority(metas, original_int));
+				REQUIRE(Allocator::GetReferences(metas, original_int) == 1);
 			}
 		}
 
 		WHEN("Given a POD value by copy") {
 			pack = original_value;
 			THEN("Various traits change") {
-				REQUIRE(pack.GetMeta() == meta);
-				REQUIRE(pack.GetDataID().Is<int>());
+				REQUIRE(pack.GetType() == meta);
+				REQUIRE(pack.Is<int>());
 				REQUIRE(pack.GetRaw() != nullptr);
 				REQUIRE(pack.As<int>() == original_value);
 				REQUIRE_THROWS(pack.As<float>() == float(original_value));
@@ -38,19 +41,19 @@ SCENARIO("Any", "[containers]") {
 		}
 
 		WHEN("Given a dense Trait") {
-			pack = Trait::From<Traits::Count>(5);
+			pack = Traits::Count(5);
 			THEN("Various traits change") {
-				REQUIRE(pack.GetMeta() == MetaData::Of<Trait>());
-				REQUIRE(pack.GetDataID().Is<Trait>());
+				REQUIRE(pack.GetType() == MetaData::Of<Trait>());
+				REQUIRE(pack.Is<Trait>());
 				REQUIRE(pack.GetRaw() != nullptr);
 			}
 		}
 
 		WHEN("Given a POD value by move") {
-			pack = pcMove(original_value);
+			pack = Move(original_value);
 			THEN("Various traits change") {
-				REQUIRE(pack.GetMeta() == meta);
-				REQUIRE(pack.GetDataID().Is<int>());
+				REQUIRE(pack.GetType() == meta);
+				REQUIRE(pack.Is<int>());
 				REQUIRE(pack.GetRaw() != nullptr);
 				REQUIRE(pack.As<int>() == original_value);
 				REQUIRE_THROWS(pack.As<float>() == float(original_value));
@@ -64,37 +67,37 @@ SCENARIO("Any", "[containers]") {
 			pack = original_int;
 
 			THEN("Various traits change") {
-				REQUIRE(pack.GetMeta() == meta->GetSparseMeta());
-				REQUIRE(pack.GetDataID().Is<int*>());
+				REQUIRE(pack.GetType() == meta);
+				REQUIRE(pack.Is<int*>());
 				REQUIRE(pack.GetRaw() != nullptr);
 				REQUIRE(pack.As<int>() == original_value);
 				REQUIRE_THROWS(pack.As<float>() == float(original_value));
 				REQUIRE(*pack.As<int*>() == original_value);
 				REQUIRE(pack.As<int*>() == original_int);
 				REQUIRE_THROWS(pack.As<float*>() == nullptr);
-				REQUIRE(PCMEMORY.CheckJurisdiction(metas, original_int));
-				REQUIRE(PCMEMORY.GetReferences(metas, original_int) == 2);
+				REQUIRE(Allocator::CheckAuthority(metas, original_int));
+				REQUIRE(Allocator::GetReferences(metas, original_int) == 2);
 			}
 		}
 
 		WHEN("Given a sparse value by move") {
 			int* original_int = new int(original_value);
 			int* original_int_backup = original_int;
-			pack = pcMove(original_int);
+			pack = Move(original_int);
 
 			THEN("Various traits change, pointer remains valid") {
 				REQUIRE(original_int == original_int_backup);
-				REQUIRE(pack.GetMeta() == meta->GetSparseMeta());
-				REQUIRE(pack.GetDataID().Is<int*>());
+				REQUIRE(pack.GetType() == meta);
+				REQUIRE(pack.Is<int*>());
 				REQUIRE(pack.GetRaw() != nullptr);
 				REQUIRE(pack.As<int>() == original_value);
 				REQUIRE_THROWS(pack.As<float>() == float(original_value));
 				REQUIRE(*pack.As<int*>() == original_value);
 				REQUIRE(pack.As<int*>() == original_int_backup);
 				REQUIRE_THROWS(pack.As<float*>() == nullptr);
-				REQUIRE(PCMEMORY.CheckJurisdiction(metas, original_int_backup));
-				REQUIRE(PCMEMORY.GetReferences(metas, original_int_backup) == 2);
-				REQUIRE(pack.GetBlockReferences() == 1);
+				REQUIRE(Allocator::CheckAuthority(metas, original_int_backup));
+				REQUIRE(Allocator::GetReferences(metas, original_int_backup) == 2);
+				REQUIRE(pack.GetReferences() == 1);
 			}
 		}
 
@@ -104,44 +107,43 @@ SCENARIO("Any", "[containers]") {
 			Any another_pack = pack;
 
 			THEN("Various traits change") {
-				REQUIRE(another_pack.GetMeta() == meta->GetSparseMeta());
-				REQUIRE(another_pack.GetDataID().Is<int*>());
+				REQUIRE(another_pack.GetType() == meta);
+				REQUIRE(another_pack.Is<int*>());
 				REQUIRE(another_pack.GetRaw() != nullptr);
 				REQUIRE(another_pack.As<int>() == original_value);
 				REQUIRE_THROWS(another_pack.As<float>() == float(original_value));
 				REQUIRE(*another_pack.As<int*>() == original_value);
 				REQUIRE(another_pack.As<int*>() == original_int);
 				REQUIRE_THROWS(another_pack.As<float*>() == nullptr);
-				REQUIRE(PCMEMORY.CheckJurisdiction(metas, original_int));
-				REQUIRE(PCMEMORY.GetReferences(metas, original_int) == 2);
-				REQUIRE(pack.GetBlockReferences() == another_pack.GetBlockReferences());
-				REQUIRE(pack.GetBlockReferences() == 2);
+				REQUIRE(Allocator::CheckAuthority(metas, original_int));
+				REQUIRE(Allocator::GetReferences(metas, original_int) == 2);
+				REQUIRE(pack.GetReferences() == another_pack.GetReferences());
+				REQUIRE(pack.GetReferences() == 2);
 			}
 		}
 
 		WHEN("Given a sparse value and then moved from Any") {
 			int* original_int = new int(original_value);
 			pack = original_int;
-			Any another_pack = pcMove(pack);
+			Any another_pack = Move(pack);
 
 			THEN("Entire container is moved to the new place without referencing anything") {
-				REQUIRE(pack.GetMeta() == nullptr);
-				REQUIRE(pack.GetDataID() == udAny);
+				REQUIRE(pack.GetType() == nullptr);
 				REQUIRE(pack.GetRaw() == nullptr);
 				REQUIRE(pack.GetCount() == 0);
 				REQUIRE(pack.GetReserved() == 0);
 
-				REQUIRE(another_pack.GetMeta() == meta->GetSparseMeta());
-				REQUIRE(another_pack.GetDataID().Is<int*>());
+				REQUIRE(another_pack.GetType() == meta);
+				REQUIRE(another_pack.Is<int*>());
 				REQUIRE(another_pack.GetRaw() != nullptr);
 				REQUIRE(another_pack.As<int>() == original_value);
 				REQUIRE_THROWS(another_pack.As<float>() == float(original_value));
 				REQUIRE(*another_pack.As<int*>() == original_value);
 				REQUIRE(another_pack.As<int*>() == original_int);
 				REQUIRE_THROWS(another_pack.As<float*>() == nullptr);
-				REQUIRE(PCMEMORY.CheckJurisdiction(metas, original_int));
-				REQUIRE(PCMEMORY.GetReferences(metas, original_int) == 2);
-				REQUIRE(another_pack.GetBlockReferences() == 1);
+				REQUIRE(Allocator::CheckAuthority(metas, original_int));
+				REQUIRE(Allocator::GetReferences(metas, original_int) == 2);
+				REQUIRE(another_pack.GetReferences() == 1);
 			}
 		}
 
@@ -151,50 +153,50 @@ SCENARIO("Any", "[containers]") {
 			Any another_pack = static_cast<Block&>(pack);
 
 			THEN("Various traits change") {
-				REQUIRE(another_pack.GetMeta() == meta->GetSparseMeta());
-				REQUIRE(another_pack.GetDataID().Is<int*>());
+				REQUIRE(another_pack.GetType() == meta);
+				REQUIRE(another_pack.Is<int*>());
 				REQUIRE(another_pack.GetRaw() != nullptr);
 				REQUIRE(another_pack.As<int>() == original_value);
 				REQUIRE_THROWS(another_pack.As<float>() == float(original_value));
 				REQUIRE(*another_pack.As<int*>() == original_value);
 				REQUIRE(another_pack.As<int*>() == original_int);
 				REQUIRE_THROWS(another_pack.As<float*>() == nullptr);
-				REQUIRE(PCMEMORY.CheckJurisdiction(metas, original_int));
-				REQUIRE(PCMEMORY.GetReferences(metas, original_int) == 2);
-				REQUIRE(pack.GetBlockReferences() == another_pack.GetBlockReferences());
-				REQUIRE(pack.GetBlockReferences() == 2);
+				REQUIRE(Allocator::CheckAuthority(metas, original_int));
+				REQUIRE(Allocator::GetReferences(metas, original_int) == 2);
+				REQUIRE(pack.GetReferences() == another_pack.GetReferences());
+				REQUIRE(pack.GetReferences() == 2);
 			}
 		}
 
 		WHEN("Given a sparse value and then moved from Block") {
 			int* original_int = new int(original_value);
 			pack = original_int;
-			Any another_pack = pcMove(static_cast<Block&>(pack));
+			Any another_pack = Move(static_cast<Block&>(pack));
 
 			THEN("Moving a block intro container doesn't reset source block to avoid memory leaks") {
-				REQUIRE(pack.GetMeta() == meta->GetSparseMeta());
-				REQUIRE(pack.GetDataID().Is<int*>());
-				REQUIRE(pack.GetRaw() != nullptr);
+				REQUIRE(pack.GetType() == meta);
+				REQUIRE(pack.Is<int*>());
+				REQUIRE(pack.GetRaw());
 				REQUIRE(pack.As<int>() == original_value);
 				REQUIRE_THROWS(pack.As<float>() == float(original_value));
 				REQUIRE(*pack.As<int*>() == original_value);
 				REQUIRE(pack.As<int*>() == original_int);
 				REQUIRE_THROWS(pack.As<float*>() == nullptr);
-				REQUIRE(pack.GetBlockReferences() == 2);
+				REQUIRE(pack.GetReferences() == 2);
 
-				REQUIRE(another_pack.GetBlockReferences() == 2);
-				REQUIRE(another_pack.GetMeta() == meta->GetSparseMeta());
-				REQUIRE(another_pack.GetDataID().Is<int*>());
+				REQUIRE(another_pack.GetReferences() == 2);
+				REQUIRE(another_pack.GetType() == meta);
+				REQUIRE(another_pack.Is<int*>());
 				REQUIRE(another_pack.GetRaw() != nullptr);
 				REQUIRE(another_pack.As<int>() == original_value);
 				REQUIRE_THROWS(another_pack.As<float>() == float(original_value));
 				REQUIRE(*another_pack.As<int*>() == original_value);
 				REQUIRE(another_pack.As<int*>() == original_int);
 				REQUIRE_THROWS(another_pack.As<float*>() == nullptr);
-				REQUIRE(another_pack.GetBlockReferences() == 2);
+				REQUIRE(another_pack.GetReferences() == 2);
 
-				REQUIRE(PCMEMORY.CheckJurisdiction(metas, original_int));
-				REQUIRE(PCMEMORY.GetReferences(metas, original_int) == 2);
+				REQUIRE(Allocator::CheckAuthority(metas, original_int));
+				REQUIRE(Allocator::GetReferences(metas, original_int) == 2);
 			}
 		}
 
@@ -203,19 +205,18 @@ SCENARIO("Any", "[containers]") {
 			pack = original_int;
 			pack.Reset();
 			THEN("Various traits change") {
-				REQUIRE(pack.GetMeta() == nullptr);
-				REQUIRE(pack.GetDataID() == udAny);
+				REQUIRE(pack.GetType() == nullptr);
 				REQUIRE(pack.GetRaw() == nullptr);
-				REQUIRE(PCMEMORY.CheckJurisdiction(meta, original_int));
-				REQUIRE(PCMEMORY.GetReferences(meta, original_int) == 1);
+				REQUIRE(Allocator::CheckAuthority(meta, original_int));
+				REQUIRE(Allocator::GetReferences(meta, original_int) == 1);
 			}
 		}
 
 		WHEN("Given static text") {
 			pack = original_pct;
 			THEN("Various traits change") {
-				REQUIRE(pack.GetMeta() == DataID::Reflect<Text>());
-				REQUIRE(pack.GetDataID().Is<Text>());
+				REQUIRE(pack.GetType() == MetaData::Of<Text>());
+				REQUIRE(pack.Is<Text>());
 				REQUIRE(pack.GetRaw() != nullptr);
 				REQUIRE_THROWS(pack.As<int>() == 0);
 				REQUIRE_THROWS(pack.As<float>() == 0.0f);
@@ -223,16 +224,16 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE_THROWS(pack.As<int*>() == nullptr);
 				REQUIRE_THROWS(pack.As<float*>() == nullptr);
 				REQUIRE(*pack.As<Text*>() == original_pct);
-				REQUIRE(pack.As<Text*>()->CheckJurisdiction() == true);
-				REQUIRE(pack.As<Text*>()->GetBlockReferences() == 2);
+				REQUIRE(pack.As<Text*>()->HasAuthority());
+				REQUIRE(pack.As<Text*>()->GetReferences() == 2);
 			}
 		}
 
 		WHEN("Given dynamic text") {
 			pack = original_pct.Clone();
 			THEN("Various traits change") {
-				REQUIRE(pack.GetMeta() == DataID::Reflect<Text>());
-				REQUIRE(pack.GetDataID().Is<Text>());
+				REQUIRE(pack.GetType() == MetaData::Of<Text>());
+				REQUIRE(pack.Is<Text>());
 				REQUIRE(pack.GetRaw() != nullptr);
 				REQUIRE_THROWS(pack.As<int>() == 0);
 				REQUIRE_THROWS(pack.As<float>() == 0.0f);
@@ -240,8 +241,8 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE_THROWS(pack.As<int*>() == nullptr);
 				REQUIRE_THROWS(pack.As<float*>() == nullptr);
 				REQUIRE(*pack.As<Text*>() == original_pct);
-				REQUIRE(pack.As<Text*>()->CheckJurisdiction() == true);
-				REQUIRE(pack.As<Text*>()->GetBlockReferences() == 1);
+				REQUIRE(pack.As<Text*>()->HasAuthority());
+				REQUIRE(pack.As<Text*>()->GetReferences() == 1);
 			}
 		}
 
@@ -252,8 +253,8 @@ SCENARIO("Any", "[containers]") {
 			Any pack4(pack3);
 
 			THEN("Various traits change") {
-				REQUIRE(pack4.GetMeta() == DataID::Reflect<Text>());
-				REQUIRE(pack4.GetDataID().Is<Text>());
+				REQUIRE(pack4.GetType() == MetaData::Of<Text>());
+				REQUIRE(pack4.Is<Text>());
 				REQUIRE(pack4.GetRaw() != nullptr);
 				REQUIRE_THROWS(pack4.As<int>() == 0);
 				REQUIRE_THROWS(pack4.As<float>() == 0.0f);
@@ -261,12 +262,12 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE_THROWS(pack4.As<int*>() == nullptr);
 				REQUIRE_THROWS(pack4.As<float*>() == nullptr);
 				REQUIRE(*pack4.As<Text*>() == original_pct);
-				REQUIRE(pack4.As<Text*>()->CheckJurisdiction() == true);
-				REQUIRE(pack.GetBlockReferences() == 4);
-				REQUIRE(pack2.GetBlockReferences() == 4);
-				REQUIRE(pack3.GetBlockReferences() == 4);
-				REQUIRE(pack4.GetBlockReferences() == 4);
-				REQUIRE(pack4.As<Text*>()->GetBlockReferences() == 1);
+				REQUIRE(pack4.As<Text*>()->HasAuthority());
+				REQUIRE(pack.GetReferences() == 4);
+				REQUIRE(pack2.GetReferences() == 4);
+				REQUIRE(pack3.GetReferences() == 4);
+				REQUIRE(pack4.GetReferences() == 4);
+				REQUIRE(pack4.As<Text*>()->GetReferences() == 1);
 			}
 		}
 
@@ -279,27 +280,25 @@ SCENARIO("Any", "[containers]") {
 			pack3.Reset();
 
 			THEN("Various traits change") {
-				REQUIRE(pack4.GetMeta() == DataID::Reflect<Text>());
-				REQUIRE(pack4.GetDataID().Is<Text>());
-				REQUIRE(pack4.GetRaw() != nullptr);
+				REQUIRE(pack4.GetType() == MetaData::Of<Text>());
+				REQUIRE(pack4.Is<Text>());
+				REQUIRE(pack4.GetRaw());
 				REQUIRE_THROWS(pack4.As<int>() == 0);
 				REQUIRE_THROWS(pack4.As<float>() == 0.0f);
 				REQUIRE(pack4.As<Text>() == original_pct);
 				REQUIRE_THROWS(pack4.As<int*>() == nullptr);
 				REQUIRE_THROWS(pack4.As<float*>() == nullptr);
 				REQUIRE(*pack4.As<Text*>() == original_pct);
-				REQUIRE(pack4.As<Text*>()->CheckJurisdiction() == true);
-				REQUIRE(pack.GetBlockReferences() == 1);
-				REQUIRE(pack2.GetBlockReferences() == 2);
-				REQUIRE(pack3.GetBlockReferences() == 1);
-				REQUIRE(pack4.GetBlockReferences() == 2);
-				REQUIRE(pack4.As<Text*>()->GetBlockReferences() == 1);
+				REQUIRE(pack4.As<Text*>()->HasAuthority());
+				REQUIRE(pack.GetReferences() == 1);
+				REQUIRE(pack2.GetReferences() == 2);
+				REQUIRE(pack3.GetReferences() == 1);
+				REQUIRE(pack4.GetReferences() == 2);
+				REQUIRE(pack4.As<Text*>()->GetReferences() == 1);
 
-				REQUIRE(pack.GetMeta() == nullptr);
-				REQUIRE(pack.GetDataID() == udAny);
+				REQUIRE(pack.GetType() == nullptr);
 				REQUIRE(pack.GetRaw() == nullptr);
-				REQUIRE(pack3.GetMeta() == nullptr);
-				REQUIRE(pack3.GetDataID() == udAny);
+				REQUIRE(pack3.GetType() == nullptr);
 				REQUIRE(pack3.GetRaw() == nullptr);
 			}
 		}
@@ -308,12 +307,12 @@ SCENARIO("Any", "[containers]") {
 	GIVEN("A templated Any with some POD items") {
 		TAny<int> pack;
 		pack << int(1) << int(2) << int(3) << int(4) << int(5);
-		auto memory = pack.GetBytes();
+		auto memory = pack.GetRaw();
 
 		REQUIRE(pack.GetCount() == 5);
 		REQUIRE(pack.GetReserved() >= 5);
 		REQUIRE(pack.Is<int>());
-		REQUIRE(pack.GetBytes() != nullptr);
+		REQUIRE(pack.GetRaw());
 		REQUIRE(pack[0] == 1);
 		REQUIRE(pack[1] == 2);
 		REQUIRE(pack[2] == 3);
@@ -325,7 +324,7 @@ SCENARIO("Any", "[containers]") {
 			THEN("The size and capacity change, type will never change, memory shouldn't move") {
 				REQUIRE(pack.GetCount() == 10);
 				REQUIRE(pack.GetReserved() >= 10);
-				REQUIRE(pack.GetBytes() == memory);
+				REQUIRE(pack.GetRaw() == memory);
 				REQUIRE(pack.Is<int>());
 			}
 		}
@@ -336,7 +335,7 @@ SCENARIO("Any", "[containers]") {
 			THEN("The size and capacity change, type will never change, memory shouldn't move") {
 				REQUIRE(pack.GetCount() == 6);
 				REQUIRE(pack.GetReserved() >= 6);
-				REQUIRE(pack.GetBytes() == memory);
+				REQUIRE(pack.GetRaw() == memory);
 				REQUIRE(pack.Is<int>());
 				REQUIRE(pack[0] == 1);
 				REQUIRE(pack[1] == 2);
@@ -356,7 +355,7 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(pack[2] == 5);
 				REQUIRE(pack.GetCount() == 3);
 				REQUIRE(pack.GetReserved() >= 5);
-				REQUIRE(pack.GetBytes() == memory);
+				REQUIRE(pack.GetRaw() == memory);
 			}
 		}
 
@@ -365,7 +364,7 @@ SCENARIO("Any", "[containers]") {
 			THEN("The capacity changes but not the size, memory shouldn't move") {
 				REQUIRE(pack.GetCount() == 5);
 				REQUIRE(pack.GetReserved() >= 20);
-				REQUIRE(pack.GetBytes() == memory);
+				REQUIRE(pack.GetRaw() == memory);
 			}
 		}
 
@@ -374,7 +373,7 @@ SCENARIO("Any", "[containers]") {
 			THEN("Capacity remains unchanged, but count is trimmed") {
 				REQUIRE(pack.GetCount() == 2);
 				REQUIRE(pack.GetReserved() >= 5);
-				REQUIRE(pack.GetBytes() == memory);
+				REQUIRE(pack.GetRaw() == memory);
 			}
 		}
 
@@ -383,7 +382,7 @@ SCENARIO("Any", "[containers]") {
 			THEN("Size goes to zero, capacity and type are unchanged") {
 				REQUIRE(pack.GetCount() == 0);
 				REQUIRE(pack.GetReserved() >= 5);
-				REQUIRE(pack.GetBytes() == memory);
+				REQUIRE(pack.GetRaw() == memory);
 				REQUIRE(pack.Is<int>());
 			}
 		}
@@ -393,7 +392,7 @@ SCENARIO("Any", "[containers]") {
 			THEN("Size and capacity goes to zero, type is unchanged, because it's a templated container") {
 				REQUIRE(pack.GetCount() == 0);
 				REQUIRE(pack.GetReserved() == 0);
-				REQUIRE(pack.GetBytes() == nullptr);
+				REQUIRE(pack.GetRaw() == nullptr);
 				REQUIRE(pack.Is<int>());
 			}
 		}
@@ -404,47 +403,47 @@ SCENARIO("Any", "[containers]") {
 			THEN("Block manager should reuse the memory") {
 				REQUIRE(pack.GetCount() == 5);
 				REQUIRE(pack.GetReserved() >= 5);
-				REQUIRE(pack.GetBytes() == memory);
+				REQUIRE(pack.GetRaw() == memory);
 				REQUIRE(pack.Is<int>());
 			}
 		}
 
 		WHEN("Pack is shallow-copied") {
-			pack.ToggleState(DState::Or, true);
+			pack.MakeOr();
 			auto copy = pack;
 			THEN("The new pack should keep the state and data") {
-				REQUIRE(copy.GetBytes() == pack.GetBytes());
+				REQUIRE(copy.GetRaw() == pack.GetRaw());
 				REQUIRE(copy.GetCount() == pack.GetCount());
 				REQUIRE(copy.GetReserved() == pack.GetReserved());
 				REQUIRE(copy.GetState() == pack.GetState());
-				REQUIRE(copy.GetDataID() == pack.GetDataID());
-				REQUIRE(copy.GetBlockReferences() == 2);
+				REQUIRE(copy.GetType() == pack.GetType());
+				REQUIRE(copy.GetReferences() == 2);
 			}
 		}
 
 		WHEN("Pack is cloned") {
-			pack.ToggleState(DState::Or, true);
+			pack.MakeOr();
 			auto clone = pack.Clone();
 			THEN("The new pack should keep the state and data") {
-				REQUIRE(clone.GetBytes() != pack.GetBytes());
+				REQUIRE(clone.GetRaw() != pack.GetRaw());
 				REQUIRE(clone.GetCount() == pack.GetCount());
 				REQUIRE(clone.GetReserved() >= clone.GetCount());
 				REQUIRE(clone.GetState() == pack.GetState());
-				REQUIRE(clone.GetDataID() == pack.GetDataID());
-				REQUIRE(clone.GetBlockReferences() == 1);
-				REQUIRE(pack.GetBlockReferences() == 1);
+				REQUIRE(clone.GetType() == pack.GetType());
+				REQUIRE(clone.GetReferences() == 1);
+				REQUIRE(pack.GetReferences() == 1);
 			}
 		}
 
 		WHEN("Pack is moved") {
-			pack.ToggleState(DState::Or, true);
-			TAny<int> moved = pcMove(pack);
+			pack.MakeOr();
+			TAny<int> moved = Move(pack);
 			THEN("The new pack should keep the state and data") {
-				REQUIRE(pack.GetBytes() == nullptr);
+				REQUIRE(pack.GetRaw() == nullptr);
 				REQUIRE(pack.GetCount() == 0);
 				REQUIRE(pack.GetReserved() == 0);
-				REQUIRE(pack.GetState() == DState::Typed);
-				REQUIRE(pack.GetDataID() == moved.GetDataID());
+				REQUIRE(pack.IsTypeConstrained());
+				REQUIRE(pack.GetType() == moved.GetType());
 			}
 		}
 
@@ -457,6 +456,7 @@ SCENARIO("Any", "[containers]") {
 			another_pack3 << int(1) << int(2) << int(3) << int(4) << int(5) << int(6);
 			TAny<uint> another_pack4;
 			another_pack4 << uint(1) << uint(2) << uint(3) << uint(4) << uint(5);
+
 			Any another_pack5;
 			another_pack5 << int(1) << int(2) << int(3) << int(4) << int(5);
 			THEN("The comparisons should be adequate") {
@@ -472,21 +472,21 @@ SCENARIO("Any", "[containers]") {
 	GIVEN("A universal Any with some POD items") {
 		Any pack;
 		pack << int(1) << int(2) << int(3) << int(4) << int(5);
-		auto memory = pack.GetBytes();
+		auto memory = pack.GetRaw();
 
 		REQUIRE(pack.GetCount() == 5);
 		REQUIRE(pack.GetReserved() >= 5);
 		REQUIRE(pack.Is<int>());
-		REQUIRE(pack.GetBytes() != nullptr);
+		REQUIRE(pack.GetRaw());
 
 		WHEN("Push more stuff") {
 			pack << int(6) << int(7) << int(8) << int(9) << int(10);
 			THEN("The size and capacity change, type will never change, memory shouldn't move") {
 				REQUIRE(pack.GetCount() == 10);
 				REQUIRE(pack.GetReserved() >= 10);
-				REQUIRE(pack.GetBytes() == memory);
+				REQUIRE(pack.GetRaw() == memory);
 				REQUIRE(pack.Is<int>());
-				REQUIRE(pack.GetBlockReferences() == 1);
+				REQUIRE(pack.GetReferences() == 1);
 			}
 		}
 		WHEN("The size is reduced") {
@@ -498,8 +498,8 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(pack.As<int>(2) == 5);
 				REQUIRE(pack.GetCount() == 3);
 				REQUIRE(pack.GetReserved() >= 5);
-				REQUIRE(pack.GetBytes() == memory);
-				REQUIRE(pack.GetBlockReferences() == 1);
+				REQUIRE(pack.GetRaw() == memory);
+				REQUIRE(pack.GetReferences() == 1);
 			}
 		}
 		WHEN("The size is reduced to zero") {
@@ -511,9 +511,9 @@ SCENARIO("Any", "[containers]") {
 			THEN("The container should be fully reset") {
 				REQUIRE(pack.GetCount() == 0);
 				REQUIRE(pack.GetReserved() == 0);
-				REQUIRE(pack.GetBytes() == nullptr);
-				REQUIRE(pack.GetBlockReferences() == 1);
-				REQUIRE(pack.GetState() == DState::Default);
+				REQUIRE(pack.GetRaw() == nullptr);
+				REQUIRE(pack.GetReferences() == 1);
+				REQUIRE(pack.GetState() == DataState::Default);
 			}
 		}
 		WHEN("More capacity is reserved") {
@@ -521,8 +521,8 @@ SCENARIO("Any", "[containers]") {
 			THEN("The capacity changes but not the size, memory shouldn't move") {
 				REQUIRE(pack.GetCount() == 5);
 				REQUIRE(pack.GetReserved() >= 20);
-				REQUIRE(pack.GetBytes() == memory);
-				REQUIRE(pack.GetBlockReferences() == 1);
+				REQUIRE(pack.GetRaw() == memory);
+				REQUIRE(pack.GetReferences() == 1);
 			}
 		}
 		WHEN("Less capacity is reserved") {
@@ -530,8 +530,8 @@ SCENARIO("Any", "[containers]") {
 			THEN("Neither size nor capacity are changed") {
 				REQUIRE(pack.GetCount() == 2);
 				REQUIRE(pack.GetReserved() >= 5);
-				REQUIRE(pack.GetBytes() == memory);
-				REQUIRE(pack.GetBlockReferences() == 1);
+				REQUIRE(pack.GetRaw() == memory);
+				REQUIRE(pack.GetReferences() == 1);
 			}
 		}
 		WHEN("Pack is cleared") {
@@ -539,9 +539,9 @@ SCENARIO("Any", "[containers]") {
 			THEN("Size goes to zero, capacity and type are unchanged") {
 				REQUIRE(pack.GetCount() == 0);
 				REQUIRE(pack.GetReserved() >= 5);
-				REQUIRE(pack.GetBytes() == memory);
+				REQUIRE(pack.GetRaw() == memory);
 				REQUIRE(pack.Is<int>());
-				REQUIRE(pack.GetBlockReferences() == 1);
+				REQUIRE(pack.GetReferences() == 1);
 			}
 		}
 		WHEN("Pack is reset") {
@@ -549,9 +549,9 @@ SCENARIO("Any", "[containers]") {
 			THEN("Size and capacity goes to zero, type is reset to udAny") {
 				REQUIRE(pack.GetCount() == 0);
 				REQUIRE(pack.GetReserved() == 0);
-				REQUIRE(pack.GetBytes() == nullptr);
-				REQUIRE(pack.GetDataID() == udAny);
-				REQUIRE(pack.GetBlockReferences() == 1);
+				REQUIRE(pack.GetRaw() == nullptr);
+				REQUIRE(pack.GetType() == nullptr);
+				REQUIRE(pack.GetReferences() == 1);
 			}
 		}
 		WHEN("Pack is reset, then allocated again") {
@@ -560,44 +560,44 @@ SCENARIO("Any", "[containers]") {
 			THEN("Block manager should reuse the memory") {
 				REQUIRE(pack.GetCount() == 5);
 				REQUIRE(pack.GetReserved() >= 5);
-				REQUIRE(pack.GetBytes() == memory);
+				REQUIRE(pack.GetRaw() == memory);
 				REQUIRE(pack.Is<int>());
 			}
 		}
 		WHEN("Pack is shallow-copied") {
-			pack.ToggleState(DState::Or, true);
+			pack.MakeOr();
 			auto copy = pack;
 			THEN("The new pack should keep the state and data") {
-				REQUIRE(copy.GetBytes() == pack.GetBytes());
+				REQUIRE(copy.GetRaw() == pack.GetRaw());
 				REQUIRE(copy.GetCount() == pack.GetCount());
 				REQUIRE(copy.GetReserved() == pack.GetReserved());
 				REQUIRE(copy.GetState() == pack.GetState());
-				REQUIRE(copy.GetDataID() == pack.GetDataID());
-				REQUIRE(copy.GetBlockReferences() == 2);
+				REQUIRE(copy.GetType() == pack.GetType());
+				REQUIRE(copy.GetReferences() == 2);
 			}
 		}
 		WHEN("Pack is cloned") {
-			pack.ToggleState(DState::Or, true);
+			pack.MakeOr();
 			auto clone = pack.Clone();
 			THEN("The new pack should keep the state and data") {
-				REQUIRE(clone.GetBytes() != pack.GetBytes());
+				REQUIRE(clone.GetRaw() != pack.GetRaw());
 				REQUIRE(clone.GetCount() == pack.GetCount());
 				REQUIRE(clone.GetReserved() >= clone.GetCount());
 				REQUIRE(clone.GetState() == pack.GetState());
-				REQUIRE(clone.GetDataID() == pack.GetDataID());
-				REQUIRE(clone.GetBlockReferences() == 1);
-				REQUIRE(pack.GetBlockReferences() == 1);
+				REQUIRE(clone.GetType() == pack.GetType());
+				REQUIRE(clone.GetReferences() == 1);
+				REQUIRE(pack.GetReferences() == 1);
 			}
 		}
 		WHEN("Pack is moved") {
-			pack.ToggleState(DState::Or, true);
-			Any moved = pcMove(pack);
+			pack.MakeOr();
+			Any moved = Move(pack);
 			THEN("The new pack should keep the state and data") {
-				REQUIRE(pack.GetBytes() == nullptr);
+				REQUIRE(pack.GetRaw() == nullptr);
 				REQUIRE(pack.GetCount() == 0);
 				REQUIRE(pack.GetReserved() == 0);
-				REQUIRE(pack.GetState() == DState::Default);
-				REQUIRE(pack.GetDataID() == udAny);
+				REQUIRE(pack.GetState() == DataState::Default);
+				REQUIRE(pack.GetType() == nullptr);
 			}
 		}
 
@@ -633,14 +633,14 @@ SCENARIO("Any", "[containers]") {
 		pack << subpack1 << subpack2 << subpack3;
 		pack.MakeTypeConstrained();
 
-		auto memory = pack.GetBytes();
+		auto memory = pack.GetRaw();
 		//auto& submemory4 = subpack3.As<Any>(0);
 		//auto& submemory5 = subpack3.As<Any>(1);
 
 		REQUIRE(pack.GetCount() == 3);
 		REQUIRE(pack.GetReserved() >= 3);
 		REQUIRE(pack.Is<Any>());
-		REQUIRE(pack.GetBytes() != nullptr);
+		REQUIRE(pack.GetRaw());
 
 		WHEN("Push more stuff") {
 			REQUIRE_THROWS(pack << int(6) << int(7) << int(8) << int(9) << int(10));
@@ -648,12 +648,12 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(pack.GetCount() == 3);
 				REQUIRE(pack.GetReserved() >= 3);
 				REQUIRE(pack.Is<Any>());
-				REQUIRE(pack.GetBytes() != nullptr);
+				REQUIRE(pack.GetRaw());
 			}
 		}
 
 		WHEN("Element 0 is removed") {
-			const auto refsBefore = pack.GetBlockReferences();
+			const auto refsBefore = pack.GetReferences();
 			pack.RemoveIndex(0);
 			THEN("The size changes but not capacity") {
 				REQUIRE(pack.GetCount() == 2);
@@ -661,16 +661,16 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(pack.As<Any>(1) == subpack3);
 				REQUIRE(pack.GetReserved() >= 3);
 				REQUIRE(pack.Is<Any>());
-				REQUIRE(pack.GetBytes() == memory);
-				REQUIRE(pack.GetBlockReferences() == refsBefore);
-				REQUIRE(subpack1.GetBlockReferences() == 2);
-				REQUIRE(subpack2.GetBlockReferences() == 3);
-				REQUIRE(subpack3.GetBlockReferences() == 2);
+				REQUIRE(pack.GetRaw() == memory);
+				REQUIRE(pack.GetReferences() == refsBefore);
+				REQUIRE(subpack1.GetReferences() == 2);
+				REQUIRE(subpack2.GetReferences() == 3);
+				REQUIRE(subpack3.GetReferences() == 2);
 			}
 		}
 
 		WHEN("Element 1 is removed") {
-			const auto refsBefore = pack.GetBlockReferences();
+			const auto refsBefore = pack.GetReferences();
 			pack.RemoveIndex(1);
 			THEN("The size changes but not capacity") {
 				REQUIRE(pack.GetCount() == 2);
@@ -678,16 +678,16 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(pack.As<Any>(1) == subpack3);
 				REQUIRE(pack.GetReserved() >= 3);
 				REQUIRE(pack.Is<Any>());
-				REQUIRE(pack.GetBytes() == memory);
-				REQUIRE(pack.GetBlockReferences() == refsBefore);
-				REQUIRE(subpack1.GetBlockReferences() == 3);
-				REQUIRE(subpack2.GetBlockReferences() == 2);
-				REQUIRE(subpack3.GetBlockReferences() == 2);
+				REQUIRE(pack.GetRaw() == memory);
+				REQUIRE(pack.GetReferences() == refsBefore);
+				REQUIRE(subpack1.GetReferences() == 3);
+				REQUIRE(subpack2.GetReferences() == 2);
+				REQUIRE(subpack3.GetReferences() == 2);
 			}
 		}
 
 		WHEN("Element 2 is removed") {
-			const auto refsBefore = pack.GetBlockReferences();
+			const auto refsBefore = pack.GetReferences();
 			pack.RemoveIndex(2);
 			THEN("The size changes but not capacity") {
 				REQUIRE(pack.GetCount() == 2);
@@ -695,11 +695,11 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(pack.As<Any>(1) == subpack2);
 				REQUIRE(pack.GetReserved() >= 3);
 				REQUIRE(pack.Is<Any>());
-				REQUIRE(pack.GetBytes() == memory);
-				REQUIRE(pack.GetBlockReferences() == refsBefore);
-				REQUIRE(subpack1.GetBlockReferences() == 3);
-				REQUIRE(subpack2.GetBlockReferences() == 3);
-				REQUIRE(subpack3.GetBlockReferences() == 1);
+				REQUIRE(pack.GetRaw() == memory);
+				REQUIRE(pack.GetReferences() == refsBefore);
+				REQUIRE(subpack1.GetReferences() == 3);
+				REQUIRE(subpack2.GetReferences() == 3);
+				REQUIRE(subpack3.GetReferences() == 1);
 			}
 		}
 
@@ -712,11 +712,11 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(pack.GetReserved() == 0);
 				REQUIRE(pack.Is<Any>());
 				REQUIRE(pack.IsTypeConstrained());
-				REQUIRE(pack.GetBytes() == nullptr);
-				REQUIRE(pack.GetBlockReferences() == 1);
-				REQUIRE(subpack1.GetBlockReferences() == 2);
-				REQUIRE(subpack2.GetBlockReferences() == 2);
-				REQUIRE(subpack3.GetBlockReferences() == 1);
+				REQUIRE(pack.GetRaw() == nullptr);
+				REQUIRE(pack.GetReferences() == 1);
+				REQUIRE(subpack1.GetReferences() == 2);
+				REQUIRE(subpack2.GetReferences() == 2);
+				REQUIRE(subpack3.GetReferences() == 1);
 			}
 		}
 
@@ -728,7 +728,7 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(pack.As<Any>(1) == subpack3);
 				REQUIRE(pack.GetReserved() >= 3);
 				REQUIRE(pack.Is<Any>());
-				REQUIRE(pack.GetBytes() != nullptr);
+				REQUIRE(pack.GetRaw() != nullptr);
 			}
 		}
 
@@ -737,7 +737,7 @@ SCENARIO("Any", "[containers]") {
 			THEN("Size goes to zero, capacity and type are unchanged") {
 				REQUIRE(pack.GetCount() == 0);
 				REQUIRE(pack.GetReserved() >= 3);
-				REQUIRE(pack.GetBytes() == memory);
+				REQUIRE(pack.GetRaw() == memory);
 				REQUIRE(pack.Is<Any>());
 			}
 		}
@@ -747,86 +747,86 @@ SCENARIO("Any", "[containers]") {
 			THEN("Size and capacity goes to zero, type is reset to udAny") {
 				REQUIRE(pack.GetCount() == 0);
 				REQUIRE(pack.GetReserved() == 0);
-				REQUIRE(pack.GetBytes() == nullptr);
-				REQUIRE(pack.GetDataID().Is<Any>());
-				REQUIRE(pack.GetState() == DState::Typed);
+				REQUIRE(pack.GetRaw() == nullptr);
+				REQUIRE(pack.Is<Any>());
+				REQUIRE(pack.IsTypeConstrained());
 			}
 		}
 
 		WHEN("Pack is shallow-copied") {
-			pack.As<Any>(2).As<Any>(1).ToggleState(DState::Or, true);
-			pack.As<Any>(0).ToggleState(DState::Or, true);
+			pack.As<Any>(2).As<Any>(1).MakeOr();
+			pack.As<Any>(0).MakeOr();
 			auto copy = pack;
 			THEN("The new pack should keep the state and data") {
-				REQUIRE(copy.GetBytes() == pack.GetBytes());
+				REQUIRE(copy.GetRaw() == pack.GetRaw());
 				REQUIRE(copy.GetCount() == pack.GetCount());
 				REQUIRE(copy.GetReserved() == pack.GetReserved());
 				REQUIRE(copy.GetState() == pack.GetState());
-				REQUIRE(copy.GetDataID() == pack.GetDataID());
-				REQUIRE(copy.GetBlockReferences() == 2);
-				REQUIRE(copy.As<Any>(0).GetBytes() == subpack1.GetBytes());
-				REQUIRE(copy.As<Any>(0).GetState() == DState::Or);
+				REQUIRE(copy.GetType() == pack.GetType());
+				REQUIRE(copy.GetReferences() == 2);
+				REQUIRE(copy.As<Any>(0).GetRaw() == subpack1.GetRaw());
+				REQUIRE(copy.As<Any>(0).IsOr());
 				REQUIRE(copy.As<Any>(0).GetCount() == subpack1.GetCount());
-				REQUIRE(copy.As<Any>(0).GetBlockReferences() == 3);
-				REQUIRE(copy.As<Any>(1).GetBytes() == subpack2.GetBytes());
-				REQUIRE(copy.As<Any>(1).GetState() == DState::Default);
+				REQUIRE(copy.As<Any>(0).GetReferences() == 3);
+				REQUIRE(copy.As<Any>(1).GetRaw() == subpack2.GetRaw());
+				REQUIRE(copy.As<Any>(1).GetState() == DataState::Default);
 				REQUIRE(copy.As<Any>(1).GetCount() == subpack2.GetCount());
-				REQUIRE(copy.As<Any>(1).GetBlockReferences() == 3);
-				REQUIRE(copy.As<Any>(2).GetBytes() == subpack3.GetBytes());
-				REQUIRE(copy.As<Any>(2).GetState() == DState::Default);
+				REQUIRE(copy.As<Any>(1).GetReferences() == 3);
+				REQUIRE(copy.As<Any>(2).GetRaw() == subpack3.GetRaw());
+				REQUIRE(copy.As<Any>(2).GetState() == DataState::Default);
 				REQUIRE(copy.As<Any>(2).GetCount() == subpack3.GetCount());
-				REQUIRE(copy.As<Any>(2).GetBlockReferences() == 2);
-				REQUIRE(copy.As<Any>(2).As<Any>(0).GetBytes() == subpack1.GetBytes());
-				REQUIRE(copy.As<Any>(2).As<Any>(0).GetState() == DState::Default);
+				REQUIRE(copy.As<Any>(2).GetReferences() == 2);
+				REQUIRE(copy.As<Any>(2).As<Any>(0).GetRaw() == subpack1.GetRaw());
+				REQUIRE(copy.As<Any>(2).As<Any>(0).GetState() == DataState::Default);
 				REQUIRE(copy.As<Any>(2).As<Any>(0).GetCount() == subpack1.GetCount());
-				REQUIRE(copy.As<Any>(2).As<Any>(1).GetBytes() == subpack2.GetBytes());
-				REQUIRE(copy.As<Any>(2).As<Any>(1).GetState() == DState::Or);
+				REQUIRE(copy.As<Any>(2).As<Any>(1).GetRaw() == subpack2.GetRaw());
+				REQUIRE(copy.As<Any>(2).As<Any>(1).IsOr());
 				REQUIRE(copy.As<Any>(2).As<Any>(1).GetCount() == subpack2.GetCount());
 			}
 		}
 
 		WHEN("Pack is cloned") {
-			pack.As<Any>(2).As<Any>(1).ToggleState(DState::Or, true);
-			pack.As<Any>(0).ToggleState(DState::Or, true);
+			pack.As<Any>(2).As<Any>(1).MakeOr();
+			pack.As<Any>(0).MakeOr();
 			auto clone = pack.Clone();
 			THEN("The new pack should keep the state and data") {
-				REQUIRE(clone.GetBytes() != pack.GetBytes());
+				REQUIRE(clone.GetRaw() != pack.GetRaw());
 				REQUIRE(clone.GetCount() == pack.GetCount());
 				REQUIRE(clone.GetReserved() >= clone.GetCount());
 				REQUIRE(clone.GetState() == pack.GetUnconstrainedState());
-				REQUIRE(clone.GetDataID() == pack.GetDataID());
-				REQUIRE(clone.GetBlockReferences() == 1);
-				REQUIRE(pack.GetBlockReferences() == 1);
-				REQUIRE(clone.As<Any>(0).GetBytes() != subpack1.GetBytes());
-				REQUIRE(clone.As<Any>(0).GetState() == DState::Or);
+				REQUIRE(clone.GetType() == pack.GetType());
+				REQUIRE(clone.GetReferences() == 1);
+				REQUIRE(pack.GetReferences() == 1);
+				REQUIRE(clone.As<Any>(0).GetRaw() != subpack1.GetRaw());
+				REQUIRE(clone.As<Any>(0).IsOr());
 				REQUIRE(clone.As<Any>(0).GetCount() == subpack1.GetCount());
-				REQUIRE(clone.As<Any>(0).GetBlockReferences() == 1);
-				REQUIRE(pack.As<Any>(0).GetBlockReferences() == 3);
-				REQUIRE(clone.As<Any>(1).GetBytes() != subpack2.GetBytes());
-				REQUIRE(clone.As<Any>(1).GetState() == DState::Default);
+				REQUIRE(clone.As<Any>(0).GetReferences() == 1);
+				REQUIRE(pack.As<Any>(0).GetReferences() == 3);
+				REQUIRE(clone.As<Any>(1).GetRaw() != subpack2.GetRaw());
+				REQUIRE(clone.As<Any>(1).GetState() == DataState::Default);
 				REQUIRE(clone.As<Any>(1).GetCount() == subpack2.GetCount());
-				REQUIRE(clone.As<Any>(1).GetBlockReferences() == 1);
-				REQUIRE(pack.As<Any>(1).GetBlockReferences() == 3);
-				REQUIRE(clone.As<Any>(2).GetBytes() != subpack3.GetBytes());
-				REQUIRE(clone.As<Any>(2).GetState() == DState::Default);
+				REQUIRE(clone.As<Any>(1).GetReferences() == 1);
+				REQUIRE(pack.As<Any>(1).GetReferences() == 3);
+				REQUIRE(clone.As<Any>(2).GetRaw() != subpack3.GetRaw());
+				REQUIRE(clone.As<Any>(2).GetState() == DataState::Default);
 				REQUIRE(clone.As<Any>(2).GetCount() == subpack3.GetCount());
-				REQUIRE(clone.As<Any>(2).GetBlockReferences() == 1);
-				REQUIRE(pack.As<Any>(2).GetBlockReferences() == 2);
-				REQUIRE(clone.As<Any>(2).As<Any>(0).GetBytes() != subpack1.GetBytes());
-				REQUIRE(clone.As<Any>(2).As<Any>(0).GetState() == DState::Default);
+				REQUIRE(clone.As<Any>(2).GetReferences() == 1);
+				REQUIRE(pack.As<Any>(2).GetReferences() == 2);
+				REQUIRE(clone.As<Any>(2).As<Any>(0).GetRaw() != subpack1.GetRaw());
+				REQUIRE(clone.As<Any>(2).As<Any>(0).GetState() == DataState::Default);
 				REQUIRE(clone.As<Any>(2).As<Any>(0).GetCount() == subpack1.GetCount());
-				REQUIRE(clone.As<Any>(2).As<Any>(0).GetBlockReferences() == 1);
-				REQUIRE(pack.As<Any>(2).As<Any>(0).GetBlockReferences() == 3);
-				REQUIRE(clone.As<Any>(2).As<Any>(1).GetBytes() != subpack2.GetBytes());
-				REQUIRE(clone.As<Any>(2).As<Any>(1).GetState() == DState::Or);
+				REQUIRE(clone.As<Any>(2).As<Any>(0).GetReferences() == 1);
+				REQUIRE(pack.As<Any>(2).As<Any>(0).GetReferences() == 3);
+				REQUIRE(clone.As<Any>(2).As<Any>(1).GetRaw() != subpack2.GetRaw());
+				REQUIRE(clone.As<Any>(2).As<Any>(1).IsOr());
 				REQUIRE(clone.As<Any>(2).As<Any>(1).GetCount() == subpack2.GetCount());
-				REQUIRE(clone.As<Any>(2).As<Any>(1).GetBlockReferences() == 1);
-				REQUIRE(pack.As<Any>(2).As<Any>(1).GetBlockReferences() == 3);
+				REQUIRE(clone.As<Any>(2).As<Any>(1).GetReferences() == 1);
+				REQUIRE(pack.As<Any>(2).As<Any>(1).GetReferences() == 3);
 			}
 		}
 
 		WHEN("Smart pushing different type without retainment") {
-			auto result = subpack1.SmartPush(Any(char8('?')), {}, true, false);
+			auto result = subpack1.SmartPush<true, false>(u8'?');
 			THEN("The pack must remain unchanged") {
 				REQUIRE(result == 0);
 				REQUIRE(subpack1.GetCount() == 5);
@@ -836,7 +836,7 @@ SCENARIO("Any", "[containers]") {
 		WHEN("Smart pushing with retainment") {
 			Any deepened;
 			deepened << int(1) << int(2) << int(3) << int(4) << int(5);
-			auto result = deepened.SmartPush(Any(char8('?')), {}, false, true);
+			auto result = deepened.SmartPush<false, true>(u8'?');
 			THEN("The pack must get deeper and contain it") {
 				REQUIRE(result == 1);
 				REQUIRE(deepened.IsDeep());
@@ -849,32 +849,32 @@ SCENARIO("Any", "[containers]") {
 		WHEN("Smart pushing an empty container (but not stateless) with retainment") {
 			Any deepened;
 			deepened << int(1) << int(2) << int(3) << int(4) << int(5);
-			auto pushed = Any::From(nullptr, DState::Polar | DState::Missing);
-			auto result = deepened.SmartPush(pushed, {}, true, true);
+			auto pushed = Any::FromMeta(nullptr, DataState {DataState::Phased | DataState::Missing});
+			auto result = deepened.SmartPush<true, true>(pushed);
 			THEN("The pack must get deeper and contain it") {
 				REQUIRE(result == 1);
 				REQUIRE(deepened.IsDeep());
 				REQUIRE(deepened.GetCount() == 2);
 				REQUIRE(deepened.As<Any>(0).GetCount() == 5);
 				REQUIRE(deepened.As<Any>(1).GetCount() == 0);
-				REQUIRE(deepened.As<Any>(1).GetState() == DState::Polar + DState::Missing);
+				REQUIRE(deepened.As<Any>(1).GetState() == DataState::Phased + DataState::Missing);
 			}
 		}
 
 		WHEN("Smart pushing an empty container (but not stateless) with retainment to another empty container") {
-			auto pushed = Any::From(nullptr, DState::Polar | DState::Missing);
-			auto pushed2 = Any::From(nullptr, DState::Default);
-			auto result = pushed2.SmartPush(pushed, {}, true, true);
+			auto pushed = Any::FromMeta(nullptr, DataState {DataState::Phased | DataState::Missing});
+			auto pushed2 = Any::FromMeta(nullptr, DataState {});
+			auto result = pushed2.SmartPush<true, true>(pushed);
 			THEN("The pack must get deeper and contain it") {
 				REQUIRE(result == 1);
 				REQUIRE(pushed2.GetCount() == 0);
-				REQUIRE(pushed2.GetState() == DState::Polar + DState::Missing);
+				REQUIRE(pushed2.GetState() == DataState::Phased + DataState::Missing);
 			}
 		}
 
 		WHEN("Smart pushing to an empty container (concat & retain enabled)") {
 			Any pushed;
-			auto result = pushed.SmartPush(pack, {}, true, true);
+			auto result = pushed.SmartPush<true, true>(pack);
 			THEN("The empty container becomes the pushed container") {
 				REQUIRE(pushed == pack);
 				REQUIRE(result == 1);
@@ -884,8 +884,8 @@ SCENARIO("Any", "[containers]") {
 		WHEN("Smart pushing to a different container with retain enabled") {
 			Any pushed;
 			pushed << 666;
-			pushed.ToggleState(DState::Or, true);
-			auto result = pushed.SmartPush(Any(char8('?')), {}, true, true);
+			pushed.MakeOr();
+			auto result = pushed.SmartPush<true, true>(u8'?');
 			THEN("Must not duplicate state of deepened container") {
 				REQUIRE(result == 1);
 				REQUIRE(!pushed.IsOr());
@@ -908,11 +908,11 @@ SCENARIO("Any", "[containers]") {
 		WHEN("Shallow copy pack1 in pack2") {
 			pack2 = pack1;
 			THEN("memory1 should be referenced twice, memory2 should be released") {
-				REQUIRE(pack1.GetBlockReferences() == 2);
-				REQUIRE(pack2.GetBlockReferences() == 2);
+				REQUIRE(pack1.GetReferences() == 2);
+				REQUIRE(pack2.GetReferences() == 2);
 				REQUIRE(static_cast<Block&>(pack1) == static_cast<Block&>(pack2));
 				REQUIRE(static_cast<Block&>(pack2) == memory1);
-				REQUIRE(memory2.GetBlockReferences() == 0);
+				REQUIRE(memory2.GetReferences() == 0);
 			}
 		}
 
@@ -920,24 +920,24 @@ SCENARIO("Any", "[containers]") {
 			pack2 = pack1;
 			pack1.Reset();
 			THEN("memory1 should be referenced once, memory2 should be released") {
-				REQUIRE(pack1.CheckJurisdiction() == false);
-				REQUIRE(pack2.GetBlockReferences() == 1);
+				REQUIRE(pack1.HasAuthority() == false);
+				REQUIRE(pack2.GetReferences() == 1);
 				REQUIRE(pack1.GetRaw() == nullptr);
 				REQUIRE(pack1.GetReserved() == 0);
 				REQUIRE(static_cast<Block&>(pack2) == memory1);
-				REQUIRE(memory2.GetBlockReferences() == 0);
+				REQUIRE(memory2.GetReferences() == 0);
 			}
 		}
 
 		WHEN("Deep copy pack1 in pack2") {
 			pack2 = pack1.Clone();
 			THEN("memory1 should be referenced twice, memory2 should be released") {
-				REQUIRE(pack1.GetBlockReferences() == 1);
-				REQUIRE(pack2.GetBlockReferences() == 1);
+				REQUIRE(pack1.GetReferences() == 1);
+				REQUIRE(pack2.GetReferences() == 1);
 				REQUIRE(static_cast<Block&>(pack1) == static_cast<Block&>(pack2));
 				REQUIRE(static_cast<Block&>(pack2) == memory1);
 				REQUIRE(static_cast<Block&>(pack2) != memory2);
-				REQUIRE(memory2.GetBlockReferences() == 0);
+				REQUIRE(memory2.GetReferences() == 0);
 			}
 		}
 
@@ -946,13 +946,13 @@ SCENARIO("Any", "[containers]") {
 			const auto memory3 = static_cast<Block>(pack2);
 			pack1.Reset();
 			THEN("memory1 should be referenced once, memory2 should be released") {
-				REQUIRE(pack1.CheckJurisdiction() == false);
-				REQUIRE(pack2.GetBlockReferences() == 1);
+				REQUIRE(pack1.HasAuthority() == false);
+				REQUIRE(pack2.GetReferences() == 1);
 				REQUIRE(static_cast<Block&>(pack2) == memory1);
 				REQUIRE(static_cast<Block&>(pack2) != memory2);
-				REQUIRE(memory1.CheckJurisdiction() == false);
-				REQUIRE(memory2.CheckJurisdiction() == false);
-				REQUIRE(memory3.GetBlockReferences() == 1);
+				REQUIRE(memory1.HasAuthority() == false);
+				REQUIRE(memory2.HasAuthority() == false);
+				REQUIRE(memory3.GetReferences() == 1);
 			}
 		}
 	}
@@ -976,10 +976,10 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(pack.As<Any>(0) == subpack1);
 				REQUIRE(pack.As<Any>(1) == subpack2);
 				REQUIRE(pack.As<Any>(2) == subpack1);
-				REQUIRE(pack.GetBlockReferences() == 1);
-				REQUIRE(subpack1.GetBlockReferences() == 3);
-				REQUIRE(subpack2.GetBlockReferences() == 2);
-				REQUIRE(subpack3.GetBlockReferences() == 1);
+				REQUIRE(pack.GetReferences() == 1);
+				REQUIRE(subpack1.GetReferences() == 3);
+				REQUIRE(subpack2.GetReferences() == 2);
+				REQUIRE(subpack3.GetReferences() == 1);
 			}
 		}
 	}
@@ -998,20 +998,20 @@ SCENARIO("Any", "[containers]") {
 		auto baseRange = Any::From<Block>();
 		baseRange.Allocate(3);
 
-		for (pcptr e = 0; e < pack.GetCount(); ++e) {
+		for (Count e = 0; e < pack.GetCount(); ++e) {
 			auto element = pack.GetElement(e);
-			LinkedBase base;
-			REQUIRE(element.GetMeta()->GetBase<Block>(0, base));
+			Base base;
+			REQUIRE(element.GetType()->GetBase<Block>(0, base));
 			auto baseBlock = element.GetBaseMemory(MetaData::Of<Block>(), base);
 			baseRange.InsertBlock(baseBlock);
 		}
 
 		WHEN("The Block bases from the subpacks are coalesced in a single container") {
 			THEN("Contents should be referenced despite Block having no referencing logic in its reflected copy-operator") {
-				REQUIRE(pack.GetBlockReferences() == 1);
-				REQUIRE(subpack1.GetBlockReferences() == 4);
-				REQUIRE(subpack2.GetBlockReferences() == 3);
-				REQUIRE(subpack3.GetBlockReferences() == 3);
+				REQUIRE(pack.GetReferences() == 1);
+				REQUIRE(subpack1.GetReferences() == 4);
+				REQUIRE(subpack2.GetReferences() == 3);
+				REQUIRE(subpack3.GetReferences() == 3);
 			}
 		}
 
@@ -1019,10 +1019,10 @@ SCENARIO("Any", "[containers]") {
 			baseRange.Reset();
 
 			THEN("Contents should be dereferenced despite Block having no referencing logic in its reflected destructor") {
-				REQUIRE(pack.GetBlockReferences() == 1);
-				REQUIRE(subpack1.GetBlockReferences() == 3);
-				REQUIRE(subpack2.GetBlockReferences() == 2);
-				REQUIRE(subpack3.GetBlockReferences() == 2);
+				REQUIRE(pack.GetReferences() == 1);
+				REQUIRE(subpack1.GetReferences() == 3);
+				REQUIRE(subpack2.GetReferences() == 2);
+				REQUIRE(subpack3.GetReferences() == 2);
 			}
 		}
 
@@ -1030,10 +1030,10 @@ SCENARIO("Any", "[containers]") {
 			pack.Reset();
 
 			THEN("Contents should be dereferenced") {
-				REQUIRE(pack.GetBlockReferences() == 1);
-				REQUIRE(subpack1.GetBlockReferences() == 3);
-				REQUIRE(subpack2.GetBlockReferences() == 2);
-				REQUIRE(subpack3.GetBlockReferences() == 2);
+				REQUIRE(pack.GetReferences() == 1);
+				REQUIRE(subpack1.GetReferences() == 3);
+				REQUIRE(subpack2.GetReferences() == 2);
+				REQUIRE(subpack3.GetReferences() == 2);
 			}
 		}
 	}

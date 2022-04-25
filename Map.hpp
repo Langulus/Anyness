@@ -125,31 +125,31 @@ namespace Langulus::Anyness
 		template<ReflectedData K, ReflectedData V>
 		Map& operator >> (TPair<K, V>&&);
 
-		template<class FUNCTION>
-		Count ForEachPair(FUNCTION&&);
+		template<class F>
+		Count ForEachPair(F&&);
 
-		template<class FUNCTION>
-		Count ForEachPairRev(FUNCTION&&);
+		template<class F>
+		Count ForEachPairRev(F&&);
 
-		template<class FUNCTION>
-		Count ForEachPair(FUNCTION&&) const;
+		template<class F>
+		Count ForEachPair(F&&) const;
 
-		template<class FUNCTION>
-		Count ForEachPairRev(FUNCTION&&) const;
+		template<class F>
+		Count ForEachPairRev(F&&) const;
 
 	protected:
-		template<class RETURN, ReflectedData ALT_KEY, ReflectedData ALT_VALUE, bool REVERSE>
-		Count ForEachPairInner(TFunctor<RETURN(ALT_KEY, ALT_VALUE)>&&);
+		template<class R, ReflectedData ALT_KEY, ReflectedData ALT_VALUE, bool REVERSE>
+		Count ForEachPairInner(TFunctor<R(ALT_KEY, ALT_VALUE)>&&);
 
-		template<class RETURN, ReflectedData ALT_KEY, ReflectedData ALT_VALUE, bool REVERSE>
-		Count ForEachPairInner(TFunctor<RETURN(ALT_KEY, ALT_VALUE)>&&) const;
+		template<class R, ReflectedData ALT_KEY, ReflectedData ALT_VALUE, bool REVERSE>
+		Count ForEachPairInner(TFunctor<R(ALT_KEY, ALT_VALUE)>&&) const;
 
 		/// This function declaration is used to decompose a lambda					
 		/// You can use it to extract the argument type of the lambda, using		
 		/// decltype on the return type. Useful for template deduction in the	
 		/// ForEach functions above, purely for convenience							
-		template<class RETURN, class FUNCTION, ReflectedData ALT_KEY, ReflectedData ALT_VALUE>
-		TPair<ALT_KEY, ALT_VALUE> GetLambdaArguments(RETURN(FUNCTION::*)(ALT_KEY, ALT_VALUE) const) const;
+		template<class R, class FUNCTION, ReflectedData ALT_KEY, ReflectedData ALT_VALUE>
+		TPair<ALT_KEY, ALT_VALUE> GetLambdaArguments(R(FUNCTION::*)(ALT_KEY, ALT_VALUE) const) const;
 
 	protected:
 		Any mKeys;

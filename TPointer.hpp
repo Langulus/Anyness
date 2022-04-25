@@ -7,7 +7,7 @@ namespace Langulus::Anyness
 	///																								
 	///	An owned value, dense or sparse													
 	///																								
-	/// Provides only ownership, for when you need to cleanup after a move		
+	///	Provides only ownership, for when you need to cleanup after a move	
 	/// By default, fundamental types and pointers are not reset after a move	
 	/// Wrapping them inside this ensures they are										
 	///																								
@@ -24,10 +24,7 @@ namespace Langulus::Anyness
 		constexpr TOwned(TOwned&&) noexcept;
 		constexpr TOwned(const T&) noexcept;
 
-		//NOD() DMeta GetMeta() const;
 		NOD() Block GetBlock() const;
-		//NOD() bool CheckJurisdiction() const;
-		//NOD() Count GetBlockReferences() const;
 
 		void Reset() noexcept;
 
@@ -35,102 +32,106 @@ namespace Langulus::Anyness
 		constexpr TOwned& operator = (TOwned&&) noexcept;
 		constexpr TOwned& operator = (const T&) noexcept;
 
-		NOD() Hash GetHash() const requires Hashable<T>;
+		NOD() Hash GetHash() const requires IsHashable<T>;
 
 		NOD() decltype(auto) Get() const noexcept;
 		NOD() decltype(auto) Get() noexcept;
 
-		template<class D>
-		NOD() auto As() const noexcept requires Sparse<T>;
+		template<ReflectedData>
+		NOD() auto As() const noexcept requires IsSparse<T>;
 
-		NOD() auto operator -> () const requires Sparse<T>;
-		NOD() auto operator -> () requires Sparse<T>;
-		NOD() decltype(auto) operator * () const requires Sparse<T>;
-		NOD() decltype(auto) operator * () requires Sparse<T>;
+		NOD() auto operator -> () const requires IsSparse<T>;
+		NOD() auto operator -> () requires IsSparse<T>;
+		NOD() decltype(auto) operator * () const requires IsSparse<T>;
+		NOD() decltype(auto) operator * () requires IsSparse<T>;
 
 		NOD() explicit operator bool() const noexcept;
-		NOD() operator const T&() const noexcept;
-		NOD() operator T&() noexcept;
+		NOD() explicit operator const T&() const noexcept;
+		NOD() explicit operator T&() noexcept;
 
 		NOD() bool operator == (const TOwned&) const noexcept;
 		NOD() bool operator != (const TOwned&) const noexcept;
 		NOD() bool operator == (const T&) const noexcept;
 		NOD() bool operator != (const T&) const noexcept;
-		NOD() bool operator == (::std::nullptr_t) const noexcept;
-		NOD() bool operator != (::std::nullptr_t) const noexcept;
-		
-		NOD() friend bool operator == (T lhs, const TOwned& rhs) noexcept requires Sparse<T> {
-			return lhs == rhs.Get();
-		}
-		
-		NOD() friend bool operator != (T lhs, const TOwned& rhs) noexcept requires Sparse<T> {
-			return lhs != rhs.Get();
-		}
-				
-		NOD() friend bool operator == (::std::nullptr_t, const TOwned& rhs) noexcept requires Sparse<T> {
-			return nullptr == rhs.Get();
-		}
-				
-		NOD() friend bool operator != (::std::nullptr_t, const TOwned& rhs) noexcept requires Sparse<T> {
-			return nullptr != rhs.Get();
-		}
+		NOD() bool operator == (::std::nullptr_t) const noexcept requires IsSparse<T>;
+		NOD() bool operator != (::std::nullptr_t) const noexcept requires IsSparse<T>;
 	};
 
 
 	///																								
 	///	A shared pointer																		
 	///																								
-	/// Provides ownership and referencing													
+	///	Provides ownership and referencing. Also, for single-element			
+	/// containment, it is a bit more efficient than TAny. So, essentially		
+	/// its equivalent to std::shared_ptr													
 	///																								
 	template<ReflectedData T, bool DOUBLE_REFERENCED>
-	class TPointer : public TOwned<Conditional<Constant<T>, const T*, T*>> {
+	class TPointer : protected TOwned<Conditional<IsConstant<T>, const T*, T*>> {
 	protected:
-		using BASE = TOwned<Conditional<Constant<T>, const T*, T*>>;
-		using SparseT = typename BASE::Type;
+		using BASE = TOwned<Conditional<IsConstant<T>, const T*, T*>>;
+		using Type = typename TOwned<Conditional<IsConstant<T>, const T*, T*>>::Type;
+		Entry* mEntry {};
 
 	public:
 		constexpr TPointer() noexcept = default;
 		TPointer(const TPointer&);
 		TPointer(TPointer&&) noexcept;
-		TPointer(SparseT);
+		TPointer(Type);
 		~TPointer();
 
-		//NOD() DMeta GetMeta() const;
 		NOD() Block GetBlock() const;
-		//NOD() bool CheckJurisdiction() const;
-		//NOD() RefCount GetBlockReferences() const;
+		NOD() bool HasAuthority() const;
+		NOD() Count GetReferences() const;
+		NOD() DMeta GetType() const;
+		using BASE::Get;
 
-		NOD() static TPointer Create(const Decay<T>&) requires CopyConstructible<Decay<T>>;
-		NOD() static TPointer Create(Decay<T>&&) requires MoveConstructible<Decay<T>>;
-		NOD() static TPointer Create() requires DefaultConstructible<Decay<T>>;
+		NOD() static TPointer Create(const Decay<T>&) requires IsCopyConstructible<Decay<T>>;
+		NOD() static TPointer Create(Decay<T>&&) requires IsMoveConstructible<Decay<T>>;
+		NOD() static TPointer Create() requires IsDefaultConstructible<Decay<T>>;
 
 		template<typename... ARGS>
 		NOD() static TPointer New(ARGS&&...);
 
 		void Reset();
 
+		NOD() explicit operator bool() const noexcept;
+		NOD() explicit operator const T* () const noexcept;
+		NOD() explicit operator Type () noexcept;
+
 		TPointer& operator = (const TPointer&);
 		TPointer& operator = (TPointer&&);
-		TPointer& operator = (SparseT);
+		TPointer& operator = (Type);
 
-		template<Sparse ANY_POINTER>
-		TPointer& operator = (ANY_POINTER);
-		template<class ANY_POINTER>
-		TPointer& operator = (const TPointer<ANY_POINTER, DOUBLE_REFERENCED>&);
+		template<IsSparse ALT_T>
+		TPointer& operator = (ALT_T);
+		template<ReflectedData ALT_T>
+		TPointer& operator = (const TPointer<ALT_T, DOUBLE_REFERENCED>&);
 
-		NOD() operator TPointer<const T, DOUBLE_REFERENCED>() const noexcept requires Mutable<T>;
+		NOD() operator TPointer<const T, DOUBLE_REFERENCED>() const noexcept requires IsMutable<T>;
+
+		NOD() bool operator == (const TPointer&) const noexcept;
+		NOD() bool operator != (const TPointer&) const noexcept;
+		NOD() bool operator == (const T*) const noexcept;
+		NOD() bool operator != (const T*) const noexcept;
+		NOD() bool operator == (::std::nullptr_t) const noexcept;
+		NOD() bool operator != (::std::nullptr_t) const noexcept;
+
+		NOD() auto operator -> () const;
+		NOD() auto operator -> ();
+		NOD() decltype(auto) operator * () const;
+		NOD() decltype(auto) operator * ();
 	};
 
 	/// Just a handle for a pointer, that provides ownage								
 	/// Pointer will be explicitly nulled after a move									
-	template<class T>
+	template<ReflectedData T>
 	using Own = TOwned<T>;
 
 	/// A shared pointer, that provides ownage and basic reference counting		
 	/// Referencing comes from the block of memory that the pointer points to	
 	/// The memory block might contain more data, that will be implicitly		
 	/// referenced, too																			
-	template<class T>
+	template<ReflectedData T>
 	using Ptr = TPointer<T, false>;
 
 	/// A shared pointer, that provides ownage and more reference counting		
@@ -138,7 +139,7 @@ namespace Langulus::Anyness
 	/// points to, and second - the instance's individual reference counter		
 	/// Useful for keeping track not only of the memory, but of the individual	
 	/// element inside the memory block														
-	template<class T>
+	template<ReflectedData T>
 	using Ref = TPointer<T, true>;
 
 } // namespace Langulus::Anyness

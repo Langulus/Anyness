@@ -231,10 +231,10 @@ namespace Langulus::Anyness
 	TEMPLATE()
 	template<class ALT_V>
 	Count MAP()::Merge(const Key& key, const ALT_V& value)
-	requires CopyConstructible<K> && CopyConstructible<V> {
+	requires IsCopyConstructible<K> && IsCopyConstructible<V> {
 		const auto found = FindKey(key);
-		if constexpr (Deep<Value>) {
-			if constexpr (Deep<ALT_V>) {
+		if constexpr (Anyness::IsDeep<Value>) {
+			if constexpr (Anyness::IsDeep<ALT_V>) {
 				if (!found)
 					return Add(key, value);
 				return GetValue(found.GetOffset()).Merge(value);
@@ -259,7 +259,7 @@ namespace Langulus::Anyness
 	/// Merge two maps																			
 	TEMPLATE()
 	Count MAP()::Merge(const TMap& other)
-	requires CopyConstructible<K> && CopyConstructible<V> {
+	requires IsCopyConstructible<K> && IsCopyConstructible<V> {
 		Count added {};
 		for (Count i = 0; i < other.Count(); ++i) {
 			auto pair = other.GetPair(i);
@@ -302,31 +302,31 @@ namespace Langulus::Anyness
 	/// Add a pair																					
 	TEMPLATE()
 	Count MAP()::Add(Key&& k, Value&& v, const Index& index)
-	requires MoveConstructible<K> && MoveConstructible<V> {
+	requires IsMoveConstructible<K> && IsMoveConstructible<V> {
 		return Emplace(Pair(Forward<Key>(k), Forward<Value>(v)), index);
 	}
 
 	TEMPLATE()
 	Count MAP()::Add(const Key& k, Value&& v, const Index& index)
-	requires CopyConstructible<K> && MoveConstructible<V> {
+	requires IsCopyConstructible<K> && IsMoveConstructible<V> {
 		return Emplace(Pair(k, Forward<Value>(v)), index);
 	}
 
 	TEMPLATE()
 	Count MAP()::Add(Key&& k, const Value& v, const Index& index)
-	requires MoveConstructible<K> && CopyConstructible<V> {
+	requires IsMoveConstructible<K> && IsCopyConstructible<V> {
 		return Emplace(Pair(Forward<Key>(k), v), index);
 	}
 
 	TEMPLATE()
 	Count MAP()::Add(const Key& k, const Value& v, const Index& index)
-	requires CopyConstructible<K> && CopyConstructible<V> {
+	requires IsCopyConstructible<K> && IsCopyConstructible<V> {
 		return Emplace(Pair(k, v), index);
 	}
 
 	TEMPLATE()
 	Count MAP()::Add(Key& k, Value& v, const Index& index)
-	requires CopyConstructible<K> && CopyConstructible<V> {
+	requires IsCopyConstructible<K> && IsCopyConstructible<V> {
 		return Emplace(Pair(k, v), index);
 	}
 
@@ -374,7 +374,7 @@ namespace Langulus::Anyness
 	
 	/// Iteration																					
 	TEMPLATE()
-	template<Function F>
+	template<class F>
 	Count MAP()::ForEach(F&& call) {
 		using Iterator = decltype(GetLambdaArguments(&F::operator()));
 		if constexpr (Inherits<Iterator, Inner::APair>) {
@@ -391,7 +391,7 @@ namespace Langulus::Anyness
 
 	/// Reverse iteration																		
 	TEMPLATE()
-	template<Function F>
+	template<class F>
 	Count MAP()::ForEachRev(F&& call) {
 		using Iterator = decltype(GetLambdaArguments(&F::operator()));
 		if constexpr (Inherits<Iterator, Inner::APair>) {
@@ -407,7 +407,7 @@ namespace Langulus::Anyness
 	}
 
 	TEMPLATE()
-	template<Function F>
+	template<class F>
 	Count MAP()::ForEach(F&& call) const {
 		using Iterator = decltype(GetLambdaArguments(&F::operator()));
 		if constexpr (Inherits<Iterator, Inner::APair>) {
@@ -416,8 +416,8 @@ namespace Langulus::Anyness
 			using ItVal = typename Iterator::Value;
 			static_assert(Inherits<Key, ItKey>, "Incompatible key type for map iteration");
 			static_assert(Inherits<Value, ItVal>, "Incompatible value type for map iteration");
-			static_assert(Constant<ItKey>, "Non constant key iterator for constant map");
-			static_assert(Constant<ItVal>, "Non constant value iterator for constant map");
+			static_assert(Langulus::IsConstant<ItKey>, "Non constant key iterator for constant map");
+			static_assert(Langulus::IsConstant<ItVal>, "Non constant value iterator for constant map");
 			using R = decltype(call(::std::declval<ItKey>(), ::std::declval<ItVal>()));
 			return ForEachInner<R, ItKey, ItVal, false>(Forward<F>(call));
 		}
@@ -425,7 +425,7 @@ namespace Langulus::Anyness
 	}
 
 	TEMPLATE()
-	template<Function F>
+	template<class F>
 	Count MAP()::ForEachRev(F&& call) const {
 		using Iterator = decltype(GetLambdaArguments(&F::operator()));
 		if constexpr (Inherits<Iterator, Inner::APair>) {
@@ -434,22 +434,22 @@ namespace Langulus::Anyness
 			using ItVal = typename Iterator::Value;
 			static_assert(Inherits<Key, ItKey>, "Incompatible key type for map iteration");
 			static_assert(Inherits<Value, ItVal>, "Incompatible value type for map iteration");
-			static_assert(Constant<ItKey>, "Non constant key iterator for constant map");
-			static_assert(Constant<ItVal>, "Non constant value iterator for constant map");
+			static_assert(Langulus::IsConstant<ItKey>, "Non constant key iterator for constant map");
+			static_assert(Langulus::IsConstant<ItVal>, "Non constant value iterator for constant map");
 			using R = decltype(call(::std::declval<ItKey>(), ::std::declval<ItVal>()));
 			return ForEachInner<R, ItKey, ItVal, true>(Forward<F>(call));
 		}
 		else TODO();
 	}
 
-	/// Constant iteration																		
+	/// IsConstant iteration																		
 	TEMPLATE()
-	template<class RETURN, ReflectedData ALT_KEY, ReflectedData ALT_VALUE, bool REVERSE>
-	Count MAP()::ForEachInner(TFunctor<RETURN(ALT_KEY, ALT_VALUE)>&& call) {
+	template<class R, ReflectedData ALT_KEY, ReflectedData ALT_VALUE, bool REVERSE>
+	Count MAP()::ForEachInner(TFunctor<R(ALT_KEY, ALT_VALUE)>&& call) {
 		if (IsEmpty())
 			return 0;
 
-		constexpr bool HasBreaker = Same<bool, RETURN>;
+		constexpr bool HasBreaker = IsSame<bool, R>;
 		const auto count = GetCount();
 		Count index {};
 		while (index < count) {
@@ -475,7 +475,7 @@ namespace Langulus::Anyness
 		return index;
 	}
 
-	/// Constant iteration																		
+	/// IsConstant iteration																		
 	TEMPLATE()
 	template<class R, ReflectedData ALT_K, ReflectedData ALT_V, bool REVERSE>
 	Count MAP()::ForEachInner(TFunctor<R(ALT_K, ALT_V)>&& call) const {
@@ -485,7 +485,7 @@ namespace Langulus::Anyness
 
 } // namespace Langulus::Anyness
 
-#undef MAP()
-	
-#undef TEMPLATE() 
+#undef MAP
+#undef TEMPLATE
+
 	

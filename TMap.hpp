@@ -77,10 +77,10 @@ namespace Langulus::Anyness
 
 		template<class ALT_V>
 		Count Merge(const K&, const ALT_V&)
-			requires CopyConstructible<K> && CopyConstructible<V>;
+			requires IsCopyConstructible<K> && IsCopyConstructible<V>;
 
 		Count Merge(const TMap&)
-			requires CopyConstructible<K> && CopyConstructible<V>;
+			requires IsCopyConstructible<K> && IsCopyConstructible<V>;
 
 		Count Emplace(Pair&&, const Index& = Index::Back);
 		Count Insert(const Pair*, const Count& = 1, const Index& = Index::Back);
@@ -89,38 +89,38 @@ namespace Langulus::Anyness
 		TMap& operator >> (Pair&&);
 
 		Count Add(K&&, V&&, const Index& = Index::Back)
-			requires MoveConstructible<K> && MoveConstructible<V>;
+			requires IsMoveConstructible<K> && IsMoveConstructible<V>;
 		
 		Count Add(const K&, V&&, const Index& = Index::Back)
-			requires CopyConstructible<K> && MoveConstructible<V>;
+			requires IsCopyConstructible<K> && IsMoveConstructible<V>;
 		
 		Count Add(K&&, const V&, const Index& = Index::Back) 
-			requires MoveConstructible<K> && CopyConstructible<V>;
+			requires IsMoveConstructible<K> && IsCopyConstructible<V>;
 		
 		Count Add(const K&, const V&, const Index& = Index::Back) 
-			requires CopyConstructible<K> && CopyConstructible<V>;
+			requires IsCopyConstructible<K> && IsCopyConstructible<V>;
 		
 		Count Add(K&, V&, const Index& = Index::Back)
-			requires CopyConstructible<K> && CopyConstructible<V>;
+			requires IsCopyConstructible<K> && IsCopyConstructible<V>;
 
 		void Sort(const Index&);
 
-		template<Function F>
+		template<class F>
 		Count ForEach(F&&);
-		template<Function F>
+		template<class F>
 		Count ForEach(F&&) const;
 
-		template<Function F>
+		template<class F>
 		Count ForEachRev(F&&);
-		template<Function F>
+		template<class F>
 		Count ForEachRev(F&&) const;
 
 	private:
-		template<class RETURN, ReflectedData ALT_KEY, ReflectedData ALT_VALUE, bool REVERSE>
-		Count ForEachInner(TFunctor<RETURN(ALT_KEY, ALT_VALUE)>&&);
+		template<class R, ReflectedData ALT_KEY, ReflectedData ALT_VALUE, bool REVERSE>
+		Count ForEachInner(TFunctor<R(ALT_KEY, ALT_VALUE)>&&);
 
-		template<class RETURN, ReflectedData ALT_KEY, ReflectedData ALT_VALUE, bool REVERSE>
-		Count ForEachInner(TFunctor<RETURN(ALT_KEY, ALT_VALUE)>&&) const;
+		template<class R, ReflectedData ALT_KEY, ReflectedData ALT_VALUE, bool REVERSE>
+		Count ForEachInner(TFunctor<R(ALT_KEY, ALT_VALUE)>&&) const;
 	};
 
 } // namespace Langulus::Anyness

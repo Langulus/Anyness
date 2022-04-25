@@ -123,7 +123,7 @@ namespace Langulus::Anyness
 	///	@return a static constant memory block											
 	const Block Block::GetMember(DMeta data, Count index) const {
 		auto result = const_cast<Block*>(this)->GetMember(data, index);
-		result.mState.mState |= DataState::Constant;
+		result.MakeConstant();
 		return result;
 	}
 
@@ -163,7 +163,7 @@ namespace Langulus::Anyness
 	///	@return a static constant memory block											
 	const Block Block::GetMember(std::nullptr_t, Count index) const {
 		auto result = const_cast<Block*>(this)->GetMember(nullptr, index);
-		result.mState.mState |= DataState::Constant;
+		result.MakeConstant();
 		return result;
 	}
 

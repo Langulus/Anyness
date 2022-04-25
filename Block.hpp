@@ -35,7 +35,7 @@ namespace Langulus::Anyness
 
 	/// Compression types, analogous to zlib's											
 	enum class Compression {
-		Nothing = 0,
+		None = 0,
 		Fastest = 1,
 		Balanced = 5,
 		Smallest = 9,
@@ -57,14 +57,14 @@ namespace Langulus::Anyness
 	};
 	
 	
-	///																							
-	///	BLOCK																					
-	///																							
-	///	Wraps an allocated memory block; acts as base to all containers.	
-	///	This is an inner structure, that doesn't reference any memory,		
-	/// only provides the functionality to do so. Avoid handling Block		
-	/// instances unless you know exactly what you're doing.						
-	///																							
+	///																								
+	///	BLOCK																						
+	///																								
+	///	Wraps an allocated memory block; acts as base to all containers.		
+	///	This is an inner structure, that doesn't reference any memory,			
+	/// only provides the functionality to do so. You can use Block as a			
+	/// lightweight intermediate structure for iteration, etc.						
+	///																								
 	class Block {
 		LANGULUS(DEEP);
 
@@ -96,21 +96,21 @@ namespace Langulus::Anyness
 			#if LANGULUS_DEBUG()
 				char* mRawChar;
 			#endif
-			// Raw pointer to first element inside the memory block	
+			// Raw pointer to first element inside the memory block			
 			Byte* mRaw {};
 			Byte** mRawSparse;
 		};
 	
-		// The data state																
+		// The data state																	
 		DataState mState {DataState::Default};
-		// Number of written instances inside memory block					
+		// IsNumber of written instances inside memory block					
 		Count mCount {};
-		// Number of allocated instances in the memory block				
+		// IsNumber of allocated instances in the memory block				
 		Count mReserved {};
-		// Type of the instances inside the memory block					
+		// Type of the instances inside the memory block						
 		DMeta mType {};
-		// Pointer to the allocated block										
-		// If entry is zero, then data is static								
+		// Pointer to the allocated block											
+		// If entry is zero, then data is static									
 		Entry* mEntry {};
 
 	public:
@@ -121,18 +121,24 @@ namespace Langulus::Anyness
 		~Block() noexcept = default;
 			
 		explicit constexpr Block(DMeta) noexcept;
-		Block(DMeta, Count, const Byte*) noexcept;
-		Block(DMeta, Count, Byte*) noexcept;
 		constexpr Block(const DataState&, DMeta) noexcept;
-		Block(const DataState&, DMeta, Count, const Byte*) noexcept;
-		Block(const DataState&, DMeta, Count, Byte*) noexcept;
+
+		Block(DMeta, Count, const void*) noexcept;
+		Block(DMeta, Count, void*) noexcept;
+		Block(DMeta, Count, const void*, Entry*) noexcept;
+		Block(DMeta, Count, void*, Entry*) noexcept;
+
+		Block(const DataState&, DMeta, Count, const void*) noexcept;
+		Block(const DataState&, DMeta, Count, void*) noexcept;
+		Block(const DataState&, DMeta, Count, const void*, Entry*) noexcept;
+		Block(const DataState&, DMeta, Count, void*, Entry*) noexcept;
 	
 		template<ReflectedData T>
-		NOD() static Block From(T) requires Sparse<T>;
+		NOD() static Block From(T) requires Langulus::IsSparse<T>;
 		template<ReflectedData T>
-		NOD() static Block From(T, Count) requires Sparse<T>;
+		NOD() static Block From(T, Count) requires Langulus::IsSparse<T>;
 		template<ReflectedData T>
-		NOD() static Block From(T&) requires Dense<T>;
+		NOD() static Block From(T&) requires Langulus::IsDense<T>;
 		template<ReflectedData T>
 		NOD() static Block From();
 
@@ -182,7 +188,7 @@ namespace Langulus::Anyness
 		NOD() constexpr bool CanFitState(const Block&) const noexcept;
 		NOD() constexpr Count GetSize() const noexcept;
 		NOD() constexpr Token GetToken() const noexcept;
-		NOD() constexpr Stride GetStride() const noexcept;
+		NOD() constexpr Size GetStride() const noexcept;
 		NOD() constexpr const DataState& GetState() const noexcept;
 		NOD() constexpr DataState GetUnconstrainedState() const noexcept;
 		NOD() constexpr Byte* GetRaw() noexcept;
@@ -348,12 +354,12 @@ namespace Langulus::Anyness
 		void Shrink(Count);
 	
 		#if LANGULUS_FEATURE(ZLIB)
-			Stride Compress(Block&, Compression = Compression::Default) const;
-			Stride Decompress(Block&) const;
+			Size Compress(Block&, Compression = Compression::Default) const;
+			Size Decompress(Block&) const;
 		#endif
 
-		Stride Encrypt(Block&, const Hash*, const Count&) const;
-		Stride Decrypt(Block&, const Hash*, const Count&) const;
+		Size Encrypt(Block&, const Hash*, const Count&) const;
+		Size Decrypt(Block&, const Hash*, const Count&) const;
 	
 		NOD() Hash GetHash() const;
 	
@@ -381,10 +387,10 @@ namespace Langulus::Anyness
 		Count InsertBlock(const Block&, const Index& = Index::Back);
 		Count InsertBlock(Block&&, const Index& = Index::Back);
 	
-		template<ReflectedData T, bool ALLOW_CONCAT = true, bool ALLOW_DEEPEN = true>
+		template<bool ALLOW_CONCAT = true, bool ALLOW_DEEPEN = true, ReflectedData T = Any>
 		Count SmartPush(const T&, DataState = {}, Index = Index::Back);
 	
-		template<Deep T, bool MOVE_STATE = true>
+		template<Anyness::IsDeep T, bool MOVE_STATE = true>
 		T& Deepen();
 	
 		template<ReflectedData T>
@@ -425,10 +431,10 @@ namespace Langulus::Anyness
 		NOD() Index ConstrainMore(const Index&) const noexcept;
 	
 		template<ReflectedData T>
-		NOD() Index GetIndexMax() const noexcept requires Sortable<T>;
+		NOD() Index GetIndexMax() const noexcept requires IsSortable<T>;
 	
 		template<ReflectedData T>
-		NOD() Index GetIndexMin() const noexcept requires Sortable<T>;
+		NOD() Index GetIndexMin() const noexcept requires IsSortable<T>;
 	
 		template<ReflectedData T>
 		NOD() Index GetIndexMode(Count&) const noexcept;
@@ -459,10 +465,10 @@ namespace Langulus::Anyness
 		void Reset();
 
 	protected:
-		static void CopyMemory(const void*, void*, const Stride&) noexcept;
-		static void MoveMemory(const void*, void*, const Stride&) noexcept;
-		static void FillMemory(void*, Byte, const Stride&) noexcept;
-		NOD() static int CompareMemory(const void*, const void*, const Stride&) noexcept;
+		static void CopyMemory(const void*, void*, const Size&) noexcept;
+		static void MoveMemory(const void*, void*, const Size&) noexcept;
+		static void FillMemory(void*, Byte, const Size&) noexcept;
+		NOD() static int CompareMemory(const void*, const void*, const Size&) noexcept;
 		
 		constexpr void ClearInner() noexcept;
 		constexpr void ResetMemory() noexcept;
@@ -483,7 +489,7 @@ namespace Langulus::Anyness
 		void CallMoveConstructors(Block&&);
 		void CallDestructors();
 	
-		Stride AllocateRegion(const Block&, const Index&, Block&);
+		Size AllocateRegion(const Block&, const Index&, Block&);
 	
 		template<class FROM, class TO>
 		static Count ConvertSymmetric(const Block&, Block&);

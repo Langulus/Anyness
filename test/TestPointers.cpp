@@ -6,9 +6,9 @@ SCENARIO("Shared pointer manipulation", "[TPointer]") {
 		Ptr<int> pointer;
 		Ptr<int> pointer2;
 
-		REQUIRE(!pointer.Get());
-		REQUIRE(!pointer);
+		REQUIRE_FALSE(pointer.Get());
 		REQUIRE_FALSE(pointer);
+		REQUIRE(pointer == pointer2);
 
 		WHEN("Create an instance") {
 			pointer = Ptr<int>::Create(5);
@@ -59,8 +59,8 @@ SCENARIO("Shared pointer manipulation", "[TPointer]") {
 				REQUIRE(pointer == pointer2);
 				REQUIRE(*pointer == 6);
 				REQUIRE(*pointer2 == 6);
-				REQUIRE(PCMEMORY.CheckJurisdiction(pointer.GetMeta(), backup));
-				REQUIRE(!PCMEMORY.CheckUsage(pointer.GetMeta(), backup));
+				REQUIRE(Allocator::CheckAuthority(pointer.GetType(), backup));
+				REQUIRE_FALSE(Allocator::Find(pointer.GetType(), backup));
 				REQUIRE(pointer2.HasAuthority());
 				REQUIRE(pointer.HasAuthority());
 				REQUIRE(pointer.GetReferences() == 2);
@@ -97,14 +97,14 @@ SCENARIO("Shared pointer manipulation", "[TPointer]") {
 		WHEN("Given an xvalue pointer and then reset") {
 			auto raw = new Any {3};
 			pointer = Move(raw);
-			PCMEMORY.Reference(pointer.GetMeta(), raw, -1);
+			auto unused = Allocator::Free(pointer.GetType(), raw, 1);
 			pointer = nullptr;
 
 			THEN("Should have released the resources") {
-				REQUIRE(!raw->CheckJurisdiction());
-				REQUIRE(PCMEMORY.CheckJurisdiction(pointer.GetMeta(), raw));
-				REQUIRE(!PCMEMORY.CheckUsage(pointer.GetMeta(), raw));
-				REQUIRE(!pointer.HasAuthority());
+				REQUIRE_FALSE(raw->HasAuthority());
+				REQUIRE(Allocator::CheckAuthority(pointer.GetType(), raw));
+				REQUIRE_FALSE(Allocator::Find(pointer.GetType(), raw));
+				REQUIRE_FALSE(pointer.HasAuthority());
 			}
 		}
 
@@ -116,7 +116,7 @@ SCENARIO("Shared pointer manipulation", "[TPointer]") {
 				REQUIRE(pointer == raw);
 				REQUIRE(*pointer == *raw);
 				REQUIRE(pointer.HasAuthority());
-				REQUIRE(2 == pointer.GetReferences());
+				REQUIRE(pointer.GetReferences() == 2);
 			}
 		}
 	}

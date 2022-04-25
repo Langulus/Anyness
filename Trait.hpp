@@ -16,7 +16,7 @@ namespace Langulus::Anyness
 	public:
 		template<class T>
 		static constexpr bool NotCustom =
-			Sparse<T> || (!Same<T, Any> && !Same<T, Block> && !Same<T, Trait>);
+			Langulus::IsSparse<T> || (!IsSame<T, Any> && !IsSame<T, Block> && !IsSame<T, Trait>);
 
 		constexpr Trait() noexcept : Any{} {}
 		Trait(TMeta);
@@ -86,6 +86,16 @@ namespace Langulus::Anyness
 		NOD() bool operator != (const Trait&) const noexcept;
 		NOD() bool operator != (TMeta) const noexcept;
 	};
+
+	namespace Traits
+	{
+
+		class Count : public Trait {
+		public:
+			using Trait::Trait;
+		};
+
+	} // namespace Langulus::Anyness::Traits
 
 } // namespace Langulus::Anyness
 

@@ -14,13 +14,13 @@ namespace Langulus::Anyness
 	///	@param size - the number of bytes to allocate								
 	///	@return a newly allocated memory that is correctly aligned				
 	///	@attention you are responsible for deallocating via AlignedFree 		
-	inline Byte* AlignedAllocate(const Stride& align, const Stride& size) {
+	inline Byte* AlignedAllocate(const Size& align, const Size& size) {
 		const auto padding = align + sizeof(void*);
 		auto mem = malloc(size + padding);
 		if (!mem)
 			throw Except::Allocate(Logger::Error() << "Out of memory");
 
-		auto ptr = (reinterpret_cast<Stride>(mem) + padding) & ~(align - 1);
+		auto ptr = (reinterpret_cast<Size>(mem) + padding) & ~(align - 1);
 		reinterpret_cast<void**>(ptr)[-1] = mem;
 		return *reinterpret_cast<Byte**>(ptr);
 	}
@@ -39,13 +39,13 @@ namespace Langulus::Anyness
 	///	@param size - the number of bytes to allocate								
 	///	@return a newly allocated memory that is correctly aligned				
 	///	@attention you are responsible for deallocating via AlignedFree 		
-	inline Byte* AlignedReallocate(Byte* old, const Stride& align, const Stride& size) {
+	inline Byte* AlignedReallocate(Byte* old, const Size& align, const Size& size) {
 		const auto padding = align + sizeof(void*);
 		auto mem = realloc(reinterpret_cast<void**>(old)[-1], size + padding);
 		if (!mem)
 			throw Except::Allocate(Logger::Error() << "Out of memory");
 
-		auto ptr = (reinterpret_cast<Stride>(mem) + padding) & ~(align - 1);
+		auto ptr = (reinterpret_cast<Size>(mem) + padding) & ~(align - 1);
 		reinterpret_cast<void**>(ptr)[-1] = mem;
 		return *reinterpret_cast<Byte**>(ptr);
 	}
@@ -110,11 +110,46 @@ namespace Langulus::Anyness
 	///	@param meta - the type of data to search for (optional)					
 	///	@param memory - memory pointer													
 	///	@param count - the number of references to add								
-	void Allocator::Reference(DMeta meta, const void* memory, Count count) {
+	void Allocator::Keep(DMeta meta, const void* memory, Count count) {
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
 			auto found = Find(meta, memory);
 			if (found)
 				found->mReferences += count;
+		#endif
+	}
+
+	/// Dereference some memory, which we do not know if owned or not				
+	/// If LANGULUS_FEATURE(MANAGED_MEMORY) is enabled, this function will		
+	/// attempt to find memory entry from the memory manager and dereference	
+	///	@attention this function does nothing if										
+	///              LANGULUS_FEATURE(MANAGED_MEMORY) is disabled. This has		
+	///				  dire consequences on sparse containers, since one can not	
+	///				  determine if a pointer is owned or not without it!			
+	///	@attention this will deallocate memory if fully dereferenced			
+	///				  which is troublesome if you need constructors being called
+	///				  Won't deallocate if LANGULUS_FEATURE(MANAGED_MEMORY) is	
+	///				  disabled																	
+	///	@param meta - the type of data to search for (optional)					
+	///	@param memory - memory pointer													
+	///	@param count - the number of references to add								
+	///	@return true if the memory has been fully dereferenced					
+	bool Allocator::Free(DMeta meta, const void* memory, Count count) {
+		#if LANGULUS_FEATURE(MANAGED_MEMORY)
+			auto found = Find(meta, memory);
+			if (!found)
+				// Data is either static or unallocated - don't touch it		
+				return false;
+
+			if (found->mReferences <= times) {
+				// Deallocate the entry													
+				Deallocate(meta, found);
+				return true;
+			}
+
+			found->mReferences -= count;
+			return false;
+		#else
+			return false;
 		#endif
 	}
 

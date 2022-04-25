@@ -15,7 +15,7 @@ namespace Langulus::Anyness
 	class TAny : public Any {
 	public:
 		static constexpr bool NotCustom =
-			Sparse<T> || (!Same<T, TAny<T>> && !Same<T, Any> && !Same<T, Block>);
+			Langulus::IsSparse<T> || (!IsSame<T, TAny<T>> && !IsSame<T, Any> && !IsSame<T, Block>);
 
 		TAny();
 		
@@ -87,21 +87,21 @@ namespace Langulus::Anyness
 		template<ReflectedData ALT_T = T>
 		NOD() decltype(auto) Get(const Offset&) noexcept;
 
-		NOD() decltype(auto) operator [] (const Offset&) const noexcept requires Dense<T>;
-		NOD() decltype(auto) operator [] (const Offset&) noexcept requires Dense<T>;
-		NOD() decltype(auto) operator [] (const Index&) const requires Dense<T>;
-		NOD() decltype(auto) operator [] (const Index&) requires Dense<T>;
+		NOD() decltype(auto) operator [] (const Offset&) const noexcept requires Langulus::IsDense<T>;
+		NOD() decltype(auto) operator [] (const Offset&) noexcept requires Langulus::IsDense<T>;
+		NOD() decltype(auto) operator [] (const Index&) const requires Langulus::IsDense<T>;
+		NOD() decltype(auto) operator [] (const Index&) requires Langulus::IsDense<T>;
 
 		struct SparseElement;
 
-		NOD() decltype(auto) operator [] (const Offset&) const noexcept requires Sparse<T>;
-		NOD() SparseElement  operator [] (const Offset&) noexcept requires Sparse<T>;
-		NOD() decltype(auto) operator [] (const Index&) const requires Sparse<T>;
-		NOD() SparseElement  operator [] (const Index&) requires Sparse<T>;
+		NOD() decltype(auto) operator [] (const Offset&) const noexcept requires Langulus::IsSparse<T>;
+		NOD() SparseElement  operator [] (const Offset&) noexcept requires Langulus::IsSparse<T>;
+		NOD() decltype(auto) operator [] (const Index&) const requires Langulus::IsSparse<T>;
+		NOD() SparseElement  operator [] (const Index&) requires Langulus::IsSparse<T>;
 
 		NOD() constexpr bool IsSparse() const noexcept;
 		NOD() constexpr bool IsDense() const noexcept;
-		NOD() constexpr Stride GetStride() const noexcept;
+		NOD() constexpr Size GetStride() const noexcept;
 
 		RANGED_FOR_INTEGRATION(TAny, T);
 
@@ -117,33 +117,35 @@ namespace Langulus::Anyness
 		TAny& operator <<= (const T&);
 		TAny& operator >>= (const T&);
 
-		NOD() Index Find(MakeConst<T>, const Index& = Index::Front) const;
-		Count Remove(MakeConst<T>, const Index& = Index::Front);
+		template<ReflectedData ALT_T = T>
+		NOD() Index Find(const ALT_T&, const Index& = Index::Front) const;
+		template<ReflectedData ALT_T = T>
+		Count Remove(const ALT_T&, const Index& = Index::Front);
 
 		void Sort(const Index&);
 
 		NOD() TAny& Trim(const Count&);
-		template<Deep WRAPPER = TAny>
+		template<Anyness::IsDeep WRAPPER = TAny>
 		NOD() WRAPPER Crop(const Offset&, const Count&) const;
-		template<Deep WRAPPER = TAny>
+		template<Anyness::IsDeep WRAPPER = TAny>
 		NOD() WRAPPER Crop(const Offset&, const Count&);
-		template<Deep WRAPPER = TAny>
+		template<Anyness::IsDeep WRAPPER = TAny>
 		NOD() WRAPPER Extend(const Count&);
 
 		void Swap(const Offset&, const Offset&);
 		void Swap(const Index&, const Index&);
 
 		template<class WRAPPER = TAny, class RHS>
-		WRAPPER& operator += (const RHS&);
+		TAny<T>& operator += (const RHS&);
 		template<class WRAPPER = TAny, class RHS>
 		NOD() WRAPPER operator + (const RHS&) const;
 
 		/// Concatenate anything with this container										
 		template<class WRAPPER = TAny, class LHS>
 		NOD() friend WRAPPER operator + (const LHS& lhs, const TAny<T>& rhs) requires (!Inherits<LHS, TAny<T>>) {
-			if constexpr (Sparse<LHS>)
+			if constexpr (Langulus::IsSparse<LHS>)
 				return operator + (*lhs, rhs);
-			else if constexpr (Convertible<LHS, WRAPPER>) {
+			else if constexpr (Langulus::IsConvertible<LHS, WRAPPER>) {
 				auto result = static_cast<WRAPPER>(lhs);
 				result += rhs;
 				return result;
@@ -163,7 +165,7 @@ namespace Langulus::Anyness
 	///																								
 	template<ReflectedData T>
 	struct TAny<T>::SparseElement {
-		Conditional<Constant<T>, const T&, T&> mElement;
+		Conditional<Langulus::IsConstant<T>, const T&, T&> mElement;
 
 		SparseElement& operator = (T);
 		SparseElement& operator = (::std::nullptr_t);

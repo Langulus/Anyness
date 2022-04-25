@@ -75,7 +75,7 @@ namespace Langulus::Anyness
 			TypedConstant = Constant | Typed
 		};
 
-		using Type = std::underlying_type_t<Enum>;
+		using Type = ::std::underlying_type_t<Enum>;
 
 		Type mState {Default};
 

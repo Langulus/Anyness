@@ -29,8 +29,8 @@ namespace Langulus::Anyness
 	///	@param meta - the type of the memory block									
 	///	@param count - initial element count and reserve							
 	///	@param raw - pointer to the mutable memory									
-	inline Block::Block(const DataState& state, DMeta meta, Count count, Byte* raw) noexcept
-		: mRaw {raw}
+	inline Block::Block(const DataState& state, DMeta meta, Count count, void* raw) noexcept
+		: mRaw {static_cast<Byte*>(raw)}
 		, mType {meta}
 		, mCount {count}
 		, mReserved {count}
@@ -42,21 +42,46 @@ namespace Langulus::Anyness
 	///	@param meta - the type of the memory block									
 	///	@param count - initial element count and reserve							
 	///	@param raw - pointer to the constant memory									
-	inline Block::Block(const DataState& state, DMeta meta, Count count, const Byte* raw) noexcept
-		: Block {state, meta, count, const_cast<Byte*>(raw)} {
+	inline Block::Block(const DataState& state, DMeta meta, Count count, const void* raw) noexcept
+		: Block {state, meta, count, const_cast<void*>(raw)} {
+		MakeConstant();
+	}
+
+	/// Manual construction from mutable data and preallocated entry				
+	///	@param state - the initial state of the container							
+	///	@param meta - the type of the memory block									
+	///	@param count - initial element count and reserve							
+	///	@param raw - pointer to the mutable memory									
+	///	@param entry - the memory entry													
+	inline Block::Block(const DataState& state, DMeta meta, Count count, void* raw, Entry* entry) noexcept
+		: mRaw {static_cast<Byte*>(raw)}
+		, mType {meta}
+		, mCount {count}
+		, mReserved {count}
+		, mState {state}
+		, mEntry {entry} { }
+	
+	/// Manual construction from constant data and preallocated entry				
+	///	@param state - the initial state of the container							
+	///	@param meta - the type of the memory block									
+	///	@param count - initial element count and reserve							
+	///	@param raw - pointer to the constant memory									
+	///	@param entry - the memory entry													
+	inline Block::Block(const DataState& state, DMeta meta, Count count, const void* raw, Entry* entry) noexcept
+		: Block {state, meta, count, const_cast<void*>(raw), entry} {
 		MakeConstant();
 	}
 
 	/// Create a memory block from a typed pointer										
 	///	@return the block																		
 	template<ReflectedData T>
-	Block Block::From(T value) requires Sparse<T> {
+	Block Block::From(T value) requires Langulus::IsSparse<T> {
 		return {DataState::Static, MetaData::Of<T>(), 1, value};
 	}
 
 	///	@return the block																		
 	template<ReflectedData T>
-	Block Block::From(T value, Count count) requires Sparse<T> {
+	Block Block::From(T value, Count count) requires Langulus::IsSparse<T> {
 		return {DataState::Static, MetaData::Of<T>(), count, value};
 	}
 
@@ -64,8 +89,8 @@ namespace Langulus::Anyness
 	/// No referencing shall occur, this simply initializes the block				
 	///	@return the block																		
 	template<ReflectedData T>
-	Block Block::From(T& value) requires Dense<T> {
-		if constexpr (Resolvable<T>)
+	Block Block::From(T& value) requires Langulus::IsDense<T> {
+		if constexpr (IsResolvable<T>)
 			return value.GetBlock();
 		else
 			return {DataState::Static, MetaData::Of<T>(), 1, &value};
@@ -227,7 +252,7 @@ namespace Langulus::Anyness
 	/// Check if block is marked as missing												
 	///	@returns true if this container is marked as vacuum						
 	constexpr bool Block::IsMissing() const noexcept {
-		return mState.mState & DataState::Missing;
+		return mState & DataState::Missing;
 	}
 
 	/// Check if block has a data type														
@@ -239,43 +264,43 @@ namespace Langulus::Anyness
 	/// Check if block has a data type, and is type-constrained						
 	///	@return true if type-constrained													
 	constexpr bool Block::IsTypeConstrained() const noexcept {
-		return mType && (mState.mState & DataState::Typed);
+		return mType && (mState & DataState::Typed);
 	}
 
 	/// Check if block is polarized															
 	///	@returns true if this pack is either left-, or right-polar				
 	constexpr bool Block::IsPhased() const noexcept {
-		return mState.mState & DataState::Phased;
+		return mState & DataState::Phased;
 	}
 
 	/// Check if block is encrypted															
 	///	@returns true if the contents of this pack are encrypted					
 	constexpr bool Block::IsEncrypted() const noexcept {
-		return mState.mState & DataState::Encrypted;
+		return mState & DataState::Encrypted;
 	}
 
 	/// Check if block is compressed															
 	///	@returns true if the contents of this pack are compressed				
 	constexpr bool Block::IsCompressed() const noexcept {
-		return mState.mState & DataState::Compressed;
+		return mState & DataState::Compressed;
 	}
 
 	/// Check if block is constant															
 	///	@returns true if the contents are immutable									
 	constexpr bool Block::IsConstant() const noexcept {
-		return mState.mState & DataState::Constant;
+		return mState & DataState::Constant;
 	}
 
 	/// Check if block is static																
 	///	@returns true if the contents are static (size-constrained)				
 	constexpr bool Block::IsStatic() const noexcept {
-		return mState.mState & DataState::Static || !mEntry;
+		return mState & DataState::Static || !mEntry;
 	}
 
 	/// Check if block is inhibitory (or) container										
 	///	@returns true if this is an inhibitory container							
 	constexpr bool Block::IsOr() const noexcept {
-		return mState.mState & DataState::Or;
+		return mState & DataState::Or;
 	}
 
 	/// Check if block contains no created elements (it may still have state)	
@@ -305,37 +330,37 @@ namespace Langulus::Anyness
 	/// Make memory block vacuum (a.k.a. missing)										
 	///	@return reference to itself														
 	constexpr void Block::MakeMissing() noexcept {
-		mState.mState |= DataState::Missing;
+		mState += DataState::Missing;
 	}
 
 	/// Make memory block static (unmovable and unresizable)							
 	///	@return reference to itself														
 	constexpr void Block::MakeStatic() noexcept {
-		mState.mState |= DataState::Static;
+		mState += DataState::Static;
 	}
 
 	/// Make memory block constant															
 	///	@return reference to itself														
 	constexpr void Block::MakeConstant() noexcept {
-		mState.mState |= DataState::Constant;
+		mState += DataState::Constant;
 	}
 
 	/// Make memory block type-immutable													
 	///	@return reference to itself														
 	constexpr void Block::MakeTypeConstrained() noexcept {
-		mState.mState |= DataState::Typed;
+		mState += DataState::Typed;
 	}
 
 	/// Make memory block exlusive (a.k.a. OR container)								
 	///	@return reference to itself														
 	constexpr void Block::MakeOr() noexcept {
-		mState.mState |= DataState::Or;
+		mState += DataState::Or;
 	}
 
 	/// Make memory block inclusive (a.k.a. AND container)							
 	///	@return reference to itself														
 	constexpr void Block::MakeAnd() noexcept {
-		mState.mState &= ~DataState::Or;
+		mState -= DataState::Or;
 	}
 
 	/// Set memory block phase to past														
@@ -400,7 +425,7 @@ namespace Langulus::Anyness
 
 	/// Get the size of the contained data, in bytes									
 	///	@return the byte size																
-	constexpr Stride Block::GetSize() const noexcept {
+	constexpr Size Block::GetSize() const noexcept {
 		return GetCount() * GetStride();
 	}
 
@@ -492,7 +517,7 @@ namespace Langulus::Anyness
 		return mType && mType->mIsDeep;
 	}
 
-	/// Deep (slower) check if there's anything missing inside nested blocks	
+	/// IsDeep (slower) check if there's anything missing inside nested blocks	
 	///	@return true if the deep or flat memory block contains missing stuff	
 	constexpr bool Block::IsMissingDeep() const {
 		if (IsMissing())
@@ -511,7 +536,7 @@ namespace Langulus::Anyness
 	///	@attention this returns size of pointer if container is sparse			
 	///	@attention this returns zero if block is untyped							
 	///	@return the size is bytes															
-	constexpr Stride Block::GetStride() const noexcept {
+	constexpr Size Block::GetStride() const noexcept {
 		return mState.IsSparse() ? sizeof(void*) : (mType ? mType->mSize : 0);
 	}
 	
@@ -650,17 +675,17 @@ namespace Langulus::Anyness
 		if (result.IsSpecial()) {
 			switch (result.mIndex) {
 			case Index::Biggest:
-				if constexpr (Sortable<T>)
+				if constexpr (IsSortable<T>)
 					return GetIndexMax<T>();
 				else return Index::None;
 				break;
 			case Index::Smallest:
-				if constexpr (Sortable<T>)
+				if constexpr (IsSortable<T>)
 					return GetIndexMin<T>();
 				else return Index::None;
 				break;
 			case Index::Mode:
-				if constexpr (Sortable<T>) {
+				if constexpr (IsSortable<T>) {
 					[[maybe_unused]] Count unused;
 					return GetIndexMode<T>(unused);
 				}
@@ -718,7 +743,7 @@ namespace Langulus::Anyness
 
 		if (mType->InterpretsAs<false>(type)) {
 			// Type is compatible, but only sparse data can mutate freely	
-			// Dense containers can't mutate because their destructors		
+			// IsDense containers can't mutate because their destructors		
 			// might be wrong later														
 			if (IsSparse())
 				mType = type;
@@ -808,20 +833,20 @@ namespace Langulus::Anyness
 		}
 
 		// Insert new data																
-		if constexpr (Sparse<T>) {
-			// Sparse data insertion (moving a pointer)							
+		if constexpr (Langulus::IsSparse<T>) {
+			// IsSparse data insertion (moving a pointer)							
 			auto data = GetRawSparse() + starter;
-			data = reinterpret_cast<Byte*>(item);
+			*data = reinterpret_cast<Byte*>(item);
 
 			// Reference the pointer's memory										
-			Allocator::Reference(mType, item, 1);
+			Allocator::Keep(mType, item, 1);
 		}
 		else {
-			static_assert(!Abstract<T>, "Can't emplace abstract item");
+			static_assert(!Langulus::IsAbstract<T>, "Can't emplace abstract item");
 
-			// Dense data insertion (placement move-construction)				
+			// IsDense data insertion (placement move-construction)				
 			auto data = GetRaw() + starter * sizeof(T);
-			if constexpr (MoveConstructible<T>)
+			if constexpr (IsMoveConstructible<T>)
 				new (data) T {Forward<T>(item)};
 			else
 				LANGULUS_ASSERT("Can't emplace non-move-constructible item");
@@ -865,8 +890,8 @@ namespace Langulus::Anyness
 
 		// Insert new data																
 		auto data = GetRaw() + starter * sizeof(T);
-		if constexpr (Sparse<T>) {
-			// Sparse data insertion (copying pointers and referencing)		
+		if constexpr (Langulus::IsSparse<T>) {
+			// IsSparse data insertion (copying pointers and referencing)		
 			// Doesn't care about abstract items									
 			CopyMemory(items, data, sizeof(T) * count);
 			Count c {};
@@ -883,19 +908,19 @@ namespace Langulus::Anyness
 			}
 		}
 		else {
-			static_assert(!Abstract<T>, "Can't insert abstract item");
+			static_assert(!Langulus::IsAbstract<T>, "Can't insert abstract item");
 
-			if constexpr (sizeof(T) == 1 || Same<T, wchar_t>) {
+			if constexpr (sizeof(T) == 1 || IsSame<T, wchar_t>) {
 				// Optimized byte/char/wchar_t insertion							
 				CopyMemory(items, data, count * sizeof(T));
 			}
-			else if constexpr (CopyConstructible<T>) {
-				// Dense data insertion (placement copy-construction)			
+			else if constexpr (IsCopyConstructible<T>) {
+				// IsDense data insertion (placement copy-construction)			
 				Count c {};
 				while (c < count) {
 					// Reset all items													
-					new (data + c * sizeof(T)) T { items[c] };
-					if constexpr (Same<T, Block>) {
+					new (data + c * sizeof(T)) T {items[c]};
+					if constexpr (IsSame<T, Block>) {
 						// Blocks don't have referencing copy-constructors,	
 						// so we have to compensate for that here					
 						items[c].Keep();
@@ -969,17 +994,17 @@ namespace Langulus::Anyness
 		// Search																			
 		auto item_ptr = MakeSparse(item);
 		for (auto i = starti; i < mCount && i >= 0; i += istep) {
-			auto left = MakeSparse(Get<T>(i));
+			auto left = MakeSparse(Get<T>(i.GetOffset()));
 			if (left == item_ptr) {
 				// Early success if pointers match									
 				return i;
 			}
 
-			if constexpr (Sparse<T>) {
+			if constexpr (Langulus::IsSparse<T>) {
 				// If searching for pointers - cease after pointer check		
 				continue;
 			}
-			else if constexpr (Resolvable<T>) {
+			else if constexpr (IsResolvable<T>) {
 				// Pointers didn't match, but we have ClassBlock				
 				// so we attempt to call reflected comparison operator		
 				// for the concrete types												
@@ -1001,7 +1026,7 @@ namespace Langulus::Anyness
 						"or in any relevant bases to fix this problem";
 				}
 			}
-			else if constexpr (Comparable<T>) {
+			else if constexpr (IsComparable<T>) {
 				// Pointers didn't match, but we have dense & comparable		
 				// type, so attempt to compare using == operator				
 				if (*left == *item_ptr)
@@ -1052,7 +1077,7 @@ namespace Langulus::Anyness
 
 	/// Get the index of the biggest dense element										
 	template<ReflectedData T>
-	Index Block::GetIndexMax() const noexcept requires Sortable<T> {
+	Index Block::GetIndexMax() const noexcept requires IsSortable<T> {
 		if (IsEmpty())
 			return Index::None;
 
@@ -1068,7 +1093,7 @@ namespace Langulus::Anyness
 
 	/// Get the index of the smallest dense element										
 	template<ReflectedData T>
-	Index Block::GetIndexMin() const noexcept requires Sortable<T> {
+	Index Block::GetIndexMin() const noexcept requires IsSortable<T> {
 		if (IsEmpty())
 			return Index::None;
 
@@ -1098,7 +1123,7 @@ namespace Langulus::Anyness
 		for (Offset i = 0; i < mCount; ++i) {
 			Count counter {};
 			for (Count j = i; j < mCount; ++j) {
-				if constexpr (Comparable<T, T>) {
+				if constexpr (IsComparable<T, T>) {
 					// First we compare by memory pointer, then by ==			
 					if (MakeSparse(data[i]) == MakeSparse(data[j]) ||
 						 MakeDense(data[i])  == MakeDense(data[j]))
@@ -1168,9 +1193,9 @@ namespace Langulus::Anyness
 	///	@param attemptDeepen - whether or not deepening is allowed				
 	///	@param index - the index at which to insert (if needed)					
 	///	@return the number of pushed items (zero if unsuccessful)				
-	template<ReflectedData T, bool ALLOW_CONCAT, bool ALLOW_DEEPEN>
+	template<bool ALLOW_CONCAT, bool ALLOW_DEEPEN, ReflectedData T>
 	Count Block::SmartPush(const T& pack, DataState state, Index index) {
-		if constexpr (Deep<T>) {
+		if constexpr (Anyness::IsDeep<T>) {
 			// Early exit if nothing to push											
 			if (!pack.IsValid())
 				return 0;
@@ -1183,7 +1208,7 @@ namespace Langulus::Anyness
 		}
 
 		DMeta meta;
-		if constexpr (Deep<T>)
+		if constexpr (Anyness::IsDeep<T>)
 			meta = pack.GetType();
 		else
 			meta = MetaData::Of<T>();
@@ -1208,8 +1233,7 @@ namespace Langulus::Anyness
 			return 1;
 		}
 
-		[[maybe_unused]] const bool isOrCompliant = 
-				!(mCount > 1 && !IsOr() && state.IsOr());
+		[[maybe_unused]] const bool isOrCompliant = !(mCount > 1 && !IsOr() && state.IsOr());
 		
 		if constexpr (ALLOW_CONCAT) {
 			// If this container is compatible and concatenation is enabled
@@ -1233,11 +1257,11 @@ namespace Langulus::Anyness
 
 		// Finally, if allowed, force make the container deep in order to	
 		// push the pack inside															
-		if constexpr (Deep<T> && ALLOW_DEEPEN) {
+		if constexpr (Anyness::IsDeep<T> && ALLOW_DEEPEN) {
 			if (!IsTypeConstrained()) {
 				Deepen<T>();
 				SetState(mState + state);
-				return SmartPush<T, ALLOW_CONCAT, false>(pack, {}, index);
+				return SmartPush<ALLOW_CONCAT, false, T>(pack, {}, index);
 			}
 		}
 
@@ -1248,7 +1272,7 @@ namespace Langulus::Anyness
 	///	@tparam T - the type of deep container to use								
 	///	@tparam MOVE_STATE - whether or not to send the current state over	
 	///	@return a reference to this container											
-	template<Deep T, bool MOVE_STATE>
+	template<Anyness::IsDeep T, bool MOVE_STATE>
 	T& Block::Deepen() {
 		if (IsTypeConstrained() && !Is<T>()) {
 			throw Except::Mutate(Logger::Error()
@@ -1292,7 +1316,7 @@ namespace Langulus::Anyness
 		else
 			pointer = At(mType->mSize * idx) + baseOffset;
 
-		if constexpr (Dense<T>)
+		if constexpr (Langulus::IsDense<T>)
 			return *reinterpret_cast<Deref<T>*>(pointer);
 		else
 			return reinterpret_cast<Deref<T>>(pointer);
@@ -1342,7 +1366,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this memory block for chaining						
 	template<ReflectedData T>
 	Block& Block::operator << (const T& other) {
-		if constexpr (Array<T>)
+		if constexpr (IsArray<T>)
 			Insert<Decay<T>>(other, ExtentOf<T>, Index::Back);
 		else
 			Insert<T>(&other, 1, Index::Back);
@@ -1373,7 +1397,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this memory block for chaining						
 	template<ReflectedData T>
 	Block& Block::operator >> (const T& other) {
-		if constexpr (Array<T>)
+		if constexpr (IsArray<T>)
 			Insert<Decay<T>>(other, ExtentOf<T>, Index::Front);
 		else
 			Insert<T>(&other, 1, Index::Front);
@@ -1404,7 +1428,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this memory block for chaining						
 	template<ReflectedData T>
 	Block& Block::operator <<= (const T& other) {
-		if constexpr (Array<T>)
+		if constexpr (IsArray<T>)
 			Merge<Decay<T>>(other, ExtentOf<T>, Index::Back);
 		else
 			Merge<T>(&other, 1, Index::Back);
@@ -1416,60 +1440,53 @@ namespace Langulus::Anyness
 	///	@return a reference to this memory block for chaining						
 	template<ReflectedData T>
 	Block& Block::operator >>= (const T& other) {
-		if constexpr (Array<T>)
+		if constexpr (IsArray<T>)
 			Merge<Decay<T>>(other, ExtentOf<T>, Index::Front);
 		else
 			Merge<T>(&other, 1, Index::Front);
 		return *this;
 	}
 
-	template<bool MUTABLE, class FUNCTION>
-	Count Block::ForEach(FUNCTION&& call) {
-		using ArgumentType = decltype(GetLambdaArgument(&FUNCTION::operator()));
-		using ReturnType = decltype(call(std::declval<ArgumentType>()));
-		return ForEachInner<ReturnType, ArgumentType, false, MUTABLE>(
-			Forward<FUNCTION>(call));
+	template<bool MUTABLE, class F>
+	Count Block::ForEach(F&& call) {
+		using A = decltype(GetLambdaArgument(&F::operator()));
+		using R = decltype(call(std::declval<A>()));
+		return ForEachInner<R, A, false, MUTABLE>(Forward<F>(call));
 	}
 
-	template<class FUNCTION>
-	Count Block::ForEach(FUNCTION&& call) const {
-		using ArgumentType = decltype(GetLambdaArgument(&FUNCTION::operator()));
-		static_assert(Constant<ArgumentType>, 
-			"Non constant iterator for constant memory block");
-		return const_cast<Block*>(this)->ForEach<false>(
-			Forward<FUNCTION>(call));
+	template<class F>
+	Count Block::ForEach(F&& call) const {
+		using A = decltype(GetLambdaArgument(&F::operator()));
+		static_assert(Langulus::IsConstant<A>, "Non constant iterator for constant memory block");
+		return const_cast<Block*>(this)->ForEach<false>(Forward<F>(call));
 	}
 
-	template<bool MUTABLE, class FUNCTION>
-	Count Block::ForEachRev(FUNCTION&& call) {
-		using ArgumentType = decltype(GetLambdaArgument(&FUNCTION::operator()));
-		using ReturnType = decltype(call(std::declval<ArgumentType>()));
-		return ForEachInner<ReturnType, ArgumentType, true, MUTABLE>(
-			Forward<FUNCTION>(call));
+	template<bool MUTABLE, class F>
+	Count Block::ForEachRev(F&& call) {
+		using A = decltype(GetLambdaArgument(&F::operator()));
+		using R = decltype(call(std::declval<A>()));
+		return ForEachInner<R, A, true, MUTABLE>(Forward<F>(call));
 	}
 
-	template<class FUNCTION>
-	Count Block::ForEachRev(FUNCTION&& call) const {
-		using ArgumentType = decltype(GetLambdaArgument(&FUNCTION::operator()));
-		static_assert(Constant<ArgumentType>, 
-			"Non constant iterator for constant memory block");
-		return const_cast<Block*>(this)->ForEachRev<false>(
-			Forward<FUNCTION>(call));
+	template<class F>
+	Count Block::ForEachRev(F&& call) const {
+		using A = decltype(GetLambdaArgument(&F::operator()));
+		static_assert(Langulus::IsConstant<A>, "Non constant iterator for constant memory block");
+		return const_cast<Block*>(this)->ForEachRev<false>(Forward<F>(call));
 	}
 
-	template<bool SKIP_DEEP_OR_EMPTY, bool MUTABLE, class FUNCTION>
-	Count Block::ForEachDeep(FUNCTION&& call) {
-		using ArgumentType = decltype(GetLambdaArgument(&FUNCTION::operator()));
-		using ReturnType = decltype(call(std::declval<ArgumentType>()));
-		if constexpr (Deep<ArgumentType>) {
+	template<bool SKIP, bool MUTABLE, class F>
+	Count Block::ForEachDeep(F&& call) {
+		using A = decltype(GetLambdaArgument(&F::operator()));
+		using R = decltype(call(std::declval<A>()));
+		if constexpr (Anyness::IsDeep<A>) {
 			// If argument type is deep												
-			return ForEachDeepInner<ReturnType, ArgumentType, false, SKIP_DEEP_OR_EMPTY, MUTABLE>(
-				Forward<FUNCTION>(call));
+			return ForEachDeepInner<R, A, false, SKIP, MUTABLE>(Forward<F>(call));
 		}
 		else {
 			// Any other type is wrapped inside another ForEachDeep call	
-			return ForEachDeep<SKIP_DEEP_OR_EMPTY, MUTABLE>([&call](Block& block) {
-				block.ForEach<MUTABLE, FUNCTION>(Forward<FUNCTION>(call));
+			return ForEachDeep<SKIP, MUTABLE>([&call](Block& block) {
+				block.ForEach<MUTABLE, F>(Forward<F>(call));
 			});
 		}
 	}
@@ -1477,71 +1494,69 @@ namespace Langulus::Anyness
 	template<bool SKIP, class F>
 	Count Block::ForEachDeep(F&& call) const {
 		using A = decltype(GetLambdaArgument(&F::operator()));
-		static_assert(Constant<A>, "Non constant iterator for constant memory block");
+		static_assert(Langulus::IsConstant<A>, "Non constant iterator for constant memory block");
 		return const_cast<Block*>(this)->ForEachDeep<SKIP, false>(Forward<F>(call));
 	}
 
-	template<bool SKIP_DEEP_OR_EMPTY, bool MUTABLE, class FUNCTION>
-	Count Block::ForEachDeepRev(FUNCTION&& call) {
-		using ArgumentType = decltype(GetLambdaArgument(&FUNCTION::operator()));
-		using ReturnType = decltype(call(std::declval<ArgumentType>()));
-		if constexpr (Deep<ArgumentType>) {
+	template<bool SKIP, bool MUTABLE, class F>
+	Count Block::ForEachDeepRev(F&& call) {
+		using A = decltype(GetLambdaArgument(&F::operator()));
+		using R = decltype(call(std::declval<A>()));
+		if constexpr (Anyness::IsDeep<A>) {
 			// If argument type is deep												
-			return ForEachDeepInner<ReturnType, ArgumentType, true, SKIP_DEEP_OR_EMPTY, MUTABLE>(
-				Forward<FUNCTION>(call));
+			return ForEachDeepInner<R, A, true, SKIP, MUTABLE>(
+				Forward<F>(call));
 		}
 		else {
 			// Any other type is wrapped inside another ForEachDeep call	
-			return ForEachDeepRev<SKIP_DEEP_OR_EMPTY, MUTABLE>([&call](Block& block) {
-				block.ForEachRev<FUNCTION>(Forward<FUNCTION>(call));
+			return ForEachDeepRev<SKIP, MUTABLE>([&call](Block& block) {
+				block.ForEachRev<F>(Forward<F>(call));
 			});
 		}
 	}
 
-	template<bool SKIP_DEEP_OR_EMPTY, class FUNCTION>
-	Count Block::ForEachDeepRev(FUNCTION&& call) const {
-		using ArgumentType = decltype(GetLambdaArgument(&FUNCTION::operator()));
-		static_assert(Constant<ArgumentType>, 
-			"Non constant iterator for constant memory block");
-		return const_cast<Block*>(this)->ForEachDeepRev<SKIP_DEEP_OR_EMPTY, false>(
-			Forward<FUNCTION>(call));
+	template<bool SKIP, class F>
+	Count Block::ForEachDeepRev(F&& call) const {
+		using A = decltype(GetLambdaArgument(&F::operator()));
+		static_assert(Langulus::IsConstant<A>, "Non constant iterator for constant memory block");
+		return const_cast<Block*>(this)->ForEachDeepRev<SKIP, false>(Forward<F>(call));
 	}
 
 	/// Iterate and execute call for each element										
 	///	@param call - the function to execute for each element of type T		
 	///	@return the number of executions that occured								
-	template<class RETURN, ReflectedData ARGUMENT, bool REVERSE, bool MUTABLE>
-	Count Block::ForEachInner(TFunctor<RETURN(ARGUMENT)>&& call) {
+	template<class R, ReflectedData A, bool REVERSE, bool MUTABLE>
+	Count Block::ForEachInner(TFunctor<R(A)>&& call) {
 		if (IsEmpty())
 			return 0;
 		 
 		[[maybe_unused]] auto initialCount = mCount;
-		constexpr bool HasBreaker = Same<bool, RETURN>;
+		constexpr bool HasBreaker = IsSame<bool, R>;
 		Count index {};
-		if (mType->Is<ARGUMENT>()) {
+		if (mType->Is<A>()) {
 			// Fast specialized routine that gives direct access				
 			// Uses Get<>() instead of As<>()										
 			while (index < mCount) {
 				// Iterator is a reference												
-				if constexpr (Dense<ARGUMENT>) {
+				if constexpr (Langulus::IsDense<A>) {
 					if constexpr (REVERSE) {
 						if constexpr (HasBreaker) {
-							if (!call(Get<ARGUMENT>(mCount - index - 1)))
+							if (!call(Get<A>(mCount - index - 1)))
 								return index + 1;
 						}
-						else call(Get<ARGUMENT>(mCount - index - 1));
+						else call(Get<A>(mCount - index - 1));
 					}
 					else {
 						if constexpr (HasBreaker) {
-							if (!call(Get<ARGUMENT>(index)))
+							if (!call(Get<A>(index)))
 								return index + 1;
 						}
-						else call(Get<ARGUMENT>(index));
+						else call(Get<A>(index));
 					}
 				}
 				else {
 					if constexpr (REVERSE) {
-						auto pointer = Get<ARGUMENT>(mCount - index - 1);
+						auto pointer = Get<A>(mCount - index - 1);
 						if constexpr (HasBreaker) {
 							if (!call(pointer))
 								return index + 1;
@@ -1549,7 +1564,7 @@ namespace Langulus::Anyness
 						else call(pointer);
 					}
 					else {
-						auto pointer = Get<ARGUMENT>(index);
+						auto pointer = Get<A>(index);
 						if constexpr (HasBreaker) {
 							if (!call(pointer))
 								return index + 1;
@@ -1572,32 +1587,32 @@ namespace Langulus::Anyness
 
 			return index;
 		}
-		else if (mType->InterpretsAs<ARGUMENT>()) {
+		else if (mType->InterpretsAs<A>()) {
 			// Slow generalized routine that resolved each element			
 			// Uses As<>() instead of Get<>()										
 			Count successes {};
 			while (index < mCount) {
 				try {
 					// Iterator is a reference											
-					if constexpr (Dense<ARGUMENT>) {
+					if constexpr (Langulus::IsDense<A>) {
 						if constexpr (REVERSE) {
 							if constexpr (HasBreaker) {
-								if (!call(As<ARGUMENT>(mCount - index - 1)))
+								if (!call(As<A>(mCount - index - 1)))
 									return successes + 1;
 							}
-							else call(As<ARGUMENT>(mCount - index - 1));
+							else call(As<A>(mCount - index - 1));
 						}
 						else {
 							if constexpr (HasBreaker) {
-								if (!call(As<ARGUMENT>(index)))
+								if (!call(As<A>(index)))
 									return successes + 1;
 							}
-							else call(As<ARGUMENT>(index));
+							else call(As<A>(index));
 						}
 					}
 					else {
 						if constexpr (REVERSE) {
-							auto pointer = As<ARGUMENT>(mCount - index - 1);
+							auto pointer = As<A>(mCount - index - 1);
 							if constexpr (HasBreaker) {
 								if (!call(pointer))
 									return successes + 1;
@@ -1605,7 +1620,7 @@ namespace Langulus::Anyness
 							else call(pointer);
 						}
 						else {
-							auto pointer = As<ARGUMENT>(index);
+							auto pointer = As<A>(index);
 							if constexpr (HasBreaker) {
 								if (!call(pointer))
 									return successes + 1;
@@ -1647,9 +1662,9 @@ namespace Langulus::Anyness
 	/// Iterate and execute call for each element										
 	///	@param call - the function to execute for each element of type T		
 	///	@return the number of executions that occured								
-	template<class RETURN, ReflectedData ARGUMENT, bool REVERSE>
-	Count Block::ForEachInner(TFunctor<RETURN(ARGUMENT)>&& call) const {
-		return const_cast<Block*>(this)->ForEachInner<RETURN, ARGUMENT, REVERSE, false>(
+	template<class R, ReflectedData A, bool REVERSE>
+	Count Block::ForEachInner(TFunctor<R(A)>&& call) const {
+		return const_cast<Block*>(this)->ForEachInner<R, A, REVERSE, false>(
 			Forward<decltype(call)>(call));
 	}
 	
@@ -1658,7 +1673,7 @@ namespace Langulus::Anyness
 	///	@return the number of executions that occured								
 	template<class RETURN, ReflectedData ARGUMENT, bool REVERSE, bool SKIP_DEEP_OR_EMPTY, bool MUTABLE>
 	Count Block::ForEachDeepInner(TFunctor<RETURN(ARGUMENT)>&& call) {
-		constexpr bool HasBreaker = Same<bool, RETURN>;
+		constexpr bool HasBreaker = IsSame<bool, RETURN>;
 		[[maybe_unused]] bool atLeastOneChange = false;
 		auto count {GetCountDeep()};
 		Count index {};
@@ -1725,7 +1740,7 @@ namespace Langulus::Anyness
 	///	@param from - source of data to copy											
 	///	@param to - [out] destination memory											
 	///	@param size - number of bytes to copy											
-	inline void Block::CopyMemory(const void* from, void* to, const Stride& size) noexcept {
+	inline void Block::CopyMemory(const void* from, void* to, const Size& size) noexcept {
 		::std::memcpy(to, from, size);
 	}
 	
@@ -1733,7 +1748,7 @@ namespace Langulus::Anyness
 	///	@param from - source of data to move											
 	///	@param to - [out] destination memory											
 	///	@param size - number of bytes to move											
-	inline void Block::MoveMemory(const void* from, void* to, const Stride& size) noexcept {
+	inline void Block::MoveMemory(const void* from, void* to, const Size& size) noexcept {
 		::std::memmove(to, from, size);
 		#if LANGULUS(PARANOID)
 			TODO() // zero old memory, but beware - `from` and `to` might overlap
@@ -1744,7 +1759,7 @@ namespace Langulus::Anyness
 	///	@param to - [out] destination memory											
 	///	@param filler - the byte to fill with											
 	///	@param size - number of bytes to move											
-	inline void Block::FillMemory(void* to, Byte filler, const Stride& size) noexcept {
+	inline void Block::FillMemory(void* to, Byte filler, const Size& size) noexcept {
 		::std::memset(to, static_cast<int>(filler), size);
 	}
 	
@@ -1752,7 +1767,7 @@ namespace Langulus::Anyness
 	///	@param a1 - size of first array													
 	///	@param a2 - size of second array													
 	///	@param size - number of bytes to compare										
-	inline int Block::CompareMemory(const void* a1, const void* a2, const Stride& size) noexcept {
+	inline int Block::CompareMemory(const void* a1, const void* a2, const Size& size) noexcept {
 		return ::std::memcmp(a1, a2, size);
 	}
 

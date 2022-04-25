@@ -253,7 +253,7 @@ namespace Langulus::Anyness
 	///	@return true if able to interpret current type to 'type'					
 	TEMPLATE()
 	bool TAny<T>::InterpretsAs(DMeta type) const {
-		return mType->InterpretsAs<Sparse<T>>(type);
+		return mType->InterpretsAs<Langulus::IsSparse<T>>(type);
 	}
 
 	/// Check if contained data can be interpreted as a given count of type		
@@ -380,17 +380,17 @@ namespace Langulus::Anyness
 	template<ReflectedData K>
 	decltype(auto) TAny<T>::Get(const Offset& index) const noexcept {
 		const T& element = GetRaw()[index];
-		if constexpr (Dense<T> && Dense<K>)
-			// Dense -> Dense (returning a reference)								
+		if constexpr (Langulus::IsDense<T> && Langulus::IsDense<K>)
+			// IsDense -> IsDense (returning a reference)								
 			return static_cast<const Decay<K>&>(element);
-		else if constexpr (Sparse<T> && Dense<K>)
-			// Sparse -> Dense (returning a reference)							
+		else if constexpr (Langulus::IsSparse<T> && Langulus::IsDense<K>)
+			// IsSparse -> IsDense (returning a reference)							
 			return static_cast<const Decay<K>&>(*element);
-		else if constexpr (Dense<T> && Sparse<K>)
-			// Dense -> Sparse (returning a pointer)								
+		else if constexpr (Langulus::IsDense<T> && Langulus::IsSparse<K>)
+			// IsDense -> IsSparse (returning a pointer)								
 			return static_cast<const Decay<K>*>(&element);
 		else
-			// Sparse -> Sparse (returning a reference to pointer)			
+			// IsSparse -> IsSparse (returning a reference to pointer)			
 			return static_cast<const Decay<K>* const&>(element);
 	}
 
@@ -400,17 +400,17 @@ namespace Langulus::Anyness
 	template<ReflectedData K>
 	decltype(auto) TAny<T>::Get(const Offset& index) noexcept {
 		T& element = GetRaw()[index];
-		if constexpr (Dense<T> && Dense<K>)
-			// Dense -> Dense (returning a reference)								
+		if constexpr (Langulus::IsDense<T> && Langulus::IsDense<K>)
+			// IsDense -> IsDense (returning a reference)								
 			return static_cast<Decay<K>&>(element);
-		else if constexpr (Sparse<T> && Dense<K>)
-			// Sparse -> Dense (returning a reference)							
+		else if constexpr (Langulus::IsSparse<T> && Langulus::IsDense<K>)
+			// IsSparse -> IsDense (returning a reference)							
 			return static_cast<Decay<K>&>(*element);
-		else if constexpr (Dense<T> && Sparse<K>)
-			// Dense -> Sparse (returning a pointer)								
+		else if constexpr (Langulus::IsDense<T> && Langulus::IsSparse<K>)
+			// IsDense -> IsSparse (returning a pointer)								
 			return static_cast<Decay<K>*>(&element);
 		else
-			// Sparse -> Sparse (returning a reference to pointer)			
+			// IsSparse -> IsSparse (returning a reference to pointer)			
 			return static_cast<Decay<K>*&>(element);
 	}
 
@@ -418,12 +418,12 @@ namespace Langulus::Anyness
 	///	@param idx - the index to get														
 	///	@return a reference to the element												
 	TEMPLATE()
-	decltype(auto) TAny<T>::operator [] (const Offset& index) noexcept requires Dense<T> {
+	decltype(auto) TAny<T>::operator [] (const Offset& index) noexcept requires Langulus::IsDense<T> {
 		return Get<T>(index);
 	}
 
 	TEMPLATE()
-	decltype(auto) TAny<T>::operator [] (const Offset& index) const noexcept requires Dense<T> {
+	decltype(auto) TAny<T>::operator [] (const Offset& index) const noexcept requires Langulus::IsDense<T> {
 		return Get<T>(index);
 	}
 
@@ -431,12 +431,12 @@ namespace Langulus::Anyness
 	///	@param idx - the index to get														
 	///	@return a constant reference to the element									
 	TEMPLATE()
-	decltype(auto) TAny<T>::operator [] (const Index& index) requires Dense<T> {
+	decltype(auto) TAny<T>::operator [] (const Index& index) requires Langulus::IsDense<T> {
 		return Get<T>(Block::ConstrainMore<T>(index).GetOffset());
 	}
 
 	TEMPLATE()
-	decltype(auto) TAny<T>::operator [] (const Index& index) const requires Dense<T> {
+	decltype(auto) TAny<T>::operator [] (const Index& index) const requires Langulus::IsDense<T> {
 		return const_cast<TAny<T>&>(*this).operator [] (index);
 	}
 
@@ -445,12 +445,12 @@ namespace Langulus::Anyness
 	///	@param idx - the index to get														
 	///	@return a reference to the element												
 	TEMPLATE()
-	typename TAny<T>::SparseElement TAny<T>::operator [] (const Offset& index) noexcept requires Sparse<T> {
+	typename TAny<T>::SparseElement TAny<T>::operator [] (const Offset& index) noexcept requires Langulus::IsSparse<T> {
 		return {Get<T>(index)};
 	}
 
 	TEMPLATE()
-	decltype(auto) TAny<T>::operator [] (const Offset& index) const noexcept requires Sparse<T> {
+	decltype(auto) TAny<T>::operator [] (const Offset& index) const noexcept requires Langulus::IsSparse<T> {
 		return Get<T>(index);
 	}
 
@@ -459,12 +459,12 @@ namespace Langulus::Anyness
 	///	@param idx - the index to get														
 	///	@return a constant reference to the element									
 	TEMPLATE()
-	typename TAny<T>::SparseElement TAny<T>::operator [] (const Index& index) requires Sparse<T> {
+	typename TAny<T>::SparseElement TAny<T>::operator [] (const Index& index) requires Langulus::IsSparse<T> {
 		return {Get<T>(ConstrainMore<T>(index).GetOffset())};
 	}
 
 	TEMPLATE()
-	decltype(auto) TAny<T>::operator [] (const Index& index) const requires Sparse<T> {
+	decltype(auto) TAny<T>::operator [] (const Index& index) const requires Langulus::IsSparse<T> {
 		return Get<T>(ConstrainMore<T>(index).GetOffset());
 	}
 
@@ -486,20 +486,20 @@ namespace Langulus::Anyness
 	///	@return true if container contains pointers									
 	TEMPLATE()
 	constexpr bool TAny<T>::IsSparse() const noexcept {
-		return Sparse<T>; 
+		return Langulus::IsSparse<T>;
 	}
 
 	/// Check if the contained type is not a pointer									
 	///	@return true if container contains sequential data							
 	TEMPLATE()
 	constexpr bool TAny<T>::IsDense() const noexcept {
-		return Dense<T>;
+		return Langulus::IsDense<T>;
 	}
 
 	/// Get the size of a single contained element, in bytes							
 	///	@return the number of bytes a single element contains						
 	TEMPLATE()
-	constexpr Stride TAny<T>::GetStride() const noexcept {
+	constexpr Size TAny<T>::GetStride() const noexcept {
 		return sizeof(T); 
 	}
 
@@ -585,20 +585,28 @@ namespace Langulus::Anyness
 
 	/// Find element(s) position inside container										
 	TEMPLATE()
-	Index TAny<T>::Find(MakeConst<T> item, const Index& idx) const {
-		return Any::Find(item, idx);
+	template<ReflectedData ALT_T>
+	Index TAny<T>::Find(const ALT_T& item, const Index& idx) const {
+		if (!mCount)
+			return Index::None;
+
+		TODO();
+
+		// If this is reached, then no match was found							
+		return Index::None;
 	}
 
 	/// Remove matching items																	
 	TEMPLATE()
-	Count TAny<T>::Remove(MakeConst<T> item, const Index& idx) {
-		return Any::Remove(item, 1, idx);
+	template<ReflectedData ALT_T>
+	Count TAny<T>::Remove(const ALT_T& item, const Index& idx) {
+		return Any::Remove<T>(item, 1, idx);
 	}
 
 	/// Sort the pack																				
 	TEMPLATE()
 	void TAny<T>::Sort(const Index& first) {
-		if constexpr (Sortable<T>)
+		if constexpr (IsSortable<T>)
 			Any::Sort<T>(first);
 		else LANGULUS_ASSERT("Can't sort container - T is not sortable");
 	}
@@ -639,7 +647,7 @@ namespace Langulus::Anyness
 
 
 	///																								
-	///	Sparse element implementation														
+	///	IsSparse element implementation													
 	///																								
 	
 	/// When overwriting the element, the previous pointer must be dereference	
@@ -737,13 +745,13 @@ namespace Langulus::Anyness
 	///	@param count - the number of elements to initialize						
 	TEMPLATE()
 	void TAny<T>::CallDefaultConstructors(const Count& count) {
-		if constexpr (Nullifiable<T>) {
+		if constexpr (IsNullifiable<T>) {
 			// Just zero the memory (optimization)									
 			FillMemory(GetRawEnd(), {}, count * GetStride());
 			mCount += count;
 			return;
 		}
-		else if constexpr (DefaultConstructible<T>) {
+		else if constexpr (IsDefaultConstructible<T>) {
 			// Construct requested elements in place								
 			new (GetRawEnd()) T {}[count];
 			mCount += count;
@@ -756,7 +764,7 @@ namespace Langulus::Anyness
 	///			            use Block for unreferenced container					
 	///	@return a container that represents the cropped part						
 	TEMPLATE()
-	template<Deep WRAPPER>
+	template<Anyness::IsDeep WRAPPER>
 	WRAPPER TAny<T>::Crop(const Offset& start, const Count& count) const {
 		auto result = const_cast<TAny*>(this)->Crop<WRAPPER>(start, count);
 		result.MakeConstant();
@@ -768,7 +776,7 @@ namespace Langulus::Anyness
 	///			            use Block for unreferenced container					
 	///	@return a container that represents the cropped part						
 	TEMPLATE()
-	template<Deep WRAPPER>
+	template<Anyness::IsDeep WRAPPER>
 	WRAPPER TAny<T>::Crop(const Offset& start, const Count& count) {
 		CheckRange(start, count);
 		if (count == 0) {
@@ -789,7 +797,7 @@ namespace Langulus::Anyness
 	///			            use Block for unreferenced container					
 	///	@return a container that represents the extended part						
 	TEMPLATE()
-	template<Deep WRAPPER>
+	template<Anyness::IsDeep WRAPPER>
 	WRAPPER TAny<T>::Extend(const Count& count) {
 		if (!count || IsStatic())
 			// You can not extend static containers								
@@ -799,8 +807,8 @@ namespace Langulus::Anyness
 		const auto oldCount = mCount;
 		if (newCount <= mReserved) {
 			// There is enough available space										
-			if constexpr (POD<T>)
-				// No need to call constructors for POD items					
+			if constexpr (IsPOD<T>)
+				// No need to call constructors for IsPOD items					
 				mCount += count;
 			else
 				CallDefaultConstructors(count);
@@ -809,8 +817,8 @@ namespace Langulus::Anyness
 			// Allocate more space														
 			mEntry = Allocator::Reallocate(mType, newCount, mEntry);
 			mRaw = mEntry->GetBlockStart();
-			if constexpr (POD<T>) {
-				// No need to call constructors for POD items					
+			if constexpr (IsPOD<T>) {
+				// No need to call constructors for IsPOD items					
 				mCount = mReserved = newCount;
 			}
 			else {
@@ -829,10 +837,10 @@ namespace Langulus::Anyness
 	/// Destructive concatenation																
 	TEMPLATE()
 	template<class WRAPPER, class RHS>
-	WRAPPER& TAny<T>::operator += (const RHS& rhs) {
-		if constexpr (Sparse<RHS>)
-			return operator += (*rhs);
-		else if constexpr (POD<T> && Inherits<RHS, TAny>) {
+	TAny<T>& TAny<T>::operator += (const RHS& rhs) {
+		if constexpr (Langulus::IsSparse<RHS>)
+			return operator += <WRAPPER>(*rhs);
+		else if constexpr (IsPOD<T> && Inherits<RHS, TAny>) {
 			// Concatenate bytes directly (optimization)							
 			const auto count = rhs.GetCount();
 			Allocate(mCount + count, false, false);
@@ -840,9 +848,9 @@ namespace Langulus::Anyness
 			mCount += count;
 			return *this;
 		}
-		else if constexpr (Convertible<RHS, WRAPPER>) {
+		else if constexpr (IsConvertible<RHS, WRAPPER>) {
 			// Finally, attempt converting											
-			return operator += (static_cast<WRAPPER>(rhs));
+			return operator += <WRAPPER>(static_cast<WRAPPER>(rhs));
 		}
 		else LANGULUS_ASSERT("Can't concatenate - RHS is not convertible to WRAPPER");
 	}
@@ -851,9 +859,9 @@ namespace Langulus::Anyness
 	TEMPLATE()
 	template<class WRAPPER, class RHS>
 	WRAPPER TAny<T>::operator + (const RHS& rhs) const {
-		if constexpr (Sparse<RHS>)
-			return operator + (*rhs);
-		else if constexpr (POD<T> && Inherits<RHS, TAny>) {
+		if constexpr (Langulus::IsSparse<RHS>)
+			return operator + <WRAPPER>(*rhs);
+		else if constexpr (IsPOD<T> && Inherits<RHS, TAny>) {
 			// Concatenate bytes															
 			WRAPPER result {Disown(*this)};
 			result.mCount += rhs.mCount;
@@ -871,9 +879,9 @@ namespace Langulus::Anyness
 			CopyMemory(rhs.mRaw, result.mRaw + mCount, rhs.mCount);
 			return Abandon(result);
 		}
-		else if constexpr (Convertible<RHS, WRAPPER>) {
+		else if constexpr (IsConvertible<RHS, WRAPPER>) {
 			// Attempt converting														
-			return operator + (static_cast<WRAPPER>(rhs));
+			return operator + <WRAPPER>(static_cast<WRAPPER>(rhs));
 		}
 		else LANGULUS_ASSERT("Can't concatenate - RHS is not convertible to WRAPPER");
 	}

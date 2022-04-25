@@ -28,12 +28,12 @@ namespace Langulus::Anyness
 	using TMeta = const MetaTrait*;
 	using VMeta = const MetaVerb*;
 
-	
+
 	/// A reflected type is a type that has a public Reflection field				
 	/// This field is automatically added when using LANGULUS(REFLECT) macro	
 	/// inside the type you want to reflect												
 	template<class T>
-	concept Reflectable = requires { {Decay<T>::Reflect()} -> Same<MetaData>; };
+	concept Reflectable = requires { {Decay<T>::Reflect()} -> IsSame<MetaData>; };
 	
 	/// A reflected data type is any type that is not void, and is either		
 	/// manually reflected, or an implicitly reflected fundamental type			
@@ -55,7 +55,7 @@ namespace Langulus::Anyness
 	/// of their elements, instead on the container itself							
 	/// Use LANGULUS(DEEP) macro as member to tag deep types							
 	template<class T>
-	concept Deep = Inherits<T, Block> && Decay<T>::CTTI_Deep == true;
+	concept IsDeep = Inherits<T, Block> && Decay<T>::CTTI_Deep == true;
 	
 	/// A POD (Plain Old Data) type is any type with a static member				
 	/// T::CTTI_POD set to true. If no such member exists, the type is assumed	
@@ -65,7 +65,7 @@ namespace Langulus::Anyness
 	/// All POD types are also directly serializable to binary						
 	/// Use LANGULUS(POD) macro as member to tag POD types							
 	template<class T>
-	concept POD = ::std::is_trivial_v<Decay<T>> || Decay<T>::CTTI_POD == true;
+	concept IsPOD = ::std::is_trivial_v<Decay<T>> || Decay<T>::CTTI_POD == true;
 	
 	/// A nullifiable type is any type with a static member							
 	/// T::CTTI_Nullifiable set to true. If no such member exists, the type is 
@@ -74,7 +74,7 @@ namespace Langulus::Anyness
 	/// optimizations																				
 	/// Use LANGULUS(NULLIFIABLE) macro as member to tag nullifiable types		
 	template<class T>
-	concept Nullifiable = Decay<T>::CTTI_Nullifiable == true;
+	concept IsNullifiable = Decay<T>::CTTI_Nullifiable == true;
 	
 	///																								
 	///	These methods are sought in each reflected type								
@@ -139,7 +139,7 @@ namespace Langulus::Anyness
 		// in! If accessed through a derived type, that offset might		
 		// be wrong! Type must be resolved first!									
 		Offset mOffset {};
-		// Number of elements in mData (in case of an array)					
+		// IsNumber of elements in mData (in case of an array)					
 		Count mCount {1};
 		// Trait tag																		
 		TMeta mTrait {};
@@ -192,7 +192,7 @@ namespace Langulus::Anyness
 	struct Base {
 		// Type of the base																
 		DMeta mType {};
-		// Number of bases that fit in the type									
+		// IsNumber of bases that fit in the type									
 		Count mCount {1};
 		// Offset of the base, relative to the derived type					
 		Offset mOffset {};
@@ -211,7 +211,7 @@ namespace Langulus::Anyness
 		NOD() constexpr bool operator == (const Base&) const noexcept;
 		NOD() constexpr bool operator != (const Base&) const noexcept;
 
-		template<Dense UNIQUE, Dense BASE>
+		template<IsDense UNIQUE, IsDense BASE>
 		NOD() static Base From() noexcept;
 
 		template<class UNIQUE, class BASE, Count COUNT>
@@ -266,8 +266,8 @@ namespace Langulus::Anyness
 		// Dynamic producer of the type											
 		// Types with producers can be created only via a verb			
 		DMeta mProducer {};
-		// True if reflected data is POD (optimization)						
-		// POD data can be directly memcpy-ed, or binary-serialized		
+		// True if reflected data is IsPOD (optimization)						
+		// IsPOD data can be directly memcpy-ed, or binary-serialized		
 		bool mIsPOD = false;
 		// True if reflected data is nullifiable (optimization)			
 		// Nullifiable data can be constructed AND destructed via		
@@ -278,9 +278,9 @@ namespace Langulus::Anyness
 		// If type will be interpreted as a memory block and iterated	
 		bool mIsDeep = false;
 		// Size of the reflected type (in bytes)								
-		Stride mSize {};
+		Size mSize {};
 		// Alignof (in bytes)														
-		Stride mAlignment {};
+		Size mAlignment {};
 		// File extensions used, separated by commas							
 		Token mFileExtension {};
 
@@ -313,14 +313,14 @@ namespace Langulus::Anyness
 		template<ReflectedData T>
 		NOD() static DMeta Of();
 
-		template<Dense... Args>
-		void SetBases(Args&& ...) noexcept requires (... && Same<Args, Base>);
+		template<IsDense... Args>
+		void SetBases(Args&& ...) noexcept requires (... && IsSame<Args, Base>);
 
-		template<Dense... Args>
-		void SetAbilities(Args&& ...) noexcept requires (... && Same<Args, Ability>);
+		template<IsDense... Args>
+		void SetAbilities(Args&& ...) noexcept requires (... && IsSame<Args, Ability>);
 
-		template<Dense... Args>
-		void SetMembers(Args&& ...) noexcept requires (... && Same<Args, Member>);
+		template<IsDense... Args>
+		void SetMembers(Args&& ...) noexcept requires (... && IsSame<Args, Member>);
 
 		NOD() bool GetBase(DMeta, Offset, Base&) const;
 		template<ReflectedData T>
@@ -338,9 +338,9 @@ namespace Langulus::Anyness
 		template<ReflectedVerb T>
 		NOD() bool IsAbleTo() const;
 
-		template<bool ADVANCED>
+		template<bool ADVANCED = false>
 		NOD() bool InterpretsAs(DMeta) const;
-		template<ReflectedData T, bool ADVANCED>
+		template<ReflectedData T, bool ADVANCED = false>
 		NOD() bool InterpretsAs() const;
 
 		NOD() bool InterpretsAs(DMeta, Count) const;

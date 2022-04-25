@@ -26,7 +26,7 @@ namespace Langulus
 	}
 
 	/// Abandon a value																			
-	/// Same as Move, but resets only mandatory data inside source after move	
+	/// IsSame as Move, but resets only mandatory data inside source after move	
 	/// essentially saving up on a couple of instructions								
 	template<class T>
 	struct Abandoned {
@@ -51,7 +51,7 @@ namespace Langulus
 	}
 
 	/// Disown a value																			
-	/// Same as a shallow-copy, but never references, saving some instructions	
+	/// IsSame as a shallow-copy, but never references, saving some instructions	
 	///	@attention values initialized using Disowned should be Abandoned		
 	///				  before the end of their scope										
 	template<class T>
@@ -77,7 +77,7 @@ namespace Langulus
 	template<class T, T OFFSET = 10, Count RESULT = 1>
 	NOD() constexpr Count DigitsOf(const T& n) noexcept {
 		if constexpr (::std::numeric_limits<T>::digits10 + 1 > RESULT) {
-			if constexpr (Signed<T>) {
+			if constexpr (IsSigned<T>) {
 				// Get rid of negatives													
 				using UnsignedT = ::std::make_unsigned_t<T>;
 				return DigitsOf<UnsignedT, OFFSET, RESULT>(
@@ -103,7 +103,7 @@ namespace Langulus
 	/// A somewhat safer reinterpret_cast for dense instances						
 	///	@param what - reference to reinterpret											
 	///	@return the result of reinterpret_cast<TO&>									
-	template<Dense TO, Dense FROM>
+	template<IsDense TO, IsDense FROM>
 	NOD() constexpr Decay<TO>& ReinterpretCast(FROM& what) noexcept {
 		static_assert(sizeof(Decay<TO>) == sizeof(Decay<FROM>),
 			"Size mismatch on a reference reinterpret_cast");
@@ -113,7 +113,7 @@ namespace Langulus
 	/// A somewhat safer reinterpret_cast for dense instances (const)				
 	///	@param what - reference to reinterpret											
 	///	@return the result of reinterpret_cast<const TO&>							
-	template<Dense TO, Dense FROM>
+	template<IsDense TO, IsDense FROM>
 	NOD() constexpr const Decay<TO>& ReinterpretCast(const FROM& what) noexcept {
 		static_assert(sizeof(Decay<TO>) == sizeof(Decay<FROM>),
 			"Size mismatch on a reference reinterpret_cast");
@@ -123,7 +123,7 @@ namespace Langulus
 	/// A somewhat safer reinterpret_cast for sparse instances						
 	///	@param what - what to reinterpret												
 	///	@return the result of reinterpret_cast<TO*>									
-	template<Dense TO, Dense FROM>
+	template<IsDense TO, IsDense FROM>
 	NOD() constexpr Decay<TO>* ReinterpretCast(FROM* what) noexcept {
 		static_assert(sizeof(Decay<TO>) == sizeof(Decay<FROM>),
 			"Size mismatch on a pointer reinterpret_cast");
@@ -133,7 +133,7 @@ namespace Langulus
 	/// A somewhat safer reinterpret_cast for sparse instances (const)			
 	///	@param what - what to reinterpret												
 	///	@return the result of reinterpret_cast<TO*>									
-	template<Dense TO, Dense FROM>
+	template<IsDense TO, IsDense FROM>
 	NOD() constexpr const Decay<TO>* ReinterpretCast(const FROM* what) noexcept {
 		static_assert(sizeof(Decay<TO>) == sizeof(Decay<FROM>),
 			"Size mismatch on a pointer reinterpret_cast");
@@ -143,7 +143,7 @@ namespace Langulus
 	/// Always returns a pointer to the argument											
 	template<class T>
 	NOD() constexpr decltype(auto) MakeSparse(T& a) noexcept {
-		if constexpr (Sparse<T>)
+		if constexpr (IsSparse<T>)
 			return a;
 		else
 			return &a;
@@ -152,7 +152,7 @@ namespace Langulus
 	/// Always returns a pointer to the argument (const)								
 	template<class T>
 	NOD() constexpr decltype(auto) MakeSparse(const T& a) noexcept {
-		if constexpr (Sparse<T>)
+		if constexpr (IsSparse<T>)
 			return a;
 		else
 			return &a;
@@ -162,9 +162,9 @@ namespace Langulus
 	/// If argument is an array, return a value reference to the first element	
 	template<class T>
 	NOD() constexpr decltype(auto) MakeDense(T& a) noexcept {
-		if constexpr (Array<T>)
+		if constexpr (IsArray<T>)
 			return MakeDense(a[0]);
-		else if constexpr (Sparse<T>)
+		else if constexpr (IsSparse<T>)
 			return *a;
 		else
 			return a;
@@ -174,9 +174,9 @@ namespace Langulus
 	/// If argument is an array, return a value reference to the first element	
 	template<class T>
 	NOD() constexpr decltype(auto) MakeDense(const T& a) noexcept {
-		if constexpr (Array<T>)
+		if constexpr (IsArray<T>)
 			return MakeDense(a[0]);
-		else if constexpr (Sparse<T>)
+		else if constexpr (IsSparse<T>)
 			return *a;
 		else
 			return a;

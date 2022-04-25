@@ -19,7 +19,7 @@ namespace Langulus::Anyness
 		friend class TAny;
 
 		template<class T>
-		static constexpr bool NotCustom = Sparse<T> || (!Same<T,Any> && !Same<T,Block>);
+		static constexpr bool NotCustom = Langulus::IsSparse<T> || (!IsSame<T,Any> && !IsSame<T,Block>);
 
 		constexpr Any() noexcept {}
 
@@ -56,7 +56,7 @@ namespace Langulus::Anyness
 		Any& operator = (T&&) requires (Any::NotCustom<T>);
 
 	public:
-		NOD() static Any From(DMeta, const DataState& = {}) noexcept;
+		NOD() static Any FromMeta(DMeta, const DataState& = {}) noexcept;
 		NOD() static Any FromBlock(const Block&, const DataState& = {}) noexcept;
 		template<ReflectedData T>
 		NOD() static Any From(const DataState& = {}) noexcept;

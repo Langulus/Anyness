@@ -30,17 +30,22 @@ namespace Langulus::Anyness
 		Text(const Index&);
 		Text(const Meta&);
 
-		template<Dense T>
-		Text(const T*, const Count&) requires Character<T>;
-		template<Dense T, Count C>
-		Text(const T(&)[C]) requires Character<T>;
+		Text(const char*, const Count&);
+		template<Count C>
+		Text(const char(&)[C]);
+		explicit Text(const char*);
 
-		template<Dense T>
-		Text(const T&) requires Character<T>;
-		template<Dense T>
-		Text(const T*) requires Character<T>;
-		template<Dense T>
-		Text(const T&) requires Number<T>;
+		template<Langulus::IsDense T>
+		Text(const T*, const Count&) requires IsCharacter<T>;
+		template<Langulus::IsDense T, Count C>
+		Text(const T(&)[C]) requires IsCharacter<T>;
+
+		template<Langulus::IsDense T>
+		Text(const T&) requires IsCharacter<T>;
+		template<Langulus::IsDense T>
+		explicit Text(const T*) requires IsCharacter<T>;
+		template<Langulus::IsDense T>
+		Text(const T&) requires IsNumber<T>;
 
 		Text& operator = (const Text&);
 		Text& operator = (Text&&) noexcept;
@@ -80,6 +85,11 @@ namespace Langulus::Anyness
 		NOD() bool FindOffsetReverse(const Text&, Offset&) const;
 		NOD() bool Find(const Text&) const;
 		NOD() bool FindWild(const Text&) const;
+
+		template<class RHS>
+		Text& operator += (const RHS&);
+		template<class RHS>
+		NOD() Text operator + (const RHS&) const;
 	};
 
 } // namespace Langulus::Anyness

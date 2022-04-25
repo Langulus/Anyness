@@ -88,7 +88,7 @@ namespace Langulus::Anyness
 					<< ccRed << "(slowest)");
 			}
 			else if (mType->mIsPOD) {
-				// Just memcpy simple POD data										
+				// Just memcpy simple IsPOD data										
 				if (result.IsEmpty())
 					result.Allocate(mCount, false, true);
 				
@@ -107,7 +107,7 @@ namespace Langulus::Anyness
 			for (Offset index = 0; index < mCount; ++index) {
 				// Type is resolvable, so allocate and clone each resolved	
 				const auto from = GetElementResolved(index);
-				auto to = Any::From(from.GetType());
+				auto to = Any::FromMeta(from.GetType());
 
 				// Check if a clone operation is available for element		
 				if (mType->mCloneInUninitilizedMemory) {
@@ -125,7 +125,7 @@ namespace Langulus::Anyness
 						<< ccRed << "(slowest)");
 				}
 				else if (from.mType->mIsPOD) {
-					// Just memcpy simple POD data									
+					// Just memcpy simple IsPOD data									
 					to.Allocate(1, false, true);
 					CopyMemory(from.mRaw, to.mRaw, from.GetSize());
 					VERBOSE("Cloned resolved dense POD by memcpy " 

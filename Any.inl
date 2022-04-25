@@ -82,7 +82,7 @@ namespace Langulus::Anyness
 	///	@param type - type of the container												
 	///	@param state - optional state of the container								
 	///	@return the new any																	
-	inline Any Any::From(DMeta type, const DataState& state) noexcept {
+	inline Any Any::FromMeta(DMeta type, const DataState& state) noexcept {
 		return Any {Block{state, type}};
 	}
 
@@ -91,7 +91,7 @@ namespace Langulus::Anyness
 	///	@param state - additional state of the container							
 	///	@return the new any																	
 	inline Any Any::FromBlock(const Block& type, const DataState& state) noexcept {
-		return Any::From(type.GetType(), type.GetUnconstrainedState() + state);
+		return Any::FromMeta(type.GetType(), type.GetUnconstrainedState() + state);
 	}
 
 	/// Create an empty Any from a static type and state								

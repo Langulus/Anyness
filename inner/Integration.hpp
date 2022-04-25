@@ -19,6 +19,7 @@
 	#define LANGULUS_MODULE_Anyness()
 	#define LANGULUS_DISABLED() 0
 	#define LANGULUS_ENABLED() 1
+	#define LANGULUS_FPU() double
 	
 	#define NOD() [[nodiscard]]
 	#define LANGULUS_SAFE() LANGULUS_ENABLED()
@@ -91,13 +92,14 @@
 		///																							
 		using Byte = ::std::byte;
 		using Count = ::std::size_t;
-		using Stride = ::std::size_t;
+		using Size = ::std::size_t;
 		using Offset = ::std::size_t;
 		using Hash = ::std::size_t;
 		template<class T>
 		using TFunctor = ::std::function<T>;
 		using Token = ::std::u8string_view;
 		using Pointer = ::std::uintptr_t;
+		using Real = LANGULUS(FPU);
 
 
 		///																							
@@ -127,99 +129,88 @@
 
 		/// True if two decayed types match													
 		template<class T1, class T2>
-		concept Same = ::std::same_as<Decay<T1>, Decay<T2>>;
-
-		/// True if two decayed types don't match											
-		template<class T1, class T2>
-		concept NotSame = !::std::same_as<Decay<T1>, Decay<T2>>;
+		concept IsSame = ::std::same_as<Decay<T1>, Decay<T2>>;
 
 		/// Boolean concept																		
 		template<class T>
-		concept Boolean = Same<T, bool>;
+		concept IsBool = IsSame<T, bool>;
 
 		/// True if T is an array (has an extent with [])								
 		/// Sometimes a reference hides the pointer/extent, hence the deref		
 		template<class T>
-		constexpr bool Array = ::std::is_array_v<Deref<T>>;
+		constexpr bool IsArray = ::std::is_array_v<Deref<T>>;
 
 		/// True if T is a pointer (or has an extent with [])							
 		/// Sometimes a reference hides the pointer/extent, hence the deref		
 		template<class T>
-		concept Sparse = ::std::is_pointer_v<Deref<T>> || Array<T>;
+		concept IsSparse = ::std::is_pointer_v<Deref<T>> || IsArray<T>;
 
 		/// True if T is not a pointer (and has no extent with[])					
 		template<class T>
-		concept Dense = not Sparse<T>;
+		concept IsDense = not IsSparse<T>;
 
 		/// Get the extent of an array, or 1 if dense, or 0 if sparse				
 		template<class T>
-		constexpr Count ExtentOf = Array<T> ? ::std::extent_v<Deref<T>> : (Dense<T> ? 1 : 0);
+		constexpr Count ExtentOf = IsArray<T> ? ::std::extent_v<Deref<T>> : (IsDense<T> ? 1 : 0);
 
-		/// Sortable concept																		
+		/// IsSortable concept																	
 		/// Any class with an adequate <, >, or combined <=> operator				
 		template<class T, class U = T>
-		concept Sortable = requires(Decay<T> t, Decay<U> u) {
-			{ t < u } -> Boolean;
-			{ t > u } -> Boolean;
+		concept IsSortable = requires(Decay<T> t, Decay<U> u) {
+			{ t < u } -> IsBool;
+			{ t > u } -> IsBool;
 		};
 		
 		/// Equality comparable concept														
 		/// Any class with an adequate == operator										
 		template<class T, class U = T>
-		concept Comparable = ::std::equality_comparable_with<Decay<T>, Decay<U>>;
+		concept IsComparable = ::std::equality_comparable_with<Decay<T>, Decay<U>>;
 		
-		/// Convertible concept																	
+		/// IsConvertible concept																
 		/// Checks if a static_cast is possible between the provided types		
 		template<class FROM, class TO>
-		concept Convertible = requires(FROM from, TO to) {
+		concept IsConvertible = requires(FROM from, TO to) {
 			to = static_cast<TO>(from);
 		};
 
-		/// Character concept																	
+		/// IsCharacter concept																	
+		/// Notice how char is not here, as it is considered a number				
 		template<class T>
-		concept Character = Same<T, char8_t> || Same<T, char16_t> || Same<T, char32_t> || Same<T, wchar_t>;
+		concept IsCharacter = IsSame<T, char8_t> || IsSame<T, char16_t> || IsSame<T, char32_t> || IsSame<T, wchar_t>;
 
-		/// Integer number concept (either sparse or dense)							
+		/// IsInteger number concept (either sparse or dense)							
 		/// Excludes boolean types																
 		template<class... T>
-		concept Integer = (... && (::std::integral<Decay<T>> && not Boolean<T> && not Character<T>));
+		concept IsInteger = (... && (::std::integral<Decay<T>> && not IsBool<T> && not IsCharacter<T>));
 
-		/// Real number concept (either sparse or dense)								
+		/// IsReal number concept (either sparse or dense)								
 		template<class... T>
-		concept Real = (... && (::std::floating_point<Decay<T>>));
+		concept IsReal = (... && (::std::floating_point<Decay<T>>));
 
 		/// Built-in number concept (either sparse or dense)							
 		template<class T>
-		concept BuiltinNumber = Integer<T> || Real<T>;
+		concept IsBuiltinNumber = IsInteger<T> || IsReal<T>;
 
-		/// Number concept (either sparse or dense)										
+		/// IsNumber concept (either sparse or dense)									
 		template<class T>
-		concept Number = BuiltinNumber<T>;
+		concept IsNumber = IsBuiltinNumber<T>;
 
 		/// Check if type is signed (either sparse or dense)							
 		/// Doesn't apply to only number, but anything where T(-1) < T(0)			
 		template<class T>
-		concept Signed = ::std::is_signed_v<Decay<T>>;
+		concept IsSigned = ::std::is_signed_v<Decay<T>>;
 
 		/// Check if type is unsigned (either sparse or dense)						
 		template<class T>
-		concept Unsigned = not Signed<T>;
+		concept IsUnsigned = not IsSigned<T>;
 
 		/// Check if type is any signed integer (either sparse or dense)			
 		template<class T>
-		concept SignedInteger = Integer<T> && Signed<T>;
+		concept IsSignedInteger = IsInteger<T> && IsSigned<T>;
 
 		/// Check if type is any unsigned integer (either sparse or dense)		
 		template<class T>
-		concept UnsignedInteger = Integer<T> && Unsigned<T>;
-
-		/// Check if type is statically convertible to another						
-		/// Types are not decayed and are as provided to preserve operators		
-		/// Concept apply if you have an explicit/implicit cast operator 			
-		/// `FROM::operator TO() const`, or if you have explicit/implicit			
-		/// constructor TO::TO(const FROM&)													
-		template<class FROM, class TO>
-		concept StaticallyConvertible = ::std::convertible_to<FROM, TO>;
+		concept IsUnsignedInteger = IsInteger<T> && IsUnsigned<T>;
 
 		/// Pick between two types, based on a condition								
 		template<bool CONDITION, class TRUETYPE, class FALSETYPE>
@@ -227,68 +218,68 @@
 
 		/// Make a type constant reference or constant pointer						
 		template<class T>
-		using MakeConst = Conditional<Dense<T>, const Decay<T>&, const Decay<T>*>;
+		using MakeConst = Conditional<IsDense<T>, const Decay<T>&, const Decay<T>*>;
 
 		/// Check if type is cv-qualified													
 		template<class T>
-		concept Constant = ::std::is_const_v<Deptr<Deref<T>>>;
+		concept IsConstant = ::std::is_const_v<Deptr<Deref<T>>>;
 
 		/// Check if type is not cv-qualified												
 		template<class T>
-		concept Mutable = not Constant<T>;
+		concept IsMutable = not IsConstant<T>;
 
 		/// Check if T is abstract (has at least one pure virtual function)		
 		template<class T>
-		concept Abstract = ::std::is_abstract_v<T>;
+		concept IsAbstract = ::std::is_abstract_v<T>;
 
 		/// Check if T is default-constructible											
 		template<class T>
-		concept DefaultConstructible = ::std::default_initializable<T>;
+		concept IsDefaultConstructible = ::std::default_initializable<T>;
 
 		/// Check if T is copy-constructible												
 		template<class T>
-		concept CopyConstructible = ::std::copy_constructible<T>;
+		concept IsCopyConstructible = ::std::copy_constructible<T>;
 		
 		/// Check if T is copy-constructible												
 		template<class T>
-		concept MoveConstructible = ::std::move_constructible<T>;
+		concept IsMoveConstructible = ::std::move_constructible<T>;
 		
 		/// Check if T is clonable																
 		template<class T>
-		concept Clonable = requires (Decay<T> a) { 
+		concept IsClonable = requires (Decay<T> a) { 
 			{a = a.Clone()};
 		};
 		
 		/// Check if T is referencable														
 		template<class T>
-		concept Referencable = requires (const Decay<T> a) { 
+		concept IsReferencable = requires (const Decay<T> a) { 
 			{a.Keep()};
-			{a.Free()} -> Same<Count>;
+			{a.Free()} -> IsSame<Count>;
 		};
 		
 		/// Check if T is copy-assignable													
 		template<class T>
-		concept Copyable = ::std::copyable<Decay<T>>;
+		concept IsCopyable = ::std::copyable<Decay<T>>;
 		
 		/// Check if T is move-assignable													
 		template<class T>
-		concept Movable = ::std::movable<Decay<T>>;
+		concept IsMovable = ::std::movable<Decay<T>>;
 		
 		/// Check if T is move-assignable													
 		template<class T>
-		concept Resolvable = requires (Decay<T> a) {
-			{a.GetBlock()} -> Same<Anyness::Block>;
+		concept IsResolvable = requires (Decay<T> a) {
+			{a.GetBlock()} -> IsSame<Anyness::Block>;
 		};
 		
 		/// Check if T is move-assignable													
 		template<class T>
-		concept Hashable = requires (Decay<T> a) {
-			{a.GetHash()} -> Same<Hash>;
+		concept IsHashable = requires (Decay<T> a) {
+			{a.GetHash()} -> IsSame<Hash>;
 		};
 		
 		/// Check if T is move-assignable													
 		template<class T>
-		concept Dispatcher = requires (Decay<T> a, Flow::Verb& b) {
+		concept IsDispatcher = requires (Decay<T> a, Flow::Verb& b) {
 			{a.Do(b)};
 		};
 		
@@ -296,9 +287,79 @@
 		template<class T, class BASE>
 		concept Inherits = ::std::derived_from<Decay<T>, Decay<BASE>>;
 
-		/// Check if T is a function															
-		template<class T>
-		concept Function = ::std::is_function_v<T>;
+
+
+
+		///																							
+		/// The following abstract types are implicitly added as bases				
+		/// when reflecting fundamental types. They are linked to their			
+		/// corresponding concepts, so you can use them at runtime, to check if	
+		/// a type is compatible with the given concept via type->InterpretsAs	
+		///																							
+
+
+		/// Check if a type is compatible with IsNumber									
+		/// concept at runtime, via meta->InterpretsAs<ANumber>						
+		class ANumber {
+			virtual void StayAbstract() = 0;
+		public:
+			// Default concretization for an abstract number					
+			using Concrete = Real;
+		};
+
+		/// Check if a type is compatible with IsInteger								
+		/// concept at runtime, via meta->InterpretsAs<AInteger>						
+		class AInteger {
+			virtual void StayAbstract() = 0;
+		public:
+			// Default concretization for an abstract integer					
+			using Concrete = ::std::intptr_t;
+		};
+
+		/// Check if a type is compatible with IsUnsigned								
+		/// concept at runtime, via meta->InterpretsAs<AUnsigned>					
+		class AUnsigned {
+			virtual void StayAbstract() = 0;
+		public:
+			// Default concretization for an abstract unsigned type			
+			using Concrete = ::std::uintptr_t;
+		};
+
+		/// Check if a type is compatible with IsUnsignedInteger concept at		
+		/// runtime, via meta->InterpretsAs<AUnsignedInteger>							
+		class AUnsignedInteger {
+			virtual void StayAbstract() = 0;
+		public:
+			// Default concretization for an abstract unsigned integer		
+			using Concrete = ::std::uintptr_t;
+		};
+
+		/// Check if a type is compatible with IsReal									
+		/// concept at runtime, via meta->InterpretsAs<AReal>							
+		class AReal {
+			virtual void StayAbstract() = 0;
+		public:
+			// Default concretization for an abstract real number				
+			using Concrete = Real;
+		};
+
+		/// Check if a type is compatible with IsSigned									
+		/// concept at runtime, via meta->InterpretsAs<ASigned>						
+		class ASigned {
+			virtual void StayAbstract() = 0;
+		public:
+			// Default concretization for an abstract signed number			
+			using Concrete = Real;
+		};
+
+		/// Check if a type is compatible with IsSignedInteger						
+		/// concept at runtime, via meta->InterpretsAs<ASignedInteger>				
+		class ASignedInteger {
+			virtual void StayAbstract() = 0;
+		public:
+			// Default concretization for an abstract signed number			
+			using Concrete = ::std::intptr_t;
+		};
 
 	} // namespace Langulus
 

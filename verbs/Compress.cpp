@@ -25,7 +25,7 @@ namespace Langulus::Anyness
 
 
 	/// Compress data																				
-	/// You can compress sparse or NON-POD memory easily.								
+	/// You can compress sparse or NON-IsPOD memory easily.								
 	/// Do not dereference data, however.													
 	/// Containers should always decompress data before deallocating it.			
 	/// Can be used to compress RAM with live links, too.								

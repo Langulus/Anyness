@@ -82,7 +82,7 @@ namespace Langulus::Anyness
 			// Cycle all pointers and reference their memories					
 			auto from_ptrarray = GetRawSparse();
 			for (Count i = 0; i < mCount; ++i)
-				Allocator::Reference(mType, from_ptrarray[i], 1);
+				Allocator::Keep(mType, from_ptrarray[i], 1);
 
 			VERBOSE(Logger::Verbose()
 				<< "Copied " << mCount << " pointers"
@@ -168,7 +168,7 @@ namespace Langulus::Anyness
 				to.GetRawSparse()[0] = from.mRaw;
 
 				// Reference each copied pointer!									
-				Allocator::Reference(from.mType, from.mRaw, 1);
+				Allocator::Keep(from.mType, from.mRaw, 1);
 			}
 
 			VERBOSE(Logger::Verbose()

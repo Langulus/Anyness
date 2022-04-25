@@ -4,7 +4,7 @@ namespace Langulus::Anyness
 {
 
 	/// Encrypt data																				
-	Stride Block::Encrypt(Block& result, const Hash* keys, const Count& key_count) const {
+	Size Block::Encrypt(Block& result, const Hash* keys, const Count& key_count) const {
 		// First compress the data, to avoid repeating bytes					
 		#if LANGULUS_FEATURE(ZLIB)
 			auto compressed_size = Compress(result, Compression::Fastest);
@@ -35,7 +35,7 @@ namespace Langulus::Anyness
 	}
 
 	/// Decrypt data																				
-	Stride Block::Decrypt(Block& result, const Hash* keys, const Count& key_count) const {
+	Size Block::Decrypt(Block& result, const Hash* keys, const Count& key_count) const {
 		// Copy this encrypted data													
 		Block decrypted;
 		Clone(decrypted);

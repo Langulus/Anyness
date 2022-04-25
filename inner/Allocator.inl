@@ -7,7 +7,7 @@ namespace Langulus::Anyness
    /// Round to the upper power-of-two														
 	///	@param x - the unsigned integer to round up									
 	///	@return the closest upper round-of-two to x									
-   template<Unsigned T>
+   template<IsUnsigned T>
 	constexpr T Roof2(const T& x) noexcept {
 		T n = x;
 		--n;
@@ -29,7 +29,7 @@ namespace Langulus::Anyness
    /// Define a new entry in use                                              
    ///   @param allocatedBytes - the number of allocated bytes                
    ///   @param owner - the owner pool of the entry                           
-   constexpr Entry::Entry(const Stride& allocatedBytes, Pool* owner) noexcept
+   constexpr Entry::Entry(const Size& allocatedBytes, Pool* owner) noexcept
       : mAllocatedBytes {allocatedBytes}
       , mReferences {1}
       , mOwner {owner} {}
@@ -42,7 +42,7 @@ namespace Langulus::Anyness
 	
 	/// Get the size of the Entry structure, rounded up for alignment				
 	///	@return the byte size of the entry, including alignment					
-	constexpr Stride Entry::GetSize() noexcept {
+	constexpr Size Entry::GetSize() noexcept {
 		return sizeof(Entry) + (sizeof(Entry) % LANGULUS_ALIGN());
 	}
 
@@ -68,13 +68,13 @@ namespace Langulus::Anyness
 
 	/// Get the total of the entry, and its allocated data, in bytes				
 	///	@return the byte size of the entry plus the usable region after it	
-	constexpr Stride Entry::GetTotalSize() const noexcept {
+	constexpr Size Entry::GetTotalSize() const noexcept {
 		return Entry::GetSize() + mAllocatedBytes;
 	}
 
 	/// Get the number of allocated bytes in this entry								
 	///	@return the byte size of usable memory region								
-	constexpr const Stride& Entry::Allocated() const noexcept {
+	constexpr const Size& Entry::Allocated() const noexcept {
 		return mAllocatedBytes;
 	}
 

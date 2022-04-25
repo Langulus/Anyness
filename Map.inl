@@ -81,9 +81,9 @@ namespace Langulus::Anyness
 	template<ReflectedData KEY, ReflectedData VALUE>
 	bool Map::IsMapInsertable() {
 		if (mKeys.IsUntyped())
-			mKeys.SetType<KEY>(false);
+			mKeys.SetType<KEY, false>();
 		if (Any::IsUntyped())
-			Any::SetType<VALUE>(false);
+			Any::SetType<VALUE, false>();
 		return mKeys.IsInsertable<KEY>() && Any::IsInsertable<VALUE>();
 	}
 
@@ -158,8 +158,8 @@ namespace Langulus::Anyness
 		if (!IsMapInsertable<K, V>())
 			throw Except::Move("Bad emplace in map - type not insertable");
 
-		const auto insertedKeys = mKeys.Emplace<K>(Move(item.Key), index);
-		const auto insertedValues = Any::Emplace<V>(Move(item.Value), index);
+		const auto insertedKeys = mKeys.Emplace<K>(Move(item.mKey), index);
+		const auto insertedValues = Any::Emplace<V>(Move(item.mValue), index);
 		if (insertedKeys != insertedValues)
 			throw Except::Move("Bad emplace in map - move failed");
 
@@ -175,8 +175,8 @@ namespace Langulus::Anyness
 		Count insertedKeys = 0;
 		Count insertedValues = 0;
 		for (Count i = 0; i < count; ++i) {
-			insertedKeys += mKeys.Insert<K>(&items[i].Key, 1, index);
-			insertedValues += Any::Insert<V>(&items[i].Value, 1, index);
+			insertedKeys += mKeys.Insert<K>(&items[i].mKey, 1, index);
+			insertedValues += Any::Insert<V>(&items[i].mValue, 1, index);
 		}
 
 		return insertedKeys;
@@ -209,63 +209,59 @@ namespace Langulus::Anyness
 	}
 
 	/// Iteration																					
-	template<class FUNCTION>
-	Count Map::ForEachPair(FUNCTION&& call) {
-		using PairType = decltype(GetLambdaArguments(&FUNCTION::operator()));
-		using KeyType = typename PairType::KeyType;
-		using ValueType = typename PairType::ValueType;
-		using ReturnType = decltype(call(std::declval<KeyType>(), std::declval<ValueType>()));
-		return ForEachPairInner<ReturnType, KeyType, ValueType, false>(
-			pcForward<FUNCTION>(call));
+	template<class F>
+	Count Map::ForEachPair(F&& call) {
+		using PairType = decltype(GetLambdaArguments(&F::operator()));
+		using KeyType = typename PairType::Key;
+		using ValueType = typename PairType::Value;
+		using R = decltype(call(std::declval<KeyType>(), std::declval<ValueType>()));
+		return ForEachPairInner<R, KeyType, ValueType, false>(Forward<F>(call));
 	}
 
-	template<class FUNCTION>
-	Count Map::ForEachPairRev(FUNCTION&& call) {
-		using PairType = decltype(GetLambdaArguments(&FUNCTION::operator()));
-		using KeyType = typename PairType::KeyType;
-		using ValueType = typename PairType::ValueType;
-		using ReturnType = decltype(call(std::declval<KeyType>(), std::declval<ValueType>()));
-		return ForEachPairInner<ReturnType, KeyType, ValueType, true>(
-			pcForward<FUNCTION>(call));
+	template<class F>
+	Count Map::ForEachPairRev(F&& call) {
+		using PairType = decltype(GetLambdaArguments(&F::operator()));
+		using KeyType = typename PairType::Key;
+		using ValueType = typename PairType::Value;
+		using R = decltype(call(std::declval<KeyType>(), std::declval<ValueType>()));
+		return ForEachPairInner<R, KeyType, ValueType, true>(Forward<F>(call));
 	}
 
-	template<class FUNCTION>
-	Count Map::ForEachPair(FUNCTION&& call) const {
-		using PairType = decltype(GetLambdaArguments(&FUNCTION::operator()));
-		using KeyType = typename PairType::KeyType;
-		using ValueType = typename PairType::ValueType;
-		using ReturnType = decltype(call(std::declval<KeyType>(), std::declval<ValueType>()));
-		static_assert(Constant<KeyType>, "Non constant key iterator for constant map");
-		static_assert(Constant<ValueType>, "Non constant value iterator for constant map");
-		return ForEachPairInner<ReturnType, KeyType, ValueType, false>(
-			pcForward<FUNCTION>(call));
+	template<class F>
+	Count Map::ForEachPair(F&& call) const {
+		using PairType = decltype(GetLambdaArguments(&F::operator()));
+		using KeyType = typename PairType::Key;
+		using ValueType = typename PairType::Value;
+		using R = decltype(call(std::declval<KeyType>(), std::declval<ValueType>()));
+		static_assert(Langulus::IsConstant<KeyType>, "Non constant key iterator for constant map");
+		static_assert(Langulus::IsConstant<ValueType>, "Non constant value iterator for constant map");
+		return ForEachPairInner<R, KeyType, ValueType, false>(Forward<F>(call));
 	}
 
-	template<class FUNCTION>
-	Count Map::ForEachPairRev(FUNCTION&& call) const {
-		using PairType = decltype(GetLambdaArguments(&FUNCTION::operator()));
+	template<class F>
+	Count Map::ForEachPairRev(F&& call) const {
+		using PairType = decltype(GetLambdaArguments(&F::operator()));
 		using KeyType = typename PairType::KeyType;
 		using ValueType = typename PairType::ValueType;
-		using ReturnType = decltype(call(std::declval<KeyType>(), std::declval<ValueType>()));
-		static_assert(Constant<KeyType>, "Non constant key iterator for constant map");
-		static_assert(Constant<ValueType>, "Non constant value iterator for constant map");
-		return ForEachPairInner<ReturnType, KeyType, ValueType, true>(
-			pcForward<FUNCTION>(call));
+		using R = decltype(call(std::declval<KeyType>(), std::declval<ValueType>()));
+		static_assert(Langulus::IsConstant<KeyType>, "Non constant key iterator for constant map");
+		static_assert(Langulus::IsConstant<ValueType>, "Non constant value iterator for constant map");
+		return ForEachPairInner<R, KeyType, ValueType, true>(Forward<F>(call));
 	}
 
-	/// Constant iteration																		
-	template<class RETURN, ReflectedData KEY, ReflectedData VALUE, bool REVERSE>
-	Count Map::ForEachPairInner(TFunctor<RETURN(KEY, VALUE)>&& call) {
+	/// IsConstant iteration																		
+	template<class R, ReflectedData KEY, ReflectedData VALUE, bool REVERSE>
+	Count Map::ForEachPairInner(TFunctor<R(KEY, VALUE)>&& call) {
 		if (!mCount || !mKeys.InterpretsAs<KEY>() || !InterpretsAs<VALUE>())
 			return 0;
 
-		constexpr bool HasBreaker = Same<bool, RETURN>;
+		constexpr bool HasBreaker = IsSame<bool, R>;
 		const auto count = GetCount();
 		Count index = 0;
 		while (index < count) {
-			if constexpr (Dense<VALUE>) {
+			if constexpr (Langulus::IsDense<VALUE>) {
 				// Value iterator is dense												
-				if constexpr (Dense<KEY>) {
+				if constexpr (Langulus::IsDense<KEY>) {
 					// Key iterator is dense											
 					if constexpr (REVERSE) {
 						const auto i = count - index - 1;
@@ -314,7 +310,7 @@ namespace Langulus::Anyness
 			}
 			else {
 				// Value iterator is sparse											
-				if constexpr (Dense<KEY>) {
+				if constexpr (Langulus::IsDense<KEY>) {
 					// Key iterator is dense											
 					if constexpr (REVERSE) {
 						const auto i = count - index - 1;
@@ -372,10 +368,10 @@ namespace Langulus::Anyness
 		return index;
 	}
 
-	/// Constant iteration																		
-	template<class RETURN, ReflectedData KEY, ReflectedData VALUE, bool REVERSE>
-	Count Map::ForEachPairInner(TFunctor<RETURN(KEY, VALUE)>&& call) const {
-		return const_cast<Map*>(this)->ForEachPairInner<RETURN, KEY, VALUE, REVERSE>(Forward<decltype(call)>(call));
+	/// IsConstant iteration																		
+	template<class R, ReflectedData KEY, ReflectedData VALUE, bool REVERSE>
+	Count Map::ForEachPairInner(TFunctor<R(KEY, VALUE)>&& call) const {
+		return const_cast<Map*>(this)->ForEachPairInner<R, KEY, VALUE, REVERSE>(Forward<decltype(call)>(call));
 	}
 
 } // namespace Langulus::Anyness

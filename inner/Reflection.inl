@@ -119,22 +119,22 @@ namespace Langulus::Anyness
 			meta->mInfo = u8"<no info provided due to implicit reflection>";
 			meta->mName = Meta::Name<Decayed>();
 			meta->mHash = Meta::Hash<Decayed>();
-			meta->mIsAbstract = Abstract<Decayed>;
-			meta->mIsNullifiable = Nullifiable<Decayed>;
-			meta->mSize = Abstract<Decayed> ? 0 : sizeof(Decayed);
+			meta->mIsAbstract = IsAbstract<Decayed>;
+			meta->mIsNullifiable = IsNullifiable<Decayed>;
+			meta->mSize = IsAbstract<Decayed> ? 0 : sizeof(Decayed);
 			meta->mAlignment = alignof(Decayed);
-			meta->mIsPOD = POD<T>;
-			meta->mIsDeep = Deep<T>;
+			meta->mIsPOD = IsPOD<T>;
+			meta->mIsDeep = IsDeep<T>;
 
 			// Wrap the default constructor of the type inside a lambda		
-			if constexpr (DefaultConstructible<Decayed>) {
+			if constexpr (IsDefaultConstructible<Decayed>) {
 				meta->mDefaultConstructor = [](void* at) {
 					new (at) Decayed {};
 				};
 			}
 
 			// Wrap the copy constructor of the type inside a lambda			
-			if constexpr (CopyConstructible<Decayed>) {
+			if constexpr (IsCopyConstructible<Decayed>) {
 				meta->mCopyConstructor = [](void* at, const void* from) {
 					auto fromInstance = static_cast<const Decayed*>(from);
 					new (at) Decayed {*fromInstance};
@@ -142,7 +142,7 @@ namespace Langulus::Anyness
 			}
 
 			// Wrap the move constructor of the type inside a lambda			
-			if constexpr (MoveConstructible<Decayed>) {
+			if constexpr (IsMoveConstructible<Decayed>) {
 				meta->mMoveConstructor = [](void* at, void* from) {
 					auto fromInstance = static_cast<Decayed*>(from);
 					new (at) Decayed {Forward<Decayed>(*fromInstance)};
@@ -156,15 +156,15 @@ namespace Langulus::Anyness
 			};
 
 			// Wrap the cloners of the type inside a lambda						
-			if constexpr (Clonable<Decayed>) {
-				if constexpr (CopyConstructible<Decayed> || MoveConstructible<Decayed>) {
+			if constexpr (IsClonable<Decayed>) {
+				if constexpr (IsCopyConstructible<Decayed> || IsMoveConstructible<Decayed>) {
 					meta->mCloneInUninitilizedMemory = [](const void* from, void* to) {
 						auto fromInstance = static_cast<const Decayed*>(from);
 						new (to) Decayed {fromInstance->Clone()};
 					};
 				}
 
-				if constexpr (Copyable<Decayed> || Movable<Decayed>) {
+				if constexpr (IsCopyable<Decayed> || IsMovable<Decayed>) {
 					meta->mCloneInInitializedMemory = [](const void* from, void* to) {
 						auto toInstance = static_cast<Decayed*>(to);
 						auto fromInstance = static_cast<const Decayed*>(from);
@@ -174,7 +174,7 @@ namespace Langulus::Anyness
 			}
 
 			// Wrap the == operator of the type inside a lambda				
-			if constexpr (Comparable<Decayed, Decayed>) {
+			if constexpr (IsComparable<Decayed, Decayed>) {
 				meta->mComparer = [](const void* t1, const void* t2) {
 					auto t1Instance = static_cast<const Decayed*>(t1);
 					auto t2Instance = static_cast<const Decayed*>(t2);
@@ -183,7 +183,7 @@ namespace Langulus::Anyness
 			}
 
 			// Wrap the copy operator of the type inside a lambda				
-			if constexpr (Copyable<Decayed>) {
+			if constexpr (IsCopyable<Decayed>) {
 				meta->mCopier = [](const void* from, void* to) {
 					auto toInstance = static_cast<Decayed*>(to);
 					auto fromInstance = static_cast<const Decayed*>(from);
@@ -192,7 +192,7 @@ namespace Langulus::Anyness
 			}
 
 			// Wrap the move operator of the type inside a lambda				
-			if constexpr (Movable<Decayed>) {
+			if constexpr (IsMovable<Decayed>) {
 				meta->mMover = [](void* from, void* to) {
 					auto toInstance = static_cast<Decayed*>(to);
 					auto fromInstance = static_cast<Decayed*>(from);
@@ -201,7 +201,7 @@ namespace Langulus::Anyness
 			}
 
 			// Wrap the GetBlock method of the type inside a lambda			
-			if constexpr (Resolvable<Decayed>) {
+			if constexpr (IsResolvable<Decayed>) {
 				meta->mResolver = [](const void* at) {
 					auto instance = static_cast<const Decayed*>(at);
 					return instance->GetBlock();
@@ -209,7 +209,7 @@ namespace Langulus::Anyness
 			}
 
 			// Wrap the GetHash() method inside a lambda							
-			if constexpr (Hashable<Decayed>) {
+			if constexpr (IsHashable<Decayed>) {
 				meta->mHasher = [](const void* at) {
 					auto instance = static_cast<const Decayed*>(at);
 					return instance->GetHash();
@@ -217,7 +217,7 @@ namespace Langulus::Anyness
 			}
 
 			// Wrap the Do verb method inside a lambda							
-			if constexpr (Dispatcher<Decayed>) {
+			if constexpr (IsDispatcher<Decayed>) {
 				meta->mDispatcher = [](void* at, Flow::Verb& verb) {
 					auto instance = static_cast<Decayed*>(at);
 					instance->Do(verb);
@@ -230,22 +230,22 @@ namespace Langulus::Anyness
 
    /// Set the list of bases for a given meta definition                      
    ///   @tparam Args... - all the bases                                      
-	template<Dense... Args>
-	void MetaData::SetBases(Args&&... items) noexcept requires (... && Same<Args, Base>) {
+	template<IsDense... Args>
+	void MetaData::SetBases(Args&&... items) noexcept requires (... && IsSame<Args, Base>) {
 		mBases = {Forward<Base>(items)...};
 	}
 
    /// Set the list of abilities for a given meta definition                  
    ///   @tparam Args... - all the abilities                                  
-	template<Dense... Args>
-	void MetaData::SetAbilities(Args&&... items) noexcept requires (... && Same<Args, Ability>) {
+	template<IsDense... Args>
+	void MetaData::SetAbilities(Args&&... items) noexcept requires (... && IsSame<Args, Ability>) {
 		mAbilities = {Forward<Ability>(items)...};
 	}
 
    /// Set the list of members for a given meta definition                    
    ///   @tparam Args... - all the members                                    
-	template<Dense... Args>
-	void MetaData::SetMembers(Args&&... items) noexcept requires (... && Same<Args, Member>) {
+	template<IsDense... Args>
+	void MetaData::SetMembers(Args&&... items) noexcept requires (... && IsSame<Args, Member>) {
 		mMembers = {Forward<Member>(items)...};
 	}
 
