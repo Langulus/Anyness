@@ -27,13 +27,13 @@ SCENARIO("Testing new/delete operators", "[new][delete]") {
 		}
 
 		WHEN("Dereferencing the dynamic memory") {
-			Allocator::Free(nullptr, a, -1);
+			auto unused = Allocator::Free(nullptr, a, -1);
 			THEN("Reference count decreases, and in this case - memory is freed") {
 				REQUIRE(Allocator::CheckAuthority(meta, a));
 				REQUIRE(Allocator::Find(meta, a));
 				REQUIRE(Allocator::GetReferences(meta, a) == 1);
 
-				Allocator::Free(nullptr, a, -1);
+				auto unused2 = Allocator::Free(nullptr, a, -1);
 
 				REQUIRE(Allocator::CheckAuthority(meta, a));
 				REQUIRE_FALSE(Allocator::Find(meta, a));

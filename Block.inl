@@ -25,6 +25,7 @@ namespace Langulus::Anyness
 		, mType {meta} { }
 	
 	/// Manual construction from mutable data												
+	/// This constructor has a slight runtime overhead, due to unknown Entry	
 	///	@param state - the initial state of the container							
 	///	@param meta - the type of the memory block									
 	///	@param count - initial element count and reserve							
@@ -38,6 +39,7 @@ namespace Langulus::Anyness
 		, mEntry {Allocator::Find(meta, raw)} { }
 	
 	/// Manual construction from constant data											
+	/// This constructor has a slight runtime overhead, due to unknown Entry	
 	///	@param state - the initial state of the container							
 	///	@param meta - the type of the memory block									
 	///	@param count - initial element count and reserve							
@@ -72,35 +74,62 @@ namespace Langulus::Anyness
 		MakeConstant();
 	}
 
-	/// Create a memory block from a typed pointer										
+	/// Create a memory block from a single typed pointer								
+	///	@tparam T - the type of the value to wrap (deducible)						
+	///	@tparam CONSTRAIN - makes container type-constrained						
 	///	@return the block																		
-	template<ReflectedData T>
+	template<ReflectedData T, bool CONSTRAIN>
 	Block Block::From(T value) requires Langulus::IsSparse<T> {
-		return {DataState::Static, MetaData::Of<T>(), 1, value};
+		if constexpr (CONSTRAIN)
+			return {DataState::Member, MetaData::Of<T>(), 1, value};
+		else
+			return {DataState::Static, MetaData::Of<T>(), 1, value};		
 	}
 
+	/// Create a memory block from a count-terminated array							
+	///	@tparam T - the type of the value to wrap (deducible)						
+	///	@tparam CONSTRAIN - makes container type-constrained						
 	///	@return the block																		
-	template<ReflectedData T>
+	template<ReflectedData T, bool CONSTRAIN>
 	Block Block::From(T value, Count count) requires Langulus::IsSparse<T> {
-		return {DataState::Static, MetaData::Of<T>(), count, value};
+		if constexpr (CONSTRAIN)
+			return {DataState::Member, MetaData::Of<T>(), count, value};
+		else
+			return {DataState::Static, MetaData::Of<T>(), count, value};
 	}
 
 	/// Create a memory block from a value reference									
-	/// No referencing shall occur, this simply initializes the block				
-	///	@return the block																		
-	template<ReflectedData T>
+	/// If value is resolvable, GetBlock() will produce the Block					
+	/// If value is deep, T will be down-casted to Block								
+	/// Anything else will be interfaced via a new Block (without referencing)	
+	///	@tparam T - the type of the value to wrap (deducible)						
+	///	@tparam CONSTRAIN - makes container type-constrained						
+	///	@return a block that wraps a dense value										
+	template<ReflectedData T, bool CONSTRAIN>
 	Block Block::From(T& value) requires Langulus::IsDense<T> {
-		if constexpr (IsResolvable<T>)
-			return value.GetBlock();
+		Block result;
+		if constexpr (Langulus::IsResolvable<T>)
+			result = value.GetBlock();
+		else if constexpr (Anyness::IsDeep<T>)
+			result = static_cast<const Block&>(value);
 		else
-			return {DataState::Static, MetaData::Of<T>(), 1, &value};
+			result = {DataState::Static, MetaData::Of<T>(), 1, &value};
+		
+		if constexpr (CONSTRAIN)
+			result.MakeTypeConstrained();
+		return result;
 	}
 
 	/// Create an empty memory block from a static type								
+	///	@tparam T - the type of the value to wrap (deducible)						
+	///	@tparam CONSTRAIN - makes container type-constrained						
 	///	@return the block																		
-	template<ReflectedData T>
+	template<ReflectedData T, bool CONSTRAIN>
 	Block Block::From() {
-		return {MetaData::Of<T>()};
+		if constexpr (CONSTRAIN)
+			return {DataState::Typed, MetaData::Of<T>()};
+		else
+			return {MetaData::Of<T>()};
 	}
 
 	/// Reference memory block																	
@@ -891,7 +920,7 @@ namespace Langulus::Anyness
 		// Insert new data																
 		auto data = GetRaw() + starter * sizeof(T);
 		if constexpr (Langulus::IsSparse<T>) {
-			// IsSparse data insertion (copying pointers and referencing)		
+			// Sparse data insertion (copying pointers and referencing)		
 			// Doesn't care about abstract items									
 			CopyMemory(items, data, sizeof(T) * count);
 			Count c {};
@@ -903,7 +932,7 @@ namespace Langulus::Anyness
 				}
 
 				// Reference each pointer												
-				Allocator::Reference(mType, items[c], 1);
+				Allocator::Keep(mType, items[c], 1);
 				++c;
 			}
 		}
@@ -915,7 +944,7 @@ namespace Langulus::Anyness
 				CopyMemory(items, data, count * sizeof(T));
 			}
 			else if constexpr (IsCopyConstructible<T>) {
-				// IsDense data insertion (placement copy-construction)			
+				// Dense data insertion (placement copy-construction)			
 				Count c {};
 				while (c < count) {
 					// Reset all items													
@@ -1194,12 +1223,13 @@ namespace Langulus::Anyness
 	///	@param index - the index at which to insert (if needed)					
 	///	@return the number of pushed items (zero if unsuccessful)				
 	template<bool ALLOW_CONCAT, bool ALLOW_DEEPEN, ReflectedData T>
-	Count Block::SmartPush(const T& pack, DataState state, Index index) {
-		if constexpr (Anyness::IsDeep<T>) {
-			// Early exit if nothing to push											
-			if (!pack.IsValid())
-				return 0;
-		}
+	Count Block::SmartPush(const T& value, DataState state, Index index) {
+		// Wrap the value, but don't reference anything yet					
+		auto pack = Block::From(value);
+		
+		// Early exit if nothing to push												
+		if (!pack.IsValid())
+			return 0;
 
 		// Check if unmovable															
 		if (IsStatic()) {
@@ -1207,17 +1237,12 @@ namespace Langulus::Anyness
 			return 0;
 		}
 
-		DMeta meta;
-		if constexpr (Anyness::IsDeep<T>)
-			meta = pack.GetType();
-		else
-			meta = MetaData::Of<T>();
-
 		// If this container is empty and has no conflicting state			
 		// do a shallow copy and directly reference data						
-		const bool isTypeCompliant = (!IsTypeConstrained() && IsEmpty()) || CanFit(meta);
-		const bool isStateCompliant = CanFitState(pack);
-		if (IsEmpty() && isTypeCompliant && isStateCompliant) {
+		const auto meta = pack.GetType();
+		const bool typeCompliant = (!IsTypeConstrained() && IsEmpty()) || CanFit(meta);
+		const bool stateCompliant = CanFitState(pack);
+		if (IsEmpty() && typeCompliant && stateCompliant) {
 			const auto previousType = !mType ? meta : mType;
 			const auto previousState = mState - DataState::Sparse;
 			*this = pack;
@@ -1233,7 +1258,8 @@ namespace Langulus::Anyness
 			return 1;
 		}
 
-		[[maybe_unused]] const bool isOrCompliant = !(mCount > 1 && !IsOr() && state.IsOr());
+		[[maybe_unused]]
+		const bool orCompliant = !(mCount > 1 && !IsOr() && state.IsOr());
 		
 		if constexpr (ALLOW_CONCAT) {
 			// If this container is compatible and concatenation is enabled
@@ -1241,7 +1267,7 @@ namespace Langulus::Anyness
 			// be allowed if final state is OR, and there are multiple		
 			// items	in this container.												
 			Count catenated {};
-			if (isTypeCompliant && isStateCompliant && isOrCompliant && 0 < (catenated = InsertBlock(pack, index))) {
+			if (typeCompliant && stateCompliant && orCompliant && 0 < (catenated = InsertBlock(pack, index))) {
 				SetState(mState + state);
 				return catenated;
 			}
@@ -1250,18 +1276,18 @@ namespace Langulus::Anyness
 		// If this container is deep, directly push the pack inside			
 		// This will be disallowed if final state is OR, and there are		
 		// multiple items	in this container.										
-		if (isOrCompliant && IsDeep() && CanFit<T>()) {
+		if (orCompliant && IsDeep()) {
 			SetState(mState + state);
-			return Insert<T>(&pack, 1, index);
+			return Emplace(Any {Abandon(pack)}, index);
 		}
 
 		// Finally, if allowed, force make the container deep in order to	
 		// push the pack inside															
 		if constexpr (Anyness::IsDeep<T> && ALLOW_DEEPEN) {
 			if (!IsTypeConstrained()) {
-				Deepen<T>();
+				Deepen<Any>();
 				SetState(mState + state);
-				return SmartPush<ALLOW_CONCAT, false, T>(pack, {}, index);
+				return Emplace(Any {Abandon(pack)}, index);
 			}
 		}
 

@@ -67,6 +67,8 @@ namespace Langulus::Anyness
 			bool operator == (const Statistics&) const noexcept = default;
 			bool operator != (const Statistics&) const noexcept = default;
 		};
+		
+		static Statistics mStatistics;
 
 	public:
 		//																						
@@ -80,7 +82,7 @@ namespace Langulus::Anyness
 		// More functionality, when feature MANAGED_MEMORY is enabled		
 		//																						
 		NOD() static Entry* Find(DMeta, const void*);
-		NOD() static Entry* CheckAuthority(DMeta, const void*);
+		NOD() static bool CheckAuthority(DMeta, const void*);
 		NOD() static Count GetReferences(DMeta, const void*);
 		static void Keep(DMeta, const void*, Count);
 		NOD() static bool Free(DMeta, const void*, Count);

@@ -15,7 +15,7 @@ endif()
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR} SOURCE_FILES)
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/inner SOURCE_FILES)
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/verbs SOURCE_FILES)
-add_library(Anyness SHARED ${SOURCE_FILES})
+add_library(Anyness ${SOURCE_FILES})
 target_include_directories(Anyness
     PRIVATE     ${CMAKE_CURRENT_SOURCE_DIR}
     INTERFACE	${CMAKE_CURRENT_SOURCE_DIR}/include

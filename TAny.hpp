@@ -14,9 +14,6 @@ namespace Langulus::Anyness
 	template<ReflectedData T>
 	class TAny : public Any {
 	public:
-		static constexpr bool NotCustom =
-			Langulus::IsSparse<T> || (!IsSame<T, TAny<T>> && !IsSame<T, Any> && !IsSame<T, Block>);
-
 		TAny();
 		
 		TAny(const TAny&);
@@ -34,9 +31,9 @@ namespace Langulus::Anyness
 		TAny(const Disowned<TAny>&) noexcept;
 		TAny(Abandoned<TAny>&&) noexcept;
 
-		TAny(T&&) requires (TAny<T>::NotCustom);
-		TAny(const T&) requires (TAny<T>::NotCustom);
-		TAny(T&) requires (TAny<T>::NotCustom);
+		TAny(T&&) requires (not Anyness::IsDeep<T>);
+		TAny(const T&) requires (not Anyness::IsDeep<T>);
+		TAny(T&) requires (not Anyness::IsDeep<T>);
 		TAny(const T*, const Count&);
 
 		TAny& operator = (const TAny&);
@@ -54,9 +51,9 @@ namespace Langulus::Anyness
 		TAny& operator = (const Disowned<TAny>&);
 		TAny& operator = (Abandoned<TAny>&&) noexcept;
 
-		TAny& operator = (const T&) requires (TAny<T>::NotCustom);
-		TAny& operator = (T&) requires (TAny<T>::NotCustom);
-		TAny& operator = (T&&) requires (TAny<T>::NotCustom);
+		TAny& operator = (const T&) requires (not Anyness::IsDeep<T>);
+		TAny& operator = (T&) requires (not Anyness::IsDeep<T>);
+		TAny& operator = (T&&) requires (not Anyness::IsDeep<T>);
 
 	public:
 		NOD() bool InterpretsAs(DMeta) const;

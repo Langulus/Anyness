@@ -25,13 +25,13 @@ namespace Langulus::Anyness
 	///	@param other - pointer to reference												
 	TEMPLATE_SHARED()
 	TPointer<T, DR>::TPointer(const TPointer& other)
-		: BASE {other}
+		: Base {other}
 		, mEntry {other.mEntry} {
-		if (BASE::mValue) {
+		if (Base::mValue) {
 			if (mEntry)
 				++mEntry->mReferences;
 			if constexpr (DR && IsReferencable<T>)
-				BASE::mValue->Keep();
+				Base::mValue->Keep();
 		}
 	}
 
@@ -39,7 +39,7 @@ namespace Langulus::Anyness
 	///	@param other - pointer to move													
 	TEMPLATE_SHARED()
 	TPointer<T, DR>::TPointer(TPointer&& other) noexcept
-		: BASE {Forward<BASE>(other)}
+		: Base {Forward<Base>(other)}
 		, mEntry {other.mEntry} {
 		other.mEntry = {};
 	}
@@ -48,13 +48,13 @@ namespace Langulus::Anyness
 	///	@param ptr - pointer to reference												
 	TEMPLATE_SHARED()
 	TPointer<T, DR>::TPointer(Type ptr)
-		: BASE {ptr}
+		: Base {ptr}
 		, mEntry {Allocator::Find(MetaData::Of<T>(), ptr)} {
-		if (BASE::mValue) {
+		if (Base::mValue) {
 			if (mEntry)
 				++mEntry->mReferences;
 			if constexpr (DR && IsReferencable<T>)
-				BASE::mValue->Keep();
+				Base::mValue->Keep();
 		}
 	}
 
@@ -124,9 +124,9 @@ namespace Langulus::Anyness
 	/// Reset the pointer																		
 	TEMPLATE_SHARED()
 	void TPointer<T, DR>::Reset() {
-		if (BASE::mValue) {
+		if (Base::mValue) {
 			if constexpr (DR && IsReferencable<T>)
-				BASE::mValue->Free();
+				Base::mValue->Free();
 
 			// This will call destructor on the pointer first					
 			// and then the data behind it, if references reach zero			
@@ -366,6 +366,27 @@ namespace Langulus::Anyness
 		}
 	}
 
+	/// Check if we have authority over the memory										
+	///	@return true if we own the memory												
+	TEMPLATE_SHARED()
+	constexpr bool TPointer<T, DR>::HasAuthority() const noexcept {
+		return mEntry != nullptr;
+	}
+		
+	/// Get the references for the entry, where this pointer resides in			
+	///	@return true if we own the memory												
+	TEMPLATE_SHARED()
+	constexpr Count TPointer<T, DR>::GetReferences() const noexcept {
+		return mEntry ? mEntry->mReferences : 1;
+	}
+
+	/// Get the type of the contained data													
+	///	@return the meta definition of the data										
+	TEMPLATE_SHARED()
+	DMeta TPointer<T, DR>::GetType() const {
+		return MetaData::Of<T>();
+	}
+					
 	/// Get the block of the contained pointer											
 	/// Can be invoked by the reflected resolver											
 	///	@return the pointer, interfaced via a memory block							
@@ -373,16 +394,14 @@ namespace Langulus::Anyness
 	Block TPointer<T, DR>::GetBlock() const {
 		return {
 			DataState {DataState::Constrained | DataState::Sparse},
-			MetaData::Of<T>(), Count {1},
-			&BASE::mValue,
-			mEntry
+			GetType(), 1, &(Base::mValue), mEntry
 		};
 	}
 
 	/// Access the pointer																		
 	///	@attention does not check if contained pointer is valid					
 	///	@return the contained constant raw pointer									
-	TEMPLATE_SHARED()
+	/*TEMPLATE_SHARED()
 	auto TPointer<T, DR>::operator -> () const {
 		return BASE::operator -> ();
 	}
@@ -403,7 +422,7 @@ namespace Langulus::Anyness
 	TEMPLATE_SHARED()
 	decltype(auto) TPointer<T, DR>::operator * () {
 		return BASE::operator * ();
-	}
+	}*/
 
 } // namespace Langulus::Anyness
 

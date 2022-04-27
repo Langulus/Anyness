@@ -51,6 +51,7 @@ namespace Langulus::Anyness
 	}
 
 	/// Allocate a memory entry																
+	///	@attention doesn't call any constructors										
 	///	@param meta - the type of data to allocate									
 	///	@param count - number of instances of the data type to allocate		
 	///	@return the allocated memory entry												
@@ -63,6 +64,7 @@ namespace Langulus::Anyness
 
 	/// Reallocate a memory entry																
 	///	@attention memory entry might move												
+	///	@attention doesn't call any constructors										
 	///	@param meta - the type of data to allocate									
 	///	@param count - number of instances of the data type to allocate		
 	///	@param previous - the previous memory entry									
@@ -77,27 +79,64 @@ namespace Langulus::Anyness
 			count * meta->mSize
 		));
 	}
+	
+	/// Deallocate a memory allocation														
+	///	@attention doesn't call any destructors										
+	///	@param meta - the type of data to deallocate (optional)					
+	///	@param entry - the memory entry to deallocate								
+	void Allocator::Deallocate(DMeta meta, Entry* entry) {
+		AlignedFree(reinterpret_cast<Byte*>(entry));
+	}
 
 	/// Find a memory entry from pointer													
 	/// If LANGULUS_FEATURE(MANAGED_MEMORY) is enabled, this function will		
 	/// attempt to find memory entry from the memory manager							
-	/// This allows us to safely interface unknown memory, possible reusing it	
+	/// Allows us to safely interface unknown memory, possibly reusing it		
 	///	@param meta - the type of data to search for (optional)					
 	///	@param memory - memory pointer													
 	///	@return the reallocated memory entry											
 	Entry* Allocator::Find(DMeta meta, const void* memory) {
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
-			return nullptr;
+			TODO();
 		#else
+			(meta); (memory);
 			return nullptr;
 		#endif
 	}
 
-	/// Deallocate a memory allocation														
-	///	@param meta - the type of data to deallocate (optional)					
-	///	@param entry - the memory entry to deallocate								
-	void Allocator::Deallocate(DMeta meta, Entry* entry) {
-		AlignedFree(reinterpret_cast<Byte*>(entry));
+	/// Check if memory is owned by the memory manager									
+	/// Unlike Allocator::Find, this doesn't check if memory is currently used	
+	///	@attention this function does nothing if										
+	///              LANGULUS_FEATURE(MANAGED_MEMORY) is disabled. This has		
+	///				  dire consequences on sparse containers, since one can not	
+	///				  determine if a pointer is owned or not without it!			
+	///	@param meta - the type of data to search for (optional)					
+	///	@param memory - memory pointer													
+	///	@return true if we own the memory												
+	bool Allocator::CheckAuthority(DMeta meta, const void* memory) {
+		#if LANGULUS_FEATURE(MANAGED_MEMORY)
+			TODO();
+		#else
+			(meta); (memory);
+			return false;
+		#endif
+	}
+	
+	/// Get the number of uses a memory entry has										
+	///	@attention this function does nothing if										
+	///              LANGULUS_FEATURE(MANAGED_MEMORY) is disabled. This has		
+	///				  dire consequences on sparse containers, since one can not	
+	///				  determine if a pointer is owned or not without it!			
+	///	@param meta - the type of data to search for (optional)					
+	///	@param memory - memory pointer													
+	///	@return the number of references, or 1 if memory is not ours			
+	Count Allocator::GetReferences(DMeta meta, const void* memory) {
+		#if LANGULUS_FEATURE(MANAGED_MEMORY)
+			TODO();
+		#else
+			(meta); (memory);
+			return 1;
+		#endif
 	}
 	
 	/// Reference some memory, which we do not know if owned or not				
@@ -115,6 +154,8 @@ namespace Langulus::Anyness
 			auto found = Find(meta, memory);
 			if (found)
 				found->mReferences += count;
+		#else
+			(meta); (memory); (count);
 		#endif
 	}
 
@@ -126,7 +167,7 @@ namespace Langulus::Anyness
 	///				  dire consequences on sparse containers, since one can not	
 	///				  determine if a pointer is owned or not without it!			
 	///	@attention this will deallocate memory if fully dereferenced			
-	///				  which is troublesome if you need constructors being called
+	///				  which is troublesome if you need to call destructors		
 	///				  Won't deallocate if LANGULUS_FEATURE(MANAGED_MEMORY) is	
 	///				  disabled																	
 	///	@param meta - the type of data to search for (optional)					
@@ -149,8 +190,17 @@ namespace Langulus::Anyness
 			found->mReferences -= count;
 			return false;
 		#else
+			(meta); (memory); (count);
 			return false;
 		#endif
+	}
+	
+	Allocator::Statistics Allocator::mStatistics {};
+	
+	/// Get allocator statistics																
+	///	@return a reference to the statistics structure								
+	const Allocator::Statistics& Allocator::GetStatistics() noexcept {
+		return mStatistics;
 	}
 
 } // namespace Langulus::Anyness

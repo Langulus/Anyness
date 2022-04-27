@@ -33,7 +33,9 @@ namespace Langulus::Anyness
 	/// This field is automatically added when using LANGULUS(REFLECT) macro	
 	/// inside the type you want to reflect												
 	template<class T>
-	concept Reflectable = requires { {Decay<T>::Reflect()} -> IsSame<MetaData>; };
+	concept Reflectable = requires {
+		{Decay<T>::Reflect()} -> IsSame<MetaData>;
+	};
 	
 	/// A reflected data type is any type that is not void, and is either		
 	/// manually reflected, or an implicitly reflected fundamental type			

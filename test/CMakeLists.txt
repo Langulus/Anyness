@@ -3,10 +3,6 @@ aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR} SOURCE_FILES)
 
 # Configure Catch2 library
 message(STATUS "Configuring external project: Catch2...")
-#set(CATCH_BUILD_TESTING OFF CACHE BOOL "" FORCE)
-#set(CATCH_INSTALL_DOCS OFF CACHE BOOL "" FORCE)
-#set(CATCH_INSTALL_HELPERS OFF CACHE BOOL "" FORCE)
-
 download_project(
 	PROJ                Catch2
 	GIT_REPOSITORY      https://github.com/catchorg/Catch2.git

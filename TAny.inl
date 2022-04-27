@@ -107,19 +107,19 @@ namespace Langulus::Anyness
 	/// Construct by moving a dense value of non-block type							
 	///	@param initial - the dense value to forward and emplace					
 	TEMPLATE()
-	TAny<T>::TAny(T&& initial) requires (TAny<T>::NotCustom)
+	TAny<T>::TAny(T&& initial) requires (not Anyness::IsDeep<T>)
 		: Any {Forward<T>(initial)} { }
 
 	/// Construct by copying/referencing value of non-block type					
 	///	@param initial - the dense value to shallow-copy							
 	TEMPLATE()
-	TAny<T>::TAny(const T& initial) requires (TAny<T>::NotCustom)
+	TAny<T>::TAny(const T& initial) requires (not Anyness::IsDeep<T>)
 		: Any {initial} { }
 
 	/// Construct by copying/referencing value of non-block type					
 	///	@param other - the dense value to shallow-copy								
 	TEMPLATE()
-	TAny<T>::TAny(T& other) requires (TAny<T>::NotCustom)
+	TAny<T>::TAny(T& other) requires (not Anyness::IsDeep<T>)
 		: TAny {const_cast<const T&>(other)} { }
 
 	/// Construct manually from an array													
@@ -140,15 +140,25 @@ namespace Langulus::Anyness
 		TakeAuthority();
 	}
 
-	/// Shallow copy operator																	
+	/// Shallow constant copy operator														
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator = (const TAny<T>& other) {
 		other.Keep();
 		Free();
 		CopyProperties<true>(other);
+		MakeConstant();
 		return *this;
 	}
 
+	/// Shallow mutable copy operator														
+	TEMPLATE()
+	TAny<T>& TAny<T>::operator = (TAny<T>& other) {
+		other.Keep();
+		Free();
+		CopyProperties<true>(other);
+		return *this;
+	}
+		
 	/// Move operator																				
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator = (TAny<T>&& other) {
@@ -209,19 +219,19 @@ namespace Langulus::Anyness
 	/// Assign by shallow-copying some value different from Any or Block			
 	///	@param value - the value to copy													
 	TEMPLATE()
-	TAny<T>& TAny<T>::operator = (const T& value) requires (TAny<T>::NotCustom) {
+	TAny<T>& TAny<T>::operator = (const T& value) requires (not Anyness::IsDeep<T>) {
 		return TAny<T>::operator = (TAny<T> {value});
 	}
 
 	TEMPLATE()
-	TAny<T>& TAny<T>::operator = (T& value) requires (TAny<T>::NotCustom) {
+	TAny<T>& TAny<T>::operator = (T& value) requires (not Anyness::IsDeep<T>) {
 		return TAny<T>::operator = (const_cast<const T&>(value));
 	}
 
 	/// Assign by moving some value different from Any or Block						
 	///	@param value - the value to move													
 	TEMPLATE()
-	TAny<T>& TAny<T>::operator = (T&& value) requires (TAny<T>::NotCustom) {
+	TAny<T>& TAny<T>::operator = (T&& value) requires (not Anyness::IsDeep<T>) {
 		return TAny<T>::operator = (TAny<T> {Forward<T>(value)});
 	}
 
@@ -583,24 +593,142 @@ namespace Langulus::Anyness
 		return *this;
 	}
 
-	/// Find element(s) position inside container										
+	/// Find element(s) index inside container											
+	///	@tparam ALT_T - type of the element to search for							
+	///	@param item - the item to search for											
+	///	@param index - the index to start searching at								
+	///	@return the index of the found item, or Index::None if none found		
 	TEMPLATE()
 	template<ReflectedData ALT_T>
-	Index TAny<T>::Find(const ALT_T& item, const Index& idx) const {
+	Index TAny<T>::Find(const ALT_T& item, const Index& index) const {
+		static_assert(IsComparable<T, ALT_T>, 
+			"Provided type ALT_T is not comparable to the contained type T");
+			
 		if (!mCount)
 			return Index::None;
 
-		TODO();
+		// Setup the iterator															
+		Index::Type starti, istep;
+		switch (index.mIndex) {
+		case Index::Front:
+			starti = 0;
+			istep = 1;
+			break;
+		case Index::Back:
+			starti = mCount - 1;
+			istep = -1;
+			break;
+		default:
+			starti = Constrain(index).mIndex;
+			if (starti + 1 >= mCount)
+				return Index::None;
+			istep = index >= 0 ? 1 : -1;
+		}
+
+		auto data = GetRaw();
+		if constexpr (Langulus::IsSparse<ALT_T>) {
+			if constexpr (Langulus::IsSparse<T>) {
+				// Searching for pointer inside a sparse container				
+				for (auto i = starti; i < mCount && i >= 0; i += istep) {
+					if constexpr (Inherits<T, ALT_T>) {
+						if (static_cast<MakeConst<T>>(data[i]) == item)
+							return i;
+					}
+					else if constexpr (Inherits<ALT_T, T>) {
+						if (data[i] == static_cast<MakeConst<ALT_T>>(item))
+							return i;
+					}
+					else {
+						if (data[i] == item)
+							return i;
+					}
+				}
+			}
+			else {
+				// Searching for pointer inside a dense container				
+				for (auto i = starti; i < mCount && i >= 0; i += istep) {
+					if constexpr (Inherits<T, ALT_T>) {
+						if (static_cast<MakeConst<T>>(data + i) == item)
+							return i;
+					}
+					else if constexpr (Inherits<ALT_T, T>) {
+						if (data + i == static_cast<MakeConst<ALT_T>>(item))
+							return i;
+					}
+					else {
+						if (data + i == item)
+							return i;
+					}
+				}
+			}
+		}
+		else {
+			if constexpr (Langulus::IsSparse<T>) {
+				// Searching for value inside a sparse container				
+				for (Index::Type i = starti; i < mCount && i >= 0; i += istep) {
+					// Test pointers first												
+					if constexpr (Inherits<T, ALT_T>) {
+						if (static_cast<MakeConst<T>>(data[i]) == &item)
+							return i;
+					}
+					else if constexpr (Inherits<ALT_T, T>) {
+						if (data[i] == static_cast<MakeConst<ALT_T>>(&item))
+							return i;
+					}
+					else {
+						if (data[i] == &item)
+							return i;
+					}
+					
+					// Test by value														
+					if (*data[i] == item)
+						return i;
+				}
+			}
+			else {
+				// Searching for value inside a dense container					
+				for (Index::Type i = starti; i < mCount && i >= 0; i += istep) {
+					// Test pointers first												
+					if constexpr (Inherits<T, ALT_T>) {
+						if (static_cast<MakeConst<T>>(data + i) == &item)
+							return i;
+					}
+					else if constexpr (Inherits<ALT_T, T>) {
+						if (data + 1 == static_cast<MakeConst<ALT_T>>(&item))
+							return i;
+					}
+					else {
+						if (data + 1 == &item)
+							return i;
+					}
+					
+					// Test by value														
+					if (data[i] == item)
+						return i;
+				}
+			}
+		}
 
 		// If this is reached, then no match was found							
 		return Index::None;
 	}
 
 	/// Remove matching items																	
+	///	@tparam ALT_T - type of the element to remove								
+	///	@param item - the item to search for to remove								
+	///	@param index - the index to start searching at								
+	///	@return the number of removed items												
 	TEMPLATE()
 	template<ReflectedData ALT_T>
-	Count TAny<T>::Remove(const ALT_T& item, const Index& idx) {
-		return Any::Remove<T>(item, 1, idx);
+	Count TAny<T>::Remove(const ALT_T& item, const Index& index) {
+		Count removed {};
+		for (Offset i = 0; i < mCount; ++i) {
+			const auto found = Find<ALT_T>(item, index);
+			if (found)
+				removed += RemoveIndex(found.GetOffset(), 1);
+		}
+
+		return removed;
 	}
 
 	/// Sort the pack																				
@@ -647,10 +775,10 @@ namespace Langulus::Anyness
 
 
 	///																								
-	///	IsSparse element implementation													
+	///	Sparse element implementation														
 	///																								
 	
-	/// When overwriting the element, the previous pointer must be dereference	
+	/// When overwriting the element, previous pointer must be dereferenced		
 	/// and the new one - referenced															
 	///	@param pointer - the pointer to set												
 	///	@return a reference to this sparse element									

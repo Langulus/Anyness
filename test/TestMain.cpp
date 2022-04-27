@@ -4,6 +4,6 @@
 #include <catch2/catch.hpp>
 
 int main(int argc, char* argv[]) {
-	//Catch::Session session;
-	//return session.run(argc, argv);
+	Catch::Session session;
+	return session.run(argc, argv);
 }

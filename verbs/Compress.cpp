@@ -1,5 +1,6 @@
-#if LANGULUS_FEATURE(ZLIB)
 #include "../Any.hpp"
+
+#if LANGULUS_FEATURE(ZLIB)
 #include <zlib.h>
 
 namespace Langulus::Anyness

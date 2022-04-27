@@ -133,13 +133,13 @@ namespace Langulus::Anyness
 		Block(const DataState&, DMeta, Count, const void*, Entry*) noexcept;
 		Block(const DataState&, DMeta, Count, void*, Entry*) noexcept;
 	
-		template<ReflectedData T>
+		template<ReflectedData T, bool CONSTRAIN = false>
 		NOD() static Block From(T) requires Langulus::IsSparse<T>;
-		template<ReflectedData T>
+		template<ReflectedData T, bool CONSTRAIN = false>
 		NOD() static Block From(T, Count) requires Langulus::IsSparse<T>;
-		template<ReflectedData T>
+		template<ReflectedData T, bool CONSTRAIN = false>
 		NOD() static Block From(T&) requires Langulus::IsDense<T>;
-		template<ReflectedData T>
+		template<ReflectedData T, bool CONSTRAIN = false>
 		NOD() static Block From();
 
 		constexpr Block& operator = (const Block&) noexcept = default;

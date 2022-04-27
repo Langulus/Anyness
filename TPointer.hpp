@@ -13,7 +13,7 @@ namespace Langulus::Anyness
 	///																								
 	template<ReflectedData T>
 	class TOwned {
-	public:
+	protected:
 		T mValue {};
 
 	public:
@@ -66,13 +66,14 @@ namespace Langulus::Anyness
 	/// its equivalent to std::shared_ptr													
 	///																								
 	template<ReflectedData T, bool DOUBLE_REFERENCED>
-	class TPointer : protected TOwned<Conditional<IsConstant<T>, const T*, T*>> {
+	class TPointer : public TOwned<Conditional<IsConstant<T>, const T*, T*>> {
 	protected:
-		using BASE = TOwned<Conditional<IsConstant<T>, const T*, T*>>;
-		using Type = typename TOwned<Conditional<IsConstant<T>, const T*, T*>>::Type;
 		Entry* mEntry {};
-
+		
 	public:
+		using Base = TOwned<Conditional<IsConstant<T>, const T*, T*>>;
+		using Type = typename Base::Type;
+		
 		constexpr TPointer() noexcept = default;
 		TPointer(const TPointer&);
 		TPointer(TPointer&&) noexcept;
@@ -80,10 +81,10 @@ namespace Langulus::Anyness
 		~TPointer();
 
 		NOD() Block GetBlock() const;
-		NOD() bool HasAuthority() const;
-		NOD() Count GetReferences() const;
+		NOD() constexpr bool HasAuthority() const noexcept;
+		NOD() constexpr Count GetReferences() const noexcept;
 		NOD() DMeta GetType() const;
-		using BASE::Get;
+		using Base::Get;
 
 		NOD() static TPointer Create(const Decay<T>&) requires IsCopyConstructible<Decay<T>>;
 		NOD() static TPointer Create(Decay<T>&&) requires IsMoveConstructible<Decay<T>>;
@@ -94,7 +95,7 @@ namespace Langulus::Anyness
 
 		void Reset();
 
-		NOD() explicit operator bool() const noexcept;
+		using Base::operator bool;
 		NOD() explicit operator const T* () const noexcept;
 		NOD() explicit operator Type () noexcept;
 
@@ -109,7 +110,12 @@ namespace Langulus::Anyness
 
 		NOD() operator TPointer<const T, DOUBLE_REFERENCED>() const noexcept requires IsMutable<T>;
 
-		NOD() bool operator == (const TPointer&) const noexcept;
+		using Base::operator ==;
+		using Base::operator !=;
+		using Base::operator ->;
+		using Base::operator *;
+		
+		/*NOD() bool operator == (const TPointer&) const noexcept;
 		NOD() bool operator != (const TPointer&) const noexcept;
 		NOD() bool operator == (const T*) const noexcept;
 		NOD() bool operator != (const T*) const noexcept;
@@ -119,7 +125,7 @@ namespace Langulus::Anyness
 		NOD() auto operator -> () const;
 		NOD() auto operator -> ();
 		NOD() decltype(auto) operator * () const;
-		NOD() decltype(auto) operator * ();
+		NOD() decltype(auto) operator * ();*/
 	};
 
 	/// Just a handle for a pointer, that provides ownage								
