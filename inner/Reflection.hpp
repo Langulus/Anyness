@@ -2,9 +2,11 @@
 #pragma once
 #include "DataState.hpp"
 
-#define LANGULUS_DEEP() public: static constexpr bool CTTI_Deep = true
-#define LANGULUS_POD() public: static constexpr bool CTTI_POD = true
-#define LANGULUS_NULLIFIABLE() public: static constexpr bool CTTI_Nullifiable = true
+#define LANGULUS_DEEP() public: static constexpr bool CTTI_Deep = 
+#define LANGULUS_POD() public: static constexpr bool CTTI_POD = 
+#define LANGULUS_NULLIFIABLE() public: static constexpr bool CTTI_Nullifiable = 
+#define LANGULUS_CONCRETIZABLE() public: using CTTI_Concretizable = 
+#define LANGULUS_ABSTRACT() private: virtual void StayAbstractForever() = 0
 
 namespace Langulus::Flow
 {
@@ -50,6 +52,10 @@ namespace Langulus::Anyness
 	template<class T>
 	concept ReflectedTrait = Inherits<T, Trait>;
 
+	/// Checks if T inherits Block															
+	template<class T>
+	concept IsBlock = Inherits<T, Block>;
+	
 	/// A deep type is any type with a static member T::CTTI_Deep set to true	
 	/// and a common interface with Block													
 	/// If no such member/base exists, the type is assumed NOT deep by default	
@@ -57,7 +63,7 @@ namespace Langulus::Anyness
 	/// of their elements, instead on the container itself							
 	/// Use LANGULUS(DEEP) macro as member to tag deep types							
 	template<class T>
-	concept IsDeep = Inherits<T, Block> && Decay<T>::CTTI_Deep == true;
+	concept IsDeep = IsBlock<T> && Decay<T>::CTTI_Deep == true;
 	
 	/// A POD (Plain Old Data) type is any type with a static member				
 	/// T::CTTI_POD set to true. If no such member exists, the type is assumed	
@@ -77,6 +83,17 @@ namespace Langulus::Anyness
 	/// Use LANGULUS(NULLIFIABLE) macro as member to tag nullifiable types		
 	template<class T>
 	concept IsNullifiable = Decay<T>::CTTI_Nullifiable == true;
+	
+	/// A concretizable type is any type with a member type CTTI_Concrete 		
+	/// If no such member exists, the type is assumed NOT concretizable by		
+	/// default. Concretizable types provide a default concretization for when	
+	/// allocating abstract types																
+	/// Use LANGULUS(CONCRETIZABLE) macro as member to tag such types				
+	template<class T>
+	concept IsConcretizable = requires {
+		typename Decay<T>::CTTI_Concrete;
+	};
+	
 	
 	///																								
 	///	These methods are sought in each reflected type								
@@ -263,57 +280,59 @@ namespace Langulus::Anyness
 		AbilityList mAbilities {};
 		// List of reflected bases														
 		BaseList mBases {};
-		// Default concretization													
+		// Default concretization														
 		DMeta mConcrete {};
-		// Dynamic producer of the type											
-		// Types with producers can be created only via a verb			
+		// Dynamic producer of the type												
+		// Types with producers can be created only via a verb				
 		DMeta mProducer {};
-		// True if reflected data is IsPOD (optimization)						
-		// IsPOD data can be directly memcpy-ed, or binary-serialized		
+		// True if reflected data is POD (optimization)							
+		// POD data can be directly memcpy-ed, or binary-serialized			
 		bool mIsPOD = false;
-		// True if reflected data is nullifiable (optimization)			
-		// Nullifiable data can be constructed AND destructed via		
-		// memset(0) without hitting undefined behavior						
+		// True if reflected data is nullifiable (optimization)				
+		// Nullifiable data can be constructed AND destructed via			
+		// memset(0) without hitting undefined behavior							
 		bool mIsNullifiable = false;
-		// If reflected type is abstract											
+		// If reflected type is abstract												
 		bool mIsAbstract = false;
-		// If type will be interpreted as a memory block and iterated	
+		// Type will be interpreted as a memory block and iterated			
 		bool mIsDeep = false;
-		// Size of the reflected type (in bytes)								
+		// Size of the reflected type (in bytes)									
 		Size mSize {};
-		// Alignof (in bytes)														
+		// Alignof (in bytes)															
 		Size mAlignment {};
-		// File extensions used, separated by commas							
+		// File extensions used, separated by commas								
 		Token mFileExtension {};
 
-		// Default constructor wrapped in a lambda upon reflection		
+		// Default constructor wrapped in a lambda upon reflection			
 		FDefaultConstruct mDefaultConstructor;
-		// Copy constructor wrapped in a lambda upon reflection			
+		// Copy constructor wrapped in a lambda upon reflection				
 		FCopyConstruct mCopyConstructor;
-		// Move constructor wrapped in a lambda upon reflection			
+		// Move constructor wrapped in a lambda upon reflection				
 		FMoveConstruct mMoveConstructor;
-		// Destructor wrapped in a lambda upon reflection					
+		// Destructor wrapped in a lambda upon reflection						
 		FDestroy mDestructor;
-		// Cloner wrapped in a lambda upon reflection (placement new)	
+		// Cloner wrapped in a lambda upon reflection (placement new)		
 		FClone mCloneInUninitilizedMemory;
-		// Cloner wrapped in a lambda upon reflection						
+		// Cloner wrapped in a lambda upon reflection							
 		FClone mCloneInInitializedMemory;
-		// The == operator, wrapped in a lambda upon reflection			
+		// The == operator, wrapped in a lambda upon reflection				
 		FCompare mComparer;
-		// The = operator, wrapped in a lambda upon reflection			
+		// The = operator, wrapped in a lambda upon reflection				
 		FCopy mCopier;
-		// The move operator, wrapped in a lambda upon reflection		
+		// The move operator, wrapped in a lambda upon reflection			
 		FMove mMover;
-		// The ClassBlock method, wrapped in a lambda upon reflection	
+		// The ClassBlock method, wrapped in a lambda upon reflection		
 		FResolve mResolver;
-		// The GetHash() method, wrapped in a lambda							
+		// The GetHash() method, wrapped in a lambda								
 		FHash mHasher;
-		// The Do verb, wrapped in a lambda										
+		// The Do verb, wrapped in a lambda											
 		FDispatch mDispatcher;
 
 	public:
 		template<ReflectedData T>
-		NOD() static DMeta Of();
+		NOD() static DMeta Of() requires IsDecayed<T>;
+
+		NOD() DMeta GetMostConcrete() const noexcept;
 
 		template<IsDense... Args>
 		void SetBases(Args&& ...) noexcept requires (... && IsSame<Args, Base>);
@@ -414,5 +433,67 @@ namespace Langulus::Anyness
 	};
 	
 } // namespace Langulus::Anyness
+
+
+namespace Langulus
+{
+	
+	///																								
+	/// The following abstract types are implicitly added as bases					
+	/// when reflecting fundamental types. They are linked to their				
+	/// corresponding concepts, so you can use them at runtime, to check if		
+	/// a type is compatible with the given concept via type->InterpretsAs		
+	///																								
+
+	/// Check if a type is compatible with IsNumber										
+	/// concept at runtime, via meta->InterpretsAs<ANumber>							
+	class ANumber {
+		LANGULUS(ABSTRACT);
+		LANGULUS(CONCRETIZABLE) Real;
+	};
+
+	/// Check if a type is compatible with IsInteger									
+	/// concept at runtime, via meta->InterpretsAs<AInteger>							
+	class AInteger {
+		LANGULUS(ABSTRACT);
+		LANGULUS(CONCRETIZABLE) ::std::intptr_t;
+	};
+
+	/// Check if a type is compatible with IsUnsigned									
+	/// concept at runtime, via meta->InterpretsAs<AUnsigned>						
+	class AUnsigned {
+		LANGULUS(ABSTRACT);
+		LANGULUS(CONCRETIZABLE) ::std::uintptr_t;
+	};
+
+	/// Check if a type is compatible with IsUnsignedInteger concept at			
+	/// runtime, via meta->InterpretsAs<AUnsignedInteger>								
+	class AUnsignedInteger {
+		LANGULUS(ABSTRACT);
+		LANGULUS(CONCRETIZABLE) ::std::uintptr_t;
+	};
+
+	/// Check if a type is compatible with IsReal										
+	/// concept at runtime, via meta->InterpretsAs<AReal>								
+	class AReal {
+		LANGULUS(ABSTRACT);
+		LANGULUS(CONCRETIZABLE) Real;
+	};
+
+	/// Check if a type is compatible with IsSigned										
+	/// concept at runtime, via meta->InterpretsAs<ASigned>							
+	class ASigned {
+		LANGULUS(ABSTRACT);
+		LANGULUS(CONCRETIZABLE) Real;
+	};
+
+	/// Check if a type is compatible with IsSignedInteger							
+	/// concept at runtime, via meta->InterpretsAs<ASignedInteger>					
+	class ASignedInteger {
+		LANGULUS(ABSTRACT);
+		LANGULUS(CONCRETIZABLE) ::std::intptr_t;
+	};
+	
+} // namespace Langulus
 
 #include "Reflection.inl"

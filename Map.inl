@@ -156,14 +156,11 @@ namespace Langulus::Anyness
 	template<ReflectedData K, ReflectedData V>
 	Count Map::Emplace(TPair<K, V>&& item, const Index& index) {
 		if (!IsMapInsertable<K, V>())
-			throw Except::Move("Bad emplace in map - type not insertable");
+			throw Except::Move("Bad emplace in map - pair is not insertable");
 
-		const auto insertedKeys = mKeys.Emplace<K>(Move(item.mKey), index);
-		const auto insertedValues = Any::Emplace<V>(Move(item.mValue), index);
-		if (insertedKeys != insertedValues)
-			throw Except::Move("Bad emplace in map - move failed");
-
-		return insertedKeys;
+		mKeys.Emplace<K>(Move(item.mKey), index);
+		Any::Emplace<V>(Move(item.mValue), index);
+		return 1;
 	}
 
 	/// Insert anything compatible to container											

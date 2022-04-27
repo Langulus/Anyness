@@ -4,6 +4,9 @@
 namespace Langulus::Anyness
 {
 
+	template<class T>
+	concept IsNotAny = ReflectedData<T> && !IsDeep<T> && !IsSame<T, Disowned<Any>> && !IsSame<T, Abandoned<Any>>;
+	
 	///																								
 	///	TAny																						
 	///																								
@@ -31,9 +34,9 @@ namespace Langulus::Anyness
 		TAny(const Disowned<TAny>&) noexcept;
 		TAny(Abandoned<TAny>&&) noexcept;
 
-		TAny(T&&) requires (not Anyness::IsDeep<T>);
-		TAny(const T&) requires (not Anyness::IsDeep<T>);
-		TAny(T&) requires (not Anyness::IsDeep<T>);
+		TAny(T&&) requires IsCustom<T>;
+		TAny(const T&) requires IsCustom<T>;
+		TAny(T&) requires IsCustom<T>;
 		TAny(const T*, const Count&);
 
 		TAny& operator = (const TAny&);
@@ -51,9 +54,9 @@ namespace Langulus::Anyness
 		TAny& operator = (const Disowned<TAny>&);
 		TAny& operator = (Abandoned<TAny>&&) noexcept;
 
-		TAny& operator = (const T&) requires (not Anyness::IsDeep<T>);
-		TAny& operator = (T&) requires (not Anyness::IsDeep<T>);
-		TAny& operator = (T&&) requires (not Anyness::IsDeep<T>);
+		TAny& operator = (const T&) requires IsCustom<T>;
+		TAny& operator = (T&) requires IsCustom<T>;
+		TAny& operator = (T&&) requires IsCustom<T>;
 
 	public:
 		NOD() bool InterpretsAs(DMeta) const;
@@ -122,11 +125,11 @@ namespace Langulus::Anyness
 		void Sort(const Index&);
 
 		NOD() TAny& Trim(const Count&);
-		template<Anyness::IsDeep WRAPPER = TAny>
+		template<Anyness::IsBlock WRAPPER = TAny>
 		NOD() WRAPPER Crop(const Offset&, const Count&) const;
-		template<Anyness::IsDeep WRAPPER = TAny>
+		template<Anyness::IsBlock WRAPPER = TAny>
 		NOD() WRAPPER Crop(const Offset&, const Count&);
-		template<Anyness::IsDeep WRAPPER = TAny>
+		template<Anyness::IsBlock WRAPPER = TAny>
 		NOD() WRAPPER Extend(const Count&);
 
 		void Swap(const Offset&, const Offset&);

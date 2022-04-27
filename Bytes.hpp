@@ -10,6 +10,7 @@ namespace Langulus::Anyness
 	/// Convenient wrapper for raw byte sequences										
 	///																								
 	class Bytes : public TAny<Byte> {
+		LANGULUS(DEEP) false;		
 	public:
 		Bytes() = default;
 		Bytes(const Bytes&);
@@ -31,13 +32,13 @@ namespace Langulus::Anyness
 
 		Bytes& operator = (const Bytes&);
 		Bytes& operator = (Bytes&&) noexcept;
-		Bytes& operator = (const TAny&);
-		Bytes& operator = (TAny&&) noexcept;
+		//Bytes& operator = (const TAny&);
+		//Bytes& operator = (TAny&&) noexcept;
 
-		Bytes& operator = (const Disowned<Bytes>&);
+		Bytes& operator = (Disowned<Bytes>&&);
 		Bytes& operator = (Abandoned<Bytes>&&) noexcept;
-		Bytes& operator = (const Disowned<TAny>&);
-		Bytes& operator = (Abandoned<TAny>&&) noexcept;
+		//Bytes& operator = (Disowned<TAny>&&);
+		//Bytes& operator = (Abandoned<TAny>&&) noexcept;
 		
 	public:
 		NOD() Bytes Clone() const;

@@ -113,7 +113,7 @@ namespace Langulus::Anyness
 		else if constexpr (Anyness::IsDeep<T>)
 			result = static_cast<const Block&>(value);
 		else
-			result = {DataState::Static, MetaData::Of<T>(), 1, &value};
+			result = {DataState::Static, MetaData::Of<Decay<T>>(), 1, &value};
 		
 		if constexpr (CONSTRAIN)
 			result.MakeTypeConstrained();
@@ -461,7 +461,7 @@ namespace Langulus::Anyness
 	/// Check if a type can be inserted														
 	template<ReflectedData T>
 	bool Block::IsInsertable() const noexcept {
-		return IsInsertable(MetaData::Of<T>());
+		return IsInsertable(MetaData::Of<Decay<T>>());
 	}
 
 	/// Get the raw data inside the container												
@@ -658,7 +658,7 @@ namespace Langulus::Anyness
 	///	@return true if block was deepened to incorporate the new type			
 	template<ReflectedData T>
 	bool Block::Mutate() {
-		return Mutate(MetaData::Of<T>());
+		return Mutate(MetaData::Of<Decay<T>>());
 	}
 
 	/// Reserve a number of elements															
@@ -727,22 +727,22 @@ namespace Langulus::Anyness
 
 	template<ReflectedData T>
 	bool Block::CanFit() const {
-		return CanFit(MetaData::Of<T>());
+		return CanFit(MetaData::Of<Decay<T>>());
 	}
 
 	template<ReflectedData T>
 	bool Block::InterpretsAs() const {
-		return InterpretsAs(MetaData::Of<T>());
+		return InterpretsAs(MetaData::Of<Decay<T>>());
 	}
 
 	template<ReflectedData T>
 	bool Block::InterpretsAs(Count count) const {
-		return InterpretsAs(MetaData::Of<T>(), count);
+		return InterpretsAs(MetaData::Of<Decay<T>>(), count);
 	}
 
 	template<ReflectedData T>
 	bool Block::Is() const {
-		return Is(MetaData::Of<T>());
+		return Is(MetaData::Of<Decay<T>>());
 	}
 
 	/// Set the data ID - use this only if you really know what you're doing	
@@ -772,7 +772,7 @@ namespace Langulus::Anyness
 
 		if (mType->InterpretsAs<false>(type)) {
 			// Type is compatible, but only sparse data can mutate freely	
-			// IsDense containers can't mutate because their destructors		
+			// Dense containers can't mutate because their destructors		
 			// might be wrong later														
 			if (IsSparse())
 				mType = type;
@@ -800,7 +800,7 @@ namespace Langulus::Anyness
 	///	@tparam CONSTRAIN - whether or not to enable type-constraints			
 	template<ReflectedData T, bool CONSTRAIN>
 	void Block::SetType() {
-		SetType<CONSTRAIN>(MetaData::Of<T>());
+		SetType<CONSTRAIN>(MetaData::Of<Decay<T>>());
 	}
 
 	/// Swap two elements (with raw indices)												
@@ -863,7 +863,7 @@ namespace Langulus::Anyness
 
 		// Insert new data																
 		if constexpr (Langulus::IsSparse<T>) {
-			// IsSparse data insertion (moving a pointer)							
+			// Sparse data insertion (moving a pointer)							
 			auto data = GetRawSparse() + starter;
 			*data = reinterpret_cast<Byte*>(item);
 
@@ -873,7 +873,7 @@ namespace Langulus::Anyness
 		else {
 			static_assert(!Langulus::IsAbstract<T>, "Can't emplace abstract item");
 
-			// IsDense data insertion (placement move-construction)				
+			// Dense data insertion (placement move-construction)				
 			auto data = GetRaw() + starter * sizeof(T);
 			if constexpr (IsMoveConstructible<T>)
 				new (data) T {Forward<T>(item)};
@@ -1278,7 +1278,7 @@ namespace Langulus::Anyness
 		// multiple items	in this container.										
 		if (orCompliant && IsDeep()) {
 			SetState(mState + state);
-			return Emplace(Any {Abandon(pack)}, index);
+			return Emplace<Any>(pack, index);
 		}
 
 		// Finally, if allowed, force make the container deep in order to	
@@ -1287,7 +1287,7 @@ namespace Langulus::Anyness
 			if (!IsTypeConstrained()) {
 				Deepen<Any>();
 				SetState(mState + state);
-				return Emplace(Any {Abandon(pack)}, index);
+				return Emplace<Any>(pack, index);
 			}
 		}
 

@@ -66,7 +66,7 @@ namespace Langulus::Anyness
 	/// lightweight intermediate structure for iteration, etc.						
 	///																								
 	class Block {
-		LANGULUS(DEEP);
+		LANGULUS(DEEP) true;
 
 		friend class Any;
 		template<ReflectedData T>
@@ -555,6 +555,10 @@ namespace Langulus::Anyness
 		};
 
 	} // namespace Langulus::Anyness::Inner
+	
+	template<class T>
+	concept IsCustom = ReflectedData<T> && !IsDeep<T> && !IsDisowned<T> && !IsAbandoned<T>;
+	
 } // namespace Langulus::Anyness
 
 #include "Block.inl"

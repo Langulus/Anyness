@@ -10,16 +10,15 @@ namespace Langulus::Anyness
 	/// Nested for each memory subregion, including sparse links as long			
 	/// as depth allows it. It will allocate and call constructors, as well as	
 	/// invoke Clone() routines if available												
-	///	@param result - the resulting container										
+	///	@param result - [out] the resulting container								
+	///	@return the number of cloned elements											
 	Count Block::Clone(Block& result) const {
 		// Always clone the state, but make it unconstrained					
 		result.SetType<false>(mType);
 		result.mState += GetUnconstrainedState();
 
-		if (!IsAllocated()) {
-			// Nothing to actually clone, except the state						
+		if (!IsAllocated())
 			return 1;
-		}
 
 		VERBOSE_TAB("Cloning " << mCount
 			<< " elements of type " << GetToken() 

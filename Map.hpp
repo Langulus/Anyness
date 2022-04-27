@@ -39,6 +39,7 @@ namespace Langulus::Anyness
 	///	DATA CONTAINER SPECIALIZATION FOR KEY-VALUE PAIRS							
 	///																								
 	class Map : public Any {
+		LANGULUS(DEEP) false;
 	public:
 		Map() noexcept = default;
 		

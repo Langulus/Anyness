@@ -7,7 +7,7 @@ SCENARIO("Any", "[containers]") {
 	GIVEN("An Any instance") {
 		int original_value = 555;
 		auto meta = MetaData::Of<int>();
-		auto metas = MetaData::Of<int*>();
+		auto metas = MetaData::Of<int>();
 		Text original_pct = u8"Lorep Ipsum";
 
 		REQUIRE(meta);

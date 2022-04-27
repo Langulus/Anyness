@@ -13,6 +13,7 @@ namespace Langulus::Anyness
 	/// Convenient wrapper for UTF8 strings												
 	///																								
 	class Text : public TAny<Letter> {
+		LANGULUS(DEEP) false;		
 	public:
 		using TAny::TAny;
 

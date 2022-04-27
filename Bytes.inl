@@ -85,8 +85,8 @@ namespace Langulus::Anyness
 	/// Shallow copy disowned bytes															
 	///	@param rhs - the byte container to shallow-copy								
 	///	@return a reference to this container											
-	inline Bytes& Bytes::operator = (const Disowned<Bytes>& rhs) {
-		TAny::operator = (rhs);
+	inline Bytes& Bytes::operator = (Disowned<Bytes>&& rhs) {
+		TAny::operator = (rhs.Forward<TAny>());
 		return *this;
 	}
 
@@ -101,8 +101,8 @@ namespace Langulus::Anyness
 	/// Shallow copy disowned bytes															
 	///	@param rhs - the byte container to shallow-copy								
 	///	@return a reference to this container											
-	inline Bytes& Bytes::operator = (const Disowned<TAny>& rhs) {
-		TAny::operator = (rhs);
+	/*inline Bytes& Bytes::operator = (Disowned<TAny>&& rhs) {
+		TAny::operator = (rhs.Forward<TAny>());
 		return *this;
 	}
 
@@ -112,6 +112,6 @@ namespace Langulus::Anyness
 	inline Bytes& Bytes::operator = (Abandoned<TAny>&& rhs) noexcept {
 		TAny::operator = (rhs.Forward<TAny>());
 		return *this;
-	}
+	}*/
 	
 } // namespace Langulus::Anyness

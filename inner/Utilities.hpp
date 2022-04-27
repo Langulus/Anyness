@@ -24,12 +24,29 @@ namespace Langulus
 	NOD() constexpr Deref<T>&& Move(T&& a) noexcept {
 		return static_cast<Deref<T>&&>(a);
 	}
+	
+	namespace Inner {
+		struct AAbandoned {};
+		struct ADisowned {};
+	}
+	
+	template<class T>
+	concept IsAbandoned = Inherits<T, Inner::AAbandoned>;
+	template<class T>
+	concept IsDisowned = Inherits<T, Inner::ADisowned>;
+
 
 	/// Abandon a value																			
-	/// IsSame as Move, but resets only mandatory data inside source after move	
+	/// Same as Move, but resets only mandatory data inside source after move	
 	/// essentially saving up on a couple of instructions								
 	template<class T>
-	struct Abandoned {
+	struct Abandoned : public Inner::AAbandoned {
+		Abandoned() = delete;
+		Abandoned(const Abandoned&) = delete;
+		explicit constexpr Abandoned(Abandoned&&) noexcept = default;
+		explicit constexpr Abandoned(T&& value) noexcept 
+			: mValue(Langulus::Forward<T>(value)) {}
+		
 		T&& mValue;
 		
 		/// Forward as abandoned																
@@ -51,11 +68,17 @@ namespace Langulus
 	}
 
 	/// Disown a value																			
-	/// IsSame as a shallow-copy, but never references, saving some instructions	
+	/// Same as a shallow-copy, but never references, saving some instructions	
 	///	@attention values initialized using Disowned should be Abandoned		
 	///				  before the end of their scope										
 	template<class T>
-	struct Disowned {
+	struct Disowned : public Inner::ADisowned  {
+		Disowned() = delete;
+		Disowned(const Disowned&) = delete;
+		explicit constexpr Disowned(Disowned&&) noexcept = default;
+		explicit constexpr Disowned(const T& value) noexcept 
+			: mValue(value) {}
+		
 		const T& mValue;
 		
 		/// Forward as disowned																	

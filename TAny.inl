@@ -10,7 +10,7 @@ namespace Langulus::Anyness
 	/// TAny is type-constrained and always has a type									
 	TEMPLATE()
 	TAny<T>::TAny()
-		: Any {Block {DataState::Typed, MetaData::Of<T>()}} { }
+		: Any {Block {DataState::Typed, MetaData::Of<Decay<T>>()}} { }
 
 	/// Shallow-copy construction (const)													
 	///	@param other - the TAny to reference											
@@ -107,19 +107,19 @@ namespace Langulus::Anyness
 	/// Construct by moving a dense value of non-block type							
 	///	@param initial - the dense value to forward and emplace					
 	TEMPLATE()
-	TAny<T>::TAny(T&& initial) requires (not Anyness::IsDeep<T>)
+	TAny<T>::TAny(T&& initial) requires IsCustom<T>
 		: Any {Forward<T>(initial)} { }
 
 	/// Construct by copying/referencing value of non-block type					
 	///	@param initial - the dense value to shallow-copy							
 	TEMPLATE()
-	TAny<T>::TAny(const T& initial) requires (not Anyness::IsDeep<T>)
+	TAny<T>::TAny(const T& initial) requires IsCustom<T>
 		: Any {initial} { }
 
 	/// Construct by copying/referencing value of non-block type					
 	///	@param other - the dense value to shallow-copy								
 	TEMPLATE()
-	TAny<T>::TAny(T& other) requires (not Anyness::IsDeep<T>)
+	TAny<T>::TAny(T& other) requires IsCustom<T>
 		: TAny {const_cast<const T&>(other)} { }
 
 	/// Construct manually from an array													
@@ -219,19 +219,19 @@ namespace Langulus::Anyness
 	/// Assign by shallow-copying some value different from Any or Block			
 	///	@param value - the value to copy													
 	TEMPLATE()
-	TAny<T>& TAny<T>::operator = (const T& value) requires (not Anyness::IsDeep<T>) {
+	TAny<T>& TAny<T>::operator = (const T& value) requires IsCustom<T> {
 		return TAny<T>::operator = (TAny<T> {value});
 	}
 
 	TEMPLATE()
-	TAny<T>& TAny<T>::operator = (T& value) requires (not Anyness::IsDeep<T>) {
+	TAny<T>& TAny<T>::operator = (T& value) requires IsCustom<T> {
 		return TAny<T>::operator = (const_cast<const T&>(value));
 	}
 
 	/// Assign by moving some value different from Any or Block						
 	///	@param value - the value to move													
 	TEMPLATE()
-	TAny<T>& TAny<T>::operator = (T&& value) requires (not Anyness::IsDeep<T>) {
+	TAny<T>& TAny<T>::operator = (T&& value) requires IsCustom<T> {
 		return TAny<T>::operator = (TAny<T> {Forward<T>(value)});
 	}
 
@@ -353,7 +353,54 @@ namespace Langulus::Anyness
 	/// Clone the templated container														
 	TEMPLATE()
 	TAny<T> TAny<T>::Clone() const {
-		return {Any::Clone()};
+		// Always clone the state, but make it unconstrained					
+		TAny<T> result {Disown(*this)};
+		result.mState -= DataState::Static | DataState::Constant;
+		
+		if (!IsAllocated())
+			return Abandon(result);
+
+		result.ResetMemory();
+		result.Allocate(mCount, false, true);
+		auto from = GetRaw();
+		auto to = result.GetRaw();
+		
+		if constexpr (Langulus::IsSparse<T>) {
+			// Clone data behind each valid pointer								
+			for (Offset i = 0; i < mCount; ++i) {
+				if (!*to) {
+					*to = nullptr;
+					++from; ++to;
+					continue;
+				}
+				
+				auto entry = Allocator::Allocate(mType, 1);
+				if constexpr (IsClonable<T>)
+					new (entry->GetBlockStart()) Decay<T> {(*from)->Clone()};
+				else if constexpr (IsPOD<T>)
+					CopyMemory(**from, entry->GetBlockStart(), sizeof(Decay<T>));
+				else
+					LANGULUS_ASSERT("Can't clone a container made of non-clonable/non-POD type");
+				
+				*to = entry->GetBlockStart();
+				++from; ++to;
+			}
+		}
+		else {
+			// Clone dense elements														
+			for (Offset i = 0; i < mCount; ++i) {
+				if constexpr (IsClonable<T>)
+					new (to) Decay<T> {from->Clone()};
+				else if constexpr (IsPOD<T>)
+					CopyMemory(from, to, sizeof(Decay<T>));
+				else
+					LANGULUS_ASSERT("Can't clone a container made of non-clonable/non-POD type");
+				
+				++from; ++to;				
+			}
+		}
+	
+		return Abandon(result);
 	}
 
 	/// Return the typed raw data (const)													
@@ -892,7 +939,7 @@ namespace Langulus::Anyness
 	///			            use Block for unreferenced container					
 	///	@return a container that represents the cropped part						
 	TEMPLATE()
-	template<Anyness::IsDeep WRAPPER>
+	template<Anyness::IsBlock WRAPPER>
 	WRAPPER TAny<T>::Crop(const Offset& start, const Count& count) const {
 		auto result = const_cast<TAny*>(this)->Crop<WRAPPER>(start, count);
 		result.MakeConstant();
@@ -904,7 +951,7 @@ namespace Langulus::Anyness
 	///			            use Block for unreferenced container					
 	///	@return a container that represents the cropped part						
 	TEMPLATE()
-	template<Anyness::IsDeep WRAPPER>
+	template<Anyness::IsBlock WRAPPER>
 	WRAPPER TAny<T>::Crop(const Offset& start, const Count& count) {
 		CheckRange(start, count);
 		if (count == 0) {
@@ -925,7 +972,7 @@ namespace Langulus::Anyness
 	///			            use Block for unreferenced container					
 	///	@return a container that represents the extended part						
 	TEMPLATE()
-	template<Anyness::IsDeep WRAPPER>
+	template<Anyness::IsBlock WRAPPER>
 	WRAPPER TAny<T>::Extend(const Count& count) {
 		if (!count || IsStatic())
 			// You can not extend static containers								

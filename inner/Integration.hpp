@@ -244,7 +244,7 @@
 		template<class T>
 		concept IsMoveConstructible = ::std::move_constructible<T>;
 		
-		/// Check if T is clonable																
+		/// Check if Decay<T> is clonable													
 		template<class T>
 		concept IsClonable = requires (Decay<T> a) { 
 			{a = a.Clone()};
@@ -287,79 +287,9 @@
 		template<class T, class BASE>
 		concept Inherits = ::std::derived_from<Decay<T>, Decay<BASE>>;
 
-
-
-
-		///																							
-		/// The following abstract types are implicitly added as bases				
-		/// when reflecting fundamental types. They are linked to their			
-		/// corresponding concepts, so you can use them at runtime, to check if	
-		/// a type is compatible with the given concept via type->InterpretsAs	
-		///																							
-
-
-		/// Check if a type is compatible with IsNumber									
-		/// concept at runtime, via meta->InterpretsAs<ANumber>						
-		class ANumber {
-			virtual void StayAbstract() = 0;
-		public:
-			// Default concretization for an abstract number					
-			using Concrete = Real;
-		};
-
-		/// Check if a type is compatible with IsInteger								
-		/// concept at runtime, via meta->InterpretsAs<AInteger>						
-		class AInteger {
-			virtual void StayAbstract() = 0;
-		public:
-			// Default concretization for an abstract integer					
-			using Concrete = ::std::intptr_t;
-		};
-
-		/// Check if a type is compatible with IsUnsigned								
-		/// concept at runtime, via meta->InterpretsAs<AUnsigned>					
-		class AUnsigned {
-			virtual void StayAbstract() = 0;
-		public:
-			// Default concretization for an abstract unsigned type			
-			using Concrete = ::std::uintptr_t;
-		};
-
-		/// Check if a type is compatible with IsUnsignedInteger concept at		
-		/// runtime, via meta->InterpretsAs<AUnsignedInteger>							
-		class AUnsignedInteger {
-			virtual void StayAbstract() = 0;
-		public:
-			// Default concretization for an abstract unsigned integer		
-			using Concrete = ::std::uintptr_t;
-		};
-
-		/// Check if a type is compatible with IsReal									
-		/// concept at runtime, via meta->InterpretsAs<AReal>							
-		class AReal {
-			virtual void StayAbstract() = 0;
-		public:
-			// Default concretization for an abstract real number				
-			using Concrete = Real;
-		};
-
-		/// Check if a type is compatible with IsSigned									
-		/// concept at runtime, via meta->InterpretsAs<ASigned>						
-		class ASigned {
-			virtual void StayAbstract() = 0;
-		public:
-			// Default concretization for an abstract signed number			
-			using Concrete = Real;
-		};
-
-		/// Check if a type is compatible with IsSignedInteger						
-		/// concept at runtime, via meta->InterpretsAs<ASignedInteger>				
-		class ASignedInteger {
-			virtual void StayAbstract() = 0;
-		public:
-			// Default concretization for an abstract signed number			
-			using Concrete = ::std::intptr_t;
-		};
+		/// Check if type has no reference/pointer/extent, etc.						
+		template<class T>
+		concept IsDecayed = IsDense<T> && !::std::is_reference_v<T> && IsMutable<T>;
 
 	} // namespace Langulus
 

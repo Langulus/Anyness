@@ -49,6 +49,19 @@ namespace Langulus::Anyness
 		: Block {static_cast<const Block&>(other)} {
 		Keep();
 	}
+	
+	/// Same as shallow-copy but doesn't reference anything							
+	///	@param other - the block to shallow-copy										
+	inline Any::Any(Disowned<Any>&& other) noexcept
+		: Block {static_cast<const Block&>(other.mValue)} {}	
+	
+	/// Same as shallow-move but doesn't fully reset other, saving some			
+	/// instructions																				
+	///	@param other - the block to shallow-copy										
+	inline Any::Any(Abandoned<Any>&& other) noexcept
+		: Block {Forward<Block>(other.mValue)} {
+		other.mValue.mEntry = nullptr;
+	}
 
 	/// Destruction																				
 	inline Any::~Any() {
@@ -57,16 +70,16 @@ namespace Langulus::Anyness
 
 	/// Construct by moving a dense value of non-block type							
 	///	@param other - the dense value to forward and emplace						
-	template <ReflectedData T>
-	Any::Any(T&& other) requires (Any::NotCustom<T>) {
+	template <IsCustom T>
+	Any::Any(T&& other) {
 		SetType<T, false>();
 		Emplace<T, false>(Forward<T>(other));
 	}
 
 	/// Construct by copying/referencing value of non-block type					
 	///	@param other - the dense value to shallow-copy								
-	template <ReflectedData T>
-	Any::Any(const T& other) requires (Any::NotCustom<T>) {
+	template <IsCustom T>
+	Any::Any(const T& other) {
 		SetType<T, false>();
 		Insert<T, false>(&other, 1);
 	}
@@ -74,8 +87,8 @@ namespace Langulus::Anyness
 	/// Construct by copying/referencing value of non-block type					
 	/// Required to not move other by mistake												
 	///	@param other - the dense value to shallow-copy								
-	template <ReflectedData T>
-	Any::Any(T& other) requires (Any::NotCustom<T>)
+	template <IsCustom T>
+	Any::Any(T& other)
 		: Any {const_cast<const T&>(other)} {}
 
 	/// Create an empty Any from a dynamic type and state								
@@ -157,20 +170,20 @@ namespace Langulus::Anyness
 
 	/// Assign by shallow-copying some value different from Any						
 	///	@param value - the value to copy													
-	template<ReflectedData T>
-	Any& Any::operator = (const T& value) requires (Any::NotCustom<T>) {
+	template<IsCustom T>
+	Any& Any::operator = (const T& value) {
 		return operator = (Any {value});
 	}
 
-	template<ReflectedData T>
-	Any& Any::operator = (T& value) requires (Any::NotCustom<T>) {
+	template<IsCustom T>
+	Any& Any::operator = (T& value) {
 		return operator = (const_cast<const T&>(value));
 	}
 
 	/// Assign by moving some value different from Any									
 	///	@param value - the value to move													
-	template<ReflectedData T>
-	Any& Any::operator = (T&& value) requires (Any::NotCustom<T>) {
+	template<IsCustom T>
+	Any& Any::operator = (T&& value) {
 		return operator = (Any {Forward<T>(value)});
 	}
 

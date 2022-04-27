@@ -75,22 +75,20 @@ namespace Langulus::Anyness
    ///                                                                        
    
    /// Reflect or return an already reflected type meta definition            
-   ///   @attention reflection is done only on the decayed T                  
+   /// Reflection is done only on decayed types to reduce statics             
    ///   @tparam T - the type to reflect (will always be decayed)             
    template<ReflectedData T>
-   DMeta MetaData::Of() {
-		using Decayed = Decay<T>;
-
+   DMeta MetaData::Of() requires IsDecayed<T> {
 		// This check is not standard, but doesn't hurt afaik					
-		static_assert(sizeof(Decayed) > 0, "Can't reflect an incomplete type");
+		static_assert(sizeof(T) > 0, "Can't reflect an incomplete type");
 
-		// Never proceed with reflection, if already reflected				
 		#if LANGULUS_FEATURE(MANAGED_REFLECTION)
 			static constinit ::std::weak_ptr<MetaData> meta;
 		#else
 			static constinit ::std::unique_ptr<MetaData> meta;
 		#endif
 
+		// Never proceed with reflection, if already reflected				
 		if (meta)
 			return meta.get();
 
@@ -98,7 +96,7 @@ namespace Langulus::Anyness
 			// Try to get the definition, type might have been reflected	
 			// previously in another translation unit. This is available	
 			// only if MANAGED_REFLECTION feature is enabled					
-			meta = TODO;
+			meta = TODO();
 			if (meta)
 				return meta;
 		#endif
@@ -106,120 +104,123 @@ namespace Langulus::Anyness
 		// If this is reached, then type is not defined yet					
 		// We'll try to explicitly or implicitly reflect it					
 
-		if constexpr (Reflectable<Decayed>) {
+		if constexpr (Reflectable<T>) {
 			// The type is explicitly reflected with a custom function		
 			// Let's call it...															
-			meta = ::std::make_unique<MetaData>(Decayed::Reflect());
+			meta = ::std::make_unique<MetaData>(T::Reflect());
 			return meta.get();
 		}
 		else {
 			// Type is implicitly reflected, so let's do our best				
 			meta = ::std::make_unique<MetaData>();
-			meta->mToken = Meta::Name<Decayed>();
+			meta->mToken = Meta::Name<T>();
 			meta->mInfo = u8"<no info provided due to implicit reflection>";
-			meta->mName = Meta::Name<Decayed>();
-			meta->mHash = Meta::Hash<Decayed>();
-			meta->mIsAbstract = IsAbstract<Decayed>;
-			meta->mIsNullifiable = IsNullifiable<Decayed>;
-			meta->mSize = IsAbstract<Decayed> ? 0 : sizeof(Decayed);
-			meta->mAlignment = alignof(Decayed);
+			meta->mName = Meta::Name<T>();
+			meta->mHash = Meta::Hash<T>();
+			meta->mIsAbstract = IsAbstract<T>;
+			meta->mIsNullifiable = IsNullifiable<T>;
+			meta->mSize = IsAbstract<T> ? 0 : sizeof(T);
+			meta->mAlignment = alignof(T);
 			meta->mIsPOD = IsPOD<T>;
 			meta->mIsDeep = IsDeep<T>;
+			
+			if constexpr (IsConcretizable<T>)
+				meta->mConcrete = MetaData::Of<Decay<T::CTTI_Concrete>>();
 
 			// Wrap the default constructor of the type inside a lambda		
-			if constexpr (IsDefaultConstructible<Decayed>) {
+			if constexpr (IsDefaultConstructible<T>) {
 				meta->mDefaultConstructor = [](void* at) {
-					new (at) Decayed {};
+					new (at) T {};
 				};
 			}
 
 			// Wrap the copy constructor of the type inside a lambda			
-			if constexpr (IsCopyConstructible<Decayed>) {
+			if constexpr (IsCopyConstructible<T>) {
 				meta->mCopyConstructor = [](void* at, const void* from) {
-					auto fromInstance = static_cast<const Decayed*>(from);
-					new (at) Decayed {*fromInstance};
+					auto fromInstance = static_cast<const T*>(from);
+					new (at) T {*fromInstance};
 				};
 			}
 
 			// Wrap the move constructor of the type inside a lambda			
-			if constexpr (IsMoveConstructible<Decayed>) {
+			if constexpr (IsMoveConstructible<T>) {
 				meta->mMoveConstructor = [](void* at, void* from) {
-					auto fromInstance = static_cast<Decayed*>(from);
-					new (at) Decayed {Forward<Decayed>(*fromInstance)};
+					auto fromInstance = static_cast<T*>(from);
+					new (at) T {Forward<T>(*fromInstance)};
 				};
 			}
 
 			// Wrap the destructor of the type inside a lambda					
 			meta->mDestructor = [](void* at) {
-				auto instance = static_cast<Decayed*>(at);
-				instance->~Decayed();
+				auto instance = static_cast<T*>(at);
+				instance->~T();
 			};
 
 			// Wrap the cloners of the type inside a lambda						
-			if constexpr (IsClonable<Decayed>) {
-				if constexpr (IsCopyConstructible<Decayed> || IsMoveConstructible<Decayed>) {
+			if constexpr (IsClonable<T>) {
+				if constexpr (IsCopyConstructible<T> || IsMoveConstructible<T>) {
 					meta->mCloneInUninitilizedMemory = [](const void* from, void* to) {
-						auto fromInstance = static_cast<const Decayed*>(from);
-						new (to) Decayed {fromInstance->Clone()};
+						auto fromInstance = static_cast<const T*>(from);
+						new (to) T {fromInstance->Clone()};
 					};
 				}
 
-				if constexpr (IsCopyable<Decayed> || IsMovable<Decayed>) {
+				if constexpr (IsCopyable<T> || IsMovable<T>) {
 					meta->mCloneInInitializedMemory = [](const void* from, void* to) {
-						auto toInstance = static_cast<Decayed*>(to);
-						auto fromInstance = static_cast<const Decayed*>(from);
+						auto toInstance = static_cast<T*>(to);
+						auto fromInstance = static_cast<const T*>(from);
 						*toInstance = fromInstance->Clone();
 					};
 				}
 			}
 
 			// Wrap the == operator of the type inside a lambda				
-			if constexpr (IsComparable<Decayed, Decayed>) {
+			if constexpr (IsComparable<T>) {
 				meta->mComparer = [](const void* t1, const void* t2) {
-					auto t1Instance = static_cast<const Decayed*>(t1);
-					auto t2Instance = static_cast<const Decayed*>(t2);
+					auto t1Instance = static_cast<const T*>(t1);
+					auto t2Instance = static_cast<const T*>(t2);
 					return *t1Instance == *t2Instance;
 				};
 			}
 
 			// Wrap the copy operator of the type inside a lambda				
-			if constexpr (IsCopyable<Decayed>) {
+			if constexpr (IsCopyable<T>) {
 				meta->mCopier = [](const void* from, void* to) {
-					auto toInstance = static_cast<Decayed*>(to);
-					auto fromInstance = static_cast<const Decayed*>(from);
+					auto toInstance = static_cast<T*>(to);
+					auto fromInstance = static_cast<const T*>(from);
 					*toInstance = *fromInstance;
 				};
 			}
 
 			// Wrap the move operator of the type inside a lambda				
-			if constexpr (IsMovable<Decayed>) {
+			if constexpr (IsMovable<T>) {
 				meta->mMover = [](void* from, void* to) {
-					auto toInstance = static_cast<Decayed*>(to);
-					auto fromInstance = static_cast<Decayed*>(from);
+					auto toInstance = static_cast<T*>(to);
+					auto fromInstance = static_cast<T*>(from);
 					*toInstance = Move(*fromInstance);
 				};
 			}
 
 			// Wrap the GetBlock method of the type inside a lambda			
-			if constexpr (IsResolvable<Decayed>) {
+			if constexpr (IsResolvable<T>) {
 				meta->mResolver = [](const void* at) {
-					auto instance = static_cast<const Decayed*>(at);
+					auto instance = static_cast<const T*>(at);
 					return instance->GetBlock();
 				};
 			}
 
 			// Wrap the GetHash() method inside a lambda							
-			if constexpr (IsHashable<Decayed>) {
+			if constexpr (IsHashable<T>) {
 				meta->mHasher = [](const void* at) {
-					auto instance = static_cast<const Decayed*>(at);
+					auto instance = static_cast<const T*>(at);
 					return instance->GetHash();
 				};
 			}
 
 			// Wrap the Do verb method inside a lambda							
-			if constexpr (IsDispatcher<Decayed>) {
+			if constexpr (IsDispatcher<T>) {
 				meta->mDispatcher = [](void* at, Flow::Verb& verb) {
-					auto instance = static_cast<Decayed*>(at);
+					auto instance = static_cast<T*>(at);
 					instance->Do(verb);
 				};
 			}
@@ -247,6 +248,15 @@ namespace Langulus::Anyness
 	template<IsDense... Args>
 	void MetaData::SetMembers(Args&&... items) noexcept requires (... && IsSame<Args, Member>) {
 		mMembers = {Forward<Member>(items)...};
+	}
+	
+	/// Get the most concrete type															
+	///	@return the most concrete type													
+	inline DMeta MetaData::GetMostConcrete() const noexcept {
+		auto concrete = this;
+		while (concrete->mConcrete)
+			concrete = concrete->mConcrete;
+		return concrete;
 	}
 
 	/// Get a reflected base linked to this meta data definition					
@@ -297,7 +307,7 @@ namespace Langulus::Anyness
 	///	@return true if a base is available												
 	template<ReflectedData T>
 	bool MetaData::GetBase(Offset offset, Base& base) const {
-		return GetBase(MetaData::Of<T>(), offset, base);
+		return GetBase(MetaData::Of<Decay<T>>(), offset, base);
 	}
 
 	/// A simple check if a reflected base is linked to this meta data			
@@ -387,7 +397,7 @@ namespace Langulus::Anyness
 	///	@return true if this type interprets as other								
 	template<ReflectedData T, bool ADVANCED>
 	bool MetaData::InterpretsAs() const {
-		return InterpretsAs<ADVANCED>(MetaData::Of<T>());
+		return InterpretsAs<ADVANCED>(MetaData::Of<Decay<T>>());
 	}
 
 	/// Check if this type interprets as an exact number of another without		
@@ -493,7 +503,7 @@ namespace Langulus::Anyness
 	///	@return true if types match														
 	template<ReflectedData T>
 	constexpr bool MetaData::Is() const {
-		return Is(MetaData::Of<T>());
+		return Is(MetaData::Of<Decay<T>>());
 	}
 
 #if LANGULUS_FEATURE(MANAGED_REFLECTION)

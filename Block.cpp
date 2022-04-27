@@ -62,26 +62,14 @@ namespace Langulus::Anyness
 		}
 		
 		// Check if we're allocating abstract data								
-		auto concrete = mType->mConcrete;
+		auto concrete = mType->GetMostConcrete();
 		if (concrete->mIsAbstract) {
 			throw Except::Allocate(Logger::Error()
-				<< "Allocating abstract data without any concretization: " << GetToken());
-		}
-
-		if (IsAllocated()) {
-			// Do a reallocation															
-			if (IsStatic()) {
-				throw Except::Allocate(Logger::Error()
-					<< "Attempting to reallocate unmovable block");
-			}
-
-			mEntry = Allocator::Reallocate(concrete, elements, mEntry);
-		}
-		else {
-			// Do a fresh allocation													
-			mEntry = Allocator::Allocate(concrete, elements);
+				<< "Allocating abstract data without any concretization: " << concrete->mToken);
 		}
 		
+		// Allocate/reallocate															
+		mEntry = Allocator::Reallocate(concrete, elements, mEntry);
 		mRaw = mEntry->GetBlockStart();
 		mReserved = elements;
 		
@@ -933,19 +921,18 @@ namespace Langulus::Anyness
 		return GatherInner(*this, output, direction);
 	}
 
-	/// Gather items of specific polarity from input container,						
-	/// and fill output - output type acts as a filter to what gets gathered	
-	///	@param target_type - original type to search for							
+	/// Gather items of specific phase from input container and fill output		
+	///	@param type - type to search for													
 	///	@param input - source container													
 	///	@param output - [in/out] container that collects results					
 	///	@param direction - the direction to search from								
-	///	@param polarity - polarity filter												
+	///	@param phase - phase filter														
 	///	@return the number of gathered elements										
 	Count GatherPolarInner(DMeta type, const Block& input, Block& output, const Index direction, Phase phase) {
 		if (input.GetPhase() != phase) {
 			if (input.GetPhase() == Phase::Now && input.IsDeep()) {
-				// Polarities don't match, but we can dig deeper if deep		
-				// and neutral, since neutral polarity is permissive			
+				// Phases don't match, but we can dig deeper if deep			
+				// and neutral, since Phase::Now is permissive					
 				auto localOutput = Any::FromMeta(type, input.GetUnconstrainedState());
 				if (direction == Index::Front) {
 					for (Count i = 0; i < input.GetCount(); ++i) {
@@ -981,7 +968,7 @@ namespace Langulus::Anyness
 		return output.InsertBlock(localOutput);
 	}
 
-	/// Gather items from this container based on polarity. Output type			
+	/// Gather items from this container based on phase. Output type				
 	/// matters - it decides what you'll gather. Preserves hierarchy only if	
 	/// output is deep																			
 	Count Block::Gather(Block& output, Phase phase, const Index direction) const {

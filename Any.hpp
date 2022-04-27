@@ -3,7 +3,7 @@
 
 namespace Langulus::Anyness
 {
-
+	
 	///																								
 	///	Any																						
 	///																								
@@ -14,15 +14,12 @@ namespace Langulus::Anyness
 	///	For a faster statically-optimized equivalent of this, use TAny			
 	///																								
 	class Any : public Block {
+		LANGULUS(DEEP) true;		
 	public:
 		template<ReflectedData T>
 		friend class TAny;
 
-		template<class T>
-		static constexpr bool NotCustom = Langulus::IsSparse<T> || (!IsSame<T,Any> && !IsSame<T,Block>);
-
 		constexpr Any() noexcept {}
-
 		Any(const Any&);
 		Any(Any&);
 		Any(Any&&) noexcept;
@@ -30,13 +27,16 @@ namespace Langulus::Anyness
 		Any(const Block&);
 		Any(Block&);
 		Any(Block&&);
+		
+		Any(Disowned<Any>&&) noexcept;
+		Any(Abandoned<Any>&&) noexcept;		
 
-		template<ReflectedData T>
-		Any(T&&) requires (Any::NotCustom<T>);
-		template<ReflectedData T>
-		Any(const T&) requires (Any::NotCustom<T>);
-		template<ReflectedData T>
-		Any(T&) requires (Any::NotCustom<T>);
+		template<IsCustom T>
+		Any(T&&);
+		template<IsCustom T>
+		Any(const T&);
+		template<IsCustom T>
+		Any(T&);
 
 		~Any();
 
@@ -48,12 +48,15 @@ namespace Langulus::Anyness
 		Any& operator = (Block&);
 		Any& operator = (Block&&);
 
-		template<ReflectedData T>
-		Any& operator = (const T&) requires (Any::NotCustom<T>);
-		template<ReflectedData T>
-		Any& operator = (T&) requires (Any::NotCustom<T>);
-		template<ReflectedData T>
-		Any& operator = (T&&) requires (Any::NotCustom<T>);
+		Any& operator = (Disowned<Any>&&);
+		Any& operator = (Abandoned<Any>&&) noexcept;
+		
+		template<IsCustom T>
+		Any& operator = (const T&);
+		template<IsCustom T>
+		Any& operator = (T&);
+		template<IsCustom T>
+		Any& operator = (T&&);
 
 	public:
 		NOD() static Any FromMeta(DMeta, const DataState& = {}) noexcept;
