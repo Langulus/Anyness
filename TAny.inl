@@ -656,6 +656,7 @@ namespace Langulus::Anyness
 
 		// Setup the iterator															
 		Index::Type starti, istep;
+		const auto count = static_cast<Index::Type>(mCount);
 		switch (index.mIndex) {
 		case Index::Front:
 			starti = 0;
@@ -667,7 +668,7 @@ namespace Langulus::Anyness
 			break;
 		default:
 			starti = Constrain(index).mIndex;
-			if (starti + 1 >= mCount)
+			if (starti + 1 >= count)
 				return Index::None;
 			istep = index >= 0 ? 1 : -1;
 		}
@@ -676,7 +677,7 @@ namespace Langulus::Anyness
 		if constexpr (Langulus::IsSparse<ALT_T>) {
 			if constexpr (Langulus::IsSparse<T>) {
 				// Searching for pointer inside a sparse container				
-				for (auto i = starti; i < mCount && i >= 0; i += istep) {
+				for (auto i = starti; i < count && i >= 0; i += istep) {
 					if constexpr (Inherits<T, ALT_T>) {
 						if (static_cast<MakeConst<T>>(data[i]) == item)
 							return i;
@@ -693,7 +694,7 @@ namespace Langulus::Anyness
 			}
 			else {
 				// Searching for pointer inside a dense container				
-				for (auto i = starti; i < mCount && i >= 0; i += istep) {
+				for (auto i = starti; i < count && i >= 0; i += istep) {
 					if constexpr (Inherits<T, ALT_T>) {
 						if (static_cast<MakeConst<T>>(data + i) == item)
 							return i;
@@ -712,7 +713,7 @@ namespace Langulus::Anyness
 		else {
 			if constexpr (Langulus::IsSparse<T>) {
 				// Searching for value inside a sparse container				
-				for (Index::Type i = starti; i < mCount && i >= 0; i += istep) {
+				for (Index::Type i = starti; i < count && i >= 0; i += istep) {
 					// Test pointers first												
 					if constexpr (Inherits<T, ALT_T>) {
 						if (static_cast<MakeConst<T>>(data[i]) == &item)
@@ -734,7 +735,7 @@ namespace Langulus::Anyness
 			}
 			else {
 				// Searching for value inside a dense container					
-				for (Index::Type i = starti; i < mCount && i >= 0; i += istep) {
+				for (Index::Type i = starti; i < count && i >= 0; i += istep) {
 					// Test pointers first												
 					if constexpr (Inherits<T, ALT_T>) {
 						if (static_cast<MakeConst<T>>(data + i) == &item)
