@@ -25,77 +25,10 @@ namespace Langulus::Anyness
 		return InterpretsAs(other);
 	}
 
-	/// (Re)allocation of memory with optional default-construction				
-	/// If elements are less than the count, the excess will be deconstructed	
-	///	@param elements - number of elements to allocate							
-	///	@param construct - set to true in order to construct memory & count	
-	///	@param setcount - set the count even if not constructed					
-	void Block::Allocate(Count elements, bool construct, bool setcount) {
-		if (!mType) {
-			throw Except::Allocate(Logger::Error()
-				<< "Attempting to allocate " << elements 
-				<< " element(s) of an invalid type");
-		}
-		else if (mType->mIsAbstract) {
-			throw Except::Allocate(Logger::Error()
-				<< "Attempting to allocate " << elements 
-				<< " element(s) of abstract type " << GetToken());
-		}
-
-		if (mCount > elements) {
-			// Remove last few entries on smaller allocation					
-			RemoveIndex(elements, mCount - elements);
-			return;
-		}
-
-		if (mReserved >= elements) {
-			// Required memory is already available								
-			if (construct && mCount < elements) {
-				// But is not yet initialized, so initialize it					
-				CallDefaultConstructors(elements - mCount);
-				return;
-			}
-
-			if (setcount)
-				mCount = elements;
-			return;
-		}
-		
-		// Check if we're allocating abstract data								
-		auto concrete = mType->GetMostConcrete();
-		if (concrete->mIsAbstract) {
-			throw Except::Allocate(Logger::Error()
-				<< "Allocating abstract data without any concretization: " << concrete->mToken);
-		}
-		
-		// Allocate/reallocate															
-		mEntry = Allocator::Reallocate(concrete, elements, mEntry);
-		mRaw = mEntry->GetBlockStart();
-		mReserved = elements;
-		
-		// Construct elements (and set count) if requested						
-		if (construct && mCount < elements) {
-			CallDefaultConstructors(elements - mCount);
-			return;
-		}
-
-		if (setcount)
-			mCount = elements;
-		return;
-	}
-
-	/// Extend the block, depending on currently reserved elements					
-	///	@param elements - number of elements to append								
-	///	@param construct - true to default-initialize new memory					
-	///	@param setcount - true to force set count without initializing			
-	void Block::Extend(Count elements, bool construct, bool setcount) {
-		Allocate(mReserved + elements, construct, setcount);
-	}
-
 	/// Shrink the block, depending on currently reserved	elements					
 	///	@param elements - number of elements to shrink by (relative)			
 	void Block::Shrink(Count elements) {
-		Allocate(mReserved - ::std::min(elements, mReserved));
+		Allocate<false>(mReserved - ::std::min(elements, mReserved));
 	}
 
 	/// Clone all elements inside a new memory block									
@@ -446,21 +379,21 @@ namespace Langulus::Anyness
 		if (mType->mIsNullifiable) {
 			// Just zero the memory (optimization)									
 			FillMemory(GetRawEnd(), {}, count * GetStride());
-			mCount += count;
-			return;
 		}
-		else if (!mType->mDefaultConstructor) {
-			throw Except::Construct(Logger::Error()
-				<< "Can't default-construct " << count << " elements of "
-				<< GetToken() << " because no default constructor was reflected");
+		else {
+			if (!mType->mDefaultConstructor) {
+				throw Except::Construct(Logger::Error()
+					<< "Can't default-construct " << count << " elements of "
+					<< GetToken() << " because no default constructor was reflected");
+			}
+			
+			// Construct requested elements one by one							
+			for (Offset i = mCount; i < mCount + count; ++i) {
+				auto element = GetElement(i);
+				mType->mDefaultConstructor(element.mRaw);
+			}
 		}
-
-		// Construct requested elements one by one								
-		for (Offset i = mCount; i < mCount + count; ++i) {
-			auto element = GetElement(i);
-			mType->mDefaultConstructor(element.mRaw);
-		}
-
+		
 		mCount += count;
 	}
 
@@ -471,15 +404,21 @@ namespace Langulus::Anyness
 	///	@attention this must have zero count, and mReserved						
 	///	@param source - the elements to copy											
 	void Block::CallCopyConstructors(const Block& source) {
+		const auto count = mReserved - mCount;
+		#if LANGULUS(SAFE)
+			if (count != source.mCount)
+				throw Except::Construct("Oops");
+		#endif
+		
 		if ((IsSparse() && source.IsSparse()) || mType->mIsPOD) {
-			// Just copy the IsPOD/pointer memory (optimization)					
-			CopyMemory(source.mRaw, mRaw, GetStride() * mReserved);
+			// Just copy the POD/pointer memory (optimization)					
+			CopyMemory(source.mRaw, GetRawEnd(), GetStride() * count);
 
 			if (IsSparse()) {
 				// Since we're copying pointers, we have to reference the	
 				// dense memory behind each one of them							
 				auto pointers = GetRawSparse();
-				Count c = 0;
+				Count c {mCount};
 				while (c < mReserved) {
 					// Reference each pointer											
 					Allocator::Keep(mType, pointers[c], 1);
@@ -495,81 +434,66 @@ namespace Langulus::Anyness
 			// LHS is pointer, RHS must be dense									
 			// Copy each pointer from RHS, and reference it						
 			auto pointers = GetRawSparse();
-			for (Count i = 0; i < mReserved; ++i) {
+			for (Count i = 0; i < count; ++i) {
 				const auto element = source.GetElement(i);
-				pointers[i] = element.mRaw;
+				pointers[i + mCount] = element.mRaw;
 				element.Keep();
 			}
 		}
 		else if (source.IsSparse()) {
 			// RHS is pointer, LHS must be dense									
 			// Copy each dense element from RHS										
-			if (Is<Block>()) {
-				// Block's copy constructors don't reference, so we must		
-				// compensate for that here											
-				auto pointers = source.GetRawSparse();
-				for (Count i = 0; i < mReserved; ++i) {
-					Block& block = Get<Block>(i);
-					new (&block) Block {
-						*reinterpret_cast<const Block*>(pointers[i])
-					};
-					block.Keep();
-				}
+			// Call the reflected copy-constructor for each element			
+			if (!mType->mCopyConstructor) {
+				throw Except::Construct(Logger::Error()
+					<< "Can't copy-construct " << source.mCount << " elements of "
+					<< GetToken() << " because no copy constructor was reflected");
 			}
-			else {
-				// Call the reflected copy-constructor for each element		
-				if (!mType->mCopyConstructor) {
-					throw Except::Construct(Logger::Error()
-						<< "Can't copy-construct " << source.mCount << " elements of "
-						<< GetToken() << " because no copy constructor was reflected");
-				}
 
-				auto pointers = source.GetRawSparse();
-				for (Count i = 0; i < mReserved; ++i) {
-					auto element = GetElement(i);
-					mType->mCopyConstructor(element.mRaw, pointers[i]);
-				}
+			auto pointers = source.GetRawSparse();
+			for (Count i = 0; i < count; ++i) {
+				auto element = GetElement(i + mCount);
+				mType->mCopyConstructor(element.mRaw, pointers[i]);
 			}
 		}
 		else  {
 			// Both RHS and LHS must be dense										
-			if (Is<Block>()) {
-				// Block's copy constructors don't reference, so we must		
-				// compensate for that here											
-				for (Count i = 0; i < mReserved; ++i) {
-					Block& blockTo = Get<Block>(i);
-					const Block& blockFrom = source.Get<Block>(i);
-					new (&blockTo) Block {blockFrom};
-					blockTo.Keep();
-				}
+			// Call the reflected copy-constructor for each element			
+			if (!mType->mCopyConstructor) {
+				throw Except::Construct(Logger::Error()
+					<< "Can't copy-construct " << source.mCount << " elements of "
+					<< GetToken() << " because no copy constructor was reflected");
 			}
-			else {
-				// Call the reflected copy-constructor for each element		
-				if (!mType->mCopyConstructor) {
-					throw Except::Construct(Logger::Error()
-						<< "Can't copy-construct " << source.mCount << " elements of "
-						<< GetToken() << " because no copy constructor was reflected");
-				}
 
-				for (Count i = 0; i < mReserved; ++i) {
-					auto lhs = GetElement(i);
-					auto rhs = source.GetElement(i);
-					mType->mCopyConstructor(lhs.mRaw, rhs.mRaw);
-				}
+			for (Count i = 0; i < count; ++i) {
+				auto lhs = GetElement(i + mCount);
+				auto rhs = source.GetElement(i);
+				mType->mCopyConstructor(lhs.mRaw, rhs.mRaw);
 			}
 		}
+		
+		mCount = mReserved;		
 	}
 
 	/// Call move constructors in a region and initialize memory					
 	///	@attention this operates on uninitialized memory only, and any			
 	///		misuse will result in loss of data and undefined behavior			
 	///	@attention source must have a binary-compatible type						
-	///	@attention this must have zero count, and source.mCount reserved		
+	///	@attention source must contain at least mReserved - mCount items		
+	///	@attention after the move, source will have zero count,					
+	///		signifying that items have been consumed, but is still allocated	
 	///	@param source - the elements to move											
 	void Block::CallMoveConstructors(Block&& source) {
+		const auto count = mReserved - mCount;
+		#if LANGULUS(SAFE)
+			if (count != source.mCount)
+				throw Except::Construct("Oops");
+		#endif
+		
 		if (mType->mIsPOD || (IsSparse() && source.IsSparse())) {
 			// Copy pointers, and then null them									
-			MoveMemory(source.mRaw, mRaw, GetStride() * mReserved);
+			const auto size = GetStride() * count;
+			MoveMemory(source.mRaw, mRawSparse + mCount, size);
 		}
 		else if (source.IsSparse()) {
 			// RHS is pointer, LHS must be dense									
@@ -581,8 +505,8 @@ namespace Langulus::Anyness
 			}
 
 			auto pointers = source.GetRawSparse();
-			for (Count i = 0; i < mReserved; ++i) {
-				auto element = GetElement(i);
+			for (Count i = 0; i < count; ++i) {
+				auto element = GetElement(i + mCount);
 				mType->mMoveConstructor(element.mRaw, pointers[i]);
 			}
 		}
@@ -590,11 +514,11 @@ namespace Langulus::Anyness
 			// LHS is pointer, RHS must be dense									
 			// Copy each element pointer from RHS and reference it			
 			auto pointers = GetRawSparse();
-			for (Count i = 0; i < mReserved; ++i)
-				pointers[i] = source.GetElement(i).mRaw;
+			for (Count i = 0; i < count; ++i)
+				pointers[i + mCount] = source.GetElement(i).mRaw;
 
 			// Can't actually move, you know, just reference rhs by count	
-			source.Reference(mReserved);
+			source.Reference(count);
 		}
 		else {
 			// Both RHS and LHS must be dense										
@@ -604,19 +528,16 @@ namespace Langulus::Anyness
 					<< GetToken() << " because no move constructor was reflected");
 			}
 
-			for (Count i = 0; i < mReserved; ++i) {
-				auto lhs = GetElement(i);
+			for (Count i = 0; i < count; ++i) {
+				auto lhs = GetElement(i + mCount);
 				auto rhs = source.GetElement(i);
 				mType->mMoveConstructor(lhs.mRaw, rhs.mRaw);
 			}
 		}
 
-		// Reset the source																
-		source.ResetMemory();
-		if (source.IsTypeConstrained())
-			source.ResetState<true>();
-		else
-			source.ResetState<false>();
+		// Only consume the items in the source									
+		mCount = mReserved;
+		source.mCount = 0;
 	}
 
 	/// Call destructors in a region - after this call the memory is not			
@@ -627,7 +548,7 @@ namespace Langulus::Anyness
 	void Block::CallDestructors() {
 		if (IsSparse()) {
 			// We dereference each pointer - destructors will be called		
-			// only if data behind those pointers is fully dereferenced		
+			// if data behind these pointers is fully dereferenced, too		
 			for (Count i = 0; i < mCount; ++i) {
 				auto element = GetElementResolved(i);
 				element.Free();
@@ -637,15 +558,6 @@ namespace Langulus::Anyness
 			// It is quite obscure, but this is where TPointers are reset	
 			FillMemory(mRaw, {}, GetSize());
 			return;
-		}
-		else if (mType->Is<Block>()) {
-			// Special care for Blocks, because their destructors don't		
-			// dereference - we must compensate										
-			for (Count i = 0; i < mCount; ++i) {
-				Block& block = Get<Block>(i);
-				block.Free();
-				//block.ResetInner(); //TODO is this required?
-			}
 		}
 		else if (!mType->mIsPOD) {
 			// Destroy every dense element, one by one, using the 			
@@ -732,13 +644,13 @@ namespace Langulus::Anyness
 		// First call the destructors on the correct region					
 		const auto ender = std::min(starter + count, mCount);
 		const auto removed = ender - starter;
-		CropInner(starter, removed).CallDestructors();
+		CropInner(starter, removed, removed).CallDestructors();
 
 		if (ender < mCount) {
 			// Fill gap	if any by invoking move constructions					
-			CropInner(starter, mCount - ender)
+			CropInner(starter, 0, mCount - ender)
 				.CallMoveConstructors(
-					CropInner(ender, mCount - ender));
+					CropInner(ender, mCount - ender, mCount - ender));
 		}
 
 		// Change count																	
@@ -791,10 +703,10 @@ namespace Langulus::Anyness
 	}
 
 	/// A helper function, that allocates and moves inner memory					
-	/// @param other - the memory we'll be inserting									
-	/// @param idx - the place we'll be inserting at									
-	/// @param region - the newly allocated region (no mCount, only mReserved)	
-	/// @return number if inserted items in case of mutation							
+	///	@param other - the memory we'll be inserting									
+	///	@param idx - the place we'll be inserting at									
+	///	@param region - the newly allocated region (!mCount, only mReserved)	
+	///	@return number if inserted items in case of mutation						
 	Count Block::AllocateRegion(const Block& other, const Index& idx, Block& region) {
 		if (other.IsEmpty())
 			return 0;
@@ -802,12 +714,12 @@ namespace Langulus::Anyness
 		// Type may mutate																
 		if (Mutate(other.mType)) {
 			// Block was deepened, so emplace a container inside				
-			return Emplace<Any>(Any {other}, idx);
+			return Emplace(Any {other}, idx);
 		}
 
 		// Allocate the required memory - this will not initialize it		
 		const auto starter = Constrain(idx).GetOffset();
-		Allocate(mCount + other.mCount);
+		Allocate<false>(mCount + other.mCount);
 
 		// Move memory if required														
 		if (starter < mCount) {
@@ -815,13 +727,13 @@ namespace Langulus::Anyness
 				throw Except::Reference(Logger::Error()
 					<< "Moving elements that are used from multiple places"));
 
-			CropInner(starter + other.mCount, mCount - starter)
+			CropInner(starter + other.mCount, 0, mCount - starter)
 				.CallMoveConstructors(
-					CropInner(starter, mCount - starter));
+					CropInner(starter, mCount - starter, mCount - starter));
 		}
 
 		// Pick the region that should be overwritten with new stuff		
-		region = CropInner(starter, other.mCount);
+		region = CropInner(starter, 0, other.mCount);
 		return 0;
 	}
 
@@ -856,7 +768,6 @@ namespace Langulus::Anyness
 		if (region.IsAllocated()) {
 			// Call move-constructors in the new region							
 			region.CallMoveConstructors(Forward<Block>(other));
-			mCount += region.mReserved;
 			return region.mReserved;
 		}
 

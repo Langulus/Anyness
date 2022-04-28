@@ -74,8 +74,8 @@ namespace Langulus::Anyness
 		//																						
 		// Standard functionality														
 		//																						
-		NOD() static Entry* Allocate(DMeta, Count);
-		NOD() static Entry* Reallocate(DMeta, Count, Entry*);
+		NOD() static Entry* Allocate(Size);
+		NOD() static Entry* Reallocate(Size, Entry*);
 		static void Deallocate(DMeta, Entry*);
 
 		//																						

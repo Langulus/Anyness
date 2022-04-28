@@ -1,4 +1,6 @@
 #include "TestMain.hpp"
+
+#if LANGULUS_FEATURE(NEWDELETE)
 #include <catch2/catch.hpp>
 
 SCENARIO("Testing new/delete operators", "[new][delete]") {
@@ -17,6 +19,17 @@ SCENARIO("Testing new/delete operators", "[new][delete]") {
 
 		Allocator::Keep(nullptr, a, 1);
 
+		WHEN("Using new statements") {
+			int* original_int = new int(555);
+
+			THEN("We should have jurisdiction over that memory") {
+				REQUIRE(original_int != nullptr);
+				REQUIRE(*original_int == 555);
+				REQUIRE(Allocator::CheckAuthority(metas, original_int));
+				REQUIRE(Allocator::GetReferences(metas, original_int) == 1);
+			}
+		}
+		
 		WHEN("Referencing the dynamic memory") {
 			Allocator::Keep(nullptr, a, 1);
 			THEN("Reference count increases") {
@@ -67,3 +80,4 @@ SCENARIO("Testing new/delete operators", "[new][delete]") {
 		}
 	}
 }
+#endif

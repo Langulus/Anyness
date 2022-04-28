@@ -12,6 +12,24 @@ namespace Langulus::Anyness
 	TAny<T>::TAny()
 		: Any {Block {DataState::Typed, MetaData::Of<Decay<T>>()}} { }
 
+	/// Destructor																					
+	TEMPLATE()
+	TAny<T>::~TAny() {
+		if (!mEntry)
+			return;
+
+		if (mEntry->mReferences == 1) {
+			if constexpr (Langulus::IsSparse<T> || !IsPOD<T>)
+				CallDestructors();
+			Allocator::Deallocate(mType, mEntry);
+			ResetMemory();
+			return;
+		}
+
+		--mEntry->mReferences;
+		ResetMemory();
+	}
+	
 	/// Shallow-copy construction (const)													
 	///	@param other - the TAny to reference											
 	TEMPLATE()
@@ -361,7 +379,8 @@ namespace Langulus::Anyness
 			return Abandon(result);
 
 		result.ResetMemory();
-		result.Allocate(mCount, false, true);
+		result.Allocate<false>(mCount);
+		result.mCount = mCount;
 		auto from = GetRaw();
 		auto to = result.GetRaw();
 		
@@ -558,6 +577,13 @@ namespace Langulus::Anyness
 	TEMPLATE()
 	constexpr Size TAny<T>::GetStride() const noexcept {
 		return sizeof(T); 
+	}
+	
+	/// Get the size of all elements, in bytes											
+	///	@return the total amount of initialized bytes								
+	TEMPLATE()
+	constexpr Size TAny<T>::GetSize() const noexcept {
+		return sizeof(T) * mCount; 
 	}
 
 	/// Insert an item by move-construction												
@@ -925,16 +951,128 @@ namespace Langulus::Anyness
 			// Just zero the memory (optimization)									
 			FillMemory(GetRawEnd(), {}, count * GetStride());
 			mCount += count;
-			return;
 		}
 		else if constexpr (IsDefaultConstructible<T>) {
 			// Construct requested elements in place								
-			new (GetRawEnd()) T {}[count];
+			new (GetRawEnd()) T [count];
 			mCount += count;
 		}
 		else LANGULUS_ASSERT("Trying to default-construct elements that are incapable of default-construction");
 	}
+			
+	/// Call copy constructors in a region and initialize memory					
+	///	@param source - the elements to copy											
+	TEMPLATE()
+	void TAny<T>::CallCopyConstructors(const TAny& source) {
+		const auto count = mReserved - mCount;
+		#if LANGULUS(SAFE)
+			if (count != source.mCount)
+				throw Except::Construct("Oops");
+		#endif
+			
+		if constexpr(Langulus::IsSparse<T> || IsPOD<T>) {
+			// Just copy the POD/pointer memory (optimization)					
+			CopyMemory(source.GetRaw(), GetRawEnd(), GetStride() * count);
 
+			if constexpr(Langulus::IsSparse<T>) {
+				// Since we're copying pointers, we have to reference the	
+				// dense memory behind each one of them							
+				Count c {mCount};
+				auto pointers = GetRawSparse();
+				while (c < mReserved) {
+					// Reference each pointer											
+					Allocator::Keep(mType, pointers[c], 1);
+					++c;
+				}
+			}
+		}
+		else {
+			// Both RHS and LHS are dense and non POD								
+			// Call the reflected copy-constructor for each element			
+			static_assert(IsCopyConstructible<T>, 
+				"Trying to copy-construct but it's impossible for this type");
+
+			auto from = source.GetRaw();
+			auto to = GetRaw();
+			for (Count i = 0; i < count; ++i)
+				new (to + mCount) T {*from};
+		}
+	}
+	
+	/// Call move constructors in a region and initialize memory					
+	///	@param source - the elements to move											
+	TEMPLATE()
+	void TAny<T>::CallMoveConstructors(TAny&& source) {
+		const auto count = mReserved - mCount;
+		#if LANGULUS(SAFE)
+			if (count != source.mCount)
+				throw Except::Construct("Oops");
+		#endif
+			
+		if constexpr(Langulus::IsSparse<T> || IsPOD<T>) {
+			// Copy pointers, and then null them									
+			const auto size = GetStride() * count;
+			MoveMemory(source.mRaw, mRawSparse + mCount, size);
+		}
+		else {
+			// Both RHS and LHS are dense and non POD								
+			// Call the reflected copy-constructor for each element			
+			static_assert(IsMoveConstructible<T>, 
+				"Trying to move-construct but it's impossible for this type");
+
+			auto from = source.GetRaw();
+			auto to = GetRaw();
+			for (Count i = 0; i < count; ++i)
+				new (to + mCount) T {Forward<T>(*from)};
+		}
+		
+		// Only consume the items in the source									
+		mCount = mReserved;
+		source.mCount = 0;
+	}
+
+	/// Call destructors in a region - after this call the memory is not			
+	/// considered initialized, but mCount is still valid, so be careful			
+	///	@attention this function is intended for internal use						
+	///	@attention this operates on initialized memory only, and any			
+	///				  misuse will result in undefined behavior						
+	TEMPLATE()
+	void TAny<T>::CallDestructors() {
+		const auto data = GetRaw();
+		if constexpr (Langulus::IsSparse<T>) {
+			// We dereference each pointer - destructors will be called		
+			// if data behind these pointers is fully dereferenced, too		
+			for (Count i = 0; i < mCount; ++i) {
+				auto found = Allocator::Find(mType, data[i]);
+				if (found) {
+					if (found->mReferences == 1) {
+						if constexpr (IsDestructible<T>) {
+							using Decayed = Decay<T>;
+							data[i]->~Decayed();
+						}
+						Allocator::Deallocate(mType, found);
+					}
+					else --found->mReferences;
+				}
+			}
+
+			// Always null the pointers after destruction						
+			// It is quite obscure, but this is where TPointers are reset	
+			FillMemory(data, {}, GetSize());
+			return;
+		}
+		else if constexpr (!IsPOD<T> && IsDestructible<T>) {
+			// Destroy every dense element											
+			for (Count i = 0; i < mCount; ++i)
+				data[i].~Decay<T>();
+		}
+
+		#if LANGULUS_PARANOID()
+			// Nullify upon destruction only if we're paranoid					
+			FillMemory(data, {}, GetSize());
+		#endif
+	}
+	
 	/// Get a constant part of this container												
 	///	@tparam WRAPPER - the container to use for the part						
 	///			            use Block for unreferenced container					
@@ -968,6 +1106,88 @@ namespace Langulus::Anyness
 		return Abandon(result);
 	}
 	
+	/// Allocate a number of elements, relying on the type of the container		
+	///	@tparam CREATE - true to call constructors									
+	///	@param elements - number of elements to allocate							
+	TEMPLATE()
+	template<bool CREATE>
+	void TAny<T>::Allocate(Count elements) {
+		static_assert(!Langulus::IsAbstract<T>, "Can't allocate abstract items");
+
+		if (mCount > elements) {
+			// Destroy back entries on smaller allocation						
+			RemoveIndex(elements, mCount - elements);
+			return;
+		}
+
+		if (mReserved >= elements) {
+			// Required memory is already available								
+			if constexpr (CREATE) {
+				// But is not yet initialized, so initialize it					
+				if (mCount < elements)
+					CallDefaultConstructors(elements - mCount);
+			}
+			
+			return;
+		}
+		
+		// Retrieve the required byte size											
+		const Size byteSize = GetStride() * elements;
+		
+		// Allocate/reallocate															
+		if (mEntry) {
+			// Reallocate																	
+			Block previousBlock {*this};
+			if (mEntry->mReferences == 1) {
+				// Memory is used only once and it is safe to move it			
+				// Make note, that Allocator::Reallocate doesn't copy			
+				// anything, it doesn't use realloc for various reasons, so	
+				// we still have to call move construction for all elements	
+				// if entry moved (enabling MANAGED_MEMORY feature				
+				// significantly reduces the possiblity for a move)			
+				// Also, make sure to free the previous mEntry if moved		
+				mEntry = Allocator::Reallocate(byteSize, mEntry);
+				mReserved = elements;
+				if (mEntry != previousBlock.mEntry) {
+					// Memory moved, and we should call move-construction		
+					mRaw = mEntry->GetBlockStart();
+					mCount = 0;
+					CallMoveConstructors(Move(previousBlock));
+					previousBlock.Free();
+				}
+				
+				if constexpr (CREATE) {
+					// Default-construct the rest										
+					CallDefaultConstructors(elements - mCount);
+				}
+			}
+			else {
+				// Memory is used from multiple locations, and we must		
+				// copy the memory for this block - we can't move it!			
+				mEntry = Allocator::Allocate(byteSize);
+				mRaw = mEntry->GetBlockStart();
+				mReserved = elements;
+				mCount = 0;
+				CallCopyConstructors(previousBlock);
+				previousBlock.Free();
+				
+				if constexpr (CREATE) {
+					// Default-construct the rest										
+					CallDefaultConstructors(elements - mCount);
+				}
+			}
+		}
+		else {
+			// Allocate a fresh set of elements										
+			mEntry = Allocator::Allocate(byteSize);			
+			mRaw = mEntry->GetBlockStart();
+			mReserved = elements;
+			CallDefaultConstructors(elements);
+		}
+		
+		return;
+	}
+	
 	/// Extend the container and return the new part									
 	///	@tparam WRAPPER - the container to use for the extended part			
 	///			            use Block for unreferenced container					
@@ -984,17 +1204,18 @@ namespace Langulus::Anyness
 		if (newCount <= mReserved) {
 			// There is enough available space										
 			if constexpr (IsPOD<T>)
-				// No need to call constructors for IsPOD items					
+				// No need to call constructors for POD items					
 				mCount += count;
 			else
 				CallDefaultConstructors(count);
 		}
-		else {
+		else if (mEntry) {
 			// Allocate more space														
-			mEntry = Allocator::Reallocate(mType, newCount, mEntry);
+			auto previousBlock = static_cast<Block&>(*this);
+			mEntry = Allocator::Reallocate(GetStride() * newCount, mEntry);
 			mRaw = mEntry->GetBlockStart();
 			if constexpr (IsPOD<T>) {
-				// No need to call constructors for IsPOD items					
+				// No need to call constructors for POD items					
 				mCount = mReserved = newCount;
 			}
 			else {
@@ -1011,15 +1232,19 @@ namespace Langulus::Anyness
 	}
 	
 	/// Destructive concatenation																
+	///	@param rhs - any type that is convertible to this TAny<T>				
+	///	@return a reference to this container											
 	TEMPLATE()
 	template<class WRAPPER, class RHS>
 	TAny<T>& TAny<T>::operator += (const RHS& rhs) {
-		if constexpr (Langulus::IsSparse<RHS>)
+		if constexpr (Langulus::IsSparse<RHS>) {
+			// Dereference pointers														
 			return operator += <WRAPPER>(*rhs);
+		}
 		else if constexpr (IsPOD<T> && Inherits<RHS, TAny>) {
 			// Concatenate bytes directly (optimization)							
 			const auto count = rhs.GetCount();
-			Allocate(mCount + count, false, false);
+			Allocate<false>(mCount + count);
 			CopyMemory(rhs.mRaw, mRaw, count);
 			mCount += count;
 			return *this;
@@ -1032,18 +1257,22 @@ namespace Langulus::Anyness
 	}
 
 	/// Concatenate containers																	
+	///	@param rhs - any type that is convertible to this TAny<T>				
+	///	@return a new container																
 	TEMPLATE()
 	template<class WRAPPER, class RHS>
 	WRAPPER TAny<T>::operator + (const RHS& rhs) const {
-		if constexpr (Langulus::IsSparse<RHS>)
+		if constexpr (Langulus::IsSparse<RHS>) {
+			// Dereference pointers														
 			return operator + <WRAPPER>(*rhs);
+		}
 		else if constexpr (IsPOD<T> && Inherits<RHS, TAny>) {
 			// Concatenate bytes															
 			WRAPPER result {Disown(*this)};
 			result.mCount += rhs.mCount;
 			result.mReserved = result.mCount;
 			if (result.mCount) {
-				result.mEntry = Allocator::Allocate(result.mType, result.mCount);
+				result.mEntry = Allocator::Allocate(result.GetSize());
 				result.mRaw = result.mEntry->GetBlockStart();
 			}
 			else {

@@ -209,6 +209,97 @@ namespace Langulus::Anyness
 		}
 	}
 	
+	/// Allocate a number of elements, relying on the type of the container		
+	///	@tparam CREATE - true to call constructors									
+	///	@param elements - number of elements to allocate							
+	template<bool CREATE>
+	void Block::Allocate(Count elements) {
+		if (!mType) {
+			throw Except::Allocate(Logger::Error()
+				<< "Attempting to allocate " << elements 
+				<< " element(s) of an invalid type");
+		}
+		else if (mType->mIsAbstract) {
+			throw Except::Allocate(Logger::Error()
+				<< "Attempting to allocate " << elements 
+				<< " element(s) of abstract type " << GetToken());
+		}
+
+		if (mCount > elements) {
+			// Destroy back entries on smaller allocation						
+			RemoveIndex(elements, mCount - elements);
+			return;
+		}
+
+		if (mReserved >= elements) {
+			// Required memory is already available								
+			if constexpr (CREATE) {
+				// But is not yet initialized, so initialize it					
+				if (mCount < elements)
+					CallDefaultConstructors(elements - mCount);
+			}
+			
+			return;
+		}
+		
+		// Retrieve the required byte size											
+		const Size byteSize = GetStride() * elements;
+		
+		// Allocate/reallocate															
+		if (mEntry) {
+			// Reallocate																	
+			Block previousBlock {*this};
+			if (mEntry->mReferences == 1) {
+				// Memory is used only once and it is safe to move it			
+				// Make note, that Allocator::Reallocate doesn't copy			
+				// anything, it doesn't use realloc for various reasons, so	
+				// we still have to call move construction for all elements	
+				// if entry moved (enabling MANAGED_MEMORY feature				
+				// significantly reduces the possiblity for a move)			
+				// Also, make sure to free the previous mEntry if moved		
+				mEntry = Allocator::Reallocate(byteSize, mEntry);
+				if (mEntry != previousBlock.mEntry) {
+					// Memory moved, and we should call move-construction		
+					mRaw = mEntry->GetBlockStart();
+					mCount = 0;
+					CallMoveConstructors(Move(previousBlock));
+					previousBlock.Free();
+				}
+				
+				if constexpr (CREATE) {
+					// Default-construct the rest										
+					CallDefaultConstructors(elements - mCount);
+				}
+			}
+			else {
+				// Memory is used from multiple locations, and we must		
+				// copy the memory for this block - we can't move it!			
+				mEntry = Allocator::Allocate(byteSize);
+				mRaw = mEntry->GetBlockStart();
+				mCount = 0;
+				CallCopyConstructors(previousBlock);
+				previousBlock.Free();
+				
+				if constexpr (CREATE) {
+					// Default-construct the rest										
+					CallDefaultConstructors(elements - mCount);
+				}
+			}
+		}
+		else {
+			// Allocate a fresh set of elements										
+			mEntry = Allocator::Allocate(byteSize);			
+			mRaw = mEntry->GetBlockStart();
+			if constexpr (CREATE) {
+				// Default-construct everything										
+				CallDefaultConstructors(elements);
+			}
+		}
+		
+		mReserved = elements;
+		return;
+	}
+	
 	/// Check if a range is inside the block												
 	/// This function throws on error only if LANGULUS(SAFE) is enabled			
 	inline void Block::CheckRange(const Offset& start, const Count& count) const {
@@ -661,19 +752,6 @@ namespace Langulus::Anyness
 		return Mutate(MetaData::Of<Decay<T>>());
 	}
 
-	/// Reserve a number of elements															
-	///	@tparam T - the type of elements to allocate									
-	///	@param count - the number of elements to reserve							
-	///	@param construct - true to call default constructors of each element	
-	///	@param setcount - true to set the count, too									
-	///	@attention beware of blocks with unconstructed elements, but with		
-	///				  set count - could cause undefined behavior						
-	template<ReflectedData T>
-	void Block::Allocate(Count count, bool construct, bool setcount) {
-		SetType<T, false>();
-		Allocate(count, construct, setcount);
-	}
-
 	/// Constrain an index to the limits of the current block						
 	///	@param idx - the index to constrain												
 	///	@return the constrained index or a special one of constrain fails		
@@ -848,7 +926,7 @@ namespace Langulus::Anyness
 		}
 
 		// Allocate																			
-		Allocate(mCount + 1);
+		Allocate<false>(mCount + 1);
 
 		// Move memory if required														
 		if (starter < mCount) {
@@ -856,9 +934,9 @@ namespace Langulus::Anyness
 				throw Except::Reference(Logger::Error()
 					<< "Moving elements that are used from multiple places"));
 
-			Block::CropInner(starter + 1, mCount - starter)
+			Block::CropInner(starter + 1, 0, mCount - starter)
 				.CallMoveConstructors(
-					Block::CropInner(starter, mCount - starter));
+					Block::CropInner(starter, mCount - starter, mCount - starter));
 		}
 
 		// Insert new data																
@@ -904,7 +982,7 @@ namespace Langulus::Anyness
 		}
 
 		// Allocate																			
-		Allocate(mCount + count);
+		Allocate<false>(mCount + count);
 
 		// Move memory if required														
 		if (starter < mCount) {
@@ -912,9 +990,9 @@ namespace Langulus::Anyness
 				throw Except::Reference(Logger::Error()
 					<< "Moving elements that are used from multiple places"));
 
-			CropInner(starter + count, mCount - starter)
+			CropInner(starter + count, 0, mCount - starter)
 				.CallMoveConstructors(
-					CropInner(starter, mCount - starter));
+					CropInner(starter, mCount - starter, mCount - starter));
 		}
 
 		// Insert new data																
@@ -1317,7 +1395,8 @@ namespace Langulus::Anyness
 
 		// Allocate a new T and move this inside it								
 		Block wrapper;
-		wrapper.Allocate<T>(1, true);
+		wrapper.SetType<T>();
+		wrapper.Allocate<true>(1);
 		wrapper.Get<Block>() = Move(*this);
 		*this = wrapper;
 		
@@ -1809,11 +1888,11 @@ namespace Langulus::Anyness
 	///	@param start - starting element index											
 	///	@param count - number of elements												
 	///	@return the block representing the region										
-	inline Block Block::CropInner(const Offset& start, const Count& count) const noexcept {
+	inline Block Block::CropInner(const Offset& start, const Count& count, const Count& reserved) const noexcept {
 		Block result {*this};
-		result.mCount = std::min(start < mCount ? mCount - start : 0, count);
+		result.mCount = ::std::min(start < mCount ? mCount - start : 0, count);
 		result.mRaw += start * mType->mSize;
-		result.mReserved = std::min(count, mReserved - start);
+		result.mReserved = ::std::min(reserved, mReserved - start);
 		return result;
 	}
 

@@ -5,79 +5,64 @@
 namespace Langulus::Anyness
 {
 
-	/// Credit for malloc wrappers goes to:												
-	/// http://stackoverflow.com/questions/1919183										
+	constexpr auto Padding = LANGULUS_ALIGN() + sizeof(void*);
+	
 	/// MSVC will likely never support std::aligned_alloc, so we use				
 	/// a custom portable routine that's almost the same								
 	/// https://stackoverflow.com/questions/62962839									
-	///	@param align - the number of bytes to align to								
+	///																								
+	/// Each allocation has the following prefixed bytes:								
+	///	[padding for alignment][void*][Entry][allocated bytes...]				
+	///																								
 	///	@param size - the number of bytes to allocate								
 	///	@return a newly allocated memory that is correctly aligned				
 	///	@attention you are responsible for deallocating via AlignedFree 		
-	inline Byte* AlignedAllocate(const Size& align, const Size& size) {
-		const auto padding = align + sizeof(void*);
-		auto mem = malloc(size + padding);
-		if (!mem)
+	inline Entry* AlignedAllocate(const Size& size) {
+		auto originalAddress = malloc(Padding + Entry::GetSize() + size);
+		if (!originalAddress)
 			throw Except::Allocate(Logger::Error() << "Out of memory");
 
-		auto ptr = (reinterpret_cast<Size>(mem) + padding) & ~(align - 1);
-		reinterpret_cast<void**>(ptr)[-1] = mem;
-		return *reinterpret_cast<Byte**>(ptr);
+		void** ptr = reinterpret_cast<void**>(
+			(reinterpret_cast<Size>(originalAddress) + Padding) & ~(LANGULUS_ALIGN() - 1)
+		);
+		
+		// Save the original address relative to the entry, so that we		
+		// can easily get to it when freeing the memory							
+		ptr[-1] = originalAddress;
+		new (ptr) Entry {size, nullptr};
+		return reinterpret_cast<Entry*>(ptr);
 	}
 
 	/// Free aligned memory that has been allocated via AlignedMalloc				
 	///	@param ptr - the aligned pointer to free										
 	///					 must've been prior allocated via AlignedMalloc				
-	inline void AlignedFree(Byte* ptr) noexcept {
+	inline void AlignedFree(Entry* ptr) noexcept {
 		free(reinterpret_cast<void**>(ptr)[-1]);
 	}
-
-	/// Reallocate aligned memory that has been allocated via AlignedMalloc		
-	///	@param ptr - the aligned pointer to reallocate								
-	///					 must've been prior allocated via AlignedMalloc				
-	///	@param align - the number of bytes to align to								
-	///	@param size - the number of bytes to allocate								
-	///	@return a newly allocated memory that is correctly aligned				
-	///	@attention you are responsible for deallocating via AlignedFree 		
-	inline Byte* AlignedReallocate(Byte* old, const Size& align, const Size& size) {
-		const auto padding = align + sizeof(void*);
-		auto mem = realloc(reinterpret_cast<void**>(old)[-1], size + padding);
-		if (!mem)
-			throw Except::Allocate(Logger::Error() << "Out of memory");
-
-		auto ptr = (reinterpret_cast<Size>(mem) + padding) & ~(align - 1);
-		reinterpret_cast<void**>(ptr)[-1] = mem;
-		return *reinterpret_cast<Byte**>(ptr);
-	}
-
+	
 	/// Allocate a memory entry																
 	///	@attention doesn't call any constructors										
-	///	@param meta - the type of data to allocate									
-	///	@param count - number of instances of the data type to allocate		
+	///	@param size - the number of bytes to allocate								
 	///	@return the allocated memory entry												
-	Entry* Allocator::Allocate(DMeta meta, Count count) {
-		return reinterpret_cast<Entry*>(AlignedAllocate(
-			LANGULUS_ALIGN(),
-			count * meta->mSize
-		));
+	Entry* Allocator::Allocate(Size size) {
+		return AlignedAllocate(size);
 	}
 
 	/// Reallocate a memory entry																
-	///	@attention memory entry might move												
-	///	@attention doesn't call any constructors										
-	///	@param meta - the type of data to allocate									
-	///	@param count - number of instances of the data type to allocate		
+	/// This actually works only when MANAGED_MEMORY feature is enabled			
+	///	@attention never calls any constructors										
+	///	@attention never copies any data													
+	///	@attention never deallocates previous entry									
+	///	@param size - the number of bytes to allocate								
 	///	@param previous - the previous memory entry									
 	///	@return the reallocated memory entry											
-	Entry* Allocator::Reallocate(DMeta meta, Count count, Entry* previous) {
-		if (!previous)
-			return Allocate(meta, count);
-
-		return reinterpret_cast<Entry*>(AlignedReallocate(
-			reinterpret_cast<Byte*>(previous), 
-			LANGULUS_ALIGN(), 
-			count * meta->mSize
-		));
+	Entry* Allocator::Reallocate(Size size, Entry* previous) {
+		#if LANGULUS_FEATURE(MANAGED_MEMORY)
+			TODO(); // attempt to reallocate inside the same place in pool
+		#else
+			// Forget about anything else, realloc is bad design				
+			return AlignedAllocate(size);
+		#endif
 	}
 	
 	/// Deallocate a memory allocation														
@@ -85,7 +70,7 @@ namespace Langulus::Anyness
 	///	@param meta - the type of data to deallocate (optional)					
 	///	@param entry - the memory entry to deallocate								
 	void Allocator::Deallocate(DMeta meta, Entry* entry) {
-		AlignedFree(reinterpret_cast<Byte*>(entry));
+		AlignedFree(entry);
 	}
 
 	/// Find a memory entry from pointer													

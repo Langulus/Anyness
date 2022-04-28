@@ -118,7 +118,6 @@ namespace Langulus::Anyness
 		constexpr Block(const Block&) noexcept;
 		constexpr Block(Block&) noexcept = default;
 		constexpr Block(Block&&) noexcept = default;
-		~Block() noexcept = default;
 			
 		explicit constexpr Block(DMeta) noexcept;
 		constexpr Block(const DataState&, DMeta) noexcept;
@@ -149,9 +148,9 @@ namespace Langulus::Anyness
 		void Optimize();
 	
 	public:
-		template<bool CONSTRAIN>
+		template<bool CONSTRAIN = false>
 		void SetType(DMeta);
-		template<ReflectedData T, bool CONSTRAIN>
+		template<ReflectedData T, bool CONSTRAIN = false>
 		void SetType();
 	
 		constexpr void SetPhase(const Phase) noexcept;
@@ -303,7 +302,7 @@ namespace Langulus::Anyness
 		template<typename RETURN, typename FUNCTION, typename ARGUMENT>
 		ARGUMENT GetLambdaArgument(RETURN(FUNCTION::*)(ARGUMENT) const) const;
 	
-		NOD() Block CropInner(const Offset&, const Count&) const noexcept;
+		NOD() Block CropInner(const Offset&, const Count&, const Count&) const noexcept;
 	
 	public:
 		NOD() bool Owns(const void*) const noexcept;
@@ -346,11 +345,9 @@ namespace Langulus::Anyness
 		NOD() bool CompareStates(const Block&) const noexcept;
 		NOD() bool Compare(const Block&, bool resolve = true) const;
 	
-		void Allocate(Count, bool construct = false, bool setcount = false);
-		template<ReflectedData T>
-		void Allocate(Count, bool construct = false, bool setcount = false);
-	
-		void Extend(Count, bool construct = false, bool setcount = false);
+		template<bool CREATE = false>
+		void Allocate(Count);
+		
 		void Shrink(Count);
 	
 		#if LANGULUS_FEATURE(ZLIB)

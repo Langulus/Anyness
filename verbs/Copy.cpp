@@ -46,7 +46,7 @@ namespace Langulus::Anyness
 					<< "Trying to copy " << GetToken()
 					<< " differently sized memory block " << result.GetToken()));
 			}
-			else result.Allocate(mCount, true);
+			else result.Allocate<true>(mCount);
 		}
 
 		// Check if memory is the same after checking size						

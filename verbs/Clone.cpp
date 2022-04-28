@@ -7,16 +7,13 @@ namespace Langulus::Anyness
 {
 
 	/// Clone any data using RTTI																
-	/// Nested for each memory subregion, including sparse links as long			
-	/// as depth allows it. It will allocate and call constructors, as well as	
-	/// invoke Clone() routines if available												
+	/// Nested for each deep inner block													
 	///	@param result - [out] the resulting container								
 	///	@return the number of cloned elements											
 	Count Block::Clone(Block& result) const {
 		// Always clone the state, but make it unconstrained					
 		result.SetType<false>(mType);
 		result.mState += GetUnconstrainedState();
-
 		if (!IsAllocated())
 			return 1;
 
@@ -30,7 +27,8 @@ namespace Langulus::Anyness
 				// Allocate the array of pointers if not allocated yet		
 				result.mState -= DataState::Static;
 				result.mState -= DataState::Constant;
-				result.Allocate(mCount, false, true);
+				result.Allocate<false>(mCount);
+				result.mCount = mCount;
 			}
 
 			// Clone data behind each valid pointer								
@@ -60,8 +58,10 @@ namespace Langulus::Anyness
 			// Type is not resolvable, so preallocate safely					
 			if (mType->mCloneInUninitilizedMemory) {
 				// Cloning by placement is available								
-				if (result.IsEmpty())
-					result.Allocate(mCount, false, true);
+				if (result.IsEmpty()) {
+					result.Allocate<false>(mCount);
+					result.mCount = mCount;
+				}
 
 				for (Offset index = 0; index < mCount; ++index) {
 					const auto from = GetElement(index);
@@ -75,7 +75,7 @@ namespace Langulus::Anyness
 			else if (mType->mCloneInInitializedMemory) {
 				// Cloning by copy is available										
 				if (result.IsEmpty())
-					result.Allocate(mCount, true);
+					result.Allocate<true>(mCount);
 
 				for (Offset index = 0; index < mCount; ++index) {
 					const auto from = GetElement(index);
@@ -87,9 +87,11 @@ namespace Langulus::Anyness
 					<< ccRed << "(slowest)");
 			}
 			else if (mType->mIsPOD) {
-				// Just memcpy simple IsPOD data										
-				if (result.IsEmpty())
-					result.Allocate(mCount, false, true);
+				// Just memcpy simple POD data										
+				if (result.IsEmpty()) {
+					result.Allocate<false>(mCount);
+					result.mCount = mCount;
+				}
 				
 				CopyMemory(mRaw, result.mRaw, GetSize());
 
@@ -111,21 +113,26 @@ namespace Langulus::Anyness
 				// Check if a clone operation is available for element		
 				if (mType->mCloneInUninitilizedMemory) {
 					// Placement-clone													
-					to.Allocate(1, false, true);
+					to.Allocate<false>(1);
+					to.mCount = 1;
+					
 					from.mType->mCloneInUninitilizedMemory(from.mRaw, to.mRaw);
 					VERBOSE("Cloned resolved dense by move-placement new" 
 						<< ccRed << "(slowest)");
 				}
 				else if (mType->mCloneInInitializedMemory) {
 					// Clone and copy inside initialized elements				
-					to.Allocate(1, true);
+					to.Allocate<true>(1);
+					
 					from.mType->mCloneInInitializedMemory(from.mRaw, to.mRaw);
 					VERBOSE("Cloned resolved dense by shallow copy " 
 						<< ccRed << "(slowest)");
 				}
 				else if (from.mType->mIsPOD) {
 					// Just memcpy simple IsPOD data									
-					to.Allocate(1, false, true);
+					to.Allocate<false>(1);
+					to.mCount = 1;
+					
 					CopyMemory(from.mRaw, to.mRaw, from.GetSize());
 					VERBOSE("Cloned resolved dense POD by memcpy " 
 						<< ccDarkYellow << "(slow)");

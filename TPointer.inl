@@ -64,28 +64,27 @@ namespace Langulus::Anyness
 		Reset();
 	}
 
-	/// Create a new instance by moving														
-	/// Resulting pointer created that way has exactly one reference				
+	/// Create a new instance by moving an existing one								
 	///	@param initializer - instance to move											
 	///	@return the pointer																	
 	TEMPLATE_SHARED()
 	TPointer<T, DR> TPointer<T, DR>::Create(Decay<T>&& initializer) requires IsMoveConstructible<Decay<T>> {
 		TPointer pointer;
-		pointer.mEntry = Allocator::Allocate(MetaData::Of<T>(), 1);
-		pointer.mValue = reinterpret_cast<decltype(pointer.mValue)>(pointer.mEntry->GetBlockStart());
+		pointer.mEntry = Allocator::Allocate(sizeof(Decay<T>));
+		pointer.mValue = reinterpret_cast<Type>(pointer.mEntry->GetBlockStart());
 		new (pointer.mValue) Decay<T> {Forward<Decay<T>>(initializer)};
 		return pointer;
 	}
 
-	/// Create a new instance by copying													
+	/// Create a new instance by copying an existing one								
 	/// Resulting pointer created that way has exactly one reference				
 	///	@param initializer - instance to copy											
 	///	@return the pointer																	
 	TEMPLATE_SHARED()
 	TPointer<T, DR> TPointer<T, DR>::Create(const Decay<T>& initializer) requires IsCopyConstructible<Decay<T>> {
 		TPointer pointer;
-		pointer.mEntry = Allocator::Allocate(MetaData::Of<T>(), 1);
-		pointer.mValue = reinterpret_cast<decltype(pointer.mValue)>(pointer.mEntry->GetBlockStart());
+		pointer.mEntry = Allocator::Allocate(sizeof(Decay<T>));
+		pointer.mValue = reinterpret_cast<Type>(pointer.mEntry->GetBlockStart());
 		new (pointer.mValue) Decay<T> {initializer};
 		return pointer;
 	}

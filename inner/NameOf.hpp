@@ -47,7 +47,7 @@ namespace Langulus::Anyness::Inner
    /// Skip empty space                                                       
    constexpr void SkipSpace(Token& str) {
       while (str.size() > 0 && (str[0] == ' ' || str[0] == '\t'))
-         str.remove_suffix(1);
+         str.remove_prefix(1);
    }
 
    /// Skip class identifier                                                  
@@ -94,16 +94,20 @@ namespace Langulus::Anyness::Inner
          constexpr Token Prefix = u8"constexpr std::basic_string_view<char8_t> Langulus::Anyness::Inner::TypeAsTemplateArgument() [with T = ";
          constexpr Token Suffix = u8"]";
       #elif defined(_MSC_VER)
-         constexpr Token Prefix = u8"class std::basic_string_view<char8_t> __cdecl Langulus::Anyness::Inner::TypeAsTemplateArgument<";
+         constexpr Token Prefix = u8"class std::basic_string_view<char8_t,struct std::char_traits<char8_t> > __cdecl Langulus::Anyness::Inner::TypeAsTemplateArgument<";
          constexpr Token Suffix = u8">(void)";
       #else
          #error "No support for this compiler"
       #endif
 
       auto original = TypeAsTemplateArgument<Decay<T>>();
+      //printf("Original: %s\n", std::u8string(original).c_str());
       SkipPrefix(original, Prefix);
+      //printf("No prefix: %s\n", std::u8string(original).c_str());
       SkipSuffix(original, Suffix);
+      //printf("No suffix: %s\n", std::u8string(original).c_str());
       SkipDecorations(original);
+      //printf("No decorations: %s\n", std::u8string(original).c_str());
       return original;
    }
 

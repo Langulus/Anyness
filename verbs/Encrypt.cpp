@@ -3,6 +3,8 @@
 namespace Langulus::Anyness
 {
 
+	constexpr auto HS = sizeof(Hash);
+	
 	/// Encrypt data																				
 	Size Block::Encrypt(Block& result, const Hash* keys, const Count& key_count) const {
 		// First compress the data, to avoid repeating bytes					
@@ -17,17 +19,18 @@ namespace Langulus::Anyness
 			return 0;
 
 		// Hash the compressed data for validation after decryption			
-		const auto hash = result.GetHash();
+		const Hash hash = result.GetHash();
 
 		// Append the hash to the back of the compressed memory				
-		result.Allocate(compressed_size + sizeof(hash));
-		CopyMemory(&hash, result.At(compressed_size), sizeof(hash));
-		compressed_size += sizeof(hash);
-		result.mCount = compressed_size;
+		const auto totalSize = compressed_size + (compressed_size % HS) + HS;
+		result.SetType<Byte, true>();
+		result.Allocate<false>(totalSize);
+		result.mCount = totalSize;
+		CopyMemory(&hash, result.At(compressed_size), HS);
 
 		// XOR the contents																
 		//TODO mix with a PRNG
-		for (Count i = 0; i < compressed_size / sizeof(Hash); ++i)
+		for (Count i = 0; i < compressed_size / HS; ++i)
 			reinterpret_cast<Hash*>(result.mRaw)[i] ^= keys[i % key_count];
 
 		// Done																				
@@ -42,11 +45,11 @@ namespace Langulus::Anyness
 
 		// XOR the contents to decrypt them											
 		//TODO mix with a PRNG
-		for (Count i = 0; i < mCount / sizeof(Hash); ++i)
+		for (Count i = 0; i < mCount / HS; ++i)
 			reinterpret_cast<Hash*>(decrypted.mRaw)[i] ^= keys[i % key_count];
 
 		// Get the hash part																
-		const auto real_size = mCount - sizeof(Hash);
+		const auto real_size = mCount - HS;
 		const auto hash = *reinterpret_cast<Hash*>(decrypted.At(real_size));
 		decrypted.mCount = real_size;
 

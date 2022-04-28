@@ -11,8 +11,10 @@ namespace Langulus::Anyness
 	}
 
 	/// Allocate a number of bytes and zero them											
+	///	@param count - the number of bytes to allocate								
 	void Bytes::Null(const Count& count) {
-		Allocate(count, false, true);
+		Allocate<false>(count);
+		mCount = count;
 		FillMemory(mRaw, {}, mCount);
 	}
 
@@ -78,7 +80,7 @@ namespace Langulus::Anyness
 	Bytes Bytes::Clone() const {
 		Bytes result {Disown(*this)};
 		if (mCount) {
-			result.mEntry = Allocator::Allocate(mType, mCount);
+			result.mEntry = Allocator::Allocate(GetSize());
 			result.mRaw = result.mEntry->GetBlockStart();
 		}
 		else {

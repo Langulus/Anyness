@@ -18,6 +18,7 @@ namespace Langulus::Anyness
 	class TAny : public Any {
 	public:
 		TAny();
+		~TAny();
 		
 		TAny(const TAny&);
 		TAny(TAny&);
@@ -67,6 +68,9 @@ namespace Langulus::Anyness
 		NOD() static TAny Wrap(const T(&anything)[COUNT]);
 		NOD() static TAny Wrap(const T*, const Count&);
 
+		template<bool CREATE = false>
+		void Allocate(Count);
+	
 		void Null(const Count&);
 		void Clear();
 		void Reset();
@@ -102,6 +106,7 @@ namespace Langulus::Anyness
 		NOD() constexpr bool IsSparse() const noexcept;
 		NOD() constexpr bool IsDense() const noexcept;
 		NOD() constexpr Size GetStride() const noexcept;
+		NOD() constexpr Size GetSize() const noexcept;
 
 		RANGED_FOR_INTEGRATION(TAny, T);
 
@@ -157,6 +162,9 @@ namespace Langulus::Anyness
 		template<bool OVERWRITE>
 		void CopyProperties(const Block&) noexcept;
 		void CallDefaultConstructors(const Count&);
+		void CallCopyConstructors(const TAny&);
+		void CallMoveConstructors(TAny&&);
+		void CallDestructors();
 	};
 
 

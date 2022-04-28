@@ -42,6 +42,10 @@
 
 	#define LANGULUS_FEATURE(a) LANGULUS_FEATURE_##a()
 
+	/// Replace the default new-delete operators with one that use Allocator	
+	/// No overhead, no dependencies															
+	#define LANGULUS_FEATURE_NEWDELETE() LANGULUS_DISABLED()
+
 	/// Use the utfcpp library to convert between utf types							
 	/// No overhead, requires utfcpp to be linked										
 	#define LANGULUS_FEATURE_UTFCPP() LANGULUS_DISABLED()
@@ -230,19 +234,23 @@
 
 		/// Check if T is abstract (has at least one pure virtual function)		
 		template<class T>
-		concept IsAbstract = ::std::is_abstract_v<T>;
+		concept IsAbstract = ::std::is_abstract_v<Decay<T>>;
 
 		/// Check if T is default-constructible											
 		template<class T>
-		concept IsDefaultConstructible = ::std::default_initializable<T>;
+		concept IsDefaultConstructible = ::std::default_initializable<Decay<T>>;
 
 		/// Check if T is copy-constructible												
 		template<class T>
-		concept IsCopyConstructible = ::std::copy_constructible<T>;
+		concept IsCopyConstructible = ::std::copy_constructible<Decay<T>>;
 		
 		/// Check if T is copy-constructible												
 		template<class T>
-		concept IsMoveConstructible = ::std::move_constructible<T>;
+		concept IsMoveConstructible = ::std::move_constructible<Decay<T>>;
+		
+		/// Check if T is destructible														
+		template<class T>
+		concept IsDestructible = ::std::destructible<Decay<T>>;
 		
 		/// Check if Decay<T> is clonable													
 		template<class T>

@@ -17,16 +17,6 @@ SCENARIO("Any", "[containers]") {
 		REQUIRE_FALSE(pack.GetType());
 		REQUIRE_FALSE(pack.GetRaw());
 
-		WHEN("Using new statements") {
-			int* original_int = new int(original_value);
-
-			THEN("We should have jurisdiction over that memory") {
-				REQUIRE(original_int != nullptr);
-				REQUIRE(Allocator::CheckAuthority(metas, original_int));
-				REQUIRE(Allocator::GetReferences(metas, original_int) == 1);
-			}
-		}
-
 		WHEN("Given a POD value by copy") {
 			pack = original_value;
 			THEN("Various traits change") {
@@ -43,8 +33,8 @@ SCENARIO("Any", "[containers]") {
 		WHEN("Given a dense Trait") {
 			pack = Traits::Count(5);
 			THEN("Various traits change") {
-				REQUIRE(pack.GetType() == MetaData::Of<Trait>());
-				REQUIRE(pack.Is<Trait>());
+				REQUIRE(pack.GetType() == MetaData::Of<Traits::Count>());
+				REQUIRE(pack.Is<Traits::Count>());
 				REQUIRE(pack.GetRaw() != nullptr);
 			}
 		}

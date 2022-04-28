@@ -151,10 +151,12 @@ namespace Langulus::Anyness
 			}
 
 			// Wrap the destructor of the type inside a lambda					
-			meta->mDestructor = [](void* at) {
-				auto instance = static_cast<T*>(at);
-				instance->~T();
-			};
+			if constexpr (IsDestructible<T>) {
+				meta->mDestructor = [](void* at) {
+					auto instance = static_cast<T*>(at);
+					instance->~T();
+				};
+			}
 
 			// Wrap the cloners of the type inside a lambda						
 			if constexpr (IsClonable<T>) {

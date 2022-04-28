@@ -220,7 +220,7 @@ namespace Langulus::Anyness
 	Text Text::Clone() const {
 		Text result {Disown(*this)};
 		if (mCount) {
-			result.mEntry = Allocator::Allocate(mType, mCount);
+			result.mEntry = Allocator::Allocate(mCount);
 			result.mRaw = result.mEntry->GetBlockStart();
 		}
 		else {
@@ -241,7 +241,7 @@ namespace Langulus::Anyness
 
 		Text result {Disown(*this)};
 		++result.mReserved;
-		result.mEntry = Allocator::Allocate(mType, result.mReserved);
+		result.mEntry = Allocator::Allocate(result.mReserved);
 		result.mRaw = result.mEntry->GetBlockStart();
 		CopyMemory(mRaw, result.mRaw, mCount);
 		result.GetRaw()[mCount] = '\0';
@@ -276,7 +276,7 @@ namespace Langulus::Anyness
 
 		const auto end = mCount - pattern.mCount;
 		for (Offset i = offset; i < end; ++i) {
-			auto remaining = Block::CropInner(i, pattern.mCount);
+			auto remaining = Block::CropInner(i, pattern.mCount, pattern.mCount);
 			auto& asText = ReinterpretCast<Text&>(remaining);
 			if (asText.Compare(pattern)) {
 				offset = i;
@@ -297,7 +297,7 @@ namespace Langulus::Anyness
 
 		const auto start = mCount - pattern.mCount - offset;
 		for (auto i = ::std::ptrdiff_t(start); i >= 0; --i) {
-			auto remaining = Block::CropInner(i, pattern.mCount);
+			auto remaining = Block::CropInner(i, pattern.mCount, pattern.mCount);
 			auto& asText = ReinterpretCast<Text&>(remaining);
 			if (asText.Compare(pattern)) {
 				offset = Offset(i);
