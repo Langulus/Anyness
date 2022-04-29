@@ -325,7 +325,6 @@ namespace Langulus::Anyness
 		NOD() Block GetBaseMemory(const Base&) const;
 		NOD() Block GetBaseMemory(const Base&);
 	
-		NOD() bool Mutate(DMeta);
 		template<ReflectedData T>
 		NOD() bool Mutate();
 	
@@ -337,6 +336,7 @@ namespace Langulus::Anyness
 		constexpr void MakeAnd() noexcept;
 		constexpr void MakePast() noexcept;
 		constexpr void MakeFuture() noexcept;
+		constexpr void MakeSparse() noexcept;
 	
 		Count Copy(Block&, bool allocate = false) const;
 		Count Clone(Block&) const;
@@ -462,6 +462,7 @@ namespace Langulus::Anyness
 		void Reset();
 
 	protected:
+		NOD() bool Mutate(DMeta);		
 		static void CopyMemory(const void*, void*, const Size&) noexcept;
 		static void MoveMemory(const void*, void*, const Size&) noexcept;
 		static void FillMemory(void*, Byte, const Size&) noexcept;

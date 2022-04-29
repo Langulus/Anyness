@@ -7,7 +7,7 @@ namespace Langulus::Anyness
 	/// Dereferences old contents, and does a type-constraint before copy		
 	///	@param other - the container to shallow copy									
 	///	@return a reference to this container											
-	Any& Any::operator = (const Any& other) {
+	/*Any& Any::operator = (const Any& other) {
 		if (IsTypeConstrained() && !InterpretsAs(other.mType)) {
 			throw Except::Copy(Logger::Error()
 				<< "Bad shallow-copy-assignment for Any: from "
@@ -51,7 +51,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this container											
 	Any& Any::operator = (Block&& other) {
 		return Any::operator = (Any {Forward<Block>(other)});
-	}
+	}*/
 
 	/// Clone anyness																				
 	///	@return the cloned container														

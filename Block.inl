@@ -448,51 +448,48 @@ namespace Langulus::Anyness
 	}
 	
 	/// Make memory block vacuum (a.k.a. missing)										
-	///	@return reference to itself														
 	constexpr void Block::MakeMissing() noexcept {
 		mState += DataState::Missing;
 	}
 
 	/// Make memory block static (unmovable and unresizable)							
-	///	@return reference to itself														
 	constexpr void Block::MakeStatic() noexcept {
 		mState += DataState::Static;
 	}
 
 	/// Make memory block constant															
-	///	@return reference to itself														
 	constexpr void Block::MakeConstant() noexcept {
 		mState += DataState::Constant;
 	}
 
 	/// Make memory block type-immutable													
-	///	@return reference to itself														
 	constexpr void Block::MakeTypeConstrained() noexcept {
 		mState += DataState::Typed;
 	}
 
 	/// Make memory block exlusive (a.k.a. OR container)								
-	///	@return reference to itself														
 	constexpr void Block::MakeOr() noexcept {
 		mState += DataState::Or;
 	}
 
 	/// Make memory block inclusive (a.k.a. AND container)							
-	///	@return reference to itself														
 	constexpr void Block::MakeAnd() noexcept {
 		mState -= DataState::Or;
 	}
 
 	/// Set memory block phase to past														
-	///	@return reference to itself														
 	constexpr void Block::MakePast() noexcept {
 		SetPhase(Phase::Past);
 	}
 
 	/// Set memory block phase to future													
-	///	@return reference to itself														
 	constexpr void Block::MakeFuture() noexcept {
 		SetPhase(Phase::Future);
+	}
+	
+	/// Set sparseness																			
+	constexpr void Block::MakeSparse() noexcept {
+		mState += DataState::Sparse;
 	}
 	
 	/// Get polarity																				
@@ -749,7 +746,10 @@ namespace Langulus::Anyness
 	///	@return true if block was deepened to incorporate the new type			
 	template<ReflectedData T>
 	bool Block::Mutate() {
-		return Mutate(MetaData::Of<Decay<T>>());
+		const auto deepened = Mutate(MetaData::Of<Decay<T>>());
+		if constexpr (Langulus::IsSparse<T>)
+			MakeSparse();
+		return deepened;
 	}
 
 	/// Constrain an index to the limits of the current block						
@@ -1099,9 +1099,9 @@ namespace Langulus::Anyness
 		}
 
 		// Search																			
-		auto item_ptr = MakeSparse(item);
+		auto item_ptr = Langulus::MakeSparse(item);
 		for (auto i = starti; i < mCount && i >= 0; i += istep) {
-			auto left = MakeSparse(Get<T>(i.GetOffset()));
+			auto left = Langulus::MakeSparse(Get<T>(i.GetOffset()));
 			if (left == item_ptr) {
 				// Early success if pointers match									
 				return i;
@@ -1232,13 +1232,13 @@ namespace Langulus::Anyness
 			for (Count j = i; j < mCount; ++j) {
 				if constexpr (IsComparable<T, T>) {
 					// First we compare by memory pointer, then by ==			
-					if (MakeSparse(data[i]) == MakeSparse(data[j]) ||
-						 MakeDense(data[i])  == MakeDense(data[j]))
+					if (Langulus::MakeSparse(data[i]) == Langulus::MakeSparse(data[j]) ||
+						 Langulus::MakeDense(data[i])  == Langulus::MakeDense(data[j]))
 						++counter;
 				}
 				else {
 					// No == operator, so just compare by memory	pointer		
-					if (MakeSparse(data[i]) == MakeSparse(data[j]))
+					if (Langulus::MakeSparse(data[i]) == Langulus::MakeSparse(data[j]))
 						++counter;
 				}
 

@@ -19,7 +19,7 @@ namespace Langulus::Anyness
 		template<ReflectedData T>
 		friend class TAny;
 
-		constexpr Any() noexcept {}
+		constexpr Any() noexcept = default;
 		Any(const Any&);
 		Any(Any&);
 		Any(Any&&) noexcept;
@@ -40,7 +40,7 @@ namespace Langulus::Anyness
 
 		~Any();
 
-		Any& operator = (const Any&);
+		/*Any& operator = (const Any&);
 		Any& operator = (Any&);
 		Any& operator = (Any&&);
 		
@@ -49,13 +49,13 @@ namespace Langulus::Anyness
 		Any& operator = (Block&&);
 
 		Any& operator = (Disowned<Any>&&);
-		Any& operator = (Abandoned<Any>&&) noexcept;
+		Any& operator = (Abandoned<Any>&&) noexcept;*/
 		
-		template<IsCustom T>
+		template<class T>
 		Any& operator = (const T&);
-		template<IsCustom T>
+		template<class T>
 		Any& operator = (T&);
-		template<IsCustom T>
+		template<class T>
 		Any& operator = (T&&);
 
 	public:

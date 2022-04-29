@@ -168,23 +168,78 @@ namespace Langulus::Anyness
 		return result;
 	}
 
-	/// Assign by shallow-copying some value different from Any						
+	/// Assign by shallow-copying something constant									
 	///	@param value - the value to copy													
-	template<IsCustom T>
-	Any& Any::operator = (const T& value) {
-		return operator = (Any {value});
+	template<class T>
+	Any& Any::operator = (const T& other) {
+		operator = (const_cast<T&>(other));
+		MakeConstant();
+		return *this;
 	}
 
-	template<IsCustom T>
-	Any& Any::operator = (T& value) {
-		return operator = (const_cast<const T&>(value));
+	/// Assign by shallow-copying something mutable										
+	///	@param value - the value to copy													
+	template<class T>
+	Any& Any::operator = (T& other) {
+		if constexpr (IsSame<T, Any>) {
+			if (IsTypeConstrained() && !InterpretsAs(other.mType)) {
+				throw Except::Copy(Logger::Error()
+					<< "Bad shallow-copy-assignment for Any: from "
+					<< GetToken() << " to " << other.GetToken());
+			}
+	
+			other.Keep();
+			Free();
+			Block::operator = (other);
+			return *this;
+		}
+		else if constexpr (IsSame<T, Block>) {
+			return operator = (Any {other});			
+		}
+		else {
+			const auto meta = MetaData::Of<Decay<T>>();
+			if (IsTypeConstrained() && !InterpretsAs(meta)) {
+				throw Except::Copy(Logger::Error()
+					<< "Bad shallow-copy-assignment for Any: from "
+					<< GetToken() << " to " << meta->mToken);
+			}
+	
+			Reset();
+			Block::operator << <T>(other);
+			return *this;
+		}
 	}
 
-	/// Assign by moving some value different from Any									
+	/// Assign by moving something															
 	///	@param value - the value to move													
-	template<IsCustom T>
-	Any& Any::operator = (T&& value) {
-		return operator = (Any {Forward<T>(value)});
+	template<class T>
+	Any& Any::operator = (T&& other) {
+		if constexpr (IsSame<T, Any>) {
+			if (IsTypeConstrained() && !InterpretsAs(other.mType)) {
+				throw Except::Copy(Logger::Error()
+					<< "Bad shallow-copy-assignment for Any: from "
+					<< GetToken() << " to " << other.GetToken());
+			}
+	
+			Free();
+			Block::operator = (Forward<T>(other));
+			return *this;
+		}
+		else if constexpr (IsSame<T, Block>) {
+			return operator = (Any {Forward<T>(other)});			
+		}
+		else {
+			const auto meta = MetaData::Of<Decay<T>>();
+			if (IsTypeConstrained() && !InterpretsAs(meta)) {
+				throw Except::Copy(Logger::Error()
+					<< "Bad shallow-copy-assignment for Any: from "
+					<< GetToken() << " to " << meta->mToken);
+			}
+	
+			Reset();
+			Block::operator << <T>(Forward<T>(other));
+			return *this;
+		}
 	}
 
 } // namespace Langulus::Anyness
