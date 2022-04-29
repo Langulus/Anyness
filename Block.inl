@@ -414,7 +414,7 @@ namespace Langulus::Anyness
 	/// Check if block is static																
 	///	@returns true if the contents are static (size-constrained)				
 	constexpr bool Block::IsStatic() const noexcept {
-		return mState & DataState::Static || !mEntry;
+		return mRaw && ((mState & DataState::Static) || !mEntry);
 	}
 
 	/// Check if block is inhibitory (or) container										
@@ -969,7 +969,7 @@ namespace Langulus::Anyness
 	///	@param index - use uiFront or uiBack for pushing to ends					
 	///	@return number of inserted elements												
 	template<ReflectedData T, bool MUTABLE>
-	Count Block::Insert(const T* items, const Count count, const Index& index) {
+	Count Block::Insert(T* items, const Count count, const Index& index) {
 		const auto starter = ConstrainMore<T>(index).GetOffset();
 
 		if constexpr (MUTABLE) {
@@ -1017,8 +1017,8 @@ namespace Langulus::Anyness
 		else {
 			static_assert(!Langulus::IsAbstract<T>, "Can't insert abstract item");
 
-			if constexpr (sizeof(T) == 1 || IsSame<T, wchar_t>) {
-				// Optimized byte/char/wchar_t insertion							
+			if constexpr (IsPOD<T>) {
+				// Optimized POD insertion												
 				CopyMemory(items, data, count * sizeof(T));
 			}
 			else if constexpr (IsCopyConstructible<T>) {
@@ -1027,12 +1027,6 @@ namespace Langulus::Anyness
 				while (c < count) {
 					// Reset all items													
 					new (data + c * sizeof(T)) T {items[c]};
-					if constexpr (IsSame<T, Block>) {
-						// Blocks don't have referencing copy-constructors,	
-						// so we have to compensate for that here					
-						items[c].Keep();
-					}
-
 					++c;
 				}
 			}
@@ -1361,11 +1355,11 @@ namespace Langulus::Anyness
 
 		// Finally, if allowed, force make the container deep in order to	
 		// push the pack inside															
-		if constexpr (Anyness::IsDeep<T> && ALLOW_DEEPEN) {
+		if constexpr (ALLOW_DEEPEN) {
 			if (!IsTypeConstrained()) {
 				Deepen<Any>();
 				SetState(mState + state);
-				return Emplace<Any>(pack, index);
+				return Emplace<Any>(Move(pack), index);
 			}
 		}
 
@@ -1470,22 +1464,12 @@ namespace Langulus::Anyness
 	///	@param other - the data to insert												
 	///	@return a reference to this memory block for chaining						
 	template<ReflectedData T>
-	Block& Block::operator << (const T& other) {
+	Block& Block::operator << (T& other) {
 		if constexpr (IsArray<T>)
 			Insert<Decay<T>>(other, ExtentOf<T>, Index::Back);
 		else
 			Insert<T>(&other, 1, Index::Back);
 		return *this;
-	}
-
-	/// Insert any data at the back															
-	/// Override is required, so that we don't end up moving by accident			
-	///	@tparam T - the type of the instance to push									
-	///	@param other - the instance to push												
-	///	@return a reference to this memory block for chaining						
-	template<ReflectedData T>
-	Block& Block::operator << (T& other) {
-		return operator << (const_cast<const T&>(other));
 	}
 
 	/// Emplace any data at the back															
@@ -1501,22 +1485,12 @@ namespace Langulus::Anyness
 	///	@param other - the data to insert												
 	///	@return a reference to this memory block for chaining						
 	template<ReflectedData T>
-	Block& Block::operator >> (const T& other) {
+	Block& Block::operator >> (T& other) {
 		if constexpr (IsArray<T>)
 			Insert<Decay<T>>(other, ExtentOf<T>, Index::Front);
 		else
 			Insert<T>(&other, 1, Index::Front);
 		return *this;
-	}
-
-	/// Insert any data at the front															
-	/// Override is required, so that we don't end up moving by accident			
-	///	@tparam T - the type of the instance to push									
-	///	@param other - the instance to push												
-	///	@return a reference to this memory block for chaining						
-	template<ReflectedData T>
-	Block& Block::operator >> (T& other) {
-		return operator >> (const_cast<const T&>(other));
 	}
 
 	/// Emplace any data at the front														
@@ -1532,7 +1506,7 @@ namespace Langulus::Anyness
 	///	@param other - the data to insert												
 	///	@return a reference to this memory block for chaining						
 	template<ReflectedData T>
-	Block& Block::operator <<= (const T& other) {
+	Block& Block::operator <<= (T& other) {
 		if constexpr (IsArray<T>)
 			Merge<Decay<T>>(other, ExtentOf<T>, Index::Back);
 		else
@@ -1544,7 +1518,7 @@ namespace Langulus::Anyness
 	///	@param other - the data to insert												
 	///	@return a reference to this memory block for chaining						
 	template<ReflectedData T>
-	Block& Block::operator >>= (const T& other) {
+	Block& Block::operator >>= (T& other) {
 		if constexpr (IsArray<T>)
 			Merge<Decay<T>>(other, ExtentOf<T>, Index::Front);
 		else

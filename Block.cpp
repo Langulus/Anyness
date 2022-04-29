@@ -621,7 +621,7 @@ namespace Langulus::Anyness
 
 		if (IsConstant() || IsStatic()) {
 			if (mType->mIsPOD && starter + count >= mCount) {
-				// If data is IsPOD and elements are on the back, we can get	
+				// If data is POD and elements are on the back, we can get	
 				// around constantness and staticness, by simply				
 				// truncating the count without any reprecussions				
 				const auto removed = mCount - starter;
@@ -630,13 +630,15 @@ namespace Langulus::Anyness
 			}
 			else {
 				if (IsConstant()) {
-					Logger::Error() << "Attempting to RemoveIndex in a "
-						"constant container";
+					throw Except::Access(Logger::Error() 
+						<< "Attempting to RemoveIndex in a constant container");
 				}
+
 				if (IsStatic()) {
-					Logger::Error() << "Attempting to RemoveIndex in a "
-						"static container";
+					throw Except::Access(Logger::Error()
+						<< "Attempting to RemoveIndex in a static container");
 				}
+
 				return 0;
 			}
 		}

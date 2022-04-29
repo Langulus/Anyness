@@ -107,7 +107,7 @@ namespace Langulus::Anyness
 
 		auto t1 = GetRaw();
 		auto t2 = other.GetRaw();
-		while (*t1 == *t2 && *t1) {
+		while (t1 < GetRawEnd() && *t1 == *t2) {
 			++t1;
 			++t2;
 		}
@@ -126,7 +126,7 @@ namespace Langulus::Anyness
 
 		auto t1 = GetRaw();
 		auto t2 = other.GetRaw();
-		while (*t1 && *t2 && (*t1 == *t2 || (::std::isalpha(*t1) && ::std::isalpha(*t2) && (*t1 + 32 == *t2 || *t1 == *t2 + 32)))) {
+		while (t1 < GetRawEnd() && (*t1 == *t2 || (::std::isalpha(*t1) && ::std::isalpha(*t2) && (*t1 + 32 == *t2 || *t1 == *t2 + 32)))) {
 			++t1;
 			++t2;
 		}
@@ -143,7 +143,7 @@ namespace Langulus::Anyness
 
 		auto t1 = GetRaw();
 		auto t2 = other.GetRaw();
-		while (*t1 == *t2 && *t1) {
+		while (t1 < GetRawEnd() && *t1 == *t2) {
 			++t1;
 			++t2;
 		}
@@ -167,7 +167,7 @@ namespace Langulus::Anyness
 
 		auto t1 = GetRaw();
 		auto t2 = other.GetRaw();
-		while (*t1 && *t2 && (*t1 == *t2 || (::std::isalpha(*t1) && ::std::isalpha(*t2) && (*t1 + 32 == *t2 || *t1 == *t2 + 32)))) {
+		while (t1 < GetRawEnd() && (*t1 == *t2 || (::std::isalpha(*t1) && ::std::isalpha(*t2) && (*t1 + 32 == *t2 || *t1 == *t2 + 32)))) {
 			++t1;
 			++t2;
 		}
@@ -220,16 +220,17 @@ namespace Langulus::Anyness
 	Text Text::Clone() const {
 		Text result {Disown(*this)};
 		if (mCount) {
+			result.mReserved = mCount;
 			result.mEntry = Allocator::Allocate(mCount);
 			result.mRaw = result.mEntry->GetBlockStart();
+			CopyMemory(mRaw, result.mRaw, mCount);
 		}
 		else {
 			result.mEntry = nullptr;
 			result.mRaw = nullptr;
+			result.mReserved = 0;
 		}
 
-		result.mCount = result.mReserved = mCount;
-		CopyMemory(mRaw, result.mRaw, mCount);
 		return Abandon(result);
 	}
 

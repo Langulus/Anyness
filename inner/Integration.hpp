@@ -36,8 +36,10 @@
 
 	#if LANGULUS_SAFE()
 		#define SAFETY(a) a
+		#define SAFETY_NOEXCEPT()
 	#else
 		#define SAFETY(a)
+		#define SAFETY_NOEXCEPT() noexcept
 	#endif
 
 	#define LANGULUS_FEATURE(a) LANGULUS_FEATURE_##a()

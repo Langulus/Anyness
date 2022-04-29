@@ -12,7 +12,7 @@ namespace Langulus::Anyness
    /// Explicit convertion to bool                                            
    ///   @return true if state is not default                                 
    constexpr DataState::operator bool() const noexcept {
-      return IsDefault();
+      return !IsDefault();
    }
    
    /// Combine two states                                                     

@@ -83,23 +83,23 @@ namespace Langulus::Anyness
 		NOD() T* GetRaw() noexcept;
 		NOD() const T* GetRawEnd() const noexcept;
 		NOD() T* GetRawEnd() noexcept;
-		NOD() decltype(auto) Last() const;
-		NOD() decltype(auto) Last();
+		NOD() decltype(auto) Last() const SAFETY_NOEXCEPT();
+		NOD() decltype(auto) Last() SAFETY_NOEXCEPT();
 
 		template<ReflectedData ALT_T = T>
-		NOD() decltype(auto) Get(const Offset&) const noexcept;
+		NOD() decltype(auto) Get(const Offset&) const SAFETY_NOEXCEPT();
 		template<ReflectedData ALT_T = T>
-		NOD() decltype(auto) Get(const Offset&) noexcept;
+		NOD() decltype(auto) Get(const Offset&) SAFETY_NOEXCEPT();
 
-		NOD() decltype(auto) operator [] (const Offset&) const noexcept requires Langulus::IsDense<T>;
-		NOD() decltype(auto) operator [] (const Offset&) noexcept requires Langulus::IsDense<T>;
+		NOD() decltype(auto) operator [] (const Offset&) const SAFETY_NOEXCEPT() requires Langulus::IsDense<T>;
+		NOD() decltype(auto) operator [] (const Offset&) SAFETY_NOEXCEPT() requires Langulus::IsDense<T>;
 		NOD() decltype(auto) operator [] (const Index&) const requires Langulus::IsDense<T>;
 		NOD() decltype(auto) operator [] (const Index&) requires Langulus::IsDense<T>;
 
 		struct SparseElement;
 
-		NOD() decltype(auto) operator [] (const Offset&) const noexcept requires Langulus::IsSparse<T>;
-		NOD() SparseElement  operator [] (const Offset&) noexcept requires Langulus::IsSparse<T>;
+		NOD() decltype(auto) operator [] (const Offset&) const SAFETY_NOEXCEPT() requires Langulus::IsSparse<T>;
+		NOD() SparseElement  operator [] (const Offset&) SAFETY_NOEXCEPT() requires Langulus::IsSparse<T>;
 		NOD() decltype(auto) operator [] (const Index&) const requires Langulus::IsSparse<T>;
 		NOD() SparseElement  operator [] (const Index&) requires Langulus::IsSparse<T>;
 
@@ -112,7 +112,7 @@ namespace Langulus::Anyness
 
 		Count Emplace(T&&, const Index& = Index::Back);
 
-		Count Insert(const T*, Count = 1, const Index& = Index::Back);
+		Count Insert(T*, Count = 1, const Index& = Index::Back);
 		TAny& operator << (const T&);
 		TAny& operator << (T&&);
 		TAny& operator >> (const T&);

@@ -34,8 +34,6 @@ namespace Langulus::Anyness
 		template<IsCustom T>
 		Any(T&&);
 		template<IsCustom T>
-		Any(const T&);
-		template<IsCustom T>
 		Any(T&);
 
 		~Any();

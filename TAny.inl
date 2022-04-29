@@ -52,7 +52,7 @@ namespace Langulus::Anyness
 	/// Any can contain anything, so there's a bit of type-checking overhead	
 	///	@param other - the anyness to reference										
 	TEMPLATE()
-	TAny<T>::TAny(Any& other) {
+	TAny<T>::TAny(Any& other) : TAny {} {
 		if (!InterpretsAs(other.GetType())) {
 			throw Except::Copy(Logger::Error()
 				<< "Bad shallow-copy-construction for TAny: from "
@@ -76,7 +76,7 @@ namespace Langulus::Anyness
 	/// Any can contain anything, so there's a bit of type-checking overhead	
 	///	@param other - the container to move											
 	TEMPLATE()
-	TAny<T>::TAny(Any&& other) {
+	TAny<T>::TAny(Any&& other) : TAny {} {
 		if (!InterpretsAs(other.GetType())) {
 			throw Except::Copy(Logger::Error()
 				<< "Bad move-construction for TAny: from "
@@ -454,7 +454,8 @@ namespace Langulus::Anyness
 	/// This is a statically optimized variant of Block::Get							
 	TEMPLATE()
 	template<ReflectedData K>
-	decltype(auto) TAny<T>::Get(const Offset& index) const noexcept {
+	decltype(auto) TAny<T>::Get(const Offset& index) const SAFETY_NOEXCEPT() {
+		SAFETY(if (index >= mCount) throw Except::Access("Index out of range"));
 		const T& element = GetRaw()[index];
 		if constexpr (Langulus::IsDense<T> && Langulus::IsDense<K>)
 			// IsDense -> IsDense (returning a reference)								
@@ -474,7 +475,8 @@ namespace Langulus::Anyness
 	/// This is a statically optimized variant of Block::Get							
 	TEMPLATE()
 	template<ReflectedData K>
-	decltype(auto) TAny<T>::Get(const Offset& index) noexcept {
+	decltype(auto) TAny<T>::Get(const Offset& index) SAFETY_NOEXCEPT() {
+		SAFETY(if (index >= mCount) throw Except::Access("Index out of range"));
 		T& element = GetRaw()[index];
 		if constexpr (Langulus::IsDense<T> && Langulus::IsDense<K>)
 			// IsDense -> IsDense (returning a reference)								
@@ -494,12 +496,12 @@ namespace Langulus::Anyness
 	///	@param idx - the index to get														
 	///	@return a reference to the element												
 	TEMPLATE()
-	decltype(auto) TAny<T>::operator [] (const Offset& index) noexcept requires Langulus::IsDense<T> {
+	decltype(auto) TAny<T>::operator [] (const Offset& index) SAFETY_NOEXCEPT() requires Langulus::IsDense<T> {
 		return Get<T>(index);
 	}
 
 	TEMPLATE()
-	decltype(auto) TAny<T>::operator [] (const Offset& index) const noexcept requires Langulus::IsDense<T> {
+	decltype(auto) TAny<T>::operator [] (const Offset& index) const SAFETY_NOEXCEPT() requires Langulus::IsDense<T> {
 		return Get<T>(index);
 	}
 
@@ -521,12 +523,12 @@ namespace Langulus::Anyness
 	///	@param idx - the index to get														
 	///	@return a reference to the element												
 	TEMPLATE()
-	typename TAny<T>::SparseElement TAny<T>::operator [] (const Offset& index) noexcept requires Langulus::IsSparse<T> {
+	typename TAny<T>::SparseElement TAny<T>::operator [] (const Offset& index) SAFETY_NOEXCEPT() requires Langulus::IsSparse<T> {
 		return {Get<T>(index)};
 	}
 
 	TEMPLATE()
-	decltype(auto) TAny<T>::operator [] (const Offset& index) const noexcept requires Langulus::IsSparse<T> {
+	decltype(auto) TAny<T>::operator [] (const Offset& index) const SAFETY_NOEXCEPT() requires Langulus::IsSparse<T> {
 		return Get<T>(index);
 	}
 
@@ -547,14 +549,14 @@ namespace Langulus::Anyness
 	/// Access last element (unsafe)															
 	///	@return a reference to the last element										
 	TEMPLATE()
-	decltype(auto) TAny<T>::Last() {
+	decltype(auto) TAny<T>::Last() SAFETY_NOEXCEPT() {
 		return Get<T>(mCount - 1);
 	}
 
 	/// Access last element (const, unsafe)												
 	///	@return a constant reference to the last element							
 	TEMPLATE()
-	decltype(auto) TAny<T>::Last() const {
+	decltype(auto) TAny<T>::Last() const SAFETY_NOEXCEPT() {
 		return Get<T>(mCount - 1);
 	}
 
@@ -601,7 +603,7 @@ namespace Langulus::Anyness
 	///	@param idx - the place where to insert the items							
 	///	@return number of inserted items													
 	TEMPLATE()
-	Count TAny<T>::Insert(const T* items, const Count count, const Index& idx) {
+	Count TAny<T>::Insert(T* items, const Count count, const Index& idx) {
 		return Any::Insert<T, false>(items, count, idx);
 	}
 
@@ -795,14 +797,10 @@ namespace Langulus::Anyness
 	TEMPLATE()
 	template<ReflectedData ALT_T>
 	Count TAny<T>::Remove(const ALT_T& item, const Index& index) {
-		Count removed {};
-		for (Offset i = 0; i < mCount; ++i) {
-			const auto found = Find<ALT_T>(item, index);
-			if (found)
-				removed += RemoveIndex(found.GetOffset(), 1);
-		}
-
-		return removed;
+		const auto found = Find<ALT_T>(item, index);
+		if (found)
+			return RemoveIndex(found.GetOffset(), 1);
+		return 0;
 	}
 
 	/// Sort the pack																				
@@ -1003,20 +1001,15 @@ namespace Langulus::Anyness
 	///	@param source - the elements to move											
 	TEMPLATE()
 	void TAny<T>::CallMoveConstructors(TAny&& source) {
-		const auto count = mReserved - mCount;
-		#if LANGULUS(SAFE)
-			if (count != source.mCount)
-				throw Except::Construct("Oops");
-		#endif
-			
+		const auto count = ::std::min(mReserved - mCount, source.mCount);
 		if constexpr(Langulus::IsSparse<T> || IsPOD<T>) {
-			// Copy pointers, and then null them									
+			// Copy pointers or POD														
 			const auto size = GetStride() * count;
 			MoveMemory(source.mRaw, mRawSparse + mCount, size);
 		}
 		else {
 			// Both RHS and LHS are dense and non POD								
-			// Call the reflected copy-constructor for each element			
+			// Call the copy-constructor for each element						
 			static_assert(IsMoveConstructible<T>, 
 				"Trying to move-construct but it's impossible for this type");
 
@@ -1027,7 +1020,7 @@ namespace Langulus::Anyness
 		}
 		
 		// Only consume the items in the source									
-		mCount = mReserved;
+		mCount += count;
 		source.mCount = 0;
 	}
 

@@ -380,7 +380,7 @@ namespace Langulus::Anyness
 		Count Emplace(T&&, const Index& = Index::Back);
 	
 		template<ReflectedData T, bool MUTABLE = true>
-		Count Insert(const T*, Count = 1, const Index& = Index::Back);
+		Count Insert(T*, Count = 1, const Index& = Index::Back);
 		Count InsertBlock(const Block&, const Index& = Index::Back);
 		Count InsertBlock(Block&&, const Index& = Index::Back);
 	
@@ -391,14 +391,10 @@ namespace Langulus::Anyness
 		T& Deepen();
 	
 		template<ReflectedData T>
-		Block& operator << (const T&);
-		template<ReflectedData T>
 		Block& operator << (T&);
 		template<ReflectedData T>
 		Block& operator << (T&&);
 	
-		template<ReflectedData T>
-		Block& operator >> (const T&);
 		template<ReflectedData T>
 		Block& operator >> (T&); 
 		template<ReflectedData T>
@@ -409,10 +405,10 @@ namespace Langulus::Anyness
 		Count MergeBlock(const Block&, const Index& = Index::Back);
 	
 		template<ReflectedData T>
-		Block& operator <<= (const T&);
+		Block& operator <<= (T&);
 	
 		template<ReflectedData T>
-		Block& operator >>= (const T&);
+		Block& operator >>= (T&);
 	
 		template<ReflectedData T>
 		Count Remove(const T*, Count = 1, const Index& = Index::Front);

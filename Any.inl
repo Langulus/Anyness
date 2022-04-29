@@ -46,7 +46,7 @@ namespace Langulus::Anyness
 	///              'other' to avoid memory leaks										
 	///	@param other - the block to shallow-copy										
 	inline Any::Any(Block&& other) 
-		: Block {static_cast<const Block&>(other)} {
+		: Block {static_cast<Block&>(other)} {
 		Keep();
 	}
 	
@@ -79,17 +79,10 @@ namespace Langulus::Anyness
 	/// Construct by copying/referencing value of non-block type					
 	///	@param other - the dense value to shallow-copy								
 	template <IsCustom T>
-	Any::Any(const T& other) {
+	Any::Any(T& other) {
 		SetType<T, false>();
 		Insert<T, false>(&other, 1);
 	}
-
-	/// Construct by copying/referencing value of non-block type					
-	/// Required to not move other by mistake												
-	///	@param other - the dense value to shallow-copy								
-	template <IsCustom T>
-	Any::Any(T& other)
-		: Any {const_cast<const T&>(other)} {}
 
 	/// Create an empty Any from a dynamic type and state								
 	///	@param type - type of the container												
