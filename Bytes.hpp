@@ -25,20 +25,14 @@ namespace Langulus::Anyness
 		
 		Bytes(const Disowned<Bytes>&) noexcept;
 		Bytes(Abandoned<Bytes>&&) noexcept;
-		Bytes(const Disowned<TAny>&) noexcept;
-		Bytes(Abandoned<TAny>&&) noexcept;
 		
 		~Bytes();
 
 		Bytes& operator = (const Bytes&);
 		Bytes& operator = (Bytes&&) noexcept;
-		//Bytes& operator = (const TAny&);
-		//Bytes& operator = (TAny&&) noexcept;
 
 		Bytes& operator = (Disowned<Bytes>&&);
 		Bytes& operator = (Abandoned<Bytes>&&) noexcept;
-		//Bytes& operator = (Disowned<TAny>&&);
-		//Bytes& operator = (Abandoned<TAny>&&) noexcept;
 		
 	public:
 		NOD() Bytes Clone() const;
@@ -51,9 +45,6 @@ namespace Langulus::Anyness
 
 		bool operator == (const Bytes&) const noexcept;
 		bool operator != (const Bytes&) const noexcept;
-
-		NOD() bool Compare(const Bytes&) const noexcept;
-		NOD() Count Matches(const Bytes&) const noexcept;
 	};
 
 } // namespace Langulus::Anyness

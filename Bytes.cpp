@@ -32,49 +32,6 @@ namespace Langulus::Anyness
 		return !(*this == other);
 	}
 
-	/// Compare with another byte array														
-	///	@param other - bytes to compare with											
-	///	@return true if both containers match completely							
-	bool Bytes::Compare(const Bytes& other) const noexcept {
-		if (mRaw == other.mRaw)
-			return mCount == other.mCount;
-		else if (mCount != other.mCount)
-			return false;
-
-		auto t1 = GetRaw();
-		auto t2 = other.GetRaw();
-		while (*t1 == *t2) {
-			++t1;
-			++t2;
-		}
-
-		return (t1 - GetRaw()) == mCount;
-	}
-
-
-	/// Compare byte sequences and return matching bytes								
-	///	@param other - bytes to compare with											
-	///	@return the number of matching bytes											
-	Count Bytes::Matches(const Bytes& other) const noexcept {
-		if (mRaw == other.mRaw)
-			return ::std::min(mCount, other.mCount);
-
-		auto t1 = GetRaw();
-		auto t2 = other.GetRaw();
-		while (*t1 == *t2) {
-			++t1;
-			++t2;
-		}
-
-		/*
-		__m128i first = _mm_loadu_si128( reinterpret_cast<__m128i*>( &arr1 ) );
-		__m128i second = _mm_loadu_si128( reinterpret_cast<__m128i*>( &arr2 ) );
-		return std::popcount(_mm_movemask_epi8( _mm_cmpeq_epi8( first, second ) ));
-		*/
-
-		return t1 - GetRaw();
-	}
-
 	/// Clone the byte container																
 	///	@return the cloned byte container												
 	Bytes Bytes::Clone() const {

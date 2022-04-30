@@ -2,6 +2,7 @@
 #include "Reflection.hpp"
 #include "NameOf.hpp"
 #include "Utilities.hpp"
+#include "Exceptions.hpp"
 
 namespace Langulus::Anyness
 {
@@ -47,6 +48,84 @@ namespace Langulus::Anyness
       return instance + mOffset;
    }
    
+
+	///                                                                        
+   ///   Base implementation																	
+   ///                                                                        
+
+	/// Compare bases for equality															
+	constexpr bool Base::operator == (const Base& other) const noexcept {
+		return mType == other.mType && mCount == other.mCount;
+
+	}
+
+	/// Compare bases for inequality															
+	constexpr bool Base::operator != (const Base& other) const noexcept {
+		return !(*this == other);
+
+	}
+
+	/// Create a base descriptor for the derived type T								
+	///	@return the generated base descriptor											
+	template<IsDense T, IsDense BASE>
+	Base Base::From() SAFETY_NOEXCEPT() {
+		static_assert(!IsSame<T, BASE>, 
+			"Base duplication not allowed to avoid regress");
+
+		Base result;
+		result.mType = MetaData::Of<BASE>();
+
+		if constexpr (Inherits<T, BASE>) {
+			// This will fail if base is private									
+			// This is detectable by is_convertible_v								
+			if constexpr (::std::is_convertible_v<T*, BASE*>) {
+				// The devil's work, right here										
+				const Byte storage[sizeof(T)] = {};
+				// First reinterpret the storage as T								
+				const auto derived = reinterpret_cast<const T*>(storage);
+				// Then cast it down to base											
+				const auto base = static_cast<const BASE*>(derived);
+				// Then reinterpret back to byte arrays and get difference	
+				const auto offset = 
+					reinterpret_cast<const Byte*>(derived) 
+				 - reinterpret_cast<const Byte*>(base);
+				SAFETY(if (offset > 0)
+					throw Except::Access("Base class is laid (memorywise) before the derived"));
+				result.mOffset = static_cast<Offset>(offset);
+			}
+		}
+
+		// If sizes match and there's no byte offset, then the base and	
+		// the derived type are binary compatible									
+		if constexpr (sizeof(BASE) == sizeof(T))
+			result.mBinaryCompatible = (0 == result.mOffset);
+		return result;
+	}
+
+	/// Create a mapping to a type															
+	/// This will check if types are binary compatible by size, but no			
+	/// further checks are done. Use at your own risk									
+	/// It also makes the base imposed, which excludes it from serialization	
+	///	@return the generated base descriptor											
+	template<class T, class BASE, Count COUNT>
+	Base Base::Map() noexcept {
+		static_assert(!IsSame<T, BASE>, 
+			"Base duplication not allowed to avoid regress");
+		static_assert(sizeof(BASE) * COUNT == sizeof(T),
+			"Size mismatch while mapping types");
+		static_assert(COUNT > 0,
+			"Invalid mapping of zero count");
+		static_assert(IsAbstract<BASE>,
+			"Can't map to an abstract type - size is always zero");
+
+		Base result;
+		result.mBinaryCompatible = true;
+		result.mType = MetaData::Of<BASE>();
+		result.mCount = COUNT;
+		result.mImposed = true;
+		return result;
+	}
+
 
 
 	///                                                                        
@@ -227,22 +306,32 @@ namespace Langulus::Anyness
 				};
 			}
 
+			// Set reflected bases														
+			if constexpr (requires { typename T::CTTI_Bases; })
+				meta->SetBases<T>(typename T::CTTI_Bases {});
+
+			// Set reflected abilities													
+			if constexpr (requires { typename T::CTTI_Verbs; })
+				meta->SetAbilities<T>(typename T::CTTI_Verbs {});
+
 			return meta.get();
 		}
 	}
 
    /// Set the list of bases for a given meta definition                      
    ///   @tparam Args... - all the bases                                      
-	template<IsDense... Args>
-	void MetaData::SetBases(Args&&... items) noexcept requires (... && IsSame<Args, Base>) {
-		mBases = {Forward<Base>(items)...};
+	template<class T, IsDense... BASE>
+	void MetaData::SetBases(TTypeList<BASE...>) noexcept {
+		static Base list[] = {Base::From<T, BASE>()...};
+		mBases = {list};
 	}
 
    /// Set the list of abilities for a given meta definition                  
    ///   @tparam Args... - all the abilities                                  
-	template<IsDense... Args>
-	void MetaData::SetAbilities(Args&&... items) noexcept requires (... && IsSame<Args, Ability>) {
-		mAbilities = {Forward<Ability>(items)...};
+	template<class T, IsDense... VERB>
+	void MetaData::SetAbilities(TTypeList<VERB...>) noexcept {
+		static Ability list[] = {Ability::From<T, VERB>()...};
+		mAbilities = {list};
 	}
 
    /// Set the list of members for a given meta definition                    

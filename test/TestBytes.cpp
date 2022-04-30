@@ -5,7 +5,7 @@ SCENARIO("Byte manipulation", "[bytes]") {
 	GIVEN("An empty byte container") {
 		Bytes data;
 
-		WHEN("More capacity is reserved, via Extend()") {
+		WHEN("Capacity is reserved, via Allocate()") {
 			data.Allocate(500);
 			auto memory = data.GetRaw();
 
@@ -19,7 +19,6 @@ SCENARIO("Byte manipulation", "[bytes]") {
 				REQUIRE(data.GetReserved() >= 500);
 				REQUIRE(data.GetRaw() == memory);
 				REQUIRE(data.HasAuthority());
-
 				REQUIRE(region.GetCount() == 10);
 				REQUIRE(region.GetRaw() == memory);
 			}
@@ -43,7 +42,9 @@ SCENARIO("Byte manipulation", "[bytes]") {
 			THEN("The size and capacity change, type will never change") {
 				REQUIRE(data.GetCount() == 8 * sizeof(int));
 				REQUIRE(data.GetReserved() >= 8 * sizeof(int));
-				REQUIRE(data.GetRaw() == memory);
+				#if LANGULUS_FEATURE(MANAGED_MEMORY)
+					REQUIRE(data.GetRaw() == memory);
+				#endif
 				REQUIRE(data.HasAuthority());
 				REQUIRE(data.Is<Byte>());
 			}
@@ -54,7 +55,9 @@ SCENARIO("Byte manipulation", "[bytes]") {
 			THEN("The capacity changes but not the size, memory will move in order to have jurisdiction") {
 				REQUIRE(data.GetCount() == 5 * sizeof(int));
 				REQUIRE(data.GetReserved() >= 40);
-				REQUIRE(data.GetRaw() == memory);
+				#if LANGULUS_FEATURE(MANAGED_MEMORY)
+					REQUIRE(data.GetRaw() == memory);
+				#endif
 				REQUIRE(data.HasAuthority());
 			}
 		}
@@ -64,11 +67,12 @@ SCENARIO("Byte manipulation", "[bytes]") {
 			THEN("The capacity and size change") {
 				REQUIRE(data.GetCount() == 5 * sizeof(int) + 10);
 				REQUIRE(data.GetReserved() >= 5 * sizeof(int) + 10);
-				REQUIRE(data.GetRaw() == memory);
+				#if LANGULUS_FEATURE(MANAGED_MEMORY)
+					REQUIRE(data.GetRaw() == memory);
+				#endif
 				REQUIRE(data.HasAuthority());
-
 				REQUIRE(region.GetCount() == 10);
-				REQUIRE(region.GetRaw() == memory + 5 * sizeof(int));
+				REQUIRE(region.GetRaw() == data.GetRaw() + 5 * sizeof(int));
 			}
 		}
 
@@ -119,7 +123,7 @@ SCENARIO("Byte manipulation", "[bytes]") {
 
 		WHEN("Bytes are cloned") {
 			Bytes copy = data.Clone();
-			THEN("Size and capacity goes to zero, type is unchanged, because it's a templated container") {
+			THEN("Bytes get copied") {
 				REQUIRE(data.GetCount() == copy.GetCount());
 				REQUIRE(data.GetReserved() == copy.GetReserved());
 				REQUIRE(data.GetRaw() != copy.GetRaw());

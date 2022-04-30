@@ -1,12 +1,16 @@
 /// Include this only when building standalone											
 #pragma once
 #include "DataState.hpp"
+#include "TypeList.hpp"
 
 #define LANGULUS_DEEP() public: static constexpr bool CTTI_Deep = 
 #define LANGULUS_POD() public: static constexpr bool CTTI_POD = 
 #define LANGULUS_NULLIFIABLE() public: static constexpr bool CTTI_Nullifiable = 
 #define LANGULUS_CONCRETIZABLE() public: using CTTI_Concretizable = 
 #define LANGULUS_ABSTRACT() private: virtual void StayAbstractForever() = 0
+#define LANGULUS_MEMBERS(...) public: using CTTI_Members = TTypeList<__VA_ARGS__>
+#define LANGULUS_BASES(...) public: using CTTI_Bases = TTypeList<__VA_ARGS__>
+#define LANGULUS_VERBS(...) public: using CTTI_Verbs = TTypeList<__VA_ARGS__>
 
 namespace Langulus::Flow
 {
@@ -158,16 +162,19 @@ namespace Langulus::Anyness
 		// in! If accessed through a derived type, that offset might		
 		// be wrong! Type must be resolved first!									
 		Offset mOffset {};
-		// IsNumber of elements in mData (in case of an array)					
+		// Number of elements in mData (in case of an array)					
 		Count mCount {1};
 		// Trait tag																		
 		TMeta mTrait {};
 		// Member token																	
 		Token mName {};
 
-	public:		
+	public:
+		constexpr Member() noexcept = default;
+
 		template<ReflectedData OWNER, ReflectedData DATA>
 		NOD() static Member From(Offset, const Token& = {}, TMeta trait = {});
+
 		NOD() constexpr bool operator == (const Member&) const noexcept;
 		NOD() constexpr bool operator != (const Member&) const noexcept;
 		
@@ -196,10 +203,13 @@ namespace Langulus::Anyness
 		FVerb mFunction {};
 		
 	public:		
-		Ability(const MetaVerb&, const FVerb&) noexcept;
+		constexpr Ability() noexcept = default;
 
 		NOD() constexpr bool operator == (const Ability&) const noexcept;
 		NOD() constexpr bool operator != (const Ability&) const noexcept;
+
+		template<IsDense T, IsDense VERB>
+		NOD() static Ability From() noexcept;
 	};
 
 	using AbilityList = ::std::span<const Ability>;
@@ -230,14 +240,24 @@ namespace Langulus::Anyness
 		NOD() constexpr bool operator == (const Base&) const noexcept;
 		NOD() constexpr bool operator != (const Base&) const noexcept;
 
-		template<IsDense UNIQUE, IsDense BASE>
-		NOD() static Base From() noexcept;
+		template<IsDense T, IsDense BASE>
+		NOD() static Base From() SAFETY_NOEXCEPT();
 
-		template<class UNIQUE, class BASE, Count COUNT>
+		template<class T, class BASE, Count COUNT>
 		NOD() static Base Map() noexcept;
 	};
 
 	using BaseList = ::std::span<const Base>;
+
+	namespace Inner
+	{
+		template<class DERIVED, class BASE>
+		struct DBPair {
+			NOD() static Base Get() noexcept {
+				return Base::From<DERIVED, BASE>();
+			}
+		};
+	}
 
 
 	///																								
@@ -334,14 +354,14 @@ namespace Langulus::Anyness
 
 		NOD() DMeta GetMostConcrete() const noexcept;
 
-		template<IsDense... Args>
-		void SetBases(Args&& ...) noexcept requires (... && IsSame<Args, Base>);
+		template<class T, IsDense... Args>
+		void SetBases(TTypeList<Args...>) noexcept;
+
+		template<class T, IsDense... Args>
+		void SetAbilities(TTypeList<Args...>) noexcept;
 
 		template<IsDense... Args>
-		void SetAbilities(Args&& ...) noexcept requires (... && IsSame<Args, Ability>);
-
-		template<IsDense... Args>
-		void SetMembers(Args&& ...) noexcept requires (... && IsSame<Args, Member>);
+		void SetMembers(Args&&...) noexcept requires (... && IsSame<Args, Member>);
 
 		NOD() bool GetBase(DMeta, Offset, Base&) const;
 		template<ReflectedData T>

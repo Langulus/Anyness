@@ -77,11 +77,6 @@ namespace Langulus::Anyness
 		bool operator == (const Text&) const noexcept;
 		bool operator != (const Text&) const noexcept;
 
-		NOD() bool Compare(const Text&) const noexcept;
-		NOD() bool CompareLoose(const Text&) const noexcept;
-		NOD() Count Matches(const Text&) const noexcept;
-		NOD() Count MatchesLoose(const Text&) const noexcept;
-
 		NOD() bool FindOffset(const Text&, Offset&) const;
 		NOD() bool FindOffsetReverse(const Text&, Offset&) const;
 		NOD() bool Find(const Text&) const;

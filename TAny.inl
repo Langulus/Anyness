@@ -1,5 +1,6 @@
 #pragma once
 #include "TAny.hpp"
+#include <cctype>
 
 #define TEMPLATE() template<ReflectedData T>
 
@@ -1140,7 +1141,6 @@ namespace Langulus::Anyness
 				// significantly reduces the possiblity for a move)			
 				// Also, make sure to free the previous mEntry if moved		
 				mEntry = Allocator::Reallocate(byteSize, mEntry);
-				mReserved = elements;
 				if (mEntry != previousBlock.mEntry) {
 					// Memory moved, and we should call move-construction		
 					mRaw = mEntry->GetBlockStart();
@@ -1159,7 +1159,6 @@ namespace Langulus::Anyness
 				// copy the memory for this block - we can't move it!			
 				mEntry = Allocator::Allocate(byteSize);
 				mRaw = mEntry->GetBlockStart();
-				mReserved = elements;
 				mCount = 0;
 				CallCopyConstructors(previousBlock);
 				previousBlock.Free();
@@ -1174,10 +1173,13 @@ namespace Langulus::Anyness
 			// Allocate a fresh set of elements										
 			mEntry = Allocator::Allocate(byteSize);			
 			mRaw = mEntry->GetBlockStart();
-			mReserved = elements;
-			CallDefaultConstructors(elements);
+			if constexpr (CREATE) {
+				// Default-construct everything										
+				CallDefaultConstructors(elements);
+			}
 		}
 		
+		mReserved = elements;
 		return;
 	}
 	
@@ -1282,6 +1284,90 @@ namespace Langulus::Anyness
 			return operator + <WRAPPER>(static_cast<WRAPPER>(rhs));
 		}
 		else LANGULUS_ASSERT("Can't concatenate - RHS is not convertible to WRAPPER");
+	}
+	
+	/// Compare with another TAny																
+	///	@param other - container to compare with										
+	///	@return true if both containers match completely							
+	TEMPLATE()
+	bool TAny<T>::Compare(const TAny& other) const noexcept {
+		if (mRaw == other.mRaw)
+			return mCount == other.mCount;
+		else if (mCount != other.mCount)
+			return false;
+
+		auto t1 = GetRaw();
+		auto t2 = other.GetRaw();
+		while (t1 < GetRawEnd() && *t1 == *t2) {
+			++t1;
+			++t2;
+		}
+
+		return (t1 - GetRaw()) == mCount;
+	}
+
+	/// Compare loosely with another TAny, ignoring case								
+	/// This function applies only if T is character									
+	///	@param other - text to compare with												
+	///	@return true if both containers match loosely								
+	TEMPLATE()
+	bool TAny<T>::CompareLoose(const TAny& other) const noexcept requires IsCharacter<T> {
+		if (mRaw == other.mRaw)
+			return mCount == other.mCount;
+		else if (mCount != other.mCount)
+			return false;
+
+		auto t1 = GetRaw();
+		auto t2 = other.GetRaw();
+		while (t1 < GetRawEnd() && (*t1 == *t2 || (::std::isalpha(*t1) && ::std::isalpha(*t2) && (*t1 + 32 == *t2 || *t1 == *t2 + 32)))) {
+			++t1;
+			++t2;
+		}
+
+		return (t1 - GetRaw()) == mCount;
+	}
+
+	/// Count how many consecutive elements match in two containers				
+	///	@param other - container to compare with										
+	///	@return the number of matching items											
+	TEMPLATE()
+	Count TAny<T>::Matches(const TAny& other) const noexcept {
+		if (mRaw == other.mRaw)
+			return ::std::min(mCount, other.mCount);
+
+		auto t1 = GetRaw();
+		auto t2 = other.GetRaw();
+		while (t1 < GetRawEnd() && *t1 == *t2) {
+			++t1;
+			++t2;
+		}
+
+		/*
+		__m128i first = _mm_loadu_si128( reinterpret_cast<__m128i*>( &arr1 ) );
+		__m128i second = _mm_loadu_si128( reinterpret_cast<__m128i*>( &arr2 ) );
+		return std::popcount(_mm_movemask_epi8( _mm_cmpeq_epi8( first, second ) ));
+		*/
+
+		return t1 - GetRaw();
+	}
+
+	/// Compare loosely with another, ignoring upper-case								
+	/// Count how many consecutive letters match in two strings						
+	///	@param other - text to compare with												
+	///	@return the number of matching symbols											
+	TEMPLATE()
+	Count TAny<T>::MatchesLoose(const TAny& other) const noexcept requires IsCharacter<T> {
+		if (mRaw == other.mRaw)
+			return ::std::min(mCount, other.mCount);
+
+		auto t1 = GetRaw();
+		auto t2 = other.GetRaw();
+		while (t1 < GetRawEnd() && (*t1 == *t2 || (::std::isalpha(*t1) && ::std::isalpha(*t2) && (*t1 + 32 == *t2 || *t1 == *t2 + 32)))) {
+			++t1;
+			++t2;
+		}
+
+		return t1 - GetRaw();
 	}
 
 } // namespace Langulus::Anyness

@@ -14,7 +14,8 @@ namespace Langulus::Anyness
 	///	For a faster statically-optimized equivalent of this, use TAny			
 	///																								
 	class Any : public Block {
-		LANGULUS(DEEP) true;		
+		LANGULUS(DEEP) true;
+		LANGULUS_BASES(Block);
 	public:
 		template<ReflectedData T>
 		friend class TAny;

@@ -108,6 +108,11 @@ namespace Langulus::Anyness
 		NOD() constexpr Size GetStride() const noexcept;
 		NOD() constexpr Size GetSize() const noexcept;
 
+		NOD() bool Compare(const TAny&) const noexcept;
+		NOD() bool CompareLoose(const TAny&) const noexcept requires IsCharacter<T>;
+		NOD() Count Matches(const TAny&) const noexcept;
+		NOD() Count MatchesLoose(const TAny&) const noexcept requires IsCharacter<T>;
+
 		RANGED_FOR_INTEGRATION(TAny, T);
 
 		Count Emplace(T&&, const Index& = Index::Back);

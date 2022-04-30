@@ -1,5 +1,4 @@
 #include "Text.hpp"
-#include <cctype>
 #include <locale>
 
 namespace Langulus::Anyness
@@ -94,85 +93,6 @@ namespace Langulus::Anyness
 	///	@return true if both containers are not identical							
 	bool Text::operator != (const Text& other) const noexcept {
 		return !(*this == other);
-	}
-
-	/// Compare with another string															
-	///	@param other - text to compare with												
-	///	@return true if both containers match completely							
-	bool Text::Compare(const Text& other) const noexcept {
-		if (mRaw == other.mRaw)
-			return mCount == other.mCount;
-		else if (mCount != other.mCount)
-			return false;
-
-		auto t1 = GetRaw();
-		auto t2 = other.GetRaw();
-		while (t1 < GetRawEnd() && *t1 == *t2) {
-			++t1;
-			++t2;
-		}
-
-		return (t1 - GetRaw()) == mCount;
-	}
-
-	/// Compare loosely with another, ignoring upper-case								
-	///	@param other - text to compare with												
-	///	@return true if both containers match loosely								
-	bool Text::CompareLoose(const Text& other) const noexcept {
-		if (mRaw == other.mRaw)
-			return mCount == other.mCount;
-		else if (mCount != other.mCount)
-			return false;
-
-		auto t1 = GetRaw();
-		auto t2 = other.GetRaw();
-		while (t1 < GetRawEnd() && (*t1 == *t2 || (::std::isalpha(*t1) && ::std::isalpha(*t2) && (*t1 + 32 == *t2 || *t1 == *t2 + 32)))) {
-			++t1;
-			++t2;
-		}
-
-		return (t1 - GetRaw()) == mCount;
-	}
-
-	/// Count how many consecutive letters match in two strings						
-	///	@param other - text to compare with												
-	///	@return the number of matching symbols											
-	Count Text::Matches(const Text& other) const noexcept {
-		if (mRaw == other.mRaw)
-			return ::std::min(mCount, other.mCount);
-
-		auto t1 = GetRaw();
-		auto t2 = other.GetRaw();
-		while (t1 < GetRawEnd() && *t1 == *t2) {
-			++t1;
-			++t2;
-		}
-
-		/*
-		__m128i first = _mm_loadu_si128( reinterpret_cast<__m128i*>( &arr1 ) );
-		__m128i second = _mm_loadu_si128( reinterpret_cast<__m128i*>( &arr2 ) );
-		return std::popcount(_mm_movemask_epi8( _mm_cmpeq_epi8( first, second ) ));
-		*/
-
-		return t1 - GetRaw();
-	}
-
-	/// Compare loosely with another, ignoring upper-case								
-	/// Count how many consecutive letters match in two strings						
-	///	@param other - text to compare with												
-	///	@return the number of matching symbols											
-	Count Text::MatchesLoose(const Text& other) const noexcept {
-		if (mRaw == other.mRaw)
-			return ::std::min(mCount, other.mCount);
-
-		auto t1 = GetRaw();
-		auto t2 = other.GetRaw();
-		while (t1 < GetRawEnd() && (*t1 == *t2 || (::std::isalpha(*t1) && ::std::isalpha(*t2) && (*t1 + 32 == *t2 || *t1 == *t2 + 32)))) {
-			++t1;
-			++t2;
-		}
-
-		return t1 - GetRaw();
 	}
 
 	#if LANGULUS_FEATURE(UTFCPP)

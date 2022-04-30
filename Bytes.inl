@@ -32,21 +32,11 @@ namespace Langulus::Anyness
 	/// Construct via disowned copy															
 	///	@param other - the bytes to move													
 	inline Bytes::Bytes(const Disowned<Bytes>& other) noexcept
-		: TAny {other.mValue} { }
+		: TAny {other.Forward<TAny>()} { }
 	
 	/// Construct via abandoned move															
 	///	@param other - the bytes to move													
 	inline Bytes::Bytes(Abandoned<Bytes>&& other) noexcept
-		: TAny {other.Forward<TAny>()} { }
-
-	/// Construct via disowned copy															
-	///	@param other - the bytes to move													
-	inline Bytes::Bytes(const Disowned<TAny>& other) noexcept
-		: TAny {other.mValue} { }
-	
-	/// Construct via abandoned move															
-	///	@param other - the bytes to move													
-	inline Bytes::Bytes(Abandoned<TAny>&& other) noexcept
 		: TAny {other.Forward<TAny>()} { }
 
 	/// Construct manually via raw constant memory pointer and size				
@@ -97,21 +87,5 @@ namespace Langulus::Anyness
 		TAny::operator = (rhs.Forward<TAny>());
 		return *this;
 	}
-
-	/// Shallow copy disowned bytes															
-	///	@param rhs - the byte container to shallow-copy								
-	///	@return a reference to this container											
-	/*inline Bytes& Bytes::operator = (Disowned<TAny>&& rhs) {
-		TAny::operator = (rhs.Forward<TAny>());
-		return *this;
-	}
-
-	/// Move an abandoned byte container													
-	///	@param rhs - the container to move												
-	///	@return a reference to this container											
-	inline Bytes& Bytes::operator = (Abandoned<TAny>&& rhs) noexcept {
-		TAny::operator = (rhs.Forward<TAny>());
-		return *this;
-	}*/
 	
 } // namespace Langulus::Anyness
