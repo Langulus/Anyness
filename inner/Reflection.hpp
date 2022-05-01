@@ -8,9 +8,9 @@
 #define LANGULUS_NULLIFIABLE() public: static constexpr bool CTTI_Nullifiable = 
 #define LANGULUS_CONCRETIZABLE() public: using CTTI_Concretizable = 
 #define LANGULUS_ABSTRACT() private: virtual void StayAbstractForever() = 0
-#define LANGULUS_MEMBERS(...) public: using CTTI_Members = TTypeList<__VA_ARGS__>
-#define LANGULUS_BASES(...) public: using CTTI_Bases = TTypeList<__VA_ARGS__>
-#define LANGULUS_VERBS(...) public: using CTTI_Verbs = TTypeList<__VA_ARGS__>
+#define LANGULUS_MEMBERS(...) public: using CTTI_Members = ::Langulus::Anyness::TTypeList<__VA_ARGS__>
+#define LANGULUS_BASES(...) public: using CTTI_Bases = ::Langulus::Anyness::TTypeList<__VA_ARGS__>
+#define LANGULUS_VERBS(...) public: using CTTI_Verbs = ::Langulus::Anyness::TTypeList<__VA_ARGS__>
 
 namespace Langulus::Flow
 {
@@ -352,6 +352,11 @@ namespace Langulus::Anyness
 		template<ReflectedData T>
 		NOD() static DMeta Of() requires IsDecayed<T>;
 
+	protected:
+		template<IsFundamental T>
+		void ReflectFundamentalType() noexcept;
+
+	public:
 		NOD() DMeta GetMostConcrete() const noexcept;
 
 		template<class T, IsDense... Args>
@@ -477,27 +482,7 @@ namespace Langulus
 	class AInteger {
 		LANGULUS(ABSTRACT);
 		LANGULUS(CONCRETIZABLE) ::std::intptr_t;
-	};
-
-	/// Check if a type is compatible with IsUnsigned									
-	/// concept at runtime, via meta->InterpretsAs<AUnsigned>						
-	class AUnsigned {
-		LANGULUS(ABSTRACT);
-		LANGULUS(CONCRETIZABLE) ::std::uintptr_t;
-	};
-
-	/// Check if a type is compatible with IsUnsignedInteger concept at			
-	/// runtime, via meta->InterpretsAs<AUnsignedInteger>								
-	class AUnsignedInteger {
-		LANGULUS(ABSTRACT);
-		LANGULUS(CONCRETIZABLE) ::std::uintptr_t;
-	};
-
-	/// Check if a type is compatible with IsReal										
-	/// concept at runtime, via meta->InterpretsAs<AReal>								
-	class AReal {
-		LANGULUS(ABSTRACT);
-		LANGULUS(CONCRETIZABLE) Real;
+		LANGULUS_BASES(ANumber);
 	};
 
 	/// Check if a type is compatible with IsSigned										
@@ -505,6 +490,31 @@ namespace Langulus
 	class ASigned {
 		LANGULUS(ABSTRACT);
 		LANGULUS(CONCRETIZABLE) Real;
+		LANGULUS_BASES(ANumber);
+	};
+
+	/// Check if a type is compatible with IsUnsigned									
+	/// concept at runtime, via meta->InterpretsAs<AUnsigned>						
+	class AUnsigned {
+		LANGULUS(ABSTRACT);
+		LANGULUS(CONCRETIZABLE) ::std::uintptr_t;
+		LANGULUS_BASES(ANumber);
+	};
+
+	/// Check if a type is compatible with IsUnsignedInteger concept at			
+	/// runtime, via meta->InterpretsAs<AUnsignedInteger>								
+	class AUnsignedInteger {
+		LANGULUS(ABSTRACT);
+		LANGULUS(CONCRETIZABLE) ::std::uintptr_t;
+		LANGULUS_BASES(AUnsigned, AInteger);
+	};
+
+	/// Check if a type is compatible with IsReal										
+	/// concept at runtime, via meta->InterpretsAs<AReal>								
+	class AReal {
+		LANGULUS(ABSTRACT);
+		LANGULUS(CONCRETIZABLE) Real;
+		LANGULUS_BASES(ASigned);
 	};
 
 	/// Check if a type is compatible with IsSignedInteger							
@@ -512,8 +522,23 @@ namespace Langulus
 	class ASignedInteger {
 		LANGULUS(ABSTRACT);
 		LANGULUS(CONCRETIZABLE) ::std::intptr_t;
+		LANGULUS_BASES(ASigned, AInteger);
 	};
-	
+
+	/// Check if a type is compatible with IsCharacter									
+	/// concept at runtime, via meta->InterpretsAs<AText>								
+	class AText {
+		LANGULUS(ABSTRACT);
+		LANGULUS(CONCRETIZABLE) char8_t;
+	};
+
+	/// Check if a type is compatible with IsBool										
+	/// concept at runtime, via meta->InterpretsAs<ABool>								
+	class ABool {
+		LANGULUS(ABSTRACT);
+		LANGULUS(CONCRETIZABLE) bool;
+	};
+
 } // namespace Langulus
 
 #include "Reflection.inl"

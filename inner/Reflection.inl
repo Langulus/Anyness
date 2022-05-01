@@ -314,8 +314,39 @@ namespace Langulus::Anyness
 			if constexpr (requires { typename T::CTTI_Verbs; })
 				meta->SetAbilities<T>(typename T::CTTI_Verbs {});
 
+			// Set some additional stuff if T is fundamental					
+			if constexpr (IsFundamental<T>)
+				meta->ReflectFundamentalType<T>();
+
 			return meta.get();
 		}
+	}
+
+	/// Integrate fundamental types with the reflection system						
+	/// Like, for example, implicitly adding a ANumber bases to number types	
+	template<IsFundamental T>
+	void MetaData::ReflectFundamentalType() noexcept {
+		if constexpr (IsBool<T>) {
+			using Bases = TTypeList<ABool>;
+			SetBases<T>(Bases {});
+		}
+		else if constexpr (IsCharacter<T>) {
+			using Bases = TTypeList<AText>;
+			SetBases<T>(Bases {});
+		}
+		else if constexpr (IsSignedInteger<T>) {
+			using Bases = TTypeList<ASignedInteger>;
+			SetBases<T>(Bases {});
+		}
+		else if constexpr (IsUnsignedInteger<T>) {
+			using Bases = TTypeList<AUnsignedInteger>;
+			SetBases<T>(Bases {});
+		}
+		else if constexpr (IsReal<T>) {
+			using Bases = TTypeList<AReal>;
+			SetBases<T>(Bases {});
+		}
+		else LANGULUS_ASSERT("Unimplemented fundamental type reflector");
 	}
 
    /// Set the list of bases for a given meta definition                      

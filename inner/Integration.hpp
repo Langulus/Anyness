@@ -238,6 +238,10 @@
 		template<class T>
 		concept IsAbstract = ::std::is_abstract_v<Decay<T>>;
 
+		/// Check if T is a fundamental type (either sparse or dense)				
+		template<class T>
+		concept IsFundamental = ::std::is_fundamental_v<Decay<T>>;
+
 		/// Check if T is default-constructible											
 		template<class T>
 		concept IsDefaultConstructible = ::std::default_initializable<Decay<T>>;
