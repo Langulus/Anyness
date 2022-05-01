@@ -873,12 +873,14 @@ namespace Langulus::Anyness
 			MakeTypeConstrained();
 	}
 	
-	/// Set the data ID - use this only if you really know what you're doing	
-	///	@tparam T - the type to set														
+	/// Set the contained data type															
+	///	@tparam T - the contained type													
 	///	@tparam CONSTRAIN - whether or not to enable type-constraints			
 	template<ReflectedData T, bool CONSTRAIN>
 	void Block::SetType() {
 		SetType<CONSTRAIN>(MetaData::Of<Decay<T>>());
+		if constexpr (Langulus::IsSparse<T>)
+			MakeSparse();
 	}
 
 	/// Swap two elements (with raw indices)												

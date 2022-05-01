@@ -144,7 +144,7 @@
 		/// True if T is an array (has an extent with [])								
 		/// Sometimes a reference hides the pointer/extent, hence the deref		
 		template<class T>
-		constexpr bool IsArray = ::std::is_array_v<Deref<T>>;
+		constexpr bool IsArray = ::std::is_bounded_array_v<Deref<T>>;
 
 		/// True if T is a pointer (or has an extent with [])							
 		/// Sometimes a reference hides the pointer/extent, hence the deref		

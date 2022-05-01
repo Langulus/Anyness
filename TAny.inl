@@ -11,7 +11,10 @@ namespace Langulus::Anyness
 	/// TAny is type-constrained and always has a type									
 	TEMPLATE()
 	TAny<T>::TAny()
-		: Any {Block {DataState::Typed, MetaData::Of<Decay<T>>()}} { }
+		: Any {Block {DataState::Typed, MetaData::Of<Decay<T>>()}} {
+		if constexpr (Langulus::IsSparse<T>)
+			MakeSparse();
+	}
 
 	/// Destructor																					
 	TEMPLATE()
@@ -69,7 +72,7 @@ namespace Langulus::Anyness
 	///	@param other - the anyness to reference										
 	TEMPLATE()
 	TAny<T>::TAny(const Any& other)
-		: TAny{const_cast<Any&>(other)} {
+		: TAny {const_cast<Any&>(other)} {
 		MakeConstant();
 	}
 
@@ -1232,15 +1235,15 @@ namespace Langulus::Anyness
 	TEMPLATE()
 	template<class WRAPPER, class RHS>
 	TAny<T>& TAny<T>::operator += (const RHS& rhs) {
-		if constexpr (Langulus::IsSparse<RHS>) {
-			// Dereference pointers														
+		if constexpr (Langulus::IsSparse<RHS> && !IsArray<RHS>) {
+			// Dereference pointers that are not bound arrays					
 			return operator += <WRAPPER>(*rhs);
 		}
 		else if constexpr (IsPOD<T> && Inherits<RHS, TAny>) {
-			// Concatenate bytes directly (optimization)							
+			// Concatenate POD data directly (optimization)						
 			const auto count = rhs.GetCount();
 			Allocate<false>(mCount + count);
-			CopyMemory(rhs.mRaw, mRaw, count);
+			CopyMemory(rhs.mRaw, GetRawEnd(), count);
 			mCount += count;
 			return *this;
 		}
@@ -1257,8 +1260,8 @@ namespace Langulus::Anyness
 	TEMPLATE()
 	template<class WRAPPER, class RHS>
 	WRAPPER TAny<T>::operator + (const RHS& rhs) const {
-		if constexpr (Langulus::IsSparse<RHS>) {
-			// Dereference pointers														
+		if constexpr (Langulus::IsSparse<RHS> && !IsArray<RHS>) {
+			// Dereference pointers that are not bound arrays					
 			return operator + <WRAPPER>(*rhs);
 		}
 		else if constexpr (IsPOD<T> && Inherits<RHS, TAny>) {

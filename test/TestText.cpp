@@ -26,7 +26,7 @@ SCENARIO("Text manipulation", "[text]") {
 	}
 
 	GIVEN("A filled utf8 text container") {
-		Text text {"tests"};
+		Text text {"test1"};
 		auto memory = text.GetRaw();
 
 		REQUIRE(text.GetCount() == 5);
@@ -34,18 +34,22 @@ SCENARIO("Text manipulation", "[text]") {
 		REQUIRE(text.Is<char8_t>());
 		REQUIRE(text.GetRaw());
 		REQUIRE(text.HasAuthority());
+		REQUIRE(text == "test1");
 		REQUIRE(text[0] == 't');
 		REQUIRE(text[1] == 'e');
 		REQUIRE(text[2] == 's');
 		REQUIRE(text[3] == 't');
-		REQUIRE(text[4] == 's');
+		REQUIRE(text[4] == '1');
 
 		WHEN("Add more text") {
-			text += "tests";
-			THEN("The size and capacity change, type will never change") {
+			text += "test2";
+			THEN("The size and capacity change, type will never change, and memory won't move if MANAGED_MEMORY feature is enabled") {
+				REQUIRE(text == "test1test2");
 				REQUIRE(text.GetCount() == 10);
 				REQUIRE(text.GetReserved() >= 10);
-				REQUIRE(text.GetRaw() == memory);
+				#if LANGULUS_FEATURE(MANAGED_MEMORY)
+					REQUIRE(text.GetRaw() == memory);
+				#endif
 				REQUIRE(text.HasAuthority());
 				REQUIRE(text.Is<char8_t>());
 			}
@@ -80,7 +84,9 @@ SCENARIO("Text manipulation", "[text]") {
 			THEN("The capacity changes but not the size, memory will move in order to have jurisdiction") {
 				REQUIRE(text.GetCount() == 5);
 				REQUIRE(text.GetReserved() >= 20);
-				REQUIRE(text.GetRaw() == memory);
+				#if LANGULUS_FEATURE(MANAGED_MEMORY)
+					REQUIRE(text.GetRaw() == memory);
+				#endif
 				REQUIRE(text.HasAuthority());
 			}
 		}
@@ -90,10 +96,12 @@ SCENARIO("Text manipulation", "[text]") {
 			THEN("The capacity and size change") {
 				REQUIRE(text.GetCount() == 15);
 				REQUIRE(text.GetReserved() >= 15);
-				REQUIRE(text.GetRaw() == memory);
+				#if LANGULUS_FEATURE(MANAGED_MEMORY)
+					REQUIRE(text.GetRaw() == memory);
+				#endif
 				REQUIRE(text.HasAuthority());
 				REQUIRE(region.GetCount() == 10);
-				REQUIRE(region.GetRaw() == memory + 5);
+				REQUIRE(region.GetRaw() == text.GetRaw() + 5);
 			}
 		}
 
@@ -170,7 +178,7 @@ SCENARIO("Text manipulation", "[text]") {
 
 		WHEN("Texts are compared") {
 			THEN("The results should match") {
-				REQUIRE(text == "tests");
+				REQUIRE(text == "test1");
 				REQUIRE(text != "Tests");
 			}
 		}

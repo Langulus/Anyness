@@ -1,7 +1,6 @@
 #include "TestMain.hpp"
 #include <catch2/catch.hpp>
 
-///																									
 SCENARIO("Iterating containers", "[iteration]") {
 	GIVEN("Templated Any with some POD items") {
 		TAny<int> dense;
@@ -490,14 +489,12 @@ SCENARIO("Iterating containers", "[iteration]") {
 		REQUIRE(subpack3.GetReferences() == 2);
 
 		WHEN("Flat-iterated with the intent to remove specific subpacks") {
-			pack.ForEach(
-				[&](Any& subcontent) {
-					if (subcontent.Is<int>()) {
-						//subcontent.Reset();
-						pack.Remove(&subcontent);
-					}
+			pack.ForEach([&](Any& subcontent) {
+				if (subcontent.Is<int>()) {
+					//subcontent.Reset();
+					pack.Remove(&subcontent);
 				}
-			);
+			});
 
 			THEN("The resulting pack should be correct") {
 				Any resultingPack;

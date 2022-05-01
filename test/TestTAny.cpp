@@ -210,7 +210,7 @@ SCENARIO("TAny", "[containers]") {
 				REQUIRE(pack2.GetReferences() == 2);
 				REQUIRE(static_cast<Block&>(pack1) == static_cast<Block&>(pack2));
 				REQUIRE(static_cast<Block&>(pack2) == memory1);
-				REQUIRE(memory2.GetReferences() == 0);
+				REQUIRE_FALSE(Allocator::Find(memory2.GetType(), memory2.GetRaw()));
 			}
 		}
 
@@ -218,12 +218,12 @@ SCENARIO("TAny", "[containers]") {
 			pack2 = pack1;
 			pack1.Reset();
 			THEN("memory1 should be referenced once, memory2 should be released") {
-				REQUIRE(pack1.HasAuthority() == false);
+				REQUIRE_FALSE(pack1.HasAuthority());
 				REQUIRE(pack2.GetReferences() == 1);
-				REQUIRE(pack1.GetRaw() == nullptr);
+				REQUIRE_FALSE(pack1.GetRaw());
 				REQUIRE(pack1.GetReserved() == 0);
 				REQUIRE(static_cast<Block&>(pack2) == memory1);
-				REQUIRE(memory2.GetReferences() == 0);
+				REQUIRE_FALSE(Allocator::Find(memory2.GetType(), memory2.GetRaw()));
 			}
 		}
 
@@ -235,7 +235,7 @@ SCENARIO("TAny", "[containers]") {
 				REQUIRE(static_cast<Block&>(pack1) == static_cast<Block&>(pack2));
 				REQUIRE(static_cast<Block&>(pack2) == memory1);
 				REQUIRE(static_cast<Block&>(pack2) != memory2);
-				REQUIRE(memory2.GetReferences() == 0);
+				REQUIRE_FALSE(Allocator::Find(memory2.GetType(), memory2.GetRaw()));
 			}
 		}
 
@@ -244,12 +244,10 @@ SCENARIO("TAny", "[containers]") {
 			const auto memory3 = static_cast<Block>(pack2);
 			pack1.Reset();
 			THEN("memory1 should be referenced once, memory2 should be released") {
-				REQUIRE(pack1.HasAuthority() == false);
+				REQUIRE_FALSE(pack1.HasAuthority());
+				REQUIRE_FALSE(Allocator::Find(memory1.GetType(), memory1.GetRaw()));
+				REQUIRE_FALSE(Allocator::Find(memory2.GetType(), memory2.GetRaw()));
 				REQUIRE(pack2.GetReferences() == 1);
-				REQUIRE(static_cast<Block&>(pack2) == memory1);
-				REQUIRE(static_cast<Block&>(pack2) != memory2);
-				REQUIRE(memory1.HasAuthority() == false);
-				REQUIRE(memory2.HasAuthority() == false);
 				REQUIRE(memory3.GetReferences() == 1);
 			}
 		}

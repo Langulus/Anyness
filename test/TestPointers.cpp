@@ -59,8 +59,10 @@ SCENARIO("Shared pointer manipulation", "[TPointer]") {
 				REQUIRE(pointer == pointer2);
 				REQUIRE(*pointer == 6);
 				REQUIRE(*pointer2 == 6);
-				REQUIRE(Allocator::CheckAuthority(pointer.GetType(), backup));
-				REQUIRE_FALSE(Allocator::Find(pointer.GetType(), backup));
+				#if LANGULUS_FEATURE(MANAGED_MEMORY)
+					REQUIRE(Allocator::CheckAuthority(pointer.GetType(), backup));
+					REQUIRE_FALSE(Allocator::Find(pointer.GetType(), backup));
+				#endif
 				REQUIRE(pointer2.HasAuthority());
 				REQUIRE(pointer.HasAuthority());
 				REQUIRE(pointer.GetReferences() == 2);
@@ -68,45 +70,51 @@ SCENARIO("Shared pointer manipulation", "[TPointer]") {
 		}
 	}
 
-	GIVEN("A templated shared pointer filled with deep items") {
+	GIVEN("A templated shared pointer filled with items created via 'new' statement") {
 		Ptr<Any> pointer;
 
-		WHEN("Given an xvalue pointer") {
+		WHEN("Given an xvalue pointer created via `new` statement") {
 			auto raw = new Any {3};
 			const auto rawBackUp = raw;
 			pointer = Move(raw);
 
-			THEN("Should have exactly two references and jurisdiction") {
+			THEN("Should have exactly two references and jurisdiction, if NEWDELETE and MANAGED_MEMORY features are enabled") {
 				REQUIRE(pointer == rawBackUp);
 				REQUIRE(*pointer == *rawBackUp);
 				REQUIRE(raw == rawBackUp);
-				REQUIRE(pointer.HasAuthority());
-				REQUIRE(pointer.GetReferences() == 2);
+				#if LANGULUS_FEATURE(NEWDELETE)
+					REQUIRE(pointer.HasAuthority());
+					REQUIRE(pointer.GetReferences() == 2);
+				#endif
 			}
 		}
 
-		WHEN("Given an immediate xvalue pointer - a very bad practice!") {
+		WHEN("Given an immediate xvalue pointer created via `new` statement - a very bad practice!") {
 			pointer = new Any {3};
 
-			THEN("Should have exactly two references and jurisdiction") {
+			THEN("Should have exactly two references and jurisdiction, if NEWDELETE and MANAGED_MEMORY features are enabled") {
+			#if LANGULUS_FEATURE(NEWDELETE)
 				REQUIRE(pointer.HasAuthority());
 				REQUIRE(pointer.GetReferences() == 2);
+			#endif
 			}
 		}
 
-		WHEN("Given an xvalue pointer and then reset") {
-			auto raw = new Any {3};
-			pointer = Move(raw);
-			auto unused = Allocator::Free(pointer.GetType(), raw, 1);
-			pointer = nullptr;
+		#if LANGULUS_FEATURE(NEWDELETE)
+			WHEN("Given an xvalue pointer and then reset") {
+				auto raw = new Any {3};
+				pointer = Move(raw);
+				auto unused = Allocator::Free(pointer.GetType(), raw, 1);
+				pointer = nullptr;
 
-			THEN("Should have released the resources") {
-				REQUIRE_FALSE(raw->HasAuthority());
-				REQUIRE(Allocator::CheckAuthority(pointer.GetType(), raw));
-				REQUIRE_FALSE(Allocator::Find(pointer.GetType(), raw));
-				REQUIRE_FALSE(pointer.HasAuthority());
+				THEN("Should have released the resources") {
+					REQUIRE_FALSE(raw->HasAuthority());
+					REQUIRE(Allocator::CheckAuthority(pointer.GetType(), raw));
+					REQUIRE_FALSE(Allocator::Find(pointer.GetType(), raw));
+					REQUIRE_FALSE(pointer.HasAuthority());
+				}
 			}
-		}
+		#endif
 
 		WHEN("Given an lvalue pointer") {
 			const auto raw = new Any {4};
@@ -115,8 +123,10 @@ SCENARIO("Shared pointer manipulation", "[TPointer]") {
 			THEN("Should have exactly one reference and jurisdiction") {
 				REQUIRE(pointer == raw);
 				REQUIRE(*pointer == *raw);
-				REQUIRE(pointer.HasAuthority());
-				REQUIRE(pointer.GetReferences() == 2);
+				#if LANGULUS_FEATURE(NEWDELETE)
+					REQUIRE(pointer.HasAuthority());
+					REQUIRE(pointer.GetReferences() == 2);
+				#endif
 			}
 		}
 	}
