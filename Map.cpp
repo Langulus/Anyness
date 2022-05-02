@@ -6,18 +6,18 @@ namespace Langulus::Anyness
 
 	/// Copy construction																		
 	Map::Map(const Map& copy)
-		: Any {static_cast<const Any&>(copy)}
-		, mKeys {copy.mKeys} { }
+		: mKeys {copy.mKeys}
+		, mValues {copy.mValues} { }
 
 	/// Move construction																		
 	Map::Map(Map&& copy) noexcept
-		: Any {Forward<Any>(copy)}
-		, mKeys {Move(copy.mKeys)} { }
+		: mKeys {Forward<Any>(copy.mKeys)}
+		, mValues {Forward<Any>(copy.mValues)} { }
 
 	/// Manual construction of a constant container										
 	Map::Map(const Block& keys, const Block& values)
-		: Any {values}
-		, mKeys {keys} { }
+		: mKeys {keys}
+		, mValues {values} { }
 
 	/// Create a typed map container															
 	Map Map::From(DMeta keyType, DMeta valueType, const DataState& state) noexcept {
@@ -39,21 +39,21 @@ namespace Langulus::Anyness
 	/// Clone the map																				
 	Map Map::Clone() const {
 		Map clone;
-		static_cast<Any&>(clone) = Any::Clone();
 		clone.mKeys = mKeys.Clone();
+		clone.mValues = mValues.Clone();
 		return clone;
 	}
 
 	/// Deconstructs all elements but keeps reserved memory if possible			
 	void Map::Clear() {
-		Any::Clear();
 		mKeys.Clear();
+		mValues.Clear();
 	}
 
 	/// Deconstructs and releases reserved memory										
 	void Map::Reset() {
-		Any::Reset();
 		mKeys.Reset();
+		mValues.Reset();
 	}
 
 	/// Copy operator. Doesn't clone data, only references it						

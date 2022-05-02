@@ -85,7 +85,7 @@ namespace Langulus::Anyness
 		// Scan members																	
 		Count counter = 0;
 		for (auto& member : mType->mMembers) {
-			if (data && !member.mType->InterpretsAs<false>(data))
+			if (data && !member.mType->CastsTo(data))
 				continue;
 
 			// Matched, but check index first										

@@ -65,7 +65,7 @@ namespace Langulus::Anyness
 		Text& Remove(const Offset&, const Count&);
 		Text Extend(const Count&);
 
-		NOD() constexpr operator Token () const noexcept;
+		NOD() operator Token () const noexcept;
 
 		#if LANGULUS_FEATURE(UTFCPP)
 			NOD() TAny<char16_t> Widen16() const;

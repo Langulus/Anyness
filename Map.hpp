@@ -20,6 +20,7 @@ namespace Langulus::Anyness
 	struct TPair : public Inner::APair {
 		//TODO forbid containment, it's just an intermediate type
 		// use std::pair instead for that
+		// but why???
 		using Key = K;
 		using Value = V;
 		
@@ -38,10 +39,13 @@ namespace Langulus::Anyness
 	///																								
 	///	DATA CONTAINER SPECIALIZATION FOR KEY-VALUE PAIRS							
 	///																								
-	class Map : public Any {
-		LANGULUS(DEEP) false;
+	class Map {
+	protected:
+		Any mKeys;
+		Any mValues;
+
 	public:
-		Map() noexcept = default;
+		constexpr Map() noexcept = default;
 		
 		Map(const Map&);
 		Map(Map&&) noexcept;
@@ -54,10 +58,17 @@ namespace Langulus::Anyness
 		NOD() static Map From(DMeta, DMeta, const DataState& = {}) noexcept;
 
 		NOD() static Text GetMapToken(DMeta, DMeta);
-		NOD() const Any& Keys() const noexcept;
-		NOD() Any& Keys() noexcept;
-		NOD() const Any& Values() const noexcept;
-		NOD() Any& Values() noexcept;
+		NOD() const Any& GetKeys() const noexcept;
+		NOD() Any& GetKeys() noexcept;
+		NOD() const Any& GetValues() const noexcept;
+		NOD() Any& GetValues() noexcept;
+		NOD() constexpr const Count& GetCount() const noexcept;
+		NOD() constexpr bool IsEmpty() const noexcept;
+		NOD() constexpr Byte* GetRaw() noexcept;
+		NOD() constexpr const Byte* GetRaw() const noexcept;
+		NOD() constexpr Byte* GetRawEnd() noexcept;
+		NOD() constexpr const Byte* GetRawEnd() const noexcept;
+
 		NOD() Map Clone() const;
 
 		template<ReflectedData KEY, ReflectedData VALUE>
@@ -128,13 +139,10 @@ namespace Langulus::Anyness
 
 		template<class F>
 		Count ForEachPair(F&&);
-
 		template<class F>
 		Count ForEachPairRev(F&&);
-
 		template<class F>
 		Count ForEachPair(F&&) const;
-
 		template<class F>
 		Count ForEachPairRev(F&&) const;
 
@@ -151,9 +159,6 @@ namespace Langulus::Anyness
 		/// ForEach functions above, purely for convenience							
 		template<class R, class FUNCTION, ReflectedData ALT_KEY, ReflectedData ALT_VALUE>
 		TPair<ALT_KEY, ALT_VALUE> GetLambdaArguments(R(FUNCTION::*)(ALT_KEY, ALT_VALUE) const) const;
-
-	protected:
-		Any mKeys;
 	};
 
 } // namespace Langulus::Anyness

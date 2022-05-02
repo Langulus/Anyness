@@ -38,17 +38,6 @@ namespace Langulus::Anyness
 		Any(T&);
 
 		~Any();
-
-		/*Any& operator = (const Any&);
-		Any& operator = (Any&);
-		Any& operator = (Any&&);
-		
-		Any& operator = (const Block&);
-		Any& operator = (Block&);
-		Any& operator = (Block&&);
-
-		Any& operator = (Disowned<Any>&&);
-		Any& operator = (Abandoned<Any>&&) noexcept;*/
 		
 		template<class T>
 		Any& operator = (const T&);
@@ -63,14 +52,10 @@ namespace Langulus::Anyness
 		template<ReflectedData T>
 		NOD() static Any From(const DataState& = {}) noexcept;
 
-		template<ReflectedData... Args>
-		NOD() static Any Wrap(Args&&...);
-		template<ReflectedData... Args>
-		NOD() static Any WrapOne(Args&&...);
-		template<ReflectedData... Args>
-		NOD() static Any WrapOr(Args&&...);
-		template<ReflectedData... Args>
-		NOD() static Any WrapOneOr(Args&&...);
+		template<ReflectedData... LIST>
+		NOD() static Any Wrap(LIST&&...);
+		template<ReflectedData HEAD, ReflectedData... TAIL>
+		NOD() static Any WrapCommon(HEAD&&, TAIL&&...);
 
 		void Clear();
 		void Reset();
@@ -81,6 +66,22 @@ namespace Langulus::Anyness
 
 		NOD() Any Crop(const Offset&, const Count&) const;
 		NOD() Any Crop(const Offset&, const Count&);
+
+		template<ReflectedData T>
+		Any& operator << (T&);
+		template<ReflectedData T>
+		Any& operator << (T&&);
+	
+		template<ReflectedData T>
+		Any& operator >> (T&);
+		template<ReflectedData T>
+		Any& operator >> (T&&);
+
+		template<ReflectedData T>
+		Any& operator <<= (T&);
+
+		template<ReflectedData T>
+		Any& operator >>= (T&);
 
 	protected:
 		void ResetState();

@@ -91,7 +91,7 @@ namespace Langulus::Anyness
 
 	/// Interpret text container as a literal												
 	///	@attention the string is null-terminated only after Terminate()		
-	constexpr Text::operator Token() const noexcept {
+	inline Text::operator Token() const noexcept {
 		return {GetRaw(), mCount};
 	}
 

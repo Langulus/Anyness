@@ -261,53 +261,53 @@ namespace Langulus::Anyness
 		Count ForEachElement(TFunctor<void(const Block&)>&&) const;
 		Count ForEachElement(TFunctor<void(Block&)>&&);
 	
-		template<bool MUTABLE = true, class FUNCTION>
-		Count ForEach(FUNCTION&&);
-		template<class FUNCTION>
-		Count ForEach(FUNCTION&&) const;
+		template<bool MUTABLE = true, class F>
+		Count ForEach(F&&);
+		template<class F>
+		Count ForEach(F&&) const;
 	
-		template<bool MUTABLE = true, class FUNCTION>
-		Count ForEachRev(FUNCTION&&);
-		template<class FUNCTION>
-		Count ForEachRev(FUNCTION&&) const;
+		template<bool MUTABLE = true, class F>
+		Count ForEachRev(F&&);
+		template<class F>
+		Count ForEachRev(F&&) const;
 	
-		template<bool SKIP_DEEP_OR_EMPTY = true, bool MUTABLE = true, class FUNCTION>
-		Count ForEachDeep(FUNCTION&&);
-		template<bool SKIP_DEEP_OR_EMPTY = true, class FUNCTION>
-		Count ForEachDeep(FUNCTION&&) const;
+		template<bool SKIP = true, bool MUTABLE = true, class F>
+		Count ForEachDeep(F&&);
+		template<bool SKIP = true, class F>
+		Count ForEachDeep(F&&) const;
 	
-		template<bool SKIP_DEEP_OR_EMPTY = true, bool MUTABLE = true, class FUNCTION>
-		Count ForEachDeepRev(FUNCTION&&);
-		template<bool SKIP_DEEP_OR_EMPTY = true, class FUNCTION>
-		Count ForEachDeepRev(FUNCTION&&) const;
+		template<bool SKIP = true, bool MUTABLE = true, class F>
+		Count ForEachDeepRev(F&&);
+		template<bool SKIP = true, class F>
+		Count ForEachDeepRev(F&&) const;
 	
 	protected:
 		void CheckRange(const Offset& start, const Count& count) const;
 		
 	private:
-		template<class RETURN, ReflectedData ARGUMENT, bool REVERSE, bool MUTABLE = true>
-		Count ForEachInner(TFunctor<RETURN(ARGUMENT)>&&);
-		template<class RETURN, ReflectedData ARGUMENT, bool REVERSE>
-		Count ForEachInner(TFunctor<RETURN(ARGUMENT)>&&) const;
+		template<class R, ReflectedData A, bool REVERSE, bool MUTABLE = true>
+		Count ForEachInner(TFunctor<R(A)>&&);
+		template<class R, ReflectedData A, bool REVERSE>
+		Count ForEachInner(TFunctor<R(A)>&&) const;
 	
-		template<class RETURN, ReflectedData ARGUMENT, bool REVERSE, bool SKIP_DEEP_OR_EMPTY, bool MUTABLE = true>
-		Count ForEachDeepInner(TFunctor<RETURN(ARGUMENT)>&&);
-		template<class RETURN, ReflectedData ARGUMENT, bool REVERSE, bool SKIP_DEEP_OR_EMPTY>
-		Count ForEachDeepInner(TFunctor<RETURN(ARGUMENT)>&&) const;
+		template<class R, ReflectedData A, bool REVERSE, bool SKIP, bool MUTABLE = true>
+		Count ForEachDeepInner(TFunctor<R(A)>&&);
+		template<class R, ReflectedData A, bool REVERSE, bool SKIP>
+		Count ForEachDeepInner(TFunctor<R(A)>&&) const;
 	
 		/// This function declaration is used to decompose a lambda				
 		/// You can use it to extract the argument type of the lambda, using	
 		/// decltype on the return type. Useful for template deduction in		
 		/// the ForEach functions above, purely for convenience					
-		template<typename RETURN, typename FUNCTION, typename ARGUMENT>
-		ARGUMENT GetLambdaArgument(RETURN(FUNCTION::*)(ARGUMENT) const) const;
+		template<typename R, typename F, typename A>
+		A GetLambdaArgument(R(F::*)(A) const) const;
 	
 		NOD() Block CropInner(const Offset&, const Count&, const Count&) const noexcept;
 	
 	public:
 		NOD() bool Owns(const void*) const noexcept;
-		constexpr NOD() bool HasAuthority() const noexcept;
-		constexpr NOD() Count GetReferences() const noexcept;
+		NOD() constexpr bool HasAuthority() const noexcept;
+		NOD() constexpr Count GetReferences() const noexcept;
 		NOD() Block Crop(const Offset&, const Count&);
 		NOD() Block Crop(const Offset&, const Count&) const;
 	
@@ -325,9 +325,11 @@ namespace Langulus::Anyness
 		NOD() Block GetBaseMemory(const Base&) const;
 		NOD() Block GetBaseMemory(const Base&);
 	
-		template<ReflectedData T>
+		template<ReflectedData T, Anyness::IsDeep WRAPPER>
 		NOD() bool Mutate();
-	
+		template<Anyness::IsDeep WRAPPER>
+		NOD() bool Mutate(DMeta);
+
 		constexpr void MakeMissing() noexcept;
 		constexpr void MakeStatic() noexcept;
 		constexpr void MakeConstant() noexcept;
@@ -376,39 +378,23 @@ namespace Langulus::Anyness
 		template<ReflectedData T>
 		void Swap(Index, Index);
 	
-		template<ReflectedData T, bool MUTABLE = true>
+		template<ReflectedData T, bool MUTABLE = true, ReflectedData WRAPPER>
 		Count Emplace(T&&, const Index& = Index::Back);
 	
-		template<ReflectedData T, bool MUTABLE = true>
+		template<ReflectedData T, bool MUTABLE = true, ReflectedData WRAPPER>
 		Count Insert(T*, Count = 1, const Index& = Index::Back);
 		Count InsertBlock(const Block&, const Index& = Index::Back);
 		Count InsertBlock(Block&&, const Index& = Index::Back);
 	
-		template<bool ALLOW_CONCAT = true, bool ALLOW_DEEPEN = true, ReflectedData T = Any>
+		template<bool ALLOW_CONCAT = true, bool ALLOW_DEEPEN = true, ReflectedData T, Anyness::IsDeep WRAPPER = Any>
 		Count SmartPush(const T&, DataState = {}, Index = Index::Back);
 	
 		template<Anyness::IsDeep T, bool MOVE_STATE = true>
 		T& Deepen();
 	
-		template<ReflectedData T>
-		Block& operator << (T&);
-		template<ReflectedData T>
-		Block& operator << (T&&);
-	
-		template<ReflectedData T>
-		Block& operator >> (T&); 
-		template<ReflectedData T>
-		Block& operator >> (T&&);
-	
-		template<ReflectedData T, bool MUTABLE = true>
+		template<ReflectedData T, bool MUTABLE = true, ReflectedData WRAPPER>
 		Count Merge(const T*, Count = 1, const Index& = Index::Back);
 		Count MergeBlock(const Block&, const Index& = Index::Back);
-	
-		template<ReflectedData T>
-		Block& operator <<= (T&);
-	
-		template<ReflectedData T>
-		Block& operator >>= (T&);
 	
 		template<ReflectedData T>
 		Count Remove(const T*, Count = 1, const Index& = Index::Front);
@@ -440,13 +426,13 @@ namespace Langulus::Anyness
 		template<ReflectedData T>
 		NOD() bool CanFit() const;
 	
-		NOD() bool InterpretsAs(DMeta) const;
+		NOD() bool CastsToMeta(DMeta) const;
+		NOD() bool CastsToMeta(DMeta, Count) const;
+
 		template<ReflectedData T>
-		NOD() bool InterpretsAs() const;
-	
-		NOD() bool InterpretsAs(DMeta, Count) const;
+		NOD() bool CastsTo() const;
 		template<ReflectedData T>
-		NOD() bool InterpretsAs(Count) const;
+		NOD() bool CastsTo(Count) const;
 	
 		NOD() bool Is(DMeta) const noexcept;
 		template<ReflectedData T>
@@ -458,7 +444,6 @@ namespace Langulus::Anyness
 		void Reset();
 
 	protected:
-		NOD() bool Mutate(DMeta);		
 		static void CopyMemory(const void*, void*, const Size&) noexcept;
 		static void MoveMemory(const void*, void*, const Size&) noexcept;
 		static void FillMemory(void*, Byte, const Size&) noexcept;

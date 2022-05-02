@@ -142,7 +142,6 @@ SCENARIO("Byte manipulation", "[bytes]") {
 			THEN("Block manager should reuse the memory") {
 				REQUIRE(data.GetCount() == sizeof(int) * 6);
 				REQUIRE(data.GetReserved() >= sizeof(int) * 6);
-				REQUIRE(data.GetRaw() != memory);
 				REQUIRE(data.HasAuthority());
 				REQUIRE(data.Is<Byte>());
 			}

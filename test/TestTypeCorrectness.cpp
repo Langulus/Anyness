@@ -8,31 +8,31 @@ TEMPLATE_TEST_CASE("Unsigned integer RTTI interpretation", "[metadata]", uint8_t
 
 		WHEN("Interpreted as another type") {
 			THEN("Requirements should be met") {
-				REQUIRE(meta->InterpretsAs<ANumber>());
-				REQUIRE(meta->InterpretsAs<AInteger>());
-				REQUIRE(meta->InterpretsAs<AUnsigned>());
-				REQUIRE(meta->InterpretsAs<AUnsignedInteger>());
+				REQUIRE(RTTI::CastsTo<ANumber>(meta));
+				REQUIRE(RTTI::CastsTo<AInteger>(meta));
+				REQUIRE(RTTI::CastsTo<AUnsigned>(meta));
+				REQUIRE(RTTI::CastsTo<AUnsignedInteger>(meta));
 
-				REQUIRE_FALSE(meta->InterpretsAs<AReal>());
-				REQUIRE_FALSE(meta->InterpretsAs<ASigned>());
-				REQUIRE_FALSE(meta->InterpretsAs<ASignedInteger>());
+				REQUIRE_FALSE(RTTI::CastsTo<AReal>(meta));
+				REQUIRE_FALSE(RTTI::CastsTo<ASigned>(meta));
+				REQUIRE_FALSE(RTTI::CastsTo<ASignedInteger>(meta));
 
-				REQUIRE(meta->InterpretsAs<ANumber>(1));
-				REQUIRE(meta->InterpretsAs<AInteger>(1));
-				REQUIRE(meta->InterpretsAs<AUnsigned>(1));
-				REQUIRE(meta->InterpretsAs<AUnsignedInteger>(1));
+				REQUIRE(RTTI::CastsTo<ANumber>(meta, 1));
+				REQUIRE(RTTI::CastsTo<AInteger>(meta, 1));
+				REQUIRE(RTTI::CastsTo<AUnsigned>(meta, 1));
+				REQUIRE(RTTI::CastsTo<AUnsignedInteger>(meta, 1));
 
-				REQUIRE_FALSE(meta->InterpretsAs<AReal>(1));
-				REQUIRE_FALSE(meta->InterpretsAs<ASigned>(1));
-				REQUIRE_FALSE(meta->InterpretsAs<ASignedInteger>(1));
+				REQUIRE_FALSE(RTTI::CastsTo<AReal>(meta, 1));
+				REQUIRE_FALSE(RTTI::CastsTo<ASigned>(meta, 1));
+				REQUIRE_FALSE(RTTI::CastsTo<ASignedInteger>(meta, 1));
 
-				REQUIRE_FALSE(meta->InterpretsAs<ANumber>(2));
-				REQUIRE_FALSE(meta->InterpretsAs<AInteger>(2));
-				REQUIRE_FALSE(meta->InterpretsAs<AReal>(2));
-				REQUIRE_FALSE(meta->InterpretsAs<AUnsigned>(2));
-				REQUIRE_FALSE(meta->InterpretsAs<ASigned>(2));
-				REQUIRE_FALSE(meta->InterpretsAs<AUnsignedInteger>(2));
-				REQUIRE_FALSE(meta->InterpretsAs<ASignedInteger>(2));
+				REQUIRE_FALSE(RTTI::CastsTo<ANumber>(meta, 2));
+				REQUIRE_FALSE(RTTI::CastsTo<AInteger>(meta, 2));
+				REQUIRE_FALSE(RTTI::CastsTo<AReal>(meta, 2));
+				REQUIRE_FALSE(RTTI::CastsTo<AUnsigned>(meta, 2));
+				REQUIRE_FALSE(RTTI::CastsTo<ASigned>(meta, 2));
+				REQUIRE_FALSE(RTTI::CastsTo<AUnsignedInteger>(meta, 2));
+				REQUIRE_FALSE(RTTI::CastsTo<ASignedInteger>(meta, 2));
 			}
 		}
 	}
@@ -45,31 +45,31 @@ TEMPLATE_TEST_CASE("Signed integer RTTI interpretation", "[metadata]", int8_t, i
 
 		WHEN("Interpreted as another type") {
 			THEN("Requirements should be met") {
-				REQUIRE(meta->InterpretsAs<ANumber>());
-				REQUIRE(meta->InterpretsAs<AInteger>());
-				REQUIRE(meta->InterpretsAs<ASigned>());
-				REQUIRE(meta->InterpretsAs<ASignedInteger>());
+				REQUIRE(RTTI::CastsTo<ANumber>(meta));
+				REQUIRE(RTTI::CastsTo<AInteger>(meta));
+				REQUIRE(RTTI::CastsTo<ASigned>(meta));
+				REQUIRE(RTTI::CastsTo<ASignedInteger>(meta));
 
-				REQUIRE_FALSE(meta->InterpretsAs<AReal>());
-				REQUIRE_FALSE(meta->InterpretsAs<AUnsigned>());
-				REQUIRE_FALSE(meta->InterpretsAs<AUnsignedInteger>());
+				REQUIRE_FALSE(RTTI::CastsTo<AReal>(meta));
+				REQUIRE_FALSE(RTTI::CastsTo<AUnsigned>(meta));
+				REQUIRE_FALSE(RTTI::CastsTo<AUnsignedInteger>(meta));
 
-				REQUIRE(meta->InterpretsAs<ANumber>(1));
-				REQUIRE(meta->InterpretsAs<AInteger>(1));
-				REQUIRE(meta->InterpretsAs<ASigned>(1));
-				REQUIRE(meta->InterpretsAs<ASignedInteger>(1));
+				REQUIRE(RTTI::CastsTo<ANumber>(meta, 1));
+				REQUIRE(RTTI::CastsTo<AInteger>(meta, 1));
+				REQUIRE(RTTI::CastsTo<ASigned>(meta, 1));
+				REQUIRE(RTTI::CastsTo<ASignedInteger>(meta, 1));
 
-				REQUIRE_FALSE(meta->InterpretsAs<AReal>(1));
-				REQUIRE_FALSE(meta->InterpretsAs<AUnsigned>(1));
-				REQUIRE_FALSE(meta->InterpretsAs<AUnsignedInteger>(1));
+				REQUIRE_FALSE(RTTI::CastsTo<AReal>(meta, 1));
+				REQUIRE_FALSE(RTTI::CastsTo<AUnsigned>(meta, 1));
+				REQUIRE_FALSE(RTTI::CastsTo<AUnsignedInteger>(meta, 1));
 
-				REQUIRE_FALSE(meta->InterpretsAs<ANumber>(2));
-				REQUIRE_FALSE(meta->InterpretsAs<AInteger>(2));
-				REQUIRE_FALSE(meta->InterpretsAs<AReal>(2));
-				REQUIRE_FALSE(meta->InterpretsAs<AUnsigned>(2));
-				REQUIRE_FALSE(meta->InterpretsAs<ASigned>(2));
-				REQUIRE_FALSE(meta->InterpretsAs<AUnsignedInteger>(2));
-				REQUIRE_FALSE(meta->InterpretsAs<ASignedInteger>(2));
+				REQUIRE_FALSE(RTTI::CastsTo<ANumber>(meta, 2));
+				REQUIRE_FALSE(RTTI::CastsTo<AInteger>(meta, 2));
+				REQUIRE_FALSE(RTTI::CastsTo<AReal>(meta, 2));
+				REQUIRE_FALSE(RTTI::CastsTo<AUnsigned>(meta, 2));
+				REQUIRE_FALSE(RTTI::CastsTo<ASigned>(meta, 2));
+				REQUIRE_FALSE(RTTI::CastsTo<AUnsignedInteger>(meta, 2));
+				REQUIRE_FALSE(RTTI::CastsTo<ASignedInteger>(meta, 2));
 			}
 		}
 	}
@@ -82,31 +82,31 @@ TEMPLATE_TEST_CASE("Real number RTTI interpretation", "[metadata]", float, doubl
 
 		WHEN("Interpreted as another type") {
 			THEN("Requirements should be met") {
-				REQUIRE(meta->InterpretsAs<ANumber>());
-				REQUIRE(meta->InterpretsAs<AReal>());
-				REQUIRE(meta->InterpretsAs<ASigned>());
+				REQUIRE(RTTI::CastsTo<ANumber>(meta));
+				REQUIRE(RTTI::CastsTo<AReal>(meta));
+				REQUIRE(RTTI::CastsTo<ASigned>(meta));
 
-				REQUIRE_FALSE(meta->InterpretsAs<AInteger>());
-				REQUIRE_FALSE(meta->InterpretsAs<AUnsigned>());
-				REQUIRE_FALSE(meta->InterpretsAs<AUnsignedInteger>());
-				REQUIRE_FALSE(meta->InterpretsAs<ASignedInteger>());
+				REQUIRE_FALSE(RTTI::CastsTo<AInteger>(meta));
+				REQUIRE_FALSE(RTTI::CastsTo<AUnsigned>(meta));
+				REQUIRE_FALSE(RTTI::CastsTo<AUnsignedInteger>(meta));
+				REQUIRE_FALSE(RTTI::CastsTo<ASignedInteger>(meta));
 
-				REQUIRE(meta->InterpretsAs<ANumber>(1));
-				REQUIRE(meta->InterpretsAs<AReal>(1));
-				REQUIRE(meta->InterpretsAs<ASigned>(1));
+				REQUIRE(RTTI::CastsTo<ANumber>(meta, 1));
+				REQUIRE(RTTI::CastsTo<AReal>(meta, 1));
+				REQUIRE(RTTI::CastsTo<ASigned>(meta, 1));
 
-				REQUIRE_FALSE(meta->InterpretsAs<AInteger>(1));
-				REQUIRE_FALSE(meta->InterpretsAs<AUnsigned>(1));
-				REQUIRE_FALSE(meta->InterpretsAs<AUnsignedInteger>(1));
-				REQUIRE_FALSE(meta->InterpretsAs<ASignedInteger>(1));
+				REQUIRE_FALSE(RTTI::CastsTo<AInteger>(meta, 1));
+				REQUIRE_FALSE(RTTI::CastsTo<AUnsigned>(meta, 1));
+				REQUIRE_FALSE(RTTI::CastsTo<AUnsignedInteger>(meta, 1));
+				REQUIRE_FALSE(RTTI::CastsTo<ASignedInteger>(meta, 1));
 
-				REQUIRE_FALSE(meta->InterpretsAs<ANumber>(2));
-				REQUIRE_FALSE(meta->InterpretsAs<AInteger>(2));
-				REQUIRE_FALSE(meta->InterpretsAs<AReal>(2));
-				REQUIRE_FALSE(meta->InterpretsAs<AUnsigned>(2));
-				REQUIRE_FALSE(meta->InterpretsAs<ASigned>(2));
-				REQUIRE_FALSE(meta->InterpretsAs<AUnsignedInteger>(2));
-				REQUIRE_FALSE(meta->InterpretsAs<ASignedInteger>(2));
+				REQUIRE_FALSE(RTTI::CastsTo<ANumber>(meta, 2));
+				REQUIRE_FALSE(RTTI::CastsTo<AInteger>(meta, 2));
+				REQUIRE_FALSE(RTTI::CastsTo<AReal>(meta, 2));
+				REQUIRE_FALSE(RTTI::CastsTo<AUnsigned>(meta, 2));
+				REQUIRE_FALSE(RTTI::CastsTo<ASigned>(meta, 2));
+				REQUIRE_FALSE(RTTI::CastsTo<AUnsignedInteger>(meta, 2));
+				REQUIRE_FALSE(RTTI::CastsTo<ASignedInteger>(meta, 2));
 			}
 		}
 	}

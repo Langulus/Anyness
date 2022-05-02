@@ -88,8 +88,8 @@ namespace Langulus::Anyness::Inner
       /// necessarily critical, since all we need is actually a hash of an    
       /// unique name regardless of its actual name contents                  
       #if defined(__clang__)
-         constexpr Token Prefix = u8"std::basic_string_view<char8_t> Langulus::Anyness::Inner::TypeAsTemplateArgument() [T = ";
-         constexpr Token Suffix = u8"]"
+         constexpr Token Prefix = u8"Langulus::Token Langulus::Anyness::Inner::TypeAsTemplateArgument() [T = ";
+         constexpr Token Suffix = u8"]";
       #elif defined(__GNUC__) && !defined(__clang__)
          constexpr Token Prefix = u8"constexpr std::basic_string_view<char8_t> Langulus::Anyness::Inner::TypeAsTemplateArgument() [with T = ";
          constexpr Token Suffix = u8"]";

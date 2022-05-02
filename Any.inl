@@ -73,7 +73,7 @@ namespace Langulus::Anyness
 	template <IsCustom T>
 	Any::Any(T&& other) {
 		SetType<T, false>();
-		Emplace<T, false>(Forward<T>(other));
+		Emplace<T, false, Any>(Forward<T>(other));
 	}
 
 	/// Construct by copying/referencing value of non-block type					
@@ -81,7 +81,7 @@ namespace Langulus::Anyness
 	template <IsCustom T>
 	Any::Any(T& other) {
 		SetType<T, false>();
-		Insert<T, false>(&other, 1);
+		Insert<T, false, Any>(&other, 1);
 	}
 
 	/// Create an empty Any from a dynamic type and state								
@@ -111,58 +111,40 @@ namespace Langulus::Anyness
 	/// Pack any number of elements sequentially											
 	///	@param elements - sequential elements											
 	///	@returns the pack containing the data											
-	template<ReflectedData... Args>
-	Any Any::Wrap(Args&&... elements) {
-		if constexpr (sizeof...(Args) == 0)
+	template<ReflectedData... LIST>
+	Any Any::Wrap(LIST&&... elements) {
+		if constexpr (sizeof...(LIST) == 0)
 			return {};
 		else {
 			Any result;
-			Any wrapped[] {Any{Forward<Args>(elements)}...};
-			result.Allocate<Any>(sizeof...(Args));
+			Any wrapped[] {Any{Forward<LIST>(elements)}...};
+			result.Allocate(sizeof...(LIST));
+			result.SetType<Any>();
 			for (auto& it : wrapped)
-				result.Emplace<Any>(Move(it));
+				result.Emplace<Any, false>(Move(it));
 			return result;
 		}
 	}
 
-	/// Pack any number of elements sequentially											
+	/// Pack any number of same-type elements sequentially							
 	///	@param elements - sequential elements											
 	///	@returns the pack containing the data											
-	template<ReflectedData... Args>
-	Any Any::WrapOne(Args&&... elements) {
-		if constexpr (sizeof...(Args) == 0)
+	template<ReflectedData HEAD, ReflectedData... TAIL>
+	Any Any::WrapCommon(HEAD&& head, TAIL&&... tail) {
+		if constexpr (sizeof...(TAIL) == 0)
 			return {};
 		else {
-			auto wrapped[] {Forward<Args>(elements)...};
-			Any result {Any::From<Decay<decltype(wrapped)>>()};
+			HEAD wrapped[] {Forward<HEAD>(head), Forward<TAIL>(tail)...};
+			Any result {Any::From<HEAD>()};
 			for (auto& it : wrapped)
-				result.Emplace<Decay<decltype(wrapped)>>(Move(it));
+				result.Emplace<HEAD>(Move(it));
 			return result;
 		}
-	}
-
-	/// Pack any number of elements sequentially	in an OR container				
-	///	@param elements - sequential elements											
-	///	@returns the pack containing the data											
-	template<ReflectedData... Args>
-	Any Any::WrapOr(Args&&... elements) {
-		Any result {Wrap(Forward<Args>(elements)...)};
-		result.MakeOr();
-		return result;
-	}
-
-	/// Pack any number of elements sequentially in an OR container				
-	///	@param elements - sequential elements											
-	///	@returns the pack containing the data											
-	template<ReflectedData... Args>
-	Any Any::WrapOneOr(Args&&... elements) {
-		Any result {WrapOne(Forward<Args>(elements)...)};
-		result.MakeOr();
-		return result;
 	}
 
 	/// Assign by shallow-copying something constant									
 	///	@param value - the value to copy													
+	///	@return a reference to this container											
 	template<class T>
 	Any& Any::operator = (const T& other) {
 		operator = (const_cast<T&>(other));
@@ -171,11 +153,12 @@ namespace Langulus::Anyness
 	}
 
 	/// Assign by shallow-copying something mutable										
-	///	@param value - the value to copy													
+	///	@param other - the value to copy													
+	///	@return a reference to this container											
 	template<class T>
 	Any& Any::operator = (T& other) {
 		if constexpr (IsSame<T, Any>) {
-			if (IsTypeConstrained() && !InterpretsAs(other.mType)) {
+			if (IsTypeConstrained() && !CastsToMeta(other.mType)) {
 				throw Except::Copy(Logger::Error()
 					<< "Bad shallow-copy-assignment for Any: from "
 					<< GetToken() << " to " << other.GetToken());
@@ -191,24 +174,25 @@ namespace Langulus::Anyness
 		}
 		else {
 			const auto meta = MetaData::Of<Decay<T>>();
-			if (IsTypeConstrained() && !InterpretsAs(meta)) {
+			if (IsTypeConstrained() && !CastsToMeta(meta)) {
 				throw Except::Copy(Logger::Error()
 					<< "Bad shallow-copy-assignment for Any: from "
 					<< GetToken() << " to " << meta->mToken);
 			}
 	
 			Reset();
-			Block::operator << <T>(other);
+			operator << <T>(other);
 			return *this;
 		}
 	}
 
 	/// Assign by moving something															
 	///	@param value - the value to move													
+	///	@return a reference to this container											
 	template<class T>
 	Any& Any::operator = (T&& other) {
 		if constexpr (IsSame<T, Any>) {
-			if (IsTypeConstrained() && !InterpretsAs(other.mType)) {
+			if (IsTypeConstrained() && !CastsToMeta(other.mType)) {
 				throw Except::Copy(Logger::Error()
 					<< "Bad shallow-copy-assignment for Any: from "
 					<< GetToken() << " to " << other.GetToken());
@@ -223,16 +207,82 @@ namespace Langulus::Anyness
 		}
 		else {
 			const auto meta = MetaData::Of<Decay<T>>();
-			if (IsTypeConstrained() && !InterpretsAs(meta)) {
+			if (IsTypeConstrained() && !CastsToMeta(meta)) {
 				throw Except::Copy(Logger::Error()
 					<< "Bad shallow-copy-assignment for Any: from "
 					<< GetToken() << " to " << meta->mToken);
 			}
 	
 			Reset();
-			Block::operator << <T>(Forward<T>(other));
+			operator << <T>(Forward<T>(other));
 			return *this;
 		}
+	}
+	
+	/// Insert any data (including arrays) at the back									
+	///	@param other - the data to insert												
+	///	@return a reference to this memory block for chaining						
+	template<ReflectedData T>
+	Any& Any::operator << (T& other) {
+		if constexpr (IsArray<T>)
+			Insert<Decay<T>, true, Any>(other, ExtentOf<T>, Index::Back);
+		else
+			Insert<T, true, Any>(&other, 1, Index::Back);
+		return *this;
+	}
+
+	/// Emplace any data at the back															
+	///	@param other - the data to insert												
+	///	@return a reference to this memory block for chaining						
+	template<ReflectedData T>
+	Any& Any::operator << (T&& other) {
+		Emplace<T, true, Any>(Forward<T>(other), Index::Back);
+		return *this;
+	}
+
+	/// Insert any data (including arrays) at the front								
+	///	@param other - the data to insert												
+	///	@return a reference to this memory block for chaining						
+	template<ReflectedData T>
+	Any& Any::operator >> (T& other) {
+		if constexpr (IsArray<T>)
+			Insert<Decay<T>, true, Any>(other, ExtentOf<T>, Index::Front);
+		else
+			Insert<T, true, Any>(&other, 1, Index::Front);
+		return *this;
+	}
+
+	/// Emplace any data at the front														
+	///	@param other - the data to insert												
+	///	@return a reference to this memory block for chaining						
+	template<ReflectedData T>
+	Any& Any::operator >> (T&& other) {
+		Emplace<T, true, Any>(Forward<T>(other), Index::Front);
+		return *this;
+	}
+
+	/// Merge data (including arrays) at the back										
+	///	@param other - the data to insert												
+	///	@return a reference to this memory block for chaining						
+	template<ReflectedData T>
+	Any& Any::operator <<= (T& other) {
+		if constexpr (IsArray<T>)
+			Merge<Decay<T>, true, Any>(other, ExtentOf<T>, Index::Back);
+		else
+			Merge<T, true, Any>(&other, 1, Index::Back);
+		return *this;
+	}
+
+	/// Merge data at the front																
+	///	@param other - the data to insert												
+	///	@return a reference to this memory block for chaining						
+	template<ReflectedData T>
+	Any& Any::operator >>= (T& other) {
+		if constexpr (IsArray<T>)
+			Merge<Decay<T>, true, Any>(other, ExtentOf<T>, Index::Front);
+		else
+			Merge<T, true, Any>(&other, 1, Index::Front);
+		return *this;
 	}
 
 } // namespace Langulus::Anyness

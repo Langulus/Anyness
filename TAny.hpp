@@ -151,7 +151,7 @@ namespace Langulus::Anyness
 		NOD() WRAPPER operator + (const RHS&) const;
 
 		/// Concatenate anything with this container										
-		template<class WRAPPER = TAny, class LHS>
+		template<class LHS, class WRAPPER = TAny>
 		NOD() friend WRAPPER operator + (const LHS& lhs, const TAny<T>& rhs) requires (!Inherits<LHS, TAny<T>>) {
 			if constexpr (Langulus::IsSparse<LHS>)
 				return operator + (*lhs, rhs);

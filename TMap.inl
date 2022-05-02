@@ -147,7 +147,7 @@ namespace Langulus::Anyness
 	TEMPLATE()
 	template<ReflectedData ALT_K>
 	decltype(auto) MAP()::GetKey(const Index& i) const {
-		return Keys().Get<ALT_K>(Keys().ConstrainMore<K>(i).GetOffset());
+		return Keys().template Get<ALT_K>(Keys().template ConstrainMore<K>(i).GetOffset());
 	}
 
 	/// Get the key by special index															
@@ -156,7 +156,7 @@ namespace Langulus::Anyness
 	TEMPLATE()
 	template<ReflectedData ALT_K>
 	decltype(auto) MAP()::GetKey(const Index& i) {
-		return Keys().Get<ALT_K>(Keys().ConstrainMore<K>(i).GetOffset());
+		return Keys().template Get<ALT_K>(Keys().template ConstrainMore<K>(i).GetOffset());
 	}
 
 	/// Get a key by simple index (const)													
@@ -165,7 +165,7 @@ namespace Langulus::Anyness
 	TEMPLATE()
 	template<ReflectedData ALT_K>
 	decltype(auto) MAP()::GetKey(const Offset& i) const noexcept {
-		return Keys().Get<ALT_K>(i);
+		return Keys().template Get<ALT_K>(i);
 	}
 
 	/// Get a key by simple index																
@@ -174,7 +174,7 @@ namespace Langulus::Anyness
 	TEMPLATE()
 	template<ReflectedData ALT_K>
 	decltype(auto) MAP()::GetKey(const Offset& i) noexcept {
-		return Keys().Get<ALT_K>(i);
+		return Keys().template Get<ALT_K>(i);
 	}
 
 	/// Get the value by special index (const)											
@@ -183,7 +183,7 @@ namespace Langulus::Anyness
 	TEMPLATE()
 	template<ReflectedData ALT_V>
 	decltype(auto) MAP()::GetValue(const Index& i) const {
-		return Values().Get<ALT_V>(Values().ConstrainMore<V>(i).GetOffset());
+		return Values().template Get<ALT_V>(Values().template ConstrainMore<V>(i).GetOffset());
 	}
 
 	/// Get the value by special index														
@@ -192,7 +192,7 @@ namespace Langulus::Anyness
 	TEMPLATE()
 	template<ReflectedData ALT_V>
 	decltype(auto) MAP()::GetValue(const Index& i) {
-		return Values().Get<ALT_V>(Values().ConstrainMore<V>(i).GetOffset());
+		return Values().template Get<ALT_V>(Values().template ConstrainMore<V>(i).GetOffset());
 	}
 
 	/// Get a value by simple index (const)												
@@ -201,7 +201,7 @@ namespace Langulus::Anyness
 	TEMPLATE()
 	template<ReflectedData ALT_V>
 	decltype(auto) MAP()::GetValue(const Offset& i) const noexcept {
-		return Values().Get<ALT_V>(i);
+		return Values().template Get<ALT_V>(i);
 	}
 
 	/// Get a value by simple index															
@@ -210,7 +210,7 @@ namespace Langulus::Anyness
 	TEMPLATE()
 	template<ReflectedData ALT_V>
 	decltype(auto) MAP()::GetValue(const Offset& i) noexcept {
-		return Values().Get<ALT_V>(i);
+		return Values().template Get<ALT_V>(i);
 	}
 
 	/// Remove matching pairs by key															

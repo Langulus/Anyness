@@ -50,7 +50,7 @@ namespace Langulus::Anyness
 			return true;
 		}
 
-		if (!InterpretsAs(right.mType)) {
+		if (!CastsToMeta(right.mType)) {
 			// Data is not similar at all, because either types or states	
 			// are incompatible															
 			VERBOSE(ccRed << "Data types are not compatible: "

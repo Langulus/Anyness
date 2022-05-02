@@ -293,7 +293,7 @@ namespace Langulus::Anyness
 	///	@return the constant equivalent to this pointer								
 	TEMPLATE_SHARED()
 	TPointer<T, DR>::operator TPointer<const T, DR>() const noexcept requires IsMutable<T> {
-		return TPointer<const T, DR> {TOwned::mValue};
+		return {Base::mValue};
 	}
 
 	/// Compare pointers for equality														

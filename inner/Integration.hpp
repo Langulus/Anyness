@@ -316,7 +316,7 @@
 		/// CTTI module is available - use it												
 		#include <Langulus.CTTI.hpp>
 	#else
-		#error Langulus integration doesn't provide neither RTTI, nor CTTI
+		#error "Langulus integration doesn't provide neither RTTI, nor CTTI"
 	#endif
 
 #endif

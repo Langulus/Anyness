@@ -3,6 +3,7 @@
 #include "NameOf.hpp"
 #include "Utilities.hpp"
 #include "Exceptions.hpp"
+#include <memory>
 
 namespace Langulus::Anyness
 {
@@ -135,7 +136,7 @@ namespace Langulus::Anyness
 	/// Get the constexpr hash of a type													
 	///	@return the hash of the type														
 	template<ReflectedData T>
-	constexpr Hash Meta::Hash() noexcept {
+	constexpr Hash Meta::GetHash() noexcept {
 		const auto name = Inner::NameOf<T>();
 		return ::std::hash<::std::u8string_view>()(name);
 	}
@@ -143,7 +144,7 @@ namespace Langulus::Anyness
 	/// Get the constexpr name of a type													
 	///	@return the hash of the type														
 	template<ReflectedData T>
-	constexpr Token Meta::Name() noexcept {
+	constexpr Token Meta::GetName() noexcept {
 		return Inner::NameOf<T>();
 	}
    
@@ -192,10 +193,10 @@ namespace Langulus::Anyness
 		else {
 			// Type is implicitly reflected, so let's do our best				
 			meta = ::std::make_unique<MetaData>();
-			meta->mToken = Meta::Name<T>();
+			meta->mToken = Meta::GetName<T>();
 			meta->mInfo = u8"<no info provided due to implicit reflection>";
-			meta->mName = Meta::Name<T>();
-			meta->mHash = Meta::Hash<T>();
+			meta->mName = Meta::GetName<T>();
+			meta->mHash = Meta::GetHash<T>();
 			meta->mIsAbstract = IsAbstract<T>;
 			meta->mIsNullifiable = IsNullifiable<T>;
 			meta->mSize = IsAbstract<T> ? 0 : sizeof(T);
@@ -204,7 +205,7 @@ namespace Langulus::Anyness
 			meta->mIsDeep = IsDeep<T>;
 			
 			if constexpr (IsConcretizable<T>)
-				meta->mConcrete = MetaData::Of<Decay<T::CTTI_Concrete>>();
+				meta->mConcrete = MetaData::Of<Decay<typename T::CTTI_Concrete>>();
 
 			// Wrap the default constructor of the type inside a lambda		
 			if constexpr (IsDefaultConstructible<T>) {
@@ -495,7 +496,7 @@ namespace Langulus::Anyness
 	///	@param other - the type to try interpreting as								
 	///	@return true if this type interprets as other								
 	template<bool ADVANCED>
-	bool MetaData::InterpretsAs(DMeta other) const {
+	bool MetaData::CastsTo(DMeta other) const {
 		if (Is(other))
 			return true;
 
@@ -518,8 +519,8 @@ namespace Langulus::Anyness
 	///	@tparam T - the type to try interpreting as									
 	///	@return true if this type interprets as other								
 	template<ReflectedData T, bool ADVANCED>
-	bool MetaData::InterpretsAs() const {
-		return InterpretsAs<ADVANCED>(MetaData::Of<Decay<T>>());
+	bool MetaData::CastsTo() const {
+		return CastsTo<ADVANCED>(MetaData::Of<Decay<T>>());
 	}
 
 	/// Check if this type interprets as an exact number of another without		
@@ -527,7 +528,7 @@ namespace Langulus::Anyness
 	///	@param other - the type to try interpreting as								
 	///	@param count - the number of items to interpret as							
 	///	@return true if this type interprets as other								
-	inline bool MetaData::InterpretsAs(DMeta other, Count count) const {
+	inline bool MetaData::CastsTo(DMeta other, Count count) const {
 		if (Is(other) && count == 1)
 			return true;
 
@@ -557,8 +558,8 @@ namespace Langulus::Anyness
 	///	@tparam T - the type to try interpreting as									
 	///	@return true if this type interprets as other								
 	template<ReflectedData T>
-	bool MetaData::InterpretsAs(Count count) const {
-		return InterpretsAs(MetaData::Of<T>(), count);
+	bool MetaData::CastsTo(Count count) const {
+		return CastsTo(MetaData::Of<T>(), count);
 	}
 
 	/// Check if this type is either same, base or a derivation of other			
@@ -696,3 +697,16 @@ namespace Langulus::Anyness
 	
 } // namespace Langulus::Anyness
 
+
+namespace Langulus::RTTI
+{
+	template<Anyness::ReflectedData T, bool ADVANCED>
+	bool CastsTo(Anyness::DMeta from) {
+		return from->template CastsTo<T, ADVANCED>();
+	}
+
+	template<Anyness::ReflectedData T>
+	bool CastsTo(Anyness::DMeta from, Count count) {
+		return from->template CastsTo<T>(count);
+	}
+} // namespace Langulus::RTTI

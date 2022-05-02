@@ -32,7 +32,7 @@ namespace Langulus
       struct name : public Exception { \
          using Exception::Exception; \
          Token GetName() const noexcept override { \
-            return u8#name; \
+            return reinterpret_cast<const char8_t*>(#name); \
          } \
       }; \
    }

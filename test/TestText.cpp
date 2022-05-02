@@ -170,7 +170,6 @@ SCENARIO("Text manipulation", "[text]") {
 			THEN("Block manager should reuse the memory") {
 				REQUIRE(text.GetCount() == 5);
 				REQUIRE(text.GetReserved() >= 5);
-				REQUIRE(text.GetRaw() != memory);
 				REQUIRE(text.HasAuthority());
 				REQUIRE(text.Is<char8_t>());
 			}

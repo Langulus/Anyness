@@ -118,13 +118,13 @@ namespace Langulus::Anyness
 	///	@param other - the block to copy													
 	TEMPLATE()
 	TAny<T>::TAny(const Disowned<TAny>& other) noexcept
-		: Any {other.Forward<Any>()} { }	
+		: Any {other.template Forward<Any>()} { }	
 	
 	/// Move other, but do not bother cleaning it up, because it is disowned	
 	///	@param other - the block to move													
 	TEMPLATE()
 	TAny<T>::TAny(Abandoned<TAny>&& other) noexcept
-		: Any {other.Forward<Any>()} { }	
+		: Any {other.template Forward<Any>()} { }
 	
 	/// Construct by moving a dense value of non-block type							
 	///	@param initial - the dense value to forward and emplace					
@@ -285,7 +285,7 @@ namespace Langulus::Anyness
 	///	@return true if able to interpret current type to 'type'					
 	TEMPLATE()
 	bool TAny<T>::InterpretsAs(DMeta type) const {
-		return mType->InterpretsAs<Langulus::IsSparse<T>>(type);
+		return mType->CastsTo<Langulus::IsSparse<T>>(type);
 	}
 
 	/// Check if contained data can be interpreted as a given count of type		
@@ -296,7 +296,7 @@ namespace Langulus::Anyness
 	///	@return true if able to interpret current type to 'type'					
 	TEMPLATE()
 	bool TAny<T>::InterpretsAs(DMeta type, Count count) const {
-		return mType->InterpretsAs(type, count);
+		return mType->CastsTo(type, count);
 	}
 
 	/// Wrap stuff in a container																
@@ -387,7 +387,8 @@ namespace Langulus::Anyness
 		result.mCount = mCount;
 		auto from = GetRaw();
 		auto to = result.GetRaw();
-		
+		using Type = Decay<T>;
+
 		if constexpr (Langulus::IsSparse<T>) {
 			// Clone data behind each valid pointer								
 			for (Offset i = 0; i < mCount; ++i) {
@@ -397,11 +398,11 @@ namespace Langulus::Anyness
 					continue;
 				}
 				
-				auto entry = Allocator::Allocate(mType, 1);
+				auto entry = Allocator::Allocate(sizeof(Type));
 				if constexpr (IsClonable<T>)
-					new (entry->GetBlockStart()) Decay<T> {(*from)->Clone()};
+					new (entry->GetBlockStart()) Type {(*from)->Clone()};
 				else if constexpr (IsPOD<T>)
-					CopyMemory(**from, entry->GetBlockStart(), sizeof(Decay<T>));
+					CopyMemory(**from, entry->GetBlockStart(), sizeof(Type));
 				else
 					LANGULUS_ASSERT("Can't clone a container made of non-clonable/non-POD type");
 				
@@ -413,9 +414,9 @@ namespace Langulus::Anyness
 			// Clone dense elements														
 			for (Offset i = 0; i < mCount; ++i) {
 				if constexpr (IsClonable<T>)
-					new (to) Decay<T> {from->Clone()};
+					new (to) Type {from->Clone()};
 				else if constexpr (IsPOD<T>)
-					CopyMemory(from, to, sizeof(Decay<T>));
+					CopyMemory(from, to, sizeof(Type));
 				else
 					LANGULUS_ASSERT("Can't clone a container made of non-clonable/non-POD type");
 				
@@ -598,7 +599,7 @@ namespace Langulus::Anyness
 	///	@return 1 if successful																
 	TEMPLATE()
 	Count TAny<T>::Emplace(T&& item, const Index& idx) {
-		return Any::Emplace<T, false>(Forward<T>(item), idx);
+		return Any::Emplace<T, false, TAny>(Forward<T>(item), idx);
 	}
 
 	/// Insert by copy-construction															
@@ -608,7 +609,7 @@ namespace Langulus::Anyness
 	///	@return number of inserted items													
 	TEMPLATE()
 	Count TAny<T>::Insert(T* items, const Count count, const Index& idx) {
-		return Any::Insert<T, false>(items, count, idx);
+		return Any::Insert<T, false, TAny>(items, count, idx);
 	}
 
 	/// Push data at the back by copy-construction										
@@ -616,7 +617,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this container for chaining							
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator << (const T& other) {
-		Any::Insert<T, false>(&other, 1, Index::Back);
+		Any::Insert<T, false, TAny>(&other, 1, Index::Back);
 		return *this;
 	}
 
@@ -625,7 +626,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this container for chaining							
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator << (T&& other) {
-		Any::Emplace<T, false>(Forward<T>(other), Index::Back);
+		Any::Emplace<T, false, TAny>(Forward<T>(other), Index::Back);
 		return *this;
 	}
 
@@ -634,7 +635,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this container for chaining							
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator >> (const T& other) {
-		Any::Insert<T, false>(&other, 1, Index::Front);
+		Any::Insert<T, false, TAny>(&other, 1, Index::Front);
 		return *this;
 	}
 
@@ -643,7 +644,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this container for chaining							
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator >> (T&& other) {
-		Any::Emplace<T, false>(Forward<T>(other), Index::Front);
+		Any::Emplace<T, false, TAny>(Forward<T>(other), Index::Front);
 		return *this;
 	}
 
@@ -655,7 +656,7 @@ namespace Langulus::Anyness
 	///	@return the number of inserted items											
 	TEMPLATE()
 	Count TAny<T>::Merge(const T* items, const Count count, const Index& idx) {
-		return Any::Merge<T, false>(items, count, idx);
+		return Any::Merge<T, false, TAny>(items, count, idx);
 	}
 
 	/// Push data at the back																	
@@ -859,7 +860,7 @@ namespace Langulus::Anyness
 	///	@param pointer - the pointer to set												
 	///	@return a reference to this sparse element									
 	TEMPLATE()
-	TAny<T>::SparseElement& TAny<T>::SparseElement::operator = (T pointer) {
+	typename TAny<T>::SparseElement& TAny<T>::SparseElement::operator = (T pointer) {
 		if (mElement == pointer)
 			return *this;
 
@@ -877,7 +878,7 @@ namespace Langulus::Anyness
 
 		// Set and reference the new element										
 		mElement = pointer;
-		Allocator::Reference(meta, mElement, 1);
+		Allocator::Keep(meta, mElement, 1);
 		return *this;
 	}
 
@@ -885,7 +886,7 @@ namespace Langulus::Anyness
 	///	@param pointer - null pointer														
 	///	@return a reference to this sparse element									
 	TEMPLATE()
-	TAny<T>::SparseElement& TAny<T>::SparseElement::operator = (::std::nullptr_t) {
+	typename TAny<T>::SparseElement& TAny<T>::SparseElement::operator = (::std::nullptr_t) {
 		if (!mElement)
 			return *this;
 

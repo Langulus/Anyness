@@ -278,9 +278,9 @@ namespace Langulus::Anyness
 		Hash mHash;
 
 		template<ReflectedData T>
-		static constexpr Hash Hash() noexcept;
+		static constexpr Hash GetHash() noexcept;
 		template<ReflectedData T>
-		static constexpr Token Name() noexcept;
+		static constexpr Token GetName() noexcept;
 	};
 
 
@@ -385,13 +385,13 @@ namespace Langulus::Anyness
 		NOD() bool IsAbleTo() const;
 
 		template<bool ADVANCED = false>
-		NOD() bool InterpretsAs(DMeta) const;
-		template<ReflectedData T, bool ADVANCED = false>
-		NOD() bool InterpretsAs() const;
+		NOD() bool CastsTo(DMeta) const;
+		NOD() bool CastsTo(DMeta, Count) const;
 
-		NOD() bool InterpretsAs(DMeta, Count) const;
+		template<ReflectedData T, bool ADVANCED = false>
+		NOD() bool CastsTo() const;
 		template<ReflectedData T>
-		NOD() bool InterpretsAs(Count) const;
+		NOD() bool CastsTo(Count) const;
 
 		NOD() bool IsRelatedTo(DMeta) const;
 		template<ReflectedData T>
@@ -462,7 +462,16 @@ namespace Langulus::Anyness
 
 namespace Langulus
 {
-	
+
+	namespace RTTI
+	{
+		template<Anyness::ReflectedData T, bool ADVANCED = false>
+		NOD() bool CastsTo(Anyness::DMeta);
+		template<Anyness::ReflectedData T>
+		NOD() bool CastsTo(Anyness::DMeta, Count);
+	}
+
+
 	///																								
 	/// The following abstract types are implicitly added as bases					
 	/// when reflecting fundamental types. They are linked to their				
@@ -475,6 +484,7 @@ namespace Langulus
 	class ANumber {
 		LANGULUS(ABSTRACT);
 		LANGULUS(CONCRETIZABLE) Real;
+		~ANumber() = delete;
 	};
 
 	/// Check if a type is compatible with IsInteger									
@@ -483,6 +493,7 @@ namespace Langulus
 		LANGULUS(ABSTRACT);
 		LANGULUS(CONCRETIZABLE) ::std::intptr_t;
 		LANGULUS_BASES(ANumber);
+		~AInteger() = delete;
 	};
 
 	/// Check if a type is compatible with IsSigned										
@@ -491,6 +502,7 @@ namespace Langulus
 		LANGULUS(ABSTRACT);
 		LANGULUS(CONCRETIZABLE) Real;
 		LANGULUS_BASES(ANumber);
+		~ASigned() = delete;
 	};
 
 	/// Check if a type is compatible with IsUnsigned									
@@ -499,6 +511,7 @@ namespace Langulus
 		LANGULUS(ABSTRACT);
 		LANGULUS(CONCRETIZABLE) ::std::uintptr_t;
 		LANGULUS_BASES(ANumber);
+		~AUnsigned() = delete;
 	};
 
 	/// Check if a type is compatible with IsUnsignedInteger concept at			
@@ -507,6 +520,7 @@ namespace Langulus
 		LANGULUS(ABSTRACT);
 		LANGULUS(CONCRETIZABLE) ::std::uintptr_t;
 		LANGULUS_BASES(AUnsigned, AInteger);
+		~AUnsignedInteger() = delete;
 	};
 
 	/// Check if a type is compatible with IsReal										
@@ -515,6 +529,7 @@ namespace Langulus
 		LANGULUS(ABSTRACT);
 		LANGULUS(CONCRETIZABLE) Real;
 		LANGULUS_BASES(ASigned);
+		~AReal() = delete;
 	};
 
 	/// Check if a type is compatible with IsSignedInteger							
@@ -523,6 +538,7 @@ namespace Langulus
 		LANGULUS(ABSTRACT);
 		LANGULUS(CONCRETIZABLE) ::std::intptr_t;
 		LANGULUS_BASES(ASigned, AInteger);
+		~ASignedInteger() = delete;
 	};
 
 	/// Check if a type is compatible with IsCharacter									
@@ -530,6 +546,7 @@ namespace Langulus
 	class AText {
 		LANGULUS(ABSTRACT);
 		LANGULUS(CONCRETIZABLE) char8_t;
+		~AText() = delete;
 	};
 
 	/// Check if a type is compatible with IsBool										
@@ -537,6 +554,7 @@ namespace Langulus
 	class ABool {
 		LANGULUS(ABSTRACT);
 		LANGULUS(CONCRETIZABLE) bool;
+		~ABool() = delete;
 	};
 
 } // namespace Langulus

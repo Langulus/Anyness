@@ -22,7 +22,7 @@ namespace Langulus::Anyness
 	bool Block::IsInsertable(DMeta other) const noexcept {
 		if (IsStatic() || IsConstant() || IsDeep() != other->mIsDeep)
 			return false;
-		return InterpretsAs(other);
+		return CastsToMeta(other);
 	}
 
 	/// Shrink the block, depending on currently reserved	elements					
@@ -102,44 +102,6 @@ namespace Langulus::Anyness
 		return GetBaseMemory(base.mType, base);
 	}
 
-	/// Mutate to another compatible type, deepening the container if allowed	
-	///	@param meta - the type to mutate into											
-	///	@return true if block was deepened												
-	bool Block::Mutate(DMeta meta) {
-		if (IsUntyped()) {
-			// Undefined containers can mutate freely								
-			SetType<false>(meta);
-		}
-		else if (mType->Is(meta)) {
-			// No need to mutate - types are the same								
-			return false;
-		}
-		else if (IsAbstract() && IsEmpty() && meta->InterpretsAs<false>(mType)) {
-			// IsAbstract compatible containers can be concretized				
-			SetType<false>(meta);
-		}
-		else if (!IsInsertable(meta)) {
-			// Not insertable due to some reasons									
-			if (!IsTypeConstrained()) {
-				// Container is not type-constrained, so we can safely		
-				// deepen it, to incorporate the new data							
-				Deepen<Any>();
-				return true;
-			}
-			else throw Except::Mutate(Logger::Error()
-				<< "Attempting to deepen incompatible type-constrained container from "
-				<< GetToken() << " to " << meta->mToken);
-		}
-
-		SAFETY(if (!InterpretsAs(meta)) {
-			throw Except::Mutate(Logger::Error()
-				<< "Mutation results in incompatible data " << meta->mToken
-				<< " (container of type " << GetToken() << ")");
-		})
-
-		return false;
-	}
-
 	/// Hash data inside memory block														
 	///	@returns the hash																		
 	Hash Block::GetHash() const {
@@ -202,9 +164,9 @@ namespace Langulus::Anyness
 	///	@return true if able to interpret current type to 'type'					
 	bool Block::CanFit(DMeta type) const {
 		if (IsSparse())
-			return type && type->InterpretsAs<true>(mType);
+			return type && type->CastsTo<true>(mType);
 		else
-			return type && type->InterpretsAs<false>(mType);
+			return type && type->CastsTo(mType);
 	}
 
 	/// Check if two containers are concatenable											
@@ -218,11 +180,11 @@ namespace Langulus::Anyness
 	/// Beware, direction matters (this is the inverse of CanFit)					
 	///	@param type - the type check if current type interprets to				
 	///	@return true if able to interpret current type to 'type'					
-	bool Block::InterpretsAs(DMeta type) const {
+	bool Block::CastsToMeta(DMeta type) const {
 		if (IsSparse())
-			return mType && mType->InterpretsAs<true>(type);
+			return mType && mType->CastsTo<true>(type);
 		else
-			return mType && mType->InterpretsAs<false>(type);
+			return mType && mType->CastsTo(type);
 	}
 
 	/// Check if contained data can be interpreted as a given coung of type		
@@ -231,8 +193,8 @@ namespace Langulus::Anyness
 	///	@param type - the type check if current type interprets to				
 	///	@param count - the number of elements to interpret as						
 	///	@return true if able to interpret current type to 'type'					
-	bool Block::InterpretsAs(DMeta type, Count count) const {
-		return !mType || !type || mType->InterpretsAs(type, count);
+	bool Block::CastsToMeta(DMeta type, Count count) const {
+		return !mType || !type || mType->CastsTo(type, count);
 	}
 
 	/// Check if contained data exactly matches a given type							
@@ -714,9 +676,9 @@ namespace Langulus::Anyness
 			return 0;
 
 		// Type may mutate																
-		if (Mutate(other.mType)) {
+		if (Mutate<Any>(other.mType)) {
 			// Block was deepened, so emplace a container inside				
-			return Emplace(Any {other}, idx);
+			return Emplace<Any, false, Any>(Any {other}, idx);
 		}
 
 		// Allocate the required memory - this will not initialize it		

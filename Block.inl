@@ -1,5 +1,6 @@
 #pragma once
 #include "Block.hpp"
+#include <cstring>
 
 namespace Langulus::Anyness
 {
@@ -536,7 +537,7 @@ namespace Langulus::Anyness
 	constexpr bool Block::CanFitState(const Block& other) const noexcept {
 		const bool sparseness = IsSparse() == other.IsSparse();
 		const bool orCompat = IsOr() == other.IsOr() || other.GetCount() <= 1 || IsEmpty();
-		const bool typeCompat = !IsTypeConstrained() || (IsTypeConstrained() && other.InterpretsAs(mType));
+		const bool typeCompat = !IsTypeConstrained() || (IsTypeConstrained() && other.CastsToMeta(mType));
 		return sparseness && typeCompat && (mState == other.mState || (orCompat && CanFitPhase(other.GetPhase())));
 	}
 
@@ -744,12 +745,51 @@ namespace Langulus::Anyness
 	/// Mutate the block to a different type, if possible								
 	///	@tparam T - the type to change to												
 	///	@return true if block was deepened to incorporate the new type			
-	template<ReflectedData T>
+	template<ReflectedData T, Anyness::IsDeep WRAPPER>
 	bool Block::Mutate() {
-		const auto deepened = Mutate(MetaData::Of<Decay<T>>());
+		const auto deepened = Mutate<WRAPPER>(MetaData::Of<Decay<T>>());
 		if constexpr (Langulus::IsSparse<T>)
 			MakeSparse();
 		return deepened;
+	}
+	
+	/// Mutate to another compatible type, deepening the container if allowed	
+	///	@param meta - the type to mutate into											
+	///	@return true if block was deepened												
+	template<Anyness::IsDeep WRAPPER>
+	bool Block::Mutate(DMeta meta) {
+		if (IsUntyped()) {
+			// Undefined containers can mutate freely								
+			SetType<false>(meta);
+		}
+		else if (mType->Is(meta)) {
+			// No need to mutate - types are the same								
+			return false;
+		}
+		else if (IsAbstract() && IsEmpty() && meta->CastsTo(mType)) {
+			// Abstract compatible containers can be concretized				
+			SetType<false>(meta);
+		}
+		else if (!IsInsertable(meta)) {
+			// Not insertable due to some reasons									
+			if (!IsTypeConstrained()) {
+				// Container is not type-constrained, so we can safely		
+				// deepen it, to incorporate the new data							
+				Deepen<WRAPPER>();
+				return true;
+			}
+			else throw Except::Mutate(Logger::Error()
+				<< "Attempting to deepen incompatible type-constrained container from "
+				<< GetToken() << " to " << meta->mToken);
+		}
+
+		SAFETY(if (!CastsToMeta(meta)) {
+			throw Except::Mutate(Logger::Error()
+				<< "Mutation results in incompatible data " << meta->mToken
+				<< " (container of type " << GetToken() << ")");
+		})
+
+		return false;
 	}
 
 	/// Constrain an index to the limits of the current block						
@@ -809,13 +849,13 @@ namespace Langulus::Anyness
 	}
 
 	template<ReflectedData T>
-	bool Block::InterpretsAs() const {
-		return InterpretsAs(MetaData::Of<Decay<T>>());
+	bool Block::CastsTo() const {
+		return CastsToMeta(MetaData::Of<Decay<T>>());
 	}
 
 	template<ReflectedData T>
-	bool Block::InterpretsAs(Count count) const {
-		return InterpretsAs(MetaData::Of<Decay<T>>(), count);
+	bool Block::CastsTo(Count count) const {
+		return CastsToMeta(MetaData::Of<Decay<T>>(), count);
 	}
 
 	template<ReflectedData T>
@@ -848,7 +888,7 @@ namespace Langulus::Anyness
 				<< GetToken() << " to " << type->mToken);
 		}
 
-		if (mType->InterpretsAs<false>(type)) {
+		if (mType->CastsTo(type)) {
 			// Type is compatible, but only sparse data can mutate freely	
 			// Dense containers can't mutate because their destructors		
 			// might be wrong later														
@@ -917,14 +957,14 @@ namespace Langulus::Anyness
 	///	@param item - item to move															
 	///	@param index - use uiFront or uiBack for pushing to ends					
 	///	@return number of inserted elements												
-	template<ReflectedData T, bool MUTABLE>
+	template<ReflectedData T, bool MUTABLE, ReflectedData WRAPPER>
 	Count Block::Emplace(T&& item, const Index& index) {
 		const auto starter = ConstrainMore<T>(index).GetOffset();
 
 		if constexpr (MUTABLE) {
 			// Type may mutate															
-			if (Mutate<T>())
-				return Emplace<Any>(Any {Forward<T>(item)}, index);
+			if (Mutate<T, WRAPPER>())
+				return Emplace<Any, false, WRAPPER>(Any {Forward<T>(item)}, index);
 		}
 
 		// Allocate																			
@@ -970,16 +1010,16 @@ namespace Langulus::Anyness
 	///	@param count - number of items inside											
 	///	@param index - use uiFront or uiBack for pushing to ends					
 	///	@return number of inserted elements												
-	template<ReflectedData T, bool MUTABLE>
+	template<ReflectedData T, bool MUTABLE, ReflectedData WRAPPER>
 	Count Block::Insert(T* items, const Count count, const Index& index) {
 		const auto starter = ConstrainMore<T>(index).GetOffset();
 
 		if constexpr (MUTABLE) {
 			// Type may mutate															
-			if (Mutate<T>()) {
-				Any wrapper;
-				wrapper.Insert<T>(items, count);
-				return Emplace<Any>(Move(wrapper), index);
+			if (Mutate<T, WRAPPER>()) {
+				WRAPPER wrapper;
+				wrapper.template Insert<T, false, WRAPPER>(items, count);
+				return Emplace<WRAPPER, false, WRAPPER>(Move(wrapper), index);
 			}
 		}
 
@@ -1066,12 +1106,12 @@ namespace Langulus::Anyness
 			return Index::None;
 
 		if (IsDense()) {
-			if (!InterpretsAs<T>()) {
+			if (!CastsTo<T>()) {
 				// If dense and not forward compatible - fail					
 				return Index::None;
 			}
 		}
-		else if (!MetaData::Of<T>()->InterpretsAs(mType)) {
+		else if (!MetaData::Of<T>()->CastsTo(mType)) {
 			// If sparse and not backwards compatible - fail					
 			return Index::None;
 		}
@@ -1167,12 +1207,12 @@ namespace Langulus::Anyness
 	///	@param count - number of items to push											
 	///	@param idx - use uiFront or uiBack for pushing to ends					
 	///	@return the number of inserted elements										
-	template<ReflectedData T, bool MUTABLE>
+	template<ReflectedData T, bool MUTABLE, ReflectedData WRAPPER>
 	Count Block::Merge(const T* items, const Count count, const Index& idx) {
 		Count added {};
 		for (Offset i = 0; i < count; ++i) {
 			if (!Find<T>(items[i]))
-				added += Insert<T, MUTABLE>(items + i, 1, idx);
+				added += Insert<T, MUTABLE, WRAPPER>(items + i, 1, idx);
 		}
 
 		return added;
@@ -1296,7 +1336,7 @@ namespace Langulus::Anyness
 	///	@param attemptDeepen - whether or not deepening is allowed				
 	///	@param index - the index at which to insert (if needed)					
 	///	@return the number of pushed items (zero if unsuccessful)				
-	template<bool ALLOW_CONCAT, bool ALLOW_DEEPEN, ReflectedData T>
+	template<bool ALLOW_CONCAT, bool ALLOW_DEEPEN, ReflectedData T, Anyness::IsDeep WRAPPER>
 	Count Block::SmartPush(const T& value, DataState state, Index index) {
 		// Wrap the value, but don't reference anything yet					
 		auto pack = Block::From(value);
@@ -1352,16 +1392,16 @@ namespace Langulus::Anyness
 		// multiple items	in this container.										
 		if (orCompliant && IsDeep()) {
 			SetState(mState + state);
-			return Emplace<Any>(pack, index);
+			return Emplace<WRAPPER, false, WRAPPER>(pack, index);
 		}
 
 		// Finally, if allowed, force make the container deep in order to	
 		// push the pack inside															
 		if constexpr (ALLOW_DEEPEN) {
 			if (!IsTypeConstrained()) {
-				Deepen<Any>();
+				Deepen<WRAPPER>();
 				SetState(mState + state);
-				return Emplace<Any>(Move(pack), index);
+				return Emplace<WRAPPER, false, WRAPPER>(Move(pack), index);
 			}
 		}
 
@@ -1460,72 +1500,6 @@ namespace Langulus::Anyness
 			GetElementDense(idx / base.mCount)
 				.GetBaseMemory(base)
 					.Get<T>(idx % base.mCount);
-	}
-
-	/// Insert any data (including arrays) at the back									
-	///	@param other - the data to insert												
-	///	@return a reference to this memory block for chaining						
-	template<ReflectedData T>
-	Block& Block::operator << (T& other) {
-		if constexpr (IsArray<T>)
-			Insert<Decay<T>>(other, ExtentOf<T>, Index::Back);
-		else
-			Insert<T>(&other, 1, Index::Back);
-		return *this;
-	}
-
-	/// Emplace any data at the back															
-	///	@param other - the data to insert												
-	///	@return a reference to this memory block for chaining						
-	template<ReflectedData T>
-	Block& Block::operator << (T&& other) {
-		Emplace<T>(Forward<T>(other), Index::Back);
-		return *this;
-	}
-
-	/// Insert any data (including arrays) at the front								
-	///	@param other - the data to insert												
-	///	@return a reference to this memory block for chaining						
-	template<ReflectedData T>
-	Block& Block::operator >> (T& other) {
-		if constexpr (IsArray<T>)
-			Insert<Decay<T>>(other, ExtentOf<T>, Index::Front);
-		else
-			Insert<T>(&other, 1, Index::Front);
-		return *this;
-	}
-
-	/// Emplace any data at the front														
-	///	@param other - the data to insert												
-	///	@return a reference to this memory block for chaining						
-	template<ReflectedData T>
-	Block& Block::operator >> (T&& other) {
-		Emplace<T>(Forward<T>(other), Index::Front);
-		return *this;
-	}
-
-	/// Merge data (including arrays) at the back										
-	///	@param other - the data to insert												
-	///	@return a reference to this memory block for chaining						
-	template<ReflectedData T>
-	Block& Block::operator <<= (T& other) {
-		if constexpr (IsArray<T>)
-			Merge<Decay<T>>(other, ExtentOf<T>, Index::Back);
-		else
-			Merge<T>(&other, 1, Index::Back);
-		return *this;
-	}
-
-	/// Merge data at the front																
-	///	@param other - the data to insert												
-	///	@return a reference to this memory block for chaining						
-	template<ReflectedData T>
-	Block& Block::operator >>= (T& other) {
-		if constexpr (IsArray<T>)
-			Merge<Decay<T>>(other, ExtentOf<T>, Index::Front);
-		else
-			Merge<T>(&other, 1, Index::Front);
-		return *this;
 	}
 
 	template<bool MUTABLE, class F>
@@ -1668,7 +1642,7 @@ namespace Langulus::Anyness
 
 			return index;
 		}
-		else if (mType->InterpretsAs<A>()) {
+		else if (mType->CastsTo<A>()) {
 			// Slow generalized routine that resolved each element			
 			// Uses As<>() instead of Get<>()										
 			Count successes {};
