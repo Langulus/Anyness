@@ -130,7 +130,7 @@ namespace Langulus::Anyness
 			// This will call destructor on the pointer first					
 			// and then the data behind it, if references reach zero			
 			// It will zero the mValue for us										
-			GetBlock().CallDestructors();
+			GetBlock().CallUnknownDestructors();
 		}
 	}
 

@@ -19,21 +19,27 @@ namespace Langulus::Anyness
 	/// Destructor																					
 	TEMPLATE()
 	TAny<T>::~TAny() {
+		Free();
+	}
+	
+	/// Destructor																					
+	TEMPLATE()
+	void TAny<T>::Free() {
 		if (!mEntry)
 			return;
 
 		if (mEntry->mReferences == 1) {
 			if constexpr (Langulus::IsSparse<T> || !IsPOD<T>)
-				CallDestructors();
+				CallKnownDestructors<T>();
 			Allocator::Deallocate(mType, mEntry);
-			ResetMemory();
+			mEntry = nullptr;
 			return;
 		}
 
 		--mEntry->mReferences;
-		ResetMemory();
+		mEntry = nullptr;
 	}
-	
+
 	/// Shallow-copy construction (const)													
 	///	@param other - the TAny to reference											
 	TEMPLATE()
@@ -107,11 +113,12 @@ namespace Langulus::Anyness
 		: TAny {Any {copy}} { }
 
 	/// Move construction - moves block and references content						
-	/// Since we are not aware if that block is referenced, we reference it		
-	/// We do not reset the other block to avoid memory leaks						
+	///	@attention since we are not aware if that block is referenced, we		
+	///				  reference it, and we do not reset the other block to		
+	///				  avoid memory leaks														
 	///	@param other - the block to move													
 	TEMPLATE()
-	TAny<T>::TAny(Block&& copy)
+		TAny<T>::TAny(Block&& copy)
 		: TAny {Any {Forward<Block>(copy)}} { }
 
 	/// Copy other but do not reference it, because it is disowned					
@@ -226,28 +233,28 @@ namespace Langulus::Anyness
 		return *this;
 	}
 
-	/// Shallow copy operator																	
+	/// Shallow copy immutable block operator												
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator = (const Block& other) {
-		return TAny<T>::operator = (Any {other});
+		return operator = (Any {other});
 	}
 
-	/// Shallow copy operator																	
+	/// Shallow copy mutable block operator												
 	TEMPLATE()
-	TAny<T>& TAny<T>::operator = (Block&& other) {
-		return TAny<T>::operator = (Any {Forward<Block>(other)});
+	TAny<T>& TAny<T>::operator = (Block& other) {
+		return operator = (Any {other});
 	}
 
 	/// Assign by shallow-copying some value different from Any or Block			
 	///	@param value - the value to copy													
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator = (const T& value) requires IsCustom<T> {
-		return TAny<T>::operator = (TAny<T> {value});
+		return operator = (TAny<T> {value});
 	}
 
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator = (T& value) requires IsCustom<T> {
-		return TAny<T>::operator = (const_cast<const T&>(value));
+		return operator = (TAny<T> {value});
 	}
 
 	/// Assign by moving some value different from Any or Block						
@@ -352,7 +359,7 @@ namespace Langulus::Anyness
 		if (GetReferences() == 1) {
 			// Only one use - just destroy elements and reset count,			
 			// reusing the allocation for later										
-			CallDestructors();
+			CallKnownDestructors<T>();
 			ClearInner();
 		}
 		else {
@@ -1026,51 +1033,8 @@ namespace Langulus::Anyness
 		
 		// Only consume the items in the source									
 		mCount += count;
-		source.mCount = 0;
 	}
 
-	/// Call destructors in a region - after this call the memory is not			
-	/// considered initialized, but mCount is still valid, so be careful			
-	///	@attention this function is intended for internal use						
-	///	@attention this operates on initialized memory only, and any			
-	///				  misuse will result in undefined behavior						
-	TEMPLATE()
-	void TAny<T>::CallDestructors() {
-		const auto data = GetRaw();
-		if constexpr (Langulus::IsSparse<T>) {
-			// We dereference each pointer - destructors will be called		
-			// if data behind these pointers is fully dereferenced, too		
-			for (Count i = 0; i < mCount; ++i) {
-				auto found = Allocator::Find(mType, data[i]);
-				if (found) {
-					if (found->mReferences == 1) {
-						if constexpr (IsDestructible<T>) {
-							using Decayed = Decay<T>;
-							data[i]->~Decayed();
-						}
-						Allocator::Deallocate(mType, found);
-					}
-					else --found->mReferences;
-				}
-			}
-
-			// Always null the pointers after destruction						
-			// It is quite obscure, but this is where TPointers are reset	
-			FillMemory(data, {}, GetSize());
-			return;
-		}
-		else if constexpr (!IsPOD<T> && IsDestructible<T>) {
-			// Destroy every dense element											
-			for (Count i = 0; i < mCount; ++i)
-				data[i].~Decay<T>();
-		}
-
-		#if LANGULUS_PARANOID()
-			// Nullify upon destruction only if we're paranoid					
-			FillMemory(data, {}, GetSize());
-		#endif
-	}
-	
 	/// Get a constant part of this container												
 	///	@tparam WRAPPER - the container to use for the part						
 	///			            use Block for unreferenced container					
@@ -1135,7 +1099,7 @@ namespace Langulus::Anyness
 		// Allocate/reallocate															
 		if (mEntry) {
 			// Reallocate																	
-			Block previousBlock {*this};
+			TAny<T> previousBlock {Disown(*this)};
 			if (mEntry->mReferences == 1) {
 				// Memory is used only once and it is safe to move it			
 				// Make note, that Allocator::Reallocate doesn't copy			
@@ -1172,6 +1136,9 @@ namespace Langulus::Anyness
 					CallDefaultConstructors(elements - mCount);
 				}
 			}
+
+			// Avoid dereferencing the data in case we still use it			
+			previousBlock.mEntry = nullptr;
 		}
 		else {
 			// Allocate a fresh set of elements										

@@ -109,12 +109,21 @@ namespace Langulus::Anyness
 	template<ReflectedData T, bool CONSTRAIN>
 	Block Block::From(T& value) requires Langulus::IsDense<T> {
 		Block result;
-		if constexpr (Langulus::IsResolvable<T>)
+		if constexpr (Langulus::IsResolvable<T>) {
+			// Resolve a runtime-resolvable value									
 			result = value.GetBlock();
-		else if constexpr (Anyness::IsDeep<T>)
-			result = static_cast<const Block&>(value);
-		else
+		}
+		else if constexpr (Anyness::IsDeep<T>) {
+			// Static cast to Block if IsDeep										
+			if constexpr (Langulus::IsConstant<T>)
+				result = static_cast<const Block&>(value);
+			else
+				result = static_cast<Block&>(value);
+		}
+		else {
+			// Any other value gets wrapped inside a temporary Block			
 			result = {DataState::Static, MetaData::Of<Decay<T>>(), 1, &value};
+		}
 		
 		if constexpr (CONSTRAIN)
 			result.MakeTypeConstrained();
@@ -175,12 +184,14 @@ namespace Langulus::Anyness
 		if (mEntry->mReferences <= times) {
 			// Destroy all elements and deallocate the entry					
 			if constexpr (DESTROY)
-				CallDestructors();
+				CallUnknownDestructors();
 			Allocator::Deallocate(mType, mEntry);
+			mEntry = nullptr;
 			return true;
 		}
 
 		mEntry->mReferences -= times;
+		mEntry = nullptr;
 		return false;
 	}
 
@@ -981,27 +992,7 @@ namespace Langulus::Anyness
 					Block::CropInner(starter, mCount - starter, mCount - starter));
 		}
 
-		// Insert new data																
-		if constexpr (Langulus::IsSparse<T>) {
-			// Sparse data insertion (moving a pointer)							
-			auto data = GetRawSparse() + starter;
-			*data = reinterpret_cast<Byte*>(item);
-
-			// Reference the pointer's memory										
-			Allocator::Keep(mType, item, 1);
-		}
-		else {
-			static_assert(!Langulus::IsAbstract<T>, "Can't emplace abstract item");
-
-			// Dense data insertion (placement move-construction)				
-			auto data = GetRaw() + starter * sizeof(T);
-			if constexpr (IsMoveConstructible<T>)
-				new (data) T {Forward<T>(item)};
-			else
-				LANGULUS_ASSERT("Can't emplace non-move-constructible item");
-		}
-
-		++mCount;
+		EmplaceInner<T>(Forward<T>(item), starter);
 		return 1;
 	}
 	
@@ -1037,6 +1028,17 @@ namespace Langulus::Anyness
 					CropInner(starter, mCount - starter, mCount - starter));
 		}
 
+		InsertInner<T>(items, count, starter);
+		return count;
+	}
+
+	/// Inner insertion function																
+	///	@attention this is an inner function and should be used with caution	
+	///	@param items - items to push														
+	///	@param count - number of items inside											
+	///	@param starter - the offset at which to insert								
+	template<ReflectedData T>
+	void Block::InsertInner(T* items, const Count& count, const Offset& starter) {
 		// Insert new data																
 		auto data = GetRaw() + starter * sizeof(T);
 		if constexpr (Langulus::IsSparse<T>) {
@@ -1045,18 +1047,13 @@ namespace Langulus::Anyness
 			CopyMemory(items, data, sizeof(T) * count);
 			Count c {};
 			while (c < count) {
-				if (!items[c]) {
-					throw Except::Reference(Logger::Error()
-						<< "Copy-insertion of a null pointer of type "
-						<< GetToken() << " is not allowed");
-				}
-
 				// Reference each pointer												
 				Allocator::Keep(mType, items[c], 1);
 				++c;
 			}
 		}
 		else {
+			// Abstract stuff is allowed only if sparse							
 			static_assert(!Langulus::IsAbstract<T>, "Can't insert abstract item");
 
 			if constexpr (IsPOD<T>) {
@@ -1076,7 +1073,35 @@ namespace Langulus::Anyness
 		}
 
 		mCount += count;
-		return count;
+	}
+
+	/// Inner emplacement function															
+	///	@attention this is an inner function and should be used with caution	
+	///	@param item - item to push															
+	///	@param starter - the offset at which to insert								
+	template<ReflectedData T>
+	void Block::EmplaceInner(T&& item, const Offset& starter) {
+		// Insert new data																
+		if constexpr (Langulus::IsSparse<T>) {
+			// Sparse data insertion (moving a pointer)							
+			auto data = GetRawSparse() + starter;
+			*data = reinterpret_cast<Byte*>(item);
+
+			// Reference the pointer's memory										
+			Allocator::Keep(mType, item, 1);
+		}
+		else {
+			static_assert(!Langulus::IsAbstract<T>, "Can't emplace abstract item");
+
+			// Dense data insertion (placement move-construction)				
+			auto data = GetRaw() + starter * sizeof(T);
+			if constexpr (IsMoveConstructible<T>)
+				new (data) T {Forward<T>(item)};
+			else
+				LANGULUS_ASSERT("Can't emplace non-move-constructible item");
+		}
+
+		++mCount;
 	}
 
 	/// Remove non-sequential element(s)													
@@ -1337,7 +1362,87 @@ namespace Langulus::Anyness
 	///	@param index - the index at which to insert (if needed)					
 	///	@return the number of pushed items (zero if unsuccessful)				
 	template<bool ALLOW_CONCAT, bool ALLOW_DEEPEN, ReflectedData T, Anyness::IsDeep WRAPPER>
-	Count Block::SmartPush(const T& value, DataState state, Index index) {
+	Count Block::SmartPush(T& value, DataState state, Index index) {
+		// Wrap the value, but don't reference anything yet					
+		auto pack = Block::From(value);
+		
+		// Early exit if nothing to push												
+		if (!pack.IsValid())
+			return 0;
+
+		// Check if unmovable															
+		if (IsStatic()) {
+			Logger::Error() << "Can't smart-push in static data region";
+			return 0;
+		}
+
+		// If this container is empty and has no conflicting state			
+		// do a shallow copy and directly reference data						
+		const auto meta = pack.GetType();
+		const bool typeCompliant = (!IsTypeConstrained() && IsEmpty()) || CanFit(meta);
+		const bool stateCompliant = CanFitState(pack);
+		if (IsEmpty() && typeCompliant && stateCompliant) {
+			const auto previousType = !mType ? meta : mType;
+			const auto previousState = mState - DataState::Sparse;
+			*this = pack;
+			Keep();
+			SetState((mState + previousState + state) - DataState::Typed);
+
+			if (previousState.IsTyped())
+				// Retain type if original package was constrained				
+				SetType<true>(previousType);
+			else if (IsSparse())
+				// Retain type if current package is sparse						
+				SetType<false>(previousType);
+			return 1;
+		}
+
+		[[maybe_unused]]
+		const bool orCompliant = !(mCount > 1 && !IsOr() && state.IsOr());
+		
+		if constexpr (ALLOW_CONCAT) {
+			// If this container is compatible and concatenation is enabled
+			// try concatenating the two containers. Concatenation will not
+			// be allowed if final state is OR, and there are multiple		
+			// items	in this container.												
+			Count catenated {};
+			if (typeCompliant && stateCompliant && orCompliant && 0 < (catenated = InsertBlock(pack, index))) {
+				SetState(mState + state);
+				return catenated;
+			}
+		}
+
+		// If this container is deep, directly push the pack inside			
+		// This will be disallowed if final state is OR, and there are		
+		// multiple items	in this container.										
+		if (orCompliant && IsDeep()) {
+			SetState(mState + state);
+			return Emplace<WRAPPER, false, WRAPPER>(pack, index);
+		}
+
+		// Finally, if allowed, force make the container deep in order to	
+		// push the pack inside															
+		if constexpr (ALLOW_DEEPEN) {
+			if (!IsTypeConstrained()) {
+				Deepen<WRAPPER>();
+				SetState(mState + state);
+				return Emplace<WRAPPER, false, WRAPPER>(Move(pack), index);
+			}
+		}
+
+		return 0;
+	}
+
+	/// A smart push uses the best approach to push anything inside container	
+	/// in order to keep hierarchy and states, but also reuse memory				
+	///	@param pack - the container to smart-push										
+	///	@param finalState - a state to apply after pushing is done				
+	///	@param attemptConcat - whether or not concatenation is allowed			
+	///	@param attemptDeepen - whether or not deepening is allowed				
+	///	@param index - the index at which to insert (if needed)					
+	///	@return the number of pushed items (zero if unsuccessful)				
+	template<bool ALLOW_CONCAT, bool ALLOW_DEEPEN, ReflectedData T, Anyness::IsDeep WRAPPER>
+	Count Block::SmartPush(T&& value, DataState state, Index index) {
 		// Wrap the value, but don't reference anything yet					
 		auto pack = Block::From(value);
 		
@@ -1872,6 +1977,49 @@ namespace Langulus::Anyness
 		result.MakeConstant();
 		return result;
 	}
+
+	/// Call destructors in a region - after this call the memory is not			
+	/// considered initialized, but mCount is still valid, so be careful			
+	///	@attention this function is intended for internal use						
+	///	@attention this operates on initialized memory only, and any			
+	///				  misuse will result in undefined behavior						
+	template<class T>
+	void Block::CallKnownDestructors() {
+		using Decayed = Decay<T>;
+		const auto data = reinterpret_cast<T*>(GetRaw());
+		if constexpr (Langulus::IsSparse<T>) {
+			// We dereference each pointer - destructors will be called		
+			// if data behind these pointers is fully dereferenced, too		
+			for (Count i = 0; i < mCount; ++i) {
+				auto found = Allocator::Find(mType, data[i]);
+				if (found) {
+					if (found->mReferences == 1) {
+						if constexpr (IsDestructible<T>) {
+							data[i]->~Decayed();
+						}
+						Allocator::Deallocate(mType, found);
+					}
+					else --found->mReferences;
+				}
+			}
+
+			// Always null the pointers after destruction						
+			// It is quite obscure, but this is where TPointers are reset	
+			FillMemory(data, {}, GetSize());
+			return;
+		}
+		else if constexpr (!IsPOD<T> && IsDestructible<T>) {
+			// Destroy every dense element											
+			for (Count i = 0; i < mCount; ++i)
+				data[i].~Decayed();
+		}
+
+		#if LANGULUS_PARANOID()
+			// Nullify upon destruction only if we're paranoid					
+			FillMemory(data, {}, GetSize());
+		#endif
+	}
+
 	
 } // namespace Langulus::Anyness
 

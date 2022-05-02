@@ -18,6 +18,7 @@ namespace Langulus::Anyness
 		using TAny::TAny;
 
 		Text() = default;
+
 		Text(const Text&);
 		Text(Text&);
 		Text(Text&&) noexcept = default;

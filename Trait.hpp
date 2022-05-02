@@ -22,22 +22,35 @@ namespace Langulus::Anyness
 		Trait(TMeta);
 
 		Trait(const Any&);
+		Trait(Any&);
 		Trait(Any&&) noexcept;
+
 		Trait(const Block&);
+		Trait(Block&);
 		Trait(Block&&) noexcept;
+
 		Trait(const Trait&);
+		Trait(Trait&);
 		Trait(Trait&&) noexcept;
 
 		Trait(TMeta, const Any&);
+		Trait(TMeta, Any&);
 		Trait(TMeta, Any&&) noexcept;
+
 		Trait(TMeta, const Block&);
+		Trait(TMeta, Block&);
 		Trait(TMeta, Block&&) noexcept;
 
 		Trait& operator = (const Any&);
+		Trait& operator = (Any&);
 		Trait& operator = (Any&&) noexcept;
+
 		Trait& operator = (const Trait&);
+		Trait& operator = (Trait&);
 		Trait& operator = (Trait&&) noexcept;
+
 		Trait& operator = (const Block&);
+		Trait& operator = (Block&);
 		Trait& operator = (Block&&) noexcept;
 
 		template<ReflectedData T>

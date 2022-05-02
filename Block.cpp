@@ -499,7 +499,6 @@ namespace Langulus::Anyness
 
 		// Only consume the items in the source									
 		mCount = mReserved;
-		source.mCount = 0;
 	}
 
 	/// Call destructors in a region - after this call the memory is not			
@@ -507,7 +506,7 @@ namespace Langulus::Anyness
 	///	@attention this function is intended for internal use						
 	///	@attention this operates on initialized memory only, and any			
 	///				  misuse will result in undefined behavior						
-	void Block::CallDestructors() {
+	void Block::CallUnknownDestructors() {
 		if (IsSparse()) {
 			// We dereference each pointer - destructors will be called		
 			// if data behind these pointers is fully dereferenced, too		
@@ -608,7 +607,7 @@ namespace Langulus::Anyness
 		// First call the destructors on the correct region					
 		const auto ender = std::min(starter + count, mCount);
 		const auto removed = ender - starter;
-		CropInner(starter, removed, removed).CallDestructors();
+		CropInner(starter, removed, removed).CallUnknownDestructors();
 
 		if (ender < mCount) {
 			// Fill gap	if any by invoking move constructions					
@@ -862,7 +861,7 @@ namespace Langulus::Anyness
 
 		if (mEntry->mReferences == 1) {
 			// Destroy all elements but don't deallocate the entry			
-			CallDestructors();
+			CallUnknownDestructors();
 			mCount = 0;
 			return;
 		}
@@ -900,9 +899,10 @@ namespace Langulus::Anyness
 				return;
 			}
 
-			Block temporary {Move(subPack)};
+			Block temporary {subPack};
+			subPack.ResetMemory();
 			Free();
-			*this = Move(temporary);
+			*this = temporary;
 		}
 
 		if (GetCount() > 1 && IsDeep()) {

@@ -76,6 +76,7 @@ namespace Langulus::Anyness
 		void Reset();
 		void ResetState() noexcept;
 		void TakeAuthority();
+		void Free();
 
 		NOD() TAny Clone() const;
 
@@ -169,7 +170,6 @@ namespace Langulus::Anyness
 		void CallDefaultConstructors(const Count&);
 		void CallCopyConstructors(const TAny&);
 		void CallMoveConstructors(TAny&&);
-		void CallDestructors();
 	};
 
 

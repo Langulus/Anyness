@@ -13,9 +13,11 @@ namespace Langulus::Anyness
 		LANGULUS(DEEP) false;		
 	public:
 		Bytes() = default;
+
 		Bytes(const Bytes&);
 		Bytes(Bytes&);
 		Bytes(Bytes&&) noexcept = default;
+
 		Bytes(const TAny&);
 		Bytes(TAny&);
 		Bytes(TAny&&) noexcept;

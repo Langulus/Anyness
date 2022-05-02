@@ -1,5 +1,6 @@
 #pragma once
 #include <Langulus.Anyness.hpp>
+
 using namespace Langulus;
 using namespace Langulus::Anyness;
 

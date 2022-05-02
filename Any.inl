@@ -21,7 +21,7 @@ namespace Langulus::Anyness
 	/// Construct by moving another container												
 	///	@param other - the container to move											
 	inline Any::Any(Any&& other) noexcept
-		: Block {Forward<Block>(other)} {
+		: Block {static_cast<Block&>(other)} {
 		other.ResetMemory();
 		other.ResetState();
 	}
@@ -49,7 +49,7 @@ namespace Langulus::Anyness
 		: Block {static_cast<Block&>(other)} {
 		Keep();
 	}
-	
+
 	/// Same as shallow-copy but doesn't reference anything							
 	///	@param other - the block to shallow-copy										
 	inline Any::Any(Disowned<Any>&& other) noexcept
@@ -59,7 +59,7 @@ namespace Langulus::Anyness
 	/// instructions																				
 	///	@param other - the block to shallow-copy										
 	inline Any::Any(Abandoned<Any>&& other) noexcept
-		: Block {Forward<Block>(other.mValue)} {
+		: Block {static_cast<Block&>(other.mValue)} {
 		other.mValue.mEntry = nullptr;
 	}
 
@@ -89,7 +89,7 @@ namespace Langulus::Anyness
 	///	@param state - optional state of the container								
 	///	@return the new any																	
 	inline Any Any::FromMeta(DMeta type, const DataState& state) noexcept {
-		return Any {Block{state, type}};
+		return Any {Block {state, type}};
 	}
 
 	/// Create an empty Any by copying type and state of a block					
@@ -152,38 +152,54 @@ namespace Langulus::Anyness
 		return *this;
 	}
 
-	/// Assign by shallow-copying something mutable										
+	/// Assign by shallow-copying something 												
 	///	@param other - the value to copy													
 	///	@return a reference to this container											
 	template<class T>
 	Any& Any::operator = (T& other) {
 		if constexpr (IsSame<T, Any>) {
+			// Just reference the memory of the other Any						
 			if (IsTypeConstrained() && !CastsToMeta(other.mType)) {
 				throw Except::Copy(Logger::Error()
-					<< "Bad shallow-copy-assignment for Any: from "
+					<< "Bad shallow-copy-assignment for type-constrained Any: from "
 					<< GetToken() << " to " << other.GetToken());
 			}
 	
+			// First we reference, so that we don't lose the memory, in		
+			// the rare case where memory is same in both containers			
 			other.Keep();
 			Free();
 			Block::operator = (other);
-			return *this;
 		}
 		else if constexpr (IsSame<T, Block>) {
-			return operator = (Any {other});			
+			// Always reference a Block, by wrapping it in an Any				
+			operator = (Any {other});			
 		}
 		else {
 			const auto meta = MetaData::Of<Decay<T>>();
 			if (IsTypeConstrained() && !CastsToMeta(meta)) {
+				// Can't assign different type to a type-constrained Any		
 				throw Except::Copy(Logger::Error()
-					<< "Bad shallow-copy-assignment for Any: from "
+					<< "Bad shallow-copy-assignment for type-constrained Any: from "
 					<< GetToken() << " to " << meta->mToken);
 			}
-	
-			Reset();
-			operator << <T>(other);
-			return *this;
+			else if (mEntry && mEntry->mReferences == 1 && meta->Is(mType)) {
+				// Just destroy and reuse memory										
+				// Even better - types match, so we know this container		
+				// is filled with T too, therefore we can use statically		
+				// optimized routines for destruction								
+				CallKnownDestructors<T>();
+				mCount = 0;
+				InsertInner<T>(&other, 1, 0);
+			}
+			else {
+				// Reset and allocate new memory										
+				Reset();
+				operator << <T>(other);
+			}
 		}
+
+		return *this;
 	}
 
 	/// Assign by moving something															
@@ -192,6 +208,7 @@ namespace Langulus::Anyness
 	template<class T>
 	Any& Any::operator = (T&& other) {
 		if constexpr (IsSame<T, Any>) {
+			// Free this container and move the other onto it					
 			if (IsTypeConstrained() && !CastsToMeta(other.mType)) {
 				throw Except::Copy(Logger::Error()
 					<< "Bad shallow-copy-assignment for Any: from "
@@ -199,22 +216,36 @@ namespace Langulus::Anyness
 			}
 	
 			Free();
-			Block::operator = (Forward<T>(other));
+			Block::operator = (other);
+			other.Reset();
 			return *this;
 		}
 		else if constexpr (IsSame<T, Block>) {
-			return operator = (Any {Forward<T>(other)});			
+			// Always reference a Block, by wrapping it in an Any				
+			return operator = (Any {Forward<T>(other)});
 		}
 		else {
 			const auto meta = MetaData::Of<Decay<T>>();
 			if (IsTypeConstrained() && !CastsToMeta(meta)) {
+				// Can't assign different type to a type-constrained Any		
 				throw Except::Copy(Logger::Error()
-					<< "Bad shallow-copy-assignment for Any: from "
+					<< "Bad shallow-copy-assignment for type-constrained Any: from "
 					<< GetToken() << " to " << meta->mToken);
 			}
-	
-			Reset();
-			operator << <T>(Forward<T>(other));
+			else if (mEntry && mEntry->mReferences == 1 && meta->Is(mType)) {
+				// Types match, so we know this container is filled with T	
+				// too, therefore we can use statically optimized routines	
+				// for destruction														
+				CallKnownDestructors<T>();
+				mCount = 0;
+				EmplaceInner<T>(Forward<T>(other), 0);
+			}
+			else {
+				// Reset and allocate new memory										
+				Reset();
+				operator << <T>(other);
+			}
+
 			return *this;
 		}
 	}
@@ -283,6 +314,44 @@ namespace Langulus::Anyness
 		else
 			Merge<T, true, Any>(&other, 1, Index::Front);
 		return *this;
+	}
+
+	/// Reset the container																		
+	inline void Any::Reset() {
+		Free();
+		mRaw = nullptr;
+		mCount = mReserved = 0;
+		ResetState();
+	}
+
+	/// Reset container state																	
+	inline void Any::ResetState() {
+		if (IsTypeConstrained())
+			Block::ResetState<true>();
+		else
+			Block::ResetState<false>();
+	}
+
+	/// Swap two container's contents														
+	///	@param other - [in/out] the container to swap contents with				
+	inline void Any::Swap(Any& other) noexcept {
+		other = ::std::exchange(*this, Move(other));
+	}
+
+	/// Pick a constant region and reference it from another container			
+	///	@param start - starting element index											
+	///	@param count - number of elements												
+	///	@return the container																
+	inline Any Any::Crop(const Offset& start, const Count& count) const {
+		return Any {Block::Crop(start, count)};
+	}
+
+	/// Pick a region and reference it from another container						
+	///	@param start - starting element index											
+	///	@param count - number of elements												
+	///	@return the container																
+	inline Any Any::Crop(const Offset& start, const Count& count) {
+		return Any {Block::Crop(start, count)};
 	}
 
 } // namespace Langulus::Anyness

@@ -3,9 +3,14 @@
 namespace Langulus::Anyness
 {
 
-	/// Copy construction from Any															
+	/// Copy construction from immutable Any												
 	///	@param copy - the block to copy													
 	Trait::Trait(const Any& copy)
+		: Any {copy} { }
+
+	/// Copy construction from mutable Any													
+	///	@param copy - the block to copy													
+	Trait::Trait(Any& copy)
 		: Any {copy} { }
 
 	/// Move construction from Any															
@@ -13,20 +18,34 @@ namespace Langulus::Anyness
 	Trait::Trait(Any&& copy) noexcept
 		: Any {Forward<Any>(copy)} { }
 
-	/// Copy construction from Block															
+	/// Copy construction from immutable block											
 	///	@param copy - the block to copy													
 	Trait::Trait(const Block& copy)
 		: Any {copy} { }
 
+	/// Copy construction from mutable block												
+	///	@param copy - the block to copy													
+	Trait::Trait(Block& copy)
+		: Any {copy} { }
+
 	/// Move construction from Block															
+	///	@attention since we are not aware if that block is referenced, we		
+	///				  reference it and we do not reset the other block to avoid	
+	///				  memory leaks																
 	///	@param copy - the block to copy													
 	Trait::Trait(Block&& copy) noexcept
 		: Any {Forward<Block>(copy)} { }
 
-	/// Copy construction																		
+	/// Shallow-copy construction from immutable trait									
 	///	@param copy - the trait to copy													
 	Trait::Trait(const Trait& copy)
 		: Any {static_cast<const Any&>(copy)}
+		, mTraitType {copy.mTraitType} { }
+
+	/// Shallow-copy construction from mutable trait									
+	///	@param copy - the trait to copy													
+	Trait::Trait(Trait& copy)
+		: Any {static_cast<Any&>(copy)}
 		, mTraitType {copy.mTraitType} { }
 
 	/// Move construction																		
@@ -35,10 +54,17 @@ namespace Langulus::Anyness
 		: Any {Forward<Any>(copy)}
 		, mTraitType {Move(copy.mTraitType)} { }
 
-	/// Manual construction (reference memory block)									
+	/// Manual construction by shallow-copying a constant container				
 	///	@param type - the trait meta														
 	///	@param data - the data for the trait											
 	Trait::Trait(TMeta type, const Any& data)
+		: Any {data}
+		, mTraitType {type} { }
+
+	/// Manual construction by shallow-copying a mutable container					
+	///	@param type - the trait meta														
+	///	@param data - the data for the trait											
+	Trait::Trait(TMeta type, Any& data)
 		: Any {data}
 		, mTraitType {type} { }
 
@@ -49,16 +75,24 @@ namespace Langulus::Anyness
 		: Any {Forward<Any>(data)}
 		, mTraitType {type} { }
 
-	/// Manual construction (reference memory block)									
+	/// Manual construction by shallow-copying a constant block						
 	///	@param type - the trait meta														
 	///	@param data - the data for the trait											
 	Trait::Trait(TMeta type, const Block& data)
 		: Any {data}
 		, mTraitType {type} { }
 
+	/// Manual construction by shallow-copying a mutable block						
+	///	@param type - the trait meta														
+	///	@param data - the data for the trait											
+	Trait::Trait(TMeta type, Block& data)
+		: Any {data}
+		, mTraitType {type} { }
+
 	/// Move construction - moves block and references content						
-	/// Since we are not aware if that block is referenced, we reference it		
-	/// We do not reset the other block to avoid memory leaks						
+	///	@attention since we are not aware if that block is referenced, we		
+	///				  reference it and we do not reset the other block to avoid	
+	///				  memory leaks																
 	///	@param type - the trait meta														
 	///	@param data - the data for the trait											
 	Trait::Trait(TMeta type, Block&& data) noexcept
@@ -122,7 +156,6 @@ namespace Langulus::Anyness
 	/// Reset the trait																			
 	void Trait::Reset() {
 		Any::Reset();
-		mTraitType = nullptr;
 	}
 
 	/// Move operator																				
@@ -130,7 +163,6 @@ namespace Langulus::Anyness
 	Trait& Trait::operator = (Trait&& other) noexcept {
 		Any::operator = (Forward<Any>(other));
 		mTraitType = other.mTraitType;
-		other.mTraitType = nullptr;
 		return *this;
 	}
 
@@ -142,14 +174,32 @@ namespace Langulus::Anyness
 		return *this;
 	}
 
-	/// Shallow copy operator for block only, leaving trait unchanged				
+	/// Shallow copy operator with trait type												
+	///	@param other - the trait to copy													
+	Trait& Trait::operator = (Trait& other) {
+		Any::operator = <Any>(other);
+		mTraitType = other.mTraitType;
+		return *this;
+	}
+
+	/// Shallow copy operator for block only, leaving trait unchanged (const)	
 	///	@param other - the block to copy													
 	Trait& Trait::operator = (const Block& other) {
 		Any::operator = (other);
 		return *this;
 	}
 
+	/// Shallow copy operator for block only, leaving trait unchanged				
+	///	@param other - the block to copy													
+	Trait& Trait::operator = (Block& other) {
+		Any::operator = (other);
+		return *this;
+	}
+
 	/// Move copy operator for block only, leaving trait unchanged					
+	///	@attention since we are not aware if that block is referenced, we		
+	///				  reference it and we do not reset the other block to avoid	
+	///				  memory leaks																
 	///	@param other - the block to move													
 	Trait& Trait::operator = (Block&& other) noexcept {
 		Any::operator = (Forward<Block>(other));

@@ -1,5 +1,6 @@
 #include "TestMain.hpp"
 #include <catch2/catch.hpp>
+#include <any>
 
 using uint = unsigned int;
 
@@ -7,15 +8,15 @@ SCENARIO("Any", "[containers]") {
 	GIVEN("An Any instance") {
 		int original_value = 555;
 		auto meta = MetaData::Of<int>();
-		auto metas = MetaData::Of<int>();
-		Text original_pct = u8"Lorep Ipsum";
+		Any pack;
 
 		REQUIRE(meta);
-		REQUIRE(metas == meta);
-
-		Any pack;
-		REQUIRE_FALSE(pack.GetType());
-		REQUIRE_FALSE(pack.GetRaw());
+		REQUIRE(pack.GetType() == nullptr);
+		REQUIRE(pack.IsUntyped());
+		REQUIRE(pack.GetState() == DataState::Default);
+		REQUIRE(pack.GetRaw() == nullptr);
+		REQUIRE(pack.IsEmpty());
+		REQUIRE_FALSE(pack.IsAllocated());
 
 		WHEN("Given a POD value by copy") {
 			pack = original_value;
@@ -28,6 +29,17 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(*pack.As<int*>() == original_value);
 				REQUIRE_THROWS(pack.As<float*>() == nullptr);
 			}
+
+			Any myPack;
+			std::any stdPack;
+			BENCHMARK("Anyness::Any::operator = (single trivial copy)") {
+				myPack = original_value;
+				return myPack.GetCount();		// prevent stuff being optimized-out
+			};
+			BENCHMARK("std::any::operator = (single trivial copy)") {
+				stdPack = original_value;
+				return stdPack.has_value();	// prevent stuff being optimized-out
+			};
 		}
 
 		WHEN("Given a dense Trait") {
@@ -50,6 +62,17 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(*pack.As<int*>() == original_value);
 				REQUIRE_THROWS(pack.As<float*>() == nullptr);
 			}
+
+			Any myPack;
+			std::any stdPack;
+			BENCHMARK("Anyness::Any::operator = (single trivial move)") {
+				myPack = Move(original_value);
+				return myPack.GetCount();		// prevent stuff being optimized-out
+			};
+			BENCHMARK("std::any::operator = (single trivial move)") {
+				stdPack = Move(original_value);
+				return stdPack.has_value();	// prevent stuff being optimized-out
+			};
 		}
 
 		WHEN("Given a sparse value") {
@@ -66,11 +89,11 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(pack.As<int*>() == original_int);
 				REQUIRE_THROWS(pack.As<float*>() == nullptr);
 				#if LANGULUS_FEATURE(NEWDELETE) && LANGULUS_FEATURE(MANAGED_MEMORY)
-					REQUIRE(Allocator::CheckAuthority(metas, original_int));
-					REQUIRE(Allocator::GetReferences(metas, original_int) == 2);
+					REQUIRE(Allocator::CheckAuthority(meta, original_int));
+					REQUIRE(Allocator::GetReferences(meta, original_int) == 2);
 				#else
-					REQUIRE_FALSE(Allocator::CheckAuthority(metas, original_int));
-					REQUIRE(Allocator::GetReferences(metas, original_int) == 1);
+					REQUIRE_FALSE(Allocator::CheckAuthority(meta, original_int));
+					REQUIRE(Allocator::GetReferences(meta, original_int) == 1);
 				#endif
 			}
 		}
@@ -91,11 +114,11 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(pack.As<int*>() == original_int_backup);
 				REQUIRE_THROWS(pack.As<float*>() == nullptr);
 				#if LANGULUS_FEATURE(NEWDELETE) && LANGULUS_FEATURE(MANAGED_MEMORY)
-					REQUIRE(Allocator::CheckAuthority(metas, original_int_backup));
-					REQUIRE(Allocator::GetReferences(metas, original_int_backup) == 2);
+					REQUIRE(Allocator::CheckAuthority(meta, original_int_backup));
+					REQUIRE(Allocator::GetReferences(meta, original_int_backup) == 2);
 				#else
-					REQUIRE_FALSE(Allocator::CheckAuthority(metas, original_int_backup));
-					REQUIRE(Allocator::GetReferences(metas, original_int_backup) == 1);
+					REQUIRE_FALSE(Allocator::CheckAuthority(meta, original_int_backup));
+					REQUIRE(Allocator::GetReferences(meta, original_int_backup) == 1);
 				#endif
 				REQUIRE(pack.GetReferences() == 1);
 			}
@@ -116,11 +139,11 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(another_pack.As<int*>() == original_int);
 				REQUIRE_THROWS(another_pack.As<float*>() == nullptr);
 				#if LANGULUS_FEATURE(NEWDELETE) && LANGULUS_FEATURE(MANAGED_MEMORY)
-					REQUIRE(Allocator::CheckAuthority(metas, original_int));
-					REQUIRE(Allocator::GetReferences(metas, original_int) == 2);
+					REQUIRE(Allocator::CheckAuthority(meta, original_int));
+					REQUIRE(Allocator::GetReferences(meta, original_int) == 2);
 				#else
-					REQUIRE_FALSE(Allocator::CheckAuthority(metas, original_int));
-					REQUIRE(Allocator::GetReferences(metas, original_int) == 1);
+					REQUIRE_FALSE(Allocator::CheckAuthority(meta, original_int));
+					REQUIRE(Allocator::GetReferences(meta, original_int) == 1);
 				#endif
 				REQUIRE(pack.GetReferences() == another_pack.GetReferences());
 				REQUIRE(pack.GetReferences() == 2);
@@ -147,11 +170,11 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(another_pack.As<int*>() == original_int);
 				REQUIRE_THROWS(another_pack.As<float*>() == nullptr);
 				#if LANGULUS_FEATURE(NEWDELETE) && LANGULUS_FEATURE(MANAGED_MEMORY)
-					REQUIRE(Allocator::CheckAuthority(metas, original_int));
-					REQUIRE(Allocator::GetReferences(metas, original_int) == 2);
+					REQUIRE(Allocator::CheckAuthority(meta, original_int));
+					REQUIRE(Allocator::GetReferences(meta, original_int) == 2);
 				#else
-					REQUIRE_FALSE(Allocator::CheckAuthority(metas, original_int));
-					REQUIRE(Allocator::GetReferences(metas, original_int) == 1);
+					REQUIRE_FALSE(Allocator::CheckAuthority(meta, original_int));
+					REQUIRE(Allocator::GetReferences(meta, original_int) == 1);
 				#endif
 				REQUIRE(another_pack.GetReferences() == 1);
 			}
@@ -172,11 +195,11 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(another_pack.As<int*>() == original_int);
 				REQUIRE_THROWS(another_pack.As<float*>() == nullptr);
 				#if LANGULUS_FEATURE(NEWDELETE) && LANGULUS_FEATURE(MANAGED_MEMORY)
-					REQUIRE(Allocator::CheckAuthority(metas, original_int));
-					REQUIRE(Allocator::GetReferences(metas, original_int) == 2);
+					REQUIRE(Allocator::CheckAuthority(meta, original_int));
+					REQUIRE(Allocator::GetReferences(meta, original_int) == 2);
 				#else
-					REQUIRE_FALSE(Allocator::CheckAuthority(metas, original_int));
-					REQUIRE(Allocator::GetReferences(metas, original_int) == 1);
+					REQUIRE_FALSE(Allocator::CheckAuthority(meta, original_int));
+					REQUIRE(Allocator::GetReferences(meta, original_int) == 1);
 				#endif
 				REQUIRE(pack.GetReferences() == another_pack.GetReferences());
 				REQUIRE(pack.GetReferences() == 2);
@@ -211,11 +234,11 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(another_pack.GetReferences() == 2);
 
 				#if LANGULUS_FEATURE(NEWDELETE) && LANGULUS_FEATURE(MANAGED_MEMORY)
-					REQUIRE(Allocator::CheckAuthority(metas, original_int));
-					REQUIRE(Allocator::GetReferences(metas, original_int) == 2);
+					REQUIRE(Allocator::CheckAuthority(meta, original_int));
+					REQUIRE(Allocator::GetReferences(meta, original_int) == 2);
 				#else
-					REQUIRE_FALSE(Allocator::CheckAuthority(metas, original_int));
-					REQUIRE(Allocator::GetReferences(metas, original_int) == 1);
+					REQUIRE_FALSE(Allocator::CheckAuthority(meta, original_int));
+					REQUIRE(Allocator::GetReferences(meta, original_int) == 1);
 				#endif
 			}
 		}
@@ -230,13 +253,14 @@ SCENARIO("Any", "[containers]") {
 				#if LANGULUS_FEATURE(NEWDELETE) && LANGULUS_FEATURE(MANAGED_MEMORY)
 					REQUIRE(Allocator::CheckAuthority(meta, original_int));
 				#else
-					REQUIRE_FALSE(Allocator::CheckAuthority(metas, original_int));
+					REQUIRE_FALSE(Allocator::CheckAuthority(meta, original_int));
 				#endif
 				REQUIRE(Allocator::GetReferences(meta, original_int) == 1);
 			}
 		}
 
 		WHEN("Given static text") {
+			Text original_pct = u8"Lorep Ipsum";
 			pack = original_pct;
 			THEN("Various traits change") {
 				REQUIRE(pack.GetType() == MetaData::Of<Text>());
@@ -254,6 +278,7 @@ SCENARIO("Any", "[containers]") {
 		}
 
 		WHEN("Given dynamic text") {
+			Text original_pct = u8"Lorep Ipsum";
 			pack = original_pct.Clone();
 			THEN("Various traits change") {
 				REQUIRE(pack.GetType() == MetaData::Of<Text>());
@@ -271,6 +296,7 @@ SCENARIO("Any", "[containers]") {
 		}
 
 		WHEN("Given dynamic text, which is later referenced multiple times") {
+			Text original_pct = u8"Lorep Ipsum";
 			pack = original_pct.Clone();
 			Any pack2(pack);
 			Any pack3(pack2);
@@ -296,6 +322,7 @@ SCENARIO("Any", "[containers]") {
 		}
 
 		WHEN("Given dynamic text, which is later referenced multiple times, and then dereferenced") {
+			Text original_pct = u8"Lorep Ipsum";
 			pack = original_pct.Clone();
 			Any pack2(pack);
 			Any pack3(pack2);

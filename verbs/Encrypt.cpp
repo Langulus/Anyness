@@ -73,7 +73,7 @@ namespace Langulus::Anyness
 			decrypted.Free();
 			return decompressed_size;
 		#else
-			result = Move(decrypted);
+			result = decrypted;
 			return result.GetSize();
 		#endif
 	}

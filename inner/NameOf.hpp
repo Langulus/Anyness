@@ -1,5 +1,6 @@
 #pragma once
 #include "Integration.hpp"
+#include <string>
 
 namespace Langulus::Anyness::Inner
 {
@@ -91,8 +92,8 @@ namespace Langulus::Anyness::Inner
          constexpr Token Prefix = u8"Langulus::Token Langulus::Anyness::Inner::TypeAsTemplateArgument() [T = ";
          constexpr Token Suffix = u8"]";
       #elif defined(__GNUC__) && !defined(__clang__)
-         constexpr Token Prefix = u8"constexpr std::basic_string_view<char8_t> Langulus::Anyness::Inner::TypeAsTemplateArgument() [with T = ";
-         constexpr Token Suffix = u8"]";
+         constexpr Token Prefix = u8"constexpr Langulus::Token Langulus::Anyness::Inner::TypeAsTemplateArgument() [with T = ";
+         constexpr Token Suffix = u8"; Langulus::Token = std::basic_string_view<char8_t>]";
       #elif defined(_MSC_VER)
          constexpr Token Prefix = u8"class std::basic_string_view<char8_t,struct std::char_traits<char8_t> > __cdecl Langulus::Anyness::Inner::TypeAsTemplateArgument<";
          constexpr Token Suffix = u8">(void)";

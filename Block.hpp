@@ -387,7 +387,9 @@ namespace Langulus::Anyness
 		Count InsertBlock(Block&&, const Index& = Index::Back);
 	
 		template<bool ALLOW_CONCAT = true, bool ALLOW_DEEPEN = true, ReflectedData T, Anyness::IsDeep WRAPPER = Any>
-		Count SmartPush(const T&, DataState = {}, Index = Index::Back);
+		Count SmartPush(T&, DataState = {}, Index = Index::Back);
+		template<bool ALLOW_CONCAT = true, bool ALLOW_DEEPEN = true, ReflectedData T, Anyness::IsDeep WRAPPER = Any>
+		Count SmartPush(T&&, DataState = {}, Index = Index::Back);
 	
 		template<Anyness::IsDeep T, bool MOVE_STATE = true>
 		T& Deepen();
@@ -444,6 +446,11 @@ namespace Langulus::Anyness
 		void Reset();
 
 	protected:
+		template<ReflectedData T>
+		void EmplaceInner(T&&, const Offset&);
+		template<ReflectedData T>
+		void InsertInner(T*, const Count&, const Offset&);
+
 		static void CopyMemory(const void*, void*, const Size&) noexcept;
 		static void MoveMemory(const void*, void*, const Size&) noexcept;
 		static void FillMemory(void*, Byte, const Size&) noexcept;
@@ -466,7 +473,9 @@ namespace Langulus::Anyness
 		void CallDefaultConstructors(const Count&);
 		void CallCopyConstructors(const Block&);
 		void CallMoveConstructors(Block&&);
-		void CallDestructors();
+		void CallUnknownDestructors();
+		template<class T>
+		void CallKnownDestructors();
 	
 		Size AllocateRegion(const Block&, const Index&, Block&);
 	
