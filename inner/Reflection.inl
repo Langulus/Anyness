@@ -201,6 +201,7 @@ namespace Langulus::Anyness
 			meta->mIsNullifiable = IsNullifiable<T>;
 			meta->mSize = IsAbstract<T> ? 0 : sizeof(T);
 			meta->mAlignment = alignof(T);
+			meta->mAllocationPage = GetAllocationPageOf<T>();
 			meta->mIsPOD = IsPOD<T>;
 			meta->mIsDeep = IsDeep<T>;
 			

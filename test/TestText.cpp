@@ -138,7 +138,7 @@ SCENARIO("Text manipulation", "[text]") {
 
 		WHEN("Text is copied shallowly") {
 			Text copy = text;
-			THEN("Size and capacity goes to zero, type is unchanged, because it's a templated container") {
+			THEN("The new container shall contain the same data, in the same memory block; data will only be referenced") {
 				REQUIRE(text.GetCount() == copy.GetCount());
 				REQUIRE(text.GetReserved() == copy.GetReserved());
 				REQUIRE(text.GetRaw() == copy.GetRaw());
@@ -150,11 +150,11 @@ SCENARIO("Text manipulation", "[text]") {
 			}
 		}
 
-		WHEN("Text is copied deeply") {
+		WHEN("Text is cloned (deep copy)") {
 			Text copy = text.Clone();
-			THEN("Size and capacity goes to zero, type is unchanged, because it's a templated container") {
+			THEN("The new container shall contain the same data, but in separate memory block") {
 				REQUIRE(text.GetCount() == copy.GetCount());
-				REQUIRE(text.GetReserved() == copy.GetReserved());
+				REQUIRE(text.GetReserved() >= copy.GetReserved());
 				REQUIRE(text.GetRaw() != copy.GetRaw());
 				REQUIRE(text.GetType() == copy.GetType());
 				REQUIRE(text.HasAuthority());

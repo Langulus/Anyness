@@ -142,36 +142,62 @@ namespace Langulus::Anyness
 		}
 	}
 
+	/// Shallow-copy a constant container													
+	inline Any& Any::operator = (const Any& other) {
+		operator = (const_cast<Any&>(other));
+		MakeConstant();
+		return *this;
+	}
+	
+	/// Shallow-copy a mutable container													
+	inline Any& Any::operator = (Any& other) {
+		// Just reference the memory of the other Any							
+		if (IsTypeConstrained() && !CastsToMeta(other.mType)) {
+			throw Except::Copy(Logger::Error()
+				<< "Bad shallow-copy-assignment for type-constrained Any: from "
+				<< GetToken() << " to " << other.GetToken());
+		}
+
+		// First we reference, so that we don't lose the memory, in			
+		// the rare case where memory is same in both containers				
+		other.Keep();
+		Free();
+		Block::operator = (other);
+		return *this;
+	}
+	
+	/// Move a container																			
+	inline Any& Any::operator = (Any&& other) {
+		// Free this container and move the other onto it						
+		if (IsTypeConstrained() && !CastsToMeta(other.mType)) {
+			throw Except::Copy(Logger::Error()
+				<< "Bad shallow-copy-assignment for Any: from "
+				<< GetToken() << " to " << other.GetToken());
+		}
+
+		Free();
+		Block::operator = (other);
+		other.ResetMemory();
+		other.Reset();
+		return *this;
+	}
+
 	/// Assign by shallow-copying something constant									
 	///	@param value - the value to copy													
 	///	@return a reference to this container											
-	template<class T>
+	/*template<ReflectedData T>
 	Any& Any::operator = (const T& other) {
 		operator = (const_cast<T&>(other));
 		MakeConstant();
 		return *this;
-	}
+	}*/
 
 	/// Assign by shallow-copying something 												
 	///	@param other - the value to copy													
 	///	@return a reference to this container											
-	template<class T>
+	template<ReflectedData T>
 	Any& Any::operator = (T& other) {
-		if constexpr (IsSame<T, Any>) {
-			// Just reference the memory of the other Any						
-			if (IsTypeConstrained() && !CastsToMeta(other.mType)) {
-				throw Except::Copy(Logger::Error()
-					<< "Bad shallow-copy-assignment for type-constrained Any: from "
-					<< GetToken() << " to " << other.GetToken());
-			}
-	
-			// First we reference, so that we don't lose the memory, in		
-			// the rare case where memory is same in both containers			
-			other.Keep();
-			Free();
-			Block::operator = (other);
-		}
-		else if constexpr (IsSame<T, Block>) {
+		if constexpr (IsSame<T, Block>) {
 			// Always reference a Block, by wrapping it in an Any				
 			operator = (Any {other});			
 		}
@@ -203,26 +229,13 @@ namespace Langulus::Anyness
 	}
 
 	/// Assign by moving something															
-	///	@param value - the value to move													
+	///	@param other - the value to move													
 	///	@return a reference to this container											
-	template<class T>
+	template<ReflectedData T>
 	Any& Any::operator = (T&& other) {
-		if constexpr (IsSame<T, Any>) {
-			// Free this container and move the other onto it					
-			if (IsTypeConstrained() && !CastsToMeta(other.mType)) {
-				throw Except::Copy(Logger::Error()
-					<< "Bad shallow-copy-assignment for Any: from "
-					<< GetToken() << " to " << other.GetToken());
-			}
-	
-			Free();
-			Block::operator = (other);
-			other.Reset();
-			return *this;
-		}
-		else if constexpr (IsSame<T, Block>) {
+		if constexpr (IsSame<T, Block>) {
 			// Always reference a Block, by wrapping it in an Any				
-			return operator = (Any {Forward<T>(other)});
+			operator = (Any {Forward<T>(other)});
 		}
 		else {
 			const auto meta = MetaData::Of<Decay<T>>();
@@ -243,18 +256,18 @@ namespace Langulus::Anyness
 			else {
 				// Reset and allocate new memory										
 				Reset();
-				operator << <T>(other);
+				operator << <T>(Forward<T>(other));
 			}
-
-			return *this;
 		}
+		
+		return *this;
 	}
 	
 	/// Insert any data (including arrays) at the back									
 	///	@param other - the data to insert												
 	///	@return a reference to this memory block for chaining						
 	template<ReflectedData T>
-	Any& Any::operator << (T& other) {
+	Any& Any::operator << (const T& other) {
 		if constexpr (IsArray<T>)
 			Insert<Decay<T>, true, Any>(other, ExtentOf<T>, Index::Back);
 		else
@@ -265,7 +278,7 @@ namespace Langulus::Anyness
 	/// Emplace any data at the back															
 	///	@param other - the data to insert												
 	///	@return a reference to this memory block for chaining						
-	template<ReflectedData T>
+	template<IsDecayed T>
 	Any& Any::operator << (T&& other) {
 		Emplace<T, true, Any>(Forward<T>(other), Index::Back);
 		return *this;
@@ -275,7 +288,7 @@ namespace Langulus::Anyness
 	///	@param other - the data to insert												
 	///	@return a reference to this memory block for chaining						
 	template<ReflectedData T>
-	Any& Any::operator >> (T& other) {
+	Any& Any::operator >> (const T& other) {
 		if constexpr (IsArray<T>)
 			Insert<Decay<T>, true, Any>(other, ExtentOf<T>, Index::Front);
 		else
@@ -286,7 +299,7 @@ namespace Langulus::Anyness
 	/// Emplace any data at the front														
 	///	@param other - the data to insert												
 	///	@return a reference to this memory block for chaining						
-	template<ReflectedData T>
+	template<IsDecayed T>
 	Any& Any::operator >> (T&& other) {
 		Emplace<T, true, Any>(Forward<T>(other), Index::Front);
 		return *this;
@@ -296,7 +309,7 @@ namespace Langulus::Anyness
 	///	@param other - the data to insert												
 	///	@return a reference to this memory block for chaining						
 	template<ReflectedData T>
-	Any& Any::operator <<= (T& other) {
+	Any& Any::operator <<= (const T& other) {
 		if constexpr (IsArray<T>)
 			Merge<Decay<T>, true, Any>(other, ExtentOf<T>, Index::Back);
 		else
@@ -308,7 +321,7 @@ namespace Langulus::Anyness
 	///	@param other - the data to insert												
 	///	@return a reference to this memory block for chaining						
 	template<ReflectedData T>
-	Any& Any::operator >>= (T& other) {
+	Any& Any::operator >>= (const T& other) {
 		if constexpr (IsArray<T>)
 			Merge<Decay<T>, true, Any>(other, ExtentOf<T>, Index::Front);
 		else

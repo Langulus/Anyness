@@ -25,21 +25,23 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(pack.Is<int>());
 				REQUIRE(pack.GetRaw() != nullptr);
 				REQUIRE(pack.As<int>() == original_value);
-				REQUIRE_THROWS(pack.As<float>() == float(original_value));
+				REQUIRE_THROWS(pack.As<float>() == 0.0f);
 				REQUIRE(*pack.As<int*>() == original_value);
 				REQUIRE_THROWS(pack.As<float*>() == nullptr);
 			}
 
-			Any myPack;
-			std::any stdPack;
-			BENCHMARK("Anyness::Any::operator = (single trivial copy)") {
-				myPack = original_value;
-				return myPack.GetCount();		// prevent stuff being optimized-out
-			};
-			BENCHMARK("std::any::operator = (single trivial copy)") {
-				stdPack = original_value;
-				return stdPack.has_value();	// prevent stuff being optimized-out
-			};
+			#ifdef LANGULUS_STD_BENCHMARK
+				Any myPack;
+				std::any stdPack;
+				BENCHMARK("Anyness::Any::operator = (single trivial copy)") {
+					myPack = original_value;
+					return myPack.GetCount();		// prevent stuff being optimized-out
+				};
+				BENCHMARK("std::any::operator = (single trivial copy)") {
+					stdPack = original_value;
+					return stdPack.has_value();	// prevent stuff being optimized-out
+				};
+			#endif
 		}
 
 		WHEN("Given a dense Trait") {
@@ -58,21 +60,23 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(pack.Is<int>());
 				REQUIRE(pack.GetRaw() != nullptr);
 				REQUIRE(pack.As<int>() == original_value);
-				REQUIRE_THROWS(pack.As<float>() == float(original_value));
+				REQUIRE_THROWS(pack.As<float>() == 0.0f);
 				REQUIRE(*pack.As<int*>() == original_value);
 				REQUIRE_THROWS(pack.As<float*>() == nullptr);
 			}
 
-			Any myPack;
-			std::any stdPack;
-			BENCHMARK("Anyness::Any::operator = (single trivial move)") {
-				myPack = Move(original_value);
-				return myPack.GetCount();		// prevent stuff being optimized-out
-			};
-			BENCHMARK("std::any::operator = (single trivial move)") {
-				stdPack = Move(original_value);
-				return stdPack.has_value();	// prevent stuff being optimized-out
-			};
+			#ifdef LANGULUS_STD_BENCHMARK
+				Any myPack;
+				std::any stdPack;
+				BENCHMARK("Anyness::Any::operator = (single trivial move)") {
+					myPack = Move(original_value);
+					return myPack.GetCount();		// prevent stuff being optimized-out
+				};
+				BENCHMARK("std::any::operator = (single trivial move)") {
+					stdPack = Move(original_value);
+					return stdPack.has_value();	// prevent stuff being optimized-out
+				};
+			#endif
 		}
 
 		WHEN("Given a sparse value") {
@@ -81,6 +85,7 @@ SCENARIO("Any", "[containers]") {
 
 			THEN("Various traits change") {
 				REQUIRE(pack.GetType() == meta);
+				REQUIRE(pack.IsSparse());
 				REQUIRE(pack.Is<int*>());
 				REQUIRE(pack.GetRaw() != nullptr);
 				REQUIRE(pack.As<int>() == original_value);
@@ -105,6 +110,7 @@ SCENARIO("Any", "[containers]") {
 
 			THEN("Various traits change, pointer remains valid") {
 				REQUIRE(original_int == original_int_backup);
+				REQUIRE(pack.IsSparse());
 				REQUIRE(pack.GetType() == meta);
 				REQUIRE(pack.Is<int*>());
 				REQUIRE(pack.GetRaw() != nullptr);
@@ -131,6 +137,7 @@ SCENARIO("Any", "[containers]") {
 
 			THEN("Various traits change") {
 				REQUIRE(another_pack.GetType() == meta);
+				REQUIRE(another_pack.IsSparse());
 				REQUIRE(another_pack.Is<int*>());
 				REQUIRE(another_pack.GetRaw() != nullptr);
 				REQUIRE(another_pack.As<int>() == original_value);

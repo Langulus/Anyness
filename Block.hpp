@@ -374,7 +374,6 @@ namespace Langulus::Anyness
 	
 		template<ReflectedData T>
 		void Swap(Offset, Offset);
-	
 		template<ReflectedData T>
 		void Swap(Index, Index);
 	
@@ -382,7 +381,7 @@ namespace Langulus::Anyness
 		Count Emplace(T&&, const Index& = Index::Back);
 	
 		template<ReflectedData T, bool MUTABLE = true, ReflectedData WRAPPER>
-		Count Insert(T*, Count = 1, const Index& = Index::Back);
+		Count Insert(const T*, Count = 1, const Index& = Index::Back);
 		Count InsertBlock(const Block&, const Index& = Index::Back);
 		Count InsertBlock(Block&&, const Index& = Index::Back);
 	
@@ -446,10 +445,12 @@ namespace Langulus::Anyness
 		void Reset();
 
 	protected:
+		Size RequestByteSize(const Count&) const noexcept;
+	
 		template<ReflectedData T>
 		void EmplaceInner(T&&, const Offset&);
 		template<ReflectedData T>
-		void InsertInner(T*, const Count&, const Offset&);
+		void InsertInner(const T*, const Count&, const Offset&);
 
 		static void CopyMemory(const void*, void*, const Size&) noexcept;
 		static void MoveMemory(const void*, void*, const Size&) noexcept;
@@ -471,8 +472,8 @@ namespace Langulus::Anyness
 		bool Free();
 	
 		void CallDefaultConstructors(const Count&);
-		void CallCopyConstructors(const Block&);
-		void CallMoveConstructors(Block&&);
+		void CallCopyConstructors(const Count&, const Block&);
+		void CallMoveConstructors(const Count&, Block&&);
 		void CallUnknownDestructors();
 		template<class T>
 		void CallKnownDestructors();

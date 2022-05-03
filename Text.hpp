@@ -50,9 +50,10 @@ namespace Langulus::Anyness
 		Text(const T&) requires IsNumber<T>;
 
 		Text& operator = (const Text&);
+		Text& operator = (Text&);
 		Text& operator = (Text&&) noexcept;
 
-		Text& operator = (const Disowned<Text>&);
+		Text& operator = (Disowned<Text>&&);
 		Text& operator = (Abandoned<Text>&&) noexcept;
 
 	public:

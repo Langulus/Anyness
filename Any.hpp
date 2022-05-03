@@ -38,12 +38,14 @@ namespace Langulus::Anyness
 		Any(T&);
 
 		~Any();
-		
-		template<class T>
-		Any& operator = (const T&);
-		template<class T>
+	
+		Any& operator = (const Any&);
+		Any& operator = (Any&);
+		Any& operator = (Any&&);
+	
+		template<ReflectedData T>
 		Any& operator = (T&);
-		template<class T>
+		template<ReflectedData T>
 		Any& operator = (T&&);
 
 	public:
@@ -68,20 +70,24 @@ namespace Langulus::Anyness
 		NOD() Any Crop(const Offset&, const Count&);
 
 		template<ReflectedData T>
-		Any& operator << (T&);
-		template<ReflectedData T>
+		Any& operator << (const T&);
+		template<IsDecayed T>
 		Any& operator << (T&&);
 	
 		template<ReflectedData T>
-		Any& operator >> (T&);
-		template<ReflectedData T>
+		Any& operator >> (const T&);
+		template<IsDecayed T>
 		Any& operator >> (T&&);
 
 		template<ReflectedData T>
-		Any& operator <<= (T&);
+		Any& operator <<= (const T&);
+		template<IsDecayed T>
+		Any& operator <<= (T&&);
 
 		template<ReflectedData T>
-		Any& operator >>= (T&);
+		Any& operator >>= (const T&);
+		template<IsDecayed T>
+		Any& operator >>= (T&&);
 
 	protected:
 		void ResetState();

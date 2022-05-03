@@ -70,7 +70,7 @@ namespace Langulus::Anyness
 	TEMPLATE_SHARED()
 	TPointer<T, DR> TPointer<T, DR>::Create(Decay<T>&& initializer) requires IsMoveConstructible<Decay<T>> {
 		TPointer pointer;
-		pointer.mEntry = Allocator::Allocate(sizeof(Decay<T>));
+		pointer.mEntry = Allocator::Allocate(GetAllocationPageOf<Decay<T>>());
 		pointer.mValue = reinterpret_cast<Type>(pointer.mEntry->GetBlockStart());
 		new (pointer.mValue) Decay<T> {Forward<Decay<T>>(initializer)};
 		return pointer;
@@ -83,7 +83,7 @@ namespace Langulus::Anyness
 	TEMPLATE_SHARED()
 	TPointer<T, DR> TPointer<T, DR>::Create(const Decay<T>& initializer) requires IsCopyConstructible<Decay<T>> {
 		TPointer pointer;
-		pointer.mEntry = Allocator::Allocate(sizeof(Decay<T>));
+		pointer.mEntry = Allocator::Allocate(GetAllocationPageOf<Decay<T>>());
 		pointer.mValue = reinterpret_cast<Type>(pointer.mEntry->GetBlockStart());
 		new (pointer.mValue) Decay<T> {initializer};
 		return pointer;
@@ -95,7 +95,7 @@ namespace Langulus::Anyness
 	TEMPLATE_SHARED()
 	TPointer<T, DR> TPointer<T, DR>::Create() requires IsDefaultConstructible<Decay<T>> {
 		TPointer pointer;
-		pointer.mEntry = Allocator::Allocate(MetaData::Of<T>(), 1);
+		pointer.mEntry = Allocator::Allocate(GetAllocationPageOf<Decay<T>>());
 		pointer.mValue = reinterpret_cast<decltype(pointer.mValue)>(pointer.mEntry->GetBlockStart());
 		new (pointer.mValue) Decay<T> {};
 		return pointer;
@@ -108,7 +108,7 @@ namespace Langulus::Anyness
 	TEMPLATE_SHARED() template<typename... ARGS>
 	TPointer<T, DR> TPointer<T, DR>::New(ARGS&&... arguments) {
 		TPointer pointer;
-		pointer.mEntry = Allocator::Allocate(MetaData::Of<T>(), 1);
+		pointer.mEntry = Allocator::Allocate(GetAllocationPageOf<Decay<T>>());
 		pointer.mValue = reinterpret_cast<decltype(pointer.mValue)>(pointer.mEntry->GetBlockStart());
 		new (pointer.mValue) Decay<T> {Forward<ARGS>(arguments)...};
 		return pointer;

@@ -365,13 +365,7 @@ namespace Langulus::Anyness
 	///	@attention source must have a binary-compatible type						
 	///	@attention this must have zero count, and mReserved						
 	///	@param source - the elements to copy											
-	void Block::CallCopyConstructors(const Block& source) {
-		const auto count = mReserved - mCount;
-		#if LANGULUS(SAFE)
-			if (count != source.mCount)
-				throw Except::Construct("Oops");
-		#endif
-		
+	void Block::CallCopyConstructors(const Count& count, const Block& source) {
 		if ((IsSparse() && source.IsSparse()) || mType->mIsPOD) {
 			// Just copy the POD/pointer memory (optimization)					
 			CopyMemory(source.mRaw, GetRawEnd(), GetStride() * count);
@@ -380,10 +374,10 @@ namespace Langulus::Anyness
 				// Since we're copying pointers, we have to reference the	
 				// dense memory behind each one of them							
 				auto pointers = GetRawSparse();
-				Count c {mCount};
-				while (c < mReserved) {
+				Count c {};
+				while (c < count) {
 					// Reference each pointer											
-					Allocator::Keep(mType, pointers[c], 1);
+					Allocator::Keep(mType, pointers[c + mCount], 1);
 					++c;
 				}
 			}
@@ -434,7 +428,7 @@ namespace Langulus::Anyness
 			}
 		}
 		
-		mCount = mReserved;		
+		mCount += count;
 	}
 
 	/// Call move constructors in a region and initialize memory					
@@ -445,13 +439,7 @@ namespace Langulus::Anyness
 	///	@attention after the move, source will have zero count,					
 	///		signifying that items have been consumed, but is still allocated	
 	///	@param source - the elements to move											
-	void Block::CallMoveConstructors(Block&& source) {
-		const auto count = mReserved - mCount;
-		#if LANGULUS(SAFE)
-			if (count != source.mCount)
-				throw Except::Construct("Oops");
-		#endif
-		
+	void Block::CallMoveConstructors(const Count& count, Block&& source) {
 		if (mType->mIsPOD || (IsSparse() && source.IsSparse())) {
 			// Copy pointers, and then null them									
 			const auto size = GetStride() * count;
@@ -498,7 +486,7 @@ namespace Langulus::Anyness
 		}
 
 		// Only consume the items in the source									
-		mCount = mReserved;
+		mCount += count;
 	}
 
 	/// Call destructors in a region - after this call the memory is not			
@@ -613,7 +601,9 @@ namespace Langulus::Anyness
 			// Fill gap	if any by invoking move constructions					
 			CropInner(starter, 0, mCount - ender)
 				.CallMoveConstructors(
-					CropInner(ender, mCount - ender, mCount - ender));
+					mCount - ender,
+					CropInner(ender, mCount - ender, mCount - ender)
+				);
 		}
 
 		// Change count																	
@@ -692,7 +682,9 @@ namespace Langulus::Anyness
 
 			CropInner(starter + other.mCount, 0, mCount - starter)
 				.CallMoveConstructors(
-					CropInner(starter, mCount - starter, mCount - starter));
+					mCount - starter,
+					CropInner(starter, mCount - starter, mCount - starter)
+				);
 		}
 
 		// Pick the region that should be overwritten with new stuff		
@@ -711,7 +703,7 @@ namespace Langulus::Anyness
 
 		if (region.IsAllocated()) {
 			// Call copy-constructors in the new region							
-			region.CallCopyConstructors(other);
+			region.CallCopyConstructors(other.mCount, other);
 			mCount += region.mReserved;
 			return region.mReserved;
 		}
@@ -730,7 +722,7 @@ namespace Langulus::Anyness
 
 		if (region.IsAllocated()) {
 			// Call move-constructors in the new region							
-			region.CallMoveConstructors(Forward<Block>(other));
+			region.CallMoveConstructors(other.mCount, Forward<Block>(other));
 			return region.mReserved;
 		}
 

@@ -56,11 +56,19 @@ namespace Langulus::Anyness
 		Free();
 	}
 
-	/// Shallow copy assignment																
+	/// Shallow copy assignment from immutable byte container						
 	///	@param rhs - the byte container to shallow-copy								
 	///	@return a reference to this container											
 	inline Bytes& Bytes::operator = (const Bytes& rhs) {
-		TAny::operator = (rhs);
+		TAny::operator = (static_cast<const TAny&>(rhs));
+		return *this;
+	}
+
+	/// Shallow copy assignment from mutable byte container							
+	///	@param rhs - the byte container to shallow-copy								
+	///	@return a reference to this container											
+	inline Bytes& Bytes::operator = (Bytes& rhs) {
+		TAny::operator = (static_cast<TAny&>(rhs));
 		return *this;
 	}
 

@@ -4,28 +4,6 @@
 namespace Langulus::Anyness
 {
    
-   /// Round to the upper power-of-two														
-	///	@param x - the unsigned integer to round up									
-	///	@return the closest upper round-of-two to x									
-   template<IsUnsigned T>
-	constexpr T Roof2(const T& x) noexcept {
-		T n = x;
-		--n;
-		n |= n >> 1;
-		n |= n >> 2;
-		n |= n >> 4;
-		if constexpr (sizeof(T) > 1)
-			n |= n >> 8;
-		if constexpr (sizeof(T) > 2)
-			n |= n >> 16;
-		if constexpr (sizeof(T) > 4)
-			n |= n >> 32;
-		if constexpr (sizeof(T) > 8)
-			TODO();
-		++n;
-		return n;
-	}
-   
    /// Define a new entry in use                                              
    ///   @param allocatedBytes - the number of allocated bytes                
    ///   @param owner - the owner pool of the entry                           

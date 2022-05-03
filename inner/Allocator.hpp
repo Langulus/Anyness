@@ -7,9 +7,6 @@ namespace Langulus::Anyness
 
 	class Pool;
 	
-	template<IsUnsigned T>
-	NOD() constexpr T Roof2(const T&) noexcept;
-
 	///																								
 	///	Memory entry																			
 	///																								

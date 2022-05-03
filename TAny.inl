@@ -63,7 +63,7 @@ namespace Langulus::Anyness
 	///	@param other - the anyness to reference										
 	TEMPLATE()
 	TAny<T>::TAny(Any& other) : TAny {} {
-		if (!InterpretsAs(other.GetType())) {
+		if (!CastsToMeta(other.GetType())) {
 			throw Except::Copy(Logger::Error()
 				<< "Bad shallow-copy-construction for TAny: from "
 				<< GetToken() << " to " << other.GetToken());
@@ -87,7 +87,7 @@ namespace Langulus::Anyness
 	///	@param other - the container to move											
 	TEMPLATE()
 	TAny<T>::TAny(Any&& other) : TAny {} {
-		if (!InterpretsAs(other.GetType())) {
+		if (!CastsToMeta(other.GetType())) {
 			throw Except::Copy(Logger::Error()
 				<< "Bad move-construction for TAny: from "
 				<< GetToken() << " to " << other.GetToken());
@@ -168,100 +168,163 @@ namespace Langulus::Anyness
 		// data on the stack																
 		TakeAuthority();
 	}
-
-	/// Shallow constant copy operator														
+	
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator = (const TAny<T>& other) {
-		other.Keep();
-		Free();
-		CopyProperties<true>(other);
+		operator = (const_cast<TAny&>(other));
 		MakeConstant();
 		return *this;
 	}
 
-	/// Shallow mutable copy operator														
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator = (TAny<T>& other) {
+		// First we reference, so that we don't lose the memory, in			
+		// the rare case where memory is same in both containers				
 		other.Keep();
 		Free();
 		CopyProperties<true>(other);
 		return *this;
 	}
-		
-	/// Move operator																				
+
 	TEMPLATE()
-	TAny<T>& TAny<T>::operator = (TAny<T>&& other) {
+	TAny<T>& TAny<T>::operator = (TAny<T>&& other) noexcept {
 		Free();
 		CopyProperties<true>(other);
 		other.ResetMemory();
 		other.ResetState();
 		return *this;
 	}
-
-	/// Shallow copy operator																	
-	TEMPLATE()
-	TAny<T>& TAny<T>::operator = (const Any& other) {
-		if (!InterpretsAs(other.mType)) {
-			throw Except::Copy(Logger::Error()
-				<< "Bad shallow-copy-assignment for TAny: from "
-				<< GetToken() << " to " << other.GetToken());
-		}
-
-		// Overwrite everything except the type-constraint						
-		other.Keep();
-		Free();
-		ResetState();
-		CopyProperties<false>(other);
-		return *this;
-	}
-
-	/// Move operator																				
-	TEMPLATE()
-	TAny<T>& TAny<T>::operator = (Any&& other) {
-		if (!InterpretsAs(other.mType)) {
-			throw Except::Copy(Logger::Error()
-				<< "Bad move-copy-assignment for TAny: from "
-				<< GetToken() << " to " << other.GetToken());
-		}
-
-		// Overwrite everything except the type-constraint						
-		Free();
-		ResetState();
-		CopyProperties<false>(other);
-		other.ResetMemory();
-		other.ResetState();
-		return *this;
-	}
-
-	/// Shallow copy immutable block operator												
-	TEMPLATE()
-	TAny<T>& TAny<T>::operator = (const Block& other) {
-		return operator = (Any {other});
-	}
-
-	/// Shallow copy mutable block operator												
-	TEMPLATE()
-	TAny<T>& TAny<T>::operator = (Block& other) {
-		return operator = (Any {other});
-	}
-
-	/// Assign by shallow-copying some value different from Any or Block			
+	
+	/// Assign by shallow-copying something constant									
 	///	@param value - the value to copy													
+	///	@return a reference to this container											
+	/*TEMPLATE()
+	template<class ALT_T>
+	TAny<T>& TAny<T>::operator = (const ALT_T& other) {
+		operator = (const_cast<ALT_T&>(other));
+		MakeConstant();
+		return *this;
+	}*/
+
+	/// Assign by shallow-copying something mutable										
+	///	@param other - the value to copy													
+	///	@return a reference to this container											
 	TEMPLATE()
-	TAny<T>& TAny<T>::operator = (const T& value) requires IsCustom<T> {
-		return operator = (TAny<T> {value});
+	template<ReflectedData ALT_T>
+	TAny<T>& TAny<T>::operator = (ALT_T& other) {
+		if constexpr (IsSame<ALT_T, Any>) {
+			// Just reference the memory of the other Any						
+			if (!CastsToMeta(other.mType)) {
+				throw Except::Copy(Logger::Error()
+					<< "Bad shallow-copy-assignment for TAny: from "
+					<< GetToken() << " to " << other.GetToken());
+			}
+	
+			// First we reference, so that we don't lose the memory, in		
+			// the rare case where memory is same in both containers			
+			other.Keep();
+			Free();
+			ResetState();
+			CopyProperties<false>(other);
+		}
+		else if constexpr (IsSame<ALT_T, Block>) {
+			// Always reference a Block, by wrapping it in an Any				
+			operator = (TAny<T> {other});			
+		}
+		else if constexpr (IsSame<ALT_T, T>) {
+			if (mEntry && mEntry->mReferences == 1) {
+				// Just destroy and reuse memory										
+				CallKnownDestructors<T>();
+				mCount = 0;
+				InsertInner<T>(&other, 1, 0);
+			}
+			else {
+				// Reset and allocate new memory										
+				Reset();
+				operator << (other);
+			}
+		}
+		else {
+			const auto meta = MetaData::Of<Decay<ALT_T>>();
+			if (!CastsToMeta(meta)) {
+				// Can't assign different type to a type-constrained Any		
+				throw Except::Copy(Logger::Error()
+					<< "Bad shallow-copy-assignment for TAny: from "
+					<< GetToken() << " to " << meta->mToken);
+			}
+			else if (mEntry && mEntry->mReferences == 1 && meta->Is(mType)) {
+				// Just destroy and reuse memory										
+				// Even better - types match, so we know this container		
+				// is filled with T too, therefore we can use statically		
+				// optimized routines for destruction								
+				CallKnownDestructors<T>();
+				mCount = 0;
+				InsertInner<T>(&other, 1, 0);
+			}
+			else {
+				// Reset and allocate new memory										
+				Reset();
+				operator << (other);
+			}
+		}
+
+		return *this;
 	}
 
-	TEMPLATE()
-	TAny<T>& TAny<T>::operator = (T& value) requires IsCustom<T> {
-		return operator = (TAny<T> {value});
-	}
-
-	/// Assign by moving some value different from Any or Block						
+	/// Assign by moving something															
 	///	@param value - the value to move													
+	///	@return a reference to this container											
 	TEMPLATE()
-	TAny<T>& TAny<T>::operator = (T&& value) requires IsCustom<T> {
-		return TAny<T>::operator = (TAny<T> {Forward<T>(value)});
+	template<ReflectedData ALT_T>
+	TAny<T>& TAny<T>::operator = (ALT_T&& other) {
+		if constexpr (IsSame<ALT_T, Disowned<TAny<T>>> || IsSame<ALT_T, Abandoned<TAny<T>>>) {
+			// Data is guaranteed to be compatible, replace it					
+			Free();
+			CopyProperties<true>(other.mValue);
+			if constexpr (IsSame<ALT_T, Abandoned<TAny<T>>>)
+				other.mValue.mEntry = nullptr;
+		}
+		else if constexpr (IsSame<ALT_T, Any> || IsSame<ALT_T, Disowned<Any>> || IsSame<ALT_T, Abandoned<Any>>) {
+			// Move the other onto this if type is compatible					
+			if (!CastsToMeta(other.mType)) {
+				throw Except::Copy(Logger::Error()
+					<< "Bad move-assignment for TAny: from "
+					<< GetToken() << " to " << other.GetToken());
+			}
+	
+			// Overwrite everything except the type-constraint					
+			Free();
+			ResetState();
+			if constexpr (IsSame<ALT_T, Any>) {
+				CopyProperties<false>(other);
+				other.ResetMemory();
+				other.ResetState();
+			}
+			else {
+				CopyProperties<true>(other.mValue);
+				if constexpr (IsSame<ALT_T, Abandoned<Any>>)
+					other.mValue.mEntry = nullptr;
+			}
+		}
+		else if constexpr (IsSame<ALT_T, Block>) {
+			// Always reference a Block, by wrapping it in an Any				
+			operator = (TAny<T> {Forward<Block>(other)});
+		}
+		else if constexpr (IsSame<ALT_T, T>) {
+			if (mEntry && mEntry->mReferences == 1) {
+				// Just destroy and reuse memory										
+				CallKnownDestructors<T>();
+				mCount = 0;
+				EmplaceInner<T>(Forward<ALT_T>(other), 0);
+			}
+			else {
+				// Reset and allocate new memory										
+				Reset();
+				operator << (Forward<ALT_T>(other));
+			}
+		}
+		else LANGULUS_ASSERT("Can't do move-assignment with incompatible type");
+		return *this;
 	}
 
 	/// An internal function used to copy members, without copying type and		
@@ -291,7 +354,7 @@ namespace Langulus::Anyness
 	///	@param type - the type check if current type interprets to				
 	///	@return true if able to interpret current type to 'type'					
 	TEMPLATE()
-	bool TAny<T>::InterpretsAs(DMeta type) const {
+	bool TAny<T>::CastsToMeta(DMeta type) const {
 		return mType->CastsTo<Langulus::IsSparse<T>>(type);
 	}
 
@@ -302,7 +365,7 @@ namespace Langulus::Anyness
 	///	@param count - the number of elements to interpret as						
 	///	@return true if able to interpret current type to 'type'					
 	TEMPLATE()
-	bool TAny<T>::InterpretsAs(DMeta type, Count count) const {
+	bool TAny<T>::CastsToMeta(DMeta type, Count count) const {
 		return mType->CastsTo(type, count);
 	}
 
@@ -397,25 +460,31 @@ namespace Langulus::Anyness
 		using Type = Decay<T>;
 
 		if constexpr (Langulus::IsSparse<T>) {
+			TAny<Decay<T>> coalesced;
+			coalesced.Allocate(mCount);
+			
 			// Clone data behind each valid pointer								
-			for (Offset i = 0; i < mCount; ++i) {
-				if (!*to) {
+			Count counter {};
+			while (from < GetRawEnd()) {
+				if (!*from) {
 					*to = nullptr;
 					++from; ++to;
 					continue;
 				}
 				
-				auto entry = Allocator::Allocate(sizeof(Type));
 				if constexpr (IsClonable<T>)
-					new (entry->GetBlockStart()) Type {(*from)->Clone()};
+					new (&coalesced[counter]) Type {(*from)->Clone()};
 				else if constexpr (IsPOD<T>)
-					CopyMemory(**from, entry->GetBlockStart(), sizeof(Type));
+					CopyMemory(**from, &coalesced[counter], sizeof(Type));
 				else
 					LANGULUS_ASSERT("Can't clone a container made of non-clonable/non-POD type");
 				
-				*to = entry->GetBlockStart();
+				*to = &coalesced[counter];
 				++from; ++to;
+				++counter;
 			}
+			
+			coalesced.Reference(counter);
 		}
 		else {
 			// Clone dense elements														
@@ -615,7 +684,7 @@ namespace Langulus::Anyness
 	///	@param idx - the place where to insert the items							
 	///	@return number of inserted items													
 	TEMPLATE()
-	Count TAny<T>::Insert(T* items, const Count count, const Index& idx) {
+	Count TAny<T>::Insert(const T* items, const Count count, const Index& idx) {
 		return Any::Insert<T, false, TAny>(items, count, idx);
 	}
 
@@ -624,7 +693,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this container for chaining							
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator << (const T& other) {
-		Any::Insert<T, false, TAny>(&other, 1, Index::Back);
+		Insert(&other, 1, Index::Back);
 		return *this;
 	}
 
@@ -633,7 +702,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this container for chaining							
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator << (T&& other) {
-		Any::Emplace<T, false, TAny>(Forward<T>(other), Index::Back);
+		Emplace(Forward<T>(other), Index::Back);
 		return *this;
 	}
 
@@ -973,13 +1042,7 @@ namespace Langulus::Anyness
 	/// Call copy constructors in a region and initialize memory					
 	///	@param source - the elements to copy											
 	TEMPLATE()
-	void TAny<T>::CallCopyConstructors(const TAny& source) {
-		const auto count = mReserved - mCount;
-		#if LANGULUS(SAFE)
-			if (count != source.mCount)
-				throw Except::Construct("Oops");
-		#endif
-			
+	void TAny<T>::CallCopyConstructors(const Count& count, const TAny& source) {
 		if constexpr(Langulus::IsSparse<T> || IsPOD<T>) {
 			// Just copy the POD/pointer memory (optimization)					
 			CopyMemory(source.GetRaw(), GetRawEnd(), GetStride() * count);
@@ -987,11 +1050,11 @@ namespace Langulus::Anyness
 			if constexpr(Langulus::IsSparse<T>) {
 				// Since we're copying pointers, we have to reference the	
 				// dense memory behind each one of them							
-				Count c {mCount};
+				Count c {};
 				auto pointers = GetRawSparse();
-				while (c < mReserved) {
+				while (c < count) {
 					// Reference each pointer											
-					Allocator::Keep(mType, pointers[c], 1);
+					Allocator::Keep(mType, pointers[c + mCount], 1);
 					++c;
 				}
 			}
@@ -1012,8 +1075,7 @@ namespace Langulus::Anyness
 	/// Call move constructors in a region and initialize memory					
 	///	@param source - the elements to move											
 	TEMPLATE()
-	void TAny<T>::CallMoveConstructors(TAny&& source) {
-		const auto count = ::std::min(mReserved - mCount, source.mCount);
+	void TAny<T>::CallMoveConstructors(const Count& count, TAny&& source) {
 		if constexpr(Langulus::IsSparse<T> || IsPOD<T>) {
 			// Copy pointers or POD														
 			const auto size = GetStride() * count;
@@ -1068,6 +1130,12 @@ namespace Langulus::Anyness
 		return Abandon(result);
 	}
 	
+	/// Get a byte size request based on allocation page and count					
+	TEMPLATE()
+	inline Size TAny<T>::RequestByteSize(const Count& count) const noexcept {
+		return RoundUpTo(sizeof(T) * count, GetAllocationPageOf<T>());
+	}
+
 	/// Allocate a number of elements, relying on the type of the container		
 	///	@tparam CREATE - true to call constructors									
 	///	@param elements - number of elements to allocate							
@@ -1094,7 +1162,7 @@ namespace Langulus::Anyness
 		}
 		
 		// Retrieve the required byte size											
-		const Size byteSize = GetStride() * elements;
+		const auto byteSize = RequestByteSize(elements);
 		
 		// Allocate/reallocate															
 		if (mEntry) {
@@ -1113,7 +1181,7 @@ namespace Langulus::Anyness
 					// Memory moved, and we should call move-construction		
 					mRaw = mEntry->GetBlockStart();
 					mCount = 0;
-					CallMoveConstructors(Move(previousBlock));
+					CallMoveConstructors(previousBlock.mCount, Move(previousBlock));
 					previousBlock.Free();
 				}
 				
@@ -1128,7 +1196,7 @@ namespace Langulus::Anyness
 				mEntry = Allocator::Allocate(byteSize);
 				mRaw = mEntry->GetBlockStart();
 				mCount = 0;
-				CallCopyConstructors(previousBlock);
+				CallCopyConstructors(previousBlock.mCount, previousBlock);
 				previousBlock.Free();
 				
 				if constexpr (CREATE) {
@@ -1150,7 +1218,7 @@ namespace Langulus::Anyness
 			}
 		}
 		
-		mReserved = elements;
+		mReserved = byteSize / sizeof(T);
 		return;
 	}
 	
@@ -1236,18 +1304,20 @@ namespace Langulus::Anyness
 			// Concatenate bytes															
 			WRAPPER result {Disown(*this)};
 			result.mCount += rhs.mCount;
-			result.mReserved = result.mCount;
 			if (result.mCount) {
-				result.mEntry = Allocator::Allocate(result.GetSize());
+				const auto byteSize = RequestByteSize(result.mCount);
+				result.mEntry = Allocator::Allocate(byteSize);
 				result.mRaw = result.mEntry->GetBlockStart();
+				result.mReserved = byteSize / result.GetStride();
+				CopyMemory(mRaw, result.mRaw, mCount);
+				CopyMemory(rhs.mRaw, result.mRaw + mCount, rhs.mCount);
 			}
 			else {
 				result.mEntry = nullptr;
 				result.mRaw = nullptr;
+				result.mReserved = 0;
 			}
 
-			CopyMemory(mRaw, result.mRaw, mCount);
-			CopyMemory(rhs.mRaw, result.mRaw + mCount, rhs.mCount);
 			return Abandon(result);
 		}
 		else if constexpr (IsConvertible<RHS, WRAPPER>) {

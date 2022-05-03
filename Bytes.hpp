@@ -31,6 +31,7 @@ namespace Langulus::Anyness
 		~Bytes();
 
 		Bytes& operator = (const Bytes&);
+		Bytes& operator = (Bytes&);
 		Bytes& operator = (Bytes&&) noexcept;
 
 		Bytes& operator = (Disowned<Bytes>&&);

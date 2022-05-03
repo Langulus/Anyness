@@ -39,29 +39,21 @@ namespace Langulus::Anyness
 		TAny(const T&) requires IsCustom<T>;
 		TAny(T&) requires IsCustom<T>;
 		TAny(const T*, const Count&);
-
+		
 		TAny& operator = (const TAny&);
 		TAny& operator = (TAny&);
-		TAny& operator = (TAny&&);
+		TAny& operator = (TAny&&) noexcept;
 
-		TAny& operator = (const Any&);
-		TAny& operator = (Any&);
-		TAny& operator = (Any&&);
-
-		TAny& operator = (const Block&);
-		TAny& operator = (Block&);
-		TAny& operator = (Block&&);
-
-		TAny& operator = (const Disowned<TAny>&);
-		TAny& operator = (Abandoned<TAny>&&) noexcept;
-
-		TAny& operator = (const T&) requires IsCustom<T>;
-		TAny& operator = (T&) requires IsCustom<T>;
-		TAny& operator = (T&&) requires IsCustom<T>;
+		//template<class ALT_T>
+		//TAny& operator = (const ALT_T&);
+		template<ReflectedData ALT_T>
+		TAny& operator = (ALT_T&);
+		template<ReflectedData ALT_T>
+		TAny& operator = (ALT_T&&);
 
 	public:
-		NOD() bool InterpretsAs(DMeta) const;
-		NOD() bool InterpretsAs(DMeta, Count) const;
+		NOD() bool CastsToMeta(DMeta) const;
+		NOD() bool CastsToMeta(DMeta, Count) const;
 		
 		NOD() static TAny Wrap(const T&);
 		template<Count COUNT>
@@ -118,7 +110,7 @@ namespace Langulus::Anyness
 
 		Count Emplace(T&&, const Index& = Index::Back);
 
-		Count Insert(T*, Count = 1, const Index& = Index::Back);
+		Count Insert(const T*, Count = 1, const Index& = Index::Back);
 		TAny& operator << (const T&);
 		TAny& operator << (T&&);
 		TAny& operator >> (const T&);
@@ -126,7 +118,9 @@ namespace Langulus::Anyness
 
 		Count Merge(const T*, Count = 1, const Index& = Index::Back);
 		TAny& operator <<= (const T&);
+		TAny& operator <<= (T&&);
 		TAny& operator >>= (const T&);
+		TAny& operator >>= (T&&);
 
 		template<ReflectedData ALT_T = T>
 		NOD() Index Find(const ALT_T&, const Index& = Index::Front) const;
@@ -165,11 +159,13 @@ namespace Langulus::Anyness
 		}
 
 	protected:
+		Size RequestByteSize(const Count&) const noexcept;
+
 		template<bool OVERWRITE>
 		void CopyProperties(const Block&) noexcept;
 		void CallDefaultConstructors(const Count&);
-		void CallCopyConstructors(const TAny&);
-		void CallMoveConstructors(TAny&&);
+		void CallCopyConstructors(const Count&, const TAny&);
+		void CallMoveConstructors(const Count&, TAny&&);
 	};
 
 

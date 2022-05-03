@@ -37,16 +37,18 @@ namespace Langulus::Anyness
 	Bytes Bytes::Clone() const {
 		Bytes result {Disown(*this)};
 		if (mCount) {
-			result.mEntry = Allocator::Allocate(GetSize());
+			const auto byteSize = RequestByteSize(mCount);
+			result.mEntry = Allocator::Allocate(byteSize);
 			result.mRaw = result.mEntry->GetBlockStart();
+			result.mReserved = byteSize;
+			CopyMemory(mRaw, result.mRaw, mCount);
 		}
 		else {
 			result.mEntry = nullptr;
 			result.mRaw = nullptr;
+			result.mReserved = 0;
 		}
 		
-		result.mCount = result.mReserved = mCount;
-		CopyMemory(mRaw, result.mRaw, mCount);
 		return Abandon(result);
 	}
 

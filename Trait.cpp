@@ -169,7 +169,7 @@ namespace Langulus::Anyness
 	/// Shallow copy operator with trait type												
 	///	@param other - the trait to copy													
 	Trait& Trait::operator = (const Trait& other) {
-		Any::operator = <Any>(other);
+		Any::operator = (static_cast<const Any&>(other));
 		mTraitType = other.mTraitType;
 		return *this;
 	}
@@ -177,7 +177,7 @@ namespace Langulus::Anyness
 	/// Shallow copy operator with trait type												
 	///	@param other - the trait to copy													
 	Trait& Trait::operator = (Trait& other) {
-		Any::operator = <Any>(other);
+		Any::operator = (static_cast<Any&>(other));
 		mTraitType = other.mTraitType;
 		return *this;
 	}

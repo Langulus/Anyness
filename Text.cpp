@@ -65,11 +65,19 @@ namespace Langulus::Anyness
 		return lines;
 	}
 
-	/// Shallow copy assignment																
+	/// Shallow copy assignment an immutable text container							
 	///	@param rhs - the text container to copy										
 	///	@return a reference to this container											
 	Text& Text::operator = (const Text& rhs) {
-		TAny::operator = (rhs);
+		TAny::operator = (static_cast<const TAny&>(rhs));
+		return *this;
+	}
+	
+	/// Shallow copy assignment an mutable text container								
+	///	@param rhs - the text container to copy										
+	///	@return a reference to this container											
+	Text& Text::operator = (Text& rhs) {
+		TAny::operator = (static_cast<TAny&>(rhs));
 		return *this;
 	}
 
@@ -140,9 +148,10 @@ namespace Langulus::Anyness
 	Text Text::Clone() const {
 		Text result {Disown(*this)};
 		if (mCount) {
-			result.mReserved = mCount;
-			result.mEntry = Allocator::Allocate(mCount);
+			const auto byteSize = RequestByteSize(mCount);
+			result.mEntry = Allocator::Allocate(byteSize);
 			result.mRaw = result.mEntry->GetBlockStart();
+			result.mReserved = byteSize;
 			CopyMemory(mRaw, result.mRaw, mCount);
 		}
 		else {
@@ -161,9 +170,10 @@ namespace Langulus::Anyness
 			return *this;
 
 		Text result {Disown(*this)};
-		++result.mReserved;
-		result.mEntry = Allocator::Allocate(result.mReserved);
+		const auto byteSize = RequestByteSize(result.mReserved + 1);
+		result.mEntry = Allocator::Allocate(byteSize);
 		result.mRaw = result.mEntry->GetBlockStart();
+		result.mReserved = byteSize;
 		CopyMemory(mRaw, result.mRaw, mCount);
 		result.GetRaw()[mCount] = '\0';
 		return Abandon(result);

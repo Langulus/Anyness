@@ -2,14 +2,44 @@
 #pragma once
 #include "DataState.hpp"
 #include "TypeList.hpp"
+#include "Exceptions.hpp"
 
+/// You can mark types as deep by using LANGULUS(DEEP) true / false inside		
+/// class, but to fit into IsDeep concept, your type must also inherit Block	
 #define LANGULUS_DEEP() public: static constexpr bool CTTI_Deep = 
+
+/// You can mark types as POD (Plain Old Data) by using LANGULUS(POD) true or	
+/// false inside class. POD types are batch-copied via memcpy, and do not		
+/// call constructors or destructors when contained (unless nullifiable)		
 #define LANGULUS_POD() public: static constexpr bool CTTI_POD = 
+
+/// You can mark types as nullifiable, by using LANGULUS(NULLIFIABLE) true or	
+/// false inside class. Nullifiable classes are batch-constructed and			
+/// batch-destroyed via memset(0)															
 #define LANGULUS_NULLIFIABLE() public: static constexpr bool CTTI_Nullifiable = 
+
+/// You can make types concretizable, by using LANGULUS(CONCRETIZABLE) Type	
+/// When dynamically creating objects of your type, the most concrete type		
+/// in the chain will be used instead														
 #define LANGULUS_CONCRETIZABLE() public: using CTTI_Concretizable = 
+
+/// You can define an allocation page (number of elements) by using				
+/// LANGULUS(ALLOCATION_PAGE) X. When allocating memory for your type, X		
+/// will be the minimum amount of elements to allocate, aligned to the			
+/// nearest upper power-of-two amount of bytes. By default, allocation page	
+/// size	is never lower than LANGULUS(ALIGN)												
+#define LANGULUS_ALLOCATION_PAGE() public: constexpr Count CTTI_AllocationPage = 
+
+/// Make a type abstract																		
 #define LANGULUS_ABSTRACT() private: virtual void StayAbstractForever() = 0
+
+/// Reflect a list of members																	
 #define LANGULUS_MEMBERS(...) public: using CTTI_Members = ::Langulus::Anyness::TTypeList<__VA_ARGS__>
+
+/// Reflect a list of bases																	
 #define LANGULUS_BASES(...) public: using CTTI_Bases = ::Langulus::Anyness::TTypeList<__VA_ARGS__>
+
+/// Reflect a list of verbs																	
 #define LANGULUS_VERBS(...) public: using CTTI_Verbs = ::Langulus::Anyness::TTypeList<__VA_ARGS__>
 
 namespace Langulus::Flow
@@ -98,6 +128,55 @@ namespace Langulus::Anyness
 		typename Decay<T>::CTTI_Concrete;
 	};
 	
+   /// Round to the upper power-of-two														
+	///	@param x - the unsigned integer to round up									
+	///	@return the closest upper round-of-two to x									
+   template<IsUnsigned T>
+	constexpr T Roof2(const T& x) noexcept {
+		T n = x;
+		--n;
+		n |= n >> 1;
+		n |= n >> 2;
+		n |= n >> 4;
+		if constexpr (sizeof(T) > 1)
+			n |= n >> 8;
+		if constexpr (sizeof(T) > 2)
+			n |= n >> 16;
+		if constexpr (sizeof(T) > 4)
+			n |= n >> 32;
+		if constexpr (sizeof(T) > 8)
+			TODO();
+		++n;
+		return n;
+	}
+   
+   /// Round to the upper interval of some multiple                           
+	///	@param n - the unsigned integer to round up									
+	///	@param multiple - the interval to round up to								
+	///	@return the rounded number															
+   template<IsUnsigned T>
+   constexpr T RoundUpTo(const T& n, const T& multiple) SAFETY_NOEXCEPT() {
+      SAFETY(if (0 == multiple) 
+         throw Except::ZeroDivision("Division by zero in RoundUpTo"));
+      return ((n + multiple - 1) / multiple) * multiple;
+   }
+
+	/// Get the allocation page size of the type (in bytes)							
+	template<class T>
+	constexpr Size GetAllocationPageOf() noexcept {
+		if constexpr (requires {{Decay<T>::CTTI_AllocationPage} -> IsSame<Size>;}) {
+			constexpr Size candidate = Decay<T>::CTTI_AllocationPage * sizeof(T);
+			if constexpr (candidate < LANGULUS(ALIGN))
+				return LANGULUS(ALIGN);
+			else 
+				return Roof2(candidate);
+		}
+		else if constexpr (sizeof(T) < LANGULUS(ALIGN))
+			return LANGULUS(ALIGN);
+		else 
+			return Roof2(sizeof(T));
+	}
+
 	
 	///																								
 	///	These methods are sought in each reflected type								
@@ -320,6 +399,8 @@ namespace Langulus::Anyness
 		Size mSize {};
 		// Alignof (in bytes)															
 		Size mAlignment {};
+		// Allocation page, in bytes													
+		Size mAllocationPage {};
 		// File extensions used, separated by commas								
 		Token mFileExtension {};
 

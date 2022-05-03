@@ -4,6 +4,71 @@
 using uint = unsigned int;
 
 SCENARIO("TAny", "[containers]") {
+	GIVEN("A TAny instance") {
+		int value = 555;
+		auto meta = MetaData::Of<int>();
+		TAny<int> pack;
+
+		REQUIRE(meta);
+		REQUIRE(pack.GetType() == meta);
+		REQUIRE(pack.IsTypeConstrained());
+		REQUIRE(pack.GetRaw() == nullptr);
+		REQUIRE(pack.IsEmpty());
+		REQUIRE_FALSE(pack.IsAllocated());
+
+		WHEN("Given a POD value by copy") {
+			pack = value;
+			THEN("Various traits change") {
+				REQUIRE(pack.GetType() == meta);
+				REQUIRE(pack.Is<int>());
+				REQUIRE(pack.GetRaw() != nullptr);
+				REQUIRE(pack.As<int>() == value);
+				REQUIRE_THROWS(pack.As<float>() == 0.0f);
+				REQUIRE(*pack.As<int*>() == value);
+				REQUIRE_THROWS(pack.As<float*>() == nullptr);
+			}
+
+			#ifdef LANGULUS_STD_BENCHMARK
+				BENCHMARK("Anyness::TAny::operator = (single trivial copy)") {
+					TAny<int> myPack;
+					myPack = value;
+					return myPack.GetCount();		// prevent stuff being optimized-out
+				};
+				BENCHMARK("std::vector::push_back(single trivial copy)") {
+					std::vector<int> stdPack;
+					stdPack.push_back(value);
+					return stdPack.size();	// prevent stuff being optimized-out
+				};
+			#endif
+		}
+		
+		WHEN("Given a POD value by move") {
+			pack = Move(value);
+			THEN("Various traits change") {
+				REQUIRE(pack.GetType() == meta);
+				REQUIRE(pack.Is<int>());
+				REQUIRE(pack.GetRaw() != nullptr);
+				REQUIRE(pack.As<int>() == value);
+				REQUIRE_THROWS(pack.As<float>() == float(value));
+				REQUIRE(*pack.As<int*>() == value);
+				REQUIRE_THROWS(pack.As<float*>() == nullptr);
+			}
+
+			#ifdef LANGULUS_STD_BENCHMARK
+				BENCHMARK("Anyness::TAny::operator = (single trivial move)") {
+					TAny<int> myPack;
+					myPack = Move(value);
+					return myPack.GetCount();		// prevent stuff being optimized-out
+				};
+				BENCHMARK("std::vector::emplace_back(single trivial move)") {
+					std::vector<int> stdPack;
+					stdPack.emplace_back(Move(value));
+					return stdPack.size();	// prevent stuff being optimized-out
+				};
+			#endif
+		}
+	}
+	
 	GIVEN("A templated Any with some POD items") {
 		TAny<int> pack;
 		pack << int(1) << int(2) << int(3) << int(4) << int(5);
@@ -30,6 +95,23 @@ SCENARIO("TAny", "[containers]") {
 				#endif
 				REQUIRE(pack.Is<int>());
 			}
+			
+			//#ifdef LANGULUS_STD_BENCHMARK
+				TAny<int> myPack;
+				std::vector<int> stdPack;
+				BENCHMARK("Anyness::TAny::operator << (5 trivial moves)") {
+					myPack << int(1) << int(2) << int(3) << int(4) << int(5);
+					return myPack.GetCount();		// prevent stuff being optimized-out
+				};
+				BENCHMARK("std::vector::emplace_back(5 trivial moves)") {
+					stdPack.emplace_back(1);
+					stdPack.emplace_back(2);
+					stdPack.emplace_back(3);
+					stdPack.emplace_back(4);
+					stdPack.emplace_back(5);
+					return stdPack.size();	// prevent stuff being optimized-out
+				};
+			//#endif
 		}
 
 		WHEN("Insert more items at a specific place") {

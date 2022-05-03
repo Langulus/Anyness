@@ -221,6 +221,13 @@ namespace Langulus::Anyness
 		}
 	}
 	
+	/// Get a byte size request based on allocation page and count					
+	inline Size Block::RequestByteSize(const Count& count) const noexcept {
+		if (IsSparse())
+			return RoundUpTo(sizeof(void*) * count, LANGULUS(ALIGN));
+		return RoundUpTo(mType->mSize * count, mType->mAllocationPage);
+	}
+
 	/// Allocate a number of elements, relying on the type of the container		
 	///	@tparam CREATE - true to call constructors									
 	///	@param elements - number of elements to allocate							
@@ -255,7 +262,7 @@ namespace Langulus::Anyness
 		}
 		
 		// Retrieve the required byte size											
-		const Size byteSize = GetStride() * elements;
+		const auto byteSize = RequestByteSize(elements);
 		
 		// Allocate/reallocate															
 		if (mEntry) {
@@ -274,7 +281,7 @@ namespace Langulus::Anyness
 					// Memory moved, and we should call move-construction		
 					mRaw = mEntry->GetBlockStart();
 					mCount = 0;
-					CallMoveConstructors(Move(previousBlock));
+					CallMoveConstructors(previousBlock.mCount, Move(previousBlock));
 					previousBlock.Free();
 				}
 				
@@ -289,7 +296,7 @@ namespace Langulus::Anyness
 				mEntry = Allocator::Allocate(byteSize);
 				mRaw = mEntry->GetBlockStart();
 				mCount = 0;
-				CallCopyConstructors(previousBlock);
+				CallCopyConstructors(previousBlock.mCount, previousBlock);
 				previousBlock.Free();
 				
 				if constexpr (CREATE) {
@@ -308,7 +315,7 @@ namespace Langulus::Anyness
 			}
 		}
 		
-		mReserved = elements;
+		mReserved = byteSize / GetStride();
 		return;
 	}
 	
@@ -989,7 +996,9 @@ namespace Langulus::Anyness
 
 			Block::CropInner(starter + 1, 0, mCount - starter)
 				.CallMoveConstructors(
-					Block::CropInner(starter, mCount - starter, mCount - starter));
+					mCount - starter,
+					Block::CropInner(starter, mCount - starter, mCount - starter)
+				);
 		}
 
 		EmplaceInner<T>(Forward<T>(item), starter);
@@ -1002,7 +1011,7 @@ namespace Langulus::Anyness
 	///	@param index - use uiFront or uiBack for pushing to ends					
 	///	@return number of inserted elements												
 	template<ReflectedData T, bool MUTABLE, ReflectedData WRAPPER>
-	Count Block::Insert(T* items, const Count count, const Index& index) {
+	Count Block::Insert(const T* items, const Count count, const Index& index) {
 		const auto starter = ConstrainMore<T>(index).GetOffset();
 
 		if constexpr (MUTABLE) {
@@ -1025,7 +1034,9 @@ namespace Langulus::Anyness
 
 			CropInner(starter + count, 0, mCount - starter)
 				.CallMoveConstructors(
-					CropInner(starter, mCount - starter, mCount - starter));
+					mCount - starter,
+					CropInner(starter, mCount - starter, mCount - starter)
+				);
 		}
 
 		InsertInner<T>(items, count, starter);
@@ -1038,7 +1049,7 @@ namespace Langulus::Anyness
 	///	@param count - number of items inside											
 	///	@param starter - the offset at which to insert								
 	template<ReflectedData T>
-	void Block::InsertInner(T* items, const Count& count, const Offset& starter) {
+	void Block::InsertInner(const T* items, const Count& count, const Offset& starter) {
 		// Insert new data																
 		auto data = GetRaw() + starter * sizeof(T);
 		if constexpr (Langulus::IsSparse<T>) {
@@ -1065,7 +1076,7 @@ namespace Langulus::Anyness
 				Count c {};
 				while (c < count) {
 					// Reset all items													
-					new (data + c * sizeof(T)) T {items[c]};
+					new (data + c * sizeof(T)) T {const_cast<T&>(items[c])};
 					++c;
 				}
 			}
