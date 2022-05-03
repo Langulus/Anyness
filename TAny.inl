@@ -671,21 +671,61 @@ namespace Langulus::Anyness
 
 	/// Insert an item by move-construction												
 	///	@param item - the item to move													
-	///	@param idx - the place where to emplace the item							
+	///	@param index - the place where to emplace the item							
 	///	@return 1 if successful																
 	TEMPLATE()
-	Count TAny<T>::Emplace(T&& item, const Index& idx) {
-		return Any::Emplace<T, false, TAny>(Forward<T>(item), idx);
+	Count TAny<T>::Emplace(T&& item, const Index& index) {
+		const auto starter = ConstrainMore<T>(index).GetOffset();
+
+		// Allocate																			
+		Allocate<false>(mCount + 1);
+
+		// Move memory if required														
+		if (starter < mCount) {
+			if (GetReferences() > 1) {
+				throw Except::Reference(Logger::Error()
+					<< "Moving elements that are used from multiple places");
+			}
+
+			CropInner(starter + 1, 0, mCount - starter)
+				.CallKnownMoveConstructors<T>(
+					mCount - starter,
+					CropInner(starter, mCount - starter, mCount - starter)
+				);
+		}
+
+		EmplaceInner<T>(Forward<T>(item), starter);
+		return 1;
 	}
 
-	/// Insert by copy-construction															
+	/// Insert item(s) by copy-construction												
 	///	@param items - an array of items to insert									
 	///	@param count - the number of items to insert									
-	///	@param idx - the place where to insert the items							
+	///	@param index - the place where to insert the items							
 	///	@return number of inserted items													
 	TEMPLATE()
-	Count TAny<T>::Insert(const T* items, const Count count, const Index& idx) {
-		return Any::Insert<T, false, TAny>(items, count, idx);
+	Count TAny<T>::Insert(const T* items, const Count& count, const Index& index) {
+		const auto starter = ConstrainMore<T>(index).GetOffset();
+
+		// Allocate																			
+		Allocate<false>(mCount + count);
+
+		// Move memory if required														
+		if (starter < mCount) {
+			if (GetReferences() > 1) {
+				throw Except::Reference(Logger::Error()
+					<< "Moving elements that are used from multiple places");
+			}
+
+			CropInner(starter + count, 0, mCount - starter)
+				.CallKnownMoveConstructors<T>(
+					mCount - starter,
+					CropInner(starter, mCount - starter, mCount - starter)
+				);
+		}
+
+		InsertInner<T>(items, count, starter);
+		return count;
 	}
 
 	/// Push data at the back by copy-construction										
@@ -693,7 +733,17 @@ namespace Langulus::Anyness
 	///	@return a reference to this container for chaining							
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator << (const T& other) {
-		Insert(&other, 1, Index::Back);
+		Allocate<false>(mCount + 1);
+
+		// Insert new data																
+		GetRaw()[mCount] = other;
+		if constexpr (Langulus::IsSparse<T>) {
+			// Sparse data insertion (copying pointers and referencing)		
+			// Doesn't care about abstract items									
+			Allocator::Keep(mType, other, 1);
+		}
+
+		++mCount;
 		return *this;
 	}
 
@@ -702,7 +752,8 @@ namespace Langulus::Anyness
 	///	@return a reference to this container for chaining							
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator << (T&& other) {
-		Emplace(Forward<T>(other), Index::Back);
+		Allocate<false>(mCount + 1);
+		EmplaceInner<T>(Forward<T>(other), mCount);
 		return *this;
 	}
 
@@ -711,7 +762,21 @@ namespace Langulus::Anyness
 	///	@return a reference to this container for chaining							
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator >> (const T& other) {
-		Any::Insert<T, false, TAny>(&other, 1, Index::Front);
+		if (GetReferences() > 1) {
+			throw Except::Reference(Logger::Error()
+				<< "Moving elements that are used from multiple places");
+		}
+
+		Allocate<false>(mCount + 1);
+
+		// Move memory forward															
+		CropInner(1, 0, mCount - 1)
+			.CallKnownMoveConstructors<T>(
+				mCount - 1,
+				CropInner(0, mCount - 1, mCount - 1)
+			);
+
+		InsertInner<T>(&other, 1, 0);
 		return *this;
 	}
 
@@ -720,7 +785,21 @@ namespace Langulus::Anyness
 	///	@return a reference to this container for chaining							
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator >> (T&& other) {
-		Any::Emplace<T, false, TAny>(Forward<T>(other), Index::Front);
+		if (GetReferences() > 1) {
+			throw Except::Reference(Logger::Error()
+				<< "Moving elements that are used from multiple places");
+		}
+
+		Allocate<false>(mCount + 1);
+
+		// Move memory forward															
+		CropInner(1, 0, mCount - 1)
+			.CallKnownMoveConstructors<T>(
+				mCount - 1,
+				CropInner(0, mCount - 1, mCount - 1)
+			);
+
+		EmplaceInner<T>(Forward<T>(other), 0);
 		return *this;
 	}
 
@@ -731,7 +810,7 @@ namespace Langulus::Anyness
 	///	@param idx - the place to insert them											
 	///	@return the number of inserted items											
 	TEMPLATE()
-	Count TAny<T>::Merge(const T* items, const Count count, const Index& idx) {
+	Count TAny<T>::Merge(const T* items, const Count& count, const Index& idx) {
 		return Any::Merge<T, false, TAny>(items, count, idx);
 	}
 
@@ -1072,31 +1151,6 @@ namespace Langulus::Anyness
 		}
 	}
 	
-	/// Call move constructors in a region and initialize memory					
-	///	@param source - the elements to move											
-	TEMPLATE()
-	void TAny<T>::CallMoveConstructors(const Count& count, TAny&& source) {
-		if constexpr(Langulus::IsSparse<T> || IsPOD<T>) {
-			// Copy pointers or POD														
-			const auto size = GetStride() * count;
-			MoveMemory(source.mRaw, mRawSparse + mCount, size);
-		}
-		else {
-			// Both RHS and LHS are dense and non POD								
-			// Call the copy-constructor for each element						
-			static_assert(IsMoveConstructible<T>, 
-				"Trying to move-construct but it's impossible for this type");
-
-			auto from = source.GetRaw();
-			auto to = GetRaw();
-			for (Count i = 0; i < count; ++i)
-				new (to + mCount) T {Forward<T>(*from)};
-		}
-		
-		// Only consume the items in the source									
-		mCount += count;
-	}
-
 	/// Get a constant part of this container												
 	///	@tparam WRAPPER - the container to use for the part						
 	///			            use Block for unreferenced container					
@@ -1133,7 +1187,8 @@ namespace Langulus::Anyness
 	/// Get a byte size request based on allocation page and count					
 	TEMPLATE()
 	inline Size TAny<T>::RequestByteSize(const Count& count) const noexcept {
-		return RoundUpTo(sizeof(T) * count, GetAllocationPageOf<T>());
+		//return RoundUpTo(sizeof(T) * count, GetAllocationPageOf<T>());
+		return Roof2(sizeof(T) * count/*, GetAllocationPageOf<T>()*/);
 	}
 
 	/// Allocate a number of elements, relying on the type of the container		
@@ -1143,29 +1198,27 @@ namespace Langulus::Anyness
 	template<bool CREATE>
 	void TAny<T>::Allocate(Count elements) {
 		static_assert(!Langulus::IsAbstract<T>, "Can't allocate abstract items");
-
-		if (mCount > elements) {
-			// Destroy back entries on smaller allocation						
-			RemoveIndex(elements, mCount - elements);
-			return;
-		}
-
-		if (mReserved >= elements) {
-			// Required memory is already available								
-			if constexpr (CREATE) {
-				// But is not yet initialized, so initialize it					
-				if (mCount < elements)
-					CallDefaultConstructors(elements - mCount);
-			}
-			
-			return;
-		}
-		
-		// Retrieve the required byte size											
 		const auto byteSize = RequestByteSize(elements);
 		
 		// Allocate/reallocate															
 		if (mEntry) {
+			if (mReserved >= elements) {
+				if (mCount > elements) {
+					// Destroy back entries on smaller allocation				
+					RemoveIndex(elements, mCount - elements);
+					return;
+				}
+
+				// Required memory is already available							
+				if constexpr (CREATE) {
+					// But is not yet initialized, so initialize it				
+					if (mCount < elements)
+						CallDefaultConstructors(elements - mCount);
+				}
+
+				return;
+			}
+
 			// Reallocate																	
 			TAny<T> previousBlock {Disown(*this)};
 			if (mEntry->mReferences == 1) {
@@ -1181,7 +1234,7 @@ namespace Langulus::Anyness
 					// Memory moved, and we should call move-construction		
 					mRaw = mEntry->GetBlockStart();
 					mCount = 0;
-					CallMoveConstructors(previousBlock.mCount, Move(previousBlock));
+					CallKnownMoveConstructors<T>(previousBlock.mCount, Move(previousBlock));
 					previousBlock.Free();
 				}
 				

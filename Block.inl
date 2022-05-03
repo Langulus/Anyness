@@ -281,7 +281,7 @@ namespace Langulus::Anyness
 					// Memory moved, and we should call move-construction		
 					mRaw = mEntry->GetBlockStart();
 					mCount = 0;
-					CallMoveConstructors(previousBlock.mCount, Move(previousBlock));
+					CallUnknownMoveConstructors(previousBlock.mCount, Move(previousBlock));
 					previousBlock.Free();
 				}
 				
@@ -994,10 +994,10 @@ namespace Langulus::Anyness
 				throw Except::Reference(Logger::Error()
 					<< "Moving elements that are used from multiple places"));
 
-			Block::CropInner(starter + 1, 0, mCount - starter)
-				.CallMoveConstructors(
+			CropInner(starter + 1, 0, mCount - starter)
+				.CallKnownMoveConstructors<T>(
 					mCount - starter,
-					Block::CropInner(starter, mCount - starter, mCount - starter)
+					CropInner(starter, mCount - starter, mCount - starter)
 				);
 		}
 
@@ -1033,7 +1033,7 @@ namespace Langulus::Anyness
 					<< "Moving elements that are used from multiple places"));
 
 			CropInner(starter + count, 0, mCount - starter)
-				.CallMoveConstructors(
+				.CallKnownMoveConstructors<T>(
 					mCount - starter,
 					CropInner(starter, mCount - starter, mCount - starter)
 				);
@@ -2031,6 +2031,30 @@ namespace Langulus::Anyness
 		#endif
 	}
 
-	
+	/// Call move constructors in a region and initialize memory					
+	///	@param source - the elements to move											
+	template<class T>
+	void Block::CallKnownMoveConstructors(const Count& count, Block&& source) {
+		if constexpr(Langulus::IsSparse<T> || IsPOD<T>) {
+			// Copy pointers or POD														
+			const auto size = GetStride() * count;
+			MoveMemory(source.mRaw, mRawSparse + mCount, size);
+		}
+		else {
+			// Both RHS and LHS are dense and non POD								
+			// Call the copy-constructor for each element						
+			static_assert(IsMoveConstructible<T>, 
+				"Trying to move-construct but it's impossible for this type");
+
+			auto from = reinterpret_cast<T*>(source.GetRaw());
+			auto to = GetRaw();
+			for (Count i = 0; i < count; ++i)
+				new (to + mCount) T {Forward<T>(*from)};
+		}
+		
+		// Only consume the items in the source									
+		mCount += count;
+	}
+
 } // namespace Langulus::Anyness
 

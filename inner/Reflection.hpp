@@ -130,7 +130,7 @@ namespace Langulus::Anyness
 	
    /// Round to the upper power-of-two														
 	///	@param x - the unsigned integer to round up									
-	///	@return the closest upper round-of-two to x									
+	///	@return the closest upper power-of-two to x									
    template<IsUnsigned T>
 	constexpr T Roof2(const T& x) noexcept {
 		T n = x;

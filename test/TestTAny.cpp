@@ -70,8 +70,14 @@ SCENARIO("TAny", "[containers]") {
 	}
 	
 	GIVEN("A templated Any with some POD items") {
+		// Arrays are dynamic to avoid constexprification
+		int* darray1 = nullptr;
+		darray1 = new int[5] {1, 2, 3, 4, 5};
+		int* darray2 = nullptr;
+		darray2 = new int[5] {6, 7, 8, 9, 10};
+
 		TAny<int> pack;
-		pack << int(1) << int(2) << int(3) << int(4) << int(5);
+		pack << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
 		auto memory = pack.GetRaw();
 
 		REQUIRE(pack.GetCount() == 5);
@@ -86,7 +92,7 @@ SCENARIO("TAny", "[containers]") {
 		REQUIRE_FALSE(pack.IsConstant());
 
 		WHEN("Push more of the same stuff") {
-			pack << int(6) << int(7) << int(8) << int(9) << int(10);
+			pack << darray2[0] << darray2[1] << darray2[2] << darray2[3] << darray2[4];
 			THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
 				REQUIRE(pack.GetCount() == 10);
 				REQUIRE(pack.GetReserved() >= 10);
@@ -99,16 +105,16 @@ SCENARIO("TAny", "[containers]") {
 			//#ifdef LANGULUS_STD_BENCHMARK
 				TAny<int> myPack;
 				std::vector<int> stdPack;
-				BENCHMARK("Anyness::TAny::operator << (5 trivial moves)") {
-					myPack << int(1) << int(2) << int(3) << int(4) << int(5);
+				BENCHMARK("Anyness::TAny::operator << (5 consecutive trivial copies)") {
+					myPack << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
 					return myPack.GetCount();		// prevent stuff being optimized-out
 				};
-				BENCHMARK("std::vector::emplace_back(5 trivial moves)") {
-					stdPack.emplace_back(1);
-					stdPack.emplace_back(2);
-					stdPack.emplace_back(3);
-					stdPack.emplace_back(4);
-					stdPack.emplace_back(5);
+				BENCHMARK("std::vector::push_back(5 consecutive trivial copies)") {
+					stdPack.push_back(darray1[0]);
+					stdPack.push_back(darray1[1]);
+					stdPack.push_back(darray1[2]);
+					stdPack.push_back(darray1[3]);
+					stdPack.push_back(darray1[4]);
 					return stdPack.size();	// prevent stuff being optimized-out
 				};
 			//#endif

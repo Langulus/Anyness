@@ -22,7 +22,7 @@
 	#define LANGULUS_FPU() double
 	
 	#define NOD() [[nodiscard]]
-	#define LANGULUS_SAFE() LANGULUS_ENABLED()
+	#define LANGULUS_SAFE() LANGULUS_DISABLED()
 	#define LANGULUS_PARANOID() LANGULUS_DISABLED()
 	#define LANGULUS_ALIGN() ::std::size_t{16}
 

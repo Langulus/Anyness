@@ -110,13 +110,13 @@ namespace Langulus::Anyness
 
 		Count Emplace(T&&, const Index& = Index::Back);
 
-		Count Insert(const T*, Count = 1, const Index& = Index::Back);
+		Count Insert(const T*, const Count& = 1, const Index& = Index::Back);
 		TAny& operator << (const T&);
 		TAny& operator << (T&&);
 		TAny& operator >> (const T&);
 		TAny& operator >> (T&&);
 
-		Count Merge(const T*, Count = 1, const Index& = Index::Back);
+		Count Merge(const T*, const Count& = 1, const Index& = Index::Back);
 		TAny& operator <<= (const T&);
 		TAny& operator <<= (T&&);
 		TAny& operator >>= (const T&);
@@ -165,7 +165,6 @@ namespace Langulus::Anyness
 		void CopyProperties(const Block&) noexcept;
 		void CallDefaultConstructors(const Count&);
 		void CallCopyConstructors(const Count&, const TAny&);
-		void CallMoveConstructors(const Count&, TAny&&);
 	};
 
 

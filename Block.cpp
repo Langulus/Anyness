@@ -439,7 +439,7 @@ namespace Langulus::Anyness
 	///	@attention after the move, source will have zero count,					
 	///		signifying that items have been consumed, but is still allocated	
 	///	@param source - the elements to move											
-	void Block::CallMoveConstructors(const Count& count, Block&& source) {
+	void Block::CallUnknownMoveConstructors(const Count& count, Block&& source) {
 		if (mType->mIsPOD || (IsSparse() && source.IsSparse())) {
 			// Copy pointers, and then null them									
 			const auto size = GetStride() * count;
@@ -600,7 +600,7 @@ namespace Langulus::Anyness
 		if (ender < mCount) {
 			// Fill gap	if any by invoking move constructions					
 			CropInner(starter, 0, mCount - ender)
-				.CallMoveConstructors(
+				.CallUnknownMoveConstructors(
 					mCount - ender,
 					CropInner(ender, mCount - ender, mCount - ender)
 				);
@@ -681,7 +681,7 @@ namespace Langulus::Anyness
 					<< "Moving elements that are used from multiple places"));
 
 			CropInner(starter + other.mCount, 0, mCount - starter)
-				.CallMoveConstructors(
+				.CallUnknownMoveConstructors(
 					mCount - starter,
 					CropInner(starter, mCount - starter, mCount - starter)
 				);
@@ -722,7 +722,7 @@ namespace Langulus::Anyness
 
 		if (region.IsAllocated()) {
 			// Call move-constructors in the new region							
-			region.CallMoveConstructors(other.mCount, Forward<Block>(other));
+			region.CallUnknownMoveConstructors(other.mCount, Forward<Block>(other));
 			return region.mReserved;
 		}
 

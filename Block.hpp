@@ -473,7 +473,11 @@ namespace Langulus::Anyness
 	
 		void CallDefaultConstructors(const Count&);
 		void CallCopyConstructors(const Count&, const Block&);
-		void CallMoveConstructors(const Count&, Block&&);
+
+		void CallUnknownMoveConstructors(const Count&, Block&&);
+		template<class T>
+		void CallKnownMoveConstructors(const Count&, Block&&);
+
 		void CallUnknownDestructors();
 		template<class T>
 		void CallKnownDestructors();
