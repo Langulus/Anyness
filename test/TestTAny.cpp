@@ -28,7 +28,7 @@ SCENARIO("TAny", "[containers]") {
 				REQUIRE_THROWS(pack.As<float*>() == nullptr);
 			}
 
-			#ifdef LANGULUS_STD_BENCHMARK
+			#ifdef LANGULUS_STD_BENCHMARK // Last result: 2:1 performance
 				BENCHMARK("Anyness::TAny::operator = (single trivial copy)") {
 					TAny<int> myPack;
 					myPack = value;
@@ -54,7 +54,7 @@ SCENARIO("TAny", "[containers]") {
 				REQUIRE_THROWS(pack.As<float*>() == nullptr);
 			}
 
-			#ifdef LANGULUS_STD_BENCHMARK
+			#ifdef LANGULUS_STD_BENCHMARK // Last result: 2:1 performance
 				BENCHMARK("Anyness::TAny::operator = (single trivial move)") {
 					TAny<int> myPack;
 					myPack = Move(value);
@@ -91,18 +91,28 @@ SCENARIO("TAny", "[containers]") {
 		REQUIRE(pack[4] == 5);
 		REQUIRE_FALSE(pack.IsConstant());
 
-		WHEN("Push more of the same stuff") {
+		WHEN("Shallow-copy more of the same stuff") {
 			pack << darray2[0] << darray2[1] << darray2[2] << darray2[3] << darray2[4];
 			THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
 				REQUIRE(pack.GetCount() == 10);
 				REQUIRE(pack.GetReserved() >= 10);
+				REQUIRE(pack[0] == 1);
+				REQUIRE(pack[1] == 2);
+				REQUIRE(pack[2] == 3);
+				REQUIRE(pack[3] == 4);
+				REQUIRE(pack[4] == 5);
+				REQUIRE(pack[5] == 6);
+				REQUIRE(pack[6] == 7);
+				REQUIRE(pack[7] == 8);
+				REQUIRE(pack[8] == 9);
+				REQUIRE(pack[9] == 10);
 				#if LANGULUS_FEATURE(MANAGED_MEMORY)
 					REQUIRE(pack.GetRaw() == memory);
 				#endif
 				REQUIRE(pack.Is<int>());
 			}
 			
-			//#ifdef LANGULUS_STD_BENCHMARK
+			#ifdef LANGULUS_STD_BENCHMARK // Last result: 2:1 performance
 				TAny<int> myPack;
 				std::vector<int> stdPack;
 				BENCHMARK("Anyness::TAny::operator << (5 consecutive trivial copies)") {
@@ -117,13 +127,52 @@ SCENARIO("TAny", "[containers]") {
 					stdPack.push_back(darray1[4]);
 					return stdPack.size();	// prevent stuff being optimized-out
 				};
-			//#endif
+			#endif
 		}
 
-		WHEN("Insert more items at a specific place") {
-			int i666 = 666;
-			pack.Insert(&i666, 1, 3);
+		WHEN("Move more of the same stuff") {
+			pack << Move(darray2[0]) << Move(darray2[1]) << Move(darray2[2]) << Move(darray2[3]) << Move(darray2[4]);
 			THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
+				REQUIRE(pack.GetCount() == 10);
+				REQUIRE(pack.GetReserved() >= 10);
+				REQUIRE(pack[0] == 1);
+				REQUIRE(pack[1] == 2);
+				REQUIRE(pack[2] == 3);
+				REQUIRE(pack[3] == 4);
+				REQUIRE(pack[4] == 5);
+				REQUIRE(pack[5] == 6);
+				REQUIRE(pack[6] == 7);
+				REQUIRE(pack[7] == 8);
+				REQUIRE(pack[8] == 9);
+				REQUIRE(pack[9] == 10);
+				#if LANGULUS_FEATURE(MANAGED_MEMORY)
+					REQUIRE(pack.GetRaw() == memory);
+				#endif
+				REQUIRE(pack.Is<int>());
+			}
+			
+			#ifdef LANGULUS_STD_BENCHMARK // Last result: 2:1 performance
+				TAny<int> myPack;
+				std::vector<int> stdPack;
+				BENCHMARK("Anyness::TAny::operator << (5 consecutive trivial moves)") {
+					myPack << Move(darray2[0]) << Move(darray2[1]) << Move(darray2[2]) << Move(darray2[3]) << Move(darray2[4]);
+					return myPack.GetCount();		// prevent stuff being optimized-out
+				};
+				BENCHMARK("std::vector::emplace_back(5 consecutive trivial moves)") {
+					stdPack.emplace_back(Move(darray2[0]));
+					stdPack.emplace_back(Move(darray2[1]));
+					stdPack.emplace_back(Move(darray2[2]));
+					stdPack.emplace_back(Move(darray2[3]));
+					stdPack.emplace_back(Move(darray2[4]));
+					return stdPack.size();	// prevent stuff being optimized-out
+				};
+			#endif
+		}
+
+		WHEN("Insert more trivial items at a specific place by shallow-copy") {
+			int* i666 = new int { 666 };
+			pack.Insert(i666, 1, 3);
+			THEN("The size changes, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
 				REQUIRE(pack.GetCount() == 6);
 				REQUIRE(pack.GetReserved() >= 6);
 				#if LANGULUS_FEATURE(MANAGED_MEMORY)
@@ -137,9 +186,70 @@ SCENARIO("TAny", "[containers]") {
 				REQUIRE(pack[4] == 4);
 				REQUIRE(pack[5] == 5);
 			}
+
+			#ifdef LANGULUS_STD_BENCHMARK // Last result: 1:1 performance
+				TAny<int> myPack;
+				myPack << darray2[0] << darray2[1] << darray2[2] << darray2[3] << darray2[4];
+
+				std::vector<int> stdPack;
+				stdPack.push_back(darray2[0]);
+				stdPack.push_back(darray2[1]);
+				stdPack.push_back(darray2[2]);
+				stdPack.push_back(darray2[3]);
+				stdPack.push_back(darray2[4]);
+
+				BENCHMARK("Anyness::TAny::Insert(single copy in middle)") {
+					myPack.Insert(i666, 1, 3);
+					return myPack.GetCount();		// prevent stuff being optimized-out
+				};
+				BENCHMARK("std::vector::insert(single copy in middle)") {
+					stdPack.insert(stdPack.begin() + 3, *i666);
+					return stdPack.size();			// prevent stuff being optimized-out
+				};
+			#endif
 		}
 
-		WHEN("The size is reduced by removing elements, but allocated memory should remain the same") {
+		WHEN("Insert more trivial items at a specific place by move") {
+			int* i666 = new int { 666 };
+			pack.Emplace(Move(*i666), 3);
+			THEN("The size changes, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
+				REQUIRE(pack.GetCount() == 6);
+				REQUIRE(pack.GetReserved() >= 6);
+				#if LANGULUS_FEATURE(MANAGED_MEMORY)
+					REQUIRE(pack.GetRaw() == memory);
+				#endif
+				REQUIRE(pack.Is<int>());
+				REQUIRE(pack[0] == 1);
+				REQUIRE(pack[1] == 2);
+				REQUIRE(pack[2] == 3);
+				REQUIRE(pack[3] == 666);
+				REQUIRE(pack[4] == 4);
+				REQUIRE(pack[5] == 5);
+			}
+
+			#ifdef LANGULUS_STD_BENCHMARK // Last result: 1:1 performance
+				TAny<int> myPack;
+				myPack << Move(darray2[0]) << Move(darray2[1]) << Move(darray2[2]) << Move(darray2[3]) << Move(darray2[4]);
+
+				std::vector<int> stdPack;
+				stdPack.emplace_back(Move(darray2[0]));
+				stdPack.emplace_back(Move(darray2[1]));
+				stdPack.emplace_back(Move(darray2[2]));
+				stdPack.emplace_back(Move(darray2[3]));
+				stdPack.emplace_back(Move(darray2[4]));
+
+				BENCHMARK("Anyness::TAny::Emplace(single move in middle)") {
+					myPack.Emplace(Move(*i666), 3);
+					return myPack.GetCount();
+				};
+				BENCHMARK("std::vector::insert(single move in middle)") {
+					stdPack.insert(stdPack.begin() + 3, Move(*i666));
+					return stdPack.size();
+				};
+			#endif
+		}
+
+		WHEN("The size is reduced by finding and removing elements, but reserved memory should remain the same on shrinking") {
 			const auto removed2 = pack.Remove(int(2));
 			const auto removed4 = pack.Remove(int(4));
 			THEN("The size changes but not capacity") {
@@ -153,6 +263,29 @@ SCENARIO("TAny", "[containers]") {
 				REQUIRE(pack.GetReserved() >= 5);
 				REQUIRE(pack.GetRaw() == memory);
 			}
+
+			//#ifdef LANGULUS_STD_BENCHMARK 
+				BENCHMARK_ADVANCED("Anyness::TAny::Remove(single element by value)") (Catch::Benchmark::Chronometer meter) {
+					std::vector<TAny<int>> storage(meter.runs());
+					for (auto&& o : storage)
+						o << darray2[0] << darray2[1] << darray2[2] << darray2[3] << darray2[4];
+
+					meter.measure([&](int i) {
+						return storage[i].Remove(2);
+					});
+				};
+
+				BENCHMARK_ADVANCED("Anyness::vector::erase-remove(single element by value)") (Catch::Benchmark::Chronometer meter) {
+					std::vector<std::vector<int>> storage(meter.runs());
+					for (auto&& o : storage)
+						o = { darray2[0], darray2[1], darray2[2], darray2[3], darray2[4] };
+
+					meter.measure([&](int i) {
+						// Erase-remove idiom											
+						return storage[i].erase(std::remove(storage[i].begin(), storage[i].end(), 2), storage[i].end());
+					});
+				};
+			//#endif
 		}
 
 		WHEN("Removing non-available elements") {

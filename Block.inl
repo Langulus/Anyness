@@ -223,9 +223,8 @@ namespace Langulus::Anyness
 	
 	/// Get a byte size request based on allocation page and count					
 	inline Size Block::RequestByteSize(const Count& count) const noexcept {
-		if (IsSparse())
-			return RoundUpTo(sizeof(void*) * count, LANGULUS(ALIGN));
-		return RoundUpTo(mType->mSize * count, mType->mAllocationPage);
+		const auto base = (IsSparse() ? sizeof(void*) : GetStride()) * count;
+		return Roof2(::std::max(base, mType->mAllocationPage));
 	}
 
 	/// Allocate a number of elements, relying on the type of the container		

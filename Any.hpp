@@ -12,6 +12,9 @@ namespace Langulus::Anyness
 	/// It gracefully wraps sparse and dense arrays, keeping track of static	
 	/// and constant data blocks.																
 	///	For a faster statically-optimized equivalent of this, use TAny			
+	///	You can always ReinterpretAs a statically optimized equivalent for	
+	/// the cost of one runtime type check.												
+	/// (all Any variants are binary-compatible)											
 	///																								
 	class Any : public Block {
 		LANGULUS(DEEP) true;

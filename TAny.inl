@@ -1187,8 +1187,7 @@ namespace Langulus::Anyness
 	/// Get a byte size request based on allocation page and count					
 	TEMPLATE()
 	inline Size TAny<T>::RequestByteSize(const Count& count) const noexcept {
-		//return RoundUpTo(sizeof(T) * count, GetAllocationPageOf<T>());
-		return Roof2(sizeof(T) * count/*, GetAllocationPageOf<T>()*/);
+		return Roof2(::std::max(sizeof(T) * count, GetAllocationPageOf<T>()));
 	}
 
 	/// Allocate a number of elements, relying on the type of the container		

@@ -149,17 +149,6 @@ namespace Langulus::Anyness
 		++n;
 		return n;
 	}
-   
-   /// Round to the upper interval of some multiple                           
-	///	@param n - the unsigned integer to round up									
-	///	@param multiple - the interval to round up to								
-	///	@return the rounded number															
-   template<IsUnsigned T>
-   constexpr T RoundUpTo(const T& n, const T& multiple) SAFETY_NOEXCEPT() {
-      SAFETY(if (0 == multiple) 
-         throw Except::ZeroDivision("Division by zero in RoundUpTo"));
-      return ((n + multiple - 1) / multiple) * multiple;
-   }
 
 	/// Get the allocation page size of the type (in bytes)							
 	template<class T>
