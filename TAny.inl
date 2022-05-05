@@ -874,74 +874,66 @@ namespace Langulus::Anyness
 						if (data[i] == static_cast<MakeConst<ALT_T>>(item))
 							return i;
 					}
-					else {
-						if (data[i] == item)
-							return i;
-					}
+					else LANGULUS_ASSERT("Type is not comparable to contained elements");
 				}
 			}
 			else {
 				// Searching for pointer inside a dense container				
-				for (auto i = starti; i < count && i >= 0; i += istep) {
-					if constexpr (Inherits<T, ALT_T>) {
-						if (static_cast<MakeConst<T>>(data + i) == item)
-							return i;
-					}
-					else if constexpr (Inherits<ALT_T, T>) {
-						if (data + i == static_cast<MakeConst<ALT_T>>(item))
-							return i;
-					}
-					else {
-						if (data + i == item)
-							return i;
-					}
+				// Pointer should reside inside container							
+				if constexpr (Inherits<T, ALT_T>) {
+					const auto difference = item - static_cast<MakeConst<T>>(data);
+					if (difference >= 0 && static_cast<Count>(difference) < mCount)
+						return Index {difference};
 				}
+				else if constexpr (Inherits<ALT_T, T>) {
+					const auto difference = static_cast<MakeConst<ALT_T>>(item) - data;
+					if (difference >= 0 && static_cast<Count>(difference) < mCount)
+						return Index {difference};
+				}
+				else LANGULUS_ASSERT("Type is not comparable to contained elements");
+			}
+		}
+		else if constexpr (Langulus::IsSparse<T>) {
+			// Searching for value inside a sparse container					
+			for (Index::Type i = starti; i < count && i >= 0; i += istep) {
+				// Test pointers first													
+				if constexpr (Inherits<T, ALT_T>) {
+					if (static_cast<MakeConst<T>>(data[i]) == &item)
+						return i;
+				}
+				else if constexpr (Inherits<ALT_T, T>) {
+					if (data[i] == static_cast<MakeConst<ALT_T>>(&item))
+						return i;
+				}
+				else {
+					if (data[i] == &item)
+						return i;
+				}
+					
+				// Test by value															
+				if (*data[i] == item)
+					return i;
 			}
 		}
 		else {
-			if constexpr (Langulus::IsSparse<T>) {
-				// Searching for value inside a sparse container				
-				for (Index::Type i = starti; i < count && i >= 0; i += istep) {
-					// Test pointers first												
-					if constexpr (Inherits<T, ALT_T>) {
-						if (static_cast<MakeConst<T>>(data[i]) == &item)
-							return i;
-					}
-					else if constexpr (Inherits<ALT_T, T>) {
-						if (data[i] == static_cast<MakeConst<ALT_T>>(&item))
-							return i;
-					}
-					else {
-						if (data[i] == &item)
-							return i;
-					}
-					
-					// Test by value														
-					if (*data[i] == item)
-						return i;
-				}
+			// Searching for value inside a dense container						
+			// First check if value is inside container memory					
+			if constexpr (Inherits<T, ALT_T>) {
+				const auto difference = &item - static_cast<MakeConst<T>>(data);
+				if (difference >= 0 && static_cast<Count>(difference) < mCount)
+					return Index {difference};
 			}
-			else {
-				// Searching for value inside a dense container					
-				for (Index::Type i = starti; i < count && i >= 0; i += istep) {
-					// Test pointers first												
-					if constexpr (Inherits<T, ALT_T>) {
-						if (static_cast<MakeConst<T>>(data + i) == &item)
-							return i;
-					}
-					else if constexpr (Inherits<ALT_T, T>) {
-						if (data + 1 == static_cast<MakeConst<ALT_T>>(&item))
-							return i;
-					}
-					else {
-						if (data + 1 == &item)
-							return i;
-					}
-					
-					// Test by value														
-					if (data[i] == item)
-						return i;
-				}
+			else if constexpr (Inherits<ALT_T, T>) {
+				const auto difference = static_cast<MakeConst<ALT_T>>(&item) - data;
+				if (difference >= 0 && static_cast<Count>(difference) < mCount)
+					return Index {difference};
+			}
+
+			// Test by value																
+			//TODO SIMD
+			for (Index::Type i = starti; i < count && i >= 0; i += istep) {
+				if (data[i] == item)
+					return i;
 			}
 		}
 
