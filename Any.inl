@@ -221,7 +221,11 @@ namespace Langulus::Anyness
 			else {
 				// Reset and allocate new memory										
 				Reset();
-				operator << <T>(other);
+				mType = meta;
+				if constexpr (Langulus::IsSparse<T>)
+					MakeSparse();
+				AllocateInner<false>(1);
+				InsertInner<T>(&other, 1, 0);
 			}
 		}
 
@@ -256,7 +260,11 @@ namespace Langulus::Anyness
 			else {
 				// Reset and allocate new memory										
 				Reset();
-				operator << <T>(Forward<T>(other));
+				mType = meta;
+				if constexpr (Langulus::IsSparse<T>)
+					MakeSparse();
+				AllocateInner<false>(1);
+				EmplaceInner<T>(Forward<T>(other), 0);
 			}
 		}
 		

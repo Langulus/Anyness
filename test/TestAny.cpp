@@ -6,81 +6,131 @@ using uint = unsigned int;
 
 SCENARIO("Any", "[containers]") {
 	GIVEN("An Any instance") {
-		int original_value = 555;
+		int value = 555;
 		auto meta = MetaData::Of<int>();
-		Any pack;
 
 		REQUIRE(meta);
-		REQUIRE(pack.GetType() == nullptr);
-		REQUIRE(pack.IsUntyped());
-		REQUIRE(pack.GetState() == DataState::Default);
-		REQUIRE(pack.GetRaw() == nullptr);
-		REQUIRE(pack.IsEmpty());
-		REQUIRE_FALSE(pack.IsAllocated());
+
+		WHEN("Given a default-constructed Any") {
+			Any pack;
+			REQUIRE(pack.GetCount() == 0);
+			REQUIRE(pack.GetType() == nullptr);
+			REQUIRE(pack.IsUntyped());
+			REQUIRE_FALSE(pack.IsTypeConstrained());
+			REQUIRE(pack.GetState() == DataState::Default);
+			REQUIRE(pack.GetRaw() == nullptr);
+			REQUIRE(pack.IsEmpty());
+			REQUIRE_FALSE(pack.IsAllocated());
+
+			#ifdef LANGULUS_STD_BENCHMARK // Last result: 1:1 performance (slightly faster than std::any)
+				BENCHMARK_ADVANCED("Anyness::Any::default construction") (Catch::Benchmark::Chronometer meter) {
+					std::vector<Catch::Benchmark::storage_for<Any>> storage(meter.runs());
+					meter.measure([&](int i) { return storage[i].construct(); });
+				};
+
+				BENCHMARK_ADVANCED("std::any::default construction") (Catch::Benchmark::Chronometer meter) {
+					std::vector<Catch::Benchmark::storage_for<std::any>> storage(meter.runs());
+					meter.measure([&](int i) { return storage[i].construct(); });
+				};
+			#endif
+		}
 
 		WHEN("Given a POD value by copy") {
-			pack = original_value;
+			Any pack;
+			pack = value;
+
 			THEN("Various traits change") {
+				REQUIRE(pack.GetCount() == 1);
 				REQUIRE(pack.GetType() == meta);
 				REQUIRE(pack.Is<int>());
 				REQUIRE(pack.GetRaw() != nullptr);
-				REQUIRE(pack.As<int>() == original_value);
+				REQUIRE(pack.As<int>() == value);
 				REQUIRE_THROWS(pack.As<float>() == 0.0f);
-				REQUIRE(*pack.As<int*>() == original_value);
+				REQUIRE(*pack.As<int*>() == value);
 				REQUIRE_THROWS(pack.As<float*>() == nullptr);
 			}
 
-			#ifdef LANGULUS_STD_BENCHMARK
-				Any myPack;
-				std::any stdPack;
-				BENCHMARK("Anyness::Any::operator = (single trivial copy)") {
-					myPack = original_value;
-					return myPack.GetCount();		// prevent stuff being optimized-out
+			#ifdef LANGULUS_STD_BENCHMARK // Last result: 8:1 performance - needs optimization
+				BENCHMARK_ADVANCED("Anyness::Any::operator = (single trivial copy)") (Catch::Benchmark::Chronometer meter) {
+					std::vector<Any> storage(meter.runs());
+					meter.measure([&](int i) {
+						return storage[i] = value;
+					});
 				};
-				BENCHMARK("std::any::operator = (single trivial copy)") {
-					stdPack = original_value;
-					return stdPack.has_value();	// prevent stuff being optimized-out
+
+				BENCHMARK_ADVANCED("std::any::operator = (single trivial copy)") (Catch::Benchmark::Chronometer meter) {
+					std::vector<std::any> storage(meter.runs());
+					meter.measure([&](int i) {
+						return storage[i] = value;
+					});
 				};
 			#endif
 		}
 
 		WHEN("Given a dense Trait") {
+			Any pack;
 			pack = Traits::Count(5);
+
 			THEN("Various traits change") {
-				REQUIRE(pack.GetType() == MetaData::Of<Traits::Count>());
+				REQUIRE(pack.GetCount() == 1);
 				REQUIRE(pack.Is<Traits::Count>());
 				REQUIRE(pack.GetRaw() != nullptr);
+				REQUIRE_FALSE(pack.IsDeep());
+				REQUIRE(pack.As<Traits::Count>() == Traits::Count(5));
+				REQUIRE_THROWS(pack.As<float>() == 0.0f);
 			}
+
+			#ifdef LANGULUS_STD_BENCHMARK // Last result: 1:1 performance
+				BENCHMARK_ADVANCED("Anyness::Any::operator = (Traits::Count(5))") (Catch::Benchmark::Chronometer meter) {
+					std::vector<Any> storage(meter.runs());
+					meter.measure([&](int i) {
+						return storage[i] = Traits::Count(5);
+					});
+				};
+
+				BENCHMARK_ADVANCED("std::any::operator = (Traits::Count(5))") (Catch::Benchmark::Chronometer meter) {
+					std::vector<std::any> storage(meter.runs());
+					meter.measure([&](int i) {
+						return storage[i] = Traits::Count(5);
+					});
+				};
+			#endif
 		}
 
 		WHEN("Given a POD value by move") {
-			pack = Move(original_value);
+			Any pack;
+			pack = Move(value);
+
 			THEN("Various traits change") {
 				REQUIRE(pack.GetType() == meta);
 				REQUIRE(pack.Is<int>());
 				REQUIRE(pack.GetRaw() != nullptr);
-				REQUIRE(pack.As<int>() == original_value);
+				REQUIRE(pack.As<int>() == value);
 				REQUIRE_THROWS(pack.As<float>() == 0.0f);
-				REQUIRE(*pack.As<int*>() == original_value);
+				REQUIRE(*pack.As<int*>() == value);
 				REQUIRE_THROWS(pack.As<float*>() == nullptr);
 			}
 
-			#ifdef LANGULUS_STD_BENCHMARK
-				Any myPack;
-				std::any stdPack;
-				BENCHMARK("Anyness::Any::operator = (single trivial move)") {
-					myPack = Move(original_value);
-					return myPack.GetCount();		// prevent stuff being optimized-out
+			#ifdef LANGULUS_STD_BENCHMARK // Last result: 8:1 performance - needs optimization
+				BENCHMARK_ADVANCED("Anyness::Any::operator = (single trivial move)") (Catch::Benchmark::Chronometer meter) {
+					std::vector<Any> storage(meter.runs());
+					meter.measure([&](int i) {
+						return storage[i] = Move(value);
+					});
 				};
-				BENCHMARK("std::any::operator = (single trivial move)") {
-					stdPack = Move(original_value);
-					return stdPack.has_value();	// prevent stuff being optimized-out
+
+				BENCHMARK_ADVANCED("std::any::operator = (single trivial move)") (Catch::Benchmark::Chronometer meter) {
+					std::vector<std::any> storage(meter.runs());
+					meter.measure([&](int i) {
+						return storage[i] = Move(value);
+					});
 				};
 			#endif
 		}
 
 		WHEN("Given a sparse value") {
-			int* original_int = new int(original_value);
+			int* original_int = new int(value);
+			Any pack;
 			pack = original_int;
 
 			THEN("Various traits change") {
@@ -88,9 +138,9 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(pack.IsSparse());
 				REQUIRE(pack.Is<int*>());
 				REQUIRE(pack.GetRaw() != nullptr);
-				REQUIRE(pack.As<int>() == original_value);
-				REQUIRE_THROWS(pack.As<float>() == float(original_value));
-				REQUIRE(*pack.As<int*>() == original_value);
+				REQUIRE(pack.As<int>() == value);
+				REQUIRE_THROWS(pack.As<float>() == 0.0f);
+				REQUIRE(*pack.As<int*>() == value);
 				REQUIRE(pack.As<int*>() == original_int);
 				REQUIRE_THROWS(pack.As<float*>() == nullptr);
 				#if LANGULUS_FEATURE(NEWDELETE) && LANGULUS_FEATURE(MANAGED_MEMORY)
@@ -101,11 +151,28 @@ SCENARIO("Any", "[containers]") {
 					REQUIRE(Allocator::GetReferences(meta, original_int) == 1);
 				#endif
 			}
+
+			#ifdef LANGULUS_STD_BENCHMARK // Last result: 9:1 performance - needs optimization
+				BENCHMARK_ADVANCED("Anyness::Any::operator = (single pointer copy)") (Catch::Benchmark::Chronometer meter) {
+					std::vector<Any> storage(meter.runs());
+					meter.measure([&](int i) {
+						return storage[i] = value;
+					});
+				};
+
+				BENCHMARK_ADVANCED("std::any::operator = (single pointer copy)") (Catch::Benchmark::Chronometer meter) {
+					std::vector<std::any> storage(meter.runs());
+					meter.measure([&](int i) {
+						return storage[i] = value;
+					});
+				};
+			#endif
 		}
 
 		WHEN("Given a sparse value by move") {
-			int* original_int = new int(original_value);
+			int* original_int = new int(value);
 			int* original_int_backup = original_int;
+			Any pack;
 			pack = Move(original_int);
 
 			THEN("Various traits change, pointer remains valid") {
@@ -114,9 +181,9 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(pack.GetType() == meta);
 				REQUIRE(pack.Is<int*>());
 				REQUIRE(pack.GetRaw() != nullptr);
-				REQUIRE(pack.As<int>() == original_value);
-				REQUIRE_THROWS(pack.As<float>() == float(original_value));
-				REQUIRE(*pack.As<int*>() == original_value);
+				REQUIRE(pack.As<int>() == value);
+				REQUIRE_THROWS(pack.As<float>() == float(value));
+				REQUIRE(*pack.As<int*>() == value);
 				REQUIRE(pack.As<int*>() == original_int_backup);
 				REQUIRE_THROWS(pack.As<float*>() == nullptr);
 				#if LANGULUS_FEATURE(NEWDELETE) && LANGULUS_FEATURE(MANAGED_MEMORY)
@@ -128,21 +195,39 @@ SCENARIO("Any", "[containers]") {
 				#endif
 				REQUIRE(pack.GetReferences() == 1);
 			}
+
+			#ifdef LANGULUS_STD_BENCHMARK // Last result: 9:1 performance - needs optimization
+				BENCHMARK_ADVANCED("Anyness::Any::operator = (single pointer move)") (Catch::Benchmark::Chronometer meter) {
+					std::vector<Any> storage(meter.runs());
+					meter.measure([&](int i) {
+						return storage[i] = Move(value);
+					});
+				};
+
+				BENCHMARK_ADVANCED("std::any::operator = (single pointer move)") (Catch::Benchmark::Chronometer meter) {
+					std::vector<std::any> storage(meter.runs());
+					meter.measure([&](int i) {
+						return storage[i] = Move(value);
+					});
+				};
+			#endif
 		}
 
-		WHEN("Given a sparse value and then copied from Any") {
-			int* original_int = new int(original_value);
+		WHEN("Shallow-copying Any") {
+			int* original_int = new int(value);
+			Any pack;
 			pack = original_int;
 			Any another_pack = pack;
 
 			THEN("Various traits change") {
+				REQUIRE(another_pack == pack);
 				REQUIRE(another_pack.GetType() == meta);
 				REQUIRE(another_pack.IsSparse());
 				REQUIRE(another_pack.Is<int*>());
 				REQUIRE(another_pack.GetRaw() != nullptr);
-				REQUIRE(another_pack.As<int>() == original_value);
-				REQUIRE_THROWS(another_pack.As<float>() == float(original_value));
-				REQUIRE(*another_pack.As<int*>() == original_value);
+				REQUIRE(another_pack.As<int>() == value);
+				REQUIRE_THROWS(another_pack.As<float>() == float(value));
+				REQUIRE(*another_pack.As<int*>() == value);
 				REQUIRE(another_pack.As<int*>() == original_int);
 				REQUIRE_THROWS(another_pack.As<float*>() == nullptr);
 				#if LANGULUS_FEATURE(NEWDELETE) && LANGULUS_FEATURE(MANAGED_MEMORY)
@@ -155,10 +240,35 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(pack.GetReferences() == another_pack.GetReferences());
 				REQUIRE(pack.GetReferences() == 2);
 			}
+
+			#ifdef LANGULUS_STD_BENCHMARK // Last result: 2:1 performance - needs optimization
+				BENCHMARK_ADVANCED("Anyness::Any::operator = (shallow-copied Any)") (Catch::Benchmark::Chronometer meter) {
+					std::vector<Any> source(meter.runs());
+					for (auto& i : source)
+						i = original_int;
+
+					std::vector<Any> storage(meter.runs());
+					meter.measure([&](int i) {
+						return storage[i] = source[i];
+					});
+				};
+
+				BENCHMARK_ADVANCED("std::any::operator = (shallow-copied std::any)") (Catch::Benchmark::Chronometer meter) {
+					std::vector<std::any> source(meter.runs());
+					for (auto& i : source)
+						i = original_int;
+
+					std::vector<std::any> storage(meter.runs());
+					meter.measure([&](int i) {
+						return storage[i] = source[i];
+					});
+				};
+			#endif
 		}
 
-		WHEN("Given a sparse value and then moved from Any") {
-			int* original_int = new int(original_value);
+		WHEN("Moving Any") {
+			int* original_int = new int(value);
+			Any pack;
 			pack = original_int;
 			Any another_pack = Move(pack);
 
@@ -171,9 +281,9 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(another_pack.GetType() == meta);
 				REQUIRE(another_pack.Is<int*>());
 				REQUIRE(another_pack.GetRaw() != nullptr);
-				REQUIRE(another_pack.As<int>() == original_value);
-				REQUIRE_THROWS(another_pack.As<float>() == float(original_value));
-				REQUIRE(*another_pack.As<int*>() == original_value);
+				REQUIRE(another_pack.As<int>() == value);
+				REQUIRE_THROWS(another_pack.As<float>() == 0.0f);
+				REQUIRE(*another_pack.As<int*>() == value);
 				REQUIRE(another_pack.As<int*>() == original_int);
 				REQUIRE_THROWS(another_pack.As<float*>() == nullptr);
 				#if LANGULUS_FEATURE(NEWDELETE) && LANGULUS_FEATURE(MANAGED_MEMORY)
@@ -185,10 +295,35 @@ SCENARIO("Any", "[containers]") {
 				#endif
 				REQUIRE(another_pack.GetReferences() == 1);
 			}
+
+			#ifdef LANGULUS_STD_BENCHMARK // Last result: 2:1 performance - needs optimization
+				BENCHMARK_ADVANCED("Anyness::Any::operator = (moved Any)") (Catch::Benchmark::Chronometer meter) {
+					std::vector<Any> source(meter.runs());
+					for (auto& i : source)
+						i = original_int;
+
+					std::vector<Any> storage(meter.runs());
+					meter.measure([&](int i) {
+						return storage[i] = Move(source[i]);
+					});
+				};
+
+				BENCHMARK_ADVANCED("std::any::operator = (moved std::any)") (Catch::Benchmark::Chronometer meter) {
+					std::vector<std::any> source(meter.runs());
+					for (auto& i : source)
+						i = original_int;
+
+					std::vector<std::any> storage(meter.runs());
+					meter.measure([&](int i) {
+						return storage[i] = Move(source[i]);
+					});
+				};
+			#endif
 		}
 
 		WHEN("Given a sparse value and then copied from Block") {
-			int* original_int = new int(original_value);
+			int* original_int = new int(value);
+			Any pack;
 			pack = original_int;
 			Any another_pack = static_cast<Block&>(pack);
 
@@ -196,9 +331,9 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(another_pack.GetType() == meta);
 				REQUIRE(another_pack.Is<int*>());
 				REQUIRE(another_pack.GetRaw() != nullptr);
-				REQUIRE(another_pack.As<int>() == original_value);
-				REQUIRE_THROWS(another_pack.As<float>() == float(original_value));
-				REQUIRE(*another_pack.As<int*>() == original_value);
+				REQUIRE(another_pack.As<int>() == value);
+				REQUIRE_THROWS(another_pack.As<float>() == 0.0f);
+				REQUIRE(*another_pack.As<int*>() == value);
 				REQUIRE(another_pack.As<int*>() == original_int);
 				REQUIRE_THROWS(another_pack.As<float*>() == nullptr);
 				#if LANGULUS_FEATURE(NEWDELETE) && LANGULUS_FEATURE(MANAGED_MEMORY)
@@ -214,7 +349,8 @@ SCENARIO("Any", "[containers]") {
 		}
 
 		WHEN("Given a sparse value and then moved from Block") {
-			int* original_int = new int(original_value);
+			int* original_int = new int(value);
+			Any pack;
 			pack = original_int;
 			Any another_pack = Move(static_cast<Block&>(pack));
 
@@ -222,9 +358,9 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(pack.GetType() == meta);
 				REQUIRE(pack.Is<int*>());
 				REQUIRE(pack.GetRaw());
-				REQUIRE(pack.As<int>() == original_value);
-				REQUIRE_THROWS(pack.As<float>() == float(original_value));
-				REQUIRE(*pack.As<int*>() == original_value);
+				REQUIRE(pack.As<int>() == value);
+				REQUIRE_THROWS(pack.As<float>() == float(value));
+				REQUIRE(*pack.As<int*>() == value);
 				REQUIRE(pack.As<int*>() == original_int);
 				REQUIRE_THROWS(pack.As<float*>() == nullptr);
 				REQUIRE(pack.GetReferences() == 2);
@@ -233,9 +369,9 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(another_pack.GetType() == meta);
 				REQUIRE(another_pack.Is<int*>());
 				REQUIRE(another_pack.GetRaw() != nullptr);
-				REQUIRE(another_pack.As<int>() == original_value);
-				REQUIRE_THROWS(another_pack.As<float>() == float(original_value));
-				REQUIRE(*another_pack.As<int*>() == original_value);
+				REQUIRE(another_pack.As<int>() == value);
+				REQUIRE_THROWS(another_pack.As<float>() == float(value));
+				REQUIRE(*another_pack.As<int*>() == value);
 				REQUIRE(another_pack.As<int*>() == original_int);
 				REQUIRE_THROWS(another_pack.As<float*>() == nullptr);
 				REQUIRE(another_pack.GetReferences() == 2);
@@ -251,7 +387,8 @@ SCENARIO("Any", "[containers]") {
 		}
 
 		WHEN("Given a sparse value and then reset") {
-			int* original_int = new int(original_value);
+			int* original_int = new int(value);
+			Any pack;
 			pack = original_int;
 			pack.Reset();
 			THEN("Various traits change") {
@@ -268,6 +405,7 @@ SCENARIO("Any", "[containers]") {
 
 		WHEN("Given static text") {
 			Text original_pct = u8"Lorep Ipsum";
+			Any pack;
 			pack = original_pct;
 			THEN("Various traits change") {
 				REQUIRE(pack.GetType() == MetaData::Of<Text>());
@@ -286,6 +424,7 @@ SCENARIO("Any", "[containers]") {
 
 		WHEN("Given dynamic text") {
 			Text original_pct = u8"Lorep Ipsum";
+			Any pack;
 			pack = original_pct.Clone();
 			THEN("Various traits change") {
 				REQUIRE(pack.GetType() == MetaData::Of<Text>());
@@ -304,6 +443,7 @@ SCENARIO("Any", "[containers]") {
 
 		WHEN("Given dynamic text, which is later referenced multiple times") {
 			Text original_pct = u8"Lorep Ipsum";
+			Any pack;
 			pack = original_pct.Clone();
 			Any pack2(pack);
 			Any pack3(pack2);
@@ -330,6 +470,7 @@ SCENARIO("Any", "[containers]") {
 
 		WHEN("Given dynamic text, which is later referenced multiple times, and then dereferenced") {
 			Text original_pct = u8"Lorep Ipsum";
+			Any pack;
 			pack = original_pct.Clone();
 			Any pack2(pack);
 			Any pack3(pack2);

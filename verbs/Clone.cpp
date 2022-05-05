@@ -12,7 +12,7 @@ namespace Langulus::Anyness
 	///	@return the number of cloned elements											
 	Count Block::Clone(Block& result) const {
 		// Always clone the state, but make it unconstrained					
-		result.SetType<false>(mType);
+		result.SetType<false, false>(mType);
 		result.mState += GetUnconstrainedState();
 		if (!IsAllocated())
 			return 1;

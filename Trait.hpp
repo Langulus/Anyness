@@ -10,6 +10,8 @@ namespace Langulus::Anyness
 	/// A tagged container																		
 	///																								
 	class Trait : public Any {
+		LANGULUS(DEEP) false;
+		LANGULUS_BASES(Any);
 	protected:
 		TMeta mTraitType {};
 

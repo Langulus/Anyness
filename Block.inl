@@ -228,38 +228,11 @@ namespace Langulus::Anyness
 	}
 
 	/// Allocate a number of elements, relying on the type of the container		
+	///	@attention inner unsafe function													
 	///	@tparam CREATE - true to call constructors									
 	///	@param elements - number of elements to allocate							
 	template<bool CREATE>
-	void Block::Allocate(Count elements) {
-		if (!mType) {
-			throw Except::Allocate(Logger::Error()
-				<< "Attempting to allocate " << elements 
-				<< " element(s) of an invalid type");
-		}
-		else if (mType->mIsAbstract) {
-			throw Except::Allocate(Logger::Error()
-				<< "Attempting to allocate " << elements 
-				<< " element(s) of abstract type " << GetToken());
-		}
-
-		if (mCount > elements) {
-			// Destroy back entries on smaller allocation						
-			RemoveIndex(elements, mCount - elements);
-			return;
-		}
-
-		if (mReserved >= elements) {
-			// Required memory is already available								
-			if constexpr (CREATE) {
-				// But is not yet initialized, so initialize it					
-				if (mCount < elements)
-					CallDefaultConstructors(elements - mCount);
-			}
-			
-			return;
-		}
-		
+	void Block::AllocateInner(const Count& elements) {
 		// Retrieve the required byte size											
 		const auto byteSize = RequestByteSize(elements);
 		
@@ -314,8 +287,43 @@ namespace Langulus::Anyness
 			}
 		}
 		
-		mReserved = byteSize / GetStride();
-		return;
+		mReserved = byteSize / GetStride(); //TODO very slow
+	}
+
+	/// Allocate a number of elements, relying on the type of the container		
+	///	@tparam CREATE - true to call constructors									
+	///	@param elements - number of elements to allocate							
+	template<bool CREATE>
+	void Block::Allocate(const Count& elements) {
+		if (!mType) {
+			throw Except::Allocate(Logger::Error()
+				<< "Attempting to allocate " << elements 
+				<< " element(s) of an invalid type");
+		}
+		else if (mType->mIsAbstract) {
+			throw Except::Allocate(Logger::Error()
+				<< "Attempting to allocate " << elements 
+				<< " element(s) of abstract type " << GetToken());
+		}
+
+		if (mCount > elements) {
+			// Destroy back entries on smaller allocation						
+			RemoveIndex(elements, mCount - elements);
+			return;
+		}
+
+		if (mReserved >= elements) {
+			// Required memory is already available								
+			if constexpr (CREATE) {
+				// But is not yet initialized, so initialize it					
+				if (mCount < elements)
+					CallDefaultConstructors(elements - mCount);
+			}
+			
+			return;
+		}
+		
+		AllocateInner<CREATE>(elements);
 	}
 	
 	/// Check if a range is inside the block												
@@ -777,7 +785,7 @@ namespace Langulus::Anyness
 	bool Block::Mutate(DMeta meta) {
 		if (IsUntyped()) {
 			// Undefined containers can mutate freely								
-			SetType<false>(meta);
+			SetType<false, false>(meta);
 		}
 		else if (mType->Is(meta)) {
 			// No need to mutate - types are the same								
@@ -785,7 +793,7 @@ namespace Langulus::Anyness
 		}
 		else if (IsAbstract() && IsEmpty() && meta->CastsTo(mType)) {
 			// Abstract compatible containers can be concretized				
-			SetType<false>(meta);
+			SetType<false, false>(meta);
 		}
 		else if (!IsInsertable(meta)) {
 			// Not insertable due to some reasons									
@@ -883,8 +891,11 @@ namespace Langulus::Anyness
 	/// Set the data ID - use this only if you really know what you're doing	
 	///	@tparam CONSTRAIN - whether or not to enable type-constraints			
 	///	@param type - the type meta to set												
-	template<bool CONSTRAIN>
+	template<bool SPARSE, bool CONSTRAIN>
 	void Block::SetType(DMeta type) {
+		if constexpr (SPARSE)
+			MakeSparse();
+
 		if (mType == type) {
 			if constexpr (CONSTRAIN)
 				MakeTypeConstrained();
@@ -935,9 +946,7 @@ namespace Langulus::Anyness
 	///	@tparam CONSTRAIN - whether or not to enable type-constraints			
 	template<ReflectedData T, bool CONSTRAIN>
 	void Block::SetType() {
-		SetType<CONSTRAIN>(MetaData::Of<Decay<T>>());
-		if constexpr (Langulus::IsSparse<T>)
-			MakeSparse();
+		SetType<Langulus::IsSparse<T>, CONSTRAIN>(MetaData::Of<Decay<T>>());
 	}
 
 	/// Swap two elements (with raw indices)												
@@ -994,7 +1003,7 @@ namespace Langulus::Anyness
 					<< "Moving elements that are used from multiple places"));
 
 			CropInner(starter + 1, 0, mCount - starter)
-				.CallKnownMoveConstructors<T>(
+				.template CallKnownMoveConstructors<T>(
 					mCount - starter,
 					CropInner(starter, mCount - starter, mCount - starter)
 				);
@@ -1032,7 +1041,7 @@ namespace Langulus::Anyness
 					<< "Moving elements that are used from multiple places"));
 
 			CropInner(starter + count, 0, mCount - starter)
-				.CallKnownMoveConstructors<T>(
+				.template CallKnownMoveConstructors<T>(
 					mCount - starter,
 					CropInner(starter, mCount - starter, mCount - starter)
 				);
@@ -1400,10 +1409,10 @@ namespace Langulus::Anyness
 
 			if (previousState.IsTyped())
 				// Retain type if original package was constrained				
-				SetType<true>(previousType);
+				SetType<false, true>(previousType);
 			else if (IsSparse())
 				// Retain type if current package is sparse						
-				SetType<false>(previousType);
+				SetType<false, false>(previousType);
 			return 1;
 		}
 
@@ -1480,10 +1489,10 @@ namespace Langulus::Anyness
 
 			if (previousState.IsTyped())
 				// Retain type if original package was constrained				
-				SetType<true>(previousType);
+				SetType<false, true>(previousType);
 			else if (IsSparse())
 				// Retain type if current package is sparse						
-				SetType<false>(previousType);
+				SetType<false, false>(previousType);
 			return 1;
 		}
 
@@ -1546,7 +1555,7 @@ namespace Langulus::Anyness
 
 		// Allocate a new T and move this inside it								
 		Block wrapper;
-		wrapper.SetType<T>();
+		wrapper.SetType<T, false>();
 		wrapper.Allocate<true>(1);
 		wrapper.Get<Block>() = Move(*this);
 		*this = wrapper;

@@ -6,15 +6,31 @@ using uint = unsigned int;
 SCENARIO("TAny", "[containers]") {
 	GIVEN("A TAny instance") {
 		int value = 555;
-		auto meta = MetaData::Of<int>();
 		TAny<int> pack;
+		auto meta = pack.GetType();
 
-		REQUIRE(meta);
-		REQUIRE(pack.GetType() == meta);
-		REQUIRE(pack.IsTypeConstrained());
-		REQUIRE(pack.GetRaw() == nullptr);
-		REQUIRE(pack.IsEmpty());
-		REQUIRE_FALSE(pack.IsAllocated());
+		WHEN("Given a default-constructed TAny") {
+			REQUIRE(meta);
+			REQUIRE(pack.GetType()->Is<int>());
+			REQUIRE(pack.IsTypeConstrained());
+			REQUIRE(pack.GetRaw() == nullptr);
+			REQUIRE(pack.IsEmpty());
+			REQUIRE_FALSE(pack.IsAllocated());
+
+			#ifdef LANGULUS_STD_BENCHMARK // Last result: 8:1 performance - unfortunately can't be remedied, due to RTTI
+				BENCHMARK_ADVANCED("Anyness::TAny::default construction") (Catch::Benchmark::Chronometer meter) {
+					std::vector<Catch::Benchmark::storage_for<TAny<int>>> storage(meter.runs());
+
+					meter.measure([&](int i) { return storage[i].construct(); });
+				};
+
+				BENCHMARK_ADVANCED("std::vector::default construction") (Catch::Benchmark::Chronometer meter) {
+					std::vector<Catch::Benchmark::storage_for<std::vector<int>>> storage(meter.runs());
+
+					meter.measure([&](int i) { return storage[i].construct(); });
+				};
+			#endif
+		}
 
 		WHEN("Given a POD value by copy") {
 			pack = value;
@@ -28,22 +44,28 @@ SCENARIO("TAny", "[containers]") {
 				REQUIRE_THROWS(pack.As<float*>() == nullptr);
 			}
 
-			#ifdef LANGULUS_STD_BENCHMARK // Last result: 2:1 performance
-				BENCHMARK("Anyness::TAny::operator = (single trivial copy)") {
-					TAny<int> myPack;
-					myPack = value;
-					return myPack.GetCount();		// prevent stuff being optimized-out
+			#ifdef LANGULUS_STD_BENCHMARK // Last result: 1:1 performance
+				BENCHMARK_ADVANCED("Anyness::TAny::operator = (single trivial copy)") (Catch::Benchmark::Chronometer meter) {
+					std::vector<TAny<int>> storage(meter.runs());
+
+					meter.measure([&](int i) {
+						return storage[i] = value;
+					});
 				};
-				BENCHMARK("std::vector::push_back(single trivial copy)") {
-					std::vector<int> stdPack;
-					stdPack.push_back(value);
-					return stdPack.size();	// prevent stuff being optimized-out
+
+				BENCHMARK_ADVANCED("std::vector::operator = (single trivial copy)") (Catch::Benchmark::Chronometer meter) {
+					std::vector<std::vector<int>> storage(meter.runs());
+
+					meter.measure([&](int i) {
+						return storage[i] = { value };
+					});
 				};
 			#endif
 		}
 		
 		WHEN("Given a POD value by move") {
 			pack = Move(value);
+
 			THEN("Various traits change") {
 				REQUIRE(pack.GetType() == meta);
 				REQUIRE(pack.Is<int>());
@@ -54,16 +76,21 @@ SCENARIO("TAny", "[containers]") {
 				REQUIRE_THROWS(pack.As<float*>() == nullptr);
 			}
 
-			#ifdef LANGULUS_STD_BENCHMARK // Last result: 2:1 performance
-				BENCHMARK("Anyness::TAny::operator = (single trivial move)") {
-					TAny<int> myPack;
-					myPack = Move(value);
-					return myPack.GetCount();		// prevent stuff being optimized-out
+			#ifdef LANGULUS_STD_BENCHMARK // Last result: 1:1 performance
+				BENCHMARK_ADVANCED("Anyness::TAny::operator = (single trivial move)") (Catch::Benchmark::Chronometer meter) {
+					std::vector<TAny<int>> storage(meter.runs());
+
+					meter.measure([&](int i) {
+						return storage[i] = Move(value);
+					});
 				};
-				BENCHMARK("std::vector::emplace_back(single trivial move)") {
-					std::vector<int> stdPack;
-					stdPack.emplace_back(Move(value));
-					return stdPack.size();	// prevent stuff being optimized-out
+
+				BENCHMARK_ADVANCED("std::vector::operator = (single trivial move)") (Catch::Benchmark::Chronometer meter) {
+					std::vector<std::vector<int>> storage(meter.runs());
+
+					meter.measure([&](int i) {
+						return storage[i] = { Move(value) };
+					});
 				};
 			#endif
 		}
@@ -93,6 +120,7 @@ SCENARIO("TAny", "[containers]") {
 
 		WHEN("Shallow-copy more of the same stuff") {
 			pack << darray2[0] << darray2[1] << darray2[2] << darray2[3] << darray2[4];
+
 			THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
 				REQUIRE(pack.GetCount() == 10);
 				REQUIRE(pack.GetReserved() >= 10);
@@ -112,26 +140,32 @@ SCENARIO("TAny", "[containers]") {
 				REQUIRE(pack.Is<int>());
 			}
 			
-			#ifdef LANGULUS_STD_BENCHMARK // Last result: 2:1 performance
-				TAny<int> myPack;
-				std::vector<int> stdPack;
-				BENCHMARK("Anyness::TAny::operator << (5 consecutive trivial copies)") {
-					myPack << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
-					return myPack.GetCount();		// prevent stuff being optimized-out
+			#ifdef LANGULUS_STD_BENCHMARK // Last result: 1:2 performance
+				BENCHMARK_ADVANCED("Anyness::TAny::operator << (5 consecutive trivial copies)") (Catch::Benchmark::Chronometer meter) {
+					std::vector<TAny<int>> storage(meter.runs());
+
+					meter.measure([&](int i) {
+						return storage[i] << darray2[0] << darray2[1] << darray2[2] << darray2[3] << darray2[4];
+					});
 				};
-				BENCHMARK("std::vector::push_back(5 consecutive trivial copies)") {
-					stdPack.push_back(darray1[0]);
-					stdPack.push_back(darray1[1]);
-					stdPack.push_back(darray1[2]);
-					stdPack.push_back(darray1[3]);
-					stdPack.push_back(darray1[4]);
-					return stdPack.size();	// prevent stuff being optimized-out
+
+				BENCHMARK_ADVANCED("std::vector::push_back(5 consecutive trivial copies)") (Catch::Benchmark::Chronometer meter) {
+					std::vector<std::vector<int>> storage(meter.runs());
+
+					meter.measure([&](int i) {
+						storage[i].push_back(darray2[0]);
+						storage[i].push_back(darray2[1]);
+						storage[i].push_back(darray2[2]);
+						storage[i].push_back(darray2[3]);
+						return storage[i].push_back(darray2[4]);
+					});
 				};
 			#endif
 		}
 
 		WHEN("Move more of the same stuff") {
 			pack << Move(darray2[0]) << Move(darray2[1]) << Move(darray2[2]) << Move(darray2[3]) << Move(darray2[4]);
+
 			THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
 				REQUIRE(pack.GetCount() == 10);
 				REQUIRE(pack.GetReserved() >= 10);
@@ -151,27 +185,34 @@ SCENARIO("TAny", "[containers]") {
 				REQUIRE(pack.Is<int>());
 			}
 			
-			#ifdef LANGULUS_STD_BENCHMARK // Last result: 2:1 performance
-				TAny<int> myPack;
-				std::vector<int> stdPack;
-				BENCHMARK("Anyness::TAny::operator << (5 consecutive trivial moves)") {
-					myPack << Move(darray2[0]) << Move(darray2[1]) << Move(darray2[2]) << Move(darray2[3]) << Move(darray2[4]);
-					return myPack.GetCount();		// prevent stuff being optimized-out
+			#ifdef LANGULUS_STD_BENCHMARK // Last result: 1:2 performance
+				BENCHMARK_ADVANCED("Anyness::TAny::operator << (5 consecutive trivial moves)") (Catch::Benchmark::Chronometer meter) {
+					std::vector<TAny<int>> storage(meter.runs());
+
+					meter.measure([&](int i) {
+						return storage[i] << Move(darray2[0]) << Move(darray2[1]) << Move(darray2[2]) << Move(darray2[3]) << Move(darray2[4]);
+					});
 				};
-				BENCHMARK("std::vector::emplace_back(5 consecutive trivial moves)") {
-					stdPack.emplace_back(Move(darray2[0]));
-					stdPack.emplace_back(Move(darray2[1]));
-					stdPack.emplace_back(Move(darray2[2]));
-					stdPack.emplace_back(Move(darray2[3]));
-					stdPack.emplace_back(Move(darray2[4]));
-					return stdPack.size();	// prevent stuff being optimized-out
+
+				BENCHMARK_ADVANCED("std::vector::emplace_back(5 consecutive trivial moves)") (Catch::Benchmark::Chronometer meter) {
+					std::vector<std::vector<int>> storage(meter.runs());
+
+					meter.measure([&](int i) {
+						storage[i].emplace_back(Move(darray2[0]));
+						storage[i].emplace_back(Move(darray2[1]));
+						storage[i].emplace_back(Move(darray2[2]));
+						storage[i].emplace_back(Move(darray2[3]));
+						return storage[i].emplace_back(Move(darray2[4]));
+					});
 				};
 			#endif
 		}
 
 		WHEN("Insert more trivial items at a specific place by shallow-copy") {
 			int* i666 = new int { 666 };
+			int& i666d = *i666;
 			pack.Insert(i666, 1, 3);
+
 			THEN("The size changes, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
 				REQUIRE(pack.GetCount() == 6);
 				REQUIRE(pack.GetReserved() >= 6);
@@ -187,31 +228,34 @@ SCENARIO("TAny", "[containers]") {
 				REQUIRE(pack[5] == 5);
 			}
 
-			#ifdef LANGULUS_STD_BENCHMARK // Last result: 1:1 performance
-				TAny<int> myPack;
-				myPack << darray2[0] << darray2[1] << darray2[2] << darray2[3] << darray2[4];
+			#ifdef LANGULUS_STD_BENCHMARK // Last result: 1:2 performance
+				BENCHMARK_ADVANCED("Anyness::TAny::Insert(single copy in middle)") (Catch::Benchmark::Chronometer meter) {
+					std::vector<TAny<int>> storage(meter.runs());
+					for (auto&& o : storage)
+						o << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
 
-				std::vector<int> stdPack;
-				stdPack.push_back(darray2[0]);
-				stdPack.push_back(darray2[1]);
-				stdPack.push_back(darray2[2]);
-				stdPack.push_back(darray2[3]);
-				stdPack.push_back(darray2[4]);
-
-				BENCHMARK("Anyness::TAny::Insert(single copy in middle)") {
-					myPack.Insert(i666, 1, 3);
-					return myPack.GetCount();		// prevent stuff being optimized-out
+					meter.measure([&](int i) {
+						return storage[i].Insert(i666, 1, 3);
+					});
 				};
-				BENCHMARK("std::vector::insert(single copy in middle)") {
-					stdPack.insert(stdPack.begin() + 3, *i666);
-					return stdPack.size();			// prevent stuff being optimized-out
+
+				BENCHMARK_ADVANCED("std::vector::insert(single copy in middle)") (Catch::Benchmark::Chronometer meter) {
+					std::vector<std::vector<int>> storage(meter.runs());
+					for (auto&& o : storage)
+						o = { darray1[0], darray1[1], darray1[2], darray1[3], darray1[4] };
+
+					meter.measure([&](int i) {
+						return storage[i].insert(storage[i].begin() + 3, i666d);
+					});
 				};
 			#endif
 		}
 
 		WHEN("Insert more trivial items at a specific place by move") {
 			int* i666 = new int { 666 };
+			int& i666d = *i666;
 			pack.Emplace(Move(*i666), 3);
+
 			THEN("The size changes, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
 				REQUIRE(pack.GetCount() == 6);
 				REQUIRE(pack.GetReserved() >= 6);
@@ -227,31 +271,32 @@ SCENARIO("TAny", "[containers]") {
 				REQUIRE(pack[5] == 5);
 			}
 
-			#ifdef LANGULUS_STD_BENCHMARK // Last result: 1:1 performance
-				TAny<int> myPack;
-				myPack << Move(darray2[0]) << Move(darray2[1]) << Move(darray2[2]) << Move(darray2[3]) << Move(darray2[4]);
+			#ifdef LANGULUS_STD_BENCHMARK // Last result: 1:2 performance
+				BENCHMARK_ADVANCED("Anyness::TAny::Emplace(single move in middle)") (Catch::Benchmark::Chronometer meter) {
+					std::vector<TAny<int>> storage(meter.runs());
+					for (auto&& o : storage)
+						o << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
 
-				std::vector<int> stdPack;
-				stdPack.emplace_back(Move(darray2[0]));
-				stdPack.emplace_back(Move(darray2[1]));
-				stdPack.emplace_back(Move(darray2[2]));
-				stdPack.emplace_back(Move(darray2[3]));
-				stdPack.emplace_back(Move(darray2[4]));
-
-				BENCHMARK("Anyness::TAny::Emplace(single move in middle)") {
-					myPack.Emplace(Move(*i666), 3);
-					return myPack.GetCount();
+					meter.measure([&](int i) {
+						return storage[i].Emplace(Move(i666d), 3);
+					});
 				};
-				BENCHMARK("std::vector::insert(single move in middle)") {
-					stdPack.insert(stdPack.begin() + 3, Move(*i666));
-					return stdPack.size();
+
+				BENCHMARK_ADVANCED("std::vector::insert(single move in middle)") (Catch::Benchmark::Chronometer meter) {
+					std::vector<std::vector<int>> storage(meter.runs());
+					for (auto&& o : storage)
+						o = { darray1[0], darray1[1], darray1[2], darray1[3], darray1[4] };
+
+					meter.measure([&](int i) {
+						return storage[i].insert(storage[i].begin() + 3, Move(i666d));
+					});
 				};
 			#endif
 		}
 
 		WHEN("The size is reduced by finding and removing elements, but reserved memory should remain the same on shrinking") {
-			const auto removed2 = pack.Remove(int(2));
-			const auto removed4 = pack.Remove(int(4));
+			const auto removed2 = pack.RemoveValue(2);
+			const auto removed4 = pack.RemoveValue(4);
 			THEN("The size changes but not capacity") {
 				REQUIRE(removed2 == 1);
 				REQUIRE(removed4 == 1);
@@ -264,32 +309,32 @@ SCENARIO("TAny", "[containers]") {
 				REQUIRE(pack.GetRaw() == memory);
 			}
 
-			//#ifdef LANGULUS_STD_BENCHMARK 
+			#ifdef LANGULUS_STD_BENCHMARK // Last result: 2:1 performance - needs more optimizations in Index handling
 				BENCHMARK_ADVANCED("Anyness::TAny::Remove(single element by value)") (Catch::Benchmark::Chronometer meter) {
 					std::vector<TAny<int>> storage(meter.runs());
 					for (auto&& o : storage)
-						o << darray2[0] << darray2[1] << darray2[2] << darray2[3] << darray2[4];
+						o << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
 
 					meter.measure([&](int i) {
-						return storage[i].Remove(2);
+						return storage[i].RemoveValue(2);
 					});
 				};
 
 				BENCHMARK_ADVANCED("Anyness::vector::erase-remove(single element by value)") (Catch::Benchmark::Chronometer meter) {
 					std::vector<std::vector<int>> storage(meter.runs());
 					for (auto&& o : storage)
-						o = { darray2[0], darray2[1], darray2[2], darray2[3], darray2[4] };
+						o = { darray1[0], darray1[1], darray1[2], darray1[3], darray1[4] };
 
 					meter.measure([&](int i) {
 						// Erase-remove idiom											
 						return storage[i].erase(std::remove(storage[i].begin(), storage[i].end(), 2), storage[i].end());
 					});
 				};
-			//#endif
+			#endif
 		}
 
 		WHEN("Removing non-available elements") {
-			const auto removed9 = pack.Remove(int(9));
+			const auto removed9 = pack.RemoveValue(9);
 			THEN("The size changes but not capacity") {
 				REQUIRE(removed9 == 0);
 				REQUIRE(pack[0] == 1);

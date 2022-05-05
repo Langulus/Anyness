@@ -217,7 +217,7 @@ namespace Langulus::Anyness
 	Block Block::GetElement(Offset index) noexcept {
 		return {
 			(mState + DataState::Static) - DataState::Or,
-			mType, 1, At(index * mType->mSize)
+			mType, 1, At(index * mType->mSize), mEntry
 		};
 	}
 
@@ -227,7 +227,7 @@ namespace Langulus::Anyness
 	const Block Block::GetElement(Offset index) const noexcept {
 		return {
 			(mState + DataState::Static) - DataState::Or,
-			mType, 1, At(index * mType->mSize)
+			mType, 1, At(index * mType->mSize), mEntry
 		};
 	}
 
@@ -238,10 +238,11 @@ namespace Langulus::Anyness
 	Block Block::GetElementDense(Offset index) {
 		auto element = GetElement(index);
 		if (IsSparse()) {
-			element.mState -= DataState::Sparse;
 			element.mRaw = *element.GetRawSparse();
 			if (!element.mRaw)
 				return {};
+			element.mState -= DataState::Sparse;
+			element.mEntry = Allocator::Find(element.mType, element.mRaw);
 		}
 
 		return element;

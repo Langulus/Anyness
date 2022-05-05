@@ -688,7 +688,7 @@ namespace Langulus::Anyness
 			}
 
 			CropInner(starter + 1, 0, mCount - starter)
-				.CallKnownMoveConstructors<T>(
+				.template CallKnownMoveConstructors<T>(
 					mCount - starter,
 					CropInner(starter, mCount - starter, mCount - starter)
 				);
@@ -718,7 +718,7 @@ namespace Langulus::Anyness
 			}
 
 			CropInner(starter + count, 0, mCount - starter)
-				.CallKnownMoveConstructors<T>(
+				.template CallKnownMoveConstructors<T>(
 					mCount - starter,
 					CropInner(starter, mCount - starter, mCount - starter)
 				);
@@ -830,63 +830,69 @@ namespace Langulus::Anyness
 
 	/// Find element(s) index inside container											
 	///	@tparam ALT_T - type of the element to search for							
+	///	@tparam REVERSE - whether to search in reverse order						
 	///	@param item - the item to search for											
-	///	@param index - the index to start searching at								
 	///	@return the index of the found item, or Index::None if none found		
 	TEMPLATE()
-	template<ReflectedData ALT_T>
-	Index TAny<T>::Find(const ALT_T& item, const Index& index) const {
+	template<ReflectedData ALT_T, bool REVERSE>
+	Index TAny<T>::Find(const ALT_T& item) const {
 		static_assert(IsComparable<T, ALT_T>, 
 			"Provided type ALT_T is not comparable to the contained type T");
-			
-		if (!mCount)
-			return Index::None;
 
-		// Setup the iterator															
-		Index::Type starti, istep;
-		const auto count = static_cast<Index::Type>(mCount);
-		switch (index.mIndex) {
-		case Index::Front:
-			starti = 0;
-			istep = 1;
-			break;
-		case Index::Back:
-			starti = mCount - 1;
-			istep = -1;
-			break;
-		default:
-			starti = Constrain(index).mIndex;
-			if (starti + 1 >= count)
-				return Index::None;
-			istep = index >= 0 ? 1 : -1;
-		}
-
-		auto data = GetRaw();
 		if constexpr (Langulus::IsSparse<ALT_T>) {
 			if constexpr (Langulus::IsSparse<T>) {
 				// Searching for pointer inside a sparse container				
-				for (auto i = starti; i < count && i >= 0; i += istep) {
-					if constexpr (Inherits<T, ALT_T>) {
-						if (static_cast<MakeConst<T>>(data[i]) == item)
-							return i;
+				if constexpr (REVERSE) {
+					// Searching in reverse												
+					auto start = GetRawEnd() - 1;
+					if (*start == item)
+						return mCount - 1;
+
+					const auto end = start - mCount;
+					while (--start != end) {
+						if constexpr (Inherits<T, ALT_T>) {
+							if (static_cast<MakeConst<T>>(*start) == item)
+								return start - GetRaw();
+						}
+						else if constexpr (Inherits<ALT_T, T>) {
+							if (*start == static_cast<MakeConst<ALT_T>>(item))
+								return start - GetRaw();
+						}
+						else LANGULUS_ASSERT("Type is not comparable to contained elements");
 					}
-					else if constexpr (Inherits<ALT_T, T>) {
-						if (data[i] == static_cast<MakeConst<ALT_T>>(item))
-							return i;
+				}
+				else {
+					// Searching forward													
+					auto start = GetRaw();
+					if (*start == item)
+						return 0;
+
+					const auto end = start + mCount;
+					while (++start != end) {
+						if constexpr (Inherits<T, ALT_T>) {
+							if (static_cast<MakeConst<T>>(*start) == item)
+								return start - GetRaw();
+						}
+						else if constexpr (Inherits<ALT_T, T>) {
+							if (*start == static_cast<MakeConst<ALT_T>>(item))
+								return start - GetRaw();
+						}
+						else LANGULUS_ASSERT("Type is not comparable to contained elements");
 					}
-					else LANGULUS_ASSERT("Type is not comparable to contained elements");
 				}
 			}
 			else {
 				// Searching for pointer inside a dense container				
-				// Pointer should reside inside container							
+				// Pointer should reside inside container, so a single 		
+				// check is completely enough											
+				auto start = GetRaw();
 				if constexpr (Inherits<T, ALT_T>) {
-					const auto difference = item - static_cast<MakeConst<T>>(data);
+					const auto difference = item - static_cast<MakeConst<T>>(start);
 					if (difference >= 0 && static_cast<Count>(difference) < mCount)
 						return Index {difference};
 				}
 				else if constexpr (Inherits<ALT_T, T>) {
-					const auto difference = static_cast<MakeConst<ALT_T>>(item) - data;
+					const auto difference = static_cast<MakeConst<ALT_T>>(item) - start;
 					if (difference >= 0 && static_cast<Count>(difference) < mCount)
 						return Index {difference};
 				}
@@ -895,45 +901,85 @@ namespace Langulus::Anyness
 		}
 		else if constexpr (Langulus::IsSparse<T>) {
 			// Searching for value inside a sparse container					
-			for (Index::Type i = starti; i < count && i >= 0; i += istep) {
-				// Test pointers first													
-				if constexpr (Inherits<T, ALT_T>) {
-					if (static_cast<MakeConst<T>>(data[i]) == &item)
-						return i;
+			if constexpr (REVERSE) {
+				// Searching in reverse													
+				auto start = GetRawEnd() - 1;
+				if (**start == item)
+					return mCount - 1;
+
+				const auto end = start - mCount;
+				while (--start != end) {
+					// Test pointers first, but only if T is too big for a	
+					// single instruction comparison									
+					if constexpr (sizeof(ALT_T) > sizeof(void*)) {
+						if constexpr (Inherits<T, ALT_T>) {
+							if (static_cast<MakeConst<T>>(*start) == &item)
+								return start - GetRaw();
+						}
+						else if constexpr (Inherits<ALT_T, T>) {
+							if (*start == static_cast<MakeConst<ALT_T>>(&item))
+								return start - GetRaw();
+						}
+					}
+
+					// Test by value														
+					if (**start == item)
+						return start - GetRaw();
 				}
-				else if constexpr (Inherits<ALT_T, T>) {
-					if (data[i] == static_cast<MakeConst<ALT_T>>(&item))
-						return i;
+			}
+			else {
+				// Searching forward														
+				auto start = GetRaw();
+				if (**start == item)
+					return 0;
+
+				const auto end = start + mCount;
+				while (++start != end) {
+					// Test pointers first, but only if T is too big for a	
+					// single instruction comparison									
+					if constexpr (sizeof(ALT_T) > sizeof(void*)) {
+						if constexpr (Inherits<T, ALT_T>) {
+							if (static_cast<MakeConst<T>>(*start) == &item)
+								return start - GetRaw();
+						}
+						else if constexpr (Inherits<ALT_T, T>) {
+							if (*start == static_cast<MakeConst<ALT_T>>(&item))
+								return start - GetRaw();
+						}
+					}
+
+					// Test by value														
+					if (**start == item)
+						return start - GetRaw();
 				}
-				else {
-					if (data[i] == &item)
-						return i;
-				}
-					
-				// Test by value															
-				if (*data[i] == item)
-					return i;
 			}
 		}
 		else {
 			// Searching for value inside a dense container						
-			// First check if value is inside container memory					
-			if constexpr (Inherits<T, ALT_T>) {
-				const auto difference = &item - static_cast<MakeConst<T>>(data);
-				if (difference >= 0 && static_cast<Count>(difference) < mCount)
-					return Index {difference};
-			}
-			else if constexpr (Inherits<ALT_T, T>) {
-				const auto difference = static_cast<MakeConst<ALT_T>>(&item) - data;
-				if (difference >= 0 && static_cast<Count>(difference) < mCount)
-					return Index {difference};
-			}
-
 			// Test by value																
-			//TODO SIMD
-			for (Index::Type i = starti; i < count && i >= 0; i += istep) {
-				if (data[i] == item)
-					return i;
+			if constexpr (REVERSE) {
+				// Searching in reverse													
+				auto start = GetRawEnd() - 1;
+				if (*start == item)
+					return mCount - 1;
+
+				const auto end = start - mCount;
+				while (--start != end) {
+					if (*start == item)
+						return start - GetRaw();
+				}
+			}
+			else {
+				// Searching forward														
+				auto start = GetRaw();
+				if (*start == item)
+					return 0;
+
+				const auto end = start + mCount;
+				while (++start != end) {
+					if (*start == item)
+						return start - GetRaw();
+				}
 			}
 		}
 
@@ -943,23 +989,92 @@ namespace Langulus::Anyness
 
 	/// Remove matching items																	
 	///	@tparam ALT_T - type of the element to remove								
+	///	@tparam REVERSE - whether to search in reverse order						
 	///	@param item - the item to search for to remove								
-	///	@param index - the index to start searching at								
 	///	@return the number of removed items												
 	TEMPLATE()
-	template<ReflectedData ALT_T>
-	Count TAny<T>::Remove(const ALT_T& item, const Index& index) {
-		const auto found = Find<ALT_T>(item, index);
+	template<ReflectedData ALT_T, bool REVERSE>
+	Count TAny<T>::RemoveValue(const ALT_T& item) {
+		const auto found = Find<ALT_T, REVERSE>(item);
 		if (found)
 			return RemoveIndex(found.GetOffset(), 1);
 		return 0;
 	}
 
+	/// Remove sequential raw indices in a given range									
+	///	@param starter - simple index to start removing from						
+	///	@param count - number of elements to remove									
+	///	@return the number of removed elements											
+	TEMPLATE()
+	Count TAny<T>::RemoveIndex(const Count& starter, const Count& count) {
+		SAFETY(if (starter >= mCount)
+			throw Except::Access(Logger::Error()
+				<< "Index " << starter << " out of range " << mCount));
+		SAFETY(if (count > mCount || starter + count > mCount)
+			throw Except::Access(Logger::Error()
+				<< "Index " << starter << " out of range " << mCount));
+		SAFETY(if (GetReferences() > 1)
+			throw Except::Reference(Logger::Error()
+				<< "Removing elements from a memory block, that is used from multiple places"));
+
+		const auto ender = starter + count;
+		if constexpr (IsPOD<T>) {
+			// If data is POD and elements are on the back, we can			
+			// get around constantness and staticness, by simply				
+			// truncating the count without any reprecussions					
+			if (ender == mCount)
+				mCount = starter;
+			else {
+				if (IsConstant()) {
+					throw Except::Access(Logger::Error()
+						<< "Attempting to RemoveIndex in a constant container");
+				}
+
+				if (IsStatic()) {
+					throw Except::Access(Logger::Error()
+						<< "Attempting to RemoveIndex in a static container");
+				}
+
+				MoveMemory(GetRaw() + ender, GetRaw() + starter, sizeof(T) * (mCount - ender));
+				mCount -= count;
+			}
+
+			return count;
+		}
+		else {
+			if (IsConstant()) {
+				throw Except::Access(Logger::Error()
+					<< "Attempting to RemoveIndex in a constant container");
+			}
+
+			if (IsStatic()) {
+				throw Except::Access(Logger::Error()
+					<< "Attempting to RemoveIndex in a static container");
+			}
+
+			// Call the destructors on the correct region						
+			CropInner(starter, count, count).template CallKnownDestructors<T>();
+
+			if (ender < mCount) {
+				// Fill gap	if any by invoking move constructions				
+				const auto remains = mCount - ender;
+				CropInner(starter, 0, remains)
+					.template CallKnownMoveConstructors<T>(
+						remains, CropInner(ender, remains, remains)
+					);
+			}
+
+			mCount -= count;
+			return count;
+		}
+	}
+
 	/// Sort the pack																				
 	TEMPLATE()
-	void TAny<T>::Sort(const Index& first) {
+	template<bool ASCEND>
+	void TAny<T>::Sort() {
 		if constexpr (IsSortable<T>)
-			Any::Sort<T>(first);
+			Any::Sort<T, ASCEND>();
 		else LANGULUS_ASSERT("Can't sort container - T is not sortable");
 	}
 

@@ -122,12 +122,14 @@ namespace Langulus::Anyness
 		TAny& operator >>= (const T&);
 		TAny& operator >>= (T&&);
 
-		template<ReflectedData ALT_T = T>
-		NOD() Index Find(const ALT_T&, const Index& = Index::Front) const;
-		template<ReflectedData ALT_T = T>
-		Count Remove(const ALT_T&, const Index& = Index::Front);
+		template<ReflectedData ALT_T = T, bool REVERSE = false>
+		NOD() Index Find(const ALT_T&) const;
+		template<ReflectedData ALT_T = T, bool REVERSE = false>
+		Count RemoveValue(const ALT_T&);
+		Count RemoveIndex(const Count&, const Count&);
 
-		void Sort(const Index&);
+		template<bool ASCEND = false>
+		void Sort();
 
 		NOD() TAny& Trim(const Count&);
 		template<Anyness::IsBlock WRAPPER = TAny>

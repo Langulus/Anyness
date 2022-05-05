@@ -148,9 +148,9 @@ namespace Langulus::Anyness
 		void Optimize();
 	
 	public:
-		template<bool CONSTRAIN = false>
+		template<bool SPARSE, bool CONSTRAIN>
 		void SetType(DMeta);
-		template<ReflectedData T, bool CONSTRAIN = false>
+		template<ReflectedData T, bool CONSTRAIN>
 		void SetType();
 	
 		constexpr void SetPhase(const Phase) noexcept;
@@ -348,7 +348,7 @@ namespace Langulus::Anyness
 		NOD() bool Compare(const Block&, bool resolve = true) const;
 	
 		template<bool CREATE = false>
-		void Allocate(Count);
+		void Allocate(const Count&);
 		
 		void Shrink(Count);
 	
@@ -445,6 +445,9 @@ namespace Langulus::Anyness
 		void Reset();
 
 	protected:
+		template<bool CREATE = false>
+		void AllocateInner(const Count&);
+
 		Size RequestByteSize(const Count&) const noexcept;
 	
 		template<ReflectedData T>
