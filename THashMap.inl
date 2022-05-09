@@ -165,16 +165,13 @@ namespace Langulus::Anyness::Inner
 	}
 
 
-
 	///																								
 	///	Table implementation																	
 	///																								
 
 	/// Default constructor																		
 	TABLE_TEMPLATE()
-	TABLE()::Table() noexcept(noexcept(Hash()) && noexcept(KeyEqual()))
-		: WHash()
-		, WKeyEqual() { }
+	TABLE()::Table() noexcept { }
 
 	/// Creates an empty hash map. Nothing is allocated yet, this happens at	
 	/// the first insert. This tremendously speeds up ctor &	dtor of a map		
@@ -183,30 +180,22 @@ namespace Langulus::Anyness::Inner
 	/// everybody points to DummyInfoByte::b. parameter bucket_count is			
 	/// dictated by the standard, but we can ignore it									
 	TABLE_TEMPLATE()
-	TABLE()::Table(size_t, const Hash& h, const KeyEqual& equal) noexcept(noexcept(Hash(h)) && noexcept(KeyEqual(equal)))
-		: WHash(h)
-		, WKeyEqual(equal) { }
+	TABLE()::Table(size_t) noexcept { }
 
 	TABLE_TEMPLATE()
 	template<class IT>
-	TABLE()::Table(IT first, IT last, size_t, const Hash& h, const KeyEqual& equal)
-		: WHash(h)
-		, WKeyEqual(equal) {
+	TABLE()::Table(IT first, IT last, size_t) {
 		insert(first, last);
 	}
 
 	TABLE_TEMPLATE()
-	TABLE()::Table(std::initializer_list<value_type> initlist, size_t, const Hash& h, const KeyEqual& equal)
-		: WHash(h)
-		, WKeyEqual(equal) {
+	TABLE()::Table(std::initializer_list<value_type> initlist, size_t) {
 		insert(initlist.begin(), initlist.end());
 	}
 
 	TABLE_TEMPLATE()
 	TABLE()::Table(Table&& o) noexcept
-		: WHash(Move(static_cast<WHash&>(o)))
-		, WKeyEqual(Move(static_cast<WKeyEqual&>(o)))
-		, DataPool(Move(static_cast<DataPool&>(o))) {
+		: DataPool(Forward<DataPool&>(o)) {
 		if (o.mMask) {
 			mHashMultiplier = Move(o.mHashMultiplier);
 			mKeyVals = Move(o.mKeyVals);
@@ -223,9 +212,7 @@ namespace Langulus::Anyness::Inner
 
 	TABLE_TEMPLATE()
 	TABLE()::Table(const Table& o)
-		: WHash(static_cast<const WHash&>(o))
-		, WKeyEqual(static_cast<const WKeyEqual&>(o))
-		, DataPool(static_cast<const DataPool&>(o)) {
+		: DataPool(static_cast<const DataPool&>(o)) {
 		if (!o.empty()) {
 			// not empty: create an exact copy. it is also possible to just iterate through all
 			// elements and insert them, but copying is probably faster.
@@ -235,7 +222,7 @@ namespace Langulus::Anyness::Inner
 
 			mHashMultiplier = o.mHashMultiplier;
 			mKeyVals = static_cast<Node*>(Inner::assertNotNull<std::bad_alloc>(std::malloc(numBytesTotal)));
-			// no need for calloc because clonData does memcpy
+			// No need for calloc because cloneData does memcpy				
 			mInfo = reinterpret_cast<uint8_t*>(mKeyVals + numElementsWithBuffer);
 			mNumElements = o.mNumElements;
 			mMask = o.mMask;
@@ -246,22 +233,22 @@ namespace Langulus::Anyness::Inner
 		}
 	}
 
-	/// Destroys the map and all it's contents									
+	/// Destroys the map and all it's contents											
 	TABLE_TEMPLATE()
 	TABLE()::~Table() {
 		destroy();
 	}
 
-	/// Move a table																		
-	///	@param o - the table to move												
-	///	@return a reference to this table										
+	/// Move a table																				
+	///	@param o - the table to move														
+	///	@return a reference to this table												
 	TABLE_TEMPLATE()
 	TABLE()& TABLE()::operator = (Table&& o) noexcept {
 		if (&o == this)
 			return *this;
 
 		if (o.mMask) {
-			// Move stuff if the other map actually has some data		
+			// Move stuff if the other map actually has some data				
 			destroy();
 			mHashMultiplier = Move(o.mHashMultiplier);
 			mKeyVals = Move(o.mKeyVals);
@@ -271,53 +258,51 @@ namespace Langulus::Anyness::Inner
 			mMaxNumElementsAllowed = Move(o.mMaxNumElementsAllowed);
 			mInfoInc = Move(o.mInfoInc);
 			mInfoHashShift = Move(o.mInfoHashShift);
-			WHash::operator=(Move(static_cast<WHash&>(o)));
-			WKeyEqual::operator=(Move(static_cast<WKeyEqual&>(o)));
-			DataPool::operator=(Move(static_cast<DataPool&>(o)));
+			DataPool::operator = (Move(static_cast<DataPool&>(o)));
 			o.init();
 		}
 		else {
-			// Nothing in the other map => just clear it					
+			// Nothing in the other map => just clear it							
 			Clear();
 		}
 
 		return *this;
 	}
 
-	/// Creates a copy of the given map												
-	/// Copy constructor of each entry is used									
+	/// Creates a copy of the given map														
+	/// Copy constructor of each entry is used											
 	TABLE_TEMPLATE()
 	TABLE()& TABLE()::operator = (Table const& o) {
 		if (&o == this) {
-			// prevent assigning of itself
+			// Prevent assigning of itself											
 			return *this;
 		}
 
-		// we keep using the old allocator and not assign the new one, because we want to keep
-		// the memory available. when it is the same size.
+		// We keep using the old allocator and not assign the new one,		
+		// because we want to keep the memory available. when it is the	
+		// same size																		
 		if (o.empty()) {
 			if (0 == mMask) {
-				// nothing to do, we are empty too
+				// Nothing to do, we are empty too									
 				return *this;
 			}
 
-			// not empty: destroy what we have there
-			// clear also resets mInfo to 0, that's sometimes not necessary.
+			// Not empty: destroy what we have there clear also resets		
+			// mInfo to 0, that's sometimes not necessary						
 			destroy();
 			init();
-			WHash::operator=(static_cast<const WHash&>(o));
-			WKeyEqual::operator=(static_cast<const WKeyEqual&>(o));
 			DataPool::operator=(static_cast<DataPool const&>(o));
 			return *this;
 		}
 
-		// clean up old stuff
+		// Clean up old stuff															
 		DestroyNodes<true>();
 
 		if (mMask != o.mMask) {
-			// no luck: we don't have the same array size allocated, so we need to realloc.
+			// No luck: we don't have the same array size allocated, so we	
+			// need to realloc															
 			if (0 != mMask) {
-				// only deallocate if we actually have data!
+				// Only deallocate if we actually have data!						
 				std::free(mKeyVals);
 			}
 
@@ -325,13 +310,11 @@ namespace Langulus::Anyness::Inner
 			auto const numBytesTotal = calcNumBytesTotal(numElementsWithBuffer);
 			mKeyVals = static_cast<Node*>(Inner::assertNotNull<std::bad_alloc>(std::malloc(numBytesTotal)));
 
-			// no need for calloc here because cloneData performs a memcpy.
+			// No need for calloc here because cloneData performs a memcpy	
 			mInfo = reinterpret_cast<uint8_t*>(mKeyVals + numElementsWithBuffer);
-			// sentinel is set in cloneData
+			// Sentinel is set in cloneData											
 		}
 
-		WHash::operator=(static_cast<const WHash&>(o));
-		WKeyEqual::operator=(static_cast<const WKeyEqual&>(o));
 		DataPool::operator=(static_cast<DataPool const&>(o));
 		mHashMultiplier = o.mHashMultiplier;
 		mNumElements = o.mNumElements;
@@ -341,6 +324,16 @@ namespace Langulus::Anyness::Inner
 		mInfoHashShift = o.mInfoHashShift;
 		cloneData(o);
 		return *this;
+	}
+
+	TABLE_TEMPLATE()
+	DMeta TABLE()::GetKeyType() const {
+		return MetaData::Of<Key>();
+	}
+
+	TABLE_TEMPLATE()
+	DMeta TABLE()::GetValueType() const {
+		return MetaData::Of<T>();
 	}
 
 } // namespace Langulus::Anyness::Inner

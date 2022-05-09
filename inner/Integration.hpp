@@ -137,6 +137,77 @@
 		constexpr bool BigEndianMachine = ::std::endian::native == ::std::endian::big;
 		constexpr bool LittleEndianMachine = ::std::endian::native == ::std::endian::little;
 
+		
+		/// Count leading/trailing bits                                         
+		#ifdef _MSC_VER
+			#include <intrin.h>
+			#if LANGULUS(BITNESS) == 32
+				#pragma intrinsic(_BitScanForward)
+				#pragma intrinsic(_BitScanReverse)
+			#elif LANGULUS(BITNESS) == 64
+				#pragma intrinsic(_BitScanForward64)
+				#pragma intrinsic(_BitScanReverse64)
+			#else
+				#error Not implemented
+			#endif
+
+			constexpr int CountTrailingZeroes(size_t mask) {
+				unsigned long index;
+				#if LANGULUS(BITNESS) == 32
+					return _BitScanForward(&index, mask)
+						? static_cast<int>(index)
+						: LANGULUS(BITNESS);
+				#elif LANGULUS(BITNESS) == 64
+					return _BitScanForward64(&index, mask)
+						? static_cast<int>(index)
+						: LANGULUS(BITNESS);
+				#else
+					#error Not implemented
+				#endif
+			}
+
+			constexpr int CountLeadingZeroes(size_t mask) {
+				unsigned long index;
+				#if LANGULUS(BITNESS) == 32
+					return _BitScanReverse(&index, mask)
+						? static_cast<int>(index)
+						: LANGULUS(BITNESS);
+				#elif LANGULUS(BITNESS) == 64
+					return _BitScanReverse64(&index, mask)
+						? static_cast<int>(index)
+						: LANGULUS(BITNESS);
+				#else
+					#error Not implemented
+				#endif
+			}
+		#else
+			constexpr int CountTrailingZeroes(size_t mask) {
+				unsigned long index;
+				#if LANGULUS(BITNESS) == 32
+					return mask ? __builtin_ctzl(mask) : LANGULUS(BITNESS);
+				#elif LANGULUS(BITNESS) == 64
+					return mask ? __builtin_ctzll(mask) : LANGULUS(BITNESS);
+				#else
+					#error Not implemented
+				#endif
+			}
+
+			constexpr int CountLeadingZeroes(size_t mask) {
+				unsigned long index;
+				#if LANGULUS(BITNESS) == 32
+					return mask ? __builtin_clzl(mask) : LANGULUS(BITNESS);
+				#elif LANGULUS(BITNESS) == 64
+					return mask ? __builtin_clzll(mask) : LANGULUS(BITNESS);
+				#else
+					#error Not implemented
+				#endif
+			}
+		#endif
+
+		template<class T>
+		decltype(auto) Uneval() noexcept {
+			return ::std::declval<T>();
+		}
 
 		///																							
 		/// Concepts																				
@@ -269,30 +340,30 @@
 		concept IsAbstract = ::std::is_abstract_v<Decay<T>> || Decay<T>::CTTI_Abstract == true;
 
 		/// Check if T is a fundamental type (either sparse or dense)				
-		template<class T>
-		concept IsFundamental = ::std::is_fundamental_v<Decay<T>>;
+		template<class... T>
+		concept IsFundamental = (::std::is_fundamental_v<Decay<T>> && ...);
 
 		/// Check if T is default-constructible											
-		template<class T>
-		concept IsDefaultConstructible = ::std::default_initializable<Decay<T>>;
+		template<class... T>
+		concept IsDefaultConstructible = (::std::default_initializable<Decay<T>> && ...);
 
 		/// Check if T is copy-constructible												
-		template<class T>
-		concept IsCopyConstructible = ::std::copy_constructible<Decay<T>>;
+		template<class... T>
+		concept IsCopyConstructible = (::std::copy_constructible<Decay<T>> && ...);
 		
 		/// Check if T is copy-constructible												
-		template<class T>
-		concept IsMoveConstructible = ::std::move_constructible<Decay<T>>;
+		template<class... T>
+		concept IsMoveConstructible = (::std::move_constructible<Decay<T>> && ...);
 		
 		/// Check if T is destructible														
-		template<class T>
-		concept IsDestructible = ::std::destructible<Decay<T>>;
+		template<class... T>
+		concept IsDestructible = (::std::destructible<Decay<T>> && ...);
 		
 		/// Check if Decay<T> is clonable													
-		template<class T>
-		concept IsClonable = requires (Decay<T> a) { 
+		template<class... T>
+		concept IsClonable = (requires (Decay<T> a) { 
 			{a = a.Clone()};
-		};
+		} && ...);
 		
 		/// Check if T is referencable														
 		template<class T>

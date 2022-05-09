@@ -3,6 +3,7 @@
 ///                                                                           
 #pragma once
 #include "Map.hpp"
+#include "Iterator.hpp"
 #include <algorithm>
 #include <cstdlib>
 #include <cstring>
@@ -14,72 +15,6 @@
 #include <type_traits>
 #include <utility>
 #include <string_view>
-
-/// Count leading/trailing bits                                               
-#ifdef _MSC_VER
-	#include <intrin.h>
-	#if LANGULUS(BITNESS) == 32
-		#pragma intrinsic(_BitScanForward)
-		#pragma intrinsic(_BitScanReverse)
-	#elif LANGULUS(BITNESS) == 64
-		#pragma intrinsic(_BitScanForward64)
-		#pragma intrinsic(_BitScanReverse64)
-	#else
-		#error Not implemented
-	#endif
-
-	constexpr int CountTrailingZeroes(size_t mask) {
-		unsigned long index;
-		#if LANGULUS(BITNESS) == 32
-			return _BitScanForward(&index, mask)
-				? static_cast<int>(index)
-				: LANGULUS(BITNESS);
-		#elif LANGULUS(BITNESS) == 64
-			return _BitScanForward64(&index, mask)
-				? static_cast<int>(index)
-				: LANGULUS(BITNESS);
-		#else
-			#error Not implemented
-		#endif
-	}
-
-	constexpr int CountLeadingZeroes(size_t mask) {
-		unsigned long index;
-		#if LANGULUS(BITNESS) == 32
-			return _BitScanReverse(&index, mask)
-				? static_cast<int>(index)
-				: LANGULUS(BITNESS);
-		#elif LANGULUS(BITNESS) == 64
-			return _BitScanReverse64(&index, mask)
-				? static_cast<int>(index)
-				: LANGULUS(BITNESS);
-		#else
-			#error Not implemented
-		#endif
-	}
-#else
-	constexpr int CountTrailingZeroes(size_t mask) {
-		unsigned long index;
-		#if LANGULUS(BITNESS) == 32
-			return mask ? __builtin_ctzl(mask) : LANGULUS(BITNESS);
-		#elif LANGULUS(BITNESS) == 64
-			return mask ? __builtin_ctzll(mask) : LANGULUS(BITNESS);
-		#else
-			#error Not implemented
-		#endif
-	}
-
-	constexpr int CountLeadingZeroes(size_t mask) {
-		unsigned long index;
-		#if LANGULUS(BITNESS) == 32
-			return mask ? __builtin_clzl(mask) : LANGULUS(BITNESS);
-		#elif LANGULUS(BITNESS) == 64
-			return mask ? __builtin_clzll(mask) : LANGULUS(BITNESS);
-		#else
-			#error Not implemented
-		#endif
-	}
-#endif
 
 
 namespace Langulus::Anyness
@@ -109,7 +44,6 @@ namespace Langulus::Anyness
 		// inlinings more difficult. Throws are also generally the slow path.
 		template <typename E, typename... Args>
 		[[noreturn]] LANGULUS(NOINLINE) void doThrow(Args&&... args) {
-			// NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 			throw E(std::forward<Args>(args)...);
 		}
 
@@ -120,222 +54,10 @@ namespace Langulus::Anyness
 			return t;
 		}
 
-		template <typename T>
-		inline T unaligned_load(void const* ptr) noexcept {
-			// using memcpy so we don't get into unaligned load problems.
-			// compiler should optimize this very well anyways.
-			T t;
-			std::memcpy(&t, ptr, sizeof(T));
-			return t;
-		}
-
-		// Allocates bulks of memory for objects of type T. This deallocates the memory in the destructor,
-		// and keeps a linked list of the allocated memory around. Overhead per allocation is the size of a
-		// pointer.
-		template <typename T, size_t MinNumAllocs = 4, size_t MaxNumAllocs = 256>
-		class BulkPoolAllocator {
-		public:
-			BulkPoolAllocator() noexcept = default;
-
-			// does not copy anything, just creates a new allocator.
-			BulkPoolAllocator(const BulkPoolAllocator&) noexcept
-				: mHead(nullptr)
-				, mListForFree(nullptr) {}
-
-			BulkPoolAllocator(BulkPoolAllocator&& o) noexcept
-				: mHead(o.mHead)
-				, mListForFree(o.mListForFree) {
-				o.mListForFree = nullptr;
-				o.mHead = nullptr;
-			}
-
-			BulkPoolAllocator& operator=(BulkPoolAllocator&& o) noexcept {
-				reset();
-				mHead = o.mHead;
-				mListForFree = o.mListForFree;
-				o.mListForFree = nullptr;
-				o.mHead = nullptr;
-				return *this;
-			}
-
-			BulkPoolAllocator& operator=(const BulkPoolAllocator&) noexcept {
-				// does not do anything
-				return *this;
-			}
-
-			~BulkPoolAllocator() noexcept {
-				reset();
-			}
-
-			// Deallocates all allocated memory.
-			void reset() noexcept {
-				while (mListForFree) {
-					T* tmp = *mListForFree;
-					std::free(mListForFree);
-					mListForFree = reinterpret_cast_no_cast_align_warning<T**>(tmp);
-				}
-				mHead = nullptr;
-			}
-
-			// allocates, but does NOT initialize. Use in-place new constructor, e.g.
-			//   T* obj = pool.allocate();
-			//   ::new (static_cast<void*>(obj)) T();
-			T* allocate() {
-				T* tmp = mHead;
-				if (!tmp)
-					tmp = performAllocation();
-
-				mHead = *reinterpret_cast_no_cast_align_warning<T**>(tmp);
-				return tmp;
-			}
-
-			// does not actually deallocate but puts it in store.
-			// make sure you have already called the destructor! e.g. with
-			//  obj->~T();
-			//  pool.deallocate(obj);
-			void deallocate(T* obj) noexcept {
-				*reinterpret_cast_no_cast_align_warning<T**>(obj) = mHead;
-				mHead = obj;
-			}
-
-			// Adds an already allocated block of memory to the allocator. This allocator is from now on
-			// responsible for freeing the data (with free()). If the provided data is not large enough to
-			// make use of, it is immediately freed. Otherwise it is reused and freed in the destructor.
-			void addOrFree(void* ptr, const size_t numBytes) noexcept {
-				// calculate number of available elements in ptr
-				if (numBytes < ALIGNMENT + ALIGNED_SIZE) {
-					// not enough data for at least one element. Free and return.
-					std::free(ptr);
-				}
-				else add(ptr, numBytes);
-			}
-
-			void swap(BulkPoolAllocator<T, MinNumAllocs, MaxNumAllocs>& other) noexcept {
-				using std::swap;
-				swap(mHead, other.mHead);
-				swap(mListForFree, other.mListForFree);
-			}
-
-		private:
-			// iterates the list of allocated memory to calculate how many to alloc next.
-			// Recalculating this each time saves us a size_t member.
-			// This ignores the fact that memory blocks might have been added manually with addOrFree. In
-			// practice, this should not matter much.
-			NOD() size_t calcNumElementsToAlloc() const noexcept {
-				auto tmp = mListForFree;
-				size_t numAllocs = MinNumAllocs;
-
-				while (numAllocs * 2 <= MaxNumAllocs && tmp) {
-					auto x = reinterpret_cast<T***>(tmp);
-					tmp = *x;
-					numAllocs *= 2;
-				}
-
-				return numAllocs;
-			}
-
-			// WARNING: Underflow if numBytes < ALIGNMENT! This is guarded in addOrFree().
-			void add(void* ptr, const size_t numBytes) noexcept {
-				const size_t numElements = (numBytes - ALIGNMENT) / ALIGNED_SIZE;
-				auto data = reinterpret_cast<T**>(ptr);
-
-				// link free list
-				auto x = reinterpret_cast<T***>(data);
-				*x = mListForFree;
-				mListForFree = data;
-
-				// create linked list for newly allocated data
-				auto* const headT = reinterpret_cast_no_cast_align_warning<T*>(reinterpret_cast<char*>(ptr) + ALIGNMENT);
-				auto* const head = reinterpret_cast<char*>(headT);
-
-				// Visual Studio compiler automatically unrolls this loop, which is pretty cool
-				for (size_t i = 0; i < numElements; ++i) {
-					*reinterpret_cast_no_cast_align_warning<char**>(head + i * ALIGNED_SIZE) = head + (i + 1) * ALIGNED_SIZE;
-				}
-
-				// last one points to 0
-				*reinterpret_cast_no_cast_align_warning<T**>(head + (numElements - 1) * ALIGNED_SIZE) = mHead;
-				mHead = headT;
-			}
-
-			// Called when no memory is available (mHead == 0).
-			// Don't inline this slow path.
-			LANGULUS(NOINLINE) T* performAllocation() {
-				size_t const numElementsToAlloc = calcNumElementsToAlloc();
-
-				// alloc new memory: [prev |T, T, ... T]
-				size_t const bytes = ALIGNMENT + ALIGNED_SIZE * numElementsToAlloc;
-				add(assertNotNull<std::bad_alloc>(std::malloc(bytes)), bytes);
-				return mHead;
-			}
-
-			// enforce byte alignment of the T's
-			static constexpr size_t ALIGNMENT = (std::max) (std::alignment_of<T>::value, std::alignment_of<T*>::value);
-			static constexpr size_t ALIGNED_SIZE = ((sizeof(T) - 1) / ALIGNMENT + 1) * ALIGNMENT;
-
-			static_assert(MinNumAllocs >= 1, "MinNumAllocs");
-			static_assert(MaxNumAllocs >= MinNumAllocs, "MaxNumAllocs");
-			static_assert(ALIGNED_SIZE >= sizeof(T*), "ALIGNED_SIZE");
-			static_assert(0 == (ALIGNED_SIZE % sizeof(T*)), "ALIGNED_SIZE mod");
-			static_assert(ALIGNMENT >= sizeof(T*), "ALIGNMENT");
-
-			T* mHead {nullptr};
-			T** mListForFree {nullptr};
-		};
-
-
-		template <typename T, size_t MinSize, size_t MaxSize, bool IsFlat>
-		struct NodeAllocator;
-
-		// dummy allocator that does nothing
-		template <typename T, size_t MinSize, size_t MaxSize>
-		struct NodeAllocator<T, MinSize, MaxSize, true> {
-			// we are not using the data, so just free it.
-			void addOrFree(void* ptr, size_t) noexcept {
-				std::free(ptr);
-			}
-		};
-
-		template <typename T, size_t MinSize, size_t MaxSize>
-		struct NodeAllocator<T, MinSize, MaxSize, false> : public BulkPoolAllocator<T, MinSize, MaxSize> {};
-
 	} // namespace Langulus::Anyness::Inner
 
 	struct is_transparent_tag {};
 
-
-	template <typename A, typename B>
-	inline void swap(pair<A, B>& a, pair<A, B>& b) noexcept(
-		noexcept(std::declval<pair<A, B>&>().swap(std::declval<pair<A, B>&>()))) {
-		a.swap(b);
-	}
-
-	template <typename A, typename B>
-	inline constexpr bool operator==(pair<A, B> const& x, pair<A, B> const& y) {
-		return (x.first == y.first) && (x.second == y.second);
-	}
-	template <typename A, typename B>
-	inline constexpr bool operator!=(pair<A, B> const& x, pair<A, B> const& y) {
-		return !(x == y);
-	}
-	template <typename A, typename B>
-	inline constexpr bool operator<(pair<A, B> const& x, pair<A, B> const& y) noexcept(noexcept(
-		std::declval<A const&>() < std::declval<A const&>()) && noexcept(std::declval<B const&>() <
-			std::declval<B const&>())) {
-		return x.first < y.first || (!(y.first < x.first) && x.second < y.second);
-	}
-	template <typename A, typename B>
-	inline constexpr bool operator>(pair<A, B> const& x, pair<A, B> const& y) {
-		return y < x;
-	}
-	template <typename A, typename B>
-	inline constexpr bool operator<=(pair<A, B> const& x, pair<A, B> const& y) {
-		return !(x > y);
-	}
-	template <typename A, typename B>
-	inline constexpr bool operator>=(pair<A, B> const& x, pair<A, B> const& y) {
-		return !(x < y);
-	}
 
 	inline size_t hash_bytes(void const* ptr, size_t len) noexcept {
 		static constexpr uint64_t m = UINT64_C(0xc6a4a7935bd1e995);
@@ -347,7 +69,7 @@ namespace Langulus::Anyness
 
 		size_t const n_blocks = len / 8;
 		for (size_t i = 0; i < n_blocks; ++i) {
-			auto k = Inner::unaligned_load<uint64_t>(data64 + i);
+			auto k = unaligned_load<uint64_t>(data64 + i);
 
 			k *= m;
 			k ^= k >> r;
@@ -537,8 +259,8 @@ namespace Langulus::Anyness
 #define NODE_TEMPLATE()	template<class M, class T, class V>
 #define NODE(a) DataNodeOn##a<M, T, V>
 
-#define TABLE_TEMPLATE() template<bool IsFlat, size_t MaxLoadFactor100, class Key, class T, class Hash, class KeyEqual>
-#define TABLE() Table<IsFlat, MaxLoadFactor100, Key, T, Hash, KeyEqual>
+#define TABLE_TEMPLATE() template<bool IsFlat, size_t MaxLoadFactor100, class Key, class T>
+#define TABLE() Table<IsFlat, MaxLoadFactor100, Key, T>
 
 
 		/// DataNode																				
@@ -653,22 +375,20 @@ namespace Langulus::Anyness
 		///																							
 		TABLE_TEMPLATE()
 		class Table
-			: public WrapHash<Hash>
-			, public WrapKeyEqual<KeyEqual>
-			, Inner::NodeAllocator<Conditional<IsVoid<T>, Key, pair<Conditional<IsFlat, Key, Key const>, T>>, 4, 16384, IsFlat>
+			: NodeAllocator<Conditional<IsVoid<T>, Key, TPair<Conditional<IsFlat, Key, Key const>, T>>, 4, 16384, IsFlat>
 		{
 		public:
 			static constexpr bool is_flat = IsFlat;
 			static constexpr bool is_map = not IsVoid<T>;
 			static constexpr bool is_set = !is_map;
-			static constexpr bool is_transparent = has_is_transparent<Hash> && has_is_transparent<KeyEqual>;
+			//static constexpr bool is_transparent = has_is_transparent<Hash> && has_is_transparent<KeyEqual>;
 
+			using PairInner = TPair<Conditional<IsFlat, Key, Key const>, T>;
+			using Pair = TPair<Key, T>;
 			using key_type = Key;
 			using mapped_type = T;
-			using value_type = Conditional<is_set, Key, pair<Conditional<is_flat, Key, Key const>, T>>;
-			using hasher = Hash;
-			using key_equal = KeyEqual;
-			using Self = Table<IsFlat, MaxLoadFactor100, Key, T, Hash, KeyEqual>;
+			using value_type = Conditional<is_set, Key, PairInner>;
+			using Self = TABLE();
 
 		private:
 			static_assert(MaxLoadFactor100 > 10 && MaxLoadFactor100 < 100,
@@ -691,8 +411,8 @@ namespace Langulus::Anyness
 			InfoType mInfoHashShift = InitialInfoHashShift;                         // 4 byte 56
 			// 16 byte 56 if NodeAllocator
 
-			using WHash = WrapHash<Hash>;
-			using WKeyEqual = WrapKeyEqual<KeyEqual>;
+			//using WHash = WrapHash<Hash>;
+			//using WKeyEqual = WrapKeyEqual<KeyEqual>;
 
 			// configuration defaults
 
@@ -702,24 +422,37 @@ namespace Langulus::Anyness
 			static constexpr uint8_t InitialInfoInc = 1U << InitialInfoNumBits;
 			static constexpr size_t InfoMask = InitialInfoInc - 1U;
 			static constexpr uint8_t InitialInfoHashShift = 0;
-			using DataPool = Inner::NodeAllocator<value_type, 4, 16384, IsFlat>;
+			using DataPool = NodeAllocator<value_type, 4, 16384, IsFlat>;
 
 		public:
-			Table() noexcept(noexcept(Hash()) && noexcept(KeyEqual()));
-			explicit Table(size_t, const Hash& h = Hash {}, const KeyEqual& equal = KeyEqual {}) noexcept(noexcept(Hash(h)) && noexcept(KeyEqual(equal)));
+			Table() noexcept;
+			explicit Table(size_t) noexcept;
 
 			template<typename Iter>
-			Table(Iter, Iter, size_t = 0, const Hash& = Hash {}, const KeyEqual& = KeyEqual {});
-			Table(std::initializer_list<value_type>, size_t = 0, const Hash& = Hash {}, const KeyEqual& = KeyEqual {});
+			Table(Iter, Iter, size_t = 0);
+			Table(std::initializer_list<value_type>, size_t = 0);
 			Table(Table&&) noexcept;
-			Table(const Table& o);
+			Table(const Table&);
 			~Table();
 
-			Table& operator = (Table&& o) noexcept;
-			Table& operator = (Table const& o);
+			Table& operator = (Table&&) noexcept;
+			Table& operator = (const Table&);
 
+			Table& operator = (Pair&&) noexcept;
+			Table& operator = (const Pair&);
 
+			DMeta GetKeyType() const;
+			DMeta GetValueType() const;
 
+			template<class ALT_T>
+			bool KeyIs() const noexcept;
+			template<class ALT_T>
+			bool ValueIs() const noexcept;
+
+			Table& operator << (Pair&&);
+			Table& operator << (const Pair&);
+			Table& operator >> (Pair&&);
+			Table& operator >> (const Pair&);
 
 			// helpers for insertKeyPrepareEmptySpot: extract first entry (only const required)
 			NOD() key_type const& getFirstConst(Node const& n) const noexcept {
@@ -760,122 +493,17 @@ namespace Langulus::Anyness
 				}
 			}
 
-			// Iter ////////////////////////////////////////////////////////////
-			struct fast_forward_tag {};
-
-			// generic iterator for both const_iterator and iterator.
-			template<bool IsConst>
-			class Iter {
-			private:
-				using NodePtr = typename std::conditional<IsConst, Node const*, Node*>::type;
-
-			public:
-				using difference_type = std::ptrdiff_t;
-				using value_type = typename Self::value_type;
-				using reference = typename std::conditional<IsConst, value_type const&, value_type&>::type;
-				using pointer = typename std::conditional<IsConst, value_type const*, value_type*>::type;
-				using iterator_category = std::forward_iterator_tag;
-
-				// default constructed iterator can be compared to itself, but WON'T return true when
-				// compared to end().
-				Iter() = default;
-
-				// Rule of zero: nothing specified. The conversion constructor is only enabled for
-				// iterator to const_iterator, so it doesn't accidentally work as a copy ctor.
-
-				// Conversion constructor from iterator to const_iterator.
-				template<bool OtherIsConst, typename = typename std::enable_if<IsConst && !OtherIsConst>::type>
-				Iter(Iter<OtherIsConst> const& other) noexcept
-					: mKeyVals(other.mKeyVals)
-					, mInfo(other.mInfo) {}
-
-				Iter(NodePtr valPtr, uint8_t const* infoPtr) noexcept
-					: mKeyVals(valPtr)
-					, mInfo(infoPtr) {}
-
-				Iter(NodePtr valPtr, uint8_t const* infoPtr, fast_forward_tag) noexcept
-					: mKeyVals(valPtr)
-					, mInfo(infoPtr) {
-					fastForward();
-				}
-
-				template<bool OtherIsConst, typename = typename std::enable_if<IsConst && !OtherIsConst>::type>
-				Iter& operator = (Iter<OtherIsConst> const& other) noexcept {
-					mKeyVals = other.mKeyVals;
-					mInfo = other.mInfo;
-					return *this;
-				}
-
-				// prefix increment. Undefined behavior if we are at end()!
-				Iter& operator++() noexcept {
-					mInfo++;
-					mKeyVals++;
-					fastForward();
-					return *this;
-				}
-
-				Iter operator++(int) noexcept {
-					Iter tmp = *this;
-					++(*this);
-					return tmp;
-				}
-
-				reference operator*() const {
-					return **mKeyVals;
-				}
-
-				pointer operator->() const {
-					return &**mKeyVals;
-				}
-
-				template<bool O>
-				bool operator==(Iter<O> const& o) const noexcept {
-					return mKeyVals == o.mKeyVals;
-				}
-
-				template<bool O>
-				bool operator!=(Iter<O> const& o) const noexcept {
-					return mKeyVals != o.mKeyVals;
-				}
-
-			private:
-				// fast forward to the next non-free info byte
-				// I've tried a few variants that don't depend on intrinsics, but unfortunately they are
-				// quite a bit slower than this one. So I've reverted that change again. See map_benchmark.
-				void fastForward() noexcept {
-					size_t n = 0;
-					while (0U == (n = Inner::unaligned_load<size_t>(mInfo))) {
-						mInfo += sizeof(size_t);
-						mKeyVals += sizeof(size_t);
-					}
-
-					size_t inc;
-					if constexpr (LittleEndianMachine)
-						inc = CountTrailingZeroes(n) / 8;
-					else
-						inc = CountLeadingZeroes(n) / 8;
-
-					mInfo += inc;
-					mKeyVals += inc;
-				}
-
-				friend class Table<IsFlat, MaxLoadFactor100, key_type, mapped_type, hasher, key_equal>;
-				NodePtr mKeyVals {nullptr};
-				uint8_t const* mInfo {nullptr};
-			};
-
-			////////////////////////////////////////////////////////////////////
-
-			// highly performance relevant code.
-			// Lower bits are used for indexing into the array (2^n size)
-			// The upper 1-5 bits need to be a reasonable good hash, to save comparisons.
-			template<typename HashKey>
+			/// Highly performance relevant code											
+			/// Lower bits are used for indexing into the array (2^n size)			
+			/// The upper 1-5 bits need to be a reasonable good hash, to save		
+			/// comparisons																		
+			template<class HashKey>
 			void keyToIdx(HashKey&& key, size_t* idx, InfoType* info) const {
-				// In addition to whatever hash is used, add another mul & shift so we get better hashing.
-				// This serves as a bad hash prevention, if the given data is
-				// badly mixed.
-				auto h = static_cast<uint64_t>(WHash::operator()(key));
-
+				static_assert(IsHashable<HashKey>, "Contained key type is not hashable");
+				// In addition to whatever hash is used, add another mul &	
+				// shift so we get better hashing. This serves as a bad		
+				// hash prevention, if the given data is badly mixed.			
+				uint64_t h = static_cast<uint64_t>(key.GetHash());
 				h *= mHashMultiplier;
 				h ^= h >> 33U;
 
@@ -933,27 +561,25 @@ namespace Langulus::Anyness
 
 			/// Copy of find(), except that it returns iterator instead of			
 			/// const_iterator																	
-			template<typename Other>
+			template<class Other>
 			NOD() size_t findIdx(Other const& key) const {
+				static_assert(IsComparable<Other, Key>, "Can't compare keys");
 				size_t idx {};
 				InfoType info {};
 				keyToIdx(key, &idx, &info);
 
 				do {
-					// unrolling this twice gives a bit of a speedup. More unrolling did not help.
-					if (info == mInfo[idx] &&
-						LANGULUS_LIKELY(WKeyEqual::operator()(key, mKeyVals[idx].getFirst()))) {
+					// Unrolling this twice gives a bit of a speedup			
+					// More unrolling did not help									
+					if (info == mInfo[idx] && LANGULUS_LIKELY(key == mKeyVals[idx].getFirst()))
 						return idx;
-					}
 					next(&info, &idx);
-					if (info == mInfo[idx] &&
-						LANGULUS_LIKELY(WKeyEqual::operator()(key, mKeyVals[idx].getFirst()))) {
+					if (info == mInfo[idx] && LANGULUS_LIKELY(key == mKeyVals[idx].getFirst()))
 						return idx;
-					}
 					next(&info, &idx);
 				} while (info <= mInfo[idx]);
 
-				// nothing found!
+				// If reached, then nothing found									
 				return mMask == 0 
 					? 0
 					: static_cast<size_t>(std::distance(mKeyVals, reinterpret_cast_no_cast_align_warning<Node*>(mInfo)));
@@ -977,6 +603,8 @@ namespace Langulus::Anyness
 				}
 			}
 
+			/// Clone the table																	
+			///	@return the new table														
 			NOD() Table Clone() const {
 				Table result;
 				result.CloneData(*this);
@@ -1029,8 +657,8 @@ namespace Langulus::Anyness
 			}
 
 		public:
-			using iterator = Iter<false>;
-			using const_iterator = Iter<true>;
+			using iterator = Iterator<false, Self>;
+			using const_iterator = Iterator<true, Self>;
 
 
 
@@ -1308,7 +936,7 @@ namespace Langulus::Anyness
 				return const_iterator {mKeyVals + idx, mInfo + idx};
 			}
 
-			template <typename OtherKey>
+			/*template <typename OtherKey>
 			const_iterator find(const OtherKey& key, is_transparent_tag) const {
 				const size_t idx = findIdx(key);
 				return const_iterator {mKeyVals + idx, mInfo + idx};
@@ -1318,14 +946,14 @@ namespace Langulus::Anyness
 			const_iterator find(const OtherKey& key) const requires IsTransparent<Self_> {
 				const size_t idx = findIdx(key);
 				return const_iterator {mKeyVals + idx, mInfo + idx};
-			}
+			}*/
 
 			iterator find(const key_type& key) {
 				const size_t idx = findIdx(key);
 				return iterator {mKeyVals + idx, mInfo + idx};
 			}
 
-			template <typename OtherKey>
+			/*template <typename OtherKey>
 			iterator find(const OtherKey& key, is_transparent_tag) {
 				const size_t idx = findIdx(key);
 				return iterator {mKeyVals + idx, mInfo + idx};
@@ -1335,7 +963,7 @@ namespace Langulus::Anyness
 			iterator find(const OtherKey& key) requires IsTransparent<Self_> {
 				const size_t idx = findIdx(key);
 				return iterator {mKeyVals + idx, mInfo + idx};
-			}
+			}*/
 
 			/// Get the beginning of internal data											
 			///	@return the iterator															
@@ -1392,14 +1020,18 @@ namespace Langulus::Anyness
 				return ++pos;
 			}
 
+			/// Erase a pair																		
+			///	@param key - the key to search for										
+			///	@return the number of removed pairs										
 			size_t erase(const key_type& key) {
+				static_assert(IsComparable<Key>, "Can't compare keys");
 				size_t idx {};
 				InfoType info {};
 				keyToIdx(key, &idx, &info);
 
-				// check while info matches with the source idx
+				// Check while info matches with the source idx					
 				do {
-					if (info == mInfo[idx] && WKeyEqual::operator()(key, mKeyVals[idx].getFirst())) {
+					if (info == mInfo[idx] && key == mKeyVals[idx].getFirst()) {
 						shiftDown(idx);
 						--mNumElements;
 						return 1;
@@ -1407,7 +1039,7 @@ namespace Langulus::Anyness
 					next(&info, &idx);
 				} while (info <= mInfo[idx]);
 
-				// nothing found to delete
+				// Nothing found to delete												
 				return 0;
 			}
 
@@ -1673,17 +1305,18 @@ namespace Langulus::Anyness
 					keyToIdx(key, &idx, &info);
 					nextWhileLess(&info, &idx);
 
-					// while we potentially have a match
+					// While we potentially have a match							
 					while (info == mInfo[idx]) {
-						if (WKeyEqual::operator()(key, mKeyVals[idx].getFirst())) {
-							// key already exists, do NOT insert.
-							// see http://en.cppreference.com/w/cpp/container/unordered_map/insert
+						static_assert(IsComparable<Key, OtherKey>, "Can't compare keys");
+						if (key == mKeyVals[idx].getFirst()) {
+							// Key already exists, do NOT insert					
 							return std::make_pair(idx, InsertionState::key_found);
 						}
+
 						next(&info, &idx);
 					}
 
-					// unlikely that this evaluates to true
+					// Unlikely that this evaluates to true						
 					if (LANGULUS_UNLIKELY(mNumElements >= mMaxNumElementsAllowed)) {
 						if (!increase_size())
 							return std::make_pair(size_t(0), InsertionState::overflow_error);
@@ -1691,7 +1324,8 @@ namespace Langulus::Anyness
 						continue;
 					}
 
-					// key not found, so we are now exactly where we want to insert it.
+					// Key not found, so we are now exactly where we want to	
+					// insert it															
 					auto const insertion_idx = idx;
 					auto const insertion_info = info;
 					if (LANGULUS_UNLIKELY(insertion_info + mInfoInc > 0xFF))
@@ -1815,7 +1449,7 @@ namespace Langulus::Anyness
 	using unordered_node_map = Inner::Table<false, MaxLoadFactor100, K, V>;
 
 	template <class K, class V, Count MaxLoadFactor100 = 80>
-	using unordered_map = Inner::Table<sizeof(pair<K, V>) <= sizeof(Count) * 6 && std::is_nothrow_move_constructible_v<pair<K, V>> && std::is_nothrow_move_assignable_v<pair<K, V>>, MaxLoadFactor100, K, V>;
+	using unordered_map = Inner::Table<sizeof(TPair<K, V>) <= sizeof(Count) * 6 && std::is_nothrow_move_constructible_v<TPair<K, V>> && std::is_nothrow_move_assignable_v<TPair<K, V>>, MaxLoadFactor100, K, V>;
 
 	/// Set																							
 	template <class K, Count MaxLoadFactor100 = 80>

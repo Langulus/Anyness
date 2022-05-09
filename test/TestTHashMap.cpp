@@ -8,18 +8,21 @@ using MapTypeStd = std::unordered_map<Text, int>;
 
 SCENARIO("THashMap", "[containers]") {
 	GIVEN("A THashMap instance") {
-		int value = 555;
+		MapType::Pair value("five hundred", 555);
 		MapType map;
-		//auto meta = map.Get();
+		auto meta1 = map.GetKeyType();
+		auto meta2 = map.GetValueType();
 
 		WHEN("Given a default-constructed THashMap") {
 			THEN("Various traits change") {
-				/*REQUIRE(meta);
-				REQUIRE(map.GetType()->Is<int>());
-				REQUIRE(map.IsTypeConstrained());
-				REQUIRE(map.GetRaw() == nullptr);
+				REQUIRE(meta1);
+				REQUIRE(meta2);
+				REQUIRE(meta1->Is<Text>());
+				REQUIRE(meta2->Is<int>());
+				//REQUIRE(map.IsTypeConstrained());
+				//REQUIRE(map.GetRaw() == nullptr);
 				REQUIRE(map.IsEmpty());
-				REQUIRE_FALSE(map.IsAllocated());*/
+				//REQUIRE_FALSE(map.IsAllocated());
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: 
@@ -36,7 +39,7 @@ SCENARIO("THashMap", "[containers]") {
 		}
 
 		WHEN("Given a pair by copy") {
-			map = TPair<Text, int>{"five hundred", value};
+			map = value;
 
 			THEN("Various traits change") {
 				/*REQUIRE(map.GetType() == meta);
@@ -96,28 +99,41 @@ SCENARIO("THashMap", "[containers]") {
 		}
 	}
 
-	GIVEN("THashMap with some POD items") {
+	GIVEN("THashMap with some items") {
 		// Arrays are dynamic to avoid constexprification						
-		int* darray1 = new int[5] {1, 2, 3, 4, 5};
-		int* darray2 = new int[5] {6, 7, 8, 9, 10};
+		auto darray1 = new MapType::Pair[5] {
+			{"one", 1}, 
+			{"two", 2}, 
+			{"three", 3},
+			{"four", 4},
+			{"five", 5}
+		};
+		auto darray2 = new MapType::Pair[5] {
+			{"six", 6}, 
+			{"seven", 7}, 
+			{"eight", 8},
+			{"nine", 9},
+			{"ten", 10}
+		};
 
 		MapType map;
 		map << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
-		auto memory = map.GetRaw();
+		//auto memory = map.GetRaw();
 
 		REQUIRE(map.GetCount() == 5);
-		REQUIRE(map.GetReserved() >= 5);
-		REQUIRE(map.Is<int>());
-		REQUIRE(map.GetRaw());
+		//REQUIRE(map.GetReserved() >= 5);
+		REQUIRE(map.KeyIs<Text>());
+		REQUIRE(map.ValueIs<int>());
+		//REQUIRE(map.GetRaw());
 		REQUIRE(map[0] == 1);
 		REQUIRE(map[1] == 2);
 		REQUIRE(map[2] == 3);
 		REQUIRE(map[3] == 4);
 		REQUIRE(map[4] == 5);
-		REQUIRE_FALSE(map.IsConstant());
+		//REQUIRE_FALSE(map.IsConstant());
 
 		WHEN("Shallow-copy more of the same stuff") {
-			//map << darray2[0] << darray2[1] << darray2[2] << darray2[3] << darray2[4];
+			map << darray2[0] << darray2[1] << darray2[2] << darray2[3] << darray2[4];
 
 			THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
 				/*REQUIRE(map.GetCount() == 10);
@@ -160,7 +176,7 @@ SCENARIO("THashMap", "[containers]") {
 		}
 
 		WHEN("Move more of the same stuff") {
-			//map << Move(darray2[0]) << Move(darray2[1]) << Move(darray2[2]) << Move(darray2[3]) << Move(darray2[4]);
+			map << Move(darray2[0]) << Move(darray2[1]) << Move(darray2[2]) << Move(darray2[3]) << Move(darray2[4]);
 
 			THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
 				/*REQUIRE(map.GetCount() == 10);
