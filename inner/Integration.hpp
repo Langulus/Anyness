@@ -14,6 +14,8 @@
 	#include <limits>
 	#include <concepts>
 	
+	/// All non-argument macros should use this facility								
+	/// https://www.fluentcpp.com/2019/05/28/better-macros-better-flags/			
 	#define LANGULUS(a) LANGULUS_##a()
 	#define LANGULUS_MODULE(a) LANGULUS(MODULE_##a)
 	#define LANGULUS_MODULE_Anyness()
@@ -40,6 +42,28 @@
 	#else
 		#define SAFETY(a)
 		#define SAFETY_NOEXCEPT() noexcept
+	#endif
+
+	#ifdef _MSC_VER
+		#define LANGULUS_NOINLINE() __declspec(noinline)
+	#else
+		#define LANGULUS_NOINLINE() __attribute__((noinline))
+	#endif
+
+	#ifdef _MSC_VER
+		#define LANGULUS_LIKELY(condition) condition
+		#define LANGULUS_UNLIKELY(condition) condition
+	#else
+		#define LANGULUS_LIKELY(condition) __builtin_expect(condition, 1)
+		#define LANGULUS_UNLIKELY(condition) __builtin_expect(condition, 0)
+	#endif
+
+	#if INTPTR_MAX == INT64_MAX
+		#define LANGULUS_BITNESS() 64
+	#elif INTPTR_MAX == INT32_MAX
+		#define LANGULUS_BITNESS() 32
+	#else
+		#error Unknown pointer size
 	#endif
 
 	#define LANGULUS_FEATURE(a) LANGULUS_FEATURE_##a()
@@ -82,7 +106,7 @@
 
 	namespace Langulus
 	{
-		
+
 		namespace Anyness
 		{
 			class Block;
@@ -106,6 +130,12 @@
 		using Token = ::std::u8string_view;
 		using Pointer = ::std::uintptr_t;
 		using Real = LANGULUS(FPU);
+
+
+		/// Check endianness at compile-time												
+		/// True if the architecture uses big/mixed endianness						
+		constexpr bool BigEndianMachine = ::std::endian::native == ::std::endian::big;
+		constexpr bool LittleEndianMachine = ::std::endian::native == ::std::endian::little;
 
 
 		///																							
@@ -236,7 +266,7 @@
 
 		/// Check if T is abstract (has at least one pure virtual function)		
 		template<class T>
-		concept IsAbstract = ::std::is_abstract_v<Decay<T>>;
+		concept IsAbstract = ::std::is_abstract_v<Decay<T>> || Decay<T>::CTTI_Abstract == true;
 
 		/// Check if T is a fundamental type (either sparse or dense)				
 		template<class T>

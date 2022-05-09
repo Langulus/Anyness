@@ -119,7 +119,7 @@ namespace Langulus::Anyness
 			Any result;
 			Any wrapped[] {Any{Forward<LIST>(elements)}...};
 			result.Allocate(sizeof...(LIST));
-			result.SetType<Any>();
+			result.SetType<Any, false>();
 			for (auto& it : wrapped)
 				result.Emplace<Any, false>(Move(it));
 			return result;
@@ -178,19 +178,9 @@ namespace Langulus::Anyness
 		Free();
 		Block::operator = (other);
 		other.ResetMemory();
-		other.Reset();
+		other.ResetState();
 		return *this;
 	}
-
-	/// Assign by shallow-copying something constant									
-	///	@param value - the value to copy													
-	///	@return a reference to this container											
-	/*template<ReflectedData T>
-	Any& Any::operator = (const T& other) {
-		operator = (const_cast<T&>(other));
-		MakeConstant();
-		return *this;
-	}*/
 
 	/// Assign by shallow-copying something 												
 	///	@param other - the value to copy													
@@ -346,11 +336,9 @@ namespace Langulus::Anyness
 	}
 
 	/// Reset container state																	
-	inline void Any::ResetState() {
-		if (IsTypeConstrained())
-			Block::ResetState<true>();
-		else
-			Block::ResetState<false>();
+	constexpr void Any::ResetState() noexcept {
+		mState = mState.mState & DataState::Typed;
+		mType = mState.mState == 0 ? nullptr : mType;
 	}
 
 	/// Swap two container's contents														

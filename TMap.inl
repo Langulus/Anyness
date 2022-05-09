@@ -377,7 +377,7 @@ namespace Langulus::Anyness
 	template<class F>
 	Count MAP()::ForEach(F&& call) {
 		using Iterator = decltype(GetLambdaArguments(&F::operator()));
-		if constexpr (Inherits<Iterator, Inner::APair>) {
+		if constexpr (Inherits<Iterator, APair>) {
 			// We're iterating pairs													
 			using ItKey = typename Iterator::Key;
 			using ItVal = typename Iterator::Value;
@@ -394,7 +394,7 @@ namespace Langulus::Anyness
 	template<class F>
 	Count MAP()::ForEachRev(F&& call) {
 		using Iterator = decltype(GetLambdaArguments(&F::operator()));
-		if constexpr (Inherits<Iterator, Inner::APair>) {
+		if constexpr (Inherits<Iterator, APair>) {
 			// We're iterating pairs													
 			using ItKey = typename Iterator::Key;
 			using ItVal = typename Iterator::Value;
@@ -410,7 +410,7 @@ namespace Langulus::Anyness
 	template<class F>
 	Count MAP()::ForEach(F&& call) const {
 		using Iterator = decltype(GetLambdaArguments(&F::operator()));
-		if constexpr (Inherits<Iterator, Inner::APair>) {
+		if constexpr (Inherits<Iterator, APair>) {
 			// We're iterating pairs													
 			using ItKey = typename Iterator::Key;
 			using ItVal = typename Iterator::Value;
@@ -428,7 +428,7 @@ namespace Langulus::Anyness
 	template<class F>
 	Count MAP()::ForEachRev(F&& call) const {
 		using Iterator = decltype(GetLambdaArguments(&F::operator()));
-		if constexpr (Inherits<Iterator, Inner::APair>) {
+		if constexpr (Inherits<Iterator, APair>) {
 			// We're iterating pairs													
 			using ItKey = typename Iterator::Key;
 			using ItVal = typename Iterator::Value;

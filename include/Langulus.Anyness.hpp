@@ -8,3 +8,4 @@
 #include "../TMap.hpp"
 #include "../TPointer.hpp"
 #include "../Trait.hpp"
+#include "../THashMap.hpp"

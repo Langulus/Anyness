@@ -296,7 +296,7 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(another_pack.GetReferences() == 1);
 			}
 
-			#ifdef LANGULUS_STD_BENCHMARK // Last result: 2:1 performance - needs optimization
+			#ifdef LANGULUS_STD_BENCHMARK // Last result: 6:1 performance - needs optimization
 				BENCHMARK_ADVANCED("Anyness::Any::operator = (moved Any)") (Catch::Benchmark::Chronometer meter) {
 					std::vector<Any> source(meter.runs());
 					for (auto& i : source)
@@ -321,69 +321,84 @@ SCENARIO("Any", "[containers]") {
 			#endif
 		}
 
-		WHEN("Given a sparse value and then copied from Block") {
-			int* original_int = new int(value);
-			Any pack;
-			pack = original_int;
-			Any another_pack = static_cast<Block&>(pack);
+		WHEN("Constructing via a Block filled with dense items") {
+			Any pack = value;
+			Any another_pack {static_cast<Block&>(pack)};
 
-			THEN("Various traits change") {
+			THEN("Block will be referenced") {
 				REQUIRE(another_pack.GetType() == meta);
-				REQUIRE(another_pack.Is<int*>());
+				REQUIRE(another_pack.Is<int>());
 				REQUIRE(another_pack.GetRaw() != nullptr);
+				REQUIRE(another_pack.IsDense());
 				REQUIRE(another_pack.As<int>() == value);
-				REQUIRE_THROWS(another_pack.As<float>() == 0.0f);
-				REQUIRE(*another_pack.As<int*>() == value);
-				REQUIRE(another_pack.As<int*>() == original_int);
-				REQUIRE_THROWS(another_pack.As<float*>() == nullptr);
-				#if LANGULUS_FEATURE(NEWDELETE) && LANGULUS_FEATURE(MANAGED_MEMORY)
-					REQUIRE(Allocator::CheckAuthority(meta, original_int));
-					REQUIRE(Allocator::GetReferences(meta, original_int) == 2);
-				#else
-					REQUIRE_FALSE(Allocator::CheckAuthority(meta, original_int));
-					REQUIRE(Allocator::GetReferences(meta, original_int) == 1);
-				#endif
+				REQUIRE(another_pack.HasAuthority());
 				REQUIRE(pack.GetReferences() == another_pack.GetReferences());
 				REQUIRE(pack.GetReferences() == 2);
 			}
+
+			#ifdef LANGULUS_STD_BENCHMARK // Last result: 2:1 performance - needs optimization
+				BENCHMARK_ADVANCED("Anyness::Any::construct via dense Block shallow-copy") (Catch::Benchmark::Chronometer meter) {
+					std::vector<Any> source(meter.runs());
+					for (auto& i : source)
+						i = value;
+
+					std::vector<Catch::Benchmark::storage_for<Any>> storage(meter.runs());
+					meter.measure([&](int i) {
+						return storage[i].construct(static_cast<Block&>(source[i]));
+					});
+				};
+
+				BENCHMARK_ADVANCED("std::any::construct via std::any copy") (Catch::Benchmark::Chronometer meter) {
+					std::vector<std::any> source(meter.runs());
+					for (auto& i : source)
+						i = value;
+
+					std::vector<Catch::Benchmark::storage_for<std::any>> storage(meter.runs());
+					meter.measure([&](int i) {
+						return storage[i].construct(source[i]);
+					});
+				};
+			#endif
 		}
 
-		WHEN("Given a sparse value and then moved from Block") {
-			int* original_int = new int(value);
-			Any pack;
-			pack = original_int;
-			Any another_pack = Move(static_cast<Block&>(pack));
+		WHEN("Constructing via a Block filled with sparse items") {
+			Any pack = new int {value};
+			Any another_pack {static_cast<Block&>(pack)};
 
-			THEN("Moving a block intro container doesn't reset source block to avoid memory leaks") {
-				REQUIRE(pack.GetType() == meta);
-				REQUIRE(pack.Is<int*>());
-				REQUIRE(pack.GetRaw());
-				REQUIRE(pack.As<int>() == value);
-				REQUIRE_THROWS(pack.As<float>() == float(value));
-				REQUIRE(*pack.As<int*>() == value);
-				REQUIRE(pack.As<int*>() == original_int);
-				REQUIRE_THROWS(pack.As<float*>() == nullptr);
-				REQUIRE(pack.GetReferences() == 2);
-
-				REQUIRE(another_pack.GetReferences() == 2);
+			THEN("Block will be referenced") {
 				REQUIRE(another_pack.GetType() == meta);
-				REQUIRE(another_pack.Is<int*>());
+				REQUIRE(another_pack.Is<int>());
 				REQUIRE(another_pack.GetRaw() != nullptr);
+				REQUIRE(another_pack.IsSparse());
 				REQUIRE(another_pack.As<int>() == value);
-				REQUIRE_THROWS(another_pack.As<float>() == float(value));
-				REQUIRE(*another_pack.As<int*>() == value);
-				REQUIRE(another_pack.As<int*>() == original_int);
-				REQUIRE_THROWS(another_pack.As<float*>() == nullptr);
-				REQUIRE(another_pack.GetReferences() == 2);
-
-				#if LANGULUS_FEATURE(NEWDELETE) && LANGULUS_FEATURE(MANAGED_MEMORY)
-					REQUIRE(Allocator::CheckAuthority(meta, original_int));
-					REQUIRE(Allocator::GetReferences(meta, original_int) == 2);
-				#else
-					REQUIRE_FALSE(Allocator::CheckAuthority(meta, original_int));
-					REQUIRE(Allocator::GetReferences(meta, original_int) == 1);
-				#endif
+				REQUIRE(another_pack.HasAuthority());
+				REQUIRE(pack.GetReferences() == another_pack.GetReferences());
+				REQUIRE(pack.GetReferences() == 2);
 			}
+
+			#ifdef LANGULUS_STD_BENCHMARK // Last result: 2:1 performance - needs optimization
+				BENCHMARK_ADVANCED("Anyness::Any::construct via sparse Block shallow-copy") (Catch::Benchmark::Chronometer meter) {
+					std::vector<Any> source(meter.runs());
+					for (auto& i : source)
+						i = value;
+
+					std::vector<Catch::Benchmark::storage_for<Any>> storage(meter.runs());
+					meter.measure([&](int i) {
+						return storage[i].construct(static_cast<Block&>(source[i]));
+					});
+				};
+
+				BENCHMARK_ADVANCED("std::any::construct via std::any copy") (Catch::Benchmark::Chronometer meter) {
+					std::vector<std::any> source(meter.runs());
+					for (auto& i : source)
+						i = value;
+
+					std::vector<Catch::Benchmark::storage_for<std::any>> storage(meter.runs());
+					meter.measure([&](int i) {
+						return storage[i].construct(source[i]);
+					});
+				};
+			#endif
 		}
 
 		WHEN("Given a sparse value and then reset") {

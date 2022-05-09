@@ -1,40 +1,9 @@
 #pragma once
 #include "Any.hpp"
+#include "TPair.hpp"
 
 namespace Langulus::Anyness
 {
-	
-	namespace Inner
-	{
-		/// An abstract pair																		
-		struct APair {
-			//TODO make abstract, forbid containment
-		};
-	}
-	
-	
-	///																								
-	/// A helper structure for pairing keys and values of any type					
-	///																								
-	template<ReflectedData K, ReflectedData V>
-	struct TPair : public Inner::APair {
-		//TODO forbid containment, it's just an intermediate type
-		// use std::pair instead for that
-		// but why???
-		using Key = K;
-		using Value = V;
-		
-		Key mKey;
-		Value mValue;
-
-		TPair() = delete;
-		constexpr TPair(const TPair&) = default;
-		constexpr TPair(TPair&&) noexcept = default;
-		constexpr TPair(Key key, Value value)
-			: mKey {key}
-			, mValue {value} {}
-	};
-
 
 	///																								
 	///	DATA CONTAINER SPECIALIZATION FOR KEY-VALUE PAIRS							

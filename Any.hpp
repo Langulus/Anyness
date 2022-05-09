@@ -93,7 +93,7 @@ namespace Langulus::Anyness
 		Any& operator >>= (T&&);
 
 	protected:
-		void ResetState();
+		constexpr void ResetState() noexcept;
 	};
 
 } // namespace Langulus::Anyness
