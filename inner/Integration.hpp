@@ -204,9 +204,10 @@
 			}
 		#endif
 
+		/// Same as ::std::declval, but conveniently named								
 		template<class T>
-		decltype(auto) Uneval() noexcept {
-			return ::std::declval<T>();
+		::std::add_rvalue_reference_t<T> Uneval() noexcept {
+			LANGULUS_ASSERT("Calling Uneval is ill-formed");
 		}
 
 		///																							

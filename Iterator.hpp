@@ -8,7 +8,7 @@ namespace Langulus::Anyness
 
 
 	///																								
-	/// Generic iterator for both const_iterator and iterator						
+	///	Generic iterator																		
 	///																								
 	template<bool IsConst, class Self>
 	class Iterator {

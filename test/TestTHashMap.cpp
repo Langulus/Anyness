@@ -125,29 +125,30 @@ SCENARIO("THashMap", "[containers]") {
 		REQUIRE(map.KeyIs<Text>());
 		REQUIRE(map.ValueIs<int>());
 		//REQUIRE(map.GetRaw());
-		REQUIRE(map[0] == 1);
-		REQUIRE(map[1] == 2);
-		REQUIRE(map[2] == 3);
-		REQUIRE(map[3] == 4);
-		REQUIRE(map[4] == 5);
+		REQUIRE(map["one"] == 1);
+		REQUIRE(map["two"] == 2);
+		REQUIRE(map["three"] == 3);
+		REQUIRE(map["four"] == 4);
+		REQUIRE(map["five"] == 5);
 		//REQUIRE_FALSE(map.IsConstant());
 
 		WHEN("Shallow-copy more of the same stuff") {
 			map << darray2[0] << darray2[1] << darray2[2] << darray2[3] << darray2[4];
 
 			THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
-				/*REQUIRE(map.GetCount() == 10);
-				REQUIRE(map.GetReserved() >= 10);
-				REQUIRE(map[0] == 1);
-				REQUIRE(map[1] == 2);
-				REQUIRE(map[2] == 3);
-				REQUIRE(map[3] == 4);
-				REQUIRE(map[4] == 5);
-				REQUIRE(map[5] == 6);
-				REQUIRE(map[6] == 7);
-				REQUIRE(map[7] == 8);
-				REQUIRE(map[8] == 9);
-				REQUIRE(map[9] == 10);
+				REQUIRE(map.GetCount() == 10);
+				REQUIRE(map["one"] == 1);
+				REQUIRE(map["two"] == 2);
+				REQUIRE(map["three"] == 3);
+				REQUIRE(map["four"] == 4);
+				REQUIRE(map["five"] == 5);
+				REQUIRE(map["six"] == 6);
+				REQUIRE(map["seven"] == 7);
+				REQUIRE(map["eight"] == 8);
+				REQUIRE(map["nine"] == 9);
+				REQUIRE(map["ten"] == 10);
+
+				/*REQUIRE(map.GetReserved() >= 10);
 				#if LANGULUS_FEATURE(MANAGED_MEMORY)
 					REQUIRE(map.GetRaw() == memory);
 				#endif
@@ -179,18 +180,19 @@ SCENARIO("THashMap", "[containers]") {
 			map << Move(darray2[0]) << Move(darray2[1]) << Move(darray2[2]) << Move(darray2[3]) << Move(darray2[4]);
 
 			THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
-				/*REQUIRE(map.GetCount() == 10);
-				REQUIRE(map.GetReserved() >= 10);
-				REQUIRE(map[0] == 1);
-				REQUIRE(map[1] == 2);
-				REQUIRE(map[2] == 3);
-				REQUIRE(map[3] == 4);
-				REQUIRE(map[4] == 5);
-				REQUIRE(map[5] == 6);
-				REQUIRE(map[6] == 7);
-				REQUIRE(map[7] == 8);
-				REQUIRE(map[8] == 9);
-				REQUIRE(map[9] == 10);
+				REQUIRE(map.GetCount() == 10);
+				REQUIRE(map["one"] == 1);
+				REQUIRE(map["two"] == 2);
+				REQUIRE(map["three"] == 3);
+				REQUIRE(map["four"] == 4);
+				REQUIRE(map["five"] == 5);
+				REQUIRE(map["six"] == 6);
+				REQUIRE(map["seven"] == 7);
+				REQUIRE(map["eight"] == 8);
+				REQUIRE(map["nine"] == 9);
+				REQUIRE(map["ten"] == 10);
+
+				/*REQUIRE(map.GetReserved() >= 10);
 				#if LANGULUS_FEATURE(MANAGED_MEMORY)
 					REQUIRE(map.GetRaw() == memory);
 				#endif
@@ -219,21 +221,22 @@ SCENARIO("THashMap", "[containers]") {
 		}
 
 		WHEN("Insert more trivial items at a specific place by shallow-copy") {
-			map.Insert(new int {666}, 1);
+			map.Insert({"number of the beast", 666});
 
 			THEN("The size changes, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
-				/*REQUIRE(map.GetCount() == 6);
-				REQUIRE(map.GetReserved() >= 6);
+				REQUIRE(map.GetCount() == 6);
+				REQUIRE(map["one"] == 1);
+				REQUIRE(map["two"] == 2);
+				REQUIRE(map["three"] == 3);
+				REQUIRE(map["four"] == 4);
+				REQUIRE(map["five"] == 5);
+				REQUIRE(map["number of the beast"] == 666);
+
+				/*REQUIRE(map.GetReserved() >= 6);
 				#if LANGULUS_FEATURE(MANAGED_MEMORY)
 					REQUIRE(map.GetRaw() == memory);
 				#endif
-				REQUIRE(map.Is<int>());
-				REQUIRE(map[0] == 1);
-				REQUIRE(map[1] == 2);
-				REQUIRE(map[2] == 3);
-				REQUIRE(map[3] == 666);
-				REQUIRE(map[4] == 4);
-				REQUIRE(map[5] == 5);*/
+				REQUIRE(map.Is<int>());*/
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: 
@@ -263,18 +266,19 @@ SCENARIO("THashMap", "[containers]") {
 			map.Emplace(new int {666});
 
 			THEN("The size changes, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
-				/*REQUIRE(map.GetCount() == 6);
-				REQUIRE(map.GetReserved() >= 6);
+				REQUIRE(map.GetCount() == 6);
+				REQUIRE(map["one"] == 1);
+				REQUIRE(map["two"] == 2);
+				REQUIRE(map["three"] == 3);
+				REQUIRE(map["four"] == 4);
+				REQUIRE(map["five"] == 5);
+				REQUIRE(map["number of the beast"] == 666);
+
+				/*REQUIRE(map.GetReserved() >= 6);
 				#if LANGULUS_FEATURE(MANAGED_MEMORY)
 					REQUIRE(map.GetRaw() == memory);
 				#endif
-				REQUIRE(map.Is<int>());
-				REQUIRE(map[0] == 1);
-				REQUIRE(map[1] == 2);
-				REQUIRE(map[2] == 3);
-				REQUIRE(map[3] == 666);
-				REQUIRE(map[4] == 4);
-				REQUIRE(map[5] == 5);*/
+				REQUIRE(map.Is<int>());*/
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: 
@@ -306,12 +310,53 @@ SCENARIO("THashMap", "[containers]") {
 			THEN("The size changes but not capacity") {
 				REQUIRE(removed2 == 1);
 				REQUIRE(removed4 == 1);
-				REQUIRE(map[0] == 1);
-				REQUIRE(map[1] == 3);
-				REQUIRE(map[2] == 5);
-				SAFETY(REQUIRE_THROWS(map[3] == 666));
-				/*REQUIRE(map.GetCount() == 3);
-				REQUIRE(map.GetReserved() >= 5);
+				REQUIRE(map["one"] == 1);
+				REQUIRE(map["three"] == 3);
+				REQUIRE(map["five"] == 5);
+				REQUIRE_THROWS(map["two"] == 2);
+				REQUIRE_THROWS(map["four"] == 4);
+				REQUIRE(map.GetCount() == 3);
+				/*REQUIRE(map.GetReserved() >= 5);
+				REQUIRE(map.GetRaw() == memory);*/
+			}
+
+			#ifdef LANGULUS_STD_BENCHMARK // Last result: 
+				BENCHMARK_ADVANCED("Anyness::TAny::Remove(single element by value)") (Catch::Benchmark::Chronometer meter) {
+					std::vector<MapType> storage(meter.runs());
+					for (auto&& o : storage)
+						o << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
+
+					meter.measure([&](int i) {
+						return storage[i].RemoveValue(2);
+					});
+				};
+
+				BENCHMARK_ADVANCED("Anyness::vector::erase-remove(single element by value)") (Catch::Benchmark::Chronometer meter) {
+					std::vector<MapTypeStd> storage(meter.runs());
+					for (auto&& o : storage)
+						o = {darray1[0], darray1[1], darray1[2], darray1[3], darray1[4]};
+
+					meter.measure([&](int i) {
+						// Erase-remove idiom											
+						return storage[i].erase(std::remove(storage[i].begin(), storage[i].end(), 2), storage[i].end());
+					});
+				};
+			#endif
+		}
+
+		WHEN("The size is reduced by finding and removing elements by key, but reserved memory should remain the same on shrinking") {
+			const auto removed2 = map.RemoveKey("two");
+			const auto removed4 = map.RemoveKey("four");
+			THEN("The size changes but not capacity") {
+				REQUIRE(removed2 == 1);
+				REQUIRE(removed4 == 1);
+				REQUIRE(map["one"] == 1);
+				REQUIRE(map["three"] == 3);
+				REQUIRE(map["five"] == 5);
+				REQUIRE_THROWS(map["two"] == 2);
+				REQUIRE_THROWS(map["four"] == 4);
+				REQUIRE(map.GetCount() == 3);
+				/*REQUIRE(map.GetReserved() >= 5);
 				REQUIRE(map.GetRaw() == memory);*/
 			}
 
@@ -342,15 +387,15 @@ SCENARIO("THashMap", "[containers]") {
 		WHEN("Removing non-available elements") {
 			const auto removed9 = map.RemoveValue(9);
 
-			THEN("The size changes but not capacity") {
+			THEN("Nothing should change") {
 				REQUIRE(removed9 == 0);
-				REQUIRE(map[0] == 1);
-				REQUIRE(map[1] == 2);
-				REQUIRE(map[2] == 3);
-				REQUIRE(map[3] == 4);
-				REQUIRE(map[4] == 5);
-				/*REQUIRE(map.GetCount() == 5);
-				REQUIRE(map.GetReserved() >= 5);
+				REQUIRE(map["one"] == 1);
+				REQUIRE(map["two"] == 2);
+				REQUIRE(map["three"] == 3);
+				REQUIRE(map["four"] == 4);
+				REQUIRE(map["five"] == 5);
+				REQUIRE(map.GetCount() == 5);
+				/*REQUIRE(map.GetReserved() >= 5);
 				REQUIRE(map.GetRaw() == memory);*/
 			}
 		}
@@ -411,7 +456,6 @@ SCENARIO("THashMap", "[containers]") {
 		#endif
 
 		WHEN("Pack is shallow-copied") {
-			map.MakeOr();
 			auto copy = map;
 
 			THEN("The new pack should keep the state and data") {
@@ -425,7 +469,6 @@ SCENARIO("THashMap", "[containers]") {
 		}
 
 		WHEN("Pack is cloned") {
-			map.MakeOr();
 			auto clone = map.Clone();
 
 			THEN("The new pack should keep the state and data") {
@@ -440,7 +483,6 @@ SCENARIO("THashMap", "[containers]") {
 		}
 
 		WHEN("Pack is moved") {
-			map.MakeOr();
 			MapType moved = Move(map);
 
 			THEN("The new pack should keep the state and data") {

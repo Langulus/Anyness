@@ -374,8 +374,7 @@ namespace Langulus::Anyness
 		/// https://www.reddit.com/r/cpp/comments/ahp6iu/compile_time_binary_size_reductions_and_cs_future/eeguck4/
 		///																							
 		TABLE_TEMPLATE()
-		class Table
-			: NodeAllocator<Conditional<IsVoid<T>, Key, TPair<Conditional<IsFlat, Key, Key const>, T>>, 4, 16384, IsFlat>
+		class Table : NodeAllocator<Conditional<IsVoid<T>, Key, TPair<Conditional<IsFlat, Key, Key const>, T>>, 4, 16384, IsFlat>
 		{
 		public:
 			static constexpr bool is_flat = IsFlat;
@@ -383,22 +382,21 @@ namespace Langulus::Anyness
 			static constexpr bool is_set = !is_map;
 			//static constexpr bool is_transparent = has_is_transparent<Hash> && has_is_transparent<KeyEqual>;
 
-			using PairInner = TPair<Conditional<IsFlat, Key, Key const>, T>;
+			using PairInner = TPair<Conditional<IsFlat, Key, const Key>, T>;
 			using Pair = TPair<Key, T>;
 			using key_type = Key;
 			using mapped_type = T;
 			using value_type = Conditional<is_set, Key, PairInner>;
 			using Self = TABLE();
-
-		private:
-			static_assert(MaxLoadFactor100 > 10 && MaxLoadFactor100 < 100,
-				"MaxLoadFactor100 needs to be >10 && < 100");
-
 			using Node = Conditional<
 				IsFlat,
 				DataNodeOnStack<Self, value_type, mapped_type>,
 				DataNodeOnHeap<Self, value_type, mapped_type>
 			>;
+
+		private:
+			static_assert(MaxLoadFactor100 > 10 && MaxLoadFactor100 < 100,
+				"MaxLoadFactor100 needs to be >10 && < 100");
 
 			// members are sorted so no padding occurs
 			uint64_t mHashMultiplier = UINT64_C(0xc4ceb9fe1a85ec53);                // 8 byte  8
@@ -411,12 +409,8 @@ namespace Langulus::Anyness
 			InfoType mInfoHashShift = InitialInfoHashShift;                         // 4 byte 56
 			// 16 byte 56 if NodeAllocator
 
-			//using WHash = WrapHash<Hash>;
-			//using WKeyEqual = WrapKeyEqual<KeyEqual>;
-
-			// configuration defaults
-
-			// make sure we have 8 elements, needed to quickly rehash mInfo
+			// Configuration defaults													
+			// Make sure we have 8 elements, needed to quickly rehash mInfo
 			static constexpr size_t InitialNumElements = sizeof(uint64_t);
 			static constexpr uint32_t InitialInfoNumBits = 5;
 			static constexpr uint8_t InitialInfoInc = 1U << InitialInfoNumBits;
@@ -449,23 +443,31 @@ namespace Langulus::Anyness
 			template<class ALT_T>
 			bool ValueIs() const noexcept;
 
+			template<bool REHASH = false>
+			void Allocate(size_t);
+			void Rehash(size_t);
+
 			Table& operator << (Pair&&);
 			Table& operator << (const Pair&);
 			Table& operator >> (Pair&&);
 			Table& operator >> (const Pair&);
 
-			// helpers for insertKeyPrepareEmptySpot: extract first entry (only const required)
+
+			/// Helpers for insertKeyPrepareEmptySpot: extract first entry			
+			/// (only const required)															
 			NOD() key_type const& getFirstConst(Node const& n) const noexcept {
 				return n.getFirst();
 			}
 
-			// in case we have void mapped_type, we are not using a pair, thus we just route k through.
-			// No need to disable this because it's just not used if not applicable.
+			/// In case we have void mapped_type, we are not using a pair, thus	
+			/// we just route k through. No need to disable this because it's		
+			/// just not used if not applicable												
 			NOD() key_type const& getFirstConst(key_type const& k) const noexcept {
 				return k;
 			}
 
-			// in case we have non-void mapped_type, we have a standard robin_hood::pair
+			/// In case we have non-void mapped_type, we have a standard			
+			/// robin_hood::pair																	
 			template <ReflectedData Q = mapped_type>
 			NOD() key_type const& getFirstConst(value_type const& vt) const noexcept {
 				return vt.first;
@@ -477,8 +479,8 @@ namespace Langulus::Anyness
 				mNumElements = 0;
 
 				if constexpr (!IsFlat || !std::is_trivially_destructible_v<Node>) {
-					// Clear also resets mInfo to 0, that's sometimes not	
-					// necessary														
+					// Clear also resets mInfo to 0, that's sometimes not		
+					// necessary															
 					auto const numElementsWithBuffer = calcNumElementsWithBuffer(mMask + 1);
 					for (size_t idx = 0; idx < numElementsWithBuffer; ++idx) {
 						if (0 != mInfo[idx]) {
@@ -507,24 +509,25 @@ namespace Langulus::Anyness
 				h *= mHashMultiplier;
 				h ^= h >> 33U;
 
-				// the lower InitialInfoNumBits are reserved for info.
+				// The lower InitialInfoNumBits are reserved for info			
 				*info = mInfoInc + static_cast<InfoType>((h & InfoMask) >> mInfoHashShift);
 				*idx = (static_cast<size_t>(h) >> InitialInfoNumBits) & mMask;
 			}
 
-			// forwards the index by one, wrapping around at the end
+			// Forwards the index by one, wrapping around at the end			
 			void next(InfoType* info, size_t* idx) const noexcept {
 				*idx = *idx + 1;
 				*info += mInfoInc;
 			}
 
 			void nextWhileLess(InfoType* info, size_t* idx) const noexcept {
-				// unrolling this by hand did not bring any speedups.
+				// Unrolling this by hand did not bring any speedups			
 				while (*info < mInfo[*idx])
 					next(info, idx);
 			}
 
-			// Shift everything up by one element. Tries to move stuff around.
+			// Shift everything up by one element									
+			// Tries to move stuff around												
 			void shiftUp(size_t startIdx, size_t const insertion_idx) noexcept(std::is_nothrow_move_assignable_v<Node>) {
 				auto idx = startIdx;
 				::new (static_cast<void*>(mKeyVals + idx)) Node(std::move(mKeyVals[idx - 1]));
@@ -577,7 +580,8 @@ namespace Langulus::Anyness
 					if (info == mInfo[idx] && LANGULUS_LIKELY(key == mKeyVals[idx].getFirst()))
 						return idx;
 					next(&info, &idx);
-				} while (info <= mInfo[idx]);
+				}
+				while (info <= mInfo[idx]);
 
 				// If reached, then nothing found									
 				return mMask == 0 
@@ -611,83 +615,9 @@ namespace Langulus::Anyness
 				return result;
 			}
 
-			/// Inserts a keyval that is guaranteed to be new, e.g. when the		
-			/// hashmap is resized																
-			///	@return True on success, false if something went wrong			
-			void insert_move(Node&& keyval) {
-				// we don't retry, fail if overflowing
-				// don't need to check max num elements
-				if (0 == mMaxNumElementsAllowed && !try_increase_info())
-					throwOverflowError();
-
-				size_t idx {};
-				InfoType info {};
-				keyToIdx(keyval.getFirst(), &idx, &info);
-
-				// skip forward. Use <= because we are certain that the element is not there.
-				while (info <= mInfo[idx]) {
-					idx = idx + 1;
-					info += mInfoInc;
-				}
-
-				// key not found, so we are now exactly where we want to insert it.
-				auto const insertion_idx = idx;
-				auto const insertion_info = static_cast<uint8_t>(info);
-				if (LANGULUS_UNLIKELY(insertion_info + mInfoInc > 0xFF))
-					mMaxNumElementsAllowed = 0;
-
-				// find an empty spot
-				while (0 != mInfo[idx]) {
-					next(&info, &idx);
-				}
-
-				auto& l = mKeyVals[insertion_idx];
-				if (idx == insertion_idx) {
-					::new (static_cast<void*>(&l)) Node(std::move(keyval));
-				}
-				else {
-					shiftUp(idx, insertion_idx);
-					l = std::move(keyval);
-				}
-
-				// put at empty spot
-				mInfo[insertion_idx] = insertion_info;
-
-				++mNumElements;
-			}
-
 		public:
 			using iterator = Iterator<false, Self>;
 			using const_iterator = Iterator<true, Self>;
-
-
-
-			/// Swaps everything between the two maps										
-			void swap(Table& o) {
-				std::swap(o, *this);
-			}
-
-			/// Clears all data, without resizing											
-			void Clear() {
-				if (IsEmpty()) {
-					// Don't do anything! also important because we don't		
-					// want to write to DummyInfoByte::b, even though we		
-					// would just write 0 to it.										
-					return;
-				}
-
-				DestroyNodes<true>();
-
-				auto const numElementsWithBuffer = calcNumElementsWithBuffer(mMask + 1);
-
-				// Clear everything, then set the sentinel again				
-				uint8_t const z = 0;
-				std::fill(mInfo, mInfo + calcNumBytesInfo(numElementsWithBuffer), z);
-				mInfo[numElementsWithBuffer] = 1;
-
-				mInfoInc = InitialInfoInc;
-				mInfoHashShift = InitialInfoHashShift;
-			}
 
 			/// Checks if both tables contain the same entries							
 			/// Order is irrelevant																
@@ -703,188 +633,84 @@ namespace Langulus::Anyness
 				return true;
 			}
 
-			/// Checks if both tables contain different entries						
-			/// Order is irrelevant																
-			bool operator != (const Table& other) const {
-				return !operator == (other);
-			}
 
-			/// Access value by key																
-			///	@param key - the key to find												
-			///	@return a reference to the value											
-			template <ReflectedData Q = mapped_type>
-			Q& operator[] (const key_type& key) {
-				auto idxAndState = insertKeyPrepareEmptySpot(key);
-				switch (idxAndState.second) {
-				case InsertionState::key_found:
-					break;
+			///																						
+			///	INSERTION																		
+			///																						
+			using Insertion = ::std::pair<iterator, bool>;
 
-				case InsertionState::new_node:
-					::new (static_cast<void*>(&mKeyVals[idxAndState.first])) 
-						Node(*this, std::piecewise_construct, std::forward_as_tuple(key), std::forward_as_tuple());
-					break;
+			template<class Iter>
+			void Insert(Iter, Iter);
+			void Insert(::std::initializer_list<Pair>);
 
-				case InsertionState::overwrite_node:
-					mKeyVals[idxAndState.first] = 
-						Node(*this, std::piecewise_construct, std::forward_as_tuple(key), std::forward_as_tuple());
-					break;
+			template<class... Args>
+			Insertion Emplace(Args&&...);
 
-				case InsertionState::overflow_error:
-					throwOverflowError();
-				}
+			template <class... Args>
+			iterator emplace_hint(const_iterator, Args&&...);
 
-				return mKeyVals[idxAndState.first].getSecond();
-			}
+			template <class... Args>
+			Insertion try_emplace(const key_type&, Args&&...);
+			template <class... Args>
+			Insertion try_emplace(key_type&&, Args&&...);
+			template <class... Args>
+			iterator try_emplace(const_iterator, const key_type&, Args&&...);
+			template <class... Args>
+			iterator try_emplace(const_iterator, key_type&&, Args&&...);
 
-			/// Access value by key																
-			///	@param key - the key to find												
-			///	@return a reference to the value											
-			template <ReflectedData Q = mapped_type>
-			Q& operator[] (key_type&& key) {
-				auto idxAndState = insertKeyPrepareEmptySpot(key);
-				switch (idxAndState.second) {
-				case InsertionState::key_found:
-					break;
+			template <class Mapped>
+			Insertion insert_or_assign(const key_type&, Mapped&&);
+			template <class Mapped>
+			Insertion insert_or_assign(key_type&&, Mapped&&);
+			template <class Mapped>
+			iterator insert_or_assign(const_iterator, const key_type&, Mapped&&);
+			template <class Mapped>
+			iterator insert_or_assign(const_iterator, key_type&&, Mapped&&);
 
-				case InsertionState::new_node:
-					::new (static_cast<void*>(&mKeyVals[idxAndState.first])) 
-						Node(*this, std::piecewise_construct, std::forward_as_tuple(Move(key)), std::forward_as_tuple());
-					break;
+			Insertion insert(const value_type&);
+			iterator insert(const_iterator, const value_type&);
+			Insertion insert(value_type&&);
+			iterator insert(const_iterator, value_type&&);
 
-				case InsertionState::overwrite_node:
-					mKeyVals[idxAndState.first] = 
-						Node(*this, std::piecewise_construct, std::forward_as_tuple(Move(key)), std::forward_as_tuple());
-					break;
+			void insert_move(Node&&);
+		private:
+			template <class OtherKey, class... Args>
+			Insertion try_emplace_impl(OtherKey&&, Args&&...);
+			template <class OtherKey, class Mapped>
+			Insertion insertOrAssignImpl(OtherKey&&, Mapped&&);
 
-				case InsertionState::overflow_error:
-					throwOverflowError();
-				}
+			enum class InsertionState {
+				overflow_error,
+				key_found,
+				new_node,
+				overwrite_node
+			};
 
-				return mKeyVals[idxAndState.first].getSecond();
-			}
+			/// Finds key, and if not already present prepares a spot where to	
+			/// pot the key & value. This potentially shifts nodes out of the		
+			/// way, updates mInfo and number of inserted elements, so the only	
+			/// operation left to do is create/assign a new node at that spot		
+			template <class OtherKey>
+			std::pair<size_t, InsertionState> insertKeyPrepareEmptySpot(OtherKey&&);
 
-			/// Insert a number of items														
-			///	@param first - the first element											
-			///	@param last - the last element											
-			template <typename Iter>
-			void insert(Iter first, Iter last) {
-				for (; first != last; ++first) {
-					// value_type ctor needed because this might be called	
-					// with std::pair's													
-					insert(value_type(*first));
-				}
-			}
+		public:
+			///																						
+			///	REMOVAL																			
+			///																						
+			void Clear();
+			void Reset();
+			iterator RemoveIndex(const_iterator);
+			iterator RemoveIndex(iterator);
+			size_t RemoveKey(const key_type&);
+			size_t RemoveValue(const mapped_type&);
+			void compact();
+		private:
+			void destroy();
 
-			/// Insert a number of items via initializer list							
-			///	@param ilist - the first element											
-			void insert(std::initializer_list<value_type> ilist) {
-				for (auto&& vt : ilist) {
-					insert(Move(vt));
-				}
-			}
-
-			/// Emplace an items inside map													
-			///	@param ...args - items to add												
-			///	@return 
-			template<typename... Args>
-			std::pair<iterator, bool> Emplace(Args&&... args) {
-				Node n {*this, Forward<Args>(args)...};
-
-				auto idxAndState = insertKeyPrepareEmptySpot(getFirstConst(n));
-				switch (idxAndState.second) {
-				case InsertionState::key_found:
-					n.destroy(*this);
-					break;
-
-				case InsertionState::new_node:
-					::new (static_cast<void*>(&mKeyVals[idxAndState.first]))
-						Node(*this, Move(n));
-					break;
-
-				case InsertionState::overwrite_node:
-					mKeyVals[idxAndState.first] = Move(n);
-					break;
-
-				case InsertionState::overflow_error:
-					n.destroy(*this);
-					throwOverflowError();
-					break;
-				}
-
-				return std::make_pair(
-					iterator(mKeyVals + idxAndState.first, mInfo + idxAndState.first),
-					InsertionState::key_found != idxAndState.second
-				);
-			}
-
-			template <typename... Args>
-			iterator emplace_hint(const_iterator position, Args&&... args) {
-				(void) position;
-				return emplace(std::forward<Args>(args)...).first;
-			}
-
-			template <typename... Args>
-			std::pair<iterator, bool> try_emplace(const key_type& key, Args&&... args) {
-				return try_emplace_impl(key, std::forward<Args>(args)...);
-			}
-
-			template <typename... Args>
-			std::pair<iterator, bool> try_emplace(key_type&& key, Args&&... args) {
-				return try_emplace_impl(std::move(key), std::forward<Args>(args)...);
-			}
-
-			template <typename... Args>
-			iterator try_emplace(const_iterator hint, const key_type& key, Args&&... args) {
-				(void) hint;
-				return try_emplace_impl(key, std::forward<Args>(args)...).first;
-			}
-
-			template <typename... Args>
-			iterator try_emplace(const_iterator hint, key_type&& key, Args&&... args) {
-				(void) hint;
-				return try_emplace_impl(std::move(key), std::forward<Args>(args)...).first;
-			}
-
-			template <typename Mapped>
-			std::pair<iterator, bool> insert_or_assign(const key_type& key, Mapped&& obj) {
-				return insertOrAssignImpl(key, std::forward<Mapped>(obj));
-			}
-
-			template <typename Mapped>
-			std::pair<iterator, bool> insert_or_assign(key_type&& key, Mapped&& obj) {
-				return insertOrAssignImpl(std::move(key), std::forward<Mapped>(obj));
-			}
-
-			template <typename Mapped>
-			iterator insert_or_assign(const_iterator hint, const key_type& key, Mapped&& obj) {
-				(void) hint;
-				return insertOrAssignImpl(key, std::forward<Mapped>(obj)).first;
-			}
-
-			template <typename Mapped>
-			iterator insert_or_assign(const_iterator hint, key_type&& key, Mapped&& obj) {
-				(void) hint;
-				return insertOrAssignImpl(std::move(key), std::forward<Mapped>(obj)).first;
-			}
-
-			std::pair<iterator, bool> insert(const value_type& keyval) {
-				return emplace(keyval);
-			}
-
-			iterator insert(const_iterator hint, const value_type& keyval) {
-				(void) hint;
-				return emplace(keyval).first;
-			}
-
-			std::pair<iterator, bool> insert(value_type&& keyval) {
-				return emplace(std::move(keyval));
-			}
-
-			iterator insert(const_iterator hint, value_type&& keyval) {
-				(void) hint;
-				return emplace(std::move(keyval)).first;
-			}
-
+		public:
+			///																						
+			///	SEARCH																			
+			///																						
 			/// Returns 1 if key is found, 0 otherwise									
 			size_t count(const key_type& key) const {
 				auto kv = mKeyVals + findIdx(key);
@@ -965,6 +791,64 @@ namespace Langulus::Anyness
 				return iterator {mKeyVals + idx, mInfo + idx};
 			}*/
 
+			/// Access value by key																
+			///	@param key - the key to find												
+			///	@return a reference to the value											
+			template <ReflectedData Q = mapped_type>
+			Q& operator[] (const key_type& key) {
+				auto idxAndState = insertKeyPrepareEmptySpot(key);
+				switch (idxAndState.second) {
+				case InsertionState::key_found:
+					break;
+
+				case InsertionState::new_node:
+					::new (static_cast<void*>(&mKeyVals[idxAndState.first])) 
+						Node(*this, std::piecewise_construct, std::forward_as_tuple(key), std::forward_as_tuple());
+					break;
+
+				case InsertionState::overwrite_node:
+					mKeyVals[idxAndState.first] = 
+						Node(*this, std::piecewise_construct, std::forward_as_tuple(key), std::forward_as_tuple());
+					break;
+
+				case InsertionState::overflow_error:
+					throwOverflowError();
+				}
+
+				return mKeyVals[idxAndState.first].getSecond();
+			}
+
+			/// Access value by key																
+			///	@param key - the key to find												
+			///	@return a reference to the value											
+			template <ReflectedData Q = mapped_type>
+			Q& operator[] (key_type&& key) {
+				auto idxAndState = insertKeyPrepareEmptySpot(key);
+				switch (idxAndState.second) {
+				case InsertionState::key_found:
+					break;
+
+				case InsertionState::new_node:
+					::new (static_cast<void*>(&mKeyVals[idxAndState.first])) 
+						Node(*this, std::piecewise_construct, std::forward_as_tuple(Move(key)), std::forward_as_tuple());
+					break;
+
+				case InsertionState::overwrite_node:
+					mKeyVals[idxAndState.first] = 
+						Node(*this, std::piecewise_construct, std::forward_as_tuple(Move(key)), std::forward_as_tuple());
+					break;
+
+				case InsertionState::overflow_error:
+					throwOverflowError();
+				}
+
+				return mKeyVals[idxAndState.first].getSecond();
+			}
+
+
+			///																						
+			///	ITERATION																		
+			///																						
 			/// Get the beginning of internal data											
 			///	@return the iterator															
 			iterator begin() {
@@ -997,83 +881,6 @@ namespace Langulus::Anyness
 
 			const_iterator cend() const {
 				return const_iterator {reinterpret_cast_no_cast_align_warning<Node*>(mInfo), nullptr};
-			}
-
-			iterator erase(const_iterator pos) {
-				// its safe to perform const cast here
-				return erase(iterator {const_cast<Node*>(pos.mKeyVals), const_cast<uint8_t*>(pos.mInfo)});
-			}
-
-			/// Erases element at pos, returns iterator to the next element		
-			iterator erase(iterator pos) {
-				// we assume that pos always points to a valid entry, and not end().
-				auto const idx = static_cast<size_t>(pos.mKeyVals - mKeyVals);
-				shiftDown(idx);
-				--mNumElements;
-
-				if (*pos.mInfo) {
-					// we've backward shifted, return this again
-					return pos;
-				}
-
-				// no backward shift, return next element
-				return ++pos;
-			}
-
-			/// Erase a pair																		
-			///	@param key - the key to search for										
-			///	@return the number of removed pairs										
-			size_t erase(const key_type& key) {
-				static_assert(IsComparable<Key>, "Can't compare keys");
-				size_t idx {};
-				InfoType info {};
-				keyToIdx(key, &idx, &info);
-
-				// Check while info matches with the source idx					
-				do {
-					if (info == mInfo[idx] && key == mKeyVals[idx].getFirst()) {
-						shiftDown(idx);
-						--mNumElements;
-						return 1;
-					}
-					next(&info, &idx);
-				} while (info <= mInfo[idx]);
-
-				// Nothing found to delete												
-				return 0;
-			}
-
-			/// Reserves space for the specified number of elements. Makes sure	
-			/// the old data fits. Exactly the same as reserve(c)						
-			void rehash(size_t c) {
-				// forces a reserve
-				Allocate(c, true);
-			}
-
-			/// Reserves space for the specified number of elements. Makes sure	
-			/// the old data fits. Exactly the same as rehash(c). Use rehash(0)	
-			/// to shrink to fit																	
-			void Allocate(size_t c) {
-				// Reserve, but don't force rehash									
-				Allocate(c, false);
-			}
-
-			/// If possible reallocates the map to a smaller one. This frees the	
-			/// underlying table. Does not do anything if load_factor is too		
-			/// large for decreasing the table's size.									
-			void compact() {
-				auto newSize = InitialNumElements;
-				while (calcMaxNumElementsAllowed(newSize) < mNumElements && newSize != 0)
-					newSize *= 2;
-
-				if (LANGULUS_UNLIKELY(newSize == 0))
-					throwOverflowError();
-
-				// Only actually do anything when the new size is bigger		
-				// than the old one. This prevents to continuously allocate	
-				// for each reserve() call												
-				if (newSize < mMask + 1)
-					rehashPowerOfTwo(newSize, true);
 			}
 
 			NOD() constexpr Count GetCount() const noexcept {
@@ -1153,25 +960,6 @@ namespace Langulus::Anyness
 				return find(e) != end();
 			}
 
-			/// Allocate memory for the map													
-			///	@param c - number of elements to allocate								
-			///	@param forceRehash - force rehash										
-			void Allocate(size_t c, bool forceRehash) {
-				auto const minElementsAllowed = (std::max) (c, mNumElements);
-				auto newSize = InitialNumElements;
-				while (calcMaxNumElementsAllowed(newSize) < minElementsAllowed && newSize != 0)
-					newSize *= 2;
-
-				if (LANGULUS_UNLIKELY(newSize == 0))
-					throwOverflowError();
-
-				// Only actually do anything when the new size is bigger		
-				// than the old one. This prevents to continuously allocate	
-				// for each reserve() call.											
-				if (forceRehash || newSize > mMask + 1)
-					rehashPowerOfTwo(newSize, false);
-			}
-
 			/// Reserves space for at least the specified number of elements.		
 			/// Only works if numBuckets if power of two. True on success			
 			void rehashPowerOfTwo(size_t numBuckets, bool forceFree) {
@@ -1186,7 +974,7 @@ namespace Langulus::Anyness
 						if (oldInfo[i] != 0) {
 							// might throw an exception, which is really bad since we are in the middle of
 							// moving stuff.
-							insert_move(std::move(oldKeyVals[i]));
+							insert_move(Move(oldKeyVals[i]));
 							// destroy the node but DON'T destroy the data.
 							oldKeyVals[i].~Node();
 						}
@@ -1209,63 +997,8 @@ namespace Langulus::Anyness
 				throw std::overflow_error("robin_hood::map overflow");
 			}
 
-			template <typename OtherKey, typename... Args>
-			std::pair<iterator, bool> try_emplace_impl(OtherKey&& key, Args&&... args) {
-				auto idxAndState = insertKeyPrepareEmptySpot(key);
-				switch (idxAndState.second) {
-				case InsertionState::key_found:
-					break;
-
-				case InsertionState::new_node:
-					::new (static_cast<void*>(&mKeyVals[idxAndState.first])) Node(
-						*this, std::piecewise_construct, std::forward_as_tuple(std::forward<OtherKey>(key)),
-						std::forward_as_tuple(std::forward<Args>(args)...));
-					break;
-
-				case InsertionState::overwrite_node:
-					mKeyVals[idxAndState.first] = Node(*this, std::piecewise_construct,
-						std::forward_as_tuple(std::forward<OtherKey>(key)),
-						std::forward_as_tuple(std::forward<Args>(args)...));
-					break;
-
-				case InsertionState::overflow_error:
-					throwOverflowError();
-					break;
-				}
-
-				return std::make_pair(iterator(mKeyVals + idxAndState.first, mInfo + idxAndState.first),
-					InsertionState::key_found != idxAndState.second);
-			}
-
-			template <typename OtherKey, typename Mapped>
-			std::pair<iterator, bool> insertOrAssignImpl(OtherKey&& key, Mapped&& obj) {
-				auto idxAndState = insertKeyPrepareEmptySpot(key);
-				switch (idxAndState.second) {
-				case InsertionState::key_found:
-					mKeyVals[idxAndState.first].getSecond() = std::forward<Mapped>(obj);
-					break;
-
-				case InsertionState::new_node:
-					::new (static_cast<void*>(&mKeyVals[idxAndState.first])) Node(
-						*this, std::piecewise_construct, std::forward_as_tuple(std::forward<OtherKey>(key)),
-						std::forward_as_tuple(std::forward<Mapped>(obj)));
-					break;
-
-				case InsertionState::overwrite_node:
-					mKeyVals[idxAndState.first] = Node(*this, std::piecewise_construct,
-						std::forward_as_tuple(std::forward<OtherKey>(key)),
-						std::forward_as_tuple(std::forward<Mapped>(obj)));
-					break;
-
-				case InsertionState::overflow_error:
-					throwOverflowError();
-					break;
-				}
-
-				return std::make_pair(iterator(mKeyVals + idxAndState.first, mInfo + idxAndState.first),
-					InsertionState::key_found != idxAndState.second);
-			}
-
+			/// Initialize container and reserve data										
+			///	@param max_elements - number of elements to reserve				
 			void initData(size_t max_elements) {
 				mNumElements = 0;
 				mMask = max_elements - 1;
@@ -1273,94 +1006,32 @@ namespace Langulus::Anyness
 
 				auto const numElementsWithBuffer = calcNumElementsWithBuffer(max_elements);
 
-				// malloc & zero mInfo. Faster than calloc everything.
+				// Malloc & zero mInfo - faster than calloc everything		
 				auto const numBytesTotal = calcNumBytesTotal(numElementsWithBuffer);
 				mKeyVals = reinterpret_cast<Node*>(Inner::assertNotNull<std::bad_alloc>(std::malloc(numBytesTotal)));
 				mInfo = reinterpret_cast<uint8_t*>(mKeyVals + numElementsWithBuffer);
 				std::memset(mInfo, 0, numBytesTotal - numElementsWithBuffer * sizeof(Node));
 
-				// set sentinel
+				// Set sentinel															
 				mInfo[numElementsWithBuffer] = 1;
 
 				mInfoInc = InitialInfoInc;
 				mInfoHashShift = InitialInfoHashShift;
 			}
 
-			enum class InsertionState {
-				overflow_error,
-				key_found,
-				new_node,
-				overwrite_node
-			};
-
-			/// Finds key, and if not already present prepares a spot where to	
-			/// pot the key & value. This potentially shifts nodes out of the		
-			/// way, updates mInfo and number of inserted elements, so the only	
-			/// operation left to do is create/assign a new node at that spot		
-			template <typename OtherKey>
-			std::pair<size_t, InsertionState> insertKeyPrepareEmptySpot(OtherKey&& key) {
-				for (int i = 0; i < 256; ++i) {
-					size_t idx {};
-					InfoType info {};
-					keyToIdx(key, &idx, &info);
-					nextWhileLess(&info, &idx);
-
-					// While we potentially have a match							
-					while (info == mInfo[idx]) {
-						static_assert(IsComparable<Key, OtherKey>, "Can't compare keys");
-						if (key == mKeyVals[idx].getFirst()) {
-							// Key already exists, do NOT insert					
-							return std::make_pair(idx, InsertionState::key_found);
-						}
-
-						next(&info, &idx);
-					}
-
-					// Unlikely that this evaluates to true						
-					if (LANGULUS_UNLIKELY(mNumElements >= mMaxNumElementsAllowed)) {
-						if (!increase_size())
-							return std::make_pair(size_t(0), InsertionState::overflow_error);
-
-						continue;
-					}
-
-					// Key not found, so we are now exactly where we want to	
-					// insert it															
-					auto const insertion_idx = idx;
-					auto const insertion_info = info;
-					if (LANGULUS_UNLIKELY(insertion_info + mInfoInc > 0xFF))
-						mMaxNumElementsAllowed = 0;
-
-					// find an empty spot
-					while (0 != mInfo[idx])
-						next(&info, &idx);
-
-					if (idx != insertion_idx)
-						shiftUp(idx, insertion_idx);
-
-					// put at empty spot
-					mInfo[insertion_idx] = static_cast<uint8_t>(insertion_info);
-					++mNumElements;
-					return std::make_pair(insertion_idx, idx == insertion_idx
-						? InsertionState::new_node
-						: InsertionState::overwrite_node);
-				}
-
-				// enough attempts failed, so finally give up.
-				return std::make_pair(size_t(0), InsertionState::overflow_error);
-			}
-
 			bool try_increase_info() {
 				if (mInfoInc <= 2) {
-					// need to be > 2 so that shift works (otherwise undefined behavior!)
+					// Need to be > 2 so that shift works (otherwise			
+					// undefined behavior!)												
 					return false;
 				}
 
-				// we got space left, try to make info smaller
+				// We got space left, try to make info smaller					
 				mInfoInc = static_cast<uint8_t>(mInfoInc >> 1U);
 
-				// remove one bit of the hash, leaving more space for the distance info.
-				// This is extremely fast because we can operate on 8 bytes at once.
+				// Remove one bit of the hash, leaving more space for the	
+				// distance info. This is extremely fast because we can		
+				// operate on 8 bytes at once											
 				++mInfoHashShift;
 				auto const numElementsWithBuffer = calcNumElementsWithBuffer(mMask + 1);
 
@@ -1370,7 +1041,7 @@ namespace Langulus::Anyness
 					std::memcpy(mInfo + i, &val, sizeof(val));
 				}
 
-				// update sentinel, which might have been cleared out!
+				// Update sentinel, which might have been cleared out!		
 				mInfo[numElementsWithBuffer] = 1;
 
 				mMaxNumElementsAllowed = calcMaxNumElementsAllowed(mMask + 1);
@@ -1379,26 +1050,27 @@ namespace Langulus::Anyness
 
 			/// True if resize was possible, false otherwise							
 			bool increase_size() {
-				// nothing allocated yet? just allocate InitialNumElements
+				// Nothing allocated yet? just allocate InitialNumElements	
 				if (0 == mMask) {
 					initData(InitialNumElements);
 					return true;
 				}
 
 				auto const maxNumElementsAllowed = calcMaxNumElementsAllowed(mMask + 1);
-				if (mNumElements < maxNumElementsAllowed && try_increase_info()) {
+				if (mNumElements < maxNumElementsAllowed && try_increase_info())
 					return true;
-				}
 
 				if (mNumElements * 2 < calcMaxNumElementsAllowed(mMask + 1)) {
-					// we have to resize, even though there would still be plenty of space left!
-					// Try to rehash instead. Delete freed memory so we don't steadyily increase mem in case
-					// we have to rehash a few times
+					// We have to resize, even though there would still be	
+					// plenty of space left! Try to rehash instead. Delete	
+					// freed memory so we don't steadyily increase mem in		
+					// case we have to rehash a few times							
 					nextHashMultiplier();
 					rehashPowerOfTwo(mMask + 1, true);
 				}
 				else {
-					// we've reached the capacity of the map, so the hash seems to work nice. Keep using it.
+					// We've reached the capacity of the map, so the hash		
+					// seems to work nice. Keep using it							
 					rehashPowerOfTwo((mMask + 1) * 2, false);
 				}
 
@@ -1406,25 +1078,11 @@ namespace Langulus::Anyness
 			}
 
 			void nextHashMultiplier() {
-				// adding an *even* number, so that the multiplier will always stay odd. This is necessary
-				// so that the hash stays a mixing function (and thus doesn't have any information loss).
+				// Adding an *even* number, so that the multiplier will		
+				// always stay odd. This is necessary so that the hash		
+				// stays a mixing function (and thus doesn't have any			
+				// information loss)														
 				mHashMultiplier += UINT64_C(0xc4ceb9fe1a85ec54);
-			}
-
-			void destroy() {
-				if (0 == mMask) {
-					// don't deallocate!
-					return;
-				}
-
-				DestroyNodes<false>();
-
-				// This protection against not deleting mMask shouldn't be needed as it's sufficiently
-				// protected with the 0==mMask check, but I have this anyways because g++ 7 otherwise
-				// reports a compile error: attempt to free a non-heap object 'fm'
-				// [-Werror=free-nonheap-object]
-				if (mKeyVals != reinterpret_cast_no_cast_align_warning<Node*>(&mMask))
-					std::free(mKeyVals);
 			}
 
 			void init() noexcept {
@@ -1441,6 +1099,10 @@ namespace Langulus::Anyness
 
 	} // namespace detail
 
+	template<class... T>
+	concept IsNoexceptMoveConstructibleOrAssignable = 
+		((std::is_nothrow_move_constructible_v<T> && std::is_nothrow_move_assignable_v<T>) && ...);
+
 	/// Map																							
 	template <class K, class V, Count MaxLoadFactor100 = 80>
 	using unordered_flat_map = Inner::Table<true, MaxLoadFactor100, K, V>;
@@ -1449,7 +1111,7 @@ namespace Langulus::Anyness
 	using unordered_node_map = Inner::Table<false, MaxLoadFactor100, K, V>;
 
 	template <class K, class V, Count MaxLoadFactor100 = 80>
-	using unordered_map = Inner::Table<sizeof(TPair<K, V>) <= sizeof(Count) * 6 && std::is_nothrow_move_constructible_v<TPair<K, V>> && std::is_nothrow_move_assignable_v<TPair<K, V>>, MaxLoadFactor100, K, V>;
+	using unordered_map = Inner::Table<sizeof(TPair<K, V>) <= sizeof(Count) * 6 && IsNoexceptMoveConstructibleOrAssignable<TPair<K, V>>, MaxLoadFactor100, K, V>;
 
 	/// Set																							
 	template <class K, Count MaxLoadFactor100 = 80>
@@ -1459,7 +1121,7 @@ namespace Langulus::Anyness
 	using unordered_node_set = Inner::Table<false, MaxLoadFactor100, K, void>;
 
 	template <class K, Count MaxLoadFactor100 = 80>
-	using unordered_set = Inner::Table<sizeof(K) <= sizeof(Count) * 6 && std::is_nothrow_move_constructible_v<K> && std::is_nothrow_move_assignable_v<K>, MaxLoadFactor100, K, void>;
+	using unordered_set = Inner::Table<sizeof(K) <= sizeof(Count) * 6 && IsNoexceptMoveConstructibleOrAssignable<K>, MaxLoadFactor100, K, void>;
 
 } // namespace Langulus::Anyness
 
