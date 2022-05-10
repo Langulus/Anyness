@@ -87,16 +87,44 @@ namespace Langulus::Anyness
 	};
 
 
+	/// This cast gets rid of warnings like "cast from 'uint8_t*'					
+	/// {aka 'unsigned char*'} to 'uint64_t*' {aka 'long unsigned int*'}			
+	/// increases required alignment of target type". Use with care!				
+	template <typename T>
+	inline T reinterpret_cast_no_cast_align_warning(void* ptr) noexcept {
+		return reinterpret_cast<T>(ptr);
+	}
+
+	template <typename T>
+	inline T reinterpret_cast_no_cast_align_warning(void const* ptr) noexcept {
+		return reinterpret_cast<T>(ptr);
+	}
+
+	/// Make sure this is not inlined as it is slow and dramatically enlarges	
+	/// code, thus making other inlinings more difficult								
+	/// Throws are also generally the slow path											
+	template <typename E, typename... Args>
+	[[noreturn]] LANGULUS(NOINLINE) void doThrow(Args&&... args) {
+		throw E {Forward<Args>(args)...};
+	}
+
+	template <typename E, typename T, typename... Args>
+	T* assertNotNull(T* t, Args&&... args) {
+		if (LANGULUS_UNLIKELY(nullptr == t))
+			doThrow<E>(Forward<Args>(args)...);
+		return t;
+	}
+
 
 	/// Allocates bulks of memory for objects of type T. This deallocates the	
 	/// memory in the destructor, and keeps a linked list of the allocated		
 	/// memory around. Overhead per allocation is the size of a pointer			
-	template <typename T, size_t MinNumAllocs = 4, size_t MaxNumAllocs = 256>
+	template <class T, Count MinNumAllocs = 4, Count MaxNumAllocs = 256>
 	class BulkPoolAllocator {
 	public:
 		BulkPoolAllocator() noexcept = default;
 
-		// does not copy anything, just creates a new allocator.
+		// Does not copy anything, just creates a new allocator				
 		BulkPoolAllocator(const BulkPoolAllocator&) noexcept
 			: mHead(nullptr)
 			, mListForFree(nullptr) {}
@@ -118,7 +146,7 @@ namespace Langulus::Anyness
 		}
 
 		BulkPoolAllocator& operator=(const BulkPoolAllocator&) noexcept {
-			// does not do anything
+			// Does not do anything														
 			return *this;
 		}
 
@@ -246,10 +274,10 @@ namespace Langulus::Anyness
 	template <typename T, size_t MinSize, size_t MaxSize, bool IsFlat>
 	struct NodeAllocator;
 
-	// dummy allocator that does nothing
+	/// Dummy allocator that does nothing													
 	template <typename T, size_t MinSize, size_t MaxSize>
 	struct NodeAllocator<T, MinSize, MaxSize, true> {
-		// we are not using the data, so just free it.
+		// We are not using the data, so just free it							
 		void addOrFree(void* ptr, size_t) noexcept {
 			std::free(ptr);
 		}
@@ -258,11 +286,11 @@ namespace Langulus::Anyness
 	template <typename T, size_t MinSize, size_t MaxSize>
 	struct NodeAllocator<T, MinSize, MaxSize, false> : public BulkPoolAllocator<T, MinSize, MaxSize> {};
 
-
+	///																								
 	template <typename T>
-	inline T unaligned_load(void const* ptr) noexcept {
-		// using memcpy so we don't get into unaligned load problems.
-		// compiler should optimize this very well anyways.
+	T unaligned_load(void const* ptr) noexcept {
+		// Using memcpy so we don't get into unaligned load problems		
+		// Compiler should optimize this very well anyways						
 		T t;
 		std::memcpy(&t, ptr, sizeof(T));
 		return t;

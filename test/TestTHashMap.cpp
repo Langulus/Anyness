@@ -263,7 +263,7 @@ SCENARIO("THashMap", "[containers]") {
 		}
 
 		WHEN("Insert more trivial items") {
-			map.Emplace(new int {666});
+			map.Emplace("number of the beast", 666);
 
 			THEN("The size changes, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
 				REQUIRE(map.GetCount() == 6);

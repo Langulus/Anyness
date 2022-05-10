@@ -4,167 +4,6 @@
 namespace Langulus::Anyness::Inner
 {
 
-	/// 																								
-	///	DataNodeOnStack																		
-	/// 																								
-	NODE_TEMPLATE() 
-	template <typename... Args>
-	NODE(Stack)::DataNodeOnStack(M&, Args&&... args) noexcept(noexcept(T(std::forward<Args>(args)...)))
-		: mData {std::forward<Args>(args)...} {}
-
-	NODE_TEMPLATE()
-	NODE(Stack)::DataNodeOnStack(M&, DataNodeOnStack&& n) noexcept(std::is_nothrow_move_constructible<T>::value)
-		: mData {std::move(n.mData)} {}
-
-	NODE_TEMPLATE()
-	T const* NODE(Stack)::operator->() const noexcept {
-		return &mData;
-	}
-
-	NODE_TEMPLATE()
-	T* NODE(Stack)::operator->() noexcept {
-		return &mData;
-	}
-
-	NODE_TEMPLATE()
-	const T& NODE(Stack)::operator*() const noexcept {
-		return mData;
-	}
-
-	NODE_TEMPLATE()
-	T& NODE(Stack)::operator*() noexcept {
-		return mData;
-	}
-
-	NODE_TEMPLATE()
-	template<typename VT>
-	typename VT::first_type& NODE(Stack)::getFirst() noexcept requires IsMap<M> {
-		return mData.first;
-	}
-
-	NODE_TEMPLATE()
-	template<typename VT>
-	VT& NODE(Stack)::getFirst() noexcept requires IsSet<M> {
-		return mData;
-	}
-
-	NODE_TEMPLATE()
-	template<typename VT>
-	typename VT::first_type const& NODE(Stack)::getFirst() const noexcept requires IsMap<M> {
-		return mData.first;
-	}
-
-	NODE_TEMPLATE()
-	template<typename VT>
-	VT const& NODE(Stack)::getFirst() const noexcept requires IsSet<M> {
-		return mData;
-	}
-
-	NODE_TEMPLATE()
-	template<typename MT>
-	MT& NODE(Stack)::getSecond() noexcept requires IsMap<M> {
-		return mData.second;
-	}
-
-	NODE_TEMPLATE()
-	template<typename MT>
-	MT const& NODE(Stack)::getSecond() const noexcept requires IsSet<M> {
-		return mData.second;
-	}
-
-	NODE_TEMPLATE()
-	void NODE(Stack)::swap(DataNodeOnStack& o) noexcept(noexcept(std::declval<T>().swap(std::declval<T>()))) {
-		mData.swap(o.mData);
-	}
-
-	/// 																								
-	///	DataNodeOnHeap																			
-	/// 																								
-	NODE_TEMPLATE()
-	template <typename... Args>
-	NODE(Heap)::DataNodeOnHeap(M& map, Args&&... args)
-		: mData(map.allocate()) {
-		::new (static_cast<void*>(mData)) T(std::forward<Args>(args)...);
-	}
-
-	NODE_TEMPLATE()
-	NODE(Heap)::DataNodeOnHeap(M&, DataNodeOnHeap&& n) noexcept
-		: mData(std::move(n.mData)) {}
-
-	NODE_TEMPLATE()
-	void NODE(Heap)::destroy(M& map) noexcept {
-		// don't deallocate, just put it into list of datapool.
-		mData->~T();
-		map.deallocate(mData);
-	}
-
-	NODE_TEMPLATE()
-	void NODE(Heap)::destroyDoNotDeallocate() noexcept {
-		mData->~T();
-	}
-
-	NODE_TEMPLATE()
-	T const* NODE(Heap)::operator->() const noexcept {
-		return mData;
-	}
-
-	NODE_TEMPLATE()
-	T* NODE(Heap)::operator->() noexcept {
-		return mData;
-	}
-
-	NODE_TEMPLATE()
-	const T& NODE(Heap)::operator*() const {
-		return *mData;
-	}
-
-	NODE_TEMPLATE()
-	T& NODE(Heap)::operator*() {
-		return *mData;
-	}
-
-	NODE_TEMPLATE()
-	template<typename VT>
-	typename VT::first_type& NODE(Heap)::getFirst() noexcept requires IsMap<M> {
-		return mData->first;
-	}
-
-	NODE_TEMPLATE()
-	template<typename VT>
-	VT& NODE(Heap)::getFirst() noexcept requires IsSet<M> {
-		return *mData;
-	}
-
-	NODE_TEMPLATE()
-	template<typename VT>
-	typename VT::first_type const& NODE(Heap)::getFirst() const noexcept requires IsMap<M> {
-		return mData->first;
-	}
-
-	NODE_TEMPLATE()
-	template<typename VT>
-	VT const& NODE(Heap)::getFirst() const noexcept requires IsSet<M> {
-		return *mData;
-	}
-
-	NODE_TEMPLATE()
-	template<typename MT>
-	MT& NODE(Heap)::getSecond() noexcept requires IsMap<M> {
-		return mData->second;
-	}
-
-	NODE_TEMPLATE()
-	template<typename MT>
-	MT const& NODE(Heap)::getSecond() const noexcept requires IsMap<M> {
-		return mData->second;
-	}
-
-	NODE_TEMPLATE()
-	void NODE(Heap)::swap(DataNodeOnHeap& o) noexcept {
-		std::swap(mData, o.mData);
-	}
-
-
 	///																								
 	///	Table implementation																	
 	///																								
@@ -182,61 +21,82 @@ namespace Langulus::Anyness::Inner
 	TABLE_TEMPLATE()
 	TABLE()::Table(size_t) noexcept { }
 
+	///																								
 	TABLE_TEMPLATE()
 	template<class IT>
 	TABLE()::Table(IT first, IT last, size_t) {
 		insert(first, last);
 	}
 
+	///																								
 	TABLE_TEMPLATE()
 	TABLE()::Table(std::initializer_list<value_type> initlist, size_t) {
 		insert(initlist.begin(), initlist.end());
 	}
 
+	///																								
 	TABLE_TEMPLATE()
 	TABLE()::Table(Table&& o) noexcept
 		: DataPool(Forward<DataPool&>(o)) {
-		if (o.mMask) {
-			mHashMultiplier = Move(o.mHashMultiplier);
-			mKeyVals = Move(o.mKeyVals);
-			mInfo = Move(o.mInfo);
-			mNumElements = Move(o.mNumElements);
-			mMask = Move(o.mMask);
-			mMaxNumElementsAllowed = Move(o.mMaxNumElementsAllowed);
-			mInfoInc = Move(o.mInfoInc);
-			mInfoHashShift = Move(o.mInfoHashShift);
-			// set other's mask to 0 so its destructor won't do anything
-			o.init();
-		}
+		if (!o.mMask)
+			return;
+
+		mHashMultiplier = Move(o.mHashMultiplier);
+		mKeyVals = Move(o.mKeyVals);
+		mInfo = Move(o.mInfo);
+		mNumElements = Move(o.mNumElements);
+		mMask = Move(o.mMask);
+		mMaxNumElementsAllowed = Move(o.mMaxNumElementsAllowed);
+		mInfoInc = Move(o.mInfoInc);
+		mInfoHashShift = Move(o.mInfoHashShift);
+		// Set other's mask to 0 so its destructor won't do anything		
+		o.init();
 	}
 
+	///																								
 	TABLE_TEMPLATE()
 	TABLE()::Table(const Table& o)
 		: DataPool(static_cast<const DataPool&>(o)) {
-		if (!o.empty()) {
-			// not empty: create an exact copy. it is also possible to just iterate through all
-			// elements and insert them, but copying is probably faster.
+		if (o.IsEmpty())
+			return;
 
-			auto const numElementsWithBuffer = calcNumElementsWithBuffer(o.mMask + 1);
-			auto const numBytesTotal = calcNumBytesTotal(numElementsWithBuffer);
+		// Not empty: create an exact copy. It is also possible to just	
+		// iterate through all elements and insert them, but copying is	
+		// probably faster																
+		auto const numElementsWithBuffer = calcNumElementsWithBuffer(o.mMask + 1);
+		auto const numBytesTotal = calcNumBytesTotal(numElementsWithBuffer);
 
-			mHashMultiplier = o.mHashMultiplier;
-			mKeyVals = static_cast<Node*>(Inner::assertNotNull<std::bad_alloc>(std::malloc(numBytesTotal)));
-			// No need for calloc because cloneData does memcpy				
-			mInfo = reinterpret_cast<uint8_t*>(mKeyVals + numElementsWithBuffer);
-			mNumElements = o.mNumElements;
-			mMask = o.mMask;
-			mMaxNumElementsAllowed = o.mMaxNumElementsAllowed;
-			mInfoInc = o.mInfoInc;
-			mInfoHashShift = o.mInfoHashShift;
-			cloneData(o);
-		}
+		mHashMultiplier = o.mHashMultiplier;
+		mKeyVals = static_cast<Node*>(assertNotNull<std::bad_alloc>(std::malloc(numBytesTotal)));
+		// No need for calloc because cloneData does memcpy					
+		mInfo = reinterpret_cast<uint8_t*>(mKeyVals + numElementsWithBuffer);
+		mNumElements = o.mNumElements;
+		mMask = o.mMask;
+		mMaxNumElementsAllowed = o.mMaxNumElementsAllowed;
+		mInfoInc = o.mInfoInc;
+		mInfoHashShift = o.mInfoHashShift;
+		CloneInner(o);
 	}
 
 	/// Destroys the map and all it's contents											
 	TABLE_TEMPLATE()
 	TABLE()::~Table() {
 		destroy();
+	}
+	
+	/// Checks if both tables contain the same entries									
+	/// Order is irrelevant																		
+	TABLE_TEMPLATE()
+	bool TABLE()::operator == (const Table& other) const {
+		if (other.GetCount() != GetCount())
+			return false;
+
+		for (auto const& otherEntry : other) {
+			if (!has(otherEntry))
+				return false;
+		}
+
+		return true;
 	}
 
 	/// Move a table																				
@@ -260,12 +120,11 @@ namespace Langulus::Anyness::Inner
 			mInfoHashShift = Move(o.mInfoHashShift);
 			DataPool::operator = (Move(static_cast<DataPool&>(o)));
 			o.init();
-		}
-		else {
-			// Nothing in the other map => just clear it							
-			Clear();
+			return *this;
 		}
 
+		// Nothing in the other map => just clear it								
+		Clear();
 		return *this;
 	}
 
@@ -308,22 +167,51 @@ namespace Langulus::Anyness::Inner
 
 			auto const numElementsWithBuffer = calcNumElementsWithBuffer(o.mMask + 1);
 			auto const numBytesTotal = calcNumBytesTotal(numElementsWithBuffer);
-			mKeyVals = static_cast<Node*>(Inner::assertNotNull<std::bad_alloc>(std::malloc(numBytesTotal)));
+			mKeyVals = static_cast<Node*>(assertNotNull<std::bad_alloc>(std::malloc(numBytesTotal)));
 
 			// No need for calloc here because cloneData performs a memcpy	
 			mInfo = reinterpret_cast<uint8_t*>(mKeyVals + numElementsWithBuffer);
 			// Sentinel is set in cloneData											
 		}
 
-		DataPool::operator=(static_cast<DataPool const&>(o));
+		DataPool::operator = (static_cast<DataPool const&>(o));
 		mHashMultiplier = o.mHashMultiplier;
 		mNumElements = o.mNumElements;
 		mMask = o.mMask;
 		mMaxNumElementsAllowed = o.mMaxNumElementsAllowed;
 		mInfoInc = o.mInfoInc;
 		mInfoHashShift = o.mInfoHashShift;
-		cloneData(o);
+		CloneInner(o);
 		return *this;
+	}
+	
+	///																								
+	TABLE_TEMPLATE()
+	void TABLE()::CloneInner(const Table& o) {
+		if constexpr (IsFlat && std::is_trivially_copyable_v<Node>) {
+			auto const* const src = reinterpret_cast<char const*>(o.mKeyVals);
+			auto* tgt = reinterpret_cast<char*>(mKeyVals);
+			auto const numElementsWithBuffer = calcNumElementsWithBuffer(mMask + 1);
+			std::copy(src, src + calcNumBytesTotal(numElementsWithBuffer), tgt);
+		}
+		else {
+			auto const numElementsWithBuffer = calcNumElementsWithBuffer(mMask + 1);
+			std::copy(o.mInfo, o.mInfo + calcNumBytesInfo(numElementsWithBuffer), mInfo);
+
+			for (size_t i = 0; i < numElementsWithBuffer; ++i) {
+				if (mInfo[i])
+					::new (static_cast<void*>(mKeyVals + i)) Node(*this, *o.mKeyVals[i]);
+			}
+		}
+	}
+
+	/// Clone the table																			
+	///	@return the new table																
+	TABLE_TEMPLATE()
+	TABLE() TABLE()::Clone() const {
+		Table result;
+		result.CloneInner(*this);
+		return result;
 	}
 
 	TABLE_TEMPLATE()
@@ -336,11 +224,10 @@ namespace Langulus::Anyness::Inner
 		return MetaData::Of<T>();
 	}
 
-	/// Reserves space for the specified number of elements. Makes sure	
-	/// the old data fits. Exactly the same as rehash(c). Use rehash(0)	
-	/// to shrink to fit																	
-	///	@tparam REHASH - force rehash if true									
-	///	@param c - number of elements to allocate								
+	/// Reserves space for the specified number of elements. Makes sure the		
+	/// data fits. Exactly the same as rehash(c). Use rehash(0)	to shrink-fit	
+	///	@tparam REHASH - force rehash if true											
+	///	@param c - number of elements to allocate										
 	TABLE_TEMPLATE()
 	template<bool REHASH>
 	void TABLE()::Allocate(size_t c) {
@@ -356,45 +243,45 @@ namespace Langulus::Anyness::Inner
 			rehashPowerOfTwo(newSize, false);
 		}
 		else {
-			// Only actually do anything when the new size is bigger	
-			// than the old one. This prevents to continuously			
-			// allocate	for each reserve() call.							
+			// Only actually do anything when the new size is bigger than	
+			// the old one. This prevents to continuously allocate for		
+			// each reserve() call														
 			if (newSize > mMask + 1)
 				rehashPowerOfTwo(newSize, false);
 		}
 	}
 
-	/// Reserves space for the specified number of elements. Makes sure	
-	/// the old data fits. Exactly the same as Allocate(c)					
+	/// Reserves space for the specified number of elements. Makes sure			
+	/// the old data fits. Exactly the same as Allocate(c)							
 	TABLE_TEMPLATE()
 	void TABLE()::Rehash(size_t c) {
 		Allocate<true>(c);
 	}
 
-	/// Insert a number of items														
-	///	@param first - the first element											
-	///	@param last - the last element											
+	/// Insert a number of items																
+	///	@param first - the first element													
+	///	@param last - the last element													
 	TABLE_TEMPLATE()
 	template<class IT>
 	void TABLE()::Insert(IT first, IT last) {
 		for (; first != last; ++first) {
-			// value_type ctor needed because this might be called	
-			// with std::pair's													
+			// value_type ctor needed because this might be called			
+			// with std::pair's															
 			Insert(value_type(*first));
 		}
 	}
 
-	/// Insert a number of items via initializer list							
-	///	@param ilist - the first element											
+	/// Insert a number of items via initializer list									
+	///	@param ilist - the first element													
 	TABLE_TEMPLATE()
 	void TABLE()::Insert(::std::initializer_list<Pair> ilist) {
 		for (auto&& vt : ilist)
 			Insert(Move(vt));
 	}
 
-	/// Emplace an items inside map													
-	///	@param ...args - items to add												
-	///	@return a pair containing the new pair & status of insertion	
+	/// Emplace an items inside map															
+	///	@param ...args - items to add														
+	///	@return a pair containing the new pair & status of insertion			
 	TABLE_TEMPLATE()
 	template<class... Args>
 	TABLE()::Insertion TABLE()::Emplace(Args&&... args) {
@@ -469,43 +356,43 @@ namespace Langulus::Anyness::Inner
 	TABLE_TEMPLATE()
 	template<class Mapped>
 	TABLE()::Insertion TABLE()::insert_or_assign(key_type&& key, Mapped&& obj) {
-		return insertOrAssignImpl(std::move(key), std::forward<Mapped>(obj));
+		return insertOrAssignImpl(Move(key), Forward<Mapped>(obj));
 	}
 
 	TABLE_TEMPLATE()
 	template<class Mapped>
 	TABLE()::iterator TABLE()::insert_or_assign(const_iterator hint, const key_type& key, Mapped&& obj) {
 		(void) hint;
-		return insertOrAssignImpl(key, std::forward<Mapped>(obj)).first;
+		return insertOrAssignImpl(key, Forward<Mapped>(obj)).first;
 	}
 
 	TABLE_TEMPLATE()
 	template<class Mapped>
 	TABLE()::iterator TABLE()::insert_or_assign(const_iterator hint, key_type&& key, Mapped&& obj) {
 		(void) hint;
-		return insertOrAssignImpl(std::move(key), std::forward<Mapped>(obj)).first;
+		return insertOrAssignImpl(Move(key), Forward<Mapped>(obj)).first;
 	}
 
 	TABLE_TEMPLATE()
-	TABLE()::Insertion TABLE()::insert(const value_type& keyval) {
-		return emplace(keyval);
+	TABLE()::Insertion TABLE()::Insert(const value_type& keyval) {
+		return Emplace(keyval);
 	}
 
 	TABLE_TEMPLATE()
-	TABLE()::iterator TABLE()::insert(const_iterator hint, const value_type& keyval) {
+	TABLE()::iterator TABLE()::Insert(const_iterator hint, const value_type& keyval) {
 		(void) hint;
-		return emplace(keyval).first;
+		return Emplace(keyval).first;
 	}
 
 	TABLE_TEMPLATE()
-	TABLE()::Insertion TABLE()::insert(value_type&& keyval) {
-		return emplace(std::move(keyval));
+	TABLE()::Insertion TABLE()::Insert(value_type&& keyval) {
+		return Emplace(Move(keyval));
 	}
 
 	TABLE_TEMPLATE()
-	TABLE()::iterator TABLE()::insert(const_iterator hint, value_type&& keyval) {
+	TABLE()::iterator TABLE()::Insert(const_iterator hint, value_type&& keyval) {
 		(void) hint;
-		return emplace(std::move(keyval)).first;
+		return Emplace(Move(keyval)).first;
 	}
 
 	/// Inserts a keyval that is guaranteed to be new, e.g. when the				
@@ -699,7 +586,7 @@ namespace Langulus::Anyness::Inner
 	/// Clears all data and deallocates														
 	TABLE_TEMPLATE()
 	void TABLE()::Reset() {
-		TODO();
+		Clear();
 	}
 
 	TABLE_TEMPLATE()
@@ -773,7 +660,7 @@ namespace Langulus::Anyness::Inner
 	TABLE_TEMPLATE()
 	void TABLE()::destroy() {
 		if (0 == mMask) {
-			// don't deallocate!
+			// Don't deallocate!															
 			return;
 		}
 
@@ -786,6 +673,273 @@ namespace Langulus::Anyness::Inner
 		// [-Werror=free-nonheap-object]												
 		//if (mKeyVals != reinterpret_cast_no_cast_align_warning<Node*>(&mMask))
 			std::free(mKeyVals);
+	}
+
+	///																								
+	///	SEARCH																					
+	///																								
+	/// Returns 1 if key is found, 0 otherwise											
+	TABLE_TEMPLATE()
+	size_t TABLE()::count(const key_type& key) const {
+		auto kv = mKeyVals + findIdx(key);
+		if (kv != reinterpret_cast_no_cast_align_warning<Node*>(mInfo))
+			return 1;
+		return 0;
+	}
+
+	TABLE_TEMPLATE()
+	template<typename OtherKey, typename Self_>
+	size_t TABLE()::count(const OtherKey& key) const requires IsTransparent<Self_> {
+		auto kv = mKeyVals + findIdx(key);
+		if (kv != reinterpret_cast_no_cast_align_warning<Node*>(mInfo))
+			return 1;
+		return 0;
+	}
+
+	TABLE_TEMPLATE()
+	bool TABLE()::contains(const key_type& key) const {
+		return 1U == count(key);
+	}
+
+	TABLE_TEMPLATE()
+	template <typename OtherKey, typename Self_>
+	bool TABLE()::contains(const OtherKey& key) const requires IsTransparent<Self_> {
+		return 1U == count(key);
+	}
+
+	/// Returns a reference to the value found for key									
+	/// Throws std::out_of_range if element cannot be found							
+	TABLE_TEMPLATE()
+	template<ReflectedData Q>
+	Q& TABLE()::at(key_type const& key) {
+		auto kv = mKeyVals + findIdx(key);
+		if (kv == reinterpret_cast_no_cast_align_warning<Node*>(mInfo))
+			doThrow<std::out_of_range>("key not found");
+		return kv->getSecond();
+	}
+
+	/// Returns a reference to the value found for key									
+	/// Throws std::out_of_range if element cannot be found							
+	TABLE_TEMPLATE()
+	template<ReflectedData Q>
+	Q const& TABLE()::at(key_type const& key) const {
+		auto kv = mKeyVals + findIdx(key);
+		if (kv == reinterpret_cast_no_cast_align_warning<Node*>(mInfo))
+			doThrow<std::out_of_range>("key not found");
+		return kv->getSecond();
+	}
+
+	/// Find																							
+	TABLE_TEMPLATE()
+	template<class ALT_K>
+	TABLE()::const_iterator TABLE()::find(const ALT_K& key) const {
+		const size_t idx = findIdx(key);
+		return const_iterator {mKeyVals + idx, mInfo + idx};
+	}
+
+	TABLE_TEMPLATE()
+	template<class ALT_K>
+	TABLE()::iterator TABLE()::find(const ALT_K& key) {
+		const size_t idx = findIdx(key);
+		return iterator {mKeyVals + idx, mInfo + idx};
+	}
+
+	/// Copy of find(), except that it returns iterator instead of					
+	/// const_iterator																			
+	TABLE_TEMPLATE()
+	template<class Other>
+	size_t TABLE()::findIdx(Other const& key) const {
+		static_assert(IsComparable<Other, Key>, "Can't compare keys");
+		size_t idx {};
+		InfoType info {};
+		keyToIdx(key, &idx, &info);
+
+		do {
+			// Unrolling this twice gives a bit of a speedup					
+			// More unrolling did not help											
+			if (info == mInfo[idx] && LANGULUS_LIKELY(key == mKeyVals[idx].getFirst()))
+				return idx;
+			next(&info, &idx);
+			if (info == mInfo[idx] && LANGULUS_LIKELY(key == mKeyVals[idx].getFirst()))
+				return idx;
+			next(&info, &idx);
+		}
+		while (info <= mInfo[idx]);
+
+		// If reached, then nothing found											
+		return mMask == 0 ? 0
+			: static_cast<size_t>(std::distance(mKeyVals, reinterpret_cast_no_cast_align_warning<Node*>(mInfo)));
+	}
+
+	/// Access value by key																		
+	///	@param key - the key to find														
+	///	@return a reference to the value													
+	TABLE_TEMPLATE()
+	template <ReflectedData Q>
+	Q& TABLE()::operator[] (const key_type& key) {
+		auto idxAndState = insertKeyPrepareEmptySpot(key);
+		switch (idxAndState.second) {
+		case InsertionState::key_found:
+			break;
+
+		case InsertionState::new_node:
+			::new (static_cast<void*>(&mKeyVals[idxAndState.first])) 
+				Node(*this, std::piecewise_construct, std::forward_as_tuple(key), std::forward_as_tuple());
+			break;
+
+		case InsertionState::overwrite_node:
+			mKeyVals[idxAndState.first] = 
+				Node(*this, std::piecewise_construct, std::forward_as_tuple(key), std::forward_as_tuple());
+			break;
+
+		case InsertionState::overflow_error:
+			throwOverflowError();
+		}
+
+		return mKeyVals[idxAndState.first].getSecond();
+	}
+
+	/// Access value by key																		
+	///	@param key - the key to find														
+	///	@return a reference to the value													
+	TABLE_TEMPLATE()
+	template<ReflectedData Q>
+	Q& TABLE()::operator[] (key_type&& key) {
+		auto idxAndState = insertKeyPrepareEmptySpot(key);
+		switch (idxAndState.second) {
+		case InsertionState::key_found:
+			break;
+
+		case InsertionState::new_node:
+			::new (static_cast<void*>(&mKeyVals[idxAndState.first])) 
+				Node(*this, std::piecewise_construct, std::forward_as_tuple(Move(key)), std::forward_as_tuple());
+			break;
+
+		case InsertionState::overwrite_node:
+			mKeyVals[idxAndState.first] = 
+				Node(*this, std::piecewise_construct, std::forward_as_tuple(Move(key)), std::forward_as_tuple());
+			break;
+
+		case InsertionState::overflow_error:
+			throwOverflowError();
+		}
+
+		return mKeyVals[idxAndState.first].getSecond();
+	}
+	
+	/// Get the beginning of internal data													
+	///	@return the iterator																	
+	TABLE_TEMPLATE()
+	TABLE()::iterator TABLE()::begin() {
+		if (IsEmpty())
+			return end();
+		return iterator(mKeyVals, mInfo, fast_forward_tag {});
+	}
+
+	/// Get the beginning of internal data (const)										
+	///	@return the iterator																	
+	TABLE_TEMPLATE()
+	TABLE()::const_iterator TABLE()::begin() const {
+		return cbegin();
+	}
+
+	TABLE_TEMPLATE()
+	TABLE()::const_iterator TABLE()::cbegin() const {
+		if (IsEmpty())
+			return cend();
+		return const_iterator(mKeyVals, mInfo, fast_forward_tag {});
+	}
+
+	TABLE_TEMPLATE()
+	TABLE()::iterator TABLE()::end() {
+		// No need to supply valid info pointer: end() must not be			
+		// dereferenced, and only node pointer is compared						
+		return iterator {reinterpret_cast_no_cast_align_warning<Node*>(mInfo), nullptr};
+	}
+
+	TABLE_TEMPLATE()
+	TABLE()::const_iterator TABLE()::end() const {
+		return cend();
+	}
+
+	TABLE_TEMPLATE()
+	TABLE()::const_iterator TABLE()::cend() const {
+		return const_iterator {reinterpret_cast_no_cast_align_warning<Node*>(mInfo), nullptr};
+	}
+
+	TABLE_TEMPLATE()
+	constexpr Count TABLE()::GetCount() const noexcept {
+		return mNumElements;
+	}
+
+	TABLE_TEMPLATE()
+	constexpr Count TABLE()::max_size() const noexcept {
+		return static_cast<Count>(-1);
+	}
+
+	TABLE_TEMPLATE()
+	constexpr bool TABLE()::IsEmpty() const noexcept {
+		return 0 == mNumElements;
+	}
+
+	TABLE_TEMPLATE()
+	constexpr float TABLE()::max_load_factor() const noexcept {
+		return MaxLoadFactor100 / 100.0f;
+	}
+
+	/// Average number of elements per bucket. Since we allow only 1 per bucket
+	TABLE_TEMPLATE()
+	constexpr float TABLE()::load_factor() const noexcept {
+		return static_cast<float>(GetCount()) / static_cast<float>(mMask + 1);
+	}
+
+	TABLE_TEMPLATE()
+	size_t TABLE()::mask() const noexcept {
+		return mMask;
+	}
+
+	TABLE_TEMPLATE()
+	size_t TABLE()::calcMaxNumElementsAllowed(size_t maxElements) const noexcept {
+		if (LANGULUS_LIKELY(maxElements <= (std::numeric_limits<size_t>::max)() / 100))
+			return maxElements * MaxLoadFactor100 / 100;
+
+		// We might be a bit inprecise, but since maxElements is quite		
+		// large that doesn't matter													
+		return (maxElements / 100) * MaxLoadFactor100;
+	}
+
+	TABLE_TEMPLATE()
+	size_t TABLE()::calcNumBytesInfo(size_t numElements) const noexcept {
+		// We add a uint64_t, which houses the sentinel (first byte) and	
+		// padding so we can load 64bit types										
+		return numElements + sizeof(uint64_t);
+	}
+
+	TABLE_TEMPLATE()
+	size_t TABLE()::calcNumElementsWithBuffer(size_t numElements) const noexcept {
+		auto maxNumElementsAllowed = calcMaxNumElementsAllowed(numElements);
+		return numElements + (std::min) (maxNumElementsAllowed, (static_cast<size_t>(0xFF)));
+	}
+
+	/// Calculation only allowed for 2^n values											
+	TABLE_TEMPLATE()
+	size_t TABLE()::calcNumBytesTotal(size_t numElements) const {
+		#if LANGULUS(BITNESS) == 64
+			return numElements * sizeof(Node) + calcNumBytesInfo(numElements);
+		#else
+			// make sure we're doing 64bit operations, so we are at least safe against 32bit overflows.
+			auto const ne = static_cast<uint64_t>(numElements);
+			auto const s = static_cast<uint64_t>(sizeof(Node));
+			auto const infos = static_cast<uint64_t>(calcNumBytesInfo(numElements));
+
+			auto const total64 = ne * s + infos;
+			auto const total = static_cast<size_t>(total64);
+
+			if (LANGULUS_UNLIKELY(static_cast<uint64_t>(total) != total64))
+				throwOverflowError();
+
+			return total;
+		#endif
 	}
 
 } // namespace Langulus::Anyness::Inner

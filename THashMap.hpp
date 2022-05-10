@@ -4,6 +4,7 @@
 #pragma once
 #include "Map.hpp"
 #include "Iterator.hpp"
+#include "Inner/DataNode.hpp"
 #include <algorithm>
 #include <cstdlib>
 #include <cstring>
@@ -27,32 +28,6 @@ namespace Langulus::Anyness
 			return (x >> k) | (x << (8U * sizeof(T) - k));
 		}
 
-		// This cast gets rid of warnings like "cast from 'uint8_t*' {aka 'unsigned char*'} to
-		// 'uint64_t*' {aka 'long unsigned int*'} increases required alignment of target type". Use with
-		// care!
-		template <typename T>
-		inline T reinterpret_cast_no_cast_align_warning(void* ptr) noexcept {
-			return reinterpret_cast<T>(ptr);
-		}
-
-		template <typename T>
-		inline T reinterpret_cast_no_cast_align_warning(void const* ptr) noexcept {
-			return reinterpret_cast<T>(ptr);
-		}
-
-		// make sure this is not inlined as it is slow and dramatically enlarges code, thus making other
-		// inlinings more difficult. Throws are also generally the slow path.
-		template <typename E, typename... Args>
-		[[noreturn]] LANGULUS(NOINLINE) void doThrow(Args&&... args) {
-			throw E(std::forward<Args>(args)...);
-		}
-
-		template <typename E, typename T, typename... Args>
-		T* assertNotNull(T* t, Args&&... args) {
-			if (LANGULUS_UNLIKELY(nullptr == t))
-				doThrow<E>(std::forward<Args>(args)...);
-			return t;
-		}
 
 	} // namespace Langulus::Anyness::Inner
 
@@ -256,91 +231,9 @@ namespace Langulus::Anyness
 		/// Type needs to be wider than uint8_t											
 		using InfoType = uint32_t;
 
-#define NODE_TEMPLATE()	template<class M, class T, class V>
-#define NODE(a) DataNodeOn##a<M, T, V>
-
 #define TABLE_TEMPLATE() template<bool IsFlat, size_t MaxLoadFactor100, class Key, class T>
 #define TABLE() Table<IsFlat, MaxLoadFactor100, Key, T>
 
-
-		/// DataNode																				
-		/// Primary template for the data node. We have special						
-		/// implementations for small and big objects. For large objects it		
-		/// is assumed that swap() is fairly slow, so we allocate these on		
-		/// the heap so swap merely swaps a pointer.										
-
-		/// Small: just allocate on the stack												
-		NODE_TEMPLATE()
-		class DataNodeOnStack final {
-		private:
-			T mData;
-
-		public:
-			template <typename... Args>
-			explicit DataNodeOnStack(M&, Args&&...args) noexcept(noexcept(T(std::forward<Args>(args)...)));
-			DataNodeOnStack(M&, DataNodeOnStack&&) noexcept(std::is_nothrow_move_constructible<T>::value);
-
-			void destroy(M&) noexcept {}
-			void destroyDoNotDeallocate() noexcept {}
-
-			T const* operator->() const noexcept;
-			T* operator->() noexcept;
-			const T& operator*() const noexcept;
-			T& operator*() noexcept;
-
-			template<typename VT = T>
-			NOD() typename VT::first_type& getFirst() noexcept requires IsMap<M>;
-			template<typename VT = T>
-			NOD() VT& getFirst() noexcept requires IsSet<M>;
-			template<typename VT = T>
-			NOD() typename VT::first_type const& getFirst() const noexcept requires IsMap<M>;
-			template<typename VT = T>
-			NOD() VT const& getFirst() const noexcept requires IsSet<M>;
-
-			template<typename MT = V>
-			NOD() MT& getSecond() noexcept requires IsMap<M>;
-			template<typename MT = V>
-			NOD() MT const& getSecond() const noexcept requires IsSet<M>;
-
-			void swap(DataNodeOnStack&) noexcept(noexcept(std::declval<T>().swap(std::declval<T>())));
-		};
-
-
-		/// Big object: allocate on heap														
-		NODE_TEMPLATE()
-		class DataNodeOnHeap {
-		private:
-			T* mData;
-
-		public:
-			template <typename... Args>
-			explicit DataNodeOnHeap(M&, Args&&...);
-			DataNodeOnHeap(M&, DataNodeOnHeap&&) noexcept;
-
-			void destroy(M&) noexcept;
-			void destroyDoNotDeallocate() noexcept;
-
-			T const* operator->() const noexcept;
-			T* operator->() noexcept;
-			const T& operator*() const;
-			T& operator*();
-
-			template<typename VT = T>
-			NOD() typename VT::first_type& getFirst() noexcept requires IsMap<M>;
-			template<typename VT = T>
-			NOD() VT& getFirst() noexcept requires IsSet<M>;
-			template<typename VT = T>
-			NOD() typename VT::first_type const& getFirst() const noexcept requires IsMap<M>;
-			template<typename VT = T>
-			NOD() VT const& getFirst() const noexcept requires IsSet<M>;
-
-			template<typename MT = V>
-			NOD() MT& getSecond() noexcept requires IsMap<M>;
-			template<typename MT = V>
-			NOD() MT const& getSecond() const noexcept requires IsMap<M>;
-
-			void swap(DataNodeOnHeap&) noexcept;
-		};
 
 
 		/// A highly optimized hashmap implementation, using the Robin Hood		
@@ -374,7 +267,7 @@ namespace Langulus::Anyness
 		/// https://www.reddit.com/r/cpp/comments/ahp6iu/compile_time_binary_size_reductions_and_cs_future/eeguck4/
 		///																							
 		TABLE_TEMPLATE()
-		class Table : NodeAllocator<Conditional<IsVoid<T>, Key, TPair<Conditional<IsFlat, Key, Key const>, T>>, 4, 16384, IsFlat>
+		class Table : public NodeAllocator<Conditional<IsVoid<T>, Key, TPair<Conditional<IsFlat, Key, Key const>, T>>, 4, 16384, IsFlat>
 		{
 		public:
 			static constexpr bool is_flat = IsFlat;
@@ -475,7 +368,7 @@ namespace Langulus::Anyness
 
 			/// Destroyer																			
 			template<bool DEALLOCATE>
-			void DestroyNodes() const noexcept {
+			void DestroyNodes() noexcept {
 				mNumElements = 0;
 
 				if constexpr (!IsFlat || !std::is_trivially_destructible_v<Node>) {
@@ -544,12 +437,12 @@ namespace Langulus::Anyness
 			}
 
 			void shiftDown(size_t idx) noexcept(std::is_nothrow_move_assignable_v<Node>) {
-				// until we find one that is either empty or has zero offset.
-				// TODO(martinus) we don't need to move everything, just the last one for the same
-				// bucket.
+				// Until we find one that is either empty or has zero offset
+				// TODO(martinus) we don't need to move everything, just		
+				// the last one for the same bucket									
 				mKeyVals[idx].destroy(*this);
 
-				// until we find one that is either empty or has zero offset.
+				// Until we find one that is either empty or has zero offset
 				while (mInfo[idx + 1] >= 2 * mInfoInc) {
 					mInfo[idx] = static_cast<uint8_t>(mInfo[idx + 1] - mInfoInc);
 					mKeyVals[idx] = std::move(mKeyVals[idx + 1]);
@@ -557,81 +450,21 @@ namespace Langulus::Anyness
 				}
 
 				mInfo[idx] = 0;
-				// don't destroy, we've moved it
+				// Don't destroy, we've moved it
 				// mKeyVals[idx].destroy(*this);
 				mKeyVals[idx].~Node();
 			}
 
-			/// Copy of find(), except that it returns iterator instead of			
-			/// const_iterator																	
-			template<class Other>
-			NOD() size_t findIdx(Other const& key) const {
-				static_assert(IsComparable<Other, Key>, "Can't compare keys");
-				size_t idx {};
-				InfoType info {};
-				keyToIdx(key, &idx, &info);
-
-				do {
-					// Unrolling this twice gives a bit of a speedup			
-					// More unrolling did not help									
-					if (info == mInfo[idx] && LANGULUS_LIKELY(key == mKeyVals[idx].getFirst()))
-						return idx;
-					next(&info, &idx);
-					if (info == mInfo[idx] && LANGULUS_LIKELY(key == mKeyVals[idx].getFirst()))
-						return idx;
-					next(&info, &idx);
-				}
-				while (info <= mInfo[idx]);
-
-				// If reached, then nothing found									
-				return mMask == 0 
-					? 0
-					: static_cast<size_t>(std::distance(mKeyVals, reinterpret_cast_no_cast_align_warning<Node*>(mInfo)));
-			}
-
-			void cloneData(const Table& o) {
-				if constexpr (IsFlat && std::is_trivially_copyable_v<Node>) {
-					auto const* const src = reinterpret_cast<char const*>(o.mKeyVals);
-					auto* tgt = reinterpret_cast<char*>(mKeyVals);
-					auto const numElementsWithBuffer = calcNumElementsWithBuffer(mMask + 1);
-					std::copy(src, src + calcNumBytesTotal(numElementsWithBuffer), tgt);
-				}
-				else {
-					auto const numElementsWithBuffer = calcNumElementsWithBuffer(mMask + 1);
-					std::copy(o.mInfo, o.mInfo + calcNumBytesInfo(numElementsWithBuffer), mInfo);
-
-					for (size_t i = 0; i < numElementsWithBuffer; ++i) {
-						if (mInfo[i])
-							::new (static_cast<void*>(mKeyVals + i)) Node(*this, *o.mKeyVals[i]);
-					}
-				}
-			}
-
-			/// Clone the table																	
-			///	@return the new table														
-			NOD() Table Clone() const {
-				Table result;
-				result.CloneData(*this);
-				return result;
-			}
+		private:
+			void CloneInner(const Table&);
+		public:
+			NOD() Table Clone() const;
 
 		public:
 			using iterator = Iterator<false, Self>;
 			using const_iterator = Iterator<true, Self>;
 
-			/// Checks if both tables contain the same entries							
-			/// Order is irrelevant																
-			bool operator == (const Table& other) const {
-				if (other.GetCount() != GetCount())
-					return false;
-
-				for (auto const& otherEntry : other) {
-					if (!has(otherEntry))
-						return false;
-				}
-
-				return true;
-			}
+			bool operator == (const Table&) const;
 
 
 			///																						
@@ -667,10 +500,10 @@ namespace Langulus::Anyness
 			template <class Mapped>
 			iterator insert_or_assign(const_iterator, key_type&&, Mapped&&);
 
-			Insertion insert(const value_type&);
-			iterator insert(const_iterator, const value_type&);
-			Insertion insert(value_type&&);
-			iterator insert(const_iterator, value_type&&);
+			Insertion Insert(const value_type&);
+			iterator Insert(const_iterator, const value_type&);
+			Insertion Insert(value_type&&);
+			iterator Insert(const_iterator, value_type&&);
 
 			void insert_move(Node&&);
 		private:
@@ -711,242 +544,51 @@ namespace Langulus::Anyness
 			///																						
 			///	SEARCH																			
 			///																						
-			/// Returns 1 if key is found, 0 otherwise									
-			size_t count(const key_type& key) const {
-				auto kv = mKeyVals + findIdx(key);
-				if (kv != reinterpret_cast_no_cast_align_warning<Node*>(mInfo))
-					return 1;
-				return 0;
-			}
+			size_t count(const key_type&) const;
+			template <class OtherKey, class Self_ = Self>
+			size_t count(const OtherKey&) const requires IsTransparent<Self_>;
+			bool contains(const key_type&) const;
+			template <class OtherKey, class Self_ = Self>
+			bool contains(const OtherKey&) const requires IsTransparent<Self_>;
 
-			template <typename OtherKey, typename Self_ = Self>
-			size_t count(const OtherKey& key) const requires IsTransparent<Self_> {
-				auto kv = mKeyVals + findIdx(key);
-				if (kv != reinterpret_cast_no_cast_align_warning<Node*>(mInfo))
-					return 1;
-				return 0;
-			}
+			template<ReflectedData Q = mapped_type>
+			Q& at(const key_type&);
+			template<ReflectedData Q = mapped_type>
+			const Q& at(const key_type&) const;
 
-			bool contains(const key_type& key) const {
-				return 1U == count(key);
-			}
+			template<class ALT_K>
+			const_iterator find(const ALT_K&) const;
+			template<class ALT_K>
+			iterator find(const ALT_K&);
 
-			template <typename OtherKey, typename Self_ = Self>
-			bool contains(const OtherKey& key) const requires IsTransparent<Self_> {
-				return 1U == count(key);
-			}
+			template<class Other>
+			NOD() size_t findIdx(const Other&) const;
 
-			/// Returns a reference to the value found for key							
-			/// Throws std::out_of_range if element cannot be found					
 			template <ReflectedData Q = mapped_type>
-			Q& at(key_type const& key) {
-				auto kv = mKeyVals + findIdx(key);
-				if (kv == reinterpret_cast_no_cast_align_warning<Node*>(mInfo))
-					doThrow<std::out_of_range>("key not found");
-				return kv->getSecond();
-			}
-
-			/// Returns a reference to the value found for key							
-			/// Throws std::out_of_range if element cannot be found					
+			Q& operator[] (const key_type&);
 			template <ReflectedData Q = mapped_type>
-			Q const& at(key_type const& key) const {
-				auto kv = mKeyVals + findIdx(key);
-				if (kv == reinterpret_cast_no_cast_align_warning<Node*>(mInfo))
-					doThrow<std::out_of_range>("key not found");
-				return kv->getSecond();
-			}
-
-			/// Find																					
-			const_iterator find(const key_type& key) const {
-				const size_t idx = findIdx(key);
-				return const_iterator {mKeyVals + idx, mInfo + idx};
-			}
-
-			/*template <typename OtherKey>
-			const_iterator find(const OtherKey& key, is_transparent_tag) const {
-				const size_t idx = findIdx(key);
-				return const_iterator {mKeyVals + idx, mInfo + idx};
-			}
-
-			template <typename OtherKey, typename Self_ = Self>
-			const_iterator find(const OtherKey& key) const requires IsTransparent<Self_> {
-				const size_t idx = findIdx(key);
-				return const_iterator {mKeyVals + idx, mInfo + idx};
-			}*/
-
-			iterator find(const key_type& key) {
-				const size_t idx = findIdx(key);
-				return iterator {mKeyVals + idx, mInfo + idx};
-			}
-
-			/*template <typename OtherKey>
-			iterator find(const OtherKey& key, is_transparent_tag) {
-				const size_t idx = findIdx(key);
-				return iterator {mKeyVals + idx, mInfo + idx};
-			}
-
-			template <typename OtherKey, typename Self_ = Self>
-			iterator find(const OtherKey& key) requires IsTransparent<Self_> {
-				const size_t idx = findIdx(key);
-				return iterator {mKeyVals + idx, mInfo + idx};
-			}*/
-
-			/// Access value by key																
-			///	@param key - the key to find												
-			///	@return a reference to the value											
-			template <ReflectedData Q = mapped_type>
-			Q& operator[] (const key_type& key) {
-				auto idxAndState = insertKeyPrepareEmptySpot(key);
-				switch (idxAndState.second) {
-				case InsertionState::key_found:
-					break;
-
-				case InsertionState::new_node:
-					::new (static_cast<void*>(&mKeyVals[idxAndState.first])) 
-						Node(*this, std::piecewise_construct, std::forward_as_tuple(key), std::forward_as_tuple());
-					break;
-
-				case InsertionState::overwrite_node:
-					mKeyVals[idxAndState.first] = 
-						Node(*this, std::piecewise_construct, std::forward_as_tuple(key), std::forward_as_tuple());
-					break;
-
-				case InsertionState::overflow_error:
-					throwOverflowError();
-				}
-
-				return mKeyVals[idxAndState.first].getSecond();
-			}
-
-			/// Access value by key																
-			///	@param key - the key to find												
-			///	@return a reference to the value											
-			template <ReflectedData Q = mapped_type>
-			Q& operator[] (key_type&& key) {
-				auto idxAndState = insertKeyPrepareEmptySpot(key);
-				switch (idxAndState.second) {
-				case InsertionState::key_found:
-					break;
-
-				case InsertionState::new_node:
-					::new (static_cast<void*>(&mKeyVals[idxAndState.first])) 
-						Node(*this, std::piecewise_construct, std::forward_as_tuple(Move(key)), std::forward_as_tuple());
-					break;
-
-				case InsertionState::overwrite_node:
-					mKeyVals[idxAndState.first] = 
-						Node(*this, std::piecewise_construct, std::forward_as_tuple(Move(key)), std::forward_as_tuple());
-					break;
-
-				case InsertionState::overflow_error:
-					throwOverflowError();
-				}
-
-				return mKeyVals[idxAndState.first].getSecond();
-			}
+			Q& operator[] (key_type&&);
 
 
 			///																						
 			///	ITERATION																		
 			///																						
-			/// Get the beginning of internal data											
-			///	@return the iterator															
-			iterator begin() {
-				if (IsEmpty())
-					return end();
-				return iterator(mKeyVals, mInfo, fast_forward_tag {});
-			}
-
-			/// Get the beginning of internal data (const)								
-			///	@return the iterator															
-			const_iterator begin() const {
-				return cbegin();
-			}
-
-			const_iterator cbegin() const {
-				if (IsEmpty())
-					return cend();
-				return const_iterator(mKeyVals, mInfo, fast_forward_tag {});
-			}
-
-			iterator end() {
-				// no need to supply valid info pointer: end() must not be dereferenced, and only node
-				// pointer is compared.
-				return iterator {reinterpret_cast_no_cast_align_warning<Node*>(mInfo), nullptr};
-			}
-
-			const_iterator end() const {
-				return cend();
-			}
-
-			const_iterator cend() const {
-				return const_iterator {reinterpret_cast_no_cast_align_warning<Node*>(mInfo), nullptr};
-			}
-
-			NOD() constexpr Count GetCount() const noexcept {
-				return mNumElements;
-			}
-
-			NOD() constexpr Count max_size() const noexcept {
-				return static_cast<Count>(-1);
-			}
-
-			NOD() constexpr bool IsEmpty() const noexcept {
-				return 0 == mNumElements;
-			}
-
-			NOD() constexpr float max_load_factor() const noexcept {
-				return MaxLoadFactor100 / 100.0f;
-			}
-
-			/// Average number of elements per bucket. Since we allow only 1		
-			/// per bucket																			
-			NOD() constexpr float load_factor() const noexcept {
-				return static_cast<float>(GetCount()) / static_cast<float>(mMask + 1);
-			}
-
-			NOD() size_t mask() const noexcept {
-				return mMask;
-			}
-
-			NOD() size_t calcMaxNumElementsAllowed(size_t maxElements) const noexcept {
-				if (LANGULUS_LIKELY(maxElements <= (std::numeric_limits<size_t>::max)() / 100))
-					return maxElements * MaxLoadFactor100 / 100;
-
-				// we might be a bit inprecise, but since maxElements is quite large that doesn't matter
-				return (maxElements / 100) * MaxLoadFactor100;
-			}
-
-			NOD() size_t calcNumBytesInfo(size_t numElements) const noexcept {
-				// we add a uint64_t, which houses the sentinel (first byte) and padding so we can load
-				// 64bit types.
-				return numElements + sizeof(uint64_t);
-			}
-
-			NOD() size_t calcNumElementsWithBuffer(size_t numElements) const noexcept {
-				auto maxNumElementsAllowed = calcMaxNumElementsAllowed(numElements);
-				return numElements + (std::min) (maxNumElementsAllowed, (static_cast<size_t>(0xFF)));
-			}
-
-			/// Calculation only allowed for 2^n values									
-			NOD() size_t calcNumBytesTotal(size_t numElements) const {
-				#if LANGULUS(BITNESS) == 64
-					return numElements * sizeof(Node) + calcNumBytesInfo(numElements);
-				#else
-					// make sure we're doing 64bit operations, so we are at least safe against 32bit overflows.
-					auto const ne = static_cast<uint64_t>(numElements);
-					auto const s = static_cast<uint64_t>(sizeof(Node));
-					auto const infos = static_cast<uint64_t>(calcNumBytesInfo(numElements));
-
-					auto const total64 = ne * s + infos;
-					auto const total = static_cast<size_t>(total64);
-
-					if (LANGULUS_UNLIKELY(static_cast<uint64_t>(total) != total64))
-						throwOverflowError();
-
-					return total;
-				#endif
-			}
+			iterator begin();
+			const_iterator begin() const;
+			const_iterator cbegin() const;
+			iterator end();
+			const_iterator end() const;
+			const_iterator cend() const;
+			NOD() constexpr Count GetCount() const noexcept;
+			NOD() constexpr Count max_size() const noexcept;
+			NOD() constexpr bool IsEmpty() const noexcept;
+			NOD() constexpr float max_load_factor() const noexcept;
+			NOD() constexpr float load_factor() const noexcept;
+			NOD() size_t mask() const noexcept;
+			NOD() size_t calcMaxNumElementsAllowed(size_t) const noexcept;
+			NOD() size_t calcNumBytesInfo(size_t) const noexcept;
+			NOD() size_t calcNumElementsWithBuffer(size_t) const noexcept;
+			NOD() size_t calcNumBytesTotal(size_t) const;
 
 		private:
 			template <ReflectedData Q = mapped_type>
@@ -967,29 +609,30 @@ namespace Langulus::Anyness
 				uint8_t const* const oldInfo = mInfo;
 				const size_t oldMaxElementsWithBuffer = calcNumElementsWithBuffer(mMask + 1);
 
-				// resize operation: move stuff
+				// Resize operation: move stuff										
 				initData(numBuckets);
 				if (oldMaxElementsWithBuffer > 1) {
 					for (size_t i = 0; i < oldMaxElementsWithBuffer; ++i) {
 						if (oldInfo[i] != 0) {
-							// might throw an exception, which is really bad since we are in the middle of
-							// moving stuff.
+							// Might throw an exception, which is really bad	
+							// since we are in the middle of moving stuff		
 							insert_move(Move(oldKeyVals[i]));
-							// destroy the node but DON'T destroy the data.
+							// Destroy the node but DON'T destroy the data		
 							oldKeyVals[i].~Node();
 						}
 					}
 
-					// this check is not necessary as it's guarded by the previous if, but it helps
-					// silence g++'s overeager "attempt to free a non-heap object 'map'
-					// [-Werror=free-nonheap-object]" warning.
-					if (oldKeyVals != reinterpret_cast_no_cast_align_warning<Node*>(&mMask)) {
+					// This check is not necessary as it's guarded by the		
+					// previous if, but it helps silence g++'s overeager		
+					// "attempt to free a non-heap object 'map'					
+					// [-Werror=free-nonheap-object]" warning						
+					//if (oldKeyVals != reinterpret_cast_no_cast_align_warning<Node*>(&mMask)) {
 						// don't destroy old data: put it into the pool instead
 						if (forceFree)
 							std::free(oldKeyVals);
 						else
 							DataPool::addOrFree(oldKeyVals, calcNumBytesTotal(oldMaxElementsWithBuffer));
-					}
+					//}
 				}
 			}
 
@@ -1008,7 +651,7 @@ namespace Langulus::Anyness
 
 				// Malloc & zero mInfo - faster than calloc everything		
 				auto const numBytesTotal = calcNumBytesTotal(numElementsWithBuffer);
-				mKeyVals = reinterpret_cast<Node*>(Inner::assertNotNull<std::bad_alloc>(std::malloc(numBytesTotal)));
+				mKeyVals = reinterpret_cast<Node*>(assertNotNull<std::bad_alloc>(std::malloc(numBytesTotal)));
 				mInfo = reinterpret_cast<uint8_t*>(mKeyVals + numElementsWithBuffer);
 				std::memset(mInfo, 0, numBytesTotal - numElementsWithBuffer * sizeof(Node));
 
@@ -1126,9 +769,6 @@ namespace Langulus::Anyness
 } // namespace Langulus::Anyness
 
 #include "THashMap.inl"
-
-#undef NODE_TEMPLATE
-#undef NODE
 
 #undef TABLE_TEMPLATE
 #undef TABLE
