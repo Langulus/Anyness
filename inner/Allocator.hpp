@@ -154,7 +154,7 @@ namespace Langulus::Anyness
 		T* allocate();
 		void deallocate(T*) noexcept;
 		void addOrFree(void*, const size_t) noexcept;
-		void swap(BulkPoolAllocator<T, MinAllocations, MaxAllocations>&) noexcept;
+		void swap(BulkPoolAllocator&) noexcept;
 
 	private:
 		NOD() size_t calcNumElementsToAlloc() const noexcept;

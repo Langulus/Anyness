@@ -161,7 +161,7 @@ namespace Langulus::Anyness
 	}
 
 	POOL_TEMPLATE()
-	void POOL()::swap(BulkPoolAllocator<T, MinAllocations, MaxAllocations>& other) noexcept {
+	void POOL()::swap(BulkPoolAllocator& other) noexcept {
 		using std::swap;
 		swap(mHead, other.mHead);
 		swap(mListForFree, other.mListForFree);

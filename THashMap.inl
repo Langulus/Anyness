@@ -57,6 +57,7 @@ namespace Langulus::Anyness::Inner
 	TABLE_TEMPLATE()
 	TABLE()::Table(const Table& o)
 		: DataPool(static_cast<const DataPool&>(o)) {
+		//TODO this should reference instead of clone
 		if (o.IsEmpty())
 			return;
 
@@ -76,6 +77,16 @@ namespace Langulus::Anyness::Inner
 		mInfoInc = o.mInfoInc;
 		mInfoHashShift = o.mInfoHashShift;
 		CloneInner(o);
+	}
+
+	TABLE_TEMPLATE()
+	TABLE()::Table(Disowned<Table>&&) noexcept {
+
+	}
+
+	TABLE_TEMPLATE()
+	TABLE()::Table(Abandoned<Table>&&) noexcept {
+
 	}
 
 	/// Destroys the map and all it's contents											
@@ -223,7 +234,20 @@ namespace Langulus::Anyness::Inner
 	///	@return the new table																
 	TABLE_TEMPLATE()
 	TABLE() TABLE()::Clone() const {
-		Table result;
+		if (IsEmpty())
+			return {};
+
+		Table result {Disown(*this)};
+		auto const numElementsWithBuffer = calcNumElementsWithBuffer(mMask + 1);
+		auto const numBytesTotal = calcNumBytesTotal(numElementsWithBuffer);
+		result.mHashMultiplier = mHashMultiplier;
+		result.mKeyVals = static_cast<Node*>(assertNotNull<std::bad_alloc>(std::malloc(numBytesTotal)));
+		result.mInfo = reinterpret_cast<uint8_t*>(mKeyVals + numElementsWithBuffer);
+		result.mNumElements = mNumElements;
+		result.mMask = mMask;
+		result.mMaxNumElementsAllowed = mMaxNumElementsAllowed;
+		result.mInfoInc = mInfoInc;
+		result.mInfoHashShift = mInfoHashShift;
 		result.CloneInner(*this);
 		return result;
 	}
@@ -285,7 +309,7 @@ namespace Langulus::Anyness::Inner
 			// the old one. This prevents to continuously allocate for		
 			// each reserve() call														
 			if (newSize > mMask + 1)
-				rehashPowerOfTwo(newSize, false);
+				rehashPowerOfTwo<false>(newSize);
 		}
 	}
 
@@ -688,16 +712,14 @@ namespace Langulus::Anyness::Inner
 	TABLE_TEMPLATE()
 	size_t TABLE()::RemoveValue(const V& value) {
 		static_assert(IsComparable<Key>, "Can't compare keys");
-
-		auto const numElementsWithBuffer = calcNumElementsWithBuffer(mMask + 1);
-		Count removed {};
-		for (size_t idx = 0; idx < numElementsWithBuffer; ++idx) {
-			// Check while info matches with the source idx				
-			if (value == mKeyVals[idx].getSecond()) {
-				shiftDown(idx); //might be wrong
-				--mNumElements;
+		Count removed{};
+		auto it = begin();
+		while (it != end()) {
+			if (it->mValue == value) {
+				it = RemoveIndex(it);
 				++removed;
 			}
+			else ++it;
 		}
 
 		return removed;
@@ -776,8 +798,7 @@ namespace Langulus::Anyness::Inner
 	/// Returns a reference to the value found for key									
 	/// Throws std::out_of_range if element cannot be found							
 	TABLE_TEMPLATE()
-	template<ReflectedData Q>
-	Q& TABLE()::at(const K& key) {
+	V& TABLE()::at(const K& key) {
 		auto kv = mKeyVals + findIdx(key);
 		if (kv == reinterpret_cast_no_cast_align_warning<Node*>(mInfo))
 			doThrow<std::out_of_range>("key not found");
@@ -787,8 +808,7 @@ namespace Langulus::Anyness::Inner
 	/// Returns a reference to the value found for key									
 	/// Throws std::out_of_range if element cannot be found							
 	TABLE_TEMPLATE()
-	template<ReflectedData Q>
-	Q const& TABLE()::at(const K& key) const {
+	const V& TABLE()::at(const K& key) const {
 		auto kv = mKeyVals + findIdx(key);
 		if (kv == reinterpret_cast_no_cast_align_warning<Node*>(mInfo))
 			doThrow<std::out_of_range>("key not found");
@@ -797,15 +817,13 @@ namespace Langulus::Anyness::Inner
 
 	/// Find																							
 	TABLE_TEMPLATE()
-	template<class ALT_K>
-	TABLE()::const_iterator TABLE()::find(const ALT_K& key) const {
+	TABLE()::const_iterator TABLE()::find(const K& key) const {
 		const size_t idx = findIdx(key);
 		return const_iterator {mKeyVals + idx, mInfo + idx};
 	}
 
 	TABLE_TEMPLATE()
-	template<class ALT_K>
-	TABLE()::iterator TABLE()::find(const ALT_K& key) {
+	TABLE()::iterator TABLE()::find(const K& key) {
 		const size_t idx = findIdx(key);
 		return iterator {mKeyVals + idx, mInfo + idx};
 	}
@@ -841,62 +859,16 @@ namespace Langulus::Anyness::Inner
 	///	@param key - the key to find														
 	///	@return a reference to the value													
 	TABLE_TEMPLATE()
-	template <ReflectedData Q>
-	Q& TABLE()::operator[] (const K& key) {
-		auto idxAndState = insertKeyPrepareEmptySpot(key);
-		switch (idxAndState.second) {
-		case InsertionState::key_found:
-			break;
-
-		case InsertionState::new_node:
-			::new (static_cast<void*>(&mKeyVals[idxAndState.first])) 
-				Node(*this, std::piecewise_construct, std::forward_as_tuple(key), std::forward_as_tuple());
-			break;
-
-		case InsertionState::overwrite_node:
-			mKeyVals[idxAndState.first] = 
-				Node(*this, std::piecewise_construct, std::forward_as_tuple(key), std::forward_as_tuple());
-			break;
-
-		case InsertionState::overflow_error:
-			throwOverflowError();
-		}
-
-		return mKeyVals[idxAndState.first].getSecond();
+	const V& TABLE()::operator[] (const K& key) const {
+		return at(key);
 	}
 
 	/// Access value by key																		
 	///	@param key - the key to find														
 	///	@return a reference to the value													
 	TABLE_TEMPLATE()
-	template<ReflectedData Q>
-	Q& TABLE()::operator[] (K&& key) {
-		auto idxAndState = insertKeyPrepareEmptySpot(key);
-		switch (idxAndState.second) {
-		case InsertionState::key_found:
-			break;
-
-		case InsertionState::new_node:
-			::new (static_cast<void*>(&mKeyVals[idxAndState.first])) Node(
-				*this, 
-				::std::piecewise_construct, 
-				::std::forward_as_tuple(Move(key)),
-				::std::forward_as_tuple());
-			break;
-
-		case InsertionState::overwrite_node:
-			mKeyVals[idxAndState.first] = Node(
-				*this, 
-				::std::piecewise_construct,
-				::std::forward_as_tuple(Move(key)),
-				::std::forward_as_tuple());
-			break;
-
-		case InsertionState::overflow_error:
-			throwOverflowError();
-		}
-
-		return mKeyVals[idxAndState.first].getSecond();
+	V& TABLE()::operator[] (const K& key) {
+		return at(key);
 	}
 	
 	/// Get the beginning of internal data													

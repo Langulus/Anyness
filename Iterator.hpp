@@ -13,8 +13,12 @@ namespace Langulus::Anyness
 	template<bool CONSTANT, class CONTAINER>
 	class Iterator {
 	private:
+		friend CONTAINER;
 		using Node = typename CONTAINER::Node;
 		using NodePtr = Conditional<CONSTANT, Node const*, Node*>;
+
+		NodePtr mKeyVals{};
+		uint8_t const* mInfo{};
 
 	public:
 		using Difference = std::ptrdiff_t;
@@ -107,10 +111,6 @@ namespace Langulus::Anyness
 			mInfo += inc;
 			mKeyVals += inc;
 		}
-
-		//friend class Table<IsFlat, MaxLoadFactor100, key_type, mapped_type>;
-		NodePtr mKeyVals{};
-		uint8_t const* mInfo{};
 	};
 
 } // namespace Langulus::Anyness

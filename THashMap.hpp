@@ -318,8 +318,12 @@ namespace Langulus::Anyness
 			template<typename Iter>
 			Table(Iter, Iter, size_t = 0);
 			Table(std::initializer_list<Pair>, size_t = 0);
+
 			Table(Table&&) noexcept;
 			Table(const Table&);
+
+			Table(Disowned<Table>&&) noexcept;
+			Table(Abandoned<Table>&&) noexcept;
 			~Table();
 
 			Table& operator = (Table&&) noexcept;
@@ -452,23 +456,17 @@ namespace Langulus::Anyness
 			template <class OtherKey, class Self_ = Self>
 			bool contains(const OtherKey&) const requires IsTransparent<Self_>;
 
-			template<ReflectedData Q = V>
-			Q& at(const K&);
-			template<ReflectedData Q = V>
-			const Q& at(const K&) const;
+			V& at(const K&);
+			const V& at(const K&) const;
 
-			template<class ALT_K>
-			const_iterator find(const ALT_K&) const;
-			template<class ALT_K>
-			iterator find(const ALT_K&);
+			const_iterator find(const K&) const;
+			iterator find(const K&);
 
 			template<class Other>
 			NOD() size_t findIdx(const Other&) const;
 
-			template <ReflectedData Q = V>
-			Q& operator[] (const K&);
-			template <ReflectedData Q = V>
-			Q& operator[] (K&&);
+			const V& operator[] (const K&) const;
+			V& operator[] (const K&);
 
 
 			///																						
@@ -505,7 +503,8 @@ namespace Langulus::Anyness
 
 			/// Reserves space for at least the specified number of elements.		
 			/// Only works if numBuckets if power of two. True on success			
-			void rehashPowerOfTwo(size_t numBuckets, bool forceFree) {
+			template<bool FREE>
+			void rehashPowerOfTwo(size_t numBuckets) {
 				Node* const oldKeyVals = mKeyVals;
 				uint8_t const* const oldInfo = mInfo;
 				const size_t oldMaxElementsWithBuffer = calcNumElementsWithBuffer(mMask + 1);
@@ -529,7 +528,7 @@ namespace Langulus::Anyness
 					// [-Werror=free-nonheap-object]" warning						
 					//if (oldKeyVals != reinterpret_cast_no_cast_align_warning<Node*>(&mMask)) {
 						// don't destroy old data: put it into the pool instead
-						if (forceFree)
+						if constexpr (FREE)
 							std::free(oldKeyVals);
 						else
 							DataPool::addOrFree(oldKeyVals, calcNumBytesTotal(oldMaxElementsWithBuffer));
@@ -558,7 +557,6 @@ namespace Langulus::Anyness
 
 				// Set sentinel															
 				mInfo[numElementsWithBuffer] = 1;
-
 				mInfoInc = InitialInfoInc;
 				mInfoHashShift = InitialInfoHashShift;
 			}
@@ -577,8 +575,8 @@ namespace Langulus::Anyness
 				// distance info. This is extremely fast because we can		
 				// operate on 8 bytes at once											
 				++mInfoHashShift;
-				auto const numElementsWithBuffer = calcNumElementsWithBuffer(mMask + 1);
 
+				auto const numElementsWithBuffer = calcNumElementsWithBuffer(mMask + 1);
 				for (size_t i = 0; i < numElementsWithBuffer; i += 8) {
 					auto val = unaligned_load<uint64_t>(mInfo + i);
 					val = (val >> 1U) & UINT64_C(0x7f7f7f7f7f7f7f7f);
@@ -587,12 +585,11 @@ namespace Langulus::Anyness
 
 				// Update sentinel, which might have been cleared out!		
 				mInfo[numElementsWithBuffer] = 1;
-
 				mMaxNumElementsAllowed = calcMaxNumElementsAllowed(mMask + 1);
 				return true;
 			}
 
-			/// True if resize was possible, false otherwise							
+			///	@return true if resize was possible, false otherwise				
 			bool increase_size() {
 				// Nothing allocated yet? just allocate InitialNumElements	
 				if (0 == mMask) {
@@ -610,12 +607,12 @@ namespace Langulus::Anyness
 					// freed memory so we don't steadyily increase mem in		
 					// case we have to rehash a few times							
 					nextHashMultiplier();
-					rehashPowerOfTwo(mMask + 1, true);
+					rehashPowerOfTwo<true>(mMask + 1);
 				}
 				else {
 					// We've reached the capacity of the map, so the hash		
 					// seems to work nice. Keep using it							
-					rehashPowerOfTwo((mMask + 1) * 2, false);
+					rehashPowerOfTwo<false>((mMask + 1) * 2);
 				}
 
 				return true;

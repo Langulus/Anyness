@@ -57,6 +57,7 @@ namespace Langulus::Anyness
 		Text& operator = (Abandoned<Text>&&) noexcept;
 
 	public:
+		NOD() Hash GetHash() const;
 		NOD() Text Clone() const;
 		NOD() Text Terminate() const;
 		NOD() Text Lowercase() const;
