@@ -25,13 +25,13 @@ namespace Langulus::Anyness::Inner
 	TABLE_TEMPLATE()
 	template<class IT>
 	TABLE()::Table(IT first, IT last, size_t) {
-		insert(first, last);
+		Insert(first, last);
 	}
 
 	///																								
 	TABLE_TEMPLATE()
-	TABLE()::Table(std::initializer_list<value_type> initlist, size_t) {
-		insert(initlist.begin(), initlist.end());
+	TABLE()::Table(std::initializer_list<Pair> initlist, size_t) {
+		Insert(initlist.begin(), initlist.end());
 	}
 
 	///																								
@@ -184,11 +184,25 @@ namespace Langulus::Anyness::Inner
 		CloneInner(o);
 		return *this;
 	}
+
+	TABLE_TEMPLATE()
+	TABLE()& TABLE()::operator = (Pair&& pair) noexcept {
+		Clear();
+		Emplace(Forward<Pair>(pair));
+		return *this;
+	}
+
+	TABLE_TEMPLATE()
+	TABLE()& TABLE()::operator = (const Pair& pair) {
+		Clear();
+		Insert(pair);
+		return *this;
+	}
 	
 	///																								
 	TABLE_TEMPLATE()
 	void TABLE()::CloneInner(const Table& o) {
-		if constexpr (IsFlat && std::is_trivially_copyable_v<Node>) {
+		if constexpr (IsOnHeap && std::is_trivially_copyable_v<Node>) {
 			auto const* const src = reinterpret_cast<char const*>(o.mKeyVals);
 			auto* tgt = reinterpret_cast<char*>(mKeyVals);
 			auto const numElementsWithBuffer = calcNumElementsWithBuffer(mMask + 1);
@@ -216,12 +230,36 @@ namespace Langulus::Anyness::Inner
 
 	TABLE_TEMPLATE()
 	DMeta TABLE()::GetKeyType() const {
-		return MetaData::Of<Key>();
+		return MetaData::Of<K>();
 	}
 
 	TABLE_TEMPLATE()
 	DMeta TABLE()::GetValueType() const {
-		return MetaData::Of<T>();
+		return MetaData::Of<V>();
+	}
+
+	TABLE_TEMPLATE()
+	template<class ALT_K>
+	bool TABLE()::KeyIs() const noexcept {
+		return GetKeyType()->Is<ALT_K>();
+	}
+
+	TABLE_TEMPLATE()
+	template<class ALT_V>
+	bool TABLE()::ValueIs() const noexcept {
+		return GetValueType()->Is<ALT_V>();
+	}
+
+	TABLE_TEMPLATE()
+	TABLE()& TABLE()::operator << (Pair&& pair) {
+		Emplace(Forward<Pair>(pair));
+		return *this;
+	}
+
+	TABLE_TEMPLATE()
+	TABLE()& TABLE()::operator << (const Pair& pair) {
+		Insert(pair);
+		return *this;
 	}
 
 	/// Reserves space for the specified number of elements. Makes sure the		
@@ -323,74 +361,74 @@ namespace Langulus::Anyness::Inner
 
 	TABLE_TEMPLATE()
 	template<class... Args>
-	TABLE()::Insertion TABLE()::try_emplace(const key_type& key, Args&&... args) {
+	TABLE()::Insertion TABLE()::try_emplace(const K& key, Args&&... args) {
 		return try_emplace_impl(key, std::forward<Args>(args)...);
 	}
 
 	TABLE_TEMPLATE()
 	template<class... Args>
-	TABLE()::Insertion TABLE()::try_emplace(key_type&& key, Args&&... args) {
+	TABLE()::Insertion TABLE()::try_emplace(K&& key, Args&&... args) {
 		return try_emplace_impl(std::move(key), std::forward<Args>(args)...);
 	}
 
 	TABLE_TEMPLATE()
 	template<class... Args>
-	TABLE()::iterator TABLE()::try_emplace(const_iterator hint, const key_type& key, Args&&... args) {
+	TABLE()::iterator TABLE()::try_emplace(const_iterator hint, const K& key, Args&&... args) {
 		(void) hint;
 		return try_emplace_impl(key, std::forward<Args>(args)...).first;
 	}
 
 	TABLE_TEMPLATE()
 	template<class... Args>
-	TABLE()::iterator TABLE()::try_emplace(const_iterator hint, key_type&& key, Args&&... args) {
+	TABLE()::iterator TABLE()::try_emplace(const_iterator hint, K&& key, Args&&... args) {
 		(void) hint;
 		return try_emplace_impl(std::move(key), std::forward<Args>(args)...).first;
 	}
 
 	TABLE_TEMPLATE()
 	template<class Mapped>
-	TABLE()::Insertion TABLE()::insert_or_assign(const key_type& key, Mapped&& obj) {
+	TABLE()::Insertion TABLE()::insert_or_assign(const K& key, Mapped&& obj) {
 		return insertOrAssignImpl(key, std::forward<Mapped>(obj));
 	}
 
 	TABLE_TEMPLATE()
 	template<class Mapped>
-	TABLE()::Insertion TABLE()::insert_or_assign(key_type&& key, Mapped&& obj) {
+	TABLE()::Insertion TABLE()::insert_or_assign(K&& key, Mapped&& obj) {
 		return insertOrAssignImpl(Move(key), Forward<Mapped>(obj));
 	}
 
 	TABLE_TEMPLATE()
 	template<class Mapped>
-	TABLE()::iterator TABLE()::insert_or_assign(const_iterator hint, const key_type& key, Mapped&& obj) {
+	TABLE()::iterator TABLE()::insert_or_assign(const_iterator hint, const K& key, Mapped&& obj) {
 		(void) hint;
 		return insertOrAssignImpl(key, Forward<Mapped>(obj)).first;
 	}
 
 	TABLE_TEMPLATE()
 	template<class Mapped>
-	TABLE()::iterator TABLE()::insert_or_assign(const_iterator hint, key_type&& key, Mapped&& obj) {
+	TABLE()::iterator TABLE()::insert_or_assign(const_iterator hint, K&& key, Mapped&& obj) {
 		(void) hint;
 		return insertOrAssignImpl(Move(key), Forward<Mapped>(obj)).first;
 	}
 
 	TABLE_TEMPLATE()
-	TABLE()::Insertion TABLE()::Insert(const value_type& keyval) {
+	TABLE()::Insertion TABLE()::Insert(const Pair& keyval) {
 		return Emplace(keyval);
 	}
 
 	TABLE_TEMPLATE()
-	TABLE()::iterator TABLE()::Insert(const_iterator hint, const value_type& keyval) {
+	TABLE()::iterator TABLE()::Insert(const_iterator hint, const Pair& keyval) {
 		(void) hint;
 		return Emplace(keyval).first;
 	}
 
 	TABLE_TEMPLATE()
-	TABLE()::Insertion TABLE()::Insert(value_type&& keyval) {
+	TABLE()::Insertion TABLE()::Insert(Pair&& keyval) {
 		return Emplace(Move(keyval));
 	}
 
 	TABLE_TEMPLATE()
-	TABLE()::iterator TABLE()::Insert(const_iterator hint, value_type&& keyval) {
+	TABLE()::iterator TABLE()::Insert(const_iterator hint, Pair&& keyval) {
 		(void) hint;
 		return Emplace(Move(keyval)).first;
 	}
@@ -450,13 +488,13 @@ namespace Langulus::Anyness::Inner
 		case InsertionState::new_node:
 			::new (static_cast<void*>(&mKeyVals[idxAndState.first])) Node(
 				*this, std::piecewise_construct, std::forward_as_tuple(std::forward<OtherKey>(key)),
-				std::forward_as_tuple(std::forward<Args>(args)...));
+				std::forward_as_tuple(Forward<Args>(args)...));
 			break;
 
 		case InsertionState::overwrite_node:
 			mKeyVals[idxAndState.first] = Node(*this, std::piecewise_construct,
-				std::forward_as_tuple(std::forward<OtherKey>(key)),
-				std::forward_as_tuple(std::forward<Args>(args)...));
+				std::forward_as_tuple(Forward<OtherKey>(key)),
+				std::forward_as_tuple(Forward<Args>(args)...));
 			break;
 
 		case InsertionState::overflow_error:
@@ -476,19 +514,23 @@ namespace Langulus::Anyness::Inner
 		auto idxAndState = insertKeyPrepareEmptySpot(key);
 		switch (idxAndState.second) {
 		case InsertionState::key_found:
-			mKeyVals[idxAndState.first].getSecond() = std::forward<Mapped>(obj);
+			mKeyVals[idxAndState.first].getSecond() = Forward<Mapped>(obj);
 			break;
 
 		case InsertionState::new_node:
 			::new (static_cast<void*>(&mKeyVals[idxAndState.first])) Node(
-				*this, std::piecewise_construct, std::forward_as_tuple(std::forward<OtherKey>(key)),
-				std::forward_as_tuple(std::forward<Mapped>(obj)));
+				*this, 
+				std::piecewise_construct, 
+				std::forward_as_tuple(Forward<OtherKey>(key)),
+				std::forward_as_tuple(Forward<Mapped>(obj)));
 			break;
 
 		case InsertionState::overwrite_node:
-			mKeyVals[idxAndState.first] = Node(*this, std::piecewise_construct,
-				std::forward_as_tuple(std::forward<OtherKey>(key)),
-				std::forward_as_tuple(std::forward<Mapped>(obj)));
+			mKeyVals[idxAndState.first] = Node(
+				*this, 
+				std::piecewise_construct,
+				std::forward_as_tuple(Forward<OtherKey>(key)),
+				std::forward_as_tuple(Forward<Mapped>(obj)));
 			break;
 
 		case InsertionState::overflow_error:
@@ -551,9 +593,12 @@ namespace Langulus::Anyness::Inner
 			// Put at empty spot															
 			mInfo[insertion_idx] = static_cast<uint8_t>(insertion_info);
 			++mNumElements;
-			return std::make_pair(insertion_idx, idx == insertion_idx
+			return std::make_pair(
+				insertion_idx, 
+				idx == insertion_idx
 				? InsertionState::new_node
-				: InsertionState::overwrite_node);
+				: InsertionState::overwrite_node
+			);
 		}
 
 		// Enough attempts failed, so finally give up							
@@ -616,7 +661,7 @@ namespace Langulus::Anyness::Inner
 	///	@param key - the key to search for										
 	///	@return the number of removed pairs										
 	TABLE_TEMPLATE()
-	size_t TABLE()::RemoveKey(const key_type& key) {
+	size_t TABLE()::RemoveKey(const K& key) {
 		static_assert(IsComparable<Key>, "Can't compare keys");
 		size_t idx {};
 		InfoType info {};
@@ -635,6 +680,27 @@ namespace Langulus::Anyness::Inner
 
 		// Nothing found to delete												
 		return 0;
+	}
+
+	/// Erase a pair																		
+	///	@param key - the key to search for										
+	///	@return the number of removed pairs										
+	TABLE_TEMPLATE()
+	size_t TABLE()::RemoveValue(const V& value) {
+		static_assert(IsComparable<Key>, "Can't compare keys");
+
+		auto const numElementsWithBuffer = calcNumElementsWithBuffer(mMask + 1);
+		Count removed {};
+		for (size_t idx = 0; idx < numElementsWithBuffer; ++idx) {
+			// Check while info matches with the source idx				
+			if (value == mKeyVals[idx].getSecond()) {
+				shiftDown(idx); //might be wrong
+				--mNumElements;
+				++removed;
+			}
+		}
+
+		return removed;
 	}
 
 	/// If possible reallocates the map to a smaller one. This frees the			
@@ -680,7 +746,7 @@ namespace Langulus::Anyness::Inner
 	///																								
 	/// Returns 1 if key is found, 0 otherwise											
 	TABLE_TEMPLATE()
-	size_t TABLE()::count(const key_type& key) const {
+	size_t TABLE()::count(const K& key) const {
 		auto kv = mKeyVals + findIdx(key);
 		if (kv != reinterpret_cast_no_cast_align_warning<Node*>(mInfo))
 			return 1;
@@ -697,7 +763,7 @@ namespace Langulus::Anyness::Inner
 	}
 
 	TABLE_TEMPLATE()
-	bool TABLE()::contains(const key_type& key) const {
+	bool TABLE()::contains(const K& key) const {
 		return 1U == count(key);
 	}
 
@@ -711,7 +777,7 @@ namespace Langulus::Anyness::Inner
 	/// Throws std::out_of_range if element cannot be found							
 	TABLE_TEMPLATE()
 	template<ReflectedData Q>
-	Q& TABLE()::at(key_type const& key) {
+	Q& TABLE()::at(const K& key) {
 		auto kv = mKeyVals + findIdx(key);
 		if (kv == reinterpret_cast_no_cast_align_warning<Node*>(mInfo))
 			doThrow<std::out_of_range>("key not found");
@@ -722,7 +788,7 @@ namespace Langulus::Anyness::Inner
 	/// Throws std::out_of_range if element cannot be found							
 	TABLE_TEMPLATE()
 	template<ReflectedData Q>
-	Q const& TABLE()::at(key_type const& key) const {
+	Q const& TABLE()::at(const K& key) const {
 		auto kv = mKeyVals + findIdx(key);
 		if (kv == reinterpret_cast_no_cast_align_warning<Node*>(mInfo))
 			doThrow<std::out_of_range>("key not found");
@@ -776,7 +842,7 @@ namespace Langulus::Anyness::Inner
 	///	@return a reference to the value													
 	TABLE_TEMPLATE()
 	template <ReflectedData Q>
-	Q& TABLE()::operator[] (const key_type& key) {
+	Q& TABLE()::operator[] (const K& key) {
 		auto idxAndState = insertKeyPrepareEmptySpot(key);
 		switch (idxAndState.second) {
 		case InsertionState::key_found:
@@ -804,20 +870,26 @@ namespace Langulus::Anyness::Inner
 	///	@return a reference to the value													
 	TABLE_TEMPLATE()
 	template<ReflectedData Q>
-	Q& TABLE()::operator[] (key_type&& key) {
+	Q& TABLE()::operator[] (K&& key) {
 		auto idxAndState = insertKeyPrepareEmptySpot(key);
 		switch (idxAndState.second) {
 		case InsertionState::key_found:
 			break;
 
 		case InsertionState::new_node:
-			::new (static_cast<void*>(&mKeyVals[idxAndState.first])) 
-				Node(*this, std::piecewise_construct, std::forward_as_tuple(Move(key)), std::forward_as_tuple());
+			::new (static_cast<void*>(&mKeyVals[idxAndState.first])) Node(
+				*this, 
+				::std::piecewise_construct, 
+				::std::forward_as_tuple(Move(key)),
+				::std::forward_as_tuple());
 			break;
 
 		case InsertionState::overwrite_node:
-			mKeyVals[idxAndState.first] = 
-				Node(*this, std::piecewise_construct, std::forward_as_tuple(Move(key)), std::forward_as_tuple());
+			mKeyVals[idxAndState.first] = Node(
+				*this, 
+				::std::piecewise_construct,
+				::std::forward_as_tuple(Move(key)),
+				::std::forward_as_tuple());
 			break;
 
 		case InsertionState::overflow_error:
@@ -918,7 +990,7 @@ namespace Langulus::Anyness::Inner
 	TABLE_TEMPLATE()
 	size_t TABLE()::calcNumElementsWithBuffer(size_t numElements) const noexcept {
 		auto maxNumElementsAllowed = calcMaxNumElementsAllowed(numElements);
-		return numElements + (std::min) (maxNumElementsAllowed, (static_cast<size_t>(0xFF)));
+		return numElements + (::std::min) (maxNumElementsAllowed, (static_cast<size_t>(0xFF)));
 	}
 
 	/// Calculation only allowed for 2^n values											
@@ -940,6 +1012,124 @@ namespace Langulus::Anyness::Inner
 
 			return total;
 		#endif
+	}
+
+	/// Helpers for insertKeyPrepareEmptySpot: extract first entry					
+	/// (only const required)																	
+	TABLE_TEMPLATE()
+	TABLE()::Key const& TABLE()::getFirstConst(const Node& node) const noexcept {
+		return node.getFirst();
+	}
+
+	/// In case we have void mapped_type, we are not using a pair, thus we		
+	/// just route k through. No need to disable this because it's just not		
+	/// used if not applicable																	
+	TABLE_TEMPLATE()
+	TABLE()::Key const& TABLE()::getFirstConst(const K& key) const noexcept {
+		return key;
+	}
+
+	/// In case we have non-void mapped_type, we have a standard					
+	/// robin_hood::pair																			
+	TABLE_TEMPLATE()
+	template <ReflectedData Q>
+	TABLE()::Key const& TABLE()::getFirstConst(const Pair& pair) const noexcept {
+		return pair.mKey;
+	}
+
+	/// Destroyer																					
+	TABLE_TEMPLATE()
+	template<bool DEALLOCATE>
+	void TABLE()::DestroyNodes() noexcept {
+		mNumElements = 0;
+
+		if constexpr (Method == AllocationMethod::Stack || !::std::is_trivially_destructible_v<Node>) {
+			// Clear also resets mInfo to 0, that's sometimes not				
+			// necessary																	
+			auto const numElementsWithBuffer = calcNumElementsWithBuffer(mMask + 1);
+			for (size_t idx = 0; idx < numElementsWithBuffer; ++idx) {
+				if (0 != mInfo[idx]) {
+					Node& n = mKeyVals[idx];
+					if constexpr (DEALLOCATE)
+						n.destroy(*this);
+					else
+						n.destroyDoNotDeallocate();
+					n.~Node();
+				}
+			}
+		}
+	}
+
+	/// Highly performance relevant code													
+	/// Lower bits are used for indexing into the array (2^n size)					
+	/// The upper 1-5 bits need to be a reasonable good hash, to save				
+	/// comparisons																				
+	TABLE_TEMPLATE()
+	template<class HashKey>
+	void TABLE()::keyToIdx(HashKey&& key, size_t* idx, InfoType* info) const {
+		static_assert(IsHashable<HashKey>, "Contained key type is not hashable");
+		// In addition to whatever hash is used, add another mul &			
+		// shift so we get better hashing. This serves as a bad				
+		// hash prevention, if the given data is badly mixed.					
+		uint64_t h = static_cast<uint64_t>(key.GetHash());
+		h *= mHashMultiplier;
+		h ^= h >> 33U;
+
+		// The lower InitialInfoNumBits are reserved for info					
+		*info = mInfoInc + static_cast<InfoType>((h & InfoMask) >> mInfoHashShift);
+		*idx = (static_cast<size_t>(h) >> InitialInfoNumBits) & mMask;
+	}
+
+	/// Forwards the index by one, wrapping around at the end						
+	TABLE_TEMPLATE()
+	void TABLE()::next(InfoType* info, size_t* idx) const noexcept {
+		*idx = *idx + 1;
+		*info += mInfoInc;
+	}
+
+	TABLE_TEMPLATE()
+	void TABLE()::nextWhileLess(InfoType* info, size_t* idx) const noexcept {
+		// Unrolling this by hand did not bring any speedups					
+		while (*info < mInfo[*idx])
+			next(info, idx);
+	}
+
+	/// Shift everything up by one element													
+	/// Tries to move stuff around															
+	TABLE_TEMPLATE()
+	void TABLE()::shiftUp(size_t startIdx, size_t const insertion_idx) noexcept(std::is_nothrow_move_assignable_v<Node>) {
+		auto idx = startIdx;
+		::new (static_cast<void*>(mKeyVals + idx)) Node(Move(mKeyVals[idx - 1]));
+		while (--idx != insertion_idx)
+			mKeyVals[idx] = Move(mKeyVals[idx - 1]);
+
+		idx = startIdx;
+		while (idx != insertion_idx) {
+			mInfo[idx] = static_cast<uint8_t>(mInfo[idx - 1] + mInfoInc);
+			if (LANGULUS_UNLIKELY(mInfo[idx] + mInfoInc > 0xFF))
+				mMaxNumElementsAllowed = 0;
+			--idx;
+		}
+	}
+
+	TABLE_TEMPLATE()
+	void TABLE()::shiftDown(size_t idx) noexcept(std::is_nothrow_move_assignable_v<Node>) {
+		// Until we find one that is either empty or has zero offset		
+		// TODO(martinus) we don't need to move everything, just				
+		// the last one for the same bucket											
+		mKeyVals[idx].destroy(*this);
+
+		// Until we find one that is either empty or has zero offset		
+		while (mInfo[idx + 1] >= 2 * mInfoInc) {
+			mInfo[idx] = static_cast<uint8_t>(mInfo[idx + 1] - mInfoInc);
+			mKeyVals[idx] = Move(mKeyVals[idx + 1]);
+			++idx;
+		}
+
+		mInfo[idx] = 0;
+		// Don't destroy, we've moved it
+		// mKeyVals[idx].destroy(*this);
+		mKeyVals[idx].~Node();
 	}
 
 } // namespace Langulus::Anyness::Inner

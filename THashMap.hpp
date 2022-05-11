@@ -219,20 +219,22 @@ namespace Langulus::Anyness
 				: T(o) {}
 		};
 
+		/*template<class T>
+		concept IsOnHeap = T::Method == AllocationMethod::Heap;
 		template<class T>
-		concept IsFlatMap = T::IsFlat;
+		concept IsOnStack = T::Method == AllocationMethod::Stack;*/
 		template<class T>
-		concept IsMap = T::is_map;
+		concept IsMap = T::IsMap;
 		template<class T>
-		concept IsSet = T::is_set;
-		template<class T>
-		concept IsTransparent = T::is_transparent;
+		concept IsSet = T::IsSet;
+		//template<class T>
+		//concept IsTransparent = T::is_transparent;
 
 		/// Type needs to be wider than uint8_t											
 		using InfoType = uint32_t;
 
-#define TABLE_TEMPLATE() template<bool IsFlat, size_t MaxLoadFactor100, class Key, class T>
-#define TABLE() Table<IsFlat, MaxLoadFactor100, Key, T>
+		#define TABLE_TEMPLATE() template<AllocationMethod METHOD, Count MaxLoadFactor100, class K, class V>
+		#define TABLE() Table<METHOD, MaxLoadFactor100, K, V>
 
 
 
@@ -267,24 +269,22 @@ namespace Langulus::Anyness
 		/// https://www.reddit.com/r/cpp/comments/ahp6iu/compile_time_binary_size_reductions_and_cs_future/eeguck4/
 		///																							
 		TABLE_TEMPLATE()
-		class Table : public NodeAllocator<Conditional<IsVoid<T>, Key, TPair<Conditional<IsFlat, Key, Key const>, T>>, 4, 16384, IsFlat>
-		{
+		class Table : public NodeAllocator<Conditional<IsVoid<V>, K, TPair<K, V>>, 4, 16384, METHOD> {
 		public:
-			static constexpr bool is_flat = IsFlat;
-			static constexpr bool is_map = not IsVoid<T>;
-			static constexpr bool is_set = !is_map;
-			//static constexpr bool is_transparent = has_is_transparent<Hash> && has_is_transparent<KeyEqual>;
+			static constexpr AllocationMethod Method = METHOD;
+			static constexpr bool IsMap = not IsVoid<V>;
+			static constexpr bool IsSet = IsVoid<V>;
+			static constexpr bool IsOnHeap = Method == AllocationMethod::Heap;
+			static constexpr bool IsOnStack = Method == AllocationMethod::Stack;
 
-			using PairInner = TPair<Conditional<IsFlat, Key, const Key>, T>;
-			using Pair = TPair<Key, T>;
-			using key_type = Key;
-			using mapped_type = T;
-			using value_type = Conditional<is_set, Key, PairInner>;
+			using Pair = Conditional<IsMap, TPair<K, V>, K>;
+			using Key = K;
+			using Value = V;
 			using Self = TABLE();
 			using Node = Conditional<
-				IsFlat,
-				DataNodeOnStack<Self, value_type, mapped_type>,
-				DataNodeOnHeap<Self, value_type, mapped_type>
+				Method == AllocationMethod::Stack,
+				DataNodeOnStack<Self, Pair, V>,
+				DataNodeOnHeap<Self, Pair, V>
 			>;
 
 		private:
@@ -309,7 +309,7 @@ namespace Langulus::Anyness
 			static constexpr uint8_t InitialInfoInc = 1U << InitialInfoNumBits;
 			static constexpr size_t InfoMask = InitialInfoInc - 1U;
 			static constexpr uint8_t InitialInfoHashShift = 0;
-			using DataPool = NodeAllocator<value_type, 4, 16384, IsFlat>;
+			using DataPool = NodeAllocator<Pair, 4, 16384, METHOD>;
 
 		public:
 			Table() noexcept;
@@ -317,7 +317,7 @@ namespace Langulus::Anyness
 
 			template<typename Iter>
 			Table(Iter, Iter, size_t = 0);
-			Table(std::initializer_list<value_type>, size_t = 0);
+			Table(std::initializer_list<Pair>, size_t = 0);
 			Table(Table&&) noexcept;
 			Table(const Table&);
 			~Table();
@@ -328,13 +328,13 @@ namespace Langulus::Anyness
 			Table& operator = (Pair&&) noexcept;
 			Table& operator = (const Pair&);
 
-			DMeta GetKeyType() const;
-			DMeta GetValueType() const;
+			NOD() DMeta GetKeyType() const;
+			NOD() DMeta GetValueType() const;
 
-			template<class ALT_T>
-			bool KeyIs() const noexcept;
-			template<class ALT_T>
-			bool ValueIs() const noexcept;
+			template<class ALT_K>
+			NOD() bool KeyIs() const noexcept;
+			template<class ALT_V>
+			NOD() bool ValueIs() const noexcept;
 
 			template<bool REHASH = false>
 			void Allocate(size_t);
@@ -342,118 +342,17 @@ namespace Langulus::Anyness
 
 			Table& operator << (Pair&&);
 			Table& operator << (const Pair&);
-			Table& operator >> (Pair&&);
-			Table& operator >> (const Pair&);
 
-
-			/// Helpers for insertKeyPrepareEmptySpot: extract first entry			
-			/// (only const required)															
-			NOD() key_type const& getFirstConst(Node const& n) const noexcept {
-				return n.getFirst();
-			}
-
-			/// In case we have void mapped_type, we are not using a pair, thus	
-			/// we just route k through. No need to disable this because it's		
-			/// just not used if not applicable												
-			NOD() key_type const& getFirstConst(key_type const& k) const noexcept {
-				return k;
-			}
-
-			/// In case we have non-void mapped_type, we have a standard			
-			/// robin_hood::pair																	
-			template <ReflectedData Q = mapped_type>
-			NOD() key_type const& getFirstConst(value_type const& vt) const noexcept {
-				return vt.first;
-			}
-
-			/// Destroyer																			
-			template<bool DEALLOCATE>
-			void DestroyNodes() noexcept {
-				mNumElements = 0;
-
-				if constexpr (!IsFlat || !std::is_trivially_destructible_v<Node>) {
-					// Clear also resets mInfo to 0, that's sometimes not		
-					// necessary															
-					auto const numElementsWithBuffer = calcNumElementsWithBuffer(mMask + 1);
-					for (size_t idx = 0; idx < numElementsWithBuffer; ++idx) {
-						if (0 != mInfo[idx]) {
-							Node& n = mKeyVals[idx];
-							if constexpr (DEALLOCATE)
-								n.destroy(*this);
-							else
-								n.destroyDoNotDeallocate();
-							n.~Node();
-						}
-					}
-				}
-			}
-
-			/// Highly performance relevant code											
-			/// Lower bits are used for indexing into the array (2^n size)			
-			/// The upper 1-5 bits need to be a reasonable good hash, to save		
-			/// comparisons																		
+			NOD() K const& getFirstConst(Node const&) const noexcept;
+			NOD() K const& getFirstConst(K const&) const noexcept;
+			template <ReflectedData Q = V>
+			NOD() K const& getFirstConst(Pair const&) const noexcept;
 			template<class HashKey>
-			void keyToIdx(HashKey&& key, size_t* idx, InfoType* info) const {
-				static_assert(IsHashable<HashKey>, "Contained key type is not hashable");
-				// In addition to whatever hash is used, add another mul &	
-				// shift so we get better hashing. This serves as a bad		
-				// hash prevention, if the given data is badly mixed.			
-				uint64_t h = static_cast<uint64_t>(key.GetHash());
-				h *= mHashMultiplier;
-				h ^= h >> 33U;
-
-				// The lower InitialInfoNumBits are reserved for info			
-				*info = mInfoInc + static_cast<InfoType>((h & InfoMask) >> mInfoHashShift);
-				*idx = (static_cast<size_t>(h) >> InitialInfoNumBits) & mMask;
-			}
-
-			// Forwards the index by one, wrapping around at the end			
-			void next(InfoType* info, size_t* idx) const noexcept {
-				*idx = *idx + 1;
-				*info += mInfoInc;
-			}
-
-			void nextWhileLess(InfoType* info, size_t* idx) const noexcept {
-				// Unrolling this by hand did not bring any speedups			
-				while (*info < mInfo[*idx])
-					next(info, idx);
-			}
-
-			// Shift everything up by one element									
-			// Tries to move stuff around												
-			void shiftUp(size_t startIdx, size_t const insertion_idx) noexcept(std::is_nothrow_move_assignable_v<Node>) {
-				auto idx = startIdx;
-				::new (static_cast<void*>(mKeyVals + idx)) Node(std::move(mKeyVals[idx - 1]));
-				while (--idx != insertion_idx)
-					mKeyVals[idx] = std::move(mKeyVals[idx - 1]);
-
-				idx = startIdx;
-				while (idx != insertion_idx) {
-					mInfo[idx] = static_cast<uint8_t>(mInfo[idx - 1] + mInfoInc);
-					if (LANGULUS_UNLIKELY(mInfo[idx] + mInfoInc > 0xFF))
-						mMaxNumElementsAllowed = 0;
-					--idx;
-				}
-			}
-
-			void shiftDown(size_t idx) noexcept(std::is_nothrow_move_assignable_v<Node>) {
-				// Until we find one that is either empty or has zero offset
-				// TODO(martinus) we don't need to move everything, just		
-				// the last one for the same bucket									
-				mKeyVals[idx].destroy(*this);
-
-				// Until we find one that is either empty or has zero offset
-				while (mInfo[idx + 1] >= 2 * mInfoInc) {
-					mInfo[idx] = static_cast<uint8_t>(mInfo[idx + 1] - mInfoInc);
-					mKeyVals[idx] = std::move(mKeyVals[idx + 1]);
-					++idx;
-				}
-
-				mInfo[idx] = 0;
-				// Don't destroy, we've moved it
-				// mKeyVals[idx].destroy(*this);
-				mKeyVals[idx].~Node();
-			}
+			void keyToIdx(HashKey&&, size_t*, InfoType*) const;
+			void next(InfoType*, size_t*) const noexcept;
+			void nextWhileLess(InfoType*, size_t*) const noexcept;
+			void shiftUp(size_t, size_t const) noexcept(std::is_nothrow_move_assignable_v<Node>);
+			void shiftDown(size_t) noexcept(std::is_nothrow_move_assignable_v<Node>);
 
 		private:
 			void CloneInner(const Table&);
@@ -483,27 +382,27 @@ namespace Langulus::Anyness
 			iterator emplace_hint(const_iterator, Args&&...);
 
 			template <class... Args>
-			Insertion try_emplace(const key_type&, Args&&...);
+			Insertion try_emplace(const K&, Args&&...);
 			template <class... Args>
-			Insertion try_emplace(key_type&&, Args&&...);
+			Insertion try_emplace(K&&, Args&&...);
 			template <class... Args>
-			iterator try_emplace(const_iterator, const key_type&, Args&&...);
+			iterator try_emplace(const_iterator, const K&, Args&&...);
 			template <class... Args>
-			iterator try_emplace(const_iterator, key_type&&, Args&&...);
+			iterator try_emplace(const_iterator, K&&, Args&&...);
 
 			template <class Mapped>
-			Insertion insert_or_assign(const key_type&, Mapped&&);
+			Insertion insert_or_assign(const K&, Mapped&&);
 			template <class Mapped>
-			Insertion insert_or_assign(key_type&&, Mapped&&);
+			Insertion insert_or_assign(K&&, Mapped&&);
 			template <class Mapped>
-			iterator insert_or_assign(const_iterator, const key_type&, Mapped&&);
+			iterator insert_or_assign(const_iterator, const K&, Mapped&&);
 			template <class Mapped>
-			iterator insert_or_assign(const_iterator, key_type&&, Mapped&&);
+			iterator insert_or_assign(const_iterator, K&&, Mapped&&);
 
-			Insertion Insert(const value_type&);
-			iterator Insert(const_iterator, const value_type&);
-			Insertion Insert(value_type&&);
-			iterator Insert(const_iterator, value_type&&);
+			Insertion Insert(const Pair&);
+			iterator Insert(const_iterator, const Pair&);
+			Insertion Insert(Pair&&);
+			iterator Insert(const_iterator, Pair&&);
 
 			void insert_move(Node&&);
 		private:
@@ -534,27 +433,29 @@ namespace Langulus::Anyness
 			void Reset();
 			iterator RemoveIndex(const_iterator);
 			iterator RemoveIndex(iterator);
-			size_t RemoveKey(const key_type&);
-			size_t RemoveValue(const mapped_type&);
+			size_t RemoveKey(const K&);
+			size_t RemoveValue(const V&);
 			void compact();
 		private:
 			void destroy();
+			template<bool DEALLOCATE>
+			void DestroyNodes() noexcept;
 
 		public:
 			///																						
 			///	SEARCH																			
 			///																						
-			size_t count(const key_type&) const;
+			size_t count(const K&) const;
 			template <class OtherKey, class Self_ = Self>
 			size_t count(const OtherKey&) const requires IsTransparent<Self_>;
-			bool contains(const key_type&) const;
+			bool contains(const K&) const;
 			template <class OtherKey, class Self_ = Self>
 			bool contains(const OtherKey&) const requires IsTransparent<Self_>;
 
-			template<ReflectedData Q = mapped_type>
-			Q& at(const key_type&);
-			template<ReflectedData Q = mapped_type>
-			const Q& at(const key_type&) const;
+			template<ReflectedData Q = V>
+			Q& at(const K&);
+			template<ReflectedData Q = V>
+			const Q& at(const K&) const;
 
 			template<class ALT_K>
 			const_iterator find(const ALT_K&) const;
@@ -564,10 +465,10 @@ namespace Langulus::Anyness
 			template<class Other>
 			NOD() size_t findIdx(const Other&) const;
 
-			template <ReflectedData Q = mapped_type>
-			Q& operator[] (const key_type&);
-			template <ReflectedData Q = mapped_type>
-			Q& operator[] (key_type&&);
+			template <ReflectedData Q = V>
+			Q& operator[] (const K&);
+			template <ReflectedData Q = V>
+			Q& operator[] (K&&);
 
 
 			///																						
@@ -591,14 +492,14 @@ namespace Langulus::Anyness
 			NOD() size_t calcNumBytesTotal(size_t) const;
 
 		private:
-			template <ReflectedData Q = mapped_type>
-			NOD() bool has(const value_type& e) const {
+			template <ReflectedData Q = V>
+			NOD() bool has(const Pair& e) const {
 				auto it = find(e.first);
 				return it != end() && it->second == e.second;
 			}
 
-			template <IsVoid Q = mapped_type>
-			NOD() bool has(const value_type& e) const {
+			template <IsVoid Q = V>
+			NOD() bool has(const Pair& e) const {
 				return find(e) != end();
 			}
 
@@ -740,31 +641,37 @@ namespace Langulus::Anyness
 
 		};
 
-	} // namespace detail
+	} // namespace Langulus::Anyness::Inner
 
 	template<class... T>
 	concept IsNoexceptMoveConstructibleOrAssignable = 
-		((std::is_nothrow_move_constructible_v<T> && std::is_nothrow_move_assignable_v<T>) && ...);
+		((::std::is_nothrow_move_constructible_v<T> && ::std::is_nothrow_move_assignable_v<T>) && ...);
 
 	/// Map																							
 	template <class K, class V, Count MaxLoadFactor100 = 80>
-	using unordered_flat_map = Inner::Table<true, MaxLoadFactor100, K, V>;
+	using unordered_flat_map = Inner::Table<AllocationMethod::Stack, MaxLoadFactor100, K, V>;
 
 	template <class K, class V, Count MaxLoadFactor100 = 80>
-	using unordered_node_map = Inner::Table<false, MaxLoadFactor100, K, V>;
+	using unordered_node_map = Inner::Table<AllocationMethod::Heap, MaxLoadFactor100, K, V>;
+
+	template <class K, class V>
+	constexpr bool MapOnStackCriteria = sizeof(TPair<K, V>) <= sizeof(Count) * 6 && IsNoexceptMoveConstructibleOrAssignable<TPair<K, V>>;
 
 	template <class K, class V, Count MaxLoadFactor100 = 80>
-	using unordered_map = Inner::Table<sizeof(TPair<K, V>) <= sizeof(Count) * 6 && IsNoexceptMoveConstructibleOrAssignable<TPair<K, V>>, MaxLoadFactor100, K, V>;
+	using unordered_map = Inner::Table<MapOnStackCriteria<K, V> ? AllocationMethod::Stack : AllocationMethod::Heap, MaxLoadFactor100, K, V>;
 
 	/// Set																							
 	template <class K, Count MaxLoadFactor100 = 80>
-	using unordered_flat_set = Inner::Table<true, MaxLoadFactor100, K, void>;
+	using unordered_flat_set = Inner::Table<AllocationMethod::Stack, MaxLoadFactor100, K, void>;
 
 	template <class K, Count MaxLoadFactor100 = 80>
-	using unordered_node_set = Inner::Table<false, MaxLoadFactor100, K, void>;
+	using unordered_node_set = Inner::Table<AllocationMethod::Heap, MaxLoadFactor100, K, void>;
+
+	template <class K>
+	constexpr bool SetOnStackCriteria = sizeof(K) <= sizeof(Count) * 6 && IsNoexceptMoveConstructibleOrAssignable<K>;
 
 	template <class K, Count MaxLoadFactor100 = 80>
-	using unordered_set = Inner::Table<sizeof(K) <= sizeof(Count) * 6 && IsNoexceptMoveConstructibleOrAssignable<K>, MaxLoadFactor100, K, void>;
+	using unordered_set = Inner::Table<SetOnStackCriteria<K> ? AllocationMethod::Stack : AllocationMethod::Heap, MaxLoadFactor100, K, void>;
 
 } // namespace Langulus::Anyness
 

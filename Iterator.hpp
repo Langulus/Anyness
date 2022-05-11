@@ -10,29 +10,30 @@ namespace Langulus::Anyness
 	///																								
 	///	Generic iterator																		
 	///																								
-	template<bool IsConst, class Self>
+	template<bool CONSTANT, class CONTAINER>
 	class Iterator {
 	private:
-		using Node = typename Self::Node;
-		using NodePtr = Conditional<IsConst, Node const*, Node*>;
+		using Node = typename CONTAINER::Node;
+		using NodePtr = Conditional<CONSTANT, Node const*, Node*>;
 
 	public:
-		using difference_type = std::ptrdiff_t;
-		using value_type = typename Self::value_type;
-		using reference = Conditional<IsConst, value_type const&, value_type&>;
-		using pointer = Conditional<IsConst, value_type const*, value_type*>;
-		using iterator_category = std::forward_iterator_tag;
+		using Difference = std::ptrdiff_t;
+		using Type = typename CONTAINER::Pair;
+		using Reference = Conditional<CONSTANT, Type const&, Type&>;
+		using Pointer = Conditional<CONSTANT, Type const*, Type*>;
+		using Category = std::forward_iterator_tag;
 
 		/// default constructed iterator can be compared to itself, but WON'T	
 		/// return true when compared to end()												
 		Iterator() = default;
 
-		// Rule of zero: nothing specified. The conversion constructor is only enabled for
-		// iterator to const_iterator, so it doesn't accidentally work as a copy ctor.
+		/// Rule of zero: nothing specified													
+		/// The conversion constructor is only enabled for iterator to				
+		/// const_iterator, so it doesn't accidentally work as a copy ctor		
 
 		/// Conversion constructor from iterator to const_iterator					
-		template<bool OtherIsConst>
-		Iterator(Iterator<OtherIsConst, Self> const& other) noexcept requires (IsConst && !OtherIsConst)
+		template<bool ALT_CONSTANT>
+		Iterator(Iterator<ALT_CONSTANT, CONTAINER> const& other) noexcept requires (CONSTANT && !ALT_CONSTANT)
 			: mKeyVals(other.mKeyVals)
 			, mInfo(other.mInfo) {}
 
@@ -46,8 +47,8 @@ namespace Langulus::Anyness
 			fastForward();
 		}
 
-		template<bool OtherIsConst>
-		Iterator& operator = (Iterator<OtherIsConst, Self> const& other) noexcept requires (IsConst && !OtherIsConst) {
+		template<bool ALT_CONSTANT>
+		Iterator& operator = (Iterator<ALT_CONSTANT, CONTAINER> const& other) noexcept requires (CONSTANT && !ALT_CONSTANT) {
 			mKeyVals = other.mKeyVals;
 			mInfo = other.mInfo;
 			return *this;
@@ -67,21 +68,21 @@ namespace Langulus::Anyness
 			return tmp;
 		}
 
-		reference operator*() const {
+		Reference operator*() const {
 			return **mKeyVals;
 		}
 
-		pointer operator->() const {
+		Pointer operator->() const {
 			return &**mKeyVals;
 		}
 
-		template<bool O>
-		bool operator==(Iterator<O, Self> const& o) const noexcept {
+		template<bool ALT_CONSTANT>
+		bool operator == (Iterator<ALT_CONSTANT, CONTAINER> const& o) const noexcept {
 			return mKeyVals == o.mKeyVals;
 		}
 
-		template<bool O>
-		bool operator!=(Iterator<O, Self> const& o) const noexcept {
+		template<bool ALT_CONSTANT>
+		bool operator != (Iterator<ALT_CONSTANT, CONTAINER> const& o) const noexcept {
 			return mKeyVals != o.mKeyVals;
 		}
 
