@@ -4,7 +4,7 @@
 #pragma once
 #include "Map.hpp"
 #include "Iterator.hpp"
-#include "Inner/DataNode.hpp"
+#include "inner/DataNode.hpp"
 #include <algorithm>
 #include <cstdlib>
 #include <cstring>
@@ -223,10 +223,6 @@ namespace Langulus::Anyness
 		concept IsOnHeap = T::Method == AllocationMethod::Heap;
 		template<class T>
 		concept IsOnStack = T::Method == AllocationMethod::Stack;*/
-		template<class T>
-		concept IsMap = T::IsMap;
-		template<class T>
-		concept IsSet = T::IsSet;
 		//template<class T>
 		//concept IsTransparent = T::is_transparent;
 
@@ -450,11 +446,11 @@ namespace Langulus::Anyness
 			///	SEARCH																			
 			///																						
 			size_t count(const K&) const;
-			template <class OtherKey, class Self_ = Self>
-			size_t count(const OtherKey&) const requires IsTransparent<Self_>;
+			//template <class OtherKey, class Self_ = Self>
+			//size_t count(const OtherKey&) const requires IsTransparent<Self_>;
 			bool contains(const K&) const;
-			template <class OtherKey, class Self_ = Self>
-			bool contains(const OtherKey&) const requires IsTransparent<Self_>;
+			//template <class OtherKey, class Self_ = Self>
+			//bool contains(const OtherKey&) const requires IsTransparent<Self_>;
 
 			V& at(const K&);
 			const V& at(const K&) const;

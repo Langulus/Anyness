@@ -3,6 +3,12 @@
 
 namespace Langulus::Anyness::Inner
 {
+
+	template<class T>
+	concept IsMap = T::IsMap;
+	template<class T>
+	concept IsSet = T::IsSet;
+
 	
 	///																								
 	///	Data nodes																				

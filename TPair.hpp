@@ -83,10 +83,10 @@ namespace Langulus::Anyness
 		}
 
 		/// Equality/inequality comparison													
-		constexpr bool operator == (const TPair&) const noexcept = default;
+		bool operator == (const TPair&) const noexcept = default;
 
 		/// Ordering comparison																	
-		constexpr auto operator <=> (const TPair& rhs) const noexcept {
+		auto operator <=> (const TPair& rhs) const noexcept {
 			const ::std::strong_ordering result = mKey <=> rhs.mKey;
 			if (result != 0)
 				return result;

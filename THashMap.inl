@@ -265,13 +265,13 @@ namespace Langulus::Anyness::Inner
 	TABLE_TEMPLATE()
 	template<class ALT_K>
 	bool TABLE()::KeyIs() const noexcept {
-		return GetKeyType()->Is<ALT_K>();
+		return GetKeyType()->template Is<ALT_K>();
 	}
 
 	TABLE_TEMPLATE()
 	template<class ALT_V>
 	bool TABLE()::ValueIs() const noexcept {
-		return GetValueType()->Is<ALT_V>();
+		return GetValueType()->template Is<ALT_V>();
 	}
 
 	TABLE_TEMPLATE()
@@ -346,7 +346,7 @@ namespace Langulus::Anyness::Inner
 	///	@return a pair containing the new pair & status of insertion			
 	TABLE_TEMPLATE()
 	template<class... Args>
-	TABLE()::Insertion TABLE()::Emplace(Args&&... args) {
+	typename TABLE()::Insertion TABLE()::Emplace(Args&&... args) {
 		Node n {*this, Forward<Args>(args)...};
 
 		auto idxAndState = insertKeyPrepareEmptySpot(getFirstConst(n));
@@ -378,81 +378,81 @@ namespace Langulus::Anyness::Inner
 
 	TABLE_TEMPLATE()
 	template<class... Args>
-	TABLE()::iterator TABLE()::emplace_hint(const_iterator position, Args&&... args) {
+	typename TABLE()::iterator TABLE()::emplace_hint(const_iterator position, Args&&... args) {
 		(void) position;
 		return emplace(std::forward<Args>(args)...).first;
 	}
 
 	TABLE_TEMPLATE()
 	template<class... Args>
-	TABLE()::Insertion TABLE()::try_emplace(const K& key, Args&&... args) {
+	typename TABLE()::Insertion TABLE()::try_emplace(const K& key, Args&&... args) {
 		return try_emplace_impl(key, std::forward<Args>(args)...);
 	}
 
 	TABLE_TEMPLATE()
 	template<class... Args>
-	TABLE()::Insertion TABLE()::try_emplace(K&& key, Args&&... args) {
+	typename TABLE()::Insertion TABLE()::try_emplace(K&& key, Args&&... args) {
 		return try_emplace_impl(std::move(key), std::forward<Args>(args)...);
 	}
 
 	TABLE_TEMPLATE()
 	template<class... Args>
-	TABLE()::iterator TABLE()::try_emplace(const_iterator hint, const K& key, Args&&... args) {
+	typename TABLE()::iterator TABLE()::try_emplace(const_iterator hint, const K& key, Args&&... args) {
 		(void) hint;
 		return try_emplace_impl(key, std::forward<Args>(args)...).first;
 	}
 
 	TABLE_TEMPLATE()
 	template<class... Args>
-	TABLE()::iterator TABLE()::try_emplace(const_iterator hint, K&& key, Args&&... args) {
+	typename TABLE()::iterator TABLE()::try_emplace(const_iterator hint, K&& key, Args&&... args) {
 		(void) hint;
 		return try_emplace_impl(std::move(key), std::forward<Args>(args)...).first;
 	}
 
 	TABLE_TEMPLATE()
 	template<class Mapped>
-	TABLE()::Insertion TABLE()::insert_or_assign(const K& key, Mapped&& obj) {
+	typename TABLE()::Insertion TABLE()::insert_or_assign(const K& key, Mapped&& obj) {
 		return insertOrAssignImpl(key, std::forward<Mapped>(obj));
 	}
 
 	TABLE_TEMPLATE()
 	template<class Mapped>
-	TABLE()::Insertion TABLE()::insert_or_assign(K&& key, Mapped&& obj) {
+	typename TABLE()::Insertion TABLE()::insert_or_assign(K&& key, Mapped&& obj) {
 		return insertOrAssignImpl(Move(key), Forward<Mapped>(obj));
 	}
 
 	TABLE_TEMPLATE()
 	template<class Mapped>
-	TABLE()::iterator TABLE()::insert_or_assign(const_iterator hint, const K& key, Mapped&& obj) {
+	typename TABLE()::iterator TABLE()::insert_or_assign(const_iterator hint, const K& key, Mapped&& obj) {
 		(void) hint;
 		return insertOrAssignImpl(key, Forward<Mapped>(obj)).first;
 	}
 
 	TABLE_TEMPLATE()
 	template<class Mapped>
-	TABLE()::iterator TABLE()::insert_or_assign(const_iterator hint, K&& key, Mapped&& obj) {
+	typename TABLE()::iterator TABLE()::insert_or_assign(const_iterator hint, K&& key, Mapped&& obj) {
 		(void) hint;
 		return insertOrAssignImpl(Move(key), Forward<Mapped>(obj)).first;
 	}
 
 	TABLE_TEMPLATE()
-	TABLE()::Insertion TABLE()::Insert(const Pair& keyval) {
+	typename TABLE()::Insertion TABLE()::Insert(const Pair& keyval) {
 		return Emplace(keyval);
 	}
 
 	TABLE_TEMPLATE()
-	TABLE()::iterator TABLE()::Insert(const_iterator hint, const Pair& keyval) {
+	typename TABLE()::iterator TABLE()::Insert(const_iterator hint, const Pair& keyval) {
 		(void) hint;
 		return Emplace(keyval).first;
 	}
 
 	TABLE_TEMPLATE()
-	TABLE()::Insertion TABLE()::Insert(Pair&& keyval) {
+	typename TABLE()::Insertion TABLE()::Insert(Pair&& keyval) {
 		return Emplace(Move(keyval));
 	}
 
 	TABLE_TEMPLATE()
-	TABLE()::iterator TABLE()::Insert(const_iterator hint, Pair&& keyval) {
+	typename TABLE()::iterator TABLE()::Insert(const_iterator hint, Pair&& keyval) {
 		(void) hint;
 		return Emplace(Move(keyval)).first;
 	}
@@ -503,7 +503,7 @@ namespace Langulus::Anyness::Inner
 
 	TABLE_TEMPLATE()
 	template<class OtherKey, class... Args>
-	TABLE()::Insertion TABLE()::try_emplace_impl(OtherKey&& key, Args&&... args) {
+	typename TABLE()::Insertion TABLE()::try_emplace_impl(OtherKey&& key, Args&&... args) {
 		auto idxAndState = insertKeyPrepareEmptySpot(key);
 		switch (idxAndState.second) {
 		case InsertionState::key_found:
@@ -534,7 +534,7 @@ namespace Langulus::Anyness::Inner
 
 	TABLE_TEMPLATE()
 	template<class OtherKey, class Mapped>
-	TABLE()::Insertion TABLE()::insertOrAssignImpl(OtherKey&& key, Mapped&& obj) {
+	typename TABLE()::Insertion TABLE()::insertOrAssignImpl(OtherKey&& key, Mapped&& obj) {
 		auto idxAndState = insertKeyPrepareEmptySpot(key);
 		switch (idxAndState.second) {
 		case InsertionState::key_found:
@@ -659,14 +659,14 @@ namespace Langulus::Anyness::Inner
 	}
 
 	TABLE_TEMPLATE()
-	TABLE()::iterator TABLE()::RemoveIndex(const_iterator pos) {
+	typename TABLE()::iterator TABLE()::RemoveIndex(const_iterator pos) {
 		// its safe to perform const cast here
 		return erase(iterator {const_cast<Node*>(pos.mKeyVals), const_cast<uint8_t*>(pos.mInfo)});
 	}
 
 	/// Erases element at pos, returns iterator to the next element				
 	TABLE_TEMPLATE()
-	TABLE()::iterator TABLE()::RemoveIndex(iterator pos) {
+	typename TABLE()::iterator TABLE()::RemoveIndex(iterator pos) {
 		// we assume that pos always points to a valid entry, and not end().
 		auto const idx = static_cast<size_t>(pos.mKeyVals - mKeyVals);
 		shiftDown(idx);
@@ -775,25 +775,25 @@ namespace Langulus::Anyness::Inner
 		return 0;
 	}
 
-	TABLE_TEMPLATE()
+	/*TABLE_TEMPLATE()
 	template<typename OtherKey, typename Self_>
 	size_t TABLE()::count(const OtherKey& key) const requires IsTransparent<Self_> {
 		auto kv = mKeyVals + findIdx(key);
 		if (kv != reinterpret_cast_no_cast_align_warning<Node*>(mInfo))
 			return 1;
 		return 0;
-	}
+	}*/
 
 	TABLE_TEMPLATE()
 	bool TABLE()::contains(const K& key) const {
 		return 1U == count(key);
 	}
 
-	TABLE_TEMPLATE()
+	/*TABLE_TEMPLATE()
 	template <typename OtherKey, typename Self_>
 	bool TABLE()::contains(const OtherKey& key) const requires IsTransparent<Self_> {
 		return 1U == count(key);
-	}
+	}*/
 
 	/// Returns a reference to the value found for key									
 	/// Throws std::out_of_range if element cannot be found							
@@ -817,13 +817,13 @@ namespace Langulus::Anyness::Inner
 
 	/// Find																							
 	TABLE_TEMPLATE()
-	TABLE()::const_iterator TABLE()::find(const K& key) const {
+	typename TABLE()::const_iterator TABLE()::find(const K& key) const {
 		const size_t idx = findIdx(key);
 		return const_iterator {mKeyVals + idx, mInfo + idx};
 	}
 
 	TABLE_TEMPLATE()
-	TABLE()::iterator TABLE()::find(const K& key) {
+	typename TABLE()::iterator TABLE()::find(const K& key) {
 		const size_t idx = findIdx(key);
 		return iterator {mKeyVals + idx, mInfo + idx};
 	}
@@ -874,7 +874,7 @@ namespace Langulus::Anyness::Inner
 	/// Get the beginning of internal data													
 	///	@return the iterator																	
 	TABLE_TEMPLATE()
-	TABLE()::iterator TABLE()::begin() {
+	typename TABLE()::iterator TABLE()::begin() {
 		if (IsEmpty())
 			return end();
 		return iterator(mKeyVals, mInfo, fast_forward_tag {});
@@ -883,31 +883,31 @@ namespace Langulus::Anyness::Inner
 	/// Get the beginning of internal data (const)										
 	///	@return the iterator																	
 	TABLE_TEMPLATE()
-	TABLE()::const_iterator TABLE()::begin() const {
+	typename TABLE()::const_iterator TABLE()::begin() const {
 		return cbegin();
 	}
 
 	TABLE_TEMPLATE()
-	TABLE()::const_iterator TABLE()::cbegin() const {
+	typename TABLE()::const_iterator TABLE()::cbegin() const {
 		if (IsEmpty())
 			return cend();
 		return const_iterator(mKeyVals, mInfo, fast_forward_tag {});
 	}
 
 	TABLE_TEMPLATE()
-	TABLE()::iterator TABLE()::end() {
+	typename TABLE()::iterator TABLE()::end() {
 		// No need to supply valid info pointer: end() must not be			
 		// dereferenced, and only node pointer is compared						
 		return iterator {reinterpret_cast_no_cast_align_warning<Node*>(mInfo), nullptr};
 	}
 
 	TABLE_TEMPLATE()
-	TABLE()::const_iterator TABLE()::end() const {
+	typename TABLE()::const_iterator TABLE()::end() const {
 		return cend();
 	}
 
 	TABLE_TEMPLATE()
-	TABLE()::const_iterator TABLE()::cend() const {
+	typename TABLE()::const_iterator TABLE()::cend() const {
 		return const_iterator {reinterpret_cast_no_cast_align_warning<Node*>(mInfo), nullptr};
 	}
 
@@ -989,7 +989,7 @@ namespace Langulus::Anyness::Inner
 	/// Helpers for insertKeyPrepareEmptySpot: extract first entry					
 	/// (only const required)																	
 	TABLE_TEMPLATE()
-	TABLE()::Key const& TABLE()::getFirstConst(const Node& node) const noexcept {
+	typename TABLE()::Key const& TABLE()::getFirstConst(const Node& node) const noexcept {
 		return node.getFirst();
 	}
 
@@ -997,7 +997,7 @@ namespace Langulus::Anyness::Inner
 	/// just route k through. No need to disable this because it's just not		
 	/// used if not applicable																	
 	TABLE_TEMPLATE()
-	TABLE()::Key const& TABLE()::getFirstConst(const K& key) const noexcept {
+	typename TABLE()::Key const& TABLE()::getFirstConst(const K& key) const noexcept {
 		return key;
 	}
 
@@ -1005,7 +1005,7 @@ namespace Langulus::Anyness::Inner
 	/// robin_hood::pair																			
 	TABLE_TEMPLATE()
 	template <ReflectedData Q>
-	TABLE()::Key const& TABLE()::getFirstConst(const Pair& pair) const noexcept {
+	typename TABLE()::Key const& TABLE()::getFirstConst(const Pair& pair) const noexcept {
 		return pair.mKey;
 	}
 

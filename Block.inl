@@ -1,6 +1,5 @@
 #pragma once
 #include "Block.hpp"
-#include <cstring>
 
 namespace Langulus::Anyness
 {

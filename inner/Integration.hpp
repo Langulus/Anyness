@@ -13,6 +13,9 @@
 	#include <string_view>
 	#include <limits>
 	#include <concepts>
+	#include <bit>
+	#include <cstring>
+
 	
 	/// All non-argument macros should use this facility								
 	/// https://www.fluentcpp.com/2019/05/28/better-macros-better-flags/			
@@ -361,10 +364,10 @@
 		concept IsDestructible = (::std::destructible<Decay<T>> && ...);
 		
 		/// Check if Decay<T> is clonable													
-		template<class... T>
-		concept IsClonable = (requires (Decay<T> a) { 
+		template<class T>
+		concept IsClonable = requires (Decay<T> a) { 
 			{a = a.Clone()};
-		} && ...);
+		};
 		
 		/// Check if T is referencable														
 		template<class T>

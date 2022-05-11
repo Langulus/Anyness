@@ -1,6 +1,7 @@
 #include "TestMain.hpp"
 #include <catch2/catch.hpp>
 #include <unordered_map>
+#include <iostream>
 
 using uint = unsigned int;
 using MapType = unordered_map<Text, int>;
@@ -38,13 +39,18 @@ SCENARIO("THashMap", "[containers]") {
 
 			//#ifdef LANGULUS_STD_BENCHMARK // Last result: 
 				BENCHMARK_ADVANCED("Anyness::THashMap::default construction") (Catch::Benchmark::Chronometer meter) {
+					std::cout << "Doing " << meter.runs() << " constructions, " << sizeof(MapType) << " bytes each\n";
 					std::vector<Catch::Benchmark::storage_for<MapType>> storage(meter.runs());
-					meter.measure([&](int i) { return storage[i].construct(); });
+					meter.measure([&](int i) {
+						return storage[i].construct();
+					});
 				};
 
 				BENCHMARK_ADVANCED("std::unordered_map::default construction") (Catch::Benchmark::Chronometer meter) {
 					std::vector<Catch::Benchmark::storage_for<MapTypeStd>> storage(meter.runs());
-					meter.measure([&](int i) { return storage[i].construct(); });
+					meter.measure([&](int i) {
+						return storage[i].construct();
+					});
 				};
 			//#endif
 		}
