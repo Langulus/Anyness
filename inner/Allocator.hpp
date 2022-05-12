@@ -180,16 +180,6 @@ namespace Langulus::Anyness
 	struct NodeAllocator<T, MinSize, MaxSize, AllocationMethod::Heap>
 		: public BulkPoolAllocator<T, MinSize, MaxSize> {};
 
-	///																								
-	template <class T>
-	T unaligned_load(void const* ptr) noexcept {
-		// Using memcpy so we don't get into unaligned load problems		
-		// Compiler should optimize this very well anyways						
-		T t;
-		::std::memcpy(&t, ptr, sizeof(T));
-		return t;
-	}
-
 } // namespace Langulus::Anyness
 
 #include "Allocator.inl"

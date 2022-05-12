@@ -1,4 +1,5 @@
 #include "Text.hpp"
+#include "inner/Hashing.hpp"
 #include <locale>
 
 namespace Langulus::Anyness
@@ -343,6 +344,8 @@ namespace Langulus::Anyness
 	/// Hash the text 																			
 	///	@return a hash of the contained byte sequence								
 	Hash Text::GetHash() const {
+		return HashBytes(GetRaw(), GetCount());
+
 		const auto asString = reinterpret_cast<const char*>(GetRaw());
 		return ::std::hash<::std::string_view>()({asString, GetCount()});
 	}

@@ -3,6 +3,7 @@
 #include "NameOf.hpp"
 #include "Utilities.hpp"
 #include "Exceptions.hpp"
+#include "Hashing.hpp"
 #include <memory>
 
 namespace Langulus::Anyness
@@ -293,10 +294,10 @@ namespace Langulus::Anyness
 			}
 
 			// Wrap the GetHash() method inside a lambda							
-			if constexpr (IsHashable<T>) {
+			if constexpr (IsHashable<T> || IsNumber<T> || IsPOD<T>) {
 				meta->mHasher = [](const void* at) {
 					auto instance = static_cast<const T*>(at);
-					return instance->GetHash();
+					return HashData(*instance);
 				};
 			}
 

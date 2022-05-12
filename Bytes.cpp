@@ -1,4 +1,5 @@
 #include "Bytes.hpp"
+#include "inner/Hashing.hpp"
 
 namespace Langulus::Anyness
 {
@@ -6,8 +7,7 @@ namespace Langulus::Anyness
 	/// Hash the byte sequence																	
 	///	@return a hash of the contained byte sequence								
 	Hash Bytes::GetHash() const {
-		const auto asString = reinterpret_cast<const char*>(GetRaw());
-		return ::std::hash<::std::string_view>()({asString, GetCount()});
+		return HashBytes(GetRaw(), GetCount());
 	}
 
 	/// Allocate a number of bytes and zero them											

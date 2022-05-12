@@ -1,5 +1,6 @@
 #pragma once
 #include "THashMap.hpp"
+#include "inner/Hashing.hpp"
 
 namespace Langulus::Anyness::Inner
 {
@@ -1039,11 +1040,11 @@ namespace Langulus::Anyness::Inner
 	TABLE_TEMPLATE()
 	template<class HashKey>
 	void TABLE()::keyToIdx(HashKey&& key, size_t* idx, InfoType* info) const {
-		static_assert(IsHashable<HashKey>, "Contained key type is not hashable");
+		auto h = static_cast<uint64_t>(HashData(key));
+
 		// In addition to whatever hash is used, add another mul &			
 		// shift so we get better hashing. This serves as a bad				
 		// hash prevention, if the given data is badly mixed.					
-		uint64_t h = static_cast<uint64_t>(key.GetHash());
 		h *= mHashMultiplier;
 		h ^= h >> 33U;
 

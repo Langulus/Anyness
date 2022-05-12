@@ -410,6 +410,13 @@
 		template<class T>
 		concept IsDecayed = IsDense<T> && !::std::is_reference_v<T> && IsMutable<T>;
 
+		/// Check if a function encapsulated in a lambda is a constexpr			
+		/// Leverages that lambda expressions can be constexpr as of C++17		
+		/// https://stackoverflow.com/questions/55288555								
+		template<class Lambda, int = (Lambda {}(), 0) >
+		constexpr bool IsConstexpr(Lambda) { return true; }
+		constexpr bool IsConstexpr(...) { return false; }
+
 	} // namespace Langulus
 
 #else
