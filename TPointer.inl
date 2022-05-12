@@ -1,8 +1,8 @@
 #pragma once
 #include "TPointer.hpp"
 
-#define TEMPLATE_OWNED() template<ReflectedData T>
-#define TEMPLATE_SHARED() template<ReflectedData T, bool DR>
+#define TEMPLATE_OWNED() template<CT::Data T>
+#define TEMPLATE_SHARED() template<CT::Data T, bool DR>
 
 namespace Langulus::Anyness
 {
@@ -30,7 +30,7 @@ namespace Langulus::Anyness
 		if (Base::mValue) {
 			if (mEntry)
 				++mEntry->mReferences;
-			if constexpr (DR && IsReferencable<T>)
+			if constexpr (DR && CT::Referencable<T>)
 				Base::mValue->Keep();
 		}
 	}
@@ -53,7 +53,7 @@ namespace Langulus::Anyness
 		if (Base::mValue) {
 			if (mEntry)
 				++mEntry->mReferences;
-			if constexpr (DR && IsReferencable<T>)
+			if constexpr (DR && CT::Referencable<T>)
 				Base::mValue->Keep();
 		}
 	}
@@ -68,7 +68,7 @@ namespace Langulus::Anyness
 	///	@param initializer - instance to move											
 	///	@return the pointer																	
 	TEMPLATE_SHARED()
-	TPointer<T, DR> TPointer<T, DR>::Create(Decay<T>&& initializer) requires IsMoveConstructible<Decay<T>> {
+	TPointer<T, DR> TPointer<T, DR>::Create(Decay<T>&& initializer) requires CT::MoveMakable<Decay<T>> {
 		TPointer pointer;
 		pointer.mEntry = Allocator::Allocate(GetAllocationPageOf<Decay<T>>());
 		pointer.mValue = reinterpret_cast<Type>(pointer.mEntry->GetBlockStart());
@@ -81,7 +81,7 @@ namespace Langulus::Anyness
 	///	@param initializer - instance to copy											
 	///	@return the pointer																	
 	TEMPLATE_SHARED()
-	TPointer<T, DR> TPointer<T, DR>::Create(const Decay<T>& initializer) requires IsCopyConstructible<Decay<T>> {
+	TPointer<T, DR> TPointer<T, DR>::Create(const Decay<T>& initializer) requires CT::CopyMakable<Decay<T>> {
 		TPointer pointer;
 		pointer.mEntry = Allocator::Allocate(GetAllocationPageOf<Decay<T>>());
 		pointer.mValue = reinterpret_cast<Type>(pointer.mEntry->GetBlockStart());
@@ -93,7 +93,7 @@ namespace Langulus::Anyness
 	/// Resulting pointer created that way has exactly one reference				
 	///	@return the pointer																	
 	TEMPLATE_SHARED()
-	TPointer<T, DR> TPointer<T, DR>::Create() requires IsDefaultConstructible<Decay<T>> {
+	TPointer<T, DR> TPointer<T, DR>::Create() requires CT::Defaultable<Decay<T>> {
 		TPointer pointer;
 		pointer.mEntry = Allocator::Allocate(GetAllocationPageOf<Decay<T>>());
 		pointer.mValue = reinterpret_cast<decltype(pointer.mValue)>(pointer.mEntry->GetBlockStart());
@@ -124,13 +124,13 @@ namespace Langulus::Anyness
 	TEMPLATE_SHARED()
 	void TPointer<T, DR>::Reset() {
 		if (Base::mValue) {
-			if constexpr (DR && IsReferencable<T>)
+			if constexpr (DR && CT::Referencable<T>)
 				Base::mValue->Free();
 
 			// This will call destructor on the pointer first					
 			// and then the data behind it, if references reach zero			
 			// It will zero the mValue for us										
-			GetBlock().CallUnknownDestructors();
+			GetBlock().CallKnownDestructors<T*>();
 		}
 	}
 
@@ -180,28 +180,28 @@ namespace Langulus::Anyness
 
 	/// Attempt to cast any pointer to the contained pointer							
 	///	@param ptr - pointer to reference												
-	TEMPLATE_SHARED() template<IsSparse ANY_POINTER>
+	TEMPLATE_SHARED() template<CT::Sparse ANY_POINTER>
 	TPointer<T, DR>& TPointer<T, DR>::operator = (ANY_POINTER rhs) {
-		static_assert(IsConstant<T> || !IsConstant<ANY_POINTER>,
+		static_assert(CT::Constant<T> || !CT::Constant<ANY_POINTER>,
 			"Can't assign a constant pointer to a non-constant pointer wrapper");
 
 		Reset();
 		new (this) TPointer<T, DR> {
-			dynamic_cast<Conditional<IsConstant<ANY_POINTER>, const T*, T*>>(rhs)
+			dynamic_cast<Conditional<CT::Constant<ANY_POINTER>, const T*, T*>>(rhs)
 		};
 		return *this;
 	}
 
 	/// Attempt to cast any pointer to the contained pointer							
 	///	@param ptr - pointer to reference												
-	TEMPLATE_SHARED() template<ReflectedData ANY_POINTER>
+	TEMPLATE_SHARED() template<CT::Data ANY_POINTER>
 	TPointer<T, DR>& TPointer<T, DR>::operator = (const TPointer<ANY_POINTER, DR>& ptr) {
-		static_assert(IsConstant<T> || !IsConstant<ANY_POINTER>,
+		static_assert(CT::Constant<T> || !CT::Constant<ANY_POINTER>,
 			"Can't assign a constant pointer to a non-constant pointer wrapper");
 
 		Reset();
 		new (this) TPointer<T, DR> {
-			dynamic_cast<Conditional<IsConstant<ANY_POINTER>, const T*, T*>>(ptr.Get())
+			dynamic_cast<Conditional<CT::Constant<ANY_POINTER>, const T*, T*>>(ptr.Get())
 		};
 		return *this;
 	}
@@ -221,7 +221,7 @@ namespace Langulus::Anyness
 	/// Get the hash of the contained type													
 	///	@return the hash of the container type											
 	TEMPLATE_OWNED()
-	Hash TOwned<T>::GetHash() const requires IsHashable<T> {
+	Hash TOwned<T>::GetHash() const requires CT::Hashable<T> {
 		if (!mValue)
 			return {};
 		return mValue->GetHash();
@@ -230,9 +230,9 @@ namespace Langulus::Anyness
 	/// Perform a dynamic cast on the pointer												
 	///	@tparam D - the desired type to cast to										
 	///	@return the result of a dynamic_cast to the specified type				
-	TEMPLATE_OWNED() template<ReflectedData D>
-	auto TOwned<T>::As() const noexcept requires IsSparse<T> {
-		using RESOLVED = Conditional<IsConstant<T>, const Decay<D>*, Decay<D>*>;
+	TEMPLATE_OWNED() template<CT::Data D>
+	auto TOwned<T>::As() const noexcept requires CT::Sparse<T> {
+		using RESOLVED = Conditional<CT::Constant<T>, const Decay<D>*, Decay<D>*>;
 		return dynamic_cast<RESOLVED>(mValue);
 	}
 
@@ -240,14 +240,14 @@ namespace Langulus::Anyness
 	///	@attention does not check if contained pointer is valid					
 	///	@return the contained constant raw pointer									
 	TEMPLATE_OWNED()
-	auto TOwned<T>::operator -> () const requires IsSparse<T> {
+	auto TOwned<T>::operator -> () const requires CT::Sparse<T> {
 		if (!mValue)
 			throw Except::Access("Invalid pointer");
 		return mValue;
 	}
 
 	TEMPLATE_OWNED()
-	auto TOwned<T>::operator -> () requires IsSparse<T> {
+	auto TOwned<T>::operator -> () requires CT::Sparse<T> {
 		if (!mValue)
 			throw Except::Access("Invalid pointer");
 		return mValue;
@@ -257,14 +257,14 @@ namespace Langulus::Anyness
 	///	@attention does not check if contained pointer is valid					
 	///	@return the contained constant dereferenced pointer						
 	TEMPLATE_OWNED()
-	decltype(auto) TOwned<T>::operator * () const requires IsSparse<T> {
+	decltype(auto) TOwned<T>::operator * () const requires CT::Sparse<T> {
 		if (!mValue)
 			throw Except::Access("Invalid pointer");
 		return *mValue;
 	}
 
 	TEMPLATE_OWNED()
-	decltype(auto) TOwned<T>::operator * () requires IsSparse<T> {
+	decltype(auto) TOwned<T>::operator * () requires CT::Sparse<T> {
 		if (!mValue)
 			throw Except::Access("Invalid pointer");
 		return *mValue;
@@ -292,7 +292,7 @@ namespace Langulus::Anyness
 	/// Cast to a constant pointer, if mutable											
 	///	@return the constant equivalent to this pointer								
 	TEMPLATE_SHARED()
-	TPointer<T, DR>::operator TPointer<const T, DR>() const noexcept requires IsMutable<T> {
+	TPointer<T, DR>::operator TPointer<const T, DR>() const noexcept requires CT::Mutable<T> {
 		return {Base::mValue};
 	}
 
@@ -332,7 +332,7 @@ namespace Langulus::Anyness
 	///	@param rhs - the right pointer													
 	///	@return true if pointers match													
 	TEMPLATE_OWNED()
-	bool TOwned<T>::operator == (std::nullptr_t) const noexcept requires IsSparse<T> {
+	bool TOwned<T>::operator == (std::nullptr_t) const noexcept requires CT::Sparse<T> {
 		return mValue == nullptr;
 	}
 
@@ -340,7 +340,7 @@ namespace Langulus::Anyness
 	///	@param rhs - the right pointer													
 	///	@return true if pointers do not match											
 	TEMPLATE_OWNED()
-	bool TOwned<T>::operator != (std::nullptr_t) const noexcept requires IsSparse<T> {
+	bool TOwned<T>::operator != (std::nullptr_t) const noexcept requires CT::Sparse<T> {
 		return mValue != nullptr;
 	}
 
@@ -349,7 +349,7 @@ namespace Langulus::Anyness
 	///	@return the value, interfaced via a memory block							
 	TEMPLATE_OWNED()
 	Block TOwned<T>::GetBlock() const {
-		if constexpr (IsSparse<T>) {
+		if constexpr (CT::Sparse<T>) {
 			return {
 				DataState {DataState::Constrained | DataState::Sparse},
 				MetaData::Of<T>(), 1, 
@@ -396,32 +396,6 @@ namespace Langulus::Anyness
 			GetType(), 1, &(Base::mValue), mEntry
 		};
 	}
-
-	/// Access the pointer																		
-	///	@attention does not check if contained pointer is valid					
-	///	@return the contained constant raw pointer									
-	/*TEMPLATE_SHARED()
-	auto TPointer<T, DR>::operator -> () const {
-		return BASE::operator -> ();
-	}
-
-	TEMPLATE_SHARED()
-	auto TPointer<T, DR>::operator -> () {
-		return BASE::operator -> ();
-	}
-
-	/// Access the dereferenced pointer (const)											
-	///	@attention does not check if contained pointer is valid					
-	///	@return the contained constant dereferenced pointer						
-	TEMPLATE_SHARED()
-	decltype(auto) TPointer<T, DR>::operator * () const {
-		return BASE::operator * ();
-	}
-
-	TEMPLATE_SHARED()
-	decltype(auto) TPointer<T, DR>::operator * () {
-		return BASE::operator * ();
-	}*/
 
 } // namespace Langulus::Anyness
 

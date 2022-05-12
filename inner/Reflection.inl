@@ -15,7 +15,7 @@ namespace Langulus::Anyness
    
    /// Check if member is a specific type                                     
    ///   @return true if member exactly matches the provided type             
-   template<ReflectedData T>
+   template<CT::Data T>
    constexpr bool Member::Is() const noexcept {
       return mType->Is<T>();
    }
@@ -23,7 +23,7 @@ namespace Langulus::Anyness
    /// Reinterpret the member as a given type and access it (const, unsafe)   
    ///   @param instance - pointer to the beginning of the owning type        
    ///   @return a reinterpreted constant reference to member                 
-   template<ReflectedData T>
+   template<CT::Data T>
    const T& Member::As(const Byte* instance) const noexcept {
       return *reinterpret_cast<const T*>(Get(instance));
    }
@@ -31,7 +31,7 @@ namespace Langulus::Anyness
    /// Reinterpret the member as a given type and access it (unsafe)          
    ///   @param instance - pointer to the beginning of the owning type        
    ///   @return a reinterpreted reference to member                          
-   template<ReflectedData T>
+   template<CT::Data T>
    T& Member::As(Byte* instance) const noexcept {
       return *reinterpret_cast<T*>(Get(instance));
    }
@@ -69,15 +69,15 @@ namespace Langulus::Anyness
 
 	/// Create a base descriptor for the derived type T								
 	///	@return the generated base descriptor											
-	template<IsDense T, IsDense BASE>
+	template<CT::Dense T, CT::Dense BASE>
 	Base Base::From() SAFETY_NOEXCEPT() {
-		static_assert(!IsSame<T, BASE>, 
+		static_assert(!CT::Same<T, BASE>, 
 			"Base duplication not allowed to avoid regress");
 
 		Base result;
 		result.mType = MetaData::Of<BASE>();
 
-		if constexpr (Inherits<T, BASE>) {
+		if constexpr (CT::DerivedFrom<T, BASE>) {
 			// This will fail if base is private									
 			// This is detectable by is_convertible_v								
 			if constexpr (::std::is_convertible_v<T*, BASE*>) {
@@ -111,13 +111,13 @@ namespace Langulus::Anyness
 	///	@return the generated base descriptor											
 	template<class T, class BASE, Count COUNT>
 	Base Base::Map() noexcept {
-		static_assert(!IsSame<T, BASE>, 
+		static_assert(!CT::Same<T, BASE>, 
 			"Base duplication not allowed to avoid regress");
 		static_assert(sizeof(BASE) * COUNT == sizeof(T),
 			"Size mismatch while mapping types");
 		static_assert(COUNT > 0,
 			"Invalid mapping of zero count");
-		static_assert(IsAbstract<BASE>,
+		static_assert(CT::Abstract<BASE>,
 			"Can't map to an abstract type - size is always zero");
 
 		Base result;
@@ -136,7 +136,7 @@ namespace Langulus::Anyness
 
 	/// Get the constexpr hash of a type													
 	///	@return the hash of the type														
-	template<ReflectedData T>
+	template<CT::Data T>
 	constexpr Hash Meta::GetHash() noexcept {
 		const auto name = Inner::NameOf<T>();
 		return ::std::hash<::std::u8string_view>()(name);
@@ -144,7 +144,7 @@ namespace Langulus::Anyness
    
 	/// Get the constexpr name of a type													
 	///	@return the hash of the type														
-	template<ReflectedData T>
+	template<CT::Data T>
 	constexpr Token Meta::GetName() noexcept {
 		return Inner::NameOf<T>();
 	}
@@ -158,8 +158,8 @@ namespace Langulus::Anyness
    /// Reflect or return an already reflected type meta definition            
    /// Reflection is done only on decayed types to reduce statics             
    ///   @tparam T - the type to reflect (will always be decayed)             
-   template<ReflectedData T>
-   DMeta MetaData::Of() requires IsDecayed<T> {
+   template<CT::Data T>
+   DMeta MetaData::Of() requires CT::Decayed<T> {
 		// This check is not standard, but doesn't hurt afaik					
 		static_assert(sizeof(T) > 0, "Can't reflect an incomplete type");
 
@@ -185,7 +185,7 @@ namespace Langulus::Anyness
 		// If this is reached, then type is not defined yet					
 		// We'll try to explicitly or implicitly reflect it					
 
-		if constexpr (Reflectable<T>) {
+		if constexpr (CT::Reflectable<T>) {
 			// The type is explicitly reflected with a custom function		
 			// Let's call it...															
 			meta = ::std::make_unique<MetaData>(T::Reflect());
@@ -198,26 +198,26 @@ namespace Langulus::Anyness
 			meta->mInfo = u8"<no info provided due to implicit reflection>";
 			meta->mName = Meta::GetName<T>();
 			meta->mHash = Meta::GetHash<T>();
-			meta->mIsAbstract = IsAbstract<T>;
-			meta->mIsNullifiable = IsNullifiable<T>;
-			meta->mSize = IsAbstract<T> ? 0 : sizeof(T);
+			meta->mIsAbstract = CT::Abstract<T>;
+			meta->mIsNullifiable = CT::Nullifiable<T>;
+			meta->mSize = CT::Abstract<T> ? 0 : sizeof(T);
 			meta->mAlignment = alignof(T);
 			meta->mAllocationPage = GetAllocationPageOf<T>();
-			meta->mIsPOD = IsPOD<T>;
-			meta->mIsDeep = IsDeep<T>;
+			meta->mIsPOD = CT::POD<T>;
+			meta->mIsDeep = CT::Deep<T>;
 			
-			if constexpr (IsConcretizable<T>)
+			if constexpr (CT::Concretizable<T>)
 				meta->mConcrete = MetaData::Of<Decay<typename T::CTTI_Concrete>>();
 
 			// Wrap the default constructor of the type inside a lambda		
-			if constexpr (IsDefaultConstructible<T>) {
+			if constexpr (CT::Defaultable<T>) {
 				meta->mDefaultConstructor = [](void* at) {
 					new (at) T {};
 				};
 			}
 
 			// Wrap the copy constructor of the type inside a lambda			
-			if constexpr (IsCopyConstructible<T>) {
+			if constexpr (CT::CopyMakable<T>) {
 				meta->mCopyConstructor = [](void* at, const void* from) {
 					auto fromInstance = static_cast<const T*>(from);
 					new (at) T {*fromInstance};
@@ -225,7 +225,7 @@ namespace Langulus::Anyness
 			}
 
 			// Wrap the move constructor of the type inside a lambda			
-			if constexpr (IsMoveConstructible<T>) {
+			if constexpr (CT::MoveMakable<T>) {
 				meta->mMoveConstructor = [](void* at, void* from) {
 					auto fromInstance = static_cast<T*>(from);
 					new (at) T {Forward<T>(*fromInstance)};
@@ -233,7 +233,7 @@ namespace Langulus::Anyness
 			}
 
 			// Wrap the destructor of the type inside a lambda					
-			if constexpr (IsDestructible<T>) {
+			if constexpr (CT::Destroyable<T>) {
 				meta->mDestructor = [](void* at) {
 					auto instance = static_cast<T*>(at);
 					instance->~T();
@@ -241,25 +241,23 @@ namespace Langulus::Anyness
 			}
 
 			// Wrap the cloners of the type inside a lambda						
-			if constexpr (IsClonable<T>) {
-				if constexpr (IsCopyConstructible<T> || IsMoveConstructible<T>) {
-					meta->mCloneInUninitilizedMemory = [](const void* from, void* to) {
-						auto fromInstance = static_cast<const T*>(from);
-						new (to) T {fromInstance->Clone()};
-					};
-				}
+			if constexpr (CT::CloneMakable<T>) {
+				meta->mCloneInUninitilizedMemory = [](const void* from, void* to) {
+					auto fromInstance = static_cast<const T*>(from);
+					new (to) T {fromInstance->Clone()};
+				};
+			}
 
-				if constexpr (IsCopyable<T> || IsMovable<T>) {
-					meta->mCloneInInitializedMemory = [](const void* from, void* to) {
-						auto toInstance = static_cast<T*>(to);
-						auto fromInstance = static_cast<const T*>(from);
-						*toInstance = fromInstance->Clone();
-					};
-				}
+			if constexpr (CT::CloneCopyable<T>) {
+				meta->mCloneInInitializedMemory = [](const void* from, void* to) {
+					auto toInstance = static_cast<T*>(to);
+					auto fromInstance = static_cast<const T*>(from);
+					*toInstance = fromInstance->Clone();
+				};
 			}
 
 			// Wrap the == operator of the type inside a lambda				
-			if constexpr (IsComparable<T>) {
+			if constexpr (CT::Comparable<T>) {
 				meta->mComparer = [](const void* t1, const void* t2) {
 					auto t1Instance = static_cast<const T*>(t1);
 					auto t2Instance = static_cast<const T*>(t2);
@@ -268,7 +266,7 @@ namespace Langulus::Anyness
 			}
 
 			// Wrap the copy operator of the type inside a lambda				
-			if constexpr (IsCopyable<T>) {
+			if constexpr (CT::Copyable<T>) {
 				meta->mCopier = [](const void* from, void* to) {
 					auto toInstance = static_cast<T*>(to);
 					auto fromInstance = static_cast<const T*>(from);
@@ -277,7 +275,7 @@ namespace Langulus::Anyness
 			}
 
 			// Wrap the move operator of the type inside a lambda				
-			if constexpr (IsMovable<T>) {
+			if constexpr (CT::Movable<T>) {
 				meta->mMover = [](void* from, void* to) {
 					auto toInstance = static_cast<T*>(to);
 					auto fromInstance = static_cast<T*>(from);
@@ -286,7 +284,7 @@ namespace Langulus::Anyness
 			}
 
 			// Wrap the GetBlock method of the type inside a lambda			
-			if constexpr (IsResolvable<T>) {
+			if constexpr (CT::Resolvable<T>) {
 				meta->mResolver = [](const void* at) {
 					auto instance = static_cast<const T*>(at);
 					return instance->GetBlock();
@@ -294,7 +292,7 @@ namespace Langulus::Anyness
 			}
 
 			// Wrap the GetHash() method inside a lambda							
-			if constexpr (IsHashable<T> || IsNumber<T> || IsPOD<T>) {
+			if constexpr (CT::Hashable<T> || CT::Number<T> || CT::POD<T>) {
 				meta->mHasher = [](const void* at) {
 					auto instance = static_cast<const T*>(at);
 					return HashData(*instance);
@@ -302,7 +300,7 @@ namespace Langulus::Anyness
 			}
 
 			// Wrap the Do verb method inside a lambda							
-			if constexpr (IsDispatcher<T>) {
+			if constexpr (CT::Dispatcher<T>) {
 				meta->mDispatcher = [](void* at, Flow::Verb& verb) {
 					auto instance = static_cast<T*>(at);
 					instance->Do(verb);
@@ -318,7 +316,7 @@ namespace Langulus::Anyness
 				meta->SetAbilities<T>(typename T::CTTI_Verbs {});
 
 			// Set some additional stuff if T is fundamental					
-			if constexpr (IsFundamental<T>)
+			if constexpr (CT::Fundamental<T>)
 				meta->ReflectFundamentalType<T>();
 
 			return meta.get();
@@ -327,25 +325,25 @@ namespace Langulus::Anyness
 
 	/// Integrate fundamental types with the reflection system						
 	/// Like, for example, implicitly adding a ANumber bases to number types	
-	template<IsFundamental T>
+	template<CT::Fundamental T>
 	void MetaData::ReflectFundamentalType() noexcept {
-		if constexpr (IsBool<T>) {
+		if constexpr (CT::Bool<T>) {
 			using Bases = TTypeList<ABool>;
 			SetBases<T>(Bases {});
 		}
-		else if constexpr (IsCharacter<T>) {
+		else if constexpr (CT::Character<T>) {
 			using Bases = TTypeList<AText>;
 			SetBases<T>(Bases {});
 		}
-		else if constexpr (IsSignedInteger<T>) {
+		else if constexpr (CT::SignedInteger<T>) {
 			using Bases = TTypeList<ASignedInteger>;
 			SetBases<T>(Bases {});
 		}
-		else if constexpr (IsUnsignedInteger<T>) {
+		else if constexpr (CT::UnsignedInteger<T>) {
 			using Bases = TTypeList<AUnsignedInteger>;
 			SetBases<T>(Bases {});
 		}
-		else if constexpr (IsReal<T>) {
+		else if constexpr (CT::Real<T>) {
 			using Bases = TTypeList<AReal>;
 			SetBases<T>(Bases {});
 		}
@@ -354,7 +352,7 @@ namespace Langulus::Anyness
 
    /// Set the list of bases for a given meta definition                      
    ///   @tparam Args... - all the bases                                      
-	template<class T, IsDense... BASE>
+	template<class T, CT::Dense... BASE>
 	void MetaData::SetBases(TTypeList<BASE...>) noexcept {
 		static Base list[] = {Base::From<T, BASE>()...};
 		mBases = {list};
@@ -362,7 +360,7 @@ namespace Langulus::Anyness
 
    /// Set the list of abilities for a given meta definition                  
    ///   @tparam Args... - all the abilities                                  
-	template<class T, IsDense... VERB>
+	template<class T, CT::Dense... VERB>
 	void MetaData::SetAbilities(TTypeList<VERB...>) noexcept {
 		static Ability list[] = {Ability::From<T, VERB>()...};
 		mAbilities = {list};
@@ -370,8 +368,8 @@ namespace Langulus::Anyness
 
    /// Set the list of members for a given meta definition                    
    ///   @tparam Args... - all the members                                    
-	template<IsDense... Args>
-	void MetaData::SetMembers(Args&&... items) noexcept requires (... && IsSame<Args, Member>) {
+	template<CT::Dense... Args>
+	void MetaData::SetMembers(Args&&... items) noexcept requires (... && CT::Same<Args, Member>) {
 		mMembers = {Forward<Member>(items)...};
 	}
 	
@@ -430,7 +428,7 @@ namespace Langulus::Anyness
 	///	@param offset - use this to get bases by index								
 	///	@param base - [in/out] base info ends up here if found					
 	///	@return true if a base is available												
-	template<ReflectedData T>
+	template<CT::Data T>
 	bool MetaData::GetBase(Offset offset, Base& base) const {
 		return GetBase(MetaData::Of<Decay<T>>(), offset, base);
 	}
@@ -452,7 +450,7 @@ namespace Langulus::Anyness
 	/// Traverses the whole inheritance tree, so can return distant bases		
 	///	@tparam T - the type of base to search for									
 	///	@return true if a base is available												
-	template<ReflectedData T>
+	template<CT::Data T>
 	bool MetaData::HasBase() const {
 		return HasBase(MetaData::Of<T>());
 	}
@@ -469,7 +467,7 @@ namespace Langulus::Anyness
 	/// Traverses the whole inheritance tree, so can return distant bases		
 	///	@tparam T - the type of derivation to search for							
 	///	@return true if a base is available												
-	template<ReflectedData T>
+	template<CT::Data T>
 	bool MetaData::HasDerivation() const {
 		return MetaData::Of<T>()->HasBase(this);
 	}
@@ -489,7 +487,7 @@ namespace Langulus::Anyness
 	/// Check if this data type is able to do something								
 	///	@tparam T - the verb to check if able											
 	///	@return true if this data type is able to do verb							
-	template<ReflectedVerb T>
+	template<CT::Verb T>
 	bool MetaData::IsAbleTo() const {
 		return IsAbleTo(MetaVerb::Of<T>());
 	}
@@ -520,7 +518,7 @@ namespace Langulus::Anyness
 	/// Check if this type interprets as another without conversion				
 	///	@tparam T - the type to try interpreting as									
 	///	@return true if this type interprets as other								
-	template<ReflectedData T, bool ADVANCED>
+	template<CT::Data T, bool ADVANCED>
 	bool MetaData::CastsTo() const {
 		return CastsTo<ADVANCED>(MetaData::Of<Decay<T>>());
 	}
@@ -559,7 +557,7 @@ namespace Langulus::Anyness
 	/// conversion																					
 	///	@tparam T - the type to try interpreting as									
 	///	@return true if this type interprets as other								
-	template<ReflectedData T>
+	template<CT::Data T>
 	bool MetaData::CastsTo(Count count) const {
 		return CastsTo(MetaData::Of<T>(), count);
 	}
@@ -574,7 +572,7 @@ namespace Langulus::Anyness
 	/// Check if this type is either same, base or a derivation of other			
 	///	@tparam T - the type to check														
 	///	@return true if this type is related to other								
-	template<ReflectedData T>
+	template<CT::Data T>
 	bool MetaData::IsRelatedTo() const {
 		return IsRelatedTo(MetaData::Of<T>());
 	}
@@ -603,7 +601,7 @@ namespace Langulus::Anyness
 	/// Get the number of conversions required to map one type to another		
 	///	@tparam T - the type to check distance to										
 	///	@return the distance																	
-	template<ReflectedData T>
+	template<CT::Data T>
 	MetaData::Distance MetaData::GetDistanceTo() const {
 		return GetDistanceTo(MetaData::Of<T>());
 	}
@@ -626,7 +624,7 @@ namespace Langulus::Anyness
 	/// Check if two meta definitions match exactly										
 	///	@tparam T - the type to compare against										
 	///	@return true if types match														
-	template<ReflectedData T>
+	template<CT::Data T>
 	constexpr bool MetaData::Is() const {
 		return Is(MetaData::Of<Decay<T>>());
 	}
@@ -664,7 +662,7 @@ namespace Langulus::Anyness
 	/// Check if two meta definitions match exactly										
 	///	@tparam T - the trait to compare against										
 	///	@return true if traits match														
-	template<ReflectedTrait T>
+	template<CT::Trait T>
 	constexpr bool MetaTrait::Is() const {
 		return Is(MetaTrait::Of<T>());
 	}	
@@ -692,7 +690,7 @@ namespace Langulus::Anyness
    /// Check if two meta definitions match exactly										
 	///	@tparam T - the verb to compare against										
 	///	@return true if verbs match														
-	template<ReflectedVerb T>
+	template<CT::Verb T>
 	constexpr bool MetaVerb::Is() const {
 		return Is(MetaVerb::Of<T>());
 	}
@@ -702,13 +700,19 @@ namespace Langulus::Anyness
 
 namespace Langulus::RTTI
 {
-	template<Anyness::ReflectedData T, bool ADVANCED>
+
+	/// A freestanding type compatibility check											
+	/// Purely cosmetic, to avoid typing `template` before member function		
+	template<CT::Data T, bool ADVANCED>
 	bool CastsTo(Anyness::DMeta from) {
 		return from->template CastsTo<T, ADVANCED>();
 	}
 
-	template<Anyness::ReflectedData T>
+	/// A freestanding type compatibility check											
+	/// Purely cosmetic, to avoid typing `template` before member function		
+	template<CT::Data T>
 	bool CastsTo(Anyness::DMeta from, Count count) {
 		return from->template CastsTo<T>(count);
 	}
+	
 } // namespace Langulus::RTTI

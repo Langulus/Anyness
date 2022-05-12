@@ -28,26 +28,26 @@ namespace Langulus::Anyness
 	/// Data will be cloned if we don't have authority over the memory			
 	///	@param text - text memory to reference											
 	///	@param count - number of characters inside text								
-	template<IsDense T>
-	inline Text::Text(const T* text, const Count& count) requires IsCharacter<T>
+	template<CT::Dense T>
+	inline Text::Text(const T* text, const Count& count) requires CT::Character<T>
 		: TAny {text, count} { }
 
-	template<IsDense T, Count C>
-	inline Text::Text(const T(&text)[C]) requires IsCharacter<T>
+	template<CT::Dense T, Count C>
+	inline Text::Text(const T(&text)[C]) requires CT::Character<T>
 		: TAny {text, C - 1} { }
 
 	/// Construct from a single character													
 	/// Data will be cloned if we don't have authority over the memory			
 	///	@param anyCharacter - the character to stringify							
-	template<IsDense T>
-	Text::Text(const T& anyCharacter) requires IsCharacter<T>
+	template<CT::Dense T>
+	Text::Text(const T& anyCharacter) requires CT::Character<T>
 		: Text {&anyCharacter, 1} {}
 
 	/// Convert a number type to text														
 	///	@param from - the number to stringify											
-	template<IsDense T>
-	Text::Text(const T& number) requires IsNumber<T> {
-		if constexpr (IsReal<T>) {
+	template<CT::Dense T>
+	Text::Text(const T& number) requires CT::Number<T> {
+		if constexpr (CT::Real<T>) {
 			// Stringify a real number													
 			constexpr auto size = ::std::numeric_limits<T>::max_digits10 * 2;
 			char temp[size];
@@ -63,7 +63,7 @@ namespace Langulus::Anyness
 
 			(*this) = Text {temp, lastChar - temp};
 		}
-		else if constexpr (IsInteger<T>) {
+		else if constexpr (CT::Integer<T>) {
 			// Stringify an integer														
 			constexpr auto size = ::std::numeric_limits<T>::digits10 * 2;
 			char temp[size];
@@ -85,8 +85,8 @@ namespace Langulus::Anyness
 	/// Construct from null-terminated UTF text											
 	/// Data will be cloned if we don't have authority over the memory			
 	///	@param nullterminatedText - text memory to reference						
-	template<IsDense T>
-	inline Text::Text(const T* nullterminatedText) requires IsCharacter<T>
+	template<CT::Dense T>
+	inline Text::Text(const T* nullterminatedText) requires CT::Character<T>
 		: Text {nullterminatedText, ::std::strlen(nullterminatedText)} {}
 
 	/// Interpret text container as a literal												

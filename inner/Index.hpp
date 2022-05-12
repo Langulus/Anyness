@@ -76,9 +76,9 @@ namespace Langulus::Anyness
 		constexpr Index() noexcept = default;
 		constexpr Index(const Index&) noexcept = default;
 		constexpr Index(const SpecialIndices&) noexcept;
-		template<IsSignedInteger T>
+		template<CT::SignedInteger T>
 		constexpr Index(const T&) noexcept;
-		template<IsUnsignedInteger T>
+		template<CT::UnsignedInteger T>
 		constexpr Index(const T&);
 
 	public:

@@ -129,7 +129,7 @@ namespace Langulus::Anyness
 						<< ccRed << "(slowest)");
 				}
 				else if (from.mType->mIsPOD) {
-					// Just memcpy simple IsPOD data									
+					// Just memcpy simple CT::POD data									
 					to.Allocate<false>(1);
 					to.mCount = 1;
 					

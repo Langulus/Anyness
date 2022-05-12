@@ -1,7 +1,6 @@
 #include "TestMain.hpp"
 #include <catch2/catch.hpp>
 #include <unordered_map>
-#include <iostream>
 
 using uint = unsigned int;
 using MapType = unordered_map<Text, int>;
@@ -31,15 +30,14 @@ SCENARIO("THashMap", "[containers]") {
 				REQUIRE(meta2);
 				REQUIRE(meta1->Is<Text>());
 				REQUIRE(meta2->Is<int>());
-				//REQUIRE(map.IsTypeConstrained());
-				//REQUIRE(map.GetRaw() == nullptr);
+				REQUIRE(map.IsKeyTypeConstrained());
+				REQUIRE(map.IsValueTypeConstrained());
 				REQUIRE(map.IsEmpty());
-				//REQUIRE_FALSE(map.IsAllocated());
+				REQUIRE_FALSE(map.IsAllocated());
 			}
 
-			//#ifdef LANGULUS_STD_BENCHMARK // Last result: 
+			#ifdef LANGULUS_STD_BENCHMARK // Last result: hundreds of times faster than STD
 				BENCHMARK_ADVANCED("Anyness::THashMap::default construction") (Catch::Benchmark::Chronometer meter) {
-					std::cout << "Doing " << meter.runs() << " constructions, " << sizeof(MapType) << " bytes each\n";
 					std::vector<Catch::Benchmark::storage_for<MapType>> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i].construct();
@@ -52,19 +50,20 @@ SCENARIO("THashMap", "[containers]") {
 						return storage[i].construct();
 					});
 				};
-			//#endif
+			#endif
 		}
 
 		WHEN("Given a pair by copy") {
 			map = value;
 
 			THEN("Various traits change") {
+				REQUIRE(map.IsAllocated());
 				REQUIRE(map.GetCount() == 1);
 				REQUIRE(map["five hundred"] == 555);
 				REQUIRE_THROWS(map["missing"] == 555);
 			}
 
-			//#ifdef LANGULUS_STD_BENCHMARK // Last result: 
+			#ifdef LANGULUS_STD_BENCHMARK // Last result: 2:1 due to RTTI
 				BENCHMARK_ADVANCED("Anyness::THashMap::operator = (single pair copy)") (Catch::Benchmark::Chronometer meter) {
 					std::vector<MapType> storage(meter.runs());
 					meter.measure([&](int i) {
@@ -78,34 +77,39 @@ SCENARIO("THashMap", "[containers]") {
 						return storage[i].insert(valueStd);
 					});
 				};
-			//#endif
+			#endif
 		}
 
 		WHEN("Given a pair by move") {
 			map = Move(value);
 
 			THEN("Various traits change") {
-				/*REQUIRE(map.GetType() == meta);
-				REQUIRE(map.Is<int>());
-				REQUIRE(map.GetRaw() != nullptr);
-				REQUIRE(map.As<int>() == value);
-				REQUIRE_THROWS(map.As<float>() == float(value));
-				REQUIRE(*map.As<int*>() == value);
-				REQUIRE_THROWS(map.As<float*>() == nullptr);*/
+				REQUIRE(map.IsAllocated());
+				REQUIRE(map.GetCount() == 1);
+				REQUIRE(map["five hundred"] == 555);
+				REQUIRE_THROWS(map["missing"] == 555);
 			}
 
-			#ifdef LANGULUS_STD_BENCHMARK // Last result: 
-				BENCHMARK_ADVANCED("Anyness::THashMap::operator = (single trivial move)") (Catch::Benchmark::Chronometer meter) {
+			#ifdef LANGULUS_STD_BENCHMARK // Last result: 2:1 due to RTTI
+				BENCHMARK_ADVANCED("Anyness::THashMap::operator = (single pair copy)") (Catch::Benchmark::Chronometer meter) {
+					std::vector<MapType::Pair> source(meter.runs());
+					for(auto& i : source)
+						i = value;
+						
 					std::vector<MapType> storage(meter.runs());
 					meter.measure([&](int i) {
-						return storage[i] = Move(value);
+						return storage[i] = Move(source[i]);
 					});
 				};
 
-				BENCHMARK_ADVANCED("std::unordered_map::operator = (single trivial move)") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("std::unordered_map::insert(single pair copy)") (Catch::Benchmark::Chronometer meter) {
+					std::vector<StdPair> source(meter.runs());
+					for(auto& i : source)
+						i = valueStd;
+
 					std::vector<MapTypeStd> storage(meter.runs());
 					meter.measure([&](int i) {
-						return storage[i] = {Move(value)};
+						return storage[i].emplace(Move(source[i]));
 					});
 				};
 			#endif
@@ -152,13 +156,16 @@ SCENARIO("THashMap", "[containers]") {
 		//REQUIRE(map.GetReserved() >= 5);
 		REQUIRE(map.KeyIs<Text>());
 		REQUIRE(map.ValueIs<int>());
+		REQUIRE_FALSE(map.KeyIs<int>());
+		REQUIRE_FALSE(map.KeyIs<char>());
+		REQUIRE_FALSE(map.ValueIs<float>());
+		REQUIRE_FALSE(map.ValueIs<unsigned char>());
 		//REQUIRE(map.GetRaw());
 		REQUIRE(map["one"] == 1);
 		REQUIRE(map["two"] == 2);
 		REQUIRE(map["three"] == 3);
 		REQUIRE(map["four"] == 4);
 		REQUIRE(map["five"] == 5);
-		//REQUIRE_FALSE(map.IsConstant());
 
 		WHEN("Shallow-copy more of the same stuff") {
 			map << darray2[0] << darray2[1] << darray2[2] << darray2[3] << darray2[4];
@@ -183,7 +190,7 @@ SCENARIO("THashMap", "[containers]") {
 				REQUIRE(map.Is<int>());*/
 			}
 
-			//#ifdef LANGULUS_STD_BENCHMARK // Last result: 
+			#ifdef LANGULUS_STD_BENCHMARK // Last result: 1:1
 				BENCHMARK_ADVANCED("Anyness::THashMap::operator << (5 consecutive pair copies)") (Catch::Benchmark::Chronometer meter) {
 					std::vector<MapType> storage(meter.runs());
 					for (auto& i : storage)
@@ -213,6 +220,7 @@ SCENARIO("THashMap", "[containers]") {
 					});
 				};
 
+				// Last result: 1:1
 				BENCHMARK_ADVANCED("Anyness::THashMap::operator [] (retrieval by key from a map with 10 pairs)") (Catch::Benchmark::Chronometer meter) {
 					std::vector<MapType> storage(meter.runs());
 					for (auto& i : storage) {
@@ -244,7 +252,7 @@ SCENARIO("THashMap", "[containers]") {
 						return storage[i]["seven"];
 					});
 				};
-			//#endif
+			#endif
 		}
 
 		WHEN("Move more of the same stuff") {
@@ -286,90 +294,6 @@ SCENARIO("THashMap", "[containers]") {
 						storage[i].emplace_back(Move(darray2[2]));
 						storage[i].emplace_back(Move(darray2[3]));
 						return storage[i].emplace_back(Move(darray2[4]));
-					});
-				};
-			#endif
-		}
-
-		WHEN("Insert more trivial items at a specific place by shallow-copy") {
-			map.Insert({"number of the beast", 666});
-
-			THEN("The size changes, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
-				REQUIRE(map.GetCount() == 6);
-				REQUIRE(map["one"] == 1);
-				REQUIRE(map["two"] == 2);
-				REQUIRE(map["three"] == 3);
-				REQUIRE(map["four"] == 4);
-				REQUIRE(map["five"] == 5);
-				REQUIRE(map["number of the beast"] == 666);
-
-				/*REQUIRE(map.GetReserved() >= 6);
-				#if LANGULUS_FEATURE(MANAGED_MEMORY)
-					REQUIRE(map.GetRaw() == memory);
-				#endif
-				REQUIRE(map.Is<int>());*/
-			}
-
-			#ifdef LANGULUS_STD_BENCHMARK // Last result: 
-				BENCHMARK_ADVANCED("Anyness::THashMap::Insert(single copy in middle)") (Catch::Benchmark::Chronometer meter) {
-					std::vector<MapType> storage(meter.runs());
-					for (auto&& o : storage)
-						o << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
-
-					meter.measure([&](int i) {
-						return storage[i].Insert(i666, 1, 3);
-					});
-				};
-
-				BENCHMARK_ADVANCED("std::unordered_map::insert(single copy in middle)") (Catch::Benchmark::Chronometer meter) {
-					std::vector<MapTypeStd> storage(meter.runs());
-					for (auto&& o : storage)
-						o = {darray1[0], darray1[1], darray1[2], darray1[3], darray1[4]};
-
-					meter.measure([&](int i) {
-						return storage[i].insert(storage[i].begin() + 3, i666d);
-					});
-				};
-			#endif
-		}
-
-		WHEN("Insert more trivial items") {
-			map.Emplace("number of the beast", 666);
-
-			THEN("The size changes, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
-				REQUIRE(map.GetCount() == 6);
-				REQUIRE(map["one"] == 1);
-				REQUIRE(map["two"] == 2);
-				REQUIRE(map["three"] == 3);
-				REQUIRE(map["four"] == 4);
-				REQUIRE(map["five"] == 5);
-				REQUIRE(map["number of the beast"] == 666);
-
-				/*REQUIRE(map.GetReserved() >= 6);
-				#if LANGULUS_FEATURE(MANAGED_MEMORY)
-					REQUIRE(map.GetRaw() == memory);
-				#endif
-				REQUIRE(map.Is<int>());*/
-			}
-
-			#ifdef LANGULUS_STD_BENCHMARK // Last result: 
-				BENCHMARK_ADVANCED("Anyness::THashMap::Emplace(single move in middle)") (Catch::Benchmark::Chronometer meter) {
-					std::vector<MapType> storage(meter.runs());
-					for (auto&& o : storage)
-						o << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
-
-					meter.measure([&](int i) {
-						return storage[i].Emplace(Move(i666d), 3);
-					});
-				};
-
-				BENCHMARK_ADVANCED("std::unordered_map::insert(single move in middle)") (Catch::Benchmark::Chronometer meter) {
-					std::vector<MapTypeStd> storage(meter.runs());
-					for (auto&& o : storage)
-						o = {darray1[0], darray1[1], darray1[2], darray1[3], darray1[4]};
-
-					meter.measure([&](int i) {
-						return storage[i].insert(storage[i].begin() + 3, Move(i666d));
 					});
 				};
 			#endif
@@ -493,25 +417,33 @@ SCENARIO("THashMap", "[containers]") {
 			}
 		}
 
-		WHEN("Pack is cleared") {
+		WHEN("Map is cleared") {
 			map.Clear();
 
-			THEN("Size goes to zero, capacity and type are unchanged") {
+			THEN("Size goes to zero, capacity and types are unchanged") {
 				REQUIRE(map.GetCount() == 0);
+				REQUIRE(map.IsAllocated());
+				REQUIRE(map.KeyIs<Text>());
+				REQUIRE(map.ValueIs<int>());
+				REQUIRE(map.IsKeyTypeConstrained());
+				REQUIRE(map.IsValueTypeConstrained());
+				REQUIRE(map.IsEmpty());
 				/*REQUIRE(map.GetReserved() >= 5);
-				REQUIRE(map.GetRaw() == memory);
-				REQUIRE(map.Is<int>());*/
+				REQUIRE(map.GetRaw() == memory);*/
 			}
 		}
 
-		WHEN("Pack is reset") {
+		WHEN("Map is reset") {
 			map.Reset();
 
-			THEN("Size and capacity goes to zero, type is unchanged, because it's a templated container") {
-				/*REQUIRE(map.GetCount() == 0);
-				REQUIRE(map.GetReserved() == 0);
-				REQUIRE(map.GetRaw() == nullptr);
-				REQUIRE(map.Is<int>());*/
+			THEN("Size and capacity goes to zero, types are unchanged") {
+				REQUIRE(map.GetCount() == 0);
+				REQUIRE_FALSE(map.IsAllocated());
+				REQUIRE(map.KeyIs<Text>());
+				REQUIRE(map.ValueIs<int>());
+				REQUIRE(map.IsKeyTypeConstrained());
+				REQUIRE(map.IsValueTypeConstrained());
+				REQUIRE(map.IsEmpty());
 			}
 		}
 
@@ -526,10 +458,10 @@ SCENARIO("THashMap", "[containers]") {
 			}
 		#endif
 
-		WHEN("Pack is shallow-copied") {
+		WHEN("Map is shallow-copied") {
 			auto copy = map;
 
-			THEN("The new pack should keep the state and data") {
+			THEN("The new map should keep the state and refer to original data") {
 				/*REQUIRE(copy.GetRaw() == map.GetRaw());
 				REQUIRE(copy.GetCount() == map.GetCount());
 				REQUIRE(copy.GetReserved() == map.GetReserved());
@@ -539,10 +471,10 @@ SCENARIO("THashMap", "[containers]") {
 			}
 		}
 
-		WHEN("Pack is cloned") {
+		WHEN("Map is cloned") {
 			auto clone = map.Clone();
 
-			THEN("The new pack should keep the state and data") {
+			THEN("The new map should keep the state, but refer to new data") {
 				/*REQUIRE(clone.GetRaw() != map.GetRaw());
 				REQUIRE(clone.GetCount() == map.GetCount());
 				REQUIRE(clone.GetReserved() >= clone.GetCount());
@@ -553,7 +485,7 @@ SCENARIO("THashMap", "[containers]") {
 			}
 		}
 
-		WHEN("Pack is moved") {
+		WHEN("Map is move-constructed") {
 			MapType moved = Move(map);
 
 			THEN("The new pack should keep the state and data") {
@@ -565,29 +497,27 @@ SCENARIO("THashMap", "[containers]") {
 			}
 		}
 
-		WHEN("Packs are compared") {
-			/*MapType another_pack1;
-			another_pack1 << int(1) << int(2) << int(3) << int(4) << int(5);
-			MapType another_pack2;
-			another_pack2 << int(2) << int(2) << int(3) << int(4) << int(5);
-			MapType another_pack3;
-			another_pack3 << int(1) << int(2) << int(3) << int(4) << int(5) << int(6);
-			THashMap<Text,uint> another_pack4;
-			another_pack4 << uint(1) << uint(2) << uint(3) << uint(4) << uint(5);
+		WHEN("Maps are compared") {
+			MapType sameMap;
+			sameMap << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
+			MapType clonedMap {map.Clone()};
+			MapType copiedMap {map};
+			MapType differentMap1;
+			differentMap1 << darray1[0] << darray1[0] << darray1[2] << darray1[3] << darray1[4];
+			MapType differentMap2;
+			differentMap2 << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4] << darray1[4];
 
-			Map another_pack5;
-			another_pack5 << int(1) << int(2) << int(3) << int(4) << int(5);
 			THEN("The comparisons should be adequate") {
-				REQUIRE(map == another_pack1);
-				REQUIRE(map != another_pack2);
-				REQUIRE(map != another_pack3);
-				REQUIRE(map != another_pack4);
-				REQUIRE(map == another_pack5);
-			}*/
+				REQUIRE(map == sameMap);
+				REQUIRE(map == clonedMap);
+				REQUIRE(map == copiedMap);
+				REQUIRE(map != differentMap1);
+				REQUIRE(map != differentMap2);
+			}
 		}
 	}
 
-	GIVEN("Two templated Any with some POD items") {
+	GIVEN("Two THashMaps") {
 		TAny<int> pack1;
 		TAny<int> pack2;
 		pack1 << int(1) << int(2) << int(3) << int(4) << int(5);

@@ -40,7 +40,7 @@ namespace Langulus::Anyness
 
 		NOD() Map Clone() const;
 
-		template<ReflectedData KEY, ReflectedData VALUE>
+		template<CT::Data KEY, CT::Data VALUE>
 		NOD() static Map From(const DataState& = {}) noexcept;
 
 		void Clear();
@@ -49,61 +49,61 @@ namespace Langulus::Anyness
 		NOD() inline DMeta KeyType() const;
 		NOD() inline DMeta ValueType() const;
 
-		template<ReflectedData KEY>
+		template<CT::Data KEY>
 		NOD() Index FindKey(const KEY&) const;
 
-		template<ReflectedData VALUE>
+		template<CT::Data VALUE>
 		NOD() Index FindValue(const VALUE&) const;
 
-		template<ReflectedData KEY, ReflectedData VALUE>
+		template<CT::Data KEY, CT::Data VALUE>
 		NOD() auto GetPair(const Index&);
 
-		template<ReflectedData KEY, ReflectedData VALUE>
+		template<CT::Data KEY, CT::Data VALUE>
 		NOD() auto GetPair(const Index&) const;
 
-		template<ReflectedData KEY, ReflectedData VALUE>
+		template<CT::Data KEY, CT::Data VALUE>
 		NOD() auto GetPair(Offset);
 
-		template<ReflectedData KEY, ReflectedData VALUE>
+		template<CT::Data KEY, CT::Data VALUE>
 		NOD() auto GetPair(Offset) const;
 
-		template<ReflectedData KEY, ReflectedData VALUE>
+		template<CT::Data KEY, CT::Data VALUE>
 		NOD() bool IsMapInsertable();
 
-		template<ReflectedData>
+		template<CT::Data>
 		NOD() decltype(auto) GetKey(const Index&) const;
-		template<ReflectedData>
+		template<CT::Data>
 		NOD() decltype(auto) GetKey(const Index&);
-		template<ReflectedData>
+		template<CT::Data>
 		NOD() decltype(auto) GetKey(Offset) const;
-		template<ReflectedData>
+		template<CT::Data>
 		NOD() decltype(auto) GetKey(Offset);
 
-		template<ReflectedData>
+		template<CT::Data>
 		NOD() decltype(auto) GetValue(const Index&) const;
-		template<ReflectedData>
+		template<CT::Data>
 		NOD() decltype(auto) GetValue(const Index&);
-		template<ReflectedData>
+		template<CT::Data>
 		NOD() decltype(auto) GetValue(Offset) const;
-		template<ReflectedData>
+		template<CT::Data>
 		NOD() decltype(auto) GetValue(Offset);
 
-		template<ReflectedData K, ReflectedData V>
+		template<CT::Data K, CT::Data V>
 		Count Emplace(TPair<K, V>&&, const Index& = Index::Back);
 
-		template<ReflectedData K, ReflectedData V>
+		template<CT::Data K, CT::Data V>
 		Count Insert(const TPair<K, V>*, const Count& = 1, const Index& = Index::Back);
 
-		template<ReflectedData K, ReflectedData V>
+		template<CT::Data K, CT::Data V>
 		Map& operator << (const TPair<K, V>&);
 
-		template<ReflectedData K, ReflectedData V>
+		template<CT::Data K, CT::Data V>
 		Map& operator << (TPair<K, V>&&);
 
-		template<ReflectedData K, ReflectedData V>
+		template<CT::Data K, CT::Data V>
 		Map& operator >> (const TPair<K, V>&);
 
-		template<ReflectedData K, ReflectedData V>
+		template<CT::Data K, CT::Data V>
 		Map& operator >> (TPair<K, V>&&);
 
 		template<class F>
@@ -116,17 +116,17 @@ namespace Langulus::Anyness
 		Count ForEachPairRev(F&&) const;
 
 	protected:
-		template<class R, ReflectedData ALT_KEY, ReflectedData ALT_VALUE, bool REVERSE>
+		template<class R, CT::Data ALT_KEY, CT::Data ALT_VALUE, bool REVERSE>
 		Count ForEachPairInner(TFunctor<R(ALT_KEY, ALT_VALUE)>&&);
 
-		template<class R, ReflectedData ALT_KEY, ReflectedData ALT_VALUE, bool REVERSE>
+		template<class R, CT::Data ALT_KEY, CT::Data ALT_VALUE, bool REVERSE>
 		Count ForEachPairInner(TFunctor<R(ALT_KEY, ALT_VALUE)>&&) const;
 
 		/// This function declaration is used to decompose a lambda					
 		/// You can use it to extract the argument type of the lambda, using		
 		/// decltype on the return type. Useful for template deduction in the	
 		/// ForEach functions above, purely for convenience							
-		template<class R, class FUNCTION, ReflectedData ALT_KEY, ReflectedData ALT_VALUE>
+		template<class R, class FUNCTION, CT::Data ALT_KEY, CT::Data ALT_VALUE>
 		TPair<ALT_KEY, ALT_VALUE> GetLambdaArguments(R(FUNCTION::*)(ALT_KEY, ALT_VALUE) const) const;
 	};
 

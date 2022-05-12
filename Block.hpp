@@ -11,26 +11,26 @@ namespace Langulus::Anyness
 	
 	/// Predeclarations																			
 	class Any;
-	template<ReflectedData T>
+	template<CT::Data T>
 	class TAny;
 	
 	class Map;
-	template<ReflectedData K, ReflectedData V>
+	template<CT::Data K, CT::Data V>
 	class TMap;
-	template<ReflectedData K, ReflectedData V>
+	template<CT::Data K, CT::Data V>
 	class THashMap;
 	
 	class Set;
-	template<ReflectedData T>
+	template<CT::Data T>
 	class TSet;
 	
 	class Bytes;
 	class Text;
 	class Path;
 	
-	template<ReflectedData T>
+	template<CT::Data T>
 	class TOwned;
-	template<ReflectedData T, bool REFERENCED>
+	template<CT::Data T, bool REFERENCED>
 	class TPointer;
 
 	/// Compression types, analogous to zlib's											
@@ -69,26 +69,26 @@ namespace Langulus::Anyness
 		LANGULUS(DEEP) true;
 
 		friend class Any;
-		template<ReflectedData T>
+		template<CT::Data T>
 		friend class TAny;
 
 		friend class Map;
-		template<ReflectedData K, ReflectedData V>
+		template<CT::Data K, CT::Data V>
 		friend class TMap;
-		template<ReflectedData K, ReflectedData V>
+		template<CT::Data K, CT::Data V>
 		friend class THashMap;
 
 		friend class Set;
-		template<ReflectedData T>
+		template<CT::Data T>
 		friend class TSet;
 
 		friend class Bytes;
 		friend class Text;
 		friend class Path;
 
-		template<ReflectedData T>
+		template<CT::Data T>
 		friend class TOwned;
-		template<ReflectedData T, bool REFERENCED>
+		template<CT::Data T, bool REFERENCED>
 		friend class TPointer;
 
 	protected:
@@ -103,9 +103,9 @@ namespace Langulus::Anyness
 	
 		// The data state																	
 		DataState mState {DataState::Default};
-		// IsNumber of written instances inside memory block					
+		// CT::Number of written instances inside memory block					
 		Count mCount {};
-		// IsNumber of allocated instances in the memory block				
+		// CT::Number of allocated instances in the memory block				
 		Count mReserved {};
 		// Type of the instances inside the memory block						
 		DMeta mType {};
@@ -132,13 +132,13 @@ namespace Langulus::Anyness
 		Block(const DataState&, DMeta, Count, const void*, Entry*) noexcept;
 		Block(const DataState&, DMeta, Count, void*, Entry*) noexcept;
 	
-		template<ReflectedData T, bool CONSTRAIN = false>
-		NOD() static Block From(T) requires Langulus::IsSparse<T>;
-		template<ReflectedData T, bool CONSTRAIN = false>
-		NOD() static Block From(T, Count) requires Langulus::IsSparse<T>;
-		template<ReflectedData T, bool CONSTRAIN = false>
-		NOD() static Block From(T&) requires Langulus::IsDense<T>;
-		template<ReflectedData T, bool CONSTRAIN = false>
+		template<CT::Data T, bool CONSTRAIN = false>
+		NOD() static Block From(T) requires CT::Sparse<T>;
+		template<CT::Data T, bool CONSTRAIN = false>
+		NOD() static Block From(T, Count) requires CT::Sparse<T>;
+		template<CT::Data T, bool CONSTRAIN = false>
+		NOD() static Block From(T&) requires CT::Dense<T>;
+		template<CT::Data T, bool CONSTRAIN = false>
 		NOD() static Block From();
 
 		constexpr Block& operator = (const Block&) noexcept = default;
@@ -150,7 +150,7 @@ namespace Langulus::Anyness
 	public:
 		template<bool SPARSE, bool CONSTRAIN>
 		void SetType(DMeta);
-		template<ReflectedData T, bool CONSTRAIN>
+		template<CT::Data T, bool CONSTRAIN>
 		void SetType();
 	
 		constexpr void SetPhase(const Phase) noexcept;
@@ -199,20 +199,20 @@ namespace Langulus::Anyness
 		
 		NOD() constexpr bool IsMissingDeep() const;
 		
-		template<ReflectedData T>
+		template<CT::Data T>
 		NOD() T* GetRawAs() noexcept;
-		template<ReflectedData T>
+		template<CT::Data T>
 		NOD() const T* GetRawAs() const noexcept;
 		
-		template<ReflectedData T>
+		template<CT::Data T>
 		NOD() T* GetRawEndAs() noexcept;
-		template<ReflectedData T>
+		template<CT::Data T>
 		NOD() const T* GetRawEndAs() const noexcept;
 
 		NOD() bool IsConcatable(const Block&) const noexcept;
 		
 		NOD() bool IsInsertable(DMeta) const noexcept;
-		template<ReflectedData T>
+		template<CT::Data T>
 		NOD() bool IsInsertable() const noexcept;
 	
 		NOD() bool operator == (const Block&) const noexcept;
@@ -221,24 +221,24 @@ namespace Langulus::Anyness
 		NOD() Byte* At(const Offset& = 0);
 		NOD() const Byte* At(const Offset& = 0) const;
 	
-		template<ReflectedData T>
+		template<CT::Data T>
 		NOD() decltype(auto) Get(const Offset& = 0, const Offset& = 0);
-		template<ReflectedData T>
+		template<CT::Data T>
 		NOD() decltype(auto) Get(const Offset& = 0, const Offset& = 0) const;
 	
-		template<ReflectedData T>
+		template<CT::Data T>
 		NOD() decltype(auto) As(const Offset& = 0);
-		template<ReflectedData T>
+		template<CT::Data T>
 		NOD() decltype(auto) As(const Offset& = 0) const;
 	
-		template<ReflectedData T>
+		template<CT::Data T>
 		NOD() decltype(auto) As(const Index&);
-		template<ReflectedData T>
+		template<CT::Data T>
 		NOD() decltype(auto) As(const Index&) const;
 	
-		template<ReflectedData T, bool FATAL_FAILURE = true>
+		template<CT::Data T, bool FATAL_FAILURE = true>
 		NOD() T AsCast(Index) const;
-		template<ReflectedData T, bool FATAL_FAILURE = true>
+		template<CT::Data T, bool FATAL_FAILURE = true>
 		NOD() T AsCast() const;
 	
 		NOD() Block GetElementDense(Offset);
@@ -285,14 +285,14 @@ namespace Langulus::Anyness
 		void CheckRange(const Offset& start, const Count& count) const;
 		
 	private:
-		template<class R, ReflectedData A, bool REVERSE, bool MUTABLE = true>
+		template<class R, CT::Data A, bool REVERSE, bool MUTABLE = true>
 		Count ForEachInner(TFunctor<R(A)>&&);
-		template<class R, ReflectedData A, bool REVERSE>
+		template<class R, CT::Data A, bool REVERSE>
 		Count ForEachInner(TFunctor<R(A)>&&) const;
 	
-		template<class R, ReflectedData A, bool REVERSE, bool SKIP, bool MUTABLE = true>
+		template<class R, CT::Data A, bool REVERSE, bool SKIP, bool MUTABLE = true>
 		Count ForEachDeepInner(TFunctor<R(A)>&&);
-		template<class R, ReflectedData A, bool REVERSE, bool SKIP>
+		template<class R, CT::Data A, bool REVERSE, bool SKIP>
 		Count ForEachDeepInner(TFunctor<R(A)>&&) const;
 	
 		/// This function declaration is used to decompose a lambda				
@@ -325,9 +325,9 @@ namespace Langulus::Anyness
 		NOD() Block GetBaseMemory(const Base&) const;
 		NOD() Block GetBaseMemory(const Base&);
 	
-		template<ReflectedData T, Anyness::IsDeep WRAPPER>
+		template<CT::Data T, CT::Deep WRAPPER>
 		NOD() bool Mutate();
-		template<Anyness::IsDeep WRAPPER>
+		template<CT::Deep WRAPPER>
 		NOD() bool Mutate(DMeta);
 
 		constexpr void MakeMissing() noexcept;
@@ -362,42 +362,42 @@ namespace Langulus::Anyness
 	
 		NOD() Hash GetHash() const;
 	
-		template<ReflectedData T>
+		template<CT::Data T>
 		NOD() Index Find(const T&, const Index& = Index::Front) const;
 	
-		template<ReflectedData T>
+		template<CT::Data T>
 		NOD() Index FindDeep(const T&, const Index& = Index::Front) const;
 		NOD() Index FindRTTI(const Block&, const Index& = Index::Front) const;
 	
 		Count Gather(Block&, Index = Index::Front) const;
 		Count Gather(Block&, Phase, Index = Index::Front) const;
 	
-		template<ReflectedData T>
+		template<CT::Data T>
 		void Swap(Offset, Offset);
-		template<ReflectedData T>
+		template<CT::Data T>
 		void Swap(Index, Index);
 	
-		template<ReflectedData T, bool MUTABLE = true, ReflectedData WRAPPER>
+		template<CT::Data T, bool MUTABLE = true, CT::Data WRAPPER>
 		Count Emplace(T&&, const Index& = Index::Back);
 	
-		template<ReflectedData T, bool MUTABLE = true, ReflectedData WRAPPER>
+		template<CT::Data T, bool MUTABLE = true, CT::Data WRAPPER>
 		Count Insert(const T*, Count = 1, const Index& = Index::Back);
 		Count InsertBlock(const Block&, const Index& = Index::Back);
 		Count InsertBlock(Block&&, const Index& = Index::Back);
 	
-		template<bool ALLOW_CONCAT = true, bool ALLOW_DEEPEN = true, ReflectedData T, Anyness::IsDeep WRAPPER = Any>
+		template<bool ALLOW_CONCAT = true, bool ALLOW_DEEPEN = true, CT::Data T, CT::Deep WRAPPER = Any>
 		Count SmartPush(T&, DataState = {}, Index = Index::Back);
-		template<bool ALLOW_CONCAT = true, bool ALLOW_DEEPEN = true, ReflectedData T, Anyness::IsDeep WRAPPER = Any>
+		template<bool ALLOW_CONCAT = true, bool ALLOW_DEEPEN = true, CT::Data T, CT::Deep WRAPPER = Any>
 		Count SmartPush(T&&, DataState = {}, Index = Index::Back);
 	
-		template<Anyness::IsDeep T, bool MOVE_STATE = true>
+		template<CT::Deep T, bool MOVE_STATE = true>
 		T& Deepen();
 	
-		template<ReflectedData T, bool MUTABLE = true, ReflectedData WRAPPER>
+		template<CT::Data T, bool MUTABLE = true, CT::Data WRAPPER>
 		Count Merge(const T*, Count = 1, const Index& = Index::Back);
 		Count MergeBlock(const Block&, const Index& = Index::Back);
 	
-		template<ReflectedData T>
+		template<CT::Data T>
 		Count Remove(const T*, Count = 1, const Index& = Index::Front);
 		Count RemoveIndex(const Index&, Count = 1);
 		Count RemoveIndex(Offset, Count = 1);
@@ -407,36 +407,36 @@ namespace Langulus::Anyness
 	
 		NOD() constexpr Index Constrain(const Index&) const noexcept;
 	
-		template<ReflectedData T>
+		template<CT::Data T>
 		NOD() Index ConstrainMore(const Index&) const noexcept;
 	
-		template<ReflectedData T>
-		NOD() Index GetIndexMax() const noexcept requires IsSortable<T>;
+		template<CT::Data T>
+		NOD() Index GetIndexMax() const noexcept requires CT::Sortable<T>;
 	
-		template<ReflectedData T>
-		NOD() Index GetIndexMin() const noexcept requires IsSortable<T>;
+		template<CT::Data T>
+		NOD() Index GetIndexMin() const noexcept requires CT::Sortable<T>;
 	
-		template<ReflectedData T>
+		template<CT::Data T>
 		NOD() Index GetIndexMode(Count&) const noexcept;
 	
-		template<ReflectedData T>
+		template<CT::Data T>
 		void Sort(const Index&) noexcept;
 	
 		NOD() bool CanFit(DMeta) const;
 		NOD() bool CanFit(const Block&) const;
-		template<ReflectedData T>
+		template<CT::Data T>
 		NOD() bool CanFit() const;
 	
 		NOD() bool CastsToMeta(DMeta) const;
 		NOD() bool CastsToMeta(DMeta, Count) const;
 
-		template<ReflectedData T>
+		template<CT::Data T>
 		NOD() bool CastsTo() const;
-		template<ReflectedData T>
+		template<CT::Data T>
 		NOD() bool CastsTo(Count) const;
 	
 		NOD() bool Is(DMeta) const noexcept;
-		template<ReflectedData T>
+		template<CT::Data T>
 		NOD() bool Is() const;
 		
 		NOD() Block ReinterpretAs(const Block&) const;
@@ -450,9 +450,9 @@ namespace Langulus::Anyness
 
 		Size RequestByteSize(const Count&) const noexcept;
 	
-		template<ReflectedData T>
+		template<CT::Data T>
 		void EmplaceInner(T&&, const Offset&);
-		template<ReflectedData T>
+		template<CT::Data T>
 		void InsertInner(const T*, const Count&, const Offset&);
 
 		static void CopyMemory(const void*, void*, const Size&) noexcept;
@@ -551,9 +551,6 @@ namespace Langulus::Anyness
 		};
 
 	} // namespace Langulus::Anyness::Inner
-	
-	template<class T>
-	concept IsCustom = ReflectedData<T> && !IsDeep<T> && !IsDisowned<T> && !IsAbandoned<T>;
 	
 } // namespace Langulus::Anyness
 

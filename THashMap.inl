@@ -252,35 +252,153 @@ namespace Langulus::Anyness::Inner
 		result.CloneInner(*this);
 		return result;
 	}
+	
+	/// Templated maps are always typed														
+	TABLE_TEMPLATE()
+	constexpr bool TABLE()::IsKeyUntyped() const noexcept {
+		return false;
+	}
+	
+	/// Templated maps are always typed														
+	TABLE_TEMPLATE()
+	constexpr bool TABLE()::IsValueUntyped() const noexcept {
+		return false;
+	}
+	
+	/// Templated maps are always type-constrained										
+	TABLE_TEMPLATE()
+	constexpr bool TABLE()::IsKeyTypeConstrained() const noexcept {
+		return true;
+	}
+	
+	/// Templated maps are always type-constrained										
+	TABLE_TEMPLATE()
+	constexpr bool TABLE()::IsValueTypeConstrained() const noexcept {
+		return true;
+	}
+	
+	/// Check if key type is abstract														
+	TABLE_TEMPLATE()
+	constexpr bool TABLE()::IsKeyAbstract() const noexcept {
+		return CT::Abstract<K> && !IsKeySparse();
+	}
+	
+	/// Check if value type is abstract														
+	TABLE_TEMPLATE()
+	constexpr bool TABLE()::IsValueAbstract() const noexcept {
+		return CT::Abstract<V> && !IsValueSparse();
+	}
+	
+	/// Check if key type is default-constructible										
+	TABLE_TEMPLATE()
+	constexpr bool TABLE()::IsKeyConstructible() const noexcept {
+		return CT::Defaultable<K>;
+	}
+	
+	/// Check if value type is default-constructible									
+	TABLE_TEMPLATE()
+	constexpr bool TABLE()::IsValueConstructible() const noexcept {
+		return CT::Defaultable<V>;
+	}
+	
+	/// Check if key type is deep																
+	TABLE_TEMPLATE()
+	constexpr bool TABLE()::IsKeyDeep() const noexcept {
+		return CT::Deep<K>;
+	}
+	
+	/// Check if value type is deep															
+	TABLE_TEMPLATE()
+	constexpr bool TABLE()::IsValueDeep() const noexcept {
+		return CT::Deep<V>;
+	}
 
+	/// Check if the key type is a pointer													
+	TABLE_TEMPLATE()
+	constexpr bool TABLE()::IsKeySparse() const noexcept {
+		return CT::Sparse<K>;
+	}
+	
+	/// Check if the value type is a pointer												
+	TABLE_TEMPLATE()
+	constexpr bool TABLE()::IsValueSparse() const noexcept {
+		return CT::Sparse<V>;
+	}
+
+	/// Check if the key type is not a pointer											
+	TABLE_TEMPLATE()
+	constexpr bool TABLE()::IsKeyDense() const noexcept {
+		return CT::Dense<K>;
+	}
+
+	/// Check if the value type is not a pointer											
+	TABLE_TEMPLATE()
+	constexpr bool TABLE()::IsValueDense() const noexcept {
+		return CT::Dense<V>;
+	}
+
+	/// Get the size of a single pair, in bytes											
+	///	@return the number of bytes a single pair contains							
+	TABLE_TEMPLATE()
+	constexpr Size TABLE()::GetPairStride() const noexcept {
+		return sizeof(Pair); 
+	}
+	
+	/// Get the size of a single key, in bytes											
+	///	@return the number of bytes a single key contains							
+	TABLE_TEMPLATE()
+	constexpr Size TABLE()::GetKeyStride() const noexcept {
+		return sizeof(K); 
+	}
+	
+	/// Get the size of a single value, in bytes											
+	///	@return the number of bytes a single value contains						
+	TABLE_TEMPLATE()
+	constexpr Size TABLE()::GetValueStride() const noexcept {
+		return sizeof(V); 
+	}
+
+	/// Get the size of all pairs, in bytes												
+	///	@return the total amount of initialized bytes								
+	TABLE_TEMPLATE()
+	constexpr Size TABLE()::GetSize() const noexcept {
+		return sizeof(Pair) * GetCount(); 
+	}
+
+	/// Get the key meta data																	
 	TABLE_TEMPLATE()
 	DMeta TABLE()::GetKeyType() const {
 		return MetaData::Of<K>();
 	}
 
+	/// Get the value meta data																
 	TABLE_TEMPLATE()
 	DMeta TABLE()::GetValueType() const {
 		return MetaData::Of<V>();
 	}
 
+	/// Check if key type exactly matches another										
 	TABLE_TEMPLATE()
 	template<class ALT_K>
-	bool TABLE()::KeyIs() const noexcept {
-		return GetKeyType()->template Is<ALT_K>();
+	constexpr bool TABLE()::KeyIs() const noexcept {
+		return CT::Same<K, ALT_K>;
 	}
 
+	/// Check if value type exactly matches another										
 	TABLE_TEMPLATE()
 	template<class ALT_V>
-	bool TABLE()::ValueIs() const noexcept {
-		return GetValueType()->template Is<ALT_V>();
+	constexpr bool TABLE()::ValueIs() const noexcept {
+		return CT::Same<V, ALT_V>;
 	}
 
+	/// Move-insert a pair inside the map													
 	TABLE_TEMPLATE()
 	TABLE()& TABLE()::operator << (Pair&& pair) {
 		Emplace(Forward<Pair>(pair));
 		return *this;
 	}
 
+	/// Copy-insert a pair inside the map													
 	TABLE_TEMPLATE()
 	TABLE()& TABLE()::operator << (const Pair& pair) {
 		Insert(pair);
@@ -584,7 +702,7 @@ namespace Langulus::Anyness::Inner
 
 			// While we potentially have a match									
 			while (info == mInfo[idx]) {
-				static_assert(IsComparable<Key, OtherKey>, "Can't compare keys");
+				static_assert(CT::Comparable<Key, OtherKey>, "Can't compare keys");
 				if (key == mKeyVals[idx].getFirst()) {
 					// Key already exists, do NOT insert							
 					return std::make_pair(idx, InsertionState::key_found);
@@ -633,12 +751,8 @@ namespace Langulus::Anyness::Inner
 	/// Clears all data, without resizing													
 	TABLE_TEMPLATE()
 	void TABLE()::Clear() {
-		if (IsEmpty()) {
-			// Don't do anything! also important because we don't want to	
-			// write to DummyInfoByte::b, even though we would just write	
-			// 0 to it																		
+		if (IsEmpty())
 			return;
-		}
 
 		DestroyNodes<true>();
 
@@ -648,7 +762,6 @@ namespace Langulus::Anyness::Inner
 		uint8_t const z = 0;
 		std::fill(mInfo, mInfo + calcNumBytesInfo(numElementsWithBuffer), z);
 		mInfo[numElementsWithBuffer] = 1;
-
 		mInfoInc = InitialInfoInc;
 		mInfoHashShift = InitialInfoHashShift;
 	}
@@ -656,7 +769,9 @@ namespace Langulus::Anyness::Inner
 	/// Clears all data and deallocates														
 	TABLE_TEMPLATE()
 	void TABLE()::Reset() {
-		Clear();
+		DestroyNodes<true>();
+		Base::reset();
+		::new (this) TABLE();
 	}
 
 	TABLE_TEMPLATE()
@@ -687,7 +802,7 @@ namespace Langulus::Anyness::Inner
 	///	@return the number of removed pairs										
 	TABLE_TEMPLATE()
 	size_t TABLE()::RemoveKey(const K& key) {
-		static_assert(IsComparable<Key>, "Can't compare keys");
+		static_assert(CT::Comparable<Key>, "Can't compare keys");
 		size_t idx {};
 		InfoType info {};
 		keyToIdx(key, &idx, &info);
@@ -712,7 +827,7 @@ namespace Langulus::Anyness::Inner
 	///	@return the number of removed pairs										
 	TABLE_TEMPLATE()
 	size_t TABLE()::RemoveValue(const V& value) {
-		static_assert(IsComparable<Key>, "Can't compare keys");
+		static_assert(CT::Comparable<Key>, "Can't compare keys");
 		Count removed{};
 		auto it = begin();
 		while (it != end()) {
@@ -834,7 +949,7 @@ namespace Langulus::Anyness::Inner
 	TABLE_TEMPLATE()
 	template<class Other>
 	size_t TABLE()::findIdx(Other const& key) const {
-		static_assert(IsComparable<Other, Key>, "Can't compare keys");
+		static_assert(CT::Comparable<Other, Key>, "Can't compare keys");
 		size_t idx {};
 		InfoType info {};
 		keyToIdx(key, &idx, &info);
@@ -928,6 +1043,11 @@ namespace Langulus::Anyness::Inner
 	}
 
 	TABLE_TEMPLATE()
+	constexpr bool TABLE()::IsAllocated() const noexcept {
+		return Base::IsAllocated();
+	}
+
+	TABLE_TEMPLATE()
 	constexpr float TABLE()::max_load_factor() const noexcept {
 		return MaxLoadFactor100 / 100.0f;
 	}
@@ -1005,7 +1125,7 @@ namespace Langulus::Anyness::Inner
 	/// In case we have non-void mapped_type, we have a standard					
 	/// robin_hood::pair																			
 	TABLE_TEMPLATE()
-	template <ReflectedData Q>
+	template <CT::Data Q>
 	typename TABLE()::Key const& TABLE()::getFirstConst(const Pair& pair) const noexcept {
 		return pair.mKey;
 	}

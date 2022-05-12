@@ -18,7 +18,7 @@ namespace Langulus::Anyness
 	public:
 		template<class T>
 		static constexpr bool NotCustom =
-			Langulus::IsSparse<T> || (!IsSame<T, Any> && !IsSame<T, Block> && !IsSame<T, Trait>);
+			CT::Sparse<T> || (!CT::Same<T, Any> && !CT::Same<T, Block> && !CT::Same<T, Trait>);
 
 		constexpr Trait() noexcept : Any{} {}
 		Trait(TMeta);
@@ -55,32 +55,32 @@ namespace Langulus::Anyness
 		Trait& operator = (Block&);
 		Trait& operator = (Block&&) noexcept;
 
-		template<ReflectedData T>
+		template<CT::Data T>
 		Trait& operator = (const T&) requires (Trait::NotCustom<T>);
-		template<ReflectedData T>
+		template<CT::Data T>
 		Trait& operator = (T&) requires (Trait::NotCustom<T>);
-		template<ReflectedData T>
+		template<CT::Data T>
 		Trait& operator = (T&&) requires (Trait::NotCustom<T>);
 
 	public:
 		void Reset();
 		NOD() Trait Clone() const;
 
-		template<ReflectedTrait TRAIT, ReflectedData DATA>
+		template<CT::Trait TRAIT, CT::Data DATA>
 		NOD() static Trait From();
-		template<ReflectedData DATA>
+		template<CT::Data DATA>
 		NOD() static Trait From(TMeta, const DATA&);
-		template<ReflectedData DATA>
+		template<CT::Data DATA>
 		NOD() static Trait From(TMeta, DATA&&);
 
-		template<ReflectedTrait TRAIT>
+		template<CT::Trait TRAIT>
 		NOD() static Trait FromMemory(const Block&);
-		template<ReflectedTrait TRAIT>
+		template<CT::Trait TRAIT>
 		NOD() static Trait FromMemory(Block&&);
 
-		template<ReflectedTrait TRAIT, ReflectedData DATA>
+		template<CT::Trait TRAIT, CT::Data DATA>
 		NOD() static Trait From(const DATA&);
-		template<ReflectedTrait TRAIT, ReflectedData DATA>
+		template<CT::Trait TRAIT, CT::Data DATA>
 		NOD() static Trait From(DATA&&);
 
 		NOD() static Trait FromMeta(TMeta, DMeta);
@@ -91,7 +91,7 @@ namespace Langulus::Anyness
 		NOD() bool IsTraitValid() const noexcept;
 		NOD() bool IsSimilar(const Trait&) const noexcept;
 		NOD() bool TraitIs(TMeta) const;
-		template<ReflectedTrait TRAIT>
+		template<CT::Trait TRAIT>
 		NOD() bool TraitIs() const;
 		NOD() bool HasCorrectData() const;
 

@@ -5,7 +5,7 @@
 #include "Exceptions.hpp"
 
 /// You can mark types as deep by using LANGULUS(DEEP) true / false inside		
-/// class, but to fit into IsDeep concept, your type must also inherit Block	
+/// class, but to fit into CT::Deep concept, your type must also inherit Block	
 #define LANGULUS_DEEP() public: static constexpr bool CTTI_Deep = 
 
 /// You can mark types as POD (Plain Old Data) by using LANGULUS(POD) true or	
@@ -42,100 +42,110 @@
 /// Reflect a list of verbs																	
 #define LANGULUS_VERBS(...) public: using CTTI_Verbs = ::Langulus::Anyness::TTypeList<__VA_ARGS__>
 
-namespace Langulus::Flow
+namespace Langulus
 {
-	class Verb;
-}
 
-namespace Langulus::Anyness
-{
+	namespace Flow
+	{
+		class Verb;
+	}
 	
-	class Block;
-	class Trait;
-	struct Member;
-	struct Base;
-	struct Ability;
-	struct Meta;
-	struct MetaData;
-	struct MetaVerb;
-	struct MetaTrait;
-
-	using DMeta = const MetaData*;
-	using TMeta = const MetaTrait*;
-	using VMeta = const MetaVerb*;
-
-
-	/// A reflected type is a type that has a public Reflection field				
-	/// This field is automatically added when using LANGULUS(REFLECT) macro	
-	/// inside the type you want to reflect												
-	template<class T>
-	concept Reflectable = requires {
-		{Decay<T>::Reflect()} -> IsSame<MetaData>;
-	};
+	namespace Anyness
+	{
+		class Block;
+		class Trait;
+		struct Member;
+		struct Base;
+		struct Ability;
+		struct Meta;
+		struct MetaData;
+		struct MetaVerb;
+		struct MetaTrait;
 	
-	/// Check if type is dense void															
-	template<class T>
-	concept IsVoid = ::std::is_void_v<T>;
+		using DMeta = const MetaData*;
+		using TMeta = const MetaTrait*;
+		using VMeta = const MetaVerb*;
+	}
 
-	/// A reflected data type is any type that is not void, and is either		
-	/// manually reflected, or an implicitly reflected fundamental type			
-	template<class T>
-	concept ReflectedData = not IsVoid<Decay<T>>;
+	namespace CT
+	{
+	
+		/// A reflected type is a type that has a public Reflection field			
+		/// This field is automatically added when using LANGULUS(REFLECT) macro
+		/// inside the type you want to reflect											
+		template<class T>
+		concept Reflectable = requires {
+			{Decay<T>::Reflect()} -> Same<::Langulus::Anyness::MetaData>;
+		};
+		
+		/// Check if type is dense void														
+		template<class T>
+		concept Void = ::std::is_void_v<T>;
+	
+		/// A reflected data type is any type that is not void, and is either	
+		/// manually reflected, or an implicitly reflected fundamental type		
+		template<class T>
+		concept Data = !Void<Decay<T>>;
+	
+		/// A reflected verb type is any type that inherits Verb						
+		template<class T>
+		concept Verb = DerivedFrom<T, ::Langulus::Flow::Verb>;
+	
+		/// A reflected trait type is any type that inherits Trait					
+		template<class T>
+		concept Trait = DerivedFrom<T, ::Langulus::Anyness::Trait>;
+	
+		/// Checks if T inherits Block														
+		template<class T>
+		concept Block = DerivedFrom<T, ::Langulus::Anyness::Block>;
+		
+		/// A deep type is any type with a true static member T::CTTI_Deep		
+		/// and a common interface with Block												
+		/// If no such member/base exists, the type is assumed NOT deep by		
+		/// default. Deep types are considered iteratable, and verbs are			
+		/// executed in each of their elements/members, instead on the type		
+		/// itself. Use LANGULUS(DEEP) macro as member to tag deep types			
+		template<class T>
+		concept Deep = Block<T> && Decay<T>::CTTI_Deep;
+		
+		/// A POD (Plain Old Data) type is any type with a static member			
+		/// T::CTTI_POD set to true. If no such member exists, the type is		
+		/// assumed NOT POD by default, unless ::std::is_trivial.					
+		/// POD types improve construction, destruction, copying, and cloning	
+		/// by using some batching runtime optimizations								
+		/// All POD types are also directly serializable to binary					
+		/// Use LANGULUS(POD) macro as member to tag POD types						
+		template<class T>
+		concept POD = ::std::is_trivial_v<Decay<T>> || Decay<T>::CTTI_POD;
+		
+		/// A nullifiable type is any type with a static member						
+		/// T::CTTI_Nullifiable set to true. If no such member exists, the type	
+		/// is assumed NOT nullifiable by default											
+		/// Nullifiable types improve construction by using some batching			
+		/// runtime optimizations																
+		/// Use LANGULUS(NULLIFIABLE) macro as member to tag nullifiable types	
+		template<class T>
+		concept Nullifiable = Decay<T>::CTTI_Nullifiable;
+		
+		/// A concretizable type is any type with a member type CTTI_Concrete	
+		/// If no such member exists, the type is assumed NOT concretizable by	
+		/// default. Concretizable types provide a default concretization for	
+		/// when	allocating abstract types													
+		/// Use LANGULUS(CONCRETIZABLE) macro as member to tag such types			
+		template<class T>
+		concept Concretizable = requires {
+			typename Decay<T>::CTTI_Concrete;
+		};
+		
+	}  // namespace Langulus::CT
+	
+	namespace Anyness
+	{
 
-	/// A reflected verb type is any type that inherits Verb							
-	template<class T>
-	concept ReflectedVerb = Inherits<T, Flow::Verb>;
-
-	/// A reflected trait type is any type that inherits Trait						
-	template<class T>
-	concept ReflectedTrait = Inherits<T, Trait>;
-
-	/// Checks if T inherits Block															
-	template<class T>
-	concept IsBlock = Inherits<T, Block>;
-	
-	/// A deep type is any type with a static member T::CTTI_Deep set to true	
-	/// and a common interface with Block													
-	/// If no such member/base exists, the type is assumed NOT deep by default	
-	/// Deep types are considered iteratable, and verbs are executed in each	
-	/// of their elements, instead on the container itself							
-	/// Use LANGULUS(DEEP) macro as member to tag deep types							
-	template<class T>
-	concept IsDeep = IsBlock<T> && Decay<T>::CTTI_Deep == true;
-	
-	/// A POD (Plain Old Data) type is any type with a static member				
-	/// T::CTTI_POD set to true. If no such member exists, the type is assumed	
-	/// NOT POD by default, unless ::std::is_trivial.									
-	/// POD types improve construction, destruction, copying, and cloning by	
-	/// using some batching runtime optimizations										
-	/// All POD types are also directly serializable to binary						
-	/// Use LANGULUS(POD) macro as member to tag POD types							
-	template<class T>
-	concept IsPOD = ::std::is_trivial_v<Decay<T>> || Decay<T>::CTTI_POD == true;
-	
-	/// A nullifiable type is any type with a static member							
-	/// T::CTTI_Nullifiable set to true. If no such member exists, the type is 
-	/// assumed	NOT nullifiable by default													
-	/// Nullifiable types improve construction by using some batching runtime	
-	/// optimizations																				
-	/// Use LANGULUS(NULLIFIABLE) macro as member to tag nullifiable types		
-	template<class T>
-	concept IsNullifiable = Decay<T>::CTTI_Nullifiable == true;
-	
-	/// A concretizable type is any type with a member type CTTI_Concrete 		
-	/// If no such member exists, the type is assumed NOT concretizable by		
-	/// default. Concretizable types provide a default concretization for when	
-	/// allocating abstract types																
-	/// Use LANGULUS(CONCRETIZABLE) macro as member to tag such types				
-	template<class T>
-	concept IsConcretizable = requires {
-		typename Decay<T>::CTTI_Concrete;
-	};
-	
    /// Round to the upper power-of-two														
 	///	@param x - the unsigned integer to round up									
 	///	@return the closest upper power-of-two to x									
-   template<IsUnsigned T>
+   template<CT::Unsigned T>
 	constexpr T Roof2(const T& x) noexcept {
 		T n = x;
 		--n;
@@ -157,7 +167,7 @@ namespace Langulus::Anyness
 	/// Get the allocation page size of the type (in bytes)							
 	template<class T>
 	constexpr Size GetAllocationPageOf() noexcept {
-		if constexpr (requires {{Decay<T>::CTTI_AllocationPage} -> IsSame<Size>;}) {
+		if constexpr (requires {{Decay<T>::CTTI_AllocationPage} -> CT::Same<Size>;}) {
 			constexpr Size candidate = Decay<T>::CTTI_AllocationPage * sizeof(T);
 			if constexpr (candidate < LANGULUS(ALIGN))
 				return LANGULUS(ALIGN);
@@ -244,18 +254,18 @@ namespace Langulus::Anyness
 	public:
 		constexpr Member() noexcept = default;
 
-		template<ReflectedData OWNER, ReflectedData DATA>
+		template<CT::Data OWNER, CT::Data DATA>
 		NOD() static Member From(Offset, const Token& = {}, TMeta trait = {});
 
 		NOD() constexpr bool operator == (const Member&) const noexcept;
 		NOD() constexpr bool operator != (const Member&) const noexcept;
 		
-		template<ReflectedData T>
+		template<CT::Data T>
 		NOD() constexpr bool Is() const noexcept;
 		
-		template<ReflectedData T>
+		template<CT::Data T>
 		NOD() const T& As(const Byte*) const noexcept;
-		template<ReflectedData T>
+		template<CT::Data T>
 		NOD() T& As(Byte*) const noexcept;
 		
 		NOD() constexpr const Byte* Get(const Byte*) const noexcept;
@@ -280,7 +290,7 @@ namespace Langulus::Anyness
 		NOD() constexpr bool operator == (const Ability&) const noexcept;
 		NOD() constexpr bool operator != (const Ability&) const noexcept;
 
-		template<IsDense T, IsDense VERB>
+		template<CT::Dense T, CT::Dense VERB>
 		NOD() static Ability From() noexcept;
 	};
 
@@ -293,7 +303,7 @@ namespace Langulus::Anyness
 	struct Base {
 		// Type of the base																
 		DMeta mType {};
-		// IsNumber of bases that fit in the type									
+		// CT::Number of bases that fit in the type									
 		Count mCount {1};
 		// Offset of the base, relative to the derived type					
 		Offset mOffset {};
@@ -312,7 +322,7 @@ namespace Langulus::Anyness
 		NOD() constexpr bool operator == (const Base&) const noexcept;
 		NOD() constexpr bool operator != (const Base&) const noexcept;
 
-		template<IsDense T, IsDense BASE>
+		template<CT::Dense T, CT::Dense BASE>
 		NOD() static Base From() SAFETY_NOEXCEPT();
 
 		template<class T, class BASE, Count COUNT>
@@ -349,9 +359,9 @@ namespace Langulus::Anyness
 		// Each reflected type has an unique hash									
 		Hash mHash;
 
-		template<ReflectedData T>
+		template<CT::Data T>
 		static constexpr Hash GetHash() noexcept;
-		template<ReflectedData T>
+		template<CT::Data T>
 		static constexpr Token GetName() noexcept;
 	};
 
@@ -423,60 +433,60 @@ namespace Langulus::Anyness
 		FDispatch mDispatcher;
 
 	public:
-		template<ReflectedData T>
-		NOD() static DMeta Of() requires IsDecayed<T>;
+		template<CT::Data T>
+		NOD() static DMeta Of() requires CT::Decayed<T>;
 
 	protected:
-		template<IsFundamental T>
+		template<CT::Fundamental T>
 		void ReflectFundamentalType() noexcept;
 
 	public:
 		NOD() DMeta GetMostConcrete() const noexcept;
 
-		template<class T, IsDense... Args>
+		template<class T, CT::Dense... Args>
 		void SetBases(TTypeList<Args...>) noexcept;
 
-		template<class T, IsDense... Args>
+		template<class T, CT::Dense... Args>
 		void SetAbilities(TTypeList<Args...>) noexcept;
 
-		template<IsDense... Args>
-		void SetMembers(Args&&...) noexcept requires (... && IsSame<Args, Member>);
+		template<CT::Dense... Args>
+		void SetMembers(Args&&...) noexcept requires (... && CT::Same<Args, Member>);
 
 		NOD() bool GetBase(DMeta, Offset, Base&) const;
-		template<ReflectedData T>
+		template<CT::Data T>
 		NOD() bool GetBase(Offset, Base&) const;
 
 		NOD() bool HasBase(DMeta) const;
-		template<ReflectedData T>
+		template<CT::Data T>
 		NOD() bool HasBase() const;
 
 		NOD() bool HasDerivation(DMeta) const;
-		template<ReflectedData T>
+		template<CT::Data T>
 		NOD() bool HasDerivation() const;
 
 		NOD() bool IsAbleTo(VMeta) const;
-		template<ReflectedVerb T>
+		template<CT::Verb T>
 		NOD() bool IsAbleTo() const;
 
 		template<bool ADVANCED = false>
 		NOD() bool CastsTo(DMeta) const;
 		NOD() bool CastsTo(DMeta, Count) const;
 
-		template<ReflectedData T, bool ADVANCED = false>
+		template<CT::Data T, bool ADVANCED = false>
 		NOD() bool CastsTo() const;
-		template<ReflectedData T>
+		template<CT::Data T>
 		NOD() bool CastsTo(Count) const;
 
 		NOD() bool IsRelatedTo(DMeta) const;
-		template<ReflectedData T>
+		template<CT::Data T>
 		NOD() bool IsRelatedTo() const;
 
 		NOD() Distance GetDistanceTo(DMeta) const;
-		template<ReflectedData T>
+		template<CT::Data T>
 		NOD() Distance GetDistanceTo() const;
 
 		NOD() constexpr bool Is(DMeta) const;
-		template<ReflectedData T>
+		template<CT::Data T>
 		NOD() constexpr bool Is() const;
 
 		#if LANGULUS_FEATURE(MANAGED_REFLECTION)
@@ -494,11 +504,11 @@ namespace Langulus::Anyness
 		DMeta mDataType {};
 
 	public:
-		template<ReflectedTrait T>
+		template<CT::Trait T>
 		NOD() static TMeta Of();
 		
 		NOD() bool constexpr Is(TMeta) const;
-		template<ReflectedTrait T>
+		template<CT::Trait T>
 		NOD() bool constexpr Is() const;
 		
 		#if LANGULUS_FEATURE(MANAGED_REFLECTION)
@@ -518,11 +528,11 @@ namespace Langulus::Anyness
 		Token mTokenReverse;
 
 	public:
-		template<ReflectedVerb T>
+		template<CT::Verb T>
 		NOD() static VMeta Of();
 		
 		NOD() bool constexpr Is(VMeta) const;
-		template<ReflectedVerb T>
+		template<CT::Verb T>
 		NOD() bool constexpr Is() const;
 		
 		#if LANGULUS_FEATURE(MANAGED_REFLECTION)
@@ -531,17 +541,13 @@ namespace Langulus::Anyness
 		#endif
 	};
 	
-} // namespace Langulus::Anyness
-
-
-namespace Langulus
-{
+	} //namespace Langulus::Anyness
 
 	namespace RTTI
 	{
-		template<Anyness::ReflectedData T, bool ADVANCED = false>
+		template<CT::Data T, bool ADVANCED = false>
 		NOD() bool CastsTo(Anyness::DMeta);
-		template<Anyness::ReflectedData T>
+		template<CT::Data T>
 		NOD() bool CastsTo(Anyness::DMeta, Count);
 	}
 
@@ -553,7 +559,7 @@ namespace Langulus
 	/// a type is compatible with the given concept via type->InterpretsAs		
 	///																								
 
-	/// Check if a type is compatible with IsNumber										
+	/// Check if a type is compatible with CT::Number										
 	/// concept at runtime, via meta->InterpretsAs<ANumber>							
 	class ANumber {
 		LANGULUS(ABSTRACT) true;
@@ -561,7 +567,7 @@ namespace Langulus
 		~ANumber() = delete;
 	};
 
-	/// Check if a type is compatible with IsInteger									
+	/// Check if a type is compatible with CT::Integer									
 	/// concept at runtime, via meta->InterpretsAs<AInteger>							
 	class AInteger {
 		LANGULUS(ABSTRACT) true;
@@ -570,7 +576,7 @@ namespace Langulus
 		~AInteger() = delete;
 	};
 
-	/// Check if a type is compatible with IsSigned										
+	/// Check if a type is compatible with CT::Signed										
 	/// concept at runtime, via meta->InterpretsAs<ASigned>							
 	class ASigned {
 		LANGULUS(ABSTRACT) true;
@@ -588,7 +594,7 @@ namespace Langulus
 		~AUnsigned() = delete;
 	};
 
-	/// Check if a type is compatible with IsUnsignedInteger concept at			
+	/// Check if a type is compatible with CT::UnsignedInteger concept at			
 	/// runtime, via meta->InterpretsAs<AUnsignedInteger>								
 	class AUnsignedInteger {
 		LANGULUS(ABSTRACT) true;
@@ -597,7 +603,7 @@ namespace Langulus
 		~AUnsignedInteger() = delete;
 	};
 
-	/// Check if a type is compatible with IsReal										
+	/// Check if a type is compatible with CT::Real										
 	/// concept at runtime, via meta->InterpretsAs<AReal>								
 	class AReal {
 		LANGULUS(ABSTRACT) true;
@@ -606,7 +612,7 @@ namespace Langulus
 		~AReal() = delete;
 	};
 
-	/// Check if a type is compatible with IsSignedInteger							
+	/// Check if a type is compatible with CT::SignedInteger							
 	/// concept at runtime, via meta->InterpretsAs<ASignedInteger>					
 	class ASignedInteger {
 		LANGULUS(ABSTRACT) true;
@@ -615,7 +621,7 @@ namespace Langulus
 		~ASignedInteger() = delete;
 	};
 
-	/// Check if a type is compatible with IsCharacter									
+	/// Check if a type is compatible with CT::Character									
 	/// concept at runtime, via meta->InterpretsAs<AText>								
 	class AText {
 		LANGULUS(ABSTRACT) true;
@@ -623,7 +629,7 @@ namespace Langulus
 		~AText() = delete;
 	};
 
-	/// Check if a type is compatible with IsBool										
+	/// Check if a type is compatible with CT::Bool										
 	/// concept at runtime, via meta->InterpretsAs<ABool>								
 	class ABool {
 		LANGULUS(ABSTRACT) true;

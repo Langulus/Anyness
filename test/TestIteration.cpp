@@ -148,7 +148,7 @@ SCENARIO("Iterating containers", "[iteration]") {
 			it = 0;
 			dense.GetValues().ForEach([&](const int& i) {
 				REQUIRE(i == it + 1);
-				REQUIRE(IsConstant<decltype(i)>);
+				REQUIRE(CT::Constant<decltype(i)>);
 				++it;
 				return true;
 			});
@@ -207,7 +207,7 @@ SCENARIO("Iterating containers", "[iteration]") {
 			it = 0;
 			sparse.GetValues().ForEach([&](const int& i) {
 				REQUIRE(i == it + 5);
-				REQUIRE(IsConstant<decltype(i)>);
+				REQUIRE(CT::Constant<decltype(i)>);
 				++it;
 				return true;
 			});
@@ -506,7 +506,7 @@ SCENARIO("Iterating containers", "[iteration]") {
 			}
 		}
 
-		/*WHEN("IsDeep-iterated with the intent to remove specific subpacks") {
+		/*WHEN("CT::Deep-iterated with the intent to remove specific subpacks") {
 			pack.ForEachDeep(
 				[&](Any& subcontent) {
 					if (subcontent.Is<int>()) {

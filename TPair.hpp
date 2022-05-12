@@ -4,23 +4,10 @@
 namespace Langulus::Anyness
 {
 
-	template<class... T>
-	concept IsNoexceptDefaultConstructible = (noexcept(T{}) && ...);
-
-	template<class... T>
-	concept IsNoexceptCopyConstructible = (noexcept(T{ Uneval<const T&>() }) && ...);
-
-	template<class... T>
-	concept IsNoexceptMoveConstructible = (noexcept(T{ Move(Uneval<T&&>()) }) && ...);
-
-	template<class... T>
-	concept IsNoexceptSwappable = (::std::is_nothrow_swappable_v<T> && ...);
-
-
 	///																								
 	///	A helper structure for pairing keys and values of any type				
 	///																								
-	template<ReflectedData K, ReflectedData V>
+	template<CT::Data K, CT::Data V>
 	struct TPair : public APair {
 		using Key = K;
 		using Value = V;
@@ -28,33 +15,52 @@ namespace Langulus::Anyness
 		Key mKey;
 		Value mValue;
 
+		/// Default constructor (noexcept)													
+		constexpr TPair() noexcept requires CT::DefaultableNoexcept<K, V>
+			: mKey{}
+			, mValue{} {}
+			
 		/// Default constructor																	
-		constexpr TPair() noexcept(IsNoexceptDefaultConstructible<K, V>)
-		requires (IsDefaultConstructible<K, V>)
+		constexpr TPair() requires CT::Defaultable<K, V>
 			: mKey{}
 			, mValue{} {}
 
-		/// Pair constructors are explicit so we don't accidentally call this	
-		/// ctor when we don't have to														
-		constexpr explicit TPair(const TPair& other) noexcept(IsNoexceptCopyConstructible<K, V>)
+		/// Copy construction (noexcept)														
+		constexpr explicit TPair(const TPair& other) noexcept requires CT::CopyMakableNoexcept<K, V>
 			: mKey {other.mKey}
 			, mValue {other.mValue} {}
 
-		/// Pair constructors are explicit so we don't accidentally call this	
-		/// ctor when we don't have to														
-		constexpr explicit TPair(TPair&& other) noexcept(IsNoexceptMoveConstructible<K, V>)
+		/// Copy construction																	
+		constexpr explicit TPair(const TPair& other) requires CT::CopyMakable<K, V>
+			: mKey {other.mKey}
+			, mValue {other.mValue} {}
+
+		/// Move construction (noexcept)														
+		constexpr explicit TPair(TPair&& other) noexcept requires CT::MoveMakableNoexcept<K, V>
+			: mKey {Move(other.mKey)}
+			, mValue {Move(other.mValue)} {}
+			
+		/// Move construction																	
+		constexpr explicit TPair(TPair&& other) requires CT::MoveMakable<K, V>
 			: mKey {Move(other.mKey)}
 			, mValue {Move(other.mValue)} {}
 
+		/// Initialize manually	(noexcept)													
+		///	@param key - the key to use													
+		///	@param value - the value to use												
+		constexpr TPair(K&& key, V&& value) noexcept requires CT::MoveMakableNoexcept<K, V>
+			: mKey {Forward<K>(key)}
+			, mValue {Forward<V>(value)} {}
+
 		/// Initialize manually																	
-		/// @param key - the key to use														
-		/// @param value - the value to use													
-		constexpr TPair(K&& key, V&& value) noexcept(IsNoexceptMoveConstructible<K, V>)
+		///	@param key - the key to use													
+		///	@param value - the value to use												
+		constexpr TPair(K&& key, V&& value) noexcept requires CT::MoveMakable<K, V>
 			: mKey {Forward<K>(key)}
 			, mValue {Forward<V>(value)} {}
 
 		/// Piecewise constructor																
-		template <class... U1, class... U2>
+		template<class... U1, class... U2>
 		constexpr TPair(std::piecewise_construct_t, std::tuple<U1...> a, std::tuple<U2...> b)
 		noexcept(noexcept(TPair(
 			Uneval<std::tuple<U1...>&>(),
@@ -64,7 +70,7 @@ namespace Langulus::Anyness
 			: TPair{ a, b, std::index_sequence_for<U1...>(), std::index_sequence_for<U2...>() } {}
 
 		/// Constructor called from the std::piecewise_construct_t ctor			
-		template <class... U1, size_t... I1, class... U2, size_t... I2>
+		template<class... U1, size_t... I1, class... U2, size_t... I2>
 		TPair(std::tuple<U1...>& a, std::tuple<U2...>& b, std::index_sequence<I1...>, std::index_sequence<I2...>)
 			noexcept(
 				noexcept(K {Forward<U1>(std::get<I1>(Uneval<std::tuple<U1...>&>()))...})
@@ -75,9 +81,16 @@ namespace Langulus::Anyness
 			(void)b;
 		}
 
+		/// Swap (noexcept)																		
+		///	@param other - the pair to swap with										
+		constexpr void Swap(TPair& other) noexcept requires IsSwappableNoexcept<K, V> {
+			::std::swap(mKey, other.mKey);
+			::std::swap(mValue, other.mValue);
+		}
+
 		/// Swap																						
 		///	@param other - the pair to swap with										
-		constexpr void Swap(TPair& other) noexcept (IsNoexceptSwappable<K, V>) {
+		constexpr void Swap(TPair& other) requires IsSwappable<K, V> {
 			::std::swap(mKey, other.mKey);
 			::std::swap(mValue, other.mValue);
 		}
@@ -91,6 +104,34 @@ namespace Langulus::Anyness
 			if (result != 0)
 				return result;
 			return mValue <=> rhs.mValue;
+		}
+		
+		/// Copy assignment (noexcept)														
+		TPair& operator = (const TPair& rhs) noexcept requires CT::CopyableNoexcept<K, V> {
+			mKey = rhs.mKey;
+			mValue = rhs.mValue;
+			return *this;
+		}
+		
+		/// Copy assignment																		
+		TPair& operator = (const TPair& rhs) requires CT::Copyable<K, V> {
+			mKey = rhs.mKey;
+			mValue = rhs.mValue;
+			return *this;
+		}
+		
+		/// Move assignment (noexcept)														
+		TPair& operator = (TPair&& rhs) noexcept requires CT::MovableNoexcept<K, V> {
+			mKey = Move(rhs.mKey);
+			mValue = Move(rhs.mValue);
+			return *this;
+		}
+		
+		/// Move assignment																		
+		TPair& operator = (TPair&& rhs) requires CT::Movable<K, V> {
+			mKey = Move(rhs.mKey);
+			mValue = Move(rhs.mValue);
+			return *this;
 		}
 	};
 

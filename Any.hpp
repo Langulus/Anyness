@@ -20,7 +20,7 @@ namespace Langulus::Anyness
 		LANGULUS(DEEP) true;
 		LANGULUS_BASES(Block);
 	public:
-		template<ReflectedData T>
+		template<CT::Data T>
 		friend class TAny;
 
 		constexpr Any() noexcept = default;
@@ -35,9 +35,9 @@ namespace Langulus::Anyness
 		Any(Disowned<Any>&&) noexcept;
 		Any(Abandoned<Any>&&) noexcept;		
 
-		template<IsCustom T>
+		template<CT::CustomData T>
 		Any(T&&);
-		template<IsCustom T>
+		template<CT::CustomData T>
 		Any(T&);
 
 		~Any();
@@ -46,20 +46,20 @@ namespace Langulus::Anyness
 		Any& operator = (Any&);
 		Any& operator = (Any&&);
 	
-		template<ReflectedData T>
+		template<CT::Data T>
 		Any& operator = (T&);
-		template<ReflectedData T>
+		template<CT::Data T>
 		Any& operator = (T&&);
 
 	public:
 		NOD() static Any FromMeta(DMeta, const DataState& = {}) noexcept;
 		NOD() static Any FromBlock(const Block&, const DataState& = {}) noexcept;
-		template<ReflectedData T>
+		template<CT::Data T>
 		NOD() static Any From(const DataState& = {}) noexcept;
 
-		template<ReflectedData... LIST>
+		template<CT::Data... LIST>
 		NOD() static Any Wrap(LIST&&...);
-		template<ReflectedData HEAD, ReflectedData... TAIL>
+		template<CT::Data HEAD, CT::Data... TAIL>
 		NOD() static Any WrapCommon(HEAD&&, TAIL&&...);
 
 		void Clear();
@@ -72,24 +72,24 @@ namespace Langulus::Anyness
 		NOD() Any Crop(const Offset&, const Count&) const;
 		NOD() Any Crop(const Offset&, const Count&);
 
-		template<ReflectedData T>
+		template<CT::Data T>
 		Any& operator << (const T&);
-		template<IsDecayed T>
+		template<CT::Decayed T>
 		Any& operator << (T&&);
 	
-		template<ReflectedData T>
+		template<CT::Data T>
 		Any& operator >> (const T&);
-		template<IsDecayed T>
+		template<CT::Decayed T>
 		Any& operator >> (T&&);
 
-		template<ReflectedData T>
+		template<CT::Data T>
 		Any& operator <<= (const T&);
-		template<IsDecayed T>
+		template<CT::Decayed T>
 		Any& operator <<= (T&&);
 
-		template<ReflectedData T>
+		template<CT::Data T>
 		Any& operator >>= (const T&);
-		template<IsDecayed T>
+		template<CT::Decayed T>
 		Any& operator >>= (T&&);
 
 	protected:

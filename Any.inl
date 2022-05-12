@@ -70,7 +70,7 @@ namespace Langulus::Anyness
 
 	/// Construct by moving a dense value of non-block type							
 	///	@param other - the dense value to forward and emplace						
-	template <IsCustom T>
+	template <CT::CustomData T>
 	Any::Any(T&& other) {
 		SetType<T, false>();
 		Emplace<T, false, Any>(Forward<T>(other));
@@ -78,7 +78,7 @@ namespace Langulus::Anyness
 
 	/// Construct by copying/referencing value of non-block type					
 	///	@param other - the dense value to shallow-copy								
-	template <IsCustom T>
+	template <CT::CustomData T>
 	Any::Any(T& other) {
 		SetType<T, false>();
 		Insert<T, false, Any>(&other, 1);
@@ -103,7 +103,7 @@ namespace Langulus::Anyness
 	/// Create an empty Any from a static type and state								
 	///	@param state - optional state of the container								
 	///	@return the new any																	
-	template<ReflectedData T>
+	template<CT::Data T>
 	Any Any::From(const DataState& state) noexcept {
 		return Any {Block{state, MetaData::Of<T>()}};
 	}
@@ -111,7 +111,7 @@ namespace Langulus::Anyness
 	/// Pack any number of elements sequentially											
 	///	@param elements - sequential elements											
 	///	@returns the pack containing the data											
-	template<ReflectedData... LIST>
+	template<CT::Data... LIST>
 	Any Any::Wrap(LIST&&... elements) {
 		if constexpr (sizeof...(LIST) == 0)
 			return {};
@@ -129,7 +129,7 @@ namespace Langulus::Anyness
 	/// Pack any number of same-type elements sequentially							
 	///	@param elements - sequential elements											
 	///	@returns the pack containing the data											
-	template<ReflectedData HEAD, ReflectedData... TAIL>
+	template<CT::Data HEAD, CT::Data... TAIL>
 	Any Any::WrapCommon(HEAD&& head, TAIL&&... tail) {
 		if constexpr (sizeof...(TAIL) == 0)
 			return {};
@@ -185,9 +185,9 @@ namespace Langulus::Anyness
 	/// Assign by shallow-copying something 												
 	///	@param other - the value to copy													
 	///	@return a reference to this container											
-	template<ReflectedData T>
+	template<CT::Data T>
 	Any& Any::operator = (T& other) {
-		if constexpr (IsSame<T, Block>) {
+		if constexpr (CT::Same<T, Block>) {
 			// Always reference a Block, by wrapping it in an Any				
 			operator = (Any {other});			
 		}
@@ -212,7 +212,7 @@ namespace Langulus::Anyness
 				// Reset and allocate new memory										
 				Reset();
 				mType = meta;
-				if constexpr (Langulus::IsSparse<T>)
+				if constexpr (CT::Sparse<T>)
 					MakeSparse();
 				AllocateInner<false>(1);
 				InsertInner<T>(&other, 1, 0);
@@ -225,9 +225,9 @@ namespace Langulus::Anyness
 	/// Assign by moving something															
 	///	@param other - the value to move													
 	///	@return a reference to this container											
-	template<ReflectedData T>
+	template<CT::Data T>
 	Any& Any::operator = (T&& other) {
-		if constexpr (IsSame<T, Block>) {
+		if constexpr (CT::Same<T, Block>) {
 			// Always reference a Block, by wrapping it in an Any				
 			operator = (Any {Forward<T>(other)});
 		}
@@ -251,7 +251,7 @@ namespace Langulus::Anyness
 				// Reset and allocate new memory										
 				Reset();
 				mType = meta;
-				if constexpr (Langulus::IsSparse<T>)
+				if constexpr (CT::Sparse<T>)
 					MakeSparse();
 				AllocateInner<false>(1);
 				EmplaceInner<T>(Forward<T>(other), 0);
@@ -264,9 +264,9 @@ namespace Langulus::Anyness
 	/// Insert any data (including arrays) at the back									
 	///	@param other - the data to insert												
 	///	@return a reference to this memory block for chaining						
-	template<ReflectedData T>
+	template<CT::Data T>
 	Any& Any::operator << (const T& other) {
-		if constexpr (IsArray<T>)
+		if constexpr (CT::Array<T>)
 			Insert<Decay<T>, true, Any>(other, ExtentOf<T>, Index::Back);
 		else
 			Insert<T, true, Any>(&other, 1, Index::Back);
@@ -276,7 +276,7 @@ namespace Langulus::Anyness
 	/// Emplace any data at the back															
 	///	@param other - the data to insert												
 	///	@return a reference to this memory block for chaining						
-	template<IsDecayed T>
+	template<CT::Decayed T>
 	Any& Any::operator << (T&& other) {
 		Emplace<T, true, Any>(Forward<T>(other), Index::Back);
 		return *this;
@@ -285,9 +285,9 @@ namespace Langulus::Anyness
 	/// Insert any data (including arrays) at the front								
 	///	@param other - the data to insert												
 	///	@return a reference to this memory block for chaining						
-	template<ReflectedData T>
+	template<CT::Data T>
 	Any& Any::operator >> (const T& other) {
-		if constexpr (IsArray<T>)
+		if constexpr (CT::Array<T>)
 			Insert<Decay<T>, true, Any>(other, ExtentOf<T>, Index::Front);
 		else
 			Insert<T, true, Any>(&other, 1, Index::Front);
@@ -297,7 +297,7 @@ namespace Langulus::Anyness
 	/// Emplace any data at the front														
 	///	@param other - the data to insert												
 	///	@return a reference to this memory block for chaining						
-	template<IsDecayed T>
+	template<CT::Decayed T>
 	Any& Any::operator >> (T&& other) {
 		Emplace<T, true, Any>(Forward<T>(other), Index::Front);
 		return *this;
@@ -306,9 +306,9 @@ namespace Langulus::Anyness
 	/// Merge data (including arrays) at the back										
 	///	@param other - the data to insert												
 	///	@return a reference to this memory block for chaining						
-	template<ReflectedData T>
+	template<CT::Data T>
 	Any& Any::operator <<= (const T& other) {
-		if constexpr (IsArray<T>)
+		if constexpr (CT::Array<T>)
 			Merge<Decay<T>, true, Any>(other, ExtentOf<T>, Index::Back);
 		else
 			Merge<T, true, Any>(&other, 1, Index::Back);
@@ -318,9 +318,9 @@ namespace Langulus::Anyness
 	/// Merge data at the front																
 	///	@param other - the data to insert												
 	///	@return a reference to this memory block for chaining						
-	template<ReflectedData T>
+	template<CT::Data T>
 	Any& Any::operator >>= (const T& other) {
-		if constexpr (IsArray<T>)
+		if constexpr (CT::Array<T>)
 			Merge<Decay<T>, true, Any>(other, ExtentOf<T>, Index::Front);
 		else
 			Merge<T, true, Any>(&other, 1, Index::Front);

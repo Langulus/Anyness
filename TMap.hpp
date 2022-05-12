@@ -7,7 +7,7 @@ namespace Langulus::Anyness
 	///																								
 	///	DATA CONTAINER SPECIALIZATION FOR KEY-VALUE PAIRS							
 	///																								
-	template<ReflectedData K, ReflectedData V> 
+	template<CT::Data K, CT::Data V> 
 	class TMap : public Map {
 	public:
 		using Pair = TPair<K, V>;
@@ -54,22 +54,22 @@ namespace Langulus::Anyness
 		NOD() decltype(auto) operator [] (const Key&);
 		NOD() decltype(auto) operator [] (const Key&) const;
 
-		template<ReflectedData = K>
+		template<CT::Data = K>
 		NOD() decltype(auto) GetKey(const Index&) const;
-		template<ReflectedData = K>
+		template<CT::Data = K>
 		NOD() decltype(auto) GetKey(const Index&);
-		template<ReflectedData = K>
+		template<CT::Data = K>
 		NOD() decltype(auto) GetKey(const Offset&) const noexcept;
-		template<ReflectedData = K>
+		template<CT::Data = K>
 		NOD() decltype(auto) GetKey(const Offset&) noexcept;
 
-		template<ReflectedData = V>
+		template<CT::Data = V>
 		NOD() decltype(auto) GetValue(const Index&) const;
-		template<ReflectedData = V>
+		template<CT::Data = V>
 		NOD() decltype(auto) GetValue(const Index&);
-		template<ReflectedData = V>
+		template<CT::Data = V>
 		NOD() decltype(auto) GetValue(const Offset&) const noexcept;
-		template<ReflectedData = V>
+		template<CT::Data = V>
 		NOD() decltype(auto) GetValue(const Offset&) noexcept;
 
 		Count RemoveKey(const Key&);
@@ -77,10 +77,10 @@ namespace Langulus::Anyness
 
 		template<class ALT_V>
 		Count Merge(const K&, const ALT_V&)
-			requires IsCopyConstructible<K> && IsCopyConstructible<V>;
+			requires CT::CopyMakable<K> && CT::CopyMakable<V>;
 
 		Count Merge(const TMap&)
-			requires IsCopyConstructible<K> && IsCopyConstructible<V>;
+			requires CT::CopyMakable<K> && CT::CopyMakable<V>;
 
 		Count Emplace(Pair&&, const Index& = Index::Back);
 		Count Insert(const Pair*, const Count& = 1, const Index& = Index::Back);
@@ -89,19 +89,19 @@ namespace Langulus::Anyness
 		TMap& operator >> (Pair&&);
 
 		Count Add(K&&, V&&, const Index& = Index::Back)
-			requires IsMoveConstructible<K> && IsMoveConstructible<V>;
+			requires CT::MoveMakable<K> && CT::MoveMakable<V>;
 		
 		Count Add(const K&, V&&, const Index& = Index::Back)
-			requires IsCopyConstructible<K> && IsMoveConstructible<V>;
+			requires CT::CopyMakable<K> && CT::MoveMakable<V>;
 		
 		Count Add(K&&, const V&, const Index& = Index::Back) 
-			requires IsMoveConstructible<K> && IsCopyConstructible<V>;
+			requires CT::MoveMakable<K> && CT::CopyMakable<V>;
 		
 		Count Add(const K&, const V&, const Index& = Index::Back) 
-			requires IsCopyConstructible<K> && IsCopyConstructible<V>;
+			requires CT::CopyMakable<K> && CT::CopyMakable<V>;
 		
 		Count Add(K&, V&, const Index& = Index::Back)
-			requires IsCopyConstructible<K> && IsCopyConstructible<V>;
+			requires CT::CopyMakable<K> && CT::CopyMakable<V>;
 
 		void Sort(const Index&);
 
@@ -116,10 +116,10 @@ namespace Langulus::Anyness
 		Count ForEachRev(F&&) const;
 
 	private:
-		template<class R, ReflectedData ALT_KEY, ReflectedData ALT_VALUE, bool REVERSE>
+		template<class R, CT::Data ALT_KEY, CT::Data ALT_VALUE, bool REVERSE>
 		Count ForEachInner(TFunctor<R(ALT_KEY, ALT_VALUE)>&&);
 
-		template<class R, ReflectedData ALT_KEY, ReflectedData ALT_VALUE, bool REVERSE>
+		template<class R, CT::Data ALT_KEY, CT::Data ALT_VALUE, bool REVERSE>
 		Count ForEachInner(TFunctor<R(ALT_KEY, ALT_VALUE)>&&) const;
 	};
 

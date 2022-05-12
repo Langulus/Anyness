@@ -37,17 +37,17 @@ namespace Langulus::Anyness
 		Text(const char(&)[C]);
 		explicit Text(const char*);
 
-		template<Langulus::IsDense T>
-		Text(const T*, const Count&) requires IsCharacter<T>;
-		template<Langulus::IsDense T, Count C>
-		Text(const T(&)[C]) requires IsCharacter<T>;
+		template<CT::Dense T>
+		Text(const T*, const Count&) requires CT::Character<T>;
+		template<CT::Dense T, Count C>
+		Text(const T(&)[C]) requires CT::Character<T>;
 
-		template<Langulus::IsDense T>
-		Text(const T&) requires IsCharacter<T>;
-		template<Langulus::IsDense T>
-		explicit Text(const T*) requires IsCharacter<T>;
-		template<Langulus::IsDense T>
-		Text(const T&) requires IsNumber<T>;
+		template<CT::Dense T>
+		Text(const T&) requires CT::Character<T>;
+		template<CT::Dense T>
+		explicit Text(const T*) requires CT::Character<T>;
+		template<CT::Dense T>
+		Text(const T&) requires CT::Number<T>;
 
 		Text& operator = (const Text&);
 		Text& operator = (Text&);

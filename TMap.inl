@@ -1,7 +1,7 @@
 #pragma once
 #include "TMap.hpp"
 
-#define TEMPLATE() template<ReflectedData K, ReflectedData V>
+#define TEMPLATE() template<CT::Data K, CT::Data V>
 #define MAP() TMap<K, V>
 
 namespace Langulus::Anyness
@@ -145,7 +145,7 @@ namespace Langulus::Anyness
 	///	@param index - the index															
 	///	@return a constant reference to the key										
 	TEMPLATE()
-	template<ReflectedData ALT_K>
+	template<CT::Data ALT_K>
 	decltype(auto) MAP()::GetKey(const Index& i) const {
 		return Keys().template Get<ALT_K>(Keys().template ConstrainMore<K>(i).GetOffset());
 	}
@@ -154,7 +154,7 @@ namespace Langulus::Anyness
 	///	@param index - the index															
 	///	@return a reference to the key													
 	TEMPLATE()
-	template<ReflectedData ALT_K>
+	template<CT::Data ALT_K>
 	decltype(auto) MAP()::GetKey(const Index& i) {
 		return Keys().template Get<ALT_K>(Keys().template ConstrainMore<K>(i).GetOffset());
 	}
@@ -163,7 +163,7 @@ namespace Langulus::Anyness
 	///	@param index - the index															
 	///	@return a reference to the key													
 	TEMPLATE()
-	template<ReflectedData ALT_K>
+	template<CT::Data ALT_K>
 	decltype(auto) MAP()::GetKey(const Offset& i) const noexcept {
 		return Keys().template Get<ALT_K>(i);
 	}
@@ -172,7 +172,7 @@ namespace Langulus::Anyness
 	///	@param index - the index															
 	///	@return a constant reference to the key										
 	TEMPLATE()
-	template<ReflectedData ALT_K>
+	template<CT::Data ALT_K>
 	decltype(auto) MAP()::GetKey(const Offset& i) noexcept {
 		return Keys().template Get<ALT_K>(i);
 	}
@@ -181,7 +181,7 @@ namespace Langulus::Anyness
 	///	@param index - the index															
 	///	@return a constant reference to the value										
 	TEMPLATE()
-	template<ReflectedData ALT_V>
+	template<CT::Data ALT_V>
 	decltype(auto) MAP()::GetValue(const Index& i) const {
 		return Values().template Get<ALT_V>(Values().template ConstrainMore<V>(i).GetOffset());
 	}
@@ -190,7 +190,7 @@ namespace Langulus::Anyness
 	///	@param index - the index															
 	///	@return a reference to the value													
 	TEMPLATE()
-	template<ReflectedData ALT_V>
+	template<CT::Data ALT_V>
 	decltype(auto) MAP()::GetValue(const Index& i) {
 		return Values().template Get<ALT_V>(Values().template ConstrainMore<V>(i).GetOffset());
 	}
@@ -199,7 +199,7 @@ namespace Langulus::Anyness
 	///	@param index - the index															
 	///	@return a constant reference to the value										
 	TEMPLATE()
-	template<ReflectedData ALT_V>
+	template<CT::Data ALT_V>
 	decltype(auto) MAP()::GetValue(const Offset& i) const noexcept {
 		return Values().template Get<ALT_V>(i);
 	}
@@ -208,7 +208,7 @@ namespace Langulus::Anyness
 	///	@param index - the index															
 	///	@return a reference to the value													
 	TEMPLATE()
-	template<ReflectedData ALT_V>
+	template<CT::Data ALT_V>
 	decltype(auto) MAP()::GetValue(const Offset& i) noexcept {
 		return Values().template Get<ALT_V>(i);
 	}
@@ -231,10 +231,10 @@ namespace Langulus::Anyness
 	TEMPLATE()
 	template<class ALT_V>
 	Count MAP()::Merge(const Key& key, const ALT_V& value)
-	requires IsCopyConstructible<K> && IsCopyConstructible<V> {
+	requires CT::CopyMakable<K> && CT::CopyMakable<V> {
 		const auto found = FindKey(key);
-		if constexpr (Anyness::IsDeep<Value>) {
-			if constexpr (Anyness::IsDeep<ALT_V>) {
+		if constexpr (CT::Deep<Value>) {
+			if constexpr (CT::Deep<ALT_V>) {
 				if (!found)
 					return Add(key, value);
 				return GetValue(found.GetOffset()).Merge(value);
@@ -259,7 +259,7 @@ namespace Langulus::Anyness
 	/// Merge two maps																			
 	TEMPLATE()
 	Count MAP()::Merge(const TMap& other)
-	requires IsCopyConstructible<K> && IsCopyConstructible<V> {
+	requires CT::CopyMakable<K> && CT::CopyMakable<V> {
 		Count added {};
 		for (Count i = 0; i < other.Count(); ++i) {
 			auto pair = other.GetPair(i);
@@ -302,31 +302,31 @@ namespace Langulus::Anyness
 	/// Add a pair																					
 	TEMPLATE()
 	Count MAP()::Add(Key&& k, Value&& v, const Index& index)
-	requires IsMoveConstructible<K> && IsMoveConstructible<V> {
+	requires CT::MoveMakable<K> && CT::MoveMakable<V> {
 		return Emplace(Pair(Forward<Key>(k), Forward<Value>(v)), index);
 	}
 
 	TEMPLATE()
 	Count MAP()::Add(const Key& k, Value&& v, const Index& index)
-	requires IsCopyConstructible<K> && IsMoveConstructible<V> {
+	requires CT::CopyMakable<K> && CT::MoveMakable<V> {
 		return Emplace(Pair(k, Forward<Value>(v)), index);
 	}
 
 	TEMPLATE()
 	Count MAP()::Add(Key&& k, const Value& v, const Index& index)
-	requires IsMoveConstructible<K> && IsCopyConstructible<V> {
+	requires CT::MoveMakable<K> && CT::CopyMakable<V> {
 		return Emplace(Pair(Forward<Key>(k), v), index);
 	}
 
 	TEMPLATE()
 	Count MAP()::Add(const Key& k, const Value& v, const Index& index)
-	requires IsCopyConstructible<K> && IsCopyConstructible<V> {
+	requires CT::CopyMakable<K> && CT::CopyMakable<V> {
 		return Emplace(Pair(k, v), index);
 	}
 
 	TEMPLATE()
 	Count MAP()::Add(Key& k, Value& v, const Index& index)
-	requires IsCopyConstructible<K> && IsCopyConstructible<V> {
+	requires CT::CopyMakable<K> && CT::CopyMakable<V> {
 		return Emplace(Pair(k, v), index);
 	}
 
@@ -377,12 +377,12 @@ namespace Langulus::Anyness
 	template<class F>
 	Count MAP()::ForEach(F&& call) {
 		using Iterator = decltype(GetLambdaArguments(&F::operator()));
-		if constexpr (Inherits<Iterator, APair>) {
+		if constexpr (CT::DerivedFrom<Iterator, APair>) {
 			// We're iterating pairs													
 			using ItKey = typename Iterator::Key;
 			using ItVal = typename Iterator::Value;
-			static_assert(Inherits<Key, ItKey>, "Incompatible key type for map iteration");
-			static_assert(Inherits<Value, ItVal>, "Incompatible value type for map iteration");
+			static_assert(CT::DerivedFrom<Key, ItKey>, "Incompatible key type for map iteration");
+			static_assert(CT::DerivedFrom<Value, ItVal>, "Incompatible value type for map iteration");
 			using R = decltype(call(::std::declval<ItKey>(), ::std::declval<ItVal>()));
 			return ForEachInner<R, ItKey, ItVal, false>(Forward<F>(call));
 		}
@@ -394,12 +394,12 @@ namespace Langulus::Anyness
 	template<class F>
 	Count MAP()::ForEachRev(F&& call) {
 		using Iterator = decltype(GetLambdaArguments(&F::operator()));
-		if constexpr (Inherits<Iterator, APair>) {
+		if constexpr (CT::DerivedFrom<Iterator, APair>) {
 			// We're iterating pairs													
 			using ItKey = typename Iterator::Key;
 			using ItVal = typename Iterator::Value;
-			static_assert(Inherits<Key, ItKey>, "Incompatible key type for map iteration");
-			static_assert(Inherits<Value, ItVal>, "Incompatible value type for map iteration");
+			static_assert(CT::DerivedFrom<Key, ItKey>, "Incompatible key type for map iteration");
+			static_assert(CT::DerivedFrom<Value, ItVal>, "Incompatible value type for map iteration");
 			using R = decltype(call(::std::declval<ItKey>(), ::std::declval<ItVal>()));
 			return ForEachInner<R, ItKey, ItVal, true>(Forward<F>(call));
 		}
@@ -410,14 +410,14 @@ namespace Langulus::Anyness
 	template<class F>
 	Count MAP()::ForEach(F&& call) const {
 		using Iterator = decltype(GetLambdaArguments(&F::operator()));
-		if constexpr (Inherits<Iterator, APair>) {
+		if constexpr (CT::DerivedFrom<Iterator, APair>) {
 			// We're iterating pairs													
 			using ItKey = typename Iterator::Key;
 			using ItVal = typename Iterator::Value;
-			static_assert(Inherits<Key, ItKey>, "Incompatible key type for map iteration");
-			static_assert(Inherits<Value, ItVal>, "Incompatible value type for map iteration");
-			static_assert(Langulus::IsConstant<ItKey>, "Non constant key iterator for constant map");
-			static_assert(Langulus::IsConstant<ItVal>, "Non constant value iterator for constant map");
+			static_assert(CT::DerivedFrom<Key, ItKey>, "Incompatible key type for map iteration");
+			static_assert(CT::DerivedFrom<Value, ItVal>, "Incompatible value type for map iteration");
+			static_assert(CT::Constant<ItKey>, "Non constant key iterator for constant map");
+			static_assert(CT::Constant<ItVal>, "Non constant value iterator for constant map");
 			using R = decltype(call(::std::declval<ItKey>(), ::std::declval<ItVal>()));
 			return ForEachInner<R, ItKey, ItVal, false>(Forward<F>(call));
 		}
@@ -428,28 +428,28 @@ namespace Langulus::Anyness
 	template<class F>
 	Count MAP()::ForEachRev(F&& call) const {
 		using Iterator = decltype(GetLambdaArguments(&F::operator()));
-		if constexpr (Inherits<Iterator, APair>) {
+		if constexpr (CT::DerivedFrom<Iterator, APair>) {
 			// We're iterating pairs													
 			using ItKey = typename Iterator::Key;
 			using ItVal = typename Iterator::Value;
-			static_assert(Inherits<Key, ItKey>, "Incompatible key type for map iteration");
-			static_assert(Inherits<Value, ItVal>, "Incompatible value type for map iteration");
-			static_assert(Langulus::IsConstant<ItKey>, "Non constant key iterator for constant map");
-			static_assert(Langulus::IsConstant<ItVal>, "Non constant value iterator for constant map");
+			static_assert(CT::DerivedFrom<Key, ItKey>, "Incompatible key type for map iteration");
+			static_assert(CT::DerivedFrom<Value, ItVal>, "Incompatible value type for map iteration");
+			static_assert(CT::Constant<ItKey>, "Non constant key iterator for constant map");
+			static_assert(CT::Constant<ItVal>, "Non constant value iterator for constant map");
 			using R = decltype(call(::std::declval<ItKey>(), ::std::declval<ItVal>()));
 			return ForEachInner<R, ItKey, ItVal, true>(Forward<F>(call));
 		}
 		else TODO();
 	}
 
-	/// IsConstant iteration																		
+	/// CT::Constant iteration																		
 	TEMPLATE()
-	template<class R, ReflectedData ALT_KEY, ReflectedData ALT_VALUE, bool REVERSE>
+	template<class R, CT::Data ALT_KEY, CT::Data ALT_VALUE, bool REVERSE>
 	Count MAP()::ForEachInner(TFunctor<R(ALT_KEY, ALT_VALUE)>&& call) {
 		if (IsEmpty())
 			return 0;
 
-		constexpr bool HasBreaker = IsSame<bool, R>;
+		constexpr bool HasBreaker = CT::Same<bool, R>;
 		const auto count = GetCount();
 		Count index {};
 		while (index < count) {
@@ -475,9 +475,9 @@ namespace Langulus::Anyness
 		return index;
 	}
 
-	/// IsConstant iteration																		
+	/// CT::Constant iteration																		
 	TEMPLATE()
-	template<class R, ReflectedData ALT_K, ReflectedData ALT_V, bool REVERSE>
+	template<class R, CT::Data ALT_K, CT::Data ALT_V, bool REVERSE>
 	Count MAP()::ForEachInner(TFunctor<R(ALT_K, ALT_V)>&& call) const {
 		return const_cast<TMap*>(this)
 			->ForEachInner<R, ALT_K, ALT_V, REVERSE>(Forward<decltype(call)>(call));

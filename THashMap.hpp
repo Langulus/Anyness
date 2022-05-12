@@ -60,7 +60,8 @@ namespace Langulus::Anyness
 		#define TABLE_TEMPLATE() template<AllocationMethod METHOD, Count MaxLoadFactor100, class K, class V>
 		#define TABLE() Table<METHOD, MaxLoadFactor100, K, V>
 
-
+		TABLE_TEMPLATE()
+		using TableAllocator = NodeAllocator<Conditional<CT::Void<V>, K, TPair<K, V>>, 4, 16384, METHOD>;
 
 		/// A highly optimized hashmap implementation, using the Robin Hood		
 		/// algorithm																				
@@ -93,14 +94,15 @@ namespace Langulus::Anyness
 		/// https://www.reddit.com/r/cpp/comments/ahp6iu/compile_time_binary_size_reductions_and_cs_future/eeguck4/
 		///																							
 		TABLE_TEMPLATE()
-		class Table : public NodeAllocator<Conditional<IsVoid<V>, K, TPair<K, V>>, 4, 16384, METHOD> {
+		class Table : public TableAllocator<METHOD, MaxLoadFactor100, K, V> {
 		public:
 			static constexpr AllocationMethod Method = METHOD;
-			static constexpr bool IsMap = not IsVoid<V>;
-			static constexpr bool IsSet = IsVoid<V>;
+			static constexpr bool IsMap = not CT::Void<V>;
+			static constexpr bool IsSet = CT::Void<V>;
 			static constexpr bool IsOnHeap = Method == AllocationMethod::Heap;
 			static constexpr bool IsOnStack = Method == AllocationMethod::Stack;
 
+			using Base = TableAllocator<METHOD, MaxLoadFactor100, K, V>;
 			using Pair = Conditional<IsMap, TPair<K, V>, K>;
 			using Key = K;
 			using Value = V;
@@ -160,9 +162,30 @@ namespace Langulus::Anyness
 			NOD() DMeta GetValueType() const;
 
 			template<class ALT_K>
-			NOD() bool KeyIs() const noexcept;
+			NOD() constexpr bool KeyIs() const noexcept;
 			template<class ALT_V>
-			NOD() bool ValueIs() const noexcept;
+			NOD() constexpr bool ValueIs() const noexcept;
+			NOD() constexpr bool IsKeyUntyped() const noexcept;
+			NOD() constexpr bool IsValueUntyped() const noexcept;
+			NOD() constexpr bool IsKeyTypeConstrained() const noexcept;
+			NOD() constexpr bool IsValueTypeConstrained() const noexcept;
+			NOD() constexpr bool IsKeyAbstract() const noexcept;
+			NOD() constexpr bool IsValueAbstract() const noexcept;
+			NOD() constexpr bool IsKeyConstructible() const noexcept;
+			NOD() constexpr bool IsValueConstructible() const noexcept;
+			NOD() constexpr bool IsKeyDeep() const noexcept;
+			NOD() constexpr bool IsValueDeep() const noexcept;
+			NOD() constexpr bool IsKeySparse() const noexcept;
+			NOD() constexpr bool IsValueSparse() const noexcept;
+			NOD() constexpr bool IsKeyDense() const noexcept;
+			NOD() constexpr bool IsValueDense() const noexcept;
+			NOD() constexpr Size GetPairStride() const noexcept;
+			NOD() constexpr Size GetKeyStride() const noexcept;
+			NOD() constexpr Size GetValueStride() const noexcept;
+			NOD() constexpr Size GetSize() const noexcept;
+			NOD() constexpr Count GetCount() const noexcept;
+			NOD() constexpr bool IsEmpty() const noexcept;
+			NOD() constexpr bool IsAllocated() const noexcept;
 
 			template<bool REHASH = false>
 			void Allocate(size_t);
@@ -173,7 +196,7 @@ namespace Langulus::Anyness
 
 			NOD() K const& getFirstConst(Node const&) const noexcept;
 			NOD() K const& getFirstConst(K const&) const noexcept;
-			template <ReflectedData Q = V>
+			template <CT::Data Q = V>
 			NOD() K const& getFirstConst(Pair const&) const noexcept;
 			template<class HashKey>
 			void keyToIdx(HashKey&&, size_t*, InfoType*) const;
@@ -274,11 +297,7 @@ namespace Langulus::Anyness
 			///	SEARCH																			
 			///																						
 			size_t count(const K&) const;
-			//template <class OtherKey, class Self_ = Self>
-			//size_t count(const OtherKey&) const requires IsTransparent<Self_>;
 			bool contains(const K&) const;
-			//template <class OtherKey, class Self_ = Self>
-			//bool contains(const OtherKey&) const requires IsTransparent<Self_>;
 
 			V& at(const K&);
 			const V& at(const K&) const;
@@ -291,6 +310,11 @@ namespace Langulus::Anyness
 
 			const V& operator[] (const K&) const;
 			V& operator[] (const K&);
+			
+			NOD() bool has(const Pair& e) const {
+				auto it = find(e.mKey);
+				return it != end() && it->mValue == e.mValue;
+			}
 
 
 			///																						
@@ -302,9 +326,7 @@ namespace Langulus::Anyness
 			iterator end();
 			const_iterator end() const;
 			const_iterator cend() const;
-			NOD() constexpr Count GetCount() const noexcept;
 			NOD() constexpr Count max_size() const noexcept;
-			NOD() constexpr bool IsEmpty() const noexcept;
 			NOD() constexpr float max_load_factor() const noexcept;
 			NOD() constexpr float load_factor() const noexcept;
 			NOD() size_t mask() const noexcept;
@@ -314,19 +336,8 @@ namespace Langulus::Anyness
 			NOD() size_t calcNumBytesTotal(size_t) const;
 
 		private:
-			template <ReflectedData Q = V>
-			NOD() bool has(const Pair& e) const {
-				auto it = find(e.first);
-				return it != end() && it->second == e.second;
-			}
-
-			template <IsVoid Q = V>
-			NOD() bool has(const Pair& e) const {
-				return find(e) != end();
-			}
-
-			/// Reserves space for at least the specified number of elements.		
-			/// Only works if numBuckets if power of two. True on success			
+			/// Reserves space for at least the specified number of elements		
+			/// Only works if numBuckets is power-of-two									
 			template<bool FREE>
 			void rehashPowerOfTwo(size_t numBuckets) {
 				Node* const oldKeyVals = mKeyVals;

@@ -77,7 +77,7 @@ namespace Langulus::Anyness
 		return static_cast<Hash>(h);
 	}
 
-	template<IsNumber N>
+	template<CT::Number N>
 	constexpr Hash HashNumber(const N& n) noexcept {
 		// tried lots of different hashes, let's stick with murmurhash3. It's simple, fast, well tested,
 		// and doesn't need any special 128bit operations.
@@ -98,11 +98,11 @@ namespace Langulus::Anyness
 	///	@return the hash																		
 	template<class T>
 	constexpr Hash HashData(const T& data) noexcept {
-		if constexpr (IsHashable<T>)
+		if constexpr (CT::Hashable<T>)
 			return data.GetHash();
-		else if constexpr (IsNumber<T>)
+		else if constexpr (CT::Number<T>)
 			return HashNumber(data);
-		else if constexpr (IsPOD<T>)
+		else if constexpr (CT::POD<T>)
 			return HashBytes(&data, sizeof(T));
 		else
 			LANGULUS_ASSERT("Can't hash data");

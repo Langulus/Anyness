@@ -11,12 +11,12 @@ namespace Langulus::Anyness
 		: mIndex {value} { }
 
 	/// Constructor from signed integer														
-	template<IsSignedInteger T>
+	template<CT::SignedInteger T>
 	constexpr Index::Index(const T& value) noexcept
 		: mIndex {value} { }
 	
 	/// Constructor from unsigned integer													
-	template<IsUnsignedInteger T>
+	template<CT::UnsignedInteger T>
 	constexpr Index::Index(const T& value)
 		: mIndex {static_cast<Type>(value)} {
 		if (value > static_cast<Count>(MaxIndex))
