@@ -462,6 +462,18 @@ SCENARIO("THashMap", "[containers]") {
 			auto copy = map;
 
 			THEN("The new map should keep the state and refer to original data") {
+				REQUIRE(copy["one"] == 1);
+				REQUIRE(copy["two"] == 2);
+				REQUIRE(copy["three"] == 3);
+				REQUIRE(copy["four"] == 4);
+				REQUIRE(copy["five"] == 5);
+				REQUIRE(copy.GetCount() == 5);
+				REQUIRE(&map["one"] == &copy["one"]);
+				REQUIRE(&map["two"] == &copy["two"]);
+				REQUIRE(&map["three"] == &copy["three"]);
+				REQUIRE(&map["four"] == &copy["four"]);
+				REQUIRE(&map["five"] == &copy["five"]);
+
 				/*REQUIRE(copy.GetRaw() == map.GetRaw());
 				REQUIRE(copy.GetCount() == map.GetCount());
 				REQUIRE(copy.GetReserved() == map.GetReserved());
@@ -475,6 +487,18 @@ SCENARIO("THashMap", "[containers]") {
 			auto clone = map.Clone();
 
 			THEN("The new map should keep the state, but refer to new data") {
+				REQUIRE(clone["one"] == 1);
+				REQUIRE(clone["two"] == 2);
+				REQUIRE(clone["three"] == 3);
+				REQUIRE(clone["four"] == 4);
+				REQUIRE(clone["five"] == 5);
+				REQUIRE(clone.GetCount() == 5);
+				REQUIRE(&map["one"] != &clone["one"]);
+				REQUIRE(&map["two"] != &clone["two"]);
+				REQUIRE(&map["three"] != &clone["three"]);
+				REQUIRE(&map["four"] != &clone["four"]);
+				REQUIRE(&map["five"] != &clone["five"]);
+
 				/*REQUIRE(clone.GetRaw() != map.GetRaw());
 				REQUIRE(clone.GetCount() == map.GetCount());
 				REQUIRE(clone.GetReserved() >= clone.GetCount());

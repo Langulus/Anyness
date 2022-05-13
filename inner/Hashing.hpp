@@ -98,14 +98,27 @@ namespace Langulus::Anyness
 	///	@return the hash																		
 	template<class T>
 	constexpr Hash HashData(const T& data) noexcept {
-		if constexpr (CT::Hashable<T>)
+		if constexpr (CT::Hashable<T>) {
+			// Hashable via a member GetHash() function							
 			return data.GetHash();
-		else if constexpr (CT::Number<T>)
+		}
+		else if constexpr (CT::Number<T>) {
+			// A fundamental number is built-in hashable							
 			return HashNumber(data);
-		else if constexpr (CT::POD<T>)
+		}
+		else if constexpr (requires { Uneval<::std::hash<T>&>.operator ()(data); }) {
+			// Hashable via std::hash													
+			::std::hash<T> hasher;
+			return hasher(data);
+		}
+		else if constexpr (CT::POD<T>) {
+			// Explicitly marked POD type is always hashable, but be			
+			// careful for POD types with padding - the junk inbetween		
+			// members can interfere with the hash, giving unique hashes	
+			// where the same hashes should be produced							
 			return HashBytes(&data, sizeof(T));
-		else
-			LANGULUS_ASSERT("Can't hash data");
+		}
+		else LANGULUS_ASSERT("Can't hash data");
 	}
 
 } // namespace Langulus::Anyness

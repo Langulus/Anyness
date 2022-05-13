@@ -3,9 +3,6 @@
 
 namespace Langulus::Anyness
 {
-
-	template<class T>
-	concept IsNotAny = CT::Data<T> && !CT::Deep<T> && !CT::Same<T, Disowned<Any>> && !CT::Same<T, Abandoned<Any>>;
 	
 	///																								
 	///	TAny																						
@@ -44,8 +41,6 @@ namespace Langulus::Anyness
 		TAny& operator = (TAny&);
 		TAny& operator = (TAny&&) noexcept;
 
-		//template<class ALT_T>
-		//TAny& operator = (const ALT_T&);
 		template<CT::Data ALT_T>
 		TAny& operator = (ALT_T&);
 		template<CT::Data ALT_T>
