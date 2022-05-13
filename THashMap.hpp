@@ -20,39 +20,9 @@
 
 namespace Langulus::Anyness
 {
-	namespace Inner
-	{
-
-		template <typename T>
-		constexpr T rotr(T x, unsigned k) {
-			return (x >> k) | (x << (8U * sizeof(T) - k));
-		}
-
-
-	} // namespace Langulus::Anyness::Inner
-
-	struct is_transparent_tag {};
-
 
 	namespace Inner
 	{
-
-		template<class T>
-		struct void_type {
-			using type = void;
-		};
-
-
-		template<class T>
-		concept has_is_transparent = requires { T::is_transparent; };
-
-
-		/*template<class T>
-		concept IsOnHeap = T::Method == AllocationMethod::Heap;
-		template<class T>
-		concept IsOnStack = T::Method == AllocationMethod::Stack;*/
-		//template<class T>
-		//concept IsTransparent = T::is_transparent;
 
 		/// Type needs to be wider than uint8_t											
 		using InfoType = uint32_t;
@@ -202,8 +172,8 @@ namespace Langulus::Anyness
 			void keyToIdx(HashKey&&, size_t*, InfoType*) const;
 			void next(InfoType*, size_t*) const noexcept;
 			void nextWhileLess(InfoType*, size_t*) const noexcept;
-			void shiftUp(size_t, size_t const) noexcept(std::is_nothrow_move_assignable_v<Node>);
-			void shiftDown(size_t) noexcept(std::is_nothrow_move_assignable_v<Node>);
+			void shiftUp(size_t, size_t const) noexcept(CT::MovableNoexcept<Node>);
+			void shiftDown(size_t) noexcept(CT::MovableNoexcept<Node>);
 
 		private:
 			void CloneInner(const Table&);
@@ -382,11 +352,10 @@ namespace Langulus::Anyness
 				mMask = max_elements - 1;
 				mMaxNumElementsAllowed = calcMaxNumElementsAllowed(max_elements);
 
-				auto const numElementsWithBuffer = calcNumElementsWithBuffer(max_elements);
-
 				// Malloc & zero mInfo - faster than calloc everything		
+				auto const numElementsWithBuffer = calcNumElementsWithBuffer(max_elements);
 				auto const numBytesTotal = calcNumBytesTotal(numElementsWithBuffer);
-				mKeyVals = reinterpret_cast<Node*>(assertNotNull<std::bad_alloc>(std::malloc(numBytesTotal)));
+				mKeyVals = reinterpret_cast<Node*>(std::malloc(numBytesTotal));
 				mInfo = reinterpret_cast<uint8_t*>(mKeyVals + numElementsWithBuffer);
 				std::memset(mInfo, 0, numBytesTotal - numElementsWithBuffer * sizeof(Node));
 
@@ -475,10 +444,6 @@ namespace Langulus::Anyness
 
 	} // namespace Langulus::Anyness::Inner
 
-	template<class... T>
-	concept IsNoexceptMoveConstructibleOrAssignable = 
-		((::std::is_nothrow_move_constructible_v<T> && ::std::is_nothrow_move_assignable_v<T>) && ...);
-
 	/// Map																							
 	template <class K, class V, Count MaxLoadFactor100 = 80>
 	using unordered_flat_map = Inner::Table<AllocationMethod::Stack, MaxLoadFactor100, K, V>;
@@ -486,11 +451,8 @@ namespace Langulus::Anyness
 	template <class K, class V, Count MaxLoadFactor100 = 80>
 	using unordered_node_map = Inner::Table<AllocationMethod::Heap, MaxLoadFactor100, K, V>;
 
-	template <class K, class V>
-	constexpr bool MapOnStackCriteria = sizeof(TPair<K, V>) <= sizeof(Count) * 6 && IsNoexceptMoveConstructibleOrAssignable<TPair<K, V>>;
-
 	template <class K, class V, Count MaxLoadFactor100 = 80>
-	using unordered_map = Inner::Table<MapOnStackCriteria<K, V> ? AllocationMethod::Stack : AllocationMethod::Heap, MaxLoadFactor100, K, V>;
+	using unordered_map = Inner::Table<CT::OnStackCriteria<TPair<K, V>> ? AllocationMethod::Stack : AllocationMethod::Heap, MaxLoadFactor100, K, V>;
 
 	/// Set																							
 	template <class K, Count MaxLoadFactor100 = 80>
@@ -499,11 +461,8 @@ namespace Langulus::Anyness
 	template <class K, Count MaxLoadFactor100 = 80>
 	using unordered_node_set = Inner::Table<AllocationMethod::Heap, MaxLoadFactor100, K, void>;
 
-	template <class K>
-	constexpr bool SetOnStackCriteria = sizeof(K) <= sizeof(Count) * 6 && IsNoexceptMoveConstructibleOrAssignable<K>;
-
 	template <class K, Count MaxLoadFactor100 = 80>
-	using unordered_set = Inner::Table<SetOnStackCriteria<K> ? AllocationMethod::Stack : AllocationMethod::Heap, MaxLoadFactor100, K, void>;
+	using unordered_set = Inner::Table<CT::OnStackCriteria<K> ? AllocationMethod::Stack : AllocationMethod::Heap, MaxLoadFactor100, K, void>;
 
 } // namespace Langulus::Anyness
 

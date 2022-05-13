@@ -153,14 +153,14 @@ namespace Langulus::Anyness
 		void reset() noexcept;
 		T* allocate();
 		void deallocate(T*) noexcept;
-		void addOrFree(void*, const size_t) noexcept;
+		//void AddOrFree(Entry* entry) noexcept;
+		void AddPool(Entry*) noexcept;
 		void swap(BulkPoolAllocator&) noexcept;
 		NOD() bool IsAllocated() const noexcept { return mHead != nullptr; }
 
 	private:
 		NOD() size_t calcNumElementsToAlloc() const noexcept;
-		void add(void*, const size_t) noexcept;
-		LANGULUS(NOINLINE) T* performAllocation();
+		LANGULUS(NOINLINE) T* AllocateInner();
 	};
 
 

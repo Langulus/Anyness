@@ -37,8 +37,15 @@ namespace Langulus::Anyness::Inner
 
 	///																								
 	TABLE_TEMPLATE()
-	TABLE()::Table(Table&& o) noexcept
-		: DataPool(Forward<DataPool&>(o)) {
+	TABLE()::Table(Table&& other) noexcept
+		: DataPool(Forward<DataPool&>(other))
+		, mHashMultiplier(other.mHashMultiplier)
+		, mNumElements(other.mNumElements)
+		, mMask(other.mMask)
+		, mMaxNumElementsAllowed(other.mMaxNumElementsAllowed)
+		, mInfoInc(other.mInfoInc)
+		, mInfoHashShift(other.mInfoHashShift) {
+		/*TODO this can't be faster than init list, but test it to be sure
 		if (!o.mMask)
 			return;
 
@@ -49,35 +56,34 @@ namespace Langulus::Anyness::Inner
 		mMask = Move(o.mMask);
 		mMaxNumElementsAllowed = Move(o.mMaxNumElementsAllowed);
 		mInfoInc = Move(o.mInfoInc);
-		mInfoHashShift = Move(o.mInfoHashShift);
+		mInfoHashShift = Move(o.mInfoHashShift);*/
+
 		// Set other's mask to 0 so its destructor won't do anything		
-		o.init();
+		other.init();
 	}
 
 	///																								
 	TABLE_TEMPLATE()
-	TABLE()::Table(const Table& o)
-		: DataPool(static_cast<const DataPool&>(o)) {
-		//TODO this should reference instead of clone
-		if (o.IsEmpty())
+	TABLE()::Table(const Table& other)
+		: DataPool(other)
+		, mHashMultiplier(other.mHashMultiplier)
+		, mNumElements(other.mNumElements)
+		, mMask(other.mMask)
+		, mMaxNumElementsAllowed(other.mMaxNumElementsAllowed)
+		, mInfoInc(other.mInfoInc)
+		, mInfoHashShift(other.mInfoHashShift) {
+		/*TODO this can't be faster than init list, but test it to be sure
+		if (!o.mMask)
 			return;
 
-		// Not empty: create an exact copy. It is also possible to just	
-		// iterate through all elements and insert them, but copying is	
-		// probably faster																
-		auto const numElementsWithBuffer = calcNumElementsWithBuffer(o.mMask + 1);
-		auto const numBytesTotal = calcNumBytesTotal(numElementsWithBuffer);
-
 		mHashMultiplier = o.mHashMultiplier;
-		mKeyVals = static_cast<Node*>(assertNotNull<std::bad_alloc>(std::malloc(numBytesTotal)));
-		// No need for calloc because cloneData does memcpy					
-		mInfo = reinterpret_cast<uint8_t*>(mKeyVals + numElementsWithBuffer);
+		mKeyVals = o.mKeyVals;
+		mInfo = o.mInfo;
 		mNumElements = o.mNumElements;
 		mMask = o.mMask;
 		mMaxNumElementsAllowed = o.mMaxNumElementsAllowed;
 		mInfoInc = o.mInfoInc;
-		mInfoHashShift = o.mInfoHashShift;
-		CloneInner(o);
+		mInfoHashShift = o.mInfoHashShift;*/
 	}
 
 	TABLE_TEMPLATE()
@@ -891,25 +897,10 @@ namespace Langulus::Anyness::Inner
 		return 0;
 	}
 
-	/*TABLE_TEMPLATE()
-	template<typename OtherKey, typename Self_>
-	size_t TABLE()::count(const OtherKey& key) const requires IsTransparent<Self_> {
-		auto kv = mKeyVals + findIdx(key);
-		if (kv != reinterpret_cast_no_cast_align_warning<Node*>(mInfo))
-			return 1;
-		return 0;
-	}*/
-
 	TABLE_TEMPLATE()
 	bool TABLE()::contains(const K& key) const {
 		return 1U == count(key);
 	}
-
-	/*TABLE_TEMPLATE()
-	template <typename OtherKey, typename Self_>
-	bool TABLE()::contains(const OtherKey& key) const requires IsTransparent<Self_> {
-		return 1U == count(key);
-	}*/
 
 	/// Returns a reference to the value found for key									
 	/// Throws std::out_of_range if element cannot be found							
@@ -1190,7 +1181,7 @@ namespace Langulus::Anyness::Inner
 	/// Shift everything up by one element													
 	/// Tries to move stuff around															
 	TABLE_TEMPLATE()
-	void TABLE()::shiftUp(size_t startIdx, size_t const insertion_idx) noexcept(std::is_nothrow_move_assignable_v<Node>) {
+	void TABLE()::shiftUp(size_t startIdx, size_t const insertion_idx) noexcept(CT::MovableNoexcept<Node>) {
 		auto idx = startIdx;
 		::new (static_cast<void*>(mKeyVals + idx)) Node(Move(mKeyVals[idx - 1]));
 		while (--idx != insertion_idx)
@@ -1206,7 +1197,7 @@ namespace Langulus::Anyness::Inner
 	}
 
 	TABLE_TEMPLATE()
-	void TABLE()::shiftDown(size_t idx) noexcept(std::is_nothrow_move_assignable_v<Node>) {
+	void TABLE()::shiftDown(size_t idx) noexcept(CT::MovableNoexcept<Node>) {
 		// Until we find one that is either empty or has zero offset		
 		// TODO(martinus) we don't need to move everything, just				
 		// the last one for the same bucket											

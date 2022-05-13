@@ -75,30 +75,35 @@ namespace Langulus::Anyness
 			(blockStart1 - blockStart2) > ::std::ptrdiff_t(other.mAllocatedBytes);
 	}
 
+
+	///																								
+	///	POOL																						
+	///																								
+
 #define POOL_TEMPLATE() template <class T, Count MIN_ALLOCS, Count MAX_ALLOCS>
 #define POOL() BulkPoolAllocator<T,MIN_ALLOCS,MAX_ALLOCS>
 
 	/// Does not copy anything, just creates a new allocator							
 	POOL_TEMPLATE()
-	POOL()::BulkPoolAllocator(const BulkPoolAllocator&) noexcept
-		: mHead(nullptr)
-		, mListForFree(nullptr) {}
+	POOL()::BulkPoolAllocator(const BulkPoolAllocator& other) noexcept
+		: mHead(other.mHead)
+		, mListForFree(other.mListForFree) {}
 
 	POOL_TEMPLATE()
-	POOL()::BulkPoolAllocator(BulkPoolAllocator&& o) noexcept
-		: mHead(o.mHead)
-		, mListForFree(o.mListForFree) {
-		o.mListForFree = nullptr;
-		o.mHead = nullptr;
+	POOL()::BulkPoolAllocator(BulkPoolAllocator&& other) noexcept
+		: mHead(other.mHead)
+		, mListForFree(other.mListForFree) {
+		other.mListForFree = nullptr;
+		other.mHead = nullptr;
 	}
 
 	POOL_TEMPLATE()
-	POOL()& POOL()::operator = (BulkPoolAllocator&& o) noexcept {
+	POOL()& POOL()::operator = (BulkPoolAllocator&& other) noexcept {
 		reset();
-		mHead = o.mHead;
-		mListForFree = o.mListForFree;
-		o.mListForFree = nullptr;
-		o.mHead = nullptr;
+		mHead = other.mHead;
+		mListForFree = other.mListForFree;
+		other.mListForFree = nullptr;
+		other.mHead = nullptr;
 		return *this;
 	}
 
@@ -128,10 +133,7 @@ namespace Langulus::Anyness
 	/// e.g. T* obj = pool.allocate(); ::new (static_cast<void*>(obj)) T();		
 	POOL_TEMPLATE()
 	T* POOL()::allocate() {
-		T* tmp = mHead;
-		if (!tmp)
-			tmp = performAllocation();
-
+		auto tmp = mHead ? mHead : AllocateInner();
 		mHead = *reinterpret_cast_no_cast_align_warning<T**>(tmp);
 		return tmp;
 	}
@@ -150,21 +152,23 @@ namespace Langulus::Anyness
 	/// (with free()). If the provided data is not large enough to make use		
 	/// of, it is immediately freed. Otherwise it is reused and freed in the	
 	/// destructor.																				
-	POOL_TEMPLATE()
-	void POOL()::addOrFree(void* ptr, const size_t numBytes) noexcept {
+	/*POOL_TEMPLATE()
+	void POOL()::AddOrFree(Entry* entry) noexcept {
 		// Calculate number of available elements in ptr						
 		if (numBytes < Alignment + AlignedSize) {
 			// Not enough data for at least one element. Free and return.	
 			std::free(ptr);
 		}
-		else add(ptr, numBytes);
-	}
+		else 
+		AddPool(entry);
+	}*/
 
+	/// Swap pool allocators																	
+	///	@param other - the pool to swap with											
 	POOL_TEMPLATE()
 	void POOL()::swap(BulkPoolAllocator& other) noexcept {
-		using std::swap;
-		swap(mHead, other.mHead);
-		swap(mListForFree, other.mListForFree);
+		::std::swap(mHead, other.mHead);
+		::std::swap(mListForFree, other.mListForFree);
 	}
 
 	/// Iterates the list of allocated memory to calculate how many to alloc	
@@ -174,8 +178,7 @@ namespace Langulus::Anyness
 	POOL_TEMPLATE()
 	size_t POOL()::calcNumElementsToAlloc() const noexcept {
 		auto tmp = mListForFree;
-		size_t numAllocs = MinAllocations;
-
+		Count numAllocs = MinAllocations;
 		while (numAllocs * 2 <= MaxAllocations && tmp) {
 			auto x = reinterpret_cast<T***>(tmp);
 			tmp = *x;
@@ -186,9 +189,11 @@ namespace Langulus::Anyness
 	}
 
 	/// WARNING: Underflow if numBytes < ALIGNMENT! Guarded in addOrFree()		
+	///TODO don't guard it, because Allocator::Allocate never does that! - removed addOrFree as a whole
 	POOL_TEMPLATE()
-	void POOL()::add(void* ptr, const size_t numBytes) noexcept {
-		const size_t numElements = (numBytes - Alignment) / AlignedSize;
+	void POOL()::AddPool(Entry* entry) noexcept {
+		const Count numElements = (entry->mAllocatedBytes - Alignment) / AlignedSize;
+		const auto ptr = entry->GetBlockStart();
 		auto data = reinterpret_cast<T**>(ptr);
 
 		// Link free list																	
@@ -197,13 +202,13 @@ namespace Langulus::Anyness
 		mListForFree = data;
 
 		// Create linked list for newly allocated data							
-		auto* const headT = reinterpret_cast_no_cast_align_warning<T*>(reinterpret_cast<char*>(ptr) + Alignment);
-		auto* const head = reinterpret_cast<char*>(headT);
+		auto* const headT = reinterpret_cast_no_cast_align_warning<T*>(ptr + Alignment);
+		auto* const head = reinterpret_cast<Byte*>(headT);
 
 		// Visual Studio compiler automatically unrolls this loop, which	
 		// is pretty cool																	
 		for (size_t i = 0; i < numElements; ++i) {
-			*reinterpret_cast_no_cast_align_warning<char**>(head + i * AlignedSize) = head + (i + 1) * AlignedSize;
+			*reinterpret_cast<Byte**>(head + i * AlignedSize) = head + (i + 1) * AlignedSize;
 		}
 
 		// Last one points to 0															
@@ -213,13 +218,11 @@ namespace Langulus::Anyness
 
 	/// Called when no memory is available (mHead == 0)								
 	/// Don't inline this slow path															
+	/// Allocates new memory: [prev |T, T, ... T]										
 	POOL_TEMPLATE()
-	LANGULUS(NOINLINE) T* POOL()::performAllocation() {
-		size_t const numElementsToAlloc = calcNumElementsToAlloc();
-
-		// Allocate new memory: [prev |T, T, ... T]								
-		size_t const bytes = Alignment + AlignedSize * numElementsToAlloc;
-		add(assertNotNull<std::bad_alloc>(std::malloc(bytes)), bytes);
+	LANGULUS(NOINLINE) T* POOL()::AllocateInner() {
+		const Size bytes = Alignment + AlignedSize * calcNumElementsToAlloc();
+		AddPool(Allocator::Allocate(bytes));
 		return mHead;
 	}
 

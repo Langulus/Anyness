@@ -429,8 +429,23 @@
 			constexpr bool IsConstexpr(Lambda) { return true; }
 			constexpr bool IsConstexpr(...) { return false; }
 		
-		} // namespace Langulus::CT
 
+			template<class... T>
+			concept MakableOrMovable = ((MoveMakable<T> || Movable<T>) && ...);
+			template<class... T>
+			concept MakableOrMovableNoexcept = ((MoveMakableNoexcept<T> || MovableNoexcept<T>) && ...);
+
+			template<class... T>
+			concept MakableOrCopyable = ((CopyMakable<T> || Copyable<T>) && ...);
+			template<class... T>
+			concept MakableOrCopyableNoexcept = ((CopyMakableNoexcept<T> || CopyableNoexcept<T>) && ...);
+
+			template<class... T>
+			concept OnStackCriteria = ((sizeof(T) <= sizeof(Count) * 6 && MakableOrMovableNoexcept<T>) && ...);
+			template<class... T>
+			concept OnHeapCriteria = not OnStackCriteria<T...>;
+
+		} // namespace Langulus::CT
 
 		/// Pick between two types, based on a condition								
 		template<bool CONDITION, class TRUETYPE, class FALSETYPE>
