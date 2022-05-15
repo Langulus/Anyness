@@ -141,14 +141,11 @@ namespace Langulus::Anyness
 			return {MetaData::Of<T>()};
 	}
 
-	/// Reference memory block																	
+	/// Reference memory block if we own it												
 	///	@param times - number of references to add									
 	inline void Block::Reference(const Count& times) noexcept {
-		if (!mEntry)
-			// We don't own the data - don't touch it								
-			return;
-
-		mEntry->mReferences += times;
+		if (mEntry)
+			mEntry->Keep(times);
 	}
 	
 	/// Reference memory block (const)														
@@ -180,16 +177,16 @@ namespace Langulus::Anyness
 			// Data is either static or unallocated - don't touch it			
 			return false;
 
-		if (mEntry->mReferences <= times) {
+		if (mEntry->GetUses() <= times) {
 			// Destroy all elements and deallocate the entry					
 			if constexpr (DESTROY)
 				CallUnknownDestructors();
-			Allocator::Deallocate(mType, mEntry);
+			Allocator::Deallocate(mEntry);
 			mEntry = nullptr;
 			return true;
 		}
 
-		mEntry->mReferences -= times;
+		mEntry->Free<false>(times);
 		mEntry = nullptr;
 		return false;
 	}
@@ -239,7 +236,7 @@ namespace Langulus::Anyness
 		if (mEntry) {
 			// Reallocate																	
 			Block previousBlock {*this};
-			if (mEntry->mReferences == 1) {
+			if (mEntry->GetUses() == 1) {
 				// Memory is used only once and it is safe to move it			
 				// Make note, that Allocator::Reallocate doesn't copy			
 				// anything, it doesn't use realloc for various reasons, so	
@@ -364,10 +361,10 @@ namespace Langulus::Anyness
 	}
 	
 	/// Get the number of references for the allocated memory block				
-	///	@attention always returns 1 if memory is outside authority				
+	///	@attention returns 0 if memory is outside authority						
 	///	@return the references for the memory block									
 	constexpr Count Block::GetReferences() const noexcept {
-		return mEntry ? mEntry->mReferences : 1;
+		return mEntry ? mEntry->GetUses() : 0;
 	}
 
 	/// Check if memory is allocated															
@@ -2002,39 +1999,52 @@ namespace Langulus::Anyness
 	///	@attention this function is intended for internal use						
 	///	@attention this operates on initialized memory only, and any			
 	///				  misuse will result in undefined behavior						
+	///	@attention assumes that mCount > 0												
 	template<class T>
 	void Block::CallKnownDestructors() {
 		using Decayed = Decay<T>;
-		const auto data = reinterpret_cast<T*>(GetRaw());
+		auto data = reinterpret_cast<T*>(mRaw);
+		const auto dataEnd = data + mCount;
+
 		if constexpr (CT::Sparse<T>) {
 			// We dereference each pointer - destructors will be called		
 			// if data behind these pointers is fully dereferenced, too		
-			for (Count i = 0; i < mCount; ++i) {
-				auto found = Allocator::Find(mType, data[i]);
-				if (found) {
-					if (found->mReferences == 1) {
-						if constexpr (CT::Destroyable<T>) {
-							data[i]->~Decayed();
-						}
-						Allocator::Deallocate(mType, found);
+			Entry* found {};
+			while (data != dataEnd) {
+				// It is very likely, that the next pointer is in the same	
+				// entry, so check for that here to avoid a lengthly search	
+				if (LANGULUS_UNLIKELY(!found || !found->Contains(*data))) {
+					found = Allocator::Find(mType, *data);
+					if (!found) {
+						++data;
+						continue;
 					}
-					else --found->mReferences;
 				}
+
+				if (found->GetUses() == 1) {
+					if constexpr (CT::Destroyable<T>)
+						(**data).~Decayed();
+					Allocator::Deallocate(found);
+				}
+				else found->Free<false>();
+				++data;
 			}
 
 			// Always null the pointers after destruction						
 			// It is quite obscure, but this is where TPointers are reset	
-			FillMemory(data, {}, GetSize());
+			FillMemory(data, {}, sizeof(void*) * mCount);
 			return;
 		}
 		else if constexpr (!CT::POD<T> && CT::Destroyable<T>) {
 			// Destroy every dense element											
-			for (Count i = 0; i < mCount; ++i)
-				data[i].~Decayed();
+			while (data != dataEnd) {
+				(*data).~Decayed();
+				++data;
+			}
 		}
 
 		#if LANGULUS_PARANOID()
-			// Nullify upon destruction only if we're paranoid					
+			// Always nullify upon destruction only if we're paranoid		
 			FillMemory(data, {}, GetSize());
 		#endif
 	}

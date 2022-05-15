@@ -26,8 +26,8 @@ namespace Langulus::Anyness
 
 	/// Check if the memory of the entry is in use										
 	///	@return true if entry has any references										
-	constexpr bool Entry::IsInUse() const noexcept {
-		return mReferences > 0;
+	constexpr const Count& Entry::GetUses() const noexcept {
+		return mReferences;
 	}
 
 	/// Return the aligned start of usable block memory (const)						
@@ -35,6 +35,12 @@ namespace Langulus::Anyness
 	inline const Byte* Entry::GetBlockStart() const noexcept {
 		const auto entryStart = reinterpret_cast<const Byte*>(this);
 		return entryStart + Entry::GetSize();
+	}
+
+	/// Return the end of usable block memory (always const)							
+	///	@return pointer to the entry's memory end										
+	inline const Byte* Entry::GetBlockEnd() const noexcept {
+		return GetBlockStart() + mAllocatedBytes;
 	}
 
 	/// Return the aligned start of usable block memory								
@@ -52,16 +58,17 @@ namespace Langulus::Anyness
 
 	/// Get the number of allocated bytes in this entry								
 	///	@return the byte size of usable memory region								
-	constexpr const Size& Entry::Allocated() const noexcept {
+	constexpr const Size& Entry::GetAllocatedSize() const noexcept {
 		return mAllocatedBytes;
 	}
 
 	/// Check if memory address is inside this entry									
 	///	@param address - address to check if inside this entry					
 	///	@return true if address is inside												
-	inline bool Entry::Contains(const Byte* address) const noexcept {
+	inline bool Entry::Contains(const void* address) const noexcept {
+		const auto a = reinterpret_cast<const Byte*>(address);
 		const auto blockStart = GetBlockStart();
-		return address >= blockStart && address < blockStart + mAllocatedBytes;
+		return a >= blockStart && a < blockStart + mAllocatedBytes;
 	}
 
 	/// Test if one entry overlaps another													
@@ -75,24 +82,78 @@ namespace Langulus::Anyness
 			(blockStart1 - blockStart2) > ::std::ptrdiff_t(other.mAllocatedBytes);
 	}
 
+	/// Get the start of the entry as a given type										
+	///	@return a pointer to the first element											
+	template<class T>
+	NOD() T* Entry::As() const noexcept {
+		return reinterpret_cast<T*>(const_cast<Entry*>(this)->GetBlockStart());
+	}
+
+	/// Reference the entry once																
+	constexpr void Entry::Keep() noexcept {
+		++mReferences;
+	}
+
+	/// Reference the entry once																
+	constexpr void Entry::Keep(const Count& c) noexcept {
+		mReferences += c;
+	}
+
+	/// Dereference the entry once, and deallocate it if not in use after that	
+	template<bool DEALLOCATE>
+	void Entry::Free() noexcept {
+		--mReferences;
+		if constexpr (DEALLOCATE) {
+			if (0 == mReferences)
+				Allocator::Deallocate(this);
+		}
+	}
+
+	/// Dereference the entry once, and deallocate it if not in use after that	
+	template<bool DEALLOCATE>
+	void Entry::Free(const Count& c) SAFETY_NOEXCEPT() {
+		SAFETY(if (c > mReferences)
+			throw Except::Reference("Invalid dereferencing count"));
+		mReferences -= c;
+		if constexpr (DEALLOCATE) {
+			if (0 == mReferences)
+				Allocator::Deallocate(this);
+		}
+	}
+
 
 	///																								
 	///	POOL																						
 	///																								
-
-#define POOL_TEMPLATE() template <class T, Count MIN_ALLOCS, Count MAX_ALLOCS>
+/*#define POOL_TEMPLATE() template <class T, Count MIN_ALLOCS, Count MAX_ALLOCS>
 #define POOL() BulkPoolAllocator<T,MIN_ALLOCS,MAX_ALLOCS>
 
 	/// Does not copy anything, just creates a new allocator							
 	POOL_TEMPLATE()
 	POOL()::BulkPoolAllocator(const BulkPoolAllocator& other) noexcept
-		: mHead(other.mHead)
-		, mListForFree(other.mListForFree) {}
+		: mHead {other.mHead}
+		, mListForFree {other.mListForFree} {}
 
 	POOL_TEMPLATE()
 	POOL()::BulkPoolAllocator(BulkPoolAllocator&& other) noexcept
-		: mHead(other.mHead)
-		, mListForFree(other.mListForFree) {
+		: mHead {other.mHead}
+		, mListForFree {other.mListForFree} {
+		other.mListForFree = nullptr;
+		other.mHead = nullptr;
+	}
+
+	POOL_TEMPLATE()
+	POOL()::BulkPoolAllocator(Disowned<BulkPoolAllocator>&& other) noexcept
+		: mHead {other.mHead}
+		, mListForFree {other.mListForFree} {
+		other.mListForFree = nullptr;
+		other.mHead = nullptr;
+	}
+
+	POOL_TEMPLATE()
+	POOL()::BulkPoolAllocator(Abandoned<BulkPoolAllocator>&& other) noexcept
+		: mHead {other.mHead}
+		, mListForFree {other.mListForFree} {
 		other.mListForFree = nullptr;
 		other.mHead = nullptr;
 	}
@@ -124,7 +185,7 @@ namespace Langulus::Anyness
 		while (mListForFree) {
 			T* tmp = *mListForFree;
 			std::free(mListForFree);
-			mListForFree = reinterpret_cast_no_cast_align_warning<T**>(tmp);
+			mListForFree = reinterpret_cast<T**>(tmp);
 		}
 		mHead = nullptr;
 	}
@@ -134,7 +195,7 @@ namespace Langulus::Anyness
 	POOL_TEMPLATE()
 	T* POOL()::allocate() {
 		auto tmp = mHead ? mHead : AllocateInner();
-		mHead = *reinterpret_cast_no_cast_align_warning<T**>(tmp);
+		mHead = *reinterpret_cast<T**>(tmp);
 		return tmp;
 	}
 
@@ -143,7 +204,7 @@ namespace Langulus::Anyness
 	/// e.g. with obj->~T(); pool.deallocate(obj);										
 	POOL_TEMPLATE()
 	void POOL()::deallocate(T* obj) noexcept {
-		*reinterpret_cast_no_cast_align_warning<T**>(obj) = mHead;
+		*reinterpret_cast<T**>(obj) = mHead;
 		mHead = obj;
 	}
 
@@ -152,16 +213,15 @@ namespace Langulus::Anyness
 	/// (with free()). If the provided data is not large enough to make use		
 	/// of, it is immediately freed. Otherwise it is reused and freed in the	
 	/// destructor.																				
-	/*POOL_TEMPLATE()
-	void POOL()::AddOrFree(Entry* entry) noexcept {
+	POOL_TEMPLATE()
+	void POOL()::AddOrFree(Byte* ptr, const size_t numBytes) noexcept {
 		// Calculate number of available elements in ptr						
 		if (numBytes < Alignment + AlignedSize) {
 			// Not enough data for at least one element. Free and return.	
 			std::free(ptr);
 		}
-		else 
-		AddPool(entry);
-	}*/
+		else AddPool(ptr, numBytes);
+	}
 
 	/// Swap pool allocators																	
 	///	@param other - the pool to swap with											
@@ -191,9 +251,8 @@ namespace Langulus::Anyness
 	/// WARNING: Underflow if numBytes < ALIGNMENT! Guarded in addOrFree()		
 	///TODO don't guard it, because Allocator::Allocate never does that! - removed addOrFree as a whole
 	POOL_TEMPLATE()
-	void POOL()::AddPool(Entry* entry) noexcept {
-		const Count numElements = (entry->mAllocatedBytes - Alignment) / AlignedSize;
-		const auto ptr = entry->GetBlockStart();
+	void POOL()::AddPool(Byte* ptr, const size_t numBytes) noexcept {
+		const size_t numElements = (numBytes - Alignment) / AlignedSize;
 		auto data = reinterpret_cast<T**>(ptr);
 
 		// Link free list																	
@@ -222,11 +281,11 @@ namespace Langulus::Anyness
 	POOL_TEMPLATE()
 	LANGULUS(NOINLINE) T* POOL()::AllocateInner() {
 		const Size bytes = Alignment + AlignedSize * calcNumElementsToAlloc();
-		AddPool(Allocator::Allocate(bytes));
+		AddPool(Allocator::Allocate(bytes), bytes);
 		return mHead;
 	}
 
 #undef POOL_TEMPLATE
 #undef POOL
-
+*/
 } // namespace Langulus::Anyness

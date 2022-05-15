@@ -29,7 +29,7 @@ namespace Langulus::Anyness
 		, mEntry {other.mEntry} {
 		if (Base::mValue) {
 			if (mEntry)
-				++mEntry->mReferences;
+				mEntry->Keep();
 			if constexpr (DR && CT::Referencable<T>)
 				Base::mValue->Keep();
 		}
@@ -52,7 +52,7 @@ namespace Langulus::Anyness
 		, mEntry {Allocator::Find(MetaData::Of<T>(), ptr)} {
 		if (Base::mValue) {
 			if (mEntry)
-				++mEntry->mReferences;
+				mEntry->Keep();
 			if constexpr (DR && CT::Referencable<T>)
 				Base::mValue->Keep();
 		}
@@ -373,10 +373,11 @@ namespace Langulus::Anyness
 	}
 		
 	/// Get the references for the entry, where this pointer resides in			
-	///	@return true if we own the memory												
+	///	@attention returns zero if pointer is not managed							
+	///	@return number of uses for the pointer's memory								
 	TEMPLATE_SHARED()
 	constexpr Count TPointer<T, DR>::GetReferences() const noexcept {
-		return mEntry ? mEntry->mReferences : 1;
+		return mEntry ? mEntry->GetUses() : 0;
 	}
 
 	/// Get the type of the contained data													

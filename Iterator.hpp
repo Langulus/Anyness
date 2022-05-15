@@ -17,15 +17,15 @@ namespace Langulus::Anyness
 		using Node = typename CONTAINER::Node;
 		using NodePtr = Conditional<CONSTANT, Node const*, Node*>;
 
-		NodePtr mKeyVals{};
-		uint8_t const* mInfo{};
+		NodePtr mNode {};
+		const uint8_t* mInfo {};
 
 	public:
-		using Difference = std::ptrdiff_t;
-		using Type = typename CONTAINER::Pair;
+		using Difference = ::std::ptrdiff_t;
+		using Type = typename CONTAINER::Type;
 		using Reference = Conditional<CONSTANT, Type const&, Type&>;
 		using Pointer = Conditional<CONSTANT, Type const*, Type*>;
-		using Category = std::forward_iterator_tag;
+		using Category = ::std::forward_iterator_tag;
 
 		/// default constructed iterator can be compared to itself, but WON'T	
 		/// return true when compared to end()												
@@ -37,57 +37,58 @@ namespace Langulus::Anyness
 
 		/// Conversion constructor from iterator to const_iterator					
 		template<bool ALT_CONSTANT>
-		Iterator(Iterator<ALT_CONSTANT, CONTAINER> const& other) noexcept requires (CONSTANT && !ALT_CONSTANT)
-			: mKeyVals(other.mKeyVals)
-			, mInfo(other.mInfo) {}
+		Iterator(const Iterator<ALT_CONSTANT, CONTAINER>& other) noexcept requires (CONSTANT && !ALT_CONSTANT)
+			: mNode {other.mNode}
+			, mInfo {other.mInfo} {}
 
-		Iterator(NodePtr valPtr, uint8_t const* infoPtr) noexcept
-			: mKeyVals(valPtr)
-			, mInfo(infoPtr) {}
+		/// Manual construction																	
+		Iterator(NodePtr valPtr, const uint8_t* infoPtr) noexcept
+			: mNode {valPtr}
+			, mInfo {infoPtr} {}
 
-		Iterator(NodePtr valPtr, uint8_t const* infoPtr, fast_forward_tag) noexcept
-			: mKeyVals(valPtr)
-			, mInfo(infoPtr) {
+		Iterator(NodePtr valPtr, const uint8_t* infoPtr, fast_forward_tag) noexcept
+			: mNode {valPtr}
+			, mInfo {infoPtr} {
 			fastForward();
 		}
 
 		template<bool ALT_CONSTANT>
-		Iterator& operator = (Iterator<ALT_CONSTANT, CONTAINER> const& other) noexcept requires (CONSTANT && !ALT_CONSTANT) {
-			mKeyVals = other.mKeyVals;
+		Iterator& operator = (const Iterator<ALT_CONSTANT, CONTAINER>& other) noexcept requires (CONSTANT && !ALT_CONSTANT) {
+			mNode = other.mNode;
 			mInfo = other.mInfo;
 			return *this;
 		}
 
 		/// Prefix increment - undefined behavior if we are at end()				
-		Iterator& operator++() noexcept {
+		Iterator& operator ++ () noexcept {
 			mInfo++;
-			mKeyVals++;
+			mNode++;
 			fastForward();
 			return *this;
 		}
 
-		Iterator operator++(int) noexcept {
+		Iterator operator ++ (int) noexcept {
 			auto tmp = *this;
 			++(*this);
 			return tmp;
 		}
 
-		Reference operator*() const {
-			return **mKeyVals;
+		Reference operator * () const {
+			return **mNode;
 		}
 
-		Pointer operator->() const {
-			return &**mKeyVals;
-		}
-
-		template<bool ALT_CONSTANT>
-		bool operator == (Iterator<ALT_CONSTANT, CONTAINER> const& o) const noexcept {
-			return mKeyVals == o.mKeyVals;
+		Pointer operator -> () const {
+			return &**mNode;
 		}
 
 		template<bool ALT_CONSTANT>
-		bool operator != (Iterator<ALT_CONSTANT, CONTAINER> const& o) const noexcept {
-			return mKeyVals != o.mKeyVals;
+		bool operator == (const Iterator<ALT_CONSTANT, CONTAINER>& o) const noexcept {
+			return mNode == o.mNode;
+		}
+
+		template<bool ALT_CONSTANT>
+		bool operator != (const Iterator<ALT_CONSTANT, CONTAINER>& o) const noexcept {
+			return mNode != o.mNode;
 		}
 
 	private:
@@ -99,7 +100,7 @@ namespace Langulus::Anyness
 			size_t n = 0;
 			while (0U == (n = unaligned_load<size_t>(mInfo))) {
 				mInfo += sizeof(size_t);
-				mKeyVals += sizeof(size_t);
+				mNode += sizeof(size_t);
 			}
 
 			size_t inc;
@@ -109,7 +110,7 @@ namespace Langulus::Anyness
 				inc = CountLeadingZeroes(n) / 8;
 
 			mInfo += inc;
-			mKeyVals += inc;
+			mNode += inc;
 		}
 	};
 

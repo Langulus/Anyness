@@ -20,3 +20,12 @@ namespace Langulus::Anyness
 	};
 
 } // namespace Langulus::Anyness
+
+namespace Langulus::CT
+{
+
+	/// Check if T is a pair																	
+	template<class T>
+	concept Pair = DerivedFrom<T, ::Langulus::Anyness::APair>;
+
+}

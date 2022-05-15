@@ -199,7 +199,7 @@ namespace Langulus::Anyness
 					<< "Bad shallow-copy-assignment for type-constrained Any: from "
 					<< GetToken() << " to " << meta->mToken);
 			}
-			else if (mEntry && mEntry->mReferences == 1 && meta->Is(mType)) {
+			else if (GetReferences() == 1 && meta->Is(mType)) {
 				// Just destroy and reuse memory										
 				// Even better - types match, so we know this container		
 				// is filled with T too, therefore we can use statically		
@@ -239,7 +239,7 @@ namespace Langulus::Anyness
 					<< "Bad shallow-copy-assignment for type-constrained Any: from "
 					<< GetToken() << " to " << meta->mToken);
 			}
-			else if (mEntry && mEntry->mReferences == 1 && meta->Is(mType)) {
+			else if (GetReferences() == 1 && meta->Is(mType)) {
 				// Types match, so we know this container is filled with T	
 				// too, therefore we can use statically optimized routines	
 				// for destruction														

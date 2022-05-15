@@ -18,7 +18,7 @@ namespace std {
 
 SCENARIO("THashMap", "[containers]") {
 	GIVEN("A THashMap instance") {
-		MapType::Pair value("five hundred", 555);
+		MapType::Type value("five hundred", 555);
 		StdPair valueStd("five hundred", 555);
 		MapType map;
 		auto meta1 = map.GetKeyType();
@@ -118,14 +118,14 @@ SCENARIO("THashMap", "[containers]") {
 
 	GIVEN("THashMap with some items") {
 		// Arrays are dynamic to avoid constexprification						
-		auto darray1 = new MapType::Pair[5] {
+		auto darray1 = new MapType::Type[5] {
 			{"one", 1}, 
 			{"two", 2}, 
 			{"three", 3},
 			{"four", 4},
 			{"five", 5}
 		};
-		auto darray2 = new MapType::Pair[5] {
+		auto darray2 = new MapType::Type[5] {
 			{"six", 6}, 
 			{"seven", 7}, 
 			{"eight", 8},

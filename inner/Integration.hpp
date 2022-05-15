@@ -124,10 +124,19 @@
 		/// Fundamental types																	
 		///																							
 		using Byte = ::std::byte;
+
 		using Count = ::std::size_t;
+		constexpr Count CountMax = ::std::numeric_limits<Count>::max();
+
 		using Size = ::std::size_t;
+		constexpr Size SizeMax = ::std::numeric_limits<Size>::max();
+
 		using Offset = ::std::size_t;
+		constexpr Offset OffsetMax = ::std::numeric_limits<Offset>::max();
+
 		using Hash = ::std::size_t;
+		constexpr Hash HashMax = ::std::numeric_limits<Hash>::max();
+
 		template<class T>
 		using TFunctor = ::std::function<T>;
 		using Token = ::std::u8string_view;

@@ -852,7 +852,7 @@ namespace Langulus::Anyness
 			return;
 		}
 
-		if (mEntry->mReferences == 1) {
+		if (mEntry->GetUses() == 1) {
 			// Destroy all elements but don't deallocate the entry			
 			CallUnknownDestructors();
 			mCount = 0;
@@ -861,7 +861,7 @@ namespace Langulus::Anyness
 		
 		// If reached, then data is referenced from multiple places			
 		// Don't call destructors, just clear it up and dereference			
-		--mEntry->mReferences;
+		mEntry->Free<false>();
 		mRaw = nullptr;
 		mEntry = nullptr;
 		mCount = mReserved = 0;

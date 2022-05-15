@@ -69,7 +69,7 @@ namespace Langulus::Anyness
 	///	@attention doesn't call any destructors										
 	///	@param meta - the type of data to deallocate (optional)					
 	///	@param entry - the memory entry to deallocate								
-	void Allocator::Deallocate(DMeta meta, Entry* entry) {
+	void Allocator::Deallocate(Entry* entry) {
 		AlignedFree(entry);
 	}
 

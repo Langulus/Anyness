@@ -28,15 +28,15 @@ namespace Langulus::Anyness
 		if (!mEntry)
 			return;
 
-		if (mEntry->mReferences == 1) {
+		if (mEntry->GetUses() == 1) {
 			if constexpr (CT::Sparse<T> || !CT::POD<T>)
 				CallKnownDestructors<T>();
-			Allocator::Deallocate(mType, mEntry);
+			Allocator::Deallocate(mEntry);
 			mEntry = nullptr;
 			return;
 		}
 
-		--mEntry->mReferences;
+		mEntry->Free<false>();
 		mEntry = nullptr;
 	}
 
@@ -232,7 +232,7 @@ namespace Langulus::Anyness
 			operator = (TAny<T> {other});			
 		}
 		else if constexpr (CT::Same<ALT_T, T>) {
-			if (mEntry && mEntry->mReferences == 1) {
+			if (GetReferences() == 1) {
 				// Just destroy and reuse memory										
 				CallKnownDestructors<T>();
 				mCount = 0;
@@ -311,7 +311,7 @@ namespace Langulus::Anyness
 			operator = (TAny<T> {Forward<Block>(other)});
 		}
 		else if constexpr (CT::Same<ALT_T, T>) {
-			if (mEntry && mEntry->mReferences == 1) {
+			if (GetReferences() == 1) {
 				// Just destroy and reuse memory										
 				CallKnownDestructors<T>();
 				mCount = 0;
@@ -1357,7 +1357,7 @@ namespace Langulus::Anyness
 
 			// Reallocate																	
 			TAny<T> previousBlock {Disown(*this)};
-			if (mEntry->mReferences == 1) {
+			if (mEntry->GetUses() == 1) {
 				// Memory is used only once and it is safe to move it			
 				// Make note, that Allocator::Reallocate doesn't copy			
 				// anything, it doesn't use realloc for various reasons, so	

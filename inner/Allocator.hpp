@@ -1,6 +1,7 @@
 #pragma once
 #include "Integration.hpp"
 #include "Reflection.hpp"
+#include "Utilities.hpp"
 
 namespace Langulus::Anyness
 {
@@ -13,7 +14,7 @@ namespace Langulus::Anyness
 	/// This is a single allocation record inside a memory pool						
 	///																								
 	class Entry {
-	public:
+	private:
 		// Allocated bytes for this chunk											
 		Size mAllocatedBytes;
 		// The number of references to this memory								
@@ -28,13 +29,22 @@ namespace Langulus::Anyness
 
 	public:
 		static constexpr Size GetSize() noexcept;
-		constexpr bool IsInUse() const noexcept;
+		constexpr const Count& GetUses() const noexcept;
 		const Byte* GetBlockStart() const noexcept;
+		const Byte* GetBlockEnd() const noexcept;
 		Byte* GetBlockStart() noexcept;
 		constexpr Size GetTotalSize() const noexcept;
-		constexpr const Size& Allocated() const noexcept;
-		bool Contains(const Byte*) const noexcept;
+		constexpr const Size& GetAllocatedSize() const noexcept;
+		bool Contains(const void*) const noexcept;
 		bool CollisionFree(const Entry&) const noexcept;
+		template<class T>
+		NOD() T* As() const noexcept;
+		constexpr void Keep() noexcept;
+		constexpr void Keep(const Count&) noexcept;
+		template<bool DEALLOCATE>
+		void Free() noexcept;
+		template<bool DEALLOCATE>
+		void Free(const Count&) SAFETY_NOEXCEPT();
 	};
 
 
@@ -73,7 +83,7 @@ namespace Langulus::Anyness
 		//																						
 		NOD() static Entry* Allocate(Size);
 		NOD() static Entry* Reallocate(Size, Entry*);
-		static void Deallocate(DMeta, Entry*);
+		static void Deallocate(Entry*);
 
 		//																						
 		// More functionality, when feature MANAGED_MEMORY is enabled		
@@ -85,20 +95,6 @@ namespace Langulus::Anyness
 		NOD() static bool Free(DMeta, const void*, Count);
 		NOD() static const Statistics& GetStatistics() noexcept;
 	};
-
-
-	/// This cast gets rid of warnings like "cast from 'uint8_t*'					
-	/// {aka 'unsigned char*'} to 'uint64_t*' {aka 'long unsigned int*'}			
-	/// increases required alignment of target type". Use with care!				
-	template <typename T>
-	inline T reinterpret_cast_no_cast_align_warning(void* ptr) noexcept {
-		return reinterpret_cast<T>(ptr);
-	}
-
-	template <typename T>
-	inline T reinterpret_cast_no_cast_align_warning(void const* ptr) noexcept {
-		return reinterpret_cast<T>(ptr);
-	}
 
 	/// Make sure this is not inlined as it is slow and dramatically enlarges	
 	/// code, thus making other inlinings more difficult								
@@ -123,7 +119,7 @@ namespace Langulus::Anyness
 	/// Allocates bulks of memory for objects of type T. This deallocates the	
 	/// memory in the destructor, and keeps a linked list of the allocated		
 	/// memory around. Overhead per allocation is the size of a pointer			
-	template <class T, Count MIN_ALLOCS = 4, Count MAX_ALLOCS = 256>
+	/*template <class T, Count MIN_ALLOCS = 4, Count MAX_ALLOCS = 256>
 	class BulkPoolAllocator {
 	private:
 		// Enforce byte alignment of the T's										
@@ -141,20 +137,25 @@ namespace Langulus::Anyness
 		T* mHead {};
 		T** mListForFree {};
 
-	public:
+	protected:
 		BulkPoolAllocator() noexcept = default;
 		BulkPoolAllocator(const BulkPoolAllocator&) noexcept;
 		BulkPoolAllocator(BulkPoolAllocator&&) noexcept;
+		BulkPoolAllocator(Abandoned<BulkPoolAllocator>&&) noexcept;
+		BulkPoolAllocator(Disowned<BulkPoolAllocator>&&) noexcept;
 		~BulkPoolAllocator() noexcept;
 
 		BulkPoolAllocator& operator = (BulkPoolAllocator&&) noexcept;
 		BulkPoolAllocator& operator = (const BulkPoolAllocator&) noexcept;
 
+		BulkPoolAllocator& operator = (Abandoned<BulkPoolAllocator>&&) noexcept;
+		BulkPoolAllocator& operator = (Disowned<BulkPoolAllocator>&&) noexcept;
+
 		void reset() noexcept;
 		T* allocate();
 		void deallocate(T*) noexcept;
-		//void AddOrFree(Entry* entry) noexcept;
-		void AddPool(Entry*) noexcept;
+		void AddOrFree(Byte*, Size) noexcept;
+		void AddPool(Byte*, Size) noexcept;
 		void swap(BulkPoolAllocator&) noexcept;
 		NOD() bool IsAllocated() const noexcept { return mHead != nullptr; }
 
@@ -168,10 +169,17 @@ namespace Langulus::Anyness
 	struct NodeAllocator;
 
 	/// Dummy allocator that does nothing and takes no space							
+	/// Used as base when containers are on the stack									
 	template <class T, Count MinSize, Count MaxSize>
-	struct NodeAllocator<T, MinSize, MaxSize, AllocationMethod::Stack> {
-		// We are not using the data, so just free it							
-		void addOrFree(void* ptr, size_t) noexcept {
+	struct NodeAllocator<T, MinSize, MaxSize, AllocationMethod::Stack> {*/
+		/*constexpr NodeAllocator(Abandoned<NodeAllocator>&&) noexcept {}
+		constexpr NodeAllocator(Disowned<NodeAllocator>&&) noexcept {}
+
+		constexpr NodeAllocator& operator = (Abandoned<NodeAllocator>&&) noexcept {}
+		constexpr NodeAllocator& operator = (Disowned<NodeAllocator>&&) noexcept {}*/
+	/*
+		/// We are not reusing the data, so just free it								
+		void AddOrFree(Byte* ptr, Size) noexcept {
 			::std::free(ptr);
 		}
 	};
@@ -179,8 +187,12 @@ namespace Langulus::Anyness
 	/// Heap allocator																			
 	template <class T, Count MinSize, Count MaxSize>
 	struct NodeAllocator<T, MinSize, MaxSize, AllocationMethod::Heap>
-		: public BulkPoolAllocator<T, MinSize, MaxSize> {};
-
+		: public BulkPoolAllocator<T, MinSize, MaxSize> {
+		using BulkPoolAllocator<T, MinSize, MaxSize>::BulkPoolAllocator;
+		NodeAllocator(Abandoned<NodeAllocator>&&) noexcept;
+		NodeAllocator(Disowned<NodeAllocator>&&) noexcept;
+	};
+	*/
 } // namespace Langulus::Anyness
 
 #include "Allocator.inl"

@@ -504,9 +504,9 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE_THROWS(pack4.As<float*>() == nullptr);
 				REQUIRE(*pack4.As<Text*>() == original_pct);
 				REQUIRE(pack4.As<Text*>()->HasAuthority());
-				REQUIRE(pack.GetReferences() == 1);
+				REQUIRE(pack.GetReferences() == 0);
 				REQUIRE(pack2.GetReferences() == 2);
-				REQUIRE(pack3.GetReferences() == 1);
+				REQUIRE(pack3.GetReferences() == 0);
 				REQUIRE(pack4.GetReferences() == 2);
 				REQUIRE(pack4.As<Text*>()->GetReferences() == 1);
 
@@ -565,7 +565,7 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(pack.GetCount() == 0);
 				REQUIRE(pack.GetReserved() == 0);
 				REQUIRE(pack.GetRaw() == nullptr);
-				REQUIRE(pack.GetReferences() == 1);
+				REQUIRE(pack.GetReferences() == 0);
 				REQUIRE(pack.GetState() == DataState::Default);
 			}
 		}
@@ -610,7 +610,7 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(pack.GetReserved() == 0);
 				REQUIRE(pack.GetRaw() == nullptr);
 				REQUIRE(pack.GetType() == nullptr);
-				REQUIRE(pack.GetReferences() == 1);
+				REQUIRE(pack.GetReferences() == 0);
 			}
 		}
 
@@ -775,7 +775,7 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(pack.Is<Any>());
 				REQUIRE(pack.IsTypeConstrained());
 				REQUIRE(pack.GetRaw() == nullptr);
-				REQUIRE(pack.GetReferences() == 1);
+				REQUIRE(pack.GetReferences() == 0);
 				REQUIRE(subpack1.GetReferences() == 2);
 				REQUIRE(subpack2.GetReferences() == 2);
 				REQUIRE(subpack3.GetReferences() == 1);
@@ -1031,7 +1031,7 @@ SCENARIO("Any", "[containers]") {
 			pack.Reset();
 
 			THEN("Contents should be dereferenced") {
-				REQUIRE(pack.GetReferences() == 1);
+				REQUIRE(pack.GetReferences() == 0);
 				REQUIRE(subpack1.GetReferences() == 2); // 3 if that functionality is added
 				REQUIRE(subpack2.GetReferences() == 1); // 2 if that functionality is added
 				REQUIRE(subpack3.GetReferences() == 1); // 2 if that functionality is added
