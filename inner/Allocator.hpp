@@ -6,28 +6,34 @@
 namespace Langulus::Anyness
 {
 
-	class Pool;
+	#if LANGULUS_FEATURE(MANAGED_MEMORY)
+		class Pool;
+	#else
+		using Pool = void;
+	#endif
+
 	
 	///																								
 	///	Memory entry																			
 	///																								
 	/// This is a single allocation record inside a memory pool						
 	///																								
-	class Entry {
-	private:
+	struct Entry {
+	friend class Allocator;
+	protected:
 		// Allocated bytes for this chunk											
 		Size mAllocatedBytes;
 		// The number of references to this memory								
 		Count mReferences;
 		// The pool that owns the memory entry										
-		Pool* mOwner;
+		Pool* mPool;
 
 	public:
-		constexpr Entry() = delete;
+		Entry() = delete;
+		Entry(const Entry&) = delete;
+		Entry(Entry&&) = delete;
 		constexpr Entry(const Size&, Pool*) noexcept;
-		~Entry() noexcept;
 
-	public:
 		static constexpr Size GetSize() noexcept;
 		constexpr const Count& GetUses() const noexcept;
 		const Byte* GetBlockStart() const noexcept;
@@ -96,20 +102,6 @@ namespace Langulus::Anyness
 		NOD() static const Statistics& GetStatistics() noexcept;
 	};
 
-	/// Make sure this is not inlined as it is slow and dramatically enlarges	
-	/// code, thus making other inlinings more difficult								
-	/// Throws are also generally the slow path											
-	template <typename E, typename... Args>
-	[[noreturn]] LANGULUS(NOINLINE) void doThrow(Args&&... args) {
-		throw E {Forward<Args>(args)...};
-	}
-
-	template <typename E, typename T, typename... Args>
-	T* assertNotNull(T* t, Args&&... args) {
-		if (LANGULUS_UNLIKELY(nullptr == t))
-			doThrow<E>(Forward<Args>(args)...);
-		return t;
-	}
 
 	enum class AllocationMethod {
 		Stack, Heap

@@ -69,7 +69,9 @@ namespace Langulus::Anyness
 	class TPointer : public TOwned<Conditional<CT::Constant<T>, const T*, T*>> {
 	protected:
 		Entry* mEntry {};
-		
+	
+		void ResetInner();
+
 	public:
 		using Base = TOwned<Conditional<CT::Constant<T>, const T*, T*>>;
 		using Type = typename Base::Type;

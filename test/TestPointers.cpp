@@ -45,7 +45,7 @@ SCENARIO("Shared pointer manipulation", "[TPointer]") {
 				REQUIRE(*pointer2 == 5);
 				REQUIRE_FALSE(pointer.HasAuthority());
 				REQUIRE(pointer2.HasAuthority());
-				REQUIRE(pointer.GetReferences() == 1);
+				REQUIRE(pointer.GetReferences() == 0);
 			}
 		}
 

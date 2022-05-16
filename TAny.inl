@@ -1371,7 +1371,11 @@ namespace Langulus::Anyness
 					mRaw = mEntry->GetBlockStart();
 					mCount = 0;
 					CallKnownMoveConstructors<T>(previousBlock.mCount, Move(previousBlock));
-					previousBlock.Free();
+					//previousBlock.Free();
+				}
+				else {
+					// Avoid dereferencing old data in case we still use it	
+					previousBlock.mEntry = nullptr;
 				}
 				
 				if constexpr (CREATE) {
@@ -1386,16 +1390,13 @@ namespace Langulus::Anyness
 				mRaw = mEntry->GetBlockStart();
 				mCount = 0;
 				CallCopyConstructors(previousBlock.mCount, previousBlock);
-				previousBlock.Free();
+				//previousBlock.Free();
 				
 				if constexpr (CREATE) {
 					// Default-construct the rest										
 					CallDefaultConstructors(elements - mCount);
 				}
 			}
-
-			// Avoid dereferencing the data in case we still use it			
-			previousBlock.mEntry = nullptr;
 		}
 		else {
 			// Allocate a fresh set of elements										

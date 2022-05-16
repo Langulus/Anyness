@@ -440,7 +440,7 @@ namespace Langulus::Anyness
 	///	@attention after the move, source will have zero count,					
 	///		signifying that items have been consumed, but is still allocated	
 	///	@param source - the elements to move											
-	void Block::CallUnknownMoveConstructors(const Count& count, Block&& source) {
+	void Block::CallUnknownMoveConstructors(const Count count, Block&& source) {
 		if (mType->mIsPOD || (IsSparse() && source.IsSparse())) {
 			// Copy pointers, and then null them									
 			const auto size = GetStride() * count;

@@ -5,19 +5,13 @@ namespace Langulus::Anyness
 {
    
    /// Define a new entry in use                                              
-   ///   @param allocatedBytes - the number of allocated bytes                
-   ///   @param owner - the owner pool of the entry                           
-   constexpr Entry::Entry(const Size& allocatedBytes, Pool* owner) noexcept
-      : mAllocatedBytes {allocatedBytes}
+   ///   @param bytes - the number of allocated bytes									
+   ///   @param pool - the pool/handle of the entry                           
+	constexpr Entry::Entry(const Size& bytes, Pool* pool) noexcept
+		: mAllocatedBytes {bytes}
       , mReferences {1}
-      , mOwner {owner} {}
+		, mPool {pool} {}
 
-	/// Entry memory is accessed even after entry destruction						
-	/// Make sure the memory is marked as unused											
-	inline Entry::~Entry() noexcept {
-		mReferences = 0;
-	}
-	
 	/// Get the size of the Entry structure, rounded up for alignment				
 	///	@return the byte size of the entry, including alignment					
 	constexpr Size Entry::GetSize() noexcept {

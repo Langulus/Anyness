@@ -2030,9 +2030,6 @@ namespace Langulus::Anyness
 				++data;
 			}
 
-			// Always null the pointers after destruction						
-			// It is quite obscure, but this is where TPointers are reset	
-			FillMemory(data, {}, sizeof(void*) * mCount);
 			return;
 		}
 		else if constexpr (!CT::POD<T> && CT::Destroyable<T>) {
@@ -2050,13 +2047,18 @@ namespace Langulus::Anyness
 	}
 
 	/// Call move constructors in a region and initialize memory					
-	///	@param source - the elements to move											
+	///	@param count - number of elements to move										
+	///	@param source - the block of elements to move								
 	template<class T>
-	void Block::CallKnownMoveConstructors(const Count& count, Block&& source) {
+	void Block::CallKnownMoveConstructors(const Count count, Block&& source) {
 		if constexpr(CT::Sparse<T> || CT::POD<T>) {
 			// Copy pointers or POD														
-			const auto size = GetStride() * count;
+			const auto size = sizeof(T) * count;
 			MoveMemory(source.mRaw, mRawSparse + mCount, size);
+
+			// It is safe to just erase source count at this point			
+			// since pointers/PODs don't need to be destroyed					
+			source.mCount = 0;
 		}
 		else {
 			// Both RHS and LHS are dense and non POD								
@@ -2067,7 +2069,10 @@ namespace Langulus::Anyness
 			auto from = reinterpret_cast<T*>(source.GetRaw());
 			auto to = GetRaw();
 			for (Count i = 0; i < count; ++i)
-				new (to + mCount) T {Forward<T>(*from)};
+				new (to + mCount) T {Move(*from)};
+
+			// Note that source.mCount remains the same, to call				
+			// destructors at a later point											
 		}
 		
 		// Only consume the items in the source									

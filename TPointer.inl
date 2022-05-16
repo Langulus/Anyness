@@ -40,9 +40,7 @@ namespace Langulus::Anyness
 	TEMPLATE_SHARED()
 	TPointer<T, DR>::TPointer(TPointer&& other) noexcept
 		: Base {Forward<Base>(other)}
-		, mEntry {other.mEntry} {
-		other.mEntry = {};
-	}
+		, mEntry {other.mEntry} {}
 
 	/// Reference a pointer																		
 	///	@param ptr - pointer to reference												
@@ -122,15 +120,29 @@ namespace Langulus::Anyness
 
 	/// Reset the pointer																		
 	TEMPLATE_SHARED()
+	void TPointer<T, DR>::ResetInner() {
+		// Do referencing in the element itself, if available					
+		if constexpr (DR && CT::Referencable<T>)
+			Base::mValue->Free();
+
+		if (mEntry) {
+			// We own this data and are responsible for dereferencing it	
+			if (mEntry->GetUses() == 1) {
+				using Decayed = Decay<T>;
+				if constexpr (CT::Destroyable<T>)
+					Base::mValue->~Decayed();
+				Allocator::Deallocate(mEntry);
+			}
+			else mEntry->Free<false>();
+		}
+	}
+
+	/// Reset the pointer																		
+	TEMPLATE_SHARED()
 	void TPointer<T, DR>::Reset() {
 		if (Base::mValue) {
-			if constexpr (DR && CT::Referencable<T>)
-				Base::mValue->Free();
-
-			// This will call destructor on the pointer first					
-			// and then the data behind it, if references reach zero			
-			// It will zero the mValue for us										
-			GetBlock().CallKnownDestructors<T*>();
+			ResetInner();
+			Base::mValue = {};
 		}
 	}
 
@@ -138,8 +150,21 @@ namespace Langulus::Anyness
 	///	@param other - pointer to reference												
 	TEMPLATE_SHARED()
 	TPointer<T, DR>& TPointer<T, DR>::operator = (const TPointer<T, DR>& other) {
+		if (other.mValue) {
+			// Always first reference the other, before dereferencing, so	
+			// we	don't prematurely lose the data in the rare case pointers
+			// are the same																
+			if constexpr (DR && CT::Referencable<T>)
+				other.mValue->Keep();
+			other.mEntry->Keep();
+			if (Base::mValue)
+				ResetInner();
+			Base::mValue = other.mValue;
+			mEntry = other.mEntry;
+			return *this;
+		}
+		
 		Reset();
-		new (this) TPointer<T, DR> {other};
 		return *this;
 	}
 
@@ -147,8 +172,16 @@ namespace Langulus::Anyness
 	///	@param other - pointer to move													
 	TEMPLATE_SHARED()
 	TPointer<T, DR>& TPointer<T, DR>::operator = (TPointer<T, DR>&& other) {
+		if (other.mValue) {
+			if (Base::mValue)
+				ResetInner();
+			Base::mValue = other.mValue;
+			mEntry = other.mEntry;
+			other.mValue = {};
+			return *this;
+		}
+
 		Reset();
-		new (this) TPointer<T, DR> {Forward<TPointer<T, DR>>(other)};
 		return *this;
 	}
 
@@ -156,7 +189,9 @@ namespace Langulus::Anyness
 	///	@param ptr - pointer to reference												
 	TEMPLATE_SHARED()
 	TPointer<T, DR>& TPointer<T, DR>::operator = (Type ptr) {
-		Reset();
+		if (Base::mValue)
+			ResetInner();
+
 		new (this) TPointer<T, DR> {ptr};
 		return *this;
 	}
@@ -369,7 +404,7 @@ namespace Langulus::Anyness
 	///	@return true if we own the memory												
 	TEMPLATE_SHARED()
 	constexpr bool TPointer<T, DR>::HasAuthority() const noexcept {
-		return mEntry != nullptr;
+		return Base::mValue && mEntry;
 	}
 		
 	/// Get the references for the entry, where this pointer resides in			
@@ -377,7 +412,7 @@ namespace Langulus::Anyness
 	///	@return number of uses for the pointer's memory								
 	TEMPLATE_SHARED()
 	constexpr Count TPointer<T, DR>::GetReferences() const noexcept {
-		return mEntry ? mEntry->GetUses() : 0;
+		return (Base::mValue && mEntry) ? mEntry->GetUses() : 0;
 	}
 
 	/// Get the type of the contained data													

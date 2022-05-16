@@ -23,6 +23,14 @@ namespace Langulus
       }
    };
 
+   /// Make sure this is not inlined as it is slow and dramatically enlarges	
+	/// code, thus making other inlinings more difficult								
+	/// Throws are also generally the slow path											
+	template <class E, class... Args>
+	[[noreturn]] LANGULUS(NOINLINE) void Throw(Args&&... args) {
+		throw E {Forward<Args>(args)...};
+	}
+
 } // namespace Langulus
 
 /// Convenience macro of declaring an exception                               
@@ -49,3 +57,4 @@ LANGULUS_EXCEPTION(Reference);
 LANGULUS_EXCEPTION(Overflow);
 LANGULUS_EXCEPTION(Underflow);
 LANGULUS_EXCEPTION(ZeroDivision);
+LANGULUS_EXCEPTION(OutOfRange);

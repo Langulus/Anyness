@@ -395,10 +395,6 @@ namespace Langulus::Anyness
 				}
 			}
 
-			LANGULUS(NOINLINE) void throwOverflowError() const {
-				throw std::overflow_error("robin_hood::map overflow");
-			}
-
 			/// Initialize container and reserve data										
 			///	@param max_elements - number of elements to reserve				
 			void initData(size_t max_elements) {

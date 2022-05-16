@@ -4,40 +4,30 @@
 
 namespace Langulus::Anyness
 {
-
-	constexpr auto Padding = LANGULUS_ALIGN() + sizeof(void*);
 	
 	/// MSVC will likely never support std::aligned_alloc, so we use				
 	/// a custom portable routine that's almost the same								
 	/// https://stackoverflow.com/questions/62962839									
 	///																								
 	/// Each allocation has the following prefixed bytes:								
-	///	[padding for alignment][void*][Entry][allocated bytes...]				
+	///	[padding][Entry][allocated bytes...]											
 	///																								
 	///	@param size - the number of bytes to allocate								
 	///	@return a newly allocated memory that is correctly aligned				
 	///	@attention you are responsible for deallocating via AlignedFree 		
 	inline Entry* AlignedAllocate(const Size& size) {
-		auto originalAddress = malloc(Padding + Entry::GetSize() + size);
-		if (!originalAddress)
+		auto base = malloc(LANGULUS_ALIGN() + Entry::GetSize() + size);
+		if (!base)
 			throw Except::Allocate(Logger::Error() << "Out of memory");
 
-		void** ptr = reinterpret_cast<void**>(
-			(reinterpret_cast<Size>(originalAddress) + Padding) & ~(LANGULUS_ALIGN() - 1)
+		// Align pointer to LANGULUS_ALIGN()										
+		Entry* ptr = reinterpret_cast<Entry*>(
+			(reinterpret_cast<Pointer>(base) + LANGULUS_ALIGN()) & ~(LANGULUS_ALIGN() - 1)
 		);
 		
-		// Save the original address relative to the entry, so that we		
-		// can easily get to it when freeing the memory							
-		ptr[-1] = originalAddress;
-		new (ptr) Entry {size, nullptr};
-		return reinterpret_cast<Entry*>(ptr);
-	}
-
-	/// Free aligned memory that has been allocated via AlignedMalloc				
-	///	@param ptr - the aligned pointer to free										
-	///					 must've been prior allocated via AlignedMalloc				
-	inline void AlignedFree(Entry* ptr) noexcept {
-		free(reinterpret_cast<void**>(ptr)[-1]);
+		// Place the entry there														
+		new (ptr) Entry {size, base};
+		return ptr;
 	}
 	
 	/// Allocate a memory entry																
@@ -70,7 +60,7 @@ namespace Langulus::Anyness
 	///	@param meta - the type of data to deallocate (optional)					
 	///	@param entry - the memory entry to deallocate								
 	void Allocator::Deallocate(Entry* entry) {
-		AlignedFree(entry);
+		free(entry->mPool);
 	}
 
 	/// Find a memory entry from pointer													

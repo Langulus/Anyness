@@ -545,7 +545,7 @@ namespace Langulus::Anyness::Inner
 			newSize *= 2;
 
 		if (LANGULUS_UNLIKELY(newSize == 0))
-			throwOverflowError();
+			Throw<Except::Overflow>("Table overflow");
 				
 		if constexpr (REHASH) {
 			// Force a rehash																
@@ -617,7 +617,7 @@ namespace Langulus::Anyness::Inner
 		case InsertionState::overflow_error:
 			// Max capacity reached, destroy the node and throw				
 			//n.destroy(*this);
-			throwOverflowError();
+			Throw<Except::Overflow>("Table overflow");
 			break;
 		}
 
@@ -709,7 +709,7 @@ namespace Langulus::Anyness::Inner
 		// We don't retry, fail if overflowing, don't need to check max	
 		// num elements																	
 		if (0 == mMaxNumElementsAllowed && !try_increase_info())
-			throwOverflowError();
+			Throw<Except::Overflow>("Table overflow");
 
 		size_t idx {};
 		InfoType info {};
@@ -776,7 +776,7 @@ namespace Langulus::Anyness::Inner
 			break;
 
 		case InsertionState::overflow_error:
-			throwOverflowError();
+			Throw<Except::Overflow>("Table overflow");
 			break;
 		}
 
@@ -814,7 +814,7 @@ namespace Langulus::Anyness::Inner
 			break;
 
 		case InsertionState::overflow_error:
-			throwOverflowError();
+			Throw<Except::Overflow>("Table overflow");
 			break;
 		}
 
@@ -988,7 +988,7 @@ namespace Langulus::Anyness::Inner
 			newSize *= 2;
 
 		if (LANGULUS_UNLIKELY(newSize == 0))
-			throwOverflowError();
+			Throw<Except::Overflow>("Table overflow");
 
 		// Only actually do anything when the new size is bigger				
 		// than the old one. This prevents to continuously allocate			
@@ -1087,7 +1087,8 @@ namespace Langulus::Anyness::Inner
 	V& TABLE()::At(const K& key) requires IsMap {
 		auto found = mNodes + FindIndex(key);
 		if (found == mNodesEnd)
-			doThrow<std::out_of_range>("Key not found");
+			Throw<Except::OutOfRange>("Key not found");
+
 		if constexpr (CT::Sparse<Node>)
 			return (*found)->mValue;
 		else
@@ -1275,7 +1276,7 @@ namespace Langulus::Anyness::Inner
 			auto const total = static_cast<size_t>(total64);
 
 			if (LANGULUS_UNLIKELY(static_cast<uint64_t>(total) != total64))
-				throwOverflowError();
+				Throw<Except::Overflow>("Table overflow");
 
 			return total;
 		#endif
