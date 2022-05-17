@@ -1,0 +1,34 @@
+name: Build and Test
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+jobs:
+  job:
+    runs-on: ${{ matrix.cfg.os }}
+    defaults:
+      run:
+        working-directory: ci
+    strategy:
+      matrix:
+        cfg:
+          # Linux debug/release static
+          - {os: ubuntu-latest, btype: Debug, cmakeflags: '', buildflags: '-- -j'}
+          - {os: ubuntu-latest, btype: RelWithDebInfo, cmakeflags: '', buildflags: '-- -j'}
+          - {os: macos-latest, btype: Debug, cmakeflags: '', buildflags: '-- -j'}
+          - {os: macos-latest, btype: RelWithDebInfo, cmakeflags: '', buildflags: '-- -j'}
+          # Windows x86/x64 debug/release static
+          - {os: windows-latest, btype: Debug, cmakeflags: '-A Win32', buildflags: ''}
+          - {os: windows-latest, btype: RelWithDebInfo, cmakeflags: '-A Win32', buildflags: ''}
+          - {os: windows-latest, btype: Debug, cmakeflags: '-A x64', buildflags: ''}
+          - {os: windows-latest, btype: RelWithDebInfo, cmakeflags: '-A x64', buildflags: ''}
+    steps:
+      - name: Clone
+        uses: actions/checkout@v2
+      - name: Configure
+        run: cmake .. -DCMAKE_BUILD_TYPE=${{ matrix.cfg.btype }} ${{ matrix.cfg.cmakeflags }}
+      - name: Build
+        run: cmake --build . --config ${{ matrix.cfg.btype }} ${{ matrix.cfg.buildflags }}
+      - name: Test
+        run: ctest -C ${{ matrix.cfg.btype }} --output-on-failure
