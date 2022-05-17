@@ -96,6 +96,7 @@ namespace Langulus::Anyness
 		NOD() static TPointer New(ARGS&&...);
 
 		void Reset();
+		TPointer Clone() const;
 
 		using Base::operator bool;
 		NOD() explicit operator const T* () const noexcept;

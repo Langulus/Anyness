@@ -25,9 +25,6 @@ namespace Langulus::Anyness
 		/// Type needs to be wider than uint8_t											
 		using InfoType = uint32_t;
 
-		//TABLE_TEMPLATE()
-		//using TableAllocator = NodeAllocator<Conditional<CT::Void<V>, K, TPair<K, V>>, 4, 16384, METHOD>;
-
 		///                                                                     
 		/// Loosely based on martinus's robin-hood-hashing project              
 		/// Their code is designed to be drop-in replacement for						
@@ -65,7 +62,7 @@ namespace Langulus::Anyness
 		///	stop at end() without the need for an idx variable.					
 		///																							
 		TABLE_TEMPLATE()
-		class Table/* : public TableAllocator<METHOD, MaxLoadFactor100, K, V> */{
+		class Table {
 		public:
 			static_assert(CT::Comparable<K>, "Can't compare keys for map");
 
@@ -80,7 +77,7 @@ namespace Langulus::Anyness
 			using Key = K;
 			using Value = V;
 			using Self = TABLE();
-			using Node = Conditional<Method == AllocationMethod::Stack, Type, Type*>;
+			using Node = Conditional<Method == AllocationMethod::Stack, Type, Ptr<Type>>;
 
 		private:
 			static_assert(MaxLoadFactor100 > 10 && MaxLoadFactor100 < 100,
@@ -207,10 +204,6 @@ namespace Langulus::Anyness
 			Table& operator << (const Type&);
 
 		private:
-			/*NOD() K const& getFirstConst(Node const&) const noexcept;
-			NOD() K const& getFirstConst(K const&) const noexcept;
-			template <CT::Data Q = V>
-			NOD() K const& getFirstConst(Type const&) const noexcept;*/
 			template<class HashKey>
 			void keyToIdx(HashKey&&, size_t*, InfoType*) const;
 			void next(InfoType*, size_t*) const noexcept;
@@ -267,8 +260,8 @@ namespace Langulus::Anyness
 			Insertion Insert(Type&&);
 			iterator Insert(const_iterator, Type&&);
 
-			void insert_move(Type&&);
 		private:
+			void MoveInsertNode(Node&&);
 			template <class... Args>
 			Insertion try_emplace_impl(K&&, Args&&...);
 			template <class Mapped>
@@ -301,10 +294,13 @@ namespace Langulus::Anyness
 			Count RemovePair(const Type&) requires IsMap;
 			Count Remove(const Type&) requires IsSet;
 			void compact();
+
 		private:
 			void destroy();
-			template<bool DEALLOCATE>
 			void DestroyNodes() noexcept;
+
+			NOD() const Node& GetNode(const Offset&) const noexcept;
+			NOD() Node& GetNode(const Offset&) noexcept;
 
 		public:
 			///																						
@@ -357,7 +353,6 @@ namespace Langulus::Anyness
 			/// Reserves space for at least the specified number of elements		
 			/// Only works if numBuckets is power-of-two									
 			///	@param numBuckets - the number of buckets								
-			template<bool FREE>
 			void rehashPowerOfTwo(size_t numBuckets) {
 				// These will be reset via initData, so back them up			
 				auto const oldEntry = mEntry;
@@ -375,40 +370,29 @@ namespace Langulus::Anyness
 
 						// Might throw an exception, which is really bad		
 						// since we are in the middle of moving stuff			
-						if constexpr (CT::Sparse<Node>) {
-							insert_move(Move(*oldNodes[i]));
-							if constexpr (CT::Destroyable<Type>)
-								oldNodes[i]->~Type();
-						}
-						else {
-							insert_move(Move(oldNodes[i]));
-							if constexpr (CT::Destroyable<Type>)
-								oldNodes[i].~Type();
-						}
+						auto& node = oldNodes[i];
+						MoveInsertNode(Move(node));
+						node.~Node();
 					}
 
-					// Don't destroy old data: put it into the pool instead	
-					//if constexpr (FREE)
-						oldEntry->Free<true>();
-					//else
-					//	Base::AddOrFree(reinterpret_cast<Byte*>(oldNodes), GetBytesTotal(oldMaxElementsWithBuffer));
+					oldEntry->Free<true>();
 				}
 			}
 
 			/// Initialize container and reserve data										
-			///	@param max_elements - number of elements to reserve				
-			void initData(size_t max_elements) {
+			///	@param maxElements - number of elements to reserve					
+			void initData(size_t maxElements) {
 				mNumElements = 0;
-				mMask = max_elements - 1;
-				mMaxNumElementsAllowed = GetMaxElementsAllowed(max_elements);
+				mMask = maxElements - 1;
+				mMaxNumElementsAllowed = GetMaxElementsAllowed(maxElements);
 
 				// Malloc & zero mInfo - faster than calloc everything		
-				auto const numElementsWithBuffer = GetElementsWithBuffer(max_elements);
+				auto const numElementsWithBuffer = GetElementsWithBuffer(maxElements);
 				auto const numBytesTotal = GetBytesTotal(numElementsWithBuffer);
 				mEntry = Allocator::Allocate(numBytesTotal);
 				mNodes = mEntry->As<Node>();
 				mInfo = reinterpret_cast<uint8_t*>(mNodes + numElementsWithBuffer);
-				std::memset(mInfo, 0, numBytesTotal - numElementsWithBuffer * sizeof(Node));
+				::std::memset(mInfo, 0, numBytesTotal - numElementsWithBuffer * sizeof(Node));
 
 				// Set sentinel															
 				mInfo[numElementsWithBuffer] = 1;
@@ -435,7 +419,7 @@ namespace Langulus::Anyness
 				for (size_t i = 0; i < numElementsWithBuffer; i += 8) {
 					auto val = unaligned_load<uint64_t>(mInfo + i);
 					val = (val >> 1U) & UINT64_C(0x7f7f7f7f7f7f7f7f);
-					std::memcpy(mInfo + i, &val, sizeof(val));
+					::std::memcpy(mInfo + i, &val, sizeof(val));
 				}
 
 				// Update sentinel, which might have been cleared out!		
@@ -463,12 +447,12 @@ namespace Langulus::Anyness
 					// freed memory so we don't steadyily increase mem in		
 					// case we have to rehash a few times							
 					nextHashMultiplier();
-					rehashPowerOfTwo<true>(mMask + 1);
+					rehashPowerOfTwo(mMask + 1);
 				}
 				else {
 					// We've reached the capacity of the map, so the hash		
 					// seems to work nice. Keep using it							
-					rehashPowerOfTwo<false>((mMask + 1) * 2);
+					rehashPowerOfTwo((mMask + 1) * 2);
 				}
 
 				return true;
@@ -492,7 +476,6 @@ namespace Langulus::Anyness
 				mInfoInc = InitialInfoInc;
 				mInfoHashShift = InitialInfoHashShift;
 			}
-
 		};
 
 	} // namespace Langulus::Anyness::Inner

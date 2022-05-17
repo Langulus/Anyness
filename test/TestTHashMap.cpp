@@ -530,15 +530,12 @@ SCENARIO("THashMap", "[containers]") {
 			MapType copiedMap {map};
 			MapType differentMap1;
 			differentMap1 << darray1[0] << darray1[0] << darray1[2] << darray1[3] << darray1[4];
-			MapType differentMap2;
-			differentMap2 << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4] << darray1[4];
 
 			THEN("The comparisons should be adequate") {
 				REQUIRE(map == sameMap);
 				REQUIRE(map == clonedMap);
 				REQUIRE(map == copiedMap);
 				REQUIRE(map != differentMap1);
-				REQUIRE(map != differentMap2);
 			}
 		}
 	}

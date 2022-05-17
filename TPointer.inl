@@ -146,6 +146,16 @@ namespace Langulus::Anyness
 		}
 	}
 
+	/// Clone the pointer																		
+	///	@return the cloned pointer															
+	TEMPLATE_SHARED()
+	TPointer<T, DR> TPointer<T, DR>::Clone() const {
+		static_assert(CT::CloneMakable<T>, "Contained type is not clonable");
+		if (Base::mValue)
+			return Create(Base::mValue->Clone());
+		return {};
+	}
+
 	/// Copy a shared pointer																	
 	///	@param other - pointer to reference												
 	TEMPLATE_SHARED()

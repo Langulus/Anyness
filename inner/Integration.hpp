@@ -222,6 +222,12 @@
 			LANGULUS_ASSERT("Calling Uneval is ill-formed");
 		}
 
+		/// Same as ::std::declval, but deduces type via argument					
+		template<class T>
+		::std::add_rvalue_reference_t<T> Uneval(T) noexcept {
+			LANGULUS_ASSERT("Calling Uneval is ill-formed");
+		}
+
 		/// Remove a reference from type														
 		template<class T>
 		using Deref = ::std::remove_reference_t<T>;

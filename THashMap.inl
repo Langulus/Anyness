@@ -184,61 +184,19 @@ namespace Langulus::Anyness::Inner
 	}
 
 	/// Creates a shallow copy of the given table										
-	///	@param o - the table to reference												
+	///	@param rhs - the table to reference												
 	///	@return a reference to this table												
 	TABLE_TEMPLATE()
-	TABLE()& TABLE()::operator = (const Table& o) {
-		/*if (&o == this) {
-			// Prevent assigning to itself											
-			return *this;
-		}
-
-		// We keep using the old allocator and not assign the new one,		
-		// because we want to keep the memory available. when it is the	
-		// same size																		
-		if (o.empty()) {
-			if (0 == mMask) {
-				// Nothing to do, we are empty too									
-				return *this;
-			}
-
-			// Not empty: destroy what we have there clear also resets		
-			// mInfo to 0, that's sometimes not necessary						
-			destroy();
-			init();
-			DataPool::operator = (o);
-			return *this;
-		}
-
-		// Clean up old stuff															
-		DestroyNodes<true>();
-
-		if (mMask != o.mMask) {
-			// No luck: we don't have the same array size allocated, so we	
-			// need to realloc															
-			if (0 != mMask) {
-				// Dereference if we have data										
-				mEntry->Free<true>();
-			}
-
-			auto const numElementsWithBuffer = calcNumElementsWithBuffer(o.mMask + 1);
-			auto const numBytesTotal = calcNumBytesTotal(numElementsWithBuffer);
-			mKeyVals = static_cast<Node*>(assertNotNull<std::bad_alloc>(std::malloc(numBytesTotal)));
-
-			// No need for calloc here because CloneInner performs a memcpy
-			mInfo = reinterpret_cast<uint8_t*>(mKeyVals + numElementsWithBuffer);
-			// Sentinel is set in CloneInner											
-		}*/
-
+	TABLE()& TABLE()::operator = (const Table& rhs) {
 		// Always reference, before dereferencing, in the rare case that	
 		// this table is the same as the other										
-		o.mEntry->Keep();
+		rhs.mEntry->Keep();
 
 		// Dereference this table (and eventually destroy elements)			
 		if (mEntry) {
 			if (mEntry->GetUses() == 1) {
 				// Destroy all elements but don't deallocate the entry		
-				DestroyNodes<true>();
+				DestroyNodes();
 			}
 			else {
 				// If reached, then data is referenced from multiple places	
@@ -247,14 +205,12 @@ namespace Langulus::Anyness::Inner
 			}
 		}
 
-		Base::operator = (o);
-		mHashMultiplier = o.mHashMultiplier;
-		mNumElements = o.mNumElements;
-		mMask = o.mMask;
-		mMaxNumElementsAllowed = o.mMaxNumElementsAllowed;
-		mInfoInc = o.mInfoInc;
-		mInfoHashShift = o.mInfoHashShift;
-		//CloneInner(o);
+		mHashMultiplier = rhs.mHashMultiplier;
+		mNumElements = rhs.mNumElements;
+		mMask = rhs.mMask;
+		mMaxNumElementsAllowed = rhs.mMaxNumElementsAllowed;
+		mInfoInc = rhs.mInfoInc;
+		mInfoHashShift = rhs.mInfoHashShift;
 		return *this;
 	}
 
@@ -281,22 +237,26 @@ namespace Langulus::Anyness::Inner
 	/// Clone all nodes, as well as info bytes											
 	///	@param o - the table to clone														
 	TABLE_TEMPLATE()
-	void TABLE()::CloneInner(const Table& o) {
-		if constexpr (IsOnHeap && std::is_trivially_copyable_v<Node>) {
-			// Copy all pointers to pairs, as well as info bytes				
+	void TABLE()::CloneInner(const Table& other) {
+		if constexpr (CT::POD<Node>) {
+			// Copy all pointers to pairs, together with info bytes			
 			auto const numElementsWithBuffer = GetElementsWithBuffer(mMask + 1);
-			::std::copy(o.mNodeBytes, o.mNodeBytes + GetBytesTotal(numElementsWithBuffer), mNodeBytes);
+			::std::copy(other.mNodeBytes, other.mNodeBytes + GetBytesTotal(numElementsWithBuffer), mNodeBytes);
 		}
 		else {
+			static_assert(CT::CloneMakable<Node>, "Contained type is not clone-makable");
+
 			// Copy the info bytes first												
 			auto const numElementsWithBuffer = GetElementsWithBuffer(mMask + 1);
-			::std::copy(o.mInfo, o.mInfo + GetBytesInfo(numElementsWithBuffer), mInfo);
+			::std::copy(other.mInfo, other.mInfo + GetBytesInfo(numElementsWithBuffer), mInfo);
 
 			// We're on the stack, copy each pair individually unless POD	
 			//TODO POD optimization
 			for (size_t i = 0; i < numElementsWithBuffer; ++i) {
-				if (mInfo[i])
-					::new (mNodes + i) Node(*this, *o.mNodes[i]);
+				if (!mInfo[i])
+					continue;
+
+				::new (mNodes + i) Node {other.mNodes[i].Clone()};
 			}
 		}
 	}
@@ -549,14 +509,14 @@ namespace Langulus::Anyness::Inner
 				
 		if constexpr (REHASH) {
 			// Force a rehash																
-			rehashPowerOfTwo<false>(newSize);
+			rehashPowerOfTwo(newSize);
 		}
 		else {
 			// Only actually do anything when the new size is bigger than	
 			// the old one. This prevents to continuously allocate for		
 			// each reserve() call														
 			if (newSize > mMask + 1)
-				rehashPowerOfTwo<false>(newSize);
+				rehashPowerOfTwo(newSize);
 		}
 	}
 
@@ -608,11 +568,22 @@ namespace Langulus::Anyness::Inner
 			break;
 		case InsertionState::new_node:
 			// We can emplace the new node											
-			::new (&GetPair(spot.mOffset)) Type(Move(n));
+			if constexpr (CT::Same<Node, Type>)
+				::new (&GetNode(spot.mOffset)) Node {Move(n)};
+			else
+				::new (&GetNode(spot.mOffset)) Node {Node::Create(Move(n))};
 			break;
 		case InsertionState::overwrite_node:
-			// The pair is unused and we can overwrite it						
-			GetPair(spot.mOffset) = Move(n);
+			// The node is unused and we can overwrite it						
+			if constexpr (CT::Same<Node, Type>)
+				GetNode(spot.mOffset) = Move(n);
+			else {
+				auto& node = GetNode(spot.mOffset);
+				if (node)
+					*node = Move(n);
+				else
+					node = Node::Create(Move(n));
+			}
 			break;
 		case InsertionState::overflow_error:
 			// Max capacity reached, destroy the node and throw				
@@ -705,7 +676,7 @@ namespace Langulus::Anyness::Inner
 	/// Inserts an item that is guaranteed to be new, e.g. when the				
 	/// table is resized - no need to search for key to reuse items				
 	TABLE_TEMPLATE()
-	void TABLE()::insert_move(Type&& item) {
+	void TABLE()::MoveInsertNode(Node&& item) {
 		// We don't retry, fail if overflowing, don't need to check max	
 		// num elements																	
 		if (0 == mMaxNumElementsAllowed && !try_increase_info())
@@ -714,7 +685,7 @@ namespace Langulus::Anyness::Inner
 		size_t idx {};
 		InfoType info {};
 		if constexpr (IsMap)
-			keyToIdx(item.mKey, &idx, &info);
+			keyToIdx(item->mKey, &idx, &info);
 		else
 			keyToIdx(item, &idx, &info);
 
@@ -735,13 +706,13 @@ namespace Langulus::Anyness::Inner
 		while (0 != mInfo[idx])
 			next(&info, &idx);
 
-		auto& l = GetPair(insertion_idx);
+		auto& l = GetNode(insertion_idx);
 		if (idx == insertion_idx) {
-			::new (&l) Type(Forward<Type>(item));
+			::new (&l) Node(Forward<Node>(item));
 		}
 		else {
 			shiftUp(idx, insertion_idx);
-			l = Forward<Type>(item);
+			l = Forward<Node>(item);
 		}
 
 		// Put at empty spot																
@@ -893,7 +864,7 @@ namespace Langulus::Anyness::Inner
 		if (IsEmpty())
 			return;
 
-		DestroyNodes<true>();
+		DestroyNodes();
 
 		auto const numElementsWithBuffer = GetElementsWithBuffer(mMask + 1);
 
@@ -1003,7 +974,7 @@ namespace Langulus::Anyness::Inner
 		if (0 == mMask)
 			return;
 
-		DestroyNodes<false>();
+		DestroyNodes();
 		mEntry->Free<true>();
 	}
 
@@ -1075,10 +1046,20 @@ namespace Langulus::Anyness::Inner
 
 	TABLE_TEMPLATE()
 	typename TABLE()::Type& TABLE()::GetPair(const Offset& i) noexcept requires IsMap {
-		if constexpr (CT::Sparse<Node>)
+		if constexpr (IsOnHeap)
 			return *mNodes[i];
 		else
 			return mNodes[i];
+	}
+
+	TABLE_TEMPLATE()
+	const typename TABLE()::Node& TABLE()::GetNode(const Offset& i) const noexcept {
+		return const_cast<TABLE()&>(*this).GetNode(i);
+	}
+
+	TABLE_TEMPLATE()
+	typename TABLE()::Node& TABLE()::GetNode(const Offset& i) noexcept {
+		return mNodes[i];
 	}
 
 	/// Returns a reference to the value found for key									
@@ -1089,10 +1070,7 @@ namespace Langulus::Anyness::Inner
 		if (found == mNodesEnd)
 			Throw<Except::OutOfRange>("Key not found");
 
-		if constexpr (CT::Sparse<Node>)
-			return (*found)->mValue;
-		else
-			return found->mValue;
+		return (*found)->mValue;
 	}
 
 	/// Returns a reference to the value found for key									
@@ -1284,7 +1262,6 @@ namespace Langulus::Anyness::Inner
 
 	/// Destroyer																					
 	TABLE_TEMPLATE()
-	template<bool DEALLOCATE>
 	void TABLE()::DestroyNodes() noexcept {
 		mNumElements = 0;
 
@@ -1296,12 +1273,7 @@ namespace Langulus::Anyness::Inner
 				if (0 == mInfo[idx])
 					continue;
 
-				auto& n = mNodes[idx];
-				if constexpr (DEALLOCATE)
-					n.destroy(*this);
-				else
-					n.destroyDoNotDeallocate();
-				n.~Node();
+				mNodes[idx].~Node();
 			}
 		}
 	}
