@@ -39,7 +39,6 @@ namespace Langulus::Anyness::Inner
 	///	@param other - the table to move													
 	TABLE_TEMPLATE()
 	TABLE()::Table(Table&& other) noexcept
-		//: Base {Forward<Base>(other)}
 		: mHashMultiplier {other.mHashMultiplier}
 		, mEntry {other.mEntry}
 		, mNumElements {other.mNumElements}
@@ -64,7 +63,6 @@ namespace Langulus::Anyness::Inner
 	///	@param other - the table to copy													
 	TABLE_TEMPLATE()
 	TABLE()::Table(const Table& other)
-		//: Base {other}
 		: mHashMultiplier {other.mHashMultiplier}
 		, mEntry {other.mEntry}
 		, mNumElements {other.mNumElements}
@@ -89,7 +87,6 @@ namespace Langulus::Anyness::Inner
 	///	@param other - the disowned table to copy										
 	TABLE_TEMPLATE()
 	TABLE()::Table(Disowned<Table>&& other) noexcept
-		//: Base {other.Forward<Base>()}
 		: mHashMultiplier {other.mValue.mHashMultiplier}
 		, mEntry {other.mValue.mEntry}
 		, mNumElements {other.mValue.mNumElements}
@@ -112,8 +109,7 @@ namespace Langulus::Anyness::Inner
 	///	@param other - the abandoned table to move									
 	TABLE_TEMPLATE()
 	TABLE()::Table(Abandoned<Table>&& other) noexcept
-		: Base {other.Forward<Base>()}
-		, mHashMultiplier {other.mValue.mHashMultiplier}
+		: mHashMultiplier {other.mValue.mHashMultiplier}
 		, mEntry {other.mValue.mEntry}
 		, mNumElements {other.mValue.mNumElements}
 		, mMask {other.mValue.mMask}
@@ -1511,7 +1507,7 @@ namespace Langulus::Anyness::Inner
 						(*data).~Type();
 					Allocator::Deallocate(found);
 				}
-				else found->Free<false>();
+				else found->template Free<false>();
 			}
 		}
 

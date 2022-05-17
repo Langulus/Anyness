@@ -113,7 +113,7 @@ namespace Langulus::Anyness
 			// A fundamental number is built-in hashable							
 			return HashNumber(data);
 		}
-		else if constexpr (requires { Uneval<::std::hash<T>&>.operator ()(data); }) {
+		else if constexpr (requires { Uneval<::std::hash<T>&>().operator ()(data); }) {
 			// Hashable via std::hash													
 			::std::hash<T> hasher;
 			return hasher(data);

@@ -101,7 +101,7 @@ namespace Langulus::Anyness
 		friend class TPointer;
 
 		template<bool DENSE, Count MaxLoadFactor100, CT::Data K, class V>
-		class Inner::Table;
+		class Table;
 
 	protected:
 		union { 
