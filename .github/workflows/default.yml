@@ -7,9 +7,6 @@ on:
 jobs:
   job:
     runs-on: ${{ matrix.cfg.os }}
-    defaults:
-      run:
-        working-directory: ci
     strategy:
       matrix:
         cfg:
