@@ -11,10 +11,10 @@ jobs:
       matrix:
         cfg:
           # Linux debug/release static
-          - {os: ubuntu-latest, btype: Debug, cmakeflags: '', buildflags: '-- -j'}
-          - {os: ubuntu-latest, btype: RelWithDebInfo, cmakeflags: '', buildflags: '-- -j'}
-          - {os: macos-latest, btype: Debug, cmakeflags: '', buildflags: '-- -j'}
-          - {os: macos-latest, btype: RelWithDebInfo, cmakeflags: '', buildflags: '-- -j'}
+          - {os: ubuntu-latest, btype: Debug, cmakeflags: '', buildflags: ''}
+          - {os: ubuntu-latest, btype: RelWithDebInfo, cmakeflags: '', buildflags: ''}
+          - {os: macos-latest, btype: Debug, cmakeflags: '', buildflags: ''}
+          - {os: macos-latest, btype: RelWithDebInfo, cmakeflags: '', buildflags: ''}
           # Windows x86/x64 debug/release static
           - {os: windows-latest, btype: Debug, cmakeflags: '-A Win32', buildflags: ''}
           - {os: windows-latest, btype: RelWithDebInfo, cmakeflags: '-A Win32', buildflags: ''}
@@ -24,7 +24,7 @@ jobs:
       - name: Clone
         uses: actions/checkout@v2
       - name: Configure
-        run: cmake .. -DCMAKE_BUILD_TYPE=${{ matrix.cfg.btype }} ${{ matrix.cfg.cmakeflags }}
+        run: mkdir out/${{ matrix.cfg.btype }}_${{ matrix.cfg.os }} && cd out/${{ matrix.cfg.btype }}_${{ matrix.cfg.os }} && cmake ../.. -DCMAKE_BUILD_TYPE=${{ matrix.cfg.btype }} ${{ matrix.cfg.cmakeflags }}
       - name: Build
         run: cmake --build . --config ${{ matrix.cfg.btype }} ${{ matrix.cfg.buildflags }}
       - name: Test
