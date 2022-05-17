@@ -1,9 +1,9 @@
-name: Build and Test
+name: Built & Tested
 on:
   push:
-    branches: [master]
+    branches: [main]
   pull_request:
-    branches: [master]
+    branches: [main]
 jobs:
   job:
     runs-on: ${{ matrix.cfg.os }}
