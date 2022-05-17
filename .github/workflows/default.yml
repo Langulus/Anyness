@@ -24,8 +24,8 @@ jobs:
       - name: Clone
         uses: actions/checkout@v2
       - name: Configure
-        run: mkdir out/${{ matrix.cfg.btype }}_${{ matrix.cfg.os }} && cd out/${{ matrix.cfg.btype }}_${{ matrix.cfg.os }} && cmake ../.. -DCMAKE_BUILD_TYPE=${{ matrix.cfg.btype }} ${{ matrix.cfg.cmakeflags }}
+        run: cmake -S . -B out/${{ matrix.cfg.os }}-${{ matrix.cfg.btype }} -DCMAKE_BUILD_TYPE=${{ matrix.cfg.btype }} ${{ matrix.cfg.cmakeflags }}
       - name: Build
-        run: cmake --build . --config ${{ matrix.cfg.btype }} ${{ matrix.cfg.buildflags }}
+        run: cmake --build out/${{ matrix.cfg.os }}-${{ matrix.cfg.btype }} --config ${{ matrix.cfg.btype }} ${{ matrix.cfg.buildflags }}
       - name: Test
         run: ctest -C ${{ matrix.cfg.btype }} --output-on-failure
