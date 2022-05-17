@@ -1,3 +1,10 @@
+///																									
+/// Langulus::Anyness																			
+/// Copyright(C) 2012 - 2022 Dimo Markov <langulusteam@gmail.com>					
+///																									
+/// Distributed under GNU General Public License v3+									
+/// See LICENSE file, or https://www.gnu.org/licenses									
+///																									
 #pragma once
 #include "Block.hpp"
 
@@ -363,7 +370,7 @@ namespace Langulus::Anyness
 	/// Get the number of references for the allocated memory block				
 	///	@attention returns 0 if memory is outside authority						
 	///	@return the references for the memory block									
-	constexpr Count Block::GetReferences() const noexcept {
+	constexpr Count Block::GetUses() const noexcept {
 		return mEntry ? mEntry->GetUses() : 0;
 	}
 
@@ -973,12 +980,12 @@ namespace Langulus::Anyness
 		);
 	}
 
-	/// Emplace anything compatible to container											
+	/// Emplace anything inside container													
 	///	@attention when emplacing pointers, their memory is referenced,		
 	///				  and the pointer is not cleared, so you can free it later	
 	///	@param item - item to move															
 	///	@param index - use uiFront or uiBack for pushing to ends					
-	///	@return number of inserted elements												
+	///	@return 1 if item was emplaced													
 	template<CT::Data T, bool MUTABLE, CT::Data WRAPPER>
 	Count Block::Emplace(T&& item, const Index& index) {
 		const auto starter = ConstrainMore<T>(index).GetOffset();
@@ -994,7 +1001,7 @@ namespace Langulus::Anyness
 
 		// Move memory if required														
 		if (starter < mCount) {
-			SAFETY(if (GetReferences() > 1)
+			SAFETY(if (GetUses() > 1)
 				throw Except::Reference(Logger::Error()
 					<< "Moving elements that are used from multiple places"));
 
@@ -1539,10 +1546,10 @@ namespace Langulus::Anyness
 				<< "Attempting to deepen incompatible typed container");
 		}
 
-		#if LANGULUS_SAFE()
-			if (GetReferences() > 1)
-				Logger::Warning() << "Container used from multiple places";
-		#endif
+		if (GetUses() > 1) {
+			throw Except::Mutate(Logger::Error()
+				<< "Attempting to deepen container that is referenced from multiple locations");
+		}
 
 		// Back up the state so that we can restore it if not moved over	
 		[[maybe_unused]] const auto state {GetUnconstrainedState()};

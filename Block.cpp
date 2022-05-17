@@ -1,3 +1,10 @@
+///																									
+/// Langulus::Anyness																			
+/// Copyright(C) 2012 - 2022 Dimo Markov <langulusteam@gmail.com>					
+///																									
+/// Distributed under GNU General Public License v3+									
+/// See LICENSE file, or https://www.gnu.org/licenses									
+///																									
 #include "Block.hpp"
 #include "Any.hpp"
 
@@ -565,7 +572,7 @@ namespace Langulus::Anyness
 		SAFETY(if (count > mCount || starter + count > mCount)
 			throw Except::Access(Logger::Error()
 				<< "Index " << starter << " out of range " << mCount));
-		SAFETY(if (GetReferences() > 1)
+		SAFETY(if (GetUses() > 1)
 			throw Except::Reference(Logger::Error()
 				<< "Removing elements from a memory block, that is used from multiple places"));
 
@@ -677,7 +684,7 @@ namespace Langulus::Anyness
 
 		// Move memory if required														
 		if (starter < mCount) {
-			SAFETY(if (GetReferences() > 1)
+			SAFETY(if (GetUses() > 1)
 				throw Except::Reference(Logger::Error()
 					<< "Moving elements that are used from multiple places"));
 

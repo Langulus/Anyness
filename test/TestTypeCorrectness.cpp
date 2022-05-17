@@ -1,4 +1,11 @@
-#include "TestMain.hpp"
+///																									
+/// Langulus::Anyness																			
+/// Copyright(C) 2012 - 2022 Dimo Markov <langulusteam@gmail.com>					
+///																									
+/// Distributed under GNU General Public License v3+									
+/// See LICENSE file, or https://www.gnu.org/licenses									
+///																									
+#include "Main.hpp"
 #include <catch2/catch.hpp>
 
 TEMPLATE_TEST_CASE("Unsigned integer RTTI interpretation", "[metadata]", uint8_t, uint16_t, uint32_t, uint64_t) {

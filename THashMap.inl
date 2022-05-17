@@ -1,3 +1,10 @@
+///																									
+/// Langulus::Anyness																			
+/// Copyright(C) 2012 - 2022 Dimo Markov <langulusteam@gmail.com>					
+///																									
+/// Distributed under GNU General Public License v3+									
+/// See LICENSE file, or https://www.gnu.org/licenses									
+///																									
 #pragma once
 #include "THashMap.hpp"
 #include "inner/Hashing.hpp"
@@ -134,6 +141,141 @@ namespace Langulus::Anyness::Inner
 		destroy();
 	}
 	
+	/// Reserves space for at least the specified number of elements				
+	/// Only works if numBuckets is power-of-two											
+	///	@param numBuckets - the number of buckets										
+	TABLE_TEMPLATE()
+	void TABLE()::rehashPowerOfTwo(size_t numBuckets) {
+		// These will be reset via initData, so back them up					
+		auto const oldEntry = mEntry;
+		auto const oldNodes = mNodes;
+		auto const oldInfo = mInfo;
+		auto const oldMaxElementsWithBuffer = GetElementsWithBuffer(mMask + 1);
+
+		// Resize and move stuff														
+		initData(numBuckets);
+
+		if (oldMaxElementsWithBuffer > 1) {
+			for (size_t i = 0; i < oldMaxElementsWithBuffer; ++i) {
+				if (oldInfo[i] == 0)
+					continue;
+
+				// Might throw an exception, which is really bad				
+				// since we are in the middle of moving stuff					
+				auto& node = oldNodes[i];
+				MoveInsertNode(Move(node));
+				node.~Node();
+			}
+
+			oldEntry->Free<true>();
+		}
+	}
+
+	/// Initialize container and reserve data												
+	///	@attention inner function, assumes mEntry is empty							
+	///	@param maxElements - number of elements to reserve							
+	TABLE_TEMPLATE()
+	void TABLE()::initData(size_t maxElements) {
+		mNumElements = 0;
+		mMask = maxElements - 1;
+		mMaxNumElementsAllowed = GetMaxElementsAllowed(maxElements);
+
+		// Malloc & zero mInfo - faster than calloc everything				
+		auto const numElementsWithBuffer = GetElementsWithBuffer(maxElements);
+		auto const numBytesTotal = GetBytesTotal(numElementsWithBuffer);
+		mEntry = Allocator::Allocate(numBytesTotal);
+		mNodes = mEntry->As<Node>();
+		mInfo = reinterpret_cast<uint8_t*>(mNodes + numElementsWithBuffer);
+		::std::memset(mInfo, 0, numBytesTotal - numElementsWithBuffer * sizeof(Node));
+
+		// Set sentinel																	
+		mInfo[numElementsWithBuffer] = 1;
+		mInfoInc = InitialInfoInc;
+		mInfoHashShift = InitialInfoHashShift;
+	}
+
+	/// @brief																						
+	TABLE_TEMPLATE()
+	bool TABLE()::try_increase_info() {
+		if (mInfoInc <= 2) {
+			// Need to be > 2 so that shift works (otherwise					
+			// undefined behavior!)														
+			return false;
+		}
+
+		// We got space left, try to make info smaller							
+		mInfoInc = static_cast<uint8_t>(mInfoInc >> 1U);
+
+		// Remove one bit of the hash, leaving more space for the			
+		// distance info. This is extremely fast because we can				
+		// operate on 8 bytes at once													
+		++mInfoHashShift;
+
+		auto const numElementsWithBuffer = GetElementsWithBuffer(mMask + 1);
+		for (size_t i = 0; i < numElementsWithBuffer; i += 8) {
+			auto val = unaligned_load<uint64_t>(mInfo + i);
+			val = (val >> 1U) & UINT64_C(0x7f7f7f7f7f7f7f7f);
+			::std::memcpy(mInfo + i, &val, sizeof(val));
+		}
+
+		// Update sentinel, which might have been cleared out!				
+		mInfo[numElementsWithBuffer] = 1;
+		mMaxNumElementsAllowed = GetMaxElementsAllowed(mMask + 1);
+		return true;
+	}
+
+	/// Increase the contained size															
+	///	@return true if resize was possible, false otherwise						
+	TABLE_TEMPLATE()
+	bool TABLE()::increase_size() {
+		// Nothing allocated yet? just allocate InitialNumElements			
+		if (0 == mMask) {
+			initData(InitialNumElements);
+			return true;
+		}
+
+		auto const maxNumElementsAllowed = GetMaxElementsAllowed(mMask + 1);
+		if (mNumElements < maxNumElementsAllowed && try_increase_info())
+			return true;
+
+		if (mNumElements * 2 < GetMaxElementsAllowed(mMask + 1)) {
+			// We have to resize, even though there would still be			
+			// plenty of space left! Try to rehash instead. Delete			
+			// freed memory so we don't steadyily increase mem in				
+			// case we have to rehash a few times									
+			nextHashMultiplier();
+			rehashPowerOfTwo(mMask + 1);
+		}
+		else {
+			// We've reached the capacity of the map, so the hash				
+			// seems to work nice. Keep using it									
+			rehashPowerOfTwo((mMask + 1) * 2);
+		}
+
+		return true;
+	}
+
+	TABLE_TEMPLATE()
+	void TABLE()::nextHashMultiplier() {
+		// Adding an *even* number, so that the multiplier will				
+		// always stay odd. This is necessary so that the hash				
+		// stays a mixing function (and thus doesn't have any					
+		// information loss)																
+		mHashMultiplier += UINT64_C(0xc4ceb9fe1a85ec54);
+	}
+
+	TABLE_TEMPLATE()
+	void TABLE()::init() noexcept {
+		mEntry = nullptr;
+		mNodes = reinterpret_cast<Node*>(&mMask);
+		mInfo = reinterpret_cast<uint8_t*>(&mMask);
+		mNumElements = 0;
+		mMask = 0;
+		mMaxNumElementsAllowed = 0;
+		mInfoInc = InitialInfoInc;
+		mInfoHashShift = InitialInfoHashShift;
+	}
+
 	/// Checks if both tables contain the same entries									
 	/// Order is irrelevant																		
 	///	@param other - the table to compare against									
@@ -436,6 +578,12 @@ namespace Langulus::Anyness::Inner
 	TABLE_TEMPLATE()
 	constexpr Size TABLE()::GetStride() const noexcept requires IsSet {
 		return sizeof(Type);
+	}
+
+	/// Get the raw node array inside the map												
+	TABLE_TEMPLATE()
+	constexpr typename TABLE()::Node* TABLE()::GetRaw() const noexcept {
+		return mNodes;
 	}
 
 	/// Get the size of all pairs, in bytes												
@@ -1196,6 +1344,21 @@ namespace Langulus::Anyness::Inner
 		return mMask > 0;
 	}
 
+	/// Check if the memory for the table is owned by us								
+	///	@return true if memory is ours													
+	TABLE_TEMPLATE()
+	bool TABLE()::HasAuthority() const noexcept {
+		return mEntry != nullptr;
+	}
+
+	/// Get the number of references for the allocated memory						
+	///	@attention always returns zero if we don't have authority				
+	///	@return the number of references													
+	TABLE_TEMPLATE()
+	Count TABLE()::GetUses() const noexcept {
+		return mEntry ? mEntry->GetUses() : 0;
+	}
+
 	TABLE_TEMPLATE()
 	constexpr float TABLE()::max_load_factor() const noexcept {
 		return MaxLoadFactor100 / 100.0f;
@@ -1239,6 +1402,8 @@ namespace Langulus::Anyness::Inner
 	}
 
 	/// Calculation only allowed for 2^n values											
+	///	@param numElements - number of nodes to allocate							
+	///	@return the byte size for the required nodes, as well as info bytes	
 	TABLE_TEMPLATE()
 	Count TABLE()::GetBytesTotal(Count numElements) {
 		#if LANGULUS(BITNESS) == 64
@@ -1265,7 +1430,7 @@ namespace Langulus::Anyness::Inner
 	void TABLE()::DestroyNodes() noexcept {
 		mNumElements = 0;
 
-		if constexpr (Method == AllocationMethod::Stack || !::std::is_trivially_destructible_v<Node>) {
+		if constexpr (DENSE || !::std::is_trivially_destructible_v<Node>) {
 			// Clear also resets mInfo to 0, that's sometimes not				
 			// necessary																	
 			auto const numElementsWithBuffer = GetElementsWithBuffer(mMask + 1);

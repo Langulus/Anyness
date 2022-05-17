@@ -1,3 +1,10 @@
+///																									
+/// Langulus::Anyness																			
+/// Copyright(C) 2012 - 2022 Dimo Markov <langulusteam@gmail.com>					
+///																									
+/// Distributed under GNU General Public License v3+									
+/// See LICENSE file, or https://www.gnu.org/licenses									
+///																									
 #pragma once
 #include "inner/Reflection.hpp"
 #include "inner/DataState.hpp"
@@ -11,27 +18,31 @@ namespace Langulus::Anyness
 	
 	/// Predeclarations																			
 	class Any;
-	template<CT::Data T>
+	template<CT::Data>
 	class TAny;
 	
 	class Map;
-	template<CT::Data K, CT::Data V>
+	template<CT::Data, CT::Data>
 	class TMap;
-	template<CT::Data K, CT::Data V>
-	class THashMap;
 	
 	class Set;
-	template<CT::Data T>
+	template<CT::Data>
 	class TSet;
 	
 	class Bytes;
 	class Text;
 	class Path;
 	
-	template<CT::Data T>
+	template<CT::Data>
 	class TOwned;
-	template<CT::Data T, bool REFERENCED>
+	template<CT::Data, bool>
 	class TPointer;
+
+	namespace Inner
+	{
+		template<bool DENSE, Count MaxLoadFactor100, CT::Data K, class V>
+		class Table;
+	}
 
 	/// Compression types, analogous to zlib's											
 	enum class Compression {
@@ -69,27 +80,28 @@ namespace Langulus::Anyness
 		LANGULUS(DEEP) true;
 
 		friend class Any;
-		template<CT::Data T>
+		template<CT::Data>
 		friend class TAny;
 
 		friend class Map;
-		template<CT::Data K, CT::Data V>
+		template<CT::Data, CT::Data>
 		friend class TMap;
-		template<CT::Data K, CT::Data V>
-		friend class THashMap;
 
 		friend class Set;
-		template<CT::Data T>
+		template<CT::Data>
 		friend class TSet;
 
 		friend class Bytes;
 		friend class Text;
 		friend class Path;
 
-		template<CT::Data T>
+		template<CT::Data>
 		friend class TOwned;
-		template<CT::Data T, bool REFERENCED>
+		template<CT::Data, bool REFERENCED>
 		friend class TPointer;
+
+		template<bool DENSE, Count MaxLoadFactor100, CT::Data K, class V>
+		class Inner::Table;
 
 	protected:
 		union { 
@@ -307,7 +319,7 @@ namespace Langulus::Anyness
 	public:
 		NOD() bool Owns(const void*) const noexcept;
 		NOD() constexpr bool HasAuthority() const noexcept;
-		NOD() constexpr Count GetReferences() const noexcept;
+		NOD() constexpr Count GetUses() const noexcept;
 		NOD() Block Crop(const Offset&, const Count&);
 		NOD() Block Crop(const Offset&, const Count&) const;
 	

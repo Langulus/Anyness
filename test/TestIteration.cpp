@@ -1,4 +1,11 @@
-#include "TestMain.hpp"
+///																									
+/// Langulus::Anyness																			
+/// Copyright(C) 2012 - 2022 Dimo Markov <langulusteam@gmail.com>					
+///																									
+/// Distributed under GNU General Public License v3+									
+/// See LICENSE file, or https://www.gnu.org/licenses									
+///																									
+#include "Main.hpp"
 #include <catch2/catch.hpp>
 
 SCENARIO("Iterating containers", "[iteration]") {
@@ -484,9 +491,9 @@ SCENARIO("Iterating containers", "[iteration]") {
 		subpack3 << subpack1 << subpack2;
 		pack << subpack1 << subpack2 << subpack3;
 
-		REQUIRE(subpack1.GetReferences() == 3);
-		REQUIRE(subpack2.GetReferences() == 3);
-		REQUIRE(subpack3.GetReferences() == 2);
+		REQUIRE(subpack1.GetUses() == 3);
+		REQUIRE(subpack2.GetUses() == 3);
+		REQUIRE(subpack3.GetUses() == 2);
 
 		WHEN("Flat-iterated with the intent to remove specific subpacks") {
 			pack.ForEach([&](Any& subcontent) {
@@ -500,9 +507,9 @@ SCENARIO("Iterating containers", "[iteration]") {
 				Any resultingPack;
 				resultingPack << subpack3;
 				REQUIRE(pack == resultingPack);
-				REQUIRE(subpack1.GetReferences() == 2);
-				REQUIRE(subpack2.GetReferences() == 2);
-				REQUIRE(subpack3.GetReferences() == 3);
+				REQUIRE(subpack1.GetUses() == 2);
+				REQUIRE(subpack2.GetUses() == 2);
+				REQUIRE(subpack3.GetUses() == 3);
 			}
 		}
 

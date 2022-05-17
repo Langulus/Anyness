@@ -1,4 +1,11 @@
-#include "TestMain.hpp"
+///																									
+/// Langulus::Anyness																			
+/// Copyright(C) 2012 - 2022 Dimo Markov <langulusteam@gmail.com>					
+///																									
+/// Distributed under GNU General Public License v3+									
+/// See LICENSE file, or https://www.gnu.org/licenses									
+///																									
+#include "Main.hpp"
 #include <catch2/catch.hpp>
 
 SCENARIO("Shared pointer manipulation", "[TPointer]") {
@@ -16,7 +23,7 @@ SCENARIO("Shared pointer manipulation", "[TPointer]") {
 			THEN("Should have exactly one reference and jurisdiction") {
 				REQUIRE(*pointer == 5);
 				REQUIRE(pointer.HasAuthority());
-				REQUIRE(pointer.GetReferences() == 1);
+				REQUIRE(pointer.GetUses() == 1);
 			}
 		}
 
@@ -30,8 +37,8 @@ SCENARIO("Shared pointer manipulation", "[TPointer]") {
 				REQUIRE(*pointer2 == 5);
 				REQUIRE(pointer.HasAuthority());
 				REQUIRE(pointer2.HasAuthority());
-				REQUIRE(pointer.GetReferences() == 2);
-				REQUIRE(pointer2.GetReferences() == 2);
+				REQUIRE(pointer.GetUses() == 2);
+				REQUIRE(pointer2.GetUses() == 2);
 			}
 		}
 
@@ -45,7 +52,7 @@ SCENARIO("Shared pointer manipulation", "[TPointer]") {
 				REQUIRE(*pointer2 == 5);
 				REQUIRE_FALSE(pointer.HasAuthority());
 				REQUIRE(pointer2.HasAuthority());
-				REQUIRE(pointer.GetReferences() == 0);
+				REQUIRE(pointer.GetUses() == 0);
 			}
 		}
 
@@ -65,7 +72,7 @@ SCENARIO("Shared pointer manipulation", "[TPointer]") {
 				#endif
 				REQUIRE(pointer2.HasAuthority());
 				REQUIRE(pointer.HasAuthority());
-				REQUIRE(pointer.GetReferences() == 2);
+				REQUIRE(pointer.GetUses() == 2);
 			}
 		}
 	}

@@ -1,4 +1,11 @@
-#include "TestMain.hpp"
+///																									
+/// Langulus::Anyness																			
+/// Copyright(C) 2012 - 2022 Dimo Markov <langulusteam@gmail.com>					
+///																									
+/// Distributed under GNU General Public License v3+									
+/// See LICENSE file, or https://www.gnu.org/licenses									
+///																									
+#include "Main.hpp"
 #include <catch2/catch.hpp>
 
 using uint = unsigned int;
@@ -407,7 +414,7 @@ SCENARIO("TAny", "[containers]") {
 				REQUIRE(copy.GetReserved() == pack.GetReserved());
 				REQUIRE(copy.GetState() == pack.GetState());
 				REQUIRE(copy.GetType() == pack.GetType());
-				REQUIRE(copy.GetReferences() == 2);
+				REQUIRE(copy.GetUses() == 2);
 			}
 		}
 
@@ -420,8 +427,8 @@ SCENARIO("TAny", "[containers]") {
 				REQUIRE(clone.GetReserved() >= clone.GetCount());
 				REQUIRE(clone.GetState() == pack.GetState());
 				REQUIRE(clone.GetType() == pack.GetType());
-				REQUIRE(clone.GetReferences() == 1);
-				REQUIRE(pack.GetReferences() == 1);
+				REQUIRE(clone.GetUses() == 1);
+				REQUIRE(pack.GetUses() == 1);
 			}
 		}
 
@@ -472,8 +479,8 @@ SCENARIO("TAny", "[containers]") {
 		WHEN("Shallow copy pack1 in pack2") {
 			pack2 = pack1;
 			THEN("memory1 should be referenced twice, memory2 should be released") {
-				REQUIRE(pack1.GetReferences() == 2);
-				REQUIRE(pack2.GetReferences() == 2);
+				REQUIRE(pack1.GetUses() == 2);
+				REQUIRE(pack2.GetUses() == 2);
 				REQUIRE(static_cast<Block&>(pack1) == static_cast<Block&>(pack2));
 				REQUIRE(static_cast<Block&>(pack2) == memory1);
 				REQUIRE_FALSE(Allocator::Find(memory2.GetType(), memory2.GetRaw()));
@@ -485,7 +492,7 @@ SCENARIO("TAny", "[containers]") {
 			pack1.Reset();
 			THEN("memory1 should be referenced once, memory2 should be released") {
 				REQUIRE_FALSE(pack1.HasAuthority());
-				REQUIRE(pack2.GetReferences() == 1);
+				REQUIRE(pack2.GetUses() == 1);
 				REQUIRE_FALSE(pack1.GetRaw());
 				REQUIRE(pack1.GetReserved() == 0);
 				REQUIRE(static_cast<Block&>(pack2) == memory1);
@@ -496,8 +503,8 @@ SCENARIO("TAny", "[containers]") {
 		WHEN("Deep copy pack1 in pack2") {
 			pack2 = pack1.Clone();
 			THEN("memory1 should be referenced twice, memory2 should be released") {
-				REQUIRE(pack1.GetReferences() == 1);
-				REQUIRE(pack2.GetReferences() == 1);
+				REQUIRE(pack1.GetUses() == 1);
+				REQUIRE(pack2.GetUses() == 1);
 				REQUIRE(static_cast<Block&>(pack1) == static_cast<Block&>(pack2));
 				REQUIRE(static_cast<Block&>(pack2) == memory1);
 				REQUIRE(static_cast<Block&>(pack2) != memory2);
@@ -513,8 +520,8 @@ SCENARIO("TAny", "[containers]") {
 				REQUIRE_FALSE(pack1.HasAuthority());
 				REQUIRE_FALSE(Allocator::Find(memory1.GetType(), memory1.GetRaw()));
 				REQUIRE_FALSE(Allocator::Find(memory2.GetType(), memory2.GetRaw()));
-				REQUIRE(pack2.GetReferences() == 1);
-				REQUIRE(memory3.GetReferences() == 1);
+				REQUIRE(pack2.GetUses() == 1);
+				REQUIRE(memory3.GetUses() == 1);
 			}
 		}
 	}

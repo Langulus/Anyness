@@ -1,4 +1,11 @@
-#include "TestMain.hpp"
+///																									
+/// Langulus::Anyness																			
+/// Copyright(C) 2012 - 2022 Dimo Markov <langulusteam@gmail.com>					
+///																									
+/// Distributed under GNU General Public License v3+									
+/// See LICENSE file, or https://www.gnu.org/licenses									
+///																									
+#include "Main.hpp"
 #include <catch2/catch.hpp>
 #include <any>
 
@@ -193,7 +200,7 @@ SCENARIO("Any", "[containers]") {
 					REQUIRE_FALSE(Allocator::CheckAuthority(meta, original_int_backup));
 					REQUIRE(Allocator::GetReferences(meta, original_int_backup) == 1);
 				#endif
-				REQUIRE(pack.GetReferences() == 1);
+				REQUIRE(pack.GetUses() == 1);
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: 9:1 performance - needs optimization
@@ -237,8 +244,8 @@ SCENARIO("Any", "[containers]") {
 					REQUIRE_FALSE(Allocator::CheckAuthority(meta, original_int));
 					REQUIRE(Allocator::GetReferences(meta, original_int) == 1);
 				#endif
-				REQUIRE(pack.GetReferences() == another_pack.GetReferences());
-				REQUIRE(pack.GetReferences() == 2);
+				REQUIRE(pack.GetUses() == another_pack.GetUses());
+				REQUIRE(pack.GetUses() == 2);
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: 2:1 performance - needs optimization
@@ -293,7 +300,7 @@ SCENARIO("Any", "[containers]") {
 					REQUIRE_FALSE(Allocator::CheckAuthority(meta, original_int));
 					REQUIRE(Allocator::GetReferences(meta, original_int) == 1);
 				#endif
-				REQUIRE(another_pack.GetReferences() == 1);
+				REQUIRE(another_pack.GetUses() == 1);
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: 6:1 performance - needs optimization
@@ -332,8 +339,8 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(another_pack.IsDense());
 				REQUIRE(another_pack.As<int>() == value);
 				REQUIRE(another_pack.HasAuthority());
-				REQUIRE(pack.GetReferences() == another_pack.GetReferences());
-				REQUIRE(pack.GetReferences() == 2);
+				REQUIRE(pack.GetUses() == another_pack.GetUses());
+				REQUIRE(pack.GetUses() == 2);
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: 2:1 performance - needs optimization
@@ -372,8 +379,8 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(another_pack.IsSparse());
 				REQUIRE(another_pack.As<int>() == value);
 				REQUIRE(another_pack.HasAuthority());
-				REQUIRE(pack.GetReferences() == another_pack.GetReferences());
-				REQUIRE(pack.GetReferences() == 2);
+				REQUIRE(pack.GetUses() == another_pack.GetUses());
+				REQUIRE(pack.GetUses() == 2);
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: 2:1 performance - needs optimization
@@ -433,7 +440,7 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE_THROWS(pack.As<float*>() == nullptr);
 				REQUIRE(*pack.As<Text*>() == original_pct);
 				REQUIRE(pack.As<Text*>()->HasAuthority());
-				REQUIRE(pack.As<Text*>()->GetReferences() == 2);
+				REQUIRE(pack.As<Text*>()->GetUses() == 2);
 			}
 		}
 
@@ -452,7 +459,7 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE_THROWS(pack.As<float*>() == nullptr);
 				REQUIRE(*pack.As<Text*>() == original_pct);
 				REQUIRE(pack.As<Text*>()->HasAuthority());
-				REQUIRE(pack.As<Text*>()->GetReferences() == 1);
+				REQUIRE(pack.As<Text*>()->GetUses() == 1);
 			}
 		}
 
@@ -475,11 +482,11 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE_THROWS(pack4.As<float*>() == nullptr);
 				REQUIRE(*pack4.As<Text*>() == original_pct);
 				REQUIRE(pack4.As<Text*>()->HasAuthority());
-				REQUIRE(pack.GetReferences() == 4);
-				REQUIRE(pack2.GetReferences() == 4);
-				REQUIRE(pack3.GetReferences() == 4);
-				REQUIRE(pack4.GetReferences() == 4);
-				REQUIRE(pack4.As<Text*>()->GetReferences() == 1);
+				REQUIRE(pack.GetUses() == 4);
+				REQUIRE(pack2.GetUses() == 4);
+				REQUIRE(pack3.GetUses() == 4);
+				REQUIRE(pack4.GetUses() == 4);
+				REQUIRE(pack4.As<Text*>()->GetUses() == 1);
 			}
 		}
 
@@ -504,11 +511,11 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE_THROWS(pack4.As<float*>() == nullptr);
 				REQUIRE(*pack4.As<Text*>() == original_pct);
 				REQUIRE(pack4.As<Text*>()->HasAuthority());
-				REQUIRE(pack.GetReferences() == 0);
-				REQUIRE(pack2.GetReferences() == 2);
-				REQUIRE(pack3.GetReferences() == 0);
-				REQUIRE(pack4.GetReferences() == 2);
-				REQUIRE(pack4.As<Text*>()->GetReferences() == 1);
+				REQUIRE(pack.GetUses() == 0);
+				REQUIRE(pack2.GetUses() == 2);
+				REQUIRE(pack3.GetUses() == 0);
+				REQUIRE(pack4.GetUses() == 2);
+				REQUIRE(pack4.As<Text*>()->GetUses() == 1);
 
 				REQUIRE(pack.GetType() == nullptr);
 				REQUIRE(pack.GetRaw() == nullptr);
@@ -537,7 +544,7 @@ SCENARIO("Any", "[containers]") {
 					REQUIRE(pack.GetRaw() == memory);
 				#endif
 				REQUIRE(pack.Is<int>());
-				REQUIRE(pack.GetReferences() == 1);
+				REQUIRE(pack.GetUses() == 1);
 			}
 		}
 
@@ -551,7 +558,7 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(pack.GetCount() == 3);
 				REQUIRE(pack.GetReserved() >= 5);
 				REQUIRE(pack.GetRaw() == memory);
-				REQUIRE(pack.GetReferences() == 1);
+				REQUIRE(pack.GetUses() == 1);
 			}
 		}
 
@@ -565,7 +572,7 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(pack.GetCount() == 0);
 				REQUIRE(pack.GetReserved() == 0);
 				REQUIRE(pack.GetRaw() == nullptr);
-				REQUIRE(pack.GetReferences() == 0);
+				REQUIRE(pack.GetUses() == 0);
 				REQUIRE(pack.GetState() == DataState::Default);
 			}
 		}
@@ -578,7 +585,7 @@ SCENARIO("Any", "[containers]") {
 				#if LANGULUS_FEATURE(MANAGED_MEMORY)
 					REQUIRE(pack.GetRaw() == memory);
 				#endif
-				REQUIRE(pack.GetReferences() == 1);
+				REQUIRE(pack.GetUses() == 1);
 			}
 		}
 
@@ -588,7 +595,7 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(pack.GetCount() == 2);
 				REQUIRE(pack.GetReserved() >= 5);
 				REQUIRE(pack.GetRaw() == memory);
-				REQUIRE(pack.GetReferences() == 1);
+				REQUIRE(pack.GetUses() == 1);
 			}
 		}
 
@@ -599,7 +606,7 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(pack.GetReserved() >= 5);
 				REQUIRE(pack.GetRaw() == memory);
 				REQUIRE(pack.Is<int>());
-				REQUIRE(pack.GetReferences() == 1);
+				REQUIRE(pack.GetUses() == 1);
 			}
 		}
 
@@ -610,7 +617,7 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(pack.GetReserved() == 0);
 				REQUIRE(pack.GetRaw() == nullptr);
 				REQUIRE(pack.GetType() == nullptr);
-				REQUIRE(pack.GetReferences() == 0);
+				REQUIRE(pack.GetUses() == 0);
 			}
 		}
 
@@ -633,7 +640,7 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(copy.GetReserved() == pack.GetReserved());
 				REQUIRE(copy.GetState() == pack.GetState());
 				REQUIRE(copy.GetType() == pack.GetType());
-				REQUIRE(copy.GetReferences() == 2);
+				REQUIRE(copy.GetUses() == 2);
 			}
 		}
 
@@ -646,8 +653,8 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(clone.GetReserved() >= clone.GetCount());
 				REQUIRE(clone.GetState() == pack.GetState());
 				REQUIRE(clone.GetType() == pack.GetType());
-				REQUIRE(clone.GetReferences() == 1);
-				REQUIRE(pack.GetReferences() == 1);
+				REQUIRE(clone.GetUses() == 1);
+				REQUIRE(pack.GetUses() == 1);
 			}
 		}
 
@@ -715,7 +722,7 @@ SCENARIO("Any", "[containers]") {
 		}
 
 		WHEN("Element 0 is removed") {
-			const auto refsBefore = pack.GetReferences();
+			const auto refsBefore = pack.GetUses();
 			pack.RemoveIndex(0);
 			THEN("The size changes but not capacity") {
 				REQUIRE(pack.GetCount() == 2);
@@ -724,15 +731,15 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(pack.GetReserved() >= 3);
 				REQUIRE(pack.Is<Any>());
 				REQUIRE(pack.GetRaw() == memory);
-				REQUIRE(pack.GetReferences() == refsBefore);
-				REQUIRE(subpack1.GetReferences() == 2);
-				REQUIRE(subpack2.GetReferences() == 3);
-				REQUIRE(subpack3.GetReferences() == 2);
+				REQUIRE(pack.GetUses() == refsBefore);
+				REQUIRE(subpack1.GetUses() == 2);
+				REQUIRE(subpack2.GetUses() == 3);
+				REQUIRE(subpack3.GetUses() == 2);
 			}
 		}
 
 		WHEN("Element 1 is removed") {
-			const auto refsBefore = pack.GetReferences();
+			const auto refsBefore = pack.GetUses();
 			pack.RemoveIndex(1);
 			THEN("The size changes but not capacity") {
 				REQUIRE(pack.GetCount() == 2);
@@ -741,15 +748,15 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(pack.GetReserved() >= 3);
 				REQUIRE(pack.Is<Any>());
 				REQUIRE(pack.GetRaw() == memory);
-				REQUIRE(pack.GetReferences() == refsBefore);
-				REQUIRE(subpack1.GetReferences() == 3);
-				REQUIRE(subpack2.GetReferences() == 2);
-				REQUIRE(subpack3.GetReferences() == 2);
+				REQUIRE(pack.GetUses() == refsBefore);
+				REQUIRE(subpack1.GetUses() == 3);
+				REQUIRE(subpack2.GetUses() == 2);
+				REQUIRE(subpack3.GetUses() == 2);
 			}
 		}
 
 		WHEN("Element 2 is removed") {
-			const auto refsBefore = pack.GetReferences();
+			const auto refsBefore = pack.GetUses();
 			pack.RemoveIndex(2);
 			THEN("The size changes but not capacity") {
 				REQUIRE(pack.GetCount() == 2);
@@ -758,10 +765,10 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(pack.GetReserved() >= 3);
 				REQUIRE(pack.Is<Any>());
 				REQUIRE(pack.GetRaw() == memory);
-				REQUIRE(pack.GetReferences() == refsBefore);
-				REQUIRE(subpack1.GetReferences() == 3);
-				REQUIRE(subpack2.GetReferences() == 3);
-				REQUIRE(subpack3.GetReferences() == 1);
+				REQUIRE(pack.GetUses() == refsBefore);
+				REQUIRE(subpack1.GetUses() == 3);
+				REQUIRE(subpack2.GetUses() == 3);
+				REQUIRE(subpack3.GetUses() == 1);
 			}
 		}
 
@@ -775,10 +782,10 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(pack.Is<Any>());
 				REQUIRE(pack.IsTypeConstrained());
 				REQUIRE(pack.GetRaw() == nullptr);
-				REQUIRE(pack.GetReferences() == 0);
-				REQUIRE(subpack1.GetReferences() == 2);
-				REQUIRE(subpack2.GetReferences() == 2);
-				REQUIRE(subpack3.GetReferences() == 1);
+				REQUIRE(pack.GetUses() == 0);
+				REQUIRE(subpack1.GetUses() == 2);
+				REQUIRE(subpack2.GetUses() == 2);
+				REQUIRE(subpack3.GetUses() == 1);
 			}
 		}
 
@@ -825,19 +832,19 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(copy.GetReserved() == pack.GetReserved());
 				REQUIRE(copy.GetState() == pack.GetState());
 				REQUIRE(copy.GetType() == pack.GetType());
-				REQUIRE(copy.GetReferences() == 2);
+				REQUIRE(copy.GetUses() == 2);
 				REQUIRE(copy.As<Any>(0).GetRaw() == subpack1.GetRaw());
 				REQUIRE(copy.As<Any>(0).IsOr());
 				REQUIRE(copy.As<Any>(0).GetCount() == subpack1.GetCount());
-				REQUIRE(copy.As<Any>(0).GetReferences() == 3);
+				REQUIRE(copy.As<Any>(0).GetUses() == 3);
 				REQUIRE(copy.As<Any>(1).GetRaw() == subpack2.GetRaw());
 				REQUIRE(copy.As<Any>(1).GetState() == DataState::Default);
 				REQUIRE(copy.As<Any>(1).GetCount() == subpack2.GetCount());
-				REQUIRE(copy.As<Any>(1).GetReferences() == 3);
+				REQUIRE(copy.As<Any>(1).GetUses() == 3);
 				REQUIRE(copy.As<Any>(2).GetRaw() == subpack3.GetRaw());
 				REQUIRE(copy.As<Any>(2).GetState() == DataState::Default);
 				REQUIRE(copy.As<Any>(2).GetCount() == subpack3.GetCount());
-				REQUIRE(copy.As<Any>(2).GetReferences() == 2);
+				REQUIRE(copy.As<Any>(2).GetUses() == 2);
 				REQUIRE(copy.As<Any>(2).As<Any>(0).GetRaw() == subpack1.GetRaw());
 				REQUIRE(copy.As<Any>(2).As<Any>(0).GetState() == DataState::Default);
 				REQUIRE(copy.As<Any>(2).As<Any>(0).GetCount() == subpack1.GetCount());
@@ -857,33 +864,33 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(clone.GetReserved() >= clone.GetCount());
 				REQUIRE(clone.GetState() == pack.GetUnconstrainedState());
 				REQUIRE(clone.GetType() == pack.GetType());
-				REQUIRE(clone.GetReferences() == 1);
-				REQUIRE(pack.GetReferences() == 1);
+				REQUIRE(clone.GetUses() == 1);
+				REQUIRE(pack.GetUses() == 1);
 				REQUIRE(clone.As<Any>(0).GetRaw() != subpack1.GetRaw());
 				REQUIRE(clone.As<Any>(0).IsOr());
 				REQUIRE(clone.As<Any>(0).GetCount() == subpack1.GetCount());
-				REQUIRE(clone.As<Any>(0).GetReferences() == 1);
-				REQUIRE(pack.As<Any>(0).GetReferences() == 3);
+				REQUIRE(clone.As<Any>(0).GetUses() == 1);
+				REQUIRE(pack.As<Any>(0).GetUses() == 3);
 				REQUIRE(clone.As<Any>(1).GetRaw() != subpack2.GetRaw());
 				REQUIRE(clone.As<Any>(1).GetState() == DataState::Default);
 				REQUIRE(clone.As<Any>(1).GetCount() == subpack2.GetCount());
-				REQUIRE(clone.As<Any>(1).GetReferences() == 1);
-				REQUIRE(pack.As<Any>(1).GetReferences() == 3);
+				REQUIRE(clone.As<Any>(1).GetUses() == 1);
+				REQUIRE(pack.As<Any>(1).GetUses() == 3);
 				REQUIRE(clone.As<Any>(2).GetRaw() != subpack3.GetRaw());
 				REQUIRE(clone.As<Any>(2).GetState() == DataState::Default);
 				REQUIRE(clone.As<Any>(2).GetCount() == subpack3.GetCount());
-				REQUIRE(clone.As<Any>(2).GetReferences() == 1);
-				REQUIRE(pack.As<Any>(2).GetReferences() == 2);
+				REQUIRE(clone.As<Any>(2).GetUses() == 1);
+				REQUIRE(pack.As<Any>(2).GetUses() == 2);
 				REQUIRE(clone.As<Any>(2).As<Any>(0).GetRaw() != subpack1.GetRaw());
 				REQUIRE(clone.As<Any>(2).As<Any>(0).GetState() == DataState::Default);
 				REQUIRE(clone.As<Any>(2).As<Any>(0).GetCount() == subpack1.GetCount());
-				REQUIRE(clone.As<Any>(2).As<Any>(0).GetReferences() == 1);
-				REQUIRE(pack.As<Any>(2).As<Any>(0).GetReferences() == 3);
+				REQUIRE(clone.As<Any>(2).As<Any>(0).GetUses() == 1);
+				REQUIRE(pack.As<Any>(2).As<Any>(0).GetUses() == 3);
 				REQUIRE(clone.As<Any>(2).As<Any>(1).GetRaw() != subpack2.GetRaw());
 				REQUIRE(clone.As<Any>(2).As<Any>(1).IsOr());
 				REQUIRE(clone.As<Any>(2).As<Any>(1).GetCount() == subpack2.GetCount());
-				REQUIRE(clone.As<Any>(2).As<Any>(1).GetReferences() == 1);
-				REQUIRE(pack.As<Any>(2).As<Any>(1).GetReferences() == 3);
+				REQUIRE(clone.As<Any>(2).As<Any>(1).GetUses() == 1);
+				REQUIRE(pack.As<Any>(2).As<Any>(1).GetUses() == 3);
 			}
 		}
 
@@ -976,10 +983,10 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(pack.As<Any>(0) == subpack1);
 				REQUIRE(pack.As<Any>(1) == subpack2);
 				REQUIRE(pack.As<Any>(2) == subpack1);
-				REQUIRE(pack.GetReferences() == 1);
-				REQUIRE(subpack1.GetReferences() == 3);
-				REQUIRE(subpack2.GetReferences() == 2);
-				REQUIRE(subpack3.GetReferences() == 1);
+				REQUIRE(pack.GetUses() == 1);
+				REQUIRE(subpack1.GetUses() == 3);
+				REQUIRE(subpack2.GetUses() == 2);
+				REQUIRE(subpack3.GetUses() == 1);
 			}
 		}
 	}
@@ -1009,10 +1016,10 @@ SCENARIO("Any", "[containers]") {
 		WHEN("The Block bases from the subpacks are coalesced in a single container") {
 			THEN("Contents should be referenced despite Block having no referencing logic in its reflected copy-operator") {
 				// but why??? rethink this functionality, it doesn't make any sense. sounds like a corner case that got generally fixed for some reason
-				REQUIRE(pack.GetReferences() == 1);
-				REQUIRE(subpack1.GetReferences() == 3); //4 if that functionality is added
-				REQUIRE(subpack2.GetReferences() == 2); //3 if that functionality is added
-				REQUIRE(subpack3.GetReferences() == 2); //3 if that functionality is added
+				REQUIRE(pack.GetUses() == 1);
+				REQUIRE(subpack1.GetUses() == 3); //4 if that functionality is added
+				REQUIRE(subpack2.GetUses() == 2); //3 if that functionality is added
+				REQUIRE(subpack3.GetUses() == 2); //3 if that functionality is added
 			}
 		}
 
@@ -1020,10 +1027,10 @@ SCENARIO("Any", "[containers]") {
 			baseRange.Reset();
 
 			THEN("Contents should be dereferenced despite Block having no referencing logic in its reflected destructor") {
-				REQUIRE(pack.GetReferences() == 1);
-				REQUIRE(subpack1.GetReferences() == 3);
-				REQUIRE(subpack2.GetReferences() == 2);
-				REQUIRE(subpack3.GetReferences() == 2);
+				REQUIRE(pack.GetUses() == 1);
+				REQUIRE(subpack1.GetUses() == 3);
+				REQUIRE(subpack2.GetUses() == 2);
+				REQUIRE(subpack3.GetUses() == 2);
 			}
 		}
 
@@ -1031,10 +1038,10 @@ SCENARIO("Any", "[containers]") {
 			pack.Reset();
 
 			THEN("Contents should be dereferenced") {
-				REQUIRE(pack.GetReferences() == 0);
-				REQUIRE(subpack1.GetReferences() == 2); // 3 if that functionality is added
-				REQUIRE(subpack2.GetReferences() == 1); // 2 if that functionality is added
-				REQUIRE(subpack3.GetReferences() == 1); // 2 if that functionality is added
+				REQUIRE(pack.GetUses() == 0);
+				REQUIRE(subpack1.GetUses() == 2); // 3 if that functionality is added
+				REQUIRE(subpack2.GetUses() == 1); // 2 if that functionality is added
+				REQUIRE(subpack3.GetUses() == 1); // 2 if that functionality is added
 			}
 		}
 	}

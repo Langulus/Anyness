@@ -1,4 +1,11 @@
-#include "TestMain.hpp"
+///																									
+/// Langulus::Anyness																			
+/// Copyright(C) 2012 - 2022 Dimo Markov <langulusteam@gmail.com>					
+///																									
+/// Distributed under GNU General Public License v3+									
+/// See LICENSE file, or https://www.gnu.org/licenses									
+///																									
+#include "Main.hpp"
 #include <catch2/catch.hpp>
 
 SCENARIO("Byte manipulation", "[bytes]") {
@@ -116,8 +123,8 @@ SCENARIO("Byte manipulation", "[bytes]") {
 				REQUIRE(data.GetType() == copy.GetType());
 				REQUIRE(data.HasAuthority());
 				REQUIRE(copy.HasAuthority());
-				REQUIRE(copy.GetReferences() == 2);
-				REQUIRE(data.GetReferences() == 2);
+				REQUIRE(copy.GetUses() == 2);
+				REQUIRE(data.GetUses() == 2);
 			}
 		}
 
@@ -130,8 +137,8 @@ SCENARIO("Byte manipulation", "[bytes]") {
 				REQUIRE(data.GetType() == copy.GetType());
 				REQUIRE(data.HasAuthority());
 				REQUIRE(copy.HasAuthority());
-				REQUIRE(copy.GetReferences() == 1);
-				REQUIRE(data.GetReferences() == 1);
+				REQUIRE(copy.GetUses() == 1);
+				REQUIRE(data.GetUses() == 1);
 			}
 		}
 

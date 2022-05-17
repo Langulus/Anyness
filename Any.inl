@@ -1,3 +1,10 @@
+///																									
+/// Langulus::Anyness																			
+/// Copyright(C) 2012 - 2022 Dimo Markov <langulusteam@gmail.com>					
+///																									
+/// Distributed under GNU General Public License v3+									
+/// See LICENSE file, or https://www.gnu.org/licenses									
+///																									
 #pragma once
 #include "Any.hpp"
 
@@ -182,8 +189,8 @@ namespace Langulus::Anyness
 		return *this;
 	}
 
-	/// Assign by shallow-copying something 												
-	///	@param other - the value to copy													
+	/// Assign by shallow-copying anything 												
+	///	@param other - the item to copy													
 	///	@return a reference to this container											
 	template<CT::Data T>
 	Any& Any::operator = (T& other) {
@@ -199,7 +206,7 @@ namespace Langulus::Anyness
 					<< "Bad shallow-copy-assignment for type-constrained Any: from "
 					<< GetToken() << " to " << meta->mToken);
 			}
-			else if (GetReferences() == 1 && meta->Is(mType)) {
+			else if (GetUses() == 1 && meta->Is(mType)) {
 				// Just destroy and reuse memory										
 				// Even better - types match, so we know this container		
 				// is filled with T too, therefore we can use statically		
@@ -222,8 +229,8 @@ namespace Langulus::Anyness
 		return *this;
 	}
 
-	/// Assign by moving something															
-	///	@param other - the value to move													
+	/// Assign by moving anything																
+	///	@param other - the item to move													
 	///	@return a reference to this container											
 	template<CT::Data T>
 	Any& Any::operator = (T&& other) {
@@ -239,7 +246,7 @@ namespace Langulus::Anyness
 					<< "Bad shallow-copy-assignment for type-constrained Any: from "
 					<< GetToken() << " to " << meta->mToken);
 			}
-			else if (GetReferences() == 1 && meta->Is(mType)) {
+			else if (GetUses() == 1 && meta->Is(mType)) {
 				// Types match, so we know this container is filled with T	
 				// too, therefore we can use statically optimized routines	
 				// for destruction														

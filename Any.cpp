@@ -1,9 +1,16 @@
+///																									
+/// Langulus::Anyness																			
+/// Copyright(C) 2012 - 2022 Dimo Markov <langulusteam@gmail.com>					
+///																									
+/// Distributed under GNU General Public License v3+									
+/// See LICENSE file, or https://www.gnu.org/licenses									
+///																									
 #include "Any.hpp"
 
 namespace Langulus::Anyness
 {
 
-	/// Clone anyness																				
+	/// Clone container																			
 	///	@return the cloned container														
 	Any Any::Clone() const {
 		Any clone;
@@ -16,7 +23,7 @@ namespace Langulus::Anyness
 		if (IsEmpty())
 			return;
 
-		if (GetReferences() == 1) {
+		if (GetUses() == 1) {
 			// Only one use - just destroy elements and reset count,			
 			// reusing the allocation for later										
 			CallUnknownDestructors();

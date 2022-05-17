@@ -1,3 +1,10 @@
+///																									
+/// Langulus::Anyness																			
+/// Copyright(C) 2012 - 2022 Dimo Markov <langulusteam@gmail.com>					
+///																									
+/// Distributed under GNU General Public License v3+									
+/// See LICENSE file, or https://www.gnu.org/licenses									
+///																									
 #pragma once
 #include "Map.hpp"
 #include "Iterator.hpp"
@@ -13,8 +20,8 @@
 #include <utility>
 #include <string_view>
 
-#define TABLE_TEMPLATE() template<AllocationMethod METHOD, Count MaxLoadFactor100, class K, class V>
-#define TABLE() Table<METHOD, MaxLoadFactor100, K, V>
+#define TABLE_TEMPLATE() template<bool DENSE, Count MaxLoadFactor100, CT::Data K, class V>
+#define TABLE() Table<DENSE, MaxLoadFactor100, K, V>
 
 namespace Langulus::Anyness
 {
@@ -66,18 +73,17 @@ namespace Langulus::Anyness
 		public:
 			static_assert(CT::Comparable<K>, "Can't compare keys for map");
 
-			static constexpr AllocationMethod Method = METHOD;
 			static constexpr bool IsMap = not CT::Void<V>;
 			static constexpr bool IsSet = CT::Void<V>;
-			static constexpr bool IsOnHeap = Method == AllocationMethod::Heap;
-			static constexpr bool IsOnStack = Method == AllocationMethod::Stack;
+			static constexpr bool IsOnHeap = !DENSE;
+			static constexpr bool IsOnStack = DENSE;
 
 			//using Base = TableAllocator<METHOD, MaxLoadFactor100, K, V>;
 			using Type = Conditional<IsMap, TPair<K, V>, K>;
 			using Key = K;
 			using Value = V;
 			using Self = TABLE();
-			using Node = Conditional<Method == AllocationMethod::Stack, Type, Ptr<Type>>;
+			using Node = Conditional<DENSE, Type, Ptr<Type>>;
 
 		private:
 			static_assert(MaxLoadFactor100 > 10 && MaxLoadFactor100 < 100,
@@ -133,7 +139,7 @@ namespace Langulus::Anyness
 
 			template<typename Iter>
 			Table(Iter, Iter);
-			Table(std::initializer_list<Pair>);
+			Table(::std::initializer_list<Pair>);
 
 			Table(Table&&) noexcept;
 			Table(const Table&);
@@ -191,33 +197,22 @@ namespace Langulus::Anyness
 			NOD() constexpr Size GetValueStride() const noexcept requires IsMap;
 			NOD() constexpr Size GetStride() const noexcept requires IsSet;
 
+			NOD() constexpr Node* GetRaw() const noexcept;
 			NOD() constexpr Size GetSize() const noexcept;
 			NOD() constexpr Count GetCount() const noexcept;
 			NOD() constexpr bool IsEmpty() const noexcept;
 			NOD() constexpr bool IsAllocated() const noexcept;
 
+			NOD() bool HasAuthority() const noexcept;
+			NOD() Count GetUses() const noexcept;
+
 			template<bool REHASH = false>
 			void Allocate(size_t);
 			void Rehash(size_t);
+			NOD() Table Clone() const;
 
 			Table& operator << (Type&&);
 			Table& operator << (const Type&);
-
-		private:
-			template<class HashKey>
-			void keyToIdx(HashKey&&, size_t*, InfoType*) const;
-			void next(InfoType*, size_t*) const noexcept;
-			void nextWhileLess(InfoType*, size_t*) const noexcept;
-			void shiftUp(size_t, size_t const) noexcept(CT::MovableNoexcept<Node>);
-			void shiftDown(size_t) noexcept(CT::MovableNoexcept<Node>);
-			void CloneInner(const Table&);
-
-		public:
-			NOD() Table Clone() const;
-
-		public:
-			using iterator = Iterator<false, Table>;
-			using const_iterator = Iterator<true, Table>;
 
 			bool operator == (const Table&) const;
 
@@ -225,6 +220,8 @@ namespace Langulus::Anyness
 			///																						
 			///	INSERTION																		
 			///																						
+			using iterator = Iterator<false, Table>;
+			using const_iterator = Iterator<true, Table>;
 			using Insertion = ::std::pair<iterator, bool>;
 
 			template<class Iter>
@@ -260,28 +257,7 @@ namespace Langulus::Anyness
 			Insertion Insert(Type&&);
 			iterator Insert(const_iterator, Type&&);
 
-		private:
-			void MoveInsertNode(Node&&);
-			template <class... Args>
-			Insertion try_emplace_impl(K&&, Args&&...);
-			template <class Mapped>
-			Insertion insertOrAssignImpl(K&&, Mapped&&);
 
-			enum class InsertionState {
-				overflow_error,
-				key_found,
-				new_node,
-				overwrite_node
-			};
-
-			struct EmptySpot {
-				Offset mOffset;
-				InsertionState mState;
-			};
-
-			EmptySpot InsertKeyAndPrepareEmptySpot(K&&);
-
-		public:
 			///																						
 			///	REMOVAL																			
 			///																						
@@ -295,14 +271,7 @@ namespace Langulus::Anyness
 			Count Remove(const Type&) requires IsSet;
 			void compact();
 
-		private:
-			void destroy();
-			void DestroyNodes() noexcept;
 
-			NOD() const Node& GetNode(const Offset&) const noexcept;
-			NOD() Node& GetNode(const Offset&) noexcept;
-
-		public:
 			///																						
 			///	SEARCH																			
 			///																						
@@ -345,161 +314,60 @@ namespace Langulus::Anyness
 			NOD() size_t mask() const noexcept;
 
 		private:
+			template<class HashKey>
+			void keyToIdx(HashKey&&, size_t*, InfoType*) const;
+			void next(InfoType*, size_t*) const noexcept;
+			void nextWhileLess(InfoType*, size_t*) const noexcept;
+			void shiftUp(size_t, size_t const) noexcept(CT::MovableNoexcept<Node>);
+			void shiftDown(size_t) noexcept(CT::MovableNoexcept<Node>);
+			void CloneInner(const Table&);
+			void destroy();
+			void DestroyNodes() noexcept;
+			NOD() const Node& GetNode(const Offset&) const noexcept;
+			NOD() Node& GetNode(const Offset&) noexcept;
 			NOD() static Count GetMaxElementsAllowed(Count) noexcept;
 			NOD() static Count GetBytesInfo(Count) noexcept;
 			NOD() static Count GetElementsWithBuffer(Count) noexcept;
 			NOD() static Count GetBytesTotal(Count);
+			void rehashPowerOfTwo(size_t numBuckets);
+			void initData(size_t maxElements);
+			bool try_increase_info();
+			bool increase_size();
+			void nextHashMultiplier();
+			void init() noexcept;
+			void MoveInsertNode(Node&&);
+			template <class... Args>
+			Insertion try_emplace_impl(K&&, Args&&...);
+			template <class Mapped>
+			Insertion insertOrAssignImpl(K&&, Mapped&&);
 
-			/// Reserves space for at least the specified number of elements		
-			/// Only works if numBuckets is power-of-two									
-			///	@param numBuckets - the number of buckets								
-			void rehashPowerOfTwo(size_t numBuckets) {
-				// These will be reset via initData, so back them up			
-				auto const oldEntry = mEntry;
-				auto const oldNodes = mNodes;
-				auto const oldInfo = mInfo;
-				auto const oldMaxElementsWithBuffer = GetElementsWithBuffer(mMask + 1);
+			enum class InsertionState {
+				overflow_error,
+				key_found,
+				new_node,
+				overwrite_node
+			};
 
-				// Resize and move stuff												
-				initData(numBuckets);
+			struct EmptySpot {
+				Offset mOffset;
+				InsertionState mState;
+			};
 
-				if (oldMaxElementsWithBuffer > 1) {
-					for (size_t i = 0; i < oldMaxElementsWithBuffer; ++i) {
-						if (oldInfo[i] == 0)
-							continue;
-
-						// Might throw an exception, which is really bad		
-						// since we are in the middle of moving stuff			
-						auto& node = oldNodes[i];
-						MoveInsertNode(Move(node));
-						node.~Node();
-					}
-
-					oldEntry->Free<true>();
-				}
-			}
-
-			/// Initialize container and reserve data										
-			///	@param maxElements - number of elements to reserve					
-			void initData(size_t maxElements) {
-				mNumElements = 0;
-				mMask = maxElements - 1;
-				mMaxNumElementsAllowed = GetMaxElementsAllowed(maxElements);
-
-				// Malloc & zero mInfo - faster than calloc everything		
-				auto const numElementsWithBuffer = GetElementsWithBuffer(maxElements);
-				auto const numBytesTotal = GetBytesTotal(numElementsWithBuffer);
-				mEntry = Allocator::Allocate(numBytesTotal);
-				mNodes = mEntry->As<Node>();
-				mInfo = reinterpret_cast<uint8_t*>(mNodes + numElementsWithBuffer);
-				::std::memset(mInfo, 0, numBytesTotal - numElementsWithBuffer * sizeof(Node));
-
-				// Set sentinel															
-				mInfo[numElementsWithBuffer] = 1;
-				mInfoInc = InitialInfoInc;
-				mInfoHashShift = InitialInfoHashShift;
-			}
-
-			bool try_increase_info() {
-				if (mInfoInc <= 2) {
-					// Need to be > 2 so that shift works (otherwise			
-					// undefined behavior!)												
-					return false;
-				}
-
-				// We got space left, try to make info smaller					
-				mInfoInc = static_cast<uint8_t>(mInfoInc >> 1U);
-
-				// Remove one bit of the hash, leaving more space for the	
-				// distance info. This is extremely fast because we can		
-				// operate on 8 bytes at once											
-				++mInfoHashShift;
-
-				auto const numElementsWithBuffer = GetElementsWithBuffer(mMask + 1);
-				for (size_t i = 0; i < numElementsWithBuffer; i += 8) {
-					auto val = unaligned_load<uint64_t>(mInfo + i);
-					val = (val >> 1U) & UINT64_C(0x7f7f7f7f7f7f7f7f);
-					::std::memcpy(mInfo + i, &val, sizeof(val));
-				}
-
-				// Update sentinel, which might have been cleared out!		
-				mInfo[numElementsWithBuffer] = 1;
-				mMaxNumElementsAllowed = GetMaxElementsAllowed(mMask + 1);
-				return true;
-			}
-
-			/// Increase the contained size													
-			///	@return true if resize was possible, false otherwise				
-			bool increase_size() {
-				// Nothing allocated yet? just allocate InitialNumElements	
-				if (0 == mMask) {
-					initData(InitialNumElements);
-					return true;
-				}
-
-				auto const maxNumElementsAllowed = GetMaxElementsAllowed(mMask + 1);
-				if (mNumElements < maxNumElementsAllowed && try_increase_info())
-					return true;
-
-				if (mNumElements * 2 < GetMaxElementsAllowed(mMask + 1)) {
-					// We have to resize, even though there would still be	
-					// plenty of space left! Try to rehash instead. Delete	
-					// freed memory so we don't steadyily increase mem in		
-					// case we have to rehash a few times							
-					nextHashMultiplier();
-					rehashPowerOfTwo(mMask + 1);
-				}
-				else {
-					// We've reached the capacity of the map, so the hash		
-					// seems to work nice. Keep using it							
-					rehashPowerOfTwo((mMask + 1) * 2);
-				}
-
-				return true;
-			}
-
-			void nextHashMultiplier() {
-				// Adding an *even* number, so that the multiplier will		
-				// always stay odd. This is necessary so that the hash		
-				// stays a mixing function (and thus doesn't have any			
-				// information loss)														
-				mHashMultiplier += UINT64_C(0xc4ceb9fe1a85ec54);
-			}
-
-			void init() noexcept {
-				mEntry = nullptr;
-				mNodes = reinterpret_cast<Node*>(&mMask);
-				mInfo = reinterpret_cast<uint8_t*>(&mMask);
-				mNumElements = 0;
-				mMask = 0;
-				mMaxNumElementsAllowed = 0;
-				mInfoInc = InitialInfoInc;
-				mInfoHashShift = InitialInfoHashShift;
-			}
+			EmptySpot InsertKeyAndPrepareEmptySpot(K&&);
 		};
 
 	} // namespace Langulus::Anyness::Inner
 
 
 	/// Map																							
-	template <class K, class V, Count MaxLoadFactor100 = 80>
-	using unordered_flat_map = Inner::Table<AllocationMethod::Stack, MaxLoadFactor100, K, V>;
+	template <CT::Data K, CT::Data V, Count MaxLoadFactor100 = 80>
+	using THashDenseMap = Inner::Table<true, MaxLoadFactor100, K, V>;
 
-	template <class K, class V, Count MaxLoadFactor100 = 80>
-	using unordered_node_map = Inner::Table<AllocationMethod::Heap, MaxLoadFactor100, K, V>;
+	template <CT::Data K, CT::Data V, Count MaxLoadFactor100 = 80>
+	using THashSparseMap = Inner::Table<false, MaxLoadFactor100, K, V>;
 
-	template <class K, class V, Count MaxLoadFactor100 = 80>
-	using unordered_map = Inner::Table<CT::OnStackCriteria<TPair<K, V>> ? AllocationMethod::Stack : AllocationMethod::Heap, MaxLoadFactor100, K, V>;
-
-	/// Set																							
-	template <class K, Count MaxLoadFactor100 = 80>
-	using unordered_flat_set = Inner::Table<AllocationMethod::Stack, MaxLoadFactor100, K, void>;
-
-	template <class K, Count MaxLoadFactor100 = 80>
-	using unordered_node_set = Inner::Table<AllocationMethod::Heap, MaxLoadFactor100, K, void>;
-
-	template <class K, Count MaxLoadFactor100 = 80>
-	using unordered_set = Inner::Table<CT::OnStackCriteria<K> ? AllocationMethod::Stack : AllocationMethod::Heap, MaxLoadFactor100, K, void>;
+	template <CT::Data K, CT::Data V, Count MaxLoadFactor100 = 80>
+	using THashMap = Inner::Table<CT::OnStackCriteria<TPair<K, V>>, MaxLoadFactor100, K, V>;
 
 } // namespace Langulus::Anyness
 

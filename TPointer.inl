@@ -1,3 +1,10 @@
+///																									
+/// Langulus::Anyness																			
+/// Copyright(C) 2012 - 2022 Dimo Markov <langulusteam@gmail.com>					
+///																									
+/// Distributed under GNU General Public License v3+									
+/// See LICENSE file, or https://www.gnu.org/licenses									
+///																									
 #pragma once
 #include "TPointer.hpp"
 
@@ -421,7 +428,7 @@ namespace Langulus::Anyness
 	///	@attention returns zero if pointer is not managed							
 	///	@return number of uses for the pointer's memory								
 	TEMPLATE_SHARED()
-	constexpr Count TPointer<T, DR>::GetReferences() const noexcept {
+	constexpr Count TPointer<T, DR>::GetUses() const noexcept {
 		return (Base::mValue && mEntry) ? mEntry->GetUses() : 0;
 	}
 

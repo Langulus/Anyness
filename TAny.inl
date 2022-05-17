@@ -1,3 +1,10 @@
+///																									
+/// Langulus::Anyness																			
+/// Copyright(C) 2012 - 2022 Dimo Markov <langulusteam@gmail.com>					
+///																									
+/// Distributed under GNU General Public License v3+									
+/// See LICENSE file, or https://www.gnu.org/licenses									
+///																									
 #pragma once
 #include "TAny.hpp"
 #include <cctype>
@@ -232,7 +239,7 @@ namespace Langulus::Anyness
 			operator = (TAny<T> {other});			
 		}
 		else if constexpr (CT::Same<ALT_T, T>) {
-			if (GetReferences() == 1) {
+			if (GetUses() == 1) {
 				// Just destroy and reuse memory										
 				CallKnownDestructors<T>();
 				mCount = 0;
@@ -311,7 +318,7 @@ namespace Langulus::Anyness
 			operator = (TAny<T> {Forward<Block>(other)});
 		}
 		else if constexpr (CT::Same<ALT_T, T>) {
-			if (GetReferences() == 1) {
+			if (GetUses() == 1) {
 				// Just destroy and reuse memory										
 				CallKnownDestructors<T>();
 				mCount = 0;
@@ -419,7 +426,7 @@ namespace Langulus::Anyness
 		if (!mCount)
 			return;
 
-		if (GetReferences() == 1) {
+		if (GetUses() == 1) {
 			// Only one use - just destroy elements and reset count,			
 			// reusing the allocation for later										
 			CallKnownDestructors<T>();
@@ -712,7 +719,7 @@ namespace Langulus::Anyness
 
 		// Move memory if required														
 		if (starter < mCount) {
-			if (GetReferences() > 1) {
+			if (GetUses() > 1) {
 				throw Except::Reference(Logger::Error()
 					<< "Moving elements that are used from multiple places");
 			}
@@ -742,7 +749,7 @@ namespace Langulus::Anyness
 
 		// Move memory if required														
 		if (starter < mCount) {
-			if (GetReferences() > 1) {
+			if (GetUses() > 1) {
 				throw Except::Reference(Logger::Error()
 					<< "Moving elements that are used from multiple places");
 			}
@@ -792,7 +799,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this container for chaining							
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator >> (const T& other) {
-		if (GetReferences() > 1) {
+		if (GetUses() > 1) {
 			throw Except::Reference(Logger::Error()
 				<< "Moving elements that are used from multiple places");
 		}
@@ -815,7 +822,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this container for chaining							
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator >> (T&& other) {
-		if (GetReferences() > 1) {
+		if (GetUses() > 1) {
 			throw Except::Reference(Logger::Error()
 				<< "Moving elements that are used from multiple places");
 		}
@@ -1043,7 +1050,7 @@ namespace Langulus::Anyness
 		SAFETY(if (count > mCount || starter + count > mCount)
 			throw Except::Access(Logger::Error()
 				<< "Index " << starter << " out of range " << mCount));
-		SAFETY(if (GetReferences() > 1)
+		SAFETY(if (GetUses() > 1)
 			throw Except::Reference(Logger::Error()
 				<< "Removing elements from a memory block, that is used from multiple places"));
 

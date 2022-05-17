@@ -1,3 +1,10 @@
+///																									
+/// Langulus::Anyness																			
+/// Copyright(C) 2012 - 2022 Dimo Markov <langulusteam@gmail.com>					
+///																									
+/// Distributed under GNU General Public License v3+									
+/// See LICENSE file, or https://www.gnu.org/licenses									
+///																									
 #pragma once
 #include "Text.hpp"
 
@@ -84,7 +91,7 @@ namespace Langulus::Anyness
 
 		NOD() Block GetBlock() const;
 		NOD() constexpr bool HasAuthority() const noexcept;
-		NOD() constexpr Count GetReferences() const noexcept;
+		NOD() constexpr Count GetUses() const noexcept;
 		NOD() DMeta GetType() const;
 		using Base::Get;
 
