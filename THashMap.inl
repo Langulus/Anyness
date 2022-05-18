@@ -309,7 +309,6 @@ namespace Langulus::Anyness::Inner
 			mMaxNumElementsAllowed = rhs.mMaxNumElementsAllowed;
 			mInfoInc = rhs.mInfoInc;
 			mInfoHashShift = rhs.mInfoHashShift;
-			Base::operator = (Forward<Base>(rhs));
 
 			// Reset rhs																	
 			rhs.init();
@@ -410,7 +409,7 @@ namespace Langulus::Anyness::Inner
 		const auto numElementsWithBuffer = GetElementsWithBuffer(mMask + 1);
 		const auto numBytesTotal = GetBytesTotal(numElementsWithBuffer);
 		result.mEntry = Allocator::Allocate(numBytesTotal);
-		result.mNodes = result.mEntry->As<Node>();
+		result.mNodes = result.mEntry->template As<Node>();
 		result.mInfo = reinterpret_cast<uint8_t*>(result.mNodes + numElementsWithBuffer);
 		result.CloneInner(*this);
 		return result;
