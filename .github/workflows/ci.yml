@@ -1,0 +1,153 @@
+name: Langulus::Anyness CI
+on: [push, pull_request] # Trigger on pushes to all branches and for all pull-requests
+
+env:
+  CMAKE_VERSION: 3.22
+  NINJA_VERSION: 1.10.2
+
+jobs:
+  build:
+    name: ${{ matrix.config.name }}
+    runs-on: ${{ matrix.config.os }}
+    strategy:
+      fail-fast: false # do not abort on a failed job
+      matrix:
+        config:
+        - {
+            name: "Linux GCC 9 Debug (C++20)", artifact: "Linux.tar.xz",
+            os: ubuntu-latest,
+            build_type: Debug,
+            cc: "gcc-9", cxx: "g++-9",
+            cmake_args: ""
+          }
+        - {
+            name: "Linux GCC 9 Optimised (C++20)", artifact: "Linux.tar.xz",
+            os: ubuntu-latest,
+            build_type: RelWithDebInfo,
+            cc: "gcc-9", cxx: "g++-9",
+            cmake_args: ""
+          }
+        - {
+            name: "Linux GCC 10 Debug (C++20)", artifact: "Linux.tar.xz",
+            os: ubuntu-latest,
+            build_type: Debug,
+            cc: "gcc-10", cxx: "g++-10",
+            cmake_args: ""
+          }
+        - {
+            name: "Linux GCC 10 Optimised (C++20)", artifact: "Linux.tar.xz",
+            os: ubuntu-latest,
+            build_type: RelWithDebInfo,
+            cc: "gcc-10", cxx: "g++-10",
+            cmake_args: ""
+          }
+        - {
+            name: "Linux GCC 10 Debug (C++20) w/coroutines", artifact: "Linux.tar.xz",
+            os: ubuntu-latest,
+            build_type: Debug,
+            cc: "gcc-10", cxx: "g++-10",
+            cmake_args: "-D CMAKE_CXX_FLAGS:STRING=-fcoroutines"
+          }
+        - {
+            name: "Linux GCC 10 Optimised (C++20) w/coroutines", artifact: "Linux.tar.xz",
+            os: ubuntu-latest,
+            build_type: RelWithDebInfo,
+            cc: "gcc-10", cxx: "g++-10",
+            cmake_args: "-D CMAKE_CXX_FLAGS:STRING=-fcoroutines"
+          }
+        - {
+            name: "Linux Clang 10 Debug (C++20)", artifact: "Linux.tar.xz",
+            os: ubuntu-latest,
+            build_type: Debug,
+            cc: "clang-10", cxx: "clang++-10",
+            cmake_args: "-D \"CMAKE_CXX_FLAGS:STRING=-fsanitize=address -fno-omit-frame-pointer\""
+          }
+        - {
+            name: "Linux Clang 10 Optimised (C++20)", artifact: "Linux.tar.xz",
+            os: ubuntu-latest,
+            build_type: RelWithDebInfo,
+            cc: "clang-10", cxx: "clang++-10",
+            cmake_args: "-D \"CMAKE_CXX_FLAGS:STRING=-fsanitize=address -fno-omit-frame-pointer\""
+          }
+        - {
+            name: "Linux Clang 11 Debug (C++20)", artifact: "Linux.tar.xz",
+            os: ubuntu-latest,
+            build_type: Debug,
+            cc: "clang-11", cxx: "clang++-11",
+            cmake_args: "-D \"CMAKE_CXX_FLAGS:STRING=-fsanitize=address -fno-omit-frame-pointer\""
+          }
+        - {
+            name: "Linux Clang 11 Optimised (C++20)", artifact: "Linux.tar.xz",
+            os: ubuntu-latest,
+            build_type: RelWithDebInfo,
+            cc: "clang-11", cxx: "clang++-11",
+            cmake_args: "-D \"CMAKE_CXX_FLAGS:STRING=-fsanitize=address -fno-omit-frame-pointer\""
+          }
+        - {
+            name: "Linux Clang 12 Debug (C++20)", artifact: "Linux.tar.xz",
+            os: ubuntu-latest,
+            build_type: Debug,
+            cc: "clang-12", cxx: "clang++-12",
+            cmake_args: "-D \"CMAKE_CXX_FLAGS:STRING=-fsanitize=address -fno-omit-frame-pointer\""
+          }
+        - {
+            name: "Linux Clang 12 Optimised (C++20)", artifact: "Linux.tar.xz",
+            os: ubuntu-latest,
+            build_type: RelWithDebInfo,
+            cc: "clang-12", cxx: "clang++-12",
+            cmake_args: "-D \"CMAKE_CXX_FLAGS:STRING=-fsanitize=address -fno-omit-frame-pointer\""
+          }
+        - {
+            name: "macOS GCC Debug (C++20)", artifact: "macOS.tar.xz",
+            os: macos-latest,
+            build_type: Debug,
+            cc: "gcc", cxx: "g++",
+            cmake_args: ""
+          }
+        - {
+            name: "macOS GCC Optimised (C++20)", artifact: "macOS.tar.xz",
+            os: macos-latest,
+            build_type: RelWithDebInfo,
+            cc: "gcc", cxx: "g++",
+            cmake_args: ""
+          }
+        - {
+            name: "macOS Clang Debug (C++20)", artifact: "macOS.tar.xz",
+            os: macos-latest,
+            build_type: Debug,
+            cc: "clang", cxx: "clang++",
+            cmake_args: "-D \"CMAKE_CXX_FLAGS:STRING=-fsanitize=address -fno-omit-frame-pointer\""
+          }
+        - {
+            name: "macOS Clang Optimised (C++20)", artifact: "macOS.tar.xz",
+            os: macos-latest,
+            build_type: RelWithDebInfo,
+            cc: "clang", cxx: "clang++",
+            cmake_args: "-D \"CMAKE_CXX_FLAGS:STRING=-fsanitize=address -fno-omit-frame-pointer\""
+          }
+        - {
+            name: "Windows MSVC 2019 Debug (C++20)", artifact: "Windows-MSVC.tar.xz",
+            os: windows-2019,
+            build_type: Debug,
+            cc: "cl", cxx: "cl",
+            #environment_script: "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Auxiliary/Build/vcvars64.bat",
+            cmake_args: "",
+          }
+        - {
+            name: "Windows MSVC 2019 Optimised (C++20)", artifact: "Windows-MSVC.tar.xz",
+            os: windows-2019,
+            build_type: RelWithDebInfo,
+            cc: "cl", cxx: "cl",
+            #environment_script: "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Auxiliary/Build/vcvars64.bat",
+            cmake_args: "",
+          }
+
+    steps:
+      - name: Clone
+        uses: actions/checkout@v2
+      - name: Configure
+        run: cmake -S . -B out/${{ matrix.config.os }}-${{ matrix.config.build_type }} -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} ${{ matrix.config.cmake_args }}
+      - name: Build
+        run: cmake --build out/${{ matrix.config.os }}-${{ matrix.config.build_type }} --config ${{ matrix.config.build_type }} ${{ matrix.config.cmake_args }}
+      - name: Test
+        run: ctest --output-on-failure
