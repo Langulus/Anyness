@@ -19,7 +19,7 @@ namespace Langulus::Anyness
 	MAP()::TMap()
 		: Map { } {
 		Map::mKeys.SetType<K>(true);
-		Any::SetType<V>(true);
+		Map::mValues.SetType<V>(true);
 	}
 
 	/// Copy construction																		

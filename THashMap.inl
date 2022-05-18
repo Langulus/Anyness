@@ -697,7 +697,7 @@ namespace Langulus::Anyness::Inner
 	///	@return a pair containing the first new item & status of insertion	
 	TABLE_TEMPLATE()
 	template<class... Args>
-	typename TABLE()::Insertion TABLE()::Emplace(Args&&... args) requires IsMap {
+	typename TABLE()::Insertion TABLE()::Emplace(Args&&... args) {
 		// This will be the new node													
 		Type n {Forward<Args>(args)...};
 
@@ -1054,7 +1054,7 @@ namespace Langulus::Anyness::Inner
 	///	@param key - the key to search for												
 	///	@return the number of removed pairs												
 	TABLE_TEMPLATE()
-	Count TABLE()::RemoveKey(const K& key) requires IsMap {
+	Count TABLE()::RemoveKey(const K& key) {
 		size_t idx {};
 		InfoType info {};
 		keyToIdx(key, &idx, &info);
@@ -1079,7 +1079,7 @@ namespace Langulus::Anyness::Inner
 	///	@param value - the value to search for											
 	///	@return the number of removed pairs												
 	TABLE_TEMPLATE()
-	Count TABLE()::RemoveValue(const V& value) requires IsMap {
+	Count TABLE()::RemoveValue(const V& value) {
 		Count removed{};
 		auto it = begin();
 		while (it != end()) {
@@ -1109,7 +1109,7 @@ namespace Langulus::Anyness::Inner
 		// than the old one. This prevents to continuously allocate			
 		// for each reserve() call														
 		if (newSize < mMask + 1)
-			rehashPowerOfTwo<true>(newSize);
+			rehashPowerOfTwo(newSize);
 	}
 
 	/// Destroy contents																			

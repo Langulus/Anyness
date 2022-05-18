@@ -229,7 +229,7 @@ namespace Langulus::Anyness
 			void Insert(::std::initializer_list<Type>);
 
 			template<class... Args>
-			Insertion Emplace(Args&&...) requires IsMap;
+			Insertion Emplace(Args&&...);
 
 			template <class... Args>
 			iterator emplace_hint(const_iterator, Args&&...);
@@ -265,10 +265,10 @@ namespace Langulus::Anyness
 			void Reset();
 			iterator RemoveIndex(const_iterator);
 			iterator RemoveIndex(iterator);
-			Count RemoveKey(const K&) requires IsMap;
-			Count RemoveValue(const V&) requires IsMap;
-			Count RemovePair(const Type&) requires IsMap;
-			Count Remove(const Type&) requires IsSet;
+			Count RemoveKey(const K&);
+			Count RemoveValue(const V&);
+			Count RemovePair(const Type&);
+			//Count Remove(const Type&) requires IsSet;
 			void compact();
 
 

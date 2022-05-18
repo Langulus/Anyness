@@ -81,7 +81,7 @@ namespace Langulus::Anyness
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
 			TODO();
 		#else
-			(meta); (memory);
+			(void) (meta); (void) (memory);
 			return nullptr;
 		#endif
 	}
@@ -99,7 +99,7 @@ namespace Langulus::Anyness
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
 			TODO();
 		#else
-			(meta); (memory);
+			(void) (meta); (void) (memory);
 			return false;
 		#endif
 	}
@@ -116,7 +116,7 @@ namespace Langulus::Anyness
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
 			TODO();
 		#else
-			(meta); (memory);
+			(void) (meta); (void) (memory);
 			return 1;
 		#endif
 	}
@@ -137,7 +137,7 @@ namespace Langulus::Anyness
 			if (found)
 				found->mReferences += count;
 		#else
-			(meta); (memory); (count);
+			(void) (meta); (void) (memory); (void) (count);
 		#endif
 	}
 
@@ -172,7 +172,7 @@ namespace Langulus::Anyness
 			found->mReferences -= count;
 			return false;
 		#else
-			(meta); (memory); (count);
+			(void) (meta); (void) (memory); (void) (count);
 			return false;
 		#endif
 	}
