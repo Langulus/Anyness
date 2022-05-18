@@ -15,32 +15,32 @@ jobs:
         config:
         - {
             # GCC 11.2 is the minimum required compiler, and comes with Ubuntu 22.04
-            name: "Linux-GCC-11.2-Debug", artifact: "Linux.tar.xz",
+            name: "Linux-GCC-11-Debug", artifact: "Linux.tar.xz",
             os: ubuntu-22.04,
             build_type: Debug,
-            cc: "gcc-11.2", cxx: "g++-11.2",
+            cc: "gcc", cxx: "g++",
             cmake_args: ""
           }
         - {
             # GCC 11.2 is the minimum required compiler, and comes with Ubuntu 22.04
-            name: "Linux-GCC-11.2-Release", artifact: "Linux.tar.xz",
+            name: "Linux-GCC-11-Release", artifact: "Linux.tar.xz",
             os: ubuntu-22.04,
             build_type: RelWithDebInfo,
-            cc: "gcc-11.2", cxx: "g++-11.2",
+            cc: "gcc", cxx: "g++",
             cmake_args: ""
           }
         - {
             name: "Linux-Clang-14-Debug", artifact: "Linux.tar.xz",
             os: ubuntu-22.04,
             build_type: Debug,
-            cc: "clang-14", cxx: "clang++-14",
+            cc: "clang", cxx: "clang++",
             cmake_args: "-DCMAKE_CXX_FLAGS:STRING=\"-fsanitize=address -fno-omit-frame-pointer\""
           }
         - {
             name: "Linux-Clang-14-Release", artifact: "Linux.tar.xz",
             os: ubuntu-22.04,
             build_type: RelWithDebInfo,
-            cc: "clang-14", cxx: "clang++-14",
+            cc: "clang", cxx: "clang++",
             cmake_args: "-DCMAKE_CXX_FLAGS:STRING=\"-fsanitize=address -fno-omit-frame-pointer\""
           }
         - {
