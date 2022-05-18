@@ -158,7 +158,7 @@ namespace Langulus::Anyness
 		template<class LHS, class WRAPPER = TAny>
 		NOD() friend WRAPPER operator + (const LHS& lhs, const TAny<T>& rhs) requires (!CT::DerivedFrom<LHS, TAny<T>>) {
 			if constexpr (CT::Sparse<LHS>)
-				return operator + (*lhs, rhs);
+				return ::operator + (*lhs, rhs);
 			else if constexpr (CT::Convertible<LHS, WRAPPER>) {
 				auto result = static_cast<WRAPPER>(lhs);
 				result += rhs;

@@ -808,7 +808,7 @@ namespace Langulus::Anyness
 
 		// Move memory forward															
 		CropInner(1, 0, mCount - 1)
-			.CallKnownMoveConstructors<T>(
+			.template CallKnownMoveConstructors<T>(
 				mCount - 1,
 				CropInner(0, mCount - 1, mCount - 1)
 			);
@@ -831,7 +831,7 @@ namespace Langulus::Anyness
 
 		// Move memory forward															
 		CropInner(1, 0, mCount - 1)
-			.CallKnownMoveConstructors<T>(
+			.template CallKnownMoveConstructors<T>(
 				mCount - 1,
 				CropInner(0, mCount - 1, mCount - 1)
 			);
