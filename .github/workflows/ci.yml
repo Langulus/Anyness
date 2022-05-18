@@ -14,7 +14,7 @@ jobs:
       matrix:
         config:
         - {
-            # GCC 11.2 is the minimum required compiler, and comes with Ubuntu 22.04
+            # GCC 11 is the minimum required compiler, and comes with Ubuntu 22.04
             name: "Linux-GCC-11-Debug", artifact: "Linux.tar.xz",
             os: ubuntu-22.04,
             build_type: Debug,
@@ -22,7 +22,7 @@ jobs:
             cmake_args: ""
           }
         - {
-            # GCC 11.2 is the minimum required compiler, and comes with Ubuntu 22.04
+            # GCC 11 is the minimum required compiler, and comes with Ubuntu 22.04
             name: "Linux-GCC-11-Release", artifact: "Linux.tar.xz",
             os: ubuntu-22.04,
             build_type: RelWithDebInfo,
@@ -30,18 +30,20 @@ jobs:
             cmake_args: ""
           }
         - {
-            name: "Linux-Clang-14-Debug", artifact: "Linux.tar.xz",
+            # Clang 11 is the minimum required compiler, and comes with Ubuntu 22.04
+            name: "Linux-Clang-11-Debug", artifact: "Linux.tar.xz",
             os: ubuntu-22.04,
             build_type: Debug,
             cc: "clang", cxx: "clang++",
-            cmake_args: "-DCMAKE_CXX_FLAGS:STRING=\"-fsanitize=address -fno-omit-frame-pointer\""
+            cmake_args: ""
           }
         - {
-            name: "Linux-Clang-14-Release", artifact: "Linux.tar.xz",
+            # Clang 11 is the minimum required compiler, and comes with Ubuntu 22.04
+            name: "Linux-Clang-11-Release", artifact: "Linux.tar.xz",
             os: ubuntu-22.04,
             build_type: RelWithDebInfo,
             cc: "clang", cxx: "clang++",
-            cmake_args: "-DCMAKE_CXX_FLAGS:STRING=\"-fsanitize=address -fno-omit-frame-pointer\""
+            cmake_args: ""
           }
         - {
             name: "macOS-GCC-Debug", artifact: "macOS.tar.xz",
@@ -62,21 +64,21 @@ jobs:
             os: macos-latest,
             build_type: Debug,
             cc: "clang", cxx: "clang++",
-            cmake_args: "-DCMAKE_CXX_FLAGS:STRING=\"-fsanitize=address -fno-omit-frame-pointer\""
+            cmake_args: ""
           }
         - {
             name: "macOS-Clang-Release", artifact: "macOS.tar.xz",
             os: macos-latest,
             build_type: RelWithDebInfo,
             cc: "clang", cxx: "clang++",
-            cmake_args: "-DCMAKE_CXX_FLAGS:STRING=\"-fsanitize=address -fno-omit-frame-pointer\""
+            cmake_args: ""
           }
         - {
             name: "Windows-MSVC-2022-Debug-x64", artifact: "Windows-MSVC.tar.xz",
             os: windows-latest,
             build_type: Debug,
             cc: "cl", cxx: "cl",
-            environment_script: "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Auxiliary/Build/vcvars64.bat",
+            #environment_script: "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Auxiliary/Build/vcvars64.bat",
             cmake_args: "",
           }
         - {
@@ -84,7 +86,7 @@ jobs:
             os: windows-latest,
             build_type: RelWithDebInfo,
             cc: "cl", cxx: "cl",
-            environment_script: "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Auxiliary/Build/vcvars64.bat",
+            #environment_script: "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Auxiliary/Build/vcvars64.bat",
             cmake_args: "",
           }
 
