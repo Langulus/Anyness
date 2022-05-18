@@ -14,131 +14,89 @@ jobs:
       matrix:
         config:
         - {
-            name: "Linux GCC 9 Debug (C++20)", artifact: "Linux.tar.xz",
+            name: "Linux GCC 12 Debug", artifact: "Linux.tar.xz",
             os: ubuntu-latest,
             build_type: Debug,
-            cc: "gcc-9", cxx: "g++-9",
+            cc: "gcc-12", cxx: "g++-12",
             cmake_args: ""
           }
         - {
-            name: "Linux GCC 9 Optimised (C++20)", artifact: "Linux.tar.xz",
+            name: "Linux GCC 12 Release", artifact: "Linux.tar.xz",
             os: ubuntu-latest,
             build_type: RelWithDebInfo,
-            cc: "gcc-9", cxx: "g++-9",
+            cc: "gcc-12", cxx: "g++-12",
             cmake_args: ""
           }
         - {
-            name: "Linux GCC 10 Debug (C++20)", artifact: "Linux.tar.xz",
+            name: "Linux GCC 12 Debug w/coroutines", artifact: "Linux.tar.xz",
             os: ubuntu-latest,
             build_type: Debug,
-            cc: "gcc-10", cxx: "g++-10",
-            cmake_args: ""
-          }
-        - {
-            name: "Linux GCC 10 Optimised (C++20)", artifact: "Linux.tar.xz",
-            os: ubuntu-latest,
-            build_type: RelWithDebInfo,
-            cc: "gcc-10", cxx: "g++-10",
-            cmake_args: ""
-          }
-        - {
-            name: "Linux GCC 10 Debug (C++20) w/coroutines", artifact: "Linux.tar.xz",
-            os: ubuntu-latest,
-            build_type: Debug,
-            cc: "gcc-10", cxx: "g++-10",
+            cc: "gcc-12", cxx: "g++-12",
             cmake_args: "-D CMAKE_CXX_FLAGS:STRING=-fcoroutines"
           }
         - {
-            name: "Linux GCC 10 Optimised (C++20) w/coroutines", artifact: "Linux.tar.xz",
+            name: "Linux GCC 12 Release w/coroutines", artifact: "Linux.tar.xz",
             os: ubuntu-latest,
             build_type: RelWithDebInfo,
-            cc: "gcc-10", cxx: "g++-10",
+            cc: "gcc-12", cxx: "g++-12",
             cmake_args: "-D CMAKE_CXX_FLAGS:STRING=-fcoroutines"
           }
         - {
-            name: "Linux Clang 10 Debug (C++20)", artifact: "Linux.tar.xz",
+            name: "Linux Clang 14 Debug", artifact: "Linux.tar.xz",
             os: ubuntu-latest,
             build_type: Debug,
-            cc: "clang-10", cxx: "clang++-10",
+            cc: "clang-14", cxx: "clang++-14",
             cmake_args: "-D \"CMAKE_CXX_FLAGS:STRING=-fsanitize=address -fno-omit-frame-pointer\""
           }
         - {
-            name: "Linux Clang 10 Optimised (C++20)", artifact: "Linux.tar.xz",
+            name: "Linux Clang 14 Release", artifact: "Linux.tar.xz",
             os: ubuntu-latest,
             build_type: RelWithDebInfo,
-            cc: "clang-10", cxx: "clang++-10",
+            cc: "clang-14", cxx: "clang++-14",
             cmake_args: "-D \"CMAKE_CXX_FLAGS:STRING=-fsanitize=address -fno-omit-frame-pointer\""
           }
         - {
-            name: "Linux Clang 11 Debug (C++20)", artifact: "Linux.tar.xz",
-            os: ubuntu-latest,
-            build_type: Debug,
-            cc: "clang-11", cxx: "clang++-11",
-            cmake_args: "-D \"CMAKE_CXX_FLAGS:STRING=-fsanitize=address -fno-omit-frame-pointer\""
-          }
-        - {
-            name: "Linux Clang 11 Optimised (C++20)", artifact: "Linux.tar.xz",
-            os: ubuntu-latest,
-            build_type: RelWithDebInfo,
-            cc: "clang-11", cxx: "clang++-11",
-            cmake_args: "-D \"CMAKE_CXX_FLAGS:STRING=-fsanitize=address -fno-omit-frame-pointer\""
-          }
-        - {
-            name: "Linux Clang 12 Debug (C++20)", artifact: "Linux.tar.xz",
-            os: ubuntu-latest,
-            build_type: Debug,
-            cc: "clang-12", cxx: "clang++-12",
-            cmake_args: "-D \"CMAKE_CXX_FLAGS:STRING=-fsanitize=address -fno-omit-frame-pointer\""
-          }
-        - {
-            name: "Linux Clang 12 Optimised (C++20)", artifact: "Linux.tar.xz",
-            os: ubuntu-latest,
-            build_type: RelWithDebInfo,
-            cc: "clang-12", cxx: "clang++-12",
-            cmake_args: "-D \"CMAKE_CXX_FLAGS:STRING=-fsanitize=address -fno-omit-frame-pointer\""
-          }
-        - {
-            name: "macOS GCC Debug (C++20)", artifact: "macOS.tar.xz",
+            name: "macOS GCC Debug", artifact: "macOS.tar.xz",
             os: macos-latest,
             build_type: Debug,
             cc: "gcc", cxx: "g++",
             cmake_args: ""
           }
         - {
-            name: "macOS GCC Optimised (C++20)", artifact: "macOS.tar.xz",
+            name: "macOS GCC Release", artifact: "macOS.tar.xz",
             os: macos-latest,
             build_type: RelWithDebInfo,
             cc: "gcc", cxx: "g++",
             cmake_args: ""
           }
         - {
-            name: "macOS Clang Debug (C++20)", artifact: "macOS.tar.xz",
+            name: "macOS Clang Debug", artifact: "macOS.tar.xz",
             os: macos-latest,
             build_type: Debug,
             cc: "clang", cxx: "clang++",
             cmake_args: "-D \"CMAKE_CXX_FLAGS:STRING=-fsanitize=address -fno-omit-frame-pointer\""
           }
         - {
-            name: "macOS Clang Optimised (C++20)", artifact: "macOS.tar.xz",
+            name: "macOS Clang Release", artifact: "macOS.tar.xz",
             os: macos-latest,
             build_type: RelWithDebInfo,
             cc: "clang", cxx: "clang++",
             cmake_args: "-D \"CMAKE_CXX_FLAGS:STRING=-fsanitize=address -fno-omit-frame-pointer\""
           }
         - {
-            name: "Windows MSVC 2019 Debug (C++20)", artifact: "Windows-MSVC.tar.xz",
-            os: windows-2019,
+            name: "Windows MSVC 2022 Debug x64", artifact: "Windows-MSVC.tar.xz",
+            os: windows-latest,
             build_type: Debug,
             cc: "cl", cxx: "cl",
-            #environment_script: "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Auxiliary/Build/vcvars64.bat",
+            environment_script: "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Auxiliary/Build/vcvars64.bat",
             cmake_args: "",
           }
         - {
-            name: "Windows MSVC 2019 Optimised (C++20)", artifact: "Windows-MSVC.tar.xz",
-            os: windows-2019,
+            name: "Windows MSVC 2022 Release x64", artifact: "Windows-MSVC.tar.xz",
+            os: windows-latest,
             build_type: RelWithDebInfo,
             cc: "cl", cxx: "cl",
-            #environment_script: "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Auxiliary/Build/vcvars64.bat",
+            environment_script: "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Auxiliary/Build/vcvars64.bat",
             cmake_args: "",
           }
 
