@@ -15,7 +15,7 @@ jobs:
         config:
         - {
             # GCC 11.2 is the minimum required compiler, and comes with Ubuntu 22.04
-            name: "Linux GCC 11.2 Debug", artifact: "Linux.tar.xz",
+            name: "Linux-GCC-11.2-Debug", artifact: "Linux.tar.xz",
             os: ubuntu-22.04,
             build_type: Debug,
             cc: "gcc-11.2", cxx: "g++-11.2",
@@ -23,56 +23,56 @@ jobs:
           }
         - {
             # GCC 11.2 is the minimum required compiler, and comes with Ubuntu 22.04
-            name: "Linux GCC 11.2 Release", artifact: "Linux.tar.xz",
+            name: "Linux-GCC-11.2-Release", artifact: "Linux.tar.xz",
             os: ubuntu-22.04,
             build_type: RelWithDebInfo,
             cc: "gcc-11.2", cxx: "g++-11.2",
             cmake_args: ""
           }
         - {
-            name: "Linux Clang 14 Debug", artifact: "Linux.tar.xz",
+            name: "Linux-Clang-14-Debug", artifact: "Linux.tar.xz",
             os: ubuntu-22.04,
             build_type: Debug,
             cc: "clang-14", cxx: "clang++-14",
             cmake_args: "-DCMAKE_CXX_FLAGS:STRING=\"-fsanitize=address -fno-omit-frame-pointer\""
           }
         - {
-            name: "Linux Clang 14 Release", artifact: "Linux.tar.xz",
+            name: "Linux-Clang-14-Release", artifact: "Linux.tar.xz",
             os: ubuntu-22.04,
             build_type: RelWithDebInfo,
             cc: "clang-14", cxx: "clang++-14",
             cmake_args: "-DCMAKE_CXX_FLAGS:STRING=\"-fsanitize=address -fno-omit-frame-pointer\""
           }
         - {
-            name: "macOS GCC Debug", artifact: "macOS.tar.xz",
+            name: "macOS-GCC-Debug", artifact: "macOS.tar.xz",
             os: macos-latest,
             build_type: Debug,
             cc: "gcc", cxx: "g++",
             cmake_args: ""
           }
         - {
-            name: "macOS GCC Release", artifact: "macOS.tar.xz",
+            name: "macOS-GCC-Release", artifact: "macOS.tar.xz",
             os: macos-latest,
             build_type: RelWithDebInfo,
             cc: "gcc", cxx: "g++",
             cmake_args: ""
           }
         - {
-            name: "macOS Clang Debug", artifact: "macOS.tar.xz",
+            name: "macOS-Clang-Debug", artifact: "macOS.tar.xz",
             os: macos-latest,
             build_type: Debug,
             cc: "clang", cxx: "clang++",
             cmake_args: "-DCMAKE_CXX_FLAGS:STRING=\"-fsanitize=address -fno-omit-frame-pointer\""
           }
         - {
-            name: "macOS Clang Release", artifact: "macOS.tar.xz",
+            name: "macOS-Clang-Release", artifact: "macOS.tar.xz",
             os: macos-latest,
             build_type: RelWithDebInfo,
             cc: "clang", cxx: "clang++",
             cmake_args: "-DCMAKE_CXX_FLAGS:STRING=\"-fsanitize=address -fno-omit-frame-pointer\""
           }
         - {
-            name: "Windows MSVC 2022 Debug x64", artifact: "Windows-MSVC.tar.xz",
+            name: "Windows-MSVC-2022-Debug-x64", artifact: "Windows-MSVC.tar.xz",
             os: windows-latest,
             build_type: Debug,
             cc: "cl", cxx: "cl",
@@ -80,7 +80,7 @@ jobs:
             cmake_args: "",
           }
         - {
-            name: "Windows MSVC 2022 Release x64", artifact: "Windows-MSVC.tar.xz",
+            name: "Windows-MSVC-2022-Release-x64", artifact: "Windows-MSVC.tar.xz",
             os: windows-latest,
             build_type: RelWithDebInfo,
             cc: "cl", cxx: "cl",
