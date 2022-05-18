@@ -45,49 +45,48 @@ jobs:
             cc: "clang", cxx: "clang++",
             cmake_args: ""
           }
-        - {
-            name: "macOS-GCC-Debug", artifact: "macOS.tar.xz",
-            os: macos-latest,
-            build_type: Debug,
-            cc: "gcc", cxx: "g++",
-            cmake_args: ""
-          }
-        - {
-            name: "macOS-GCC-Release", artifact: "macOS.tar.xz",
-            os: macos-latest,
-            build_type: RelWithDebInfo,
-            cc: "gcc", cxx: "g++",
-            cmake_args: ""
-          }
-        - {
-            name: "macOS-Clang-Debug", artifact: "macOS.tar.xz",
-            os: macos-latest,
-            build_type: Debug,
-            cc: "clang", cxx: "clang++",
-            cmake_args: ""
-          }
-        - {
-            name: "macOS-Clang-Release", artifact: "macOS.tar.xz",
-            os: macos-latest,
-            build_type: RelWithDebInfo,
-            cc: "clang", cxx: "clang++",
-            cmake_args: ""
-          }
+        # Consider adding these when Apple fix their shit
+        #- {
+        #    name: "macOS-Clang-Debug", artifact: "macOS.tar.xz",
+        #    os: macos-latest,
+        #    build_type: Debug,
+        #    cc: "clang", cxx: "clang++",
+        #    cmake_args: ""
+        #  }
+        #- {
+        #    name: "macOS-Clang-Release", artifact: "macOS.tar.xz",
+        #    os: macos-latest,
+        #    build_type: RelWithDebInfo,
+        #    cc: "clang", cxx: "clang++",
+        #    cmake_args: ""
+        #  }
         - {
             name: "Windows-MSVC-2022-Debug-x64", artifact: "Windows-MSVC.tar.xz",
             os: windows-latest,
             build_type: Debug,
             cc: "cl", cxx: "cl",
-            #environment_script: "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Auxiliary/Build/vcvars64.bat",
-            cmake_args: "",
+            cmake_args: "-A x64",
           }
         - {
             name: "Windows-MSVC-2022-Release-x64", artifact: "Windows-MSVC.tar.xz",
             os: windows-latest,
             build_type: RelWithDebInfo,
             cc: "cl", cxx: "cl",
-            #environment_script: "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Auxiliary/Build/vcvars64.bat",
-            cmake_args: "",
+            cmake_args: "-A x64",
+          }
+        - {
+            name: "Windows-MSVC-2022-Debug-x86", artifact: "Windows-MSVC.tar.xz",
+            os: windows-latest,
+            build_type: Debug,
+            cc: "cl", cxx: "cl",
+            cmake_args: "-A Win32",
+          }
+        - {
+            name: "Windows-MSVC-2022-Release-x86", artifact: "Windows-MSVC.tar.xz",
+            os: windows-latest,
+            build_type: RelWithDebInfo,
+            cc: "cl", cxx: "cl",
+            cmake_args: "-A Win32",
           }
 
     steps:

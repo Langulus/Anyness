@@ -744,6 +744,26 @@ namespace Langulus::Anyness
 		return const_cast<Block&>(*this).Get<T>(idx, baseOffset);
 	}
 
+	/// Get an element pointer or reference with a given index						
+	/// This is a lower-level routine that does no type checking					
+	/// No conversion or copying occurs, only pointer arithmetic					
+	///	@param idx - simple index for accessing										
+	///	@param baseOffset - byte offset from the element to apply				
+	///	@return either pointer or reference to the element (depends on T)		
+	template<CT::Data T>
+	decltype(auto) Block::Get(const Offset& idx, const Offset& baseOffset) {
+		Byte* pointer;
+		if (IsSparse())
+			pointer = GetRawSparse()[idx] + baseOffset;
+		else
+			pointer = At(mType->mSize * idx) + baseOffset;
+
+		if constexpr (CT::Dense<T>)
+			return *reinterpret_cast<Deref<T>*>(pointer);
+		else
+			return reinterpret_cast<Deref<T>>(pointer);
+	}
+
 	/// Get templated element																	
 	/// Checks density and type																
 	template<CT::Data T>
@@ -1568,26 +1588,6 @@ namespace Langulus::Anyness
 			mState += state;
 
 		return Get<T>();
-	}
-
-	/// Get an element pointer or reference with a given index						
-	/// This is a lower-level routine that does no type checking					
-	/// No conversion or copying occurs, only pointer arithmetic					
-	///	@param idx - simple index for accessing										
-	///	@param baseOffset - byte offset from the element to apply				
-	///	@return either pointer or reference to the element (depends on T)		
-	template<CT::Data T>
-	decltype(auto) Block::Get(const Offset& idx, const Offset& baseOffset) {
-		Byte* pointer;
-		if (IsSparse())
-			pointer = GetRawSparse()[idx] + baseOffset;
-		else
-			pointer = At(mType->mSize * idx) + baseOffset;
-
-		if constexpr (CT::Dense<T>)
-			return *reinterpret_cast<Deref<T>*>(pointer);
-		else
-			return reinterpret_cast<Deref<T>>(pointer);
 	}
 
 	/// Get an element with a given index, trying to interpret it as T			
