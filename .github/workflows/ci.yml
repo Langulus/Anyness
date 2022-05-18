@@ -23,27 +23,11 @@ jobs:
           }
         - {
             # GCC 11.2 is the minimum required compiler, and comes with Ubuntu 22.04
-            name: "Linux GCC 12 Release", artifact: "Linux.tar.xz",
+            name: "Linux GCC 11.2 Release", artifact: "Linux.tar.xz",
             os: ubuntu-22.04,
             build_type: RelWithDebInfo,
             cc: "gcc-11.2", cxx: "g++-11.2",
             cmake_args: ""
-          }
-        - {
-            # GCC 11.2 is the minimum required compiler, and comes with Ubuntu 22.04
-            name: "Linux GCC 11.2 Debug w/coroutines", artifact: "Linux.tar.xz",
-            os: ubuntu-22.04,
-            build_type: Debug,
-            cc: "gcc-11.2", cxx: "g++-11.2",
-            cmake_args: "-DCMAKE_CXX_FLAGS:STRING=-fcoroutines"
-          }
-        - {
-            # GCC 11.2 is the minimum required compiler, and comes with Ubuntu 22.04
-            name: "Linux GCC 11.2 Release w/coroutines", artifact: "Linux.tar.xz",
-            os: ubuntu-22.04,
-            build_type: RelWithDebInfo,
-            cc: "gcc-11.2", cxx: "g++-11.2",
-            cmake_args: "-DCMAKE_CXX_FLAGS:STRING=-fcoroutines"
           }
         - {
             name: "Linux Clang 14 Debug", artifact: "Linux.tar.xz",
@@ -107,14 +91,9 @@ jobs:
     steps:
       - name: Clone
         uses: actions/checkout@v2
-      - name: Pick compilers
-        shell: cmake -P {0}
-        run: |
-            set(ENV{CC} ${{ matrix.config.cc }})
-            set(ENV{CXX} ${{ matrix.config.cxx }})
       - name: Configure
-        run: cmake -S . -B out/${{ matrix.config.os }}-${{ matrix.config.build_type }} -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} ${{ matrix.config.cmake_args }}
+        run: cmake -G "Ninja" -D CMAKE_C_COMPILER=${{ matrix.config.cc }} -D CMAKE_CXX_COMPILER=${{ matrix.config.cxx }} -S . -B out/${{ matrix.config.name }} -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} ${{ matrix.config.cmake_args }}
       - name: Build
-        run: cmake --build out/${{ matrix.config.os }}-${{ matrix.config.build_type }} --config ${{ matrix.config.build_type }} ${{ matrix.config.cmake_args }}
+        run: cmake --build out/${{ matrix.config.name }} --config ${{ matrix.config.build_type }} ${{ matrix.config.cmake_args }}
       - name: Test
         run: ctest --output-on-failure
