@@ -14,48 +14,50 @@ jobs:
       matrix:
         config:
         - {
-            # GCC 11.2 is the minimum required compiler, and comes preinstalled with Ubuntu 22.04
+            # GCC 11.2 is the minimum required compiler, and comes with Ubuntu 22.04
             name: "Linux GCC 11.2 Debug", artifact: "Linux.tar.xz",
             os: ubuntu-22.04,
             build_type: Debug,
-            cc: "gcc-11", cxx: "g++-11",
+            cc: "gcc-11.2", cxx: "g++-11.2",
             cmake_args: ""
           }
         - {
-            # GCC 11.2 is the minimum required compiler, and comes preinstalled with Ubuntu 22.04
+            # GCC 11.2 is the minimum required compiler, and comes with Ubuntu 22.04
             name: "Linux GCC 12 Release", artifact: "Linux.tar.xz",
             os: ubuntu-22.04,
             build_type: RelWithDebInfo,
-            cc: "gcc-11", cxx: "g++-11",
+            cc: "gcc-11.2", cxx: "g++-11.2",
             cmake_args: ""
           }
         - {
-            name: "Linux GCC 12 Debug w/coroutines", artifact: "Linux.tar.xz",
+            # GCC 11.2 is the minimum required compiler, and comes with Ubuntu 22.04
+            name: "Linux GCC 11.2 Debug w/coroutines", artifact: "Linux.tar.xz",
             os: ubuntu-22.04,
             build_type: Debug,
-            cc: "gcc-12", cxx: "g++-12",
-            cmake_args: "-D CMAKE_CXX_FLAGS:STRING=-fcoroutines"
+            cc: "gcc-11.2", cxx: "g++-11.2",
+            cmake_args: "-DCMAKE_CXX_FLAGS:STRING=-fcoroutines"
           }
         - {
-            name: "Linux GCC 12 Release w/coroutines", artifact: "Linux.tar.xz",
+            # GCC 11.2 is the minimum required compiler, and comes with Ubuntu 22.04
+            name: "Linux GCC 11.2 Release w/coroutines", artifact: "Linux.tar.xz",
             os: ubuntu-22.04,
             build_type: RelWithDebInfo,
-            cc: "gcc-12", cxx: "g++-12",
-            cmake_args: "-D CMAKE_CXX_FLAGS:STRING=-fcoroutines"
+            cc: "gcc-11.2", cxx: "g++-11.2",
+            cmake_args: "-DCMAKE_CXX_FLAGS:STRING=-fcoroutines"
           }
         - {
             name: "Linux Clang 14 Debug", artifact: "Linux.tar.xz",
             os: ubuntu-22.04,
             build_type: Debug,
             cc: "clang-14", cxx: "clang++-14",
-            cmake_args: "-D \"CMAKE_CXX_FLAGS:STRING=-fsanitize=address -fno-omit-frame-pointer\""
+            cmake_args: "-DCMAKE_CXX_FLAGS:STRING=\"-fsanitize=address -fno-omit-frame-pointer\""
           }
         - {
             name: "Linux Clang 14 Release", artifact: "Linux.tar.xz",
             os: ubuntu-22.04,
             build_type: RelWithDebInfo,
             cc: "clang-14", cxx: "clang++-14",
-            cmake_args: "-D \"CMAKE_CXX_FLAGS:STRING=-fsanitize=address -fno-omit-frame-pointer\""
+            cmake_args: "-DCMAKE_CXX_FLAGS:STRING=\"-fsanitize=address -fno-omit-frame-pointer\""
           }
         - {
             name: "macOS GCC Debug", artifact: "macOS.tar.xz",
@@ -76,14 +78,14 @@ jobs:
             os: macos-latest,
             build_type: Debug,
             cc: "clang", cxx: "clang++",
-            cmake_args: "-D \"CMAKE_CXX_FLAGS:STRING=-fsanitize=address -fno-omit-frame-pointer\""
+            cmake_args: "-DCMAKE_CXX_FLAGS:STRING=\"-fsanitize=address -fno-omit-frame-pointer\""
           }
         - {
             name: "macOS Clang Release", artifact: "macOS.tar.xz",
             os: macos-latest,
             build_type: RelWithDebInfo,
             cc: "clang", cxx: "clang++",
-            cmake_args: "-D \"CMAKE_CXX_FLAGS:STRING=-fsanitize=address -fno-omit-frame-pointer\""
+            cmake_args: "-DCMAKE_CXX_FLAGS:STRING=\"-fsanitize=address -fno-omit-frame-pointer\""
           }
         - {
             name: "Windows MSVC 2022 Debug x64", artifact: "Windows-MSVC.tar.xz",
