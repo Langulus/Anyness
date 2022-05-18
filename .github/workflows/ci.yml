@@ -15,42 +15,42 @@ jobs:
         config:
         - {
             name: "Linux GCC 12 Debug", artifact: "Linux.tar.xz",
-            os: ubuntu-latest,
+            os: ubuntu-22.04,
             build_type: Debug,
             cc: "gcc-12", cxx: "g++-12",
             cmake_args: ""
           }
         - {
             name: "Linux GCC 12 Release", artifact: "Linux.tar.xz",
-            os: ubuntu-latest,
+            os: ubuntu-22.04,
             build_type: RelWithDebInfo,
             cc: "gcc-12", cxx: "g++-12",
             cmake_args: ""
           }
         - {
             name: "Linux GCC 12 Debug w/coroutines", artifact: "Linux.tar.xz",
-            os: ubuntu-latest,
+            os: ubuntu-22.04,
             build_type: Debug,
             cc: "gcc-12", cxx: "g++-12",
             cmake_args: "-D CMAKE_CXX_FLAGS:STRING=-fcoroutines"
           }
         - {
             name: "Linux GCC 12 Release w/coroutines", artifact: "Linux.tar.xz",
-            os: ubuntu-latest,
+            os: ubuntu-22.04,
             build_type: RelWithDebInfo,
             cc: "gcc-12", cxx: "g++-12",
             cmake_args: "-D CMAKE_CXX_FLAGS:STRING=-fcoroutines"
           }
         - {
             name: "Linux Clang 14 Debug", artifact: "Linux.tar.xz",
-            os: ubuntu-latest,
+            os: ubuntu-22.04,
             build_type: Debug,
             cc: "clang-14", cxx: "clang++-14",
             cmake_args: "-D \"CMAKE_CXX_FLAGS:STRING=-fsanitize=address -fno-omit-frame-pointer\""
           }
         - {
             name: "Linux Clang 14 Release", artifact: "Linux.tar.xz",
-            os: ubuntu-latest,
+            os: ubuntu-22.04,
             build_type: RelWithDebInfo,
             cc: "clang-14", cxx: "clang++-14",
             cmake_args: "-D \"CMAKE_CXX_FLAGS:STRING=-fsanitize=address -fno-omit-frame-pointer\""
@@ -103,6 +103,15 @@ jobs:
     steps:
       - name: Clone
         uses: actions/checkout@v2
+      #- name: Install GCC 12
+      #  id: install_gcc_12
+      #  if: startsWith(matrix.config.os, 'ubuntu') && ( matrix.config.cxx == 'g++-12' )
+      #  shell: bash
+      #  working-directory: ${{ env.HOME }}
+      #  run: |
+      #      wget https://apt.llvm.org/llvm.sh
+      #      chmod +x llvm.sh
+      #      sudo ./llvm.sh 10
       - name: Configure
         run: cmake -S . -B out/${{ matrix.config.os }}-${{ matrix.config.build_type }} -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} ${{ matrix.config.cmake_args }}
       - name: Build
