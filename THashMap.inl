@@ -419,162 +419,162 @@ namespace Langulus::Anyness::Inner
 	/// Templated tables are always typed													
 	///	@return false																			
 	TABLE_TEMPLATE()
-	constexpr bool TABLE()::IsKeyUntyped() const noexcept requires IsMap {
+	constexpr bool TABLE()::IsKeyUntyped() const noexcept {
 		return false;
 	}
 	
 	/// Templated tables are always typed													
 	///	@return false																			
 	TABLE_TEMPLATE()
-	constexpr bool TABLE()::IsValueUntyped() const noexcept requires IsMap {
+	constexpr bool TABLE()::IsValueUntyped() const noexcept {
 		return false;
 	}
 	
 	/// Templated tables are always typed													
 	///	@return false																			
-	TABLE_TEMPLATE()
+	/*TABLE_TEMPLATE()
 	constexpr bool TABLE()::IsUntyped() const noexcept requires IsSet {
 		return false;
-	}
+	}*/
 	
 	/// Templated tables are always type-constrained									
 	///	@return true																			
 	TABLE_TEMPLATE()
-	constexpr bool TABLE()::IsKeyTypeConstrained() const noexcept requires IsMap {
+	constexpr bool TABLE()::IsKeyTypeConstrained() const noexcept {
 		return true;
 	}
 	
 	/// Templated tables are always type-constrained									
 	///	@return true																			
 	TABLE_TEMPLATE()
-	constexpr bool TABLE()::IsValueTypeConstrained() const noexcept requires IsMap {
+	constexpr bool TABLE()::IsValueTypeConstrained() const noexcept {
 		return true;
 	}
 	
 	/// Templated tables are always type-constrained									
 	///	@return true																			
-	TABLE_TEMPLATE()
+	/*TABLE_TEMPLATE()
 	constexpr bool TABLE()::IsTypeConstrained() const noexcept requires IsSet {
 		return true;
-	}
+	}*/
 	
 	/// Check if key type is abstract														
 	TABLE_TEMPLATE()
-	constexpr bool TABLE()::IsKeyAbstract() const noexcept requires IsMap {
+	constexpr bool TABLE()::IsKeyAbstract() const noexcept {
 		return CT::Abstract<K> && !IsKeySparse();
 	}
 	
 	/// Check if value type is abstract														
 	TABLE_TEMPLATE()
-	constexpr bool TABLE()::IsValueAbstract() const noexcept requires IsMap {
+	constexpr bool TABLE()::IsValueAbstract() const noexcept {
 		return CT::Abstract<V> && !IsValueSparse();
 	}
 	
 	/// Check if value type is abstract														
-	TABLE_TEMPLATE()
+	/*TABLE_TEMPLATE()
 	constexpr bool TABLE()::IsAbstract() const noexcept requires IsSet {
 		return CT::Abstract<Type> && !IsSparse();
-	}
+	}*/
 	
 	/// Check if key type is default-constructible										
 	TABLE_TEMPLATE()
-	constexpr bool TABLE()::IsKeyConstructible() const noexcept requires IsMap {
+	constexpr bool TABLE()::IsKeyConstructible() const noexcept {
 		return CT::Defaultable<K>;
 	}
 	
 	/// Check if value type is default-constructible									
 	TABLE_TEMPLATE()
-	constexpr bool TABLE()::IsValueConstructible() const noexcept requires IsMap {
+	constexpr bool TABLE()::IsValueConstructible() const noexcept {
 		return CT::Defaultable<V>;
 	}
 	
 	/// Check if value type is default-constructible									
-	TABLE_TEMPLATE()
+	/*TABLE_TEMPLATE()
 	constexpr bool TABLE()::IsConstructible() const noexcept requires IsSet {
 		return CT::Defaultable<Type>;
-	}
+	}*/
 	
 	/// Check if key type is deep																
 	TABLE_TEMPLATE()
-	constexpr bool TABLE()::IsKeyDeep() const noexcept requires IsMap {
+	constexpr bool TABLE()::IsKeyDeep() const noexcept {
 		return CT::Deep<K>;
 	}
 	
 	/// Check if value type is deep															
 	TABLE_TEMPLATE()
-	constexpr bool TABLE()::IsValueDeep() const noexcept requires IsMap {
+	constexpr bool TABLE()::IsValueDeep() const noexcept {
 		return CT::Deep<V>;
 	}
 
 	/// Check if value type is deep															
-	TABLE_TEMPLATE()
+	/*TABLE_TEMPLATE()
 	constexpr bool TABLE()::IsDeep() const noexcept requires IsSet {
 		return CT::Deep<Type>;
-	}
+	}*/
 
 	/// Check if the key type is a pointer													
 	TABLE_TEMPLATE()
-	constexpr bool TABLE()::IsKeySparse() const noexcept requires IsMap {
+	constexpr bool TABLE()::IsKeySparse() const noexcept {
 		return CT::Sparse<K>;
 	}
 	
 	/// Check if the value type is a pointer												
 	TABLE_TEMPLATE()
-	constexpr bool TABLE()::IsValueSparse() const noexcept requires IsMap {
+	constexpr bool TABLE()::IsValueSparse() const noexcept {
 		return CT::Sparse<V>;
 	}
 
 	/// Check if the value type is a pointer												
-	TABLE_TEMPLATE()
+	/*TABLE_TEMPLATE()
 	constexpr bool TABLE()::IsSparse() const noexcept requires IsSet {
 		return CT::Sparse<Type>;
-	}
+	}*/
 
 	/// Check if the key type is not a pointer											
 	TABLE_TEMPLATE()
-	constexpr bool TABLE()::IsKeyDense() const noexcept requires IsMap {
+	constexpr bool TABLE()::IsKeyDense() const noexcept {
 		return CT::Dense<K>;
 	}
 
 	/// Check if the value type is not a pointer											
 	TABLE_TEMPLATE()
-	constexpr bool TABLE()::IsValueDense() const noexcept requires IsMap {
+	constexpr bool TABLE()::IsValueDense() const noexcept {
 		return CT::Dense<V>;
 	}
 
 	/// Check if the value type is not a pointer											
-	TABLE_TEMPLATE()
+	/*TABLE_TEMPLATE()
 	constexpr bool TABLE()::IsDense() const noexcept requires IsSet {
 		return CT::Dense<Type>;
-	}
+	}*/
 
 	/// Get the size of a single pair, in bytes											
 	///	@return the number of bytes a single pair contains							
 	TABLE_TEMPLATE()
-	constexpr Size TABLE()::GetPairStride() const noexcept requires IsMap {
+	constexpr Size TABLE()::GetPairStride() const noexcept {
 		return sizeof(Pair); 
 	}
 	
 	/// Get the size of a single key, in bytes											
 	///	@return the number of bytes a single key contains							
 	TABLE_TEMPLATE()
-	constexpr Size TABLE()::GetKeyStride() const noexcept requires IsMap {
+	constexpr Size TABLE()::GetKeyStride() const noexcept {
 		return sizeof(K); 
 	}
 	
 	/// Get the size of a single value, in bytes											
 	///	@return the number of bytes a single value contains						
 	TABLE_TEMPLATE()
-	constexpr Size TABLE()::GetValueStride() const noexcept requires IsMap {
+	constexpr Size TABLE()::GetValueStride() const noexcept {
 		return sizeof(V); 
 	}
 
 	/// Get the size of a single value, in bytes											
 	///	@return the number of bytes a single value contains						
-	TABLE_TEMPLATE()
+	/*TABLE_TEMPLATE()
 	constexpr Size TABLE()::GetStride() const noexcept requires IsSet {
 		return sizeof(Type);
-	}
+	}*/
 
 	/// Get the raw node array inside the map												
 	TABLE_TEMPLATE()
@@ -604,23 +604,23 @@ namespace Langulus::Anyness::Inner
 	/// Check if key type exactly matches another										
 	TABLE_TEMPLATE()
 	template<class ALT_K>
-	constexpr bool TABLE()::KeyIs() const noexcept requires IsMap {
+	constexpr bool TABLE()::KeyIs() const noexcept {
 		return CT::Same<K, ALT_K>;
 	}
 
 	/// Check if value type exactly matches another										
 	TABLE_TEMPLATE()
 	template<class ALT_V>
-	constexpr bool TABLE()::ValueIs() const noexcept requires IsMap {
+	constexpr bool TABLE()::ValueIs() const noexcept {
 		return CT::Same<V, ALT_V>;
 	}
 
 	/// Check if value type exactly matches another										
-	TABLE_TEMPLATE()
+	/*TABLE_TEMPLATE()
 	template<class ALT_T>
 	constexpr bool TABLE()::Is() const noexcept requires IsSet {
 		return CT::Same<Type, ALT_T>;
-	}
+	}*/
 
 	/// Move-insert a pair inside the map													
 	TABLE_TEMPLATE()
@@ -1128,7 +1128,7 @@ namespace Langulus::Anyness::Inner
 	/// Search for a key inside the table													
 	///	@return true if key is found, false otherwise								
 	TABLE_TEMPLATE()
-	bool TABLE()::ContainsKey(const K& key) const requires IsMap {
+	bool TABLE()::ContainsKey(const K& key) const {
 		const auto found = mNodes + FindIndex(key);
 		return found != mNodesEnd;
 	}
@@ -1136,7 +1136,7 @@ namespace Langulus::Anyness::Inner
 	/// Search for a value inside the table												
 	///	@return true if value is found, false otherwise								
 	TABLE_TEMPLATE()
-	bool TABLE()::ContainsValue(const V& value) const requires IsMap {
+	bool TABLE()::ContainsValue(const V& value) const {
 		auto it = begin();
 		while (it != end()) {
 			if (it->mValue == value)
@@ -1150,46 +1150,46 @@ namespace Langulus::Anyness::Inner
 	/// Search for a pair inside the table													
 	///	@return true if pair is found, false otherwise								
 	TABLE_TEMPLATE()
-	bool TABLE()::ContainsPair(const Type& e) const requires IsMap {
+	bool TABLE()::ContainsPair(const Type& e) const {
 		const auto found = Find(e.mKey);
 		return found != end() && found->mValue == e.mValue;
 	}
 
 	/// Search for an entry inside the table												
 	///	@return true if pair is found, false otherwise								
-	TABLE_TEMPLATE()
+	/*TABLE_TEMPLATE()
 	bool TABLE()::Contains(const Type& e) const requires IsSet {
 		const auto found = Find(e);
 		return found != end() && *found == e;
-	}
+	}*/
 
 	TABLE_TEMPLATE()
-	const K& TABLE()::GetKey(const Offset& i) const noexcept requires IsMap {
+	const K& TABLE()::GetKey(const Offset& i) const noexcept {
 		return const_cast<TABLE()&>(*this).GetKey(i);
 	}
 
 	TABLE_TEMPLATE()
-	K& TABLE()::GetKey(const Offset& i) noexcept requires IsMap {
+	K& TABLE()::GetKey(const Offset& i) noexcept {
 		return GetPair(i).mKey;
 	}
 
 	TABLE_TEMPLATE()
-	const V& TABLE()::GetValue(const Offset& i) const noexcept requires IsMap {
+	const V& TABLE()::GetValue(const Offset& i) const noexcept {
 		return const_cast<TABLE()&>(*this).GetValue(i);
 	}
 
 	TABLE_TEMPLATE()
-	V& TABLE()::GetValue(const Offset& i) noexcept requires IsMap {
+	V& TABLE()::GetValue(const Offset& i) noexcept {
 		return GetPair(i).mValue;
 	}
 
 	TABLE_TEMPLATE()
-	const typename TABLE()::Type& TABLE()::GetPair(const Offset& i) const noexcept requires IsMap {
+	const typename TABLE()::Type& TABLE()::GetPair(const Offset& i) const noexcept {
 		return const_cast<TABLE()&>(*this).GetPair(i);
 	}
 
 	TABLE_TEMPLATE()
-	typename TABLE()::Type& TABLE()::GetPair(const Offset& i) noexcept requires IsMap {
+	typename TABLE()::Type& TABLE()::GetPair(const Offset& i) noexcept {
 		if constexpr (IsOnHeap)
 			return *mNodes[i];
 		else
@@ -1209,7 +1209,7 @@ namespace Langulus::Anyness::Inner
 	/// Returns a reference to the value found for key									
 	/// Throws std::out_of_range if element cannot be found							
 	TABLE_TEMPLATE()
-	V& TABLE()::At(const K& key) requires IsMap {
+	V& TABLE()::At(const K& key) {
 		auto found = mNodes + FindIndex(key);
 		if (found == mNodesEnd)
 			Throw<Except::OutOfRange>("Key not found");
@@ -1220,7 +1220,7 @@ namespace Langulus::Anyness::Inner
 	/// Returns a reference to the value found for key									
 	/// Throws std::out_of_range if element cannot be found							
 	TABLE_TEMPLATE()
-	const V& TABLE()::At(const K& key) const requires IsMap {
+	const V& TABLE()::At(const K& key) const {
 		return const_cast<TABLE()>(*this).At(key);
 	}
 
@@ -1268,7 +1268,7 @@ namespace Langulus::Anyness::Inner
 	///	@param key - the key to find														
 	///	@return a reference to the value													
 	TABLE_TEMPLATE()
-	const V& TABLE()::operator[] (const K& key) const requires IsMap {
+	const V& TABLE()::operator[] (const K& key) const {
 		return At(key);
 	}
 
@@ -1276,7 +1276,7 @@ namespace Langulus::Anyness::Inner
 	///	@param key - the key to find														
 	///	@return a reference to the value													
 	TABLE_TEMPLATE()
-	V& TABLE()::operator[] (const K& key) requires IsMap {
+	V& TABLE()::operator[] (const K& key) {
 		return At(key);
 	}
 	

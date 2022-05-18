@@ -158,44 +158,44 @@ namespace Langulus::Anyness
 			NOD() DMeta GetValueType() const;
 
 			template<class ALT_K>
-			NOD() constexpr bool KeyIs() const noexcept requires IsMap;
+			NOD() constexpr bool KeyIs() const noexcept;
 			template<class ALT_V>
-			NOD() constexpr bool ValueIs() const noexcept requires IsMap;
-			template<class ALT_T>
-			NOD() constexpr bool Is() const noexcept requires IsSet;
+			NOD() constexpr bool ValueIs() const noexcept;
+			//template<class ALT_T>
+			//NOD() constexpr bool Is() const noexcept requires IsSet;
 
-			NOD() constexpr bool IsKeyUntyped() const noexcept requires IsMap;
-			NOD() constexpr bool IsValueUntyped() const noexcept requires IsMap;
-			NOD() constexpr bool IsUntyped() const noexcept requires IsSet;
+			NOD() constexpr bool IsKeyUntyped() const noexcept;
+			NOD() constexpr bool IsValueUntyped() const noexcept;
+			//NOD() constexpr bool IsUntyped() const noexcept requires IsSet;
 
-			NOD() constexpr bool IsKeyTypeConstrained() const noexcept requires IsMap;
-			NOD() constexpr bool IsValueTypeConstrained() const noexcept requires IsMap;
-			NOD() constexpr bool IsTypeConstrained() const noexcept requires IsSet;
+			NOD() constexpr bool IsKeyTypeConstrained() const noexcept;
+			NOD() constexpr bool IsValueTypeConstrained() const noexcept;
+			//NOD() constexpr bool IsTypeConstrained() const noexcept requires IsSet;
 
-			NOD() constexpr bool IsKeyAbstract() const noexcept requires IsMap;
-			NOD() constexpr bool IsValueAbstract() const noexcept requires IsMap;
-			NOD() constexpr bool IsAbstract() const noexcept requires IsSet;
+			NOD() constexpr bool IsKeyAbstract() const noexcept;
+			NOD() constexpr bool IsValueAbstract() const noexcept;
+			//NOD() constexpr bool IsAbstract() const noexcept requires IsSet;
 
-			NOD() constexpr bool IsKeyConstructible() const noexcept requires IsMap;
-			NOD() constexpr bool IsValueConstructible() const noexcept requires IsMap;
-			NOD() constexpr bool IsConstructible() const noexcept requires IsSet;
+			NOD() constexpr bool IsKeyConstructible() const noexcept;
+			NOD() constexpr bool IsValueConstructible() const noexcept;
+			//NOD() constexpr bool IsConstructible() const noexcept requires IsSet;
 
-			NOD() constexpr bool IsKeyDeep() const noexcept requires IsMap;
-			NOD() constexpr bool IsValueDeep() const noexcept requires IsMap;
-			NOD() constexpr bool IsDeep() const noexcept requires IsSet;
+			NOD() constexpr bool IsKeyDeep() const noexcept;
+			NOD() constexpr bool IsValueDeep() const noexcept;
+			//NOD() constexpr bool IsDeep() const noexcept requires IsSet;
 
-			NOD() constexpr bool IsKeySparse() const noexcept requires IsMap;
-			NOD() constexpr bool IsValueSparse() const noexcept requires IsMap;
-			NOD() constexpr bool IsSparse() const noexcept requires IsSet;
+			NOD() constexpr bool IsKeySparse() const noexcept;
+			NOD() constexpr bool IsValueSparse() const noexcept;
+			//NOD() constexpr bool IsSparse() const noexcept requires IsSet;
 
-			NOD() constexpr bool IsKeyDense() const noexcept requires IsMap;
-			NOD() constexpr bool IsValueDense() const noexcept requires IsMap;
-			NOD() constexpr bool IsDense() const noexcept requires IsSet;
+			NOD() constexpr bool IsKeyDense() const noexcept;
+			NOD() constexpr bool IsValueDense() const noexcept;
+			//NOD() constexpr bool IsDense() const noexcept requires IsSet;
 
-			NOD() constexpr Size GetPairStride() const noexcept requires IsMap;
-			NOD() constexpr Size GetKeyStride() const noexcept requires IsMap;
-			NOD() constexpr Size GetValueStride() const noexcept requires IsMap;
-			NOD() constexpr Size GetStride() const noexcept requires IsSet;
+			NOD() constexpr Size GetPairStride() const noexcept;
+			NOD() constexpr Size GetKeyStride() const noexcept;
+			NOD() constexpr Size GetValueStride() const noexcept;
+			//NOD() constexpr Size GetStride() const noexcept requires IsSet;
 
 			NOD() constexpr Node* GetRaw() const noexcept;
 			NOD() constexpr Size GetSize() const noexcept;
@@ -275,28 +275,28 @@ namespace Langulus::Anyness
 			///																						
 			///	SEARCH																			
 			///																						
-			NOD() bool ContainsKey(const K&) const requires IsMap;
-			NOD() bool ContainsValue(const V&) const requires IsMap;
-			NOD() bool ContainsPair(const Type&) const requires IsMap;
-			NOD() bool Contains(const Type&) const requires IsSet;
+			NOD() bool ContainsKey(const K&) const;
+			NOD() bool ContainsValue(const V&) const;
+			NOD() bool ContainsPair(const Type&) const;
+			//NOD() bool Contains(const Type&) const requires IsSet;
 
-			NOD() const K& GetKey(const Offset&) const noexcept requires IsMap;
-			NOD() K& GetKey(const Offset&) noexcept requires IsMap;
-			NOD() const V& GetValue(const Offset&) const noexcept requires IsMap;
-			NOD() V& GetValue(const Offset&) noexcept requires IsMap;
-			NOD() const Type& GetPair(const Offset&) const noexcept requires IsMap;
-			NOD() Type& GetPair(const Offset&) noexcept requires IsMap;
+			NOD() const K& GetKey(const Offset&) const noexcept;
+			NOD() K& GetKey(const Offset&) noexcept;
+			NOD() const V& GetValue(const Offset&) const noexcept;
+			NOD() V& GetValue(const Offset&) noexcept;
+			NOD() const Type& GetPair(const Offset&) const noexcept;
+			NOD() Type& GetPair(const Offset&) noexcept;
 
-			NOD() V& At(const K&) requires IsMap;
-			NOD() const V& At(const K&) const requires IsMap;
+			NOD() V& At(const K&);
+			NOD() const V& At(const K&) const;
 
 			NOD() const_iterator Find(const K&) const;
 			NOD() iterator Find(const K&);
 
 			NOD() Offset FindIndex(const K&) const;
 
-			NOD() const V& operator[] (const K&) const requires IsMap;
-			NOD() V& operator[] (const K&) requires IsMap;
+			NOD() const V& operator[] (const K&) const;
+			NOD() V& operator[] (const K&);
 
 
 			///																						
