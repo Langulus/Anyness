@@ -7,6 +7,7 @@
 ///																									
 #pragma once
 #include "Logger.hpp"
+#include "Utilities.hpp"
 #include <stdexcept>
 
 namespace Langulus
