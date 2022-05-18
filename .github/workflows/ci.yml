@@ -14,17 +14,19 @@ jobs:
       matrix:
         config:
         - {
-            name: "Linux GCC 12 Debug", artifact: "Linux.tar.xz",
+            # GCC 11.2 is the minimum required compiler, and comes preinstalled with Ubuntu 22.04
+            name: "Linux GCC 11.2 Debug", artifact: "Linux.tar.xz",
             os: ubuntu-22.04,
             build_type: Debug,
-            cc: "gcc-12", cxx: "g++-12",
+            cc: "gcc-11", cxx: "g++-11",
             cmake_args: ""
           }
         - {
+            # GCC 11.2 is the minimum required compiler, and comes preinstalled with Ubuntu 22.04
             name: "Linux GCC 12 Release", artifact: "Linux.tar.xz",
             os: ubuntu-22.04,
             build_type: RelWithDebInfo,
-            cc: "gcc-12", cxx: "g++-12",
+            cc: "gcc-11", cxx: "g++-11",
             cmake_args: ""
           }
         - {
@@ -103,15 +105,11 @@ jobs:
     steps:
       - name: Clone
         uses: actions/checkout@v2
-      #- name: Install GCC 12
-      #  id: install_gcc_12
-      #  if: startsWith(matrix.config.os, 'ubuntu') && ( matrix.config.cxx == 'g++-12' )
-      #  shell: bash
-      #  working-directory: ${{ env.HOME }}
-      #  run: |
-      #      wget https://apt.llvm.org/llvm.sh
-      #      chmod +x llvm.sh
-      #      sudo ./llvm.sh 10
+      - name: Pick compilers
+        shell: cmake -P {0}
+        run: |
+            set(ENV{CC} ${{ matrix.config.cc }})
+            set(ENV{CXX} ${{ matrix.config.cxx }})
       - name: Configure
         run: cmake -S . -B out/${{ matrix.config.os }}-${{ matrix.config.build_type }} -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} ${{ matrix.config.cmake_args }}
       - name: Build
