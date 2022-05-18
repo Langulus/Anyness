@@ -154,19 +154,6 @@ namespace Langulus::Anyness
 		template<class WRAPPER = TAny, class RHS>
 		NOD() WRAPPER operator + (const RHS&) const;
 
-		/// Concatenate anything with this container										
-		template<class LHS, class WRAPPER = TAny>
-		NOD() friend WRAPPER operator + (const LHS& lhs, const TAny<T>& rhs) requires (!CT::DerivedFrom<LHS, TAny<T>>) {
-			if constexpr (CT::Sparse<LHS>)
-				return ::Langulus::Anyness::operator + (*lhs, rhs);
-			else if constexpr (CT::Convertible<LHS, WRAPPER>) {
-				auto result = static_cast<WRAPPER>(lhs);
-				result += rhs;
-				return result;
-			}
-			else LANGULUS_ASSERT("Can't concatenate - LHS is not convertible to WRAPPER");
-		}
-
 	protected:
 		Size RequestByteSize(const Count&) const noexcept;
 
@@ -196,6 +183,19 @@ namespace Langulus::Anyness
 		decltype(auto) operator * () const;
 		decltype(auto) operator * ();
 	};
+
+	/// Concatenate anything with TAny container											
+	template<class T, class LHS, class WRAPPER = TAny<T>>
+	NOD() WRAPPER operator + (const LHS& lhs, const TAny<T>& rhs) requires (!CT::DerivedFrom<LHS, TAny<T>>) {
+		if constexpr (CT::Sparse<LHS>)
+			return operator + (*lhs, rhs);
+		else if constexpr (CT::Convertible<LHS, WRAPPER>) {
+			auto result = static_cast<WRAPPER>(lhs);
+			result += rhs;
+			return result;
+		}
+		else LANGULUS_ASSERT("Can't concatenate - LHS is not convertible to WRAPPER");
+	}
 
 } // namespace Langulus::Anyness
 
