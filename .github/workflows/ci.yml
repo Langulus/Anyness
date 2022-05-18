@@ -46,33 +46,48 @@ jobs:
             cmake_args: ""
           }
         - {
-            name: "Windows-MSVC-2022-Debug-x64", artifact: "Windows-MSVC.tar.xz",
+            name: "Windows-MSVC-2022-Debug-x64", artifact: "Windows-MSVC-x64.tar.xz",
             os: windows-latest,
             build_type: Debug,
             cc: "cl", cxx: "cl",
             cmake_args: "-G \"Visual Studio 17 2022\" -A x64",
           }
         - {
-            name: "Windows-MSVC-2022-Release-x64", artifact: "Windows-MSVC.tar.xz",
+            name: "Windows-MSVC-2022-Release-x64", artifact: "Windows-MSVC-x64.tar.xz",
             os: windows-latest,
             build_type: RelWithDebInfo,
             cc: "cl", cxx: "cl",
             cmake_args: "-G \"Visual Studio 17 2022\" -A x64",
           }
         - {
-            name: "Windows-MSVC-2022-Debug-x86", artifact: "Windows-MSVC.tar.xz",
+            name: "Windows-MSVC-2022-Debug-x86", artifact: "Windows-MSVC-x86.tar.xz",
             os: windows-latest,
             build_type: Debug,
             cc: "cl", cxx: "cl",
             cmake_args: "-G \"Visual Studio 17 2022\" -A Win32",
           }
         - {
-            name: "Windows-MSVC-2022-Release-x86", artifact: "Windows-MSVC.tar.xz",
+            name: "Windows-MSVC-2022-Release-x86", artifact: "Windows-MSVC-x86.tar.xz",
             os: windows-latest,
             build_type: RelWithDebInfo,
             cc: "cl", cxx: "cl",
             cmake_args: "-G \"Visual Studio 17 2022\" -A Win32",
           }
+        # Consider adding these when Apple fix their shit
+        #- {
+        #    name: "macOS-Clang-Debug", artifact: "macOS.tar.xz",
+        #    os: macos-latest,
+        #    build_type: Debug,
+        #    cc: "clang", cxx: "clang++",
+        #    cmake_args: ""
+        #  }
+        #- {
+        #    name: "macOS-Clang-Release", artifact: "macOS.tar.xz",
+        #    os: macos-latest,
+        #    build_type: RelWithDebInfo,
+        #    cc: "clang", cxx: "clang++",
+        #    cmake_args: ""
+        #  }
 
     steps:
       - name: Clone
