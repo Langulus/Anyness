@@ -78,7 +78,6 @@ namespace Langulus::Anyness
 			static constexpr bool IsOnHeap = !DENSE;
 			static constexpr bool IsOnStack = DENSE;
 
-			//using Base = TableAllocator<METHOD, MaxLoadFactor100, K, V>;
 			using Type = Conditional<IsMap, TPair<K, V>, K>;
 			using Key = K;
 			using Value = V;
@@ -161,41 +160,31 @@ namespace Langulus::Anyness
 			NOD() constexpr bool KeyIs() const noexcept;
 			template<class ALT_V>
 			NOD() constexpr bool ValueIs() const noexcept;
-			//template<class ALT_T>
-			//NOD() constexpr bool Is() const noexcept requires IsSet;
 
 			NOD() constexpr bool IsKeyUntyped() const noexcept;
 			NOD() constexpr bool IsValueUntyped() const noexcept;
-			//NOD() constexpr bool IsUntyped() const noexcept requires IsSet;
 
 			NOD() constexpr bool IsKeyTypeConstrained() const noexcept;
 			NOD() constexpr bool IsValueTypeConstrained() const noexcept;
-			//NOD() constexpr bool IsTypeConstrained() const noexcept requires IsSet;
 
 			NOD() constexpr bool IsKeyAbstract() const noexcept;
 			NOD() constexpr bool IsValueAbstract() const noexcept;
-			//NOD() constexpr bool IsAbstract() const noexcept requires IsSet;
 
 			NOD() constexpr bool IsKeyConstructible() const noexcept;
 			NOD() constexpr bool IsValueConstructible() const noexcept;
-			//NOD() constexpr bool IsConstructible() const noexcept requires IsSet;
 
 			NOD() constexpr bool IsKeyDeep() const noexcept;
 			NOD() constexpr bool IsValueDeep() const noexcept;
-			//NOD() constexpr bool IsDeep() const noexcept requires IsSet;
 
 			NOD() constexpr bool IsKeySparse() const noexcept;
 			NOD() constexpr bool IsValueSparse() const noexcept;
-			//NOD() constexpr bool IsSparse() const noexcept requires IsSet;
 
 			NOD() constexpr bool IsKeyDense() const noexcept;
 			NOD() constexpr bool IsValueDense() const noexcept;
-			//NOD() constexpr bool IsDense() const noexcept requires IsSet;
 
 			NOD() constexpr Size GetPairStride() const noexcept;
 			NOD() constexpr Size GetKeyStride() const noexcept;
 			NOD() constexpr Size GetValueStride() const noexcept;
-			//NOD() constexpr Size GetStride() const noexcept requires IsSet;
 
 			NOD() constexpr Node* GetRaw() const noexcept;
 			NOD() constexpr Size GetSize() const noexcept;
@@ -268,7 +257,6 @@ namespace Langulus::Anyness
 			Count RemoveKey(const K&);
 			Count RemoveValue(const V&);
 			Count RemovePair(const Type&);
-			//Count Remove(const Type&) requires IsSet;
 			void compact();
 
 

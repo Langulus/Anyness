@@ -429,13 +429,6 @@ namespace Langulus::Anyness::Inner
 		return false;
 	}
 	
-	/// Templated tables are always typed													
-	///	@return false																			
-	/*TABLE_TEMPLATE()
-	constexpr bool TABLE()::IsUntyped() const noexcept requires IsSet {
-		return false;
-	}*/
-	
 	/// Templated tables are always type-constrained									
 	///	@return true																			
 	TABLE_TEMPLATE()
@@ -450,13 +443,6 @@ namespace Langulus::Anyness::Inner
 		return true;
 	}
 	
-	/// Templated tables are always type-constrained									
-	///	@return true																			
-	/*TABLE_TEMPLATE()
-	constexpr bool TABLE()::IsTypeConstrained() const noexcept requires IsSet {
-		return true;
-	}*/
-	
 	/// Check if key type is abstract														
 	TABLE_TEMPLATE()
 	constexpr bool TABLE()::IsKeyAbstract() const noexcept {
@@ -468,12 +454,6 @@ namespace Langulus::Anyness::Inner
 	constexpr bool TABLE()::IsValueAbstract() const noexcept {
 		return CT::Abstract<V> && !IsValueSparse();
 	}
-	
-	/// Check if value type is abstract														
-	/*TABLE_TEMPLATE()
-	constexpr bool TABLE()::IsAbstract() const noexcept requires IsSet {
-		return CT::Abstract<Type> && !IsSparse();
-	}*/
 	
 	/// Check if key type is default-constructible										
 	TABLE_TEMPLATE()
@@ -487,12 +467,6 @@ namespace Langulus::Anyness::Inner
 		return CT::Defaultable<V>;
 	}
 	
-	/// Check if value type is default-constructible									
-	/*TABLE_TEMPLATE()
-	constexpr bool TABLE()::IsConstructible() const noexcept requires IsSet {
-		return CT::Defaultable<Type>;
-	}*/
-	
 	/// Check if key type is deep																
 	TABLE_TEMPLATE()
 	constexpr bool TABLE()::IsKeyDeep() const noexcept {
@@ -504,12 +478,6 @@ namespace Langulus::Anyness::Inner
 	constexpr bool TABLE()::IsValueDeep() const noexcept {
 		return CT::Deep<V>;
 	}
-
-	/// Check if value type is deep															
-	/*TABLE_TEMPLATE()
-	constexpr bool TABLE()::IsDeep() const noexcept requires IsSet {
-		return CT::Deep<Type>;
-	}*/
 
 	/// Check if the key type is a pointer													
 	TABLE_TEMPLATE()
@@ -523,12 +491,6 @@ namespace Langulus::Anyness::Inner
 		return CT::Sparse<V>;
 	}
 
-	/// Check if the value type is a pointer												
-	/*TABLE_TEMPLATE()
-	constexpr bool TABLE()::IsSparse() const noexcept requires IsSet {
-		return CT::Sparse<Type>;
-	}*/
-
 	/// Check if the key type is not a pointer											
 	TABLE_TEMPLATE()
 	constexpr bool TABLE()::IsKeyDense() const noexcept {
@@ -540,12 +502,6 @@ namespace Langulus::Anyness::Inner
 	constexpr bool TABLE()::IsValueDense() const noexcept {
 		return CT::Dense<V>;
 	}
-
-	/// Check if the value type is not a pointer											
-	/*TABLE_TEMPLATE()
-	constexpr bool TABLE()::IsDense() const noexcept requires IsSet {
-		return CT::Dense<Type>;
-	}*/
 
 	/// Get the size of a single pair, in bytes											
 	///	@return the number of bytes a single pair contains							
@@ -567,13 +523,6 @@ namespace Langulus::Anyness::Inner
 	constexpr Size TABLE()::GetValueStride() const noexcept {
 		return sizeof(V); 
 	}
-
-	/// Get the size of a single value, in bytes											
-	///	@return the number of bytes a single value contains						
-	/*TABLE_TEMPLATE()
-	constexpr Size TABLE()::GetStride() const noexcept requires IsSet {
-		return sizeof(Type);
-	}*/
 
 	/// Get the raw node array inside the map												
 	TABLE_TEMPLATE()
@@ -613,13 +562,6 @@ namespace Langulus::Anyness::Inner
 	constexpr bool TABLE()::ValueIs() const noexcept {
 		return CT::Same<V, ALT_V>;
 	}
-
-	/// Check if value type exactly matches another										
-	/*TABLE_TEMPLATE()
-	template<class ALT_T>
-	constexpr bool TABLE()::Is() const noexcept requires IsSet {
-		return CT::Same<Type, ALT_T>;
-	}*/
 
 	/// Move-insert a pair inside the map													
 	TABLE_TEMPLATE()
@@ -707,7 +649,6 @@ namespace Langulus::Anyness::Inner
 		switch (spot.mState) {
 		case InsertionState::key_found:
 			// Pair already exists, so we don't need the new node				
-			//n.destroy(*this);
 			break;
 		case InsertionState::new_node:
 			// We can emplace the new node											
@@ -730,7 +671,6 @@ namespace Langulus::Anyness::Inner
 			break;
 		case InsertionState::overflow_error:
 			// Max capacity reached, destroy the node and throw				
-			//n.destroy(*this);
 			Throw<Except::Overflow>("Table overflow");
 			break;
 		}
@@ -1153,14 +1093,6 @@ namespace Langulus::Anyness::Inner
 		const auto found = Find(e.mKey);
 		return found != end() && found->mValue == e.mValue;
 	}
-
-	/// Search for an entry inside the table												
-	///	@return true if pair is found, false otherwise								
-	/*TABLE_TEMPLATE()
-	bool TABLE()::Contains(const Type& e) const requires IsSet {
-		const auto found = Find(e);
-		return found != end() && *found == e;
-	}*/
 
 	TABLE_TEMPLATE()
 	const K& TABLE()::GetKey(const Offset& i) const noexcept {

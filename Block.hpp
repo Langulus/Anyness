@@ -115,9 +115,9 @@ namespace Langulus::Anyness
 	
 		// The data state																	
 		DataState mState {DataState::Default};
-		// CT::Number of written instances inside memory block					
+		// Number of initialized instances inside memory block				
 		Count mCount {};
-		// CT::Number of allocated instances in the memory block				
+		// Number of allocated instances in the memory block					
 		Count mReserved {};
 		// Type of the instances inside the memory block						
 		DMeta mType {};

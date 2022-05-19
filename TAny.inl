@@ -201,17 +201,6 @@ namespace Langulus::Anyness
 		other.ResetState();
 		return *this;
 	}
-	
-	/// Assign by shallow-copying something constant									
-	///	@param value - the value to copy													
-	///	@return a reference to this container											
-	/*TEMPLATE()
-	template<class ALT_T>
-	TAny<T>& TAny<T>::operator = (const ALT_T& other) {
-		operator = (const_cast<ALT_T&>(other));
-		MakeConstant();
-		return *this;
-	}*/
 
 	/// Assign by shallow-copying something mutable										
 	///	@param other - the value to copy													
