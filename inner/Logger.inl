@@ -1,6 +1,6 @@
 ///																									
 /// Langulus::Anyness																			
-/// Copyright(C) 2012 - 2022 Dimo Markov <langulusteam@gmail.com>					
+/// Copyright(C) 2012 Dimo Markov <langulusteam@gmail.com>							
 ///																									
 /// Distributed under GNU General Public License v3+									
 /// See LICENSE file, or https://www.gnu.org/licenses									
@@ -15,7 +15,7 @@ namespace Langulus::Logger
    ///   @param item - item convert to text and log                           
    ///   @return a reference to the logger for chaining                       
    template<class T>
-   Instance& Instance::operator << (const T& item) noexcept {
+   Interface& Interface::operator << (const T& item) noexcept {
       return GlobalLogger;
    }
     
@@ -23,7 +23,7 @@ namespace Langulus::Logger
    ///   @param items... - a list of items to convert to text and log         
    ///   @return a reference to the logger for chaining                       
    template<class... T>
-   Instance& Error(T... items) noexcept {
+   Interface& Error(T... items) noexcept {
       return (GlobalLogger << ... << items);
    }
    
@@ -31,7 +31,7 @@ namespace Langulus::Logger
    ///   @param items... - a list of items to convert to text and log         
    ///   @return a reference to the logger for chaining                       
    template<class... T>
-   Instance& Warning(T... items) noexcept {
+   Interface& Warning(T... items) noexcept {
       return (GlobalLogger << ... << items);
    }
    
@@ -39,7 +39,7 @@ namespace Langulus::Logger
    ///   @param items... - a list of items to convert to text and log         
    ///   @return a reference to the logger for chaining                       
    template<class... T>
-   Instance& Verbose(T... items) noexcept {
+   Interface& Verbose(T... items) noexcept {
       return (GlobalLogger << ... << items);
    }
    

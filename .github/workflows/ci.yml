@@ -1,10 +1,6 @@
 name: Langulus::Anyness CI
 on: [push, pull_request] # Trigger on pushes to all branches and for all pull-requests
 
-env:
-  CMAKE_VERSION: 3.22
-  NINJA_VERSION: 1.10.2
-
 jobs:
   build:
     name: ${{ matrix.config.name }}

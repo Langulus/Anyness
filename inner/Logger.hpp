@@ -1,29 +1,30 @@
 ///																									
 /// Langulus::Anyness																			
-/// Copyright(C) 2012 - 2022 Dimo Markov <langulusteam@gmail.com>					
+/// Copyright(C) 2012 Dimo Markov <langulusteam@gmail.com>							
 ///																									
 /// Distributed under GNU General Public License v3+									
 /// See LICENSE file, or https://www.gnu.org/licenses									
 ///																									
 #pragma once
-#include "Integration.hpp"
+#include <Langulus.Core.hpp>
 
 namespace Langulus::Logger
 {
    
-   struct Instance {
+   class Interface {
+   public:
       template<class T>
-      Instance& operator << (const T&) noexcept;
+      Interface& operator << (const T&) noexcept;
    };
    
-   extern Instance GlobalLogger;
+   extern Interface GlobalLogger;
    
    template<class... T>
-   Instance& Error(T...) noexcept;
+   Interface& Error(T...) noexcept;
    template<class... T>
-   Instance& Warning(T...) noexcept;
+   Interface& Warning(T...) noexcept;
    template<class... T>
-   Instance& Verbose(T...) noexcept;
+   Interface& Verbose(T...) noexcept;
    
 } // namespace Langulus::Logger
 

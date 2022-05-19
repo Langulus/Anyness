@@ -1,13 +1,13 @@
 ///																									
 /// Langulus::Anyness																			
-/// Copyright(C) 2012 - 2022 Dimo Markov <langulusteam@gmail.com>					
+/// Copyright(C) 2012 Dimo Markov <langulusteam@gmail.com>							
 ///																									
 /// Distributed under GNU General Public License v3+									
 /// See LICENSE file, or https://www.gnu.org/licenses									
 ///																									
 #include "Allocator.hpp"
-#include "Exceptions.hpp"
 #include "Reflection.hpp"
+#include "Logger.hpp"
 
 namespace Langulus::Anyness
 {

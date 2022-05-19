@@ -1,4 +1,4 @@
-project(TestAnyness)
+project(Langulus_Test_Anyness)
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR} SOURCE_FILES)
 
 # Configure Catch2 library
@@ -12,5 +12,6 @@ download_project(
 )
 add_subdirectory(${Catch2_SOURCE_DIR} ${Catch2_BINARY_DIR})
 
-add_executable(TestAnyness ${SOURCE_FILES})
-target_link_libraries(TestAnyness PRIVATE Anyness Catch2)
+add_executable(Test.Anyness ${SOURCE_FILES})
+target_link_libraries(Test.Anyness PRIVATE Langulus.Anyness Catch2)
+add_test(Test.Anyness Test.Anyness)

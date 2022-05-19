@@ -1,6 +1,6 @@
 ///																									
 /// Langulus::Anyness																			
-/// Copyright(C) 2012 - 2022 Dimo Markov <langulusteam@gmail.com>					
+/// Copyright(C) 2012 Dimo Markov <langulusteam@gmail.com>							
 ///																									
 /// Distributed under GNU General Public License v3+									
 /// See LICENSE file, or https://www.gnu.org/licenses									
@@ -8,8 +8,6 @@
 /// Include this only when building standalone											
 #pragma once
 #include "DataState.hpp"
-#include "TypeList.hpp"
-#include "Exceptions.hpp"
 
 /// You can mark types as deep by using LANGULUS(DEEP) true / false inside		
 /// class, but to fit into CT::Deep concept, your type must also inherit Block	
@@ -41,13 +39,13 @@
 #define LANGULUS_ABSTRACT() public: static constexpr bool CTTI_Abstract = 
 
 /// Reflect a list of members																	
-#define LANGULUS_MEMBERS(...) public: using CTTI_Members = ::Langulus::Anyness::TTypeList<__VA_ARGS__>
+#define LANGULUS_MEMBERS(...) public: using CTTI_Members = ::Langulus::TTypeList<__VA_ARGS__>
 
 /// Reflect a list of bases																	
-#define LANGULUS_BASES(...) public: using CTTI_Bases = ::Langulus::Anyness::TTypeList<__VA_ARGS__>
+#define LANGULUS_BASES(...) public: using CTTI_Bases = ::Langulus::TTypeList<__VA_ARGS__>
 
 /// Reflect a list of verbs																	
-#define LANGULUS_VERBS(...) public: using CTTI_Verbs = ::Langulus::Anyness::TTypeList<__VA_ARGS__>
+#define LANGULUS_VERBS(...) public: using CTTI_Verbs = ::Langulus::TTypeList<__VA_ARGS__>
 
 
 namespace Langulus::Anyness

@@ -1,27 +1,35 @@
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.22)
 include(cmake/DownloadProject.cmake)
-
-project(Anyness)
-
-#Check if this project is used as a subdirectory
-#Potential issue with this: https://gitlab.kitware.com/cmake/cmake/-/issues/18862
-if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
-    set(CMAKE_CXX_STANDARD 20)
-    set(CMAKE_CXX_STANDARD_REQUIRED ON)
-    enable_testing()
-endif()
-
-#Build and install of the Anyness shared library
+project(Langulus_Anyness)
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR} SOURCE_FILES)
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/inner SOURCE_FILES)
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/verbs SOURCE_FILES)
-add_library(Anyness ${SOURCE_FILES})
-target_include_directories(Anyness
-    PRIVATE     ${CMAKE_CURRENT_SOURCE_DIR}
-    INTERFACE	${CMAKE_CURRENT_SOURCE_DIR}/include
-)
-install(TARGETS Anyness DESTINATION lib)
 
-#Testing
+# Check if this project is built as standalone, or a part of something else
+if(PROJECT_IS_TOP_LEVEL)
+    # We're building Anyness as standalone
+    set(CMAKE_CXX_STANDARD 20)
+    set(CMAKE_CXX_STANDARD_REQUIRED ON)
+    enable_testing()
+
+    # Configure Langulus.Core
+    message(STATUS "Configuring external project: Langulus.Core...")
+    download_project(
+	    PROJ                Langulus_Core
+	    GIT_REPOSITORY      https://github.com/Langulus/Core.git
+	    GIT_TAG             main
+	    GIT_PROGRESS        TRUE
+	    UPDATE_DISCONNECTED 1
+    )
+    include_directories(${Langulus_Core_SOURCE_DIR}/include)
+endif()
+
+# Build and install Anyness library
+add_library(Langulus.Anyness ${SOURCE_FILES})
+target_include_directories(Langulus.Anyness
+    PRIVATE     ${CMAKE_CURRENT_SOURCE_DIR}
+    INTERFACE	${CMAKE_CURRENT_SOURCE_DIR}/include/
+)
+
+# Testing
 add_subdirectory(test)
-add_test(NAME TestAnyness COMMAND TestAnyness)
