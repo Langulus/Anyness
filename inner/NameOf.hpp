@@ -6,32 +6,11 @@
 /// See LICENSE file, or https://www.gnu.org/licenses									
 ///																									
 #pragma once
-#include <Langulus.Core.hpp>
+#include "Config.hpp"
 #include <string>
 
 namespace Langulus::Anyness::Inner
 {
-
-   /// Shamelessly stolen from boost and extended to my liking						
-   #if defined(__GNUC__) || (defined(__MWERKS__) && (__MWERKS__ >= 0x3000)) || (defined(__ICC) && (__ICC >= 600)) || defined(__ghs__)
-	   #define LANGULUS_FUNCTION() __PRETTY_FUNCTION__
-   #elif defined(__clang__)
-	   #define LANGULUS_FUNCTION() __PRETTY_FUNCTION__
-   #elif defined(__DMC__) && (__DMC__ >= 0x810)
-	   #define LANGULUS_FUNCTION() __PRETTY_FUNCTION__
-   #elif defined(__FUNCSIG__) || defined(_MSC_VER)
-	   #define LANGULUS_FUNCTION() __FUNCSIG__
-   #elif (defined(__INTEL_COMPILER) && (__INTEL_COMPILER >= 600)) || (defined(__IBMCPP__) && (__IBMCPP__ >= 500))
-	   #define LANGULUS_FUNCTION() __FUNCTION__
-   #elif defined(__BORLANDC__) && (__BORLANDC__ >= 0x550)
-	   #define LANGULUS_FUNCTION() __FUNC__
-   #elif defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 199901)
-	   #define LANGULUS_FUNCTION() __func__
-   #elif defined(__cplusplus) && (__cplusplus >= 201103)
-	   #define LANGULUS_FUNCTION() __func__
-   #else
-	   #define LANGULUS_FUNCTION() "(unknown)"
-   #endif
 
    /// Pretty function used to wrap a type as a template argument             
    /// Once we wrap and stringify it, we can isolate the typename itself      

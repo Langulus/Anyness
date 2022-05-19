@@ -6,7 +6,7 @@
 /// See LICENSE file, or https://www.gnu.org/licenses									
 ///																									
 #pragma once
-#include <Langulus.Core.hpp>
+#include "Config.hpp"
 
 namespace Langulus::Anyness
 {
