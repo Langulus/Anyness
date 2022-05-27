@@ -14,4 +14,4 @@ add_subdirectory(${Catch2_SOURCE_DIR} ${Catch2_BINARY_DIR})
 
 add_executable(Test.Anyness ${SOURCE_FILES})
 target_link_libraries(Test.Anyness PRIVATE Langulus.Anyness Catch2)
-add_test(NAME TestAnyness COMMAND Test.Anyness)
+add_test(NAME "TestAnyness" COMMAND Test.Anyness)
