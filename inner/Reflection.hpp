@@ -58,7 +58,6 @@ namespace Langulus::Anyness
 		Count mElementCount;
 	};
 
-
    /// Round to the upper power-of-two														
 	///	@tparam SAFE - set to true if you want it to throw on overflow			
 	///	@tparam T - the unsigned integer type (deducible)							
@@ -231,7 +230,7 @@ namespace Langulus::Anyness
 	struct Base {
 		// Type of the base																
 		DMeta mType {};
-		// CT::Number of bases that fit in the type									
+		// CT::Number of bases that fit in the type								
 		Count mCount {1};
 		// Offset of the base, relative to the derived type					
 		Offset mOffset {};

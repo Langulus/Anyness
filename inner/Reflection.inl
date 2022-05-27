@@ -153,7 +153,6 @@ namespace Langulus::Anyness
 	constexpr Token Meta::GetName() noexcept {
 		return Inner::NameOf<T>();
 	}
-   
 
 
    ///                                                                        
@@ -208,8 +207,12 @@ namespace Langulus::Anyness
 			meta->mSize = CT::Abstract<T> ? 0 : sizeof(T);
 			meta->mAlignment = alignof(T);
 			meta->mAllocationPage = GetAllocationPageOf<T>();
-			for (size_t bit = 0; bit < sizeof(Size) * 8; ++bit)
-				meta->mAllocationTable[bit] = ::std::max(meta->mAllocationPage, (1 << bit) / sizeof(T));
+			constexpr auto minElements = GetAllocationPageOf<T>() / sizeof(T);
+			for (size_t bit = 0; bit < sizeof(Size) * 8; ++bit) {
+				const auto threshold = 1 << bit;
+				const auto elements = threshold / sizeof(T);
+				meta->mAllocationTable[bit] = ::std::max(minElements, elements);
+			}
 			meta->mIsPOD = CT::POD<T>;
 			meta->mIsDeep = CT::Deep<T>;
 			

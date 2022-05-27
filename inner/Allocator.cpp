@@ -25,7 +25,8 @@ namespace Langulus::Anyness
 	inline Allocation* AlignedAllocate(const Size& size) {
 		static_assert(IsPowerOfTwo(LANGULUS(ALIGN)), 
 			"Alignment is not a power-of-two number");
-		static_assert((Allocation::GetSize() % Size {LANGULUS(ALIGN)}) == 0,
+		constexpr auto allocationSize = Allocation::GetSize();
+		static_assert((allocationSize % Size {LANGULUS(ALIGN)}) == 0,
 			"Allocation structure is not properly sized");
 
 		auto base = malloc(Size {LANGULUS(ALIGN)} + Allocation::GetSize() + size);

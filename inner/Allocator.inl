@@ -23,7 +23,8 @@ namespace Langulus::Anyness
 	/// Get the size of the Allocation structure, rounded up for alignment		
 	///	@return the byte size of the entry, including alignment					
 	constexpr Size Allocation::GetSize() noexcept {
-		return sizeof(Allocation) + (sizeof(Allocation) % Size {LANGULUS(ALIGN)});
+		constexpr Size alignment {LANGULUS(ALIGN)};
+		return sizeof(Allocation) + alignment - (sizeof(Allocation) % alignment);
 	}
 
 	/// Check if the memory of the entry is in use										

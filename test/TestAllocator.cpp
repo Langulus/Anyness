@@ -8,13 +8,32 @@
 #include "Main.hpp"
 #include <catch2/catch.hpp>
 
-TEMPLATE_TEST_CASE("Testing Roof2 calls with small numbers", "[allocator]", uint8_t, uint16_t, uint32_t, uint64_t) {
+TEMPLATE_TEST_CASE("Testing IsPowerOfTwo calls", "[allocator]", uint8_t, uint16_t, uint32_t, uint64_t) {
 	using T = TestType;
 	const T numbers[] {
-		0, 1, 2, 3, 4, 5, 6, 11, 16, 64, 99, 120, 200
+		0, 1, 2, 3, 4, 5, 6, 11, 16, 64, 99, 120, 128
+	};
+	const bool results[] {
+		false, true, true, false, true, false, false, false, true, true, false, false, true
+	};
+	static_assert(sizeof(numbers)/sizeof(T) == sizeof(results)/sizeof(bool), "Oops");
+
+	WHEN("IsPowerOfTwo is executed") {
+		THEN("Results should be correct") {
+			for (int i = 0; i < sizeof(numbers) / sizeof(T); ++i) {
+				REQUIRE(IsPowerOfTwo(numbers[i]) == results[i]);
+			}
+		}
+	}
+}
+
+TEMPLATE_TEST_CASE("Testing Roof2 calls", "[allocator]", uint8_t, uint16_t, uint32_t, uint64_t) {
+	using T = TestType;
+	const T numbers[] {
+		0, 1, 2, 3, 4, 5, 6, 11, 16, 64, 99, 120, 128
 	};
 	const T results[] {
-		0, 1, 2, 4, 4, 8, 8, 16, 16, 64, 128, 128, 0
+		0, 1, 2, 4, 4, 8, 8, 16, 16, 64, 128, 128, 128
 	};
 	static_assert(sizeof(numbers) == sizeof(results), "Oops");
 
@@ -26,6 +45,34 @@ TEMPLATE_TEST_CASE("Testing Roof2 calls with small numbers", "[allocator]", uint
 				else
 					REQUIRE_THROWS_AS(Roof2<true>(numbers[i]), Except::Overflow);
 			}
+		}
+	}
+}
+
+using Type1 = uint8_t;
+using Type2 = uint16_t;
+using Type4 = uint32_t;
+using Type8 = uint64_t;
+
+struct TypeBig {
+	Type1 t1;
+	Type2 t2;
+	Type4 t4;
+	Type8 t8;
+};
+
+struct TypeVeryBig {
+	TypeBig t1;
+	TypeBig t2;
+	TypeBig t4;
+	TypeBig t8[5];
+};
+
+TEMPLATE_TEST_CASE("Testing GetAllocationPageOf<T> calls", "[allocator]", Type1, Type2, Type4, Type8, TypeBig, TypeVeryBig) {
+	WHEN("GetAllocationPageOf<T> is executed") {
+		THEN("Results should be correct") {
+			REQUIRE(IsPowerOfTwo(GetAllocationPageOf<TestType>()));
+			REQUIRE(GetAllocationPageOf<TestType>() >= sizeof(TestType));
 		}
 	}
 }
