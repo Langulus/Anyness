@@ -8,6 +8,7 @@
 #include "Main.hpp"
 #include <catch2/catch.hpp>
 #include <any>
+#include <vector>
 
 using uint = unsigned int;
 
@@ -20,16 +21,35 @@ SCENARIO("Any", "[containers]") {
 
 		WHEN("Given a default-constructed Any") {
 			Any pack;
-			REQUIRE(pack.GetCount() == 0);
-			REQUIRE(pack.GetType() == nullptr);
-			REQUIRE(pack.IsUntyped());
-			REQUIRE_FALSE(pack.IsTypeConstrained());
-			REQUIRE(pack.GetState() == DataState::Default);
-			REQUIRE(pack.GetRaw() == nullptr);
-			REQUIRE(pack.IsEmpty());
-			REQUIRE_FALSE(pack.IsAllocated());
 
-			#ifdef LANGULUS_STD_BENCHMARK // Last result: 1:1 performance (slightly faster than std::any)
+			THEN("Various traits change") {
+				REQUIRE(pack.GetCount() == 0);
+				REQUIRE(pack.GetType() == nullptr);
+				REQUIRE(pack.IsUntyped());
+				REQUIRE_FALSE(pack.IsTypeConstrained());
+				REQUIRE_FALSE(pack.IsConstant());
+				REQUIRE_FALSE(pack.IsCompressed());
+				REQUIRE_FALSE(pack.IsAbstract());
+				REQUIRE_FALSE(pack.IsAllocated());
+				REQUIRE_FALSE(pack.IsDeep());
+				REQUIRE_FALSE(pack.IsEncrypted());
+				REQUIRE_FALSE(pack.IsFuture());
+				REQUIRE_FALSE(pack.IsPast());
+				REQUIRE_FALSE(pack.IsPhased());
+				REQUIRE_FALSE(pack.IsMissing());
+				REQUIRE_FALSE(pack.IsSparse());
+				REQUIRE_FALSE(pack.IsStatic());
+				REQUIRE_FALSE(pack.IsValid());
+				REQUIRE(pack.IsNow());
+				REQUIRE(pack.IsInvalid());
+				REQUIRE(pack.IsDense());
+				REQUIRE(pack.GetState() == DataState::Default);
+				REQUIRE(pack.GetRaw() == nullptr);
+				REQUIRE(pack.IsEmpty());
+			}
+
+			#ifdef LANGULUS_STD_BENCHMARK
+				// Anyness::Any default construction is about 30% faster than std::any's on MSVC
 				BENCHMARK_ADVANCED("Anyness::Any::default construction") (Catch::Benchmark::Chronometer meter) {
 					std::vector<Catch::Benchmark::storage_for<Any>> storage(meter.runs());
 					meter.measure([&](int i) { return storage[i].construct(); });
@@ -37,6 +57,14 @@ SCENARIO("Any", "[containers]") {
 
 				BENCHMARK_ADVANCED("std::any::default construction") (Catch::Benchmark::Chronometer meter) {
 					std::vector<Catch::Benchmark::storage_for<std::any>> storage(meter.runs());
+					meter.measure([&](int i) { return storage[i].construct(); });
+				};
+
+				// Anyness::Any default construction is twice as slow than std::vector's, due to
+				// it having more members. Maybe compress members a bit to save some cycles?
+				// Otherwise, keep in mind that speed and flexibility are the main Anyness mission
+				BENCHMARK_ADVANCED("std::vector::default construction") (Catch::Benchmark::Chronometer meter) {
+					std::vector<Catch::Benchmark::storage_for<std::vector<int>>> storage(meter.runs());
 					meter.measure([&](int i) { return storage[i].construct(); });
 				};
 			#endif

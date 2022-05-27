@@ -125,7 +125,7 @@ namespace Langulus::Anyness
 				newCount = utf8::utf8to16(begin(), end(), to.begin()) - to.begin();
 			}
 			catch (utf8::exception&) {
-				throw Except::Convert("utf8 -> utf16 conversion error");
+				Throw<Except::Convert>("utf8 -> utf16 conversion error");
 			}
 
 			return to.Trim(newCount);
@@ -144,7 +144,7 @@ namespace Langulus::Anyness
 				newCount = utf8::utf8to32(begin(), end(), to.begin()) - to.begin();
 			}
 			catch (utf8::exception&) {
-				throw Except::Convert("utf8 -> utf16 conversion error");
+				Throw<Except::Convert>("utf8 -> utf16 conversion error");
 			}
 
 			return to.Trim(newCount);
@@ -333,7 +333,7 @@ namespace Langulus::Anyness
 			return *this;
 
 		if (IsConstant())
-			throw Except::Destruct("Can't remove from constant text container");
+			Throw<Except::Destruct>("Can't remove from constant text container");
 
 		if (end < mCount)
 			Block::MoveMemory(mRaw + end, mRaw + start, mCount - end);

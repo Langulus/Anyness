@@ -10,7 +10,7 @@
 #include "DataState.hpp"
 
 /// You can mark types as deep by using LANGULUS(DEEP) true / false inside		
-/// class, but to fit into CT::Deep concept, your type must also inherit Block	
+/// class, but to fit into CT::Deep concept, your type must also inherit Block
 #define LANGULUS_DEEP() public: static constexpr bool CTTI_Deep = 
 
 /// You can mark types as POD (Plain Old Data) by using LANGULUS(POD) true or	
@@ -51,11 +51,21 @@
 namespace Langulus::Anyness
 {
 
+	/// A simple request for allocating memory											
+	/// It is used as optimization to avoid divisions by stride						
+	struct AllocationRequest {
+		Size mByteSize;
+		Count mElementCount;
+	};
+
+
    /// Round to the upper power-of-two														
+	///	@tparam SAFE - set to true if you want it to throw on overflow			
+	///	@tparam T - the unsigned integer type (deducible)							
 	///	@param x - the unsigned integer to round up									
 	///	@return the closest upper power-of-two to x									
-   template<CT::Unsigned T>
-	constexpr T Roof2(const T& x) noexcept {
+   template<bool SAFE = false, CT::Unsigned T>
+	constexpr T Roof2(const T& x) noexcept(!SAFE) {
 		T n = x;
 		--n;
 		n |= n >> 1;
@@ -69,24 +79,33 @@ namespace Langulus::Anyness
 			n |= n >> 32;
 		if constexpr (sizeof(T) > 8)
 			TODO();
+
+		if constexpr (SAFE) {
+			if (x != 0 && n == ::std::numeric_limits<T>::max())
+				Throw<Except::Overflow>("Roof2 overflowed");
+		}
+
 		++n;
 		return n;
 	}
 
-	/// Get the allocation page size of the type (in bytes)							
+	/// Get the minimum allocation page size of the type (in bytes)				
+	/// This guarantees two things:															
+	///	1. The byte size is always a power-of-two										
+	///	2. The byte size is never smaller than LANGULUS(ALIGN)					
 	template<class T>
-	constexpr Size GetAllocationPageOf() noexcept {
+	constexpr Size GetAllocationPageOf() SAFETY_NOEXCEPT() {
 		if constexpr (requires {{Decay<T>::CTTI_AllocationPage} -> CT::Same<Size>;}) {
 			constexpr Size candidate = Decay<T>::CTTI_AllocationPage * sizeof(T);
 			if constexpr (candidate < LANGULUS(ALIGN))
 				return LANGULUS(ALIGN);
 			else 
-				return Roof2(candidate);
+				return Roof2<LANGULUS(SAFE)>(candidate);
 		}
 		else if constexpr (sizeof(T) < LANGULUS(ALIGN))
 			return LANGULUS(ALIGN);
 		else 
-			return Roof2(sizeof(T));
+			return Roof2<LANGULUS(SAFE)>(sizeof(T));
 	}
 
 	
@@ -311,8 +330,10 @@ namespace Langulus::Anyness
 		Size mSize {};
 		// Alignof (in bytes)															
 		Size mAlignment {};
-		// Allocation page, in bytes													
+		// Minimal allocation, in bytes												
 		Size mAllocationPage {};
+		// Precomputed counts indexed by MSB (avoids division by stride)	
+		Size mAllocationTable[sizeof(Size)*8];
 		// File extensions used, separated by commas								
 		Token mFileExtension {};
 
@@ -402,6 +423,8 @@ namespace Langulus::Anyness
 			NOD() bool operator == (const MetaData&) const noexcept;
 			NOD() bool operator != (const MetaData&) const noexcept;
 		#endif
+
+		AllocationRequest RequestSize(const Size&) const noexcept;
 	};
 
 

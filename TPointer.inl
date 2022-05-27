@@ -294,14 +294,14 @@ namespace Langulus::Anyness
 	TEMPLATE_OWNED()
 	auto TOwned<T>::operator -> () const requires CT::Sparse<T> {
 		if (!mValue)
-			throw Except::Access("Invalid pointer");
+			Throw<Except::Access>("Invalid pointer");
 		return mValue;
 	}
 
 	TEMPLATE_OWNED()
 	auto TOwned<T>::operator -> () requires CT::Sparse<T> {
 		if (!mValue)
-			throw Except::Access("Invalid pointer");
+			Throw<Except::Access>("Invalid pointer");
 		return mValue;
 	}
 
@@ -311,14 +311,14 @@ namespace Langulus::Anyness
 	TEMPLATE_OWNED()
 	decltype(auto) TOwned<T>::operator * () const requires CT::Sparse<T> {
 		if (!mValue)
-			throw Except::Access("Invalid pointer");
+			Throw<Except::Access>("Invalid pointer");
 		return *mValue;
 	}
 
 	TEMPLATE_OWNED()
 	decltype(auto) TOwned<T>::operator * () requires CT::Sparse<T> {
 		if (!mValue)
-			throw Except::Access("Invalid pointer");
+			Throw<Except::Access>("Invalid pointer");
 		return *mValue;
 	}
 

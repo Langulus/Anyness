@@ -352,7 +352,7 @@ namespace Langulus::Anyness
 		}
 		else {
 			if (!mType->mDefaultConstructor) {
-				throw Except::Construct(Logger::Error()
+				Throw<Except::Construct>(Logger::Error()
 					<< "Can't default-construct " << count << " elements of "
 					<< GetToken() << " because no default constructor was reflected");
 			}
@@ -409,7 +409,7 @@ namespace Langulus::Anyness
 			// Copy each dense element from RHS										
 			// Call the reflected copy-constructor for each element			
 			if (!mType->mCopyConstructor) {
-				throw Except::Construct(Logger::Error()
+				Throw<Except::Construct>(Logger::Error()
 					<< "Can't copy-construct " << source.mCount << " elements of "
 					<< GetToken() << " because no copy constructor was reflected");
 			}
@@ -424,7 +424,7 @@ namespace Langulus::Anyness
 			// Both RHS and LHS must be dense										
 			// Call the reflected copy-constructor for each element			
 			if (!mType->mCopyConstructor) {
-				throw Except::Construct(Logger::Error()
+				Throw<Except::Construct>(Logger::Error()
 					<< "Can't copy-construct " << source.mCount << " elements of "
 					<< GetToken() << " because no copy constructor was reflected");
 			}
@@ -457,7 +457,7 @@ namespace Langulus::Anyness
 			// RHS is pointer, LHS must be dense									
 			// Copy each dense element from RHS										
 			if (!mType->mMoveConstructor) {
-				throw Except::Construct(Logger::Error()
+				Throw<Except::Construct>(Logger::Error()
 					<< "Can't move-construct " << source.mCount << " elements of "
 					<< GetToken() << " because no move constructor was reflected");
 			}
@@ -481,7 +481,7 @@ namespace Langulus::Anyness
 		else {
 			// Both RHS and LHS must be dense										
 			if (!mType->mMoveConstructor) {
-				throw Except::Construct(Logger::Error()
+				Throw<Except::Construct>(Logger::Error()
 					<< "Can't move-construct " << source.mCount << " elements of "
 					<< GetToken() << " because no move constructor was reflected");
 			}
@@ -520,7 +520,7 @@ namespace Langulus::Anyness
 			// Destroy every dense element, one by one, using the 			
 			// reflected destructors													
 			if (!mType->mDestructor) {
-				throw Except::Destruct(Logger::Error()
+				Throw<Except::Destruct>(Logger::Error()
 					<< "Can't destroy " << GetToken()
 					<< " because no destructor was reflected");
 			}
@@ -567,13 +567,13 @@ namespace Langulus::Anyness
 	///	@return the number of removed elements											
 	Count Block::RemoveIndex(const Count starter, const Count count) {
 		SAFETY(if (starter >= mCount)
-			throw Except::Access(Logger::Error()
+			Throw<Except::Access>(Logger::Error()
 				<< "Index " << starter << " out of range " << mCount));
 		SAFETY(if (count > mCount || starter + count > mCount)
-			throw Except::Access(Logger::Error()
+			Throw<Except::Access>(Logger::Error()
 				<< "Index " << starter << " out of range " << mCount));
 		SAFETY(if (GetUses() > 1)
-			throw Except::Reference(Logger::Error()
+			Throw<Except::Reference>(Logger::Error()
 				<< "Removing elements from a memory block, that is used from multiple places"));
 
 		if (IsConstant() || IsStatic()) {
@@ -587,12 +587,12 @@ namespace Langulus::Anyness
 			}
 			else {
 				if (IsConstant()) {
-					throw Except::Access(Logger::Error() 
+					Throw<Except::Access>(Logger::Error() 
 						<< "Attempting to RemoveIndex in a constant container");
 				}
 
 				if (IsStatic()) {
-					throw Except::Access(Logger::Error()
+					Throw<Except::Access>(Logger::Error()
 						<< "Attempting to RemoveIndex in a static container");
 				}
 
@@ -685,7 +685,7 @@ namespace Langulus::Anyness
 		// Move memory if required														
 		if (starter < mCount) {
 			SAFETY(if (GetUses() > 1)
-				throw Except::Reference(Logger::Error()
+				Throw<Except::Reference>(Logger::Error()
 					<< "Moving elements that are used from multiple places"));
 
 			CropInner(starter + other.mCount, 0, mCount - starter)

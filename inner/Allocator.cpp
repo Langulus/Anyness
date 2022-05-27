@@ -17,23 +17,29 @@ namespace Langulus::Anyness
 	/// https://stackoverflow.com/questions/62962839									
 	///																								
 	/// Each allocation has the following prefixed bytes:								
-	///	[padding][Entry][allocated bytes...]											
+	///	[padding][Allocation][allocated bytes...]											
 	///																								
 	///	@param size - the number of bytes to allocate								
 	///	@return a newly allocated memory that is correctly aligned				
 	///	@attention you are responsible for deallocating via AlignedFree 		
-	inline Entry* AlignedAllocate(const Size& size) {
-		auto base = malloc(LANGULUS_ALIGN() + Entry::GetSize() + size);
+	inline Allocation* AlignedAllocate(const Size& size) {
+		static_assert(IsPowerOfTwo(LANGULUS(ALIGN)), 
+			"Alignment is not a power-of-two number");
+		static_assert((Allocation::GetSize() % Size {LANGULUS(ALIGN)}) == 0,
+			"Allocation structure is not properly sized");
+
+		auto base = malloc(Size {LANGULUS(ALIGN)} + Allocation::GetSize() + size);
 		if (!base)
-			throw Except::Allocate(Logger::Error() << "Out of memory");
+			Throw<Except::Allocate>(Logger::Error() << "Out of memory");
 
 		// Align pointer to LANGULUS_ALIGN()										
-		Entry* ptr = reinterpret_cast<Entry*>(
-			(reinterpret_cast<Pointer>(base) + LANGULUS_ALIGN()) & ~(LANGULUS_ALIGN() - 1)
+		auto ptr = reinterpret_cast<Allocation*>(
+			(reinterpret_cast<Pointer>(base) + Pointer {LANGULUS(ALIGN)})
+			& ~Pointer {LANGULUS(ALIGN) - 1}
 		);
 		
 		// Place the entry there														
-		new (ptr) Entry {size, base};
+		new (ptr) Allocation {size, base};
 		return ptr;
 	}
 	
@@ -41,7 +47,7 @@ namespace Langulus::Anyness
 	///	@attention doesn't call any constructors										
 	///	@param size - the number of bytes to allocate								
 	///	@return the allocated memory entry												
-	Entry* Allocator::Allocate(Size size) {
+	Allocation* Allocator::Allocate(const Size& size) {
 		return AlignedAllocate(size);
 	}
 
@@ -53,7 +59,7 @@ namespace Langulus::Anyness
 	///	@param size - the number of bytes to allocate								
 	///	@param previous - the previous memory entry									
 	///	@return the reallocated memory entry											
-	Entry* Allocator::Reallocate(Size size, Entry* previous) {
+	Allocation* Allocator::Reallocate(const Size& size, Allocation* previous) {
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
 			TODO(); // attempt to reallocate inside the same place in pool
 		#else
@@ -66,7 +72,7 @@ namespace Langulus::Anyness
 	///	@attention doesn't call any destructors										
 	///	@param meta - the type of data to deallocate (optional)					
 	///	@param entry - the memory entry to deallocate								
-	void Allocator::Deallocate(Entry* entry) {
+	void Allocator::Deallocate(Allocation* entry) {
 		free(entry->mPool);
 	}
 
@@ -77,7 +83,7 @@ namespace Langulus::Anyness
 	///	@param meta - the type of data to search for (optional)					
 	///	@param memory - memory pointer													
 	///	@return the reallocated memory entry											
-	Entry* Allocator::Find(DMeta meta, const void* memory) {
+	Allocation* Allocator::Find(DMeta meta, const void* memory) {
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
 			TODO();
 		#else

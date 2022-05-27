@@ -32,7 +32,7 @@ namespace Langulus::Anyness
 		, mType {meta} { }
 	
 	/// Manual construction from mutable data												
-	/// This constructor has a slight runtime overhead, due to unknown Entry	
+	/// This constructor has a slight runtime overhead, due to unknown Allocation	
 	///	@param state - the initial state of the container							
 	///	@param meta - the type of the memory block									
 	///	@param count - initial element count and reserve							
@@ -46,7 +46,7 @@ namespace Langulus::Anyness
 		, mEntry {Allocator::Find(meta, raw)} { }
 	
 	/// Manual construction from constant data											
-	/// This constructor has a slight runtime overhead, due to unknown Entry	
+	/// This constructor has a slight runtime overhead, due to unknown Allocation	
 	///	@param state - the initial state of the container							
 	///	@param meta - the type of the memory block									
 	///	@param count - initial element count and reserve							
@@ -62,7 +62,7 @@ namespace Langulus::Anyness
 	///	@param count - initial element count and reserve							
 	///	@param raw - pointer to the mutable memory									
 	///	@param entry - the memory entry													
-	inline Block::Block(const DataState& state, DMeta meta, Count count, void* raw, Entry* entry) noexcept
+	inline Block::Block(const DataState& state, DMeta meta, Count count, void* raw, Allocation* entry) noexcept
 		: mRaw {static_cast<Byte*>(raw)}
 		, mType {meta}
 		, mCount {count}
@@ -76,7 +76,7 @@ namespace Langulus::Anyness
 	///	@param count - initial element count and reserve							
 	///	@param raw - pointer to the constant memory									
 	///	@param entry - the memory entry													
-	inline Block::Block(const DataState& state, DMeta meta, Count count, const void* raw, Entry* entry) noexcept
+	inline Block::Block(const DataState& state, DMeta meta, Count count, const void* raw, Allocation* entry) noexcept
 		: Block {state, meta, count, const_cast<void*>(raw), entry} {
 		MakeConstant();
 	}
@@ -224,10 +224,12 @@ namespace Langulus::Anyness
 		}
 	}
 	
-	/// Get a byte size request based on allocation page and count					
-	inline Size Block::RequestByteSize(const Count& count) const noexcept {
+	/// Get a size based on reflected allocation page and count (unsafe)			
+	///	@param count - the number of elements to request							
+	///	@returns both the provided byte size and reserved count					
+	inline auto Block::RequestSize(const Count& count) const noexcept {
 		const auto base = (IsSparse() ? sizeof(void*) : GetStride()) * count;
-		return Roof2(::std::max(base, mType->mAllocationPage));
+		return mType->RequestSize(base);
 	}
 
 	/// Allocate a number of elements, relying on the type of the container		
@@ -237,7 +239,7 @@ namespace Langulus::Anyness
 	template<bool CREATE>
 	void Block::AllocateInner(const Count& elements) {
 		// Retrieve the required byte size											
-		const auto byteSize = RequestByteSize(elements);
+		const auto request = RequestSize(elements);
 		
 		// Allocate/reallocate															
 		if (mEntry) {
@@ -251,7 +253,7 @@ namespace Langulus::Anyness
 				// if entry moved (enabling MANAGED_MEMORY feature				
 				// significantly reduces the possiblity for a move)			
 				// Also, make sure to free the previous mEntry if moved		
-				mEntry = Allocator::Reallocate(byteSize, mEntry);
+				mEntry = Allocator::Reallocate(request.mByteSize, mEntry);
 				if (mEntry != previousBlock.mEntry) {
 					// Memory moved, and we should call move-construction		
 					mRaw = mEntry->GetBlockStart();
@@ -268,7 +270,7 @@ namespace Langulus::Anyness
 			else {
 				// Memory is used from multiple locations, and we must		
 				// copy the memory for this block - we can't move it!			
-				mEntry = Allocator::Allocate(byteSize);
+				mEntry = Allocator::Allocate(request.mByteSize);
 				mRaw = mEntry->GetBlockStart();
 				mCount = 0;
 				CallCopyConstructors(previousBlock.mCount, previousBlock);
@@ -282,15 +284,15 @@ namespace Langulus::Anyness
 		}
 		else {
 			// Allocate a fresh set of elements										
-			mEntry = Allocator::Allocate(byteSize);			
+			mEntry = Allocator::Allocate(request.mByteSize);
 			mRaw = mEntry->GetBlockStart();
 			if constexpr (CREATE) {
 				// Default-construct everything										
 				CallDefaultConstructors(elements);
 			}
 		}
-		
-		mReserved = byteSize / GetStride(); //TODO very slow
+
+		mReserved = request.mElementCount;
 	}
 
 	/// Allocate a number of elements, relying on the type of the container		
@@ -299,18 +301,22 @@ namespace Langulus::Anyness
 	template<bool CREATE>
 	void Block::Allocate(const Count& elements) {
 		if (!mType) {
-			throw Except::Allocate(Logger::Error()
-				<< "Attempting to allocate " << elements 
-				<< " element(s) of an invalid type");
+			Throw<Except::Allocate>(Logger::Error()
+				<< "Allocating " << elements 
+				<< " element(s) of an invalid type is not allowed");
 		}
-		else if (mType->mIsAbstract) {
-			throw Except::Allocate(Logger::Error()
-				<< "Attempting to allocate " << elements 
-				<< " element(s) of abstract type " << GetToken());
+		else if (mType->mIsAbstract && IsDense()) {
+			Throw<Except::Allocate>(Logger::Error()
+				<< "Allocating " << elements 
+				<< " element(s) of abstract dense type " << GetToken()
+				<< "is not allowed" );
 		}
 
 		if (mCount > elements) {
 			// Destroy back entries on smaller allocation						
+			// Allowed even when container is static and out of				
+			// jurisdiction, as in that case this acts as a simple count	
+			// decrease, and no destructors shall be called						
 			RemoveIndex(elements, mCount - elements);
 			return;
 		}
@@ -334,12 +340,12 @@ namespace Langulus::Anyness
 	inline void Block::CheckRange(const Offset& start, const Count& count) const {
 		#if LANGULUS_SAFE()
 			if (start > mCount) {
-				throw Except::Access(Logger::Error()
+				Throw<Except::Access>(Logger::Error()
 					<< "Crop left offset is out of limits");
 			}
 			
 			if (start + count > mCount) {
-				throw Except::Access(Logger::Error()
+				Throw<Except::Access>(Logger::Error()
 					<< "Crop count is out of limits");
 			}
 		#endif
@@ -726,7 +732,7 @@ namespace Langulus::Anyness
 	inline Byte* Block::At(const Offset& byteOffset) {
 		#if LANGULUS_SAFE()
 			if (!mRaw) {
-				throw Except::Access(Logger::Error()
+				Throw<Except::Access>(Logger::Error()
 					<< "Byte offset in invalid memory of type " << GetToken());
 			}
 		#endif
@@ -826,13 +832,13 @@ namespace Langulus::Anyness
 				Deepen<WRAPPER>();
 				return true;
 			}
-			else throw Except::Mutate(Logger::Error()
+			else Throw<Except::Mutate>(Logger::Error()
 				<< "Attempting to deepen incompatible type-constrained container from "
 				<< GetToken() << " to " << meta->mToken);
 		}
 
 		SAFETY(if (!CastsToMeta(meta)) {
-			throw Except::Mutate(Logger::Error()
+			Throw<Except::Mutate>(Logger::Error()
 				<< "Mutation results in incompatible data " << meta->mToken
 				<< " (container of type " << GetToken() << ")");
 		})
@@ -934,7 +940,7 @@ namespace Langulus::Anyness
 		// At this point, the container has a set type							
 		if (IsTypeConstrained()) {
 			// You can't change type of a type-constrained block				
-			throw Except::Mutate(Logger::Error()
+			Throw<Except::Mutate>(Logger::Error()
 				<< "Changing typed block is disallowed: from "
 				<< GetToken() << " to " << type->mToken);
 		}
@@ -945,7 +951,7 @@ namespace Langulus::Anyness
 			// might be wrong later														
 			if (IsSparse())
 				mType = type;
-			else throw Except::Mutate(Logger::Error()
+			else Throw<Except::Mutate>(Logger::Error()
 				<< "Changing to compatible dense type is disallowed: from "
 				<< GetToken() << " to " << type->mToken);
 		}
@@ -954,7 +960,7 @@ namespace Langulus::Anyness
 			// it has no constructed elements, we can still mutate it		
 			if (IsEmpty())
 				mType = type;
-			else throw Except::Mutate(Logger::Error()
+			else Throw<Except::Mutate>(Logger::Error()
 				<< "Changing to incompatible type while there's constructed "
 				<< "data is disallowed: from " << GetToken()
 				<< " to " << type->mToken);
@@ -1022,7 +1028,7 @@ namespace Langulus::Anyness
 		// Move memory if required														
 		if (starter < mCount) {
 			SAFETY(if (GetUses() > 1)
-				throw Except::Reference(Logger::Error()
+				Throw<Except::Reference>(Logger::Error()
 					<< "Moving elements that are used from multiple places"));
 
 			CropInner(starter + 1, 0, mCount - starter)
@@ -1060,7 +1066,7 @@ namespace Langulus::Anyness
 		// Move memory if required														
 		if (starter < mCount) {
 			SAFETY(if (GetReferences() > 1)
-				throw Except::Reference(Logger::Error()
+				Throw<Except::Reference>(Logger::Error()
 					<< "Moving elements that are used from multiple places"));
 
 			CropInner(starter + count, 0, mCount - starter)
@@ -1562,12 +1568,12 @@ namespace Langulus::Anyness
 	template<CT::Deep T, bool MOVE_STATE>
 	T& Block::Deepen() {
 		if (IsTypeConstrained() && !Is<T>()) {
-			throw Except::Mutate(Logger::Error()
+			Throw<Except::Mutate>(Logger::Error()
 				<< "Attempting to deepen incompatible typed container");
 		}
 
 		if (GetUses() > 1) {
-			throw Except::Mutate(Logger::Error()
+			Throw<Except::Mutate>(Logger::Error()
 				<< "Attempting to deepen container that is referenced from multiple locations");
 		}
 
@@ -1619,7 +1625,7 @@ namespace Langulus::Anyness
 			// All stages of interpretation failed									
 			// Don't log this, because it will spam the crap out of us		
 			// That throw is used by ForEach to handle irrelevant types		
-			throw Except::Access("Type mismatch on Block::As");
+			Throw<Except::Access>("Type mismatch on Block::As");
 		}
 
 		// Get base memory of the required element and access					
@@ -2016,7 +2022,7 @@ namespace Langulus::Anyness
 		if constexpr (CT::Sparse<T>) {
 			// We dereference each pointer - destructors will be called		
 			// if data behind these pointers is fully dereferenced, too		
-			Entry* found {};
+			Allocation* found {};
 			while (data != dataEnd) {
 				// It is very likely, that the next pointer is in the same	
 				// entry, so check for that here to avoid a lengthly search	

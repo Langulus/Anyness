@@ -199,7 +199,7 @@ namespace Langulus::Anyness
 	template<CT::Data K, CT::Data V>
 	Count Map::Emplace(TPair<K, V>&& item, const Index& index) {
 		if (!IsMapInsertable<K, V>())
-			throw Except::Move("Bad emplace in map - pair is not insertable");
+			Throw<Except::Move>("Bad emplace in map - pair is not insertable");
 
 		mKeys.Emplace<K, false, Any>(Move(item.mKey), index);
 		mValues.Emplace<V, false, Any>(Move(item.mValue), index);
@@ -210,7 +210,7 @@ namespace Langulus::Anyness
 	template<CT::Data K, CT::Data V>
 	Count Map::Insert(const TPair<K, V>* items, const Count& count, const Index& index) {
 		if (!IsMapInsertable<K, V>())
-			throw Except::Copy("Bad insert in map");
+			Throw<Except::Copy>("Bad insert in map");
 
 		Count insertedKeys = 0;
 		Count insertedValues = 0;

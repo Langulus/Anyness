@@ -97,7 +97,7 @@ namespace Langulus::Anyness
 					reinterpret_cast<const Byte*>(derived) 
 				 - reinterpret_cast<const Byte*>(base);
 				SAFETY(if (offset > 0)
-					throw Except::Access("Base class is laid (memorywise) before the derived"));
+					Throw<Except::Access>("Base class is laid (memorywise) before the derived"));
 				result.mOffset = static_cast<Offset>(offset);
 			}
 		}
@@ -208,6 +208,8 @@ namespace Langulus::Anyness
 			meta->mSize = CT::Abstract<T> ? 0 : sizeof(T);
 			meta->mAlignment = alignof(T);
 			meta->mAllocationPage = GetAllocationPageOf<T>();
+			for (size_t bit = 0; bit < sizeof(Size) * 8; ++bit)
+				meta->mAllocationTable[bit] = ::std::max(meta->mAllocationPage, (1 << bit) / sizeof(T));
 			meta->mIsPOD = CT::POD<T>;
 			meta->mIsDeep = CT::Deep<T>;
 			
@@ -643,7 +645,18 @@ namespace Langulus::Anyness
 		
 	}
 #endif
-	
+
+	/// Get a size based on reflected allocation page and count (unsafe)			
+	///	@attention assumes byteSize is not zero										
+	///	@param count - the number of elements to request							
+	///	@returns both the provided byte size and reserved count					
+	inline AllocationRequest MetaData::RequestSize(const Size& byteSize) const noexcept {
+		AllocationRequest result;
+		result.mByteSize = Roof2(::std::max(byteSize, mAllocationPage));
+		result.mElementCount = mAllocationTable[CountLeadingZeroes(result.mByteSize)];
+		return result;
+	}
+
 	
 	///                                                                        
    ///   MetaTrait implementation															

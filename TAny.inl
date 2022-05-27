@@ -71,7 +71,7 @@ namespace Langulus::Anyness
 	TEMPLATE()
 	TAny<T>::TAny(Any& other) : TAny {} {
 		if (!CastsToMeta(other.GetType())) {
-			throw Except::Copy(Logger::Error()
+			Throw<Except::Copy>(Logger::Error()
 				<< "Bad shallow-copy-construction for TAny: from "
 				<< GetToken() << " to " << other.GetToken());
 		}
@@ -95,7 +95,7 @@ namespace Langulus::Anyness
 	TEMPLATE()
 	TAny<T>::TAny(Any&& other) : TAny {} {
 		if (!CastsToMeta(other.GetType())) {
-			throw Except::Copy(Logger::Error()
+			Throw<Except::Copy>(Logger::Error()
 				<< "Bad move-construction for TAny: from "
 				<< GetToken() << " to " << other.GetToken());
 		}
@@ -211,7 +211,7 @@ namespace Langulus::Anyness
 		if constexpr (CT::Same<ALT_T, Any>) {
 			// Just reference the memory of the other Any						
 			if (!CastsToMeta(other.mType)) {
-				throw Except::Copy(Logger::Error()
+				Throw<Except::Copy>(Logger::Error()
 					<< "Bad shallow-copy-assignment for TAny: from "
 					<< GetToken() << " to " << other.GetToken());
 			}
@@ -244,7 +244,7 @@ namespace Langulus::Anyness
 			const auto meta = MetaData::Of<Decay<ALT_T>>();
 			if (!CastsToMeta(meta)) {
 				// Can't assign different type to a type-constrained Any		
-				throw Except::Copy(Logger::Error()
+				Throw<Except::Copy>(Logger::Error()
 					<< "Bad shallow-copy-assignment for TAny: from "
 					<< GetToken() << " to " << meta->mToken);
 			}
@@ -283,7 +283,7 @@ namespace Langulus::Anyness
 		else if constexpr (CT::Same<ALT_T, Any> || CT::Same<ALT_T, Disowned<Any>> || CT::Same<ALT_T, Abandoned<Any>>) {
 			// Move the other onto this if type is compatible					
 			if (!CastsToMeta(other.mType)) {
-				throw Except::Copy(Logger::Error()
+				Throw<Except::Copy>(Logger::Error()
 					<< "Bad move-assignment for TAny: from "
 					<< GetToken() << " to " << other.GetToken());
 			}
@@ -532,7 +532,9 @@ namespace Langulus::Anyness
 	TEMPLATE()
 	template<CT::Data K>
 	decltype(auto) TAny<T>::Get(const Offset& index) const SAFETY_NOEXCEPT() {
-		SAFETY(if (index >= mCount) throw Except::Access("Index out of range"));
+		SAFETY(if (index >= mCount)
+			Throw<Except::Access>("Index out of range"));
+
 		const T& element = GetRaw()[index];
 		if constexpr (CT::Dense<T> && CT::Dense<K>)
 			// CT::Dense -> CT::Dense (returning a reference)								
@@ -553,7 +555,9 @@ namespace Langulus::Anyness
 	TEMPLATE()
 	template<CT::Data K>
 	decltype(auto) TAny<T>::Get(const Offset& index) SAFETY_NOEXCEPT() {
-		SAFETY(if (index >= mCount) throw Except::Access("Index out of range"));
+		SAFETY(if (index >= mCount)
+			Throw<Except::Access>("Index out of range"));
+
 		T& element = GetRaw()[index];
 		if constexpr (CT::Dense<T> && CT::Dense<K>)
 			// CT::Dense -> CT::Dense (returning a reference)								
@@ -709,7 +713,7 @@ namespace Langulus::Anyness
 		// Move memory if required														
 		if (starter < mCount) {
 			if (GetUses() > 1) {
-				throw Except::Reference(Logger::Error()
+				Throw<Except::Reference>(Logger::Error()
 					<< "Moving elements that are used from multiple places");
 			}
 
@@ -739,7 +743,7 @@ namespace Langulus::Anyness
 		// Move memory if required														
 		if (starter < mCount) {
 			if (GetUses() > 1) {
-				throw Except::Reference(Logger::Error()
+				Throw<Except::Reference>(Logger::Error()
 					<< "Moving elements that are used from multiple places");
 			}
 
@@ -789,7 +793,7 @@ namespace Langulus::Anyness
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator >> (const T& other) {
 		if (GetUses() > 1) {
-			throw Except::Reference(Logger::Error()
+			Throw<Except::Reference>(Logger::Error()
 				<< "Moving elements that are used from multiple places");
 		}
 
@@ -812,7 +816,7 @@ namespace Langulus::Anyness
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator >> (T&& other) {
 		if (GetUses() > 1) {
-			throw Except::Reference(Logger::Error()
+			Throw<Except::Reference>(Logger::Error()
 				<< "Moving elements that are used from multiple places");
 		}
 
@@ -1034,13 +1038,13 @@ namespace Langulus::Anyness
 	TEMPLATE()
 	Count TAny<T>::RemoveIndex(const Count& starter, const Count& count) {
 		SAFETY(if (starter >= mCount)
-			throw Except::Access(Logger::Error()
+			Throw<Except::Access>(Logger::Error()
 				<< "Index " << starter << " out of range " << mCount));
 		SAFETY(if (count > mCount || starter + count > mCount)
-			throw Except::Access(Logger::Error()
+			Throw<Except::Access>(Logger::Error()
 				<< "Index " << starter << " out of range " << mCount));
 		SAFETY(if (GetUses() > 1)
-			throw Except::Reference(Logger::Error()
+			Throw<Except::Reference>(Logger::Error()
 				<< "Removing elements from a memory block, that is used from multiple places"));
 
 		const auto ender = starter + count;
@@ -1052,12 +1056,12 @@ namespace Langulus::Anyness
 				mCount = starter;
 			else {
 				if (IsConstant()) {
-					throw Except::Access(Logger::Error()
+					Throw<Except::Access>(Logger::Error()
 						<< "Attempting to RemoveIndex in a constant container");
 				}
 
 				if (IsStatic()) {
-					throw Except::Access(Logger::Error()
+					Throw<Except::Access>(Logger::Error()
 						<< "Attempting to RemoveIndex in a static container");
 				}
 
@@ -1069,12 +1073,12 @@ namespace Langulus::Anyness
 		}
 		else {
 			if (IsConstant()) {
-				throw Except::Access(Logger::Error()
+				Throw<Except::Access>(Logger::Error()
 					<< "Attempting to RemoveIndex in a constant container");
 			}
 
 			if (IsStatic()) {
-				throw Except::Access(Logger::Error()
+				Throw<Except::Access>(Logger::Error()
 					<< "Attempting to RemoveIndex in a static container");
 			}
 
@@ -1206,7 +1210,7 @@ namespace Langulus::Anyness
 	TEMPLATE()
 	auto TAny<T>::SparseElement::operator -> () const {
 		if (!mElement)
-			throw Except::Access("Invalid pointer");
+			Throw<Except::Access>("Invalid pointer");
 		return mElement;
 	}
 
@@ -1214,7 +1218,7 @@ namespace Langulus::Anyness
 	TEMPLATE()
 	auto TAny<T>::SparseElement::operator -> () {
 		if (!mElement)
-			throw Except::Access("Invalid pointer");
+			Throw<Except::Access>("Invalid pointer");
 		return mElement;
 	}
 
@@ -1222,7 +1226,7 @@ namespace Langulus::Anyness
 	TEMPLATE()
 	decltype(auto) TAny<T>::SparseElement::operator * () const {
 		if (!mElement)
-			throw Except::Access("Invalid pointer");
+			Throw<Except::Access>("Invalid pointer");
 		return *mElement;
 	}
 
@@ -1230,7 +1234,7 @@ namespace Langulus::Anyness
 	TEMPLATE()
 	decltype(auto) TAny<T>::SparseElement::operator * () {
 		if (!mElement)
-			throw Except::Access("Invalid pointer");
+			Throw<Except::Access>("Invalid pointer");
 		return *mElement;
 	}
 

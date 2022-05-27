@@ -26,7 +26,7 @@ namespace Langulus::Anyness
 	constexpr Index::Index(const T& value)
 		: mIndex {static_cast<Type>(value)} {
 		if (value > static_cast<Count>(MaxIndex))
-			throw Except::Overflow();
+			Throw<Except::Overflow>();
 	}
 
 	/// Constrain the index to some count (immutable)									
@@ -52,7 +52,7 @@ namespace Langulus::Anyness
 	///	@return a valid offset																
 	constexpr Offset Index::GetOffset() const {
 		if (IsSpecial()) {
-			throw Except::Access(Logger::Error()
+			Throw<Except::Access>(Logger::Error()
 				<< "Can't convert special index to offset");
 		}
 

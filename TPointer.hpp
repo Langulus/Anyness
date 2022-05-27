@@ -75,7 +75,7 @@ namespace Langulus::Anyness
 	template<CT::Data T, bool DOUBLE_REFERENCED>
 	class TPointer : public TOwned<Conditional<CT::Constant<T>, const T*, T*>> {
 	protected:
-		Entry* mEntry {};
+		Allocation* mEntry {};
 	
 		void ResetInner();
 

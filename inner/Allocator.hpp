@@ -19,11 +19,11 @@ namespace Langulus::Anyness
 
 	
 	///																								
-	///	Memory entry																			
+	///	Memory allocation																		
 	///																								
-	/// This is a single allocation record inside a memory pool						
+	/// This is a single allocation record													
 	///																								
-	struct Entry {
+	struct Allocation {
 	friend class Allocator;
 	protected:
 		// Allocated bytes for this chunk											
@@ -34,10 +34,10 @@ namespace Langulus::Anyness
 		Pool* mPool;
 
 	public:
-		Entry() = delete;
-		Entry(const Entry&) = delete;
-		Entry(Entry&&) = delete;
-		constexpr Entry(const Size&, Pool*) noexcept;
+		Allocation() = delete;
+		Allocation(const Allocation&) = delete;
+		Allocation(Allocation&&) = delete;
+		constexpr Allocation(const Size&, Pool*) noexcept;
 
 		static constexpr Size GetSize() noexcept;
 		constexpr const Count& GetUses() const noexcept;
@@ -47,7 +47,7 @@ namespace Langulus::Anyness
 		constexpr Size GetTotalSize() const noexcept;
 		constexpr const Size& GetAllocatedSize() const noexcept;
 		bool Contains(const void*) const noexcept;
-		bool CollisionFree(const Entry&) const noexcept;
+		bool CollisionFree(const Allocation&) const noexcept;
 		template<class T>
 		NOD() T* As() const noexcept;
 		constexpr void Keep() noexcept;
@@ -62,7 +62,8 @@ namespace Langulus::Anyness
 	///																								
 	///	Memory allocator																		
 	///																								
-	/// The primary memory management interface											
+	/// The lowest-level memory management interface									
+	/// Basically an overcomplicated wrapper for malloc/free							
 	///																								
 	class Allocator {
 	private:
@@ -90,16 +91,16 @@ namespace Langulus::Anyness
 
 	public:
 		//																						
-		// Standard functionality														
+		//	Standard functionality														
 		//																						
-		NOD() static Entry* Allocate(Size);
-		NOD() static Entry* Reallocate(Size, Entry*);
-		static void Deallocate(Entry*);
+		NOD() static Allocation* Allocate(const Size&);
+		NOD() static Allocation* Reallocate(const Size&, Allocation*);
+		static void Deallocate(Allocation*);
 
 		//																						
 		// More functionality, when feature MANAGED_MEMORY is enabled		
 		//																						
-		NOD() static Entry* Find(DMeta, const void*);
+		NOD() static Allocation* Find(DMeta, const void*);
 		NOD() static bool CheckAuthority(DMeta, const void*);
 		NOD() static Count GetReferences(DMeta, const void*);
 		static void Keep(DMeta, const void*, Count);

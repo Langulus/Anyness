@@ -113,15 +113,15 @@ namespace Langulus::Anyness
 	
 		// The data state																	
 		DataState mState {DataState::Default};
-		// Number of initialized instances inside memory block				
+		// Number of initialized elements inside memory block					
 		Count mCount {};
-		// Number of allocated instances in the memory block					
+		// Number of allocated elements in the memory block					
 		Count mReserved {};
-		// Type of the instances inside the memory block						
+		// Meta data about the elements inside the memory block				
 		DMeta mType {};
 		// Pointer to the allocated block											
 		// If entry is zero, then data is static									
-		Entry* mEntry {};
+		Allocation* mEntry {};
 
 	public:
 		constexpr Block() noexcept = default;
@@ -134,13 +134,13 @@ namespace Langulus::Anyness
 
 		Block(DMeta, Count, const void*) noexcept;
 		Block(DMeta, Count, void*) noexcept;
-		Block(DMeta, Count, const void*, Entry*) noexcept;
-		Block(DMeta, Count, void*, Entry*) noexcept;
+		Block(DMeta, Count, const void*, Allocation*) noexcept;
+		Block(DMeta, Count, void*, Allocation*) noexcept;
 
 		Block(const DataState&, DMeta, Count, const void*) noexcept;
 		Block(const DataState&, DMeta, Count, void*) noexcept;
-		Block(const DataState&, DMeta, Count, const void*, Entry*) noexcept;
-		Block(const DataState&, DMeta, Count, void*, Entry*) noexcept;
+		Block(const DataState&, DMeta, Count, const void*, Allocation*) noexcept;
+		Block(const DataState&, DMeta, Count, void*, Allocation*) noexcept;
 	
 		template<CT::Data T, bool CONSTRAIN = false>
 		NOD() static Block From(T) requires CT::Sparse<T>;
@@ -457,8 +457,7 @@ namespace Langulus::Anyness
 	protected:
 		template<bool CREATE = false>
 		void AllocateInner(const Count&);
-
-		Size RequestByteSize(const Count&) const noexcept;
+		auto RequestSize(const Count&) const noexcept;
 	
 		template<CT::Data T>
 		void EmplaceInner(T&&, const Offset&);

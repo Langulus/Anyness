@@ -89,8 +89,8 @@ namespace Langulus::Anyness
 				"MaxLoadFactor100 needs to be >10 && < 100");
 
 			// Members are sorted so no padding occurs							
-			uint64_t mHashMultiplier = UINT64_C(0xc4ceb9fe1a85ec53);                // 8 byte  8
-			Entry* mEntry = nullptr;																// 8 byte 16
+			uint64_t mHashMultiplier = UINT64_C(0xc4ceb9fe1a85ec53);                // 8/4 byte  8/4
+			Allocation* mEntry = nullptr;															// 8/4 byte 16/8
 
 			// Pointer to the first pair, usually wrapped inside a Node		
 			// Depending on the size of the pair, that node can be either	
@@ -99,7 +99,7 @@ namespace Langulus::Anyness
 			// this is automatically choosen based on sizeof(). There are	
 			// always 2^n pairs.															
 			// Initially, this pointer always reinterprets the mMask 		
-			union {																						// 8 byte 24
+			union {																						// 8/4 byte 24/12
 				Node* mNodes;
 				Byte* mNodeBytes;
 			};
@@ -114,16 +114,16 @@ namespace Langulus::Anyness
 			// Initially, this pointer always reinterprets the mMask			
 			// The start of the info array coincides with the end of the	
 			// pair array, since it is always allocated at the back of it	
-			union {																						// 8 byte 32
+			union {																						// 8/4 byte 32/16
 				uint8_t* mInfo;
 				Node* mNodesEnd;
 			};
 
-			Count mNumElements = 0;																	// 8 byte 40
-			Count mMask = 0;																			// 8 byte 48
-			Count mMaxNumElementsAllowed = 0;													// 8 byte 56
-			InfoType mInfoInc = InitialInfoInc;                                     // 4 byte 60
-			InfoType mInfoHashShift = InitialInfoHashShift;                         // 4 byte 64
+			Count mNumElements = 0;																	// 8/4 byte 40/20
+			Count mMask = 0;																			// 8/4 byte 48/24
+			Count mMaxNumElementsAllowed = 0;													// 8/4 byte 56/28
+			InfoType mInfoInc = InitialInfoInc;                                     // 4 byte 60/32
+			InfoType mInfoHashShift = InitialInfoHashShift;                         // 4 byte 64/36
 
 			// Configuration defaults													
 			// Make sure we have 8 elements, needed to quickly rehash mInfo

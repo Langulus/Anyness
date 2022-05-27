@@ -160,7 +160,7 @@ namespace Langulus::Anyness
 	inline Any& Any::operator = (Any& other) {
 		// Just reference the memory of the other Any							
 		if (IsTypeConstrained() && !CastsToMeta(other.mType)) {
-			throw Except::Copy(Logger::Error()
+			Throw<Except::Copy>(Logger::Error()
 				<< "Bad shallow-copy-assignment for type-constrained Any: from "
 				<< GetToken() << " to " << other.GetToken());
 		}
@@ -177,7 +177,7 @@ namespace Langulus::Anyness
 	inline Any& Any::operator = (Any&& other) {
 		// Free this container and move the other onto it						
 		if (IsTypeConstrained() && !CastsToMeta(other.mType)) {
-			throw Except::Copy(Logger::Error()
+			Throw<Except::Copy>(Logger::Error()
 				<< "Bad shallow-copy-assignment for Any: from "
 				<< GetToken() << " to " << other.GetToken());
 		}
@@ -202,7 +202,7 @@ namespace Langulus::Anyness
 			const auto meta = MetaData::Of<Decay<T>>();
 			if (IsTypeConstrained() && !CastsToMeta(meta)) {
 				// Can't assign different type to a type-constrained Any		
-				throw Except::Copy(Logger::Error()
+				Throw<Except::Copy>(Logger::Error()
 					<< "Bad shallow-copy-assignment for type-constrained Any: from "
 					<< GetToken() << " to " << meta->mToken);
 			}
@@ -242,7 +242,7 @@ namespace Langulus::Anyness
 			const auto meta = MetaData::Of<Decay<T>>();
 			if (IsTypeConstrained() && !CastsToMeta(meta)) {
 				// Can't assign different type to a type-constrained Any		
-				throw Except::Copy(Logger::Error()
+				Throw<Except::Copy>(Logger::Error()
 					<< "Bad shallow-copy-assignment for type-constrained Any: from "
 					<< GetToken() << " to " << meta->mToken);
 			}

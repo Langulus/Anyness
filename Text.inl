@@ -60,7 +60,7 @@ namespace Langulus::Anyness
 			char temp[size];
 			auto [lastChar, errorCode] = ::std::to_chars(temp, temp + size, number, ::std::chars_format::general);
 			if (errorCode != ::std::errc())
-				throw Except::Convert("std::to_chars failure");
+				Throw<Except::Convert>("std::to_chars failure");
 
 			while ((*lastChar == '0' || *lastChar == '.') && lastChar > temp) {
 				if (*lastChar == '.')
@@ -76,7 +76,7 @@ namespace Langulus::Anyness
 			char temp[size];
 			auto [lastChar, errorCode] = ::std::to_chars(temp, temp + size, number);
 			if (errorCode != ::std::errc())
-				throw Except::Convert("std::to_chars failure");
+				Throw<Except::Convert>("std::to_chars failure");
 
 			(*this) += Text {temp, static_cast<Count>(lastChar - temp)};
 		}

@@ -19,13 +19,13 @@ namespace Langulus::Anyness
 	Count Block::Copy(Block& result, bool allocate) const {
 		// Check if there's anything to copy at all								
 		if (IsEmpty()) {
-			throw Except::Copy(VERBOSE(Logger::Error()
+			Throw<Except::Copy>(VERBOSE(Logger::Error()
 				<< "Nothing to copy"));
 		}
 
 		// Check if resulting container is allocated and initialized		
 		if (!allocate && result.IsEmpty()) {
-			throw Except::Copy(VERBOSE(Logger::Error()
+			Throw<Except::Copy>(VERBOSE(Logger::Error()
 				<< "Trying to copy " << GetToken()
 				<< " to an uninitialized memory block " << result.GetToken()));
 		}
@@ -39,7 +39,7 @@ namespace Langulus::Anyness
 			}
 			else {
 				// Data is incompatible for copying									
-				throw Except::Copy(VERBOSE(Logger::Error()
+				Throw<Except::Copy>(VERBOSE(Logger::Error()
 					<< "Can't copy " << GetToken()
 					<< " to incompatible block of type " << result.GetToken()));
 			}
@@ -49,7 +49,7 @@ namespace Langulus::Anyness
 		// Check if counts match														
 		if (mCount != result.mCount) {
 			if (!allocate || !result.IsEmpty()) {
-				throw Except::Copy(VERBOSE(Logger::Error()
+				Throw<Except::Copy>(VERBOSE(Logger::Error()
 					<< "Trying to copy " << GetToken()
 					<< " differently sized memory block " << result.GetToken()));
 			}
@@ -68,7 +68,7 @@ namespace Langulus::Anyness
 
 		// Check if resulting container is constant								
 		if (result.IsConstant()) {
-			throw Except::Copy(VERBOSE(Logger::Error()
+			Throw<Except::Copy>(VERBOSE(Logger::Error()
 				<< "Trying to copy " << GetToken()
 				<< " to constant block " << result.GetToken()));
 		}
@@ -110,7 +110,7 @@ namespace Langulus::Anyness
 
 					// Type may not be compatible after resolve					
 					if (!from.mType->Is(to.mType)) {
-						throw Except::Copy(Logger::Error()
+						Throw<Except::Copy>(Logger::Error()
 							<< "Trying to copy uncompatible types after resolving source: "
 							<< from.GetToken() << " -> " << to.GetToken());
 					}
@@ -128,7 +128,7 @@ namespace Langulus::Anyness
 			else {
 				// Check if a copy operation is available							
 				if (!result.mType->mCopier) {
-					throw Except::Copy(Logger::Error()
+					Throw<Except::Copy>(Logger::Error()
 						<< "Trying to copy uncopiable " << result.GetToken());
 				}
 
@@ -139,7 +139,7 @@ namespace Langulus::Anyness
 
 					// Type may not be compatible after resolve					
 					if (!from.mType->Is(to.mType)) {
-						throw Except::Copy(Logger::Error()
+						Throw<Except::Copy>(Logger::Error()
 							<< "Trying to copy uncompatible types after resolving source: "
 							<< from.GetToken() << " -> " << to.GetToken());
 					}
@@ -215,7 +215,7 @@ namespace Langulus::Anyness
 		else {
 			// Check if a copy operation is available								
 			if (!mType->mCopier) {
-				throw Except::Copy(VERBOSE(Logger::Error()
+				Throw<Except::Copy>(VERBOSE(Logger::Error()
 					<< "Trying to copy uncopiable " << result.GetToken()));
 			}
 
