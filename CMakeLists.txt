@@ -33,3 +33,4 @@ target_include_directories(Langulus.Anyness
 
 # Testing
 add_subdirectory(test)
+add_test(NAME Test.Anyness COMMAND Test.Anyness)
