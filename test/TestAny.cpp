@@ -740,7 +740,7 @@ SCENARIO("Any", "[containers]") {
 		REQUIRE(pack.GetRaw());
 
 		WHEN("Push more stuff") {
-			REQUIRE_THROWS(pack << int(6) << int(7) << int(8) << int(9) << int(10));
+			REQUIRE_THROWS(pack << int(6));
 			THEN("Pack is already full with more packs, so nothing should happen") {
 				REQUIRE(pack.GetCount() == 3);
 				REQUIRE(pack.GetReserved() >= 3);

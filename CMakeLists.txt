@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 include(cmake/DownloadProject.cmake)
 project(Langulus_Anyness)
-include(CTest)
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR} SOURCE_FILES)
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/inner SOURCE_FILES)
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/verbs SOURCE_FILES)
@@ -11,6 +10,7 @@ if(PROJECT_IS_TOP_LEVEL)
     # We're building Anyness as standalone
     set(CMAKE_CXX_STANDARD 20)
     set(CMAKE_CXX_STANDARD_REQUIRED ON)
+    enable_testing()
 
     # Configure Langulus.Core
     message(STATUS "Configuring external project: Langulus.Core...")
