@@ -93,4 +93,4 @@ jobs:
       - name: Build
         run: cmake --build out/${{ matrix.config.name }} --config ${{ matrix.config.build_type }}
       - name: Test
-        run: ctest -V --debug
+        run: ctest -V --debug out/${{ matrix.config.name }}/test
