@@ -120,7 +120,7 @@ SCENARIO("Iterating containers", "[iteration]") {
 		}
 	}
 
-	GIVEN("Universal maps with some pairs") {
+	/*GIVEN("Universal maps with some pairs") {
 		Map dense;
 		dense
 			<< TPair<Text, int>("one", 1)
@@ -368,7 +368,7 @@ SCENARIO("Iterating containers", "[iteration]") {
 			});
 			REQUIRE(Count(it) == sparse.GetCount());
 		}
-	}
+	}*/
 
 	GIVEN("Any") {
 		constexpr float df = 5.55f;
