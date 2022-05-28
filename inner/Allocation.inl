@@ -6,13 +6,14 @@
 /// See LICENSE file, or https://www.gnu.org/licenses									
 ///																									
 #pragma once
-#include "Allocator.hpp"
+#include "Allocation.hpp"
 
-namespace Langulus::Anyness
+namespace Langulus::Anyness::Inner
 {
    
-   /// Define a new entry in use                                              
-   ///   @param count - the number of allocated elements								
+   /// Initialize an allocation	                                             
+	///	@attention this constructor relies that instance is placed in the		
+	///		beginning of a heap allocation of size GetNewAllocationSize()		
    ///   @param bytes - the number of allocated bytes									
    ///   @param pool - the pool/handle of the entry                           
 	constexpr Allocation::Allocation(const Size& bytes, Pool* pool) noexcept
@@ -23,8 +24,31 @@ namespace Langulus::Anyness
 	/// Get the size of the Allocation structure, rounded up for alignment		
 	///	@return the byte size of the entry, including alignment					
 	constexpr Size Allocation::GetSize() noexcept {
-		constexpr Size alignment {LANGULUS(ALIGN)};
-		return sizeof(Allocation) + alignment - (sizeof(Allocation) % alignment);
+		static_assert(IsPowerOfTwo(Inner::Alignment),
+			"Alignment is not a power-of-two number");
+		return sizeof(Allocation) + Alignment - (sizeof(Allocation) % Alignment);
+	}
+
+	/// Get the size required for allocating a new Allocation						
+	///	@attention																				
+	/// If LANGULUS_FEATURE(MANAGED_MEMORY) is NOT enabled, the layout is:		
+	/// [padding for alignment][Allocation::GetSize()][client memory]				
+	/// If LANGULUS_FEATURE(MANAGED_MEMORY) is enabled, the layout is:			
+	/// [Allocation::GetSize()][client memory]											
+	///	@param size - the usable number of bytes required							
+	///	@return the byte size for a new Allocation, including padding			
+	constexpr Size Allocation::GetNewAllocationSize(const Size& size) noexcept {
+		constexpr Size allocationSize = Allocation::GetSize();
+		static_assert((allocationSize % Alignment) == 0,
+			"Allocation structure is not properly sized");
+
+		#if LANGULUS_FEATURE(MANAGED_MEMORY)
+			// In this case, alignment is ensured by the memory pool			
+			return Allocation::GetSize() + size;
+		#else
+			// In this case, Allocation is the main primitive, so align		
+			return Alignment + Allocation::GetSize() + size;
+		#endif
 	}
 
 	/// Check if the memory of the entry is in use										
@@ -124,4 +148,4 @@ namespace Langulus::Anyness
 		}
 	}
 
-} // namespace Langulus::Anyness
+} // namespace Langulus::Anyness::Inner

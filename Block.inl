@@ -43,7 +43,7 @@ namespace Langulus::Anyness
 		, mCount {count}
 		, mReserved {count}
 		, mState {state}
-		, mEntry {Allocator::Find(meta, raw)} { }
+		, mEntry {Inner::Allocator::Find(meta, raw)} { }
 	
 	/// Manual construction from constant data											
 	/// This constructor has a slight runtime overhead, due to unknown Allocation	
@@ -62,7 +62,7 @@ namespace Langulus::Anyness
 	///	@param count - initial element count and reserve							
 	///	@param raw - pointer to the mutable memory									
 	///	@param entry - the memory entry													
-	inline Block::Block(const DataState& state, DMeta meta, Count count, void* raw, Allocation* entry) noexcept
+	inline Block::Block(const DataState& state, DMeta meta, Count count, void* raw, Inner::Allocation* entry) noexcept
 		: mRaw {static_cast<Byte*>(raw)}
 		, mType {meta}
 		, mCount {count}
@@ -76,7 +76,7 @@ namespace Langulus::Anyness
 	///	@param count - initial element count and reserve							
 	///	@param raw - pointer to the constant memory									
 	///	@param entry - the memory entry													
-	inline Block::Block(const DataState& state, DMeta meta, Count count, const void* raw, Allocation* entry) noexcept
+	inline Block::Block(const DataState& state, DMeta meta, Count count, const void* raw, Inner::Allocation* entry) noexcept
 		: Block {state, meta, count, const_cast<void*>(raw), entry} {
 		MakeConstant();
 	}
@@ -188,7 +188,7 @@ namespace Langulus::Anyness
 			// Destroy all elements and deallocate the entry					
 			if constexpr (DESTROY)
 				CallUnknownDestructors();
-			Allocator::Deallocate(mEntry);
+			Inner::Allocator::Deallocate(mEntry);
 			mEntry = nullptr;
 			return true;
 		}
@@ -253,7 +253,7 @@ namespace Langulus::Anyness
 				// if entry moved (enabling MANAGED_MEMORY feature				
 				// significantly reduces the possiblity for a move)			
 				// Also, make sure to free the previous mEntry if moved		
-				mEntry = Allocator::Reallocate(request.mByteSize, mEntry);
+				mEntry = Inner::Allocator::Reallocate(request.mByteSize, mEntry);
 				if (mEntry != previousBlock.mEntry) {
 					// Memory moved, and we should call move-construction		
 					mRaw = mEntry->GetBlockStart();
@@ -270,7 +270,7 @@ namespace Langulus::Anyness
 			else {
 				// Memory is used from multiple locations, and we must		
 				// copy the memory for this block - we can't move it!			
-				mEntry = Allocator::Allocate(request.mByteSize);
+				mEntry = Inner::Allocator::Allocate(request.mByteSize);
 				mRaw = mEntry->GetBlockStart();
 				mCount = 0;
 				CallCopyConstructors(previousBlock.mCount, previousBlock);
@@ -284,7 +284,7 @@ namespace Langulus::Anyness
 		}
 		else {
 			// Allocate a fresh set of elements										
-			mEntry = Allocator::Allocate(request.mByteSize);
+			mEntry = Inner::Allocator::Allocate(request.mByteSize);
 			mRaw = mEntry->GetBlockStart();
 			if constexpr (CREATE) {
 				// Default-construct everything										
@@ -1096,7 +1096,7 @@ namespace Langulus::Anyness
 			Count c {};
 			while (c < count) {
 				// Reference each pointer												
-				Allocator::Keep(mType, items[c], 1);
+				Inner::Allocator::Keep(mType, items[c], 1);
 				++c;
 			}
 		}
@@ -1136,7 +1136,7 @@ namespace Langulus::Anyness
 			*data = reinterpret_cast<Byte*>(item);
 
 			// Reference the pointer's memory										
-			Allocator::Keep(mType, item, 1);
+			Inner::Allocator::Keep(mType, item, 1);
 		}
 		else {
 			static_assert(!CT::Abstract<T>, "Can't emplace abstract item");
@@ -2022,12 +2022,12 @@ namespace Langulus::Anyness
 		if constexpr (CT::Sparse<T>) {
 			// We dereference each pointer - destructors will be called		
 			// if data behind these pointers is fully dereferenced, too		
-			Allocation* found {};
+			Inner::Allocation* found {};
 			while (data != dataEnd) {
 				// It is very likely, that the next pointer is in the same	
 				// entry, so check for that here to avoid a lengthly search	
 				if (LANGULUS_UNLIKELY(!found || !found->Contains(*data))) {
-					found = Allocator::Find(mType, *data);
+					found = Inner::Allocator::Find(mType, *data);
 					if (!found) {
 						++data;
 						continue;
@@ -2037,7 +2037,7 @@ namespace Langulus::Anyness
 				if (found->GetUses() == 1) {
 					if constexpr (CT::Destroyable<T>)
 						(**data).~Decayed();
-					Allocator::Deallocate(found);
+					Inner::Allocator::Deallocate(found);
 				}
 				else found->Free<false>();
 				++data;

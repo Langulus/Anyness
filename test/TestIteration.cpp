@@ -120,6 +120,7 @@ SCENARIO("Iterating containers", "[iteration]") {
 		}
 	}
 
+	// this test fails on msvc 64bit - causes heap corruption
 	/*GIVEN("Universal maps with some pairs") {
 		Map dense;
 		dense

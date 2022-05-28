@@ -6,50 +6,25 @@
 /// See LICENSE file, or https://www.gnu.org/licenses									
 ///																									
 #include "Allocator.hpp"
-#include "Reflection.hpp"
 #include "Logger.hpp"
 
-namespace Langulus::Anyness
+#if LANGULUS_FEATURE(MANAGED_MEMORY)
+	#include "Pool.hpp"
+#endif
+
+namespace Langulus::Anyness::Inner
 {
-	
-	/// MSVC will likely never support std::aligned_alloc, so we use				
-	/// a custom portable routine that's almost the same								
-	/// https://stackoverflow.com/questions/62962839									
-	///																								
-	/// Each allocation has the following prefixed bytes:								
-	///	[padding][Allocation][allocated bytes...]											
-	///																								
-	///	@param size - the number of bytes to allocate								
-	///	@return a newly allocated memory that is correctly aligned				
-	///	@attention you are responsible for deallocating via AlignedFree 		
-	inline Allocation* AlignedAllocate(const Size& size) {
-		static_assert(IsPowerOfTwo(LANGULUS(ALIGN)), 
-			"Alignment is not a power-of-two number");
-		constexpr auto allocationSize = Allocation::GetSize();
-		static_assert((allocationSize % Size {LANGULUS(ALIGN)}) == 0,
-			"Allocation structure is not properly sized");
-
-		auto base = malloc(Size {LANGULUS(ALIGN)} + Allocation::GetSize() + size);
-		if (!base)
-			Throw<Except::Allocate>(Logger::Error() << "Out of memory");
-
-		// Align pointer to LANGULUS_ALIGN()										
-		auto ptr = reinterpret_cast<Allocation*>(
-			(reinterpret_cast<Pointer>(base) + Pointer {LANGULUS(ALIGN)})
-			& ~Pointer {LANGULUS(ALIGN) - 1}
-		);
-		
-		// Place the entry there														
-		new (ptr) Allocation {size, base};
-		return ptr;
-	}
 	
 	/// Allocate a memory entry																
 	///	@attention doesn't call any constructors										
 	///	@param size - the number of bytes to allocate								
 	///	@return the allocated memory entry												
 	Allocation* Allocator::Allocate(const Size& size) {
-		return AlignedAllocate(size);
+		#if LANGULUS_FEATURE(MANAGED_MEMORY)
+			TODO(); // attempt to reallocate inside the same place in pool
+		#else
+			return Inner::AlignedAllocate(size);
+		#endif
 	}
 
 	/// Reallocate a memory entry																
@@ -65,7 +40,7 @@ namespace Langulus::Anyness
 			TODO(); // attempt to reallocate inside the same place in pool
 		#else
 			// Forget about anything else, realloc is bad design				
-			return AlignedAllocate(size);
+			return Inner::AlignedAllocate(size);
 		#endif
 	}
 	
@@ -170,9 +145,9 @@ namespace Langulus::Anyness
 				// Data is either static or unallocated - don't touch it		
 				return false;
 
-			if (found->mReferences <= times) {
+			if (found->mReferences <= count) {
 				// Deallocate the entry													
-				Deallocate(meta, found);
+				Deallocate(found);
 				return true;
 			}
 
@@ -192,4 +167,4 @@ namespace Langulus::Anyness
 		return mStatistics;
 	}
 
-} // namespace Langulus::Anyness
+} // namespace Langulus::Anyness::Inner

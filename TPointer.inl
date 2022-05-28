@@ -54,7 +54,7 @@ namespace Langulus::Anyness
 	TEMPLATE_SHARED()
 	TPointer<T, DR>::TPointer(Type ptr)
 		: Base {ptr}
-		, mEntry {Allocator::Find(MetaData::Of<T>(), ptr)} {
+		, mEntry {Inner::Allocator::Find(MetaData::Of<T>(), ptr)} {
 		if (Base::mValue) {
 			if (mEntry)
 				mEntry->Keep();
@@ -75,7 +75,7 @@ namespace Langulus::Anyness
 	TEMPLATE_SHARED()
 	TPointer<T, DR> TPointer<T, DR>::Create(Decay<T>&& initializer) requires CT::MoveMakable<Decay<T>> {
 		TPointer pointer;
-		pointer.mEntry = Allocator::Allocate(GetAllocationPageOf<Decay<T>>());
+		pointer.mEntry = Inner::Allocator::Allocate(GetAllocationPageOf<Decay<T>>());
 		pointer.mValue = reinterpret_cast<Type>(pointer.mEntry->GetBlockStart());
 		new (pointer.mValue) Decay<T> {Forward<Decay<T>>(initializer)};
 		return pointer;
@@ -88,7 +88,7 @@ namespace Langulus::Anyness
 	TEMPLATE_SHARED()
 	TPointer<T, DR> TPointer<T, DR>::Create(const Decay<T>& initializer) requires CT::CopyMakable<Decay<T>> {
 		TPointer pointer;
-		pointer.mEntry = Allocator::Allocate(GetAllocationPageOf<Decay<T>>());
+		pointer.mEntry = Inner::Allocator::Allocate(GetAllocationPageOf<Decay<T>>());
 		pointer.mValue = reinterpret_cast<Type>(pointer.mEntry->GetBlockStart());
 		new (pointer.mValue) Decay<T> {initializer};
 		return pointer;
@@ -100,7 +100,7 @@ namespace Langulus::Anyness
 	TEMPLATE_SHARED()
 	TPointer<T, DR> TPointer<T, DR>::Create() requires CT::Defaultable<Decay<T>> {
 		TPointer pointer;
-		pointer.mEntry = Allocator::Allocate(GetAllocationPageOf<Decay<T>>());
+		pointer.mEntry = Inner::Allocator::Allocate(GetAllocationPageOf<Decay<T>>());
 		pointer.mValue = reinterpret_cast<decltype(pointer.mValue)>(pointer.mEntry->GetBlockStart());
 		new (pointer.mValue) Decay<T> {};
 		return pointer;
@@ -113,7 +113,7 @@ namespace Langulus::Anyness
 	TEMPLATE_SHARED() template<typename... ARGS>
 	TPointer<T, DR> TPointer<T, DR>::New(ARGS&&... arguments) {
 		TPointer pointer;
-		pointer.mEntry = Allocator::Allocate(GetAllocationPageOf<Decay<T>>());
+		pointer.mEntry = Inner::Allocator::Allocate(GetAllocationPageOf<Decay<T>>());
 		pointer.mValue = reinterpret_cast<decltype(pointer.mValue)>(pointer.mEntry->GetBlockStart());
 		new (pointer.mValue) Decay<T> {Forward<ARGS>(arguments)...};
 		return pointer;
@@ -138,7 +138,7 @@ namespace Langulus::Anyness
 				using Decayed = Decay<T>;
 				if constexpr (CT::Destroyable<T>)
 					Base::mValue->~Decayed();
-				Allocator::Deallocate(mEntry);
+				Inner::Allocator::Deallocate(mEntry);
 			}
 			else mEntry->Free<false>();
 		}

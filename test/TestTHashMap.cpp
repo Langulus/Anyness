@@ -501,7 +501,7 @@ SCENARIO("THashMap", "[containers]") {
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
 			WHEN("Pack is reset, then immediately allocated again") {
 				map.Reset();
-				map << int(6) << int(7) << int(8) << int(9) << int(10);
+				map << darray2[0] << darray2[1] << darray2[2] << darray2[3] << darray2[4];
 
 				THEN("Block manager should reuse the memory, if MANAGED_MEMORY feature is enabled") {
 					REQUIRE(map.GetRaw() == memory);
@@ -630,7 +630,7 @@ SCENARIO("THashMap", "[containers]") {
 				REQUIRE(pack2.GetUses() == 2);
 				REQUIRE(static_cast<Block&>(pack1) == static_cast<Block&>(pack2));
 				REQUIRE(static_cast<Block&>(pack2) == memory1);
-				REQUIRE_FALSE(Allocator::Find(memory2.GetType(), memory2.GetRaw()));
+				REQUIRE_FALSE(::Langulus::Anyness::Inner::Allocator::Find(memory2.GetType(), memory2.GetRaw()));
 			}
 		}
 
@@ -644,7 +644,7 @@ SCENARIO("THashMap", "[containers]") {
 				REQUIRE_FALSE(pack1.GetRaw());
 				REQUIRE(pack1.GetReserved() == 0);
 				REQUIRE(static_cast<Block&>(pack2) == memory1);
-				REQUIRE_FALSE(Allocator::Find(memory2.GetType(), memory2.GetRaw()));
+				REQUIRE_FALSE(::Langulus::Anyness::Inner::Allocator::Find(memory2.GetType(), memory2.GetRaw()));
 			}
 		}
 
@@ -657,7 +657,7 @@ SCENARIO("THashMap", "[containers]") {
 				REQUIRE(static_cast<Block&>(pack1) == static_cast<Block&>(pack2));
 				REQUIRE(static_cast<Block&>(pack2) == memory1);
 				REQUIRE(static_cast<Block&>(pack2) != memory2);
-				REQUIRE_FALSE(Allocator::Find(memory2.GetType(), memory2.GetRaw()));
+				REQUIRE_FALSE(::Langulus::Anyness::Inner::Allocator::Find(memory2.GetType(), memory2.GetRaw()));
 			}
 		}
 
@@ -668,8 +668,8 @@ SCENARIO("THashMap", "[containers]") {
 
 			THEN("memory1 should be referenced once, memory2 should be released") {
 				REQUIRE_FALSE(pack1.HasAuthority());
-				REQUIRE_FALSE(Allocator::Find(memory1.GetType(), memory1.GetRaw()));
-				REQUIRE_FALSE(Allocator::Find(memory2.GetType(), memory2.GetRaw()));
+				REQUIRE_FALSE(::Langulus::Anyness::Inner::Allocator::Find(memory1.GetType(), memory1.GetRaw()));
+				REQUIRE_FALSE(::Langulus::Anyness::Inner::Allocator::Find(memory2.GetType(), memory2.GetRaw()));
 				REQUIRE(pack2.GetUses() == 1);
 				REQUIRE(memory3.GetUses() == 1);
 			}

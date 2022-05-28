@@ -79,10 +79,10 @@ TEMPLATE_TEST_CASE("Testing GetAllocationPageOf<T> calls", "[allocator]", Type1,
 
 SCENARIO("Testing allocator functions", "[allocator]") {
 	GIVEN("An allocation") {
-		Allocation* entry = nullptr;
+		::Langulus::Anyness::Inner::Allocation* entry = nullptr;
 
 		WHEN("Memory is allocated on the heap") {
-			entry = Allocator::Allocate(512);
+			entry = ::Langulus::Anyness::Inner::Allocator::Allocate(512);
 
 			THEN("Requirements should be met") {
 				REQUIRE(entry->GetBlockStart() != nullptr);
@@ -106,7 +106,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 		}
 
 		WHEN("Referenced once") {
-			entry = Allocator::Allocate(512);
+			entry = ::Langulus::Anyness::Inner::Allocator::Allocate(512);
 			entry->Keep();
 
 			THEN("Requirements should be met") {
@@ -115,7 +115,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 		}
 
 		WHEN("Referenced multiple times") {
-			entry = Allocator::Allocate(512);
+			entry = ::Langulus::Anyness::Inner::Allocator::Allocate(512);
 			entry->Keep(5);
 
 			THEN("Requirements should be met") {
@@ -124,7 +124,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 		}
 
 		WHEN("Dereferenced once without deletion") {
-			entry = Allocator::Allocate(512);
+			entry = ::Langulus::Anyness::Inner::Allocator::Allocate(512);
 			entry->Keep();
 			entry->Free<false>();
 
@@ -134,7 +134,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 		}
 
 		WHEN("Dereferenced multiple times without deletion") {
-			entry = Allocator::Allocate(512);
+			entry = ::Langulus::Anyness::Inner::Allocator::Allocate(512);
 			entry->Keep(5);
 			entry->Free<false>(4);
 
@@ -144,21 +144,21 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 		}
 
 		WHEN("Dereferenced once with deletion") {
-			entry = Allocator::Allocate(512);
+			entry = ::Langulus::Anyness::Inner::Allocator::Allocate(512);
 			entry->Free<true>();
 
 			THEN("We shouldn't be able to access the memory any longer") {
-				REQUIRE_FALSE(Allocator::CheckAuthority(nullptr, entry));
+				REQUIRE_FALSE(::Langulus::Anyness::Inner::Allocator::CheckAuthority(nullptr, entry));
 			}
 		}
 
 		WHEN("Dereferenced multiple times with deletion") {
-			entry = Allocator::Allocate(512);
+			entry = ::Langulus::Anyness::Inner::Allocator::Allocate(512);
 			entry->Keep(5);
 			entry->Free<true>(6);
 
 			THEN("We shouldn't be able to access the memory any longer") {
-				REQUIRE_FALSE(Allocator::CheckAuthority(nullptr, entry));
+				REQUIRE_FALSE(::Langulus::Anyness::Inner::Allocator::CheckAuthority(nullptr, entry));
 			}
 		}
 	}

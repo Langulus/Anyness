@@ -45,7 +45,7 @@ namespace Langulus::Anyness
 		Bytes result {Disown(*this)};
 		if (mCount) {
 			const auto byteSize = RequestByteSize(mCount);
-			result.mEntry = Allocator::Allocate(byteSize);
+			result.mEntry = Inner::Allocator::Allocate(byteSize);
 			result.mRaw = result.mEntry->GetBlockStart();
 			result.mReserved = byteSize;
 			CopyMemory(mRaw, result.mRaw, mCount);

@@ -249,7 +249,7 @@ namespace Langulus::Anyness
 			if (!element.mRaw)
 				return {};
 			element.mState -= DataState::Sparse;
-			element.mEntry = Allocator::Find(element.mType, element.mRaw);
+			element.mEntry = Inner::Allocator::Find(element.mType, element.mRaw);
 		}
 
 		return element;
@@ -385,7 +385,7 @@ namespace Langulus::Anyness
 				Count c {};
 				while (c < count) {
 					// Reference each pointer											
-					Allocator::Keep(mType, pointers[c + mCount], 1);
+					Inner::Allocator::Keep(mType, pointers[c + mCount], 1);
 					++c;
 				}
 			}

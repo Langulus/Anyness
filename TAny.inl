@@ -38,7 +38,7 @@ namespace Langulus::Anyness
 		if (mEntry->GetUses() == 1) {
 			if constexpr (CT::Sparse<T> || !CT::POD<T>)
 				CallKnownDestructors<T>();
-			Allocator::Deallocate(mEntry);
+			Inner::Allocator::Deallocate(mEntry);
 			mEntry = nullptr;
 			return;
 		}
@@ -770,7 +770,7 @@ namespace Langulus::Anyness
 		if constexpr (CT::Sparse<T>) {
 			// Sparse data insertion (copying pointers and referencing)		
 			// Doesn't care about abstract items									
-			Allocator::Keep(mType, other, 1);
+			Inner::Allocator::Keep(mType, other, 1);
 		}
 
 		++mCount;
@@ -1159,7 +1159,7 @@ namespace Langulus::Anyness
 		const auto meta = MetaData::Of<T>();
 		if (mElement) {
 			// Dereference/destroy the previous element							
-			auto entry = Allocator::Find(meta, mElement);
+			auto entry = Inner::Allocator::Find(meta, mElement);
 			if (entry->mReferences == 1) {
 				delete mElement;
 				entry->Deallocate();
@@ -1170,7 +1170,7 @@ namespace Langulus::Anyness
 
 		// Set and reference the new element										
 		mElement = pointer;
-		Allocator::Keep(meta, mElement, 1);
+		Inner::Allocator::Keep(meta, mElement, 1);
 		return *this;
 	}
 
@@ -1184,7 +1184,7 @@ namespace Langulus::Anyness
 
 		// Dereference/destroy the previous element								
 		const auto meta = MetaData::Of<T>();
-		auto entry = Allocator::Find(meta, mElement);
+		auto entry = Inner::Allocator::Find(meta, mElement);
 		if (entry->mReferences == 1) {
 			delete mElement;
 			entry->Deallocate();
@@ -1270,7 +1270,7 @@ namespace Langulus::Anyness
 				auto pointers = GetRawSparse();
 				while (c < count) {
 					// Reference each pointer											
-					Allocator::Keep(mType, pointers[c + mCount], 1);
+					Inner::Allocator::Keep(mType, pointers[c + mCount], 1);
 					++c;
 				}
 			}
@@ -1365,7 +1365,7 @@ namespace Langulus::Anyness
 				// if entry moved (enabling MANAGED_MEMORY feature				
 				// significantly reduces the possiblity for a move)			
 				// Also, make sure to free the previous mEntry if moved		
-				mEntry = Allocator::Reallocate(byteSize, mEntry);
+				mEntry = Inner::Allocator::Reallocate(byteSize, mEntry);
 				if (mEntry != previousBlock.mEntry) {
 					// Memory moved, and we should call move-construction		
 					mRaw = mEntry->GetBlockStart();
@@ -1386,7 +1386,7 @@ namespace Langulus::Anyness
 			else {
 				// Memory is used from multiple locations, and we must		
 				// copy the memory for this block - we can't move it!			
-				mEntry = Allocator::Allocate(byteSize);
+				mEntry = Inner::Allocator::Allocate(byteSize);
 				mRaw = mEntry->GetBlockStart();
 				mCount = 0;
 				CallCopyConstructors(previousBlock.mCount, previousBlock);
@@ -1400,7 +1400,7 @@ namespace Langulus::Anyness
 		}
 		else {
 			// Allocate a fresh set of elements										
-			mEntry = Allocator::Allocate(byteSize);			
+			mEntry = Inner::Allocator::Allocate(byteSize);
 			mRaw = mEntry->GetBlockStart();
 			if constexpr (CREATE) {
 				// Default-construct everything										
@@ -1436,7 +1436,7 @@ namespace Langulus::Anyness
 		else if (mEntry) {
 			// Allocate more space														
 			auto previousBlock = static_cast<Block&>(*this);
-			mEntry = Allocator::Reallocate(GetStride() * newCount, mEntry);
+			mEntry = Inner::Allocator::Reallocate(GetStride() * newCount, mEntry);
 			mRaw = mEntry->GetBlockStart();
 			if constexpr (CT::POD<T>) {
 				// No need to call constructors for POD items					
@@ -1496,7 +1496,7 @@ namespace Langulus::Anyness
 			result.mCount += rhs.mCount;
 			if (result.mCount) {
 				const auto byteSize = RequestByteSize(result.mCount);
-				result.mEntry = Allocator::Allocate(byteSize);
+				result.mEntry = Inner::Allocator::Allocate(byteSize);
 				result.mRaw = result.mEntry->GetBlockStart();
 				result.mReserved = byteSize / result.GetStride();
 				CopyMemory(mRaw, result.mRaw, mCount);

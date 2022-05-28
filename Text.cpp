@@ -157,7 +157,7 @@ namespace Langulus::Anyness
 		Text result {Disown(*this)};
 		if (mCount) {
 			const auto byteSize = RequestByteSize(mCount);
-			result.mEntry = Allocator::Allocate(byteSize);
+			result.mEntry = Inner::Allocator::Allocate(byteSize);
 			result.mRaw = result.mEntry->GetBlockStart();
 			result.mReserved = byteSize;
 			CopyMemory(mRaw, result.mRaw, mCount);
@@ -179,7 +179,7 @@ namespace Langulus::Anyness
 
 		Text result {Disown(*this)};
 		const auto byteSize = RequestByteSize(result.mReserved + 1);
-		result.mEntry = Allocator::Allocate(byteSize);
+		result.mEntry = Inner::Allocator::Allocate(byteSize);
 		result.mRaw = result.mEntry->GetBlockStart();
 		result.mReserved = byteSize;
 		CopyMemory(mRaw, result.mRaw, mCount);

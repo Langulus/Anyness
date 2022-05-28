@@ -121,7 +121,7 @@ namespace Langulus::Anyness
 		DMeta mType {};
 		// Pointer to the allocated block											
 		// If entry is zero, then data is static									
-		Allocation* mEntry {};
+		Inner::Allocation* mEntry {};
 
 	public:
 		constexpr Block() noexcept = default;
@@ -134,13 +134,13 @@ namespace Langulus::Anyness
 
 		Block(DMeta, Count, const void*) noexcept;
 		Block(DMeta, Count, void*) noexcept;
-		Block(DMeta, Count, const void*, Allocation*) noexcept;
-		Block(DMeta, Count, void*, Allocation*) noexcept;
+		Block(DMeta, Count, const void*, Inner::Allocation*) noexcept;
+		Block(DMeta, Count, void*, Inner::Allocation*) noexcept;
 
 		Block(const DataState&, DMeta, Count, const void*) noexcept;
 		Block(const DataState&, DMeta, Count, void*) noexcept;
-		Block(const DataState&, DMeta, Count, const void*, Allocation*) noexcept;
-		Block(const DataState&, DMeta, Count, void*, Allocation*) noexcept;
+		Block(const DataState&, DMeta, Count, const void*, Inner::Allocation*) noexcept;
+		Block(const DataState&, DMeta, Count, void*, Inner::Allocation*) noexcept;
 	
 		template<CT::Data T, bool CONSTRAIN = false>
 		NOD() static Block From(T) requires CT::Sparse<T>;

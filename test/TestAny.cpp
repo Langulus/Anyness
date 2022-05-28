@@ -179,11 +179,11 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(pack.As<int*>() == original_int);
 				REQUIRE_THROWS(pack.As<float*>() == nullptr);
 				#if LANGULUS_FEATURE(NEWDELETE) && LANGULUS_FEATURE(MANAGED_MEMORY)
-					REQUIRE(Allocator::CheckAuthority(meta, original_int));
-					REQUIRE(Allocator::GetReferences(meta, original_int) == 2);
+					REQUIRE(::Langulus::Anyness::Inner::Allocator::CheckAuthority(meta, original_int));
+					REQUIRE(::Langulus::Anyness::Inner::Allocator::GetReferences(meta, original_int) == 2);
 				#else
-					REQUIRE_FALSE(Allocator::CheckAuthority(meta, original_int));
-					REQUIRE(Allocator::GetReferences(meta, original_int) == 1);
+					REQUIRE_FALSE(::Langulus::Anyness::Inner::Allocator::CheckAuthority(meta, original_int));
+					REQUIRE(::Langulus::Anyness::Inner::Allocator::GetReferences(meta, original_int) == 1);
 				#endif
 			}
 
@@ -222,11 +222,11 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(pack.As<int*>() == original_int_backup);
 				REQUIRE_THROWS(pack.As<float*>() == nullptr);
 				#if LANGULUS_FEATURE(NEWDELETE) && LANGULUS_FEATURE(MANAGED_MEMORY)
-					REQUIRE(Allocator::CheckAuthority(meta, original_int_backup));
-					REQUIRE(Allocator::GetReferences(meta, original_int_backup) == 2);
+					REQUIRE(::Langulus::Anyness::Inner::Allocator::CheckAuthority(meta, original_int_backup));
+					REQUIRE(::Langulus::Anyness::Inner::Allocator::GetReferences(meta, original_int_backup) == 2);
 				#else
-					REQUIRE_FALSE(Allocator::CheckAuthority(meta, original_int_backup));
-					REQUIRE(Allocator::GetReferences(meta, original_int_backup) == 1);
+					REQUIRE_FALSE(::Langulus::Anyness::Inner::Allocator::CheckAuthority(meta, original_int_backup));
+					REQUIRE(::Langulus::Anyness::Inner::Allocator::GetReferences(meta, original_int_backup) == 1);
 				#endif
 				REQUIRE(pack.GetUses() == 1);
 			}
@@ -266,11 +266,11 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(another_pack.As<int*>() == original_int);
 				REQUIRE_THROWS(another_pack.As<float*>() == nullptr);
 				#if LANGULUS_FEATURE(NEWDELETE) && LANGULUS_FEATURE(MANAGED_MEMORY)
-					REQUIRE(Allocator::CheckAuthority(meta, original_int));
-					REQUIRE(Allocator::GetReferences(meta, original_int) == 2);
+					REQUIRE(::Langulus::Anyness::Inner::Allocator::CheckAuthority(meta, original_int));
+					REQUIRE(::Langulus::Anyness::Inner::Allocator::GetReferences(meta, original_int) == 2);
 				#else
-					REQUIRE_FALSE(Allocator::CheckAuthority(meta, original_int));
-					REQUIRE(Allocator::GetReferences(meta, original_int) == 1);
+					REQUIRE_FALSE(::Langulus::Anyness::Inner::Allocator::CheckAuthority(meta, original_int));
+					REQUIRE(::Langulus::Anyness::Inner::Allocator::GetReferences(meta, original_int) == 1);
 				#endif
 				REQUIRE(pack.GetUses() == another_pack.GetUses());
 				REQUIRE(pack.GetUses() == 2);
@@ -322,11 +322,11 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(another_pack.As<int*>() == original_int);
 				REQUIRE_THROWS(another_pack.As<float*>() == nullptr);
 				#if LANGULUS_FEATURE(NEWDELETE) && LANGULUS_FEATURE(MANAGED_MEMORY)
-					REQUIRE(Allocator::CheckAuthority(meta, original_int));
-					REQUIRE(Allocator::GetReferences(meta, original_int) == 2);
+					REQUIRE(::Langulus::Anyness::Inner::Allocator::CheckAuthority(meta, original_int));
+					REQUIRE(::Langulus::Anyness::Inner::Allocator::GetReferences(meta, original_int) == 2);
 				#else
-					REQUIRE_FALSE(Allocator::CheckAuthority(meta, original_int));
-					REQUIRE(Allocator::GetReferences(meta, original_int) == 1);
+					REQUIRE_FALSE(::Langulus::Anyness::Inner::Allocator::CheckAuthority(meta, original_int));
+					REQUIRE(::Langulus::Anyness::Inner::Allocator::GetReferences(meta, original_int) == 1);
 				#endif
 				REQUIRE(another_pack.GetUses() == 1);
 			}
@@ -445,11 +445,11 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(pack.GetType() == nullptr);
 				REQUIRE(pack.GetRaw() == nullptr);
 				#if LANGULUS_FEATURE(NEWDELETE) && LANGULUS_FEATURE(MANAGED_MEMORY)
-					REQUIRE(Allocator::CheckAuthority(meta, original_int));
+					REQUIRE(::Langulus::Anyness::Inner::Allocator::CheckAuthority(meta, original_int));
 				#else
-					REQUIRE_FALSE(Allocator::CheckAuthority(meta, original_int));
+					REQUIRE_FALSE(::Langulus::Anyness::Inner::Allocator::CheckAuthority(meta, original_int));
 				#endif
-				REQUIRE(Allocator::GetReferences(meta, original_int) == 1);
+				REQUIRE(::Langulus::Anyness::Inner::Allocator::GetReferences(meta, original_int) == 1);
 			}
 		}
 
@@ -740,7 +740,7 @@ SCENARIO("Any", "[containers]") {
 		REQUIRE(pack.GetRaw());
 
 		WHEN("Push more stuff") {
-			REQUIRE_THROWS(pack << int(6));
+			REQUIRE_THROWS_AS(pack << int(6), Except::Mutate);
 			THEN("Pack is already full with more packs, so nothing should happen") {
 				REQUIRE(pack.GetCount() == 3);
 				REQUIRE(pack.GetReserved() >= 3);
