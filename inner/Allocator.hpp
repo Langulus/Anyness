@@ -41,6 +41,10 @@ namespace Langulus::Anyness::Inner
 		
 		static Statistics mStatistics;
 
+		#if LANGULUS_FEATURE(MANAGED_MEMORY)
+			static Pool* mDefaultPool;
+		#endif
+
 	public:
 		//																						
 		//	Standard functionality														

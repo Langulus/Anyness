@@ -5,6 +5,41 @@
 namespace Langulus::Anyness::Inner
 {
 
+	/// Fast log2																					
+	/// https://stackoverflow.com/questions/11376288									
+	///	@param u - number																		
+	///	@return the log2																		
+	NOD() constexpr Size FastLog2(Size x) noexcept {
+		return Size {8} * sizeof(Size) - CountLeadingZeroes(x) - Size {1};
+	}
+
+	/// Get least significant bit																
+	/// https://stackoverflow.com/questions/757059										
+	///	@param n - number																		
+	///	@return the least significant bit												
+	NOD() constexpr Size LSB(const Size& n) noexcept {
+	#if LANGULUS(BITNESS) == 32
+		constexpr Size DeBruijnBitPosition[32] = {
+			0, 1, 28, 2, 29, 14, 24, 3, 30, 22, 20, 15, 25, 17, 4, 8,
+			31, 27, 13, 23, 21, 19, 16, 7, 26, 12, 18, 6, 11, 5, 10, 9
+		};
+		constexpr Size f = 0x077CB531u;
+		return DeBruijnBitPosition[(Size {n & (0 - n)} * f) >> Size {27}];
+	#elif LANGULUS(BITNESS) == 64
+		constexpr Size DeBruijnBitPosition[64] = {
+			0,   1,  2, 53,  3,  7, 54, 27,  4, 38, 41,  8, 34, 55, 48, 28,
+			62,  5, 39, 46, 44, 42, 22,  9, 24, 35, 59, 56, 49, 18, 29, 11,
+			63, 52,  6, 26, 37, 40, 33, 47, 61, 45, 43, 21, 23, 58, 17, 10,
+			51, 25, 36, 32, 60, 20, 57, 16, 50, 31, 19, 15, 30, 14, 13, 12
+		};
+		constexpr Size f = 0x022fdd63cc95386dul;
+		return DeBruijnBitPosition[(Size {n & (0 - n)} * f) >> Size {58}];
+	#else
+		#error Implement for your architecture
+	#endif
+	}
+
+
 	/// Initialize a pool																		
 	///	@attention this constructor relies that instance is placed in the		
 	///		beginning of a heap allocation of size Pool::NewAllocationSize()	
@@ -13,7 +48,7 @@ namespace Langulus::Anyness::Inner
 	inline Pool::Pool(const Size& size, void* memory) SAFETY_NOEXCEPT() {
 		// Index the memory																
 		SAFETY(if (!IsPowerOfTwo(size))
-			Throw<Except::Allocation>("Bad indexed memory initialization"));
+			Throw<Except::Allocate>("Bad indexed memory initialization"));
 
 		mEntries = mValidEntries = 0;
 		mAllocatedByFrontend = 0;
@@ -125,8 +160,8 @@ namespace Langulus::Anyness::Inner
 			else if (0 == part->GetUses())
 				continue;
 
-			const auto e1 = pcP2N(part);
-			const auto e2 = pcP2N(entry);
+			const auto e1 = reinterpret_cast<const Byte*>(part);
+			const auto e2 = reinterpret_cast<const Byte*>(entry);
 			if (e1 < e2 && e2 - e1 < part->GetTotalSize())
 				Throw<Except::MemoryCollision>("Memory collision");
 			else if (e2 < e1 && e1 - e2 < entry->GetTotalSize())
@@ -139,10 +174,10 @@ namespace Langulus::Anyness::Inner
 	///	@tparam REUSE - enable to attempt reusal of unused entries				
 	///	@tparam SAFE - enable to check for collision (mainly for testing)		
 	///	@param bytes - number of bytes to allocate									
-	///	@return pointer to the new entry inside this pool							
+	///	@return the new allocation, or nullptr if pool is full					
 	template<bool REUSE, bool SAFE>
 	Allocation* Pool::CreateEntry(const Size bytes) noexcept(!SAFE) {
-		const auto bytesWithPadding = Allocation::GetNewAllocationSize();
+		const auto bytesWithPadding = Allocation::GetNewAllocationSize(bytes);
 
 		// Always allocate a bit more for aligning								
 		//auto& stats = PCMEMORY.GetStatistics();
@@ -175,19 +210,24 @@ namespace Langulus::Anyness::Inner
 		if (!CanContain(bytesWithPadding))
 			return nullptr;
 
-		// Add item																			
-		auto entry = AddItem(Entry(bytesWithPadding));
+		// Add a new allocation															
+		auto newEntry = AllocationFromIndex(mEntries);
+		new (newEntry) Allocation {bytes, this};
 		if constexpr (SAFE)
-			CheckCollision(entry);
+			CheckCollision(newEntry);
+
+		++mEntries;
+		++mValidEntries;
+		AddBytes(newEntry->GetTotalSize());
 
 		//stats.mBytesAllocatedByFrontend += entry->Total();
 		//stats.mEntryCount += 1;
-		return entry;
+		return newEntry;
 	}
 
 	/// Remove an entry																			
 	///	@param entry - entry to remove													
-	void Pool::RemoveEntry(Allocation* entry) {
+	inline void Pool::RemoveEntry(Allocation* entry) {
 		/*auto& stats = PCMEMORY.GetStatistics();
 		SAFETY(if (stats.mEntryCount < 1)
 			throw Except::BadDestruction("Removing unregistered mEntryCount")
@@ -210,7 +250,7 @@ namespace Langulus::Anyness::Inner
 	///	@param entry - entry to resize													
 	///	@param bytes - new number of bytes												
 	///	@return true if entry was enlarged without conflict						
-	bool Pool::ResizeEntry(Allocation* entry, const Size bytes) {
+	inline bool Pool::ResizeEntry(Allocation* entry, const Size bytes) {
 		//auto& stats = PCMEMORY.GetStatistics();
 		const auto total = Allocation::GetNewAllocationSize(bytes);
 		if (total > mThreshold) {
@@ -245,25 +285,25 @@ namespace Langulus::Anyness::Inner
 	///	@return a pointer to the element													
 	inline const Allocation* Pool::GetItem(const Offset idx) const noexcept {
 		return const_cast<Pool*>(this)->GetItem(idx);
-	}
-
-	/// Get the entry that corresponds to a given pointer.							
-	/// Guaranteed to be valid for pointers in range									
-	/// [mMemory, mMemory + mMemorySize)													
-	///	@param ptr - the pointer to get the element index of						
-	///	@return pointer to the element													
-	inline T* Pool::GetItem(const void* ptr) noexcept {
-		return static_cast<T*>(AddressFromIndex(ValidateIndex(IndexFromAddress(ptr))));
-	}
-
-	/// Get the entry that corresponds to a given pointer.							
-	/// Guaranteed to be valid for pointers in range									
-	/// [mMemory, mMemory + mMemorySize)													
-	///	@param ptr - the pointer to get the element index of						
-	///	@return pointer to the element													
-	inline const T* Pool::GetItem(const void* ptr) const noexcept {
-		return const_cast<TIndexedMemory<T>*>(this)->GetItem(ptr);
 	}*/
+
+	/// Get the entry that corresponds to a given pointer.							
+	/// Guaranteed to be valid for pointers in range									
+	/// [mMemory, mMemory + mMemorySize)													
+	///	@param ptr - the pointer to get the element index of						
+	///	@return pointer to the element													
+	inline Allocation* Pool::AllocationFromAddress(const void* ptr) noexcept {
+		return AllocationFromIndex(ValidateIndex(IndexFromAddress(ptr)));
+	}
+
+	/// Get the entry that corresponds to a given pointer.							
+	/// Guaranteed to be valid for pointers in range									
+	/// [mMemory, mMemory + mMemorySize)													
+	///	@param ptr - the pointer to get the element index of						
+	///	@return pointer to the element													
+	inline const Allocation* Pool::AllocationFromAddress(const void* ptr) const noexcept {
+		return const_cast<Pool*>(this)->AllocationFromAddress(ptr);
+	}
 
 	/// Check if there is any used memory													
 	///	@return true on at least one valid entry										
@@ -311,13 +351,15 @@ namespace Langulus::Anyness::Inner
 			return nullptr;
 
 		constexpr Size one {1};
-		const Size basePower = pcFastLog2(index);
+		const Size basePower = FastLog2(index);
 		const Size baselessIndex = index - (one << basePower);
 		const Size levelIndex = (baselessIndex << one) + one;
 		const Size memorySize = mAllocatedByBackend >> one;
-		const Size lsb = pcGetLSB(memorySize);
+		const Size lsb = LSB(memorySize);
 		const Size levelSize = (one << (lsb - basePower));
-		return const_cast<void*>(pcN2P(pcP2N(mMemory) + levelIndex * levelSize));
+		return reinterpret_cast<Allocation*>(
+			reinterpret_cast<Byte*>(mMemory) + levelIndex * levelSize
+		);
 	}
 
 	/// Get allocation from index (const)													
@@ -400,7 +442,7 @@ namespace Langulus::Anyness::Inner
 	///	@return index above the given one												
 	Offset Pool::UpIndex(const Offset index) const noexcept {
 		// Credit goes to Vladislav Penchev											
-		return index >> (pcGetLSB(index) + 1u);
+		return index >> (LSB(index) + 1u);
 	}
 
 	/// Get allocation above another allocation											
@@ -417,53 +459,6 @@ namespace Langulus::Anyness::Inner
 	///	@return allocation above the given one, or nullptr if master alloc	
 	const Allocation* Pool::UpperAllocation(const Allocation* address) const noexcept {
 		return const_cast<Pool*>(this)->UpperAllocation(address);
-	}
-
-	/// Set the biggest value and recalculate max entries and threshold			
-	///	@param size - the new size															
-	void Pool::CheckBiggest(int size) {
-		if (size < 0) {
-			// We're removing bytes														
-			if (!mValidEntries) {
-				// There's no valid entry, so reset all values					
-				mBigSet = mBiggestSize = mEntries = 0;
-				mEntriesMax = mAllocatedByBackend / Alignment;
-			}
-			else if (pcptr(-size) == mBiggestSize) {
-				// Removed bytes match the registered bigset size				
-				SAFETY(if (mBigSet == 0)
-					Throw<Except::Allocation>(
-						"Error while removing bytes - biggest size matches, but no big set specified"));
-
-				--mBigSet;
-				if (mBigSet == 0) {
-					mBiggestSize = GetBiggest(mBigSet);
-					SAFETY(if (mBiggestSize > mAllocatedByBackend)
-						Throw<Except::Allocation>(
-							"Memory size is bigger than the biggest registered size. This is impossible"));
-
-					// Recalculate threshold and limits								
-					const auto r2 = Roof2<true>(mBiggestSize);
-					mEntriesMax = mAllocatedByBackend / r2;
-				}
-			}
-		}
-		else {
-			// We're adding bytes														
-			if (pcptr(size) > mBiggestSize) {
-				// New biggest size														
-				mBiggestSize = pcptr(size);
-				mBigSet = 1;
-
-				// Recalculate threshold and limits									
-				mEntriesMax = mAllocatedByBackend / Roof2(mBiggestSize);
-			}
-			else if (pcptr(size) == mBiggestSize)
-				++mBigSet;
-		}
-
-		// Recalculate threshold														
-		mThreshold = mAllocatedByBackend / Roof2(mEntries + 1);
 	}
 
 	/// Recycle an item																			
@@ -513,6 +508,7 @@ namespace Langulus::Anyness::Inner
 				++count;
 			++valids;
 		}
+
 		return result;
 	}
 
@@ -529,24 +525,63 @@ namespace Langulus::Anyness::Inner
 	///	@param bytes - number of bytes to add											
 	void Pool::AddBytes(const Size bytes) SAFETY_NOEXCEPT() {
 		SAFETY(if (mAllocatedByFrontend + bytes > mAllocatedByBackend)
-			Throw<Except::Allocation>(
+			Throw<Except::Allocate>(
 				"Error while allocating bytes - allocated bytes are more that the memory size")
 		);
 
 		mAllocatedByFrontend += bytes;
-		CheckBiggest(int(bytes));
+
+		// We're adding bytes															
+		if (bytes > mBiggestSize) {
+			// New biggest size															
+			mBiggestSize = bytes;
+			mBigSet = 1;
+
+			// Recalculate threshold and limits										
+			mEntriesMax = mAllocatedByBackend / Roof2(mBiggestSize);
+		}
+		else if (bytes == mBiggestSize)
+			++mBigSet;
+
+		mThreshold = mAllocatedByBackend / Roof2(mEntries + 1);
 	}
 
 	/// Remove bytes from indexed memory													
 	///	@param bytes - number of bytes to remove										
 	void Pool::RemoveBytes(const Size bytes) SAFETY_NOEXCEPT() {
 		SAFETY(if (mAllocatedByFrontend < bytes)
-			Throw<Except::Deallocation>(
+			Throw<Except::Deallocate>(
 				"Error while removing bytes - allocated bytes caused underflow")
 		);
 
 		mAllocatedByFrontend -= bytes;
-		CheckBiggest(-int(bytes));
+
+		// We're removing bytes															
+		if (!mValidEntries) {
+			// There's no valid entry, so reset all values						
+			mBigSet = mBiggestSize = mEntries = 0;
+			mEntriesMax = mAllocatedByBackend / Alignment;
+		}
+		else if (bytes == mBiggestSize) {
+			// Removed bytes match the registered bigset size					
+			SAFETY(if (mBigSet == 0)
+				Throw<Except::Allocate>(
+					"Error while removing bytes - biggest size matches, but no big set specified"));
+
+			--mBigSet;
+			if (mBigSet == 0) {
+				mBiggestSize = GetBiggest(mBigSet);
+				SAFETY(if (mBiggestSize > mAllocatedByBackend)
+					Throw<Except::Allocate>(
+						"Memory size is bigger than the biggest registered size. This is impossible"));
+
+				// Recalculate threshold and limits									
+				const auto r2 = Roof2<true>(mBiggestSize);
+				mEntriesMax = mAllocatedByBackend / r2;
+			}
+		}
+
+		mThreshold = mAllocatedByBackend / Roof2(mEntries + 1);
 	}
 
 	/// Add item to the indexed memory														

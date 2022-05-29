@@ -43,7 +43,7 @@ namespace Langulus::Anyness
 			return;
 		}
 
-		mEntry->Free<false>();
+		mEntry->Free();
 		mEntry = nullptr;
 	}
 

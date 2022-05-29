@@ -868,7 +868,7 @@ namespace Langulus::Anyness
 		
 		// If reached, then data is referenced from multiple places			
 		// Don't call destructors, just clear it up and dereference			
-		mEntry->Free<false>();
+		mEntry->Free();
 		mRaw = nullptr;
 		mEntry = nullptr;
 		mCount = mReserved = 0;

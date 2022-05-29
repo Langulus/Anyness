@@ -140,7 +140,7 @@ namespace Langulus::Anyness
 					Base::mValue->~Decayed();
 				Inner::Allocator::Deallocate(mEntry);
 			}
-			else mEntry->Free<false>();
+			else mEntry->Free();
 		}
 	}
 

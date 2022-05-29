@@ -45,7 +45,6 @@ namespace Langulus::Anyness::Inner
 		NOD() Allocation* CreateEntry(Size) noexcept(!SAFE);
 
 		void Init(void*, Size);
-		void CheckBiggest(int size);
 		void Recycle(Offset) noexcept;
 		void Null();
 
@@ -66,6 +65,10 @@ namespace Langulus::Anyness::Inner
 
 		void AddBytes(Size) SAFETY_NOEXCEPT();
 		void RemoveBytes(Size) SAFETY_NOEXCEPT();
+
+		Allocation* AllocationFromAddress(const void*) noexcept;
+		const Allocation* AllocationFromAddress(const void*) const noexcept;
+
 
 		//Allocation* AddItem(const Allocation&) noexcept;
 

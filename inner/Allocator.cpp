@@ -14,16 +14,40 @@
 
 namespace Langulus::Anyness::Inner
 {
+
+	/// Setup the default pool																	
+	Pool* Allocator::mDefaultPool = Inner::AlignedAllocate<Pool>(Pool::DefaultPoolSize);
 	
 	/// Allocate a memory entry																
 	///	@attention doesn't call any constructors										
 	///	@param size - the number of bytes to allocate								
-	///	@return the allocated memory entry												
+	///	@return the allocation																
 	Allocation* Allocator::Allocate(const Size& size) {
+		SAFETY(if (0 == size)
+			Throw<Except::Allocate>("Zero allocation is not allowed"));
+
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
-			TODO(); // attempt to reallocate inside the same place in pool
+			//	Attempt to directly allocate in available pools					
+			auto pool = mDefaultPool;
+			while (pool) {
+				auto memory = pool->CreateEntry(size);
+				if (memory)
+					return memory;
+
+				// Continue inside the poolchain if not able to allocate		
+				pool = pool->mNext;
+			}
+
+			// If reached, available pools can't contain the memory			
+			// Allocate a new pool and add it at the beginning of chain		
+			const auto poolSize = ::std::max(Pool::DefaultPoolSize, Roof2(size));
+			pool = Inner::AlignedAllocate<Pool>(poolSize);
+			auto memory = pool->CreateEntry(size);
+			pool->mNext = mDefaultPool;
+			mDefaultPool = pool;
+			return memory;
 		#else
-			return Inner::AlignedAllocate(size);
+			return Inner::AlignedAllocate<Allocation>(size);
 		#endif
 	}
 
@@ -36,20 +60,39 @@ namespace Langulus::Anyness::Inner
 	///	@param previous - the previous memory entry									
 	///	@return the reallocated memory entry											
 	Allocation* Allocator::Reallocate(const Size& size, Allocation* previous) {
+		SAFETY(if (size == previous->GetAllocatedSize())
+			Throw<Except::Allocate>("Reallocation suboptimal - size is same as previous"));
+		SAFETY(if (size == 0)
+			Throw<Except::Allocate>("Zero reallocation is not allowed"));
+
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
-			TODO(); // attempt to reallocate inside the same place in pool
+			if (size <= previous->mAllocatedBytes && previous->mReferences == 1) {
+				// New size is smaller, so simply record change in place		
+				previous->mPool->ResizeEntry(previous, size);
+				return previous;
+			}
+
+			// New size is bigger, precautions must be taken					
+			if (previous->mPool->ResizeEntry(previous, size))
+				return previous;
+
+			// If this is reached, we have a collision, so memory moves		
+			return Allocator::Allocate(size);
 		#else
 			// Forget about anything else, realloc is bad design				
-			return Inner::AlignedAllocate(size);
+			return Inner::AlignedAllocate<Allocation>(size);
 		#endif
 	}
 	
 	/// Deallocate a memory allocation														
 	///	@attention doesn't call any destructors										
-	///	@param meta - the type of data to deallocate (optional)					
 	///	@param entry - the memory entry to deallocate								
 	void Allocator::Deallocate(Allocation* entry) {
-		free(entry->mPool);
+		#if LANGULUS_FEATURE(MANAGED_MEMORY)
+			entry->mPool->RemoveEntry(entry);
+		#else
+			::std::free(entry->mPool);
+		#endif
 	}
 
 	/// Find a memory entry from pointer													
@@ -61,7 +104,17 @@ namespace Langulus::Anyness::Inner
 	///	@return the reallocated memory entry											
 	Allocation* Allocator::Find(DMeta meta, const void* memory) {
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
-			TODO();
+			// Scan all pools, and find one that contains the memory			
+			auto pool = mDefaultPool;
+			while (pool) {
+				if (pool->Contains(memory))
+					return pool->AllocationFromAddress(memory);
+
+				// Continue inside the poolchain										
+				pool = pool->mNext;
+			}
+
+			return nullptr;
 		#else
 			(void) (meta); (void) (memory);
 			return nullptr;
@@ -79,7 +132,17 @@ namespace Langulus::Anyness::Inner
 	///	@return true if we own the memory												
 	bool Allocator::CheckAuthority(DMeta meta, const void* memory) {
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
-			TODO();
+			// Scan all pools, and find one that contains the memory			
+			auto pool = mDefaultPool;
+			while (pool) {
+				if (pool->Contains(memory))
+					return true;
+
+				// Continue inside the poolchain										
+				pool = pool->mNext;
+			}
+
+			return false;
 		#else
 			(void) (meta); (void) (memory);
 			return false;
@@ -96,10 +159,13 @@ namespace Langulus::Anyness::Inner
 	///	@return the number of references, or 1 if memory is not ours			
 	Count Allocator::GetReferences(DMeta meta, const void* memory) {
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
-			TODO();
+			auto found = Find(meta, memory);
+			if (found)
+				return found->mReferences;
+			return 0;
 		#else
 			(void) (meta); (void) (memory);
-			return 1;
+			return 0;
 		#endif
 	}
 	

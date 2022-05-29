@@ -163,7 +163,10 @@ namespace Langulus::Anyness::Inner
 				node.~Node();
 			}
 
-			oldEntry->Free<true>();
+			if (1 == oldEntry->GetUses())
+				Inner::Allocator::Deallocate(oldEntry);
+			else 
+				oldEntry->Free();
 		}
 	}
 
@@ -331,14 +334,14 @@ namespace Langulus::Anyness::Inner
 
 		// Dereference this table (and eventually destroy elements)			
 		if (mEntry) {
-			if (mEntry->GetUses() == 1) {
+			if (1 == mEntry->GetUses()) {
 				// Destroy all elements but don't deallocate the entry		
 				DestroyNodes();
 			}
 			else {
 				// If reached, then data is referenced from multiple places	
 				// Don't call destructors, just clear it up and dereference	
-				mEntry->Free<false>();
+				mEntry->Free();
 			}
 		}
 
@@ -1058,7 +1061,11 @@ namespace Langulus::Anyness::Inner
 			return;
 
 		DestroyNodes();
-		mEntry->Free<true>();
+
+		if (1 == mEntry->GetUses())
+			Inner::Allocator::Deallocate(mEntry);
+		else
+			mEntry->Free();
 	}
 
 	///																								

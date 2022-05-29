@@ -121,31 +121,21 @@ namespace Langulus::Anyness::Inner
 		++mReferences;
 	}
 
-	/// Reference the entry once																
+	/// Reference the entry 'c' times														
+	///	@param c - the number of references to add									
 	constexpr void Allocation::Keep(const Count& c) noexcept {
 		mReferences += c;
 	}
 
-	/// Dereference the entry once, and deallocate it if not in use after that	
-	template<bool DEALLOCATE>
-	void Allocation::Free() noexcept {
+	/// Dereference the entry once															
+	constexpr void Allocation::Free() noexcept {
 		--mReferences;
-		if constexpr (DEALLOCATE) {
-			if (0 == mReferences)
-				Allocator::Deallocate(this);
-		}
 	}
 
-	/// Dereference the entry once, and deallocate it if not in use after that	
-	template<bool DEALLOCATE>
-	void Allocation::Free(const Count& c) SAFETY_NOEXCEPT() {
-		SAFETY(if (c > mReferences)
-			Throw<Except::Reference>("Invalid dereferencing count"));
+	/// Dereference the entry 'c' times														
+	///	@param c - the number of references to remove								
+	constexpr void Allocation::Free(const Count& c) noexcept {
 		mReferences -= c;
-		if constexpr (DEALLOCATE) {
-			if (0 == mReferences)
-				Allocator::Deallocate(this);
-		}
 	}
 
 } // namespace Langulus::Anyness::Inner

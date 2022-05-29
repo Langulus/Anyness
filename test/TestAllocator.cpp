@@ -126,7 +126,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 		WHEN("Dereferenced once without deletion") {
 			entry = ::Langulus::Anyness::Inner::Allocator::Allocate(512);
 			entry->Keep();
-			entry->Free<false>();
+			entry->Free();
 
 			THEN("Requirements should be met") {
 				REQUIRE(entry->GetUses() == 1);
@@ -136,7 +136,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 		WHEN("Dereferenced multiple times without deletion") {
 			entry = ::Langulus::Anyness::Inner::Allocator::Allocate(512);
 			entry->Keep(5);
-			entry->Free<false>(4);
+			entry->Free(4);
 
 			THEN("Requirements should be met") {
 				REQUIRE(entry->GetUses() == 2);
@@ -145,7 +145,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 
 		WHEN("Dereferenced once with deletion") {
 			entry = ::Langulus::Anyness::Inner::Allocator::Allocate(512);
-			entry->Free<true>();
+			::Langulus::Anyness::Inner::Allocator::Deallocate(entry);
 
 			THEN("We shouldn't be able to access the memory any longer") {
 				REQUIRE_FALSE(::Langulus::Anyness::Inner::Allocator::CheckAuthority(nullptr, entry));
@@ -155,7 +155,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 		WHEN("Dereferenced multiple times with deletion") {
 			entry = ::Langulus::Anyness::Inner::Allocator::Allocate(512);
 			entry->Keep(5);
-			entry->Free<true>(6);
+			::Langulus::Anyness::Inner::Allocator::Deallocate(entry);
 
 			THEN("We shouldn't be able to access the memory any longer") {
 				REQUIRE_FALSE(::Langulus::Anyness::Inner::Allocator::CheckAuthority(nullptr, entry));

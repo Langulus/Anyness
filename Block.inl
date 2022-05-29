@@ -193,7 +193,7 @@ namespace Langulus::Anyness
 			return true;
 		}
 
-		mEntry->Free<false>(times);
+		mEntry->Free(times);
 		mEntry = nullptr;
 		return false;
 	}
@@ -2039,7 +2039,7 @@ namespace Langulus::Anyness
 						(**data).~Decayed();
 					Inner::Allocator::Deallocate(found);
 				}
-				else found->Free<false>();
+				else found->Free();
 				++data;
 			}
 

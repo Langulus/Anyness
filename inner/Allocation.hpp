@@ -98,10 +98,8 @@ namespace Langulus::Anyness::Inner
 		NOD() T* As() const noexcept;
 		constexpr void Keep() noexcept;
 		constexpr void Keep(const Count&) noexcept;
-		template<bool DEALLOCATE>
-		void Free() noexcept;
-		template<bool DEALLOCATE>
-		void Free(const Count&) SAFETY_NOEXCEPT();
+		constexpr void Free() noexcept;
+		constexpr void Free(const Count&) noexcept;
 	};
 
 } // namespace Langulus::Anyness::Inner
