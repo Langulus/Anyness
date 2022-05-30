@@ -11,6 +11,36 @@
 namespace Langulus::Anyness::Inner
 {
    
+	/// MSVC will likely never support std::aligned_alloc, so we use				
+	/// a custom portable routine that's almost the same								
+	/// https://stackoverflow.com/questions/62962839									
+	///																								
+	/// Each allocation has the following prefixed bytes:								
+	/// [padding][T::GetSize()][client bytes...]											
+	///																								
+	///	@param size - the number of client bytes to allocate						
+	///	@return a newly allocated memory that is correctly aligned				
+	///	@attention if LANGULUS_FEATURE(MANAGED_MEMORY) is enabled, this		
+	///		is used to allocate Pool. If not, then it's used to allocate		
+	///		Allocation. For internal use only!											
+	template<AllocationPrimitive T>
+	T* AlignedAllocate(const Size& size) {
+		auto base = malloc(T::GetNewAllocationSize(size));
+		if (!base)
+			Throw<Except::Allocate>("Out of memory");
+
+		// Align pointer to LANGULUS_ALIGN()										
+		auto ptr = reinterpret_cast<T*>(
+			(reinterpret_cast<Pointer>(base) + Pointer {Alignment})
+			& ~Pointer {Alignment - 1}
+		);
+		
+		// Place the entry there														
+		new (ptr) T {size, base};
+		return ptr;
+	}
+
+
    /// Initialize an allocation	                                             
 	///	@attention this constructor relies that instance is placed in the		
 	///		beginning of a heap allocation of size GetNewAllocationSize()		

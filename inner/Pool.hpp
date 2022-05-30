@@ -9,6 +9,10 @@ namespace Langulus::Anyness
 namespace Langulus::Anyness::Inner
 {
 
+	NOD() constexpr Size FastLog2(Size x) noexcept;
+	NOD() constexpr Size LSB(const Size& n) noexcept;
+
+
 	///																								
 	///	A MEMORY POOL 																			
 	///																								
@@ -68,9 +72,6 @@ namespace Langulus::Anyness::Inner
 
 		Allocation* AllocationFromAddress(const void*) noexcept;
 		const Allocation* AllocationFromAddress(const void*) const noexcept;
-
-
-		//Allocation* AddItem(const Allocation&) noexcept;
 
 	public:
 		// Bytes allocated by the backend											

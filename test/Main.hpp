@@ -6,6 +6,7 @@
 /// See LICENSE file, or https://www.gnu.org/licenses									
 ///																									
 #pragma once
+#define LANGULUS_EXPOSE_PRIVATE_HEADERS
 #include <Langulus.Anyness.hpp>
 
 using namespace Langulus;

@@ -8,6 +8,52 @@
 #include "Main.hpp"
 #include <catch2/catch.hpp>
 
+using Type1 = uint8_t;
+using Type2 = uint16_t;
+using Type4 = uint32_t;
+using Type8 = uint64_t;
+
+struct TypeBig {
+	Type1 t1;
+	Type2 t2;
+	Type4 t4;
+	Type8 t8;
+};
+
+struct TypeVeryBig {
+	TypeBig t1;
+	TypeBig t2;
+	TypeBig t4;
+	TypeBig t8[5];
+};
+
+
+SCENARIO("Testing CountLeadingZeroes calls", "[allocator]") {
+	const Size numbers[] {
+		0, 1, 2, 3, 4, 5, 6, 11, 16, 64, 99, 120, 128
+	};
+
+	#if LANGULUS(BITNESS) == 32
+		const Size results[] {
+			32, 31, 30, 30, 29, 29, 29, 28, 27, 25, 25, 25, 24
+		};
+	#elif LANGULUS(BITNESS) == 64
+		const Size results[] {
+			64, 63, 62, 62, 61, 61, 61, 60, 59, 57, 57, 57, 56
+		};
+	#endif
+
+	static_assert(sizeof(numbers) == sizeof(results), "Oops");
+
+	WHEN("FastLog2 is executed") {
+		THEN("Results should be correct") {
+			for (int i = 0; i < sizeof(numbers) / sizeof(Size); ++i) {
+				REQUIRE(::Langulus::CountLeadingZeroes(numbers[i]) == results[i]);
+			}
+		}
+	}
+}
+
 TEMPLATE_TEST_CASE("Testing IsPowerOfTwo calls", "[allocator]", uint8_t, uint16_t, uint32_t, uint64_t) {
 	using T = TestType;
 	const T numbers[] {
@@ -49,24 +95,23 @@ TEMPLATE_TEST_CASE("Testing Roof2 calls", "[allocator]", uint8_t, uint16_t, uint
 	}
 }
 
-using Type1 = uint8_t;
-using Type2 = uint16_t;
-using Type4 = uint32_t;
-using Type8 = uint64_t;
+SCENARIO("Testing FastLog2 calls", "[allocator]") {
+	const Size numbers[] {
+		0, 1, 2, 3, 4, 5, 6, 11, 16, 64, 99, 120, 128
+	};
+	const Size results[] {
+		0, 0, 1, 1, 2, 2, 2,  3,  4,  6,  6,   6,   7
+	};
+	static_assert(sizeof(numbers) == sizeof(results), "Oops");
 
-struct TypeBig {
-	Type1 t1;
-	Type2 t2;
-	Type4 t4;
-	Type8 t8;
-};
-
-struct TypeVeryBig {
-	TypeBig t1;
-	TypeBig t2;
-	TypeBig t4;
-	TypeBig t8[5];
-};
+	WHEN("FastLog2 is executed") {
+		THEN("Results should be correct") {
+			for (int i = 0; i < sizeof(numbers) / sizeof(Size); ++i) {
+				REQUIRE(::Langulus::Anyness::Inner::FastLog2(numbers[i]) == results[i]);
+			}
+		}
+	}
+}
 
 TEMPLATE_TEST_CASE("Testing GetAllocationPageOf<T> calls", "[allocator]", Type1, Type2, Type4, Type8, TypeBig, TypeVeryBig) {
 	WHEN("GetAllocationPageOf<T> is executed") {

@@ -17,3 +17,7 @@
 #include "../Trait.hpp"
 #include "../THashMap.hpp"
 #include "../THashSet.hpp"
+
+#ifdef LANGULUS_EXPOSE_PRIVATE_HEADERS
+	#include "../inner/Pool.hpp"
+#endif

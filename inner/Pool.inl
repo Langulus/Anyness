@@ -9,7 +9,9 @@ namespace Langulus::Anyness::Inner
 	/// https://stackoverflow.com/questions/11376288									
 	///	@param u - number																		
 	///	@return the log2																		
-	NOD() constexpr Size FastLog2(Size x) noexcept {
+	constexpr Size FastLog2(Size x) noexcept {
+		if (x < 2)
+			return 0;
 		return Size {8} * sizeof(Size) - CountLeadingZeroes(x) - Size {1};
 	}
 
@@ -17,26 +19,26 @@ namespace Langulus::Anyness::Inner
 	/// https://stackoverflow.com/questions/757059										
 	///	@param n - number																		
 	///	@return the least significant bit												
-	NOD() constexpr Size LSB(const Size& n) noexcept {
-	#if LANGULUS(BITNESS) == 32
-		constexpr Size DeBruijnBitPosition[32] = {
-			0, 1, 28, 2, 29, 14, 24, 3, 30, 22, 20, 15, 25, 17, 4, 8,
-			31, 27, 13, 23, 21, 19, 16, 7, 26, 12, 18, 6, 11, 5, 10, 9
-		};
-		constexpr Size f = 0x077CB531u;
-		return DeBruijnBitPosition[(Size {n & (0 - n)} * f) >> Size {27}];
-	#elif LANGULUS(BITNESS) == 64
-		constexpr Size DeBruijnBitPosition[64] = {
-			0,   1,  2, 53,  3,  7, 54, 27,  4, 38, 41,  8, 34, 55, 48, 28,
-			62,  5, 39, 46, 44, 42, 22,  9, 24, 35, 59, 56, 49, 18, 29, 11,
-			63, 52,  6, 26, 37, 40, 33, 47, 61, 45, 43, 21, 23, 58, 17, 10,
-			51, 25, 36, 32, 60, 20, 57, 16, 50, 31, 19, 15, 30, 14, 13, 12
-		};
-		constexpr Size f = 0x022fdd63cc95386dul;
-		return DeBruijnBitPosition[(Size {n & (0 - n)} * f) >> Size {58}];
-	#else
-		#error Implement for your architecture
-	#endif
+	constexpr Size LSB(const Size& n) noexcept {
+		#if LANGULUS(BITNESS) == 32
+			constexpr Size DeBruijnBitPosition[32] = {
+				0, 1, 28, 2, 29, 14, 24, 3, 30, 22, 20, 15, 25, 17, 4, 8,
+				31, 27, 13, 23, 21, 19, 16, 7, 26, 12, 18, 6, 11, 5, 10, 9
+			};
+			constexpr Size f = 0x077CB531u;
+			return DeBruijnBitPosition[(Size {n & (0 - n)} * f) >> Size {27}];
+		#elif LANGULUS(BITNESS) == 64
+			constexpr Size DeBruijnBitPosition[64] = {
+				0,   1,  2, 53,  3,  7, 54, 27,  4, 38, 41,  8, 34, 55, 48, 28,
+				62,  5, 39, 46, 44, 42, 22,  9, 24, 35, 59, 56, 49, 18, 29, 11,
+				63, 52,  6, 26, 37, 40, 33, 47, 61, 45, 43, 21, 23, 58, 17, 10,
+				51, 25, 36, 32, 60, 20, 57, 16, 50, 31, 19, 15, 30, 14, 13, 12
+			};
+			constexpr Size f = 0x022fdd63cc95386dul;
+			return DeBruijnBitPosition[(Size {n & (0 - n)} * f) >> Size {58}];
+		#else
+			#error Implement for your architecture
+		#endif
 	}
 
 
@@ -83,7 +85,7 @@ namespace Langulus::Anyness::Inner
 
 	/// Free the whole pool chain																
 	///	@attention make sure this is called for the first pool in the chain	
-	void Pool::FreePoolChain() {
+	inline void Pool::FreePoolChain() {
 		/*auto& stats = PCMEMORY.GetStatistics();
 
 		SAFETY(if (stats.mBytesAllocatedByFrontend < AllocatedByFrontend())
@@ -197,7 +199,7 @@ namespace Langulus::Anyness::Inner
 						CheckCollision(entry);
 
 					new (entry) Allocation {bytes, this};
-					AddBytes(entry->GetTotalSize());
+					AddBytes(bytesWithPadding);
 					Recycle(i);
 					//stats.mBytesAllocatedByFrontend += entry->GetTotalSize();
 					//stats.mEntryCount += 1;
@@ -218,7 +220,7 @@ namespace Langulus::Anyness::Inner
 
 		++mEntries;
 		++mValidEntries;
-		AddBytes(newEntry->GetTotalSize());
+		AddBytes(bytesWithPadding);
 
 		//stats.mBytesAllocatedByFrontend += entry->Total();
 		//stats.mEntryCount += 1;
@@ -270,22 +272,6 @@ namespace Langulus::Anyness::Inner
 		//stats.mBytesAllocatedByFrontend += entry->Total();
 		return true;
 	}
-	
-	/// Get the allocation that corresponds to a given index							
-	/// Guaranteed to be valid for indices between [0, mEntries)					
-	///	@param idx - the entry index														
-	///	@return a pointer to the element													
-	/*inline Allocation* Pool::GetItem(const Offset idx) noexcept {
-		return static_cast<Allocation*>(ValidateAddress(AddressFromIndex(idx)));
-	}
-
-	/// Get the entry that corresponds to a given index								
-	/// Guaranteed to be valid for indices between [0, mEntries)					
-	///	@param idx - the entry index														
-	///	@return a pointer to the element													
-	inline const Allocation* Pool::GetItem(const Offset idx) const noexcept {
-		return const_cast<Pool*>(this)->GetItem(idx);
-	}*/
 
 	/// Get the entry that corresponds to a given pointer.							
 	/// Guaranteed to be valid for pointers in range									
@@ -326,14 +312,14 @@ namespace Langulus::Anyness::Inner
 	}
 
 	/// Null the memory																			
-	void Pool::Null() {
+	inline void Pool::Null() {
 		memset(mMemory, 0, mAllocatedByBackend);
 	}
 
 	/// Get threshold associated with an index											
 	///	@param index - the index															
 	///	@return the threshold																
-	Size Pool::ThresholdFromIndex(const Offset& index) const noexcept {
+	inline Size Pool::ThresholdFromIndex(const Offset& index) const noexcept {
 		auto roof = Roof2(index);
 		if (roof == index)
 			roof *= 2;
@@ -343,7 +329,7 @@ namespace Langulus::Anyness::Inner
 	/// Get allocation from index																
 	///	@param index - the index															
 	///	@return the allocation (not validated and constrained)					
-	Allocation* Pool::AllocationFromIndex(const Offset& index) noexcept {
+	inline Allocation* Pool::AllocationFromIndex(const Offset& index) noexcept {
 		// Credit goes to Vladislav Penchev (G2)									
 		if (index == 0)
 			return mMemory;
@@ -365,14 +351,14 @@ namespace Langulus::Anyness::Inner
 	/// Get allocation from index (const)													
 	///	@param index - the index															
 	///	@return the allocation (not validated and constrained)					
-	const Allocation* Pool::AllocationFromIndex(const Offset& index) const noexcept {
+	inline const Allocation* Pool::AllocationFromIndex(const Offset& index) const noexcept {
 		return const_cast<Pool*>(this)->AllocationFromIndex(index);
 	}
 
 	/// Validate an address, returning an allocation, which is valid				
 	///	@param address - address to validate.											
 	///	@returns the address, or nullptr if invalid									
-	Allocation* Pool::ValidateAddress(const void* address) noexcept {
+	inline Allocation* Pool::ValidateAddress(const void* address) noexcept {
 		// Check if address is inside pool bounds									
 		if (!Contains(address))
 			return nullptr;
@@ -394,14 +380,14 @@ namespace Langulus::Anyness::Inner
 	/// Validate an address, returning an entry, which is valid						
 	///	@param address - address to validate.											
 	///	@returns the address, or nullptr if invalid									
-	const void* Pool::ValidateAddress(const void* address) const noexcept {
+	inline const void* Pool::ValidateAddress(const void* address) const noexcept {
 		return const_cast<Pool*>(this)->ValidateAddress(address);
 	}
 
 	/// Get index from address																	
 	///	@param ptr - the address															
 	///	@return the index																		
-	Offset Pool::IndexFromAddress(const void* ptr) const noexcept {
+	inline Offset Pool::IndexFromAddress(const void* ptr) const noexcept {
 		// Credit goes to Yasen Vidolov (G1)										
 		const auto i = 
 			reinterpret_cast<const Byte*>(ptr) - 
@@ -421,7 +407,7 @@ namespace Langulus::Anyness::Inner
 	/// Validate an index																		
 	///	@param index - index to validate													
 	///	@returns the address, or InvalidIndex if invalid							
-	Offset Pool::ValidateIndex(Offset index) const noexcept {
+	inline Offset Pool::ValidateIndex(Offset index) const noexcept {
 		// Pool is empty, so search is pointless									
 		if (mValidEntries == 0)
 			return InvalidIndex;
@@ -440,7 +426,7 @@ namespace Langulus::Anyness::Inner
 	/// Get index above another index														
 	///	@param index																			
 	///	@return index above the given one												
-	Offset Pool::UpIndex(const Offset index) const noexcept {
+	inline Offset Pool::UpIndex(const Offset index) const noexcept {
 		// Credit goes to Vladislav Penchev											
 		return index >> (LSB(index) + 1u);
 	}
@@ -448,7 +434,7 @@ namespace Langulus::Anyness::Inner
 	/// Get allocation above another allocation											
 	///	@param address - the address of the allocation								
 	///	@return allocation above the given one, or nullptr if master alloc	
-	Allocation* Pool::UpperAllocation(const Allocation* address) noexcept {
+	inline Allocation* Pool::UpperAllocation(const Allocation* address) noexcept {
 		if (address == mMemory)
 			return nullptr;
 		return AllocationFromIndex(UpIndex(IndexFromAddress(address)));
@@ -457,13 +443,13 @@ namespace Langulus::Anyness::Inner
 	/// Get allocation above another allocation (const)								
 	///	@param address - the address of the allocation								
 	///	@return allocation above the given one, or nullptr if master alloc	
-	const Allocation* Pool::UpperAllocation(const Allocation* address) const noexcept {
+	inline const Allocation* Pool::UpperAllocation(const Allocation* address) const noexcept {
 		return const_cast<Pool*>(this)->UpperAllocation(address);
 	}
 
 	/// Recycle an item																			
 	///	@param start - recycled index to start from									
-	void Pool::Recycle(Offset start) noexcept {
+	inline void Pool::Recycle(Offset start) noexcept {
 		// Add a fictional entry														
 		++mValidEntries;
 
@@ -491,7 +477,7 @@ namespace Langulus::Anyness::Inner
 	/// Get the biggest used entry and the number of such								
 	///	@param count - [out] number of matching biggest sizes						
 	///	@return the maximum size															
-	Size Pool::GetBiggest(Count& count) const noexcept {
+	inline Size Pool::GetBiggest(Count& count) const noexcept {
 		Size result {};
 		count = 0;
 		for (Offset i = 0, valids = 0; i < mEntries && valids < mValidEntries; ++i) {
@@ -515,7 +501,7 @@ namespace Langulus::Anyness::Inner
 	///  Check if a memory address resigns inside pool's range						
 	///	@param address - address to check												
 	///	@return true if address belongs to this pool									
-	bool Pool::Contains(const void* address) const noexcept {
+	inline bool Pool::Contains(const void* address) const noexcept {
 		const auto a = reinterpret_cast<const Byte*>(address);
 		const auto blockStart = GetBlockStart();
 		return a >= blockStart && a < blockStart + mAllocatedByFrontend;
@@ -523,7 +509,7 @@ namespace Langulus::Anyness::Inner
 
 	/// Add bytes to the indexed memory														
 	///	@param bytes - number of bytes to add											
-	void Pool::AddBytes(const Size bytes) SAFETY_NOEXCEPT() {
+	inline void Pool::AddBytes(const Size bytes) SAFETY_NOEXCEPT() {
 		SAFETY(if (mAllocatedByFrontend + bytes > mAllocatedByBackend)
 			Throw<Except::Allocate>(
 				"Error while allocating bytes - allocated bytes are more that the memory size")
@@ -548,7 +534,7 @@ namespace Langulus::Anyness::Inner
 
 	/// Remove bytes from indexed memory													
 	///	@param bytes - number of bytes to remove										
-	void Pool::RemoveBytes(const Size bytes) SAFETY_NOEXCEPT() {
+	inline void Pool::RemoveBytes(const Size bytes) SAFETY_NOEXCEPT() {
 		SAFETY(if (mAllocatedByFrontend < bytes)
 			Throw<Except::Deallocate>(
 				"Error while removing bytes - allocated bytes caused underflow")
@@ -583,17 +569,5 @@ namespace Langulus::Anyness::Inner
 
 		mThreshold = mAllocatedByBackend / Roof2(mEntries + 1);
 	}
-
-	/// Add item to the indexed memory														
-	///	@param copythis - copy this item													
-	///	@return the item																		
-	/*T* Pool::AddItem(const T& copythis) noexcept {
-		auto item = AllocationFromIndex(mEntries);
-		new (item) T(copythis);
-		++mEntries;
-		++mValidEntries;
-		AddBytes(item->Total());
-		return item;
-	}*/
 
 } // namespace PCFW::Memory::Inner
