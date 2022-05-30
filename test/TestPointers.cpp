@@ -62,13 +62,13 @@ SCENARIO("Shared pointer manipulation", "[TPointer]") {
 			pointer2 = Ptr<int>::Create(6);
 			pointer = pointer2;
 
-			THEN("Should have exactly two references and jurisdiction") {
+			THEN("Old memory should be freed, but still be in jurisdiction") {
 				REQUIRE(pointer == pointer2);
 				REQUIRE(*pointer == 6);
 				REQUIRE(*pointer2 == 6);
 				#if LANGULUS_FEATURE(MANAGED_MEMORY)
-					REQUIRE(::Langulus::Anyness::Inner::Allocator::CheckAuthority(pointer.GetType(), backup));
-					REQUIRE_FALSE(::Langulus::Anyness::Inner::Allocator::Find(pointer.GetType(), backup));
+					REQUIRE(Anyness::Inner::Allocator::CheckAuthority(pointer.GetType(), backup));
+					REQUIRE_FALSE(Anyness::Inner::Allocator::Find(pointer.GetType(), backup));
 				#endif
 				REQUIRE(pointer2.HasAuthority());
 				REQUIRE(pointer.HasAuthority());

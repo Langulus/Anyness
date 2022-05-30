@@ -101,14 +101,19 @@ namespace Langulus::Anyness::Inner
 	/// Allows us to safely interface unknown memory, possibly reusing it		
 	///	@param meta - the type of data to search for (optional)					
 	///	@param memory - memory pointer													
-	///	@return the reallocated memory entry											
+	///	@return the memory entry that manages the memory pointer, or			
+	///		nullptr if memory is not ours, or is no longer used					
 	Allocation* Allocator::Find(DMeta meta, const void* memory) {
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
 			// Scan all pools, and find one that contains the memory			
 			auto pool = mDefaultPool;
 			while (pool) {
-				if (pool->Contains(memory))
-					return pool->AllocationFromAddress(memory);
+				if (pool->Contains(memory)) {
+					const auto entry = pool->AllocationFromAddress(memory);
+					return entry->GetUses() && entry->Contains(memory) 
+						? entry 
+						: nullptr;
+				}
 
 				// Continue inside the poolchain										
 				pool = pool->mNext;
@@ -123,10 +128,9 @@ namespace Langulus::Anyness::Inner
 
 	/// Check if memory is owned by the memory manager									
 	/// Unlike Allocator::Find, this doesn't check if memory is currently used	
+	/// and returns true, as long as the required pool is still available		
 	///	@attention this function does nothing if										
-	///              LANGULUS_FEATURE(MANAGED_MEMORY) is disabled. This has		
-	///				  dire consequences on sparse containers, since one can not	
-	///				  determine if a pointer is owned or not without it!			
+	///              LANGULUS_FEATURE(MANAGED_MEMORY) is disabled					
 	///	@param meta - the type of data to search for (optional)					
 	///	@param memory - memory pointer													
 	///	@return true if we own the memory												

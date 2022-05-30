@@ -148,49 +148,84 @@ namespace Langulus::Anyness::Inner
 		auto const oldInfo = mInfo;
 		auto const oldMaxElementsWithBuffer = GetElementsWithBuffer(mMask + 1);
 
-		// Resize and move stuff														
+		// Resize 																			
 		initData(numBuckets);
 
-		if (oldMaxElementsWithBuffer > 1) {
+		if (oldMaxElementsWithBuffer > 1 && oldEntry != mEntry) {
+			// Move stuff only if new entry differs from old					
 			for (size_t i = 0; i < oldMaxElementsWithBuffer; ++i) {
 				if (oldInfo[i] == 0)
 					continue;
 
 				// Might throw an exception, which is really bad				
 				// since we are in the middle of moving stuff					
-				auto& node = oldNodes[i];
-				MoveInsertNode(Move(node));
-				node.~Node();
+				MoveInsertNode(Move(oldNodes[i]));
 			}
 
-			if (1 == oldEntry->GetUses())
-				Inner::Allocator::Deallocate(oldEntry);
-			else 
-				oldEntry->Free();
+			if (oldEntry) {
+				// Make sure we free the old entry									
+				if (1 == oldEntry->GetUses()) {
+					// One use only, so free all nodes								
+					for (size_t i = 0; i < oldMaxElementsWithBuffer; ++i) {
+						if (oldInfo[i] == 0)
+							continue;
+						oldNodes[i].~Node();
+					}
+
+					// And then deallocate the old entry							
+					Inner::Allocator::Deallocate(oldEntry);
+				}
+				else oldEntry->Free();
+			}
 		}
 	}
 
 	/// Initialize container and reserve data												
-	///	@attention inner function, assumes mEntry is empty							
 	///	@param maxElements - number of elements to reserve							
 	TABLE_TEMPLATE()
 	void TABLE()::initData(size_t maxElements) {
-		mNumElements = 0;
+		const auto numElementsWithBuffer = GetElementsWithBuffer(maxElements);
+		const auto numBytesTotal = GetBytesTotal(numElementsWithBuffer);
+		const auto previousBlock = mEntry;
+
 		mMask = maxElements - 1;
 		mMaxNumElementsAllowed = GetMaxElementsAllowed(maxElements);
 
-		// Malloc & zero mInfo - faster than calloc everything				
-		auto const numElementsWithBuffer = GetElementsWithBuffer(maxElements);
-		auto const numBytesTotal = GetBytesTotal(numElementsWithBuffer);
-		mEntry = Allocator::Allocate(numBytesTotal);
-		mNodes = mEntry->As<Node>();
-		mInfo = reinterpret_cast<uint8_t*>(mNodes + numElementsWithBuffer);
-		::std::memset(mInfo, 0, numBytesTotal - numElementsWithBuffer * sizeof(Node));
+		if (!mEntry) {
+			// Fresh allocation															
+			mEntry = Allocator::Allocate(numBytesTotal);
+		}
+		else {
+			const auto oldEntry = mEntry;
+			if (mEntry->GetUses() == 1) {
+				// Memory is used only once and it is safe to move it			
+				mEntry = Inner::Allocator::Reallocate(numBytesTotal, mEntry);
+			}
+			else {
+				// Memory is used from multiple locations, and we must		
+				// copy the memory for this block - we can't move it!			
+				mEntry = Inner::Allocator::Allocate(numBytesTotal);
+			}
+		}
 
-		// Set sentinel																	
-		mInfo[numElementsWithBuffer] = 1;
-		mInfoInc = InitialInfoInc;
-		mInfoHashShift = InitialInfoHashShift;
+		if (previousBlock != mEntry) {
+			mNumElements = 0;
+			mNodes = mEntry->As<Node>();
+			mInfo = reinterpret_cast<uint8_t*>(mNodes + numElementsWithBuffer);
+			::std::memset(mInfo, 0, numBytesTotal - numElementsWithBuffer * sizeof(Node));
+
+			// Set sentinel																
+			mInfo[numElementsWithBuffer] = 1;
+			mInfoInc = InitialInfoInc;
+			mInfoHashShift = InitialInfoHashShift;
+		}
+		else {
+			const auto previousInfo = mInfo;
+			mInfo = reinterpret_cast<uint8_t*>(mNodes + numElementsWithBuffer);
+			::std::memmove(previousInfo, mInfo, mNumElements);
+			::std::memset(mInfo + mNumElements, 0, numBytesTotal - numElementsWithBuffer * sizeof(Node) - mNumElements);
+			mInfo[numElementsWithBuffer] = 1;
+		}
 	}
 
 	/// @brief																						
@@ -229,6 +264,7 @@ namespace Langulus::Anyness::Inner
 	bool TABLE()::increase_size() {
 		// Nothing allocated yet? just allocate InitialNumElements			
 		if (0 == mMask) {
+			mNumElements = 0;
 			initData(InitialNumElements);
 			return true;
 		}

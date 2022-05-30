@@ -184,10 +184,9 @@ namespace Langulus::Anyness::Inner
 		// Always allocate a bit more for aligning								
 		//auto& stats = PCMEMORY.GetStatistics();
 		if constexpr (REUSE) {
-			if (mEntries > mValidEntries) {
+			if (mEntries > mValidEntries && bytesWithPadding <= mThreshold) {
 				// If there are recyclable entries									
-				const bool recycleFits = bytesWithPadding <= mThreshold;
-				for (auto i = mLastFreed; i < mEntries && recycleFits; ++i) {
+				for (auto i = mLastFreed; i < mEntries; ++i) {
 					auto entry = AllocationFromIndex(i);
 					if (0 != entry->GetUses()) {
 						++mLastFreed;
@@ -241,11 +240,12 @@ namespace Langulus::Anyness::Inner
 		);
 		stats.mBytesAllocatedByFrontend -= entry->Total();*/
 
-		--mValidEntries;
 		RemoveBytes(entry->GetTotalSize());
 		const auto index = IndexFromAddress(entry);
+		entry->mReferences = 0;
 		if (index < mLastFreed)
 			mLastFreed = index;
+		--mValidEntries;
 	}
 
 	/// Resize an entry																			
@@ -307,8 +307,8 @@ namespace Langulus::Anyness::Inner
 	///	@param bytes - number of bytes to check										
 	///	@return true if bytes can be contained in a new element					
 	constexpr bool Pool::CanContain(const Size& bytes) const noexcept {
-		const auto total = Allocation::GetNewAllocationSize(bytes);
-		return (mEntriesMax > mEntries) && (mAllocatedByFrontend + total <= mAllocatedByBackend) && (mThreshold >= total);
+		const auto requested = Allocation::GetNewAllocationSize(bytes);
+		return mEntriesMax > mValidEntries && mThreshold >= requested;
 	}
 
 	/// Null the memory																			
@@ -504,17 +504,12 @@ namespace Langulus::Anyness::Inner
 	inline bool Pool::Contains(const void* address) const noexcept {
 		const auto a = reinterpret_cast<const Byte*>(address);
 		const auto blockStart = GetBlockStart();
-		return a >= blockStart && a < blockStart + mAllocatedByFrontend;
+		return a >= blockStart && a < blockStart + mAllocatedByBackend;
 	}
 
 	/// Add bytes to the indexed memory														
 	///	@param bytes - number of bytes to add											
 	inline void Pool::AddBytes(const Size bytes) SAFETY_NOEXCEPT() {
-		SAFETY(if (mAllocatedByFrontend + bytes > mAllocatedByBackend)
-			Throw<Except::Allocate>(
-				"Error while allocating bytes - allocated bytes are more that the memory size")
-		);
-
 		mAllocatedByFrontend += bytes;
 
 		// We're adding bytes															
@@ -535,11 +530,6 @@ namespace Langulus::Anyness::Inner
 	/// Remove bytes from indexed memory													
 	///	@param bytes - number of bytes to remove										
 	inline void Pool::RemoveBytes(const Size bytes) SAFETY_NOEXCEPT() {
-		SAFETY(if (mAllocatedByFrontend < bytes)
-			Throw<Except::Deallocate>(
-				"Error while removing bytes - allocated bytes caused underflow")
-		);
-
 		mAllocatedByFrontend -= bytes;
 
 		// We're removing bytes															
@@ -550,16 +540,9 @@ namespace Langulus::Anyness::Inner
 		}
 		else if (bytes == mBiggestSize) {
 			// Removed bytes match the registered bigset size					
-			SAFETY(if (mBigSet == 0)
-				Throw<Except::Allocate>(
-					"Error while removing bytes - biggest size matches, but no big set specified"));
-
 			--mBigSet;
 			if (mBigSet == 0) {
 				mBiggestSize = GetBiggest(mBigSet);
-				SAFETY(if (mBiggestSize > mAllocatedByBackend)
-					Throw<Except::Allocate>(
-						"Memory size is bigger than the biggest registered size. This is impossible"));
 
 				// Recalculate threshold and limits									
 				const auto r2 = Roof2<true>(mBiggestSize);
@@ -570,4 +553,4 @@ namespace Langulus::Anyness::Inner
 		mThreshold = mAllocatedByBackend / Roof2(mEntries + 1);
 	}
 
-} // namespace PCFW::Memory::Inner
+} // namespace Langulus::Anyness::Inner

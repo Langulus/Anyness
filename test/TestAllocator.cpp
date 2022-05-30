@@ -45,10 +45,10 @@ SCENARIO("Testing CountLeadingZeroes calls", "[allocator]") {
 
 	static_assert(sizeof(numbers) == sizeof(results), "Oops");
 
-	WHEN("FastLog2 is executed") {
+	WHEN("CountLeadingZeroes is executed") {
 		THEN("Results should be correct") {
 			for (int i = 0; i < sizeof(numbers) / sizeof(Size); ++i) {
-				REQUIRE(::Langulus::CountLeadingZeroes(numbers[i]) == results[i]);
+				REQUIRE(CountLeadingZeroes(numbers[i]) == results[i]);
 			}
 		}
 	}
@@ -107,7 +107,7 @@ SCENARIO("Testing FastLog2 calls", "[allocator]") {
 	WHEN("FastLog2 is executed") {
 		THEN("Results should be correct") {
 			for (int i = 0; i < sizeof(numbers) / sizeof(Size); ++i) {
-				REQUIRE(::Langulus::Anyness::Inner::FastLog2(numbers[i]) == results[i]);
+				REQUIRE(Anyness::Inner::FastLog2(numbers[i]) == results[i]);
 			}
 		}
 	}
@@ -124,10 +124,10 @@ TEMPLATE_TEST_CASE("Testing GetAllocationPageOf<T> calls", "[allocator]", Type1,
 
 SCENARIO("Testing allocator functions", "[allocator]") {
 	GIVEN("An allocation") {
-		::Langulus::Anyness::Inner::Allocation* entry = nullptr;
+		Anyness::Inner::Allocation* entry = nullptr;
 
 		WHEN("Memory is allocated on the heap") {
-			entry = ::Langulus::Anyness::Inner::Allocator::Allocate(512);
+			entry = Anyness::Inner::Allocator::Allocate(512);
 
 			THEN("Requirements should be met") {
 				REQUIRE(entry->GetBlockStart() != nullptr);
@@ -151,7 +151,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 		}
 
 		WHEN("Referenced once") {
-			entry = ::Langulus::Anyness::Inner::Allocator::Allocate(512);
+			entry = Anyness::Inner::Allocator::Allocate(512);
 			entry->Keep();
 
 			THEN("Requirements should be met") {
@@ -160,7 +160,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 		}
 
 		WHEN("Referenced multiple times") {
-			entry = ::Langulus::Anyness::Inner::Allocator::Allocate(512);
+			entry = Anyness::Inner::Allocator::Allocate(512);
 			entry->Keep(5);
 
 			THEN("Requirements should be met") {
@@ -169,7 +169,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 		}
 
 		WHEN("Dereferenced once without deletion") {
-			entry = ::Langulus::Anyness::Inner::Allocator::Allocate(512);
+			entry = Anyness::Inner::Allocator::Allocate(512);
 			entry->Keep();
 			entry->Free();
 
@@ -179,7 +179,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 		}
 
 		WHEN("Dereferenced multiple times without deletion") {
-			entry = ::Langulus::Anyness::Inner::Allocator::Allocate(512);
+			entry = Anyness::Inner::Allocator::Allocate(512);
 			entry->Keep(5);
 			entry->Free(4);
 
@@ -189,21 +189,23 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 		}
 
 		WHEN("Dereferenced once with deletion") {
-			entry = ::Langulus::Anyness::Inner::Allocator::Allocate(512);
-			::Langulus::Anyness::Inner::Allocator::Deallocate(entry);
+			entry = Anyness::Inner::Allocator::Allocate(512);
+			Anyness::Inner::Allocator::Deallocate(entry);
 
-			THEN("We shouldn't be able to access the memory any longer") {
-				REQUIRE_FALSE(::Langulus::Anyness::Inner::Allocator::CheckAuthority(nullptr, entry));
+			THEN("We shouldn't be able to access the memory any longer, but it is still under out jurisdiction") {
+				REQUIRE(Anyness::Inner::Allocator::CheckAuthority(nullptr, entry));
+				REQUIRE_FALSE(Anyness::Inner::Allocator::Find(nullptr, entry));
 			}
 		}
 
 		WHEN("Dereferenced multiple times with deletion") {
-			entry = ::Langulus::Anyness::Inner::Allocator::Allocate(512);
+			entry = Anyness::Inner::Allocator::Allocate(512);
 			entry->Keep(5);
-			::Langulus::Anyness::Inner::Allocator::Deallocate(entry);
+			Anyness::Inner::Allocator::Deallocate(entry);
 
-			THEN("We shouldn't be able to access the memory any longer") {
-				REQUIRE_FALSE(::Langulus::Anyness::Inner::Allocator::CheckAuthority(nullptr, entry));
+			THEN("We shouldn't be able to access the memory any longer, but it is still under out jurisdiction") {
+				REQUIRE(Anyness::Inner::Allocator::CheckAuthority(nullptr, entry));
+				REQUIRE_FALSE(Anyness::Inner::Allocator::Find(nullptr, entry));
 			}
 		}
 	}
