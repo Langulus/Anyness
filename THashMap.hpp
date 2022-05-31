@@ -6,360 +6,168 @@
 /// See LICENSE file, or https://www.gnu.org/licenses									
 ///																									
 #pragma once
-#include "Map.hpp"
-#include "Iterator.hpp"
-#include <algorithm>
-#include <cstdlib>
-#include <cstring>
-#include <functional>
-#include <limits>
-#include <memory> // only to support hash of smart pointers
-#include <stdexcept>
-#include <string>
-#include <type_traits>
-#include <utility>
-#include <string_view>
-
-#define TABLE_TEMPLATE() template<bool DENSE, Count MaxLoadFactor100, CT::Data K, class V>
-#define TABLE() Table<DENSE, MaxLoadFactor100, K, V>
+#include "TAny.hpp"
 
 namespace Langulus::Anyness
 {
 
-	namespace Inner
-	{
+	///																								
+	/// A highly optimized hashmap implementation, using the Robin Hood			
+	/// algorithm																					
+	///																								
+	template<CT::Data K, CT::Data V>
+	class THashMap {
+	public:
+		static_assert(CT::Comparable<K>, "Can't compare keys for map");
+		using Pair = TPair<K, V>;
+		using Key = K;
+		using Value = V;
+		using Self = THashMap<K, V>;
 
-		/// Type needs to be wider than uint8_t											
-		using InfoType = uint32_t;
+	protected:
+		// The allocation which holds keys and tombstones						
+		Inner::Allocation* mKeys {};
 
-		///                                                                     
-		/// Loosely based on martinus's robin-hood-hashing project              
-		/// Their code is designed to be drop-in replacement for						
-		/// std::unordered_map. Our code is designed to use the Langulus			
-		/// nomenclature and is a completely different animal. For example,		
-		/// our table doesn't get cloned when copied, but gets referenced			
-		/// instead, as well as many other changes that make it consistent for	
-		/// use with Anyness, and Langulus as a whole.									
-		/// Our code has also been ported to C++20 and uses concepts, instead	
-		/// of the SFINAE patterns and partial template specializations.			
-		///                                                                     
-		/// Either way, credit where credit's due:										
-		/// https://github.com/martinus/robin-hood-hashing                      
-		///                                                                     
-		///                                                                     
-		/// A highly optimized hashmap implementation, using the Robin Hood		
-		/// algorithm. The implementation uses the following memory layout:		
+		// A precomputed pointer for the tombstones								
+		// Points to an offset inside mKeys allocation							
+		// Intentionally left not-default initialized							
+		uint8_t* mInfo;
+
+		// The block that contains the values										
+		// It's size and reserve also used for the keys and tombstones		
+		TAny<V> mValues;
+
+	public:
+		constexpr THashMap() noexcept = default;
+		THashMap(::std::initializer_list<Pair>);
+		THashMap(const THashMap&);
+		THashMap(THashMap&&) noexcept;
+
+		THashMap(Disowned<THashMap>&&) noexcept;
+		THashMap(Abandoned<THashMap>&&) noexcept;
+		~THashMap();
+
+		THashMap& operator = (const THashMap&);
+		THashMap& operator = (THashMap&&) noexcept;
+
+		THashMap& operator = (const Pair&);
+		THashMap& operator = (Pair&&) noexcept;
+
+		NOD() DMeta GetKeyType() const;
+		NOD() DMeta GetValueType() const;
+
+		template<class ALT_K>
+		NOD() constexpr bool KeyIs() const noexcept;
+		template<class ALT_V>
+		NOD() constexpr bool ValueIs() const noexcept;
+
+		NOD() constexpr bool IsKeyUntyped() const noexcept;
+		NOD() constexpr bool IsValueUntyped() const noexcept;
+
+		NOD() constexpr bool IsKeyTypeConstrained() const noexcept;
+		NOD() constexpr bool IsValueTypeConstrained() const noexcept;
+
+		NOD() constexpr bool IsKeyAbstract() const noexcept;
+		NOD() constexpr bool IsValueAbstract() const noexcept;
+
+		NOD() constexpr bool IsKeyConstructible() const noexcept;
+		NOD() constexpr bool IsValueConstructible() const noexcept;
+
+		NOD() constexpr bool IsKeyDeep() const noexcept;
+		NOD() constexpr bool IsValueDeep() const noexcept;
+
+		NOD() constexpr bool IsKeySparse() const noexcept;
+		NOD() constexpr bool IsValueSparse() const noexcept;
+
+		NOD() constexpr bool IsKeyDense() const noexcept;
+		NOD() constexpr bool IsValueDense() const noexcept;
+
+		NOD() constexpr Size GetPairStride() const noexcept;
+		NOD() constexpr Size GetKeyStride() const noexcept;
+		NOD() constexpr Size GetValueStride() const noexcept;
+
+		NOD() constexpr const K* GetRawKeys() const noexcept;
+		NOD() constexpr K* GetRawKeys() noexcept;
+		NOD() constexpr const K* GetRawKeysEnd() const noexcept;
+
+		NOD() constexpr const V* GetRawValues() const noexcept;
+		NOD() constexpr V* GetRawValues() noexcept;
+		NOD() constexpr const V* GetRawValuesEnd() const noexcept;
+
+		NOD() constexpr Size GetSize() const noexcept;
+		NOD() constexpr Count GetCount() const noexcept;
+		NOD() constexpr Count GetReserved() const noexcept;
+		NOD() constexpr bool IsEmpty() const noexcept;
+		NOD() constexpr bool IsAllocated() const noexcept;
+
+		NOD() constexpr bool HasAuthority() const noexcept;
+		NOD() constexpr Count GetUses() const noexcept;
+
+		void Allocate(const Count&);
+
+		NOD() THashMap Clone() const;
+
+		THashMap& operator << (Pair&&);
+		THashMap& operator << (const Pair&);
+
+		bool operator == (const THashMap&) const;
+
+
 		///																							
-		/// [Node, Node, ... Node | info, info, ... infoSentinel ]					
+		///	INSERTION																			
 		///																							
-		/// * Node: either a DataNode that directly has the std::pair<key, val>	
-		///   as member, or a DataNode with a pointer to std::pair<key,val>.		
-		///   Which DataNode representation to use depends on how fast the		
-		///   swap() operation is. Heuristically, this is automatically choosen	
-		/// 	based on sizeof(). there are always 2^n Nodes.							
+		Count Insert(::std::initializer_list<Pair>);
+		Count Insert(const Pair&);
+		Count Insert(Pair&&);
+
+		template<class... Args>
+		Count Emplace(Args&&...);
+
+
 		///																							
-		/// * info: Each Node in the map has a corresponding info byte, so		
-		///   there are 2^n info bytes. Each byte is initialized to 0, meaning	
-		///   the corresponding Node is empty. Set to 1 means the corresponding	
-		///   node contains data. Set to 2 means the corresponding Node is		
-		///	filled, but it actually belongs to the previous position and was	
-		///   pushed out because that place is already taken.							
+		///	REMOVAL																				
 		///																							
-		/// * infoSentinel: Sentinel byte set to 1, so that iterator's ++ can	
-		///	stop at end() without the need for an idx variable.					
+		void Clear();
+		void Reset();
+		Count RemoveKey(const K&);
+		Count RemoveValue(const V&);
+		Count RemovePair(const Pair&);
+		void Compact();
+
+
 		///																							
-		TABLE_TEMPLATE()
-		class Table {
-		public:
-			static_assert(CT::Comparable<K>, "Can't compare keys for map");
+		///	SEARCH																				
+		///																							
+		NOD() bool ContainsKey(const K&) const;
+		NOD() bool ContainsValue(const V&) const;
+		NOD() bool ContainsPair(const Pair&) const;
 
-			static constexpr bool IsMap = not CT::Void<V>;
-			static constexpr bool IsSet = CT::Void<V>;
-			static constexpr bool IsOnHeap = !DENSE;
-			static constexpr bool IsOnStack = DENSE;
+		NOD() decltype(auto) At(const K&);
+		NOD() decltype(auto) At(const K&) const;
 
-			using Type = Conditional<IsMap, TPair<K, V>, K>;
-			using Key = K;
-			using Value = V;
-			using Self = TABLE();
-			using Node = Conditional<DENSE, Type, Ptr<Type>>;
+		NOD() decltype(auto) Find(const K&) const;
 
-		private:
-			static_assert(MaxLoadFactor100 > 10 && MaxLoadFactor100 < 100,
-				"MaxLoadFactor100 needs to be >10 && < 100");
+		NOD() decltype(auto) operator[] (const K&) const;
+		NOD() decltype(auto) operator[] (const K&);
 
-			// Members are sorted so no padding occurs							
-			uint64_t mHashMultiplier = UINT64_C(0xc4ceb9fe1a85ec53);                // 8/4 byte  8/4
-			Allocation* mEntry = nullptr;															// 8/4 byte 16/8
+	protected:
+		NOD() decltype(auto) GetKey(const Offset&) const noexcept;
+		NOD() decltype(auto) GetKey(const Offset&) noexcept;
+		NOD() decltype(auto) GetValue(const Offset&) const noexcept;
+		NOD() decltype(auto) GetValue(const Offset&) noexcept;
+		NOD() decltype(auto) GetPair(const Offset&) const noexcept;
+		NOD() decltype(auto) GetPair(const Offset&) noexcept;
 
-			// Pointer to the first pair, usually wrapped inside a Node		
-			// Depending on the size of the pair, that node can be either	
-			// on stack, or on heap. Which node representation to use		
-			// depends on how fast the swap() operation is. Heuristically, 
-			// this is automatically choosen based on sizeof(). There are	
-			// always 2^n pairs.															
-			// Initially, this pointer always reinterprets the mMask 		
-			union {																						// 8/4 byte 24/12
-				Node* mNodes;
-				Byte* mNodeBytes;
-			};
+		NOD() Offset FindIndex(const K&) const;
 
-			// Each pair in the map has a corresponding info byte, so		
-			// there are 2^n info bytes. Each byte is initialized to 0,		
-			// meaning the corresponding spot is empty. Set to 1 means the 
-			// corresponding spot contains data. Set to 2 means the			
-			// corresponding Node is filled, but it actually belongs to		
-			// the previous position and was	pushed out because that place	
-			// is already taken.															
-			// Initially, this pointer always reinterprets the mMask			
-			// The start of the info array coincides with the end of the	
-			// pair array, since it is always allocated at the back of it	
-			union {																						// 8/4 byte 32/16
-				uint8_t* mInfo;
-				Node* mNodesEnd;
-			};
+		NOD() Size RequestKeyAndTombstoneSize() const noexcept;
+		void RemoveIndex(const Offset&);
 
-			Count mNumElements = 0;																	// 8/4 byte 40/20
-			Count mMask = 0;																			// 8/4 byte 48/24
-			Count mMaxNumElementsAllowed = 0;													// 8/4 byte 56/28
-			InfoType mInfoInc = InitialInfoInc;                                     // 4 byte 60/32
-			InfoType mInfoHashShift = InitialInfoHashShift;                         // 4 byte 64/36
-
-			// Configuration defaults													
-			// Make sure we have 8 elements, needed to quickly rehash mInfo
-			static constexpr Count InitialNumElements = sizeof(uint64_t);
-			static constexpr uint32_t InitialInfoNumBits = 5;
-			static constexpr uint8_t InitialInfoInc = 1U << InitialInfoNumBits;
-			static constexpr Count InfoMask = InitialInfoInc - 1U;
-			static constexpr uint8_t InitialInfoHashShift = 0;
-
-		public:
-			constexpr Table() noexcept;
-
-			template<typename Iter>
-			Table(Iter, Iter);
-			Table(::std::initializer_list<Pair>);
-
-			Table(Table&&) noexcept;
-			Table(const Table&);
-
-			Table(Disowned<Table>&&) noexcept;
-			Table(Abandoned<Table>&&) noexcept;
-			~Table();
-
-			Table& operator = (Table&&) noexcept;
-			Table& operator = (const Table&);
-
-			Table& operator = (Type&&) noexcept;
-			Table& operator = (const Type&);
-
-			NOD() DMeta GetKeyType() const;
-			NOD() DMeta GetValueType() const;
-
-			template<class ALT_K>
-			NOD() constexpr bool KeyIs() const noexcept;
-			template<class ALT_V>
-			NOD() constexpr bool ValueIs() const noexcept;
-
-			NOD() constexpr bool IsKeyUntyped() const noexcept;
-			NOD() constexpr bool IsValueUntyped() const noexcept;
-
-			NOD() constexpr bool IsKeyTypeConstrained() const noexcept;
-			NOD() constexpr bool IsValueTypeConstrained() const noexcept;
-
-			NOD() constexpr bool IsKeyAbstract() const noexcept;
-			NOD() constexpr bool IsValueAbstract() const noexcept;
-
-			NOD() constexpr bool IsKeyConstructible() const noexcept;
-			NOD() constexpr bool IsValueConstructible() const noexcept;
-
-			NOD() constexpr bool IsKeyDeep() const noexcept;
-			NOD() constexpr bool IsValueDeep() const noexcept;
-
-			NOD() constexpr bool IsKeySparse() const noexcept;
-			NOD() constexpr bool IsValueSparse() const noexcept;
-
-			NOD() constexpr bool IsKeyDense() const noexcept;
-			NOD() constexpr bool IsValueDense() const noexcept;
-
-			NOD() constexpr Size GetPairStride() const noexcept;
-			NOD() constexpr Size GetKeyStride() const noexcept;
-			NOD() constexpr Size GetValueStride() const noexcept;
-
-			NOD() constexpr Node* GetRaw() const noexcept;
-			NOD() constexpr Size GetSize() const noexcept;
-			NOD() constexpr Count GetCount() const noexcept;
-			NOD() constexpr bool IsEmpty() const noexcept;
-			NOD() constexpr bool IsAllocated() const noexcept;
-
-			NOD() bool HasAuthority() const noexcept;
-			NOD() Count GetUses() const noexcept;
-
-			template<bool REHASH = false>
-			void Allocate(size_t);
-			void Rehash(size_t);
-			NOD() Table Clone() const;
-
-			Table& operator << (Type&&);
-			Table& operator << (const Type&);
-
-			bool operator == (const Table&) const;
-
-
-			///																						
-			///	INSERTION																		
-			///																						
-			using iterator = Iterator<false, Table>;
-			using const_iterator = Iterator<true, Table>;
-			using Insertion = ::std::pair<iterator, bool>;
-
-			template<class Iter>
-			void Insert(Iter, Iter);
-			void Insert(::std::initializer_list<Type>);
-
-			template<class... Args>
-			Insertion Emplace(Args&&...);
-
-			template <class... Args>
-			iterator emplace_hint(const_iterator, Args&&...);
-
-			template <class... Args>
-			Insertion try_emplace(const K&, Args&&...);
-			template <class... Args>
-			Insertion try_emplace(K&&, Args&&...);
-			template <class... Args>
-			iterator try_emplace(const_iterator, const K&, Args&&...);
-			template <class... Args>
-			iterator try_emplace(const_iterator, K&&, Args&&...);
-
-			template <class Mapped>
-			Insertion insert_or_assign(const K&, Mapped&&);
-			template <class Mapped>
-			Insertion insert_or_assign(K&&, Mapped&&);
-			template <class Mapped>
-			iterator insert_or_assign(const_iterator, const K&, Mapped&&);
-			template <class Mapped>
-			iterator insert_or_assign(const_iterator, K&&, Mapped&&);
-
-			Insertion Insert(const Type&);
-			iterator Insert(const_iterator, const Type&);
-			Insertion Insert(Type&&);
-			iterator Insert(const_iterator, Type&&);
-
-
-			///																						
-			///	REMOVAL																			
-			///																						
-			void Clear();
-			void Reset();
-			iterator RemoveIndex(const_iterator);
-			iterator RemoveIndex(iterator);
-			Count RemoveKey(const K&);
-			Count RemoveValue(const V&);
-			Count RemovePair(const Type&);
-			void compact();
-
-
-			///																						
-			///	SEARCH																			
-			///																						
-			NOD() bool ContainsKey(const K&) const;
-			NOD() bool ContainsValue(const V&) const;
-			NOD() bool ContainsPair(const Type&) const;
-			//NOD() bool Contains(const Type&) const requires IsSet;
-
-			NOD() const K& GetKey(const Offset&) const noexcept;
-			NOD() K& GetKey(const Offset&) noexcept;
-			NOD() const V& GetValue(const Offset&) const noexcept;
-			NOD() V& GetValue(const Offset&) noexcept;
-			NOD() const Type& GetPair(const Offset&) const noexcept;
-			NOD() Type& GetPair(const Offset&) noexcept;
-
-			NOD() V& At(const K&);
-			NOD() const V& At(const K&) const;
-
-			NOD() const_iterator Find(const K&) const;
-			NOD() iterator Find(const K&);
-
-			NOD() Offset FindIndex(const K&) const;
-
-			NOD() const V& operator[] (const K&) const;
-			NOD() V& operator[] (const K&);
-
-
-			///																						
-			///	ITERATION																		
-			///																						
-			iterator begin();
-			const_iterator begin() const;
-			const_iterator cbegin() const;
-			iterator end();
-			const_iterator end() const;
-			const_iterator cend() const;
-			NOD() constexpr Count max_size() const noexcept;
-			NOD() constexpr float max_load_factor() const noexcept;
-			NOD() constexpr float load_factor() const noexcept;
-			NOD() size_t mask() const noexcept;
-
-		private:
-			template<class HashKey>
-			void keyToIdx(HashKey&&, size_t*, InfoType*) const;
-			void next(InfoType*, size_t*) const noexcept;
-			void nextWhileLess(InfoType*, size_t*) const noexcept;
-			void shiftUp(size_t, size_t const) noexcept(CT::MovableNoexcept<Node>);
-			void shiftDown(size_t) noexcept(CT::MovableNoexcept<Node>);
-			void CloneInner(const Table&);
-			void destroy();
-			void DestroyNodes() noexcept;
-			NOD() const Node& GetNode(const Offset&) const noexcept;
-			NOD() Node& GetNode(const Offset&) noexcept;
-			NOD() static Count GetMaxElementsAllowed(Count) noexcept;
-			NOD() static Count GetBytesInfo(Count) noexcept;
-			NOD() static Count GetElementsWithBuffer(Count) noexcept;
-			NOD() static Count GetBytesTotal(Count);
-			void rehashPowerOfTwo(size_t numBuckets);
-			void initData(size_t maxElements);
-			bool try_increase_info();
-			bool increase_size();
-			void nextHashMultiplier();
-			void init() noexcept;
-			void MoveInsertNode(Node&&);
-			template <class... Args>
-			Insertion try_emplace_impl(K&&, Args&&...);
-			template <class Mapped>
-			Insertion insertOrAssignImpl(K&&, Mapped&&);
-
-			enum class InsertionState {
-				overflow_error,
-				key_found,
-				new_node,
-				overwrite_node
-			};
-
-			struct EmptySpot {
-				Offset mOffset;
-				InsertionState mState;
-			};
-
-			EmptySpot InsertKeyAndPrepareEmptySpot(K&&);
-		};
-
-	} // namespace Langulus::Anyness::Inner
-
-
-	/// Map																							
-	template <CT::Data K, CT::Data V, Count MaxLoadFactor100 = 80>
-	using THashDenseMap = Inner::Table<true, MaxLoadFactor100, K, V>;
-
-	template <CT::Data K, CT::Data V, Count MaxLoadFactor100 = 80>
-	using THashSparseMap = Inner::Table<false, MaxLoadFactor100, K, V>;
-
-	template <CT::Data K, CT::Data V, Count MaxLoadFactor100 = 80>
-	using THashMap = Inner::Table<CT::OnStackCriteria<TPair<K, V>>, MaxLoadFactor100, K, V>;
+		NOD() const uint8_t* GetInfo() const noexcept;
+		NOD() uint8_t* GetInfo() noexcept;
+		NOD() const uint8_t* GetInfoEnd() const noexcept;
+	};
 
 } // namespace Langulus::Anyness
 
 #include "THashMap.inl"
-
-#undef TABLE_TEMPLATE
-#undef TABLE

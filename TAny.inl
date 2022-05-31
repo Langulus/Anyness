@@ -482,19 +482,18 @@ namespace Langulus::Anyness
 			
 			coalesced.Reference(counter);
 		}
-		else {
-			// Clone dense elements														
-			for (Offset i = 0; i < mCount; ++i) {
-				if constexpr (CT::CloneMakable<T>)
-					new (to) Type {from->Clone()};
-				else if constexpr (CT::POD<T>)
-					CopyMemory(from, to, sizeof(Type));
-				else
-					LANGULUS_ASSERT("Can't clone a container made of non-clonable/non-POD type");
-				
-				++from; ++to;				
+		else if constexpr (CT::CloneMakable<T>) {
+			// Clone dense elements by calling Clone() methods one by one	
+			while (from < GetRawEnd()) {
+				new (to) Type {from->Clone()};
+				++from; ++to;
 			}
 		}
+		else if constexpr (CT::POD<T>) {
+			// Batch copy everything at once											
+			CopyMemory(from, to, sizeof(Type) * mCount);
+		}
+		else LANGULUS_ASSERT("Can't clone a container made of non-clonable/non-POD type");
 	
 		return Abandon(result);
 	}
@@ -1371,7 +1370,6 @@ namespace Langulus::Anyness
 					mRaw = mEntry->GetBlockStart();
 					mCount = 0;
 					CallKnownMoveConstructors<T>(previousBlock.mCount, Move(previousBlock));
-					//previousBlock.Free();
 				}
 				else {
 					// Avoid dereferencing old data in case we still use it	
@@ -1390,7 +1388,6 @@ namespace Langulus::Anyness
 				mRaw = mEntry->GetBlockStart();
 				mCount = 0;
 				CallCopyConstructors(previousBlock.mCount, previousBlock);
-				//previousBlock.Free();
 				
 				if constexpr (CREATE) {
 					// Default-construct the rest										

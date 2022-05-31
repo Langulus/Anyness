@@ -367,6 +367,12 @@ namespace Langulus::Anyness
 		return mReserved;
 	}
 	
+	/// Get the number of reserved bytes													
+	///	@return the number of reserved bytes											
+	constexpr const Size& Block::GetReservedSize() const noexcept {
+		return mEntry ? mEntry->GetAllocatedSize() : 0;
+	}
+	
 	/// Check if we have jurisdiction over the contained memory						
 	///	@return true if memory is under our authority								
 	constexpr bool Block::HasAuthority() const noexcept {
@@ -1082,27 +1088,30 @@ namespace Langulus::Anyness
 
 	/// Inner insertion function																
 	///	@attention this is an inner function and should be used with caution	
+	///	@attention relies that the required free space has been prepared		
+	///				  at the appropriate place												
 	///	@param items - items to push														
-	///	@param count - number of items inside											
+	///	@param count - number of 'items'													
 	///	@param starter - the offset at which to insert								
 	template<CT::Data T>
 	void Block::InsertInner(const T* items, const Count& count, const Offset& starter) {
 		// Insert new data																
-		auto data = GetRaw() + starter * sizeof(T);
+		auto data = GetRawAs<T>() + starter;
 		if constexpr (CT::Sparse<T>) {
 			// Sparse data insertion (copying pointers and referencing)		
 			// Doesn't care about abstract items									
 			CopyMemory(items, data, sizeof(T) * count);
-			Count c {};
-			while (c < count) {
+
+			const auto itemsEnd = items + count;
+			while (items != itemsEnd) {
 				// Reference each pointer												
-				Inner::Allocator::Keep(mType, items[c], 1);
-				++c;
+				Inner::Allocator::Keep(mType, *items, 1);
+				++items;
 			}
 		}
 		else {
 			// Abstract stuff is allowed only if sparse							
-			static_assert(!CT::Abstract<T>, "Can't insert abstract item");
+			static_assert(!CT::Abstract<T>, "Can't insert abstract item in dense container");
 
 			if constexpr (CT::POD<T>) {
 				// Optimized POD insertion												
@@ -1110,11 +1119,11 @@ namespace Langulus::Anyness
 			}
 			else if constexpr (CT::CopyMakable<T>) {
 				// Dense data insertion (placement copy-construction)			
-				Count c {};
-				while (c < count) {
+				const auto itemsEnd = items + count;
+				while (items != itemsEnd) {
 					// Reset all items													
-					new (data + c * sizeof(T)) T {const_cast<T&>(items[c])};
-					++c;
+					new (data) T {*items};
+					++data;
 				}
 			}
 			else LANGULUS_ASSERT("Can't insert non-copy-constructible item(s)");
@@ -1139,10 +1148,10 @@ namespace Langulus::Anyness
 			Inner::Allocator::Keep(mType, item, 1);
 		}
 		else {
-			static_assert(!CT::Abstract<T>, "Can't emplace abstract item");
+			static_assert(!CT::Abstract<T>, "Can't emplace abstract item in dense container");
 
 			// Dense data insertion (placement move-construction)				
-			auto data = GetRaw() + starter * sizeof(T);
+			auto data = GetRawAs<T>() + starter;
 			if constexpr (CT::MoveMakable<T>)
 				new (data) T {Forward<T>(item)};
 			else
@@ -2016,7 +2025,7 @@ namespace Langulus::Anyness
 	template<class T>
 	void Block::CallKnownDestructors() {
 		using Decayed = Decay<T>;
-		auto data = reinterpret_cast<T*>(mRaw);
+		auto data = GetRawAs<T>();
 		const auto dataEnd = data + mCount;
 
 		if constexpr (CT::Sparse<T>) {
@@ -2067,7 +2076,7 @@ namespace Langulus::Anyness
 		if constexpr(CT::Sparse<T> || CT::POD<T>) {
 			// Copy pointers or POD														
 			const auto size = sizeof(T) * count;
-			MoveMemory(source.mRaw, mRawSparse + mCount, size);
+			MoveMemory(source.mRaw, GetRawAs<T>() + mCount, size);
 
 			// It is safe to just erase source count at this point			
 			// since pointers/PODs don't need to be destroyed					
@@ -2079,16 +2088,19 @@ namespace Langulus::Anyness
 			static_assert(CT::MoveMakable<T>, 
 				"Trying to move-construct but it's impossible for this type");
 
-			auto from = reinterpret_cast<T*>(source.GetRaw());
-			auto to = GetRaw();
-			for (Count i = 0; i < count; ++i)
-				new (to + mCount) T {Move(*from)};
+			auto from = source.GetRawAs<T>();
+			const auto fromEnd = from + count;
+			auto to = GetRawAs<T>() + mCount;
+			while (from != fromEnd) {
+				new (to) T {Move(*from)};
+				++to; ++from;
+			}
 
 			// Note that source.mCount remains the same, to call				
 			// destructors at a later point											
 		}
 		
-		// Only consume the items in the source									
+		// Mark the initialized count													
 		mCount += count;
 	}
 

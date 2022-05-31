@@ -169,6 +169,7 @@ namespace Langulus::Anyness
 		NOD() constexpr const DMeta& GetType() const noexcept;
 		NOD() constexpr const Count& GetCount() const noexcept;
 		NOD() constexpr const Count& GetReserved() const noexcept;
+		NOD() constexpr const Size& GetReservedSize() const noexcept;
 		NOD() Count GetCountDeep() const noexcept;
 		NOD() Count GetCountElementsDeep() const noexcept;
 		NOD() constexpr bool IsAllocated() const noexcept;
@@ -484,7 +485,7 @@ namespace Langulus::Anyness
 		bool Free();
 	
 		void CallDefaultConstructors(const Count&);
-		void CallCopyConstructors(const Count&, const Block&);
+		void CallCopyConstructors(const Count&, const Block&); //TODO make known variant, use code from TAny, also revise all iterations in these functions, including the unknown variants
 
 		void CallUnknownMoveConstructors(Count, Block&&);
 		template<class T>
