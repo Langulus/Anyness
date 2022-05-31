@@ -32,7 +32,7 @@ namespace Langulus::Anyness
 		, mType {meta} { }
 	
 	/// Manual construction from mutable data												
-	/// This constructor has a slight runtime overhead, due to unknown Allocation	
+	/// This constructor has a slight runtime overhead, due to unknown raw		
 	///	@param state - the initial state of the container							
 	///	@param meta - the type of the memory block									
 	///	@param count - initial element count and reserve							
@@ -46,7 +46,7 @@ namespace Langulus::Anyness
 		, mEntry {Inner::Allocator::Find(meta, raw)} { }
 	
 	/// Manual construction from constant data											
-	/// This constructor has a slight runtime overhead, due to unknown Allocation	
+	/// This constructor has a slight runtime overhead, due to unknown raw		
 	///	@param state - the initial state of the container							
 	///	@param meta - the type of the memory block									
 	///	@param count - initial element count and reserve							
@@ -2084,7 +2084,7 @@ namespace Langulus::Anyness
 		}
 		else {
 			// Both RHS and LHS are dense and non POD								
-			// Call the copy-constructor for each element						
+			// Call the move-constructor for each element						
 			static_assert(CT::MoveMakable<T>, 
 				"Trying to move-construct but it's impossible for this type");
 
@@ -2096,8 +2096,10 @@ namespace Langulus::Anyness
 				++to; ++from;
 			}
 
-			// Note that source.mCount remains the same, to call				
-			// destructors at a later point											
+			// Note that source.mCount remains, in order to call				
+			// destructors at a later point (if T is destroyable at all)	
+			if constexpr (!CT::Destroyable<T>)
+				source.mCount = 0;
 		}
 		
 		// Mark the initialized count													

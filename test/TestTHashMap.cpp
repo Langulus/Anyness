@@ -25,7 +25,7 @@ namespace std {
 
 SCENARIO("THashMap", "[containers]") {
 	GIVEN("A default-initialized THashMap instance") {
-		MapType::Type value("five hundred", 555);
+		typename MapType::Pair value("five hundred", 555);
 		StdPair valueStd("five hundred", 555);
 		MapType map;
 		auto meta1 = map.GetKeyType();
@@ -131,14 +131,14 @@ SCENARIO("THashMap", "[containers]") {
 
 	GIVEN("THashMap with some items") {
 		// Arrays are dynamic to avoid constexprification						
-		auto darray1 = new MapType::Type[5] {
+		auto darray1 = new MapType::Pair[5] {
 			{"one", 1}, 
 			{"two", 2}, 
 			{"three", 3},
 			{"four", 4},
 			{"five", 5}
 		};
-		auto darray2 = new MapType::Type[5] {
+		auto darray2 = new MapType::Pair[5] {
 			{"six", 6}, 
 			{"seven", 7}, 
 			{"eight", 8},
@@ -163,7 +163,8 @@ SCENARIO("THashMap", "[containers]") {
 
 		MapType map;
 		map << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
-		auto memory = map.GetRaw();
+		auto keyMemory = map.GetRawKeys();
+		auto valueMemory = map.GetRawValues();
 
 		WHEN("Given a preinitialized THashMap with 5 elements") {
 			THEN("These properties should be correct") {
@@ -203,7 +204,8 @@ SCENARIO("THashMap", "[containers]") {
 				REQUIRE(map["nine"] == 9);
 				REQUIRE(map["ten"] == 10);
 				#if LANGULUS_FEATURE(MANAGED_MEMORY)
-					REQUIRE(map.GetRaw() == memory);
+					REQUIRE(map.GetRawKeys() == keyMemory);
+					REQUIRE(map.GetRawValues() == valueMemory);
 				#endif
 				//REQUIRE(map.GetReserved() >= 10);
 			}
@@ -291,7 +293,8 @@ SCENARIO("THashMap", "[containers]") {
 				REQUIRE(map["nine"] == 9);
 				REQUIRE(map["ten"] == 10);
 				#if LANGULUS_FEATURE(MANAGED_MEMORY)
-					REQUIRE(map.GetRaw() == memory);
+					REQUIRE(map.GetRawKeys() == keyMemory);
+					REQUIRE(map.GetRawValues() == valueMemory);
 				#endif
 				//REQUIRE(map.GetReserved() >= 10);
 			}
@@ -332,7 +335,8 @@ SCENARIO("THashMap", "[containers]") {
 				REQUIRE_THROWS(map["two"] == 2);
 				REQUIRE_THROWS(map["four"] == 4);
 				REQUIRE(map.GetCount() == 3);
-				REQUIRE(map.GetRaw() == memory);
+				REQUIRE(map.GetRawKeys() == keyMemory);
+				REQUIRE(map.GetRawValues() == valueMemory);
 				//REQUIRE(map.GetReserved() >= 5);
 			}
 
@@ -387,7 +391,8 @@ SCENARIO("THashMap", "[containers]") {
 				REQUIRE_THROWS(map["two"] == 2);
 				REQUIRE_THROWS(map["four"] == 4);
 				REQUIRE(map.GetCount() == 3);
-				REQUIRE(map.GetRaw() == memory);
+				REQUIRE(map.GetRawKeys() == keyMemory);
+				REQUIRE(map.GetRawValues() == valueMemory);
 				//REQUIRE(map.GetReserved() >= 5);
 			}
 
@@ -430,7 +435,8 @@ SCENARIO("THashMap", "[containers]") {
 				REQUIRE(map["four"] == 4);
 				REQUIRE(map["five"] == 5);
 				REQUIRE(map.GetCount() == 5);
-				REQUIRE(map.GetRaw() == memory);
+				REQUIRE(map.GetRawKeys() == keyMemory);
+				REQUIRE(map.GetRawValues() == valueMemory);
 				REQUIRE(map.HasAuthority());
 				REQUIRE(map.GetUses() == 1);
 				//REQUIRE(map.GetReserved() >= 5);
@@ -445,7 +451,8 @@ SCENARIO("THashMap", "[containers]") {
 				REQUIRE(map.GetUses() == 1);
 				REQUIRE(map.GetCount() == 5);
 				#if LANGULUS_FEATURE(MANAGED_MEMORY)
-					REQUIRE(map.GetRaw() == memory);
+					REQUIRE(map.GetRawKeys() == keyMemory);
+					REQUIRE(map.GetRawValues() == valueMemory);
 				#endif
 				//REQUIRE(map.GetReserved() >= 20);
 			}
@@ -458,7 +465,8 @@ SCENARIO("THashMap", "[containers]") {
 				REQUIRE(map.HasAuthority());
 				REQUIRE(map.GetUses() == 1);
 				REQUIRE(map.GetCount() == 5);
-				REQUIRE(map.GetRaw() == memory);
+				REQUIRE(map.GetRawKeys() == keyMemory);
+				REQUIRE(map.GetRawValues() == valueMemory);
 				//REQUIRE(map.GetReserved() >= 5);
 			}
 		}
@@ -474,7 +482,8 @@ SCENARIO("THashMap", "[containers]") {
 				REQUIRE(map.IsKeyTypeConstrained());
 				REQUIRE(map.IsValueTypeConstrained());
 				REQUIRE(map.IsEmpty());
-				REQUIRE(map.GetRaw() == memory);
+				REQUIRE(map.GetRawKeys() == keyMemory);
+				REQUIRE(map.GetRawValues() == valueMemory);
 				REQUIRE(map.HasAuthority());
 				REQUIRE(map.GetUses() == 1);
 				//REQUIRE(map.GetReserved() >= 5);
@@ -493,7 +502,8 @@ SCENARIO("THashMap", "[containers]") {
 				REQUIRE(map.IsKeyTypeConstrained());
 				REQUIRE(map.IsValueTypeConstrained());
 				REQUIRE(map.IsEmpty());
-				REQUIRE(map.GetRaw() != memory);
+				REQUIRE(map.GetRawKeys() != keyMemory);
+				REQUIRE(map.GetRawValues() != valueMemory);
 				REQUIRE(map.GetUses() == 0);
 			}
 		}
@@ -504,7 +514,8 @@ SCENARIO("THashMap", "[containers]") {
 				map << darray2[0] << darray2[1] << darray2[2] << darray2[3] << darray2[4];
 
 				THEN("Block manager should reuse the memory, if MANAGED_MEMORY feature is enabled") {
-					REQUIRE(map.GetRaw() == memory);
+					REQUIRE(map.GetRawKeys() == keyMemory);
+					REQUIRE(map.GetRawValues() == valueMemory);
 				}
 			}
 		#endif
@@ -518,7 +529,8 @@ SCENARIO("THashMap", "[containers]") {
 				REQUIRE(copy.GetUses() == 2);
 				REQUIRE(copy.GetCount() == map.GetCount());
 				REQUIRE(copy.GetCount() == 5);
-				REQUIRE(copy.GetRaw() == map.GetRaw());
+				REQUIRE(copy.GetRawKeys() == map.GetRawKeys());
+				REQUIRE(copy.GetRawValues() == map.GetRawValues());
 				REQUIRE(copy["one"] == 1);
 				REQUIRE(copy["two"] == 2);
 				REQUIRE(copy["three"] == 3);
@@ -548,7 +560,8 @@ SCENARIO("THashMap", "[containers]") {
 				REQUIRE(clone.GetUses() == 1);
 				REQUIRE(clone.GetCount() == map.GetCount());
 				REQUIRE(clone.GetCount() == 5);
-				REQUIRE(clone.GetRaw() != map.GetRaw());
+				REQUIRE(clone.GetRawKeys() != map.GetRawKeys());
+				REQUIRE(clone.GetRawValues() != map.GetRawValues());
 				REQUIRE(clone["one"] == 1);
 				REQUIRE(clone["two"] == 2);
 				REQUIRE(clone["three"] == 3);
@@ -574,7 +587,8 @@ SCENARIO("THashMap", "[containers]") {
 			MapType moved = Move(map);
 
 			THEN("The new pack should keep the state and data") {
-				REQUIRE(moved.GetRaw() == memory);
+				REQUIRE(moved.GetRawKeys() == keyMemory);
+				REQUIRE(moved.GetRawValues() == valueMemory);
 				REQUIRE(moved.IsAllocated());
 				REQUIRE(moved.GetCount() == 5);
 				REQUIRE(moved.HasAuthority());
@@ -586,7 +600,8 @@ SCENARIO("THashMap", "[containers]") {
 				REQUIRE(moved["five"] == 5);
 				REQUIRE_FALSE(map.IsAllocated());
 				REQUIRE(map.IsEmpty());
-				REQUIRE(map.GetRaw() != memory);
+				REQUIRE(map.GetRawKeys() != keyMemory);
+				REQUIRE(map.GetRawValues() != valueMemory);
 				REQUIRE(map.GetCount() == 0);
 				REQUIRE(map.IsValueTypeConstrained());
 				REQUIRE(map.IsKeyTypeConstrained());

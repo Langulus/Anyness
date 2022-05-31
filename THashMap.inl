@@ -129,6 +129,69 @@ namespace Langulus::Anyness
 		return *this;
 	}
 
+	/// Clone all elements in a range														
+	///	@param info - info bytes for checking valid entries						
+	///	@param from - start of the elements to copy									
+	///	@param fromEnd - end of the elements to copy									
+	///	@param to - destrination memory													
+	TABLE_TEMPLATE()
+	template<class T>
+	void TABLE()::CloneInner(const uint8_t* info, const T* from, const T* fromEnd, T* to) {
+		using TD = Decay<T>;
+
+		if constexpr (CT::Sparse<T>) {
+			TAny<TD> coalesced;
+			coalesced.Allocate(GetCount());
+
+			// Clone data behind each valid pointer								
+			auto cache = coalesced.GetRaw();
+			while (from < fromEnd) {
+				if (!*info) {
+					// Skip uninitialized pointers									
+					++from; ++to; ++info;
+					continue;
+				}
+				else if (!*from) {
+					// Skip zero pointers												
+					*to = nullptr;
+					++from; ++to; ++info;
+					continue;
+				}
+				
+				if constexpr (CT::CloneMakable<T>)
+					new (cache) TD {(*from)->Clone()};
+				else if constexpr (CT::POD<T>)
+					::std::memcpy(cache, **from, sizeof(TD));
+				else
+					LANGULUS_ASSERT("Can't clone map component made of non-clonable/non-POD type");
+				
+				*to = cache;
+
+				++from; ++to; ++cache; ++info;
+			}
+			
+			coalesced.Reference(cache - coalesced.GetRaw());
+		}
+		else if constexpr (CT::CloneMakable<T>) {
+			// Clone dense keys by their Clone() methods							
+			while (from < fromEnd) {
+				if (!*info) {
+					// Skip uninitialized elements									
+					++from; ++to; ++info;
+					continue;
+				}
+
+				new (to) TD {from->Clone()};
+				++from; ++to; ++info;
+			}
+		}
+		else if constexpr (CT::POD<T>) {
+			// Batch clone dense data at once										
+			::std::memcpy(to, from, (fromEnd - from) * sizeof(T));
+		}
+		else LANGULUS_ASSERT("Can't clone map components made of non-clonable/non-POD type");
+	}
+
 	/// Clone the table																			
 	///	@return the new table																
 	TABLE_TEMPLATE()
@@ -136,66 +199,26 @@ namespace Langulus::Anyness
 		if (IsEmpty())
 			return {};
 
-		THashMap result;
-		result.mKeys = Inner::Allocator::Allocate(mKeys->GetAllocatedSize());
+		THashMap result {Disown(*this)};
 
-		// Clone the keys																	
-		using KD = Decay<K>;
-		auto from = GetRawKeys();
-		const auto fromEnd = GetRawKeysEnd();
-		auto to = result.GetRawKeys();
+		// Allocate keys																	
+		Offset infoOffset;
+		result.mKeys = Inner::Allocator::Allocate(
+			RequestKeyAndInfoSize(infoOffset)
+		);
 
-		if constexpr (CT::Sparse<K>) {
-			TAny<KD> coalesced;
-			coalesced.Allocate(GetCount());
+		// Precalculate the info pointer, it's costly							
+		result.mInfo = reinterpret_cast<uint8_t*>(
+			result.mKeys->GetBlockStart() + infoOffset
+		);
 
-			// Clone data behind each valid pointer								
-			Count counter {};
-			while (from < fromEnd) {
-				if (!*from) {
-					// Skip zero pointers												
-					*to = nullptr;
-					++from; ++to;
-					continue;
-				}
-				
-				if constexpr (CT::CloneMakable<K>)
-					new (&coalesced[counter]) KD {(*from)->Clone()};
-				else if constexpr (CT::POD<K>)
-					::std::memcpy(&coalesced[counter], **from, sizeof(KD));
-				else
-					LANGULUS_ASSERT("Can't clone map keys made of non-clonable/non-POD type");
-				
-				*to = &coalesced[counter];
-				++from; ++to;
-				++counter;
-			}
-			
-			coalesced.Reference(counter);
-		}
-		else if constexpr (CT::CloneMakable<K>) {
-			// Clone dense keys by their Clone() methods							
-			while (from < fromEnd) {
-				new (to) KD {from->Clone()};
-				++from; ++to;
-			}
-		}
-		else if constexpr (CT::POD<K>) {
-			// Batch clone dense keys at once, together with tombstones		
-			::std::memcpy(to, from, mKeysAndTombstones->GetAllocatedSize());
+		// Clone the info bytes															
+		::std::memcpy(result.GetInfo(), GetInfo(), GetReserved() + 1);
 
-			// Clone the values and early return									
-			result.mValues = mValues.Clone();
-			return Abandon(result);
-		}
-		else
-			LANGULUS_ASSERT("Can't clone map keys made of non-clonable/non-POD type");
+		// Clone the keys and values													
+		CloneInner(GetInfo(), GetRawKeys(), GetRawKeysEnd(), result.GetRawKeys());
+		CloneInner(GetInfo(), GetRawValues(), GetRawValuesEnd(), result.GetRawValues());
 
-		// Clone the tombstones															
-		::std::memcpy(to, from, GetCount());
-
-		// Clone the values																
-		result.mValues = mValues.Clone();
 		return Abandon(result);
 	}
 	
@@ -317,13 +340,13 @@ namespace Langulus::Anyness
 	/// Get the raw key array																	
 	TABLE_TEMPLATE()
 	constexpr K* TABLE()::GetRawKeys() noexcept {
-		return reinterpret_cast<K*>(mKeysAndTombstones->GetBlockStart());
+		return reinterpret_cast<K*>(mKeys->GetBlockStart());
 	}
 
 	/// Get the end of the raw key array													
 	TABLE_TEMPLATE()
 	constexpr const K* TABLE()::GetRawKeysEnd() const noexcept {
-		return reinterpret_cast<const K*>(mInfo);
+		return GetRawKeys() + GetReserved();
 	}
 
 	/// Get the raw value array (const)														
@@ -341,7 +364,7 @@ namespace Langulus::Anyness
 	/// Get end of the raw value array														
 	TABLE_TEMPLATE()
 	constexpr const V* TABLE()::GetRawValuesEnd() const noexcept {
-		return mValues.GetRawEnd();
+		return mValues.GetRaw() + GetReserved();
 	}
 
 	/// Get the size of all pairs, in bytes												
@@ -391,17 +414,26 @@ namespace Langulus::Anyness
 		return *this;
 	}
 
-	/// Request a new size of keys and tombstones via the value container		
+	/// Request a new size of keys and info via the value container				
+	/// The memory layout is:																	
+	///	[keys for each bucket]																
+	///			[padding for alignment]														
+	///					[info for each bucket]												
+	///							[one sentinel byte for terminating loops]				
+	///	@param infoStart - [out] the offset at which info bytes start			
 	///	@return the requested byte size													
 	TABLE_TEMPLATE()
-	Size TABLE()::RequestKeyAndTombstoneSize() const noexcept {
-		return Roof2(mValues.GetReserved() * sizeof(K)) + mValues.GetReserved();
+	Size TABLE()::RequestKeyAndInfoSize(Offset& infoStart) const noexcept {
+		constexpr Size alignment {LANGULUS(ALIGN)};
+		const Size keymemory = mValues.GetReserved() * sizeof(K);
+		infoStart = keymemory + alignment - (keymemory % alignment);
+		return infoStart + mValues.GetReserved() + 1;
 	}
 
 	/// Get the tombstone array end															
 	///	@return a pointer to the end of the array										
 	TABLE_TEMPLATE()
-	const uint8_t* TABLE()::GetInfoEnd() const noexcept {
+	uint8_t* TABLE()::GetSentinel() noexcept {
 		return GetInfo() + mValues.GetReserved();
 	}
 
@@ -421,6 +453,7 @@ namespace Langulus::Anyness
 
 	/// Reserves space for the specified number of pairs								
 	///	@attention does nothing if reserving less than current reserve			
+	///	@attention assumes count is a power-of-two number							
 	///	@param count - number of pairs to allocate									
 	TABLE_TEMPLATE()
 	void TABLE()::Allocate(const Count& count) {
@@ -444,14 +477,14 @@ namespace Langulus::Anyness
 
 			if (oldUses == 1) {
 				// Memory is used only once and it is safe to move it			
+				Offset infoOffset;
 				mKeys = Inner::Allocator::Reallocate(
-					RequestKeyAndTombstoneSize(), mKeys
+					RequestKeyAndInfoSize(infoOffset), mKeys
 				);
 
 				// Precalculate the info pointer, it's costly					
 				mInfo = reinterpret_cast<uint8_t*>(
-					mKeys->GetBlockStart() +
-					Roof2(mValues.GetReserved() * sizeof(K))
+					mKeys->GetBlockStart() + infoOffset
 				);
 
 				if (mKeys != oldEntry) {
@@ -492,12 +525,12 @@ namespace Langulus::Anyness
 			else {
 				// Memory is used from multiple locations, and we must		
 				// copy the memory for this block - we can't move it!			
-				mKeys = Inner::Allocator::Allocate(RequestKeyAndTombstoneSize());
+				Offset infoOffset;
+				mKeys = Inner::Allocator::Allocate(RequestKeyAndInfoSize(infoOffset));
 
 				// Precalculate the info pointer, it's costly					
 				mInfo = reinterpret_cast<uint8_t*>(
-					mKeys->GetBlockStart() +
-					Roof2(mValues.GetReserved() * sizeof(K))
+					mKeys->GetBlockStart() + infoOffset
 				);
 
 				// Move the tombstones													
@@ -546,18 +579,22 @@ namespace Langulus::Anyness
 			// Allocate a fresh set of elements										
 			// Allocate values first, we'll use their properties				
 			mValues.Allocate<false>(count);
-			mKeys = Inner::Allocator::Allocate(RequestKeyAndTombstoneSize());
+
+			Offset infoOffset;
+			mKeys = Inner::Allocator::Allocate(RequestKeyAndInfoSize(infoOffset));
 
 			// Precalculate the info pointer, it's costly						
 			mInfo = reinterpret_cast<uint8_t*>(
-				mKeys->GetBlockStart() +
-				Roof2(mValues.GetReserved() * sizeof(K))
+				mKeys->GetBlockStart() + infoOffset
 			);
 
 			// Zero the tombstones														
 			// No need for a rehash, because map was empty						
 			::std::memset(mInfo, 0, mValues.GetReserved());
 		}
+
+		// Set the sentinel																
+		*GetSentinel() = 1;
 	}
 
 	/// Insert a number of items via initializer list									
@@ -606,12 +643,63 @@ namespace Langulus::Anyness
 		mValues.Reset();
 	}
 
-	/// Erases element at index, returns iterator to the next element				
+	/// Erases element at a specific index													
+	///	@attention assumes that index points to a valid entry						
+	///	@param start - the index to remove												
 	TABLE_TEMPLATE()
-	void TABLE()::RemoveIndex(const Offset& idx) {
-		// We assume that pos always points to a valid entry, not end()	
-		shiftDown(idx);
-		--mNumElements;
+	void TABLE()::RemoveIndex(const Offset& start) noexcept {
+		auto psl = GetInfo() + start;
+		auto candidate = GetRawKeys() + start;
+		auto value = GetRawValues() + start;
+
+		// Destroy the key, info and value there									
+		RemoveInner<V>(value);
+		RemoveInner<K>(candidate);
+		*psl = 0;
+
+		++psl;
+		++candidate;
+		++value;
+
+		// And shift backwards, until a zero or 1 is reached					
+		// That way we move every entry that is far from its start			
+		// closer to it. Moving is costly, unless you use pointers			
+		while (*psl > 1) {
+			psl[-1] = (*psl) - 1;
+			new (candidate - 1) K {Move(*candidate)};
+			new (value - 1) V {Move(*value)};
+
+			++psl;
+			++candidate;
+			++value;
+		}
+
+		// Success																			
+		--mValues.mCount;
+	}
+
+	/// Destroy a single value or key, either sparse or dense						
+	///	@tparam T - the type to remove, either key or value (deducible)		
+	///	@param element - the address of the element to remove						
+	TABLE_TEMPLATE()
+	template<class T>
+	void TABLE()::RemoveInner(T* element) noexcept {
+		using TD = Decay<T>;
+		if constexpr (CT::Sparse<T>) {
+			// Value is sparse, free and deallocate if needed					
+			auto entry = Inner::Allocator::Find(MetaData::Of<T>(), *element);
+			if (entry) {
+				if (entry->GetUses() == 1) {
+					(*element)->~TD();
+					Inner::Allocator::Deallocate(entry);
+				}
+				else entry->Free();
+			}
+		}
+		else if constexpr (CT::Destroyable<T>) {
+			// Value is dense, just call destructor								
+			element->~TD();
+		}
 	}
 
 	/// Erase a pair via key																	
@@ -619,21 +707,44 @@ namespace Langulus::Anyness
 	///	@return the number of removed pairs												
 	TABLE_TEMPLATE()
 	Count TABLE()::RemoveKey(const K& key) {
-		size_t idx {};
-		InfoType info {};
-		keyToIdx(key, &idx, &info);
-
-		// Check while info matches with the source idx							
-		do {
-			if (info == mInfo[idx] && key == GetKey(idx)) {
-				shiftDown(idx);
-				--mNumElements;
-				return 1;
+		// Get the starting index based on the key hash							
+		auto start = HashData(key) & (GetReserved() - 1);
+		auto psl = GetInfo() + start;
+		auto candidate = GetRawKeys() + start;
+		while (*psl > 1) {
+			if (*candidate != key) {
+				// There might be more keys to the right, check them			
+				++psl;
+				++candidate;
+				continue;
 			}
 
-			next(&info, &idx);
+			// Match found, destroy the key, info and value there				
+			auto value = GetRawValues() + (psl - GetInfo());
+			RemoveInner<V>(value);
+			RemoveInner<K>(candidate);
+			*psl = 0;
+
+			++psl;
+			++candidate;
+			++value;
+
+			// And shift backwards, until a zero or 1 is reached				
+			// That way we move every entry that is far from its start		
+			// closer to it. Moving is costly, unless you use pointers		
+			while (*psl > 1) {
+				psl[-1] = *psl - 1;
+				new (candidate - 1) K {Move(*candidate)};
+				new (value - 1) V {Move(*value)};
+				++psl;
+				++candidate;
+				++value;
+			}
+
+			// Success																		
+			--mValues.mCount;
+			return 1;
 		}
-		while (info <= mInfo[idx]);
 
 		// Nothing found to delete														
 		return 0;
@@ -644,11 +755,12 @@ namespace Langulus::Anyness
 	///	@return the number of removed pairs												
 	TABLE_TEMPLATE()
 	Count TABLE()::RemoveValue(const V& value) {
-		Count removed{};
-		auto it = begin();
-		while (it != end()) {
-			if (it->mValue == value) {
-				it = RemoveIndex(it);
+		Count removed {};
+		auto it = GetRawValues();
+		const auto end = GetRawValuesEnd();
+		while (it != end) {
+			if (*it == value) {
+				RemoveIndex(it - GetRawValues());
 				++removed;
 			}
 			else ++it;
@@ -660,38 +772,29 @@ namespace Langulus::Anyness
 	/// If possible reallocates the map to a smaller one								
 	TABLE_TEMPLATE()
 	void TABLE()::Compact() {
-		auto newSize = InitialNumElements;
-		while (GetMaxElementsAllowed(newSize) < mNumElements && newSize != 0)
-			newSize *= 2;
-
-		if (LANGULUS_UNLIKELY(newSize == 0))
-			Throw<Except::Overflow>("Table overflow");
-
-		// Only actually do anything when the new size is bigger				
-		// than the old one. This prevents to continuously allocate			
-		// for each reserve() call														
-		if (newSize < mMask + 1)
-			rehashPowerOfTwo(newSize);
+		TODO();
 	}
 
 	///																								
 	///	SEARCH																					
 	///																								
 	/// Search for a key inside the table													
+	///	@param key - the key to search for												
 	///	@return true if key is found, false otherwise								
 	TABLE_TEMPLATE()
 	bool TABLE()::ContainsKey(const K& key) const {
-		const auto found = mNodes + FindIndex(key);
-		return found != mNodesEnd;
+		return FindIndex(key) != GetReserved();
 	}
 
 	/// Search for a value inside the table												
+	///	@param value - the value to search for											
 	///	@return true if value is found, false otherwise								
 	TABLE_TEMPLATE()
 	bool TABLE()::ContainsValue(const V& value) const {
-		auto it = begin();
-		while (it != end()) {
-			if (it->mValue == value)
+		auto it = GetRawValues();
+		const auto end = GetRawValuesEnd();
+		while (it != end) {
+			if (*it == value)
 				return true;
 			++it;
 		}
@@ -700,11 +803,12 @@ namespace Langulus::Anyness
 	}
 
 	/// Search for a pair inside the table													
+	///	@param pair - the pair to search for											
 	///	@return true if pair is found, false otherwise								
 	TABLE_TEMPLATE()
-	bool TABLE()::ContainsPair(const Pair& e) const {
-		const auto found = Find(e.mKey);
-		return found != end() && found->mValue == e.mValue;
+	bool TABLE()::ContainsPair(const Pair& pair) const {
+		const auto found = FindIndex(pair.mKey);
+		return found != GetReserved() && GetValue(found) == pair.mValue;
 	}
 
 	TABLE_TEMPLATE()
@@ -738,54 +842,50 @@ namespace Langulus::Anyness
 	}
 
 	/// Returns a reference to the value found for key									
-	/// Throws std::out_of_range if element cannot be found							
+	/// Throws Except::OutOfRange if element cannot be found							
+	///	@param key - the key to search for												
+	///	@return a reference to the value													
 	TABLE_TEMPLATE()
 	decltype(auto) TABLE()::At(const K& key) {
-		auto found = mNodes + FindIndex(key);
-		if (found == mNodesEnd)
+		auto found = GetRawValues() + FindIndex(key);
+		if (found == GetRawValuesEnd())
 			Throw<Except::OutOfRange>("Key not found");
-
-		return (*found)->mValue;
+		return *found;
 	}
 
-	/// Returns a reference to the value found for key									
-	/// Throws std::out_of_range if element cannot be found							
+	/// Returns a reference to the value found for key (const)						
+	/// Throws Except::OutOfRange if element cannot be found							
+	///	@param key - the key to search for												
+	///	@return a reference to the value													
 	TABLE_TEMPLATE()
 	decltype(auto) TABLE()::At(const K& key) const {
 		return const_cast<TABLE()>(*this).At(key);
 	}
 
-	/// Find a value by key																		
-	TABLE_TEMPLATE()
-	decltype(auto) TABLE()::Find(const K& key) const {
-		const auto idx = FindIndex(key);
-		return {mNodes + idx, mInfo + idx};
-	}
-
-	/// Find the index of a value by key													
+	/// Find the index of a pair by key														
+	///	@param key - the key to search for												
+	///	@return the index																		
 	TABLE_TEMPLATE()
 	Offset TABLE()::FindIndex(const K& key) const {
-		size_t idx {};
-		InfoType info {};
-		keyToIdx(key, &idx, &info);
+		// Get the starting index based on the key hash							
+		// Since reserved elements are always power-of-two, we use them	
+		// as a mask to the hash, to extract the relevant bucket				
+		auto start = HashData(key) & (GetReserved() - 1);
+		auto psl = GetInfo() + start;
+		auto candidate = GetRawKeys() + start;
+		while (*psl > 1) {
+			if (*candidate != key) {
+				// There might be more keys to the right, check them			
+				++psl;
+				++candidate;
+				continue;
+			}
 
-		do {
-			// Unrolling this twice gives a bit of a speedup					
-			// More unrolling did not help											
-			if (info == mInfo[idx] && LANGULUS_LIKELY(key == GetKey(idx)))
-				return idx;
-
-			next(&info, &idx);
-
-			if (info == mInfo[idx] && LANGULUS_LIKELY(key == GetKey(idx)))
-				return idx;
-
-			next(&info, &idx);
+			return psl - GetInfo();
 		}
-		while (info <= mInfo[idx]);
 
-		// If reached, then nothing found											
-		return mMask == 0 ? 0 : static_cast<size_t>(mNodesEnd - mNodes);
+		// Nothing found, return end offset											
+		return GetReserved();
 	}
 
 	/// Access value by key																		

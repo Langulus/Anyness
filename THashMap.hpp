@@ -28,10 +28,14 @@ namespace Langulus::Anyness
 		// The allocation which holds keys and tombstones						
 		Inner::Allocation* mKeys {};
 
-		// A precomputed pointer for the tombstones								
+		// A precomputed pointer for the info bytes								
 		// Points to an offset inside mKeys allocation							
-		// Intentionally left not-default initialized							
-		uint8_t* mInfo;
+		// Each byte represents a pair, and can be three things:				
+		//		0 - the index is not used, data is not initialized				
+		//		1 - the index is used, and key is exactly where it should be
+		//		2+ - the index is used, but bucket is info-1 buckets to		
+		//			  the left of this index											
+		uint8_t* mInfo {};
 
 		// The block that contains the values										
 		// It's size and reserve also used for the keys and tombstones		
@@ -145,12 +149,17 @@ namespace Langulus::Anyness
 		NOD() decltype(auto) At(const K&);
 		NOD() decltype(auto) At(const K&) const;
 
-		NOD() decltype(auto) Find(const K&) const;
-
 		NOD() decltype(auto) operator[] (const K&) const;
 		NOD() decltype(auto) operator[] (const K&);
 
 	protected:
+		template<class T>
+		static void CloneInner(const uint8_t*, const T*, const T*, T*);
+
+		template<class T>
+		void RemoveInner(T*) noexcept;
+		void RemoveIndex(const Offset&) noexcept;
+
 		NOD() decltype(auto) GetKey(const Offset&) const noexcept;
 		NOD() decltype(auto) GetKey(const Offset&) noexcept;
 		NOD() decltype(auto) GetValue(const Offset&) const noexcept;
@@ -160,12 +169,11 @@ namespace Langulus::Anyness
 
 		NOD() Offset FindIndex(const K&) const;
 
-		NOD() Size RequestKeyAndTombstoneSize() const noexcept;
-		void RemoveIndex(const Offset&);
+		NOD() Size RequestKeyAndInfoSize(Offset& infoStart) const noexcept;
 
 		NOD() const uint8_t* GetInfo() const noexcept;
 		NOD() uint8_t* GetInfo() noexcept;
-		NOD() const uint8_t* GetInfoEnd() const noexcept;
+		NOD() uint8_t* GetSentinel() noexcept;
 	};
 
 } // namespace Langulus::Anyness
