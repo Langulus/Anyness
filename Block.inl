@@ -369,7 +369,7 @@ namespace Langulus::Anyness
 	
 	/// Get the number of reserved bytes													
 	///	@return the number of reserved bytes											
-	constexpr const Size& Block::GetReservedSize() const noexcept {
+	constexpr Size Block::GetReservedSize() const noexcept {
 		return mEntry ? mEntry->GetAllocatedSize() : 0;
 	}
 	
@@ -632,21 +632,21 @@ namespace Langulus::Anyness
 	/// Get the raw data inside the container, reinterpreted as some type		
 	///	@attention as unsafe as it gets, but as fast as it gets					
 	template<CT::Data T>
-	inline T* Block::GetRawAs() noexcept {
+	T* Block::GetRawAs() noexcept {
 		return reinterpret_cast<T*>(GetRaw());
 	}
 
 	/// Get the raw data inside the container, reinterpreted (const)				
 	///	@attention as unsafe as it gets, but as fast as it gets					
 	template<CT::Data T>
-	inline const T* Block::GetRawAs() const noexcept {
+	const T* Block::GetRawAs() const noexcept {
 		return reinterpret_cast<const T*>(GetRaw());
 	}
 
 	/// Get the end raw data pointer inside the container								
 	///	@attention as unsafe as it gets, but as fast as it gets					
 	template<CT::Data T>
-	inline const T* Block::GetRawEndAs() const noexcept {
+	const T* Block::GetRawEndAs() const noexcept {
 		return reinterpret_cast<const T*>(GetRawEnd());
 	}
 	
@@ -1020,6 +1020,7 @@ namespace Langulus::Anyness
 	///	@return 1 if item was emplaced													
 	template<CT::Data T, bool MUTABLE, CT::Data WRAPPER>
 	Count Block::Emplace(T&& item, const Index& index) {
+		static_assert(CT::Mutable<T>, "Can't emplace into immutable container");
 		const auto starter = ConstrainMore<T>(index).GetOffset();
 
 		if constexpr (MUTABLE) {
@@ -1055,6 +1056,7 @@ namespace Langulus::Anyness
 	///	@return number of inserted elements												
 	template<CT::Data T, bool MUTABLE, CT::Data WRAPPER>
 	Count Block::Insert(const T* items, const Count count, const Index& index) {
+		static_assert(CT::Mutable<T>, "Can't insert into immutable container");
 		const auto starter = ConstrainMore<T>(index).GetOffset();
 
 		if constexpr (MUTABLE) {
@@ -1095,8 +1097,10 @@ namespace Langulus::Anyness
 	///	@param starter - the offset at which to insert								
 	template<CT::Data T>
 	void Block::InsertInner(const T* items, const Count& count, const Offset& starter) {
-		// Insert new data																
+		static_assert(CT::Mutable<T>, "Can't insert into immutable container");
 		auto data = GetRawAs<T>() + starter;
+
+		// Insert new data																
 		if constexpr (CT::Sparse<T>) {
 			// Sparse data insertion (copying pointers and referencing)		
 			// Doesn't care about abstract items									
@@ -1115,7 +1119,7 @@ namespace Langulus::Anyness
 
 			if constexpr (CT::POD<T>) {
 				// Optimized POD insertion												
-				CopyMemory(items, data, count * sizeof(T));
+				CopyMemory(items, data, sizeof(T) * count);
 			}
 			else if constexpr (CT::CopyMakable<T>) {
 				// Dense data insertion (placement copy-construction)			
@@ -1138,11 +1142,13 @@ namespace Langulus::Anyness
 	///	@param starter - the offset at which to insert								
 	template<CT::Data T>
 	void Block::EmplaceInner(T&& item, const Offset& starter) {
+		static_assert(CT::Mutable<T>, "Can't emplace into immutable container");
+		auto data = GetRawAs<T>() + starter;
+
 		// Insert new data																
 		if constexpr (CT::Sparse<T>) {
 			// Sparse data insertion (moving a pointer)							
-			auto data = GetRawSparse() + starter;
-			*data = reinterpret_cast<Byte*>(item);
+			*data = item;
 
 			// Reference the pointer's memory										
 			Inner::Allocator::Keep(mType, item, 1);
@@ -1151,7 +1157,6 @@ namespace Langulus::Anyness
 			static_assert(!CT::Abstract<T>, "Can't emplace abstract item in dense container");
 
 			// Dense data insertion (placement move-construction)				
-			auto data = GetRawAs<T>() + starter;
 			if constexpr (CT::MoveMakable<T>)
 				new (data) T {Forward<T>(item)};
 			else
@@ -1168,11 +1173,14 @@ namespace Langulus::Anyness
 	///	@return the number of removed items												
 	template<CT::Data T>
 	Count Block::Remove(const T* items, const Count count, const Index& index) {
+		static_assert(CT::Mutable<T>, "Can't remove from immutable container");
 		Count removed {};
-		for (Offset i = 0; i < count; ++i) {
-			const auto idx = Find<T>(items[i], index);
+		const auto itemsEnd = items + count;
+		while (items != itemsEnd) {
+			const auto idx = Find<T>(*items, index);
 			if (idx)
 				removed += RemoveIndex(idx.GetOffset(), 1);
+			++items;
 		}
 
 		return removed;
@@ -1292,9 +1300,11 @@ namespace Langulus::Anyness
 	template<CT::Data T, bool MUTABLE, CT::Data WRAPPER>
 	Count Block::Merge(const T* items, const Count count, const Index& idx) {
 		Count added {};
-		for (Offset i = 0; i < count; ++i) {
-			if (!Find<T>(items[i]))
-				added += Insert<T, MUTABLE, WRAPPER>(items + i, 1, idx);
+		const auto itemsEnd = items + count;
+		while (items != itemsEnd) {
+			if (!Find<T>(*items))
+				added += Insert<T, MUTABLE, WRAPPER>(items, 1, idx);
+			++items;
 		}
 
 		return added;
@@ -1587,7 +1597,7 @@ namespace Langulus::Anyness
 		}
 
 		// Back up the state so that we can restore it if not moved over	
-		[[maybe_unused]] const auto state {GetUnconstrainedState()};
+		UNUSED() const auto state {GetUnconstrainedState()};
 		if constexpr (!MOVE_STATE)
 			mState -= state;
 
@@ -1871,7 +1881,7 @@ namespace Langulus::Anyness
 	template<class R, CT::Data A, bool REVERSE, bool SKIP, bool MUTABLE>
 	Count Block::ForEachDeepInner(TFunctor<R(A)>&& call) {
 		constexpr bool HasBreaker = CT::Same<bool, R>;
-		[[maybe_unused]] bool atLeastOneChange = false;
+		UNUSED() bool atLeastOneChange = false;
 		auto count {GetCountDeep()};
 		Count index {};
 		while (index < count) {
@@ -2022,9 +2032,10 @@ namespace Langulus::Anyness
 	///	@attention this operates on initialized memory only, and any			
 	///				  misuse will result in undefined behavior						
 	///	@attention assumes that mCount > 0												
-	template<class T>
+	template<CT::Data T>
 	void Block::CallKnownDestructors() {
-		using Decayed = Decay<T>;
+		static_assert(CT::Mutable<T>, "Can't move construct immutable type");
+		using DT = Decay<T>;
 		auto data = GetRawAs<T>();
 		const auto dataEnd = data + mCount;
 
@@ -2045,7 +2056,7 @@ namespace Langulus::Anyness
 
 				if (found->GetUses() == 1) {
 					if constexpr (CT::Destroyable<T>)
-						(**data).~Decayed();
+						(**data).~DT();
 					Inner::Allocator::Deallocate(found);
 				}
 				else found->Free();
@@ -2057,7 +2068,7 @@ namespace Langulus::Anyness
 		else if constexpr (!CT::POD<T> && CT::Destroyable<T>) {
 			// Destroy every dense element											
 			while (data != dataEnd) {
-				(*data).~Decayed();
+				(*data).~DT();
 				++data;
 			}
 		}
@@ -2071,12 +2082,15 @@ namespace Langulus::Anyness
 	/// Call move constructors in a region and initialize memory					
 	///	@param count - number of elements to move										
 	///	@param source - the block of elements to move								
-	template<class T>
+	template<CT::Data T>
 	void Block::CallKnownMoveConstructors(const Count count, Block&& source) {
-		if constexpr(CT::Sparse<T> || CT::POD<T>) {
+		static_assert(CT::Mutable<T>, "Can't move construct immutable type");
+		auto to = GetRawAs<T>() + mCount;
+
+		if constexpr (CT::Sparse<T> || CT::POD<T>) {
 			// Copy pointers or POD														
 			const auto size = sizeof(T) * count;
-			MoveMemory(source.mRaw, GetRawAs<T>() + mCount, size);
+			MoveMemory(source.mRaw, to, size);
 
 			// It is safe to just erase source count at this point			
 			// since pointers/PODs don't need to be destroyed					
@@ -2090,7 +2104,6 @@ namespace Langulus::Anyness
 
 			auto from = source.GetRawAs<T>();
 			const auto fromEnd = from + count;
-			auto to = GetRawAs<T>() + mCount;
 			while (from != fromEnd) {
 				new (to) T {Move(*from)};
 				++to; ++from;

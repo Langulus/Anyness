@@ -140,23 +140,23 @@ namespace Langulus::Anyness
 	TAny<T>::TAny(Abandoned<TAny>&& other) noexcept
 		: Any {other.template Forward<Any>()} { }
 	
-	/// Construct by moving a dense value of non-block type							
-	///	@param initial - the dense value to forward and emplace					
-	TEMPLATE()
-	TAny<T>::TAny(T&& initial) requires CT::CustomData<T>
-		: Any {Forward<T>(initial)} { }
-
 	/// Construct by copying/referencing value of non-block type					
 	///	@param initial - the dense value to shallow-copy							
 	TEMPLATE()
-	TAny<T>::TAny(const T& initial) requires CT::CustomData<T>
-		: Any {initial} { }
+	TAny<T>::TAny(const T& other) requires CT::CustomData<T>
+		: Any {other} { }
 
 	/// Construct by copying/referencing value of non-block type					
 	///	@param other - the dense value to shallow-copy								
 	TEMPLATE()
 	TAny<T>::TAny(T& other) requires CT::CustomData<T>
-		: TAny {const_cast<const T&>(other)} { }
+		: Any {other} { }
+
+	/// Construct by moving a dense value of non-block type							
+	///	@param initial - the dense value to forward and emplace					
+	TEMPLATE()
+		TAny<T>::TAny(T&& initial) requires CT::CustomData<T>
+		: Any {Forward<T>(initial)} { }
 
 	/// Construct manually from an array													
 	///	@param raw - raw memory to reference											

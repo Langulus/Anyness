@@ -36,11 +36,8 @@ namespace Langulus::Anyness
 	template<CT::Data, bool>
 	class TPointer;
 
-	namespace Inner
-	{
-		template<bool DENSE, Count MaxLoadFactor100, CT::Data K, class V>
-		class Table;
-	}
+	template<CT::Data, CT::Data>
+	class THashMap;
 
 	/// Compression types, analogous to zlib's											
 	enum class Compression {
@@ -98,8 +95,8 @@ namespace Langulus::Anyness
 		template<CT::Data, bool REFERENCED>
 		friend class TPointer;
 
-		template<bool DENSE, Count MaxLoadFactor100, CT::Data K, class V>
-		class Table;
+		template<CT::Data, CT::Data>
+		class THashMap;
 
 	protected:
 		union { 
@@ -169,7 +166,7 @@ namespace Langulus::Anyness
 		NOD() constexpr const DMeta& GetType() const noexcept;
 		NOD() constexpr const Count& GetCount() const noexcept;
 		NOD() constexpr const Count& GetReserved() const noexcept;
-		NOD() constexpr const Size& GetReservedSize() const noexcept;
+		NOD() constexpr Size GetReservedSize() const noexcept;
 		NOD() Count GetCountDeep() const noexcept;
 		NOD() Count GetCountElementsDeep() const noexcept;
 		NOD() constexpr bool IsAllocated() const noexcept;
@@ -488,11 +485,11 @@ namespace Langulus::Anyness
 		void CallCopyConstructors(const Count&, const Block&); //TODO make known variant, use code from TAny, also revise all iterations in these functions, including the unknown variants
 
 		void CallUnknownMoveConstructors(Count, Block&&);
-		template<class T>
+		template<CT::Data T>
 		void CallKnownMoveConstructors(Count, Block&&);
 
 		void CallUnknownDestructors();
-		template<class T>
+		template<CT::Data T>
 		void CallKnownDestructors();
 	
 		Size AllocateRegion(const Block&, const Index&, Block&);

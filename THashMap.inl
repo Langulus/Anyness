@@ -20,6 +20,7 @@ namespace Langulus::Anyness
 	TABLE_TEMPLATE()
 	TABLE()::THashMap(::std::initializer_list<Pair> initlist)
 		: THashMap{} {
+		Allocate(Roof2(initlist.size()));
 		for (auto& it : initlist)
 			Insert(*it);
 	}
@@ -74,9 +75,20 @@ namespace Langulus::Anyness
 		if (other.GetCount() != GetCount())
 			return false;
 
-		for (const auto& otherEntry : other) {
-			if (!ContainsPair(otherEntry))
+		const auto keyEnd = GetRawKeysEnd();
+		auto key = GetRawKeys();
+		auto info = GetInfo();
+		while (key != keyEnd) {
+			if (0 == *info) {
+				++key; ++info;
+				continue;
+			}
+
+			const auto rhs = other.FindIndex(*key);
+			if (rhs == other.GetReserved() || GetValue(key - GetRawKeys()) != other.GetValue(rhs))
 				return false;
+
+			++key; ++info;
 		}
 
 		return true;
@@ -502,13 +514,19 @@ namespace Langulus::Anyness
 						static_assert(CT::MoveMakable<K>,
 							"Trying to move-construct key but it's impossible for this type");
 
+						auto info = GetInfo();
 						auto to = GetRawKeys();
 						const auto toEnd = GetRawKeysEnd();
 						while (to != toEnd) {
+							if (0 == *info) {
+								++oldKeys; ++to; ++info;
+								continue;
+							}
+
 							new (to) K {Move(*oldKeys)};
 							if constexpr (CT::Destroyable<K>)
 								oldKeys->~K();
-							++oldKeys; ++to;
+							++oldKeys; ++to; ++info;
 						}
 					}
 
@@ -545,11 +563,17 @@ namespace Langulus::Anyness
 					if constexpr (CT::Sparse<K>) {
 						// Since we're copying pointers, we have to reference	
 						// dense memory behind each one of them					
+						auto info = GetInfo();
 						const auto oldKeysEnd = oldKeys + oldReserve;
 						while (oldKeys != oldKeysEnd) {
+							if (0 == *info) {
+								++oldKeys; ++info;
+								continue;
+							}
+
 							// Reference each pointer									
 							Inner::Allocator::Keep(GetKeyType(), *oldKeys, 1);
-							++oldKeys;
+							++oldKeys; ++info;
 						}
 					}
 				}
@@ -558,11 +582,17 @@ namespace Langulus::Anyness
 					static_assert(CT::CopyMakable<K>,
 						"Trying to copy-construct key but it's impossible for this type");
 
+					auto info = GetInfo();
 					auto to = GetRawKeys();
 					const auto toEnd = GetRawKeysEnd();
 					while (to != toEnd) {
+						if (0 == *info) {
+							++oldKeys; ++to; ++info;
+							continue;
+						}
+
 						new (to) K {*oldKeys};
-						++oldKeys; ++to;
+						++oldKeys; ++to; ++info;
 					}
 				}
 
@@ -601,6 +631,7 @@ namespace Langulus::Anyness
 	///	@param ilist - the first element													
 	TABLE_TEMPLATE()
 	Count TABLE()::Insert(::std::initializer_list<Pair> ilist) {
+		Allocate(Roof2(GetCount() + ilist.size()));
 		Count result {};
 		for (auto&& i : ilist)
 			result += Insert(Move(i));
@@ -742,7 +773,7 @@ namespace Langulus::Anyness
 			}
 
 			// Success																		
-			--mValues.mCount;
+			--const_cast<Count&>(mValues.GetCount());
 			return 1;
 		}
 

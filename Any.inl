@@ -76,19 +76,24 @@ namespace Langulus::Anyness
 	}
 
 	/// Construct by moving a dense value of non-block type							
+	///	@tparam T - the data type to push (deducible)								
 	///	@param other - the dense value to forward and emplace						
 	template <CT::CustomData T>
 	Any::Any(T&& other) {
+		static_assert(CT::Mutable<T>, "Can't move a constant value");
 		SetType<T, false>();
 		Emplace<T, false, Any>(Forward<T>(other));
 	}
 
 	/// Construct by copying/referencing value of non-block type					
+	///	@tparam T - the data type to push (deducible)								
 	///	@param other - the dense value to shallow-copy								
 	template <CT::CustomData T>
 	Any::Any(T& other) {
-		SetType<T, false>();
-		Insert<T, false, Any>(&other, 1);
+		// Since we're pushing a copy, the constantness can be discarded	
+		using MutableT = ::std::remove_const_t<T>;
+		SetType<MutableT, false>();
+		Insert<MutableT, false, Any>(&other, 1);
 	}
 
 	/// Create an empty Any from a dynamic type and state								
