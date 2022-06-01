@@ -20,7 +20,7 @@ namespace Langulus::Anyness
 	TABLE_TEMPLATE()
 	TABLE()::THashMap(::std::initializer_list<Pair> initlist)
 		: THashMap{} {
-		Allocate(Roof2(initlist.size()));
+		Allocate(initlist.size());
 		for (auto& it : initlist)
 			Insert(*it);
 	}
@@ -45,16 +45,16 @@ namespace Langulus::Anyness
 	///	@param other - the disowned table to copy										
 	TABLE_TEMPLATE()
 	TABLE()::THashMap(Disowned<THashMap>&& other) noexcept
-		: mKeys {other.mKeys}
-		, mInfo {other.mInfo}
+		: mKeys {other.mValue.mKeys}
+		, mInfo {other.mValue.mInfo}
 		, mValues {Disown(other.mValue.mValues)} { }
 
 	/// Minimal move construction from abandoned table									
 	///	@param other - the abandoned table to move									
 	TABLE_TEMPLATE()
 	TABLE()::THashMap(Abandoned<THashMap>&& other) noexcept
-		: mKeys {other.mKeys}
-		, mInfo {other.mInfo}
+		: mKeys {other.mValue.mKeys}
+		, mInfo {other.mValue.mInfo}
 		, mValues {Abandon(other.mValue.mValues)} { }
 
 	/// Destroys the map and all it's contents											
@@ -103,7 +103,7 @@ namespace Langulus::Anyness
 			return *this;
 
 		Reset();
-		new (this) TABLE() {Move(rhs)};
+		new (this) Self {Forward<THashMap>(rhs)};
 		return *this;
 	}
 
@@ -112,12 +112,11 @@ namespace Langulus::Anyness
 	///	@return a reference to this table												
 	TABLE_TEMPLATE()
 	TABLE()& TABLE()::operator = (const THashMap& rhs) {
-		// Always reference, before dereferencing, in the rare case that	
-		// this table is the same as the other										
-		rhs.mValues.Keep();
+		if (&rhs == this)
+			return *this;
 
 		Reset();
-		new (this) TABLE() {rhs};
+		new (this) Self {rhs};
 		return *this;
 	}
 
@@ -126,8 +125,8 @@ namespace Langulus::Anyness
 	///	@return a reference to this table												
 	TABLE_TEMPLATE()
 	TABLE()& TABLE()::operator = (Pair&& pair) noexcept {
-		Reset();
-		Emplace(Forward<Pair>(pair));
+		Clear();
+		Insert(Forward<Pair>(pair));
 		return *this;
 	}
 
@@ -136,7 +135,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this table												
 	TABLE_TEMPLATE()
 	TABLE()& TABLE()::operator = (const Pair& pair) {
-		Reset();
+		Clear();
 		Insert(pair);
 		return *this;
 	}
@@ -216,7 +215,7 @@ namespace Langulus::Anyness
 		// Allocate keys																	
 		Offset infoOffset;
 		result.mKeys = Inner::Allocator::Allocate(
-			RequestKeyAndInfoSize(infoOffset)
+			RequestKeyAndInfoSize(GetReserved(), infoOffset)
 		);
 
 		// Precalculate the info pointer, it's costly							
@@ -322,13 +321,6 @@ namespace Langulus::Anyness
 		return CT::Dense<V>;
 	}
 
-	/// Get the size of a single pair, in bytes											
-	///	@return the number of bytes a single pair contains							
-	TABLE_TEMPLATE()
-	constexpr Size TABLE()::GetPairStride() const noexcept {
-		return sizeof(Pair); 
-	}
-	
 	/// Get the size of a single key, in bytes											
 	///	@return the number of bytes a single key contains							
 	TABLE_TEMPLATE()
@@ -415,7 +407,7 @@ namespace Langulus::Anyness
 	/// Move-insert a pair inside the map													
 	TABLE_TEMPLATE()
 	TABLE()& TABLE()::operator << (Pair&& item) {
-		Emplace(Forward<Pair>(item));
+		Insert(Forward<Pair>(item));
 		return *this;
 	}
 
@@ -435,11 +427,11 @@ namespace Langulus::Anyness
 	///	@param infoStart - [out] the offset at which info bytes start			
 	///	@return the requested byte size													
 	TABLE_TEMPLATE()
-	Size TABLE()::RequestKeyAndInfoSize(Offset& infoStart) const noexcept {
+	Size TABLE()::RequestKeyAndInfoSize(const Count request, Offset& infoStart) noexcept {
 		constexpr Size alignment {LANGULUS(ALIGN)};
-		const Size keymemory = mValues.GetReserved() * sizeof(K);
+		const Size keymemory = request * sizeof(K);
 		infoStart = keymemory + alignment - (keymemory % alignment);
-		return infoStart + mValues.GetReserved() + 1;
+		return infoStart + request + 1;
 	}
 
 	/// Get the tombstone array end															
@@ -465,196 +457,215 @@ namespace Langulus::Anyness
 
 	/// Reserves space for the specified number of pairs								
 	///	@attention does nothing if reserving less than current reserve			
-	///	@attention assumes count is a power-of-two number							
 	///	@param count - number of pairs to allocate									
 	TABLE_TEMPLATE()
 	void TABLE()::Allocate(const Count& count) {
+		AllocateInner(Roof2(count < MinimalAllocation ? MinimalAllocation : count));
+	}
+
+	/// Allocate or reallocate key and info array										
+	///	@attention assumes count is a power-of-two									
+	///	@attention assumes mValues has not been yet reallocated					
+	///	@tparam REUSE - true to reallocate, false to allocate fresh				
+	///	@param count - the new number of keys and info bytes						
+	TABLE_TEMPLATE()
+	template<bool REUSE>
+	void TABLE()::AllocateKeys(const Count& count) {
+		Offset infoOffset;
+		const auto oldKeys = mKeys;
+		if constexpr (REUSE) {
+			// Reallocate the key and info arrays									
+			mKeys = Inner::Allocator::Reallocate(
+				RequestKeyAndInfoSize(count, infoOffset), mKeys
+			);
+		}
+		else {
+			// Allocate a fresh set of keys and info								
+			// Assumes nothing's there to move and initialize					
+			mKeys = Inner::Allocator::Allocate(
+				RequestKeyAndInfoSize(count, infoOffset)
+			);
+		}
+
+		// Precalculate the info pointer, it's costly							
+		auto oldInfo = mInfo;
+		mInfo = reinterpret_cast<uint8_t*>(
+			mKeys->GetBlockStart() + infoOffset
+		);
+
+		// Zero the info array, we'll be rehashing it anyways					
+		::std::memset(mInfo, 0, count);
+		*GetSentinel() = 1;
+
+		if (IsEmpty()) {
+			// Nothing else to do														
+			if (oldKeys != mKeys)
+				Inner::Allocator::Deallocate(oldKeys);
+			return;
+		}
+
+		if (oldKeys != mKeys) {
+			// Keys moved																	
+			// Reinsert each one of them to rehash									
+			const auto oldInfoEnd = oldInfo + GetReserved();
+			auto key = oldKeys->As<K>();
+			while (oldInfo != oldInfoEnd) {
+				if (0 == *oldInfo) {
+					++key; ++oldInfo;
+					continue;
+				}
+
+				if constexpr (REUSE)
+					InsertKey(Move(*key));
+				else
+					InsertKey(*key);
+				++key; ++oldInfo;
+			}
+
+			// Free the old entry														
+			Inner::Allocator::Deallocate(oldKeys);
+		}
+		else {
+			// Keys remain in the same place, swap them around to rehash	
+			TODO();
+		}
+	}
+
+	/// Reserves space for the specified number of pairs								
+	///	@attention does nothing if reserving less than current reserve			
+	///	@attention assumes count is a power-of-two number							
+	///	@param count - number of pairs to allocate									
+	TABLE_TEMPLATE()
+	void TABLE()::AllocateInner(const Count& count) {
 		// Shrinking is never allowed, you'll have to do it explicitly 	
 		// via Compact()																	
 		if (count < GetReserved())
 			return;
 
-		const auto oldReserve = mValues.GetReserved();
-
-		// Allocate/Reallocate the keys and tombstones							
-		if (mValues.IsAllocated()) {
-			// Reallocate																	
-			auto oldKeys = GetRawKeys();
-			const auto oldInfo = GetInfo();
-			const auto oldEntry = mKeys;
-			const auto oldUses = mValues.GetUses();
-
-			// Allocate values first, we'll use their properties				
-			mValues.Allocate<false>(count);
-
-			if (oldUses == 1) {
-				// Memory is used only once and it is safe to move it			
-				Offset infoOffset;
-				mKeys = Inner::Allocator::Reallocate(
-					RequestKeyAndInfoSize(infoOffset), mKeys
-				);
-
-				// Precalculate the info pointer, it's costly					
-				mInfo = reinterpret_cast<uint8_t*>(
-					mKeys->GetBlockStart() + infoOffset
-				);
-
-				if (mKeys != oldEntry) {
-					// Copy the tombstones												
-					::std::memcpy(mInfo, oldInfo, oldReserve);
-
-					// Keys moved, and we should call move-construction		
-					if constexpr (CT::Sparse<K> || CT::POD<K>) {
-						// Copy pointers/POD												
-						const auto size = sizeof(K) * oldReserve;
-						::std::memcpy(GetRawKeys(), oldKeys, size);
-					}
-					else {
-						// Call the move-constructor for each key					
-						static_assert(CT::MoveMakable<K>,
-							"Trying to move-construct key but it's impossible for this type");
-
-						auto info = GetInfo();
-						auto to = GetRawKeys();
-						const auto toEnd = GetRawKeysEnd();
-						while (to != toEnd) {
-							if (0 == *info) {
-								++oldKeys; ++to; ++info;
-								continue;
-							}
-
-							new (to) K {Move(*oldKeys)};
-							if constexpr (CT::Destroyable<K>)
-								oldKeys->~K();
-							++oldKeys; ++to; ++info;
-						}
-					}
-
-					// Destroy the old entry, it had one reference and is		
-					// no longer in use													
-					Inner::Allocator::Deallocate(oldEntry);
-				}
-				else {
-					// Keys didn't move, but tombstones always do				
-					// Just make sure they're copied safely						
-					::std::memmove(mInfo, oldInfo, oldReserve);
-				}
-			}
-			else {
-				// Memory is used from multiple locations, and we must		
-				// copy the memory for this block - we can't move it!			
-				Offset infoOffset;
-				mKeys = Inner::Allocator::Allocate(RequestKeyAndInfoSize(infoOffset));
-
-				// Precalculate the info pointer, it's costly					
-				mInfo = reinterpret_cast<uint8_t*>(
-					mKeys->GetBlockStart() + infoOffset
-				);
-
-				// Move the tombstones													
-				::std::memcpy(mInfo, oldInfo, oldReserve);
-
-				// We should call copy-construction for each key				
-				if constexpr (CT::Sparse<K> || CT::POD<K>) {
-					// Copy pointers/POD													
-					const auto size = sizeof(K) * oldReserve;
-					::std::memcpy(GetRawKeys(), oldKeys, size);
-
-					if constexpr (CT::Sparse<K>) {
-						// Since we're copying pointers, we have to reference	
-						// dense memory behind each one of them					
-						auto info = GetInfo();
-						const auto oldKeysEnd = oldKeys + oldReserve;
-						while (oldKeys != oldKeysEnd) {
-							if (0 == *info) {
-								++oldKeys; ++info;
-								continue;
-							}
-
-							// Reference each pointer									
-							Inner::Allocator::Keep(GetKeyType(), *oldKeys, 1);
-							++oldKeys; ++info;
-						}
-					}
-				}
-				else {
-					// Call the move-constructor for each key						
-					static_assert(CT::CopyMakable<K>,
-						"Trying to copy-construct key but it's impossible for this type");
-
-					auto info = GetInfo();
-					auto to = GetRawKeys();
-					const auto toEnd = GetRawKeysEnd();
-					while (to != toEnd) {
-						if (0 == *info) {
-							++oldKeys; ++to; ++info;
-							continue;
-						}
-
-						new (to) K {*oldKeys};
-						++oldKeys; ++to; ++info;
-					}
-				}
-
-				// Dereference the old keys											
-				oldEntry->Free();
-			}
-
-			if (oldReserve) {
-				// The old tombstones remain, so a rehash is required			
-				TODO();
-			}
+		// Allocate/Reallocate the keys and info									
+		if (IsAllocated()) {
+			if (GetUses() == 1)
+				AllocateKeys<true>(count);
+			else
+				AllocateKeys<false>(count);
 		}
-		else {
-			// Allocate a fresh set of elements										
-			// Allocate values first, we'll use their properties				
-			mValues.Allocate<false>(count);
-
-			Offset infoOffset;
-			mKeys = Inner::Allocator::Allocate(RequestKeyAndInfoSize(infoOffset));
-
-			// Precalculate the info pointer, it's costly						
-			mInfo = reinterpret_cast<uint8_t*>(
-				mKeys->GetBlockStart() + infoOffset
-			);
-
-			// Zero the tombstones														
-			// No need for a rehash, because map was empty						
-			::std::memset(mInfo, 0, mValues.GetReserved());
-		}
-
-		// Set the sentinel																
-		*GetSentinel() = 1;
+		else AllocateKeys<false>(count);
 	}
 
 	/// Insert a number of items via initializer list									
 	///	@param ilist - the first element													
 	TABLE_TEMPLATE()
 	Count TABLE()::Insert(::std::initializer_list<Pair> ilist) {
-		Allocate(Roof2(GetCount() + ilist.size()));
+		Allocate(GetCount() + ilist.size());
 		Count result {};
 		for (auto&& i : ilist)
 			result += Insert(Move(i));
 		return result;
 	}
 
-	/// Emplace a single pair inside table													
-	///	@param ...args - items to add														
-	///	@return a pair containing the first new item & status of insertion	
-	TABLE_TEMPLATE()
-	template<class... Args>
-	Count TABLE()::Emplace(Args&&... args) {
-		TODO();
-	}
-
+	/// Insert a single pair inside table via shallow-copy							
+	/// Guarantees that original item remains unchanged								
+	///	@param item - pair to add															
+	///	@return 1 if pair was inserted													
 	TABLE_TEMPLATE()
 	Count TABLE()::Insert(const Pair& item) {
-		return Emplace(item);
+		// Guarantee that there's at least one free space						
+		Allocate(GetCount() + 1);
+
+		// Make a temporary swapper, so that original item never changes	
+		Pair swapper {item};
+
+		// Get the starting index based on the key hash							
+		const auto start = HashData(swapper.mKey) & (GetReserved() - 1);
+		auto psl = GetInfo() + start;
+		auto candidate = GetRawKeys() + start;
+		uint8_t attempts {1};
+		while (*psl) {
+			if (*candidate == swapper.mKey) {
+				// Neat, the key already exists - just set value and go		
+				const auto index = psl - GetInfo();
+				Overwrite(Move(swapper.mValue), GetValue(index));
+				return 1;
+			}
+
+			if (attempts > *psl) {
+				// The pair we're inserting is closer to bucket, so swap		
+				const auto index = psl - GetInfo();
+				::std::swap(Move(GetKey(index)), Move(swapper.mKey));
+				::std::swap(Move(GetValue(index)), Move(swapper.mValue));
+				::std::swap(attempts, *psl);
+			}
+
+			++attempts; ++psl; ++candidate;
+
+			// Shouldn't really happen, like ever (?), because we always	
+			// allocate more than we need, and we rehash on each realloc,	
+			// spreading the values and lowering the required PSLs			
+			//TODO test this extensively, just in case							
+			SAFETY(if (attempts == 255u)
+				Throw<Except::Overflow>("Map PSL overflow")
+			);
+		}
+
+		// If reached, empty slot reached, so put the pair there				
+		// Might not seem like it, but we gave a guarantee, that this is	
+		// eventually reached, unless key exists and returns early			
+		const auto index = psl - GetInfo();
+		new (&GetKey(index)) K {Move(swapper.mKey)};
+		new (&GetValue(index)) V {Move(swapper.mValue)};
+		*psl = attempts;
+		return 1;
 	}
 
+	/// Insert a single pair inside table via move										
+	///	@attention original item may change, because it's used as swapper		
+	///	@param item - pair to add															
+	///	@return 1 if pair was inserted													
 	TABLE_TEMPLATE()
 	Count TABLE()::Insert(Pair&& item) {
-		return Emplace(Forward<Pair>(item));
+		// Guarantee that there's at least one free space						
+		Allocate(GetCount() + 1);
+
+		// Get the starting index based on the key hash							
+		const auto start = HashData(item.mKey) & (GetReserved() - 1);
+		auto psl = GetInfo() + start;
+		auto candidate = GetRawKeys() + start;
+		uint8_t attempts {1};
+		while (*psl) {
+			if (*candidate == item.mKey) {
+				// Neat, the key already exists - just set value and go		
+				const auto index = psl - GetInfo();
+				Overwrite(Move(item.mValue), GetValue(index));
+				return 1;
+			}
+
+			if (attempts > *psl) {
+				// The pair we're inserting is closer to bucket, so swap		
+				const auto index = psl - GetInfo();
+				::std::swap(Move(GetKey(index)), Move(item.mKey));
+				::std::swap(Move(GetValue(index)), Move(item.mValue));
+				::std::swap(attempts, *psl);
+			}
+
+			++attempts; ++psl; ++candidate;
+
+			// Shouldn't really happen, like ever (?), because we always	
+			// allocate more than we need, and we rehash on each realloc,	
+			// spreading the values and lowering the required PSLs			
+			//TODO test this extensively, just in case							
+			SAFETY(if (attempts == 255u)
+				Throw<Except::Overflow>("Map PSL overflow")
+			);
+		}
+
+		// If reached, empty slot reached, so put the pair there				
+		// Might not seem like it, but we gave a guarantee, that this is	
+		// eventually reached, unless key exists and returns early			
+		const auto index = psl - GetInfo();
+		new (&GetKey(index)) K {Move(item.mKey)};
+		new (&GetValue(index)) V {Move(item.mValue)};
+		*psl = attempts;
+		return 1;
 	}
 
 	/// Clears all data, without resizing													
@@ -706,7 +717,7 @@ namespace Langulus::Anyness
 		}
 
 		// Success																			
-		--mValues.mCount;
+		--const_cast<Count&>(mValues.GetCount());
 	}
 
 	/// Destroy a single value or key, either sparse or dense						
@@ -717,7 +728,7 @@ namespace Langulus::Anyness
 	void TABLE()::RemoveInner(T* element) noexcept {
 		using TD = Decay<T>;
 		if constexpr (CT::Sparse<T>) {
-			// Value is sparse, free and deallocate if needed					
+			// Value is sparse, free and deallocate if ours						
 			auto entry = Inner::Allocator::Find(MetaData::Of<T>(), *element);
 			if (entry) {
 				if (entry->GetUses() == 1) {
@@ -730,6 +741,30 @@ namespace Langulus::Anyness
 		else if constexpr (CT::Destroyable<T>) {
 			// Value is dense, just call destructor								
 			element->~TD();
+		}
+	}
+
+	/// Insert a single value or key, either sparse or dense							
+	///	@tparam T - the type to add, either key or value (deducible)			
+	///	@param element - the address of the element to remove						
+	TABLE_TEMPLATE()
+	template<class T>
+	void TABLE()::Overwrite(T&& from, T& to) noexcept {
+		// Remove the old entry															
+		RemoveInner(&to);
+
+		if constexpr (CT::Sparse<T>) {
+			// Value is sparse, reference it if ours								
+			auto entry = Inner::Allocator::Find(MetaData::Of<T>(), from);
+			if (entry)
+				entry->Keep();
+			to = from;
+			from = nullptr;
+		}
+		else {
+			// Value is dense, reconstruct it in place							
+			using TD = Decay<T>;
+			new (&to) TD {Forward<T>(from)};
 		}
 	}
 

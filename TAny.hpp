@@ -62,7 +62,7 @@ namespace Langulus::Anyness
 		NOD() static TAny Wrap(const T(&anything)[COUNT]);
 		NOD() static TAny Wrap(const T*, const Count&);
 
-		template<bool CREATE = false>
+		template<bool CREATE = false, bool MOVE = true>
 		void Allocate(Count);
 	
 		void Null(const Count&);

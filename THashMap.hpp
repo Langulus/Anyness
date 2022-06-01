@@ -23,6 +23,7 @@ namespace Langulus::Anyness
 		using Key = K;
 		using Value = V;
 		using Self = THashMap<K, V>;
+		static constexpr Count MinimalAllocation = 8;
 
 	protected:
 		// The allocation which holds keys and tombstones						
@@ -86,17 +87,8 @@ namespace Langulus::Anyness
 		NOD() constexpr bool IsKeyDense() const noexcept;
 		NOD() constexpr bool IsValueDense() const noexcept;
 
-		NOD() constexpr Size GetPairStride() const noexcept;
 		NOD() constexpr Size GetKeyStride() const noexcept;
 		NOD() constexpr Size GetValueStride() const noexcept;
-
-		NOD() constexpr const K* GetRawKeys() const noexcept;
-		NOD() constexpr K* GetRawKeys() noexcept;
-		NOD() constexpr const K* GetRawKeysEnd() const noexcept;
-
-		NOD() constexpr const V* GetRawValues() const noexcept;
-		NOD() constexpr V* GetRawValues() noexcept;
-		NOD() constexpr const V* GetRawValuesEnd() const noexcept;
 
 		NOD() constexpr Size GetSize() const noexcept;
 		NOD() constexpr Count GetCount() const noexcept;
@@ -106,6 +98,14 @@ namespace Langulus::Anyness
 
 		NOD() constexpr bool HasAuthority() const noexcept;
 		NOD() constexpr Count GetUses() const noexcept;
+
+		NOD() constexpr const K* GetRawKeys() const noexcept;
+		NOD() constexpr K* GetRawKeys() noexcept;
+		NOD() constexpr const K* GetRawKeysEnd() const noexcept;
+
+		NOD() constexpr const V* GetRawValues() const noexcept;
+		NOD() constexpr V* GetRawValues() noexcept;
+		NOD() constexpr const V* GetRawValuesEnd() const noexcept;
 
 		void Allocate(const Count&);
 
@@ -124,18 +124,16 @@ namespace Langulus::Anyness
 		Count Insert(const Pair&);
 		Count Insert(Pair&&);
 
-		template<class... Args>
-		Count Emplace(Args&&...);
-
 
 		///																							
 		///	REMOVAL																				
 		///																							
-		void Clear();
-		void Reset();
 		Count RemoveKey(const K&);
 		Count RemoveValue(const V&);
 		Count RemovePair(const Pair&);
+
+		void Clear();
+		void Reset();
 		void Compact();
 
 
@@ -153,11 +151,18 @@ namespace Langulus::Anyness
 		NOD() decltype(auto) operator[] (const K&);
 
 	protected:
+		template<bool REUSE>
+		void AllocateKeys(const Count&);
+		void AllocateInner(const Count&);
+
 		template<class T>
 		static void CloneInner(const uint8_t*, const T*, const T*, T*);
 
 		template<class T>
-		void RemoveInner(T*) noexcept;
+		static void RemoveInner(T*) noexcept;
+		template<class T>
+		static void Overwrite(T&&, T&) noexcept;
+
 		void RemoveIndex(const Offset&) noexcept;
 
 		NOD() decltype(auto) GetKey(const Offset&) const noexcept;
@@ -169,7 +174,7 @@ namespace Langulus::Anyness
 
 		NOD() Offset FindIndex(const K&) const;
 
-		NOD() Size RequestKeyAndInfoSize(Offset& infoStart) const noexcept;
+		NOD() static Size RequestKeyAndInfoSize(Count, Offset&) noexcept;
 
 		NOD() const uint8_t* GetInfo() const noexcept;
 		NOD() uint8_t* GetInfo() noexcept;

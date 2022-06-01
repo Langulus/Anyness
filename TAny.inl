@@ -1330,10 +1330,10 @@ namespace Langulus::Anyness
 	///	@tparam CREATE - true to call constructors									
 	///	@param elements - number of elements to allocate							
 	TEMPLATE()
-	template<bool CREATE>
+	template<bool CREATE, bool MOVE>
 	void TAny<T>::Allocate(Count elements) {
 		static_assert(!CT::Abstract<T>, "Can't allocate abstract items");
-		const auto byteSize = RequestByteSize(elements);
+		const auto byteSize = RequestByteSize(elements);//TODO can be optimized, see end of this func
 		
 		// Allocate/reallocate															
 		if (mEntry) {
@@ -1366,10 +1366,12 @@ namespace Langulus::Anyness
 				// Also, make sure to free the previous mEntry if moved		
 				mEntry = Inner::Allocator::Reallocate(byteSize, mEntry);
 				if (mEntry != previousBlock.mEntry) {
-					// Memory moved, and we should call move-construction		
 					mRaw = mEntry->GetBlockStart();
-					mCount = 0;
-					CallKnownMoveConstructors<T>(previousBlock.mCount, Move(previousBlock));
+					if constexpr (MOVE) {
+						// Memory moved, and we should call move-construction	
+						mCount = 0;
+						CallKnownMoveConstructors<T>(previousBlock.mCount, Move(previousBlock));
+					}
 				}
 				else {
 					// Avoid dereferencing old data in case we still use it	
@@ -1386,8 +1388,10 @@ namespace Langulus::Anyness
 				// copy the memory for this block - we can't move it!			
 				mEntry = Inner::Allocator::Allocate(byteSize);
 				mRaw = mEntry->GetBlockStart();
-				mCount = 0;
-				CallCopyConstructors(previousBlock.mCount, previousBlock);
+				if constexpr (MOVE) {
+					mCount = 0;
+					CallCopyConstructors(previousBlock.mCount, previousBlock);
+				}
 				
 				if constexpr (CREATE) {
 					// Default-construct the rest										
@@ -1405,7 +1409,7 @@ namespace Langulus::Anyness
 			}
 		}
 		
-		mReserved = byteSize / sizeof(T);
+		mReserved = byteSize / sizeof(T);//TODO can be optimized
 		return;
 	}
 	
@@ -1492,10 +1496,10 @@ namespace Langulus::Anyness
 			WRAPPER result {Disown(*this)};
 			result.mCount += rhs.mCount;
 			if (result.mCount) {
-				const auto byteSize = RequestByteSize(result.mCount);
+				const auto byteSize = RequestByteSize(result.mCount); //TODO can be optimized
 				result.mEntry = Inner::Allocator::Allocate(byteSize);
 				result.mRaw = result.mEntry->GetBlockStart();
-				result.mReserved = byteSize / result.GetStride();
+				result.mReserved = byteSize / result.GetStride(); //TODO can be optimized
 				CopyMemory(mRaw, result.mRaw, mCount);
 				CopyMemory(rhs.mRaw, result.mRaw + mCount, rhs.mCount);
 			}
