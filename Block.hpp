@@ -96,7 +96,7 @@ namespace Langulus::Anyness
 		friend class TPointer;
 
 		template<CT::Data, CT::Data>
-		class THashMap;
+		friend class THashMap;
 
 	protected:
 		union { 

@@ -154,6 +154,7 @@ namespace Langulus::Anyness
 		template<bool REUSE>
 		void AllocateKeys(const Count&);
 		void AllocateInner(const Count&);
+		void Rehash(const Count&, const Count&);
 
 		template<class T>
 		static void CloneInner(const uint8_t*, const T*, const T*, T*);
@@ -165,8 +166,8 @@ namespace Langulus::Anyness
 
 		void RemoveIndex(const Offset&) noexcept;
 
-		NOD() decltype(auto) GetKey(const Offset&) const noexcept;
-		NOD() decltype(auto) GetKey(const Offset&) noexcept;
+		NOD() const K& GetKey(const Offset&) const noexcept;
+		NOD() K& GetKey(const Offset&) noexcept;
 		NOD() decltype(auto) GetValue(const Offset&) const noexcept;
 		NOD() decltype(auto) GetValue(const Offset&) noexcept;
 		NOD() decltype(auto) GetPair(const Offset&) const noexcept;

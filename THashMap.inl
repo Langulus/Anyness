@@ -467,7 +467,7 @@ namespace Langulus::Anyness
 	///	@attention assumes count is a power-of-two									
 	///	@attention assumes mValues has not been yet reallocated					
 	///	@tparam REUSE - true to reallocate, false to allocate fresh				
-	///	@param count - the new number of keys and info bytes						
+	///	@param count - the new number of pairs											
 	TABLE_TEMPLATE()
 	template<bool REUSE>
 	void TABLE()::AllocateKeys(const Count& count) {
@@ -504,30 +504,128 @@ namespace Langulus::Anyness
 			return;
 		}
 
-		if (oldKeys != mKeys) {
-			// Keys moved																	
-			// Reinsert each one of them to rehash									
-			const auto oldInfoEnd = oldInfo + GetReserved();
-			auto key = oldKeys->As<K>();
-			while (oldInfo != oldInfoEnd) {
-				if (0 == *oldInfo) {
-					++key; ++oldInfo;
-					continue;
-				}
+		const auto oldCount = GetReserved();
+		const auto oldInfoEnd = oldInfo + oldCount;
+		auto key = oldKeys->As<K>();
 
-				if constexpr (REUSE)
-					InsertKey(Move(*key));
-				else
-					InsertKey(*key);
-				++key; ++oldInfo;
+		// Allocate new values															
+		const auto oldValues = mValues.mEntry;
+		auto value = mValues.GetRaw();
+		if constexpr (REUSE)
+			mValues.mEntry = Inner::Allocator::Reallocate(count * sizeof(V), oldValues);
+		else
+			mValues.mEntry = Inner::Allocator::Allocate(count * sizeof(V));
+
+		mValues.mReserved = count;
+
+		if constexpr (REUSE) {
+			if (mValues.mEntry == oldValues && oldKeys == mKeys) {
+				// Both keys and values remain in the same place, so rehash	
+				Rehash(count, oldCount);
+				return;
+			}
+		}
+
+		// If reached, then keys or values (or both) moved						
+		// Reinsert all pairs to rehash												
+		while (oldInfo != oldInfoEnd) {
+			if (0 == *oldInfo) {
+				++key; ++oldInfo; ++value;
+				continue;
 			}
 
-			// Free the old entry														
-			Inner::Allocator::Deallocate(oldKeys);
+			if constexpr (REUSE)
+				Insert(Pair {Move(*key), Move(*value)});
+			else
+				Insert(Pair {*key, *value});
+
+			if constexpr (REUSE) {
+				// Always destroy previous elements when reusing, because	
+				// we have a guarantee, that there is just one use, and		
+				// we'll be deallocating there at the end of this function	
+				if constexpr (CT::Dense<K> && CT::Destroyable<K>)
+					key->~K();
+				if constexpr (CT::Dense<V> && CT::Destroyable<V>)
+					value->~V();
+			}
+
+			++key; ++oldInfo; ++value;
+		}
+
+		// Free the old allocations													
+		if constexpr (REUSE) {
+			// When reusing, keys and values can potentially remain same	
+			// Avoid deallocating them if that's the case						
+			if (oldValues != mValues.mEntry)
+				Inner::Allocator::Deallocate(oldValues);
+			if (oldKeys != mKeys)
+				Inner::Allocator::Deallocate(oldKeys);
 		}
 		else {
-			// Keys remain in the same place, swap them around to rehash	
-			TODO();
+			// Not reusing, so either deallocate, or dereference				
+			// (keys are always present, if values are present)				
+			if (oldValues->GetUses() > 1)
+				oldValues->Free();
+			else {
+				Inner::Allocator::Deallocate(oldValues);
+				Inner::Allocator::Deallocate(oldKeys);
+			}
+		}
+	}
+
+	/// Similar to insertion, but rehashes each key 									
+	///	@attention does nothing if reserving less than current reserve			
+	///	@attention assumes count is a power-of-two number							
+	///	@param count - the new number of pairs											
+	TABLE_TEMPLATE()
+	void TABLE()::Rehash(const Count& count, const Count& oldCount) {
+		auto oldKey = GetRawKeys();
+		auto oldInfo = GetInfo();
+		const auto oldKeyEnd = oldKey + oldCount;
+
+		// For each old existing key...												
+		while (oldKey != oldKeyEnd) {
+			if (!*oldInfo) {
+				++oldKey; ++oldInfo;
+				continue;
+			}
+
+			// Rehash it and reinsert													
+			const auto oldIndex = oldInfo - GetInfo();
+			const auto index = HashData(*oldKey) & (count - 1);
+			if (index == oldIndex) {
+				// Rehashed in same place, so skip									
+				++oldKey; ++oldInfo;
+				continue;
+			}
+
+			const auto info = GetInfo() + index;
+			V& oldValue = GetValue(oldIndex);
+
+			if (!*info) {
+				// Neat, spot is empty, just move the pair in					
+				new (&GetKey(index)) K {Move(*oldKey)};
+				new (&GetValue(index)) V {Move(oldValue)};
+				*info = 1;
+				*oldInfo = 0;
+
+				if constexpr (CT::Dense<K> && CT::Destroyable<K>)
+					oldKey->~K();
+				if constexpr (CT::Dense<V> && CT::Destroyable<V>)
+					oldValue.~V();
+
+				// Let's rehash the next pair											
+				++oldKey; ++oldInfo;
+				continue;
+			}
+
+			// If reached, then spot is not empty - swap and rehash again	
+			::std::swap(GetKey(index), *oldKey);
+			::std::swap(GetValue(index), oldValue);
+			*oldInfo = *info = 1;
+
+			// Notice that we do not advance key and oldInfo here, so we	
+			// can rehash the newly swapped pair in the same place			
 		}
 	}
 
@@ -591,8 +689,8 @@ namespace Langulus::Anyness
 			if (attempts > *psl) {
 				// The pair we're inserting is closer to bucket, so swap		
 				const auto index = psl - GetInfo();
-				::std::swap(Move(GetKey(index)), Move(swapper.mKey));
-				::std::swap(Move(GetValue(index)), Move(swapper.mValue));
+				::std::swap(GetKey(index), swapper.mKey);
+				::std::swap(GetValue(index), swapper.mValue);
 				::std::swap(attempts, *psl);
 			}
 
@@ -614,6 +712,7 @@ namespace Langulus::Anyness
 		new (&GetKey(index)) K {Move(swapper.mKey)};
 		new (&GetValue(index)) V {Move(swapper.mValue)};
 		*psl = attempts;
+		++mValues.mCount;
 		return 1;
 	}
 
@@ -642,8 +741,8 @@ namespace Langulus::Anyness
 			if (attempts > *psl) {
 				// The pair we're inserting is closer to bucket, so swap		
 				const auto index = psl - GetInfo();
-				::std::swap(Move(GetKey(index)), Move(item.mKey));
-				::std::swap(Move(GetValue(index)), Move(item.mValue));
+				::std::swap(GetKey(index), item.mKey);
+				::std::swap(GetValue(index), item.mValue);
 				::std::swap(attempts, *psl);
 			}
 
@@ -665,14 +764,16 @@ namespace Langulus::Anyness
 		new (&GetKey(index)) K {Move(item.mKey)};
 		new (&GetValue(index)) V {Move(item.mValue)};
 		*psl = attempts;
+		++mValues.mCount;
 		return 1;
 	}
 
 	/// Clears all data, without resizing													
 	TABLE_TEMPLATE()
 	void TABLE()::Clear() {
-		if (!mValues.IsAllocated())
+		if (IsEmpty())
 			return;
+
 		mValues.Clear();
 		::std::memset(mInfo, 0, mValues.GetReserved());
 	}
@@ -680,7 +781,7 @@ namespace Langulus::Anyness
 	/// Clears all data and deallocates														
 	TABLE_TEMPLATE()
 	void TABLE()::Reset() {
-		if (mValues.GetUses() == 1)
+		if (GetUses() == 1)
 			Inner::Allocator::Deallocate(mKeys);
 		mValues.Reset();
 	}
@@ -717,7 +818,7 @@ namespace Langulus::Anyness
 		}
 
 		// Success																			
-		--const_cast<Count&>(mValues.GetCount());
+		--mValues.mCount;
 	}
 
 	/// Destroy a single value or key, either sparse or dense						
@@ -808,7 +909,7 @@ namespace Langulus::Anyness
 			}
 
 			// Success																		
-			--const_cast<Count&>(mValues.GetCount());
+			--mValues.mCount;
 			return 1;
 		}
 
@@ -878,12 +979,12 @@ namespace Langulus::Anyness
 	}
 
 	TABLE_TEMPLATE()
-	decltype(auto) TABLE()::GetKey(const Offset& i) const noexcept {
+	const K& TABLE()::GetKey(const Offset& i) const noexcept {
 		return GetRawKeys()[i];
 	}
 
 	TABLE_TEMPLATE()
-	decltype(auto) TABLE()::GetKey(const Offset& i) noexcept {
+	K& TABLE()::GetKey(const Offset& i) noexcept {
 		return GetRawKeys()[i];
 	}
 

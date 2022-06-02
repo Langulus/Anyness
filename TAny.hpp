@@ -20,6 +20,9 @@ namespace Langulus::Anyness
 	///																								
 	template<CT::Data T>
 	class TAny : public Any {
+		template<CT::Data, CT::Data>
+		friend class THashMap;
+
 	public:
 		TAny();
 		~TAny();
