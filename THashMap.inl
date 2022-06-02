@@ -147,12 +147,12 @@ namespace Langulus::Anyness
 	///	@param to - destrination memory													
 	TABLE_TEMPLATE()
 	template<class T>
-	void TABLE()::CloneInner(const uint8_t* info, const T* from, const T* fromEnd, T* to) {
+	void TABLE()::CloneInner(const Count& count, const uint8_t* info, const T* from, const T* fromEnd, T* to) {
 		using TD = Decay<T>;
 
 		if constexpr (CT::Sparse<T>) {
 			TAny<TD> coalesced;
-			coalesced.Allocate(GetCount());
+			coalesced.Allocate(count);
 
 			// Clone data behind each valid pointer								
 			auto cache = coalesced.GetRaw();
@@ -217,12 +217,14 @@ namespace Langulus::Anyness
 		::std::memcpy(result.GetInfo(), GetInfo(), GetReserved() + 1);
 
 		// Clone the keys																	
-		CloneInner(GetInfo(), GetRawKeys(), GetRawKeysEnd(), result.GetRawKeys());
+		CloneInner(result.mValues.mCount, GetInfo(), 
+			GetRawKeys(), GetRawKeysEnd(), result.GetRawKeys());
 
 		// Allocate and clone values													
 		result.mValues.mEntry = Inner::Allocator::Allocate(result.mValues.GetReservedSize());
 		result.mValues.mRaw = result.mValues.mEntry->GetBlockStart();
-		CloneInner(GetInfo(), GetRawValues(), GetRawValuesEnd(), result.GetRawValues());
+		CloneInner(result.mValues.mCount, GetInfo(), 
+			GetRawValues(), GetRawValuesEnd(), result.GetRawValues());
 
 		return Abandon(result);
 	}
@@ -422,9 +424,8 @@ namespace Langulus::Anyness
 	///	@return the requested byte size													
 	TABLE_TEMPLATE()
 	Size TABLE()::RequestKeyAndInfoSize(const Count request, Offset& infoStart) noexcept {
-		constexpr Size alignment {LANGULUS(ALIGN)};
 		const Size keymemory = request * sizeof(K);
-		infoStart = keymemory + alignment - (keymemory % alignment);
+		infoStart = keymemory + Alignment - (keymemory % Alignment);
 		return infoStart + request + 1;
 	}
 

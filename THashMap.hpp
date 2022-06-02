@@ -158,7 +158,7 @@ namespace Langulus::Anyness
 		void ClearInner();
 
 		template<class T>
-		static void CloneInner(const uint8_t*, const T*, const T*, T*);
+		static void CloneInner(const Count&, const uint8_t*, const T*, const T*, T*);
 
 		template<bool DEALLOCATE, class T>
 		static void RemoveInner(T*) noexcept;

@@ -54,7 +54,7 @@ namespace Langulus::Anyness::Inner
 	/// Get the size of the Allocation structure, rounded up for alignment		
 	///	@return the byte size of the entry, including alignment					
 	constexpr Size Allocation::GetSize() noexcept {
-		static_assert(IsPowerOfTwo(Inner::Alignment),
+		static_assert(IsPowerOfTwo(Alignment),
 			"Alignment is not a power-of-two number");
 		return sizeof(Allocation) + Alignment - (sizeof(Allocation) % Alignment);
 	}

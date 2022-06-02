@@ -15,8 +15,6 @@
 namespace Langulus::Anyness::Inner
 {
 
-	constexpr Size Alignment {LANGULUS(ALIGN)};
-
 	#if !LANGULUS_FEATURE(MANAGED_MEMORY)
 		using Pool = void;
 	#else

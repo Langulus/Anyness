@@ -158,11 +158,11 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 			THEN("Requirements should be met") {
 				REQUIRE(entry->GetBlockStart() != nullptr);
 				REQUIRE(entry->GetBlockStart() != reinterpret_cast<Byte*>(entry));
-				REQUIRE(reinterpret_cast<Pointer>(entry) % Pointer {LANGULUS(ALIGN)} == 0);
-				REQUIRE(reinterpret_cast<Pointer>(entry->GetBlockStart()) % Pointer {LANGULUS(ALIGN)} == 0);
+				REQUIRE(reinterpret_cast<Pointer>(entry) % Alignment == 0);
+				REQUIRE(reinterpret_cast<Pointer>(entry->GetBlockStart()) % Alignment == 0);
 				REQUIRE(entry->GetAllocatedSize() >= 512);
 				REQUIRE(entry->GetBlockEnd() == entry->GetBlockStart() + entry->GetAllocatedSize());
-				REQUIRE(entry->GetSize() % Size {LANGULUS(ALIGN)} == 0);
+				REQUIRE(entry->GetSize() % Alignment == 0);
 				REQUIRE(entry->GetBlockStart() == reinterpret_cast<Byte*>(entry) + entry->GetSize());
 				REQUIRE(entry->GetUses() == 1);
 				for (Size i = 0; i < 512; ++i) {

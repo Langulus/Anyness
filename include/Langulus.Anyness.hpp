@@ -21,3 +21,5 @@
 #ifdef LANGULUS_EXPOSE_PRIVATE_HEADERS
 	#include "../inner/Pool.hpp"
 #endif
+
+#define LANGULUS_MODULE_ANYNESS()

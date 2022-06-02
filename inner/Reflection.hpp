@@ -96,13 +96,13 @@ namespace Langulus::Anyness
 	constexpr Size GetAllocationPageOf() SAFETY_NOEXCEPT() {
 		if constexpr (requires {{Decay<T>::CTTI_AllocationPage} -> CT::Same<Size>;}) {
 			constexpr Size candidate = Decay<T>::CTTI_AllocationPage * sizeof(T);
-			if constexpr (candidate < LANGULUS(ALIGN))
-				return LANGULUS(ALIGN);
+			if constexpr (candidate < Alignment)
+				return Alignment;
 			else 
 				return Roof2<LANGULUS(SAFE)>(candidate);
 		}
-		else if constexpr (sizeof(T) < LANGULUS(ALIGN))
-			return LANGULUS(ALIGN);
+		else if constexpr (sizeof(T) < Alignment)
+			return Alignment;
 		else 
 			return Roof2<LANGULUS(SAFE)>(sizeof(T));
 	}
