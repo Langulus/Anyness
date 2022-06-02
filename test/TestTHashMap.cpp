@@ -600,8 +600,8 @@ SCENARIO("THashMap", "[containers]") {
 				REQUIRE(moved["five"] == 5);
 				REQUIRE_FALSE(map.IsAllocated());
 				REQUIRE(map.IsEmpty());
-				REQUIRE(map.GetRawKeys() != keyMemory);
-				REQUIRE(map.GetRawValues() != valueMemory);
+				//REQUIRE(map.GetRawKeys() == nullptr); // not really required
+				REQUIRE(map.GetRawValues() == nullptr);
 				REQUIRE(map.GetCount() == 0);
 				REQUIRE(map.IsValueTypeConstrained());
 				REQUIRE(map.IsKeyTypeConstrained());

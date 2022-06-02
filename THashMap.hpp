@@ -120,7 +120,6 @@ namespace Langulus::Anyness
 		///																							
 		///	INSERTION																			
 		///																							
-		Count Insert(::std::initializer_list<Pair>);
 		Count Insert(const Pair&);
 		Count Insert(Pair&&);
 
@@ -155,11 +154,13 @@ namespace Langulus::Anyness
 		void AllocateKeys(const Count&);
 		void AllocateInner(const Count&);
 		void Rehash(const Count&, const Count&);
+		void InsertInner(const Offset&, K&, V&);
+		void ClearInner();
 
 		template<class T>
 		static void CloneInner(const uint8_t*, const T*, const T*, T*);
 
-		template<class T>
+		template<bool DEALLOCATE, class T>
 		static void RemoveInner(T*) noexcept;
 		template<class T>
 		static void Overwrite(T&&, T&) noexcept;
@@ -179,7 +180,7 @@ namespace Langulus::Anyness
 
 		NOD() const uint8_t* GetInfo() const noexcept;
 		NOD() uint8_t* GetInfo() noexcept;
-		NOD() uint8_t* GetSentinel() noexcept;
+		NOD() const uint8_t* GetInfoEnd() const noexcept;
 	};
 
 } // namespace Langulus::Anyness

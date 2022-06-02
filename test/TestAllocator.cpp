@@ -54,6 +54,32 @@ SCENARIO("Testing CountLeadingZeroes calls", "[allocator]") {
 	}
 }
 
+SCENARIO("Testing CountTrailingZeroes calls", "[allocator]") {
+	const Size numbers[] {
+		0, 1, 2, 3, 4, 5, 6, 11, 16, 64, 99, 120, 128
+	};
+
+	#if LANGULUS(BITNESS) == 32
+		const Size results[] {
+			32, 0, 1, 0, 2, 0, 1, 0, 4, 6, 0, 3, 7
+		};
+	#elif LANGULUS(BITNESS) == 64
+		const Size results[] {
+			64, 0, 1, 0, 2, 0, 1, 0, 4, 6, 0, 3, 7
+		};
+	#endif
+
+	static_assert(sizeof(numbers) == sizeof(results), "Oops");
+
+	WHEN("CountTrailingZeroes is executed") {
+		THEN("Results should be correct") {
+			for (int i = 0; i < sizeof(numbers) / sizeof(Size); ++i) {
+				REQUIRE(CountTrailingZeroes(numbers[i]) == results[i]);
+			}
+		}
+	}
+}
+
 TEMPLATE_TEST_CASE("Testing IsPowerOfTwo calls", "[allocator]", uint8_t, uint16_t, uint32_t, uint64_t) {
 	using T = TestType;
 	const T numbers[] {

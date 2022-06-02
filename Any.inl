@@ -14,21 +14,21 @@ namespace Langulus::Anyness
 	/// Copy construction via Any - does a shallow copy and references 			
 	///	@param other - the container to shallow-copy									
 	inline Any::Any(const Any& other) 
-		: Block {static_cast<const Block&>(other)} {
+		: Block {other} {
 		Keep();
 	}
 
 	/// Copy construction via Any - does a shallow copy and references 			
 	///	@param other - the container to shallow-copy									
 	inline Any::Any(Any& other) 
-		: Block {static_cast<Block&>(other)} {
+		: Block {other} {
 		Keep();
 	}
 
 	/// Construct by moving another container												
 	///	@param other - the container to move											
 	inline Any::Any(Any&& other) noexcept
-		: Block {static_cast<Block&>(other)} {
+		: Block {Forward<Block>(other)} {
 		other.ResetMemory();
 		other.ResetState();
 	}

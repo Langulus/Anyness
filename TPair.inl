@@ -14,7 +14,7 @@
 namespace Langulus::Anyness
 {
 
-	/// Initialize manually	(noexcept)														
+	/// Initialize manually by a move (noexcept)											
 	///	@param key - the key to use														
 	///	@param value - the value to use													
 	TEMPLATE()
@@ -22,35 +22,29 @@ namespace Langulus::Anyness
 		: mKey {Forward<K>(key)}
 		, mValue {Forward<V>(value)} {}
 
-	/// Initialize manually																		
+	/// Initialize manually by a move (noexcept)											
 	///	@param key - the key to use														
 	///	@param value - the value to use													
 	TEMPLATE()
-	constexpr PAIR()::TPair(K&& key, V&& value) noexcept requires CT::MoveMakable<K, V>
+	constexpr PAIR()::TPair(K&& key, V&& value) requires CT::MoveMakable<K, V>
 		: mKey {Forward<K>(key)}
 		, mValue {Forward<V>(value)} {}
 
-	/// Piecewise constructor																	
+	/// Initialize manually by a shallow-copy (noexcept)								
+	///	@param key - the key to use														
+	///	@param value - the value to use													
 	TEMPLATE()
-	template<class... U1, class... U2>
-	constexpr PAIR()::TPair(::std::piecewise_construct_t, ::std::tuple<U1...> a, ::std::tuple<U2...> b)
-	noexcept(noexcept(TPair(Uneval(a), Uneval(b),
-		::std::index_sequence_for<U1...>(),
-		::std::index_sequence_for<U2...>())))
-		: TPair {a, b, ::std::index_sequence_for<U1...>(), ::std::index_sequence_for<U2...>()} {}
+	constexpr PAIR()::TPair(const K& key, const V& value) noexcept requires CT::CopyMakableNoexcept<K, V>
+		: mKey {key}
+		, mValue {value} {}
 
-	/// Constructor called from the std::piecewise_construct_t ctor				
+	/// Initialize manually by a shallow-copy												
+	///	@param key - the key to use														
+	///	@param value - the value to use													
 	TEMPLATE()
-	template<class... U1, size_t... I1, class... U2, size_t... I2>
-	PAIR()::TPair(::std::tuple<U1...>& a, ::std::tuple<U2...>& b, ::std::index_sequence<I1...>, ::std::index_sequence<I2...>)
-		noexcept(
-			noexcept(K {Forward<U1>(::std::get<I1>(Uneval(a)))...})
-		&& noexcept(V {Forward<U2>(::std::get<I2>(Uneval(b)))...}))
-		: mKey {Forward<U1>(::std::get<I1>(a))...}
-		, mValue {Forward<U2>(::std::get<I2>(b))...} {
-		(void)a;
-		(void)b;
-	}
+	constexpr PAIR()::TPair(const K& key, const V& value) requires CT::CopyMakable<K, V>
+		: mKey {key}
+		, mValue {value} {}
 
 	/// Swap (noexcept)																			
 	///	@param other - the pair to swap with											

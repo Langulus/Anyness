@@ -186,13 +186,9 @@ namespace Langulus::Anyness
 		else if constexpr (CT::CloneMakable<T>) {
 			// Clone dense keys by their Clone() methods							
 			while (from < fromEnd) {
-				if (!*info) {
-					// Skip uninitialized elements									
-					++from; ++to; ++info;
-					continue;
-				}
+				if (*info)
+					new (to) TD {from->Clone()};
 
-				new (to) TD {from->Clone()};
 				++from; ++to; ++info;
 			}
 		}
@@ -212,22 +208,20 @@ namespace Langulus::Anyness
 
 		THashMap result {Disown(*this)};
 
-		// Allocate keys																	
-		Offset infoOffset;
-		result.mKeys = Inner::Allocator::Allocate(
-			RequestKeyAndInfoSize(GetReserved(), infoOffset)
-		);
-
-		// Precalculate the info pointer, it's costly							
-		result.mInfo = reinterpret_cast<uint8_t*>(
-			result.mKeys->GetBlockStart() + infoOffset
-		);
+		// Allocate keys and info														
+		result.mKeys = Inner::Allocator::Allocate(mKeys->GetAllocatedSize());
+		result.mInfo = reinterpret_cast<uint8_t*>(result.mKeys) 
+			+ (mInfo - reinterpret_cast<const uint8_t*>(mKeys));
 
 		// Clone the info bytes															
 		::std::memcpy(result.GetInfo(), GetInfo(), GetReserved() + 1);
 
-		// Clone the keys and values													
+		// Clone the keys																	
 		CloneInner(GetInfo(), GetRawKeys(), GetRawKeysEnd(), result.GetRawKeys());
+
+		// Allocate and clone values													
+		result.mValues.mEntry = Inner::Allocator::Allocate(result.mValues.GetReservedSize());
+		result.mValues.mRaw = result.mValues.mEntry->GetBlockStart();
 		CloneInner(GetInfo(), GetRawValues(), GetRawValuesEnd(), result.GetRawValues());
 
 		return Abandon(result);
@@ -434,25 +428,25 @@ namespace Langulus::Anyness
 		return infoStart + request + 1;
 	}
 
-	/// Get the tombstone array end															
-	///	@return a pointer to the end of the array										
-	TABLE_TEMPLATE()
-	uint8_t* TABLE()::GetSentinel() noexcept {
-		return GetInfo() + mValues.GetReserved();
-	}
-
-	/// Get the tombstone array (const)														
-	///	@return a pointer to the first element inside the tombstone array		
+	/// Get the info array (const)															
+	///	@return a pointer to the first element inside the info array			
 	TABLE_TEMPLATE()
 	const uint8_t* TABLE()::GetInfo() const noexcept {
 		return mInfo;
 	}
 
-	/// Get the tombstone array																
-	///	@return a pointer to the first element inside the tombstone array		
+	/// Get the info array																		
+	///	@return a pointer to the first element inside the info array			
 	TABLE_TEMPLATE()
 	uint8_t* TABLE()::GetInfo() noexcept {
 		return mInfo;
+	}
+
+	/// Get the end of the info array														
+	///	@return a pointer to the first element inside the info array			
+	TABLE_TEMPLATE()
+	const uint8_t* TABLE()::GetInfoEnd() const noexcept {
+		return mInfo + GetReserved();
 	}
 
 	/// Reserves space for the specified number of pairs								
@@ -493,20 +487,27 @@ namespace Langulus::Anyness
 			mKeys->GetBlockStart() + infoOffset
 		);
 
-		// Zero the info array, we'll be rehashing it anyways					
-		::std::memset(mInfo, 0, count);
-		*GetSentinel() = 1;
-
-		if (IsEmpty()) {
-			// Nothing else to do														
-			if (oldKeys != mKeys)
-				Inner::Allocator::Deallocate(oldKeys);
-			return;
-		}
-
 		const auto oldCount = GetReserved();
 		const auto oldInfoEnd = oldInfo + oldCount;
 		auto key = oldKeys->As<K>();
+
+		// Zero or move the info array												
+		if constexpr (REUSE) {
+			// Check if keys were reused												
+			if (mKeys == oldKeys) {
+				// Keys were reused, but info always moves (null the rest)	
+				::std::memmove(mInfo, oldInfo, oldCount);
+				::std::memset(mInfo + oldCount, 0, count - oldCount);
+			}
+			else {
+				// Keys weren't reused, so clear the new ones					
+				::std::memset(mInfo, 0, count);
+			}
+		}
+		else ::std::memset(mInfo, 0, count);
+
+		// Set the sentinel																
+		mInfo[count] = 1;
 
 		// Allocate new values															
 		const auto oldValues = mValues.mEntry;
@@ -515,8 +516,9 @@ namespace Langulus::Anyness
 			mValues.mEntry = Inner::Allocator::Reallocate(count * sizeof(V), oldValues);
 		else
 			mValues.mEntry = Inner::Allocator::Allocate(count * sizeof(V));
-
+		mValues.mRaw = mValues.mEntry->GetBlockStart();
 		mValues.mReserved = count;
+		mValues.mCount = 0;
 
 		if constexpr (REUSE) {
 			if (mValues.mEntry == oldValues && oldKeys == mKeys) {
@@ -534,20 +536,12 @@ namespace Langulus::Anyness
 				continue;
 			}
 
-			if constexpr (REUSE)
-				Insert(Pair {Move(*key), Move(*value)});
-			else
-				Insert(Pair {*key, *value});
-
 			if constexpr (REUSE) {
-				// Always destroy previous elements when reusing, because	
-				// we have a guarantee, that there is just one use, and		
-				// we'll be deallocating there at the end of this function	
-				if constexpr (CT::Dense<K> && CT::Destroyable<K>)
-					key->~K();
-				if constexpr (CT::Dense<V> && CT::Destroyable<V>)
-					value->~V();
+				Insert(Pair {Move(*key), Move(*value)});
+				RemoveInner<false>(key);
+				RemoveInner<false>(value);
 			}
+			else Insert(Pair {*key, *value});
 
 			++key; ++oldInfo; ++value;
 		}
@@ -561,7 +555,7 @@ namespace Langulus::Anyness
 			if (oldKeys != mKeys)
 				Inner::Allocator::Deallocate(oldKeys);
 		}
-		else {
+		else if (oldValues) {
 			// Not reusing, so either deallocate, or dereference				
 			// (keys are always present, if values are present)				
 			if (oldValues->GetUses() > 1)
@@ -590,42 +584,29 @@ namespace Langulus::Anyness
 				continue;
 			}
 
-			// Rehash it and reinsert													
+			// Rehash and check if hashes match										
 			const auto oldIndex = oldInfo - GetInfo();
-			const auto index = HashData(*oldKey) & (count - 1);
-			if (index == oldIndex) {
-				// Rehashed in same place, so skip									
-				++oldKey; ++oldInfo;
-				continue;
-			}
+			const auto newIndex = HashData(*oldKey) & (count - 1);
+			if (oldIndex != newIndex) {
+				// Immediately move the old pair to the swapper					
+				auto oldValue = &GetValue(oldIndex);
+				Pair swapper {Move(*oldKey), Move(*oldValue)};
 
-			const auto info = GetInfo() + index;
-			V& oldValue = GetValue(oldIndex);
-
-			if (!*info) {
-				// Neat, spot is empty, just move the pair in					
-				new (&GetKey(index)) K {Move(*oldKey)};
-				new (&GetValue(index)) V {Move(oldValue)};
-				*info = 1;
+				// Clean the old slot													
+				RemoveInner<false>(oldKey);
+				RemoveInner<false>(oldValue);
 				*oldInfo = 0;
 
-				if constexpr (CT::Dense<K> && CT::Destroyable<K>)
-					oldKey->~K();
-				if constexpr (CT::Dense<V> && CT::Destroyable<V>)
-					oldValue.~V();
-
-				// Let's rehash the next pair											
-				++oldKey; ++oldInfo;
-				continue;
+				// Insert the swapper													
+				InsertInner(newIndex, swapper.mKey, swapper.mValue);
+			}
+			else {
+				// Nothing inserted, but since count has been previously		
+				// cleared, restore the count and move forward					
+				++mValues.mCount;
 			}
 
-			// If reached, then spot is not empty - swap and rehash again	
-			::std::swap(GetKey(index), *oldKey);
-			::std::swap(GetValue(index), oldValue);
-			*oldInfo = *info = 1;
-
-			// Notice that we do not advance key and oldInfo here, so we	
-			// can rehash the newly swapped pair in the same place			
+			++oldKey; ++oldInfo;
 		}
 	}
 
@@ -637,7 +618,7 @@ namespace Langulus::Anyness
 	void TABLE()::AllocateInner(const Count& count) {
 		// Shrinking is never allowed, you'll have to do it explicitly 	
 		// via Compact()																	
-		if (count < GetReserved())
+		if (count <= GetReserved())
 			return;
 
 		// Allocate/Reallocate the keys and info									
@@ -650,15 +631,50 @@ namespace Langulus::Anyness
 		else AllocateKeys<false>(count);
 	}
 
-	/// Insert a number of items via initializer list									
-	///	@param ilist - the first element													
+	/// Inner insertion function																
+	///	@param key - key to move in														
+	///	@param value - value to move in													
 	TABLE_TEMPLATE()
-	Count TABLE()::Insert(::std::initializer_list<Pair> ilist) {
-		Allocate(GetCount() + ilist.size());
-		Count result {};
-		for (auto&& i : ilist)
-			result += Insert(Move(i));
-		return result;
+	void TABLE()::InsertInner(const Offset& start, K& key, V& value) {
+		// Get the starting index based on the key hash							
+		auto psl = GetInfo() + start;
+		auto candidate = GetRawKeys() + start;
+		uint8_t attempts {1};
+		while (*psl) {
+			if (*candidate == key) {
+				// Neat, the key already exists - just set value and go		
+				const auto index = psl - GetInfo();
+				Overwrite(Move(value), GetValue(index));
+				return;
+			}
+
+			if (attempts > *psl) {
+				// The pair we're inserting is closer to bucket, so swap		
+				const auto index = psl - GetInfo();
+				::std::swap(GetKey(index), key);
+				::std::swap(GetValue(index), value);
+				::std::swap(attempts, *psl);
+			}
+
+			// Shouldn't really happen, like ever (?), because we always	
+			// allocate more than we need, and we rehash on each realloc,	
+			// spreading the values and lowering the required PSLs			
+			//TODO test this extensively, just in case							
+			SAFETY(if (attempts == 255u)
+				Throw<Except::Overflow>("Map PSL overflow")
+			);
+
+			++attempts; ++psl; ++candidate;
+		}
+
+		// If reached, empty slot reached, so put the pair there				
+		// Might not seem like it, but we gave a guarantee, that this is	
+		// eventually reached, unless key exists and returns early			
+		const auto index = psl - GetInfo();
+		new (&GetKey(index)) K {Move(key)};
+		new (&GetValue(index)) V {Move(value)};
+		*psl = attempts;
+		++mValues.mCount;
 	}
 
 	/// Insert a single pair inside table via shallow-copy							
@@ -671,48 +687,9 @@ namespace Langulus::Anyness
 		Allocate(GetCount() + 1);
 
 		// Make a temporary swapper, so that original item never changes	
+		const auto bucket = HashData(item.mKey) & (GetReserved() - 1);
 		Pair swapper {item};
-
-		// Get the starting index based on the key hash							
-		const auto start = HashData(swapper.mKey) & (GetReserved() - 1);
-		auto psl = GetInfo() + start;
-		auto candidate = GetRawKeys() + start;
-		uint8_t attempts {1};
-		while (*psl) {
-			if (*candidate == swapper.mKey) {
-				// Neat, the key already exists - just set value and go		
-				const auto index = psl - GetInfo();
-				Overwrite(Move(swapper.mValue), GetValue(index));
-				return 1;
-			}
-
-			if (attempts > *psl) {
-				// The pair we're inserting is closer to bucket, so swap		
-				const auto index = psl - GetInfo();
-				::std::swap(GetKey(index), swapper.mKey);
-				::std::swap(GetValue(index), swapper.mValue);
-				::std::swap(attempts, *psl);
-			}
-
-			++attempts; ++psl; ++candidate;
-
-			// Shouldn't really happen, like ever (?), because we always	
-			// allocate more than we need, and we rehash on each realloc,	
-			// spreading the values and lowering the required PSLs			
-			//TODO test this extensively, just in case							
-			SAFETY(if (attempts == 255u)
-				Throw<Except::Overflow>("Map PSL overflow")
-			);
-		}
-
-		// If reached, empty slot reached, so put the pair there				
-		// Might not seem like it, but we gave a guarantee, that this is	
-		// eventually reached, unless key exists and returns early			
-		const auto index = psl - GetInfo();
-		new (&GetKey(index)) K {Move(swapper.mKey)};
-		new (&GetValue(index)) V {Move(swapper.mValue)};
-		*psl = attempts;
-		++mValues.mCount;
+		InsertInner(bucket, swapper.mKey, swapper.mValue);
 		return 1;
 	}
 
@@ -725,65 +702,76 @@ namespace Langulus::Anyness
 		// Guarantee that there's at least one free space						
 		Allocate(GetCount() + 1);
 
-		// Get the starting index based on the key hash							
-		const auto start = HashData(item.mKey) & (GetReserved() - 1);
-		auto psl = GetInfo() + start;
-		auto candidate = GetRawKeys() + start;
-		uint8_t attempts {1};
-		while (*psl) {
-			if (*candidate == item.mKey) {
-				// Neat, the key already exists - just set value and go		
-				const auto index = psl - GetInfo();
-				Overwrite(Move(item.mValue), GetValue(index));
-				return 1;
-			}
-
-			if (attempts > *psl) {
-				// The pair we're inserting is closer to bucket, so swap		
-				const auto index = psl - GetInfo();
-				::std::swap(GetKey(index), item.mKey);
-				::std::swap(GetValue(index), item.mValue);
-				::std::swap(attempts, *psl);
-			}
-
-			++attempts; ++psl; ++candidate;
-
-			// Shouldn't really happen, like ever (?), because we always	
-			// allocate more than we need, and we rehash on each realloc,	
-			// spreading the values and lowering the required PSLs			
-			//TODO test this extensively, just in case							
-			SAFETY(if (attempts == 255u)
-				Throw<Except::Overflow>("Map PSL overflow")
-			);
-		}
-
-		// If reached, empty slot reached, so put the pair there				
-		// Might not seem like it, but we gave a guarantee, that this is	
-		// eventually reached, unless key exists and returns early			
-		const auto index = psl - GetInfo();
-		new (&GetKey(index)) K {Move(item.mKey)};
-		new (&GetValue(index)) V {Move(item.mValue)};
-		*psl = attempts;
-		++mValues.mCount;
+		// Use the item as a swapper													
+		const auto bucket = HashData(item.mKey) & (GetReserved() - 1);
+		InsertInner(bucket, item.mKey, item.mValue);
 		return 1;
 	}
 
-	/// Clears all data, without resizing													
+	/// Destroy everything valid inside the map											
+	TABLE_TEMPLATE()
+	void TABLE()::ClearInner() {
+		auto key = GetRawKeys();
+		auto val = GetRawValues();
+		auto inf = GetInfo();
+		const auto infEnd = GetInfoEnd();
+		while (inf != infEnd) {
+			if (*inf) {
+				RemoveInner<true>(key);
+				RemoveInner<true>(val);
+			}
+
+			++key; ++val; ++inf;
+		}
+	}
+
+	/// Clears all data, but doesn't deallocate											
 	TABLE_TEMPLATE()
 	void TABLE()::Clear() {
 		if (IsEmpty())
 			return;
 
-		mValues.Clear();
-		::std::memset(mInfo, 0, mValues.GetReserved());
+		if (GetUses() == 1) {
+			// Remove all used keys and values, they're used only here		
+			ClearInner();
+
+			// Clear all info to zero													
+			::std::memset(GetInfo(), 0, GetReserved());
+		}
+		else {
+			// Data is used from multiple locations, don't change data		
+			// We're forced to dereference and reset memory pointers			
+			mKeys = nullptr;
+			mInfo = nullptr;
+			mValues.mEntry->Free();
+			mValues.mEntry = nullptr;
+			mValues.mRaw = nullptr;
+			mValues.mReserved = 0;
+		}
+
+		mValues.mCount = 0;
 	}
 
 	/// Clears all data and deallocates														
 	TABLE_TEMPLATE()
 	void TABLE()::Reset() {
-		if (GetUses() == 1)
+		if (GetUses() == 1) {
+			// Remove all used keys and values, they're used only here		
+			ClearInner();
+
+			// No point in resetting info, we'll be deallocating it			
 			Inner::Allocator::Deallocate(mKeys);
-		mValues.Reset();
+			Inner::Allocator::Deallocate(mValues.mEntry);
+		}
+		else {
+			// Data is used from multiple locations, just deref values		
+			mValues.mEntry->Free();
+		}
+
+		mKeys = nullptr;
+		mInfo = nullptr;
+		mValues.ResetState();
+		mValues.ResetMemory();
 	}
 
 	/// Erases element at a specific index													
@@ -796,8 +784,8 @@ namespace Langulus::Anyness
 		auto value = GetRawValues() + start;
 
 		// Destroy the key, info and value there									
-		RemoveInner<V>(value);
-		RemoveInner<K>(candidate);
+		RemoveInner<true>(value);
+		RemoveInner<true>(candidate);
 		*psl = 0;
 
 		++psl;
@@ -811,6 +799,9 @@ namespace Langulus::Anyness
 			psl[-1] = (*psl) - 1;
 			new (candidate - 1) K {Move(*candidate)};
 			new (value - 1) V {Move(*value)};
+			RemoveInner<false>(value);
+			RemoveInner<false>(candidate);
+			*psl = 0;
 
 			++psl;
 			++candidate;
@@ -825,10 +816,10 @@ namespace Langulus::Anyness
 	///	@tparam T - the type to remove, either key or value (deducible)		
 	///	@param element - the address of the element to remove						
 	TABLE_TEMPLATE()
-	template<class T>
+	template<bool DEALLOCATE, class T>
 	void TABLE()::RemoveInner(T* element) noexcept {
 		using TD = Decay<T>;
-		if constexpr (CT::Sparse<T>) {
+		if constexpr (CT::Sparse<T> && DEALLOCATE) {
 			// Value is sparse, free and deallocate if ours						
 			auto entry = Inner::Allocator::Find(MetaData::Of<T>(), *element);
 			if (entry) {
@@ -840,7 +831,7 @@ namespace Langulus::Anyness
 			}
 		}
 		else if constexpr (CT::Destroyable<T>) {
-			// Value is dense, just call destructor								
+			// Value is dense, always call destructor								
 			element->~TD();
 		}
 	}
@@ -852,7 +843,7 @@ namespace Langulus::Anyness
 	template<class T>
 	void TABLE()::Overwrite(T&& from, T& to) noexcept {
 		// Remove the old entry															
-		RemoveInner(&to);
+		RemoveInner<true>(&to);
 
 		if constexpr (CT::Sparse<T>) {
 			// Value is sparse, reference it if ours								
@@ -873,47 +864,24 @@ namespace Langulus::Anyness
 	///	@param key - the key to search for												
 	///	@return the number of removed pairs												
 	TABLE_TEMPLATE()
-	Count TABLE()::RemoveKey(const K& key) {
+	Count TABLE()::RemoveKey(const K& match) {
 		// Get the starting index based on the key hash							
-		auto start = HashData(key) & (GetReserved() - 1);
-		auto psl = GetInfo() + start;
-		auto candidate = GetRawKeys() + start;
-		while (*psl > 1) {
-			if (*candidate != key) {
-				// There might be more keys to the right, check them			
-				++psl;
-				++candidate;
-				continue;
+		const auto start = HashData(match) & (GetReserved() - 1);
+		auto key = GetRawKeys() + start;
+		auto info = GetInfo() + start;
+		const auto keyEnd = GetRawKeysEnd();
+
+		while (key != keyEnd) {
+			if (*info && *key == match) {
+				// Found it																	
+				RemoveIndex(info - GetInfo());
+				return 1;
 			}
 
-			// Match found, destroy the key, info and value there				
-			auto value = GetRawValues() + (psl - GetInfo());
-			RemoveInner<V>(value);
-			RemoveInner<K>(candidate);
-			*psl = 0;
-
-			++psl;
-			++candidate;
-			++value;
-
-			// And shift backwards, until a zero or 1 is reached				
-			// That way we move every entry that is far from its start		
-			// closer to it. Moving is costly, unless you use pointers		
-			while (*psl > 1) {
-				psl[-1] = *psl - 1;
-				new (candidate - 1) K {Move(*candidate)};
-				new (value - 1) V {Move(*value)};
-				++psl;
-				++candidate;
-				++value;
-			}
-
-			// Success																		
-			--mValues.mCount;
-			return 1;
+			++key; ++info;
 		}
-
-		// Nothing found to delete														
+		
+		// No such key was found														
 		return 0;
 	}
 
@@ -921,16 +889,20 @@ namespace Langulus::Anyness
 	///	@param value - the value to search for											
 	///	@return the number of removed pairs												
 	TABLE_TEMPLATE()
-	Count TABLE()::RemoveValue(const V& value) {
+	Count TABLE()::RemoveValue(const V& match) {
 		Count removed {};
-		auto it = GetRawValues();
-		const auto end = GetRawValuesEnd();
-		while (it != end) {
-			if (*it == value) {
-				RemoveIndex(it - GetRawValues());
+		auto value = GetRawValues();
+		auto info = GetInfo();
+		const auto valueEnd = GetRawValuesEnd();
+
+		while (value != valueEnd) {
+			if (*info && *value == match) {
+				// Found it, but there may be more									
+				RemoveIndex(info - GetInfo());
 				++removed;
 			}
-			else ++it;
+
+			++value; ++info;
 		}
 
 		return removed;
@@ -957,13 +929,16 @@ namespace Langulus::Anyness
 	///	@param value - the value to search for											
 	///	@return true if value is found, false otherwise								
 	TABLE_TEMPLATE()
-	bool TABLE()::ContainsValue(const V& value) const {
-		auto it = GetRawValues();
-		const auto end = GetRawValuesEnd();
-		while (it != end) {
-			if (*it == value)
+	bool TABLE()::ContainsValue(const V& match) const {
+		auto value = GetRawValues();
+		auto info = GetInfo();
+		const auto valueEnd = GetRawValuesEnd();
+
+		while (value != valueEnd) {
+			if (*info && *value == match)
 				return true;
-			++it;
+
+			++value; ++info;
 		}
 
 		return false;
@@ -1040,14 +1015,15 @@ namespace Langulus::Anyness
 		auto start = HashData(key) & (GetReserved() - 1);
 		auto psl = GetInfo() + start;
 		auto candidate = GetRawKeys() + start;
-		while (*psl > 1) {
+		Count attempts{};
+		while (*psl > attempts) {
 			if (*candidate != key) {
 				// There might be more keys to the right, check them			
-				++psl;
-				++candidate;
+				++psl; ++candidate; ++attempts;
 				continue;
 			}
 
+			// Found																			
 			return psl - GetInfo();
 		}
 

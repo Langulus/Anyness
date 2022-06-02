@@ -11,13 +11,6 @@
 namespace Langulus::Anyness
 {
 	
-	/// Copy-construction from constant block												
-	///	@param other - the block instance to move										
-	constexpr Block::Block(const Block& other) noexcept
-		: Block {const_cast<Block&>(other)} {
-		MakeConstant();
-	}
-	
 	/// Manual construction via type															
 	///	@param state - the initial state of the container							
 	///	@param meta - the type of the memory block									
@@ -893,7 +886,7 @@ namespace Langulus::Anyness
 				break;
 			case Index::Mode:
 				if constexpr (CT::Sortable<T>) {
-					[[maybe_unused]] Count unused;
+					UNUSED() Count unused;
 					return GetIndexMode<T>(unused);
 				}
 				else return Index::None;
@@ -1127,7 +1120,7 @@ namespace Langulus::Anyness
 				while (items != itemsEnd) {
 					// Reset all items													
 					new (data) T {*items};
-					++data;
+					++data; ++items;
 				}
 			}
 			else LANGULUS_ASSERT("Can't insert non-copy-constructible item(s)");

@@ -208,9 +208,9 @@ namespace Langulus::Anyness
 			meta->mAlignment = alignof(T);
 			meta->mAllocationPage = GetAllocationPageOf<T>();
 			constexpr auto minElements = GetAllocationPageOf<T>() / sizeof(T);
-			for (size_t bit = 0; bit < sizeof(Size) * 8; ++bit) {
-				const auto threshold = 1 << bit;
-				const auto elements = threshold / sizeof(T);
+			for (Size bit = 0; bit < sizeof(Size) * 8; ++bit) {
+				const Size threshold = Size {1} << bit;
+				const Size elements = threshold / sizeof(T);
 				meta->mAllocationTable[bit] = ::std::max(minElements, elements);
 			}
 			meta->mIsPOD = CT::POD<T>;
@@ -656,7 +656,8 @@ namespace Langulus::Anyness
 	inline AllocationRequest MetaData::RequestSize(const Size& byteSize) const noexcept {
 		AllocationRequest result;
 		result.mByteSize = Roof2(::std::max(byteSize, mAllocationPage));
-		result.mElementCount = mAllocationTable[CountLeadingZeroes(result.mByteSize)];
+		const auto msb = CountTrailingZeroes(result.mByteSize);
+		result.mElementCount = mAllocationTable[msb];
 		return result;
 	}
 

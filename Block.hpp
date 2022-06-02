@@ -122,8 +122,7 @@ namespace Langulus::Anyness
 
 	public:
 		constexpr Block() noexcept = default;
-		constexpr Block(const Block&) noexcept;
-		constexpr Block(Block&) noexcept = default;
+		constexpr Block(const Block&) noexcept = default;
 		constexpr Block(Block&&) noexcept = default;
 			
 		explicit constexpr Block(DMeta) noexcept;
