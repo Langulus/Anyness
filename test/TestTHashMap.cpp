@@ -105,7 +105,7 @@ SCENARIO("THashMap", "[containers]") {
 
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: 2:1 due to RTTI
 				BENCHMARK_ADVANCED("Anyness::THashMap::operator = (single pair copy)") (Catch::Benchmark::Chronometer meter) {
-					std::vector<MapType::Type> source(meter.runs());
+					std::vector<MapType::Pair> source(meter.runs());
 					for(auto& i : source)
 						i = value;
 						
@@ -508,7 +508,7 @@ SCENARIO("THashMap", "[containers]") {
 			}
 		}
 
-		#if LANGULUS_FEATURE(MANAGED_MEMORY)
+		/*#if LANGULUS_FEATURE(MANAGED_MEMORY)
 			WHEN("Pack is reset, then immediately allocated again") {
 				map.Reset();
 				map << darray2[0] << darray2[1] << darray2[2] << darray2[3] << darray2[4];
@@ -518,7 +518,7 @@ SCENARIO("THashMap", "[containers]") {
 					REQUIRE(map.GetRawValues() == valueMemory);
 				}
 			}
-		#endif
+		#endif*/
 
 		WHEN("Map is shallow-copied") {
 			auto copy = map;

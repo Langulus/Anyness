@@ -148,12 +148,16 @@ TEMPLATE_TEST_CASE("Testing GetAllocationPageOf<T> calls", "[allocator]", Type1,
 	}
 }
 
+using Allocator = Anyness::Inner::Allocator;
+using Allocation = Anyness::Inner::Allocation;
+using Pool = Anyness::Inner::Pool;
+
 SCENARIO("Testing allocator functions", "[allocator]") {
 	GIVEN("An allocation") {
-		Anyness::Inner::Allocation* entry = nullptr;
+		Allocation* entry = nullptr;
 
 		WHEN("Memory is allocated on the heap") {
-			entry = Anyness::Inner::Allocator::Allocate(512);
+			entry = Allocator::Allocate(512);
 
 			THEN("Requirements should be met") {
 				REQUIRE(entry->GetBlockStart() != nullptr);
@@ -177,7 +181,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 		}
 
 		WHEN("Referenced once") {
-			entry = Anyness::Inner::Allocator::Allocate(512);
+			entry = Allocator::Allocate(512);
 			entry->Keep();
 
 			THEN("Requirements should be met") {
@@ -186,7 +190,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 		}
 
 		WHEN("Referenced multiple times") {
-			entry = Anyness::Inner::Allocator::Allocate(512);
+			entry = Allocator::Allocate(512);
 			entry->Keep(5);
 
 			THEN("Requirements should be met") {
@@ -195,7 +199,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 		}
 
 		WHEN("Dereferenced once without deletion") {
-			entry = Anyness::Inner::Allocator::Allocate(512);
+			entry = Allocator::Allocate(512);
 			entry->Keep();
 			entry->Free();
 
@@ -205,7 +209,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 		}
 
 		WHEN("Dereferenced multiple times without deletion") {
-			entry = Anyness::Inner::Allocator::Allocate(512);
+			entry = Allocator::Allocate(512);
 			entry->Keep(5);
 			entry->Free(4);
 
@@ -215,23 +219,43 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 		}
 
 		WHEN("Dereferenced once with deletion") {
-			entry = Anyness::Inner::Allocator::Allocate(512);
-			Anyness::Inner::Allocator::Deallocate(entry);
+			entry = Allocator::Allocate(512);
+			Allocator::Deallocate(entry);
 
 			THEN("We shouldn't be able to access the memory any longer, but it is still under out jurisdiction") {
-				REQUIRE(Anyness::Inner::Allocator::CheckAuthority(nullptr, entry));
-				REQUIRE_FALSE(Anyness::Inner::Allocator::Find(nullptr, entry));
+				REQUIRE(Allocator::CheckAuthority(nullptr, entry));
+				REQUIRE_FALSE(Allocator::Find(nullptr, entry));
 			}
 		}
 
 		WHEN("Dereferenced multiple times with deletion") {
-			entry = Anyness::Inner::Allocator::Allocate(512);
+			entry = Allocator::Allocate(512);
 			entry->Keep(5);
-			Anyness::Inner::Allocator::Deallocate(entry);
+			Allocator::Deallocate(entry);
 
 			THEN("We shouldn't be able to access the memory any longer, but it is still under out jurisdiction") {
-				REQUIRE(Anyness::Inner::Allocator::CheckAuthority(nullptr, entry));
-				REQUIRE_FALSE(Anyness::Inner::Allocator::Find(nullptr, entry));
+				REQUIRE(Allocator::CheckAuthority(nullptr, entry));
+				REQUIRE_FALSE(Allocator::Find(nullptr, entry));
+			}
+		}
+	}
+}
+
+SCENARIO("Testing pool functions", "[allocator]") {
+	GIVEN("A pool") {
+		Pool* pool = nullptr;
+
+		WHEN("Memory is allocated on the pool") {
+			pool = Allocator::AllocatePool(Pool::DefaultPoolSize);
+			const Pointer origin = reinterpret_cast<Pointer>(pool->GetPoolStart());
+			const Pointer half = pool->GetAllocatedByBackend() / 2;
+			const Pointer quarter = pool->GetAllocatedByBackend() / 4;
+
+			THEN("Requirements should be met") {
+				REQUIRE(reinterpret_cast<Pointer>(pool->AllocationFromIndex(0)) == origin);
+				REQUIRE(reinterpret_cast<Pointer>(pool->AllocationFromIndex(1)) == origin + half);
+				REQUIRE(reinterpret_cast<Pointer>(pool->AllocationFromIndex(2)) == origin + quarter);
+				REQUIRE(reinterpret_cast<Pointer>(pool->AllocationFromIndex(3)) == origin + quarter + half);
 			}
 		}
 	}

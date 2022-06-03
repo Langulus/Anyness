@@ -62,6 +62,11 @@ namespace Langulus::Anyness::Inner
 		static void Keep(DMeta, const void*, Count);
 		NOD() static bool Free(DMeta, const void*, Count);
 		NOD() static const Statistics& GetStatistics() noexcept;
+
+		#if LANGULUS_FEATURE(MANAGED_MEMORY)
+			static Pool* AllocatePool(const Size&);
+		#endif
+
 	};
 
 } // namespace Langulus::Anyness

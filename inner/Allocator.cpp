@@ -41,14 +41,24 @@ namespace Langulus::Anyness::Inner
 			// If reached, available pools can't contain the memory			
 			// Allocate a new pool and add it at the beginning of chain		
 			const auto poolSize = ::std::max(Pool::DefaultPoolSize, Roof2(size));
-			pool = Inner::AlignedAllocate<Pool>(poolSize);
+			pool = AllocatePool(poolSize);
 			auto memory = pool->CreateEntry(size);
 			pool->mNext = mDefaultPool;
 			mDefaultPool = pool;
+			mStatistics.mBytesAllocatedByBackend += poolSize;
+			mStatistics.mPools += 1;
 			return memory;
 		#else
 			return Inner::AlignedAllocate<Allocation>(size);
 		#endif
+	}
+
+	/// Allocate a pool																			
+	///	@attention size must be power-of-two											
+	///	@param size size of the pool (in bytes)										
+	///	@return a pointer to the new pool												
+	Pool* Allocator::AllocatePool(const Size& size) {
+		return Inner::AlignedAllocate<Pool>(size);
 	}
 
 	/// Reallocate a memory entry																
@@ -56,6 +66,7 @@ namespace Langulus::Anyness::Inner
 	///	@attention never calls any constructors										
 	///	@attention never copies any data													
 	///	@attention never deallocates previous entry									
+	///	@attention returned entry might be different from the previous			
 	///	@param size - the number of bytes to allocate								
 	///	@param previous - the previous memory entry									
 	///	@return the reallocated memory entry											
@@ -110,9 +121,8 @@ namespace Langulus::Anyness::Inner
 			while (pool) {
 				if (pool->Contains(memory)) {
 					const auto entry = pool->AllocationFromAddress(memory);
-					return entry->GetUses() && entry->Contains(memory) 
-						? entry 
-						: nullptr;
+					return entry && entry->GetUses() && entry->Contains(memory) 
+						? entry : nullptr;
 				}
 
 				// Continue inside the poolchain										
