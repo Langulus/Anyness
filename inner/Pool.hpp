@@ -70,7 +70,7 @@ namespace Langulus::Anyness::Inner
 	public:
 		// Bytes allocated by the backend											
 		Size mAllocatedByBackend {};
-		Size mAllocatedByBackendLog2 {};
+		Offset mAllocatedByBackendLog2 {};
 		// Bytes allocated by the frontend											
 		Size mAllocatedByFrontend {};
 
