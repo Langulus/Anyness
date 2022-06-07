@@ -10,6 +10,8 @@
 
 #if LANGULUS_FEATURE(MANAGED_MEMORY)
 	LANGULUS_EXCEPTION(MemoryCollision);
+	LANGULUS_EXCEPTION(Deallocation);
+	LANGULUS_EXCEPTION(Reallocation);
 #endif
 
 namespace Langulus::Anyness::Inner
@@ -45,8 +47,16 @@ namespace Langulus::Anyness::Inner
 		Size mAllocatedBytes;
 		// The number of references to this memory								
 		Count mReferences;
-		// The pool that owns the allocation, or handle for std::free()	
-		Pool* mPool;
+		union {
+			// This pointer has two uses, depending on mReferences			
+			// If mReferences > 0, it refers to the pool that owns the		
+			//		allocation, or	handle for std::free() if MANAGED_MEMORY	
+			//		feature is not enabled												
+			// If mReferences == 0, it refers to the next free entry to be	
+			//		reused																	
+			Pool* mPool;
+			Allocation* mNextFreeEntry;
+		};
 
 	public:
 		Allocation() = delete;

@@ -3,6 +3,18 @@ include(cmake/DownloadProject.cmake)
 project(Langulus_Anyness)
 
 # Configure the features you require, all these are disabled by default
+option(LANGULUS_ENABLE_SAFE_MODE 
+    "Overrides additional error checking and sanity checks, \
+    incurs a serious runtime overhead" ON)
+
+option(LANGULUS_ENABLE_PARANOIA 
+    "Make sure that any unused memory is nullified, \
+    incurs a serious runtime overhead")
+
+option(LANGULUS_ENABLE_DEBUGGING 
+    "Explicitly define debug mode, in the case that default flags are \
+    not detected by some odd reason")
+
 option(LANGULUS_FEATURE_NEWDELETE 
     "Overrides new/delete operators for anything statically linked to this library, \
     or provides LANGULUS_MONOPOLIZE_MEMORY() macro for you to use to override them, if dynamically linked")
@@ -24,6 +36,15 @@ option(LANGULUS_FEATURE_MANAGED_REFLECTION
     "Reflections will be kept in a centralized location, when reflected, which speeds up \
     type comparisons, and allows you to dynamically modify the reflection at runtime")
 
+if(LANGULUS_ENABLE_SAFE_MODE)
+    ADD_DEFINITIONS(-DLANGULUS_ENABLE_SAFE_MODE)
+endif()
+if(LANGULUS_ENABLE_PARANOIA)
+    ADD_DEFINITIONS(-DLANGULUS_ENABLE_PARANOIA)
+endif()
+if(LANGULUS_ENABLE_DEBUGGING)
+    ADD_DEFINITIONS(-DLANGULUS_ENABLE_DEBUGGING)
+endif()
 if(LANGULUS_FEATURE_NEWDELETE)
     ADD_DEFINITIONS(-DLANGULUS_ENABLE_FEATURE_NEWDELETE)
 endif()

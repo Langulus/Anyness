@@ -48,16 +48,16 @@ namespace Langulus::Anyness::Inner
 	///		beginning of a heap allocation of size Pool::NewAllocationSize()	
 	///	@param size - bytes of the usable block to initialize with				
 	///	@param memory - handle for use with std::free()								
-	inline Pool::Pool(const Size& size, void* memory) noexcept {
-		mEntries = mValidEntries = 0;
-		mAllocatedByFrontend = 0;
-		mAllocatedByBackend = size;
-		mAllocatedByBackendLog2 = FastLog2(size);
-		mLastFreed = 0;
-		mThreshold = size;
-		mThresholdMin = GetMinAllocation();
+	inline Pool::Pool(const Size& size, void* memory) noexcept
+		: mAllocatedByBackend {size}
+		, mAllocatedByBackendLog2 {FastLog2(size)}
+		, mThresholdMin {Pool::GetMinAllocation()}
+		, mValidEntries {}
+		, mAllocatedByFrontend {}
+		, mLastFreed {}
+		, mThreshold {size}
+		, mHandle {memory} {
 		mMemory = GetPoolStart<Byte>();
-		mHandle = memory;
 	}
 
 	/// Get the minimum allocation for an entry inside this pool					
@@ -117,33 +117,10 @@ namespace Langulus::Anyness::Inner
 		return mAllocatedByFrontend;
 	}
 
-	/// Check if an allocation collides with any of this pool's entries			
-	///	@param entry - the allocation to check for collision						
-	///	@attention throws if a collision occurs										
-	inline void Pool::CheckCollision(const Allocation* entry) const {
-		for (Offset i = 0, valids = 0; i < mEntries && valids < mValidEntries; ++i) {
-			auto part = AllocationFromIndex(i);
-			if (part == entry) {
-				++valids;
-				continue;
-			}
-			else if (0 == part->GetUses())
-				continue;
-
-			const auto e1 = reinterpret_cast<const Byte*>(part);
-			const auto e2 = reinterpret_cast<const Byte*>(entry);
-			if (e1 < e2 && e2 - e1 < part->GetTotalSize())
-				Throw<Except::MemoryCollision>("Memory collision");
-			else if (e2 < e1 && e1 - e2 < entry->GetTotalSize())
-				Throw<Except::MemoryCollision>("Memory collision");
-			++valids;
-		}
-	}
-
 	/// Allocate an entry inside the pool - returned pointer is aligned			
 	///	@param bytes - number of bytes to allocate									
 	///	@return the new allocation, or nullptr if pool is full					
-	inline Allocation* Pool::CreateEntry(const Size bytes) noexcept {
+	inline Allocation* Pool::CreateEntry(const Size bytes) SAFETY_NOEXCEPT() {
 		constexpr Offset one {1};
 
 		// Check if we can add a new entry											
@@ -151,152 +128,90 @@ namespace Langulus::Anyness::Inner
 		if (!CanContain(bytesWithPadding))
 			return nullptr;
 
-		if (mValidEntries == mEntries) {
-			if (mThreshold < mThresholdMin)
-				return nullptr;
-
-			if (mEntries == 0) {
-				// Zero entry is an outliar, handle it here						
-				auto newEntry = GetPoolStart();
-				new (newEntry) Allocation {bytes, this};
-
-				++mEntries;
-				++mValidEntries;
-				mAllocatedByFrontend += bytesWithPadding;
-				mThreshold = mAllocatedByBackend >> one;
-				return newEntry;
-			}
-
+		if (!mLastFreed) {
 			// The entire pool is full, skip search for free spot				
 			// Add a new allocation directly											
-			auto newEntry = AllocationFromIndex(mEntries);
+			auto newEntry = AllocationFromIndex(mValidEntries);
 			new (newEntry) Allocation {bytes, this};
 
-			++mEntryDistribution[LevelFromIndex(mEntries)];
 			++mValidEntries;
 			mAllocatedByFrontend += bytesWithPadding;
-
-			// When adding new entries, count and threshold also change		
-			++mEntries;
-			mThreshold = ThresholdFromIndex(mEntries);
+			mThreshold = ::std::max(
+				Roof2(bytesWithPadding), 
+				ThresholdFromIndex(mValidEntries)
+			);
 			return newEntry;
 		}
 
-		// Check the last freed entry													
-		if (mLastFreed && 0 == mLastFreed->GetUses()) {
-			// Found a free spot															
-			const auto backup = mLastFreed;
-			new (backup) Allocation {bytes, this};
+		// Recycle entries																
+		const auto newEntry = mLastFreed;
+		mLastFreed = mLastFreed->mNextFreeEntry;
+		new (newEntry) Allocation {bytes, this};
 
-			if (backup == GetPoolStart()) {
-				// Zero entry is an outlier, handle it here						
-				++mValidEntries;
-				mAllocatedByFrontend += bytesWithPadding;
-				mLastFreed = nullptr;
-				return backup;
-			}
-
-			const auto index = IndexFromAddress(backup);
-			++mEntryDistribution[LevelFromIndex(index)];
-			++mValidEntries;
-			mAllocatedByFrontend += bytesWithPadding;
-			mLastFreed = nullptr;
-			return backup;
-		}
-
-		// Zero index is an outlier, take care of it here						
-		if (0 == GetPoolStart()->GetUses()) {
-			// Free entry found															
-			auto entry = GetPoolStart();
-			new (entry) Allocation {bytes, this};
-
-			++mValidEntries;
-			mAllocatedByFrontend += bytesWithPadding;
-			return entry;
-		}
-
-		// Check all subdivision levels for empty spots							
-		auto bytesPerBase = mAllocatedByBackend << one;
-		auto bytesPerEntry = bytesPerBase >> one;
-		auto inherited = 1;
-		auto subdivisions = 2;
-
-		for (Offset level = 1; level < mAllocatedByBackendLog2; ++level) {
-			const auto capacity = subdivisions - inherited;
-			if (mEntryDistribution[level] == capacity) {
-				// Level is full, move on												
-				bytesPerBase = bytesPerEntry;
-				bytesPerEntry >>= one;
-				inherited = subdivisions;
-				subdivisions <<= one;
-				continue;
-			}
-
-			// There are free spots, start searching for them					
-			auto baseMemory = mMemory;
-			const auto baseMemoryEnd = mMemory + mAllocatedByBackend;
-			while (baseMemory < baseMemoryEnd) {
-				auto entryMemory = baseMemory + bytesPerEntry;
-				const auto entryMemoryEnd = baseMemory + bytesPerBase;
-				while (entryMemory < entryMemoryEnd) {
-					auto entry = reinterpret_cast<Allocation*>(entryMemory);
-					if (0 == entry->GetUses()) {
-						// Free entry found												
-						new (entry) Allocation {bytes, this};
-						++mValidEntries;
-						++mEntryDistribution[level];
-						mAllocatedByFrontend += bytesWithPadding;
-						return entry;
-					}
-					entryMemory += bytesPerEntry;
-				}
-				baseMemory += bytesPerBase;
-			}
-
-			// Reaching this is an error and shouldn't happen					
-		}
-
-		// Reaching this is an error and shouldn't happen						
-		return nullptr;
+		mAllocatedByFrontend += bytesWithPadding;
+		return newEntry;
 	}
 
 	/// Remove an entry																			
 	///	@attention assumes entry is valid												
 	///	@param entry - entry to remove													
-	inline void Pool::RemoveEntry(Allocation* entry) {
+	inline void Pool::RemoveEntry(Allocation* entry) SAFETY_NOEXCEPT() {
+		constexpr Offset one {1};
+
+		#if LANGULUS(SAFE)
+			if (entry->mReferences == 0)
+				Throw<Except::Deallocation>("Removing an invalid entry");
+			if (mValidEntries == 0)
+				Throw<Except::Deallocation>("Bad valid entry count");
+			if (mAllocatedByFrontend < entry->GetTotalSize())
+				Throw<Except::Deallocation>("Bad frontend allocation size");
+		#endif
+
+		if (1 == mValidEntries) {
+			// The freed entry was the last used entry							
+			// Reset the entire pool													
+			mThreshold = mAllocatedByBackend;
+			mValidEntries = 0;
+			mAllocatedByFrontend = 0;
+			mLastFreed = nullptr;
+			return;
+		}
+
 		mAllocatedByFrontend -= entry->GetTotalSize();
+		entry->mNextFreeEntry = mLastFreed;
 		entry->mReferences = 0;
 		mLastFreed = entry;
-		--mValidEntries;
-
-		const auto index = IndexFromAddress(entry);
-		if (index) {
-			const auto level = LevelFromIndex(index);
-			--mEntryDistribution[level];
-
-			auto i = mAllocatedByBackendLog2 - 1;
-			while (i >= level && mEntryDistribution[i])
-				--i;
-
-			TODO();// recalculate entries and threshold
-		}
 	}
 
 	/// Resize an entry																			
 	///	@param entry - entry to resize													
 	///	@param bytes - new number of bytes												
 	///	@return true if entry was enlarged without conflict						
-	inline bool Pool::ResizeEntry(Allocation* entry, const Size bytes) {
-		const auto total = Allocation::GetNewAllocationSize(bytes);
-		if (total > mThreshold) {
-			// The entry can't be resized in this pool, it must move out	
-			return false;
-		}
+	inline bool Pool::ResizeEntry(Allocation* entry, const Size bytes) SAFETY_NOEXCEPT() {
+		#if LANGULUS(SAFE)
+			if (!Contains(entry) || entry->GetUses() == 0 || !bytes)
+				Throw<Except::Reallocation>("Invalid reallocation");
+		#endif
 
-		if (bytes > entry->mAllocatedBytes)
-			mAllocatedByFrontend += bytes - entry->mAllocatedBytes;
-		else
-			mAllocatedByFrontend -= entry->mAllocatedBytes - bytes;
+		if (bytes > entry->mAllocatedBytes) {
+			// We're enlarging the entry												
+			// Make sure we don't violate threshold								
+			const auto addition = bytes - entry->mAllocatedBytes;
+			if (entry->GetTotalSize() + addition > mThreshold)
+				return false;
+
+			mAllocatedByFrontend += addition;
+		}
+		else {
+			// We're shrinking the entry												
+			// No checks required														
+			const auto removal = entry->mAllocatedBytes - bytes;
+			#if LANGULUS(SAFE)
+				if (mAllocatedByFrontend < removal)
+					Throw<Except::Reallocation>("Bad frontend allocation size");
+			#endif
+			mAllocatedByFrontend -= removal;
+		}
 
 		entry->mAllocatedBytes = bytes;
 		return true;
@@ -306,7 +221,7 @@ namespace Langulus::Anyness::Inner
 	/// Guaranteed to be valid for pointers in pool's range							
 	///	@param ptr - the pointer to get the element index of						
 	///	@return pointer to the element													
-	inline Allocation* Pool::AllocationFromAddress(const void* ptr) noexcept {
+	inline Allocation* Pool::AllocationFromAddress(const void* ptr) SAFETY_NOEXCEPT() {
 		return AllocationFromIndex(ValidateIndex(IndexFromAddress(ptr)));
 	}
 
@@ -325,18 +240,12 @@ namespace Langulus::Anyness::Inner
 		return mValidEntries > 0;
 	}
 
-	/// Check if there is the possibility for reusing an old entry					
-	///	@return true if valid entries are less than the registered				
-	constexpr bool Pool::CanRecycle() const noexcept {
-		return mValidEntries < mEntries;
-	}
-
 	/// Check if memory can contain a number of bytes									
 	///	@attention assumes that bytes include any padding and overhead			
 	///	@param bytes - number of bytes to check										
 	///	@return true if bytes can be contained in a new/recycled element		
 	constexpr bool Pool::CanContain(const Size& bytes) const noexcept {
-		return mThreshold >= bytes;
+		return mThreshold >= mThresholdMin && bytes <= mThreshold;
 	}
 
 	/// Null the memory																			
@@ -419,16 +328,19 @@ namespace Langulus::Anyness::Inner
 	///	@attention assumes pointer is inside the pool								
 	///	@param ptr - the address															
 	///	@return the index																		
-	inline Offset Pool::IndexFromAddress(const void* ptr) const noexcept {
+	inline Offset Pool::IndexFromAddress(const void* ptr) const SAFETY_NOEXCEPT() {
+		SAFETY(if (!Contains(ptr))
+			Throw<Except::OutOfRange>("Entry is outside pool"));
+
 		// Credit goes to Yasen Vidolov (G1)										
-		const auto i = static_cast<const Byte*>(ptr) - mMemory;
-		if (i == 0)
+		const Offset i = static_cast<const Byte*>(ptr) - mMemory;
+		if (i < mThreshold || 0 == mValidEntries)
 			return 0;
 
 		// We got the index, but it is not constrained to the pool			
-		constexpr Size one {1};
-		Size index = ((mAllocatedByBackend + i) / (i & ~(i - one)) - one) >> one;
-		while (index >= mEntries)
+		constexpr Offset one {1};
+		Offset index = ((mAllocatedByBackend + i) / (i & ~(i - one)) - one) >> one;
+		while (index >= mValidEntries)
 			index = UpIndex(index);
 		return index;
 	}
@@ -443,7 +355,7 @@ namespace Langulus::Anyness::Inner
 
 		// Step up until a valid entry inside bounds is hit					
 		const Allocation* entry;
-		while (index != 0 && (index >= mEntries || !(entry = AllocationFromIndex(index)) || 0 == entry->GetUses()))
+		while (index != 0 && (index >= mValidEntries || !(entry = AllocationFromIndex(index)) || 0 == entry->GetUses()))
 			index = UpIndex(index);
 
 		// Check if we reached root of pool and it is unused					
@@ -463,7 +375,7 @@ namespace Langulus::Anyness::Inner
 	/// Get allocation above another allocation											
 	///	@param address - the address of the allocation								
 	///	@return allocation above the given one, or nullptr if master alloc	
-	inline Allocation* Pool::UpperAllocation(const void* address) noexcept {
+	inline Allocation* Pool::UpperAllocation(const void* address) SAFETY_NOEXCEPT() {
 		if (address == mMemory)
 			return nullptr;
 		return AllocationFromIndex(UpIndex(IndexFromAddress(address)));

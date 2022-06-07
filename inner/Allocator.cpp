@@ -77,12 +77,6 @@ namespace Langulus::Anyness::Inner
 			Throw<Except::Allocate>("Zero reallocation is not allowed"));
 
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
-			if (size <= previous->mAllocatedBytes && previous->mReferences == 1) {
-				// New size is smaller, so simply record change in place		
-				previous->mPool->ResizeEntry(previous, size);
-				return previous;
-			}
-
 			// New size is bigger, precautions must be taken					
 			if (previous->mPool->ResizeEntry(previous, size))
 				return previous;

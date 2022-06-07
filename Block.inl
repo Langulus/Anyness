@@ -177,7 +177,12 @@ namespace Langulus::Anyness
 			// Data is either static or unallocated - don't touch it			
 			return false;
 
-		if (mEntry->GetUses() <= times) {
+		#if LANGULUS(SAFE)
+			if (mEntry->GetUses() < times)
+				Throw<Except::Reference>("Bad memory dereferencing");
+		#endif
+
+		if (mEntry->GetUses() == times) {
 			// Destroy all elements and deallocate the entry					
 			if constexpr (DESTROY)
 				CallUnknownDestructors();
@@ -1066,7 +1071,7 @@ namespace Langulus::Anyness
 
 		// Move memory if required														
 		if (starter < mCount) {
-			SAFETY(if (GetReferences() > 1)
+			SAFETY(if (GetUses() > 1)
 				Throw<Except::Reference>(Logger::Error()
 					<< "Moving elements that are used from multiple places"));
 

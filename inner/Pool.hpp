@@ -16,7 +16,7 @@ namespace Langulus::Anyness::Inner
 		Pool() = delete;
 		Pool(const Pool&) = delete;
 		Pool(Pool&&) = delete;
-		Pool(const Size&, void*) SAFETY_NOEXCEPT();
+		Pool(const Size&, void*) noexcept;
 
 		// Default pool allocation is 1 MB											
 		static constexpr Size DefaultPoolSize = 1024 * 1024;
@@ -25,6 +25,7 @@ namespace Langulus::Anyness::Inner
 	public:
 		NOD() static constexpr Size GetSize() noexcept;
 		NOD() static constexpr Size GetNewAllocationSize(const Size&) noexcept;
+		NOD() static constexpr Size GetMinAllocation() noexcept;
 
 		template<class T = Allocation>
 		NOD() T* GetPoolStart() noexcept;
@@ -32,19 +33,16 @@ namespace Langulus::Anyness::Inner
 		template<class T = Allocation>
 		NOD() const T* GetPoolStart() const noexcept;
 
-		NOD() static constexpr Size GetMinAllocation() noexcept;
 		NOD() constexpr Size GetAllocatedByBackend() const noexcept;
 		NOD() constexpr Size GetAllocatedByFrontend() const noexcept;
 		NOD() constexpr bool IsInUse() const noexcept;
-		NOD() constexpr bool CanRecycle() const noexcept;
 		NOD() constexpr bool CanContain(const Size&) const noexcept;
 
-		void CheckCollision(const Allocation*) const;
-		void RemoveEntry(Allocation*);
-		bool ResizeEntry(Allocation*, Size);
+		void RemoveEntry(Allocation*) SAFETY_NOEXCEPT();
+		bool ResizeEntry(Allocation*, Size) SAFETY_NOEXCEPT();
 		void FreePoolChain();
 
-		NOD() Allocation* CreateEntry(Size) noexcept;
+		NOD() Allocation* CreateEntry(Size) SAFETY_NOEXCEPT();
 
 		void Init(void*, Size);
 		void Null();
@@ -56,36 +54,33 @@ namespace Langulus::Anyness::Inner
 		NOD() Allocation* ValidateAddress(const void*) noexcept;
 		NOD() const void* ValidateAddress(const void*) const noexcept;
 
-		NOD() Offset IndexFromAddress(const void*) const noexcept;
+		NOD() Offset IndexFromAddress(const void*) const SAFETY_NOEXCEPT();
 		NOD() Offset ValidateIndex(Offset) const noexcept;
 		NOD() Offset UpIndex(Offset) const noexcept;
 		NOD() const Allocation* UpperAllocation(const void*) const noexcept;
-		NOD() Allocation* UpperAllocation(const void*) noexcept;
+		NOD() Allocation* UpperAllocation(const void*) SAFETY_NOEXCEPT();
 
 		NOD() bool Contains(const void*) const noexcept;
 
-		Allocation* AllocationFromAddress(const void*) noexcept;
+		Allocation* AllocationFromAddress(const void*) SAFETY_NOEXCEPT();
 		const Allocation* AllocationFromAddress(const void*) const noexcept;
 
 	public:
 		// Bytes allocated by the backend											
-		Size mAllocatedByBackend {};
-		Offset mAllocatedByBackendLog2 {};
+		const Size mAllocatedByBackend {};
+		const Offset mAllocatedByBackendLog2 {};
+		// Smallest allocation possible for the pool								
+		const Size mThresholdMin{};
+
 		// Bytes allocated by the frontend											
 		Size mAllocatedByFrontend {};
 
-		// Number of entries																
-		Count mEntries {};
 		// Number of valid entries														
 		Count mValidEntries {};
-		// Number of entries on each subdivision									
-		Count mEntryDistribution[sizeof(Size) * 8] {};
 		// Reminder of the last entry freed											
 		Allocation* mLastFreed {};
 		// Current threshold, that is, max size of a new entry				
 		Size mThreshold {};
-		// Max entries possible in this pool										
-		Count mThresholdMin {};
 		// Pointer to start of indexed memory										
 		Byte* mMemory {};
 		// Handle for the pool allocation, for use with AlignedFree			

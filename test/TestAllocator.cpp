@@ -222,7 +222,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 			entry = Allocator::Allocate(512);
 			Allocator::Deallocate(entry);
 
-			THEN("We shouldn't be able to access the memory any longer, but it is still under out jurisdiction") {
+			THEN("We shouldn't be able to access the memory any longer, but it is still under jurisdiction") {
 				REQUIRE(Allocator::CheckAuthority(nullptr, entry));
 				REQUIRE_FALSE(Allocator::Find(nullptr, entry));
 			}
@@ -233,7 +233,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 			entry->Keep(5);
 			Allocator::Deallocate(entry);
 
-			THEN("We shouldn't be able to access the memory any longer, but it is still under out jurisdiction") {
+			THEN("We shouldn't be able to access the memory any longer, but it is still under jurisdiction") {
 				REQUIRE(Allocator::CheckAuthority(nullptr, entry));
 				REQUIRE_FALSE(Allocator::Find(nullptr, entry));
 			}
