@@ -49,7 +49,8 @@ namespace Langulus::Anyness::Inner
 		void Init(void*, Size);
 		void Null();
 
-		NOD() Size ThresholdFromIndex(const Size&) const noexcept;
+		NOD() Size ThresholdFromIndex(const Offset&) const noexcept;
+		NOD() Offset LevelFromIndex(const Offset&) const noexcept;
 		NOD() Allocation* AllocationFromIndex(const Offset&) noexcept;
 		NOD() const Allocation* AllocationFromIndex(const Offset&) const noexcept;
 		NOD() Allocation* ValidateAddress(const void*) noexcept;
@@ -84,7 +85,7 @@ namespace Langulus::Anyness::Inner
 		// Current threshold, that is, max size of a new entry				
 		Size mThreshold {};
 		// Max entries possible in this pool										
-		Count mEntriesMax {};
+		Count mThresholdMin {};
 		// Pointer to start of indexed memory										
 		Byte* mMemory {};
 		// Handle for the pool allocation, for use with AlignedFree			

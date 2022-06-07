@@ -256,6 +256,15 @@ SCENARIO("Testing pool functions", "[allocator]") {
 				REQUIRE(reinterpret_cast<Pointer>(pool->AllocationFromIndex(1)) == origin + half);
 				REQUIRE(reinterpret_cast<Pointer>(pool->AllocationFromIndex(2)) == origin + quarter);
 				REQUIRE(reinterpret_cast<Pointer>(pool->AllocationFromIndex(3)) == origin + quarter + half);
+				REQUIRE(pool->ThresholdFromIndex(0) == pool->GetAllocatedByBackend());
+				REQUIRE(pool->ThresholdFromIndex(1) == half);
+				REQUIRE(pool->ThresholdFromIndex(2) == quarter);
+				REQUIRE(pool->ThresholdFromIndex(3) == quarter);
+				REQUIRE(pool->ThresholdFromIndex(4) == quarter/2);
+				REQUIRE(pool->ThresholdFromIndex(5) == quarter/2);
+				REQUIRE(pool->ThresholdFromIndex(6) == quarter/2);
+				REQUIRE(pool->ThresholdFromIndex(7) == quarter/2);
+				REQUIRE(pool->ThresholdFromIndex(8) == quarter/4);
 			}
 		}
 	}

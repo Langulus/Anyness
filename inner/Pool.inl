@@ -55,7 +55,7 @@ namespace Langulus::Anyness::Inner
 		mAllocatedByBackendLog2 = FastLog2(size);
 		mLastFreed = 0;
 		mThreshold = size;
-		mEntriesMax = size / GetMinAllocation();
+		mThresholdMin = GetMinAllocation();
 		mMemory = GetPoolStart<Byte>();
 		mHandle = memory;
 	}
@@ -152,17 +152,19 @@ namespace Langulus::Anyness::Inner
 			return nullptr;
 
 		if (mValidEntries == mEntries) {
+			if (mThreshold < mThresholdMin)
+				return nullptr;
+
 			// The entire pool is full, skip search for free spot				
 			// Add a new allocation directly											
 			auto newEntry = AllocationFromIndex(mEntries);
 			new (newEntry) Allocation {bytes, this};
 
-			const Size base = mEntries - (one << FastLog2(mEntries));
-			const Size level = (base << one) + one;
-			++mEntryDistribution[level];
+			++mEntryDistribution[LevelFromIndex(mEntries)];
 			++mEntries;
 			++mValidEntries;
 			mAllocatedByFrontend += bytesWithPadding;
+			mThreshold = ThresholdFromIndex(mEntries);
 			return newEntry;
 		}
 
@@ -170,25 +172,23 @@ namespace Langulus::Anyness::Inner
 		if (mLastFreed && 0 == mLastFreed->GetUses()) {
 			// Found a free spot															
 			const auto backup = mLastFreed;
-			mLastFreed = nullptr;
 			new (backup) Allocation {bytes, this};
 
 			const auto index = IndexFromAddress(backup);
-			const Size base = index - (one << FastLog2(index));
-			const Size level = (base << one) + one;
-			++mEntryDistribution[level];
+			++mEntryDistribution[LevelFromIndex(index)];
 			++mValidEntries;
 			mAllocatedByFrontend += bytesWithPadding;
+			mLastFreed = nullptr;
 			return backup;
 		}
 
 		// Check all subdivision levels for empty spots							
-		auto bytesPerBase = mAllocatedByBackend >> one;
+		auto bytesPerBase = mAllocatedByBackend;
 		auto bytesPerEntry = bytesPerBase >> one;
-		auto inherited = 1;
-		auto subdivisions = 2;
+		auto inherited = 0;
+		auto subdivisions = 1;
 
-		for (Offset level = 1; level < mAllocatedByBackendLog2; ++level) {
+		for (Offset level = 0; level < mAllocatedByBackendLog2; ++level) {
 			const auto capacity = subdivisions - inherited;
 			if (mEntryDistribution[level] == capacity) {
 				// Level is full, move on												
@@ -293,10 +293,11 @@ namespace Langulus::Anyness::Inner
 	}
 
 	/// Check if memory can contain a number of bytes									
+	///	@attention assumes that bytes include any padding and overhead			
 	///	@param bytes - number of bytes to check										
-	///	@return true if bytes can be contained in a new element					
+	///	@return true if bytes can be contained in a new/recycled element		
 	constexpr bool Pool::CanContain(const Size& bytes) const noexcept {
-		return mEntriesMax > mValidEntries && mThreshold >= bytes;
+		return mThreshold >= bytes;
 	}
 
 	/// Null the memory																			
@@ -308,10 +309,12 @@ namespace Langulus::Anyness::Inner
 	///	@param index - the index															
 	///	@return the threshold																
 	inline Size Pool::ThresholdFromIndex(const Offset& index) const noexcept {
-		auto roof = Roof2(index);
-		if (roof == index)
-			roof *= 2;
-		return index > 0 ? mAllocatedByBackend / roof : mAllocatedByBackend;
+		if (0 == index)
+			return mAllocatedByBackend;
+		constexpr Size one {1};
+		const Size basePower = FastLog2(index);
+		const Size lsb = LSB(mAllocatedByBackend >> one);
+		return one << (lsb - basePower);
 	}
 
 	/// Get allocation from index																
@@ -320,16 +323,15 @@ namespace Langulus::Anyness::Inner
 	inline Allocation* Pool::AllocationFromIndex(const Offset& index) noexcept {
 		// Credit goes to Vladislav Penchev (G2)									
 		if (index == 0)
-			return reinterpret_cast<Allocation*>(mMemory);
-		if (index >= mEntriesMax)
-			return nullptr;
+			return GetPoolStart();
+		//if (index >= mEntriesMax)
+		//	return nullptr;
 
 		constexpr Size one {1};
 		const Size basePower = FastLog2(index);
 		const Size baselessIndex = index - (one << basePower);
 		const Size levelIndex = (baselessIndex << one) + one;
-		const Size memorySize = mAllocatedByBackend >> one;
-		const Size lsb = LSB(memorySize);
+		const Size lsb = LSB(mAllocatedByBackend >> one);
 		const Size levelSize = (one << (lsb - basePower));
 		return reinterpret_cast<Allocation*>(mMemory + levelIndex * levelSize);
 	}
@@ -368,6 +370,7 @@ namespace Langulus::Anyness::Inner
 	}
 
 	/// Get index from address																	
+	///	@attention assumes pointer is inside the pool								
 	///	@param ptr - the address															
 	///	@return the index																		
 	inline Offset Pool::IndexFromAddress(const void* ptr) const noexcept {
@@ -379,7 +382,7 @@ namespace Langulus::Anyness::Inner
 		// We got the index, but it is not constrained to the pool			
 		constexpr Size one {1};
 		Size index = ((mAllocatedByBackend + i) / (i & ~(i - one)) - one) >> one;
-		while (index >= mEntriesMax)
+		while (index >= mEntries)
 			index = UpIndex(index);
 		return index;
 	}
@@ -398,7 +401,7 @@ namespace Langulus::Anyness::Inner
 			index = UpIndex(index);
 
 		// Check if we reached root of pool and it is unused					
-		if (index == 0 && 0 == reinterpret_cast<const Allocation*>(mMemory)->GetUses())
+		if (index == 0 && 0 == GetPoolStart()->GetUses())
 			return InvalidIndex;
 		return index;
 	}
