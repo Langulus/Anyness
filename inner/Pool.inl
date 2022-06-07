@@ -51,8 +51,8 @@ namespace Langulus::Anyness::Inner
 	inline Pool::Pool(const Size& size, void* memory) noexcept
 		: mAllocatedByBackend {size}
 		, mAllocatedByBackendLog2 {FastLog2(size)}
-		, mThresholdMin {Pool::GetMinAllocation()}
-		, mValidEntries {}
+		, mThresholdMin {DefaultMinAllocation}
+		, mEntries {}
 		, mAllocatedByFrontend {}
 		, mLastFreed {}
 		, mThreshold {size}
@@ -62,8 +62,15 @@ namespace Langulus::Anyness::Inner
 
 	/// Get the minimum allocation for an entry inside this pool					
 	///	@return the size in bytes, always a power-of-two							
-	constexpr Size Pool::GetMinAllocation() noexcept {
-		return Roof2(Allocation::GetSize() + Alignment);
+	constexpr Size Pool::GetMinAllocation() const noexcept {
+		return mThresholdMin;
+	}
+
+	/// Get the max number of possible entries											
+	/// (if all of them are as small as possible)										
+	///	@return the size in bytes, always a power-of-two							
+	constexpr Count Pool::GetMaxEntries() const noexcept {
+		return mAllocatedByBackend / GetMinAllocation();
 	}
 
 	/// Free the whole pool chain																
@@ -131,15 +138,13 @@ namespace Langulus::Anyness::Inner
 		if (!mLastFreed) {
 			// The entire pool is full, skip search for free spot				
 			// Add a new allocation directly											
-			auto newEntry = AllocationFromIndex(mValidEntries);
+			auto newEntry = AllocationFromIndex(mEntries);
 			new (newEntry) Allocation {bytes, this};
 
-			++mValidEntries;
+			++mEntries;
 			mAllocatedByFrontend += bytesWithPadding;
-			mThreshold = ::std::max(
-				Roof2(bytesWithPadding), 
-				ThresholdFromIndex(mValidEntries)
-			);
+			mThreshold = ThresholdFromIndex(mEntries);
+			mThresholdMin = ::std::max(Roof2(bytesWithPadding), DefaultMinAllocation);
 			return newEntry;
 		}
 
@@ -147,6 +152,11 @@ namespace Langulus::Anyness::Inner
 		const auto newEntry = mLastFreed;
 		mLastFreed = mLastFreed->mNextFreeEntry;
 		new (newEntry) Allocation {bytes, this};
+
+		#if LANGULUS(SAFE)
+			if (mAllocatedByFrontend + bytesWithPadding < mAllocatedByFrontend)
+				Throw<Except::Deallocation>("Frontend byte counter overflow");
+		#endif
 
 		mAllocatedByFrontend += bytesWithPadding;
 		return newEntry;
@@ -161,17 +171,17 @@ namespace Langulus::Anyness::Inner
 		#if LANGULUS(SAFE)
 			if (entry->mReferences == 0)
 				Throw<Except::Deallocation>("Removing an invalid entry");
-			if (mValidEntries == 0)
+			if (mEntries == 0)
 				Throw<Except::Deallocation>("Bad valid entry count");
 			if (mAllocatedByFrontend < entry->GetTotalSize())
 				Throw<Except::Deallocation>("Bad frontend allocation size");
 		#endif
 
-		if (1 == mValidEntries) {
+		if (1 == mEntries) {
 			// The freed entry was the last used entry							
 			// Reset the entire pool													
 			mThreshold = mAllocatedByBackend;
-			mValidEntries = 0;
+			mEntries = 0;
 			mAllocatedByFrontend = 0;
 			mLastFreed = nullptr;
 			return;
@@ -199,7 +209,6 @@ namespace Langulus::Anyness::Inner
 			const auto addition = bytes - entry->mAllocatedBytes;
 			if (entry->GetTotalSize() + addition > mThreshold)
 				return false;
-
 			mAllocatedByFrontend += addition;
 		}
 		else {
@@ -237,7 +246,7 @@ namespace Langulus::Anyness::Inner
 	/// Check if there is any used memory													
 	///	@return true on at least one valid entry										
 	constexpr bool Pool::IsInUse() const noexcept {
-		return mValidEntries > 0;
+		return mEntries > 0;
 	}
 
 	/// Check if memory can contain a number of bytes									
@@ -265,13 +274,6 @@ namespace Langulus::Anyness::Inner
 		return one << (lsb - basePower);
 	}
 
-	/// Get level associated with an index													
-	///	@param index - the index															
-	///	@return the level																		
-	inline Offset Pool::LevelFromIndex(const Offset& index) const noexcept {
-		return FastLog2(index);
-	}
-
 	/// Get allocation from index																
 	///	@param index - the index															
 	///	@return the allocation (not validated and constrained)					
@@ -279,8 +281,6 @@ namespace Langulus::Anyness::Inner
 		// Credit goes to Vladislav Penchev (G2)									
 		if (index == 0)
 			return GetPoolStart();
-		//if (index >= mEntriesMax)
-		//	return nullptr;
 
 		constexpr Size one {1};
 		const Size basePower = FastLog2(index);
@@ -298,32 +298,6 @@ namespace Langulus::Anyness::Inner
 		return const_cast<Pool*>(this)->AllocationFromIndex(index);
 	}
 
-	/// Validate an address, returning an allocation, which is valid				
-	///	@param address - address to validate.											
-	///	@returns the address, or nullptr if invalid									
-	inline Allocation* Pool::ValidateAddress(const void* address) noexcept {
-		// Check if address is inside pool bounds									
-		if (!Contains(address))
-			return nullptr;
-
-		// Snap the address to the current threshold								
-		const auto offset = static_cast<const Byte*>(address) - mMemory;
-		auto entry = reinterpret_cast<Allocation*>(
-			mMemory + (offset & ~(mThreshold - 1)));
-
-		// If address is not in use, step up										
-		while (entry && 0 == entry->GetUses())
-			entry = UpperAllocation(entry);
-		return entry;
-	}
-
-	/// Validate an address, returning an entry, which is valid						
-	///	@param address - address to validate.											
-	///	@returns the address, or nullptr if invalid									
-	inline const void* Pool::ValidateAddress(const void* address) const noexcept {
-		return const_cast<Pool*>(this)->ValidateAddress(address);
-	}
-
 	/// Get index from address																	
 	///	@attention assumes pointer is inside the pool								
 	///	@param ptr - the address															
@@ -334,13 +308,13 @@ namespace Langulus::Anyness::Inner
 
 		// Credit goes to Yasen Vidolov (G1)										
 		const Offset i = static_cast<const Byte*>(ptr) - mMemory;
-		if (i < mThreshold || 0 == mValidEntries)
+		if (i < mThreshold || 0 == mEntries)
 			return 0;
 
 		// We got the index, but it is not constrained to the pool			
 		constexpr Offset one {1};
 		Offset index = ((mAllocatedByBackend + i) / (i & ~(i - one)) - one) >> one;
-		while (index >= mValidEntries)
+		while (index >= mEntries)
 			index = UpIndex(index);
 		return index;
 	}
@@ -350,12 +324,12 @@ namespace Langulus::Anyness::Inner
 	///	@returns the address, or InvalidIndex if invalid							
 	inline Offset Pool::ValidateIndex(Offset index) const noexcept {
 		// Pool is empty, so search is pointless									
-		if (mValidEntries == 0)
+		if (mEntries == 0)
 			return InvalidIndex;
 
 		// Step up until a valid entry inside bounds is hit					
 		const Allocation* entry;
-		while (index != 0 && (index >= mValidEntries || !(entry = AllocationFromIndex(index)) || 0 == entry->GetUses()))
+		while (index != 0 && (index >= mEntries || !(entry = AllocationFromIndex(index)) || 0 == entry->GetUses()))
 			index = UpIndex(index);
 
 		// Check if we reached root of pool and it is unused					
@@ -370,22 +344,6 @@ namespace Langulus::Anyness::Inner
 	inline Offset Pool::UpIndex(const Offset index) const noexcept {
 		// Credit goes to Vladislav Penchev											
 		return index >> (LSB(index) + 1u);
-	}
-
-	/// Get allocation above another allocation											
-	///	@param address - the address of the allocation								
-	///	@return allocation above the given one, or nullptr if master alloc	
-	inline Allocation* Pool::UpperAllocation(const void* address) SAFETY_NOEXCEPT() {
-		if (address == mMemory)
-			return nullptr;
-		return AllocationFromIndex(UpIndex(IndexFromAddress(address)));
-	}
-
-	/// Get allocation above another allocation (const)								
-	///	@param address - the address of the allocation								
-	///	@return allocation above the given one, or nullptr if master alloc	
-	inline const Allocation* Pool::UpperAllocation(const void* address) const noexcept {
-		return const_cast<Pool*>(this)->UpperAllocation(address);
 	}
 
 	///  Check if a memory address resigns inside pool's range						

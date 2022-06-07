@@ -5,7 +5,7 @@ project(Langulus_Anyness)
 # Configure the features you require, all these are disabled by default
 option(LANGULUS_ENABLE_SAFE_MODE 
     "Overrides additional error checking and sanity checks, \
-    incurs a serious runtime overhead" ON)
+    incurs a serious runtime overhead")
 
 option(LANGULUS_ENABLE_PARANOIA 
     "Make sure that any unused memory is nullified, \

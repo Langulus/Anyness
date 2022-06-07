@@ -265,6 +265,9 @@ SCENARIO("Testing pool functions", "[allocator]") {
 				REQUIRE(pool->ThresholdFromIndex(6) == quarter/2);
 				REQUIRE(pool->ThresholdFromIndex(7) == quarter/2);
 				REQUIRE(pool->ThresholdFromIndex(8) == quarter/4);
+				REQUIRE(pool->ThresholdFromIndex(pool->GetMaxEntries()-1) == pool->GetMinAllocation());
+				REQUIRE(pool->ThresholdFromIndex(pool->GetMaxEntries()) == pool->GetMinAllocation()/2);
+				//REQUIRE(pool->ThresholdFromIndex(pool->GetMaxEntries()+555) == pool->GetMinAllocation());
 			}
 		}
 	}
