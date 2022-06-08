@@ -43,7 +43,7 @@ namespace Langulus::Anyness
 		TAny<V> mValues;
 
 	public:
-		constexpr THashMap() noexcept = default;
+		THashMap() = default;
 		THashMap(::std::initializer_list<Pair>);
 		THashMap(const THashMap&);
 		THashMap(THashMap&&) noexcept;

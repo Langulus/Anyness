@@ -281,10 +281,9 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(pack.GetUses() == 2);
 			}
 
-			Allocator::CollectGarbage();
-
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: 2:1 performance - needs optimization
 				BENCHMARK_ADVANCED("Anyness::Any::operator = (shallow-copied Any)") (Catch::Benchmark::Chronometer meter) {
+					Allocator::CollectGarbage();
 					std::vector<Any> source(meter.runs());
 					for (auto& i : source)
 						i = original_int;

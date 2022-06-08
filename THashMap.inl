@@ -60,9 +60,22 @@ namespace Langulus::Anyness
 	/// Destroys the map and all it's contents											
 	TABLE_TEMPLATE()
 	TABLE()::~THashMap() {
-		if (GetUses() == 1) {
-			// Values will be deallocated, so deallocate keys too				
+		if (!mValues.mEntry)
+			return;
+
+		if (mValues.mEntry->GetUses() == 1) {
+			// Remove all used keys and values, they're used only here		
+			ClearInner();
+
+			// Deallocate stuff															
 			Inner::Allocator::Deallocate(mKeys);
+			Inner::Allocator::Deallocate(mValues.mEntry);
+			mValues.mEntry = nullptr;
+		}
+		else {
+			// Data is used from multiple locations, just deref values		
+			mValues.mEntry->Free();
+			mValues.mEntry = nullptr;
 		}
 	}
 
@@ -460,12 +473,16 @@ namespace Langulus::Anyness
 
 	/// Allocate or reallocate key and info array										
 	///	@attention assumes count is a power-of-two									
-	///	@attention assumes mValues has not been yet reallocated					
 	///	@tparam REUSE - true to reallocate, false to allocate fresh				
 	///	@param count - the new number of pairs											
 	TABLE_TEMPLATE()
 	template<bool REUSE>
 	void TABLE()::AllocateKeys(const Count& count) {
+		#if LANGULUS(SAFE)
+			if (!IsPowerOfTwo(count))
+				Throw<Except::Allocate>("Table reallocation count is not a power-of-two");
+		#endif
+
 		Offset infoOffset;
 		const auto oldKeys = mKeys;
 		if constexpr (REUSE) {
@@ -539,10 +556,12 @@ namespace Langulus::Anyness
 
 			if constexpr (REUSE) {
 				Insert(Pair {Move(*key), Move(*value)});
-				RemoveInner<false>(key);
-				RemoveInner<false>(value);
+				RemoveInner<false, K>(key);
+				RemoveInner<false, V>(value);
 			}
-			else Insert(Pair {*key, *value});
+			else {
+				Insert(Pair {*key, *value});
+			}
 
 			++key; ++oldInfo; ++value;
 		}
@@ -594,8 +613,8 @@ namespace Langulus::Anyness
 				Pair swapper {Move(*oldKey), Move(*oldValue)};
 
 				// Clean the old slot													
-				RemoveInner<false>(oldKey);
-				RemoveInner<false>(oldValue);
+				RemoveInner<false, K>(oldKey);
+				RemoveInner<false, V>(oldValue);
 				*oldInfo = 0;
 
 				// Insert the swapper													
@@ -718,8 +737,8 @@ namespace Langulus::Anyness
 		const auto infEnd = GetInfoEnd();
 		while (inf != infEnd) {
 			if (*inf) {
-				RemoveInner<true>(key);
-				RemoveInner<true>(val);
+				RemoveInner<true, K>(key);
+				RemoveInner<true, V>(val);
 			}
 
 			++key; ++val; ++inf;
@@ -785,8 +804,8 @@ namespace Langulus::Anyness
 		auto value = GetRawValues() + start;
 
 		// Destroy the key, info and value there									
-		RemoveInner<true>(value);
-		RemoveInner<true>(candidate);
+		RemoveInner<true, V>(value);
+		RemoveInner<true, K>(candidate);
 		*psl = 0;
 
 		++psl;
@@ -800,8 +819,8 @@ namespace Langulus::Anyness
 			psl[-1] = (*psl) - 1;
 			new (candidate - 1) K {Move(*candidate)};
 			new (value - 1) V {Move(*value)};
-			RemoveInner<false>(value);
-			RemoveInner<false>(candidate);
+			RemoveInner<false, V>(value);
+			RemoveInner<false, K>(candidate);
 			*psl = 0;
 
 			++psl;

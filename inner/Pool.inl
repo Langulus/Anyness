@@ -142,8 +142,8 @@ namespace Langulus::Anyness::Inner
 			return nullptr;
 
 		if (!mLastFreed) {
-			// The entire pool is full, skip search for free spot				
-			// Add a new allocation directly											
+			// The entire pool is full (or empty), skip search for free		
+			// spot, add a new allocation directly	instead						
 			auto newEntry = AllocationFromIndex(mEntries);
 			new (newEntry) Allocation {bytes, this};
 
@@ -172,8 +172,6 @@ namespace Langulus::Anyness::Inner
 	///	@attention assumes entry is valid												
 	///	@param entry - entry to remove													
 	inline void Pool::RemoveEntry(Allocation* entry) SAFETY_NOEXCEPT() {
-		constexpr Offset one {1};
-
 		#if LANGULUS(SAFE)
 			if (entry->mReferences == 0)
 				Throw<Except::Deallocation>("Removing an invalid entry");
@@ -183,20 +181,21 @@ namespace Langulus::Anyness::Inner
 				Throw<Except::Deallocation>("Bad frontend allocation size");
 		#endif
 
-		if (1 == mEntries) {
+		mAllocatedByFrontend -= entry->GetTotalSize();
+		entry->mReferences = 0;
+
+		if (0 == mAllocatedByFrontend) {
 			// The freed entry was the last used entry							
 			// Reset the entire pool													
 			mThreshold = mAllocatedByBackend;
-			mEntries = 0;
-			mAllocatedByFrontend = 0;
 			mLastFreed = nullptr;
-			return;
+			mEntries = 0;
 		}
-
-		mAllocatedByFrontend -= entry->GetTotalSize();
-		entry->mNextFreeEntry = mLastFreed;
-		entry->mReferences = 0;
-		mLastFreed = entry;
+		else {
+			// Push the removed entry to the last freed list					
+			entry->mNextFreeEntry = mLastFreed;
+			mLastFreed = entry;
+		}
 	}
 
 	/// Resize an entry																			
@@ -252,7 +251,7 @@ namespace Langulus::Anyness::Inner
 	/// Check if there is any used memory													
 	///	@return true on at least one valid entry										
 	constexpr bool Pool::IsInUse() const noexcept {
-		return mEntries > 0;
+		return mAllocatedByFrontend > 0;
 	}
 
 	/// Check if memory can contain a number of bytes									

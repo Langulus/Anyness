@@ -68,6 +68,11 @@ namespace Langulus::Anyness::Inner
 	///	@param size size of the pool (in bytes)										
 	///	@return a pointer to the new pool												
 	Pool* Allocator::AllocatePool(const Size& size) {
+		#if LANGULUS(SAFE)
+			if (!IsPowerOfTwo(size))
+				Throw<Except::Allocate>("Pool size is not a power-of-two");
+		#endif
+
 		return Inner::AlignedAllocate<Pool>(size);
 	}
 
@@ -126,10 +131,16 @@ namespace Langulus::Anyness::Inner
 	///	@param previous - the previous memory entry									
 	///	@return the reallocated memory entry											
 	Allocation* Allocator::Reallocate(const Size& size, Allocation* previous) {
-		SAFETY(if (size == previous->GetAllocatedSize())
-			Throw<Except::Allocate>("Reallocation suboptimal - size is same as previous"));
-		SAFETY(if (size == 0)
-			Throw<Except::Allocate>("Zero reallocation is not allowed"));
+		#if LANGULUS(SAFE)
+			if (previous == nullptr)
+				Throw<Except::Allocate>("Reallocating nullptr");
+			if (size == previous->GetAllocatedSize())
+				Throw<Except::Allocate>("Reallocation suboptimal - size is same as previous");
+			if (size == 0)
+				Throw<Except::Allocate>("Zero reallocation is not allowed");
+			if (previous->mReferences == 0)
+				Throw<Except::Allocate>("Deallocating an unused allocation");
+		#endif
 
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
 			// New size is bigger, precautions must be taken					
@@ -152,6 +163,15 @@ namespace Langulus::Anyness::Inner
 	///	@attention doesn't call any destructors										
 	///	@param entry - the memory entry to deallocate								
 	void Allocator::Deallocate(Allocation* entry) {
+		#if LANGULUS(SAFE)
+			if (entry == nullptr)
+				Throw<Except::Allocate>("Deallocating nullptr");
+			if (entry->GetAllocatedSize() == 0)
+				Throw<Except::Allocate>("Deallocating an empty allocation");
+			if (entry->mReferences == 0)
+				Throw<Except::Allocate>("Deallocating an unused allocation");
+		#endif
+
 		mStatistics.mBytesAllocatedByFrontend -= entry->GetAllocatedSize();
 		mStatistics.mEntries -= 1;
 
@@ -166,11 +186,17 @@ namespace Langulus::Anyness::Inner
 	/// If LANGULUS_FEATURE(MANAGED_MEMORY) is enabled, this function will		
 	/// attempt to find memory entry from the memory manager							
 	/// Allows us to safely interface unknown memory, possibly reusing it		
+	///	@attention assumes memory is a valid pointer									
 	///	@param meta - the type of data to search for (optional)					
 	///	@param memory - memory pointer													
 	///	@return the memory entry that manages the memory pointer, or			
 	///		nullptr if memory is not ours, or is no longer used					
 	Allocation* Allocator::Find(DMeta meta, const void* memory) {
+		#if LANGULUS(SAFE)
+			if (memory == nullptr)
+				Throw<Except::Allocate>("Searching for nullptr");
+		#endif
+
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
 			// Scan all pools, and find one that contains the memory			
 			auto pool = mDefaultPool;
@@ -200,6 +226,11 @@ namespace Langulus::Anyness::Inner
 	///	@param memory - memory pointer													
 	///	@return true if we own the memory												
 	bool Allocator::CheckAuthority(DMeta meta, const void* memory) {
+		#if LANGULUS(SAFE)
+			if (memory == nullptr)
+				Throw<Except::Allocate>("Searching for nullptr");
+		#endif
+
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
 			// Scan all pools, and find one that contains the memory			
 			auto pool = mDefaultPool;
@@ -227,6 +258,11 @@ namespace Langulus::Anyness::Inner
 	///	@param memory - memory pointer													
 	///	@return the number of references, or 1 if memory is not ours			
 	Count Allocator::GetReferences(DMeta meta, const void* memory) {
+		#if LANGULUS(SAFE)
+			if (memory == nullptr)
+				Throw<Except::Allocate>("Searching for nullptr");
+		#endif
+
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
 			auto found = Find(meta, memory);
 			if (found)
@@ -249,6 +285,13 @@ namespace Langulus::Anyness::Inner
 	///	@param memory - memory pointer													
 	///	@param count - the number of references to add								
 	void Allocator::Keep(DMeta meta, const void* memory, Count count) {
+		#if LANGULUS(SAFE)
+			if (memory == nullptr)
+				Throw<Except::Allocate>("Searching for nullptr");
+			if (count == 0)
+				Throw<Except::Allocate>("Zero references added");
+		#endif
+
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
 			auto found = Find(meta, memory);
 			if (found)
@@ -274,6 +317,13 @@ namespace Langulus::Anyness::Inner
 	///	@param count - the number of references to add								
 	///	@return true if the memory has been fully dereferenced					
 	bool Allocator::Free(DMeta meta, const void* memory, Count count) {
+		#if LANGULUS(SAFE)
+			if (memory == nullptr)
+				Throw<Except::Allocate>("Searching for nullptr");
+			if (count == 0)
+				Throw<Except::Allocate>("Zero references removed");
+		#endif
+
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
 			auto found = Find(meta, memory);
 			if (!found)
