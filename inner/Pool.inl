@@ -66,6 +66,12 @@ namespace Langulus::Anyness::Inner
 		return mThresholdMin;
 	}
 
+	/// Get the total byte size of the pool, including overhead						
+	///	@return the size in bytes															
+	constexpr Size Pool::GetTotalSize() const noexcept {
+		return Pool::GetSize() + mAllocatedByBackend;
+	}
+
 	/// Get the max number of possible entries											
 	/// (if all of them are as small as possible)										
 	///	@return the size in bytes, always a power-of-two							
@@ -226,19 +232,19 @@ namespace Langulus::Anyness::Inner
 		return true;
 	}
 
-	/// Get the entry that corresponds to a given pointer.							
-	/// Guaranteed to be valid for pointers in pool's range							
+	/// Get valid entry that corresponds to an arbitrary pointer					
+	///	@attention assumes ptr is inside pool											
 	///	@param ptr - the pointer to get the element index of						
-	///	@return pointer to the element													
+	///	@return pointer to the valid allocation, or nullptr if unused			
 	inline Allocation* Pool::AllocationFromAddress(const void* ptr) SAFETY_NOEXCEPT() {
-		return AllocationFromIndex(ValidateIndex(IndexFromAddress(ptr)));
+		const auto index = ValidateIndex(IndexFromAddress(ptr));
+		return index == InvalidIndex ? nullptr : AllocationFromIndex(index);
 	}
 
-	/// Get the entry that corresponds to a given pointer.							
-	/// Guaranteed to be valid for pointers in range									
-	/// [mMemory, mMemory + mMemorySize)													
+	/// Get valid entry that corresponds to an arbitrary pointer					
+	///	@attention assumes ptr is inside pool											
 	///	@param ptr - the pointer to get the element index of						
-	///	@return pointer to the element													
+	///	@return pointer to the valid allocation, or nullptr if unused			
 	inline const Allocation* Pool::AllocationFromAddress(const void* ptr) const noexcept {
 		return const_cast<Pool*>(this)->AllocationFromAddress(ptr);
 	}
@@ -319,17 +325,17 @@ namespace Langulus::Anyness::Inner
 		return index;
 	}
 
-	/// Validate an index																		
+	/// Validate an index, check if corresponding to a valid allocation			
+	/// or shift it up until one is found													
 	///	@param index - index to validate													
-	///	@returns the address, or InvalidIndex if invalid							
+	///	@returns the valid index, or InvalidIndex if invalid						
 	inline Offset Pool::ValidateIndex(Offset index) const noexcept {
 		// Pool is empty, so search is pointless									
 		if (mEntries == 0)
 			return InvalidIndex;
 
 		// Step up until a valid entry inside bounds is hit					
-		const Allocation* entry;
-		while (index != 0 && (index >= mEntries || !(entry = AllocationFromIndex(index)) || 0 == entry->GetUses()))
+		while (index != 0 && (index >= mEntries || 0 == AllocationFromIndex(index)->GetUses()))
 			index = UpIndex(index);
 
 		// Check if we reached root of pool and it is unused					

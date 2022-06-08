@@ -4,8 +4,8 @@
 namespace Langulus::Anyness::Inner
 {
 
-	NOD() constexpr Size FastLog2(Size x) noexcept;
-	NOD() constexpr Size LSB(const Size& n) noexcept;
+	NOD() constexpr Size FastLog2(Size) noexcept;
+	NOD() constexpr Size LSB(const Size&) noexcept;
 
 
 	///																								
@@ -29,38 +29,32 @@ namespace Langulus::Anyness::Inner
 
 		template<class T = Allocation>
 		NOD() T* GetPoolStart() noexcept;
-
 		template<class T = Allocation>
 		NOD() const T* GetPoolStart() const noexcept;
 
 		NOD() constexpr Size GetMinAllocation() const noexcept;
+		NOD() constexpr Size GetTotalSize() const noexcept;
 		NOD() constexpr Count GetMaxEntries() const noexcept;
 		NOD() constexpr Size GetAllocatedByBackend() const noexcept;
 		NOD() constexpr Size GetAllocatedByFrontend() const noexcept;
 		NOD() constexpr bool IsInUse() const noexcept;
 		NOD() constexpr bool CanContain(const Size&) const noexcept;
-
-		void RemoveEntry(Allocation*) SAFETY_NOEXCEPT();
-		bool ResizeEntry(Allocation*, Size) SAFETY_NOEXCEPT();
-		void FreePoolChain();
+		NOD() bool Contains(const void*) const noexcept;
 
 		NOD() Allocation* CreateEntry(Size) SAFETY_NOEXCEPT();
-
-		void Init(void*, Size);
+		NOD() bool ResizeEntry(Allocation*, Size) SAFETY_NOEXCEPT();
+		void RemoveEntry(Allocation*) SAFETY_NOEXCEPT();
+		void FreePoolChain();
 		void Null();
 
 		NOD() Size ThresholdFromIndex(const Offset&) const noexcept;
 		NOD() Allocation* AllocationFromIndex(const Offset&) noexcept;
 		NOD() const Allocation* AllocationFromIndex(const Offset&) const noexcept;
-
 		NOD() Offset IndexFromAddress(const void*) const SAFETY_NOEXCEPT();
 		NOD() Offset ValidateIndex(Offset) const noexcept;
 		NOD() Offset UpIndex(Offset) const noexcept;
-
-		NOD() bool Contains(const void*) const noexcept;
-
-		Allocation* AllocationFromAddress(const void*) SAFETY_NOEXCEPT();
-		const Allocation* AllocationFromAddress(const void*) const noexcept;
+		NOD() Allocation* AllocationFromAddress(const void*) SAFETY_NOEXCEPT();
+		NOD() const Allocation* AllocationFromAddress(const void*) const noexcept;
 
 	public:
 		// Bytes allocated by the backend											
@@ -76,7 +70,7 @@ namespace Langulus::Anyness::Inner
 		// Current threshold, that is, max size of a new entry				
 		Size mThreshold {};
 		// Smallest allocation possible for the pool								
-		Size mThresholdMin{};
+		Size mThresholdMin {};
 		// Pointer to start of usable memory										
 		Byte* mMemory {};
 		// Handle for the pool allocation, for use with ::std::free			

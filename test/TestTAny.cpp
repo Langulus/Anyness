@@ -483,7 +483,7 @@ SCENARIO("TAny", "[containers]") {
 				REQUIRE(pack2.GetUses() == 2);
 				REQUIRE(static_cast<Block&>(pack1) == static_cast<Block&>(pack2));
 				REQUIRE(static_cast<Block&>(pack2) == memory1);
-				REQUIRE_FALSE(::Langulus::Anyness::Inner::Allocator::Find(memory2.GetType(), memory2.GetRaw()));
+				REQUIRE_FALSE(Allocator::Find(memory2.GetType(), memory2.GetRaw()));
 			}
 		}
 
@@ -496,7 +496,7 @@ SCENARIO("TAny", "[containers]") {
 				REQUIRE_FALSE(pack1.GetRaw());
 				REQUIRE(pack1.GetReserved() == 0);
 				REQUIRE(static_cast<Block&>(pack2) == memory1);
-				REQUIRE_FALSE(::Langulus::Anyness::Inner::Allocator::Find(memory2.GetType(), memory2.GetRaw()));
+				REQUIRE_FALSE(Allocator::Find(memory2.GetType(), memory2.GetRaw()));
 			}
 		}
 
@@ -508,7 +508,7 @@ SCENARIO("TAny", "[containers]") {
 				REQUIRE(static_cast<Block&>(pack1) == static_cast<Block&>(pack2));
 				REQUIRE(static_cast<Block&>(pack2) == memory1);
 				REQUIRE(static_cast<Block&>(pack2) != memory2);
-				REQUIRE_FALSE(::Langulus::Anyness::Inner::Allocator::Find(memory2.GetType(), memory2.GetRaw()));
+				REQUIRE_FALSE(Allocator::Find(memory2.GetType(), memory2.GetRaw()));
 			}
 		}
 
@@ -518,8 +518,8 @@ SCENARIO("TAny", "[containers]") {
 			pack1.Reset();
 			THEN("memory1 should be referenced once, memory2 should be released") {
 				REQUIRE_FALSE(pack1.HasAuthority());
-				REQUIRE_FALSE(::Langulus::Anyness::Inner::Allocator::Find(memory1.GetType(), memory1.GetRaw()));
-				REQUIRE_FALSE(::Langulus::Anyness::Inner::Allocator::Find(memory2.GetType(), memory2.GetRaw()));
+				REQUIRE_FALSE(Allocator::Find(memory1.GetType(), memory1.GetRaw()));
+				REQUIRE_FALSE(Allocator::Find(memory2.GetType(), memory2.GetRaw()));
 				REQUIRE(pack2.GetUses() == 1);
 				REQUIRE(memory3.GetUses() == 1);
 			}

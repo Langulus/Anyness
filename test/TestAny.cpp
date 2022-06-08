@@ -87,6 +87,7 @@ SCENARIO("Any", "[containers]") {
 
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: 8:1 performance - needs optimization
 				BENCHMARK_ADVANCED("Anyness::Any::operator = (single trivial copy)") (Catch::Benchmark::Chronometer meter) {
+					Allocator::CollectGarbage();
 					std::vector<Any> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i] = value;
@@ -117,6 +118,7 @@ SCENARIO("Any", "[containers]") {
 
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: 1:1 performance
 				BENCHMARK_ADVANCED("Anyness::Any::operator = (Traits::Count(5))") (Catch::Benchmark::Chronometer meter) {
+					Allocator::CollectGarbage();
 					std::vector<Any> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i] = Traits::Count(5);
@@ -148,6 +150,7 @@ SCENARIO("Any", "[containers]") {
 
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: 8:1 performance - needs optimization
 				BENCHMARK_ADVANCED("Anyness::Any::operator = (single trivial move)") (Catch::Benchmark::Chronometer meter) {
+					Allocator::CollectGarbage();
 					std::vector<Any> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i] = Move(value);
@@ -179,16 +182,17 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(pack.As<int*>() == original_int);
 				REQUIRE_THROWS(pack.As<float*>() == nullptr);
 				#if LANGULUS_FEATURE(NEWDELETE) && LANGULUS_FEATURE(MANAGED_MEMORY)
-					REQUIRE(Anyness::Inner::Allocator::CheckAuthority(meta, original_int));
-					REQUIRE(Anyness::Inner::Allocator::GetReferences(meta, original_int) == 2);
+					REQUIRE(Allocator::CheckAuthority(meta, original_int));
+					REQUIRE(Allocator::GetReferences(meta, original_int) == 2);
 				#else
-					REQUIRE_FALSE(Anyness::Inner::Allocator::CheckAuthority(meta, original_int));
-					REQUIRE(Anyness::Inner::Allocator::GetReferences(meta, original_int) == 0);
+					REQUIRE_FALSE(Allocator::CheckAuthority(meta, original_int));
+					REQUIRE(Allocator::GetReferences(meta, original_int) == 0);
 				#endif
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: 9:1 performance - needs optimization
 				BENCHMARK_ADVANCED("Anyness::Any::operator = (single pointer copy)") (Catch::Benchmark::Chronometer meter) {
+					Allocator::CollectGarbage();
 					std::vector<Any> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i] = value;
@@ -222,17 +226,18 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(pack.As<int*>() == original_int_backup);
 				REQUIRE_THROWS(pack.As<float*>() == nullptr);
 				#if LANGULUS_FEATURE(NEWDELETE) && LANGULUS_FEATURE(MANAGED_MEMORY)
-					REQUIRE(Anyness::Inner::Allocator::CheckAuthority(meta, original_int_backup));
-					REQUIRE(Anyness::Inner::Allocator::GetReferences(meta, original_int_backup) == 2);
+					REQUIRE(Allocator::CheckAuthority(meta, original_int_backup));
+					REQUIRE(Allocator::GetReferences(meta, original_int_backup) == 2);
 				#else
-					REQUIRE_FALSE(Anyness::Inner::Allocator::CheckAuthority(meta, original_int_backup));
-					REQUIRE(Anyness::Inner::Allocator::GetReferences(meta, original_int_backup) == 0);
+					REQUIRE_FALSE(Allocator::CheckAuthority(meta, original_int_backup));
+					REQUIRE(Allocator::GetReferences(meta, original_int_backup) == 0);
 				#endif
 				REQUIRE(pack.GetUses() == 1);
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: 9:1 performance - needs optimization
 				BENCHMARK_ADVANCED("Anyness::Any::operator = (single pointer move)") (Catch::Benchmark::Chronometer meter) {
+					Allocator::CollectGarbage();
 					std::vector<Any> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i] = Move(value);
@@ -266,15 +271,17 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(another_pack.As<int*>() == original_int);
 				REQUIRE_THROWS(another_pack.As<float*>() == nullptr);
 				#if LANGULUS_FEATURE(NEWDELETE) && LANGULUS_FEATURE(MANAGED_MEMORY)
-					REQUIRE(Anyness::Inner::Allocator::CheckAuthority(meta, original_int));
-					REQUIRE(Anyness::Inner::Allocator::GetReferences(meta, original_int) == 2);
+					REQUIRE(Allocator::CheckAuthority(meta, original_int));
+					REQUIRE(Allocator::GetReferences(meta, original_int) == 2);
 				#else
-					REQUIRE_FALSE(Anyness::Inner::Allocator::CheckAuthority(meta, original_int));
-					REQUIRE(Anyness::Inner::Allocator::GetReferences(meta, original_int) == 0);
+					REQUIRE_FALSE(Allocator::CheckAuthority(meta, original_int));
+					REQUIRE(Allocator::GetReferences(meta, original_int) == 0);
 				#endif
 				REQUIRE(pack.GetUses() == another_pack.GetUses());
 				REQUIRE(pack.GetUses() == 2);
 			}
+
+			Allocator::CollectGarbage();
 
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: 2:1 performance - needs optimization
 				BENCHMARK_ADVANCED("Anyness::Any::operator = (shallow-copied Any)") (Catch::Benchmark::Chronometer meter) {
@@ -322,17 +329,18 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(another_pack.As<int*>() == original_int);
 				REQUIRE_THROWS(another_pack.As<float*>() == nullptr);
 				#if LANGULUS_FEATURE(NEWDELETE) && LANGULUS_FEATURE(MANAGED_MEMORY)
-					REQUIRE(Anyness::Inner::Allocator::CheckAuthority(meta, original_int));
-					REQUIRE(Anyness::Inner::Allocator::GetReferences(meta, original_int) == 2);
+					REQUIRE(Allocator::CheckAuthority(meta, original_int));
+					REQUIRE(Allocator::GetReferences(meta, original_int) == 2);
 				#else
-					REQUIRE_FALSE(Anyness::Inner::Allocator::CheckAuthority(meta, original_int));
-					REQUIRE(Anyness::Inner::Allocator::GetReferences(meta, original_int) == 0);
+					REQUIRE_FALSE(Allocator::CheckAuthority(meta, original_int));
+					REQUIRE(Allocator::GetReferences(meta, original_int) == 0);
 				#endif
 				REQUIRE(another_pack.GetUses() == 1);
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: 6:1 performance - needs optimization
 				BENCHMARK_ADVANCED("Anyness::Any::operator = (moved Any)") (Catch::Benchmark::Chronometer meter) {
+					Allocator::CollectGarbage();
 					std::vector<Any> source(meter.runs());
 					for (auto& i : source)
 						i = original_int;
@@ -373,6 +381,7 @@ SCENARIO("Any", "[containers]") {
 
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: 2:1 performance - needs optimization
 				BENCHMARK_ADVANCED("Anyness::Any::construct via dense Block shallow-copy") (Catch::Benchmark::Chronometer meter) {
+					Allocator::CollectGarbage();
 					std::vector<Any> source(meter.runs());
 					for (auto& i : source)
 						i = value;
@@ -413,6 +422,7 @@ SCENARIO("Any", "[containers]") {
 
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: 2:1 performance - needs optimization
 				BENCHMARK_ADVANCED("Anyness::Any::construct via sparse Block shallow-copy") (Catch::Benchmark::Chronometer meter) {
+					Allocator::CollectGarbage();
 					std::vector<Any> source(meter.runs());
 					for (auto& i : source)
 						i = value;
@@ -445,11 +455,11 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(pack.GetType() == nullptr);
 				REQUIRE(pack.GetRaw() == nullptr);
 				#if LANGULUS_FEATURE(NEWDELETE) && LANGULUS_FEATURE(MANAGED_MEMORY)
-					REQUIRE(Anyness::Inner::Allocator::CheckAuthority(meta, original_int));
+					REQUIRE(Allocator::CheckAuthority(meta, original_int));
 				#else
-					REQUIRE_FALSE(Anyness::Inner::Allocator::CheckAuthority(meta, original_int));
+					REQUIRE_FALSE(Allocator::CheckAuthority(meta, original_int));
 				#endif
-				REQUIRE(Anyness::Inner::Allocator::GetReferences(meta, original_int) == 0);
+				REQUIRE(Allocator::GetReferences(meta, original_int) == 0);
 			}
 		}
 

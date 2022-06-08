@@ -65,6 +65,8 @@ namespace Langulus::Anyness::Inner
 
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
 			static Pool* AllocatePool(const Size&);
+			static void DeallocatePool(Pool*);
+			static void CollectGarbage();
 		#endif
 
 	};

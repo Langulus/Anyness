@@ -67,8 +67,8 @@ SCENARIO("Shared pointer manipulation", "[TPointer]") {
 				REQUIRE(*pointer == 6);
 				REQUIRE(*pointer2 == 6);
 				#if LANGULUS_FEATURE(MANAGED_MEMORY)
-					REQUIRE(Anyness::Inner::Allocator::CheckAuthority(pointer.GetType(), backup));
-					REQUIRE_FALSE(Anyness::Inner::Allocator::Find(pointer.GetType(), backup));
+					REQUIRE(Allocator::CheckAuthority(pointer.GetType(), backup));
+					REQUIRE_FALSE(Allocator::Find(pointer.GetType(), backup));
 				#endif
 				REQUIRE(pointer2.HasAuthority());
 				REQUIRE(pointer.HasAuthority());

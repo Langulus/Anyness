@@ -31,8 +31,11 @@ namespace Langulus::Anyness::Inner
 			auto pool = mDefaultPool;
 			while (pool) {
 				auto memory = pool->CreateEntry(size);
-				if (memory)
+				if (memory) {
+					mStatistics.mEntries += 1;
+					mStatistics.mBytesAllocatedByFrontend += memory->GetAllocatedSize();
 					return memory;
+				}
 
 				// Continue inside the poolchain if not able to allocate		
 				pool = pool->mNext;
@@ -45,21 +48,73 @@ namespace Langulus::Anyness::Inner
 			auto memory = pool->CreateEntry(size);
 			pool->mNext = mDefaultPool;
 			mDefaultPool = pool;
-			mStatistics.mBytesAllocatedByBackend += poolSize;
+			mStatistics.mBytesAllocatedByBackend += pool->GetTotalSize();
+			mStatistics.mBytesAllocatedByFrontend += pool->GetAllocatedByFrontend();
 			mStatistics.mPools += 1;
 			return memory;
 		#else
-			return Inner::AlignedAllocate<Allocation>(size);
+			const auto result = Inner::AlignedAllocate<Allocation>(size);
+			mStatistics.mBytesAllocatedByBackend += result->GetTotalSize();
+			mStatistics.mBytesAllocatedByFrontend += result->GetAllocatedSize();
+			mStatistics.mEntries += 1;
+			return result;
 		#endif
 	}
 
+#if LANGULUS_FEATURE(MANAGED_MEMORY)
 	/// Allocate a pool																			
 	///	@attention size must be power-of-two											
+	///	@attention the pool must be deallocated with DeallocatePool				
 	///	@param size size of the pool (in bytes)										
 	///	@return a pointer to the new pool												
 	Pool* Allocator::AllocatePool(const Size& size) {
 		return Inner::AlignedAllocate<Pool>(size);
 	}
+
+	/// Deallocate a pool																		
+	///	@attention doesn't call any destructors										
+	///	@attention pool or any entry inside is no longer valid after this		
+	///	@param pool - the pool to deallocate											
+	void Allocator::DeallocatePool(Pool* pool) {
+		::std::free(pool->mHandle);
+	}
+
+	/// Deallocates all unused pools															
+	void Allocator::CollectGarbage() {
+		while (mDefaultPool) {
+			if (mDefaultPool->IsInUse())
+				break;
+
+			mStatistics.mBytesAllocatedByBackend -= mDefaultPool->GetTotalSize();
+			mStatistics.mPools -= 1;
+
+			auto next = mDefaultPool->mNext;
+			::std::free(mDefaultPool->mHandle);
+			mDefaultPool = next;
+		}
+
+		if (!mDefaultPool)
+			return;
+
+		auto prev = mDefaultPool;
+		auto pool = mDefaultPool->mNext;
+		while (pool) {
+			if (pool->IsInUse()) {
+				prev = pool;
+				pool = pool->mNext;
+				continue;
+			}
+
+			mStatistics.mBytesAllocatedByBackend -= pool->GetTotalSize();
+			mStatistics.mPools -= 1;
+
+			const auto next = pool->mNext;
+			::std::free(pool->mHandle);
+			prev->mNext = next;
+			pool = next;
+		}
+	}
+#endif
 
 	/// Reallocate a memory entry																
 	/// This actually works only when MANAGED_MEMORY feature is enabled			
@@ -78,21 +133,28 @@ namespace Langulus::Anyness::Inner
 
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
 			// New size is bigger, precautions must be taken					
-			if (previous->mPool->ResizeEntry(previous, size))
+			const auto oldSize = previous->GetAllocatedSize();
+			if (previous->mPool->ResizeEntry(previous, size)) {
+				mStatistics.mBytesAllocatedByFrontend -= oldSize;
+				mStatistics.mBytesAllocatedByFrontend += previous->GetAllocatedSize();
 				return previous;
+			}
 
 			// If this is reached, we have a collision, so memory moves		
 			return Allocator::Allocate(size);
 		#else
-			// Forget about anything else, realloc is bad design				
-			return Inner::AlignedAllocate<Allocation>(size);
+			return Allocator::Allocate(size);
 		#endif
 	}
 	
 	/// Deallocate a memory allocation														
+	///	@attention assumes entry is a valid entry under jurisdiction			
 	///	@attention doesn't call any destructors										
 	///	@param entry - the memory entry to deallocate								
 	void Allocator::Deallocate(Allocation* entry) {
+		mStatistics.mBytesAllocatedByFrontend -= entry->GetAllocatedSize();
+		mStatistics.mEntries -= 1;
+
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
 			entry->mPool->RemoveEntry(entry);
 		#else
@@ -115,8 +177,7 @@ namespace Langulus::Anyness::Inner
 			while (pool) {
 				if (pool->Contains(memory)) {
 					const auto entry = pool->AllocationFromAddress(memory);
-					return entry && entry->GetUses() && entry->Contains(memory) 
-						? entry : nullptr;
+					return entry && entry->Contains(memory) ? entry : nullptr;
 				}
 
 				// Continue inside the poolchain										

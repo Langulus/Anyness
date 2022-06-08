@@ -148,9 +148,129 @@ TEMPLATE_TEST_CASE("Testing GetAllocationPageOf<T> calls", "[allocator]", Type1,
 	}
 }
 
-using Allocator = Anyness::Inner::Allocator;
-using Allocation = Anyness::Inner::Allocation;
-using Pool = Anyness::Inner::Pool;
+SCENARIO("Testing pool functions", "[allocator]") {
+	GIVEN("A pool") {
+		Pool* pool = nullptr;
+
+		WHEN("Default pool size is allocated on the pool") {
+			pool = Allocator::AllocatePool(Pool::DefaultPoolSize);
+			const auto originPtr = pool->GetPoolStart<Byte>();
+			const Pointer origin = reinterpret_cast<Pointer>(originPtr);
+			const Pointer half = Pool::DefaultPoolSize / 2;
+			const Pointer quarter = Pool::DefaultPoolSize / 4;
+
+			THEN("Requirements should be met") {
+				REQUIRE(pool->GetAllocatedByBackend() == Pool::DefaultPoolSize);
+				REQUIRE(reinterpret_cast<Pointer>(pool->AllocationFromIndex(0)) == origin);
+				REQUIRE(reinterpret_cast<Pointer>(pool->AllocationFromIndex(1)) == origin + half);
+				REQUIRE(reinterpret_cast<Pointer>(pool->AllocationFromIndex(2)) == origin + quarter);
+				REQUIRE(reinterpret_cast<Pointer>(pool->AllocationFromIndex(3)) == origin + quarter + half);
+				REQUIRE(pool->ThresholdFromIndex(0) == pool->GetAllocatedByBackend());
+				REQUIRE(pool->ThresholdFromIndex(1) == half);
+				REQUIRE(pool->ThresholdFromIndex(2) == quarter);
+				REQUIRE(pool->ThresholdFromIndex(3) == quarter);
+				REQUIRE(pool->ThresholdFromIndex(4) == quarter / 2);
+				REQUIRE(pool->ThresholdFromIndex(5) == quarter / 2);
+				REQUIRE(pool->ThresholdFromIndex(6) == quarter / 2);
+				REQUIRE(pool->ThresholdFromIndex(7) == quarter / 2);
+				REQUIRE(pool->ThresholdFromIndex(8) == quarter / 4);
+				REQUIRE(pool->ThresholdFromIndex(pool->GetMaxEntries() - 1) == pool->GetMinAllocation());
+				REQUIRE(pool->ThresholdFromIndex(pool->GetMaxEntries()) == pool->GetMinAllocation() / 2);
+				REQUIRE(pool->CanContain(1));
+				REQUIRE(pool->CanContain(Alignment));
+				REQUIRE(pool->CanContain(pool->GetMinAllocation()));
+				REQUIRE(pool->CanContain(Pool::DefaultPoolSize / 2));
+				REQUIRE(pool->CanContain(Pool::DefaultPoolSize));
+				REQUIRE_FALSE(pool->CanContain(Pool::DefaultPoolSize + 1));
+				REQUIRE(pool->GetAllocatedByBackend() == Pool::DefaultPoolSize);
+				REQUIRE(pool->GetAllocatedByFrontend() == 0);
+				REQUIRE(pool->GetMaxEntries() == Pool::DefaultPoolSize / pool->GetMinAllocation());
+				REQUIRE(pool->Contains(originPtr));
+				REQUIRE(pool->Contains(originPtr + half));
+				REQUIRE(pool->Contains(originPtr + half * 2 - 1));
+				REQUIRE_FALSE(pool->Contains(originPtr + half * 2));
+				REQUIRE_FALSE(pool->Contains(nullptr));
+				REQUIRE_FALSE(pool->IsInUse());
+			}
+
+			Allocator::DeallocatePool(pool);
+		}
+
+		WHEN("A small entry is allocated inside a new default-sized pool") {
+			pool = Allocator::AllocatePool(Pool::DefaultPoolSize);
+			auto entry = pool->CreateEntry(5);
+
+			THEN("Requirements should be met") {
+				REQUIRE(pool->GetAllocatedByFrontend() == entry->GetTotalSize());
+				REQUIRE(pool->GetMinAllocation() == Pool::DefaultMinAllocation);
+				REQUIRE(pool->GetMaxEntries() == Pool::DefaultPoolSize / pool->GetMinAllocation());
+				REQUIRE(pool->Contains(entry));
+				REQUIRE(pool->IsInUse());
+			}
+
+			Allocator::DeallocatePool(pool);
+		}
+
+		WHEN("A new default-sized pool is filled with all possible small entries") {
+			pool = Allocator::AllocatePool(Pool::DefaultPoolSize);
+
+			// Fill up
+			for (int i = 0; i < pool->GetMaxEntries(); ++i) {
+				auto entry = pool->CreateEntry(5);
+				entry->Keep(i);
+			}
+
+			// Add more
+			for (int i = 0; i < 5; ++i) {
+				auto entry = pool->CreateEntry(5);
+				REQUIRE(entry == nullptr);
+			}
+
+			THEN("Requirements should be met") {
+				REQUIRE(pool->GetAllocatedByFrontend() == pool->GetMaxEntries() * (Allocation::GetSize() + 5));
+				REQUIRE(pool->GetMinAllocation() == Pool::DefaultMinAllocation);
+				REQUIRE(pool->GetMaxEntries() == Pool::DefaultPoolSize / pool->GetMinAllocation());
+				for (int i = 0; i < pool->GetMaxEntries(); ++i) {
+					auto entry = pool->AllocationFromIndex(i);
+					REQUIRE(pool->Contains(entry));
+					REQUIRE(entry->GetUses() == 1 + i);
+					REQUIRE(entry->GetAllocatedSize() == 5);
+				}
+			}
+
+			Allocator::DeallocatePool(pool);
+		}
+
+		WHEN("An entry larger than the minimum is allocated inside a new default-sized pool") {
+			pool = Allocator::AllocatePool(Pool::DefaultPoolSize);
+			auto entry = pool->CreateEntry(Pool::DefaultMinAllocation);
+
+			THEN("Requirements should be met") {
+				REQUIRE(pool->GetAllocatedByFrontend() == entry->GetTotalSize());
+				REQUIRE(pool->GetMinAllocation() == Roof2(entry->GetTotalSize()));
+				REQUIRE(pool->GetMaxEntries() == Pool::DefaultPoolSize / pool->GetMinAllocation());
+				REQUIRE(pool->Contains(entry));
+				REQUIRE(pool->IsInUse());
+			}
+
+			Allocator::DeallocatePool(pool);
+		}
+
+		WHEN("An entry larger than the pool itself is allocated inside a new default-sized pool") {
+			pool = Allocator::AllocatePool(Pool::DefaultPoolSize);
+			auto entry = pool->CreateEntry(Pool::DefaultPoolSize);
+
+			THEN("The resulting allocation should be invalid") {
+				REQUIRE(entry == nullptr);
+				REQUIRE(pool->GetAllocatedByFrontend() == 0);
+				REQUIRE(pool->GetMinAllocation() == Pool::DefaultMinAllocation);
+				REQUIRE_FALSE(pool->IsInUse());
+			}
+
+			Allocator::DeallocatePool(pool);
+		}
+	}
+}
 
 SCENARIO("Testing allocator functions", "[allocator]") {
 	GIVEN("An allocation") {
@@ -178,6 +298,8 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 					REQUIRE_FALSE(entry->Contains(p));
 				}
 			}
+
+			Allocator::Deallocate(entry);
 		}
 
 		WHEN("Referenced once") {
@@ -186,7 +308,12 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 
 			THEN("Requirements should be met") {
 				REQUIRE(entry->GetUses() == 2);
+				REQUIRE(Allocator::CheckAuthority(nullptr, entry));
+				REQUIRE(Allocator::Find(nullptr, entry->GetBlockStart()));
+				REQUIRE_FALSE(Allocator::Find(nullptr, entry));
 			}
+
+			Allocator::Deallocate(entry);
 		}
 
 		WHEN("Referenced multiple times") {
@@ -195,7 +322,12 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 
 			THEN("Requirements should be met") {
 				REQUIRE(entry->GetUses() == 6);
+				REQUIRE(Allocator::CheckAuthority(nullptr, entry));
+				REQUIRE(Allocator::Find(nullptr, entry->GetBlockStart()));
+				REQUIRE_FALSE(Allocator::Find(nullptr, entry));
 			}
+
+			Allocator::Deallocate(entry);
 		}
 
 		WHEN("Dereferenced once without deletion") {
@@ -205,7 +337,12 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 
 			THEN("Requirements should be met") {
 				REQUIRE(entry->GetUses() == 1);
+				REQUIRE(Allocator::CheckAuthority(nullptr, entry));
+				REQUIRE(Allocator::Find(nullptr, entry->GetBlockStart()));
+				REQUIRE_FALSE(Allocator::Find(nullptr, entry));
 			}
+
+			Allocator::Deallocate(entry);
 		}
 
 		WHEN("Dereferenced multiple times without deletion") {
@@ -215,7 +352,12 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 
 			THEN("Requirements should be met") {
 				REQUIRE(entry->GetUses() == 2);
+				REQUIRE(Allocator::CheckAuthority(nullptr, entry));
+				REQUIRE(Allocator::Find(nullptr, entry->GetBlockStart()));
+				REQUIRE_FALSE(Allocator::Find(nullptr, entry));
 			}
+
+			Allocator::Deallocate(entry);
 		}
 
 		WHEN("Dereferenced once with deletion") {
@@ -224,6 +366,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 
 			THEN("We shouldn't be able to access the memory any longer, but it is still under jurisdiction") {
 				REQUIRE(Allocator::CheckAuthority(nullptr, entry));
+				REQUIRE_FALSE(Allocator::Find(nullptr, entry->GetBlockStart()));
 				REQUIRE_FALSE(Allocator::Find(nullptr, entry));
 			}
 		}
@@ -235,39 +378,8 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 
 			THEN("We shouldn't be able to access the memory any longer, but it is still under jurisdiction") {
 				REQUIRE(Allocator::CheckAuthority(nullptr, entry));
+				REQUIRE_FALSE(Allocator::Find(nullptr, entry->GetBlockStart()));
 				REQUIRE_FALSE(Allocator::Find(nullptr, entry));
-			}
-		}
-	}
-}
-
-SCENARIO("Testing pool functions", "[allocator]") {
-	GIVEN("A pool") {
-		Pool* pool = nullptr;
-
-		WHEN("Memory is allocated on the pool") {
-			pool = Allocator::AllocatePool(Pool::DefaultPoolSize);
-			const Pointer origin = reinterpret_cast<Pointer>(pool->GetPoolStart());
-			const Pointer half = pool->GetAllocatedByBackend() / 2;
-			const Pointer quarter = pool->GetAllocatedByBackend() / 4;
-
-			THEN("Requirements should be met") {
-				REQUIRE(reinterpret_cast<Pointer>(pool->AllocationFromIndex(0)) == origin);
-				REQUIRE(reinterpret_cast<Pointer>(pool->AllocationFromIndex(1)) == origin + half);
-				REQUIRE(reinterpret_cast<Pointer>(pool->AllocationFromIndex(2)) == origin + quarter);
-				REQUIRE(reinterpret_cast<Pointer>(pool->AllocationFromIndex(3)) == origin + quarter + half);
-				REQUIRE(pool->ThresholdFromIndex(0) == pool->GetAllocatedByBackend());
-				REQUIRE(pool->ThresholdFromIndex(1) == half);
-				REQUIRE(pool->ThresholdFromIndex(2) == quarter);
-				REQUIRE(pool->ThresholdFromIndex(3) == quarter);
-				REQUIRE(pool->ThresholdFromIndex(4) == quarter/2);
-				REQUIRE(pool->ThresholdFromIndex(5) == quarter/2);
-				REQUIRE(pool->ThresholdFromIndex(6) == quarter/2);
-				REQUIRE(pool->ThresholdFromIndex(7) == quarter/2);
-				REQUIRE(pool->ThresholdFromIndex(8) == quarter/4);
-				REQUIRE(pool->ThresholdFromIndex(pool->GetMaxEntries()-1) == pool->GetMinAllocation());
-				REQUIRE(pool->ThresholdFromIndex(pool->GetMaxEntries()) == pool->GetMinAllocation()/2);
-				//REQUIRE(pool->ThresholdFromIndex(pool->GetMaxEntries()+555) == pool->GetMinAllocation());
 			}
 		}
 	}
