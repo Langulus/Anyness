@@ -386,23 +386,38 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 				BENCHMARK_ADVANCED("First Allocator::Allocate(Pool::DefaultPoolSize)") (Catch::Benchmark::Chronometer meter) {
 					Allocator::CollectGarbage();
 					std::vector<Allocation*> storage(meter.runs());
-					meter.measure([&](int i) {
-						return storage[i] = Allocator::Allocate(Pool::DefaultPoolSize);
-					});
+
+					// May throw on x86 builds, due to 4 GB limit
+					try {
+						meter.measure([&](int i) {
+							return storage[i] = Allocator::Allocate(Pool::DefaultPoolSize);
+						});
+					} catch(const Except::Allocate&) {
+						// Catch here, so that we ensure deallocation
+					}
 
 					for (auto& i : storage)
-						Allocator::Deallocate(i);
+						if (i)
+							Allocator::Deallocate(i);
 				};
 
 				BENCHMARK_ADVANCED("First malloc(Pool::DefaultPoolSize)") (Catch::Benchmark::Chronometer meter) {
 					Allocator::CollectGarbage();
 					std::vector<void*> storage(meter.runs());
-					meter.measure([&](int i) {
-						return storage[i] = ::std::malloc(Pool::DefaultPoolSize);
-					});
+
+					// May throw on x86 builds, due to 4 GB limit
+					try {
+						meter.measure([&](int i) {
+							return storage[i] = ::std::malloc(Pool::DefaultPoolSize);
+						});
+					}
+					catch (const Except::Allocate&) {
+						// Catch here, so that we ensure deallocation
+					}
 
 					for (auto& i : storage)
-						::std::free(i);
+						if (i)
+							::std::free(i);
 				};
 			//#endif
 		}
