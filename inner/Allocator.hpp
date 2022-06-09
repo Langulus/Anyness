@@ -68,7 +68,6 @@ namespace Langulus::Anyness::Inner
 			static void DeallocatePool(Pool*);
 			static void CollectGarbage();
 		#endif
-
 	};
 
 } // namespace Langulus::Anyness

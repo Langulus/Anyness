@@ -300,6 +300,68 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 			}
 
 			Allocator::Deallocate(entry);
+
+			//#ifdef LANGULUS_STD_BENCHMARK // Last result: 
+				BENCHMARK_ADVANCED("Allocator::Allocate(5)") (Catch::Benchmark::Chronometer meter) {
+ 					std::vector<Allocation*> storage(meter.runs());
+					meter.measure([&](int i) {
+						return storage[i] = Allocator::Allocate(5);
+					});
+
+					for (auto& i : storage)
+						Allocator::Deallocate(i);
+				};
+
+				BENCHMARK_ADVANCED("malloc(5)") (Catch::Benchmark::Chronometer meter) {
+					std::vector<void*> storage(meter.runs());
+					meter.measure([&](int i) {
+						return storage[i] = ::std::malloc(5);
+					});
+
+					for (auto& i : storage)
+						::std::free(i);
+				};
+
+				BENCHMARK_ADVANCED("Allocator::Allocate(512)") (Catch::Benchmark::Chronometer meter) {
+ 					std::vector<Allocation*> storage(meter.runs());
+					meter.measure([&](int i) {
+						return storage[i] = Allocator::Allocate(512);
+					});
+
+					for (auto& i : storage)
+						Allocator::Deallocate(i);
+				};
+
+				BENCHMARK_ADVANCED("malloc(512)") (Catch::Benchmark::Chronometer meter) {
+					std::vector<void*> storage(meter.runs());
+					meter.measure([&](int i) {
+						return storage[i] = ::std::malloc(512);
+					});
+
+					for (auto& i : storage)
+						::std::free(i);
+				};
+
+				BENCHMARK_ADVANCED("Allocator::Allocate(Pool::DefaultPoolSize)") (Catch::Benchmark::Chronometer meter) {
+ 					std::vector<Allocation*> storage(meter.runs());
+					meter.measure([&](int i) {
+						return storage[i] = Allocator::Allocate(Pool::DefaultPoolSize);
+					});
+
+					for (auto& i : storage)
+						Allocator::Deallocate(i);
+				};
+
+				BENCHMARK_ADVANCED("malloc(Pool::DefaultPoolSize)") (Catch::Benchmark::Chronometer meter) {
+					std::vector<void*> storage(meter.runs());
+					meter.measure([&](int i) {
+						return storage[i] = ::std::malloc(Pool::DefaultPoolSize);
+					});
+
+					for (auto& i : storage)
+						::std::free(i);
+				};
+			//#endif
 		}
 
 		WHEN("Referenced once") {

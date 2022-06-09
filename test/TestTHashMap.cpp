@@ -103,7 +103,7 @@ SCENARIO("THashMap", "[containers]") {
 				REQUIRE_THROWS(map["missing"] == 555);
 			}
 
-			//#ifdef LANGULUS_STD_BENCHMARK // Last result: 2:1 due to RTTI
+			#ifdef LANGULUS_STD_BENCHMARK // Last result: 2:1 due to RTTI
 				BENCHMARK_ADVANCED("Anyness::THashMap::operator = (single pair copy)") (Catch::Benchmark::Chronometer meter) {
 					std::vector<MapType::Pair> source(meter.runs());
 					for (auto& i : source)
@@ -125,7 +125,7 @@ SCENARIO("THashMap", "[containers]") {
 						return storage[i].emplace(Move(source[i]));
 					});
 				};
-			//#endif
+			#endif
 		}
 	}
 
