@@ -13,7 +13,6 @@
 using uint = unsigned int;
 
 SCENARIO("Any", "[containers]") {
-	Allocator::CollectGarbage();
 
 	GIVEN("An Any instance") {
 		int value = 555;
@@ -73,6 +72,7 @@ SCENARIO("Any", "[containers]") {
 		}
 
 		WHEN("Given a POD value by copy") {
+			Allocator::CollectGarbage();
 			Any pack;
 			pack = value;
 
@@ -107,6 +107,7 @@ SCENARIO("Any", "[containers]") {
 		}
 
 		WHEN("Given a dense Trait") {
+			Allocator::CollectGarbage();
 			Any pack;
 			pack = Traits::Count(5);
 
@@ -139,6 +140,7 @@ SCENARIO("Any", "[containers]") {
 		}
 
 		WHEN("Given a POD value by move") {
+			Allocator::CollectGarbage();
 			Any pack;
 			pack = Move(value);
 
@@ -172,6 +174,7 @@ SCENARIO("Any", "[containers]") {
 		}
 
 		WHEN("Given a sparse value") {
+			Allocator::CollectGarbage();
 			int* original_int = new int(value);
 			Any pack;
 			pack = original_int;
@@ -215,6 +218,7 @@ SCENARIO("Any", "[containers]") {
 		}
 
 		WHEN("Given a sparse value by move") {
+			Allocator::CollectGarbage();
 			int* original_int = new int(value);
 			int* original_int_backup = original_int;
 			Any pack;
@@ -261,6 +265,7 @@ SCENARIO("Any", "[containers]") {
 		}
 
 		WHEN("Shallow-copying Any") {
+			Allocator::CollectGarbage();
 			int* original_int = new int(value);
 			Any pack;
 			pack = original_int;
@@ -316,6 +321,7 @@ SCENARIO("Any", "[containers]") {
 		}
 
 		WHEN("Moving Any") {
+			Allocator::CollectGarbage();
 			int* original_int = new int(value);
 			Any pack;
 			pack = original_int;
@@ -373,6 +379,7 @@ SCENARIO("Any", "[containers]") {
 		}
 
 		WHEN("Constructing via a Block filled with dense items") {
+			Allocator::CollectGarbage();
 			Any pack = value;
 			Any another_pack {static_cast<Block&>(pack)};
 
@@ -415,6 +422,7 @@ SCENARIO("Any", "[containers]") {
 		}
 
 		WHEN("Constructing via a Block filled with sparse items") {
+			Allocator::CollectGarbage();
 			Any pack = new int {value};
 			Any another_pack {static_cast<Block&>(pack)};
 
@@ -457,6 +465,7 @@ SCENARIO("Any", "[containers]") {
 		}
 
 		WHEN("Given a sparse value and then reset") {
+			Allocator::CollectGarbage();
 			int* original_int = new int(value);
 			Any pack;
 			pack = original_int;
@@ -474,6 +483,7 @@ SCENARIO("Any", "[containers]") {
 		}
 
 		WHEN("Given static text") {
+			Allocator::CollectGarbage();
 			Text original_pct = u8"Lorep Ipsum";
 			Any pack;
 			pack = original_pct;
@@ -493,6 +503,7 @@ SCENARIO("Any", "[containers]") {
 		}
 
 		WHEN("Given dynamic text") {
+			Allocator::CollectGarbage();
 			Text original_pct = u8"Lorep Ipsum";
 			Any pack;
 			pack = original_pct.Clone();
@@ -512,6 +523,7 @@ SCENARIO("Any", "[containers]") {
 		}
 
 		WHEN("Given dynamic text, which is later referenced multiple times") {
+			Allocator::CollectGarbage();
 			Text original_pct = u8"Lorep Ipsum";
 			Any pack;
 			pack = original_pct.Clone();
@@ -539,6 +551,7 @@ SCENARIO("Any", "[containers]") {
 		}
 
 		WHEN("Given dynamic text, which is later referenced multiple times, and then dereferenced") {
+			Allocator::CollectGarbage();
 			Text original_pct = u8"Lorep Ipsum";
 			Any pack;
 			pack = original_pct.Clone();
@@ -574,6 +587,7 @@ SCENARIO("Any", "[containers]") {
 	}
 
 	GIVEN("A universal Any with some POD items") {
+		Allocator::CollectGarbage();
 		Any pack;
 		pack << int(1) << int(2) << int(3) << int(4) << int(5);
 		auto memory = pack.GetRaw();
@@ -740,6 +754,7 @@ SCENARIO("Any", "[containers]") {
 	}
 
 	GIVEN("A universal Any with some deep items") {
+		Allocator::CollectGarbage();
 		Any pack;
 		Any subpack1;
 		Any subpack2;
@@ -1013,6 +1028,7 @@ SCENARIO("Any", "[containers]") {
 	}
 
 	GIVEN("A universal Any with some deep items for the purpose of optimization") {
+		Allocator::CollectGarbage();
 		Any pack;
 		Any subpack1;
 		Any subpack2;
@@ -1040,6 +1056,7 @@ SCENARIO("Any", "[containers]") {
 	}
 
 	GIVEN("A universal Any with some deep items, and their Blocks coalesced") {
+		Allocator::CollectGarbage();
 		Any pack;
 		Any subpack1;
 		Any subpack2;

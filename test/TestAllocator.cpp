@@ -287,6 +287,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 		Allocation* entry = nullptr;
 
 		WHEN("Memory is allocated on the heap") {
+			Allocator::CollectGarbage();
 			entry = Allocator::Allocate(512);
 
 			THEN("Requirements should be met") {
@@ -324,6 +325,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 				};
 
 				BENCHMARK_ADVANCED("First malloc(5)") (Catch::Benchmark::Chronometer meter) {
+					Allocator::CollectGarbage();
 					std::vector<void*> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i] = ::std::malloc(5);
@@ -347,6 +349,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 				};
 
 				BENCHMARK_ADVANCED("Second malloc(5)") (Catch::Benchmark::Chronometer meter) {
+					Allocator::CollectGarbage();
 					void* first = ::std::malloc(5);
 					std::vector<void*> second(meter.runs());
 					meter.measure([&](int i) {
@@ -370,6 +373,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 				};
 
 				BENCHMARK_ADVANCED("First malloc(512)") (Catch::Benchmark::Chronometer meter) {
+					Allocator::CollectGarbage();
 					std::vector<void*> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i] = ::std::malloc(512);
@@ -391,6 +395,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 				};
 
 				BENCHMARK_ADVANCED("First malloc(Pool::DefaultPoolSize)") (Catch::Benchmark::Chronometer meter) {
+					Allocator::CollectGarbage();
 					std::vector<void*> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i] = ::std::malloc(Pool::DefaultPoolSize);
@@ -403,6 +408,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 		}
 
 		WHEN("Referenced once") {
+			Allocator::CollectGarbage();
 			entry = Allocator::Allocate(512);
 			entry->Keep();
 
@@ -417,6 +423,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 		}
 
 		WHEN("Referenced multiple times") {
+			Allocator::CollectGarbage();
 			entry = Allocator::Allocate(512);
 			entry->Keep(5);
 
@@ -431,6 +438,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 		}
 
 		WHEN("Dereferenced once without deletion") {
+			Allocator::CollectGarbage();
 			entry = Allocator::Allocate(512);
 			entry->Keep();
 			entry->Free();
@@ -446,6 +454,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 		}
 
 		WHEN("Dereferenced multiple times without deletion") {
+			Allocator::CollectGarbage();
 			entry = Allocator::Allocate(512);
 			entry->Keep(5);
 			entry->Free(4);
@@ -461,6 +470,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 		}
 
 		WHEN("Dereferenced once with deletion") {
+			Allocator::CollectGarbage();
 			entry = Allocator::Allocate(512);
 			Allocator::Deallocate(entry);
 
@@ -472,6 +482,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 		}
 
 		WHEN("Dereferenced multiple times with deletion") {
+			Allocator::CollectGarbage();
 			entry = Allocator::Allocate(512);
 			entry->Keep(5);
 			Allocator::Deallocate(entry);

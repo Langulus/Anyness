@@ -24,7 +24,6 @@ namespace std {
 }
 
 SCENARIO("THashMap", "[containers]") {
-	Allocator::CollectGarbage();
 
 	GIVEN("A default-initialized THashMap instance") {
 		typename MapType::Pair value("five hundred", 555);
@@ -65,6 +64,7 @@ SCENARIO("THashMap", "[containers]") {
 		}
 
 		WHEN("Given a pair by copy") {
+			Allocator::CollectGarbage();
 			map = value;
 
 			THEN("Various traits change") {
@@ -94,6 +94,7 @@ SCENARIO("THashMap", "[containers]") {
 		}
 
 		WHEN("Given a pair by move") {
+			Allocator::CollectGarbage();
 			map = Move(value);
 
 			THEN("Various traits change") {
@@ -132,6 +133,8 @@ SCENARIO("THashMap", "[containers]") {
 	}
 
 	GIVEN("THashMap with some items") {
+		Allocator::CollectGarbage();
+
 		// Arrays are dynamic to avoid constexprification						
 		auto darray1 = new MapType::Pair[5] {
 			{"one", 1}, 
@@ -630,6 +633,7 @@ SCENARIO("THashMap", "[containers]") {
 	}
 
 	GIVEN("Two THashMaps") {
+		Allocator::CollectGarbage();
 		TAny<int> pack1;
 		TAny<int> pack2;
 		pack1 << int(1) << int(2) << int(3) << int(4) << int(5);

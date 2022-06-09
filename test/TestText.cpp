@@ -9,12 +9,12 @@
 #include <catch2/catch.hpp>
 
 SCENARIO("Text manipulation", "[text]") {
-	Allocator::CollectGarbage();
 
 	GIVEN("An empty utf8 text container") {
 		Text text;
 
 		WHEN("More capacity is reserved, via Extend()") {
+			Allocator::CollectGarbage();
 			text.Allocate(500);
 			auto memory = text.GetRaw();
 
@@ -35,6 +35,7 @@ SCENARIO("Text manipulation", "[text]") {
 	}
 
 	GIVEN("A filled utf8 text container") {
+		Allocator::CollectGarbage();
 		Text text {"test1"};
 		auto memory = text.GetRaw();
 

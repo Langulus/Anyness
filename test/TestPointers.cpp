@@ -9,7 +9,6 @@
 #include <catch2/catch.hpp>
 
 SCENARIO("Shared pointer manipulation", "[TPointer]") {
-	Allocator::CollectGarbage();
 
 	GIVEN("A templated shared pointer") {
 		Ptr<int> pointer;
@@ -20,6 +19,7 @@ SCENARIO("Shared pointer manipulation", "[TPointer]") {
 		REQUIRE(pointer == pointer2);
 
 		WHEN("Create an instance") {
+			Allocator::CollectGarbage();
 			pointer = Ptr<int>::Create(5);
 
 			THEN("Should have exactly one reference and jurisdiction") {
@@ -30,6 +30,7 @@ SCENARIO("Shared pointer manipulation", "[TPointer]") {
 		}
 
 		WHEN("Create and copy an instance") {
+			Allocator::CollectGarbage();
 			pointer = Ptr<int>::Create(5);
 			pointer2 = pointer;
 
@@ -45,6 +46,7 @@ SCENARIO("Shared pointer manipulation", "[TPointer]") {
 		}
 
 		WHEN("Create and move an instance") {
+			Allocator::CollectGarbage();
 			pointer = Ptr<int>::Create(5);
 			pointer2 = Move(pointer);
 
@@ -59,6 +61,7 @@ SCENARIO("Shared pointer manipulation", "[TPointer]") {
 		}
 
 		WHEN("Overwrite an instance") {
+			Allocator::CollectGarbage();
 			pointer = Ptr<int>::Create(5);
 			auto backup = pointer.Get();
 			pointer2 = Ptr<int>::Create(6);
@@ -83,6 +86,7 @@ SCENARIO("Shared pointer manipulation", "[TPointer]") {
 		Ptr<Any> pointer;
 
 		WHEN("Given an xvalue pointer created via `new` statement") {
+			Allocator::CollectGarbage();
 			auto raw = new Any {3};
 			const auto rawBackUp = raw;
 			pointer = Move(raw);
@@ -99,6 +103,7 @@ SCENARIO("Shared pointer manipulation", "[TPointer]") {
 		}
 
 		WHEN("Given an immediate xvalue pointer created via `new` statement - a very bad practice!") {
+			Allocator::CollectGarbage();
 			pointer = new Any {3};
 
 			THEN("Should have exactly two references and jurisdiction, if NEWDELETE and MANAGED_MEMORY features are enabled") {
@@ -111,6 +116,7 @@ SCENARIO("Shared pointer manipulation", "[TPointer]") {
 
 		#if LANGULUS_FEATURE(NEWDELETE)
 			WHEN("Given an xvalue pointer and then reset") {
+				Allocator::CollectGarbage();
 				auto raw = new Any {3};
 				pointer = Move(raw);
 				auto unused = Allocator::Free(pointer.GetType(), raw, 1);
@@ -126,6 +132,7 @@ SCENARIO("Shared pointer manipulation", "[TPointer]") {
 		#endif
 
 		WHEN("Given an lvalue pointer") {
+			Allocator::CollectGarbage();
 			const auto raw = new Any {4};
 			pointer = raw;
 

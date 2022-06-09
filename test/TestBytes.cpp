@@ -9,12 +9,12 @@
 #include <catch2/catch.hpp>
 
 SCENARIO("Byte manipulation", "[bytes]") {
-	Allocator::CollectGarbage();
 
 	GIVEN("An empty byte container") {
 		Bytes data;
 
 		WHEN("Capacity is reserved, via Allocate()") {
+			Allocator::CollectGarbage();
 			data.Allocate(500);
 			auto memory = data.GetRaw();
 
@@ -35,6 +35,7 @@ SCENARIO("Byte manipulation", "[bytes]") {
 	}
 
 	GIVEN("A filled byte container") {
+		Allocator::CollectGarbage();
 		const int randomStuff[] = { 1, 2, 3, 4, 5 };
 		Bytes data {randomStuff, sizeof(randomStuff)};
 		auto memory = data.GetRaw();

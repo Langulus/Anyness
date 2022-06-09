@@ -11,7 +11,9 @@
 using uint = unsigned int;
 
 SCENARIO("TAny", "[containers]") {
+
 	GIVEN("A TAny instance") {
+		Allocator::CollectGarbage();
 		int value = 555;
 		TAny<int> pack;
 		auto meta = pack.GetType();
@@ -104,6 +106,7 @@ SCENARIO("TAny", "[containers]") {
 	}
 	
 	GIVEN("A templated Any with some POD items") {
+		Allocator::CollectGarbage();
 		// Arrays are dynamic to avoid constexprification
 		int* darray1 = nullptr;
 		darray1 = new int[5] {1, 2, 3, 4, 5};
@@ -467,6 +470,7 @@ SCENARIO("TAny", "[containers]") {
 	}
 
 	GIVEN("Two templated Any with some POD items") {
+		Allocator::CollectGarbage();
 		TAny<int> pack1;
 		TAny<int> pack2;
 		pack1 << int(1) << int(2) << int(3) << int(4) << int(5);
