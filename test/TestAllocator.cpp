@@ -119,12 +119,29 @@ TEMPLATE_TEST_CASE("Testing Roof2 calls", "[allocator]", uint8_t, uint16_t, uint
 	WHEN("Roof2 is executed") {
 		THEN("Results should be correct") {
 			for (int i = 0; i < sizeof(numbers) / sizeof(T); ++i) {
-				if (numbers[i] <= 128 || sizeof(T) > 1)
+				if (numbers[i] <= 128 || sizeof(T) > 1) {
 					REQUIRE(Roof2<true>(numbers[i]) == results[i]);
-				else
+					REQUIRE(Roof2cexpr<true>(numbers[i]) == results[i]);
+				}
+				else {
 					REQUIRE_THROWS_AS(Roof2<true>(numbers[i]), Except::Overflow);
+					REQUIRE_THROWS_AS(Roof2cexpr<true>(numbers[i]), Except::Overflow);
+				}
 			}
 		}
+
+		#ifdef LANGULUS_STD_BENCHMARK // Last result: 
+			BENCHMARK_ADVANCED("Roof2 with instrinsics") (Catch::Benchmark::Chronometer meter) {
+				meter.measure([&](int i) {
+					return Roof2(static_cast<T>(i % 256));
+				});
+			};
+			BENCHMARK_ADVANCED("Roof2 without intrinsics") (Catch::Benchmark::Chronometer meter) {
+				meter.measure([&](int i) {
+					return Roof2cexpr(static_cast<T>(i % 256));
+				});
+			};
+		#endif
 	}
 }
 
@@ -316,20 +333,21 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 
 			Allocator::Deallocate(entry);
 
-			#ifdef LANGULUS_STD_BENCHMARK // Last result: 
+			//#ifdef LANGULUS_STD_BENCHMARK // Last result: 
+				Allocator::CollectGarbage();
 				BENCHMARK_ADVANCED("Allocator::Allocate(5)") (Catch::Benchmark::Chronometer meter) {
-					Allocator::CollectGarbage();
 					std::vector<Allocation*> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i] = Allocator::Allocate(5);
 					});
 
 					for (auto& i : storage)
-						Allocator::Deallocate(i);
+						if (i)
+							Allocator::Deallocate(i);
 				};
 
+				Allocator::CollectGarbage();
 				BENCHMARK_ADVANCED("malloc(5)") (Catch::Benchmark::Chronometer meter) {
-					Allocator::CollectGarbage();
 					std::vector<void*> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i] = ::std::malloc(5);
@@ -339,19 +357,20 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 						::std::free(i);
 				};
 
+				Allocator::CollectGarbage();
 				BENCHMARK_ADVANCED("Allocator::Allocate(512)") (Catch::Benchmark::Chronometer meter) {
-					Allocator::CollectGarbage();
 					std::vector<Allocation*> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i] = Allocator::Allocate(512);
 					});
 
 					for (auto& i : storage)
-						Allocator::Deallocate(i);
+						if (i)
+							Allocator::Deallocate(i);
 				};
 
+				Allocator::CollectGarbage();
 				BENCHMARK_ADVANCED("malloc(512)") (Catch::Benchmark::Chronometer meter) {
-					Allocator::CollectGarbage();
 					std::vector<void*> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i] = ::std::malloc(512);
@@ -361,28 +380,21 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 						::std::free(i);
 				};
 
+				Allocator::CollectGarbage();
 				BENCHMARK_ADVANCED("Allocator::Allocate(Pool::DefaultPoolSize)") (Catch::Benchmark::Chronometer meter) {
-					Allocator::CollectGarbage();
 					std::vector<Allocation*> storage(meter.runs());
-
-					// May throw on x86 builds, due to 4 GB limit
-					try {
-						meter.measure([&](int i) {
-							return storage[i] = Allocator::Allocate(Pool::DefaultPoolSize);
-						});
-					} catch(const Except::Allocate&) {
-						// Catch here, so that we ensure deallocation
-					}
+					meter.measure([&](int i) {
+						return storage[i] = Allocator::Allocate(Pool::DefaultPoolSize);
+					});
 
 					for (auto& i : storage)
 						if (i)
 							Allocator::Deallocate(i);
 				};
 
+				Allocator::CollectGarbage();
 				BENCHMARK_ADVANCED("malloc(Pool::DefaultPoolSize)") (Catch::Benchmark::Chronometer meter) {
-					Allocator::CollectGarbage();
 					std::vector<void*> storage(meter.runs());
-
 					meter.measure([&](int i) {
 						return storage[i] = ::std::malloc(Pool::DefaultPoolSize);
 					});
@@ -390,7 +402,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 					for (auto& i : storage)
 						::std::free(i);
 				};
-			#endif
+			//#endif
 		}
 
 		WHEN("Referenced once") {

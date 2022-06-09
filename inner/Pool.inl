@@ -1,6 +1,7 @@
 #pragma once
 #include "Pool.hpp"
 #include "Allocator.hpp"
+#include <bit>
 
 namespace Langulus::Anyness::Inner
 {
@@ -10,9 +11,8 @@ namespace Langulus::Anyness::Inner
 	///	@param u - number																		
 	///	@return the log2																		
 	constexpr Size FastLog2(Size x) noexcept {
-		if (x < 2)
-			return 0;
-		return Size {8} * sizeof(Size) - CountLeadingZeroes(x) - Size {1};
+		return x < 2 
+			? 0 : Size{8 * sizeof(Size)} - ::std::countl_zero(x) - Size{1};
 	}
 
 	/// Get least significant bit																
@@ -284,7 +284,7 @@ namespace Langulus::Anyness::Inner
 	inline Allocation* Pool::AllocationFromIndex(const Offset& index) noexcept {
 		// Credit goes to Vladislav Penchev (G2)									
 		if (index == 0)
-			return GetPoolStart();
+			return reinterpret_cast<Allocation*>(mMemory);
 
 		constexpr Size one {1};
 		const Size basePower = FastLog2(index);
@@ -336,7 +336,7 @@ namespace Langulus::Anyness::Inner
 			index = UpIndex(index);
 
 		// Check if we reached root of pool and it is unused					
-		if (index == 0 && 0 == GetPoolStart()->GetUses())
+		if (index == 0 && 0 == reinterpret_cast<const Allocation*>(mMemory)->GetUses())
 			return InvalidIndex;
 		return index;
 	}

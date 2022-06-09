@@ -22,7 +22,7 @@ namespace Langulus::Anyness::Inner
 	///	@attention doesn't call any constructors										
 	///	@param size - the number of bytes to allocate								
 	///	@return the allocation																
-	Allocation* Allocator::Allocate(const Size& size) {
+	Allocation* Allocator::Allocate(const Size& size) SAFETY_NOEXCEPT() {
 		SAFETY(if (0 == size)
 			Throw<Except::Allocate>("Zero allocation is not allowed"));
 
@@ -50,6 +50,9 @@ namespace Langulus::Anyness::Inner
 				Roof2(Allocation::GetNewAllocationSize(size))
 			);
 			pool = AllocatePool(poolSize);
+			if (!pool)
+				return nullptr;
+
 			auto memory = pool->CreateEntry(size);
 			pool->mNext = mDefaultPool;
 			mDefaultPool = pool;
@@ -77,7 +80,7 @@ namespace Langulus::Anyness::Inner
 	///	@attention the pool must be deallocated with DeallocatePool				
 	///	@param size size of the pool (in bytes)										
 	///	@return a pointer to the new pool												
-	Pool* Allocator::AllocatePool(const Size& size) {
+	Pool* Allocator::AllocatePool(const Size& size) SAFETY_NOEXCEPT() {
 		#if LANGULUS(SAFE)
 			if (!IsPowerOfTwo(size))
 				Throw<Except::Allocate>("Pool size is not a power-of-two");
@@ -90,7 +93,7 @@ namespace Langulus::Anyness::Inner
 	///	@attention doesn't call any destructors										
 	///	@attention pool or any entry inside is no longer valid after this		
 	///	@param pool - the pool to deallocate											
-	void Allocator::DeallocatePool(Pool* pool) {
+	void Allocator::DeallocatePool(Pool* pool) SAFETY_NOEXCEPT() {
 		::std::free(pool->mHandle);
 	}
 
@@ -144,7 +147,7 @@ namespace Langulus::Anyness::Inner
 	///	@param size - the number of bytes to allocate								
 	///	@param previous - the previous memory entry									
 	///	@return the reallocated memory entry											
-	Allocation* Allocator::Reallocate(const Size& size, Allocation* previous) {
+	Allocation* Allocator::Reallocate(const Size& size, Allocation* previous) SAFETY_NOEXCEPT() {
 		#if LANGULUS(SAFE)
 			if (previous == nullptr)
 				Throw<Except::Allocate>("Reallocating nullptr");
@@ -178,7 +181,7 @@ namespace Langulus::Anyness::Inner
 	///	@attention assumes entry is a valid entry under jurisdiction			
 	///	@attention doesn't call any destructors										
 	///	@param entry - the memory entry to deallocate								
-	void Allocator::Deallocate(Allocation* entry) {
+	void Allocator::Deallocate(Allocation* entry) SAFETY_NOEXCEPT() {
 		#if LANGULUS(SAFE)
 			if (entry == nullptr)
 				Throw<Except::Allocate>("Deallocating nullptr");
@@ -209,7 +212,7 @@ namespace Langulus::Anyness::Inner
 	///	@param memory - memory pointer													
 	///	@return the memory entry that manages the memory pointer, or			
 	///		nullptr if memory is not ours, or is no longer used					
-	Allocation* Allocator::Find(DMeta meta, const void* memory) {
+	Allocation* Allocator::Find(DMeta meta, const void* memory) SAFETY_NOEXCEPT() {
 		#if LANGULUS(SAFE)
 			if (memory == nullptr)
 				Throw<Except::Allocate>("Searching for nullptr");
@@ -243,7 +246,7 @@ namespace Langulus::Anyness::Inner
 	///	@param meta - the type of data to search for (optional)					
 	///	@param memory - memory pointer													
 	///	@return true if we own the memory												
-	bool Allocator::CheckAuthority(DMeta meta, const void* memory) {
+	bool Allocator::CheckAuthority(DMeta meta, const void* memory) SAFETY_NOEXCEPT() {
 		#if LANGULUS(SAFE)
 			if (memory == nullptr)
 				Throw<Except::Allocate>("Searching for nullptr");
@@ -275,7 +278,7 @@ namespace Langulus::Anyness::Inner
 	///	@param meta - the type of data to search for (optional)					
 	///	@param memory - memory pointer													
 	///	@return the number of references, or 1 if memory is not ours			
-	Count Allocator::GetReferences(DMeta meta, const void* memory) {
+	Count Allocator::GetReferences(DMeta meta, const void* memory) SAFETY_NOEXCEPT() {
 		#if LANGULUS(SAFE)
 			if (memory == nullptr)
 				Throw<Except::Allocate>("Searching for nullptr");
@@ -302,7 +305,7 @@ namespace Langulus::Anyness::Inner
 	///	@param meta - the type of data to search for (optional)					
 	///	@param memory - memory pointer													
 	///	@param count - the number of references to add								
-	void Allocator::Keep(DMeta meta, const void* memory, Count count) {
+	void Allocator::Keep(DMeta meta, const void* memory, Count count) SAFETY_NOEXCEPT() {
 		#if LANGULUS(SAFE)
 			if (memory == nullptr)
 				Throw<Except::Allocate>("Searching for nullptr");
@@ -334,7 +337,7 @@ namespace Langulus::Anyness::Inner
 	///	@param memory - memory pointer													
 	///	@param count - the number of references to add								
 	///	@return true if the memory has been fully dereferenced					
-	bool Allocator::Free(DMeta meta, const void* memory, Count count) {
+	bool Allocator::Free(DMeta meta, const void* memory, Count count) SAFETY_NOEXCEPT() {
 		#if LANGULUS(SAFE)
 			if (memory == nullptr)
 				Throw<Except::Allocate>("Searching for nullptr");

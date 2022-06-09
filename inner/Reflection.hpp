@@ -65,6 +65,17 @@ namespace Langulus::Anyness
 	///	@return the closest upper power-of-two to x									
    template<bool SAFE = false, CT::Unsigned T>
 	constexpr T Roof2(const T& x) noexcept(!SAFE) {
+		if constexpr (SAFE) {
+			constexpr T lastPowerOfTwo = T{1} << T{sizeof(T) * 8 - 1};
+			if (x > lastPowerOfTwo)
+				Throw<Except::Overflow>("Roof2 overflowed");
+		}
+
+		// for some reason, this one is even slower :(
+		/*if (x == 0) LANGULUS(UNLIKELY)
+			return 0;
+		else LANGULUS(LIKELY)
+			return T {1} << (T {sizeof(size_t) * 8} - CountLeadingZeroes(x - T{1}));*/
 		T n = x;
 		--n;
 		n |= n >> 1;
@@ -79,10 +90,36 @@ namespace Langulus::Anyness
 		if constexpr (sizeof(T) > 8)
 			TODO();
 
+		++n;
+		return n;
+	}
+
+   /// Round to the upper power-of-two (constexpr variant)							
+	///	@tparam SAFE - set to true if you want it to throw on overflow			
+	///	@tparam T - the unsigned integer type (deducible)							
+	///	@param x - the unsigned integer to round up									
+	///	@return the closest upper power-of-two to x									
+   template<bool SAFE = false, CT::Unsigned T>
+	constexpr T Roof2cexpr(const T& x) noexcept(!SAFE) {
 		if constexpr (SAFE) {
-			if (x != 0 && n == ::std::numeric_limits<T>::max())
+			constexpr T lastPowerOfTwo = T{1} << T{sizeof(T) * 8 - 1};
+			if (x > lastPowerOfTwo)
 				Throw<Except::Overflow>("Roof2 overflowed");
 		}
+
+		T n = x;
+		--n;
+		n |= n >> 1;
+		n |= n >> 2;
+		n |= n >> 4;
+		if constexpr (sizeof(T) > 1)
+			n |= n >> 8;
+		if constexpr (sizeof(T) > 2)
+			n |= n >> 16;
+		if constexpr (sizeof(T) > 4)
+			n |= n >> 32;
+		if constexpr (sizeof(T) > 8)
+			TODO();
 
 		++n;
 		return n;
@@ -93,18 +130,18 @@ namespace Langulus::Anyness
 	///	1. The byte size is always a power-of-two										
 	///	2. The byte size is never smaller than LANGULUS(ALIGN)					
 	template<class T>
-	constexpr Size GetAllocationPageOf() SAFETY_NOEXCEPT() {
+	constexpr Size GetAllocationPageOf() noexcept {
 		if constexpr (requires {{Decay<T>::CTTI_AllocationPage} -> CT::Same<Size>;}) {
 			constexpr Size candidate = Decay<T>::CTTI_AllocationPage * sizeof(T);
 			if constexpr (candidate < Alignment)
 				return Alignment;
 			else 
-				return Roof2<LANGULUS(SAFE)>(candidate);
+				return Roof2cexpr(candidate);
 		}
 		else if constexpr (sizeof(T) < Alignment)
 			return Alignment;
 		else 
-			return Roof2<LANGULUS(SAFE)>(sizeof(T));
+			return Roof2cexpr(sizeof(T));
 	}
 
 	

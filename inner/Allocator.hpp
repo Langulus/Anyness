@@ -51,26 +51,26 @@ namespace Langulus::Anyness::Inner
 		//																						
 		//	Standard functionality														
 		//																						
-		NOD() static Allocation* Allocate(const Size&);
-		NOD() static Allocation* Reallocate(const Size&, Allocation*);
-		static void Deallocate(Allocation*);
+		NOD() static Allocation* Allocate(const Size&) SAFETY_NOEXCEPT();
+		NOD() static Allocation* Reallocate(const Size&, Allocation*) SAFETY_NOEXCEPT();
+		static void Deallocate(Allocation*) SAFETY_NOEXCEPT();
 
 		//																						
 		// More functionality, when feature MANAGED_MEMORY is enabled		
 		//																						
-		NOD() static Allocation* Find(DMeta, const void*);
-		NOD() static bool CheckAuthority(DMeta, const void*);
-		NOD() static Count GetReferences(DMeta, const void*);
-		static void Keep(DMeta, const void*, Count);
-		NOD() static bool Free(DMeta, const void*, Count);
+		NOD() static Allocation* Find(DMeta, const void*) SAFETY_NOEXCEPT();
+		NOD() static bool CheckAuthority(DMeta, const void*) SAFETY_NOEXCEPT();
+		NOD() static Count GetReferences(DMeta, const void*) SAFETY_NOEXCEPT();
+		static void Keep(DMeta, const void*, Count) SAFETY_NOEXCEPT();
+		NOD() static bool Free(DMeta, const void*, Count) SAFETY_NOEXCEPT();
 
 		#if LANGULUS_FEATURE(MEMORY_STATISTICS)
 			NOD() static const Statistics& GetStatistics() noexcept;
 		#endif
 
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
-			static Pool* AllocatePool(const Size&);
-			static void DeallocatePool(Pool*);
+			static Pool* AllocatePool(const Size&) SAFETY_NOEXCEPT();
+			static void DeallocatePool(Pool*) SAFETY_NOEXCEPT();
 			static void CollectGarbage();
 		#endif
 	};

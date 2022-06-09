@@ -24,21 +24,23 @@ namespace Langulus::Anyness::Inner
 	///		is used to allocate Pool. If not, then it's used to allocate		
 	///		Allocation. For internal use only!											
 	template<AllocationPrimitive T>
-	T* AlignedAllocate(const Size& size) {
+	T* AlignedAllocate(const Size& size) SAFETY_NOEXCEPT() {
 		const auto finalSize = T::GetNewAllocationSize(size);
 		auto base = malloc(finalSize);
-		if (!base)
-			Throw<Except::Allocate>("Out of memory");
+		if (!base) LANGULUS(UNLIKELY) {
+			return nullptr;// Throw<Except::Allocate>("Out of memory");
+		}
+		else LANGULUS(LIKELY) {
+			// Align pointer to LANGULUS_ALIGN()									
+			auto ptr = reinterpret_cast<T*>(
+				(reinterpret_cast<Pointer>(base) + Pointer{ Alignment })
+				& ~Pointer{ Alignment - 1 }
+			);
 
-		// Align pointer to LANGULUS_ALIGN()										
-		auto ptr = reinterpret_cast<T*>(
-			(reinterpret_cast<Pointer>(base) + Pointer {Alignment})
-			& ~Pointer {Alignment - 1}
-		);
-		
-		// Place the entry there														
-		new (ptr) T {finalSize - T::GetSize(), base};
-		return ptr;
+			// Place the entry there													
+			new (ptr) T{ finalSize - T::GetSize(), base };
+			return ptr;
+		}
 	}
 
 
@@ -85,7 +87,7 @@ namespace Langulus::Anyness::Inner
 	/// Get the minimum possible allocation, including the overhead				
 	///	@return the byte size																
 	constexpr Size Allocation::GetMinAllocation() noexcept {
-		return Roof2(Allocation::GetSize() + Alignment);
+		return Roof2cexpr(Allocation::GetSize() + Alignment);
 	}
 
 	/// Check if the memory of the entry is in use										

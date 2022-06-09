@@ -29,7 +29,7 @@ namespace Langulus::Anyness::Inner
 	};
 				
 	template<AllocationPrimitive T>
-	T* AlignedAllocate(const Size& size);
+	T* AlignedAllocate(const Size& size) SAFETY_NOEXCEPT();
 
 	
 	///																								
