@@ -51,6 +51,7 @@ namespace Langulus::Anyness::Inner
 	inline Pool::Pool(const Size& size, void* memory) noexcept
 		: mAllocatedByBackend {size}
 		, mAllocatedByBackendLog2 {FastLog2(size)}
+		, mAllocatedByBackendLSB {LSB(size >> Size{1})}
 		, mThresholdMin {DefaultMinAllocation}
 		, mEntries {}
 		, mAllocatedByFrontend {}
@@ -268,15 +269,11 @@ namespace Langulus::Anyness::Inner
 	}
 
 	/// Get threshold associated with an index											
+	///	@attention assumes index is not zero											
 	///	@param index - the index															
 	///	@return the threshold																
 	inline Size Pool::ThresholdFromIndex(const Offset& index) const noexcept {
-		if (0 == index)
-			return mAllocatedByBackend;
-		constexpr Size one {1};
-		const Size basePower = FastLog2(index);
-		const Size lsb = LSB(mAllocatedByBackend >> one);
-		return one << (lsb - basePower);
+		return Size {1} << (mAllocatedByBackendLSB - FastLog2(index));
 	}
 
 	/// Get allocation from index																
@@ -291,8 +288,7 @@ namespace Langulus::Anyness::Inner
 		const Size basePower = FastLog2(index);
 		const Size baselessIndex = index - (one << basePower);
 		const Size levelIndex = (baselessIndex << one) + one;
-		const Size lsb = LSB(mAllocatedByBackend >> one);
-		const Size levelSize = (one << (lsb - basePower));
+		const Size levelSize = (one << (mAllocatedByBackendLSB - basePower));
 		return reinterpret_cast<Allocation*>(mMemory + levelIndex * levelSize);
 	}
 

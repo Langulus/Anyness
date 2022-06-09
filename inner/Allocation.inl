@@ -25,7 +25,8 @@ namespace Langulus::Anyness::Inner
 	///		Allocation. For internal use only!											
 	template<AllocationPrimitive T>
 	T* AlignedAllocate(const Size& size) {
-		auto base = malloc(T::GetNewAllocationSize(size));
+		const auto finalSize = T::GetNewAllocationSize(size);
+		auto base = malloc(finalSize);
 		if (!base)
 			Throw<Except::Allocate>("Out of memory");
 
@@ -36,7 +37,7 @@ namespace Langulus::Anyness::Inner
 		);
 		
 		// Place the entry there														
-		new (ptr) T {size, base};
+		new (ptr) T {finalSize - T::GetSize(), base};
 		return ptr;
 	}
 

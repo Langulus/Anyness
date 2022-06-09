@@ -27,6 +27,9 @@ struct TypeVeryBig {
 	TypeBig t8[5];
 };
 
+bool IsAligned(const void* a) noexcept {
+	return 0 == (reinterpret_cast<Pointer>(a) & Pointer {Alignment - 1});
+}
 
 SCENARIO("Testing CountLeadingZeroes calls", "[allocator]") {
 	const Size numbers[] {
@@ -155,17 +158,22 @@ SCENARIO("Testing pool functions", "[allocator]") {
 		WHEN("Default pool size is allocated on the pool") {
 			pool = Allocator::AllocatePool(Pool::DefaultPoolSize);
 			const auto originPtr = pool->GetPoolStart<Byte>();
-			const Pointer origin = reinterpret_cast<Pointer>(originPtr);
-			const Pointer half = Pool::DefaultPoolSize / 2;
-			const Pointer quarter = Pool::DefaultPoolSize / 4;
+			const auto smallest = pool->GetMinAllocation();
+			const auto origin = reinterpret_cast<Pointer>(originPtr);
+			const auto full = pool->GetAllocatedByBackend();
+			const auto half = full / 2;
+			const auto quarter = half / 2;
 
 			THEN("Requirements should be met") {
-				REQUIRE(pool->GetAllocatedByBackend() == Pool::DefaultPoolSize);
+				REQUIRE(IsPowerOfTwo(pool->GetAllocatedByBackend()));
+				REQUIRE(IsPowerOfTwo(pool->GetMinAllocation()));
+				REQUIRE(IsPowerOfTwo(pool->GetMaxEntries()));
+				REQUIRE(IsAligned(pool->GetPoolStart()));
+				REQUIRE(pool->GetAllocatedByBackend() > Pool::DefaultPoolSize);
 				REQUIRE(reinterpret_cast<Pointer>(pool->AllocationFromIndex(0)) == origin);
 				REQUIRE(reinterpret_cast<Pointer>(pool->AllocationFromIndex(1)) == origin + half);
 				REQUIRE(reinterpret_cast<Pointer>(pool->AllocationFromIndex(2)) == origin + quarter);
 				REQUIRE(reinterpret_cast<Pointer>(pool->AllocationFromIndex(3)) == origin + quarter + half);
-				REQUIRE(pool->ThresholdFromIndex(0) == pool->GetAllocatedByBackend());
 				REQUIRE(pool->ThresholdFromIndex(1) == half);
 				REQUIRE(pool->ThresholdFromIndex(2) == quarter);
 				REQUIRE(pool->ThresholdFromIndex(3) == quarter);
@@ -174,17 +182,16 @@ SCENARIO("Testing pool functions", "[allocator]") {
 				REQUIRE(pool->ThresholdFromIndex(6) == quarter / 2);
 				REQUIRE(pool->ThresholdFromIndex(7) == quarter / 2);
 				REQUIRE(pool->ThresholdFromIndex(8) == quarter / 4);
-				REQUIRE(pool->ThresholdFromIndex(pool->GetMaxEntries() - 1) == pool->GetMinAllocation());
-				REQUIRE(pool->ThresholdFromIndex(pool->GetMaxEntries()) == pool->GetMinAllocation() / 2);
+				REQUIRE(pool->ThresholdFromIndex(pool->GetMaxEntries() - 1) == smallest);
+				REQUIRE(pool->ThresholdFromIndex(pool->GetMaxEntries()) == smallest / 2);
 				REQUIRE(pool->CanContain(1));
 				REQUIRE(pool->CanContain(Alignment));
-				REQUIRE(pool->CanContain(pool->GetMinAllocation()));
-				REQUIRE(pool->CanContain(Pool::DefaultPoolSize / 2));
-				REQUIRE(pool->CanContain(Pool::DefaultPoolSize));
-				REQUIRE_FALSE(pool->CanContain(Pool::DefaultPoolSize + 1));
-				REQUIRE(pool->GetAllocatedByBackend() == Pool::DefaultPoolSize);
+				REQUIRE(pool->CanContain(smallest));
+				REQUIRE(pool->CanContain(half));
+				REQUIRE(pool->CanContain(full));
+				REQUIRE_FALSE(pool->CanContain(full + 1));
 				REQUIRE(pool->GetAllocatedByFrontend() == 0);
-				REQUIRE(pool->GetMaxEntries() == Pool::DefaultPoolSize / pool->GetMinAllocation());
+				REQUIRE(pool->GetMaxEntries() == full / smallest);
 				REQUIRE(pool->Contains(originPtr));
 				REQUIRE(pool->Contains(originPtr + half));
 				REQUIRE(pool->Contains(originPtr + half * 2 - 1));
@@ -199,11 +206,12 @@ SCENARIO("Testing pool functions", "[allocator]") {
 		WHEN("A small entry is allocated inside a new default-sized pool") {
 			pool = Allocator::AllocatePool(Pool::DefaultPoolSize);
 			auto entry = pool->CreateEntry(5);
+			const auto full = pool->GetAllocatedByBackend();
+			const auto smallest = pool->GetMinAllocation();
 
 			THEN("Requirements should be met") {
 				REQUIRE(pool->GetAllocatedByFrontend() == entry->GetTotalSize());
-				REQUIRE(pool->GetMinAllocation() == Pool::DefaultMinAllocation);
-				REQUIRE(pool->GetMaxEntries() == Pool::DefaultPoolSize / pool->GetMinAllocation());
+				REQUIRE(pool->GetMaxEntries() == full / smallest);
 				REQUIRE(pool->Contains(entry));
 				REQUIRE(pool->IsInUse());
 			}
@@ -226,10 +234,12 @@ SCENARIO("Testing pool functions", "[allocator]") {
 				REQUIRE(entry == nullptr);
 			}
 
+			const auto full = pool->GetAllocatedByBackend();
+			const auto smallest = pool->GetMinAllocation();
+
 			THEN("Requirements should be met") {
-				REQUIRE(pool->GetAllocatedByFrontend() == pool->GetMaxEntries() * (Allocation::GetSize() + 5));
-				REQUIRE(pool->GetMinAllocation() == Pool::DefaultMinAllocation);
-				REQUIRE(pool->GetMaxEntries() == Pool::DefaultPoolSize / pool->GetMinAllocation());
+				REQUIRE(pool->GetAllocatedByFrontend() == pool->GetMaxEntries() * Allocation::GetNewAllocationSize(5));
+				REQUIRE(pool->GetMaxEntries() == full / smallest);
 				for (int i = 0; i < pool->GetMaxEntries(); ++i) {
 					auto entry = pool->AllocationFromIndex(i);
 					REQUIRE(pool->Contains(entry));
@@ -248,7 +258,7 @@ SCENARIO("Testing pool functions", "[allocator]") {
 			THEN("Requirements should be met") {
 				REQUIRE(pool->GetAllocatedByFrontend() == entry->GetTotalSize());
 				REQUIRE(pool->GetMinAllocation() == Roof2(entry->GetTotalSize()));
-				REQUIRE(pool->GetMaxEntries() == Pool::DefaultPoolSize / pool->GetMinAllocation());
+				REQUIRE(pool->GetMaxEntries() == pool->GetAllocatedByBackend() / pool->GetMinAllocation());
 				REQUIRE(pool->Contains(entry));
 				REQUIRE(pool->IsInUse());
 			}
@@ -258,7 +268,7 @@ SCENARIO("Testing pool functions", "[allocator]") {
 
 		WHEN("An entry larger than the pool itself is allocated inside a new default-sized pool") {
 			pool = Allocator::AllocatePool(Pool::DefaultPoolSize);
-			auto entry = pool->CreateEntry(Pool::DefaultPoolSize);
+			auto entry = pool->CreateEntry(Pool::DefaultPoolSize * 2);
 
 			THEN("The resulting allocation should be invalid") {
 				REQUIRE(entry == nullptr);
@@ -302,8 +312,9 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 			Allocator::Deallocate(entry);
 
 			//#ifdef LANGULUS_STD_BENCHMARK // Last result: 
-				BENCHMARK_ADVANCED("Allocator::Allocate(5)") (Catch::Benchmark::Chronometer meter) {
- 					std::vector<Allocation*> storage(meter.runs());
+				BENCHMARK_ADVANCED("First Allocator::Allocate(5)") (Catch::Benchmark::Chronometer meter) {
+					Allocator::CollectGarbage();
+					std::vector<Allocation*> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i] = Allocator::Allocate(5);
 					});
@@ -312,7 +323,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 						Allocator::Deallocate(i);
 				};
 
-				BENCHMARK_ADVANCED("malloc(5)") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("First malloc(5)") (Catch::Benchmark::Chronometer meter) {
 					std::vector<void*> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i] = ::std::malloc(5);
@@ -322,8 +333,34 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 						::std::free(i);
 				};
 
-				BENCHMARK_ADVANCED("Allocator::Allocate(512)") (Catch::Benchmark::Chronometer meter) {
- 					std::vector<Allocation*> storage(meter.runs());
+				BENCHMARK_ADVANCED("Second Allocator::Allocate(5)") (Catch::Benchmark::Chronometer meter) {
+					Allocator::CollectGarbage();
+					Allocation* first = Allocator::Allocate(5);
+					std::vector<Allocation*> second(meter.runs());
+					meter.measure([&](int i) {
+						return second[i] = Allocator::Allocate(5);
+					});
+
+					for (auto& i : second)
+						Allocator::Deallocate(i);
+					Allocator::Deallocate(first);
+				};
+
+				BENCHMARK_ADVANCED("Second malloc(5)") (Catch::Benchmark::Chronometer meter) {
+					void* first = ::std::malloc(5);
+					std::vector<void*> second(meter.runs());
+					meter.measure([&](int i) {
+						return second[i] = ::std::malloc(5);
+					});
+
+					for (auto& i : second)
+						::std::free(i);
+					::std::free(first);
+				};
+
+				BENCHMARK_ADVANCED("First Allocator::Allocate(512)") (Catch::Benchmark::Chronometer meter) {
+					Allocator::CollectGarbage();
+					std::vector<Allocation*> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i] = Allocator::Allocate(512);
 					});
@@ -332,7 +369,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 						Allocator::Deallocate(i);
 				};
 
-				BENCHMARK_ADVANCED("malloc(512)") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("First malloc(512)") (Catch::Benchmark::Chronometer meter) {
 					std::vector<void*> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i] = ::std::malloc(512);
@@ -342,8 +379,9 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 						::std::free(i);
 				};
 
-				BENCHMARK_ADVANCED("Allocator::Allocate(Pool::DefaultPoolSize)") (Catch::Benchmark::Chronometer meter) {
- 					std::vector<Allocation*> storage(meter.runs());
+				BENCHMARK_ADVANCED("First Allocator::Allocate(Pool::DefaultPoolSize)") (Catch::Benchmark::Chronometer meter) {
+					Allocator::CollectGarbage();
+					std::vector<Allocation*> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i] = Allocator::Allocate(Pool::DefaultPoolSize);
 					});
@@ -352,7 +390,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 						Allocator::Deallocate(i);
 				};
 
-				BENCHMARK_ADVANCED("malloc(Pool::DefaultPoolSize)") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("First malloc(Pool::DefaultPoolSize)") (Catch::Benchmark::Chronometer meter) {
 					std::vector<void*> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i] = ::std::malloc(Pool::DefaultPoolSize);

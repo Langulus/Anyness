@@ -60,6 +60,7 @@ namespace Langulus::Anyness::Inner
 		// Bytes allocated by the backend											
 		const Size mAllocatedByBackend {};
 		const Offset mAllocatedByBackendLog2 {};
+		const Offset mAllocatedByBackendLSB {};
 
 		// Bytes allocated by the frontend											
 		Size mAllocatedByFrontend {};

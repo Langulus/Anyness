@@ -16,7 +16,7 @@ namespace Langulus::Anyness::Inner
 {
 
 	/// Setup the default pool																	
-	Pool* Allocator::mDefaultPool = Inner::AlignedAllocate<Pool>(Pool::DefaultPoolSize);
+	Pool* Allocator::mDefaultPool = nullptr;
 	
 	/// Allocate a memory entry																
 	///	@attention doesn't call any constructors										
@@ -51,6 +51,7 @@ namespace Langulus::Anyness::Inner
 			mStatistics.mBytesAllocatedByBackend += pool->GetTotalSize();
 			mStatistics.mBytesAllocatedByFrontend += pool->GetAllocatedByFrontend();
 			mStatistics.mPools += 1;
+			mStatistics.mEntries += 1;
 			return memory;
 		#else
 			const auto result = Inner::AlignedAllocate<Allocation>(size);
@@ -172,7 +173,7 @@ namespace Langulus::Anyness::Inner
 				Throw<Except::Allocate>("Deallocating an unused allocation");
 		#endif
 
-		mStatistics.mBytesAllocatedByFrontend -= entry->GetAllocatedSize();
+		mStatistics.mBytesAllocatedByFrontend -= entry->GetTotalSize();
 		mStatistics.mEntries -= 1;
 
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
