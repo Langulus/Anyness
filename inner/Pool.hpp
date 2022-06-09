@@ -20,7 +20,6 @@ namespace Langulus::Anyness::Inner
 
 		// Default pool allocation is 1 MB											
 		static constexpr Size DefaultPoolSize = 1024 * 1024;
-		static constexpr Size DefaultMinAllocation = Roof2(Allocation::GetSize() + Alignment);
 		static constexpr Offset InvalidIndex = ::std::numeric_limits<Offset>::max();
 
 	public:

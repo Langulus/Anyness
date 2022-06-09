@@ -43,7 +43,10 @@ namespace Langulus::Anyness::Inner
 
 			// If reached, available pools can't contain the memory			
 			// Allocate a new pool and add it at the beginning of chain		
-			const auto poolSize = ::std::max(Pool::DefaultPoolSize, Roof2(size));
+			const auto poolSize = ::std::max(
+				Pool::DefaultPoolSize, 
+				Roof2(Allocation::GetNewAllocationSize(size))
+			);
 			pool = AllocatePool(poolSize);
 			auto memory = pool->CreateEntry(size);
 			pool->mNext = mDefaultPool;

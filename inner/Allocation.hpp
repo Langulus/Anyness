@@ -66,6 +66,7 @@ namespace Langulus::Anyness::Inner
 
 		NOD() static constexpr Size GetSize() noexcept;
 		NOD() static constexpr Size GetNewAllocationSize(const Size&) noexcept;
+		NOD() static constexpr Size GetMinAllocation() noexcept;
 
 		constexpr const Count& GetUses() const noexcept;
 		const Byte* GetBlockStart() const noexcept;

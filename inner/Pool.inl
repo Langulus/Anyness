@@ -52,7 +52,7 @@ namespace Langulus::Anyness::Inner
 		: mAllocatedByBackend {size}
 		, mAllocatedByBackendLog2 {FastLog2(size)}
 		, mAllocatedByBackendLSB {LSB(size >> Size{1})}
-		, mThresholdMin {DefaultMinAllocation}
+		, mThresholdMin {Allocation::GetMinAllocation()}
 		, mEntries {}
 		, mAllocatedByFrontend {}
 		, mLastFreed {}
@@ -97,11 +97,13 @@ namespace Langulus::Anyness::Inner
 
 	/// Get the size for a new pool allocation, with alignment/additional		
 	/// memory requirements																		
-	///	@param size - the number of bytes to request									
-	///	@return the number of bytes to allocate, to add entry and pool, too	
+	///	@assumes size is a power-of-two													
+	///	@assumes size can contain at least one Allocation::GetMinAllocation	
+	///	@param size - the number of bytes to request for the pool				
+	///	@return the number of bytes to allocate for use in the pool				
 	constexpr Size Pool::GetNewAllocationSize(const Size& size) noexcept {
 		constexpr Size minimum {Pool::DefaultPoolSize + Pool::GetSize()};
-		return ::std::max(Roof2(Allocation::GetNewAllocationSize(size)) + Pool::GetSize(), minimum);
+		return ::std::max(size + Pool::GetSize(), minimum);
 	}
 
 	/// Get the start of the usable memory for the pool								
@@ -151,7 +153,7 @@ namespace Langulus::Anyness::Inner
 			++mEntries;
 			mAllocatedByFrontend += bytesWithPadding;
 			mThreshold = ThresholdFromIndex(mEntries);
-			mThresholdMin = ::std::max(Roof2(bytesWithPadding), DefaultMinAllocation);
+			mThresholdMin = ::std::max(Roof2(bytesWithPadding), Allocation::GetMinAllocation());
 			return newEntry;
 		}
 
