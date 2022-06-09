@@ -32,8 +32,10 @@ namespace Langulus::Anyness::Inner
 			while (pool) {
 				auto memory = pool->CreateEntry(size);
 				if (memory) {
-					mStatistics.mEntries += 1;
-					mStatistics.mBytesAllocatedByFrontend += memory->GetAllocatedSize();
+					#if LANGULUS_FEATURE(MEMORY_STATISTICS)
+						mStatistics.mEntries += 1;
+						mStatistics.mBytesAllocatedByFrontend += memory->GetAllocatedSize();
+					#endif
 					return memory;
 				}
 
@@ -51,16 +53,20 @@ namespace Langulus::Anyness::Inner
 			auto memory = pool->CreateEntry(size);
 			pool->mNext = mDefaultPool;
 			mDefaultPool = pool;
-			mStatistics.mBytesAllocatedByBackend += pool->GetTotalSize();
-			mStatistics.mBytesAllocatedByFrontend += pool->GetAllocatedByFrontend();
-			mStatistics.mPools += 1;
-			mStatistics.mEntries += 1;
+			#if LANGULUS_FEATURE(MEMORY_STATISTICS)
+				mStatistics.mBytesAllocatedByBackend += pool->GetTotalSize();
+				mStatistics.mBytesAllocatedByFrontend += pool->GetAllocatedByFrontend();
+				mStatistics.mPools += 1;
+				mStatistics.mEntries += 1;
+			#endif
 			return memory;
 		#else
 			const auto result = Inner::AlignedAllocate<Allocation>(size);
-			mStatistics.mBytesAllocatedByBackend += result->GetTotalSize();
-			mStatistics.mBytesAllocatedByFrontend += result->GetAllocatedSize();
-			mStatistics.mEntries += 1;
+			#if LANGULUS_FEATURE(MEMORY_STATISTICS)
+				mStatistics.mBytesAllocatedByBackend += result->GetTotalSize();
+				mStatistics.mBytesAllocatedByFrontend += result->GetAllocatedSize();
+				mStatistics.mEntries += 1;
+			#endif
 			return result;
 		#endif
 	}
@@ -94,8 +100,10 @@ namespace Langulus::Anyness::Inner
 			if (mDefaultPool->IsInUse())
 				break;
 
-			mStatistics.mBytesAllocatedByBackend -= mDefaultPool->GetTotalSize();
-			mStatistics.mPools -= 1;
+			#if LANGULUS_FEATURE(MEMORY_STATISTICS)
+				mStatistics.mBytesAllocatedByBackend -= mDefaultPool->GetTotalSize();
+				mStatistics.mPools -= 1;
+			#endif
 
 			auto next = mDefaultPool->mNext;
 			::std::free(mDefaultPool->mHandle);
@@ -114,8 +122,10 @@ namespace Langulus::Anyness::Inner
 				continue;
 			}
 
-			mStatistics.mBytesAllocatedByBackend -= pool->GetTotalSize();
-			mStatistics.mPools -= 1;
+			#if LANGULUS_FEATURE(MEMORY_STATISTICS)
+				mStatistics.mBytesAllocatedByBackend -= pool->GetTotalSize();
+				mStatistics.mPools -= 1;
+			#endif
 
 			const auto next = pool->mNext;
 			::std::free(pool->mHandle);
@@ -150,8 +160,10 @@ namespace Langulus::Anyness::Inner
 			// New size is bigger, precautions must be taken					
 			const auto oldSize = previous->GetAllocatedSize();
 			if (previous->mPool->ResizeEntry(previous, size)) {
-				mStatistics.mBytesAllocatedByFrontend -= oldSize;
-				mStatistics.mBytesAllocatedByFrontend += previous->GetAllocatedSize();
+				#if LANGULUS_FEATURE(MEMORY_STATISTICS)
+					mStatistics.mBytesAllocatedByFrontend -= oldSize;
+					mStatistics.mBytesAllocatedByFrontend += previous->GetAllocatedSize();
+				#endif
 				return previous;
 			}
 
@@ -176,8 +188,10 @@ namespace Langulus::Anyness::Inner
 				Throw<Except::Allocate>("Deallocating an unused allocation");
 		#endif
 
-		mStatistics.mBytesAllocatedByFrontend -= entry->GetTotalSize();
-		mStatistics.mEntries -= 1;
+		#if LANGULUS_FEATURE(MEMORY_STATISTICS)
+			mStatistics.mBytesAllocatedByFrontend -= entry->GetTotalSize();
+			mStatistics.mEntries -= 1;
+		#endif
 
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
 			entry->mPool->RemoveEntry(entry);
@@ -348,12 +362,14 @@ namespace Langulus::Anyness::Inner
 		#endif
 	}
 	
-	Allocator::Statistics Allocator::mStatistics {};
+	#if LANGULUS_FEATURE(MEMORY_STATISTICS)
+		Allocator::Statistics Allocator::mStatistics {};
 	
-	/// Get allocator statistics																
-	///	@return a reference to the statistics structure								
-	const Allocator::Statistics& Allocator::GetStatistics() noexcept {
-		return mStatistics;
-	}
+		/// Get allocator statistics															
+		///	@return a reference to the statistics structure							
+		const Allocator::Statistics& Allocator::GetStatistics() noexcept {
+			return mStatistics;
+		}
+	#endif
 
 } // namespace Langulus::Anyness::Inner

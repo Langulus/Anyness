@@ -17,7 +17,8 @@ option(LANGULUS_ENABLE_DEBUGGING
 
 option(LANGULUS_FEATURE_NEWDELETE 
     "Overrides new/delete operators for anything statically linked to this library, \
-    or provides LANGULUS_MONOPOLIZE_MEMORY() macro for you to use to override them, if dynamically linked")
+    or provides LANGULUS_MONOPOLIZE_MEMORY() macro for you to use to override them, if dynamically linked. \
+    This feature can be enabled only if LANGULUS_FEATURE_MANAGED_MEMORY is enabled")
 
 option(LANGULUS_FEATURE_UTFCPP
     "Links to utfcpp library and provides UTF8, UTF16, UTF32 conversions")
@@ -34,7 +35,11 @@ option(LANGULUS_FEATURE_MANAGED_MEMORY
 
 option(LANGULUS_FEATURE_MANAGED_REFLECTION
     "Reflections will be kept in a centralized location, when reflected, which speeds up \
-    type comparisons, and allows you to dynamically modify the reflection at runtime")
+    type comparisons, and allows you to dynamically modify the reflection at runtime. \
+    This feature can be enabled only if LANGULUS_FEATURE_MANAGED_MEMORY is enabled")
+
+option(LANGULUS_ENABLE_FEATURE_MEMORY_STATISTICS
+    "Memory manager shall keep track of statistics, for the price of little overhead")
 
 if(LANGULUS_ENABLE_SAFE_MODE)
     ADD_DEFINITIONS(-DLANGULUS_ENABLE_SAFE_MODE)
@@ -60,10 +65,13 @@ if(LANGULUS_FEATURE_ENCRYPTION)
     ADD_DEFINITIONS(-DLANGULUS_ENABLE_FEATURE_ENCRYPTION)
 endif()
 if(LANGULUS_FEATURE_MANAGED_MEMORY)
-    ADD_DEFINITIONS(-DLANGULUS_ENABLE_MANAGED_MEMORY)
+    ADD_DEFINITIONS(-DLANGULUS_ENABLE_FEATURE_MANAGED_MEMORY)
 endif()
 if(LANGULUS_FEATURE_MANAGED_REFLECTION)
     ADD_DEFINITIONS(-DLANGULUS_ENABLE_MANAGED_REFLECTION)
+endif()
+if(LANGULUS_ENABLE_FEATURE_MEMORY_STATISTICS)
+    ADD_DEFINITIONS(-DLANGULUS_ENABLE_FEATURE_MEMORY_STATISTICS)
 endif()
 
 # Add source

@@ -19,27 +19,29 @@ namespace Langulus::Anyness::Inner
 	///																								
 	class Allocator {
 	private:
-		struct Statistics {
-			// The real allocated bytes, provided by malloc in backend		
-			Size mBytesAllocatedByBackend {};
-			// The bytes allocated by the frontend									
-			Size mBytesAllocatedByFrontend {};
-			// Number of registered pools												
-			Count mPools {};
-			// Number of registered entries											
-			Count mEntries {};
-			// Number of registered meta datas										
-			Count mDataDefinitions {};
-			// Number of registered meta traits										
-			Count mTraitDefinitions {};
-			// Number of registered meta verbs										
-			Count mVerbDefinitions {};
+		#if LANGULUS_FEATURE(MEMORY_STATISTICS)
+			struct Statistics {
+				// The real allocated bytes, provided by malloc in backend	
+				Size mBytesAllocatedByBackend {};
+				// The bytes allocated by the frontend								
+				Size mBytesAllocatedByFrontend {};
+				// Number of registered pools											
+				Count mPools {};
+				// Number of registered entries										
+				Count mEntries {};
+				// Number of registered meta datas									
+				Count mDataDefinitions {};
+				// Number of registered meta traits									
+				Count mTraitDefinitions {};
+				// Number of registered meta verbs									
+				Count mVerbDefinitions {};
 
-			bool operator == (const Statistics&) const noexcept = default;
-			bool operator != (const Statistics&) const noexcept = default;
-		};
+				bool operator == (const Statistics&) const noexcept = default;
+				bool operator != (const Statistics&) const noexcept = default;
+			};
 		
-		static Statistics mStatistics;
+			static Statistics mStatistics;
+		#endif
 
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
 			static Pool* mDefaultPool;
@@ -61,7 +63,10 @@ namespace Langulus::Anyness::Inner
 		NOD() static Count GetReferences(DMeta, const void*);
 		static void Keep(DMeta, const void*, Count);
 		NOD() static bool Free(DMeta, const void*, Count);
-		NOD() static const Statistics& GetStatistics() noexcept;
+
+		#if LANGULUS_FEATURE(MEMORY_STATISTICS)
+			NOD() static const Statistics& GetStatistics() noexcept;
+		#endif
 
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
 			static Pool* AllocatePool(const Size&);
