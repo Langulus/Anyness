@@ -136,7 +136,7 @@ namespace Langulus::Anyness::Inner
 	/// Allocate an entry inside the pool - returned pointer is aligned			
 	///	@param bytes - number of bytes to allocate									
 	///	@return the new allocation, or nullptr if pool is full					
-	inline Allocation* Pool::CreateEntry(const Size bytes) SAFETY_NOEXCEPT() {
+	inline Allocation* Pool::Allocate(const Size bytes) SAFETY_NOEXCEPT() {
 		constexpr Offset one {1};
 
 		// Check if we can add a new entry											
@@ -174,7 +174,7 @@ namespace Langulus::Anyness::Inner
 	/// Remove an entry																			
 	///	@attention assumes entry is valid												
 	///	@param entry - entry to remove													
-	inline void Pool::RemoveEntry(Allocation* entry) SAFETY_NOEXCEPT() {
+	inline void Pool::Deallocate(Allocation* entry) SAFETY_NOEXCEPT() {
 		#if LANGULUS(SAFE)
 			if (entry->mReferences == 0)
 				Throw<Except::Deallocation>("Removing an invalid entry");
@@ -205,7 +205,7 @@ namespace Langulus::Anyness::Inner
 	///	@param entry - entry to resize													
 	///	@param bytes - new number of bytes												
 	///	@return true if entry was enlarged without conflict						
-	inline bool Pool::ResizeEntry(Allocation* entry, const Size bytes) SAFETY_NOEXCEPT() {
+	inline bool Pool::Reallocate(Allocation* entry, const Size bytes) SAFETY_NOEXCEPT() {
 		#if LANGULUS(SAFE)
 			if (!Contains(entry) || entry->GetUses() == 0 || !bytes)
 				Throw<Except::Reallocation>("Invalid reallocation");

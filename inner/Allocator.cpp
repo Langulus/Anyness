@@ -30,7 +30,7 @@ namespace Langulus::Anyness::Inner
 			//	Attempt to directly allocate in available pools					
 			auto pool = mDefaultPool;
 			while (pool) {
-				auto memory = pool->CreateEntry(size);
+				auto memory = pool->Allocate(size);
 				if (memory) {
 					#if LANGULUS_FEATURE(MEMORY_STATISTICS)
 						mStatistics.mEntries += 1;
@@ -53,7 +53,7 @@ namespace Langulus::Anyness::Inner
 			if (!pool)
 				return nullptr;
 
-			auto memory = pool->CreateEntry(size);
+			auto memory = pool->Allocate(size);
 			pool->mNext = mDefaultPool;
 			mDefaultPool = pool;
 			#if LANGULUS_FEATURE(MEMORY_STATISTICS)
@@ -162,7 +162,7 @@ namespace Langulus::Anyness::Inner
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
 			// New size is bigger, precautions must be taken					
 			const auto oldSize = previous->GetAllocatedSize();
-			if (previous->mPool->ResizeEntry(previous, size)) {
+			if (previous->mPool->Reallocate(previous, size)) {
 				#if LANGULUS_FEATURE(MEMORY_STATISTICS)
 					mStatistics.mBytesAllocatedByFrontend -= oldSize;
 					mStatistics.mBytesAllocatedByFrontend += previous->GetAllocatedSize();
@@ -197,7 +197,7 @@ namespace Langulus::Anyness::Inner
 		#endif
 
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
-			entry->mPool->RemoveEntry(entry);
+			entry->mPool->Deallocate(entry);
 		#else
 			::std::free(entry->mPool);
 		#endif

@@ -40,9 +40,9 @@ namespace Langulus::Anyness::Inner
 		NOD() constexpr bool CanContain(const Size&) const noexcept;
 		NOD() bool Contains(const void*) const noexcept;
 
-		NOD() Allocation* CreateEntry(Size) SAFETY_NOEXCEPT();
-		NOD() bool ResizeEntry(Allocation*, Size) SAFETY_NOEXCEPT();
-		void RemoveEntry(Allocation*) SAFETY_NOEXCEPT();
+		NOD() Allocation* Allocate(Size) SAFETY_NOEXCEPT();
+		NOD() bool Reallocate(Allocation*, Size) SAFETY_NOEXCEPT();
+		void Deallocate(Allocation*) SAFETY_NOEXCEPT();
 		void FreePoolChain();
 		void Null();
 
