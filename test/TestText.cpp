@@ -9,6 +9,8 @@
 #include <catch2/catch.hpp>
 
 SCENARIO("Text manipulation", "[text]") {
+	Allocator::CollectGarbage();
+
 	GIVEN("An empty utf8 text container") {
 		Text text;
 

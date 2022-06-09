@@ -9,6 +9,8 @@
 #include <catch2/catch.hpp>
 
 SCENARIO("Shared pointer manipulation", "[TPointer]") {
+	Allocator::CollectGarbage();
+
 	GIVEN("A templated shared pointer") {
 		Ptr<int> pointer;
 		Ptr<int> pointer2;

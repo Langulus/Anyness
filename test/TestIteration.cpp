@@ -9,6 +9,8 @@
 #include <catch2/catch.hpp>
 
 SCENARIO("Iterating containers", "[iteration]") {
+	Allocator::CollectGarbage();
+
 	GIVEN("Templated Any with some POD items") {
 		TAny<int> dense;
 		dense << int(1) << int(2) << int(3) << int(4) << int(5);

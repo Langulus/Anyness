@@ -24,6 +24,8 @@ namespace std {
 }
 
 SCENARIO("THashMap", "[containers]") {
+	Allocator::CollectGarbage();
+
 	GIVEN("A default-initialized THashMap instance") {
 		typename MapType::Pair value("five hundred", 555);
 		StdPair valueStd("five hundred", 555);

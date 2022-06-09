@@ -13,6 +13,8 @@
 using uint = unsigned int;
 
 SCENARIO("Any", "[containers]") {
+	Allocator::CollectGarbage();
+
 	GIVEN("An Any instance") {
 		int value = 555;
 		auto meta = MetaData::Of<int>();
@@ -86,6 +88,7 @@ SCENARIO("Any", "[containers]") {
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: 8:1 performance - needs optimization
+				Allocator::CollectGarbage();
 				BENCHMARK_ADVANCED("Anyness::Any::operator = (single trivial copy)") (Catch::Benchmark::Chronometer meter) {
 					Allocator::CollectGarbage();
 					std::vector<Any> storage(meter.runs());
@@ -117,6 +120,7 @@ SCENARIO("Any", "[containers]") {
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: 1:1 performance
+				Allocator::CollectGarbage();
 				BENCHMARK_ADVANCED("Anyness::Any::operator = (Traits::Count(5))") (Catch::Benchmark::Chronometer meter) {
 					Allocator::CollectGarbage();
 					std::vector<Any> storage(meter.runs());
@@ -149,6 +153,7 @@ SCENARIO("Any", "[containers]") {
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: 8:1 performance - needs optimization
+				Allocator::CollectGarbage();
 				BENCHMARK_ADVANCED("Anyness::Any::operator = (single trivial move)") (Catch::Benchmark::Chronometer meter) {
 					Allocator::CollectGarbage();
 					std::vector<Any> storage(meter.runs());
@@ -191,6 +196,7 @@ SCENARIO("Any", "[containers]") {
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: 9:1 performance - needs optimization
+				Allocator::CollectGarbage();
 				BENCHMARK_ADVANCED("Anyness::Any::operator = (single pointer copy)") (Catch::Benchmark::Chronometer meter) {
 					Allocator::CollectGarbage();
 					std::vector<Any> storage(meter.runs());
@@ -236,6 +242,7 @@ SCENARIO("Any", "[containers]") {
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: 9:1 performance - needs optimization
+				Allocator::CollectGarbage();
 				BENCHMARK_ADVANCED("Anyness::Any::operator = (single pointer move)") (Catch::Benchmark::Chronometer meter) {
 					Allocator::CollectGarbage();
 					std::vector<Any> storage(meter.runs());
@@ -282,6 +289,7 @@ SCENARIO("Any", "[containers]") {
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: 2:1 performance - needs optimization
+				Allocator::CollectGarbage();
 				BENCHMARK_ADVANCED("Anyness::Any::operator = (shallow-copied Any)") (Catch::Benchmark::Chronometer meter) {
 					Allocator::CollectGarbage();
 					std::vector<Any> source(meter.runs());
@@ -338,6 +346,7 @@ SCENARIO("Any", "[containers]") {
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: 6:1 performance - needs optimization
+				Allocator::CollectGarbage();
 				BENCHMARK_ADVANCED("Anyness::Any::operator = (moved Any)") (Catch::Benchmark::Chronometer meter) {
 					Allocator::CollectGarbage();
 					std::vector<Any> source(meter.runs());
@@ -379,6 +388,7 @@ SCENARIO("Any", "[containers]") {
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: 2:1 performance - needs optimization
+				Allocator::CollectGarbage();
 				BENCHMARK_ADVANCED("Anyness::Any::construct via dense Block shallow-copy") (Catch::Benchmark::Chronometer meter) {
 					Allocator::CollectGarbage();
 					std::vector<Any> source(meter.runs());
@@ -420,6 +430,7 @@ SCENARIO("Any", "[containers]") {
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: 2:1 performance - needs optimization
+				Allocator::CollectGarbage();
 				BENCHMARK_ADVANCED("Anyness::Any::construct via sparse Block shallow-copy") (Catch::Benchmark::Chronometer meter) {
 					Allocator::CollectGarbage();
 					std::vector<Any> source(meter.runs());

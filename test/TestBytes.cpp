@@ -9,6 +9,8 @@
 #include <catch2/catch.hpp>
 
 SCENARIO("Byte manipulation", "[bytes]") {
+	Allocator::CollectGarbage();
+
 	GIVEN("An empty byte container") {
 		Bytes data;
 
