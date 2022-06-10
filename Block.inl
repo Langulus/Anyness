@@ -1223,9 +1223,9 @@ namespace Langulus::Anyness
 		}
 
 		// Search																			
-		auto item_ptr = Langulus::MakeSparse(item);
+		auto item_ptr = SparseCast(item);
 		for (auto i = starti; i < mCount && i >= 0; i += istep) {
-			auto left = Langulus::MakeSparse(Get<T>(i.GetOffset()));
+			auto left = SparseCast(Get<T>(i.GetOffset()));
 			if (left == item_ptr) {
 				// Early success if pointers match									
 				return i;
@@ -1289,8 +1289,7 @@ namespace Langulus::Anyness
 		return found;
 	}
 
-	/// Merge array elements inside container.											
-	/// Pushes only if element(s) was not found											
+	/// Merge-insert array elements, if element(s) was not found					
 	///	@param items - the items to push													
 	///	@param count - number of items to push											
 	///	@param idx - use uiFront or uiBack for pushing to ends					
@@ -1308,7 +1307,10 @@ namespace Langulus::Anyness
 		return added;
 	}
 
-	/// Get the index of the biggest dense element										
+	/// Get the index of the biggest element												
+	///	@attention assumes that T is binary-compatible with contained type	
+	///	@tparam T - the type to use for comparison									
+	///	@return the index of the biggest element T inside this block			
 	template<CT::Data T>
 	Index Block::GetIndexMax() const noexcept requires CT::Sortable<T> {
 		if (IsEmpty())
@@ -1317,14 +1319,17 @@ namespace Langulus::Anyness
 		auto data = Get<Decay<T>*>();
 		auto max = data;
 		for (Offset i = 1; i < mCount; ++i) {
-			if (MakeDense(data[i]) > MakeDense(*max))
+			if (DenseCast(data[i]) > DenseCast(*max))
 				max = data + i;
 		}
 
 		return max - data;
 	}
 
-	/// Get the index of the smallest dense element										
+	/// Get the index of the smallest element												
+	///	@attention assumes that T is binary-compatible with contained type	
+	///	@tparam T - the type to use for comparison									
+	///	@return the index of the smallest element T inside this block			
 	template<CT::Data T>
 	Index Block::GetIndexMin() const noexcept requires CT::Sortable<T> {
 		if (IsEmpty())
@@ -1333,7 +1338,7 @@ namespace Langulus::Anyness
 		auto data = Get<Decay<T>*>();
 		auto min = data;
 		for (Offset i = 1; i < mCount; ++i) {
-			if (MakeDense(data[i]) < MakeDense(*min))
+			if (DenseCast(data[i]) < DenseCast(*min))
 				min = data + i;
 		}
 
@@ -1341,6 +1346,8 @@ namespace Langulus::Anyness
 	}
 
 	/// Get the index of dense element that repeats the most times					
+	///	@attention assumes that T is binary-compatible with contained type	
+	///	@tparam T - the type to use for comparison									
 	///	@param count - [out] count the number of repeats for the mode			
 	///	@return the index of the first found mode										
 	template<CT::Data T>
@@ -1358,13 +1365,13 @@ namespace Langulus::Anyness
 			for (Count j = i; j < mCount; ++j) {
 				if constexpr (CT::Comparable<T, T>) {
 					// First we compare by memory pointer, then by ==			
-					if (Langulus::MakeSparse(data[i]) == Langulus::MakeSparse(data[j]) ||
-						 Langulus::MakeDense(data[i])  == Langulus::MakeDense(data[j]))
+					if (SparseCast(data[i]) == SparseCast(data[j]) ||
+						 DenseCast(data[i])  == DenseCast(data[j]))
 						++counter;
 				}
 				else {
 					// No == operator, so just compare by memory	pointer		
-					if (Langulus::MakeSparse(data[i]) == Langulus::MakeSparse(data[j]))
+					if (SparseCast(data[i]) == SparseCast(data[j]))
 						++counter;
 				}
 
@@ -1383,6 +1390,8 @@ namespace Langulus::Anyness
 	}
 
 	/// Sort the contents of this container using a static type						
+	///	@attention assumes that T is binary-compatible with contained type	
+	///	@tparam T - the type to use for comparison									
 	///	@param first - what will the first element be after sorting?			
 	///					 - use uiSmallest for 123, or anything else for 321		
 	template<CT::Data T>
@@ -1462,7 +1471,7 @@ namespace Langulus::Anyness
 			return 1;
 		}
 
-		[[maybe_unused]]
+		UNUSED()
 		const bool orCompliant = !(mCount > 1 && !IsOr() && state.IsOr());
 		
 		if constexpr (ALLOW_CONCAT) {
@@ -1542,7 +1551,7 @@ namespace Langulus::Anyness
 			return 1;
 		}
 
-		[[maybe_unused]]
+		UNUSED()
 		const bool orCompliant = !(mCount > 1 && !IsOr() && state.IsOr());
 		
 		if constexpr (ALLOW_CONCAT) {
@@ -1735,7 +1744,7 @@ namespace Langulus::Anyness
 		if (IsEmpty())
 			return 0;
 		 
-		[[maybe_unused]] auto initialCount = mCount;
+		UNUSED() auto initialCount = mCount;
 		constexpr bool HasBreaker = CT::Same<bool, R>;
 		Count index {};
 		if (mType->Is<A>()) {
@@ -1897,7 +1906,7 @@ namespace Langulus::Anyness
 				}
 			}
 
-			[[maybe_unused]] const auto initialBlockCount = block->GetCount();
+			UNUSED() const auto initialBlockCount = block->GetCount();
 			if constexpr (HasBreaker) {
 				if (!call(*block))
 					return index + 1;

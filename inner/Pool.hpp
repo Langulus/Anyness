@@ -63,16 +63,20 @@ namespace Langulus::Anyness::Inner
 
 		// Bytes allocated by the frontend											
 		Size mAllocatedByFrontend {};
-		// Number of valid entries														
+		// Number of entries that have been used overall						
 		Count mEntries {};
 		// A chain of freed entries in the range [0-mEntries)					
 		Allocation* mLastFreed {};
+		// The next usable entry (not allocated yet)								
+		Byte* mNextEntry {};
 		// Current threshold, that is, max size of a new entry				
 		Size mThreshold {};
+		Size mThresholdPrevious {};
 		// Smallest allocation possible for the pool								
 		Size mThresholdMin {};
 		// Pointer to start of usable memory										
 		Byte* mMemory {};
+		Byte* mMemoryEnd {};
 		// Handle for the pool allocation, for use with ::std::free			
 		void* mHandle {};
 

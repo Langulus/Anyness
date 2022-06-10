@@ -57,8 +57,11 @@ namespace Langulus::Anyness::Inner
 		, mAllocatedByFrontend {}
 		, mLastFreed {}
 		, mThreshold {size}
+		, mThresholdPrevious {size}
 		, mHandle {memory} {
 		mMemory = GetPoolStart<Byte>();
+		mMemoryEnd = mMemory + mAllocatedByBackend;
+		mNextEntry = mMemory;
 	}
 
 	/// Get the minimum allocation for an entry inside this pool					
@@ -141,26 +144,41 @@ namespace Langulus::Anyness::Inner
 
 		// Check if we can add a new entry											
 		const auto bytesWithPadding = Allocation::GetNewAllocationSize(bytes);
-		if (!CanContain(bytesWithPadding))
+		if (!CanContain(bytesWithPadding)) LANGULUS(UNLIKELY)
 			return nullptr;
 
+		Allocation* newEntry;
 		if (!mLastFreed) {
 			// The entire pool is full (or empty), skip search for free		
 			// spot, add a new allocation directly	instead						
-			auto newEntry = AllocationFromIndex(mEntries);
+			newEntry = reinterpret_cast<Allocation*>(mNextEntry);
 			new (newEntry) Allocation {bytes, this};
-
 			++mEntries;
-			mAllocatedByFrontend += bytesWithPadding;
-			mThreshold = ThresholdFromIndex(mEntries);
-			mThresholdMin = ::std::max(Roof2(bytesWithPadding), Allocation::GetMinAllocation());
-			return newEntry;
+
+			// Move carriage to the next entry										
+			mNextEntry += mThresholdPrevious;
+
+			if (mNextEntry >= mMemoryEnd) LANGULUS(UNLIKELY) {
+				// Reset carriage and shift level everytime it goes beyond	
+				mThresholdPrevious = mThreshold;
+				mThreshold >>= one;
+				mNextEntry = mMemory + mThreshold;
+			}
+		}
+		else {
+			// Recycle entries															
+			newEntry = mLastFreed;
+			mLastFreed = mLastFreed->mNextFreeEntry;
+			new (newEntry) Allocation {bytes, this};
 		}
 
-		// Recycle entries																
-		const auto newEntry = mLastFreed;
-		mLastFreed = mLastFreed->mNextFreeEntry;
-		new (newEntry) Allocation {bytes, this};
+		// Always adapt min threshold if bigger entry is introduced			
+		if (bytesWithPadding > mThresholdMin) {
+			mThresholdMin = Roof2(bytesWithPadding);
+			//TODO everytime min threshold changes, 
+			// part of the freed entry chain may get invalid?
+			// traverse and stitch here?
+		}
 
 		#if LANGULUS(SAFE)
 			if (mAllocatedByFrontend + bytesWithPadding < mAllocatedByFrontend)
@@ -190,14 +208,21 @@ namespace Langulus::Anyness::Inner
 		if (0 == mAllocatedByFrontend) {
 			// The freed entry was the last used entry							
 			// Reset the entire pool													
-			mThreshold = mAllocatedByBackend;
+			mThreshold = mThresholdPrevious = mAllocatedByBackend;
+			mThresholdMin = Allocation::GetMinAllocation();
 			mLastFreed = nullptr;
 			mEntries = 0;
+			mNextEntry = mMemory;
 		}
 		else {
 			// Push the removed entry to the last freed list					
+			// The removed entry becomes the last freed entry, and its		
+			// pool pointer becomes a jump to the previous last freed		
 			entry->mNextFreeEntry = mLastFreed;
 			mLastFreed = entry;
+
+			//TODO: keep track of size distrubution, 
+			// shrink min threshold if all leading buckets go empty
 		}
 	}
 
@@ -215,8 +240,17 @@ namespace Langulus::Anyness::Inner
 			// We're enlarging the entry												
 			// Make sure we don't violate threshold								
 			const auto addition = bytes - entry->mAllocatedBytes;
-			if (entry->GetTotalSize() + addition > mThreshold)
+			const auto newtotal = entry->GetTotalSize() + addition;
+			if (newtotal > mThreshold)
 				return false;
+
+			if (newtotal > mThresholdMin) {
+				mThresholdMin = Roof2(newtotal);
+				//TODO everytime min threshold changes, 
+				// part of the freed entry chain may get invalid?
+				// traverse abd stitch here?
+			}
+
 			mAllocatedByFrontend += addition;
 		}
 		else {
@@ -228,6 +262,9 @@ namespace Langulus::Anyness::Inner
 					Throw<Except::Reallocation>("Bad frontend allocation size");
 			#endif
 			mAllocatedByFrontend -= removal;
+
+			//TODO: keep track of size distrubution, 
+			// shrink min threshold if all leading buckets go empty
 		}
 
 		entry->mAllocatedBytes = bytes;

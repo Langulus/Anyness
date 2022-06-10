@@ -251,7 +251,7 @@ namespace Langulus::Anyness
 	///	@param pattern - the pattern to search for									
 	///	@return true on first match														
 	bool Text::Find(const Text& pattern) const {
-		[[maybe_unused]] Offset unused;
+		UNUSED() Offset unused;
 		return FindOffset(pattern, unused);
 	}
 

@@ -178,6 +178,8 @@ SCENARIO("Testing pool functions", "[allocator]") {
 
 		WHEN("Default pool size is allocated on the pool") {
 			pool = Allocator::AllocatePool(Pool::DefaultPoolSize);
+			REQUIRE(pool);
+
 			const auto originPtr = pool->GetPoolStart<Byte>();
 			const auto smallest = pool->GetMinAllocation();
 			const auto origin = reinterpret_cast<Pointer>(originPtr);
@@ -226,6 +228,8 @@ SCENARIO("Testing pool functions", "[allocator]") {
 
 		WHEN("A small entry is allocated inside a new default-sized pool") {
 			pool = Allocator::AllocatePool(Pool::DefaultPoolSize);
+			REQUIRE(pool);
+
 			auto entry = pool->Allocate(5);
 			const auto full = pool->GetAllocatedByBackend();
 			const auto smallest = pool->GetMinAllocation();
@@ -242,6 +246,8 @@ SCENARIO("Testing pool functions", "[allocator]") {
 
 		WHEN("A small entry is allocated inside a new huge pool") {
 			pool = Allocator::AllocatePool(Pool::DefaultPoolSize * 1024);
+			REQUIRE(pool);
+
 			auto entry = pool->Allocate(5);
 			const auto full = pool->GetAllocatedByBackend();
 			const auto smallest = pool->GetMinAllocation();
@@ -253,7 +259,7 @@ SCENARIO("Testing pool functions", "[allocator]") {
 				REQUIRE(pool->IsInUse());
 			}
 
-			#ifdef LANGULUS_STD_BENCHMARK // Last result: 
+			//#ifdef LANGULUS_STD_BENCHMARK // Last result: 
 				BENCHMARK_ADVANCED("Pool::Allocate(5)") (Catch::Benchmark::Chronometer meter) {
 					std::vector<Allocation*> storage(meter.runs());
 					meter.measure([&](int i) {
@@ -274,11 +280,12 @@ SCENARIO("Testing pool functions", "[allocator]") {
 						return storage[i] = ::std::malloc(5);
 					});
 
-					for (auto& i : storage)
+					for (auto& i : storage) {
 						if (i)
 							::std::free(i);
 						else
 							Throw<Except::Deallocation>("The test is invalid, because malloc returned a zero");
+					}
 				};
 
 				BENCHMARK_ADVANCED("Pool::Allocate(32)") (Catch::Benchmark::Chronometer meter) {
@@ -301,23 +308,26 @@ SCENARIO("Testing pool functions", "[allocator]") {
 						return storage[i] = ::std::malloc(32);
 					});
 
-					for (auto& i : storage)
+					for (auto& i : storage) {
 						if (i)
 							::std::free(i);
 						else
 							Throw<Except::Deallocation>("The test is invalid, because malloc returned a zero");
+					}
 				};
-			#endif
+			//#endif
 
 			Allocator::DeallocatePool(pool);
 		}
 
 		WHEN("A new default-sized pool is filled with all possible small entries") {
 			pool = Allocator::AllocatePool(Pool::DefaultPoolSize);
+			REQUIRE(pool);
 
 			// Fill up
 			for (int i = 0; i < pool->GetMaxEntries(); ++i) {
 				auto entry = pool->Allocate(5);
+				REQUIRE(entry);
 				entry->Keep(i);
 			}
 
@@ -405,7 +415,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 
 			Allocator::Deallocate(entry);
 
-			#ifdef LANGULUS_STD_BENCHMARK // Last result: 
+			//#ifdef LANGULUS_STD_BENCHMARK // Last result: 
 				Allocator::CollectGarbage();
 				BENCHMARK_ADVANCED("Allocator::Allocate(5)") (Catch::Benchmark::Chronometer meter) {
 					std::vector<Allocation*> storage(meter.runs());
@@ -413,9 +423,12 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 						return storage[i] = Allocator::Allocate(5);
 					});
 
-					for (auto& i : storage)
+					for (auto& i : storage) {
 						if (i)
 							Allocator::Deallocate(i);
+						else
+							Throw<Except::Deallocation>("The test is invalid, because memory got full");
+					}
 				};
 
 				Allocator::CollectGarbage();
@@ -425,8 +438,12 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 						return storage[i] = ::std::malloc(5);
 					});
 
-					for (auto& i : storage)
-						::std::free(i);
+					for (auto& i : storage) {
+						if (i)
+							::std::free(i);
+						else
+							Throw<Except::Deallocation>("The test is invalid, because memory got full");
+					}
 				};
 
 				Allocator::CollectGarbage();
@@ -436,9 +453,12 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 						return storage[i] = Allocator::Allocate(512);
 					});
 
-					for (auto& i : storage)
+					for (auto& i : storage) {
 						if (i)
 							Allocator::Deallocate(i);
+						else
+							Throw<Except::Deallocation>("The test is invalid, because memory got full");
+					}
 				};
 
 				Allocator::CollectGarbage();
@@ -448,8 +468,12 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 						return storage[i] = ::std::malloc(512);
 					});
 
-					for (auto& i : storage)
-						::std::free(i);
+					for (auto& i : storage) {
+						if (i)
+							::std::free(i);
+						else
+							Throw<Except::Deallocation>("The test is invalid, because memory got full");
+					}
 				};
 
 				Allocator::CollectGarbage();
@@ -459,9 +483,12 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 						return storage[i] = Allocator::Allocate(Pool::DefaultPoolSize);
 					});
 
-					for (auto& i : storage)
+					for (auto& i : storage) {
 						if (i)
 							Allocator::Deallocate(i);
+						else
+							Throw<Except::Deallocation>("The test is invalid, because memory got full");
+					}
 				};
 
 				Allocator::CollectGarbage();
@@ -471,10 +498,14 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 						return storage[i] = ::std::malloc(Pool::DefaultPoolSize);
 					});
 
-					for (auto& i : storage)
-						::std::free(i);
+					for (auto& i : storage) {
+						if (i)
+							::std::free(i);
+						else
+							Throw<Except::Deallocation>("The test is invalid, because memory got full");
+					}
 				};
-			#endif
+			//#endif
 		}
 
 		WHEN("Referenced once") {

@@ -26,21 +26,27 @@ namespace Langulus::Anyness::Inner
 	template<AllocationPrimitive T>
 	T* AlignedAllocate(const Size& size) SAFETY_NOEXCEPT() {
 		const auto finalSize = T::GetNewAllocationSize(size);
-		auto base = malloc(finalSize);
-		if (!base) LANGULUS(UNLIKELY) {
-			return nullptr;// Throw<Except::Allocate>("Out of memory");
-		}
-		else LANGULUS(LIKELY) {
-			// Align pointer to LANGULUS_ALIGN()									
-			auto ptr = reinterpret_cast<T*>(
-				(reinterpret_cast<Pointer>(base) + Pointer{ Alignment })
-				& ~Pointer{ Alignment - 1 }
-			);
+		const auto base = ::std::malloc(finalSize);
+		if (!base) LANGULUS(UNLIKELY)
+			return nullptr;
 
-			// Place the entry there													
-			new (ptr) T{ finalSize - T::GetSize(), base };
-			return ptr;
+		if constexpr (CT::Same<T, Pool>) {
+			// Nulling is mandatory for pools - without touching the			
+			// memory, it might remain just a promise by the OS, making		
+			// initial pool allocations very, very, VERY slow. calloc		
+			// doesn't seem to work for this purpose								
+			::std::memset(base, 0, finalSize);
 		}
+
+		// Align pointer to LANGULUS_ALIGN()										
+		auto ptr = reinterpret_cast<T*>(
+			(reinterpret_cast<Pointer>(base) + Pointer {Alignment})
+			& ~Pointer {Alignment - 1}
+		);
+
+		// Place the entry there														
+		new (ptr) T {finalSize - T::GetSize(), base};
+		return ptr;
 	}
 
 
