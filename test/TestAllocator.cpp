@@ -265,7 +265,7 @@ SCENARIO("Testing pool functions", "[allocator]") {
 					meter.measure([&](int i) {
 						return storage[i] = pool->Allocate(5);
 					});
-
+					
 					for (auto& i : storage) {
 						if (i)
 							pool->Deallocate(i);
@@ -274,11 +274,11 @@ SCENARIO("Testing pool functions", "[allocator]") {
 					}
 				};
 
-				BENCHMARK_ADVANCED("malloc(5)") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("std::malloc(5)") (Catch::Benchmark::Chronometer meter) {
 					std::vector<void*> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i] = ::std::malloc(5);
-					});
+						});
 
 					for (auto& i : storage) {
 						if (i)
@@ -302,10 +302,90 @@ SCENARIO("Testing pool functions", "[allocator]") {
 					}
 				};
 
-				BENCHMARK_ADVANCED("malloc(32)") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("std::malloc(32)") (Catch::Benchmark::Chronometer meter) {
 					std::vector<void*> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i] = ::std::malloc(32);
+					});
+
+					for (auto& i : storage) {
+						if (i)
+							::std::free(i);
+						else
+							Throw<Except::Deallocation>("The test is invalid, because malloc returned a zero");
+					}
+				};
+
+				BENCHMARK_ADVANCED("Pool::Reallocate(32 -> 5)") (Catch::Benchmark::Chronometer meter) {
+					std::vector<Allocation*> storage(meter.runs());
+					for(auto& i : storage)
+						i = pool->Allocate(32);
+
+					meter.measure([&](int i) {
+						const auto r = pool->Reallocate(storage[i], 5);
+						if (r)
+							storage[i] = storage[i];
+						return r;
+					});
+
+					for (auto& i : storage) {
+						if (i)
+							pool->Deallocate(i);
+						else
+							Throw<Except::Deallocation>("The test is invalid, because the pool got full - use a bigger pool");
+					}
+				};
+
+				BENCHMARK_ADVANCED("std::realloc(32 -> 5)") (Catch::Benchmark::Chronometer meter) {
+					std::vector<void*> storage(meter.runs());
+					for (auto& i : storage)
+						i = ::std::malloc(32);
+
+					meter.measure([&](int i) {
+						const auto r = ::std::realloc(storage[i], 5);
+						if (r)
+							storage[i] = r;
+						return r;
+					});
+
+					for (auto& i : storage) {
+						if (i)
+							::std::free(i);
+						else
+							Throw<Except::Deallocation>("The test is invalid, because malloc returned a zero");
+					}
+				};
+
+				BENCHMARK_ADVANCED("Pool::Reallocate(5 -> 32)") (Catch::Benchmark::Chronometer meter) {
+					std::vector<Allocation*> storage(meter.runs());
+					for(auto& i : storage)
+						i = pool->Allocate(5);
+
+					meter.measure([&](int i) {
+						const auto r = pool->Reallocate(storage[i], 32);
+						if (r)
+							storage[i] = storage[i];
+						return r;
+					});
+
+					for (auto& i : storage) {
+						if (i)
+							pool->Deallocate(i);
+						else
+							Throw<Except::Deallocation>("The test is invalid, because the pool got full - use a bigger pool");
+					}
+				};
+
+				BENCHMARK_ADVANCED("std::realloc(5 -> 32)") (Catch::Benchmark::Chronometer meter) {
+					std::vector<void*> storage(meter.runs());
+					for (auto& i : storage)
+						i = ::std::malloc(5);
+
+					meter.measure([&](int i) {
+						const auto r = ::std::realloc(storage[i], 32);
+						if (r)
+							storage[i] = r;
+						return r;
 					});
 
 					for (auto& i : storage) {

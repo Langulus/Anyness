@@ -30,14 +30,6 @@ namespace Langulus::Anyness::Inner
 		if (!base) LANGULUS(UNLIKELY)
 			return nullptr;
 
-		if constexpr (CT::Same<T, Pool>) {
-			// Nulling is mandatory for pools - without touching the			
-			// memory, it might remain just a promise by the OS, making		
-			// initial pool allocations very, very, VERY slow. calloc		
-			// doesn't seem to work for this purpose								
-			::std::memset(base, 0, finalSize);
-		}
-
 		// Align pointer to LANGULUS_ALIGN()										
 		auto ptr = reinterpret_cast<T*>(
 			(reinterpret_cast<Pointer>(base) + Pointer {Alignment})

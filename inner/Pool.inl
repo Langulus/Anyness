@@ -53,15 +53,17 @@ namespace Langulus::Anyness::Inner
 		, mAllocatedByBackendLog2 {FastLog2(size)}
 		, mAllocatedByBackendLSB {LSB(size >> Size{1})}
 		, mThresholdMin {Allocation::GetMinAllocation()}
-		, mEntries {}
-		, mAllocatedByFrontend {}
-		, mLastFreed {}
 		, mThreshold {size}
 		, mThresholdPrevious {size}
 		, mHandle {memory} {
 		mMemory = GetPoolStart<Byte>();
 		mMemoryEnd = mMemory + mAllocatedByBackend;
 		mNextEntry = mMemory;
+
+		// Touching is mandatory for pools - without touching the			
+		// memory, it might remain just a promise by the OS, making			
+		// initial pool allocations very, very, VERY slow						
+		Touch();
 	}
 
 	/// Get the minimum allocation for an entry inside this pool					
@@ -148,7 +150,13 @@ namespace Langulus::Anyness::Inner
 			return nullptr;
 
 		Allocation* newEntry;
-		if (!mLastFreed) {
+		if (mLastFreed) {
+			// Recycle entries															
+			newEntry = mLastFreed;
+			mLastFreed = mLastFreed->mNextFreeEntry;
+			new (newEntry) Allocation {bytes, this};
+		}
+		else {
 			// The entire pool is full (or empty), skip search for free		
 			// spot, add a new allocation directly	instead						
 			newEntry = reinterpret_cast<Allocation*>(mNextEntry);
@@ -159,17 +167,11 @@ namespace Langulus::Anyness::Inner
 			mNextEntry += mThresholdPrevious;
 
 			if (mNextEntry >= mMemoryEnd) LANGULUS(UNLIKELY) {
-				// Reset carriage and shift level everytime it goes beyond	
+				// Reset carriage and shift level when it goes beyond			
 				mThresholdPrevious = mThreshold;
 				mThreshold >>= one;
 				mNextEntry = mMemory + mThreshold;
 			}
-		}
-		else {
-			// Recycle entries															
-			newEntry = mLastFreed;
-			mLastFreed = mLastFreed->mNextFreeEntry;
-			new (newEntry) Allocation {bytes, this};
 		}
 
 		// Always adapt min threshold if bigger entry is introduced			
@@ -304,7 +306,17 @@ namespace Langulus::Anyness::Inner
 
 	/// Null the memory																			
 	inline void Pool::Null() {
-		memset(mMemory, 0, mAllocatedByBackend);
+		::std::memset(mMemory, 0, mAllocatedByBackend);
+	}
+
+	/// Touch unused memory																		
+	/// https://stackoverflow.com/questions/18929011									
+	inline void Pool::Touch() {
+		auto it = mMemory;
+		while (it < mMemoryEnd) {
+			volatile auto touch = *it;
+			it += 4096;
+		}
 	}
 
 	/// Get threshold associated with an index											

@@ -1,5 +1,6 @@
 #pragma once
 #include "Allocation.hpp"
+#include <thread>
 
 namespace Langulus::Anyness::Inner
 {
@@ -45,6 +46,7 @@ namespace Langulus::Anyness::Inner
 		void Deallocate(Allocation*) SAFETY_NOEXCEPT();
 		void FreePoolChain();
 		void Null();
+		void Touch();
 
 		NOD() Size ThresholdFromIndex(const Offset&) const noexcept;
 		NOD() Allocation* AllocationFromIndex(const Offset&) noexcept;
