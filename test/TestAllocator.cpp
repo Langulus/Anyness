@@ -259,7 +259,7 @@ SCENARIO("Testing pool functions", "[allocator]") {
 				REQUIRE(pool->IsInUse());
 			}
 
-			//#ifdef LANGULUS_STD_BENCHMARK // Last result: 
+			#ifdef LANGULUS_STD_BENCHMARK // Last result: 
 				BENCHMARK_ADVANCED("Pool::Allocate(5)") (Catch::Benchmark::Chronometer meter) {
 					std::vector<Allocation*> storage(meter.runs());
 					meter.measure([&](int i) {
@@ -278,7 +278,7 @@ SCENARIO("Testing pool functions", "[allocator]") {
 					std::vector<void*> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i] = ::std::malloc(5);
-						});
+					});
 
 					for (auto& i : storage) {
 						if (i)
@@ -391,7 +391,7 @@ SCENARIO("Testing pool functions", "[allocator]") {
 					for (auto& i : storage)
 						::std::free(i);
 				};
-			//#endif
+			#endif
 
 			Allocator::DeallocatePool(pool);
 		}
@@ -491,7 +491,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 
 			Allocator::Deallocate(entry);
 
-			//#ifdef LANGULUS_STD_BENCHMARK // Last result: 
+			#ifdef LANGULUS_STD_BENCHMARK // Last result: 
 				Allocator::CollectGarbage();
 				BENCHMARK_ADVANCED("Allocator::Allocate(5)") (Catch::Benchmark::Chronometer meter) {
 					std::vector<Allocation*> storage(meter.runs());
@@ -581,7 +581,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 							Throw<Except::Deallocation>("The test is invalid, because memory got full");
 					}
 				};
-			//#endif
+			#endif
 		}
 
 		WHEN("Referenced once") {

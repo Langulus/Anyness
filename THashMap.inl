@@ -39,7 +39,7 @@ namespace Langulus::Anyness
 	TABLE()::THashMap(THashMap&& other) noexcept
 		: mKeys {other.mKeys}
 		, mInfo {other.mInfo}
-		, mValues {Move(other.mValues)} { }
+		, mValues {Move(other.mValues)} {}
 
 	/// Shallow-copy construction without referencing									
 	///	@param other - the disowned table to copy										
@@ -47,7 +47,7 @@ namespace Langulus::Anyness
 	TABLE()::THashMap(Disowned<THashMap>&& other) noexcept
 		: mKeys {other.mValue.mKeys}
 		, mInfo {other.mValue.mInfo}
-		, mValues {Disown(other.mValue.mValues)} { }
+		, mValues {Disown(other.mValue.mValues)} {}
 
 	/// Minimal move construction from abandoned table									
 	///	@param other - the abandoned table to move									
@@ -55,7 +55,7 @@ namespace Langulus::Anyness
 	TABLE()::THashMap(Abandoned<THashMap>&& other) noexcept
 		: mKeys {other.mValue.mKeys}
 		, mInfo {other.mValue.mInfo}
-		, mValues {Abandon(other.mValue.mValues)} { }
+		, mValues {Abandon(other.mValue.mValues)} {}
 
 	/// Destroys the map and all it's contents											
 	TABLE_TEMPLATE()
@@ -70,13 +70,13 @@ namespace Langulus::Anyness
 			// Deallocate stuff															
 			Inner::Allocator::Deallocate(mKeys);
 			Inner::Allocator::Deallocate(mValues.mEntry);
-			mValues.mEntry = nullptr;
 		}
 		else {
 			// Data is used from multiple locations, just deref values		
 			mValues.mEntry->Free();
-			mValues.mEntry = nullptr;
 		}
+
+		mValues.mEntry = nullptr;
 	}
 
 	/// Checks if both tables contain the same entries									
@@ -238,7 +238,6 @@ namespace Langulus::Anyness
 		result.mValues.mRaw = result.mValues.mEntry->GetBlockStart();
 		CloneInner(result.mValues.mCount, GetInfo(), 
 			GetRawValues(), GetRawValuesEnd(), result.GetRawValues());
-
 		return Abandon(result);
 	}
 	

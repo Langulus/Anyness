@@ -71,27 +71,7 @@ namespace Langulus::Anyness
 				Throw<Except::Overflow>("Roof2 overflowed");
 		}
 
-		// for some reason, this one is even slower :(
-		/*if (x == 0) LANGULUS(UNLIKELY)
-			return 0;
-		else LANGULUS(LIKELY)
-			return T {1} << (T {sizeof(size_t) * 8} - CountLeadingZeroes(x - T{1}));*/
-		T n = x;
-		--n;
-		n |= n >> 1;
-		n |= n >> 2;
-		n |= n >> 4;
-		if constexpr (sizeof(T) > 1)
-			n |= n >> 8;
-		if constexpr (sizeof(T) > 2)
-			n |= n >> 16;
-		if constexpr (sizeof(T) > 4)
-			n |= n >> 32;
-		if constexpr (sizeof(T) > 8)
-			TODO();
-
-		++n;
-		return n;
+		return x <= 1 ? x : T {1} << (T {sizeof(size_t) * 8} - CountLeadingZeroes<size_t>(x - T {1}));
 	}
 
    /// Round to the upper power-of-two (constexpr variant)							

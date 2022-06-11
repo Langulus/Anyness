@@ -191,6 +191,62 @@ SCENARIO("THashMap", "[containers]") {
 			}
 		}
 
+		WHEN("Create 2048 and then 4096 maps, and initialize them (weird corner case test)") {
+			std::vector<MapType> storage(2048);
+			const int* prevValues = nullptr;
+			const Text* prevKeys = nullptr;
+
+			for (auto& i : storage) {
+				i << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
+				if (prevKeys && prevValues) {
+					REQUIRE(prevKeys != i.GetRawKeys());
+					REQUIRE(prevValues != i.GetRawValues());
+					REQUIRE(i == *(&i - 1));
+				}
+
+				prevKeys = i.GetRawKeys();
+				prevValues = i.GetRawValues();
+
+				REQUIRE(i.HasAuthority());
+				REQUIRE(i.GetUses() == 1);
+				REQUIRE(i.GetCount() == 5);
+				REQUIRE(i.GetReserved() == 8);
+				REQUIRE(i["one"] == 1);
+				REQUIRE(i["two"] == 2);
+				REQUIRE(i["three"] == 3);
+				REQUIRE(i["four"] == 4);
+				REQUIRE(i["five"] == 5);
+			}
+
+			storage.~vector<MapType>();
+			new (&storage) std::vector<MapType>();
+
+			prevValues = nullptr;
+			prevKeys = nullptr;
+
+			for (auto& i : storage) {
+				i << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
+				if (prevKeys && prevValues) {
+					REQUIRE(prevKeys != i.GetRawKeys());
+					REQUIRE(prevValues != i.GetRawValues());
+					REQUIRE(i == *(&i - 1));
+				}
+
+				prevKeys = i.GetRawKeys();
+				prevValues = i.GetRawValues();
+
+				REQUIRE(i.HasAuthority());
+				REQUIRE(i.GetUses() == 1);
+				REQUIRE(i.GetCount() == 5);
+				REQUIRE(i.GetReserved() == 8);
+				REQUIRE(i["one"] == 1);
+				REQUIRE(i["two"] == 2);
+				REQUIRE(i["three"] == 3);
+				REQUIRE(i["four"] == 4);
+				REQUIRE(i["five"] == 5);
+			}
+		}
+
 		WHEN("Shallow-copy more of the same stuff") {
 			map << darray2[0] << darray2[1] << darray2[2] << darray2[3] << darray2[4];
 
@@ -222,7 +278,7 @@ SCENARIO("THashMap", "[containers]") {
 						i << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
 
 					meter.measure([&](int i) {
-						return storage[i] << darray2[0] << darray2[1] << darray2[2] << darray2[3] << darray2[4];
+						storage[i] << darray2[0] << darray2[1] << darray2[2] << darray2[3] << darray2[4];
 					});
 				};
 
