@@ -27,7 +27,7 @@ namespace Langulus::Anyness::Inner
 	T* AlignedAllocate(const Size& size) SAFETY_NOEXCEPT() {
 		const auto finalSize = T::GetNewAllocationSize(size) + Alignment;
 		const auto base = ::std::malloc(finalSize);
-		if (!base) LANGULUS(UNLIKELY)
+		if (!base) UNLIKELY()
 			return nullptr;
 
 		// Align pointer to LANGULUS_ALIGN()										

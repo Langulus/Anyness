@@ -13,6 +13,35 @@ namespace Langulus::Anyness::Inner
 	///	A MEMORY POOL 																			
 	///																								
 	class Pool final {
+	friend class Allocator;
+	protected:
+		// Bytes allocated by the backend											
+		const Size mAllocatedByBackend {};
+		const Offset mAllocatedByBackendLog2 {};
+		const Offset mAllocatedByBackendLSB {};
+
+		// Bytes allocated by the frontend											
+		Size mAllocatedByFrontend {};
+		// Number of entries that have been used overall						
+		Count mEntries {};
+		// A chain of freed entries in the range [0-mEntries)					
+		Allocation* mLastFreed {};
+		// The next usable entry (not allocated yet)								
+		Byte* mNextEntry {};
+		// Current threshold, that is, max size of a new entry				
+		Size mThreshold {};
+		Size mThresholdPrevious {};
+		// Smallest allocation possible for the pool								
+		Size mThresholdMin {};
+		// Pointer to start of usable memory										
+		Byte* mMemory {};
+		Byte* mMemoryEnd {};
+		// Handle for the pool allocation, for use with ::std::free			
+		void* mHandle {};
+
+		// Next pool in the pool chain												
+		Pool* mNext {};
+
 	public:
 		Pool() = delete;
 		Pool(const Pool&) = delete;
@@ -42,6 +71,8 @@ namespace Langulus::Anyness::Inner
 		NOD() constexpr bool IsInUse() const noexcept;
 		NOD() constexpr bool CanContain(const Size&) const noexcept;
 		NOD() bool Contains(const void*) const noexcept;
+		NOD() const Allocation* Find(const void*) const SAFETY_NOEXCEPT();
+		NOD() Allocation* Find(const void*) SAFETY_NOEXCEPT();
 
 		NOD() Allocation* Allocate(Size) SAFETY_NOEXCEPT();
 		NOD() bool Reallocate(Allocation*, Size) SAFETY_NOEXCEPT();
@@ -58,34 +89,6 @@ namespace Langulus::Anyness::Inner
 		NOD() Offset UpIndex(Offset) const noexcept;
 		NOD() Allocation* AllocationFromAddress(const void*) SAFETY_NOEXCEPT();
 		NOD() const Allocation* AllocationFromAddress(const void*) const noexcept;
-
-	public:
-		// Bytes allocated by the backend											
-		const Size mAllocatedByBackend {};
-		const Offset mAllocatedByBackendLog2 {};
-		const Offset mAllocatedByBackendLSB {};
-
-		// Bytes allocated by the frontend											
-		Size mAllocatedByFrontend {};
-		// Number of entries that have been used overall						
-		Count mEntries {};
-		// A chain of freed entries in the range [0-mEntries)					
-		Allocation* mLastFreed {};
-		// The next usable entry (not allocated yet)								
-		Byte* mNextEntry {};
-		// Current threshold, that is, max size of a new entry				
-		Size mThreshold {};
-		Size mThresholdPrevious {};
-		// Smallest allocation possible for the pool								
-		Size mThresholdMin {};
-		// Pointer to start of usable memory										
-		Byte* mMemory {};
-		Byte* mMemoryEnd {};
-		// Handle for the pool allocation, for use with ::std::free			
-		void* mHandle {};
-
-		// Next pool in the pool chain												
-		Pool* mNext {};
 	};
 
 } // namespace Langulus::Anyness::Inner

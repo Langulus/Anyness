@@ -146,7 +146,7 @@ namespace Langulus::Anyness::Inner
 
 		// Check if we can add a new entry											
 		const auto bytesWithPadding = Allocation::GetNewAllocationSize(bytes);
-		if (!CanContain(bytesWithPadding)) LANGULUS(UNLIKELY)
+		if (!CanContain(bytesWithPadding)) UNLIKELY()
 			return nullptr;
 
 		Allocation* newEntry;
@@ -166,7 +166,7 @@ namespace Langulus::Anyness::Inner
 			// Move carriage to the next entry										
 			mNextEntry += mThresholdPrevious;
 
-			if (mNextEntry >= mMemoryEnd) LANGULUS(UNLIKELY) {
+			if (mNextEntry >= mMemoryEnd) UNLIKELY() {
 				// Reset carriage and shift level when it goes beyond			
 				mThresholdPrevious = mThreshold;
 				mThreshold >>= one;
@@ -184,7 +184,7 @@ namespace Langulus::Anyness::Inner
 
 		#if LANGULUS(SAFE)
 			if (mAllocatedByFrontend + bytesWithPadding < mAllocatedByFrontend)
-				Throw<Except::Deallocation>("Frontend byte counter overflow");
+				Throw<Except::Deallocate>("Frontend byte counter overflow");
 		#endif
 
 		mAllocatedByFrontend += bytesWithPadding;
@@ -197,11 +197,11 @@ namespace Langulus::Anyness::Inner
 	inline void Pool::Deallocate(Allocation* entry) SAFETY_NOEXCEPT() {
 		#if LANGULUS(SAFE)
 			if (entry->mReferences == 0)
-				Throw<Except::Deallocation>("Removing an invalid entry");
+				Throw<Except::Deallocate>("Removing an invalid entry");
 			if (mEntries == 0)
-				Throw<Except::Deallocation>("Bad valid entry count");
+				Throw<Except::Deallocate>("Bad valid entry count");
 			if (mAllocatedByFrontend < entry->GetTotalSize())
-				Throw<Except::Deallocation>("Bad frontend allocation size");
+				Throw<Except::Deallocate>("Bad frontend allocation size");
 		#endif
 
 		mAllocatedByFrontend -= entry->GetTotalSize();
@@ -235,7 +235,7 @@ namespace Langulus::Anyness::Inner
 	inline bool Pool::Reallocate(Allocation* entry, const Size bytes) SAFETY_NOEXCEPT() {
 		#if LANGULUS(SAFE)
 			if (!Contains(entry) || entry->GetUses() == 0 || !bytes)
-				Throw<Except::Reallocation>("Invalid reallocation");
+				Throw<Except::Reallocate>("Invalid reallocation");
 		#endif
 
 		if (bytes > entry->mAllocatedBytes) {
@@ -261,7 +261,7 @@ namespace Langulus::Anyness::Inner
 			const auto removal = entry->mAllocatedBytes - bytes;
 			#if LANGULUS(SAFE)
 				if (mAllocatedByFrontend < removal)
-					Throw<Except::Reallocation>("Bad frontend allocation size");
+					Throw<Except::Reallocate>("Bad frontend allocation size");
 			#endif
 			mAllocatedByFrontend -= removal;
 
@@ -403,6 +403,34 @@ namespace Langulus::Anyness::Inner
 	///	@return true if address belongs to this pool									
 	inline bool Pool::Contains(const void* address) const noexcept {
 		return address >= mMemory && address < mMemory + mAllocatedByBackend;
+	}
+
+	/// Find a memory entry from pointer													
+	///	@attention assumes memory is a valid pointer									
+	///	@param memory - memory pointer													
+	///	@return the memory entry that manages the memory pointer, or			
+	///		nullptr if memory is not ours, or is no longer used					
+	inline Allocation* Pool::Find(const void* memory) SAFETY_NOEXCEPT() {
+		#if LANGULUS(SAFE)
+			if (memory == nullptr)
+				Throw<Except::Allocate>("Searching for nullptr");
+		#endif
+
+		if (Contains(memory)) {
+			const auto entry = AllocationFromAddress(memory);
+			return entry && entry->Contains(memory) ? entry : nullptr;
+		}
+
+		return nullptr;
+	}
+
+	/// Find a memory entry from pointer (const)											
+	///	@attention assumes memory is a valid pointer									
+	///	@param memory - memory pointer													
+	///	@return the memory entry that manages the memory pointer, or			
+	///		nullptr if memory is not ours, or is no longer used					
+	inline const Allocation* Pool::Find(const void* memory) const SAFETY_NOEXCEPT() {
+		return const_cast<Pool*>(this)->Find(memory);
 	}
 
 } // namespace Langulus::Anyness::Inner

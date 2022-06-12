@@ -17,6 +17,7 @@ namespace Langulus::Anyness::Inner
 
 	/// Setup the default pool																	
 	Pool* Allocator::mDefaultPool = nullptr;
+	Pool* Allocator::mLastFoundPool = nullptr;
 	
 	/// Allocate a memory entry																
 	///	@attention doesn't call any constructors										
@@ -162,11 +163,18 @@ namespace Langulus::Anyness::Inner
 	///	@attention pool or any entry inside is no longer valid after this		
 	///	@param pool - the pool to deallocate											
 	void Allocator::DeallocatePool(Pool* pool) SAFETY_NOEXCEPT() {
+		#if LANGULUS(SAFE)
+			if (!pool)
+				Throw<Except::Deallocate>("Trying to deallocate nullptr pool");
+		#endif
+
 		::std::free(pool->mHandle);
 	}
 
 	/// Deallocates all unused pools															
 	void Allocator::CollectGarbage() {
+		mLastFoundPool = nullptr;
+
 		while (mDefaultPool) {
 			if (mDefaultPool->IsInUse())
 				break;
@@ -177,7 +185,7 @@ namespace Langulus::Anyness::Inner
 			#endif
 
 			auto next = mDefaultPool->mNext;
-			::std::free(mDefaultPool->mHandle);
+			DeallocatePool(mDefaultPool);
 			mDefaultPool = next;
 		}
 
@@ -199,7 +207,7 @@ namespace Langulus::Anyness::Inner
 			#endif
 
 			const auto next = pool->mNext;
-			::std::free(pool->mHandle);
+			DeallocatePool(pool);
 			prev->mNext = next;
 			pool = next;
 		}
@@ -222,12 +230,20 @@ namespace Langulus::Anyness::Inner
 		#endif
 
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
+			// Scan the last last pool that found something (hot region)	
+			if (mLastFoundPool) {
+				const auto found = mLastFoundPool->Find(memory);
+				if (found)
+					return found;
+			}
+
 			// Scan all pools, and find one that contains the memory			
 			auto pool = mDefaultPool;
 			while (pool) {
-				if (pool->Contains(memory)) {
-					const auto entry = pool->AllocationFromAddress(memory);
-					return entry && entry->Contains(memory) ? entry : nullptr;
+				const auto found = pool->Find(memory);
+				if (found) {
+					mLastFoundPool = pool;
+					return found;
 				}
 
 				// Continue inside the poolchain										
@@ -256,6 +272,13 @@ namespace Langulus::Anyness::Inner
 		#endif
 
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
+			// Scan the last last pool that found something (hot region)	
+			if (mLastFoundPool) {
+				const auto found = mLastFoundPool->Find(memory);
+				if (found)
+					return found;
+			}
+
 			// Scan all pools, and find one that contains the memory			
 			auto pool = mDefaultPool;
 			while (pool) {
@@ -273,14 +296,12 @@ namespace Langulus::Anyness::Inner
 		#endif
 	}
 	
-	/// Get the number of uses a memory entry has										
+	/// Get the number of uses an unknown memory pointer has							
 	///	@attention this function does nothing if										
-	///              LANGULUS_FEATURE(MANAGED_MEMORY) is disabled. This has		
-	///				  dire consequences on sparse containers, since one can not	
-	///				  determine if a pointer is owned or not without it!			
+	///              LANGULUS_FEATURE(MANAGED_MEMORY) is disabled					
 	///	@param meta - the type of data to search for (optional)					
 	///	@param memory - memory pointer													
-	///	@return the number of references, or 1 if memory is not ours			
+	///	@return the number of references, or 0 if memory is not ours			
 	Count Allocator::GetReferences(DMeta meta, const void* memory) SAFETY_NOEXCEPT() {
 		#if LANGULUS(SAFE)
 			if (memory == nullptr)
@@ -302,9 +323,7 @@ namespace Langulus::Anyness::Inner
 	/// If LANGULUS_FEATURE(MANAGED_MEMORY) is enabled, this function will		
 	/// attempt to find memory entry from the memory manager and reference it	
 	///	@attention this function does nothing if										
-	///              LANGULUS_FEATURE(MANAGED_MEMORY) is disabled. This has		
-	///				  dire consequences on sparse containers, since one can not	
-	///				  determine if a pointer is owned or not without it!			
+	///              LANGULUS_FEATURE(MANAGED_MEMORY) is disabled					
 	///	@param meta - the type of data to search for (optional)					
 	///	@param memory - memory pointer													
 	///	@param count - the number of references to add								
@@ -329,9 +348,7 @@ namespace Langulus::Anyness::Inner
 	/// If LANGULUS_FEATURE(MANAGED_MEMORY) is enabled, this function will		
 	/// attempt to find memory entry from the memory manager and dereference	
 	///	@attention this function does nothing if										
-	///              LANGULUS_FEATURE(MANAGED_MEMORY) is disabled. This has		
-	///				  dire consequences on sparse containers, since one can not	
-	///				  determine if a pointer is owned or not without it!			
+	///              LANGULUS_FEATURE(MANAGED_MEMORY) is disabled					
 	///	@attention this will deallocate memory if fully dereferenced			
 	///				  which is troublesome if you need to call destructors		
 	///				  Won't deallocate if LANGULUS_FEATURE(MANAGED_MEMORY) is	

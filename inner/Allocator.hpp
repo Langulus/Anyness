@@ -45,6 +45,7 @@ namespace Langulus::Anyness::Inner
 
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
 			static Pool* mDefaultPool;
+			static Pool* mLastFoundPool;
 		#endif
 
 	public:

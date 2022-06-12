@@ -8,12 +8,6 @@
 #pragma once
 #include "Reflection.hpp"
 
-#if LANGULUS_FEATURE(MANAGED_MEMORY)
-	LANGULUS_EXCEPTION(MemoryCollision);
-	LANGULUS_EXCEPTION(Deallocation);
-	LANGULUS_EXCEPTION(Reallocation);
-#endif
-
 namespace Langulus::Anyness::Inner
 {
 

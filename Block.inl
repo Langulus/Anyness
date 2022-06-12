@@ -2059,7 +2059,7 @@ namespace Langulus::Anyness
 			while (data != dataEnd) {
 				// It is very likely, that the next pointer is in the same	
 				// entry, so check for that here to avoid a lengthly search	
-				if (!found || !found->Contains(*data)) LANGULUS(UNLIKELY) {
+				if (!found || !found->Contains(*data)) UNLIKELY() {
 					found = Inner::Allocator::Find(mType, *data);
 					if (!found) {
 						++data;
