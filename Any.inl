@@ -18,13 +18,6 @@ namespace Langulus::Anyness
 		Keep();
 	}
 
-	/// Copy construction via Any - does a shallow copy and references 			
-	///	@param other - the container to shallow-copy									
-	inline Any::Any(Any& other) 
-		: Block {other} {
-		Keep();
-	}
-
 	/// Construct by moving another container												
 	///	@param other - the container to move											
 	inline Any::Any(Any&& other) noexcept
@@ -36,13 +29,6 @@ namespace Langulus::Anyness
 	/// Copy construct via Block - does a shallow copy, and references (const)	
 	///	@param other - the container to shallow-copy									
 	inline Any::Any(const Block& other) 
-		: Block {other} {
-		Keep();
-	}
-	
-	/// Copy construct via Block - does a shallow copy, and references			
-	///	@param other - the container to shallow-copy									
-	inline Any::Any(Block& other) 
 		: Block {other} {
 		Keep();
 	}
@@ -70,6 +56,19 @@ namespace Langulus::Anyness
 		other.mValue.mEntry = nullptr;
 	}
 
+	/// Same as shallow-copy but doesn't reference anything							
+	///	@param other - the block to shallow-copy										
+	inline Any::Any(Disowned<Block>&& other) noexcept
+		: Block {other.mValue} {}
+	
+	/// Same as shallow-move but doesn't fully reset other, saving some			
+	/// instructions																				
+	///	@param other - the block to shallow-copy										
+	inline Any::Any(Abandoned<Block>&& other) noexcept
+		: Block {other.mValue} {
+		other.mValue.mEntry = nullptr;
+	}
+
 	/// Destruction																				
 	inline Any::~Any() {
 		Free();
@@ -89,12 +88,16 @@ namespace Langulus::Anyness
 	///	@tparam T - the data type to push (deducible)								
 	///	@param other - the dense value to shallow-copy								
 	template <CT::CustomData T>
-	Any::Any(T& other) {
-		// Since we're pushing a copy, the constantness can be discarded	
-		using MutableT = ::std::remove_const_t<T>;
-		SetType<MutableT, false>();
-		Insert<MutableT, false, Any>(&other, 1);
+	Any::Any(const T& other) {
+		SetType<T, false>();
+		Insert<T, false, Any>(&other, 1);
 	}
+
+	/// This override is required to disambiguate automatically deduced T		
+	/// Dimo, I know you want to remove this, but don't, said Dimo to himself	
+	template <CT::CustomData T>
+	Any::Any(T& other)
+		: Any {const_cast<const T&>(other)} {}
 
 	/// Create an empty Any from a dynamic type and state								
 	///	@param type - type of the container												
@@ -153,16 +156,9 @@ namespace Langulus::Anyness
 			return result;
 		}
 	}
-
-	/// Shallow-copy a constant container													
-	inline Any& Any::operator = (const Any& other) {
-		operator = (const_cast<Any&>(other));
-		MakeConstant();
-		return *this;
-	}
 	
 	/// Shallow-copy a mutable container													
-	inline Any& Any::operator = (Any& other) {
+	inline Any& Any::operator = (const Any& other) {
 		// Just reference the memory of the other Any							
 		if (IsTypeConstrained() && !CastsToMeta(other.mType)) {
 			Throw<Except::Copy>(Logger::Error()
@@ -198,7 +194,10 @@ namespace Langulus::Anyness
 	///	@param other - the item to copy													
 	///	@return a reference to this container											
 	template<CT::Data T>
-	Any& Any::operator = (T& other) {
+	Any& Any::operator = (const T& other) {
+		static_assert(CT::NotAbandonedOrDisowned<T>, 
+			"Copying an abandoned/disowned T is disallowed");
+
 		if constexpr (CT::Same<T, Block>) {
 			// Always reference a Block, by wrapping it in an Any				
 			operator = (Any {other});			
@@ -211,14 +210,14 @@ namespace Langulus::Anyness
 					<< "Bad shallow-copy-assignment for type-constrained Any: from "
 					<< GetToken() << " to " << meta->mToken);
 			}
-			else if (GetUses() == 1 && meta->Is(mType)) {
+
+			if (GetUses() == 1 && meta->Is(mType)) {
 				// Just destroy and reuse memory										
 				// Even better - types match, so we know this container		
 				// is filled with T too, therefore we can use statically		
 				// optimized routines for destruction								
 				CallKnownDestructors<T>();
 				mCount = 0;
-				InsertInner<T>(&other, 1, 0);
 			}
 			else {
 				// Reset and allocate new memory										
@@ -227,11 +226,19 @@ namespace Langulus::Anyness
 				if constexpr (CT::Sparse<T>)
 					MakeSparse();
 				AllocateInner<false>(1);
-				InsertInner<T>(&other, 1, 0);
 			}
+
+			InsertInner<T, true>(&other, 1, 0);
 		}
 
 		return *this;
+	}
+
+	/// This override is required to disambiguate automatically deduced T		
+	/// Dimo, I know you want to remove this, but don't, said Dimo to himself	
+	template<CT::Data T>
+	Any& Any::operator = (T& other) {
+		return operator = (const_cast<const T&>(other));
 	}
 
 	/// Assign by moving anything																
@@ -239,7 +246,58 @@ namespace Langulus::Anyness
 	///	@return a reference to this container											
 	template<CT::Data T>
 	Any& Any::operator = (T&& other) {
-		if constexpr (CT::Same<T, Block>) {
+		if constexpr (CT::Same<T, Disowned<Any>> || CT::Same<T, Abandoned<Any>>) {
+			// Move the other onto this if type is compatible					
+			if (IsTypeConstrained() && !CastsToMeta(other.mValue.mType)) {
+				Throw<Except::Copy>(Logger::Error()
+					<< "Bad shallow-copy-assignment for Any: from "
+					<< GetToken() << " to " << other.mValue.GetToken());
+			}
+
+			Free();
+			Block::operator = (other.mValue);
+			if constexpr (CT::Same<T, Abandoned<Any>>)
+				other.mValue.mEntry = nullptr;
+		}
+		else if constexpr (CT::AbandonedOrDisowned<T>) {
+			using InnerT = typename T::Type;
+
+			if constexpr (CT::Same<InnerT, Block>) {
+				// Never reference disowned/abandoned Block						
+				operator = (Any {Forward<T>(other)});
+			}
+			else {
+				const auto meta = MetaData::Of<Decay<InnerT>>();
+				if (IsTypeConstrained() && !CastsToMeta(meta)) {
+					// Can't assign different type to a type-constrained Any	
+					Throw<Except::Copy>(Logger::Error()
+						<< "Bad shallow-copy-assignment for type-constrained Any: from "
+						<< GetToken() << " to " << meta->mToken);
+				}
+
+				if (GetUses() == 1 && meta->Is(mType)) {
+					// Types match, so we know this container is filled with	
+					// InnerT too, therefore we can use statically optimized 
+					// routines	for destruction										
+					CallKnownDestructors<InnerT>();
+					mCount = 0;
+				}
+				else {
+					// Reset and allocate new memory									
+					Reset();
+					mType = meta;
+					if constexpr (CT::Sparse<InnerT>)
+						MakeSparse();
+					AllocateInner<false>(1);
+				}
+
+				if constexpr (CT::Abandoned<T>)
+					EmplaceInner<InnerT, false>(Move(other.mValue), 0);
+				else
+					InsertInner<InnerT, false>(&other.mValue, 1, 0);
+			}
+		}
+		else if constexpr (CT::Same<T, Block>) {
 			// Always reference a Block, by wrapping it in an Any				
 			operator = (Any {Forward<T>(other)});
 		}
@@ -251,13 +309,13 @@ namespace Langulus::Anyness
 					<< "Bad shallow-copy-assignment for type-constrained Any: from "
 					<< GetToken() << " to " << meta->mToken);
 			}
-			else if (GetUses() == 1 && meta->Is(mType)) {
+
+			if (GetUses() == 1 && meta->Is(mType)) {
 				// Types match, so we know this container is filled with T	
 				// too, therefore we can use statically optimized routines	
 				// for destruction														
 				CallKnownDestructors<T>();
 				mCount = 0;
-				EmplaceInner<T>(Forward<T>(other), 0);
 			}
 			else {
 				// Reset and allocate new memory										
@@ -266,8 +324,9 @@ namespace Langulus::Anyness
 				if constexpr (CT::Sparse<T>)
 					MakeSparse();
 				AllocateInner<false>(1);
-				EmplaceInner<T>(Forward<T>(other), 0);
 			}
+
+			EmplaceInner<T, true>(Forward<T>(other), 0);
 		}
 		
 		return *this;

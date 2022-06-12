@@ -17,14 +17,9 @@ namespace Langulus::Anyness
 	Text::Text(const Text& other)
 		: TAny {other} { }
 
-	/// Shallow-copy construction																
-	///	@param other - the text to shallow-copy										
-	Text::Text(Text& other)
-		: TAny {other} { }
-
 	/// Copy other but do not reference it, because it is disowned					
 	///	@param other - the block to copy													
-	Text::Text(const Disowned<Text>& other) noexcept
+	Text::Text(Disowned<Text>&& other) noexcept
 		: TAny {other.Forward<TAny>()} { }	
 	
 	/// Move other, but do not bother cleaning it up, because it is disowned	
@@ -78,14 +73,6 @@ namespace Langulus::Anyness
 	///	@return a reference to this container											
 	Text& Text::operator = (const Text& rhs) {
 		TAny::operator = (static_cast<const TAny&>(rhs));
-		return *this;
-	}
-	
-	/// Shallow copy assignment an mutable text container								
-	///	@param rhs - the text container to copy										
-	///	@return a reference to this container											
-	Text& Text::operator = (Text& rhs) {
-		TAny::operator = (static_cast<TAny&>(rhs));
 		return *this;
 	}
 

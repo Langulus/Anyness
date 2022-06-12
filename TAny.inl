@@ -55,9 +55,9 @@ namespace Langulus::Anyness
 
 	/// Shallow-copy construction																
 	///	@param other - the TAny to reference											
-	TEMPLATE()
+	/*TEMPLATE()
 	TAny<T>::TAny(TAny& other)
-		: Any {static_cast<Any&>(other)} { }
+		: Any {static_cast<Any&>(other)} { }*/
 
 	/// Move construction																		
 	///	@param other - the TAny to move													
@@ -69,7 +69,7 @@ namespace Langulus::Anyness
 	/// Any can contain anything, so there's a bit of type-checking overhead	
 	///	@param other - the anyness to reference										
 	TEMPLATE()
-	TAny<T>::TAny(Any& other) : TAny {} {
+	TAny<T>::TAny(const Any& other) : TAny {} {
 		if (!CastsToMeta(other.GetType())) {
 			Throw<Except::Copy>(Logger::Error()
 				<< "Bad shallow-copy-construction for TAny: from "
@@ -83,11 +83,11 @@ namespace Langulus::Anyness
 	/// Shallow copy construction from Any, that checks type							
 	/// Any can contain anything, so there's a bit of type-checking overhead	
 	///	@param other - the anyness to reference										
-	TEMPLATE()
+	/*TEMPLATE()
 	TAny<T>::TAny(const Any& other)
 		: TAny {const_cast<Any&>(other)} {
 		MakeConstant();
-	}
+	}*/
 
 	/// Move-construction from Any, that checks type									
 	/// Any can contain anything, so there's a bit of type-checking overhead	
@@ -115,9 +115,9 @@ namespace Langulus::Anyness
 	/// Shallow copy construction from blocks												
 	/// Block can contain anything, so there's a bit of type-checking overhead	
 	///	@param copy - the block to reference											
-	TEMPLATE()
+	/*TEMPLATE()
 	TAny<T>::TAny(Block& copy)
-		: TAny {Any {copy}} { }
+		: TAny {Any {copy}} { }*/
 
 	/// Move construction - moves block and references content						
 	///	@attention since we are not aware if that block is referenced, we		
@@ -131,8 +131,8 @@ namespace Langulus::Anyness
 	/// Copy other but do not reference it, because it is disowned					
 	///	@param other - the block to copy													
 	TEMPLATE()
-	TAny<T>::TAny(const Disowned<TAny>& other) noexcept
-		: Any {other.template Forward<Any>()} { }	
+	TAny<T>::TAny(Disowned<TAny>&& other) noexcept
+		: Any {other.template Forward<Any>()} { }
 	
 	/// Move other, but do not bother cleaning it up, because it is disowned	
 	///	@param other - the block to move													
@@ -176,15 +176,15 @@ namespace Langulus::Anyness
 		TakeAuthority();
 	}
 	
-	TEMPLATE()
+	/*TEMPLATE()
 	TAny<T>& TAny<T>::operator = (const TAny<T>& other) {
 		operator = (const_cast<TAny&>(other));
 		MakeConstant();
 		return *this;
-	}
+	}*/
 
 	TEMPLATE()
-	TAny<T>& TAny<T>::operator = (TAny<T>& other) {
+	TAny<T>& TAny<T>::operator = (const TAny<T>& other) {
 		// First we reference, so that we don't lose the memory, in			
 		// the rare case where memory is same in both containers				
 		other.Keep();
@@ -206,9 +206,9 @@ namespace Langulus::Anyness
 	///	@param other - the value to copy													
 	///	@return a reference to this container											
 	TEMPLATE()
-	template<CT::Data ALT_T>
-	TAny<T>& TAny<T>::operator = (ALT_T& other) {
-		if constexpr (CT::Same<ALT_T, Any>) {
+	//template<CT::Data ALT_T>
+	TAny<T>& TAny<T>::operator = (const T& other) {
+		if constexpr (CT::Same<T, Any>) {
 			// Just reference the memory of the other Any						
 			if (!CastsToMeta(other.mType)) {
 				Throw<Except::Copy>(Logger::Error()
@@ -223,16 +223,16 @@ namespace Langulus::Anyness
 			ResetState();
 			CopyProperties<false>(other);
 		}
-		else if constexpr (CT::Same<ALT_T, Block>) {
+		else if constexpr (CT::Same<T, Block>) {
 			// Always reference a Block, by wrapping it in an Any				
 			operator = (TAny<T> {other});			
 		}
-		else if constexpr (CT::Same<ALT_T, T>) {
+		else /*if constexpr (CT::Same<T, T>)*/ {
 			if (GetUses() == 1) {
 				// Just destroy and reuse memory										
 				CallKnownDestructors<T>();
 				mCount = 0;
-				InsertInner<T>(&other, 1, 0);
+				InsertInner<T, true>(&other, 1, 0);
 			}
 			else {
 				// Reset and allocate new memory										
@@ -240,7 +240,7 @@ namespace Langulus::Anyness
 				operator << (other);
 			}
 		}
-		else {
+		/*else {
 			const auto meta = MetaData::Of<Decay<ALT_T>>();
 			if (!CastsToMeta(meta)) {
 				// Can't assign different type to a type-constrained Any		
@@ -262,7 +262,7 @@ namespace Langulus::Anyness
 				Reset();
 				operator << (other);
 			}
-		}
+		}*/
 
 		return *this;
 	}
@@ -271,16 +271,16 @@ namespace Langulus::Anyness
 	///	@param value - the value to move													
 	///	@return a reference to this container											
 	TEMPLATE()
-	template<CT::Data ALT_T>
-	TAny<T>& TAny<T>::operator = (ALT_T&& other) {
-		if constexpr (CT::Same<ALT_T, Disowned<TAny<T>>> || CT::Same<ALT_T, Abandoned<TAny<T>>>) {
+	//template<CT::Data ALT_T>
+	TAny<T>& TAny<T>::operator = (T&& other) {
+		if constexpr (CT::Same<T, Disowned<TAny>> || CT::Same<T, Abandoned<TAny>>) {
 			// Data is guaranteed to be compatible, replace it					
 			Free();
 			CopyProperties<true>(other.mValue);
-			if constexpr (CT::Same<ALT_T, Abandoned<TAny<T>>>)
+			if constexpr (CT::Same<T, Abandoned<TAny>>)
 				other.mValue.mEntry = nullptr;
 		}
-		else if constexpr (CT::Same<ALT_T, Any> || CT::Same<ALT_T, Disowned<Any>> || CT::Same<ALT_T, Abandoned<Any>>) {
+		else if constexpr (CT::Same<T, Any> || CT::Same<T, Disowned<Any>> || CT::Same<T, Abandoned<Any>>) {
 			// Move the other onto this if type is compatible					
 			if (!CastsToMeta(other.mType)) {
 				Throw<Except::Copy>(Logger::Error()
@@ -291,35 +291,35 @@ namespace Langulus::Anyness
 			// Overwrite everything except the type-constraint					
 			Free();
 			ResetState();
-			if constexpr (CT::Same<ALT_T, Any>) {
+			if constexpr (CT::Same<T, Any>) {
 				CopyProperties<false>(other);
 				other.ResetMemory();
 				other.ResetState();
 			}
 			else {
 				CopyProperties<true>(other.mValue);
-				if constexpr (CT::Same<ALT_T, Abandoned<Any>>)
+				if constexpr (CT::Same<T, Abandoned<Any>>)
 					other.mValue.mEntry = nullptr;
 			}
 		}
-		else if constexpr (CT::Same<ALT_T, Block>) {
+		else if constexpr (CT::Same<T, Block>) {
 			// Always reference a Block, by wrapping it in an Any				
-			operator = (TAny<T> {Forward<Block>(other)});
+			operator = (TAny {Forward<Block>(other)});
 		}
-		else if constexpr (CT::Same<ALT_T, T>) {
+		else /*if constexpr (CT::Same<T, T>)*/ {
 			if (GetUses() == 1) {
 				// Just destroy and reuse memory										
 				CallKnownDestructors<T>();
 				mCount = 0;
-				EmplaceInner<T>(Forward<ALT_T>(other), 0);
+				EmplaceInner<T, true>(Forward<T>(other), 0);
 			}
 			else {
 				// Reset and allocate new memory										
 				Reset();
-				operator << (Forward<ALT_T>(other));
+				operator << (Forward<T>(other));
 			}
 		}
-		else LANGULUS_ASSERT("Can't do move-assignment with incompatible type");
+		//else LANGULUS_ASSERT("Can't do move-assignment with incompatible type");
 		return *this;
 	}
 
@@ -723,7 +723,7 @@ namespace Langulus::Anyness
 				);
 		}
 
-		EmplaceInner<T>(Forward<T>(item), starter);
+		EmplaceInner<T, true>(Forward<T>(item), starter);
 		return 1;
 	}
 
@@ -753,7 +753,7 @@ namespace Langulus::Anyness
 				);
 		}
 
-		InsertInner<T>(items, count, starter);
+		InsertInner<T, true>(items, count, starter);
 		return count;
 	}
 
@@ -782,7 +782,10 @@ namespace Langulus::Anyness
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator << (T&& other) {
 		Allocate<false>(mCount + 1);
-		EmplaceInner<T>(Forward<T>(other), mCount);
+		if constexpr (CT::AbandonedOrDisowned<T>)
+			EmplaceInner<T::Type, false>(Move(other.mValue), mCount);
+		else
+			EmplaceInner<T, true>(Forward<T>(other), mCount);
 		return *this;
 	}
 

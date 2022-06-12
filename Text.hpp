@@ -27,10 +27,9 @@ namespace Langulus::Anyness
 		Text() = default;
 
 		Text(const Text&);
-		Text(Text&);
 		Text(Text&&) noexcept = default;
 
-		Text(const Disowned<Text>&) noexcept;
+		Text(Disowned<Text>&&) noexcept;
 		Text(Abandoned<Text>&&) noexcept;
 
 		Text(const Token&);
@@ -57,7 +56,6 @@ namespace Langulus::Anyness
 		Text(const T&) requires CT::Number<T>;
 
 		Text& operator = (const Text&);
-		Text& operator = (Text&);
 		Text& operator = (Text&&) noexcept;
 
 		Text& operator = (Disowned<Text>&&);

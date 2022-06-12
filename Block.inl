@@ -1023,7 +1023,7 @@ namespace Langulus::Anyness
 	///	@param index - use uiFront or uiBack for pushing to ends					
 	///	@return 1 if item was emplaced													
 	template<CT::Data T, bool MUTABLE, CT::Data WRAPPER>
-	Count Block::Emplace(T&& item, const Index& index) {
+	Count Block::Emplace(T&& item, const Index& index) requires CT::NotAbandonedOrDisowned<T> {
 		static_assert(CT::Mutable<T>, "Can't emplace into immutable container");
 		const auto starter = ConstrainMore<T>(index).GetOffset();
 
@@ -1049,7 +1049,7 @@ namespace Langulus::Anyness
 				);
 		}
 
-		EmplaceInner<T>(Forward<T>(item), starter);
+		EmplaceInner<T, true>(Forward<T>(item), starter);
 		return 1;
 	}
 	
@@ -1059,7 +1059,7 @@ namespace Langulus::Anyness
 	///	@param index - use uiFront or uiBack for pushing to ends					
 	///	@return number of inserted elements												
 	template<CT::Data T, bool MUTABLE, CT::Data WRAPPER>
-	Count Block::Insert(const T* items, const Count count, const Index& index) {
+	Count Block::Insert(const T* items, const Count count, const Index& index) requires CT::NotAbandonedOrDisowned<T> {
 		static_assert(CT::Mutable<T>, "Can't insert into immutable container");
 		const auto starter = ConstrainMore<T>(index).GetOffset();
 
@@ -1088,7 +1088,7 @@ namespace Langulus::Anyness
 				);
 		}
 
-		InsertInner<T>(items, count, starter);
+		InsertInner<T, true>(items, count, starter);
 		return count;
 	}
 
@@ -1099,9 +1099,10 @@ namespace Langulus::Anyness
 	///	@param items - items to push														
 	///	@param count - number of 'items'													
 	///	@param starter - the offset at which to insert								
-	template<CT::Data T>
-	void Block::InsertInner(const T* items, const Count& count, const Offset& starter) {
-		static_assert(CT::Mutable<T>, "Can't insert into immutable container");
+	template<CT::Data T, bool KEEP>
+	void Block::InsertInner(const T* items, const Count& count, const Offset& starter) requires CT::NotAbandonedOrDisowned<T> {
+		static_assert(CT::Mutable<T>,
+			"Can't insert into immutable container");
 		auto data = GetRawAs<T>() + starter;
 
 		// Insert new data																
@@ -1110,31 +1111,41 @@ namespace Langulus::Anyness
 			// Doesn't care about abstract items									
 			CopyMemory(items, data, sizeof(T) * count);
 
-			const auto itemsEnd = items + count;
-			while (items != itemsEnd) {
-				// Reference each pointer												
-				Inner::Allocator::Keep(mType, *items, 1);
-				++items;
+			if constexpr (KEEP) {
+				const auto itemsEnd = items + count;
+				while (items != itemsEnd) {
+					// Reference each pointer											
+					Inner::Allocator::Keep(mType, *items, 1);
+					++items;
+				}
 			}
 		}
 		else {
 			// Abstract stuff is allowed only if sparse							
-			static_assert(!CT::Abstract<T>, "Can't insert abstract item in dense container");
+			static_assert(!CT::Abstract<T>,
+				"Can't insert abstract item in dense container");
 
 			if constexpr (CT::POD<T>) {
 				// Optimized POD insertion												
 				CopyMemory(items, data, sizeof(T) * count);
 			}
-			else if constexpr (CT::CopyMakable<T>) {
-				// Dense data insertion (placement copy-construction)			
+			else {
+				// Dense data insertion 												
 				const auto itemsEnd = items + count;
 				while (items != itemsEnd) {
-					// Reset all items													
-					new (data) T {*items};
+					if constexpr (KEEP) {
+						static_assert(CT::CopyMakable<T>,
+							"Can't insert non-copy-constructible item(s)");
+						new (data) T {*items};
+					}
+					else {
+						static_assert(::std::constructible_from<T, Disowned<T>&&>,
+							"Can't insert non-disowned-constructible item(s)");
+						new (data) T {Disown(*items)};
+					}
 					++data; ++items;
 				}
 			}
-			else LANGULUS_ASSERT("Can't insert non-copy-constructible item(s)");
 		}
 
 		mCount += count;
@@ -1144,9 +1155,10 @@ namespace Langulus::Anyness
 	///	@attention this is an inner function and should be used with caution	
 	///	@param item - item to push															
 	///	@param starter - the offset at which to insert								
-	template<CT::Data T>
-	void Block::EmplaceInner(T&& item, const Offset& starter) {
-		static_assert(CT::Mutable<T>, "Can't emplace into immutable container");
+	template<CT::Data T, bool KEEP>
+	void Block::EmplaceInner(T&& item, const Offset& starter) requires CT::NotAbandonedOrDisowned<T> {
+		static_assert(CT::Mutable<T>,
+			"Can't emplace into immutable container");
 		auto data = GetRawAs<T>() + starter;
 
 		// Insert new data																
@@ -1155,16 +1167,27 @@ namespace Langulus::Anyness
 			*data = item;
 
 			// Reference the pointer's memory										
-			Inner::Allocator::Keep(mType, item, 1);
+			if constexpr (KEEP)
+				Inner::Allocator::Keep(mType, item, 1);
 		}
 		else {
-			static_assert(!CT::Abstract<T>, "Can't emplace abstract item in dense container");
+			static_assert(!CT::Abstract<T>,
+				"Can't emplace abstract item in dense container");
 
 			// Dense data insertion (placement move-construction)				
-			if constexpr (CT::MoveMakable<T>)
-				new (data) T {Forward<T>(item)};
-			else
-				LANGULUS_ASSERT("Can't emplace non-move-constructible item");
+			if constexpr (KEEP) {
+				if constexpr (CT::MoveMakable<T>)
+					new (data) T {Forward<T>(item)};
+				else if constexpr (CT::CopyMakable<T>)
+					new (data) T {item};
+				else
+					LANGULUS_ASSERT("Can't emplace non-move/copy-constructible item");
+			}
+			else {
+				static_assert(::std::constructible_from<T, Abandoned<T>&&>,
+					"Can't insert non-abandoned-constructible item(s)");
+				new (data) T {Abandon(item)};
+			}
 		}
 
 		++mCount;

@@ -32,27 +32,31 @@ namespace Langulus::Anyness
 
 		constexpr Any() noexcept = default;
 		Any(const Any&);
-		Any(Any&);
 		Any(Any&&) noexcept;
 		
 		Any(const Block&);
-		Any(Block&);
 		Any(Block&&);
 		
 		Any(Disowned<Any>&&) noexcept;
 		Any(Abandoned<Any>&&) noexcept;		
 
+		Any(Disowned<Block>&&) noexcept;
+		Any(Abandoned<Block>&&) noexcept;
+
 		template<CT::CustomData T>
-		Any(T&&);
+		Any(const T&);
 		template<CT::CustomData T>
 		Any(T&);
+		template<CT::CustomData T>
+		Any(T&&);
 
 		~Any();
 	
 		Any& operator = (const Any&);
-		Any& operator = (Any&);
 		Any& operator = (Any&&);
 	
+		template<CT::Data T>
+		Any& operator = (const T&);
 		template<CT::Data T>
 		Any& operator = (T&);
 		template<CT::Data T>

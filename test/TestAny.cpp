@@ -319,7 +319,7 @@ SCENARIO("Any", "[containers]") {
 					Allocator::CollectGarbage();
 					std::vector<Any> source(meter.runs());
 					for (auto& i : source)
-						i = original_int;
+						i = Disowned(original_int);
 
 					std::vector<Any> storage(meter.runs());
 					meter.measure([&](int i) {
@@ -378,7 +378,7 @@ SCENARIO("Any", "[containers]") {
 					Allocator::CollectGarbage();
 					std::vector<Any> source(meter.runs());
 					for (auto& i : source)
-						i = original_int;
+						i = Disowned(original_int);
 
 					std::vector<Any> storage(meter.runs());
 					meter.measure([&](int i) {

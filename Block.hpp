@@ -385,10 +385,10 @@ namespace Langulus::Anyness
 		void Swap(Index, Index);
 	
 		template<CT::Data T, bool MUTABLE = true, CT::Data WRAPPER>
-		Count Emplace(T&&, const Index& = Index::Back);
+		Count Emplace(T&&, const Index& = Index::Back) requires CT::NotAbandonedOrDisowned<T>;
 	
 		template<CT::Data T, bool MUTABLE = true, CT::Data WRAPPER>
-		Count Insert(const T*, Count = 1, const Index& = Index::Back);
+		Count Insert(const T*, Count = 1, const Index& = Index::Back) requires CT::NotAbandonedOrDisowned<T>;
 		Count InsertBlock(const Block&, const Index& = Index::Back);
 		Count InsertBlock(Block&&, const Index& = Index::Back);
 	
@@ -456,10 +456,10 @@ namespace Langulus::Anyness
 		void AllocateInner(const Count&);
 		auto RequestSize(const Count&) const noexcept;
 	
-		template<CT::Data T>
-		void EmplaceInner(T&&, const Offset&);
-		template<CT::Data T>
-		void InsertInner(const T*, const Count&, const Offset&);
+		template<CT::Data T, bool KEEP>
+		void EmplaceInner(T&&, const Offset&) requires CT::NotAbandonedOrDisowned<T>;
+		template<CT::Data T, bool KEEP>
+		void InsertInner(const T*, const Count&, const Offset&) requires CT::NotAbandonedOrDisowned<T>;
 
 		static void CopyMemory(const void*, void*, const Size&) noexcept;
 		static void MoveMemory(const void*, void*, const Size&) noexcept;

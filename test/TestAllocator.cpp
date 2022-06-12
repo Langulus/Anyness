@@ -245,7 +245,11 @@ SCENARIO("Testing pool functions", "[allocator]") {
 		}
 
 		WHEN("A small entry is allocated inside a new huge pool") {
-			pool = Allocator::AllocatePool(Pool::DefaultPoolSize * 1024);
+			if constexpr (Bitness == 32)
+				pool = Allocator::AllocatePool(Pool::DefaultPoolSize * 1024);
+			else
+				pool = Allocator::AllocatePool(Pool::DefaultPoolSize * 1024 * 4);
+
 			REQUIRE(pool);
 
 			auto entry = pool->Allocate(5);
@@ -270,7 +274,7 @@ SCENARIO("Testing pool functions", "[allocator]") {
 						if (i)
 							pool->Deallocate(i);
 						else
-							Throw<Except::Deallocation>("The test is invalid, because the pool got full - use a bigger pool");
+							Throw<Except::Deallocate>("The test is invalid, because the pool got full - use a bigger pool");
 					}
 				};
 
@@ -284,7 +288,7 @@ SCENARIO("Testing pool functions", "[allocator]") {
 						if (i)
 							::std::free(i);
 						else
-							Throw<Except::Deallocation>("The test is invalid, because malloc returned a zero");
+							Throw<Except::Deallocate>("The test is invalid, because malloc returned a zero");
 					}
 				};
 
@@ -298,7 +302,7 @@ SCENARIO("Testing pool functions", "[allocator]") {
 						if (i)
 							pool->Deallocate(i);
 						else
-							Throw<Except::Deallocation>("The test is invalid, because the pool got full - use a bigger pool");
+							Throw<Except::Deallocate>("The test is invalid, because the pool got full - use a bigger pool");
 					}
 				};
 
@@ -312,7 +316,7 @@ SCENARIO("Testing pool functions", "[allocator]") {
 						if (i)
 							::std::free(i);
 						else
-							Throw<Except::Deallocation>("The test is invalid, because malloc returned a zero");
+							Throw<Except::Deallocate>("The test is invalid, because malloc returned a zero");
 					}
 				};
 
@@ -321,7 +325,7 @@ SCENARIO("Testing pool functions", "[allocator]") {
 					for (auto& i : storage) {
 						i = pool->Allocate(32);
 						if (!i)
-							Throw<Except::Deallocation>("The test is invalid, because the pool got full - use a bigger pool");
+							Throw<Except::Deallocate>("The test is invalid, because the pool got full - use a bigger pool");
 					}
 
 					meter.measure([&](int i) {
@@ -340,7 +344,7 @@ SCENARIO("Testing pool functions", "[allocator]") {
 					for (auto& i : storage) {
 						i = ::std::malloc(32);
 						if (!i)
-							Throw<Except::Deallocation>("The test is invalid, because malloc returned a zero");
+							Throw<Except::Deallocate>("The test is invalid, because malloc returned a zero");
 					}
 
 					meter.measure([&](int i) {
@@ -359,7 +363,7 @@ SCENARIO("Testing pool functions", "[allocator]") {
 					for (auto& i : storage) {
 						i = pool->Allocate(5);
 						if (!i)
-							Throw<Except::Deallocation>("The test is invalid, because the pool got full - use a bigger pool");
+							Throw<Except::Deallocate>("The test is invalid, because the pool got full - use a bigger pool");
 					}
 
 					meter.measure([&](int i) {
@@ -378,7 +382,7 @@ SCENARIO("Testing pool functions", "[allocator]") {
 					for (auto& i : storage) {
 						i = ::std::malloc(5);
 						if (!i)
-							Throw<Except::Deallocation>("The test is invalid, because malloc returned a zero");
+							Throw<Except::Deallocate>("The test is invalid, because malloc returned a zero");
 					}
 
 					meter.measure([&](int i) {
@@ -510,7 +514,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 						if (i)
 							Allocator::Deallocate(i);
 						else
-							Throw<Except::Deallocation>("The test is invalid, because memory got full");
+							Throw<Except::Deallocate>("The test is invalid, because memory got full");
 					}
 				};
 
@@ -525,7 +529,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 						if (i)
 							::std::free(i);
 						else
-							Throw<Except::Deallocation>("The test is invalid, because memory got full");
+							Throw<Except::Deallocate>("The test is invalid, because memory got full");
 					}
 				};
 
@@ -540,7 +544,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 						if (i)
 							Allocator::Deallocate(i);
 						else
-							Throw<Except::Deallocation>("The test is invalid, because memory got full");
+							Throw<Except::Deallocate>("The test is invalid, because memory got full");
 					}
 				};
 
@@ -555,7 +559,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 						if (i)
 							::std::free(i);
 						else
-							Throw<Except::Deallocation>("The test is invalid, because memory got full");
+							Throw<Except::Deallocate>("The test is invalid, because memory got full");
 					}
 				};
 
@@ -570,7 +574,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 						if (i)
 							Allocator::Deallocate(i);
 						else
-							Throw<Except::Deallocation>("The test is invalid, because memory got full");
+							Throw<Except::Deallocate>("The test is invalid, because memory got full");
 					}
 				};
 
@@ -585,7 +589,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 						if (i)
 							::std::free(i);
 						else
-							Throw<Except::Deallocation>("The test is invalid, because memory got full");
+							Throw<Except::Deallocate>("The test is invalid, because memory got full");
 					}
 				};
 			#endif

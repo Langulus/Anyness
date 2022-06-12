@@ -22,23 +22,20 @@ namespace Langulus::Anyness
 		Bytes() = default;
 
 		Bytes(const Bytes&);
-		Bytes(Bytes&);
 		Bytes(Bytes&&) noexcept = default;
 
 		Bytes(const TAny&);
-		Bytes(TAny&);
 		Bytes(TAny&&) noexcept;
 
 		Bytes(const void*, const Size&);
 		Bytes(void*, const Size&);
 		
-		Bytes(const Disowned<Bytes>&) noexcept;
+		Bytes(Disowned<Bytes>&&) noexcept;
 		Bytes(Abandoned<Bytes>&&) noexcept;
 		
 		~Bytes();
 
 		Bytes& operator = (const Bytes&);
-		Bytes& operator = (Bytes&);
 		Bytes& operator = (Bytes&&) noexcept;
 
 		Bytes& operator = (Disowned<Bytes>&&);

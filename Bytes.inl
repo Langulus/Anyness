@@ -16,19 +16,9 @@ namespace Langulus::Anyness
 	inline Bytes::Bytes(const Bytes& other)
 		: TAny {other} { }
 
-	/// Construct via mutable shallow copy													
-	///	@param other - the bytes to shallow-copy										
-	inline Bytes::Bytes(Bytes& other)
-		: TAny {other} { }
-
 	/// Construct via constant shallow copy of TAny										
 	///	@param other - the bytes to shallow-copy										
 	inline Bytes::Bytes(const TAny& other)
-		: TAny {other} { }
-
-	/// Construct via shallow copy of TAny													
-	///	@param other - the bytes to shallow-copy										
-	inline Bytes::Bytes(TAny& other)
 		: TAny {other} { }
 
 	/// Construct via move of TAny															
@@ -38,7 +28,7 @@ namespace Langulus::Anyness
 
 	/// Construct via disowned copy															
 	///	@param other - the bytes to move													
-	inline Bytes::Bytes(const Disowned<Bytes>& other) noexcept
+	inline Bytes::Bytes(Disowned<Bytes>&& other) noexcept
 		: TAny {other.Forward<TAny>()} { }
 	
 	/// Construct via abandoned move															
@@ -68,14 +58,6 @@ namespace Langulus::Anyness
 	///	@return a reference to this container											
 	inline Bytes& Bytes::operator = (const Bytes& rhs) {
 		TAny::operator = (static_cast<const TAny&>(rhs));
-		return *this;
-	}
-
-	/// Shallow copy assignment from mutable byte container							
-	///	@param rhs - the byte container to shallow-copy								
-	///	@return a reference to this container											
-	inline Bytes& Bytes::operator = (Bytes& rhs) {
-		TAny::operator = (static_cast<TAny&>(rhs));
 		return *this;
 	}
 

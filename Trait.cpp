@@ -15,11 +15,6 @@ namespace Langulus::Anyness
 	Trait::Trait(const Any& copy)
 		: Any {copy} { }
 
-	/// Copy construction from mutable Any													
-	///	@param copy - the block to copy													
-	Trait::Trait(Any& copy)
-		: Any {copy} { }
-
 	/// Move construction from Any															
 	///	@param copy - the block to copy													
 	Trait::Trait(Any&& copy) noexcept
@@ -28,11 +23,6 @@ namespace Langulus::Anyness
 	/// Copy construction from immutable block											
 	///	@param copy - the block to copy													
 	Trait::Trait(const Block& copy)
-		: Any {copy} { }
-
-	/// Copy construction from mutable block												
-	///	@param copy - the block to copy													
-	Trait::Trait(Block& copy)
 		: Any {copy} { }
 
 	/// Move construction from Block															
@@ -49,12 +39,6 @@ namespace Langulus::Anyness
 		: Any {static_cast<const Any&>(copy)}
 		, mTraitType {copy.mTraitType} { }
 
-	/// Shallow-copy construction from mutable trait									
-	///	@param copy - the trait to copy													
-	Trait::Trait(Trait& copy)
-		: Any {static_cast<Any&>(copy)}
-		, mTraitType {copy.mTraitType} { }
-
 	/// Move construction																		
 	///	@param copy - the trait to copy													
 	Trait::Trait(Trait&& copy) noexcept
@@ -65,13 +49,6 @@ namespace Langulus::Anyness
 	///	@param type - the trait meta														
 	///	@param data - the data for the trait											
 	Trait::Trait(TMeta type, const Any& data)
-		: Any {data}
-		, mTraitType {type} { }
-
-	/// Manual construction by shallow-copying a mutable container					
-	///	@param type - the trait meta														
-	///	@param data - the data for the trait											
-	Trait::Trait(TMeta type, Any& data)
 		: Any {data}
 		, mTraitType {type} { }
 
@@ -86,13 +63,6 @@ namespace Langulus::Anyness
 	///	@param type - the trait meta														
 	///	@param data - the data for the trait											
 	Trait::Trait(TMeta type, const Block& data)
-		: Any {data}
-		, mTraitType {type} { }
-
-	/// Manual construction by shallow-copying a mutable block						
-	///	@param type - the trait meta														
-	///	@param data - the data for the trait											
-	Trait::Trait(TMeta type, Block& data)
 		: Any {data}
 		, mTraitType {type} { }
 
@@ -181,24 +151,9 @@ namespace Langulus::Anyness
 		return *this;
 	}
 
-	/// Shallow copy operator with trait type												
-	///	@param other - the trait to copy													
-	Trait& Trait::operator = (Trait& other) {
-		Any::operator = (static_cast<Any&>(other));
-		mTraitType = other.mTraitType;
-		return *this;
-	}
-
 	/// Shallow copy operator for block only, leaving trait unchanged (const)	
 	///	@param other - the block to copy													
 	Trait& Trait::operator = (const Block& other) {
-		Any::operator = (other);
-		return *this;
-	}
-
-	/// Shallow copy operator for block only, leaving trait unchanged				
-	///	@param other - the block to copy													
-	Trait& Trait::operator = (Block& other) {
 		Any::operator = (other);
 		return *this;
 	}

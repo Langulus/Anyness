@@ -395,7 +395,7 @@ namespace Langulus::Anyness::Inner
 	///	@return index above the given one												
 	inline Offset Pool::UpIndex(const Offset index) const noexcept {
 		// Credit goes to Vladislav Penchev											
-		return index >> (LSB(index) + 1u);
+		return index >> (LSB(index) + Offset {1});
 	}
 
 	///  Check if a memory address resigns inside pool's range						

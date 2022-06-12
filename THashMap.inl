@@ -836,8 +836,15 @@ namespace Langulus::Anyness
 		// closer to it. Moving is costly, unless you use pointers			
 		while (*psl > 1) {
 			psl[-1] = (*psl) - 1;
+			#if LANGULUS_COMPILER_GCC()
+				#pragma GCC diagnostic push
+				#pragma GCC diagnostic ignored "-Wplacement-new"
+			#endif
 			new (candidate - 1) K {Move(*candidate)};
 			new (value - 1) V {Move(*value)};
+			#if LANGULUS_COMPILER_GCC()
+				#pragma GCC diagnostic pop
+			#endif
 			RemoveInner<false, V>(value);
 			RemoveInner<false, K>(candidate);
 			*psl = 0;
