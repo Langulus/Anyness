@@ -158,6 +158,9 @@ namespace Langulus::Anyness
 		if (mCount) {
 			const auto byteSize = RequestByteSize(mCount);
 			result.mEntry = Inner::Allocator::Allocate(byteSize);
+			if (!result.mEntry)
+				Throw<Except::Allocate>("Out of memory on cloning text");
+
 			result.mRaw = result.mEntry->GetBlockStart();
 			result.mReserved = byteSize;
 			CopyMemory(mRaw, result.mRaw, mCount);
@@ -177,9 +180,13 @@ namespace Langulus::Anyness
 		if (mReserved > mCount && GetRaw()[mCount] == '\0')
 			return *this;
 
+		//TODO: always cloning? why tho? what if this text has one use only?
 		Text result {Disown(*this)};
 		const auto byteSize = RequestByteSize(result.mReserved + 1);
 		result.mEntry = Inner::Allocator::Allocate(byteSize);
+		if (!result.mEntry)
+			Throw<Except::Allocate>("Out of memory on terminating text");
+
 		result.mRaw = result.mEntry->GetBlockStart();
 		result.mReserved = byteSize;
 		CopyMemory(mRaw, result.mRaw, mCount);

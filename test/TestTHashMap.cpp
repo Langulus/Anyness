@@ -278,7 +278,7 @@ SCENARIO("THashMap", "[containers]") {
 						i << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
 
 					meter.measure([&](int i) {
-						storage[i] << darray2[0] << darray2[1] << darray2[2] << darray2[3] << darray2[4];
+						return storage[i] << darray2[0] << darray2[1] << darray2[2] << darray2[3] << darray2[4];
 					});
 				};
 

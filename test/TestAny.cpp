@@ -203,18 +203,36 @@ SCENARIO("Any", "[containers]") {
 
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: 9:1 performance - needs optimization
 				BENCHMARK_ADVANCED("Anyness::Any::operator = (single pointer copy)") (Catch::Benchmark::Chronometer meter) {
-					Allocator::CollectGarbage();
-					std::vector<Any> storage(meter.runs());
-					meter.measure([&](int i) {
-						return storage[i] = value;
-					});
+					if (meter.runs() == 131072/2) {
+						Allocator::CollectGarbage();
+						std::vector<Any> storage(meter.runs());
+
+						meter.measure([&](int i) {
+							return storage[i] = original_int;
+						});
+
+						Allocator::CollectGarbage();
+						storage.clear();
+						Allocator::CollectGarbage();
+					}
+					else {
+						Allocator::CollectGarbage();
+						std::vector<Any> storage(meter.runs());
+
+						meter.measure([&](int i) {
+							return storage[i] = original_int;
+						});
+					}
 				};
 
 				BENCHMARK_ADVANCED("std::any::operator = (single pointer copy)") (Catch::Benchmark::Chronometer meter) {
 					Allocator::CollectGarbage();
 					std::vector<std::any> storage(meter.runs());
+					if (storage.size() != meter.runs())
+						Throw<Except::Allocate>("Invalid benchmark due to insufficient memory");
+
 					meter.measure([&](int i) {
-						return storage[i] = value;
+						return storage[i] = original_int;
 					});
 				};
 			#endif
@@ -253,7 +271,7 @@ SCENARIO("Any", "[containers]") {
 					Allocator::CollectGarbage();
 					std::vector<Any> storage(meter.runs());
 					meter.measure([&](int i) {
-						return storage[i] = Move(value);
+						return storage[i] = Move(original_int);
 					});
 				};
 
@@ -261,7 +279,7 @@ SCENARIO("Any", "[containers]") {
 					Allocator::CollectGarbage();
 					std::vector<std::any> storage(meter.runs());
 					meter.measure([&](int i) {
-						return storage[i] = Move(value);
+						return storage[i] = Move(original_int);
 					});
 				};
 			#endif

@@ -62,6 +62,8 @@ namespace Langulus::Anyness::Inner
 		Allocation() = delete;
 		Allocation(const Allocation&) = delete;
 		Allocation(Allocation&&) = delete;
+		~Allocation() = delete;
+
 		constexpr Allocation(const Size&, Pool*) noexcept;
 
 		NOD() static constexpr Size GetSize() noexcept;

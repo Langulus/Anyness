@@ -46,6 +46,9 @@ namespace Langulus::Anyness
 		if (mCount) {
 			const auto byteSize = RequestByteSize(mCount);
 			result.mEntry = Inner::Allocator::Allocate(byteSize);
+			if (!result.mEntry)
+				Throw<Except::Allocate>("Out of memory on cloning byte container");
+
 			result.mRaw = result.mEntry->GetBlockStart();
 			result.mReserved = byteSize;
 			CopyMemory(mRaw, result.mRaw, mCount);

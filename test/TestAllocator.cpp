@@ -405,6 +405,11 @@ SCENARIO("Testing pool functions", "[allocator]") {
 				auto entry = pool->Allocate(5);
 				REQUIRE(entry);
 				entry->Keep(i);
+
+				// Fill the entire entry to check for heap corruptions
+				for (Size i = 0; i < entry->GetAllocatedSize(); ++i) {
+					entry->GetBlockStart()[i] = {};
+				}
 			}
 
 			// Add more
@@ -435,6 +440,7 @@ SCENARIO("Testing pool functions", "[allocator]") {
 			auto entry = pool->Allocate(Allocation::GetMinAllocation());
 
 			THEN("Requirements should be met") {
+				REQUIRE(entry);
 				REQUIRE(pool->GetAllocatedByFrontend() == entry->GetTotalSize());
 				REQUIRE(pool->GetMinAllocation() == Roof2(entry->GetTotalSize()));
 				REQUIRE(pool->GetMaxEntries() == pool->GetAllocatedByBackend() / pool->GetMinAllocation());
@@ -470,6 +476,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 			entry = Allocator::Allocate(512);
 
 			THEN("Requirements should be met") {
+				REQUIRE(entry);
 				REQUIRE(entry->GetBlockStart() != nullptr);
 				REQUIRE(entry->GetBlockStart() != reinterpret_cast<Byte*>(entry));
 				REQUIRE(reinterpret_cast<Pointer>(entry) % Alignment == 0);
@@ -587,6 +594,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 		WHEN("Referenced once") {
 			Allocator::CollectGarbage();
 			entry = Allocator::Allocate(512);
+			REQUIRE(entry);
 			entry->Keep();
 
 			THEN("Requirements should be met") {
@@ -602,6 +610,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 		WHEN("Referenced multiple times") {
 			Allocator::CollectGarbage();
 			entry = Allocator::Allocate(512);
+			REQUIRE(entry);
 			entry->Keep(5);
 
 			THEN("Requirements should be met") {
@@ -617,6 +626,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 		WHEN("Dereferenced once without deletion") {
 			Allocator::CollectGarbage();
 			entry = Allocator::Allocate(512);
+			REQUIRE(entry);
 			entry->Keep();
 			entry->Free();
 
@@ -633,6 +643,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 		WHEN("Dereferenced multiple times without deletion") {
 			Allocator::CollectGarbage();
 			entry = Allocator::Allocate(512);
+			REQUIRE(entry);
 			entry->Keep(5);
 			entry->Free(4);
 
@@ -649,6 +660,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 		WHEN("Dereferenced once with deletion") {
 			Allocator::CollectGarbage();
 			entry = Allocator::Allocate(512);
+			REQUIRE(entry);
 			Allocator::Deallocate(entry);
 
 			THEN("We shouldn't be able to access the memory any longer, but it is still under jurisdiction") {
@@ -661,6 +673,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 		WHEN("Dereferenced multiple times with deletion") {
 			Allocator::CollectGarbage();
 			entry = Allocator::Allocate(512);
+			REQUIRE(entry);
 			entry->Keep(5);
 			Allocator::Deallocate(entry);
 

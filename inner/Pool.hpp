@@ -17,6 +17,8 @@ namespace Langulus::Anyness::Inner
 		Pool() = delete;
 		Pool(const Pool&) = delete;
 		Pool(Pool&&) = delete;
+		~Pool() = delete;
+
 		Pool(const Size&, void*) noexcept;
 
 		// Default pool allocation is 1 MB											

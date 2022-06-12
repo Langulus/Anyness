@@ -301,7 +301,7 @@ namespace Langulus::Anyness
 		// Original name of the type													
 		Token mName;
 		// Each reflected type has an unique hash									
-		Hash mHash;
+		Hash mHash {};
 
 		template<CT::Data T>
 		static constexpr Hash GetHash() noexcept;
@@ -349,7 +349,7 @@ namespace Langulus::Anyness
 		// Minimal allocation, in bytes												
 		Size mAllocationPage {};
 		// Precomputed counts indexed by MSB (avoids division by stride)	
-		Size mAllocationTable[sizeof(Size)*8];
+		Size mAllocationTable[sizeof(Size) * 8] {};
 		// File extensions used, separated by commas								
 		Token mFileExtension {};
 

@@ -114,10 +114,7 @@ namespace Langulus::Anyness
 		}
 		else if constexpr (CT::Deep<T>) {
 			// Static cast to Block if CT::Deep										
-			if constexpr (CT::Constant<T>)
-				result = static_cast<const Block&>(value);
-			else
-				result = static_cast<Block&>(value);
+			result = static_cast<const Block&>(value);
 		}
 		else {
 			// Any other value gets wrapped inside a temporary Block			
@@ -252,6 +249,9 @@ namespace Langulus::Anyness
 				// significantly reduces the possiblity for a move)			
 				// Also, make sure to free the previous mEntry if moved		
 				mEntry = Inner::Allocator::Reallocate(request.mByteSize, mEntry);
+				if (!mEntry)
+					Throw<Except::Allocate>("Out of memory on block reallocation");
+
 				if (mEntry != previousBlock.mEntry) {
 					// Memory moved, and we should call move-construction		
 					mRaw = mEntry->GetBlockStart();
@@ -269,6 +269,9 @@ namespace Langulus::Anyness
 				// Memory is used from multiple locations, and we must		
 				// copy the memory for this block - we can't move it!			
 				mEntry = Inner::Allocator::Allocate(request.mByteSize);
+				if (!mEntry)
+					Throw<Except::Allocate>("Out of memory on additional block allocation");
+
 				mRaw = mEntry->GetBlockStart();
 				mCount = 0;
 				CallCopyConstructors(previousBlock.mCount, previousBlock);
@@ -283,6 +286,9 @@ namespace Langulus::Anyness
 		else {
 			// Allocate a fresh set of elements										
 			mEntry = Inner::Allocator::Allocate(request.mByteSize);
+			if (!mEntry)
+				Throw<Except::Allocate>("Out of memory on a fresh block allocation");
+
 			mRaw = mEntry->GetBlockStart();
 			if constexpr (CREATE) {
 				// Default-construct everything										

@@ -25,19 +25,19 @@ namespace Langulus::Anyness::Inner
 	///		Allocation. For internal use only!											
 	template<AllocationPrimitive T>
 	T* AlignedAllocate(const Size& size) SAFETY_NOEXCEPT() {
-		const auto finalSize = T::GetNewAllocationSize(size);
+		const auto finalSize = T::GetNewAllocationSize(size) + Alignment;
 		const auto base = ::std::malloc(finalSize);
 		if (!base) LANGULUS(UNLIKELY)
 			return nullptr;
 
 		// Align pointer to LANGULUS_ALIGN()										
 		auto ptr = reinterpret_cast<T*>(
-			(reinterpret_cast<Pointer>(base) + Pointer {Alignment})
-			& ~Pointer {Alignment - 1}
+			(reinterpret_cast<Size>(base) + Alignment)
+			& ~(Alignment - Size {1})
 		);
 
 		// Place the entry there														
-		new (ptr) T {finalSize - T::GetSize(), base};
+		new (ptr) T {size, base};
 		return ptr;
 	}
 
@@ -69,17 +69,7 @@ namespace Langulus::Anyness::Inner
 	///	@param size - the usable number of bytes required							
 	///	@return the byte size for a new Allocation, including padding			
 	constexpr Size Allocation::GetNewAllocationSize(const Size& size) noexcept {
-		constexpr Size allocationSize = Allocation::GetSize();
-		static_assert((allocationSize % Alignment) == 0,
-			"Allocation structure is not properly sized");
-
-		#if LANGULUS_FEATURE(MANAGED_MEMORY)
-			// In this case, alignment is ensured by the memory pool			
-			return Allocation::GetSize() + size;
-		#else
-			// In this case, Allocation is the main primitive, so align		
-			return Alignment + Allocation::GetSize() + size;
-		#endif
+		return Allocation::GetSize() + size;
 	}
 
 	/// Get the minimum possible allocation, including the overhead				

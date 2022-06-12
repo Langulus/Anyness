@@ -223,6 +223,11 @@ namespace Langulus::Anyness
 
 		// Allocate keys and info														
 		result.mKeys = Inner::Allocator::Allocate(mKeys->GetAllocatedSize());
+		if (!result.mKeys) {
+			result.mValues.mEntry = nullptr;
+			Throw<Except::Allocate>("Out of memory on cloning THashMap keys");
+		}
+
 		result.mInfo = reinterpret_cast<uint8_t*>(result.mKeys) 
 			+ (mInfo - reinterpret_cast<const uint8_t*>(mKeys));
 
@@ -235,6 +240,12 @@ namespace Langulus::Anyness
 
 		// Allocate and clone values													
 		result.mValues.mEntry = Inner::Allocator::Allocate(result.mValues.GetReservedSize());
+		if (!result.mValues.mEntry) {
+			Inner::Allocator::Deallocate(result.mKeys);
+			result.mValues.mEntry = nullptr;
+			Throw<Except::Allocate>("Out of memory on cloning THashMap values");
+		}
+
 		result.mValues.mRaw = result.mValues.mEntry->GetBlockStart();
 		CloneInner(result.mValues.mCount, GetInfo(), 
 			GetRawValues(), GetRawValuesEnd(), result.GetRawValues());
@@ -498,6 +509,9 @@ namespace Langulus::Anyness
 			);
 		}
 
+		if (!mKeys)
+			Throw<Except::Allocate>("Out of memory on allocating/reallocating THashMap keys");
+
 		// Precalculate the info pointer, it's costly							
 		auto oldInfo = mInfo;
 		mInfo = reinterpret_cast<uint8_t*>(
@@ -533,6 +547,12 @@ namespace Langulus::Anyness
 			mValues.mEntry = Inner::Allocator::Reallocate(count * sizeof(V), oldValues);
 		else
 			mValues.mEntry = Inner::Allocator::Allocate(count * sizeof(V));
+
+		if (!mValues.mEntry) {
+			Inner::Allocator::Deallocate(mKeys);
+			Throw<Except::Allocate>("Out of memory on allocating/reallocating THashMap values");
+		}
+
 		mValues.mRaw = mValues.mEntry->GetBlockStart();
 		mValues.mReserved = count;
 		mValues.mCount = 0;

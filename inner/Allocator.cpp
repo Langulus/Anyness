@@ -20,8 +20,9 @@ namespace Langulus::Anyness::Inner
 	
 	/// Allocate a memory entry																
 	///	@attention doesn't call any constructors										
+	///	@attention doesn't throw - check if return is nullptr						
 	///	@param size - the number of bytes to allocate								
-	///	@return the allocation																
+	///	@return the allocation, or nullptr if out of memory						
 	Allocation* Allocator::Allocate(const Size& size) SAFETY_NOEXCEPT() {
 		SAFETY(if (0 == size)
 			Throw<Except::Allocate>("Zero allocation is not allowed"));
@@ -34,7 +35,7 @@ namespace Langulus::Anyness::Inner
 				if (memory) {
 					#if LANGULUS_FEATURE(MEMORY_STATISTICS)
 						mStatistics.mEntries += 1;
-						mStatistics.mBytesAllocatedByFrontend += memory->GetAllocatedSize();
+						mStatistics.mBytesAllocatedByFrontend += memory->GetTotalSize();
 					#endif
 					return memory;
 				}
@@ -49,6 +50,7 @@ namespace Langulus::Anyness::Inner
 				Pool::DefaultPoolSize, 
 				Roof2(Allocation::GetNewAllocationSize(size))
 			);
+
 			pool = AllocatePool(poolSize);
 			if (!pool)
 				return nullptr;
@@ -71,6 +73,72 @@ namespace Langulus::Anyness::Inner
 				mStatistics.mEntries += 1;
 			#endif
 			return result;
+		#endif
+	}
+
+	/// Reallocate a memory entry																
+	/// This actually works only when MANAGED_MEMORY feature is enabled			
+	///	@attention never calls any constructors										
+	///	@attention never copies any data													
+	///	@attention never deallocates previous entry									
+	///	@attention returned entry might be different from the previous			
+	///	@attention doesn't throw - check if return is nullptr						
+	///	@param size - the number of bytes to allocate								
+	///	@param previous - the previous memory entry									
+	///	@return the reallocated memory entry, or nullptr if out of memory		
+	Allocation* Allocator::Reallocate(const Size& size, Allocation* previous) SAFETY_NOEXCEPT() {
+		#if LANGULUS(SAFE)
+			if (previous == nullptr)
+				Throw<Except::Allocate>("Reallocating nullptr");
+			if (size == previous->GetAllocatedSize())
+				Throw<Except::Allocate>("Reallocation suboptimal - size is same as previous");
+			if (size == 0)
+				Throw<Except::Allocate>("Zero reallocation is not allowed");
+			if (previous->mReferences == 0)
+				Throw<Except::Allocate>("Deallocating an unused allocation");
+		#endif
+
+		#if LANGULUS_FEATURE(MANAGED_MEMORY)
+			// New size is bigger, precautions must be taken					
+			const auto oldSize = previous->GetTotalSize();
+			if (previous->mPool->Reallocate(previous, size)) {
+				#if LANGULUS_FEATURE(MEMORY_STATISTICS)
+					mStatistics.mBytesAllocatedByFrontend -= oldSize;
+					mStatistics.mBytesAllocatedByFrontend += previous->GetTotalSize();
+				#endif
+				return previous;
+			}
+
+			// If this is reached, we have a collision, so memory moves		
+			return Allocator::Allocate(size);
+		#else
+			return Allocator::Allocate(size);
+		#endif
+	}
+	
+	/// Deallocate a memory allocation														
+	///	@attention assumes entry is a valid entry under jurisdiction			
+	///	@attention doesn't call any destructors										
+	///	@param entry - the memory entry to deallocate								
+	void Allocator::Deallocate(Allocation* entry) SAFETY_NOEXCEPT() {
+		#if LANGULUS(SAFE)
+			if (entry == nullptr)
+				Throw<Except::Allocate>("Deallocating nullptr");
+			if (entry->GetAllocatedSize() == 0)
+				Throw<Except::Allocate>("Deallocating an empty allocation");
+			if (entry->mReferences == 0)
+				Throw<Except::Allocate>("Deallocating an unused allocation");
+		#endif
+
+		#if LANGULUS_FEATURE(MEMORY_STATISTICS)
+			mStatistics.mBytesAllocatedByFrontend -= entry->GetTotalSize();
+			mStatistics.mEntries -= 1;
+		#endif
+
+		#if LANGULUS_FEATURE(MANAGED_MEMORY)
+			entry->mPool->Deallocate(entry);
+		#else
+			::std::free(entry->mPool);
 		#endif
 	}
 
@@ -137,71 +205,6 @@ namespace Langulus::Anyness::Inner
 		}
 	}
 #endif
-
-	/// Reallocate a memory entry																
-	/// This actually works only when MANAGED_MEMORY feature is enabled			
-	///	@attention never calls any constructors										
-	///	@attention never copies any data													
-	///	@attention never deallocates previous entry									
-	///	@attention returned entry might be different from the previous			
-	///	@param size - the number of bytes to allocate								
-	///	@param previous - the previous memory entry									
-	///	@return the reallocated memory entry											
-	Allocation* Allocator::Reallocate(const Size& size, Allocation* previous) SAFETY_NOEXCEPT() {
-		#if LANGULUS(SAFE)
-			if (previous == nullptr)
-				Throw<Except::Allocate>("Reallocating nullptr");
-			if (size == previous->GetAllocatedSize())
-				Throw<Except::Allocate>("Reallocation suboptimal - size is same as previous");
-			if (size == 0)
-				Throw<Except::Allocate>("Zero reallocation is not allowed");
-			if (previous->mReferences == 0)
-				Throw<Except::Allocate>("Deallocating an unused allocation");
-		#endif
-
-		#if LANGULUS_FEATURE(MANAGED_MEMORY)
-			// New size is bigger, precautions must be taken					
-			const auto oldSize = previous->GetAllocatedSize();
-			if (previous->mPool->Reallocate(previous, size)) {
-				#if LANGULUS_FEATURE(MEMORY_STATISTICS)
-					mStatistics.mBytesAllocatedByFrontend -= oldSize;
-					mStatistics.mBytesAllocatedByFrontend += previous->GetAllocatedSize();
-				#endif
-				return previous;
-			}
-
-			// If this is reached, we have a collision, so memory moves		
-			return Allocator::Allocate(size);
-		#else
-			return Allocator::Allocate(size);
-		#endif
-	}
-	
-	/// Deallocate a memory allocation														
-	///	@attention assumes entry is a valid entry under jurisdiction			
-	///	@attention doesn't call any destructors										
-	///	@param entry - the memory entry to deallocate								
-	void Allocator::Deallocate(Allocation* entry) SAFETY_NOEXCEPT() {
-		#if LANGULUS(SAFE)
-			if (entry == nullptr)
-				Throw<Except::Allocate>("Deallocating nullptr");
-			if (entry->GetAllocatedSize() == 0)
-				Throw<Except::Allocate>("Deallocating an empty allocation");
-			if (entry->mReferences == 0)
-				Throw<Except::Allocate>("Deallocating an unused allocation");
-		#endif
-
-		#if LANGULUS_FEATURE(MEMORY_STATISTICS)
-			mStatistics.mBytesAllocatedByFrontend -= entry->GetTotalSize();
-			mStatistics.mEntries -= 1;
-		#endif
-
-		#if LANGULUS_FEATURE(MANAGED_MEMORY)
-			entry->mPool->Deallocate(entry);
-		#else
-			::std::free(entry->mPool);
-		#endif
-	}
 
 	/// Find a memory entry from pointer													
 	/// If LANGULUS_FEATURE(MANAGED_MEMORY) is enabled, this function will		

@@ -1365,6 +1365,9 @@ namespace Langulus::Anyness
 				// significantly reduces the possiblity for a move)			
 				// Also, make sure to free the previous mEntry if moved		
 				mEntry = Inner::Allocator::Reallocate(byteSize, mEntry);
+				if (!mEntry)
+					Throw<Except::Allocate>("Out of memory on TAny reallocation");
+
 				if (mEntry != previousBlock.mEntry) {
 					mRaw = mEntry->GetBlockStart();
 					if constexpr (MOVE) {
@@ -1387,6 +1390,9 @@ namespace Langulus::Anyness
 				// Memory is used from multiple locations, and we must		
 				// copy the memory for this block - we can't move it!			
 				mEntry = Inner::Allocator::Allocate(byteSize);
+				if (!mEntry)
+					Throw<Except::Allocate>("Out of memory on additional TAny allocation");
+
 				mRaw = mEntry->GetBlockStart();
 				if constexpr (MOVE) {
 					mCount = 0;
@@ -1402,6 +1408,9 @@ namespace Langulus::Anyness
 		else {
 			// Allocate a fresh set of elements										
 			mEntry = Inner::Allocator::Allocate(byteSize);
+			if (!mEntry)
+				Throw<Except::Allocate>("Out of memory on fresh TAny allocation");
+
 			mRaw = mEntry->GetBlockStart();
 			if constexpr (CREATE) {
 				// Default-construct everything										
@@ -1438,6 +1447,9 @@ namespace Langulus::Anyness
 			// Allocate more space														
 			auto previousBlock = static_cast<Block&>(*this);
 			mEntry = Inner::Allocator::Reallocate(GetStride() * newCount, mEntry);
+			if (!mEntry)
+				Throw<Except::Allocate>("Out of memory on TAny extension");
+
 			mRaw = mEntry->GetBlockStart();
 			if constexpr (CT::POD<T>) {
 				// No need to call constructors for POD items					
@@ -1498,6 +1510,9 @@ namespace Langulus::Anyness
 			if (result.mCount) {
 				const auto byteSize = RequestByteSize(result.mCount); //TODO can be optimized
 				result.mEntry = Inner::Allocator::Allocate(byteSize);
+				if (!result.mEntry)
+					Throw<Except::Allocate>("Out of memory on concatenating TAny");
+
 				result.mRaw = result.mEntry->GetBlockStart();
 				result.mReserved = byteSize / result.GetStride(); //TODO can be optimized
 				CopyMemory(mRaw, result.mRaw, mCount);

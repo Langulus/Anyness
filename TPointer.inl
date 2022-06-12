@@ -76,6 +76,9 @@ namespace Langulus::Anyness
 	TPointer<T, DR> TPointer<T, DR>::Create(Decay<T>&& initializer) requires CT::MoveMakable<Decay<T>> {
 		TPointer pointer;
 		pointer.mEntry = Inner::Allocator::Allocate(GetAllocationPageOf<Decay<T>>());
+		if (!pointer.mEntry)
+			Throw<Except::Allocate>("Out of memory on creating pointer");
+
 		pointer.mValue = reinterpret_cast<Type>(pointer.mEntry->GetBlockStart());
 		new (pointer.mValue) Decay<T> {Forward<Decay<T>>(initializer)};
 		return pointer;
@@ -89,6 +92,9 @@ namespace Langulus::Anyness
 	TPointer<T, DR> TPointer<T, DR>::Create(const Decay<T>& initializer) requires CT::CopyMakable<Decay<T>> {
 		TPointer pointer;
 		pointer.mEntry = Inner::Allocator::Allocate(GetAllocationPageOf<Decay<T>>());
+		if (!pointer.mEntry)
+			Throw<Except::Allocate>("Out of memory on creating pointer");
+
 		pointer.mValue = reinterpret_cast<Type>(pointer.mEntry->GetBlockStart());
 		new (pointer.mValue) Decay<T> {initializer};
 		return pointer;
@@ -101,6 +107,9 @@ namespace Langulus::Anyness
 	TPointer<T, DR> TPointer<T, DR>::Create() requires CT::Defaultable<Decay<T>> {
 		TPointer pointer;
 		pointer.mEntry = Inner::Allocator::Allocate(GetAllocationPageOf<Decay<T>>());
+		if (!pointer.mEntry)
+			Throw<Except::Allocate>("Out of memory on creating pointer");
+
 		pointer.mValue = reinterpret_cast<decltype(pointer.mValue)>(pointer.mEntry->GetBlockStart());
 		new (pointer.mValue) Decay<T> {};
 		return pointer;
@@ -114,6 +123,9 @@ namespace Langulus::Anyness
 	TPointer<T, DR> TPointer<T, DR>::New(ARGS&&... arguments) {
 		TPointer pointer;
 		pointer.mEntry = Inner::Allocator::Allocate(GetAllocationPageOf<Decay<T>>());
+		if (!pointer.mEntry)
+			Throw<Except::Allocate>("Out of memory on new pointer");
+
 		pointer.mValue = reinterpret_cast<decltype(pointer.mValue)>(pointer.mEntry->GetBlockStart());
 		new (pointer.mValue) Decay<T> {Forward<ARGS>(arguments)...};
 		return pointer;
