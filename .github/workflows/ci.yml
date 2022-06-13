@@ -44,15 +44,15 @@ jobs:
       - name: Clone
         uses: actions/checkout@v2
       - name: Configure
-        run: |
-            cmake \
-                -DCMAKE_CXX_COMPILER=${{matrix.cxx}} \
-                -S . \
-                -B out/${{matrix.name}} \
-                -DCMAKE_BUILD_TYPE=${{matrix.build}} \
-                ${{matrix.cmake_args}} \
-                -DLANGULUS_FEATURE_MANAGED_MEMORY=${{matrix.managed}} \
-                -DLANGULUS_ENABLE_SAFE_MODE=ON
+        run: >
+          cmake
+          -DCMAKE_CXX_COMPILER=${{matrix.cxx}}
+          -S .
+          -B out/${{matrix.name}}
+          -DCMAKE_BUILD_TYPE=${{matrix.build}}
+          ${{matrix.cmake_args}}
+          -DLANGULUS_FEATURE_MANAGED_MEMORY=${{matrix.managed}}
+          -DLANGULUS_ENABLE_SAFE_MODE=ON
       - name: Build
         run: cmake --build out/${{matrix.name}} --config ${{matrix.build}}
       - name: Test
