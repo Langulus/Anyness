@@ -33,7 +33,7 @@ jobs:
             suffix: '-managed'
 
     name: "${{matrix.os}}-${{matrix.cxx}}-${{matrix.build}}-${{matrix.architecture}}${{matrix.suffix}}"
-    runs-on: ${{ matrix.config.os }}
+    runs-on: ${{matrix.os}}
     steps:
       - name: Clone
         uses: actions/checkout@v2
