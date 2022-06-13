@@ -544,7 +544,7 @@ namespace Langulus::Anyness
 	///				  misuse will result in undefined behavior						
 	void Block::CallUnknownDestructors() {
 		if (IsSparse()) {
-			auto data = GetRawAs<KnownPointer>();
+			auto data = GetRawSparse();
 			const auto dataEnd = data + mCount;
 
 			// We dereference each pointer - destructors will be called		

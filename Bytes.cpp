@@ -44,13 +44,13 @@ namespace Langulus::Anyness
 	Bytes Bytes::Clone() const {
 		Bytes result {Disown(*this)};
 		if (mCount) {
-			const auto byteSize = RequestByteSize(mCount);
-			result.mEntry = Inner::Allocator::Allocate(byteSize);
+			const auto request = RequestSize(mCount);
+			result.mEntry = Inner::Allocator::Allocate(request.mByteSize);
 			if (!result.mEntry)
 				Throw<Except::Allocate>("Out of memory on cloning byte container");
 
 			result.mRaw = result.mEntry->GetBlockStart();
-			result.mReserved = byteSize;
+			result.mReserved = request.mElementCount;
 			CopyMemory(mRaw, result.mRaw, mCount);
 		}
 		else {

@@ -1085,9 +1085,13 @@ namespace Langulus::Anyness
 
 		// Set and reference the new element										
 		mPointer = pointer;
-		mEntry = Inner::Allocator::Find(MetaData::Of<DT>(), pointer);
-		if (mEntry)
-			mEntry->Keep();
+		#if LANGULUS_FEATURE(MANAGED_MEMORY)
+			mEntry = Inner::Allocator::Find(MetaData::Of<DT>(), pointer);
+			if (mEntry)
+				mEntry->Keep();
+		#else
+			mEntry = nullptr;
+		#endif
 		return *this;
 	}
 
@@ -1244,21 +1248,30 @@ namespace Langulus::Anyness
 		return Abandon(result);
 	}
 	
-	/// Get a byte size request based on allocation page and count					
+	/// Get a size based on reflected allocation page and count (unsafe)			
+	///	@param count - the number of elements to request							
+	///	@returns both the provided byte size and reserved count					
 	TEMPLATE()
-	inline Size TAny<T>::RequestByteSize(const Count& count) const noexcept {
-		return Roof2(::std::max(sizeof(T) * count, GetAllocationPageOf<T>()));
+	auto TAny<T>::RequestSize(const Count& count) const noexcept {
+		if constexpr (CT::Sparse<T>) {
+			AllocationRequest result;
+			const auto requested = sizeof(KnownPointer) * count;
+			result.mByteSize = requested > Alignment ? Roof2(requested) : Alignment;
+			result.mElementCount = result.mByteSize / sizeof(KnownPointer);
+			return result;
+		}
+		else return mType->RequestSize(sizeof(T) * count);
 	}
 
 	/// Allocate a number of elements, relying on the type of the container		
 	///	@tparam CREATE - true to call constructors									
 	///	@param elements - number of elements to allocate							
 	TEMPLATE()
-	template<bool CREATE, bool MOVE>
+	template<bool CREATE>
 	void TAny<T>::Allocate(Count elements) {
 		static_assert(!CT::Abstract<T>, "Can't allocate abstract items");
-		const auto byteSize = RequestByteSize(elements);//TODO can be optimized, see end of this func
-		
+		const auto request = RequestSize(elements);
+
 		// Allocate/reallocate															
 		if (mEntry) {
 			if (mReserved >= elements) {
@@ -1279,7 +1292,7 @@ namespace Langulus::Anyness
 			}
 
 			// Reallocate																	
-			TAny<T> previousBlock {Disown(*this)};
+			Block previousBlock = *this;
 			if (mEntry->GetUses() == 1) {
 				// Memory is used only once and it is safe to move it			
 				// Make note, that Allocator::Reallocate doesn't copy			
@@ -1288,21 +1301,15 @@ namespace Langulus::Anyness
 				// if entry moved (enabling MANAGED_MEMORY feature				
 				// significantly reduces the possiblity for a move)			
 				// Also, make sure to free the previous mEntry if moved		
-				mEntry = Inner::Allocator::Reallocate(byteSize, mEntry);
+				mEntry = Inner::Allocator::Reallocate(request.mByteSize, mEntry);
 				if (!mEntry)
 					Throw<Except::Allocate>("Out of memory on TAny reallocation");
 
 				if (mEntry != previousBlock.mEntry) {
+					// Memory moved, and we should call move-construction		
 					mRaw = mEntry->GetBlockStart();
-					if constexpr (MOVE) {
-						// Memory moved, and we should call move-construction	
-						mCount = 0;
-						CallKnownMoveConstructors<T>(previousBlock.mCount, Move(previousBlock));
-					}
-				}
-				else {
-					// Avoid dereferencing old data in case we still use it	
-					previousBlock.mEntry = nullptr;
+					mCount = 0;
+					CallKnownMoveConstructors<T>(previousBlock.mCount, Move(previousBlock));
 				}
 				
 				if constexpr (CREATE) {
@@ -1313,15 +1320,13 @@ namespace Langulus::Anyness
 			else {
 				// Memory is used from multiple locations, and we must		
 				// copy the memory for this block - we can't move it!			
-				mEntry = Inner::Allocator::Allocate(byteSize);
+				mEntry = Inner::Allocator::Allocate(request.mByteSize);
 				if (!mEntry)
 					Throw<Except::Allocate>("Out of memory on additional TAny allocation");
 
 				mRaw = mEntry->GetBlockStart();
-				if constexpr (MOVE) {
-					mCount = 0;
-					CallCopyConstructors(previousBlock.mCount, previousBlock);
-				}
+				mCount = 0;
+				CallCopyConstructors(previousBlock.mCount, previousBlock);
 				
 				if constexpr (CREATE) {
 					// Default-construct the rest										
@@ -1331,7 +1336,7 @@ namespace Langulus::Anyness
 		}
 		else {
 			// Allocate a fresh set of elements										
-			mEntry = Inner::Allocator::Allocate(byteSize);
+			mEntry = Inner::Allocator::Allocate(request.mByteSize);
 			if (!mEntry)
 				Throw<Except::Allocate>("Out of memory on fresh TAny allocation");
 
@@ -1342,8 +1347,7 @@ namespace Langulus::Anyness
 			}
 		}
 		
-		mReserved = byteSize / sizeof(T);//TODO can be optimized
-		return;
+		mReserved = request.mElementCount;
 	}
 	
 	/// Extend the container and return the new part									
@@ -1432,13 +1436,13 @@ namespace Langulus::Anyness
 			WRAPPER result {Disown(*this)};
 			result.mCount += rhs.mCount;
 			if (result.mCount) {
-				const auto byteSize = RequestByteSize(result.mCount); //TODO can be optimized
-				result.mEntry = Inner::Allocator::Allocate(byteSize);
+				const auto request = RequestSize(result.mCount);
+				result.mEntry = Inner::Allocator::Allocate(request.mByteSize);
 				if (!result.mEntry)
 					Throw<Except::Allocate>("Out of memory on concatenating TAny");
 
 				result.mRaw = result.mEntry->GetBlockStart();
-				result.mReserved = byteSize / result.GetStride(); //TODO can be optimized
+				result.mReserved = request.mElementCount;
 				CopyMemory(mRaw, result.mRaw, mCount);
 				CopyMemory(rhs.mRaw, result.mRaw + mCount, rhs.mCount);
 			}

@@ -356,37 +356,40 @@ namespace Langulus::Anyness
 
 	/// Get the raw key array (const)														
 	TABLE_TEMPLATE()
-	constexpr const K* TABLE()::GetRawKeys() const noexcept {
+	constexpr auto TABLE()::GetRawKeys() const noexcept {
 		return const_cast<TABLE()*>(this)->GetRawKeys();
 	}
 
 	/// Get the raw key array																	
 	TABLE_TEMPLATE()
-	constexpr K* TABLE()::GetRawKeys() noexcept {
-		return reinterpret_cast<K*>(mKeys->GetBlockStart());
+	constexpr auto TABLE()::GetRawKeys() noexcept {
+		if constexpr (CT::Sparse<K>)
+			return reinterpret_cast<typename TAny<K>::KnownPointer*>(mKeys->GetBlockStart());
+		else
+			return reinterpret_cast<K*>(mKeys->GetBlockStart());
 	}
 
 	/// Get the end of the raw key array													
 	TABLE_TEMPLATE()
-	constexpr const K* TABLE()::GetRawKeysEnd() const noexcept {
+	constexpr auto TABLE()::GetRawKeysEnd() const noexcept {
 		return GetRawKeys() + GetReserved();
 	}
 
 	/// Get the raw value array (const)														
 	TABLE_TEMPLATE()
-	constexpr const V* TABLE()::GetRawValues() const noexcept {
+	constexpr auto TABLE()::GetRawValues() const noexcept {
 		return mValues.GetRaw();
 	}
 
 	/// Get the raw value array																
 	TABLE_TEMPLATE()
-	constexpr V* TABLE()::GetRawValues() noexcept {
+	constexpr auto TABLE()::GetRawValues() noexcept {
 		return mValues.GetRaw();
 	}
 
 	/// Get end of the raw value array														
 	TABLE_TEMPLATE()
-	constexpr const V* TABLE()::GetRawValuesEnd() const noexcept {
+	constexpr auto TABLE()::GetRawValuesEnd() const noexcept {
 		return mValues.GetRaw() + GetReserved();
 	}
 
@@ -575,8 +578,10 @@ namespace Langulus::Anyness
 
 			if constexpr (REUSE) {
 				Insert(Pair {Move(*key), Move(*value)});
-				RemoveInner<false, K>(key);
-				RemoveInner<false, V>(value);
+				if constexpr (CT::Dense<K>)
+					RemoveInner(key);
+				if constexpr (CT::Dense<V>)
+					RemoveInner(value);
 			}
 			else {
 				Insert(Pair {*key, *value});
@@ -632,8 +637,11 @@ namespace Langulus::Anyness
 				Pair swapper {Move(*oldKey), Move(*oldValue)};
 
 				// Clean the old slot													
-				RemoveInner<false, K>(oldKey);
-				RemoveInner<false, V>(oldValue);
+				if constexpr (CT::Dense<K>)
+					RemoveInner(oldKey);
+				if constexpr (CT::Dense<V>)
+					RemoveInner(oldValue);
+
 				*oldInfo = 0;
 
 				// Insert the swapper													
@@ -756,8 +764,8 @@ namespace Langulus::Anyness
 		const auto infEnd = GetInfoEnd();
 		while (inf != infEnd) {
 			if (*inf) {
-				RemoveInner<true, K>(key);
-				RemoveInner<true, V>(val);
+				RemoveInner(key);
+				RemoveInner(val);
 			}
 
 			++key; ++val; ++inf;
@@ -819,16 +827,18 @@ namespace Langulus::Anyness
 	TABLE_TEMPLATE()
 	void TABLE()::RemoveIndex(const Offset& start) noexcept {
 		auto psl = GetInfo() + start;
-		auto candidate = GetRawKeys() + start;
+		auto key = GetRawKeys() + start;
 		auto value = GetRawValues() + start;
+		using KeyTransfer = Decay<decltype(key)>;
+		using ValTransfer = Decay<decltype(value)>;
 
 		// Destroy the key, info and value there									
-		RemoveInner<true, V>(value);
-		RemoveInner<true, K>(candidate);
+		RemoveInner(value);
+		RemoveInner(key);
 		*psl = 0;
 
 		++psl;
-		++candidate;
+		++key;
 		++value;
 
 		// And shift backwards, until a zero or 1 is reached					
@@ -836,21 +846,26 @@ namespace Langulus::Anyness
 		// closer to it. Moving is costly, unless you use pointers			
 		while (*psl > 1) {
 			psl[-1] = (*psl) - 1;
+
 			#if LANGULUS_COMPILER_GCC()
 				#pragma GCC diagnostic push
 				#pragma GCC diagnostic ignored "-Wplacement-new"
 			#endif
-			new (candidate - 1) K {Move(*candidate)};
-			new (value - 1) V {Move(*value)};
+				new (key - 1)   KeyTransfer {Move(*key)};
+				new (value - 1) ValTransfer {Move(*value)};
 			#if LANGULUS_COMPILER_GCC()
 				#pragma GCC diagnostic pop
 			#endif
-			RemoveInner<false, V>(value);
-			RemoveInner<false, K>(candidate);
+
+			if constexpr (CT::Dense<K>)
+				RemoveInner(key);
+			if constexpr (CT::Dense<V>)
+				RemoveInner(value);
+
 			*psl = 0;
 
 			++psl;
-			++candidate;
+			++key;
 			++value;
 		}
 
@@ -862,24 +877,10 @@ namespace Langulus::Anyness
 	///	@tparam T - the type to remove, either key or value (deducible)		
 	///	@param element - the address of the element to remove						
 	TABLE_TEMPLATE()
-	template<bool DEALLOCATE, class T>
+	template<class T>
 	void TABLE()::RemoveInner(T* element) noexcept {
-		using TD = Decay<T>;
-		if constexpr (CT::Sparse<T> && DEALLOCATE) {
-			// Value is sparse, free and deallocate if ours						
-			auto entry = Inner::Allocator::Find(MetaData::Of<T>(), *element);
-			if (entry) {
-				if (entry->GetUses() == 1) {
-					(*element)->~TD();
-					Inner::Allocator::Deallocate(entry);
-				}
-				else entry->Free();
-			}
-		}
-		else if constexpr (CT::Destroyable<T>) {
-			// Value is dense, always call destructor								
-			element->~TD();
-		}
+		if constexpr (CT::Destroyable<T>)
+			element->~T();
 	}
 
 	/// Insert a single value or key, either sparse or dense							
@@ -889,21 +890,10 @@ namespace Langulus::Anyness
 	template<class T>
 	void TABLE()::Overwrite(T&& from, T& to) noexcept {
 		// Remove the old entry															
-		RemoveInner<true>(&to);
+		RemoveInner(&to);
 
-		if constexpr (CT::Sparse<T>) {
-			// Value is sparse, reference it if ours								
-			auto entry = Inner::Allocator::Find(MetaData::Of<T>(), from);
-			if (entry)
-				entry->Keep();
-			to = from;
-			from = nullptr;
-		}
-		else {
-			// Value is dense, reconstruct it in place							
-			using TD = Decay<T>;
-			new (&to) TD {Forward<T>(from)};
-		}
+		// Reconstruct the new one in place											
+		new (&to) T {Forward<T>(from)};
 	}
 
 	/// Erase a pair via key																	

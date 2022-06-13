@@ -18,8 +18,10 @@
 #include "../THashMap.hpp"
 #include "../THashSet.hpp"
 
+#if LANGULUS_FEATURE(MANAGED_MEMORY)
 #ifdef LANGULUS_EXPOSE_PRIVATE_HEADERS
 	#include "../inner/Pool.hpp"
+#endif
 #endif
 
 #define LANGULUS_MODULE_ANYNESS()

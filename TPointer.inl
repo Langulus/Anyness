@@ -54,14 +54,23 @@ namespace Langulus::Anyness
 	TEMPLATE_SHARED()
 	TPointer<T, DR>::TPointer(Type ptr)
 		: Base {ptr}
-		, mEntry {Inner::Allocator::Find(MetaData::Of<T>(), ptr)} {
-		if (Base::mValue) {
-			if (mEntry)
-				mEntry->Keep();
-			if constexpr (DR && CT::Referencable<T>)
-				Base::mValue->Keep();
+		#if LANGULUS_FEATURE(MANAGED_MEMORY)
+			, mEntry {Inner::Allocator::Find(MetaData::Of<T>(), ptr)} {
+			if (Base::mValue) {
+				if (mEntry)
+					mEntry->Keep();
+				if constexpr (DR && CT::Referencable<T>)
+					Base::mValue->Keep();
+			}
 		}
-	}
+		#else
+			, mEntry {nullptr} {
+			if (Base::mValue) {
+				if constexpr (DR && CT::Referencable<T>)
+					Base::mValue->Keep();
+			}
+		}
+		#endif
 
 	/// Shared pointer destruction															
 	TEMPLATE_SHARED()

@@ -61,15 +61,13 @@ namespace Langulus::Anyness::Inner
 	}
 
 	/// Get the size required for allocating a new Allocation						
-	///	@attention																				
-	/// If LANGULUS_FEATURE(MANAGED_MEMORY) is NOT enabled, the layout is:		
-	/// [padding for alignment][Allocation::GetSize()][client memory]				
-	/// If LANGULUS_FEATURE(MANAGED_MEMORY) is enabled, the layout is:			
-	/// [Allocation::GetSize()][client memory]											
+	/// The layout is: [Allocation::GetSize()][client memory]						
 	///	@param size - the usable number of bytes required							
 	///	@return the byte size for a new Allocation, including padding			
 	constexpr Size Allocation::GetNewAllocationSize(const Size& size) noexcept {
-		return Allocation::GetSize() + size;
+		const Size minimum = Allocation::GetMinAllocation();
+		const Size proposed = Allocation::GetSize() + size;
+		return ::std::max(proposed, minimum);
 	}
 
 	/// Get the minimum possible allocation, including the overhead				

@@ -15,9 +15,10 @@
 namespace Langulus::Anyness::Inner
 {
 
-	/// Setup the default pool																	
-	Pool* Allocator::mDefaultPool = nullptr;
-	Pool* Allocator::mLastFoundPool = nullptr;
+	#if LANGULUS_FEATURE(MANAGED_MEMORY)
+		Pool* Allocator::mDefaultPool = nullptr;
+		Pool* Allocator::mLastFoundPool = nullptr;
+	#endif
 	
 	/// Allocate a memory entry																
 	///	@attention doesn't call any constructors										
@@ -212,7 +213,6 @@ namespace Langulus::Anyness::Inner
 			pool = next;
 		}
 	}
-#endif
 
 	/// Find a memory entry from pointer													
 	/// If LANGULUS_FEATURE(MANAGED_MEMORY) is enabled, this function will		
@@ -295,104 +295,16 @@ namespace Langulus::Anyness::Inner
 			return false;
 		#endif
 	}
+#endif
 	
-	/// Get the number of uses an unknown memory pointer has							
-	///	@attention this function does nothing if										
-	///              LANGULUS_FEATURE(MANAGED_MEMORY) is disabled					
-	///	@param meta - the type of data to search for (optional)					
-	///	@param memory - memory pointer													
-	///	@return the number of references, or 0 if memory is not ours			
-	/*Count Allocator::GetReferences(DMeta meta, const void* memory) SAFETY_NOEXCEPT() {
-		#if LANGULUS(SAFE)
-			if (memory == nullptr)
-				Throw<Except::Allocate>("Searching for nullptr");
-		#endif
-
-		#if LANGULUS_FEATURE(MANAGED_MEMORY)
-			auto found = Find(meta, memory);
-			if (found)
-				return found->mReferences;
-			return 0;
-		#else
-			(void) (meta); (void) (memory);
-			return 0;
-		#endif
+#if LANGULUS_FEATURE(MEMORY_STATISTICS)
+	Allocator::Statistics Allocator::mStatistics {};
+	
+	/// Get allocator statistics																
+	///	@return a reference to the statistics structure								
+	const Allocator::Statistics& Allocator::GetStatistics() noexcept {
+		return mStatistics;
 	}
-	
-	/// Reference some memory, which we do not know if owned or not				
-	/// If LANGULUS_FEATURE(MANAGED_MEMORY) is enabled, this function will		
-	/// attempt to find memory entry from the memory manager and reference it	
-	///	@attention this function does nothing if										
-	///              LANGULUS_FEATURE(MANAGED_MEMORY) is disabled					
-	///	@param meta - the type of data to search for (optional)					
-	///	@param memory - memory pointer													
-	///	@param count - the number of references to add								
-	void Allocator::Keep(DMeta meta, const void* memory, Count count) SAFETY_NOEXCEPT() {
-		#if LANGULUS(SAFE)
-			if (memory == nullptr)
-				Throw<Except::Allocate>("Searching for nullptr");
-			if (count == 0)
-				Throw<Except::Allocate>("Zero references added");
-		#endif
-
-		#if LANGULUS_FEATURE(MANAGED_MEMORY)
-			auto found = Find(meta, memory);
-			if (found)
-				found->mReferences += count;
-		#else
-			(void) (meta); (void) (memory); (void) (count);
-		#endif
-	}
-
-	/// Dereference some memory, which we do not know if owned or not				
-	/// If LANGULUS_FEATURE(MANAGED_MEMORY) is enabled, this function will		
-	/// attempt to find memory entry from the memory manager and dereference	
-	///	@attention this function does nothing if										
-	///              LANGULUS_FEATURE(MANAGED_MEMORY) is disabled					
-	///	@attention this will deallocate memory if fully dereferenced			
-	///				  which is troublesome if you need to call destructors		
-	///				  Won't deallocate if LANGULUS_FEATURE(MANAGED_MEMORY) is	
-	///				  disabled																	
-	///	@param meta - the type of data to search for (optional)					
-	///	@param memory - memory pointer													
-	///	@param count - the number of references to add								
-	///	@return true if the memory has been fully dereferenced					
-	bool Allocator::Free(DMeta meta, const void* memory, Count count) SAFETY_NOEXCEPT() {
-		#if LANGULUS(SAFE)
-			if (memory == nullptr)
-				Throw<Except::Allocate>("Searching for nullptr");
-			if (count == 0)
-				Throw<Except::Allocate>("Zero references removed");
-		#endif
-
-		#if LANGULUS_FEATURE(MANAGED_MEMORY)
-			auto found = Find(meta, memory);
-			if (!found)
-				// Data is either static or unallocated - don't touch it		
-				return false;
-
-			if (found->mReferences <= count) {
-				// Deallocate the entry													
-				Deallocate(found);
-				return true;
-			}
-
-			found->mReferences -= count;
-			return false;
-		#else
-			(void) (meta); (void) (memory); (void) (count);
-			return false;
-		#endif
-	}*/
-	
-	#if LANGULUS_FEATURE(MEMORY_STATISTICS)
-		Allocator::Statistics Allocator::mStatistics {};
-	
-		/// Get allocator statistics															
-		///	@return a reference to the statistics structure							
-		const Allocator::Statistics& Allocator::GetStatistics() noexcept {
-			return mStatistics;
-		}
-	#endif
+#endif
 
 } // namespace Langulus::Anyness::Inner

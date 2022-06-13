@@ -13,7 +13,10 @@ using uint = unsigned int;
 SCENARIO("TAny", "[containers]") {
 
 	GIVEN("A TAny instance") {
-		Allocator::CollectGarbage();
+		#if LANGULUS_FEATURE(MANAGED_MEMORY)
+			Allocator::CollectGarbage();
+		#endif
+
 		int value = 555;
 		TAny<int> pack;
 		auto meta = pack.GetType();
@@ -106,7 +109,10 @@ SCENARIO("TAny", "[containers]") {
 	}
 	
 	GIVEN("A templated Any with some POD items") {
-		Allocator::CollectGarbage();
+		#if LANGULUS_FEATURE(MANAGED_MEMORY)
+			Allocator::CollectGarbage();
+		#endif
+
 		// Arrays are dynamic to avoid constexprification
 		int* darray1 = nullptr;
 		darray1 = new int[5] {1, 2, 3, 4, 5};
@@ -470,7 +476,10 @@ SCENARIO("TAny", "[containers]") {
 	}
 
 	GIVEN("Two templated Any with some POD items") {
-		Allocator::CollectGarbage();
+		#if LANGULUS_FEATURE(MANAGED_MEMORY)
+			Allocator::CollectGarbage();
+		#endif
+
 		TAny<int> pack1;
 		TAny<int> pack2;
 		pack1 << int(1) << int(2) << int(3) << int(4) << int(5);
@@ -487,7 +496,9 @@ SCENARIO("TAny", "[containers]") {
 				REQUIRE(pack2.GetUses() == 2);
 				REQUIRE(static_cast<Block&>(pack1) == static_cast<Block&>(pack2));
 				REQUIRE(static_cast<Block&>(pack2) == memory1);
-				REQUIRE_FALSE(Allocator::Find(memory2.GetType(), memory2.GetRaw()));
+				#if LANGULUS_FEATURE(MANAGED_MEMORY)
+					REQUIRE_FALSE(Allocator::Find(memory2.GetType(), memory2.GetRaw()));
+				#endif
 			}
 		}
 
@@ -500,7 +511,9 @@ SCENARIO("TAny", "[containers]") {
 				REQUIRE_FALSE(pack1.GetRaw());
 				REQUIRE(pack1.GetReserved() == 0);
 				REQUIRE(static_cast<Block&>(pack2) == memory1);
-				REQUIRE_FALSE(Allocator::Find(memory2.GetType(), memory2.GetRaw()));
+				#if LANGULUS_FEATURE(MANAGED_MEMORY)
+					REQUIRE_FALSE(Allocator::Find(memory2.GetType(), memory2.GetRaw()));
+				#endif
 			}
 		}
 
@@ -512,7 +525,9 @@ SCENARIO("TAny", "[containers]") {
 				REQUIRE(static_cast<Block&>(pack1) == static_cast<Block&>(pack2));
 				REQUIRE(static_cast<Block&>(pack2) == memory1);
 				REQUIRE(static_cast<Block&>(pack2) != memory2);
-				REQUIRE_FALSE(Allocator::Find(memory2.GetType(), memory2.GetRaw()));
+				#if LANGULUS_FEATURE(MANAGED_MEMORY)
+					REQUIRE_FALSE(Allocator::Find(memory2.GetType(), memory2.GetRaw()));
+				#endif
 			}
 		}
 
@@ -522,10 +537,12 @@ SCENARIO("TAny", "[containers]") {
 			pack1.Reset();
 			THEN("memory1 should be referenced once, memory2 should be released") {
 				REQUIRE_FALSE(pack1.HasAuthority());
-				REQUIRE_FALSE(Allocator::Find(memory1.GetType(), memory1.GetRaw()));
-				REQUIRE_FALSE(Allocator::Find(memory2.GetType(), memory2.GetRaw()));
 				REQUIRE(pack2.GetUses() == 1);
 				REQUIRE(memory3.GetUses() == 1);
+				#if LANGULUS_FEATURE(MANAGED_MEMORY)
+					REQUIRE_FALSE(Allocator::Find(memory1.GetType(), memory1.GetRaw()));
+					REQUIRE_FALSE(Allocator::Find(memory2.GetType(), memory2.GetRaw()));
+				#endif
 			}
 		}
 	}

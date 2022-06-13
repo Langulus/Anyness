@@ -14,7 +14,10 @@ SCENARIO("Text manipulation", "[text]") {
 		Text text;
 
 		WHEN("More capacity is reserved, via Extend()") {
-			Allocator::CollectGarbage();
+			#if LANGULUS_FEATURE(MANAGED_MEMORY)
+				Allocator::CollectGarbage();
+			#endif
+
 			text.Allocate(500);
 			auto memory = text.GetRaw();
 
@@ -35,7 +38,10 @@ SCENARIO("Text manipulation", "[text]") {
 	}
 
 	GIVEN("A filled utf8 text container") {
-		Allocator::CollectGarbage();
+		#if LANGULUS_FEATURE(MANAGED_MEMORY)
+			Allocator::CollectGarbage();
+		#endif
+
 		Text text {"test1"};
 		auto memory = text.GetRaw();
 

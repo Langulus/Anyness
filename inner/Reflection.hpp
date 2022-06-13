@@ -71,7 +71,9 @@ namespace Langulus::Anyness
 				Throw<Except::Overflow>("Roof2 overflowed");
 		}
 
-		return x <= 1 ? x : T {1} << (T {sizeof(size_t) * 8} - CountLeadingZeroes<size_t>(x - T {1}));
+		return x <= 1 ? x : T {1} << (
+			T {sizeof(size_t) * 8} - CountLeadingZeroes<size_t>(x - T {1})
+		);
 	}
 
    /// Round to the upper power-of-two (constexpr variant)							

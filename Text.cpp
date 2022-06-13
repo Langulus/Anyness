@@ -143,13 +143,13 @@ namespace Langulus::Anyness
 	Text Text::Clone() const {
 		Text result {Disown(*this)};
 		if (mCount) {
-			const auto byteSize = RequestByteSize(mCount);
-			result.mEntry = Inner::Allocator::Allocate(byteSize);
+			const auto request = RequestSize(mCount);
+			result.mEntry = Inner::Allocator::Allocate(request.mByteSize);
 			if (!result.mEntry)
 				Throw<Except::Allocate>("Out of memory on cloning text");
 
 			result.mRaw = result.mEntry->GetBlockStart();
-			result.mReserved = byteSize;
+			result.mReserved = request.mElementCount;
 			CopyMemory(mRaw, result.mRaw, mCount);
 		}
 		else {
@@ -169,13 +169,13 @@ namespace Langulus::Anyness
 
 		//TODO: always cloning? why tho? what if this text has one use only?
 		Text result {Disown(*this)};
-		const auto byteSize = RequestByteSize(result.mReserved + 1);
-		result.mEntry = Inner::Allocator::Allocate(byteSize);
+		const auto request = RequestSize(result.mReserved + 1);
+		result.mEntry = Inner::Allocator::Allocate(request.mByteSize);
 		if (!result.mEntry)
 			Throw<Except::Allocate>("Out of memory on terminating text");
 
 		result.mRaw = result.mEntry->GetBlockStart();
-		result.mReserved = byteSize;
+		result.mReserved = request.mElementCount;
 		CopyMemory(mRaw, result.mRaw, mCount);
 		result.GetRaw()[mCount] = '\0';
 		return Abandon(result);

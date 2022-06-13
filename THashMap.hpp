@@ -99,13 +99,13 @@ namespace Langulus::Anyness
 		NOD() constexpr bool HasAuthority() const noexcept;
 		NOD() constexpr Count GetUses() const noexcept;
 
-		NOD() constexpr const K* GetRawKeys() const noexcept;
-		NOD() constexpr K* GetRawKeys() noexcept;
-		NOD() constexpr const K* GetRawKeysEnd() const noexcept;
+		NOD() constexpr auto GetRawKeys() const noexcept;
+		NOD() constexpr auto GetRawKeys() noexcept;
+		NOD() constexpr auto GetRawKeysEnd() const noexcept;
 
-		NOD() constexpr const V* GetRawValues() const noexcept;
-		NOD() constexpr V* GetRawValues() noexcept;
-		NOD() constexpr const V* GetRawValuesEnd() const noexcept;
+		NOD() constexpr auto GetRawValues() const noexcept;
+		NOD() constexpr auto GetRawValues() noexcept;
+		NOD() constexpr auto GetRawValuesEnd() const noexcept;
 
 		void Allocate(const Count&);
 
@@ -160,7 +160,7 @@ namespace Langulus::Anyness
 		template<class T>
 		static void CloneInner(const Count&, const uint8_t*, const T*, const T*, T*);
 
-		template<bool DEALLOCATE, class T>
+		template<class T>
 		static void RemoveInner(T*) noexcept;
 		template<class T>
 		static void Overwrite(T&&, T&) noexcept;

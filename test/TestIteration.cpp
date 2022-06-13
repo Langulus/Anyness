@@ -9,9 +9,11 @@
 #include <catch2/catch.hpp>
 
 SCENARIO("Iterating containers", "[iteration]") {
-
 	GIVEN("Templated Any with some POD items") {
-		Allocator::CollectGarbage();
+		#if LANGULUS_FEATURE(MANAGED_MEMORY)
+			Allocator::CollectGarbage();
+		#endif
+
 		TAny<int> dense;
 		dense << int(1) << int(2) << int(3) << int(4) << int(5);
 		TAny<int*> sparse;
@@ -374,7 +376,10 @@ SCENARIO("Iterating containers", "[iteration]") {
 	}*/
 
 	GIVEN("Any") {
-		Allocator::CollectGarbage();
+		#if LANGULUS_FEATURE(MANAGED_MEMORY)
+			Allocator::CollectGarbage();
+		#endif
+
 		constexpr float df = 5.55f;
 		constexpr float sf = 6.55f;
 		Any dense_any = df;
@@ -486,7 +491,10 @@ SCENARIO("Iterating containers", "[iteration]") {
 	}
 
 	GIVEN("A universal Any with some deep items") {
-		Allocator::CollectGarbage();
+		#if LANGULUS_FEATURE(MANAGED_MEMORY)
+			Allocator::CollectGarbage();
+		#endif
+
 		Any pack;
 		Any subpack1;
 		Any subpack2;

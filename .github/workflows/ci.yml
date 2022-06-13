@@ -8,89 +8,38 @@ jobs:
     strategy:
       fail-fast: false # do not abort on a failed job
       matrix:
-        config:
-        - {
-            # GCC 11 is the minimum required compiler, and comes with Ubuntu 22.04
-            name: "Linux-GCC-11-Debug", artifact: "Linux.tar.xz",
-            os: ubuntu-22.04,
-            build_type: Debug,
-            cc: "gcc", cxx: "g++",
-            cmake_args: ""
-          }
-        - {
-            # GCC 11 is the minimum required compiler, and comes with Ubuntu 22.04
-            name: "Linux-GCC-11-Release", artifact: "Linux.tar.xz",
-            os: ubuntu-22.04,
-            build_type: RelWithDebInfo,
-            cc: "gcc", cxx: "g++",
-            cmake_args: ""
-          }
-        - {
-            # Clang 11 is the minimum required compiler, and comes with Ubuntu 22.04
-            name: "Linux-Clang-11-Debug", artifact: "Linux.tar.xz",
-            os: ubuntu-22.04,
-            build_type: Debug,
-            cc: "clang", cxx: "clang++",
-            cmake_args: ""
-          }
-        - {
-            # Clang 11 is the minimum required compiler, and comes with Ubuntu 22.04
-            name: "Linux-Clang-11-Release", artifact: "Linux.tar.xz",
-            os: ubuntu-22.04,
-            build_type: RelWithDebInfo,
-            cc: "clang", cxx: "clang++",
-            cmake_args: ""
-          }
-        - {
-            name: "Windows-MSVC-2022-Debug-x64", artifact: "Windows-MSVC-x64.tar.xz",
-            os: windows-latest,
-            build_type: Debug,
-            cc: "cl", cxx: "cl",
-            cmake_args: "-G \"Visual Studio 17 2022\" -A x64",
-          }
-        - {
-            name: "Windows-MSVC-2022-Release-x64", artifact: "Windows-MSVC-x64.tar.xz",
-            os: windows-latest,
-            build_type: RelWithDebInfo,
-            cc: "cl", cxx: "cl",
-            cmake_args: "-G \"Visual Studio 17 2022\" -A x64",
-          }
-        - {
-            name: "Windows-MSVC-2022-Debug-x86", artifact: "Windows-MSVC-x86.tar.xz",
-            os: windows-latest,
-            build_type: Debug,
-            cc: "cl", cxx: "cl",
-            cmake_args: "-G \"Visual Studio 17 2022\" -A Win32",
-          }
-        - {
-            name: "Windows-MSVC-2022-Release-x86", artifact: "Windows-MSVC-x86.tar.xz",
-            os: windows-latest,
-            build_type: RelWithDebInfo,
-            cc: "cl", cxx: "cl",
-            cmake_args: "-G \"Visual Studio 17 2022\" -A Win32",
-          }
-        # Consider adding these when Apple fix their shit
-        #- {
-        #    name: "macOS-Clang-Debug", artifact: "macOS.tar.xz",
-        #    os: macos-latest,
-        #    build_type: Debug,
-        #    cc: "clang", cxx: "clang++",
-        #    cmake_args: ""
-        #  }
-        #- {
-        #    name: "macOS-Clang-Release", artifact: "macOS.tar.xz",
-        #    os: macos-latest,
-        #    build_type: RelWithDebInfo,
-        #    cc: "clang", cxx: "clang++",
-        #    cmake_args: ""
-        #  }
-
+        os: [ubuntu-22.04, windows-latest]
+        build_type: [Debug, RelWithDebInfo]
+        safe_mode: [-DLANGULUS_ENABLE_SAFE_MODE=ON]
+        architecture: [x86, x64]
+        managed_memory: [-DLANGULUS_FEATURE_MANAGED_MEMORY=OFF, -DLANGULUS_FEATURE_MANAGED_MEMORY=ON]
+        include:
+          - os: ubuntu-22.04
+            cxx: [g++, clang++]
+          - os: windows-latest
+            cxx: [cl]
+          - os: ubuntu-22.04
+            architecture: x86
+            cmake_args: "-DCMAKE_CXX_FLAGS=-m32"
+          - os: ubuntu-22.04
+            architecture: x64
+            cmake_args: "-DCMAKE_CXX_FLAGS=-m64"
+          - os: windows-latest
+            architecture: x86
+            cmake_args: "-G \"Visual Studio 17 2022\" -A Win32"
+          - os: windows-latest
+            architecture: x64
+            cmake_args: "-G \"Visual Studio 17 2022\" -A x64"
+          - managed_memory: -DLANGULUS_FEATURE_MANAGED_MEMORY=OFF
+            name: "${{matrix.os}}-${{matrix.cxx}}-${{matrix.build_type}}-${{matrix.architecture}}"
+          - managed_memory: -DLANGULUS_FEATURE_MANAGED_MEMORY=ON
+            name: "${{matrix.os}}-${{matrix.cxx}}-${{matrix.build_type}}-${{matrix.architecture}}-managed"
     steps:
       - name: Clone
         uses: actions/checkout@v2
       - name: Configure
-        run: cmake -DCMAKE_C_COMPILER=${{ matrix.config.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.config.cxx }} -S . -B out/${{ matrix.config.name }} -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} ${{ matrix.config.cmake_args }}
+        run: cmake -DCMAKE_CXX_COMPILER=${{matrix.cxx}} -S . -B out/${{matrix.name}} -DCMAKE_BUILD_TYPE=${{matrix.build_type}} ${{matrix.cmake_args}} ${{matrix.managed_memory}}
       - name: Build
-        run: cmake --build out/${{ matrix.config.name }} --config ${{ matrix.config.build_type }}
+        run: cmake --build out/${{matrix.name}} --config ${{matrix.build_type}}
       - name: Test
-        run: cd out/${{ matrix.config.name }} && ctest -V -C ${{ matrix.config.build_type }}
+        run: cd out/${{matrix.name}} && ctest -V -C ${{matrix.build_type}}

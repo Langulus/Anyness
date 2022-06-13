@@ -52,13 +52,17 @@ SCENARIO("Any", "[containers]") {
 			#ifdef LANGULUS_STD_BENCHMARK
 				// Anyness::Any default construction is about 30% faster than std::any's on MSVC
 				BENCHMARK_ADVANCED("Anyness::Any::default construction") (Catch::Benchmark::Chronometer meter) {
-					Allocator::CollectGarbage();
+					#if LANGULUS_FEATURE(MANAGED_MEMORY)
+						Allocator::CollectGarbage();
+					#endif
 					std::vector<Catch::Benchmark::storage_for<Any>> storage(meter.runs());
 					meter.measure([&](int i) { return storage[i].construct(); });
 				};
 
 				BENCHMARK_ADVANCED("std::any::default construction") (Catch::Benchmark::Chronometer meter) {
-					Allocator::CollectGarbage();
+					#if LANGULUS_FEATURE(MANAGED_MEMORY)
+						Allocator::CollectGarbage();
+					#endif
 					std::vector<Catch::Benchmark::storage_for<std::any>> storage(meter.runs());
 					meter.measure([&](int i) { return storage[i].construct(); });
 				};
@@ -67,7 +71,9 @@ SCENARIO("Any", "[containers]") {
 				// it having more members. Maybe compress members a bit to save some cycles?
 				// Otherwise, keep in mind that speed and flexibility are the main Anyness mission
 				BENCHMARK_ADVANCED("std::vector::default construction") (Catch::Benchmark::Chronometer meter) {
-					Allocator::CollectGarbage();
+					#if LANGULUS_FEATURE(MANAGED_MEMORY)
+						Allocator::CollectGarbage();
+					#endif
 					std::vector<Catch::Benchmark::storage_for<std::vector<int>>> storage(meter.runs());
 					meter.measure([&](int i) { return storage[i].construct(); });
 				};
@@ -75,7 +81,10 @@ SCENARIO("Any", "[containers]") {
 		}
 
 		WHEN("Given a POD value by copy") {
-			Allocator::CollectGarbage();
+			#if LANGULUS_FEATURE(MANAGED_MEMORY)
+				Allocator::CollectGarbage();
+			#endif
+
 			Any pack;
 			pack = value;
 
@@ -92,7 +101,9 @@ SCENARIO("Any", "[containers]") {
 
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: 8:1 performance - needs optimization
 				BENCHMARK_ADVANCED("Anyness::Any::operator = (single trivial copy)") (Catch::Benchmark::Chronometer meter) {
-					Allocator::CollectGarbage();
+					#if LANGULUS_FEATURE(MANAGED_MEMORY)
+						Allocator::CollectGarbage();
+					#endif
 					std::vector<Any> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i] = value;
@@ -100,7 +111,9 @@ SCENARIO("Any", "[containers]") {
 				};
 
 				BENCHMARK_ADVANCED("std::any::operator = (single trivial copy)") (Catch::Benchmark::Chronometer meter) {
-					Allocator::CollectGarbage();
+					#if LANGULUS_FEATURE(MANAGED_MEMORY)
+						Allocator::CollectGarbage();
+					#endif
 					std::vector<std::any> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i] = value;
@@ -110,7 +123,10 @@ SCENARIO("Any", "[containers]") {
 		}
 
 		WHEN("Given a dense Trait") {
-			Allocator::CollectGarbage();
+			#if LANGULUS_FEATURE(MANAGED_MEMORY)
+				Allocator::CollectGarbage();
+			#endif
+
 			Any pack;
 			pack = Traits::Count(5);
 
@@ -125,7 +141,9 @@ SCENARIO("Any", "[containers]") {
 
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: 1:1 performance
 				BENCHMARK_ADVANCED("Anyness::Any::operator = (Traits::Count(5))") (Catch::Benchmark::Chronometer meter) {
-					Allocator::CollectGarbage();
+					#if LANGULUS_FEATURE(MANAGED_MEMORY)
+						Allocator::CollectGarbage();
+					#endif
 					std::vector<Any> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i] = Traits::Count(5);
@@ -133,7 +151,9 @@ SCENARIO("Any", "[containers]") {
 				};
 
 				BENCHMARK_ADVANCED("std::any::operator = (Traits::Count(5))") (Catch::Benchmark::Chronometer meter) {
-					Allocator::CollectGarbage();
+					#if LANGULUS_FEATURE(MANAGED_MEMORY)
+						Allocator::CollectGarbage();
+					#endif
 					std::vector<std::any> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i] = Traits::Count(5);
@@ -143,7 +163,10 @@ SCENARIO("Any", "[containers]") {
 		}
 
 		WHEN("Given a POD value by move") {
-			Allocator::CollectGarbage();
+			#if LANGULUS_FEATURE(MANAGED_MEMORY)
+				Allocator::CollectGarbage();
+			#endif
+
 			Any pack;
 			pack = Move(value);
 
@@ -159,7 +182,9 @@ SCENARIO("Any", "[containers]") {
 
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: 8:1 performance - needs optimization
 				BENCHMARK_ADVANCED("Anyness::Any::operator = (single trivial move)") (Catch::Benchmark::Chronometer meter) {
-					Allocator::CollectGarbage();
+					#if LANGULUS_FEATURE(MANAGED_MEMORY)
+						Allocator::CollectGarbage();
+					#endif
 					std::vector<Any> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i] = Move(value);
@@ -167,7 +192,9 @@ SCENARIO("Any", "[containers]") {
 				};
 
 				BENCHMARK_ADVANCED("std::any::operator = (single trivial move)") (Catch::Benchmark::Chronometer meter) {
-					Allocator::CollectGarbage();
+					#if LANGULUS_FEATURE(MANAGED_MEMORY)
+						Allocator::CollectGarbage();
+					#endif
 					std::vector<std::any> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i] = Move(value);
@@ -177,7 +204,10 @@ SCENARIO("Any", "[containers]") {
 		}
 
 		WHEN("Given a sparse value") {
-			Allocator::CollectGarbage();
+			#if LANGULUS_FEATURE(MANAGED_MEMORY)
+				Allocator::CollectGarbage();
+			#endif
+
 			int* original_int = new int(value);
 			Any pack;
 			pack = original_int;
@@ -192,10 +222,10 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(*pack.As<int*>() == value);
 				REQUIRE(pack.As<int*>() == original_int);
 				REQUIRE_THROWS(pack.As<float*>() == nullptr);
-				#if LANGULUS_FEATURE(NEWDELETE) && LANGULUS_FEATURE(MANAGED_MEMORY)
+				#if LANGULUS_FEATURE(NEWDELETE)
 					REQUIRE(Allocator::CheckAuthority(meta, original_int));
 					REQUIRE(Allocator::Find(meta, original_int)->GetUses() == 2);
-				#else
+				#elif LANGULUS_FEATURE(MANAGED_MEMORY)
 					REQUIRE_FALSE(Allocator::CheckAuthority(meta, original_int));
 					REQUIRE_FALSE(Allocator::Find(meta, original_int));
 				#endif
@@ -204,19 +234,27 @@ SCENARIO("Any", "[containers]") {
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: 9:1 performance - needs optimization
 				BENCHMARK_ADVANCED("Anyness::Any::operator = (single pointer copy)") (Catch::Benchmark::Chronometer meter) {
 					if (meter.runs() == 131072/2) {
-						Allocator::CollectGarbage();
+						#if LANGULUS_FEATURE(MANAGED_MEMORY)
+							Allocator::CollectGarbage();
+						#endif
 						std::vector<Any> storage(meter.runs());
 
 						meter.measure([&](int i) {
 							return storage[i] = original_int;
 						});
 
-						Allocator::CollectGarbage();
+						#if LANGULUS_FEATURE(MANAGED_MEMORY)
+							Allocator::CollectGarbage();
+						#endif
 						storage.clear();
-						Allocator::CollectGarbage();
+						#if LANGULUS_FEATURE(MANAGED_MEMORY)
+							Allocator::CollectGarbage();
+						#endif
 					}
 					else {
-						Allocator::CollectGarbage();
+						#if LANGULUS_FEATURE(MANAGED_MEMORY)
+							Allocator::CollectGarbage();
+						#endif
 						std::vector<Any> storage(meter.runs());
 
 						meter.measure([&](int i) {
@@ -226,7 +264,9 @@ SCENARIO("Any", "[containers]") {
 				};
 
 				BENCHMARK_ADVANCED("std::any::operator = (single pointer copy)") (Catch::Benchmark::Chronometer meter) {
-					Allocator::CollectGarbage();
+					#if LANGULUS_FEATURE(MANAGED_MEMORY)
+						Allocator::CollectGarbage();
+					#endif
 					std::vector<std::any> storage(meter.runs());
 					if (storage.size() != meter.runs())
 						Throw<Except::Allocate>("Invalid benchmark due to insufficient memory");
@@ -239,7 +279,10 @@ SCENARIO("Any", "[containers]") {
 		}
 
 		WHEN("Given a sparse value by move") {
-			Allocator::CollectGarbage();
+			#if LANGULUS_FEATURE(MANAGED_MEMORY)
+				Allocator::CollectGarbage();
+			#endif
+
 			int* original_int = new int(value);
 			int* original_int_backup = original_int;
 			Any pack;
@@ -256,10 +299,10 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(*pack.As<int*>() == value);
 				REQUIRE(pack.As<int*>() == original_int_backup);
 				REQUIRE_THROWS(pack.As<float*>() == nullptr);
-				#if LANGULUS_FEATURE(NEWDELETE) && LANGULUS_FEATURE(MANAGED_MEMORY)
+				#if LANGULUS_FEATURE(NEWDELETE)
 					REQUIRE(Allocator::CheckAuthority(meta, original_int_backup));
 					REQUIRE(Allocator::Find(meta, original_int_backup)->GetUses() == 2);
-				#else
+				#elif LANGULUS_FEATURE(MANAGED_MEMORY)
 					REQUIRE_FALSE(Allocator::CheckAuthority(meta, original_int_backup));
 					REQUIRE_FALSE(Allocator::Find(meta, original_int_backup));
 				#endif
@@ -268,7 +311,9 @@ SCENARIO("Any", "[containers]") {
 
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: 9:1 performance - needs optimization
 				BENCHMARK_ADVANCED("Anyness::Any::operator = (single pointer move)") (Catch::Benchmark::Chronometer meter) {
-					Allocator::CollectGarbage();
+					#if LANGULUS_FEATURE(MANAGED_MEMORY)
+						Allocator::CollectGarbage();
+					#endif
 					std::vector<Any> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i] = Move(original_int);
@@ -276,7 +321,9 @@ SCENARIO("Any", "[containers]") {
 				};
 
 				BENCHMARK_ADVANCED("std::any::operator = (single pointer move)") (Catch::Benchmark::Chronometer meter) {
-					Allocator::CollectGarbage();
+					#if LANGULUS_FEATURE(MANAGED_MEMORY)
+						Allocator::CollectGarbage();
+					#endif
 					std::vector<std::any> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i] = Move(original_int);
@@ -286,7 +333,10 @@ SCENARIO("Any", "[containers]") {
 		}
 
 		WHEN("Shallow-copying Any") {
-			Allocator::CollectGarbage();
+			#if LANGULUS_FEATURE(MANAGED_MEMORY)
+				Allocator::CollectGarbage();
+			#endif
+
 			int* original_int = new int(value);
 			Any pack;
 			pack = original_int;
@@ -303,10 +353,10 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(*another_pack.As<int*>() == value);
 				REQUIRE(another_pack.As<int*>() == original_int);
 				REQUIRE_THROWS(another_pack.As<float*>() == nullptr);
-				#if LANGULUS_FEATURE(NEWDELETE) && LANGULUS_FEATURE(MANAGED_MEMORY)
+				#if LANGULUS_FEATURE(NEWDELETE)
 					REQUIRE(Allocator::CheckAuthority(meta, original_int));
 					REQUIRE(Allocator::Find(meta, original_int).GetUses() == 2);
-				#else
+				#elif LANGULUS_FEATURE(MANAGED_MEMORY)
 					REQUIRE_FALSE(Allocator::CheckAuthority(meta, original_int));
 					REQUIRE_FALSE(Allocator::Find(meta, original_int));
 				#endif
@@ -316,7 +366,9 @@ SCENARIO("Any", "[containers]") {
 
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: 2:1 performance - needs optimization
 				BENCHMARK_ADVANCED("Anyness::Any::operator = (shallow-copied Any)") (Catch::Benchmark::Chronometer meter) {
-					Allocator::CollectGarbage();
+					#if LANGULUS_FEATURE(MANAGED_MEMORY)
+						Allocator::CollectGarbage();
+					#endif
 					std::vector<Any> source(meter.runs());
 					for (auto& i : source)
 						i = Disowned(original_int);
@@ -328,7 +380,9 @@ SCENARIO("Any", "[containers]") {
 				};
 
 				BENCHMARK_ADVANCED("std::any::operator = (shallow-copied std::any)") (Catch::Benchmark::Chronometer meter) {
-					Allocator::CollectGarbage();
+					#if LANGULUS_FEATURE(MANAGED_MEMORY)
+						Allocator::CollectGarbage();
+					#endif
 					std::vector<std::any> source(meter.runs());
 					for (auto& i : source)
 						i = original_int;
@@ -342,7 +396,10 @@ SCENARIO("Any", "[containers]") {
 		}
 
 		WHEN("Moving Any") {
-			Allocator::CollectGarbage();
+			#if LANGULUS_FEATURE(MANAGED_MEMORY)
+				Allocator::CollectGarbage();
+			#endif
+
 			int* original_int = new int(value);
 			Any pack;
 			pack = original_int;
@@ -362,10 +419,10 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(*another_pack.As<int*>() == value);
 				REQUIRE(another_pack.As<int*>() == original_int);
 				REQUIRE_THROWS(another_pack.As<float*>() == nullptr);
-				#if LANGULUS_FEATURE(NEWDELETE) && LANGULUS_FEATURE(MANAGED_MEMORY)
+				#if LANGULUS_FEATURE(NEWDELETE)
 					REQUIRE(Allocator::CheckAuthority(meta, original_int));
 					REQUIRE(Allocator::Find(meta, original_int).GetUses() == 2);
-				#else
+				#elif LANGULUS_FEATURE(MANAGED_MEMORY)
 					REQUIRE_FALSE(Allocator::CheckAuthority(meta, original_int));
 					REQUIRE_FALSE(Allocator::Find(meta, original_int));
 				#endif
@@ -373,9 +430,14 @@ SCENARIO("Any", "[containers]") {
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: 6:1 performance - needs optimization
-				Allocator::CollectGarbage();
-				BENCHMARK_ADVANCED("Anyness::Any::operator = (moved Any)") (Catch::Benchmark::Chronometer meter) {
+				#if LANGULUS_FEATURE(MANAGED_MEMORY)
 					Allocator::CollectGarbage();
+				#endif
+
+				BENCHMARK_ADVANCED("Anyness::Any::operator = (moved Any)") (Catch::Benchmark::Chronometer meter) {
+					#if LANGULUS_FEATURE(MANAGED_MEMORY)
+						Allocator::CollectGarbage();
+					#endif
 					std::vector<Any> source(meter.runs());
 					for (auto& i : source)
 						i = Disowned(original_int);
@@ -387,7 +449,9 @@ SCENARIO("Any", "[containers]") {
 				};
 
 				BENCHMARK_ADVANCED("std::any::operator = (moved std::any)") (Catch::Benchmark::Chronometer meter) {
-					Allocator::CollectGarbage();
+					#if LANGULUS_FEATURE(MANAGED_MEMORY)
+						Allocator::CollectGarbage();
+					#endif
 					std::vector<std::any> source(meter.runs());
 					for (auto& i : source)
 						i = original_int;
@@ -401,7 +465,10 @@ SCENARIO("Any", "[containers]") {
 		}
 
 		WHEN("Constructing via a Block filled with dense items") {
-			Allocator::CollectGarbage();
+			#if LANGULUS_FEATURE(MANAGED_MEMORY)
+				Allocator::CollectGarbage();
+			#endif
+
 			Any pack = value;
 			Any another_pack {static_cast<Block&>(pack)};
 
@@ -418,7 +485,9 @@ SCENARIO("Any", "[containers]") {
 
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: 2:1 performance - needs optimization
 				BENCHMARK_ADVANCED("Anyness::Any::construct via dense Block shallow-copy") (Catch::Benchmark::Chronometer meter) {
-					Allocator::CollectGarbage();
+					#if LANGULUS_FEATURE(MANAGED_MEMORY)
+						Allocator::CollectGarbage();
+					#endif
 					std::vector<Any> source(meter.runs());
 					for (auto& i : source)
 						i = value;
@@ -430,7 +499,9 @@ SCENARIO("Any", "[containers]") {
 				};
 
 				BENCHMARK_ADVANCED("std::any::construct via std::any copy") (Catch::Benchmark::Chronometer meter) {
-					Allocator::CollectGarbage();
+					#if LANGULUS_FEATURE(MANAGED_MEMORY)
+						Allocator::CollectGarbage();
+					#endif
 					std::vector<std::any> source(meter.runs());
 					for (auto& i : source)
 						i = value;
@@ -444,7 +515,10 @@ SCENARIO("Any", "[containers]") {
 		}
 
 		WHEN("Constructing via a Block filled with sparse items") {
-			Allocator::CollectGarbage();
+			#if LANGULUS_FEATURE(MANAGED_MEMORY)
+				Allocator::CollectGarbage();
+			#endif
+
 			Any pack = new int {value};
 			Any another_pack {static_cast<Block&>(pack)};
 
@@ -461,7 +535,9 @@ SCENARIO("Any", "[containers]") {
 
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: 2:1 performance - needs optimization
 				BENCHMARK_ADVANCED("Anyness::Any::construct via sparse Block shallow-copy") (Catch::Benchmark::Chronometer meter) {
-					Allocator::CollectGarbage();
+					#if LANGULUS_FEATURE(MANAGED_MEMORY)
+						Allocator::CollectGarbage();
+					#endif
 					std::vector<Any> source(meter.runs());
 					for (auto& i : source)
 						i = value;
@@ -473,7 +549,9 @@ SCENARIO("Any", "[containers]") {
 				};
 
 				BENCHMARK_ADVANCED("std::any::construct via std::any copy") (Catch::Benchmark::Chronometer meter) {
-					Allocator::CollectGarbage();
+					#if LANGULUS_FEATURE(MANAGED_MEMORY)
+						Allocator::CollectGarbage();
+					#endif
 					std::vector<std::any> source(meter.runs());
 					for (auto& i : source)
 						i = value;
@@ -487,7 +565,10 @@ SCENARIO("Any", "[containers]") {
 		}
 
 		WHEN("Given a sparse value and then reset") {
-			Allocator::CollectGarbage();
+			#if LANGULUS_FEATURE(MANAGED_MEMORY)
+				Allocator::CollectGarbage();
+			#endif
+
 			int* original_int = new int(value);
 			Any pack;
 			pack = original_int;
@@ -495,17 +576,21 @@ SCENARIO("Any", "[containers]") {
 			THEN("Various traits change") {
 				REQUIRE(pack.GetType() == nullptr);
 				REQUIRE(pack.GetRaw() == nullptr);
-				#if LANGULUS_FEATURE(NEWDELETE) && LANGULUS_FEATURE(MANAGED_MEMORY)
+				#if LANGULUS_FEATURE(NEWDELETE)
 					REQUIRE(Allocator::CheckAuthority(meta, original_int));
-				#else
+					REQUIRE_FALSE(Allocator::Find(meta, original_int));
+				#elif LANGULUS_FEATURE(MANAGED_MEMORY)
 					REQUIRE_FALSE(Allocator::CheckAuthority(meta, original_int));
+					REQUIRE_FALSE(Allocator::Find(meta, original_int));
 				#endif
-				REQUIRE_FALSE(Allocator::Find(meta, original_int));
 			}
 		}
 
 		WHEN("Given static text") {
-			Allocator::CollectGarbage();
+			#if LANGULUS_FEATURE(MANAGED_MEMORY)
+				Allocator::CollectGarbage();
+			#endif
+
 			Text original_pct = u8"Lorep Ipsum";
 			Any pack;
 			pack = original_pct;
@@ -525,7 +610,10 @@ SCENARIO("Any", "[containers]") {
 		}
 
 		WHEN("Given dynamic text") {
-			Allocator::CollectGarbage();
+			#if LANGULUS_FEATURE(MANAGED_MEMORY)
+				Allocator::CollectGarbage();
+			#endif
+
 			Text original_pct = u8"Lorep Ipsum";
 			Any pack;
 			pack = original_pct.Clone();
@@ -545,7 +633,10 @@ SCENARIO("Any", "[containers]") {
 		}
 
 		WHEN("Given dynamic text, which is later referenced multiple times") {
-			Allocator::CollectGarbage();
+			#if LANGULUS_FEATURE(MANAGED_MEMORY)
+				Allocator::CollectGarbage();
+			#endif
+
 			Text original_pct = u8"Lorep Ipsum";
 			Any pack;
 			pack = original_pct.Clone();
@@ -573,7 +664,10 @@ SCENARIO("Any", "[containers]") {
 		}
 
 		WHEN("Given dynamic text, which is later referenced multiple times, and then dereferenced") {
-			Allocator::CollectGarbage();
+			#if LANGULUS_FEATURE(MANAGED_MEMORY)
+				Allocator::CollectGarbage();
+			#endif
+
 			Text original_pct = u8"Lorep Ipsum";
 			Any pack;
 			pack = original_pct.Clone();
@@ -609,7 +703,10 @@ SCENARIO("Any", "[containers]") {
 	}
 
 	GIVEN("A universal Any with some POD items") {
-		Allocator::CollectGarbage();
+		#if LANGULUS_FEATURE(MANAGED_MEMORY)
+			Allocator::CollectGarbage();
+		#endif
+
 		Any pack;
 		pack << int(1) << int(2) << int(3) << int(4) << int(5);
 		auto memory = pack.GetRaw();
@@ -776,7 +873,10 @@ SCENARIO("Any", "[containers]") {
 	}
 
 	GIVEN("A universal Any with some deep items") {
-		Allocator::CollectGarbage();
+		#if LANGULUS_FEATURE(MANAGED_MEMORY)
+			Allocator::CollectGarbage();
+		#endif
+
 		Any pack;
 		Any subpack1;
 		Any subpack2;
@@ -1050,7 +1150,10 @@ SCENARIO("Any", "[containers]") {
 	}
 
 	GIVEN("A universal Any with some deep items for the purpose of optimization") {
-		Allocator::CollectGarbage();
+		#if LANGULUS_FEATURE(MANAGED_MEMORY)
+			Allocator::CollectGarbage();
+		#endif
+
 		Any pack;
 		Any subpack1;
 		Any subpack2;
@@ -1078,7 +1181,10 @@ SCENARIO("Any", "[containers]") {
 	}
 
 	GIVEN("A universal Any with some deep items, and their Blocks coalesced") {
-		Allocator::CollectGarbage();
+		#if LANGULUS_FEATURE(MANAGED_MEMORY)
+			Allocator::CollectGarbage();
+		#endif
+
 		Any pack;
 		Any subpack1;
 		Any subpack2;

@@ -64,16 +64,18 @@ namespace Langulus::Anyness::Inner
 		NOD() static constexpr Size GetNewAllocationSize(const Size&) noexcept;
 		NOD() static constexpr Size GetMinAllocation() noexcept;
 
-		constexpr const Count& GetUses() const noexcept;
-		const Byte* GetBlockStart() const noexcept;
-		const Byte* GetBlockEnd() const noexcept;
-		Byte* GetBlockStart() noexcept;
-		constexpr Size GetTotalSize() const noexcept;
-		constexpr const Size& GetAllocatedSize() const noexcept;
-		bool Contains(const void*) const noexcept;
-		bool CollisionFree(const Allocation&) const noexcept;
+		NOD() constexpr const Count& GetUses() const noexcept;
+		NOD() const Byte* GetBlockStart() const noexcept;
+		NOD() const Byte* GetBlockEnd() const noexcept;
+		NOD() Byte* GetBlockStart() noexcept;
+		NOD() constexpr Size GetTotalSize() const noexcept;
+		NOD() constexpr const Size& GetAllocatedSize() const noexcept;
+		NOD() bool Contains(const void*) const noexcept;
+		NOD() bool CollisionFree(const Allocation&) const noexcept;
+
 		template<class T>
 		NOD() T* As() const noexcept;
+
 		constexpr void Keep() noexcept;
 		constexpr void Keep(const Count&) noexcept;
 		constexpr void Free() noexcept;

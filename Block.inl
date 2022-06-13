@@ -36,7 +36,11 @@ namespace Langulus::Anyness
 		, mCount {count}
 		, mReserved {count}
 		, mState {state}
-		, mEntry {Inner::Allocator::Find(meta, raw)} { }
+		#if LANGULUS_FEATURE(MANAGED_MEMORY)
+			, mEntry {Inner::Allocator::Find(meta, raw)} { }
+		#else
+			, mEntry {nullptr} { }
+		#endif
 	
 	/// Manual construction from constant data											
 	/// This constructor has a slight runtime overhead, due to unknown raw		
@@ -223,8 +227,15 @@ namespace Langulus::Anyness
 	///	@param count - the number of elements to request							
 	///	@returns both the provided byte size and reserved count					
 	inline auto Block::RequestSize(const Count& count) const noexcept {
-		const auto base = (IsSparse() ? sizeof(KnownPointer) : GetStride()) * count;
-		return mType->RequestSize(base);
+		if (IsSparse()) {
+			AllocationRequest result;
+			const auto requested = sizeof(KnownPointer) * count;
+			result.mByteSize = requested > Alignment ? Roof2(requested) : Alignment;
+			result.mElementCount = result.mByteSize / sizeof(KnownPointer);
+			return result;
+		}
+		
+		return mType->RequestSize(mType->mSize * count);
 	}
 
 	/// Allocate a number of elements, relying on the type of the container		
@@ -1134,18 +1145,24 @@ namespace Langulus::Anyness
 		if constexpr (CT::Sparse<T>) {
 			// Sparse data insertion (copying pointers and referencing)		
 			// Doesn't care about abstract items									
-			auto data = GetRawAs<KnownPointer>() + starter;
+			auto data = GetRawSparse() + starter;
 			const auto itemsEnd = items + count;
 			while (items != itemsEnd) {
 				data->mPointer = reinterpret_cast<Byte*>(*items);
-				if constexpr (KEEP) {
-					// Reference each pointer											
-					// Also keep the found entry, so we don't search again	
-					data->mEntry = Inner::Allocator::Find(mType, *items);
-					if (data->mEntry)
-						data->mEntry->Keep();
-				}
-				else data->mEntry = nullptr;
+
+				#if LANGULUS_FEATURE(MANAGED_MEMORY)
+					if constexpr (KEEP) {
+						// Reference each pointer										
+						// Also keep the found entry, so we don't search again
+						data->mEntry = Inner::Allocator::Find(mType, *items);
+						if (data->mEntry)
+							data->mEntry->Keep();
+					}
+					else data->mEntry = nullptr;
+				#else
+					data->mEntry = nullptr;
+				#endif
+
 				++data; ++items;
 			}
 		}
@@ -1198,12 +1215,16 @@ namespace Langulus::Anyness
 			data->mPointer = reinterpret_cast<Byte*>(item);
 
 			// Reference the pointer's memory										
-			if constexpr (KEEP) {
-				data->mEntry = Inner::Allocator::Find(mType, item);
-				if (data->mEntry)
-					data->mEntry->Keep();
-			}
-			else data->mEntry = nullptr;
+			#if LANGULUS_FEATURE(MANAGED_MEMORY)
+				if constexpr (KEEP) {
+					data->mEntry = Inner::Allocator::Find(mType, item);
+					if (data->mEntry)
+						data->mEntry->Keep();
+				}
+				else data->mEntry = nullptr;
+			#else
+				data->mEntry = nullptr;
+			#endif
 		}
 		else {
 			static_assert(!CT::Abstract<T>,
@@ -2171,7 +2192,7 @@ namespace Langulus::Anyness
 		using DT = Decay<T>;
 
 		if constexpr (CT::Sparse<T>) {
-			auto data = GetRawAs<KnownPointer>();
+			auto data = GetRawSparse();
 			const auto dataEnd = data + mCount;
 
 			// We dereference each pointer - destructors will be called		
@@ -2219,7 +2240,7 @@ namespace Langulus::Anyness
 
 		if constexpr (CT::Sparse<T>) {
 			// Move known pointers														
-			const auto to = GetRawAs<KnownPointer>() + mCount;
+			const auto to = GetRawSparse() + mCount;
 			const auto size = sizeof(KnownPointer) * count;
 			MoveMemory(source.mRaw, to, size);
 

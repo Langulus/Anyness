@@ -28,15 +28,12 @@ namespace Langulus::Anyness
 		~TAny();
 		
 		TAny(const TAny&);
-		//TAny(TAny&);
 		TAny(TAny&&) noexcept;
 		
 		TAny(const Any&);
-		//TAny(Any&);
 		TAny(Any&&);
 		
 		TAny(const Block&);
-		//TAny(Block&);
 		TAny(Block&&);
 
 		TAny(Disowned<TAny>&&) noexcept;
@@ -48,12 +45,9 @@ namespace Langulus::Anyness
 		TAny(const T*, const Count&);
 		
 		TAny& operator = (const TAny&);
-		//TAny& operator = (TAny&);
 		TAny& operator = (TAny&&) noexcept;
 
-		//template<CT::Data ALT_T>
 		TAny& operator = (const T&);
-		//template<CT::Data ALT_T>
 		TAny& operator = (T&&);
 
 	public:
@@ -65,7 +59,7 @@ namespace Langulus::Anyness
 		NOD() static TAny Wrap(const T(&anything)[COUNT]);
 		NOD() static TAny Wrap(const T*, const Count&);
 
-		template<bool CREATE = false, bool MOVE = true>
+		template<bool CREATE = false>
 		void Allocate(Count);
 	
 		void Null(const Count&);
@@ -158,7 +152,7 @@ namespace Langulus::Anyness
 		NOD() WRAPPER operator + (const RHS&) const;
 
 	protected:
-		Size RequestByteSize(const Count&) const noexcept;
+		NOD() auto RequestSize(const Count&) const noexcept;
 
 		template<bool OVERWRITE>
 		void CopyProperties(const Block&) noexcept;
