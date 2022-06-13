@@ -40,6 +40,6 @@ jobs:
       - name: Configure
         run: cmake -DCMAKE_CXX_COMPILER=${{matrix.cxx}} -S . -B out/${{matrix.name}} -DCMAKE_BUILD_TYPE=${{matrix.build}} ${{matrix.cmake_args}} ${{matrix.managed}} -DLANGULUS_ENABLE_SAFE_MODE=ON
       - name: Build
-        run: cmake --build out/${{name}} --config ${{matrix.build}}
+        run: cmake --build out/${{matrix.name}} --config ${{matrix.build}}
       - name: Test
-        run: cd out/${{name}} && ctest -V -C ${{matrix.build}}
+        run: cd out/${{matrix.name}} && ctest -V -C ${{matrix.build}}
