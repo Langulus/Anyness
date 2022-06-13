@@ -31,9 +31,9 @@ jobs:
             architecture: x64
             cmake_args: "-G \"Visual Studio 17 2022\" -A x64"
           - managed_memory: -DLANGULUS_FEATURE_MANAGED_MEMORY=OFF
-            name: "${{matrix.os}}-${{matrix.cxx}}-${{matrix.build_type}}-${{matrix.architecture}}"
+            name: "${{os}}-${{cxx}}-${{build_type}}-${{architecture}}"
           - managed_memory: -DLANGULUS_FEATURE_MANAGED_MEMORY=ON
-            name: "${{matrix.os}}-${{matrix.cxx}}-${{matrix.build_type}}-${{matrix.architecture}}-managed"
+            name: "${{os}}-${{cxx}}-${{build_type}}-${{architecture}}-managed"
     steps:
       - name: Clone
         uses: actions/checkout@v2
