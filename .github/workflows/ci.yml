@@ -21,9 +21,9 @@ jobs:
           - os: windows-latest
             cxx: clang++
         include:
-          - os: ubuntu-22.04
-            architecture: x86
-            cmake_args: "-DCMAKE_CXX_FLAGS=-m32"
+          #- os: ubuntu-22.04
+          #  architecture: x86
+          #  cmake_args: "-DCMAKE_CXX_FLAGS=-m32"
           - os: ubuntu-22.04
             architecture: x64
             cmake_args: "-DCMAKE_CXX_FLAGS=-m64"
