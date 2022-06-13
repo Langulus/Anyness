@@ -11,40 +11,104 @@
 using uint = unsigned int;
 
 SCENARIO("TAny", "[containers]") {
-
-	GIVEN("A TAny instance") {
+	GIVEN("Dense TAny instance") {
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
 			Allocator::CollectGarbage();
 		#endif
 
+		using T = TAny<int>;
+		using StdT = std::vector<int>;
+
 		int value = 555;
-		TAny<int> pack;
+		T pack;
 		auto meta = pack.GetType();
 
-		WHEN("Given a default-constructed TAny") {
+		WHEN("Default-constructed") {
 			REQUIRE(meta);
 			REQUIRE(pack.GetType()->Is<int>());
 			REQUIRE(pack.IsTypeConstrained());
 			REQUIRE(pack.GetRaw() == nullptr);
 			REQUIRE(pack.IsEmpty());
+			REQUIRE(pack.IsDense());
+			REQUIRE_FALSE(pack.IsSparse());
 			REQUIRE_FALSE(pack.IsAllocated());
 
-			#ifdef LANGULUS_STD_BENCHMARK // Last result: 8:1 performance - unfortunately can't be remedied, due to RTTI
+			#ifdef LANGULUS_STD_BENCHMARK
 				BENCHMARK_ADVANCED("Anyness::TAny::default construction") (Catch::Benchmark::Chronometer meter) {
-					std::vector<Catch::Benchmark::storage_for<TAny<int>>> storage(meter.runs());
+					std::vector<Catch::Benchmark::storage_for<T>> storage(meter.runs());
 
 					meter.measure([&](int i) { return storage[i].construct(); });
 				};
 
 				BENCHMARK_ADVANCED("std::vector::default construction") (Catch::Benchmark::Chronometer meter) {
-					std::vector<Catch::Benchmark::storage_for<std::vector<int>>> storage(meter.runs());
+					std::vector<Catch::Benchmark::storage_for<StdT>> storage(meter.runs());
 
 					meter.measure([&](int i) { return storage[i].construct(); });
 				};
 			#endif
 		}
 
-		WHEN("Given a POD value by copy") {
+		WHEN("Constructed via POD value by copy") {
+			T pack {value};
+
+			THEN("Various traits change") {
+				REQUIRE(pack.GetType() == meta);
+				REQUIRE(pack.Is<int>());
+				REQUIRE(pack.GetRaw() != nullptr);
+				REQUIRE(pack.As<int>() == value);
+				REQUIRE_THROWS(pack.As<float>() == 0.0f);
+				REQUIRE(*pack.As<int*>() == value);
+				REQUIRE_THROWS(pack.As<float*>() == nullptr);
+			}
+
+			#ifdef LANGULUS_STD_BENCHMARK
+				BENCHMARK_ADVANCED("Anyness::TAny::construct (single trivial copy)") (Catch::Benchmark::Chronometer meter) {
+					std::vector<Catch::Benchmark::storage_for<T>> storage(meter.runs());
+
+					meter.measure([&](int i) { return storage[i].construct(value); });
+				};
+
+				BENCHMARK_ADVANCED("std::vector::operator = (single trivial copy)") (Catch::Benchmark::Chronometer meter) {
+					std::vector<StdT> storage(meter.runs());
+
+					meter.measure([&](int i) {
+						return storage[i] = {value};
+					});
+				};
+			#endif
+		}
+
+		WHEN("Constructed via POD value by move") {
+			T pack {Move(value)};
+
+			THEN("Various traits change") {
+				REQUIRE(pack.GetType() == meta);
+				REQUIRE(pack.Is<int>());
+				REQUIRE(pack.GetRaw() != nullptr);
+				REQUIRE(pack.As<int>() == value);
+				REQUIRE_THROWS(pack.As<float>() == 0.0f);
+				REQUIRE(*pack.As<int*>() == value);
+				REQUIRE_THROWS(pack.As<float*>() == nullptr);
+			}
+
+			#ifdef LANGULUS_STD_BENCHMARK
+				BENCHMARK_ADVANCED("Anyness::TAny::construct (single trivial move)") (Catch::Benchmark::Chronometer meter) {
+					std::vector<Catch::Benchmark::storage_for<T>> storage(meter.runs());
+
+					meter.measure([&](int i) { return storage[i].construct(Move(value)); });
+				};
+
+				BENCHMARK_ADVANCED("std::vector::operator = (single trivial move)") (Catch::Benchmark::Chronometer meter) {
+					std::vector<StdT> storage(meter.runs());
+
+					meter.measure([&](int i) {
+						return storage[i] = {Move(value)};
+					});
+				};
+			#endif
+		}
+
+		WHEN("Assigned POD value by copy") {
 			pack = value;
 			THEN("Various traits change") {
 				REQUIRE(pack.GetType() == meta);
@@ -75,7 +139,7 @@ SCENARIO("TAny", "[containers]") {
 			#endif
 		}
 		
-		WHEN("Given a POD value by move") {
+		WHEN("Assigned POD value by move") {
 			pack = Move(value);
 
 			THEN("Various traits change") {
@@ -90,7 +154,7 @@ SCENARIO("TAny", "[containers]") {
 
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: 1:1 performance
 				BENCHMARK_ADVANCED("Anyness::TAny::operator = (single trivial move)") (Catch::Benchmark::Chronometer meter) {
-					std::vector<TAny<int>> storage(meter.runs());
+					std::vector<T> storage(meter.runs());
 
 					meter.measure([&](int i) {
 						return storage[i] = Move(value);
@@ -98,7 +162,173 @@ SCENARIO("TAny", "[containers]") {
 				};
 
 				BENCHMARK_ADVANCED("std::vector::operator = (single trivial move)") (Catch::Benchmark::Chronometer meter) {
-					std::vector<std::vector<int>> storage(meter.runs());
+					std::vector<StdT> storage(meter.runs());
+
+					meter.measure([&](int i) {
+						return storage[i] = { Move(value) };
+					});
+				};
+			#endif
+		}
+	}
+
+	GIVEN("Sparse TAny instance") {
+		#if LANGULUS_FEATURE(MANAGED_MEMORY)
+			Allocator::CollectGarbage();
+		#endif
+
+		using T = TAny<int*>;
+		using StdT = std::vector<int*>;
+
+		int* value = new int {555};
+		T pack;
+		auto meta = pack.GetType();
+
+		WHEN("Default-constructed") {
+			REQUIRE(meta);
+			REQUIRE(pack.GetType()->Is<int>());
+			REQUIRE(pack.IsTypeConstrained());
+			REQUIRE(pack.GetRaw() == nullptr);
+			REQUIRE(pack.IsEmpty());
+			REQUIRE(pack.IsSparse());
+			REQUIRE_FALSE(pack.IsDense());
+			REQUIRE_FALSE(pack.IsAllocated());
+
+			#ifdef LANGULUS_STD_BENCHMARK
+				BENCHMARK_ADVANCED("Anyness::TAny::default construction") (Catch::Benchmark::Chronometer meter) {
+					std::vector<Catch::Benchmark::storage_for<T>> storage(meter.runs());
+
+					meter.measure([&](int i) { return storage[i].construct(); });
+				};
+
+				BENCHMARK_ADVANCED("std::vector::default construction") (Catch::Benchmark::Chronometer meter) {
+					std::vector<Catch::Benchmark::storage_for<StdT>> storage(meter.runs());
+
+					meter.measure([&](int i) { return storage[i].construct(); });
+				};
+			#endif
+		}
+
+		WHEN("Constructed via pointer by copy") {
+			T pack {value};
+
+			THEN("Various traits change") {
+				REQUIRE(value);
+				REQUIRE(pack.GetType() == meta);
+				REQUIRE(pack.Is<int>());
+				REQUIRE(pack.GetRaw() != nullptr);
+				REQUIRE(pack.As<int>() == *value);
+				REQUIRE_THROWS(pack.As<float>() == 0.0f);
+				REQUIRE(pack.As<int*>() == value);
+				REQUIRE_THROWS(pack.As<float*>() == nullptr);
+			}
+
+			#ifdef LANGULUS_STD_BENCHMARK
+				BENCHMARK_ADVANCED("Anyness::TAny::construct (single trivial copy)") (Catch::Benchmark::Chronometer meter) {
+					std::vector<Catch::Benchmark::storage_for<T>> storage(meter.runs());
+
+					meter.measure([&](int i) { return storage[i].construct(value); });
+				};
+
+				BENCHMARK_ADVANCED("std::vector::operator = (single trivial copy)") (Catch::Benchmark::Chronometer meter) {
+					std::vector<StdT> storage(meter.runs());
+
+					meter.measure([&](int i) {
+						return storage[i] = {value};
+					});
+				};
+			#endif
+		}
+
+		WHEN("Constructed via pointer by move") {
+			T pack {Move(value)};
+
+			THEN("Various traits change") {
+				REQUIRE(value);
+				REQUIRE(pack.GetType() == meta);
+				REQUIRE(pack.Is<int>());
+				REQUIRE(pack.GetRaw() != nullptr);
+				REQUIRE(pack.As<int>() == *value);
+				REQUIRE_THROWS(pack.As<float>() == 0.0f);
+				REQUIRE(pack.As<int*>() == value);
+				REQUIRE_THROWS(pack.As<float*>() == nullptr);
+			}
+
+			#ifdef LANGULUS_STD_BENCHMARK
+				BENCHMARK_ADVANCED("Anyness::TAny::construct (single trivial move)") (Catch::Benchmark::Chronometer meter) {
+					std::vector<Catch::Benchmark::storage_for<T>> storage(meter.runs());
+
+					meter.measure([&](int i) { return storage[i].construct(Move(value)); });
+				};
+
+				BENCHMARK_ADVANCED("std::vector::operator = (single trivial move)") (Catch::Benchmark::Chronometer meter) {
+					std::vector<StdT> storage(meter.runs());
+
+					meter.measure([&](int i) {
+						return storage[i] = {Move(value)};
+					});
+				};
+			#endif
+		}
+
+		WHEN("Assigned a pointer by copy") {
+			pack = value;
+
+			THEN("Various traits change") {
+				REQUIRE(value);
+				REQUIRE(pack.GetType() == meta);
+				REQUIRE(pack.Is<int>());
+				REQUIRE(pack.GetRaw() != nullptr);
+				REQUIRE(pack.As<int>() == *value);
+				REQUIRE_THROWS(pack.As<float>() == 0.0f);
+				REQUIRE(pack.As<int*>() == value);
+				REQUIRE_THROWS(pack.As<float*>() == nullptr);
+			}
+
+			#ifdef LANGULUS_STD_BENCHMARK
+				BENCHMARK_ADVANCED("Anyness::TAny::operator = (single trivial copy)") (Catch::Benchmark::Chronometer meter) {
+					std::vector<T> storage(meter.runs());
+
+					meter.measure([&](int i) {
+						return storage[i] = value;
+					});
+				};
+
+				BENCHMARK_ADVANCED("std::vector::operator = (single trivial copy)") (Catch::Benchmark::Chronometer meter) {
+					std::vector<StdT> storage(meter.runs());
+
+					meter.measure([&](int i) {
+						return storage[i] = { value };
+					});
+				};
+			#endif
+		}
+		
+		WHEN("Assigned a pointer by move") {
+			pack = Move(value);
+
+			THEN("Various traits change") {
+				REQUIRE(value);
+				REQUIRE(pack.GetType() == meta);
+				REQUIRE(pack.Is<int>());
+				REQUIRE(pack.GetRaw() != nullptr);
+				REQUIRE(pack.As<int>() == *value);
+				REQUIRE_THROWS(pack.As<float>() == 0.0f);
+				REQUIRE(pack.As<int*>() == value);
+				REQUIRE_THROWS(pack.As<float*>() == nullptr);
+			}
+
+			#ifdef LANGULUS_STD_BENCHMARK
+				BENCHMARK_ADVANCED("Anyness::TAny::operator = (single trivial move)") (Catch::Benchmark::Chronometer meter) {
+					std::vector<T> storage(meter.runs());
+
+					meter.measure([&](int i) {
+						return storage[i] = Move(value);
+					});
+				};
+
+				BENCHMARK_ADVANCED("std::vector::operator = (single trivial move)") (Catch::Benchmark::Chronometer meter) {
+					std::vector<StdT> storage(meter.runs());
 
 					meter.measure([&](int i) {
 						return storage[i] = { Move(value) };
@@ -108,7 +338,7 @@ SCENARIO("TAny", "[containers]") {
 		}
 	}
 	
-	GIVEN("A templated Any with some POD items") {
+	GIVEN("TAny with some POD items") {
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
 			Allocator::CollectGarbage();
 		#endif
@@ -475,7 +705,7 @@ SCENARIO("TAny", "[containers]") {
 		}
 	}
 
-	GIVEN("Two templated Any with some POD items") {
+	GIVEN("Two TAny with some POD items") {
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
 			Allocator::CollectGarbage();
 		#endif

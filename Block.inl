@@ -210,16 +210,22 @@ namespace Langulus::Anyness
 	}
 	
 	/// Reset the block's state																
-	template<bool TYPED>
+	template<bool TYPED, bool SPARSE>
 	constexpr void Block::ResetState() noexcept {
 		if constexpr (TYPED) {
 			// DON'T clear type, and restore typed state							
-			mState = DataState::Typed;
+			if constexpr (SPARSE)
+				mState = DataState::Typed | DataState::Sparse;
+			else
+				mState = DataState::Typed;
 		}
 		else {
 			// Clear both type and state												
 			mType = nullptr;
-			mState.Reset();
+			if constexpr (SPARSE)
+				mState = DataState::Sparse;
+			else
+				mState.Reset();
 		}
 	}
 	

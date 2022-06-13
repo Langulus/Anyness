@@ -599,6 +599,22 @@ namespace Langulus::Anyness
 		#endif
 	}
 
+	/// A slow runtime state reset, that retains sparseness and constraints		
+	void Block::ResetStateRTTI() noexcept {
+		if (IsTypeConstrained()) {
+			if (IsSparse())
+				ResetState<true, true>();
+			else
+				ResetState<true, false>();
+		}
+		else {
+			if (IsSparse())
+				ResetState<false, true>();
+			else
+				ResetState<false, false>();
+		}
+	}
+
 	/// Remove sequential special indices													
 	///	@param index - special index														
 	///	@param count - number of items to remove										
@@ -608,10 +624,7 @@ namespace Langulus::Anyness
 			const auto oldCount = mCount;
 			Free();
 			ResetMemory();
-			if (IsTypeConstrained())
-				ResetState<true>();
-			else
-				ResetState<false>();
+			ResetStateRTTI();
 			return oldCount;
 		}
 
@@ -930,10 +943,7 @@ namespace Langulus::Anyness
 	void Block::Reset() {
 		Free();
 		ResetMemory();
-		if (IsTypeConstrained())
-			ResetState<true>();
-		else
-			ResetState<false>();
+		ResetStateRTTI();
 	}
 
 	/// Flattens unnecessarily deep containers and combines their states			

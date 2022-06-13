@@ -9,7 +9,7 @@ jobs:
         os: [ubuntu-22.04, windows-latest]
         build: [Debug, Release]
         architecture: [x86, x64]
-        managed: ['-DLANGULUS_FEATURE_MANAGED_MEMORY=OFF', '-DLANGULUS_FEATURE_MANAGED_MEMORY=ON']
+        managed: [ON, OFF]
         cxx: [g++, clang++, cl]
         exclude:
           - os: ubuntu-22.04
@@ -33,9 +33,9 @@ jobs:
           - os: windows-latest
             architecture: x64
             cmake_args: "-G \"Visual Studio 17 2022\" -A x64"
-          - managed: '-DLANGULUS_FEATURE_MANAGED_MEMORY=OFF'
+          - managed: OFF
             suffix: ''
-          - managed: '-DLANGULUS_FEATURE_MANAGED_MEMORY=ON'
+          - managed: ON
             suffix: '-managed'
 
     name: "${{matrix.os}}-${{matrix.cxx}}-${{matrix.build}}-${{matrix.architecture}}${{matrix.suffix}}"
@@ -44,7 +44,15 @@ jobs:
       - name: Clone
         uses: actions/checkout@v2
       - name: Configure
-        run: cmake -DCMAKE_CXX_COMPILER=${{matrix.cxx}} -S . -B out/${{matrix.name}} -DCMAKE_BUILD_TYPE=${{matrix.build}} ${{matrix.cmake_args}} ${{matrix.managed}} -DLANGULUS_ENABLE_SAFE_MODE=ON
+        run: |
+            cmake \
+                -DCMAKE_CXX_COMPILER=${{matrix.cxx}} \
+                -S . \
+                -B out/${{matrix.name}} \
+                -DCMAKE_BUILD_TYPE=${{matrix.build}} \
+                ${{matrix.cmake_args}} \
+                -DLANGULUS_FEATURE_MANAGED_MEMORY=${{matrix.managed}} \
+                -DLANGULUS_ENABLE_SAFE_MODE=ON
       - name: Build
         run: cmake --build out/${{matrix.name}} --config ${{matrix.build}}
       - name: Test

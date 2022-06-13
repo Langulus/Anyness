@@ -474,8 +474,10 @@ namespace Langulus::Anyness
 		
 		constexpr void ClearInner() noexcept;
 		constexpr void ResetMemory() noexcept;
-		template<bool TYPED>
+		template<bool TYPED, bool SPARSE>
 		constexpr void ResetState() noexcept;
+		void ResetStateRTTI() noexcept;
+
 	
 		void Reference(const Count&) const noexcept;
 		void Reference(const Count&) noexcept;

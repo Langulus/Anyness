@@ -13,8 +13,7 @@
 using uint = unsigned int;
 
 SCENARIO("Any", "[containers]") {
-
-	GIVEN("An Any instance") {
+	GIVEN("Any instance") {
 		int value = 555;
 		auto meta = MetaData::Of<int>();
 
@@ -702,7 +701,7 @@ SCENARIO("Any", "[containers]") {
 		}
 	}
 
-	GIVEN("A universal Any with some POD items") {
+	GIVEN("Any with some POD items") {
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
 			Allocator::CollectGarbage();
 		#endif
@@ -872,7 +871,7 @@ SCENARIO("Any", "[containers]") {
 		}
 	}
 
-	GIVEN("A universal Any with some deep items") {
+	GIVEN("Any with some deep items") {
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
 			Allocator::CollectGarbage();
 		#endif
@@ -1149,7 +1148,7 @@ SCENARIO("Any", "[containers]") {
 		}
 	}
 
-	GIVEN("A universal Any with some deep items for the purpose of optimization") {
+	GIVEN("Any with some deep items for the purpose of optimization") {
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
 			Allocator::CollectGarbage();
 		#endif
@@ -1180,7 +1179,7 @@ SCENARIO("Any", "[containers]") {
 		}
 	}
 
-	GIVEN("A universal Any with some deep items, and their Blocks coalesced") {
+	GIVEN("Any with some deep items, and their Blocks coalesced") {
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
 			Allocator::CollectGarbage();
 		#endif

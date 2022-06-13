@@ -288,7 +288,7 @@ namespace Langulus::Anyness
 	/// Reset container state																	
 	TEMPLATE()
 	void TAny<T>::ResetState() noexcept {
-		Block::ResetState<true>();
+		Block::ResetState<true, CT::Sparse<T>>();
 	}
 
 	/// Check if contained data can be interpreted as a given type					
