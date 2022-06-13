@@ -73,7 +73,7 @@ namespace Langulus::Anyness::Inner
 	/// Get the minimum possible allocation, including the overhead				
 	///	@return the byte size																
 	constexpr Size Allocation::GetMinAllocation() noexcept {
-		return Roof2cexpr(Allocation::GetSize() + Alignment);
+		return Allocation::GetSize() + Alignment;
 	}
 
 	/// Check if the memory of the entry is in use										

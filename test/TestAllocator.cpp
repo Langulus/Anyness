@@ -433,7 +433,6 @@ SCENARIO("Testing pool functions", "[allocator]") {
 					auto entry = pool->AllocationFromIndex(i);
 					REQUIRE(pool->Contains(entry));
 					REQUIRE(entry->GetUses() == 1 + i);
-					REQUIRE(entry->GetAllocatedSize() == 5);
 				}
 			}
 
@@ -463,7 +462,6 @@ SCENARIO("Testing pool functions", "[allocator]") {
 			THEN("The resulting allocation should be invalid") {
 				REQUIRE(entry == nullptr);
 				REQUIRE(pool->GetAllocatedByFrontend() == 0);
-				REQUIRE(pool->GetMinAllocation() == Allocation::GetMinAllocation());
 				REQUIRE_FALSE(pool->IsInUse());
 			}
 

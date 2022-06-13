@@ -16,7 +16,7 @@ namespace Langulus::Anyness::Inner
 		: mAllocatedByBackend {size}
 		, mAllocatedByBackendLog2 {FastLog2(size)}
 		, mAllocatedByBackendLSB {LSB(size >> Size{1})}
-		, mThresholdMin {Allocation::GetMinAllocation()}
+		, mThresholdMin {Roof2cexpr(Allocation::GetMinAllocation())}
 		, mThreshold {size}
 		, mThresholdPrevious {size}
 		, mHandle {memory} {
@@ -118,13 +118,13 @@ namespace Langulus::Anyness::Inner
 			// Recycle entries															
 			newEntry = mLastFreed;
 			mLastFreed = mLastFreed->mNextFreeEntry;
-			new (newEntry) Allocation {bytes, this};
+			new (newEntry) Allocation {bytesWithPadding - Allocation::GetSize(), this};
 		}
 		else {
 			// The entire pool is full (or empty), skip search for free		
 			// spot, add a new allocation directly	instead						
 			newEntry = reinterpret_cast<Allocation*>(mNextEntry);
-			new (newEntry) Allocation {bytes, this};
+			new (newEntry) Allocation {bytesWithPadding - Allocation::GetSize(), this};
 			++mEntries;
 
 			// Move carriage to the next entry										
