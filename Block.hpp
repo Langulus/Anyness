@@ -99,13 +99,19 @@ namespace Langulus::Anyness
 		friend class THashMap;
 
 	protected:
+		// A structure used to represent an element of a sparse container	
+		struct KnownPointer {
+			Byte* mPointer;
+			Inner::Allocation* mEntry;
+		};
+
 		union { 
 			#if LANGULUS_DEBUG()
 				char* mRawChar;
 			#endif
 			// Raw pointer to first element inside the memory block			
 			Byte* mRaw {};
-			Byte** mRawSparse;
+			KnownPointer* mRawSparse;
 		};
 	
 		// The data state																	
@@ -201,8 +207,8 @@ namespace Langulus::Anyness
 		NOD() constexpr const Byte* GetRaw() const noexcept;
 		NOD() constexpr Byte* GetRawEnd() noexcept;
 		NOD() constexpr const Byte* GetRawEnd() const noexcept;
-		NOD() constexpr Byte** GetRawSparse() noexcept;
-		NOD() constexpr const Byte* const* GetRawSparse() const noexcept;
+		NOD() constexpr KnownPointer* GetRawSparse() noexcept;
+		NOD() constexpr const KnownPointer* GetRawSparse() const noexcept;
 		
 		NOD() constexpr bool IsMissingDeep() const;
 		

@@ -77,10 +77,10 @@ namespace Langulus::Anyness
 
 		NOD() TAny Clone() const;
 
-		NOD() const T* GetRaw() const noexcept;
-		NOD() T* GetRaw() noexcept;
-		NOD() const T* GetRawEnd() const noexcept;
-		NOD() T* GetRawEnd() noexcept;
+		NOD() auto GetRaw() const noexcept;
+		NOD() auto GetRaw() noexcept;
+		NOD() auto GetRawEnd() const noexcept;
+		NOD() auto GetRawEnd() noexcept;
 		NOD() decltype(auto) Last() const SAFETY_NOEXCEPT();
 		NOD() decltype(auto) Last() SAFETY_NOEXCEPT();
 
@@ -94,12 +94,12 @@ namespace Langulus::Anyness
 		NOD() decltype(auto) operator [] (const Index&) const requires CT::Dense<T>;
 		NOD() decltype(auto) operator [] (const Index&) requires CT::Dense<T>;
 
-		struct SparseElement;
+		struct KnownPointer;
 
 		NOD() decltype(auto) operator [] (const Offset&) const SAFETY_NOEXCEPT() requires CT::Sparse<T>;
-		NOD() SparseElement  operator [] (const Offset&) SAFETY_NOEXCEPT() requires CT::Sparse<T>;
+		NOD() KnownPointer& operator [] (const Offset&) SAFETY_NOEXCEPT() requires CT::Sparse<T>;
 		NOD() decltype(auto) operator [] (const Index&) const requires CT::Sparse<T>;
-		NOD() SparseElement  operator [] (const Index&) requires CT::Sparse<T>;
+		NOD() KnownPointer& operator [] (const Index&) requires CT::Sparse<T>;
 
 		NOD() constexpr bool IsUntyped() const noexcept;
 		NOD() constexpr bool IsTypeConstrained() const noexcept;
@@ -171,14 +171,15 @@ namespace Langulus::Anyness
 	/// A sparse element access that dereferences on overwrite						
 	///																								
 	template<CT::Data T>
-	struct TAny<T>::SparseElement {
-		Conditional<CT::Constant<T>, const T&, T&> mElement;
+	struct TAny<T>::KnownPointer {
+		T mPointer;
+		Inner::Allocation* mEntry;
 
-		SparseElement& operator = (T);
-		SparseElement& operator = (::std::nullptr_t);
+		KnownPointer& operator = (T);
+		KnownPointer& operator = (::std::nullptr_t);
 
-		operator const T() const noexcept;
-		operator T () noexcept;
+		operator T() const noexcept;
+		operator T() noexcept;
 
 		auto operator -> () const;
 		auto operator -> ();

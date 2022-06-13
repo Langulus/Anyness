@@ -53,12 +53,6 @@ namespace Langulus::Anyness
 	TAny<T>::TAny(const TAny& other)
 		: Any {static_cast<const Any&>(other)} { }
 
-	/// Shallow-copy construction																
-	///	@param other - the TAny to reference											
-	/*TEMPLATE()
-	TAny<T>::TAny(TAny& other)
-		: Any {static_cast<Any&>(other)} { }*/
-
 	/// Move construction																		
 	///	@param other - the TAny to move													
 	TEMPLATE()
@@ -79,15 +73,6 @@ namespace Langulus::Anyness
 		CopyProperties<false>(other);
 		Keep();
 	}
-
-	/// Shallow copy construction from Any, that checks type							
-	/// Any can contain anything, so there's a bit of type-checking overhead	
-	///	@param other - the anyness to reference										
-	/*TEMPLATE()
-	TAny<T>::TAny(const Any& other)
-		: TAny {const_cast<Any&>(other)} {
-		MakeConstant();
-	}*/
 
 	/// Move-construction from Any, that checks type									
 	/// Any can contain anything, so there's a bit of type-checking overhead	
@@ -111,13 +96,6 @@ namespace Langulus::Anyness
 	TEMPLATE()
 	TAny<T>::TAny(const Block& copy)
 		: TAny {Any {copy}} { }
-	
-	/// Shallow copy construction from blocks												
-	/// Block can contain anything, so there's a bit of type-checking overhead	
-	///	@param copy - the block to reference											
-	/*TEMPLATE()
-	TAny<T>::TAny(Block& copy)
-		: TAny {Any {copy}} { }*/
 
 	/// Move construction - moves block and references content						
 	///	@attention since we are not aware if that block is referenced, we		
@@ -175,13 +153,6 @@ namespace Langulus::Anyness
 		// data on the stack																
 		TakeAuthority();
 	}
-	
-	/*TEMPLATE()
-	TAny<T>& TAny<T>::operator = (const TAny<T>& other) {
-		operator = (const_cast<TAny&>(other));
-		MakeConstant();
-		return *this;
-	}*/
 
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator = (const TAny<T>& other) {
@@ -206,7 +177,6 @@ namespace Langulus::Anyness
 	///	@param other - the value to copy													
 	///	@return a reference to this container											
 	TEMPLATE()
-	//template<CT::Data ALT_T>
 	TAny<T>& TAny<T>::operator = (const T& other) {
 		if constexpr (CT::Same<T, Any>) {
 			// Just reference the memory of the other Any						
@@ -227,7 +197,7 @@ namespace Langulus::Anyness
 			// Always reference a Block, by wrapping it in an Any				
 			operator = (TAny<T> {other});			
 		}
-		else /*if constexpr (CT::Same<T, T>)*/ {
+		else {
 			if (GetUses() == 1) {
 				// Just destroy and reuse memory										
 				CallKnownDestructors<T>();
@@ -240,38 +210,14 @@ namespace Langulus::Anyness
 				operator << (other);
 			}
 		}
-		/*else {
-			const auto meta = MetaData::Of<Decay<ALT_T>>();
-			if (!CastsToMeta(meta)) {
-				// Can't assign different type to a type-constrained Any		
-				Throw<Except::Copy>(Logger::Error()
-					<< "Bad shallow-copy-assignment for TAny: from "
-					<< GetToken() << " to " << meta->mToken);
-			}
-			else if (GetUses() == 1 && meta->Is(mType)) {
-				// Just destroy and reuse memory										
-				// Even better - types match, so we know this container		
-				// is filled with T too, therefore we can use statically		
-				// optimized routines for destruction								
-				CallKnownDestructors<T>();
-				mCount = 0;
-				InsertInner<T>(&other, 1, 0);
-			}
-			else {
-				// Reset and allocate new memory										
-				Reset();
-				operator << (other);
-			}
-		}*/
 
 		return *this;
 	}
 
 	/// Assign by moving something															
-	///	@param value - the value to move													
+	///	@param other - the value to move													
 	///	@return a reference to this container											
 	TEMPLATE()
-	//template<CT::Data ALT_T>
 	TAny<T>& TAny<T>::operator = (T&& other) {
 		if constexpr (CT::Same<T, Disowned<TAny>> || CT::Same<T, Abandoned<TAny>>) {
 			// Data is guaranteed to be compatible, replace it					
@@ -306,7 +252,7 @@ namespace Langulus::Anyness
 			// Always reference a Block, by wrapping it in an Any				
 			operator = (TAny {Forward<Block>(other)});
 		}
-		else /*if constexpr (CT::Same<T, T>)*/ {
+		else {
 			if (GetUses() == 1) {
 				// Just destroy and reuse memory										
 				CallKnownDestructors<T>();
@@ -319,7 +265,7 @@ namespace Langulus::Anyness
 				operator << (Forward<T>(other));
 			}
 		}
-		//else LANGULUS_ASSERT("Can't do move-assignment with incompatible type");
+
 		return *this;
 	}
 
@@ -456,6 +402,7 @@ namespace Langulus::Anyness
 		using Type = Decay<T>;
 
 		if constexpr (CT::Sparse<T>) {
+			// Clone all data in the same block										
 			TAny<Decay<T>> coalesced;
 			coalesced.Allocate(mCount);
 			
@@ -501,75 +448,81 @@ namespace Langulus::Anyness
 	/// Return the typed raw data (const)													
 	///	@return a constant pointer to the first element in the array			
 	TEMPLATE()
-	const T* TAny<T>::GetRaw() const noexcept {
-		return Any::GetRawAs<T>();
+	auto TAny<T>::GetRaw() const noexcept {
+		if constexpr (CT::Dense<T>)
+			return Any::GetRawAs<T>();
+		else
+			return Any::GetRawAs<KnownPointer>();
 	}
 
 	/// Return the typed raw data																
 	///	@return a mutable pointer to the first element in the array				
 	TEMPLATE()
-	T* TAny<T>::GetRaw() noexcept {
-		return Any::GetRawAs<T>();
+	auto TAny<T>::GetRaw() noexcept {
+		if constexpr (CT::Dense<T>)
+			return Any::GetRawAs<T>();
+		else
+			return Any::GetRawAs<KnownPointer>();
 	}
 
 	/// Return the typed raw data end pointer (const)									
 	///	@return a constant pointer to one past the last element in the array	
 	TEMPLATE()
-	const T* TAny<T>::GetRawEnd() const noexcept {
+	auto TAny<T>::GetRawEnd() const noexcept {
 		return Any::GetRawAs<T>() + mCount;
 	}
 
 	/// Return the typed raw data	end pointer												
 	///	@return a mutable pointer to one past the last element in the array	
 	TEMPLATE()
-	T* TAny<T>::GetRawEnd() noexcept {
+	auto TAny<T>::GetRawEnd() noexcept {
 		return Any::GetRawAs<T>() + mCount;
 	}
 
 	/// Get an element in the way you want (const, unsafe)							
 	/// This is a statically optimized variant of Block::Get							
 	TEMPLATE()
-	template<CT::Data K>
+	template<CT::Data ALT_T>
 	decltype(auto) TAny<T>::Get(const Offset& index) const SAFETY_NOEXCEPT() {
 		SAFETY(if (index >= mCount)
 			Throw<Except::Access>("Index out of range"));
 
 		const T& element = GetRaw()[index];
-		if constexpr (CT::Dense<T> && CT::Dense<K>)
-			// CT::Dense -> CT::Dense (returning a reference)								
-			return static_cast<const Decay<K>&>(element);
-		else if constexpr (CT::Sparse<T> && CT::Dense<K>)
-			// IsSparse -> CT::Dense (returning a reference)							
-			return static_cast<const Decay<K>&>(*element);
-		else if constexpr (CT::Dense<T> && CT::Sparse<K>)
-			// CT::Dense -> IsSparse (returning a pointer)								
-			return static_cast<const Decay<K>*>(&element);
+		if constexpr (CT::Dense<T> && CT::Dense<ALT_T>)
+			// Dense -> Dense (returning a reference)								
+			return static_cast<const Decay<ALT_T>&>(element);
+		else if constexpr (CT::Sparse<T> && CT::Dense<ALT_T>)
+			// Sparse -> Dense (returning a reference)							
+			return static_cast<const Decay<ALT_T>&>(*element->mPointer);
+		else if constexpr (CT::Dense<T> && CT::Sparse<ALT_T>)
+			// Dense -> Sparse (returning a pointer)								
+			return static_cast<const Decay<ALT_T>*>(&element);
 		else
-			// IsSparse -> IsSparse (returning a reference to pointer)			
-			return static_cast<const Decay<K>* const&>(element);
+			// Sparse -> Sparse (returning a reference to pointer)			
+			return static_cast<const Decay<ALT_T>* const&>(element->mPointer);
 	}
 
 	/// Get an element in the way you want (unsafe)										
 	/// This is a statically optimized variant of Block::Get							
 	TEMPLATE()
-	template<CT::Data K>
+	template<CT::Data ALT_T>
 	decltype(auto) TAny<T>::Get(const Offset& index) SAFETY_NOEXCEPT() {
 		SAFETY(if (index >= mCount)
 			Throw<Except::Access>("Index out of range"));
 
 		T& element = GetRaw()[index];
-		if constexpr (CT::Dense<T> && CT::Dense<K>)
-			// CT::Dense -> CT::Dense (returning a reference)								
-			return static_cast<Decay<K>&>(element);
-		else if constexpr (CT::Sparse<T> && CT::Dense<K>)
-			// IsSparse -> CT::Dense (returning a reference)							
-			return static_cast<Decay<K>&>(*element);
-		else if constexpr (CT::Dense<T> && CT::Sparse<K>)
-			// CT::Dense -> IsSparse (returning a pointer)								
-			return static_cast<Decay<K>*>(&element);
+		if constexpr (CT::Dense<T> && CT::Dense<ALT_T>)
+			// Dense -> Dense (returning a reference)								
+			return static_cast<Decay<ALT_T>&>(element);
+		else if constexpr (CT::Sparse<T> && CT::Dense<ALT_T>)
+			// Sparse -> Dense (returning a reference)							
+			return static_cast<Decay<ALT_T>&>(*element->mPointer);
+		else if constexpr (CT::Dense<T> && CT::Sparse<ALT_T>)
+			// Dense -> Sparse (returning a pointer)								
+			return static_cast<Decay<ALT_T>*>(&element);
 		else
-			// IsSparse -> IsSparse (returning a reference to pointer)			
-			return static_cast<Decay<K>*&>(element);
+			// Sparse -> Sparse (returning a reference to pointer)			
+			return static_cast<Decay<ALT_T>*&>(element->mPointer);
 	}
 
 	/// Access typed dense elements via a simple index (unsafe)						
@@ -603,8 +556,8 @@ namespace Langulus::Anyness
 	///	@param idx - the index to get														
 	///	@return a reference to the element												
 	TEMPLATE()
-	typename TAny<T>::SparseElement TAny<T>::operator [] (const Offset& index) SAFETY_NOEXCEPT() requires CT::Sparse<T> {
-		return {Get<T>(index)};
+	typename TAny<T>::KnownPointer& TAny<T>::operator [] (const Offset& index) SAFETY_NOEXCEPT() requires CT::Sparse<T> {
+		return Get<T>(index);
 	}
 
 	TEMPLATE()
@@ -617,8 +570,8 @@ namespace Langulus::Anyness
 	///	@param idx - the index to get														
 	///	@return a constant reference to the element									
 	TEMPLATE()
-	typename TAny<T>::SparseElement TAny<T>::operator [] (const Index& index) requires CT::Sparse<T> {
-		return {Get<T>(ConstrainMore<T>(index).GetOffset())};
+	typename TAny<T>::KnownPointer& TAny<T>::operator [] (const Index& index) requires CT::Sparse<T> {
+		return Get<T>(ConstrainMore<T>(index).GetOffset());
 	}
 
 	TEMPLATE()
@@ -688,14 +641,17 @@ namespace Langulus::Anyness
 	///	@return the number of bytes a single element contains						
 	TEMPLATE()
 	constexpr Size TAny<T>::GetStride() const noexcept {
-		return sizeof(T); 
+		if constexpr (CT::Dense<T>)
+			return sizeof(T);
+		else
+			return sizeof(KnownPointer);
 	}
 	
 	/// Get the size of all elements, in bytes											
 	///	@return the total amount of initialized bytes								
 	TEMPLATE()
 	constexpr Size TAny<T>::GetSize() const noexcept {
-		return sizeof(T) * mCount; 
+		return GetStride() * mCount;
 	}
 
 	/// Insert an item by move-construction												
@@ -728,6 +684,7 @@ namespace Langulus::Anyness
 	}
 
 	/// Insert item(s) by copy-construction												
+	//TODO do a dedicated Append function
 	///	@param items - an array of items to insert									
 	///	@param count - the number of items to insert									
 	///	@param index - the place where to insert the items							
@@ -762,17 +719,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this container for chaining							
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator << (const T& other) {
-		Allocate<false>(mCount + 1);
-
-		// Insert new data																
-		GetRaw()[mCount] = other;
-		if constexpr (CT::Sparse<T>) {
-			// Sparse data insertion (copying pointers and referencing)		
-			// Doesn't care about abstract items									
-			Inner::Allocator::Keep(mType, other, 1);
-		}
-
-		++mCount;
+		Insert(&other, 1, Index::Back);
 		return *this;
 	}
 
@@ -781,11 +728,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this container for chaining							
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator << (T&& other) {
-		Allocate<false>(mCount + 1);
-		if constexpr (CT::AbandonedOrDisowned<T>)
-			EmplaceInner<T::Type, false>(Move(other.mValue), mCount);
-		else
-			EmplaceInner<T, true>(Forward<T>(other), mCount);
+		Emplace(Forward<T>(other), Index::Back);
 		return *this;
 	}
 
@@ -794,21 +737,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this container for chaining							
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator >> (const T& other) {
-		if (GetUses() > 1) {
-			Throw<Except::Reference>(Logger::Error()
-				<< "Moving elements that are used from multiple places");
-		}
-
-		Allocate<false>(mCount + 1);
-
-		// Move memory forward															
-		CropInner(1, 0, mCount - 1)
-			.template CallKnownMoveConstructors<T>(
-				mCount - 1,
-				CropInner(0, mCount - 1, mCount - 1)
-			);
-
-		InsertInner<T>(&other, 1, 0);
+		Insert(&other, 1, Index::Front);
 		return *this;
 	}
 
@@ -817,21 +746,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this container for chaining							
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator >> (T&& other) {
-		if (GetUses() > 1) {
-			Throw<Except::Reference>(Logger::Error()
-				<< "Moving elements that are used from multiple places");
-		}
-
-		Allocate<false>(mCount + 1);
-
-		// Move memory forward															
-		CropInner(1, 0, mCount - 1)
-			.template CallKnownMoveConstructors<T>(
-				mCount - 1,
-				CropInner(0, mCount - 1, mCount - 1)
-			);
-
-		EmplaceInner<T>(Forward<T>(other), 0);
+		Emplace(Forward<T>(other), Index::Front);
 		return *this;
 	}
 
@@ -1146,7 +1061,7 @@ namespace Langulus::Anyness
 
 
 	///																								
-	///	Sparse element implementation														
+	///	Known pointer implementation														
 	///																								
 	
 	/// When overwriting the element, previous pointer must be dereferenced		
@@ -1154,25 +1069,25 @@ namespace Langulus::Anyness
 	///	@param pointer - the pointer to set												
 	///	@return a reference to this sparse element									
 	TEMPLATE()
-	typename TAny<T>::SparseElement& TAny<T>::SparseElement::operator = (T pointer) {
-		if (mElement == pointer)
+	typename TAny<T>::KnownPointer& TAny<T>::KnownPointer::operator = (T pointer) {
+		using DT = Decay<T>;
+		if (mPointer == pointer)
 			return *this;
 
-		const auto meta = MetaData::Of<T>();
-		if (mElement) {
+		if (mEntry) {
 			// Dereference/destroy the previous element							
-			auto entry = Inner::Allocator::Find(meta, mElement);
-			if (entry->mReferences == 1) {
-				delete mElement;
-				entry->Deallocate();
+			if (mEntry->GetUses() == 1) {
+				mPointer->~DT();
+				Inner::Allocator::Deallocate(mEntry);
 			}
-
-			--entry->mReferences;
+			else mEntry->Free();
 		}
 
 		// Set and reference the new element										
-		mElement = pointer;
-		Inner::Allocator::Keep(meta, mElement, 1);
+		mPointer = pointer;
+		mEntry = Inner::Allocator::Find(MetaData::Of<DT>(), pointer);
+		if (mEntry)
+			mEntry->Keep();
 		return *this;
 	}
 
@@ -1180,64 +1095,65 @@ namespace Langulus::Anyness
 	///	@param pointer - null pointer														
 	///	@return a reference to this sparse element									
 	TEMPLATE()
-	typename TAny<T>::SparseElement& TAny<T>::SparseElement::operator = (::std::nullptr_t) {
-		if (!mElement)
-			return *this;
+	typename TAny<T>::KnownPointer& TAny<T>::KnownPointer::operator = (::std::nullptr_t) {
+		if (mEntry) {
+			// Dereference/destroy the previous element							
+			if (mEntry->GetUses() == 1) {
+				using DT = Decay<T>;
+				mPointer->~DT();
+				Inner::Allocator::Deallocate(mEntry);
+			}
+			else mEntry->Free();
 
-		// Dereference/destroy the previous element								
-		const auto meta = MetaData::Of<T>();
-		auto entry = Inner::Allocator::Find(meta, mElement);
-		if (entry->mReferences == 1) {
-			delete mElement;
-			entry->Deallocate();
+			mEntry = nullptr;
+			mPointer = nullptr;
 		}
 
-		--entry->mReferences;
 		return *this;
 	}
 
 	/// Implicit cast to a constant pointer												
 	TEMPLATE()
-	TAny<T>::SparseElement::operator const T() const noexcept {
-		return mElement;
+	TAny<T>::KnownPointer::operator T() const noexcept {
+		return mPointer;
 	}
 
 	/// Implicit cast to a mutable pointer													
 	TEMPLATE()
-	TAny<T>::SparseElement::operator T () noexcept {
-		return mElement;
+	TAny<T>::KnownPointer::operator T() noexcept {
+		return mPointer;
 	}
 
 	/// Pointer dereferencing (const)														
 	TEMPLATE()
-	auto TAny<T>::SparseElement::operator -> () const {
-		if (!mElement)
+	auto TAny<T>::KnownPointer::operator -> () const {
+		if (!mPointer)
 			Throw<Except::Access>("Invalid pointer");
-		return mElement;
+		return mPointer;
 	}
 
 	/// Pointer dereferencing																	
 	TEMPLATE()
-	auto TAny<T>::SparseElement::operator -> () {
-		if (!mElement)
+	auto TAny<T>::KnownPointer::operator -> () {
+		if (!mPointer)
 			Throw<Except::Access>("Invalid pointer");
-		return mElement;
+		return mPointer;
 	}
 
 	/// Pointer dereferencing (const)														
 	TEMPLATE()
-	decltype(auto) TAny<T>::SparseElement::operator * () const {
-		if (!mElement)
+	decltype(auto) TAny<T>::KnownPointer::operator * () const {
+		if (!mPointer)
 			Throw<Except::Access>("Invalid pointer");
-		return *mElement;
+		return *mPointer;
 	}
 
 	/// Pointer dereferencing																	
 	TEMPLATE()
-	decltype(auto) TAny<T>::SparseElement::operator * () {
-		if (!mElement)
+	decltype(auto) TAny<T>::KnownPointer::operator * () {
+		if (!mPointer)
 			Throw<Except::Access>("Invalid pointer");
-		return *mElement;
+		return *mPointer;
 	}
 
 	/// Call default constructors in a region and initialize memory				
@@ -1268,12 +1184,13 @@ namespace Langulus::Anyness
 			if constexpr(CT::Sparse<T>) {
 				// Since we're copying pointers, we have to reference the	
 				// dense memory behind each one of them							
-				Count c {};
-				auto pointers = GetRawSparse();
-				while (c < count) {
+				auto p = GetRawSparse() + mCount;
+				const auto pEnd = p + count;
+				while (p != pEnd) {
 					// Reference each pointer											
-					Inner::Allocator::Keep(mType, pointers[c + mCount], 1);
-					++c;
+					if (p->mEntry)
+						p->mEntry->Keep();
+					++p;
 				}
 			}
 		}
@@ -1284,9 +1201,13 @@ namespace Langulus::Anyness
 				"Trying to copy-construct but it's impossible for this type");
 
 			auto from = source.GetRaw();
-			auto to = GetRaw();
-			for (Count i = 0; i < count; ++i)
-				new (to + mCount) T {*from};
+			auto to = GetRaw() + mCount;
+			const auto toEnd = to + count;
+			while (to != toEnd) {
+				new (to) T {*from};
+				++to;
+				++from;
+			}
 		}
 	}
 	
@@ -1319,7 +1240,7 @@ namespace Langulus::Anyness
 		WRAPPER result {*this};
 		result.MakeStatic();
 		result.mCount = result.mReserved = count;
-		result.mRaw += start * mType->mSize;
+		result.mRaw += start * GetStride();
 		return Abandon(result);
 	}
 	

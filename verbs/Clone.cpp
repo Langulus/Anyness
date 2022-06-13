@@ -40,11 +40,12 @@ namespace Langulus::Anyness
 
 			// Clone data behind each valid pointer								
 			for (Offset i = 0; i < mCount; ++i) {
-				auto ptrFrom = GetRawSparse()[i];
+				auto& ptrFrom = GetRawSparse()[i];
 				auto& ptrTo = result.GetRawSparse()[i];
-				if (!ptrFrom) {
+				if (!ptrFrom.mPointer) {
 					// Pointer points nowhere, so just set to nullptr			
-					ptrTo = nullptr;
+					ptrTo.mPointer = nullptr;
+					ptrTo.mEntry = nullptr;
 					continue;
 				}
 
@@ -52,7 +53,8 @@ namespace Langulus::Anyness
 				const auto from = GetElementResolved(i);
 				Block to;
 				from.Clone(to);
-				ptrTo = to.mRaw;
+				ptrTo.mPointer = to.mRaw;
+				ptrTo.mEntry = to.mEntry;
 			}
 
 			VERBOSE("Cloned sparse data " << ccRed << "(slowest)");

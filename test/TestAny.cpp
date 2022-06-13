@@ -194,10 +194,10 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE_THROWS(pack.As<float*>() == nullptr);
 				#if LANGULUS_FEATURE(NEWDELETE) && LANGULUS_FEATURE(MANAGED_MEMORY)
 					REQUIRE(Allocator::CheckAuthority(meta, original_int));
-					REQUIRE(Allocator::GetReferences(meta, original_int) == 2);
+					REQUIRE(Allocator::Find(meta, original_int)->GetUses() == 2);
 				#else
 					REQUIRE_FALSE(Allocator::CheckAuthority(meta, original_int));
-					REQUIRE(Allocator::GetReferences(meta, original_int) == 0);
+					REQUIRE_FALSE(Allocator::Find(meta, original_int));
 				#endif
 			}
 
@@ -258,10 +258,10 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE_THROWS(pack.As<float*>() == nullptr);
 				#if LANGULUS_FEATURE(NEWDELETE) && LANGULUS_FEATURE(MANAGED_MEMORY)
 					REQUIRE(Allocator::CheckAuthority(meta, original_int_backup));
-					REQUIRE(Allocator::GetReferences(meta, original_int_backup) == 2);
+					REQUIRE(Allocator::Find(meta, original_int_backup)->GetUses() == 2);
 				#else
 					REQUIRE_FALSE(Allocator::CheckAuthority(meta, original_int_backup));
-					REQUIRE(Allocator::GetReferences(meta, original_int_backup) == 0);
+					REQUIRE_FALSE(Allocator::Find(meta, original_int_backup));
 				#endif
 				REQUIRE(pack.GetUses() == 1);
 			}
@@ -305,10 +305,10 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE_THROWS(another_pack.As<float*>() == nullptr);
 				#if LANGULUS_FEATURE(NEWDELETE) && LANGULUS_FEATURE(MANAGED_MEMORY)
 					REQUIRE(Allocator::CheckAuthority(meta, original_int));
-					REQUIRE(Allocator::GetReferences(meta, original_int) == 2);
+					REQUIRE(Allocator::Find(meta, original_int).GetUses() == 2);
 				#else
 					REQUIRE_FALSE(Allocator::CheckAuthority(meta, original_int));
-					REQUIRE(Allocator::GetReferences(meta, original_int) == 0);
+					REQUIRE_FALSE(Allocator::Find(meta, original_int));
 				#endif
 				REQUIRE(pack.GetUses() == another_pack.GetUses());
 				REQUIRE(pack.GetUses() == 2);
@@ -364,10 +364,10 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE_THROWS(another_pack.As<float*>() == nullptr);
 				#if LANGULUS_FEATURE(NEWDELETE) && LANGULUS_FEATURE(MANAGED_MEMORY)
 					REQUIRE(Allocator::CheckAuthority(meta, original_int));
-					REQUIRE(Allocator::GetReferences(meta, original_int) == 2);
+					REQUIRE(Allocator::Find(meta, original_int).GetUses() == 2);
 				#else
 					REQUIRE_FALSE(Allocator::CheckAuthority(meta, original_int));
-					REQUIRE(Allocator::GetReferences(meta, original_int) == 0);
+					REQUIRE_FALSE(Allocator::Find(meta, original_int));
 				#endif
 				REQUIRE(another_pack.GetUses() == 1);
 			}
@@ -500,7 +500,7 @@ SCENARIO("Any", "[containers]") {
 				#else
 					REQUIRE_FALSE(Allocator::CheckAuthority(meta, original_int));
 				#endif
-				REQUIRE(Allocator::GetReferences(meta, original_int) == 0);
+				REQUIRE_FALSE(Allocator::Find(meta, original_int));
 			}
 		}
 
@@ -652,11 +652,11 @@ SCENARIO("Any", "[containers]") {
 			pack.RemoveIndex(pack.Find(int(1)));
 			pack.RemoveIndex(pack.Find(int(3)));
 			pack.RemoveIndex(pack.Find(int(5)));
-			THEN("The container should be fully reset") {
+			THEN("The container should be fully cleared, but memory should still be in use") {
 				REQUIRE(pack.GetCount() == 0);
-				REQUIRE(pack.GetReserved() == 0);
-				REQUIRE(pack.GetRaw() == nullptr);
-				REQUIRE(pack.GetUses() == 0);
+				REQUIRE(pack.GetReserved() > 0);
+				REQUIRE(pack.GetRaw() != nullptr);
+				REQUIRE(pack.GetUses() > 0);
 				REQUIRE(pack.GetState() == DataState::Default);
 			}
 		}
@@ -861,13 +861,13 @@ SCENARIO("Any", "[containers]") {
 			pack.RemoveIndex(0);
 			pack.RemoveIndex(0);
 			pack.RemoveIndex(0);
-			THEN("The entire container is reset") {
+			THEN("The entire container is cleared, but memory remains in use") {
 				REQUIRE(pack.IsEmpty());
-				REQUIRE(pack.GetReserved() == 0);
+				REQUIRE(pack.GetReserved() > 0);
 				REQUIRE(pack.Is<Any>());
 				REQUIRE(pack.IsTypeConstrained());
-				REQUIRE(pack.GetRaw() == nullptr);
-				REQUIRE(pack.GetUses() == 0);
+				REQUIRE(pack.GetRaw() != nullptr);
+				REQUIRE(pack.GetUses() > 0);
 				REQUIRE(subpack1.GetUses() == 2);
 				REQUIRE(subpack2.GetUses() == 2);
 				REQUIRE(subpack3.GetUses() == 1);

@@ -86,10 +86,14 @@ namespace Langulus::Anyness
 
 			CopyMemory(mRaw, result.mRaw, mCount * sizeof(void*));
 
-			// Cycle all pointers and reference their memories					
-			auto from_ptrarray = GetRawSparse();
-			for (Count i = 0; i < mCount; ++i)
-				::Langulus::Anyness::Inner::Allocator::Keep(mType, from_ptrarray[i], 1);
+			// Cycle all pointers and reference their allocations				
+			auto p = GetRawSparse();
+			const auto pEnd = GetRawSparse() + mCount;
+			while (p != pEnd) {
+				if (p->mEntry)
+					p->mEntry->Keep();
+				++p;
+			}
 
 			VERBOSE(Logger::Verbose()
 				<< "Copied " << mCount << " pointers"
@@ -171,11 +175,13 @@ namespace Langulus::Anyness
 			// Copy pointers																
 			for (Count i = 0; i < mCount; ++i) {
 				const auto from = GetElement(i);
-				auto to = result.GetElement(i);
-				to.GetRawSparse()[0] = from.mRaw;
+				auto to = result.GetElement(i).GetRawSparse();
+				to->mPointer = from.mRaw;
+				to->mEntry = from.mEntry;
 
 				// Reference each copied pointer!									
-				::Langulus::Anyness::Inner::Allocator::Keep(from.mType, from.mRaw, 1);
+				if (to->mEntry)
+					to->mEntry->Keep();
 			}
 
 			VERBOSE(Logger::Verbose()

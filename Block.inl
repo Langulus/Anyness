@@ -223,7 +223,7 @@ namespace Langulus::Anyness
 	///	@param count - the number of elements to request							
 	///	@returns both the provided byte size and reserved count					
 	inline auto Block::RequestSize(const Count& count) const noexcept {
-		const auto base = (IsSparse() ? sizeof(void*) : GetStride()) * count;
+		const auto base = (IsSparse() ? sizeof(KnownPointer) : GetStride()) * count;
 		return mType->RequestSize(base);
 	}
 
@@ -257,7 +257,7 @@ namespace Langulus::Anyness
 					mRaw = mEntry->GetBlockStart();
 					mCount = 0;
 					CallUnknownMoveConstructors(previousBlock.mCount, Move(previousBlock));
-					previousBlock.Free();
+					//previousBlock.Free();
 				}
 				
 				if constexpr (CREATE) {
@@ -623,13 +623,13 @@ namespace Langulus::Anyness
 
 	/// Get a constant pointer array - useful for sparse containers (const)		
 	///	@return the raw data as an array of constant pointers						
-	constexpr const Byte* const* Block::GetRawSparse() const noexcept {
+	constexpr const Block::KnownPointer* Block::GetRawSparse() const noexcept {
 		return mRawSparse;
 	}
 
 	/// Get a pointer array - useful for sparse containers							
 	///	@return the raw data as an array of pointers									
-	constexpr Byte** Block::GetRawSparse() noexcept {
+	constexpr Block::KnownPointer* Block::GetRawSparse() noexcept {
 		return mRawSparse;
 	}
 
@@ -679,7 +679,7 @@ namespace Langulus::Anyness
 		return mType && mType->mIsDeep;
 	}
 
-	/// CT::Deep (slower) check if there's anything missing inside nested blocks	
+	/// Deep (slower) check if there's anything missing inside nested blocks	
 	///	@return true if the deep or flat memory block contains missing stuff	
 	constexpr bool Block::IsMissingDeep() const {
 		if (IsMissing())
@@ -699,7 +699,7 @@ namespace Langulus::Anyness
 	///	@attention this returns zero if block is untyped							
 	///	@return the size is bytes															
 	constexpr Size Block::GetStride() const noexcept {
-		return mState.IsSparse() ? sizeof(void*) : (mType ? mType->mSize : 0);
+		return mState.IsSparse() ? sizeof(KnownPointer) : (mType ? mType->mSize : 0);
 	}
 	
 	/// Get the token of the contained type												
@@ -750,14 +750,14 @@ namespace Langulus::Anyness
 	}
 
 	inline const Byte* Block::At(const Offset& byte_offset) const {
-		return const_cast<Block&>(*this).At(byte_offset);
+		return const_cast<Block*>(this)->At(byte_offset);
 	}
 
 	/// Get templated element																	
 	/// Checks only density																		
 	template<CT::Data T>
 	decltype(auto) Block::Get(const Offset& idx, const Offset& baseOffset) const {
-		return const_cast<Block&>(*this).Get<T>(idx, baseOffset);
+		return const_cast<Block*>(this)->Get<T>(idx, baseOffset);
 	}
 
 	/// Get an element pointer or reference with a given index						
@@ -770,7 +770,7 @@ namespace Langulus::Anyness
 	decltype(auto) Block::Get(const Offset& idx, const Offset& baseOffset) {
 		Byte* pointer;
 		if (IsSparse())
-			pointer = GetRawSparse()[idx] + baseOffset;
+			pointer = GetRawSparse()[idx].mPointer + baseOffset;
 		else
 			pointer = At(mType->mSize * idx) + baseOffset;
 
@@ -800,6 +800,7 @@ namespace Langulus::Anyness
 	}
 
 	/// Check if a pointer is anywhere inside the block's memory					
+	///	@attention doesn't check deep data if container is sparse				
 	///	@param ptr - the pointer to check												
 	///	@return true if inside the memory block										
 	inline bool Block::Owns(const void* ptr) const noexcept {
@@ -808,6 +809,7 @@ namespace Langulus::Anyness
 
 	/// Mutate the block to a different type, if possible								
 	///	@tparam T - the type to change to												
+	///	@tparam WRAPPER - the container that requested the mutation				
 	///	@return true if block was deepened to incorporate the new type			
 	template<CT::Data T, CT::Deep WRAPPER>
 	bool Block::Mutate() {
@@ -818,6 +820,7 @@ namespace Langulus::Anyness
 	}
 	
 	/// Mutate to another compatible type, deepening the container if allowed	
+	///	@tparam WRAPPER - the container that requested the mutation				
 	///	@param meta - the type to mutate into											
 	///	@return true if block was deepened												
 	template<CT::Deep WRAPPER>
@@ -878,6 +881,7 @@ namespace Langulus::Anyness
 
 	/// Constrain an index to the limits of the current block						
 	/// Supports additional type-dependent constraints									
+	///	@tparam T - the type to use for comparisons									
 	///	@param idx - the index to constrain												
 	///	@return the constrained index or a special one of constrain fails		
 	template<CT::Data T>
@@ -907,27 +911,44 @@ namespace Langulus::Anyness
 		return result;
 	}
 
+	/// Check if type T can fit inside this container									
+	///	@tparam T - the type to compare against										
+	///	@return true if T can fit inside this container								
 	template<CT::Data T>
 	bool Block::CanFit() const {
 		return CanFit(MetaData::Of<Decay<T>>());
 	}
 
+	/// Check if this container's data can be represented as type T				
+	/// with nothing more than pointer arithmetic										
+	///	@tparam T - the type to compare against										
+	///	@return true if contained data is reinterpretable as T					
 	template<CT::Data T>
 	bool Block::CastsTo() const {
 		return CastsToMeta(MetaData::Of<Decay<T>>());
 	}
 
+	/// Check if this container's data can be represented as a specific number	
+	/// of elements of type T, with nothing more than pointer arithmetic			
+	///	@tparam T - the type to compare against										
+	///	@param count - the number of elements of T									
+	///	@return true if contained data is reinterpretable as T					
 	template<CT::Data T>
 	bool Block::CastsTo(Count count) const {
 		return CastsToMeta(MetaData::Of<Decay<T>>(), count);
 	}
 
+	/// Check if this container's data is exactly of type T							
+	///	@attention ignores sparsity														
+	///	@tparam T - the type to compare against										
+	///	@return true if data type matches												
 	template<CT::Data T>
 	bool Block::Is() const {
 		return Is(MetaData::Of<Decay<T>>());
 	}
 
 	/// Set the data ID - use this only if you really know what you're doing	
+	///	@tparam SPARSE - whether or not to contain only pointers of the type	
 	///	@tparam CONSTRAIN - whether or not to enable type-constraints			
 	///	@param type - the type meta to set												
 	template<bool SPARSE, bool CONSTRAIN>
@@ -989,6 +1010,7 @@ namespace Langulus::Anyness
 	}
 
 	/// Swap two elements (with raw indices)												
+	///	@tparam T - the contained type													
 	///	@param from - first element index												
 	///	@param to - second element index													
 	template<CT::Data T>
@@ -1003,6 +1025,7 @@ namespace Langulus::Anyness
 	}
 
 	/// Swap two elements (with special indices)											
+	///	@tparam T - the contained type													
 	///	@param from - first element index												
 	///	@param to - second element index													
 	template<CT::Data T>
@@ -1019,6 +1042,7 @@ namespace Langulus::Anyness
 	/// Emplace anything inside container													
 	///	@attention when emplacing pointers, their memory is referenced,		
 	///				  and the pointer is not cleared, so you can free it later	
+	///	@tparam T - the type to insert (deducible)									
 	///	@param item - item to move															
 	///	@param index - use uiFront or uiBack for pushing to ends					
 	///	@return 1 if item was emplaced													
@@ -1054,6 +1078,7 @@ namespace Langulus::Anyness
 	}
 	
 	/// Insert anything compatible to container											
+	///	@tparam T - the type to insert (deducible)									
 	///	@param items - items to push														
 	///	@param count - number of items inside											
 	///	@param index - use uiFront or uiBack for pushing to ends					
@@ -1096,28 +1121,32 @@ namespace Langulus::Anyness
 	///	@attention this is an inner function and should be used with caution	
 	///	@attention relies that the required free space has been prepared		
 	///				  at the appropriate place												
+	///	@tparam T - the type to insert (deducible)									
+	///	@tparam KEEP - whether or not to reference the new contents				
 	///	@param items - items to push														
 	///	@param count - number of 'items'													
 	///	@param starter - the offset at which to insert								
 	template<CT::Data T, bool KEEP>
 	void Block::InsertInner(const T* items, const Count& count, const Offset& starter) requires CT::NotAbandonedOrDisowned<T> {
-		static_assert(CT::Mutable<T>,
-			"Can't insert into immutable container");
-		auto data = GetRawAs<T>() + starter;
+		static_assert(CT::Mutable<T>, "Can't insert into immutable container");
 
 		// Insert new data																
 		if constexpr (CT::Sparse<T>) {
 			// Sparse data insertion (copying pointers and referencing)		
 			// Doesn't care about abstract items									
-			CopyMemory(items, data, sizeof(T) * count);
-
-			if constexpr (KEEP) {
-				const auto itemsEnd = items + count;
-				while (items != itemsEnd) {
+			auto data = GetRawAs<KnownPointer>() + starter;
+			const auto itemsEnd = items + count;
+			while (items != itemsEnd) {
+				data->mPointer = reinterpret_cast<Byte*>(*items);
+				if constexpr (KEEP) {
 					// Reference each pointer											
-					Inner::Allocator::Keep(mType, *items, 1);
-					++items;
+					// Also keep the found entry, so we don't search again	
+					data->mEntry = Inner::Allocator::Find(mType, *items);
+					if (data->mEntry)
+						data->mEntry->Keep();
 				}
+				else data->mEntry = nullptr;
+				++data; ++items;
 			}
 		}
 		else {
@@ -1125,6 +1154,7 @@ namespace Langulus::Anyness
 			static_assert(!CT::Abstract<T>,
 				"Can't insert abstract item in dense container");
 
+			auto data = GetRawAs<T>() + starter;
 			if constexpr (CT::POD<T>) {
 				// Optimized POD insertion												
 				CopyMemory(items, data, sizeof(T) * count);
@@ -1153,28 +1183,34 @@ namespace Langulus::Anyness
 
 	/// Inner emplacement function															
 	///	@attention this is an inner function and should be used with caution	
+	///	@tparam T - the type to insert (deducible)									
+	///	@tparam KEEP - whether or not to reference the new contents				
 	///	@param item - item to push															
 	///	@param starter - the offset at which to insert								
 	template<CT::Data T, bool KEEP>
 	void Block::EmplaceInner(T&& item, const Offset& starter) requires CT::NotAbandonedOrDisowned<T> {
-		static_assert(CT::Mutable<T>,
-			"Can't emplace into immutable container");
-		auto data = GetRawAs<T>() + starter;
+		static_assert(CT::Mutable<T>, "Can't emplace into immutable container");
 
 		// Insert new data																
 		if constexpr (CT::Sparse<T>) {
 			// Sparse data insertion (moving a pointer)							
-			*data = item;
+			const auto data = GetRawSparse() + starter;
+			data->mPointer = reinterpret_cast<Byte*>(item);
 
 			// Reference the pointer's memory										
-			if constexpr (KEEP)
-				Inner::Allocator::Keep(mType, item, 1);
+			if constexpr (KEEP) {
+				data->mEntry = Inner::Allocator::Find(mType, item);
+				if (data->mEntry)
+					data->mEntry->Keep();
+			}
+			else data->mEntry = nullptr;
 		}
 		else {
 			static_assert(!CT::Abstract<T>,
 				"Can't emplace abstract item in dense container");
 
 			// Dense data insertion (placement move-construction)				
+			const auto data = GetRawAs<T>() + starter;
 			if constexpr (KEEP) {
 				if constexpr (CT::MoveMakable<T>)
 					new (data) T {Forward<T>(item)};
@@ -1194,6 +1230,7 @@ namespace Langulus::Anyness
 	}
 
 	/// Remove non-sequential element(s)													
+	///	@tparam T - the type to insert (deducible)									
 	///	@param items - the items to search for and remove							
 	///	@param count - number of items inside array									
 	///	@param index - the index to start searching from							
@@ -1433,11 +1470,11 @@ namespace Langulus::Anyness
 		if (first == Index::Smallest) {
 			for (; i < mCount; ++i) {
 				for (; j < i; ++j) {
-					if (*pcPtr(data[i]) > *pcPtr(data[j]))
+					if (*SparseCast(data[i]) > *SparseCast(data[j]))
 						Swap<T>(i, j);
 				}
 				for (j = i + 1; j < mCount; ++j) {
-					if (*pcPtr(data[i]) > * pcPtr(data[j]))
+					if (*SparseCast(data[i]) > *SparseCast(data[j]))
 						Swap<T>(i, j);
 				}
 			}
@@ -1445,11 +1482,11 @@ namespace Langulus::Anyness
 		else {
 			for (; i < mCount; ++i) {
 				for (; j < i; ++j) {
-					if (*pcPtr(data[i]) < * pcPtr(data[j]))
+					if (*SparseCast(data[i]) < *SparseCast(data[j]))
 						Swap<T>(i, j);
 				}
 				for (j = i + 1; j < mCount; ++j) {
-					if (*pcPtr(data[i]) < *pcPtr(data[j]))
+					if (*SparseCast(data[i]) < *SparseCast(data[j]))
 						Swap<T>(i, j);
 				}
 			}
@@ -1458,10 +1495,12 @@ namespace Langulus::Anyness
 
 	/// A smart push uses the best approach to push anything inside container	
 	/// in order to keep hierarchy and states, but also reuse memory				
-	///	@param pack - the container to smart-push										
-	///	@param finalState - a state to apply after pushing is done				
-	///	@param attemptConcat - whether or not concatenation is allowed			
-	///	@param attemptDeepen - whether or not deepening is allowed				
+	///	@tparam ALLOW_CONCAT - whether or not concatenation is allowed			
+	///	@tparam ALLOW_DEEPEN - whether or not deepening is allowed				
+	///	@tparam T - type of data to push (deducible)									
+	///	@tparam WRAPPER - type of container that requested the push				
+	///	@param value - the value to smart-push											
+	///	@param state - a state to apply after pushing is done						
 	///	@param index - the index at which to insert (if needed)					
 	///	@return the number of pushed items (zero if unsuccessful)				
 	template<bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data T, CT::Deep WRAPPER>
@@ -1538,10 +1577,12 @@ namespace Langulus::Anyness
 
 	/// A smart push uses the best approach to push anything inside container	
 	/// in order to keep hierarchy and states, but also reuse memory				
-	///	@param pack - the container to smart-push										
-	///	@param finalState - a state to apply after pushing is done				
-	///	@param attemptConcat - whether or not concatenation is allowed			
-	///	@param attemptDeepen - whether or not deepening is allowed				
+	///	@tparam ALLOW_CONCAT - whether or not concatenation is allowed			
+	///	@tparam ALLOW_DEEPEN - whether or not deepening is allowed				
+	///	@tparam T - type of data to push (deducible)									
+	///	@tparam WRAPPER - type of container that requested the push				
+	///	@param value - the value to smart-push											
+	///	@param state - a state to apply after pushing is done						
 	///	@param index - the index at which to insert (if needed)					
 	///	@return the number of pushed items (zero if unsuccessful)				
 	template<bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data T, CT::Deep WRAPPER>
@@ -1654,6 +1695,7 @@ namespace Langulus::Anyness
 	/// Get an element with a given index, trying to interpret it as T			
 	/// No conversion or copying shall occur in this routine, only pointer		
 	/// arithmetic based on CTTI or RTTI													
+	///	@tparam T - the type to interpret to											
 	///	@param idx - simple index for accessing										
 	///	@return either pointer or reference to the element (depends on T)		
 	template<CT::Data T>
@@ -1690,6 +1732,12 @@ namespace Langulus::Anyness
 					.Get<T>(idx % base.mCount);
 	}
 
+	/// Execute function F for each element inside container							
+	///	@tparam MUTABLE - whether or not a change to container is allowed		
+	///							while iterating												
+	///	@tparam F - the function type (deducible)										
+	///	@param call - the instance of the function F to call						
+	///	@return the number of called functions											
 	template<bool MUTABLE, class F>
 	Count Block::ForEach(F&& call) {
 		using A = decltype(GetLambdaArgument(&F::operator()));
@@ -1697,13 +1745,24 @@ namespace Langulus::Anyness
 		return ForEachInner<R, A, false, MUTABLE>(Forward<F>(call));
 	}
 
+	/// Execute function F for each element inside container (immutable)			
+	///	@tparam F - the function type (deducible)										
+	///	@param call - the instance of the function F to call						
+	///	@return the number of called functions											
 	template<class F>
 	Count Block::ForEach(F&& call) const {
 		using A = decltype(GetLambdaArgument(&F::operator()));
-		static_assert(CT::Constant<A>, "Non constant iterator for constant memory block");
+		static_assert(CT::Constant<A>,
+			"Non constant iterator for constant memory block");
 		return const_cast<Block*>(this)->ForEach<false>(Forward<F>(call));
 	}
 
+	/// Execute function F for each element inside container (reverse)			
+	///	@tparam MUTABLE - whether or not a change to container is allowed		
+	///							while iterating												
+	///	@tparam F - the function type (deducible)										
+	///	@param call - the instance of the function F to call						
+	///	@return the number of called functions											
 	template<bool MUTABLE, class F>
 	Count Block::ForEachRev(F&& call) {
 		using A = decltype(GetLambdaArgument(&F::operator()));
@@ -1711,13 +1770,27 @@ namespace Langulus::Anyness
 		return ForEachInner<R, A, true, MUTABLE>(Forward<F>(call));
 	}
 
+	/// Execute F for each element inside container (immutable, reverse)			
+	///	@tparam F - the function type (deducible)										
+	///	@param call - the instance of the function F to call						
+	///	@return the number of called functions											
 	template<class F>
 	Count Block::ForEachRev(F&& call) const {
 		using A = decltype(GetLambdaArgument(&F::operator()));
-		static_assert(CT::Constant<A>, "Non constant iterator for constant memory block");
+		static_assert(CT::Constant<A>,
+			"Non constant iterator for constant memory block");
 		return const_cast<Block*>(this)->ForEachRev<false>(Forward<F>(call));
 	}
 
+	/// Execute function F for each element inside container, nested for any	
+	/// contained deep containers																
+	///	@tparam SKIP - set to false, to execute F for containers, too			
+	///						set to true, to execute only for non-deep elements		
+	///	@tparam MUTABLE - whether or not a change to container is allowed		
+	///							while iterating												
+	///	@tparam F - the function type (deducible)										
+	///	@param call - the instance of the function F to call						
+	///	@return the number of called functions											
 	template<bool SKIP, bool MUTABLE, class F>
 	Count Block::ForEachDeep(F&& call) {
 		using A = decltype(GetLambdaArgument(&F::operator()));
@@ -1734,6 +1807,13 @@ namespace Langulus::Anyness
 		}
 	}
 
+	/// Execute function F for each element inside container, nested for any	
+	/// contained deep containers (immutable)												
+	///	@tparam SKIP - set to false, to execute F for containers, too			
+	///						set to true, to execute only for non-deep elements		
+	///	@tparam F - the function type (deducible)										
+	///	@param call - the instance of the function F to call						
+	///	@return the number of called functions											
 	template<bool SKIP, class F>
 	Count Block::ForEachDeep(F&& call) const {
 		using A = decltype(GetLambdaArgument(&F::operator()));
@@ -1741,6 +1821,15 @@ namespace Langulus::Anyness
 		return const_cast<Block*>(this)->ForEachDeep<SKIP, false>(Forward<F>(call));
 	}
 
+	/// Execute function F for each element inside container, nested for any	
+	/// contained deep containers (reverse)												
+	///	@tparam SKIP - set to false, to execute F for containers, too			
+	///						set to true, to execute only for non-deep elements		
+	///	@tparam MUTABLE - whether or not a change to container is allowed		
+	///							while iterating												
+	///	@tparam F - the function type (deducible)										
+	///	@param call - the instance of the function F to call						
+	///	@return the number of called functions											
 	template<bool SKIP, bool MUTABLE, class F>
 	Count Block::ForEachDeepRev(F&& call) {
 		using A = decltype(GetLambdaArgument(&F::operator()));
@@ -1758,6 +1847,13 @@ namespace Langulus::Anyness
 		}
 	}
 
+	/// Execute function F for each element inside container, nested for any	
+	/// contained deep containers (immutable, reverse)									
+	///	@tparam SKIP - set to false, to execute F for containers, too			
+	///						set to true, to execute only for non-deep elements		
+	///	@tparam F - the function type (deducible)										
+	///	@param call - the instance of the function F to call						
+	///	@return the number of called functions											
 	template<bool SKIP, class F>
 	Count Block::ForEachDeepRev(F&& call) const {
 		using A = decltype(GetLambdaArgument(&F::operator()));
@@ -2030,7 +2126,7 @@ namespace Langulus::Anyness
 	inline Block Block::CropInner(const Offset& start, const Count& count, const Count& reserved) const noexcept {
 		Block result {*this};
 		result.mCount = ::std::min(start < mCount ? mCount - start : 0, count);
-		result.mRaw += start * mType->mSize;
+		result.mRaw += start * GetStride();
 		result.mReserved = ::std::min(reserved, mReserved - start);
 		return result;
 	}
@@ -2046,7 +2142,7 @@ namespace Langulus::Anyness
 
 		Block result {*this};
 		result.mCount = result.mReserved = count;
-		result.mRaw += start * mType->mSize;
+		result.mRaw += start * GetStride();
 		result.mState += DataState::Member;
 		return result;
 	}
@@ -2068,63 +2164,72 @@ namespace Langulus::Anyness
 	///	@attention this operates on initialized memory only, and any			
 	///				  misuse will result in undefined behavior						
 	///	@attention assumes that mCount > 0												
+	///	@tparam T - the type to destroy													
 	template<CT::Data T>
 	void Block::CallKnownDestructors() {
-		static_assert(CT::Mutable<T>, "Can't move construct immutable type");
+		static_assert(CT::Mutable<T>, "Can't destroy immutable type");
 		using DT = Decay<T>;
-		auto data = GetRawAs<T>();
-		const auto dataEnd = data + mCount;
 
 		if constexpr (CT::Sparse<T>) {
+			auto data = GetRawAs<KnownPointer>();
+			const auto dataEnd = data + mCount;
+
 			// We dereference each pointer - destructors will be called		
 			// if data behind these pointers is fully dereferenced, too		
-			Inner::Allocation* found {};
 			while (data != dataEnd) {
-				// It is very likely, that the next pointer is in the same	
-				// entry, so check for that here to avoid a lengthly search	
-				if (!found || !found->Contains(*data)) UNLIKELY() {
-					found = Inner::Allocator::Find(mType, *data);
-					if (!found) {
-						++data;
-						continue;
-					}
+				if (!data->mEntry) {
+					++data;
+					continue;
 				}
 
-				if (found->GetUses() == 1) {
+				if (data->mEntry->GetUses() == 1) {
 					if constexpr (CT::Destroyable<T>)
-						(**data).~DT();
-					Inner::Allocator::Deallocate(found);
+						reinterpret_cast<DT*>(data->mPointer)->~DT();
+					Inner::Allocator::Deallocate(data->mEntry);
 				}
-				else found->Free();
+				else data->mEntry->Free();
+
 				++data;
 			}
 
 			return;
 		}
 		else if constexpr (!CT::POD<T> && CT::Destroyable<T>) {
+			auto data = GetRawAs<T>();
+			const auto dataEnd = data + mCount;
+
 			// Destroy every dense element											
 			while (data != dataEnd) {
-				(*data).~DT();
+				data->~DT();
 				++data;
 			}
 		}
 
-		#if LANGULUS_PARANOID()
-			// Always nullify upon destruction only if we're paranoid		
-			FillMemory(data, {}, GetSize());
-		#endif
+		// Always nullify upon destruction only if we're paranoid			
+		PARANOIA(FillMemory(data, {}, GetSize()));
 	}
 
 	/// Call move constructors in a region and initialize memory					
+	///	@tparam T - the type to move-construct											
 	///	@param count - number of elements to move										
 	///	@param source - the block of elements to move								
 	template<CT::Data T>
 	void Block::CallKnownMoveConstructors(const Count count, Block&& source) {
-		static_assert(CT::Mutable<T>, "Can't move construct immutable type");
-		auto to = GetRawAs<T>() + mCount;
+		static_assert(CT::Mutable<T>, "Can't move-construct immutable type");
 
-		if constexpr (CT::Sparse<T> || CT::POD<T>) {
-			// Copy pointers or POD														
+		if constexpr (CT::Sparse<T>) {
+			// Move known pointers														
+			const auto to = GetRawAs<KnownPointer>() + mCount;
+			const auto size = sizeof(KnownPointer) * count;
+			MoveMemory(source.mRaw, to, size);
+
+			// It is safe to just erase source count at this point			
+			// since pointers/PODs don't need to be destroyed					
+			source.mCount = 0;
+		}
+		else if constexpr (CT::POD<T>) {
+			// Copy POD																		
+			const auto to = GetRawAs<T>() + mCount;
 			const auto size = sizeof(T) * count;
 			MoveMemory(source.mRaw, to, size);
 
@@ -2138,6 +2243,7 @@ namespace Langulus::Anyness
 			static_assert(CT::MoveMakable<T>, 
 				"Trying to move-construct but it's impossible for this type");
 
+			auto to = GetRawAs<T>() + mCount;
 			auto from = source.GetRawAs<T>();
 			const auto fromEnd = from + count;
 			while (from != fromEnd) {

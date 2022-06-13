@@ -302,7 +302,7 @@ namespace Langulus::Anyness::Inner
 	///	@param meta - the type of data to search for (optional)					
 	///	@param memory - memory pointer													
 	///	@return the number of references, or 0 if memory is not ours			
-	Count Allocator::GetReferences(DMeta meta, const void* memory) SAFETY_NOEXCEPT() {
+	/*Count Allocator::GetReferences(DMeta meta, const void* memory) SAFETY_NOEXCEPT() {
 		#if LANGULUS(SAFE)
 			if (memory == nullptr)
 				Throw<Except::Allocate>("Searching for nullptr");
@@ -383,7 +383,7 @@ namespace Langulus::Anyness::Inner
 			(void) (meta); (void) (memory); (void) (count);
 			return false;
 		#endif
-	}
+	}*/
 	
 	#if LANGULUS_FEATURE(MEMORY_STATISTICS)
 		Allocator::Statistics Allocator::mStatistics {};

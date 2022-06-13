@@ -224,7 +224,7 @@ namespace Langulus::Anyness
 	Block Block::GetElement(Offset index) noexcept {
 		return {
 			(mState + DataState::Static) - DataState::Or,
-			mType, 1, At(index * mType->mSize), mEntry
+			mType, 1, At(index * GetStride()), mEntry
 		};
 	}
 
@@ -234,7 +234,7 @@ namespace Langulus::Anyness
 	const Block Block::GetElement(Offset index) const noexcept {
 		return {
 			(mState + DataState::Static) - DataState::Or,
-			mType, 1, At(index * mType->mSize), mEntry
+			mType, 1, At(index * GetStride()), mEntry
 		};
 	}
 
@@ -245,11 +245,9 @@ namespace Langulus::Anyness
 	Block Block::GetElementDense(Offset index) {
 		auto element = GetElement(index);
 		if (IsSparse()) {
-			element.mRaw = *element.GetRawSparse();
-			if (!element.mRaw)
-				return {};
+			element.mRaw = element.GetRawSparse()->mPointer;
+			element.mEntry = element.GetRawSparse()->mEntry;
 			element.mState -= DataState::Sparse;
-			element.mEntry = Inner::Allocator::Find(element.mType, element.mRaw);
 		}
 
 		return element;
@@ -344,11 +342,16 @@ namespace Langulus::Anyness
 
 	/// Call default constructors in a region and initialize memory				
 	///	@attention this is a type-erased call and has quite the overhead		
+	///	@attention assumes mType is set													
 	///	@param count - the number of elements to initialize						
 	void Block::CallDefaultConstructors(const Count& count) {
-		if (mType->mIsNullifiable) {
+		if (IsSparse()) {
 			// Just zero the memory (optimization)									
-			FillMemory(GetRawEnd(), {}, count * GetStride());
+			FillMemory(GetRawEnd(), {}, count * sizeof(KnownPointer));
+		}
+		else if (mType->mIsNullifiable) {
+			// Just zero the memory (optimization)									
+			FillMemory(GetRawEnd(), {}, count * mType->mSize);
 		}
 		else {
 			if (!mType->mDefaultConstructor) {
@@ -358,9 +361,12 @@ namespace Langulus::Anyness
 			}
 			
 			// Construct requested elements one by one							
-			for (Offset i = mCount; i < mCount + count; ++i) {
-				auto element = GetElement(i);
-				mType->mDefaultConstructor(element.mRaw);
+			auto to = GetRawEnd();
+			const auto stride = mType->mSize;
+			const auto toEnd = to + count * stride;
+			while (to != toEnd) {
+				mType->mDefaultConstructor(to);
+				to += stride;
 			}
 		}
 		
@@ -368,56 +374,67 @@ namespace Langulus::Anyness
 	}
 
 	/// Call copy constructors in a region and initialize memory					
+	///	@attention assumes mType is set													
 	///	@attention this operates on uninitialized memory only, and any			
 	///		misuse will result in loss of data and undefined behavior			
 	///	@attention source must have a binary-compatible type						
-	///	@attention this must have zero count, and mReserved						
 	///	@param source - the elements to copy											
 	void Block::CallCopyConstructors(const Count& count, const Block& source) {
-		if ((IsSparse() && source.IsSparse()) || mType->mIsPOD) {
-			// Just copy the POD/pointer memory (optimization)					
-			CopyMemory(source.mRaw, GetRawEnd(), GetStride() * count);
+		if (IsSparse() && source.IsSparse()) {
+			// Copy the known pointers (optimization)								
+			CopyMemory(source.mRaw, GetRawEnd(), count * sizeof(KnownPointer));
 
-			if (IsSparse()) {
-				// Since we're copying pointers, we have to reference the	
-				// dense memory behind each one of them							
-				auto pointers = GetRawSparse();
-				Count c {};
-				while (c < count) {
-					// Reference each pointer											
-					Inner::Allocator::Keep(mType, pointers[c + mCount], 1);
-					++c;
-				}
+			// Since we're copying pointers, we have to reference the		
+			// dense memory behind each one of them								
+			auto pointer = GetRawSparse() + mCount;
+			const auto pointersEnd = pointer + count;
+			while (pointer != pointersEnd) {
+				if (pointer->mEntry)
+					pointer->mEntry->Keep();
+				++pointer;
 			}
 
+			return;
+		}
+		else if (mType->mIsPOD) {
+			// Just copy the POD memory (optimization)							
+			CopyMemory(source.mRaw, GetRawEnd(), count * mType->mSize);
 			return;
 		}
 
 		// Construct element by element												
 		if (IsSparse()) {
 			// LHS is pointer, RHS must be dense									
-			// Copy each pointer from RHS, and reference it						
-			auto pointers = GetRawSparse();
-			for (Count i = 0; i < count; ++i) {
-				const auto element = source.GetElement(i);
-				pointers[i + mCount] = element.mRaw;
-				element.Keep();
+			// Get each pointer from RHS, and reference it						
+			auto to = GetRawSparse() + mCount;
+			const auto toEnd = to + count;
+			auto from = source.GetRaw();
+			const auto fromStride = source.mType->mSize;
+			while (to != toEnd) {
+				to->mPointer = const_cast<Byte*>(from);
+				to->mEntry = source.mEntry;
+				++to;
+				from += fromStride;
 			}
+			source.mEntry->Keep(count);
 		}
 		else if (source.IsSparse()) {
 			// RHS is pointer, LHS must be dense									
-			// Copy each dense element from RHS										
-			// Call the reflected copy-constructor for each element			
+			// Shallow-copy each dense element from RHS							
 			if (!mType->mCopyConstructor) {
 				Throw<Except::Construct>(Logger::Error()
 					<< "Can't copy-construct " << source.mCount << " elements of "
 					<< GetToken() << " because no copy constructor was reflected");
 			}
 
-			auto pointers = source.GetRawSparse();
-			for (Count i = 0; i < count; ++i) {
-				auto element = GetElement(i + mCount);
-				mType->mCopyConstructor(element.mRaw, pointers[i]);
+			auto to = GetRawEnd();
+			const auto toStride = mType->mSize;
+			auto pointer = source.GetRawSparse();
+			const auto pointerEnd = pointer + count;
+			while (pointer != pointerEnd) {
+				mType->mCopyConstructor(to, pointer->mPointer);
+				++pointer;
+				to += toStride;
 			}
 		}
 		else  {
@@ -429,10 +446,14 @@ namespace Langulus::Anyness
 					<< GetToken() << " because no copy constructor was reflected");
 			}
 
-			for (Count i = 0; i < count; ++i) {
-				auto lhs = GetElement(i + mCount);
-				auto rhs = source.GetElement(i);
-				mType->mCopyConstructor(lhs.mRaw, rhs.mRaw);
+			auto to = GetRawEnd();
+			auto from = source.GetRaw();
+			const auto stride = mType->mSize;
+			const auto fromEnd = from + count * stride;
+			while (from != fromEnd) {
+				mType->mCopyConstructor(to, from);
+				to += stride;
+				from += stride;
 			}
 		}
 		
@@ -448,10 +469,15 @@ namespace Langulus::Anyness
 	///		signifying that items have been consumed, but is still allocated	
 	///	@param source - the elements to move											
 	void Block::CallUnknownMoveConstructors(const Count count, Block&& source) {
-		if (mType->mIsPOD || (IsSparse() && source.IsSparse())) {
-			// Copy pointers, and then null them									
-			const auto size = GetStride() * count;
-			MoveMemory(source.mRaw, mRawSparse + mCount, size);
+		if (IsSparse() && source.IsSparse()) {
+			// Copy pointers																
+			const auto size = sizeof(KnownPointer) * count;
+			MoveMemory(source.mRaw, GetRawEnd(), size);
+		}
+		else if (mType->mIsPOD) {
+			// Copy POD																		
+			const auto size = mType->mSize * count;
+			MoveMemory(source.mRaw, GetRawEnd(), size);
 		}
 		else if (source.IsSparse()) {
 			// RHS is pointer, LHS must be dense									
@@ -462,21 +488,32 @@ namespace Langulus::Anyness
 					<< GetToken() << " because no move constructor was reflected");
 			}
 
-			auto pointers = source.GetRawSparse();
-			for (Count i = 0; i < count; ++i) {
-				auto element = GetElement(i + mCount);
-				mType->mMoveConstructor(element.mRaw, pointers[i]);
+			auto to = GetRawEnd();
+			const auto toStride = mType->mSize;
+			auto pointer = source.GetRawSparse();
+			const auto pointersEnd = pointer + count;
+			while (pointer != pointersEnd) {
+				mType->mMoveConstructor(to, pointer->mPointer);
+				to += toStride;
+				++pointer;
 			}
 		}
 		else if (IsSparse()) {
 			// LHS is pointer, RHS must be dense									
-			// Copy each element pointer from RHS and reference it			
-			auto pointers = GetRawSparse();
-			for (Count i = 0; i < count; ++i)
-				pointers[i + mCount] = source.GetElement(i).mRaw;
+			// Move each pointer from RHS												
+			auto to = GetRawSparse() + mCount;
+			const auto toEnd = to + count;
+			auto from = source.GetRaw();
+			const auto fromStride = source.mType->mSize;
+			while (to != toEnd) {
+				to->mPointer = const_cast<Byte*>(from);
+				to->mEntry = source.mEntry;
+				++to;
+				from += fromStride;
+			}
 
-			// Can't actually move, you know, just reference rhs by count	
-			source.Reference(count);
+			// We have to reference RHS by the number of pointers we made	
+			source.mEntry->Keep(count);
 		}
 		else {
 			// Both RHS and LHS must be dense										
@@ -486,14 +523,17 @@ namespace Langulus::Anyness
 					<< GetToken() << " because no move constructor was reflected");
 			}
 
-			for (Count i = 0; i < count; ++i) {
-				auto lhs = GetElement(i + mCount);
-				auto rhs = source.GetElement(i);
-				mType->mMoveConstructor(lhs.mRaw, rhs.mRaw);
+			auto to = GetRawEnd();
+			auto from = source.GetRaw();
+			const auto stride = mType->mSize;
+			const auto fromEnd = from + count * stride;
+			while (from != fromEnd) {
+				mType->mMoveConstructor(to, from);
+				to += stride;
+				from += stride;
 			}
 		}
 
-		// Only consume the items in the source									
 		mCount += count;
 	}
 
@@ -504,16 +544,33 @@ namespace Langulus::Anyness
 	///				  misuse will result in undefined behavior						
 	void Block::CallUnknownDestructors() {
 		if (IsSparse()) {
+			auto data = GetRawAs<KnownPointer>();
+			const auto dataEnd = data + mCount;
+
 			// We dereference each pointer - destructors will be called		
 			// if data behind these pointers is fully dereferenced, too		
-			for (Count i = 0; i < mCount; ++i) {
-				auto element = GetElementResolved(i);
-				element.Free();
+			while (data != dataEnd) {
+				if (!data->mEntry) {
+					++data;
+					continue;
+				}
+
+				if (data->mEntry->GetUses() == 1) {
+					if (!mType->mIsPOD) {
+						if (!mType->mDestructor) {
+							Throw<Except::Destruct>(Logger::Error()
+								<< "Can't destroy " << GetToken()
+								<< " because no destructor was reflected");
+						}
+
+						Inner::Allocator::Deallocate(data->mEntry);
+					}
+				}
+				else data->mEntry->Free();
+
+				++data;
 			}
 
-			// Always null the pointers after destruction						
-			// It is quite obscure, but this is where TPointers are reset	
-			FillMemory(mRaw, {}, GetSize());
 			return;
 		}
 		else if (!mType->mIsPOD) {
@@ -525,9 +582,14 @@ namespace Langulus::Anyness
 					<< " because no destructor was reflected");
 			}
 
-			for (Count i = 0; i < mCount; ++i) {
-				auto element = GetElement(i);
-				mType->mDestructor(element.mRaw);
+			auto data = GetRaw();
+			const auto dataStride = mType->mSize;
+			const auto dataEnd = data + mCount * mType->mSize;
+
+			// Destroy every dense element											
+			while (data != dataEnd) {
+				mType->mDestructor(data);
+				data += dataStride;
 			}
 		}
 
@@ -616,16 +678,6 @@ namespace Langulus::Anyness
 
 		// Change count																	
 		mCount -= removed;
-
-		if (mCount == 0) {
-			// It is safe to release the memory - it's no longer in use		
-			Dereference<false>(1);
-			mRaw = nullptr;
-			mEntry = nullptr;
-			mReserved = 0;
-			mState -= DataState::Static | DataState::Constant;
-		}
-
 		return removed;
 	}
 
