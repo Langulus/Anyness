@@ -11,14 +11,6 @@ jobs:
         architecture: ['x86', 'x64']
         managed: ['-DLANGULUS_FEATURE_MANAGED_MEMORY=OFF', '-DLANGULUS_FEATURE_MANAGED_MEMORY=ON']
         cxx: ['g++', 'clang++', 'cl']
-        exclude:
-          - os: ubuntu-22.04
-            cxx: 'cl'
-            architecture: 'x86'
-          - os: windows-latest
-            cxx: 'g++'
-          - os: windows-latest
-            cxx: 'clang++'
         include:
           - os: ubuntu-22.04
             architecture: x86
@@ -36,6 +28,14 @@ jobs:
             suffix: ''
           - managed: '-DLANGULUS_FEATURE_MANAGED_MEMORY=ON'
             suffix: '-managed'
+        exclude:
+          - os: ubuntu-22.04
+            cxx: 'cl'
+            architecture: 'x86'
+          - os: windows-latest
+            cxx: 'g++'
+          - os: windows-latest
+            cxx: 'clang++'
 
     name: "${{matrix.os}}-${{matrix.cxx}}-${{matrix.build}}-${{matrix.architecture}}${{matrix.suffix}}"
     runs-on: ${{matrix.os}}
