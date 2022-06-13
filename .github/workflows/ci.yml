@@ -3,16 +3,14 @@ on: [push, pull_request] # Trigger on pushes to all branches and for all pull-re
 
 jobs:
   build:
-    name: ${{ matrix.config.name }}
-    runs-on: ${{ matrix.config.os }}
     strategy:
       fail-fast: false # do not abort on a failed job
       matrix:
         os: [ubuntu-22.04, windows-latest]
-        build_type: [Debug, RelWithDebInfo]
-        safe_mode: [-DLANGULUS_ENABLE_SAFE_MODE=ON]
+        build: [Debug, RelWithDebInfo]
+        safety: ['-DLANGULUS_ENABLE_SAFE_MODE=ON']
         architecture: [x86, x64]
-        managed_memory: [-DLANGULUS_FEATURE_MANAGED_MEMORY=OFF, -DLANGULUS_FEATURE_MANAGED_MEMORY=ON]
+        managed: ['-DLANGULUS_FEATURE_MANAGED_MEMORY=OFF', '-DLANGULUS_FEATURE_MANAGED_MEMORY=ON']
         include:
           - os: ubuntu-22.04
             cxx: [g++, clang++]
@@ -30,16 +28,19 @@ jobs:
           - os: windows-latest
             architecture: x64
             cmake_args: "-G \"Visual Studio 17 2022\" -A x64"
-          - managed_memory: -DLANGULUS_FEATURE_MANAGED_MEMORY=OFF
-            name: "${{os}}-${{cxx}}-${{build_type}}-${{architecture}}"
-          - managed_memory: -DLANGULUS_FEATURE_MANAGED_MEMORY=ON
-            name: "${{os}}-${{cxx}}-${{build_type}}-${{architecture}}-managed"
+          - managed: '-DLANGULUS_FEATURE_MANAGED_MEMORY=OFF'
+            suffix: ''
+          - managed: '-DLANGULUS_FEATURE_MANAGED_MEMORY=ON'
+            suffix: '-managed'
+
+    name: "${{matrix.os}}-${{matrix.cxx}}-${{matrix.build_type}}-${{matrix.architecture}}${{matrix.suffix}}"
+    runs-on: ${{ matrix.config.os }}
     steps:
       - name: Clone
         uses: actions/checkout@v2
       - name: Configure
-        run: cmake -DCMAKE_CXX_COMPILER=${{matrix.cxx}} -S . -B out/${{matrix.name}} -DCMAKE_BUILD_TYPE=${{matrix.build_type}} ${{matrix.cmake_args}} ${{matrix.managed_memory}}
+        run: cmake -DCMAKE_CXX_COMPILER=${{matrix.cxx}} -S . -B out/${{name}} -DCMAKE_BUILD_TYPE=${{matrix.build}} ${{matrix.cmake_args}} ${{matrix.managed}} ${{matrix.safety}}
       - name: Build
-        run: cmake --build out/${{matrix.name}} --config ${{matrix.build_type}}
+        run: cmake --build out/${{name}} --config ${{matrix.build}}
       - name: Test
-        run: cd out/${{matrix.name}} && ctest -V -C ${{matrix.build_type}}
+        run: cd out/${{name}} && ctest -V -C ${{matrix.build}}
