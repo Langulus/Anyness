@@ -7,14 +7,16 @@ jobs:
       fail-fast: false # do not abort on a failed job
       matrix:
         os: [ubuntu-22.04, windows-latest]
-        build: [Debug, RelWithDebInfo]
+        build: [Debug, Release]
         architecture: [x86, x64]
         managed: ['-DLANGULUS_FEATURE_MANAGED_MEMORY=OFF', '-DLANGULUS_FEATURE_MANAGED_MEMORY=ON']
-        include:
+        cxx: [g++, clang++, cl]
+        exclude:
           - os: ubuntu-22.04
-            cxx: [g++, clang++]
+            cxx: cl
           - os: windows-latest
-            cxx: [cl]
+            cxx: g++, clang++
+        include:
           - os: ubuntu-22.04
             architecture: x86
             cmake_args: "-DCMAKE_CXX_FLAGS=-m32"
