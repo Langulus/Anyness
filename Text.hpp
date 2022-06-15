@@ -39,19 +39,23 @@ namespace Langulus::Anyness
 		Text(const Meta&);
 
 		Text(const char*, const Count&);
+		Text(Disowned<const char*>&&, const Count&);
+
+		Text(const Letter*, const Count&);
+		Text(Disowned<const Letter*>&&, const Count&);
+
 		template<Count C>
 		Text(const char(&)[C]);
+		template<Count C>
+		Text(const Letter(&)[C]);
+
 		explicit Text(const char*);
+		explicit Text(Disowned<const char*>&&);
+		explicit Text(const Letter*);
+		explicit Text(Disowned<const Letter*>&&);
 
-		template<CT::Dense T>
-		Text(const T*, const Count&) requires CT::Character<T>;
-		template<CT::Dense T, Count C>
-		Text(const T(&)[C]) requires CT::Character<T>;
+		Text(const Letter&);
 
-		template<CT::Dense T>
-		Text(const T&) requires CT::Character<T>;
-		template<CT::Dense T>
-		explicit Text(const T*) requires CT::Character<T>;
 		template<CT::Dense T>
 		Text(const T&) requires CT::Number<T>;
 

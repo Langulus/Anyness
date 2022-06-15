@@ -27,6 +27,29 @@ namespace Langulus::Anyness
 	inline Text::Text(const char* text, const Count& count)
 		: TAny {reinterpret_cast<const char8_t*>(text), count} { }
 
+	/// Construct manually from count-terminated C string								
+	/// Data will never be cloned or referenced											
+	///	@param text - text memory to wrap												
+	///	@param count - number of characters inside text								
+	inline Text::Text(Disowned<const char*>&& text, const Count& count)
+		: TAny {Disown(reinterpret_cast<const char8_t*>(text.mValue)), count} { }
+
+	/// Construct manually from count-terminated UTF text								
+	/// Data will be cloned if we don't have authority over the memory			
+	///	@tparam T - type of the character in the array								
+	///	@param text - text memory to reference											
+	///	@param count - number of characters inside text								
+	inline Text::Text(const Letter* text, const Count& count)
+		: TAny {text, count} { }
+
+	/// Construct manually from count-terminated UTF text								
+	/// Data will never be cloned or referenced											
+	///	@tparam T - type of the character in the array								
+	///	@param text - text memory to wrap												
+	///	@param count - number of characters inside text								
+	inline Text::Text(Disowned<const Letter*>&& text, const Count& count)
+		: TAny {Move(text), count} { }
+
 	/// Construct from a non-u8 string literal											
 	/// Data will be cloned if we don't have authority over the memory			
 	///	@tparam C - size of the literal													
@@ -35,30 +58,20 @@ namespace Langulus::Anyness
 	inline Text::Text(const char(&text)[C])
 		: TAny {reinterpret_cast<const char8_t*>(text), C - 1} { }
 
-	/// Construct manually from count-terminated UTF text								
-	/// Data will be cloned if we don't have authority over the memory			
-	///	@tparam T - type of the character in the array								
-	///	@param text - text memory to reference											
-	///	@param count - number of characters inside text								
-	template<CT::Dense T>
-	inline Text::Text(const T* text, const Count& count) requires CT::Character<T>
-		: TAny {text, count} { }
-
 	/// Construct manually from a c style array											
 	/// Data will be cloned if we don't have authority over the memory			
 	///	@tparam T - type of the character in the array								
 	///	@tparam C - size of the array														
 	///	@param text - the array																
-	template<CT::Dense T, Count C>
-	inline Text::Text(const T(&text)[C]) requires CT::Character<T>
+	template<Count C>
+	inline Text::Text(const Letter(&text)[C])
 		: TAny {text, C - 1} { }
 
 	/// Construct from a single character													
 	/// Data will be cloned if we don't have authority over the memory			
 	///	@tparam T - type of the character in the array								
 	///	@param anyCharacter - the character to stringify							
-	template<CT::Dense T>
-	Text::Text(const T& anyCharacter) requires CT::Character<T>
+	inline Text::Text(const Letter& anyCharacter)
 		: Text {&anyCharacter, 1} {}
 
 	/// Convert a number type to text														
@@ -101,12 +114,23 @@ namespace Langulus::Anyness
 	inline Text::Text(const char* nullterminatedText)
 		: Text {nullterminatedText, ::std::strlen(nullterminatedText)} {}
 
+	/// Construct from null-terminated C string											
+	/// Data will never be cloned or referenced											
+	///	@param nullterminatedText - text to wrap										
+	inline Text::Text(Disowned<const char*>&& nullterminatedText)
+		: Text {Move(nullterminatedText), ::std::strlen(nullterminatedText.mValue)} {}
+
 	/// Construct from null-terminated UTF text											
 	/// Data will be cloned if we don't have authority over the memory			
 	///	@param nullterminatedText - text memory to reference						
-	template<CT::Dense T>
-	inline Text::Text(const T* nullterminatedText) requires CT::Character<T>
-		: Text {nullterminatedText, ::std::strlen(nullterminatedText)} {}
+	inline Text::Text(const Letter* nullterminatedText)
+		: Text {nullterminatedText, ::std::strlen(reinterpret_cast<const char*>(nullterminatedText))} {}
+
+	/// Construct from null-terminated UTF text											
+	/// Data will never be cloned or referenced											
+	///	@param nullterminatedText - text to wrap										
+	inline Text::Text(Disowned<const Letter*>&& nullterminatedText)
+		: Text {Move(nullterminatedText), ::std::strlen(reinterpret_cast<const char*>(nullterminatedText.mValue))} {}
 
 	/// Interpret text container as a literal												
 	///	@attention the string is null-terminated only after Terminate()		
@@ -114,15 +138,50 @@ namespace Langulus::Anyness
 		return {GetRaw(), mCount};
 	}
 
+	/// Destructive concatenatenation of anything convertible to Text				
+	///	@tparam RHS - type to stringify (deducible)									
+	///	@param rhs - the data to stringify												
+	///	@return a reference to this Text													
 	template<class RHS>
 	Text& Text::operator += (const RHS& rhs) {
-		TAny<Letter>::operator+=<Text, RHS>(rhs);
+		TAny::operator+=<Text, RHS>(rhs);
 		return *this;
 	}
 
+	/// Concatenatenation of anything convertible to Text								
+	///	@tparam RHS - type to stringify (deducible)									
+	///	@param rhs - the data to stringify												
+	///	@return a new Text container with both sides concatenated				
 	template<class RHS>
 	NOD() Text Text::operator + (const RHS& rhs) const {
-		return TAny<Letter>::operator+<Text, RHS>(rhs);
+		return TAny::operator+<Text, RHS>(rhs);
+	}
+
+	/// Compare two text containers															
+	///	@param rhs - the text to compare against										
+	///	@return true if both strings are the same										
+	inline bool Text::operator == (const Text& rhs) const noexcept {
+		return TAny::operator == (static_cast<const TAny&>(rhs));
+	}
+
+	/// Compare with a cstring																	
+	///	@param rhs - the text to compare against										
+	///	@return true if both strings are the same										
+	inline bool Text::operator == (const char* rhs) const noexcept {
+		return operator == (Text {Disown(rhs)});
+	}
+
+	/// Compare with a u8 string																
+	///	@param rhs - the text to compare against										
+	///	@return true if both strings are the same										
+	inline bool Text::operator == (const Letter* rhs) const noexcept {
+		return operator == (Text {Disown(rhs)});
+	}
+
+	/// Check if text container has been allocated										
+	///	@return true if container is not allocated									
+	inline bool Text::operator == (::std::nullptr_t) const noexcept {
+		return Block::operator == (nullptr);
 	}
 
 } // namespace Langulus::Anyness

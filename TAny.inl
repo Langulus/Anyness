@@ -146,7 +146,7 @@ namespace Langulus::Anyness
 	///	@param raw - raw memory to interface without referencing and copying	
 	///	@param count - number of items inside 'raw'									
 	TEMPLATE()
-	TAny<T>::TAny(Disowned<T*>&& raw, const Count& count)
+	TAny<T>::TAny(Disowned<const T*>&& raw, const Count& count)
 		: Any {Block {
 				DataState::Constrained, MetaData::Of<T>(), count, 
 				reinterpret_cast<const Byte*>(raw.mValue), nullptr}} {}
@@ -1564,8 +1564,12 @@ namespace Langulus::Anyness
 	///	@param other - the container to compare with									
 	///	@return true if both containers are identical								
 	TEMPLATE()
-	bool TAny<T>::operator == (const TAny& other) const noexcept {
-		return Compare(other);
+	template<CT::Data ALT_T>
+	bool TAny<T>::operator == (const TAny<ALT_T>& other) const noexcept {
+		if constexpr (CT::Same<T, ALT_T>)
+			return Compare(other);
+		else
+			return false;
 	}
 
 	/// Compare with block of unknown type													

@@ -84,7 +84,7 @@ SCENARIO("Text containers", "[text]") {
 				REQUIRE(text.HasAuthority());
 				REQUIRE(text == u8"");
 				REQUIRE(text == "");
-				REQUIRE(text == nullptr);
+				REQUIRE_FALSE(text == nullptr);
 				REQUIRE_FALSE(text == u8"no match");
 				REQUIRE_FALSE(text == "no match");
 			}
