@@ -63,9 +63,7 @@ SCENARIO("THashMap", "[containers]") {
 		}
 
 		WHEN("Given a pair by copy") {
-			#if LANGULUS_FEATURE(MANAGED_MEMORY)
-				Allocator::CollectGarbage();
-			#endif
+			#include "CollectGarbage.inl"
 
 			map = value;
 
@@ -96,9 +94,7 @@ SCENARIO("THashMap", "[containers]") {
 		}
 
 		WHEN("Given a pair by move") {
-			#if LANGULUS_FEATURE(MANAGED_MEMORY)
-				Allocator::CollectGarbage();
-			#endif
+			#include "CollectGarbage.inl"
 
 			map = Move(value);
 
@@ -138,9 +134,7 @@ SCENARIO("THashMap", "[containers]") {
 	}
 
 	GIVEN("THashMap with some items") {
-		#if LANGULUS_FEATURE(MANAGED_MEMORY)
-			Allocator::CollectGarbage();
-		#endif
+		#include "CollectGarbage.inl"
 
 		// Arrays are dynamic to avoid constexprification						
 		auto darray1 = new MapType::Pair[5] {
@@ -696,9 +690,7 @@ SCENARIO("THashMap", "[containers]") {
 	}
 
 	GIVEN("Two THashMaps") {
-		#if LANGULUS_FEATURE(MANAGED_MEMORY)
-			Allocator::CollectGarbage();
-		#endif
+		#include "CollectGarbage.inl"
 
 		TAny<int> pack1;
 		TAny<int> pack2;

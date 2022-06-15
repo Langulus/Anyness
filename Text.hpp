@@ -83,7 +83,9 @@ namespace Langulus::Anyness
 		NOD() Count GetLineCount() const noexcept;
 
 		bool operator == (const Text&) const noexcept;
-		bool operator != (const Text&) const noexcept;
+		bool operator == (const char*) const noexcept;
+		bool operator == (const char8_t*) const noexcept;
+		bool operator == (::std::nullptr_t) const noexcept;
 
 		NOD() bool FindOffset(const Text&, Offset&) const;
 		NOD() bool FindOffsetReverse(const Text&, Offset&) const;

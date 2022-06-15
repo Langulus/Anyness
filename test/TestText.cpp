@@ -8,25 +8,243 @@
 #include "Main.hpp"
 #include <catch2/catch.hpp>
 
-SCENARIO("Text manipulation", "[text]") {
+SCENARIO("Text containers", "[text]") {
+	GIVEN("Default text container") {
+		#include "CollectGarbage.inl"
 
-	GIVEN("An empty utf8 text container") {
 		Text text;
 
-		WHEN("More capacity is reserved, via Extend()") {
-			#if LANGULUS_FEATURE(MANAGED_MEMORY)
-				Allocator::CollectGarbage();
-			#endif
-
-			text.Allocate(500);
-			auto memory = text.GetRaw();
-
-			REQUIRE(text.IsEmpty());
-			REQUIRE(text.GetCount() == 0);
-			REQUIRE(text.GetReserved() >= 500);
-
-			auto region = text.Extend(10);
+		WHEN("Nothing is done") {
 			THEN("The capacity and size change") {
+				REQUIRE_FALSE(text.IsAbstract());
+				REQUIRE_FALSE(text.IsCompressed());
+				REQUIRE_FALSE(text.IsConstant());
+				REQUIRE_FALSE(text.IsDeep());
+				REQUIRE_FALSE(text.IsSparse());
+				REQUIRE_FALSE(text.IsEncrypted());
+				REQUIRE_FALSE(text.IsFuture());
+				REQUIRE_FALSE(text.IsPast());
+				REQUIRE_FALSE(text.IsPhased());
+				REQUIRE_FALSE(text.IsMissing());
+				REQUIRE_FALSE(text.IsOr());
+				REQUIRE_FALSE(text.IsStatic());
+				REQUIRE_FALSE(text.IsUntyped());
+				REQUIRE_FALSE(text.IsValid());
+				REQUIRE_FALSE(text.IsAllocated());
+				REQUIRE_FALSE(text.HasAuthority());
+				REQUIRE(text.IsTypeConstrained());
+				REQUIRE(text.GetType() == MetaData::Of<char8_t>());
+				REQUIRE(text.Is<char8_t>());
+				REQUIRE(text.IsNow());
+				REQUIRE(text.IsInvalid());
+				REQUIRE(text.IsDense());
+				REQUIRE(text.IsConstructible());
+				REQUIRE(text.IsEmpty());
+				REQUIRE(text.GetCount() == 0);
+				REQUIRE(text.GetReserved() == 0);
+				REQUIRE(text.GetUses() == 0);
+				REQUIRE(text == u8"");
+				REQUIRE(text == "");
+				REQUIRE(text == nullptr);
+				REQUIRE_FALSE(text == u8"no match");
+				REQUIRE_FALSE(text == "no match");
+			}
+		}
+
+		WHEN("Capacity is reserved") {
+			text.Allocate(500);
+
+			THEN("The capacity and size change") {
+				REQUIRE_FALSE(text.IsAbstract());
+				REQUIRE_FALSE(text.IsCompressed());
+				REQUIRE_FALSE(text.IsConstant());
+				REQUIRE_FALSE(text.IsDeep());
+				REQUIRE_FALSE(text.IsSparse());
+				REQUIRE_FALSE(text.IsEncrypted());
+				REQUIRE_FALSE(text.IsFuture());
+				REQUIRE_FALSE(text.IsPast());
+				REQUIRE_FALSE(text.IsPhased());
+				REQUIRE_FALSE(text.IsMissing());
+				REQUIRE_FALSE(text.IsOr());
+				REQUIRE_FALSE(text.IsStatic());
+				REQUIRE_FALSE(text.IsUntyped());
+				REQUIRE_FALSE(text.IsValid());
+				REQUIRE(text.IsTypeConstrained());
+				REQUIRE(text.GetType() == MetaData::Of<char8_t>());
+				REQUIRE(text.Is<char8_t>());
+				REQUIRE(text.IsNow());
+				REQUIRE(text.IsInvalid());
+				REQUIRE(text.IsDense());
+				REQUIRE(text.IsConstructible());
+				REQUIRE(text.IsEmpty());
+				REQUIRE(text.IsAllocated());
+				REQUIRE(text.GetCount() == 0);
+				REQUIRE(text.GetReserved() >= 500);
+				REQUIRE(text.GetUses() == 1);
+				REQUIRE(text.HasAuthority());
+				REQUIRE(text == u8"");
+				REQUIRE(text == "");
+				REQUIRE(text == nullptr);
+				REQUIRE_FALSE(text == u8"no match");
+				REQUIRE_FALSE(text == "no match");
+			}
+		}
+
+		WHEN("Assigned to itself") {
+			text = text;
+
+			THEN("The capacity and size change") {
+				REQUIRE_FALSE(text.IsAbstract());
+				REQUIRE_FALSE(text.IsCompressed());
+				REQUIRE_FALSE(text.IsConstant());
+				REQUIRE_FALSE(text.IsDeep());
+				REQUIRE_FALSE(text.IsSparse());
+				REQUIRE_FALSE(text.IsEncrypted());
+				REQUIRE_FALSE(text.IsFuture());
+				REQUIRE_FALSE(text.IsPast());
+				REQUIRE_FALSE(text.IsPhased());
+				REQUIRE_FALSE(text.IsMissing());
+				REQUIRE_FALSE(text.IsOr());
+				REQUIRE_FALSE(text.IsStatic());
+				REQUIRE_FALSE(text.IsUntyped());
+				REQUIRE_FALSE(text.IsValid());
+				REQUIRE_FALSE(text.IsAllocated());
+				REQUIRE_FALSE(text.HasAuthority());
+				REQUIRE(text.IsTypeConstrained());
+				REQUIRE(text.GetType() == MetaData::Of<char8_t>());
+				REQUIRE(text.Is<char8_t>());
+				REQUIRE(text.IsNow());
+				REQUIRE(text.IsInvalid());
+				REQUIRE(text.IsDense());
+				REQUIRE(text.IsConstructible());
+				REQUIRE(text.IsEmpty());
+				REQUIRE(text.GetCount() == 0);
+				REQUIRE(text.GetReserved() == 0);
+				REQUIRE(text.GetUses() == 0);
+				REQUIRE(text == u8"");
+				REQUIRE(text == "");
+				REQUIRE(text == nullptr);
+				REQUIRE_FALSE(text == u8"no match");
+				REQUIRE_FALSE(text == "no match");
+			}
+		}
+	}
+
+	GIVEN("Uninitialized text container") {
+		#include "CollectGarbage.inl"
+
+		Text* text;
+
+		WHEN("Constructed with a null-terminated literal") {
+			text = new Text {"test1"};
+
+			THEN("The capacity and size change") {
+				REQUIRE_FALSE((*text).IsAbstract());
+				REQUIRE_FALSE((*text).IsCompressed());
+				REQUIRE_FALSE((*text).IsConstant());
+				REQUIRE_FALSE((*text).IsDeep());
+				REQUIRE_FALSE((*text).IsSparse());
+				REQUIRE_FALSE((*text).IsEncrypted());
+				REQUIRE_FALSE((*text).IsFuture());
+				REQUIRE_FALSE((*text).IsPast());
+				REQUIRE_FALSE((*text).IsPhased());
+				REQUIRE_FALSE((*text).IsMissing());
+				REQUIRE_FALSE((*text).IsOr());
+				REQUIRE_FALSE((*text).IsUntyped());
+				REQUIRE_FALSE((*text).IsInvalid());
+				REQUIRE_FALSE((*text).IsStatic());
+				REQUIRE((*text).IsTypeConstrained());
+				REQUIRE((*text).IsDense());
+				REQUIRE((*text).IsValid());
+				REQUIRE((*text).IsAllocated());
+				REQUIRE((*text).GetCount() == 5);
+				REQUIRE((*text).GetReserved() >= 5);
+				REQUIRE((*text).Is<char8_t>());
+				REQUIRE((*text).GetRaw());
+				REQUIRE((*text).HasAuthority());
+				REQUIRE((*text) == u8"test1");
+				REQUIRE((*text) == "test1");
+				REQUIRE((*text)[0] == 't');
+				REQUIRE((*text)[1] == 'e');
+				REQUIRE((*text)[2] == 's');
+				REQUIRE((*text)[3] == 't');
+				REQUIRE((*text)[4] == '1');
+			}
+
+			delete text;
+		}
+
+		WHEN("Constructed with a count-terminated literal") {
+			text = new Text {"test1", 5};
+
+			THEN("The capacity and size change") {
+				REQUIRE((*text).GetCount() == 5);
+				REQUIRE((*text).GetReserved() >= 5);
+				REQUIRE((*text).Is<char8_t>());
+				REQUIRE((*text).GetRaw());
+				REQUIRE((*text).HasAuthority());
+				REQUIRE((*text) == u8"test1");
+				REQUIRE((*text) == "test1");
+				REQUIRE((*text)[0] == 't');
+				REQUIRE((*text)[1] == 'e');
+				REQUIRE((*text)[2] == 's');
+				REQUIRE((*text)[3] == 't');
+				REQUIRE((*text)[4] == '1');
+			}
+
+			delete text;
+		}
+
+		WHEN("Constructed with a c-array") {
+			char8_t test1[] = u8"test1";
+			text = new Text {test1};
+
+			THEN("The capacity and size change") {
+				REQUIRE((*text).GetCount() == 5);
+				REQUIRE((*text).GetReserved() >= 5);
+				REQUIRE((*text).Is<char8_t>());
+				REQUIRE((*text).GetRaw());
+				REQUIRE((*text).HasAuthority());
+				REQUIRE((*text) == u8"test1");
+				REQUIRE((*text) == "test1");
+				REQUIRE((*text)[0] == 't');
+				REQUIRE((*text)[1] == 'e');
+				REQUIRE((*text)[2] == 's');
+				REQUIRE((*text)[3] == 't');
+				REQUIRE((*text)[4] == '1');
+			}
+
+			delete text;
+		}
+
+		WHEN("Constructed with a single character") {
+			text = new Text {u8'?'};
+
+			THEN("The capacity and size change") {
+				REQUIRE((*text).GetCount() == 1);
+				REQUIRE((*text).GetReserved() >= 1);
+				REQUIRE((*text).Is<char8_t>());
+				REQUIRE((*text).GetRaw());
+				REQUIRE((*text).HasAuthority());
+				REQUIRE((*text) == u8"?");
+				REQUIRE((*text)[0] == '?');
+			}
+
+			delete text;
+		}
+	}
+
+	GIVEN("Reserved text container") {
+		#include "CollectGarbage.inl"
+
+		Text text;
+		text.Allocate(500);
+		auto memory = text.GetRaw();
+
+		WHEN("Text is extended") {
+			auto region = text.Extend(10);
+
+			THEN("The count change") {
 				REQUIRE(text.GetCount() == 10);
 				REQUIRE(text.GetReserved() >= 500);
 				REQUIRE(text.GetRaw() == memory);
@@ -35,27 +253,55 @@ SCENARIO("Text manipulation", "[text]") {
 				REQUIRE(region.GetRaw() == memory);
 			}
 		}
+
+		WHEN("Text is concatenated") {
+			text += "test";
+
+			THEN("The count change") {
+				REQUIRE(text.GetCount() == 4);
+				REQUIRE(text.GetReserved() >= 500);
+				REQUIRE(text.GetRaw() == memory);
+				REQUIRE(text.HasAuthority());
+				REQUIRE(text == u8"test");
+				REQUIRE(text == "test");
+			}
+		}
+
+		WHEN("Text is cleared") {
+			text += "test";
+			text.Clear();
+
+			THEN("Nothing should change") {
+				REQUIRE(text.GetCount() == 0);
+				REQUIRE(text.GetReserved() >= 500);
+				REQUIRE(text.GetRaw() == memory);
+				REQUIRE(text.HasAuthority());
+				REQUIRE(text != u8"test");
+				REQUIRE(text != "test");
+			}
+		}
+
+		WHEN("Text is reset") {
+			text += "test";
+			text.Reset();
+
+			THEN("Memory is released") {
+				REQUIRE(text.GetCount() == 0);
+				REQUIRE(text.GetReserved() == 0);
+				REQUIRE(text.GetRaw() == nullptr);
+				REQUIRE(text.GetType() == MetaData::Of<char8_t>());
+				REQUIRE_FALSE(text.HasAuthority());
+				REQUIRE(text != u8"test");
+				REQUIRE(text != "test");
+			}
+		}
 	}
 
-	GIVEN("A filled utf8 text container") {
-		#if LANGULUS_FEATURE(MANAGED_MEMORY)
-			Allocator::CollectGarbage();
-		#endif
+	GIVEN("Full text container") {
+		#include "CollectGarbage.inl"
 
 		Text text {"test1"};
 		auto memory = text.GetRaw();
-
-		REQUIRE(text.GetCount() == 5);
-		REQUIRE(text.GetReserved() >= 5);
-		REQUIRE(text.Is<char8_t>());
-		REQUIRE(text.GetRaw());
-		REQUIRE(text.HasAuthority());
-		REQUIRE(text == "test1");
-		REQUIRE(text[0] == 't');
-		REQUIRE(text[1] == 'e');
-		REQUIRE(text[2] == 's');
-		REQUIRE(text[3] == 't');
-		REQUIRE(text[4] == '1');
 
 		WHEN("Add more text") {
 			text += "test2";
@@ -70,30 +316,6 @@ SCENARIO("Text manipulation", "[text]") {
 				REQUIRE(text.Is<char8_t>());
 			}
 		}
-
-		/*WHEN("We select parts of text") {
-			auto selection = text.Select("st");
-			THEN("Nothing really changes, but the selection must be valid") {
-				REQUIRE(selection[0] == 's');
-				REQUIRE(selection[1] == 't');
-				REQUIRE(selection.GetText().GetRaw() == text.GetRaw());
-				REQUIRE(selection.GetEnd() == 4);
-				REQUIRE(selection.GetStart() == 2);
-			}
-		}
-
-		WHEN("The size is reduced by removing elements") {
-			text.Select("st").Delete();
-			THEN("The size changes but not capacity") {
-				REQUIRE(text[0] == 't');
-				REQUIRE(text[1] == 'e');
-				REQUIRE(text[2] == 's');
-				REQUIRE(text.GetCount() == 3);
-				REQUIRE(text.GetReserved() >= 5);
-				REQUIRE(text.GetBytes() == memory);
-				REQUIRE(true == text.CheckJurisdiction());
-			}
-		}*/
 
 		WHEN("More capacity is reserved") {
 			text.Allocate(20);
@@ -197,5 +419,43 @@ SCENARIO("Text manipulation", "[text]") {
 				REQUIRE(text != "Tests");
 			}
 		}
+	}
+}
+
+TEMPLATE_TEST_CASE("Unsigned number stringification", "[text]", uint8_t, uint16_t, uint32_t, uint64_t) {
+	Text* text;
+
+	WHEN("Constructed with a number") {
+		text = new Text{ TestType{66} };
+
+		THEN("The capacity and size change") {
+			REQUIRE((*text).GetCount() == 2);
+			REQUIRE((*text).GetReserved() >= 2);
+			REQUIRE((*text).Is<char8_t>());
+			REQUIRE((*text).GetRaw());
+			REQUIRE((*text).HasAuthority());
+			REQUIRE((*text) == "66");
+		}
+
+		delete text;
+	}
+}
+
+TEMPLATE_TEST_CASE("Signed number stringification", "[text]", int8_t, int16_t, int32_t, int64_t) {
+	Text* text;
+
+	WHEN("Constructed with a number") {
+		text = new Text{ TestType{-66} };
+
+		THEN("The capacity and size change") {
+			REQUIRE((*text).GetCount() == 3);
+			REQUIRE((*text).GetReserved() >= 3);
+			REQUIRE((*text).Is<char8_t>());
+			REQUIRE((*text).GetRaw());
+			REQUIRE((*text).HasAuthority());
+			REQUIRE((*text) == "-66");
+		}
+
+		delete text;
 	}
 }

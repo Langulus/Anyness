@@ -10,9 +10,7 @@
 
 SCENARIO("Iterating containers", "[iteration]") {
 	GIVEN("Templated Any with some POD items") {
-		#if LANGULUS_FEATURE(MANAGED_MEMORY)
-			Allocator::CollectGarbage();
-		#endif
+		#include "CollectGarbage.inl"
 
 		TAny<int> dense;
 		dense << int(1) << int(2) << int(3) << int(4) << int(5);
@@ -376,9 +374,7 @@ SCENARIO("Iterating containers", "[iteration]") {
 	}*/
 
 	GIVEN("Any") {
-		#if LANGULUS_FEATURE(MANAGED_MEMORY)
-			Allocator::CollectGarbage();
-		#endif
+		#include "CollectGarbage.inl"
 
 		constexpr float df = 5.55f;
 		constexpr float sf = 6.55f;
@@ -491,9 +487,7 @@ SCENARIO("Iterating containers", "[iteration]") {
 	}
 
 	GIVEN("A universal Any with some deep items") {
-		#if LANGULUS_FEATURE(MANAGED_MEMORY)
-			Allocator::CollectGarbage();
-		#endif
+		#include "CollectGarbage.inl"
 
 		Any pack;
 		Any subpack1;

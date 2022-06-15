@@ -476,9 +476,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 		Allocation* entry = nullptr;
 
 		WHEN("Memory is allocated on the heap") {
-			#if LANGULUS_FEATURE(MANAGED_MEMORY)
-				Allocator::CollectGarbage();
-			#endif
+			#include "CollectGarbage.inl"
 
 			entry = Allocator::Allocate(512);
 
@@ -506,9 +504,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 			Allocator::Deallocate(entry);
 
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: 
-				#if LANGULUS_FEATURE(MANAGED_MEMORY)
-					Allocator::CollectGarbage();
-				#endif
+				#include "CollectGarbage.inl"
 
 				BENCHMARK_ADVANCED("Allocator::Allocate(5)") (Catch::Benchmark::Chronometer meter) {
 					std::vector<Allocation*> storage(meter.runs());
@@ -524,9 +520,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 					}
 				};
 
-				#if LANGULUS_FEATURE(MANAGED_MEMORY)
-					Allocator::CollectGarbage();
-				#endif
+				#include "CollectGarbage.inl"
 
 				BENCHMARK_ADVANCED("malloc(5)") (Catch::Benchmark::Chronometer meter) {
 					std::vector<void*> storage(meter.runs());
@@ -542,9 +536,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 					}
 				};
 
-				#if LANGULUS_FEATURE(MANAGED_MEMORY)
-					Allocator::CollectGarbage();
-				#endif
+				#include "CollectGarbage.inl"
 
 				BENCHMARK_ADVANCED("Allocator::Allocate(512)") (Catch::Benchmark::Chronometer meter) {
 					std::vector<Allocation*> storage(meter.runs());
@@ -560,9 +552,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 					}
 				};
 
-				#if LANGULUS_FEATURE(MANAGED_MEMORY)
-					Allocator::CollectGarbage();
-				#endif
+				#include "CollectGarbage.inl"
 
 				BENCHMARK_ADVANCED("malloc(512)") (Catch::Benchmark::Chronometer meter) {
 					std::vector<void*> storage(meter.runs());
@@ -578,9 +568,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 					}
 				};
 
-				#if LANGULUS_FEATURE(MANAGED_MEMORY)
-					Allocator::CollectGarbage();
-				#endif
+				#include "CollectGarbage.inl"
 
 				BENCHMARK_ADVANCED("Allocator::Allocate(Pool::DefaultPoolSize)") (Catch::Benchmark::Chronometer meter) {
 					std::vector<Allocation*> storage(meter.runs());
@@ -596,9 +584,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 					}
 				};
 
-				#if LANGULUS_FEATURE(MANAGED_MEMORY)
-					Allocator::CollectGarbage();
-				#endif
+				#include "CollectGarbage.inl"
 
 				BENCHMARK_ADVANCED("malloc(Pool::DefaultPoolSize)") (Catch::Benchmark::Chronometer meter) {
 					std::vector<void*> storage(meter.runs());
@@ -617,9 +603,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 		}
 
 		WHEN("Referenced once") {
-			#if LANGULUS_FEATURE(MANAGED_MEMORY)
-				Allocator::CollectGarbage();
-			#endif
+			#include "CollectGarbage.inl"
 
 			entry = Allocator::Allocate(512);
 			REQUIRE(entry);
@@ -638,9 +622,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 		}
 
 		WHEN("Referenced multiple times") {
-			#if LANGULUS_FEATURE(MANAGED_MEMORY)
-				Allocator::CollectGarbage();
-			#endif
+			#include "CollectGarbage.inl"
 
 			entry = Allocator::Allocate(512);
 			REQUIRE(entry);
@@ -659,9 +641,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 		}
 
 		WHEN("Dereferenced once without deletion") {
-			#if LANGULUS_FEATURE(MANAGED_MEMORY)
-				Allocator::CollectGarbage();
-			#endif
+			#include "CollectGarbage.inl"
 
 			entry = Allocator::Allocate(512);
 			REQUIRE(entry);
@@ -681,9 +661,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 		}
 
 		WHEN("Dereferenced multiple times without deletion") {
-			#if LANGULUS_FEATURE(MANAGED_MEMORY)
-				Allocator::CollectGarbage();
-			#endif
+			#include "CollectGarbage.inl"
 
 			entry = Allocator::Allocate(512);
 			REQUIRE(entry);
@@ -703,9 +681,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 		}
 
 		WHEN("Dereferenced once with deletion") {
-			#if LANGULUS_FEATURE(MANAGED_MEMORY)
-				Allocator::CollectGarbage();
-			#endif
+			#include "CollectGarbage.inl"
 
 			entry = Allocator::Allocate(512);
 			REQUIRE(entry);
@@ -721,9 +697,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 		}
 
 		WHEN("Dereferenced multiple times with deletion") {
-			#if LANGULUS_FEATURE(MANAGED_MEMORY)
-				Allocator::CollectGarbage();
-			#endif
+			#include "CollectGarbage.inl"
 
 			entry = Allocator::Allocate(512);
 			REQUIRE(entry);

@@ -119,15 +119,9 @@ namespace Langulus::Anyness
 		: Any {other.template Forward<Any>()} { }
 	
 	/// Construct by copying/referencing value of non-block type					
-	///	@param initial - the dense value to shallow-copy							
-	TEMPLATE()
-	TAny<T>::TAny(const T& other) requires CT::CustomData<T>
-		: Any {other} { }
-
-	/// Construct by copying/referencing value of non-block type					
 	///	@param other - the dense value to shallow-copy								
 	TEMPLATE()
-	TAny<T>::TAny(T& other) requires CT::CustomData<T>
+	TAny<T>::TAny(const T& other) requires CT::CustomData<T>
 		: Any {other} { }
 
 	/// Construct by moving a dense value of non-block type							
@@ -136,36 +130,49 @@ namespace Langulus::Anyness
 		TAny<T>::TAny(T&& initial) requires CT::CustomData<T>
 		: Any {Forward<T>(initial)} { }
 
-	/// Construct manually from an array													
-	///	@param raw - raw memory to reference											
+	/// Construct manually by referencing memory if owned								
+	/// If you want to avoid copying, use the Disowned alternative					
+	///	@param raw - raw memory to reference, or clone if not owned				
 	///	@param count - number of items inside 'raw'									
 	TEMPLATE()
 	TAny<T>::TAny(const T* raw, const Count& count)
-		: Any {
-			Block {
+		: Any {Block {
 				DataState::Constrained, MetaData::Of<T>(), count, 
-				reinterpret_cast<const Byte*>(raw)
-			}
-		} {
-		// Data is not owned by us, it may be on the stack						
-		// We should monopolize the memory to avoid segfaults, in the		
-		// case of the byte container being initialized with temporary		
-		// data on the stack																
+				reinterpret_cast<const Byte*>(raw)}} {
 		TakeAuthority();
 	}
 
+	/// Construct manually by wrapping an array											
+	///	@param raw - raw memory to interface without referencing and copying	
+	///	@param count - number of items inside 'raw'									
+	TEMPLATE()
+	TAny<T>::TAny(Disowned<T*>&& raw, const Count& count)
+		: Any {Block {
+				DataState::Constrained, MetaData::Of<T>(), count, 
+				reinterpret_cast<const Byte*>(raw.mValue), nullptr}} {}
+
+	/// Shallow-copy assignment																
+	///	@param other - the container to shallow-copy									
+	///	@return a reference to this container											
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator = (const TAny<T>& other) {
-		// First we reference, so that we don't lose the memory, in			
-		// the rare case where memory is same in both containers				
-		other.Keep();
+		if (this == &other)
+			return *this;
+
 		Free();
+		other.Keep();
 		CopyProperties<true>(other);
 		return *this;
 	}
 
+	/// Move assignment																			
+	///	@param other - the container to move											
+	///	@return a reference to this container											
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator = (TAny<T>&& other) noexcept {
+		if (this == &other)
+			return *this;
+
 		Free();
 		CopyProperties<true>(other);
 		other.ResetMemory();
@@ -1461,7 +1468,7 @@ namespace Langulus::Anyness
 		else LANGULUS_ASSERT("Can't concatenate - RHS is not convertible to WRAPPER");
 	}
 	
-	/// Compare with another TAny																
+	/// Compare with another TAny, order matters											
 	///	@param other - container to compare with										
 	///	@return true if both containers match completely							
 	TEMPLATE()
@@ -1479,6 +1486,25 @@ namespace Langulus::Anyness
 		}
 
 		return (t1 - GetRaw()) == mCount;
+	}
+
+	/// Compare with another container of the same type								
+	///	@param other - the container to compare with									
+	///	@return true if both containers are identical								
+	TEMPLATE()
+	bool TAny<T>::operator == (const TAny& other) const noexcept {
+		return Compare(other);
+	}
+
+	/// Compare with block of unknown type													
+	///	@param other - the block to compare with										
+	///	@return true if both containers are identical								
+	TEMPLATE()
+	bool TAny<T>::operator == (const Any& other) const noexcept {
+		static_assert(sizeof(Block) == sizeof(TAny), "Binary incompatiblity");
+		if (!Is(other.GetType()))
+			return false;
+		return Compare(reinterpret_cast<const TAny&>(other));
 	}
 
 	/// Compare loosely with another TAny, ignoring case								

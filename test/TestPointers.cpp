@@ -18,9 +18,7 @@ SCENARIO("Shared pointer manipulation", "[TPointer]") {
 		REQUIRE(pointer == pointer2);
 
 		WHEN("Create an instance") {
-			#if LANGULUS_FEATURE(MANAGED_MEMORY)
-				Allocator::CollectGarbage();
-			#endif
+			#include "CollectGarbage.inl"
 
 			pointer = Ptr<int>::Create(5);
 
@@ -32,9 +30,7 @@ SCENARIO("Shared pointer manipulation", "[TPointer]") {
 		}
 
 		WHEN("Create and copy an instance") {
-			#if LANGULUS_FEATURE(MANAGED_MEMORY)
-				Allocator::CollectGarbage();
-			#endif
+			#include "CollectGarbage.inl"
 
 			pointer = Ptr<int>::Create(5);
 			pointer2 = pointer;
@@ -51,9 +47,7 @@ SCENARIO("Shared pointer manipulation", "[TPointer]") {
 		}
 
 		WHEN("Create and move an instance") {
-			#if LANGULUS_FEATURE(MANAGED_MEMORY)
-				Allocator::CollectGarbage();
-			#endif
+			#include "CollectGarbage.inl"
 
 			pointer = Ptr<int>::Create(5);
 			pointer2 = Move(pointer);
@@ -69,9 +63,7 @@ SCENARIO("Shared pointer manipulation", "[TPointer]") {
 		}
 
 		WHEN("Overwrite an instance") {
-			#if LANGULUS_FEATURE(MANAGED_MEMORY)
-				Allocator::CollectGarbage();
-			#endif
+			#include "CollectGarbage.inl"
 
 			pointer = Ptr<int>::Create(5);
 			auto backup = pointer.Get();
@@ -97,9 +89,7 @@ SCENARIO("Shared pointer manipulation", "[TPointer]") {
 		Ptr<Any> pointer;
 
 		WHEN("Given an xvalue pointer created via `new` statement") {
-			#if LANGULUS_FEATURE(MANAGED_MEMORY)
-				Allocator::CollectGarbage();
-			#endif
+			#include "CollectGarbage.inl"
 
 			auto raw = new Any {3};
 			const auto rawBackUp = raw;
@@ -117,9 +107,7 @@ SCENARIO("Shared pointer manipulation", "[TPointer]") {
 		}
 
 		WHEN("Given an immediate xvalue pointer created via `new` statement - a very bad practice!") {
-			#if LANGULUS_FEATURE(MANAGED_MEMORY)
-				Allocator::CollectGarbage();
-			#endif
+			#include "CollectGarbage.inl"
 
 			pointer = new Any {3};
 
@@ -149,9 +137,7 @@ SCENARIO("Shared pointer manipulation", "[TPointer]") {
 		#endif
 
 		WHEN("Given an lvalue pointer") {
-			#if LANGULUS_FEATURE(MANAGED_MEMORY)
-				Allocator::CollectGarbage();
-			#endif
+			#include "CollectGarbage.inl"
 
 			const auto raw = new Any {4};
 			pointer = raw;

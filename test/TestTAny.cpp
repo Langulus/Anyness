@@ -12,9 +12,7 @@ using uint = unsigned int;
 
 SCENARIO("TAny", "[containers]") {
 	GIVEN("Dense TAny instance") {
-		#if LANGULUS_FEATURE(MANAGED_MEMORY)
-			Allocator::CollectGarbage();
-		#endif
+		#include "CollectGarbage.inl"
 
 		using T = TAny<int>;
 		using StdT = std::vector<int>;
@@ -69,11 +67,9 @@ SCENARIO("TAny", "[containers]") {
 				};
 
 				BENCHMARK_ADVANCED("std::vector::operator = (single trivial copy)") (Catch::Benchmark::Chronometer meter) {
-					std::vector<StdT> storage(meter.runs());
+					std::vector<Catch::Benchmark::storage_for<StdT>> storage(meter.runs());
 
-					meter.measure([&](int i) {
-						return storage[i] = {value};
-					});
+					meter.measure([&](int i) { return storage[i].construct(1, value); });
 				};
 			#endif
 		}
@@ -99,17 +95,16 @@ SCENARIO("TAny", "[containers]") {
 				};
 
 				BENCHMARK_ADVANCED("std::vector::operator = (single trivial move)") (Catch::Benchmark::Chronometer meter) {
-					std::vector<StdT> storage(meter.runs());
+					std::vector<Catch::Benchmark::storage_for<StdT>> storage(meter.runs());
 
-					meter.measure([&](int i) {
-						return storage[i] = {Move(value)};
-					});
+					meter.measure([&](int i) { return storage[i].construct(1, Move(value)); });
 				};
 			#endif
 		}
 
 		WHEN("Assigned POD value by copy") {
 			pack = value;
+
 			THEN("Various traits change") {
 				REQUIRE(pack.GetType() == meta);
 				REQUIRE(pack.Is<int>());
@@ -173,9 +168,7 @@ SCENARIO("TAny", "[containers]") {
 	}
 
 	GIVEN("Sparse TAny instance") {
-		#if LANGULUS_FEATURE(MANAGED_MEMORY)
-			Allocator::CollectGarbage();
-		#endif
+		#include "CollectGarbage.inl"
 
 		using T = TAny<int*>;
 		using StdT = std::vector<int*>;
@@ -339,9 +332,7 @@ SCENARIO("TAny", "[containers]") {
 	}
 	
 	GIVEN("TAny with some POD items") {
-		#if LANGULUS_FEATURE(MANAGED_MEMORY)
-			Allocator::CollectGarbage();
-		#endif
+		#include "CollectGarbage.inl"
 
 		// Arrays are dynamic to avoid constexprification
 		int* darray1 = nullptr;
@@ -706,9 +697,7 @@ SCENARIO("TAny", "[containers]") {
 	}
 
 	GIVEN("Two TAny with some POD items") {
-		#if LANGULUS_FEATURE(MANAGED_MEMORY)
-			Allocator::CollectGarbage();
-		#endif
+		#include "CollectGarbage.inl"
 
 		TAny<int> pack1;
 		TAny<int> pack2;

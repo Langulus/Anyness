@@ -27,31 +27,43 @@ namespace Langulus::Anyness
 	inline Text::Text(const char* text, const Count& count)
 		: TAny {reinterpret_cast<const char8_t*>(text), count} { }
 
+	/// Construct from a non-u8 string literal											
+	/// Data will be cloned if we don't have authority over the memory			
+	///	@tparam C - size of the literal													
+	///	@param text - text memory to reference											
 	template<Count C>
 	inline Text::Text(const char(&text)[C])
 		: TAny {reinterpret_cast<const char8_t*>(text), C - 1} { }
 
 	/// Construct manually from count-terminated UTF text								
 	/// Data will be cloned if we don't have authority over the memory			
+	///	@tparam T - type of the character in the array								
 	///	@param text - text memory to reference											
 	///	@param count - number of characters inside text								
 	template<CT::Dense T>
 	inline Text::Text(const T* text, const Count& count) requires CT::Character<T>
 		: TAny {text, count} { }
 
+	/// Construct manually from a c style array											
+	/// Data will be cloned if we don't have authority over the memory			
+	///	@tparam T - type of the character in the array								
+	///	@tparam C - size of the array														
+	///	@param text - the array																
 	template<CT::Dense T, Count C>
 	inline Text::Text(const T(&text)[C]) requires CT::Character<T>
 		: TAny {text, C - 1} { }
 
 	/// Construct from a single character													
 	/// Data will be cloned if we don't have authority over the memory			
+	///	@tparam T - type of the character in the array								
 	///	@param anyCharacter - the character to stringify							
 	template<CT::Dense T>
 	Text::Text(const T& anyCharacter) requires CT::Character<T>
 		: Text {&anyCharacter, 1} {}
 
 	/// Convert a number type to text														
-	///	@param from - the number to stringify											
+	///	@tparam T - number type to stringify											
+	///	@param number - the number to stringify										
 	template<CT::Dense T>
 	Text::Text(const T& number) requires CT::Number<T> {
 		if constexpr (CT::Real<T>) {

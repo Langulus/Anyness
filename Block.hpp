@@ -229,7 +229,7 @@ namespace Langulus::Anyness
 		NOD() bool IsInsertable() const noexcept;
 	
 		NOD() bool operator == (const Block&) const noexcept;
-		NOD() bool operator != (const Block&) const noexcept;
+		NOD() bool operator == (::std::nullptr_t) const noexcept;
 	
 		NOD() Byte* At(const Offset& = 0);
 		NOD() const Byte* At(const Offset& = 0) const;

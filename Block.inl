@@ -494,7 +494,7 @@ namespace Langulus::Anyness
 	/// Check if block contains either created elements, or relevant state		
 	///	@returns true if this is not an empty stateless container				
 	constexpr bool Block::IsValid() const noexcept {
-		return mCount || GetUnconstrainedState() || mType;
+		return mCount || GetUnconstrainedState();
 	}
 
 	/// Check if block contains no elements and no relevant state					
@@ -743,13 +743,17 @@ namespace Langulus::Anyness
 		return mState - DataState::Constrained;
 	}
 
-	/// Compare memory blocks. This is a slow RTTI check								
+	/// Compare memory blocks - this is a slow runtime compare						
+	///	@param other - the block to compare against									
+	///	@return true if block's elements all match and are in same order		
 	inline bool Block::operator == (const Block& other) const noexcept {
 		return Compare(other);
 	}
 
-	inline bool Block::operator != (const Block& other) const noexcept {
-		return !(*this == other);
+	/// Check if memory block is not allocated											
+	///	@return true if block is valid													
+	inline bool Block::operator == (::std::nullptr_t) const noexcept {
+		return !IsAllocated();
 	}
 
 	/// Get the internal byte array with a given offset								

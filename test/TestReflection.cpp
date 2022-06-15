@@ -9,9 +9,7 @@
 #include <catch2/catch.hpp>
 
 TEMPLATE_TEST_CASE("Unsigned integer RTTI interpretation", "[metadata]", uint8_t, uint16_t, uint32_t, uint64_t) {
-	#if LANGULUS_FEATURE(MANAGED_MEMORY)
-		Allocator::CollectGarbage();
-	#endif
+	#include "CollectGarbage.inl"
 
 	GIVEN("An unsigned integer type") {
 		auto meta = MetaData::Of<TestType>();
@@ -50,9 +48,7 @@ TEMPLATE_TEST_CASE("Unsigned integer RTTI interpretation", "[metadata]", uint8_t
 }
 
 TEMPLATE_TEST_CASE("Signed integer RTTI interpretation", "[metadata]", int8_t, int16_t, int32_t, int64_t) {
-	#if LANGULUS_FEATURE(MANAGED_MEMORY)
-		Allocator::CollectGarbage();
-	#endif
+	#include "CollectGarbage.inl"
 
 	GIVEN("A signed integer type") {
 		auto meta = MetaData::Of<TestType>();
@@ -91,9 +87,7 @@ TEMPLATE_TEST_CASE("Signed integer RTTI interpretation", "[metadata]", int8_t, i
 }
 
 TEMPLATE_TEST_CASE("Real number RTTI interpretation", "[metadata]", float, double) {
-	#if LANGULUS_FEATURE(MANAGED_MEMORY)
-		Allocator::CollectGarbage();
-	#endif
+	#include "CollectGarbage.inl"
 
 	GIVEN("A real number type") {
 		auto meta = MetaData::Of<TestType>();

@@ -41,8 +41,9 @@ namespace Langulus::Anyness
 
 		TAny(T&&) requires CT::CustomData<T>;
 		TAny(const T&) requires CT::CustomData<T>;
-		TAny(T&) requires CT::CustomData<T>;
+
 		TAny(const T*, const Count&);
+		TAny(Disowned<T*>&&, const Count&);
 		
 		TAny& operator = (const TAny&);
 		TAny& operator = (TAny&&) noexcept;
@@ -125,6 +126,9 @@ namespace Langulus::Anyness
 		TAny& operator <<= (T&&);
 		TAny& operator >>= (const T&);
 		TAny& operator >>= (T&&);
+
+		bool operator == (const TAny&) const noexcept;
+		bool operator == (const Any&) const noexcept;
 
 		template<CT::Data ALT_T = T, bool REVERSE = false>
 		NOD() Index Find(const ALT_T&) const;

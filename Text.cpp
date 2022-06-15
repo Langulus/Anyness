@@ -84,20 +84,6 @@ namespace Langulus::Anyness
 		return *this;
 	}
 
-	/// Compare with another text container												
-	///	@param other - the text container to compare with							
-	///	@return true if both containers are identical								
-	bool Text::operator == (const Text& other) const noexcept {
-		return Compare(other);
-	}
-
-	/// Compare with another text container												
-	///	@param other - the text container to compare with							
-	///	@return true if both containers are not identical							
-	bool Text::operator != (const Text& other) const noexcept {
-		return !(*this == other);
-	}
-
 	#if LANGULUS_FEATURE(UTFCPP)
 		/// Widen the text container to the utf16											
 		///	@return the widened text container											
