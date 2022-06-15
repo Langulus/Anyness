@@ -30,6 +30,7 @@ SCENARIO("TAny", "[containers]") {
 			REQUIRE(pack.IsDense());
 			REQUIRE_FALSE(pack.IsSparse());
 			REQUIRE_FALSE(pack.IsAllocated());
+			REQUIRE(pack.GetUses() == 0);
 
 			#ifdef LANGULUS_STD_BENCHMARK
 				BENCHMARK_ADVANCED("Anyness::TAny::default construction") (Catch::Benchmark::Chronometer meter) {
@@ -56,6 +57,7 @@ SCENARIO("TAny", "[containers]") {
 				REQUIRE(pack.As<int>() == value);
 				REQUIRE_THROWS(pack.As<float>() == 0.0f);
 				REQUIRE(*pack.As<int*>() == value);
+				REQUIRE(pack.GetUses() == 1);
 				REQUIRE_THROWS(pack.As<float*>() == nullptr);
 			}
 
@@ -84,6 +86,7 @@ SCENARIO("TAny", "[containers]") {
 				REQUIRE(pack.As<int>() == value);
 				REQUIRE_THROWS(pack.As<float>() == 0.0f);
 				REQUIRE(*pack.As<int*>() == value);
+				REQUIRE(pack.GetUses() == 1);
 				REQUIRE_THROWS(pack.As<float*>() == nullptr);
 			}
 
@@ -112,6 +115,7 @@ SCENARIO("TAny", "[containers]") {
 				REQUIRE(pack.As<int>() == value);
 				REQUIRE_THROWS(pack.As<float>() == 0.0f);
 				REQUIRE(*pack.As<int*>() == value);
+				REQUIRE(pack.GetUses() == 1);
 				REQUIRE_THROWS(pack.As<float*>() == nullptr);
 			}
 
@@ -144,6 +148,7 @@ SCENARIO("TAny", "[containers]") {
 				REQUIRE(pack.As<int>() == value);
 				REQUIRE_THROWS(pack.As<float>() == float(value));
 				REQUIRE(*pack.As<int*>() == value);
+				REQUIRE(pack.GetUses() == 1);
 				REQUIRE_THROWS(pack.As<float*>() == nullptr);
 			}
 
@@ -164,6 +169,37 @@ SCENARIO("TAny", "[containers]") {
 					});
 				};
 			#endif
+		}
+
+		WHEN("Assigned empty self") {
+			pack = pack;
+
+			THEN("Various traits change") {
+				REQUIRE(pack.GetType()->Is<int>());
+				REQUIRE(pack.IsTypeConstrained());
+				REQUIRE(pack.GetRaw() == nullptr);
+				REQUIRE(pack.IsEmpty());
+				REQUIRE(pack.IsDense());
+				REQUIRE_FALSE(pack.IsSparse());
+				REQUIRE_FALSE(pack.IsAllocated());
+				REQUIRE(pack.GetUses() == 0);
+			}
+		}
+
+		WHEN("Assigned full self") {
+			pack = value;
+			pack = pack;
+
+			THEN("Various traits change") {
+				REQUIRE(pack.GetType() == meta);
+				REQUIRE(pack.Is<int>());
+				REQUIRE(pack.GetRaw() != nullptr);
+				REQUIRE(pack.As<int>() == value);
+				REQUIRE_THROWS(pack.As<float>() == float(value));
+				REQUIRE(*pack.As<int*>() == value);
+				REQUIRE(pack.GetUses() == 1);
+				REQUIRE_THROWS(pack.As<float*>() == nullptr);
+			}
 		}
 	}
 

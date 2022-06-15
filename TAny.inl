@@ -180,27 +180,99 @@ namespace Langulus::Anyness
 		return *this;
 	}
 
-	/// Assign by shallow-copying something mutable										
+	/// Shallow-copy runtime container														
+	/// This is a bit slower, because checks type compatibility at runtime		
+	///	@param other - the container to shallow-copy									
+	///	@return a reference to this container											
+	TEMPLATE()
+	TAny<T>& TAny<T>::operator = (const Any& other) {
+		if (static_cast<Any*>(this) == &other)
+			return *this;
+
+		if (!CastsToMeta(other.mType)) {
+			Throw<Except::Copy>(Logger::Error()
+				<< "Bad shallow-copy-assignment for TAny: from "
+				<< GetToken() << " to " << other.GetToken());
+		}
+
+		Free();
+		other.Keep();
+		ResetState();
+		CopyProperties<false>(other);
+	}
+
+	/// Move another runtime container in this one										
+	/// This is a bit slower, because checks type compatibility at runtime		
+	///	@param other - the container to move											
+	///	@return a reference to this container											
+	TEMPLATE()
+	TAny<T>& TAny<T>::operator = (Any&& other) noexcept {
+		if (static_cast<Any*>(this) == &other)
+			return *this;
+
+		if (!CastsToMeta(other.mType)) {
+			Throw<Except::Copy>(Logger::Error()
+				<< "Bad move-assignment for TAny: from "
+				<< GetToken() << " to " << other.GetToken());
+		}
+
+		Free();
+		ResetState();
+		CopyProperties<false>(other);
+		other.ResetMemory();
+		other.ResetState();
+	}
+
+	/// Shallow-copy Block																		
+	/// This is a bit slower, because checks type compatibility at runtime		
+	///	@param other - the container to shallow-copy									
+	///	@return a reference to this container											
+	TEMPLATE()
+	TAny<T>& TAny<T>::operator = (const Block& other) {
+		if (static_cast<Block*>(this) == &other)
+			return *this;
+
+		if (!CastsToMeta(other.mType)) {
+			Throw<Except::Copy>(Logger::Error()
+				<< "Bad shallow-copy-assignment for TAny: from "
+				<< GetToken() << " to " << other.GetToken());
+		}
+
+		Free();
+		other.Keep();
+		ResetState();
+		CopyProperties<false>(other);
+	}
+
+	/// Move another runtime container in this one										
+	/// This is a bit slower, because checks type compatibility at runtime		
+	///	@attention other is never reset													
+	///	@param other - the container to move											
+	///	@return a reference to this container											
+	TEMPLATE()
+	TAny<T>& TAny<T>::operator = (Block&& other) noexcept {
+		if (static_cast<Block*>(this) == &other)
+			return *this;
+
+		if (!CastsToMeta(other.mType)) {
+			Throw<Except::Copy>(Logger::Error()
+				<< "Bad move-assignment for TAny: from "
+				<< GetToken() << " to " << other.GetToken());
+		}
+
+		Free();
+		ResetState();
+		CopyProperties<false>(other);
+		other.ResetMemory();
+		other.ResetState();
+	}
+
+	/// Assign by shallow-copying an element												
 	///	@param other - the value to copy													
 	///	@return a reference to this container											
 	TEMPLATE()
-	TAny<T>& TAny<T>::operator = (const T& other) {
-		if constexpr (CT::Same<T, Any>) {
-			// Just reference the memory of the other Any						
-			if (!CastsToMeta(other.mType)) {
-				Throw<Except::Copy>(Logger::Error()
-					<< "Bad shallow-copy-assignment for TAny: from "
-					<< GetToken() << " to " << other.GetToken());
-			}
-	
-			// First we reference, so that we don't lose the memory, in		
-			// the rare case where memory is same in both containers			
-			other.Keep();
-			Free();
-			ResetState();
-			CopyProperties<false>(other);
-		}
-		else if constexpr (CT::Same<T, Block>) {
+	TAny<T>& TAny<T>::operator = (const T& other) requires CT::CustomData<T> {
+		if constexpr (CT::Same<T, Block>) {
 			// Always reference a Block, by wrapping it in an Any				
 			operator = (TAny<T> {other});			
 		}
@@ -221,11 +293,11 @@ namespace Langulus::Anyness
 		return *this;
 	}
 
-	/// Assign by moving something															
+	/// Assign by moving an element															
 	///	@param other - the value to move													
 	///	@return a reference to this container											
 	TEMPLATE()
-	TAny<T>& TAny<T>::operator = (T&& other) {
+	TAny<T>& TAny<T>::operator = (T&& other) requires CT::CustomData<T> {
 		if constexpr (CT::Same<T, Disowned<TAny>> || CT::Same<T, Abandoned<TAny>>) {
 			// Data is guaranteed to be compatible, replace it					
 			Free();
