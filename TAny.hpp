@@ -48,8 +48,14 @@ namespace Langulus::Anyness
 		TAny& operator = (const TAny&);
 		TAny& operator = (TAny&&) noexcept;
 
+		TAny& operator = (Disowned<TAny>&&) noexcept;
+		TAny& operator = (Abandoned<TAny>&&) noexcept;
+
 		TAny& operator = (const Any&);
 		TAny& operator = (Any&&) noexcept;
+
+		TAny& operator = (Disowned<Any>&&) noexcept;
+		TAny& operator = (Abandoned<Any>&&) noexcept;
 
 		TAny& operator = (const Block&);
 		TAny& operator = (Block&&) noexcept;
@@ -59,8 +65,6 @@ namespace Langulus::Anyness
 
 		TAny& operator = (Disowned<T>&&) requires CT::CustomData<T>;
 		TAny& operator = (Abandoned<T>&&) requires CT::CustomData<T>;
-		TAny& operator = (Disowned<const T*>&&) requires CT::CustomData<T>;
-		TAny& operator = (Abandoned<const T*>&&) requires CT::CustomData<T>;
 
 	public:
 		NOD() bool CastsToMeta(DMeta) const;

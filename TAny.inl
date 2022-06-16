@@ -244,27 +244,14 @@ namespace Langulus::Anyness
 		CopyProperties<false>(other);
 	}
 
-	/// Move another runtime container in this one										
+	/// Seems like a move, but is actually a shallow-copy of a Block				
 	/// This is a bit slower, because checks type compatibility at runtime		
 	///	@attention other is never reset													
-	///	@param other - the container to move											
+	///	@param other - the container to shallow-copy									
 	///	@return a reference to this container											
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator = (Block&& other) noexcept {
-		if (static_cast<Block*>(this) == &other)
-			return *this;
-
-		if (!CastsToMeta(other.mType)) {
-			Throw<Except::Copy>(Logger::Error()
-				<< "Bad move-assignment for TAny: from "
-				<< GetToken() << " to " << other.GetToken());
-		}
-
-		Free();
-		ResetState();
-		CopyProperties<false>(other);
-		other.ResetMemory();
-		other.ResetState();
+		return operator = (static_cast<const Block&>(other));
 	}
 
 	/// Assign by shallow-copying an element												
@@ -272,22 +259,16 @@ namespace Langulus::Anyness
 	///	@return a reference to this container											
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator = (const T& other) requires CT::CustomData<T> {
-		if constexpr (CT::Same<T, Block>) {
-			// Always reference a Block, by wrapping it in an Any				
-			operator = (TAny<T> {other});			
+		if (GetUses() == 1) {
+			// Just destroy and reuse memory											
+			CallKnownDestructors<T>();
+			mCount = 0;
+			InsertInner<T, true>(&other, 1, 0);
 		}
 		else {
-			if (GetUses() == 1) {
-				// Just destroy and reuse memory										
-				CallKnownDestructors<T>();
-				mCount = 0;
-				InsertInner<T, true>(&other, 1, 0);
-			}
-			else {
-				// Reset and allocate new memory										
-				Reset();
-				operator << (other);
-			}
+			// Reset and allocate new memory											
+			Reset();
+			operator << (other);
 		}
 
 		return *this;

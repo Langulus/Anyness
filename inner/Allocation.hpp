@@ -25,7 +25,10 @@ namespace Langulus::Anyness::Inner
 	template<AllocationPrimitive T>
 	T* AlignedAllocate(const Size& size) SAFETY_NOEXCEPT();
 
-	
+
+	NOD() constexpr Size FastLog2(Size) noexcept;
+	NOD() constexpr Size LSB(const Size&) noexcept;
+
 	///																								
 	///	Memory allocation																		
 	///																								

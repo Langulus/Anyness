@@ -5,9 +5,6 @@
 namespace Langulus::Anyness::Inner
 {
 
-	NOD() constexpr Size FastLog2(Size) noexcept;
-	NOD() constexpr Size LSB(const Size&) noexcept;
-
 
 	///																								
 	///	A MEMORY POOL 																			

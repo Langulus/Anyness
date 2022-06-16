@@ -408,8 +408,8 @@ namespace Langulus::Anyness
 
 	/// Reset container state																	
 	constexpr void Any::ResetState() noexcept {
-		mState = mState.mState & DataState::Typed;
-		mType = mState.mState == 0 ? nullptr : mType;
+		mState = mState.mState & (DataState::Typed | DataState::Sparse);
+		mType = mState.mState & DataState::Typed ? mType : nullptr;
 	}
 
 	/// Swap two container's contents														
