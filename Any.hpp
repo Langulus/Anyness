@@ -20,8 +20,8 @@ namespace Langulus::Anyness
 	/// and constant data blocks.																
 	///	For a faster statically-optimized equivalent of this, use TAny			
 	///	You can always ReinterpretAs a statically optimized equivalent for	
-	/// the cost of one runtime type check.												
-	/// (all Any variants are binary-compatible)											
+	/// the cost of one runtime type check, because all Any variants are			
+	/// binary-compatible.																		
 	///																								
 	class Any : public Block {
 		LANGULUS(DEEP) true;
@@ -33,16 +33,13 @@ namespace Langulus::Anyness
 		constexpr Any() noexcept = default;
 		Any(const Any&);
 		Any(Any&&) noexcept;
-		
+
+		Any(Disowned<Any>&&) noexcept;
+		Any(Abandoned<Any>&&) noexcept;
+
 		Any(const Block&);
 		Any(Block&&);
 		
-		Any(Disowned<Any>&&) noexcept;
-		Any(Abandoned<Any>&&) noexcept;		
-
-		Any(Disowned<Block>&&) noexcept;
-		Any(Abandoned<Block>&&) noexcept;
-
 		template<CT::CustomData T>
 		Any(const T&);
 		template<CT::CustomData T>
@@ -50,17 +47,35 @@ namespace Langulus::Anyness
 		template<CT::CustomData T>
 		Any(T&&);
 
+		template<CT::CustomData T>
+		Any(Disowned<T>&&) noexcept requires CT::Dense<T>;
+		template<CT::CustomData T>
+		Any(Abandoned<T>&&) noexcept requires CT::Dense<T>;
+
+		template<CT::CustomData T>
+		Any(Disowned<T>&&) requires CT::Sparse<T>;
+		template<CT::CustomData T>
+		Any(Abandoned<T>&&) requires CT::Sparse<T>;
+
 		~Any();
 	
 		Any& operator = (const Any&);
 		Any& operator = (Any&&);
 	
-		template<CT::Data T>
+		Any& operator = (Disowned<Any>&&);
+		Any& operator = (Abandoned<Any>&&);
+	
+		template<CT::CustomData T>
 		Any& operator = (const T&);
-		template<CT::Data T>
+		template<CT::CustomData T>
 		Any& operator = (T&);
-		template<CT::Data T>
+		template<CT::CustomData T>
 		Any& operator = (T&&);
+
+		template<CT::CustomData T>
+		Any& operator = (Disowned<T>&&) requires CT::Dense<T>;
+		template<CT::CustomData T>
+		Any& operator = (Abandoned<T>&&) requires CT::Dense<T>;
 
 	public:
 		NOD() static Any FromMeta(DMeta, const DataState& = {}) noexcept;
@@ -85,22 +100,30 @@ namespace Langulus::Anyness
 
 		template<CT::Data T>
 		Any& operator << (const T&);
-		template<CT::Decayed T>
+		template<CT::Data T>
+		Any& operator << (T&);
+		template<CT::Data T>
 		Any& operator << (T&&);
 	
 		template<CT::Data T>
 		Any& operator >> (const T&);
-		template<CT::Decayed T>
+		template<CT::Data T>
+		Any& operator >> (T&);
+		template<CT::Data T>
 		Any& operator >> (T&&);
 
 		template<CT::Data T>
 		Any& operator <<= (const T&);
-		template<CT::Decayed T>
+		template<CT::Data T>
+		Any& operator <<= (T&);
+		template<CT::Data T>
 		Any& operator <<= (T&&);
 
 		template<CT::Data T>
 		Any& operator >>= (const T&);
-		template<CT::Decayed T>
+		template<CT::Data T>
+		Any& operator >>= (T&);
+		template<CT::Data T>
 		Any& operator >>= (T&&);
 
 	protected:

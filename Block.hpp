@@ -390,16 +390,15 @@ namespace Langulus::Anyness
 		template<CT::Data T>
 		void Swap(Index, Index);
 	
-		template<CT::Data T, bool MUTABLE = true, CT::Data WRAPPER>
-		Count Emplace(T&&, const Index& = Index::Back) requires CT::NotAbandonedOrDisowned<T>;
-	
-		template<CT::Data T, bool MUTABLE = true, CT::Data WRAPPER>
+		template<CT::Data WRAPPER, bool KEEP, bool MUTABLE, CT::Data T>
 		Count Insert(const T*, Count = 1, const Index& = Index::Back) requires CT::NotAbandonedOrDisowned<T>;
+		template<CT::Data WRAPPER, bool KEEP, bool MUTABLE, CT::Data T>
+		Count Insert(T&&, const Index& = Index::Back) requires CT::NotAbandonedOrDisowned<T>;
 		Count InsertBlock(const Block&, const Index& = Index::Back);
 		Count InsertBlock(Block&&, const Index& = Index::Back);
 	
 		template<bool ALLOW_CONCAT = true, bool ALLOW_DEEPEN = true, CT::Data T, CT::Deep WRAPPER = Any>
-		Count SmartPush(T&, DataState = {}, Index = Index::Back);
+		Count SmartPush(const T&, DataState = {}, Index = Index::Back);
 		template<bool ALLOW_CONCAT = true, bool ALLOW_DEEPEN = true, CT::Data T, CT::Deep WRAPPER = Any>
 		Count SmartPush(T&&, DataState = {}, Index = Index::Back);
 	
@@ -408,6 +407,8 @@ namespace Langulus::Anyness
 	
 		template<CT::Data T, bool MUTABLE = true, CT::Data WRAPPER>
 		Count Merge(const T*, Count = 1, const Index& = Index::Back);
+		template<CT::Data T, bool MUTABLE = true, CT::Data WRAPPER>
+		Count Merge(T&&, const Index& = Index::Back);
 		Count MergeBlock(const Block&, const Index& = Index::Back);
 	
 		template<CT::Data T>
@@ -462,10 +463,10 @@ namespace Langulus::Anyness
 		void AllocateInner(const Count&);
 		auto RequestSize(const Count&) const noexcept;
 	
-		template<CT::Data T, bool KEEP>
-		void EmplaceInner(T&&, const Offset&) requires CT::NotAbandonedOrDisowned<T>;
-		template<CT::Data T, bool KEEP>
+		template<bool KEEP, CT::Data T>
 		void InsertInner(const T*, const Count&, const Offset&) requires CT::NotAbandonedOrDisowned<T>;
+		template<bool KEEP, CT::Data T>
+		void InsertInner(T&&, const Offset&) requires CT::NotAbandonedOrDisowned<T>;
 
 		static void CopyMemory(const void*, void*, const Size&) noexcept;
 		static void MoveMemory(const void*, void*, const Size&) noexcept;

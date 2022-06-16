@@ -1060,61 +1060,25 @@ namespace Langulus::Anyness
 		);
 	}
 
-	/// Emplace anything inside container													
-	///	@attention when emplacing pointers, their memory is referenced,		
-	///				  and the pointer is not cleared, so you can free it later	
-	///	@tparam T - the type to insert (deducible)									
-	///	@param item - item to move															
-	///	@param index - use uiFront or uiBack for pushing to ends					
-	///	@return 1 if item was emplaced													
-	template<CT::Data T, bool MUTABLE, CT::Data WRAPPER>
-	Count Block::Emplace(T&& item, const Index& index) requires CT::NotAbandonedOrDisowned<T> {
-		static_assert(CT::Mutable<T>, "Can't emplace into immutable container");
-		const auto starter = ConstrainMore<T>(index).GetOffset();
-
-		if constexpr (MUTABLE) {
-			// Type may mutate															
-			if (Mutate<T, WRAPPER>())
-				return Emplace<Any, false, WRAPPER>(Any {Forward<T>(item)}, index);
-		}
-
-		// Allocate																			
-		Allocate<false>(mCount + 1);
-
-		// Move memory if required														
-		if (starter < mCount) {
-			SAFETY(if (GetUses() > 1)
-				Throw<Except::Reference>(Logger::Error()
-					<< "Moving elements that are used from multiple places"));
-
-			CropInner(starter + 1, 0, mCount - starter)
-				.template CallKnownMoveConstructors<T>(
-					mCount - starter,
-					CropInner(starter, mCount - starter, mCount - starter)
-				);
-		}
-
-		EmplaceInner<T, true>(Forward<T>(item), starter);
-		return 1;
-	}
-	
 	/// Insert anything compatible to container											
 	///	@tparam T - the type to insert (deducible)									
 	///	@param items - items to push														
 	///	@param count - number of items inside											
 	///	@param index - use uiFront or uiBack for pushing to ends					
 	///	@return number of inserted elements												
-	template<CT::Data T, bool MUTABLE, CT::Data WRAPPER>
+	template<CT::Data WRAPPER, bool KEEP, bool MUTABLE, CT::Data T>
 	Count Block::Insert(const T* items, const Count count, const Index& index) requires CT::NotAbandonedOrDisowned<T> {
-		static_assert(CT::Mutable<T>, "Can't insert into immutable container");
+		static_assert(CT::Mutable<T>, "Can't copy-insert into immutable container");
 		const auto starter = ConstrainMore<T>(index).GetOffset();
 
 		if constexpr (MUTABLE) {
 			// Type may mutate															
 			if (Mutate<T, WRAPPER>()) {
 				WRAPPER wrapper;
-				wrapper.template Insert<T, false, WRAPPER>(items, count);
-				return Emplace<WRAPPER, false, WRAPPER>(Move(wrapper), index);
+				wrapper.template Insert<WRAPPER, KEEP, false>(items, count);
+				const auto inserted = Insert<WRAPPER, false, false>(Move(wrapper), index);
+				wrapper.mEntry = nullptr;
+				return inserted;
 			}
 		}
 
@@ -1134,20 +1098,63 @@ namespace Langulus::Anyness
 				);
 		}
 
-		InsertInner<T, true>(items, count, starter);
+		InsertInner<KEEP>(items, count, starter);
 		return count;
+	}
+
+	/// Emplace anything inside container													
+	///	@attention when emplacing pointers, their memory is referenced,		
+	///				  and the pointer is not cleared, so you can free it later	
+	///	@tparam T - the type to insert (deducible)									
+	///	@param item - item to move															
+	///	@param index - use uiFront or uiBack for pushing to ends					
+	///	@return 1 if item was emplaced													
+	template<CT::Data WRAPPER, bool KEEP, bool MUTABLE, CT::Data T>
+	Count Block::Insert(T&& item, const Index& index) requires CT::NotAbandonedOrDisowned<T> {
+		static_assert(CT::Mutable<T>, "Can't move-insert into immutable container");
+		const auto starter = ConstrainMore<T>(index).GetOffset();
+
+		if constexpr (MUTABLE) {
+			// Type may mutate															
+			if (Mutate<T, WRAPPER>()) {
+				WRAPPER wrapper;
+				wrapper.template Insert<WRAPPER, KEEP, false>(Move(item));
+				const auto inserted = Insert<WRAPPER, false, false>(Move(wrapper), index);
+				wrapper.mEntry = nullptr;
+				return inserted;
+			}
+		}
+
+		// Allocate																			
+		Allocate<false>(mCount + 1);
+
+		// Move memory if required														
+		if (starter < mCount) {
+			SAFETY(if (GetUses() > 1)
+				Throw<Except::Reference>(Logger::Error()
+					<< "Moving elements that are used from multiple places"));
+
+			CropInner(starter + 1, 0, mCount - starter)
+				.template CallKnownMoveConstructors<T>(
+					mCount - starter,
+					CropInner(starter, mCount - starter, mCount - starter)
+				);
+		}
+
+		InsertInner<KEEP>(Forward<T>(item), starter);
+		return 1;
 	}
 
 	/// Inner insertion function																
 	///	@attention this is an inner function and should be used with caution	
 	///	@attention relies that the required free space has been prepared		
 	///				  at the appropriate place												
-	///	@tparam T - the type to insert (deducible)									
 	///	@tparam KEEP - whether or not to reference the new contents				
+	///	@tparam T - the type to insert (deducible)									
 	///	@param items - items to push														
 	///	@param count - number of 'items'													
 	///	@param starter - the offset at which to insert								
-	template<CT::Data T, bool KEEP>
+	template<bool KEEP, CT::Data T>
 	void Block::InsertInner(const T* items, const Count& count, const Offset& starter) requires CT::NotAbandonedOrDisowned<T> {
 		static_assert(CT::Mutable<T>, "Can't insert into immutable container");
 
@@ -1210,12 +1217,12 @@ namespace Langulus::Anyness
 
 	/// Inner emplacement function															
 	///	@attention this is an inner function and should be used with caution	
-	///	@tparam T - the type to insert (deducible)									
 	///	@tparam KEEP - whether or not to reference the new contents				
+	///	@tparam T - the type to insert (deducible)									
 	///	@param item - item to push															
 	///	@param starter - the offset at which to insert								
-	template<CT::Data T, bool KEEP>
-	void Block::EmplaceInner(T&& item, const Offset& starter) requires CT::NotAbandonedOrDisowned<T> {
+	template<bool KEEP, CT::Data T>
+	void Block::InsertInner(T&& item, const Offset& starter) requires CT::NotAbandonedOrDisowned<T> {
 		static_assert(CT::Mutable<T>, "Can't emplace into immutable container");
 
 		// Insert new data																
@@ -1397,7 +1404,7 @@ namespace Langulus::Anyness
 		const auto itemsEnd = items + count;
 		while (items != itemsEnd) {
 			if (!Find<T>(*items))
-				added += Insert<T, MUTABLE, WRAPPER>(items, 1, idx);
+				added += Insert<WRAPPER, true, MUTABLE>(items, 1, idx);
 			++items;
 		}
 
@@ -1535,7 +1542,7 @@ namespace Langulus::Anyness
 	///	@param index - the index at which to insert (if needed)					
 	///	@return the number of pushed items (zero if unsuccessful)				
 	template<bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data T, CT::Deep WRAPPER>
-	Count Block::SmartPush(T& value, DataState state, Index index) {
+	Count Block::SmartPush(const T& value, DataState state, Index index) {
 		// Wrap the value, but don't reference anything yet					
 		auto pack = Block::From(value);
 		
@@ -1590,7 +1597,7 @@ namespace Langulus::Anyness
 		// multiple items	in this container.										
 		if (orCompliant && IsDeep()) {
 			SetState(mState + state);
-			return Emplace<WRAPPER, false, WRAPPER>(pack, index);
+			return Insert<WRAPPER, false, false>(WRAPPER {pack}, index);
 		}
 
 		// Finally, if allowed, force make the container deep in order to	
@@ -1599,7 +1606,7 @@ namespace Langulus::Anyness
 			if (!IsTypeConstrained()) {
 				Deepen<WRAPPER>();
 				SetState(mState + state);
-				return Emplace<WRAPPER, false, WRAPPER>(Move(pack), index);
+				return Insert<WRAPPER, false, false>(WRAPPER {pack}, index);
 			}
 		}
 
@@ -1672,7 +1679,7 @@ namespace Langulus::Anyness
 		// multiple items	in this container.										
 		if (orCompliant && IsDeep()) {
 			SetState(mState + state);
-			return Emplace<WRAPPER, false, WRAPPER>(pack, index);
+			return Insert<WRAPPER, false, false>(WRAPPER {pack}, index);
 		}
 
 		// Finally, if allowed, force make the container deep in order to	
@@ -1681,7 +1688,7 @@ namespace Langulus::Anyness
 			if (!IsTypeConstrained()) {
 				Deepen<WRAPPER>();
 				SetState(mState + state);
-				return Emplace<WRAPPER, false, WRAPPER>(Move(pack), index);
+				return Insert<WRAPPER, false, false>(WRAPPER {pack}, index);
 			}
 		}
 

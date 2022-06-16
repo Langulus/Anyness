@@ -740,7 +740,7 @@ namespace Langulus::Anyness
 		// Type may mutate																
 		if (Mutate<Any>(other.mType)) {
 			// Block was deepened, so emplace a container inside				
-			return Emplace<Any, false, Any>(Any {other}, idx);
+			return Insert<Any, true, false>(Any {other}, idx);
 		}
 
 		// Allocate the required memory - this will not initialize it		

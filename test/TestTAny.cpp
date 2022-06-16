@@ -37,7 +37,7 @@ TEMPLATE_TEST_CASE("TAny", "[containers]", int, int*) {
 
 		WHEN("Default-constructed") {
 			REQUIRE(meta);
-			REQUIRE(pack.GetType()->Is<int>());
+			REQUIRE(pack.GetType()->template Is<int>());
 			REQUIRE(pack.IsTypeConstrained());
 			REQUIRE(pack.GetRaw() == nullptr);
 			REQUIRE(pack.IsEmpty());
@@ -68,12 +68,12 @@ TEMPLATE_TEST_CASE("TAny", "[containers]", int, int*) {
 
 			THEN("Various traits change") {
 				REQUIRE(pack.GetType() == meta);
-				REQUIRE(pack.Is<DenseT>());
-				REQUIRE(pack.Is<DenseT*>());
+				REQUIRE(pack.template Is<DenseT>());
+				REQUIRE(pack.template Is<DenseT*>());
 				REQUIRE(pack.GetRaw() != nullptr);
-				REQUIRE(pack.As<DenseT>() == denseValue);
-				REQUIRE_THROWS(pack.As<float>() == 0.0f);
-				REQUIRE(*pack.As<DenseT*>() == denseValue);
+				REQUIRE(pack.template As<DenseT>() == denseValue);
+				REQUIRE_THROWS(pack.template As<float>() == 0.0f);
+				REQUIRE(*pack.template As<DenseT*>() == denseValue);
 				REQUIRE_FALSE(pack.IsEmpty());
 				REQUIRE(pack.IsDense() == CT::Dense<TestType>);
 				REQUIRE(pack.IsSparse() == CT::Sparse<TestType>);
@@ -81,7 +81,7 @@ TEMPLATE_TEST_CASE("TAny", "[containers]", int, int*) {
 				REQUIRE_FALSE(pack.IsStatic());
 				REQUIRE_FALSE(pack.IsConstant());
 				REQUIRE(pack.HasAuthority());
-				REQUIRE_THROWS(pack.As<float*>() == nullptr);
+				REQUIRE_THROWS(pack.template As<float*>() == nullptr);
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK
@@ -106,11 +106,11 @@ TEMPLATE_TEST_CASE("TAny", "[containers]", int, int*) {
 
 			THEN("Various traits change") {
 				REQUIRE(pack.GetType() == meta);
-				REQUIRE(pack.Is<DenseT>());
+				REQUIRE(pack.template Is<DenseT>());
 				REQUIRE(pack.GetRaw() != nullptr);
-				REQUIRE(pack.As<DenseT>() == denseValue);
-				REQUIRE_THROWS(pack.As<float>() == 0.0f);
-				REQUIRE(*pack.As<DenseT*>() == denseValue);
+				REQUIRE(pack.template As<DenseT>() == denseValue);
+				REQUIRE_THROWS(pack.template As<float>() == 0.0f);
+				REQUIRE(*pack.template As<DenseT*>() == denseValue);
 				REQUIRE_FALSE(pack.IsEmpty());
 				REQUIRE(pack.IsDense() == CT::Dense<TestType>);
 				REQUIRE(pack.IsSparse() == CT::Sparse<TestType>);
@@ -118,7 +118,7 @@ TEMPLATE_TEST_CASE("TAny", "[containers]", int, int*) {
 				REQUIRE_FALSE(pack.IsStatic());
 				REQUIRE_FALSE(pack.IsConstant());
 				REQUIRE(pack.HasAuthority());
-				REQUIRE_THROWS(pack.As<float*>() == nullptr);
+				REQUIRE_THROWS(pack.template As<float*>() == nullptr);
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK
@@ -143,25 +143,29 @@ TEMPLATE_TEST_CASE("TAny", "[containers]", int, int*) {
 
 			THEN("Various traits change") {
 				REQUIRE(pack.GetType() == meta);
-				REQUIRE(pack.Is<DenseT>());
+				REQUIRE(pack.template Is<DenseT>());
 				if constexpr (CT::Sparse<TestType>) {
 					REQUIRE(pack.GetRaw()->mPointer == sparseValue);
 					REQUIRE(pack.GetRaw()->mEntry == nullptr);
+					REQUIRE_FALSE(pack.GetUses() == 0);
+					REQUIRE_FALSE(pack.IsStatic());
+					REQUIRE_FALSE(pack.IsConstant());
+					REQUIRE(pack.HasAuthority());
 				}
 				else {
 					REQUIRE(pack.GetRaw() == sparseValue);
+					REQUIRE(pack.GetUses() == 0);
+					REQUIRE(pack.IsStatic());
+					REQUIRE(pack.IsConstant());
+					REQUIRE_FALSE(pack.HasAuthority());
 				}
-				REQUIRE(pack.As<DenseT>() == denseValue);
-				REQUIRE_THROWS(pack.As<float>() == 0.0f);
-				REQUIRE(*pack.As<DenseT*>() == denseValue);
+				REQUIRE(pack.template As<DenseT>() == denseValue);
+				REQUIRE_THROWS(pack.template As<float>() == 0.0f);
+				REQUIRE(*pack.template As<DenseT*>() == denseValue);
 				REQUIRE_FALSE(pack.IsEmpty());
 				REQUIRE(pack.IsDense() == CT::Dense<TestType>);
 				REQUIRE(pack.IsSparse() == CT::Sparse<TestType>);
-				REQUIRE(pack.GetUses() == 0);
-				REQUIRE(pack.IsStatic());
-				REQUIRE(pack.IsConstant());
-				REQUIRE_FALSE(pack.HasAuthority());
-				REQUIRE_THROWS(pack.As<float*>() == nullptr);
+				REQUIRE_THROWS(pack.template As<float*>() == nullptr);
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK
@@ -186,25 +190,28 @@ TEMPLATE_TEST_CASE("TAny", "[containers]", int, int*) {
 
 			THEN("Various traits change") {
 				REQUIRE(pack.GetType() == meta);
-				REQUIRE(pack.Is<DenseT>());
+				REQUIRE(pack.template Is<DenseT>());
 				if constexpr (CT::Sparse<TestType>) {
 					REQUIRE(pack.GetRaw()->mPointer == sparseValue);
 					REQUIRE(pack.GetRaw()->mEntry == nullptr);
+					REQUIRE_FALSE(pack.GetUses() == 0);
+					REQUIRE_FALSE(pack.IsStatic());
+					REQUIRE(pack.HasAuthority());
 				}
 				else {
 					REQUIRE(pack.GetRaw() == sparseValue);
+					REQUIRE(pack.GetUses() == 0);
+					REQUIRE(pack.IsStatic());
+					REQUIRE_FALSE(pack.HasAuthority());
 				}
-				REQUIRE(pack.As<DenseT>() == denseValue);
-				REQUIRE_THROWS(pack.As<float>() == 0.0f);
-				REQUIRE(*pack.As<DenseT*>() == denseValue);
+				REQUIRE(pack.template As<DenseT>() == denseValue);
+				REQUIRE_THROWS(pack.template As<float>() == 0.0f);
+				REQUIRE(*pack.template As<DenseT*>() == denseValue);
 				REQUIRE_FALSE(pack.IsEmpty());
 				REQUIRE(pack.IsDense() == CT::Dense<TestType>);
 				REQUIRE(pack.IsSparse() == CT::Sparse<TestType>);
-				REQUIRE(pack.GetUses() == 0);
-				REQUIRE(pack.IsStatic());
 				REQUIRE_FALSE(pack.IsConstant());
-				REQUIRE_FALSE(pack.HasAuthority());
-				REQUIRE_THROWS(pack.As<float*>() == nullptr);
+				REQUIRE_THROWS(pack.template As<float*>() == nullptr);
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK
@@ -229,16 +236,16 @@ TEMPLATE_TEST_CASE("TAny", "[containers]", int, int*) {
 
 			THEN("Various traits change") {
 				REQUIRE(pack.GetType() == meta);
-				REQUIRE(pack.Is<DenseT>());
+				REQUIRE(pack.template Is<DenseT>());
 				REQUIRE(pack.GetRaw() != nullptr);
-				REQUIRE(pack.As<DenseT>() == denseValue);
-				REQUIRE_THROWS(pack.As<float>() == 0.0f);
-				REQUIRE(*pack.As<DenseT*>() == denseValue);
+				REQUIRE(pack.template As<DenseT>() == denseValue);
+				REQUIRE_THROWS(pack.template As<float>() == 0.0f);
+				REQUIRE(*pack.template As<DenseT*>() == denseValue);
 				REQUIRE_FALSE(pack.IsEmpty());
 				REQUIRE(pack.IsDense() == CT::Dense<TestType>);
 				REQUIRE(pack.IsSparse() == CT::Sparse<TestType>);
 				REQUIRE(pack.GetUses() == 1);
-				REQUIRE_THROWS(pack.As<float*>() == nullptr);
+				REQUIRE_THROWS(pack.template As<float*>() == nullptr);
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK
@@ -263,16 +270,16 @@ TEMPLATE_TEST_CASE("TAny", "[containers]", int, int*) {
 
 			THEN("Various traits change") {
 				REQUIRE(pack.GetType() == meta);
-				REQUIRE(pack.Is<DenseT>());
+				REQUIRE(pack.template Is<DenseT>());
 				REQUIRE(pack.GetRaw() != nullptr);
-				REQUIRE(pack.As<DenseT>() == denseValue);
-				REQUIRE_THROWS(pack.As<float>() == 0.0f);
-				REQUIRE(*pack.As<DenseT*>() == denseValue);
+				REQUIRE(pack.template As<DenseT>() == denseValue);
+				REQUIRE_THROWS(pack.template As<float>() == 0.0f);
+				REQUIRE(*pack.template As<DenseT*>() == denseValue);
 				REQUIRE_FALSE(pack.IsEmpty());
 				REQUIRE(pack.IsDense() == CT::Dense<TestType>);
 				REQUIRE(pack.IsSparse() == CT::Sparse<TestType>);
 				REQUIRE(pack.GetUses() == 1);
-				REQUIRE_THROWS(pack.As<float*>() == nullptr);
+				REQUIRE_THROWS(pack.template As<float*>() == nullptr);
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK
@@ -297,25 +304,29 @@ TEMPLATE_TEST_CASE("TAny", "[containers]", int, int*) {
 
 			THEN("Various traits change") {
 				REQUIRE(pack.GetType() == meta);
-				REQUIRE(pack.Is<DenseT>());
+				REQUIRE(pack.template Is<DenseT>());
 				if constexpr (CT::Sparse<TestType>) {
 					REQUIRE(pack.GetRaw()->mPointer == sparseValue);
 					REQUIRE(pack.GetRaw()->mEntry == nullptr);
+					REQUIRE_FALSE(pack.GetUses() == 0);
+					REQUIRE_FALSE(pack.IsStatic());
+					REQUIRE_FALSE(pack.IsConstant());
+					REQUIRE(pack.HasAuthority());
 				}
 				else {
 					REQUIRE(pack.GetRaw() == sparseValue);
+					REQUIRE(pack.GetUses() == 0);
+					REQUIRE(pack.IsStatic());
+					REQUIRE(pack.IsConstant());
+					REQUIRE_FALSE(pack.HasAuthority());
 				}
-				REQUIRE(pack.As<DenseT>() == denseValue);
-				REQUIRE_THROWS(pack.As<float>() == 0.0f);
-				REQUIRE(*pack.As<DenseT*>() == denseValue);
+				REQUIRE(pack.template As<DenseT>() == denseValue);
+				REQUIRE_THROWS(pack.template As<float>() == 0.0f);
+				REQUIRE(*pack.template As<DenseT*>() == denseValue);
 				REQUIRE_FALSE(pack.IsEmpty());
 				REQUIRE(pack.IsDense() == CT::Dense<TestType>);
 				REQUIRE(pack.IsSparse() == CT::Sparse<TestType>);
-				REQUIRE(pack.GetUses() == 0);
-				REQUIRE(pack.IsStatic());
-				REQUIRE(pack.IsConstant());
-				REQUIRE_FALSE(pack.HasAuthority());
-				REQUIRE_THROWS(pack.As<float*>() == nullptr);
+				REQUIRE_THROWS(pack.template As<float*>() == nullptr);
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK
@@ -340,25 +351,28 @@ TEMPLATE_TEST_CASE("TAny", "[containers]", int, int*) {
 
 			THEN("Various traits change") {
 				REQUIRE(pack.GetType() == meta);
-				REQUIRE(pack.Is<DenseT>());
+				REQUIRE(pack.template Is<DenseT>());
 				if constexpr (CT::Sparse<TestType>) {
 					REQUIRE(pack.GetRaw()->mPointer == sparseValue);
 					REQUIRE(pack.GetRaw()->mEntry == nullptr);
+					REQUIRE_FALSE(pack.GetUses() == 0);
+					REQUIRE_FALSE(pack.IsStatic());
+					REQUIRE(pack.HasAuthority());
 				}
 				else {
 					REQUIRE(pack.GetRaw() == sparseValue);
+					REQUIRE(pack.GetUses() == 0);
+					REQUIRE(pack.IsStatic());
+					REQUIRE_FALSE(pack.HasAuthority());
 				}
-				REQUIRE(pack.As<DenseT>() == denseValue);
-				REQUIRE_THROWS(pack.As<float>() == float(denseValue));
-				REQUIRE(*pack.As<DenseT*>() == denseValue);
+				REQUIRE(pack.template As<DenseT>() == denseValue);
+				REQUIRE_THROWS(pack.template As<float>() == float(denseValue));
+				REQUIRE(*pack.template As<DenseT*>() == denseValue);
 				REQUIRE_FALSE(pack.IsEmpty());
 				REQUIRE(pack.IsDense() == CT::Dense<TestType>);
 				REQUIRE(pack.IsSparse() == CT::Sparse<TestType>);
-				REQUIRE(pack.GetUses() == 0);
-				REQUIRE(pack.IsStatic());
 				REQUIRE_FALSE(pack.IsConstant());
-				REQUIRE_FALSE(pack.HasAuthority());
-				REQUIRE_THROWS(pack.As<float*>() == nullptr);
+				REQUIRE_THROWS(pack.template As<float*>() == nullptr);
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK
@@ -382,7 +396,7 @@ TEMPLATE_TEST_CASE("TAny", "[containers]", int, int*) {
 			pack = pack;
 
 			THEN("Various traits change") {
-				REQUIRE(pack.GetType()->Is<int>());
+				REQUIRE(pack.GetType()->template Is<int>());
 				REQUIRE(pack.IsTypeConstrained());
 				REQUIRE(pack.GetRaw() == nullptr);
 				REQUIRE(pack.IsEmpty());
@@ -399,16 +413,16 @@ TEMPLATE_TEST_CASE("TAny", "[containers]", int, int*) {
 
 			THEN("Various traits change") {
 				REQUIRE(pack.GetType() == meta);
-				REQUIRE(pack.Is<DenseT>());
+				REQUIRE(pack.template Is<DenseT>());
 				REQUIRE(pack.GetRaw() != nullptr);
-				REQUIRE(pack.As<DenseT>() == denseValue);
-				REQUIRE_THROWS(pack.As<float>() == float(denseValue));
-				REQUIRE(*pack.As<DenseT*>() == denseValue);
+				REQUIRE(pack.template As<DenseT>() == denseValue);
+				REQUIRE_THROWS(pack.template As<float>() == float(denseValue));
+				REQUIRE(*pack.template As<DenseT*>() == denseValue);
 				REQUIRE_FALSE(pack.IsEmpty());
 				REQUIRE(pack.IsDense() == CT::Dense<TestType>);
 				REQUIRE(pack.IsSparse() == CT::Sparse<TestType>);
 				REQUIRE(pack.GetUses() == 1);
-				REQUIRE_THROWS(pack.As<float*>() == nullptr);
+				REQUIRE_THROWS(pack.template As<float*>() == nullptr);
 			}
 		}
 
@@ -576,7 +590,7 @@ TEMPLATE_TEST_CASE("TAny", "[containers]", int, int*) {
 		WHEN("Insert more trivial items at a specific place by move") {
 			int* i666 = new int { 666 };
 			int& i666d = *i666;
-			pack.Emplace(Move(*i666), 3);
+			pack.Insert(Move(*i666), 3);
 
 			THEN("The size changes, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
 				REQUIRE(pack.GetCount() == 6);
@@ -600,7 +614,7 @@ TEMPLATE_TEST_CASE("TAny", "[containers]", int, int*) {
 						o << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
 
 					meter.measure([&](int i) {
-						return storage[i].Emplace(Move(i666d), 3);
+						return storage[i].Insert(Move(i666d), 3);
 					});
 				};
 
@@ -619,6 +633,7 @@ TEMPLATE_TEST_CASE("TAny", "[containers]", int, int*) {
 		WHEN("The size is reduced by finding and removing elements, but reserved memory should remain the same on shrinking") {
 			const auto removed2 = pack.RemoveValue(2);
 			const auto removed4 = pack.RemoveValue(4);
+
 			THEN("The size changes but not capacity") {
 				REQUIRE(removed2 == 1);
 				REQUIRE(removed4 == 1);

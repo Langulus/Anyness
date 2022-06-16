@@ -195,18 +195,18 @@ namespace Langulus::Anyness
 		return mValues.As<T>(idx);
 	}
 
-	/// Emplace anything compatible to container											
+	/// Move-insert anything compatible to container									
 	template<CT::Data K, CT::Data V>
-	Count Map::Emplace(TPair<K, V>&& item, const Index& index) {
+	Count Map::Insert(TPair<K, V>&& item, const Index& index) {
 		if (!IsMapInsertable<K, V>())
 			Throw<Except::Move>("Bad emplace in map - pair is not insertable");
 
-		mKeys.Emplace<K, false, Any>(Move(item.mKey), index);
-		mValues.Emplace<V, false, Any>(Move(item.mValue), index);
+		mKeys.Insert<Any, true, false>(Move(item.mKey), index);
+		mValues.Insert<Any, true, false>(Move(item.mValue), index);
 		return 1;
 	}
 
-	/// Insert anything compatible to container											
+	/// Copy-insert anything compatible to container									
 	template<CT::Data K, CT::Data V>
 	Count Map::Insert(const TPair<K, V>* items, const Count& count, const Index& index) {
 		if (!IsMapInsertable<K, V>())
@@ -215,8 +215,8 @@ namespace Langulus::Anyness
 		Count insertedKeys = 0;
 		Count insertedValues = 0;
 		for (Count i = 0; i < count; ++i) {
-			insertedKeys += mKeys.Insert<K, false, Any>(&items[i].mKey, 1, index);
-			insertedValues += mValues.Insert<V, false, Any>(&items[i].mValue, 1, index);
+			insertedKeys += mKeys.Insert<Any, true, false>(&items[i].mKey, 1, index);
+			insertedValues += mValues.Insert<Any, true, false>(&items[i].mValue, 1, index);
 		}
 
 		return insertedKeys;
@@ -231,7 +231,7 @@ namespace Langulus::Anyness
 
 	template<CT::Data K, CT::Data V>
 	Map& Map::operator << (TPair<K, V>&& other) {
-		Emplace<K, V>(Forward<TPair<K, V>>(other), Index::Back);
+		Insert<K, V>(Forward<TPair<K, V>>(other), Index::Back);
 		return *this;
 	}
 
@@ -244,7 +244,7 @@ namespace Langulus::Anyness
 
 	template<CT::Data K, CT::Data V>
 	Map& Map::operator >> (TPair<K, V>&& other) {
-		Emplace<K, V>(Forward<TPair<K, V>>(other), Index::Front);
+		Insert<K, V>(Forward<TPair<K, V>>(other), Index::Front);
 		return *this;
 	}
 

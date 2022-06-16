@@ -34,9 +34,8 @@ namespace Langulus::Anyness
 	}
 
 	/// Move construction via Block (well, not actually)								
-	///	@attention since we are not aware if that block is referenced or not	
-	///				  we reference it just in case, and we also do not reset		
-	///              'other' to avoid memory leaks										
+	/// Since we are not aware if that block is referenced or not we reference	
+	/// it just in case, and we also do not reset 'other' to avoid leaks			
 	///	@param other - the block to shallow-copy										
 	inline Any::Any(Block&& other) 
 		: Block {static_cast<Block&>(other)} {
@@ -56,23 +55,21 @@ namespace Langulus::Anyness
 		other.mValue.mEntry = nullptr;
 	}
 
-	/// Same as shallow-copy but doesn't reference anything							
-	///	@param other - the block to shallow-copy										
-	inline Any::Any(Disowned<Block>&& other) noexcept
-		: Block {other.mValue} {}
-	
-	/// Same as shallow-move but doesn't fully reset other, saving some			
-	/// instructions																				
-	///	@param other - the block to shallow-copy										
-	inline Any::Any(Abandoned<Block>&& other) noexcept
-		: Block {other.mValue} {
-		other.mValue.mEntry = nullptr;
+	/// Construct by copying/referencing value of non-block type					
+	///	@tparam T - the data type to push (deducible)								
+	///	@param other - the dense value to shallow-copy								
+	template <CT::CustomData T>
+	Any::Any(const T& other) {
+		SetType<T, false>();
+		Insert<Any, true, false>(&other, 1);
 	}
 
-	/// Destruction																				
-	inline Any::~Any() {
-		Free();
-	}
+	/// This override is required to disambiguate automatically deduced T		
+	/// Dimo, I know you want to remove this, but don't, said Dimo to himself	
+	/// after actually deleting this function numerous times							
+	template <CT::CustomData T>
+	Any::Any(T& other)
+		: Any {const_cast<const T&>(other)} {}
 
 	/// Construct by moving a dense value of non-block type							
 	///	@tparam T - the data type to push (deducible)								
@@ -81,23 +78,51 @@ namespace Langulus::Anyness
 	Any::Any(T&& other) {
 		static_assert(CT::Mutable<T>, "Can't move a constant value");
 		SetType<T, false>();
-		Emplace<T, false, Any>(Forward<T>(other));
+		Insert<Any, true, false>(Forward<T>(other));
 	}
 
-	/// Construct by copying/referencing value of non-block type					
+	/// Construct by directly interfacing the memory of a dense non-block type	
+	///	@tparam T - the data type to wrap (deducible)								
+	///	@param other - the dense value to wrap											
+	template <CT::CustomData T>
+	Any::Any(Disowned<T>&& other) noexcept requires CT::Dense<T>
+		: Block {
+			DataState::Constrained, MetaData::Of<Decay<T>>(), 1,
+			const_cast<const T*>(&other.mValue), nullptr
+		} {}
+
+	/// Construct by directly interfacing the memory of a dense non-block type	
+	///	@tparam T - the data type to wrap (deducible)								
+	///	@param other - the dense value to wrap											
+	template <CT::CustomData T>
+	Any::Any(Abandoned<T>&& other) noexcept requires CT::Dense<T>
+		: Block {
+			DataState::Member, MetaData::Of<Decay<T>>(), 1,
+			&other.mValue, nullptr
+		} {}
+
+	/// Construct by inserting a sparse value of non-block type						
 	///	@tparam T - the data type to push (deducible)								
-	///	@param other - the dense value to shallow-copy								
+	///	@param other - the disownes sparse value										
 	template <CT::CustomData T>
-	Any::Any(const T& other) {
+	Any::Any(Disowned<T>&& other) requires CT::Sparse<T> {
 		SetType<T, false>();
-		Insert<T, false, Any>(&other, 1);
+		Insert<Any, false, false>(&other.mValue, 1);
 	}
 
-	/// This override is required to disambiguate automatically deduced T		
-	/// Dimo, I know you want to remove this, but don't, said Dimo to himself	
+	/// Construct by inserting a sparse value of non-block type						
+	///	@tparam T - the data type to push (deducible)								
+	///	@param other - the disownes sparse value										
 	template <CT::CustomData T>
-	Any::Any(T& other)
-		: Any {const_cast<const T&>(other)} {}
+	Any::Any(Abandoned<T>&& other) requires CT::Sparse<T> {
+		SetType<T, false>();
+		Insert<Any, false, false>(Move(other.mValue));
+	}
+
+	/// Destruction																				
+	inline Any::~Any() {
+		Free();
+	}
 
 	/// Create an empty Any from a dynamic type and state								
 	///	@param type - type of the container												
@@ -136,7 +161,7 @@ namespace Langulus::Anyness
 			result.Allocate(sizeof...(LIST));
 			result.SetType<Any, false>();
 			for (auto& it : wrapped)
-				result.Emplace<Any, false>(Move(it));
+				result.Insert<Any, true, false>(Move(it));
 			return result;
 		}
 	}
@@ -152,7 +177,7 @@ namespace Langulus::Anyness
 			HEAD wrapped[] {Forward<HEAD>(head), Forward<TAIL>(tail)...};
 			Any result {Any::From<HEAD>()};
 			for (auto& it : wrapped)
-				result.Emplace<HEAD>(Move(it));
+				result.Insert<Any, true, false>(Move(it));
 			return result;
 		}
 	}
@@ -193,7 +218,7 @@ namespace Langulus::Anyness
 	/// Assign by shallow-copying anything 												
 	///	@param other - the item to copy													
 	///	@return a reference to this container											
-	template<CT::Data T>
+	template<CT::CustomData T>
 	Any& Any::operator = (const T& other) {
 		static_assert(CT::NotAbandonedOrDisowned<T>, 
 			"Copying an abandoned/disowned T is disallowed");
@@ -228,7 +253,7 @@ namespace Langulus::Anyness
 				AllocateInner<false>(1);
 			}
 
-			InsertInner<T, true>(&other, 1, 0);
+			InsertInner<true>(&other, 1, 0);
 		}
 
 		return *this;
@@ -236,7 +261,7 @@ namespace Langulus::Anyness
 
 	/// This override is required to disambiguate automatically deduced T		
 	/// Dimo, I know you want to remove this, but don't, said Dimo to himself	
-	template<CT::Data T>
+	template<CT::CustomData T>
 	Any& Any::operator = (T& other) {
 		return operator = (const_cast<const T&>(other));
 	}
@@ -244,7 +269,7 @@ namespace Langulus::Anyness
 	/// Assign by moving anything																
 	///	@param other - the item to move													
 	///	@return a reference to this container											
-	template<CT::Data T>
+	template<CT::CustomData T>
 	Any& Any::operator = (T&& other) {
 		if constexpr (CT::Same<T, Disowned<Any>> || CT::Same<T, Abandoned<Any>>) {
 			// Move the other onto this if type is compatible					
@@ -292,9 +317,9 @@ namespace Langulus::Anyness
 				}
 
 				if constexpr (CT::Abandoned<T>)
-					EmplaceInner<InnerT, false>(Move(other.mValue), 0);
+					InsertInner<false>(Move(other.mValue), 0);
 				else
-					InsertInner<InnerT, false>(&other.mValue, 1, 0);
+					InsertInner<false>(&other.mValue, 1, 0);
 			}
 		}
 		else if constexpr (CT::Same<T, Block>) {
@@ -326,57 +351,73 @@ namespace Langulus::Anyness
 				AllocateInner<false>(1);
 			}
 
-			EmplaceInner<T, true>(Forward<T>(other), 0);
+			InsertInner<true>(Forward<T>(other), 0);
 		}
 		
 		return *this;
 	}
 	
-	/// Insert any data (including arrays) at the back									
+	/// Copy-insert an element (including arrays) at the back						
 	///	@param other - the data to insert												
-	///	@return a reference to this memory block for chaining						
+	///	@return a reference to this container for chaining							
 	template<CT::Data T>
 	Any& Any::operator << (const T& other) {
 		if constexpr (CT::Array<T>)
-			Insert<Decay<T>, true, Any>(other, ExtentOf<T>, Index::Back);
+			Insert<Any, true, true>(SparseCast(other), ExtentOf<T>, Index::Back);
 		else
-			Insert<T, true, Any>(&other, 1, Index::Back);
+			Insert<Any, true, true>(&other, 1, Index::Back);
 		return *this;
 	}
 
-	/// Emplace any data at the back															
+	/// Used to disambiguate from the && variant											
+	/// Dimo, I know you want to remove this, but don't, said Dimo to himself	
+	/// after actually deleting this function numerous times							
+	template<CT::Data T>
+	Any& Any::operator << (T& other) {
+		return operator << (const_cast<const T&>(other));
+	}
+
+	/// Move-insert an element at the back													
 	///	@param other - the data to insert												
-	///	@return a reference to this memory block for chaining						
-	template<CT::Decayed T>
+	///	@return a reference to this container for chaining							
+	template<CT::Data T>
 	Any& Any::operator << (T&& other) {
-		Emplace<T, true, Any>(Forward<T>(other), Index::Back);
+		Insert<Any, true, true>(Forward<T>(other), Index::Back);
 		return *this;
 	}
 
-	/// Insert any data (including arrays) at the front								
+	/// Copy-insert an element (including arrays) at the front						
 	///	@param other - the data to insert												
-	///	@return a reference to this memory block for chaining						
+	///	@return a reference to this container for chaining							
 	template<CT::Data T>
 	Any& Any::operator >> (const T& other) {
 		if constexpr (CT::Array<T>)
-			Insert<Decay<T>, true, Any>(other, ExtentOf<T>, Index::Front);
+			Insert<Any, true, true>(other, ExtentOf<T>, Index::Front);
 		else
-			Insert<T, true, Any>(&other, 1, Index::Front);
+			Insert<Any, true, true>(&other, 1, Index::Front);
 		return *this;
 	}
 
-	/// Emplace any data at the front														
+	/// Used to disambiguate from the && variant											
+	/// Dimo, I know you want to remove this, but don't, said Dimo to himself	
+	/// after actually deleting this function numerous times							
+	template<CT::Data T>
+	Any& Any::operator >> (T& other) {
+		return operator >> (const_cast<const T&>(other));
+	}
+
+	/// Move-insert element at the front													
 	///	@param other - the data to insert												
-	///	@return a reference to this memory block for chaining						
-	template<CT::Decayed T>
+	///	@return a reference to this container for chaining							
+	template<CT::Data T>
 	Any& Any::operator >> (T&& other) {
-		Emplace<T, true, Any>(Forward<T>(other), Index::Front);
+		Insert<Any, true, true>(Forward<T>(other), Index::Front);
 		return *this;
 	}
 
 	/// Merge data (including arrays) at the back										
 	///	@param other - the data to insert												
-	///	@return a reference to this memory block for chaining						
+	///	@return a reference to this container for chaining							
 	template<CT::Data T>
 	Any& Any::operator <<= (const T& other) {
 		if constexpr (CT::Array<T>)
@@ -386,15 +427,49 @@ namespace Langulus::Anyness
 		return *this;
 	}
 
+	/// Used to disambiguate from the && variant											
+	/// Dimo, I know you want to remove this, but don't, said Dimo to himself	
+	/// after actually deleting this function numerous times							
+	template<CT::Data T>
+	Any& Any::operator <<= (T& other) {
+		return operator <<= (const_cast<const T&>(other));
+	}
+
+	/// Merge data at the back by move-insertion											
+	///	@param other - the data to insert												
+	///	@return a reference to this container for chaining							
+	template<CT::Data T>
+	Any& Any::operator <<= (T&& other) {
+		Merge<T, true, Any>(Forward<T>(other), Index::Back);
+		return *this;
+	}
+
 	/// Merge data at the front																
 	///	@param other - the data to insert												
-	///	@return a reference to this memory block for chaining						
+	///	@return a reference to this container for chaining							
 	template<CT::Data T>
 	Any& Any::operator >>= (const T& other) {
 		if constexpr (CT::Array<T>)
 			Merge<Decay<T>, true, Any>(other, ExtentOf<T>, Index::Front);
 		else
 			Merge<T, true, Any>(&other, 1, Index::Front);
+		return *this;
+	}
+
+	/// Used to disambiguate from the && variant											
+	/// Dimo, I know you want to remove this, but don't, said Dimo to himself	
+	/// after actually deleting this function numerous times							
+	template<CT::Data T>
+	Any& Any::operator >>= (T& other) {
+		return operator >>= (const_cast<const T&>(other));
+	}
+
+	/// Merge data at the front by move-insertion										
+	///	@param other - the data to insert												
+	///	@return a reference to this container for chaining							
+	template<CT::Data T>
+	Any& Any::operator >>= (T&& other) {
+		Merge<T, true, Any>(Forward<T>(other), Index::Front);
 		return *this;
 	}
 

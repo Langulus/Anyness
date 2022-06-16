@@ -96,10 +96,9 @@ namespace Langulus::Anyness
 		NOD() decltype(auto) GetValue(Offset);
 
 		template<CT::Data K, CT::Data V>
-		Count Emplace(TPair<K, V>&&, const Index& = Index::Back);
-
-		template<CT::Data K, CT::Data V>
 		Count Insert(const TPair<K, V>*, const Count& = 1, const Index& = Index::Back);
+		template<CT::Data K, CT::Data V>
+		Count Insert(TPair<K, V>&&, const Index& = Index::Back);
 
 		template<CT::Data K, CT::Data V>
 		Map& operator << (const TPair<K, V>&);

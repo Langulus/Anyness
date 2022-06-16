@@ -124,7 +124,7 @@ namespace Langulus::Anyness
 	///				  avoid memory leaks														
 	///	@param other - the block to shallow-copy and reference					
 	TEMPLATE()
-		TAny<T>::TAny(Block&& copy)
+	TAny<T>::TAny(Block&& copy)
 		: TAny {Any {Forward<Block>(copy)}} { }
 
 	/// Construct by copying/referencing value of non-block type					
@@ -136,26 +136,34 @@ namespace Langulus::Anyness
 	/// Construct by moving a dense value of non-block type							
 	///	@param initial - the value to forward and emplace							
 	TEMPLATE()
-		TAny<T>::TAny(T&& initial) requires CT::CustomData<T>
+	TAny<T>::TAny(T&& initial) requires CT::CustomData<T>
 		: Any {Forward<T>(initial)} { }
 
-	/// Construct by interfacing a non-block element									
+	/// Construct by interfacing a dense non-block element							
 	///	@attention unsafe, make sure that lifetime of memory is sane			
 	///	@param other - the value to interface											
 	TEMPLATE()
-	TAny<T>::TAny(Disowned<T>&& other) noexcept requires CT::CustomData<T>
-		: Any {Block {
-			DataState::Constrained, MetaData::Of<Decay<T>>(), 1,
-			const_cast<const T*>(&other.mValue), nullptr}} {}
+	TAny<T>::TAny(Disowned<T>&& other) noexcept requires (CT::CustomData<T> && CT::Dense<T>)
+		: Any {Move(other)} { }
 
-	/// Construct by interfacing a non-block element									
+	/// Construct by interfacing a dense non-block element							
 	///	@attention unsafe, make sure that lifetime of memory is sane			
 	///	@param other - the value to interface											
 	TEMPLATE()
-	TAny<T>::TAny(Abandoned<T>&& other) noexcept requires CT::CustomData<T>
-		: Any {Block {
-			DataState::Member, MetaData::Of<Decay<T>>(), 1,
-			&other.mValue, nullptr}} {}
+	TAny<T>::TAny(Abandoned<T>&& other) noexcept requires (CT::CustomData<T> && CT::Dense<T>)
+		: Any {Move(other)} { }
+
+	/// Construct by inserting a sparse element, without referencing it			
+	///	@param other - the pointer to insert											
+	TEMPLATE()
+	TAny<T>::TAny(Disowned<T>&& other) noexcept requires (CT::CustomData<T> && CT::Sparse<T>)
+		: Any {Move(other)} { }
+
+	/// Construct by inserting a sparse element, without resetting it				
+	///	@param other - the pointer to insert											
+	TEMPLATE()
+	TAny<T>::TAny(Abandoned<T>&& other) noexcept requires (CT::CustomData<T> && CT::Sparse<T>)
+		: Any {Move(other)} { }
 
 	/// Construct manually by interfacing memory directly								
 	/// Data will be copied, if not in jurisdiction, which involves a slow		
@@ -176,7 +184,8 @@ namespace Langulus::Anyness
 	TEMPLATE()
 	TAny<T>::TAny(Disowned<const T*>&& raw, const Count& count) noexcept
 		: Any {Block {
-			DataState::Constrained, MetaData::Of<Decay<T>>(), count, raw.mValue, nullptr}} {}
+			DataState::Constrained, MetaData::Of<Decay<T>>(), count, raw.mValue, nullptr
+		}} {}
 
 	/// Destructor																					
 	TEMPLATE()
@@ -382,7 +391,7 @@ namespace Langulus::Anyness
 			// Just destroy and reuse memory											
 			CallKnownDestructors<T>();
 			mCount = 0;
-			InsertInner<T, true>(&other, 1, 0);
+			InsertInner<true>(&other, 1, 0);
 		}
 		else {
 			// Reset and allocate new memory											
@@ -402,7 +411,7 @@ namespace Langulus::Anyness
 			// Just destroy and reuse memory											
 			CallKnownDestructors<T>();
 			mCount = 0;
-			EmplaceInner<T, true>(Forward<T>(other), 0);
+			InsertInner<true>(Forward<T>(other), 0);
 		}
 		else {
 			// Reset and allocate new memory											
@@ -845,42 +854,14 @@ namespace Langulus::Anyness
 		return GetStride() * mCount;
 	}
 
-	/// Insert an item by move-construction												
-	///	@param item - the item to move													
-	///	@param index - the place where to emplace the item							
-	///	@return 1 if successful																
-	TEMPLATE()
-	Count TAny<T>::Emplace(T&& item, const Index& index) {
-		const auto starter = ConstrainMore<T>(index).GetOffset();
-
-		// Allocate																			
-		Allocate<false>(mCount + 1);
-
-		// Move memory if required														
-		if (starter < mCount) {
-			if (GetUses() > 1) {
-				Throw<Except::Reference>(Logger::Error()
-					<< "Moving elements that are used from multiple places");
-			}
-
-			CropInner(starter + 1, 0, mCount - starter)
-				.template CallKnownMoveConstructors<T>(
-					mCount - starter,
-					CropInner(starter, mCount - starter, mCount - starter)
-				);
-		}
-
-		EmplaceInner<T, true>(Forward<T>(item), starter);
-		return 1;
-	}
-
-	/// Insert item(s) by copy-construction												
+	/// Copy-insert item(s) by copy-construction											
 	//TODO do a dedicated Append function
 	///	@param items - an array of items to insert									
 	///	@param count - the number of items to insert									
 	///	@param index - the place where to insert the items							
 	///	@return number of inserted items													
 	TEMPLATE()
+	template<bool KEEP>
 	Count TAny<T>::Insert(const T* items, const Count& count, const Index& index) {
 		const auto starter = ConstrainMore<T>(index).GetOffset();
 
@@ -901,8 +882,38 @@ namespace Langulus::Anyness
 				);
 		}
 
-		InsertInner<T, true>(items, count, starter);
+		InsertInner<KEEP>(items, count, starter);
 		return count;
+	}
+
+	/// Move-insert an item by move-construction											
+	///	@param item - the item to move													
+	///	@param index - the place where to emplace the item							
+	///	@return 1 if successful																
+	TEMPLATE()
+	template<bool KEEP>
+	Count TAny<T>::Insert(T&& item, const Index& index) {
+		const auto starter = ConstrainMore<T>(index).GetOffset();
+
+		// Allocate																			
+		Allocate<false>(mCount + 1);
+
+		// Move memory if required														
+		if (starter < mCount) {
+			if (GetUses() > 1) {
+				Throw<Except::Reference>(Logger::Error()
+					<< "Moving elements that are used from multiple places");
+			}
+
+			CropInner(starter + 1, 0, mCount - starter)
+				.template CallKnownMoveConstructors<T>(
+					mCount - starter,
+					CropInner(starter, mCount - starter, mCount - starter)
+				);
+		}
+
+		InsertInner<KEEP>(Forward<T>(item), starter);
+		return 1;
 	}
 
 	/// Push data at the back by copy-construction										
@@ -919,7 +930,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this container for chaining							
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator << (T&& other) {
-		Emplace(Forward<T>(other), Index::Back);
+		Insert(Forward<T>(other), Index::Back);
 		return *this;
 	}
 
@@ -929,7 +940,8 @@ namespace Langulus::Anyness
 	///	@return a reference to this container for chaining							
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator << (Disowned<T>&& other) {
-		TODO();
+		Insert<false>(&other.mValue, 1, Index::Back);
+		return *this;
 	}
 
 	/// Push data at the back by move-construction, but don't fully reset the	
@@ -938,7 +950,8 @@ namespace Langulus::Anyness
 	///	@return a reference to this container for chaining							
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator << (Abandoned<T>&& other) {
-		TODO();
+		Insert<false>(Forward<T>(other.mValue), Index::Back);
+		return *this;
 	}
 
 	/// Push data at the front by copy-construction										
@@ -955,7 +968,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this container for chaining							
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator >> (T&& other) {
-		Emplace(Forward<T>(other), Index::Front);
+		Insert(Forward<T>(other), Index::Front);
 		return *this;
 	}
 
@@ -965,7 +978,8 @@ namespace Langulus::Anyness
 	///	@return a reference to this container for chaining							
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator >> (Disowned<T>&& other) {
-		TODO();
+		Insert<false>(&other.mValue, 1, Index::Front);
+		return *this;
 	}
 
 	/// Push data at the front by move-construction, but don't fully reset the	
@@ -974,18 +988,30 @@ namespace Langulus::Anyness
 	///	@return a reference to this container for chaining							
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator >> (Abandoned<T>&& other) {
-		TODO();
+		Insert<false>(Forward<T>(other.mValue), Index::Front);
+		return *this;
 	}
 
-	/// Merge anything compatible to container											
-	/// By merging we mean anything that is not found is pushed						
+	/// Copy-insert elements that are not found											
 	///	@param items - the items to find and push										
 	///	@param count - number of items to push											
 	///	@param idx - the place to insert them											
 	///	@return the number of inserted items											
 	TEMPLATE()
+	template<bool KEEP>
 	Count TAny<T>::Merge(const T* items, const Count& count, const Index& idx) {
-		return Any::Merge<T, false, TAny>(items, count, idx);
+		return Block::Merge<T, false, TAny>(items, count, idx);
+	}
+
+	/// Move-insert element, if not found													
+	///	@param items - the items to find and push										
+	///	@param count - number of items to push											
+	///	@param idx - the place to insert them											
+	///	@return the number of inserted items											
+	TEMPLATE()
+	template<bool KEEP>
+	Count TAny<T>::Merge(T&& item, const Index& idx) {
+		return Block::Merge<T, false, TAny>(Forward<T>(item), idx);
 	}
 
 	/// Copy-construct element at the back, if element is not found				
@@ -1002,7 +1028,8 @@ namespace Langulus::Anyness
 	///	@return a reference to this container											
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator <<= (T&& other) {
-		TODO();
+		Merge(Forward<T>(other), Index::Back);
+		return *this;
 	}
 
 	/// Copy-construct element at the back, if element is not found				
@@ -1011,7 +1038,8 @@ namespace Langulus::Anyness
 	///	@return a reference to this container											
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator <<= (Disowned<T>&& other) {
-		TODO();
+		Merge<false>(&other.mValue, 1, Index::Back);
+		return *this;
 	}
 
 	/// Move-construct element at the back, if element is not found				
@@ -1020,7 +1048,8 @@ namespace Langulus::Anyness
 	///	@return a reference to this container											
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator <<= (Abandoned<T>&& other) {
-		TODO();
+		Merge<false>(Forward<T>(other.mValue), Index::Back);
+		return *this;
 	}
 
 	/// Copy-construct element at the front, if element is not found				
@@ -1037,7 +1066,8 @@ namespace Langulus::Anyness
 	///	@return a reference to this container											
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator >>= (T&& other) {
-		TODO();
+		Merge(Forward<T>(other), Index::Front);
+		return *this;
 	}
 
 	/// Copy-construct element at the front, if element is not found				
@@ -1046,7 +1076,8 @@ namespace Langulus::Anyness
 	///	@return a reference to this container											
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator >>= (Disowned<T>&& other) {
-		TODO();
+		Merge<false>(&other.mValue, 1, Index::Front);
+		return *this;
 	}
 
 	/// Move-construct element at the front, if element is not found				
@@ -1055,7 +1086,8 @@ namespace Langulus::Anyness
 	///	@return a reference to this container											
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator >>= (Abandoned<T>&& other) {
-		TODO();
+		Merge<false>(Forward<T>(other.mValue), Index::Front);
+		return *this;
 	}
 
 	/// Find element(s) index inside container											

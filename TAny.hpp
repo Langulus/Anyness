@@ -45,8 +45,10 @@ namespace Langulus::Anyness
 		TAny(const T&) requires CT::CustomData<T>;
 		TAny(T&&) requires CT::CustomData<T>;
 
-		TAny(Disowned<T>&&) noexcept requires CT::CustomData<T>;
-		TAny(Abandoned<T>&&) noexcept requires CT::CustomData<T>;
+		TAny(Disowned<T>&&) noexcept requires  (CT::CustomData<T> && CT::Dense<T>);
+		TAny(Abandoned<T>&&) noexcept requires (CT::CustomData<T> && CT::Dense<T>);
+		TAny(Disowned<T>&&) noexcept requires  (CT::CustomData<T> && CT::Sparse<T>);
+		TAny(Abandoned<T>&&) noexcept requires (CT::CustomData<T> && CT::Sparse<T>);
 
 		TAny(const T*, const Count&);
 		TAny(Disowned<const T*>&&, const Count&) noexcept;
@@ -134,9 +136,10 @@ namespace Langulus::Anyness
 
 		RANGED_FOR_INTEGRATION(TAny, T);
 
-		Count Emplace(T&&, const Index& = Index::Back);
-
+		template<bool KEEP = true>
 		Count Insert(const T*, const Count& = 1, const Index& = Index::Back);
+		template<bool KEEP = true>
+		Count Insert(T&&, const Index& = Index::Back);
 
 		TAny& operator << (const T&);
 		TAny& operator << (T&&);
@@ -148,7 +151,10 @@ namespace Langulus::Anyness
 		TAny& operator >> (Disowned<T>&&);
 		TAny& operator >> (Abandoned<T>&&);
 
+		template<bool KEEP = true>
 		Count Merge(const T*, const Count& = 1, const Index& = Index::Back);
+		template<bool KEEP = true>
+		Count Merge(T&&, const Index& = Index::Back);
 
 		TAny& operator <<= (const T&);
 		TAny& operator <<= (T&&);
