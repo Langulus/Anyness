@@ -155,13 +155,14 @@ namespace Langulus::Anyness
 	}
 
 
-   ///                                                                        
-   ///   MetaData implementation                                              
-   ///                                                                        
+   ///																								
+   ///   MetaData implementation																
+   ///																								
    
-   /// Reflect or return an already reflected type meta definition            
-   /// Reflection is done only on decayed types to reduce statics             
-   ///   @tparam T - the type to reflect (will always be decayed)             
+   /// Reflect or return an already reflected type meta definition				
+   /// Reflection is done only on decayed types to avoid static variable		
+	/// duplications																				
+   ///   @tparam T - the type to reflect (will always be decayed)					
    template<CT::Data T>
    DMeta MetaData::Of() requires CT::Decayed<T> {
 		// This check is not standard, but doesn't hurt afaik					

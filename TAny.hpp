@@ -29,21 +29,27 @@ namespace Langulus::Anyness
 		
 		TAny(const TAny&);
 		TAny(TAny&&) noexcept;
-		
-		TAny(const Any&);
-		TAny(Any&&);
-		
-		TAny(const Block&);
-		TAny(Block&&);
 
 		TAny(Disowned<TAny>&&) noexcept;
 		TAny(Abandoned<TAny>&&) noexcept;
 
-		TAny(T&&) requires CT::CustomData<T>;
+		TAny(const Any&);
+		TAny(Any&&);
+
+		TAny(Disowned<Any>&&);
+		TAny(Abandoned<Any>&&);
+
+		TAny(const Block&);
+		TAny(Block&&);
+
 		TAny(const T&) requires CT::CustomData<T>;
+		TAny(T&&) requires CT::CustomData<T>;
+
+		TAny(Disowned<T>&&) noexcept requires CT::CustomData<T>;
+		TAny(Abandoned<T>&&) noexcept requires CT::CustomData<T>;
 
 		TAny(const T*, const Count&);
-		TAny(Disowned<const T*>&&, const Count&);
+		TAny(Disowned<const T*>&&, const Count&) noexcept;
 		
 		TAny& operator = (const TAny&);
 		TAny& operator = (TAny&&) noexcept;
@@ -52,19 +58,19 @@ namespace Langulus::Anyness
 		TAny& operator = (Abandoned<TAny>&&) noexcept;
 
 		TAny& operator = (const Any&);
-		TAny& operator = (Any&&) noexcept;
+		TAny& operator = (Any&&);
 
-		TAny& operator = (Disowned<Any>&&) noexcept;
-		TAny& operator = (Abandoned<Any>&&) noexcept;
+		TAny& operator = (Disowned<Any>&&);
+		TAny& operator = (Abandoned<Any>&&);
 
 		TAny& operator = (const Block&);
-		TAny& operator = (Block&&) noexcept;
+		TAny& operator = (Block&&);
 
 		TAny& operator = (const T&) requires CT::CustomData<T>;
 		TAny& operator = (T&&) requires CT::CustomData<T>;
 
-		TAny& operator = (Disowned<T>&&) requires CT::CustomData<T>;
-		TAny& operator = (Abandoned<T>&&) requires CT::CustomData<T>;
+		TAny& operator = (Disowned<T>&&) noexcept requires CT::CustomData<T>;
+		TAny& operator = (Abandoned<T>&&) noexcept requires CT::CustomData<T>;
 
 	public:
 		NOD() bool CastsToMeta(DMeta) const;
@@ -107,9 +113,9 @@ namespace Langulus::Anyness
 		struct KnownPointer;
 
 		NOD() decltype(auto) operator [] (const Offset&) const SAFETY_NOEXCEPT() requires CT::Sparse<T>;
-		NOD() KnownPointer& operator [] (const Offset&) SAFETY_NOEXCEPT() requires CT::Sparse<T>;
+		NOD() KnownPointer&  operator [] (const Offset&) SAFETY_NOEXCEPT() requires CT::Sparse<T>;
 		NOD() decltype(auto) operator [] (const Index&) const requires CT::Sparse<T>;
-		NOD() KnownPointer& operator [] (const Index&) requires CT::Sparse<T>;
+		NOD() KnownPointer&  operator [] (const Index&) requires CT::Sparse<T>;
 
 		NOD() constexpr bool IsUntyped() const noexcept;
 		NOD() constexpr bool IsTypeConstrained() const noexcept;
@@ -131,16 +137,28 @@ namespace Langulus::Anyness
 		Count Emplace(T&&, const Index& = Index::Back);
 
 		Count Insert(const T*, const Count& = 1, const Index& = Index::Back);
+
 		TAny& operator << (const T&);
 		TAny& operator << (T&&);
+		TAny& operator << (Disowned<T>&&);
+		TAny& operator << (Abandoned<T>&&);
+
 		TAny& operator >> (const T&);
 		TAny& operator >> (T&&);
+		TAny& operator >> (Disowned<T>&&);
+		TAny& operator >> (Abandoned<T>&&);
 
 		Count Merge(const T*, const Count& = 1, const Index& = Index::Back);
+
 		TAny& operator <<= (const T&);
 		TAny& operator <<= (T&&);
+		TAny& operator <<= (Disowned<T>&&);
+		TAny& operator <<= (Abandoned<T>&&);
+
 		TAny& operator >>= (const T&);
 		TAny& operator >>= (T&&);
+		TAny& operator >>= (Disowned<T>&&);
+		TAny& operator >>= (Abandoned<T>&&);
 
 		template<CT::Data ALT_T>
 		bool operator == (const TAny<ALT_T>&) const noexcept;

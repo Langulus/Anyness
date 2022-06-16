@@ -50,7 +50,7 @@ namespace Langulus::Anyness
 	///	@param raw - pointer to the constant memory									
 	inline Block::Block(const DataState& state, DMeta meta, Count count, const void* raw) noexcept
 		: Block {state, meta, count, const_cast<void*>(raw)} {
-		MakeConstant();
+		MakeConst();
 	}
 
 	/// Manual construction from mutable data and preallocated entry				
@@ -75,7 +75,7 @@ namespace Langulus::Anyness
 	///	@param entry - the memory entry													
 	inline Block::Block(const DataState& state, DMeta meta, Count count, const void* raw, Inner::Allocation* entry) noexcept
 		: Block {state, meta, count, const_cast<void*>(raw), entry} {
-		MakeConstant();
+		MakeConst();
 	}
 
 	/// Create a memory block from a single typed pointer								
@@ -520,7 +520,7 @@ namespace Langulus::Anyness
 	}
 
 	/// Make memory block constant															
-	constexpr void Block::MakeConstant() noexcept {
+	constexpr void Block::MakeConst() noexcept {
 		mState += DataState::Constant;
 	}
 
@@ -2185,7 +2185,7 @@ namespace Langulus::Anyness
 	///	@return the block representing the region										
 	inline Block Block::Crop(const Offset& start, const Count& count) const {
 		auto result = const_cast<Block*>(this)->Crop(start, count);
-		result.MakeConstant();
+		result.MakeConst();
 		return result;
 	}
 

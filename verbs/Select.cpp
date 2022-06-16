@@ -31,7 +31,7 @@ namespace Langulus::Anyness
 	///	@return a static constant memory block											
 	const Block Block::GetMember(const Member& member) const {
 		auto result = const_cast<Block*>(this)->GetMember(member);
-		result.MakeConstant();
+		result.MakeConst();
 		return result;
 	}
 
@@ -80,7 +80,7 @@ namespace Langulus::Anyness
 	///	@return a static constant memory block											
 	const Block Block::GetMember(TMeta trait, Count index) const {
 		auto result = const_cast<Block*>(this)->GetMember(trait, index);
-		result.MakeConstant();
+		result.MakeConst();
 		return result;
 	}
 	
@@ -130,7 +130,7 @@ namespace Langulus::Anyness
 	///	@return a static constant memory block											
 	const Block Block::GetMember(DMeta data, Count index) const {
 		auto result = const_cast<Block*>(this)->GetMember(data, index);
-		result.MakeConstant();
+		result.MakeConst();
 		return result;
 	}
 
@@ -170,7 +170,7 @@ namespace Langulus::Anyness
 	///	@return a static constant memory block											
 	const Block Block::GetMember(std::nullptr_t, Count index) const {
 		auto result = const_cast<Block*>(this)->GetMember(nullptr, index);
-		result.MakeConstant();
+		result.MakeConst();
 		return result;
 	}
 

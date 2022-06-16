@@ -21,15 +21,170 @@ namespace Langulus::Anyness
 		: Any {Block {DataState::Typed, MetaData::Of<Decay<T>>()}} {
 		if constexpr (CT::Sparse<T>)
 			MakeSparse();
+		if constexpr (CT::Constant<T>)
+			MakeConst();
 	}
+
+	/// Shallow-copy construction (const)													
+	///	@param other - the TAny to reference											
+	TEMPLATE()
+	TAny<T>::TAny(const TAny& other)
+		: Any {static_cast<const Any&>(other)} { }
+
+	/// Move construction																		
+	///	@param other - the TAny to move													
+	TEMPLATE()
+	TAny<T>::TAny(TAny&& other) noexcept
+		: Any {Forward<Any>(other)} { }
+
+	/// Shallow-copy but do not reference, because other is disowned				
+	///	@param other - the container to shallow-copy									
+	TEMPLATE()
+	TAny<T>::TAny(Disowned<TAny>&& other) noexcept
+		: Any {other.template Forward<Any>()} { }
+	
+	/// Move, but do not bother cleaning other, because it is abandoned			
+	///	@param other - the container to move											
+	TEMPLATE()
+	TAny<T>::TAny(Abandoned<TAny>&& other) noexcept
+		: Any {other.template Forward<Any>()} { }
+
+	/// Shallow-copy construction from Any, that checks type at runtime			
+	/// Any can contain anything, so there's a bit of type-checking overhead	
+	///	@param other - the anyness to reference										
+	TEMPLATE()
+	TAny<T>::TAny(const Any& other) : TAny {} {
+		if (!CastsToMeta(other.GetType())) {
+			Throw<Except::Copy>(Logger::Error()
+				<< "Bad shallow-copy-construction for TAny: from "
+				<< GetToken() << " to " << other.GetToken());
+		}
+
+		CopyProperties<false>(other);
+		Keep();
+	}
+
+	/// Move-construction from Any, that checks type at runtime						
+	/// Any can contain anything, so there's a bit of type-checking overhead	
+	///	@param other - the container to move											
+	TEMPLATE()
+	TAny<T>::TAny(Any&& other) : TAny {} {
+		if (!CastsToMeta(other.GetType())) {
+			Throw<Except::Copy>(Logger::Error()
+				<< "Bad move-construction for TAny: from "
+				<< GetToken() << " to " << other.GetToken());
+		}
+
+		CopyProperties<false>(other);
+		other.ResetMemory();
+		other.ResetState();
+	}
+
+	/// Shallow-copy construction from Any, that checks type at runtime, but	
+	/// doesn't reference contents, because they're disowned							
+	/// Any can contain anything, so there's a bit of type-checking overhead	
+	///	@param other - the anyness to reference										
+	TEMPLATE()
+	TAny<T>::TAny(Disowned<Any>&& other) : TAny {} {
+		if (!CastsToMeta(other.mValue.GetType())) {
+			Throw<Except::Copy>(Logger::Error()
+				<< "Bad shallow-copy-construction for TAny: from "
+				<< GetToken() << " to " << other.mValue.GetToken());
+		}
+
+		CopyProperties<false>(other);
+	}
+
+	/// Move-construction from Any, that checks type at runtime, but doesn't	
+	/// fully reset other, because it is abandoned										
+	/// Any can contain anything, so there's a bit of type-checking overhead	
+	///	@param other - the container to move											
+	TEMPLATE()
+	TAny<T>::TAny(Abandoned<Any>&& other) : TAny {} {
+		if (!CastsToMeta(other.mValue.GetType())) {
+			Throw<Except::Copy>(Logger::Error()
+				<< "Bad move-construction for TAny: from "
+				<< GetToken() << " to " << other.mValue.GetToken());
+		}
+
+		CopyProperties<false>(other);
+		other.mValue.mEntry = nullptr;
+	}
+
+	/// Shallow-copy construction from blocks (const)									
+	/// Block can contain anything, so there's a bit of type-checking overhead	
+	///	@param copy - the block to reference											
+	TEMPLATE()
+	TAny<T>::TAny(const Block& copy)
+		: TAny {Any {copy}} { }
+
+	/// Move (not really) construction - shallow-copies block and references	
+	///	@attention since we are not aware if that block is referenced, we		
+	///				  reference it, and we do not reset the other block to		
+	///				  avoid memory leaks														
+	///	@param other - the block to shallow-copy and reference					
+	TEMPLATE()
+		TAny<T>::TAny(Block&& copy)
+		: TAny {Any {Forward<Block>(copy)}} { }
+
+	/// Construct by copying/referencing value of non-block type					
+	///	@param other - the value to shallow-copy										
+	TEMPLATE()
+	TAny<T>::TAny(const T& other) requires CT::CustomData<T>
+		: Any {other} { }
+
+	/// Construct by moving a dense value of non-block type							
+	///	@param initial - the value to forward and emplace							
+	TEMPLATE()
+		TAny<T>::TAny(T&& initial) requires CT::CustomData<T>
+		: Any {Forward<T>(initial)} { }
+
+	/// Construct by interfacing a non-block element									
+	///	@attention unsafe, make sure that lifetime of memory is sane			
+	///	@param other - the value to interface											
+	TEMPLATE()
+	TAny<T>::TAny(Disowned<T>&& other) noexcept requires CT::CustomData<T>
+		: Any {Block {
+			DataState::Constrained, MetaData::Of<Decay<T>>(), 1,
+			const_cast<const T*>(&other.mValue), nullptr}} {}
+
+	/// Construct by interfacing a non-block element									
+	///	@attention unsafe, make sure that lifetime of memory is sane			
+	///	@param other - the value to interface											
+	TEMPLATE()
+	TAny<T>::TAny(Abandoned<T>&& other) noexcept requires CT::CustomData<T>
+		: Any {Block {
+			DataState::Member, MetaData::Of<Decay<T>>(), 1,
+			&other.mValue, nullptr}} {}
+
+	/// Construct manually by interfacing memory directly								
+	/// Data will be copied, if not in jurisdiction, which involves a slow		
+	/// authority check. If you want to avoid checking and copying, use the		
+	/// Disowned override of this function													
+	///	@param raw - raw memory to reference, or clone if not owned				
+	///	@param count - number of items inside 'raw'									
+	TEMPLATE()
+	TAny<T>::TAny(const T* raw, const Count& count)
+		: Any {Block {DataState::Constrained, MetaData::Of<Decay<T>>(), count, raw}} {
+		TakeAuthority();
+	}
+
+	/// Construct manually by interfacing memory directly								
+	///	@attention unsafe, make sure that lifetime of memory is sane			
+	///	@param raw - raw memory to interface without referencing or copying	
+	///	@param count - number of items inside 'raw'									
+	TEMPLATE()
+	TAny<T>::TAny(Disowned<const T*>&& raw, const Count& count) noexcept
+		: Any {Block {
+			DataState::Constrained, MetaData::Of<Decay<T>>(), count, raw.mValue, nullptr}} {}
 
 	/// Destructor																					
 	TEMPLATE()
 	TAny<T>::~TAny() {
 		Free();
 	}
-	
-	/// Destructor																					
+
+	/// Dereference and eventually destroy all elements								
 	TEMPLATE()
 	void TAny<T>::Free() {
 		if (!mEntry)
@@ -47,115 +202,11 @@ namespace Langulus::Anyness
 		mEntry = nullptr;
 	}
 
-	/// Shallow-copy construction (const)													
-	///	@param other - the TAny to reference											
-	TEMPLATE()
-	TAny<T>::TAny(const TAny& other)
-		: Any {static_cast<const Any&>(other)} { }
-
-	/// Move construction																		
-	///	@param other - the TAny to move													
-	TEMPLATE()
-	TAny<T>::TAny(TAny&& other) noexcept
-		: Any {Forward<Any>(other)} { }
-
-	/// Shallow copy construction from Any, that checks type							
-	/// Any can contain anything, so there's a bit of type-checking overhead	
-	///	@param other - the anyness to reference										
-	TEMPLATE()
-	TAny<T>::TAny(const Any& other) : TAny {} {
-		if (!CastsToMeta(other.GetType())) {
-			Throw<Except::Copy>(Logger::Error()
-				<< "Bad shallow-copy-construction for TAny: from "
-				<< GetToken() << " to " << other.GetToken());
-		}
-
-		CopyProperties<false>(other);
-		Keep();
-	}
-
-	/// Move-construction from Any, that checks type									
-	/// Any can contain anything, so there's a bit of type-checking overhead	
-	///	@param other - the container to move											
-	TEMPLATE()
-	TAny<T>::TAny(Any&& other) : TAny {} {
-		if (!CastsToMeta(other.GetType())) {
-			Throw<Except::Copy>(Logger::Error()
-				<< "Bad move-construction for TAny: from "
-				<< GetToken() << " to " << other.GetToken());
-		}
-
-		CopyProperties<false>(other);
-		other.ResetMemory();
-		other.ResetState();
-	}
-
-	/// Shallow copy construction from blocks (const)									
-	/// Block can contain anything, so there's a bit of type-checking overhead	
-	///	@param copy - the block to reference											
-	TEMPLATE()
-	TAny<T>::TAny(const Block& copy)
-		: TAny {Any {copy}} { }
-
-	/// Move construction - moves block and references content						
-	///	@attention since we are not aware if that block is referenced, we		
-	///				  reference it, and we do not reset the other block to		
-	///				  avoid memory leaks														
-	///	@param other - the block to move													
-	TEMPLATE()
-		TAny<T>::TAny(Block&& copy)
-		: TAny {Any {Forward<Block>(copy)}} { }
-
-	/// Copy other but do not reference it, because it is disowned					
-	///	@param other - the block to copy													
-	TEMPLATE()
-	TAny<T>::TAny(Disowned<TAny>&& other) noexcept
-		: Any {other.template Forward<Any>()} { }
-	
-	/// Move other, but do not bother cleaning it up, because it is disowned	
-	///	@param other - the block to move													
-	TEMPLATE()
-	TAny<T>::TAny(Abandoned<TAny>&& other) noexcept
-		: Any {other.template Forward<Any>()} { }
-	
-	/// Construct by copying/referencing value of non-block type					
-	///	@param other - the dense value to shallow-copy								
-	TEMPLATE()
-	TAny<T>::TAny(const T& other) requires CT::CustomData<T>
-		: Any {other} { }
-
-	/// Construct by moving a dense value of non-block type							
-	///	@param initial - the dense value to forward and emplace					
-	TEMPLATE()
-		TAny<T>::TAny(T&& initial) requires CT::CustomData<T>
-		: Any {Forward<T>(initial)} { }
-
-	/// Construct manually by referencing memory if owned								
-	/// If you want to avoid copying, use the Disowned alternative					
-	///	@param raw - raw memory to reference, or clone if not owned				
-	///	@param count - number of items inside 'raw'									
-	TEMPLATE()
-	TAny<T>::TAny(const T* raw, const Count& count)
-		: Any {Block {
-				DataState::Constrained, MetaData::Of<T>(), count, 
-				reinterpret_cast<const Byte*>(raw)}} {
-		TakeAuthority();
-	}
-
-	/// Construct manually by wrapping an array											
-	///	@param raw - raw memory to interface without referencing and copying	
-	///	@param count - number of items inside 'raw'									
-	TEMPLATE()
-	TAny<T>::TAny(Disowned<const T*>&& raw, const Count& count)
-		: Any {Block {
-				DataState::Constrained, MetaData::Of<T>(), count, 
-				reinterpret_cast<const Byte*>(raw.mValue), nullptr}} {}
-
 	/// Shallow-copy assignment																
 	///	@param other - the container to shallow-copy									
 	///	@return a reference to this container											
 	TEMPLATE()
-	TAny<T>& TAny<T>::operator = (const TAny<T>& other) {
+	TAny<T>& TAny<T>::operator = (const TAny& other) {
 		if (this == &other)
 			return *this;
 
@@ -169,7 +220,7 @@ namespace Langulus::Anyness
 	///	@param other - the container to move											
 	///	@return a reference to this container											
 	TEMPLATE()
-	TAny<T>& TAny<T>::operator = (TAny<T>&& other) noexcept {
+	TAny<T>& TAny<T>::operator = (TAny&& other) noexcept {
 		if (this == &other)
 			return *this;
 
@@ -177,6 +228,33 @@ namespace Langulus::Anyness
 		CopyProperties<true>(other);
 		other.ResetMemory();
 		other.ResetState();
+		return *this;
+	}
+
+	/// Shallow-copy a disowned container, without referencing the data			
+	///	@param other - the container to shallow-copy									
+	///	@return a reference to this container											
+	TEMPLATE()
+	TAny<T>& TAny<T>::operator = (Disowned<TAny>&& other) noexcept {
+		if (this == &other.mValue)
+			return *this;
+
+		Free();
+		CopyProperties<true>(other.mValue);
+		return *this;
+	}
+
+	/// Move assignment of an abandoned container, without fully resetting it	
+	///	@param other - the container to move											
+	///	@return a reference to this container											
+	TEMPLATE()
+	TAny<T>& TAny<T>::operator = (Abandoned<TAny>&& other) noexcept {
+		if (this == &other.mValue)
+			return *this;
+
+		Free();
+		CopyProperties<true>(other.mValue);
+		other.mValue.mEntry = nullptr;
 		return *this;
 	}
 
@@ -206,7 +284,7 @@ namespace Langulus::Anyness
 	///	@param other - the container to move											
 	///	@return a reference to this container											
 	TEMPLATE()
-	TAny<T>& TAny<T>::operator = (Any&& other) noexcept {
+	TAny<T>& TAny<T>::operator = (Any&& other) {
 		if (static_cast<Any*>(this) == &other)
 			return *this;
 
@@ -221,6 +299,47 @@ namespace Langulus::Anyness
 		CopyProperties<false>(other);
 		other.ResetMemory();
 		other.ResetState();
+	}
+
+	/// Shallow-copy disowned runtime container without referencing contents	
+	/// This is a bit slower, because checks type compatibility at runtime		
+	///	@param other - the container to shallow-copy									
+	///	@return a reference to this container											
+	TEMPLATE()
+	TAny<T>& TAny<T>::operator = (Disowned<Any>&& other) {
+		if (static_cast<Any*>(this) == &other.mValue)
+			return *this;
+
+		if (!CastsToMeta(other.mValue.mType)) {
+			Throw<Except::Copy>(Logger::Error()
+				<< "Bad shallow-copy-assignment for TAny: from "
+				<< GetToken() << " to " << other.mValue.GetToken());
+		}
+
+		Free();
+		ResetState();
+		CopyProperties<false>(other.mValue);
+	}
+
+	/// Move abandoned runtime container without fully resetting it				
+	/// This is a bit slower, because checks type compatibility at runtime		
+	///	@param other - the container to move											
+	///	@return a reference to this container											
+	TEMPLATE()
+	TAny<T>& TAny<T>::operator = (Abandoned<Any>&& other) {
+		if (static_cast<Any*>(this) == &other.mValue)
+			return *this;
+
+		if (!CastsToMeta(other.mValue.mType)) {
+			Throw<Except::Copy>(Logger::Error()
+				<< "Bad move-assignment for TAny: from "
+				<< GetToken() << " to " << other.mValue.GetToken());
+		}
+
+		Free();
+		ResetState();
+		CopyProperties<false>(other.mValue);
+		other.mValue.mEntry = nullptr;
 	}
 
 	/// Shallow-copy Block																		
@@ -250,7 +369,7 @@ namespace Langulus::Anyness
 	///	@param other - the container to shallow-copy									
 	///	@return a reference to this container											
 	TEMPLATE()
-	TAny<T>& TAny<T>::operator = (Block&& other) noexcept {
+	TAny<T>& TAny<T>::operator = (Block&& other) {
 		return operator = (static_cast<const Block&>(other));
 	}
 
@@ -279,51 +398,63 @@ namespace Langulus::Anyness
 	///	@return a reference to this container											
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator = (T&& other) requires CT::CustomData<T> {
-		if constexpr (CT::Same<T, Disowned<TAny>> || CT::Same<T, Abandoned<TAny>>) {
-			// Data is guaranteed to be compatible, replace it					
-			Free();
-			CopyProperties<true>(other.mValue);
-			if constexpr (CT::Same<T, Abandoned<TAny>>)
-				other.mValue.mEntry = nullptr;
-		}
-		else if constexpr (CT::Same<T, Any> || CT::Same<T, Disowned<Any>> || CT::Same<T, Abandoned<Any>>) {
-			// Move the other onto this if type is compatible					
-			if (!CastsToMeta(other.mType)) {
-				Throw<Except::Copy>(Logger::Error()
-					<< "Bad move-assignment for TAny: from "
-					<< GetToken() << " to " << other.GetToken());
-			}
-	
-			// Overwrite everything except the type-constraint					
-			Free();
-			ResetState();
-			if constexpr (CT::Same<T, Any>) {
-				CopyProperties<false>(other);
-				other.ResetMemory();
-				other.ResetState();
-			}
-			else {
-				CopyProperties<true>(other.mValue);
-				if constexpr (CT::Same<T, Abandoned<Any>>)
-					other.mValue.mEntry = nullptr;
-			}
-		}
-		else if constexpr (CT::Same<T, Block>) {
-			// Always reference a Block, by wrapping it in an Any				
-			operator = (TAny {Forward<Block>(other)});
+		if (GetUses() == 1) {
+			// Just destroy and reuse memory											
+			CallKnownDestructors<T>();
+			mCount = 0;
+			EmplaceInner<T, true>(Forward<T>(other), 0);
 		}
 		else {
+			// Reset and allocate new memory											
+			Reset();
+			operator << (Forward<T>(other));
+		}
+
+		return *this;
+	}
+
+	/// Assign by interfacing a disowned element											
+	///	@param other - the element to interface										
+	///	@return a reference to this container											
+	TEMPLATE()
+	TAny<T>& TAny<T>::operator = (Disowned<T>&& other) noexcept requires CT::CustomData<T> {
+		if constexpr (CT::Sparse<T>) {
 			if (GetUses() == 1) {
-				// Just destroy and reuse memory										
+				// Just destroy memory and reuse a single known pointer		
 				CallKnownDestructors<T>();
-				mCount = 0;
-				EmplaceInner<T, true>(Forward<T>(other), 0);
+				mCount = 1;
+				mRawSparse->mPointer = reinterpret_cast<Byte*>(other.mValue);
+				mRawSparse->mEntry = nullptr;
 			}
 			else {
 				// Reset and allocate new memory										
 				Reset();
-				operator << (Forward<T>(other));
+				operator << (Move(other));
 			}
+		}
+		else {
+			Reset();
+			mState += DataState::Constrained;
+			mCount = mReserved = 1;
+			mRaw = reinterpret_cast<Byte*>(const_cast<T*>(&other.mValue));
+		}
+
+		return *this;
+	}
+
+	/// Assign by interfacing an abandoned element										
+	///	@attention other is never reset													
+	///	@param other - the element to interface										
+	///	@return a reference to this container											
+	TEMPLATE()
+	TAny<T>& TAny<T>::operator = (Abandoned<T>&& other) noexcept requires CT::CustomData<T> {
+		if constexpr (CT::Sparse<T>)
+			return operator = (Disown(other.mValue));
+		else {
+			Reset();
+			mState += DataState::Member;
+			mCount = mReserved = 1;
+			mRaw = reinterpret_cast<Byte*>(&other.mValue);
 		}
 
 		return *this;
@@ -792,6 +923,24 @@ namespace Langulus::Anyness
 		return *this;
 	}
 
+	/// Push data at the back by copy-construction, but don't reference the		
+	/// new element, because it's disowned													
+	///	@param other - the item to insert												
+	///	@return a reference to this container for chaining							
+	TEMPLATE()
+	TAny<T>& TAny<T>::operator << (Disowned<T>&& other) {
+		TODO();
+	}
+
+	/// Push data at the back by move-construction, but don't fully reset the	
+	/// source, because it's abandoned														
+	///	@param other - the item to move													
+	///	@return a reference to this container for chaining							
+	TEMPLATE()
+	TAny<T>& TAny<T>::operator << (Abandoned<T>&& other) {
+		TODO();
+	}
+
 	/// Push data at the front by copy-construction										
 	///	@param other - the item to insert												
 	///	@return a reference to this container for chaining							
@@ -810,6 +959,24 @@ namespace Langulus::Anyness
 		return *this;
 	}
 
+	/// Push data at the front by copy-construction, but don't reference the	
+	/// new element, because it's disowned													
+	///	@param other - the item to insert												
+	///	@return a reference to this container for chaining							
+	TEMPLATE()
+	TAny<T>& TAny<T>::operator >> (Disowned<T>&& other) {
+		TODO();
+	}
+
+	/// Push data at the front by move-construction, but don't fully reset the	
+	/// source, because it's abandoned														
+	///	@param other - the item to move													
+	///	@return a reference to this container for chaining							
+	TEMPLATE()
+	TAny<T>& TAny<T>::operator >> (Abandoned<T>&& other) {
+		TODO();
+	}
+
 	/// Merge anything compatible to container											
 	/// By merging we mean anything that is not found is pushed						
 	///	@param items - the items to find and push										
@@ -821,18 +988,74 @@ namespace Langulus::Anyness
 		return Any::Merge<T, false, TAny>(items, count, idx);
 	}
 
-	/// Push data at the back																	
+	/// Copy-construct element at the back, if element is not found				
+	///	@param other - the element to shallow-copy									
+	///	@return a reference to this container											
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator <<= (const T& other) {
 		Merge(&other, 1, Index::Back);
 		return *this;
 	}
 
-	/// Push data at the front																	
+	/// Move-construct element at the back, if element is not found				
+	///	@param other - the element to move												
+	///	@return a reference to this container											
+	TEMPLATE()
+	TAny<T>& TAny<T>::operator <<= (T&& other) {
+		TODO();
+	}
+
+	/// Copy-construct element at the back, if element is not found				
+	/// The element's contents won't be referenced, because it is disowned		
+	///	@param other - the element to shallow-copy									
+	///	@return a reference to this container											
+	TEMPLATE()
+	TAny<T>& TAny<T>::operator <<= (Disowned<T>&& other) {
+		TODO();
+	}
+
+	/// Move-construct element at the back, if element is not found				
+	/// The element won't be fully reset, because it's abandoned					
+	///	@param other - the element to move												
+	///	@return a reference to this container											
+	TEMPLATE()
+	TAny<T>& TAny<T>::operator <<= (Abandoned<T>&& other) {
+		TODO();
+	}
+
+	/// Copy-construct element at the front, if element is not found				
+	///	@param other - the element to shallow-copy									
+	///	@return a reference to this container											
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator >>= (const T& other) {
 		Merge(&other, 1, Index::Front);
 		return *this;
+	}
+
+	/// Move-construct element at the front, if element is not found				
+	///	@param other - the element to move												
+	///	@return a reference to this container											
+	TEMPLATE()
+	TAny<T>& TAny<T>::operator >>= (T&& other) {
+		TODO();
+	}
+
+	/// Copy-construct element at the front, if element is not found				
+	/// The element's contents won't be referenced, because it is disowned		
+	///	@param other - the element to shallow-copy									
+	///	@return a reference to this container											
+	TEMPLATE()
+	TAny<T>& TAny<T>::operator >>= (Disowned<T>&& other) {
+		TODO();
+	}
+
+	/// Move-construct element at the front, if element is not found				
+	/// The element won't be fully reset, because it's abandoned					
+	///	@param other - the element to move												
+	///	@return a reference to this container											
+	TEMPLATE()
+	TAny<T>& TAny<T>::operator >>= (Abandoned<T>&& other) {
+		TODO();
 	}
 
 	/// Find element(s) index inside container											
@@ -858,11 +1081,11 @@ namespace Langulus::Anyness
 					const auto end = start - mCount;
 					while (--start != end) {
 						if constexpr (CT::DerivedFrom<T, ALT_T>) {
-							if (static_cast<MakeConst<T>>(*start) == item)
+							if (static_cast<ConstCast<T>>(*start) == item)
 								return start - GetRaw();
 						}
 						else if constexpr (CT::DerivedFrom<ALT_T, T>) {
-							if (*start == static_cast<MakeConst<ALT_T>>(item))
+							if (*start == static_cast<ConstCast<ALT_T>>(item))
 								return start - GetRaw();
 						}
 						else LANGULUS_ASSERT("Type is not comparable to contained elements");
@@ -877,11 +1100,11 @@ namespace Langulus::Anyness
 					const auto end = start + mCount;
 					while (++start != end) {
 						if constexpr (CT::DerivedFrom<T, ALT_T>) {
-							if (static_cast<MakeConst<T>>(*start) == item)
+							if (static_cast<ConstCast<T>>(*start) == item)
 								return start - GetRaw();
 						}
 						else if constexpr (CT::DerivedFrom<ALT_T, T>) {
-							if (*start == static_cast<MakeConst<ALT_T>>(item))
+							if (*start == static_cast<ConstCast<ALT_T>>(item))
 								return start - GetRaw();
 						}
 						else LANGULUS_ASSERT("Type is not comparable to contained elements");
@@ -894,12 +1117,12 @@ namespace Langulus::Anyness
 				// check is completely enough											
 				auto start = GetRaw();
 				if constexpr (CT::DerivedFrom<T, ALT_T>) {
-					const auto difference = item - static_cast<MakeConst<T>>(start);
+					const auto difference = item - static_cast<ConstCast<T>>(start);
 					if (difference >= 0 && static_cast<Count>(difference) < mCount)
 						return Index {difference};
 				}
 				else if constexpr (CT::DerivedFrom<ALT_T, T>) {
-					const auto difference = static_cast<MakeConst<ALT_T>>(item) - start;
+					const auto difference = static_cast<ConstCast<ALT_T>>(item) - start;
 					if (difference >= 0 && static_cast<Count>(difference) < mCount)
 						return Index {difference};
 				}
@@ -920,11 +1143,11 @@ namespace Langulus::Anyness
 					// single instruction comparison									
 					if constexpr (sizeof(ALT_T) > sizeof(void*)) {
 						if constexpr (CT::DerivedFrom<T, ALT_T>) {
-							if (static_cast<MakeConst<T>>(*start) == &item)
+							if (static_cast<ConstCast<T>>(*start) == &item)
 								return start - GetRaw();
 						}
 						else if constexpr (CT::DerivedFrom<ALT_T, T>) {
-							if (*start == static_cast<MakeConst<ALT_T>>(&item))
+							if (*start == static_cast<ConstCast<ALT_T>>(&item))
 								return start - GetRaw();
 						}
 					}
@@ -946,11 +1169,11 @@ namespace Langulus::Anyness
 					// single instruction comparison									
 					if constexpr (sizeof(ALT_T) > sizeof(void*)) {
 						if constexpr (CT::DerivedFrom<T, ALT_T>) {
-							if (static_cast<MakeConst<T>>(*start) == &item)
+							if (static_cast<ConstCast<T>>(*start) == &item)
 								return start - GetRaw();
 						}
 						else if constexpr (CT::DerivedFrom<ALT_T, T>) {
-							if (*start == static_cast<MakeConst<ALT_T>>(&item))
+							if (*start == static_cast<ConstCast<ALT_T>>(&item))
 								return start - GetRaw();
 						}
 					}
@@ -1283,7 +1506,7 @@ namespace Langulus::Anyness
 	template<CT::Block WRAPPER>
 	WRAPPER TAny<T>::Crop(const Offset& start, const Count& count) const {
 		auto result = const_cast<TAny*>(this)->Crop<WRAPPER>(start, count);
-		result.MakeConstant();
+		result.MakeConst();
 		return Abandon(result);
 	}
 	

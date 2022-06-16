@@ -31,7 +31,7 @@ option(LANGULUS_FEATURE_ENCRYPTION
 
 option(LANGULUS_FEATURE_MANAGED_MEMORY
     "Memory will be pooled and recycled when freed, and you can safely push any kind of pointer, \
-    as long as it was allocated by the memory manager, or by the overridden new/delete feature" ON)
+    as long as it was allocated by the memory manager, or by the overridden new/delete feature")
 
 option(LANGULUS_FEATURE_MANAGED_REFLECTION
     "Reflections will be kept in a centralized location, when reflected, which speeds up \

@@ -345,7 +345,7 @@ namespace Langulus::Anyness
 
 		constexpr void MakeMissing() noexcept;
 		constexpr void MakeStatic() noexcept;
-		constexpr void MakeConstant() noexcept;
+		constexpr void MakeConst() noexcept;
 		constexpr void MakeTypeConstrained() noexcept;
 		constexpr void MakeOr() noexcept;
 		constexpr void MakeAnd() noexcept;
