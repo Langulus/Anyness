@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-include(cmake/DownloadProject.cmake)
+include(cmake/FetchLangulusModule.cmake)
 project(Langulus_Anyness)
 
 # Configure the features you require, all these are disabled by default
@@ -84,26 +84,21 @@ if(PROJECT_IS_TOP_LEVEL)
     # We're building Anyness as standalone
     set(CMAKE_CXX_STANDARD 20)
     set(CMAKE_CXX_STANDARD_REQUIRED ON)
-    enable_testing()
 
-    # Configure Langulus.Core
-    message(STATUS "Configuring external project: Langulus.Core...")
-    download_project(
-	    PROJ                Langulus_Core
-	    GIT_REPOSITORY      https://github.com/Langulus/Core.git
-	    GIT_TAG             main
-	    GIT_PROGRESS        TRUE
-	    UPDATE_DISCONNECTED 1
-    )
-    include_directories(${Langulus_Core_SOURCE_DIR}/include)
+    fetch_langulus_module(Core)
+    fetch_langulus_module(Logger)
+    enable_testing()
+    add_subdirectory(test)
 endif()
 
 # Build and install Anyness library
 add_library(Langulus.Anyness ${SOURCE_FILES})
+
 target_include_directories(Langulus.Anyness
     PRIVATE     ${CMAKE_CURRENT_SOURCE_DIR}
     INTERFACE	${CMAKE_CURRENT_SOURCE_DIR}/include/
 )
 
-# Testing
-add_subdirectory(test)
+target_link_libraries(Langulus.Anyness
+    PUBLIC      Langulus.Core Langulus.Logger
+)
