@@ -1,5 +1,6 @@
 #pragma once
 #include <Langulus.Core.hpp>
+#include <Langulus.Logger.hpp>
 
 /// Use the utfcpp library to convert between utf types								
 /// No overhead, requires utfcpp to be linked											

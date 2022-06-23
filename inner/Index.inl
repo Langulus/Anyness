@@ -6,7 +6,6 @@
 /// See LICENSE file, or https://www.gnu.org/licenses									
 ///																									
 #pragma once
-#include "Logger.hpp"
 #include <limits>
 
 namespace Langulus::Anyness
