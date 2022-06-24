@@ -33,8 +33,8 @@ SCENARIO("Text containers", "[text]") {
 				REQUIRE_FALSE(text.IsAllocated());
 				REQUIRE_FALSE(text.HasAuthority());
 				REQUIRE(text.IsTypeConstrained());
-				REQUIRE(text.GetType() == MetaData::Of<char8_t>());
-				REQUIRE(text.Is<char8_t>());
+				REQUIRE(text.GetType() == MetaData::Of<Letter>());
+				REQUIRE(text.Is<Letter>());
 				REQUIRE(text.IsNow());
 				REQUIRE(text.IsInvalid());
 				REQUIRE(text.IsDense());
@@ -43,10 +43,8 @@ SCENARIO("Text containers", "[text]") {
 				REQUIRE(text.GetCount() == 0);
 				REQUIRE(text.GetReserved() == 0);
 				REQUIRE(text.GetUses() == 0);
-				REQUIRE(text == u8"");
 				REQUIRE(text == "");
 				REQUIRE(text == nullptr);
-				REQUIRE_FALSE(text == u8"no match");
 				REQUIRE_FALSE(text == "no match");
 			}
 		}
@@ -70,8 +68,8 @@ SCENARIO("Text containers", "[text]") {
 				REQUIRE_FALSE(text.IsUntyped());
 				REQUIRE_FALSE(text.IsValid());
 				REQUIRE(text.IsTypeConstrained());
-				REQUIRE(text.GetType() == MetaData::Of<char8_t>());
-				REQUIRE(text.Is<char8_t>());
+				REQUIRE(text.GetType() == MetaData::Of<Letter>());
+				REQUIRE(text.Is<Letter>());
 				REQUIRE(text.IsNow());
 				REQUIRE(text.IsInvalid());
 				REQUIRE(text.IsDense());
@@ -82,10 +80,8 @@ SCENARIO("Text containers", "[text]") {
 				REQUIRE(text.GetReserved() >= 500);
 				REQUIRE(text.GetUses() == 1);
 				REQUIRE(text.HasAuthority());
-				REQUIRE(text == u8"");
 				REQUIRE(text == "");
 				REQUIRE_FALSE(text == nullptr);
-				REQUIRE_FALSE(text == u8"no match");
 				REQUIRE_FALSE(text == "no match");
 			}
 		}
@@ -111,8 +107,8 @@ SCENARIO("Text containers", "[text]") {
 				REQUIRE_FALSE(text.IsAllocated());
 				REQUIRE_FALSE(text.HasAuthority());
 				REQUIRE(text.IsTypeConstrained());
-				REQUIRE(text.GetType() == MetaData::Of<char8_t>());
-				REQUIRE(text.Is<char8_t>());
+				REQUIRE(text.GetType() == MetaData::Of<Letter>());
+				REQUIRE(text.Is<Letter>());
 				REQUIRE(text.IsNow());
 				REQUIRE(text.IsInvalid());
 				REQUIRE(text.IsDense());
@@ -121,10 +117,8 @@ SCENARIO("Text containers", "[text]") {
 				REQUIRE(text.GetCount() == 0);
 				REQUIRE(text.GetReserved() == 0);
 				REQUIRE(text.GetUses() == 0);
-				REQUIRE(text == u8"");
 				REQUIRE(text == "");
 				REQUIRE(text == nullptr);
-				REQUIRE_FALSE(text == u8"no match");
 				REQUIRE_FALSE(text == "no match");
 			}
 		}
@@ -159,10 +153,9 @@ SCENARIO("Text containers", "[text]") {
 				REQUIRE((*text).IsAllocated());
 				REQUIRE((*text).GetCount() == 5);
 				REQUIRE((*text).GetReserved() >= 5);
-				REQUIRE((*text).Is<char8_t>());
+				REQUIRE((*text).Is<Letter>());
 				REQUIRE((*text).GetRaw());
 				REQUIRE((*text).HasAuthority());
-				REQUIRE((*text) == u8"test1");
 				REQUIRE((*text) == "test1");
 				REQUIRE((*text)[0] == 't');
 				REQUIRE((*text)[1] == 'e');
@@ -180,10 +173,9 @@ SCENARIO("Text containers", "[text]") {
 			THEN("The capacity and size change") {
 				REQUIRE((*text).GetCount() == 5);
 				REQUIRE((*text).GetReserved() >= 5);
-				REQUIRE((*text).Is<char8_t>());
+				REQUIRE((*text).Is<Letter>());
 				REQUIRE((*text).GetRaw());
 				REQUIRE((*text).HasAuthority());
-				REQUIRE((*text) == u8"test1");
 				REQUIRE((*text) == "test1");
 				REQUIRE((*text)[0] == 't');
 				REQUIRE((*text)[1] == 'e');
@@ -196,16 +188,15 @@ SCENARIO("Text containers", "[text]") {
 		}
 
 		WHEN("Constructed with a c-array") {
-			char8_t test1[] = u8"test1";
+			char test1[] = "test1";
 			text = new Text {test1};
 
 			THEN("The capacity and size change") {
 				REQUIRE((*text).GetCount() == 5);
 				REQUIRE((*text).GetReserved() >= 5);
-				REQUIRE((*text).Is<char8_t>());
+				REQUIRE((*text).Is<Letter>());
 				REQUIRE((*text).GetRaw());
 				REQUIRE((*text).HasAuthority());
-				REQUIRE((*text) == u8"test1");
 				REQUIRE((*text) == "test1");
 				REQUIRE((*text)[0] == 't');
 				REQUIRE((*text)[1] == 'e');
@@ -218,15 +209,14 @@ SCENARIO("Text containers", "[text]") {
 		}
 
 		WHEN("Constructed with a single character") {
-			text = new Text {u8'?'};
+			text = new Text {'?'};
 
 			THEN("The capacity and size change") {
 				REQUIRE((*text).GetCount() == 1);
 				REQUIRE((*text).GetReserved() >= 1);
-				REQUIRE((*text).Is<char8_t>());
+				REQUIRE((*text).Is<Letter>());
 				REQUIRE((*text).GetRaw());
 				REQUIRE((*text).HasAuthority());
-				REQUIRE((*text) == u8"?");
 				REQUIRE((*text)[0] == '?');
 			}
 
@@ -262,7 +252,6 @@ SCENARIO("Text containers", "[text]") {
 				REQUIRE(text.GetReserved() >= 500);
 				REQUIRE(text.GetRaw() == memory);
 				REQUIRE(text.HasAuthority());
-				REQUIRE(text == u8"test");
 				REQUIRE(text == "test");
 			}
 		}
@@ -276,7 +265,6 @@ SCENARIO("Text containers", "[text]") {
 				REQUIRE(text.GetReserved() >= 500);
 				REQUIRE(text.GetRaw() == memory);
 				REQUIRE(text.HasAuthority());
-				REQUIRE(text != u8"test");
 				REQUIRE(text != "test");
 			}
 		}
@@ -289,9 +277,8 @@ SCENARIO("Text containers", "[text]") {
 				REQUIRE(text.GetCount() == 0);
 				REQUIRE(text.GetReserved() == 0);
 				REQUIRE(text.GetRaw() == nullptr);
-				REQUIRE(text.GetType() == MetaData::Of<char8_t>());
+				REQUIRE(text.GetType() == MetaData::Of<Letter>());
 				REQUIRE_FALSE(text.HasAuthority());
-				REQUIRE(text != u8"test");
 				REQUIRE(text != "test");
 			}
 		}
@@ -313,7 +300,7 @@ SCENARIO("Text containers", "[text]") {
 					REQUIRE(text.GetRaw() == memory);
 				#endif
 				REQUIRE(text.HasAuthority());
-				REQUIRE(text.Is<char8_t>());
+				REQUIRE(text.Is<Letter>());
 			}
 		}
 
@@ -360,7 +347,7 @@ SCENARIO("Text containers", "[text]") {
 				REQUIRE(text.GetReserved() >= 5);
 				REQUIRE(text.GetRaw() == memory);
 				REQUIRE(text.HasAuthority());
-				REQUIRE(text.Is<char8_t>());
+				REQUIRE(text.Is<Letter>());
 			}
 		}
 
@@ -370,7 +357,7 @@ SCENARIO("Text containers", "[text]") {
 				REQUIRE(text.GetCount() == 0);
 				REQUIRE(text.GetReserved() == 0);
 				REQUIRE_FALSE(text.GetRaw());
-				REQUIRE(text.Is<char8_t>());
+				REQUIRE(text.Is<Letter>());
 			}
 		}
 
@@ -409,7 +396,7 @@ SCENARIO("Text containers", "[text]") {
 				REQUIRE(text.GetCount() == 5);
 				REQUIRE(text.GetReserved() >= 5);
 				REQUIRE(text.HasAuthority());
-				REQUIRE(text.Is<char8_t>());
+				REQUIRE(text.Is<Letter>());
 			}
 		}
 
@@ -422,7 +409,7 @@ SCENARIO("Text containers", "[text]") {
 	}
 }
 
-TEMPLATE_TEST_CASE("Unsigned number stringification", "[text]", uint8_t, uint16_t, uint32_t, uint64_t) {
+TEMPLATE_TEST_CASE("Unsigned number stringification", "[text]", /*uint8_t,*/ uint16_t, uint32_t, uint64_t) {
 	Text* text;
 
 	WHEN("Constructed with a number") {
@@ -431,7 +418,7 @@ TEMPLATE_TEST_CASE("Unsigned number stringification", "[text]", uint8_t, uint16_
 		THEN("The capacity and size change") {
 			REQUIRE((*text).GetCount() == 2);
 			REQUIRE((*text).GetReserved() >= 2);
-			REQUIRE((*text).Is<char8_t>());
+			REQUIRE((*text).Is<Letter>());
 			REQUIRE((*text).GetRaw());
 			REQUIRE((*text).HasAuthority());
 			REQUIRE((*text) == "66");
@@ -450,7 +437,7 @@ TEMPLATE_TEST_CASE("Signed number stringification", "[text]", int8_t, int16_t, i
 		THEN("The capacity and size change") {
 			REQUIRE((*text).GetCount() == 3);
 			REQUIRE((*text).GetReserved() >= 3);
-			REQUIRE((*text).Is<char8_t>());
+			REQUIRE((*text).Is<Letter>());
 			REQUIRE((*text).GetRaw());
 			REQUIRE((*text).HasAuthority());
 			REQUIRE((*text) == "-66");

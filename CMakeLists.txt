@@ -42,36 +42,36 @@ option(LANGULUS_ENABLE_FEATURE_MEMORY_STATISTICS
     "Memory manager shall keep track of statistics, for the price of little overhead")
 
 if(LANGULUS_ENABLE_SAFE_MODE)
-    ADD_DEFINITIONS(-DLANGULUS_ENABLE_SAFE_MODE)
+    add_definitions(-DLANGULUS_ENABLE_SAFE_MODE)
 endif()
 if(LANGULUS_ENABLE_PARANOIA)
-    ADD_DEFINITIONS(-DLANGULUS_ENABLE_PARANOIA)
+    add_definitions(-DLANGULUS_ENABLE_PARANOIA)
 endif()
 if(LANGULUS_ENABLE_DEBUGGING)
-    ADD_DEFINITIONS(-DLANGULUS_ENABLE_DEBUGGING)
+    add_definitions(-DLANGULUS_ENABLE_DEBUGGING)
 endif()
 if(LANGULUS_FEATURE_NEWDELETE)
-    ADD_DEFINITIONS(-DLANGULUS_ENABLE_FEATURE_NEWDELETE)
+    add_definitions(-DLANGULUS_ENABLE_FEATURE_NEWDELETE)
 endif()
 if(LANGULUS_FEATURE_UTFCPP)
-    ADD_DEFINITIONS(-DLANGULUS_ENABLE_FEATURE_UTFCPP)
+    add_definitions(-DLANGULUS_ENABLE_FEATURE_UTFCPP)
     #TODO download_project utfcpp
 endif()
 if(LANGULUS_FEATURE_ZLIB)
-    ADD_DEFINITIONS(-DLANGULUS_ENABLE_FEATURE_ZLIB)
+    add_definitions(-DLANGULUS_ENABLE_FEATURE_ZLIB)
     #TODO download_project zlib
 endif()
 if(LANGULUS_FEATURE_ENCRYPTION)
-    ADD_DEFINITIONS(-DLANGULUS_ENABLE_FEATURE_ENCRYPTION)
+    add_definitions(-DLANGULUS_ENABLE_FEATURE_ENCRYPTION)
 endif()
 if(LANGULUS_FEATURE_MANAGED_MEMORY)
-    ADD_DEFINITIONS(-DLANGULUS_ENABLE_FEATURE_MANAGED_MEMORY)
+    add_definitions(-DLANGULUS_ENABLE_FEATURE_MANAGED_MEMORY)
 endif()
 if(LANGULUS_FEATURE_MANAGED_REFLECTION)
-    ADD_DEFINITIONS(-DLANGULUS_ENABLE_MANAGED_REFLECTION)
+    add_definitions(-DLANGULUS_ENABLE_MANAGED_REFLECTION)
 endif()
 if(LANGULUS_ENABLE_FEATURE_MEMORY_STATISTICS)
-    ADD_DEFINITIONS(-DLANGULUS_ENABLE_FEATURE_MEMORY_STATISTICS)
+    add_definitions(-DLANGULUS_ENABLE_FEATURE_MEMORY_STATISTICS)
 endif()
 
 # Add source
@@ -87,6 +87,7 @@ if(PROJECT_IS_TOP_LEVEL)
 
     fetch_langulus_module(Core)
     fetch_langulus_module(Logger)
+
     enable_testing()
     add_subdirectory(test)
 endif()
@@ -94,11 +95,15 @@ endif()
 # Build and install Anyness library
 add_library(Langulus.Anyness ${SOURCE_FILES})
 
+if (MSVC)
+    target_compile_options(Langulus.Anyness PRIVATE /utf-8)
+endif()
+
 target_include_directories(Langulus.Anyness
     PRIVATE     ${CMAKE_CURRENT_SOURCE_DIR}
-    INTERFACE	${CMAKE_CURRENT_SOURCE_DIR}/include/
+    INTERFACE	${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
 target_link_libraries(Langulus.Anyness
-    PUBLIC      Langulus.Core Langulus.Logger
+    PUBLIC      Langulus.Logger
 )

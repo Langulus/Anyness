@@ -8,7 +8,7 @@
 #include "Main.hpp"
 #include <catch2/catch.hpp>
 
-TEMPLATE_TEST_CASE("Unsigned integer RTTI interpretation", "[metadata]", uint8_t, uint16_t, uint32_t, uint64_t) {
+TEMPLATE_TEST_CASE("Unsigned integer RTTI interpretation", "[metadata]", /*uint8_t,*/ uint16_t, uint32_t, uint64_t) {
 	#include "CollectGarbage.inl"
 
 	GIVEN("An unsigned integer type") {

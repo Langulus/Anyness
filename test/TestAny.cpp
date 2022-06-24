@@ -529,7 +529,7 @@ SCENARIO("Any", "[containers]") {
 		WHEN("Given static text") {
 			#include "CollectGarbage.inl"
 
-			Text original_pct = u8"Lorep Ipsum";
+			Text original_pct = "Lorep Ipsum";
 			Any pack;
 			pack = original_pct;
 			THEN("Various traits change") {
@@ -550,7 +550,7 @@ SCENARIO("Any", "[containers]") {
 		WHEN("Given dynamic text") {
 			#include "CollectGarbage.inl"
 
-			Text original_pct = u8"Lorep Ipsum";
+			Text original_pct = "Lorep Ipsum";
 			Any pack;
 			pack = original_pct.Clone();
 			THEN("Various traits change") {
@@ -571,7 +571,7 @@ SCENARIO("Any", "[containers]") {
 		WHEN("Given dynamic text, which is later referenced multiple times") {
 			#include "CollectGarbage.inl"
 
-			Text original_pct = u8"Lorep Ipsum";
+			Text original_pct = "Lorep Ipsum";
 			Any pack;
 			pack = original_pct.Clone();
 			Any pack2(pack);
@@ -600,7 +600,7 @@ SCENARIO("Any", "[containers]") {
 		WHEN("Given dynamic text, which is later referenced multiple times, and then dereferenced") {
 			#include "CollectGarbage.inl"
 
-			Text original_pct = u8"Lorep Ipsum";
+			Text original_pct = "Lorep Ipsum";
 			Any pack;
 			pack = original_pct.Clone();
 			Any pack2(pack);
@@ -1008,7 +1008,7 @@ SCENARIO("Any", "[containers]") {
 		}
 
 		WHEN("Smart pushing different type without retainment") {
-			auto result = subpack1.SmartPush<true, false>(u8'?');
+			auto result = subpack1.SmartPush<true, false>('?');
 			THEN("The pack must remain unchanged") {
 				REQUIRE(result == 0);
 				REQUIRE(subpack1.GetCount() == 5);
@@ -1018,7 +1018,7 @@ SCENARIO("Any", "[containers]") {
 		WHEN("Smart pushing with retainment") {
 			Any deepened;
 			deepened << int(1) << int(2) << int(3) << int(4) << int(5);
-			auto result = deepened.SmartPush<false, true>(u8'?');
+			auto result = deepened.SmartPush<false, true>('?');
 			THEN("The pack must get deeper and contain it") {
 				REQUIRE(result == 1);
 				REQUIRE(deepened.IsDeep());
@@ -1067,7 +1067,7 @@ SCENARIO("Any", "[containers]") {
 			Any pushed;
 			pushed << 666;
 			pushed.MakeOr();
-			auto result = pushed.SmartPush<true, true>(u8'?');
+			auto result = pushed.SmartPush<true, true>('?');
 			THEN("Must not duplicate state of deepened container") {
 				REQUIRE(result == 1);
 				REQUIRE(!pushed.IsOr());

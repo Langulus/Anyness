@@ -10,9 +10,6 @@
 
 namespace Langulus::Anyness
 {
-	
-	using Letter = char8_t;
-
 
 	///																								
 	///	COUNT-TERMINATED TEXT WRAPPER														
@@ -38,19 +35,12 @@ namespace Langulus::Anyness
 		Text(const Index&);
 		Text(const Meta&);
 
-		Text(const char*, const Count&);
-		Text(Disowned<const char*>&&, const Count&);
-
 		Text(const Letter*, const Count&);
 		Text(Disowned<const Letter*>&&, const Count&);
 
 		template<Count C>
-		Text(const char(&)[C]);
-		template<Count C>
 		Text(const Letter(&)[C]);
 
-		explicit Text(const char*);
-		explicit Text(Disowned<const char*>&&);
 		explicit Text(const Letter*);
 		explicit Text(Disowned<const Letter*>&&);
 
@@ -87,8 +77,7 @@ namespace Langulus::Anyness
 		NOD() Count GetLineCount() const noexcept;
 
 		bool operator == (const Text&) const noexcept;
-		bool operator == (const char*) const noexcept;
-		bool operator == (const char8_t*) const noexcept;
+		bool operator == (const Letter*) const noexcept;
 		bool operator == (::std::nullptr_t) const noexcept;
 
 		NOD() bool FindOffset(const Text&, Offset&) const;

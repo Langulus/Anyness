@@ -52,20 +52,20 @@ namespace Langulus::Anyness
 		};
 
 		static constexpr Token Names[SpecialIndexCounter - MinIndex] = {
-			u8"All",
-			u8"Many",
-			u8"Single",
+			"All",
+			"Many",
+			"Single",
 
-			u8"None",
-			u8"Front",
-			u8"Middle",
-			u8"Back",
+			"None",
+			"Front",
+			"Middle",
+			"Back",
 
-			u8"Mode",
-			u8"Biggest",
-			u8"Smallest",
-			u8"Auto",
-			u8"Random"
+			"Mode",
+			"Biggest",
+			"Smallest",
+			"Auto",
+			"Random"
 		};
 
 		#if LANGULUS_DEBUG()

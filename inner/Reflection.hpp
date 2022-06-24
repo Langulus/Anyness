@@ -320,7 +320,7 @@ namespace Langulus::Anyness
 			Infinite = ::std::numeric_limits<int>::max()
 		};
 		
-		static constexpr Token DefaultToken = u8"udInvalid";
+		static constexpr Token DefaultToken = "Invalid";
 		
 		// List of reflected members													
 		MemberList mMembers {};

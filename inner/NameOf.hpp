@@ -16,7 +16,7 @@ namespace Langulus::Anyness::Inner
    /// Once we wrap and stringify it, we can isolate the typename itself      
    template<typename T>
    constexpr Token TypeAsTemplateArgument() {
-      return reinterpret_cast<const char8_t*>(LANGULUS_FUNCTION());
+      return LANGULUS_FUNCTION();
    }
 
    /// Filter a literal matching at the front                                 
@@ -40,21 +40,21 @@ namespace Langulus::Anyness::Inner
    /// Skip class identifier                                                  
    constexpr void SkipClass(Token& name) {
       SkipSpace(name);
-      SkipPrefix(name, u8"class");
+      SkipPrefix(name, "class");
       SkipSpace(name);
    }
 
    /// Skip struct identifier                                                 
    constexpr void SkipStruct(Token& name) {
       SkipSpace(name);
-      SkipPrefix(name, u8"struct");
+      SkipPrefix(name, "struct");
       SkipSpace(name);
    }
 
    /// Skip enum identifier                                                   
    constexpr void SkipEnum(Token& name) {
       SkipSpace(name);
-      SkipPrefix(name, u8"enum");
+      SkipPrefix(name, "enum");
       SkipSpace(name);
    }
 
@@ -75,14 +75,14 @@ namespace Langulus::Anyness::Inner
       /// necessarily critical, since all we need is actually a hash of an    
       /// unique name regardless of its actual name contents                  
       #if defined(__clang__)
-         constexpr Token Prefix = u8"Langulus::Token Langulus::Anyness::Inner::TypeAsTemplateArgument() [T = ";
-         constexpr Token Suffix = u8"]";
+         constexpr Token Prefix = "Langulus::Token Langulus::Anyness::Inner::TypeAsTemplateArgument() [T = ";
+         constexpr Token Suffix = "]";
       #elif defined(__GNUC__) && !defined(__clang__)
-         constexpr Token Prefix = u8"constexpr Langulus::Token Langulus::Anyness::Inner::TypeAsTemplateArgument() [with T = ";
-         constexpr Token Suffix = u8"; Langulus::Token = std::basic_string_view<char8_t>]";
+         constexpr Token Prefix = "constexpr Langulus::Token Langulus::Anyness::Inner::TypeAsTemplateArgument() [with T = ";
+         constexpr Token Suffix = "; Langulus::Token = std::basic_string_view<char>]";
       #elif defined(_MSC_VER)
-         constexpr Token Prefix = u8"class std::basic_string_view<char8_t,struct std::char_traits<char8_t> > __cdecl Langulus::Anyness::Inner::TypeAsTemplateArgument<";
-         constexpr Token Suffix = u8">(void)";
+         constexpr Token Prefix = "class std::basic_string_view<char,struct std::char_traits<char> > __cdecl Langulus::Anyness::Inner::TypeAsTemplateArgument<";
+         constexpr Token Suffix = ">(void)";
       #else
          #error "No support for this compiler"
       #endif

@@ -24,39 +24,15 @@ namespace Langulus::Anyness
 	/// Data will be cloned if we don't have authority over the memory			
 	///	@param text - text memory to reference											
 	///	@param count - number of characters inside text								
-	inline Text::Text(const char* text, const Count& count)
-		: TAny {reinterpret_cast<const char8_t*>(text), count} { }
+	inline Text::Text(const Letter* text, const Count& count)
+		: TAny {text, count} { }
 
 	/// Construct manually from count-terminated C string								
 	/// Data will never be cloned or referenced											
 	///	@param text - text memory to wrap												
 	///	@param count - number of characters inside text								
-	inline Text::Text(Disowned<const char*>&& text, const Count& count)
-		: TAny {Disown(reinterpret_cast<const char8_t*>(text.mValue)), count} { }
-
-	/// Construct manually from count-terminated UTF text								
-	/// Data will be cloned if we don't have authority over the memory			
-	///	@tparam T - type of the character in the array								
-	///	@param text - text memory to reference											
-	///	@param count - number of characters inside text								
-	inline Text::Text(const Letter* text, const Count& count)
-		: TAny {text, count} { }
-
-	/// Construct manually from count-terminated UTF text								
-	/// Data will never be cloned or referenced											
-	///	@tparam T - type of the character in the array								
-	///	@param text - text memory to wrap												
-	///	@param count - number of characters inside text								
 	inline Text::Text(Disowned<const Letter*>&& text, const Count& count)
-		: TAny {Move(text), count} { }
-
-	/// Construct from a non-u8 string literal											
-	/// Data will be cloned if we don't have authority over the memory			
-	///	@tparam C - size of the literal													
-	///	@param text - text memory to reference											
-	template<Count C>
-	inline Text::Text(const char(&text)[C])
-		: TAny {reinterpret_cast<const char8_t*>(text), C - 1} { }
+		: TAny {Disown(text.mValue), count} { }
 
 	/// Construct manually from a c style array											
 	/// Data will be cloned if we don't have authority over the memory			
@@ -108,18 +84,6 @@ namespace Langulus::Anyness
 		else LANGULUS_ASSERT("Unsupported number type");
 	}
 
-	/// Construct from null-terminated C string											
-	/// Data will be cloned if we don't have authority over the memory			
-	///	@param nullterminatedText - text memory to reference						
-	inline Text::Text(const char* nullterminatedText)
-		: Text {nullterminatedText, ::std::strlen(nullterminatedText)} {}
-
-	/// Construct from null-terminated C string											
-	/// Data will never be cloned or referenced											
-	///	@param nullterminatedText - text to wrap										
-	inline Text::Text(Disowned<const char*>&& nullterminatedText)
-		: Text {Move(nullterminatedText), ::std::strlen(nullterminatedText.mValue)} {}
-
 	/// Construct from null-terminated UTF text											
 	/// Data will be cloned if we don't have authority over the memory			
 	///	@param nullterminatedText - text memory to reference						
@@ -164,14 +128,7 @@ namespace Langulus::Anyness
 		return TAny::operator == (static_cast<const TAny&>(rhs));
 	}
 
-	/// Compare with a cstring																	
-	///	@param rhs - the text to compare against										
-	///	@return true if both strings are the same										
-	inline bool Text::operator == (const char* rhs) const noexcept {
-		return operator == (Text {Disown(rhs)});
-	}
-
-	/// Compare with a u8 string																
+	/// Compare with a string																	
 	///	@param rhs - the text to compare against										
 	///	@return true if both strings are the same										
 	inline bool Text::operator == (const Letter* rhs) const noexcept {

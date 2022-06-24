@@ -144,7 +144,7 @@ namespace Langulus::Anyness
 	template<CT::Data T>
 	constexpr Hash Meta::GetHash() noexcept {
 		const auto name = Inner::NameOf<T>();
-		return ::std::hash<::std::u8string_view>()(name);
+		return ::std::hash<Token>()(name);
 	}
    
 	/// Get the constexpr name of a type													
@@ -200,7 +200,7 @@ namespace Langulus::Anyness
 			// Type is implicitly reflected, so let's do our best				
 			meta = ::std::make_unique<MetaData>();
 			meta->mToken = Meta::GetName<T>();
-			meta->mInfo = u8"<no info provided due to implicit reflection>";
+			meta->mInfo = "<no info provided due to implicit reflection>";
 			meta->mName = Meta::GetName<T>();
 			meta->mHash = Meta::GetHash<T>();
 			meta->mIsAbstract = CT::Abstract<T>;

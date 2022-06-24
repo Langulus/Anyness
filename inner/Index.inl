@@ -51,8 +51,8 @@ namespace Langulus::Anyness
 	///	@return a valid offset																
 	constexpr Offset Index::GetOffset() const {
 		if (IsSpecial()) {
-			Throw<Except::Access>(Logger::Error()
-				<< "Can't convert special index to offset");
+			Throw<Except::Access>(
+				Logger::Error("Can't convert special index to offset"));
 		}
 
 		return static_cast<Offset>(mIndex);
