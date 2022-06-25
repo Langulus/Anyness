@@ -320,7 +320,7 @@ namespace Langulus::Anyness
 			Infinite = ::std::numeric_limits<int>::max()
 		};
 		
-		static constexpr Token DefaultToken = "Invalid";
+		static constexpr Token DefaultToken = "NoData";
 		
 		// List of reflected members													
 		MemberList mMembers {};
@@ -450,6 +450,8 @@ namespace Langulus::Anyness
 	///	Meta trait																				
 	///																								
 	struct MetaTrait : public Meta {
+		static constexpr Token DefaultToken = "NoTrait";
+
 		// Data filter for the trait (optional)									
 		DMeta mDataType {};
 
@@ -472,6 +474,8 @@ namespace Langulus::Anyness
 	///	Meta verb																				
 	///																								
 	struct MetaVerb : public Meta {
+		static constexpr Token DefaultToken = "NoVerb";
+
 		// Verbs have antonyms, denoted via this 'negative' token			
 		// For example, 'Destroy' is the reverse of 'Create'					
 		// This is mainly syntax sugar - reverse token just does mass*=-1	
