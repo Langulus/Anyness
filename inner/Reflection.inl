@@ -339,23 +339,23 @@ namespace Langulus::Anyness
 	template<CT::Fundamental T>
 	void MetaData::ReflectFundamentalType() noexcept {
 		if constexpr (CT::Bool<T>) {
-			using Bases = TTypeList<ABool>;
+			using Bases = TTypeList<A::Bool>;
 			SetBases<T>(Bases {});
 		}
 		else if constexpr (CT::Character<T>) {
-			using Bases = TTypeList<AText>;
+			using Bases = TTypeList<A::Text>;
 			SetBases<T>(Bases {});
 		}
 		else if constexpr (CT::SignedInteger<T>) {
-			using Bases = TTypeList<ASignedInteger>;
+			using Bases = TTypeList<A::SignedInteger>;
 			SetBases<T>(Bases {});
 		}
 		else if constexpr (CT::UnsignedInteger<T>) {
-			using Bases = TTypeList<AUnsignedInteger>;
+			using Bases = TTypeList<A::UnsignedInteger>;
 			SetBases<T>(Bases {});
 		}
 		else if constexpr (CT::Real<T>) {
-			using Bases = TTypeList<AReal>;
+			using Bases = TTypeList<A::Real>;
 			SetBases<T>(Bases {});
 		}
 		else LANGULUS_ASSERT("Unimplemented fundamental type reflector");
