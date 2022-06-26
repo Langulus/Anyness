@@ -6,7 +6,6 @@
 /// See LICENSE file, or https://www.gnu.org/licenses									
 ///																									
 #include "Text.hpp"
-#include "inner/Hashing.hpp"
 #include <locale>
 
 namespace Langulus::Anyness
@@ -50,7 +49,7 @@ namespace Langulus::Anyness
 
 	/// Stringify meta																			
 	///	@param meta - the definition to stringify										
-	Text::Text(const Meta& meta)
+	Text::Text(const RTTI::Meta& meta)
 		: Text {meta.mToken} {}
 
 	/// Count the number of newline characters											

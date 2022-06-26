@@ -1743,7 +1743,7 @@ namespace Langulus::Anyness
 			return Get<T>(idx);
 
 		// Second fallback stage for compatible bases and mappings			
-		Base base;
+		RTTI::Base base;
 		if (!mType->GetBase<T>(0, base)) {
 			// There's still a chance if this container is resolvable		
 			// This is the third and final stage									

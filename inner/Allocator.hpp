@@ -106,8 +106,8 @@ namespace Langulus::Anyness::Inner
 			//																					
 			// More functionality, when feature MANAGED_MEMORY is enabled	
 			//																					
-			NOD() static Allocation* Find(DMeta, const void*) SAFETY_NOEXCEPT();
-			NOD() static bool CheckAuthority(DMeta, const void*) SAFETY_NOEXCEPT();
+			NOD() static Allocation* Find(RTTI::DMeta, const void*) SAFETY_NOEXCEPT();
+			NOD() static bool CheckAuthority(RTTI::DMeta, const void*) SAFETY_NOEXCEPT();
 			NOD() static Pool* AllocatePool(const Size&) SAFETY_NOEXCEPT();
 			static void DeallocatePool(Pool*) SAFETY_NOEXCEPT();
 			static void CollectGarbage();

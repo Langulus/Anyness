@@ -1124,7 +1124,7 @@ SCENARIO("Any", "[containers]") {
 
 		for (Count e = 0; e < pack.GetCount(); ++e) {
 			auto element = pack.GetElement(e);
-			Base base;
+			RTTI::Base base;
 			REQUIRE(element.GetType()->GetBase<Block>(0, base));
 			auto baseBlock = element.GetBaseMemory(MetaData::Of<Block>(), base);
 			baseRange.InsertBlock(baseBlock);

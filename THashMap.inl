@@ -7,7 +7,6 @@
 ///																									
 #pragma once
 #include "THashMap.hpp"
-#include "inner/Hashing.hpp"
 
 #define TABLE_TEMPLATE() template<CT::Data K, CT::Data V>
 #define TABLE() THashMap<K, V>

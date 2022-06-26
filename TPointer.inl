@@ -84,7 +84,7 @@ namespace Langulus::Anyness
 	TEMPLATE_SHARED()
 	TPointer<T, DR> TPointer<T, DR>::Create(Decay<T>&& initializer) requires CT::MoveMakable<Decay<T>> {
 		TPointer pointer;
-		pointer.mEntry = Inner::Allocator::Allocate(GetAllocationPageOf<Decay<T>>());
+		pointer.mEntry = Inner::Allocator::Allocate(RTTI::GetAllocationPageOf<Decay<T>>());
 		if (!pointer.mEntry)
 			Throw<Except::Allocate>("Out of memory on creating pointer");
 
@@ -100,7 +100,7 @@ namespace Langulus::Anyness
 	TEMPLATE_SHARED()
 	TPointer<T, DR> TPointer<T, DR>::Create(const Decay<T>& initializer) requires CT::CopyMakable<Decay<T>> {
 		TPointer pointer;
-		pointer.mEntry = Inner::Allocator::Allocate(GetAllocationPageOf<Decay<T>>());
+		pointer.mEntry = Inner::Allocator::Allocate(RTTI::GetAllocationPageOf<Decay<T>>());
 		if (!pointer.mEntry)
 			Throw<Except::Allocate>("Out of memory on creating pointer");
 
@@ -115,7 +115,7 @@ namespace Langulus::Anyness
 	TEMPLATE_SHARED()
 	TPointer<T, DR> TPointer<T, DR>::Create() requires CT::Defaultable<Decay<T>> {
 		TPointer pointer;
-		pointer.mEntry = Inner::Allocator::Allocate(GetAllocationPageOf<Decay<T>>());
+		pointer.mEntry = Inner::Allocator::Allocate(RTTI::GetAllocationPageOf<Decay<T>>());
 		if (!pointer.mEntry)
 			Throw<Except::Allocate>("Out of memory on creating pointer");
 
@@ -131,7 +131,7 @@ namespace Langulus::Anyness
 	TEMPLATE_SHARED() template<typename... ARGS>
 	TPointer<T, DR> TPointer<T, DR>::New(ARGS&&... arguments) {
 		TPointer pointer;
-		pointer.mEntry = Inner::Allocator::Allocate(GetAllocationPageOf<Decay<T>>());
+		pointer.mEntry = Inner::Allocator::Allocate(RTTI::GetAllocationPageOf<Decay<T>>());
 		if (!pointer.mEntry)
 			Throw<Except::Allocate>("Out of memory on new pointer");
 

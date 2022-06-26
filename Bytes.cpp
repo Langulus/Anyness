@@ -6,7 +6,6 @@
 /// See LICENSE file, or https://www.gnu.org/licenses									
 ///																									
 #include "Bytes.hpp"
-#include "inner/Hashing.hpp"
 
 namespace Langulus::Anyness
 {

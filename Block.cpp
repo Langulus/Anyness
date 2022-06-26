@@ -57,7 +57,7 @@ namespace Langulus::Anyness
 	///	@param meta - the descriptor to scan for a base								
 	///	@param base - the base to search for											
 	///	@return the block for the base (static and immutable)						
-	Block Block::GetBaseMemory(DMeta meta, const Base& base) const {
+	Block Block::GetBaseMemory(DMeta meta, const RTTI::Base& base) const {
 		if (base.mBinaryCompatible) {
 			return {
 				DataState::ConstantMember, meta,
@@ -79,7 +79,7 @@ namespace Langulus::Anyness
 	///	@param meta - the descriptor to scan for a base								
 	///	@param base - the base to search for											
 	///	@return the block for the base (static and immutable)						
-	Block Block::GetBaseMemory(DMeta meta, const Base& base) {
+	Block Block::GetBaseMemory(DMeta meta, const RTTI::Base& base) {
 		if (base.mBinaryCompatible) {
 			return {
 				DataState::Member, meta,
@@ -101,11 +101,11 @@ namespace Langulus::Anyness
 	/// This performs only pointer arithmetic												
 	///	@param base - the base to search for											
 	///	@return the block for the base (static and immutable)						
-	Block Block::GetBaseMemory(const Base& base) const {
+	Block Block::GetBaseMemory(const RTTI::Base& base) const {
 		return GetBaseMemory(base.mType, base);
 	}
 
-	Block Block::GetBaseMemory(const Base& base) {
+	Block Block::GetBaseMemory(const RTTI::Base& base) {
 		return GetBaseMemory(base.mType, base);
 	}
 

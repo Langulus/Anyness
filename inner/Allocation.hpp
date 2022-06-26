@@ -6,7 +6,18 @@
 /// See LICENSE file, or https://www.gnu.org/licenses									
 ///																									
 #pragma once
-#include "Reflection.hpp"
+#include "Config.hpp"
+
+namespace Langulus::Anyness
+{
+	using DataState = RTTI::DataState;
+	using MetaData = RTTI::MetaData;
+	using MetaTrait = RTTI::MetaTrait;
+	using MetaVerb = RTTI::MetaVerb;
+	using DMeta = RTTI::DMeta;
+	using TMeta = RTTI::TMeta;
+	using VMeta = RTTI::VMeta;
+}
 
 namespace Langulus::Anyness::Inner
 {

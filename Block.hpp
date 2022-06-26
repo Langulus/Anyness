@@ -6,8 +6,6 @@
 /// See LICENSE file, or https://www.gnu.org/licenses									
 ///																									
 #pragma once
-#include "inner/Reflection.hpp"
-#include "inner/DataState.hpp"
 #include "inner/Index.hpp"
 #include "inner/Allocator.hpp"
 
@@ -324,8 +322,8 @@ namespace Langulus::Anyness
 		NOD() Block Crop(const Offset&, const Count&);
 		NOD() Block Crop(const Offset&, const Count&) const;
 	
-		NOD() const Block GetMember(const Member&) const;
-		NOD() Block GetMember(const Member&);
+		NOD() const Block GetMember(const RTTI::Member&) const;
+		NOD() Block GetMember(const RTTI::Member&);
 		NOD() const Block GetMember(TMeta, Offset = 0) const;
 		NOD() Block GetMember(TMeta, Offset = 0);
 		NOD() const Block GetMember(DMeta, Offset = 0) const;
@@ -333,10 +331,10 @@ namespace Langulus::Anyness
 		NOD() const Block GetMember(std::nullptr_t, Offset = 0) const;
 		NOD() Block GetMember(std::nullptr_t, Offset = 0);
 	
-		NOD() Block GetBaseMemory(DMeta, const Base&) const;
-		NOD() Block GetBaseMemory(DMeta, const Base&);
-		NOD() Block GetBaseMemory(const Base&) const;
-		NOD() Block GetBaseMemory(const Base&);
+		NOD() Block GetBaseMemory(DMeta, const RTTI::Base&) const;
+		NOD() Block GetBaseMemory(DMeta, const RTTI::Base&);
+		NOD() Block GetBaseMemory(const RTTI::Base&) const;
+		NOD() Block GetBaseMemory(const RTTI::Base&);
 	
 		template<CT::Data T, CT::Deep WRAPPER>
 		NOD() bool Mutate();

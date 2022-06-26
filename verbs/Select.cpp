@@ -16,7 +16,7 @@ namespace Langulus::Anyness
 	/// Never references data																	
 	///	@param member - the member to get												
 	///	@return a static memory block														
-	Block Block::GetMember(const Member& member) {
+	Block Block::GetMember(const RTTI::Member& member) {
 		if (!IsAllocated())
 			return Block {member.mType};
 
@@ -29,7 +29,7 @@ namespace Langulus::Anyness
 	/// Get the memory Block corresponding to a local member variable (const)	
 	///	@param member - the member to get												
 	///	@return a static constant memory block											
-	const Block Block::GetMember(const Member& member) const {
+	const Block Block::GetMember(const RTTI::Member& member) const {
 		auto result = const_cast<Block*>(this)->GetMember(member);
 		result.MakeConst();
 		return result;

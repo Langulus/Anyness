@@ -166,8 +166,8 @@ SCENARIO("Testing FastLog2 calls", "[allocator]") {
 TEMPLATE_TEST_CASE("Testing GetAllocationPageOf<T> calls", "[allocator]", Type1, Type2, Type4, Type8, TypeBig, TypeVeryBig) {
 	WHEN("GetAllocationPageOf<T> is executed") {
 		THEN("Results should be correct") {
-			REQUIRE(IsPowerOfTwo(GetAllocationPageOf<TestType>()));
-			REQUIRE(GetAllocationPageOf<TestType>() >= sizeof(TestType));
+			REQUIRE(IsPowerOfTwo(RTTI::GetAllocationPageOf<TestType>()));
+			REQUIRE(RTTI::GetAllocationPageOf<TestType>() >= sizeof(TestType));
 		}
 	}
 }

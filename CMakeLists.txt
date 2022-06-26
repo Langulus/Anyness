@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.22)
 include(cmake/FetchLangulusModule.cmake)
-project(Langulus_Anyness)
+project(Langulus.Anyness)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Configure the features you require, all these are disabled by default
 option(LANGULUS_ENABLE_SAFE_MODE 
@@ -74,25 +77,21 @@ if(LANGULUS_ENABLE_FEATURE_MEMORY_STATISTICS)
     add_definitions(-DLANGULUS_ENABLE_FEATURE_MEMORY_STATISTICS)
 endif()
 
-# Add source
-aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR} SOURCE_FILES)
-aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/inner SOURCE_FILES)
-aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/verbs SOURCE_FILES)
-
 # Check if this project is built as standalone, or a part of something else
 if(PROJECT_IS_TOP_LEVEL)
     # We're building Anyness as standalone
-    set(CMAKE_CXX_STANDARD 20)
-    set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
     fetch_langulus_module(Core)
     fetch_langulus_module(Logger)
+    fetch_langulus_module(RTTI)
 
     enable_testing()
     add_subdirectory(test)
 endif()
 
 # Build and install Anyness library
+aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR} SOURCE_FILES)
+aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/inner SOURCE_FILES)
+aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/verbs SOURCE_FILES)
 add_library(Langulus.Anyness ${SOURCE_FILES})
 
 if (MSVC)
@@ -100,10 +99,9 @@ if (MSVC)
 endif()
 
 target_include_directories(Langulus.Anyness
-    PRIVATE     ${CMAKE_CURRENT_SOURCE_DIR}
-    INTERFACE	${CMAKE_CURRENT_SOURCE_DIR}/include
+    PUBLIC	    include
 )
 
 target_link_libraries(Langulus.Anyness
-    PUBLIC      Langulus.Logger
+    PUBLIC      Langulus.RTTI
 )

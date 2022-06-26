@@ -9,5 +9,8 @@ function(fetch_langulus_module NAME)
 	    GIT_PROGRESS        TRUE
 	    UPDATE_DISCONNECTED 1
     )
+
 	add_subdirectory(${Langulus_${NAME}_SOURCE_DIR} ${Langulus_${NAME}_BINARY_DIR})
+	set(Langulus_${NAME}_SOURCE_DIR ${Langulus_${NAME}_SOURCE_DIR} PARENT_SCOPE)
+	set(Langulus_${NAME}_BINARY_DIR ${Langulus_${NAME}_BINARY_DIR} PARENT_SCOPE)
 endfunction()

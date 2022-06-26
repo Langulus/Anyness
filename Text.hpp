@@ -33,7 +33,7 @@ namespace Langulus::Anyness
 		Text(const Byte&);
 		Text(const Exception&);
 		Text(const Index&);
-		Text(const Meta&);
+		Text(const RTTI::Meta&);
 
 		Text(const Letter*, const Count&);
 		Text(Disowned<const Letter*>&&, const Count&);
