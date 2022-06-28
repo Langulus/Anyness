@@ -101,4 +101,19 @@ namespace Langulus::Anyness
 
 } // namespace Langulus::Anyness
 
+
+namespace Langulus::CT
+{
+
+	/// Concept for differentiating managed Anyness Text types						
+	template<class T>
+	concept Text = DerivedFrom<T, ::Langulus::Anyness::Text>;
+
+	/// Concept for differentiating managed Anyness Text types						
+	template<class T>
+	concept NotText = !Text<T>;
+
+} // namespace Langulus::CT
+
+
 #include "Text.inl"
