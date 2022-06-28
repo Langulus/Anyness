@@ -446,3 +446,10 @@ TEMPLATE_TEST_CASE("Signed number stringification", "[text]", int8_t, int16_t, i
 		delete text;
 	}
 }
+
+TEMPLATE_TEST_CASE("Logging text containers", "[text]", Text, Debug) {
+	TestType text {"some text"};
+
+	Logger::Info() << "You should see " << text;
+	Logger::Info("You should also see ", text);
+}

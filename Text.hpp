@@ -91,6 +91,14 @@ namespace Langulus::Anyness
 		NOD() Text operator + (const RHS&) const;
 	};
 
+
+	/// Text container specialized for logging											
+	/// Serializing to text might produce a lot of unncessesary text, so this	
+	/// differentiation is quite handy														
+	class Debug : public Text {
+		using Text::Text;
+	};
+
 } // namespace Langulus::Anyness
 
 #include "Text.inl"
