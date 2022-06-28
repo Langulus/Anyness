@@ -51,14 +51,15 @@
 #endif
 
 /// The following features can be enabled only if managed memory is				
-#define LANGULUS_FEATURE_MANAGED_REFLECTION() 0
-#define LANGULUS_FEATURE_NEWDELETE() 0
+#ifndef LANGULUS_FEATURE_MANAGED_REFLECTION
+	#define LANGULUS_FEATURE_MANAGED_REFLECTION() 0
+#endif
 
-#if LANGULUS_FEATURE_MANAGED_MEMORY()
-	/// Replace the default new-delete operators with one that use Allocator	
-	/// No overhead, no dependencies															
-	#ifdef LANGULUS_ENABLE_FEATURE_NEWDELETE
-		#undef LANGULUS_FEATURE_NEWDELETE
-		#define LANGULUS_FEATURE_NEWDELETE() 1
-	#endif
+/// Replace the default new-delete operators with one that use Allocator		
+/// No overhead, no dependencies																
+#ifdef LANGULUS_ENABLE_FEATURE_NEWDELETE
+	#undef LANGULUS_FEATURE_NEWDELETE
+	#define LANGULUS_FEATURE_NEWDELETE() 1
+#else
+	#define LANGULUS_FEATURE_NEWDELETE() 0
 #endif
