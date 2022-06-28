@@ -448,7 +448,7 @@ namespace Langulus::Anyness
 		NOD() bool CastsTo(Count) const;
 	
 		NOD() bool Is(DMeta) const noexcept;
-		template<CT::Data T>
+		template<CT::Data... T>
 		NOD() bool Is() const;
 		
 		NOD() Block ReinterpretAs(const Block&) const;

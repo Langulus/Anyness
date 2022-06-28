@@ -959,13 +959,13 @@ namespace Langulus::Anyness
 		return CastsToMeta(MetaData::Of<Decay<T>>(), count);
 	}
 
-	/// Check if this container's data is exactly of type T							
+	/// Check if this container's data is exactly one of the listed types		
 	///	@attention ignores sparsity														
-	///	@tparam T - the type to compare against										
-	///	@return true if data type matches												
-	template<CT::Data T>
+	///	@tparam T - the types to compare against										
+	///	@return true if data type matches at least one type						
+	template<CT::Data... T>
 	bool Block::Is() const {
-		return Is(MetaData::Of<Decay<T>>());
+		return (Is(MetaData::Of<Decay<T>>()) || ...);
 	}
 
 	/// Set the data ID - use this only if you really know what you're doing	
