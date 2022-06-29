@@ -10,13 +10,13 @@
 
 namespace Langulus::Anyness
 {
-	using DataState = RTTI::DataState;
-	using MetaData = RTTI::MetaData;
-	using MetaTrait = RTTI::MetaTrait;
-	using MetaVerb = RTTI::MetaVerb;
-	using DMeta = RTTI::DMeta;
-	using TMeta = RTTI::TMeta;
-	using VMeta = RTTI::VMeta;
+	using RTTI::DataState;
+	using RTTI::MetaData;
+	using RTTI::MetaTrait;
+	using RTTI::MetaVerb;
+	using RTTI::DMeta;
+	using RTTI::TMeta;
+	using RTTI::VMeta;
 }
 
 namespace Langulus::Anyness::Inner

@@ -12,9 +12,9 @@
 using namespace Langulus;
 using namespace Langulus::Anyness;
 
-using Allocator = Anyness::Inner::Allocator;
-using Allocation = Anyness::Inner::Allocation;
-using Pool = Anyness::Inner::Pool;
+using Anyness::Inner::Allocator;
+using Anyness::Inner::Allocation;
+using Anyness::Inner::Pool;
 
 //#define LANGULUS_STD_BENCHMARK
 
