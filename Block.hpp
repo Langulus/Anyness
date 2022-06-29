@@ -163,8 +163,10 @@ namespace Langulus::Anyness
 		template<CT::Data T, bool CONSTRAIN>
 		void SetType();
 	
-		constexpr void SetPhase(const Phase) noexcept;
+		constexpr void SetPhase(Phase) noexcept;
 		constexpr void SetState(DataState) noexcept;
+		constexpr void AddState(DataState) noexcept;
+		constexpr void RemoveState(DataState) noexcept;
 	
 		NOD() constexpr const DMeta& GetType() const noexcept;
 		NOD() constexpr const Count& GetCount() const noexcept;

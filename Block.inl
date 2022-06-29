@@ -737,6 +737,20 @@ namespace Langulus::Anyness
 		mState = state - DataState::Constrained;
 	}
 
+	/// Add a state																				
+	///	@attention you can't add constraint states, even if you want to		
+	///	@param state - the state to add to the current								
+	constexpr void Block::AddState(DataState state) noexcept {
+		mState += state - DataState::Constrained;
+	}
+
+	/// Remove a state																			
+	///	@attention you can't remove constraint states, even if you want to	
+	///	@param state - the state to remove from the current						
+	constexpr void Block::RemoveState(DataState state) noexcept {
+		mState -= state - DataState::Constrained;
+	}
+
 	/// Get the relevant state when relaying one block	to another					
 	/// Relevant states exclude memory and type constraints							
 	constexpr DataState Block::GetUnconstrainedState() const noexcept {
