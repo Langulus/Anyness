@@ -63,14 +63,6 @@ namespace Langulus::Anyness
 		return TraitIs(TRAIT::ID);
 	}
 
-	inline bool Trait::operator != (const Trait& other) const noexcept {
-		return !(*this == other);
-	}
-
-	inline bool Trait::operator != (TMeta other) const noexcept {
-		return !(*this == other);
-	}
-
 	/// Assign by shallow-copying some value different from Trait					
 	///	@param value - the value to copy													
 	template<CT::Data T>

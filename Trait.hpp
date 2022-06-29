@@ -96,21 +96,29 @@ namespace Langulus::Anyness
 
 		NOD() bool operator == (const Trait&) const noexcept;
 		NOD() bool operator == (TMeta) const noexcept;
-
-		NOD() bool operator != (const Trait&) const noexcept;
-		NOD() bool operator != (TMeta) const noexcept;
 	};
 
-	namespace Traits
-	{
-
-		class Count : public Trait {
-		public:
-			using Trait::Trait;
-		};
-
-	} // namespace Langulus::Anyness::Traits
-
 } // namespace Langulus::Anyness
+
+
+namespace Langulus::Traits
+{
+
+	using Anyness::Trait;
+
+	struct Count : public Trait {
+		using Trait::Trait;
+	};
+
+	struct Name : public Trait {
+		using Trait::Trait;
+	};
+
+	struct Context : public Trait {
+		using Trait::Trait;
+	};
+
+} // namespace Langulus::Traits
+
 
 #include "Trait.inl"
