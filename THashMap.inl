@@ -678,12 +678,14 @@ namespace Langulus::Anyness
 	}
 
 	/// Inner insertion function																
+	///	@param start - the starting index												
 	///	@param key - key to move in														
 	///	@param value - value to move in													
 	TABLE_TEMPLATE()
 	void TABLE()::InsertInner(const Offset& start, K& key, V& value) {
 		// Get the starting index based on the key hash							
 		auto psl = GetInfo() + start;
+		const auto pslEnd = GetInfoEnd();
 		auto candidate = GetRawKeys() + start;
 		uint8_t attempts {1};
 		while (*psl) {
@@ -702,15 +704,17 @@ namespace Langulus::Anyness
 				::std::swap(attempts, *psl);
 			}
 
-			// Shouldn't really happen, like ever (?), because we always	
-			// allocate more than we need, and we rehash on each realloc,	
-			// spreading the values and lowering the required PSLs			
-			//TODO test this extensively, just in case							
-			SAFETY(if (attempts == 255u)
-				Throw<Except::Overflow>("Map PSL overflow")
-			);
+			++attempts;
 
-			++attempts; ++psl; ++candidate;
+			if (psl < pslEnd - 1) LIKELY() {
+				++psl;
+				++candidate;
+			}
+			else UNLIKELY() {
+				// Wrap around and start from the beginning						
+				psl = GetInfo();
+				candidate = GetRawKeys();
+			}
 		}
 
 		// If reached, empty slot reached, so put the pair there				
@@ -826,14 +830,16 @@ namespace Langulus::Anyness
 	TABLE_TEMPLATE()
 	void TABLE()::RemoveIndex(const Offset& start) noexcept {
 		auto psl = GetInfo() + start;
+		const auto pslEnd = GetInfoEnd();
 		auto key = GetRawKeys() + start;
 		auto value = GetRawValues() + start;
 		using KeyTransfer = Decay<decltype(key)>;
 		using ValTransfer = Decay<decltype(value)>;
 
-		// Destroy the key, info and value there									
+		// Destroy the key, info and value at the start							
 		RemoveInner(value);
 		RemoveInner(key);
+
 		*psl = 0;
 
 		++psl;
@@ -843,6 +849,7 @@ namespace Langulus::Anyness
 		// And shift backwards, until a zero or 1 is reached					
 		// That way we move every entry that is far from its start			
 		// closer to it. Moving is costly, unless you use pointers			
+		try_again:
 		while (*psl > 1) {
 			psl[-1] = (*psl) - 1;
 
@@ -866,6 +873,35 @@ namespace Langulus::Anyness
 			++psl;
 			++key;
 			++value;
+		}
+
+		// Be aware, that psl might loop around									
+		if (psl == pslEnd && *GetInfo() > 1) UNLIKELY() {
+			psl = GetInfo();
+			key = GetRawKeys();
+			value = GetRawValues();
+
+			// Shift first entry to the back											
+			GetInfo()[mValues.mReserved] = (*psl) - 1;
+
+			new (GetRawKeys() + mValues.mReserved)
+				KeyTransfer {Move(*key)};
+			new (GetRawValues() + mValues.mReserved)
+				ValTransfer {Move(*value)};
+
+			if constexpr (CT::Dense<K>)
+				RemoveInner(key);
+			if constexpr (CT::Dense<V>)
+				RemoveInner(value);
+
+			*psl = 0;
+
+			++psl;
+			++key;
+			++value;
+
+			// And continue the vicious cycle										
+			goto try_again;
 		}
 
 		// Success																			
@@ -1049,12 +1085,23 @@ namespace Langulus::Anyness
 		// as a mask to the hash, to extract the relevant bucket				
 		auto start = HashData(key) & (GetReserved() - 1);
 		auto psl = GetInfo() + start;
+		const auto pslEnd = GetInfoEnd() - 1;
 		auto candidate = GetRawKeys() + start;
 		Count attempts{};
 		while (*psl > attempts) {
 			if (*candidate != key) {
 				// There might be more keys to the right, check them			
-				++psl; ++candidate; ++attempts;
+				if (psl == pslEnd) UNLIKELY() {
+					// By 'to the right' I also mean looped back to start		
+					psl = GetInfo();
+					candidate = GetRawKeys();
+				}
+				else LIKELY() {
+					++psl;
+					++candidate;
+				}
+
+				++attempts;
 				continue;
 			}
 
