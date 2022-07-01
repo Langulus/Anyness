@@ -569,4 +569,14 @@ namespace Langulus::Anyness
 	
 } // namespace Langulus::Anyness
 
+namespace Langulus::CT
+{
+
+	/// Check if a type can be handled generically by templates, and			
+	/// doesn't	require any special handling											
+	template<class T>
+	concept CustomData = Data<T> && !Deep<T> && NotAbandonedOrDisowned<T>;
+
+}
+
 #include "Block.inl"
