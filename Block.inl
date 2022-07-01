@@ -1082,7 +1082,8 @@ namespace Langulus::Anyness
 	///	@return number of inserted elements												
 	template<CT::Data WRAPPER, bool KEEP, bool MUTABLE, CT::Data T>
 	Count Block::Insert(const T* items, const Count count, const Index& index) requires CT::NotAbandonedOrDisowned<T> {
-		static_assert(CT::Mutable<T>, "Can't copy-insert into immutable container");
+		static_assert(CT::Sparse<T> || CT::Mutable<T>, 
+			"Can't copy-insert into container of constant elements");
 		const auto starter = ConstrainMore<T>(index).GetOffset();
 
 		if constexpr (MUTABLE) {
@@ -1125,7 +1126,8 @@ namespace Langulus::Anyness
 	///	@return 1 if item was emplaced													
 	template<CT::Data WRAPPER, bool KEEP, bool MUTABLE, CT::Data T>
 	Count Block::Insert(T&& item, const Index& index) requires CT::NotAbandonedOrDisowned<T> {
-		static_assert(CT::Mutable<T>, "Can't move-insert into immutable container");
+		static_assert(CT::Sparse<T> || CT::Mutable<T>,
+			"Can't move-insert into container of constant elements");
 		const auto starter = ConstrainMore<T>(index).GetOffset();
 
 		if constexpr (MUTABLE) {
@@ -1170,7 +1172,8 @@ namespace Langulus::Anyness
 	///	@param starter - the offset at which to insert								
 	template<bool KEEP, CT::Data T>
 	void Block::InsertInner(const T* items, const Count& count, const Offset& starter) requires CT::NotAbandonedOrDisowned<T> {
-		static_assert(CT::Mutable<T>, "Can't insert into immutable container");
+		static_assert(CT::Sparse<T> || CT::Mutable<T>,
+			"Can't copy-insert into container of constant elements");
 
 		// Insert new data																
 		if constexpr (CT::Sparse<T>) {
@@ -1179,7 +1182,8 @@ namespace Langulus::Anyness
 			auto data = GetRawSparse() + starter;
 			const auto itemsEnd = items + count;
 			while (items != itemsEnd) {
-				data->mPointer = reinterpret_cast<Byte*>(*items);
+				data->mPointer = const_cast<Byte*>(
+					reinterpret_cast<const Byte*>(*items));
 
 				#if LANGULUS_FEATURE(MANAGED_MEMORY)
 					if constexpr (KEEP) {
@@ -1237,7 +1241,8 @@ namespace Langulus::Anyness
 	///	@param starter - the offset at which to insert								
 	template<bool KEEP, CT::Data T>
 	void Block::InsertInner(T&& item, const Offset& starter) requires CT::NotAbandonedOrDisowned<T> {
-		static_assert(CT::Mutable<T>, "Can't emplace into immutable container");
+		static_assert(CT::Sparse<T> || CT::Mutable<T>,
+			"Can't move-insert into container of constant elements");
 
 		// Insert new data																
 		if constexpr (CT::Sparse<T>) {
@@ -1289,7 +1294,8 @@ namespace Langulus::Anyness
 	///	@return the number of removed items												
 	template<CT::Data T>
 	Count Block::Remove(const T* items, const Count count, const Index& index) {
-		static_assert(CT::Mutable<T>, "Can't remove from immutable container");
+		static_assert(CT::Sparse<T> || CT::Mutable<T>,
+			"Can't remove elements from container of constant elements");
 		Count removed {};
 		const auto itemsEnd = items + count;
 		while (items != itemsEnd) {
@@ -2099,7 +2105,7 @@ namespace Langulus::Anyness
 						// until all empty stateless blocks are removed			
 						while (block && block->IsEmpty() && !block->GetUnconstrainedState()) {
 							index -= RemoveIndexDeep(index);
-							block = pcReinterpret<A>(GetBlockDeep(index - 1));
+							block = ReinterpretCast<A>(GetBlockDeep(index - 1));
 						}
 					}
 
@@ -2219,7 +2225,8 @@ namespace Langulus::Anyness
 	///	@tparam T - the type to destroy													
 	template<CT::Data T>
 	void Block::CallKnownDestructors() {
-		static_assert(CT::Mutable<T>, "Can't destroy immutable type");
+		static_assert(CT::Sparse<T> || CT::Mutable<T>,
+			"Can't destroy constant elements");
 		using DT = Decay<T>;
 
 		if constexpr (CT::Sparse<T>) {
@@ -2267,7 +2274,8 @@ namespace Langulus::Anyness
 	///	@param source - the block of elements to move								
 	template<CT::Data T>
 	void Block::CallKnownMoveConstructors(const Count count, Block&& source) {
-		static_assert(CT::Mutable<T>, "Can't move-construct immutable type");
+		static_assert(CT::Sparse<T> || CT::Mutable<T>,
+			"Can't move-construct in container of constant elements");
 
 		if constexpr (CT::Sparse<T>) {
 			// Move known pointers														

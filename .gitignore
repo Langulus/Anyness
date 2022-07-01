@@ -2,3 +2,5 @@
 /.vs
 /external
 *.user
+*.bak
+*.hint

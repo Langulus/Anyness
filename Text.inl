@@ -69,7 +69,7 @@ namespace Langulus::Anyness
 				--lastChar;
 			}
 
-			(*this) = Text {temp, lastChar - temp};
+			(*this) = Text {temp, static_cast<Count>(lastChar - temp)};
 		}
 		else if constexpr (CT::Integer<T>) {
 			// Stringify an integer														

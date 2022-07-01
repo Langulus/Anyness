@@ -76,7 +76,6 @@ namespace Langulus::Anyness
 	///	@param other - the dense value to forward and emplace						
 	template <CT::CustomData T>
 	Any::Any(T&& other) {
-		static_assert(CT::Mutable<T>, "Can't move a constant value");
 		SetType<T, false>();
 		Insert<Any, true, false>(Forward<T>(other));
 	}
@@ -145,7 +144,7 @@ namespace Langulus::Anyness
 	///	@return the new any																	
 	template<CT::Data T>
 	Any Any::From(const DataState& state) noexcept {
-		return Any {Block{state, MetaData::Of<T>()}};
+		return Any {Block{state, MetaData::Of<Decay<T>>()}};
 	}
 
 	/// Pack any number of elements sequentially											
@@ -174,7 +173,7 @@ namespace Langulus::Anyness
 		if constexpr (sizeof...(TAIL) == 0)
 			return {};
 		else {
-			HEAD wrapped[] {Forward<HEAD>(head), Forward<TAIL>(tail)...};
+			Deref<HEAD> wrapped[] {Forward<HEAD>(head), Forward<TAIL>(tail)...};
 			Any result {Any::From<HEAD>()};
 			for (auto& it : wrapped)
 				result.Insert<Any, true, false>(Move(it));
