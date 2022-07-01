@@ -13,7 +13,7 @@ namespace Langulus::Anyness
 	constexpr auto HS = sizeof(Hash);
 	
 	/// Encrypt data																				
-	Size Block::Encrypt(Block& result, const Hash* keys, const Count& key_count) const {
+	Size Block::Encrypt(Block& result, const ::std::size_t* keys, const Count& key_count) const {
 		// First compress the data, to avoid repeating bytes					
 		#if LANGULUS_FEATURE(ZLIB)
 			auto compressed_size = Compress(result, Compression::Fastest);
@@ -38,14 +38,14 @@ namespace Langulus::Anyness
 		// XOR the contents																
 		//TODO mix with a PRNG
 		for (Count i = 0; i < compressed_size / HS; ++i)
-			reinterpret_cast<Hash*>(result.mRaw)[i] ^= keys[i % key_count];
+			reinterpret_cast<::std::size_t*>(result.mRaw)[i] ^= keys[i % key_count];
 
 		// Done																				
 		return result.mCount;
 	}
 
 	/// Decrypt data																				
-	Size Block::Decrypt(Block& result, const Hash* keys, const Count& key_count) const {
+	Size Block::Decrypt(Block& result, const ::std::size_t* keys, const Count& key_count) const {
 		// Copy this encrypted data													
 		Block decrypted;
 		Clone(decrypted);
@@ -53,16 +53,16 @@ namespace Langulus::Anyness
 		// XOR the contents to decrypt them											
 		//TODO mix with a PRNG
 		for (Count i = 0; i < mCount / HS; ++i)
-			reinterpret_cast<Hash*>(decrypted.mRaw)[i] ^= keys[i % key_count];
+			reinterpret_cast<::std::size_t*>(decrypted.mRaw)[i] ^= keys[i % key_count];
 
 		// Get the hash part																
 		const auto real_size = mCount - HS;
-		const auto hash = *reinterpret_cast<Hash*>(decrypted.At(real_size));
+		const auto hash = *reinterpret_cast<::std::size_t*>(decrypted.At(real_size));
 		decrypted.mCount = real_size;
 
 		// Hash the compressed data for validation after decryption			
 		const auto decoded_hash = decrypted.GetHash();
-		if (hash != decoded_hash) {
+		if (hash != decoded_hash.mHash) {
 			//TODO the hash is small and there may be a collision!
 
 			// Hashes don't match. Decryption failed.								

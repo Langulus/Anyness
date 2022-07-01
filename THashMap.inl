@@ -629,7 +629,7 @@ namespace Langulus::Anyness
 
 			// Rehash and check if hashes match										
 			const auto oldIndex = oldInfo - GetInfo();
-			const auto newIndex = HashData(*oldKey) & (count - 1);
+			const auto newIndex = HashData(*oldKey).mHash & (count - 1);
 			if (oldIndex != newIndex) {
 				// Immediately move the old pair to the swapper					
 				auto oldValue = &GetValue(oldIndex);
@@ -727,6 +727,14 @@ namespace Langulus::Anyness
 		++mValues.mCount;
 	}
 
+	/// Get the bucket index, depending on key hash										
+	///	@param key - the key to hash														
+	///	@return the bucket offset															
+	TABLE_TEMPLATE()
+	Offset TABLE()::GetBucket(const K& key) const noexcept {
+		return HashData(key).mHash & (GetReserved() - 1);
+	}
+
 	/// Insert a single pair inside table via shallow-copy							
 	/// Guarantees that original item remains unchanged								
 	///	@param item - pair to add															
@@ -737,7 +745,7 @@ namespace Langulus::Anyness
 		Allocate(GetCount() + 1);
 
 		// Make a temporary swapper, so that original item never changes	
-		const auto bucket = HashData(item.mKey) & (GetReserved() - 1);
+		const auto bucket = GetBucket(item.mKey);
 		Pair swapper {item};
 		InsertInner(bucket, swapper.mKey, swapper.mValue);
 		return 1;
@@ -753,7 +761,7 @@ namespace Langulus::Anyness
 		Allocate(GetCount() + 1);
 
 		// Use the item as a swapper													
-		const auto bucket = HashData(item.mKey) & (GetReserved() - 1);
+		const auto bucket = GetBucket(item.mKey);
 		InsertInner(bucket, item.mKey, item.mValue);
 		return 1;
 	}
@@ -937,7 +945,7 @@ namespace Langulus::Anyness
 	TABLE_TEMPLATE()
 	Count TABLE()::RemoveKey(const K& match) {
 		// Get the starting index based on the key hash							
-		const auto start = HashData(match) & (GetReserved() - 1);
+		const auto start = GetBucket(match);
 		auto key = GetRawKeys() + start;
 		auto info = GetInfo() + start;
 		const auto keyEnd = GetRawKeysEnd();
@@ -1083,7 +1091,7 @@ namespace Langulus::Anyness
 		// Get the starting index based on the key hash							
 		// Since reserved elements are always power-of-two, we use them	
 		// as a mask to the hash, to extract the relevant bucket				
-		auto start = HashData(key) & (GetReserved() - 1);
+		const auto start = GetBucket(key);
 		auto psl = GetInfo() + start;
 		const auto pslEnd = GetInfoEnd() - 1;
 		auto candidate = GetRawKeys() + start;

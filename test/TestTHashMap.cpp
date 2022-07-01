@@ -18,7 +18,7 @@ namespace std {
 	template<>
 	struct hash<Text> {
 		size_t operator()(const Text& str) const noexcept {
-			return str.GetHash();
+			return str.GetHash().mHash;
 		}
 	};
 }

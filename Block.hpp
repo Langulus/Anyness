@@ -370,8 +370,8 @@ namespace Langulus::Anyness
 			Size Decompress(Block&) const;
 		#endif
 
-		Size Encrypt(Block&, const Hash*, const Count&) const;
-		Size Decrypt(Block&, const Hash*, const Count&) const;
+		Size Encrypt(Block&, const ::std::size_t*, const Count&) const;
+		Size Decrypt(Block&, const ::std::size_t*, const Count&) const;
 	
 		NOD() Hash GetHash() const;
 	

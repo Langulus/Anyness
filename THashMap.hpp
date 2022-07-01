@@ -173,6 +173,7 @@ namespace Langulus::Anyness
 		NOD() decltype(auto) GetValue(const Offset&) noexcept;
 		NOD() decltype(auto) GetPair(const Offset&) const noexcept;
 		NOD() decltype(auto) GetPair(const Offset&) noexcept;
+		NOD() Offset GetBucket(const K&) const noexcept;
 
 		NOD() Offset FindIndex(const K&) const;
 

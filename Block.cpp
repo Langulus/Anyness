@@ -97,7 +97,7 @@ namespace Langulus::Anyness
 		};
 	}
 
-	/// Get the memory block corresponding to a base									
+	/// Get the constant memory block corresponding to a base						
 	/// This performs only pointer arithmetic												
 	///	@param base - the base to search for											
 	///	@return the block for the base (static and immutable)						
@@ -105,38 +105,48 @@ namespace Langulus::Anyness
 		return GetBaseMemory(base.mType, base);
 	}
 
+	/// Get the mutable memory block corresponding to a base							
+	/// This performs only pointer arithmetic												
+	///	@param base - the base to search for											
+	///	@return the block for the base (static but mutable)						
 	Block Block::GetBaseMemory(const RTTI::Base& base) {
 		return GetBaseMemory(base.mType, base);
 	}
 
 	/// Hash data inside memory block														
-	///	@returns the hash																		
+	///	@return the hash																		
 	Hash Block::GetHash() const {
 		if (!mType || !mCount)
 			return {};
 
-		if (!mType->mResolver && mType->mHasher) {
+		if (IsDense() && mType->mIsPOD) {
+			// Hash everything at once													
+			return HashBytes(GetRaw(), GetSize());
+		}
+
+		// If reached, we'll be hashing elements one by one, and then		
+		// rehash all the combined hashes											
+		::std::vector<Hash> h {mCount};
+
+		if (IsDense() && mType->mHasher) {
 			// All elements share the same hasher - use it						
 			// Then do a cumulative hash by mixing up all the hashes			
-			Hash cumulativeHash {};
 			for (Count i = 0; i < mCount; ++i) {
 				auto element = GetElementDense(i);
-				const auto h = mType->mHasher(element.mRaw);
-				cumulativeHash = (cumulativeHash + (324723947 + h)) ^ 93485734985;
+				h.emplace_back(mType->mHasher(element.mRaw));
 			}
-
-			return cumulativeHash;
 		}
-
-		// Resolve each element and hash it											
-		// Then do a cumulative hash by mixing up all the hashes				
-		Hash cumulativeHash {};
-		for (Count i = 0; i < mCount; ++i) {
-			const auto h = GetElementResolved(i).GetHash();
-			cumulativeHash = (cumulativeHash + (324723947 + h)) ^ 93485734985;
+		else if (mType->mResolver) {
+			// Resolve each element and hash it										
+			// Then do a cumulative hash by mixing up all the hashes			
+			for (Count i = 0; i < mCount; ++i) {
+				h.emplace_back(GetElementResolved(i).GetHash());
+			}
 		}
+		else Throw<Except::Access>(
+			Logger::Error() << "Type " << mType->mToken << " is unhashable");
 
-		return cumulativeHash;
+		return HashBytes<DefaultHashSeed, false>(h.data(), h.size() * sizeof(Hash));
 	}
 
 	/// Get the number of sub-blocks (this one included)								
