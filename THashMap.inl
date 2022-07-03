@@ -1004,6 +1004,15 @@ namespace Langulus::Anyness
 		return FindIndex(key) != GetReserved();
 	}
 
+	/// Search for a key inside the table, and return it if found					
+	///	@param key - the key to search for												
+	///	@return the index if key was found, or Index::None if not				
+	TABLE_TEMPLATE()
+	Index TABLE()::FindKeyIndex(const K& key) const {
+		const auto offset = FindIndex(key);
+		return offset != GetReserved() ? Index {offset} : Index::None;
+	}
+
 	/// Search for a value inside the table												
 	///	@param value - the value to search for											
 	///	@return true if value is found, false otherwise								
