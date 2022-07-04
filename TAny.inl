@@ -586,7 +586,7 @@ namespace Langulus::Anyness
 
 	/// Clone the templated container														
 	TEMPLATE()
-	TAny<T> TAny<T>::Clone() const {
+	TAny<T> TAny<T>::Clone() const requires (CT::CloneMakable<T> || CT::POD<T>) {
 		// Always clone the state, but make it unconstrained					
 		TAny<T> result {Disown(*this)};
 		result.mState -= DataState::Static | DataState::Constant;
@@ -669,14 +669,14 @@ namespace Langulus::Anyness
 	///	@return a constant pointer to one past the last element in the array	
 	TEMPLATE()
 	auto TAny<T>::GetRawEnd() const noexcept {
-		return Any::GetRawAs<T>() + mCount;
+		return GetRaw() + mCount;
 	}
 
 	/// Return the typed raw data	end pointer												
 	///	@return a mutable pointer to one past the last element in the array	
 	TEMPLATE()
 	auto TAny<T>::GetRawEnd() noexcept {
-		return Any::GetRawAs<T>() + mCount;
+		return GetRaw() + mCount;
 	}
 
 	/// Get an element in the way you want (const, unsafe)							

@@ -1248,7 +1248,8 @@ namespace Langulus::Anyness
 		if constexpr (CT::Sparse<T>) {
 			// Sparse data insertion (moving a pointer)							
 			const auto data = GetRawSparse() + starter;
-			data->mPointer = reinterpret_cast<Byte*>(item);
+			data->mPointer = const_cast<Byte*>(
+				reinterpret_cast<const Byte*>(item));
 
 			// Reference the pointer's memory										
 			#if LANGULUS_FEATURE(MANAGED_MEMORY)

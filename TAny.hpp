@@ -93,7 +93,7 @@ namespace Langulus::Anyness
 		void TakeAuthority();
 		void Free();
 
-		NOD() TAny Clone() const;
+		NOD() TAny Clone() const requires (CT::CloneMakable<T> || CT::POD<T>);
 
 		NOD() auto GetRaw() const noexcept;
 		NOD() auto GetRaw() noexcept;
