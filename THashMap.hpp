@@ -150,6 +150,13 @@ namespace Langulus::Anyness
 		NOD() decltype(auto) operator[] (const K&) const;
 		NOD() decltype(auto) operator[] (const K&);
 
+		NOD() const K& GetKey(const Index&) const;
+		NOD() K& GetKey(const Index&);
+		NOD() decltype(auto) GetValue(const Index&) const;
+		NOD() decltype(auto) GetValue(const Index&);
+		NOD() decltype(auto) GetPair(const Index&) const;
+		NOD() decltype(auto) GetPair(const Index&);
+
 	protected:
 		template<bool REUSE>
 		void AllocateKeys(const Count&);
@@ -166,6 +173,8 @@ namespace Langulus::Anyness
 		template<class T>
 		static void Overwrite(T&&, T&) noexcept;
 
+		NOD() static Size RequestKeyAndInfoSize(Count, Offset&) noexcept;
+
 		void RemoveIndex(const Offset&) noexcept;
 
 		NOD() const K& GetKey(const Offset&) const noexcept;
@@ -175,11 +184,7 @@ namespace Langulus::Anyness
 		NOD() decltype(auto) GetPair(const Offset&) const noexcept;
 		NOD() decltype(auto) GetPair(const Offset&) noexcept;
 		NOD() Offset GetBucket(const K&) const noexcept;
-
 		NOD() Offset FindIndex(const K&) const;
-
-		NOD() static Size RequestKeyAndInfoSize(Count, Offset&) noexcept;
-
 		NOD() const uint8_t* GetInfo() const noexcept;
 		NOD() uint8_t* GetInfo() noexcept;
 		NOD() const uint8_t* GetInfoEnd() const noexcept;

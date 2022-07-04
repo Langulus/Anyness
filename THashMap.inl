@@ -1041,31 +1041,55 @@ namespace Langulus::Anyness
 		return found != GetReserved() && GetValue(found) == pair.mValue;
 	}
 
+	/// Get a key by an unsafe offset (const)												
+	///	@attention as unsafe as it gets, for internal use only					
+	///	@param i - the offset to use														
+	///	@return a reference to the key													
 	TABLE_TEMPLATE()
 	const K& TABLE()::GetKey(const Offset& i) const noexcept {
 		return GetRawKeys()[i];
 	}
 
+	/// Get a key by an unsafe offset 														
+	///	@attention as unsafe as it gets, for internal use only					
+	///	@param i - the offset to use														
+	///	@return a reference to the key													
 	TABLE_TEMPLATE()
 	K& TABLE()::GetKey(const Offset& i) noexcept {
 		return GetRawKeys()[i];
 	}
 
+	/// Get a value by an unsafe offset (const)											
+	///	@attention as unsafe as it gets, for internal use only					
+	///	@param i - the offset to use														
+	///	@return a reference to the value													
 	TABLE_TEMPLATE()
 	decltype(auto) TABLE()::GetValue(const Offset& i) const noexcept {
 		return GetRawValues()[i];
 	}
 
+	/// Get a value by an unsafe offset 													
+	///	@attention as unsafe as it gets, for internal use only					
+	///	@param i - the offset to use														
+	///	@return a reference to the value													
 	TABLE_TEMPLATE()
 	decltype(auto) TABLE()::GetValue(const Offset& i) noexcept {
 		return GetRawValues()[i];
 	}
 
+	/// Get a pair by an unsafe offset (const)											
+	///	@attention as unsafe as it gets, for internal use only					
+	///	@param i - the offset to use														
+	///	@return the pair																		
 	TABLE_TEMPLATE()
 	decltype(auto) TABLE()::GetPair(const Offset& i) const noexcept {
 		return TPair<const K&, const V&> {GetKey(i), GetValue(i)};
 	}
 
+	/// Get a pair by an unsafe offset 														
+	///	@attention as unsafe as it gets, for internal use only					
+	///	@param i - the offset to use														
+	///	@return the pair																		
 	TABLE_TEMPLATE()
 	decltype(auto) TABLE()::GetPair(const Offset& i) noexcept {
 		return TPair<K&, V&> {GetKey(i), GetValue(i)};
@@ -1089,7 +1113,64 @@ namespace Langulus::Anyness
 	///	@return a reference to the value													
 	TABLE_TEMPLATE()
 	decltype(auto) TABLE()::At(const K& key) const {
-		return const_cast<TABLE()>(*this).At(key);
+		return const_cast<TABLE()&>(*this).At(key);
+	}
+
+	/// Get a key by a safe index (const)													
+	///	@param index - the index to use													
+	///	@return a reference to the key													
+	TABLE_TEMPLATE()
+	const K& TABLE()::GetKey(const Index& index) const {
+		const_cast<TABLE()&>(*this).GetKey(index);
+	}
+
+	/// Get a key by a safe index 															
+	///	@param index - the index to use													
+	///	@return a reference to the key													
+	TABLE_TEMPLATE()
+	K& TABLE()::GetKey(const Index& index) {
+		const auto offset = index.GetOffset();
+		if (offset >= GetReserved() || 0 == GetInfo()[offset])
+			Throw<Except::OutOfRange>("Bad index for THashMap::GetKey");
+		return GetKey(offset);
+	}
+
+	/// Get a value by a safe index (const)												
+	///	@param index - the index to use													
+	///	@return a reference to the value													
+	TABLE_TEMPLATE()
+	decltype(auto) TABLE()::GetValue(const Index& index) const {
+		const_cast<TABLE()&>(*this).GetValue(index);
+	}
+
+	/// Get a value by a safe index 															
+	///	@param index - the index to use													
+	///	@return a reference to the value													
+	TABLE_TEMPLATE()
+	decltype(auto) TABLE()::GetValue(const Index& index) {
+		const auto offset = index.GetOffset();
+		if (offset >= GetReserved() || 0 == GetInfo()[offset])
+			Throw<Except::OutOfRange>("Bad index for THashMap::GetValue");
+		return GetValue(offset);
+	}
+
+	/// Get a pair by a safe index (const)													
+	///	@param index - the index to use													
+	///	@return the pair																		
+	TABLE_TEMPLATE()
+	decltype(auto) TABLE()::GetPair(const Index& index) const {
+		const_cast<TABLE()&>(*this).GetPair(index);
+	}
+
+	/// Get a pair by a safe index 															
+	///	@param index - the index to use													
+	///	@return the pair																		
+	TABLE_TEMPLATE()
+	decltype(auto) TABLE()::GetPair(const Index& index) {
+		const auto offset = index.GetOffset();
+		if (offset >= GetReserved() || 0 == GetInfo()[offset])
+			Throw<Except::OutOfRange>("Bad index for THashMap::GetPair");
+		return GetPair(offset);
 	}
 
 	/// Find the index of a pair by key														

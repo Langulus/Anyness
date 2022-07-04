@@ -6,7 +6,6 @@ function(fetch_langulus_module NAME)
 	    PROJ                Langulus_${NAME}
 	    GIT_REPOSITORY      https://github.com/Langulus/${NAME}.git
 	    GIT_TAG             main
-	    GIT_PROGRESS        TRUE
 	    UPDATE_DISCONNECTED 1
     )
 
