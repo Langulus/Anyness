@@ -693,7 +693,7 @@ namespace Langulus::Anyness
 	/// Check if the memory block contains memory blocks								
 	///	@return true if the memory block contains memory blocks					
 	constexpr bool Block::IsDeep() const noexcept {
-		return mType && mType->mIsDeep;
+		return mType && mType->mIsDeep && mType->mSize == sizeof(Block) && mType->CastsTo<Block, false>();
 	}
 
 	/// Deep (slower) check if there's anything missing inside nested blocks	

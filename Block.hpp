@@ -585,13 +585,13 @@ namespace Langulus::CT
 	/// default. Deep types are considered iteratable, and verbs are				
 	/// executed in each of their elements/members, instead on the type			
 	/// itself. Use LANGULUS(DEEP) macro as member to tag deep types				
-	template<class T>
-	concept Deep = Block<T> && Decay<T>::CTTI_Deep;
+	template<class... T>
+	concept Deep = ((Block<T> && Decay<T>::CTTI_Deep) && ...);
 
 	/// Check if a type can be handled generically by templates, and				
 	/// doesn't	require any special handling												
-	template<class T>
-	concept CustomData = Data<T> && !Deep<T> && NotAbandonedOrDisowned<T>;
+	template<class... T>
+	concept CustomData = ((Data<T> && !Deep<T> && NotAbandonedOrDisowned<T>) && ...);
 
 } // namespace Langulus::CT
 
