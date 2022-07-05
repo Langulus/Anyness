@@ -338,9 +338,9 @@ namespace Langulus::Anyness
 		NOD() Block GetBaseMemory(const RTTI::Base&) const;
 		NOD() Block GetBaseMemory(const RTTI::Base&);
 	
-		template<CT::Data T, CT::Deep WRAPPER>
+		template<CT::Data T, CT::Data WRAPPER>
 		NOD() bool Mutate();
-		template<CT::Deep WRAPPER>
+		template<CT::Data WRAPPER>
 		NOD() bool Mutate(DMeta);
 
 		constexpr void MakeMissing() noexcept;
@@ -397,12 +397,12 @@ namespace Langulus::Anyness
 		Count InsertBlock(const Block&, const Index& = Index::Back);
 		Count InsertBlock(Block&&, const Index& = Index::Back);
 	
-		template<bool ALLOW_CONCAT = true, bool ALLOW_DEEPEN = true, CT::Data T, CT::Deep WRAPPER = Any>
+		template<bool ALLOW_CONCAT = true, bool ALLOW_DEEPEN = true, CT::Data T, CT::Data WRAPPER = Any>
 		Count SmartPush(const T&, DataState = {}, Index = Index::Back);
-		template<bool ALLOW_CONCAT = true, bool ALLOW_DEEPEN = true, CT::Data T, CT::Deep WRAPPER = Any>
+		template<bool ALLOW_CONCAT = true, bool ALLOW_DEEPEN = true, CT::Data T, CT::Data WRAPPER = Any>
 		Count SmartPush(T&&, DataState = {}, Index = Index::Back);
 	
-		template<CT::Deep T, bool MOVE_STATE = true>
+		template<CT::Data T, bool MOVE_STATE = true>
 		T& Deepen();
 	
 		template<CT::Data T, bool MUTABLE = true, CT::Data WRAPPER>
@@ -425,10 +425,10 @@ namespace Langulus::Anyness
 		NOD() Index ConstrainMore(const Index&) const noexcept;
 	
 		template<CT::Data T>
-		NOD() Index GetIndexMax() const noexcept requires CT::Sortable<T>;
+		NOD() Index GetIndexMax() const noexcept requires CT::Sortable<T, T>;
 	
 		template<CT::Data T>
-		NOD() Index GetIndexMin() const noexcept requires CT::Sortable<T>;
+		NOD() Index GetIndexMin() const noexcept requires CT::Sortable<T, T>;
 	
 		template<CT::Data T>
 		NOD() Index GetIndexMode(Count&) const noexcept;
@@ -572,11 +572,27 @@ namespace Langulus::Anyness
 namespace Langulus::CT
 {
 
-	/// Check if a type can be handled generically by templates, and			
-	/// doesn't	require any special handling											
+	/// A reflected block type is any type that inherits Block, and is			
+	/// binary compatible to a Block - this is a mandatory requirement for		
+	/// any CT::Deep type																		
+	template<class... T>
+	concept Block = ((DerivedFrom<T, ::Langulus::Anyness::Block>
+		&& sizeof(T) == sizeof(::Langulus::Anyness::Block)) && ...);
+
+	/// A deep type is any type with a true static member T::CTTI_Deep			
+	/// and a common interface with Block													
+	/// If no such member/base exists, the type is assumed NOT deep by			
+	/// default. Deep types are considered iteratable, and verbs are				
+	/// executed in each of their elements/members, instead on the type			
+	/// itself. Use LANGULUS(DEEP) macro as member to tag deep types				
+	template<class T>
+	concept Deep = Block<T> && Decay<T>::CTTI_Deep;
+
+	/// Check if a type can be handled generically by templates, and				
+	/// doesn't	require any special handling												
 	template<class T>
 	concept CustomData = Data<T> && !Deep<T> && NotAbandonedOrDisowned<T>;
 
-}
+} // namespace Langulus::CT
 
 #include "Block.inl"

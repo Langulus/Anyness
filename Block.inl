@@ -846,8 +846,9 @@ namespace Langulus::Anyness
 	///	@tparam T - the type to change to												
 	///	@tparam WRAPPER - the container that requested the mutation				
 	///	@return true if block was deepened to incorporate the new type			
-	template<CT::Data T, CT::Deep WRAPPER>
+	template<CT::Data T, CT::Data WRAPPER>
 	bool Block::Mutate() {
+		static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
 		const auto deepened = Mutate<WRAPPER>(MetaData::Of<Decay<T>>());
 		if constexpr (CT::Sparse<T>)
 			MakeSparse();
@@ -858,8 +859,10 @@ namespace Langulus::Anyness
 	///	@tparam WRAPPER - the container that requested the mutation				
 	///	@param meta - the type to mutate into											
 	///	@return true if block was deepened												
-	template<CT::Deep WRAPPER>
+	template<CT::Data WRAPPER>
 	bool Block::Mutate(DMeta meta) {
+		static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
+
 		if (IsUntyped()) {
 			// Undefined containers can mutate freely								
 			SetType<false, false>(meta);
@@ -925,17 +928,17 @@ namespace Langulus::Anyness
 		if (result.IsSpecial()) {
 			switch (result.mIndex) {
 			case Index::Biggest:
-				if constexpr (CT::Sortable<T>)
+				if constexpr (CT::Sortable<T, T>)
 					return GetIndexMax<T>();
 				else return Index::None;
 				break;
 			case Index::Smallest:
-				if constexpr (CT::Sortable<T>)
+				if constexpr (CT::Sortable<T, T>)
 					return GetIndexMin<T>();
 				else return Index::None;
 				break;
 			case Index::Mode:
-				if constexpr (CT::Sortable<T>) {
+				if constexpr (CT::Sortable<T, T>) {
 					UNUSED() Count unused;
 					return GetIndexMode<T>(unused);
 				}
@@ -1437,7 +1440,7 @@ namespace Langulus::Anyness
 	///	@tparam T - the type to use for comparison									
 	///	@return the index of the biggest element T inside this block			
 	template<CT::Data T>
-	Index Block::GetIndexMax() const noexcept requires CT::Sortable<T> {
+	Index Block::GetIndexMax() const noexcept requires CT::Sortable<T, T> {
 		if (IsEmpty())
 			return Index::None;
 
@@ -1456,7 +1459,7 @@ namespace Langulus::Anyness
 	///	@tparam T - the type to use for comparison									
 	///	@return the index of the smallest element T inside this block			
 	template<CT::Data T>
-	Index Block::GetIndexMin() const noexcept requires CT::Sortable<T> {
+	Index Block::GetIndexMin() const noexcept requires CT::Sortable<T, T> {
 		if (IsEmpty())
 			return Index::None;
 
@@ -1562,8 +1565,10 @@ namespace Langulus::Anyness
 	///	@param state - a state to apply after pushing is done						
 	///	@param index - the index at which to insert (if needed)					
 	///	@return the number of pushed items (zero if unsuccessful)				
-	template<bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data T, CT::Deep WRAPPER>
+	template<bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data T, CT::Data WRAPPER>
 	Count Block::SmartPush(const T& value, DataState state, Index index) {
+		static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
+
 		// Wrap the value, but don't reference anything yet					
 		auto pack = Block::From(value);
 		
@@ -1644,8 +1649,10 @@ namespace Langulus::Anyness
 	///	@param state - a state to apply after pushing is done						
 	///	@param index - the index at which to insert (if needed)					
 	///	@return the number of pushed items (zero if unsuccessful)				
-	template<bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data T, CT::Deep WRAPPER>
+	template<bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data T, CT::Data WRAPPER>
 	Count Block::SmartPush(T&& value, DataState state, Index index) {
+		static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
+
 		// Wrap the value, but don't reference anything yet					
 		auto pack = Block::From(value);
 		
@@ -1720,8 +1727,10 @@ namespace Langulus::Anyness
 	///	@tparam T - the type of deep container to use								
 	///	@tparam MOVE_STATE - whether or not to send the current state over	
 	///	@return a reference to this container											
-	template<CT::Deep T, bool MOVE_STATE>
+	template<CT::Data T, bool MOVE_STATE>
 	T& Block::Deepen() {
+		static_assert(CT::Deep<T>, "T must be deep");
+
 		if (IsTypeConstrained() && !Is<T>()) {
 			Throw<Except::Mutate>(Logger::Error()
 				<< "Attempting to deepen incompatible typed container");

@@ -17,7 +17,6 @@ namespace Langulus::Anyness
 	/// A tagged container																		
 	///																								
 	class Trait : public Any {
-		LANGULUS(DEEP) false;
 		LANGULUS_BASES(Any);
 	protected:
 		TMeta mTraitType {};
@@ -65,21 +64,21 @@ namespace Langulus::Anyness
 		void Reset();
 		NOD() Trait Clone() const;
 
-		template<CT::Trait TRAIT, CT::Data DATA>
+		template<CT::Data TRAIT, CT::Data DATA>
 		NOD() static Trait From();
 		template<CT::Data DATA>
 		NOD() static Trait From(TMeta, const DATA&);
 		template<CT::Data DATA>
 		NOD() static Trait From(TMeta, DATA&&);
 
-		template<CT::Trait TRAIT>
+		template<CT::Data TRAIT>
 		NOD() static Trait FromMemory(const Block&);
-		template<CT::Trait TRAIT>
+		template<CT::Data TRAIT>
 		NOD() static Trait FromMemory(Block&&);
 
-		template<CT::Trait TRAIT, CT::Data DATA>
+		template<CT::Data TRAIT, CT::Data DATA>
 		NOD() static Trait From(const DATA&);
-		template<CT::Trait TRAIT, CT::Data DATA>
+		template<CT::Data TRAIT, CT::Data DATA>
 		NOD() static Trait From(DATA&&);
 
 		NOD() static Trait FromMeta(TMeta, DMeta);
@@ -90,7 +89,7 @@ namespace Langulus::Anyness
 		NOD() bool IsTraitValid() const noexcept;
 		NOD() bool IsSimilar(const Trait&) const noexcept;
 		NOD() bool TraitIs(TMeta) const;
-		template<CT::Trait TRAIT>
+		template<CT::Data TRAIT>
 		NOD() bool TraitIs() const;
 		NOD() bool HasCorrectData() const;
 
@@ -120,5 +119,16 @@ namespace Langulus::Traits
 
 } // namespace Langulus::Traits
 
+
+namespace Langulus::CT
+{
+
+	/// A reflected trait type is any type that inherits Trait, and is			
+	/// binary compatible to a Trait															
+	template<class... T>
+	concept Trait = ((DerivedFrom<T, ::Langulus::Anyness::Trait>
+		&& sizeof(T) == sizeof(::Langulus::Anyness::Trait)) && ...);
+
+} // namespace Langulus::CT
 
 #include "Trait.inl"

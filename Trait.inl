@@ -12,32 +12,37 @@ namespace Langulus::Anyness
 {
 
 	/// Create a trait from a trait definition											
-	template<CT::Trait TRAIT, CT::Data DATA>
+	template<CT::Data TRAIT, CT::Data DATA>
 	Trait Trait::From() {
+		static_assert(CT::Trait<TRAIT>, "TRAIT must be a trait definition");
 		return Trait(TRAIT::Reflect(), Block::From<DATA>());
 	}
 
 	/// Create a trait from a trait definition											
-	template<CT::Trait TRAIT>
+	template<CT::Data TRAIT>
 	Trait Trait::FromMemory(const Block& memory) {
+		static_assert(CT::Trait<TRAIT>, "TRAIT must be a trait definition");
 		return Trait(TRAIT::Reflect(), memory);
 	}
 
 	/// Create a trait from a trait definition											
-	template<CT::Trait TRAIT>
+	template<CT::Data TRAIT>
 	Trait Trait::FromMemory(Block&& memory) {
+		static_assert(CT::Trait<TRAIT>, "TRAIT must be a trait definition");
 		return Trait(TRAIT::Reflect(), Forward<Block>(memory));
 	}
 
 	/// Create a trait from a trait definition and data								
-	template<CT::Trait TRAIT, CT::Data DATA>
+	template<CT::Data TRAIT, CT::Data DATA>
 	Trait Trait::From(const DATA& stuff) {
+		static_assert(CT::Trait<TRAIT>, "TRAIT must be a trait definition");
 		return Trait(TRAIT::Reflect(), Any(stuff));
 	}
 
 	/// Create a trait from a trait definition by moving data						
-	template<CT::Trait TRAIT, CT::Data DATA>
+	template<CT::Data TRAIT, CT::Data DATA>
 	Trait Trait::From(DATA&& stuff) {
+		static_assert(CT::Trait<TRAIT>, "TRAIT must be a trait definition");
 		return Trait(TRAIT::Reflect(), Any(Forward<DATA>(stuff)));
 	}
 
@@ -58,8 +63,9 @@ namespace Langulus::Anyness
 		return Trait(tmeta, Block(DataState::Default, dmeta));
 	}
 
-	template<CT::Trait TRAIT>
+	template<CT::Data TRAIT>
 	bool Trait::TraitIs() const {
+		static_assert(CT::Trait<TRAIT>, "TRAIT must be a trait definition");
 		return TraitIs(TRAIT::ID);
 	}
 
