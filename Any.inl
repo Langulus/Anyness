@@ -381,7 +381,12 @@ namespace Langulus::Anyness
 	///	@return a reference to this container for chaining							
 	template<CT::Data T>
 	Any& Any::operator << (T&& other) {
-		Insert<Any, true, true>(Forward<T>(other), Index::Back);
+		if constexpr (CT::Abandoned<T>)
+			Insert<Any, false, true>(Forward<T>(other.mValue), Index::Back);
+		else if constexpr (CT::Disowned<T>)
+			Insert<Any, false, true>(&other.mValue, 1, Index::Back);
+		else
+			Insert<Any, true, true>(Forward<T>(other), Index::Back);
 		return *this;
 	}
 
@@ -410,7 +415,12 @@ namespace Langulus::Anyness
 	///	@return a reference to this container for chaining							
 	template<CT::Data T>
 	Any& Any::operator >> (T&& other) {
-		Insert<Any, true, true>(Forward<T>(other), Index::Front);
+		if constexpr (CT::Abandoned<T>)
+			Insert<Any, false, true>(Forward<T>(other.mValue), Index::Front);
+		else if constexpr (CT::Disowned<T>)
+			Insert<Any, false, true>(&other.mValue, 1, Index::Front);
+		else
+			Insert<Any, true, true>(Forward<T>(other), Index::Front);
 		return *this;
 	}
 
