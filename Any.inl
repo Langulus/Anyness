@@ -382,7 +382,7 @@ namespace Langulus::Anyness
 	template<CT::Data T>
 	Any& Any::operator << (T&& other) {
 		if constexpr (CT::Abandoned<T>)
-			Insert<Any, false, true>(Forward<T>(other.mValue), Index::Back);
+			Insert<Any, false, true>(Move(other.mValue), Index::Back);
 		else if constexpr (CT::Disowned<T>)
 			Insert<Any, false, true>(&other.mValue, 1, Index::Back);
 		else
@@ -416,7 +416,7 @@ namespace Langulus::Anyness
 	template<CT::Data T>
 	Any& Any::operator >> (T&& other) {
 		if constexpr (CT::Abandoned<T>)
-			Insert<Any, false, true>(Forward<T>(other.mValue), Index::Front);
+			Insert<Any, false, true>(Move(other.mValue), Index::Front);
 		else if constexpr (CT::Disowned<T>)
 			Insert<Any, false, true>(&other.mValue, 1, Index::Front);
 		else
