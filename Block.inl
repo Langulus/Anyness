@@ -1800,57 +1800,48 @@ namespace Langulus::Anyness
 					.Get<T>(idx % base.mCount);
 	}
 
-	/// Execute function F for each element inside container							
+	/// Execute functions for each element inside container							
+	/// Function returns immediately after the first viable iterator is done	
+	///	@tparam MUTABLE - whether or not a change to container is allowed		
+	///							while iterating												
+	///	@tparam F - the function types (deducible)									
+	///	@param call - the instance of the function F to call						
+	///	@return the number of called functions											
+	template<bool MUTABLE, class... F>
+	Count Block::ForEach(F&&... calls) {
+		return (... || ForEachSplitter<MUTABLE, false>(Forward<F>(calls)));
+	}
+
+	/// Execute functions for each element inside container (immutable)			
+	///	@tparam F - the function type (deducible)										
+	///	@param call - the instance of the function F to call						
+	///	@return the number of called functions											
+	template<class... F>
+	Count Block::ForEach(F&&... calls) const {
+		return const_cast<Block&>(*this).ForEach<false>(Forward<F>(calls)...);
+	}
+
+	/// Execute functions for each element inside container (reverse)				
 	///	@tparam MUTABLE - whether or not a change to container is allowed		
 	///							while iterating												
 	///	@tparam F - the function type (deducible)										
 	///	@param call - the instance of the function F to call						
 	///	@return the number of called functions											
-	template<bool MUTABLE, class F>
-	Count Block::ForEach(F&& call) {
-		using A = decltype(GetLambdaArgument(&F::operator()));
-		using R = decltype(call(std::declval<A>()));
-		return ForEachInner<R, A, false, MUTABLE>(Forward<F>(call));
-	}
-
-	/// Execute function F for each element inside container (immutable)			
-	///	@tparam F - the function type (deducible)										
-	///	@param call - the instance of the function F to call						
-	///	@return the number of called functions											
-	template<class F>
-	Count Block::ForEach(F&& call) const {
-		using A = decltype(GetLambdaArgument(&F::operator()));
-		static_assert(CT::Constant<A>,
-			"Non constant iterator for constant memory block");
-		return const_cast<Block*>(this)->ForEach<false>(Forward<F>(call));
-	}
-
-	/// Execute function F for each element inside container (reverse)			
-	///	@tparam MUTABLE - whether or not a change to container is allowed		
-	///							while iterating												
-	///	@tparam F - the function type (deducible)										
-	///	@param call - the instance of the function F to call						
-	///	@return the number of called functions											
-	template<bool MUTABLE, class F>
-	Count Block::ForEachRev(F&& call) {
-		using A = decltype(GetLambdaArgument(&F::operator()));
-		using R = decltype(call(std::declval<A>()));
-		return ForEachInner<R, A, true, MUTABLE>(Forward<F>(call));
+	template<bool MUTABLE, class... F>
+	Count Block::ForEachRev(F&&... calls) {
+		return (... || ForEachSplitter<MUTABLE, true>(Forward<F>(calls)));
 	}
 
 	/// Execute F for each element inside container (immutable, reverse)			
 	///	@tparam F - the function type (deducible)										
 	///	@param call - the instance of the function F to call						
 	///	@return the number of called functions											
-	template<class F>
-	Count Block::ForEachRev(F&& call) const {
-		using A = decltype(GetLambdaArgument(&F::operator()));
-		static_assert(CT::Constant<A>,
-			"Non constant iterator for constant memory block");
-		return const_cast<Block*>(this)->ForEachRev<false>(Forward<F>(call));
+	template<class... F>
+	Count Block::ForEachRev(F&&... calls) const {
+		return const_cast<Block&>(*this).ForEachRev<false>(Forward<F>(calls)...);
 	}
 
-	/// Execute function F for each element inside container, nested for any	
+	/// Execute functions for each element inside container, nested for any		
 	/// contained deep containers																
 	///	@tparam SKIP - set to false, to execute F for containers, too			
 	///						set to true, to execute only for non-deep elements		
@@ -1859,20 +1850,9 @@ namespace Langulus::Anyness
 	///	@tparam F - the function type (deducible)										
 	///	@param call - the instance of the function F to call						
 	///	@return the number of called functions											
-	template<bool SKIP, bool MUTABLE, class F>
-	Count Block::ForEachDeep(F&& call) {
-		using A = decltype(GetLambdaArgument(&F::operator()));
-		using R = decltype(call(std::declval<A>()));
-		if constexpr (CT::Deep<A>) {
-			// If argument type is deep												
-			return ForEachDeepInner<R, A, false, SKIP, MUTABLE>(Forward<F>(call));
-		}
-		else {
-			// Any other type is wrapped inside another ForEachDeep call	
-			return ForEachDeep<SKIP, MUTABLE>([&call](Block& block) {
-				block.ForEach<MUTABLE, F>(Forward<F>(call));
-			});
-		}
+	template<bool SKIP, bool MUTABLE, class... F>
+	Count Block::ForEachDeep(F&&... calls) {
+		return (... || ForEachDeepSplitter<SKIP, MUTABLE, false>(Forward<F>(calls)));
 	}
 
 	/// Execute function F for each element inside container, nested for any	
@@ -1882,11 +1862,9 @@ namespace Langulus::Anyness
 	///	@tparam F - the function type (deducible)										
 	///	@param call - the instance of the function F to call						
 	///	@return the number of called functions											
-	template<bool SKIP, class F>
-	Count Block::ForEachDeep(F&& call) const {
-		using A = decltype(GetLambdaArgument(&F::operator()));
-		static_assert(CT::Constant<A>, "Non constant iterator for constant memory block");
-		return const_cast<Block*>(this)->ForEachDeep<SKIP, false>(Forward<F>(call));
+	template<bool SKIP, class... F>
+	Count Block::ForEachDeep(F&&... calls) const {
+		return const_cast<Block&>(*this).ForEachDeep<SKIP, false>(Forward<F>(calls)...);
 	}
 
 	/// Execute function F for each element inside container, nested for any	
@@ -1898,21 +1876,9 @@ namespace Langulus::Anyness
 	///	@tparam F - the function type (deducible)										
 	///	@param call - the instance of the function F to call						
 	///	@return the number of called functions											
-	template<bool SKIP, bool MUTABLE, class F>
-	Count Block::ForEachDeepRev(F&& call) {
-		using A = decltype(GetLambdaArgument(&F::operator()));
-		using R = decltype(call(std::declval<A>()));
-		if constexpr (CT::Deep<A>) {
-			// If argument type is deep												
-			return ForEachDeepInner<R, A, true, SKIP, MUTABLE>(
-				Forward<F>(call));
-		}
-		else {
-			// Any other type is wrapped inside another ForEachDeep call	
-			return ForEachDeepRev<SKIP, MUTABLE>([&call](Block& block) {
-				block.ForEachRev<F>(Forward<F>(call));
-			});
-		}
+	template<bool SKIP, bool MUTABLE, class... F>
+	Count Block::ForEachDeepRev(F&&... calls) {
+		return (... || ForEachDeepSplitter<SKIP, MUTABLE, true>(Forward<F>(calls)));
 	}
 
 	/// Execute function F for each element inside container, nested for any	
@@ -1922,11 +1888,55 @@ namespace Langulus::Anyness
 	///	@tparam F - the function type (deducible)										
 	///	@param call - the instance of the function F to call						
 	///	@return the number of called functions											
-	template<bool SKIP, class F>
-	Count Block::ForEachDeepRev(F&& call) const {
+	template<bool SKIP, class... F>
+	Count Block::ForEachDeepRev(F&&... calls) const {
+		return const_cast<Block*>(this)->ForEachDeepRev<SKIP, false>(Forward<F>(calls)...);
+	}
+
+	/// Execute functions for each element inside container							
+	///	@tparam MUTABLE - whether or not a change to container is allowed		
+	///							while iterating												
+	///	@tparam F - the function types (deducible)									
+	///	@param call - the instance of the function F to call						
+	///	@return the number of called functions											
+	template<bool MUTABLE, bool REVERSE, class F>
+	Count Block::ForEachSplitter(F&& call) {
 		using A = decltype(GetLambdaArgument(&F::operator()));
-		static_assert(CT::Constant<A>, "Non constant iterator for constant memory block");
-		return const_cast<Block*>(this)->ForEachDeepRev<SKIP, false>(Forward<F>(call));
+		using R = decltype(call(Uneval<A>()));
+
+		static_assert(CT::Constant<A> || (CT::Mutable<A> && MUTABLE),
+			"Non constant iterator for constant memory block");
+
+		return ForEachInner<R, A, REVERSE, MUTABLE>(Forward<F>(call));
+	}
+
+	/// Execute functions for each element inside container, nested for any		
+	/// contained deep containers																
+	///	@tparam SKIP - set to false, to execute F for containers, too			
+	///						set to true, to execute only for non-deep elements		
+	///	@tparam MUTABLE - whether or not a change to container is allowed		
+	///							while iterating												
+	///	@tparam F - the function type (deducible)										
+	///	@param call - the instance of the function F to call						
+	///	@return the number of called functions											
+	template<bool SKIP, bool MUTABLE, bool REVERSE, class F>
+	Count Block::ForEachDeepSplitter(F&& call) {
+		using A = decltype(GetLambdaArgument(&F::operator()));
+		using R = decltype(call(Uneval<A>()));
+
+		static_assert(CT::Constant<A> || (CT::Mutable<A> && MUTABLE),
+			"Non constant iterator for constant memory block");
+
+		if constexpr (CT::Deep<A>) {
+			// If argument type is deep												
+			return ForEachDeepInner<R, A, REVERSE, SKIP, MUTABLE>(Forward<F>(call));
+		}
+		else {
+			// Any other type is wrapped inside another ForEachDeep call	
+			return ForEachDeep<SKIP, MUTABLE>([&call](Block& block) {
+				block.ForEach<MUTABLE, F>(Forward<F>(call));
+			});
+		}
 	}
 
 	/// Iterate and execute call for each element										
@@ -1995,7 +2005,7 @@ namespace Langulus::Anyness
 			return index;
 		}
 		else if (mType->CastsTo<A>()) {
-			// Slow generalized routine that resolved each element			
+			// Slow generalized routine that resolves each element			
 			// Uses As<>() instead of Get<>()										
 			Count successes {};
 			while (index < mCount) {
@@ -2065,15 +2075,6 @@ namespace Langulus::Anyness
 
 		return 0;
 	}
-
-	/// Iterate and execute call for each element										
-	///	@param call - the function to execute for each element of type T		
-	///	@return the number of executions that occured								
-	template<class R, CT::Data A, bool REVERSE>
-	Count Block::ForEachInner(TFunctor<R(A)>&& call) const {
-		return const_cast<Block*>(this)->ForEachInner<R, A, REVERSE, false>(
-			Forward<decltype(call)>(call));
-	}
 	
 	/// Iterate and execute call for each element										
 	///	@param call - the function to execute for each element of type T		
@@ -2133,15 +2134,6 @@ namespace Langulus::Anyness
 		}
 
 		return index;
-	}
-
-	/// Iterate and execute call for each element										
-	///	@param call - the function to execute for each element of type T		
-	///	@return the number of executions that occured								
-	template<class R, CT::Data A, bool REVERSE, bool SKIP>
-	Count Block::ForEachDeepInner(TFunctor<R(A)>&& call) const {
-		return const_cast<Block*>(this)->ForEachDeepInner<R, A, REVERSE, false>(
-			Forward<decltype(call)>(call));
 	}
 
 	/// Wrapper for memcpy																		

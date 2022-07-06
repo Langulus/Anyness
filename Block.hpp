@@ -274,39 +274,40 @@ namespace Langulus::Anyness
 		Count ForEachElement(TFunctor<void(const Block&)>&&) const;
 		Count ForEachElement(TFunctor<void(Block&)>&&);
 	
-		template<bool MUTABLE = true, class F>
-		Count ForEach(F&&);
-		template<class F>
-		Count ForEach(F&&) const;
+		template<bool MUTABLE = true, class... F>
+		Count ForEach(F&&...);
+		template<class... F>
+		Count ForEach(F&&...) const;
 	
-		template<bool MUTABLE = true, class F>
-		Count ForEachRev(F&&);
-		template<class F>
-		Count ForEachRev(F&&) const;
+		template<bool MUTABLE = true, class... F>
+		Count ForEachRev(F&&...);
+		template<class... F>
+		Count ForEachRev(F&&...) const;
 	
-		template<bool SKIP = true, bool MUTABLE = true, class F>
-		Count ForEachDeep(F&&);
-		template<bool SKIP = true, class F>
-		Count ForEachDeep(F&&) const;
+		template<bool SKIP = true, bool MUTABLE = true, class... F>
+		Count ForEachDeep(F&&...);
+		template<bool SKIP = true, class... F>
+		Count ForEachDeep(F&&...) const;
 	
-		template<bool SKIP = true, bool MUTABLE = true, class F>
-		Count ForEachDeepRev(F&&);
-		template<bool SKIP = true, class F>
-		Count ForEachDeepRev(F&&) const;
+		template<bool SKIP = true, bool MUTABLE = true, class... F>
+		Count ForEachDeepRev(F&&...);
+		template<bool SKIP = true, class... F>
+		Count ForEachDeepRev(F&&...) const;
 	
 	protected:
-		void CheckRange(const Offset& start, const Count& count) const;
+		void CheckRange(const Offset&, const Count&) const;
 		
 	private:
-		template<class R, CT::Data A, bool REVERSE, bool MUTABLE = true>
+		template<bool MUTABLE, bool REVERSE, class F>
+		Count ForEachSplitter(F&&);
+		template<bool SKIP, bool MUTABLE, bool REVERSE, class F>
+		Count ForEachDeepSplitter(F&&);
+
+	private:
+		template<class R, CT::Data A, bool REVERSE, bool MUTABLE>
 		Count ForEachInner(TFunctor<R(A)>&&);
-		template<class R, CT::Data A, bool REVERSE>
-		Count ForEachInner(TFunctor<R(A)>&&) const;
-	
-		template<class R, CT::Data A, bool REVERSE, bool SKIP, bool MUTABLE = true>
+		template<class R, CT::Data A, bool REVERSE, bool SKIP, bool MUTABLE>
 		Count ForEachDeepInner(TFunctor<R(A)>&&);
-		template<class R, CT::Data A, bool REVERSE, bool SKIP>
-		Count ForEachDeepInner(TFunctor<R(A)>&&) const;
 	
 		/// This function declaration is used to decompose a lambda				
 		/// You can use it to extract the argument type of the lambda, using	
