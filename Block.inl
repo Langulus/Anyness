@@ -1931,10 +1931,16 @@ namespace Langulus::Anyness
 			// If argument type is deep												
 			return ForEachDeepInner<R, A, REVERSE, SKIP, MUTABLE>(Forward<F>(call));
 		}
+		else if constexpr (CT::Constant<A>) {
+			// Any other type is wrapped inside another ForEachDeep call	
+			return ForEachDeep<SKIP, MUTABLE>([&call](const Block& block) {
+				block.ForEach(Forward<F>(call));
+			});
+		}
 		else {
 			// Any other type is wrapped inside another ForEachDeep call	
 			return ForEachDeep<SKIP, MUTABLE>([&call](Block& block) {
-				block.ForEach<MUTABLE, F>(Forward<F>(call));
+				block.ForEach(Forward<F>(call));
 			});
 		}
 	}
