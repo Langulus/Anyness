@@ -11,6 +11,16 @@
 namespace Langulus::Anyness
 {
 	
+	/// Block doesn't have ownership, so this constructor is here only to		
+	/// avoid RTTI complaining when containing Block in Block						
+	constexpr Block::Block(Disowned<Block>&& other) noexcept
+		: Block {other.mValue} {}
+
+	/// Block doesn't have ownership, so this constructor is here only to		
+	/// avoid RTTI complaining when containing Block in Block						
+	constexpr Block::Block(Abandoned<Block>&& other) noexcept
+		: Block {static_cast<const Block&>(other.mValue)} {}
+
 	/// Manual construction via type															
 	///	@param state - the initial state of the container							
 	///	@param meta - the type of the memory block									
@@ -844,22 +854,24 @@ namespace Langulus::Anyness
 
 	/// Mutate the block to a different type, if possible								
 	///	@tparam T - the type to change to												
-	///	@tparam WRAPPER - the container that requested the mutation				
+	///	@tparam ALLOW_DEEPEN - are we allowed to mutate to WRAPPER				
+	///	@tparam WRAPPER - type to use to deepen										
 	///	@return true if block was deepened to incorporate the new type			
-	template<CT::Data T, CT::Data WRAPPER>
+	template<CT::Data T, bool ALLOW_DEEPEN, CT::Data WRAPPER>
 	bool Block::Mutate() {
-		static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
-		const auto deepened = Mutate<WRAPPER>(MetaData::Of<Decay<T>>());
+		static_assert(ALLOW_DEEPEN && CT::Deep<WRAPPER>, "WRAPPER must be deep");
+		const auto deepened = Mutate<ALLOW_DEEPEN, WRAPPER>(MetaData::Of<Decay<T>>());
 		if constexpr (CT::Sparse<T>)
 			MakeSparse();
 		return deepened;
 	}
 	
 	/// Mutate to another compatible type, deepening the container if allowed	
-	///	@tparam WRAPPER - the container that requested the mutation				
+	///	@tparam ALLOW_DEEPEN - are we allowed to mutate to WRAPPER				
+	///	@tparam WRAPPER - type to use to deepen										
 	///	@param meta - the type to mutate into											
 	///	@return true if block was deepened												
-	template<CT::Data WRAPPER>
+	template<bool ALLOW_DEEPEN, CT::Data WRAPPER>
 	bool Block::Mutate(DMeta meta) {
 		static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
 
@@ -877,13 +889,16 @@ namespace Langulus::Anyness
 		}
 		else if (!IsInsertable(meta)) {
 			// Not insertable due to some reasons									
-			if (!IsTypeConstrained()) {
-				// Container is not type-constrained, so we can safely		
-				// deepen it, to incorporate the new data							
-				Deepen<WRAPPER>();
-				return true;
+			if constexpr (ALLOW_DEEPEN) {
+				if (!IsTypeConstrained()) {
+					// Container is not type-constrained, so we can safely	
+					// deepen it, to incorporate the new data						
+					Deepen<WRAPPER>();
+					return true;
+				}
 			}
-			else Throw<Except::Mutate>(Logger::Error()
+
+			Throw<Except::Mutate>(Logger::Error()
 				<< "Attempting to deepen incompatible type-constrained container from "
 				<< GetToken() << " to " << meta->mToken);
 		}
@@ -1107,7 +1122,8 @@ namespace Langulus::Anyness
 	///	@return number of inserted elements												
 	template<CT::Data WRAPPER, bool KEEP, bool MUTABLE, CT::NotAbandonedOrDisowned T>
 	Count Block::InsertAt(const T* start, const T* end, Offset index) {
-		static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
+		static_assert(CT::Deep<WRAPPER>,
+			"WRAPPER must be deep");
 		static_assert(CT::Sparse<T> || CT::Mutable<T>,
 			"Can't copy-insert into container of constant elements");
 
@@ -1172,7 +1188,8 @@ namespace Langulus::Anyness
 	///	@return number of inserted elements												
 	template<CT::Data WRAPPER, bool KEEP, bool MUTABLE, CT::NotAbandonedOrDisowned T>
 	Count Block::InsertAt(T&& item, Offset index) {
-		static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
+		static_assert(CT::Deep<WRAPPER>,
+			"WRAPPER must be deep");
 		static_assert(CT::Sparse<T> || CT::Mutable<T>,
 			"Can't move-insert into container of constant elements");
 
@@ -1220,13 +1237,14 @@ namespace Langulus::Anyness
 	///	@return number of inserted elements												
 	template<Index INDEX, CT::Data WRAPPER, bool KEEP, bool MUTABLE, CT::NotAbandonedOrDisowned T>
 	Count Block::Insert(const T* start, const T* end) {
-		static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
+		static_assert(CT::Deep<WRAPPER>,
+			"WRAPPER must be deep");
 		static_assert(CT::Sparse<T> || CT::Mutable<T>,
 			"Can't copy-insert into container of constant elements");
 
 		if constexpr (MUTABLE) {
 			// Type may mutate															
-			if (Mutate<T, WRAPPER>()) {
+			if (Mutate<T, true, WRAPPER>()) {
 				WRAPPER wrapper;
 				wrapper.template Insert<Index::Back, WRAPPER, KEEP, false, T>(start, end);
 				const auto pushed = Insert<INDEX, WRAPPER, false, false, WRAPPER>(Move(wrapper));
@@ -1256,7 +1274,8 @@ namespace Langulus::Anyness
 		else if constexpr (INDEX == Index::Back)
 			InsertInner<KEEP>(start, end, mCount);
 		else
-			LANGULUS_ASSERT("Invalid index provided; use either Index::Back or Index::Front");
+			LANGULUS_ASSERT("Invalid index provided; use either Index::Back "
+				"or Index::Front, or Block::InsertAt to insert at an offset");
 
 		return count;
 	}
@@ -1272,13 +1291,14 @@ namespace Langulus::Anyness
 	///	@return number of inserted elements												
 	template<Index INDEX, CT::Data WRAPPER, bool KEEP, bool MUTABLE, CT::NotAbandonedOrDisowned T>
 	Count Block::Insert(T&& item) {
-		static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
+		static_assert(CT::Deep<WRAPPER>,
+			"WRAPPER must be deep");
 		static_assert(CT::Sparse<T> || CT::Mutable<T>,
 			"Can't copy-insert into container of constant elements");
 
 		if constexpr (MUTABLE) {
 			// Type may mutate															
-			if (Mutate<T, WRAPPER>()) {
+			if (Mutate<T, true, WRAPPER>()) {
 				WRAPPER wrapper;
 				wrapper.template Insert<Index::Back, WRAPPER, KEEP, false, T>(Move(item));
 				Insert<INDEX, WRAPPER, false, false, WRAPPER>(Move(wrapper));
@@ -1307,7 +1327,8 @@ namespace Langulus::Anyness
 		else if constexpr (INDEX == Index::Back)
 			InsertInner<KEEP>(Move(item), mCount);
 		else
-			LANGULUS_ASSERT("Invalid index provided; use either Index::Back or Index::Front");
+			LANGULUS_ASSERT("Invalid index provided; use either Index::Back "
+				"or Index::Front, or Block::InsertAt to insert at an offset");
 
 		return 1;
 	}
@@ -2444,17 +2465,9 @@ namespace Langulus::Anyness
 	///	@param index - the place we'll be inserting at								
 	///	@param region - the newly allocated region (!mCount, only mReserved)	
 	///	@return number if inserted items in case of mutation						
-	template<bool KEEP, CT::Data WRAPPER>
-	Count Block::AllocateRegion(const Block& other, Offset index, Block& region) {
-		static_assert(CT::Block<WRAPPER>, "WRAPPER must be a deep type");
-		if (other.IsEmpty())
-			return 0;
-
-		// Type may mutate																
-		if (Mutate<WRAPPER>(other.mType)) {
-			// Block was deepened, so emplace a container inside				
-			return InsertAt<WRAPPER, KEEP, false>(WRAPPER {other}, index);
-		}
+	inline void Block::AllocateRegion(const Block& other, Offset index, Block& region) {
+		// Type may mutate, but never deepen										
+		Mutate<false>(other.mType);
 
 		// Allocate the required memory - this will not initialize it		
 		Allocate<false>(mCount + other.mCount);
@@ -2474,7 +2487,6 @@ namespace Langulus::Anyness
 
 		// Pick the region that should be overwritten with new stuff		
 		region = CropInner(index, 0, other.mCount);
-		return 0;
 	}
 
 	/// Call destructors in a region - after this call the memory is not			
@@ -2534,6 +2546,7 @@ namespace Langulus::Anyness
 	///	@attention this function is intended for internal use						
 	///	@attention this operates on initialized memory only, and any			
 	///				  misuse will result in undefined behavior						
+	///	@attention mCount is not zeroed in this call									
 	inline void Block::CallUnknownDestructors() {
 		if (IsSparse()) {
 			auto data = GetRawSparse();
@@ -2968,6 +2981,299 @@ namespace Langulus::Anyness
 		}
 		
 		mCount += count;
+	}
+	
+	/// Copy-insert all elements of a block at a special index						
+	///	@param other - the block to insert												
+	///	@param index - special index to insert them at								
+	///	@return the number of inserted elements										
+	template<CT::NotAbandonedOrDisowned T>
+	Count Block::InsertBlockAt(const T& other, Index index) {
+		static_assert(CT::Block<T>, "T must be a block type");
+		const auto offset = Constrain(index).GetOffset();
+		return InsertBlockAt(other, offset);
+	}
+
+	/// Copy-insert all elements of a block at a simple index						
+	///	@attention assumes that index is inside block's limits					
+	///	@param other - the block to insert												
+	///	@param index - simple index to insert them at								
+	///	@return the number of inserted elements										
+	template<CT::NotAbandonedOrDisowned T>
+	Count Block::InsertBlockAt(const T& other, Offset index) {
+		static_assert(CT::Block<T>, "T must be a block type");
+		Block region;
+		AllocateRegion(other, index, region);
+
+		if (region.IsAllocated()) {
+			// Call copy-constructors in the new region							
+			region.CallUnknownCopyConstructors<true>(other.mCount, other);
+			mCount += region.mReserved;
+			return region.mReserved;
+		}
+
+		return 0;
+	}
+
+	/// Move-insert all elements of a block at a special index						
+	///	@param other - the block to move in												
+	///	@param index - special index to insert them at								
+	///	@return the number of inserted elements										
+	template<CT::NotAbandonedOrDisowned T>
+	Count Block::InsertBlockAt(T&& other, Index index) {
+		static_assert(CT::Block<T>, "T must be a block type");
+		const auto offset = Constrain(index).GetOffset();
+		return InsertBlockAt(Move(other), offset);
+	}
+
+	/// Move-insert all elements of a block at a simple index						
+	///	@param other - the block to move in												
+	///	@param index - simple index to insert them at								
+	///	@return the number of inserted elements										
+	template<CT::NotAbandonedOrDisowned T>
+	Count Block::InsertBlockAt(T&& other, Offset index) {
+		static_assert(CT::Block<T>, "T must be a block type");
+		Block region;
+		AllocateRegion(other, index, region);
+
+		if (region.IsAllocated()) {
+			// Call move-constructors in the new region							
+			region.CallUnknownMoveConstructors<true>(other.mCount, Move(other));
+			return region.mReserved;
+		}
+
+		return 0;
+	}
+
+	/// Move-insert all elements of an abandoned block at a special index		
+	///	@param other - the block to move in												
+	///	@param index - special index to insert them at								
+	///	@return the number of inserted elements										
+	template<CT::NotAbandonedOrDisowned T>
+	Count Block::InsertBlockAt(Abandoned<T>&& other, Index index) {
+		static_assert(CT::Block<T>, "T must be a block type");
+		const auto offset = Constrain(index).GetOffset();
+		return InsertBlockAt(Move(other), offset);
+	}
+
+	/// Move-insert all elements of an abandoned block at a simple index			
+	///	@param other - the block to move in												
+	///	@param index - simple index to insert them at								
+	///	@return the number of inserted elements										
+	template<CT::NotAbandonedOrDisowned T>
+	Count Block::InsertBlockAt(Abandoned<T>&& other, Offset index) {
+		static_assert(CT::Block<T>, "T must be a block type");
+		Block region;
+		AllocateRegion(other.mValue, index, region);
+
+		if (region.IsAllocated()) {
+			// Call move-constructors in the new region							
+			region.CallUnknownMoveConstructors<false>(other.mValue.mCount, Move(other.mValue));
+			return region.mReserved;
+		}
+
+		return 0;
+	}
+
+	/// Copy-insert all elements of a disowned block at a special index			
+	///	@param other - the block to move in												
+	///	@param index - special index to insert them at								
+	///	@return the number of inserted elements										
+	template<CT::NotAbandonedOrDisowned T>
+	Count Block::InsertBlockAt(Disowned<T>&& other, Index index) {
+		static_assert(CT::Block<T>, "T must be a block type");
+		const auto offset = Constrain(index).GetOffset();
+		return InsertBlockAt(Move(other), offset);
+	}
+
+	/// Copy-insert all elements of a disowned block at a simple index			
+	///	@param other - the block to move in												
+	///	@param index - simple index to insert them at								
+	///	@return the number of inserted elements										
+	template<CT::NotAbandonedOrDisowned T>
+	Count Block::InsertBlockAt(Disowned<T>&& other, Offset index) {
+		static_assert(CT::Block<T>, "T must be a block type");
+		Block region;
+		AllocateRegion(other.mValue, index, region);
+
+		if (region.IsAllocated()) {
+			// Call move-constructors in the new region							
+			region.CallUnknownCopyConstructors<false>(other.mValue.mCount, other.mValue);
+			return region.mReserved;
+		}
+
+		return 0;
+	}
+
+	/// Copy-insert all elements of a block either at the start or at end		
+	///	@tparam INDEX - either Index::Back or Index::Front							
+	///	@tparam T - type of the block to traverse (deducible)						
+	///	@param other - the block to insert												
+	///	@return the number of inserted elements										
+	template<Index INDEX, CT::NotAbandonedOrDisowned T>
+	Count Block::InsertBlock(const T& other) {
+		static_assert(CT::Block<T>, "T must be a block type");
+
+		// Type may mutate, but never deepen										
+		Mutate<false>(other.mType);
+
+		// Allocate the required memory - this will not initialize it		
+		Allocate<false>(mCount + other.mCount);
+
+		// Move memory if required														
+		if constexpr (INDEX == Index::Front) {
+			SAFETY(if (GetUses() > 1)
+				Throw<Except::Reference>(Logger::Error()
+					<< "Moving elements that are used from multiple places"));
+
+			CropInner(other.mCount, 0, mCount)
+				.CallUnknownMoveConstructors<false>(
+					mCount, CropInner(0, mCount, mCount)
+				);
+
+			CropInner(0, 0, other.mCount)
+				.CallUnknownCopyConstructors<true>(other.mCount, other);
+		}
+		else {
+			CropInner(mCount, 0, other.mCount)
+				.CallUnknownCopyConstructors<true>(other.mCount, other);
+		}
+
+		return other.mCount;
+	}
+
+	/// Move-insert all elements of a block either at the start or at end		
+	///	@tparam INDEX - either Index::Back or Index::Front							
+	///	@tparam T - type of the block to traverse (deducible)						
+	///	@param other - the block to insert												
+	///	@return the number of inserted elements										
+	template<Index INDEX, CT::NotAbandonedOrDisowned T>
+	Count Block::InsertBlock(T&& other) {
+		static_assert(CT::Block<T>, "T must be a block type");
+
+		// Type may mutate, but never deepen										
+		Mutate<false>(other.mType);
+
+		// Allocate the required memory - this will not initialize it		
+		Allocate<false>(mCount + other.mCount);
+
+		// Move memory if required														
+		if constexpr (INDEX == Index::Front) {
+			SAFETY(if (GetUses() > 1)
+				Throw<Except::Reference>(Logger::Error()
+					<< "Moving elements that are used from multiple places"));
+
+			CropInner(other.mCount, 0, mCount)
+				.CallUnknownMoveConstructors<false>(
+					mCount, CropInner(0, mCount, mCount)
+				);
+
+			CropInner(0, 0, other.mCount)
+				.CallUnknownMoveConstructors<false>(other.mCount, Forward<Block>(other));
+		}
+		else {
+			CropInner(mCount, 0, other.mCount)
+				.CallUnknownMoveConstructors<false>(other.mCount, Forward<Block>(other));
+		}
+
+		// Fully reset the source block												
+		const auto pushed = other.mCount;
+		other.Reset();
+		return pushed;
+	}
+
+	/// Move-insert all elements of an abandoned block either at start/end		
+	///	@tparam INDEX - either Index::Back or Index::Front							
+	///	@tparam T - type of the block to traverse (deducible)						
+	///	@param other - the block to insert												
+	///	@return the number of inserted elements										
+	template<Index INDEX, CT::NotAbandonedOrDisowned T>
+	Count Block::InsertBlock(Abandoned<T>&& other) {
+		static_assert(CT::Block<T>, "T must be a block type");
+
+		// Type may mutate, but never deepen										
+		Mutate<false>(other.mValue.mType);
+
+		// Allocate the required memory - this will not initialize it		
+		Allocate<false>(mCount + other.mValue.mCount);
+
+		// Move memory if required														
+		if constexpr (INDEX == Index::Front) {
+			SAFETY(if (GetUses() > 1)
+				Throw<Except::Reference>(Logger::Error()
+					<< "Moving elements that are used from multiple places"));
+
+			CropInner(other.mValue.mCount, 0, mCount)
+				.CallUnknownMoveConstructors<false>(
+					mCount, CropInner(0, mCount, mCount)
+				);
+
+			CropInner(0, 0, other.mValue.mCount)
+				.CallUnknownMoveConstructors<false>(other.mValue.mCount, Forward<Block>(other.mValue));
+		}
+		else {
+			CropInner(mCount, 0, other.mValue.mCount)
+				.CallUnknownMoveConstructors<false>(other.mValue.mCount, Forward<Block>(other.mValue));
+		}
+
+		// Fully reset the source block												
+		other.mValue.Free();
+		other.mValue.mEntry = nullptr;
+		return other.mValue.mCount;
+	}
+
+	/// Copy-insert all elements of a disowned block either at start/end			
+	///	@tparam INDEX - either Index::Back or Index::Front							
+	///	@tparam T - type of the block to traverse (deducible)						
+	///	@param other - the block to insert												
+	///	@return the number of inserted elements										
+	template<Index INDEX, CT::NotAbandonedOrDisowned T>
+	Count Block::InsertBlock(Disowned<T>&& other) {
+		static_assert(CT::Block<T>, "T must be a block type");
+
+		// Type may mutate, but never deepen										
+		Mutate<false>(other.mValue.mType);
+
+		// Allocate the required memory - this will not initialize it		
+		Allocate<false>(mCount + other.mValue.mCount);
+
+		// Move memory if required														
+		if constexpr (INDEX == Index::Front) {
+			SAFETY(if (GetUses() > 1)
+				Throw<Except::Reference>(Logger::Error()
+					<< "Moving elements that are used from multiple places"));
+
+			CropInner(other.mValue.mCount, 0, mCount)
+				.CallUnknownMoveConstructors<false>(
+					mCount, CropInner(0, mCount, mCount)
+				);
+
+			CropInner(0, 0, other.mValue.mCount)
+				.CallUnknownCopyConstructors<false>(other.mValue.mCount, other.mValue);
+		}
+		else {
+			CropInner(mCount, 0, other.mValue.mCount)
+				.CallUnknownCopyConstructors<false>(other.mValue.mCount, other.mValue);
+		}
+
+		return other.mValue.mCount;
+	}
+
+	/// Merge a block using a slow and tedious RTTI copies and compares			
+	///	@param other - the block to insert												
+	///	@param idx - place to insert them at											
+	///	@return the number of inserted elements										
+	template<CT::NotAbandonedOrDisowned T>
+	Count Block::MergeBlockAt(const T& other, Index idx) {
+		static_assert(CT::Block<T>, "T must be a block type");
+		Count inserted {};
+		for (Count i = 0; i < other.GetCount(); ++i) {
+			auto right = other.GetElementResolved(i);
+			if (!FindRTTI(right))
+				inserted += InsertBlockAt(right, idx);
+		}
+
+		return inserted;
 	}
 
 } // namespace Langulus::Anyness

@@ -889,7 +889,7 @@ namespace Langulus::Anyness
 			}
 
 			CropInner(index + count, 0, mCount - index)
-				.template CallKnownMoveConstructors<T>(
+				.CallKnownMoveConstructors<false, T>(
 					mCount - index,
 					CropInner(index, mCount - index, mCount - index)
 				);
@@ -929,13 +929,89 @@ namespace Langulus::Anyness
 			}
 
 			CropInner(index + 1, 0, mCount - index)
-				.template CallKnownMoveConstructors<T>(
+				.CallKnownMoveConstructors<false, T>(
 					mCount - index,
 					CropInner(index, mCount - index, mCount - index)
 				);
 		}
 
 		InsertInner<KEEP, T>(Move(item), index);
+		return 1;
+	}
+
+	/// Copy-insert elements either at the start or the end							
+	///	@tparam INDEX - use Index::Back or Index::Front to append accordingly
+	///	@tparam KEEP - whether to reference data on copy							
+	///	@param start - pointer to the first item										
+	///	@param end - pointer to the end of items										
+	///	@return number of inserted elements												
+	TEMPLATE()
+	template<Index INDEX, bool KEEP>
+	Count TAny<T>::Insert(const T* start, const T* end) {
+		static_assert(CT::Sparse<T> || CT::Mutable<T>,
+			"Can't copy-insert into container of constant elements");
+
+		// Allocate																			
+		const auto count = end - start;
+		Allocate<false>(mCount + count);
+
+		// Move memory if required														
+		if constexpr (INDEX == Index::Front) {
+			SAFETY(if (GetUses() > 1)
+				Throw<Except::Reference>(Logger::Error() << 
+					"Moving elements that are used from multiple places"
+					" - you should first clone the container"));
+
+			CropInner(count, 0, mCount)
+				.CallKnownMoveConstructors<false, T>(
+					mCount, CropInner(0, mCount, mCount)
+				);
+
+			InsertInner<KEEP>(start, end, 0);
+		}
+		else if constexpr (INDEX == Index::Back)
+			InsertInner<KEEP>(start, end, mCount);
+		else
+			LANGULUS_ASSERT("Invalid index provided; use either Index::Back "
+				"or Index::Front, or Block::InsertAt to insert at an offset");
+
+		return count;
+	}
+
+	/// Move-insert an element at the start or the end									
+	///	@tparam INDEX - use Index::Back or Index::Front to append accordingly
+	///	@tparam KEEP - whether to reference data on copy							
+	///	@param item - item to move int													
+	///	@return 1 if element was pushed													
+	TEMPLATE()
+	template<Index INDEX, bool KEEP>
+	Count TAny<T>::Insert(T&& item) {
+		static_assert(CT::Sparse<T> || CT::Mutable<T>,
+			"Can't copy-insert into container of constant elements");
+
+		// Allocate																			
+		Allocate<false>(mCount + 1);
+
+		// Move memory if required														
+		if constexpr (INDEX == Index::Front) {
+			SAFETY(if (GetUses() > 1)
+				Throw<Except::Reference>(Logger::Error() << 
+					"Moving elements that are used from multiple places"
+					" - you should first clone the container"));
+
+			CropInner(1, 0, mCount)
+				.CallKnownMoveConstructors<false, T>(
+					mCount, CropInner(0, mCount, mCount)
+				);
+
+			InsertInner<KEEP>(Move(item), 0);
+		}
+		else if constexpr (INDEX == Index::Back)
+			InsertInner<KEEP>(Move(item), mCount);
+		else
+			LANGULUS_ASSERT("Invalid index provided; use either Index::Back "
+				"or Index::Front, or Block::InsertAt to insert at an offset");
+
 		return 1;
 	}
 

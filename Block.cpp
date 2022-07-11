@@ -479,131 +479,6 @@ namespace Langulus::Anyness
 		return *this;
 	}
 
-	/// Copy-insert all elements of a block at a special index						
-	///	@param other - the block to insert												
-	///	@param index - special index to insert them at								
-	///	@return the number of inserted elements										
-	Count Block::InsertBlockAt(const Block& other, Index index) {
-		const auto offset = Constrain(index).GetOffset();
-		return InsertBlockAt(other, offset);
-	}
-
-	/// Copy-insert all elements of a block at a simple index						
-	///	@attention assumes that index is inside block's limits					
-	///	@param other - the block to insert												
-	///	@param index - simple index to insert them at								
-	///	@return the number of inserted elements										
-	Count Block::InsertBlockAt(const Block& other, Offset index) {
-		Block region;
-		if (AllocateRegion(other, index, region))
-			return 1;
-
-		if (region.IsAllocated()) {
-			// Call copy-constructors in the new region							
-			region.CallUnknownCopyConstructors<true>(other.mCount, other);
-			mCount += region.mReserved;
-			return region.mReserved;
-		}
-
-		return 0;
-	}
-
-	/// Move-insert all elements of a block at a special index						
-	///	@param other - the block to move in												
-	///	@param index - special index to insert them at								
-	///	@return the number of inserted elements										
-	Count Block::InsertBlockAt(Block&& other, Index index) {
-		const auto offset = Constrain(index).GetOffset();
-		return InsertBlockAt(Move(other), offset);
-	}
-
-	/// Move-insert all elements of a block at a simple index						
-	///	@param other - the block to move in												
-	///	@param index - simple index to insert them at								
-	///	@return the number of inserted elements										
-	Count Block::InsertBlockAt(Block&& other, Offset index) {
-		Block region;
-		if (AllocateRegion(other, index, region))
-			return 1;
-
-		if (region.IsAllocated()) {
-			// Call move-constructors in the new region							
-			region.CallUnknownMoveConstructors<true>(other.mCount, Move(other));
-			return region.mReserved;
-		}
-
-		return 0;
-	}
-
-	/// Move-insert all elements of an abandoned block at a special index		
-	///	@param other - the block to move in												
-	///	@param index - special index to insert them at								
-	///	@return the number of inserted elements										
-	Count Block::InsertBlockAt(Abandoned<Block>&& other, Index index) {
-		const auto offset = Constrain(index).GetOffset();
-		return InsertBlockAt(Move(other), offset);
-	}
-
-	/// Move-insert all elements of an abandoned block at a simple index			
-	///	@param other - the block to move in												
-	///	@param index - simple index to insert them at								
-	///	@return the number of inserted elements										
-	Count Block::InsertBlockAt(Abandoned<Block>&& other, Offset index) {
-		Block region;
-		if (AllocateRegion(other.mValue, index, region))
-			return 1;
-
-		if (region.IsAllocated()) {
-			// Call move-constructors in the new region							
-			region.CallUnknownMoveConstructors<false>(other.mValue.mCount, Move(other.mValue));
-			return region.mReserved;
-		}
-
-		return 0;
-	}
-
-	/// Move-insert all elements of a disowned block at a special index			
-	///	@param other - the block to move in												
-	///	@param index - special index to insert them at								
-	///	@return the number of inserted elements										
-	Count Block::InsertBlockAt(Disowned<Block>&& other, Index index) {
-		const auto offset = Constrain(index).GetOffset();
-		return InsertBlockAt(Move(other), offset);
-	}
-
-	/// Move-insert all elements of a disowned block at a simple index			
-	///	@param other - the block to move in												
-	///	@param index - simple index to insert them at								
-	///	@return the number of inserted elements										
-	Count Block::InsertBlockAt(Disowned<Block>&& other, Offset index) {
-		Block region;
-		if (AllocateRegion(other.mValue, index, region))
-			return 1;
-
-		if (region.IsAllocated()) {
-			// Call move-constructors in the new region							
-			region.CallUnknownCopyConstructors<false>(other.mValue.mCount, other.mValue);
-			return region.mReserved;
-		}
-
-		return 0;
-	}
-
-	/// Merge a block using a slow and tedious RTTI copies and compares			
-	///	@param other - the block to insert												
-	///	@param idx - place to insert them at											
-	///	@return the number of inserted elements										
-	Count Block::MergeBlockAt(const Block& other, Index idx) {
-		Count inserted {};
-		for (Count i = 0; i < other.GetCount(); ++i) {
-			auto right = other.GetElementResolved(i);
-			if (!FindRTTI(right))
-				inserted += InsertBlockAt(right, idx);
-		}
-
-		return inserted;
-	}
-
 	/// Gather items from input container, and fill output							
 	/// Output type acts as a filter to what gets gathered							
 	///	@param input - source container													
@@ -630,7 +505,7 @@ namespace Langulus::Anyness
 
 		if (output.IsConcatable(input)) {
 			// Catenate input if compatible											
-			count += output.InsertBlock(input);
+			count += output.InsertBlock<Index::Back>(input);
 		}
 
 		return count;
@@ -643,7 +518,7 @@ namespace Langulus::Anyness
 	///	@return the number of gathered elements										
 	Count Block::Gather(Block& output, const Index direction) const {
 		if (output.IsUntyped())
-			return output.InsertBlock(*this);
+			return output.InsertBlock<Index::Back>(*this);
 		return GatherInner(*this, output, direction);
 	}
 

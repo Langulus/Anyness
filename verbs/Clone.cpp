@@ -138,7 +138,7 @@ namespace Langulus::Anyness
 						<< ccRed << "(slowest)");
 				}
 				else if (from.mType->mIsPOD) {
-					// Just memcpy simple CT::POD data									
+					// Just memcpy simple CT::POD data								
 					to.Allocate<false>(1);
 					to.mCount = 1;
 					
@@ -156,7 +156,7 @@ namespace Langulus::Anyness
 					auto element = result.GetElementResolved(index);
 					to.Copy(element); //TODO move instead?
 				}
-				else result.InsertBlock(Move(to));
+				else result.InsertBlock<Index::Back>(Abandon(to));
 			}
 		}
 
