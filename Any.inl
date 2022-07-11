@@ -61,7 +61,7 @@ namespace Langulus::Anyness
 	template <CT::CustomData T>
 	Any::Any(const T& other) {
 		SetType<T, false>();
-		Insert<Any, true, false>(&other, 1);
+		Insert<Index::Back, Any, true, false, T>(&other, &other + 1);
 	}
 
 	/// This override is required to disambiguate automatically deduced T		
@@ -77,7 +77,7 @@ namespace Langulus::Anyness
 	template <CT::CustomData T>
 	Any::Any(T&& other) {
 		SetType<T, false>();
-		Insert<Any, true, false>(Forward<T>(other));
+		Insert<Index::Back, Any, true, false, T>(Move(other));
 	}
 
 	/// Construct by directly interfacing the memory of a dense non-block type	
@@ -106,7 +106,7 @@ namespace Langulus::Anyness
 	template <CT::CustomData T>
 	Any::Any(Disowned<T>&& other) requires CT::Sparse<T> {
 		SetType<T, false>();
-		Insert<Any, false, false>(&other.mValue, 1);
+		Insert<Index::Back, Any, false, false, T>(&other.mValue, &other.mValue + 1);
 	}
 
 	/// Construct by inserting a sparse value of non-block type						
@@ -115,7 +115,7 @@ namespace Langulus::Anyness
 	template <CT::CustomData T>
 	Any::Any(Abandoned<T>&& other) requires CT::Sparse<T> {
 		SetType<T, false>();
-		Insert<Any, false, false>(Move(other.mValue));
+		Insert<Index::Back, Any, false, false, T>(Move(other.mValue));
 	}
 
 	/// Destruction																				
@@ -252,7 +252,7 @@ namespace Langulus::Anyness
 				AllocateInner<false>(1);
 			}
 
-			InsertInner<true>(&other, 1, 0);
+			InsertInner<true>(&other, &other + 1, 0);
 		}
 
 		return *this;
@@ -362,9 +362,9 @@ namespace Langulus::Anyness
 	template<CT::Data T>
 	Any& Any::operator << (const T& other) {
 		if constexpr (CT::Array<T>)
-			Insert<Any, true, true>(SparseCast(other), ExtentOf<T>, Index::Back);
+			Insert<Index::Back, Any, true, true>(SparseCast(other), SparseCast(other) + ExtentOf<T>);
 		else
-			Insert<Any, true, true>(&other, 1, Index::Back);
+			Insert<Index::Back, Any, true, true>(&other, &other + 1);
 		return *this;
 	}
 
@@ -382,11 +382,11 @@ namespace Langulus::Anyness
 	template<CT::Data T>
 	Any& Any::operator << (T&& other) {
 		if constexpr (CT::Abandoned<T>)
-			Insert<Any, false, true>(Move(other.mValue), Index::Back);
+			Insert<Index::Back, Any, false, true>(Move(other.mValue));
 		else if constexpr (CT::Disowned<T>)
-			Insert<Any, false, true>(&other.mValue, 1, Index::Back);
+			Insert<Index::Back, Any, false, true>(&other.mValue, &other.mValue + 1);
 		else
-			Insert<Any, true, true>(Forward<T>(other), Index::Back);
+			Insert<Index::Back, Any, true, true>(Move(other));
 		return *this;
 	}
 

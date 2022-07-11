@@ -273,13 +273,13 @@ namespace Langulus::Anyness
 					// Memory moved, and we should call move-construction		
 					mRaw = mEntry->GetBlockStart();
 					mCount = 0;
-					CallUnknownMoveConstructors(previousBlock.mCount, Move(previousBlock));
+					CallUnknownMoveConstructors<false>(previousBlock.mCount, Move(previousBlock));
 					//previousBlock.Free();
 				}
 				
 				if constexpr (CREATE) {
 					// Default-construct the rest										
-					CallDefaultConstructors(elements - mCount);
+					CallUnknownDefaultConstructors(elements - mCount);
 				}
 			}
 			else {
@@ -291,12 +291,12 @@ namespace Langulus::Anyness
 
 				mRaw = mEntry->GetBlockStart();
 				mCount = 0;
-				CallCopyConstructors(previousBlock.mCount, previousBlock);
+				CallUnknownCopyConstructors<true>(previousBlock.mCount, previousBlock);
 				previousBlock.Free();
 				
 				if constexpr (CREATE) {
 					// Default-construct the rest										
-					CallDefaultConstructors(elements - mCount);
+					CallUnknownDefaultConstructors(elements - mCount);
 				}
 			}
 		}
@@ -309,7 +309,7 @@ namespace Langulus::Anyness
 			mRaw = mEntry->GetBlockStart();
 			if constexpr (CREATE) {
 				// Default-construct everything										
-				CallDefaultConstructors(elements);
+				CallUnknownDefaultConstructors(elements);
 			}
 		}
 
@@ -347,7 +347,7 @@ namespace Langulus::Anyness
 			if constexpr (CREATE) {
 				// But is not yet initialized, so initialize it					
 				if (mCount < elements)
-					CallDefaultConstructors(elements - mCount);
+					CallUnknownDefaultConstructors(elements - mCount);
 			}
 			
 			return;
@@ -1077,70 +1077,113 @@ namespace Langulus::Anyness
 		);
 	}
 
-	/// Insert anything compatible to container											
+	/// Copy-insert anything compatible at a special index							
+	/// Slight overhead due to runtime-resolving the index							
+	///	@tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled	
+	///	@tparam KEEP - whether to reference data on copy							
+	///	@tparam MUTABLE - is it allowed the block to deepen to incorporate	
+	///							the new insertion, if not compatible					
 	///	@tparam T - the type to insert (deducible)									
-	///	@param items - items to push														
-	///	@param count - number of items inside											
-	///	@param index - use uiFront or uiBack for pushing to ends					
+	///	@param start - pointer to the first item										
+	///	@param end - pointer to the end of items										
+	///	@param index - the special index to insert at								
 	///	@return number of inserted elements												
-	template<CT::Data WRAPPER, bool KEEP, bool MUTABLE, CT::Data T>
-	Count Block::Insert(const T* items, const Count count, const Index& index) requires CT::NotAbandonedOrDisowned<T> {
-		static_assert(CT::Sparse<T> || CT::Mutable<T>, 
+	template<CT::Data WRAPPER, bool KEEP, bool MUTABLE, CT::NotAbandonedOrDisowned T>
+	Count Block::InsertAt(const T* start, const T* end, Index index) {
+		const auto offset = ConstrainMore<T>(index).GetOffset(); //TODO constraining assumes this is filled with T? might cause problems :(
+		return InsertAt<WRAPPER, KEEP, MUTABLE, T>(start, end, offset);
+	}
+
+	/// Copy-insert anything compatible at a simple offset							
+	///	@attention assumes offset is in the block's limits							
+	///	@tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled	
+	///	@tparam KEEP - whether to reference data on copy							
+	///	@tparam MUTABLE - is it allowed the block to deepen or incorporate	
+	///							the new insertion, if not compatible					
+	///	@tparam T - the type to insert (deducible)									
+	///	@param start - pointer to the first item										
+	///	@param end - pointer to the end of items										
+	///	@param index - the simple index to insert at									
+	///	@return number of inserted elements												
+	template<CT::Data WRAPPER, bool KEEP, bool MUTABLE, CT::NotAbandonedOrDisowned T>
+	Count Block::InsertAt(const T* start, const T* end, Offset index) {
+		static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
+		static_assert(CT::Sparse<T> || CT::Mutable<T>,
 			"Can't copy-insert into container of constant elements");
-		const auto starter = ConstrainMore<T>(index).GetOffset();
 
 		if constexpr (MUTABLE) {
 			// Type may mutate															
 			if (Mutate<T, WRAPPER>()) {
 				WRAPPER wrapper;
-				wrapper.template Insert<WRAPPER, KEEP, false>(items, count);
-				const auto inserted = Insert<WRAPPER, false, false>(Move(wrapper), index);
+				wrapper.template Insert<Index::Back, WRAPPER, KEEP, false, T>(start, end);
+				const auto pushed = InsertAt<WRAPPER, false, false, T>(Move(wrapper), index);
 				wrapper.mEntry = nullptr;
-				return inserted;
+				return pushed;
 			}
 		}
 
 		// Allocate																			
+		const auto count = end - start;
 		Allocate<false>(mCount + count);
 
 		// Move memory if required														
-		if (starter < mCount) {
+		if (index < mCount) {
 			SAFETY(if (GetUses() > 1)
-				Throw<Except::Reference>(Logger::Error()
-					<< "Moving elements that are used from multiple places"));
+				Throw<Except::Reference>(Logger::Error() << 
+					"Moving elements that are used from multiple places"
+					" - you should first clone the container"));
 
-			CropInner(starter + count, 0, mCount - starter)
+			CropInner(index + count, 0, mCount - index)
 				.template CallKnownMoveConstructors<T>(
-					mCount - starter,
-					CropInner(starter, mCount - starter, mCount - starter)
+					mCount - index,
+					CropInner(index, mCount - index, mCount - index)
 				);
 		}
 
-		InsertInner<KEEP>(items, count, starter);
+		InsertInner<KEEP>(start, end, index);
 		return count;
 	}
 
-	/// Emplace anything inside container													
-	///	@attention when emplacing pointers, their memory is referenced,		
-	///				  and the pointer is not cleared, so you can free it later	
+	/// Move-insert anything compatible at a special index							
+	/// Slight overhead due to runtime-resolving the index							
+	///	@tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled	
+	///	@tparam KEEP - whether to reference data on copy							
+	///	@tparam MUTABLE - is it allowed the block to deepen to incorporate	
+	///							the new insertion, if not compatible					
 	///	@tparam T - the type to insert (deducible)									
-	///	@param item - item to move															
-	///	@param index - use uiFront or uiBack for pushing to ends					
-	///	@return 1 if item was emplaced													
-	template<CT::Data WRAPPER, bool KEEP, bool MUTABLE, CT::Data T>
-	Count Block::Insert(T&& item, const Index& index) requires CT::NotAbandonedOrDisowned<T> {
+	///	@param item - the item to move in												
+	///	@param index - the special index to insert at								
+	///	@return number of inserted elements												
+	template<CT::Data WRAPPER, bool KEEP, bool MUTABLE, CT::NotAbandonedOrDisowned T>
+	Count Block::InsertAt(T&& item, Index index) {
+		const auto offset = ConstrainMore<T>(index).GetOffset(); //TODO constraining assumes this is filled with T? might cause problems :(
+		return InsertAt<WRAPPER, KEEP, MUTABLE, T>(Move(item), offset);
+	}
+
+	/// Move-insert anything compatible at a simple offset							
+	///	@attention assumes offset is in the block's limits							
+	///	@tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled	
+	///	@tparam KEEP - whether to reference data on copy							
+	///	@tparam MUTABLE - is it allowed the block to deepen to incorporate	
+	///							the new insertion, if not compatible					
+	///	@tparam T - the type to insert (deducible)									
+	///	@param item - the item to move in												
+	///	@param index - the simple offset to insert at								
+	///	@return number of inserted elements												
+	template<CT::Data WRAPPER, bool KEEP, bool MUTABLE, CT::NotAbandonedOrDisowned T>
+	Count Block::InsertAt(T&& item, Offset index) {
+		static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
 		static_assert(CT::Sparse<T> || CT::Mutable<T>,
 			"Can't move-insert into container of constant elements");
-		const auto starter = ConstrainMore<T>(index).GetOffset();
 
 		if constexpr (MUTABLE) {
 			// Type may mutate															
 			if (Mutate<T, WRAPPER>()) {
 				WRAPPER wrapper;
-				wrapper.template Insert<WRAPPER, KEEP, false>(Move(item));
-				const auto inserted = Insert<WRAPPER, false, false>(Move(wrapper), index);
+				wrapper.template Insert<Index::Back, WRAPPER, KEEP, false>(Move(item));
+				const auto pushed = InsertAt<WRAPPER, false, false, T>(Move(wrapper), index);
 				wrapper.mEntry = nullptr;
-				return inserted;
+				return pushed;
 			}
 		}
 
@@ -1148,33 +1191,139 @@ namespace Langulus::Anyness
 		Allocate<false>(mCount + 1);
 
 		// Move memory if required														
-		if (starter < mCount) {
+		if (index < mCount) {
 			SAFETY(if (GetUses() > 1)
-				Throw<Except::Reference>(Logger::Error()
-					<< "Moving elements that are used from multiple places"));
+				Throw<Except::Reference>(Logger::Error() <<
+					"Moving elements that are used from multiple places"
+					" - you should first clone the container"));
 
-			CropInner(starter + 1, 0, mCount - starter)
+			CropInner(index + 1, 0, mCount - index)
 				.template CallKnownMoveConstructors<T>(
-					mCount - starter,
-					CropInner(starter, mCount - starter, mCount - starter)
+					mCount - index,
+					CropInner(index, mCount - index, mCount - index)
 				);
 		}
 
-		InsertInner<KEEP>(Forward<T>(item), starter);
+		InsertInner<KEEP>(Move(item), index);
 		return 1;
 	}
 
-	/// Inner insertion function																
+	/// Copy-insert anything compatible either at the start or the end			
+	///	@tparam INDEX - use Index::Back or Index::Front to append accordingly
+	///	@tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled	
+	///	@tparam KEEP - whether to reference data on copy							
+	///	@tparam MUTABLE - is it allowed the block to deepen or incorporate	
+	///							the new insertion, if not compatible					
+	///	@tparam T - the type to insert (deducible)									
+	///	@param start - pointer to the first item										
+	///	@param end - pointer to the end of items										
+	///	@return number of inserted elements												
+	template<Index INDEX, CT::Data WRAPPER, bool KEEP, bool MUTABLE, CT::NotAbandonedOrDisowned T>
+	Count Block::Insert(const T* start, const T* end) {
+		static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
+		static_assert(CT::Sparse<T> || CT::Mutable<T>,
+			"Can't copy-insert into container of constant elements");
+
+		if constexpr (MUTABLE) {
+			// Type may mutate															
+			if (Mutate<T, WRAPPER>()) {
+				WRAPPER wrapper;
+				wrapper.template Insert<Index::Back, WRAPPER, KEEP, false, T>(start, end);
+				const auto pushed = Insert<INDEX, WRAPPER, false, false, WRAPPER>(Move(wrapper));
+				wrapper.mEntry = nullptr;
+				return pushed;
+			}
+		}
+
+		// Allocate																			
+		const auto count = end - start;
+		Allocate<false>(mCount + count);
+
+		// Move memory if required														
+		if constexpr (INDEX == Index::Front) {
+			SAFETY(if (GetUses() > 1)
+				Throw<Except::Reference>(Logger::Error() << 
+					"Moving elements that are used from multiple places"
+					" - you should first clone the container"));
+
+			CropInner(count, 0, mCount)
+				.template CallKnownMoveConstructors<T>(
+					mCount, CropInner(0, mCount, mCount)
+				);
+
+			InsertInner<KEEP>(start, end, 0);
+		}
+		else if constexpr (INDEX == Index::Back)
+			InsertInner<KEEP>(start, end, mCount);
+		else
+			LANGULUS_ASSERT("Invalid index provided; use either Index::Back or Index::Front");
+
+		return count;
+	}
+
+	/// Move-insert anything compatible either at the start or the end			
+	///	@tparam INDEX - use Index::Back or Index::Front to append accordingly
+	///	@tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled	
+	///	@tparam KEEP - whether to reference data on copy							
+	///	@tparam MUTABLE - is it allowed the block to deepen or incorporate	
+	///							the new insertion, if not compatible					
+	///	@tparam T - the type to insert (deducible)									
+	///	@param item - item to move int													
+	///	@return number of inserted elements												
+	template<Index INDEX, CT::Data WRAPPER, bool KEEP, bool MUTABLE, CT::NotAbandonedOrDisowned T>
+	Count Block::Insert(T&& item) {
+		static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
+		static_assert(CT::Sparse<T> || CT::Mutable<T>,
+			"Can't copy-insert into container of constant elements");
+
+		if constexpr (MUTABLE) {
+			// Type may mutate															
+			if (Mutate<T, WRAPPER>()) {
+				WRAPPER wrapper;
+				wrapper.template Insert<Index::Back, WRAPPER, KEEP, false, T>(Move(item));
+				Insert<INDEX, WRAPPER, false, false, WRAPPER>(Move(wrapper));
+				wrapper.mEntry = nullptr;
+				return 1;
+			}
+		}
+
+		// Allocate																			
+		Allocate<false>(mCount + 1);
+
+		// Move memory if required														
+		if constexpr (INDEX == Index::Front) {
+			SAFETY(if (GetUses() > 1)
+				Throw<Except::Reference>(Logger::Error() << 
+					"Moving elements that are used from multiple places"
+					" - you should first clone the container"));
+
+			CropInner(1, 0, mCount)
+				.template CallKnownMoveConstructors<T>(
+					mCount, CropInner(0, mCount, mCount)
+				);
+
+			InsertInner<KEEP>(Move(item), 0);
+		}
+		else if constexpr (INDEX == Index::Back)
+			InsertInner<KEEP>(Move(item), mCount);
+		else
+			LANGULUS_ASSERT("Invalid index provided; use either Index::Back or Index::Front");
+
+		return 1;
+	}
+
+	/// Inner copy-insertion function														
 	///	@attention this is an inner function and should be used with caution	
 	///	@attention relies that the required free space has been prepared		
 	///				  at the appropriate place												
 	///	@tparam KEEP - whether or not to reference the new contents				
 	///	@tparam T - the type to insert (deducible)									
-	///	@param items - items to push														
-	///	@param count - number of 'items'													
+	///	@param start - pointer to the first item										
+	///	@param end - pointer to the end of items										
 	///	@param starter - the offset at which to insert								
-	template<bool KEEP, CT::Data T>
-	void Block::InsertInner(const T* items, const Count& count, const Offset& starter) requires CT::NotAbandonedOrDisowned<T> {
+	template<bool KEEP, CT::NotAbandonedOrDisowned T>
+	void Block::InsertInner(const T* start, const T* end, Offset at) {
+		const auto count = end - start;
 		static_assert(CT::Sparse<T> || CT::Mutable<T>,
 			"Can't copy-insert into container of constant elements");
 
@@ -1182,17 +1331,18 @@ namespace Langulus::Anyness
 		if constexpr (CT::Sparse<T>) {
 			// Sparse data insertion (copying pointers and referencing)		
 			// Doesn't care about abstract items									
-			auto data = GetRawSparse() + starter;
-			const auto itemsEnd = items + count;
-			while (items != itemsEnd) {
+			auto data = GetRawSparse() + at;
+			while (start != end) {
 				data->mPointer = const_cast<Byte*>(
-					reinterpret_cast<const Byte*>(*items));
+					reinterpret_cast<const Byte*>(*start));
 
 				#if LANGULUS_FEATURE(MANAGED_MEMORY)
 					if constexpr (KEEP) {
 						// Reference each pointer										
-						// Also keep the found entry, so we don't search again
-						data->mEntry = Inner::Allocator::Find(mType, *items);
+						// Also keep the found entry, so we don't ever			
+						// search again (it's costly)									
+						// To avoid searching like that, insert as Disowned	
+						data->mEntry = Inner::Allocator::Find(mType, *start);
 						if (data->mEntry)
 							data->mEntry->Keep();
 					}
@@ -1201,7 +1351,7 @@ namespace Langulus::Anyness
 					data->mEntry = nullptr;
 				#endif
 
-				++data; ++items;
+				++data; ++start;
 			}
 		}
 		else {
@@ -1209,26 +1359,26 @@ namespace Langulus::Anyness
 			static_assert(!CT::Abstract<T>,
 				"Can't insert abstract item in dense container");
 
-			auto data = GetRawAs<T>() + starter;
+			auto data = GetRawAs<T>() + at;
 			if constexpr (CT::POD<T>) {
 				// Optimized POD insertion												
-				CopyMemory(items, data, sizeof(T) * count);
+				CopyMemory(start, data, sizeof(T) * count);
 			}
 			else {
 				// Dense data insertion 												
-				const auto itemsEnd = items + count;
-				while (items != itemsEnd) {
+				while (start != end) {
 					if constexpr (KEEP) {
 						static_assert(CT::CopyMakable<T>,
 							"Can't insert non-copy-constructible item(s)");
-						new (data) T {*items};
+						new (data) T {*start};
 					}
 					else {
 						static_assert(::std::constructible_from<T, Disowned<T>&&>,
 							"Can't insert non-disowned-constructible item(s)");
-						new (data) T {Disown(*items)};
+						new (data) T {Disown(*start)};
 					}
-					++data; ++items;
+
+					++data; ++start;
 				}
 			}
 		}
@@ -1236,21 +1386,23 @@ namespace Langulus::Anyness
 		mCount += count;
 	}
 
-	/// Inner emplacement function															
+	/// Inner move-insertion function														
 	///	@attention this is an inner function and should be used with caution	
+	///	@attention relies that the required free space has been prepared		
+	///				  at the appropriate place												
 	///	@tparam KEEP - whether or not to reference the new contents				
 	///	@tparam T - the type to insert (deducible)									
-	///	@param item - item to push															
+	///	@param item - item to move in														
 	///	@param starter - the offset at which to insert								
-	template<bool KEEP, CT::Data T>
-	void Block::InsertInner(T&& item, const Offset& starter) requires CT::NotAbandonedOrDisowned<T> {
+	template<bool KEEP, CT::NotAbandonedOrDisowned T>
+	void Block::InsertInner(T&& item, Offset at) {
 		static_assert(CT::Sparse<T> || CT::Mutable<T>,
 			"Can't move-insert into container of constant elements");
 
 		// Insert new data																
 		if constexpr (CT::Sparse<T>) {
 			// Sparse data insertion (moving a pointer)							
-			const auto data = GetRawSparse() + starter;
+			const auto data = GetRawSparse() + at;
 			data->mPointer = const_cast<Byte*>(
 				reinterpret_cast<const Byte*>(item));
 
@@ -1271,7 +1423,7 @@ namespace Langulus::Anyness
 				"Can't emplace abstract item in dense container");
 
 			// Dense data insertion (placement move-construction)				
-			const auto data = GetRawAs<T>() + starter;
+			const auto data = GetRawAs<T>() + at;
 			if constexpr (KEEP) {
 				if constexpr (CT::MoveMakable<T>)
 					new (data) T {Forward<T>(item)};
@@ -1297,7 +1449,7 @@ namespace Langulus::Anyness
 	///	@param index - the index to start searching from							
 	///	@return the number of removed items												
 	template<CT::Data T>
-	Count Block::Remove(const T* items, const Count count, const Index& index) {
+	Count Block::Remove(const T* items, const Count count, Index index) {
 		static_assert(CT::Sparse<T> || CT::Mutable<T>,
 			"Can't remove elements from container of constant elements");
 		Count removed {};
@@ -1417,22 +1569,85 @@ namespace Langulus::Anyness
 		return found;
 	}
 
-	/// Merge-insert array elements, if element(s) was not found					
-	///	@param items - the items to push													
-	///	@param count - number of items to push											
-	///	@param idx - use uiFront or uiBack for pushing to ends					
+	/// Merge-copy-insert array elements at special index								
+	/// Each element will be pushed only if not found in block						
+	/// A bit of runtime overhead due to resolving index								
+	///	@tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled	
+	///	@tparam KEEP - whether to reference data on copy							
+	///	@tparam MUTABLE - is it allowed the block to deepen or incorporate	
+	///							the new insertion, if not compatible					
+	///	@tparam T - the type to insert (deducible)									
+	///	@param start - pointer to the first item										
+	///	@param end - pointer to the end of items										
+	///	@param index - the special index to insert at								
 	///	@return the number of inserted elements										
-	template<CT::Data T, bool MUTABLE, CT::Data WRAPPER>
-	Count Block::Merge(const T* items, const Count count, const Index& idx) {
+	template<CT::Data WRAPPER, bool KEEP, bool MUTABLE, CT::NotAbandonedOrDisowned T>
+	Count Block::MergeAt(const T* start, const T* end, Index index) {
+		const auto offset = ConstrainMore<T>(index).GetOffset(); //TODO constraining assumes this is filled with T? might cause problems :(
+		return MergeAt<WRAPPER, KEEP, MUTABLE, T>(start, end, offset);
+	}
+
+	/// Merge-copy-insert array elements at special index								
+	/// Each element will be pushed only if not found in block						
+	///	@attention assumes offset is in the block's limits							
+	///	@tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled	
+	///	@tparam KEEP - whether to reference data on copy							
+	///	@tparam MUTABLE - is it allowed the block to deepen or incorporate	
+	///							the new insertion, if not compatible					
+	///	@tparam T - the type to insert (deducible)									
+	///	@param start - pointer to the first item										
+	///	@param end - pointer to the end of items										
+	///	@param index - the special index to insert at								
+	///	@return the number of inserted elements										
+	template<CT::Data WRAPPER, bool KEEP, bool MUTABLE, CT::NotAbandonedOrDisowned T>
+	Count Block::MergeAt(const T* start, const T* end, Offset index) {
 		Count added {};
-		const auto itemsEnd = items + count;
-		while (items != itemsEnd) {
-			if (!Find<T>(*items))
-				added += Insert<WRAPPER, true, MUTABLE>(items, 1, idx);
-			++items;
+		while (start != end) {
+			if (!Find<T>(*start)) {
+				added += InsertAt<WRAPPER, KEEP, MUTABLE, T>(start, start + 1, index);
+				++index;
+			}
+
+			++start;
 		}
 
 		return added;
+	}
+
+	/// Merge-move-insert array elements at special index								
+	/// Element will be pushed only if not found in block								
+	/// A bit of runtime overhead due to resolving index								
+	///	@tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled	
+	///	@tparam KEEP - whether to reference data on copy							
+	///	@tparam MUTABLE - is it allowed the block to deepen or incorporate	
+	///							the new insertion, if not compatible					
+	///	@tparam T - the type to insert (deducible)									
+	///	@param item - the item to move in												
+	///	@param index - the special index to insert at								
+	///	@return the number of inserted elements										
+	template<CT::Data WRAPPER, bool KEEP, bool MUTABLE, CT::NotAbandonedOrDisowned T>
+	Count Block::MergeAt(T&& item, Index index) {
+		if (!Find<T>(item))
+			return InsertAt<WRAPPER, KEEP, MUTABLE, T>(Move(item), index);
+		return 0;
+	}
+
+	/// Merge-move-insert array elements at simple index								
+	/// Element will be pushed only if not found in block								
+	///	@attention assumes offset is in the block's limits							
+	///	@tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled	
+	///	@tparam KEEP - whether to reference data on copy							
+	///	@tparam MUTABLE - is it allowed the block to deepen or incorporate	
+	///							the new insertion, if not compatible					
+	///	@tparam T - the type to insert (deducible)									
+	///	@param item - the item to move in												
+	///	@param index - the simple index to insert at									
+	///	@return the number of inserted elements										
+	template<CT::Data WRAPPER, bool KEEP, bool MUTABLE, CT::NotAbandonedOrDisowned T>
+	Count Block::MergeAt(T&& item, Offset index) {
+		if (!Find<T>(item))
+			return InsertAt<WRAPPER, KEEP, MUTABLE, T>(Move(item), index);
+		return 0;
 	}
 
 	/// Get the index of the biggest element												
@@ -1555,18 +1770,18 @@ namespace Langulus::Anyness
 		}
 	}
 
-	/// A smart push uses the best approach to push anything inside container	
-	/// in order to keep hierarchy and states, but also reuse memory				
+	/// A smart insert uses the best approach to push anything inside				
+	/// container in order to keep hierarchy and states, but also reuse memory	
 	///	@tparam ALLOW_CONCAT - whether or not concatenation is allowed			
 	///	@tparam ALLOW_DEEPEN - whether or not deepening is allowed				
 	///	@tparam T - type of data to push (deducible)									
-	///	@tparam WRAPPER - type of container that requested the push				
+	///	@tparam WRAPPER - type of container used for deepening if enabled		
 	///	@param value - the value to smart-push											
-	///	@param state - a state to apply after pushing is done						
 	///	@param index - the index at which to insert (if needed)					
+	///	@param state - a state to apply after pushing is done						
 	///	@return the number of pushed items (zero if unsuccessful)				
-	template<bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data T, CT::Data WRAPPER>
-	Count Block::SmartPush(const T& value, DataState state, Index index) {
+	template<bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data T, CT::Data INDEX, CT::Data WRAPPER>
+	Count Block::SmartPushAt(T value, INDEX index, DataState state) {
 		static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
 
 		// Wrap the value, but don't reference anything yet					
@@ -1612,7 +1827,7 @@ namespace Langulus::Anyness
 			// be allowed if final state is OR, and there are multiple		
 			// items	in this container.												
 			Count catenated {};
-			if (typeCompliant && stateCompliant && orCompliant && 0 < (catenated = InsertBlock(pack, index))) {
+			if (typeCompliant && stateCompliant && orCompliant && 0 < (catenated = InsertBlockAt(pack, index))) {
 				SetState(mState + state);
 				return catenated;
 			}
@@ -1623,7 +1838,7 @@ namespace Langulus::Anyness
 		// multiple items	in this container.										
 		if (orCompliant && IsDeep()) {
 			SetState(mState + state);
-			return Insert<WRAPPER, false, false>(WRAPPER {pack}, index);
+			return InsertAt<WRAPPER, false, false>(WRAPPER {pack}, index);
 		}
 
 		// Finally, if allowed, force make the container deep in order to	
@@ -1632,25 +1847,25 @@ namespace Langulus::Anyness
 			if (!IsTypeConstrained()) {
 				Deepen<WRAPPER>();
 				SetState(mState + state);
-				return Insert<WRAPPER, false, false>(WRAPPER {pack}, index);
+				return InsertAt<WRAPPER, false, false>(WRAPPER {pack}, index);
 			}
 		}
 
 		return 0;
 	}
 
-	/// A smart push uses the best approach to push anything inside container	
-	/// in order to keep hierarchy and states, but also reuse memory				
+	/// A smart copy-insert uses the best approach to push anything inside		
+	/// container in order to keep hierarchy and states, but also reuse memory	
 	///	@tparam ALLOW_CONCAT - whether or not concatenation is allowed			
 	///	@tparam ALLOW_DEEPEN - whether or not deepening is allowed				
 	///	@tparam T - type of data to push (deducible)									
-	///	@tparam WRAPPER - type of container that requested the push				
+	///	@tparam WRAPPER - type of container used for deepening if enabled		
 	///	@param value - the value to smart-push											
-	///	@param state - a state to apply after pushing is done						
 	///	@param index - the index at which to insert (if needed)					
+	///	@param state - a state to apply after pushing is done						
 	///	@return the number of pushed items (zero if unsuccessful)				
-	template<bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data T, CT::Data WRAPPER>
-	Count Block::SmartPush(T&& value, DataState state, Index index) {
+	template<Index INDEX, bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data T, CT::Data WRAPPER>
+	Count Block::SmartPush(T value, DataState state) {
 		static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
 
 		// Wrap the value, but don't reference anything yet					
@@ -1696,7 +1911,7 @@ namespace Langulus::Anyness
 			// be allowed if final state is OR, and there are multiple		
 			// items	in this container.												
 			Count catenated {};
-			if (typeCompliant && stateCompliant && orCompliant && 0 < (catenated = InsertBlock(pack, index))) {
+			if (typeCompliant && stateCompliant && orCompliant && 0 < (catenated = InsertBlock<INDEX>(pack))) {
 				SetState(mState + state);
 				return catenated;
 			}
@@ -1707,7 +1922,7 @@ namespace Langulus::Anyness
 		// multiple items	in this container.										
 		if (orCompliant && IsDeep()) {
 			SetState(mState + state);
-			return Insert<WRAPPER, false, false>(WRAPPER {pack}, index);
+			return Insert<INDEX, WRAPPER, false, false>(WRAPPER {pack});
 		}
 
 		// Finally, if allowed, force make the container deep in order to	
@@ -1716,7 +1931,7 @@ namespace Langulus::Anyness
 			if (!IsTypeConstrained()) {
 				Deepen<WRAPPER>();
 				SetState(mState + state);
-				return Insert<WRAPPER, false, false>(WRAPPER {pack}, index);
+				return Insert<INDEX, WRAPPER, false, false>(WRAPPER {pack});
 			}
 		}
 
@@ -2223,6 +2438,44 @@ namespace Langulus::Anyness
 		result.MakeConst();
 		return result;
 	}
+	
+	/// A helper function, that allocates and moves inner memory					
+	///	@param other - the memory we'll be inserting									
+	///	@param index - the place we'll be inserting at								
+	///	@param region - the newly allocated region (!mCount, only mReserved)	
+	///	@return number if inserted items in case of mutation						
+	template<bool KEEP, CT::Data WRAPPER>
+	Count Block::AllocateRegion(const Block& other, Offset index, Block& region) {
+		static_assert(CT::Block<WRAPPER>, "WRAPPER must be a deep type");
+		if (other.IsEmpty())
+			return 0;
+
+		// Type may mutate																
+		if (Mutate<WRAPPER>(other.mType)) {
+			// Block was deepened, so emplace a container inside				
+			return InsertAt<WRAPPER, KEEP, false>(WRAPPER {other}, index);
+		}
+
+		// Allocate the required memory - this will not initialize it		
+		Allocate<false>(mCount + other.mCount);
+
+		// Move memory if required														
+		if (index < mCount) {
+			SAFETY(if (GetUses() > 1)
+				Throw<Except::Reference>(Logger::Error()
+					<< "Moving elements that are used from multiple places"));
+
+			CropInner(index + other.mCount, 0, mCount - index)
+				.CallUnknownMoveConstructors<false>(
+					mCount - index,
+					CropInner(index, mCount - index, mCount - index)
+				);
+		}
+
+		// Pick the region that should be overwritten with new stuff		
+		region = CropInner(index, 0, other.mCount);
+		return 0;
+	}
 
 	/// Call destructors in a region - after this call the memory is not			
 	/// considered initialized, but mCount is still valid, so be careful			
@@ -2275,12 +2528,75 @@ namespace Langulus::Anyness
 		// Always nullify upon destruction only if we're paranoid			
 		PARANOIA(FillMemory(data, {}, GetSize()));
 	}
+	
+	/// Call destructors in a region - after this call the memory is not			
+	/// considered initialized, but mCount is still valid, so be careful			
+	///	@attention this function is intended for internal use						
+	///	@attention this operates on initialized memory only, and any			
+	///				  misuse will result in undefined behavior						
+	inline void Block::CallUnknownDestructors() {
+		if (IsSparse()) {
+			auto data = GetRawSparse();
+			const auto dataEnd = data + mCount;
+
+			// We dereference each pointer - destructors will be called		
+			// if data behind these pointers is fully dereferenced, too		
+			while (data != dataEnd) {
+				if (!data->mEntry) {
+					++data;
+					continue;
+				}
+
+				if (data->mEntry->GetUses() == 1) {
+					if (!mType->mIsPOD) {
+						if (!mType->mDestructor) {
+							Throw<Except::Destruct>(Logger::Error()
+								<< "Can't destroy " << GetToken()
+								<< " because no destructor was reflected");
+						}
+
+						Inner::Allocator::Deallocate(data->mEntry);
+					}
+				}
+				else data->mEntry->Free();
+
+				++data;
+			}
+
+			return;
+		}
+		else if (!mType->mIsPOD) {
+			// Destroy every dense element, one by one, using the 			
+			// reflected destructors													
+			if (!mType->mDestructor) {
+				Throw<Except::Destruct>(Logger::Error()
+					<< "Can't destroy " << GetToken()
+					<< " because no destructor was reflected");
+			}
+
+			auto data = GetRaw();
+			const auto dataStride = mType->mSize;
+			const auto dataEnd = data + mCount * mType->mSize;
+
+			// Destroy every dense element											
+			while (data != dataEnd) {
+				mType->mDestructor(data);
+				data += dataStride;
+			}
+		}
+
+		#if LANGULUS_PARANOID()
+			// Nullify upon destruction only if we're paranoid					
+			FillMemory(mRaw, {}, GetSize());
+		#endif
+	}
 
 	/// Call move constructors in a region and initialize memory					
+	///	@tparam KEEP - true to use move-construction, false to use abandon	
 	///	@tparam T - the type to move-construct											
 	///	@param count - number of elements to move										
 	///	@param source - the block of elements to move								
-	template<CT::Data T>
+	template<bool KEEP, CT::Data T>
 	void Block::CallKnownMoveConstructors(const Count count, Block&& source) {
 		static_assert(CT::Sparse<T> || CT::Mutable<T>,
 			"Can't move-construct in container of constant elements");
@@ -2315,17 +2631,342 @@ namespace Langulus::Anyness
 			auto from = source.GetRawAs<T>();
 			const auto fromEnd = from + count;
 			while (from != fromEnd) {
-				new (to) T {Move(*from)};
+				if constexpr (KEEP)
+					new (to) T {Move(*from)};
+				else
+					new (to) T {Abandon(*from)};
+
 				++to; ++from;
 			}
 
 			// Note that source.mCount remains, in order to call				
 			// destructors at a later point (if T is destroyable at all)	
-			if constexpr (!CT::Destroyable<T>)
+			// If we're abandoning it, then no need to destroy at all		
+			if constexpr (!CT::Destroyable<T> || !KEEP)
 				source.mCount = 0;
 		}
 		
 		// Mark the initialized count													
+		mCount += count;
+	}
+	
+	/// Call move constructors in a region and initialize memory					
+	///	@tparam KEEP - true to use move-construction, false to use abandon	
+	///	@attention this operates on uninitialized memory only, and any			
+	///		misuse will result in loss of data and undefined behavior			
+	///	@attention source must have a binary-compatible type						
+	///	@attention source must contain at least mReserved - mCount items		
+	///	@attention after the move, source will have zero count,					
+	///		signifying that items have been consumed, but is still allocated	
+	///	@param source - the elements to move											
+	template<bool KEEP>
+	void Block::CallUnknownMoveConstructors(const Count count, Block&& source) {
+		if (IsSparse() && source.IsSparse()) {
+			// Copy pointers																
+			const auto size = sizeof(KnownPointer) * count;
+			MoveMemory(source.mRaw, GetRawEnd(), size);
+		}
+		else if (mType->mIsPOD && IsDense() == source.IsDense()) {
+			// Copy POD																		
+			const auto size = mType->mSize * count;
+			MoveMemory(source.mRaw, GetRawEnd(), size);
+		}
+		else if (source.IsSparse()) {
+			// RHS is pointer, LHS must be dense									
+			// Copy each dense element from RHS										
+			if constexpr (KEEP) {
+				if (!mType->mMoveConstructor) {
+					Throw<Except::Construct>(Logger::Error()
+						<< "Can't move-construct " << source.mCount << " elements of "
+						<< GetToken() << " because no move constructor was reflected");
+				}
+			}
+			else {
+				if (!mType->mAbandonConstructor) {
+					Throw<Except::Construct>(Logger::Error()
+						<< "Can't abandon-construct " << source.mCount << " elements of "
+						<< GetToken() << " because no abandon constructor was reflected");
+				}
+			}
+
+			auto to = GetRawEnd();
+			const auto toStride = mType->mSize;
+			auto pointer = source.GetRawSparse();
+			const auto pointersEnd = pointer + count;
+			while (pointer != pointersEnd) {
+				if constexpr (KEEP)
+					mType->mMoveConstructor(to, pointer->mPointer);
+				else
+					mType->mAbandonConstructor(to, pointer->mPointer);
+
+				to += toStride;
+				++pointer;
+			}
+		}
+		else if (IsSparse()) {
+			// LHS is pointer, RHS must be dense									
+			// Move each pointer from RHS												
+			auto to = GetRawSparse() + mCount;
+			const auto toEnd = to + count;
+			auto from = source.GetRaw();
+			const auto fromStride = source.mType->mSize;
+			while (to != toEnd) {
+				to->mPointer = const_cast<Byte*>(from);
+				to->mEntry = source.mEntry;
+				++to;
+				from += fromStride;
+			}
+
+			if constexpr (KEEP) {
+				// We have to reference RHS by the number of pointers we		
+				// made. Since we're converting dense to sparse, the			
+				// referencing is	mandatory											
+				source.mEntry->Keep(count);
+			}
+		}
+		else {
+			// Both RHS and LHS must be dense										
+			if constexpr (KEEP) {
+				if (!mType->mMoveConstructor) {
+					Throw<Except::Construct>(Logger::Error()
+						<< "Can't move-construct " << source.mCount << " elements of "
+						<< GetToken() << " because no move constructor was reflected");
+				}
+			}
+			else {
+				if (!mType->mAbandonConstructor) {
+					Throw<Except::Construct>(Logger::Error()
+						<< "Can't abandon-construct " << source.mCount << " elements of "
+						<< GetToken() << " because no abandon constructor was reflected");
+				}
+			}
+
+			auto to = GetRawEnd();
+			auto from = source.GetRaw();
+			const auto stride = mType->mSize;
+			const auto fromEnd = from + count * stride;
+			while (from != fromEnd) {
+				if constexpr (KEEP)
+					mType->mMoveConstructor(to, from);
+				else
+					mType->mAbandonConstructor(to, from);
+
+				to += stride;
+				from += stride;
+			}
+		}
+
+		mCount += count;
+	}
+
+	/// Call default constructors in a region and initialize memory				
+	///	@param count - the number of elements to initialize						
+	template<CT::Data T>
+	void Block::CallKnownDefaultConstructors(Count count) {
+		if constexpr (CT::Nullifiable<T>) {
+			// Just zero the memory (optimization)									
+			FillMemory(GetRawEnd(), {}, count * GetStride());
+			mCount += count;
+		}
+		else if constexpr (CT::Defaultable<T>) {
+			// Construct requested elements in place								
+			new (GetRawEnd()) T [count];
+			mCount += count;
+		}
+		else LANGULUS_ASSERT("Trying to default-construct elements that are incapable of default-construction");
+	}
+	
+	/// Call default constructors in a region and initialize memory				
+	///	@attention this is a type-erased call and has quite the overhead		
+	///	@attention assumes mType is set													
+	///	@attention this operates on uninitialized memory only, and any			
+	///		misuse will result in loss of data and undefined behavior			
+	///	@param count - the number of elements to initialize						
+	inline void Block::CallUnknownDefaultConstructors(Count count) {
+		if (IsSparse()) {
+			// Just zero the memory (optimization)									
+			FillMemory(GetRawEnd(), {}, count * sizeof(KnownPointer));
+		}
+		else if (mType->mIsNullifiable) {
+			// Just zero the memory (optimization)									
+			FillMemory(GetRawEnd(), {}, count * mType->mSize);
+		}
+		else {
+			if (!mType->mDefaultConstructor) {
+				Throw<Except::Construct>(Logger::Error()
+					<< "Can't default-construct " << count << " elements of "
+					<< GetToken() << " because no default constructor was reflected");
+			}
+			
+			// Construct requested elements one by one							
+			auto to = GetRawEnd();
+			const auto stride = mType->mSize;
+			const auto toEnd = to + count * stride;
+			while (to != toEnd) {
+				mType->mDefaultConstructor(to);
+				to += stride;
+			}
+		}
+		
+		mCount += count;
+	}
+
+	/// Call copy constructors in a region and initialize memory					
+	///	@param source - the elements to copy											
+	template<bool KEEP, CT::Data T>
+	void Block::CallKnownCopyConstructors(Count count, const Block& source) {
+		if constexpr (CT::Sparse<T> || CT::POD<T>) {
+			// Just copy the POD/pointer memory (optimization)					
+			CopyMemory(source.GetRaw(), GetRawEnd(), GetStride() * count);
+
+			if constexpr (CT::Sparse<T> && KEEP) {
+				// Since we're copying pointers, we have to reference the	
+				// dense memory behind each one of them							
+				auto p = GetRawSparse() + mCount;
+				const auto pEnd = p + count;
+				while (p != pEnd) {
+					// Reference each pointer											
+					if (p->mEntry)
+						p->mEntry->Keep();
+					++p;
+				}
+			}
+		}
+		else {
+			// Both RHS and LHS are dense and non POD								
+			// Call the reflected copy-constructor for each element			
+			static_assert(CT::CopyMakable<T>, 
+				"Trying to copy-construct but it's impossible for this type");
+
+			auto from = source.GetRaw();
+			auto to = GetRaw() + mCount;
+			const auto toEnd = to + count;
+			while (to != toEnd) {
+				if constexpr (KEEP)
+					new (to) T {*from};
+				else
+					new (to) T {Abandon(*from)};
+				++to;
+				++from;
+			}
+		}
+	}
+	
+	/// Call copy constructors in a region and initialize memory					
+	///	@attention assumes mType is set													
+	///	@attention this operates on uninitialized memory only, and any			
+	///		misuse will result in loss of data and undefined behavior			
+	///	@attention source must have a binary-compatible type						
+	///	@param source - the elements to copy											
+	template<bool KEEP>
+	void Block::CallUnknownCopyConstructors(Count count, const Block& source) {
+		if (IsSparse() && source.IsSparse()) {
+			// Copy the known pointers (optimization)								
+			CopyMemory(source.mRaw, GetRawEnd(), count * sizeof(KnownPointer));
+
+			if constexpr (KEEP) {
+				// Since we're copying pointers, we have to reference the	
+				// dense memory behind each one of them							
+				auto pointer = GetRawSparse() + mCount;
+				const auto pointersEnd = pointer + count;
+				while (pointer != pointersEnd) {
+					if (pointer->mEntry)
+						pointer->mEntry->Keep();
+					++pointer;
+				}
+			}
+
+			return;
+		}
+		else if (mType->mIsPOD && IsDense() == source.IsDense()) {
+			// Just copy the POD memory (optimization)							
+			CopyMemory(source.mRaw, GetRawEnd(), count * mType->mSize);
+			return;
+		}
+
+		// Construct element by element												
+		if (IsSparse()) {
+			// LHS is pointer, RHS must be dense									
+			// Get each pointer from RHS, and reference it						
+			auto to = GetRawSparse() + mCount;
+			const auto toEnd = to + count;
+			auto from = source.GetRaw();
+			const auto fromStride = source.mType->mSize;
+			while (to != toEnd) {
+				to->mPointer = const_cast<Byte*>(from);
+				to->mEntry = source.mEntry;
+				++to;
+				from += fromStride;
+			}
+
+			if constexpr (KEEP)
+				source.mEntry->Keep(count);
+		}
+		else if (source.IsSparse()) {
+			// RHS is pointer, LHS must be dense									
+			// Shallow-copy each dense element from RHS							
+			if constexpr (KEEP) {
+				if (!mType->mCopyConstructor) {
+					Throw<Except::Construct>(Logger::Error()
+						<< "Can't copy-construct " << source.mCount << " elements of "
+						<< GetToken() << " because no copy constructor was reflected");
+				}
+			}
+			else {
+				if (!mType->mDisownConstructor) {
+					Throw<Except::Construct>(Logger::Error()
+						<< "Can't disown-construct " << source.mCount << " elements of "
+						<< GetToken() << " because no disown constructor was reflected");
+				}
+			}
+
+			auto to = GetRawEnd();
+			const auto toStride = mType->mSize;
+			auto pointer = source.GetRawSparse();
+			const auto pointerEnd = pointer + count;
+			while (pointer != pointerEnd) {
+				if constexpr (KEEP)
+					mType->mCopyConstructor(to, pointer->mPointer);
+				else
+					mType->mDisownConstructor(to, pointer->mPointer);
+
+				++pointer;
+				to += toStride;
+			}
+		}
+		else {
+			// Both RHS and LHS must be dense										
+			// Call the reflected copy-constructor for each element			
+			if constexpr (KEEP) {
+				if (!mType->mCopyConstructor) {
+					Throw<Except::Construct>(Logger::Error()
+						<< "Can't copy-construct " << source.mCount << " elements of "
+						<< GetToken() << " because no copy constructor was reflected");
+				}
+			}
+			else {
+				if (!mType->mDisownConstructor) {
+					Throw<Except::Construct>(Logger::Error()
+						<< "Can't disown-construct " << source.mCount << " elements of "
+						<< GetToken() << " because no disown constructor was reflected");
+				}
+			}
+
+			auto to = GetRawEnd();
+			auto from = source.GetRaw();
+			const auto stride = mType->mSize;
+			const auto fromEnd = from + count * stride;
+			while (from != fromEnd) {
+				if constexpr (KEEP)
+					mType->mCopyConstructor(to, from);
+				else
+					mType->mDisownConstructor(to, from);
+
+				to += stride;
+				from += stride;
+			}
+		}
+		
 		mCount += count;
 	}
 

@@ -350,265 +350,6 @@ namespace Langulus::Anyness
 		return const_cast<Block*>(this)->GetElementDeep(index);
 	}
 
-	/// Call default constructors in a region and initialize memory				
-	///	@attention this is a type-erased call and has quite the overhead		
-	///	@attention assumes mType is set													
-	///	@param count - the number of elements to initialize						
-	void Block::CallDefaultConstructors(const Count& count) {
-		if (IsSparse()) {
-			// Just zero the memory (optimization)									
-			FillMemory(GetRawEnd(), {}, count * sizeof(KnownPointer));
-		}
-		else if (mType->mIsNullifiable) {
-			// Just zero the memory (optimization)									
-			FillMemory(GetRawEnd(), {}, count * mType->mSize);
-		}
-		else {
-			if (!mType->mDefaultConstructor) {
-				Throw<Except::Construct>(Logger::Error()
-					<< "Can't default-construct " << count << " elements of "
-					<< GetToken() << " because no default constructor was reflected");
-			}
-			
-			// Construct requested elements one by one							
-			auto to = GetRawEnd();
-			const auto stride = mType->mSize;
-			const auto toEnd = to + count * stride;
-			while (to != toEnd) {
-				mType->mDefaultConstructor(to);
-				to += stride;
-			}
-		}
-		
-		mCount += count;
-	}
-
-	/// Call copy constructors in a region and initialize memory					
-	///	@attention assumes mType is set													
-	///	@attention this operates on uninitialized memory only, and any			
-	///		misuse will result in loss of data and undefined behavior			
-	///	@attention source must have a binary-compatible type						
-	///	@param source - the elements to copy											
-	void Block::CallCopyConstructors(const Count& count, const Block& source) {
-		if (IsSparse() && source.IsSparse()) {
-			// Copy the known pointers (optimization)								
-			CopyMemory(source.mRaw, GetRawEnd(), count * sizeof(KnownPointer));
-
-			// Since we're copying pointers, we have to reference the		
-			// dense memory behind each one of them								
-			auto pointer = GetRawSparse() + mCount;
-			const auto pointersEnd = pointer + count;
-			while (pointer != pointersEnd) {
-				if (pointer->mEntry)
-					pointer->mEntry->Keep();
-				++pointer;
-			}
-
-			return;
-		}
-		else if (mType->mIsPOD) {
-			// Just copy the POD memory (optimization)							
-			CopyMemory(source.mRaw, GetRawEnd(), count * mType->mSize);
-			return;
-		}
-
-		// Construct element by element												
-		if (IsSparse()) {
-			// LHS is pointer, RHS must be dense									
-			// Get each pointer from RHS, and reference it						
-			auto to = GetRawSparse() + mCount;
-			const auto toEnd = to + count;
-			auto from = source.GetRaw();
-			const auto fromStride = source.mType->mSize;
-			while (to != toEnd) {
-				to->mPointer = const_cast<Byte*>(from);
-				to->mEntry = source.mEntry;
-				++to;
-				from += fromStride;
-			}
-			source.mEntry->Keep(count);
-		}
-		else if (source.IsSparse()) {
-			// RHS is pointer, LHS must be dense									
-			// Shallow-copy each dense element from RHS							
-			if (!mType->mCopyConstructor) {
-				Throw<Except::Construct>(Logger::Error()
-					<< "Can't copy-construct " << source.mCount << " elements of "
-					<< GetToken() << " because no copy constructor was reflected");
-			}
-
-			auto to = GetRawEnd();
-			const auto toStride = mType->mSize;
-			auto pointer = source.GetRawSparse();
-			const auto pointerEnd = pointer + count;
-			while (pointer != pointerEnd) {
-				mType->mCopyConstructor(to, pointer->mPointer);
-				++pointer;
-				to += toStride;
-			}
-		}
-		else  {
-			// Both RHS and LHS must be dense										
-			// Call the reflected copy-constructor for each element			
-			if (!mType->mCopyConstructor) {
-				Throw<Except::Construct>(Logger::Error()
-					<< "Can't copy-construct " << source.mCount << " elements of "
-					<< GetToken() << " because no copy constructor was reflected");
-			}
-
-			auto to = GetRawEnd();
-			auto from = source.GetRaw();
-			const auto stride = mType->mSize;
-			const auto fromEnd = from + count * stride;
-			while (from != fromEnd) {
-				mType->mCopyConstructor(to, from);
-				to += stride;
-				from += stride;
-			}
-		}
-		
-		mCount += count;
-	}
-
-	/// Call move constructors in a region and initialize memory					
-	///	@attention this operates on uninitialized memory only, and any			
-	///		misuse will result in loss of data and undefined behavior			
-	///	@attention source must have a binary-compatible type						
-	///	@attention source must contain at least mReserved - mCount items		
-	///	@attention after the move, source will have zero count,					
-	///		signifying that items have been consumed, but is still allocated	
-	///	@param source - the elements to move											
-	void Block::CallUnknownMoveConstructors(const Count count, Block&& source) {
-		if (IsSparse() && source.IsSparse()) {
-			// Copy pointers																
-			const auto size = sizeof(KnownPointer) * count;
-			MoveMemory(source.mRaw, GetRawEnd(), size);
-		}
-		else if (mType->mIsPOD) {
-			// Copy POD																		
-			const auto size = mType->mSize * count;
-			MoveMemory(source.mRaw, GetRawEnd(), size);
-		}
-		else if (source.IsSparse()) {
-			// RHS is pointer, LHS must be dense									
-			// Copy each dense element from RHS										
-			if (!mType->mMoveConstructor) {
-				Throw<Except::Construct>(Logger::Error()
-					<< "Can't move-construct " << source.mCount << " elements of "
-					<< GetToken() << " because no move constructor was reflected");
-			}
-
-			auto to = GetRawEnd();
-			const auto toStride = mType->mSize;
-			auto pointer = source.GetRawSparse();
-			const auto pointersEnd = pointer + count;
-			while (pointer != pointersEnd) {
-				mType->mMoveConstructor(to, pointer->mPointer);
-				to += toStride;
-				++pointer;
-			}
-		}
-		else if (IsSparse()) {
-			// LHS is pointer, RHS must be dense									
-			// Move each pointer from RHS												
-			auto to = GetRawSparse() + mCount;
-			const auto toEnd = to + count;
-			auto from = source.GetRaw();
-			const auto fromStride = source.mType->mSize;
-			while (to != toEnd) {
-				to->mPointer = const_cast<Byte*>(from);
-				to->mEntry = source.mEntry;
-				++to;
-				from += fromStride;
-			}
-
-			// We have to reference RHS by the number of pointers we made	
-			source.mEntry->Keep(count);
-		}
-		else {
-			// Both RHS and LHS must be dense										
-			if (!mType->mMoveConstructor) {
-				Throw<Except::Construct>(Logger::Error()
-					<< "Can't move-construct " << source.mCount << " elements of "
-					<< GetToken() << " because no move constructor was reflected");
-			}
-
-			auto to = GetRawEnd();
-			auto from = source.GetRaw();
-			const auto stride = mType->mSize;
-			const auto fromEnd = from + count * stride;
-			while (from != fromEnd) {
-				mType->mMoveConstructor(to, from);
-				to += stride;
-				from += stride;
-			}
-		}
-
-		mCount += count;
-	}
-
-	/// Call destructors in a region - after this call the memory is not			
-	/// considered initialized, but mCount is still valid, so be careful			
-	///	@attention this function is intended for internal use						
-	///	@attention this operates on initialized memory only, and any			
-	///				  misuse will result in undefined behavior						
-	void Block::CallUnknownDestructors() {
-		if (IsSparse()) {
-			auto data = GetRawSparse();
-			const auto dataEnd = data + mCount;
-
-			// We dereference each pointer - destructors will be called		
-			// if data behind these pointers is fully dereferenced, too		
-			while (data != dataEnd) {
-				if (!data->mEntry) {
-					++data;
-					continue;
-				}
-
-				if (data->mEntry->GetUses() == 1) {
-					if (!mType->mIsPOD) {
-						if (!mType->mDestructor) {
-							Throw<Except::Destruct>(Logger::Error()
-								<< "Can't destroy " << GetToken()
-								<< " because no destructor was reflected");
-						}
-
-						Inner::Allocator::Deallocate(data->mEntry);
-					}
-				}
-				else data->mEntry->Free();
-
-				++data;
-			}
-
-			return;
-		}
-		else if (!mType->mIsPOD) {
-			// Destroy every dense element, one by one, using the 			
-			// reflected destructors													
-			if (!mType->mDestructor) {
-				Throw<Except::Destruct>(Logger::Error()
-					<< "Can't destroy " << GetToken()
-					<< " because no destructor was reflected");
-			}
-
-			auto data = GetRaw();
-			const auto dataStride = mType->mSize;
-			const auto dataEnd = data + mCount * mType->mSize;
-
-			// Destroy every dense element											
-			while (data != dataEnd) {
-				mType->mDestructor(data);
-				data += dataStride;
-			}
-		}
-
-		#if LANGULUS_PARANOID()
-			// Nullify upon destruction only if we're paranoid					
-			FillMemory(mRaw, {}, GetSize());
-		#endif
-	}
-
 	/// A slow runtime state reset, that retains sparseness and constraints		
 	void Block::ResetStateRTTI() noexcept {
 		if (IsTypeConstrained()) {
@@ -629,7 +370,7 @@ namespace Langulus::Anyness
 	///	@param index - special index														
 	///	@param count - number of items to remove										
 	///	@return the number of removed elements											
-	Count Block::RemoveIndex(const Index& index, const Count count) {
+	Count Block::RemoveIndex(const Index index, const Count count) {
 		if (index == Index::All) {
 			const auto oldCount = mCount;
 			Free();
@@ -693,7 +434,7 @@ namespace Langulus::Anyness
 		if (ender < mCount) {
 			// Fill gap	if any by invoking move constructions					
 			CropInner(starter, 0, mCount - ender)
-				.CallUnknownMoveConstructors(
+				.CallUnknownMoveConstructors<false>(
 					mCount - ender,
 					CropInner(ender, mCount - ender, mCount - ender)
 				);
@@ -738,55 +479,28 @@ namespace Langulus::Anyness
 		return *this;
 	}
 
-	/// A helper function, that allocates and moves inner memory					
-	///	@param other - the memory we'll be inserting									
-	///	@param idx - the place we'll be inserting at									
-	///	@param region - the newly allocated region (!mCount, only mReserved)	
-	///	@return number if inserted items in case of mutation						
-	Count Block::AllocateRegion(const Block& other, const Index& idx, Block& region) {
-		if (other.IsEmpty())
-			return 0;
-
-		// Type may mutate																
-		if (Mutate<Any>(other.mType)) {
-			// Block was deepened, so emplace a container inside				
-			return Insert<Any, true, false>(Any {other}, idx);
-		}
-
-		// Allocate the required memory - this will not initialize it		
-		const auto starter = Constrain(idx).GetOffset();
-		Allocate<false>(mCount + other.mCount);
-
-		// Move memory if required														
-		if (starter < mCount) {
-			SAFETY(if (GetUses() > 1)
-				Throw<Except::Reference>(Logger::Error()
-					<< "Moving elements that are used from multiple places"));
-
-			CropInner(starter + other.mCount, 0, mCount - starter)
-				.CallUnknownMoveConstructors(
-					mCount - starter,
-					CropInner(starter, mCount - starter, mCount - starter)
-				);
-		}
-
-		// Pick the region that should be overwritten with new stuff		
-		region = CropInner(starter, 0, other.mCount);
-		return 0;
+	/// Copy-insert all elements of a block at a special index						
+	///	@param other - the block to insert												
+	///	@param index - special index to insert them at								
+	///	@return the number of inserted elements										
+	Count Block::InsertBlockAt(const Block& other, Index index) {
+		const auto offset = Constrain(index).GetOffset();
+		return InsertBlockAt(other, offset);
 	}
 
-	/// Insert a block using a shallow copy for each element							
+	/// Copy-insert all elements of a block at a simple index						
+	///	@attention assumes that index is inside block's limits					
 	///	@param other - the block to insert												
-	///	@param idx - place to insert them at											
+	///	@param index - simple index to insert them at								
 	///	@return the number of inserted elements										
-	Count Block::InsertBlock(const Block& other, const Index& idx) {
+	Count Block::InsertBlockAt(const Block& other, Offset index) {
 		Block region;
-		if (AllocateRegion(other, idx, region))
+		if (AllocateRegion(other, index, region))
 			return 1;
 
 		if (region.IsAllocated()) {
 			// Call copy-constructors in the new region							
-			region.CallCopyConstructors(other.mCount, other);
+			region.CallUnknownCopyConstructors<true>(other.mCount, other);
 			mCount += region.mReserved;
 			return region.mReserved;
 		}
@@ -794,18 +508,81 @@ namespace Langulus::Anyness
 		return 0;
 	}
 
-	/// Insert a block using a move-copy for each element								
-	///	@param other - the block to move													
-	///	@param idx - place to insert them at											
-	///	@return the number of moved elements											
-	Count Block::InsertBlock(Block&& other, const Index& idx) {
+	/// Move-insert all elements of a block at a special index						
+	///	@param other - the block to move in												
+	///	@param index - special index to insert them at								
+	///	@return the number of inserted elements										
+	Count Block::InsertBlockAt(Block&& other, Index index) {
+		const auto offset = Constrain(index).GetOffset();
+		return InsertBlockAt(Move(other), offset);
+	}
+
+	/// Move-insert all elements of a block at a simple index						
+	///	@param other - the block to move in												
+	///	@param index - simple index to insert them at								
+	///	@return the number of inserted elements										
+	Count Block::InsertBlockAt(Block&& other, Offset index) {
 		Block region;
-		if (AllocateRegion(other, idx, region))
+		if (AllocateRegion(other, index, region))
 			return 1;
 
 		if (region.IsAllocated()) {
 			// Call move-constructors in the new region							
-			region.CallUnknownMoveConstructors(other.mCount, Forward<Block>(other));
+			region.CallUnknownMoveConstructors<true>(other.mCount, Move(other));
+			return region.mReserved;
+		}
+
+		return 0;
+	}
+
+	/// Move-insert all elements of an abandoned block at a special index		
+	///	@param other - the block to move in												
+	///	@param index - special index to insert them at								
+	///	@return the number of inserted elements										
+	Count Block::InsertBlockAt(Abandoned<Block>&& other, Index index) {
+		const auto offset = Constrain(index).GetOffset();
+		return InsertBlockAt(Move(other), offset);
+	}
+
+	/// Move-insert all elements of an abandoned block at a simple index			
+	///	@param other - the block to move in												
+	///	@param index - simple index to insert them at								
+	///	@return the number of inserted elements										
+	Count Block::InsertBlockAt(Abandoned<Block>&& other, Offset index) {
+		Block region;
+		if (AllocateRegion(other.mValue, index, region))
+			return 1;
+
+		if (region.IsAllocated()) {
+			// Call move-constructors in the new region							
+			region.CallUnknownMoveConstructors<false>(other.mValue.mCount, Move(other.mValue));
+			return region.mReserved;
+		}
+
+		return 0;
+	}
+
+	/// Move-insert all elements of a disowned block at a special index			
+	///	@param other - the block to move in												
+	///	@param index - special index to insert them at								
+	///	@return the number of inserted elements										
+	Count Block::InsertBlockAt(Disowned<Block>&& other, Index index) {
+		const auto offset = Constrain(index).GetOffset();
+		return InsertBlockAt(Move(other), offset);
+	}
+
+	/// Move-insert all elements of a disowned block at a simple index			
+	///	@param other - the block to move in												
+	///	@param index - simple index to insert them at								
+	///	@return the number of inserted elements										
+	Count Block::InsertBlockAt(Disowned<Block>&& other, Offset index) {
+		Block region;
+		if (AllocateRegion(other.mValue, index, region))
+			return 1;
+
+		if (region.IsAllocated()) {
+			// Call move-constructors in the new region							
+			region.CallUnknownCopyConstructors<false>(other.mValue.mCount, other.mValue);
 			return region.mReserved;
 		}
 
@@ -816,12 +593,12 @@ namespace Langulus::Anyness
 	///	@param other - the block to insert												
 	///	@param idx - place to insert them at											
 	///	@return the number of inserted elements										
-	Count Block::MergeBlock(const Block& other, const Index& idx) {
+	Count Block::MergeBlockAt(const Block& other, Index idx) {
 		Count inserted {};
 		for (Count i = 0; i < other.GetCount(); ++i) {
 			auto right = other.GetElementResolved(i);
 			if (!FindRTTI(right))
-				inserted += InsertBlock(right, idx);
+				inserted += InsertBlockAt(right, idx);
 		}
 
 		return inserted;
