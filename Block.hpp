@@ -160,6 +160,9 @@ namespace Langulus::Anyness
 		void Optimize();
 	
 	public:
+		//																						
+		//	Capsulation and access														
+		//																						
 		template<bool SPARSE, bool CONSTRAIN>
 		void SetType(DMeta);
 		template<CT::Data T, bool CONSTRAIN>
@@ -269,6 +272,9 @@ namespace Langulus::Anyness
 		NOD() Block GetElementDeep(Offset) noexcept;
 		NOD() const Block GetElementDeep(Offset) const noexcept;
 	
+		//																						
+		//	Iteration																		
+		//																						
 		Count ForEachElement(TFunctor<bool(const Block&)>&&) const;
 		Count ForEachElement(TFunctor<bool(Block&)>&&);
 		Count ForEachElement(TFunctor<void(const Block&)>&&) const;
@@ -298,7 +304,12 @@ namespace Langulus::Anyness
 		void CheckRange(const Offset& start, const Count& count) const;
 		
 	private:
-		template<class R, CT::Data A, bool REVERSE, bool MUTABLE = true>
+		template<bool MUTABLE, bool REVERSE, class F>
+		Count ForEachSplitter(F&&);
+		template<bool SKIP, bool MUTABLE, bool REVERSE, class F>
+		Count ForEachDeepSplitter(F&&);
+
+		template<class R, CT::Data A, bool REVERSE, bool MUTABLE>
 		Count ForEachInner(TFunctor<R(A)>&&);
 		template<class R, CT::Data A, bool REVERSE>
 		Count ForEachInner(TFunctor<R(A)>&&) const;
@@ -397,23 +408,34 @@ namespace Langulus::Anyness
 		Count InsertBlock(const Block&, const Index& = Index::Back);
 		Count InsertBlock(Block&&, const Index& = Index::Back);
 	
-		template<bool ALLOW_CONCAT = true, bool ALLOW_DEEPEN = true, CT::Data T, CT::Deep WRAPPER = Any>
+		template<bool ALLOW_CONCAT = true, bool ALLOW_DEEPEN = true, CT::Data T, CT::Data WRAPPER = Any>
 		Count SmartPush(const T&, DataState = {}, Index = Index::Back);
-		template<bool ALLOW_CONCAT = true, bool ALLOW_DEEPEN = true, CT::Data T, CT::Deep WRAPPER = Any>
+		template<bool ALLOW_CONCAT = true, bool ALLOW_DEEPEN = true, CT::Data T, CT::Data WRAPPER = Any>
 		Count SmartPush(T&&, DataState = {}, Index = Index::Back);
 	
 		template<CT::Deep T, bool MOVE_STATE = true>
 		T& Deepen();
-	
-		template<CT::Data T, bool MUTABLE = true, CT::Data WRAPPER>
-		Count Merge(const T*, Count = 1, const Index& = Index::Back);
-		template<CT::Data T, bool MUTABLE = true, CT::Data WRAPPER>
-		Count Merge(T&&, const Index& = Index::Back);
-		Count MergeBlock(const Block&, const Index& = Index::Back);
-	
+
+		template<bool CONCAT = true, bool DEEPEN = true, CT::Data T, CT::Data INDEX, CT::Data WRAPPER = Any>
+		Count SmartPushAt(T, INDEX, DataState = {});
+		/*template<bool CONCAT = true, bool DEEPEN = true, CT::Data T, CT::Data INDEX, CT::Data WRAPPER = Any>
+		Count SmartPushAt(T&&, INDEX, DataState = {});*/
+		/*template<bool CONCAT = true, bool DEEPEN = true, CT::Data T, CT::Data WRAPPER = Any>
+		Count SmartPushAt(T&&, Index, DataState = {});
+		template<bool CONCAT = true, bool DEEPEN = true, CT::Data T, CT::Data WRAPPER = Any>
+		Count SmartPushAt(T&&, Offset, DataState = {});*/
+
+		template<Index INDEX = Index::Back, bool CONCAT = true, bool DEEPEN = true, CT::Data T, CT::Data WRAPPER = Any>
+		Count SmartPush(T, DataState = {});
+		/*template<Index INDEX = Index::Back, bool CONCAT = true, bool DEEPEN = true, CT::Data T, CT::Data WRAPPER = Any>
+		Count SmartPush(T&&, DataState = {});*/
+
+		//																						
+		//	Deletion																			
+		//																						
 		template<CT::Data T>
-		Count Remove(const T*, Count = 1, const Index& = Index::Front);
-		Count RemoveIndex(const Index&, Count = 1);
+		Count Remove(const T*, Count = 1, Index = Index::Front);
+		Count RemoveIndex(Index, Count = 1);
 		Count RemoveIndex(Offset, Count = 1);
 		Count RemoveIndexDeep(Offset);
 	
@@ -463,10 +485,10 @@ namespace Langulus::Anyness
 		void AllocateInner(const Count&);
 		auto RequestSize(const Count&) const noexcept;
 	
-		template<bool KEEP, CT::Data T>
-		void InsertInner(const T*, const Count&, const Offset&) requires CT::NotAbandonedOrDisowned<T>;
-		template<bool KEEP, CT::Data T>
-		void InsertInner(T&&, const Offset&) requires CT::NotAbandonedOrDisowned<T>;
+		template<bool KEEP, CT::NotAbandonedOrDisowned T>
+		void InsertInner(const T*, const T*, Offset);
+		template<bool KEEP, CT::NotAbandonedOrDisowned T>
+		void InsertInner(T&&, Offset);
 
 		static void CopyMemory(const void*, void*, const Size&) noexcept;
 		static void MoveMemory(const void*, void*, const Size&) noexcept;
@@ -478,7 +500,6 @@ namespace Langulus::Anyness
 		template<bool TYPED, bool SPARSE>
 		constexpr void ResetState() noexcept;
 		void ResetStateRTTI() noexcept;
-
 	
 		void Reference(const Count&) const noexcept;
 		void Reference(const Count&) noexcept;
@@ -489,25 +510,26 @@ namespace Langulus::Anyness
 		bool Dereference(const Count&);
 		bool Free();
 	
-		void CallDefaultConstructors(const Count&);
-		void CallCopyConstructors(const Count&, const Block&); //TODO make known variant, use code from TAny, also revise all iterations in these functions, including the unknown variants
-
-		void CallUnknownMoveConstructors(Count, Block&&);
+		void CallUnknownDefaultConstructors(Count);
 		template<CT::Data T>
+		void CallKnownDefaultConstructors(Count);
+
+		template<bool KEEP>
+		void CallUnknownCopyConstructors(Count, const Block&);
+		template<bool KEEP, CT::Data T>
+		void CallKnownCopyConstructors(Count, const Block&);
+
+		template<bool KEEP>
+		void CallUnknownMoveConstructors(Count, Block&&);
+		template<bool KEEP, CT::Data T>
 		void CallKnownMoveConstructors(Count, Block&&);
 
 		void CallUnknownDestructors();
 		template<CT::Data T>
 		void CallKnownDestructors();
 	
-		Size AllocateRegion(const Block&, const Index&, Block&);
-	
-		template<class FROM, class TO>
-		static Count ConvertSymmetric(const Block&, Block&);
-		template<class FROM>
-		static Count ConvertDataBatched(const Block&, Block&, const Index&);
-		template<class FROM>
-		static Count ConvertToTextBlock(const Block&, Block&);
+		template<bool KEEP, CT::Data WRAPPER>
+		Size AllocateRegion(const Block&, Offset, Block&);
 	};
 
 		

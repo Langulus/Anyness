@@ -137,9 +137,18 @@ namespace Langulus::Anyness
 		RANGED_FOR_INTEGRATION(TAny, T);
 
 		template<bool KEEP = true>
-		Count Insert(const T*, const Count& = 1, const Index& = Index::Back);
+		Count InsertAt(const T*, const T*, Index);
 		template<bool KEEP = true>
-		Count Insert(T&&, const Index& = Index::Back);
+		Count InsertAt(const T*, const T*, Offset);
+		template<bool KEEP = true>
+		Count InsertAt(T&&, Index);
+		template<bool KEEP = true>
+		Count InsertAt(T&&, Offset);
+
+		template<Index INDEX, bool KEEP = true>
+		Count Insert(const T*, const T*);
+		template<Index INDEX, bool KEEP = true>
+		Count Insert(T&&);
 
 		TAny& operator << (const T&);
 		TAny& operator << (T&&);
@@ -152,9 +161,18 @@ namespace Langulus::Anyness
 		TAny& operator >> (Abandoned<T>&&);
 
 		template<bool KEEP = true>
-		Count Merge(const T*, const Count& = 1, const Index& = Index::Back);
+		Count MergeAt(const T*, const T*, Index);
 		template<bool KEEP = true>
-		Count Merge(T&&, const Index& = Index::Back);
+		Count MergeAt(const T*, const T*, Offset);
+		template<bool KEEP = true>
+		Count MergeAt(T&&, Index);
+		template<bool KEEP = true>
+		Count MergeAt(T&&, Offset);
+
+		template<Index INDEX, bool KEEP = true>
+		Count Merge(const T*, const T*);
+		template<Index INDEX, bool KEEP = true>
+		Count Merge(T&&);
 
 		TAny& operator <<= (const T&);
 		TAny& operator <<= (T&&);
@@ -200,8 +218,6 @@ namespace Langulus::Anyness
 
 		template<bool OVERWRITE>
 		void CopyProperties(const Block&) noexcept;
-		void CallDefaultConstructors(const Count&);
-		void CallCopyConstructors(const Count&, const TAny&);
 	};
 
 

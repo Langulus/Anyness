@@ -545,9 +545,9 @@ TEMPLATE_TEST_CASE("TAny", "[containers]", int, int*) {
 		}
 
 		WHEN("Insert more trivial items at a specific place by shallow-copy") {
-			int* i666 = new int { 666 };
+			int* i666 = new int {666};
 			int& i666d = *i666;
-			pack.Insert(i666, 1, 3);
+			pack.InsertAt(i666, i666 + 1, 3);
 
 			THEN("The size changes, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
 				REQUIRE(pack.GetCount() == 6);
@@ -588,9 +588,9 @@ TEMPLATE_TEST_CASE("TAny", "[containers]", int, int*) {
 		}
 
 		WHEN("Insert more trivial items at a specific place by move") {
-			int* i666 = new int { 666 };
+			int* i666 = new int {666};
 			int& i666d = *i666;
-			pack.Insert(Move(*i666), 3);
+			pack.InsertAt(Move(*i666), 3);
 
 			THEN("The size changes, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
 				REQUIRE(pack.GetCount() == 6);
