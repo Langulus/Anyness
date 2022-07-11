@@ -1235,7 +1235,7 @@ namespace Langulus::Anyness
 	///	@param start - pointer to the first item										
 	///	@param end - pointer to the end of items										
 	///	@return number of inserted elements												
-	template<Index INDEX, CT::Data WRAPPER, bool KEEP, bool MUTABLE, CT::NotAbandonedOrDisowned T>
+	template<auto INDEX, CT::Data WRAPPER, bool KEEP, bool MUTABLE, CT::NotAbandonedOrDisowned T>
 	Count Block::Insert(const T* start, const T* end) {
 		static_assert(CT::Deep<WRAPPER>,
 			"WRAPPER must be deep");
@@ -1289,7 +1289,7 @@ namespace Langulus::Anyness
 	///	@tparam T - the type to insert (deducible)									
 	///	@param item - item to move int													
 	///	@return number of inserted elements												
-	template<Index INDEX, CT::Data WRAPPER, bool KEEP, bool MUTABLE, CT::NotAbandonedOrDisowned T>
+	template<auto INDEX, CT::Data WRAPPER, bool KEEP, bool MUTABLE, CT::NotAbandonedOrDisowned T>
 	Count Block::Insert(T&& item) {
 		static_assert(CT::Deep<WRAPPER>,
 			"WRAPPER must be deep");
@@ -1885,7 +1885,7 @@ namespace Langulus::Anyness
 	///	@param index - the index at which to insert (if needed)					
 	///	@param state - a state to apply after pushing is done						
 	///	@return the number of pushed items (zero if unsuccessful)				
-	template<Index INDEX, bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data T, CT::Data WRAPPER>
+	template<auto INDEX, bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data T, CT::Data WRAPPER>
 	Count Block::SmartPush(T value, DataState state) {
 		static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
 
@@ -3110,7 +3110,7 @@ namespace Langulus::Anyness
 	///	@tparam T - type of the block to traverse (deducible)						
 	///	@param other - the block to insert												
 	///	@return the number of inserted elements										
-	template<Index INDEX, CT::NotAbandonedOrDisowned T>
+	template<auto INDEX, CT::NotAbandonedOrDisowned T>
 	Count Block::InsertBlock(const T& other) {
 		static_assert(CT::Block<T>, "T must be a block type");
 
@@ -3147,7 +3147,7 @@ namespace Langulus::Anyness
 	///	@tparam T - type of the block to traverse (deducible)						
 	///	@param other - the block to insert												
 	///	@return the number of inserted elements										
-	template<Index INDEX, CT::NotAbandonedOrDisowned T>
+	template<auto INDEX, CT::NotAbandonedOrDisowned T>
 	Count Block::InsertBlock(T&& other) {
 		static_assert(CT::Block<T>, "T must be a block type");
 
@@ -3187,7 +3187,7 @@ namespace Langulus::Anyness
 	///	@tparam T - type of the block to traverse (deducible)						
 	///	@param other - the block to insert												
 	///	@return the number of inserted elements										
-	template<Index INDEX, CT::NotAbandonedOrDisowned T>
+	template<auto INDEX, CT::NotAbandonedOrDisowned T>
 	Count Block::InsertBlock(Abandoned<T>&& other) {
 		static_assert(CT::Block<T>, "T must be a block type");
 
@@ -3227,7 +3227,7 @@ namespace Langulus::Anyness
 	///	@tparam T - type of the block to traverse (deducible)						
 	///	@param other - the block to insert												
 	///	@return the number of inserted elements										
-	template<Index INDEX, CT::NotAbandonedOrDisowned T>
+	template<auto INDEX, CT::NotAbandonedOrDisowned T>
 	Count Block::InsertBlock(Disowned<T>&& other) {
 		static_assert(CT::Block<T>, "T must be a block type");
 
