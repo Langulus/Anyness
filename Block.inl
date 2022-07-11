@@ -3176,10 +3176,13 @@ namespace Langulus::Anyness
 				.template CallUnknownMoveConstructors<false>(other.mCount, Forward<Block>(other));
 		}
 
-		// Fully reset the source block												
-		const auto pushed = other.mCount;
-		other.Reset();
-		return pushed;
+		// Fully reset the source block, if it has ownership behavior		
+		if constexpr (!CT::Same<Block, T>) {
+			const auto pushed = other.mCount;
+			other.Reset();
+			return pushed;
+		}
+		else return other.mCount;
 	}
 
 	/// Move-insert all elements of an abandoned block either at start/end		
