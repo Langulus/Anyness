@@ -2479,7 +2479,7 @@ namespace Langulus::Anyness
 					<< "Moving elements that are used from multiple places"));
 
 			CropInner(index + other.mCount, 0, mCount - index)
-				.CallUnknownMoveConstructors<false>(
+				.template CallUnknownMoveConstructors<false>(
 					mCount - index,
 					CropInner(index, mCount - index, mCount - index)
 				);
@@ -3038,7 +3038,7 @@ namespace Langulus::Anyness
 
 		if (region.IsAllocated()) {
 			// Call move-constructors in the new region							
-			region.CallUnknownMoveConstructors<true>(other.mCount, Move(other));
+			region.template CallUnknownMoveConstructors<true>(other.mCount, Move(other));
 			return region.mReserved;
 		}
 
@@ -3068,7 +3068,7 @@ namespace Langulus::Anyness
 
 		if (region.IsAllocated()) {
 			// Call move-constructors in the new region							
-			region.CallUnknownMoveConstructors<false>(other.mValue.mCount, Move(other.mValue));
+			region.template CallUnknownMoveConstructors<false>(other.mValue.mCount, Move(other.mValue));
 			return region.mReserved;
 		}
 
@@ -3164,16 +3164,16 @@ namespace Langulus::Anyness
 					<< "Moving elements that are used from multiple places"));
 
 			CropInner(other.mCount, 0, mCount)
-				.CallUnknownMoveConstructors<false>(
+				.template CallUnknownMoveConstructors<false>(
 					mCount, CropInner(0, mCount, mCount)
 				);
 
 			CropInner(0, 0, other.mCount)
-				.CallUnknownMoveConstructors<false>(other.mCount, Forward<Block>(other));
+				.template CallUnknownMoveConstructors<false>(other.mCount, Forward<Block>(other));
 		}
 		else {
 			CropInner(mCount, 0, other.mCount)
-				.CallUnknownMoveConstructors<false>(other.mCount, Forward<Block>(other));
+				.template CallUnknownMoveConstructors<false>(other.mCount, Forward<Block>(other));
 		}
 
 		// Fully reset the source block												
@@ -3204,16 +3204,16 @@ namespace Langulus::Anyness
 					<< "Moving elements that are used from multiple places"));
 
 			CropInner(other.mValue.mCount, 0, mCount)
-				.CallUnknownMoveConstructors<false>(
+				.template CallUnknownMoveConstructors<false>(
 					mCount, CropInner(0, mCount, mCount)
 				);
 
 			CropInner(0, 0, other.mValue.mCount)
-				.CallUnknownMoveConstructors<false>(other.mValue.mCount, Forward<Block>(other.mValue));
+				.template CallUnknownMoveConstructors<false>(other.mValue.mCount, Forward<Block>(other.mValue));
 		}
 		else {
 			CropInner(mCount, 0, other.mValue.mCount)
-				.CallUnknownMoveConstructors<false>(other.mValue.mCount, Forward<Block>(other.mValue));
+				.template CallUnknownMoveConstructors<false>(other.mValue.mCount, Forward<Block>(other.mValue));
 		}
 
 		// Fully reset the source block												

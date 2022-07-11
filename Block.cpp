@@ -434,7 +434,7 @@ namespace Langulus::Anyness
 		if (ender < mCount) {
 			// Fill gap	if any by invoking move constructions					
 			CropInner(starter, 0, mCount - ender)
-				.CallUnknownMoveConstructors<false>(
+				.template CallUnknownMoveConstructors<false>(
 					mCount - ender,
 					CropInner(ender, mCount - ender, mCount - ender)
 				);
