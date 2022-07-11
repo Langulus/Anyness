@@ -3007,7 +3007,7 @@ namespace Langulus::Anyness
 
 		if (region.IsAllocated()) {
 			// Call copy-constructors in the new region							
-			region.CallUnknownCopyConstructors<true>(other.mCount, other);
+			region.template CallUnknownCopyConstructors<true>(other.mCount, other);
 			mCount += region.mReserved;
 			return region.mReserved;
 		}
@@ -3098,7 +3098,7 @@ namespace Langulus::Anyness
 
 		if (region.IsAllocated()) {
 			// Call move-constructors in the new region							
-			region.CallUnknownCopyConstructors<false>(other.mValue.mCount, other.mValue);
+			region.template CallUnknownCopyConstructors<false>(other.mValue.mCount, other.mValue);
 			return region.mReserved;
 		}
 
@@ -3127,16 +3127,16 @@ namespace Langulus::Anyness
 					<< "Moving elements that are used from multiple places"));
 
 			CropInner(other.mCount, 0, mCount)
-				.CallUnknownMoveConstructors<false>(
+				.template CallUnknownMoveConstructors<false>(
 					mCount, CropInner(0, mCount, mCount)
 				);
 
 			CropInner(0, 0, other.mCount)
-				.CallUnknownCopyConstructors<true>(other.mCount, other);
+				.template CallUnknownCopyConstructors<true>(other.mCount, other);
 		}
 		else {
 			CropInner(mCount, 0, other.mCount)
-				.CallUnknownCopyConstructors<true>(other.mCount, other);
+				.template CallUnknownCopyConstructors<true>(other.mCount, other);
 		}
 
 		return other.mCount;
@@ -3244,16 +3244,16 @@ namespace Langulus::Anyness
 					<< "Moving elements that are used from multiple places"));
 
 			CropInner(other.mValue.mCount, 0, mCount)
-				.CallUnknownMoveConstructors<false>(
+				.template CallUnknownMoveConstructors<false>(
 					mCount, CropInner(0, mCount, mCount)
 				);
 
 			CropInner(0, 0, other.mValue.mCount)
-				.CallUnknownCopyConstructors<false>(other.mValue.mCount, other.mValue);
+				.template CallUnknownCopyConstructors<false>(other.mValue.mCount, other.mValue);
 		}
 		else {
 			CropInner(mCount, 0, other.mValue.mCount)
-				.CallUnknownCopyConstructors<false>(other.mValue.mCount, other.mValue);
+				.template CallUnknownCopyConstructors<false>(other.mValue.mCount, other.mValue);
 		}
 
 		return other.mValue.mCount;
