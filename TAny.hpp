@@ -145,9 +145,9 @@ namespace Langulus::Anyness
 		template<bool KEEP = true>
 		Count InsertAt(T&&, Offset);
 
-		template<Index INDEX, bool KEEP = true>
+		template<auto INDEX = Index::Back, bool KEEP = true>
 		Count Insert(const T*, const T*);
-		template<Index INDEX, bool KEEP = true>
+		template<auto INDEX = Index::Back, bool KEEP = true>
 		Count Insert(T&&);
 
 		TAny& operator << (const T&);
@@ -169,9 +169,9 @@ namespace Langulus::Anyness
 		template<bool KEEP = true>
 		Count MergeAt(T&&, Offset);
 
-		template<Index INDEX, bool KEEP = true>
+		template<auto INDEX = Index::Back, bool KEEP = true>
 		Count Merge(const T*, const T*);
-		template<Index INDEX, bool KEEP = true>
+		template<auto INDEX = Index::Back, bool KEEP = true>
 		Count Merge(T&&);
 
 		TAny& operator <<= (const T&);
