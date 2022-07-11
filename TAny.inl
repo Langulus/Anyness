@@ -889,7 +889,7 @@ namespace Langulus::Anyness
 			}
 
 			CropInner(index + count, 0, mCount - index)
-				.CallKnownMoveConstructors<false, T>(
+				.template CallKnownMoveConstructors<false, T>(
 					mCount - index,
 					CropInner(index, mCount - index, mCount - index)
 				);
@@ -929,7 +929,7 @@ namespace Langulus::Anyness
 			}
 
 			CropInner(index + 1, 0, mCount - index)
-				.CallKnownMoveConstructors<false, T>(
+				.template CallKnownMoveConstructors<false, T>(
 					mCount - index,
 					CropInner(index, mCount - index, mCount - index)
 				);
@@ -963,7 +963,7 @@ namespace Langulus::Anyness
 					" - you should first clone the container"));
 
 			CropInner(count, 0, mCount)
-				.CallKnownMoveConstructors<false, T>(
+				.template CallKnownMoveConstructors<false, T>(
 					mCount, CropInner(0, mCount, mCount)
 				);
 
@@ -1000,7 +1000,7 @@ namespace Langulus::Anyness
 					" - you should first clone the container"));
 
 			CropInner(1, 0, mCount)
-				.CallKnownMoveConstructors<false, T>(
+				.template CallKnownMoveConstructors<false, T>(
 					mCount, CropInner(0, mCount, mCount)
 				);
 
