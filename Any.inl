@@ -160,7 +160,7 @@ namespace Langulus::Anyness
 			result.Allocate(sizeof...(LIST));
 			result.SetType<Any, false>();
 			for (auto& it : wrapped)
-				result.Insert<Any, true, false>(Move(it));
+				result.Insert<Index::Back, Any, false, false>(Move(it));
 			return result;
 		}
 	}
@@ -176,7 +176,7 @@ namespace Langulus::Anyness
 			Deref<HEAD> wrapped[] {Forward<HEAD>(head), Forward<TAIL>(tail)...};
 			Any result {Any::From<HEAD>()};
 			for (auto& it : wrapped)
-				result.Insert<Any, true, false>(Move(it));
+				result.Insert<Index::Back, Any, false, false>(Move(it));
 			return result;
 		}
 	}

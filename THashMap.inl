@@ -683,6 +683,17 @@ namespace Langulus::Anyness
 	///	@param value - value to move in													
 	TABLE_TEMPLATE()
 	void TABLE()::InsertInner(const Offset& start, K& key, V& value) {
+		// Used for swapping key/value known pointer entries, to avoid		
+		// losing that information when swapping sparse stuff					
+		using KKP = typename TAny<K>::KnownPointer;
+		using VKP = typename TAny<V>::KnownPointer;
+		UNUSED() KKP keyBackup;
+		UNUSED() VKP valueBackup;
+		if constexpr (CT::Sparse<K>)
+			new (&keyBackup) KKP {key};
+		if constexpr (CT::Sparse<V>)
+			new (&valueBackup) VKP {value};
+
 		// Get the starting index based on the key hash							
 		auto psl = GetInfo() + start;
 		const auto pslEnd = GetInfoEnd();
@@ -699,8 +710,16 @@ namespace Langulus::Anyness
 			if (attempts > *psl) {
 				// The pair we're inserting is closer to bucket, so swap		
 				const auto index = psl - GetInfo();
-				::std::swap(GetKey(index), key);
-				::std::swap(GetValue(index), value);
+				if constexpr (CT::Sparse<K>)
+					::std::swap(GetKey(index), keyBackup);
+				else
+					::std::swap(GetKey(index), key);
+
+				if constexpr (CT::Sparse<V>)
+					::std::swap(GetValue(index), valueBackup);
+				else
+					::std::swap(GetValue(index), value);
+
 				::std::swap(attempts, *psl);
 			}
 
@@ -760,7 +779,7 @@ namespace Langulus::Anyness
 		// Guarantee that there's at least one free space						
 		Allocate(GetCount() + 1);
 
-		// Use the item as a swapper													
+		// Use the original item as the swapper									
 		const auto bucket = GetBucket(item.mKey);
 		InsertInner(bucket, item.mKey, item.mValue);
 		return 1;
@@ -1046,7 +1065,7 @@ namespace Langulus::Anyness
 	///	@param i - the offset to use														
 	///	@return a reference to the key													
 	TABLE_TEMPLATE()
-	const K& TABLE()::GetKey(const Offset& i) const noexcept {
+	decltype(auto) TABLE()::GetKey(const Offset& i) const noexcept {
 		return GetRawKeys()[i];
 	}
 
@@ -1055,7 +1074,7 @@ namespace Langulus::Anyness
 	///	@param i - the offset to use														
 	///	@return a reference to the key													
 	TABLE_TEMPLATE()
-	K& TABLE()::GetKey(const Offset& i) noexcept {
+	decltype(auto) TABLE()::GetKey(const Offset& i) noexcept {
 		return GetRawKeys()[i];
 	}
 
@@ -1120,7 +1139,7 @@ namespace Langulus::Anyness
 	///	@param index - the index to use													
 	///	@return a reference to the key													
 	TABLE_TEMPLATE()
-	const K& TABLE()::GetKey(const Index& index) const {
+	decltype(auto) TABLE()::GetKey(const Index& index) const {
 		const_cast<TABLE()&>(*this).GetKey(index);
 	}
 
@@ -1128,7 +1147,7 @@ namespace Langulus::Anyness
 	///	@param index - the index to use													
 	///	@return a reference to the key													
 	TABLE_TEMPLATE()
-	K& TABLE()::GetKey(const Index& index) {
+	decltype(auto) TABLE()::GetKey(const Index& index) {
 		const auto offset = index.GetOffset();
 		if (offset >= GetReserved() || 0 == GetInfo()[offset])
 			Throw<Except::OutOfRange>("Bad index for THashMap::GetKey");

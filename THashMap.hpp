@@ -150,8 +150,8 @@ namespace Langulus::Anyness
 		NOD() decltype(auto) operator[] (const K&) const;
 		NOD() decltype(auto) operator[] (const K&);
 
-		NOD() const K& GetKey(const Index&) const;
-		NOD() K& GetKey(const Index&);
+		NOD() decltype(auto) GetKey(const Index&) const;
+		NOD() decltype(auto) GetKey(const Index&);
 		NOD() decltype(auto) GetValue(const Index&) const;
 		NOD() decltype(auto) GetValue(const Index&);
 		NOD() decltype(auto) GetPair(const Index&) const;
@@ -177,8 +177,8 @@ namespace Langulus::Anyness
 
 		void RemoveIndex(const Offset&) noexcept;
 
-		NOD() const K& GetKey(const Offset&) const noexcept;
-		NOD() K& GetKey(const Offset&) noexcept;
+		NOD() decltype(auto) GetKey(const Offset&) const noexcept;
+		NOD() decltype(auto) GetKey(const Offset&) noexcept;
 		NOD() decltype(auto) GetValue(const Offset&) const noexcept;
 		NOD() decltype(auto) GetValue(const Offset&) noexcept;
 		NOD() decltype(auto) GetPair(const Offset&) const noexcept;

@@ -1438,13 +1438,14 @@ namespace Langulus::Anyness
 			}
 
 			// Call the destructors on the correct region						
-			CropInner(starter, count, count).template CallKnownDestructors<T>();
+			CropInner(starter, count, count)
+				.template CallKnownDestructors<T>();
 
 			if (ender < mCount) {
 				// Fill gap	if any by invoking move constructions				
 				const auto remains = mCount - ender;
 				CropInner(starter, 0, remains)
-					.template CallKnownMoveConstructors<T>(
+					.template CallKnownMoveConstructors<false, T>(
 						remains, CropInner(ender, remains, remains)
 					);
 			}
@@ -1501,13 +1502,25 @@ namespace Langulus::Anyness
 	///																								
 	///	Known pointer implementation														
 	///																								
-	
+	TEMPLATE()
+	TAny<T>::KnownPointer::KnownPointer(const T& pointer) {
+		using DT = Decay<T>;
+		mPointer = pointer;
+		#if LANGULUS_FEATURE(MANAGED_MEMORY)
+			mEntry = Inner::Allocator::Find(MetaData::Of<DT>(), pointer);
+			if (mEntry)
+				mEntry->Keep();
+		#else
+			mEntry = nullptr;
+		#endif
+	}
+
 	/// When overwriting the element, previous pointer must be dereferenced		
 	/// and the new one - referenced															
 	///	@param pointer - the pointer to set												
 	///	@return a reference to this sparse element									
 	TEMPLATE()
-	typename TAny<T>::KnownPointer& TAny<T>::KnownPointer::operator = (T pointer) {
+	typename TAny<T>::KnownPointer& TAny<T>::KnownPointer::operator = (const T& pointer) {
 		using DT = Decay<T>;
 		if (mPointer == pointer)
 			return *this;
@@ -1521,15 +1534,7 @@ namespace Langulus::Anyness
 			else mEntry->Free();
 		}
 
-		// Set and reference the new element										
-		mPointer = pointer;
-		#if LANGULUS_FEATURE(MANAGED_MEMORY)
-			mEntry = Inner::Allocator::Find(MetaData::Of<DT>(), pointer);
-			if (mEntry)
-				mEntry->Keep();
-		#else
-			mEntry = nullptr;
-		#endif
+		new (this) KnownPointer {pointer};
 		return *this;
 	}
 

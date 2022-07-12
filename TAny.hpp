@@ -229,7 +229,16 @@ namespace Langulus::Anyness
 		T mPointer;
 		Inner::Allocation* mEntry;
 
-		KnownPointer& operator = (T);
+		constexpr KnownPointer() noexcept = default;
+		constexpr KnownPointer(const KnownPointer&) noexcept = default;
+		constexpr KnownPointer(KnownPointer&&) noexcept = default;
+		KnownPointer(const T&);
+		KnownPointer(T&&);
+
+		constexpr KnownPointer& operator = (const KnownPointer&) noexcept = default;
+		constexpr KnownPointer& operator = (KnownPointer&&) noexcept = default;
+		KnownPointer& operator = (const T&);
+		KnownPointer& operator = (T&&);
 		KnownPointer& operator = (::std::nullptr_t);
 
 		operator T() const noexcept;
