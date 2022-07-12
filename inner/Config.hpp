@@ -50,8 +50,12 @@
 	#define LANGULUS_FEATURE_MEMORY_STATISTICS() 0
 #endif
 
-/// The following features can be enabled only if managed memory is				
-#ifndef LANGULUS_FEATURE_MANAGED_REFLECTION
+/// RTTI manager shall keep a registry of defined meta data/verbs/traits		
+/// Gives you the ability to modify types at runtime, increases type-check		
+/// performance, slows down module loading and startup, no dependencies			
+#ifdef LANGULUS_ENABLE_FEATURE_MANAGED_REFLECTION
+	#define LANGULUS_FEATURE_MANAGED_REFLECTION() 1
+#else
 	#define LANGULUS_FEATURE_MANAGED_REFLECTION() 0
 #endif
 

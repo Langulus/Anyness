@@ -126,22 +126,31 @@ namespace Langulus::Anyness
 	/// Create an empty Any from a dynamic type and state								
 	///	@param type - type of the container												
 	///	@param state - optional state of the container								
-	///	@return the new any																	
+	///	@return the new container instance												
 	inline Any Any::FromMeta(DMeta type, const DataState& state) noexcept {
 		return Any {Block {state, type}};
 	}
 
 	/// Create an empty Any by copying type and state of a block					
-	///	@param type - type of the container												
+	///	@param block - the source of type and state									
 	///	@param state - additional state of the container							
-	///	@return the new any																	
-	inline Any Any::FromBlock(const Block& type, const DataState& state) noexcept {
-		return Any::FromMeta(type.GetType(), type.GetUnconstrainedState() + state);
+	///	@return the new container instance												
+	inline Any Any::FromBlock(const Block& block, const DataState& state) noexcept {
+		return Any::FromMeta(block.GetType(), block.GetUnconstrainedState() + state);
+	}
+
+	/// Create an empty Any by copying only state of a block							
+	///	@param block - the source of the state											
+	///	@param state - additional state of the container							
+	///	@return the new container instance												
+	inline Any Any::FromState(const Block& block, const DataState& state) noexcept {
+		return Any::FromMeta(nullptr, block.GetUnconstrainedState() + state);
 	}
 
 	/// Create an empty Any from a static type and state								
+	///	@tparam T - the contained type													
 	///	@param state - optional state of the container								
-	///	@return the new any																	
+	///	@return the new container instance												
 	template<CT::Data T>
 	Any Any::From(const DataState& state) noexcept {
 		return Any {Block{state, MetaData::Of<Decay<T>>()}};
@@ -166,8 +175,9 @@ namespace Langulus::Anyness
 	}
 
 	/// Pack any number of same-type elements sequentially							
-	///	@param elements - sequential elements											
-	///	@returns the pack containing the data											
+	///	@param head - first element														
+	///	@param tail... - the rest of the elements										
+	///	@returns the new container containing the data								
 	template<CT::Data HEAD, CT::Data... TAIL>
 	Any Any::WrapCommon(HEAD&& head, TAIL&&... tail) {
 		if constexpr (sizeof...(TAIL) == 0)
@@ -181,12 +191,14 @@ namespace Langulus::Anyness
 		}
 	}
 	
-	/// Shallow-copy a mutable container													
+	/// Shallow-copy a container																
+	///	@param other - the container to copy											
+	///	@return a reference to this container											
 	inline Any& Any::operator = (const Any& other) {
-		// Just reference the memory of the other Any							
+		// Since Any is type-erased, we have to make a runtime type check	
 		if (IsTypeConstrained() && !CastsToMeta(other.mType)) {
 			Throw<Except::Copy>(Logger::Error()
-				<< "Bad shallow-copy-assignment for type-constrained Any: from "
+				<< "Bad copy-assignment for type-constrained Any: from "
 				<< GetToken() << " to " << other.GetToken());
 		}
 
@@ -199,11 +211,13 @@ namespace Langulus::Anyness
 	}
 	
 	/// Move a container																			
+	///	@param other - the container to move and reset								
+	///	@return a reference to this container											
 	inline Any& Any::operator = (Any&& other) {
-		// Free this container and move the other onto it						
+		// Since Any is type-erased, we have to make a runtime type check	
 		if (IsTypeConstrained() && !CastsToMeta(other.mType)) {
 			Throw<Except::Copy>(Logger::Error()
-				<< "Bad shallow-copy-assignment for Any: from "
+				<< "Bad move-assignment for Any: from "
 				<< GetToken() << " to " << other.GetToken());
 		}
 
@@ -214,47 +228,70 @@ namespace Langulus::Anyness
 		return *this;
 	}
 
+	/// Shallow-copy a disowned container (doesn't reference anything)			
+	///	@param other - the container to copy											
+	///	@return a reference to this container											
+	inline Any& Any::operator = (Disowned<Any>&& other) {
+		// Since Any is type-erased, we have to make a runtime type check	
+		if (IsTypeConstrained() && !CastsToMeta(other.mValue.mType)) {
+			Throw<Except::Copy>(Logger::Error()
+				<< "Bad disown-assignment for type-constrained Any: from "
+				<< GetToken() << " to " << other.mValue.GetToken());
+		}
+
+		Free();
+		Block::operator = (other.mValue);
+		return *this;
+	}
+	
+	/// Move an abandoned container, minimally resetting the source				
+	///	@param other - the container to move and reset								
+	///	@return a reference to this container											
+	inline Any& Any::operator = (Abandoned<Any>&& other) {
+		// Since Any is type-erased, we have to make a runtime type check	
+		if (IsTypeConstrained() && !CastsToMeta(other.mValue.mType)) {
+			Throw<Except::Copy>(Logger::Error()
+				<< "Bad shallow-copy-assignment for Any: from "
+				<< GetToken() << " to " << other.mValue.GetToken());
+		}
+
+		Free();
+		Block::operator = (other.mValue);
+		other.mValue.mEntry = nullptr;
+		return *this;
+	}
+
 	/// Assign by shallow-copying anything 												
 	///	@param other - the item to copy													
 	///	@return a reference to this container											
 	template<CT::CustomData T>
 	Any& Any::operator = (const T& other) {
-		static_assert(CT::NotAbandonedOrDisowned<T>, 
-			"Copying an abandoned/disowned T is disallowed");
+		const auto meta = MetaData::Of<Decay<T>>();
+		if (IsTypeConstrained() && !CastsToMeta(meta)) {
+			// Can't assign different type to a type-constrained Any		
+			Throw<Except::Copy>(Logger::Error()
+				<< "Bad shallow-copy-assignment for type-constrained Any: from "
+				<< GetToken() << " to " << meta->mToken);
+		}
 
-		if constexpr (CT::Same<T, Block>) {
-			// Always reference a Block, by wrapping it in an Any				
-			operator = (Any {other});			
+		if (GetUses() == 1 && meta->Is(mType)) {
+			// Just destroy and reuse memory										
+			// Even better - types match, so we know this container		
+			// is filled with T too, therefore we can use statically		
+			// optimized routines for destruction								
+			CallKnownDestructors<T>();
+			mCount = 0;
 		}
 		else {
-			const auto meta = MetaData::Of<Decay<T>>();
-			if (IsTypeConstrained() && !CastsToMeta(meta)) {
-				// Can't assign different type to a type-constrained Any		
-				Throw<Except::Copy>(Logger::Error()
-					<< "Bad shallow-copy-assignment for type-constrained Any: from "
-					<< GetToken() << " to " << meta->mToken);
-			}
-
-			if (GetUses() == 1 && meta->Is(mType)) {
-				// Just destroy and reuse memory										
-				// Even better - types match, so we know this container		
-				// is filled with T too, therefore we can use statically		
-				// optimized routines for destruction								
-				CallKnownDestructors<T>();
-				mCount = 0;
-			}
-			else {
-				// Reset and allocate new memory										
-				Reset();
-				mType = meta;
-				if constexpr (CT::Sparse<T>)
-					MakeSparse();
-				AllocateInner<false>(1);
-			}
-
-			InsertInner<true>(&other, &other + 1, 0);
+			// Reset and allocate new memory										
+			Reset();
+			mType = meta;
+			if constexpr (CT::Sparse<T>)
+				MakeSparse();
+			AllocateInner<false>(1);
 		}
 
+		InsertInner<true>(&other, &other + 1, 0);
 		return *this;
 	}
 
@@ -270,89 +307,31 @@ namespace Langulus::Anyness
 	///	@return a reference to this container											
 	template<CT::CustomData T>
 	Any& Any::operator = (T&& other) {
-		if constexpr (CT::Same<T, Disowned<Any>> || CT::Same<T, Abandoned<Any>>) {
-			// Move the other onto this if type is compatible					
-			if (IsTypeConstrained() && !CastsToMeta(other.mValue.mType)) {
-				Throw<Except::Copy>(Logger::Error()
-					<< "Bad shallow-copy-assignment for Any: from "
-					<< GetToken() << " to " << other.mValue.GetToken());
-			}
-
-			Free();
-			Block::operator = (other.mValue);
-			if constexpr (CT::Same<T, Abandoned<Any>>)
-				other.mValue.mEntry = nullptr;
+		const auto meta = MetaData::Of<Decay<T>>();
+		if (IsTypeConstrained() && !CastsToMeta(meta)) {
+			// Can't assign different type to a type-constrained Any		
+			Throw<Except::Copy>(Logger::Error()
+				<< "Bad shallow-copy-assignment for type-constrained Any: from "
+				<< GetToken() << " to " << meta->mToken);
 		}
-		else if constexpr (CT::AbandonedOrDisowned<T>) {
-			using InnerT = typename T::Type;
 
-			if constexpr (CT::Same<InnerT, Block>) {
-				// Never reference disowned/abandoned Block						
-				operator = (Any {Forward<T>(other)});
-			}
-			else {
-				const auto meta = MetaData::Of<Decay<InnerT>>();
-				if (IsTypeConstrained() && !CastsToMeta(meta)) {
-					// Can't assign different type to a type-constrained Any	
-					Throw<Except::Copy>(Logger::Error()
-						<< "Bad shallow-copy-assignment for type-constrained Any: from "
-						<< GetToken() << " to " << meta->mToken);
-				}
-
-				if (GetUses() == 1 && meta->Is(mType)) {
-					// Types match, so we know this container is filled with	
-					// InnerT too, therefore we can use statically optimized 
-					// routines	for destruction										
-					CallKnownDestructors<InnerT>();
-					mCount = 0;
-				}
-				else {
-					// Reset and allocate new memory									
-					Reset();
-					mType = meta;
-					if constexpr (CT::Sparse<InnerT>)
-						MakeSparse();
-					AllocateInner<false>(1);
-				}
-
-				if constexpr (CT::Abandoned<T>)
-					InsertInner<false>(Move(other.mValue), 0);
-				else
-					InsertInner<false>(&other.mValue, 1, 0);
-			}
-		}
-		else if constexpr (CT::Same<T, Block>) {
-			// Always reference a Block, by wrapping it in an Any				
-			operator = (Any {Forward<T>(other)});
+		if (GetUses() == 1 && meta->Is(mType)) {
+			// Types match, so we know this container is filled with T	
+			// too, therefore we can use statically optimized routines	
+			// for destruction														
+			CallKnownDestructors<T>();
+			mCount = 0;
 		}
 		else {
-			const auto meta = MetaData::Of<Decay<T>>();
-			if (IsTypeConstrained() && !CastsToMeta(meta)) {
-				// Can't assign different type to a type-constrained Any		
-				Throw<Except::Copy>(Logger::Error()
-					<< "Bad shallow-copy-assignment for type-constrained Any: from "
-					<< GetToken() << " to " << meta->mToken);
-			}
-
-			if (GetUses() == 1 && meta->Is(mType)) {
-				// Types match, so we know this container is filled with T	
-				// too, therefore we can use statically optimized routines	
-				// for destruction														
-				CallKnownDestructors<T>();
-				mCount = 0;
-			}
-			else {
-				// Reset and allocate new memory										
-				Reset();
-				mType = meta;
-				if constexpr (CT::Sparse<T>)
-					MakeSparse();
-				AllocateInner<false>(1);
-			}
-
-			InsertInner<true>(Forward<T>(other), 0);
+			// Reset and allocate new memory										
+			Reset();
+			mType = meta;
+			if constexpr (CT::Sparse<T>)
+				MakeSparse();
+			AllocateInner<false>(1);
 		}
-		
+
+		InsertInner<true>(Forward<T>(other), 0);
 		return *this;
 	}
 	

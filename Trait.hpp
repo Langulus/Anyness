@@ -105,6 +105,10 @@ namespace Langulus::Traits
 
 	using Anyness::Trait;
 
+	struct Logger : public Trait {
+		using Trait::Trait;
+	};
+
 	struct Count : public Trait {
 		using Trait::Trait;
 	};

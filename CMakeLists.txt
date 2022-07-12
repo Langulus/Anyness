@@ -41,7 +41,7 @@ option(LANGULUS_FEATURE_MANAGED_REFLECTION
     type comparisons, and allows you to dynamically modify the reflection at runtime. \
     This feature can be enabled only if LANGULUS_FEATURE_MANAGED_MEMORY is enabled")
 
-option(LANGULUS_ENABLE_FEATURE_MEMORY_STATISTICS
+option(LANGULUS_FEATURE_MEMORY_STATISTICS
     "Memory manager shall keep track of statistics, for the price of little overhead")
 
 if(LANGULUS_ENABLE_SAFE_MODE)
@@ -73,7 +73,7 @@ endif()
 if(LANGULUS_FEATURE_MANAGED_REFLECTION)
     add_definitions(-DLANGULUS_ENABLE_MANAGED_REFLECTION)
 endif()
-if(LANGULUS_ENABLE_FEATURE_MEMORY_STATISTICS)
+if(LANGULUS_FEATURE_MEMORY_STATISTICS)
     add_definitions(-DLANGULUS_ENABLE_FEATURE_MEMORY_STATISTICS)
 endif()
 

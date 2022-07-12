@@ -80,7 +80,7 @@ namespace Langulus::Anyness
 	public:
 		NOD() static Any FromMeta(DMeta, const DataState& = {}) noexcept;
 		NOD() static Any FromBlock(const Block&, const DataState& = {}) noexcept;
-		NOD() static Any FromState(const Block&) noexcept;
+		NOD() static Any FromState(const Block&, const DataState& = {}) noexcept;
 		template<CT::Data T>
 		NOD() static Any From(const DataState& = {}) noexcept;
 
