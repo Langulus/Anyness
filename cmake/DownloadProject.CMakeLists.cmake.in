@@ -10,6 +10,7 @@ include(ExternalProject)
 if (NOT (${LANGULUS_DOWNLOAD_EXTERNALS}) AND NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../${DL_ARGS_PROJ}-src/CMakeLists.txt")
     ExternalProject_Add(${DL_ARGS_PROJ}-download
                         ${DL_ARGS_UNPARSED_ARGUMENTS}
+                        GIT_SHALLOW         true
                         SOURCE_DIR          "${DL_ARGS_SOURCE_DIR}"
                         BINARY_DIR          "${DL_ARGS_BINARY_DIR}"
                         CONFIGURE_COMMAND   ""
@@ -21,6 +22,7 @@ else()
     message(STATUS "SKIPPING DOWNLOAD OF ${DL_ARGS_PROJ} - SET `LANGULUS_DOWNLOAD_EXTERNALS` TO OVERRIDE THIS")
     ExternalProject_Add(${DL_ARGS_PROJ}-download
                         ${DL_ARGS_UNPARSED_ARGUMENTS}
+                        GIT_SHALLOW         true
                         SOURCE_DIR          "${DL_ARGS_SOURCE_DIR}"
                         BINARY_DIR          "${DL_ARGS_BINARY_DIR}"
                         DOWNLOAD_COMMAND    ""

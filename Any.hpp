@@ -129,6 +129,8 @@ namespace Langulus::Anyness
 
 	protected:
 		constexpr void ResetState() noexcept;
+		template<class T>
+		void PrepareForReassignment();
 	};
 
 } // namespace Langulus::Anyness

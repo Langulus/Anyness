@@ -12,7 +12,7 @@ namespace Langulus::Anyness
 
 	/// Copy construction from immutable Any												
 	///	@param copy - the block to copy													
-	Trait::Trait(const Any& copy)
+	/*Trait::Trait(const Any& copy)
 		: Any {copy} { }
 
 	/// Move construction from Any															
@@ -74,12 +74,13 @@ namespace Langulus::Anyness
 	///	@param data - the data for the trait											
 	Trait::Trait(TMeta type, Block&& data) noexcept
 		: Any {Forward<Block>(data)}
-		, mTraitType {type} { }
+		, mTraitType {type} { }*/
 
 	/// Clone the trait																			
 	///	@return the cloned trait															
 	Trait Trait::Clone() const {
-		return {mTraitType, Any::Clone()};
+		return Trait::From(mTraitType, Any::Clone());
+		//return {mTraitType, Any::Clone()};
 	}
 
 	/// Get the trait type																		
@@ -105,7 +106,7 @@ namespace Langulus::Anyness
 	///	@param traitId - the id to match													
 	///	@return true if ID matches															
 	bool Trait::TraitIs(TMeta trait) const {
-		return mTraitType->Is(trait);
+		return mTraitType == trait || (mTraitType && mTraitType->Is(trait));
 	}
 
 	/// Check if trait has correct data (always true if trait has no filter)	
@@ -120,15 +121,15 @@ namespace Langulus::Anyness
 	///	@param other - the trait to compare with										
 	///	@return true if traits are the same												
 	bool Trait::operator == (const Trait& other) const noexcept {
-		return mTraitType == other.mTraitType && Compare(other);
+		return TraitIs(other.mTraitType) && Compare(other);
 	}
 
 	/// Compare trait type																		
 	///	@param other - the trait ID to compare with									
 	///	@return true if same																	
-	bool Trait::operator == (TMeta other) const noexcept {
+	/*bool Trait::operator == (TMeta other) const noexcept {
 		return TraitIs(other);
-	}
+	}*/
 
 	/// Reset the trait																			
 	void Trait::Reset() {
@@ -137,7 +138,7 @@ namespace Langulus::Anyness
 
 	/// Move operator																				
 	///	@param other - the trait to move													
-	Trait& Trait::operator = (Trait&& other) noexcept {
+	/*Trait& Trait::operator = (Trait&& other) noexcept {
 		Any::operator = (Forward<Any>(other));
 		mTraitType = other.mTraitType;
 		return *this;
@@ -166,6 +167,6 @@ namespace Langulus::Anyness
 	Trait& Trait::operator = (Block&& other) noexcept {
 		Any::operator = (Forward<Block>(other));
 		return *this;
-	}
+	}*/
 
 } // namespace Langulus::Anyness

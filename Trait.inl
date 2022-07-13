@@ -55,23 +55,45 @@ namespace Langulus::Anyness
 	/// Create a trait from a trait definition and data								
 	template<CT::Data DATA>
 	Trait Trait::From(TMeta meta, DATA&& stuff) {
-		return Trait(meta, Any(Forward<DATA>(stuff)));
+		Trait result {Forward<DATA>(stuff)};
+		result.SetTrait(meta);
+		return Abandon(result);
 	}
 
 	/// Create a trait from a trait definition and data								
 	inline Trait Trait::FromMeta(TMeta tmeta, DMeta dmeta) {
-		return Trait(tmeta, Block(DataState::Default, dmeta));
+		Trait result {Block(DataState::Default, dmeta)};
+		result.SetTrait(tmeta);
+		return Abandon(result);
+		//return Trait(tmeta, Block(DataState::Default, dmeta));
 	}
 
-	template<CT::Data TRAIT>
+	/// Set the trait type via a static type												
+	///	@tparam T - the trait																
+	template<CT::Data T>
+	void Trait::SetTrait() noexcept {
+		static_assert(CT::Trait<T>, "TRAIT must be a trait definition");
+		mTraitType = MetaTrait::Of<T>();
+	}
+
+	/// Set the trait type via a dynamic type												
+	///	@tparam trait - the trait															
+	constexpr void Trait::SetTrait(TMeta trait) noexcept {
+		mTraitType = trait;
+	}
+
+	/// Check if a trait matches a static definition									
+	///	@tparam T - the trait																
+	///	@return true if this trait is of the given type								
+	template<CT::Data T>
 	bool Trait::TraitIs() const {
-		static_assert(CT::Trait<TRAIT>, "TRAIT must be a trait definition");
-		return TraitIs(TRAIT::ID);
+		static_assert(CT::Trait<T>, "TRAIT must be a trait definition");
+		return TraitIs(MetaTrait::Of<T>());
 	}
 
 	/// Assign by shallow-copying some value different from Trait					
 	///	@param value - the value to copy													
-	template<CT::Data T>
+	/*template<CT::Data T>
 	Trait& Trait::operator = (const T& value) requires (Trait::NotCustom<T>) {
 		Any::operator = (Any {value});
 		return *this;
@@ -91,6 +113,6 @@ namespace Langulus::Anyness
 	Trait& Trait::operator = (T&& value) requires (Trait::NotCustom<T>) {
 		Any::operator = (Any {Forward<T>(value)});
 		return *this;
-	}
+	}*/
 
 } // namespace Langulus::Anyness

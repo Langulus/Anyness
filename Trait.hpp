@@ -22,7 +22,10 @@ namespace Langulus::Anyness
 		TMeta mTraitType {};
 
 	public:
-		template<class T>
+		using Any::Any;
+		using Any::operator =;
+
+		/*template<class T>
 		static constexpr bool NotCustom =
 			CT::Sparse<T> || (!CT::Same<T, Any> && !CT::Same<T, Block> && !CT::Same<T, Trait>);
 
@@ -58,7 +61,7 @@ namespace Langulus::Anyness
 		template<CT::Data T>
 		Trait& operator = (T&) requires (Trait::NotCustom<T>);
 		template<CT::Data T>
-		Trait& operator = (T&&) requires (Trait::NotCustom<T>);
+		Trait& operator = (T&&) requires (Trait::NotCustom<T>);*/
 
 	public:
 		void Reset();
@@ -84,17 +87,22 @@ namespace Langulus::Anyness
 		NOD() static Trait FromMeta(TMeta, DMeta);
 
 	public:
-		void SetTrait(TMeta) noexcept;
+		template<CT::Data T>
+		void SetTrait() noexcept;
+		constexpr void SetTrait(TMeta) noexcept;
+
+		template<CT::Data T>
+		NOD() bool TraitIs() const;
+		NOD() bool TraitIs(TMeta) const;
+
 		NOD() TMeta GetTrait() const noexcept;
+
 		NOD() bool IsTraitValid() const noexcept;
 		NOD() bool IsSimilar(const Trait&) const noexcept;
-		NOD() bool TraitIs(TMeta) const;
-		template<CT::Data TRAIT>
-		NOD() bool TraitIs() const;
 		NOD() bool HasCorrectData() const;
 
 		NOD() bool operator == (const Trait&) const noexcept;
-		NOD() bool operator == (TMeta) const noexcept;
+		//NOD() bool operator == (TMeta) const noexcept;
 	};
 
 } // namespace Langulus::Anyness

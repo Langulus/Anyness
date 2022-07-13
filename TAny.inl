@@ -452,7 +452,6 @@ namespace Langulus::Anyness
 	}
 
 	/// Assign by interfacing an abandoned element										
-	///	@attention other is never reset													
 	///	@param other - the element to interface										
 	///	@return a reference to this container											
 	TEMPLATE()
@@ -687,19 +686,19 @@ namespace Langulus::Anyness
 		SAFETY(if (index >= mCount)
 			Throw<Except::Access>("Index out of range"));
 
-		const T& element = GetRaw()[index];
+		const auto& element = GetRaw()[index];
 		if constexpr (CT::Dense<T> && CT::Dense<ALT_T>)
 			// Dense -> Dense (returning a reference)								
 			return static_cast<const Decay<ALT_T>&>(element);
-		else if constexpr (CT::Sparse<T> && CT::Dense<ALT_T>)
-			// Sparse -> Dense (returning a reference)							
-			return static_cast<const Decay<ALT_T>&>(*element->mPointer);
 		else if constexpr (CT::Dense<T> && CT::Sparse<ALT_T>)
 			// Dense -> Sparse (returning a pointer)								
 			return static_cast<const Decay<ALT_T>*>(&element);
+		else if constexpr (CT::Sparse<T> && CT::Dense<ALT_T>)
+			// Sparse -> Dense (returning a reference)							
+			return static_cast<const Decay<ALT_T>&>(*element.mPointer);
 		else
 			// Sparse -> Sparse (returning a reference to pointer)			
-			return static_cast<const Decay<ALT_T>* const&>(element->mPointer);
+			return static_cast<const Decay<ALT_T>* const&>(element.mPointer);
 	}
 
 	/// Get an element in the way you want (unsafe)										
@@ -710,19 +709,19 @@ namespace Langulus::Anyness
 		SAFETY(if (index >= mCount)
 			Throw<Except::Access>("Index out of range"));
 
-		T& element = GetRaw()[index];
+		auto& element = GetRaw()[index];
 		if constexpr (CT::Dense<T> && CT::Dense<ALT_T>)
 			// Dense -> Dense (returning a reference)								
 			return static_cast<Decay<ALT_T>&>(element);
-		else if constexpr (CT::Sparse<T> && CT::Dense<ALT_T>)
-			// Sparse -> Dense (returning a reference)							
-			return static_cast<Decay<ALT_T>&>(*element->mPointer);
 		else if constexpr (CT::Dense<T> && CT::Sparse<ALT_T>)
 			// Dense -> Sparse (returning a pointer)								
 			return static_cast<Decay<ALT_T>*>(&element);
+		else if constexpr (CT::Sparse<T> && CT::Dense<ALT_T>)
+			// Sparse -> Dense (returning a reference)							
+			return static_cast<Decay<ALT_T>&>(*element.mPointer);
 		else
 			// Sparse -> Sparse (returning a reference to pointer)			
-			return static_cast<Decay<ALT_T>*&>(element->mPointer);
+			return static_cast<Decay<ALT_T>*&>(element.mPointer);
 	}
 
 	/// Access typed dense elements via a simple index (unsafe)						

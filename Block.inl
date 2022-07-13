@@ -504,7 +504,7 @@ namespace Langulus::Anyness
 	/// Check if block contains either created elements, or relevant state		
 	///	@returns true if this is not an empty stateless container				
 	constexpr bool Block::IsValid() const noexcept {
-		return mCount || GetUnconstrainedState();
+		return mCount || (GetUnconstrainedState() - DataState::Sparse);
 	}
 
 	/// Check if block contains no elements and no relevant state					
@@ -1453,11 +1453,12 @@ namespace Langulus::Anyness
 				else
 					LANGULUS_ASSERT("Can't emplace non-move/copy-constructible item");
 			}
-			else {
-				static_assert(::std::constructible_from<T, Abandoned<T>&&>,
-					"Can't insert non-abandoned-constructible item(s)");
+			else if constexpr (CT::AbandonMakable<T>)
 				new (data) T {Abandon(item)};
-			}
+			else if constexpr (CT::Fundamental<T>)
+				new (data) T {item};
+			else
+				LANGULUS_ASSERT("Can't emplace non-abandon-constructible item");
 		}
 
 		++mCount;
