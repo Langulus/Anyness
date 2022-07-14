@@ -24,6 +24,8 @@ namespace Langulus::Anyness
 		friend class THashMap;
 
 	public:
+		using Type = T;
+
 		TAny();
 		~TAny();
 		
@@ -214,9 +216,19 @@ namespace Langulus::Anyness
 		NOD() WRAPPER operator + (const RHS&) const;
 
 	protected:
+		template<bool KEEP, CT::Data ALT_T>
+		void ConstructFromContainer(const ALT_T&);
+		template<bool KEEP, CT::Data ALT_T>
+		void ConstructFromContainer(ALT_T&&);
+
+		template<bool KEEP, CT::Data ALT_T>
+		void AssignFromContainer(const ALT_T&);
+		template<bool KEEP, CT::Data ALT_T>
+		void AssignFromContainer(ALT_T&&);
+
 		NOD() auto RequestSize(const Count&) const noexcept;
 
-		template<bool OVERWRITE>
+		template<bool OVERWRITE_STATE, bool OVERWRITE_ENTRY>
 		void CopyProperties(const Block&) noexcept;
 	};
 

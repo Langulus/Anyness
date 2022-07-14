@@ -669,10 +669,14 @@ namespace Langulus::CT
 	template<class... T>
 	concept Deep = ((Block<T> && Decay<T>::CTTI_Deep) && ...);
 
+	/// Type that is not deep, see CT::Deep												
+	template<class... T>
+	concept Flat = ((!Deep<T>) && ...);
+
 	/// Check if a type can be handled generically by templates, and				
 	/// doesn't	require any special handling												
 	template<class... T>
-	concept CustomData = ((Data<T> && !Deep<T> && NotAbandonedOrDisowned<T>) && ...);
+	concept CustomData = ((Data<T> && Flat<T> && NotAbandonedOrDisowned<T>) && ...);
 
 } // namespace Langulus::CT
 

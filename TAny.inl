@@ -49,19 +49,79 @@ namespace Langulus::Anyness
 	TAny<T>::TAny(Abandoned<TAny>&& other) noexcept
 		: Any {other.template Forward<Any>()} { }
 
+	/// Copy-construct from another container by performing runtime type check	
+	///	@tparam KEEP - whether or not to reference contents						
+	///	@tparam ALT_T - the container type (deducible)								
+	///	@param other - the container to incorporate									
+	TEMPLATE()
+	template<bool KEEP, CT::Data ALT_T>
+	void TAny<T>::ConstructFromContainer(const ALT_T& other) {
+		static_assert(CT::Deep<ALT_T>, "ALT_T must be a deep type");
+
+		if (CastsToMeta(other.GetType())) {
+			// Always attempt to copy containers directly first, instead	
+			// of doing allocations														
+			CopyProperties<false, false>(other);
+
+			if constexpr (KEEP)
+				Keep();
+			return;
+		}
+
+		// Then attempt to push other container, if this container allows	
+		// for it																			
+		if constexpr (CT::Deep<T>) {
+			auto& compatible = static_cast<const Decay<T>&>(other);
+			Insert<Index::Back, KEEP>(&compatible, &compatible + 1);
+		}
+		else {
+			Throw<Except::Copy>(Logger::Error()
+				<< "Bad copy-construction for TAny: from "
+				<< GetToken() << " to " << other.GetToken());
+		}
+	}
+
+	/// Move-construct from another container by performing runtime type check	
+	///	@tparam KEEP - whether or not to reference contents						
+	///	@tparam ALT_T - the container type (deducible)								
+	///	@param other - the container to incorporate									
+	TEMPLATE()
+	template<bool KEEP, CT::Data ALT_T>
+	void TAny<T>::ConstructFromContainer(ALT_T&& other) {
+		static_assert(CT::Deep<ALT_T>, "ALT_T must be a deep type");
+
+		if (CastsToMeta(other.GetType())) {
+			// Always attempt to copy containers directly first, instead	
+			// of doing allocations														
+			CopyProperties<false, true>(other);
+
+			if constexpr (KEEP)
+				other.mEntry = nullptr;
+			else {
+				other.ResetMemory();
+				other.ResetState();
+			}
+			return;
+		}
+
+		// Then attempt to push other container, if this container allows	
+		// for it																			
+		if constexpr (CT::Deep<T>) {
+			Insert<Index::Back, KEEP>(Forward<Decay<T>>(other));
+		}
+		else {
+			Throw<Except::Copy>(Logger::Error()
+				<< "Bad move-construction for TAny: from "
+				<< GetToken() << " to " << other.GetToken());
+		}
+	}
+
 	/// Shallow-copy construction from Any, that checks type at runtime			
 	/// Any can contain anything, so there's a bit of type-checking overhead	
 	///	@param other - the anyness to reference										
 	TEMPLATE()
 	TAny<T>::TAny(const Any& other) : TAny {} {
-		if (!CastsToMeta(other.GetType())) {
-			Throw<Except::Copy>(Logger::Error()
-				<< "Bad shallow-copy-construction for TAny: from "
-				<< GetToken() << " to " << other.GetToken());
-		}
-
-		CopyProperties<false>(other);
-		Keep();
+		ConstructFromContainer<true>(other);
 	}
 
 	/// Move-construction from Any, that checks type at runtime						
@@ -69,15 +129,7 @@ namespace Langulus::Anyness
 	///	@param other - the container to move											
 	TEMPLATE()
 	TAny<T>::TAny(Any&& other) : TAny {} {
-		if (!CastsToMeta(other.GetType())) {
-			Throw<Except::Copy>(Logger::Error()
-				<< "Bad move-construction for TAny: from "
-				<< GetToken() << " to " << other.GetToken());
-		}
-
-		CopyProperties<false>(other);
-		other.ResetMemory();
-		other.ResetState();
+		ConstructFromContainer<true>(Forward<Any>(other));
 	}
 
 	/// Shallow-copy construction from Any, that checks type at runtime, but	
@@ -86,13 +138,7 @@ namespace Langulus::Anyness
 	///	@param other - the anyness to reference										
 	TEMPLATE()
 	TAny<T>::TAny(Disowned<Any>&& other) : TAny {} {
-		if (!CastsToMeta(other.mValue.GetType())) {
-			Throw<Except::Copy>(Logger::Error()
-				<< "Bad shallow-copy-construction for TAny: from "
-				<< GetToken() << " to " << other.mValue.GetToken());
-		}
-
-		CopyProperties<false>(other);
+		ConstructFromContainer<false>(other.mValue);
 	}
 
 	/// Move-construction from Any, that checks type at runtime, but doesn't	
@@ -101,14 +147,7 @@ namespace Langulus::Anyness
 	///	@param other - the container to move											
 	TEMPLATE()
 	TAny<T>::TAny(Abandoned<Any>&& other) : TAny {} {
-		if (!CastsToMeta(other.mValue.GetType())) {
-			Throw<Except::Copy>(Logger::Error()
-				<< "Bad move-construction for TAny: from "
-				<< GetToken() << " to " << other.mValue.GetToken());
-		}
-
-		CopyProperties<false>(other);
-		other.mValue.mEntry = nullptr;
+		ConstructFromContainer<false>(Forward<Any>(other.mValue));
 	}
 
 	/// Shallow-copy construction from blocks (const)									
@@ -221,7 +260,7 @@ namespace Langulus::Anyness
 
 		Free();
 		other.Keep();
-		CopyProperties<true>(other);
+		CopyProperties<true, true>(other);
 		return *this;
 	}
 
@@ -234,7 +273,7 @@ namespace Langulus::Anyness
 			return *this;
 
 		Free();
-		CopyProperties<true>(other);
+		CopyProperties<true, true>(other);
 		other.ResetMemory();
 		other.ResetState();
 		return *this;
@@ -249,7 +288,7 @@ namespace Langulus::Anyness
 			return *this;
 
 		Free();
-		CopyProperties<true>(other.mValue);
+		CopyProperties<true, false>(other.mValue);
 		return *this;
 	}
 
@@ -262,13 +301,83 @@ namespace Langulus::Anyness
 			return *this;
 
 		Free();
-		CopyProperties<true>(other.mValue);
+		CopyProperties<true, true>(other.mValue);
 		other.mValue.mEntry = nullptr;
 		return *this;
 	}
 
-	/// Shallow-copy runtime container														
-	/// This is a bit slower, because checks type compatibility at runtime		
+	/// Copy-construct from another container by performing runtime type check	
+	///	@tparam KEEP - whether or not to reference contents						
+	///	@tparam ALT_T - the container type (deducible)								
+	///	@param other - the container to incorporate									
+	TEMPLATE()
+	template<bool KEEP, CT::Data ALT_T>
+	void TAny<T>::AssignFromContainer(const ALT_T& other) {
+		static_assert(CT::Deep<ALT_T>, "ALT_T must be a deep type");
+
+		if (CastsToMeta(other.GetType())) {
+			// Always attempt to copy containers directly first, instead	
+			// of doing allocations														
+			Free();
+			if constexpr (KEEP)
+				other.Keep();
+			ResetState();
+			CopyProperties<false, true>(other);
+			return;
+		}
+
+		// Then attempt to push other container, if this container allows	
+		// for it																			
+		if constexpr (CT::Deep<T>) {
+			auto& compatible = static_cast<const Decay<T>&>(other);
+			Insert<Index::Back, KEEP>(&compatible, &compatible + 1);
+		}
+		else {
+			Throw<Except::Copy>(Logger::Error()
+				<< "Bad copy-assignment for TAny: from "
+				<< GetToken() << " to " << other.GetToken());
+		}
+	}
+
+	/// Move-construct from another container by performing runtime type check	
+	///	@tparam KEEP - whether or not to reference contents						
+	///	@tparam ALT_T - the container type (deducible)								
+	///	@param other - the container to incorporate									
+	TEMPLATE()
+	template<bool KEEP, CT::Data ALT_T>
+	void TAny<T>::AssignFromContainer(ALT_T&& other) {
+		static_assert(CT::Deep<ALT_T>, "ALT_T must be a deep type");
+
+		if (CastsToMeta(other.GetType())) {
+			// Always attempt to copy containers directly first, instead	
+			// of doing allocations														
+			Free();
+			ResetState();
+			CopyProperties<false, true>(other);
+
+			if constexpr (KEEP)
+				other.mEntry = nullptr;
+			else {
+				other.ResetMemory();
+				other.ResetState();
+			}
+			return;
+		}
+
+		// Then attempt to push other container, if this container allows	
+		// for it																			
+		if constexpr (CT::Deep<T>) {
+			Insert<Index::Back, KEEP>(Forward<Decay<T>>(other));
+		}
+		else {
+			Throw<Except::Copy>(Logger::Error()
+				<< "Bad move-assignment for TAny: from "
+				<< GetToken() << " to " << other.GetToken());
+		}
+	}
+
+	/// Copy-assign an unknown container													
+	/// This is a bit slower, because it checks type compatibility at runtime	
 	///	@param other - the container to shallow-copy									
 	///	@return a reference to this container											
 	TEMPLATE()
@@ -276,20 +385,12 @@ namespace Langulus::Anyness
 		if (static_cast<Any*>(this) == &other)
 			return *this;
 
-		if (!CastsToMeta(other.mType)) {
-			Throw<Except::Copy>(Logger::Error()
-				<< "Bad shallow-copy-assignment for TAny: from "
-				<< GetToken() << " to " << other.GetToken());
-		}
-
-		Free();
-		other.Keep();
-		ResetState();
-		CopyProperties<false>(other);
+		AssignFromContainer<true>(other);
+		return *this;
 	}
 
-	/// Move another runtime container in this one										
-	/// This is a bit slower, because checks type compatibility at runtime		
+	/// Move-assign an unknown container													
+	/// This is a bit slower, because it checks type compatibility at runtime	
 	///	@param other - the container to move											
 	///	@return a reference to this container											
 	TEMPLATE()
@@ -297,17 +398,8 @@ namespace Langulus::Anyness
 		if (static_cast<Any*>(this) == &other)
 			return *this;
 
-		if (!CastsToMeta(other.mType)) {
-			Throw<Except::Copy>(Logger::Error()
-				<< "Bad move-assignment for TAny: from "
-				<< GetToken() << " to " << other.GetToken());
-		}
-
-		Free();
-		ResetState();
-		CopyProperties<false>(other);
-		other.ResetMemory();
-		other.ResetState();
+		AssignFromContainer<true>(Forward<Any>(other));
+		return *this;
 	}
 
 	/// Shallow-copy disowned runtime container without referencing contents	
@@ -319,15 +411,8 @@ namespace Langulus::Anyness
 		if (static_cast<Any*>(this) == &other.mValue)
 			return *this;
 
-		if (!CastsToMeta(other.mValue.mType)) {
-			Throw<Except::Copy>(Logger::Error()
-				<< "Bad shallow-copy-assignment for TAny: from "
-				<< GetToken() << " to " << other.mValue.GetToken());
-		}
-
-		Free();
-		ResetState();
-		CopyProperties<false>(other.mValue);
+		AssignFromContainer<false>(other.mValue);
+		return *this;
 	}
 
 	/// Move abandoned runtime container without fully resetting it				
@@ -339,16 +424,8 @@ namespace Langulus::Anyness
 		if (static_cast<Any*>(this) == &other.mValue)
 			return *this;
 
-		if (!CastsToMeta(other.mValue.mType)) {
-			Throw<Except::Copy>(Logger::Error()
-				<< "Bad move-assignment for TAny: from "
-				<< GetToken() << " to " << other.mValue.GetToken());
-		}
-
-		Free();
-		ResetState();
-		CopyProperties<false>(other.mValue);
-		other.mValue.mEntry = nullptr;
+		AssignFromContainer<false>(Forward<Any>(other.mValue));
+		return *this;
 	}
 
 	/// Shallow-copy Block																		
@@ -360,16 +437,8 @@ namespace Langulus::Anyness
 		if (static_cast<Block*>(this) == &other)
 			return *this;
 
-		if (!CastsToMeta(other.mType)) {
-			Throw<Except::Copy>(Logger::Error()
-				<< "Bad shallow-copy-assignment for TAny: from "
-				<< GetToken() << " to " << other.GetToken());
-		}
-
-		Free();
-		other.Keep();
-		ResetState();
-		CopyProperties<false>(other);
+		AssignFromContainer<true>(other);
+		return *this;
 	}
 
 	/// Seems like a move, but is actually a shallow-copy of a Block				
@@ -379,7 +448,11 @@ namespace Langulus::Anyness
 	///	@return a reference to this container											
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator = (Block&& other) {
-		return operator = (static_cast<const Block&>(other));
+		if (static_cast<Block*>(this) == &other)
+			return *this;
+
+		AssignFromContainer<true>(Forward<Block>(other));
+		return *this;
 	}
 
 	/// Assign by shallow-copying an element												
@@ -472,16 +545,18 @@ namespace Langulus::Anyness
 	/// without overwriting states, if required											
 	///	@param other - the block to copy from											
 	TEMPLATE()
-	template<bool OVERWRITE>
+	template<bool OVERWRITE_STATE, bool OVERWRITE_ENTRY>
 	void TAny<T>::CopyProperties(const Block& other) noexcept {
 		mRaw = other.mRaw;
 		mCount = other.mCount;
 		mReserved = other.mReserved;
-		if constexpr (OVERWRITE)
+		if constexpr (OVERWRITE_STATE)
 			mState = other.mState;
 		else
 			mState += other.mState;
-		mEntry = other.mEntry;
+
+		if constexpr (OVERWRITE_ENTRY)
+			mEntry = other.mEntry;
 	}
 
 	/// Reset container state																	

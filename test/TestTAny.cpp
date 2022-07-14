@@ -21,9 +21,17 @@ struct TypePair {
 	using Element = E;
 };
 
+Byte* asbytes(void* a) noexcept {
+	return reinterpret_cast<Byte*>(a);
+}
+
+const Byte* asbytes(const void* a) noexcept {
+	return reinterpret_cast<const Byte*>(a);
+}
+
 /// Detect if type is TAny, instead of Any, by searching for [] operator		
 template<class T>
-concept IsStaticallyOptimized = requires (const T& a) { {a[Offset {0}]}; };
+concept IsStaticallyOptimized = CT::Deep<T> && requires (const T& a) { {a[Offset {0}]}; };
 
 /// Get simple value, no matter if inside container or not							
 template<class T, CT::Dense SOURCE>
@@ -36,20 +44,25 @@ decltype(auto) Resolve(const SOURCE& s) {
 		return s.template As<T>();
 }
 
-
+/// The main test for Any/TAny containers, with all kinds of items, from		
+/// sparse to dense, from trivial to complex, from flat to deep					
 TEMPLATE_TEST_CASE("Any/TAny", "[any]", 
 	(TypePair<TAny<int>, int>),
 	(TypePair<TAny<Trait>, Trait>),
 	(TypePair<TAny<Traits::Count>, Traits::Count>),
+	(TypePair<TAny<Any>, Any>),
 	(TypePair<TAny<int*>, int*>),
 	(TypePair<TAny<Trait*>, Trait*>),
 	(TypePair<TAny<Traits::Count*>, Traits::Count*>),
+	(TypePair<TAny<Any*>, Any*>),
 	(TypePair<Any, int>),
 	(TypePair<Any, Trait>),
 	(TypePair<Any, Traits::Count>),
+	(TypePair<Any, Any>),
 	(TypePair<Any, int*>),
 	(TypePair<Any, Trait*>),
-	(TypePair<Any, Traits::Count*>)
+	(TypePair<Any, Traits::Count*>),
+	(TypePair<Any, Any*>)
 ) {
 	using T = typename TestType::Container;
 	using E = typename TestType::Element;
@@ -75,7 +88,12 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 			REQUIRE_FALSE(pack.IsCompressed());
 			REQUIRE_FALSE(pack.IsAbstract());
 			REQUIRE_FALSE(pack.IsAllocated());
-			REQUIRE_FALSE(pack.IsDeep());
+			if constexpr (CT::Same<E, Trait>)
+				REQUIRE_FALSE(pack.IsDeep());
+			else if constexpr (IsStaticallyOptimized<T>)
+				REQUIRE(pack.IsDeep() == CT::Deep<E>);
+			else
+				REQUIRE_FALSE(pack.IsDeep());
 			REQUIRE_FALSE(pack.IsEncrypted());
 			REQUIRE_FALSE(pack.IsFuture());
 			REQUIRE_FALSE(pack.IsPast());
@@ -143,13 +161,99 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 		#endif
 	}
 
+	GIVEN("Container constructed by same container copy") {
+		const T source {element};
+		T pack {source};
+
+		THEN("Properties should match") {
+			REQUIRE(pack.GetType() != nullptr);
+			if constexpr (CT::Flat<E>) {
+				REQUIRE(pack.template Is<DenseE>());
+				REQUIRE(pack.template Is<DenseE*>());
+				REQUIRE(pack.template As<DenseE>() == denseValue);
+				REQUIRE(*pack.template As<DenseE*>() == denseValue);
+				REQUIRE(pack.GetUses() == 2);
+				REQUIRE_FALSE(pack.IsDeep());
+			}
+			else if constexpr (IsStaticallyOptimized<T>) { //TODO E == T is a better case here?
+				REQUIRE(pack.Is<typename T::Type>());
+				REQUIRE(pack == source);
+				REQUIRE(pack != element);
+				REQUIRE(pack.GetUses() == 2);
+				REQUIRE(pack.IsDeep());
+			}
+			else {
+				REQUIRE(pack.Is(element.GetType()));
+				REQUIRE(pack == source);
+				REQUIRE(pack == element);
+				REQUIRE(pack.GetUses() == 4);
+				REQUIRE(pack.IsDeep() == element.IsDeep());
+			}
+			REQUIRE(pack.GetRaw() != nullptr);
+			REQUIRE_THROWS(pack.template As<float>() == 0.0f);
+			REQUIRE_FALSE(pack.IsEmpty());
+			REQUIRE(pack.IsDense() == CT::Dense<E>);
+			REQUIRE(pack.IsSparse() == CT::Sparse<E>);
+			REQUIRE_FALSE(pack.IsStatic());
+			REQUIRE_FALSE(pack.IsConstant());
+			REQUIRE(pack.HasAuthority());
+			REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+		}
+
+		#ifdef LANGULUS_STD_BENCHMARK
+			BENCHMARK_ADVANCED("construction (single container copy)") (timer meter) {
+				#include "CollectGarbage.inl"
+				some<uninitialized<T>> storage(meter.runs());
+				meter.measure([&](int i) {
+					return storage[i].construct(source);
+				});
+			};
+
+			BENCHMARK_ADVANCED("std::vector::construction (single container copy)") (timer meter) {
+				#include "CollectGarbage.inl"
+				StdT source {1, 555};
+				some<uninitialized<StdT>> storage(meter.runs());
+				meter.measure([&](int i) {
+					return storage[i].construct(source);
+				});
+			};
+
+			BENCHMARK_ADVANCED("std::any::construction (single container copy)") (timer meter) {
+				#include "CollectGarbage.inl"
+				std::any source {555};
+				some<uninitialized<std::any>> storage(meter.runs());
+				meter.measure([&](int i) {
+					return storage[i].construct(source);
+				});
+			};
+		#endif
+	}
+
 	GIVEN("Container constructed by value copy") {
 		T pack {element};
 
 		THEN("Properties should match") {
 			REQUIRE(pack.GetType() != nullptr);
-			REQUIRE(pack.template Is<DenseE>());
-			REQUIRE(pack.template Is<DenseE*>());
+			if constexpr (CT::Flat<E>) {
+				REQUIRE(pack.template Is<DenseE>());
+				REQUIRE(pack.template Is<DenseE*>());
+				REQUIRE(pack.template As<DenseE>() == denseValue);
+				REQUIRE(*pack.template As<DenseE*>() == denseValue);
+				REQUIRE(pack.GetUses() == 1);
+				REQUIRE_FALSE(pack.IsDeep());
+			}
+			/*else if constexpr (IsStaticallyOptimized<T>) {
+				REQUIRE(pack.Is<typename T::Type>());
+				REQUIRE(pack == element);
+				REQUIRE(pack.GetUses() == 1);
+				REQUIRE(pack.IsDeep());
+			}*/
+			else {
+				REQUIRE(pack.Is(element.GetType()));
+				REQUIRE(pack == element);
+				REQUIRE(pack.GetUses() == 4);
+				REQUIRE(pack.IsDeep() == element.IsDeep());
+			}
 			REQUIRE(pack.GetRaw() != nullptr);
 			REQUIRE(pack.template As<DenseE>() == denseValue);
 			REQUIRE_THROWS(pack.template As<float>() == 0.0f);
@@ -162,6 +266,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 			REQUIRE_FALSE(pack.IsConstant());
 			REQUIRE(pack.HasAuthority());
 			REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+			REQUIRE(pack.IsDeep() == CT::Deep<E>);
 		}
 
 		#ifdef LANGULUS_STD_BENCHMARK
@@ -210,6 +315,12 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 			REQUIRE_FALSE(pack.IsConstant());
 			REQUIRE(pack.HasAuthority());
 			REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+			if constexpr (CT::Same<E, Trait>)
+				REQUIRE_FALSE(pack.IsDeep());
+			else if constexpr (IsStaticallyOptimized<T>)
+				REQUIRE(pack.IsDeep() == CT::Deep<E>);
+			else
+				REQUIRE_FALSE(pack.IsDeep());
 		}
 
 		#ifdef LANGULUS_STD_BENCHMARK
@@ -256,17 +367,30 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 					REQUIRE(pack.HasAuthority());
 				}
 				else {
-					REQUIRE(pack.GetRaw() == sparseValue);
-					REQUIRE(pack.GetUses() == 0);
-					REQUIRE(pack.IsStatic());
-					REQUIRE(pack.IsConstant());
-					REQUIRE_FALSE(pack.HasAuthority());
+					if constexpr (CT::Deep<E>) {
+						REQUIRE(asbytes(pack.As<E>().GetRaw()) == asbytes(sparseValue->GetRaw()));
+						REQUIRE(pack.GetUses() == 1);
+						REQUIRE_FALSE(pack.IsStatic());
+						REQUIRE(pack.As<E>().GetUses() == 0);
+						REQUIRE(pack.As<E>().IsStatic());
+						REQUIRE_FALSE(pack.IsConstant());
+						REQUIRE_FALSE(pack.As<E>().IsConstant());
+						REQUIRE(pack.HasAuthority());
+						REQUIRE_FALSE(pack.As<E>().HasAuthority());
+					}
+					else {
+						REQUIRE(pack.GetRaw() == sparseValue);
+						REQUIRE(pack.GetUses() == 0);
+						REQUIRE(pack.IsStatic());
+						REQUIRE(pack.IsConstant());
+						REQUIRE_FALSE(pack.HasAuthority());
+					}
 				}
 			}
 			else {
 				// Any code																	
 				if constexpr (CT::Sparse<E>) {
-					REQUIRE(pack.GetRawSparse()->mPointer == reinterpret_cast<const Byte*>(sparseValue));
+					REQUIRE(pack.GetRawSparse()->mPointer == asbytes(sparseValue));
 					REQUIRE(pack.GetRawSparse()->mEntry == nullptr);
 					REQUIRE_FALSE(pack.GetUses() == 0);
 					REQUIRE_FALSE(pack.IsStatic());
@@ -274,11 +398,24 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 					REQUIRE(pack.HasAuthority());
 				}
 				else {
-					REQUIRE(pack.GetRaw() == reinterpret_cast<const Byte*>(sparseValue));
-					REQUIRE(pack.GetUses() == 0);
-					REQUIRE(pack.IsStatic());
-					REQUIRE(pack.IsConstant());
-					REQUIRE_FALSE(pack.HasAuthority());
+					if constexpr (CT::Deep<E>) {
+						REQUIRE(asbytes(pack.As<E>().GetRaw()) == asbytes(sparseValue->GetRaw()));
+						REQUIRE(pack.GetUses() == 1);
+						REQUIRE_FALSE(pack.IsStatic());
+						REQUIRE(pack.As<E>().GetUses() == 0);
+						REQUIRE(pack.As<E>().IsStatic());
+						REQUIRE_FALSE(pack.IsConstant());
+						REQUIRE_FALSE(pack.As<E>().IsConstant());
+						REQUIRE(pack.HasAuthority());
+						REQUIRE_FALSE(pack.As<E>().HasAuthority());
+					}
+					else {
+						REQUIRE(pack.GetRaw() == asbytes(sparseValue));
+						REQUIRE(pack.GetUses() == 0);
+						REQUIRE(pack.IsStatic());
+						REQUIRE(pack.IsConstant());
+						REQUIRE_FALSE(pack.HasAuthority());
+					}
 				}
 			}
 			REQUIRE(pack.template As<DenseE>() == denseValue);
@@ -288,6 +425,12 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 			REQUIRE(pack.IsDense() == CT::Dense<E>);
 			REQUIRE(pack.IsSparse() == CT::Sparse<E>);
 			REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+			if constexpr (CT::Same<E, Trait>)
+				REQUIRE_FALSE(pack.IsDeep());
+			else if constexpr (IsStaticallyOptimized<T>)
+				REQUIRE(pack.IsDeep() == CT::Deep<E>);
+			else
+				REQUIRE_FALSE(pack.IsDeep());
 		}
 
 		#ifdef LANGULUS_STD_BENCHMARK
@@ -334,26 +477,52 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 					REQUIRE(pack.HasAuthority());
 				}
 				else {
-					REQUIRE(pack.GetRaw() == SparseCast(movable));
-					REQUIRE(pack.GetUses() == 0);
-					REQUIRE(pack.IsStatic());
-					REQUIRE_FALSE(pack.HasAuthority());
+					if constexpr (CT::Deep<E>) {
+						REQUIRE(asbytes(pack.As<E>().GetRaw()) == asbytes(SparseCast(movable)->GetRaw()));
+						REQUIRE(pack.GetUses() == 1);
+						REQUIRE_FALSE(pack.IsStatic());
+						REQUIRE(pack.As<E>().GetUses() == element.GetUses());
+						REQUIRE_FALSE(pack.As<E>().IsStatic());
+						REQUIRE_FALSE(pack.IsConstant());
+						REQUIRE_FALSE(pack.As<E>().IsConstant());
+						REQUIRE(pack.HasAuthority());
+						REQUIRE(pack.As<E>().HasAuthority());
+					}
+					else {
+						REQUIRE(pack.GetRaw() == SparseCast(movable));
+						REQUIRE(pack.GetUses() == 0);
+						REQUIRE(pack.IsStatic());
+						REQUIRE_FALSE(pack.HasAuthority());
+					}
 				}
 			}
 			else {
 				// Any code																	
 				if constexpr (CT::Sparse<E>) {
-					REQUIRE(pack.GetRawSparse()->mPointer == reinterpret_cast<const Byte*>(sparseValue));
+					REQUIRE(pack.GetRawSparse()->mPointer == asbytes(sparseValue));
 					REQUIRE(pack.GetRawSparse()->mEntry == nullptr);
 					REQUIRE_FALSE(pack.GetUses() == 0);
 					REQUIRE_FALSE(pack.IsStatic());
 					REQUIRE(pack.HasAuthority());
 				}
 				else {
-					REQUIRE(pack.GetRaw() == reinterpret_cast<const Byte*>(SparseCast(movable)));
-					REQUIRE(pack.GetUses() == 0);
-					REQUIRE(pack.IsStatic());
-					REQUIRE_FALSE(pack.HasAuthority());
+					if constexpr (CT::Deep<E>) {
+						REQUIRE(asbytes(pack.As<E>().GetRaw()) == asbytes(SparseCast(movable)->GetRaw()));
+						REQUIRE(pack.GetUses() == 1);
+						REQUIRE_FALSE(pack.IsStatic());
+						REQUIRE(pack.As<E>().GetUses() == element.GetUses());
+						REQUIRE_FALSE(pack.As<E>().IsStatic());
+						REQUIRE_FALSE(pack.IsConstant());
+						REQUIRE_FALSE(pack.As<E>().IsConstant());
+						REQUIRE(pack.HasAuthority());
+						REQUIRE(pack.As<E>().HasAuthority());
+					}
+					else {
+						REQUIRE(pack.GetRaw() == asbytes(SparseCast(movable)));
+						REQUIRE(pack.GetUses() == 0);
+						REQUIRE(pack.IsStatic());
+						REQUIRE_FALSE(pack.HasAuthority());
+					}
 				}
 			}
 			REQUIRE(pack.template As<DenseE>() == denseValue);
@@ -364,6 +533,12 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 			REQUIRE(pack.IsSparse() == CT::Sparse<E>);
 			REQUIRE_FALSE(pack.IsConstant());
 			REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+			if constexpr (CT::Same<E, Trait>)
+				REQUIRE_FALSE(pack.IsDeep());
+			else if constexpr (IsStaticallyOptimized<T>)
+				REQUIRE(pack.IsDeep() == CT::Deep<E>);
+			else
+				REQUIRE_FALSE(pack.IsDeep());
 		}
 
 		#ifdef LANGULUS_STD_BENCHMARK
@@ -411,6 +586,12 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 				REQUIRE(pack.IsSparse() == CT::Sparse<E>);
 				REQUIRE(pack.GetUses() == 1);
 				REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+				if constexpr (CT::Same<E, Trait>)
+					REQUIRE_FALSE(pack.IsDeep());
+				else if constexpr (IsStaticallyOptimized<T>)
+					REQUIRE(pack.IsDeep() == CT::Deep<E>);
+				else
+					REQUIRE_FALSE(pack.IsDeep());
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK
@@ -456,6 +637,12 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 				REQUIRE(pack.IsSparse() == CT::Sparse<E>);
 				REQUIRE(pack.GetUses() == 1);
 				REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+				if constexpr (CT::Same<E, Trait>)
+					REQUIRE_FALSE(pack.IsDeep());
+				else if constexpr (IsStaticallyOptimized<T>)
+					REQUIRE(pack.IsDeep() == CT::Deep<E>);
+				else
+					REQUIRE_FALSE(pack.IsDeep());
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK
@@ -502,17 +689,30 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 						REQUIRE(pack.HasAuthority());
 					}
 					else {
-						REQUIRE(pack.GetRaw() == sparseValue);
-						REQUIRE(pack.GetUses() == 0);
-						REQUIRE(pack.IsStatic());
-						REQUIRE(pack.IsConstant());
-						REQUIRE_FALSE(pack.HasAuthority());
+						if constexpr (CT::Deep<E>) {
+							REQUIRE(asbytes(pack.As<E>().GetRaw()) == asbytes(element.GetRaw()));
+							REQUIRE(pack.GetUses() == 1);
+							REQUIRE_FALSE(pack.IsStatic());
+							REQUIRE(pack.As<E>().GetUses() == 0);
+							REQUIRE(pack.As<E>().IsStatic());
+							REQUIRE_FALSE(pack.IsConstant());
+							REQUIRE_FALSE(pack.As<E>().IsConstant());
+							REQUIRE(pack.HasAuthority());
+							REQUIRE_FALSE(pack.As<E>().HasAuthority());
+						}
+						else {
+							REQUIRE(pack.GetRaw() == sparseValue);
+							REQUIRE(pack.GetUses() == 0);
+							REQUIRE(pack.IsStatic());
+							REQUIRE(pack.IsConstant());
+							REQUIRE_FALSE(pack.HasAuthority());
+						}
 					}
 				}
 				else {
 					// Any code																
 					if constexpr (CT::Sparse<E>) {
-						REQUIRE(pack.GetRawSparse()->mPointer == reinterpret_cast<const Byte*>(sparseValue));
+						REQUIRE(pack.GetRawSparse()->mPointer == asbytes(sparseValue));
 						REQUIRE(pack.GetRawSparse()->mEntry == nullptr);
 						REQUIRE_FALSE(pack.GetUses() == 0);
 						REQUIRE_FALSE(pack.IsStatic());
@@ -520,11 +720,24 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 						REQUIRE(pack.HasAuthority());
 					}
 					else {
-						REQUIRE(pack.GetRaw() == reinterpret_cast<const Byte*>(sparseValue));
-						REQUIRE(pack.GetUses() == 0);
-						REQUIRE(pack.IsStatic());
-						REQUIRE(pack.IsConstant());
-						REQUIRE_FALSE(pack.HasAuthority());
+						if constexpr (CT::Deep<E>) {
+							REQUIRE(asbytes(pack.As<E>().GetRaw()) == asbytes(element.GetRaw()));
+							REQUIRE(pack.GetUses() == 1);
+							REQUIRE_FALSE(pack.IsStatic());
+							REQUIRE(pack.As<E>().GetUses() == 0);
+							REQUIRE(pack.As<E>().IsStatic());
+							REQUIRE_FALSE(pack.IsConstant());
+							REQUIRE_FALSE(pack.As<E>().IsConstant());
+							REQUIRE(pack.HasAuthority());
+							REQUIRE_FALSE(pack.As<E>().HasAuthority());
+						}
+						else {
+							REQUIRE(pack.GetRaw() == asbytes(sparseValue));
+							REQUIRE(pack.GetUses() == 0);
+							REQUIRE(pack.IsStatic());
+							REQUIRE(pack.IsConstant());
+							REQUIRE_FALSE(pack.HasAuthority());
+						}
 					}
 				}
 				REQUIRE(pack.template As<DenseE>() == denseValue);
@@ -534,6 +747,12 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 				REQUIRE(pack.IsDense() == CT::Dense<E>);
 				REQUIRE(pack.IsSparse() == CT::Sparse<E>);
 				REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+				if constexpr (CT::Same<E, Trait>)
+					REQUIRE_FALSE(pack.IsDeep());
+				else if constexpr (IsStaticallyOptimized<T>)
+					REQUIRE(pack.IsDeep() == CT::Deep<E>);
+				else
+					REQUIRE_FALSE(pack.IsDeep());
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK
@@ -580,26 +799,52 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 						REQUIRE(pack.HasAuthority());
 					}
 					else {
-						REQUIRE(pack.GetRaw() == SparseCast(movable));
-						REQUIRE(pack.GetUses() == 0);
-						REQUIRE(pack.IsStatic());
-						REQUIRE_FALSE(pack.HasAuthority());
+						if constexpr (CT::Deep<E>) {
+							REQUIRE(asbytes(pack.As<E>().GetRaw()) == asbytes(SparseCast(movable)->GetRaw()));
+							REQUIRE(pack.GetUses() == 1);
+							REQUIRE_FALSE(pack.IsStatic());
+							REQUIRE(pack.As<E>().GetUses() == element.GetUses());
+							REQUIRE_FALSE(pack.As<E>().IsStatic());
+							REQUIRE_FALSE(pack.IsConstant());
+							REQUIRE_FALSE(pack.As<E>().IsConstant());
+							REQUIRE(pack.HasAuthority());
+							REQUIRE(pack.As<E>().HasAuthority());
+						}
+						else {
+							REQUIRE(pack.GetRaw() == SparseCast(movable));
+							REQUIRE(pack.GetUses() == 0);
+							REQUIRE(pack.IsStatic());
+							REQUIRE_FALSE(pack.HasAuthority());
+						}
 					}
 				}
 				else {
 					// Any code																
 					if constexpr (CT::Sparse<E>) {
-						REQUIRE(pack.GetRawSparse()->mPointer == reinterpret_cast<const Byte*>(sparseValue));
+						REQUIRE(pack.GetRawSparse()->mPointer == asbytes(sparseValue));
 						REQUIRE(pack.GetRawSparse()->mEntry == nullptr);
 						REQUIRE_FALSE(pack.GetUses() == 0);
 						REQUIRE_FALSE(pack.IsStatic());
 						REQUIRE(pack.HasAuthority());
 					}
 					else {
-						REQUIRE(pack.GetRaw() == reinterpret_cast<const Byte*>(SparseCast(movable)));
-						REQUIRE(pack.GetUses() == 0);
-						REQUIRE(pack.IsStatic());
-						REQUIRE_FALSE(pack.HasAuthority());
+						if constexpr (CT::Deep<E>) {
+							REQUIRE(asbytes(pack.As<E>().GetRaw()) == asbytes(SparseCast(movable)->GetRaw()));
+							REQUIRE(pack.GetUses() == 1);
+							REQUIRE_FALSE(pack.IsStatic());
+							REQUIRE(pack.As<E>().GetUses() == element.GetUses());
+							REQUIRE_FALSE(pack.As<E>().IsStatic());
+							REQUIRE_FALSE(pack.IsConstant());
+							REQUIRE_FALSE(pack.As<E>().IsConstant());
+							REQUIRE(pack.HasAuthority());
+							REQUIRE(pack.As<E>().HasAuthority());
+						}
+						else {
+							REQUIRE(pack.GetRaw() == asbytes(SparseCast(movable)));
+							REQUIRE(pack.GetUses() == 0);
+							REQUIRE(pack.IsStatic());
+							REQUIRE_FALSE(pack.HasAuthority());
+						}
 					}
 				}
 				REQUIRE(pack.template As<DenseE>() == denseValue);
@@ -610,6 +855,12 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 				REQUIRE(pack.IsSparse() == CT::Sparse<E>);
 				REQUIRE_FALSE(pack.IsConstant());
 				REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+				if constexpr (CT::Same<E, Trait>)
+					REQUIRE_FALSE(pack.IsDeep());
+				else if constexpr (IsStaticallyOptimized<T>)
+					REQUIRE(pack.IsDeep() == CT::Deep<E>);
+				else
+					REQUIRE_FALSE(pack.IsDeep());
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK
@@ -660,6 +911,12 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 				REQUIRE(pack.IsEmpty());
 				REQUIRE_FALSE(pack.IsAllocated());
 				REQUIRE(pack.GetUses() == 0);
+				if constexpr (CT::Same<E, Trait>)
+					REQUIRE_FALSE(pack.IsDeep());
+				else if constexpr (IsStaticallyOptimized<T>)
+					REQUIRE(pack.IsDeep() == CT::Deep<E>);
+				else
+					REQUIRE_FALSE(pack.IsDeep());
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK
@@ -704,6 +961,12 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 				REQUIRE(pack.IsSparse() == CT::Sparse<E>);
 				REQUIRE(pack.GetUses() == 1);
 				REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+				if constexpr (CT::Same<E, Trait>)
+					REQUIRE_FALSE(pack.IsDeep());
+				else if constexpr (IsStaticallyOptimized<T>)
+					REQUIRE(pack.IsDeep() == CT::Deep<E>);
+				else
+					REQUIRE_FALSE(pack.IsDeep());
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK

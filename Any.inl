@@ -45,13 +45,15 @@ namespace Langulus::Anyness
 	/// Same as shallow-copy but doesn't reference anything							
 	///	@param other - the block to shallow-copy										
 	inline Any::Any(Disowned<Any>&& other) noexcept
-		: Block {static_cast<const Block&>(other.mValue)} {}	
+		: Block {other.Forward<Block>()} {
+		mEntry = nullptr;
+	}
 	
 	/// Same as shallow-move but doesn't fully reset other, saving some			
 	/// instructions																				
 	///	@param other - the block to shallow-copy										
 	inline Any::Any(Abandoned<Any>&& other) noexcept
-		: Block {static_cast<Block&>(other.mValue)} {
+		: Block {other.Forward<Block>()} {
 		other.mValue.mEntry = nullptr;
 	}
 
@@ -249,7 +251,10 @@ namespace Langulus::Anyness
 		}
 
 		Free();
-		Block::operator = (other.mValue);
+		mRaw = other.mValue.mRaw;
+		mCount = other.mValue.mCount;
+		mReserved = other.mValue.mReserved;
+		mState = other.mValue.mState;
 		return *this;
 	}
 	
@@ -268,7 +273,10 @@ namespace Langulus::Anyness
 		}
 
 		Free();
-		Block::operator = (other.mValue);
+		mRaw = other.mValue.mRaw;
+		mCount = other.mValue.mCount;
+		mReserved = other.mValue.mReserved;
+		mState = other.mValue.mState;
 		other.mValue.mEntry = nullptr;
 		return *this;
 	}

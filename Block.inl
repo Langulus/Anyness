@@ -35,7 +35,7 @@ namespace Langulus::Anyness
 		, mType {meta} { }
 	
 	/// Manual construction from mutable data												
-	/// This constructor has a slight runtime overhead, due to unknown raw		
+	/// This constructor has runtime overhead if managed memory is enabled		
 	///	@param state - the initial state of the container							
 	///	@param meta - the type of the memory block									
 	///	@param count - initial element count and reserve							
@@ -53,7 +53,7 @@ namespace Langulus::Anyness
 		#endif
 	
 	/// Manual construction from constant data											
-	/// This constructor has a slight runtime overhead, due to unknown raw		
+	/// This constructor has runtime overhead if managed memory is enabled		
 	///	@param state - the initial state of the container							
 	///	@param meta - the type of the memory block									
 	///	@param count - initial element count and reserve							
