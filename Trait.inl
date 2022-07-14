@@ -46,13 +46,23 @@ namespace Langulus::Anyness
 		return Trait(TRAIT::Reflect(), Any(Forward<DATA>(stuff)));
 	}
 
-	/// Create a trait from a trait definition and data								
+	/// Create a trait from a trait definition and copy of data						
+	///	@tparam DATA - type of data to shallow-copy									
+	///	@param meta - the trait definition												
+	///	@param stuff - the data to copy													
+	///	@return the trait																		
 	template<CT::Data DATA>
 	Trait Trait::From(TMeta meta, const DATA& stuff) {
-		return Trait(meta, Any(stuff));
+		Trait result {stuff};
+		result.SetTrait(meta);
+		return Abandon(result);
 	}
 
-	/// Create a trait from a trait definition and data								
+	/// Create a trait from a trait definition and moved data						
+	///	@tparam DATA - type of data to move in											
+	///	@param meta - the trait definition												
+	///	@param stuff - the data to copy													
+	///	@return the trait																		
 	template<CT::Data DATA>
 	Trait Trait::From(TMeta meta, DATA&& stuff) {
 		Trait result {Forward<DATA>(stuff)};
