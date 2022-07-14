@@ -357,7 +357,7 @@ namespace Langulus::Anyness
 				// Reset and allocate new memory										
 				// Disowned-construction will be used if possible				
 				Reset();
-				operator << (other.Forward<T>());
+				operator << (other.template Forward<T>());
 			}
 		}
 		else {
@@ -399,7 +399,7 @@ namespace Langulus::Anyness
 				// Reset and allocate new memory										
 				// Abandoned-construction will be used if possible				
 				Reset();
-				operator << (other.Forward<T>());
+				operator << (other.template Forward<T>());
 			}
 		}
 		else {
