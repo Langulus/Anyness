@@ -33,7 +33,7 @@ decltype(auto) Resolve(const SOURCE& s) {
 	else if constexpr (CT::Fundamental<SOURCE>)
 		return static_cast<T>(s);
 	else
-		return s.As<T>();
+		return s.template As<T>();
 }
 
 
