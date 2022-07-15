@@ -222,10 +222,8 @@ namespace Langulus::Anyness
 
 		// Allocate keys and info														
 		result.mKeys = Inner::Allocator::Allocate(mKeys->GetAllocatedSize());
-		if (!result.mKeys) {
-			result.mValues.mEntry = nullptr;
+		if (!result.mKeys)
 			Throw<Except::Allocate>("Out of memory on cloning THashMap keys");
-		}
 
 		result.mInfo = reinterpret_cast<uint8_t*>(result.mKeys) 
 			+ (mInfo - reinterpret_cast<const uint8_t*>(mKeys));

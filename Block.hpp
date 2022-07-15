@@ -656,16 +656,18 @@ namespace Langulus::CT
 	/// A reflected block type is any type that inherits Block, and is			
 	/// binary compatible to a Block - this is a mandatory requirement for		
 	/// any CT::Deep type																		
+	/// Keep in mind, that sparse types are never considered Block!				
 	template<class... T>
 	concept Block = ((DerivedFrom<T, ::Langulus::Anyness::Block>
 		&& sizeof(T) == sizeof(::Langulus::Anyness::Block)) && ...);
 
-	/// A deep type is any type with a true static member T::CTTI_Deep			
-	/// and a common interface with Block													
+	/// A deep type is any type with a true static member T::CTTI_Deep,			
+	/// is binary compatible with Block, as well as having the same interface	
 	/// If no such member/base exists, the type is assumed NOT deep by			
 	/// default. Deep types are considered iteratable, and verbs are				
 	/// executed in each of their elements/members, instead on the type			
 	/// itself. Use LANGULUS(DEEP) macro as member to tag deep types				
+	/// Keep in mind, that sparse types are never considered Deep!					
 	template<class... T>
 	concept Deep = ((Block<T> && Decay<T>::CTTI_Deep) && ...);
 

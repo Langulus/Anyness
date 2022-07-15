@@ -255,6 +255,9 @@ namespace Langulus::Anyness
 		mCount = other.mValue.mCount;
 		mReserved = other.mValue.mReserved;
 		mState = other.mValue.mState;
+		mType = other.mValue.mType;
+		// No need to copy entry - it's been reset by Free(), and this is	
+		// a disowned copy																
 		return *this;
 	}
 	
@@ -273,10 +276,7 @@ namespace Langulus::Anyness
 		}
 
 		Free();
-		mRaw = other.mValue.mRaw;
-		mCount = other.mValue.mCount;
-		mReserved = other.mValue.mReserved;
-		mState = other.mValue.mState;
+		Block::operator = (Forward<Block>(other.mValue));
 		other.mValue.mEntry = nullptr;
 		return *this;
 	}

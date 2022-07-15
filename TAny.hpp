@@ -47,9 +47,9 @@ namespace Langulus::Anyness
 		TAny(const T&) requires CT::CustomData<T>;
 		TAny(T&&) requires CT::CustomData<T>;
 
-		TAny(Disowned<T>&&) noexcept requires  (CT::CustomData<T> && CT::Dense<T>);
+		TAny(Disowned<T>&&)  noexcept requires (CT::CustomData<T> && CT::Dense<T>);
 		TAny(Abandoned<T>&&) noexcept requires (CT::CustomData<T> && CT::Dense<T>);
-		TAny(Disowned<T>&&) noexcept requires  (CT::CustomData<T> && CT::Sparse<T>);
+		TAny(Disowned<T>&&)  noexcept requires (CT::CustomData<T> && CT::Sparse<T>);
 		TAny(Abandoned<T>&&) noexcept requires (CT::CustomData<T> && CT::Sparse<T>);
 
 		TAny(const T*, const Count&);

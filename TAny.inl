@@ -892,9 +892,12 @@ namespace Langulus::Anyness
 	}
 	
 	/// Check if contained type is deep														
+	///	@return true if this container contains deep items							
 	TEMPLATE()
 	constexpr bool TAny<T>::IsDeep() const noexcept {
-		return CT::Deep<T>;
+		// Sparse types are never considered deep, but when contained		
+		// it's safe to erase that aspect											
+		return CT::Deep<Decay<T>>;
 	}
 
 	/// Check if the contained type is a pointer											

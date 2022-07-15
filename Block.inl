@@ -401,7 +401,9 @@ namespace Langulus::Anyness
 	/// Get the number of reserved bytes													
 	///	@return the number of reserved bytes											
 	constexpr Size Block::GetReservedSize() const noexcept {
-		return mEntry ? mEntry->GetAllocatedSize() : 0;
+		if (mEntry)
+			return mEntry->GetAllocatedSize();
+		return mType ? mReserved * mType->mSize : 0;
 	}
 	
 	/// Check if we have jurisdiction over the contained memory						
