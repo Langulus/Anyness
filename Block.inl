@@ -401,6 +401,9 @@ namespace Langulus::Anyness
 	/// Get the number of reserved bytes													
 	///	@return the number of reserved bytes											
 	constexpr Size Block::GetReservedSize() const noexcept {
+		//TODO this is used in allocations, but what if this is just a static view? should we allocate the
+		// entire block? why not just return the most relevant mReserved*mType->mSize?
+		// that removes a branch, too
 		if (mEntry)
 			return mEntry->GetAllocatedSize();
 		return mType ? mReserved * mType->mSize : 0;
