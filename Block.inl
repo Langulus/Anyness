@@ -401,9 +401,6 @@ namespace Langulus::Anyness
 	/// Get the number of reserved bytes													
 	///	@return the number of reserved bytes											
 	constexpr Size Block::GetReservedSize() const noexcept {
-		//TODO this is used in allocations, but what if this is just a static view? should we allocate the
-		// entire block? why not just return the most relevant mReserved*mType->mSize?
-		// that removes a branch, too
 		if (mEntry)
 			return mEntry->GetAllocatedSize();
 		return mType ? mReserved * mType->mSize : 0;
@@ -3055,7 +3052,7 @@ namespace Langulus::Anyness
 	///	@param other - the block to move in												
 	///	@param index - special index to insert them at								
 	///	@return the number of inserted elements										
-	template<CT::NotAbandonedOrDisowned T>
+	template<CT::Data T>
 	Count Block::InsertBlockAt(Abandoned<T>&& other, Index index) {
 		static_assert(CT::Block<T>, "T must be a block type");
 		const auto offset = Constrain(index).GetOffset();
@@ -3066,7 +3063,7 @@ namespace Langulus::Anyness
 	///	@param other - the block to move in												
 	///	@param index - simple index to insert them at								
 	///	@return the number of inserted elements										
-	template<CT::NotAbandonedOrDisowned T>
+	template<CT::Data T>
 	Count Block::InsertBlockAt(Abandoned<T>&& other, Offset index) {
 		static_assert(CT::Block<T>, "T must be a block type");
 		Block region;
@@ -3085,7 +3082,7 @@ namespace Langulus::Anyness
 	///	@param other - the block to move in												
 	///	@param index - special index to insert them at								
 	///	@return the number of inserted elements										
-	template<CT::NotAbandonedOrDisowned T>
+	template<CT::Data T>
 	Count Block::InsertBlockAt(Disowned<T>&& other, Index index) {
 		static_assert(CT::Block<T>, "T must be a block type");
 		const auto offset = Constrain(index).GetOffset();
@@ -3096,7 +3093,7 @@ namespace Langulus::Anyness
 	///	@param other - the block to move in												
 	///	@param index - simple index to insert them at								
 	///	@return the number of inserted elements										
-	template<CT::NotAbandonedOrDisowned T>
+	template<CT::Data T>
 	Count Block::InsertBlockAt(Disowned<T>&& other, Offset index) {
 		static_assert(CT::Block<T>, "T must be a block type");
 		Block region;
@@ -3196,7 +3193,7 @@ namespace Langulus::Anyness
 	///	@tparam T - type of the block to traverse (deducible)						
 	///	@param other - the block to insert												
 	///	@return the number of inserted elements										
-	template<auto INDEX, CT::NotAbandonedOrDisowned T>
+	template<auto INDEX, CT::Data T>
 	Count Block::InsertBlock(Abandoned<T>&& other) {
 		static_assert(CT::Block<T>, "T must be a block type");
 
@@ -3236,7 +3233,7 @@ namespace Langulus::Anyness
 	///	@tparam T - type of the block to traverse (deducible)						
 	///	@param other - the block to insert												
 	///	@return the number of inserted elements										
-	template<auto INDEX, CT::NotAbandonedOrDisowned T>
+	template<auto INDEX, CT::Data T>
 	Count Block::InsertBlock(Disowned<T>&& other) {
 		static_assert(CT::Block<T>, "T must be a block type");
 
@@ -3268,20 +3265,191 @@ namespace Langulus::Anyness
 		return other.mValue.mCount;
 	}
 
-	/// Merge a block using a slow and tedious RTTI copies and compares			
+	/// Copy-insert each block element that is not found in this container		
+	/// One by one, by using a slow and tedious RTTI copies and compares			
+	///	@attention assumes simple index is in container's limits					
 	///	@param other - the block to insert												
-	///	@param idx - place to insert them at											
+	///	@param index - special/simple index to insert at							
 	///	@return the number of inserted elements										
-	template<CT::NotAbandonedOrDisowned T>
-	Count Block::MergeBlockAt(const T& other, Index idx) {
-		static_assert(CT::Block<T>, "T must be a block type");
+	template<CT::NotAbandonedOrDisowned T, class INDEX>
+	Count Block::MergeBlockAt(const T& other, INDEX index) {
+		static_assert(CT::Block<T>,
+			"T must be a block type");
+		static_assert(CT::SameAsOneOf<INDEX, Index, Offset>,
+			"INDEX bust be an index type");
+		//TODO do a pass first and allocate & move once instead of each time?
 		Count inserted {};
 		for (Count i = 0; i < other.GetCount(); ++i) {
 			auto right = other.GetElementResolved(i);
 			if (!FindRTTI(right))
-				inserted += InsertBlockAt(right, idx);
+				inserted += InsertBlockAt(right, index);
 		}
 
+		return inserted;
+	}
+
+	/// Move-insert each block element that is not found in this container		
+	/// One by one, by using a slow and tedious RTTI copies and compares			
+	/// The moved elements will be removed from the source container				
+	///	@attention assumes simple index is in container's limits					
+	///	@param other - the block to insert												
+	///	@param index - special/simple index to insert at							
+	///	@return the number of inserted elements										
+	template<CT::NotAbandonedOrDisowned T, class INDEX>
+	Count Block::MergeBlockAt(T&& other, INDEX index) {
+		static_assert(CT::Block<T>,
+			"T must be a block type");
+		static_assert(CT::SameAsOneOf<INDEX, Index, Offset>,
+			"INDEX bust be an index type");
+		//TODO do a pass first and allocate & move once instead of each time?
+		Count inserted {};
+		for (Count i = 0; i < other.GetCount(); ++i) {
+			auto right = other.GetElementResolved(i);
+			if (!FindRTTI(right)) {
+				inserted += InsertBlockAt(Abandon(right), index); //TODO abandon only if other has one use only!
+				i -= other.RemoveIndex(i);
+			}
+		}
+
+		return inserted;
+	}
+
+	/// Copy-insert each block element that is not found in this container		
+	/// One by one, by using a slow and tedious RTTI copies and compares			
+	///	@attention assumes simple index is in container's limits					
+	///	@param other - the block to insert												
+	///	@param index - special/simple index to insert at							
+	///	@return the number of inserted elements										
+	template<CT::Data T, class INDEX>
+	Count Block::MergeBlockAt(Disowned<T>&& other, INDEX index) {
+		static_assert(CT::Block<T>,
+			"T must be a block type");
+		static_assert(CT::SameAsOneOf<INDEX, Index, Offset>,
+			"INDEX bust be an index type");
+		//TODO do a pass first and allocate & move once instead of each time?
+		Count inserted {};
+		for (Count i = 0; i < other.GetCount(); ++i) {
+			auto right = other.GetElementResolved(i);
+			if (!FindRTTI(right))
+				inserted += InsertBlockAt(Disown(right), index);
+		}
+
+		return inserted;
+	}
+
+	/// Move-insert each block element that is not found in this container		
+	/// One by one, by using a slow and tedious RTTI copies and compares			
+	///	@attention assumes simple index is in container's limits					
+	///	@param other - the block to insert												
+	///	@param index - special/simple index to insert at							
+	///	@return the number of inserted elements										
+	template<CT::Data T, class INDEX>
+	Count Block::MergeBlockAt(Abandoned<T>&& other, INDEX index) {
+		static_assert(CT::Block<T>,
+			"T must be a block type");
+		static_assert(CT::SameAsOneOf<INDEX, Index, Offset>,
+			"INDEX bust be an index type");
+		//TODO do a pass first and allocate & move once instead of each time?
+		Count inserted {};
+		for (Count i = 0; i < other.mValue.GetCount(); ++i) {
+			auto right = other.mValue.GetElementResolved(i);
+			if (!FindRTTI(right))
+				inserted += InsertBlockAt(Abandon(right), index); //TODO abandon only if other has one use only!
+		}
+
+		other.mValue.Free();
+		return inserted;
+	}
+
+	/// Copy-insert each block element that is not found in this container		
+	/// One by one, by using a slow and tedious RTTI copies and compares			
+	/// Insertions will be appended either at the front, or at the back			
+	///	@param other - the block to insert												
+	///	@return the number of inserted elements										
+	template<auto INDEX, CT::NotAbandonedOrDisowned T>
+	Count Block::MergeBlock(const T& other) {
+		static_assert(CT::Block<T>,
+			"T must be a block type");
+		static_assert(INDEX == Index::Front || INDEX == Index::Back,
+			"INDEX bust be either Index::Front or Index::Back");
+		//TODO do a pass first and allocate & move once instead of each time?
+		Count inserted {};
+		for (Count i = 0; i < other.GetCount(); ++i) {
+			auto right = other.GetElementResolved(i);
+			if (!FindRTTI(right))
+				inserted += InsertBlock<INDEX>(right);
+		}
+
+		return inserted;
+	}
+
+	/// Move-insert each block element that is not found in this container		
+	/// One by one, by using a slow and tedious RTTI copies and compares			
+	/// The moved elements will be removed from the source container				
+	/// Insertions will be appended either at the front, or at the back			
+	///	@param other - the block to insert												
+	///	@return the number of inserted elements										
+	template<auto INDEX, CT::NotAbandonedOrDisowned T>
+	Count Block::MergeBlock(T&& other) {
+		static_assert(CT::Block<T>,
+			"T must be a block type");
+		static_assert(INDEX == Index::Front || INDEX == Index::Back,
+			"INDEX bust be either Index::Front or Index::Back");
+		//TODO do a pass first and allocate & move once instead of each time?
+		Count inserted {};
+		for (Count i = 0; i < other.GetCount(); ++i) {
+			auto right = other.GetElementResolved(i);
+			if (!FindRTTI(right)) {
+				inserted += InsertBlock<INDEX>(Abandon(right)); //TODO abandon only if other has one use only!
+				i -= other.RemoveIndex(i);
+			}
+		}
+
+		return inserted;
+	}
+
+	/// Copy-insert each block element that is not found in this container		
+	/// One by one, by using a slow and tedious RTTI copies and compares			
+	/// Insertions will be appended either at the front, or at the back			
+	///	@param other - the block to insert												
+	///	@return the number of inserted elements										
+	template<auto INDEX, CT::Data T>
+	Count Block::MergeBlock(Disowned<T>&& other) {
+		static_assert(CT::Block<T>,
+			"T must be a block type");
+		static_assert(INDEX == Index::Front || INDEX == Index::Back,
+			"INDEX bust be either Index::Front or Index::Back");
+		//TODO do a pass first and allocate & move once instead of each time?
+		Count inserted {};
+		for (Count i = 0; i < other.GetCount(); ++i) {
+			auto right = other.GetElementResolved(i);
+			if (!FindRTTI(right))
+				inserted += InsertBlock<INDEX>(Disown(right));
+		}
+
+		return inserted;
+	}
+
+	/// Move-insert each block element that is not found in this container		
+	/// One by one, by using a slow and tedious RTTI copies and compares			
+	/// Insertions will be appended either at the front, or at the back			
+	///	@param other - the block to insert												
+	///	@return the number of inserted elements										
+	template<auto INDEX, CT::Data T>
+	Count Block::MergeBlock(Abandoned<T>&& other) {
+		static_assert(CT::Block<T>,
+			"T must be a block type");
+		static_assert(INDEX == Index::Front || INDEX == Index::Back,
+			"INDEX bust be either Index::Front or Index::Back");
+		//TODO do a pass first and allocate & move once instead of each time?
+		Count inserted {};
+		for (Count i = 0; i < other.mValue.GetCount(); ++i) {
+			auto right = other.mValue.GetElementResolved(i);
+			if (!FindRTTI(right))
+				inserted += InsertBlock<INDEX>(Abandon(right)); //TODO abandon only if other has one use only!
+		}
+
+		other.mValue.Free();
 		return inserted;
 	}
 

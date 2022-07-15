@@ -435,52 +435,44 @@ namespace Langulus::Anyness
 		template<CT::NotAbandonedOrDisowned T>
 		Count InsertBlockAt(T&&, Offset);
 
-		template<CT::NotAbandonedOrDisowned T>
-		Count InsertBlockAt(Abandoned<T>&&, Index);
-		template<CT::NotAbandonedOrDisowned T>
-		Count InsertBlockAt(Abandoned<T>&&, Offset);
-		template<CT::NotAbandonedOrDisowned T>
+		template<CT::Data T>
 		Count InsertBlockAt(Disowned<T>&&, Index);
-		template<CT::NotAbandonedOrDisowned T>
+		template<CT::Data T>
 		Count InsertBlockAt(Disowned<T>&&, Offset);
+		template<CT::Data T>
+		Count InsertBlockAt(Abandoned<T>&&, Index);
+		template<CT::Data T>
+		Count InsertBlockAt(Abandoned<T>&&, Offset);
 
 		template<auto INDEX = Index::Back, CT::NotAbandonedOrDisowned T>
 		Count InsertBlock(const T&);
 		template<auto INDEX = Index::Back, CT::NotAbandonedOrDisowned T>
 		Count InsertBlock(T&&);
 
-		template<auto INDEX = Index::Back, CT::NotAbandonedOrDisowned T>
-		Count InsertBlock(Abandoned<T>&&);
-		template<auto INDEX = Index::Back, CT::NotAbandonedOrDisowned T>
+		template<auto INDEX = Index::Back, CT::Data T>
 		Count InsertBlock(Disowned<T>&&);
+		template<auto INDEX = Index::Back, CT::Data T>
+		Count InsertBlock(Abandoned<T>&&);
 
-		template<CT::NotAbandonedOrDisowned T>
-		Count MergeBlockAt(const T&, Index);
-		template<CT::NotAbandonedOrDisowned T>
-		Count MergeBlockAt(const T&, Offset);
-		template<CT::NotAbandonedOrDisowned T>
-		Count MergeBlockAt(T&&, Index);
-		template<CT::NotAbandonedOrDisowned T>
-		Count MergeBlockAt(T&&, Offset);
+		template<CT::NotAbandonedOrDisowned T, class INDEX>
+		Count MergeBlockAt(const T&, INDEX);
+		template<CT::NotAbandonedOrDisowned T, class INDEX>
+		Count MergeBlockAt(T&&, INDEX);
 
-		template<CT::NotAbandonedOrDisowned T>
-		Count MergeBlockAt(Abandoned<T>&&, Index);
-		template<CT::NotAbandonedOrDisowned T>
-		Count MergeBlockAt(Abandoned<T>&&, Offset);
-		template<CT::NotAbandonedOrDisowned T>
-		Count MergeBlockAt(Disowned<T>&&, Index);
-		template<CT::NotAbandonedOrDisowned T>
-		Count MergeBlockAt(Disowned<T>&&, Offset);
+		template<CT::Data T, class INDEX>
+		Count MergeBlockAt(Disowned<T>&&, INDEX);
+		template<CT::Data T, class INDEX>
+		Count MergeBlockAt(Abandoned<T>&&, INDEX);
 	
 		template<auto INDEX = Index::Back, CT::NotAbandonedOrDisowned T>
 		Count MergeBlock(const T&);
 		template<auto INDEX = Index::Back, CT::NotAbandonedOrDisowned T>
 		Count MergeBlock(T&&);
 
-		template<auto INDEX = Index::Back, CT::NotAbandonedOrDisowned T>
-		Count MergeBlock(Abandoned<T>&&);
-		template<auto INDEX = Index::Back, CT::NotAbandonedOrDisowned T>
+		template<auto INDEX = Index::Back, CT::Data T>
 		Count MergeBlock(Disowned<T>&&);
+		template<auto INDEX = Index::Back, CT::Data T>
+		Count MergeBlock(Abandoned<T>&&);
 	
 		template<CT::Data T, bool MOVE_STATE = true>
 		T& Deepen();
