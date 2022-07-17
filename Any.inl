@@ -167,9 +167,9 @@ namespace Langulus::Anyness
 			return {};
 		else {
 			Any result;
-			Any wrapped[] {Any{Forward<LIST>(elements)}...};
-			result.Allocate(sizeof...(LIST));
+			Any wrapped[] {Forward<LIST>(elements)...};
 			result.SetType<Any, false>();
+			result.Allocate(sizeof...(LIST));
 			for (auto& it : wrapped)
 				result.Insert<Index::Back, Any, false, false>(Move(it));
 			return result;
@@ -186,7 +186,7 @@ namespace Langulus::Anyness
 			return {};
 		else {
 			Deref<HEAD> wrapped[] {Forward<HEAD>(head), Forward<TAIL>(tail)...};
-			Any result {Any::From<HEAD>()};
+			auto result = Any::From<HEAD>();
 			for (auto& it : wrapped)
 				result.Insert<Index::Back, Any, false, false>(Move(it));
 			return result;
