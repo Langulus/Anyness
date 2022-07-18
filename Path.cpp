@@ -23,7 +23,7 @@ namespace Langulus::Anyness
 	/// Clone the path, preserving type														
 	///	@return the cloned path																
 	Path Path::Clone() const {
-		return Abandon(Text::Clone());
+		return Path {Abandon(Text::Clone())};
 	}
 
 	/// Return the lowercase file extension (the part after the last '.')		
@@ -40,7 +40,7 @@ namespace Langulus::Anyness
 	Path Path::GetDirectory() const {
 		Offset offset {};
 		if (Text::FindOffsetReverse('/', offset))
-			return TAny<Letter>::Crop<Path>(0, offset + 1);
+			return Text::Crop(0, offset + 1);
 		return {};
 	}
 
@@ -49,7 +49,7 @@ namespace Langulus::Anyness
 	Path Path::GetFilename() const {
 		Offset offset {};
 		if (Text::FindOffsetReverse('/', offset))
-			return TAny<Letter>::Crop<Path>(offset + 1, mCount - offset - 1);
+			return Text::Crop(offset + 1, mCount - offset - 1);
 		return *this;
 	}
 
@@ -69,7 +69,7 @@ namespace Langulus::Anyness
 			else {
 				auto temp = *this + '/';
 				temp += rhs;
-				return Abandon(temp);
+				return Path {Abandon(temp)};
 			}
 		}
 	}

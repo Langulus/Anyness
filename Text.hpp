@@ -19,9 +19,9 @@ namespace Langulus::Anyness
 	class Text : public TAny<Letter> {
 		LANGULUS(DEEP) false;		
 	public:
-		using TAny::TAny;
-
 		Text() = default;
+
+		Text(const TAny<Letter>& t) : TAny {t} {}
 
 		Text(const Text&);
 		Text(Text&&) noexcept = default;
@@ -96,7 +96,9 @@ namespace Langulus::Anyness
 	/// Serializing to text might produce a lot of unncessesary text, so this	
 	/// differentiation is quite handy														
 	class Debug : public Text {
-		using Text::Text;
+	public:
+		Debug(const Debug&) = default;
+		Debug(const Text& t) : Text {t} {}
 	};
 
 } // namespace Langulus::Anyness

@@ -16,7 +16,11 @@ namespace Langulus::Anyness
 	///																								
 	class Path : public Text {
 	public:
-		using Text::Text;
+		Path() = default;
+		Path(const Text& other) : Text {other} {}
+		Path(const Path&) = default;
+		template<Count C>
+		Path(const Letter(&other)[C]) : Text {other} {}
 
 		Path(const Disowned<Path>&) noexcept;
 		Path(Abandoned<Path>&&) noexcept;
