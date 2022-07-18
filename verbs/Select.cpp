@@ -29,7 +29,7 @@ namespace Langulus::Anyness
 	/// Get the memory Block corresponding to a local member variable (const)	
 	///	@param member - the member to get												
 	///	@return a static constant memory block											
-	const Block Block::GetMember(const RTTI::Member& member) const {
+	Block Block::GetMember(const RTTI::Member& member) const {
 		auto result = const_cast<Block*>(this)->GetMember(member);
 		result.MakeConst();
 		return result;
@@ -78,7 +78,7 @@ namespace Langulus::Anyness
 	///	@param trait - the trait to get													
 	///	@param index - the trait index to get											
 	///	@return a static constant memory block											
-	const Block Block::GetMember(TMeta trait, Count index) const {
+	Block Block::GetMember(TMeta trait, Count index) const {
 		auto result = const_cast<Block*>(this)->GetMember(trait, index);
 		result.MakeConst();
 		return result;
@@ -128,7 +128,7 @@ namespace Langulus::Anyness
 	///	@param data - the type to get														
 	///	@param index - the trait index to get											
 	///	@return a static constant memory block											
-	const Block Block::GetMember(DMeta data, Count index) const {
+	Block Block::GetMember(DMeta data, Count index) const {
 		auto result = const_cast<Block*>(this)->GetMember(data, index);
 		result.MakeConst();
 		return result;
@@ -168,7 +168,7 @@ namespace Langulus::Anyness
 	///	@param data - the type to get														
 	///	@param index - the trait index to get											
 	///	@return a static constant memory block											
-	const Block Block::GetMember(std::nullptr_t, Count index) const {
+	Block Block::GetMember(std::nullptr_t, Count index) const {
 		auto result = const_cast<Block*>(this)->GetMember(nullptr, index);
 		result.MakeConst();
 		return result;

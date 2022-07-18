@@ -336,13 +336,13 @@ namespace Langulus::Anyness
 		NOD() Block Crop(const Offset&, const Count&);
 		NOD() Block Crop(const Offset&, const Count&) const;
 	
-		NOD() const Block GetMember(const RTTI::Member&) const;
+		NOD() Block GetMember(const RTTI::Member&) const;
 		NOD() Block GetMember(const RTTI::Member&);
-		NOD() const Block GetMember(TMeta, Offset = 0) const;
+		NOD() Block GetMember(TMeta, Offset = 0) const;
 		NOD() Block GetMember(TMeta, Offset = 0);
-		NOD() const Block GetMember(DMeta, Offset = 0) const;
+		NOD() Block GetMember(DMeta, Offset = 0) const;
 		NOD() Block GetMember(DMeta, Offset = 0);
-		NOD() const Block GetMember(std::nullptr_t, Offset = 0) const;
+		NOD() Block GetMember(std::nullptr_t, Offset = 0) const;
 		NOD() Block GetMember(std::nullptr_t, Offset = 0);
 	
 		NOD() Block GetBaseMemory(DMeta, const RTTI::Base&) const;
