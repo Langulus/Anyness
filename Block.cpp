@@ -121,7 +121,7 @@ namespace Langulus::Anyness
 
 		if (IsDense() && mType->mIsPOD) {
 			// Hash everything at once													
-			return HashBytes(GetRaw(), GetSize());
+			return HashBytes(GetRaw(), GetByteSize());
 		}
 
 		// If reached, we'll be hashing elements one by one, and then		

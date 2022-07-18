@@ -102,7 +102,7 @@ namespace Langulus::Anyness
 					result.mCount = mCount;
 				}
 				
-				CopyMemory(mRaw, result.mRaw, GetSize());
+				CopyMemory(mRaw, result.mRaw, GetByteSize());
 
 				VERBOSE("Cloned non-resolvable dense POD by memcpy " 
 					<< ccGreen << "(fast)");
@@ -142,7 +142,7 @@ namespace Langulus::Anyness
 					to.Allocate<false>(1);
 					to.mCount = 1;
 					
-					CopyMemory(from.mRaw, to.mRaw, from.GetSize());
+					CopyMemory(from.mRaw, to.mRaw, from.GetByteSize());
 					VERBOSE("Cloned resolved dense POD by memcpy " 
 						<< ccDarkYellow << "(slow)");
 				}

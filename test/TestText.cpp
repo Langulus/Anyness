@@ -38,7 +38,7 @@ SCENARIO("Text containers", "[text]") {
 				REQUIRE(text.IsNow());
 				REQUIRE(text.IsInvalid());
 				REQUIRE(text.IsDense());
-				REQUIRE(text.IsConstructible());
+				REQUIRE(text.IsDefaultable());
 				REQUIRE(text.IsEmpty());
 				REQUIRE(text.GetCount() == 0);
 				REQUIRE(text.GetReserved() == 0);
@@ -73,7 +73,7 @@ SCENARIO("Text containers", "[text]") {
 				REQUIRE(text.IsNow());
 				REQUIRE(text.IsInvalid());
 				REQUIRE(text.IsDense());
-				REQUIRE(text.IsConstructible());
+				REQUIRE(text.IsDefaultable());
 				REQUIRE(text.IsEmpty());
 				REQUIRE(text.IsAllocated());
 				REQUIRE(text.GetCount() == 0);
@@ -112,7 +112,7 @@ SCENARIO("Text containers", "[text]") {
 				REQUIRE(text.IsNow());
 				REQUIRE(text.IsInvalid());
 				REQUIRE(text.IsDense());
-				REQUIRE(text.IsConstructible());
+				REQUIRE(text.IsDefaultable());
 				REQUIRE(text.IsEmpty());
 				REQUIRE(text.GetCount() == 0);
 				REQUIRE(text.GetReserved() == 0);

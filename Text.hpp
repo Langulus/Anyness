@@ -97,8 +97,7 @@ namespace Langulus::Anyness
 	/// differentiation is quite handy														
 	class Debug : public Text {
 	public:
-		Debug(const Debug&) = default;
-		Debug(const Text& t) : Text {t} {}
+		using Text::Text;
 	};
 
 } // namespace Langulus::Anyness

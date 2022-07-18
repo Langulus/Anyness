@@ -515,12 +515,6 @@ namespace Langulus::Anyness
 		return !IsValid();
 	}
 
-	/// Check if block contains dense data													
-	///	@returns true if this container refers to dense memory					
-	constexpr bool Block::IsDense() const {
-		return !IsSparse();
-	}
-	
 	/// Make memory block vacuum (a.k.a. missing)										
 	constexpr void Block::MakeMissing() noexcept {
 		mState += DataState::Missing;
@@ -616,7 +610,7 @@ namespace Langulus::Anyness
 
 	/// Get the size of the contained data, in bytes									
 	///	@return the byte size																
-	constexpr Size Block::GetSize() const noexcept {
+	constexpr Size Block::GetByteSize() const noexcept {
 		return GetCount() * GetStride();
 	}
 
@@ -641,13 +635,13 @@ namespace Langulus::Anyness
 	/// Get the end raw data pointer inside the container								
 	///	@attention as unsafe as it gets, but as fast as it gets					
 	constexpr Byte* Block::GetRawEnd() noexcept {
-		return GetRaw() + GetSize();
+		return GetRaw() + GetByteSize();
 	}
 
 	/// Get the end raw data pointer inside the container (const)					
 	///	@attention as unsafe as it gets, but as fast as it gets					
 	constexpr const Byte* Block::GetRawEnd() const noexcept {
-		return GetRaw() + GetSize();
+		return GetRaw() + GetByteSize();
 	}
 
 	/// Get a constant pointer array - useful for sparse containers (const)		
@@ -689,22 +683,54 @@ namespace Langulus::Anyness
 		return mType && mType->mIsAbstract;
 	}
 
-	/// Check if contained type is constructible											
+	/// Check if contained type is default-constructible								
 	/// Some are only referencable, such as abstract types							
 	///	@returns true if the contents of this pack are constructible			
-	constexpr bool Block::IsConstructible() const noexcept {
+	constexpr bool Block::IsDefaultable() const noexcept {
 		return mType && mType->mDefaultConstructor;
 	}
 
 	/// Check if block contains pointers													
 	///	@return true if the block contains pointers									
-	constexpr bool Block::IsSparse() const {
+	constexpr bool Block::IsSparse() const noexcept {
 		return mState.IsSparse();
 	}
-	
+
+	/// Check if block contains dense data													
+	///	@returns true if this container refers to dense memory					
+	constexpr bool Block::IsDense() const noexcept {
+		return !IsSparse();
+	}
+
+	/// Check if block contains POD items - if so, it's safe to directly copy	
+	/// raw memory from container. Note, that this doesn't only consider the	
+	/// standard c++ type traits, like trivially_constructible. You also need	
+	/// to explicitly reflect your type with LANGULUS(POD) true;					
+	/// This gives a lot more control over your code									
+	///	@return true if contained data is plain old data							
+	constexpr bool Block::IsPOD() const noexcept {
+		return mType && mType->mIsPOD;
+	}
+
+	/// Check if block contains resolvable items, that is, items that have a	
+	/// GetBlock() function, that can be used to represent themselves as their	
+	/// most concretely typed block															
+	///	@return true if contained data can be resolved on element basis		
+	constexpr bool Block::IsResolvable() const noexcept {
+		return mType && mType->mResolver;
+	}
+
+	/// Check if block data can be safely set to zero bytes							
+	/// This is tied to LANGULUS(NULLIFIABLE) reflection parameter					
+	///	@return true if contained data can be memset(0) safely					
+	constexpr bool Block::IsNullifiable() const noexcept {
+		return mType && mType->mIsNullifiable;
+	}
+
 	/// Check if the memory block contains memory blocks								
 	///	@return true if the memory block contains memory blocks					
 	constexpr bool Block::IsDeep() const noexcept {
+		// This should be the same as CT::Deep, but at runtime				
 		return mType && mType->mIsDeep && mType->mSize == sizeof(Block) && mType->CastsTo<Block, false>();
 	}
 
@@ -2541,7 +2567,7 @@ namespace Langulus::Anyness
 		}
 
 		// Always nullify upon destruction only if we're paranoid			
-		PARANOIA(FillMemory(data, {}, GetSize()));
+		PARANOIA(FillMemory(data, {}, GetByteSize()));
 	}
 	
 	/// Call destructors in a region - after this call the memory is not			
@@ -2603,7 +2629,7 @@ namespace Langulus::Anyness
 
 		#if LANGULUS_PARANOID()
 			// Nullify upon destruction only if we're paranoid					
-			FillMemory(mRaw, {}, GetSize());
+			FillMemory(mRaw, {}, GetByteSize());
 		#endif
 	}
 

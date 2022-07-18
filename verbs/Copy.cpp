@@ -193,9 +193,9 @@ namespace Langulus::Anyness
 		// If this is reached, both source and destination are dense		
 		if (result.mType->mIsPOD) {
 			// If data is not complex just do a memcpy and we're done		
-			CopyMemory(mRaw, result.mRaw, GetSize());
+			CopyMemory(mRaw, result.mRaw, GetByteSize());
 			VERBOSE(Logger::Verbose()
-				<< "Copied " << GetSize() << " bytes via memcpy" 
+				<< "Copied " << GetByteSize() << " bytes via memcpy"
 				<< ccGreen << " (fast copy)");
 			return mCount;
 		}

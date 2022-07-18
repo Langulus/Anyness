@@ -393,7 +393,7 @@ namespace Langulus::Anyness
 	/// Get the size of all pairs, in bytes												
 	///	@return the total amount of initialized bytes								
 	TABLE_TEMPLATE()
-	constexpr Size TABLE()::GetSize() const noexcept {
+	constexpr Size TABLE()::GetByteSize() const noexcept {
 		return sizeof(Pair) * GetCount(); 
 	}
 

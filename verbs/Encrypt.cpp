@@ -19,7 +19,7 @@ namespace Langulus::Anyness
 			auto compressed_size = Compress(result, Compression::Fastest);
 		#else
 			Clone(result);
-			auto compressed_size = result.GetSize();
+			auto compressed_size = result.GetByteSize();
 		#endif
 
 		if (0 == compressed_size)
@@ -81,7 +81,7 @@ namespace Langulus::Anyness
 			return decompressed_size;
 		#else
 			result = decrypted;
-			return result.GetSize();
+			return result.GetByteSize();
 		#endif
 	}
 

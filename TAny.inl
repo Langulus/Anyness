@@ -625,7 +625,7 @@ namespace Langulus::Anyness
 	TEMPLATE()
 	void TAny<T>::Null(const Count& count) {
 		Allocate(count, false, true);
-		FillMemory(mRaw, {}, GetSize());
+		FillMemory(mRaw, {}, GetByteSize());
 	}
 
 	/// Clear the container, destroying all elements,									
@@ -880,27 +880,31 @@ namespace Langulus::Anyness
 	}
 	
 	/// Check if contained type is abstract												
+	/// This is a statically optimized alternative to Block::IsAbstract			
 	TEMPLATE()
 	constexpr bool TAny<T>::IsAbstract() const noexcept {
 		return CT::Abstract<T>;
 	}
 	
 	/// Check if contained type is default-constructible								
+	/// This is a statically optimized alternative to Block::IsDefaultable		
 	TEMPLATE()
-	constexpr bool TAny<T>::IsConstructible() const noexcept {
+	constexpr bool TAny<T>::IsDefaultable() const noexcept {
 		return CT::Defaultable<T>;
 	}
 	
 	/// Check if contained type is deep														
+	/// This is a statically optimized alternative to Block::IsDeep				
 	///	@return true if this container contains deep items							
 	TEMPLATE()
 	constexpr bool TAny<T>::IsDeep() const noexcept {
-		// Sparse types are never considered deep, but when contained		
+		// Sparse types are never considered deep, but when contained,		
 		// it's safe to erase that aspect											
 		return CT::Deep<Decay<T>>;
 	}
 
 	/// Check if the contained type is a pointer											
+	/// This is a statically optimized alternative to Block::IsSparse				
 	///	@return true if container contains pointers									
 	TEMPLATE()
 	constexpr bool TAny<T>::IsSparse() const noexcept {
@@ -908,13 +912,46 @@ namespace Langulus::Anyness
 	}
 
 	/// Check if the contained type is not a pointer									
+	/// This is a statically optimized alternative to Block::IsDense				
 	///	@return true if container contains sequential data							
 	TEMPLATE()
 	constexpr bool TAny<T>::IsDense() const noexcept {
 		return CT::Dense<T>;
 	}
 
+	/// Check if block contains POD items - if so, it's safe to directly copy	
+	/// raw memory from container. Note, that this doesn't only consider the	
+	/// standard c++ type traits, like trivially_constructible. You also need	
+	/// to explicitly reflect your type with LANGULUS(POD) true;					
+	/// This gives a lot more control over your code									
+	/// This is a statically optimized alternative to Block::IsPOD					
+	///	@return true if contained data is plain old data							
+	TEMPLATE()
+	constexpr bool TAny<T>::IsPOD() const noexcept {
+		return CT::POD<T>;
+	}
+
+	/// Check if block contains resolvable items, that is, items that have a	
+	/// GetBlock() function, that can be used to represent themselves as their	
+	/// most concretely typed block															
+	/// This is a statically optimized alternative to Block::IsResolvable		
+	///	@return true if contained data can be resolved on element basis		
+	TEMPLATE()
+	constexpr bool TAny<T>::IsResolvable() const noexcept {
+		return CT::Resolvable<T>;
+	}
+
+	/// Check if block data can be safely set to zero bytes							
+	/// This is tied to LANGULUS(NULLIFIABLE) reflection parameter					
+	/// This is a statically optimized alternative to Block::IsNullifiable		
+	///	@return true if contained data can be memset(0) safely					
+	TEMPLATE()
+	constexpr bool TAny<T>::IsNullifiable() const noexcept {
+		return CT::Nullifiable<T>;
+	}
+
 	/// Get the size of a single contained element, in bytes							
+	/// This is a statically optimized alternative to Block::GetStride			
 	///	@return the number of bytes a single element contains						
 	TEMPLATE()
 	constexpr Size TAny<T>::GetStride() const noexcept {
@@ -927,7 +964,7 @@ namespace Langulus::Anyness
 	/// Get the size of all elements, in bytes											
 	///	@return the total amount of initialized bytes								
 	TEMPLATE()
-	constexpr Size TAny<T>::GetSize() const noexcept {
+	constexpr Size TAny<T>::GetByteSize() const noexcept {
 		return GetStride() * mCount;
 	}
 
