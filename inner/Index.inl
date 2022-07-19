@@ -25,7 +25,7 @@ namespace Langulus::Anyness
 	constexpr Index::Index(const T& value)
 		: mIndex {static_cast<Type>(value)} {
 		if (value > static_cast<Count>(MaxIndex))
-			Throw<Except::Overflow>();
+			Throw<Except::Overflow>("Index overflow on construction");
 	}
 
 	/// Constrain the index to some count (immutable)									

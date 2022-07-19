@@ -58,6 +58,7 @@ namespace Langulus::Anyness
 	void TAny<T>::ConstructFromContainer(const ALT_T& other) {
 		static_assert(CT::Deep<ALT_T>, "ALT_T must be a deep type");
 
+		//TODO check if this TAny matches exactly ALT_T. That way we can use the same logic for the copy-c
 		if (CastsToMeta(other.GetType())) {
 			// Always attempt to copy containers directly first, instead	
 			// of doing allocations														
@@ -74,11 +75,7 @@ namespace Langulus::Anyness
 			auto& compatible = static_cast<const Decay<T>&>(other);
 			Insert<Index::Back, KEEP>(&compatible, &compatible + 1);
 		}
-		else {
-			Throw<Except::Copy>(Logger::Error()
-				<< "Bad copy-construction for TAny: from "
-				<< GetToken() << " to " << other.GetToken());
-		}
+		else Throw<Except::Copy>("Bad copy-construction for TAny");
 	}
 
 	/// Move-construct from another container by performing runtime type check	
@@ -109,11 +106,7 @@ namespace Langulus::Anyness
 		if constexpr (CT::Deep<T>) {
 			Insert<Index::Back, KEEP>(Forward<Decay<T>>(other));
 		}
-		else {
-			Throw<Except::Copy>(Logger::Error()
-				<< "Bad move-construction for TAny: from "
-				<< GetToken() << " to " << other.GetToken());
-		}
+		else Throw<Except::Copy>("Bad move-construction for TAny");
 	}
 
 	/// Shallow-copy construction from Any, that checks type at runtime			
@@ -332,11 +325,7 @@ namespace Langulus::Anyness
 			auto& compatible = static_cast<const Decay<T>&>(other);
 			Insert<Index::Back, KEEP>(&compatible, &compatible + 1);
 		}
-		else {
-			Throw<Except::Copy>(Logger::Error()
-				<< "Bad copy-assignment for TAny: from "
-				<< GetToken() << " to " << other.GetToken());
-		}
+		else Throw<Except::Copy>("Bad copy-assignment for TAny");
 	}
 
 	/// Move-construct from another container by performing runtime type check	
@@ -366,14 +355,10 @@ namespace Langulus::Anyness
 
 		// Then attempt to push other container, if this container allows	
 		// for it																			
-		if constexpr (CT::Deep<T>) {
+		if constexpr (CT::Deep<T>)
 			Insert<Index::Back, KEEP>(Forward<Decay<T>>(other));
-		}
-		else {
-			Throw<Except::Copy>(Logger::Error()
-				<< "Bad move-assignment for TAny: from "
-				<< GetToken() << " to " << other.GetToken());
-		}
+		else
+			Throw<Except::Copy>("Bad move-assignment for TAny");
 	}
 
 	/// Copy-assign an unknown container													

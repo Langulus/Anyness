@@ -365,15 +365,10 @@ namespace Langulus::Anyness
 	/// This function throws on error only if LANGULUS(SAFE) is enabled			
 	inline void Block::CheckRange(const Offset& start, const Count& count) const {
 		#if LANGULUS_SAFE()
-			if (start > mCount) {
-				Throw<Except::Access>(Logger::Error()
-					<< "Crop left offset is out of limits");
-			}
-			
-			if (start + count > mCount) {
-				Throw<Except::Access>(Logger::Error()
-					<< "Crop count is out of limits");
-			}
+			if (start > mCount)
+				Throw<Except::Access>("Crop left offset is out of limits");
+			if (start + count > mCount)
+				Throw<Except::Access>("Crop count is out of limits");
 		#endif
 	}	
 
@@ -809,10 +804,8 @@ namespace Langulus::Anyness
 	///	@return the selected byte															
 	inline Byte* Block::At(const Offset& byteOffset) {
 		#if LANGULUS_SAFE()
-			if (!mRaw) {
-				Throw<Except::Access>(Logger::Error()
-					<< "Byte offset in invalid memory of type " << GetToken());
-			}
+			if (!mRaw)
+				Throw<Except::Access>("Byte offset in invalid memory of type");
 		#endif
 		return GetRaw() + byteOffset;
 	}
@@ -925,9 +918,8 @@ namespace Langulus::Anyness
 				"Attempting to deepen incompatible type-constrained container");
 		}
 
-		SAFETY(if (!CastsToMeta(meta)) {
-			Throw<Except::Mutate>("Mutation results in incompatible data");
-		})
+		SAFETY(if (!CastsToMeta(meta))
+			Throw<Except::Mutate>("Mutation results in incompatible data"));
 
 		return false;
 	}
@@ -1162,7 +1154,7 @@ namespace Langulus::Anyness
 		// Move memory if required														
 		if (index < mCount) {
 			SAFETY(if (GetUses() > 1)
-				Throw<Except::Reference>(Logger::Error() << 
+				Throw<Except::Reference>(
 					"Moving elements that are used from multiple places"
 					" - you should first clone the container"));
 
@@ -1227,7 +1219,7 @@ namespace Langulus::Anyness
 		// Move memory if required														
 		if (index < mCount) {
 			SAFETY(if (GetUses() > 1)
-				Throw<Except::Reference>(Logger::Error() <<
+				Throw<Except::Reference>(
 					"Moving elements that are used from multiple places"
 					" - you should first clone the container"));
 
@@ -1277,7 +1269,7 @@ namespace Langulus::Anyness
 		// Move memory if required														
 		if constexpr (INDEX == Index::Front) {
 			SAFETY(if (GetUses() > 1)
-				Throw<Except::Reference>(Logger::Error() << 
+				Throw<Except::Reference>(
 					"Moving elements that are used from multiple places"
 					" - you should first clone the container"));
 
@@ -1330,7 +1322,7 @@ namespace Langulus::Anyness
 		// Move memory if required														
 		if constexpr (INDEX == Index::Front) {
 			SAFETY(if (GetUses() > 1)
-				Throw<Except::Reference>(Logger::Error() << 
+				Throw<Except::Reference>(
 					"Moving elements that are used from multiple places"
 					" - you should first clone the container"));
 
@@ -2493,8 +2485,8 @@ namespace Langulus::Anyness
 		// Move memory if required														
 		if (index < mCount) {
 			SAFETY(if (GetUses() > 1)
-				Throw<Except::Reference>(Logger::Error()
-					<< "Moving elements that are used from multiple places"));
+				Throw<Except::Reference>(
+					"Moving elements that are used from multiple places"));
 
 			CropInner(index + other.mCount, 0, mCount - index)
 				.template CallUnknownMoveConstructors<false>(
@@ -3132,8 +3124,8 @@ namespace Langulus::Anyness
 		// Move memory if required														
 		if constexpr (INDEX == Index::Front) {
 			SAFETY(if (GetUses() > 1)
-				Throw<Except::Reference>(Logger::Error()
-					<< "Moving elements that are used from multiple places"));
+				Throw<Except::Reference>(
+					"Moving elements that are used from multiple places"));
 
 			CropInner(other.mCount, 0, mCount)
 				.template CallUnknownMoveConstructors<false>(
@@ -3169,8 +3161,8 @@ namespace Langulus::Anyness
 		// Move memory if required														
 		if constexpr (INDEX == Index::Front) {
 			SAFETY(if (GetUses() > 1)
-				Throw<Except::Reference>(Logger::Error()
-					<< "Moving elements that are used from multiple places"));
+				Throw<Except::Reference>(
+					"Moving elements that are used from multiple places"));
 
 			CropInner(other.mCount, 0, mCount)
 				.template CallUnknownMoveConstructors<false>(
@@ -3212,8 +3204,8 @@ namespace Langulus::Anyness
 		// Move memory if required														
 		if constexpr (INDEX == Index::Front) {
 			SAFETY(if (GetUses() > 1)
-				Throw<Except::Reference>(Logger::Error()
-					<< "Moving elements that are used from multiple places"));
+				Throw<Except::Reference>(
+					"Moving elements that are used from multiple places"));
 
 			CropInner(other.mValue.mCount, 0, mCount)
 				.template CallUnknownMoveConstructors<false>(
@@ -3252,8 +3244,8 @@ namespace Langulus::Anyness
 		// Move memory if required														
 		if constexpr (INDEX == Index::Front) {
 			SAFETY(if (GetUses() > 1)
-				Throw<Except::Reference>(Logger::Error()
-					<< "Moving elements that are used from multiple places"));
+				Throw<Except::Reference>(
+					"Moving elements that are used from multiple places"));
 
 			CropInner(other.mValue.mCount, 0, mCount)
 				.template CallUnknownMoveConstructors<false>(
