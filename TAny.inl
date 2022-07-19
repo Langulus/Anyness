@@ -998,8 +998,8 @@ namespace Langulus::Anyness
 		// Move memory if required														
 		if (index < mCount) {
 			if (GetUses() > 1) {
-				Throw<Except::Reference>(Logger::Error()
-					<< "Moving elements that are used from multiple places");
+				Throw<Except::Reference>(
+					"Moving elements that are used from multiple places");
 			}
 
 			CropInner(index + count, 0, mCount - index)
@@ -1038,8 +1038,8 @@ namespace Langulus::Anyness
 		// Move memory if required														
 		if (index < mCount) {
 			if (GetUses() > 1) {
-				Throw<Except::Reference>(Logger::Error()
-					<< "Moving elements that are used from multiple places");
+				Throw<Except::Reference>(
+					"Moving elements that are used from multiple places");
 			}
 
 			CropInner(index + 1, 0, mCount - index)
@@ -1072,7 +1072,7 @@ namespace Langulus::Anyness
 		// Move memory if required														
 		if constexpr (INDEX == Index::Front) {
 			SAFETY(if (GetUses() > 1)
-				Throw<Except::Reference>(Logger::Error() << 
+				Throw<Except::Reference>(
 					"Moving elements that are used from multiple places"
 					" - you should first clone the container"));
 
@@ -1085,9 +1085,9 @@ namespace Langulus::Anyness
 		}
 		else if constexpr (INDEX == Index::Back)
 			InsertInner<KEEP>(start, end, mCount);
-		else
-			LANGULUS_ASSERT("Invalid index provided; use either Index::Back "
-				"or Index::Front, or Block::InsertAt to insert at an offset");
+		else LANGULUS_ASSERT(
+			"Invalid index provided; use either Index::Back "
+			"or Index::Front, or Block::InsertAt to insert at an offset");
 
 		return count;
 	}
@@ -1109,7 +1109,7 @@ namespace Langulus::Anyness
 		// Move memory if required														
 		if constexpr (INDEX == Index::Front) {
 			SAFETY(if (GetUses() > 1)
-				Throw<Except::Reference>(Logger::Error() << 
+				Throw<Except::Reference>(
 					"Moving elements that are used from multiple places"
 					" - you should first clone the container"));
 
@@ -1122,9 +1122,9 @@ namespace Langulus::Anyness
 		}
 		else if constexpr (INDEX == Index::Back)
 			InsertInner<KEEP>(Move(item), mCount);
-		else
-			LANGULUS_ASSERT("Invalid index provided; use either Index::Back "
-				"or Index::Front, or Block::InsertAt to insert at an offset");
+		else LANGULUS_ASSERT(
+			"Invalid index provided; use either Index::Back "
+			"or Index::Front, or Block::InsertAt to insert at an offset");
 
 		return 1;
 	}
@@ -1506,15 +1506,12 @@ namespace Langulus::Anyness
 	///	@return the number of removed elements											
 	TEMPLATE()
 	Count TAny<T>::RemoveIndex(const Count& starter, const Count& count) {
-		SAFETY(if (starter >= mCount)
-			Throw<Except::Access>(Logger::Error()
-				<< "Index " << starter << " out of range " << mCount));
-		SAFETY(if (count > mCount || starter + count > mCount)
-			Throw<Except::Access>(Logger::Error()
-				<< "Index " << starter << " out of range " << mCount));
+		SAFETY(if (starter >= mCount || count > mCount || starter + count > mCount)
+			Throw<Except::Access>(
+				"Index out of range"));
 		SAFETY(if (GetUses() > 1)
-			Throw<Except::Reference>(Logger::Error()
-				<< "Removing elements from a memory block, that is used from multiple places"));
+			Throw<Except::Reference>(
+				"Removing elements from a memory block, that is used from multiple places"));
 
 		const auto ender = starter + count;
 		if constexpr (CT::POD<T>) {
@@ -1525,13 +1522,13 @@ namespace Langulus::Anyness
 				mCount = starter;
 			else {
 				if (IsConstant()) {
-					Throw<Except::Access>(Logger::Error()
-						<< "Attempting to RemoveIndex in a constant container");
+					Throw<Except::Access>(
+						"Attempting to RemoveIndex in a constant container");
 				}
 
 				if (IsStatic()) {
-					Throw<Except::Access>(Logger::Error()
-						<< "Attempting to RemoveIndex in a static container");
+					Throw<Except::Access>(
+						"Attempting to RemoveIndex in a static container");
 				}
 
 				MoveMemory(GetRaw() + ender, GetRaw() + starter, sizeof(T) * (mCount - ender));
@@ -1542,13 +1539,13 @@ namespace Langulus::Anyness
 		}
 		else {
 			if (IsConstant()) {
-				Throw<Except::Access>(Logger::Error()
-					<< "Attempting to RemoveIndex in a constant container");
+				Throw<Except::Access>(
+					"Attempting to RemoveIndex in a constant container");
 			}
 
 			if (IsStatic()) {
-				Throw<Except::Access>(Logger::Error()
-					<< "Attempting to RemoveIndex in a static container");
+				Throw<Except::Access>(
+					"Attempting to RemoveIndex in a static container");
 			}
 
 			// Call the destructors on the correct region						

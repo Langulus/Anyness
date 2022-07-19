@@ -331,17 +331,12 @@ namespace Langulus::Anyness
 	///	@param elements - number of elements to allocate							
 	template<bool CREATE>
 	void Block::Allocate(const Count& elements) {
-		if (!mType) {
-			Throw<Except::Allocate>(Logger::Error()
-				<< "Allocating " << elements 
-				<< " element(s) of an invalid type is not allowed");
-		}
-		else if (mType->mIsAbstract && IsDense()) {
-			Throw<Except::Allocate>(Logger::Error()
-				<< "Allocating " << elements 
-				<< " element(s) of abstract dense type " << GetToken()
-				<< "is not allowed" );
-		}
+		if (!mType)
+			Throw<Except::Allocate>(
+				"Allocating element(s) of an invalid type is not allowed");
+		else if (mType->mIsAbstract && IsDense())
+			Throw<Except::Allocate>(
+				"Allocating element(s) of abstract dense type is not allowed");
 
 		if (mCount > elements) {
 			// Destroy back entries on smaller allocation						
@@ -926,15 +921,12 @@ namespace Langulus::Anyness
 				}
 			}
 
-			Throw<Except::Mutate>(Logger::Error()
-				<< "Attempting to deepen incompatible type-constrained container from "
-				<< GetToken() << " to " << meta->mToken);
+			Throw<Except::Mutate>(
+				"Attempting to deepen incompatible type-constrained container");
 		}
 
 		SAFETY(if (!CastsToMeta(meta)) {
-			Throw<Except::Mutate>(Logger::Error()
-				<< "Mutation results in incompatible data " << meta->mToken
-				<< " (container of type " << GetToken() << ")");
+			Throw<Except::Mutate>("Mutation results in incompatible data");
 		})
 
 		return false;
@@ -1052,9 +1044,8 @@ namespace Langulus::Anyness
 		// At this point, the container has a set type							
 		if (IsTypeConstrained()) {
 			// You can't change type of a type-constrained block				
-			Throw<Except::Mutate>(Logger::Error()
-				<< "Changing typed block is disallowed: from "
-				<< GetToken() << " to " << type->mToken);
+			Throw<Except::Mutate>(
+				"Changing typed block is disallowed");
 		}
 
 		if (mType->CastsTo(type)) {
@@ -1063,19 +1054,17 @@ namespace Langulus::Anyness
 			// might be wrong later														
 			if (IsSparse())
 				mType = type;
-			else Throw<Except::Mutate>(Logger::Error()
-				<< "Changing to compatible dense type is disallowed: from "
-				<< GetToken() << " to " << type->mToken);
+			else Throw<Except::Mutate>(
+				"Changing to compatible dense type is disallowed");
 		}
 		else {
 			// Type is not compatible, but container is not typed, so if	
 			// it has no constructed elements, we can still mutate it		
 			if (IsEmpty())
 				mType = type;
-			else Throw<Except::Mutate>(Logger::Error()
-				<< "Changing to incompatible type while there's constructed "
-				<< "data is disallowed: from " << GetToken()
-				<< " to " << type->mToken);
+			else Throw<Except::Mutate>(
+				"Changing to incompatible type while there's "
+				"initialized data is disallowed");
 		}
 
 		if constexpr (CONSTRAIN)
@@ -1997,13 +1986,13 @@ namespace Langulus::Anyness
 		static_assert(CT::Deep<T>, "T must be deep");
 
 		if (IsTypeConstrained() && !Is<T>()) {
-			Throw<Except::Mutate>(Logger::Error()
-				<< "Attempting to deepen incompatible typed container");
+			Throw<Except::Mutate>(
+				"Attempting to deepen incompatible typed container");
 		}
 
 		if (GetUses() > 1) {
-			Throw<Except::Mutate>(Logger::Error()
-				<< "Attempting to deepen container that is referenced from multiple locations");
+			Throw<Except::Mutate>(
+				"Attempting to deepen container that is referenced from multiple locations");
 		}
 
 		// Back up the state so that we can restore it if not moved over	
@@ -2592,9 +2581,8 @@ namespace Langulus::Anyness
 				if (data->mEntry->GetUses() == 1) {
 					if (!mType->mIsPOD) {
 						if (!mType->mDestructor) {
-							Throw<Except::Destruct>(Logger::Error()
-								<< "Can't destroy " << GetToken()
-								<< " because no destructor was reflected");
+							Throw<Except::Destruct>(
+								"Can't destroy elements - no destructor was reflected");
 						}
 
 						Inner::Allocator::Deallocate(data->mEntry);
@@ -2611,9 +2599,8 @@ namespace Langulus::Anyness
 			// Destroy every dense element, one by one, using the 			
 			// reflected destructors													
 			if (!mType->mDestructor) {
-				Throw<Except::Destruct>(Logger::Error()
-					<< "Can't destroy " << GetToken()
-					<< " because no destructor was reflected");
+				Throw<Except::Destruct>(
+					"Can't destroy elements - no destructor was reflected");
 			}
 
 			auto data = GetRaw();
@@ -2718,16 +2705,14 @@ namespace Langulus::Anyness
 			// Copy each dense element from RHS										
 			if constexpr (KEEP) {
 				if (!mType->mMoveConstructor) {
-					Throw<Except::Construct>(Logger::Error()
-						<< "Can't move-construct " << source.mCount << " elements of "
-						<< GetToken() << " because no move constructor was reflected");
+					Throw<Except::Construct>(
+						"Can't move-construct elements - no move constructor was reflected");
 				}
 			}
 			else {
 				if (!mType->mAbandonConstructor) {
-					Throw<Except::Construct>(Logger::Error()
-						<< "Can't abandon-construct " << source.mCount << " elements of "
-						<< GetToken() << " because no abandon constructor was reflected");
+					Throw<Except::Construct>(
+						"Can't abandon-construct elements - no abandon constructor was reflected");
 				}
 			}
 
@@ -2770,16 +2755,14 @@ namespace Langulus::Anyness
 			// Both RHS and LHS must be dense										
 			if constexpr (KEEP) {
 				if (!mType->mMoveConstructor) {
-					Throw<Except::Construct>(Logger::Error()
-						<< "Can't move-construct " << source.mCount << " elements of "
-						<< GetToken() << " because no move constructor was reflected");
+					Throw<Except::Construct>(
+						"Can't move-construct elements - no move constructor was reflected");
 				}
 			}
 			else {
 				if (!mType->mAbandonConstructor) {
-					Throw<Except::Construct>(Logger::Error()
-						<< "Can't abandon-construct " << source.mCount << " elements of "
-						<< GetToken() << " because no abandon constructor was reflected");
+					Throw<Except::Construct>(
+						"Can't abandon-construct elements - no abandon constructor was reflected");
 				}
 			}
 
@@ -2815,7 +2798,9 @@ namespace Langulus::Anyness
 			new (GetRawEnd()) T [count];
 			mCount += count;
 		}
-		else LANGULUS_ASSERT("Trying to default-construct elements that are incapable of default-construction");
+		else LANGULUS_ASSERT(
+			"Trying to default-construct elements that are "
+			"incapable of default-construction");
 	}
 	
 	/// Call default constructors in a region and initialize memory				
@@ -2835,9 +2820,8 @@ namespace Langulus::Anyness
 		}
 		else {
 			if (!mType->mDefaultConstructor) {
-				Throw<Except::Construct>(Logger::Error()
-					<< "Can't default-construct " << count << " elements of "
-					<< GetToken() << " because no default constructor was reflected");
+				Throw<Except::Construct>(
+					"Can't default-construct elements - no constructor was reflected");
 			}
 			
 			// Construct requested elements one by one							
@@ -2949,16 +2933,14 @@ namespace Langulus::Anyness
 			// Shallow-copy each dense element from RHS							
 			if constexpr (KEEP) {
 				if (!mType->mCopyConstructor) {
-					Throw<Except::Construct>(Logger::Error()
-						<< "Can't copy-construct " << source.mCount << " elements of "
-						<< GetToken() << " because no copy constructor was reflected");
+					Throw<Except::Construct>(
+						"Can't copy-construct elements - no copy-constructor was reflected");
 				}
 			}
 			else {
 				if (!mType->mDisownConstructor) {
-					Throw<Except::Construct>(Logger::Error()
-						<< "Can't disown-construct " << source.mCount << " elements of "
-						<< GetToken() << " because no disown constructor was reflected");
+					Throw<Except::Construct>(
+						"Can't disown-construct - no disown constructor was reflected");
 				}
 			}
 
@@ -2981,16 +2963,14 @@ namespace Langulus::Anyness
 			// Call the reflected copy-constructor for each element			
 			if constexpr (KEEP) {
 				if (!mType->mCopyConstructor) {
-					Throw<Except::Construct>(Logger::Error()
-						<< "Can't copy-construct " << source.mCount << " elements of "
-						<< GetToken() << " because no copy constructor was reflected");
+					Throw<Except::Construct>(
+						"Can't copy-construct elements - no copy constructor was reflected");
 				}
 			}
 			else {
 				if (!mType->mDisownConstructor) {
-					Throw<Except::Construct>(Logger::Error()
-						<< "Can't disown-construct " << source.mCount << " elements of "
-						<< GetToken() << " because no disown constructor was reflected");
+					Throw<Except::Construct>(
+						"Can't disown-construct - no disown constructor was reflected");
 				}
 			}
 

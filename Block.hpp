@@ -365,7 +365,7 @@ namespace Langulus::Anyness
 		constexpr void MakeFuture() noexcept;
 		constexpr void MakeSparse() noexcept;
 	
-		Count Copy(Block&, bool allocate = false) const;
+		Count Copy(Block&) const;
 		Count Clone(Block&) const;
 	
 		NOD() bool CompareMembers(const Block&, Count& compared) const;

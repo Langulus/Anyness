@@ -107,10 +107,7 @@ namespace Langulus::Anyness
 				VERBOSE("Cloned non-resolvable dense POD by memcpy " 
 					<< ccGreen << "(fast)");
 			}
-			else {
-				Throw<Except::Copy>(Logger::Error()
-					<< "Trying to clone unclonable complex type: " << GetToken());
-			}
+			else Throw<Except::Copy>("Trying to clone unclonable complex type");
 		}
 		else {
 			const bool preallocatedResult = !result.IsEmpty();
@@ -146,10 +143,7 @@ namespace Langulus::Anyness
 					VERBOSE("Cloned resolved dense POD by memcpy " 
 						<< ccDarkYellow << "(slow)");
 				}
-				else {
-					Throw<Except::Copy>(Logger::Error()
-						<< "Trying to clone unclonable complex type (resolved): " << from.GetToken());
-				}
+				else Throw<Except::Copy>("Trying to clone unclonable complex type (resolved)");
 
 				// Commit the cloned, by shallowly copying it to result		
 				if (preallocatedResult) {

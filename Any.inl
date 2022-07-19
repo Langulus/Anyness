@@ -202,9 +202,8 @@ namespace Langulus::Anyness
 
 		// Since Any is type-erased, we have to make a runtime type check	
 		if (IsTypeConstrained() && !CastsToMeta(other.mType)) {
-			Throw<Except::Copy>(Logger::Error()
-				<< "Bad copy-assignment for type-constrained Any: from "
-				<< GetToken() << " to " << other.GetToken());
+			Throw<Except::Copy>(
+				"Unable to copy-assign type-constrained container - types are incompatible");
 		}
 
 		// First we reference, so that we don't lose the memory, in			
@@ -224,9 +223,8 @@ namespace Langulus::Anyness
 
 		// Since Any is type-erased, we have to make a runtime type check	
 		if (IsTypeConstrained() && !CastsToMeta(other.mType)) {
-			Throw<Except::Copy>(Logger::Error()
-				<< "Bad move-assignment for Any: from "
-				<< GetToken() << " to " << other.GetToken());
+			Throw<Except::Copy>(
+				"Unable to move-assign type-constrained container - types are incompatible");
 		}
 
 		Free();
@@ -245,9 +243,8 @@ namespace Langulus::Anyness
 
 		// Since Any is type-erased, we have to make a runtime type check	
 		if (IsTypeConstrained() && !CastsToMeta(other.mValue.mType)) {
-			Throw<Except::Copy>(Logger::Error()
-				<< "Bad disown-assignment for type-constrained Any: from "
-				<< GetToken() << " to " << other.mValue.GetToken());
+			Throw<Except::Copy>(
+				"Unable to disown-assign type-constrained container - types are incompatible");
 		}
 
 		Free();
@@ -270,9 +267,8 @@ namespace Langulus::Anyness
 
 		// Since Any is type-erased, we have to make a runtime type check	
 		if (IsTypeConstrained() && !CastsToMeta(other.mValue.mType)) {
-			Throw<Except::Copy>(Logger::Error()
-				<< "Bad shallow-copy-assignment for Any: from "
-				<< GetToken() << " to " << other.mValue.GetToken());
+			Throw<Except::Copy>(
+				"Unable to abandon-assign type-constrained container - types are incompatible");
 		}
 
 		Free();
@@ -285,11 +281,11 @@ namespace Langulus::Anyness
 	template<class T>
 	void Any::PrepareForReassignment() {
 		const auto meta = MetaData::Of<Decay<T>>();
+
+		// Since Any is type-erased, we have to make a runtime type check	
 		if (IsTypeConstrained() && !CastsToMeta(meta)) {
-			// Can't assign different type to a type-constrained Any			
-			Throw<Except::Copy>(Logger::Error()
-				<< "Bad assignment for type-constrained Any: from "
-				<< GetToken() << " to " << meta->mToken);
+			Throw<Except::Copy>(
+				"Unable to value-assign type-constrained container - types are incompatible");
 		}
 
 		if (GetUses() == 1 && meta->Is(mType)) {
@@ -343,11 +339,11 @@ namespace Langulus::Anyness
 	template<CT::CustomData T>
 	Any& Any::operator = (Disowned<T>&& other) requires CT::Dense<T> {
 		const auto meta = MetaData::Of<Decay<T>>();
+
+		// Since Any is type-erased, we have to make a runtime type check	
 		if (IsTypeConstrained() && !CastsToMeta(meta)) {
-			// Can't assign different type to a type-constrained Any			
-			Throw<Except::Copy>(Logger::Error()
-				<< "Bad assignment for type-constrained Any: from "
-				<< GetToken() << " to " << meta->mToken);
+			Throw<Except::Copy>(
+				"Unable to disowned value-assign type-constrained container - types are incompatible");
 		}
 
 		if constexpr (CT::Sparse<T>) {
@@ -385,11 +381,11 @@ namespace Langulus::Anyness
 	template<CT::CustomData T>
 	Any& Any::operator = (Abandoned<T>&& other) requires CT::Dense<T> {
 		const auto meta = MetaData::Of<Decay<T>>();
+
+		// Since Any is type-erased, we have to make a runtime type check	
 		if (IsTypeConstrained() && !CastsToMeta(meta)) {
-			// Can't assign different type to a type-constrained Any			
-			Throw<Except::Copy>(Logger::Error()
-				<< "Bad assignment for type-constrained Any: from "
-				<< GetToken() << " to " << meta->mToken);
+			Throw<Except::Copy>(
+				"Unable to abandoned value-assign type-constrained container - types are incompatible");
 		}
 
 		if constexpr (CT::Sparse<T>) {

@@ -11,49 +11,27 @@
 namespace Langulus::Anyness
 {
 
-	/// Invoke the shallow copy operators of all elements inside this block		
+	/// Invokes reflected copy-assignments of all elements inside this block	
+	///	@attention assumes result has been preallocated and initialized		
+	///	@attention assumes this block is not empty									
+	///	@attention assumes result has the same count as this						
+	///	@attention assumes result is not constant										
 	///	@param result - the resulting block (must be preinitialized)			
 	///	@param allocate - whether or not to allocate elements in result		
 	///							(will be performed only if result is empty)			
 	///	@return the number of copied elements											
-	Count Block::Copy(Block& result, bool allocate) const {
-		// Check if there's anything to copy at all								
-		if (IsEmpty()) {
-			Throw<Except::Copy>(VERBOSE(Logger::Error()
-				<< "Nothing to copy"));
-		}
-
-		// Check if resulting container is allocated and initialized		
-		if (!allocate && result.IsEmpty()) {
-			Throw<Except::Copy>(VERBOSE(Logger::Error()
-				<< "Trying to copy " << GetToken()
-				<< " to an uninitialized memory block " << result.GetToken()));
-		}
-
+	Count Block::Copy(Block& result) const {
 		// Check if types are compatible												
 		if (!mType->Is(result.mType)) {
 			Block decayedResult = result.ReinterpretAs(*this);
 			if (!decayedResult.IsEmpty() && decayedResult.GetCount() <= GetCount()) {
 				// Attempt copy inside decayed type									
-				return Copy(decayedResult, false);
+				return Copy(decayedResult);
 			}
 			else {
 				// Data is incompatible for copying									
-				Throw<Except::Copy>(VERBOSE(Logger::Error()
-					<< "Can't copy " << GetToken()
-					<< " to incompatible block of type " << result.GetToken()));
+				Throw<Except::Copy>("Can't copy elements - incompatible types");
 			}
-		}
-
-		// This is reached only if types are exactly the same					
-		// Check if counts match														
-		if (mCount != result.mCount) {
-			if (!allocate || !result.IsEmpty()) {
-				Throw<Except::Copy>(VERBOSE(Logger::Error()
-					<< "Trying to copy " << GetToken()
-					<< " differently sized memory block " << result.GetToken()));
-			}
-			else result.Allocate<true>(mCount);
 		}
 
 		// Check if memory is the same after checking size						
@@ -64,13 +42,6 @@ namespace Langulus::Anyness
 				<< ccCyan << " (optimal)"
 			);
 			return mCount;
-		}
-
-		// Check if resulting container is constant								
-		if (result.IsConstant()) {
-			Throw<Except::Copy>(VERBOSE(Logger::Error()
-				<< "Trying to copy " << GetToken()
-				<< " to constant block " << result.GetToken()));
 		}
 
 		// Start copying																	
@@ -114,9 +85,8 @@ namespace Langulus::Anyness
 
 					// Type may not be compatible after resolve					
 					if (!from.mType->Is(to.mType)) {
-						Throw<Except::Copy>(Logger::Error()
-							<< "Trying to copy uncompatible types after resolving source: "
-							<< from.GetToken() << " -> " << to.GetToken());
+						Throw<Except::Copy>(
+							"Unable to copy-assign incompatible types after resolving element");
 					}
 
 					// Call copy operator												
@@ -132,8 +102,8 @@ namespace Langulus::Anyness
 			else {
 				// Check if a copy operation is available							
 				if (!result.mType->mCopier) {
-					Throw<Except::Copy>(Logger::Error()
-						<< "Trying to copy uncopiable " << result.GetToken());
+					Throw<Except::Copy>(
+						"Unable to copy-assign - no assignment reflected");
 				}
 
 				for (Count i = 0; i < mCount; ++i) {
@@ -143,9 +113,8 @@ namespace Langulus::Anyness
 
 					// Type may not be compatible after resolve					
 					if (!from.mType->Is(to.mType)) {
-						Throw<Except::Copy>(Logger::Error()
-							<< "Trying to copy uncompatible types after resolving source: "
-							<< from.GetToken() << " -> " << to.GetToken());
+						Throw<Except::Copy>(
+							"Unable to copy-assign incompatible types after resolving element");
 					}
 
 					// Call copy operator												
@@ -221,8 +190,8 @@ namespace Langulus::Anyness
 		else {
 			// Check if a copy operation is available								
 			if (!mType->mCopier) {
-				Throw<Except::Copy>(VERBOSE(Logger::Error()
-					<< "Trying to copy uncopiable " << result.GetToken()));
+				Throw<Except::Copy>(
+					"Unable to copy-assign - no assignment reflected");
 			}
 
 			// Iterate each instance in memory										

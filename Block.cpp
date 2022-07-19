@@ -143,8 +143,7 @@ namespace Langulus::Anyness
 				h.emplace_back(GetElementResolved(i).GetHash());
 			}
 		}
-		else Throw<Except::Access>(
-			Logger::Error() << "Type " << mType->mToken << " is unhashable");
+		else Throw<Except::Access>("Unhashable type");
 
 		return HashBytes<DefaultHashSeed, false>(h.data(), h.size() * sizeof(Hash));
 	}
@@ -392,15 +391,10 @@ namespace Langulus::Anyness
 	///	@param count - number of elements to remove									
 	///	@return the number of removed elements											
 	Count Block::RemoveIndex(const Count starter, const Count count) {
-		SAFETY(if (starter >= mCount)
-			Throw<Except::Access>(Logger::Error()
-				<< "Index " << starter << " out of range " << mCount));
-		SAFETY(if (count > mCount || starter + count > mCount)
-			Throw<Except::Access>(Logger::Error()
-				<< "Index " << starter << " out of range " << mCount));
+		SAFETY(if (starter >= mCount || count > mCount || starter + count > mCount)
+			Throw<Except::Access>("Index out of range"));
 		SAFETY(if (GetUses() > 1)
-			Throw<Except::Reference>(Logger::Error()
-				<< "Removing elements from a memory block, that is used from multiple places"));
+			Throw<Except::Reference>("Attempting to remove elements from a used memory block"));
 
 		if (IsConstant() || IsStatic()) {
 			if (mType->mIsPOD && starter + count >= mCount) {
@@ -412,15 +406,13 @@ namespace Langulus::Anyness
 				return removed;
 			}
 			else {
-				if (IsConstant()) {
-					Throw<Except::Access>(Logger::Error() 
-						<< "Attempting to RemoveIndex in a constant container");
-				}
+				if (IsConstant())
+					Throw<Except::Access>(
+						"Attempting to RemoveIndex in a constant container");
 
-				if (IsStatic()) {
-					Throw<Except::Access>(Logger::Error()
-						<< "Attempting to RemoveIndex in a static container");
-				}
+				if (IsStatic())
+					Throw<Except::Access>(
+						"Attempting to RemoveIndex in a static container");
 
 				return 0;
 			}
