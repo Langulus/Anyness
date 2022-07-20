@@ -2604,14 +2604,9 @@ namespace Langulus::Anyness
 
 			return;
 		}
-		else if (!mType->mIsPOD) {
+		else if (!mType->mIsPOD && mType->mDestructor) {
 			// Destroy every dense element, one by one, using the 			
-			// reflected destructors													
-			if (!mType->mDestructor) {
-				Throw<Except::Destruct>(
-					"Can't destroy elements - no destructor was reflected");
-			}
-
+			// reflected destructors (if any)										
 			auto data = GetRaw();
 			const auto dataStride = mType->mSize;
 			const auto dataEnd = data + mCount * mType->mSize;
