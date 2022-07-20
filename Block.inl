@@ -883,8 +883,16 @@ namespace Langulus::Anyness
 	bool Block::Mutate() {
 		static_assert(ALLOW_DEEPEN && CT::Deep<WRAPPER>, "WRAPPER must be deep");
 		const auto deepened = Mutate<ALLOW_DEEPEN, WRAPPER>(MetaData::Of<Decay<T>>());
-		if constexpr (ALLOW_DEEPEN && CT::Sparse<T>)
-			Get<WRAPPER>(mCount - 1).MakeSparse();
+		if constexpr (ALLOW_DEEPEN && CT::Sparse<T>) {
+			if (deepened)
+				Get<WRAPPER>(mCount - 1).MakeSparse();
+			else {
+				if constexpr (CT::Sparse<T>)
+					MakeSparse();
+				else
+					MakeDense();
+			}
+		}
 		else if constexpr (CT::Sparse<T>)
 			MakeSparse();
 		else

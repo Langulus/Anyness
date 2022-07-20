@@ -322,6 +322,9 @@ namespace Langulus::Anyness
 		// Then attempt to push other container, if this container allows	
 		// for it																			
 		if constexpr (CT::Deep<T>) {
+			CallKnownDestructors<T>();
+			mCount = 0;
+			ResetState();
 			auto& compatible = static_cast<const Decay<T>&>(other);
 			Insert<Index::Back, KEEP>(&compatible, &compatible + 1);
 		}
@@ -355,10 +358,13 @@ namespace Langulus::Anyness
 
 		// Then attempt to push other container, if this container allows	
 		// for it																			
-		if constexpr (CT::Deep<T>)
+		if constexpr (CT::Deep<T>) {
+			CallKnownDestructors<T>();
+			mCount = 0;
+			ResetState();
 			Insert<Index::Back, KEEP>(Forward<Decay<T>>(other));
-		else
-			Throw<Except::Copy>("Bad move-assignment for TAny");
+		}
+		else Throw<Except::Copy>("Bad move-assignment for TAny");
 	}
 
 	/// Copy-assign an unknown container													
