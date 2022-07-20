@@ -159,16 +159,17 @@ namespace Langulus::Anyness
 			
 		void TakeAuthority();
 		void Optimize();
-	
+
+	protected:
+		template<bool CONSTRAIN>
+		void SetType(DMeta);
+		template<CT::Data T, bool CONSTRAIN>
+		void SetType();
+
 	public:
 		//																						
 		//	Capsulation and access														
 		//																						
-		template<bool SPARSE, bool CONSTRAIN>
-		void SetType(DMeta);
-		template<CT::Data T, bool CONSTRAIN>
-		void SetType();
-	
 		constexpr void SetPhase(Phase) noexcept;
 		constexpr void SetState(DataState) noexcept;
 		constexpr void AddState(DataState) noexcept;
@@ -364,6 +365,7 @@ namespace Langulus::Anyness
 		constexpr void MakePast() noexcept;
 		constexpr void MakeFuture() noexcept;
 		constexpr void MakeSparse() noexcept;
+		constexpr void MakeDense() noexcept;
 	
 		Count Copy(Block&) const;
 		Count Clone(Block&) const;

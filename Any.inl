@@ -62,6 +62,8 @@ namespace Langulus::Anyness
 	///	@param other - the dense value to shallow-copy								
 	template <CT::CustomData T>
 	Any::Any(const T& other) {
+		if constexpr (CT::Sparse<T>)
+			MakeSparse();
 		SetType<T, false>();
 		Insert<Index::Back, Any, true, false, T>(&other, &other + 1);
 	}
@@ -78,6 +80,8 @@ namespace Langulus::Anyness
 	///	@param other - the dense value to forward and emplace						
 	template <CT::CustomData T>
 	Any::Any(T&& other) {
+		if constexpr (CT::Sparse<T>)
+			MakeSparse();
 		SetType<T, false>();
 		Insert<Index::Back, Any, true, false, T>(Move(other));
 	}
@@ -107,6 +111,7 @@ namespace Langulus::Anyness
 	///	@param other - the disownes sparse value										
 	template <CT::CustomData T>
 	Any::Any(Disowned<T>&& other) requires CT::Sparse<T> {
+		MakeSparse();
 		SetType<T, false>();
 		Insert<Index::Back, Any, false, false, T>(&other.mValue, &other.mValue + 1);
 	}
@@ -116,6 +121,7 @@ namespace Langulus::Anyness
 	///	@param other - the disownes sparse value										
 	template <CT::CustomData T>
 	Any::Any(Abandoned<T>&& other) requires CT::Sparse<T> {
+		MakeSparse();
 		SetType<T, false>();
 		Insert<Index::Back, Any, false, false, T>(Move(other.mValue));
 	}
@@ -302,6 +308,8 @@ namespace Langulus::Anyness
 			mType = meta;
 			if constexpr (CT::Sparse<T>)
 				MakeSparse();
+			else
+				MakeDense();
 			AllocateInner<false>(1);
 		}
 	}

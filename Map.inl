@@ -122,11 +122,7 @@ namespace Langulus::Anyness
 	/// Check if a KEY VALUE pair is insertable to map									
 	///	@return true if pair is insertable												
 	template<CT::Data KEY, CT::Data VALUE>
-	bool Map::IsMapInsertable() {
-		if (mKeys.IsUntyped())
-			mKeys.SetType<KEY, false>();
-		if (mValues.IsUntyped())
-			mValues.SetType<VALUE, false>();
+	bool Map::IsMapInsertable() const noexcept {
 		return mKeys.IsInsertable<KEY>() && mValues.IsInsertable<VALUE>();
 	}
 

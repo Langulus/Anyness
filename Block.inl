@@ -545,9 +545,14 @@ namespace Langulus::Anyness
 		SetPhase(Phase::Future);
 	}
 	
-	/// Set sparseness																			
+	/// Make the container type sparse														
 	constexpr void Block::MakeSparse() noexcept {
 		mState += DataState::Sparse;
+	}
+	
+	/// Make the container type dense														
+	constexpr void Block::MakeDense() noexcept {
+		mState -= DataState::Sparse;
 	}
 	
 	/// Get polarity																				
@@ -869,20 +874,26 @@ namespace Langulus::Anyness
 	}
 
 	/// Mutate the block to a different type, if possible								
+	/// This can also change sparseness, if T is pointer								
 	///	@tparam T - the type to change to												
-	///	@tparam ALLOW_DEEPEN - are we allowed to mutate to WRAPPER				
-	///	@tparam WRAPPER - type to use to deepen										
+	///	@tparam ALLOW_DEEPEN - are we allowed to mutate to WRAPPER?				
+	///	@tparam WRAPPER - container to use for deepening							
 	///	@return true if block was deepened to incorporate the new type			
 	template<CT::Data T, bool ALLOW_DEEPEN, CT::Data WRAPPER>
 	bool Block::Mutate() {
 		static_assert(ALLOW_DEEPEN && CT::Deep<WRAPPER>, "WRAPPER must be deep");
 		const auto deepened = Mutate<ALLOW_DEEPEN, WRAPPER>(MetaData::Of<Decay<T>>());
-		if constexpr (CT::Sparse<T>)
+		if constexpr (ALLOW_DEEPEN && CT::Sparse<T>)
+			Get<WRAPPER>(mCount - 1).MakeSparse();
+		else if constexpr (CT::Sparse<T>)
 			MakeSparse();
+		else
+			MakeDense();
 		return deepened;
 	}
 	
 	/// Mutate to another compatible type, deepening the container if allowed	
+	///	@attention doesn't affect sparseness											
 	///	@tparam ALLOW_DEEPEN - are we allowed to mutate to WRAPPER				
 	///	@tparam WRAPPER - type to use to deepen										
 	///	@param meta - the type to mutate into											
@@ -893,7 +904,7 @@ namespace Langulus::Anyness
 
 		if (IsUntyped()) {
 			// Undefined containers can mutate freely								
-			SetType<false, false>(meta);
+			SetType<false>(meta);
 		}
 		else if (mType->Is(meta)) {
 			// No need to mutate - types are the same								
@@ -901,7 +912,7 @@ namespace Langulus::Anyness
 		}
 		else if (IsAbstract() && IsEmpty() && meta->CastsTo(mType)) {
 			// Abstract compatible containers can be concretized				
-			SetType<false, false>(meta);
+			SetType<false>(meta);
 		}
 		else if (!IsInsertable(meta)) {
 			// Not insertable due to some reasons									
@@ -1013,14 +1024,11 @@ namespace Langulus::Anyness
 	}
 
 	/// Set the data ID - use this only if you really know what you're doing	
-	///	@tparam SPARSE - whether or not to contain only pointers of the type	
+	///	@attention doesn't affect sparseness											
 	///	@tparam CONSTRAIN - whether or not to enable type-constraints			
 	///	@param type - the type meta to set												
-	template<bool SPARSE, bool CONSTRAIN>
+	template<bool CONSTRAIN>
 	void Block::SetType(DMeta type) {
-		if constexpr (SPARSE)
-			MakeSparse();
-
 		if (mType == type) {
 			if constexpr (CONSTRAIN)
 				MakeTypeConstrained();
@@ -1064,11 +1072,12 @@ namespace Langulus::Anyness
 	}
 	
 	/// Set the contained data type															
+	///	@attention doesn't affect sparseness											
 	///	@tparam T - the contained type													
 	///	@tparam CONSTRAIN - whether or not to enable type-constraints			
 	template<CT::Data T, bool CONSTRAIN>
 	void Block::SetType() {
-		SetType<CT::Sparse<T>, CONSTRAIN>(MetaData::Of<Decay<T>>());
+		SetType<CONSTRAIN>(MetaData::Of<Decay<T>>());
 	}
 
 	/// Swap two elements (with raw indices)												
@@ -1842,10 +1851,10 @@ namespace Langulus::Anyness
 
 			if (previousState.IsTyped())
 				// Retain type if original package was constrained				
-				SetType<false, true>(previousType);
+				SetType<true>(previousType);
 			else if (IsSparse())
 				// Retain type if current package is sparse						
-				SetType<false, false>(previousType);
+				SetType<false>(previousType);
 			return 1;
 		}
 
@@ -1926,10 +1935,10 @@ namespace Langulus::Anyness
 
 			if (previousState.IsTyped())
 				// Retain type if original package was constrained				
-				SetType<false, true>(previousType);
+				SetType<true>(previousType);
 			else if (IsSparse())
 				// Retain type if current package is sparse						
-				SetType<false, false>(previousType);
+				SetType<false>(previousType);
 			return 1;
 		}
 

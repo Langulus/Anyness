@@ -18,8 +18,8 @@ namespace Langulus::Anyness
 	TEMPLATE()
 	MAP()::TMap()
 		: Map { } {
-		Map::mKeys.SetType<K>(true);
-		Map::mValues.SetType<V>(true);
+		Map::mKeys.SetType<K, true>();
+		Map::mValues.SetType<V, true>();
 	}
 
 	/// Copy construction																		

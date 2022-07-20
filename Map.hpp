@@ -75,7 +75,7 @@ namespace Langulus::Anyness
 		NOD() auto GetPair(Offset) const;
 
 		template<CT::Data KEY, CT::Data VALUE>
-		NOD() bool IsMapInsertable();
+		NOD() bool IsMapInsertable() const noexcept;
 
 		template<CT::Data>
 		NOD() decltype(auto) GetKey(const Index&) const;
