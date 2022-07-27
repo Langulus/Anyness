@@ -374,7 +374,7 @@ namespace Langulus::Anyness
 		NOD() bool CompareStates(const Block&) const noexcept;
 		NOD() bool Compare(const Block&, bool resolve = true) const;
 	
-		template<bool CREATE = false>
+		template<bool CREATE = false, bool SETSIZE = false>
 		void Allocate(const Count&);
 		
 		void Shrink(Count);

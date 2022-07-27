@@ -328,8 +328,10 @@ namespace Langulus::Anyness
 
 	/// Allocate a number of elements, relying on the type of the container		
 	///	@tparam CREATE - true to call constructors									
+	///	@tparam SETSIZE - true to set count, despite not calling any			
+	///							constructors. Works only when CREATE is false		
 	///	@param elements - number of elements to allocate							
-	template<bool CREATE>
+	template<bool CREATE, bool SETSIZE>
 	void Block::Allocate(const Count& elements) {
 		if (!mType)
 			Throw<Except::Allocate>(
@@ -359,6 +361,9 @@ namespace Langulus::Anyness
 		}
 		
 		AllocateInner<CREATE>(elements);
+
+		if constexpr (!CREATE && SETSIZE)
+			mCount = elements;
 	}
 	
 	/// Check if a range is inside the block												
