@@ -142,3 +142,13 @@ namespace Langulus::Anyness
 	}
 
 } // namespace Langulus::Anyness
+
+namespace Langulus
+{
+
+	/// Make a text literal																		
+	inline Anyness::Text operator "" _text(const char* text, ::std::size_t size) {
+		return Anyness::Text {text, size};
+	}
+
+}

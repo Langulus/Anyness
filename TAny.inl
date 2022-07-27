@@ -2025,7 +2025,9 @@ namespace Langulus::Anyness
 
 		auto t1 = GetRaw();
 		auto t2 = other.GetRaw();
-		while (t1 < GetRawEnd() && *t1 == *t2) {
+		const auto t1end = GetRawEnd();
+		const auto t2end = other.GetRawEnd();
+		while (t1 != t1end && t2 != t2end && *t1 == *t2) {
 			++t1;
 			++t2;
 		}
@@ -2050,7 +2052,9 @@ namespace Langulus::Anyness
 
 		auto t1 = GetRaw();
 		auto t2 = other.GetRaw();
-		while (t1 < GetRawEnd() && (*t1 == *t2 || (::std::isalpha(*t1) && ::std::isalpha(*t2) && (*t1 + 32 == *t2 || *t1 == *t2 + 32)))) {
+		const auto t1end = GetRawEnd();
+		const auto t2end = other.GetRawEnd();
+		while (t1 != t1end && t2 != t2end && (*t1 == *t2 || (::std::isalpha(*t1) && ::std::isalpha(*t2) && (*t1 + 32 == *t2 || *t1 == *t2 + 32)))) {
 			++t1;
 			++t2;
 		}

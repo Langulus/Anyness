@@ -117,4 +117,9 @@ namespace Langulus::CT
 } // namespace Langulus::CT
 
 
+namespace Langulus
+{
+	Anyness::Text operator "" _text(const char*, ::std::size_t);
+}
+
 #include "Text.inl"
