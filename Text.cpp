@@ -35,18 +35,6 @@ namespace Langulus::Anyness
 		(*this) += ")";
 	}
 
-	/// Construct from an index																
-	///	@param from - the index to stringify											
-	Text::Text(const Index& from) {
-		if (!from.IsArithmetic()) {
-			(*this) += Index::Names[from.mIndex - Index::MinIndex];
-			return;
-		}
-
-		(*this) += from.mIndex;
-		(*this) += "i";
-	}
-
 	/// Stringify meta																			
 	///	@param meta - the definition to stringify										
 	Text::Text(const RTTI::Meta& meta)

@@ -15,6 +15,11 @@ namespace Langulus::Anyness
 	///	A multipurpose index, used to access common elements in containers	
 	///																								
 	struct Index {
+		LANGULUS(POD) true;
+		LANGULUS(NULLIFIABLE) true;
+		LANGULUS(SUFFIX) "i";
+		LANGULUS(INFO) "Used to safely access elements inside containers";
+
 		using Type = ::std::ptrdiff_t;
 
 		/// These are defines useful for special indices								
@@ -51,21 +56,19 @@ namespace Langulus::Anyness
 			First = 0
 		};
 
-		static constexpr Token Names[SpecialIndexCounter - MinIndex] = {
-			"All",
-			"Many",
-			"Single",
-
-			"None",
-			"Front",
-			"Middle",
-			"Back",
-
-			"Mode",
-			"Biggest",
-			"Smallest",
-			"Auto",
-			"Random"
+		LANGULUS_NAMED_VALUES(SpecialIndices) {
+			{"All", All},
+			{"Many", Many},
+			{"Single", Single},
+			{"None", None},
+			{"Front", Front},
+			{"Middle", Middle},
+			{"Back", Back},
+			{"Mode", Mode},
+			{"Biggest", Biggest},
+			{"Smallest", Smallest},
+			{"Auto", Auto},
+			{"Random", Random}
 		};
 
 		#if LANGULUS_DEBUG()

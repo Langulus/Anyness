@@ -1018,6 +1018,8 @@ namespace Langulus::Anyness
 	///	@return true if key is found, false otherwise								
 	TABLE_TEMPLATE()
 	bool TABLE()::ContainsKey(const K& key) const {
+		if (IsEmpty())
+			return false;
 		return FindIndex(key) != GetReserved();
 	}
 
@@ -1035,6 +1037,9 @@ namespace Langulus::Anyness
 	///	@return true if value is found, false otherwise								
 	TABLE_TEMPLATE()
 	bool TABLE()::ContainsValue(const V& match) const {
+		if (IsEmpty())
+			return false;
+
 		auto value = GetRawValues();
 		auto info = GetInfo();
 		const auto valueEnd = GetRawValuesEnd();

@@ -17,7 +17,9 @@ namespace Langulus::Anyness
 	/// Convenient wrapper for UTF8 strings												
 	///																								
 	class Text : public TAny<Letter> {
-		LANGULUS(DEEP) false;		
+		LANGULUS(DEEP) false;
+		LANGULUS_BASES(A::Text, TAny<Letter>);
+
 	public:
 		Text() = default;
 
@@ -32,7 +34,6 @@ namespace Langulus::Anyness
 		Text(const Token&);
 		Text(const Byte&);
 		Text(const Exception&);
-		Text(const Index&);
 		Text(const RTTI::Meta&);
 
 		Text(const Letter*, const Count&);
@@ -96,6 +97,7 @@ namespace Langulus::Anyness
 	/// Serializing to text might produce a lot of unncessesary text, so this	
 	/// differentiation is quite handy														
 	class Debug : public Text {
+		LANGULUS_BASES(Text);
 	public:
 		using Text::Text;
 	};

@@ -8,7 +8,7 @@
 #include "../Any.hpp"
 
 #define VERBOSE_TAB(a) //ScopedTab tab; pcLogFuncVerbose << a << tab
-#define VERBOSE(a) //pcLogFuncVerbose << a
+#define VERBOSE(a) //Logger::Verbose() << a
 
 namespace Langulus::Anyness
 {
@@ -57,7 +57,7 @@ namespace Langulus::Anyness
 				ptrTo.mEntry = to.mEntry;
 			}
 
-			VERBOSE("Cloned sparse data " << ccRed << "(slowest)");
+			VERBOSE("Cloned sparse data " << Logger::Red << "(slowest)");
 			return mCount;
 		}
 
@@ -79,7 +79,7 @@ namespace Langulus::Anyness
 				}
 
 				VERBOSE("Cloned non-resolvable dense by move-placement new " 
-					<< ccDarkYellow << "(slow)");
+					<< Logger::DarkYellow << "(slow)");
 			}
 			else if (mType->mCloneInInitializedMemory) {
 				// Cloning by copy is available										
@@ -93,7 +93,7 @@ namespace Langulus::Anyness
 				}
 
 				VERBOSE("Cloned non-resolvable dense by shallow copy " 
-					<< ccRed << "(slowest)");
+					<< Logger::Red << "(slowest)");
 			}
 			else if (mType->mIsPOD) {
 				// Just memcpy simple POD data										
@@ -105,9 +105,9 @@ namespace Langulus::Anyness
 				CopyMemory(mRaw, result.mRaw, GetByteSize());
 
 				VERBOSE("Cloned non-resolvable dense POD by memcpy " 
-					<< ccGreen << "(fast)");
+					<< Logger::Green << "(fast)");
 			}
-			else Throw<Except::Copy>("Trying to clone unclonable complex type");
+			else Throw<Except::Clone>("Trying to clone unclonable complex type");
 		}
 		else {
 			const bool preallocatedResult = !result.IsEmpty();
@@ -124,7 +124,7 @@ namespace Langulus::Anyness
 					
 					from.mType->mCloneInUninitilizedMemory(from.mRaw, to.mRaw);
 					VERBOSE("Cloned resolved dense by move-placement new" 
-						<< ccRed << "(slowest)");
+						<< Logger::Red << "(slowest)");
 				}
 				else if (mType->mCloneInInitializedMemory) {
 					// Clone and copy inside initialized elements				
@@ -132,7 +132,7 @@ namespace Langulus::Anyness
 					
 					from.mType->mCloneInInitializedMemory(from.mRaw, to.mRaw);
 					VERBOSE("Cloned resolved dense by shallow copy " 
-						<< ccRed << "(slowest)");
+						<< Logger::Red << "(slowest)");
 				}
 				else if (from.mType->mIsPOD) {
 					// Just memcpy simple CT::POD data								
@@ -141,9 +141,9 @@ namespace Langulus::Anyness
 					
 					CopyMemory(from.mRaw, to.mRaw, from.GetByteSize());
 					VERBOSE("Cloned resolved dense POD by memcpy " 
-						<< ccDarkYellow << "(slow)");
+						<< Logger::DarkYellow << "(slow)");
 				}
-				else Throw<Except::Copy>("Trying to clone unclonable complex type (resolved)");
+				else Throw<Except::Clone>("Trying to clone unclonable complex type (resolved)");
 
 				// Commit the cloned, by shallowly copying it to result		
 				if (preallocatedResult) {
