@@ -32,7 +32,6 @@ namespace Langulus::Anyness
 		Text(Abandoned<Text>&&) noexcept;
 
 		Text(const Token&);
-		Text(const Byte&);
 		Text(const Exception&);
 		Text(const RTTI::Meta&);
 
@@ -100,6 +99,11 @@ namespace Langulus::Anyness
 		LANGULUS_BASES(Text);
 	public:
 		using Text::Text;
+
+		Debug(Disowned<Debug>&& o) noexcept
+			: Text {o.Forward<Text>()} {}
+		Debug(Abandoned<Debug>&& o) noexcept
+			: Text {o.Forward<Text>()} {}
 	};
 
 } // namespace Langulus::Anyness

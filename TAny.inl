@@ -1757,7 +1757,7 @@ namespace Langulus::Anyness
 	///	@tparam CREATE - true to call constructors									
 	///	@param elements - number of elements to allocate							
 	TEMPLATE()
-	template<bool CREATE>
+	template<bool CREATE, bool SETSIZE>
 	void TAny<T>::Allocate(Count elements) {
 		static_assert(!CT::Abstract<T>, "Can't allocate abstract items");
 		const auto request = RequestSize(elements);
@@ -1778,6 +1778,8 @@ namespace Langulus::Anyness
 						CallKnownDefaultConstructors<T>(elements - mCount);
 				}
 
+				if constexpr (!CREATE && SETSIZE)
+					mCount = elements;
 				return;
 			}
 
@@ -1837,6 +1839,8 @@ namespace Langulus::Anyness
 			}
 		}
 		
+		if constexpr (!CREATE && SETSIZE)
+			mCount = elements;
 		mReserved = request.mElementCount;
 	}
 	

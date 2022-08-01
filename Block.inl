@@ -2873,10 +2873,10 @@ namespace Langulus::Anyness
 			static_assert(CT::CopyMakable<T>, 
 				"Trying to copy-construct but it's impossible for this type");
 
-			auto from = source.GetRaw();
-			auto to = GetRaw() + mCount;
-			const auto toEnd = to + count;
-			while (to != toEnd) {
+			auto to = GetRawAs<T>() + mCount;
+			auto from = source.GetRawAs<T>();
+			const auto fromEnd = from + count;
+			while (from != fromEnd) {
 				if constexpr (KEEP)
 					new (to) T {*from};
 				else
