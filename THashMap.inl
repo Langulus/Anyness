@@ -1029,7 +1029,7 @@ namespace Langulus::Anyness
 	TABLE_TEMPLATE()
 	Index TABLE()::FindKeyIndex(const K& key) const {
 		const auto offset = FindIndex(key);
-		return offset != GetReserved() ? Index {offset} : Index::None;
+		return offset != GetReserved() ? Index {offset} : IndexNone;
 	}
 
 	/// Search for a value inside the table												

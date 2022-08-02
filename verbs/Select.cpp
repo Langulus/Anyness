@@ -181,24 +181,23 @@ namespace Langulus::Anyness
 	///	@return the index of the found item, or uiNone if not found				
 	Index Block::FindRTTI(const Block& item, const Index& idx) const {
 		if (item.IsEmpty())
-			return Index::None;
+			return IndexNone;
 
 		// Setup the iterator															
 		Index starti, istep;
-		switch (idx.mIndex) {
-		case Index::Front:
+		if (idx == IndexFront) {
 			starti = 0;
 			istep = 1;
-			break;
-		case Index::Back:
+		}
+		else if (idx == IndexBack) {
 			starti = mCount - 1;
 			istep = -1;
-			break;
-		default:
+		}
+		else {
 			starti = Constrain(idx).mIndex;
 			istep = 1;
 			if (starti + 1 >= mCount)
-				return Index::None;
+				return IndexNone;
 		}
 
 		// Compare all elements															
@@ -218,7 +217,7 @@ namespace Langulus::Anyness
 		}
 
 		// If this is reached, then no match was found							
-		return Index::None;
+		return IndexNone;
 	}
 
 } // namespace Langulus::Anyness

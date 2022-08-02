@@ -89,25 +89,25 @@ namespace Langulus::Anyness
 		Count Merge(const TMap&)
 			requires CT::CopyMakable<K> && CT::CopyMakable<V>;
 
-		Count Emplace(Pair&&, const Index& = Index::Back);
-		Count Insert(const Pair*, const Count& = 1, const Index& = Index::Back);
+		Count Emplace(Pair&&, const Index& = IndexBack);
+		Count Insert(const Pair*, const Count& = 1, const Index& = IndexBack);
 
 		TMap& operator << (Pair&&);
 		TMap& operator >> (Pair&&);
 
-		Count Add(K&&, V&&, const Index& = Index::Back)
+		Count Add(K&&, V&&, const Index& = IndexBack)
 			requires CT::MoveMakable<K> && CT::MoveMakable<V>;
 		
-		Count Add(const K&, V&&, const Index& = Index::Back)
+		Count Add(const K&, V&&, const Index& = IndexBack)
 			requires CT::CopyMakable<K> && CT::MoveMakable<V>;
 		
-		Count Add(K&&, const V&, const Index& = Index::Back) 
+		Count Add(K&&, const V&, const Index& = IndexBack) 
 			requires CT::MoveMakable<K> && CT::CopyMakable<V>;
 		
-		Count Add(const K&, const V&, const Index& = Index::Back) 
+		Count Add(const K&, const V&, const Index& = IndexBack) 
 			requires CT::CopyMakable<K> && CT::CopyMakable<V>;
 		
-		Count Add(K&, V&, const Index& = Index::Back)
+		Count Add(K&, V&, const Index& = IndexBack)
 			requires CT::CopyMakable<K> && CT::CopyMakable<V>;
 
 		void Sort(const Index&);

@@ -370,7 +370,7 @@ namespace Langulus::Anyness
 	///	@param count - number of items to remove										
 	///	@return the number of removed elements											
 	Count Block::RemoveIndex(const Index index, const Count count) {
-		if (index == Index::All) {
+		if (index == IndexAll) {
 			const auto oldCount = mCount;
 			Free();
 			ResetMemory();
@@ -481,7 +481,7 @@ namespace Langulus::Anyness
 		Count count {};
 		if (input.IsDeep() && !output.IsDeep()) {
 			// Iterate all subpacks														
-			if (direction == Index::Front) {
+			if (direction == IndexFront) {
 				for (Count i = 0; i < input.GetCount(); ++i) {
 					count += GatherInner(input.As<Block>(i), output, direction);
 				}
@@ -497,7 +497,7 @@ namespace Langulus::Anyness
 
 		if (output.IsConcatable(input)) {
 			// Catenate input if compatible											
-			count += output.InsertBlock<Index::Back>(input);
+			count += output.InsertBlock<IndexBack>(input);
 		}
 
 		return count;
@@ -510,7 +510,7 @@ namespace Langulus::Anyness
 	///	@return the number of gathered elements										
 	Count Block::Gather(Block& output, const Index direction) const {
 		if (output.IsUntyped())
-			return output.InsertBlock<Index::Back>(*this);
+			return output.InsertBlock<IndexBack>(*this);
 		return GatherInner(*this, output, direction);
 	}
 
@@ -527,7 +527,7 @@ namespace Langulus::Anyness
 				// Phases don't match, but we can dig deeper if deep			
 				// and neutral, since Phase::Now is permissive					
 				auto localOutput = Any::FromMeta(type, input.GetUnconstrainedState());
-				if (direction == Index::Front) {
+				if (direction == IndexFront) {
 					for (Count i = 0; i < input.GetCount(); ++i) {
 						GatherPolarInner(type, input.As<Block>(i),
 							localOutput, direction, phase);

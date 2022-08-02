@@ -345,7 +345,7 @@ namespace Langulus::Anyness
 			return;
 
 		Count j {}, i {};
-		if (first == Index::Smallest) {
+		if (first == IndexSmallest) {
 			for (; i < GetCount(); ++i) {
 				for (; j < i; ++j) {
 					if (MakeDense(data[i]) > MakeDense(data[j])) {

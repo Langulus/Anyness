@@ -150,7 +150,7 @@ namespace Langulus::Anyness
 					auto element = result.GetElementResolved(index);
 					to.Copy(element); //TODO move instead?
 				}
-				else result.InsertBlock<Index::Back>(Abandon(to));
+				else result.InsertBlock<IndexBack>(Abandon(to));
 			}
 		}
 

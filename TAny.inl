@@ -73,7 +73,7 @@ namespace Langulus::Anyness
 		// for it																			
 		if constexpr (CT::Deep<T>) {
 			auto& compatible = static_cast<const Decay<T>&>(other);
-			Insert<Index::Back, KEEP>(&compatible, &compatible + 1);
+			Insert<IndexBack, KEEP>(&compatible, &compatible + 1);
 		}
 		else Throw<Except::Copy>("Bad copy-construction for TAny");
 	}
@@ -103,10 +103,10 @@ namespace Langulus::Anyness
 
 		// Then attempt to push other container, if this container allows	
 		// for it																			
-		if constexpr (CT::Deep<T>) {
-			Insert<Index::Back, KEEP>(Forward<Decay<T>>(other));
-		}
-		else Throw<Except::Copy>("Bad move-construction for TAny");
+		if constexpr (CT::Deep<T>)
+			Insert<IndexBack, KEEP>(Forward<Decay<T>>(other));
+		else
+			Throw<Except::Copy>("Bad move-construction for TAny");
 	}
 
 	/// Shallow-copy construction from Any, that checks type at runtime			
@@ -312,7 +312,7 @@ namespace Langulus::Anyness
 			mCount = 0;
 			ResetState();
 			auto& compatible = static_cast<const Decay<T>&>(other);
-			Insert<Index::Back, KEEP>(&compatible, &compatible + 1);
+			Insert<IndexBack, KEEP>(&compatible, &compatible + 1);
 		}
 		else Throw<Except::Copy>("Bad copy-assignment for TAny");
 	}
@@ -348,7 +348,7 @@ namespace Langulus::Anyness
 			CallKnownDestructors<T>();
 			mCount = 0;
 			ResetState();
-			Insert<Index::Back, KEEP>(Forward<Decay<T>>(other));
+			Insert<IndexBack, KEEP>(Forward<Decay<T>>(other));
 		}
 		else Throw<Except::Copy>("Bad move-assignment for TAny");
 	}
@@ -1065,7 +1065,7 @@ namespace Langulus::Anyness
 		Allocate<false>(mCount + count);
 
 		// Move memory if required														
-		if constexpr (INDEX == Index::Front) {
+		if constexpr (INDEX == IndexFront) {
 			SAFETY(if (GetUses() > 1)
 				Throw<Except::Reference>(
 					"Moving elements that are used from multiple places"
@@ -1078,11 +1078,11 @@ namespace Langulus::Anyness
 
 			InsertInner<KEEP>(start, end, 0);
 		}
-		else if constexpr (INDEX == Index::Back)
+		else if constexpr (INDEX == IndexBack)
 			InsertInner<KEEP>(start, end, mCount);
 		else LANGULUS_ASSERT(
-			"Invalid index provided; use either Index::Back "
-			"or Index::Front, or Block::InsertAt to insert at an offset");
+			"Invalid index provided; use either IndexBack "
+			"or IndexFront, or Block::InsertAt to insert at an offset");
 
 		return count;
 	}
@@ -1102,7 +1102,7 @@ namespace Langulus::Anyness
 		Allocate<false>(mCount + 1);
 
 		// Move memory if required														
-		if constexpr (INDEX == Index::Front) {
+		if constexpr (INDEX == IndexFront) {
 			SAFETY(if (GetUses() > 1)
 				Throw<Except::Reference>(
 					"Moving elements that are used from multiple places"
@@ -1115,11 +1115,11 @@ namespace Langulus::Anyness
 
 			InsertInner<KEEP>(Move(item), 0);
 		}
-		else if constexpr (INDEX == Index::Back)
+		else if constexpr (INDEX == IndexBack)
 			InsertInner<KEEP>(Move(item), mCount);
 		else LANGULUS_ASSERT(
-			"Invalid index provided; use either Index::Back "
-			"or Index::Front, or Block::InsertAt to insert at an offset");
+			"Invalid index provided; use either IndexBack "
+			"or IndexFront, or Block::InsertAt to insert at an offset");
 
 		return 1;
 	}
@@ -1129,7 +1129,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this container for chaining							
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator << (const T& other) {
-		Insert<Index::Back>(&other, &other + 1);
+		Insert<IndexBack>(&other, &other + 1);
 		return *this;
 	}
 
@@ -1138,7 +1138,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this container for chaining							
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator << (T&& other) {
-		Insert<Index::Back>(Move(other));
+		Insert<IndexBack>(Move(other));
 		return *this;
 	}
 
@@ -1148,7 +1148,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this container for chaining							
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator << (Disowned<T>&& other) {
-		Insert<Index::Back, false>(&other.mValue, &other.mValue + 1);
+		Insert<IndexBack, false>(&other.mValue, &other.mValue + 1);
 		return *this;
 	}
 
@@ -1158,7 +1158,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this container for chaining							
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator << (Abandoned<T>&& other) {
-		Insert<Index::Back, false>(Move(other.mValue));
+		Insert<IndexBack, false>(Move(other.mValue));
 		return *this;
 	}
 
@@ -1167,7 +1167,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this container for chaining							
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator >> (const T& other) {
-		Insert<Index::Front>(&other, &other + 1);
+		Insert<IndexFront>(&other, &other + 1);
 		return *this;
 	}
 
@@ -1176,7 +1176,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this container for chaining							
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator >> (T&& other) {
-		Insert<Index::Front>(Move(other));
+		Insert<IndexFront>(Move(other));
 		return *this;
 	}
 
@@ -1186,7 +1186,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this container for chaining							
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator >> (Disowned<T>&& other) {
-		Insert<Index::Front, false>(&other.mValue, &other.mValue + 1);
+		Insert<IndexFront, false>(&other.mValue, &other.mValue + 1);
 		return *this;
 	}
 
@@ -1196,7 +1196,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this container for chaining							
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator >> (Abandoned<T>&& other) {
-		Insert<Index::Front, false>(Move(other.mValue));
+		Insert<IndexFront, false>(Move(other.mValue));
 		return *this;
 	}
 
@@ -1251,7 +1251,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this container											
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator <<= (const T& other) {
-		Merge<Index::Back>(&other, &other + 1);
+		Merge<IndexBack>(&other, &other + 1);
 		return *this;
 	}
 
@@ -1260,7 +1260,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this container											
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator <<= (T&& other) {
-		Merge<Index::Back>(Move(other));
+		Merge<IndexBack>(Move(other));
 		return *this;
 	}
 
@@ -1270,7 +1270,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this container											
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator <<= (Disowned<T>&& other) {
-		Merge<Index::Back, false>(&other.mValue, &other.mValue + 1);
+		Merge<IndexBack, false>(&other.mValue, &other.mValue + 1);
 		return *this;
 	}
 
@@ -1280,7 +1280,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this container											
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator <<= (Abandoned<T>&& other) {
-		Merge<Index::Back, false>(Move(other.mValue));
+		Merge<IndexBack, false>(Move(other.mValue));
 		return *this;
 	}
 
@@ -1289,7 +1289,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this container											
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator >>= (const T& other) {
-		Merge<Index::Front>(&other, &other + 1);
+		Merge<IndexFront>(&other, &other + 1);
 		return *this;
 	}
 
@@ -1298,7 +1298,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this container											
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator >>= (T&& other) {
-		Merge<Index::Front>(Move(other));
+		Merge<IndexFront>(Move(other));
 		return *this;
 	}
 
@@ -1308,7 +1308,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this container											
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator >>= (Disowned<T>&& other) {
-		Merge<Index::Front, false>(&other.mValue, &other.mValue + 1);
+		Merge<IndexFront, false>(&other.mValue, &other.mValue + 1);
 		return *this;
 	}
 
@@ -1318,7 +1318,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this container											
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator >>= (Abandoned<T>&& other) {
-		Merge<Index::Front, false>(Move(other.mValue));
+		Merge<IndexFront, false>(Move(other.mValue));
 		return *this;
 	}
 
@@ -1478,7 +1478,7 @@ namespace Langulus::Anyness
 		}
 
 		// If this is reached, then no match was found							
-		return Index::None;
+		return IndexNone;
 	}
 
 	/// Remove matching items																	

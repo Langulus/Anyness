@@ -1379,7 +1379,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 			};
 		#endif
 	}
-
+	 
 	GIVEN("Container constructed by abandoned value") {
 		E movable = element;
 		T pack {Abandon(movable)};

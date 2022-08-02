@@ -933,19 +933,6 @@ namespace Langulus::Anyness
 	///	@param idx - the index to constrain												
 	///	@return the constrained index or a special one of constrain fails		
 	constexpr Index Block::Constrain(const Index& idx) const noexcept {
-		switch (idx.mIndex) {
-		case Index::Auto: case Index::First: case Index::Front:
-			return Index {0};
-		case Index::All: case Index::Back:
-			return Index {mCount};
-		case Index::Last:
-			return mCount ? Index {mCount - 1} : Index::None;
-		case Index::Middle:
-			return mCount / 2;
-		case Index::None:
-			return Index::None;
-		}
-		
 		return idx.Constrained(mCount);
 	}
 
@@ -1247,7 +1234,7 @@ namespace Langulus::Anyness
 	///	@param start - pointer to the first item										
 	///	@param end - pointer to the end of items										
 	///	@return number of inserted elements												
-	template<auto INDEX, CT::Data WRAPPER, bool KEEP, bool MUTABLE, CT::NotAbandonedOrDisowned T>
+	template<Index INDEX, CT::Data WRAPPER, bool KEEP, bool MUTABLE, CT::NotAbandonedOrDisowned T>
 	Count Block::Insert(const T* start, const T* end) {
 		static_assert(CT::Deep<WRAPPER>,
 			"WRAPPER must be deep");
@@ -1258,7 +1245,7 @@ namespace Langulus::Anyness
 			// Type may mutate															
 			if (Mutate<T, true, WRAPPER>()) {
 				WRAPPER wrapper;
-				wrapper.template Insert<Index::Back, WRAPPER, KEEP, false, T>(start, end);
+				wrapper.template Insert<IndexBack, WRAPPER, KEEP, false, T>(start, end);
 				const auto pushed = Insert<INDEX, WRAPPER, false, false, WRAPPER>(Move(wrapper));
 				wrapper.mEntry = nullptr;
 				return pushed;
@@ -1270,7 +1257,7 @@ namespace Langulus::Anyness
 		Allocate<false>(mCount + count);
 
 		// Move memory if required														
-		if constexpr (INDEX == Index::Front) {
+		if constexpr (INDEX == IndexFront) {
 			SAFETY(if (GetUses() > 1)
 				Throw<Except::Reference>(
 					"Moving elements that are used from multiple places"
@@ -1283,11 +1270,11 @@ namespace Langulus::Anyness
 
 			InsertInner<KEEP>(start, end, 0);
 		}
-		else if constexpr (INDEX == Index::Back)
+		else if constexpr (INDEX == IndexBack)
 			InsertInner<KEEP>(start, end, mCount);
 		else
-			LANGULUS_ASSERT("Invalid index provided; use either Index::Back "
-				"or Index::Front, or Block::InsertAt to insert at an offset");
+			LANGULUS_ASSERT("Invalid index provided; use either IndexBack "
+				"or IndexFront, or Block::InsertAt to insert at an offset");
 
 		return count;
 	}
@@ -1301,7 +1288,7 @@ namespace Langulus::Anyness
 	///	@tparam T - the type to insert (deducible)									
 	///	@param item - item to move int													
 	///	@return number of inserted elements												
-	template<auto INDEX, CT::Data WRAPPER, bool KEEP, bool MUTABLE, CT::NotAbandonedOrDisowned T>
+	template<Index INDEX, CT::Data WRAPPER, bool KEEP, bool MUTABLE, CT::NotAbandonedOrDisowned T>
 	Count Block::Insert(T&& item) {
 		static_assert(CT::Deep<WRAPPER>,
 			"WRAPPER must be deep");
@@ -1312,7 +1299,7 @@ namespace Langulus::Anyness
 			// Type may mutate															
 			if (Mutate<T, true, WRAPPER>()) {
 				WRAPPER wrapper;
-				wrapper.template Insert<Index::Back, WRAPPER, KEEP, false, T>(Move(item));
+				wrapper.template Insert<IndexBack, WRAPPER, KEEP, false, T>(Move(item));
 				Insert<INDEX, WRAPPER, false, false, WRAPPER>(Move(wrapper));
 				wrapper.mEntry = nullptr;
 				return 1;
@@ -1323,7 +1310,7 @@ namespace Langulus::Anyness
 		Allocate<false>(mCount + 1);
 
 		// Move memory if required														
-		if constexpr (INDEX == Index::Front) {
+		if constexpr (INDEX == IndexFront) {
 			SAFETY(if (GetUses() > 1)
 				Throw<Except::Reference>(
 					"Moving elements that are used from multiple places"
@@ -1336,11 +1323,11 @@ namespace Langulus::Anyness
 
 			InsertInner<KEEP>(Move(item), 0);
 		}
-		else if constexpr (INDEX == Index::Back)
+		else if constexpr (INDEX == IndexBack)
 			InsertInner<KEEP>(Move(item), mCount);
 		else
-			LANGULUS_ASSERT("Invalid index provided; use either Index::Back "
-				"or Index::Front, or Block::InsertAt to insert at an offset");
+			LANGULUS_ASSERT("Invalid index provided; use either IndexBack "
+				"or IndexFront, or Block::InsertAt to insert at an offset");
 
 		return 1;
 	}
@@ -1505,35 +1492,34 @@ namespace Langulus::Anyness
 	template<CT::Data T>
 	Index Block::Find(const T& item, const Index& idx) const {
 		if (!mCount || !mType)
-			return Index::None;
+			return IndexNone;
 
 		if (IsDense()) {
 			if (!CastsTo<T>()) {
 				// If dense and not forward compatible - fail					
-				return Index::None;
+				return IndexNone;
 			}
 		}
 		else if (!MetaData::Of<T>()->CastsTo(mType)) {
 			// If sparse and not backwards compatible - fail					
-			return Index::None;
+			return IndexNone;
 		}
 
 		// Setup the iterator															
 		Index starti, istep;
-		switch (idx.mIndex) {
-		case Index::Front:
+		if (idx == IndexFront) {
 			starti = 0;
 			istep = 1;
-			break;
-		case Index::Back:
+		}
+		else if (idx == IndexBack) {
 			starti = mCount - 1;
 			istep = -1;
-			break;
-		default:
+		}
+		else {
 			starti = Constrain(idx);
 			istep = 1;
 			if (starti + 1 >= mCount)
-				return Index::None;
+				return IndexNone;
 		}
 
 		// Search																			
@@ -1585,7 +1571,7 @@ namespace Langulus::Anyness
 		}
 
 		// If this is reached, then no match was found							
-		return Index::None;
+		return IndexNone;
 	}
 	
 	/// Find first matching element position inside container, deeply				
@@ -1778,7 +1764,7 @@ namespace Langulus::Anyness
 			return;
 
 		Count j {}, i {};
-		if (first == Index::Smallest) {
+		if (first == IndexSmallest) {
 			for (; i < mCount; ++i) {
 				for (; j < i; ++j) {
 					if (*SparseCast(data[i]) > *SparseCast(data[j]))
@@ -1898,7 +1884,7 @@ namespace Langulus::Anyness
 	///	@param index - the index at which to insert (if needed)					
 	///	@param state - a state to apply after pushing is done						
 	///	@return the number of pushed items (zero if unsuccessful)				
-	template<auto INDEX, bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data T, CT::Data WRAPPER>
+	template<Index INDEX, bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data T, CT::Data WRAPPER>
 	Count Block::SmartPush(T value, DataState state) {
 		static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
 
@@ -3128,7 +3114,7 @@ namespace Langulus::Anyness
 	///	@tparam T - type of the block to traverse (deducible)						
 	///	@param other - the block to insert												
 	///	@return the number of inserted elements										
-	template<auto INDEX, CT::NotAbandonedOrDisowned T>
+	template<Index INDEX, CT::NotAbandonedOrDisowned T>
 	Count Block::InsertBlock(const T& other) {
 		static_assert(CT::Block<T>, "T must be a block type");
 
@@ -3139,7 +3125,7 @@ namespace Langulus::Anyness
 		Allocate<false>(mCount + other.mCount);
 
 		// Move memory if required														
-		if constexpr (INDEX == Index::Front) {
+		if constexpr (INDEX == IndexFront) {
 			SAFETY(if (GetUses() > 1)
 				Throw<Except::Reference>(
 					"Moving elements that are used from multiple places"));
@@ -3165,7 +3151,7 @@ namespace Langulus::Anyness
 	///	@tparam T - type of the block to traverse (deducible)						
 	///	@param other - the block to insert												
 	///	@return the number of inserted elements										
-	template<auto INDEX, CT::NotAbandonedOrDisowned T>
+	template<Index INDEX, CT::NotAbandonedOrDisowned T>
 	Count Block::InsertBlock(T&& other) {
 		static_assert(CT::Block<T>, "T must be a block type");
 
@@ -3176,7 +3162,7 @@ namespace Langulus::Anyness
 		Allocate<false>(mCount + other.mCount);
 
 		// Move memory if required														
-		if constexpr (INDEX == Index::Front) {
+		if constexpr (INDEX == IndexFront) {
 			SAFETY(if (GetUses() > 1)
 				Throw<Except::Reference>(
 					"Moving elements that are used from multiple places"));
@@ -3208,7 +3194,7 @@ namespace Langulus::Anyness
 	///	@tparam T - type of the block to traverse (deducible)						
 	///	@param other - the block to insert												
 	///	@return the number of inserted elements										
-	template<auto INDEX, CT::Data T>
+	template<Index INDEX, CT::Data T>
 	Count Block::InsertBlock(Abandoned<T>&& other) {
 		static_assert(CT::Block<T>, "T must be a block type");
 
@@ -3219,7 +3205,7 @@ namespace Langulus::Anyness
 		Allocate<false>(mCount + other.mValue.mCount);
 
 		// Move memory if required														
-		if constexpr (INDEX == Index::Front) {
+		if constexpr (INDEX == IndexFront) {
 			SAFETY(if (GetUses() > 1)
 				Throw<Except::Reference>(
 					"Moving elements that are used from multiple places"));
@@ -3248,7 +3234,7 @@ namespace Langulus::Anyness
 	///	@tparam T - type of the block to traverse (deducible)						
 	///	@param other - the block to insert												
 	///	@return the number of inserted elements										
-	template<auto INDEX, CT::Data T>
+	template<Index INDEX, CT::Data T>
 	Count Block::InsertBlock(Disowned<T>&& other) {
 		static_assert(CT::Block<T>, "T must be a block type");
 
@@ -3259,7 +3245,7 @@ namespace Langulus::Anyness
 		Allocate<false>(mCount + other.mValue.mCount);
 
 		// Move memory if required														
-		if constexpr (INDEX == Index::Front) {
+		if constexpr (INDEX == IndexFront) {
 			SAFETY(if (GetUses() > 1)
 				Throw<Except::Reference>(
 					"Moving elements that are used from multiple places"));
@@ -3381,7 +3367,7 @@ namespace Langulus::Anyness
 	/// Insertions will be appended either at the front, or at the back			
 	///	@param other - the block to insert												
 	///	@return the number of inserted elements										
-	template<auto INDEX, CT::NotAbandonedOrDisowned T>
+	template<Index INDEX, CT::NotAbandonedOrDisowned T>
 	Count Block::MergeBlock(const T& other) {
 		static_assert(CT::Block<T>,
 			"T must be a block type");
@@ -3404,7 +3390,7 @@ namespace Langulus::Anyness
 	/// Insertions will be appended either at the front, or at the back			
 	///	@param other - the block to insert												
 	///	@return the number of inserted elements										
-	template<auto INDEX, CT::NotAbandonedOrDisowned T>
+	template<Index INDEX, CT::NotAbandonedOrDisowned T>
 	Count Block::MergeBlock(T&& other) {
 		static_assert(CT::Block<T>,
 			"T must be a block type");
@@ -3428,12 +3414,12 @@ namespace Langulus::Anyness
 	/// Insertions will be appended either at the front, or at the back			
 	///	@param other - the block to insert												
 	///	@return the number of inserted elements										
-	template<auto INDEX, CT::Data T>
+	template<Index INDEX, CT::Data T>
 	Count Block::MergeBlock(Disowned<T>&& other) {
 		static_assert(CT::Block<T>,
 			"T must be a block type");
-		static_assert(INDEX == Index::Front || INDEX == Index::Back,
-			"INDEX bust be either Index::Front or Index::Back");
+		static_assert(INDEX == IndexFront || INDEX == IndexBack,
+			"INDEX bust be either IndexFront or IndexBack");
 		//TODO do a pass first and allocate & move once instead of each time?
 		Count inserted {};
 		for (Count i = 0; i < other.GetCount(); ++i) {
@@ -3450,12 +3436,12 @@ namespace Langulus::Anyness
 	/// Insertions will be appended either at the front, or at the back			
 	///	@param other - the block to insert												
 	///	@return the number of inserted elements										
-	template<auto INDEX, CT::Data T>
+	template<Index INDEX, CT::Data T>
 	Count Block::MergeBlock(Abandoned<T>&& other) {
 		static_assert(CT::Block<T>,
 			"T must be a block type");
-		static_assert(INDEX == Index::Front || INDEX == Index::Back,
-			"INDEX bust be either Index::Front or Index::Back");
+		static_assert(INDEX == IndexFront || INDEX == IndexBack,
+			"INDEX bust be either IndexFront or IndexBack");
 		//TODO do a pass first and allocate & move once instead of each time?
 		Count inserted {};
 		for (Count i = 0; i < other.mValue.GetCount(); ++i) {

@@ -726,7 +726,7 @@ SCENARIO("Any", "[containers]") {
 		}
 
 		WHEN("Smart pushing different type without retainment") {
-			auto result = subpack1.SmartPush<Index::Back, true, false>('?');
+			auto result = subpack1.SmartPush<IndexBack, true, false>('?');
 			THEN("The pack must remain unchanged") {
 				REQUIRE(result == 0);
 				REQUIRE(subpack1.GetCount() == 5);
@@ -736,7 +736,7 @@ SCENARIO("Any", "[containers]") {
 		WHEN("Smart pushing with retainment") {
 			Any deepened;
 			deepened << int(1) << int(2) << int(3) << int(4) << int(5);
-			auto result = deepened.SmartPush<Index::Back, false, true>('?');
+			auto result = deepened.SmartPush<IndexBack, false, true>('?');
 			THEN("The pack must get deeper and contain it") {
 				REQUIRE(result == 1);
 				REQUIRE(deepened.IsDeep());
@@ -750,7 +750,7 @@ SCENARIO("Any", "[containers]") {
 			Any deepened;
 			deepened << int(1) << int(2) << int(3) << int(4) << int(5);
 			auto pushed = Any::FromMeta(nullptr, DataState {DataState::Phased | DataState::Missing});
-			auto result = deepened.SmartPush<Index::Back, true, true>(pushed);
+			auto result = deepened.SmartPush<IndexBack, true, true>(pushed);
 			THEN("The pack must get deeper and contain it") {
 				REQUIRE(result == 1);
 				REQUIRE(deepened.IsDeep());
@@ -764,7 +764,7 @@ SCENARIO("Any", "[containers]") {
 		WHEN("Smart pushing an empty container (but not stateless) with retainment to another empty container") {
 			auto pushed = Any::FromMeta(nullptr, DataState {DataState::Phased | DataState::Missing});
 			auto pushed2 = Any::FromMeta(nullptr, DataState {});
-			auto result = pushed2.SmartPush<Index::Back, true, true>(pushed);
+			auto result = pushed2.SmartPush<IndexBack, true, true>(pushed);
 			THEN("The pack must get deeper and contain it") {
 				REQUIRE(result == 1);
 				REQUIRE(pushed2.GetCount() == 0);
@@ -774,7 +774,7 @@ SCENARIO("Any", "[containers]") {
 
 		WHEN("Smart pushing to an empty container (concat & retain enabled)") {
 			Any pushed;
-			auto result = pushed.SmartPush<Index::Back, true, true>(pack);
+			auto result = pushed.SmartPush<IndexBack, true, true>(pack);
 			THEN("The empty container becomes the pushed container") {
 				REQUIRE(pushed == pack);
 				REQUIRE(result == 1);
@@ -785,7 +785,7 @@ SCENARIO("Any", "[containers]") {
 			Any pushed;
 			pushed << 666;
 			pushed.MakeOr();
-			auto result = pushed.SmartPush<Index::Back, true, true>('?');
+			auto result = pushed.SmartPush<IndexBack, true, true>('?');
 			THEN("Must not duplicate state of deepened container") {
 				REQUIRE(result == 1);
 				REQUIRE(!pushed.IsOr());

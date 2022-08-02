@@ -377,14 +377,6 @@ namespace Langulus::Anyness
 		return mValue == rhs.mValue;
 	}
 
-	/// Compare pointers for inequality														
-	///	@param rhs - the right pointer													
-	///	@return true if pointers do not match											
-	TEMPLATE_OWNED()
-	bool TOwned<T>::operator != (const TOwned<T>& rhs) const noexcept {
-		return mValue != rhs.mValue;
-	}
-
 	/// Compare pointers for equality														
 	///	@param rhs - the right pointer													
 	///	@return true if pointers match													
@@ -393,28 +385,12 @@ namespace Langulus::Anyness
 		return mValue == rhs;
 	}
 
-	/// Compare pointers for inequality														
-	///	@param rhs - the right pointer													
-	///	@return true if pointers do not match											
-	TEMPLATE_OWNED()
-	bool TOwned<T>::operator != (const T& rhs) const noexcept {
-		return mValue != rhs;
-	}
-
 	/// Compare pointer for nullptr															
 	///	@param rhs - the right pointer													
 	///	@return true if pointers match													
 	TEMPLATE_OWNED()
 	bool TOwned<T>::operator == (std::nullptr_t) const noexcept requires CT::Sparse<T> {
 		return mValue == nullptr;
-	}
-
-	/// Compare pointers for not nullptr													
-	///	@param rhs - the right pointer													
-	///	@return true if pointers do not match											
-	TEMPLATE_OWNED()
-	bool TOwned<T>::operator != (std::nullptr_t) const noexcept requires CT::Sparse<T> {
-		return mValue != nullptr;
 	}
 
 	/// Get the block of the contained value												
@@ -469,6 +445,14 @@ namespace Langulus::Anyness
 			DataState {DataState::Constrained | DataState::Sparse},
 			GetType(), 1, &(Base::mValue), mEntry
 		};
+	}
+
+	/// Compare pointers for equality														
+	///	@param rhs - the right pointer													
+	///	@return true if pointers match													
+	TEMPLATE_SHARED()
+	bool TPointer<T, DR>::operator == (const TPointer<T, DR>& rhs) const noexcept {
+		return Base::operator == (rhs);
 	}
 
 } // namespace Langulus::Anyness

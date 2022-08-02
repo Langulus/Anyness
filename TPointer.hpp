@@ -57,11 +57,8 @@ namespace Langulus::Anyness
 		NOD() explicit operator T&() noexcept;
 
 		NOD() bool operator == (const TOwned&) const noexcept;
-		NOD() bool operator != (const TOwned&) const noexcept;
 		NOD() bool operator == (const T&) const noexcept;
-		NOD() bool operator != (const T&) const noexcept;
 		NOD() bool operator == (::std::nullptr_t) const noexcept requires CT::Sparse<T>;
-		NOD() bool operator != (::std::nullptr_t) const noexcept requires CT::Sparse<T>;
 	};
 
 
@@ -121,7 +118,8 @@ namespace Langulus::Anyness
 		NOD() operator TPointer<const T, DOUBLE_REFERENCED>() const noexcept requires CT::Mutable<T>;
 
 		using Base::operator ==;
-		using Base::operator !=;
+		NOD() bool operator == (const TPointer&) const noexcept;
+
 		using Base::operator ->;
 		using Base::operator *;
 	};

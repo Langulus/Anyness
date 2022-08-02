@@ -65,7 +65,7 @@ namespace Langulus::Anyness
 		if constexpr (CT::Sparse<T>)
 			MakeSparse();
 		SetType<T, false>();
-		Insert<Index::Back, Any, true, false, T>(&other, &other + 1);
+		Insert<IndexBack, Any, true, false, T>(&other, &other + 1);
 	}
 
 	/// This override is required to disambiguate automatically deduced T		
@@ -83,7 +83,7 @@ namespace Langulus::Anyness
 		if constexpr (CT::Sparse<T>)
 			MakeSparse();
 		SetType<T, false>();
-		Insert<Index::Back, Any, true, false, T>(Move(other));
+		Insert<IndexBack, Any, true, false, T>(Move(other));
 	}
 
 	/// Construct by inserting a disowned value of non-block type					
@@ -94,7 +94,7 @@ namespace Langulus::Anyness
 		if constexpr (CT::Sparse<T>)
 			MakeSparse();
 		SetType<T, false>();
-		Insert<Index::Back, Any, false, false, T>(&other.mValue, &other.mValue + 1);
+		Insert<IndexBack, Any, false, false, T>(&other.mValue, &other.mValue + 1);
 	}
 
 	/// Construct by inserting an abandoned value of non-block type				
@@ -105,7 +105,7 @@ namespace Langulus::Anyness
 		if constexpr (CT::Sparse<T>)
 			MakeSparse();
 		SetType<T, false>();
-		Insert<Index::Back, Any, false, false, T>(Move(other.mValue));
+		Insert<IndexBack, Any, false, false, T>(Move(other.mValue));
 	}
 
 	/// Destruction																				
@@ -159,7 +159,7 @@ namespace Langulus::Anyness
 			result.SetType<Any, false>();
 			result.Allocate(sizeof...(LIST));
 			for (auto& it : wrapped)
-				result.template Insert<Index::Back, Any, false, false>(Move(it));
+				result.template Insert<IndexBack, Any, false, false>(Move(it));
 			return result;
 		}
 	}
@@ -176,7 +176,7 @@ namespace Langulus::Anyness
 			Deref<HEAD> wrapped[] {Forward<HEAD>(head), Forward<TAIL>(tail)...};
 			auto result = Any::From<HEAD>();
 			for (auto& it : wrapped)
-				result.template Insert<Index::Back, Any, false, false>(Move(it));
+				result.template Insert<IndexBack, Any, false, false>(Move(it));
 			return result;
 		}
 	}
@@ -415,9 +415,9 @@ namespace Langulus::Anyness
 	template<CT::Data T>
 	Any& Any::operator << (const T& other) {
 		if constexpr (CT::Array<T>)
-			Insert<Index::Back, Any, true, true>(SparseCast(other), SparseCast(other) + ExtentOf<T>);
+			Insert<IndexBack, Any, true, true>(SparseCast(other), SparseCast(other) + ExtentOf<T>);
 		else
-			Insert<Index::Back, Any, true, true>(&other, &other + 1);
+			Insert<IndexBack, Any, true, true>(&other, &other + 1);
 		return *this;
 	}
 
@@ -435,11 +435,11 @@ namespace Langulus::Anyness
 	template<CT::Data T>
 	Any& Any::operator << (T&& other) {
 		if constexpr (CT::Abandoned<T>)
-			Insert<Index::Back, Any, false, true>(Move(other.mValue));
+			Insert<IndexBack, Any, false, true>(Move(other.mValue));
 		else if constexpr (CT::Disowned<T>)
-			Insert<Index::Back, Any, false, true>(&other.mValue, &other.mValue + 1);
+			Insert<IndexBack, Any, false, true>(&other.mValue, &other.mValue + 1);
 		else
-			Insert<Index::Back, Any, true, true>(Move(other));
+			Insert<IndexBack, Any, true, true>(Move(other));
 		return *this;
 	}
 
@@ -449,9 +449,9 @@ namespace Langulus::Anyness
 	template<CT::Data T>
 	Any& Any::operator >> (const T& other) {
 		if constexpr (CT::Array<T>)
-			Insert<Any, true, true>(other, ExtentOf<T>, Index::Front);
+			Insert<IndexFront, Any, true, true>(other, ExtentOf<T>);
 		else
-			Insert<Any, true, true>(&other, 1, Index::Front);
+			Insert<IndexFront, Any, true, true>(&other, 1);
 		return *this;
 	}
 
@@ -469,11 +469,11 @@ namespace Langulus::Anyness
 	template<CT::Data T>
 	Any& Any::operator >> (T&& other) {
 		if constexpr (CT::Abandoned<T>)
-			Insert<Any, false, true>(Move(other.mValue), Index::Front);
+			Insert<IndexFront, Any, false, true>(Move(other.mValue));
 		else if constexpr (CT::Disowned<T>)
-			Insert<Any, false, true>(&other.mValue, 1, Index::Front);
+			Insert<IndexFront, Any, false, true>(&other.mValue, 1);
 		else
-			Insert<Any, true, true>(Forward<T>(other), Index::Front);
+			Insert<IndexFront, Any, true, true>(Forward<T>(other));
 		return *this;
 	}
 
@@ -483,9 +483,9 @@ namespace Langulus::Anyness
 	template<CT::Data T>
 	Any& Any::operator <<= (const T& other) {
 		if constexpr (CT::Array<T>)
-			Merge<Decay<T>, true, Any>(other, ExtentOf<T>, Index::Back);
+			Merge<IndexBack, Decay<T>, true, Any>(other, ExtentOf<T>);
 		else
-			Merge<T, true, Any>(&other, 1, Index::Back);
+			Merge<IndexBack, T, true, Any>(&other, 1);
 		return *this;
 	}
 
@@ -502,7 +502,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this container for chaining							
 	template<CT::Data T>
 	Any& Any::operator <<= (T&& other) {
-		Merge<T, true, Any>(Forward<T>(other), Index::Back);
+		Merge<IndexBack, T, true, Any>(Forward<T>(other));
 		return *this;
 	}
 
@@ -512,9 +512,9 @@ namespace Langulus::Anyness
 	template<CT::Data T>
 	Any& Any::operator >>= (const T& other) {
 		if constexpr (CT::Array<T>)
-			Merge<Decay<T>, true, Any>(other, ExtentOf<T>, Index::Front);
+			Merge<IndexFront, Decay<T>, true, Any>(other, ExtentOf<T>);
 		else
-			Merge<T, true, Any>(&other, 1, Index::Front);
+			Merge<IndexFront, T, true, Any>(&other, 1);
 		return *this;
 	}
 
@@ -531,7 +531,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this container for chaining							
 	template<CT::Data T>
 	Any& Any::operator >>= (T&& other) {
-		Merge<T, true, Any>(Forward<T>(other), Index::Front);
+		Merge<IndexFront, T, true, Any>(Forward<T>(other));
 		return *this;
 	}
 
