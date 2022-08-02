@@ -131,4 +131,13 @@ namespace Langulus::Anyness
 
 } // namespace Langulus::Anyness
 
+namespace Langulus::CT
+{
+
+	/// Generalized index concept																
+	template<class T>
+	concept Index = Integer<T> || Same<T, Anyness::Index>;
+
+} // namespace Langulus::CT
+
 #include "Index.inl"

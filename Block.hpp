@@ -244,15 +244,10 @@ namespace Langulus::Anyness
 		template<CT::Data T>
 		NOD() decltype(auto) Get(const Offset& = 0, const Offset& = 0) const;
 	
-		template<CT::Data T>
-		NOD() decltype(auto) As(const Offset& = 0);
-		template<CT::Data T>
-		NOD() decltype(auto) As(const Offset& = 0) const;
-	
-		template<CT::Data T>
-		NOD() decltype(auto) As(const Index&);
-		template<CT::Data T>
-		NOD() decltype(auto) As(const Index&) const;
+		template<CT::Data T, CT::Index IDX = Offset>
+		NOD() decltype(auto) As(const IDX& = {});
+		template<CT::Data T, CT::Index IDX = Offset>
+		NOD() decltype(auto) As(const IDX& = {}) const;
 	
 		template<CT::Data T, bool FATAL_FAILURE = true>
 		NOD() T AsCast(Index) const;

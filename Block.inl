@@ -851,25 +851,6 @@ namespace Langulus::Anyness
 			return reinterpret_cast<Deref<T>>(pointer);
 	}
 
-	/// Get templated element																	
-	/// Checks density and type																
-	template<CT::Data T>
-	decltype(auto) Block::As(const Offset& idx) const {
-		return const_cast<Block&>(*this).As<T>(idx);
-	}
-
-	/// Get templated element																	
-	/// Checks range, density, type and special indices								
-	template<CT::Data T>
-	decltype(auto) Block::As(const Index& index) {
-		return As<T>(ConstrainMore<T>(index).GetOffset());
-	}
-
-	template<CT::Data T>
-	decltype(auto) Block::As(const Index& index) const {
-		return const_cast<Block&>(*this).As<T>(index);
-	}
-
 	/// Check if a pointer is anywhere inside the block's memory					
 	///	@attention doesn't check deep data if container is sparse				
 	///	@param ptr - the pointer to check												
@@ -2028,14 +2009,28 @@ namespace Langulus::Anyness
 		return Get<T>();
 	}
 
-	/// Get an element with a given index, trying to interpret it as T			
+	/// Get an element via simple index, trying to interpret it as T				
 	/// No conversion or copying shall occur in this routine, only pointer		
 	/// arithmetic based on CTTI or RTTI													
 	///	@tparam T - the type to interpret to											
-	///	@param idx - simple index for accessing										
+	///	@tparam IDX - the type used for indexing (deducible)						
+	///	@param idx - simple index for accessing - use negative for reverse,	
+	///		or special indices for smart indexing										
 	///	@return either pointer or reference to the element (depends on T)		
-	template<CT::Data T>
-	decltype(auto) Block::As(const Offset& idx) {
+	template<CT::Data T, CT::Index IDX>
+	decltype(auto) Block::As(const IDX& index) {
+		// Constrain the index if needed												
+		Offset idx;
+		if constexpr (CT::Same<IDX, Index>)
+			idx = ConstrainMore<T>(index).GetOffset();
+		else if constexpr (CT::Signed<IDX>) {
+			if (index < 0)
+				idx = mCount - static_cast<Offset>(-index);
+			else
+				idx = static_cast<Offset>(index);
+		}
+		else idx = index;
+
 		// First quick type stage for fast access									
 		if (mType->Is<T>())
 			return Get<T>(idx);
@@ -2066,6 +2061,11 @@ namespace Langulus::Anyness
 			GetElementDense(idx / base.mCount)
 				.GetBaseMemory(base)
 					.Get<T>(idx % base.mCount);
+	}
+
+	template<CT::Data T, CT::Index IDX>
+	decltype(auto) Block::As(const IDX& index) const {
+		return const_cast<Block&>(*this).template As<T, IDX>(index);
 	}
 
 	/// Execute functions for each element inside container							
