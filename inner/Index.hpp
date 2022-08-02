@@ -29,7 +29,7 @@ namespace Langulus::Anyness
 		//static constexpr Type SymbolCount = ::std::numeric_limits<Type>::digits + 1;
 
 	protected:
-		enum class SpecialIndices : Type {
+		enum SpecialIndices : Type {
 			// All, Many, and Single must be compared in separate context	
 			All = MinIndex,
 			Many,

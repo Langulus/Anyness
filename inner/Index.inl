@@ -13,7 +13,7 @@ namespace Langulus::Anyness
 
 	/// Constructor from special index														
 	constexpr Index::Index(const SpecialIndices& value) noexcept
-		: mIndex {static_cast<Type>(value)} { }
+		: mIndex {value} { }
 
 	/// Constructor from signed integer														
 	template<CT::SignedInteger T>
@@ -32,39 +32,32 @@ namespace Langulus::Anyness
 	///   If index is out of scope, return None											
 	///   If index is special - return it as it is										
 	constexpr Index Index::Constrained(const Count count) const noexcept {
-		switch (static_cast<SpecialIndices>(mIndex)) {
-		case SpecialIndices::Auto:
-		case SpecialIndices::First:
-		case SpecialIndices::Front:
+		switch (mIndex) {
+		case Auto: case First: case Front:
 			return {0};
-		case SpecialIndices::All:
-		case SpecialIndices::Back:
+		case All: case Back:
 			return {count};
-		case SpecialIndices::Last:
+		case Last:
 			return count 
 				? Index {count - 1} 
-				: Index {SpecialIndices::None};
-		case SpecialIndices::Middle:
+				: Index {None};
+		case Middle:
 			return count / 2;
-		case SpecialIndices::None:
-			return SpecialIndices::None;
+		case None:
+			return None;
 		default: {
 			const Type c = static_cast<Type>(count);
 			if (IsSpecial()) {
 				if (IsArithmetic()) {
 					// Index is negative, wrap it around (if in range)			
-					return c + mIndex >= 0 
-						? Index {c + mIndex} 
-						: Index {SpecialIndices::None};
+					return c + mIndex >= 0 ? Index {c + mIndex} : Index {None};
 				}
 
 				// Index is a special value, so don't change anything			
 				return mIndex;
 			}
 
-			return mIndex >= c 
-				? Index {SpecialIndices::None} 
-				: Index {mIndex};
+			return mIndex >= c ? Index {None} : Index {mIndex};
 		}}
 	}
 
@@ -100,12 +93,12 @@ namespace Langulus::Anyness
 
 	/// Check validity																			
 	constexpr bool Index::IsValid() const noexcept {
-		return mIndex != static_cast<Type>(SpecialIndices::None);
+		return mIndex != None;
 	}
 
 	/// Check invalidity																			
 	constexpr bool Index::IsInvalid() const noexcept {
-		return mIndex == static_cast<Type>(SpecialIndices::None);
+		return mIndex == None;
 	}
 
 	/// Check if index is special																
@@ -120,7 +113,7 @@ namespace Langulus::Anyness
 
 	/// Check if index is special																
 	constexpr bool Index::IsArithmetic() const noexcept {
-		return mIndex >= static_cast<Type>(SpecialIndices::Counter);
+		return mIndex >= Counter;
 	}
 
 	/// Return true if index is valid														
@@ -178,7 +171,7 @@ namespace Langulus::Anyness
 
 	constexpr Index Index::operator - (const Index& v) const noexcept {
 		if (!IsArithmetic() || !v.IsArithmetic()
-			|| mIndex - v.mIndex < static_cast<Type>(SpecialIndices::Counter))
+			|| mIndex - v.mIndex < Counter)
 			return *this; 
 		return mIndex - v.mIndex; 
 	}
@@ -211,40 +204,26 @@ namespace Langulus::Anyness
 	}
 
 	constexpr bool Index::operator < (const Index& v) const noexcept {
-		switch (static_cast<SpecialIndices>(mIndex)) {
-		case SpecialIndices::All:
-		case SpecialIndices::Many:
-		case SpecialIndices::Single:
+		switch (mIndex) {
+		case All: case Many: case Single:
 			// Single < Many < All														
-			switch (static_cast<SpecialIndices>(v.mIndex)) {
-			case SpecialIndices::All:
-			case SpecialIndices::Many:
-			case SpecialIndices::Single:
+			switch (v.mIndex) {
+			case All: case Many: case Single:
 				return mIndex < v.mIndex;
 			default:
 				return false;
 			};
 
-		case SpecialIndices::Back:
-		case SpecialIndices::Middle:
-		case SpecialIndices::Front:
-		case SpecialIndices::None:
+		case Back: case Middle: case Front: case None:
 			// None < Front < Middle < Back											
-			switch (static_cast<SpecialIndices>(v.mIndex)) {
-			case SpecialIndices::Back:
-			case SpecialIndices::Middle:
-			case SpecialIndices::Front:
-			case SpecialIndices::None:
+			switch (v.mIndex) {
+			case Back: case Middle: case Front: case None:
 				return mIndex < v.mIndex;
 			default:
 				return false;
 			};
 
-		case SpecialIndices::Mode:
-		case SpecialIndices::Biggest:
-		case SpecialIndices::Smallest:
-		case SpecialIndices::Auto:
-		case SpecialIndices::Random:
+		case Mode: case Biggest: case Smallest: case Auto: case Random:
 			// Uncomparable																
 			return false;
 			
@@ -252,7 +231,7 @@ namespace Langulus::Anyness
 			// Index is not special														
 			if (mIndex < 0) {
 				// Comparison is inverted												
-				if (v.mIndex < 0 && v.mIndex >= static_cast<Type>(SpecialIndices::Counter))
+				if (v.mIndex < 0 && v.mIndex >= Counter)
 					return mIndex > v.mIndex;
 			}
 			else {
