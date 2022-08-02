@@ -354,30 +354,28 @@ namespace Langulus::Anyness
 				"Unable to disowned value-assign type-constrained container - types are incompatible");
 		}
 
-		if constexpr (CT::Sparse<T>) {
-			if (GetUses() == 1 && meta->Is(mType)) {
-				// Just destroy and reuse memory										
-				// Even better - types match, so we know this container		
-				// is filled with T too, therefore we can use statically		
-				// optimized routines for destruction								
+		if (GetUses() != 1 || !meta->Is(mType)) {
+			// Reset and allocate new memory											
+			// Disowned-construction will be used if possible					
+			Reset();
+			operator << (other.Forward());
+		}
+		else {
+			// Just destroy and reuse memory											
+			// Even better - types match, so we know this container			
+			// is filled with T too, therefore we can use statically			
+			// optimized routines for destruction and creation					
+			if constexpr (CT::Sparse<T>) {
 				CallKnownDestructors<T>();
 				mCount = 1;
 				mRawSparse->mPointer = reinterpret_cast<Byte*>(other.mValue);
 				mRawSparse->mEntry = nullptr;
 			}
 			else {
-				// Reset and allocate new memory										
-				// Disowned-construction will be used if possible				
-				Reset();
-				operator << (other.template Forward<T>());
+				CallKnownDestructors<T>();
+				mCount = 1;
+				new (mRaw) T {other.Forward()};
 			}
-		}
-		else {
-			Free();
-			mState = (mState.mState & DataState::Typed) | DataState::Constant;
-			mType = mState.mState & DataState::Typed ? mType : meta;
-			mCount = mReserved = 1;
-			mRaw = reinterpret_cast<Byte*>(const_cast<T*>(&other.mValue));
 		}
 
 		return *this;
@@ -396,30 +394,28 @@ namespace Langulus::Anyness
 				"Unable to abandoned value-assign type-constrained container - types are incompatible");
 		}
 
-		if constexpr (CT::Sparse<T>) {
-			if (GetUses() == 1 && meta->Is(mType)) {
-				// Just destroy and reuse memory										
-				// Even better - types match, so we know this container		
-				// is filled with T too, therefore we can use statically		
-				// optimized routines for destruction								
+		if (GetUses() != 1 || !meta->Is(mType)) {
+			// Reset and allocate new memory											
+			// Abandoned-construction will be used if possible					
+			Reset();
+			operator << (other.Forward());
+		}
+		else {
+			// Just destroy and reuse memory											
+			// Even better - types match, so we know this container			
+			// is filled with T too, therefore we can use statically			
+			// optimized routines for destruction and creation					
+			if constexpr (CT::Sparse<T>) {
 				CallKnownDestructors<T>();
 				mCount = 1;
 				mRawSparse->mPointer = reinterpret_cast<Byte*>(&other.mValue);
 				mRawSparse->mEntry = nullptr;
 			}
 			else {
-				// Reset and allocate new memory										
-				// Abandoned-construction will be used if possible				
-				Reset();
-				operator << (other.template Forward<T>());
+				CallKnownDestructors<T>();
+				mCount = 1;
+				new (mRaw) T {other.Forward()};
 			}
-		}
-		else {
-			Free();
-			mState = mState.mState & DataState::Typed;
-			mType = mState.mState & DataState::Typed ? mType : meta;
-			mCount = mReserved = 1;
-			mRaw = reinterpret_cast<Byte*>(const_cast<T*>(&other.mValue));
 		}
 
 		return *this;
