@@ -1049,7 +1049,7 @@ namespace Langulus::Anyness
 	}
 
 	/// Copy-insert elements either at the start or the end							
-	///	@tparam INDEX - use Index::Back or Index::Front to append accordingly
+	///	@tparam INDEX - use IndexBack or IndexFront to append accordingly		
 	///	@tparam KEEP - whether to reference data on copy							
 	///	@param start - pointer to the first item										
 	///	@param end - pointer to the end of items										
@@ -1088,7 +1088,7 @@ namespace Langulus::Anyness
 	}
 
 	/// Move-insert an element at the start or the end									
-	///	@tparam INDEX - use Index::Back or Index::Front to append accordingly
+	///	@tparam INDEX - use IndexBack or IndexFront to append accordingly		
 	///	@tparam KEEP - whether to reference data on copy							
 	///	@param item - item to move int													
 	///	@return 1 if element was pushed													
@@ -1326,7 +1326,7 @@ namespace Langulus::Anyness
 	///	@tparam ALT_T - type of the element to search for							
 	///	@tparam REVERSE - whether to search in reverse order						
 	///	@param item - the item to search for											
-	///	@return the index of the found item, or Index::None if none found		
+	///	@return the index of the found item, or IndexNone if none found		
 	TEMPLATE()
 	template<CT::Data ALT_T, bool REVERSE>
 	Index TAny<T>::Find(const ALT_T& item) const {

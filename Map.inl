@@ -221,26 +221,26 @@ namespace Langulus::Anyness
 	/// Push any data at the back																
 	template<CT::Data K, CT::Data V>
 	Map& Map::operator << (const TPair<K, V>& other) {
-		Insert<K, V>(&other, 1, Index::Back);
+		Insert<K, V>(&other, 1, IndexBack);
 		return *this;
 	}
 
 	template<CT::Data K, CT::Data V>
 	Map& Map::operator << (TPair<K, V>&& other) {
-		Insert<K, V>(Forward<TPair<K, V>>(other), Index::Back);
+		Insert<K, V>(Forward<TPair<K, V>>(other), IndexBack);
 		return *this;
 	}
 
 	/// Push any data at the front															
 	template<CT::Data K, CT::Data V>
 	Map& Map::operator >> (const TPair<K, V>& other) {
-		Insert<K, V>(&other, 1, Index::Front);
+		Insert<K, V>(&other, 1, IndexFront);
 		return *this;
 	}
 
 	template<CT::Data K, CT::Data V>
 	Map& Map::operator >> (TPair<K, V>&& other) {
-		Insert<K, V>(Forward<TPair<K, V>>(other), Index::Front);
+		Insert<K, V>(Forward<TPair<K, V>>(other), IndexFront);
 		return *this;
 	}
 

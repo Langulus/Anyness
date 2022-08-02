@@ -295,14 +295,14 @@ namespace Langulus::Anyness
 	/// Push any data at the back																
 	TEMPLATE()
 	MAP()& MAP()::operator << (Pair&& other) {
-		Emplace(Forward<Pair>(other), Index::Back);
+		Emplace(Forward<Pair>(other), IndexBack);
 		return *this;
 	}
 
 	/// Push any data at the front															
 	TEMPLATE()
 	MAP()& MAP()::operator >> (Pair&& other) {
-		Emplace(Forward<Pair>(other), Index::Front);
+		Emplace(Forward<Pair>(other), IndexFront);
 		return *this;
 	}
 

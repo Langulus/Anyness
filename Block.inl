@@ -944,27 +944,26 @@ namespace Langulus::Anyness
 	template<CT::Data T>
 	Index Block::ConstrainMore(const Index& idx) const noexcept {
 		const auto result = Constrain(idx);
-		if (result.IsSpecial()) {
-			switch (result.mIndex) {
-			case Index::Biggest:
-				if constexpr (CT::Sortable<T, T>)
-					return GetIndexMax<T>();
-				else return Index::None;
-				break;
-			case Index::Smallest:
-				if constexpr (CT::Sortable<T, T>)
-					return GetIndexMin<T>();
-				else return Index::None;
-				break;
-			case Index::Mode:
-				if constexpr (CT::Sortable<T, T>) {
-					UNUSED() Count unused;
-					return GetIndexMode<T>(unused);
-				}
-				else return Index::None;
-				break;
-			}
+		if (result == IndexBiggest) {
+			if constexpr (CT::Sortable<T, T>)
+				return GetIndexMax<T>();
+			else
+				return IndexNone;
 		}
+		else if (result == IndexSmallest) {
+			if constexpr (CT::Sortable<T, T>)
+				return GetIndexMin<T>();
+			else
+				return IndexNone;
+		}
+		else if (result == IndexMode) {
+			if constexpr (CT::Sortable<T, T>) {
+				UNUSED() Count unused;
+				return GetIndexMode<T>(unused);
+			}
+			else return IndexNone;
+		}
+
 		return result;
 	}
 
@@ -1130,7 +1129,7 @@ namespace Langulus::Anyness
 			// Type may mutate															
 			if (Mutate<T, WRAPPER>()) {
 				WRAPPER wrapper;
-				wrapper.template Insert<Index::Back, WRAPPER, KEEP, false, T>(start, end);
+				wrapper.template Insert<IndexBack, WRAPPER, KEEP, false, T>(start, end);
 				const auto pushed = InsertAt<WRAPPER, false, false, T>(Move(wrapper), index);
 				wrapper.mEntry = nullptr;
 				return pushed;
@@ -1196,7 +1195,7 @@ namespace Langulus::Anyness
 			// Type may mutate															
 			if (Mutate<T, WRAPPER>()) {
 				WRAPPER wrapper;
-				wrapper.template Insert<Index::Back, WRAPPER, KEEP, false>(Move(item));
+				wrapper.template Insert<IndexBack, WRAPPER, KEEP, false>(Move(item));
 				const auto pushed = InsertAt<WRAPPER, false, false, T>(Move(wrapper), index);
 				wrapper.mEntry = nullptr;
 				return pushed;
@@ -1225,7 +1224,7 @@ namespace Langulus::Anyness
 	}
 
 	/// Copy-insert anything compatible either at the start or the end			
-	///	@tparam INDEX - use Index::Back or Index::Front to append accordingly
+	///	@tparam INDEX - use IndexBack or IndexFront to append accordingly		
 	///	@tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled	
 	///	@tparam KEEP - whether to reference data on copy							
 	///	@tparam MUTABLE - is it allowed the block to deepen or incorporate	
@@ -1280,7 +1279,7 @@ namespace Langulus::Anyness
 	}
 
 	/// Move-insert anything compatible either at the start or the end			
-	///	@tparam INDEX - use Index::Back or Index::Front to append accordingly
+	///	@tparam INDEX - use IndexBack or IndexFront to append accordingly		
 	///	@tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled	
 	///	@tparam KEEP - whether to reference data on copy							
 	///	@tparam MUTABLE - is it allowed the block to deepen or incorporate	
@@ -1677,7 +1676,7 @@ namespace Langulus::Anyness
 	template<CT::Data T>
 	Index Block::GetIndexMax() const noexcept requires CT::Sortable<T, T> {
 		if (IsEmpty())
-			return Index::None;
+			return IndexNone;
 
 		auto data = Get<Decay<T>*>();
 		auto max = data;
@@ -1696,7 +1695,7 @@ namespace Langulus::Anyness
 	template<CT::Data T>
 	Index Block::GetIndexMin() const noexcept requires CT::Sortable<T, T> {
 		if (IsEmpty())
-			return Index::None;
+			return IndexNone;
 
 		auto data = Get<Decay<T>*>();
 		auto min = data;
@@ -1717,7 +1716,7 @@ namespace Langulus::Anyness
 	Index Block::GetIndexMode(Count& count) const noexcept {
 		if (IsEmpty()) {
 			count = 0;
-			return Index::None;
+			return IndexNone;
 		}
 
 		auto data = Get<Decay<T>*>();
@@ -3110,7 +3109,7 @@ namespace Langulus::Anyness
 	}
 
 	/// Copy-insert all elements of a block either at the start or at end		
-	///	@tparam INDEX - either Index::Back or Index::Front							
+	///	@tparam INDEX - either IndexBack or IndexFront								
 	///	@tparam T - type of the block to traverse (deducible)						
 	///	@param other - the block to insert												
 	///	@return the number of inserted elements										
@@ -3147,7 +3146,7 @@ namespace Langulus::Anyness
 	}
 
 	/// Move-insert all elements of a block either at the start or at end		
-	///	@tparam INDEX - either Index::Back or Index::Front							
+	///	@tparam INDEX - either IndexBack or IndexFront								
 	///	@tparam T - type of the block to traverse (deducible)						
 	///	@param other - the block to insert												
 	///	@return the number of inserted elements										
@@ -3190,7 +3189,7 @@ namespace Langulus::Anyness
 	}
 
 	/// Move-insert all elements of an abandoned block either at start/end		
-	///	@tparam INDEX - either Index::Back or Index::Front							
+	///	@tparam INDEX - either IndexBack or IndexFront								
 	///	@tparam T - type of the block to traverse (deducible)						
 	///	@param other - the block to insert												
 	///	@return the number of inserted elements										
@@ -3230,7 +3229,7 @@ namespace Langulus::Anyness
 	}
 
 	/// Copy-insert all elements of a disowned block either at start/end			
-	///	@tparam INDEX - either Index::Back or Index::Front							
+	///	@tparam INDEX - either IndexBack or IndexFront								
 	///	@tparam T - type of the block to traverse (deducible)						
 	///	@param other - the block to insert												
 	///	@return the number of inserted elements										
@@ -3371,8 +3370,8 @@ namespace Langulus::Anyness
 	Count Block::MergeBlock(const T& other) {
 		static_assert(CT::Block<T>,
 			"T must be a block type");
-		static_assert(INDEX == Index::Front || INDEX == Index::Back,
-			"INDEX bust be either Index::Front or Index::Back");
+		static_assert(INDEX == IndexFront || INDEX == IndexBack,
+			"INDEX bust be either IndexFront or IndexBack");
 		//TODO do a pass first and allocate & move once instead of each time?
 		Count inserted {};
 		for (Count i = 0; i < other.GetCount(); ++i) {
@@ -3394,8 +3393,8 @@ namespace Langulus::Anyness
 	Count Block::MergeBlock(T&& other) {
 		static_assert(CT::Block<T>,
 			"T must be a block type");
-		static_assert(INDEX == Index::Front || INDEX == Index::Back,
-			"INDEX bust be either Index::Front or Index::Back");
+		static_assert(INDEX == IndexFront || INDEX == IndexBack,
+			"INDEX bust be either IndexFront or IndexBack");
 		//TODO do a pass first and allocate & move once instead of each time?
 		Count inserted {};
 		for (Count i = 0; i < other.GetCount(); ++i) {
