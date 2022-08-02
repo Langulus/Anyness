@@ -48,14 +48,9 @@ namespace Langulus::Anyness
 		Any(T&&);
 
 		template<CT::CustomData T>
-		Any(Disowned<T>&&) noexcept requires CT::Dense<T>;
+		Any(Disowned<T>&&);
 		template<CT::CustomData T>
-		Any(Abandoned<T>&&) noexcept requires CT::Dense<T>;
-
-		template<CT::CustomData T>
-		Any(Disowned<T>&&) requires CT::Sparse<T>;
-		template<CT::CustomData T>
-		Any(Abandoned<T>&&) requires CT::Sparse<T>;
+		Any(Abandoned<T>&&);
 
 		~Any();
 	

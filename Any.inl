@@ -42,16 +42,16 @@ namespace Langulus::Anyness
 		Keep();
 	}
 
-	/// Same as shallow-copy but doesn't reference anything							
-	///	@param other - the block to shallow-copy										
+	/// Same as copy-construction, but doesn't reference anything					
+	///	@param other - the block to copy													
 	inline Any::Any(Disowned<Any>&& other) noexcept
 		: Block {other.Forward<Block>()} {
 		mEntry = nullptr;
 	}
 	
-	/// Same as shallow-move but doesn't fully reset other, saving some			
+	/// Same as move-construction but doesn't fully reset other, saving some	
 	/// instructions																				
-	///	@param other - the block to shallow-copy										
+	///	@param other - the block to move													
 	inline Any::Any(Abandoned<Any>&& other) noexcept
 		: Block {other.Forward<Block>()} {
 		other.mValue.mEntry = nullptr;
@@ -86,42 +86,24 @@ namespace Langulus::Anyness
 		Insert<Index::Back, Any, true, false, T>(Move(other));
 	}
 
-	/// Construct by directly interfacing the memory of a dense non-block type	
-	///	@tparam T - the data type to wrap (deducible)								
-	///	@param other - the dense value to wrap											
-	template <CT::CustomData T>
-	Any::Any(Disowned<T>&& other) noexcept requires CT::Dense<T>
-		: Block {
-			DataState::Constrained, MetaData::Of<Decay<T>>(), 1,
-			const_cast<const T*>(&other.mValue), nullptr
-		} {}
-
-	/// Construct by directly interfacing the memory of a dense non-block type	
-	///	@tparam T - the data type to wrap (deducible)								
-	///	@param other - the dense value to wrap											
-	template <CT::CustomData T>
-	Any::Any(Abandoned<T>&& other) noexcept requires CT::Dense<T>
-		: Block {
-			DataState::Member, MetaData::Of<Decay<T>>(), 1,
-			&other.mValue, nullptr
-		} {}
-
-	/// Construct by inserting a sparse value of non-block type						
+	/// Construct by inserting a disowned value of non-block type					
 	///	@tparam T - the data type to push (deducible)								
-	///	@param other - the disownes sparse value										
+	///	@param other - the disowned value												
 	template <CT::CustomData T>
-	Any::Any(Disowned<T>&& other) requires CT::Sparse<T> {
-		MakeSparse();
+	Any::Any(Disowned<T>&& other) {
+		if constexpr (CT::Sparse<T>)
+			MakeSparse();
 		SetType<T, false>();
 		Insert<Index::Back, Any, false, false, T>(&other.mValue, &other.mValue + 1);
 	}
 
-	/// Construct by inserting a sparse value of non-block type						
+	/// Construct by inserting an abandoned value of non-block type				
 	///	@tparam T - the data type to push (deducible)								
-	///	@param other - the disownes sparse value										
+	///	@param other - the abandoned value												
 	template <CT::CustomData T>
-	Any::Any(Abandoned<T>&& other) requires CT::Sparse<T> {
-		MakeSparse();
+	Any::Any(Abandoned<T>&& other) {
+		if constexpr (CT::Sparse<T>)
+			MakeSparse();
 		SetType<T, false>();
 		Insert<Index::Back, Any, false, false, T>(Move(other.mValue));
 	}
@@ -354,7 +336,7 @@ namespace Langulus::Anyness
 				"Unable to disowned value-assign type-constrained container - types are incompatible");
 		}
 
-		if (GetUses() != 1 || !meta->Is(mType)) {
+		if (GetUses() != 1 || IsSparse() != CT::Sparse<T> || !meta->Is(mType)) {
 			// Reset and allocate new memory											
 			// Disowned-construction will be used if possible					
 			Reset();
@@ -374,7 +356,10 @@ namespace Langulus::Anyness
 			else {
 				CallKnownDestructors<T>();
 				mCount = 1;
-				new (mRaw) T {other.Forward()};
+				if constexpr (CT::DisownMakable<T>)
+					new (mRaw) T {other.Forward()};
+				else
+					new (mRaw) T {other.mValue};
 			}
 		}
 
@@ -394,7 +379,7 @@ namespace Langulus::Anyness
 				"Unable to abandoned value-assign type-constrained container - types are incompatible");
 		}
 
-		if (GetUses() != 1 || !meta->Is(mType)) {
+		if (GetUses() != 1 || IsSparse() != CT::Sparse<T> || !meta->Is(mType)) {
 			// Reset and allocate new memory											
 			// Abandoned-construction will be used if possible					
 			Reset();
@@ -408,13 +393,16 @@ namespace Langulus::Anyness
 			if constexpr (CT::Sparse<T>) {
 				CallKnownDestructors<T>();
 				mCount = 1;
-				mRawSparse->mPointer = reinterpret_cast<Byte*>(&other.mValue);
+				mRawSparse->mPointer = reinterpret_cast<Byte*>(other.mValue);
 				mRawSparse->mEntry = nullptr;
 			}
 			else {
 				CallKnownDestructors<T>();
 				mCount = 1;
-				new (mRaw) T {other.Forward()};
+				if constexpr (CT::AbandonMakable<T>)
+					new (mRaw) T {other.Forward()};
+				else
+					new (mRaw) T {Forward<T>(other.mValue)};
 			}
 		}
 

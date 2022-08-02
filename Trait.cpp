@@ -10,77 +10,41 @@
 namespace Langulus::Anyness
 {
 
-	/// Copy construction from immutable Any												
-	///	@param copy - the block to copy													
-	/*Trait::Trait(const Any& copy)
-		: Any {copy} { }
+	/// Same as copy-construction, but doesn't reference anything					
+	///	@param other - the trait to copy													
+	Trait::Trait(Disowned<Trait>&& other)
+		: Any {other.Forward<Any>()}
+		, mTraitType {other.mValue.mTraitType} {}
 
-	/// Move construction from Any															
-	///	@param copy - the block to copy													
-	Trait::Trait(Any&& copy) noexcept
-		: Any {Forward<Any>(copy)} { }
+	/// Same as move-construction but doesn't fully reset other, saving some	
+	/// instructions																				
+	///	@param other - the trait to move													
+	Trait::Trait(Abandoned<Trait>&& other)
+		: Any {other.Forward<Any>()}
+		, mTraitType {other.mValue.mTraitType} {}
 
-	/// Copy construction from immutable block											
-	///	@param copy - the block to copy													
-	Trait::Trait(const Block& copy)
-		: Any {copy} { }
+	/// Shallow-copy a disowned trait (doesn't reference anything)					
+	///	@param other - the trait to copy													
+	///	@return a reference to this trait												
+	Trait& Trait::operator = (Disowned<Trait>&& other) {
+		Any::operator = (other.Forward<Any>());
+		mTraitType = other.mValue.mTraitType;
+		return *this;
+	}
 
-	/// Move construction from Block															
-	///	@attention since we are not aware if that block is referenced, we		
-	///				  reference it and we do not reset the other block to avoid	
-	///				  memory leaks																
-	///	@param copy - the block to copy													
-	Trait::Trait(Block&& copy) noexcept
-		: Any {Forward<Block>(copy)} { }
-
-	/// Shallow-copy construction from immutable trait									
-	///	@param copy - the trait to copy													
-	Trait::Trait(const Trait& copy)
-		: Any {static_cast<const Any&>(copy)}
-		, mTraitType {copy.mTraitType} { }
-
-	/// Move construction																		
-	///	@param copy - the trait to copy													
-	Trait::Trait(Trait&& copy) noexcept
-		: Any {Forward<Any>(copy)}
-		, mTraitType {Move(copy.mTraitType)} { }
-
-	/// Manual construction by shallow-copying a constant container				
-	///	@param type - the trait meta														
-	///	@param data - the data for the trait											
-	Trait::Trait(TMeta type, const Any& data)
-		: Any {data}
-		, mTraitType {type} { }
-
-	/// Manual construction (move memory block)											
-	///	@param type - the trait meta														
-	///	@param data - the data for the trait											
-	Trait::Trait(TMeta type, Any&& data) noexcept
-		: Any {Forward<Any>(data)}
-		, mTraitType {type} { }
-
-	/// Manual construction by shallow-copying a constant block						
-	///	@param type - the trait meta														
-	///	@param data - the data for the trait											
-	Trait::Trait(TMeta type, const Block& data)
-		: Any {data}
-		, mTraitType {type} { }
-
-	/// Move construction - moves block and references content						
-	///	@attention since we are not aware if that block is referenced, we		
-	///				  reference it and we do not reset the other block to avoid	
-	///				  memory leaks																
-	///	@param type - the trait meta														
-	///	@param data - the data for the trait											
-	Trait::Trait(TMeta type, Block&& data) noexcept
-		: Any {Forward<Block>(data)}
-		, mTraitType {type} { }*/
+	/// Move an abandoned trait, minimally resetting the source						
+	///	@param other - the container to move and reset								
+	///	@return a reference to this trait												
+	Trait& Trait::operator = (Abandoned<Trait>&& other) {
+		Any::operator = (other.Forward<Any>());
+		mTraitType = other.mValue.mTraitType;
+		return *this;
+	}
 
 	/// Clone the trait																			
 	///	@return the cloned trait															
 	Trait Trait::Clone() const {
 		return Trait::From(mTraitType, Any::Clone());
-		//return {mTraitType, Any::Clone()};
 	}
 
 	/// Get the trait type																		
@@ -124,49 +88,44 @@ namespace Langulus::Anyness
 		return TraitIs(other.mTraitType) && Compare(other);
 	}
 
-	/// Compare trait type																		
-	///	@param other - the trait ID to compare with									
-	///	@return true if same																	
-	/*bool Trait::operator == (TMeta other) const noexcept {
-		return TraitIs(other);
-	}*/
-
 	/// Reset the trait																			
 	void Trait::Reset() {
 		Any::Reset();
 	}
 
-	/// Move operator																				
-	///	@param other - the trait to move													
-	/*Trait& Trait::operator = (Trait&& other) noexcept {
-		Any::operator = (Forward<Any>(other));
-		mTraitType = other.mTraitType;
-		return *this;
-	}
-
-	/// Shallow copy operator with trait type												
-	///	@param other - the trait to copy													
-	Trait& Trait::operator = (const Trait& other) {
-		Any::operator = (static_cast<const Any&>(other));
-		mTraitType = other.mTraitType;
-		return *this;
-	}
-
-	/// Shallow copy operator for block only, leaving trait unchanged (const)	
-	///	@param other - the block to copy													
-	Trait& Trait::operator = (const Block& other) {
-		Any::operator = (other);
-		return *this;
-	}
-
-	/// Move copy operator for block only, leaving trait unchanged					
-	///	@attention since we are not aware if that block is referenced, we		
-	///				  reference it and we do not reset the other block to avoid	
-	///				  memory leaks																
-	///	@param other - the block to move													
-	Trait& Trait::operator = (Block&& other) noexcept {
-		Any::operator = (Forward<Block>(other));
-		return *this;
-	}*/
-
 } // namespace Langulus::Anyness
+
+namespace Langulus::Traits
+{
+
+	using RTTI::MetaTrait;
+
+	Logger::Logger()
+		: Trait {MetaTrait::Of<Logger>(), Any{}} {}
+	Logger::Logger(Disowned<Logger>&& other)
+		: Trait {other.mValue.mTraitType, other.Forward<Any>()} {}
+	Logger::Logger(Abandoned<Logger>&& other)
+		: Trait {other.mValue.mTraitType, other.Forward<Any>()} {}
+
+	Count::Count()
+		: Trait {MetaTrait::Of<Count>(), Any{}} {}
+	Count::Count(Disowned<Count>&& other)
+		: Trait {other.mValue.mTraitType, other.Forward<Any>()} {}
+	Count::Count(Abandoned<Count>&& other)
+		: Trait {other.mValue.mTraitType, other.Forward<Any>()} {}
+
+	Name::Name()
+		: Trait {MetaTrait::Of<Name>(), Any{}} {}
+	Name::Name(Disowned<Name>&& other)
+		: Trait {other.mValue.mTraitType, other.Forward<Any>()} {}
+	Name::Name(Abandoned<Name>&& other)
+		: Trait {other.mValue.mTraitType, other.Forward<Any>()} {}
+
+	Context::Context()
+		: Trait {MetaTrait::Of<Context>(), Any{}} {}
+	Context::Context(Disowned<Context>&& other)
+		: Trait {other.mValue.mTraitType, other.Forward<Any>()} {}
+	Context::Context(Abandoned<Context>&& other)
+		: Trait {other.mValue.mTraitType, other.Forward<Any>()} {}
+
+} // namespace Langulus::Traits

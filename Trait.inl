@@ -11,6 +11,24 @@
 namespace Langulus::Anyness
 {
 
+	/// Manual trait construction by copy													
+	///	@tparam T - type of the contained data											
+	///	@param type - type of the trait													
+	///	@param data - data to copy inside trait										
+	template<class T>
+	Trait::Trait(TMeta type, const T& data)
+		: Any {data}
+		, mTraitType {type} {}
+
+	/// Manual trait construction by movement												
+	///	@tparam T - type of the contained data											
+	///	@param type - type of the trait													
+	///	@param data - data to move inside trait										
+	template<class T>
+	Trait::Trait(TMeta type, T&& data)
+		: Any {Forward<T>(data)}
+		, mTraitType {type} {}
+
 	/// Create a trait from a trait definition											
 	template<CT::Data TRAIT, CT::Data DATA>
 	Trait Trait::From() {

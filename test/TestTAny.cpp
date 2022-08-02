@@ -339,15 +339,16 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 			THEN("Properties should match") {
 				if constexpr (CT::Flat<E>) {
 					REQUIRE(pack.GetType() != nullptr);
-					REQUIRE(&pack.template As<DenseE>() == sparseValue);
+					if constexpr (CT::Sparse<E>)
+						REQUIRE(&pack.template As<DenseE>() == sparseValue);
 					REQUIRE(pack.template Is<DenseE>());
 					REQUIRE(pack.template Is<DenseE*>());
 					REQUIRE(pack.template As<DenseE>() == denseValue);
 					REQUIRE(*pack.template As<DenseE*>() == denseValue);
-					REQUIRE(pack.GetUses() == (CT::Sparse<E> ? 1 : 0));
-					REQUIRE(pack.IsStatic() == CT::Dense<E>);
-					REQUIRE(pack.HasAuthority() == CT::Sparse<E>);
-					REQUIRE(pack.IsConstant() == CT::Dense<E>);
+					REQUIRE(pack.GetUses() == 1);
+					REQUIRE_FALSE(pack.IsStatic());
+					REQUIRE(pack.HasAuthority());
+					REQUIRE(pack.IsConstant() == CT::Constant<E>);
 					REQUIRE(pack.IsDeep() == CT::Deep<Decay<E>>);
 				}
 				else if constexpr (CT::Same<E, T>) {
@@ -438,10 +439,10 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 					REQUIRE(pack.template Is<DenseE*>());
 					REQUIRE(pack.template As<DenseE>() == denseValue);
 					REQUIRE(*pack.template As<DenseE*>() == denseValue);
-					REQUIRE(pack.GetUses() == (CT::Sparse<E> ? 1 : 0));
-					REQUIRE(pack.HasAuthority() == CT::Sparse<E>);
-					REQUIRE(pack.IsStatic() == CT::Dense<E>);
-					REQUIRE_FALSE(pack.IsConstant());
+					REQUIRE(pack.GetUses() == 1);
+					REQUIRE(pack.HasAuthority());
+					REQUIRE_FALSE(pack.IsStatic());
+					REQUIRE(pack.IsConstant() == CT::Constant<E>);
 					REQUIRE(pack.IsDeep() == CT::Deep<Decay<E>>);
 				}
 				else if constexpr (CT::Same<E, T>) {
@@ -928,15 +929,16 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 			THEN("Properties should match") {
 				if constexpr (CT::Flat<E>) {
 					REQUIRE(pack.GetType() != nullptr);
-					REQUIRE(&pack.template As<DenseE>() == sparseValue);
+					if constexpr (CT::Sparse<E>)
+						REQUIRE(&pack.template As<DenseE>() == sparseValue);
 					REQUIRE(pack.template Is<DenseE>());
 					REQUIRE(pack.template Is<DenseE*>());
 					REQUIRE(pack.template As<DenseE>() == denseValue);
 					REQUIRE(*pack.template As<DenseE*>() == denseValue);
-					REQUIRE(pack.GetUses() == (CT::Sparse<E> ? 1 : 0));
-					REQUIRE(pack.IsStatic() == CT::Dense<E>);
-					REQUIRE(pack.HasAuthority() == CT::Sparse<E>);
-					REQUIRE(pack.IsConstant() == CT::Dense<E>);
+					REQUIRE(pack.GetUses() == 1);
+					REQUIRE_FALSE(pack.IsStatic());
+					REQUIRE(pack.HasAuthority());
+					REQUIRE(pack.IsConstant() == CT::Constant<E>);
 					REQUIRE(pack.IsDeep() == CT::Deep<Decay<E>>);
 				}
 				else if constexpr (CT::Same<E, T>) {
@@ -1027,10 +1029,10 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 					REQUIRE(pack.template Is<DenseE*>());
 					REQUIRE(pack.template As<DenseE>() == denseValue);
 					REQUIRE(*pack.template As<DenseE*>() == denseValue);
-					REQUIRE(pack.GetUses() == (CT::Sparse<E> ? 1 : 0));
-					REQUIRE(pack.HasAuthority() == CT::Sparse<E>);
-					REQUIRE(pack.IsStatic() == CT::Dense<E>);
-					REQUIRE_FALSE(pack.IsConstant());
+					REQUIRE(pack.GetUses() == 1);
+					REQUIRE(pack.HasAuthority());
+					REQUIRE_FALSE(pack.IsStatic());
+					REQUIRE(pack.IsConstant() == CT::Constant<E>);
 					REQUIRE(pack.IsDeep() == CT::Deep<Decay<E>>);
 				}
 				else if constexpr (CT::Same<E, T>) {
@@ -1299,15 +1301,16 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 		THEN("Properties should match") {
 			REQUIRE(pack.GetType() != nullptr);
 			if constexpr (CT::Flat<E>) {
-				REQUIRE(&pack.template As<DenseE>() == sparseValue);
+				if constexpr (CT::Sparse<E>)
+					REQUIRE(&pack.template As<DenseE>() == sparseValue);
 				REQUIRE(pack.template Is<DenseE>());
 				REQUIRE(pack.template Is<DenseE*>());
 				REQUIRE(pack.template As<DenseE>() == denseValue);
 				REQUIRE(*pack.template As<DenseE*>() == denseValue);
-				REQUIRE(pack.GetUses() == (CT::Sparse<E> ? 1 : 0));
-				REQUIRE(pack.IsStatic() == CT::Dense<E>);
-				REQUIRE(pack.HasAuthority() == CT::Sparse<E>);
-				REQUIRE(pack.IsConstant() == CT::Dense<E>);
+				REQUIRE(pack.GetUses() == 1);
+				REQUIRE_FALSE(pack.IsStatic());
+				REQUIRE(pack.HasAuthority());
+				REQUIRE(pack.IsConstant() == CT::Constant<E>);
 				REQUIRE(pack.IsDeep() == CT::Deep<Decay<E>>);
 			}
 			else if constexpr (CT::Same<E, T>) {
@@ -1396,10 +1399,10 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 				REQUIRE(pack.template Is<DenseE*>());
 				REQUIRE(pack.template As<DenseE>() == denseValue);
 				REQUIRE(*pack.template As<DenseE*>() == denseValue);
-				REQUIRE(pack.GetUses() == (CT::Sparse<E> ? 1 : 0));
-				REQUIRE(pack.HasAuthority() == CT::Sparse<E>);
-				REQUIRE(pack.IsStatic() == CT::Dense<E>);
-				REQUIRE_FALSE(pack.IsConstant());
+				REQUIRE(pack.GetUses() == 1);
+				REQUIRE(pack.HasAuthority());
+				REQUIRE_FALSE(pack.IsStatic());
+				REQUIRE(pack.IsConstant() == CT::Constant<E>);
 				REQUIRE(pack.IsDeep() == CT::Deep<Decay<E>>);
 			}
 			else if constexpr (CT::Same<E, T>) {

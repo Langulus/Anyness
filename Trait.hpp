@@ -14,54 +14,33 @@ namespace Langulus::Anyness
 	///																								
 	///	TRAIT																						
 	///																								
-	/// A tagged container																		
+	///	A named container, used to give containers a standard intent of use	
+	///	A count is a count, no matter how you call it. So when your type		
+	/// contains a count variable, you can tag it with a Traits::Count tag		
+	///	Traits are used to access members of objects at runtime, or access	
+	/// global objects																			
 	///																								
 	class Trait : public Any {
+		LANGULUS(DEEP) false;
 		LANGULUS_BASES(Any);
+
 	protected:
 		TMeta mTraitType {};
 
 	public:
 		using Any::Any;
+
+		template<class T>
+		Trait(TMeta, const T&);
+		template<class T>
+		Trait(TMeta, T&&);
+		Trait(Disowned<Trait>&&);
+		Trait(Abandoned<Trait>&&);
+
 		using Any::operator =;
 
-		/*template<class T>
-		static constexpr bool NotCustom =
-			CT::Sparse<T> || (!CT::Same<T, Any> && !CT::Same<T, Block> && !CT::Same<T, Trait>);
-
-		constexpr Trait() noexcept : Any{} {}
-		Trait(TMeta);
-
-		Trait(const Any&);
-		Trait(Any&&) noexcept;
-
-		Trait(const Block&);
-		Trait(Block&&) noexcept;
-
-		Trait(const Trait&);
-		Trait(Trait&&) noexcept;
-
-		Trait(TMeta, const Any&);
-		Trait(TMeta, Any&&) noexcept;
-
-		Trait(TMeta, const Block&);
-		Trait(TMeta, Block&&) noexcept;
-
-		Trait& operator = (const Any&);
-		Trait& operator = (Any&&) noexcept;
-
-		Trait& operator = (const Trait&);
-		Trait& operator = (Trait&&) noexcept;
-
-		Trait& operator = (const Block&);
-		Trait& operator = (Block&&) noexcept;
-
-		template<CT::Data T>
-		Trait& operator = (const T&) requires (Trait::NotCustom<T>);
-		template<CT::Data T>
-		Trait& operator = (T&) requires (Trait::NotCustom<T>);
-		template<CT::Data T>
-		Trait& operator = (T&&) requires (Trait::NotCustom<T>);*/
+		Trait& operator = (Disowned<Trait>&&);
+		Trait& operator = (Abandoned<Trait>&&);
 
 	public:
 		void Reset();
@@ -102,35 +81,9 @@ namespace Langulus::Anyness
 		NOD() bool HasCorrectData() const;
 
 		NOD() bool operator == (const Trait&) const noexcept;
-		//NOD() bool operator == (TMeta) const noexcept;
 	};
 
 } // namespace Langulus::Anyness
-
-
-namespace Langulus::Traits
-{
-
-	using Anyness::Trait;
-
-	struct Logger : public Trait {
-		using Trait::Trait;
-	};
-
-	struct Count : public Trait {
-		using Trait::Trait;
-	};
-
-	struct Name : public Trait {
-		using Trait::Trait;
-	};
-
-	struct Context : public Trait {
-		using Trait::Trait;
-	};
-
-} // namespace Langulus::Traits
-
 
 namespace Langulus::CT
 {
@@ -142,5 +95,77 @@ namespace Langulus::CT
 		&& sizeof(T) == sizeof(::Langulus::Anyness::Trait)) && ...);
 
 } // namespace Langulus::CT
+
+namespace Langulus::Traits
+{
+
+	using Anyness::Trait;
+
+	///																								
+	///	Logger trait, used to access the logger instance							
+	///																								
+	struct Logger : public Trait {
+		using Trait::Trait;
+
+		Logger();
+		Logger(Disowned<Logger>&&);
+		Logger(Abandoned<Logger>&&);
+
+		using Trait::operator =;
+
+		Logger& operator = (Disowned<Logger>&&);
+		Logger& operator = (Abandoned<Logger>&&);
+	};
+
+	///																								
+	///	Count trait, used all over the place											
+	///																								
+	struct Count : public Trait {
+		using Trait::Trait;
+
+		Count();
+		Count(Disowned<Count>&&);
+		Count(Abandoned<Count>&&);
+
+		using Trait::operator =;
+
+		Count& operator = (Disowned<Count>&&);
+		Count& operator = (Abandoned<Count>&&);
+	};
+
+	///																								
+	///	Name trait, used all over the place												
+	///																								
+	struct Name : public Trait {
+		using Trait::Trait;
+
+		Name();
+		Name(Disowned<Name>&&);
+		Name(Abandoned<Name>&&);
+
+		using Trait::operator =;
+
+		Name& operator = (Disowned<Name>&&);
+		Name& operator = (Abandoned<Name>&&);
+	};
+
+	///																								
+	///	Context trait, used to access the current environment						
+	///																								
+	struct Context : public Trait {
+		using Trait::Trait;
+
+		Context();
+		Context(Disowned<Context>&&);
+		Context(Abandoned<Context>&&);
+
+		using Trait::operator =;
+
+		Context& operator = (Disowned<Context>&&);
+		Context& operator = (Abandoned<Context>&&);
+	};
+
+} // namespace Langulus::Traits
+
 
 #include "Trait.inl"

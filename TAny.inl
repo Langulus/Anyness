@@ -171,31 +171,17 @@ namespace Langulus::Anyness
 	TAny<T>::TAny(T&& initial) requires CT::CustomData<T>
 		: Any {Forward<T>(initial)} { }
 
-	/// Construct by interfacing a dense non-block element							
-	///	@attention unsafe, make sure that lifetime of memory is sane			
-	///	@param other - the value to interface											
+	/// Construct by inserting a disowned non-block element							
+	///	@param other - the value to insert												
 	TEMPLATE()
-	TAny<T>::TAny(Disowned<T>&& other) noexcept requires (CT::CustomData<T> && CT::Dense<T>)
-		: Any {Move(other)} { }
+	TAny<T>::TAny(Disowned<T>&& other) requires CT::CustomData<T>
+		: Any {other.Forward()} { }
 
-	/// Construct by interfacing a dense non-block element							
-	///	@attention unsafe, make sure that lifetime of memory is sane			
-	///	@param other - the value to interface											
+	/// Construct by inserting an abandoned non-block element						
+	///	@param other - the value to insert												
 	TEMPLATE()
-	TAny<T>::TAny(Abandoned<T>&& other) noexcept requires (CT::CustomData<T> && CT::Dense<T>)
-		: Any {Move(other)} { }
-
-	/// Construct by inserting a sparse element, without referencing it			
-	///	@param other - the pointer to insert											
-	TEMPLATE()
-	TAny<T>::TAny(Disowned<T>&& other) noexcept requires (CT::CustomData<T> && CT::Sparse<T>)
-		: Any {Move(other)} { }
-
-	/// Construct by inserting a sparse element, without resetting it				
-	///	@param other - the pointer to insert											
-	TEMPLATE()
-	TAny<T>::TAny(Abandoned<T>&& other) noexcept requires (CT::CustomData<T> && CT::Sparse<T>)
-		: Any {Move(other)} { }
+	TAny<T>::TAny(Abandoned<T>&& other) requires CT::CustomData<T>
+		: Any {other.Forward()} { }
 
 	/// Construct manually by interfacing memory directly								
 	/// Data will be copied, if not in jurisdiction, which involves a slow		
@@ -491,25 +477,28 @@ namespace Langulus::Anyness
 	///	@return a reference to this container											
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator = (Disowned<T>&& other) noexcept requires CT::CustomData<T> {
-		if constexpr (CT::Sparse<T>) {
-			if (GetUses() == 1) {
-				// Just destroy memory and reuse a single known pointer		
+		if (GetUses() != 1) {
+			// Reset and allocate new memory											
+			// Disowned-construction will be used if possible					
+			Reset();
+			operator << (other.Forward());
+		}
+		else {
+			// Just destroy and reuse memory											
+			if constexpr (CT::Sparse<T>) {
 				CallKnownDestructors<T>();
 				mCount = 1;
 				mRawSparse->mPointer = reinterpret_cast<Byte*>(other.mValue);
 				mRawSparse->mEntry = nullptr;
 			}
 			else {
-				// Reset and allocate new memory										
-				Reset();
-				operator << (Move(other));
+				CallKnownDestructors<T>();
+				mCount = 1;
+				if constexpr (CT::DisownMakable<T>)
+					new (mRaw) T {other.Forward()};
+				else
+					new (mRaw) T {other.mValue};
 			}
-		}
-		else {
-			Reset();
-			mState += DataState::Constrained;
-			mCount = mReserved = 1;
-			mRaw = reinterpret_cast<Byte*>(const_cast<T*>(&other.mValue));
 		}
 
 		return *this;
@@ -520,13 +509,28 @@ namespace Langulus::Anyness
 	///	@return a reference to this container											
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator = (Abandoned<T>&& other) noexcept requires CT::CustomData<T> {
-		if constexpr (CT::Sparse<T>)
-			return operator = (Disown(other.mValue));
-		else {
+		if (GetUses() != 1) {
+			// Reset and allocate new memory											
+			// Abandoned-construction will be used if possible					
 			Reset();
-			mState += DataState::Member;
-			mCount = mReserved = 1;
-			mRaw = reinterpret_cast<Byte*>(&other.mValue);
+			operator << (other.Forward());
+		}
+		else {
+			// Just destroy and reuse memory											
+			if constexpr (CT::Sparse<T>) {
+				CallKnownDestructors<T>();
+				mCount = 1;
+				mRawSparse->mPointer = reinterpret_cast<Byte*>(other.mValue);
+				mRawSparse->mEntry = nullptr;
+			}
+			else {
+				CallKnownDestructors<T>();
+				mCount = 1;
+				if constexpr (CT::AbandonMakable<T>)
+					new (mRaw) T {other.Forward()};
+				else
+					new (mRaw) T {Forward<T>(other.mValue)};
+			}
 		}
 
 		return *this;
