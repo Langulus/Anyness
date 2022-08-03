@@ -7,8 +7,8 @@
 ///																									
 #include "../Any.hpp"
 
-#define VERBOSE(a) //pcLogFuncVerbose << a
-#define VERBOSE_TAB(a) //ScopedTab tab; pcLogFuncVerbose << a << tab
+#define VERBOSE(...) //Logger::Verbose(__VA_ARGS__)
+#define VERBOSE_TAB(...) //auto tab = Logger::Section(__VA_ARGS__)
 
 namespace Langulus::Anyness
 {
@@ -25,43 +25,45 @@ namespace Langulus::Anyness
 	///	@param right - the memory block to compare against							
 	///	@return true if the two memory blocks are identical						
 	bool Block::Compare(const Block& right, bool resolve) const {
-		VERBOSE_TAB("Comparing "
-			<< ccPush << ccWhite << mCount << " elements of " << GetToken()
-			<< ccPop << " with "
-			<< ccPush << ccWhite << right.mCount << " elements of " << right.GetToken());
+		VERBOSE_TAB("Comparing ", 
+			Logger::Push, Logger::White, mCount, " elements of ", GetToken(), 
+			Logger::Pop, " with ", 
+			Logger::Push, Logger::White, right.mCount, " elements of ", right.GetToken()
+		);
 
 		if (mCount != right.mCount) {
 			// Cheap early return for differently sized blocks					
-			VERBOSE(ccRed << "Data count is different: " 
-				<< mCount << " != " << right.mCount);
+			VERBOSE(Logger::Red, 
+				"Data count is different: ", mCount, " != ", right.mCount);
 			return false;
 		}
 
 		if (mType != right.mType && (IsUntyped() || right.IsUntyped())) {
 			// Cheap early return for blocks of differing undefined type	
-			VERBOSE(ccRed << "One of the containers is untyped: "
-				<< GetToken() << " != " << right.GetToken());
+			VERBOSE(Logger::Red, 
+				"One of the containers is untyped: ", GetToken(), " != ", right.GetToken());
 			return false;
 		}
 
 		if (!CompareStates(right)) {
 			// Quickly return if memory and relevant states are same			
-			VERBOSE(ccRed << "Data states are not compatible");
+			VERBOSE(Logger::Red, 
+				"Data states are not compatible");
 			return false;
 		}
 
 		if (mType == right.mType && mRaw == right.mRaw) {
 			// Quickly return if memory and relevant states are same			
-			VERBOSE(ccGreen << "Blocks are the same "
-				<< ccCyan << "(optimal)");
+			VERBOSE(Logger::Green, 
+				"Blocks are the same ", Logger::Cyan, "(optimal)");
 			return true;
 		}
 
 		if (!CastsToMeta(right.mType)) {
 			// Data is not similar at all, because either types or states	
 			// are incompatible															
-			VERBOSE(ccRed << "Data types are not compatible: "
-				<< GetToken() << " != " << right.GetToken());
+			VERBOSE(Logger::Red, 
+				"Data types are not compatible: ", GetToken(), " != ", right.GetToken());
 			return false;
 		}
 
@@ -73,8 +75,8 @@ namespace Langulus::Anyness
 				auto rhs = resolve ? right.GetElementResolved(i) : right.GetElement(i);
 				if (lhs.GetType() != rhs.GetType()) {
 					// Fail comparison on first mismatch							
-					VERBOSE(ccRed << "Element " << i << " differs by type: "
-						<< lhs.GetToken() << " != " << rhs.GetToken());
+					VERBOSE(Logger::Red, 
+						"Element ", i, " differs by type: ", lhs.GetToken(), " != ", rhs.GetToken());
 					return false;
 				}
 
@@ -83,14 +85,14 @@ namespace Langulus::Anyness
 
 				if (!lhs.mRaw || !rhs.mRaw || !mType->mComparer(lhs.mRaw, rhs.mRaw)) {
 					// Fail comparison on first mismatch							
-					VERBOSE(ccRed << "Element " << i << " differs: "
-						<< lhs.GetToken() << " != " << rhs.GetToken());
+					VERBOSE(Logger::Red, 
+						"Element ", i, " differs: ", lhs.GetToken(), " != ", rhs.GetToken());
 					return false;
 				}
 			}
 
-			VERBOSE(ccGreen << "Data is the same, all elements match "
-				<< ccDarkYellow << "(slow)");
+			VERBOSE(Logger::Green, 
+				"Data is the same, all elements match ", Logger::DarkYellow, "(slow)");
 			return true;
 		}
 
@@ -99,10 +101,9 @@ namespace Langulus::Anyness
 			VERBOSE("Comparing POD memory");
 			const auto code = memcmp(mRaw, right.mRaw, mCount * mType->mSize);
 			if (code == 0) 
-				VERBOSE(ccGreen << "POD memory is the same (fast)");
+				VERBOSE(Logger::Green, "POD memory is the same (fast)");
 			else
-				VERBOSE(ccRed << "POD memory is not the same "
-					<< ccRed << "(fast)");
+				VERBOSE(Logger::Red, "POD memory is not the same ", Logger::Red, "(fast)");
 			return code == 0;
 		}
 
@@ -113,17 +114,17 @@ namespace Langulus::Anyness
 			auto rhs = resolve ? right.GetElementResolved(i) : right.GetElement(i);
 			if (!lhs.CompareMembers(rhs, compared_members)) {
 				// Fail comparison on first mismatch								
-				VERBOSE(ccRed << "Members in element " << i << " differ: "
-					<< lhs.GetToken() << " != " << rhs.GetToken());
+				VERBOSE(Logger::Red, 
+					"Members in element ", i, " differ: ", lhs.GetToken(), " != ", rhs.GetToken());
 				return false;
 			}
 		}
 
 		SAFETY(if (compared_members == 0 && mCount > 0)
-			Logger::Error() << "Comparing checked no members");
+			Logger::Error("Comparing checked no members"));
 
-		VERBOSE(ccGreen << "Data is the same, all members match " 
-			<< ccRed << "(slowest)");
+		VERBOSE(Logger::Green, 
+			"Data is the same, all members match ", Logger::Red, "(slowest)");
 		return true;
 	}
 
@@ -132,7 +133,7 @@ namespace Langulus::Anyness
 	///	@param compared - [in/out] the number of compared members				
 	///	@return false if any member differs												
 	bool Block::CompareMembers(const Block& right, Count& compared) const {
-		VERBOSE_TAB("Comparing the members of " << GetToken());
+		VERBOSE_TAB("Comparing the members of ", GetToken());
 
 		// Take care of memory blocks directly										
 		if (Is<Block>() || Is<Any>()) {
