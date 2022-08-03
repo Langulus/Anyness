@@ -3142,6 +3142,7 @@ namespace Langulus::Anyness
 				.template CallUnknownCopyConstructors<true>(other.mCount, other);
 		}
 
+		mCount += other.mCount;
 		return other.mCount;
 	}
 
@@ -3178,6 +3179,8 @@ namespace Langulus::Anyness
 			CropInner(mCount, 0, other.mCount)
 				.template CallUnknownMoveConstructors<false>(other.mCount, Forward<Block>(other));
 		}
+
+		mCount += other.mCount;
 
 		// Fully reset the source block, if it has ownership behavior		
 		if constexpr (!CT::Same<Block, T>) {
