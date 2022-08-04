@@ -10,7 +10,7 @@
 
 namespace Langulus::Anyness
 {
-	
+
 	/// Block doesn't have ownership, so this constructor is here only to		
 	/// avoid RTTI complaining when containing Block in Block						
 	constexpr Block::Block(Disowned<Block>&& other) noexcept
@@ -95,9 +95,9 @@ namespace Langulus::Anyness
 	template<CT::Data T, bool CONSTRAIN>
 	Block Block::From(T value) requires CT::Sparse<T> {
 		if constexpr (CONSTRAIN)
-			return {DataState::Member, MetaData::Of<T>(), 1, value};
+			return {DataState::Member, MetaData::Of<Decay<T>>(), 1, value};
 		else
-			return {DataState::Static, MetaData::Of<T>(), 1, value};		
+			return {DataState::Static, MetaData::Of<Decay<T>>(), 1, value};
 	}
 
 	/// Create a memory block from a count-terminated array							
@@ -107,9 +107,9 @@ namespace Langulus::Anyness
 	template<CT::Data T, bool CONSTRAIN>
 	Block Block::From(T value, Count count) requires CT::Sparse<T> {
 		if constexpr (CONSTRAIN)
-			return {DataState::Member, MetaData::Of<T>(), count, value};
+			return {DataState::Member, MetaData::Of<Decay<T>>(), count, value};
 		else
-			return {DataState::Static, MetaData::Of<T>(), count, value};
+			return {DataState::Static, MetaData::Of<Decay<T>>(), count, value};
 	}
 
 	/// Create a memory block from a value reference									
@@ -219,24 +219,18 @@ namespace Langulus::Anyness
 		mCount = mReserved = 0;
 	}
 	
-	/// Reset the block's state																
-	template<bool TYPED, bool SPARSE>
-	constexpr void Block::ResetState() noexcept {
-		if constexpr (TYPED) {
-			// DON'T clear type, and restore typed state							
-			if constexpr (SPARSE)
-				mState = DataState::Typed | DataState::Sparse;
-			else
-				mState = DataState::Typed;
-		}
-		else {
-			// Clear both type and state												
+	/// Reset the type of the block, unless it's type-constrained					
+	constexpr void Block::ResetType() noexcept {
+		if (!IsTypeConstrained()) {
 			mType = nullptr;
-			if constexpr (SPARSE)
-				mState = DataState::Sparse;
-			else
-				mState.Reset();
+			mState -= DataState::Sparse;
 		}
+	}
+	
+	/// Reset the block's state																
+	constexpr void Block::ResetState() noexcept {
+		mState = mState.mState & (DataState::Typed | DataState::Sparse);
+		ResetType();
 	}
 	
 	/// Get a size based on reflected allocation page and count (unsafe)			
@@ -867,7 +861,8 @@ namespace Langulus::Anyness
 	///	@return true if block was deepened to incorporate the new type			
 	template<CT::Data T, bool ALLOW_DEEPEN, CT::Data WRAPPER>
 	bool Block::Mutate() {
-		static_assert(ALLOW_DEEPEN && CT::Deep<WRAPPER>, "WRAPPER must be deep");
+		static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
+
 		const auto deepened = Mutate<ALLOW_DEEPEN, WRAPPER>(MetaData::Of<Decay<T>>());
 		if constexpr (ALLOW_DEEPEN && CT::Sparse<T>) {
 			if (deepened)
@@ -1127,12 +1122,14 @@ namespace Langulus::Anyness
 
 		if constexpr (MUTABLE) {
 			// Type may mutate															
-			if (Mutate<T, WRAPPER>()) {
-				WRAPPER wrapper;
+			if (Mutate<T, true, WRAPPER>()) {
+				return InsertAt<WRAPPER, true, false>(WRAPPER {start, end}, index);
+
+				/*WRAPPER wrapper;
 				wrapper.template Insert<IndexBack, WRAPPER, KEEP, false, T>(start, end);
 				const auto pushed = InsertAt<WRAPPER, false, false, T>(Move(wrapper), index);
 				wrapper.mEntry = nullptr;
-				return pushed;
+				return pushed;*/
 			}
 		}
 
@@ -1193,12 +1190,14 @@ namespace Langulus::Anyness
 
 		if constexpr (MUTABLE) {
 			// Type may mutate															
-			if (Mutate<T, WRAPPER>()) {
-				WRAPPER wrapper;
+			if (Mutate<T, true, WRAPPER>()) {
+				return InsertAt<WRAPPER, true, false>(WRAPPER {Forward<T>(item)}, index);
+
+				/*WRAPPER wrapper;
 				wrapper.template Insert<IndexBack, WRAPPER, KEEP, false>(Move(item));
 				const auto pushed = InsertAt<WRAPPER, false, false, T>(Move(wrapper), index);
 				wrapper.mEntry = nullptr;
-				return pushed;
+				return pushed;*/
 			}
 		}
 
@@ -1243,11 +1242,13 @@ namespace Langulus::Anyness
 		if constexpr (MUTABLE) {
 			// Type may mutate															
 			if (Mutate<T, true, WRAPPER>()) {
-				WRAPPER wrapper;
+				return Insert<INDEX, WRAPPER, true, false>(WRAPPER {start, end});
+
+				/*WRAPPER wrapper;
 				wrapper.template Insert<IndexBack, WRAPPER, KEEP, false, T>(start, end);
 				const auto pushed = Insert<INDEX, WRAPPER, false, false, WRAPPER>(Move(wrapper));
 				wrapper.mEntry = nullptr;
-				return pushed;
+				return pushed;*/
 			}
 		}
 
@@ -1297,11 +1298,13 @@ namespace Langulus::Anyness
 		if constexpr (MUTABLE) {
 			// Type may mutate															
 			if (Mutate<T, true, WRAPPER>()) {
-				WRAPPER wrapper;
-				wrapper.template Insert<IndexBack, WRAPPER, KEEP, false, T>(Move(item));
+				return Insert<INDEX, WRAPPER, true, false>(WRAPPER {Forward<T>(item)});
+
+				/*WRAPPER wrapper;
+				wrapper.template Insert<IndexBack, WRAPPER, KEEP, false>(Forward<T>(item));
 				Insert<INDEX, WRAPPER, false, false, WRAPPER>(Move(wrapper));
 				wrapper.mEntry = nullptr;
-				return 1;
+				return 1;*/
 			}
 		}
 
@@ -1789,8 +1792,335 @@ namespace Langulus::Anyness
 		}
 	}
 
-	/// A smart insert uses the best approach to push anything inside				
+	/// A copy-insert that uses the best approach to push anything inside		
 	/// container in order to keep hierarchy and states, but also reuse memory	
+	///	@tparam ALLOW_CONCAT - whether or not concatenation is allowed			
+	///	@tparam ALLOW_DEEPEN - whether or not deepening is allowed				
+	///	@tparam T - type of data to push (deducible)									
+	///	@tparam INDEX - type of index to use											
+	///	@tparam WRAPPER - type of container used for deepening if enabled		
+	///	@param value - the value to smart-push											
+	///	@param index - the index at which to insert (if needed)					
+	///	@param state - a state to apply after pushing is done						
+	///	@return the number of pushed items (zero if unsuccessful)				
+	template<bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::NotAbandonedOrDisowned T, CT::Data INDEX, CT::Data WRAPPER>
+	Count Block::SmartPushAt(const T& value, INDEX index, DataState state) {
+		static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
+
+		if constexpr (CT::Deep<T>) {
+			// Early exit if nothing to push											
+			if (!value.IsValid())
+				return 0;
+
+			// Check if unmovable														
+			if (IsStatic()) {
+				Logger::Error() << "Can't smart-push in static data region";
+				return 0;
+			}
+
+			// If this container is empty and has no conflicting state		
+			// directly reference data													
+			const bool typeCompliant = (!IsTypeConstrained() && IsEmpty()) || CanFit(value.GetType());
+			const bool stateCompliant = CanFitState(value);
+
+			if (IsEmpty() && typeCompliant && stateCompliant) {
+				const auto previousType = !mType ? value.GetType() : mType;
+				const auto previousState = mState - DataState::Sparse;
+
+				*this = static_cast<const Block&>(value);
+				Keep();
+
+				SetState((mState + previousState + state) - DataState::Typed);
+
+				if (previousState.IsTyped()) {
+					// Retain type if original package was constrained			
+					SetType<true>(previousType);
+				}
+				else if (IsSparse()) {
+					// Retain type if current package is sparse					
+					SetType<false>(previousType);
+				}
+
+				return 1;
+			}
+
+			// Check if container is or-compliant before inserting			
+			if (mCount > 1 && !IsOr() && state.IsOr())
+				return 0;
+
+			if constexpr (ALLOW_CONCAT) {
+				// If this container is compatible and concatenation is		
+				// enabled, try concatenating the two containers				
+				if (typeCompliant && stateCompliant) {
+					try {
+						const auto cat = InsertBlockAt(value, index);
+						SetState(mState + state);
+						return cat;
+					}
+					catch (const Except::Mutate&) {}
+				}
+			}
+		}
+
+		// Insert a non-deep element													
+		SetState(mState + state);
+
+		if constexpr (ALLOW_DEEPEN)
+			return InsertAt<WRAPPER, true, true>(&value, &value + 1, index);
+		else if (CastsTo<T>())
+			return InsertAt<WRAPPER, true, false>(&value, &value + 1, index);
+		return 0;
+	}
+
+	/// This is required to disambiguate calls correctly								
+	template<bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::NotAbandonedOrDisowned T, CT::Data INDEX, CT::Data WRAPPER>
+	Count Block::SmartPushAt(T& value, INDEX index, DataState state) {
+		return SmartPushAt<ALLOW_CONCAT, ALLOW_DEEPEN, T, INDEX, WRAPPER>(const_cast<const T&>(value), index, state);
+	}
+
+	/// A move-insert that uses the best approach to push anything inside		
+	/// container in order to keep hierarchy and states, but also reuse memory	
+	///	@tparam ALLOW_CONCAT - whether or not concatenation is allowed			
+	///	@tparam ALLOW_DEEPEN - whether or not deepening is allowed				
+	///	@tparam T - type of data to push (deducible)									
+	///	@tparam INDEX - type of index to use											
+	///	@tparam WRAPPER - type of container used for deepening if enabled		
+	///	@param value - the value to smart-push											
+	///	@param index - the index at which to insert (if needed)					
+	///	@param state - a state to apply after pushing is done						
+	///	@return the number of pushed items (zero if unsuccessful)				
+	template<bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::NotAbandonedOrDisowned T, CT::Data INDEX, CT::Data WRAPPER>
+	Count Block::SmartPushAt(T&& value, INDEX index, DataState state) {
+		static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
+
+		if constexpr (CT::Deep<T>) {
+			// Early exit if nothing to push											
+			if (!value.IsValid())
+				return 0;
+
+			// Check if unmovable														
+			if (IsStatic()) {
+				Logger::Error() << "Can't smart-push in static data region";
+				return 0;
+			}
+
+			// If this container is empty and has no conflicting state		
+			// directly reference data													
+			const bool typeCompliant = (!IsTypeConstrained() && IsEmpty()) || CanFit(value.GetType());
+			const bool stateCompliant = CanFitState(value);
+
+			if (IsEmpty() && typeCompliant && stateCompliant) {
+				const auto previousType = !mType ? value.GetType() : mType;
+				const auto previousState = mState - DataState::Sparse;
+
+				*this = static_cast<const Block&>(value);
+				value.ResetMemory();
+				value.ResetState();
+
+				SetState((mState + previousState + state) - DataState::Typed);
+
+				if (previousState.IsTyped()) {
+					// Retain type if original package was constrained			
+					SetType<true>(previousType);
+				}
+				else if (IsSparse()) {
+					// Retain type if current package is sparse					
+					SetType<false>(previousType);
+				}
+
+				return 1;
+			}
+
+			// Check if container is or-compliant before inserting			
+			if (mCount > 1 && !IsOr() && state.IsOr())
+				return 0;
+
+			if constexpr (ALLOW_CONCAT) {
+				// If this container is compatible and concatenation is		
+				// enabled, try concatenating the two containers				
+				if (typeCompliant && stateCompliant) {
+					try {
+						const auto cat = InsertBlockAt(Forward<T>(value), index);
+						SetState(mState + state);
+						return cat;
+					}
+					catch (const Except::Mutate&) {}
+				}
+			}
+		}
+
+		// Insert a non-deep element													
+		SetState(mState + state);
+
+		if constexpr (ALLOW_DEEPEN)
+			return InsertAt<WRAPPER, true, true>(Forward<T>(value), index);
+		else if (CastsTo<T>())
+			return InsertAt<WRAPPER, true, false>(Forward<T>(value), index);
+		return 0;
+	}
+
+	/// A disown-insert that uses the best approach to push anything inside		
+	/// container in order to keep hierarchy and states, but also reuse memory	
+	///	@tparam ALLOW_CONCAT - whether or not concatenation is allowed			
+	///	@tparam ALLOW_DEEPEN - whether or not deepening is allowed				
+	///	@tparam T - type of data to push (deducible)									
+	///	@tparam INDEX - type of index to use											
+	///	@tparam WRAPPER - type of container used for deepening if enabled		
+	///	@param value - the value to smart-push											
+	///	@param index - the index at which to insert (if needed)					
+	///	@param state - a state to apply after pushing is done						
+	///	@return the number of pushed items (zero if unsuccessful)				
+	template<bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data T, CT::Data INDEX, CT::Data WRAPPER>
+	Count Block::SmartPushAt(Disowned<T>&& value, INDEX index, DataState state) {
+		static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
+
+		if constexpr (CT::Deep<T>) {
+			// Early exit if nothing to push											
+			if (!value.mValue.IsValid())
+				return 0;
+
+			// Check if unmovable														
+			if (IsStatic()) {
+				Logger::Error() << "Can't smart-push in static data region";
+				return 0;
+			}
+
+			// If this container is empty and has no conflicting state		
+			// directly reference data													
+			const bool typeCompliant = (!IsTypeConstrained() && IsEmpty()) || CanFit(value.mValue.GetType());
+			const bool stateCompliant = CanFitState(value.mValue);
+
+			if (IsEmpty() && typeCompliant && stateCompliant) {
+				const auto previousType = !mType ? value.mValue.GetType() : mType;
+				const auto previousState = mState - DataState::Sparse;
+
+				*this = static_cast<const Block&>(value.mValue);
+
+				SetState((mState + previousState + state) - DataState::Typed);
+
+				if (previousState.IsTyped()) {
+					// Retain type if original package was constrained			
+					SetType<true>(previousType);
+				}
+				else if (IsSparse()) {
+					// Retain type if current package is sparse					
+					SetType<false>(previousType);
+				}
+
+				return 1;
+			}
+
+			// Check if container is or-compliant before inserting			
+			if (mCount > 1 && !IsOr() && state.IsOr())
+				return 0;
+
+			if constexpr (ALLOW_CONCAT) {
+				// If this container is compatible and concatenation is		
+				// enabled, try concatenating the two containers				
+				if (typeCompliant && stateCompliant) {
+					try {
+						const auto cat = InsertBlockAt(value.Forward(), index);
+						SetState(mState + state);
+						return cat;
+					}
+					catch (const Except::Mutate&) {}
+				}
+			}
+		}
+
+		// Insert a non-deep element													
+		SetState(mState + state);
+
+		if constexpr (ALLOW_DEEPEN)
+			return InsertAt<WRAPPER, true, true>(&value.mValue, &value.mValue + 1, index);
+		else if (CastsTo<T>())
+			return InsertAt<WRAPPER, true, false>(&value.mValue, &value.mValue + 1, index);
+		return 0;
+	}
+
+	/// An abandon-insert that uses the best approach to push anything inside	
+	/// container in order to keep hierarchy and states, but also reuse memory	
+	///	@tparam ALLOW_CONCAT - whether or not concatenation is allowed			
+	///	@tparam ALLOW_DEEPEN - whether or not deepening is allowed				
+	///	@tparam T - type of data to push (deducible)									
+	///	@tparam INDEX - type of index to use											
+	///	@tparam WRAPPER - type of container used for deepening if enabled		
+	///	@param value - the value to smart-push											
+	///	@param index - the index at which to insert (if needed)					
+	///	@param state - a state to apply after pushing is done						
+	///	@return the number of pushed items (zero if unsuccessful)				
+	template<bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data T, CT::Data INDEX, CT::Data WRAPPER>
+	Count Block::SmartPushAt(Abandoned<T>&& value, INDEX index, DataState state) {
+		static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
+
+		if constexpr (CT::Deep<T>) {
+			// Early exit if nothing to push											
+			if (!value.mValue.IsValid())
+				return 0;
+
+			// Check if unmovable														
+			if (IsStatic()) {
+				Logger::Error() << "Can't smart-push in static data region";
+				return 0;
+			}
+
+			// If this container is empty and has no conflicting state		
+			// directly reference data													
+			const bool typeCompliant = (!IsTypeConstrained() && IsEmpty()) || CanFit(value.mValue.GetType());
+			const bool stateCompliant = CanFitState(value);
+
+			if (IsEmpty() && typeCompliant && stateCompliant) {
+				const auto previousType = !mType ? value.mValue.GetType() : mType;
+				const auto previousState = mState - DataState::Sparse;
+
+				*this = static_cast<const Block&>(value.mValue);
+				value.mValue.mEntry = nullptr;
+
+				SetState((mState + previousState + state) - DataState::Typed);
+
+				if (previousState.IsTyped()) {
+					// Retain type if original package was constrained			
+					SetType<true>(previousType);
+				}
+				else if (IsSparse()) {
+					// Retain type if current package is sparse					
+					SetType<false>(previousType);
+				}
+
+				return 1;
+			}
+
+			// Check if container is or-compliant before inserting			
+			if (mCount > 1 && !IsOr() && state.IsOr())
+				return 0;
+
+			if constexpr (ALLOW_CONCAT) {
+				// If this container is compatible and concatenation is		
+				// enabled, try concatenating the two containers				
+				if (typeCompliant && stateCompliant) {
+					try {
+						const auto cat = InsertBlockAt(value.Forward(), index);
+						SetState(mState + state);
+						return cat;
+					}
+					catch (const Except::Mutate&) {}
+				}
+			}
+		}
+
+		// Insert a non-deep element													
+		SetState(mState + state);
+
+		if constexpr (ALLOW_DEEPEN)
+			return InsertAt<WRAPPER, true, true>(Move(value.mValue), index);
+		else if (CastsTo<T>())
+			return InsertAt<WRAPPER, true, false>(Move(value.mValue), index);
+		return 0;
+	}
+
+	/// A smart copy-insert uses the best approach to push anything inside		
+	/// container in order to keep hierarchy and states, but also reuse memory	
+	///	@tparam INDEX - either IndexFront or IndexBack to insert there			
 	///	@tparam ALLOW_CONCAT - whether or not concatenation is allowed			
 	///	@tparam ALLOW_DEEPEN - whether or not deepening is allowed				
 	///	@tparam T - type of data to push (deducible)									
@@ -1799,82 +2129,165 @@ namespace Langulus::Anyness
 	///	@param index - the index at which to insert (if needed)					
 	///	@param state - a state to apply after pushing is done						
 	///	@return the number of pushed items (zero if unsuccessful)				
-	template<bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data T, CT::Data INDEX, CT::Data WRAPPER>
-	Count Block::SmartPushAt(T value, INDEX index, DataState state) {
+	template<Index INDEX, bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::NotAbandonedOrDisowned T, CT::Data WRAPPER>
+	Count Block::SmartPush(const T& value, DataState state) {
 		static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
 
-		// Wrap the value, but don't reference anything yet					
-		auto pack = Block::From(value);
-		
-		// Early exit if nothing to push												
-		if (!pack.IsValid())
-			return 0;
+		if constexpr (CT::Deep<T>) {
+			// Early exit if nothing to push											
+			if (!value.IsValid())
+				return 0;
 
-		// Check if unmovable															
-		if (IsStatic()) {
-			Logger::Error() << "Can't smart-push in static data region";
-			return 0;
-		}
+			// Check if unmovable														
+			if (IsStatic()) {
+				Logger::Error() << "Can't smart-push in static data region";
+				return 0;
+			}
 
-		// If this container is empty and has no conflicting state			
-		// do a shallow copy and directly reference data						
-		const auto meta = pack.GetType();
-		const bool typeCompliant = (!IsTypeConstrained() && IsEmpty()) || CanFit(meta);
-		const bool stateCompliant = CanFitState(pack);
-		if (IsEmpty() && typeCompliant && stateCompliant) {
-			const auto previousType = !mType ? meta : mType;
-			const auto previousState = mState - DataState::Sparse;
-			*this = pack;
-			Keep();
-			SetState((mState + previousState + state) - DataState::Typed);
+			// If this container is empty and has no conflicting state		
+			// directly reference data													
+			const bool typeCompliant = (!IsTypeConstrained() && IsEmpty()) || CanFit(value.GetType());
+			const bool stateCompliant = CanFitState(value);
 
-			if (previousState.IsTyped())
-				// Retain type if original package was constrained				
-				SetType<true>(previousType);
-			else if (IsSparse())
-				// Retain type if current package is sparse						
-				SetType<false>(previousType);
-			return 1;
-		}
+			if (IsEmpty() && typeCompliant && stateCompliant) {
+				const auto previousType = !mType ? value.GetType() : mType;
+				const auto previousState = mState - DataState::Sparse;
 
-		UNUSED()
-		const bool orCompliant = !(mCount > 1 && !IsOr() && state.IsOr());
-		
-		if constexpr (ALLOW_CONCAT) {
-			// If this container is compatible and concatenation is enabled
-			// try concatenating the two containers. Concatenation will not
-			// be allowed if final state is OR, and there are multiple		
-			// items	in this container.												
-			Count catenated {};
-			if (typeCompliant && stateCompliant && orCompliant && 0 < (catenated = InsertBlockAt(pack, index))) {
-				SetState(mState + state);
-				return catenated;
+				*this = static_cast<const Block&>(value);
+				Keep();
+
+				SetState((mState + previousState + state) - DataState::Typed);
+
+				if (previousState.IsTyped()) {
+					// Retain type if original package was constrained			
+					SetType<true>(previousType);
+				}
+				else if (IsSparse()) {
+					// Retain type if current package is sparse					
+					SetType<false>(previousType);
+				}
+
+				return 1;
+			}
+
+			// Check if container is or-compliant before inserting			
+			if (mCount > 1 && !IsOr() && state.IsOr())
+				return 0;
+
+			if constexpr (ALLOW_CONCAT) {
+				// If this container is compatible and concatenation is		
+				// enabled, try concatenating the two containers				
+				if (typeCompliant && stateCompliant) {
+					try {
+						const auto cat = InsertBlock<INDEX>(value);
+						SetState(mState + state);
+						return cat;
+					}
+					catch (const Except::Mutate&) {}
+				}
 			}
 		}
 
-		// If this container is deep, directly push the pack inside			
-		// This will be disallowed if final state is OR, and there are		
-		// multiple items	in this container.										
-		if (orCompliant && IsDeep()) {
-			SetState(mState + state);
-			return InsertAt<WRAPPER, false, false>(WRAPPER {pack}, index);
-		}
+		// Insert a non-deep element													
+		SetState(mState + state);
 
-		// Finally, if allowed, force make the container deep in order to	
-		// push the pack inside															
-		if constexpr (ALLOW_DEEPEN) {
-			if (!IsTypeConstrained()) {
-				Deepen<WRAPPER>();
-				SetState(mState + state);
-				return InsertAt<WRAPPER, false, false>(WRAPPER {pack}, index);
-			}
-		}
-
+		if constexpr (ALLOW_DEEPEN)
+			return Insert<INDEX, WRAPPER, true, true>(&value, &value + 1);
+		else if (CastsTo<T>())
+			return Insert<INDEX, WRAPPER, true, false>(&value, &value + 1);
 		return 0;
 	}
 
-	/// A smart copy-insert uses the best approach to push anything inside		
+	/// Required to disambiguate calls correctly											
+	template<Index INDEX, bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::NotAbandonedOrDisowned T, CT::Data WRAPPER>
+	Count Block::SmartPush(T& value, DataState state) {
+		return SmartPush<INDEX, ALLOW_CONCAT, ALLOW_DEEPEN, T, WRAPPER>(const_cast<const T&>(value), state);
+	}
+	
+	/// A smart move-insert uses the best approach to push anything inside		
 	/// container in order to keep hierarchy and states, but also reuse memory	
+	///	@tparam INDEX - either IndexFront or IndexBack to insert there			
+	///	@tparam ALLOW_CONCAT - whether or not concatenation is allowed			
+	///	@tparam ALLOW_DEEPEN - whether or not deepening is allowed				
+	///	@tparam T - type of data to push (deducible)									
+	///	@tparam WRAPPER - type of container used for deepening if enabled		
+	///	@param value - the value to smart-push											
+	///	@param index - the index at which to insert (if needed)					
+	///	@param state - a state to apply after pushing is done						
+	///	@return the number of pushed items (zero if unsuccessful)				
+	template<Index INDEX, bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::NotAbandonedOrDisowned T, CT::Data WRAPPER>
+	Count Block::SmartPush(T&& value, DataState state) {
+		static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
+
+		if constexpr (CT::Deep<T>) {
+			// Early exit if nothing to push											
+			if (!value.IsValid())
+				return 0;
+
+			// Check if unmovable														
+			if (IsStatic()) {
+				Logger::Error() << "Can't smart-push in static data region";
+				return 0;
+			}
+
+			// If this container is empty and has no conflicting state		
+			// directly reference data													
+			const bool typeCompliant = (!IsTypeConstrained() && IsEmpty()) || CanFit(value.GetType());
+			const bool stateCompliant = CanFitState(value);
+
+			if (IsEmpty() && typeCompliant && stateCompliant) {
+				const auto previousType = !mType ? value.GetType() : mType;
+				const auto previousState = mState - DataState::Sparse;
+
+				*this = static_cast<const Block&>(value);
+				value.ResetMemory();
+				value.ResetState();
+
+				SetState((mState + previousState + state) - DataState::Typed);
+
+				if (previousState.IsTyped()) {
+					// Retain type if original package was constrained			
+					SetType<true>(previousType);
+				}
+				else if (IsSparse()) {
+					// Retain type if current package is sparse					
+					SetType<false>(previousType);
+				}
+
+				return 1;
+			}
+
+			// Check if container is or-compliant before inserting			
+			if (mCount > 1 && !IsOr() && state.IsOr())
+				return 0;
+
+			if constexpr (ALLOW_CONCAT) {
+				// If this container is compatible and concatenation is		
+				// enabled, try concatenating the two containers				
+				if (typeCompliant && stateCompliant) {
+					try {
+						const auto cat = InsertBlock<INDEX>(Forward<T>(value));
+						SetState(mState + state);
+						return cat;
+					}
+					catch (const Except::Mutate&) {}
+				}
+			}
+		}
+
+		// Insert a non-deep element													
+		SetState(mState + state);
+
+		if constexpr (ALLOW_DEEPEN)
+			return Insert<INDEX, WRAPPER, true, true>(Forward<T>(value));
+		else if (CastsTo<T>())
+			return Insert<INDEX, WRAPPER, true, false>(Forward<T>(value));
+		return 0;
+	}
+
+	/// A smart disown-insert uses the best approach to push anything inside	
+	/// container in order to keep hierarchy and states, but also reuse memory	
+	///	@tparam INDEX - either IndexFront or IndexBack to insert there			
 	///	@tparam ALLOW_CONCAT - whether or not concatenation is allowed			
 	///	@tparam ALLOW_DEEPEN - whether or not deepening is allowed				
 	///	@tparam T - type of data to push (deducible)									
@@ -1884,76 +2297,150 @@ namespace Langulus::Anyness
 	///	@param state - a state to apply after pushing is done						
 	///	@return the number of pushed items (zero if unsuccessful)				
 	template<Index INDEX, bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data T, CT::Data WRAPPER>
-	Count Block::SmartPush(T value, DataState state) {
+	Count Block::SmartPush(Disowned<T>&& value, DataState state) {
 		static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
 
-		// Wrap the value, but don't reference anything yet					
-		auto pack = Block::From(value);
-		
-		// Early exit if nothing to push												
-		if (!pack.IsValid())
-			return 0;
+		if constexpr (CT::Deep<T>) {
+			// Early exit if nothing to push											
+			if (!value.mValue.IsValid())
+				return 0;
 
-		// Check if unmovable															
-		if (IsStatic()) {
-			Logger::Error() << "Can't smart-push in static data region";
-			return 0;
-		}
+			// Check if unmovable														
+			if (IsStatic()) {
+				Logger::Error() << "Can't smart-push in static data region";
+				return 0;
+			}
 
-		// If this container is empty and has no conflicting state			
-		// do a shallow copy and directly reference data						
-		const auto meta = pack.GetType();
-		const bool typeCompliant = (!IsTypeConstrained() && IsEmpty()) || CanFit(meta);
-		const bool stateCompliant = CanFitState(pack);
-		if (IsEmpty() && typeCompliant && stateCompliant) {
-			const auto previousType = !mType ? meta : mType;
-			const auto previousState = mState - DataState::Sparse;
-			*this = pack;
-			Keep();
-			SetState((mState + previousState + state) - DataState::Typed);
+			// If this container is empty and has no conflicting state		
+			// directly reference data													
+			const bool typeCompliant = (!IsTypeConstrained() && IsEmpty()) || CanFit(value.mValue.GetType());
+			const bool stateCompliant = CanFitState(value);
 
-			if (previousState.IsTyped())
-				// Retain type if original package was constrained				
-				SetType<true>(previousType);
-			else if (IsSparse())
-				// Retain type if current package is sparse						
-				SetType<false>(previousType);
-			return 1;
-		}
+			if (IsEmpty() && typeCompliant && stateCompliant) {
+				const auto previousType = !mType ? value.mValue.GetType() : mType;
+				const auto previousState = mState - DataState::Sparse;
 
-		UNUSED()
-		const bool orCompliant = !(mCount > 1 && !IsOr() && state.IsOr());
-		
-		if constexpr (ALLOW_CONCAT) {
-			// If this container is compatible and concatenation is enabled
-			// try concatenating the two containers. Concatenation will not
-			// be allowed if final state is OR, and there are multiple		
-			// items	in this container.												
-			Count catenated {};
-			if (typeCompliant && stateCompliant && orCompliant && 0 < (catenated = InsertBlock<INDEX>(pack))) {
-				SetState(mState + state);
-				return catenated;
+				*this = static_cast<const Block&>(value.mValue);
+
+				SetState((mState + previousState + state) - DataState::Typed);
+
+				if (previousState.IsTyped()) {
+					// Retain type if original package was constrained			
+					SetType<true>(previousType);
+				}
+				else if (IsSparse()) {
+					// Retain type if current package is sparse					
+					SetType<false>(previousType);
+				}
+
+				return 1;
+			}
+
+			// Check if container is or-compliant before inserting			
+			if (mCount > 1 && !IsOr() && state.IsOr())
+				return 0;
+
+			if constexpr (ALLOW_CONCAT) {
+				// If this container is compatible and concatenation is		
+				// enabled, try concatenating the two containers				
+				if (typeCompliant && stateCompliant) {
+					try {
+						const auto cat = InsertBlock<INDEX>(value.Forward());
+						SetState(mState + state);
+						return cat;
+					}
+					catch (const Except::Mutate&) {}
+				}
 			}
 		}
 
-		// If this container is deep, directly push the pack inside			
-		// This will be disallowed if final state is OR, and there are		
-		// multiple items	in this container.										
-		if (orCompliant && IsDeep()) {
-			SetState(mState + state);
-			return Insert<INDEX, WRAPPER, false, false>(WRAPPER {pack});
-		}
+		// Insert a non-deep element													
+		SetState(mState + state);
 
-		// Finally, if allowed, force make the container deep in order to	
-		// push the pack inside															
-		if constexpr (ALLOW_DEEPEN) {
-			if (!IsTypeConstrained()) {
-				Deepen<WRAPPER>();
-				SetState(mState + state);
-				return Insert<INDEX, WRAPPER, false, false>(WRAPPER {pack});
+		if constexpr (ALLOW_DEEPEN)
+			return Insert<INDEX, WRAPPER, true, true>(&value.mValue, &value.mValue + 1);
+		else if (CastsTo<T>())
+			return Insert<INDEX, WRAPPER, true, false>(&value.mValue, &value.mValue + 1);
+		return 0;
+	}
+
+	/// A smart abandon-insert uses the best approach to push anything inside	
+	/// container in order to keep hierarchy and states, but also reuse memory	
+	///	@tparam INDEX - either IndexFront or IndexBack to insert there			
+	///	@tparam ALLOW_CONCAT - whether or not concatenation is allowed			
+	///	@tparam ALLOW_DEEPEN - whether or not deepening is allowed				
+	///	@tparam T - type of data to push (deducible)									
+	///	@tparam WRAPPER - type of container used for deepening if enabled		
+	///	@param value - the value to smart-push											
+	///	@param index - the index at which to insert (if needed)					
+	///	@param state - a state to apply after pushing is done						
+	///	@return the number of pushed items (zero if unsuccessful)				
+	template<Index INDEX, bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data T, CT::Data WRAPPER>
+	Count Block::SmartPush(Abandoned<T>&& value, DataState state) {
+		static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
+
+		if constexpr (CT::Deep<T>) {
+			// Early exit if nothing to push											
+			if (!value.mValue.IsValid())
+				return 0;
+
+			// Check if unmovable														
+			if (IsStatic()) {
+				Logger::Error() << "Can't smart-push in static data region";
+				return 0;
+			}
+
+			// If this container is empty and has no conflicting state		
+			// directly reference data													
+			const bool typeCompliant = (!IsTypeConstrained() && IsEmpty()) || CanFit(value.mValue.GetType());
+			const bool stateCompliant = CanFitState(value.mValue);
+
+			if (IsEmpty() && typeCompliant && stateCompliant) {
+				const auto previousType = !mType ? value.mValue.GetType() : mType;
+				const auto previousState = mState - DataState::Sparse;
+
+				*this = static_cast<const Block&>(value.mValue);
+				value.mValue.mEntry = nullptr;
+
+				SetState((mState + previousState + state) - DataState::Typed);
+
+				if (previousState.IsTyped()) {
+					// Retain type if original package was constrained			
+					SetType<true>(previousType);
+				}
+				else if (IsSparse()) {
+					// Retain type if current package is sparse					
+					SetType<false>(previousType);
+				}
+
+				return 1;
+			}
+
+			// Check if container is or-compliant before inserting			
+			if (mCount > 1 && !IsOr() && state.IsOr())
+				return 0;
+
+			if constexpr (ALLOW_CONCAT) {
+				// If this container is compatible and concatenation is		
+				// enabled, try concatenating the two containers				
+				if (typeCompliant && stateCompliant) {
+					try {
+						const auto cat = InsertBlock<INDEX>(value.Forward());
+						SetState(mState + state);
+						return cat;
+					}
+					catch (const Except::Mutate&) {}
+				}
 			}
 		}
 
+		// Insert a non-deep element													
+		SetState(mState + state);
+
+		if constexpr (ALLOW_DEEPEN)
+			return Insert<INDEX, WRAPPER, true, true>(Move(value.mValue));
+		else if (CastsTo<T>())
+			return Insert<INDEX, WRAPPER, true, false>(Move(value.mValue));
 		return 0;
 	}
 

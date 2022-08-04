@@ -27,7 +27,7 @@ namespace Langulus::Anyness
 	///	@param other - check if a given type is insertable to the block		
 	///	@return true if able to insert													
 	bool Block::IsInsertable(DMeta other) const noexcept {
-		if (IsStatic() || IsConstant() || IsDeep() != other->mIsDeep)
+		if (!other || IsStatic() || IsConstant() || IsDeep() != other->mIsDeep)
 			return false;
 		return CastsToMeta(other);
 	}
@@ -179,10 +179,13 @@ namespace Langulus::Anyness
 	///	@param type - the type to check if able to fit								
 	///	@return true if able to interpret current type to 'type'					
 	bool Block::CanFit(DMeta type) const {
+		if (!type)
+			return true;
+
 		if (IsSparse())
-			return type && type->CastsTo<true>(mType);
+			return type->CastsTo<true>(mType);
 		else
-			return type && type->CastsTo(mType);
+			return type->CastsTo(mType);
 	}
 
 	/// Check if two containers are concatenable											
@@ -349,22 +352,6 @@ namespace Langulus::Anyness
 		return const_cast<Block*>(this)->GetElementDeep(index);
 	}
 
-	/// A slow runtime state reset, that retains sparseness and constraints		
-	void Block::ResetStateRTTI() noexcept {
-		if (IsTypeConstrained()) {
-			if (IsSparse())
-				ResetState<true, true>();
-			else
-				ResetState<true, false>();
-		}
-		else {
-			if (IsSparse())
-				ResetState<false, true>();
-			else
-				ResetState<false, false>();
-		}
-	}
-
 	/// Remove sequential special indices													
 	///	@param index - special index														
 	///	@param count - number of items to remove										
@@ -374,7 +361,7 @@ namespace Langulus::Anyness
 			const auto oldCount = mCount;
 			Free();
 			ResetMemory();
-			ResetStateRTTI();
+			ResetState();
 			return oldCount;
 		}
 
@@ -541,7 +528,7 @@ namespace Langulus::Anyness
 				}
 
 				localOutput.SetPhase(Phase::Now);
-				return output.SmartPush(localOutput);
+				return output.SmartPush(Abandon(localOutput));
 			}
 
 			// Polarity mismatch															
@@ -597,7 +584,7 @@ namespace Langulus::Anyness
 	void Block::Reset() {
 		Free();
 		ResetMemory();
-		ResetStateRTTI();
+		ResetState();
 	}
 
 	/// Flattens unnecessarily deep containers and combines their states			

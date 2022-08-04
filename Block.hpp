@@ -472,10 +472,27 @@ namespace Langulus::Anyness
 		template<CT::Data T, bool MOVE_STATE = true>
 		T& Deepen();
 
+		template<bool CONCAT = true, bool DEEPEN = true, CT::NotAbandonedOrDisowned T, CT::Data INDEX, CT::Data WRAPPER = Any>
+		Count SmartPushAt(const T&, INDEX, DataState = {});
+		template<bool CONCAT = true, bool DEEPEN = true, CT::NotAbandonedOrDisowned T, CT::Data INDEX, CT::Data WRAPPER = Any>
+		Count SmartPushAt(T&, INDEX, DataState = {});
+		template<bool CONCAT = true, bool DEEPEN = true, CT::NotAbandonedOrDisowned T, CT::Data INDEX, CT::Data WRAPPER = Any>
+		Count SmartPushAt(T&&, INDEX, DataState = {});
 		template<bool CONCAT = true, bool DEEPEN = true, CT::Data T, CT::Data INDEX, CT::Data WRAPPER = Any>
-		Count SmartPushAt(T, INDEX, DataState = {});
+		Count SmartPushAt(Disowned<T>&&, INDEX, DataState = {});
+		template<bool CONCAT = true, bool DEEPEN = true, CT::Data T, CT::Data INDEX, CT::Data WRAPPER = Any>
+		Count SmartPushAt(Abandoned<T>&&, INDEX, DataState = {});
+
+		template<Index INDEX = IndexBack, bool CONCAT = true, bool DEEPEN = true, CT::NotAbandonedOrDisowned T, CT::Data WRAPPER = Any>
+		Count SmartPush(const T&, DataState = {});
+		template<Index INDEX = IndexBack, bool CONCAT = true, bool DEEPEN = true, CT::NotAbandonedOrDisowned T, CT::Data WRAPPER = Any>
+		Count SmartPush(T&, DataState = {});
+		template<Index INDEX = IndexBack, bool CONCAT = true, bool DEEPEN = true, CT::NotAbandonedOrDisowned T, CT::Data WRAPPER = Any>
+		Count SmartPush(T&&, DataState = {});
 		template<Index INDEX = IndexBack, bool CONCAT = true, bool DEEPEN = true, CT::Data T, CT::Data WRAPPER = Any>
-		Count SmartPush(T, DataState = {});
+		Count SmartPush(Disowned<T>&&, DataState = {});
+		template<Index INDEX = IndexBack, bool CONCAT = true, bool DEEPEN = true, CT::Data T, CT::Data WRAPPER = Any>
+		Count SmartPush(Abandoned<T>&&, DataState = {});
 
 		//																						
 		//	Deletion																			
@@ -544,9 +561,8 @@ namespace Langulus::Anyness
 		
 		constexpr void ClearInner() noexcept;
 		constexpr void ResetMemory() noexcept;
-		template<bool TYPED, bool SPARSE>
 		constexpr void ResetState() noexcept;
-		void ResetStateRTTI() noexcept;
+		constexpr void ResetType() noexcept;
 	
 		void Reference(const Count&) const noexcept;
 		void Reference(const Count&) noexcept;

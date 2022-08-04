@@ -92,7 +92,6 @@ namespace Langulus::Anyness
 		void Null(const Count&);
 		void Clear();
 		void Reset();
-		void ResetState() noexcept;
 		void TakeAuthority();
 		void Free();
 
@@ -221,6 +220,9 @@ namespace Langulus::Anyness
 		NOD() WRAPPER operator + (const RHS&) const;
 
 	protected:
+		constexpr void ResetState() noexcept;
+		constexpr void ResetType() noexcept;
+
 		template<bool KEEP, CT::Data ALT_T>
 		void ConstructFromContainer(const ALT_T&);
 		template<bool KEEP, CT::Data ALT_T>

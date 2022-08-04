@@ -554,11 +554,15 @@ namespace Langulus::Anyness
 			mEntry = other.mEntry;
 	}
 
-	/// Reset container state																	
+	/// Reset container state (inner function)											
 	TEMPLATE()
-	void TAny<T>::ResetState() noexcept {
-		Block::ResetState<true, CT::Sparse<T>>();
+	constexpr void TAny<T>::ResetState() noexcept {
+		mState = mState.mState & (DataState::Typed | DataState::Sparse);
 	}
+
+	/// Reset container type (does nothing for typed container)						
+	TEMPLATE()
+	constexpr void TAny<T>::ResetType() noexcept {}
 
 	/// Check if contained data can be interpreted as a given type					
 	/// Beware, direction matters (this is the inverse of CanFit)					

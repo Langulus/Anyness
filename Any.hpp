@@ -29,6 +29,7 @@ namespace Langulus::Anyness
 	public:
 		template<CT::Data T>
 		friend class TAny;
+		friend class Block;
 
 		constexpr Any() noexcept = default;
 		Any(const Any&);
