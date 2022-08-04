@@ -6,7 +6,9 @@
 /// See LICENSE file, or https://www.gnu.org/licenses									
 ///																									
 #include "../Any.hpp"
-#define VERBOSE(a) //a
+
+#define VERBOSE(...) Logger::Verbose(__VA_ARGS__)
+#define VERBOSE_TAB(...) auto tab = Logger::Section(__VA_ARGS__)
 
 namespace Langulus::Anyness
 {
@@ -14,7 +16,6 @@ namespace Langulus::Anyness
 	/// Invokes reflected copy-assignments of all elements inside this block	
 	///	@attention assumes result has been preallocated and initialized		
 	///	@attention assumes this block is not empty									
-	///	@attention assumes result has the same count as this						
 	///	@attention assumes result is not constant										
 	///	@param result - the resulting block (must be preinitialized)			
 	///	@param allocate - whether or not to allocate elements in result		
@@ -24,36 +25,32 @@ namespace Langulus::Anyness
 		// Check if types are compatible												
 		if (!mType->Is(result.mType)) {
 			Block decayedResult = result.ReinterpretAs(*this);
-			if (!decayedResult.IsEmpty() && decayedResult.GetCount() <= GetCount()) {
-				// Attempt copy inside decayed type									
-				return Copy(decayedResult);
-			}
-			else {
-				// Data is incompatible for copying									
+			if (decayedResult.IsEmpty())
 				Throw<Except::Copy>("Can't copy elements - incompatible types");
-			}
+
+			// Attempt copy inside decayed type										
+			return Copy(decayedResult);
 		}
+
+		// If counts differ, no copy can occur										
+		if (mCount != result.mCount)
+			Throw<Except::Copy>("Can't copy elements - incompatible count");
 
 		// Check if memory is the same after checking size						
 		// After all, there is no point in copying over the copy				
 		if (mRaw == result.mRaw) {
-			VERBOSE(Logger::Verbose()
-				<< "Data is already copied (pointers are the same)" 
-				<< ccCyan << " (optimal)"
-			);
+			VERBOSE("Data is already copied (pointers are the same)", 
+				Logger::Cyan, " (optimal)");
 			return mCount;
 		}
 
 		// Start copying																	
-		VERBOSE(ScopedTab tab; Logger::Verbose()
-			<< "Copying " << mCount
-			<< " elements of " << GetToken() << " (" << GetStride()
-			<< " bytes each) to " << result.GetToken() << tab);
+		VERBOSE_TAB("Copying ", mCount, " elements of ", GetToken(), " (", 
+			GetStride(), " bytes each) to ", result.GetToken());
 
 		if (IsSparse() && result.IsSparse()) {
 			// Won't copy anything but pointers										
-			VERBOSE(Logger::Verbose()
-				<< "Sparse -> Sparse referencing copy");
+			VERBOSE("Sparse -> Sparse referencing copy");
 
 			CopyMemory(mRaw, result.mRaw, mCount * sizeof(void*));
 
@@ -66,14 +63,12 @@ namespace Langulus::Anyness
 				++p;
 			}
 
-			VERBOSE(Logger::Verbose()
-				<< "Copied " << mCount << " pointers"
-				<< ccGreen << " (fast)");
+			VERBOSE("Copied ", mCount, " pointers", Logger::Green, " (fast)");
 			return mCount;
 		}
 		else if (IsSparse() && !result.IsSparse()) {
 			// Copy sparse items to a dense container								
-			VERBOSE(Logger::Verbose() << "Sparse -> Dense shallow copy");
+			VERBOSE("Sparse -> Dense shallow copy");
 
 			if (result.mType->Is<Block>()) {
 				// Blocks don't have keep/free in their reflected copy		
@@ -95,9 +90,7 @@ namespace Langulus::Anyness
 					to.Keep();
 				}
 
-				VERBOSE(Logger::Verbose()
-					<< "Copied " << mCount << " blocks"
-					<< ccRed << " (slow)");
+				VERBOSE("Copied ", mCount, " blocks", Logger::Red, " (slow)");
 			}
 			else {
 				// Check if a copy operation is available							
@@ -121,9 +114,7 @@ namespace Langulus::Anyness
 					result.mType->mCopier(from.mRaw, to.mRaw);
 				}
 
-				VERBOSE(Logger::Verbose()
-					<< "Copied " << mCount << " elements"
-					<< ccRed << " (slow)");
+				VERBOSE("Copied ", mCount, " elements", Logger::Red, " (slow)");
 			}
 
 			return mCount;
@@ -153,9 +144,7 @@ namespace Langulus::Anyness
 					to->mEntry->Keep();
 			}
 
-			VERBOSE(Logger::Verbose()
-				<< "Copied " << mCount << " pointers"
-				<< ccGreen << " (fast)");
+			VERBOSE("Copied ", mCount, " pointers", Logger::Green, " (fast)");
 			return mCount;
 		}
 
@@ -163,9 +152,7 @@ namespace Langulus::Anyness
 		if (result.mType->mIsPOD) {
 			// If data is not complex just do a memcpy and we're done		
 			CopyMemory(mRaw, result.mRaw, GetByteSize());
-			VERBOSE(Logger::Verbose()
-				<< "Copied " << GetByteSize() << " bytes via memcpy"
-				<< ccGreen << " (fast copy)");
+			VERBOSE("Copied ", GetByteSize(), " bytes via memcpy", Logger::Green, " (fast copy)");
 			return mCount;
 		}
 
@@ -183,9 +170,7 @@ namespace Langulus::Anyness
 				to.Keep();
 			}
 
-			VERBOSE(Logger::Verbose()
-				<< "Copied " << mCount << " blocks"
-				<< ccRed << " (slow)");
+			VERBOSE("Copied ", mCount, " blocks", Logger::Red, " (slow)");
 		}
 		else {
 			// Check if a copy operation is available								
@@ -203,9 +188,7 @@ namespace Langulus::Anyness
 				result.mType->mCopier(from.mRaw, to.mRaw);
 			}
 
-			VERBOSE(Logger::Verbose()
-				<< "Copied " << mCount << " elements" 
-				<< ccRed << " (slow)");
+			VERBOSE("Copied ", mCount, " elements", Logger::Red, " (slow)");
 		}
 
 		return mCount;
