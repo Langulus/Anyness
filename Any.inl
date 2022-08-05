@@ -57,6 +57,18 @@ namespace Langulus::Anyness
 		other.mValue.mEntry = nullptr;
 	}
 
+	/// Construct by copying/referencing an array of non-block type				
+	///	@tparam T - the data type to push (deducible)								
+	///	@param start - start of the array												
+	///	@param end - end of the array														
+	template <CT::Data T>
+	Any::Any(const T* start, const T* end) {
+		if constexpr (CT::Sparse<T>)
+			MakeSparse();
+		SetType<T, false>();
+		Insert<IndexBack, true, false>(start, end);
+	}
+
 	/// Construct by copying/referencing value of non-block type					
 	///	@tparam T - the data type to push (deducible)								
 	///	@param other - the dense value to shallow-copy								
@@ -65,7 +77,7 @@ namespace Langulus::Anyness
 		if constexpr (CT::Sparse<T>)
 			MakeSparse();
 		SetType<T, false>();
-		Insert<IndexBack, Any, true, false, T>(&other, &other + 1);
+		Insert<IndexBack, true, false>(&other, &other + 1);
 	}
 
 	/// This override is required to disambiguate automatically deduced T		
@@ -83,7 +95,7 @@ namespace Langulus::Anyness
 		if constexpr (CT::Sparse<T>)
 			MakeSparse();
 		SetType<T, false>();
-		Insert<IndexBack, Any, true, false, T>(Move(other));
+		Insert<IndexBack, true, false>(Move(other));
 	}
 
 	/// Construct by inserting a disowned value of non-block type					
@@ -94,7 +106,7 @@ namespace Langulus::Anyness
 		if constexpr (CT::Sparse<T>)
 			MakeSparse();
 		SetType<T, false>();
-		Insert<IndexBack, Any, false, false, T>(&other.mValue, &other.mValue + 1);
+		Insert<IndexBack, false, false>(&other.mValue, &other.mValue + 1);
 	}
 
 	/// Construct by inserting an abandoned value of non-block type				
@@ -105,7 +117,7 @@ namespace Langulus::Anyness
 		if constexpr (CT::Sparse<T>)
 			MakeSparse();
 		SetType<T, false>();
-		Insert<IndexBack, Any, false, false, T>(Move(other.mValue));
+		Insert<IndexBack, false, false>(Move(other.mValue));
 	}
 
 	/// Destruction																				
@@ -159,7 +171,7 @@ namespace Langulus::Anyness
 			result.SetType<Any, false>();
 			result.Allocate(sizeof...(LIST));
 			for (auto& it : wrapped)
-				result.template Insert<IndexBack, Any, false, false>(Move(it));
+				result.template Insert<IndexBack, false, false>(Move(it));
 			return result;
 		}
 	}
@@ -176,7 +188,7 @@ namespace Langulus::Anyness
 			Deref<HEAD> wrapped[] {Forward<HEAD>(head), Forward<TAIL>(tail)...};
 			auto result = Any::From<HEAD>();
 			for (auto& it : wrapped)
-				result.template Insert<IndexBack, Any, false, false>(Move(it));
+				result.template Insert<IndexBack, false, false>(Move(it));
 			return result;
 		}
 	}
@@ -414,10 +426,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this container for chaining							
 	template<CT::Data T>
 	Any& Any::operator << (const T& other) {
-		if constexpr (CT::Array<T>)
-			Insert<IndexBack, Any, true, true>(SparseCast(other), SparseCast(other) + ExtentOf<T>);
-		else
-			Insert<IndexBack, Any, true, true>(&other, &other + 1);
+		Insert<IndexBack, true, true>(SparseCast(other), SparseCast(other) + ExtentOf<T>);
 		return *this;
 	}
 
@@ -435,11 +444,11 @@ namespace Langulus::Anyness
 	template<CT::Data T>
 	Any& Any::operator << (T&& other) {
 		if constexpr (CT::Abandoned<T>)
-			Insert<IndexBack, Any, false, true>(Move(other.mValue));
+			Insert<IndexBack, false, true>(Move(other.mValue));
 		else if constexpr (CT::Disowned<T>)
-			Insert<IndexBack, Any, false, true>(&other.mValue, &other.mValue + 1);
+			Insert<IndexBack, false, true>(&other.mValue, &other.mValue + 1);
 		else
-			Insert<IndexBack, Any, true, true>(Move(other));
+			Insert<IndexBack, true, true>(Forward<T>(other));
 		return *this;
 	}
 
@@ -448,10 +457,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this container for chaining							
 	template<CT::Data T>
 	Any& Any::operator >> (const T& other) {
-		if constexpr (CT::Array<T>)
-			Insert<IndexFront, Any, true, true>(other, ExtentOf<T>);
-		else
-			Insert<IndexFront, Any, true, true>(&other, 1);
+		Insert<IndexFront, true, true>(SparseCast(other), SparseCast(other) + ExtentOf<T>);
 		return *this;
 	}
 
@@ -469,11 +475,11 @@ namespace Langulus::Anyness
 	template<CT::Data T>
 	Any& Any::operator >> (T&& other) {
 		if constexpr (CT::Abandoned<T>)
-			Insert<IndexFront, Any, false, true>(Move(other.mValue));
+			Insert<IndexFront, false, true>(Move(other.mValue));
 		else if constexpr (CT::Disowned<T>)
-			Insert<IndexFront, Any, false, true>(&other.mValue, 1);
+			Insert<IndexFront, false, true>(&other.mValue, &other.mValue + 1);
 		else
-			Insert<IndexFront, Any, true, true>(Forward<T>(other));
+			Insert<IndexFront, true, true>(Forward<T>(other));
 		return *this;
 	}
 
@@ -482,10 +488,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this container for chaining							
 	template<CT::Data T>
 	Any& Any::operator <<= (const T& other) {
-		if constexpr (CT::Array<T>)
-			Merge<IndexBack, Decay<T>, true, Any>(other, ExtentOf<T>);
-		else
-			Merge<IndexBack, T, true, Any>(&other, 1);
+		Merge<IndexBack, true>(SparseCast(other), SparseCast(other) + ExtentOf<T>);
 		return *this;
 	}
 
@@ -502,7 +505,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this container for chaining							
 	template<CT::Data T>
 	Any& Any::operator <<= (T&& other) {
-		Merge<IndexBack, T, true, Any>(Forward<T>(other));
+		Merge<IndexBack, true>(Forward<T>(other));
 		return *this;
 	}
 
@@ -511,10 +514,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this container for chaining							
 	template<CT::Data T>
 	Any& Any::operator >>= (const T& other) {
-		if constexpr (CT::Array<T>)
-			Merge<IndexFront, Decay<T>, true, Any>(other, ExtentOf<T>);
-		else
-			Merge<IndexFront, T, true, Any>(&other, 1);
+		Merge<IndexFront, true>(SparseCast(other), SparseCast(other) + ExtentOf<T>);
 		return *this;
 	}
 
@@ -531,7 +531,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this container for chaining							
 	template<CT::Data T>
 	Any& Any::operator >>= (T&& other) {
-		Merge<IndexFront, T, true, Any>(Forward<T>(other));
+		Merge<IndexFront, true>(Forward<T>(other));
 		return *this;
 	}
 

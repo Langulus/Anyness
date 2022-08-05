@@ -40,7 +40,10 @@ namespace Langulus::Anyness
 
 		Any(const Block&);
 		Any(Block&&);
-		
+
+		template<CT::Data T>
+		Any(const T*, const T*);
+
 		template<CT::CustomData T>
 		Any(const T&);
 		template<CT::CustomData T>

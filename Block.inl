@@ -1087,33 +1087,33 @@ namespace Langulus::Anyness
 
 	/// Copy-insert anything compatible at a special index							
 	/// Slight overhead due to runtime-resolving the index							
-	///	@tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled	
 	///	@tparam KEEP - whether to reference data on copy							
 	///	@tparam MUTABLE - is it allowed the block to deepen to incorporate	
 	///							the new insertion, if not compatible					
+	///	@tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled	
 	///	@tparam T - the type to insert (deducible)									
 	///	@param start - pointer to the first item										
 	///	@param end - pointer to the end of items										
 	///	@param index - the special index to insert at								
 	///	@return number of inserted elements												
-	template<CT::Data WRAPPER, bool KEEP, bool MUTABLE, CT::NotAbandonedOrDisowned T>
+	template<bool KEEP, bool MUTABLE, CT::Data WRAPPER, CT::NotAbandonedOrDisowned T>
 	Count Block::InsertAt(const T* start, const T* end, Index index) {
 		const auto offset = ConstrainMore<T>(index).GetOffset(); //TODO constraining assumes this is filled with T? might cause problems :(
-		return InsertAt<WRAPPER, KEEP, MUTABLE, T>(start, end, offset);
+		return InsertAt<KEEP, MUTABLE, WRAPPER, T>(start, end, offset);
 	}
 
 	/// Copy-insert anything compatible at a simple offset							
 	///	@attention assumes offset is in the block's limits							
-	///	@tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled	
 	///	@tparam KEEP - whether to reference data on copy							
 	///	@tparam MUTABLE - is it allowed the block to deepen or incorporate	
 	///							the new insertion, if not compatible					
+	///	@tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled	
 	///	@tparam T - the type to insert (deducible)									
 	///	@param start - pointer to the first item										
 	///	@param end - pointer to the end of items										
 	///	@param index - the simple index to insert at									
 	///	@return number of inserted elements												
-	template<CT::Data WRAPPER, bool KEEP, bool MUTABLE, CT::NotAbandonedOrDisowned T>
+	template<bool KEEP, bool MUTABLE, CT::Data WRAPPER, CT::NotAbandonedOrDisowned T>
 	Count Block::InsertAt(const T* start, const T* end, Offset index) {
 		static_assert(CT::Deep<WRAPPER>,
 			"WRAPPER must be deep");
@@ -1122,15 +1122,8 @@ namespace Langulus::Anyness
 
 		if constexpr (MUTABLE) {
 			// Type may mutate															
-			if (Mutate<T, true, WRAPPER>()) {
-				return InsertAt<WRAPPER, true, false>(WRAPPER {start, end}, index);
-
-				/*WRAPPER wrapper;
-				wrapper.template Insert<IndexBack, WRAPPER, KEEP, false, T>(start, end);
-				const auto pushed = InsertAt<WRAPPER, false, false, T>(Move(wrapper), index);
-				wrapper.mEntry = nullptr;
-				return pushed;*/
-			}
+			if (Mutate<T, true, WRAPPER>())
+				return InsertAt<true, false>(WRAPPER {start, end}, index);
 		}
 
 		// Allocate																			
@@ -1157,31 +1150,31 @@ namespace Langulus::Anyness
 
 	/// Move-insert anything compatible at a special index							
 	/// Slight overhead due to runtime-resolving the index							
-	///	@tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled	
 	///	@tparam KEEP - whether to reference data on copy							
 	///	@tparam MUTABLE - is it allowed the block to deepen to incorporate	
 	///							the new insertion, if not compatible					
+	///	@tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled	
 	///	@tparam T - the type to insert (deducible)									
 	///	@param item - the item to move in												
 	///	@param index - the special index to insert at								
 	///	@return number of inserted elements												
-	template<CT::Data WRAPPER, bool KEEP, bool MUTABLE, CT::NotAbandonedOrDisowned T>
+	template<bool KEEP, bool MUTABLE, CT::Data WRAPPER, CT::NotAbandonedOrDisowned T>
 	Count Block::InsertAt(T&& item, Index index) {
 		const auto offset = ConstrainMore<T>(index).GetOffset(); //TODO constraining assumes this is filled with T? might cause problems :(
-		return InsertAt<WRAPPER, KEEP, MUTABLE, T>(Move(item), offset);
+		return InsertAt<KEEP, MUTABLE, WRAPPER, T>(Forward<T>(item), offset);
 	}
 
 	/// Move-insert anything compatible at a simple offset							
 	///	@attention assumes offset is in the block's limits							
-	///	@tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled	
 	///	@tparam KEEP - whether to reference data on copy							
 	///	@tparam MUTABLE - is it allowed the block to deepen to incorporate	
 	///							the new insertion, if not compatible					
+	///	@tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled	
 	///	@tparam T - the type to insert (deducible)									
 	///	@param item - the item to move in												
 	///	@param index - the simple offset to insert at								
 	///	@return number of inserted elements												
-	template<CT::Data WRAPPER, bool KEEP, bool MUTABLE, CT::NotAbandonedOrDisowned T>
+	template<bool KEEP, bool MUTABLE, CT::Data WRAPPER, CT::NotAbandonedOrDisowned T>
 	Count Block::InsertAt(T&& item, Offset index) {
 		static_assert(CT::Deep<WRAPPER>,
 			"WRAPPER must be deep");
@@ -1190,15 +1183,8 @@ namespace Langulus::Anyness
 
 		if constexpr (MUTABLE) {
 			// Type may mutate															
-			if (Mutate<T, true, WRAPPER>()) {
-				return InsertAt<WRAPPER, true, false>(WRAPPER {Forward<T>(item)}, index);
-
-				/*WRAPPER wrapper;
-				wrapper.template Insert<IndexBack, WRAPPER, KEEP, false>(Move(item));
-				const auto pushed = InsertAt<WRAPPER, false, false, T>(Move(wrapper), index);
-				wrapper.mEntry = nullptr;
-				return pushed;*/
-			}
+			if (Mutate<T, true, WRAPPER>())
+				return InsertAt<true, false>(WRAPPER {Forward<T>(item)}, index);
 		}
 
 		// Allocate																			
@@ -1224,15 +1210,15 @@ namespace Langulus::Anyness
 
 	/// Copy-insert anything compatible either at the start or the end			
 	///	@tparam INDEX - use IndexBack or IndexFront to append accordingly		
-	///	@tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled	
 	///	@tparam KEEP - whether to reference data on copy							
 	///	@tparam MUTABLE - is it allowed the block to deepen or incorporate	
 	///							the new insertion, if not compatible					
+	///	@tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled	
 	///	@tparam T - the type to insert (deducible)									
 	///	@param start - pointer to the first item										
 	///	@param end - pointer to the end of items										
 	///	@return number of inserted elements												
-	template<Index INDEX, CT::Data WRAPPER, bool KEEP, bool MUTABLE, CT::NotAbandonedOrDisowned T>
+	template<Index INDEX, bool KEEP, bool MUTABLE, CT::Data WRAPPER, CT::NotAbandonedOrDisowned T>
 	Count Block::Insert(const T* start, const T* end) {
 		static_assert(CT::Deep<WRAPPER>,
 			"WRAPPER must be deep");
@@ -1241,15 +1227,8 @@ namespace Langulus::Anyness
 
 		if constexpr (MUTABLE) {
 			// Type may mutate															
-			if (Mutate<T, true, WRAPPER>()) {
-				return Insert<INDEX, WRAPPER, true, false>(WRAPPER {start, end});
-
-				/*WRAPPER wrapper;
-				wrapper.template Insert<IndexBack, WRAPPER, KEEP, false, T>(start, end);
-				const auto pushed = Insert<INDEX, WRAPPER, false, false, WRAPPER>(Move(wrapper));
-				wrapper.mEntry = nullptr;
-				return pushed;*/
-			}
+			if (Mutate<T, true, WRAPPER>())
+				return Insert<INDEX, true, false>(WRAPPER {start, end});
 		}
 
 		// Allocate																			
@@ -1281,14 +1260,14 @@ namespace Langulus::Anyness
 
 	/// Move-insert anything compatible either at the start or the end			
 	///	@tparam INDEX - use IndexBack or IndexFront to append accordingly		
-	///	@tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled	
 	///	@tparam KEEP - whether to reference data on copy							
 	///	@tparam MUTABLE - is it allowed the block to deepen or incorporate	
 	///							the new insertion, if not compatible					
+	///	@tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled	
 	///	@tparam T - the type to insert (deducible)									
 	///	@param item - item to move int													
 	///	@return number of inserted elements												
-	template<Index INDEX, CT::Data WRAPPER, bool KEEP, bool MUTABLE, CT::NotAbandonedOrDisowned T>
+	template<Index INDEX, bool KEEP, bool MUTABLE, CT::Data WRAPPER, CT::NotAbandonedOrDisowned T>
 	Count Block::Insert(T&& item) {
 		static_assert(CT::Deep<WRAPPER>,
 			"WRAPPER must be deep");
@@ -1297,15 +1276,8 @@ namespace Langulus::Anyness
 
 		if constexpr (MUTABLE) {
 			// Type may mutate															
-			if (Mutate<T, true, WRAPPER>()) {
-				return Insert<INDEX, WRAPPER, true, false>(WRAPPER {Forward<T>(item)});
-
-				/*WRAPPER wrapper;
-				wrapper.template Insert<IndexBack, WRAPPER, KEEP, false>(Forward<T>(item));
-				Insert<INDEX, WRAPPER, false, false, WRAPPER>(Move(wrapper));
-				wrapper.mEntry = nullptr;
-				return 1;*/
-			}
+			if (Mutate<T, true, WRAPPER>())
+				return Insert<INDEX, true, false>(WRAPPER {Forward<T>(item)});
 		}
 
 		// Allocate																			
@@ -1594,39 +1566,39 @@ namespace Langulus::Anyness
 	/// Merge-copy-insert array elements at special index								
 	/// Each element will be pushed only if not found in block						
 	/// A bit of runtime overhead due to resolving index								
-	///	@tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled	
 	///	@tparam KEEP - whether to reference data on copy							
 	///	@tparam MUTABLE - is it allowed the block to deepen or incorporate	
 	///							the new insertion, if not compatible					
+	///	@tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled	
 	///	@tparam T - the type to insert (deducible)									
 	///	@param start - pointer to the first item										
 	///	@param end - pointer to the end of items										
 	///	@param index - the special index to insert at								
 	///	@return the number of inserted elements										
-	template<CT::Data WRAPPER, bool KEEP, bool MUTABLE, CT::NotAbandonedOrDisowned T>
+	template<bool KEEP, bool MUTABLE, CT::Data WRAPPER, CT::NotAbandonedOrDisowned T>
 	Count Block::MergeAt(const T* start, const T* end, Index index) {
 		const auto offset = ConstrainMore<T>(index).GetOffset(); //TODO constraining assumes this is filled with T? might cause problems :(
-		return MergeAt<WRAPPER, KEEP, MUTABLE, T>(start, end, offset);
+		return MergeAt<KEEP, MUTABLE, WRAPPER, T>(start, end, offset);
 	}
 
 	/// Merge-copy-insert array elements at special index								
 	/// Each element will be pushed only if not found in block						
 	///	@attention assumes offset is in the block's limits							
-	///	@tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled	
 	///	@tparam KEEP - whether to reference data on copy							
 	///	@tparam MUTABLE - is it allowed the block to deepen or incorporate	
 	///							the new insertion, if not compatible					
+	///	@tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled	
 	///	@tparam T - the type to insert (deducible)									
 	///	@param start - pointer to the first item										
 	///	@param end - pointer to the end of items										
 	///	@param index - the special index to insert at								
 	///	@return the number of inserted elements										
-	template<CT::Data WRAPPER, bool KEEP, bool MUTABLE, CT::NotAbandonedOrDisowned T>
+	template<bool KEEP, bool MUTABLE, CT::Data WRAPPER, CT::NotAbandonedOrDisowned T>
 	Count Block::MergeAt(const T* start, const T* end, Offset index) {
 		Count added {};
 		while (start != end) {
 			if (!Find<T>(*start)) {
-				added += InsertAt<WRAPPER, KEEP, MUTABLE, T>(start, start + 1, index);
+				added += InsertAt<KEEP, MUTABLE, WRAPPER, T>(start, start + 1, index);
 				++index;
 			}
 
@@ -1639,36 +1611,36 @@ namespace Langulus::Anyness
 	/// Merge-move-insert array elements at special index								
 	/// Element will be pushed only if not found in block								
 	/// A bit of runtime overhead due to resolving index								
-	///	@tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled	
 	///	@tparam KEEP - whether to reference data on copy							
 	///	@tparam MUTABLE - is it allowed the block to deepen or incorporate	
 	///							the new insertion, if not compatible					
+	///	@tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled	
 	///	@tparam T - the type to insert (deducible)									
 	///	@param item - the item to move in												
 	///	@param index - the special index to insert at								
 	///	@return the number of inserted elements										
-	template<CT::Data WRAPPER, bool KEEP, bool MUTABLE, CT::NotAbandonedOrDisowned T>
+	template<bool KEEP, bool MUTABLE, CT::Data WRAPPER, CT::NotAbandonedOrDisowned T>
 	Count Block::MergeAt(T&& item, Index index) {
 		if (!Find<T>(item))
-			return InsertAt<WRAPPER, KEEP, MUTABLE, T>(Move(item), index);
+			return InsertAt<KEEP, MUTABLE, WRAPPER, T>(Move(item), index);
 		return 0;
 	}
 
 	/// Merge-move-insert array elements at simple index								
 	/// Element will be pushed only if not found in block								
 	///	@attention assumes offset is in the block's limits							
-	///	@tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled	
 	///	@tparam KEEP - whether to reference data on copy							
 	///	@tparam MUTABLE - is it allowed the block to deepen or incorporate	
 	///							the new insertion, if not compatible					
+	///	@tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled	
 	///	@tparam T - the type to insert (deducible)									
 	///	@param item - the item to move in												
 	///	@param index - the simple index to insert at									
 	///	@return the number of inserted elements										
-	template<CT::Data WRAPPER, bool KEEP, bool MUTABLE, CT::NotAbandonedOrDisowned T>
+	template<bool KEEP, bool MUTABLE, CT::Data WRAPPER, CT::NotAbandonedOrDisowned T>
 	Count Block::MergeAt(T&& item, Offset index) {
 		if (!Find<T>(item))
-			return InsertAt<WRAPPER, KEEP, MUTABLE, T>(Move(item), index);
+			return InsertAt<KEEP, MUTABLE, WRAPPER, T>(Move(item), index);
 		return 0;
 	}
 
@@ -1862,13 +1834,19 @@ namespace Langulus::Anyness
 			}
 		}
 
-		// Insert a non-deep element													
+		// Insert 																			
 		SetState(mState + state);
 
-		if constexpr (ALLOW_DEEPEN)
-			return InsertAt<WRAPPER, true, true>(&value, &value + 1, index);
-		else if (CastsTo<T>())
-			return InsertAt<WRAPPER, true, false>(&value, &value + 1, index);
+		if (CastsTo<T>())
+			return InsertAt<true, false>(&value, &value + 1, index);
+		else if (IsDeep())
+			return InsertAt<false, false>(WRAPPER {value}, index);
+
+		if constexpr (ALLOW_DEEPEN) {
+			Deepen<WRAPPER>();
+			return InsertAt<false, false>(WRAPPER {value}, index);
+		}
+
 		return 0;
 	}
 
@@ -1949,13 +1927,19 @@ namespace Langulus::Anyness
 			}
 		}
 
-		// Insert a non-deep element													
+		// Insert 																			
 		SetState(mState + state);
 
-		if constexpr (ALLOW_DEEPEN)
-			return InsertAt<WRAPPER, true, true>(Forward<T>(value), index);
-		else if (CastsTo<T>())
-			return InsertAt<WRAPPER, true, false>(Forward<T>(value), index);
+		if (CastsTo<T>())
+			return InsertAt<true, false>(Forward<T>(value), index);
+		else if (IsDeep())
+			return InsertAt<false, false>(WRAPPER {Forward<T>(value)}, index);
+
+		if constexpr (ALLOW_DEEPEN) {
+			Deepen<WRAPPER>();
+			return InsertAt<false, false>(WRAPPER {Forward<T>(value)}, index);
+		}
+
 		return 0;
 	}
 
@@ -2028,13 +2012,19 @@ namespace Langulus::Anyness
 			}
 		}
 
-		// Insert a non-deep element													
+		// Insert 																			
 		SetState(mState + state);
 
-		if constexpr (ALLOW_DEEPEN)
-			return InsertAt<WRAPPER, true, true>(&value.mValue, &value.mValue + 1, index);
-		else if (CastsTo<T>())
-			return InsertAt<WRAPPER, true, false>(&value.mValue, &value.mValue + 1, index);
+		if (CastsTo<T>())
+			return InsertAt<false, false>(&value.mValue, &value.mValue + 1, index);
+		else if (IsDeep())
+			return InsertAt<false, false>(WRAPPER {value.Forward()}, index);
+
+		if constexpr (ALLOW_DEEPEN) {
+			Deepen<WRAPPER>();
+			return InsertAt<false, false>(WRAPPER {value.Forward()}, index);
+		}
+
 		return 0;
 	}
 
@@ -2108,13 +2098,19 @@ namespace Langulus::Anyness
 			}
 		}
 
-		// Insert a non-deep element													
+		// Insert 																			
 		SetState(mState + state);
 
-		if constexpr (ALLOW_DEEPEN)
-			return InsertAt<WRAPPER, true, true>(Move(value.mValue), index);
-		else if (CastsTo<T>())
-			return InsertAt<WRAPPER, true, false>(Move(value.mValue), index);
+		if (CastsTo<T>())
+			return InsertAt<false, false>(Move(value.mValue), index);
+		else if (IsDeep())
+			return InsertAt<false, false>(WRAPPER {value.Forward()}, index);
+
+		if constexpr (ALLOW_DEEPEN) {
+			Deepen<WRAPPER>();
+			return InsertAt<false, false>(WRAPPER {value.Forward()}, index);
+		}
+
 		return 0;
 	}
 
@@ -2188,13 +2184,19 @@ namespace Langulus::Anyness
 			}
 		}
 
-		// Insert a non-deep element													
+		// Insert 																			
 		SetState(mState + state);
 
-		if constexpr (ALLOW_DEEPEN)
-			return Insert<INDEX, WRAPPER, true, true>(&value, &value + 1);
-		else if (CastsTo<T>())
-			return Insert<INDEX, WRAPPER, true, false>(&value, &value + 1);
+		if (CastsTo<T>())
+			return Insert<INDEX, true, false>(&value, &value + 1);
+		else if (IsDeep())
+			return Insert<INDEX, false, false>(WRAPPER {value});
+
+		if constexpr (ALLOW_DEEPEN) {
+			Deepen<WRAPPER>();
+			return Insert<INDEX, false, false>(WRAPPER {value});
+		}
+
 		return 0;
 	}
 
@@ -2275,13 +2277,19 @@ namespace Langulus::Anyness
 			}
 		}
 
-		// Insert a non-deep element													
+		// Insert 																			
 		SetState(mState + state);
 
-		if constexpr (ALLOW_DEEPEN)
-			return Insert<INDEX, WRAPPER, true, true>(Forward<T>(value));
-		else if (CastsTo<T>())
-			return Insert<INDEX, WRAPPER, true, false>(Forward<T>(value));
+		if (CastsTo<T>())
+			return Insert<INDEX, true, false>(Forward<T>(value));
+		else if (IsDeep())
+			return Insert<INDEX, false, false>(WRAPPER {Forward<T>(value)});
+
+		if constexpr (ALLOW_DEEPEN) {
+			Deepen<WRAPPER>();
+			return Insert<INDEX, false, false>(WRAPPER {Forward<T>(value)});
+		}
+
 		return 0;
 	}
 
@@ -2354,13 +2362,19 @@ namespace Langulus::Anyness
 			}
 		}
 
-		// Insert a non-deep element													
+		// Insert 																			
 		SetState(mState + state);
 
-		if constexpr (ALLOW_DEEPEN)
-			return Insert<INDEX, WRAPPER, true, true>(&value.mValue, &value.mValue + 1);
-		else if (CastsTo<T>())
-			return Insert<INDEX, WRAPPER, true, false>(&value.mValue, &value.mValue + 1);
+		if (CastsTo<T>())
+			return Insert<INDEX, false, false>(value.mValue);
+		else if (IsDeep())
+			return Insert<INDEX, false, false>(WRAPPER {value.Forward()});
+
+		if constexpr (ALLOW_DEEPEN) {
+			Deepen<WRAPPER>();
+			return Insert<INDEX, false, false>(WRAPPER {value.Forward()});
+		}
+
 		return 0;
 	}
 
@@ -2434,13 +2448,19 @@ namespace Langulus::Anyness
 			}
 		}
 
-		// Insert a non-deep element													
+		// Insert 																			
 		SetState(mState + state);
 
-		if constexpr (ALLOW_DEEPEN)
-			return Insert<INDEX, WRAPPER, true, true>(Move(value.mValue));
-		else if (CastsTo<T>())
-			return Insert<INDEX, WRAPPER, true, false>(Move(value.mValue));
+		if (CastsTo<T>())
+			return Insert<INDEX, false, false>(Move(value.mValue));
+		else if (IsDeep())
+			return Insert<INDEX, false, false>(WRAPPER {value.Forward()});
+
+		if constexpr (ALLOW_DEEPEN) {
+			Deepen<WRAPPER>();
+			return Insert<INDEX, false, false>(WRAPPER {value.Forward()});
+		}
+
 		return 0;
 	}
 

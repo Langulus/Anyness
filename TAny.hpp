@@ -47,6 +47,7 @@ namespace Langulus::Anyness
 		TAny(const Block&);
 		TAny(Block&&);
 
+		TAny(const T*, const T*) requires CT::Data<T>;
 		TAny(const T&) requires CT::CustomData<T>;
 		TAny(T&&) requires CT::CustomData<T>;
 

@@ -398,27 +398,27 @@ namespace Langulus::Anyness
 		//																						
 		//	Insertion																		
 		//																						
-		template<CT::Data WRAPPER, bool KEEP, bool MUTABLE, CT::NotAbandonedOrDisowned T>
+		template<bool KEEP, bool MUTABLE, CT::Data WRAPPER = Any, CT::NotAbandonedOrDisowned T>
 		Count InsertAt(const T*, const T*, Index);
-		template<CT::Data WRAPPER, bool KEEP, bool MUTABLE, CT::NotAbandonedOrDisowned T>
+		template<bool KEEP, bool MUTABLE, CT::Data WRAPPER = Any, CT::NotAbandonedOrDisowned T>
 		Count InsertAt(const T*, const T*, Offset);
-		template<CT::Data WRAPPER, bool KEEP, bool MUTABLE, CT::NotAbandonedOrDisowned T>
+		template<bool KEEP, bool MUTABLE, CT::Data WRAPPER = Any, CT::NotAbandonedOrDisowned T>
 		Count InsertAt(T&&, Index);
-		template<CT::Data WRAPPER, bool KEEP, bool MUTABLE, CT::NotAbandonedOrDisowned T>
+		template<bool KEEP, bool MUTABLE, CT::Data WRAPPER = Any, CT::NotAbandonedOrDisowned T>
 		Count InsertAt(T&&, Offset);
 
-		template<Index INDEX = IndexBack, CT::Data WRAPPER, bool KEEP, bool MUTABLE, CT::NotAbandonedOrDisowned T>
+		template<Index INDEX = IndexBack, bool KEEP, bool MUTABLE, CT::Data WRAPPER = Any, CT::NotAbandonedOrDisowned T>
 		Count Insert(const T*, const T*);
-		template<Index INDEX = IndexBack, CT::Data WRAPPER, bool KEEP, bool MUTABLE, CT::NotAbandonedOrDisowned T>
+		template<Index INDEX = IndexBack, bool KEEP, bool MUTABLE, CT::Data WRAPPER = Any, CT::NotAbandonedOrDisowned T>
 		Count Insert(T&&);
 
-		template<CT::Data WRAPPER, bool KEEP, bool MUTABLE, CT::NotAbandonedOrDisowned T>
+		template<bool KEEP, bool MUTABLE, CT::Data WRAPPER = Any, CT::NotAbandonedOrDisowned T>
 		Count MergeAt(const T*, const T*, Index);
-		template<CT::Data WRAPPER, bool KEEP, bool MUTABLE, CT::NotAbandonedOrDisowned T>
+		template<bool KEEP, bool MUTABLE, CT::Data WRAPPER = Any, CT::NotAbandonedOrDisowned T>
 		Count MergeAt(const T*, const T*, Offset);
-		template<CT::Data WRAPPER, bool KEEP, bool MUTABLE, CT::NotAbandonedOrDisowned T>
+		template<bool KEEP, bool MUTABLE, CT::Data WRAPPER = Any, CT::NotAbandonedOrDisowned T>
 		Count MergeAt(T&&, Index);
-		template<CT::Data WRAPPER, bool KEEP, bool MUTABLE, CT::NotAbandonedOrDisowned T>
+		template<bool KEEP, bool MUTABLE, CT::Data WRAPPER = Any, CT::NotAbandonedOrDisowned T>
 		Count MergeAt(T&&, Offset);
 
 		template<CT::NotAbandonedOrDisowned T>

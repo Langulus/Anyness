@@ -159,6 +159,13 @@ namespace Langulus::Anyness
 	TAny<T>::TAny(Block&& copy)
 		: TAny {Any {Forward<Block>(copy)}} { }
 
+	/// Construct by copying/referencing an array of non-block type				
+	///	@param start - start of the array												
+	///	@param end - end of the array														
+	TEMPLATE()
+	TAny<T>::TAny(const T* start, const T* end) requires CT::Data<T>
+		: Any {start, end} { }
+
 	/// Construct by copying/referencing value of non-block type					
 	///	@param other - the value to shallow-copy										
 	TEMPLATE()
