@@ -63,7 +63,7 @@ namespace Langulus::Anyness
 	///	@param other - the block to copy													
 	template <CT::Deep T>
 	constexpr Any::Any(Disowned<T>&& other) noexcept requires CT::Dense<T>
-		: Block {other.Forward<Block>()} {
+		: Block {other.template Forward<Block>()} {
 		mEntry = nullptr;
 	}
 	
@@ -72,7 +72,7 @@ namespace Langulus::Anyness
 	///	@param other - the block to move													
 	template <CT::Deep T>
 	constexpr Any::Any(Abandoned<T>&& other) noexcept requires CT::Dense<T>
-		: Block {other.Forward<Block>()} {
+		: Block {other.template Forward<Block>()} {
 		other.mValue.mEntry = nullptr;
 	}
 
