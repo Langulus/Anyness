@@ -596,6 +596,8 @@ namespace Langulus::Anyness
 	///	@param other - the state to check												
 	///	@return true if state is compatible												
 	constexpr bool Block::CanFitState(const Block& other) const noexcept {
+		if (IsEmpty())
+			return true;
 		const bool sparseness = IsSparse() == other.IsSparse();
 		const bool orCompat = IsOr() == other.IsOr() || other.GetCount() <= 1 || IsEmpty();
 		const bool typeCompat = !IsTypeConstrained() || (IsTypeConstrained() && other.CastsToMeta(mType));
@@ -1830,7 +1832,7 @@ namespace Langulus::Anyness
 			const bool typeCompliant = (!IsTypeConstrained() && IsEmpty()) || CanFit(value.GetType());
 			const bool stateCompliant = CanFitState(value);
 
-			if (IsEmpty() && typeCompliant && stateCompliant) {
+			if (typeCompliant && stateCompliant) {
 				Absorb<true>(value, state);
 				return 1;
 			}
@@ -1908,7 +1910,7 @@ namespace Langulus::Anyness
 			const bool typeCompliant = (!IsTypeConstrained() && IsEmpty()) || CanFit(value.GetType());
 			const bool stateCompliant = CanFitState(value);
 
-			if (IsEmpty() && typeCompliant && stateCompliant) {
+			if (typeCompliant && stateCompliant) {
 				Absorb<true>(Forward<T>(value), state);
 				return 1;
 			}
@@ -1980,7 +1982,7 @@ namespace Langulus::Anyness
 			const bool typeCompliant = (!IsTypeConstrained() && IsEmpty()) || CanFit(value.mValue.GetType());
 			const bool stateCompliant = CanFitState(value.mValue);
 
-			if (IsEmpty() && typeCompliant && stateCompliant) {
+			if (typeCompliant && stateCompliant) {
 				Absorb<false>(value.mValue, state);
 				return 1;
 			}
@@ -2052,7 +2054,7 @@ namespace Langulus::Anyness
 			const bool typeCompliant = (!IsTypeConstrained() && IsEmpty()) || CanFit(value.mValue.GetType());
 			const bool stateCompliant = CanFitState(value);
 
-			if (IsEmpty() && typeCompliant && stateCompliant) {
+			if (typeCompliant && stateCompliant) {
 				Absorb<false>(Move(value.mValue), state);
 				return 1;
 			}
@@ -2124,7 +2126,7 @@ namespace Langulus::Anyness
 			const bool typeCompliant = (!IsTypeConstrained() && IsEmpty()) || CanFit(value.GetType());
 			const bool stateCompliant = CanFitState(value);
 
-			if (IsEmpty() && typeCompliant && stateCompliant) {
+			if (typeCompliant && stateCompliant) {
 				Absorb<true>(value, state);
 				return 1;
 			}
@@ -2202,7 +2204,7 @@ namespace Langulus::Anyness
 			const bool typeCompliant = (!IsTypeConstrained() && IsEmpty()) || CanFit(value.GetType());
 			const bool stateCompliant = CanFitState(value);
 
-			if (IsEmpty() && typeCompliant && stateCompliant) {
+			if (typeCompliant && stateCompliant) {
 				Absorb<true>(Forward<T>(value), state);
 				return 1;
 			}
@@ -2274,7 +2276,7 @@ namespace Langulus::Anyness
 			const bool typeCompliant = (!IsTypeConstrained() && IsEmpty()) || CanFit(value.mValue.GetType());
 			const bool stateCompliant = CanFitState(value);
 
-			if (IsEmpty() && typeCompliant && stateCompliant) {
+			if (typeCompliant && stateCompliant) {
 				Absorb<false>(value.mValue, state);
 				return 1;
 			}
@@ -2346,7 +2348,7 @@ namespace Langulus::Anyness
 			const bool typeCompliant = (!IsTypeConstrained() && IsEmpty()) || CanFit(value.mValue.GetType());
 			const bool stateCompliant = CanFitState(value.mValue);
 
-			if (IsEmpty() && typeCompliant && stateCompliant) {
+			if (typeCompliant && stateCompliant) {
 				Absorb<false>(Move(value.mValue), state);
 				return 1;
 			}
