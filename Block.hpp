@@ -499,9 +499,10 @@ namespace Langulus::Anyness
 		//																						
 		template<CT::Data T>
 		Count Remove(const T*, Count = 1, Index = IndexFront);
-		Count RemoveIndex(Index, Count = 1);
-		Count RemoveIndex(Offset, Count = 1);
-		Count RemoveIndexDeep(Offset);
+		template<CT::Index INDEX>
+		Count RemoveIndex(INDEX, Count = 1);
+		template<CT::Index INDEX>
+		Count RemoveIndexDeep(INDEX);
 	
 		Block& Trim(Offset);
 	
