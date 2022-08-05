@@ -1460,104 +1460,6 @@ namespace Langulus::Anyness
 
 		return removed;
 	}
-	
-	/// Remove sequential indices																
-	///	@param index - index																	
-	///	@param count - number of items to remove										
-	///	@return the number of removed elements											
-	template<CT::Index INDEX>
-	Count Block::RemoveIndex(INDEX index, const Count count) {
-		if constexpr (CT::Same<INDEX, Index>) {
-			// By special indices														
-			if (index == IndexAll) {
-				const auto oldCount = mCount;
-				Free();
-				ResetMemory();
-				ResetState();
-				return oldCount;
-			}
-
-			const auto starter = Constrain(index);
-			if (starter.IsSpecial())
-				return 0;
-
-			return RemoveIndex(starter.GetOffset(), count);
-		}
-		else {
-			// By simple index (signed or not)										
-			SAFETY(if (index >= mCount || count > mCount || index + count > mCount)
-				Throw<Except::Access>("Index out of range"));
-			SAFETY(if (GetUses() > 1)
-				Throw<Except::Reference>("Attempting to remove elements from a used memory block"));
-
-			if (IsConstant() || IsStatic()) {
-				if (mType->mIsPOD && index + count >= mCount) {
-					// If data is POD and elements are on the back, we can	
-					// get around constantness and staticness, by simply		
-					// truncating the count without any reprecussions			
-					const auto removed = mCount - index;
-					mCount = index;
-					return removed;
-				}
-				else {
-					if (IsConstant())
-						Throw<Except::Access>(
-							"Attempting to RemoveIndex in a constant container");
-
-					if (IsStatic())
-						Throw<Except::Access>(
-							"Attempting to RemoveIndex in a static container");
-
-					return 0;
-				}
-			}
-
-			// First call the destructors on the correct region				
-			const auto ender = std::min(index + count, mCount);
-			const auto removed = ender - index;
-			CropInner(index, removed, removed).CallUnknownDestructors();
-
-			if (ender < mCount) {
-				// Fill gap	if any by invoking move constructions				
-				CropInner(index, 0, mCount - ender)
-					.template CallUnknownMoveConstructors<false>(
-						mCount - ender,
-						CropInner(ender, mCount - ender, mCount - ender)
-					);
-			}
-
-			// Change count																
-			mCount -= removed;
-			return removed;
-		}
-	}
-
-	/// Remove a raw deep index corresponding to a whole block inside				
-	///	@param index - index to remove													
-	///	@return 1 if removed																	
-	template<CT::Index INDEX>
-	Count Block::RemoveIndexDeep(INDEX index) {
-		if constexpr (!CT::Same<INDEX, Index>) {
-			if (!IsDeep())
-				return 0;
-
-			--index;
-			for (Count i = 0; i != mCount; i += 1) {
-				if (index == 0)
-					return RemoveIndex(i);
-
-				auto ith = As<Block*>(i);
-				const auto count = ith->GetCountDeep();
-				if (index <= count && ith->RemoveIndexDeep(index))
-					return 1;
-
-				index -= count;
-			}
-
-			return 0;
-		}
-		else TODO();
-	}
 
 	/// Find first matching element position inside container						
 	///	@param item - the item to search for											
@@ -2581,6 +2483,104 @@ namespace Langulus::Anyness
 	template<CT::Data T, CT::Index IDX>
 	decltype(auto) Block::As(const IDX& index) const {
 		return const_cast<Block&>(*this).template As<T, IDX>(index);
+	}
+	
+	/// Remove sequential indices																
+	///	@param index - index																	
+	///	@param count - number of items to remove										
+	///	@return the number of removed elements											
+	template<CT::Index INDEX>
+	Count Block::RemoveIndex(INDEX index, const Count count) {
+		if constexpr (CT::Same<INDEX, Index>) {
+			// By special indices														
+			if (index == IndexAll) {
+				const auto oldCount = mCount;
+				Free();
+				ResetMemory();
+				ResetState();
+				return oldCount;
+			}
+
+			const auto starter = Constrain(index);
+			if (starter.IsSpecial())
+				return 0;
+
+			return RemoveIndex(starter.GetOffset(), count);
+		}
+		else {
+			// By simple index (signed or not)										
+			SAFETY(if (index >= mCount || count > mCount || index + count > mCount)
+				Throw<Except::Access>("Index out of range"));
+			SAFETY(if (GetUses() > 1)
+				Throw<Except::Reference>("Attempting to remove elements from a used memory block"));
+
+			if (IsConstant() || IsStatic()) {
+				if (mType->mIsPOD && index + count >= mCount) {
+					// If data is POD and elements are on the back, we can	
+					// get around constantness and staticness, by simply		
+					// truncating the count without any reprecussions			
+					const auto removed = mCount - index;
+					mCount = index;
+					return removed;
+				}
+				else {
+					if (IsConstant())
+						Throw<Except::Access>(
+							"Attempting to RemoveIndex in a constant container");
+
+					if (IsStatic())
+						Throw<Except::Access>(
+							"Attempting to RemoveIndex in a static container");
+
+					return 0;
+				}
+			}
+
+			// First call the destructors on the correct region				
+			const auto ender = std::min(index + count, mCount);
+			const auto removed = ender - index;
+			CropInner(index, removed, removed).CallUnknownDestructors();
+
+			if (ender < mCount) {
+				// Fill gap	if any by invoking move constructions				
+				CropInner(index, 0, mCount - ender)
+					.template CallUnknownMoveConstructors<false>(
+						mCount - ender,
+						CropInner(ender, mCount - ender, mCount - ender)
+					);
+			}
+
+			// Change count																
+			mCount -= removed;
+			return removed;
+		}
+	}
+
+	/// Remove a raw deep index corresponding to a whole block inside				
+	///	@param index - index to remove													
+	///	@return 1 if removed																	
+	template<CT::Index INDEX>
+	Count Block::RemoveIndexDeep(INDEX index) {
+		if constexpr (!CT::Same<INDEX, Index>) {
+			if (!IsDeep())
+				return 0;
+
+			--index;
+			for (Count i = 0; i != mCount; i += 1) {
+				if (index == 0)
+					return RemoveIndex(i);
+
+				auto ith = As<Block*>(i);
+				const auto count = ith->GetCountDeep();
+				if (index <= count && ith->RemoveIndexDeep(index))
+					return 1;
+
+				index -= count;
+			}
+
+			return 0;
+		}
+		else TODO();
 	}
 
 	/// Execute functions for each element inside container							
