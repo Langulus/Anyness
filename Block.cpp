@@ -180,7 +180,7 @@ namespace Langulus::Anyness
 	///	@return true if able to interpret current type to 'type'					
 	bool Block::CanFit(DMeta type) const {
 		if (!type)
-			return true;
+			return false;
 
 		if (IsSparse())
 			return type->CastsTo<true>(mType);
