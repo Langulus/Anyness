@@ -48,6 +48,27 @@ namespace Langulus::Anyness
 	inline Bytes::Bytes(void* raw, const Size& size)
 		: TAny {reinterpret_cast<Byte*>(raw), size} { }
 
+	/// Construct by interpreting anything POD as bytes								
+	///	@param value - the data to interpret											
+	template<CT::POD T>
+	Bytes::Bytes(const T& value)
+		: Bytes {&value, sizeof(T)} {}
+
+	/// Construct by interpreting a string literal										
+	///	@param value - the string to interpret											
+	inline Bytes::Bytes(const Token& value)
+		: Bytes {value.data(), value.size() * sizeof(Letter)} {}
+
+	/// Construct by interpreting a meta definition										
+	///	@param value - the meta to interpret											
+	inline Bytes::Bytes(const RTTI::Meta* value)
+		: Bytes {} {
+		if (value)
+			*this += value->mToken;
+		else
+			*this += Count {0};
+	}
+
 	/// Destructor																					
 	inline Bytes::~Bytes() {
 		Free();
@@ -85,4 +106,23 @@ namespace Langulus::Anyness
 		return *this;
 	}
 	
+	/// Convert RHS to bytes and append destructively									
+	///	@tparam RHS - type of RHS (deducible)											
+	///	@param rhs - the stuff to convert and append									
+	///	@return a reference to the byte container										
+	template<class RHS>
+	Bytes& Bytes::operator += (const RHS& rhs) {
+		TAny::template operator += <Bytes, RHS> (rhs);
+		return *this;
+	}
+
+	/// Convert RHS to bytes and append 													
+	///	@tparam RHS - type of RHS (deducible)											
+	///	@param rhs - the stuff to convert and append									
+	///	@return a new byte container with RHS appended								
+	template<class RHS>
+	Bytes Bytes::operator + (const RHS& rhs) const {
+		return TAny::template operator + <Bytes, RHS> (rhs);
+	}
+
 } // namespace Langulus::Anyness

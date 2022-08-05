@@ -1856,7 +1856,9 @@ namespace Langulus::Anyness
 		// Insert 																			
 		SetState(mState + state);
 
-		if (CastsTo<T>())
+		if (IsUntyped())
+			return InsertAt<true, true>(&value, &value + 1, index);
+		else if (CastsTo<T>())
 			return InsertAt<true, false>(&value, &value + 1, index);
 		else if (IsDeep())
 			return InsertAt<false, false>(WRAPPER {value}, index);
@@ -1932,7 +1934,9 @@ namespace Langulus::Anyness
 		// Insert 																			
 		SetState(mState + state);
 
-		if (CastsTo<T>())
+		if (IsUntyped())
+			return InsertAt<true, true>(Forward<T>(value), index);
+		else if (CastsTo<T>())
 			return InsertAt<true, false>(Forward<T>(value), index);
 		else if (IsDeep())
 			return InsertAt<false, false>(WRAPPER {Forward<T>(value)}, index);
@@ -2002,7 +2006,9 @@ namespace Langulus::Anyness
 		// Insert 																			
 		SetState(mState + state);
 
-		if (CastsTo<T>())
+		if (IsUntyped())
+			return InsertAt<false, true>(&value.mValue, &value.mValue + 1, index);
+		else if (CastsTo<T>())
 			return InsertAt<false, false>(&value.mValue, &value.mValue + 1, index);
 		else if (IsDeep())
 			return InsertAt<false, false>(WRAPPER {value.Forward()}, index);
@@ -2072,7 +2078,9 @@ namespace Langulus::Anyness
 		// Insert 																			
 		SetState(mState + state);
 
-		if (CastsTo<T>())
+		if (IsUntyped())
+			return InsertAt<false, true>(Move(value.mValue), index);
+		else if (CastsTo<T>())
 			return InsertAt<false, false>(Move(value.mValue), index);
 		else if (IsDeep())
 			return InsertAt<false, false>(WRAPPER {value.Forward()}, index);
@@ -2142,7 +2150,9 @@ namespace Langulus::Anyness
 		// Insert 																			
 		SetState(mState + state);
 
-		if (CastsTo<T>())
+		if (IsUntyped())
+			return Insert<INDEX, true, true>(&value, &value + 1);
+		else if (CastsTo<T>())
 			return Insert<INDEX, true, false>(&value, &value + 1);
 		else if (IsDeep())
 			return Insert<INDEX, false, false>(WRAPPER {value});
@@ -2218,7 +2228,9 @@ namespace Langulus::Anyness
 		// Insert 																			
 		SetState(mState + state);
 
-		if (CastsTo<T>())
+		if (IsUntyped())
+			return Insert<INDEX, true, true>(Forward<T>(value));
+		else if (CastsTo<T>())
 			return Insert<INDEX, true, false>(Forward<T>(value));
 		else if (IsDeep())
 			return Insert<INDEX, false, false>(WRAPPER {Forward<T>(value)});
@@ -2288,7 +2300,9 @@ namespace Langulus::Anyness
 		// Insert 																			
 		SetState(mState + state);
 
-		if (CastsTo<T>())
+		if (IsUntyped())
+			return Insert<INDEX, false, true>(value.mValue);
+		else if (CastsTo<T>())
 			return Insert<INDEX, false, false>(value.mValue);
 		else if (IsDeep())
 			return Insert<INDEX, false, false>(WRAPPER {value.Forward()});
@@ -2358,7 +2372,9 @@ namespace Langulus::Anyness
 		// Insert 																			
 		SetState(mState + state);
 
-		if (CastsTo<T>())
+		if (IsUntyped())
+			return Insert<INDEX, false, true>(Move(value.mValue));
+		else if (CastsTo<T>())
 			return Insert<INDEX, false, false>(Move(value.mValue));
 		else if (IsDeep())
 			return Insert<INDEX, false, false>(WRAPPER {value.Forward()});

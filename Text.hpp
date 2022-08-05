@@ -98,12 +98,11 @@ namespace Langulus::Anyness
 	class Debug : public Text {
 		LANGULUS_BASES(Text);
 	public:
-		using Text::Text;
-
-		Debug(Disowned<Debug>&& o) noexcept
-			: Text {o.Forward<Text>()} {}
-		Debug(Abandoned<Debug>&& o) noexcept
-			: Text {o.Forward<Text>()} {}
+		Debug() = default;
+		Debug(const Text&);
+		Debug(Text&&) noexcept;
+		Debug(Disowned<Debug>&& o) noexcept;
+		Debug(Abandoned<Debug>&& o) noexcept;
 	};
 
 } // namespace Langulus::Anyness

@@ -37,45 +37,39 @@ namespace Langulus::Anyness
 	TAny<T>::TAny(TAny&& other) noexcept
 		: Any {Forward<Any>(other)} { }
 
-	/// Shallow-copy but do not reference, because other is disowned				
-	///	@param other - the container to shallow-copy									
-	TEMPLATE()
-	TAny<T>::TAny(Disowned<TAny>&& other) noexcept
-		: Any {other.template Forward<Any>()} { }
-	
-	/// Move, but do not bother cleaning other, because it is abandoned			
-	///	@param other - the container to move											
-	TEMPLATE()
-	TAny<T>::TAny(Abandoned<TAny>&& other) noexcept
-		: Any {other.template Forward<Any>()} { }
-
 	/// Copy-construct from another container by performing runtime type check	
 	///	@tparam KEEP - whether or not to reference contents						
 	///	@tparam ALT_T - the container type (deducible)								
 	///	@param other - the container to incorporate									
 	TEMPLATE()
-	template<bool KEEP, CT::Data ALT_T>
+	template<bool KEEP, CT::Deep ALT_T>
 	void TAny<T>::ConstructFromContainer(const ALT_T& other) {
-		static_assert(CT::Deep<ALT_T>, "ALT_T must be a deep type");
-
-		//TODO check if this TAny matches exactly ALT_T. That way we can use the same logic for the copy-c
-		if (CastsToMeta(other.GetType())) {
-			// Always attempt to copy containers directly first, instead	
-			// of doing allocations														
+		if constexpr (CT::Same<ALT_T, TAny>) {
 			CopyProperties<false, false>(other);
 
 			if constexpr (KEEP)
 				Keep();
-			return;
 		}
+		else {
+			if (CastsToMeta(other.GetType())) {
+				// Always attempt to copy containers directly first,			
+				// instead of doing allocations										
+				CopyProperties<false, false>(other);
 
-		// Then attempt to push other container, if this container allows	
-		// for it																			
-		if constexpr (CT::Deep<T>) {
-			auto& compatible = static_cast<const Decay<T>&>(other);
-			Insert<IndexBack, KEEP>(&compatible, &compatible + 1);
+				if constexpr (KEEP)
+					Keep();
+				return;
+			}
+
+			// Then attempt to push other container, if this container		
+			// allows for it																
+			if constexpr (CT::Deep<T>) {
+				auto& compatible = static_cast<const Decay<T>&>(other);
+				Insert<IndexBack, KEEP>(&compatible, &compatible + 1);
+			}
+			else
+				Throw<Except::Copy>("Bad copy-construction for TAny");
 		}
-		else Throw<Except::Copy>("Bad copy-construction for TAny");
 	}
 
 	/// Move-construct from another container by performing runtime type check	
@@ -83,13 +77,9 @@ namespace Langulus::Anyness
 	///	@tparam ALT_T - the container type (deducible)								
 	///	@param other - the container to incorporate									
 	TEMPLATE()
-	template<bool KEEP, CT::Data ALT_T>
+	template<bool KEEP, CT::Deep ALT_T>
 	void TAny<T>::ConstructFromContainer(ALT_T&& other) {
-		static_assert(CT::Deep<ALT_T>, "ALT_T must be a deep type");
-
-		if (CastsToMeta(other.GetType())) {
-			// Always attempt to copy containers directly first, instead	
-			// of doing allocations														
+		if constexpr (CT::Same<ALT_T, TAny>) {
 			CopyProperties<false, true>(other);
 
 			if constexpr (KEEP)
@@ -98,66 +88,75 @@ namespace Langulus::Anyness
 				other.ResetMemory();
 				other.ResetState();
 			}
-			return;
 		}
+		else {
+			if (CastsToMeta(other.GetType())) {
+				// Always attempt to copy containers directly first,			
+				// instead of doing allocations										
+				CopyProperties<false, true>(other);
 
-		// Then attempt to push other container, if this container allows	
-		// for it																			
-		if constexpr (CT::Deep<T>)
-			Insert<IndexBack, KEEP>(Forward<Decay<T>>(other));
-		else
-			Throw<Except::Copy>("Bad move-construction for TAny");
+				if constexpr (KEEP)
+					other.mEntry = nullptr;
+				else {
+					other.ResetMemory();
+					other.ResetState();
+				}
+				return;
+			}
+
+			// Then attempt to push other container, if this container		
+			// allows for it																
+			if constexpr (CT::Deep<T>)
+				Insert<IndexBack, KEEP>(Forward<Decay<T>>(other));
+			else
+				Throw<Except::Copy>("Bad move-construction for TAny");
+		}
 	}
 
-	/// Shallow-copy construction from Any, that checks type at runtime			
-	/// Any can contain anything, so there's a bit of type-checking overhead	
+	/// Copy-construction from any deep container, with a bit of					
+	/// runtime type-checking overhead														
 	///	@param other - the anyness to reference										
 	TEMPLATE()
-	TAny<T>::TAny(const Any& other) : TAny {} {
+	template<CT::Deep ALT_T>
+	TAny<T>::TAny(const ALT_T& other) requires DenseButNotTheSame<ALT_T>
+		: TAny {} {
 		ConstructFromContainer<true>(other);
 	}
 
-	/// Move-construction from Any, that checks type at runtime						
-	/// Any can contain anything, so there's a bit of type-checking overhead	
-	///	@param other - the container to move											
 	TEMPLATE()
-	TAny<T>::TAny(Any&& other) : TAny {} {
+	template<CT::Deep ALT_T>
+	TAny<T>::TAny(ALT_T& other) requires DenseButNotTheSame<ALT_T>
+		: TAny {const_cast<const ALT_T&>(other)} {}
+
+	/// Move-construction from any deep container, with a bit of					
+	/// runtime type-checking overhead														
+	///	@param other - the anyness to reference										
+	TEMPLATE()
+	template<CT::Deep ALT_T>
+	TAny<T>::TAny(ALT_T&& other) requires DenseButNotTheSame<ALT_T>
+		: TAny {} {
 		ConstructFromContainer<true>(Forward<Any>(other));
 	}
 
-	/// Shallow-copy construction from Any, that checks type at runtime, but	
-	/// doesn't reference contents, because they're disowned							
-	/// Any can contain anything, so there's a bit of type-checking overhead	
-	///	@param other - the anyness to reference										
+	/// Disown-construction from any deep container, with a bit of					
+	/// runtime type-checking overhead														
+	///	@param other - the anyness to copy												
 	TEMPLATE()
-	TAny<T>::TAny(Disowned<Any>&& other) : TAny {} {
+	template<CT::Deep ALT_T>
+	constexpr TAny<T>::TAny(Disowned<ALT_T>&& other) requires CT::Dense<ALT_T>
+		: TAny {} {
 		ConstructFromContainer<false>(other.mValue);
 	}
 
-	/// Move-construction from Any, that checks type at runtime, but doesn't	
-	/// fully reset other, because it is abandoned										
-	/// Any can contain anything, so there's a bit of type-checking overhead	
-	///	@param other - the container to move											
+	/// Abandon-construction from any deep container, with a bit of				
+	/// runtime type-checking overhead														
+	///	@param other - the anyness to copy												
 	TEMPLATE()
-	TAny<T>::TAny(Abandoned<Any>&& other) : TAny {} {
-		ConstructFromContainer<false>(Forward<Any>(other.mValue));
+	template<CT::Deep ALT_T>
+	constexpr TAny<T>::TAny(Abandoned<ALT_T>&& other) requires CT::Dense<ALT_T>
+		: TAny {} {
+		ConstructFromContainer<false>(Move(other.mValue));
 	}
-
-	/// Shallow-copy construction from blocks (const)									
-	/// Block can contain anything, so there's a bit of type-checking overhead	
-	///	@param copy - the block to reference											
-	TEMPLATE()
-	TAny<T>::TAny(const Block& copy)
-		: TAny {Any {copy}} { }
-
-	/// Move (not really) construction - shallow-copies block and references	
-	///	@attention since we are not aware if that block is referenced, we		
-	///				  reference it, and we do not reset the other block to		
-	///				  avoid memory leaks														
-	///	@param other - the block to shallow-copy and reference					
-	TEMPLATE()
-	TAny<T>::TAny(Block&& copy)
-		: TAny {Any {Forward<Block>(copy)}} { }
 
 	/// Construct by copying/referencing an array of non-block type				
 	///	@param start - start of the array												
@@ -297,10 +296,8 @@ namespace Langulus::Anyness
 	///	@tparam ALT_T - the container type (deducible)								
 	///	@param other - the container to incorporate									
 	TEMPLATE()
-	template<bool KEEP, CT::Data ALT_T>
+	template<bool KEEP, CT::Deep ALT_T>
 	void TAny<T>::AssignFromContainer(const ALT_T& other) {
-		static_assert(CT::Deep<ALT_T>, "ALT_T must be a deep type");
-
 		if (CastsToMeta(other.GetType())) {
 			// Always attempt to copy containers directly first, instead	
 			// of doing allocations														
@@ -329,10 +326,8 @@ namespace Langulus::Anyness
 	///	@tparam ALT_T - the container type (deducible)								
 	///	@param other - the container to incorporate									
 	TEMPLATE()
-	template<bool KEEP, CT::Data ALT_T>
+	template<bool KEEP, CT::Deep ALT_T>
 	void TAny<T>::AssignFromContainer(ALT_T&& other) {
-		static_assert(CT::Deep<ALT_T>, "ALT_T must be a deep type");
-
 		if (CastsToMeta(other.GetType())) {
 			// Always attempt to copy containers directly first, instead	
 			// of doing allocations														
@@ -1911,11 +1906,11 @@ namespace Langulus::Anyness
 	TEMPLATE()
 	template<class WRAPPER, class RHS>
 	TAny<T>& TAny<T>::operator += (const RHS& rhs) {
-		if constexpr (CT::Sparse<RHS> && !CT::Array<RHS>) {
+		/*if constexpr (CT::Sparse<RHS> && !CT::Array<RHS>) {
 			// Dereference pointers that are not bound arrays					
 			return operator += <WRAPPER>(*rhs);
 		}
-		else if constexpr (CT::POD<T> && CT::DerivedFrom<RHS, TAny>) {
+		else*/ if constexpr (CT::POD<T> && CT::DerivedFrom<RHS, TAny>) {
 			// Concatenate POD data directly (optimization)						
 			const auto count = rhs.GetCount();
 			Allocate<false>(mCount + count);
@@ -1936,11 +1931,11 @@ namespace Langulus::Anyness
 	TEMPLATE()
 	template<class WRAPPER, class RHS>
 	WRAPPER TAny<T>::operator + (const RHS& rhs) const {
-		if constexpr (CT::Sparse<RHS> && !CT::Array<RHS>) {
+		/*if constexpr (CT::Sparse<RHS> && !CT::Array<RHS>) {
 			// Dereference pointers that are not bound arrays					
 			return operator + <WRAPPER>(*rhs);
 		}
-		else if constexpr (CT::POD<T> && CT::DerivedFrom<RHS, TAny>) {
+		else*/ if constexpr (CT::POD<T> && CT::DerivedFrom<RHS, TAny>) {
 			// Concatenate bytes															
 			WRAPPER result {Disown(*this)};
 			result.mCount += rhs.mCount;

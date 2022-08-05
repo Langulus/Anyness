@@ -655,7 +655,6 @@ namespace Langulus::Anyness
 		};
 
 	} // namespace Langulus::Anyness::Inner
-	
 } // namespace Langulus::Anyness
 
 namespace Langulus::CT

@@ -22,30 +22,33 @@ namespace Langulus::Anyness
 	class TAny : public Any {
 		LANGULUS(DEEP) true;
 		LANGULUS_BASES(Any);
-
+	public:
 		template<CT::Data, CT::Data>
 		friend class THashMap;
+		friend class Any;
+		friend class Block;
 
-	public:
 		using Type = T;
 
 		TAny();
-		~TAny();
 		
 		TAny(const TAny&);
 		TAny(TAny&&) noexcept;
 
-		TAny(Disowned<TAny>&&) noexcept;
-		TAny(Abandoned<TAny>&&) noexcept;
+		template<CT::Deep ALT_T>
+		static constexpr bool DenseButNotTheSame = CT::Dense<ALT_T> && !CT::Same<ALT_T, TAny>;
 
-		TAny(const Any&);
-		TAny(Any&&);
+		template<CT::Deep ALT_T>
+		TAny(const ALT_T&) requires DenseButNotTheSame<ALT_T>;
+		template<CT::Deep ALT_T>
+		TAny(ALT_T&) requires DenseButNotTheSame<ALT_T>;
+		template<CT::Deep ALT_T>
+		TAny(ALT_T&&) requires DenseButNotTheSame<ALT_T>;
 
-		TAny(Disowned<Any>&&);
-		TAny(Abandoned<Any>&&);
-
-		TAny(const Block&);
-		TAny(Block&&);
+		template<CT::Deep ALT_T>
+		constexpr TAny(Disowned<ALT_T>&&) requires CT::Dense<ALT_T>;
+		template<CT::Deep ALT_T>
+		constexpr TAny(Abandoned<ALT_T>&&) requires CT::Dense<ALT_T>;
 
 		TAny(const T*, const T*) requires CT::Data<T>;
 		TAny(const T&) requires CT::CustomData<T>;
@@ -56,7 +59,9 @@ namespace Langulus::Anyness
 
 		TAny(const T*, const Count&);
 		TAny(Disowned<const T*>&&, const Count&) noexcept;
-		
+
+		~TAny();
+
 		TAny& operator = (const TAny&);
 		TAny& operator = (TAny&&) noexcept;
 
@@ -224,14 +229,14 @@ namespace Langulus::Anyness
 		constexpr void ResetState() noexcept;
 		constexpr void ResetType() noexcept;
 
-		template<bool KEEP, CT::Data ALT_T>
+		template<bool KEEP, CT::Deep ALT_T>
 		void ConstructFromContainer(const ALT_T&);
-		template<bool KEEP, CT::Data ALT_T>
+		template<bool KEEP, CT::Deep ALT_T>
 		void ConstructFromContainer(ALT_T&&);
 
-		template<bool KEEP, CT::Data ALT_T>
+		template<bool KEEP, CT::Deep ALT_T>
 		void AssignFromContainer(const ALT_T&);
-		template<bool KEEP, CT::Data ALT_T>
+		template<bool KEEP, CT::Deep ALT_T>
 		void AssignFromContainer(ALT_T&&);
 
 		NOD() auto RequestSize(const Count&) const noexcept;
