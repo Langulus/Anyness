@@ -20,6 +20,15 @@ namespace Langulus::Anyness
 		: Any {data}
 		, mTraitType {type} {}
 
+	/// Manual trait construction by copy													
+	///	@tparam T - type of the contained data											
+	///	@param type - type of the trait													
+	///	@param data - data to copy inside trait										
+	template<class T>
+	Trait::Trait(TMeta type, T& data)
+		: Any {data}
+		, mTraitType {type} {}
+
 	/// Manual trait construction by movement												
 	///	@tparam T - type of the contained data											
 	///	@param type - type of the trait													
@@ -93,7 +102,6 @@ namespace Langulus::Anyness
 		Trait result {Block(DataState::Default, dmeta)};
 		result.SetTrait(tmeta);
 		return Abandon(result);
-		//return Trait(tmeta, Block(DataState::Default, dmeta));
 	}
 
 	/// Set the trait type via a static type												
@@ -118,29 +126,5 @@ namespace Langulus::Anyness
 		static_assert(CT::Trait<T>, "TRAIT must be a trait definition");
 		return TraitIs(MetaTrait::Of<T>());
 	}
-
-	/// Assign by shallow-copying some value different from Trait					
-	///	@param value - the value to copy													
-	/*template<CT::Data T>
-	Trait& Trait::operator = (const T& value) requires (Trait::NotCustom<T>) {
-		Any::operator = (Any {value});
-		return *this;
-	}
-
-	/// Assign by shallow-copying some value different from Trait					
-	///	@param value - the value to copy													
-	template<CT::Data T>
-	Trait& Trait::operator = (T& value) requires (Trait::NotCustom<T>) {
-		Any::operator = (const_cast<const T&>(value));
-		return *this;
-	}
-
-	/// Assign by moving some value different from Any									
-	///	@param value - the value to move													
-	template<CT::Data T>
-	Trait& Trait::operator = (T&& value) requires (Trait::NotCustom<T>) {
-		Any::operator = (Any {Forward<T>(value)});
-		return *this;
-	}*/
 
 } // namespace Langulus::Anyness

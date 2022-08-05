@@ -33,7 +33,10 @@ namespace Langulus::Anyness
 		template<class T>
 		Trait(TMeta, const T&);
 		template<class T>
+		Trait(TMeta, T&);
+		template<class T>
 		Trait(TMeta, T&&);
+
 		Trait(Disowned<Trait>&&);
 		Trait(Abandoned<Trait>&&);
 

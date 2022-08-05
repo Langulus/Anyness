@@ -26,25 +26,43 @@ namespace Langulus::Anyness
 		other.ResetState();
 	}
 
-	/// Copy construct via Block - does a shallow copy, and references (const)	
+	/// Copy construct - does a shallow copy, and references							
 	///	@param other - the container to shallow-copy									
-	inline Any::Any(const Block& other) 
+	template <CT::Deep T>
+	Any::Any(const T& other) requires (CT::Dense<T> && !CT::Same<T, Any>)
 		: Block {other} {
 		Keep();
 	}
 
-	/// Move construction via Block (well, not actually)								
-	/// Since we are not aware if that block is referenced or not we reference	
-	/// it just in case, and we also do not reset 'other' to avoid leaks			
-	///	@param other - the block to shallow-copy										
-	inline Any::Any(Block&& other) 
-		: Block {static_cast<Block&>(other)} {
+	/// Copy construct - does a shallow copy, and references							
+	///	@param other - the container to shallow-copy									
+	template <CT::Deep T>
+	Any::Any(T& other) requires (CT::Dense<T> && !CT::Same<T, Any>)
+		: Block {const_cast<const T&>(other)} {
 		Keep();
+	}
+
+	/// Construct by moving another container												
+	///	@param other - the container to move											
+	template <CT::Deep T>
+	Any::Any(T&& other) requires (CT::Dense<T> && !CT::Same<T, Any>)
+		: Block {const_cast<const T&>(other)} {
+		if constexpr (CT::Same<T, Block>) {
+			// Since we are not aware if that block is referenced or not	
+			// we reference it just in case, and we also do not reset		
+			// 'other' to avoid leaks													
+			Keep();
+		}
+		else {
+			other.ResetMemory();
+			other.ResetState();
+		}
 	}
 
 	/// Same as copy-construction, but doesn't reference anything					
 	///	@param other - the block to copy													
-	inline Any::Any(Disowned<Any>&& other) noexcept
+	template <CT::Deep T>
+	constexpr Any::Any(Disowned<T>&& other) noexcept requires CT::Dense<T>
 		: Block {other.Forward<Block>()} {
 		mEntry = nullptr;
 	}
@@ -52,7 +70,8 @@ namespace Langulus::Anyness
 	/// Same as move-construction but doesn't fully reset other, saving some	
 	/// instructions																				
 	///	@param other - the block to move													
-	inline Any::Any(Abandoned<Any>&& other) noexcept
+	template <CT::Deep T>
+	constexpr Any::Any(Abandoned<T>&& other) noexcept requires CT::Dense<T>
 		: Block {other.Forward<Block>()} {
 		other.mValue.mEntry = nullptr;
 	}

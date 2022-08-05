@@ -554,6 +554,11 @@ namespace Langulus::Anyness
 		template<bool KEEP, CT::NotAbandonedOrDisowned T>
 		void InsertInner(T&&, Offset);
 
+		template<bool KEEP, CT::NotAbandonedOrDisowned T>
+		void Absorb(const T&, const DataState&);
+		template<bool KEEP, CT::NotAbandonedOrDisowned T>
+		void Absorb(T&&, const DataState&);
+
 		static void CopyMemory(const void*, void*, const Size&) noexcept;
 		static void MoveMemory(const void*, void*, const Size&) noexcept;
 		static void FillMemory(void*, Byte, const Size&) noexcept;

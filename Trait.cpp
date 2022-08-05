@@ -44,7 +44,7 @@ namespace Langulus::Anyness
 	/// Clone the trait																			
 	///	@return the cloned trait															
 	Trait Trait::Clone() const {
-		return Trait::From(mTraitType, Any::Clone());
+		return Trait {mTraitType, Any::Clone()};
 	}
 
 	/// Get the trait type																		

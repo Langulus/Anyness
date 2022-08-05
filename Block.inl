@@ -1764,6 +1764,41 @@ namespace Langulus::Anyness
 		}
 	}
 
+	/// Turn into another container (inner function)									
+	template<bool KEEP, CT::NotAbandonedOrDisowned T>
+	LANGULUS(ALWAYSINLINE) void Block::Absorb(const T& value, const DataState& state) {
+		static_assert(CT::Deep<T>, "T must be deep");
+		const auto previousType = !mType ? value.GetType() : mType;
+		const auto previousState = mState - DataState::Sparse;
+
+		*this = static_cast<const Block&>(value);
+		if constexpr (KEEP)
+			Keep();
+
+		SetState((mState + previousState + state) - DataState::Typed);
+
+		if (previousState.IsTyped()) {
+			// Retain type if original package was constrained					
+			SetType<true>(previousType);
+		}
+		else if (IsSparse()) {
+			// Retain type if current package is sparse							
+			SetType<false>(previousType);
+		}
+	}
+
+	/// Turn into another container (inner function)									
+	template<bool KEEP, CT::NotAbandonedOrDisowned T>
+	LANGULUS(ALWAYSINLINE) void Block::Absorb(T&& value, const DataState& state) {
+		Absorb<false, T>(const_cast<const T&>(value), state);
+		if constexpr (KEEP) {
+			value.ResetMemory();
+			value.ResetState();
+		}
+		else value.mEntry = nullptr;
+	}
+
+
 	/// A copy-insert that uses the best approach to push anything inside		
 	/// container in order to keep hierarchy and states, but also reuse memory	
 	///	@tparam ALLOW_CONCAT - whether or not concatenation is allowed			
@@ -1796,23 +1831,7 @@ namespace Langulus::Anyness
 			const bool stateCompliant = CanFitState(value);
 
 			if (IsEmpty() && typeCompliant && stateCompliant) {
-				const auto previousType = !mType ? value.GetType() : mType;
-				const auto previousState = mState - DataState::Sparse;
-
-				*this = static_cast<const Block&>(value);
-				Keep();
-
-				SetState((mState + previousState + state) - DataState::Typed);
-
-				if (previousState.IsTyped()) {
-					// Retain type if original package was constrained			
-					SetType<true>(previousType);
-				}
-				else if (IsSparse()) {
-					// Retain type if current package is sparse					
-					SetType<false>(previousType);
-				}
-
+				Absorb<true>(value, state);
 				return 1;
 			}
 
@@ -1888,24 +1907,7 @@ namespace Langulus::Anyness
 			const bool stateCompliant = CanFitState(value);
 
 			if (IsEmpty() && typeCompliant && stateCompliant) {
-				const auto previousType = !mType ? value.GetType() : mType;
-				const auto previousState = mState - DataState::Sparse;
-
-				*this = static_cast<const Block&>(value);
-				value.ResetMemory();
-				value.ResetState();
-
-				SetState((mState + previousState + state) - DataState::Typed);
-
-				if (previousState.IsTyped()) {
-					// Retain type if original package was constrained			
-					SetType<true>(previousType);
-				}
-				else if (IsSparse()) {
-					// Retain type if current package is sparse					
-					SetType<false>(previousType);
-				}
-
+				Absorb<true>(Forward<T>(value), state);
 				return 1;
 			}
 
@@ -1975,22 +1977,7 @@ namespace Langulus::Anyness
 			const bool stateCompliant = CanFitState(value.mValue);
 
 			if (IsEmpty() && typeCompliant && stateCompliant) {
-				const auto previousType = !mType ? value.mValue.GetType() : mType;
-				const auto previousState = mState - DataState::Sparse;
-
-				*this = static_cast<const Block&>(value.mValue);
-
-				SetState((mState + previousState + state) - DataState::Typed);
-
-				if (previousState.IsTyped()) {
-					// Retain type if original package was constrained			
-					SetType<true>(previousType);
-				}
-				else if (IsSparse()) {
-					// Retain type if current package is sparse					
-					SetType<false>(previousType);
-				}
-
+				Absorb<false>(value.mValue, state);
 				return 1;
 			}
 
@@ -2060,23 +2047,7 @@ namespace Langulus::Anyness
 			const bool stateCompliant = CanFitState(value);
 
 			if (IsEmpty() && typeCompliant && stateCompliant) {
-				const auto previousType = !mType ? value.mValue.GetType() : mType;
-				const auto previousState = mState - DataState::Sparse;
-
-				*this = static_cast<const Block&>(value.mValue);
-				value.mValue.mEntry = nullptr;
-
-				SetState((mState + previousState + state) - DataState::Typed);
-
-				if (previousState.IsTyped()) {
-					// Retain type if original package was constrained			
-					SetType<true>(previousType);
-				}
-				else if (IsSparse()) {
-					// Retain type if current package is sparse					
-					SetType<false>(previousType);
-				}
-
+				Absorb<false>(Move(value.mValue), state);
 				return 1;
 			}
 
@@ -2146,23 +2117,7 @@ namespace Langulus::Anyness
 			const bool stateCompliant = CanFitState(value);
 
 			if (IsEmpty() && typeCompliant && stateCompliant) {
-				const auto previousType = !mType ? value.GetType() : mType;
-				const auto previousState = mState - DataState::Sparse;
-
-				*this = static_cast<const Block&>(value);
-				Keep();
-
-				SetState((mState + previousState + state) - DataState::Typed);
-
-				if (previousState.IsTyped()) {
-					// Retain type if original package was constrained			
-					SetType<true>(previousType);
-				}
-				else if (IsSparse()) {
-					// Retain type if current package is sparse					
-					SetType<false>(previousType);
-				}
-
+				Absorb<true>(value, state);
 				return 1;
 			}
 
@@ -2238,24 +2193,7 @@ namespace Langulus::Anyness
 			const bool stateCompliant = CanFitState(value);
 
 			if (IsEmpty() && typeCompliant && stateCompliant) {
-				const auto previousType = !mType ? value.GetType() : mType;
-				const auto previousState = mState - DataState::Sparse;
-
-				*this = static_cast<const Block&>(value);
-				value.ResetMemory();
-				value.ResetState();
-
-				SetState((mState + previousState + state) - DataState::Typed);
-
-				if (previousState.IsTyped()) {
-					// Retain type if original package was constrained			
-					SetType<true>(previousType);
-				}
-				else if (IsSparse()) {
-					// Retain type if current package is sparse					
-					SetType<false>(previousType);
-				}
-
+				Absorb<true>(Forward<T>(value), state);
 				return 1;
 			}
 
@@ -2325,22 +2263,7 @@ namespace Langulus::Anyness
 			const bool stateCompliant = CanFitState(value);
 
 			if (IsEmpty() && typeCompliant && stateCompliant) {
-				const auto previousType = !mType ? value.mValue.GetType() : mType;
-				const auto previousState = mState - DataState::Sparse;
-
-				*this = static_cast<const Block&>(value.mValue);
-
-				SetState((mState + previousState + state) - DataState::Typed);
-
-				if (previousState.IsTyped()) {
-					// Retain type if original package was constrained			
-					SetType<true>(previousType);
-				}
-				else if (IsSparse()) {
-					// Retain type if current package is sparse					
-					SetType<false>(previousType);
-				}
-
+				Absorb<false>(value.mValue, state);
 				return 1;
 			}
 
@@ -2410,23 +2333,7 @@ namespace Langulus::Anyness
 			const bool stateCompliant = CanFitState(value.mValue);
 
 			if (IsEmpty() && typeCompliant && stateCompliant) {
-				const auto previousType = !mType ? value.mValue.GetType() : mType;
-				const auto previousState = mState - DataState::Sparse;
-
-				*this = static_cast<const Block&>(value.mValue);
-				value.mValue.mEntry = nullptr;
-
-				SetState((mState + previousState + state) - DataState::Typed);
-
-				if (previousState.IsTyped()) {
-					// Retain type if original package was constrained			
-					SetType<true>(previousType);
-				}
-				else if (IsSparse()) {
-					// Retain type if current package is sparse					
-					SetType<false>(previousType);
-				}
-
+				Absorb<false>(Move(value.mValue), state);
 				return 1;
 			}
 

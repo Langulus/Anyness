@@ -35,11 +35,17 @@ namespace Langulus::Anyness
 		Any(const Any&);
 		Any(Any&&) noexcept;
 
-		Any(Disowned<Any>&&) noexcept;
-		Any(Abandoned<Any>&&) noexcept;
+		template<CT::Deep T>
+		Any(const T&) requires (CT::Dense<T> && !CT::Same<T, Any>);
+		template<CT::Deep T>
+		Any(T&) requires (CT::Dense<T> && !CT::Same<T, Any>);
+		template<CT::Deep T>
+		Any(T&&) requires (CT::Dense<T> && !CT::Same<T, Any>);
 
-		Any(const Block&);
-		Any(Block&&);
+		template<CT::Deep T>
+		constexpr Any(Disowned<T>&&) noexcept requires CT::Dense<T>;
+		template<CT::Deep T>
+		constexpr Any(Abandoned<T>&&) noexcept requires CT::Dense<T>;
 
 		template<CT::Data T>
 		Any(const T*, const T*);
