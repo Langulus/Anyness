@@ -546,6 +546,11 @@ namespace Langulus::Anyness
 		void Reset();
 
 	protected:
+		template<bool ALLOW_DEEPEN, bool KEEP, CT::Data T, CT::Data WRAPPER = Any, CT::Index INDEX>
+		Count SmartPushAtInner(T, const DataState&, const INDEX&);
+		template<bool ALLOW_DEEPEN, Index INDEX = IndexBack, bool KEEP, CT::Data T, CT::Data WRAPPER = Any>
+		Count SmartPushInner(T, const DataState&);
+
 		template<bool CREATE = false>
 		void AllocateInner(const Count&);
 		auto RequestSize(const Count&) const noexcept;

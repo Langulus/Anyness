@@ -1906,11 +1906,7 @@ namespace Langulus::Anyness
 	TEMPLATE()
 	template<class WRAPPER, class RHS>
 	TAny<T>& TAny<T>::operator += (const RHS& rhs) {
-		/*if constexpr (CT::Sparse<RHS> && !CT::Array<RHS>) {
-			// Dereference pointers that are not bound arrays					
-			return operator += <WRAPPER>(*rhs);
-		}
-		else*/ if constexpr (CT::POD<T> && CT::DerivedFrom<RHS, TAny>) {
+		if constexpr (CT::POD<T> && CT::DerivedFrom<RHS, TAny>) {
 			// Concatenate POD data directly (optimization)						
 			const auto count = rhs.GetCount();
 			Allocate<false>(mCount + count);
@@ -1931,11 +1927,7 @@ namespace Langulus::Anyness
 	TEMPLATE()
 	template<class WRAPPER, class RHS>
 	WRAPPER TAny<T>::operator + (const RHS& rhs) const {
-		/*if constexpr (CT::Sparse<RHS> && !CT::Array<RHS>) {
-			// Dereference pointers that are not bound arrays					
-			return operator + <WRAPPER>(*rhs);
-		}
-		else*/ if constexpr (CT::POD<T> && CT::DerivedFrom<RHS, TAny>) {
+		if constexpr (CT::POD<T> && CT::DerivedFrom<RHS, TAny>) {
 			// Concatenate bytes															
 			WRAPPER result {Disown(*this)};
 			result.mCount += rhs.mCount;

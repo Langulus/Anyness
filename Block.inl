@@ -598,10 +598,15 @@ namespace Langulus::Anyness
 	constexpr bool Block::CanFitState(const Block& other) const noexcept {
 		if (IsEmpty())
 			return true;
-		const bool sparseness = IsSparse() == other.IsSparse();
-		const bool orCompat = IsOr() == other.IsOr() || other.GetCount() <= 1 || IsEmpty();
-		const bool typeCompat = !IsTypeConstrained() || (IsTypeConstrained() && other.CastsToMeta(mType));
-		return sparseness && typeCompat && (mState == other.mState || (orCompat && CanFitPhase(other.GetPhase())));
+
+		return IsSparse() == other.IsSparse()
+			&& (!IsTypeConstrained() || (IsTypeConstrained() && other.Is(mType)))
+			&& (mState == other.mState
+				|| (
+					(IsOr() == other.IsOr() || other.GetCount() <= 1)
+					&& CanFitPhase(other.GetPhase())
+				)
+			);
 	}
 
 	/// Get the size of the contained data, in bytes									
@@ -1800,6 +1805,151 @@ namespace Langulus::Anyness
 		else value.mEntry = nullptr;
 	}
 
+	///																								
+	template<bool ALLOW_DEEPEN, bool KEEP, CT::Data T, CT::Data WRAPPER, CT::Index INDEX>
+	LANGULUS(ALWAYSINLINE) Count Block::SmartPushAtInner(T value, const DataState& state, const INDEX& index) {
+		// Insert 																			
+		if (IsUntyped()) {
+			// Mutate-insert inside untyped container								
+			SetState(mState + state);
+			if constexpr (CT::Moved<T>)
+				return InsertAt<KEEP, true>(Forward<T>(value), index);
+			else
+				return InsertAt<KEEP, true>(&value, &value + 1, index);
+		}
+		else if (Is<T>()) {
+			// Insert to a same-typed container										
+			SetState(mState + state);
+			if constexpr (CT::Moved<T>)
+				return InsertAt<KEEP, false>(Forward<T>(value), index);
+			else
+				return InsertAt<KEEP, false>(&value, &value + 1, index);
+		}
+		else if (IsEmpty() && !IsTypeConstrained()) {
+			// If incompatibly typed but empty and not constrained, we		
+			// can still reset the container and reuse it						
+			Reset();
+			SetState(mState + state);
+			if constexpr (CT::Moved<T>)
+				return InsertAt<KEEP, true>(Forward<T>(value), index);
+			else
+				return InsertAt<KEEP, true>(&value, &value + 1, index);
+		}
+		else if (IsDeep()) {
+			// If this is deep, then push value wrapped in a container		
+			if (mCount > 1 && !IsOr() && state.IsOr()) {
+				// If container is not or-compliant after insertion, we		
+				// need	to add another layer											
+				Deepen<WRAPPER>();
+				SetState(mState + state);
+			}
+			else SetState(mState + state);
+
+			if constexpr (KEEP) {
+				if constexpr (CT::Moved<T>)
+					return InsertAt<false, false>(WRAPPER {Forward<T>(value)}, index);
+				else
+					return InsertAt<false, false>(WRAPPER {&value, &value + 1}, index);
+			}
+			else if constexpr (CT::Moved<T>)
+				return InsertAt<false, false>(WRAPPER {Abandon(value)}, index);
+			else 
+				return InsertAt<false, false>(WRAPPER {Disown(value)}, index);
+		}
+
+		if constexpr (ALLOW_DEEPEN) {
+			// If this is reached, all else failed, but we are allowed to	
+			// deepen, so do it															
+			Deepen<WRAPPER>();
+			SetState(mState + state);
+
+			if constexpr (KEEP) {
+				if constexpr (CT::Moved<T>)
+					return InsertAt<false, false>(WRAPPER {Forward<T>(value)}, index);
+				else
+					return InsertAt<false, false>(WRAPPER {&value, &value + 1}, index);
+			}
+			else if constexpr (CT::Moved<T>)
+				return InsertAt<false, false>(WRAPPER {Abandon(value)}, index);
+			else
+				return InsertAt<false, false>(WRAPPER {Disown(value)}, index);
+		}
+
+		return 0;
+	}
+
+	///																								
+	template<bool ALLOW_DEEPEN, Index INDEX, bool KEEP, CT::Data T, CT::Data WRAPPER>
+	LANGULUS(ALWAYSINLINE) Count Block::SmartPushInner(T value, const DataState& state) {
+		// Insert 																			
+		if (IsUntyped()) {
+			// Mutate-insert inside untyped container								
+			SetState(mState + state);
+			if constexpr (CT::Moved<T>)
+				return Insert<INDEX, KEEP, true>(Forward<T>(value));
+			else
+				return Insert<INDEX, KEEP, true>(&value, &value + 1);
+		}
+		else if (Is<T>()) {
+			// Insert to a same-typed container										
+			SetState(mState + state);
+			if constexpr (CT::Moved<T>)
+				return Insert<INDEX, KEEP, false>(Forward<T>(value));
+			else
+				return Insert<INDEX, KEEP, false>(&value, &value + 1);
+		}
+		else if (IsEmpty() && !IsTypeConstrained()) {
+			// If incompatibly typed but empty and not constrained, we		
+			// can still reset the container and reuse it						
+			Reset();
+			SetState(mState + state);
+			if constexpr (CT::Moved<T>)
+				return Insert<INDEX, KEEP, true>(Forward<T>(value));
+			else
+				return Insert<INDEX, KEEP, true>(&value, &value + 1);
+		}
+		else if (IsDeep()) {
+			// If this is deep, then push value wrapped in a container		
+			if (mCount > 1 && !IsOr() && state.IsOr()) {
+				// If container is not or-compliant after insertion, we		
+				// need	to add another layer											
+				Deepen<WRAPPER>();
+				SetState(mState + state);
+			}
+			else SetState(mState + state);
+
+			if constexpr (KEEP) {
+				if constexpr (CT::Moved<T>)
+					return Insert<INDEX, false, false>(WRAPPER {Forward<T>(value)});
+				else
+					return Insert<INDEX, false, false>(WRAPPER {&value, &value + 1});
+			}
+			else if constexpr (CT::Moved<T>)
+				return Insert<INDEX, false, false>(WRAPPER {Abandon(value)});
+			else
+				return Insert<INDEX, false, false>(WRAPPER {Disown(value)});
+		}
+
+		if constexpr (ALLOW_DEEPEN) {
+			// If this is reached, all else failed, but we are allowed to	
+			// deepen, so do it															
+			Deepen<WRAPPER>();
+			SetState(mState + state);
+
+			if constexpr (KEEP) {
+				if constexpr (CT::Moved<T>)
+					return Insert<INDEX, false, false>(WRAPPER {Forward<T>(value)});
+				else
+					return Insert<INDEX, false, false>(WRAPPER {&value, &value + 1});
+			}
+			else if constexpr (CT::Moved<T>)
+				return Insert<INDEX, false, false>(WRAPPER {Abandon(value)});
+			else
+				return Insert<INDEX, false, false>(WRAPPER {Disown(value)});
+		}
+
+		return 0;
+	}
 
 	/// A copy-insert that uses the best approach to push anything inside		
 	/// container in order to keep hierarchy and states, but also reuse memory	
@@ -1817,15 +1967,10 @@ namespace Langulus::Anyness
 		static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
 
 		if constexpr (CT::Deep<T>) {
-			// Early exit if nothing to push											
+			// We're inserting a deep item, so we can do various smart		
+			// things before inserting, like absorbing and concatenating	
 			if (!value.IsValid())
 				return 0;
-
-			// Check if unmovable														
-			if (IsStatic()) {
-				Logger::Error() << "Can't smart-push in static data region";
-				return 0;
-			}
 
 			// If this container is empty and has no conflicting state		
 			// directly reference data													
@@ -1837,14 +1982,12 @@ namespace Langulus::Anyness
 				return 1;
 			}
 
-			// Check if container is or-compliant before inserting			
-			if (mCount > 1 && !IsOr() && state.IsOr())
-				return 0;
-
 			if constexpr (ALLOW_CONCAT) {
 				// If this container is compatible and concatenation is		
 				// enabled, try concatenating the two containers				
-				if (typeCompliant && stateCompliant) {
+				if (!IsConstant() && !IsStatic() && typeCompliant && stateCompliant
+					// Make sure container is or-compliant after the change	
+					&& !(mCount > 1 && !IsOr() && state.IsOr())) {
 					try {
 						const auto cat = InsertBlockAt(value, index);
 						SetState(mState + state);
@@ -1855,22 +1998,7 @@ namespace Langulus::Anyness
 			}
 		}
 
-		// Insert 																			
-		SetState(mState + state);
-
-		if (IsUntyped())
-			return InsertAt<true, true>(&value, &value + 1, index);
-		else if (CastsTo<T>())
-			return InsertAt<true, false>(&value, &value + 1, index);
-		else if (IsDeep())
-			return InsertAt<false, false>(WRAPPER {value}, index);
-
-		if constexpr (ALLOW_DEEPEN) {
-			Deepen<WRAPPER>();
-			return InsertAt<false, false>(WRAPPER {value}, index);
-		}
-
-		return 0;
+		return SmartPushAtInner<ALLOW_DEEPEN, true, const T&, WRAPPER>(value, state, index);
 	}
 
 	/// This is required to disambiguate calls correctly								
@@ -1895,15 +2023,10 @@ namespace Langulus::Anyness
 		static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
 
 		if constexpr (CT::Deep<T>) {
-			// Early exit if nothing to push											
+			// We're inserting a deep item, so we can do various smart		
+			// things before inserting, like absorbing and concatenating	
 			if (!value.IsValid())
 				return 0;
-
-			// Check if unmovable														
-			if (IsStatic()) {
-				Logger::Error() << "Can't smart-push in static data region";
-				return 0;
-			}
 
 			// If this container is empty and has no conflicting state		
 			// directly reference data													
@@ -1915,14 +2038,12 @@ namespace Langulus::Anyness
 				return 1;
 			}
 
-			// Check if container is or-compliant before inserting			
-			if (mCount > 1 && !IsOr() && state.IsOr())
-				return 0;
-
 			if constexpr (ALLOW_CONCAT) {
 				// If this container is compatible and concatenation is		
 				// enabled, try concatenating the two containers				
-				if (typeCompliant && stateCompliant) {
+				if (!IsConstant() && !IsStatic() && typeCompliant && stateCompliant
+					// Make sure container is or-compliant after the change	
+					&& !(mCount > 1 && !IsOr() && state.IsOr())) {
 					try {
 						const auto cat = InsertBlockAt(Forward<T>(value), index);
 						SetState(mState + state);
@@ -1933,22 +2054,7 @@ namespace Langulus::Anyness
 			}
 		}
 
-		// Insert 																			
-		SetState(mState + state);
-
-		if (IsUntyped())
-			return InsertAt<true, true>(Forward<T>(value), index);
-		else if (CastsTo<T>())
-			return InsertAt<true, false>(Forward<T>(value), index);
-		else if (IsDeep())
-			return InsertAt<false, false>(WRAPPER {Forward<T>(value)}, index);
-
-		if constexpr (ALLOW_DEEPEN) {
-			Deepen<WRAPPER>();
-			return InsertAt<false, false>(WRAPPER {Forward<T>(value)}, index);
-		}
-
-		return 0;
+		return SmartPushAtInner<ALLOW_DEEPEN, true, T&&, WRAPPER>(Forward<T>(value), state, index);
 	}
 
 	/// A disown-insert that uses the best approach to push anything inside		
@@ -1967,15 +2073,10 @@ namespace Langulus::Anyness
 		static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
 
 		if constexpr (CT::Deep<T>) {
-			// Early exit if nothing to push											
+			// We're inserting a deep item, so we can do various smart		
+			// things before inserting, like absorbing and concatenating	
 			if (!value.mValue.IsValid())
 				return 0;
-
-			// Check if unmovable														
-			if (IsStatic()) {
-				Logger::Error() << "Can't smart-push in static data region";
-				return 0;
-			}
 
 			// If this container is empty and has no conflicting state		
 			// directly reference data													
@@ -1987,14 +2088,12 @@ namespace Langulus::Anyness
 				return 1;
 			}
 
-			// Check if container is or-compliant before inserting			
-			if (mCount > 1 && !IsOr() && state.IsOr())
-				return 0;
-
 			if constexpr (ALLOW_CONCAT) {
 				// If this container is compatible and concatenation is		
 				// enabled, try concatenating the two containers				
-				if (typeCompliant && stateCompliant) {
+				if (!IsConstant() && !IsStatic() && typeCompliant && stateCompliant
+					// Make sure container is or-compliant after the change	
+					&& !(mCount > 1 && !IsOr() && state.IsOr())) {
 					try {
 						const auto cat = InsertBlockAt(value.Forward(), index);
 						SetState(mState + state);
@@ -2005,22 +2104,7 @@ namespace Langulus::Anyness
 			}
 		}
 
-		// Insert 																			
-		SetState(mState + state);
-
-		if (IsUntyped())
-			return InsertAt<false, true>(&value.mValue, &value.mValue + 1, index);
-		else if (CastsTo<T>())
-			return InsertAt<false, false>(&value.mValue, &value.mValue + 1, index);
-		else if (IsDeep())
-			return InsertAt<false, false>(WRAPPER {value.Forward()}, index);
-
-		if constexpr (ALLOW_DEEPEN) {
-			Deepen<WRAPPER>();
-			return InsertAt<false, false>(WRAPPER {value.Forward()}, index);
-		}
-
-		return 0;
+		return SmartPushAtInner<ALLOW_DEEPEN, false, const T&, WRAPPER>(value.mValue, state, index);
 	}
 
 	/// An abandon-insert that uses the best approach to push anything inside	
@@ -2039,15 +2123,10 @@ namespace Langulus::Anyness
 		static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
 
 		if constexpr (CT::Deep<T>) {
-			// Early exit if nothing to push											
+			// We're inserting a deep item, so we can do various smart		
+			// things before inserting, like absorbing and concatenating	
 			if (!value.mValue.IsValid())
 				return 0;
-
-			// Check if unmovable														
-			if (IsStatic()) {
-				Logger::Error() << "Can't smart-push in static data region";
-				return 0;
-			}
 
 			// If this container is empty and has no conflicting state		
 			// directly reference data													
@@ -2059,14 +2138,12 @@ namespace Langulus::Anyness
 				return 1;
 			}
 
-			// Check if container is or-compliant before inserting			
-			if (mCount > 1 && !IsOr() && state.IsOr())
-				return 0;
-
 			if constexpr (ALLOW_CONCAT) {
 				// If this container is compatible and concatenation is		
 				// enabled, try concatenating the two containers				
-				if (typeCompliant && stateCompliant) {
+				if (!IsConstant() && !IsStatic() && typeCompliant && stateCompliant
+					// Make sure container is or-compliant after the change	
+					&& !(mCount > 1 && !IsOr() && state.IsOr())) {
 					try {
 						const auto cat = InsertBlockAt(value.Forward(), index);
 						SetState(mState + state);
@@ -2077,22 +2154,7 @@ namespace Langulus::Anyness
 			}
 		}
 
-		// Insert 																			
-		SetState(mState + state);
-
-		if (IsUntyped())
-			return InsertAt<false, true>(Move(value.mValue), index);
-		else if (CastsTo<T>())
-			return InsertAt<false, false>(Move(value.mValue), index);
-		else if (IsDeep())
-			return InsertAt<false, false>(WRAPPER {value.Forward()}, index);
-
-		if constexpr (ALLOW_DEEPEN) {
-			Deepen<WRAPPER>();
-			return InsertAt<false, false>(WRAPPER {value.Forward()}, index);
-		}
-
-		return 0;
+		return SmartPushAtInner<ALLOW_DEEPEN, false, T&&, WRAPPER>(Forward<T>(value), state, index);
 	}
 
 	/// A smart copy-insert uses the best approach to push anything inside		
@@ -2111,15 +2173,10 @@ namespace Langulus::Anyness
 		static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
 
 		if constexpr (CT::Deep<T>) {
-			// Early exit if nothing to push											
+			// We're inserting a deep item, so we can do various smart		
+			// things before inserting, like absorbing and concatenating	
 			if (!value.IsValid())
 				return 0;
-
-			// Check if unmovable														
-			if (IsStatic()) {
-				Logger::Error() << "Can't smart-push in static data region";
-				return 0;
-			}
 
 			// If this container is empty and has no conflicting state		
 			// directly reference data													
@@ -2131,14 +2188,12 @@ namespace Langulus::Anyness
 				return 1;
 			}
 
-			// Check if container is or-compliant before inserting			
-			if (mCount > 1 && !IsOr() && state.IsOr())
-				return 0;
-
 			if constexpr (ALLOW_CONCAT) {
 				// If this container is compatible and concatenation is		
 				// enabled, try concatenating the two containers				
-				if (typeCompliant && stateCompliant) {
+				if (!IsConstant() && !IsStatic() && typeCompliant && stateCompliant
+					// Make sure container is or-compliant after the change	
+					&& !(mCount > 1 && !IsOr() && state.IsOr())) {
 					try {
 						const auto cat = InsertBlock<INDEX>(value);
 						SetState(mState + state);
@@ -2149,22 +2204,7 @@ namespace Langulus::Anyness
 			}
 		}
 
-		// Insert 																			
-		SetState(mState + state);
-
-		if (IsUntyped())
-			return Insert<INDEX, true, true>(&value, &value + 1);
-		else if (CastsTo<T>())
-			return Insert<INDEX, true, false>(&value, &value + 1);
-		else if (IsDeep())
-			return Insert<INDEX, false, false>(WRAPPER {value});
-
-		if constexpr (ALLOW_DEEPEN) {
-			Deepen<WRAPPER>();
-			return Insert<INDEX, false, false>(WRAPPER {value});
-		}
-
-		return 0;
+		return SmartPushInner<ALLOW_DEEPEN, INDEX, true, const T&, WRAPPER>(value, state);
 	}
 
 	/// Required to disambiguate calls correctly											
@@ -2189,15 +2229,10 @@ namespace Langulus::Anyness
 		static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
 
 		if constexpr (CT::Deep<T>) {
-			// Early exit if nothing to push											
+			// We're inserting a deep item, so we can do various smart		
+			// things before inserting, like absorbing and concatenating	
 			if (!value.IsValid())
 				return 0;
-
-			// Check if unmovable														
-			if (IsStatic()) {
-				Logger::Error() << "Can't smart-push in static data region";
-				return 0;
-			}
 
 			// If this container is empty and has no conflicting state		
 			// directly reference data													
@@ -2209,14 +2244,12 @@ namespace Langulus::Anyness
 				return 1;
 			}
 
-			// Check if container is or-compliant before inserting			
-			if (mCount > 1 && !IsOr() && state.IsOr())
-				return 0;
-
 			if constexpr (ALLOW_CONCAT) {
 				// If this container is compatible and concatenation is		
 				// enabled, try concatenating the two containers				
-				if (typeCompliant && stateCompliant) {
+				if (!IsConstant() && !IsStatic() && typeCompliant && stateCompliant
+					// Make sure container is or-compliant after the change	
+					&& !(mCount > 1 && !IsOr() && state.IsOr())) {
 					try {
 						const auto cat = InsertBlock<INDEX>(Forward<T>(value));
 						SetState(mState + state);
@@ -2227,22 +2260,7 @@ namespace Langulus::Anyness
 			}
 		}
 
-		// Insert 																			
-		SetState(mState + state);
-
-		if (IsUntyped())
-			return Insert<INDEX, true, true>(Forward<T>(value));
-		else if (CastsTo<T>())
-			return Insert<INDEX, true, false>(Forward<T>(value));
-		else if (IsDeep())
-			return Insert<INDEX, false, false>(WRAPPER {Forward<T>(value)});
-
-		if constexpr (ALLOW_DEEPEN) {
-			Deepen<WRAPPER>();
-			return Insert<INDEX, false, false>(WRAPPER {Forward<T>(value)});
-		}
-
-		return 0;
+		return SmartPushInner<ALLOW_DEEPEN, INDEX, true, T&&, WRAPPER>(Forward<T>(value), state);
 	}
 
 	/// A smart disown-insert uses the best approach to push anything inside	
@@ -2261,15 +2279,10 @@ namespace Langulus::Anyness
 		static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
 
 		if constexpr (CT::Deep<T>) {
-			// Early exit if nothing to push											
+			// We're inserting a deep item, so we can do various smart		
+			// things before inserting, like absorbing and concatenating	
 			if (!value.mValue.IsValid())
 				return 0;
-
-			// Check if unmovable														
-			if (IsStatic()) {
-				Logger::Error() << "Can't smart-push in static data region";
-				return 0;
-			}
 
 			// If this container is empty and has no conflicting state		
 			// directly reference data													
@@ -2281,14 +2294,12 @@ namespace Langulus::Anyness
 				return 1;
 			}
 
-			// Check if container is or-compliant before inserting			
-			if (mCount > 1 && !IsOr() && state.IsOr())
-				return 0;
-
 			if constexpr (ALLOW_CONCAT) {
 				// If this container is compatible and concatenation is		
 				// enabled, try concatenating the two containers				
-				if (typeCompliant && stateCompliant) {
+				if (!IsConstant() && !IsStatic() && typeCompliant && stateCompliant
+					// Make sure container is or-compliant after the change	
+					&& !(mCount > 1 && !IsOr() && state.IsOr())) {
 					try {
 						const auto cat = InsertBlock<INDEX>(value.Forward());
 						SetState(mState + state);
@@ -2299,22 +2310,7 @@ namespace Langulus::Anyness
 			}
 		}
 
-		// Insert 																			
-		SetState(mState + state);
-
-		if (IsUntyped())
-			return Insert<INDEX, false, true>(value.mValue);
-		else if (CastsTo<T>())
-			return Insert<INDEX, false, false>(value.mValue);
-		else if (IsDeep())
-			return Insert<INDEX, false, false>(WRAPPER {value.Forward()});
-
-		if constexpr (ALLOW_DEEPEN) {
-			Deepen<WRAPPER>();
-			return Insert<INDEX, false, false>(WRAPPER {value.Forward()});
-		}
-
-		return 0;
+		return SmartPushInner<ALLOW_DEEPEN, INDEX, false, const T&, WRAPPER>(value.mValue, state);
 	}
 
 	/// A smart abandon-insert uses the best approach to push anything inside	
@@ -2333,13 +2329,10 @@ namespace Langulus::Anyness
 		static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
 
 		if constexpr (CT::Deep<T>) {
-			// Early exit if nothing to push											
-			if (!value.mValue.IsValid())
-				return 0;
-
-			// Check if unmovable														
-			if (IsStatic()) {
-				Logger::Error() << "Can't smart-push in static data region";
+			// We're inserting a deep item, so we can do various smart		
+			// things before inserting, like absorbing and concatenating	
+			if (!value.mValue.IsValid()) {
+				// Early exit if nothing to push										
 				return 0;
 			}
 
@@ -2353,14 +2346,12 @@ namespace Langulus::Anyness
 				return 1;
 			}
 
-			// Check if container is or-compliant before inserting			
-			if (mCount > 1 && !IsOr() && state.IsOr())
-				return 0;
-
 			if constexpr (ALLOW_CONCAT) {
 				// If this container is compatible and concatenation is		
 				// enabled, try concatenating the two containers				
-				if (typeCompliant && stateCompliant) {
+				if (!IsConstant() && !IsStatic() && typeCompliant && stateCompliant
+					// Make sure container is or-compliant after the change	
+					&& !(mCount > 1 && !IsOr() && state.IsOr())) {
 					try {
 						const auto cat = InsertBlock<INDEX>(value.Forward());
 						SetState(mState + state);
@@ -2371,22 +2362,7 @@ namespace Langulus::Anyness
 			}
 		}
 
-		// Insert 																			
-		SetState(mState + state);
-
-		if (IsUntyped())
-			return Insert<INDEX, false, true>(Move(value.mValue));
-		else if (CastsTo<T>())
-			return Insert<INDEX, false, false>(Move(value.mValue));
-		else if (IsDeep())
-			return Insert<INDEX, false, false>(WRAPPER {value.Forward()});
-
-		if constexpr (ALLOW_DEEPEN) {
-			Deepen<WRAPPER>();
-			return Insert<INDEX, false, false>(WRAPPER {value.Forward()});
-		}
-
-		return 0;
+		return SmartPushInner<ALLOW_DEEPEN, INDEX, false, T&&, WRAPPER>(Forward<T>(value.mValue), state);
 	}
 
 	/// Wrap all contained elements inside a sub-block, making this one deep	
@@ -2490,7 +2466,7 @@ namespace Langulus::Anyness
 	///	@param count - number of items to remove										
 	///	@return the number of removed elements											
 	template<CT::Index INDEX>
-	Count Block::RemoveIndex(INDEX index, const Count count) {
+	Count Block::RemoveIndex(const INDEX index, const Count count) {
 		if constexpr (CT::Same<INDEX, Index>) {
 			// By special indices														
 			if (index == IndexAll) {
@@ -2501,26 +2477,35 @@ namespace Langulus::Anyness
 				return oldCount;
 			}
 
-			const auto starter = Constrain(index);
-			if (starter.IsSpecial())
+			const auto idx = Constrain(index);
+			if (idx.IsSpecial())
 				return 0;
 
-			return RemoveIndex(starter.GetOffset(), count);
+			return RemoveIndex(idx.GetOffset(), count);
 		}
 		else {
+			Offset idx;
+			if constexpr (CT::Signed<INDEX>) {
+				if (index < 0)
+					idx = mCount - static_cast<Offset>(-index);
+				else
+					idx = static_cast<Offset>(index);
+			}
+			else idx = index;
+
 			// By simple index (signed or not)										
-			SAFETY(if (index >= mCount || count > mCount || index + count > mCount)
+			SAFETY(if (idx >= mCount || count > mCount || idx + count > mCount)
 				Throw<Except::Access>("Index out of range"));
 			SAFETY(if (GetUses() > 1)
 				Throw<Except::Reference>("Attempting to remove elements from a used memory block"));
 
 			if (IsConstant() || IsStatic()) {
-				if (mType->mIsPOD && index + count >= mCount) {
+				if (mType->mIsPOD && idx + count >= mCount) {
 					// If data is POD and elements are on the back, we can	
 					// get around constantness and staticness, by simply		
 					// truncating the count without any reprecussions			
-					const auto removed = mCount - index;
-					mCount = index;
+					const auto removed = mCount - idx;
+					mCount = idx;
 					return removed;
 				}
 				else {
@@ -2537,13 +2522,13 @@ namespace Langulus::Anyness
 			}
 
 			// First call the destructors on the correct region				
-			const auto ender = std::min(index + count, mCount);
-			const auto removed = ender - index;
-			CropInner(index, removed, removed).CallUnknownDestructors();
+			const auto ender = idx + count;
+			const auto removed = ender - idx;
+			CropInner(idx, removed, removed).CallUnknownDestructors();
 
 			if (ender < mCount) {
 				// Fill gap	if any by invoking move constructions				
-				CropInner(index, 0, mCount - ender)
+				CropInner(idx, 0, mCount - ender)
 					.template CallUnknownMoveConstructors<false>(
 						mCount - ender,
 						CropInner(ender, mCount - ender, mCount - ender)
@@ -2566,6 +2551,7 @@ namespace Langulus::Anyness
 				return 0;
 
 			--index;
+
 			for (Count i = 0; i != mCount; i += 1) {
 				if (index == 0)
 					return RemoveIndex(i);
