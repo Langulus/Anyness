@@ -1849,7 +1849,7 @@ namespace Langulus::Anyness
 				if constexpr (CT::Moved<T>)
 					return InsertAt<false, false>(WRAPPER {Forward<T>(value)}, index);
 				else
-					return InsertAt<false, false>(WRAPPER {&value, &value + 1}, index);
+					return InsertAt<false, false>(WRAPPER {value}, index);
 			}
 			else if constexpr (CT::Moved<T>)
 				return InsertAt<false, false>(WRAPPER {Abandon(value)}, index);
@@ -1867,7 +1867,7 @@ namespace Langulus::Anyness
 				if constexpr (CT::Moved<T>)
 					return InsertAt<false, false>(WRAPPER {Forward<T>(value)}, index);
 				else
-					return InsertAt<false, false>(WRAPPER {&value, &value + 1}, index);
+					return InsertAt<false, false>(WRAPPER {value}, index);
 			}
 			else if constexpr (CT::Moved<T>)
 				return InsertAt<false, false>(WRAPPER {Abandon(value)}, index);
@@ -1912,7 +1912,7 @@ namespace Langulus::Anyness
 			// If this is deep, then push value wrapped in a container		
 			if (mCount > 1 && !IsOr() && state.IsOr()) {
 				// If container is not or-compliant after insertion, we		
-				// need	to add another layer											
+				// need to add another layer											
 				Deepen<WRAPPER>();
 				SetState(mState + state);
 			}
@@ -1922,7 +1922,7 @@ namespace Langulus::Anyness
 				if constexpr (CT::Moved<T>)
 					return Insert<INDEX, false, false>(WRAPPER {Forward<T>(value)});
 				else
-					return Insert<INDEX, false, false>(WRAPPER {&value, &value + 1});
+					return Insert<INDEX, false, false>(WRAPPER {value});
 			}
 			else if constexpr (CT::Moved<T>)
 				return Insert<INDEX, false, false>(WRAPPER {Abandon(value)});
@@ -1940,7 +1940,7 @@ namespace Langulus::Anyness
 				if constexpr (CT::Moved<T>)
 					return Insert<INDEX, false, false>(WRAPPER {Forward<T>(value)});
 				else
-					return Insert<INDEX, false, false>(WRAPPER {&value, &value + 1});
+					return Insert<INDEX, false, false>(WRAPPER {value});
 			}
 			else if constexpr (CT::Moved<T>)
 				return Insert<INDEX, false, false>(WRAPPER {Abandon(value)});
