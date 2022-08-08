@@ -41,9 +41,10 @@ namespace Langulus::Anyness
 	/// Clone all elements inside a new memory block									
 	/// If we have jurisdiction, the memory won't move									
 	void Block::TakeAuthority() {
-		if (mEntry)
+		if (mEntry) {
 			// We already own this memory, don't touch anything				
 			return;
+		}
 
 		// Clone everything and overwrite this block								
 		// At the end it should have exactly one reference						
@@ -58,20 +59,20 @@ namespace Langulus::Anyness
 	///	@param base - the base to search for											
 	///	@return the block for the base (static and immutable)						
 	Block Block::GetBaseMemory(DMeta meta, const RTTI::Base& base) const {
+		if (IsEmpty())
+			return {};
+
 		if (base.mBinaryCompatible) {
 			return {
 				DataState::ConstantMember, meta,
 				GetCount() * base.mCount,
-				Get<Byte*>()
+				Get<Byte*>(), mEntry
 			};
 		}
 
-		if (IsEmpty())
-			return {DataState::Constant, meta};
-
 		return {
 			DataState::ConstantMember, meta, 1,
-			Get<Byte*>(0, base.mOffset)
+			Get<Byte*>(0, base.mOffset), mEntry
 		};
 	}
 
@@ -80,20 +81,20 @@ namespace Langulus::Anyness
 	///	@param base - the base to search for											
 	///	@return the block for the base (static and immutable)						
 	Block Block::GetBaseMemory(DMeta meta, const RTTI::Base& base) {
+		if (IsEmpty())
+			return {};
+
 		if (base.mBinaryCompatible) {
 			return {
 				DataState::Member, meta,
 				GetCount() * base.mCount, 
-				Get<Byte*>()
+				Get<Byte*>(), mEntry
 			};
 		}
 
-		if (IsEmpty())
-			return Block {meta};
-
 		return {
 			DataState::Member, meta, 1,
-			Get<Byte*>(0, base.mOffset)
+			Get<Byte*>(0, base.mOffset), mEntry
 		};
 	}
 
@@ -257,8 +258,10 @@ namespace Langulus::Anyness
 	Block Block::GetElementDense(Offset index) {
 		auto element = GetElement(index);
 		if (IsSparse()) {
-			element.mRaw = element.GetRawSparse()->mPointer;
+			// It is very important we copy entry first, because after		
+			// overwriting mRaw, mEntry is not longer valid						
 			element.mEntry = element.GetRawSparse()->mEntry;
+			element.mRaw = element.GetRawSparse()->mPointer;
 			element.mState -= DataState::Sparse;
 		}
 

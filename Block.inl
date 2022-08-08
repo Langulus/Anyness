@@ -128,7 +128,7 @@ namespace Langulus::Anyness
 		}
 		else if constexpr (CT::Deep<T>) {
 			// Static cast to Block if CT::Deep										
-			result = static_cast<const Block&>(value);
+			result.operator = (value);
 		}
 		else {
 			// Any other value gets wrapped inside a temporary Block			
