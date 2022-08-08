@@ -586,27 +586,30 @@ namespace Langulus::Anyness
 	/// Check polarity compatibility															
 	///	@param other - the polarity to check											
 	///	@return true if polarity is compatible											
-	constexpr bool Block::CanFitPhase(const Phase& other) const noexcept {
-		// As long as polarities are not opposite, they are compatible		
-		const auto p = GetPhase();
-		return int(p) != -int(other) || (other == Phase::Now && p == other);
+	constexpr bool Block::CanFitPhase(const Block& other) const noexcept {
+		const auto p1 = GetPhase();
+		const auto p2 = other.GetPhase();
+		return p1 == p2 || p1 == Phase::Now || p2 == Phase::Now;
+	}
+
+	/// Check state compatibility regarding orness										
+	///	@param other - the state to check												
+	///	@return true if state is compatible												
+	constexpr bool Block::CanFitOrAnd(const Block& other) const noexcept {
+		return IsOr() == other.IsOr() || mCount <= 1 || other.mCount <= 1;
 	}
 
 	/// Check state compatibility																
 	///	@param other - the state to check												
 	///	@return true if state is compatible												
 	constexpr bool Block::CanFitState(const Block& other) const noexcept {
-		if (IsEmpty())
-			return true;
-
-		return IsSparse() == other.IsSparse()
-			&& (!IsTypeConstrained() || (IsTypeConstrained() && other.Is(mType)))
-			&& (mState == other.mState
-				|| (
-					(IsOr() == other.IsOr() || other.GetCount() <= 1)
-					&& CanFitPhase(other.GetPhase())
-				)
-			);
+		return IsInvalid() || (
+			IsSparse() == other.IsSparse()
+			&& IsMissing() == other.IsMissing()
+			&& (!IsTypeConstrained() || other.Is(mType))
+			&& CanFitOrAnd(other)
+			&& CanFitPhase(other)
+		);
 	}
 
 	/// Get the size of the contained data, in bytes									
@@ -1062,12 +1065,16 @@ namespace Langulus::Anyness
 		SetType<CONSTRAIN>(MetaData::Of<Decay<T>>());
 	}
 
-	/// Swap two elements (with raw indices)												
+	/// Swap two elements																		
 	///	@tparam T - the contained type													
-	///	@param from - first element index												
-	///	@param to - second element index													
-	template<CT::Data T>
-	void Block::Swap(Offset from, Offset to) {
+	///	@tparam INDEX1 - type of the first index (deducible)						
+	///	@tparam INDEX2 - type of the second index (deducible)						
+	///	@param from - first index															
+	///	@param to - second index															
+	template<CT::Data T, CT::Index INDEX1, CT::Index INDEX2>
+	void Block::Swap(INDEX1 from_, INDEX2 to_) {
+		const auto from = SimplifyIndex(from_);
+		const auto to = SimplifyIndex(to_);
 		if (from >= mCount || to >= mCount || from == to)
 			return;
 
@@ -1077,55 +1084,26 @@ namespace Langulus::Anyness
 		data[from] = Move(temp);
 	}
 
-	/// Swap two elements (with special indices)											
-	///	@tparam T - the contained type													
-	///	@param from - first element index												
-	///	@param to - second element index													
-	template<CT::Data T>
-	void Block::Swap(Index from, Index to) {
-		if (from == to)
-			return;
-
-		Swap<T>(
-			ConstrainMore<T>(from).GetOffset(), 
-			ConstrainMore<T>(to).GetOffset()
-		);
-	}
-
-	/// Copy-insert anything compatible at a special index							
-	/// Slight overhead due to runtime-resolving the index							
-	///	@tparam KEEP - whether to reference data on copy							
-	///	@tparam MUTABLE - is it allowed the block to deepen to incorporate	
-	///							the new insertion, if not compatible					
-	///	@tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled	
-	///	@tparam T - the type to insert (deducible)									
-	///	@param start - pointer to the first item										
-	///	@param end - pointer to the end of items										
-	///	@param index - the special index to insert at								
-	///	@return number of inserted elements												
-	template<bool KEEP, bool MUTABLE, CT::Data WRAPPER, CT::NotAbandonedOrDisowned T>
-	Count Block::InsertAt(const T* start, const T* end, Index index) {
-		const auto offset = ConstrainMore<T>(index).GetOffset(); //TODO constraining assumes this is filled with T? might cause problems :(
-		return InsertAt<KEEP, MUTABLE, WRAPPER, T>(start, end, offset);
-	}
-
-	/// Copy-insert anything compatible at a simple offset							
-	///	@attention assumes offset is in the block's limits							
+	/// Copy-insert anything compatible at an index										
+	///	@attention assumes offset is in the block's limits, if simple			
 	///	@tparam KEEP - whether to reference data on copy							
 	///	@tparam MUTABLE - is it allowed the block to deepen or incorporate	
 	///							the new insertion, if not compatible					
 	///	@tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled	
 	///	@tparam T - the type to insert (deducible)									
+	///	@tparam INDEX - the type of the index (deducible)							
 	///	@param start - pointer to the first item										
 	///	@param end - pointer to the end of items										
 	///	@param index - the simple index to insert at									
 	///	@return number of inserted elements												
-	template<bool KEEP, bool MUTABLE, CT::Data WRAPPER, CT::NotAbandonedOrDisowned T>
-	Count Block::InsertAt(const T* start, const T* end, Offset index) {
+	template<bool KEEP, bool MUTABLE, CT::Data WRAPPER, CT::NotAbandonedOrDisowned T, CT::Index INDEX>
+	Count Block::InsertAt(const T* start, const T* end, INDEX idx) {
 		static_assert(CT::Deep<WRAPPER>,
 			"WRAPPER must be deep");
 		static_assert(CT::Sparse<T> || CT::Mutable<T>,
 			"Can't copy-insert into container of constant elements");
+
+		const auto index = SimplifyIndex(idx);
 
 		if constexpr (MUTABLE) {
 			// Type may mutate															
@@ -1155,38 +1133,25 @@ namespace Langulus::Anyness
 		return count;
 	}
 
-	/// Move-insert anything compatible at a special index							
-	/// Slight overhead due to runtime-resolving the index							
+	/// Move-insert anything compatible at an index										
+	///	@attention assumes offset is in the block's limits when simple			
 	///	@tparam KEEP - whether to reference data on copy							
 	///	@tparam MUTABLE - is it allowed the block to deepen to incorporate	
 	///							the new insertion, if not compatible					
 	///	@tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled	
 	///	@tparam T - the type to insert (deducible)									
+	///	@tparam INDEX - the type of the index (deducible)							
 	///	@param item - the item to move in												
-	///	@param index - the special index to insert at								
+	///	@param index - the index to insert at											
 	///	@return number of inserted elements												
-	template<bool KEEP, bool MUTABLE, CT::Data WRAPPER, CT::NotAbandonedOrDisowned T>
-	Count Block::InsertAt(T&& item, Index index) {
-		const auto offset = ConstrainMore<T>(index).GetOffset(); //TODO constraining assumes this is filled with T? might cause problems :(
-		return InsertAt<KEEP, MUTABLE, WRAPPER, T>(Forward<T>(item), offset);
-	}
-
-	/// Move-insert anything compatible at a simple offset							
-	///	@attention assumes offset is in the block's limits							
-	///	@tparam KEEP - whether to reference data on copy							
-	///	@tparam MUTABLE - is it allowed the block to deepen to incorporate	
-	///							the new insertion, if not compatible					
-	///	@tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled	
-	///	@tparam T - the type to insert (deducible)									
-	///	@param item - the item to move in												
-	///	@param index - the simple offset to insert at								
-	///	@return number of inserted elements												
-	template<bool KEEP, bool MUTABLE, CT::Data WRAPPER, CT::NotAbandonedOrDisowned T>
-	Count Block::InsertAt(T&& item, Offset index) {
+	template<bool KEEP, bool MUTABLE, CT::Data WRAPPER, CT::NotAbandonedOrDisowned T, CT::Index INDEX>
+	Count Block::InsertAt(T&& item, INDEX idx) {
 		static_assert(CT::Deep<WRAPPER>,
 			"WRAPPER must be deep");
 		static_assert(CT::Sparse<T> || CT::Mutable<T>,
 			"Can't move-insert into container of constant elements");
+
+		const auto index = SimplifyIndex(idx);
 
 		if constexpr (MUTABLE) {
 			// Type may mutate															
@@ -1211,7 +1176,7 @@ namespace Langulus::Anyness
 				);
 		}
 
-		InsertInner<KEEP>(Move(item), index);
+		InsertInner<KEEP>(Forward<T>(item), index);
 		return 1;
 	}
 
@@ -1471,7 +1436,7 @@ namespace Langulus::Anyness
 	///	@param idx - index to start searching from									
 	///	@return the index of the found item, or uiNone if not found				
 	template<CT::Data T>
-	Index Block::Find(const T& item, const Index& idx) const {
+	Index Block::Find(const T& item, Index idx) const {
 		if (!mCount || !mType)
 			return IndexNone;
 
@@ -1560,7 +1525,7 @@ namespace Langulus::Anyness
 	///	@param idx - index to start searching from									
 	///	@return the index of the found item, or uiNone if not found				
 	template<CT::Data T>
-	Index Block::FindDeep(const T& item, const Index& idx) const {
+	Index Block::FindDeep(const T& item, Index idx) const {
 		Index found;
 		ForEachDeep([&](const Block& group) {
 			found = group.Find<T>(item, idx);
@@ -1570,43 +1535,27 @@ namespace Langulus::Anyness
 		return found;
 	}
 
-	/// Merge-copy-insert array elements at special index								
+	/// Merge-copy-insert array elements at index										
 	/// Each element will be pushed only if not found in block						
-	/// A bit of runtime overhead due to resolving index								
+	/// A bit of runtime overhead due to resolving index, if special				
 	///	@tparam KEEP - whether to reference data on copy							
 	///	@tparam MUTABLE - is it allowed the block to deepen or incorporate	
 	///							the new insertion, if not compatible					
 	///	@tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled	
 	///	@tparam T - the type to insert (deducible)									
+	///	@tparam INDEX - the type of the index (deducible)							
 	///	@param start - pointer to the first item										
 	///	@param end - pointer to the end of items										
 	///	@param index - the special index to insert at								
 	///	@return the number of inserted elements										
-	template<bool KEEP, bool MUTABLE, CT::Data WRAPPER, CT::NotAbandonedOrDisowned T>
-	Count Block::MergeAt(const T* start, const T* end, Index index) {
-		const auto offset = ConstrainMore<T>(index).GetOffset(); //TODO constraining assumes this is filled with T? might cause problems :(
-		return MergeAt<KEEP, MUTABLE, WRAPPER, T>(start, end, offset);
-	}
-
-	/// Merge-copy-insert array elements at special index								
-	/// Each element will be pushed only if not found in block						
-	///	@attention assumes offset is in the block's limits							
-	///	@tparam KEEP - whether to reference data on copy							
-	///	@tparam MUTABLE - is it allowed the block to deepen or incorporate	
-	///							the new insertion, if not compatible					
-	///	@tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled	
-	///	@tparam T - the type to insert (deducible)									
-	///	@param start - pointer to the first item										
-	///	@param end - pointer to the end of items										
-	///	@param index - the special index to insert at								
-	///	@return the number of inserted elements										
-	template<bool KEEP, bool MUTABLE, CT::Data WRAPPER, CT::NotAbandonedOrDisowned T>
-	Count Block::MergeAt(const T* start, const T* end, Offset index) {
+	template<bool KEEP, bool MUTABLE, CT::Data WRAPPER, CT::NotAbandonedOrDisowned T, CT::Index INDEX>
+	Count Block::MergeAt(const T* start, const T* end, INDEX index) {
+		auto offset = SimplifyIndex(index);
 		Count added {};
 		while (start != end) {
 			if (!Find<T>(*start)) {
-				added += InsertAt<KEEP, MUTABLE, WRAPPER, T>(start, start + 1, index);
-				++index;
+				added += InsertAt<KEEP, MUTABLE, WRAPPER, T>(start, start + 1, offset);
+				++offset;
 			}
 
 			++start;
@@ -1615,39 +1564,22 @@ namespace Langulus::Anyness
 		return added;
 	}
 
-	/// Merge-move-insert array elements at special index								
+	/// Merge-move-insert array elements at index										
 	/// Element will be pushed only if not found in block								
-	/// A bit of runtime overhead due to resolving index								
+	/// A bit of runtime overhead due to resolving index, when special			
 	///	@tparam KEEP - whether to reference data on copy							
 	///	@tparam MUTABLE - is it allowed the block to deepen or incorporate	
 	///							the new insertion, if not compatible					
 	///	@tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled	
 	///	@tparam T - the type to insert (deducible)									
+	///	@tparam INDEX - the type of the index (deducible)							
 	///	@param item - the item to move in												
 	///	@param index - the special index to insert at								
 	///	@return the number of inserted elements										
-	template<bool KEEP, bool MUTABLE, CT::Data WRAPPER, CT::NotAbandonedOrDisowned T>
-	Count Block::MergeAt(T&& item, Index index) {
+	template<bool KEEP, bool MUTABLE, CT::Data WRAPPER, CT::NotAbandonedOrDisowned T, CT::Index INDEX>
+	Count Block::MergeAt(T&& item, INDEX index) {
 		if (!Find<T>(item))
-			return InsertAt<KEEP, MUTABLE, WRAPPER, T>(Move(item), index);
-		return 0;
-	}
-
-	/// Merge-move-insert array elements at simple index								
-	/// Element will be pushed only if not found in block								
-	///	@attention assumes offset is in the block's limits							
-	///	@tparam KEEP - whether to reference data on copy							
-	///	@tparam MUTABLE - is it allowed the block to deepen or incorporate	
-	///							the new insertion, if not compatible					
-	///	@tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled	
-	///	@tparam T - the type to insert (deducible)									
-	///	@param item - the item to move in												
-	///	@param index - the simple index to insert at									
-	///	@return the number of inserted elements										
-	template<bool KEEP, bool MUTABLE, CT::Data WRAPPER, CT::NotAbandonedOrDisowned T>
-	Count Block::MergeAt(T&& item, Offset index) {
-		if (!Find<T>(item))
-			return InsertAt<KEEP, MUTABLE, WRAPPER, T>(Move(item), index);
+			return InsertAt<KEEP, MUTABLE, WRAPPER, T>(Forward<T>(item), index);
 		return 0;
 	}
 
@@ -1778,11 +1710,12 @@ namespace Langulus::Anyness
 		const auto previousType = !mType ? value.GetType() : mType;
 		const auto previousState = mState - DataState::Sparse;
 
-		*this = static_cast<const Block&>(value);
+		operator = (value);
+
 		if constexpr (KEEP)
 			Keep();
 
-		SetState((mState + previousState + state) - DataState::Typed);
+		mState = mState + previousState + state;
 
 		if (previousState.IsTyped()) {
 			// Retain type if original package was constrained					
@@ -1840,7 +1773,7 @@ namespace Langulus::Anyness
 			if (mCount > 1 && !IsOr() && state.IsOr()) {
 				// If container is not or-compliant after insertion, we		
 				// need	to add another layer											
-				Deepen<WRAPPER>();
+				Deepen<WRAPPER, false>();
 				SetState(mState + state);
 			}
 			else SetState(mState + state);
@@ -1860,7 +1793,7 @@ namespace Langulus::Anyness
 		if constexpr (ALLOW_DEEPEN) {
 			// If this is reached, all else failed, but we are allowed to	
 			// deepen, so do it															
-			Deepen<WRAPPER>();
+			Deepen<WRAPPER, false>();
 			SetState(mState + state);
 
 			if constexpr (KEEP) {
@@ -1913,7 +1846,7 @@ namespace Langulus::Anyness
 			if (mCount > 1 && !IsOr() && state.IsOr()) {
 				// If container is not or-compliant after insertion, we		
 				// need to add another layer											
-				Deepen<WRAPPER>();
+				Deepen<WRAPPER, false>();
 				SetState(mState + state);
 			}
 			else SetState(mState + state);
@@ -1933,7 +1866,7 @@ namespace Langulus::Anyness
 		if constexpr (ALLOW_DEEPEN) {
 			// If this is reached, all else failed, but we are allowed to	
 			// deepen, so do it															
-			Deepen<WRAPPER>();
+			Deepen<WRAPPER, false>();
 			SetState(mState + state);
 
 			if constexpr (KEEP) {
@@ -1951,6 +1884,98 @@ namespace Langulus::Anyness
 		return 0;
 	}
 
+	///																								
+	template<bool ALLOW_DEEPEN, bool KEEP, CT::Data T, CT::Data WRAPPER, CT::Index INDEX>
+	LANGULUS(ALWAYSINLINE) Count Block::SmartConcatAt(const bool& sc, T value, const DataState& state, const INDEX& index) {
+		static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
+		static_assert(CT::Deep<T>, "T must be deep");
+
+		// If this container is compatible and concatenation is				
+		// enabled, try concatenating the two containers						
+		const bool typeCompliant = IsUntyped()
+			|| (ALLOW_DEEPEN && value.IsDeep())
+			|| CanFit(value.GetType());
+
+		if (!IsConstant() && !IsStatic() && typeCompliant && sc
+			// Make sure container is or-compliant after the change			
+			&& !(mCount > 1 && !IsOr() && state.IsOr())) {
+			if (IsUntyped()) {
+				// Block insert never mutates, so make sure type				
+				// is valid before insertion											
+				SetType<false>(value.GetType());
+			}
+			else {
+				if constexpr (ALLOW_DEEPEN) {
+					if (!IsDeep() && value.IsDeep())
+						Deepen<WRAPPER, false>();
+				}
+			}
+
+			Count cat;
+			if constexpr (KEEP) {
+				if constexpr (CT::Moved<T>)
+					cat = InsertBlockAt(value, index);
+				else
+					cat = InsertBlockAt(Forward<T>(value), index);
+			}
+			else if constexpr (CT::Moved<T>)
+				cat = InsertBlockAt(Abandon(value), index);
+			else
+				cat = InsertBlockAt(Disown(value), index);
+
+			mState += state;
+			return cat;
+		}
+
+		return 0;
+	}
+
+	///																								
+	template<bool ALLOW_DEEPEN, Index INDEX, bool KEEP, CT::Data T, CT::Data WRAPPER>
+	LANGULUS(ALWAYSINLINE) Count Block::SmartConcat(const bool& sc, T value, const DataState& state) {
+		static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
+		static_assert(CT::Deep<T>, "T must be deep");
+
+		// If this container is compatible and concatenation is				
+		// enabled, try concatenating the two containers						
+		const bool typeCompliant = IsUntyped()
+			|| (ALLOW_DEEPEN && value.IsDeep())
+			|| CanFit(value.GetType());
+
+		if (!IsConstant() && !IsStatic() && typeCompliant && sc
+			// Make sure container is or-compliant after the change			
+			&& !(mCount > 1 && !IsOr() && state.IsOr())) {
+			if (IsUntyped()) {
+				// Block insert never mutates, so make sure type				
+				// is valid before insertion											
+				SetType<false>(value.GetType());
+			}
+			else {
+				if constexpr (ALLOW_DEEPEN) {
+					if (!IsDeep() && value.IsDeep())
+						Deepen<WRAPPER, false>();
+				}
+			}
+
+			Count cat;
+			if constexpr (KEEP) {
+				if constexpr (CT::Moved<T>)
+					cat = InsertBlock<INDEX>(value);
+				else
+					cat = InsertBlock<INDEX>(Forward<T>(value));
+			}
+			else if constexpr (CT::Moved<T>)
+				cat = InsertBlock<INDEX>(Abandon(value));
+			else
+				cat = InsertBlock<INDEX>(Disown(value));
+
+			mState += state;
+			return cat;
+		}
+
+		return 0;
+	}
+
 	/// A copy-insert that uses the best approach to push anything inside		
 	/// container in order to keep hierarchy and states, but also reuse memory	
 	///	@tparam ALLOW_CONCAT - whether or not concatenation is allowed			
@@ -1962,49 +1987,39 @@ namespace Langulus::Anyness
 	///	@param index - the index at which to insert (if needed)					
 	///	@param state - a state to apply after pushing is done						
 	///	@return the number of pushed items (zero if unsuccessful)				
-	template<bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::NotAbandonedOrDisowned T, CT::Data INDEX, CT::Data WRAPPER>
+	template<bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::NotAbandonedOrDisowned T, CT::Index INDEX, CT::Data WRAPPER>
 	Count Block::SmartPushAt(const T& value, INDEX index, DataState state) {
 		static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
 
 		if constexpr (CT::Deep<T>) {
 			// We're inserting a deep item, so we can do various smart		
-			// things before inserting, like absorbing and concatenating	
+			// things before inserting, like absorbing or concatenating		
 			if (!value.IsValid())
 				return 0;
 
-			// If this container is empty and has no conflicting state		
-			// directly reference data													
-			const bool typeCompliant = (!IsTypeConstrained() && IsEmpty()) || CanFit(value.GetType());
 			const bool stateCompliant = CanFitState(value);
-
-			if (typeCompliant && stateCompliant) {
+			if (IsEmpty() && !value.IsStatic() && stateCompliant) {
 				Absorb<true>(value, state);
 				return 1;
 			}
 
 			if constexpr (ALLOW_CONCAT) {
-				// If this container is compatible and concatenation is		
-				// enabled, try concatenating the two containers				
-				if (!IsConstant() && !IsStatic() && typeCompliant && stateCompliant
-					// Make sure container is or-compliant after the change	
-					&& !(mCount > 1 && !IsOr() && state.IsOr())) {
-					try {
-						const auto cat = InsertBlockAt(value, index);
-						SetState(mState + state);
-						return cat;
-					}
-					catch (const Except::Mutate&) {}
-				}
+				const auto done = SmartConcatAt<ALLOW_DEEPEN, true, const T&, WRAPPER>(
+					stateCompliant, value, state, index);
+				if (done)
+					return done;
 			}
 		}
 
-		return SmartPushAtInner<ALLOW_DEEPEN, true, const T&, WRAPPER>(value, state, index);
+		return SmartPushAtInner<ALLOW_DEEPEN, true, const T&, WRAPPER>(
+			value, state, index);
 	}
 
 	/// This is required to disambiguate calls correctly								
-	template<bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::NotAbandonedOrDisowned T, CT::Data INDEX, CT::Data WRAPPER>
+	template<bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::NotAbandonedOrDisowned T, CT::Index INDEX, CT::Data WRAPPER>
 	Count Block::SmartPushAt(T& value, INDEX index, DataState state) {
-		return SmartPushAt<ALLOW_CONCAT, ALLOW_DEEPEN, T, INDEX, WRAPPER>(const_cast<const T&>(value), index, state);
+		return SmartPushAt<ALLOW_CONCAT, ALLOW_DEEPEN, T, INDEX, WRAPPER>(
+			const_cast<const T&>(value), index, state);
 	}
 
 	/// A move-insert that uses the best approach to push anything inside		
@@ -2018,7 +2033,7 @@ namespace Langulus::Anyness
 	///	@param index - the index at which to insert (if needed)					
 	///	@param state - a state to apply after pushing is done						
 	///	@return the number of pushed items (zero if unsuccessful)				
-	template<bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::NotAbandonedOrDisowned T, CT::Data INDEX, CT::Data WRAPPER>
+	template<bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::NotAbandonedOrDisowned T, CT::Index INDEX, CT::Data WRAPPER>
 	Count Block::SmartPushAt(T&& value, INDEX index, DataState state) {
 		static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
 
@@ -2028,33 +2043,22 @@ namespace Langulus::Anyness
 			if (!value.IsValid())
 				return 0;
 
-			// If this container is empty and has no conflicting state		
-			// directly reference data													
-			const bool typeCompliant = (!IsTypeConstrained() && IsEmpty()) || CanFit(value.GetType());
 			const bool stateCompliant = CanFitState(value);
-
-			if (typeCompliant && stateCompliant) {
+			if (IsEmpty() && !value.IsStatic() && stateCompliant) {
 				Absorb<true>(Forward<T>(value), state);
 				return 1;
 			}
 
 			if constexpr (ALLOW_CONCAT) {
-				// If this container is compatible and concatenation is		
-				// enabled, try concatenating the two containers				
-				if (!IsConstant() && !IsStatic() && typeCompliant && stateCompliant
-					// Make sure container is or-compliant after the change	
-					&& !(mCount > 1 && !IsOr() && state.IsOr())) {
-					try {
-						const auto cat = InsertBlockAt(Forward<T>(value), index);
-						SetState(mState + state);
-						return cat;
-					}
-					catch (const Except::Mutate&) {}
-				}
+				const auto done = SmartConcatAt<ALLOW_DEEPEN, true, T&&, WRAPPER>(
+					stateCompliant, Forward<T>(value), state, index);
+				if (done)
+					return done;
 			}
 		}
 
-		return SmartPushAtInner<ALLOW_DEEPEN, true, T&&, WRAPPER>(Forward<T>(value), state, index);
+		return SmartPushAtInner<ALLOW_DEEPEN, true, T&&, WRAPPER>(
+			Forward<T>(value), state, index);
 	}
 
 	/// A disown-insert that uses the best approach to push anything inside		
@@ -2068,7 +2072,7 @@ namespace Langulus::Anyness
 	///	@param index - the index at which to insert (if needed)					
 	///	@param state - a state to apply after pushing is done						
 	///	@return the number of pushed items (zero if unsuccessful)				
-	template<bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data T, CT::Data INDEX, CT::Data WRAPPER>
+	template<bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data T, CT::Index INDEX, CT::Data WRAPPER>
 	Count Block::SmartPushAt(Disowned<T>&& value, INDEX index, DataState state) {
 		static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
 
@@ -2078,33 +2082,22 @@ namespace Langulus::Anyness
 			if (!value.mValue.IsValid())
 				return 0;
 
-			// If this container is empty and has no conflicting state		
-			// directly reference data													
-			const bool typeCompliant = (!IsTypeConstrained() && IsEmpty()) || CanFit(value.mValue.GetType());
 			const bool stateCompliant = CanFitState(value.mValue);
-
-			if (typeCompliant && stateCompliant) {
+			if (IsEmpty() && !value.mValue.IsStatic() && stateCompliant) {
 				Absorb<false>(value.mValue, state);
 				return 1;
 			}
 
 			if constexpr (ALLOW_CONCAT) {
-				// If this container is compatible and concatenation is		
-				// enabled, try concatenating the two containers				
-				if (!IsConstant() && !IsStatic() && typeCompliant && stateCompliant
-					// Make sure container is or-compliant after the change	
-					&& !(mCount > 1 && !IsOr() && state.IsOr())) {
-					try {
-						const auto cat = InsertBlockAt(value.Forward(), index);
-						SetState(mState + state);
-						return cat;
-					}
-					catch (const Except::Mutate&) {}
-				}
+				const auto done = SmartConcatAt<ALLOW_DEEPEN, false, const T&, WRAPPER>(
+					stateCompliant, value.mValue, state, index);
+				if (done)
+					return done;
 			}
 		}
 
-		return SmartPushAtInner<ALLOW_DEEPEN, false, const T&, WRAPPER>(value.mValue, state, index);
+		return SmartPushAtInner<ALLOW_DEEPEN, false, const T&, WRAPPER>(
+			value.mValue, state, index);
 	}
 
 	/// An abandon-insert that uses the best approach to push anything inside	
@@ -2118,7 +2111,7 @@ namespace Langulus::Anyness
 	///	@param index - the index at which to insert (if needed)					
 	///	@param state - a state to apply after pushing is done						
 	///	@return the number of pushed items (zero if unsuccessful)				
-	template<bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data T, CT::Data INDEX, CT::Data WRAPPER>
+	template<bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data T, CT::Index INDEX, CT::Data WRAPPER>
 	Count Block::SmartPushAt(Abandoned<T>&& value, INDEX index, DataState state) {
 		static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
 
@@ -2128,33 +2121,22 @@ namespace Langulus::Anyness
 			if (!value.mValue.IsValid())
 				return 0;
 
-			// If this container is empty and has no conflicting state		
-			// directly reference data													
-			const bool typeCompliant = (!IsTypeConstrained() && IsEmpty()) || CanFit(value.mValue.GetType());
 			const bool stateCompliant = CanFitState(value);
-
-			if (typeCompliant && stateCompliant) {
+			if (IsEmpty() && !value.mValue.IsStatic() && stateCompliant) {
 				Absorb<false>(Move(value.mValue), state);
 				return 1;
 			}
 
 			if constexpr (ALLOW_CONCAT) {
-				// If this container is compatible and concatenation is		
-				// enabled, try concatenating the two containers				
-				if (!IsConstant() && !IsStatic() && typeCompliant && stateCompliant
-					// Make sure container is or-compliant after the change	
-					&& !(mCount > 1 && !IsOr() && state.IsOr())) {
-					try {
-						const auto cat = InsertBlockAt(value.Forward(), index);
-						SetState(mState + state);
-						return cat;
-					}
-					catch (const Except::Mutate&) {}
-				}
+				const auto done = SmartConcatAt<ALLOW_DEEPEN, false, T&&, WRAPPER>(
+					stateCompliant, Forward<T>(value.mValue), state, index);
+				if (done)
+					return done;
 			}
 		}
 
-		return SmartPushAtInner<ALLOW_DEEPEN, false, T&&, WRAPPER>(Forward<T>(value), state, index);
+		return SmartPushAtInner<ALLOW_DEEPEN, false, T&&, WRAPPER>(
+			Forward<T>(value), state, index);
 	}
 
 	/// A smart copy-insert uses the best approach to push anything inside		
@@ -2178,29 +2160,17 @@ namespace Langulus::Anyness
 			if (!value.IsValid())
 				return 0;
 
-			// If this container is empty and has no conflicting state		
-			// directly reference data													
-			const bool typeCompliant = (!IsTypeConstrained() && IsEmpty()) || CanFit(value.GetType());
 			const bool stateCompliant = CanFitState(value);
-
-			if (typeCompliant && stateCompliant) {
+			if (IsEmpty() && !value.IsStatic() && stateCompliant) {
 				Absorb<true>(value, state);
 				return 1;
 			}
 
 			if constexpr (ALLOW_CONCAT) {
-				// If this container is compatible and concatenation is		
-				// enabled, try concatenating the two containers				
-				if (!IsConstant() && !IsStatic() && typeCompliant && stateCompliant
-					// Make sure container is or-compliant after the change	
-					&& !(mCount > 1 && !IsOr() && state.IsOr())) {
-					try {
-						const auto cat = InsertBlock<INDEX>(value);
-						SetState(mState + state);
-						return cat;
-					}
-					catch (const Except::Mutate&) {}
-				}
+				const auto done = SmartConcat<ALLOW_DEEPEN, INDEX, true, const T&, WRAPPER>(
+					stateCompliant, value, state);
+				if (done)
+					return done;
 			}
 		}
 
@@ -2234,29 +2204,17 @@ namespace Langulus::Anyness
 			if (!value.IsValid())
 				return 0;
 
-			// If this container is empty and has no conflicting state		
-			// directly reference data													
-			const bool typeCompliant = (!IsTypeConstrained() && IsEmpty()) || CanFit(value.GetType());
 			const bool stateCompliant = CanFitState(value);
-
-			if (typeCompliant && stateCompliant) {
+			if (IsEmpty() && !value.IsStatic() && stateCompliant) {
 				Absorb<true>(Forward<T>(value), state);
 				return 1;
 			}
 
 			if constexpr (ALLOW_CONCAT) {
-				// If this container is compatible and concatenation is		
-				// enabled, try concatenating the two containers				
-				if (!IsConstant() && !IsStatic() && typeCompliant && stateCompliant
-					// Make sure container is or-compliant after the change	
-					&& !(mCount > 1 && !IsOr() && state.IsOr())) {
-					try {
-						const auto cat = InsertBlock<INDEX>(Forward<T>(value));
-						SetState(mState + state);
-						return cat;
-					}
-					catch (const Except::Mutate&) {}
-				}
+				const auto done = SmartConcat<ALLOW_DEEPEN, INDEX, true, T&&, WRAPPER>(
+					stateCompliant, Forward<T>(value), state);
+				if (done)
+					return done;
 			}
 		}
 
@@ -2284,29 +2242,17 @@ namespace Langulus::Anyness
 			if (!value.mValue.IsValid())
 				return 0;
 
-			// If this container is empty and has no conflicting state		
-			// directly reference data													
-			const bool typeCompliant = (!IsTypeConstrained() && IsEmpty()) || CanFit(value.mValue.GetType());
 			const bool stateCompliant = CanFitState(value);
-
-			if (typeCompliant && stateCompliant) {
+			if (IsEmpty() && !value.mValue.IsStatic() && stateCompliant) {
 				Absorb<false>(value.mValue, state);
 				return 1;
 			}
 
 			if constexpr (ALLOW_CONCAT) {
-				// If this container is compatible and concatenation is		
-				// enabled, try concatenating the two containers				
-				if (!IsConstant() && !IsStatic() && typeCompliant && stateCompliant
-					// Make sure container is or-compliant after the change	
-					&& !(mCount > 1 && !IsOr() && state.IsOr())) {
-					try {
-						const auto cat = InsertBlock<INDEX>(value.Forward());
-						SetState(mState + state);
-						return cat;
-					}
-					catch (const Except::Mutate&) {}
-				}
+				const auto done = SmartConcat<ALLOW_DEEPEN, INDEX, false, const T&, WRAPPER>(
+					stateCompliant, value.mValue, state);
+				if (done)
+					return done;
 			}
 		}
 
@@ -2336,29 +2282,17 @@ namespace Langulus::Anyness
 				return 0;
 			}
 
-			// If this container is empty and has no conflicting state		
-			// directly reference data													
-			const bool typeCompliant = (!IsTypeConstrained() && IsEmpty()) || CanFit(value.mValue.GetType());
 			const bool stateCompliant = CanFitState(value.mValue);
-
-			if (typeCompliant && stateCompliant) {
+			if (IsEmpty() && !value.mValue.IsStatic() && stateCompliant) {
 				Absorb<false>(Move(value.mValue), state);
 				return 1;
 			}
 
 			if constexpr (ALLOW_CONCAT) {
-				// If this container is compatible and concatenation is		
-				// enabled, try concatenating the two containers				
-				if (!IsConstant() && !IsStatic() && typeCompliant && stateCompliant
-					// Make sure container is or-compliant after the change	
-					&& !(mCount > 1 && !IsOr() && state.IsOr())) {
-					try {
-						const auto cat = InsertBlock<INDEX>(value.Forward());
-						SetState(mState + state);
-						return cat;
-					}
-					catch (const Except::Mutate&) {}
-				}
+				const auto done = SmartConcat<ALLOW_DEEPEN, INDEX, false, T&&, WRAPPER>(
+					stateCompliant, Forward<T>(value.mValue), state);
+				if (done)
+					return done;
 			}
 		}
 
@@ -2402,6 +2336,19 @@ namespace Langulus::Anyness
 		return Get<T>();
 	}
 
+	template<CT::Data T, CT::Index INDEX>
+	LANGULUS(ALWAYSINLINE) Offset Block::SimplifyIndex(const INDEX& index) const noexcept {
+		if constexpr (CT::Same<INDEX, Index>)
+			return ConstrainMore<T>(index).GetOffset(); //TODO constraining assumes this is filled with T? might cause problems :(
+		else if constexpr (CT::Signed<INDEX>) {
+			if (index < 0)
+				return mCount - static_cast<Offset>(-index);
+			else
+				return static_cast<Offset>(index);
+		}
+		else return index;
+	}
+
 	/// Get an element via simple index, trying to interpret it as T				
 	/// No conversion or copying shall occur in this routine, only pointer		
 	/// arithmetic based on CTTI or RTTI													
@@ -2412,17 +2359,7 @@ namespace Langulus::Anyness
 	///	@return either pointer or reference to the element (depends on T)		
 	template<CT::Data T, CT::Index IDX>
 	decltype(auto) Block::As(const IDX& index) {
-		// Constrain the index if needed												
-		Offset idx;
-		if constexpr (CT::Same<IDX, Index>)
-			idx = ConstrainMore<T>(index).GetOffset();
-		else if constexpr (CT::Signed<IDX>) {
-			if (index < 0)
-				idx = mCount - static_cast<Offset>(-index);
-			else
-				idx = static_cast<Offset>(index);
-		}
-		else idx = index;
+		const auto idx = SimplifyIndex<T>(index);
 
 		// First quick type stage for fast access									
 		if (mType->Is<T>())
@@ -2434,13 +2371,13 @@ namespace Langulus::Anyness
 			// There's still a chance if this container is resolvable		
 			// This is the third and final stage									
 			auto resolved = GetElementResolved(idx);
-			if (resolved.mType->Is<T>()) {
+			if (resolved.mType->template Is<T>()) {
 				// Element resolved to a compatible type, so get it			
-				return resolved.Get<T>();
+				return resolved.template Get<T>();
 			}
-			else if (resolved.mType->GetBase<T>(0, base)) {
+			else if (resolved.mType->template GetBase<T>(0, base)) {
 				// Get base memory of the resolved element and access			
-				return resolved.GetBaseMemory(base).Get<T>(idx % base.mCount);
+				return resolved.GetBaseMemory(base).template Get<T>(idx % base.mCount);
 			}
 
 			// All stages of interpretation failed									
@@ -2453,7 +2390,7 @@ namespace Langulus::Anyness
 		return 
 			GetElementDense(idx / base.mCount)
 				.GetBaseMemory(base)
-					.Get<T>(idx % base.mCount);
+					.template Get<T>(idx % base.mCount);
 	}
 
 	template<CT::Data T, CT::Index IDX>
@@ -3501,26 +3438,17 @@ namespace Langulus::Anyness
 		
 		mCount += count;
 	}
-	
-	/// Copy-insert all elements of a block at a special index						
-	///	@param other - the block to insert												
-	///	@param index - special index to insert them at								
-	///	@return the number of inserted elements										
-	template<CT::NotAbandonedOrDisowned T>
-	Count Block::InsertBlockAt(const T& other, Index index) {
-		static_assert(CT::Block<T>, "T must be a block type");
-		const auto offset = Constrain(index).GetOffset();
-		return InsertBlockAt(other, offset);
-	}
 
-	/// Copy-insert all elements of a block at a simple index						
+	/// Copy-insert all elements of a block at an index								
 	///	@attention assumes that index is inside block's limits					
 	///	@param other - the block to insert												
-	///	@param index - simple index to insert them at								
+	///	@param index - index to insert them at											
 	///	@return the number of inserted elements										
-	template<CT::NotAbandonedOrDisowned T>
-	Count Block::InsertBlockAt(const T& other, Offset index) {
+	template<CT::NotAbandonedOrDisowned T, CT::Index INDEX>
+	Count Block::InsertBlockAt(const T& other, INDEX idx) {
 		static_assert(CT::Block<T>, "T must be a block type");
+
+		const auto index = SimplifyIndex(idx);
 		Block region;
 		AllocateRegion(other, index, region);
 
@@ -3534,24 +3462,15 @@ namespace Langulus::Anyness
 		return 0;
 	}
 
-	/// Move-insert all elements of a block at a special index						
+	/// Move-insert all elements of a block at an index								
 	///	@param other - the block to move in												
-	///	@param index - special index to insert them at								
+	///	@param index - index to insert them at											
 	///	@return the number of inserted elements										
-	template<CT::NotAbandonedOrDisowned T>
-	Count Block::InsertBlockAt(T&& other, Index index) {
+	template<CT::NotAbandonedOrDisowned T, CT::Index INDEX>
+	Count Block::InsertBlockAt(T&& other, INDEX idx) {
 		static_assert(CT::Block<T>, "T must be a block type");
-		const auto offset = Constrain(index).GetOffset();
-		return InsertBlockAt(Move(other), offset);
-	}
 
-	/// Move-insert all elements of a block at a simple index						
-	///	@param other - the block to move in												
-	///	@param index - simple index to insert them at								
-	///	@return the number of inserted elements										
-	template<CT::NotAbandonedOrDisowned T>
-	Count Block::InsertBlockAt(T&& other, Offset index) {
-		static_assert(CT::Block<T>, "T must be a block type");
+		const auto index = SimplifyIndex(idx);
 		Block region;
 		AllocateRegion(other, index, region);
 
@@ -3564,24 +3483,15 @@ namespace Langulus::Anyness
 		return 0;
 	}
 
-	/// Move-insert all elements of an abandoned block at a special index		
+	/// Move-insert all elements of an abandoned block at an index					
 	///	@param other - the block to move in												
-	///	@param index - special index to insert them at								
+	///	@param index - index to insert them at											
 	///	@return the number of inserted elements										
-	template<CT::Data T>
-	Count Block::InsertBlockAt(Abandoned<T>&& other, Index index) {
+	template<CT::Data T, CT::Index INDEX>
+	Count Block::InsertBlockAt(Abandoned<T>&& other, INDEX idx) {
 		static_assert(CT::Block<T>, "T must be a block type");
-		const auto offset = Constrain(index).GetOffset();
-		return InsertBlockAt(Move(other), offset);
-	}
 
-	/// Move-insert all elements of an abandoned block at a simple index			
-	///	@param other - the block to move in												
-	///	@param index - simple index to insert them at								
-	///	@return the number of inserted elements										
-	template<CT::Data T>
-	Count Block::InsertBlockAt(Abandoned<T>&& other, Offset index) {
-		static_assert(CT::Block<T>, "T must be a block type");
+		const auto index = SimplifyIndex(idx);
 		Block region;
 		AllocateRegion(other.mValue, index, region);
 
@@ -3594,24 +3504,15 @@ namespace Langulus::Anyness
 		return 0;
 	}
 
-	/// Copy-insert all elements of a disowned block at a special index			
+	/// Copy-insert all elements of a disowned block at an index					
 	///	@param other - the block to move in												
-	///	@param index - special index to insert them at								
+	///	@param index - index to insert them at											
 	///	@return the number of inserted elements										
-	template<CT::Data T>
-	Count Block::InsertBlockAt(Disowned<T>&& other, Index index) {
+	template<CT::Data T, CT::Index INDEX>
+	Count Block::InsertBlockAt(Disowned<T>&& other, INDEX idx) {
 		static_assert(CT::Block<T>, "T must be a block type");
-		const auto offset = Constrain(index).GetOffset();
-		return InsertBlockAt(Move(other), offset);
-	}
 
-	/// Copy-insert all elements of a disowned block at a simple index			
-	///	@param other - the block to move in												
-	///	@param index - simple index to insert them at								
-	///	@return the number of inserted elements										
-	template<CT::Data T>
-	Count Block::InsertBlockAt(Disowned<T>&& other, Offset index) {
-		static_assert(CT::Block<T>, "T must be a block type");
+		const auto index = SimplifyIndex(idx);
 		Block region;
 		AllocateRegion(other.mValue, index, region);
 
@@ -3790,12 +3691,13 @@ namespace Langulus::Anyness
 	///	@param other - the block to insert												
 	///	@param index - special/simple index to insert at							
 	///	@return the number of inserted elements										
-	template<CT::NotAbandonedOrDisowned T, class INDEX>
+	template<CT::NotAbandonedOrDisowned T, CT::Index INDEX>
 	Count Block::MergeBlockAt(const T& other, INDEX index) {
 		static_assert(CT::Block<T>,
 			"T must be a block type");
 		static_assert(CT::SameAsOneOf<INDEX, Index, Offset>,
 			"INDEX bust be an index type");
+
 		//TODO do a pass first and allocate & move once instead of each time?
 		Count inserted {};
 		for (Count i = 0; i < other.GetCount(); ++i) {
@@ -3814,12 +3716,13 @@ namespace Langulus::Anyness
 	///	@param other - the block to insert												
 	///	@param index - special/simple index to insert at							
 	///	@return the number of inserted elements										
-	template<CT::NotAbandonedOrDisowned T, class INDEX>
+	template<CT::NotAbandonedOrDisowned T, CT::Index INDEX>
 	Count Block::MergeBlockAt(T&& other, INDEX index) {
 		static_assert(CT::Block<T>,
 			"T must be a block type");
 		static_assert(CT::SameAsOneOf<INDEX, Index, Offset>,
 			"INDEX bust be an index type");
+
 		//TODO do a pass first and allocate & move once instead of each time?
 		Count inserted {};
 		for (Count i = 0; i < other.GetCount(); ++i) {
@@ -3839,12 +3742,13 @@ namespace Langulus::Anyness
 	///	@param other - the block to insert												
 	///	@param index - special/simple index to insert at							
 	///	@return the number of inserted elements										
-	template<CT::Data T, class INDEX>
+	template<CT::Data T, CT::Index INDEX>
 	Count Block::MergeBlockAt(Disowned<T>&& other, INDEX index) {
 		static_assert(CT::Block<T>,
 			"T must be a block type");
 		static_assert(CT::SameAsOneOf<INDEX, Index, Offset>,
 			"INDEX bust be an index type");
+
 		//TODO do a pass first and allocate & move once instead of each time?
 		Count inserted {};
 		for (Count i = 0; i < other.GetCount(); ++i) {
@@ -3862,12 +3766,13 @@ namespace Langulus::Anyness
 	///	@param other - the block to insert												
 	///	@param index - special/simple index to insert at							
 	///	@return the number of inserted elements										
-	template<CT::Data T, class INDEX>
+	template<CT::Data T, CT::Index INDEX>
 	Count Block::MergeBlockAt(Abandoned<T>&& other, INDEX index) {
 		static_assert(CT::Block<T>,
 			"T must be a block type");
 		static_assert(CT::SameAsOneOf<INDEX, Index, Offset>,
 			"INDEX bust be an index type");
+
 		//TODO do a pass first and allocate & move once instead of each time?
 		Count inserted {};
 		for (Count i = 0; i < other.mValue.GetCount(); ++i) {
@@ -3891,6 +3796,7 @@ namespace Langulus::Anyness
 			"T must be a block type");
 		static_assert(INDEX == IndexFront || INDEX == IndexBack,
 			"INDEX bust be either IndexFront or IndexBack");
+
 		//TODO do a pass first and allocate & move once instead of each time?
 		Count inserted {};
 		for (Count i = 0; i < other.GetCount(); ++i) {
@@ -3914,6 +3820,7 @@ namespace Langulus::Anyness
 			"T must be a block type");
 		static_assert(INDEX == IndexFront || INDEX == IndexBack,
 			"INDEX bust be either IndexFront or IndexBack");
+
 		//TODO do a pass first and allocate & move once instead of each time?
 		Count inserted {};
 		for (Count i = 0; i < other.GetCount(); ++i) {
@@ -3938,6 +3845,7 @@ namespace Langulus::Anyness
 			"T must be a block type");
 		static_assert(INDEX == IndexFront || INDEX == IndexBack,
 			"INDEX bust be either IndexFront or IndexBack");
+
 		//TODO do a pass first and allocate & move once instead of each time?
 		Count inserted {};
 		for (Count i = 0; i < other.GetCount(); ++i) {
@@ -3960,6 +3868,7 @@ namespace Langulus::Anyness
 			"T must be a block type");
 		static_assert(INDEX == IndexFront || INDEX == IndexBack,
 			"INDEX bust be either IndexFront or IndexBack");
+
 		//TODO do a pass first and allocate & move once instead of each time?
 		Count inserted {};
 		for (Count i = 0; i < other.mValue.GetCount(); ++i) {

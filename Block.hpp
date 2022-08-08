@@ -201,8 +201,9 @@ namespace Langulus::Anyness
 		NOD() constexpr bool IsNullifiable() const noexcept;
 		NOD() constexpr bool IsDeep() const noexcept;
 		NOD() constexpr Phase GetPhase() const noexcept;
-		NOD() constexpr bool CanFitPhase(const Phase&) const noexcept;
+		NOD() constexpr bool CanFitPhase(const Block&) const noexcept;
 		NOD() constexpr bool CanFitState(const Block&) const noexcept;
+		NOD() constexpr bool CanFitOrAnd(const Block&) const noexcept;
 		NOD() constexpr Count GetByteSize() const noexcept;
 		NOD() constexpr Token GetToken() const noexcept;
 		NOD() constexpr Size GetStride() const noexcept;
@@ -380,64 +381,46 @@ namespace Langulus::Anyness
 		NOD() Hash GetHash() const;
 	
 		template<CT::Data T>
-		NOD() Index Find(const T&, const Index& = IndexFront) const;
-	
+		NOD() Index Find(const T&, Index = IndexFront) const;
 		template<CT::Data T>
-		NOD() Index FindDeep(const T&, const Index& = IndexFront) const;
-		NOD() Index FindRTTI(const Block&, const Index& = IndexFront) const;
+		NOD() Index FindDeep(const T&, Index = IndexFront) const;
+
+		NOD() Index FindRTTI(const Block&, Index = IndexFront) const;
 	
 		Count Gather(Block&, Index = IndexFront) const;
 		Count Gather(Block&, Phase, Index = IndexFront) const;
 	
-		template<CT::Data T>
-		void Swap(Offset, Offset);
-		template<CT::Data T>
-		void Swap(Index, Index);
+		template<CT::Data T, CT::Index INDEX1, CT::Index INDEX2>
+		void Swap(INDEX1, INDEX2);
 	
 
 		//																						
 		//	Insertion																		
 		//																						
-		template<bool KEEP, bool MUTABLE, CT::Data WRAPPER = Any, CT::NotAbandonedOrDisowned T>
-		Count InsertAt(const T*, const T*, Index);
-		template<bool KEEP, bool MUTABLE, CT::Data WRAPPER = Any, CT::NotAbandonedOrDisowned T>
-		Count InsertAt(const T*, const T*, Offset);
-		template<bool KEEP, bool MUTABLE, CT::Data WRAPPER = Any, CT::NotAbandonedOrDisowned T>
-		Count InsertAt(T&&, Index);
-		template<bool KEEP, bool MUTABLE, CT::Data WRAPPER = Any, CT::NotAbandonedOrDisowned T>
-		Count InsertAt(T&&, Offset);
+		template<bool KEEP, bool MUTABLE, CT::Data WRAPPER = Any, CT::NotAbandonedOrDisowned T, CT::Index INDEX>
+		Count InsertAt(const T*, const T*, INDEX);
+		template<bool KEEP, bool MUTABLE, CT::Data WRAPPER = Any, CT::NotAbandonedOrDisowned T, CT::Index INDEX>
+		Count InsertAt(T&&, INDEX);
 
 		template<Index INDEX = IndexBack, bool KEEP, bool MUTABLE, CT::Data WRAPPER = Any, CT::NotAbandonedOrDisowned T>
 		Count Insert(const T*, const T*);
 		template<Index INDEX = IndexBack, bool KEEP, bool MUTABLE, CT::Data WRAPPER = Any, CT::NotAbandonedOrDisowned T>
 		Count Insert(T&&);
 
-		template<bool KEEP, bool MUTABLE, CT::Data WRAPPER = Any, CT::NotAbandonedOrDisowned T>
-		Count MergeAt(const T*, const T*, Index);
-		template<bool KEEP, bool MUTABLE, CT::Data WRAPPER = Any, CT::NotAbandonedOrDisowned T>
-		Count MergeAt(const T*, const T*, Offset);
-		template<bool KEEP, bool MUTABLE, CT::Data WRAPPER = Any, CT::NotAbandonedOrDisowned T>
-		Count MergeAt(T&&, Index);
-		template<bool KEEP, bool MUTABLE, CT::Data WRAPPER = Any, CT::NotAbandonedOrDisowned T>
-		Count MergeAt(T&&, Offset);
+		template<bool KEEP, bool MUTABLE, CT::Data WRAPPER = Any, CT::NotAbandonedOrDisowned T, CT::Index INDEX>
+		Count MergeAt(const T*, const T*, INDEX);
+		template<bool KEEP, bool MUTABLE, CT::Data WRAPPER = Any, CT::NotAbandonedOrDisowned T, CT::Index INDEX>
+		Count MergeAt(T&&, INDEX);
 
-		template<CT::NotAbandonedOrDisowned T>
-		Count InsertBlockAt(const T&, Index);
-		template<CT::NotAbandonedOrDisowned T>
-		Count InsertBlockAt(const T&, Offset);
-		template<CT::NotAbandonedOrDisowned T>
-		Count InsertBlockAt(T&&, Index);
-		template<CT::NotAbandonedOrDisowned T>
-		Count InsertBlockAt(T&&, Offset);
+		template<CT::NotAbandonedOrDisowned T, CT::Index INDEX>
+		Count InsertBlockAt(const T&, INDEX);
+		template<CT::NotAbandonedOrDisowned T, CT::Index INDEX>
+		Count InsertBlockAt(T&&, INDEX);
 
-		template<CT::Data T>
-		Count InsertBlockAt(Disowned<T>&&, Index);
-		template<CT::Data T>
-		Count InsertBlockAt(Disowned<T>&&, Offset);
-		template<CT::Data T>
-		Count InsertBlockAt(Abandoned<T>&&, Index);
-		template<CT::Data T>
-		Count InsertBlockAt(Abandoned<T>&&, Offset);
+		template<CT::Data T, CT::Index INDEX>
+		Count InsertBlockAt(Disowned<T>&&, INDEX);
+		template<CT::Data T, CT::Index INDEX>
+		Count InsertBlockAt(Abandoned<T>&&, INDEX);
 
 		template<Index INDEX = IndexBack, CT::NotAbandonedOrDisowned T>
 		Count InsertBlock(const T&);
@@ -449,14 +432,14 @@ namespace Langulus::Anyness
 		template<Index INDEX = IndexBack, CT::Data T>
 		Count InsertBlock(Abandoned<T>&&);
 
-		template<CT::NotAbandonedOrDisowned T, class INDEX>
+		template<CT::NotAbandonedOrDisowned T, CT::Index INDEX>
 		Count MergeBlockAt(const T&, INDEX);
-		template<CT::NotAbandonedOrDisowned T, class INDEX>
+		template<CT::NotAbandonedOrDisowned T, CT::Index INDEX>
 		Count MergeBlockAt(T&&, INDEX);
 
-		template<CT::Data T, class INDEX>
+		template<CT::Data T, CT::Index INDEX>
 		Count MergeBlockAt(Disowned<T>&&, INDEX);
-		template<CT::Data T, class INDEX>
+		template<CT::Data T, CT::Index INDEX>
 		Count MergeBlockAt(Abandoned<T>&&, INDEX);
 	
 		template<Index INDEX = IndexBack, CT::NotAbandonedOrDisowned T>
@@ -472,15 +455,15 @@ namespace Langulus::Anyness
 		template<CT::Data T, bool MOVE_STATE = true>
 		T& Deepen();
 
-		template<bool CONCAT = true, bool DEEPEN = true, CT::NotAbandonedOrDisowned T, CT::Data INDEX, CT::Data WRAPPER = Any>
+		template<bool CONCAT = true, bool DEEPEN = true, CT::NotAbandonedOrDisowned T, CT::Index INDEX, CT::Data WRAPPER = Any>
 		Count SmartPushAt(const T&, INDEX, DataState = {});
-		template<bool CONCAT = true, bool DEEPEN = true, CT::NotAbandonedOrDisowned T, CT::Data INDEX, CT::Data WRAPPER = Any>
+		template<bool CONCAT = true, bool DEEPEN = true, CT::NotAbandonedOrDisowned T, CT::Index INDEX, CT::Data WRAPPER = Any>
 		Count SmartPushAt(T&, INDEX, DataState = {});
-		template<bool CONCAT = true, bool DEEPEN = true, CT::NotAbandonedOrDisowned T, CT::Data INDEX, CT::Data WRAPPER = Any>
+		template<bool CONCAT = true, bool DEEPEN = true, CT::NotAbandonedOrDisowned T, CT::Index INDEX, CT::Data WRAPPER = Any>
 		Count SmartPushAt(T&&, INDEX, DataState = {});
-		template<bool CONCAT = true, bool DEEPEN = true, CT::Data T, CT::Data INDEX, CT::Data WRAPPER = Any>
+		template<bool CONCAT = true, bool DEEPEN = true, CT::Data T, CT::Index INDEX, CT::Data WRAPPER = Any>
 		Count SmartPushAt(Disowned<T>&&, INDEX, DataState = {});
-		template<bool CONCAT = true, bool DEEPEN = true, CT::Data T, CT::Data INDEX, CT::Data WRAPPER = Any>
+		template<bool CONCAT = true, bool DEEPEN = true, CT::Data T, CT::Index INDEX, CT::Data WRAPPER = Any>
 		Count SmartPushAt(Abandoned<T>&&, INDEX, DataState = {});
 
 		template<Index INDEX = IndexBack, bool CONCAT = true, bool DEEPEN = true, CT::NotAbandonedOrDisowned T, CT::Data WRAPPER = Any>
@@ -546,6 +529,14 @@ namespace Langulus::Anyness
 		void Reset();
 
 	protected:
+		template<CT::Data T, CT::Index INDEX>
+		Offset SimplifyIndex(const INDEX&) const noexcept;
+
+		template<bool ALLOW_DEEPEN, bool KEEP, CT::Data T, CT::Data WRAPPER = Any, CT::Index INDEX>
+		Count SmartConcatAt(const bool&, T, const DataState&, const INDEX&);
+		template<bool ALLOW_DEEPEN, Index INDEX = IndexBack, bool KEEP, CT::Data T, CT::Data WRAPPER = Any>
+		Count SmartConcat(const bool&, T, const DataState&);
+		
 		template<bool ALLOW_DEEPEN, bool KEEP, CT::Data T, CT::Data WRAPPER = Any, CT::Index INDEX>
 		Count SmartPushAtInner(T, const DataState&, const INDEX&);
 		template<bool ALLOW_DEEPEN, Index INDEX = IndexBack, bool KEEP, CT::Data T, CT::Data WRAPPER = Any>

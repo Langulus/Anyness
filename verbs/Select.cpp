@@ -179,7 +179,7 @@ namespace Langulus::Anyness
 	///	@param item - block with a single item to search for						
 	///	@param idx - index to start searching from									
 	///	@return the index of the found item, or uiNone if not found				
-	Index Block::FindRTTI(const Block& item, const Index& idx) const {
+	Index Block::FindRTTI(const Block& item, Index idx) const {
 		if (item.IsEmpty())
 			return IndexNone;
 

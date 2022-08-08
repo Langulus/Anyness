@@ -786,10 +786,10 @@ SCENARIO("Any", "[containers]") {
 			pushed << 666;
 			pushed.MakeOr();
 			auto result = pushed.SmartPush<IndexBack, true, true>('?');
-			THEN("Must not duplicate state of deepened container") {
+			THEN("State should be moved to the top") {
 				REQUIRE(result == 1);
-				REQUIRE(!pushed.IsOr());
-				REQUIRE(pushed.As<Any>(0).IsOr());
+				REQUIRE(pushed.IsOr());
+				REQUIRE(!pushed.As<Any>(0).IsOr());
 				REQUIRE(!pushed.As<Any>(1).IsOr());
 			}
 		}
