@@ -1741,8 +1741,7 @@ namespace Langulus::Anyness
 	///																								
 	template<bool ALLOW_DEEPEN, bool KEEP, CT::Data T, CT::Data WRAPPER, CT::Index INDEX>
 	LANGULUS(ALWAYSINLINE) Count Block::SmartPushAtInner(T value, const DataState& state, const INDEX& index) {
-		// Insert 																			
-		if (IsUntyped()) {
+		if (IsUntyped() && IsInvalid()) {
 			// Mutate-insert inside untyped container								
 			SetState(mState + state);
 			if constexpr (CT::Moved<T>)
@@ -1758,7 +1757,7 @@ namespace Langulus::Anyness
 			else
 				return InsertAt<KEEP, false>(&value, &value + 1, index);
 		}
-		else if (IsEmpty() && !IsTypeConstrained()) {
+		else if (IsEmpty() && mType && !IsTypeConstrained()) {
 			// If incompatibly typed but empty and not constrained, we		
 			// can still reset the container and reuse it						
 			Reset();
@@ -1814,8 +1813,7 @@ namespace Langulus::Anyness
 	///																								
 	template<bool ALLOW_DEEPEN, Index INDEX, bool KEEP, CT::Data T, CT::Data WRAPPER>
 	LANGULUS(ALWAYSINLINE) Count Block::SmartPushInner(T value, const DataState& state) {
-		// Insert 																			
-		if (IsUntyped()) {
+		if (IsUntyped() && IsInvalid()) {
 			// Mutate-insert inside untyped container								
 			SetState(mState + state);
 			if constexpr (CT::Moved<T>)
@@ -1831,7 +1829,7 @@ namespace Langulus::Anyness
 			else
 				return Insert<INDEX, KEEP, false>(&value, &value + 1);
 		}
-		else if (IsEmpty() && !IsTypeConstrained()) {
+		else if (IsEmpty() && mType && !IsTypeConstrained()) {
 			// If incompatibly typed but empty and not constrained, we		
 			// can still reset the container and reuse it						
 			Reset();
@@ -1847,9 +1845,9 @@ namespace Langulus::Anyness
 				// If container is not or-compliant after insertion, we		
 				// need to add another layer											
 				Deepen<WRAPPER, false>();
-				SetState(mState + state);
 			}
-			else SetState(mState + state);
+
+			SetState(mState + state);
 
 			if constexpr (KEEP) {
 				if constexpr (CT::Moved<T>)
@@ -2301,7 +2299,7 @@ namespace Langulus::Anyness
 
 	/// Wrap all contained elements inside a sub-block, making this one deep	
 	///	@tparam T - the type of deep container to use								
-	///	@tparam MOVE_STATE - whether or not to send the current state over	
+	///	@tparam MOVE_STATE - whether or not to send the current orness over	
 	///	@return a reference to this container											
 	template<CT::Data T, bool MOVE_STATE>
 	T& Block::Deepen() {
@@ -2318,7 +2316,7 @@ namespace Langulus::Anyness
 		}
 
 		// Back up the state so that we can restore it if not moved over	
-		UNUSED() const auto state {GetUnconstrainedState()};
+		UNUSED() const DataState state {mState.mState & DataState::Or};
 		if constexpr (!MOVE_STATE)
 			mState -= state;
 
