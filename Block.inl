@@ -922,14 +922,12 @@ namespace Langulus::Anyness
 					Deepen<WRAPPER>();
 					return true;
 				}
+
+				Throw<Except::Mutate>(
+					"Attempting to mutate incompatible type-constrained container");
 			}
-
-			Throw<Except::Mutate>(
-				"Attempting to deepen incompatible type-constrained container");
+			else Throw<Except::Mutate>("Can't mutate to incompatible type");
 		}
-
-		SAFETY(if (!CastsToMeta(meta))
-			Throw<Except::Mutate>("Mutation results in incompatible data"));
 
 		return false;
 	}
@@ -970,14 +968,6 @@ namespace Langulus::Anyness
 		}
 
 		return result;
-	}
-
-	/// Check if type T can fit inside this container									
-	///	@tparam T - the type to compare against										
-	///	@return true if T can fit inside this container								
-	template<CT::Data T>
-	bool Block::CanFit() const {
-		return CanFit(MetaData::Of<Decay<T>>());
 	}
 
 	/// Check if this container's data can be represented as type T				
@@ -1938,7 +1928,7 @@ namespace Langulus::Anyness
 		// enabled, try concatenating the two containers						
 		const bool typeCompliant = IsUntyped()
 			|| (ALLOW_DEEPEN && value.IsDeep())
-			|| CanFit(value.GetType());
+			|| Is(value.GetType());
 
 		if (!IsConstant() && !IsStatic() && typeCompliant && sc
 			// Make sure container is or-compliant after the change			
@@ -2310,11 +2300,6 @@ namespace Langulus::Anyness
 				"Attempting to deepen incompatible typed container");
 		}
 
-		if (GetUses() > 1) {
-			Throw<Except::Mutate>(
-				"Attempting to deepen container that is referenced from multiple locations");
-		}
-
 		// Back up the state so that we can restore it if not moved over	
 		UNUSED() const DataState state {mState.mState & DataState::Or};
 		if constexpr (!MOVE_STATE)
@@ -2658,7 +2643,7 @@ namespace Langulus::Anyness
 			return 0;
 		 
 		UNUSED() auto initialCount = mCount;
-		constexpr bool HasBreaker = CT::Same<bool, R>;
+		constexpr bool HasBreaker = CT::Bool<R>;
 		Count index {};
 		if (mType->Is<A>()) {
 			// Fast specialized routine that gives direct access				
@@ -2791,7 +2776,7 @@ namespace Langulus::Anyness
 	///	@return the number of executions that occured								
 	template<class R, CT::Data A, bool REVERSE, bool SKIP, bool MUTABLE>
 	Count Block::ForEachDeepInner(TFunctor<R(A)>&& call) {
-		constexpr bool HasBreaker = CT::Same<bool, R>;
+		constexpr bool HasBreaker = CT::Bool<R>;
 		UNUSED() bool atLeastOneChange = false;
 		auto count {GetCountDeep()};
 		Count index {};

@@ -506,11 +506,6 @@ namespace Langulus::Anyness
 		template<CT::Data T>
 		void Sort(const Index&) noexcept;
 	
-		NOD() bool CanFit(DMeta) const;
-		NOD() bool CanFit(const Block&) const;
-		template<CT::Data T>
-		NOD() bool CanFit() const;
-	
 		NOD() bool CastsToMeta(DMeta) const;
 		NOD() bool CastsToMeta(DMeta, Count) const;
 

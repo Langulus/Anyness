@@ -20,7 +20,7 @@ namespace Langulus::Anyness
 			return false;
 
 		// Check if types are compatible												
-		return CanFitState(other) && CanFit(other);
+		return CanFitState(other) && Is(other.mType);
 	}
 
 	/// Check if a type can be inserted														
@@ -173,27 +173,6 @@ namespace Langulus::Anyness
 		for (Count i = 0; i < mCount; ++i)
 			counter += As<Block>(i).GetCountElementsDeep();
 		return counter;
-	}
-
-	/// Check if you can push a type to this container									
-	/// Beware, direction matters (this is the inverse of InterpretsAs)			
-	///	@param type - the type to check if able to fit								
-	///	@return true if able to interpret current type to 'type'					
-	bool Block::CanFit(DMeta type) const {
-		if (!type)
-			return false;
-
-		if (IsSparse())
-			return type->CastsTo<true>(mType);
-		else
-			return type->CastsTo(mType);
-	}
-
-	/// Check if two containers are concatenable											
-	///	@param pack - the memory block to check if fittable to this				
-	///	@return true if fittable															
-	bool Block::CanFit(const Block& pack) const {
-		return CanFit(pack.mType);
 	}
 
 	/// Check if contained data can be interpreted as a given type					
