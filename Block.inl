@@ -7,6 +7,7 @@
 ///																									
 #pragma once
 #include "Block.hpp"
+#include "verbs/Compare.inl"
 
 namespace Langulus::Anyness
 {
@@ -721,7 +722,7 @@ namespace Langulus::Anyness
 	/// most concretely typed block															
 	///	@return true if contained data can be resolved on element basis		
 	constexpr bool Block::IsResolvable() const noexcept {
-		return mType && mType->mResolver;
+		return IsSparse() && mType && mType->mResolver;
 	}
 
 	/// Check if block data can be safely set to zero bytes							

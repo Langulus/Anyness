@@ -7,8 +7,8 @@
 ///																									
 #include "../Any.hpp"
 
-#define VERBOSE(...) Logger::Verbose(__VA_ARGS__)
-#define VERBOSE_TAB(...) auto tab = Logger::Section(__VA_ARGS__)
+#define VERBOSE(...) //Logger::Verbose(__VA_ARGS__)
+#define VERBOSE_TAB(...) //auto tab = Logger::Section(__VA_ARGS__)
 
 namespace Langulus::Anyness
 {

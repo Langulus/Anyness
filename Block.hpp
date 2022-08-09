@@ -361,9 +361,11 @@ namespace Langulus::Anyness
 		Count Copy(Block&) const;
 		Count Clone(Block&) const;
 	
-		NOD() bool CompareMembers(const Block&, Count& compared) const;
+		//NOD() bool CompareMembers(const Block&, Count& compared) const;
 		NOD() bool CompareStates(const Block&) const noexcept;
-		NOD() bool Compare(const Block&, bool resolve = true) const;
+		NOD() bool CompareTypes(const Block&, RTTI::Base&) const noexcept;
+		template<bool RESOLVE = true>
+		NOD() bool Compare(const Block&) const;
 	
 		template<bool CREATE = false, bool SETSIZE = false>
 		void Allocate(const Count&);
@@ -588,6 +590,8 @@ namespace Langulus::Anyness
 		template<CT::Data T>
 		void CallKnownDestructors();
 	
+		NOD() bool CallComparer(const Block&, const RTTI::Base&) const noexcept;
+
 		void AllocateRegion(const Block&, Offset, Block&);
 	};
 
