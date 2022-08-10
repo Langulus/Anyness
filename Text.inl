@@ -18,7 +18,7 @@ namespace Langulus::Anyness
 	/// Data will be cloned if we don't have authority over the memory			
 	///	@param text - the text to wrap													
 	inline Text::Text(const Token& text)
-		: Text {&text.front(), text.size()} {}
+		: Text {text.data(), text.size()} {}
 
 	/// Construct manually from count-terminated C string								
 	/// Data will be cloned if we don't have authority over the memory			

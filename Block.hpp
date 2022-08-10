@@ -234,7 +234,7 @@ namespace Langulus::Anyness
 		template<CT::Data T>
 		NOD() bool IsInsertable() const noexcept;
 	
-		NOD() bool operator == (const Block&) const noexcept;
+		NOD() bool operator == (const Block&) const;
 		NOD() bool operator == (::std::nullptr_t) const noexcept;
 	
 		NOD() Byte* At(const Offset& = 0);
@@ -513,12 +513,14 @@ namespace Langulus::Anyness
 		template<CT::Data T>
 		void Sort(const Index&) noexcept;
 	
+		template<bool BINARY_COMPATIBLE = false>
 		NOD() bool CastsToMeta(DMeta) const;
+		template<bool BINARY_COMPATIBLE = false>
 		NOD() bool CastsToMeta(DMeta, Count) const;
 
-		template<CT::Data T>
+		template<CT::Data T, bool BINARY_COMPATIBLE = false>
 		NOD() bool CastsTo() const;
-		template<CT::Data T>
+		template<CT::Data T, bool BINARY_COMPATIBLE = false>
 		NOD() bool CastsTo(Count) const;
 	
 		NOD() bool Is(DMeta) const noexcept;
@@ -595,7 +597,7 @@ namespace Langulus::Anyness
 		template<CT::Data T>
 		void CallKnownDestructors();
 	
-		NOD() bool CallComparer(const Block&, const RTTI::Base&) const noexcept;
+		NOD() bool CallComparer(const Block&, const RTTI::Base&) const;
 
 		void AllocateRegion(const Block&, Offset, Block&);
 	};

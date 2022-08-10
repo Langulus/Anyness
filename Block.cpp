@@ -175,27 +175,6 @@ namespace Langulus::Anyness
 		return counter;
 	}
 
-	/// Check if contained data can be interpreted as a given type					
-	/// Beware, direction matters (this is the inverse of CanFit)					
-	///	@param type - the type check if current type interprets to				
-	///	@return true if able to interpret current type to 'type'					
-	bool Block::CastsToMeta(DMeta type) const {
-		if (IsSparse())
-			return mType && mType->CastsTo<true>(type);
-		else
-			return mType && mType->CastsTo(type);
-	}
-
-	/// Check if contained data can be interpreted as a given coung of type		
-	/// For example: a vec4 can interpret as float[4]									
-	/// Beware, direction matters (this is the inverse of CanFit)					
-	///	@param type - the type check if current type interprets to				
-	///	@param count - the number of elements to interpret as						
-	///	@return true if able to interpret current type to 'type'					
-	bool Block::CastsToMeta(DMeta type, Count count) const {
-		return !mType || !type || mType->CastsTo(type, count);
-	}
-
 	/// Check if contained data exactly matches a given type							
 	///	@param type - the type to check for												
 	///	@return if this block contains data of exactly 'type'						

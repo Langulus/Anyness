@@ -72,7 +72,7 @@ namespace Langulus::Anyness
 	///	@param right - the right block													
 	///	@param base - the base to use														
 	///	@return true if comparison returns true										
-	inline bool Block::CallComparer(const Block& right, const RTTI::Base& base) const noexcept {
+	inline bool Block::CallComparer(const Block& right, const RTTI::Base& base) const {
 		return mRaw == right.mRaw || (
 			mRaw && right.mRaw && base.mType->mComparer(mRaw, right.mRaw)
 		);

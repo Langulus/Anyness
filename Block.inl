@@ -803,7 +803,7 @@ namespace Langulus::Anyness
 	/// Compare memory blocks - this is a slow runtime compare						
 	///	@param other - the block to compare against									
 	///	@return true if block's elements all match and are in same order		
-	inline bool Block::operator == (const Block& other) const noexcept {
+	inline bool Block::operator == (const Block& other) const {
 		return Compare(other);
 	}
 
@@ -974,10 +974,12 @@ namespace Langulus::Anyness
 	/// Check if this container's data can be represented as type T				
 	/// with nothing more than pointer arithmetic										
 	///	@tparam T - the type to compare against										
+	///	@tparam BINARY_COMPATIBLE - do we require for the type to be			
+	///		binary compatible with this container's type								
 	///	@return true if contained data is reinterpretable as T					
-	template<CT::Data T>
+	template<CT::Data T, bool BINARY_COMPATIBLE>
 	bool Block::CastsTo() const {
-		return CastsToMeta(MetaData::Of<Decay<T>>());
+		return CastsToMeta<BINARY_COMPATIBLE>(MetaData::Of<Decay<T>>());
 	}
 
 	/// Check if this container's data can be represented as a specific number	
@@ -985,9 +987,32 @@ namespace Langulus::Anyness
 	///	@tparam T - the type to compare against										
 	///	@param count - the number of elements of T									
 	///	@return true if contained data is reinterpretable as T					
-	template<CT::Data T>
+	template<CT::Data T, bool BINARY_COMPATIBLE>
 	bool Block::CastsTo(Count count) const {
-		return CastsToMeta(MetaData::Of<Decay<T>>(), count);
+		return CastsToMeta<BINARY_COMPATIBLE>(MetaData::Of<Decay<T>>(), count);
+	}
+	
+	/// Check if contained data can be interpreted as a given type					
+	/// Beware, direction matters (this is the inverse of CanFit)					
+	///	@param type - the type check if current type interprets to				
+	///	@return true if able to interpret current type to 'type'					
+	template<bool BINARY_COMPATIBLE>
+	bool Block::CastsToMeta(DMeta type) const {
+		if (IsSparse())
+			return mType && mType->CastsTo<true>(type);
+		else
+			return mType && mType->CastsTo(type);
+	}
+
+	/// Check if contained data can be interpreted as a given coung of type		
+	/// For example: a vec4 can interpret as float[4]									
+	/// Beware, direction matters (this is the inverse of CanFit)					
+	///	@param type - the type check if current type interprets to				
+	///	@param count - the number of elements to interpret as						
+	///	@return true if able to interpret current type to 'type'					
+	template<bool BINARY_COMPATIBLE>
+	bool Block::CastsToMeta(DMeta type, Count count) const {
+		return !mType || !type || mType->CastsTo(type, count);
 	}
 
 	/// Check if this container's data is exactly one of the listed types		
@@ -3335,11 +3360,13 @@ namespace Langulus::Anyness
 				}
 			}
 
+			mCount += count;
 			return;
 		}
 		else if (mType->mIsPOD && IsDense() == source.IsDense()) {
 			// Just copy the POD memory (optimization)							
 			CopyMemory(source.mRaw, GetRawEnd(), count * mType->mSize);
+			mCount += count;
 			return;
 		}
 
