@@ -1938,6 +1938,8 @@ namespace Langulus::Anyness
 				// Block insert never mutates, so make sure type				
 				// is valid before insertion											
 				SetType<false>(value.GetType());
+				if (value.IsSparse())
+					MakeSparse();
 			}
 			else {
 				if constexpr (ALLOW_DEEPEN) {

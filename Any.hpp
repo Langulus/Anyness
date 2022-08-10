@@ -96,6 +96,7 @@ namespace Langulus::Anyness
 
 		void Clear();
 		void Reset();
+		constexpr void ResetState() noexcept;
 		NOD() Any Clone() const;
 
 		using Block::Swap;
@@ -133,8 +134,6 @@ namespace Langulus::Anyness
 		Any& operator >>= (T&&);
 
 	protected:
-		constexpr void ResetState() noexcept;
-
 		template<class T>
 		void PrepareForReassignment();
 	};

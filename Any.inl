@@ -445,7 +445,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this container for chaining							
 	template<CT::Data T>
 	Any& Any::operator << (const T& other) {
-		Insert<IndexBack, true, true>(SparseCast(other), SparseCast(other) + ExtentOf<T>);
+		Insert<IndexBack, true, true>(&other, &other + ExtentOf<T>);
 		return *this;
 	}
 
@@ -476,7 +476,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this container for chaining							
 	template<CT::Data T>
 	Any& Any::operator >> (const T& other) {
-		Insert<IndexFront, true, true>(SparseCast(other), SparseCast(other) + ExtentOf<T>);
+		Insert<IndexFront, true, true>(&other, &other + ExtentOf<T>);
 		return *this;
 	}
 
@@ -507,7 +507,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this container for chaining							
 	template<CT::Data T>
 	Any& Any::operator <<= (const T& other) {
-		Merge<IndexBack, true>(SparseCast(other), SparseCast(other) + ExtentOf<T>);
+		Merge<IndexBack, true>(&other, &other + ExtentOf<T>);
 		return *this;
 	}
 
@@ -533,7 +533,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this container for chaining							
 	template<CT::Data T>
 	Any& Any::operator >>= (const T& other) {
-		Merge<IndexFront, true>(SparseCast(other), SparseCast(other) + ExtentOf<T>);
+		Merge<IndexFront, true>(&other, &other + ExtentOf<T>);
 		return *this;
 	}
 

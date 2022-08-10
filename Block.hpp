@@ -269,7 +269,12 @@ namespace Langulus::Anyness
 	
 		NOD() Block GetElementDeep(Offset) noexcept;
 		NOD() const Block GetElementDeep(Offset) const noexcept;
-	
+
+		NOD() Block GetResolved() noexcept;
+		NOD() const Block GetResolved() const noexcept;
+		NOD() Block GetDense() noexcept;
+		NOD() const Block GetDense() const noexcept;
+
 		//																						
 		//	Iteration																		
 		//																						

@@ -230,21 +230,45 @@ namespace Langulus::Anyness
 		};
 	}
 
+	/// Get the resolved first element of this block									
+	///	@attention assumes this block is valid and has exactly one element	
+	///	@return the resolved first element												
+	Block Block::GetResolved() noexcept {
+		auto dense = GetDense();
+		if (!dense.mRaw || !mType->mResolver)
+			return dense;
+
+		return mType->mResolver(dense.mRaw).GetDense();
+	}
+
+	const Block Block::GetResolved() const noexcept {
+		return const_cast<Block*>(this)->GetResolved();
+	}
+
+	/// Get the dense first element of this block										
+	///	@attention assumes this block is valid and has exactly one element	
+	///	@return the dense first element													
+	Block Block::GetDense() noexcept {
+		auto copy = *this;
+		if (IsSparse()) {
+			copy.mEntry = mRawSparse->mEntry;
+			copy.mRaw = mRawSparse->mPointer;
+			copy.mState -= DataState::Sparse;
+		}
+
+		return copy;
+	}
+
+	const Block Block::GetDense() const noexcept {
+		return const_cast<Block*>(this)->GetDense();
+	}
+
 	/// Get the dense block of an element inside the block							
 	///	@attention the element might be empty if a sparse nullptr				
 	///	@param index - index of the element inside the block						
 	///	@return the dense memory block for the element								
 	Block Block::GetElementDense(Offset index) {
-		auto element = GetElement(index);
-		if (IsSparse()) {
-			// It is very important we copy entry first, because after		
-			// overwriting mRaw, mEntry is not longer valid						
-			element.mEntry = element.GetRawSparse()->mEntry;
-			element.mRaw = element.GetRawSparse()->mPointer;
-			element.mState -= DataState::Sparse;
-		}
-
-		return element;
+		return GetElement(index).GetDense();
 	}
 
 	/// Get the dense block of an element inside the block							
@@ -259,11 +283,7 @@ namespace Langulus::Anyness
 	///	@param index - index of the element inside the block						
 	///	@return the dense resolved memory block for the element					
 	Block Block::GetElementResolved(Offset index) {
-		auto element = GetElementDense(index);
-		if (!element.mRaw || !mType->mResolver)
-			return element;
-
-		return mType->mResolver(element.mRaw).GetElementDense(0);
+		return GetElement(index).GetResolved();
 	}
 
 	/// Get the dense const block of an element inside the block					
