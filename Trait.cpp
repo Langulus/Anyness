@@ -94,38 +94,3 @@ namespace Langulus::Anyness
 	}
 
 } // namespace Langulus::Anyness
-
-namespace Langulus::Traits
-{
-
-	using RTTI::MetaTrait;
-
-	Logger::Logger()
-		: Trait {MetaTrait::Of<Logger>(), Any{}} {}
-	Logger::Logger(Disowned<Logger>&& other)
-		: Trait {other.mValue.mTraitType, other.Forward<Any>()} {}
-	Logger::Logger(Abandoned<Logger>&& other)
-		: Trait {other.mValue.mTraitType, other.Forward<Any>()} {}
-
-	Count::Count()
-		: Trait {MetaTrait::Of<Count>(), Any{}} {}
-	Count::Count(Disowned<Count>&& other)
-		: Trait {other.mValue.mTraitType, other.Forward<Any>()} {}
-	Count::Count(Abandoned<Count>&& other)
-		: Trait {other.mValue.mTraitType, other.Forward<Any>()} {}
-
-	Name::Name()
-		: Trait {MetaTrait::Of<Name>(), Any{}} {}
-	Name::Name(Disowned<Name>&& other)
-		: Trait {other.mValue.mTraitType, other.Forward<Any>()} {}
-	Name::Name(Abandoned<Name>&& other)
-		: Trait {other.mValue.mTraitType, other.Forward<Any>()} {}
-
-	Context::Context()
-		: Trait {MetaTrait::Of<Context>(), Any{}} {}
-	Context::Context(Disowned<Context>&& other)
-		: Trait {other.mValue.mTraitType, other.Forward<Any>()} {}
-	Context::Context(Abandoned<Context>&& other)
-		: Trait {other.mValue.mTraitType, other.Forward<Any>()} {}
-
-} // namespace Langulus::Traits

@@ -3120,8 +3120,10 @@ namespace Langulus::Anyness
 			while (from != fromEnd) {
 				if constexpr (KEEP)
 					new (to) T {Move(*from)};
-				else
+				else if constexpr (CT::AbandonMakable<T>)
 					new (to) T {Abandon(*from)};
+				else
+					new (to) T {Move(*from)};
 
 				++to; ++from;
 			}

@@ -128,3 +128,78 @@ namespace Langulus::Anyness
 	}
 
 } // namespace Langulus::Anyness
+
+
+namespace Langulus::Traits
+{
+
+	using RTTI::MetaTrait;
+
+	inline Logger::Logger()
+		: Trait {MetaTrait::Of<Logger>(), &::Langulus::Logger::Instance} {}
+	inline Logger::Logger(Disowned<Logger>&& other)
+		: Trait {other.mValue.mTraitType, other.Forward<Any>()} {}
+	inline Logger::Logger(Abandoned<Logger>&& other)
+		: Trait {other.mValue.mTraitType, other.Forward<Any>()} {}
+
+	inline Count::Count()
+		: Trait {MetaTrait::Of<Count>(), Any{}} {}
+
+	template<CT::NotAbandonedOrDisowned T>
+	Count::Count(const T& data)
+		: Trait {MetaTrait::Of<Count>(), data} {}
+
+	template<CT::NotAbandonedOrDisowned T>
+	Count::Count(T& data)
+		: Trait {MetaTrait::Of<Count>(), data} {}
+
+	template<CT::NotAbandonedOrDisowned T>
+	Count::Count(T&& data)
+		: Trait {MetaTrait::Of<Count>(), Forward<T>(data)} {}
+
+	inline Count::Count(Disowned<Count>&& other)
+		: Trait {other.mValue.mTraitType, other.Forward<Any>()} {}
+	inline Count::Count(Abandoned<Count>&& other)
+		: Trait {other.mValue.mTraitType, other.Forward<Any>()} {}
+
+	inline Name::Name()
+		: Trait {MetaTrait::Of<Name>(), Any{}} {}
+
+	template<CT::NotAbandonedOrDisowned T>
+	Name::Name(const T& data)
+		: Trait {MetaTrait::Of<Name>(), data} {}
+
+	template<CT::NotAbandonedOrDisowned T>
+	Name::Name(T& data)
+		: Trait {MetaTrait::Of<Name>(), data} {}
+
+	template<CT::NotAbandonedOrDisowned T>
+	Name::Name(T&& data)
+		: Trait {MetaTrait::Of<Name>(), Forward<T>(data)} {}
+
+	inline Name::Name(Disowned<Name>&& other)
+		: Trait {other.mValue.mTraitType, other.Forward<Any>()} {}
+	inline Name::Name(Abandoned<Name>&& other)
+		: Trait {other.mValue.mTraitType, other.Forward<Any>()} {}
+
+	inline Context::Context()
+		: Trait {MetaTrait::Of<Context>(), Any{}} {}
+
+	template<CT::NotAbandonedOrDisowned T>
+	Context::Context(const T& data)
+		: Trait {MetaTrait::Of<Context>(), data} {}
+
+	template<CT::NotAbandonedOrDisowned T>
+	Context::Context(T& data)
+		: Trait {MetaTrait::Of<Context>(), data} {}
+
+	template<CT::NotAbandonedOrDisowned T>
+	Context::Context(T&& data)
+		: Trait {MetaTrait::Of<Context>(), Forward<T>(data)} {}
+
+	inline Context::Context(Disowned<Context>&& other)
+		: Trait {other.mValue.mTraitType, other.Forward<Any>()} {}
+	inline Context::Context(Abandoned<Context>&& other)
+		: Trait {other.mValue.mTraitType, other.Forward<Any>()} {}
+
+} // namespace Langulus::Traits

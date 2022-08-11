@@ -108,7 +108,8 @@ namespace Langulus::Traits
 	///	Logger trait, used to access the logger instance							
 	///																								
 	struct Logger : public Trait {
-		using Trait::Trait;
+		LANGULUS(TRAIT) "Logger";
+		LANGULUS_BASES(Trait);
 
 		Logger();
 		Logger(Disowned<Logger>&&);
@@ -124,9 +125,18 @@ namespace Langulus::Traits
 	///	Count trait, used all over the place											
 	///																								
 	struct Count : public Trait {
-		using Trait::Trait;
+		LANGULUS(TRAIT) "Count";
+		LANGULUS_BASES(Trait);
 
 		Count();
+
+		template<CT::NotAbandonedOrDisowned T>
+		Count(const T&);
+		template<CT::NotAbandonedOrDisowned T>
+		Count(T&);
+		template<CT::NotAbandonedOrDisowned T>
+		Count(T&&);
+
 		Count(Disowned<Count>&&);
 		Count(Abandoned<Count>&&);
 
@@ -140,9 +150,18 @@ namespace Langulus::Traits
 	///	Name trait, used all over the place												
 	///																								
 	struct Name : public Trait {
-		using Trait::Trait;
+		LANGULUS(TRAIT) "Name";
+		LANGULUS_BASES(Trait);
 
 		Name();
+
+		template<CT::NotAbandonedOrDisowned T>
+		Name(const T&);
+		template<CT::NotAbandonedOrDisowned T>
+		Name(T&);
+		template<CT::NotAbandonedOrDisowned T>
+		Name(T&&);
+
 		Name(Disowned<Name>&&);
 		Name(Abandoned<Name>&&);
 
@@ -156,9 +175,18 @@ namespace Langulus::Traits
 	///	Context trait, used to access the current environment						
 	///																								
 	struct Context : public Trait {
-		using Trait::Trait;
+		LANGULUS(TRAIT) "Context";
+		LANGULUS_BASES(Trait);
 
 		Context();
+
+		template<CT::NotAbandonedOrDisowned T>
+		Context(const T&);
+		template<CT::NotAbandonedOrDisowned T>
+		Context(T&);
+		template<CT::NotAbandonedOrDisowned T>
+		Context(T&&);
+
 		Context(Disowned<Context>&&);
 		Context(Abandoned<Context>&&);
 
@@ -169,6 +197,5 @@ namespace Langulus::Traits
 	};
 
 } // namespace Langulus::Traits
-
 
 #include "Trait.inl"

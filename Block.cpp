@@ -7,6 +7,7 @@
 ///																									
 #include "Block.hpp"
 #include "Any.hpp"
+#include "TAny.hpp"
 
 namespace Langulus::Anyness
 {
@@ -120,33 +121,42 @@ namespace Langulus::Anyness
 		if (!mType || !mCount)
 			return {};
 
-		if (IsDense() && mType->mIsPOD) {
+		if (IsDense() && IsPOD()) {
 			// Hash everything at once													
 			return HashBytes(GetRaw(), GetByteSize());
 		}
 
 		// If reached, we'll be hashing elements one by one, and then		
 		// rehash all the combined hashes											
-		::std::vector<Hash> h {mCount};
+		TAny<Hash> h;
+		h.Allocate<false>(mCount);
 
-		if (IsDense() && mType->mHasher) {
+		if (IsSparse() && mType->mResolver) {
+			// Resolve each element and hash it										
+			// Then do a cumulative hash by mixing up all the hashes			
+			for (Count i = 0; i < mCount; ++i)
+				h << GetElementResolved(i).GetHash();
+		}
+		else if (mType->mHasher) {
 			// All elements share the same hasher - use it						
 			// Then do a cumulative hash by mixing up all the hashes			
 			for (Count i = 0; i < mCount; ++i) {
-				auto element = GetElementDense(i);
-				h.emplace_back(mType->mHasher(element.mRaw));
+				const auto element = GetElementDense(i);
+				h << mType->mHasher(element.mRaw);
 			}
 		}
 		else if (mType->mResolver) {
 			// Resolve each element and hash it										
 			// Then do a cumulative hash by mixing up all the hashes			
-			for (Count i = 0; i < mCount; ++i) {
-				h.emplace_back(GetElementResolved(i).GetHash());
-			}
+			for (Count i = 0; i < mCount; ++i)
+				h << GetElementResolved(i).GetHash();
 		}
-		else Throw<Except::Access>("Unhashable type");
+		else {
+			Logger::Error("Unhashable type ", GetToken());
+			Throw<Except::Access>("Unhashable type");
+		}
 
-		return HashBytes<DefaultHashSeed, false>(h.data(), h.size() * sizeof(Hash));
+		return HashBytes<DefaultHashSeed, false>(h.GetRaw(), h.GetByteSize());
 	}
 
 	/// Get the number of sub-blocks (this one included)								
