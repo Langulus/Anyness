@@ -153,11 +153,11 @@ namespace Langulus::Anyness
 
 	template<class TRAIT>
 	StaticTrait<TRAIT>::StaticTrait(Disowned<TRAIT>&& other)
-		: Trait {other.mValue.mTraitType, other.Forward<Any>()} {}
+		: Trait {other.mValue.mTraitType, other.template Forward<Any>()} {}
 
 	template<class TRAIT>
 	StaticTrait<TRAIT>::StaticTrait(Abandoned<TRAIT>&& other)
-		: Trait {other.mValue.mTraitType, other.Forward<Any>()} {}
+		: Trait {other.mValue.mTraitType, other.template Forward<Any>()} {}
 
 	template<class TRAIT>
 	template<CT::NotAbandonedOrDisowned T>
@@ -187,13 +187,13 @@ namespace Langulus::Anyness
 
 	template<class TRAIT>
 	TRAIT& StaticTrait<TRAIT>::operator = (Disowned<TRAIT>&& other) {
-		Any::operator = (other.Forward<Any>());
+		Any::operator = (other.template Forward<Any>());
 		return static_cast<TRAIT&>(*this);
 	}
 
 	template<class TRAIT>
 	TRAIT& StaticTrait<TRAIT>::operator = (Abandoned<TRAIT>&& other) {
-		Any::operator = (other.Forward<Any>());
+		Any::operator = (other.template Forward<Any>());
 		return static_cast<TRAIT&>(*this);
 	}
 
