@@ -1350,15 +1350,17 @@ namespace Langulus::Anyness
 				// Dense data insertion 												
 				while (start != end) {
 					if constexpr (KEEP) {
-						static_assert(CT::CopyMakable<T>,
-							"Can't insert non-copy-constructible item(s)");
-						new (data) T {*start};
+						if constexpr (CT::CopyMakable<T>)
+							new (data) T {*start};
+						else
+							LANGULUS_ASSERT("Can't emplace non-copy-constructible item");
 					}
-					else {
-						static_assert(::std::constructible_from<T, Disowned<T>&&>,
-							"Can't insert non-disowned-constructible item(s)");
+					else if constexpr (CT::DisownMakable<T>)
 						new (data) T {Disown(*start)};
-					}
+					else if constexpr (CT::Fundamental<T>)
+						new (data) T {*start};
+					else
+						LANGULUS_ASSERT("Can't emplace non-disown-constructible item");
 
 					++data; ++start;
 				}
