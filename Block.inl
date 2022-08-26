@@ -1357,7 +1357,7 @@ namespace Langulus::Anyness
 					}
 					else if constexpr (CT::DisownMakable<T>)
 						new (data) T {Disown(*start)};
-					else if constexpr (CT::Fundamental<T>)
+					else if constexpr (CT::CopyMakable<T>)
 						new (data) T {*start};
 					else
 						LANGULUS_ASSERT("Can't emplace non-disown-constructible item");
@@ -1418,6 +1418,8 @@ namespace Langulus::Anyness
 			}
 			else if constexpr (CT::AbandonMakable<T>)
 				new (data) T {Abandon(item)};
+			else if constexpr (CT::MoveMakable<T>)
+				new (data) T {Forward<T>(item)};
 			else if constexpr (CT::Fundamental<T>)
 				new (data) T {item};
 			else
