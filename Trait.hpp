@@ -18,7 +18,8 @@ namespace Langulus::Anyness
 	///	A count is a count, no matter how you call it. So when your type		
 	/// contains a count variable, you can tag it with a Traits::Count tag		
 	///	Traits are used to access members of objects at runtime, or access	
-	/// global objects																			
+	/// global objects, or supply paremeters for content desciptors, such as	
+	/// Flow::Construct, as well ass parameters for any Flow::Verb call			
 	///																								
 	class Trait : public Any {
 		LANGULUS(DEEP) false;
@@ -86,6 +87,38 @@ namespace Langulus::Anyness
 		NOD() bool operator == (const Trait&) const noexcept;
 	};
 
+
+	///																								
+	///	A statically named trait, used for integrating any custom trait by	
+	/// using it as a CRTP																		
+	///																								
+	template<class TRAIT>
+	struct StaticTrait : public Trait {
+		LANGULUS(TRAIT) RTTI::LastNameOf<TRAIT>();
+		LANGULUS_BASES(Trait);
+
+		StaticTrait();
+		template<CT::NotAbandonedOrDisowned T>
+		StaticTrait(const T&);
+		template<CT::NotAbandonedOrDisowned T>
+		StaticTrait(T&);
+		template<CT::NotAbandonedOrDisowned T>
+		StaticTrait(T&&);
+
+		StaticTrait(Disowned<TRAIT>&&);
+		StaticTrait(Abandoned<TRAIT>&&);
+
+		template<CT::NotAbandonedOrDisowned T>
+		TRAIT& operator = (const T&);
+		template<CT::NotAbandonedOrDisowned T>
+		TRAIT& operator = (T&);
+		template<CT::NotAbandonedOrDisowned T>
+		TRAIT& operator = (T&&);
+
+		TRAIT& operator = (Disowned<TRAIT>&&);
+		TRAIT& operator = (Abandoned<TRAIT>&&);
+	};
+
 } // namespace Langulus::Anyness
 
 namespace Langulus::CT
@@ -102,98 +135,34 @@ namespace Langulus::CT
 namespace Langulus::Traits
 {
 
-	using Anyness::Trait;
+	using Anyness::StaticTrait;
 
 	///																								
 	///	Logger trait, used to access the logger instance							
 	///																								
-	struct Logger : public Trait {
-		LANGULUS(TRAIT) "Logger";
-		LANGULUS_BASES(Trait);
-
-		Logger();
-		Logger(Disowned<Logger>&&);
-		Logger(Abandoned<Logger>&&);
-
-		using Trait::operator =;
-
-		Logger& operator = (Disowned<Logger>&&);
-		Logger& operator = (Abandoned<Logger>&&);
+	struct Logger : public StaticTrait<Logger> {
+		using StaticTrait::operator =;
 	};
 
 	///																								
 	///	Count trait, used all over the place											
 	///																								
-	struct Count : public Trait {
-		LANGULUS(TRAIT) "Count";
-		LANGULUS_BASES(Trait);
-
-		Count();
-
-		template<CT::NotAbandonedOrDisowned T>
-		Count(const T&);
-		template<CT::NotAbandonedOrDisowned T>
-		Count(T&);
-		template<CT::NotAbandonedOrDisowned T>
-		Count(T&&);
-
-		Count(Disowned<Count>&&);
-		Count(Abandoned<Count>&&);
-
-		using Trait::operator =;
-
-		Count& operator = (Disowned<Count>&&);
-		Count& operator = (Abandoned<Count>&&);
+	struct Count : public StaticTrait<Count> {
+		using StaticTrait::operator =;
 	};
 
 	///																								
 	///	Name trait, used all over the place												
 	///																								
-	struct Name : public Trait {
-		LANGULUS(TRAIT) "Name";
-		LANGULUS_BASES(Trait);
-
-		Name();
-
-		template<CT::NotAbandonedOrDisowned T>
-		Name(const T&);
-		template<CT::NotAbandonedOrDisowned T>
-		Name(T&);
-		template<CT::NotAbandonedOrDisowned T>
-		Name(T&&);
-
-		Name(Disowned<Name>&&);
-		Name(Abandoned<Name>&&);
-
-		using Trait::operator =;
-
-		Name& operator = (Disowned<Name>&&);
-		Name& operator = (Abandoned<Name>&&);
+	struct Name : public StaticTrait<Name> {
+		using StaticTrait::operator =;
 	};
 
 	///																								
 	///	Context trait, used to access the current environment						
 	///																								
-	struct Context : public Trait {
-		LANGULUS(TRAIT) "Context";
-		LANGULUS_BASES(Trait);
-
-		Context();
-
-		template<CT::NotAbandonedOrDisowned T>
-		Context(const T&);
-		template<CT::NotAbandonedOrDisowned T>
-		Context(T&);
-		template<CT::NotAbandonedOrDisowned T>
-		Context(T&&);
-
-		Context(Disowned<Context>&&);
-		Context(Abandoned<Context>&&);
-
-		using Trait::operator =;
-
-		Context& operator = (Disowned<Context>&&);
-		Context& operator = (Abandoned<Context>&&);
+	struct Context : public StaticTrait<Context> {
+		using StaticTrait::operator =;
 	};
 
 } // namespace Langulus::Traits

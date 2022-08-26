@@ -129,77 +129,72 @@ namespace Langulus::Anyness
 
 } // namespace Langulus::Anyness
 
-
-namespace Langulus::Traits
+namespace Langulus::Anyness
 {
 
-	using RTTI::MetaTrait;
+	template<class TRAIT>
+	StaticTrait<TRAIT>::StaticTrait()
+		: Trait {MetaTrait::Of<TRAIT>(), Any{}} {}
 
-	inline Logger::Logger()
-		: Trait {MetaTrait::Of<Logger>(), &::Langulus::Logger::Instance} {}
-	inline Logger::Logger(Disowned<Logger>&& other)
-		: Trait {other.mValue.mTraitType, other.Forward<Any>()} {}
-	inline Logger::Logger(Abandoned<Logger>&& other)
-		: Trait {other.mValue.mTraitType, other.Forward<Any>()} {}
-
-	inline Count::Count()
-		: Trait {MetaTrait::Of<Count>(), Any{}} {}
-
+	template<class TRAIT>
 	template<CT::NotAbandonedOrDisowned T>
-	Count::Count(const T& data)
-		: Trait {MetaTrait::Of<Count>(), data} {}
+	StaticTrait<TRAIT>::StaticTrait(const T& data)
+		: Trait {MetaTrait::Of<TRAIT>(), data} {}
 
+	template<class TRAIT>
 	template<CT::NotAbandonedOrDisowned T>
-	Count::Count(T& data)
-		: Trait {MetaTrait::Of<Count>(), data} {}
+	StaticTrait<TRAIT>::StaticTrait(T& data)
+		: Trait {MetaTrait::Of<TRAIT>(), data} {}
 
+	template<class TRAIT>
 	template<CT::NotAbandonedOrDisowned T>
-	Count::Count(T&& data)
-		: Trait {MetaTrait::Of<Count>(), Forward<T>(data)} {}
+	StaticTrait<TRAIT>::StaticTrait(T&& data)
+		: Trait {MetaTrait::Of<TRAIT>(), Forward<T>(data)} {}
 
-	inline Count::Count(Disowned<Count>&& other)
-		: Trait {other.mValue.mTraitType, other.Forward<Any>()} {}
-	inline Count::Count(Abandoned<Count>&& other)
+	template<class TRAIT>
+	StaticTrait<TRAIT>::StaticTrait(Disowned<TRAIT>&& other)
 		: Trait {other.mValue.mTraitType, other.Forward<Any>()} {}
 
-	inline Name::Name()
-		: Trait {MetaTrait::Of<Name>(), Any{}} {}
-
-	template<CT::NotAbandonedOrDisowned T>
-	Name::Name(const T& data)
-		: Trait {MetaTrait::Of<Name>(), data} {}
-
-	template<CT::NotAbandonedOrDisowned T>
-	Name::Name(T& data)
-		: Trait {MetaTrait::Of<Name>(), data} {}
-
-	template<CT::NotAbandonedOrDisowned T>
-	Name::Name(T&& data)
-		: Trait {MetaTrait::Of<Name>(), Forward<T>(data)} {}
-
-	inline Name::Name(Disowned<Name>&& other)
-		: Trait {other.mValue.mTraitType, other.Forward<Any>()} {}
-	inline Name::Name(Abandoned<Name>&& other)
+	template<class TRAIT>
+	StaticTrait<TRAIT>::StaticTrait(Abandoned<TRAIT>&& other)
 		: Trait {other.mValue.mTraitType, other.Forward<Any>()} {}
 
-	inline Context::Context()
-		: Trait {MetaTrait::Of<Context>(), Any{}} {}
-
+	template<class TRAIT>
 	template<CT::NotAbandonedOrDisowned T>
-	Context::Context(const T& data)
-		: Trait {MetaTrait::Of<Context>(), data} {}
+	TRAIT& StaticTrait<TRAIT>::operator = (const T& data) {
+		if constexpr (CT::Same<T, TRAIT>)
+			Any::operator = (data);
+		else
+			Trait::operator = (data);
+		return static_cast<TRAIT&>(*this);
+	}
 
+	template<class TRAIT>
 	template<CT::NotAbandonedOrDisowned T>
-	Context::Context(T& data)
-		: Trait {MetaTrait::Of<Context>(), data} {}
+	TRAIT& StaticTrait<TRAIT>::operator = (T& data) {
+		return operator = (const_cast<const T&>(data));
+	}
 
+	template<class TRAIT>
 	template<CT::NotAbandonedOrDisowned T>
-	Context::Context(T&& data)
-		: Trait {MetaTrait::Of<Context>(), Forward<T>(data)} {}
+	TRAIT& StaticTrait<TRAIT>::operator = (T&& data) {
+		if constexpr (CT::Same<T, TRAIT>)
+			Any::operator = (data);
+		else
+			Trait::operator = (data);
+		return static_cast<TRAIT&>(*this);
+	}
 
-	inline Context::Context(Disowned<Context>&& other)
-		: Trait {other.mValue.mTraitType, other.Forward<Any>()} {}
-	inline Context::Context(Abandoned<Context>&& other)
-		: Trait {other.mValue.mTraitType, other.Forward<Any>()} {}
+	template<class TRAIT>
+	TRAIT& StaticTrait<TRAIT>::operator = (Disowned<TRAIT>&& other) {
+		Any::operator = (other.Forward<Any>());
+		return static_cast<TRAIT&>(*this);
+	}
 
-} // namespace Langulus::Traits
+	template<class TRAIT>
+	TRAIT& StaticTrait<TRAIT>::operator = (Abandoned<TRAIT>&& other) {
+		Any::operator = (other.Forward<Any>());
+		return static_cast<TRAIT&>(*this);
+	}
+
+} // namespace Langulus::Anyness
