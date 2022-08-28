@@ -1100,6 +1100,16 @@ namespace Langulus::Anyness
 		data[from] = Move(temp);
 	}
 
+	/// Reinterpret contents of this Block as a collection of a static type		
+	/// You can interpret vec4 as float[4] for example, or any other such		
+	/// reinterpretation, as long as data remains tightly packed					
+	///	@tparam T - the type of data to try interpreting as						
+	///	@return a block representing this block, interpreted as T				
+	template<CT::Data T>
+	Block Block::ReinterpretAs() const {
+		return ReinterpretAs(Block::From<T>());
+	}
+
 	/// Copy-insert anything compatible at an index										
 	///	@attention assumes offset is in the block's limits, if simple			
 	///	@tparam KEEP - whether to reference data on copy							

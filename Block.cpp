@@ -195,8 +195,28 @@ namespace Langulus::Anyness
 	/// Reinterpret contents of this Block as the type and state of another		
 	/// You can interpret vec4 as float[4] for example, or any other such		
 	/// reinterpretation, as long as data remains tightly packed					
-	Block Block::ReinterpretAs(const Block&) const {
-		return {}; //TODO
+	///	@param pattern - the type of data to try interpreting as					
+	///	@return a block representing this block, interpreted as the pattern	
+	Block Block::ReinterpretAs(const Block& pattern) const {
+		RTTI::Base common {};
+		if (!CompareTypes(pattern, common) || !common.mBinaryCompatible)
+			return {};
+
+		const auto baseBytes = (common.mType->mSize * common.mCount)
+			/ pattern.GetStride();
+
+		if (pattern.IsEmpty()) {
+			return {
+				pattern.mState, pattern.mType, baseBytes, mRaw, mEntry
+			};
+		}
+		else {
+			return {
+				pattern.mState, pattern.mType,
+				(baseBytes / pattern.mCount) * pattern.mCount,
+				mRaw, mEntry
+			};
+		}
 	}
 	
 	/// Get a specific element block (unsafe)												

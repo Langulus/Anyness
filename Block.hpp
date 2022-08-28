@@ -528,6 +528,8 @@ namespace Langulus::Anyness
 		NOD() bool Is() const;
 		
 		NOD() Block ReinterpretAs(const Block&) const;
+		template<CT::Data T>
+		NOD() Block ReinterpretAs() const;
 	
 		void Clear();
 		void Reset();

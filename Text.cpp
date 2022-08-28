@@ -31,7 +31,7 @@ namespace Langulus::Anyness
 	Text::Text(const Exception& from) {
 		(*this) += from.GetName();
 		(*this) += "(";
-		(*this) += from.what();
+		(*this) += from.GetMessage();
 		(*this) += ")";
 	}
 
