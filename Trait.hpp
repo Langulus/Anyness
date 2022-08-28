@@ -137,30 +137,22 @@ namespace Langulus::Traits
 
 	using Anyness::StaticTrait;
 
-	///																								
-	///	Logger trait, used to access the logger instance							
-	///																								
+	/// Logger trait, used to access the logger instance								
 	struct Logger : public StaticTrait<Logger> {
 		using StaticTrait::operator =;
 	};
 
-	///																								
-	///	Count trait, used all over the place											
-	///																								
+	/// Count trait, used all over the place												
 	struct Count : public StaticTrait<Count> {
 		using StaticTrait::operator =;
 	};
 
-	///																								
-	///	Name trait, used all over the place												
-	///																								
+	/// Name trait, used all over the place												
 	struct Name : public StaticTrait<Name> {
 		using StaticTrait::operator =;
 	};
 
-	///																								
-	///	Context trait, used to access the current environment						
-	///																								
+	/// Context trait, used to access the current environment						
 	struct Context : public StaticTrait<Context> {
 		using StaticTrait::operator =;
 	};
