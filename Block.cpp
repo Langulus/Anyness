@@ -207,12 +207,14 @@ namespace Langulus::Anyness
 
 		if (pattern.IsEmpty()) {
 			return {
-				pattern.mState, pattern.mType, baseBytes, mRaw, mEntry
+				pattern.mState + DataState::Static, pattern.mType,
+				baseBytes,
+				mRaw, mEntry
 			};
 		}
 		else {
 			return {
-				pattern.mState, pattern.mType,
+				pattern.mState + DataState::Static, pattern.mType,
 				(baseBytes / pattern.mCount) * pattern.mCount,
 				mRaw, mEntry
 			};
