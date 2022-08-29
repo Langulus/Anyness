@@ -80,10 +80,11 @@ namespace Langulus::Anyness
 	///	@param value - the meta to interpret											
 	inline Bytes::Bytes(const RTTI::Meta* value)
 		: Bytes {} {
-		if (value)
+		if (value) {
+			*this += Count {value->mToken.size()};
 			*this += value->mToken;
-		else
-			*this += Count {0};
+		}
+		else *this += Count {0};
 	}
 
 	/// Shallow copy assignment from immutable byte container						
