@@ -11,10 +11,27 @@
 namespace Langulus::Anyness
 {
 
-	/// Shallow-copy construction (const)													
-	///	@param other - the text to shallow-copy										
+	/// Text container copy-construction													
+	/// Notice how container is explicitly cast to base class when forwarded	
+	/// If that is not done, TAny will use the CT::Deep constructor instead		
+	///	@param other - container to reference											
 	Text::Text(const Text& other)
-		: TAny {other} { }
+		: TAny {static_cast<const TAny&>(other)} {}
+
+	/// Text container move-construction													
+	///	@param other - container to move													
+	Text::Text(Text&& other) noexcept
+		: TAny {Forward<TAny>(other)} {}
+
+	/// Text container copy-construction from TAny<Byte> base						
+	///	@param other - container to reference											
+	Text::Text(const TAny& other)
+		: TAny {other} {}
+
+	/// Text container mvoe-construction from TAny<Byte> base						
+	///	@param other - container to move													
+	Text::Text(TAny&& other) noexcept
+		: TAny {Forward<TAny>(other)} {}
 
 	/// Copy other but do not reference it, because it is disowned					
 	///	@param other - the block to copy													
@@ -26,6 +43,16 @@ namespace Langulus::Anyness
 	Text::Text(Abandoned<Text>&& other) noexcept
 		: TAny {other.Forward<TAny>()} { }	
 	
+	/// Construct via disowned copy of TAny<Letter>										
+	///	@param other - the text to move													
+	Text::Text(Disowned<TAny>&& other) noexcept
+		: TAny {other.Forward<TAny>()} { }
+	
+	/// Construct via abandoned move of TAny<Letter>									
+	///	@param other - the text to move													
+	Text::Text(Abandoned<TAny>&& other) noexcept
+		: TAny {other.Forward<TAny>()} { }
+
 	/// Construct from an exception															
 	///	@param from - the exception to stringify										
 	Text::Text(const Exception& from) {

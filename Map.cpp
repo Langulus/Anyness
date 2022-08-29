@@ -40,7 +40,7 @@ namespace Langulus::Anyness
 		name += keytype ? keytype->mToken : MetaData::DefaultToken;
 		name += "Mapped";
 		name += valuetype ? valuetype->mToken : MetaData::DefaultToken;
-		return name;
+		return Abandon(name);
 	}
 
 	/// Clone the map																				
@@ -48,7 +48,7 @@ namespace Langulus::Anyness
 		Map clone;
 		clone.mKeys = mKeys.Clone();
 		clone.mValues = mValues.Clone();
-		return clone;
+		return Abandon(clone);
 	}
 
 	/// Deconstructs all elements but keeps reserved memory if possible			

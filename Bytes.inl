@@ -11,20 +11,27 @@
 namespace Langulus::Anyness
 {
 
-	/// Construct via constant shallow copy												
-	///	@param other - the bytes to shallow-copy										
+	/// Byte container copy-construction													
+	/// Notice how container is explicitly cast to base class when forwarded	
+	/// If that is not done, TAny will use the CT::Deep constructor instead		
+	///	@param other - container to reference											
 	inline Bytes::Bytes(const Bytes& other)
-		: TAny {other} { }
+		: TAny {static_cast<const TAny&>(other)} {}
 
-	/// Construct via constant shallow copy of TAny										
-	///	@param other - the bytes to shallow-copy										
+	/// Byte container move-construction													
+	///	@param other - container to move													
+	inline Bytes::Bytes(Bytes&& other) noexcept
+		: TAny {Forward<TAny>(other)} {}
+
+	/// Byte container copy-construction from TAny<Byte> base						
+	///	@param other - container to reference											
 	inline Bytes::Bytes(const TAny& other)
-		: TAny {other} { }
+		: TAny {other} {}
 
-	/// Construct via move of TAny															
-	///	@param other - the bytes to shallow-copy										
+	/// Byte container mvoe-construction from TAny<Byte> base						
+	///	@param other - container to move													
 	inline Bytes::Bytes(TAny&& other) noexcept
-		: TAny {Forward<TAny>(other)} { }
+		: TAny {Forward<TAny>(other)} {}
 
 	/// Construct via disowned copy															
 	///	@param other - the bytes to move													
@@ -36,28 +43,38 @@ namespace Langulus::Anyness
 	inline Bytes::Bytes(Abandoned<Bytes>&& other) noexcept
 		: TAny {other.Forward<TAny>()} { }
 
+	/// Construct via disowned copy of TAny<Byte>										
+	///	@param other - the bytes to move													
+	inline Bytes::Bytes(Disowned<TAny>&& other) noexcept
+		: TAny {other.Forward<TAny>()} { }
+	
+	/// Construct via abandoned move of TAny<Byte>										
+	///	@param other - the bytes to move													
+	inline Bytes::Bytes(Abandoned<TAny>&& other) noexcept
+		: TAny {other.Forward<TAny>()} { }
+
 	/// Construct manually via raw constant memory pointer and size				
 	///	@param raw - raw memory to reference											
 	///	@param size - number of bytes inside 'raw'									
 	inline Bytes::Bytes(const void* raw, const Size& size)
-		: TAny {reinterpret_cast<const Byte*>(raw), size} { }
+		: TAny {static_cast<const Byte*>(raw), size} { }
 
 	/// Construct manually via raw mjutable memory pointer and size				
 	///	@param raw - raw memory to reference											
 	///	@param size - number of bytes inside 'raw'									
 	inline Bytes::Bytes(void* raw, const Size& size)
-		: TAny {reinterpret_cast<Byte*>(raw), size} { }
+		: TAny {static_cast<Byte*>(raw), size} { }
 
 	/// Construct by interpreting anything POD as bytes								
 	///	@param value - the data to interpret											
 	template<CT::POD T>
-	Bytes::Bytes(const T& value)
-		: Bytes {&value, sizeof(T)} {}
+	Bytes::Bytes(const T& value) requires CT::Dense<T>
+		: Bytes {&value, sizeof(T)} { }
 
 	/// Construct by interpreting a string literal										
 	///	@param value - the string to interpret											
 	inline Bytes::Bytes(const Token& value)
-		: Bytes {value.data(), value.size() * sizeof(Letter)} {}
+		: Bytes {value.data(), value.size() * sizeof(Letter)} { }
 
 	/// Construct by interpreting a meta definition										
 	///	@param value - the meta to interpret											
@@ -67,11 +84,6 @@ namespace Langulus::Anyness
 			*this += value->mToken;
 		else
 			*this += Count {0};
-	}
-
-	/// Destructor																					
-	inline Bytes::~Bytes() {
-		Free();
 	}
 
 	/// Shallow copy assignment from immutable byte container						

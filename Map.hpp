@@ -25,10 +25,17 @@ namespace Langulus::Anyness
 		
 		Map(const Map&);
 		Map(Map&&) noexcept;
+
+		Map(Disowned<Map>&&) noexcept;
+		Map(Abandoned<Map>&&) noexcept;
+
 		Map(const Block&, const Block&);
 
 		Map& operator = (const Map&);
 		Map& operator = (Map&&) noexcept;
+
+		Map& operator = (Disowned<Map>&&) noexcept;
+		Map& operator = (Abandoned<Map>&&) noexcept;
 
 	public:
 		NOD() static Map From(DMeta, DMeta, const DataState& = {}) noexcept;

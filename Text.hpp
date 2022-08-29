@@ -22,14 +22,19 @@ namespace Langulus::Anyness
 
 	public:
 		Text() = default;
-
-		Text(const TAny<Letter>& t) : TAny {t} {}
-
 		Text(const Text&);
-		Text(Text&&) noexcept = default;
+		Text(Text&&) noexcept;
+
+		Text(const TAny&);
+		Text(TAny&&) noexcept;
+
+		template<CT::Deep T>
+		Text(const T&) = delete;
 
 		Text(Disowned<Text>&&) noexcept;
 		Text(Abandoned<Text>&&) noexcept;
+		Text(Disowned<TAny>&&) noexcept;
+		Text(Abandoned<TAny>&&) noexcept;
 
 		Text(const Token&);
 		Text(const Exception&);
@@ -47,7 +52,7 @@ namespace Langulus::Anyness
 		Text(const Letter&);
 
 		template<CT::Dense T>
-		Text(const T&) requires CT::Number<T>;
+		explicit Text(const T&) requires CT::Number<T>;
 
 		Text& operator = (const Text&);
 		Text& operator = (Text&&) noexcept;

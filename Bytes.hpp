@@ -19,27 +19,32 @@ namespace Langulus::Anyness
 	///																								
 	class Bytes : public TAny<Byte> {
 		LANGULUS(DEEP) false;		
+		LANGULUS_BASES(TAny<Byte>);
+
 	public:
 		Bytes() = default;
-
 		Bytes(const Bytes&);
-		Bytes(Bytes&&) noexcept = default;
+		Bytes(Bytes&&) noexcept;
 
 		Bytes(const TAny&);
 		Bytes(TAny&&) noexcept;
+
+		template<CT::Deep T>
+		Bytes(const T&) = delete;
 
 		Bytes(const void*, const Size&);
 		Bytes(void*, const Size&);
 		
 		Bytes(Disowned<Bytes>&&) noexcept;
 		Bytes(Abandoned<Bytes>&&) noexcept;
+		Bytes(Disowned<TAny<Byte>>&&) noexcept;
+		Bytes(Abandoned<TAny<Byte>>&&) noexcept;
 
 		template<CT::POD T>
-		Bytes(const T&);
-		Bytes(const Token&);
-		Bytes(const RTTI::Meta*);
-		
-		~Bytes();
+		explicit Bytes(const T&) requires CT::Dense<T>;
+
+		explicit Bytes(const Token&);
+		explicit Bytes(const RTTI::Meta*);
 
 		Bytes& operator = (const Bytes&);
 		Bytes& operator = (Bytes&&) noexcept;
