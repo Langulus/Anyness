@@ -225,7 +225,7 @@ namespace Langulus::Anyness::Inner
 	Allocation* Allocator::Find(DMeta meta, const void* memory) SAFETY_NOEXCEPT() {
 		#if LANGULUS(SAFE)
 			if (memory == nullptr)
-				Throw<Except::Allocate>("Searching for nullptr");
+				Throw<Except::Allocate>("Searching for nullptr on Allocator::Find");
 		#endif
 
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
@@ -267,7 +267,7 @@ namespace Langulus::Anyness::Inner
 	bool Allocator::CheckAuthority(DMeta meta, const void* memory) SAFETY_NOEXCEPT() {
 		#if LANGULUS(SAFE)
 			if (memory == nullptr)
-				Throw<Except::Allocate>("Searching for nullptr");
+				Throw<Except::Allocate>("Searching for nullptr on Allocator::CheckAuthority");
 		#endif
 
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)

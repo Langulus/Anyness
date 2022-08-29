@@ -377,7 +377,7 @@ namespace Langulus::Anyness::Inner
 	inline Allocation* Pool::Find(const void* memory) SAFETY_NOEXCEPT() {
 		#if LANGULUS(SAFE)
 			if (memory == nullptr)
-				Throw<Except::Allocate>("Searching for nullptr");
+				Throw<Except::Allocate>("Searching for nullptr on Pool::Find");
 		#endif
 
 		if (Contains(memory)) {
