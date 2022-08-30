@@ -536,7 +536,7 @@ namespace Langulus::Anyness
 
 	protected:
 		template<CT::Data T, CT::Index INDEX>
-		Offset SimplifyIndex(const INDEX&) const noexcept;
+		Offset SimplifyIndex(const INDEX&) const noexcept(!CT::Same<INDEX, Index>);
 
 		template<bool ALLOW_DEEPEN, bool KEEP, CT::Data T, CT::Data WRAPPER = Any, CT::Index INDEX>
 		Count SmartConcatAt(const bool&, T, const DataState&, const INDEX&);

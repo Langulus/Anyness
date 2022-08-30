@@ -148,19 +148,20 @@ namespace Langulus::Anyness
 
 		RANGED_FOR_INTEGRATION(TAny, T);
 
-		template<bool KEEP = true>
-		Count InsertAt(const T*, const T*, Index);
-		template<bool KEEP = true>
-		Count InsertAt(const T*, const T*, Offset);
-		template<bool KEEP = true>
-		Count InsertAt(T&&, Index);
-		template<bool KEEP = true>
-		Count InsertAt(T&&, Offset);
+		template<bool KEEP = true, CT::Index IDX = Offset>
+		Count InsertAt(const T*, const T*, const IDX&);
+		template<bool KEEP = true, CT::Index IDX = Offset>
+		Count InsertAt(T&&, const IDX&);
 
 		template<auto INDEX = IndexBack, bool KEEP = true>
 		Count Insert(const T*, const T*);
 		template<auto INDEX = IndexBack, bool KEEP = true>
 		Count Insert(T&&);
+
+		template<CT::Index IDX = Offset, class... A>
+		Count EmplaceAt(const IDX&, A&&...);
+		template<auto INDEX = IndexBack, class... A>
+		Count Emplace(A&&...);
 
 		TAny& operator << (const T&);
 		TAny& operator << (T&&);
@@ -172,14 +173,10 @@ namespace Langulus::Anyness
 		TAny& operator >> (Disowned<T>&&);
 		TAny& operator >> (Abandoned<T>&&);
 
-		template<bool KEEP = true>
-		Count MergeAt(const T*, const T*, Index);
-		template<bool KEEP = true>
-		Count MergeAt(const T*, const T*, Offset);
-		template<bool KEEP = true>
-		Count MergeAt(T&&, Index);
-		template<bool KEEP = true>
-		Count MergeAt(T&&, Offset);
+		template<bool KEEP = true, CT::Index IDX = Offset>
+		Count MergeAt(const T*, const T*, const IDX&);
+		template<bool KEEP = true, CT::Index IDX = Offset>
+		Count MergeAt(T&&, const IDX&);
 
 		template<auto INDEX = IndexBack, bool KEEP = true>
 		Count Merge(const T*, const T*);

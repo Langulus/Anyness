@@ -969,88 +969,67 @@ namespace Langulus::Anyness
 		return GetStride() * mCount;
 	}
 
-	/// Copy-insert item(s) at a special index											
+	/// Copy-insert item(s) at an index														
+	///	@attention assumes index is in the container's limits, if simple		
 	///	@tparam KEEP - whether or not to reference inserted data					
+	///	@tparam IDX - type of indexing to use (deducible)							
 	///	@param start - pointer to the first element to insert						
 	///	@param end - pointer to the end of elements to insert						
-	///	@param index - the special index to insert at								
+	///	@param index - the index to insert at											
 	///	@return number of inserted items													
 	TEMPLATE()
-	template<bool KEEP>
-	Count TAny<T>::InsertAt(const T* start, const T* end, Index index) {
-		const auto offset = ConstrainMore<T>(index).GetOffset();
-		return InsertAt<KEEP>(start, end, offset);
-	}
-
-	/// Copy-insert item(s) at a simple index												
-	///	@attention assumes index is in the container's limits						
-	///	@tparam KEEP - whether or not to reference inserted data					
-	///	@param start - pointer to the first element to insert						
-	///	@param end - pointer to the end of elements to insert						
-	///	@param index - the special index to insert at								
-	///	@return number of inserted items													
-	TEMPLATE()
-	template<bool KEEP>
-	Count TAny<T>::InsertAt(const T* start, const T* end, Offset index) {
-		// Allocate																			
+	template<bool KEEP, CT::Index IDX>
+	Count TAny<T>::InsertAt(const T* start, const T* end, const IDX& index) {
+		const auto offset = SimplifyIndex<T>(index);
 		const auto count = end - start;
 		Allocate<false>(mCount + count);
 
-		// Move memory if required														
-		if (index < mCount) {
+		if (offset < mCount) {
+			// Move memory if required													
 			if (GetUses() > 1) {
 				Throw<Except::Reference>(
 					"Moving elements that are used from multiple places");
 			}
 
-			CropInner(index + count, 0, mCount - index)
+			CropInner(offset + count, 0, mCount - offset)
 				.template CallKnownMoveConstructors<false, T>(
-					mCount - index,
-					CropInner(index, mCount - index, mCount - index)
+					mCount - offset,
+					CropInner(offset, mCount - offset, mCount - offset)
 				);
 		}
 
-		InsertInner<KEEP, T>(start, end, index);
+		InsertInner<KEEP, T>(start, end, offset);
 		return count;
 	}
 
-	/// Move-insert an item at a special index											
+	/// Move-insert an item at an index														
+	///	@attention assumes index is in the container's limits, if simple		
+	///	@tparam KEEP - whether or not to reference inserted data					
+	///	@tparam IDX - type of indexing to use (deducible)							
 	///	@param item - the item to move in												
-	///	@param index - the special index to insert at								
+	///	@param index - the index to insert at											
 	///	@return number of inserted items													
 	TEMPLATE()
-	template<bool KEEP>
-	Count TAny<T>::InsertAt(T&& item, Index index) {
-		const auto offset = ConstrainMore<T>(index).GetOffset();
-		return InsertAt<KEEP>(Move(item), offset);
-	}
-
-	/// Move-insert an item at a simple index												
-	///	@attention assumes index is in the container's limits						
-	///	@param item - the item to move in												
-	///	@param index - the simple index to insert at									
-	///	@return number of inserted items													
-	TEMPLATE()
-	template<bool KEEP>
-	Count TAny<T>::InsertAt(T&& item, Offset index) {
-		// Allocate																			
+	template<bool KEEP, CT::Index IDX>
+	Count TAny<T>::InsertAt(T&& item, const IDX& index) {
+		const auto offset = SimplifyIndex<T>(index);
 		Allocate<false>(mCount + 1);
 
-		// Move memory if required														
-		if (index < mCount) {
+		if (offset < mCount) {
+			// Move memory if required													
 			if (GetUses() > 1) {
 				Throw<Except::Reference>(
 					"Moving elements that are used from multiple places");
 			}
 
-			CropInner(index + 1, 0, mCount - index)
+			CropInner(offset + 1, 0, mCount - offset)
 				.template CallKnownMoveConstructors<false, T>(
-					mCount - index,
-					CropInner(index, mCount - index, mCount - index)
+					mCount - offset,
+					CropInner(offset, mCount - offset, mCount - offset)
 				);
 		}
 
-		InsertInner<KEEP, T>(Move(item), index);
+		InsertInner<KEEP, T>(Move(item), offset);
 		return 1;
 	}
 
@@ -1144,7 +1123,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this container for chaining							
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator << (T&& other) {
-		Insert<IndexBack>(Move(other));
+		Insert<IndexBack>(Forward<T>(other));
 		return *this;
 	}
 
@@ -1182,7 +1161,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this container for chaining							
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator >> (T&& other) {
-		Insert<IndexFront>(Move(other));
+		Insert<IndexFront>(Forward<T>(other));
 		return *this;
 	}
 
@@ -1206,50 +1185,31 @@ namespace Langulus::Anyness
 		return *this;
 	}
 
-	/// Copy-insert elements that are not found, at a special index				
+	/// Copy-insert elements that are not found, at an index							
+	///	@attention assumes index is in container's limits, if simple			
 	///	@tparam KEEP - whether or not to reference inserted data					
+	///	@tparam IDX - type for indexing (deducible)									
 	///	@param start - pointer to the first element to insert						
 	///	@param end - pointer to the end of elements to insert						
-	///	@param index - the special index to insert at								
+	///	@param index - the index to insert at											
 	///	@return the number of inserted items											
 	TEMPLATE()
-	template<bool KEEP>
-	Count TAny<T>::MergeAt(const T* start, const T* end, Index index) {
+	template<bool KEEP, CT::Index IDX>
+	Count TAny<T>::MergeAt(const T* start, const T* end, const IDX& index) {
 		return Block::MergeAt<TAny, KEEP, true, T>(start, end, index);
 	}
 
-	/// Copy-insert elements that are not found, at a simple index					
-	///	@attention assumes index is in container's limits							
+	/// Move-insert element, if not found, at an index									
+	///	@attention assumes index is in container's limits, if simple			
 	///	@tparam KEEP - whether or not to reference inserted data					
-	///	@param start - pointer to the first element to insert						
-	///	@param end - pointer to the end of elements to insert						
-	///	@param index - the simple index to insert at									
-	///	@return the number of inserted items											
-	TEMPLATE()
-	template<bool KEEP>
-	Count TAny<T>::MergeAt(const T* start, const T* end, Offset index) {
-		return Block::MergeAt<TAny, KEEP, true, T>(start, end, index);
-	}
-
-	/// Move-insert element, if not found, at a special index						
+	///	@tparam IDX - type for indexing (deducible)									
 	///	@param item - the item to find and push										
-	///	@param index - the special index to insert at								
+	///	@param index - the index to insert at											
 	///	@return the number of inserted items											
 	TEMPLATE()
-	template<bool KEEP>
-	Count TAny<T>::MergeAt(T&& item, Index index) {
-		return Block::MergeAt<TAny, KEEP, true, T>(Move(item), index);
-	}
-
-	/// Move-insert element, if not found, at a simple index							
-	///	@attention assumes index is in container's limits							
-	///	@param item - the item to find and push										
-	///	@param index - the simple index to insert at									
-	///	@return the number of inserted items											
-	TEMPLATE()
-	template<bool KEEP>
-	Count TAny<T>::MergeAt(T&& item, Offset index) {
-		return Block::MergeAt<TAny, KEEP, true, T>(Move(item), index);
+	template<bool KEEP, CT::Index IDX>
+	Count TAny<T>::MergeAt(T&& item, const IDX& index) {
+		return Block::MergeAt<TAny, KEEP, true, T>(Forward<T>(item), index);
 	}
 
 	/// Copy-construct element at the back, if element is not found				
@@ -1266,7 +1226,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this container											
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator <<= (T&& other) {
-		Merge<IndexBack>(Move(other));
+		Merge<IndexBack>(Forward<T>(other));
 		return *this;
 	}
 
@@ -1304,7 +1264,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this container											
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator >>= (T&& other) {
-		Merge<IndexFront>(Move(other));
+		Merge<IndexFront>(Forward<T>(other));
 		return *this;
 	}
 

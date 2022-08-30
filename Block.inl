@@ -2361,8 +2361,14 @@ namespace Langulus::Anyness
 		return Get<T>();
 	}
 
+	/// Convert an index to an offset														
+	/// Signed index types will be checked for negative indices (for reverse)	
+	/// Complex indices will be fully resolved											
+	/// Unsigned indices are directly forwarded without any overhead				
+	///	@param index - the index to simplify											
+	///	@return the offset																	
 	template<CT::Data T, CT::Index INDEX>
-	LANGULUS(ALWAYSINLINE) Offset Block::SimplifyIndex(const INDEX& index) const noexcept {
+	LANGULUS(ALWAYSINLINE) Offset Block::SimplifyIndex(const INDEX& index) const noexcept(!CT::Same<INDEX, Index>) {
 		if constexpr (CT::Same<INDEX, Index>)
 			return ConstrainMore<T>(index).GetOffset(); //TODO constraining assumes this is filled with T? might cause problems :(
 		else if constexpr (CT::Signed<INDEX>) {

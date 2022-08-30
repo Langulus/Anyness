@@ -17,6 +17,7 @@
 #include "../Trait.hpp"
 #include "../THashMap.hpp"
 #include "../THashSet.hpp"
+#include "../TFactory.hpp"
 
 #if LANGULUS_FEATURE(MANAGED_MEMORY)
 #ifdef LANGULUS_EXPOSE_PRIVATE_HEADERS
