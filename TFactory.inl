@@ -42,30 +42,24 @@ namespace Langulus::Anyness
 	///	@param item - pointer of the element to destroy								
 	TEMPLATE()
 	void FACTORY()::Destroy(T* item) {
-		if (!mData.Owns(item))
+		if (!mData.Owns(item) || item->GetReferences() == 0)
 			return;
 
-		switch (item->GetReferences()) {
-		case 0:
-			// The item is already destroyed											
-			return;
-		case 1:
-			// Remove from hashmap														
-			auto& list = mHashmap[item->mHash];
-			list.Remove(item);
-			if (list.IsEmpty())
-				mHashmap.RemoveKey(item->mHash);
-
-			// Destroy the item															
-			item->~T();
-			item->mNextFreeElement = mReusable;
-			mReusable = item;
-			break;
-		default:
-			// Oops																			
+		if (item->GetReferences() > 1)
 			Throw<Except::Destruct>(
 				"Can't destroy element in use at TFactory::Destroy");
-		}
+
+		// Remove from hashmap															
+		auto& list = mHashmap[item->mHash];
+		list.Remove(item);
+		if (list.IsEmpty())
+			mHashmap.RemoveKey(item->mHash);
+
+		// Destroy the item																
+		item->~T();
+		item->mNextFreeElement = mReusable;
+		mReusable = item;
+		break;
 	}
 
 	/// Create an element inside the factory, using the provided arguments		
