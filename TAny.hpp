@@ -28,7 +28,9 @@ namespace Langulus::Anyness
 		friend class Any;
 		friend class Block;
 
+		struct KnownPointer;
 		using Type = T;
+		using TypeInner = Conditional<CT::Dense<T>, T, KnownPointer>;
 
 		TAny();
 		
@@ -120,8 +122,6 @@ namespace Langulus::Anyness
 		NOD() decltype(auto) operator [] (const Index&) const requires CT::Dense<T>;
 		NOD() decltype(auto) operator [] (const Index&) requires CT::Dense<T>;
 
-		struct KnownPointer;
-
 		NOD() decltype(auto) operator [] (const Offset&) const SAFETY_NOEXCEPT() requires CT::Sparse<T>;
 		NOD() KnownPointer&  operator [] (const Offset&) SAFETY_NOEXCEPT() requires CT::Sparse<T>;
 		NOD() decltype(auto) operator [] (const Index&) const requires CT::Sparse<T>;
@@ -146,7 +146,7 @@ namespace Langulus::Anyness
 		NOD() Count Matches(const TAny&) const noexcept;
 		NOD() Count MatchesLoose(const TAny&) const noexcept requires CT::Character<T>;
 
-		RANGED_FOR_INTEGRATION(TAny, T);
+		RANGED_FOR_INTEGRATION(TAny, TypeInner);
 
 		template<bool KEEP = true, CT::Index IDX = Offset>
 		Count InsertAt(const T*, const T*, const IDX&);
@@ -201,7 +201,7 @@ namespace Langulus::Anyness
 		NOD() Index Find(const ALT_T&) const;
 		template<CT::Data ALT_T = T, bool REVERSE = false>
 		Count RemoveValue(const ALT_T&);
-		Count RemoveIndex(const Count&, const Count&);
+		Count RemoveIndex(const Offset&, const Count&);
 
 		template<bool ASCEND = false>
 		void Sort();

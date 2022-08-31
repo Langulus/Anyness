@@ -1466,7 +1466,7 @@ namespace Langulus::Anyness
 	///	@param count - number of elements to remove									
 	///	@return the number of removed elements											
 	TEMPLATE()
-	Count TAny<T>::RemoveIndex(const Count& starter, const Count& count) {
+	Count TAny<T>::RemoveIndex(const Offset& starter, const Count& count) {
 		SAFETY(if (starter >= mCount || count > mCount || starter + count > mCount)
 			Throw<Except::Access>(
 				"Index out of range"));
