@@ -1143,7 +1143,7 @@ namespace Langulus::Anyness
 	///	@return a reference to the key													
 	TABLE_TEMPLATE()
 	decltype(auto) TABLE()::GetKey(const Index& index) const {
-		const_cast<TABLE()&>(*this).GetKey(index);
+		return const_cast<TABLE()&>(*this).GetKey(index);
 	}
 
 	/// Get a key by a safe index 															
@@ -1162,7 +1162,7 @@ namespace Langulus::Anyness
 	///	@return a reference to the value													
 	TABLE_TEMPLATE()
 	decltype(auto) TABLE()::GetValue(const Index& index) const {
-		const_cast<TABLE()&>(*this).GetValue(index);
+		return const_cast<TABLE()&>(*this).GetValue(index);
 	}
 
 	/// Get a value by a safe index 															
@@ -1181,7 +1181,7 @@ namespace Langulus::Anyness
 	///	@return the pair																		
 	TABLE_TEMPLATE()
 	decltype(auto) TABLE()::GetPair(const Index& index) const {
-		const_cast<TABLE()&>(*this).GetPair(index);
+		return const_cast<TABLE()&>(*this).GetPair(index);
 	}
 
 	/// Get a pair by a safe index 															

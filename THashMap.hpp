@@ -116,13 +116,11 @@ namespace Langulus::Anyness
 
 		bool operator == (const THashMap&) const;
 
-
 		///																							
 		///	INSERTION																			
 		///																							
 		Count Insert(const Pair&);
 		Count Insert(Pair&&);
-
 
 		///																							
 		///	REMOVAL																				
@@ -130,11 +128,11 @@ namespace Langulus::Anyness
 		Count RemoveKey(const K&);
 		Count RemoveValue(const V&);
 		Count RemovePair(const Pair&);
+		Count RemoveIndex(const Index&);
 
 		void Clear();
 		void Reset();
 		void Compact();
-
 
 		///																							
 		///	SEARCH																				
@@ -156,6 +154,55 @@ namespace Langulus::Anyness
 		NOD() decltype(auto) GetValue(const Index&);
 		NOD() decltype(auto) GetPair(const Index&) const;
 		NOD() decltype(auto) GetPair(const Index&);
+
+		///																							
+		///	ITERATION																			
+		///																							
+		Count ForEachKeyElement(TFunctor<bool(const Block&)>&&) const;
+		Count ForEachKeyElement(TFunctor<bool(Block&)>&&);
+		Count ForEachKeyElement(TFunctor<void(const Block&)>&&) const;
+		Count ForEachKeyElement(TFunctor<void(Block&)>&&);
+
+		Count ForEachValueElement(TFunctor<bool(const Block&)>&&) const;
+		Count ForEachValueElement(TFunctor<bool(Block&)>&&);
+		Count ForEachValueElement(TFunctor<void(const Block&)>&&) const;
+		Count ForEachValueElement(TFunctor<void(Block&)>&&);
+
+		template<bool MUTABLE = true, class... F>
+		Count ForEachKey(F&&...);
+		template<class... F>
+		Count ForEachKey(F&&...) const;
+		template<bool MUTABLE = true, class... F>
+		Count ForEachValue(F&&...);
+		template<class... F>
+		Count ForEachValue(F&&...) const;
+	
+		template<bool MUTABLE = true, class... F>
+		Count ForEachKeyRev(F&&...);
+		template<class... F>
+		Count ForEachKeyRev(F&&...) const;
+		template<bool MUTABLE = true, class... F>
+		Count ForEachValueRev(F&&...);
+		template<class... F>
+		Count ForEachValueRev(F&&...) const;
+	
+		template<bool SKIP = true, bool MUTABLE = true, class... F>
+		Count ForEachKeyDeep(F&&...);
+		template<bool SKIP = true, class... F>
+		Count ForEachKeyDeep(F&&...) const;
+		template<bool SKIP = true, bool MUTABLE = true, class... F>
+		Count ForEachValueDeep(F&&...);
+		template<bool SKIP = true, class... F>
+		Count ForEachValueDeep(F&&...) const;
+	
+		template<bool SKIP = true, bool MUTABLE = true, class... F>
+		Count ForEachKeyDeepRev(F&&...);
+		template<bool SKIP = true, class... F>
+		Count ForEachKeyDeepRev(F&&...) const;
+		template<bool SKIP = true, bool MUTABLE = true, class... F>
+		Count ForEachValueDeepRev(F&&...);
+		template<bool SKIP = true, class... F>
+		Count ForEachValueDeepRev(F&&...) const;
 
 	protected:
 		template<bool REUSE>
