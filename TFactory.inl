@@ -59,7 +59,6 @@ namespace Langulus::Anyness
 		item->~T();
 		item->mNextFreeElement = mReusable;
 		mReusable = item;
-		break;
 	}
 
 	/// Create an element inside the factory, using the provided arguments		
