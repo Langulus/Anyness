@@ -506,23 +506,35 @@ namespace Langulus::Anyness
 	}
 
 	/// Make memory block vacuum (a.k.a. missing)										
-	constexpr void Block::MakeMissing() noexcept {
-		mState += DataState::Missing;
+	constexpr void Block::MakeMissing(bool enable) noexcept {
+		if (enable)
+			mState += DataState::Missing;
+		else
+			mState -= DataState::Missing;
 	}
 
 	/// Make memory block static (unmovable and unresizable)							
-	constexpr void Block::MakeStatic() noexcept {
-		mState += DataState::Static;
+	constexpr void Block::MakeStatic(bool enable) noexcept {
+		if (enable)
+			mState += DataState::Static;
+		else
+			mState -= DataState::Static;
 	}
 
 	/// Make memory block constant															
-	constexpr void Block::MakeConst() noexcept {
-		mState += DataState::Constant;
+	constexpr void Block::MakeConst(bool enable) noexcept {
+		if (enable)
+			mState += DataState::Constant;
+		else
+			mState -= DataState::Constant;
 	}
 
 	/// Make memory block type-immutable													
-	constexpr void Block::MakeTypeConstrained() noexcept {
-		mState += DataState::Typed;
+	constexpr void Block::MakeTypeConstrained(bool enable) noexcept {
+		if (enable)
+			mState += DataState::Typed;
+		else
+			mState -= DataState::Typed;
 	}
 
 	/// Make memory block exlusive (a.k.a. OR container)								
@@ -543,6 +555,11 @@ namespace Langulus::Anyness
 	/// Set memory block phase to future													
 	constexpr void Block::MakeFuture() noexcept {
 		SetPhase(Phase::Future);
+	}
+	
+	/// Set memory block phase to neutral													
+	constexpr void Block::MakeNow() noexcept {
+		SetPhase(Phase::Now);
 	}
 	
 	/// Make the container type sparse														

@@ -352,14 +352,15 @@ namespace Langulus::Anyness
 		template<bool ALLOW_DEEPEN, CT::Data WRAPPER = Any>
 		bool Mutate(DMeta);
 
-		constexpr void MakeMissing() noexcept;
-		constexpr void MakeStatic() noexcept;
-		constexpr void MakeConst() noexcept;
-		constexpr void MakeTypeConstrained() noexcept;
+		constexpr void MakeMissing(bool enable = true) noexcept;
+		constexpr void MakeStatic(bool enable = true) noexcept;
+		constexpr void MakeConst(bool enable = true) noexcept;
+		constexpr void MakeTypeConstrained(bool enable = true) noexcept;
 		constexpr void MakeOr() noexcept;
 		constexpr void MakeAnd() noexcept;
 		constexpr void MakePast() noexcept;
 		constexpr void MakeFuture() noexcept;
+		constexpr void MakeNow() noexcept;
 		constexpr void MakeSparse() noexcept;
 		constexpr void MakeDense() noexcept;
 	
