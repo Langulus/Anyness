@@ -20,6 +20,8 @@ namespace Langulus::Anyness
 	public:
 		static_assert(CT::Comparable<K>, "Can't compare keys for map");
 		using Pair = TPair<K, V>;
+		using PairRef = TPair<K&, V&>;
+		using PairConstRef = TPair<const K&, const V&>;
 		using Key = K;
 		using Value = V;
 		using Self = THashMap<K, V>;
@@ -58,6 +60,7 @@ namespace Langulus::Anyness
 		THashMap& operator = (const Pair&);
 		THashMap& operator = (Pair&&) noexcept;
 
+	public:
 		NOD() DMeta GetKeyType() const;
 		NOD() DMeta GetValueType() const;
 
@@ -158,6 +161,13 @@ namespace Langulus::Anyness
 		///																							
 		///	ITERATION																			
 		///																							
+		NOD() PairRef begin() noexcept;
+		NOD() PairRef end() noexcept;
+		NOD() PairRef last() noexcept;
+		NOD() PairConstRef begin() const noexcept;
+		NOD() PairConstRef end() const noexcept;
+		NOD() PairConstRef last() const noexcept;
+
 		Count ForEachKeyElement(TFunctor<bool(const Block&)>&&) const;
 		Count ForEachKeyElement(TFunctor<bool(Block&)>&&);
 		Count ForEachKeyElement(TFunctor<void(const Block&)>&&) const;

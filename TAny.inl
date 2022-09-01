@@ -1040,7 +1040,7 @@ namespace Langulus::Anyness
 	///	@param end - pointer to the end of items										
 	///	@return number of inserted elements												
 	TEMPLATE()
-	template<auto INDEX, bool KEEP>
+	template<Index INDEX, bool KEEP>
 	Count TAny<T>::Insert(const T* start, const T* end) {
 		static_assert(CT::Sparse<T> || CT::Mutable<T>,
 			"Can't copy-insert into container of constant elements");
@@ -1078,7 +1078,7 @@ namespace Langulus::Anyness
 	///	@param item - item to move int													
 	///	@return 1 if element was pushed													
 	TEMPLATE()
-	template<auto INDEX, bool KEEP>
+	template<Index INDEX, bool KEEP>
 	Count TAny<T>::Insert(T&& item) {
 		static_assert(CT::Sparse<T> || CT::Mutable<T>,
 			"Can't copy-insert into container of constant elements");

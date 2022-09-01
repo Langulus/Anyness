@@ -35,8 +35,10 @@ namespace Langulus::Anyness
 		TMap& operator = (const TMap&);
 		TMap& operator = (TMap&&) noexcept;
 
+		bool operator == (const TMap&) const;
+
 	public:
-		RANGED_FOR_INTEGRATION(TMap, V)
+		RANGED_FOR_INTEGRATION(TMap, PairRef)
 
 		void Clear();
 		void Reset();

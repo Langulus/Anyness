@@ -7,6 +7,7 @@
 ///																									
 #pragma once
 #include "Bytes.hpp"
+#include <string>
 
 namespace Langulus::Anyness
 {
@@ -81,6 +82,10 @@ namespace Langulus::Anyness
 
 		NOD() Count GetLineCount() const noexcept;
 
+		using CompatibleStdString = ::std::basic_string<Letter, ::std::char_traits<Letter>, ::std::allocator<Letter>>;
+		bool operator == (const CompatibleStdString&) const noexcept;
+		using CompatibleStdStringView = ::std::basic_string_view<Letter>;
+		bool operator == (const CompatibleStdStringView&) const noexcept;
 		bool operator == (const Text&) const noexcept;
 		bool operator == (const Letter*) const noexcept;
 		bool operator == (::std::nullptr_t) const noexcept;

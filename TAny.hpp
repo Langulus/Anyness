@@ -112,9 +112,9 @@ namespace Langulus::Anyness
 		NOD() decltype(auto) Last() const SAFETY_NOEXCEPT();
 		NOD() decltype(auto) Last() SAFETY_NOEXCEPT();
 
-		template<CT::Data ALT_T = T>
+		template<CT::Data = T>
 		NOD() decltype(auto) Get(const Offset&) const SAFETY_NOEXCEPT();
-		template<CT::Data ALT_T = T>
+		template<CT::Data = T>
 		NOD() decltype(auto) Get(const Offset&) SAFETY_NOEXCEPT();
 
 		NOD() decltype(auto) operator [] (const Offset&) const SAFETY_NOEXCEPT() requires CT::Dense<T>;
@@ -153,14 +153,14 @@ namespace Langulus::Anyness
 		template<bool KEEP = true, CT::Index IDX = Offset>
 		Count InsertAt(T&&, const IDX&);
 
-		template<auto INDEX = IndexBack, bool KEEP = true>
+		template<Index = IndexBack, bool KEEP = true>
 		Count Insert(const T*, const T*);
-		template<auto INDEX = IndexBack, bool KEEP = true>
+		template<Index = IndexBack, bool KEEP = true>
 		Count Insert(T&&);
 
 		template<CT::Index IDX = Offset, class... A>
 		Count EmplaceAt(const IDX&, A&&...);
-		template<auto INDEX = IndexBack, class... A>
+		template<Index = IndexBack, class... A>
 		Count Emplace(A&&...);
 
 		TAny& operator << (const T&);
@@ -178,9 +178,9 @@ namespace Langulus::Anyness
 		template<bool KEEP = true, CT::Index IDX = Offset>
 		Count MergeAt(T&&, const IDX&);
 
-		template<auto INDEX = IndexBack, bool KEEP = true>
+		template<Index = IndexBack, bool KEEP = true>
 		Count Merge(const T*, const T*);
-		template<auto INDEX = IndexBack, bool KEEP = true>
+		template<Index = IndexBack, bool KEEP = true>
 		Count Merge(T&&);
 
 		TAny& operator <<= (const T&);
@@ -199,6 +199,7 @@ namespace Langulus::Anyness
 
 		template<CT::Data ALT_T = T, bool REVERSE = false>
 		NOD() Index Find(const ALT_T&) const;
+
 		template<CT::Data ALT_T = T, bool REVERSE = false>
 		Count RemoveValue(const ALT_T&);
 		Count RemoveIndex(const Offset&, const Count&);

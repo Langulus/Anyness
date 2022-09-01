@@ -121,6 +121,20 @@ namespace Langulus::Anyness
 		return TAny::operator+<Text, RHS>(rhs);
 	}
 
+	/// Compare with a std::string															
+	///	@param rhs - the text to compare against										
+	///	@return true if both strings are the same										
+	inline bool Text::operator == (const CompatibleStdString& rhs) const noexcept {
+		return operator == (Text {Disown(rhs.data()), rhs.size()});
+	}
+
+	/// Compare with a std::string_view														
+	///	@param rhs - the text to compare against										
+	///	@return true if both strings are the same										
+	inline bool Text::operator == (const CompatibleStdStringView& rhs) const noexcept {
+		return operator == (Text {Disown(rhs.data()), rhs.size()});
+	}
+
 	/// Compare two text containers															
 	///	@param rhs - the text to compare against										
 	///	@return true if both strings are the same										
