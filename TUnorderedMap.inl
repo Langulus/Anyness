@@ -1378,7 +1378,7 @@ namespace Langulus::Anyness
 	///	@param value - pointer to the value element									
 	TABLE_TEMPLATE()
 	template<bool MUTABLE>
-	ITERATOR()::TIterator(const uint8_t* info, const uint8_t* sentinel, KeyPtr key, ValuePtr value) noexcept
+	TABLE()::TIterator<MUTABLE>::TIterator(const uint8_t* info, const uint8_t* sentinel, KeyPtr key, ValuePtr value) noexcept
 		: mInfo {info}
 		, mSentinel {sentinel}
 		, mKey {key}
@@ -1389,7 +1389,7 @@ namespace Langulus::Anyness
 	///	@return the modified iterator														
 	TABLE_TEMPLATE()
 	template<bool MUTABLE>
-	typename ITERATOR()& ITERATOR()::operator ++ () noexcept {
+	typename ITERATOR()& TABLE()::TIterator<MUTABLE>::operator ++ () noexcept {
 		if (mInfo == mSentinel)
 			return *this;
 
@@ -1414,7 +1414,7 @@ namespace Langulus::Anyness
 	///	@return the previous value of the iterator									
 	TABLE_TEMPLATE()
 	template<bool MUTABLE>
-	typename ITERATOR() ITERATOR()::operator ++ (int) noexcept {
+	typename ITERATOR() TABLE()::TIterator<MUTABLE>::operator ++ (int) noexcept {
 		const auto backup = *this;
 		operator ++ ();
 		return backup;
@@ -1425,7 +1425,7 @@ namespace Langulus::Anyness
 	///	@return true if entries match														
 	TABLE_TEMPLATE()
 	template<bool MUTABLE>
-	bool ITERATOR()::operator == (const TIterator& rhs) const noexcept {
+	bool TABLE()::TIterator<MUTABLE>::operator == (const TIterator& rhs) const noexcept {
 		return *mKey == *rhs.mKey && *mValue == *rhs.mValue;
 	}
 
@@ -1433,7 +1433,7 @@ namespace Langulus::Anyness
 	///	@return a pair at the current iterator position								
 	TABLE_TEMPLATE()
 	template<bool MUTABLE>
-	typename ITERATOR()::Pair ITERATOR()::operator * () const noexcept {
+	typename ITERATOR()::Pair TABLE()::TIterator<MUTABLE>::operator * () const noexcept {
 		return {*mKey, *mValue};
 	}
 
