@@ -114,8 +114,10 @@ namespace Langulus::Anyness
 		///																							
 		///	INSERTION																			
 		///																							
-		Count Insert(const Pair&);
-		Count Insert(Pair&&);
+		Count Insert(const K&, const V&);
+		Count Insert(K&&, const V&);
+		Count Insert(const K&, V&&);
+		Count Insert(K&&, V&&);
 
 		///																							
 		///	REMOVAL																				
@@ -216,7 +218,7 @@ namespace Langulus::Anyness
 		void AllocateKeys(const Count&);
 		void AllocateInner(const Count&);
 		void Rehash(const Count&, const Count&);
-		void InsertInner(const Offset&, K&, V&);
+		void InsertInner(const Offset&, K&&, V&&);
 		void ClearInner();
 
 		template<class T>

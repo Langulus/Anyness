@@ -687,6 +687,54 @@ SCENARIO("TUnorderedMap", "[containers]") {
 				REQUIRE(map != differentMap1);
 			}
 		}
+
+		WHEN("Maps are iterated with ranged-for") {
+			REQUIRE(map["one"] == 1);
+			REQUIRE(map["two"] == 2);
+			REQUIRE(map["three"] == 3);
+			REQUIRE(map["four"] == 4);
+			REQUIRE(map["five"] == 5);
+
+			int i = 0;
+			for (auto pair : map) {
+				static_assert(::std::is_reference_v<decltype(pair.mKey)>,
+					"Pair key type is not a reference");
+				static_assert(::std::is_reference_v<decltype(pair.mValue)>,
+					"Pair value type is not a reference");
+
+				switch (i) {
+				case 0:
+					REQUIRE(pair.mKey == "two");
+					REQUIRE(pair.mValue == 2);
+					break;
+				case 1:
+					REQUIRE(pair.mKey == "three");
+					REQUIRE(pair.mValue == 3);
+					break;
+				case 2:
+					REQUIRE(pair.mKey == "four");
+					REQUIRE(pair.mValue == 4);
+					break;
+				case 3:
+					REQUIRE(pair.mKey == "five");
+					REQUIRE(pair.mValue == 5);
+					break;
+				case 4:
+					REQUIRE(pair.mKey == "one");
+					REQUIRE(pair.mValue == 1);
+					break;
+				default:
+					FAIL("Index out of bounds in ranged-for");
+					break;
+				}
+
+				++i;
+			}
+
+			THEN("The comparisons should be adequate") {
+				REQUIRE(i == map.GetCount());
+			}
+		}
 	}
 
 	GIVEN("Two THashMaps") {

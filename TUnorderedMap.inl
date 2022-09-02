@@ -138,7 +138,7 @@ namespace Langulus::Anyness
 	TABLE_TEMPLATE()
 	TABLE()& TABLE()::operator = (Pair&& pair) noexcept {
 		Clear();
-		Insert(Forward<Pair>(pair));
+		Insert(Move(pair.mKey), Move(pair.mValue));
 		return *this;
 	}
 
@@ -148,7 +148,7 @@ namespace Langulus::Anyness
 	TABLE_TEMPLATE()
 	TABLE()& TABLE()::operator = (const Pair& pair) {
 		Clear();
-		Insert(pair);
+		Insert(pair.mKey, pair.mValue);
 		return *this;
 	}
 
@@ -426,14 +426,14 @@ namespace Langulus::Anyness
 	/// Move-insert a pair inside the map													
 	TABLE_TEMPLATE()
 	TABLE()& TABLE()::operator << (Pair&& item) {
-		Insert(Forward<Pair>(item));
+		Insert(Move(item.mKey), Move(item.mValue));
 		return *this;
 	}
 
 	/// Copy-insert a pair inside the map													
 	TABLE_TEMPLATE()
 	TABLE()& TABLE()::operator << (const Pair& item) {
-		Insert(item);
+		Insert(item.mKey, item.mValue);
 		return *this;
 	}
 
@@ -574,14 +574,14 @@ namespace Langulus::Anyness
 			}
 
 			if constexpr (REUSE) {
-				Insert(Pair {Move(*key), Move(*value)});
+				Insert(Move(*key), Move(*value));
 				if constexpr (CT::Dense<K>)
 					RemoveInner(key);
 				if constexpr (CT::Dense<V>)
 					RemoveInner(value);
 			}
 			else {
-				Insert(Pair {*key, *value});
+				Insert(*key, *value);
 			}
 
 			++key; ++oldInfo; ++value;
@@ -631,7 +631,8 @@ namespace Langulus::Anyness
 			if (oldIndex != newIndex) {
 				// Immediately move the old pair to the swapper					
 				auto oldValue = &GetValue(oldIndex);
-				Pair swapper {Move(*oldKey), Move(*oldValue)};
+				Key keyswap {Move(*oldKey)};
+				Value valswap {Move(*oldValue)};
 
 				// Clean the old slot													
 				if constexpr (CT::Dense<K>)
@@ -642,7 +643,7 @@ namespace Langulus::Anyness
 				*oldInfo = 0;
 
 				// Insert the swapper													
-				InsertInner(newIndex, swapper.mKey, swapper.mValue);
+				InsertInner(newIndex, Move(keyswap), Move(valswap));
 			}
 			else {
 				// Nothing inserted, but since count has been previously		
@@ -680,7 +681,7 @@ namespace Langulus::Anyness
 	///	@param key - key to move in														
 	///	@param value - value to move in													
 	TABLE_TEMPLATE()
-	void TABLE()::InsertInner(const Offset& start, K& key, V& value) {
+	void TABLE()::InsertInner(const Offset& start, K&& key, V&& value) {
 		// Used for swapping key/value known pointer entries, to avoid		
 		// losing that information when swapping sparse stuff					
 		using KKP = typename TAny<K>::KnownPointer;
@@ -701,7 +702,7 @@ namespace Langulus::Anyness
 			if (*candidate == key) {
 				// Neat, the key already exists - just set value and go		
 				const auto index = psl - GetInfo();
-				Overwrite(Move(value), GetValue(index));
+				Overwrite(Forward<V>(value), GetValue(index));
 				return;
 			}
 
@@ -752,34 +753,55 @@ namespace Langulus::Anyness
 		return HashData(key).mHash & (GetReserved() - 1);
 	}
 
-	/// Insert a single pair inside table via shallow-copy							
-	/// Guarantees that original item remains unchanged								
-	///	@param item - pair to add															
-	///	@return 1 if pair was inserted													
+	/// Insert a single pair inside table via copy										
+	///	@param key - the key to add														
+	///	@param value - the value to add													
+	///	@return 1 if pair was inserted, zero otherwise								
 	TABLE_TEMPLATE()
-	Count TABLE()::Insert(const Pair& item) {
-		// Guarantee that there's at least one free space						
+	Count TABLE()::Insert(const K& key, const V& value) {
 		Allocate(GetCount() + 1);
+		const auto bucket = GetBucket(key);
+		Key kcopy {key};
+		Value vcopy {value};
+		InsertInner(bucket, Move(kcopy), Move(vcopy));
+		return 1;
+	}
 
-		// Make a temporary swapper, so that original item never changes	
-		const auto bucket = GetBucket(item.mKey);
-		Pair swapper {item};
-		InsertInner(bucket, swapper.mKey, swapper.mValue);
+	/// Insert a single pair inside table via key copy and value move				
+	///	@param key - the key to add														
+	///	@param value - the value to add													
+	///	@return 1 if pair was inserted, zero otherwise								
+	TABLE_TEMPLATE()
+	Count TABLE()::Insert(const K& key, V&& value) {
+		Allocate(GetCount() + 1);
+		const auto bucket = GetBucket(key);
+		Key kcopy {key};
+		InsertInner(bucket, Move(kcopy), Forward<V>(value));
+		return 1;
+	}
+
+	/// Insert a single pair inside table via key move and value copy				
+	///	@param key - the key to add														
+	///	@param value - the value to add													
+	///	@return 1 if pair was inserted, zero otherwise								
+	TABLE_TEMPLATE()
+	Count TABLE()::Insert(K&& key, const V& value) {
+		Allocate(GetCount() + 1);
+		const auto bucket = GetBucket(key);
+		Value vcopy {value};
+		InsertInner(bucket, Forward<K>(key), Move(vcopy));
 		return 1;
 	}
 
 	/// Insert a single pair inside table via move										
-	///	@attention original item may change, because it's used as swapper		
-	///	@param item - pair to add															
-	///	@return 1 if pair was inserted													
+	///	@param key - the key to add														
+	///	@param value - the value to add													
+	///	@return 1 if pair was inserted, zero otherwise								
 	TABLE_TEMPLATE()
-	Count TABLE()::Insert(Pair&& item) {
-		// Guarantee that there's at least one free space						
+	Count TABLE()::Insert(K&& key, V&& value) {
 		Allocate(GetCount() + 1);
-
-		// Use the original item as the swapper									
-		const auto bucket = GetBucket(item.mKey);
-		InsertInner(bucket, item.mKey, item.mValue);
+		const auto bucket = GetBucket(key);
+		InsertInner(bucket, Forward<K>(key), Forward<V>(value));
 		return 1;
 	}
 
@@ -1298,21 +1320,30 @@ namespace Langulus::Anyness
 	///	@return an iterator to the first element, or end if empty				
 	TABLE_TEMPLATE()
 	typename TABLE()::Iterator TABLE()::begin() noexcept {
-		return const_cast<const TABLE()*>(this)->begin();
+		static_assert(sizeof(Iterator) == sizeof(ConstIterator),
+			"Size mismatch - types must be binary-compatible");
+		const auto constant = const_cast<const TABLE()*>(this)->begin();
+		return reinterpret_cast<const Iterator&>(constant);
 	}
 
 	/// Get iterator to end																		
 	///	@return an iterator to the end element											
 	TABLE_TEMPLATE()
 	typename TABLE()::Iterator TABLE()::end() noexcept {
-		return const_cast<const TABLE()*>(this)->end();
+		static_assert(sizeof(Iterator) == sizeof(ConstIterator),
+			"Size mismatch - types must be binary-compatible");
+		const auto constant = const_cast<const TABLE()*>(this)->end();
+		return reinterpret_cast<const Iterator&>(constant);
 	}
 
 	/// Get iterator to the last element													
 	///	@return an iterator to the last element, or end if empty					
 	TABLE_TEMPLATE()
 	typename TABLE()::Iterator TABLE()::last() noexcept {
-		return const_cast<const TABLE()*>(this)->last();
+		static_assert(sizeof(Iterator) == sizeof(ConstIterator),
+			"Size mismatch - types must be binary-compatible");
+		const auto constant = const_cast<const TABLE()*>(this)->last();
+		return reinterpret_cast<const Iterator&>(constant);
 	}
 
 	/// Get iterator to first element														
@@ -1322,12 +1353,14 @@ namespace Langulus::Anyness
 		if (IsEmpty())
 			return end();
 
-		auto firstValid = GetInfo();
+		auto info = GetInfo();
 		// Seek first valid info, or hit sentinel at the end					
-		while (!*(firstValid++));
-		const auto offset = (firstValid - GetInfo()) + *firstValid - 1;
+		while (!*info)
+			++info;
+
+		const auto offset = (info - GetInfo()) + *info - 1;
 		return {
-			firstValid, 
+			info,
 			GetInfoEnd(), 
 			GetRawKeys() + offset,
 			GetRawValues() + offset
@@ -1348,15 +1381,17 @@ namespace Langulus::Anyness
 		if (IsEmpty())
 			return end();
 
-		auto firstValid = GetInfoEnd() - 1;
+		auto info = GetInfoEnd() - 1;
 		// Seek first valid info in reverse, until one past first is met	
-		while (firstValid >= GetInfo() && !*(firstValid--));
-		if (firstValid < GetInfo())
+		while (info >= GetInfo() && !*info)
+			--info;
+
+		if (info < GetInfo())
 			return end();
 
-		const auto offset = (firstValid - GetInfo()) + *firstValid - 1;
+		const auto offset = (info - GetInfo()) + *info - 1;
 		return {
-			firstValid,
+			info,
 			GetInfoEnd(),
 			GetRawKeys() + offset,
 			GetRawValues() + offset
@@ -1393,19 +1428,15 @@ namespace Langulus::Anyness
 		if (mInfo == mSentinel)
 			return *this;
 
-		// Restore true element pointers (robin hood specific)				
-		const auto previous = mInfo;
-		::std::ptrdiff_t offset = *(mInfo++) - 1;
-		mKey -= offset;
-		mValue -= offset;
-
 		// Seek next valid info, or hit sentinel at the end					
-		while (!*(mInfo++));
-
-		// Move to offsetted element pointers (robin hood specific)			
-		offset = (mInfo - previous) - 1;
-		mKey += offset + *mInfo;
-		mValue += offset + *mInfo;
+		const auto previous = mInfo;
+		while (!*++mInfo);
+		const auto offset = ::std::max(
+			::std::ptrdiff_t {1}, 
+			(mInfo - previous) + *mInfo - *previous - 1
+		);
+		mKey += offset;
+		mValue += offset;
 		return *this;
 	}
 
@@ -1426,7 +1457,7 @@ namespace Langulus::Anyness
 	TABLE_TEMPLATE()
 	template<bool MUTABLE>
 	bool TABLE()::TIterator<MUTABLE>::operator == (const TIterator& rhs) const noexcept {
-		return *mKey == *rhs.mKey && *mValue == *rhs.mValue;
+		return mInfo == rhs.mInfo;
 	}
 
 	/// Iterator access operator																

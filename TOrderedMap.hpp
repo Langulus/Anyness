@@ -30,4 +30,4 @@ namespace Langulus::Anyness
 
 } // namespace Langulus::Anyness
 
-#include "TMap.inl"
+#include "TOrderedMap.inl"

@@ -6,7 +6,7 @@
 /// See LICENSE file, or https://www.gnu.org/licenses									
 ///																									
 #pragma once
-#include "TMap.hpp"
+#include "TOrderedMap.hpp"
 
 #define TEMPLATE() template<CT::Data K, CT::Data V>
 #define MAP() TOrderedMap<K, V>
