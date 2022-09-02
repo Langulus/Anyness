@@ -1834,6 +1834,38 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 				REQUIRE(pack == another_pack5);
 			}
 		}
+
+		WHEN("A forward value-based search is performed on exitent value") {
+			const auto found = pack.Find(3);
+			THEN("The value's index should be correct") {
+				REQUIRE(found);
+				REQUIRE(found == 2);
+			}
+		}
+
+		WHEN("A forward value-based search is performed on non-exitent value") {
+			const auto found = pack.Find(8);
+			THEN("The function should return IndexNone") {
+				REQUIRE(found == IndexNone);
+				REQUIRE_FALSE(found);
+			}
+		}
+
+		WHEN("A backward value-based search is performed on exitent value") {
+			const auto found = pack.Find<true>(3);
+			THEN("The new pack should keep the state and data") {
+				REQUIRE(found);
+				REQUIRE(found == 2);
+			}
+		}
+
+		WHEN("A backward value-based search is performed on non-exitent value") {
+			const auto found = pack.Find<true>(8);
+			THEN("The function should return IndexNone") {
+				REQUIRE(found == IndexNone);
+				REQUIRE_FALSE(found);
+			}
+		}
 	}
 
 	GIVEN("Two containers with some POD items") {

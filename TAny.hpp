@@ -193,15 +193,16 @@ namespace Langulus::Anyness
 		TAny& operator >>= (Disowned<T>&&);
 		TAny& operator >>= (Abandoned<T>&&);
 
-		template<CT::Data ALT_T>
+		template<CT::Data ALT_T = T>
 		bool operator == (const TAny<ALT_T>&) const noexcept;
 		bool operator == (const Any&) const noexcept;
 
-		template<CT::Data ALT_T = T, bool REVERSE = false>
-		NOD() Index Find(const ALT_T&) const;
+		template<bool REVERSE = false, bool BY_ADDRESS_ONLY = false>
+		NOD() Index Find(const T&) const;
 
-		template<CT::Data ALT_T = T, bool REVERSE = false>
-		Count RemoveValue(const ALT_T&);
+		template<bool REVERSE = false>
+		Count RemoveValue(const T&);
+		Count RemovePointer(const T*);
 		Count RemoveIndex(const Offset&, const Count&);
 
 		template<bool ASCEND = false>

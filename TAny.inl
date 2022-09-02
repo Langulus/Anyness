@@ -1289,176 +1289,71 @@ namespace Langulus::Anyness
 	}
 
 	/// Find element(s) index inside container											
-	///	@tparam ALT_T - type of the element to search for							
 	///	@tparam REVERSE - whether to search in reverse order						
 	///	@param item - the item to search for											
 	///	@return the index of the found item, or IndexNone if none found		
 	TEMPLATE()
-	template<CT::Data ALT_T, bool REVERSE>
-	Index TAny<T>::Find(const ALT_T& item) const {
-		static_assert(CT::Comparable<T, ALT_T>, 
-			"Provided type ALT_T is not comparable to the contained type T");
-
-		if constexpr (CT::Sparse<ALT_T>) {
-			if constexpr (CT::Sparse<T>) {
-				// Searching for pointer inside a sparse container				
-				if constexpr (REVERSE) {
-					// Searching in reverse												
-					auto start = GetRawEnd() - 1;
-					if (*start == item)
-						return mCount - 1;
-
-					const auto end = start - mCount;
-					while (--start != end) {
-						if constexpr (CT::DerivedFrom<T, ALT_T>) {
-							if (static_cast<ConstCast<T>>(*start) == item)
-								return start - GetRaw();
-						}
-						else if constexpr (CT::DerivedFrom<ALT_T, T>) {
-							if (*start == static_cast<ConstCast<ALT_T>>(item))
-								return start - GetRaw();
-						}
-						else LANGULUS_ASSERT("Type is not comparable to contained elements");
-					}
+	template<bool REVERSE, bool BY_ADDRESS_ONLY>
+	Index TAny<T>::Find(const T& item) const {
+		// Searching for value inside a sparse container						
+		if constexpr (REVERSE) {
+			// Searching in reverse														
+			auto start = GetRawEnd() - 1;
+			const auto end = start - mCount;
+			do {
+				if constexpr (BY_ADDRESS_ONLY) {
+					if (start == &item)
+						return start - GetRaw();
 				}
 				else {
-					// Searching forward													
-					auto start = GetRaw();
-					if (*start == item)
-						return 0;
-
-					const auto end = start + mCount;
-					while (++start != end) {
-						if constexpr (CT::DerivedFrom<T, ALT_T>) {
-							if (static_cast<ConstCast<T>>(*start) == item)
-								return start - GetRaw();
-						}
-						else if constexpr (CT::DerivedFrom<ALT_T, T>) {
-							if (*start == static_cast<ConstCast<ALT_T>>(item))
-								return start - GetRaw();
-						}
-						else LANGULUS_ASSERT("Type is not comparable to contained elements");
-					}
-				}
-			}
-			else {
-				// Searching for pointer inside a dense container				
-				// Pointer should reside inside container, so a single 		
-				// check is completely enough											
-				auto start = GetRaw();
-				if constexpr (CT::DerivedFrom<T, ALT_T>) {
-					const auto difference = item - static_cast<ConstCast<T>>(start);
-					if (difference >= 0 && static_cast<Count>(difference) < mCount)
-						return Index {difference};
-				}
-				else if constexpr (CT::DerivedFrom<ALT_T, T>) {
-					const auto difference = static_cast<ConstCast<ALT_T>>(item) - start;
-					if (difference >= 0 && static_cast<Count>(difference) < mCount)
-						return Index {difference};
-				}
-				else LANGULUS_ASSERT("Type is not comparable to contained elements");
-			}
-		}
-		else if constexpr (CT::Sparse<T>) {
-			// Searching for value inside a sparse container					
-			if constexpr (REVERSE) {
-				// Searching in reverse													
-				auto start = GetRawEnd() - 1;
-				if (**start == item)
-					return mCount - 1;
-
-				const auto end = start - mCount;
-				while (--start != end) {
-					// Test pointers first, but only if T is too big for a	
-					// single instruction comparison									
-					if constexpr (sizeof(ALT_T) > sizeof(void*)) {
-						if constexpr (CT::DerivedFrom<T, ALT_T>) {
-							if (static_cast<ConstCast<T>>(*start) == &item)
-								return start - GetRaw();
-						}
-						else if constexpr (CT::DerivedFrom<ALT_T, T>) {
-							if (*start == static_cast<ConstCast<ALT_T>>(&item))
-								return start - GetRaw();
-						}
-					}
-
-					// Test by value														
-					if (**start == item)
+					if (start == &item || *start == item)
 						return start - GetRaw();
 				}
-			}
-			else {
-				// Searching forward														
-				auto start = GetRaw();
-				if (**start == item)
-					return 0;
-
-				const auto end = start + mCount;
-				while (++start != end) {
-					// Test pointers first, but only if T is too big for a	
-					// single instruction comparison									
-					if constexpr (sizeof(ALT_T) > sizeof(void*)) {
-						if constexpr (CT::DerivedFrom<T, ALT_T>) {
-							if (static_cast<ConstCast<T>>(*start) == &item)
-								return start - GetRaw();
-						}
-						else if constexpr (CT::DerivedFrom<ALT_T, T>) {
-							if (*start == static_cast<ConstCast<ALT_T>>(&item))
-								return start - GetRaw();
-						}
-					}
-
-					// Test by value														
-					if (**start == item)
-						return start - GetRaw();
-				}
-			}
+			} while (--start != end);
 		}
 		else {
-			// Searching for value inside a dense container						
-			// Test by value																
-			if constexpr (REVERSE) {
-				// Searching in reverse													
-				auto start = GetRawEnd() - 1;
-				if (*start == item)
-					return mCount - 1;
-
-				const auto end = start - mCount;
-				while (--start != end) {
-					if (*start == item)
+			// Searching forward															
+			auto start = GetRaw();
+			const auto end = start + mCount;
+			do {
+				if constexpr (BY_ADDRESS_ONLY) {
+					if (start == &item)
 						return start - GetRaw();
 				}
-			}
-			else {
-				// Searching forward														
-				auto start = GetRaw();
-				if (*start == item)
-					return 0;
-
-				const auto end = start + mCount;
-				while (++start != end) {
-					if (*start == item)
+				else {
+					if (start == &item || *start == item)
 						return start - GetRaw();
 				}
-			}
+			} while (++start != end);
 		}
 
 		// If this is reached, then no match was found							
 		return IndexNone;
 	}
 
-	/// Remove matching items																	
-	///	@tparam ALT_T - type of the element to remove								
+	/// Remove matching items by value														
 	///	@tparam REVERSE - whether to search in reverse order						
 	///	@param item - the item to search for to remove								
 	///	@return the number of removed items												
 	TEMPLATE()
-	template<CT::Data ALT_T, bool REVERSE>
-	Count TAny<T>::RemoveValue(const ALT_T& item) {
-		const auto found = Find<ALT_T, REVERSE>(item);
+	template<bool REVERSE>
+	Count TAny<T>::RemoveValue(const T& item) {
+		const auto found = Find<REVERSE>(item);
 		if (found)
 			return RemoveIndex(found.GetOffset(), 1);
 		return 0;
+	}
+
+	/// Remove matching items by address													
+	///	@tparam REVERSE - whether to search in reverse order						
+	///	@param item - the item to search for to remove								
+	///	@return the number of removed items												
+	TEMPLATE()
+	Count TAny<T>::RemovePointer(const T* item) {
+		if (!Owns(item))
+			return 0;
+
+		return RemoveIndex(item - GetRaw());
 	}
 
 	/// Remove sequential raw indices in a given range									
