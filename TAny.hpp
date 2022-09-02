@@ -24,7 +24,7 @@ namespace Langulus::Anyness
 		LANGULUS_BASES(Any);
 	public:
 		template<CT::Data, CT::Data>
-		friend class THashMap;
+		friend class TUnorderedMap;
 		friend class Any;
 		friend class Block;
 

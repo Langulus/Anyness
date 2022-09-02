@@ -6,7 +6,7 @@
 /// See LICENSE file, or https://www.gnu.org/licenses									
 ///																									
 #pragma once
-#include "THashMap.hpp"
+#include "TUnorderedSet.hpp"
 
 namespace Langulus::Anyness
 {

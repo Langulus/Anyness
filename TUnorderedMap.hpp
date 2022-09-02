@@ -16,7 +16,7 @@ namespace Langulus::Anyness
 	/// algorithm																					
 	///																								
 	template<CT::Data K, CT::Data V>
-	class THashMap {
+	class TUnorderedMap {
 	public:
 		static_assert(CT::Comparable<K>, "Can't compare keys for map");
 		using Pair = TPair<K, V>;
@@ -24,7 +24,7 @@ namespace Langulus::Anyness
 		using PairConstRef = TPair<const K&, const V&>;
 		using Key = K;
 		using Value = V;
-		using Self = THashMap<K, V>;
+		using Self = TUnorderedMap<K, V>;
 		static constexpr Count MinimalAllocation = 8;
 
 	protected:
@@ -45,20 +45,20 @@ namespace Langulus::Anyness
 		TAny<V> mValues;
 
 	public:
-		THashMap() = default;
-		THashMap(::std::initializer_list<Pair>);
-		THashMap(const THashMap&);
-		THashMap(THashMap&&) noexcept;
+		TUnorderedMap() = default;
+		TUnorderedMap(::std::initializer_list<Pair>);
+		TUnorderedMap(const TUnorderedMap&);
+		TUnorderedMap(TUnorderedMap&&) noexcept;
 
-		THashMap(Disowned<THashMap>&&) noexcept;
-		THashMap(Abandoned<THashMap>&&) noexcept;
-		~THashMap();
+		TUnorderedMap(Disowned<TUnorderedMap>&&) noexcept;
+		TUnorderedMap(Abandoned<TUnorderedMap>&&) noexcept;
+		~TUnorderedMap();
 
-		THashMap& operator = (const THashMap&);
-		THashMap& operator = (THashMap&&) noexcept;
+		TUnorderedMap& operator = (const TUnorderedMap&);
+		TUnorderedMap& operator = (TUnorderedMap&&) noexcept;
 
-		THashMap& operator = (const Pair&);
-		THashMap& operator = (Pair&&) noexcept;
+		TUnorderedMap& operator = (const Pair&);
+		TUnorderedMap& operator = (Pair&&) noexcept;
 
 	public:
 		NOD() DMeta GetKeyType() const;
@@ -102,22 +102,14 @@ namespace Langulus::Anyness
 		NOD() constexpr bool HasAuthority() const noexcept;
 		NOD() constexpr Count GetUses() const noexcept;
 
-		NOD() constexpr auto GetRawKeys() const noexcept;
-		NOD() constexpr auto GetRawKeys() noexcept;
-		NOD() constexpr auto GetRawKeysEnd() const noexcept;
-
-		NOD() constexpr auto GetRawValues() const noexcept;
-		NOD() constexpr auto GetRawValues() noexcept;
-		NOD() constexpr auto GetRawValuesEnd() const noexcept;
-
 		void Allocate(const Count&);
 
-		NOD() THashMap Clone() const;
+		NOD() TUnorderedMap Clone() const;
 
-		THashMap& operator << (Pair&&);
-		THashMap& operator << (const Pair&);
+		TUnorderedMap& operator << (Pair&&);
+		TUnorderedMap& operator << (const Pair&);
 
-		bool operator == (const THashMap&) const;
+		bool operator == (const TUnorderedMap&) const;
 
 		///																							
 		///	INSERTION																			
@@ -161,12 +153,17 @@ namespace Langulus::Anyness
 		///																							
 		///	ITERATION																			
 		///																							
-		NOD() PairRef begin() noexcept;
-		NOD() PairRef end() noexcept;
-		NOD() PairRef last() noexcept;
-		NOD() PairConstRef begin() const noexcept;
-		NOD() PairConstRef end() const noexcept;
-		NOD() PairConstRef last() const noexcept;
+		template<bool MUTABLE>
+		struct TIterator;
+		using Iterator = TIterator<true>;
+		using ConstIterator = TIterator<false>;
+		
+		NOD() Iterator begin() noexcept;
+		NOD() Iterator end() noexcept;
+		NOD() Iterator last() noexcept;
+		NOD() ConstIterator begin() const noexcept;
+		NOD() ConstIterator end() const noexcept;
+		NOD() ConstIterator last() const noexcept;
 
 		Count ForEachKeyElement(TFunctor<bool(const Block&)>&&) const;
 		Count ForEachKeyElement(TFunctor<bool(Block&)>&&);
@@ -227,6 +224,7 @@ namespace Langulus::Anyness
 
 		template<class T>
 		static void RemoveInner(T*) noexcept;
+
 		template<class T>
 		static void Overwrite(T&&, T&) noexcept;
 
@@ -240,13 +238,66 @@ namespace Langulus::Anyness
 		NOD() decltype(auto) GetValue(const Offset&) noexcept;
 		NOD() decltype(auto) GetPair(const Offset&) const noexcept;
 		NOD() decltype(auto) GetPair(const Offset&) noexcept;
+
 		NOD() Offset GetBucket(const K&) const noexcept;
 		NOD() Offset FindIndex(const K&) const;
+
+	#ifdef LANGULUS_ENABLE_TESTING
+		public:
+	#endif
 		NOD() const uint8_t* GetInfo() const noexcept;
 		NOD() uint8_t* GetInfo() noexcept;
 		NOD() const uint8_t* GetInfoEnd() const noexcept;
+
+		NOD() constexpr auto GetRawKeys() const noexcept;
+		NOD() constexpr auto GetRawKeys() noexcept;
+		NOD() constexpr auto GetRawKeysEnd() const noexcept;
+
+		NOD() constexpr auto GetRawValues() const noexcept;
+		NOD() constexpr auto GetRawValues() noexcept;
+		NOD() constexpr auto GetRawValuesEnd() const noexcept;
+	};
+
+
+	///																								
+	///	Unordered map iterator																
+	///																								
+	template<CT::Data K, CT::Data V>
+	template<bool MUTABLE>
+	struct TUnorderedMap<K, V>::TIterator {
+		using Key = Conditional<MUTABLE, K, const K>;
+		using Value = Conditional<MUTABLE, V, const V>;
+		using KeyPtr = Conditional<MUTABLE, K*, const K*>;
+		using ValuePtr = Conditional<MUTABLE, V*, const V*>;
+		using KeyRef = Conditional<MUTABLE, K&, const K&>;
+		using ValueRef = Conditional<MUTABLE, V&, const V&>;
+		using Pair = TPair<KeyRef, ValueRef>;
+
+	protected:
+		friend class TUnorderedMap<K, V>;
+
+		const uint8_t* mInfo {};
+		const uint8_t* mSentinel {};
+		KeyPtr mKey {};
+		ValuePtr mValue {};
+
+		TIterator(const uint8_t*, const uint8_t*, KeyPtr, ValuePtr) noexcept;
+
+	public:
+		TIterator() noexcept = default;
+		TIterator(const TIterator&) noexcept = default;
+		TIterator(TIterator&&) noexcept = default;
+
+		// Prefix operator																
+		TIterator& operator ++ () noexcept;
+		// Suffix operator																
+		NOD() TIterator operator ++ (int) noexcept;
+
+		NOD() bool operator == (const TIterator&) const noexcept;
+
+		NOD() Pair operator * () const noexcept;
 	};
 
 } // namespace Langulus::Anyness
 
-#include "THashMap.inl"
+#include "TUnorderedMap.inl"

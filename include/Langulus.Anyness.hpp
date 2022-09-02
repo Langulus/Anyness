@@ -15,8 +15,8 @@
 #include "../TMap.hpp"
 #include "../TPointer.hpp"
 #include "../Trait.hpp"
-#include "../THashMap.hpp"
-#include "../THashSet.hpp"
+#include "../TUnorderedMap.hpp"
+#include "../TUnorderedSet.hpp"
 #include "../TFactory.hpp"
 
 #if LANGULUS_FEATURE(MANAGED_MEMORY)

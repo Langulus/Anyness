@@ -6,10 +6,10 @@
 /// See LICENSE file, or https://www.gnu.org/licenses									
 ///																									
 #pragma once
-#include "THashMap.hpp"
+#include "TUnorderedMap.hpp"
 
 #define TABLE_TEMPLATE() template<CT::Data K, CT::Data V>
-#define TABLE() THashMap<K, V>
+#define TABLE() TUnorderedMap<K, V>
 
 namespace Langulus::Anyness
 {
@@ -17,8 +17,8 @@ namespace Langulus::Anyness
 	/// Manual construction via an initializer list										
 	///	@param initlist - the initializer list to forward							
 	TABLE_TEMPLATE()
-	TABLE()::THashMap(::std::initializer_list<Pair> initlist)
-		: THashMap{} {
+	TABLE()::TUnorderedMap(::std::initializer_list<Pair> initlist)
+		: TUnorderedMap{} {
 		Allocate(initlist.size());
 		for (auto& it : initlist)
 			Insert(*it);
@@ -27,7 +27,7 @@ namespace Langulus::Anyness
 	/// Shallow-copy construction																
 	///	@param other - the table to copy													
 	TABLE_TEMPLATE()
-	TABLE()::THashMap(const THashMap& other)
+	TABLE()::TUnorderedMap(const TUnorderedMap& other)
 		: mKeys {other.mKeys}
 		, mInfo {other.mInfo}
 		, mValues {other.mValues} {}
@@ -35,7 +35,7 @@ namespace Langulus::Anyness
 	/// Move construction																		
 	///	@param other - the table to move													
 	TABLE_TEMPLATE()
-	TABLE()::THashMap(THashMap&& other) noexcept
+	TABLE()::TUnorderedMap(TUnorderedMap&& other) noexcept
 		: mKeys {other.mKeys}
 		, mInfo {other.mInfo}
 		, mValues {Move(other.mValues)} {}
@@ -43,7 +43,7 @@ namespace Langulus::Anyness
 	/// Shallow-copy construction without referencing									
 	///	@param other - the disowned table to copy										
 	TABLE_TEMPLATE()
-	TABLE()::THashMap(Disowned<THashMap>&& other) noexcept
+	TABLE()::TUnorderedMap(Disowned<TUnorderedMap>&& other) noexcept
 		: mKeys {other.mValue.mKeys}
 		, mInfo {other.mValue.mInfo}
 		, mValues {Disown(other.mValue.mValues)} {}
@@ -51,14 +51,14 @@ namespace Langulus::Anyness
 	/// Minimal move construction from abandoned table									
 	///	@param other - the abandoned table to move									
 	TABLE_TEMPLATE()
-	TABLE()::THashMap(Abandoned<THashMap>&& other) noexcept
+	TABLE()::TUnorderedMap(Abandoned<TUnorderedMap>&& other) noexcept
 		: mKeys {other.mValue.mKeys}
 		, mInfo {other.mValue.mInfo}
 		, mValues {Abandon(other.mValue.mValues)} {}
 
 	/// Destroys the map and all it's contents											
 	TABLE_TEMPLATE()
-	TABLE()::~THashMap() {
+	TABLE()::~TUnorderedMap() {
 		if (!mValues.mEntry)
 			return;
 
@@ -83,7 +83,7 @@ namespace Langulus::Anyness
 	///	@param other - the table to compare against									
 	///	@return true if tables match														
 	TABLE_TEMPLATE()
-	bool TABLE()::operator == (const THashMap& other) const {
+	bool TABLE()::operator == (const TUnorderedMap& other) const {
 		if (other.GetCount() != GetCount())
 			return false;
 
@@ -110,12 +110,12 @@ namespace Langulus::Anyness
 	///	@param rhs - the table to move													
 	///	@return a reference to this table												
 	TABLE_TEMPLATE()
-	TABLE()& TABLE()::operator = (THashMap&& rhs) noexcept {
+	TABLE()& TABLE()::operator = (TUnorderedMap&& rhs) noexcept {
 		if (&rhs == this)
 			return *this;
 
 		Reset();
-		new (this) Self {Forward<THashMap>(rhs)};
+		new (this) Self {Forward<TUnorderedMap>(rhs)};
 		return *this;
 	}
 
@@ -123,7 +123,7 @@ namespace Langulus::Anyness
 	///	@param rhs - the table to reference												
 	///	@return a reference to this table												
 	TABLE_TEMPLATE()
-	TABLE()& TABLE()::operator = (const THashMap& rhs) {
+	TABLE()& TABLE()::operator = (const TUnorderedMap& rhs) {
 		if (&rhs == this)
 			return *this;
 
@@ -218,12 +218,12 @@ namespace Langulus::Anyness
 		if (IsEmpty())
 			return {};
 
-		THashMap result {Disown(*this)};
+		TUnorderedMap result {Disown(*this)};
 
 		// Allocate keys and info														
 		result.mKeys = Inner::Allocator::Allocate(mKeys->GetAllocatedSize());
 		if (!result.mKeys)
-			Throw<Except::Allocate>("Out of memory on cloning THashMap keys");
+			Throw<Except::Allocate>("Out of memory on cloning TUnorderedMap keys");
 
 		result.mInfo = reinterpret_cast<uint8_t*>(result.mKeys) 
 			+ (mInfo - reinterpret_cast<const uint8_t*>(mKeys));
@@ -240,7 +240,7 @@ namespace Langulus::Anyness
 		if (!result.mValues.mEntry) {
 			Inner::Allocator::Deallocate(result.mKeys);
 			result.mValues.mEntry = nullptr;
-			Throw<Except::Allocate>("Out of memory on cloning THashMap values");
+			Throw<Except::Allocate>("Out of memory on cloning TUnorderedMap values");
 		}
 
 		result.mValues.mRaw = result.mValues.mEntry->GetBlockStart();
@@ -510,7 +510,7 @@ namespace Langulus::Anyness
 		}
 
 		if (!mKeys)
-			Throw<Except::Allocate>("Out of memory on allocating/reallocating THashMap keys");
+			Throw<Except::Allocate>("Out of memory on allocating/reallocating TUnorderedMap keys");
 
 		// Precalculate the info pointer, it's costly							
 		auto oldInfo = mInfo;
@@ -550,7 +550,7 @@ namespace Langulus::Anyness
 
 		if (!mValues.mEntry) {
 			Inner::Allocator::Deallocate(mKeys);
-			Throw<Except::Allocate>("Out of memory on allocating/reallocating THashMap values");
+			Throw<Except::Allocate>("Out of memory on allocating/reallocating TUnorderedMap values");
 		}
 
 		mValues.mRaw = mValues.mEntry->GetBlockStart();
@@ -1153,7 +1153,7 @@ namespace Langulus::Anyness
 	decltype(auto) TABLE()::GetKey(const Index& index) {
 		const auto offset = index.GetOffset();
 		if (offset >= GetReserved() || 0 == GetInfo()[offset])
-			Throw<Except::OutOfRange>("Bad index for THashMap::GetKey");
+			Throw<Except::OutOfRange>("Bad index for TUnorderedMap::GetKey");
 		return GetKey(offset);
 	}
 
@@ -1172,7 +1172,7 @@ namespace Langulus::Anyness
 	decltype(auto) TABLE()::GetValue(const Index& index) {
 		const auto offset = index.GetOffset();
 		if (offset >= GetReserved() || 0 == GetInfo()[offset])
-			Throw<Except::OutOfRange>("Bad index for THashMap::GetValue");
+			Throw<Except::OutOfRange>("Bad index for TUnorderedMap::GetValue");
 		return GetValue(offset);
 	}
 
@@ -1191,7 +1191,7 @@ namespace Langulus::Anyness
 	decltype(auto) TABLE()::GetPair(const Index& index) {
 		const auto offset = index.GetOffset();
 		if (offset >= GetReserved() || 0 == GetInfo()[offset])
-			Throw<Except::OutOfRange>("Bad index for THashMap::GetPair");
+			Throw<Except::OutOfRange>("Bad index for TUnorderedMap::GetPair");
 		return GetPair(offset);
 	}
 
@@ -1294,7 +1294,151 @@ namespace Langulus::Anyness
 		return mValues.GetUses();
 	}
 
+	/// Get iterator to first element														
+	///	@return an iterator to the first element, or end if empty				
+	TABLE_TEMPLATE()
+	typename TABLE()::Iterator TABLE()::begin() noexcept {
+		return const_cast<const TABLE()*>(this)->begin();
+	}
+
+	/// Get iterator to end																		
+	///	@return an iterator to the end element											
+	TABLE_TEMPLATE()
+	typename TABLE()::Iterator TABLE()::end() noexcept {
+		return const_cast<const TABLE()*>(this)->end();
+	}
+
+	/// Get iterator to the last element													
+	///	@return an iterator to the last element, or end if empty					
+	TABLE_TEMPLATE()
+	typename TABLE()::Iterator TABLE()::last() noexcept {
+		return const_cast<const TABLE()*>(this)->last();
+	}
+
+	/// Get iterator to first element														
+	///	@return a constant iterator to the first element, or end if empty		
+	TABLE_TEMPLATE()
+	typename TABLE()::ConstIterator TABLE()::begin() const noexcept {
+		if (IsEmpty())
+			return end();
+
+		auto firstValid = GetInfo();
+		// Seek first valid info, or hit sentinel at the end					
+		while (!*(firstValid++));
+		const auto offset = (firstValid - GetInfo()) + *firstValid - 1;
+		return {
+			firstValid, 
+			GetInfoEnd(), 
+			GetRawKeys() + offset,
+			GetRawValues() + offset
+		};
+	}
+
+	/// Get iterator to end																		
+	///	@return a constant iterator to the end element								
+	TABLE_TEMPLATE()
+	typename TABLE()::ConstIterator TABLE()::end() const noexcept {
+		return {GetInfoEnd(), GetInfoEnd(), nullptr, nullptr};
+	}
+
+	/// Get iterator to the last valid element											
+	///	@return a constant iterator to the last element, or end if empty		
+	TABLE_TEMPLATE()
+	typename TABLE()::ConstIterator TABLE()::last() const noexcept {
+		if (IsEmpty())
+			return end();
+
+		auto firstValid = GetInfoEnd() - 1;
+		// Seek first valid info in reverse, until one past first is met	
+		while (firstValid >= GetInfo() && !*(firstValid--));
+		if (firstValid < GetInfo())
+			return end();
+
+		const auto offset = (firstValid - GetInfo()) + *firstValid - 1;
+		return {
+			firstValid,
+			GetInfoEnd(),
+			GetRawKeys() + offset,
+			GetRawValues() + offset
+		};
+	}
+
+
+
+
+	///																								
+	///	Unordered map iterator																
+	///																								
+	#define ITERATOR() TABLE()::TIterator<MUTABLE>
+
+	/// Construct an iterator																	
+	///	@param info - the info pointer													
+	///	@param sentinel - the end of info pointers									
+	///	@param key - pointer to the key element										
+	///	@param value - pointer to the value element									
+	TABLE_TEMPLATE()
+	template<bool MUTABLE>
+	ITERATOR()::TIterator(const uint8_t* info, const uint8_t* sentinel, KeyPtr key, ValuePtr value) noexcept
+		: mInfo {info}
+		, mSentinel {sentinel}
+		, mKey {key}
+		, mValue {value} {}
+
+	/// Prefix increment operator																
+	///	@attention assumes iterator points to a valid element						
+	///	@return the modified iterator														
+	TABLE_TEMPLATE()
+	template<bool MUTABLE>
+	typename ITERATOR()& ITERATOR()::operator ++ () noexcept {
+		if (mInfo == mSentinel)
+			return *this;
+
+		// Restore true element pointers (robin hood specific)				
+		const auto previous = mInfo;
+		::std::ptrdiff_t offset = *(mInfo++) - 1;
+		mKey -= offset;
+		mValue -= offset;
+
+		// Seek next valid info, or hit sentinel at the end					
+		while (!*(mInfo++));
+
+		// Move to offsetted element pointers (robin hood specific)			
+		offset = (mInfo - previous) - 1;
+		mKey += offset + *mInfo;
+		mValue += offset + *mInfo;
+		return *this;
+	}
+
+	/// Suffix increment operator																
+	///	@attention assumes iterator points to a valid element						
+	///	@return the previous value of the iterator									
+	TABLE_TEMPLATE()
+	template<bool MUTABLE>
+	typename ITERATOR() ITERATOR()::operator ++ (int) noexcept {
+		const auto backup = *this;
+		operator ++ ();
+		return backup;
+	}
+
+	/// Compare unordered map entries														
+	///	@param rhs - the other iterator													
+	///	@return true if entries match														
+	TABLE_TEMPLATE()
+	template<bool MUTABLE>
+	bool ITERATOR()::operator == (const TIterator& rhs) const noexcept {
+		return *mKey == *rhs.mKey && *mValue == *rhs.mValue;
+	}
+
+	/// Iterator access operator																
+	///	@return a pair at the current iterator position								
+	TABLE_TEMPLATE()
+	template<bool MUTABLE>
+	typename ITERATOR()::Pair ITERATOR()::operator * () const noexcept {
+		return {*mKey, *mValue};
+	}
+
 } // namespace Langulus::Anyness
 
+#undef ITERATOR
 #undef TABLE_TEMPLATE
 #undef TABLE

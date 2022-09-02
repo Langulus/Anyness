@@ -9,6 +9,9 @@ download_project(
 	GIT_TAG             v2.x
 	UPDATE_DISCONNECTED 1
 )
+
+add_definitions(-DLANGULUS_ENABLE_TESTING)
+
 add_subdirectory(${Catch2_SOURCE_DIR} ${Catch2_BINARY_DIR})
 
 add_executable(Test.Anyness ${SOURCE_FILES})

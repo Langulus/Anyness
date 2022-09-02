@@ -14,11 +14,19 @@
 namespace Langulus::Anyness
 {
 
+	/// Initialize manually by reference or pointer										
+	///	@param key - the key to use														
+	///	@param value - the value to use													
+	TEMPLATE()
+	constexpr PAIR()::TPair(K key, V value) noexcept requires (!CT::Decayed<K, V>)
+		: mKey {key}
+		, mValue {value} {}
+
 	/// Initialize manually by a move (noexcept)											
 	///	@param key - the key to use														
 	///	@param value - the value to use													
 	TEMPLATE()
-	constexpr PAIR()::TPair(K&& key, V&& value) noexcept requires CT::MoveMakableNoexcept<K, V>
+	constexpr PAIR()::TPair(K&& key, V&& value) noexcept requires (CT::Decayed<K, V> && CT::MoveMakableNoexcept<K, V>)
 		: mKey {Forward<K>(key)}
 		, mValue {Forward<V>(value)} {}
 
@@ -26,7 +34,7 @@ namespace Langulus::Anyness
 	///	@param key - the key to use														
 	///	@param value - the value to use													
 	TEMPLATE()
-	constexpr PAIR()::TPair(K&& key, V&& value) requires CT::MoveMakable<K, V>
+	constexpr PAIR()::TPair(K&& key, V&& value) requires (CT::Decayed<K, V> && CT::MoveMakable<K, V>)
 		: mKey {Forward<K>(key)}
 		, mValue {Forward<V>(value)} {}
 
@@ -34,7 +42,7 @@ namespace Langulus::Anyness
 	///	@param key - the key to use														
 	///	@param value - the value to use													
 	TEMPLATE()
-	constexpr PAIR()::TPair(const K& key, const V& value) noexcept requires CT::CopyMakableNoexcept<K, V>
+	constexpr PAIR()::TPair(const K& key, const V& value) noexcept requires (CT::Decayed<K, V> && CT::CopyMakableNoexcept<K, V>)
 		: mKey {key}
 		, mValue {value} {}
 
@@ -42,7 +50,7 @@ namespace Langulus::Anyness
 	///	@param key - the key to use														
 	///	@param value - the value to use													
 	TEMPLATE()
-	constexpr PAIR()::TPair(const K& key, const V& value) requires CT::CopyMakable<K, V>
+	constexpr PAIR()::TPair(const K& key, const V& value) requires (CT::Decayed<K, V> && CT::CopyMakable<K, V>)
 		: mKey {key}
 		, mValue {value} {}
 

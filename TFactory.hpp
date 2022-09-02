@@ -6,7 +6,7 @@
 /// See LICENSE file, or https://www.gnu.org/licenses									
 ///																									
 #pragma once
-#include "THashMap.hpp"
+#include "TUnorderedMap.hpp"
 
 namespace Langulus::Anyness
 {
@@ -110,7 +110,7 @@ namespace Langulus::Anyness
 		T* mReusable {};
 
 		// A hash map for fast retrieval of elements								
-		THashMap<Hash, TAny<T*>> mHashmap;
+		TUnorderedMap<Hash, TAny<T*>> mHashmap;
 
 	protected:
 		void Destroy(T*);

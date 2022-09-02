@@ -10,7 +10,7 @@
 #include <unordered_map>
 
 using uint = unsigned int;
-using MapType = THashMap<Text, int>;
+using MapType = TUnorderedMap<Text, int>;
 using MapTypeStd = std::unordered_map<Text, int>;
 using StdPair = std::pair<Text, int>;
 
@@ -23,15 +23,15 @@ namespace std {
 	};
 }
 
-SCENARIO("THashMap", "[containers]") {
-	GIVEN("A default-initialized THashMap instance") {
+SCENARIO("TUnorderedMap", "[containers]") {
+	GIVEN("A default-initialized TUnorderedMap instance") {
 		typename MapType::Pair value("five hundred", 555);
 		StdPair valueStd("five hundred", 555);
 		MapType map;
 		auto meta1 = map.GetKeyType();
 		auto meta2 = map.GetValueType();
 
-		WHEN("Given a default-constructed THashMap") {
+		WHEN("Given a default-constructed TUnorderedMap") {
 			THEN("These properties should be correct") {
 				REQUIRE(meta1);
 				REQUIRE(meta2);
@@ -46,7 +46,7 @@ SCENARIO("THashMap", "[containers]") {
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: hundreds of times faster than STD
-				BENCHMARK_ADVANCED("Anyness::THashMap::default construction") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("Anyness::TUnorderedMap::default construction") (Catch::Benchmark::Chronometer meter) {
 					std::vector<Catch::Benchmark::storage_for<MapType>> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i].construct();
@@ -77,7 +77,7 @@ SCENARIO("THashMap", "[containers]") {
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: 2:1 due to RTTI
-				BENCHMARK_ADVANCED("Anyness::THashMap::operator = (single pair copy)") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("Anyness::TUnorderedMap::operator = (single pair copy)") (Catch::Benchmark::Chronometer meter) {
 					std::vector<MapType> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i] = value;
@@ -108,7 +108,7 @@ SCENARIO("THashMap", "[containers]") {
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: 2:1 due to RTTI
-				BENCHMARK_ADVANCED("Anyness::THashMap::operator = (single pair copy)") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("Anyness::TUnorderedMap::operator = (single pair copy)") (Catch::Benchmark::Chronometer meter) {
 					std::vector<MapType::Pair> source(meter.runs());
 					for (auto& i : source)
 						i = MapType::Pair {"five hundred", 555};
@@ -133,7 +133,7 @@ SCENARIO("THashMap", "[containers]") {
 		}
 	}
 
-	GIVEN("THashMap with some items") {
+	GIVEN("TUnorderedMap with some items") {
 		#include "CollectGarbage.inl"
 
 		// Arrays are dynamic to avoid constexprification						
@@ -172,7 +172,7 @@ SCENARIO("THashMap", "[containers]") {
 		auto keyMemory = map.GetRawKeys();
 		auto valueMemory = map.GetRawValues();
 
-		WHEN("Given a preinitialized THashMap with 5 elements") {
+		WHEN("Given a preinitialized TUnorderedMap with 5 elements") {
 			THEN("These properties should be correct") {
 				REQUIRE(map.GetCount() == 5);
 				REQUIRE(map.KeyIs<Text>());
@@ -273,7 +273,7 @@ SCENARIO("THashMap", "[containers]") {
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: 1:1, slightly slower than STD, can be further improved
-				BENCHMARK_ADVANCED("Anyness::THashMap::operator << (5 consecutive pair copies)") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("Anyness::TUnorderedMap::operator << (5 consecutive pair copies)") (Catch::Benchmark::Chronometer meter) {
 					std::vector<MapType> storage(meter.runs());
 					for (auto& i : storage)
 						i << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
@@ -303,7 +303,7 @@ SCENARIO("THashMap", "[containers]") {
 				};
 
 				// Last result: 1:1, slightly slower than STD, can be further improved
-				BENCHMARK_ADVANCED("Anyness::THashMap::operator [] (retrieval by key from a map with 10 pairs)") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("Anyness::TUnorderedMap::operator [] (retrieval by key from a map with 10 pairs)") (Catch::Benchmark::Chronometer meter) {
 					std::vector<MapType> storage(meter.runs());
 					for (auto& i : storage) {
 						i << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
@@ -362,7 +362,7 @@ SCENARIO("THashMap", "[containers]") {
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: 2:1, can be further optimized
-				BENCHMARK_ADVANCED("Anyness::THashMap::operator << (5 consecutive trivial moves)") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("Anyness::TUnorderedMap::operator << (5 consecutive trivial moves)") (Catch::Benchmark::Chronometer meter) {
 					std::vector<MapType> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i] << Move(darray2[0]) << Move(darray2[1]) << Move(darray2[2]) << Move(darray2[3]) << Move(darray2[4]);
@@ -403,7 +403,7 @@ SCENARIO("THashMap", "[containers]") {
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: 2:1, can be improved further
-				BENCHMARK_ADVANCED("Anyness::THashMap::RemoveValue") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("Anyness::TUnorderedMap::RemoveValue") (Catch::Benchmark::Chronometer meter) {
 					std::vector<MapType> storage(meter.runs());
 					for (auto&& o : storage)
 						o << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
@@ -459,7 +459,7 @@ SCENARIO("THashMap", "[containers]") {
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: 1:1 - a bit slower than STD, can be further improved
-				BENCHMARK_ADVANCED("Anyness::THashMap::RemoveKey") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("Anyness::TUnorderedMap::RemoveKey") (Catch::Benchmark::Chronometer meter) {
 					std::vector<MapType> storage(meter.runs());
 					for (auto&& o : storage)
 						o << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];

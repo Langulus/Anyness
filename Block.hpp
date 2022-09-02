@@ -35,7 +35,7 @@ namespace Langulus::Anyness
 	class TPointer;
 
 	template<CT::Data, CT::Data>
-	class THashMap;
+	class TUnorderedMap;
 
 	/// Compression types, analogous to zlib's											
 	enum class Compression {
@@ -94,7 +94,7 @@ namespace Langulus::Anyness
 		friend class TPointer;
 
 		template<CT::Data, CT::Data>
-		friend class THashMap;
+		friend class TUnorderedMap;
 
 	protected:
 		// A structure used to represent an element of a sparse container	
