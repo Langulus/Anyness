@@ -1369,7 +1369,7 @@ namespace Langulus::Anyness
 	///																								
 	///	Unordered map iterator																
 	///																								
-	#define ITERATOR() TABLE()::TIterator<MUTABLE>
+	#define ITERATOR() TABLE()::template TIterator<MUTABLE>
 
 	/// Construct an iterator																	
 	///	@param info - the info pointer													
