@@ -103,7 +103,7 @@ namespace Langulus::Anyness
 		void TakeAuthority();
 		void Free();
 
-		NOD() TAny Clone() const requires (CT::CloneMakable<T> || CT::POD<T>);
+		NOD() TAny Clone() const;
 
 		NOD() auto GetRaw() const noexcept;
 		NOD() auto GetRaw() noexcept;
@@ -117,15 +117,10 @@ namespace Langulus::Anyness
 		template<CT::Data = T>
 		NOD() decltype(auto) Get(const Offset&) SAFETY_NOEXCEPT();
 
-		NOD() decltype(auto) operator [] (const Offset&) const SAFETY_NOEXCEPT() requires CT::Dense<T>;
-		NOD() decltype(auto) operator [] (const Offset&) SAFETY_NOEXCEPT() requires CT::Dense<T>;
-		NOD() decltype(auto) operator [] (const Index&) const requires CT::Dense<T>;
-		NOD() decltype(auto) operator [] (const Index&) requires CT::Dense<T>;
-
-		NOD() decltype(auto) operator [] (const Offset&) const SAFETY_NOEXCEPT() requires CT::Sparse<T>;
-		NOD() KnownPointer&  operator [] (const Offset&) SAFETY_NOEXCEPT() requires CT::Sparse<T>;
-		NOD() decltype(auto) operator [] (const Index&) const requires CT::Sparse<T>;
-		NOD() KnownPointer&  operator [] (const Index&) requires CT::Sparse<T>;
+		template<CT::Index IDX>
+		NOD() decltype(auto) operator [] (const IDX&) const noexcept(!CT::Same<IDX, Index>);
+		template<CT::Index IDX>
+		NOD() decltype(auto) operator [] (const IDX&) noexcept(!CT::Same<IDX, Index>);
 
 		NOD() constexpr bool IsUntyped() const noexcept;
 		NOD() constexpr bool IsTypeConstrained() const noexcept;

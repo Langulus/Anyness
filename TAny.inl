@@ -661,7 +661,10 @@ namespace Langulus::Anyness
 
 	/// Clone the templated container														
 	TEMPLATE()
-	TAny<T> TAny<T>::Clone() const requires (CT::CloneMakable<T> || CT::POD<T>) {
+	TAny<T> TAny<T>::Clone() const {
+		static_assert(CT::CloneMakable<T> || CT::POD<T>,
+			"Contained type is not clonable");
+
 		// Always clone the state, but make it unconstrained					
 		TAny<T> result {Disown(*this)};
 		result.mState -= DataState::Static | DataState::Constant;
@@ -804,54 +807,17 @@ namespace Langulus::Anyness
 	///	@param idx - the index to get														
 	///	@return a reference to the element												
 	TEMPLATE()
-	decltype(auto) TAny<T>::operator [] (const Offset& index) SAFETY_NOEXCEPT() requires CT::Dense<T> {
-		return Get<T>(index);
+	template<CT::Index IDX>
+	decltype(auto) TAny<T>::operator [] (const IDX& index) const noexcept(!CT::Same<IDX, Index>) {
+		const auto offset = Block::template SimplifyIndex<T>(index);
+		return TAny<T>::GetRaw()[offset];
 	}
 
 	TEMPLATE()
-	decltype(auto) TAny<T>::operator [] (const Offset& index) const SAFETY_NOEXCEPT() requires CT::Dense<T> {
-		return Get<T>(index);
-	}
-
-	/// Access typed dense elements via a complex index (const, safe)				
-	///	@param idx - the index to get														
-	///	@return a constant reference to the element									
-	TEMPLATE()
-	decltype(auto) TAny<T>::operator [] (const Index& index) requires CT::Dense<T> {
-		return Get<T>(Block::ConstrainMore<T>(index).GetOffset());
-	}
-
-	TEMPLATE()
-	decltype(auto) TAny<T>::operator [] (const Index& index) const requires CT::Dense<T> {
-		return const_cast<TAny<T>&>(*this).operator [] (index);
-	}
-
-	/// Access typed sparse elements via a simple index (unsafe)					
-	/// Will wrap pointer in a SparseElement wrapper, in order to reference		
-	///	@param idx - the index to get														
-	///	@return a reference to the element												
-	TEMPLATE()
-	typename TAny<T>::KnownPointer& TAny<T>::operator [] (const Offset& index) SAFETY_NOEXCEPT() requires CT::Sparse<T> {
-		return Get<T>(index);
-	}
-
-	TEMPLATE()
-	decltype(auto) TAny<T>::operator [] (const Offset& index) const SAFETY_NOEXCEPT() requires CT::Sparse<T> {
-		return Get<T>(index);
-	}
-
-	/// Access typed sparse elements via a complex index (const)					
-	/// Will wrap pointer in a SparseElement wrapper, in order to reference		
-	///	@param idx - the index to get														
-	///	@return a constant reference to the element									
-	TEMPLATE()
-	typename TAny<T>::KnownPointer& TAny<T>::operator [] (const Index& index) requires CT::Sparse<T> {
-		return Get<T>(ConstrainMore<T>(index).GetOffset());
-	}
-
-	TEMPLATE()
-	decltype(auto) TAny<T>::operator [] (const Index& index) const requires CT::Sparse<T> {
-		return Get<T>(ConstrainMore<T>(index).GetOffset());
+	template<CT::Index IDX>
+	decltype(auto) TAny<T>::operator [] (const IDX& index) noexcept(!CT::Same<IDX, Index>) {
+		const auto offset = Block::template SimplifyIndex<T>(index);
+		return TAny<T>::GetRaw()[offset];
 	}
 
 	/// Access last element (unsafe)															
@@ -1302,11 +1268,19 @@ namespace Langulus::Anyness
 			const auto end = start - mCount;
 			do {
 				if constexpr (BY_ADDRESS_ONLY) {
-					if (start == &item)
+					if constexpr (CT::Sparse<T>) {
+						if (*start == item)
+							return start - GetRaw();
+					}
+					else if (start == &item)
 						return start - GetRaw();
 				}
 				else {
-					if (start == &item || *start == item)
+					if constexpr (CT::Sparse<T>) {
+						if (*start == item)
+							return start - GetRaw();
+					}
+					else if (start == &item || *start == item)
 						return start - GetRaw();
 				}
 			} while (--start != end);
@@ -1317,11 +1291,19 @@ namespace Langulus::Anyness
 			const auto end = start + mCount;
 			do {
 				if constexpr (BY_ADDRESS_ONLY) {
-					if (start == &item)
+					if constexpr (CT::Sparse<T>) {
+						if (*start == item)
+							return start - GetRaw();
+					}
+					else if (start == &item)
 						return start - GetRaw();
 				}
 				else {
-					if (start == &item || *start == item)
+					if constexpr (CT::Sparse<T>) {
+						if (*start == item)
+							return start - GetRaw();
+					}
+					else if (start == &item || *start == item)
 						return start - GetRaw();
 				}
 			} while (++start != end);
@@ -1353,7 +1335,7 @@ namespace Langulus::Anyness
 		if (!Owns(item))
 			return 0;
 
-		return RemoveIndex(item - GetRaw());
+		return RemoveIndex(item - GetRaw(), 1);
 	}
 
 	/// Remove sequential raw indices in a given range									
