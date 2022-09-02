@@ -9,11 +9,11 @@
 #include "TMap.hpp"
 
 #define TEMPLATE() template<CT::Data K, CT::Data V>
-#define MAP() TMap<K, V>
+#define MAP() TOrderedMap<K, V>
 
 namespace Langulus::Anyness
 {
-
+	/*
 	/// Default templated map construction													
 	TEMPLATE()
 	MAP()::TMap()
@@ -489,7 +489,7 @@ namespace Langulus::Anyness
 		return const_cast<TMap*>(this)
 			->ForEachInner<R, ALT_K, ALT_V, REVERSE>(Forward<decltype(call)>(call));
 	}
-
+	*/
 } // namespace Langulus::Anyness
 
 #undef MAP

@@ -12,8 +12,8 @@ namespace Langulus::Anyness
 {
 
 	///																								
-	/// A highly optimized hashmap implementation, using the Robin Hood			
-	/// algorithm																					
+	/// A highly optimized unordered hashmap implementation, using the Robin	
+	/// Hood algorithm																			
 	///																								
 	template<CT::Data K, CT::Data V>
 	class TUnorderedMap {

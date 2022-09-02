@@ -19,7 +19,9 @@ namespace Langulus::Anyness
 	
 	class Map;
 	template<CT::Data, CT::Data>
-	class TMap;
+	class TOrderedMap;
+	template<CT::Data, CT::Data>
+	class TUnorderedMap;
 	
 	class Set;
 	template<CT::Data>
@@ -33,9 +35,6 @@ namespace Langulus::Anyness
 	class TOwned;
 	template<CT::Data, bool>
 	class TPointer;
-
-	template<CT::Data, CT::Data>
-	class TUnorderedMap;
 
 	/// Compression types, analogous to zlib's											
 	enum class Compression {
@@ -78,7 +77,9 @@ namespace Langulus::Anyness
 
 		friend class Map;
 		template<CT::Data, CT::Data>
-		friend class TMap;
+		friend class TOrderedMap;
+		template<CT::Data, CT::Data>
+		friend class TUnorderedMap;
 
 		friend class Set;
 		template<CT::Data>
@@ -92,9 +93,6 @@ namespace Langulus::Anyness
 		friend class TOwned;
 		template<CT::Data, bool REFERENCED>
 		friend class TPointer;
-
-		template<CT::Data, CT::Data>
-		friend class TUnorderedMap;
 
 	protected:
 		// A structure used to represent an element of a sparse container	

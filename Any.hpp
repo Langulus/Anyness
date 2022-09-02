@@ -105,6 +105,9 @@ namespace Langulus::Anyness
 		NOD() Any Crop(const Offset&, const Count&) const;
 		NOD() Any Crop(const Offset&, const Count&);
 
+		///																							
+		///	Insertion																			
+		///																							
 		template<CT::Data T>
 		Any& operator << (const T&);
 		template<CT::Data T>
@@ -132,6 +135,31 @@ namespace Langulus::Anyness
 		Any& operator >>= (T&);
 		template<CT::Data T>
 		Any& operator >>= (T&&);
+
+		///																							
+		///	Concatenation																		
+		///																							
+		template<CT::Deep T>
+		Any operator + (const T&) const requires CT::Dense<T>;
+		template<CT::Deep T>
+		Any operator + (T&) const requires CT::Dense<T>;
+		template<CT::Deep T>
+		Any operator + (T&&) const requires CT::Dense<T>;
+		template<CT::Deep T>
+		Any operator + (Disowned<T>&&) const requires CT::Dense<T>;
+		template<CT::Deep T>
+		Any operator + (Abandoned<T>&&) const requires CT::Dense<T>;
+
+		template<CT::Deep T>
+		Any& operator += (const T&) requires CT::Dense<T>;
+		template<CT::Deep T>
+		Any& operator += (T&) requires CT::Dense<T>;
+		template<CT::Deep T>
+		Any& operator += (T&&) requires CT::Dense<T>;
+		template<CT::Deep T>
+		Any& operator += (Disowned<T>&&) requires CT::Dense<T>;
+		template<CT::Deep T>
+		Any& operator += (Abandoned<T>&&) requires CT::Dense<T>;
 
 	protected:
 		template<class T>
