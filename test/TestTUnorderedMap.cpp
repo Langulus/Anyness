@@ -702,31 +702,62 @@ SCENARIO("TUnorderedMap", "[containers]") {
 				static_assert(::std::is_reference_v<decltype(pair.mValue)>,
 					"Pair value type is not a reference");
 
-				switch (i) {
-				case 0:
-					REQUIRE(pair.mKey == "two");
-					REQUIRE(pair.mValue == 2);
-					break;
-				case 1:
-					REQUIRE(pair.mKey == "three");
-					REQUIRE(pair.mValue == 3);
-					break;
-				case 2:
-					REQUIRE(pair.mKey == "four");
-					REQUIRE(pair.mValue == 4);
-					break;
-				case 3:
-					REQUIRE(pair.mKey == "five");
-					REQUIRE(pair.mValue == 5);
-					break;
-				case 4:
-					REQUIRE(pair.mKey == "one");
-					REQUIRE(pair.mValue == 1);
-					break;
-				default:
-					FAIL("Index out of bounds in ranged-for");
-					break;
+				// Different architectures result in different hashes
+				if constexpr (Bitness == 32) {
+					switch (i) {
+					case 0:
+						REQUIRE(pair.mKey == "three");
+						REQUIRE(pair.mValue == 3);
+						break;
+					case 1:
+						REQUIRE(pair.mKey == "four");
+						REQUIRE(pair.mValue == 4);
+						break;
+					case 2:
+						REQUIRE(pair.mKey == "two");
+						REQUIRE(pair.mValue == 2);
+						break;
+					case 3:
+						REQUIRE(pair.mKey == "five");
+						REQUIRE(pair.mValue == 5);
+						break;
+					case 4:
+						REQUIRE(pair.mKey == "one");
+						REQUIRE(pair.mValue == 1);
+						break;
+					default:
+						FAIL("Index out of bounds in ranged-for");
+						break;
+					}
 				}
+				else if constexpr (Bitness == 64) {
+					switch (i) {
+					case 0:
+						REQUIRE(pair.mKey == "two");
+						REQUIRE(pair.mValue == 2);
+						break;
+					case 1:
+						REQUIRE(pair.mKey == "three");
+						REQUIRE(pair.mValue == 3);
+						break;
+					case 2:
+						REQUIRE(pair.mKey == "four");
+						REQUIRE(pair.mValue == 4);
+						break;
+					case 3:
+						REQUIRE(pair.mKey == "five");
+						REQUIRE(pair.mValue == 5);
+						break;
+					case 4:
+						REQUIRE(pair.mKey == "one");
+						REQUIRE(pair.mValue == 1);
+						break;
+					default:
+						FAIL("Index out of bounds in ranged-for");
+						break;
+					}
+				}
+				else break;
 
 				++i;
 			}

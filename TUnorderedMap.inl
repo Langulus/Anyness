@@ -1353,12 +1353,11 @@ namespace Langulus::Anyness
 		if (IsEmpty())
 			return end();
 
-		auto info = GetInfo();
 		// Seek first valid info, or hit sentinel at the end					
-		while (!*info)
-			++info;
+		auto info = GetInfo();
+		while (!*info) ++info;
 
-		const auto offset = (info - GetInfo()) + *info - 1;
+		const auto offset = info - GetInfo();
 		return {
 			info,
 			GetInfoEnd(), 
@@ -1381,15 +1380,11 @@ namespace Langulus::Anyness
 		if (IsEmpty())
 			return end();
 
-		auto info = GetInfoEnd() - 1;
 		// Seek first valid info in reverse, until one past first is met	
-		while (info >= GetInfo() && !*info)
-			--info;
+		auto info = GetInfoEnd();
+		while (info >= GetInfo() && !*--info);
 
-		if (info < GetInfo())
-			return end();
-
-		const auto offset = (info - GetInfo()) + *info - 1;
+		const auto offset = info - GetInfo();
 		return {
 			info,
 			GetInfoEnd(),
@@ -1413,7 +1408,7 @@ namespace Langulus::Anyness
 	///	@param value - pointer to the value element									
 	TABLE_TEMPLATE()
 	template<bool MUTABLE>
-	TABLE()::TIterator<MUTABLE>::TIterator(const uint8_t* info, const uint8_t* sentinel, KeyPtr key, ValuePtr value) noexcept
+	LANGULUS(ALWAYSINLINE) TABLE()::TIterator<MUTABLE>::TIterator(const uint8_t* info, const uint8_t* sentinel, KeyPtr key, ValuePtr value) noexcept
 		: mInfo {info}
 		, mSentinel {sentinel}
 		, mKey {key}
@@ -1424,17 +1419,14 @@ namespace Langulus::Anyness
 	///	@return the modified iterator														
 	TABLE_TEMPLATE()
 	template<bool MUTABLE>
-	typename ITERATOR()& TABLE()::TIterator<MUTABLE>::operator ++ () noexcept {
+	LANGULUS(ALWAYSINLINE) typename ITERATOR()& TABLE()::TIterator<MUTABLE>::operator ++ () noexcept {
 		if (mInfo == mSentinel)
 			return *this;
 
 		// Seek next valid info, or hit sentinel at the end					
 		const auto previous = mInfo;
 		while (!*++mInfo);
-		const auto offset = ::std::max(
-			::std::ptrdiff_t {1}, 
-			(mInfo - previous) + *mInfo - *previous - 1
-		);
+		const auto offset = mInfo - previous;
 		mKey += offset;
 		mValue += offset;
 		return *this;
@@ -1445,7 +1437,7 @@ namespace Langulus::Anyness
 	///	@return the previous value of the iterator									
 	TABLE_TEMPLATE()
 	template<bool MUTABLE>
-	typename ITERATOR() TABLE()::TIterator<MUTABLE>::operator ++ (int) noexcept {
+	LANGULUS(ALWAYSINLINE) typename ITERATOR() TABLE()::TIterator<MUTABLE>::operator ++ (int) noexcept {
 		const auto backup = *this;
 		operator ++ ();
 		return backup;
@@ -1456,7 +1448,7 @@ namespace Langulus::Anyness
 	///	@return true if entries match														
 	TABLE_TEMPLATE()
 	template<bool MUTABLE>
-	bool TABLE()::TIterator<MUTABLE>::operator == (const TIterator& rhs) const noexcept {
+	LANGULUS(ALWAYSINLINE) bool TABLE()::TIterator<MUTABLE>::operator == (const TIterator& rhs) const noexcept {
 		return mInfo == rhs.mInfo;
 	}
 
@@ -1464,7 +1456,7 @@ namespace Langulus::Anyness
 	///	@return a pair at the current iterator position								
 	TABLE_TEMPLATE()
 	template<bool MUTABLE>
-	typename ITERATOR()::Pair TABLE()::TIterator<MUTABLE>::operator * () const noexcept {
+	LANGULUS(ALWAYSINLINE) typename ITERATOR()::Pair TABLE()::TIterator<MUTABLE>::operator * () const noexcept {
 		return {*mKey, *mValue};
 	}
 
