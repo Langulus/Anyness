@@ -761,10 +761,7 @@ namespace Langulus::Anyness
 	/// This is a statically optimized variant of Block::Get							
 	TEMPLATE()
 	template<CT::Data ALT_T>
-	decltype(auto) TAny<T>::Get(const Offset& index) const SAFETY_NOEXCEPT() {
-		SAFETY(if (index >= mCount)
-			Throw<Except::Access>("Index out of range"));
-
+	decltype(auto) TAny<T>::Get(const Offset& index) const noexcept {
 		const auto& element = GetRaw()[index];
 		if constexpr (CT::Dense<T> && CT::Dense<ALT_T>)
 			// Dense -> Dense (returning a reference)								
@@ -784,10 +781,7 @@ namespace Langulus::Anyness
 	/// This is a statically optimized variant of Block::Get							
 	TEMPLATE()
 	template<CT::Data ALT_T>
-	decltype(auto) TAny<T>::Get(const Offset& index) SAFETY_NOEXCEPT() {
-		SAFETY(if (index >= mCount)
-			Throw<Except::Access>("Index out of range"));
-
+	decltype(auto) TAny<T>::Get(const Offset& index) noexcept {
 		auto& element = GetRaw()[index];
 		if constexpr (CT::Dense<T> && CT::Dense<ALT_T>)
 			// Dense -> Dense (returning a reference)								
@@ -808,14 +802,14 @@ namespace Langulus::Anyness
 	///	@return a reference to the element												
 	TEMPLATE()
 	template<CT::Index IDX>
-	decltype(auto) TAny<T>::operator [] (const IDX& index) const noexcept(!CT::Same<IDX, Index>) {
+	decltype(auto) TAny<T>::operator [] (const IDX& index) const {
 		const auto offset = Block::template SimplifyIndex<T>(index);
 		return TAny<T>::GetRaw()[offset];
 	}
 
 	TEMPLATE()
 	template<CT::Index IDX>
-	decltype(auto) TAny<T>::operator [] (const IDX& index) noexcept(!CT::Same<IDX, Index>) {
+	decltype(auto) TAny<T>::operator [] (const IDX& index) {
 		const auto offset = Block::template SimplifyIndex<T>(index);
 		return TAny<T>::GetRaw()[offset];
 	}
@@ -823,14 +817,18 @@ namespace Langulus::Anyness
 	/// Access last element (unsafe)															
 	///	@return a reference to the last element										
 	TEMPLATE()
-	decltype(auto) TAny<T>::Last() SAFETY_NOEXCEPT() {
+	decltype(auto) TAny<T>::Last() {
+		if (IsEmpty())
+			Throw<Except::OutOfRange>("Can't get last index of empty container");
 		return Get<T>(mCount - 1);
 	}
 
 	/// Access last element (const, unsafe)												
 	///	@return a constant reference to the last element							
 	TEMPLATE()
-	decltype(auto) TAny<T>::Last() const SAFETY_NOEXCEPT() {
+	decltype(auto) TAny<T>::Last() const {
+		if (IsEmpty())
+			Throw<Except::OutOfRange>("Can't get last index of empty container");
 		return Get<T>(mCount - 1);
 	}
 	

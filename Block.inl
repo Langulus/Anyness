@@ -2379,22 +2379,35 @@ namespace Langulus::Anyness
 	}
 
 	/// Convert an index to an offset														
+	/// Complex indices will be fully constrained										
 	/// Signed index types will be checked for negative indices (for reverse)	
-	/// Complex indices will be fully resolved											
 	/// Unsigned indices are directly forwarded without any overhead				
+	///	@attention assumes T is correct of type-erased containers				
 	///	@param index - the index to simplify											
 	///	@return the offset																	
 	template<CT::Data T, CT::Index INDEX>
-	LANGULUS(ALWAYSINLINE) Offset Block::SimplifyIndex(const INDEX& index) const noexcept(!CT::Same<INDEX, Index>) {
+	LANGULUS(ALWAYSINLINE) Offset Block::SimplifyIndex(const INDEX& index) const {
 		if constexpr (CT::Same<INDEX, Index>)
-			return ConstrainMore<T>(index).GetOffset(); //TODO constraining assumes this is filled with T? might cause problems :(
+			return ConstrainMore<T>(index).GetOffset();
 		else if constexpr (CT::Signed<INDEX>) {
-			if (index < 0)
-				return mCount - static_cast<Offset>(-index);
-			else
-				return static_cast<Offset>(index);
+			if (index < 0) {
+				const auto unsign = static_cast<Offset>(-index);
+				if (unsign > mCount)
+					Throw<Except::OutOfRange>("Reverse index out of range");
+				return mCount - unsign;
+			}
+			else {
+				const auto unsign = static_cast<Offset>(index);
+				if (unsign < mCount)
+					return unsign;
+				else
+					Throw<Except::OutOfRange>("Signed index out of range");
+			}
 		}
-		else return index;
+		else if (index < mCount)
+			return index;
+		else
+			Throw<Except::OutOfRange>("Unsigned index out of range");
 	}
 
 	/// Get an element via simple index, trying to interpret it as T				

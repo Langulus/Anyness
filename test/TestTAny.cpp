@@ -1680,7 +1680,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 				REQUIRE(pack[0] == 1);
 				REQUIRE(pack[1] == 3);
 				REQUIRE(pack[2] == 5);
-				SAFETY(REQUIRE_THROWS(pack[3] == 666));
+				REQUIRE_THROWS(pack[3] == 666);
 				REQUIRE(pack.GetCount() == 3);
 				REQUIRE(pack.GetReserved() >= 5);
 				REQUIRE(pack.GetRaw() == memory);

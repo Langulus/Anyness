@@ -109,18 +109,18 @@ namespace Langulus::Anyness
 		NOD() auto GetRaw() noexcept;
 		NOD() auto GetRawEnd() const noexcept;
 		NOD() auto GetRawEnd() noexcept;
-		NOD() decltype(auto) Last() const SAFETY_NOEXCEPT();
-		NOD() decltype(auto) Last() SAFETY_NOEXCEPT();
+		NOD() decltype(auto) Last() const;
+		NOD() decltype(auto) Last() ;
 
 		template<CT::Data = T>
-		NOD() decltype(auto) Get(const Offset&) const SAFETY_NOEXCEPT();
+		NOD() decltype(auto) Get(const Offset&) const noexcept;
 		template<CT::Data = T>
-		NOD() decltype(auto) Get(const Offset&) SAFETY_NOEXCEPT();
+		NOD() decltype(auto) Get(const Offset&) noexcept;
 
 		template<CT::Index IDX>
-		NOD() decltype(auto) operator [] (const IDX&) const noexcept(!CT::Same<IDX, Index>);
+		NOD() decltype(auto) operator [] (const IDX&) const;
 		template<CT::Index IDX>
-		NOD() decltype(auto) operator [] (const IDX&) noexcept(!CT::Same<IDX, Index>);
+		NOD() decltype(auto) operator [] (const IDX&);
 
 		NOD() constexpr bool IsUntyped() const noexcept;
 		NOD() constexpr bool IsTypeConstrained() const noexcept;
