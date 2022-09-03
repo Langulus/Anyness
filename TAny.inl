@@ -660,67 +660,72 @@ namespace Langulus::Anyness
 	}
 
 	/// Clone the templated container														
+	///	@returns either a deep clone of the container data, or a shallow		
+	///				copy, if contained type is not clonable							
 	TEMPLATE()
 	TAny<T> TAny<T>::Clone() const {
-		static_assert(CT::CloneMakable<T> || CT::POD<T>,
-			"Contained type is not clonable");
+		if constexpr (CT::CloneMakable<T> || CT::POD<T>) {
+			// Always clone the state, but make it unconstrained				
+			TAny<T> result {Disown(*this)};
+			result.mState -= DataState::Static | DataState::Constant;
 
-		// Always clone the state, but make it unconstrained					
-		TAny<T> result {Disown(*this)};
-		result.mState -= DataState::Static | DataState::Constant;
-		
-		if (!IsAllocated())
-			return Abandon(result);
+			if (!IsAllocated())
+				return Abandon(result);
 
-		result.ResetMemory();
-		result.Allocate<false>(mCount);
-		result.mCount = mCount;
-		auto from = GetRaw();
-		auto to = result.GetRaw();
-		using Type = Decay<T>;
+			result.ResetMemory();
+			result.Allocate<false>(mCount);
+			result.mCount = mCount;
+			auto from = GetRaw();
+			auto to = result.GetRaw();
+			using Type = Decay<T>;
 
-		if constexpr (CT::Sparse<T>) {
-			// Clone all data in the same block										
-			TAny<Decay<T>> coalesced;
-			coalesced.Allocate(mCount);
-			
-			// Clone data behind each valid pointer								
-			Count counter {};
-			while (from < GetRawEnd()) {
-				if (!*from) {
-					*to = nullptr;
+			if constexpr (CT::Sparse<T>) {
+				// Clone all data in the same block									
+				TAny<Decay<T>> coalesced;
+				coalesced.Allocate(mCount);
+
+				// Clone data behind each valid pointer							
+				Count counter {};
+				while (from < GetRawEnd()) {
+					if (!*from) {
+						*to = nullptr;
+						++from; ++to;
+						continue;
+					}
+
+					if constexpr (CT::CloneMakable<T>)
+						new (&coalesced[counter]) Type {(*from)->Clone()};
+					else if constexpr (CT::POD<T>)
+						CopyMemory(**from, &coalesced[counter], sizeof(Type));
+					else
+						LANGULUS_ASSERT("Can't clone a container made of non-clonable/non-POD type");
+
+					*to = &coalesced[counter];
 					++from; ++to;
-					continue;
+					++counter;
 				}
-				
-				if constexpr (CT::CloneMakable<T>)
-					new (&coalesced[counter]) Type {(*from)->Clone()};
-				else if constexpr (CT::POD<T>)
-					CopyMemory(**from, &coalesced[counter], sizeof(Type));
-				else
-					LANGULUS_ASSERT("Can't clone a container made of non-clonable/non-POD type");
-				
-				*to = &coalesced[counter];
-				++from; ++to;
-				++counter;
+
+				coalesced.Reference(counter);
 			}
-			
-			coalesced.Reference(counter);
-		}
-		else if constexpr (CT::CloneMakable<T>) {
-			// Clone dense elements by calling Clone() methods one by one	
-			while (from < GetRawEnd()) {
-				new (to) Type {from->Clone()};
-				++from; ++to;
+			else if constexpr (CT::CloneMakable<T>) {
+				// Clone dense elements by calling their Clone()				
+				while (from < GetRawEnd()) {
+					new (to) Type {from->Clone()};
+					++from; ++to;
+				}
 			}
+			else if constexpr (CT::POD<T>) {
+				// Batch copy everything at once										
+				CopyMemory(from, to, sizeof(Type) * mCount);
+			}
+			else LANGULUS_ASSERT("Can't clone a container made of non-clonable/non-POD type");
+
+			return Abandon(result);
 		}
-		else if constexpr (CT::POD<T>) {
-			// Batch copy everything at once											
-			CopyMemory(from, to, sizeof(Type) * mCount);
+		else {
+			// Can't clone the data, just return a shallow-copy				
+			return *this;
 		}
-		else LANGULUS_ASSERT("Can't clone a container made of non-clonable/non-POD type");
-	
-		return Abandon(result);
 	}
 
 	/// Return the typed raw data (const)													
