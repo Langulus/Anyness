@@ -290,8 +290,8 @@ namespace Langulus::Anyness
 
 		NOD() bool operator == (const TIterator&) const noexcept;
 
-		NOD() PairRef operator * () const noexcept requires MUTABLE;
-		NOD() PairConstRef operator * () const noexcept requires !MUTABLE;
+		NOD() PairRef operator * () const noexcept requires (MUTABLE);
+		NOD() PairConstRef operator * () const noexcept requires (!MUTABLE);
 
 		// Prefix operator																
 		TIterator& operator ++ () noexcept;

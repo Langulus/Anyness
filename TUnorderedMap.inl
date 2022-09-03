@@ -1487,7 +1487,7 @@ namespace Langulus::Anyness
 	TABLE_TEMPLATE()
 	template<bool MUTABLE>
 	LANGULUS(ALWAYSINLINE)
-	typename TABLE()::PairRef TABLE()::TIterator<MUTABLE>::operator * () const noexcept requires MUTABLE {
+	typename TABLE()::PairRef TABLE()::TIterator<MUTABLE>::operator * () const noexcept requires (MUTABLE) {
 		return {*const_cast<KeyInner*>(mKey), *const_cast<ValueInner*>(mValue)};
 	}
 
@@ -1496,7 +1496,7 @@ namespace Langulus::Anyness
 	TABLE_TEMPLATE()
 	template<bool MUTABLE>
 	LANGULUS(ALWAYSINLINE)
-	typename TABLE()::PairConstRef TABLE()::TIterator<MUTABLE>::operator * () const noexcept requires !MUTABLE {
+	typename TABLE()::PairConstRef TABLE()::TIterator<MUTABLE>::operator * () const noexcept requires (!MUTABLE) {
 		return {*mKey, *mValue};
 	}
 
