@@ -31,6 +31,7 @@ namespace Langulus::Anyness
 		constexpr TOwned(TOwned&&) noexcept;
 		constexpr TOwned(const T&) noexcept;
 
+		NOD() DMeta GetType() const;
 		NOD() Block GetBlock() const;
 
 		void Reset() noexcept;
@@ -89,7 +90,6 @@ namespace Langulus::Anyness
 		NOD() Block GetBlock() const;
 		NOD() constexpr bool HasAuthority() const noexcept;
 		NOD() constexpr Count GetUses() const noexcept;
-		NOD() DMeta GetType() const;
 		using Base::Get;
 
 		NOD() static TPointer Create(const Decay<T>&) requires CT::CopyMakable<Decay<T>>;

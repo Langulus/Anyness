@@ -28,7 +28,7 @@ namespace Langulus::Anyness
 		friend class Any;
 		friend class Block;
 
-		struct KnownPointer;
+		class KnownPointer;
 		using Type = T;
 		using TypeInner = Conditional<CT::Dense<T>, T, KnownPointer>;
 
@@ -85,14 +85,20 @@ namespace Langulus::Anyness
 		TAny& operator = (Disowned<T>&&) noexcept requires CT::CustomData<T>;
 		TAny& operator = (Abandoned<T>&&) noexcept requires CT::CustomData<T>;
 
+	private:
+		using Any::FromMeta;
+		using Any::FromBlock;
+		using Any::FromState;
+		using Any::From;
+		using Any::Wrap;
+		using Any::WrapCommon;
+
 	public:
 		NOD() bool CastsToMeta(DMeta) const;
 		NOD() bool CastsToMeta(DMeta, Count) const;
 		
-		NOD() static TAny Wrap(const T&);
-		template<Count COUNT>
-		NOD() static TAny Wrap(const T(&anything)[COUNT]);
-		NOD() static TAny Wrap(const T*, const Count&);
+		template<CT::Data... LIST_T>
+		NOD() static TAny Wrap(LIST_T&&...);
 
 		template<bool CREATE = false, bool SETSIZE = false>
 		void Allocate(Count);
@@ -244,10 +250,13 @@ namespace Langulus::Anyness
 	/// A sparse element access that dereferences on overwrite						
 	///																								
 	template<CT::Data T>
-	struct TAny<T>::KnownPointer {
+	class TAny<T>::KnownPointer {
+	private:
+		static_assert(CT::Sparse<T>, "T must be a pointer");
 		T mPointer;
 		Inner::Allocation* mEntry;
 
+	public:
 		constexpr KnownPointer() noexcept = default;
 		constexpr KnownPointer(const KnownPointer&) noexcept = default;
 		constexpr KnownPointer(KnownPointer&&) noexcept = default;

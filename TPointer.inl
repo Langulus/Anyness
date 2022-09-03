@@ -399,21 +399,22 @@ namespace Langulus::Anyness
 	/// Can be invoked by the reflected resolver											
 	///	@return the value, interfaced via a memory block							
 	TEMPLATE_OWNED()
+	DMeta TOwned<T>::GetType() const {
+		return MetaData::Of<Decay<T>>();
+	}
+
+	/// Get the block of the contained value												
+	/// Can be invoked by the reflected resolver											
+	///	@return the value, interfaced via a memory block							
+	TEMPLATE_OWNED()
 	Block TOwned<T>::GetBlock() const {
-		if constexpr (CT::Sparse<T>) {
-			return {
-				DataState {DataState::Constrained | DataState::Sparse},
-				MetaData::Of<T>(), 1, 
-				&mValue
-			};
-		}
-		else {
-			return {
-				DataState::Constrained, 
-				MetaData::Of<T>(), 1, 
-				&mValue
-			};
-		}
+		return {
+			CT::Sparse<T> 
+				? DataState::Constrained | DataState::Sparse
+				: DataState::Constrained,
+			GetType(), 1, &mValue 
+			// Notice entry is missing, which means it will be searched		
+		};
 	}
 
 	/// Check if we have authority over the memory										
@@ -430,13 +431,6 @@ namespace Langulus::Anyness
 	constexpr Count TPointer<T, DR>::GetUses() const noexcept {
 		return (Base::mValue && mEntry) ? mEntry->GetUses() : 0;
 	}
-
-	/// Get the type of the contained data													
-	///	@return the meta definition of the data										
-	TEMPLATE_SHARED()
-	DMeta TPointer<T, DR>::GetType() const {
-		return MetaData::Of<T>();
-	}
 					
 	/// Get the block of the contained pointer											
 	/// Can be invoked by the reflected resolver											
@@ -444,8 +438,10 @@ namespace Langulus::Anyness
 	TEMPLATE_SHARED()
 	Block TPointer<T, DR>::GetBlock() const {
 		return {
-			DataState {DataState::Constrained | DataState::Sparse},
-			GetType(), 1, &(Base::mValue), mEntry
+			DataState::Constrained | DataState::Sparse,
+			Base::GetType(), 1, &(Base::mValue),
+			// Notice entry is here, no search will occur						
+			mEntry
 		};
 	}
 

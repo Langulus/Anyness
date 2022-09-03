@@ -67,8 +67,8 @@ namespace Langulus::Anyness
 			ClearInner();
 
 			// Deallocate stuff															
-			Inner::Allocator::Deallocate(mKeys);
-			Inner::Allocator::Deallocate(mValues.mEntry);
+			Allocator::Deallocate(mKeys);
+			Allocator::Deallocate(mValues.mEntry);
 		}
 		else {
 			// Data is used from multiple locations, just deref values		
@@ -186,10 +186,9 @@ namespace Langulus::Anyness
 				else if constexpr (CT::POD<T>)
 					::std::memcpy(cache, **from, sizeof(TD));
 				else
-					LANGULUS_ASSERT("Can't clone map component made of non-clonable/non-POD type");
-				
-				*to = cache;
+					new (cache) TD {**from};
 
+				*to = cache;
 				++from; ++to; ++cache; ++info;
 			}
 			
@@ -200,7 +199,6 @@ namespace Langulus::Anyness
 			while (from < fromEnd) {
 				if (*info)
 					new (to) TD {from->Clone()};
-
 				++from; ++to; ++info;
 			}
 		}
@@ -208,7 +206,14 @@ namespace Langulus::Anyness
 			// Batch clone dense data at once										
 			::std::memcpy(to, from, (fromEnd - from) * sizeof(T));
 		}
-		else LANGULUS_ASSERT("Can't clone map components made of non-clonable/non-POD type");
+		else {
+			// As a fallback, just do shallow copies								
+			while (from < fromEnd) {
+				if (*info)
+					new (to) TD {*from};
+				++from; ++to; ++info;
+			}
+		}
 	}
 
 	/// Clone the table																			
@@ -221,7 +226,7 @@ namespace Langulus::Anyness
 		TUnorderedMap result {Disown(*this)};
 
 		// Allocate keys and info														
-		result.mKeys = Inner::Allocator::Allocate(mKeys->GetAllocatedSize());
+		result.mKeys = Allocator::Allocate(mKeys->GetAllocatedSize());
 		if (!result.mKeys)
 			Throw<Except::Allocate>("Out of memory on cloning TUnorderedMap keys");
 
@@ -231,18 +236,19 @@ namespace Langulus::Anyness
 		// Clone the info bytes															
 		::std::memcpy(result.GetInfo(), GetInfo(), GetReserved() + 1);
 
-		// Clone the keys																	
-		CloneInner(result.mValues.mCount, GetInfo(), 
-			GetRawKeys(), GetRawKeysEnd(), result.GetRawKeys());
-
-		// Allocate and clone values													
-		result.mValues.mEntry = Inner::Allocator::Allocate(result.mValues.GetReservedSize());
+		// Allocate values																
+		result.mValues.mEntry = Allocator::Allocate(result.mValues.GetReservedSize());
 		if (!result.mValues.mEntry) {
-			Inner::Allocator::Deallocate(result.mKeys);
+			Allocator::Deallocate(result.mKeys);
 			result.mValues.mEntry = nullptr;
 			Throw<Except::Allocate>("Out of memory on cloning TUnorderedMap values");
 		}
 
+		// Clone or shallow-copy the keys											
+		CloneInner(result.mValues.mCount, GetInfo(),
+			GetRawKeys(), GetRawKeysEnd(), result.GetRawKeys());
+
+		// Clone or shallow-copy the values											
 		result.mValues.mRaw = result.mValues.mEntry->GetBlockStart();
 		CloneInner(result.mValues.mCount, GetInfo(), 
 			GetRawValues(), GetRawValuesEnd(), result.GetRawValues());
@@ -360,10 +366,7 @@ namespace Langulus::Anyness
 	/// Get the raw key array																	
 	TABLE_TEMPLATE()
 	constexpr auto TABLE()::GetRawKeys() noexcept {
-		if constexpr (CT::Sparse<K>)
-			return reinterpret_cast<typename TAny<K>::KnownPointer*>(mKeys->GetBlockStart());
-		else
-			return reinterpret_cast<K*>(mKeys->GetBlockStart());
+		return reinterpret_cast<KeyInner*>(mKeys->GetBlockStart());
 	}
 
 	/// Get the end of the raw key array													
@@ -497,14 +500,14 @@ namespace Langulus::Anyness
 		const auto oldKeys = mKeys;
 		if constexpr (REUSE) {
 			// Reallocate the key and info arrays									
-			mKeys = Inner::Allocator::Reallocate(
+			mKeys = Allocator::Reallocate(
 				RequestKeyAndInfoSize(count, infoOffset), mKeys
 			);
 		}
 		else {
 			// Allocate a fresh set of keys and info								
 			// Assumes nothing's there to move and initialize					
-			mKeys = Inner::Allocator::Allocate(
+			mKeys = Allocator::Allocate(
 				RequestKeyAndInfoSize(count, infoOffset)
 			);
 		}
@@ -544,12 +547,12 @@ namespace Langulus::Anyness
 		const auto oldValues = mValues.mEntry;
 		auto value = mValues.GetRaw();
 		if constexpr (REUSE)
-			mValues.mEntry = Inner::Allocator::Reallocate(count * sizeof(V), oldValues);
+			mValues.mEntry = Allocator::Reallocate(count * sizeof(V), oldValues);
 		else
-			mValues.mEntry = Inner::Allocator::Allocate(count * sizeof(V));
+			mValues.mEntry = Allocator::Allocate(count * sizeof(V));
 
 		if (!mValues.mEntry) {
-			Inner::Allocator::Deallocate(mKeys);
+			Allocator::Deallocate(mKeys);
 			Throw<Except::Allocate>("Out of memory on allocating/reallocating TUnorderedMap values");
 		}
 
@@ -592,9 +595,9 @@ namespace Langulus::Anyness
 			// When reusing, keys and values can potentially remain same	
 			// Avoid deallocating them if that's the case						
 			if (oldValues != mValues.mEntry)
-				Inner::Allocator::Deallocate(oldValues);
+				Allocator::Deallocate(oldValues);
 			if (oldKeys != mKeys)
-				Inner::Allocator::Deallocate(oldKeys);
+				Allocator::Deallocate(oldKeys);
 		}
 		else if (oldValues) {
 			// Not reusing, so either deallocate, or dereference				
@@ -602,8 +605,8 @@ namespace Langulus::Anyness
 			if (oldValues->GetUses() > 1)
 				oldValues->Free();
 			else {
-				Inner::Allocator::Deallocate(oldValues);
-				Inner::Allocator::Deallocate(oldKeys);
+				Allocator::Deallocate(oldValues);
+				Allocator::Deallocate(oldKeys);
 			}
 		}
 	}
@@ -684,8 +687,8 @@ namespace Langulus::Anyness
 	void TABLE()::InsertInner(const Offset& start, K&& key, V&& value) {
 		// Used for swapping key/value known pointer entries, to avoid		
 		// losing that information when swapping sparse stuff					
-		using KKP = typename TAny<K>::KnownPointer;
-		using VKP = typename TAny<V>::KnownPointer;
+		using KKP = typename TAny<K>::TypeInner;
+		using VKP = typename TAny<V>::TypeInner;
 		UNUSED() KKP keyBackup;
 		UNUSED() VKP valueBackup;
 		if constexpr (CT::Sparse<K>)
@@ -759,6 +762,11 @@ namespace Langulus::Anyness
 	///	@return 1 if pair was inserted, zero otherwise								
 	TABLE_TEMPLATE()
 	Count TABLE()::Insert(const K& key, const V& value) {
+		static_assert(CT::CopyMakable<K>,
+			"Key needs to be copy-constructible, but isn't");
+		static_assert(CT::CopyMakable<V>,
+			"Value needs to be copy-constructible, but isn't");
+
 		Allocate(GetCount() + 1);
 		const auto bucket = GetBucket(key);
 		Key kcopy {key};
@@ -773,6 +781,11 @@ namespace Langulus::Anyness
 	///	@return 1 if pair was inserted, zero otherwise								
 	TABLE_TEMPLATE()
 	Count TABLE()::Insert(const K& key, V&& value) {
+		static_assert(CT::CopyMakable<K>,
+			"Key needs to be copy-constructible, but isn't");
+		static_assert(CT::MoveMakable<V>,
+			"Value needs to be move-constructible, but isn't");
+
 		Allocate(GetCount() + 1);
 		const auto bucket = GetBucket(key);
 		Key kcopy {key};
@@ -786,6 +799,11 @@ namespace Langulus::Anyness
 	///	@return 1 if pair was inserted, zero otherwise								
 	TABLE_TEMPLATE()
 	Count TABLE()::Insert(K&& key, const V& value) {
+		static_assert(CT::MoveMakable<K>,
+			"Key needs to be move-constructible, but isn't");
+		static_assert(CT::CopyMakable<V>,
+			"Value needs to be copy-constructible, but isn't");
+
 		Allocate(GetCount() + 1);
 		const auto bucket = GetBucket(key);
 		Value vcopy {value};
@@ -799,6 +817,11 @@ namespace Langulus::Anyness
 	///	@return 1 if pair was inserted, zero otherwise								
 	TABLE_TEMPLATE()
 	Count TABLE()::Insert(K&& key, V&& value) {
+		static_assert(CT::MoveMakable<K>,
+			"Key needs to be move-constructible, but isn't");
+		static_assert(CT::MoveMakable<V>,
+			"Value needs to be move-constructible, but isn't");
+
 		Allocate(GetCount() + 1);
 		const auto bucket = GetBucket(key);
 		InsertInner(bucket, Forward<K>(key), Forward<V>(value));
@@ -857,8 +880,8 @@ namespace Langulus::Anyness
 			ClearInner();
 
 			// No point in resetting info, we'll be deallocating it			
-			Inner::Allocator::Deallocate(mKeys);
-			Inner::Allocator::Deallocate(mValues.mEntry);
+			Allocator::Deallocate(mKeys);
+			Allocator::Deallocate(mValues.mEntry);
 		}
 		else {
 			// Data is used from multiple locations, just deref values		
@@ -1359,8 +1382,7 @@ namespace Langulus::Anyness
 
 		const auto offset = info - GetInfo();
 		return {
-			info,
-			GetInfoEnd(), 
+			info, GetInfoEnd(), 
 			GetRawKeys() + offset,
 			GetRawValues() + offset
 		};
@@ -1386,8 +1408,7 @@ namespace Langulus::Anyness
 
 		const auto offset = info - GetInfo();
 		return {
-			info,
-			GetInfoEnd(),
+			info, GetInfoEnd(),
 			GetRawKeys() + offset,
 			GetRawValues() + offset
 		};
@@ -1408,7 +1429,13 @@ namespace Langulus::Anyness
 	///	@param value - pointer to the value element									
 	TABLE_TEMPLATE()
 	template<bool MUTABLE>
-	LANGULUS(ALWAYSINLINE) TABLE()::TIterator<MUTABLE>::TIterator(const uint8_t* info, const uint8_t* sentinel, KeyPtr key, ValuePtr value) noexcept
+	LANGULUS(ALWAYSINLINE)
+	TABLE()::TIterator<MUTABLE>::TIterator(
+		const InfoType* info, 
+		const InfoType* sentinel, 
+		const KeyInner* key, 
+		const ValueInner* value
+	) noexcept
 		: mInfo {info}
 		, mSentinel {sentinel}
 		, mKey {key}
@@ -1419,7 +1446,8 @@ namespace Langulus::Anyness
 	///	@return the modified iterator														
 	TABLE_TEMPLATE()
 	template<bool MUTABLE>
-	LANGULUS(ALWAYSINLINE) typename ITERATOR()& TABLE()::TIterator<MUTABLE>::operator ++ () noexcept {
+	LANGULUS(ALWAYSINLINE)
+	typename ITERATOR()& TABLE()::TIterator<MUTABLE>::operator ++ () noexcept {
 		if (mInfo == mSentinel)
 			return *this;
 
@@ -1437,7 +1465,8 @@ namespace Langulus::Anyness
 	///	@return the previous value of the iterator									
 	TABLE_TEMPLATE()
 	template<bool MUTABLE>
-	LANGULUS(ALWAYSINLINE) typename ITERATOR() TABLE()::TIterator<MUTABLE>::operator ++ (int) noexcept {
+	LANGULUS(ALWAYSINLINE)
+	typename ITERATOR() TABLE()::TIterator<MUTABLE>::operator ++ (int) noexcept {
 		const auto backup = *this;
 		operator ++ ();
 		return backup;
@@ -1448,7 +1477,8 @@ namespace Langulus::Anyness
 	///	@return true if entries match														
 	TABLE_TEMPLATE()
 	template<bool MUTABLE>
-	LANGULUS(ALWAYSINLINE) bool TABLE()::TIterator<MUTABLE>::operator == (const TIterator& rhs) const noexcept {
+	LANGULUS(ALWAYSINLINE)
+	bool TABLE()::TIterator<MUTABLE>::operator == (const TIterator& rhs) const noexcept {
 		return mInfo == rhs.mInfo;
 	}
 
@@ -1456,7 +1486,17 @@ namespace Langulus::Anyness
 	///	@return a pair at the current iterator position								
 	TABLE_TEMPLATE()
 	template<bool MUTABLE>
-	LANGULUS(ALWAYSINLINE) typename ITERATOR()::Pair TABLE()::TIterator<MUTABLE>::operator * () const noexcept {
+	LANGULUS(ALWAYSINLINE)
+	typename TABLE()::PairRef TABLE()::TIterator<MUTABLE>::operator * () const noexcept requires MUTABLE {
+		return {*const_cast<KeyInner*>(mKey), *const_cast<ValueInner*>(mValue)};
+	}
+
+	/// Iterator access operator																
+	///	@return a pair at the current iterator position								
+	TABLE_TEMPLATE()
+	template<bool MUTABLE>
+	LANGULUS(ALWAYSINLINE)
+	typename TABLE()::PairConstRef TABLE()::TIterator<MUTABLE>::operator * () const noexcept requires !MUTABLE {
 		return {*mKey, *mValue};
 	}
 

@@ -1366,7 +1366,7 @@ namespace Langulus::Anyness
 		else {
 			// Abstract stuff is allowed only if sparse							
 			static_assert(!CT::Abstract<T>,
-				"Can't insert abstract item in dense container");
+				"Can't copy-insert abstract item in dense container");
 
 			auto data = GetRawAs<T>() + at;
 			if constexpr (CT::POD<T>) {
@@ -1380,14 +1380,14 @@ namespace Langulus::Anyness
 						if constexpr (CT::CopyMakable<T>)
 							new (data) T {*start};
 						else
-							LANGULUS_ASSERT("Can't emplace non-copy-constructible item");
+							LANGULUS_ASSERT("Can't copy-insert non-copy-constructible item");
 					}
 					else if constexpr (CT::DisownMakable<T>)
 						new (data) T {Disown(*start)};
 					else if constexpr (CT::CopyMakable<T>)
 						new (data) T {*start};
 					else
-						LANGULUS_ASSERT("Can't emplace non-disown-constructible item");
+						LANGULUS_ASSERT("Can't copy-insert non-disown-constructible item");
 
 					++data; ++start;
 				}
@@ -1431,7 +1431,7 @@ namespace Langulus::Anyness
 		}
 		else {
 			static_assert(!CT::Abstract<T>,
-				"Can't emplace abstract item in dense container");
+				"Can't move-insert abstract item in dense block");
 
 			// Dense data insertion (placement move-construction)				
 			const auto data = GetRawAs<T>() + at;
@@ -1441,7 +1441,7 @@ namespace Langulus::Anyness
 				else if constexpr (CT::CopyMakable<T>)
 					new (data) T {item};
 				else
-					LANGULUS_ASSERT("Can't emplace non-move/copy-constructible item");
+					LANGULUS_ASSERT("Can't move-insert non-move/copy-constructible item");
 			}
 			else if constexpr (CT::AbandonMakable<T>)
 				new (data) T {Abandon(item)};
@@ -1450,7 +1450,7 @@ namespace Langulus::Anyness
 			else if constexpr (CT::Fundamental<T>)
 				new (data) T {item};
 			else
-				LANGULUS_ASSERT("Can't emplace non-abandon-constructible item");
+				LANGULUS_ASSERT("Can't move-insert non-abandon-constructible item");
 		}
 
 		++mCount;
@@ -1532,17 +1532,17 @@ namespace Langulus::Anyness
 				// Pointers didn't match, but we have ClassBlock				
 				// so we attempt to call reflected comparison operator		
 				// for the concrete types												
-				auto lhs = left->GetBlock();
-				auto rhs = item_ptr->GetBlock();
-				if (lhs.GetMeta() != rhs.GetMeta())
+				if (left->GetType() != item_ptr->GetType())
 					continue;
 
-				if (lhs.GetType()->mComparer) {
-					if (lhs.GetType()->mComparer(lhs.GetRaw(), rhs.GetRaw()))
+				if (left->GetType()->mComparer) {
+					auto lhs = left->GetBlock();
+					auto rhs = item_ptr->GetBlock();
+					if (left->GetType()->mComparer(lhs.GetRaw(), rhs.GetRaw()))
 						return i;
 				}
 				else {
-					Logger::Warning() << "Dynamically resolved type " << lhs.GetToken()
+					Logger::Warning() << "Dynamically resolved type " << left->GetType()->mToken
 						<< " missing compare operator implementation and/or reflection";
 					Logger::Warning() << "This means that any Find, Merge, "
 						"Select, etc. will fail for that type";
@@ -3370,20 +3370,19 @@ namespace Langulus::Anyness
 		}
 		else {
 			// Both RHS and LHS are dense and non POD								
-			// Call the reflected copy-constructor for each element			
-			static_assert(CT::CopyMakable<T>, 
-				"Trying to copy-construct but it's impossible for this type");
-
+			// Call the reflected copy/abandon-constructor for each element
 			auto to = GetRawAs<T>() + mCount;
 			auto from = source.GetRawAs<T>();
 			const auto fromEnd = from + count;
 			while (from != fromEnd) {
-				if constexpr (KEEP)
-					new (to) T {*from};
+				if constexpr (KEEP && CT::CopyMakable<T>)
+					new (to++) T {*from++};
+				else if constexpr (!KEEP && CT::AbandonMakable<T>)
+					new (to++) T {Abandon(*from++)};
+				else if (KEEP)
+					LANGULUS_ASSERT("Trying to copy-construct type without copy-constructor");
 				else
-					new (to) T {Abandon(*from)};
-				++to;
-				++from;
+					LANGULUS_ASSERT("Trying to abandon-construct type without abandon-constructor");
 			}
 		}
 	}

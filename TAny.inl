@@ -590,36 +590,12 @@ namespace Langulus::Anyness
 	///	@param anything - pack it inside a dense container							
 	///	@returns the pack containing the data											
 	TEMPLATE()
-	TAny<T> TAny<T>::Wrap(const T& anything) {
+	template<CT::Data... LIST_T>
+	TAny<T> TAny<T>::Wrap(LIST_T&&... list) {
 		TAny<T> temp;
-		temp << anything;
-		return temp;
-	}
-
-	/// Pack a c-array inside container, doing a shallow copy						
-	///	@param anything - pack it inside a dense container							
-	///	@returns the pack containing the data											
-	TEMPLATE()
-	template<Count COUNT>
-	TAny<T> TAny<T>::Wrap(const T(&anything)[COUNT]) {
-		TAny<T> temp;
-		temp.Reserve(COUNT);
-		for (Count i = 0; i < COUNT; ++i)
-			temp << anything[i];
-		return temp;
-	}
-
-	/// Pack an array inside container, doing a shallow copy							
-	///	@param anything - pack it inside a dense container							
-	///	@param count - number of items													
-	///	@returns the pack containing the data											
-	TEMPLATE()
-	TAny<T> TAny<T>::Wrap(const T* anything, const Count& count) {
-		TAny<T> temp;
-		temp.Reserve(count);
-		for (Count i = 0; i < count; ++i)
-			temp << anything[i];
-		return temp;
+		temp.Allocate(sizeof...(list));
+		(temp << ... << Forward<LIST_T>(list));
+		return Abandon(temp);
 	}
 
 	/// Allocate 'count' elements and fill the container with zeroes				
@@ -1604,15 +1580,17 @@ namespace Langulus::Anyness
 	}
 
 	/// Allocate a number of elements, relying on the type of the container		
-	///	@tparam CREATE - true to call constructors									
+	///	@tparam CREATE - true to call constructors and initialize count		
+	///	@tparam SETSIZE - true to set size without calling any constructors	
 	///	@param elements - number of elements to allocate							
 	TEMPLATE()
 	template<bool CREATE, bool SETSIZE>
 	void TAny<T>::Allocate(Count elements) {
-		static_assert(!CT::Abstract<T>, "Can't allocate abstract items");
-		const auto request = RequestSize(elements);
+		static_assert(!CREATE || CT::Sparse<T> || !CT::Abstract<T>,
+			"Can't allocate and default-construct abstract items in dense TAny");
 
 		// Allocate/reallocate															
+		const auto request = RequestSize(elements);
 		if (mEntry) {
 			if (mReserved >= elements) {
 				if (mCount > elements) {

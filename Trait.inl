@@ -39,38 +39,38 @@ namespace Langulus::Anyness
 		, mTraitType {type} {}
 
 	/// Create a trait from a trait definition											
-	template<CT::Data TRAIT, CT::Data DATA>
+	template<CT::Data T, CT::Data D>
 	Trait Trait::From() {
-		static_assert(CT::Trait<TRAIT>, "TRAIT must be a trait definition");
-		return Trait(TRAIT::Reflect(), Block::From<DATA>());
+		static_assert(CT::Trait<T>, "T must be a trait definition");
+		return Trait {MetaTrait::Of<Decay<T>>(), Block::From<D>()};
 	}
 
 	/// Create a trait from a trait definition											
-	template<CT::Data TRAIT>
+	template<CT::Data T>
 	Trait Trait::FromMemory(const Block& memory) {
-		static_assert(CT::Trait<TRAIT>, "TRAIT must be a trait definition");
-		return Trait(TRAIT::Reflect(), memory);
+		static_assert(CT::Trait<T>, "T must be a trait definition");
+		return Trait {MetaTrait::Of<Decay<T>>(), memory};
 	}
 
 	/// Create a trait from a trait definition											
-	template<CT::Data TRAIT>
+	template<CT::Data T>
 	Trait Trait::FromMemory(Block&& memory) {
-		static_assert(CT::Trait<TRAIT>, "TRAIT must be a trait definition");
-		return Trait(TRAIT::Reflect(), Forward<Block>(memory));
+		static_assert(CT::Trait<T>, "T must be a trait definition");
+		return Trait {MetaTrait::Of<Decay<T>>(), Forward<Block>(memory)};
 	}
 
 	/// Create a trait from a trait definition and data								
-	template<CT::Data TRAIT, CT::Data DATA>
-	Trait Trait::From(const DATA& stuff) {
-		static_assert(CT::Trait<TRAIT>, "TRAIT must be a trait definition");
-		return Trait(TRAIT::Reflect(), Any(stuff));
+	template<CT::Data T, CT::Data D>
+	Trait Trait::From(const D& stuff) {
+		static_assert(CT::Trait<T>, "T must be a trait definition");
+		return Trait {MetaTrait::Of<Decay<T>>(), Any {stuff}};
 	}
 
 	/// Create a trait from a trait definition by moving data						
-	template<CT::Data TRAIT, CT::Data DATA>
-	Trait Trait::From(DATA&& stuff) {
-		static_assert(CT::Trait<TRAIT>, "TRAIT must be a trait definition");
-		return Trait(TRAIT::Reflect(), Any(Forward<DATA>(stuff)));
+	template<CT::Data T, CT::Data D>
+	Trait Trait::From(D&& stuff) {
+		static_assert(CT::Trait<T>, "T must be a trait definition");
+		return Trait {MetaTrait::Of<Decay<T>>(), Any {Forward<D>(stuff)}};
 	}
 
 	/// Create a trait from a trait definition and copy of data						

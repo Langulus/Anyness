@@ -24,10 +24,15 @@ namespace Langulus::Anyness
 		using PairConstRef = TPair<const K&, const V&>;
 		using Key = K;
 		using Value = V;
+		using KeyInner = typename TAny<K>::TypeInner;
+		using ValueInner = typename TAny<V>::TypeInner;
 		using Self = TUnorderedMap<K, V>;
+		using Allocator = Inner::Allocator;
 		static constexpr Count MinimalAllocation = 8;
 
 	protected:
+		using InfoType = uint8_t;
+
 		// The allocation which holds keys and tombstones						
 		Inner::Allocation* mKeys {};
 
@@ -38,7 +43,7 @@ namespace Langulus::Anyness
 		//		1 - the index is used, and key is exactly where it should be
 		//		2+ - the index is used, but bucket is info-1 buckets to		
 		//			  the left of this index											
-		uint8_t* mInfo {};
+		InfoType* mInfo {};
 
 		// The block that contains the values										
 		// It's size and reserve also used for the keys and tombstones		
@@ -157,6 +162,7 @@ namespace Langulus::Anyness
 		///																							
 		template<bool MUTABLE>
 		struct TIterator;
+
 		using Iterator = TIterator<true>;
 		using ConstIterator = TIterator<false>;
 		
@@ -222,7 +228,7 @@ namespace Langulus::Anyness
 		void ClearInner();
 
 		template<class T>
-		static void CloneInner(const Count&, const uint8_t*, const T*, const T*, T*);
+		static void CloneInner(const Count&, const InfoType*, const T*, const T*, T*);
 
 		template<class T>
 		static void RemoveInner(T*) noexcept;
@@ -247,9 +253,9 @@ namespace Langulus::Anyness
 	#ifdef LANGULUS_ENABLE_TESTING
 		public:
 	#endif
-		NOD() const uint8_t* GetInfo() const noexcept;
-		NOD() uint8_t* GetInfo() noexcept;
-		NOD() const uint8_t* GetInfoEnd() const noexcept;
+		NOD() const InfoType* GetInfo() const noexcept;
+		NOD() InfoType* GetInfo() noexcept;
+		NOD() const InfoType* GetInfoEnd() const noexcept;
 
 		NOD() constexpr auto GetRawKeys() const noexcept;
 		NOD() constexpr auto GetRawKeys() noexcept;
@@ -267,37 +273,31 @@ namespace Langulus::Anyness
 	template<CT::Data K, CT::Data V>
 	template<bool MUTABLE>
 	struct TUnorderedMap<K, V>::TIterator {
-		using Key = Conditional<MUTABLE, K, const K>;
-		using Value = Conditional<MUTABLE, V, const V>;
-		using KeyPtr = Conditional<MUTABLE, K*, const K*>;
-		using ValuePtr = Conditional<MUTABLE, V*, const V*>;
-		using KeyRef = Conditional<MUTABLE, K&, const K&>;
-		using ValueRef = Conditional<MUTABLE, V&, const V&>;
-		using Pair = TPair<KeyRef, ValueRef>;
-
 	protected:
 		friend class TUnorderedMap<K, V>;
 
-		const uint8_t* mInfo {};
-		const uint8_t* mSentinel {};
-		KeyPtr mKey {};
-		ValuePtr mValue {};
+		const InfoType* mInfo {};
+		const InfoType* mSentinel {};
+		const KeyInner* mKey {};
+		const ValueInner* mValue {};
 
-		TIterator(const uint8_t*, const uint8_t*, KeyPtr, ValuePtr) noexcept;
+		TIterator(const InfoType*, const InfoType*, const KeyInner*, const ValueInner*) noexcept;
 
 	public:
 		TIterator() noexcept = default;
 		TIterator(const TIterator&) noexcept = default;
 		TIterator(TIterator&&) noexcept = default;
 
-		// Prefix operator																
-		TIterator& operator ++ () noexcept;
-		// Suffix operator																
-		NOD() TIterator operator ++ (int) noexcept;
-
 		NOD() bool operator == (const TIterator&) const noexcept;
 
-		NOD() Pair operator * () const noexcept;
+		NOD() PairRef operator * () const noexcept requires MUTABLE;
+		NOD() PairConstRef operator * () const noexcept requires !MUTABLE;
+
+		// Prefix operator																
+		TIterator& operator ++ () noexcept;
+
+		// Suffix operator																
+		NOD() TIterator operator ++ (int) noexcept;
 	};
 
 } // namespace Langulus::Anyness
