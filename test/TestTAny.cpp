@@ -21,14 +21,6 @@ struct TypePair {
 	using Element = E;
 };
 
-Byte* asbytes(void* a) noexcept {
-	return reinterpret_cast<Byte*>(a);
-}
-
-const Byte* asbytes(const void* a) noexcept {
-	return reinterpret_cast<const Byte*>(a);
-}
-
 /// Detect if type is TAny, instead of Any, by searching for [] operator		
 template<class T>
 concept IsStaticallyOptimized = requires (Decay<T> a) { typename T::Type; };

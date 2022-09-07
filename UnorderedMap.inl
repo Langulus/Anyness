@@ -7,6 +7,7 @@
 ///																									
 #pragma once
 #include "UnorderedMap.hpp"
+#include "TAny.hpp"
 
 namespace Langulus::Anyness
 {
@@ -67,6 +68,7 @@ namespace Langulus::Anyness
 			mValues.mEntry->Free();
 		}
 
+		mKeys.mEntry = nullptr;
 		mValues.mEntry = nullptr;
 	}
 
@@ -366,6 +368,20 @@ namespace Langulus::Anyness
 		return GetRawValues<V>() + GetReserved();
 	}
 
+	#ifdef LANGULUS_ENABLE_TESTING
+		/// Get raw key memory pointer, used only in testing							
+		///	@return the pointer																
+		constexpr const void* UnorderedMap::GetRawKeysMemory() const noexcept {
+			return mKeys.mRaw;
+		}
+
+		/// Get raw value memory pointer, used only in testing						
+		///	@return the pointer																
+		constexpr const void* UnorderedMap::GetRawValuesMemory() const noexcept {
+			return mValues.mRaw;
+		}
+	#endif
+
 	/// Get the size of all pairs, in bytes												
 	///	@return the total amount of initialized bytes								
 	constexpr Size UnorderedMap::GetByteSize() const noexcept {
@@ -392,18 +408,6 @@ namespace Langulus::Anyness
 	template<class ALT_V>
 	constexpr bool UnorderedMap::ValueIs() const noexcept {
 		return mValues.Is<ALT_V>();
-	}
-
-	/// Move-insert a pair inside the map													
-	inline UnorderedMap& UnorderedMap::operator << (Pair&& item) {
-		Insert(Move(item.mKey), Move(item.mValue));
-		return *this;
-	}
-
-	/// Copy-insert a pair inside the map													
-	inline UnorderedMap& UnorderedMap::operator << (const Pair& item) {
-		Insert(item.mKey, item.mValue);
-		return *this;
 	}
 
 	/// Request a new size of keys and info via the value container				
@@ -470,6 +474,19 @@ namespace Langulus::Anyness
 			Throw<Except::Allocate>(
 				"Out of memory on allocating/reallocating TUnorderedMap keys");
 
+		// Allocate new values															
+		const Block oldValues {mValues};
+		if constexpr (REUSE)
+			mValues.mEntry = Allocator::Reallocate(count * mValues.GetStride(), mValues.mEntry);
+		else
+			mValues.mEntry = Allocator::Allocate(count * mValues.GetStride());
+
+		if (!mValues.mEntry) {
+			Allocator::Deallocate(mKeys.mEntry);
+			Throw<Except::Allocate>(
+				"Out of memory on allocating/reallocating TUnorderedMap values");
+		}
+
 		// Precalculate the info pointer, it's costly							
 		mKeys.mRaw = mKeys.mEntry->GetBlockStart();
 		auto oldInfo = mInfo;
@@ -492,19 +509,6 @@ namespace Langulus::Anyness
 
 		// Set the sentinel																
 		mInfo[count] = 1;
-
-		// Allocate new values															
-		const Block oldValues {mValues};
-		if constexpr (REUSE)
-			mValues.mEntry = Allocator::Reallocate(count * mValues.GetStride(), mValues.mEntry);
-		else
-			mValues.mEntry = Allocator::Allocate(count * mValues.GetStride());
-
-		if (!mValues.mEntry) {
-			Allocator::Deallocate(mKeys.mEntry);
-			Throw<Except::Allocate>(
-				"Out of memory on allocating/reallocating TUnorderedMap values");
-		}
 
 		mValues.mRaw = mValues.mEntry->GetBlockStart();
 		mValues.mReserved = count;
@@ -529,15 +533,14 @@ namespace Langulus::Anyness
 				continue;
 			}
 
-			if constexpr (REUSE) {
-				InsertUnknown(Move(key), Move(value));
+			InsertUnknown(Move(key), Move(value));
 
+			if constexpr (REUSE) {
 				if (mKeys.IsDense())
 					RemoveInner(key);
 				if (mValues.IsDense())
 					RemoveInner(value);
 			}
-			else InsertUnknown(key, value);
 
 			key.Next();
 			value.Next();
@@ -704,6 +707,58 @@ namespace Langulus::Anyness
 		*psl = attempts;
 		++mValues.mCount;
 	}
+	
+	/// Inner insertion function based on reflected move-assignment				
+	///	@param start - the starting index												
+	///	@param key - key to move in														
+	///	@param value - value to move in													
+	inline void UnorderedMap::InsertInnerUnknown(const Offset& start, Block&& key, Block&& value) {
+		// Get the starting index based on the key hash							
+		auto psl = GetInfo() + start;
+		const auto pslEnd = GetInfoEnd();
+		auto candidate = GetKey(start);
+		InfoType attempts {1};
+		while (*psl) {
+			if (candidate == key) {
+				// Neat, the key already exists - just set value and go		
+				const auto index = psl - GetInfo();
+				GetValue(index)
+					.CallUnknownMoveAssignment<true>(1, Forward<Block>(value));
+				return;
+			}
+
+			if (attempts > *psl) {
+				// The pair we're inserting is closer to bucket, so swap		
+				const auto index = psl - GetInfo();
+				GetKey(index).SwapUnknown(Forward<Block>(key));
+				GetValue(index).SwapUnknown(Forward<Block>(value));
+				::std::swap(attempts, *psl);
+			}
+
+			++attempts;
+
+			if (psl < pslEnd - 1) LIKELY() {
+				++psl;
+				candidate.Next();
+			}
+			else UNLIKELY() {
+				// Wrap around and start from the beginning						
+				psl = GetInfo();
+				candidate = GetKey(0);
+			}
+		}
+
+		// If reached, empty slot reached, so put the pair there				
+		// Might not seem like it, but we gave a guarantee, that this is	
+		// eventually reached, unless key exists and returns early			
+		const auto index = psl - GetInfo();
+		GetKey(index)
+			.CallUnknownMoveConstructors<true>(1, Forward<Block>(key));
+		GetValue(index)
+			.CallUnknownMoveConstructors<true>(1, Forward<Block>(value));
+		*psl = attempts;
+		++mValues.mCount;
+	}
 
 	/// Get the bucket index, depending on key hash										
 	///	@param key - the key to hash														
@@ -777,24 +832,69 @@ namespace Langulus::Anyness
 		return 1;
 	}
 
-	/// Insert a single pair inside table via move (uknown version)				
-	///	@param key - the key to add														
-	///	@param value - the value to add													
-	///	@return 1 if pair was inserted, zero otherwise								
-	inline Count UnorderedMap::InsertUnknown(Block&& key, Block&& value) {
-		Allocate(GetCount() + 1);
-		InsertInner(GetBucket(key), Forward<K>(key), Forward<V>(value));
-		return 1;
-	}
-
-	/// Insert a single pair inside table via move (uknown version)				
+	/// Insert a single pair inside table via copy (unknown version)				
 	///	@param key - the key to add														
 	///	@param value - the value to add													
 	///	@return 1 if pair was inserted, zero otherwise								
 	inline Count UnorderedMap::InsertUnknown(const Block& key, const Block& value) {
 		Allocate(GetCount() + 1);
-		InsertInner(GetBucket(key), Forward<K>(key), Forward<V>(value));
+		Block keySwapper {DataState::Default, key.mType};
+		keySwapper.Allocate(1);
+		keySwapper.CallUnknownCopyConstructors<true>(1, key);
+
+		Block valSwapper {DataState::Default, value.mType};
+		valSwapper.Allocate(1);
+		valSwapper.CallUnknownCopyConstructors<true>(1, value);
+
+		InsertInnerUnknown(GetBucket(key), Move(keySwapper), Move(valSwapper));
+
+		keySwapper.Dereference<true>(1);
+		valSwapper.Dereference<true>(1);
 		return 1;
+	}
+
+	/// Insert a single pair inside table via move (unknown version)				
+	///	@param key - the key to add														
+	///	@param value - the value to add													
+	///	@return 1 if pair was inserted, zero otherwise								
+	inline Count UnorderedMap::InsertUnknown(Block&& key, Block&& value) {
+		Allocate(GetCount() + 1);
+		InsertInnerUnknown(GetBucket(key), Forward<Block>(key), Forward<Block>(value));
+		return 1;
+	}
+
+	/// Copy-insert a templated pair inside the map										
+	///	@param item - the pair to insert													
+	///	@return a reference to this map for chaining									
+	template<CT::Data K, CT::Data V>
+	UnorderedMap& UnorderedMap::operator << (const TPair<K, V>& item) {
+		Insert(item.mKey, item.mValue);
+		return *this;
+	}
+
+	/// Move-insert a templated pair inside the map										
+	///	@param item - the pair to insert													
+	///	@return a reference to this map for chaining									
+	template<CT::Data K, CT::Data V>
+	UnorderedMap& UnorderedMap::operator << (TPair<K ,V>&& item) {
+		Insert(Move(item.mKey), Move(item.mValue));
+		return *this;
+	}
+
+	/// Copy-insert a type-erased pair inside the map									
+	///	@param item - the pair to insert													
+	///	@return a reference to this map for chaining									
+	inline UnorderedMap& UnorderedMap::operator << (const Pair& item) {
+		InsertUnknown(item.mKey, item.mValue);
+		return *this;
+	}
+
+	/// Move-insert a type-erased pair inside the map									
+	///	@param item - the pair to insert													
+	///	@return a reference to this map for chaining									
+	inline UnorderedMap& UnorderedMap::operator << (Pair&& item) {
+		InsertUnknown(Move(item.mKey), Move(item.mValue));
+		return *this;
 	}
 
 	/// Destroy everything valid inside the map											

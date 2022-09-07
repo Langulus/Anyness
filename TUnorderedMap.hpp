@@ -93,9 +93,6 @@ namespace Langulus::Anyness
 
 		NOD() TUnorderedMap Clone() const;
 
-		TUnorderedMap& operator << (Pair&&);
-		TUnorderedMap& operator << (const Pair&);
-
 		bool operator == (const TUnorderedMap&) const;
 
 		///																							
@@ -105,6 +102,9 @@ namespace Langulus::Anyness
 		Count Insert(K&&, const V&);
 		Count Insert(const K&, V&&);
 		Count Insert(K&&, V&&);
+
+		TUnorderedMap& operator << (Pair&&);
+		TUnorderedMap& operator << (const Pair&);
 
 		///																							
 		///	REMOVAL																				

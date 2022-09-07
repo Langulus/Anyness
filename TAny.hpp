@@ -16,7 +16,13 @@ namespace Langulus::Anyness
 	///																								
 	///	Unlike Any, this one is statically optimized to perform faster, due	
 	/// to not being type-erased. In that sense, this container is equivalent	
-	/// to std::vector																			
+	/// to std::vector.																			
+	///	Don't forget that all Any containers are binary-compatible with each	
+	/// other, so after you've asserted, that an Any is of a specific type,		
+	/// (by checking result of doing something like pack.Is<my type>())			
+	/// you can then directly reinterpret_cast that Any to an equivalent			
+	/// TAny<of the type you checked for>, essentially converting your			
+	/// type-erased container to a statically-optimized equivalent.				
 	///																								
 	template<CT::Data T>
 	class TAny : public Any {
@@ -253,6 +259,7 @@ namespace Langulus::Anyness
 	class TAny<T>::KnownPointer {
 	private:
 		static_assert(CT::Sparse<T>, "T must be a pointer");
+
 		T mPointer;
 		Inner::Allocation* mEntry;
 
@@ -266,7 +273,6 @@ namespace Langulus::Anyness
 		constexpr KnownPointer& operator = (const KnownPointer&) noexcept = default;
 		constexpr KnownPointer& operator = (KnownPointer&&) noexcept = default;
 		KnownPointer& operator = (const T&);
-		KnownPointer& operator = (T&&);
 		KnownPointer& operator = (::std::nullptr_t);
 
 		operator T() const noexcept;
@@ -289,7 +295,7 @@ namespace Langulus::Anyness
 			result += rhs;
 			return result;
 		}
-		else LANGULUS_ASSERT("Can't concatenate - LHS is not convertible to WRAPPER");
+		else LANGULUS_ERROR("Can't concatenate - LHS is not convertible to WRAPPER");
 	}
 
 } // namespace Langulus::Anyness

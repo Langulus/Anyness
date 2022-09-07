@@ -81,7 +81,7 @@ namespace Langulus::Anyness
 
 			(*this) += Text {temp, static_cast<Count>(lastChar - temp)};
 		}
-		else LANGULUS_ASSERT("Unsupported number type");
+		else LANGULUS_ERROR("Unsupported number type");
 	}
 
 	/// Construct from null-terminated UTF text											

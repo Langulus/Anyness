@@ -10,8 +10,8 @@ download_project(
 	UPDATE_DISCONNECTED 1
 )
 
-add_definitions(-DLANGULUS_ENABLE_TESTING)
-add_definitions(-DLANGULUS_ENABLE_SAFE_MODE)
+add_compile_definitions(LANGULUS_ENABLE_TESTING)
+add_compile_definitions(LANGULUS_ENABLE_ASSERTION_LEVEL=1000)
 
 add_subdirectory(${Catch2_SOURCE_DIR} ${Catch2_BINARY_DIR})
 

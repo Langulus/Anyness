@@ -109,14 +109,6 @@ namespace Langulus::Anyness
 
 		NOD() UnorderedMap Clone() const;
 
-		UnorderedMap& operator << (const Pair&);
-		UnorderedMap& operator << (Pair&&);
-
-		template<CT::Data K, CT::Data V>
-		UnorderedMap& operator << (const TPair<K, V>&);
-		template<CT::Data K, CT::Data V>
-		UnorderedMap& operator << (TPair<K, V>&&);
-
 		bool operator == (const UnorderedMap&) const;
 
 		///																							
@@ -130,6 +122,14 @@ namespace Langulus::Anyness
 		Count Insert(const K&, V&&);
 		template<CT::Data K, CT::Data V>
 		Count Insert(K&&, V&&);
+
+		template<CT::Data K, CT::Data V>
+		UnorderedMap& operator << (const TPair<K, V>&);
+		template<CT::Data K, CT::Data V>
+		UnorderedMap& operator << (TPair<K, V>&&);
+
+		UnorderedMap& operator << (const Pair&);
+		UnorderedMap& operator << (Pair&&);
 
 		///																							
 		///	REMOVAL																				
@@ -241,11 +241,15 @@ namespace Langulus::Anyness
 		template<bool REUSE>
 		void AllocateKeys(const Count&);
 		void AllocateInner(const Count&);
+
 		void Rehash(const Count&, const Count&);
+
 		template<CT::Data K, CT::Data V>
 		void InsertInner(const Offset&, K&&, V&&);
+
 		Count InsertUnknown(const Block&, const Block&);
 		Count InsertUnknown(Block&&, Block&&);
+		void InsertInnerUnknown(const Offset&, Block&&, Block&&);
 
 		void ClearInner();
 
@@ -294,8 +298,10 @@ namespace Langulus::Anyness
 		template<CT::Data V>
 		NOD() constexpr decltype(auto) GetRawValuesEnd() const noexcept;
 
-		NOD() constexpr void* GetRawKeysMemory() const noexcept;
-		NOD() constexpr void* GetRawValuesMemory() const noexcept;
+	#ifdef LANGULUS_ENABLE_TESTING
+		NOD() constexpr const void* GetRawKeysMemory() const noexcept;
+		NOD() constexpr const void* GetRawValuesMemory() const noexcept;
+	#endif
 	};
 
 	///																								

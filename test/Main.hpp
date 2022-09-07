@@ -21,3 +21,11 @@ using Anyness::Inner::Pool;
 //#ifdef LANGULUS_STD_BENCHMARK
 #define CATCH_CONFIG_ENABLE_BENCHMARKING
 //#endif
+
+inline Byte* asbytes(void* a) noexcept {
+	return reinterpret_cast<Byte*>(a);
+}
+
+inline const Byte* asbytes(const void* a) noexcept {
+	return reinterpret_cast<const Byte*>(a);
+}

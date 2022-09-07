@@ -101,6 +101,11 @@ namespace Langulus::Anyness
 		struct KnownPointer {
 			Byte* mPointer;
 			Inner::Allocation* mEntry;
+
+			template<bool KEEP>
+			void MoveAssign(DMeta, KnownPointer*);
+			template<bool KEEP>
+			void CopyAssign(DMeta, const KnownPointer*);
 		};
 
 		union { 
@@ -554,6 +559,7 @@ namespace Langulus::Anyness
 
 		template<bool CREATE = false>
 		void AllocateInner(const Count&);
+		void AllocateRegion(const Block&, Offset, Block&);
 		auto RequestSize(const Count&) const noexcept;
 	
 		template<bool KEEP, CT::NotAbandonedOrDisowned T>
@@ -595,17 +601,29 @@ namespace Langulus::Anyness
 		void CallKnownCopyConstructors(Count, const Block&);
 
 		template<bool KEEP>
+		void CallUnknownCopyAssignment(Count, const Block&);
+		template<bool KEEP, CT::Data>
+		void CallKnownCopyAssignment(Count, const Block&);
+
+		template<bool KEEP>
 		void CallUnknownMoveConstructors(Count, Block&&);
 		template<bool KEEP, CT::Data>
 		void CallKnownMoveConstructors(Count, Block&&);
+
+		template<bool KEEP>
+		void CallUnknownMoveAssignment(Count, Block&&);
+		template<bool KEEP, CT::Data>
+		void CallKnownMoveAssignment(Count, Block&&);
 
 		void CallUnknownDestructors();
 		template<CT::Data>
 		void CallKnownDestructors();
 	
-		NOD() bool CallComparer(const Block&, const RTTI::Base&) const;
+		void SwapUnknown(Block&&);
+		template<CT::Data>
+		void SwapKnown(Block&&);
 
-		void AllocateRegion(const Block&, Offset, Block&);
+		NOD() bool CallComparer(const Block&, const RTTI::Base&) const;
 
 		void Next() noexcept;
 		void Prev() noexcept;

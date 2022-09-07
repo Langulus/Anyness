@@ -674,7 +674,7 @@ namespace Langulus::Anyness
 					else if constexpr (CT::POD<T>)
 						CopyMemory(**from, &coalesced[counter], sizeof(Type));
 					else
-						LANGULUS_ASSERT("Can't clone a container made of non-clonable/non-POD type");
+						LANGULUS_ERROR("Can't clone a container made of non-clonable/non-POD type");
 
 					*to = &coalesced[counter];
 					++from; ++to;
@@ -694,7 +694,7 @@ namespace Langulus::Anyness
 				// Batch copy everything at once										
 				CopyMemory(from, to, sizeof(Type) * mCount);
 			}
-			else LANGULUS_ASSERT("Can't clone a container made of non-clonable/non-POD type");
+			else LANGULUS_ERROR("Can't clone a container made of non-clonable/non-POD type");
 
 			return Abandon(result);
 		}
@@ -989,6 +989,9 @@ namespace Langulus::Anyness
 	Count TAny<T>::Insert(const T* start, const T* end) {
 		static_assert(CT::Sparse<T> || CT::Mutable<T>,
 			"Can't copy-insert into container of constant elements");
+		static_assert(INDEX == IndexFront || INDEX == IndexBack,
+			"Invalid index provided; use either IndexBack "
+			"or IndexFront, or Block::InsertAt to insert at an offset");
 
 		// Allocate																			
 		const auto count = end - start;
@@ -1008,11 +1011,7 @@ namespace Langulus::Anyness
 
 			InsertInner<KEEP>(start, end, 0);
 		}
-		else if constexpr (INDEX == IndexBack)
-			InsertInner<KEEP>(start, end, mCount);
-		else LANGULUS_ASSERT(
-			"Invalid index provided; use either IndexBack "
-			"or IndexFront, or Block::InsertAt to insert at an offset");
+		else InsertInner<KEEP>(start, end, mCount);
 
 		return count;
 	}
@@ -1027,6 +1026,9 @@ namespace Langulus::Anyness
 	Count TAny<T>::Insert(T&& item) {
 		static_assert(CT::Sparse<T> || CT::Mutable<T>,
 			"Can't copy-insert into container of constant elements");
+		static_assert(INDEX == IndexFront || INDEX == IndexBack,
+			"Invalid index provided; use either IndexBack "
+			"or IndexFront, or Block::InsertAt to insert at an offset");
 
 		// Allocate																			
 		Allocate<false>(mCount + 1);
@@ -1045,11 +1047,7 @@ namespace Langulus::Anyness
 
 			InsertInner<KEEP>(Move(item), 0);
 		}
-		else if constexpr (INDEX == IndexBack)
-			InsertInner<KEEP>(Move(item), mCount);
-		else LANGULUS_ASSERT(
-			"Invalid index provided; use either IndexBack "
-			"or IndexFront, or Block::InsertAt to insert at an offset");
+		else InsertInner<KEEP>(Move(item), mCount);
 
 		return 1;
 	}
@@ -1389,7 +1387,8 @@ namespace Langulus::Anyness
 	void TAny<T>::Sort() {
 		if constexpr (CT::Sortable<T>)
 			Any::Sort<T, ASCEND>();
-		else LANGULUS_ASSERT("Can't sort container - T is not sortable");
+		else
+			LANGULUS_ERROR("Can't sort container - T is not sortable");
 	}
 
 	/// Remove elements on the back															
@@ -1736,7 +1735,7 @@ namespace Langulus::Anyness
 			// Finally, attempt converting											
 			return operator += <WRAPPER>(static_cast<WRAPPER>(rhs));
 		}
-		else LANGULUS_ASSERT("Can't concatenate - RHS is not convertible to WRAPPER");
+		else LANGULUS_ERROR("Can't concatenate - RHS is not convertible to WRAPPER");
 	}
 
 	/// Concatenate containers																	
@@ -1772,7 +1771,7 @@ namespace Langulus::Anyness
 			// Attempt converting														
 			return operator + <WRAPPER>(static_cast<WRAPPER>(rhs));
 		}
-		else LANGULUS_ASSERT("Can't concatenate - RHS is not convertible to WRAPPER");
+		else LANGULUS_ERROR("Can't concatenate - RHS is not convertible to WRAPPER");
 	}
 	
 	/// Compare with another TAny, order matters											

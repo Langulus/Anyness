@@ -65,9 +65,12 @@ namespace Langulus::Anyness
 		}
 		else {
 			// Data is used from multiple locations, just deref values		
+			// Notice we don't dereference keys, we use only value's refs	
+			// to save on some redundancy												
 			mValues.mEntry->Free();
 		}
 
+		mKeys.mEntry = nullptr;
 		mValues.mEntry = nullptr;
 	}
 
@@ -518,14 +521,6 @@ namespace Langulus::Anyness
 			Throw<Except::Allocate>("Out of memory on allocating/reallocating TUnorderedMap values");
 		}
 
-		if constexpr (REUSE) {
-			if (mValues.mEntry == oldValues.mEntry && oldKeys.mEntry == mKeys.mEntry) {
-				// Both keys and values remain in the same place, so rehash	
-				Rehash(count, oldCount);
-				return;
-			}
-		}
-
 		mValues.mRaw = mValues.mEntry->GetBlockStart();
 		mValues.mReserved = count;
 		mValues.mCount = 0;
@@ -536,8 +531,14 @@ namespace Langulus::Anyness
 
 		// Zero or move the info array												
 		if constexpr (REUSE) {
+			if (mValues.mEntry == oldValues.mEntry && oldKeys.mEntry == mKeys.mEntry) {
+				// Both keys and values remain in the same place, so rehash	
+				Rehash(count, oldCount);
+				return;
+			}
+
 			// Check if keys were reused												
-			if (mKeys == oldKeys) {
+			if (mKeys.mEntry == oldKeys.mEntry) {
 				// Keys were reused, but info always moves (null the rest)	
 				::std::memmove(mInfo, oldInfo, oldCount);
 				::std::memset(mInfo + oldCount, 0, count - oldCount);
@@ -819,34 +820,39 @@ namespace Langulus::Anyness
 		}
 	}
 
-	/// Clears all data, but doesn't deallocate											
+	/// Clears all data, but doesn't deallocate, and retains state					
 	TABLE_TEMPLATE()
 	void TABLE()::Clear() {
 		if (IsEmpty())
 			return;
 
-		if (GetUses() == 1) {
+		if (mValues.mEntry->GetUses() == 1) {
 			// Remove all used keys and values, they're used only here		
 			ClearInner();
 
 			// Clear all info to zero													
-			::std::memset(GetInfo(), 0, GetReserved());
+			::std::memset(mInfo, 0, GetReserved());
 			mValues.mCount = 0;
 		}
 		else {
 			// Data is used from multiple locations, don't change data		
 			// We're forced to dereference and reset memory pointers			
-			mKeys.mEntry = nullptr;
+			// Notice keys are not dereferenced, we use only value refs		
+			// to save on some redundancy												
 			mInfo = nullptr;
 			mValues.mEntry->Free();
+			mKeys.ResetMemory();
 			mValues.ResetMemory();
 		}
 	}
 
-	/// Clears all data and deallocates														
+	/// Clears all data, state, and deallocates											
 	TABLE_TEMPLATE()
 	void TABLE()::Reset() {
-		if (GetUses() == 1) {
+		if (!mValues.mEntry)
+			return;
+
+		if (mValues.mEntry->GetUses() == 1) {
 			// Remove all used keys and values, they're used only here		
 			ClearInner();
 
@@ -856,11 +862,14 @@ namespace Langulus::Anyness
 		}
 		else {
 			// Data is used from multiple locations, just deref values		
+			// Notice keys are not dereferenced, we use only value refs		
+			// to save on some redundancy												
 			mValues.mEntry->Free();
 		}
 
-		mKeys.mEntry = nullptr;
 		mInfo = nullptr;
+		mKeys.ResetState();
+		mKeys.ResetMemory();
 		mValues.ResetState();
 		mValues.ResetMemory();
 	}

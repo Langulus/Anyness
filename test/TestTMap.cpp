@@ -23,14 +23,6 @@ struct TypePair {
 	using Value = V;
 };
 
-Byte* asbytes(void* a) noexcept {
-	return reinterpret_cast<Byte*>(a);
-}
-
-const Byte* asbytes(const void* a) noexcept {
-	return reinterpret_cast<const Byte*>(a);
-}
-
 namespace std {
 	template<>
 	struct hash<Text> {
@@ -121,7 +113,7 @@ TEMPLATE_TEST_CASE(
 		auto meta1 = map.GetKeyType();
 		auto meta2 = map.GetValueType();
 
-		WHEN("Given a default-constructed TUnorderedMap") {
+		WHEN("Given a default-constructed map") {
 			THEN("These properties should be correct") {
 				REQUIRE(meta1);
 				REQUIRE(meta2);
@@ -136,14 +128,14 @@ TEMPLATE_TEST_CASE(
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK
-				BENCHMARK_ADVANCED("Anyness::TUnorderedMap::default construction") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("Anyness::map::default construction") (Catch::Benchmark::Chronometer meter) {
 					some<uninitialized<MapType>> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i].construct();
 					});
 				};
 
-				BENCHMARK_ADVANCED("std::unordered_map::default construction") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("std::map::default construction") (Catch::Benchmark::Chronometer meter) {
 					some<uninitialized<MapTypeStd>> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i].construct();
@@ -224,7 +216,7 @@ TEMPLATE_TEST_CASE(
 		}
 	}
 
-	GIVEN("TUnorderedMap with some items") {
+	GIVEN("Map with some items") {
 		#include "CollectGarbage.inl"
 
 		// Arrays are dynamic to avoid constexprification						
@@ -263,7 +255,7 @@ TEMPLATE_TEST_CASE(
 		auto keyMemory = map.GetRawKeysMemory();
 		auto valueMemory = map.GetRawValuesMemory();
 
-		WHEN("Given a preinitialized TUnorderedMap with 5 elements") {
+		WHEN("Given a preinitialized map with 5 elements") {
 			THEN("These properties should be correct") {
 				REQUIRE(map.GetCount() == 5);
 				REQUIRE(map.KeyIs<Text>());
@@ -622,7 +614,7 @@ TEMPLATE_TEST_CASE(
 		WHEN("Map is reset") {
 			const_cast<T&>(map).Reset();
 
-			THEN("Size and capacity goes to zero, types are unchanged") {
+			THEN("Size and capacity goes to zero, types are unchanged if statically optimized") {
 				REQUIRE(map.GetCount() == 0);
 				REQUIRE_FALSE(map.IsAllocated());
 				REQUIRE_FALSE(map.HasAuthority());

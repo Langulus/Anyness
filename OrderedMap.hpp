@@ -20,6 +20,9 @@ namespace Langulus::Anyness
 		static constexpr bool Ordered = true;
 
 		using UnorderedMap::UnorderedMap;
+		OrderedMap(Disowned<OrderedMap>&&) noexcept;
+		OrderedMap(Abandoned<OrderedMap>&&) noexcept;
+
 		using UnorderedMap::operator =;
 
 		NOD() OrderedMap Clone() const;

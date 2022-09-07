@@ -89,14 +89,14 @@ namespace Langulus::Anyness
 		else if constexpr (CT::POD<K>)
 			result.mKey = mKey;
 		else
-			LANGULUS_ASSERT("Key type is not clonable");
+			LANGULUS_ERROR("Key type is not clonable");
 
 		if constexpr (CT::CloneCopyable<V>)
 			result.mValue = mValue.Clone();
 		else if constexpr (CT::POD<V>)
 			result.mValue = mValue;
 		else
-			LANGULUS_ASSERT("Value type is not clonable");
+			LANGULUS_ERROR("Value type is not clonable");
 		return result;
 	}
 
