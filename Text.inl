@@ -149,12 +149,6 @@ namespace Langulus::Anyness
 		return operator == (Text {Disown(rhs)});
 	}
 
-	/// Check if text container has been allocated										
-	///	@return true if container is not allocated									
-	inline bool Text::operator == (::std::nullptr_t) const noexcept {
-		return Block::operator == (nullptr);
-	}
-
 } // namespace Langulus::Anyness
 
 namespace Langulus

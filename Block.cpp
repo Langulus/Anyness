@@ -221,6 +221,24 @@ namespace Langulus::Anyness
 		}
 	}
 	
+	/// Get first element block (unsafe)													
+	///	@return the first element's block												
+	Block Block::GetElement() noexcept {
+		return {
+			(mState + DataState::Static) - DataState::Or,
+			mType, 1, mRaw, mEntry
+		};
+	}
+
+	/// Get first element block (const, unsafe)											
+	///	@return the first element's block												
+	const Block Block::GetElement() const noexcept {
+		return {
+			(mState + DataState::Static) - DataState::Or,
+			mType, 1, mRaw, mEntry
+		};
+	}
+
 	/// Get a specific element block (unsafe)												
 	///	@param index - the element's index												
 	///	@return the element's block														
@@ -239,6 +257,28 @@ namespace Langulus::Anyness
 			(mState + DataState::Static) - DataState::Or,
 			mType, 1, At(index * GetStride()), mEntry
 		};
+	}
+
+	/// Get next element by incrementing data pointer (for inner use)				
+	void Block::Next() noexcept {
+		mRaw += GetStride();
+	}
+
+	/// Get previous element by decrementing data pointer (for inner use)		
+	void Block::Prev() noexcept {
+		mRaw -= GetStride();
+	}
+
+	/// Get next element by incrementing data pointer (for inner use)				
+	///	@return a new block with the incremented pointer							
+	Block Block::Next() const noexcept {
+		return {mState, mType, mCount, mRaw + GetStride(), mEntry};
+	}
+
+	/// Get previous element by decrementing data pointer (for inner use)		
+	///	@return a new block with the decremented pointer							
+	Block Block::Prev() const noexcept {
+		return {mState, mType, mCount, mRaw - GetStride(), mEntry};
 	}
 
 	/// Get the resolved first element of this block									

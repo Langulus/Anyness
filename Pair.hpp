@@ -24,6 +24,16 @@ namespace Langulus::Anyness
 		LANGULUS_ABSTRACT() false;
 		Any mKey;
 		Any mValue;
+
+		template<class K, class V>
+		Pair(const K& key, const V& value)
+			: mKey {key}
+			, mValue {value} {}
+
+		template<class K, class V>
+		Pair(K&& key, V&& value)
+			: mKey {Forward<K>(key)}
+			, mValue {Forward<V>(value)} {}
 	};
 
 } // namespace Langulus::Anyness

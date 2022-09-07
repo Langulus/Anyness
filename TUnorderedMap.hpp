@@ -6,7 +6,7 @@
 /// See LICENSE file, or https://www.gnu.org/licenses									
 ///																									
 #pragma once
-#include "TAny.hpp"
+#include "UnorderedMap.hpp"
 
 namespace Langulus::Anyness
 {
@@ -16,7 +16,7 @@ namespace Langulus::Anyness
 	/// Hood algorithm																			
 	///																								
 	template<CT::Data K, CT::Data V>
-	class TUnorderedMap {
+	class TUnorderedMap : public UnorderedMap {
 	public:
 		static_assert(CT::Comparable<K>, "Can't compare keys for map");
 		using Pair = TPair<K, V>;
@@ -29,25 +29,7 @@ namespace Langulus::Anyness
 		using Self = TUnorderedMap<K, V>;
 		using Allocator = Inner::Allocator;
 		static constexpr Count MinimalAllocation = 8;
-
-	protected:
-		using InfoType = uint8_t;
-
-		// The allocation which holds keys and tombstones						
-		Inner::Allocation* mKeys {};
-
-		// A precomputed pointer for the info bytes								
-		// Points to an offset inside mKeys allocation							
-		// Each byte represents a pair, and can be three things:				
-		//		0 - the index is not used, data is not initialized				
-		//		1 - the index is used, and key is exactly where it should be
-		//		2+ - the index is used, but bucket is info-1 buckets to		
-		//			  the left of this index											
-		InfoType* mInfo {};
-
-		// The block that contains the values										
-		// It's size and reserve also used for the keys and tombstones		
-		TAny<V> mValues;
+		static constexpr bool Ordered = false;
 
 	public:
 		TUnorderedMap() = default;

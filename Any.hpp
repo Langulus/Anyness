@@ -31,6 +31,9 @@ namespace Langulus::Anyness
 		friend class TAny;
 		friend class Block;
 
+		///																							
+		///	Construction																		
+		///																							
 		constexpr Any() noexcept = default;
 		Any(const Any&);
 		Any(Any&&) noexcept;
@@ -64,6 +67,9 @@ namespace Langulus::Anyness
 
 		~Any();
 	
+		///																							
+		///	Assignment																			
+		///																							
 		Any& operator = (const Any&);
 		Any& operator = (Any&&);
 	
@@ -81,6 +87,12 @@ namespace Langulus::Anyness
 		Any& operator = (Disowned<T>&&) requires CT::Dense<T>;
 		template<CT::CustomData T>
 		Any& operator = (Abandoned<T>&&) requires CT::Dense<T>;
+
+		///																							
+		///	Comparison																			
+		///																							
+		template<CT::Data T>
+		bool operator == (const T&) const;
 
 	public:
 		NOD() static Any FromMeta(DMeta, const DataState& = {}) noexcept;

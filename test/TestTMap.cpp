@@ -10,9 +10,26 @@
 #include <unordered_map>
 
 using uint = unsigned int;
-using MapType = TUnorderedMap<Text, int>;
-using MapTypeStd = std::unordered_map<Text, int>;
-using StdPair = std::pair<Text, int>;
+using timer = Catch::Benchmark::Chronometer;
+template<class T>
+using some = std::vector<T>;
+template<class T>
+using uninitialized = Catch::Benchmark::storage_for<T>;
+
+template<class C, class K, class V>
+struct TypePair {
+	using Container = C;
+	using Key = K;
+	using Value = V;
+};
+
+Byte* asbytes(void* a) noexcept {
+	return reinterpret_cast<Byte*>(a);
+}
+
+const Byte* asbytes(const void* a) noexcept {
+	return reinterpret_cast<const Byte*>(a);
+}
 
 namespace std {
 	template<>
@@ -23,11 +40,84 @@ namespace std {
 	};
 }
 
-SCENARIO("TUnorderedMap", "[containers]") {
-	GIVEN("A default-initialized TUnorderedMap instance") {
-		typename MapType::Pair value("five hundred", 555);
-		StdPair valueStd("five hundred", 555);
-		MapType map;
+template<class P, class K, class V, class ALT_K, class ALT_V>
+P CreatePair(const ALT_K& key, const ALT_V& value) {
+	K keyValue;
+	if constexpr (CT::Sparse<K>)
+		keyValue = new Decay<K> {key};
+	else
+		keyValue = key;
+
+	V valueValue;
+	if constexpr (CT::Sparse<V>)
+		valueValue = new Decay<V> {value};
+	else
+		valueValue = value;
+
+	return P {keyValue, valueValue};
+}
+
+/// Detect if type is TAny, instead of Any, by searching for [] operator		
+template<class T>
+concept IsStaticallyOptimized = requires (Decay<T> a) { typename T::Key; typename T::Value; };
+
+
+/// The main test for TOrderedMap/TUnorderedMap/OrderedMap/UnorderedMap			
+/// containers, with all kinds of items, from sparse to dense, from trivial	
+/// to complex, from flat to deep															
+TEMPLATE_TEST_CASE(
+	"TOrderedMap/TUnorderedMap/OrderedMap/UnorderedMap", "[map]",
+	(TypePair<TUnorderedMap<Text, int>, Text, int>),
+	(TypePair<TUnorderedMap<Text, Trait>, Text, Trait>),
+	(TypePair<TUnorderedMap<Text, Traits::Count>, Text, Traits::Count>),
+	(TypePair<TUnorderedMap<Text, Any>, Text, Any>),
+	(TypePair<TUnorderedMap<Text, int*>, Text, int*>),
+	(TypePair<TUnorderedMap<Text, Trait*>, Text, Trait*>),
+	(TypePair<TUnorderedMap<Text, Traits::Count*>, Text, Traits::Count*>),
+	(TypePair<TUnorderedMap<Text, Any*>, Text, Any*>),
+	(TypePair<TOrderedMap<Text, int>, Text, int>),
+	(TypePair<TOrderedMap<Text, Trait>, Text, Trait>),
+	(TypePair<TOrderedMap<Text, Traits::Count>, Text, Traits::Count>),
+	(TypePair<TOrderedMap<Text, Any>, Text, Any>),
+	(TypePair<TOrderedMap<Text, int*>, Text, int*>),
+	(TypePair<TOrderedMap<Text, Trait*>, Text, Trait*>),
+	(TypePair<TOrderedMap<Text, Traits::Count*>, Text, Traits::Count*>),
+	(TypePair<TOrderedMap<Text, Any*>, Text, Any*>),
+	(TypePair<UnorderedMap, Text, int>),
+	(TypePair<UnorderedMap, Text, Trait>),
+	(TypePair<UnorderedMap, Text, Traits::Count>),
+	(TypePair<UnorderedMap, Text, Any>),
+	(TypePair<UnorderedMap, Text, int*>),
+	(TypePair<UnorderedMap, Text, Trait*>),
+	(TypePair<UnorderedMap, Text, Traits::Count*>),
+	(TypePair<UnorderedMap, Text, Any*>),
+	(TypePair<OrderedMap, Text, int>),
+	(TypePair<OrderedMap, Text, Trait>),
+	(TypePair<OrderedMap, Text, Traits::Count>),
+	(TypePair<OrderedMap, Text, Any>),
+	(TypePair<OrderedMap, Text, int*>),
+	(TypePair<OrderedMap, Text, Trait*>),
+	(TypePair<OrderedMap, Text, Traits::Count*>),
+	(TypePair<OrderedMap, Text, Any*>)
+) {
+	using T = typename TestType::Container;
+	constexpr bool ordered = T::Ordered;
+	constexpr bool statico = IsStaticallyOptimized<T>;
+	using K = typename TestType::Key;
+	using V = typename TestType::Value;
+	using StdT = Conditional<ordered, ::std::map<K, V>, ::std::unordered_map<K, V>>;
+	using Pair = TPair<K, V>;
+	using StdPair = ::std::pair<K, V>;
+	using DenseK = Decay<K>;
+	using DenseV = Decay<V>;
+
+	GIVEN("A default-initialized map instance") {
+		const auto pair = CreatePair<Pair, K, V>(
+			"five hundred"_text, 555);
+		const auto stdpair = CreatePair<StdPair, K, V>(
+			"five hundred"_text, 555);
+
+		const T map;
 		auto meta1 = map.GetKeyType();
 		auto meta2 = map.GetValueType();
 
@@ -45,16 +135,16 @@ SCENARIO("TUnorderedMap", "[containers]") {
 				REQUIRE_FALSE(map.HasAuthority());
 			}
 
-			#ifdef LANGULUS_STD_BENCHMARK // Last result: hundreds of times faster than STD
+			#ifdef LANGULUS_STD_BENCHMARK
 				BENCHMARK_ADVANCED("Anyness::TUnorderedMap::default construction") (Catch::Benchmark::Chronometer meter) {
-					std::vector<Catch::Benchmark::storage_for<MapType>> storage(meter.runs());
+					some<uninitialized<MapType>> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i].construct();
 					});
 				};
 
 				BENCHMARK_ADVANCED("std::unordered_map::default construction") (Catch::Benchmark::Chronometer meter) {
-					std::vector<Catch::Benchmark::storage_for<MapTypeStd>> storage(meter.runs());
+					some<uninitialized<MapTypeStd>> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i].construct();
 					});
@@ -65,29 +155,29 @@ SCENARIO("TUnorderedMap", "[containers]") {
 		WHEN("Given a pair by copy") {
 			#include "CollectGarbage.inl"
 
-			map = value;
+			const_cast<T&>(map) = pair;
 
 			THEN("Various traits change") {
 				REQUIRE(map.IsAllocated());
 				REQUIRE(map.HasAuthority());
 				REQUIRE(map.GetCount() == 1);
 				REQUIRE(map.GetUses() == 1);
-				REQUIRE(map["five hundred"] == 555);
-				REQUIRE_THROWS(map["missing"] == 555);
+				REQUIRE(map[pair.mKey] == pair.mValue);
+				REQUIRE_THROWS(map["missing"_text] == pair.mValue);
 			}
 
-			#ifdef LANGULUS_STD_BENCHMARK // Last result: 2:1 due to RTTI
+			#ifdef LANGULUS_STD_BENCHMARK
 				BENCHMARK_ADVANCED("Anyness::TUnorderedMap::operator = (single pair copy)") (Catch::Benchmark::Chronometer meter) {
-					std::vector<MapType> storage(meter.runs());
+					some<MapType> storage(meter.runs());
 					meter.measure([&](int i) {
-						return storage[i] = value;
+						return storage[i] = pair;
 					});
 				};
 
 				BENCHMARK_ADVANCED("std::unordered_map::insert(single pair copy)") (Catch::Benchmark::Chronometer meter) {
-					std::vector<MapTypeStd> storage(meter.runs());
+					some<MapTypeStd> storage(meter.runs());
 					meter.measure([&](int i) {
-						return storage[i].insert(valueStd);
+						return storage[i].insert(stdpair);
 					});
 				};
 			#endif
@@ -96,35 +186,36 @@ SCENARIO("TUnorderedMap", "[containers]") {
 		WHEN("Given a pair by move") {
 			#include "CollectGarbage.inl"
 
-			map = Move(value);
+			auto movablePair = pair;
+			const_cast<T&>(map) = Move(movablePair);
 
 			THEN("Various traits change") {
 				REQUIRE(map.IsAllocated());
 				REQUIRE(map.HasAuthority());
 				REQUIRE(map.GetCount() == 1);
 				REQUIRE(map.GetUses() == 1);
-				REQUIRE(map["five hundred"] == 555);
-				REQUIRE_THROWS(map["missing"] == 555);
+				REQUIRE(map[pair.mKey] == pair.mValue);
+				REQUIRE_THROWS(map["missing"_text] == pair.mValue);
 			}
 
-			#ifdef LANGULUS_STD_BENCHMARK // Last result: 2:1 due to RTTI
+			#ifdef LANGULUS_STD_BENCHMARK
 				BENCHMARK_ADVANCED("Anyness::TUnorderedMap::operator = (single pair copy)") (Catch::Benchmark::Chronometer meter) {
-					std::vector<MapType::Pair> source(meter.runs());
+					some<Pair> source(meter.runs());
 					for (auto& i : source)
-						i = MapType::Pair {"five hundred", 555};
+						i = CreatePair<Pair, K, V>("five hundred"_text, 555);
 						
-					std::vector<MapType> storage(meter.runs());
+					some<MapType> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i] = Move(source[i]);
 					});
 				};
 
 				BENCHMARK_ADVANCED("std::unordered_map::insert(single pair copy)") (Catch::Benchmark::Chronometer meter) {
-					std::vector<StdPair> source(meter.runs());
+					some<StdPair> source(meter.runs());
 					for(auto& i : source)
 						i = valueStd;
 
-					std::vector<MapTypeStd> storage(meter.runs());
+					some<MapTypeStd> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i].emplace(Move(source[i]));
 					});
@@ -137,40 +228,40 @@ SCENARIO("TUnorderedMap", "[containers]") {
 		#include "CollectGarbage.inl"
 
 		// Arrays are dynamic to avoid constexprification						
-		auto darray1 = new MapType::Pair[5] {
-			{"one", 1}, 
-			{"two", 2}, 
-			{"three", 3},
-			{"four", 4},
-			{"five", 5}
+		const Pair darray1[5] {
+			CreatePair<Pair, K, V>("one"_text, 1), 
+			CreatePair<Pair, K, V>("two"_text, 2), 
+			CreatePair<Pair, K, V>("three"_text, 3), 
+			CreatePair<Pair, K, V>("four"_text, 4), 
+			CreatePair<Pair, K, V>("five"_text, 5)
 		};
-		auto darray2 = new MapType::Pair[5] {
-			{"six", 6}, 
-			{"seven", 7}, 
-			{"eight", 8},
-			{"nine", 9},
-			{"ten", 10}
-		};
-
-		auto darray1std = new StdPair[5] {
-			{"one", 1}, 
-			{"two", 2}, 
-			{"three", 3},
-			{"four", 4},
-			{"five", 5}
-		};
-		auto darray2std = new StdPair[5] {
-			{"six", 6}, 
-			{"seven", 7}, 
-			{"eight", 8},
-			{"nine", 9},
-			{"ten", 10}
+		const Pair darray2[5] {
+			CreatePair<Pair, K, V>("six"_text, 6),
+			CreatePair<Pair, K, V>("seven"_text, 7),
+			CreatePair<Pair, K, V>("eight"_text, 8),
+			CreatePair<Pair, K, V>("nine"_text, 9),
+			CreatePair<Pair, K, V>("ten"_text, 10)
 		};
 
-		MapType map;
-		map << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
-		auto keyMemory = map.GetRawKeys();
-		auto valueMemory = map.GetRawValues();
+		const StdPair darray1std[5] {
+			CreatePair<StdPair, K, V>("one"_text, 1),
+			CreatePair<StdPair, K, V>("two"_text, 2),
+			CreatePair<StdPair, K, V>("three"_text, 3),
+			CreatePair<StdPair, K, V>("four"_text, 4),
+			CreatePair<StdPair, K, V>("five"_text, 5)
+		};
+		const StdPair darray2std[5] {
+			CreatePair<StdPair, K, V>("six"_text, 6),
+			CreatePair<StdPair, K, V>("seven"_text, 7),
+			CreatePair<StdPair, K, V>("eight"_text, 8),
+			CreatePair<StdPair, K, V>("nine"_text, 9),
+			CreatePair<StdPair, K, V>("ten"_text, 10)
+		};
+
+		const T map;
+		const_cast<T&>(map) << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
+		auto keyMemory = map.GetRawKeysMemory();
+		auto valueMemory = map.GetRawValuesMemory();
 
 		WHEN("Given a preinitialized TUnorderedMap with 5 elements") {
 			THEN("These properties should be correct") {
@@ -183,44 +274,38 @@ SCENARIO("TUnorderedMap", "[containers]") {
 				REQUIRE_FALSE(map.ValueIs<unsigned char>());
 				REQUIRE(map.HasAuthority());
 				REQUIRE(map.GetUses() == 1);
-				REQUIRE(map["one"] == 1);
-				REQUIRE(map["two"] == 2);
-				REQUIRE(map["three"] == 3);
-				REQUIRE(map["four"] == 4);
-				REQUIRE(map["five"] == 5);
-				//REQUIRE(map.GetReserved() >= 5);
+				for (auto& comparer : darray1)
+					REQUIRE(map[comparer.mKey] == comparer.mValue);
+				REQUIRE(map.GetReserved() >= 5);
 			}
 		}
 
 		WHEN("Create 2048 and then 4096 maps, and initialize them (weird corner case test)") {
-			std::vector<MapType> storage(2048);
-			const int* prevValues = nullptr;
-			const Text* prevKeys = nullptr;
+			std::vector<T> storage(2048);
+			const void* prevKeys = nullptr;
+			const void* prevValues = nullptr;
 
 			for (auto& i : storage) {
 				i << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
 				if (prevKeys && prevValues) {
-					REQUIRE(prevKeys != i.GetRawKeys());
-					REQUIRE(prevValues != i.GetRawValues());
+					REQUIRE(prevKeys != i.GetRawKeysMemory());
+					REQUIRE(prevValues != i.GetRawValuesMemory());
 					REQUIRE(i == *(&i - 1));
 				}
 
-				prevKeys = i.GetRawKeys();
-				prevValues = i.GetRawValues();
+				prevKeys = i.GetRawKeysMemory();
+				prevValues = i.GetRawValuesMemory();
 
 				REQUIRE(i.HasAuthority());
 				REQUIRE(i.GetUses() == 1);
 				REQUIRE(i.GetCount() == 5);
 				REQUIRE(i.GetReserved() == 8);
-				REQUIRE(i["one"] == 1);
-				REQUIRE(i["two"] == 2);
-				REQUIRE(i["three"] == 3);
-				REQUIRE(i["four"] == 4);
-				REQUIRE(i["five"] == 5);
+				for (auto& comparer : darray1)
+					REQUIRE(i[comparer.mKey] == comparer.mValue);
 			}
 
-			storage.~vector<MapType>();
-			new (&storage) std::vector<MapType>();
+			storage.~vector<T>();
+			new (&storage) std::vector<T>();
 
 			prevValues = nullptr;
 			prevKeys = nullptr;
@@ -228,53 +313,44 @@ SCENARIO("TUnorderedMap", "[containers]") {
 			for (auto& i : storage) {
 				i << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
 				if (prevKeys && prevValues) {
-					REQUIRE(prevKeys != i.GetRawKeys());
-					REQUIRE(prevValues != i.GetRawValues());
+					REQUIRE(prevKeys != i.GetRawKeysMemory());
+					REQUIRE(prevValues != i.GetRawValuesMemory());
 					REQUIRE(i == *(&i - 1));
 				}
 
-				prevKeys = i.GetRawKeys();
-				prevValues = i.GetRawValues();
+				prevKeys = i.GetRawKeysMemory();
+				prevValues = i.GetRawValuesMemory();
 
 				REQUIRE(i.HasAuthority());
 				REQUIRE(i.GetUses() == 1);
 				REQUIRE(i.GetCount() == 5);
 				REQUIRE(i.GetReserved() == 8);
-				REQUIRE(i["one"] == 1);
-				REQUIRE(i["two"] == 2);
-				REQUIRE(i["three"] == 3);
-				REQUIRE(i["four"] == 4);
-				REQUIRE(i["five"] == 5);
+				for (auto& comparer : darray1)
+					REQUIRE(i[comparer.mKey] == comparer.mValue);
 			}
 		}
 
 		WHEN("Shallow-copy more of the same stuff") {
-			map << darray2[0] << darray2[1] << darray2[2] << darray2[3] << darray2[4];
+			const_cast<T&>(map) << darray2[0] << darray2[1] << darray2[2] << darray2[3] << darray2[4];
 
 			THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
 				REQUIRE(map.HasAuthority());
 				REQUIRE(map.GetUses() == 1);
 				REQUIRE(map.GetCount() == 10);
-				REQUIRE(map["one"] == 1);
-				REQUIRE(map["two"] == 2);
-				REQUIRE(map["three"] == 3);
-				REQUIRE(map["four"] == 4);
-				REQUIRE(map["five"] == 5);
-				REQUIRE(map["six"] == 6);
-				REQUIRE(map["seven"] == 7);
-				REQUIRE(map["eight"] == 8);
-				REQUIRE(map["nine"] == 9);
-				REQUIRE(map["ten"] == 10);
+				for (auto& comparer : darray1)
+					REQUIRE(map[comparer.mKey] == comparer.mValue);
+				for (auto& comparer : darray2)
+					REQUIRE(map[comparer.mKey] == comparer.mValue);
 				#if LANGULUS_FEATURE(MANAGED_MEMORY)
 					REQUIRE(map.GetRawKeys() == keyMemory);
 					REQUIRE(map.GetRawValues() == valueMemory);
 				#endif
-				//REQUIRE(map.GetReserved() >= 10);
+				REQUIRE(map.GetReserved() >= 10);
 			}
 
-			#ifdef LANGULUS_STD_BENCHMARK // Last result: 1:1, slightly slower than STD, can be further improved
+			#ifdef LANGULUS_STD_BENCHMARK
 				BENCHMARK_ADVANCED("Anyness::TUnorderedMap::operator << (5 consecutive pair copies)") (Catch::Benchmark::Chronometer meter) {
-					std::vector<MapType> storage(meter.runs());
+					some<MapType> storage(meter.runs());
 					for (auto& i : storage)
 						i << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
 
@@ -284,7 +360,7 @@ SCENARIO("TUnorderedMap", "[containers]") {
 				};
 
 				BENCHMARK_ADVANCED("std::unordered_map::insert(5 consecutive pair copies)") (Catch::Benchmark::Chronometer meter) {
-					std::vector<MapTypeStd> storage(meter.runs());
+					some<MapTypeStd> storage(meter.runs());
 					for (auto& i : storage) {
 						i.insert(darray1std[0]);
 						i.insert(darray1std[1]);
@@ -304,7 +380,7 @@ SCENARIO("TUnorderedMap", "[containers]") {
 
 				// Last result: 1:1, slightly slower than STD, can be further improved
 				BENCHMARK_ADVANCED("Anyness::TUnorderedMap::operator [] (retrieval by key from a map with 10 pairs)") (Catch::Benchmark::Chronometer meter) {
-					std::vector<MapType> storage(meter.runs());
+					some<MapType> storage(meter.runs());
 					for (auto& i : storage) {
 						i << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
 						i << darray2[0] << darray2[1] << darray2[2] << darray2[3] << darray2[4];
@@ -316,7 +392,7 @@ SCENARIO("TUnorderedMap", "[containers]") {
 				};
 
 				BENCHMARK_ADVANCED("std::unordered_map::operator [] (retrieval by key from a map with 10 pairs)") (Catch::Benchmark::Chronometer meter) {
-					std::vector<MapTypeStd> storage(meter.runs());
+					some<MapTypeStd> storage(meter.runs());
 					for (auto& i : storage) {
 						i.insert(darray1std[0]);
 						i.insert(darray1std[1]);
@@ -338,39 +414,33 @@ SCENARIO("TUnorderedMap", "[containers]") {
 		}
 
 		WHEN("Move more of the same stuff") {
-			map << Move(darray2[0]) << Move(darray2[1]) << Move(darray2[2]) << Move(darray2[3]) << Move(darray2[4]);
+			const_cast<T&>(map) << Move(darray2[0]) << Move(darray2[1]) << Move(darray2[2]) << Move(darray2[3]) << Move(darray2[4]);
 
 			THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
 				REQUIRE(map.HasAuthority());
 				REQUIRE(map.GetUses() == 1);
 				REQUIRE(map.GetCount() == 10);
-				REQUIRE(map["one"] == 1);
-				REQUIRE(map["two"] == 2);
-				REQUIRE(map["three"] == 3);
-				REQUIRE(map["four"] == 4);
-				REQUIRE(map["five"] == 5);
-				REQUIRE(map["six"] == 6);
-				REQUIRE(map["seven"] == 7);
-				REQUIRE(map["eight"] == 8);
-				REQUIRE(map["nine"] == 9);
-				REQUIRE(map["ten"] == 10);
+				for (auto& comparer : darray1)
+					REQUIRE(map[comparer.mKey] == comparer.mValue);
+				for (auto& comparer : darray2)
+					REQUIRE(map[comparer.mKey] == comparer.mValue);
 				#if LANGULUS_FEATURE(MANAGED_MEMORY)
 					REQUIRE(map.GetRawKeys() == keyMemory);
 					REQUIRE(map.GetRawValues() == valueMemory);
 				#endif
-				//REQUIRE(map.GetReserved() >= 10);
+				REQUIRE(map.GetReserved() >= 10);
 			}
 
-			#ifdef LANGULUS_STD_BENCHMARK // Last result: 2:1, can be further optimized
+			#ifdef LANGULUS_STD_BENCHMARK
 				BENCHMARK_ADVANCED("Anyness::TUnorderedMap::operator << (5 consecutive trivial moves)") (Catch::Benchmark::Chronometer meter) {
-					std::vector<MapType> storage(meter.runs());
+					some<MapType> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i] << Move(darray2[0]) << Move(darray2[1]) << Move(darray2[2]) << Move(darray2[3]) << Move(darray2[4]);
 					});
 				};
 
 				BENCHMARK_ADVANCED("std::unordered_map::emplace_back(5 consecutive trivial moves)") (Catch::Benchmark::Chronometer meter) {
-					std::vector<MapTypeStd> storage(meter.runs());
+					some<MapTypeStd> storage(meter.runs());
 					meter.measure([&](int i) {
 						storage[i].emplace(Move(darray2std[0]));
 						storage[i].emplace(Move(darray2std[1]));
@@ -383,28 +453,28 @@ SCENARIO("TUnorderedMap", "[containers]") {
 		}
 
 		WHEN("The size is reduced by finding and removing elements by value, but reserved memory should remain the same on shrinking") {
-			const auto removed2 = map.RemoveValue(2);
-			const auto removed4 = map.RemoveValue(4);
+			const auto removed2 = const_cast<T&>(map).RemoveValue(darray1[1].mValue);
+			const auto removed4 = const_cast<T&>(map).RemoveValue(darray1[3].mValue);
 
 			THEN("The size changes but not capacity") {
 				REQUIRE(map.HasAuthority());
 				REQUIRE(map.GetUses() == 1);
 				REQUIRE(removed2 == 1);
 				REQUIRE(removed4 == 1);
-				REQUIRE(map["one"] == 1);
-				REQUIRE(map["three"] == 3);
-				REQUIRE(map["five"] == 5);
-				REQUIRE_THROWS(map["two"] == 2);
-				REQUIRE_THROWS(map["four"] == 4);
+				REQUIRE(map[darray1[0].mKey] == darray1[0].mValue);
+				REQUIRE(map[darray1[2].mKey] == darray1[2].mValue);
+				REQUIRE(map[darray1[4].mKey] == darray1[4].mValue);
+				REQUIRE_THROWS(map[darray1[1].mKey] == darray1[1].mValue);
+				REQUIRE_THROWS(map[darray1[3].mKey] == darray1[3].mValue);
 				REQUIRE(map.GetCount() == 3);
-				REQUIRE(map.GetRawKeys() == keyMemory);
-				REQUIRE(map.GetRawValues() == valueMemory);
-				//REQUIRE(map.GetReserved() >= 5);
+				REQUIRE(map.GetRawKeysMemory() == keyMemory);
+				REQUIRE(map.GetRawValuesMemory() == valueMemory);
+				REQUIRE(map.GetReserved() >= 5);
 			}
 
-			#ifdef LANGULUS_STD_BENCHMARK // Last result: 2:1, can be improved further
+			#ifdef LANGULUS_STD_BENCHMARK
 				BENCHMARK_ADVANCED("Anyness::TUnorderedMap::RemoveValue") (Catch::Benchmark::Chronometer meter) {
-					std::vector<MapType> storage(meter.runs());
+					some<MapType> storage(meter.runs());
 					for (auto&& o : storage)
 						o << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
 
@@ -414,7 +484,7 @@ SCENARIO("TUnorderedMap", "[containers]") {
 				};
 
 				BENCHMARK_ADVANCED("std::unordered_map::erase(by value)") (Catch::Benchmark::Chronometer meter) {
-					std::vector<MapTypeStd> storage(meter.runs());
+					some<MapTypeStd> storage(meter.runs());
 					for (auto&& i : storage) {
 						i.insert(darray1std[0]);
 						i.insert(darray1std[1]);
@@ -439,28 +509,28 @@ SCENARIO("TUnorderedMap", "[containers]") {
 		}
 
 		WHEN("The size is reduced by finding and removing elements by key, but reserved memory should remain the same on shrinking") {
-			const auto removed2 = map.RemoveKey("two");
-			const auto removed4 = map.RemoveKey("four");
+			const auto removed2 = const_cast<T&>(map).RemoveKey(darray1[1].mKey);
+			const auto removed4 = const_cast<T&>(map).RemoveKey(darray1[3].mKey);
 
 			THEN("The size changes but not capacity") {
 				REQUIRE(map.HasAuthority());
 				REQUIRE(map.GetUses() == 1);
 				REQUIRE(removed2 == 1);
 				REQUIRE(removed4 == 1);
-				REQUIRE(map["one"] == 1);
-				REQUIRE(map["three"] == 3);
-				REQUIRE(map["five"] == 5);
-				REQUIRE_THROWS(map["two"] == 2);
-				REQUIRE_THROWS(map["four"] == 4);
+				REQUIRE(map[darray1[0].mKey] == darray1[0].mValue);
+				REQUIRE(map[darray1[2].mKey] == darray1[2].mValue);
+				REQUIRE(map[darray1[4].mKey] == darray1[4].mValue);
+				REQUIRE_THROWS(map[darray1[1].mKey] == darray1[1].mValue);
+				REQUIRE_THROWS(map[darray1[3].mKey] == darray1[3].mValue);
 				REQUIRE(map.GetCount() == 3);
-				REQUIRE(map.GetRawKeys() == keyMemory);
-				REQUIRE(map.GetRawValues() == valueMemory);
-				//REQUIRE(map.GetReserved() >= 5);
+				REQUIRE(map.GetRawKeysMemory() == keyMemory);
+				REQUIRE(map.GetRawValuesMemory() == valueMemory);
+				REQUIRE(map.GetReserved() >= 5);
 			}
 
-			#ifdef LANGULUS_STD_BENCHMARK // Last result: 1:1 - a bit slower than STD, can be further improved
+			#ifdef LANGULUS_STD_BENCHMARK
 				BENCHMARK_ADVANCED("Anyness::TUnorderedMap::RemoveKey") (Catch::Benchmark::Chronometer meter) {
-					std::vector<MapType> storage(meter.runs());
+					some<MapType> storage(meter.runs());
 					for (auto&& o : storage)
 						o << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
 
@@ -470,7 +540,7 @@ SCENARIO("TUnorderedMap", "[containers]") {
 				};
 
 				BENCHMARK_ADVANCED("std::unordered_map::erase(by key)") (Catch::Benchmark::Chronometer meter) {
-					std::vector<MapTypeStd> storage(meter.runs());
+					some<MapTypeStd> storage(meter.runs());
 					for (auto&& i : storage) {
 						i.insert(darray1std[0]);
 						i.insert(darray1std[1]);
@@ -487,54 +557,51 @@ SCENARIO("TUnorderedMap", "[containers]") {
 		}
 
 		WHEN("Removing non-available elements") {
-			const auto removed9 = map.RemoveValue(9);
+			const auto removed9 = const_cast<T&>(map).RemoveValue(darray2[3].mValue);
 
 			THEN("Nothing should change") {
 				REQUIRE(removed9 == 0);
-				REQUIRE(map["one"] == 1);
-				REQUIRE(map["two"] == 2);
-				REQUIRE(map["three"] == 3);
-				REQUIRE(map["four"] == 4);
-				REQUIRE(map["five"] == 5);
+				for (auto& comparer : darray1)
+					REQUIRE(map[comparer.mKey] == comparer.mValue);
 				REQUIRE(map.GetCount() == 5);
-				REQUIRE(map.GetRawKeys() == keyMemory);
-				REQUIRE(map.GetRawValues() == valueMemory);
+				REQUIRE(map.GetRawKeysMemory() == keyMemory);
+				REQUIRE(map.GetRawValuesMemory() == valueMemory);
 				REQUIRE(map.HasAuthority());
 				REQUIRE(map.GetUses() == 1);
-				//REQUIRE(map.GetReserved() >= 5);
+				REQUIRE(map.GetReserved() >= 5);
 			}
 		}
 
 		WHEN("More capacity is reserved") {
-			map.Allocate(20);
+			const_cast<T&>(map).Allocate(20);
 
 			THEN("The capacity changes but not the size, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
 				REQUIRE(map.HasAuthority());
 				REQUIRE(map.GetUses() == 1);
 				REQUIRE(map.GetCount() == 5);
 				#if LANGULUS_FEATURE(MANAGED_MEMORY)
-					REQUIRE(map.GetRawKeys() == keyMemory);
-					REQUIRE(map.GetRawValues() == valueMemory);
+					REQUIRE(map.GetRawKeysMemory() == keyMemory);
+					REQUIRE(map.GetRawValuesMemory() == valueMemory);
 				#endif
-				//REQUIRE(map.GetReserved() >= 20);
+				REQUIRE(map.GetReserved() >= 20);
 			}
 		}
 
 		WHEN("Less capacity is reserved") {
-			map.Allocate(2);
+			const_cast<T&>(map).Allocate(2);
 
 			THEN("Capacity and count remain unchanged") {
 				REQUIRE(map.HasAuthority());
 				REQUIRE(map.GetUses() == 1);
 				REQUIRE(map.GetCount() == 5);
-				REQUIRE(map.GetRawKeys() == keyMemory);
-				REQUIRE(map.GetRawValues() == valueMemory);
-				//REQUIRE(map.GetReserved() >= 5);
+				REQUIRE(map.GetRawKeysMemory() == keyMemory);
+				REQUIRE(map.GetRawValuesMemory() == valueMemory);
+				REQUIRE(map.GetReserved() >= 5);
 			}
 		}
 
 		WHEN("Map is cleared") {
-			map.Clear();
+			const_cast<T&>(map).Clear();
 
 			THEN("Size goes to zero, capacity and types are unchanged") {
 				REQUIRE(map.GetCount() == 0);
@@ -544,16 +611,16 @@ SCENARIO("TUnorderedMap", "[containers]") {
 				REQUIRE(map.IsKeyTypeConstrained());
 				REQUIRE(map.IsValueTypeConstrained());
 				REQUIRE(map.IsEmpty());
-				REQUIRE(map.GetRawKeys() == keyMemory);
-				REQUIRE(map.GetRawValues() == valueMemory);
+				REQUIRE(map.GetRawKeysMemory() == keyMemory);
+				REQUIRE(map.GetRawValuesMemory() == valueMemory);
 				REQUIRE(map.HasAuthority());
 				REQUIRE(map.GetUses() == 1);
-				//REQUIRE(map.GetReserved() >= 5);
+				REQUIRE(map.GetReserved() >= 5);
 			}
 		}
 
 		WHEN("Map is reset") {
-			map.Reset();
+			const_cast<T&>(map).Reset();
 
 			THEN("Size and capacity goes to zero, types are unchanged") {
 				REQUIRE(map.GetCount() == 0);
@@ -564,8 +631,8 @@ SCENARIO("TUnorderedMap", "[containers]") {
 				REQUIRE(map.IsKeyTypeConstrained());
 				REQUIRE(map.IsValueTypeConstrained());
 				REQUIRE(map.IsEmpty());
-				REQUIRE(map.GetRawKeys() != keyMemory);
-				REQUIRE(map.GetRawValues() != valueMemory);
+				REQUIRE(map.GetRawKeysMemory() != keyMemory);
+				REQUIRE(map.GetRawValuesMemory() != valueMemory);
 				REQUIRE(map.GetUses() == 0);
 			}
 		}
@@ -591,18 +658,15 @@ SCENARIO("TUnorderedMap", "[containers]") {
 				REQUIRE(copy.GetUses() == 2);
 				REQUIRE(copy.GetCount() == map.GetCount());
 				REQUIRE(copy.GetCount() == 5);
-				REQUIRE(copy.GetRawKeys() == map.GetRawKeys());
-				REQUIRE(copy.GetRawValues() == map.GetRawValues());
-				REQUIRE(copy["one"] == 1);
-				REQUIRE(copy["two"] == 2);
-				REQUIRE(copy["three"] == 3);
-				REQUIRE(copy["four"] == 4);
-				REQUIRE(copy["five"] == 5);
-				REQUIRE(&map["one"] == &copy["one"]);
-				REQUIRE(&map["two"] == &copy["two"]);
-				REQUIRE(&map["three"] == &copy["three"]);
-				REQUIRE(&map["four"] == &copy["four"]);
-				REQUIRE(&map["five"] == &copy["five"]);
+				REQUIRE(copy.GetRawKeysMemory() == map.GetRawKeysMemory());
+				REQUIRE(copy.GetRawValuesMemory() == map.GetRawValuesMemory());
+				for (auto& comparer : darray1)
+					REQUIRE(copy[comparer.mKey] == comparer.mValue);
+
+				if constexpr (IsStaticallyOptimized<T>) {
+					for (auto& comparer : darray1)
+						REQUIRE(&map[comparer.mKey] == &copy[comparer.mKey]);
+				}
 
 				/*REQUIRE(copy.GetRaw() == map.GetRaw());
 				REQUIRE(copy.GetCount() == map.GetCount());
@@ -622,18 +686,15 @@ SCENARIO("TUnorderedMap", "[containers]") {
 				REQUIRE(clone.GetUses() == 1);
 				REQUIRE(clone.GetCount() == map.GetCount());
 				REQUIRE(clone.GetCount() == 5);
-				REQUIRE(clone.GetRawKeys() != map.GetRawKeys());
-				REQUIRE(clone.GetRawValues() != map.GetRawValues());
-				REQUIRE(clone["one"] == 1);
-				REQUIRE(clone["two"] == 2);
-				REQUIRE(clone["three"] == 3);
-				REQUIRE(clone["four"] == 4);
-				REQUIRE(clone["five"] == 5);
-				REQUIRE(&map["one"] != &clone["one"]);
-				REQUIRE(&map["two"] != &clone["two"]);
-				REQUIRE(&map["three"] != &clone["three"]);
-				REQUIRE(&map["four"] != &clone["four"]);
-				REQUIRE(&map["five"] != &clone["five"]);
+				REQUIRE(clone.GetRawKeysMemory() != map.GetRawKeysMemory());
+				REQUIRE(clone.GetRawValuesMemory() != map.GetRawValuesMemory());
+				for (auto& comparer : darray1)
+					REQUIRE(clone[comparer.mKey] == comparer.mValue);
+
+				if constexpr (IsStaticallyOptimized<T>) {
+					for (auto& comparer : darray1)
+						REQUIRE(&map[comparer.mKey] != &clone[comparer.mKey]);
+				}
 
 				/*REQUIRE(clone.GetRaw() != map.GetRaw());
 				REQUIRE(clone.GetCount() == map.GetCount());
@@ -646,24 +707,21 @@ SCENARIO("TUnorderedMap", "[containers]") {
 		}
 
 		WHEN("Map is move-constructed") {
-			MapType moved = Move(map);
+			T moved = Move(map);
 
 			THEN("The new pack should keep the state and data") {
-				REQUIRE(moved.GetRawKeys() == keyMemory);
-				REQUIRE(moved.GetRawValues() == valueMemory);
+				REQUIRE(moved.GetRawKeysMemory() == keyMemory);
+				REQUIRE(moved.GetRawValuesMemory() == valueMemory);
 				REQUIRE(moved.IsAllocated());
 				REQUIRE(moved.GetCount() == 5);
 				REQUIRE(moved.HasAuthority());
 				REQUIRE(moved.GetUses() == 1);
-				REQUIRE(moved["one"] == 1);
-				REQUIRE(moved["two"] == 2);
-				REQUIRE(moved["three"] == 3);
-				REQUIRE(moved["four"] == 4);
-				REQUIRE(moved["five"] == 5);
+				for (auto& comparer : darray1)
+					REQUIRE(moved[comparer.mKey] == comparer.mValue);
 				REQUIRE_FALSE(map.IsAllocated());
 				REQUIRE(map.IsEmpty());
 				//REQUIRE(map.GetRawKeys() == nullptr); // not really required
-				REQUIRE(map.GetRawValues() == nullptr);
+				REQUIRE(map.GetRawValuesMemory() == nullptr);
 				REQUIRE(map.GetCount() == 0);
 				REQUIRE(map.IsValueTypeConstrained());
 				REQUIRE(map.IsKeyTypeConstrained());
@@ -673,11 +731,11 @@ SCENARIO("TUnorderedMap", "[containers]") {
 		}
 
 		WHEN("Maps are compared") {
-			MapType sameMap;
+			T sameMap;
 			sameMap << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
-			MapType clonedMap {map.Clone()};
-			MapType copiedMap {map};
-			MapType differentMap1;
+			T clonedMap {map.Clone()};
+			T copiedMap {map};
+			T differentMap1;
 			differentMap1 << darray1[0] << darray1[0] << darray1[2] << darray1[3] << darray1[4];
 
 			THEN("The comparisons should be adequate") {
@@ -689,41 +747,38 @@ SCENARIO("TUnorderedMap", "[containers]") {
 		}
 
 		WHEN("Maps are iterated with ranged-for") {
-			REQUIRE(map["one"] == 1);
-			REQUIRE(map["two"] == 2);
-			REQUIRE(map["three"] == 3);
-			REQUIRE(map["four"] == 4);
-			REQUIRE(map["five"] == 5);
+			for (auto& comparer : darray1)
+				REQUIRE(map[comparer.mKey] == comparer.mValue);
 
 			int i = 0;
 			for (auto pair : map) {
-				static_assert(::std::is_reference_v<decltype(pair.mKey)>,
-					"Pair key type is not a reference");
-				static_assert(::std::is_reference_v<decltype(pair.mValue)>,
-					"Pair value type is not a reference");
+				static_assert(!IsStaticallyOptimized<T> || ::std::is_reference_v<decltype(pair.mKey)>,
+					"Pair key type is not a reference for statically optimized map");
+				static_assert(!IsStaticallyOptimized<T> || ::std::is_reference_v<decltype(pair.mValue)>,
+					"Pair value type is not a reference for statically optimized map");
 
 				// Different architectures result in different hashes
 				if constexpr (Bitness == 32) {
 					switch (i) {
 					case 0:
-						REQUIRE(pair.mKey == "three");
-						REQUIRE(pair.mValue == 3);
+						REQUIRE(pair.mKey == darray1[2].mKey);
+						REQUIRE(pair.mValue == darray1[2].mValue);
 						break;
 					case 1:
-						REQUIRE(pair.mKey == "four");
-						REQUIRE(pair.mValue == 4);
+						REQUIRE(pair.mKey == darray1[3].mKey);
+						REQUIRE(pair.mValue == darray1[3].mValue);
 						break;
 					case 2:
-						REQUIRE(pair.mKey == "two");
-						REQUIRE(pair.mValue == 2);
+						REQUIRE(pair.mKey == darray1[1].mKey);
+						REQUIRE(pair.mValue == darray1[1].mValue);
 						break;
 					case 3:
-						REQUIRE(pair.mKey == "five");
-						REQUIRE(pair.mValue == 5);
+						REQUIRE(pair.mKey == darray1[4].mKey);
+						REQUIRE(pair.mValue == darray1[4].mValue);
 						break;
 					case 4:
-						REQUIRE(pair.mKey == "one");
-						REQUIRE(pair.mValue == 1);
+						REQUIRE(pair.mKey == darray1[0].mKey);
+						REQUIRE(pair.mValue == darray1[0].mValue);
 						break;
 					default:
 						FAIL("Index out of bounds in ranged-for");
@@ -733,24 +788,24 @@ SCENARIO("TUnorderedMap", "[containers]") {
 				else if constexpr (Bitness == 64) {
 					switch (i) {
 					case 0:
-						REQUIRE(pair.mKey == "two");
-						REQUIRE(pair.mValue == 2);
+						REQUIRE(pair.mKey == darray1[1].mKey);
+						REQUIRE(pair.mValue == darray1[1].mValue);
 						break;
 					case 1:
-						REQUIRE(pair.mKey == "three");
-						REQUIRE(pair.mValue == 3);
+						REQUIRE(pair.mKey == darray1[2].mKey);
+						REQUIRE(pair.mValue == darray1[2].mValue);
 						break;
 					case 2:
-						REQUIRE(pair.mKey == "four");
-						REQUIRE(pair.mValue == 4);
+						REQUIRE(pair.mKey == darray1[3].mKey);
+						REQUIRE(pair.mValue == darray1[3].mValue);
 						break;
 					case 3:
-						REQUIRE(pair.mKey == "five");
-						REQUIRE(pair.mValue == 5);
+						REQUIRE(pair.mKey == darray1[4].mKey);
+						REQUIRE(pair.mValue == darray1[4].mValue);
 						break;
 					case 4:
-						REQUIRE(pair.mKey == "one");
-						REQUIRE(pair.mValue == 1);
+						REQUIRE(pair.mKey == darray1[0].mKey);
+						REQUIRE(pair.mValue == darray1[0].mValue);
 						break;
 					default:
 						FAIL("Index out of bounds in ranged-for");

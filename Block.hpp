@@ -17,7 +17,8 @@ namespace Langulus::Anyness
 	template<CT::Data>
 	class TAny;
 	
-	class Map;
+	class OrderedMap;
+	class UnorderedMap;
 	template<CT::Data, CT::Data>
 	class TOrderedMap;
 	template<CT::Data, CT::Data>
@@ -75,7 +76,8 @@ namespace Langulus::Anyness
 		template<CT::Data>
 		friend class TAny;
 
-		friend class Map;
+		friend class OrderedMap;
+		friend class UnorderedMap;
 		template<CT::Data, CT::Data>
 		friend class TOrderedMap;
 		template<CT::Data, CT::Data>
@@ -233,7 +235,6 @@ namespace Langulus::Anyness
 		NOD() bool IsInsertable() const noexcept;
 	
 		NOD() bool operator == (const Block&) const;
-		NOD() bool operator == (::std::nullptr_t) const noexcept;
 	
 		NOD() Byte* At(const Offset& = 0);
 		NOD() const Byte* At(const Offset& = 0) const;
@@ -261,6 +262,9 @@ namespace Langulus::Anyness
 	
 		NOD() Block GetElement(Offset) noexcept;
 		NOD() const Block GetElement(Offset) const noexcept;
+	
+		NOD() Block GetElement() noexcept;
+		NOD() const Block GetElement() const noexcept;
 	
 		NOD() Block* GetBlockDeep(Offset) noexcept;
 		NOD() const Block* GetBlockDeep(Offset) const noexcept;
@@ -602,6 +606,11 @@ namespace Langulus::Anyness
 		NOD() bool CallComparer(const Block&, const RTTI::Base&) const;
 
 		void AllocateRegion(const Block&, Offset, Block&);
+
+		void Next() noexcept;
+		void Prev() noexcept;
+		NOD() Block Next() const noexcept;
+		NOD() Block Prev() const noexcept;
 	};
 
 		

@@ -440,6 +440,17 @@ namespace Langulus::Anyness
 		return *this;
 	}
 
+	/// Compare to any other kind of deep container, or a single custom element
+	///	@param rhs - element to compare against										
+	///	@return true if containers match													
+	template<CT::Data T>
+	bool Any::operator == (const T& rhs) const {
+		if constexpr (CT::Deep<T>)
+			return Block::operator == (rhs);
+		else
+			return mCount == 1 && Is<T>() && Get<T>() == rhs;
+	}
+
 	/// Copy-insert an element (including arrays) at the back						
 	///	@param other - the data to insert												
 	///	@return a reference to this container for chaining							

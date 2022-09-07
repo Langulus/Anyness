@@ -6,31 +6,25 @@
 /// See LICENSE file, or https://www.gnu.org/licenses									
 ///																									
 #pragma once
-#include "TUnorderedMap.hpp"
+#include "UnorderedMap.hpp"
+#include "TPair.hpp"
 
 namespace Langulus::Anyness
 {
 
 	///																								
-	/// A highly optimized ordered hashmap implementation, using the Robin		
-	/// Hood algorithm																			
+	///	Type-erased ordered map																
 	///																								
-	template<CT::Data K, CT::Data V>
-	class TOrderedMap : public TUnorderedMap<K, V> {
+	class OrderedMap : public UnorderedMap {
 	public:
 		static constexpr bool Ordered = true;
 
-		using TUnorderedMap<K, V>::TUnorderedMap;
-		using TUnorderedMap<K, V>::operator =;
+		using UnorderedMap::UnorderedMap;
+		using UnorderedMap::operator =;
 
-		NOD() TOrderedMap Clone() const;
+		NOD() OrderedMap Clone() const;
 	};
-
-
-	/// The default map is always ordered													
-	template<CT::Data K, CT::Data V>
-	using TMap = TOrderedMap<K, V>;
 
 } // namespace Langulus::Anyness
 
-#include "TOrderedMap.inl"
+#include "UnorderedMap.inl"

@@ -11,7 +11,7 @@
 namespace Langulus::Anyness
 {
 
-	struct fast_forward_tag {};
+	/*struct fast_forward_tag {};
 
 
 	///																								
@@ -119,6 +119,6 @@ namespace Langulus::Anyness
 			mInfo += inc;
 			mNode += inc;
 		}
-	};
+	};*/
 
 } // namespace Langulus::Anyness

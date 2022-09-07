@@ -824,12 +824,6 @@ namespace Langulus::Anyness
 		return Compare(other);
 	}
 
-	/// Check if memory block is not allocated											
-	///	@return true if block is valid													
-	inline bool Block::operator == (::std::nullptr_t) const noexcept {
-		return !IsAllocated();
-	}
-
 	/// Get the internal byte array with a given offset								
 	/// This is lowest level access and checks nothing									
 	///	@param byteOffset - number of bytes to add									
@@ -3195,8 +3189,7 @@ namespace Langulus::Anyness
 	///		misuse will result in loss of data and undefined behavior			
 	///	@attention source must have a binary-compatible type						
 	///	@attention source must contain at least mReserved - mCount items		
-	///	@attention after the move, source will have zero count,					
-	///		signifying that items have been consumed, but is still allocated	
+	///	@attention after the move, nothing in source block is changed			
 	///	@param source - the elements to move											
 	template<bool KEEP>
 	void Block::CallUnknownMoveConstructors(const Count count, Block&& source) {

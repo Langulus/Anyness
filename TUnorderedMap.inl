@@ -28,33 +28,25 @@ namespace Langulus::Anyness
 	///	@param other - the table to copy													
 	TABLE_TEMPLATE()
 	TABLE()::TUnorderedMap(const TUnorderedMap& other)
-		: mKeys {other.mKeys}
-		, mInfo {other.mInfo}
-		, mValues {other.mValues} {}
+		: UnorderedMap {other} {}
 
 	/// Move construction																		
 	///	@param other - the table to move													
 	TABLE_TEMPLATE()
 	TABLE()::TUnorderedMap(TUnorderedMap&& other) noexcept
-		: mKeys {other.mKeys}
-		, mInfo {other.mInfo}
-		, mValues {Move(other.mValues)} {}
+		: UnorderedMap {Forward<UnorderedMap>(other)} {}
 
 	/// Shallow-copy construction without referencing									
 	///	@param other - the disowned table to copy										
 	TABLE_TEMPLATE()
 	TABLE()::TUnorderedMap(Disowned<TUnorderedMap>&& other) noexcept
-		: mKeys {other.mValue.mKeys}
-		, mInfo {other.mValue.mInfo}
-		, mValues {Disown(other.mValue.mValues)} {}
+		: UnorderedMap {other.Forward<UnorderedMap>()} {}
 
 	/// Minimal move construction from abandoned table									
 	///	@param other - the abandoned table to move									
 	TABLE_TEMPLATE()
 	TABLE()::TUnorderedMap(Abandoned<TUnorderedMap>&& other) noexcept
-		: mKeys {other.mValue.mKeys}
-		, mInfo {other.mValue.mInfo}
-		, mValues {Abandon(other.mValue.mValues)} {}
+		: UnorderedMap {other.Forward<UnorderedMap>()} {}
 
 	/// Destroys the map and all it's contents											
 	TABLE_TEMPLATE()
@@ -64,10 +56,11 @@ namespace Langulus::Anyness
 
 		if (mValues.mEntry->GetUses() == 1) {
 			// Remove all used keys and values, they're used only here		
+			// This is a statically-optimized equivalent							
 			ClearInner();
 
 			// Deallocate stuff															
-			Allocator::Deallocate(mKeys);
+			Allocator::Deallocate(mKeys.mEntry);
 			Allocator::Deallocate(mValues.mEntry);
 		}
 		else {
@@ -159,7 +152,7 @@ namespace Langulus::Anyness
 	///	@param to - destrination memory													
 	TABLE_TEMPLATE()
 	template<class T>
-	void TABLE()::CloneInner(const Count& count, const uint8_t* info, const T* from, const T* fromEnd, T* to) {
+	void TABLE()::CloneInner(const Count& count, const InfoType* info, const T* from, const T* fromEnd, T* to) {
 		using TD = Decay<T>;
 
 		if constexpr (CT::Sparse<T>) {
@@ -226,23 +219,23 @@ namespace Langulus::Anyness
 		TUnorderedMap result {Disown(*this)};
 
 		// Allocate keys and info														
-		result.mKeys = Allocator::Allocate(mKeys->GetAllocatedSize());
-		if (!result.mKeys)
+		result.mKeys.mEntry = Allocator::Allocate(mKeys.mEntry->GetAllocatedSize());
+		if (!result.mKeys.mEntry)
 			Throw<Except::Allocate>("Out of memory on cloning TUnorderedMap keys");
-
-		result.mInfo = reinterpret_cast<uint8_t*>(result.mKeys) 
-			+ (mInfo - reinterpret_cast<const uint8_t*>(mKeys));
-
-		// Clone the info bytes															
-		::std::memcpy(result.GetInfo(), GetInfo(), GetReserved() + 1);
 
 		// Allocate values																
 		result.mValues.mEntry = Allocator::Allocate(result.mValues.GetReservedSize());
 		if (!result.mValues.mEntry) {
-			Allocator::Deallocate(result.mKeys);
+			Allocator::Deallocate(result.mKeys.mEntry);
 			result.mValues.mEntry = nullptr;
 			Throw<Except::Allocate>("Out of memory on cloning TUnorderedMap values");
 		}
+
+		// Clone the info bytes															
+		result.mKeys.mRaw = result.mKeys.mEntry->GetBlockStart();
+		result.mInfo = reinterpret_cast<InfoType*>(result.mKeys.mRaw)
+			+ (mInfo - reinterpret_cast<const InfoType*>(mKeys.mRaw));
+		::std::memcpy(result.GetInfo(), GetInfo(), GetReserved() + 1);
 
 		// Clone or shallow-copy the keys											
 		CloneInner(result.mValues.mCount, GetInfo(),
@@ -252,6 +245,7 @@ namespace Langulus::Anyness
 		result.mValues.mRaw = result.mValues.mEntry->GetBlockStart();
 		CloneInner(result.mValues.mCount, GetInfo(), 
 			GetRawValues(), GetRawValuesEnd(), result.GetRawValues());
+
 		return Abandon(result);
 	}
 	
@@ -360,13 +354,13 @@ namespace Langulus::Anyness
 	/// Get the raw key array (const)														
 	TABLE_TEMPLATE()
 	constexpr auto TABLE()::GetRawKeys() const noexcept {
-		return const_cast<TABLE()*>(this)->GetRawKeys();
+		return reinterpret_cast<const TAny<K>&>(mKeys).GetRaw();
 	}
 
 	/// Get the raw key array																	
 	TABLE_TEMPLATE()
 	constexpr auto TABLE()::GetRawKeys() noexcept {
-		return reinterpret_cast<KeyInner*>(mKeys->GetBlockStart());
+		return reinterpret_cast<TAny<K>&>(mKeys).GetRaw();
 	}
 
 	/// Get the end of the raw key array													
@@ -378,19 +372,19 @@ namespace Langulus::Anyness
 	/// Get the raw value array (const)														
 	TABLE_TEMPLATE()
 	constexpr auto TABLE()::GetRawValues() const noexcept {
-		return mValues.GetRaw();
+		return reinterpret_cast<const TAny<V>&>(mValues).GetRaw();
 	}
 
 	/// Get the raw value array																
 	TABLE_TEMPLATE()
 	constexpr auto TABLE()::GetRawValues() noexcept {
-		return mValues.GetRaw();
+		return reinterpret_cast<TAny<V>&>(mValues).GetRaw();
 	}
 
 	/// Get end of the raw value array														
 	TABLE_TEMPLATE()
 	constexpr auto TABLE()::GetRawValuesEnd() const noexcept {
-		return mValues.GetRaw() + GetReserved();
+		return GetRawValues() + GetReserved();
 	}
 
 	/// Get the size of all pairs, in bytes												
@@ -403,13 +397,13 @@ namespace Langulus::Anyness
 	/// Get the key meta data																	
 	TABLE_TEMPLATE()
 	DMeta TABLE()::GetKeyType() const {
-		return MetaData::Of<K>();
+		return MetaData::Of<Decay<K>>();
 	}
 
 	/// Get the value meta data																
 	TABLE_TEMPLATE()
 	DMeta TABLE()::GetValueType() const {
-		return MetaData::Of<V>();
+		return MetaData::Of<Decay<V>>();
 	}
 
 	/// Check if key type exactly matches another										
@@ -458,21 +452,21 @@ namespace Langulus::Anyness
 	/// Get the info array (const)															
 	///	@return a pointer to the first element inside the info array			
 	TABLE_TEMPLATE()
-	const uint8_t* TABLE()::GetInfo() const noexcept {
+	const typename TABLE()::InfoType* TABLE()::GetInfo() const noexcept {
 		return mInfo;
 	}
 
 	/// Get the info array																		
 	///	@return a pointer to the first element inside the info array			
 	TABLE_TEMPLATE()
-	uint8_t* TABLE()::GetInfo() noexcept {
+	typename TABLE()::InfoType* TABLE()::GetInfo() noexcept {
 		return mInfo;
 	}
 
 	/// Get the end of the info array														
 	///	@return a pointer to the first element inside the info array			
 	TABLE_TEMPLATE()
-	const uint8_t* TABLE()::GetInfoEnd() const noexcept {
+	const typename TABLE()::InfoType* TABLE()::GetInfoEnd() const noexcept {
 		return mInfo + GetReserved();
 	}
 
@@ -497,33 +491,48 @@ namespace Langulus::Anyness
 		#endif
 
 		Offset infoOffset;
-		const auto oldKeys = mKeys;
-		if constexpr (REUSE) {
-			// Reallocate the key and info arrays									
-			mKeys = Allocator::Reallocate(
-				RequestKeyAndInfoSize(count, infoOffset), mKeys
-			);
-		}
-		else {
-			// Allocate a fresh set of keys and info								
-			// Assumes nothing's there to move and initialize					
-			mKeys = Allocator::Allocate(
-				RequestKeyAndInfoSize(count, infoOffset)
-			);
-		}
-
-		if (!mKeys)
-			Throw<Except::Allocate>("Out of memory on allocating/reallocating TUnorderedMap keys");
-
-		// Precalculate the info pointer, it's costly							
 		auto oldInfo = mInfo;
-		mInfo = reinterpret_cast<uint8_t*>(
-			mKeys->GetBlockStart() + infoOffset
-		);
-
 		const auto oldCount = GetReserved();
 		const auto oldInfoEnd = oldInfo + oldCount;
-		auto key = oldKeys->As<K>();
+
+		// Allocate new keys																
+		const Block oldKeys {mKeys};
+		const auto keyAndInfoSize = RequestKeyAndInfoSize(count, infoOffset);
+		if constexpr (REUSE)
+			mKeys.mEntry = Allocator::Reallocate(keyAndInfoSize, mKeys.mEntry);
+		else
+			mKeys.mEntry = Allocator::Allocate(keyAndInfoSize);
+
+		if (!mKeys.mEntry)
+			Throw<Except::Allocate>("Out of memory on allocating/reallocating TUnorderedMap keys");
+
+		// Allocate new values															
+		const Block oldValues {mValues};
+		if constexpr (REUSE)
+			mValues.mEntry = Allocator::Reallocate(count * sizeof(V), oldValues.mEntry);
+		else
+			mValues.mEntry = Allocator::Allocate(count * sizeof(V));
+
+		if (!mValues.mEntry) {
+			Allocator::Deallocate(mKeys.mEntry);
+			Throw<Except::Allocate>("Out of memory on allocating/reallocating TUnorderedMap values");
+		}
+
+		if constexpr (REUSE) {
+			if (mValues.mEntry == oldValues.mEntry && oldKeys.mEntry == mKeys.mEntry) {
+				// Both keys and values remain in the same place, so rehash	
+				Rehash(count, oldCount);
+				return;
+			}
+		}
+
+		mValues.mRaw = mValues.mEntry->GetBlockStart();
+		mValues.mReserved = count;
+		mValues.mCount = 0;
+
+		// Precalculate the info pointer, it's costly							
+		mKeys.mRaw = mKeys.mEntry->GetBlockStart();
+		mInfo = reinterpret_cast<InfoType*>(mKeys.GetRaw() + infoOffset);
 
 		// Zero or move the info array												
 		if constexpr (REUSE) {
@@ -543,70 +552,46 @@ namespace Langulus::Anyness
 		// Set the sentinel																
 		mInfo[count] = 1;
 
-		// Allocate new values															
-		const auto oldValues = mValues.mEntry;
-		auto value = mValues.GetRaw();
-		if constexpr (REUSE)
-			mValues.mEntry = Allocator::Reallocate(count * sizeof(V), oldValues);
-		else
-			mValues.mEntry = Allocator::Allocate(count * sizeof(V));
-
-		if (!mValues.mEntry) {
-			Allocator::Deallocate(mKeys);
-			Throw<Except::Allocate>("Out of memory on allocating/reallocating TUnorderedMap values");
-		}
-
-		mValues.mRaw = mValues.mEntry->GetBlockStart();
-		mValues.mReserved = count;
-		mValues.mCount = 0;
-
-		if constexpr (REUSE) {
-			if (mValues.mEntry == oldValues && oldKeys == mKeys) {
-				// Both keys and values remain in the same place, so rehash	
-				Rehash(count, oldCount);
-				return;
-			}
-		}
-
 		// If reached, then keys or values (or both) moved						
 		// Reinsert all pairs to rehash												
+		auto key = oldKeys.mEntry->As<K>();
+		auto value = oldValues.mEntry->As<V>();
 		while (oldInfo != oldInfoEnd) {
-			if (0 == *oldInfo) {
-				++key; ++oldInfo; ++value;
+			if (!*(oldInfo++)) {
+				++key; ++value;
 				continue;
 			}
 
 			if constexpr (REUSE) {
 				Insert(Move(*key), Move(*value));
+
 				if constexpr (CT::Dense<K>)
 					RemoveInner(key);
 				if constexpr (CT::Dense<V>)
 					RemoveInner(value);
 			}
-			else {
-				Insert(*key, *value);
-			}
+			else Insert(*key, *value);
 
-			++key; ++oldInfo; ++value;
+			++key; ++value;
 		}
 
 		// Free the old allocations													
 		if constexpr (REUSE) {
 			// When reusing, keys and values can potentially remain same	
 			// Avoid deallocating them if that's the case						
-			if (oldValues != mValues.mEntry)
-				Allocator::Deallocate(oldValues);
-			if (oldKeys != mKeys)
-				Allocator::Deallocate(oldKeys);
+			if (oldValues.mEntry != mValues.mEntry)
+				Allocator::Deallocate(oldValues.mEntry);
+			if (oldKeys.mEntry != mKeys.mEntry)
+				Allocator::Deallocate(oldKeys.mEntry);
 		}
-		else if (oldValues) {
+		else if (oldValues.mEntry) {
 			// Not reusing, so either deallocate, or dereference				
 			// (keys are always present, if values are present)				
-			if (oldValues->GetUses() > 1)
-				oldValues->Free();
+			if (oldValues.mEntry->GetUses() > 1)
+				oldValues.mEntry->Free();
 			else {
-				Allocator::Deallocate(oldValues);
-				Allocator::Deallocate(oldKeys);
+				Allocator::Deallocate(oldValues.mEntry);
+				Allocator::Deallocate(oldKeys.mEntry);
 			}
 		}
 	}
@@ -700,12 +685,12 @@ namespace Langulus::Anyness
 		auto psl = GetInfo() + start;
 		const auto pslEnd = GetInfoEnd();
 		auto candidate = GetRawKeys() + start;
-		uint8_t attempts {1};
+		InfoType attempts {1};
 		while (*psl) {
 			if (*candidate == key) {
 				// Neat, the key already exists - just set value and go		
 				const auto index = psl - GetInfo();
-				Overwrite(Forward<V>(value), GetValue(index));
+				GetValue(index) = Forward<V>(value);
 				return;
 			}
 
@@ -752,7 +737,7 @@ namespace Langulus::Anyness
 	///	@param key - the key to hash														
 	///	@return the bucket offset															
 	TABLE_TEMPLATE()
-	Offset TABLE()::GetBucket(const K& key) const noexcept {
+	LANGULUS(ALWAYSINLINE) Offset TABLE()::GetBucket(const K& key) const noexcept {
 		return HashData(key).mHash & (GetReserved() - 1);
 	}
 
@@ -768,10 +753,7 @@ namespace Langulus::Anyness
 			"Value needs to be copy-constructible, but isn't");
 
 		Allocate(GetCount() + 1);
-		const auto bucket = GetBucket(key);
-		Key kcopy {key};
-		Value vcopy {value};
-		InsertInner(bucket, Move(kcopy), Move(vcopy));
+		InsertInner(GetBucket(key), Key {key}, Value {value});
 		return 1;
 	}
 
@@ -787,9 +769,7 @@ namespace Langulus::Anyness
 			"Value needs to be move-constructible, but isn't");
 
 		Allocate(GetCount() + 1);
-		const auto bucket = GetBucket(key);
-		Key kcopy {key};
-		InsertInner(bucket, Move(kcopy), Forward<V>(value));
+		InsertInner(GetBucket(key), Key {key}, Forward<V>(value));
 		return 1;
 	}
 
@@ -805,9 +785,7 @@ namespace Langulus::Anyness
 			"Value needs to be copy-constructible, but isn't");
 
 		Allocate(GetCount() + 1);
-		const auto bucket = GetBucket(key);
-		Value vcopy {value};
-		InsertInner(bucket, Forward<K>(key), Move(vcopy));
+		InsertInner(GetBucket(key), Forward<K>(key), Value {value});
 		return 1;
 	}
 
@@ -823,25 +801,21 @@ namespace Langulus::Anyness
 			"Value needs to be move-constructible, but isn't");
 
 		Allocate(GetCount() + 1);
-		const auto bucket = GetBucket(key);
-		InsertInner(bucket, Forward<K>(key), Forward<V>(value));
+		InsertInner(GetBucket(key), Forward<K>(key), Forward<V>(value));
 		return 1;
 	}
 
 	/// Destroy everything valid inside the map											
 	TABLE_TEMPLATE()
 	void TABLE()::ClearInner() {
-		auto key = GetRawKeys();
-		auto val = GetRawValues();
 		auto inf = GetInfo();
 		const auto infEnd = GetInfoEnd();
 		while (inf != infEnd) {
-			if (*inf) {
-				RemoveInner(key);
-				RemoveInner(val);
+			const auto offset = inf - GetInfo();
+			if (*(inf++)) {
+				RemoveInner(GetRawKeys() + offset);
+				RemoveInner(GetRawValues() + offset);
 			}
-
-			++key; ++val; ++inf;
 		}
 	}
 
@@ -857,19 +831,16 @@ namespace Langulus::Anyness
 
 			// Clear all info to zero													
 			::std::memset(GetInfo(), 0, GetReserved());
+			mValues.mCount = 0;
 		}
 		else {
 			// Data is used from multiple locations, don't change data		
 			// We're forced to dereference and reset memory pointers			
-			mKeys = nullptr;
+			mKeys.mEntry = nullptr;
 			mInfo = nullptr;
 			mValues.mEntry->Free();
-			mValues.mEntry = nullptr;
-			mValues.mRaw = nullptr;
-			mValues.mReserved = 0;
+			mValues.ResetMemory();
 		}
-
-		mValues.mCount = 0;
 	}
 
 	/// Clears all data and deallocates														
@@ -880,7 +851,7 @@ namespace Langulus::Anyness
 			ClearInner();
 
 			// No point in resetting info, we'll be deallocating it			
-			Allocator::Deallocate(mKeys);
+			Allocator::Deallocate(mKeys.mEntry);
 			Allocator::Deallocate(mValues.mEntry);
 		}
 		else {
@@ -888,7 +859,7 @@ namespace Langulus::Anyness
 			mValues.mEntry->Free();
 		}
 
-		mKeys = nullptr;
+		mKeys.mEntry = nullptr;
 		mInfo = nullptr;
 		mValues.ResetState();
 		mValues.ResetMemory();

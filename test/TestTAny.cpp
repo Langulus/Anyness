@@ -31,7 +31,7 @@ const Byte* asbytes(const void* a) noexcept {
 
 /// Detect if type is TAny, instead of Any, by searching for [] operator		
 template<class T>
-concept IsStaticallyOptimized = CT::Deep<T> && requires (const T& a) { {a[Offset {0}]}; };
+concept IsStaticallyOptimized = requires (Decay<T> a) { typename T::Type; };
 
 /// Get simple value, no matter if inside container or not							
 template<class T, CT::Dense SOURCE>
