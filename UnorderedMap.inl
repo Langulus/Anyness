@@ -1125,9 +1125,9 @@ namespace Langulus::Anyness
 		if (IsEmpty())
 			return false;
 
-		auto value = GetRawValues();
+		auto value = GetRawValues<V>();
 		auto info = GetInfo();
-		const auto valueEnd = GetRawValuesEnd();
+		const auto valueEnd = GetRawValuesEnd<V>();
 
 		while (value != valueEnd) {
 			if (*info && *value == match)

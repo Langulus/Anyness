@@ -18,7 +18,7 @@ namespace Langulus::Anyness
 	///	@param initlist - the initializer list to forward							
 	TABLE_TEMPLATE()
 	TABLE()::TUnorderedMap(::std::initializer_list<Pair> initlist)
-		: TUnorderedMap{} {
+		: TUnorderedMap {} {
 		Allocate(initlist.size());
 		for (auto& it : initlist)
 			Insert(*it);
@@ -40,13 +40,13 @@ namespace Langulus::Anyness
 	///	@param other - the disowned table to copy										
 	TABLE_TEMPLATE()
 	TABLE()::TUnorderedMap(Disowned<TUnorderedMap>&& other) noexcept
-		: UnorderedMap {other.Forward<UnorderedMap>()} {}
+		: UnorderedMap {other.template Forward<UnorderedMap>()} {}
 
 	/// Minimal move construction from abandoned table									
 	///	@param other - the abandoned table to move									
 	TABLE_TEMPLATE()
 	TABLE()::TUnorderedMap(Abandoned<TUnorderedMap>&& other) noexcept
-		: UnorderedMap {other.Forward<UnorderedMap>()} {}
+		: UnorderedMap {other.template Forward<UnorderedMap>()} {}
 
 	/// Destroys the map and all it's contents											
 	TABLE_TEMPLATE()

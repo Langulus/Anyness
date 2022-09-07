@@ -19,14 +19,14 @@ namespace Langulus::Anyness
 	///	@param other - the map to disown													
 	TEMPLATE()
 	MAP()::TOrderedMap(Disowned<TOrderedMap>&& other) noexcept
-		: TUnorderedMap<K, V> {other.Forward<TUnorderedMap<K, V>>()} { }
+		: TUnorderedMap<K, V> {other.template Forward<TUnorderedMap<K, V>>()} { }
 
 	/// Move-construct a map from an abandoned map										
 	/// The abandoned map will be minimally reset, saving on some instructions	
 	///	@param other - the map to abandon												
 	TEMPLATE()
 	MAP()::TOrderedMap(Abandoned<TOrderedMap>&& other) noexcept
-		: TUnorderedMap<K, V> {other.Forward<TUnorderedMap<K, V>>()} { }
+		: TUnorderedMap<K, V> {other.template Forward<TUnorderedMap<K, V>>()} { }
 
 	/// Clone the map																				
 	///	@return the cloned map																

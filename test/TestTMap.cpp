@@ -109,7 +109,7 @@ TEMPLATE_TEST_CASE(
 		const auto stdpair = CreatePair<StdPair, K, V>(
 			"five hundred"_text, 555);
 
-		const T map;
+		const T map {};
 		auto meta1 = map.GetKeyType();
 		auto meta2 = map.GetValueType();
 
@@ -117,8 +117,8 @@ TEMPLATE_TEST_CASE(
 			THEN("These properties should be correct") {
 				REQUIRE(meta1);
 				REQUIRE(meta2);
-				REQUIRE(meta1->Is<Text>());
-				REQUIRE(meta2->Is<int>());
+				REQUIRE(meta1->template Is<Text>());
+				REQUIRE(meta2->template Is<int>());
 				REQUIRE(map.IsKeyTypeConstrained());
 				REQUIRE(map.IsValueTypeConstrained());
 				REQUIRE(map.IsEmpty());
@@ -250,7 +250,7 @@ TEMPLATE_TEST_CASE(
 			CreatePair<StdPair, K, V>("ten"_text, 10)
 		};
 
-		const T map;
+		const T map {};
 		const_cast<T&>(map) << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
 		auto keyMemory = map.GetRawKeysMemory();
 		auto valueMemory = map.GetRawValuesMemory();
@@ -258,12 +258,12 @@ TEMPLATE_TEST_CASE(
 		WHEN("Given a preinitialized map with 5 elements") {
 			THEN("These properties should be correct") {
 				REQUIRE(map.GetCount() == 5);
-				REQUIRE(map.KeyIs<Text>());
-				REQUIRE(map.ValueIs<int>());
-				REQUIRE_FALSE(map.KeyIs<int>());
-				REQUIRE_FALSE(map.KeyIs<char>());
-				REQUIRE_FALSE(map.ValueIs<float>());
-				REQUIRE_FALSE(map.ValueIs<unsigned char>());
+				REQUIRE(map.template KeyIs<Text>());
+				REQUIRE(map.template ValueIs<int>());
+				REQUIRE_FALSE(map.template KeyIs<int>());
+				REQUIRE_FALSE(map.template KeyIs<char>());
+				REQUIRE_FALSE(map.template ValueIs<float>());
+				REQUIRE_FALSE(map.template ValueIs<unsigned char>());
 				REQUIRE(map.HasAuthority());
 				REQUIRE(map.GetUses() == 1);
 				for (auto& comparer : darray1)
@@ -334,8 +334,8 @@ TEMPLATE_TEST_CASE(
 				for (auto& comparer : darray2)
 					REQUIRE(map[comparer.mKey] == comparer.mValue);
 				#if LANGULUS_FEATURE(MANAGED_MEMORY)
-					REQUIRE(map.GetRawKeys() == keyMemory);
-					REQUIRE(map.GetRawValues() == valueMemory);
+					REQUIRE(map.GetRawKeysMemory() == keyMemory);
+					REQUIRE(map.GetRawValuesMemory() == valueMemory);
 				#endif
 				REQUIRE(map.GetReserved() >= 10);
 			}
@@ -417,8 +417,8 @@ TEMPLATE_TEST_CASE(
 				for (auto& comparer : darray2)
 					REQUIRE(map[comparer.mKey] == comparer.mValue);
 				#if LANGULUS_FEATURE(MANAGED_MEMORY)
-					REQUIRE(map.GetRawKeys() == keyMemory);
-					REQUIRE(map.GetRawValues() == valueMemory);
+					REQUIRE(map.GetRawKeysMemory() == keyMemory);
+					REQUIRE(map.GetRawValuesMemory() == valueMemory);
 				#endif
 				REQUIRE(map.GetReserved() >= 10);
 			}
@@ -598,8 +598,8 @@ TEMPLATE_TEST_CASE(
 			THEN("Size goes to zero, capacity and types are unchanged") {
 				REQUIRE(map.GetCount() == 0);
 				REQUIRE(map.IsAllocated());
-				REQUIRE(map.KeyIs<Text>());
-				REQUIRE(map.ValueIs<int>());
+				REQUIRE(map.template KeyIs<Text>());
+				REQUIRE(map.template ValueIs<int>());
 				REQUIRE(map.IsKeyTypeConstrained());
 				REQUIRE(map.IsValueTypeConstrained());
 				REQUIRE(map.IsEmpty());
@@ -618,8 +618,8 @@ TEMPLATE_TEST_CASE(
 				REQUIRE(map.GetCount() == 0);
 				REQUIRE_FALSE(map.IsAllocated());
 				REQUIRE_FALSE(map.HasAuthority());
-				REQUIRE(map.KeyIs<Text>());
-				REQUIRE(map.ValueIs<int>());
+				REQUIRE(map.template KeyIs<Text>());
+				REQUIRE(map.template ValueIs<int>());
 				REQUIRE(map.IsKeyTypeConstrained());
 				REQUIRE(map.IsValueTypeConstrained());
 				REQUIRE(map.IsEmpty());
