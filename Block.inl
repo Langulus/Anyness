@@ -3544,9 +3544,9 @@ namespace Langulus::Anyness
 			const auto rhsEnd = rhs + count;
 			while (rhs != rhsEnd) {
 				if constexpr (KEEP)
-					mType->mCopier(lhs, (rhs++)->mPointer);
+					mType->mCopier((rhs++)->mPointer, lhs);
 				else
-					mType->mDisownCopier(lhs, (rhs++)->mPointer);
+					mType->mDisownCopier((rhs++)->mPointer, lhs);
 
 				lhs += lhsStride;
 			}
@@ -3573,9 +3573,9 @@ namespace Langulus::Anyness
 			const auto rhsEnd = rhs + count * stride;
 			while (rhs != rhsEnd) {
 				if constexpr (KEEP)
-					mType->mCopier(lhs, rhs);
+					mType->mCopier(rhs, lhs);
 				else
-					mType->mDisownCopier(lhs, rhs);
+					mType->mDisownCopier(rhs, lhs);
 
 				lhs += stride;
 				rhs += stride;

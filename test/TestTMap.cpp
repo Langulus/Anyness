@@ -273,11 +273,11 @@ TEMPLATE_TEST_CASE(
 		}
 
 		WHEN("Create 2048 and then 4096 maps, and initialize them (weird corner case test)") {
-			std::vector<T> storage(2048);
+			auto storage = new some<T> {2048};
 			const void* prevKeys = nullptr;
 			const void* prevValues = nullptr;
 
-			for (auto& i : storage) {
+			for (auto& i : *storage) {
 				i << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
 				if (prevKeys && prevValues) {
 					REQUIRE(prevKeys != i.GetRawKeysMemory());
@@ -296,13 +296,13 @@ TEMPLATE_TEST_CASE(
 					REQUIRE(i[comparer.mKey] == comparer.mValue);
 			}
 
-			storage.~vector<T>();
-			new (&storage) std::vector<T>();
+			delete storage;
+			storage = new some<T>();
 
 			prevValues = nullptr;
 			prevKeys = nullptr;
 
-			for (auto& i : storage) {
+			for (auto& i : *storage) {
 				i << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
 				if (prevKeys && prevValues) {
 					REQUIRE(prevKeys != i.GetRawKeysMemory());
@@ -320,6 +320,8 @@ TEMPLATE_TEST_CASE(
 				for (auto& comparer : darray1)
 					REQUIRE(i[comparer.mKey] == comparer.mValue);
 			}
+
+			delete storage;
 		}
 
 		WHEN("Shallow-copy more of the same stuff") {
