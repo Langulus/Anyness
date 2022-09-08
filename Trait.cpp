@@ -84,7 +84,7 @@ namespace Langulus::Anyness
 	/// Compare traits																			
 	///	@param other - the trait to compare with										
 	///	@return true if traits are the same												
-	bool Trait::operator == (const Trait& other) const noexcept {
+	bool Trait::operator == (const Trait& other) const {
 		return TraitIs(other.mTraitType) && Compare(other);
 	}
 

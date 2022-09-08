@@ -83,20 +83,20 @@ namespace Langulus::Anyness
 		if (other.GetCount() != GetCount())
 			return false;
 
-		const auto keyEnd = GetRawKeysEnd();
-		auto key = GetRawKeys();
 		auto info = GetInfo();
-		while (key != keyEnd) {
-			if (0 == *info) {
-				++key; ++info;
+		const auto infoEnd = GetInfoEnd();
+		while (info != infoEnd) {
+			const auto lhs = info - GetInfo();
+			if (!*(info++))
 				continue;
-			}
 
+			const auto key = GetRawKeys() + lhs;
 			const auto rhs = other.FindIndex(*key);
-			if (rhs == other.GetReserved() || GetValue(key - GetRawKeys()) != other.GetValue(rhs))
-				return false;
-
-			++key; ++info;
+			if (rhs == other.GetReserved() || GetValue(lhs) != other.GetValue(rhs)) {
+				auto dbglhs = GetValue(lhs);
+				auto dbgrhs = other.GetValue(rhs);
+				return dbglhs == dbgrhs;
+			}
 		}
 
 		return true;
@@ -177,7 +177,7 @@ namespace Langulus::Anyness
 					continue;
 				}
 				
-				if constexpr (CT::CloneMakable<T>)
+				if constexpr (CT::Clonable<T>)
 					new (cache) TD {(*from)->Clone()};
 				else if constexpr (CT::POD<T>)
 					::std::memcpy(cache, **from, sizeof(TD));
@@ -190,7 +190,7 @@ namespace Langulus::Anyness
 			
 			coalesced.Reference(cache - coalesced.GetRaw());
 		}
-		else if constexpr (CT::CloneMakable<T>) {
+		else if constexpr (CT::Clonable<T>) {
 			// Clone dense keys by their Clone() methods							
 			while (from < fromEnd) {
 				if (*info)
@@ -227,7 +227,7 @@ namespace Langulus::Anyness
 			Throw<Except::Allocate>("Out of memory on cloning TUnorderedMap keys");
 
 		// Allocate values																
-		result.mValues.mEntry = Allocator::Allocate(result.mValues.GetReservedSize());
+		result.mValues.mEntry = Allocator::Allocate(mValues.mEntry->GetAllocatedSize());
 		if (!result.mValues.mEntry) {
 			Allocator::Deallocate(result.mKeys.mEntry);
 			result.mValues.mEntry = nullptr;
@@ -238,7 +238,7 @@ namespace Langulus::Anyness
 		result.mKeys.mRaw = result.mKeys.mEntry->GetBlockStart();
 		result.mInfo = reinterpret_cast<InfoType*>(result.mKeys.mRaw)
 			+ (mInfo - reinterpret_cast<const InfoType*>(mKeys.mRaw));
-		::std::memcpy(result.GetInfo(), GetInfo(), GetReserved() + 1);
+		::std::memcpy(result.mInfo, GetInfo(), GetReserved() + 1);
 
 		// Clone or shallow-copy the keys											
 		CloneInner(result.mValues.mCount, GetInfo(),
@@ -527,7 +527,7 @@ namespace Langulus::Anyness
 
 		// Precalculate the info pointer, it's costly							
 		mKeys.mRaw = mKeys.mEntry->GetBlockStart();
-		mInfo = reinterpret_cast<InfoType*>(mKeys.GetRaw() + infoOffset);
+		mInfo = reinterpret_cast<InfoType*>(mKeys.mRaw + infoOffset);
 		// Set the sentinel																
 		mInfo[count] = 1;
 
@@ -545,12 +545,15 @@ namespace Langulus::Anyness
 					return;
 				}
 			}
-			else {
-				// Keys weren't reused, so clear the new ones					
-				::std::memset(mInfo, 0, count);
-			}
+			else ::std::memset(mInfo, 0, count);
 		}
 		else ::std::memset(mInfo, 0, count);
+
+		if (oldValues.IsEmpty()) {
+			// There are no old values, the previous map was empty			
+			// Just do an early return right here									
+			return;
+		}
 
 		// If reached, then keys or values (or both) moved						
 		// Reinsert all pairs to rehash												

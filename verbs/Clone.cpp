@@ -65,7 +65,7 @@ namespace Langulus::Anyness
 		// Iterate each instance in memory											
 		if (!mType->mResolver) {
 			// Type is not resolvable, so preallocate safely					
-			if (mType->mCloneInUninitilizedMemory) {
+			if (mType->mCloner) {
 				// Cloning by placement is available								
 				if (result.IsEmpty()) {
 					result.Allocate<false>(mCount);
@@ -75,25 +75,11 @@ namespace Langulus::Anyness
 				for (Offset index = 0; index < mCount; ++index) {
 					const auto from = GetElement(index);
 					auto to = result.GetElement(index);
-					result.mType->mCloneInUninitilizedMemory(from.mRaw, to.mRaw);
+					result.mType->mCloner(from.mRaw, to.mRaw);
 				}
 
 				VERBOSE("Cloned non-resolvable dense by move-placement new " 
 					<< Logger::DarkYellow << "(slow)");
-			}
-			else if (mType->mCloneInInitializedMemory) {
-				// Cloning by copy is available										
-				if (result.IsEmpty())
-					result.Allocate<true>(mCount);
-
-				for (Offset index = 0; index < mCount; ++index) {
-					const auto from = GetElement(index);
-					auto to = result.GetElement(index);
-					result.mType->mCloneInInitializedMemory(from.mRaw, to.mRaw);
-				}
-
-				VERBOSE("Cloned non-resolvable dense by shallow copy " 
-					<< Logger::Red << "(slowest)");
 			}
 			else if (mType->mIsPOD) {
 				// Just memcpy simple POD data										
@@ -117,21 +103,13 @@ namespace Langulus::Anyness
 				auto to = Any::FromMeta(from.GetType());
 
 				// Check if a clone operation is available for element		
-				if (mType->mCloneInUninitilizedMemory) {
+				if (mType->mCloner) {
 					// Placement-clone													
 					to.Allocate<false>(1);
 					to.mCount = 1;
 					
-					from.mType->mCloneInUninitilizedMemory(from.mRaw, to.mRaw);
+					from.mType->mCloner(from.mRaw, to.mRaw);
 					VERBOSE("Cloned resolved dense by move-placement new" 
-						<< Logger::Red << "(slowest)");
-				}
-				else if (mType->mCloneInInitializedMemory) {
-					// Clone and copy inside initialized elements				
-					to.Allocate<true>(1);
-					
-					from.mType->mCloneInInitializedMemory(from.mRaw, to.mRaw);
-					VERBOSE("Cloned resolved dense by shallow copy " 
 						<< Logger::Red << "(slowest)");
 				}
 				else if (from.mType->mIsPOD) {

@@ -59,11 +59,11 @@ concept IsStaticallyOptimized = requires (Decay<T> a) { typename T::Key; typenam
 /// to complex, from flat to deep															
 TEMPLATE_TEST_CASE(
 	"TOrderedMap/TUnorderedMap/OrderedMap/UnorderedMap", "[map]",
+	(TypePair<TUnorderedMap<Text, int*>, Text, int*>),
 	(TypePair<TUnorderedMap<Text, int>, Text, int>),
 	(TypePair<TUnorderedMap<Text, Trait>, Text, Trait>),
 	(TypePair<TUnorderedMap<Text, Traits::Count>, Text, Traits::Count>),
 	(TypePair<TUnorderedMap<Text, Any>, Text, Any>),
-	(TypePair<TUnorderedMap<Text, int*>, Text, int*>),
 	(TypePair<TUnorderedMap<Text, Trait*>, Text, Trait*>),
 	(TypePair<TUnorderedMap<Text, Traits::Count*>, Text, Traits::Count*>),
 	(TypePair<TUnorderedMap<Text, Any*>, Text, Any*>),
@@ -660,6 +660,7 @@ TEMPLATE_TEST_CASE(
 			auto copy = map;
 
 			THEN("The new map should keep the state and refer to original data") {
+				REQUIRE(copy == map);
 				REQUIRE(copy.IsAllocated());
 				REQUIRE(copy.HasAuthority());
 				REQUIRE(copy.GetUses() == 2);
@@ -688,6 +689,7 @@ TEMPLATE_TEST_CASE(
 			auto clone = map.Clone();
 
 			THEN("The new map should keep the state, but refer to new data") {
+				REQUIRE(clone == map);
 				REQUIRE(clone.IsAllocated());
 				REQUIRE(clone.HasAuthority());
 				REQUIRE(clone.GetUses() == 1);
@@ -718,6 +720,8 @@ TEMPLATE_TEST_CASE(
 			T moved = Move(movable);
 
 			THEN("The new pack should keep the state and data") {
+				REQUIRE(moved == map);
+				REQUIRE(moved != movable);
 				REQUIRE(moved.GetRawKeysMemory() == keyMemory);
 				REQUIRE(moved.GetRawValuesMemory() == valueMemory);
 				REQUIRE(moved.IsAllocated());

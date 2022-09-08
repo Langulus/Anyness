@@ -178,7 +178,7 @@ namespace Langulus::Anyness
 	///	@return the cloned pointer															
 	TEMPLATE_SHARED()
 	TPointer<T, DR> TPointer<T, DR>::Clone() const {
-		if constexpr (CT::CloneMakable<T>) {
+		if constexpr (CT::Clonable<T>) {
 			if (Base::mValue)
 				return Create(Base::mValue->Clone());
 			return {};

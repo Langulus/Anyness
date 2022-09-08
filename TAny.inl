@@ -640,7 +640,7 @@ namespace Langulus::Anyness
 	///				copy, if contained type is not clonable							
 	TEMPLATE()
 	TAny<T> TAny<T>::Clone() const {
-		if constexpr (CT::CloneMakable<T> || CT::POD<T>) {
+		if constexpr (CT::Clonable<T> || CT::POD<T>) {
 			// Always clone the state, but make it unconstrained				
 			TAny<T> result {Disown(*this)};
 			result.mState -= DataState::Static | DataState::Constant;
@@ -669,7 +669,7 @@ namespace Langulus::Anyness
 						continue;
 					}
 
-					if constexpr (CT::CloneMakable<T>)
+					if constexpr (CT::Clonable<T>)
 						new (&coalesced[counter]) Type {(*from)->Clone()};
 					else if constexpr (CT::POD<T>)
 						CopyMemory(**from, &coalesced[counter], sizeof(Type));
@@ -683,7 +683,7 @@ namespace Langulus::Anyness
 
 				coalesced.Reference(counter);
 			}
-			else if constexpr (CT::CloneMakable<T>) {
+			else if constexpr (CT::Clonable<T>) {
 				// Clone dense elements by calling their Clone()				
 				while (from < GetRawEnd()) {
 					new (to) Type {from->Clone()};

@@ -84,7 +84,7 @@ namespace Langulus::Anyness
 		NOD() bool IsSimilar(const Trait&) const noexcept;
 		NOD() bool HasCorrectData() const;
 
-		NOD() bool operator == (const Trait&) const noexcept;
+		NOD() bool operator == (const Trait&) const;
 	};
 
 
@@ -117,6 +117,8 @@ namespace Langulus::Anyness
 
 		TRAIT& operator = (Disowned<TRAIT>&&);
 		TRAIT& operator = (Abandoned<TRAIT>&&);
+
+		NOD() bool operator == (const StaticTrait<TRAIT>&) const;
 	};
 
 } // namespace Langulus::Anyness

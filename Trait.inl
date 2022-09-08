@@ -197,4 +197,9 @@ namespace Langulus::Anyness
 		return static_cast<TRAIT&>(*this);
 	}
 
+	template<class TRAIT>
+	bool StaticTrait<TRAIT>::operator == (const StaticTrait<TRAIT>& other) const {
+		return Any::operator == (static_cast<const Any&>(other));
+	}
+
 } // namespace Langulus::Anyness

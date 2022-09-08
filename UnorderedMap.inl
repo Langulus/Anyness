@@ -174,7 +174,7 @@ namespace Langulus::Anyness
 					continue;
 				}
 				
-				if constexpr (CT::CloneMakable<T>)
+				if constexpr (CT::Clonable<T>)
 					new (cache) TD {(*from)->Clone()};
 				else if constexpr (CT::POD<T>)
 					::std::memcpy(cache, **from, sizeof(TD));
@@ -187,7 +187,7 @@ namespace Langulus::Anyness
 			
 			coalesced.Reference(cache - coalesced.GetRaw());
 		}
-		else if constexpr (CT::CloneMakable<T>) {
+		else if constexpr (CT::Clonable<T>) {
 			// Clone dense keys by their Clone() methods							
 			while (from < fromEnd) {
 				if (*info)
