@@ -115,12 +115,14 @@ TEMPLATE_TEST_CASE(
 
 		WHEN("Given a default-constructed map") {
 			THEN("These properties should be correct") {
-				REQUIRE(meta1);
-				REQUIRE(meta2);
-				REQUIRE(meta1->template Is<K>());
-				REQUIRE(meta2->template Is<V>());
-				REQUIRE(map.IsKeyTypeConstrained());
-				REQUIRE(map.IsValueTypeConstrained());
+				if constexpr (IsStaticallyOptimized<T>) {
+					REQUIRE(meta1);
+					REQUIRE(meta2);
+					REQUIRE(meta1->template Is<K>());
+					REQUIRE(meta2->template Is<V>());
+					REQUIRE(map.IsKeyTypeConstrained());
+					REQUIRE(map.IsValueTypeConstrained());
+				}
 				REQUIRE(map.IsEmpty());
 				REQUIRE(map.GetUses() == 0);
 				REQUIRE_FALSE(map.IsAllocated());

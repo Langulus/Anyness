@@ -260,19 +260,30 @@ namespace Langulus::Anyness
 	private:
 		static_assert(CT::Sparse<T>, "T must be a pointer");
 
-		T mPointer;
-		Inner::Allocation* mEntry;
+		T mPointer {};
+		Inner::Allocation* mEntry {};
+
+		void Free();
 
 	public:
 		constexpr KnownPointer() noexcept = default;
-		constexpr KnownPointer(const KnownPointer&) noexcept = default;
-		constexpr KnownPointer(KnownPointer&&) noexcept = default;
-		KnownPointer(const T&);
-		KnownPointer(T&&);
 
-		constexpr KnownPointer& operator = (const KnownPointer&) noexcept = default;
-		constexpr KnownPointer& operator = (KnownPointer&&) noexcept = default;
+		KnownPointer(const KnownPointer&) noexcept;
+		KnownPointer(KnownPointer&&) noexcept;
+		KnownPointer(Disowned<KnownPointer>&&) noexcept;
+		KnownPointer(Abandoned<KnownPointer>&&) noexcept;
+
+		KnownPointer(const T&);
+		KnownPointer(Disowned<T>&&) noexcept;
+		~KnownPointer();
+
+		KnownPointer& operator = (const KnownPointer&) noexcept;
+		KnownPointer& operator = (KnownPointer&&) noexcept;
+		KnownPointer& operator = (Disowned<KnownPointer>&&) noexcept;
+		KnownPointer& operator = (Abandoned<KnownPointer>&&) noexcept;
+
 		KnownPointer& operator = (const T&);
+		KnownPointer& operator = (Disowned<T>&&);
 		KnownPointer& operator = (::std::nullptr_t);
 
 		operator T() const noexcept;

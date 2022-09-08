@@ -1424,112 +1424,6 @@ namespace Langulus::Anyness
 		operator = (Clone());
 	}
 
-
-
-	///																								
-	///	Known pointer implementation														
-	///																								
-	TEMPLATE()
-	TAny<T>::KnownPointer::KnownPointer(const T& pointer) {
-		using DT = Decay<T>;
-		mPointer = pointer;
-		#if LANGULUS_FEATURE(MANAGED_MEMORY)
-			mEntry = Inner::Allocator::Find(MetaData::Of<DT>(), pointer);
-			if (mEntry)
-				mEntry->Keep();
-		#else
-			mEntry = nullptr;
-		#endif
-	}
-
-	/// When overwriting the element, previous pointer must be dereferenced		
-	/// and the new one - referenced															
-	///	@param pointer - the pointer to set												
-	///	@return a reference to this sparse element									
-	TEMPLATE()
-	typename TAny<T>::KnownPointer& TAny<T>::KnownPointer::operator = (const T& pointer) {
-		using DT = Decay<T>;
-		if (mPointer == pointer)
-			return *this;
-
-		if (mEntry) {
-			// Dereference/destroy the previous element							
-			if (mEntry->GetUses() == 1) {
-				mPointer->~DT();
-				Inner::Allocator::Deallocate(mEntry);
-			}
-			else mEntry->Free();
-		}
-
-		new (this) KnownPointer {pointer};
-		return *this;
-	}
-
-	/// When overwriting with nullptr, just dereference/destroy previous			
-	///	@param pointer - null pointer														
-	///	@return a reference to this sparse element									
-	TEMPLATE()
-	typename TAny<T>::KnownPointer& TAny<T>::KnownPointer::operator = (::std::nullptr_t) {
-		if (mEntry) {
-			// Dereference/destroy the previous element							
-			if (mEntry->GetUses() == 1) {
-				using DT = Decay<T>;
-				mPointer->~DT();
-				Inner::Allocator::Deallocate(mEntry);
-			}
-			else mEntry->Free();
-
-			mEntry = nullptr;
-			mPointer = nullptr;
-		}
-
-		return *this;
-	}
-
-	/// Implicit cast to a constant pointer												
-	TEMPLATE()
-	TAny<T>::KnownPointer::operator T() const noexcept {
-		return mPointer;
-	}
-
-	/// Implicit cast to a mutable pointer													
-	TEMPLATE()
-	TAny<T>::KnownPointer::operator T() noexcept {
-		return mPointer;
-	}
-
-	/// Pointer dereferencing (const)														
-	TEMPLATE()
-	auto TAny<T>::KnownPointer::operator -> () const {
-		if (!mPointer)
-			Throw<Except::Access>("Invalid pointer");
-		return mPointer;
-	}
-
-	/// Pointer dereferencing																	
-	TEMPLATE()
-	auto TAny<T>::KnownPointer::operator -> () {
-		if (!mPointer)
-			Throw<Except::Access>("Invalid pointer");
-		return mPointer;
-	}
-
-	/// Pointer dereferencing (const)														
-	TEMPLATE()
-	decltype(auto) TAny<T>::KnownPointer::operator * () const {
-		if (!mPointer)
-			Throw<Except::Access>("Invalid pointer");
-		return *mPointer;
-	}
-
-	/// Pointer dereferencing																	
-	TEMPLATE()
-	decltype(auto) TAny<T>::KnownPointer::operator * () {
-		if (!mPointer)
-			Throw<Except::Access>("Invalid pointer");
-		return *mPointer;
-	}
-	
 	/// Get a constant part of this container												
 	///	@tparam WRAPPER - the container to use for the part						
 	///			            use Block for unreferenced container					
@@ -1874,6 +1768,210 @@ namespace Langulus::Anyness
 		return t1 - GetRaw();
 	}
 
+
+
+
+
+
+
+
+
+
+
+
+
+	///																								
+	///	Known pointer implementation														
+	///																								
+	#define KNOWNPOINTER() TAny<T>::KnownPointer
+	
+	/// Copy-construct a pointer - references the block								
+	///	@param other - the pointer to reference										
+	TEMPLATE()
+	KNOWNPOINTER()::KnownPointer(const KnownPointer& other) noexcept
+		: mPointer {other.mPointer}
+		, mEntry {other.mEntry} {
+		if (mEntry)
+			mEntry->Keep();
+	}
+
+	/// Move-construct a pointer 																
+	///	@param other - the pointer to move												
+	TEMPLATE()
+	KNOWNPOINTER()::KnownPointer(KnownPointer&& other) noexcept
+		: mPointer {other.mPointer}
+		, mEntry {other.mEntry} {
+		other.mPointer = nullptr;
+		other.mEntry = nullptr;
+	}
+
+	/// Copy-construct a pointer, without referencing it								
+	///	@param other - the pointer to copy												
+	TEMPLATE()
+	KNOWNPOINTER()::KnownPointer(Disowned<KnownPointer>&& other) noexcept
+		: mPointer {other.mValue.mPointer}
+		, mEntry {other.mValue.mEntry} {}
+
+	/// Move-construct a pointer, minimally resetting the source					
+	///	@param other - the pointer to move												
+	TEMPLATE()
+	KNOWNPOINTER()::KnownPointer(Abandoned<KnownPointer>&& other) noexcept
+		: mPointer {other.mValue.mPointer}
+		, mEntry {other.mValue.mEntry} {
+		other.mValue.mEntry = nullptr;
+	}
+
+	/// Find and reference a pointer															
+	///	@param pointer - the pointer to reference										
+	TEMPLATE()
+	KNOWNPOINTER()::KnownPointer(const T& pointer)
+		: mPointer {pointer} {
+		#if LANGULUS_FEATURE(MANAGED_MEMORY)
+			// If we're using managed memory, we can search if the pointer	
+			// is owned by us, and get its block									
+			mEntry = Inner::Allocator::Find(MetaData::Of<Decay<T>>(), pointer);
+			if (mEntry)
+				mEntry->Keep();
+		#endif
+	}
+
+	/// Copy a disowned pointer, no search for block will be performed			
+	///	@param pointer - the pointer to copy											
+	TEMPLATE()
+	KNOWNPOINTER()::KnownPointer(Disowned<T>&& pointer) noexcept
+		: mPointer {pointer.mValue} {}
+
+	/// Dereference (and eventually destroy)												
+	TEMPLATE()
+	KNOWNPOINTER()::~KnownPointer() {
+		Free();
+	}
+
+	/// Free the contents of the known pointer (inner function)						
+	///	@attention doesn't reset pointers												
+	TEMPLATE()
+	void KNOWNPOINTER()::Free() {
+		if (!mEntry)
+			return;
+
+		if (mEntry->GetUses() == 1) {
+			if constexpr (!CT::POD<T> && CT::Destroyable<T>) {
+				using DT = Decay<T>;
+				mPointer->~DT();
+			}
+			Inner::Allocator::Deallocate(mEntry);
+		}
+		else mEntry->Free();
+	}
+
+	/// Copy-assign a known pointer, dereferencing old and referencing new		
+	///	@param rhs - the new pointer														
+	TEMPLATE()
+	typename KNOWNPOINTER()& KNOWNPOINTER()::operator = (const KnownPointer& rhs) noexcept {
+		Free();
+		new (this) KnownPointer {rhs};
+		return *this;
+	}
+
+	/// Move-assign a known pointer, dereferencing old and moving new				
+	///	@param rhs - the new pointer														
+	TEMPLATE()
+	typename KNOWNPOINTER()& KNOWNPOINTER()::operator = (KnownPointer&& rhs) noexcept {
+		Free();
+		new (this) KnownPointer {Forward<KnownPointer>(rhs)};
+		return *this;
+	}
+
+	/// Copy-assign a known pointer, dereferencing old but not referencing new	
+	///	@param rhs - the new pointer														
+	TEMPLATE()
+	typename KNOWNPOINTER()& KNOWNPOINTER()::operator = (Disowned<KnownPointer>&& rhs) noexcept {
+		Free();
+		new (this) KnownPointer {rhs.Forward()};
+		return *this;
+	}
+
+	/// Move-assign a known pointer, dereferencing old and moving new				
+	///	@param rhs - the new pointer														
+	TEMPLATE()
+	typename KNOWNPOINTER()& KNOWNPOINTER()::operator = (Abandoned<KnownPointer>&& rhs) noexcept {
+		Free();
+		new (this) KnownPointer {rhs.Forward()};
+		return *this;
+	}
+
+	/// Copy-assign a dangling pointer, finding its block and referencing		
+	///	@param rhs - pointer to copy and reference									
+	TEMPLATE()
+	typename KNOWNPOINTER()& KNOWNPOINTER()::operator = (const T& rhs) {
+		Free();
+		new (this) KnownPointer {rhs};
+		return *this;
+	}
+
+	/// Copy-assign a dangling pointer, but don't reference it						
+	///	@param rhs - pointer to copy														
+	TEMPLATE()
+	typename KNOWNPOINTER()& KNOWNPOINTER()::operator = (Disowned<T>&& rhs) {
+		Free();
+		new (this) KnownPointer {rhs.Forward()};
+		return *this;
+	}
+
+	/// Reset the known pointer																
+	TEMPLATE()
+	typename KNOWNPOINTER()& KNOWNPOINTER()::operator = (::std::nullptr_t) {
+		Free();
+		mPointer = nullptr;
+		mEntry = nullptr;
+		return *this;
+	}
+
+	/// Implicit cast to a constant pointer												
+	TEMPLATE()
+	KNOWNPOINTER()::operator T() const noexcept {
+		return mPointer;
+	}
+
+	/// Implicit cast to a mutable pointer													
+	TEMPLATE()
+	KNOWNPOINTER()::operator T() noexcept {
+		return mPointer;
+	}
+
+	/// Pointer dereferencing (const)														
+	///	@attention assumes contained pointer is valid								
+	TEMPLATE()
+	auto KNOWNPOINTER()::operator -> () const {
+		LANGULUS_ASSUME(1, mPointer, "Invalid pointer");
+		return mPointer;
+	}
+
+	/// Pointer dereferencing																	
+	///	@attention assumes contained pointer is valid								
+	TEMPLATE()
+	auto KNOWNPOINTER()::operator -> () {
+		LANGULUS_ASSUME(1, mPointer, "Invalid pointer");
+		return mPointer;
+	}
+
+	/// Pointer dereferencing (const)														
+	///	@attention assumes contained pointer is valid								
+	TEMPLATE()
+	decltype(auto) KNOWNPOINTER()::operator * () const {
+		LANGULUS_ASSUME(1, mPointer, "Invalid pointer");
+		return *mPointer;
+	}
+
+	/// Pointer dereferencing																	
+	///	@attention assumes contained pointer is valid								
+	TEMPLATE()
+	decltype(auto) KNOWNPOINTER()::operator * () {
+		LANGULUS_ASSUME(1, mPointer, "Invalid pointer");
+		return *mPointer;
+	}
+
 } // namespace Langulus::Anyness
 
 #undef TEMPLATE
+#undef KNOWNPOINTER

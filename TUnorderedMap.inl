@@ -128,23 +128,23 @@ namespace Langulus::Anyness
 		return *this;
 	}
 
-	/// Emplace a single pair into a cleared map											
-	///	@param pair - the pair to emplace												
-	///	@return a reference to this table												
-	TABLE_TEMPLATE()
-	TABLE()& TABLE()::operator = (Pair&& pair) noexcept {
-		Clear();
-		Insert(Move(pair.mKey), Move(pair.mValue));
-		return *this;
-	}
-
 	/// Insert a single pair into a cleared map											
 	///	@param pair - the pair to copy													
 	///	@return a reference to this table												
 	TABLE_TEMPLATE()
-	TABLE()& TABLE()::operator = (const Pair& pair) {
+		TABLE()& TABLE()::operator = (const TPair<K, V>& pair) {
 		Clear();
 		Insert(pair.mKey, pair.mValue);
+		return *this;
+	}
+
+	/// Emplace a single pair into a cleared map											
+	///	@param pair - the pair to emplace												
+	///	@return a reference to this table												
+	TABLE_TEMPLATE()
+	TABLE()& TABLE()::operator = (TPair<K, V>&& pair) noexcept {
+		Clear();
+		Insert(Move(pair.mKey), Move(pair.mValue));
 		return *this;
 	}
 
@@ -423,17 +423,21 @@ namespace Langulus::Anyness
 		return CT::Same<V, ALT_V>;
 	}
 
-	/// Move-insert a pair inside the map													
+	/// Copy-insert a pair inside the map													
+	///	@param item - the pair to insert													
+	///	@return a reference to this table for chaining								
 	TABLE_TEMPLATE()
-	TABLE()& TABLE()::operator << (Pair&& item) {
-		Insert(Move(item.mKey), Move(item.mValue));
+	TABLE()& TABLE()::operator << (const TPair<K, V>& item) {
+		Insert(item.mKey, item.mValue);
 		return *this;
 	}
 
-	/// Copy-insert a pair inside the map													
+	/// Move-insert a pair inside the map													
+	///	@param item - the pair to insert													
+	///	@return a reference to this table for chaining								
 	TABLE_TEMPLATE()
-	TABLE()& TABLE()::operator << (const Pair& item) {
-		Insert(item.mKey, item.mValue);
+	TABLE()& TABLE()::operator << (TPair<K, V>&& item) {
+		Insert(Move(item.mKey), Move(item.mValue));
 		return *this;
 	}
 
@@ -672,18 +676,7 @@ namespace Langulus::Anyness
 	///	@param key - key to move in														
 	///	@param value - value to move in													
 	TABLE_TEMPLATE()
-	void TABLE()::InsertInner(const Offset& start, K&& key, V&& value) {
-		// Used for swapping key/value known pointer entries, to avoid		
-		// losing that information when swapping sparse stuff					
-		using KKP = typename TAny<K>::TypeInner;
-		using VKP = typename TAny<V>::TypeInner;
-		UNUSED() KKP keyBackup;
-		UNUSED() VKP valueBackup;
-		if constexpr (CT::Sparse<K>)
-			new (&keyBackup) KKP {key};
-		if constexpr (CT::Sparse<V>)
-			new (&valueBackup) VKP {value};
-
+	void TABLE()::InsertInner(const Offset& start, KeyInner&& key, ValueInner&& value) {
 		// Get the starting index based on the key hash							
 		auto psl = GetInfo() + start;
 		const auto pslEnd = GetInfoEnd();
@@ -700,16 +693,8 @@ namespace Langulus::Anyness
 			if (attempts > *psl) {
 				// The pair we're inserting is closer to bucket, so swap		
 				const auto index = psl - GetInfo();
-				if constexpr (CT::Sparse<K>)
-					::std::swap(GetKey(index), keyBackup);
-				else
-					::std::swap(GetKey(index), key);
-
-				if constexpr (CT::Sparse<V>)
-					::std::swap(GetValue(index), valueBackup);
-				else
-					::std::swap(GetValue(index), value);
-
+				::std::swap(GetKey(index), key);
+				::std::swap(GetValue(index), value);
 				::std::swap(attempts, *psl);
 			}
 
@@ -730,8 +715,22 @@ namespace Langulus::Anyness
 		// Might not seem like it, but we gave a guarantee, that this is	
 		// eventually reached, unless key exists and returns early			
 		const auto index = psl - GetInfo();
-		new (&GetKey(index)) K {Move(key)};
-		new (&GetValue(index)) V {Move(value)};
+		if constexpr (CT::AbandonMakable<KeyInner>)
+			new (&GetKey(index)) KeyInner {Abandon(key)};
+		else if constexpr (CT::MoveMakable<KeyInner>)
+			new (&GetKey(index)) KeyInner {Move(key)};
+		else if constexpr (CT::CopyMakable<KeyInner>)
+			new (&GetKey(index)) KeyInner {key};
+		else LANGULUS_ERROR("Can't instantiate key");
+
+		if constexpr (CT::AbandonMakable<ValueInner>)
+			new (&GetValue(index)) ValueInner {Abandon(value)};
+		else if constexpr (CT::MoveMakable<ValueInner>)
+			new (&GetValue(index)) ValueInner {Move(value)};
+		else if constexpr (CT::CopyMakable<ValueInner>)
+			new (&GetValue(index)) ValueInner {value};
+		else LANGULUS_ERROR("Can't instantiate value");
+
 		*psl = attempts;
 		++mValues.mCount;
 	}
@@ -756,7 +755,7 @@ namespace Langulus::Anyness
 			"Value needs to be copy-constructible, but isn't");
 
 		Allocate(GetCount() + 1);
-		InsertInner(GetBucket(key), Key {key}, Value {value});
+		InsertInner(GetBucket(key), KeyInner {key}, ValueInner {value});
 		return 1;
 	}
 
@@ -772,7 +771,7 @@ namespace Langulus::Anyness
 			"Value needs to be move-constructible, but isn't");
 
 		Allocate(GetCount() + 1);
-		InsertInner(GetBucket(key), Key {key}, Forward<V>(value));
+		InsertInner(GetBucket(key), KeyInner {key}, Forward<V>(value));
 		return 1;
 	}
 
@@ -788,7 +787,7 @@ namespace Langulus::Anyness
 			"Value needs to be copy-constructible, but isn't");
 
 		Allocate(GetCount() + 1);
-		InsertInner(GetBucket(key), Forward<K>(key), Value {value});
+		InsertInner(GetBucket(key), Forward<K>(key), ValueInner {value});
 		return 1;
 	}
 

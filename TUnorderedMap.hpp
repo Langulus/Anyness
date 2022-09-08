@@ -19,14 +19,14 @@ namespace Langulus::Anyness
 	class TUnorderedMap : public UnorderedMap {
 	public:
 		static_assert(CT::Comparable<K>, "Can't compare keys for map");
-		using Pair = TPair<K, V>;
-		using PairRef = TPair<K&, V&>;
-		using PairConstRef = TPair<const K&, const V&>;
 		using Key = K;
 		using Value = V;
 		using KeyInner = typename TAny<K>::TypeInner;
 		using ValueInner = typename TAny<V>::TypeInner;
 		using Self = TUnorderedMap<K, V>;
+		using Pair = TPair<KeyInner, ValueInner>;
+		using PairRef = TPair<KeyInner&, ValueInner&>;
+		using PairConstRef = TPair<const KeyInner&, const ValueInner&>;
 		using Allocator = Inner::Allocator;
 		static constexpr Count MinimalAllocation = 8;
 		static constexpr bool Ordered = false;
@@ -44,8 +44,8 @@ namespace Langulus::Anyness
 		TUnorderedMap& operator = (const TUnorderedMap&);
 		TUnorderedMap& operator = (TUnorderedMap&&) noexcept;
 
-		TUnorderedMap& operator = (const Pair&);
-		TUnorderedMap& operator = (Pair&&) noexcept;
+		TUnorderedMap& operator = (const TPair<K, V>&);
+		TUnorderedMap& operator = (TPair<K, V>&&) noexcept;
 
 	public:
 		NOD() DMeta GetKeyType() const;
@@ -103,8 +103,8 @@ namespace Langulus::Anyness
 		Count Insert(const K&, V&&);
 		Count Insert(K&&, V&&);
 
-		TUnorderedMap& operator << (Pair&&);
-		TUnorderedMap& operator << (const Pair&);
+		TUnorderedMap& operator << (const TPair<K, V>&);
+		TUnorderedMap& operator << (TPair<K, V>&&);
 
 		///																							
 		///	REMOVAL																				
@@ -206,7 +206,7 @@ namespace Langulus::Anyness
 		void AllocateKeys(const Count&);
 		void AllocateInner(const Count&);
 		void Rehash(const Count&, const Count&);
-		void InsertInner(const Offset&, K&&, V&&);
+		void InsertInner(const Offset&, KeyInner&&, ValueInner&&);
 		void ClearInner();
 
 		template<class T>
