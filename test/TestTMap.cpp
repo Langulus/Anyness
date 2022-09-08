@@ -117,8 +117,8 @@ TEMPLATE_TEST_CASE(
 			THEN("These properties should be correct") {
 				REQUIRE(meta1);
 				REQUIRE(meta2);
-				REQUIRE(meta1->template Is<Text>());
-				REQUIRE(meta2->template Is<int>());
+				REQUIRE(meta1->template Is<K>());
+				REQUIRE(meta2->template Is<V>());
 				REQUIRE(map.IsKeyTypeConstrained());
 				REQUIRE(map.IsValueTypeConstrained());
 				REQUIRE(map.IsEmpty());
@@ -258,8 +258,8 @@ TEMPLATE_TEST_CASE(
 		WHEN("Given a preinitialized map with 5 elements") {
 			THEN("These properties should be correct") {
 				REQUIRE(map.GetCount() == 5);
-				REQUIRE(map.template KeyIs<Text>());
-				REQUIRE(map.template ValueIs<int>());
+				REQUIRE(map.template KeyIs<K>());
+				REQUIRE(map.template ValueIs<V>());
 				REQUIRE_FALSE(map.template KeyIs<int>());
 				REQUIRE_FALSE(map.template KeyIs<char>());
 				REQUIRE_FALSE(map.template ValueIs<float>());
@@ -406,7 +406,20 @@ TEMPLATE_TEST_CASE(
 		}
 
 		WHEN("Move more of the same stuff") {
-			const_cast<T&>(map) << Move(darray2[0]) << Move(darray2[1]) << Move(darray2[2]) << Move(darray2[3]) << Move(darray2[4]);
+			Pair movableDarray2[5] {
+				darray2[0],
+				darray2[1],
+				darray2[2],
+				darray2[3],
+				darray2[4]
+			};
+
+			const_cast<T&>(map)
+				<< Move(movableDarray2[0])
+				<< Move(movableDarray2[1])
+				<< Move(movableDarray2[2])
+				<< Move(movableDarray2[3])
+				<< Move(movableDarray2[4]);
 
 			THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
 				REQUIRE(map.HasAuthority());
@@ -598,8 +611,8 @@ TEMPLATE_TEST_CASE(
 			THEN("Size goes to zero, capacity and types are unchanged") {
 				REQUIRE(map.GetCount() == 0);
 				REQUIRE(map.IsAllocated());
-				REQUIRE(map.template KeyIs<Text>());
-				REQUIRE(map.template ValueIs<int>());
+				REQUIRE(map.template KeyIs<K>());
+				REQUIRE(map.template ValueIs<V>());
 				REQUIRE(map.IsKeyTypeConstrained());
 				REQUIRE(map.IsValueTypeConstrained());
 				REQUIRE(map.IsEmpty());
@@ -618,8 +631,8 @@ TEMPLATE_TEST_CASE(
 				REQUIRE(map.GetCount() == 0);
 				REQUIRE_FALSE(map.IsAllocated());
 				REQUIRE_FALSE(map.HasAuthority());
-				REQUIRE(map.template KeyIs<Text>());
-				REQUIRE(map.template ValueIs<int>());
+				REQUIRE(map.template KeyIs<K>());
+				REQUIRE(map.template ValueIs<V>());
 				REQUIRE(map.IsKeyTypeConstrained());
 				REQUIRE(map.IsValueTypeConstrained());
 				REQUIRE(map.IsEmpty());
@@ -699,7 +712,8 @@ TEMPLATE_TEST_CASE(
 		}
 
 		WHEN("Map is move-constructed") {
-			T moved = Move(map);
+			T movable = map;
+			T moved = Move(movable);
 
 			THEN("The new pack should keep the state and data") {
 				REQUIRE(moved.GetRawKeysMemory() == keyMemory);
@@ -707,16 +721,16 @@ TEMPLATE_TEST_CASE(
 				REQUIRE(moved.IsAllocated());
 				REQUIRE(moved.GetCount() == 5);
 				REQUIRE(moved.HasAuthority());
-				REQUIRE(moved.GetUses() == 1);
+				REQUIRE(moved.GetUses() == 2);
 				for (auto& comparer : darray1)
 					REQUIRE(moved[comparer.mKey] == comparer.mValue);
-				REQUIRE_FALSE(map.IsAllocated());
-				REQUIRE(map.IsEmpty());
+				REQUIRE_FALSE(movable.IsAllocated());
+				REQUIRE(movable.IsEmpty());
 				//REQUIRE(map.GetRawKeys() == nullptr); // not really required
-				REQUIRE(map.GetRawValuesMemory() == nullptr);
-				REQUIRE(map.GetCount() == 0);
-				REQUIRE(map.IsValueTypeConstrained());
-				REQUIRE(map.IsKeyTypeConstrained());
+				REQUIRE(movable.GetRawValuesMemory() == nullptr);
+				REQUIRE(movable.GetCount() == 0);
+				REQUIRE(movable.IsValueTypeConstrained());
+				REQUIRE(movable.IsKeyTypeConstrained());
 				//REQUIRE(map.GetReserved() == 0);
 				//REQUIRE(map.GetType() == moved.GetType());
 			}

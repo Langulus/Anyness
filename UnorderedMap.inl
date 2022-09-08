@@ -25,28 +25,28 @@ namespace Langulus::Anyness
 	/// Shallow-copy construction																
 	///	@param other - the table to copy													
 	inline UnorderedMap::UnorderedMap(const UnorderedMap& other)
-		: mKeys {other.mKeys}
+		: mKeys {Disown(other.mKeys)}
 		, mInfo {other.mInfo}
 		, mValues {other.mValues} {}
 
 	/// Move construction																		
 	///	@param other - the table to move													
 	inline UnorderedMap::UnorderedMap(UnorderedMap&& other) noexcept
-		: mKeys {other.mKeys}
+		: mKeys {Move(other.mKeys)}
 		, mInfo {other.mInfo}
 		, mValues {Move(other.mValues)} {}
 
 	/// Shallow-copy construction without referencing									
 	///	@param other - the disowned table to copy										
 	inline UnorderedMap::UnorderedMap(Disowned<UnorderedMap>&& other) noexcept
-		: mKeys {other.mValue.mKeys}
+		: mKeys {Disown(other.mValue.mKeys)}
 		, mInfo {other.mValue.mInfo}
 		, mValues {Disown(other.mValue.mValues)} {}
 
 	/// Minimal move construction from abandoned table									
 	///	@param other - the abandoned table to move									
 	inline UnorderedMap::UnorderedMap(Abandoned<UnorderedMap>&& other) noexcept
-		: mKeys {other.mValue.mKeys}
+		: mKeys {Abandon(other.mValue.mKeys)}
 		, mInfo {other.mValue.mInfo}
 		, mValues {Abandon(other.mValue.mValues)} {}
 
@@ -65,6 +65,8 @@ namespace Langulus::Anyness
 		}
 		else {
 			// Data is used from multiple locations, just deref values		
+			// Notice how we don't dereference keys, since we use only the	
+			// values' references to save on some redundancy					
 			mValues.mEntry->Free();
 		}
 

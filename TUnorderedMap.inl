@@ -528,20 +528,22 @@ namespace Langulus::Anyness
 		// Precalculate the info pointer, it's costly							
 		mKeys.mRaw = mKeys.mEntry->GetBlockStart();
 		mInfo = reinterpret_cast<InfoType*>(mKeys.GetRaw() + infoOffset);
+		// Set the sentinel																
+		mInfo[count] = 1;
 
 		// Zero or move the info array												
 		if constexpr (REUSE) {
-			if (mValues.mEntry == oldValues.mEntry && oldKeys.mEntry == mKeys.mEntry) {
-				// Both keys and values remain in the same place, so rehash	
-				Rehash(count, oldCount);
-				return;
-			}
-
 			// Check if keys were reused												
 			if (mKeys.mEntry == oldKeys.mEntry) {
 				// Keys were reused, but info always moves (null the rest)	
 				::std::memmove(mInfo, oldInfo, oldCount);
 				::std::memset(mInfo + oldCount, 0, count - oldCount);
+
+				if (mValues.mEntry == oldValues.mEntry) {
+					// Both keys and values remain in the same place			
+					Rehash(count, oldCount);
+					return;
+				}
 			}
 			else {
 				// Keys weren't reused, so clear the new ones					
@@ -549,9 +551,6 @@ namespace Langulus::Anyness
 			}
 		}
 		else ::std::memset(mInfo, 0, count);
-
-		// Set the sentinel																
-		mInfo[count] = 1;
 
 		// If reached, then keys or values (or both) moved						
 		// Reinsert all pairs to rehash												
