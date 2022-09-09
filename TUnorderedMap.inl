@@ -494,7 +494,8 @@ namespace Langulus::Anyness
 	void TABLE()::AllocateKeys(const Count& count) {
 		#if LANGULUS(SAFE)
 			if (!IsPowerOfTwo(count))
-				Throw<Except::Allocate>("Table reallocation count is not a power-of-two");
+				Throw<Except::Allocate>(
+					"Table reallocation count is not a power-of-two");
 		#endif
 
 		Offset infoOffset;
@@ -511,7 +512,8 @@ namespace Langulus::Anyness
 			mKeys.mEntry = Allocator::Allocate(keyAndInfoSize);
 
 		if (!mKeys.mEntry)
-			Throw<Except::Allocate>("Out of memory on allocating/reallocating TUnorderedMap keys");
+			Throw<Except::Allocate>(
+				"Out of memory on allocating/reallocating TUnorderedMap keys");
 
 		// Allocate new values															
 		const Block oldValues {mValues};
@@ -522,7 +524,8 @@ namespace Langulus::Anyness
 
 		if (!mValues.mEntry) {
 			Allocator::Deallocate(mKeys.mEntry);
-			Throw<Except::Allocate>("Out of memory on allocating/reallocating TUnorderedMap values");
+			Throw<Except::Allocate>(
+				"Out of memory on allocating/reallocating TUnorderedMap values");
 		}
 
 		mValues.mRaw = mValues.mEntry->GetBlockStart();

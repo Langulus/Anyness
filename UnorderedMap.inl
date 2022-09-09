@@ -465,6 +465,11 @@ namespace Langulus::Anyness
 		#endif
 
 		Offset infoOffset;
+		auto oldInfo = mInfo;
+		const auto oldCount = GetReserved();
+		const auto oldInfoEnd = oldInfo + oldCount;
+
+		// Allocate new keys																
 		const Block oldKeys {mKeys};
 		const auto keyAndInfoSize = RequestKeyAndInfoSize(count, infoOffset);
 		if constexpr (REUSE)
@@ -479,7 +484,7 @@ namespace Langulus::Anyness
 		// Allocate new values															
 		const Block oldValues {mValues};
 		if constexpr (REUSE)
-			mValues.mEntry = Allocator::Reallocate(count * mValues.GetStride(), mValues.mEntry);
+			mValues.mEntry = Allocator::Reallocate(count * mValues.GetStride(), oldValues.mEntry);
 		else
 			mValues.mEntry = Allocator::Allocate(count * mValues.GetStride());
 
@@ -489,13 +494,15 @@ namespace Langulus::Anyness
 				"Out of memory on allocating/reallocating TUnorderedMap values");
 		}
 
+		mValues.mRaw = mValues.mEntry->GetBlockStart();
+		mValues.mReserved = count;
+		mValues.mCount = 0;
+
 		// Precalculate the info pointer, it's costly							
 		mKeys.mRaw = mKeys.mEntry->GetBlockStart();
-		auto oldInfo = mInfo;
 		mInfo = reinterpret_cast<InfoType*>(mKeys.mRaw + infoOffset);
-
-		const auto oldCount = GetReserved();
-		const auto oldInfoEnd = oldInfo + oldCount;
+		// Set the sentinel																
+		mInfo[count] = 1;
 
 		// Zero or move the info array												
 		if constexpr (REUSE) {
@@ -504,24 +511,21 @@ namespace Langulus::Anyness
 				// Keys were reused, but info always moves (null the rest)	
 				::std::memmove(mInfo, oldInfo, oldCount);
 				::std::memset(mInfo + oldCount, 0, count - oldCount);
+
+				if (mValues.mEntry == oldValues.mEntry) {
+					// Both keys and values remain in the same place			
+					Rehash(count, oldCount);
+					return;
+				}
 			}
 			else ::std::memset(mInfo, 0, count);
 		}
 		else ::std::memset(mInfo, 0, count);
 
-		// Set the sentinel																
-		mInfo[count] = 1;
-
-		mValues.mRaw = mValues.mEntry->GetBlockStart();
-		mValues.mReserved = count;
-		mValues.mCount = 0;
-
-		if constexpr (REUSE) {
-			if (mValues.mEntry == oldValues.mEntry && oldKeys.mEntry == mKeys.mEntry) {
-				// Both keys and values remain in the same place, so rehash	
-				Rehash(count, oldCount);
-				return;
-			}
+		if (oldValues.IsEmpty()) {
+			// There are no old values, the previous map was empty			
+			// Just do an early return right here									
+			return;
 		}
 
 		// If reached, then keys or values (or both) moved						
@@ -529,7 +533,7 @@ namespace Langulus::Anyness
 		auto key = oldKeys.GetElement();
 		auto value = oldValues.GetElement();
 		while (oldInfo != oldInfoEnd) {
-			if (0 == *(oldInfo++)) {
+			if (!*(oldInfo++)) {
 				key.Next();
 				value.Next();
 				continue;
@@ -647,17 +651,6 @@ namespace Langulus::Anyness
 	///	@param value - value to move in													
 	template<CT::Data K, CT::Data V>
 	void UnorderedMap::InsertInner(const Offset& start, K&& key, V&& value) {
-		// Used for swapping key/value known pointer entries, to avoid		
-		// losing that information when swapping sparse stuff					
-		using KKP = typename TAny<K>::TypeInner;
-		using VKP = typename TAny<V>::TypeInner;
-		UNUSED() KKP keyBackup;
-		UNUSED() VKP valueBackup;
-		if constexpr (CT::Sparse<K>)
-			new (&keyBackup) KKP {key};
-		if constexpr (CT::Sparse<V>)
-			new (&valueBackup) VKP {value};
-
 		// Get the starting index based on the key hash							
 		auto psl = GetInfo() + start;
 		const auto pslEnd = GetInfoEnd();
@@ -674,16 +667,8 @@ namespace Langulus::Anyness
 			if (attempts > *psl) {
 				// The pair we're inserting is closer to bucket, so swap		
 				const auto index = psl - GetInfo();
-				if constexpr (CT::Sparse<K>)
-					::std::swap(GetRawKeys<K>()[index], keyBackup);
-				else
-					::std::swap(GetRawKeys<K>()[index], key);
-
-				if constexpr (CT::Sparse<V>)
-					::std::swap(GetRawValues<V>()[index], valueBackup);
-				else
-					::std::swap(GetRawValues<V>()[index], value);
-
+				::std::swap(GetRawKeys<K>()[index], key);
+				::std::swap(GetRawValues<V>()[index], value);
 				::std::swap(attempts, *psl);
 			}
 
@@ -704,8 +689,22 @@ namespace Langulus::Anyness
 		// Might not seem like it, but we gave a guarantee, that this is	
 		// eventually reached, unless key exists and returns early			
 		const auto index = psl - GetInfo();
-		new (&GetRawKeys<K>()[index])		K {Forward<K>(key)};
-		new (&GetRawValues<V>()[index])	V {Forward<V>(value)};
+		if constexpr (CT::AbandonMakable<KeyInner>)
+			new (&GetRawKeys<K>()[index]) KeyInner {Abandon(key)};
+		else if constexpr (CT::MoveMakable<KeyInner>)
+			new (&GetRawKeys<K>()[index]) KeyInner {Move(key)};
+		else if constexpr (CT::CopyMakable<KeyInner>)
+			new (&GetRawKeys<K>()[index]) KeyInner {key};
+		else LANGULUS_ERROR("Can't instantiate key");
+
+		if constexpr (CT::AbandonMakable<ValueInner>)
+			new (&GetRawValues<V>()[index]) ValueInner {Abandon(value)};
+		else if constexpr (CT::MoveMakable<ValueInner>)
+			new (&GetRawValues<V>()[index]) ValueInner {Move(value)};
+		else if constexpr (CT::CopyMakable<ValueInner>)
+			new (&GetRawValues<V>()[index]) ValueInner {value};
+		else LANGULUS_ERROR("Can't instantiate value");
+
 		*psl = attempts;
 		++mValues.mCount;
 	}
