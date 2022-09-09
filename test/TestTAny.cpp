@@ -8,6 +8,12 @@
 #include "Main.hpp"
 #include <catch2/catch.hpp>
 
+/// See https://github.com/catchorg/Catch2/blob/devel/docs/tostring.md			
+CATCH_TRANSLATE_EXCEPTION(::Langulus::Exception const& ex) {
+	const Text serialized {ex};
+	return ::std::string {Token {serialized}};
+}
+
 using uint = unsigned int;
 using timer = Catch::Benchmark::Chronometer;
 template<class T>
@@ -195,7 +201,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 				}
 
 				if constexpr (CT::Sparse<E>) {
-					REQUIRE(asbytes(pack.GetRawSparse()->mPointer) == asbytes(sparseValue));
+					REQUIRE(*pack.GetRawSparse() == sparseValue);
 					REQUIRE(pack.GetRawSparse()->mEntry == nullptr);
 				}
 

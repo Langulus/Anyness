@@ -222,7 +222,8 @@ namespace Langulus::Anyness
 		// Since Any is type-erased, we have to make a runtime type check	
 		if (IsTypeConstrained() && !CastsToMeta(other.mType)) {
 			Throw<Except::Copy>(
-				"Unable to copy-assign type-constrained container - types are incompatible");
+				"Unable to copy-assign type-constrained container - types are incompatible",
+				LANGULUS_LOCATION());
 		}
 
 		// First we reference, so that we don't lose the memory, in			
@@ -243,7 +244,8 @@ namespace Langulus::Anyness
 		// Since Any is type-erased, we have to make a runtime type check	
 		if (IsTypeConstrained() && !CastsToMeta(other.mType)) {
 			Throw<Except::Copy>(
-				"Unable to move-assign type-constrained container - types are incompatible");
+				"Unable to move-assign type-constrained container - types are incompatible",
+				LANGULUS_LOCATION());
 		}
 
 		Free();
@@ -263,7 +265,8 @@ namespace Langulus::Anyness
 		// Since Any is type-erased, we have to make a runtime type check	
 		if (IsTypeConstrained() && !CastsToMeta(other.mValue.mType)) {
 			Throw<Except::Copy>(
-				"Unable to disown-assign type-constrained container - types are incompatible");
+				"Unable to disown-assign type-constrained container - types are incompatible",
+				LANGULUS_LOCATION());
 		}
 
 		Free();
@@ -287,7 +290,8 @@ namespace Langulus::Anyness
 		// Since Any is type-erased, we have to make a runtime type check	
 		if (IsTypeConstrained() && !CastsToMeta(other.mValue.mType)) {
 			Throw<Except::Copy>(
-				"Unable to abandon-assign type-constrained container - types are incompatible");
+				"Unable to abandon-assign type-constrained container - types are incompatible",
+				LANGULUS_LOCATION());
 		}
 
 		Free();
@@ -304,7 +308,8 @@ namespace Langulus::Anyness
 		// Since Any is type-erased, we have to make a runtime type check	
 		if (IsTypeConstrained() && !CastsToMeta(meta)) {
 			Throw<Except::Copy>(
-				"Unable to value-assign type-constrained container - types are incompatible");
+				"Unable to value-assign type-constrained container - types are incompatible",
+				LANGULUS_LOCATION());
 		}
 
 		if (GetUses() == 1 && meta->Is(mType)) {
@@ -364,7 +369,8 @@ namespace Langulus::Anyness
 		// Since Any is type-erased, we have to make a runtime type check	
 		if (IsTypeConstrained() && !CastsToMeta(meta)) {
 			Throw<Except::Copy>(
-				"Unable to disowned value-assign type-constrained container - types are incompatible");
+				"Unable to disowned value-assign type-constrained container - types are incompatible",
+				LANGULUS_LOCATION());
 		}
 
 		if (GetUses() != 1 || IsSparse() != CT::Sparse<T> || !meta->Is(mType)) {
@@ -407,7 +413,8 @@ namespace Langulus::Anyness
 		// Since Any is type-erased, we have to make a runtime type check	
 		if (IsTypeConstrained() && !CastsToMeta(meta)) {
 			Throw<Except::Copy>(
-				"Unable to abandoned value-assign type-constrained container - types are incompatible");
+				"Unable to abandoned value-assign type-constrained container - types are incompatible",
+				LANGULUS_LOCATION());
 		}
 
 		if (GetUses() != 1 || IsSparse() != CT::Sparse<T> || !meta->Is(mType)) {

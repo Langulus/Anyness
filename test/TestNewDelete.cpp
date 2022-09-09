@@ -6,10 +6,15 @@
 /// See LICENSE file, or https://www.gnu.org/licenses									
 ///																									
 #include "Main.hpp"
-
-#if LANGULUS_FEATURE(NEWDELETE)
 #include <catch2/catch.hpp>
 
+/// See https://github.com/catchorg/Catch2/blob/devel/docs/tostring.md			
+CATCH_TRANSLATE_EXCEPTION(::Langulus::Exception const& ex) {
+	const Text serialized {ex};
+	return ::std::string {Token {serialized}};
+}
+
+#if LANGULUS_FEATURE(NEWDELETE)
 SCENARIO("Testing new/delete operators", "[new][delete]") {
 
 	GIVEN("POD dynamic memory allocated with overriden new operator") {

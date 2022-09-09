@@ -17,6 +17,7 @@ namespace Langulus::Anyness
 	template<CT::Data K, CT::Data V>
 	UnorderedMap::UnorderedMap(::std::initializer_list<TPair<K, V>> initlist)
 		: UnorderedMap {} {
+		Mutate<K, V>();
 		Allocate(initlist.size());
 		for (auto& it : initlist)
 			Insert(*it);
@@ -219,15 +220,20 @@ namespace Langulus::Anyness
 
 		// Allocate keys and info														
 		result.mKeys.mEntry = Allocator::Allocate(mKeys.mEntry->GetAllocatedSize());
-		if (!result.mKeys.mEntry)
-			Throw<Except::Allocate>("Out of memory on cloning UnorderedMap keys");
+		if (!result.mKeys.mEntry) {
+			Throw<Except::Allocate>(
+				"Out of memory on cloning UnorderedMap keys", 
+				LANGULUS_LOCATION());
+		}
 
 		// Allocate values																
 		result.mValues.mEntry = Allocator::Allocate(result.mValues.GetReservedSize());
 		if (!result.mValues.mEntry) {
 			Allocator::Deallocate(result.mKeys.mEntry);
 			result.mValues.mEntry = nullptr;
-			Throw<Except::Allocate>("Out of memory on cloning UnorderedMap values");
+			Throw<Except::Allocate>(
+				"Out of memory on cloning UnorderedMap values"
+				LANGULUS_LOCATION());
 		}
 
 		// Clone the info bytes															
@@ -445,6 +451,54 @@ namespace Langulus::Anyness
 		return mInfo + GetReserved();
 	}
 
+	/// Checks type compatibility and sets type for the type-erased map			
+	///	@tparam K - the key type															
+	///	@tparam V - the value type															
+	template<CT::Data K, CT::Data V>
+	void UnorderedMap::Mutate() {
+		Mutate(
+			MetaData::Of<Decay<K>>(), CT::Sparse<K>, 
+			MetaData::Of<Decay<V>>(), CT::Sparse<V>
+		);
+	}
+
+	/// Checks type compatibility and sets type for the type-erased map			
+	///	@param key - the key type															
+	///	@param sparseKey - whether key type is sparse								
+	///	@param value - the value type														
+	///	@param sparseValue - whether value type is sparse							
+	inline void UnorderedMap::Mutate(DMeta key, bool sparseKey, DMeta value, bool sparseValue) {
+		if (!mKeys.mType) {
+			// Set a fresh key type														
+			mKeys.mType = key;
+			if (sparseKey)
+				mKeys.MakeSparse();
+		}
+		else {
+			// Key type already set, so check compatibility						
+			LANGULUS_ASSERT(
+				mKeys.Is(key) && mKeys.IsSparse() == sparseKey,
+				Except::Mutate,
+				"Attempting to mutate type-erased unordered map's key type"
+			);
+		}
+
+		if (!mValues.mType) {
+			// Set a fresh value type													
+			mValues.mType = value;
+			if (sparseValue)
+				mValues.MakeSparse();
+		}
+		else {
+			// Value type already set, so check compatibility					
+			LANGULUS_ASSERT(
+				mValues.Is(value) && mValues.IsSparse() == sparseValue,
+				Except::Mutate,
+				"Attempting to mutate type-erased unordered map's value type"
+			);
+		}
+	}
+
 	/// Reserves space for the specified number of pairs								
 	///	@attention does nothing if reserving less than current reserve			
 	///	@param count - number of pairs to allocate									
@@ -458,11 +512,8 @@ namespace Langulus::Anyness
 	///	@param count - the new number of pairs											
 	template<bool REUSE>
 	void UnorderedMap::AllocateKeys(const Count& count) {
-		#if LANGULUS(SAFE)
-			if (!IsPowerOfTwo(count))
-				Throw<Except::Allocate>(
-					"Table reallocation count is not a power-of-two");
-		#endif
+		LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(count),
+			"Table reallocation count is not a power-of-two");
 
 		Offset infoOffset;
 		auto oldInfo = mInfo;
@@ -477,9 +528,8 @@ namespace Langulus::Anyness
 		else
 			mKeys.mEntry = Allocator::Allocate(keyAndInfoSize);
 
-		if (!mKeys.mEntry)
-			Throw<Except::Allocate>(
-				"Out of memory on allocating/reallocating TUnorderedMap keys");
+		LANGULUS_ASSERT(mKeys.mEntry, Except::Allocate,
+			"Out of memory on allocating/reallocating keys");
 
 		// Allocate new values															
 		const Block oldValues {mValues};
@@ -491,7 +541,8 @@ namespace Langulus::Anyness
 		if (!mValues.mEntry) {
 			Allocator::Deallocate(mKeys.mEntry);
 			Throw<Except::Allocate>(
-				"Out of memory on allocating/reallocating TUnorderedMap values");
+				"Out of memory on allocating/reallocating values",
+				LANGULUS_LOCATION());
 		}
 
 		mValues.mRaw = mValues.mEntry->GetBlockStart();
@@ -574,45 +625,54 @@ namespace Langulus::Anyness
 	}
 
 	/// Similar to insertion, but rehashes each key 									
-	///	@attention does nothing if reserving less than current reserve			
-	///	@attention assumes count is a power-of-two number							
+	///	@attention assumes count and oldCount are a power-of-two number		
 	///	@param count - the new number of pairs											
+	///	@param oldCount - the old number of pairs										
 	inline void UnorderedMap::Rehash(const Count& count, const Count& oldCount) {
-		auto oldKey = mKeys.GetElement();
+		LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(count),
+			"New Rehash count is not a power-of-two");
+		LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(oldCount),
+			"Old Rehash count is not a power-of-two");
+
 		auto oldInfo = GetInfo();
-		const auto oldKeyEnd = oldKey.mRaw + oldCount * mKeys.GetStride();
+		const auto oldInfoEnd = oldInfo + oldCount;
+
+		// Prepare a set of preallocated swappers									
+		Block keyswap {GetKeyType()};
+		Block valswap {GetValueType()};
+		keyswap.Allocate(1);
+		valswap.Allocate(1);
 
 		// For each old existing key...												
-		while (oldKey.mRaw != oldKeyEnd) {
+		while (oldInfo != oldInfoEnd) {
 			if (!*oldInfo) {
-				oldKey.Next();
 				++oldInfo;
 				continue;
 			}
 
 			// Rehash and check if hashes match										
 			const auto oldIndex = oldInfo - GetInfo();
+			auto oldKey = mKeys.GetElement(oldIndex);
 			const auto newIndex = oldKey.GetHash().mHash & (count - 1);
 			if (oldIndex != newIndex) {
-				Block keyswap;
-				keyswap.Allocate(1);
-				keyswap.CallUnknownMoveConstructors<false>(1, Move(oldKey));
-
+				// Move key & value to swapper										
 				auto oldValue = mValues.GetElement(oldIndex);
-				Block valswap;
-				valswap.Allocate(1);
+				keyswap.CallUnknownMoveConstructors<false>(1, Move(oldKey));
 				valswap.CallUnknownMoveConstructors<false>(1, Move(oldValue));
 
 				// Clean the old abandoned slots (just in case)					
-				if (mKeys.IsDense())
-					RemoveInner(oldKey);
-				if (mValues.IsDense())
-					RemoveInner(oldValue);
-
+				oldKey.CallUnknownDestructors();
+				oldValue.CallUnknownDestructors();
 				*oldInfo = 0;
 
 				// Insert the swapper													
-				InsertInner(newIndex, Move(keyswap), Move(valswap));
+				InsertInnerUnknown(newIndex, Move(keyswap), Move(valswap));
+
+				// We assume that swappers are free for next cycle, because	
+				// InsertInnerUnknown should've consumed them both				
+				LANGULUS_ASSUME(DevAssumes,
+					keyswap.IsEmpty() && valswap.IsEmpty(),
+					"Swappers not empty after rehashing an element");
 			}
 			else {
 				// Nothing inserted, but since count has been previously		
@@ -620,9 +680,12 @@ namespace Langulus::Anyness
 				++mValues.mCount;
 			}
 
-			oldKey.Next();
 			++oldInfo;
 		}
+
+		// Free the allocated swapper memory										
+		keyswap.Free();
+		valswap.Free();
 	}
 
 	/// Reserves space for the specified number of pairs								
@@ -636,13 +699,10 @@ namespace Langulus::Anyness
 			return;
 
 		// Allocate/Reallocate the keys and info									
-		if (IsAllocated()) {
-			if (GetUses() == 1)
-				AllocateKeys<true>(count);
-			else
-				AllocateKeys<false>(count);
-		}
-		else AllocateKeys<false>(count);
+		if (IsAllocated() && GetUses() == 1)
+			AllocateKeys<true>(count);
+		else
+			AllocateKeys<false>(count);
 	}
 
 	/// Inner insertion function																
@@ -654,19 +714,18 @@ namespace Langulus::Anyness
 		// Get the starting index based on the key hash							
 		auto psl = GetInfo() + start;
 		const auto pslEnd = GetInfoEnd();
-		auto candidate = GetRawKeys<K>() + start;
 		InfoType attempts {1};
 		while (*psl) {
+			const auto index = psl - GetInfo();
+			const auto candidate = GetRawKeys<K>() + index;
 			if (*candidate == key) {
 				// Neat, the key already exists - just set value and go		
-				const auto index = psl - GetInfo();
 				GetRawValues<V>()[index] = Forward<V>(value);
 				return;
 			}
 
 			if (attempts > *psl) {
 				// The pair we're inserting is closer to bucket, so swap		
-				const auto index = psl - GetInfo();
 				::std::swap(GetRawKeys<K>()[index], key);
 				::std::swap(GetRawValues<V>()[index], value);
 				::std::swap(attempts, *psl);
@@ -676,12 +735,10 @@ namespace Langulus::Anyness
 
 			if (psl < pslEnd - 1) LIKELY() {
 				++psl;
-				++candidate;
 			}
 			else UNLIKELY() {
 				// Wrap around and start from the beginning						
 				psl = GetInfo();
-				candidate = GetRawKeys<K>();
 			}
 		}
 
@@ -689,20 +746,16 @@ namespace Langulus::Anyness
 		// Might not seem like it, but we gave a guarantee, that this is	
 		// eventually reached, unless key exists and returns early			
 		const auto index = psl - GetInfo();
-		if constexpr (CT::AbandonMakable<KeyInner>)
-			new (&GetRawKeys<K>()[index]) KeyInner {Abandon(key)};
-		else if constexpr (CT::MoveMakable<KeyInner>)
-			new (&GetRawKeys<K>()[index]) KeyInner {Move(key)};
-		else if constexpr (CT::CopyMakable<KeyInner>)
-			new (&GetRawKeys<K>()[index]) KeyInner {key};
+		if constexpr (CT::MoveMakable<K>)
+			new (&GetRawKeys<K>()[index]) K {Move(key)};
+		else if constexpr (CT::CopyMakable<K>)
+			new (&GetRawKeys<K>()[index]) K {key};
 		else LANGULUS_ERROR("Can't instantiate key");
 
-		if constexpr (CT::AbandonMakable<ValueInner>)
-			new (&GetRawValues<V>()[index]) ValueInner {Abandon(value)};
-		else if constexpr (CT::MoveMakable<ValueInner>)
-			new (&GetRawValues<V>()[index]) ValueInner {Move(value)};
-		else if constexpr (CT::CopyMakable<ValueInner>)
-			new (&GetRawValues<V>()[index]) ValueInner {value};
+		if constexpr (CT::MoveMakable<V>)
+			new (&GetRawValues<V>()[index]) V {Move(value)};
+		else if constexpr (CT::CopyMakable<V>)
+			new (&GetRawValues<V>()[index]) V {value};
 		else LANGULUS_ERROR("Can't instantiate value");
 
 		*psl = attempts;
@@ -710,6 +763,7 @@ namespace Langulus::Anyness
 	}
 	
 	/// Inner insertion function based on reflected move-assignment				
+	///	@attention after this call, key and/or value might be empty				
 	///	@param start - the starting index												
 	///	@param key - key to move in														
 	///	@param value - value to move in													
@@ -717,22 +771,23 @@ namespace Langulus::Anyness
 		// Get the starting index based on the key hash							
 		auto psl = GetInfo() + start;
 		const auto pslEnd = GetInfoEnd();
-		auto candidate = GetKey(start);
 		InfoType attempts {1};
 		while (*psl) {
+			const auto index = psl - GetInfo();
+			const auto candidate = GetKey(start);
 			if (candidate == key) {
 				// Neat, the key already exists - just set value and go		
-				const auto index = psl - GetInfo();
 				GetValue(index)
-					.CallUnknownMoveAssignment<true>(1, Forward<Block>(value));
+					.CallUnknownMoveAssignment<false>(1, Move(value));
+				value.CallUnknownDestructors();
+				value.mCount = 0;
 				return;
 			}
 
 			if (attempts > *psl) {
 				// The pair we're inserting is closer to bucket, so swap		
-				const auto index = psl - GetInfo();
-				GetKey(index).SwapUnknown(Forward<Block>(key));
-				GetValue(index).SwapUnknown(Forward<Block>(value));
+				GetKey(index).SwapUnknown(Move(key));
+				GetValue(index).SwapUnknown(Move(value));
 				::std::swap(attempts, *psl);
 			}
 
@@ -740,12 +795,10 @@ namespace Langulus::Anyness
 
 			if (psl < pslEnd - 1) LIKELY() {
 				++psl;
-				candidate.Next();
 			}
 			else UNLIKELY() {
 				// Wrap around and start from the beginning						
 				psl = GetInfo();
-				candidate = GetKey(0);
 			}
 		}
 
@@ -754,9 +807,14 @@ namespace Langulus::Anyness
 		// eventually reached, unless key exists and returns early			
 		const auto index = psl - GetInfo();
 		GetKey(index)
-			.CallUnknownMoveConstructors<true>(1, Forward<Block>(key));
+			.CallUnknownMoveConstructors<false>(1, Move(key));
 		GetValue(index)
-			.CallUnknownMoveConstructors<true>(1, Forward<Block>(value));
+			.CallUnknownMoveConstructors<false>(1, Move(value));
+
+		key.CallUnknownDestructors();
+		value.CallUnknownDestructors();
+		key.mCount = value.mCount = 0;
+
 		*psl = attempts;
 		++mValues.mCount;
 	}
@@ -780,8 +838,11 @@ namespace Langulus::Anyness
 		static_assert(CT::CopyMakable<V>,
 			"Value needs to be copy-constructible, but isn't");
 
+		Mutate<K, V>();
 		Allocate(GetCount() + 1);
-		InsertInner(GetBucket(key), K {key}, V {value});
+		using KeyInner = typename TAny<K>::TypeInner;
+		using ValInner = typename TAny<V>::TypeInner;
+		InsertInner(GetBucket(key), KeyInner {key}, ValInner {value});
 		return 1;
 	}
 
@@ -796,8 +857,14 @@ namespace Langulus::Anyness
 		static_assert(CT::MoveMakable<V>,
 			"Value needs to be move-constructible, but isn't");
 
+		Mutate<K, V>();
 		Allocate(GetCount() + 1);
-		InsertInner(GetBucket(key), K {key}, Forward<V>(value));
+		using KeyInner = typename TAny<K>::TypeInner;
+		using ValInner = typename TAny<V>::TypeInner;
+		if constexpr (CT::Sparse<V>)
+			InsertInner(GetBucket(key), KeyInner {key}, ValInner {value});
+		else
+			InsertInner(GetBucket(key), KeyInner {key}, Forward<V>(value));
 		return 1;
 	}
 
@@ -812,8 +879,14 @@ namespace Langulus::Anyness
 		static_assert(CT::CopyMakable<V>,
 			"Value needs to be copy-constructible, but isn't");
 
+		Mutate<K, V>();
 		Allocate(GetCount() + 1);
-		InsertInner(GetBucket(key), Forward<K>(key), V {value});
+		using KeyInner = typename TAny<K>::TypeInner;
+		using ValInner = typename TAny<V>::TypeInner;
+		if constexpr (CT::Sparse<K>)
+			InsertInner(GetBucket(key), KeyInner {key}, ValInner {value});
+		else
+			InsertInner(GetBucket(key), Forward<K>(key), ValInner {value});
 		return 1;
 	}
 
@@ -828,8 +901,22 @@ namespace Langulus::Anyness
 		static_assert(CT::MoveMakable<V>,
 			"Value needs to be move-constructible, but isn't");
 
+		Mutate<K, V>();
 		Allocate(GetCount() + 1);
-		InsertInner(GetBucket(key), Forward<K>(key), Forward<V>(value));
+		using KeyInner = typename TAny<K>::TypeInner;
+		using ValInner = typename TAny<V>::TypeInner;
+		if constexpr (CT::Sparse<K>) {
+			if constexpr (CT::Sparse<V>)
+				InsertInner(GetBucket(key), KeyInner {key}, ValInner {value});
+			else
+				InsertInner(GetBucket(key), KeyInner {key}, Forward<V>(value));
+		}
+		else {
+			if constexpr (CT::Sparse<V>)
+				InsertInner(GetBucket(key), Forward<K>(key), ValInner {value});
+			else
+				InsertInner(GetBucket(key), Forward<K>(key), Forward<V>(value));
+		}
 		return 1;
 	}
 
@@ -838,12 +925,14 @@ namespace Langulus::Anyness
 	///	@param value - the value to add													
 	///	@return 1 if pair was inserted, zero otherwise								
 	inline Count UnorderedMap::InsertUnknown(const Block& key, const Block& value) {
+		Mutate(key.mType, key.IsSparse(), value.mType, value.IsSparse());
 		Allocate(GetCount() + 1);
-		Block keySwapper {DataState::Default, key.mType};
+
+		Block keySwapper {key.mType};
 		keySwapper.Allocate(1);
 		keySwapper.CallUnknownCopyConstructors<true>(1, key);
 
-		Block valSwapper {DataState::Default, value.mType};
+		Block valSwapper {value.mType};
 		valSwapper.Allocate(1);
 		valSwapper.CallUnknownCopyConstructors<true>(1, value);
 
@@ -859,6 +948,7 @@ namespace Langulus::Anyness
 	///	@param value - the value to add													
 	///	@return 1 if pair was inserted, zero otherwise								
 	inline Count UnorderedMap::InsertUnknown(Block&& key, Block&& value) {
+		Mutate(key.mType, key.IsSparse(), value.mType, value.IsSparse());
 		Allocate(GetCount() + 1);
 		InsertInnerUnknown(GetBucket(key), Forward<Block>(key), Forward<Block>(value));
 		return 1;
@@ -903,13 +993,15 @@ namespace Langulus::Anyness
 		auto inf = GetInfo();
 		const auto infEnd = GetInfoEnd();
 		while (inf != infEnd) {
-			const auto offset = inf - GetInfo();
-			if (*(inf++)) {
-				auto key = mKeys.GetElement();
+			if (*inf) {
+				const auto offset = inf - GetInfo();
+				auto key = GetKey(offset);
 				RemoveInner(key);
-				auto val = mValues.GetElement();
+				auto val = GetValue(offset);
 				RemoveInner(val);
 			}
+
+			++inf;
 		}
 	}
 
@@ -1205,7 +1297,8 @@ namespace Langulus::Anyness
 	decltype(auto) UnorderedMap::At(const K& key) {
 		auto found = GetRawValues<K>() + FindIndex<K>(key);
 		if (found == GetRawValuesEnd<K>())
-			Throw<Except::OutOfRange>("Key not found");
+			Throw<Except::OutOfRange>(
+				"Key not found", LANGULUS_LOCATION());
 		return *found;
 	}
 
@@ -1231,7 +1324,8 @@ namespace Langulus::Anyness
 	inline Block UnorderedMap::GetKey(const Index& index) {
 		const auto offset = index.GetOffset();
 		if (offset >= GetReserved() || 0 == GetInfo()[offset])
-			Throw<Except::OutOfRange>("Bad index for TUnorderedMap::GetKey");
+			Throw<Except::OutOfRange>(
+				"Bad index for UnorderedMap::GetKey", LANGULUS_LOCATION());
 		return GetKey(offset);
 	}
 
@@ -1248,7 +1342,8 @@ namespace Langulus::Anyness
 	inline Block UnorderedMap::GetValue(const Index& index) {
 		const auto offset = index.GetOffset();
 		if (offset >= GetReserved() || 0 == GetInfo()[offset])
-			Throw<Except::OutOfRange>("Bad index for TUnorderedMap::GetValue");
+			Throw<Except::OutOfRange>(
+				"Bad index for UnorderedMap::GetValue", LANGULUS_LOCATION());
 		return GetValue(offset);
 	}
 
@@ -1265,7 +1360,8 @@ namespace Langulus::Anyness
 	inline Pair UnorderedMap::GetPair(const Index& index) {
 		const auto offset = index.GetOffset();
 		if (offset >= GetReserved() || 0 == GetInfo()[offset])
-			Throw<Except::OutOfRange>("Bad index for TUnorderedMap::GetPair");
+			Throw<Except::OutOfRange>(
+				"Bad index for UnorderedMap::GetPair", LANGULUS_LOCATION());
 		return GetPair(offset);
 	}
 
@@ -1312,7 +1408,10 @@ namespace Langulus::Anyness
 	///	@return a the value wrapped inside an Any										
 	template<CT::Data K>
 	Any UnorderedMap::operator[] (const K& key) const {
-		Block element {GetValue(FindIndex<K>(key))};
+		auto found = FindIndex<K>(key);
+		if (found == GetReserved())
+			Throw<Except::OutOfRange>("Key not found", LANGULUS_LOCATION());
+		Block element {GetValue(found)};
 		return Disown(element);
 	}
 
@@ -1321,7 +1420,10 @@ namespace Langulus::Anyness
 	///	@return a the value wrapped inside an Any										
 	template<CT::Data K>
 	Any UnorderedMap::operator[] (const K& key) {
-		Block element {GetValue(FindIndex<K>(key))};
+		auto found = FindIndex<K>(key);
+		if (found == GetReserved())
+			Throw<Except::OutOfRange>("Key not found", LANGULUS_LOCATION());
+		Block element {GetValue(found)};
 		return Disown(element);
 	}
 

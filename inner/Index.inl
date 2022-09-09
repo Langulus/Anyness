@@ -12,20 +12,23 @@ namespace Langulus::Anyness
 {
 
 	/// Constructor from special index														
+	///	@param value - the index to copy													
 	constexpr Index::Index(const SpecialIndices& value) noexcept
 		: mIndex {value} { }
 
 	/// Constructor from signed integer														
+	///	@param value - integer to set														
 	template<CT::SignedInteger T>
 	constexpr Index::Index(const T& value) noexcept
 		: mIndex {value} { }
 	
 	/// Constructor from unsigned integer													
+	///	@param value - integer to set														
 	template<CT::UnsignedInteger T>
 	constexpr Index::Index(const T& value)
 		: mIndex {static_cast<Type>(value)} {
-		if (value > static_cast<Count>(MaxIndex))
-			Throw<Except::Overflow>("Index overflow on construction");
+		LANGULUS_ASSERT(value <= static_cast<T>(MaxIndex),
+			Except::Access, "Index overflow");
 	}
 
 	/// Constrain the index to some count (immutable)									
@@ -64,9 +67,9 @@ namespace Langulus::Anyness
 	/// Get an unsigned offset from the index, if possible							
 	/// Throws Except::Access if not possible to extract index						
 	///	@return a valid offset																
-	constexpr Offset Index::GetOffset() const {
-		if (IsSpecial())
-			Throw<Except::Access>("Can't convert special index to offset");
+	inline Offset Index::GetOffset() const {
+		LANGULUS_ASSERT(!IsSpecial(), Except::Access,
+			"Can't convert index to offset");
 		return static_cast<Offset>(mIndex);
 	}
 

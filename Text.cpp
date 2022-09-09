@@ -53,12 +53,14 @@ namespace Langulus::Anyness
 	Text::Text(Abandoned<TAny>&& other) noexcept
 		: TAny {other.Forward<TAny>()} { }
 
-	/// Construct from an exception															
+	/// Construct from a Langulus exception												
 	///	@param from - the exception to stringify										
 	Text::Text(const Exception& from) {
 		(*this) += from.GetName();
 		(*this) += "(";
 		(*this) += from.GetMessage();
+		(*this) += " at ";
+		(*this) += from.GetLocation();
 		(*this) += ")";
 	}
 
@@ -112,7 +114,7 @@ namespace Langulus::Anyness
 				newCount = utf8::utf8to16(begin(), end(), to.begin()) - to.begin();
 			}
 			catch (utf8::exception&) {
-				Throw<Except::Convert>("utf8 -> utf16 conversion error");
+				Throw<Except::Convert>("utf8 -> utf16 conversion error", LANGULUS_LOCATION());
 			}
 
 			return to.Trim(newCount);
@@ -131,7 +133,7 @@ namespace Langulus::Anyness
 				newCount = utf8::utf8to32(begin(), end(), to.begin()) - to.begin();
 			}
 			catch (utf8::exception&) {
-				Throw<Except::Convert>("utf8 -> utf16 conversion error");
+				Throw<Except::Convert>("utf8 -> utf16 conversion error", LANGULUS_LOCATION());
 			}
 
 			return to.Trim(newCount);
@@ -145,8 +147,7 @@ namespace Langulus::Anyness
 		if (mCount) {
 			const auto request = RequestSize(mCount);
 			result.mEntry = Inner::Allocator::Allocate(request.mByteSize);
-			if (!result.mEntry)
-				Throw<Except::Allocate>("Out of memory on cloning text");
+			LANGULUS_ASSERT(result.mEntry, Except::Allocate, "Out of memory");
 
 			result.mRaw = result.mEntry->GetBlockStart();
 			result.mReserved = request.mElementCount;
@@ -171,8 +172,7 @@ namespace Langulus::Anyness
 		Text result {Disown(*this)};
 		const auto request = RequestSize(result.mReserved + 1);
 		result.mEntry = Inner::Allocator::Allocate(request.mByteSize);
-		if (!result.mEntry)
-			Throw<Except::Allocate>("Out of memory on terminating text");
+		LANGULUS_ASSERT(result.mEntry, Except::Allocate, "Out of memory");
 
 		result.mRaw = result.mEntry->GetBlockStart();
 		result.mReserved = request.mElementCount;
@@ -282,7 +282,7 @@ namespace Langulus::Anyness
 	///	@param start - offset of the starting character								
 	///	@param count - the number of characters after 'start'						
 	///	@return new text that references the original memory						
-	Text Text::Crop(const Count& start, const Count& count) const {
+	Text Text::Crop(Count start, Count count) const {
 		return TAny::Crop<Text>(start, count);
 	}
 
@@ -290,7 +290,7 @@ namespace Langulus::Anyness
 	///	@param start - offset of the starting character								
 	///	@param count - the number of characters after 'start'						
 	///	@return new text that references the original memory						
-	Text Text::Crop(const Count& start, const Count& count) {
+	Text Text::Crop(Count start, Count count) {
 		return TAny::Crop<Text>(start, count);
 	}
 
@@ -321,13 +321,14 @@ namespace Langulus::Anyness
 	///	@param start - the starting character											
 	///	@param end - the ending character												
 	///	@return a reference to this text													
-	Text& Text::Remove(const Count& start, const Count& end) {
+	Text& Text::Remove(Count start, Count end) {
+		LANGULUS_ASSUME(UserAssumes, end >= start, "end < start");
 		const auto removed = ::std::min(end, mCount) - ::std::min(start, mCount);
 		if (0 == mCount || 0 == removed)
 			return *this;
 
-		if (IsConstant())
-			Throw<Except::Destruct>("Can't remove from constant text container");
+		LANGULUS_ASSERT(IsMutable(), Except::Destruct,
+			"Can't remove from constant container");
 
 		if (end < mCount)
 			Block::MoveMemory(mRaw + end, mRaw + start, mCount - end);
@@ -338,7 +339,7 @@ namespace Langulus::Anyness
 
 	/// Extend the text container and return a referenced part of it				
 	///	@return an array that represents the extended part							
-	Text Text::Extend(const Count& count) {
+	Text Text::Extend(Count count) {
 		return TAny::Extend<Text>(count);
 	}
 

@@ -105,6 +105,9 @@ namespace Langulus::Anyness
 		NOD() constexpr bool HasAuthority() const noexcept;
 		NOD() constexpr Count GetUses() const noexcept;
 
+		template<CT::Data K, CT::Data V>
+		void Mutate();
+		void Mutate(DMeta, bool, DMeta, bool);
 		void Allocate(const Count&);
 
 		NOD() UnorderedMap Clone() const;

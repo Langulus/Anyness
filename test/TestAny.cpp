@@ -10,6 +10,12 @@
 #include <any>
 #include <vector>
 
+/// See https://github.com/catchorg/Catch2/blob/devel/docs/tostring.md			
+CATCH_TRANSLATE_EXCEPTION(::Langulus::Exception const& ex) {
+	const Text serialized {ex};
+	return ::std::string {Token {serialized}};
+}
+
 using uint = unsigned int;
 
 SCENARIO("Any", "[containers]") {
@@ -355,8 +361,8 @@ SCENARIO("Any", "[containers]") {
 	GIVEN("Any with some POD items") {
 		#include "CollectGarbage.inl"
 
-		Any pack;
-		pack << int(1) << int(2) << int(3) << int(4) << int(5);
+		const Any pack;
+		const_cast<Any&>(pack) << int(1) << int(2) << int(3) << int(4) << int(5);
 		auto memory = pack.GetRaw();
 
 		REQUIRE(pack.GetCount() == 5);
@@ -365,7 +371,7 @@ SCENARIO("Any", "[containers]") {
 		REQUIRE(pack.GetRaw());
 
 		WHEN("Push more stuff") {
-			pack << int(6) << int(7) << int(8) << int(9) << int(10);
+			const_cast<Any&>(pack) << int(6) << int(7) << int(8) << int(9) << int(10);
 			THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
 				REQUIRE(pack.GetCount() == 10);
 				REQUIRE(pack.GetReserved() >= 10);
@@ -378,8 +384,8 @@ SCENARIO("Any", "[containers]") {
 		}
 
 		WHEN("The size is reduced") {
-			pack.RemoveIndex(pack.Find(int(2)));
-			pack.RemoveIndex(pack.Find(int(4)));
+			const_cast<Any&>(pack).RemoveIndex(pack.Find(int(2)));
+			const_cast<Any&>(pack).RemoveIndex(pack.Find(int(4)));
 			THEN("The size changes but not capacity") {
 				REQUIRE(pack.As<int>(0) == 1);
 				REQUIRE(pack.As<int>(1) == 3);
@@ -392,11 +398,11 @@ SCENARIO("Any", "[containers]") {
 		}
 
 		WHEN("The size is reduced to zero") {
-			pack.RemoveIndex(pack.Find(int(2)));
-			pack.RemoveIndex(pack.Find(int(4)));
-			pack.RemoveIndex(pack.Find(int(1)));
-			pack.RemoveIndex(pack.Find(int(3)));
-			pack.RemoveIndex(pack.Find(int(5)));
+			const_cast<Any&>(pack).RemoveIndex(pack.Find(int(2)));
+			const_cast<Any&>(pack).RemoveIndex(pack.Find(int(4)));
+			const_cast<Any&>(pack).RemoveIndex(pack.Find(int(1)));
+			const_cast<Any&>(pack).RemoveIndex(pack.Find(int(3)));
+			const_cast<Any&>(pack).RemoveIndex(pack.Find(int(5)));
 			THEN("The container should be fully cleared, but memory should still be in use") {
 				REQUIRE(pack.GetCount() == 0);
 				REQUIRE(pack.GetReserved() > 0);
@@ -407,7 +413,7 @@ SCENARIO("Any", "[containers]") {
 		}
 
 		WHEN("More capacity is reserved") {
-			pack.Allocate(20);
+			const_cast<Any&>(pack).Allocate(20);
 			THEN("The capacity changes but not the size, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
 				REQUIRE(pack.GetCount() == 5);
 				REQUIRE(pack.GetReserved() >= 20);
@@ -419,7 +425,7 @@ SCENARIO("Any", "[containers]") {
 		}
 
 		WHEN("Less capacity is reserved") {
-			pack.Allocate(2);
+			const_cast<Any&>(pack).Allocate(2);
 			THEN("Neither size nor capacity are changed") {
 				REQUIRE(pack.GetCount() == 2);
 				REQUIRE(pack.GetReserved() >= 5);
@@ -429,7 +435,7 @@ SCENARIO("Any", "[containers]") {
 		}
 
 		WHEN("Pack is cleared") {
-			pack.Clear();
+			const_cast<Any&>(pack).Clear();
 			THEN("Size goes to zero, capacity and type are unchanged") {
 				REQUIRE(pack.GetCount() == 0);
 				REQUIRE(pack.GetReserved() >= 5);
@@ -440,7 +446,7 @@ SCENARIO("Any", "[containers]") {
 		}
 
 		WHEN("Pack is reset") {
-			pack.Reset();
+			const_cast<Any&>(pack).Reset();
 			THEN("Size and capacity goes to zero, type is reset to udAny") {
 				REQUIRE(pack.GetCount() == 0);
 				REQUIRE(pack.GetReserved() == 0);
@@ -452,8 +458,8 @@ SCENARIO("Any", "[containers]") {
 
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
 			WHEN("Pack is reset, then immediately allocated again") {
-				pack.Reset();
-				pack << int(6) << int(7) << int(8) << int(9) << int(10);
+				const_cast<Any&>(pack).Reset();
+				const_cast<Any&>(pack) << int(6) << int(7) << int(8) << int(9) << int(10);
 				THEN("Block manager should reuse the memory if MANAGED_MEMORY feature is enabled") {
 					REQUIRE(pack.GetRaw() == memory);
 				}
@@ -461,7 +467,7 @@ SCENARIO("Any", "[containers]") {
 		#endif
 
 		WHEN("Pack is shallow-copied") {
-			pack.MakeOr();
+			const_cast<Any&>(pack).MakeOr();
 			auto copy = pack;
 			THEN("The new pack should keep the state and data") {
 				REQUIRE(copy.GetRaw() == pack.GetRaw());
@@ -474,7 +480,7 @@ SCENARIO("Any", "[containers]") {
 		}
 
 		WHEN("Pack is cloned") {
-			pack.MakeOr();
+			const_cast<Any&>(pack).MakeOr();
 			auto clone = pack.Clone();
 			THEN("The new pack should keep the state and data") {
 				REQUIRE(clone.GetRaw() != pack.GetRaw());
@@ -488,9 +494,12 @@ SCENARIO("Any", "[containers]") {
 		}
 
 		WHEN("Pack is moved") {
-			pack.MakeOr();
-			Any moved = Move(pack);
+			auto movable = pack;
+			movable.MakeOr();
+			Any moved = Move(movable);
 			THEN("The new pack should keep the state and data") {
+				REQUIRE(moved == pack);
+				REQUIRE(movable != pack);
 				REQUIRE(pack.GetRaw() == nullptr);
 				REQUIRE(pack.GetCount() == 0);
 				REQUIRE(pack.GetReserved() == 0);

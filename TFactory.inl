@@ -52,9 +52,8 @@ namespace Langulus::Anyness
 		if (!mData.Owns(item) || item->GetReferences() == 0)
 			return;
 
-		if (item->GetReferences() > 1)
-			Throw<Except::Destruct>(
-				"Can't destroy element in use at TFactory::Destroy");
+		LANGULUS_ASSERT(item->GetReferences() == 1, Except::Destruct,
+			"Can't destroy element in use");
 
 		// Remove from hashmap															
 		auto& list = mHashmap[item->mHash];

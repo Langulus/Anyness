@@ -67,8 +67,7 @@ namespace Langulus::Anyness
 				auto& compatible = static_cast<const Decay<T>&>(other);
 				Insert<IndexBack, KEEP>(&compatible, &compatible + 1);
 			}
-			else
-				Throw<Except::Copy>("Bad copy-construction for TAny");
+			else Throw<Except::Copy>("Bad copy-construction", LANGULUS_LOCATION());
 		}
 	}
 
@@ -109,7 +108,7 @@ namespace Langulus::Anyness
 			if constexpr (CT::Deep<T>)
 				Insert<IndexBack, KEEP>(Forward<Decay<T>>(other));
 			else
-				Throw<Except::Copy>("Bad move-construction for TAny");
+				Throw<Except::Copy>("Bad move-construction", LANGULUS_LOCATION());
 		}
 	}
 
@@ -318,7 +317,7 @@ namespace Langulus::Anyness
 			auto& compatible = static_cast<const Decay<T>&>(other);
 			Insert<IndexBack, KEEP>(&compatible, &compatible + 1);
 		}
-		else Throw<Except::Copy>("Bad copy-assignment for TAny");
+		else Throw<Except::Copy>("Bad copy-assignment", LANGULUS_LOCATION());
 	}
 
 	/// Move-construct from another container by performing runtime type check	
@@ -352,7 +351,7 @@ namespace Langulus::Anyness
 			ResetState();
 			Insert<IndexBack, KEEP>(Forward<Decay<T>>(other));
 		}
-		else Throw<Except::Copy>("Bad move-assignment for TAny");
+		else Throw<Except::Copy>("Bad move-assignment", LANGULUS_LOCATION());
 	}
 
 	/// Copy-assign an unknown container													
@@ -778,38 +777,38 @@ namespace Langulus::Anyness
 			return static_cast<Decay<ALT_T>*&>(element.mPointer);
 	}
 
-	/// Access typed dense elements via a simple index (unsafe)						
+	/// Access typed dense elements by index												
 	///	@param idx - the index to get														
 	///	@return a reference to the element												
 	TEMPLATE()
 	template<CT::Index IDX>
 	decltype(auto) TAny<T>::operator [] (const IDX& index) const {
-		const auto offset = Block::template SimplifyIndex<T>(index);
+		const auto offset = SimplifyIndex<T>(index);
 		return TAny<T>::GetRaw()[offset];
 	}
 
 	TEMPLATE()
 	template<CT::Index IDX>
 	decltype(auto) TAny<T>::operator [] (const IDX& index) {
-		const auto offset = Block::template SimplifyIndex<T>(index);
+		const auto offset = SimplifyIndex<T>(index);
 		return TAny<T>::GetRaw()[offset];
 	}
 
-	/// Access last element (unsafe)															
-	///	@return a reference to the last element										
+	/// Access last element																		
+	///	@attention assumes container has at least one item							
+	///	@return a mutable reference to the last element								
 	TEMPLATE()
 	decltype(auto) TAny<T>::Last() {
-		if (IsEmpty())
-			Throw<Except::OutOfRange>("Can't get last index of empty container");
+		LANGULUS_ASSUME(UserAssumes, mCount, "Can't get last index");
 		return Get<T>(mCount - 1);
 	}
 
-	/// Access last element (const, unsafe)												
+	/// Access last element																		
+	///	@attention assumes container has at least one item							
 	///	@return a constant reference to the last element							
 	TEMPLATE()
 	decltype(auto) TAny<T>::Last() const {
-		if (IsEmpty())
-			Throw<Except::OutOfRange>("Can't get last index of empty container");
+		LANGULUS_ASSUME(UserAssumes, mCount, "Can't get last index");
 		return Get<T>(mCount - 1);
 	}
 	
@@ -931,10 +930,9 @@ namespace Langulus::Anyness
 
 		if (offset < mCount) {
 			// Move memory if required													
-			if (GetUses() > 1) {
-				Throw<Except::Reference>(
-					"Moving elements that are used from multiple places");
-			}
+			LANGULUS_ASSERT(GetUses() == 1, Except::Move,
+				"Inserting elements to memory block, used from multiple places, "
+				"requires memory to move");
 
 			CropInner(offset + count, 0, mCount - offset)
 				.template CallKnownMoveConstructors<false, T>(
@@ -962,10 +960,9 @@ namespace Langulus::Anyness
 
 		if (offset < mCount) {
 			// Move memory if required													
-			if (GetUses() > 1) {
-				Throw<Except::Reference>(
-					"Moving elements that are used from multiple places");
-			}
+			LANGULUS_ASSERT(GetUses() == 1, Except::Move,
+				"Inserting elements to memory block, used from multiple places, "
+				"requires memory to move");
 
 			CropInner(offset + 1, 0, mCount - offset)
 				.template CallKnownMoveConstructors<false, T>(
@@ -999,10 +996,9 @@ namespace Langulus::Anyness
 
 		// Move memory if required														
 		if constexpr (INDEX == IndexFront) {
-			SAFETY(if (GetUses() > 1)
-				Throw<Except::Reference>(
-					"Moving elements that are used from multiple places"
-					" - you should first clone the container"));
+			LANGULUS_ASSERT(GetUses() == 1, Except::Move,
+				"Inserting elements to memory block, used from multiple places, "
+				"requires memory to move");
 
 			CropInner(count, 0, mCount)
 				.template CallKnownMoveConstructors<false, T>(
@@ -1018,7 +1014,7 @@ namespace Langulus::Anyness
 
 	/// Move-insert an element at the start or the end									
 	///	@tparam INDEX - use IndexBack or IndexFront to append accordingly		
-	///	@tparam KEEP - whether to reference data on copy							
+	///	@tparam KEEP - whether to completely reset source after move			
 	///	@param item - item to move int													
 	///	@return 1 if element was pushed													
 	TEMPLATE()
@@ -1035,10 +1031,9 @@ namespace Langulus::Anyness
 
 		// Move memory if required														
 		if constexpr (INDEX == IndexFront) {
-			SAFETY(if (GetUses() > 1)
-				Throw<Except::Reference>(
-					"Moving elements that are used from multiple places"
-					" - you should first clone the container"));
+			LANGULUS_ASSERT(GetUses() == 1, Except::Move,
+				"Inserting elements to memory block, used from multiple places, "
+				"requires memory to move");
 
 			CropInner(1, 0, mCount)
 				.template CallKnownMoveConstructors<false, T>(
@@ -1316,52 +1311,55 @@ namespace Langulus::Anyness
 	}
 
 	/// Remove sequential raw indices in a given range									
+	///	@attention assumes starter + count is inside container bounds			
 	///	@param starter - simple index to start removing from						
 	///	@param count - number of elements to remove									
 	///	@return the number of removed elements											
 	TEMPLATE()
 	Count TAny<T>::RemoveIndex(const Offset& starter, const Count& count) {
-		SAFETY(if (starter >= mCount || count > mCount || starter + count > mCount)
-			Throw<Except::Access>(
-				"Index out of range"));
-		SAFETY(if (GetUses() > 1)
-			Throw<Except::Reference>(
-				"Removing elements from a memory block, that is used from multiple places"));
+		LANGULUS_ASSUME(UserAssumes, starter + count < mCount,
+			"Index out of range");
 
 		const auto ender = starter + count;
 		if constexpr (CT::POD<T>) {
-			// If data is POD and elements are on the back, we can			
-			// get around constantness and staticness, by simply				
-			// truncating the count without any reprecussions					
-			if (ender == mCount)
+			if (ender == mCount) {
+				// If data is POD and elements are on the back, we can		
+				// get around constantness and staticness, by simply			
+				// truncating the count without any reprecussions				
+				// We can completely skip destroying POD things					
 				mCount = starter;
-			else {
-				if (IsConstant()) {
-					Throw<Except::Access>(
-						"Attempting to RemoveIndex in a constant container");
-				}
-
-				if (IsStatic()) {
-					Throw<Except::Access>(
-						"Attempting to RemoveIndex in a static container");
-				}
-
-				MoveMemory(GetRaw() + ender, GetRaw() + starter, sizeof(T) * (mCount - ender));
-				mCount -= count;
+				return count;
 			}
 
+			LANGULUS_ASSERT(GetUses() == 1, Except::Move,
+				"Removing elements from memory block, used from multiple places, "
+				"requires memory to move");
+			LANGULUS_ASSERT(IsMutable(), Except::Access,
+				"Attempting to remove from constant container");
+			LANGULUS_ASSERT(!IsStatic(), Except::Access,
+				"Attempting to remove from static container");
+
+			MoveMemory(GetRaw() + ender, GetRaw() + starter, sizeof(T) * (mCount - ender));
+			mCount -= count;
 			return count;
 		}
 		else {
-			if (IsConstant()) {
-				Throw<Except::Access>(
-					"Attempting to RemoveIndex in a constant container");
+			if (IsStatic() && ender == mCount) {
+				// If data is static and elements are on the back, we can	
+				// get around constantness and staticness, by simply			
+				// truncating the count without any reprecussions				
+				// We can't destroy static element anyways						
+				mCount = starter;
+				return count;
 			}
 
-			if (IsStatic()) {
-				Throw<Except::Access>(
-					"Attempting to RemoveIndex in a static container");
-			}
+			LANGULUS_ASSERT(GetUses() == 1, Except::Move,
+				"Removing elements from memory block, used from multiple places, "
+				"requires memory to move");
+			LANGULUS_ASSERT(IsMutable(), Except::Access,
+				"Attempting to remove from constant container");
+			LANGULUS_ASSERT(!IsStatic(), Except::Access,
+				"Attempting to remove from static container");
 
 			// Call the destructors on the correct region						
 			CropInner(starter, count, count)
@@ -1387,8 +1385,7 @@ namespace Langulus::Anyness
 	void TAny<T>::Sort() {
 		if constexpr (CT::Sortable<T>)
 			Any::Sort<T, ASCEND>();
-		else
-			LANGULUS_ERROR("Can't sort container - T is not sortable");
+		else LANGULUS_ERROR("Can't sort container - T is not sortable");
 	}
 
 	/// Remove elements on the back															
@@ -1515,8 +1512,7 @@ namespace Langulus::Anyness
 				// significantly reduces the possiblity for a move)			
 				// Also, make sure to free the previous mEntry if moved		
 				mEntry = Inner::Allocator::Reallocate(request.mByteSize, mEntry);
-				if (!mEntry)
-					Throw<Except::Allocate>("Out of memory on TAny reallocation");
+				LANGULUS_ASSERT(mEntry, Except::Allocate, "Out of memory");
 
 				if (mEntry != previousBlock.mEntry) {
 					// Memory moved, and we should call move-construction		
@@ -1534,8 +1530,7 @@ namespace Langulus::Anyness
 				// Memory is used from multiple locations, and we must		
 				// copy the memory for this block - we can't move it!			
 				mEntry = Inner::Allocator::Allocate(request.mByteSize);
-				if (!mEntry)
-					Throw<Except::Allocate>("Out of memory on additional TAny allocation");
+				LANGULUS_ASSERT(mEntry, Except::Allocate, "Out of memory");
 
 				mRaw = mEntry->GetBlockStart();
 				mCount = 0;
@@ -1550,8 +1545,7 @@ namespace Langulus::Anyness
 		else {
 			// Allocate a fresh set of elements										
 			mEntry = Inner::Allocator::Allocate(request.mByteSize);
-			if (!mEntry)
-				Throw<Except::Allocate>("Out of memory on fresh TAny allocation");
+			LANGULUS_ASSERT(mEntry, Except::Allocate, "Out of memory");
 
 			mRaw = mEntry->GetBlockStart();
 			if constexpr (CREATE) {
@@ -1590,8 +1584,7 @@ namespace Langulus::Anyness
 			// Allocate more space														
 			auto previousBlock = static_cast<Block&>(*this);
 			mEntry = Inner::Allocator::Reallocate(GetStride() * newCount, mEntry);
-			if (!mEntry)
-				Throw<Except::Allocate>("Out of memory on TAny extension");
+			LANGULUS_ASSERT(mEntry, Except::Allocate, "Out of memory");
 
 			mRaw = mEntry->GetBlockStart();
 			if constexpr (CT::POD<T>) {
@@ -1645,8 +1638,7 @@ namespace Langulus::Anyness
 			if (result.mCount) {
 				const auto request = RequestSize(result.mCount);
 				result.mEntry = Inner::Allocator::Allocate(request.mByteSize);
-				if (!result.mEntry)
-					Throw<Except::Allocate>("Out of memory on concatenating TAny");
+				LANGULUS_ASSERT(result.mEntry, Except::Allocate, "Out of memory");
 
 				result.mRaw = result.mEntry->GetBlockStart();
 				result.mReserved = request.mElementCount;
@@ -1680,11 +1672,7 @@ namespace Langulus::Anyness
 
 		auto t1 = GetRaw();
 		auto t2 = other.GetRaw();
-		while (t1 < GetRawEnd() && *t1 == *t2) {
-			++t1;
-			++t2;
-		}
-
+		while (t1 < GetRawEnd() && *(t1++) == *(t2++));
 		return (t1 - GetRaw()) == mCount;
 	}
 
@@ -1943,7 +1931,7 @@ namespace Langulus::Anyness
 	///	@attention assumes contained pointer is valid								
 	TEMPLATE()
 	auto KNOWNPOINTER()::operator -> () const {
-		LANGULUS_ASSUME(1, mPointer, "Invalid pointer");
+		LANGULUS_ASSUME(UserAssumes, mPointer, "Invalid pointer");
 		return mPointer;
 	}
 
@@ -1951,7 +1939,7 @@ namespace Langulus::Anyness
 	///	@attention assumes contained pointer is valid								
 	TEMPLATE()
 	auto KNOWNPOINTER()::operator -> () {
-		LANGULUS_ASSUME(1, mPointer, "Invalid pointer");
+		LANGULUS_ASSUME(UserAssumes, mPointer, "Invalid pointer");
 		return mPointer;
 	}
 
@@ -1959,7 +1947,7 @@ namespace Langulus::Anyness
 	///	@attention assumes contained pointer is valid								
 	TEMPLATE()
 	decltype(auto) KNOWNPOINTER()::operator * () const {
-		LANGULUS_ASSUME(1, mPointer, "Invalid pointer");
+		LANGULUS_ASSUME(UserAssumes, mPointer, "Invalid pointer");
 		return *mPointer;
 	}
 
@@ -1967,7 +1955,7 @@ namespace Langulus::Anyness
 	///	@attention assumes contained pointer is valid								
 	TEMPLATE()
 	decltype(auto) KNOWNPOINTER()::operator * () {
-		LANGULUS_ASSUME(1, mPointer, "Invalid pointer");
+		LANGULUS_ASSUME(UserAssumes, mPointer, "Invalid pointer");
 		return *mPointer;
 	}
 

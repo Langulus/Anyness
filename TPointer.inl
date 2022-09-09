@@ -84,11 +84,11 @@ namespace Langulus::Anyness
 	TEMPLATE_SHARED()
 	TPointer<T, DR> TPointer<T, DR>::Create(Decay<T>&& initializer) requires CT::MoveMakable<Decay<T>> {
 		TPointer pointer;
-		pointer.mEntry = Inner::Allocator::Allocate(RTTI::GetAllocationPageOf<Decay<T>>());
-		if (!pointer.mEntry)
-			Throw<Except::Allocate>("Out of memory on creating pointer");
-
-		pointer.mValue = reinterpret_cast<Type>(pointer.mEntry->GetBlockStart());
+		pointer.mEntry = Inner::Allocator::Allocate(
+			RTTI::GetAllocationPageOf<Decay<T>>());
+		LANGULUS_ASSERT(pointer.mEntry, Except::Allocate, "Out of memory");
+		pointer.mValue = reinterpret_cast<Type>(
+			pointer.mEntry->GetBlockStart());
 		new (pointer.mValue) Decay<T> {Forward<Decay<T>>(initializer)};
 		return pointer;
 	}
@@ -100,11 +100,11 @@ namespace Langulus::Anyness
 	TEMPLATE_SHARED()
 	TPointer<T, DR> TPointer<T, DR>::Create(const Decay<T>& initializer) requires CT::CopyMakable<Decay<T>> {
 		TPointer pointer;
-		pointer.mEntry = Inner::Allocator::Allocate(RTTI::GetAllocationPageOf<Decay<T>>());
-		if (!pointer.mEntry)
-			Throw<Except::Allocate>("Out of memory on creating pointer");
-
-		pointer.mValue = reinterpret_cast<Type>(pointer.mEntry->GetBlockStart());
+		pointer.mEntry = Inner::Allocator::Allocate(
+			RTTI::GetAllocationPageOf<Decay<T>>());
+		LANGULUS_ASSERT(pointer.mEntry, Except::Allocate, "Out of memory");
+		pointer.mValue = reinterpret_cast<Type>(
+			pointer.mEntry->GetBlockStart());
 		new (pointer.mValue) Decay<T> {initializer};
 		return pointer;
 	}
@@ -115,11 +115,11 @@ namespace Langulus::Anyness
 	TEMPLATE_SHARED()
 	TPointer<T, DR> TPointer<T, DR>::Create() requires CT::Defaultable<Decay<T>> {
 		TPointer pointer;
-		pointer.mEntry = Inner::Allocator::Allocate(RTTI::GetAllocationPageOf<Decay<T>>());
-		if (!pointer.mEntry)
-			Throw<Except::Allocate>("Out of memory on creating pointer");
-
-		pointer.mValue = reinterpret_cast<decltype(pointer.mValue)>(pointer.mEntry->GetBlockStart());
+		pointer.mEntry = Inner::Allocator::Allocate(
+			RTTI::GetAllocationPageOf<Decay<T>>());
+		LANGULUS_ASSERT(pointer.mEntry, Except::Allocate, "Out of memory");
+		pointer.mValue = reinterpret_cast<decltype(pointer.mValue)>(
+			pointer.mEntry->GetBlockStart());
 		new (pointer.mValue) Decay<T> {};
 		return pointer;
 	}
@@ -131,11 +131,11 @@ namespace Langulus::Anyness
 	TEMPLATE_SHARED() template<typename... ARGS>
 	TPointer<T, DR> TPointer<T, DR>::New(ARGS&&... arguments) {
 		TPointer pointer;
-		pointer.mEntry = Inner::Allocator::Allocate(RTTI::GetAllocationPageOf<Decay<T>>());
-		if (!pointer.mEntry)
-			Throw<Except::Allocate>("Out of memory on new pointer");
-
-		pointer.mValue = reinterpret_cast<decltype(pointer.mValue)>(pointer.mEntry->GetBlockStart());
+		pointer.mEntry = Inner::Allocator::Allocate(
+			RTTI::GetAllocationPageOf<Decay<T>>());
+		LANGULUS_ASSERT(pointer.mEntry, Except::Allocate, "Out of memory");
+		pointer.mValue = reinterpret_cast<decltype(pointer.mValue)>(
+			pointer.mEntry->GetBlockStart());
 		new (pointer.mValue) Decay<T> {Forward<ARGS>(arguments)...};
 		return pointer;
 	}
@@ -311,37 +311,39 @@ namespace Langulus::Anyness
 		return dynamic_cast<RESOLVED>(mValue);
 	}
 
-	/// Access the pointer																		
-	///	@attention does not check if contained pointer is valid					
+	/// Access constant pointer																
+	///	@attention assumes contained pointer is valid								
 	///	@return the contained constant raw pointer									
 	TEMPLATE_OWNED()
 	auto TOwned<T>::operator -> () const requires CT::Sparse<T> {
-		if (!mValue)
-			Throw<Except::Access>("Invalid pointer");
+		LANGULUS_ASSUME(UserAssumes, mValue, "Invalid pointer");
 		return mValue;
 	}
 
+	/// Access mutable pointer																	
+	///	@attention assumes contained pointer is valid								
+	///	@return the contained raw pointer												
 	TEMPLATE_OWNED()
 	auto TOwned<T>::operator -> () requires CT::Sparse<T> {
-		if (!mValue)
-			Throw<Except::Access>("Invalid pointer");
+		LANGULUS_ASSUME(UserAssumes, mValue, "Invalid pointer");
 		return mValue;
 	}
 
 	/// Access the dereferenced pointer (const)											
-	///	@attention does not check if contained pointer is valid					
-	///	@return the contained constant dereferenced pointer						
+	///	@attention assumes contained pointer is valid								
+	///	@return the contained constant reference										
 	TEMPLATE_OWNED()
 	decltype(auto) TOwned<T>::operator * () const requires CT::Sparse<T> {
-		if (!mValue)
-			Throw<Except::Access>("Invalid pointer");
+		LANGULUS_ASSUME(UserAssumes, mValue, "Invalid pointer");
 		return *mValue;
 	}
 
+	/// Access the dereferenced pointer														
+	///	@attention assumes contained pointer is valid								
+	///	@return the contained mutable reference										
 	TEMPLATE_OWNED()
 	decltype(auto) TOwned<T>::operator * () requires CT::Sparse<T> {
-		if (!mValue)
-			Throw<Except::Access>("Invalid pointer");
+		LANGULUS_ASSUME(UserAssumes, mValue, "Invalid pointer");
 		return *mValue;
 	}
 

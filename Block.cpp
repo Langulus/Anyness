@@ -153,7 +153,7 @@ namespace Langulus::Anyness
 		}
 		else {
 			Logger::Error("Unhashable type ", GetToken());
-			Throw<Except::Access>("Unhashable type");
+			Throw<Except::Access>("Unhashable type", LANGULUS_LOCATION());
 		}
 
 		return HashBytes<DefaultHashSeed, false>(h.GetRaw(), h.GetByteSize());

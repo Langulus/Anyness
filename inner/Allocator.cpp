@@ -22,11 +22,11 @@ namespace Langulus::Anyness::Inner
 	/// Allocate a memory entry																
 	///	@attention doesn't call any constructors										
 	///	@attention doesn't throw - check if return is nullptr						
+	///	@attention assumes size is not zero												
 	///	@param size - the number of bytes to allocate								
 	///	@return the allocation, or nullptr if out of memory						
 	Allocation* Allocator::Allocate(const Size& size) SAFETY_NOEXCEPT() {
-		SAFETY(if (0 == size)
-			Throw<Except::Allocate>("Zero allocation is not allowed"));
+		LANGULUS_ASSUME(DevAssumes, size, "Zero allocation is not allowed");
 
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
 			//	Attempt to directly allocate in available pools					
@@ -88,16 +88,14 @@ namespace Langulus::Anyness::Inner
 	///	@param previous - the previous memory entry									
 	///	@return the reallocated memory entry, or nullptr if out of memory		
 	Allocation* Allocator::Reallocate(const Size& size, Allocation* previous) SAFETY_NOEXCEPT() {
-		#if LANGULUS(SAFE)
-			if (previous == nullptr)
-				Throw<Except::Allocate>("Reallocating nullptr");
-			if (size == previous->GetAllocatedSize())
-				Throw<Except::Allocate>("Reallocation suboptimal - size is same as previous");
-			if (size == 0)
-				Throw<Except::Allocate>("Zero reallocation is not allowed");
-			if (previous->mReferences == 0)
-				Throw<Except::Allocate>("Deallocating an unused allocation");
-		#endif
+		LANGULUS_ASSUME(DevAssumes, previous,
+			"Reallocating nullptr");
+		LANGULUS_ASSUME(DevAssumes, size != previous->GetAllocatedSize(),
+			"Reallocation suboptimal - size is same as previous");
+		LANGULUS_ASSUME(DevAssumes, size,
+			"Zero reallocation is not allowed");
+		LANGULUS_ASSUME(DevAssumes, previous->mReferences,
+			"Deallocating an unused allocation");
 
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
 			// New size is bigger, precautions must be taken					
@@ -122,14 +120,12 @@ namespace Langulus::Anyness::Inner
 	///	@attention doesn't call any destructors										
 	///	@param entry - the memory entry to deallocate								
 	void Allocator::Deallocate(Allocation* entry) SAFETY_NOEXCEPT() {
-		#if LANGULUS(SAFE)
-			if (entry == nullptr)
-				Throw<Except::Allocate>("Deallocating nullptr");
-			if (entry->GetAllocatedSize() == 0)
-				Throw<Except::Allocate>("Deallocating an empty allocation");
-			if (entry->mReferences == 0)
-				Throw<Except::Allocate>("Deallocating an unused allocation");
-		#endif
+		LANGULUS_ASSUME(DevAssumes, entry,
+			"Deallocating nullptr");
+		LANGULUS_ASSUME(DevAssumes, entry->GetAllocatedSize(),
+			"Deallocating an empty allocation");
+		LANGULUS_ASSUME(DevAssumes, entry->mReferences,
+			"Deallocating an unused allocation");
 
 		#if LANGULUS_FEATURE(MEMORY_STATISTICS)
 			mStatistics.mBytesAllocatedByFrontend -= entry->GetTotalSize();
@@ -145,29 +141,24 @@ namespace Langulus::Anyness::Inner
 
 #if LANGULUS_FEATURE(MANAGED_MEMORY)
 	/// Allocate a pool																			
-	///	@attention size must be power-of-two											
+	///	@attention assumes size is a power-of-two										
 	///	@attention the pool must be deallocated with DeallocatePool				
 	///	@param size size of the pool (in bytes)										
 	///	@return a pointer to the new pool												
 	Pool* Allocator::AllocatePool(const Size& size) SAFETY_NOEXCEPT() {
-		#if LANGULUS(SAFE)
-			if (!IsPowerOfTwo(size))
-				Throw<Except::Allocate>("Pool size is not a power-of-two");
-		#endif
-
+		LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(size),
+			"Pool size not a power-of-two");
 		return Inner::AlignedAllocate<Pool>(size);
 	}
 
 	/// Deallocate a pool																		
 	///	@attention doesn't call any destructors										
 	///	@attention pool or any entry inside is no longer valid after this		
+	///	@attention assumes pool is a valid pointer									
 	///	@param pool - the pool to deallocate											
 	void Allocator::DeallocatePool(Pool* pool) SAFETY_NOEXCEPT() {
-		#if LANGULUS(SAFE)
-			if (!pool)
-				Throw<Except::Deallocate>("Trying to deallocate nullptr pool");
-		#endif
-
+		LANGULUS_ASSUME(DevAssumes, pool,
+			"Nullptr provided");
 		::std::free(pool->mHandle);
 	}
 
@@ -223,10 +214,7 @@ namespace Langulus::Anyness::Inner
 	///	@return the memory entry that manages the memory pointer, or			
 	///		nullptr if memory is not ours, or is no longer used					
 	Allocation* Allocator::Find(DMeta meta, const void* memory) SAFETY_NOEXCEPT() {
-		#if LANGULUS(SAFE)
-			if (memory == nullptr)
-				Throw<Except::Allocate>("Searching for nullptr on Allocator::Find");
-		#endif
+		LANGULUS_ASSUME(DevAssumes, memory, "Nullptr provided");
 
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
 			// Scan the last last pool that found something (hot region)	
@@ -259,16 +247,14 @@ namespace Langulus::Anyness::Inner
 	/// Check if memory is owned by the memory manager									
 	/// Unlike Allocator::Find, this doesn't check if memory is currently used	
 	/// and returns true, as long as the required pool is still available		
+	///	@attention assumes memory is a valid pointer									
 	///	@attention this function does nothing if										
 	///              LANGULUS_FEATURE(MANAGED_MEMORY) is disabled					
 	///	@param meta - the type of data to search for (optional)					
 	///	@param memory - memory pointer													
 	///	@return true if we own the memory												
 	bool Allocator::CheckAuthority(DMeta meta, const void* memory) SAFETY_NOEXCEPT() {
-		#if LANGULUS(SAFE)
-			if (memory == nullptr)
-				Throw<Except::Allocate>("Searching for nullptr on Allocator::CheckAuthority");
-		#endif
+		LANGULUS_ASSUME(DevAssumes, memory, "Nullptr provided");
 
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
 			// Scan the last last pool that found something (hot region)	

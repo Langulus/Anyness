@@ -67,11 +67,11 @@ namespace Langulus::Anyness
 		NOD() Text Terminate() const;
 		NOD() Text Lowercase() const;
 		NOD() Text Uppercase() const;
-		NOD() Text Crop(const Offset&, const Count&) const;
-		NOD() Text Crop(const Offset&, const Count&);
+		NOD() Text Crop(Offset, Count) const;
+		NOD() Text Crop(Offset, Count);
 		NOD() Text Strip(Letter) const;
-		Text& Remove(const Offset&, const Count&);
-		Text Extend(const Count&);
+		Text& Remove(Offset, Count);
+		Text Extend(Count);
 
 		NOD() operator Token () const noexcept;
 

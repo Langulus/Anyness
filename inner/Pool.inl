@@ -146,11 +146,9 @@ namespace Langulus::Anyness::Inner
 			// traverse and stitch here?
 		}
 
-		#if LANGULUS(SAFE)
-			if (mAllocatedByFrontend + bytesWithPadding < mAllocatedByFrontend)
-				Throw<Except::Deallocate>("Frontend byte counter overflow");
-		#endif
-
+		LANGULUS_ASSUME(DevAssumes,
+			mAllocatedByFrontend + bytesWithPadding >= mAllocatedByFrontend,
+			"Frontend byte counter overflow");
 		mAllocatedByFrontend += bytesWithPadding;
 		return newEntry;
 	}
@@ -159,14 +157,12 @@ namespace Langulus::Anyness::Inner
 	///	@attention assumes entry is valid												
 	///	@param entry - entry to remove													
 	inline void Pool::Deallocate(Allocation* entry) SAFETY_NOEXCEPT() {
-		#if LANGULUS(SAFE)
-			if (entry->mReferences == 0)
-				Throw<Except::Deallocate>("Removing an invalid entry");
-			if (mEntries == 0)
-				Throw<Except::Deallocate>("Bad valid entry count");
-			if (mAllocatedByFrontend < entry->GetTotalSize())
-				Throw<Except::Deallocate>("Bad frontend allocation size");
-		#endif
+		LANGULUS_ASSUME(DevAssumes, entry->mReferences != 0,
+			"Removing an invalid entry");
+		LANGULUS_ASSUME(DevAssumes, mEntries,
+			"Bad valid entry count");
+		LANGULUS_ASSUME(DevAssumes, mAllocatedByFrontend >= entry->GetTotalSize(),
+			"Bad frontend allocation size");
 
 		mAllocatedByFrontend -= entry->GetTotalSize();
 		entry->mReferences = 0;
@@ -197,10 +193,9 @@ namespace Langulus::Anyness::Inner
 	///	@param bytes - new number of bytes												
 	///	@return true if entry was enlarged without conflict						
 	inline bool Pool::Reallocate(Allocation* entry, const Size bytes) SAFETY_NOEXCEPT() {
-		#if LANGULUS(SAFE)
-			if (!Contains(entry) || entry->GetUses() == 0 || !bytes)
-				Throw<Except::Reallocate>("Invalid reallocation");
-		#endif
+		LANGULUS_ASSUME(DevAssumes,
+			bytes && Contains(entry) && entry && entry->GetUses(),
+			"Invalid reallocation");
 
 		if (bytes > entry->mAllocatedBytes) {
 			// We're enlarging the entry												
@@ -223,10 +218,8 @@ namespace Langulus::Anyness::Inner
 			// We're shrinking the entry												
 			// No checks required														
 			const auto removal = entry->mAllocatedBytes - bytes;
-			#if LANGULUS(SAFE)
-				if (mAllocatedByFrontend < removal)
-					Throw<Except::Reallocate>("Bad frontend allocation size");
-			#endif
+			LANGULUS_ASSUME(DevAssumes, mAllocatedByFrontend >= removal,
+				"Bad frontend allocation size");
 			mAllocatedByFrontend -= removal;
 
 			//TODO: keep track of size distrubution, 
@@ -319,8 +312,7 @@ namespace Langulus::Anyness::Inner
 	///	@param ptr - the address															
 	///	@return the index																		
 	inline Offset Pool::IndexFromAddress(const void* ptr) const SAFETY_NOEXCEPT() {
-		SAFETY(if (!Contains(ptr))
-			Throw<Except::OutOfRange>("Entry is outside pool"));
+		LANGULUS_ASSUME(DevAssumes, Contains(ptr), "Entry outside pool");
 
 		// Credit goes to Yasen Vidolov (G1)										
 		const Offset i = static_cast<const Byte*>(ptr) - mMemory;
@@ -376,8 +368,9 @@ namespace Langulus::Anyness::Inner
 	///		nullptr if memory is not ours, or is no longer used					
 	inline Allocation* Pool::Find(const void* memory) SAFETY_NOEXCEPT() {
 		#if LANGULUS(SAFE)
-			if (memory == nullptr)
-				Throw<Except::Allocate>("Searching for nullptr on Pool::Find");
+			if (!memory)
+				Throw<Except::Allocate>(
+					"Searching for nullptr on Pool::Find", LANGULUS_LOCATION());
 		#endif
 
 		if (Contains(memory)) {

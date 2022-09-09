@@ -25,16 +25,22 @@ namespace Langulus::Anyness
 		// Check if types are compatible												
 		if (!mType->Is(result.mType)) {
 			Block decayedResult = result.ReinterpretAs(*this);
-			if (decayedResult.IsEmpty())
-				Throw<Except::Copy>("Can't copy elements - incompatible types");
+			if (decayedResult.IsEmpty()) {
+				Throw<Except::Copy>(
+					"Can't copy elements - incompatible types",
+					LANGULUS_LOCATION());
+			}
 
 			// Attempt copy inside decayed type										
 			return Copy(decayedResult);
 		}
 
 		// If counts differ, no copy can occur										
-		if (mCount != result.mCount)
-			Throw<Except::Copy>("Can't copy elements - incompatible count");
+		if (mCount != result.mCount) {
+			Throw<Except::Copy>(
+				"Can't copy elements - incompatible count",
+				LANGULUS_LOCATION());
+		}
 
 		// Check if memory is the same after checking size						
 		// After all, there is no point in copying over the copy				
@@ -81,7 +87,8 @@ namespace Langulus::Anyness
 					// Type may not be compatible after resolve					
 					if (!from.mType->Is(to.mType)) {
 						Throw<Except::Copy>(
-							"Unable to copy-assign incompatible types after resolving element");
+							"Unable to copy-assign incompatible types after resolving element",
+							LANGULUS_LOCATION());
 					}
 
 					// Call copy operator												
@@ -96,7 +103,8 @@ namespace Langulus::Anyness
 				// Check if a copy operation is available							
 				if (!result.mType->mCopier) {
 					Throw<Except::Copy>(
-						"Unable to copy-assign - no assignment reflected");
+						"Unable to copy-assign - no assignment reflected",
+						LANGULUS_LOCATION());
 				}
 
 				for (Count i = 0; i < mCount; ++i) {
@@ -107,7 +115,8 @@ namespace Langulus::Anyness
 					// Type may not be compatible after resolve					
 					if (!from.mType->Is(to.mType)) {
 						Throw<Except::Copy>(
-							"Unable to copy-assign incompatible types after resolving element");
+							"Unable to copy-assign incompatible types after resolving element",
+							LANGULUS_LOCATION());
 					}
 
 					// Call copy operator												
@@ -176,7 +185,8 @@ namespace Langulus::Anyness
 			// Check if a copy operation is available								
 			if (!mType->mCopier) {
 				Throw<Except::Copy>(
-					"Unable to copy-assign - no assignment reflected");
+					"Unable to copy-assign - no assignment reflected",
+					LANGULUS_LOCATION());
 			}
 
 			// Iterate each instance in memory										

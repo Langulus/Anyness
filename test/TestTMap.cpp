@@ -9,6 +9,12 @@
 #include <catch2/catch.hpp>
 #include <unordered_map>
 
+/// See https://github.com/catchorg/Catch2/blob/devel/docs/tostring.md			
+CATCH_TRANSLATE_EXCEPTION(::Langulus::Exception const& ex) {
+	const Text serialized {ex};
+	return ::std::string {Token {serialized}};
+}
+
 using uint = unsigned int;
 using timer = Catch::Benchmark::Chronometer;
 template<class T>
@@ -60,11 +66,11 @@ concept IsStaticallyOptimized = requires (Decay<T> a) { typename T::Key; typenam
 TEMPLATE_TEST_CASE(
 	"TOrderedMap/TUnorderedMap/OrderedMap/UnorderedMap", "[map]",
 	(TypePair<UnorderedMap, Text, int>),
-	(TypePair<TUnorderedMap<Text, int*>, Text, int*>),
 	(TypePair<TUnorderedMap<Text, int>, Text, int>),
 	(TypePair<TUnorderedMap<Text, Trait>, Text, Trait>),
 	(TypePair<TUnorderedMap<Text, Traits::Count>, Text, Traits::Count>),
 	(TypePair<TUnorderedMap<Text, Any>, Text, Any>),
+	(TypePair<TUnorderedMap<Text, int*>, Text, int*>),
 	(TypePair<TUnorderedMap<Text, Trait*>, Text, Trait*>),
 	(TypePair<TUnorderedMap<Text, Traits::Count*>, Text, Traits::Count*>),
 	(TypePair<TUnorderedMap<Text, Any*>, Text, Any*>),
@@ -120,9 +126,9 @@ TEMPLATE_TEST_CASE(
 					REQUIRE(meta2);
 					REQUIRE(meta1->template Is<K>());
 					REQUIRE(meta2->template Is<V>());
-					REQUIRE(map.IsKeyTypeConstrained());
-					REQUIRE(map.IsValueTypeConstrained());
 				}
+				REQUIRE(map.IsKeyTypeConstrained() == IsStaticallyOptimized<T>);
+				REQUIRE(map.IsValueTypeConstrained() == IsStaticallyOptimized<T>);
 				REQUIRE(map.IsEmpty());
 				REQUIRE(map.GetUses() == 0);
 				REQUIRE_FALSE(map.IsAllocated());
@@ -152,6 +158,12 @@ TEMPLATE_TEST_CASE(
 			const_cast<T&>(map) = pair;
 
 			THEN("Various traits change") {
+				REQUIRE(map.IsKeyTypeConstrained() == IsStaticallyOptimized<T>);
+				REQUIRE(map.IsValueTypeConstrained() == IsStaticallyOptimized<T>);
+				REQUIRE(map.GetKeyType());
+				REQUIRE(map.GetValueType());
+				REQUIRE(map.template KeyIs<K>());
+				REQUIRE(map.template ValueIs<V>());
 				REQUIRE(map.IsAllocated());
 				REQUIRE(map.HasAuthority());
 				REQUIRE(map.GetCount() == 1);
@@ -184,6 +196,13 @@ TEMPLATE_TEST_CASE(
 			const_cast<T&>(map) = Move(movablePair);
 
 			THEN("Various traits change") {
+				REQUIRE(map.IsKeyTypeConstrained() == IsStaticallyOptimized<T>);
+				REQUIRE(map.IsValueTypeConstrained() == IsStaticallyOptimized<T>);
+				REQUIRE(movablePair != pair);
+				REQUIRE(map.GetKeyType());
+				REQUIRE(map.GetValueType());
+				REQUIRE(map.template KeyIs<K>());
+				REQUIRE(map.template ValueIs<V>());
 				REQUIRE(map.IsAllocated());
 				REQUIRE(map.HasAuthority());
 				REQUIRE(map.GetCount() == 1);
@@ -330,6 +349,12 @@ TEMPLATE_TEST_CASE(
 			const_cast<T&>(map) << darray2[0] << darray2[1] << darray2[2] << darray2[3] << darray2[4];
 
 			THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
+				REQUIRE(map.IsKeyTypeConstrained() == IsStaticallyOptimized<T>);
+				REQUIRE(map.IsValueTypeConstrained() == IsStaticallyOptimized<T>);
+				REQUIRE(map.GetKeyType());
+				REQUIRE(map.GetValueType());
+				REQUIRE(map.template KeyIs<K>());
+				REQUIRE(map.template ValueIs<V>());
 				REQUIRE(map.HasAuthority());
 				REQUIRE(map.GetUses() == 1);
 				REQUIRE(map.GetCount() == 10);

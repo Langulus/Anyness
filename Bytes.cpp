@@ -45,8 +45,7 @@ namespace Langulus::Anyness
 		if (mCount) {
 			const auto request = RequestSize(mCount);
 			result.mEntry = Inner::Allocator::Allocate(request.mByteSize);
-			if (!result.mEntry)
-				Throw<Except::Allocate>("Out of memory on cloning byte container");
+			LANGULUS_ASSERT(result.mEntry, Except::Allocate, "Out of memory");
 
 			result.mRaw = result.mEntry->GetBlockStart();
 			result.mReserved = request.mElementCount;

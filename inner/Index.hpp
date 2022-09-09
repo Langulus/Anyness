@@ -95,7 +95,7 @@ namespace Langulus::Anyness
 
 	public:
 		NOD() constexpr Index Constrained(Count) const noexcept;
-		NOD() constexpr Offset GetOffset() const;
+		NOD() Offset GetOffset() const;
 
 		constexpr void Constrain(Count) noexcept;
 		constexpr void Concat(const Index&) noexcept;

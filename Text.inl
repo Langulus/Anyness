@@ -60,8 +60,8 @@ namespace Langulus::Anyness
 			constexpr auto size = ::std::numeric_limits<T>::max_digits10 * 2;
 			char temp[size];
 			auto [lastChar, errorCode] = ::std::to_chars(temp, temp + size, number, ::std::chars_format::general);
-			if (errorCode != ::std::errc())
-				Throw<Except::Convert>("std::to_chars failure");
+			LANGULUS_ASSERT(errorCode == ::std::errc(), Except::Convert,
+				"std::to_chars failure");
 
 			while ((*lastChar == '0' || *lastChar == '.') && lastChar > temp) {
 				if (*lastChar == '.')
@@ -76,8 +76,8 @@ namespace Langulus::Anyness
 			constexpr auto size = ::std::numeric_limits<T>::digits10 * 2;
 			char temp[size];
 			auto [lastChar, errorCode] = ::std::to_chars(temp, temp + size, number);
-			if (errorCode != ::std::errc())
-				Throw<Except::Convert>("std::to_chars failure");
+			LANGULUS_ASSERT(errorCode == ::std::errc(), Except::Convert,
+				"std::to_chars failure");
 
 			(*this) += Text {temp, static_cast<Count>(lastChar - temp)};
 		}

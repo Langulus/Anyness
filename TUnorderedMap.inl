@@ -223,15 +223,17 @@ namespace Langulus::Anyness
 
 		// Allocate keys and info														
 		result.mKeys.mEntry = Allocator::Allocate(mKeys.mEntry->GetAllocatedSize());
-		if (!result.mKeys.mEntry)
-			Throw<Except::Allocate>("Out of memory on cloning TUnorderedMap keys");
+		LANGULUS_ASSERT(mKeys.mEntry, Except::Allocate,
+			"Out of memory on cloning keys");
 
 		// Allocate values																
 		result.mValues.mEntry = Allocator::Allocate(mValues.mEntry->GetAllocatedSize());
 		if (!result.mValues.mEntry) {
 			Allocator::Deallocate(result.mKeys.mEntry);
 			result.mValues.mEntry = nullptr;
-			Throw<Except::Allocate>("Out of memory on cloning TUnorderedMap values");
+			Throw<Except::Allocate>(
+				"Out of memory on cloning values",
+				LANGULUS_LOCATION());
 		}
 
 		// Clone the info bytes															
@@ -492,11 +494,8 @@ namespace Langulus::Anyness
 	TABLE_TEMPLATE()
 	template<bool REUSE>
 	void TABLE()::AllocateKeys(const Count& count) {
-		#if LANGULUS(SAFE)
-			if (!IsPowerOfTwo(count))
-				Throw<Except::Allocate>(
-					"Table reallocation count is not a power-of-two");
-		#endif
+		LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(count),
+			"Table reallocation count is not a power-of-two");
 
 		Offset infoOffset;
 		auto oldInfo = mInfo;
@@ -511,9 +510,8 @@ namespace Langulus::Anyness
 		else
 			mKeys.mEntry = Allocator::Allocate(keyAndInfoSize);
 
-		if (!mKeys.mEntry)
-			Throw<Except::Allocate>(
-				"Out of memory on allocating/reallocating TUnorderedMap keys");
+		LANGULUS_ASSERT(mKeys.mEntry, Except::Allocate,
+			"Out of memory on allocating/reallocating keys");
 
 		// Allocate new values															
 		const Block oldValues {mValues};
@@ -525,7 +523,8 @@ namespace Langulus::Anyness
 		if (!mValues.mEntry) {
 			Allocator::Deallocate(mKeys.mEntry);
 			Throw<Except::Allocate>(
-				"Out of memory on allocating/reallocating TUnorderedMap values");
+				"Out of memory on allocating/reallocating values",
+				LANGULUS_LOCATION());
 		}
 
 		mValues.mRaw = mValues.mEntry->GetBlockStart();
@@ -665,13 +664,10 @@ namespace Langulus::Anyness
 			return;
 
 		// Allocate/Reallocate the keys and info									
-		if (IsAllocated()) {
-			if (GetUses() == 1)
-				AllocateKeys<true>(count);
-			else
-				AllocateKeys<false>(count);
-		}
-		else AllocateKeys<false>(count);
+		if (IsAllocated() && GetUses() == 1)
+			AllocateKeys<true>(count);
+		else
+			AllocateKeys<false>(count);
 	}
 
 	/// Inner insertion function																
@@ -683,9 +679,9 @@ namespace Langulus::Anyness
 		// Get the starting index based on the key hash							
 		auto psl = GetInfo() + start;
 		const auto pslEnd = GetInfoEnd();
-		auto candidate = GetRawKeys() + start;
 		InfoType attempts {1};
 		while (*psl) {
+			auto candidate = GetRawKeys() + start;
 			if (*candidate == key) {
 				// Neat, the key already exists - just set value and go		
 				const auto index = psl - GetInfo();
@@ -816,11 +812,13 @@ namespace Langulus::Anyness
 		auto inf = GetInfo();
 		const auto infEnd = GetInfoEnd();
 		while (inf != infEnd) {
-			const auto offset = inf - GetInfo();
-			if (*(inf++)) {
+			if (*inf) {
+				const auto offset = inf - GetInfo();
 				RemoveInner(GetRawKeys() + offset);
 				RemoveInner(GetRawValues() + offset);
 			}
+
+			++inf;
 		}
 	}
 
@@ -1039,9 +1037,11 @@ namespace Langulus::Anyness
 		TODO();
 	}
 
+
 	///																								
 	///	SEARCH																					
 	///																								
+	
 	/// Search for a key inside the table													
 	///	@param key - the key to search for												
 	///	@return true if key is found, false otherwise								
@@ -1153,8 +1153,8 @@ namespace Langulus::Anyness
 	TABLE_TEMPLATE()
 	decltype(auto) TABLE()::At(const K& key) {
 		auto found = GetRawValues() + FindIndex(key);
-		if (found == GetRawValuesEnd())
-			Throw<Except::OutOfRange>("Key not found");
+		LANGULUS_ASSERT(found != GetRawValuesEnd(),
+			Except::OutOfRange, "Key not found");
 		return *found;
 	}
 
@@ -1181,8 +1181,8 @@ namespace Langulus::Anyness
 	TABLE_TEMPLATE()
 	decltype(auto) TABLE()::GetKey(const Index& index) {
 		const auto offset = index.GetOffset();
-		if (offset >= GetReserved() || 0 == GetInfo()[offset])
-			Throw<Except::OutOfRange>("Bad index for TUnorderedMap::GetKey");
+		LANGULUS_ASSERT(offset < GetReserved() && GetInfo()[offset],
+			Except::OutOfRange, "Bad index");
 		return GetKey(offset);
 	}
 
@@ -1200,8 +1200,8 @@ namespace Langulus::Anyness
 	TABLE_TEMPLATE()
 	decltype(auto) TABLE()::GetValue(const Index& index) {
 		const auto offset = index.GetOffset();
-		if (offset >= GetReserved() || 0 == GetInfo()[offset])
-			Throw<Except::OutOfRange>("Bad index for TUnorderedMap::GetValue");
+		LANGULUS_ASSERT(offset < GetReserved() && GetInfo()[offset],
+			Except::OutOfRange, "Bad index");
 		return GetValue(offset);
 	}
 
@@ -1219,8 +1219,8 @@ namespace Langulus::Anyness
 	TABLE_TEMPLATE()
 	decltype(auto) TABLE()::GetPair(const Index& index) {
 		const auto offset = index.GetOffset();
-		if (offset >= GetReserved() || 0 == GetInfo()[offset])
-			Throw<Except::OutOfRange>("Bad index for TUnorderedMap::GetPair");
+		LANGULUS_ASSERT(offset < GetReserved() && GetInfo()[offset],
+			Except::OutOfRange, "Bad index");
 		return GetPair(offset);
 	}
 

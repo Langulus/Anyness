@@ -97,16 +97,8 @@ namespace Langulus::Anyness
 		friend class TPointer;
 
 	protected:
-		// A structure used to represent an element of a sparse container	
-		struct KnownPointer {
-			Byte* mPointer;
-			Inner::Allocation* mEntry;
-
-			template<bool KEEP>
-			void MoveAssign(DMeta, KnownPointer*);
-			template<bool KEEP>
-			void CopyAssign(DMeta, const KnownPointer*);
-		};
+		/// A structure used to represent an element of a sparse container		
+		struct KnownPointer;
 
 		union { 
 			#if LANGULUS_DEBUG()
@@ -192,6 +184,7 @@ namespace Langulus::Anyness
 		NOD() constexpr bool IsEncrypted() const noexcept;
 		NOD() constexpr bool IsCompressed() const noexcept;
 		NOD() constexpr bool IsConstant() const noexcept;
+		NOD() constexpr bool IsMutable() const noexcept;
 		NOD() constexpr bool IsStatic() const noexcept;
 		NOD() constexpr bool IsAbstract() const noexcept;
 		NOD() constexpr bool IsDefaultable() const noexcept;
@@ -629,6 +622,47 @@ namespace Langulus::Anyness
 		void Prev() noexcept;
 		NOD() Block Next() const noexcept;
 		NOD() Block Prev() const noexcept;
+	};
+
+
+	///																								
+	/// A resolved pointer inside a sparse block											
+	///																								
+	struct Block::KnownPointer {
+		friend class Block;
+	private:
+	TESTING(public:)
+		Byte* mPointer {};
+		Inner::Allocation* mEntry {};
+
+	public:
+		constexpr KnownPointer() noexcept = default;
+		KnownPointer(const KnownPointer&) noexcept;
+		KnownPointer(KnownPointer&&) noexcept;
+		KnownPointer(Disowned<KnownPointer>&&) noexcept;
+		KnownPointer(Abandoned<KnownPointer>&&) noexcept;
+
+		constexpr KnownPointer(Byte* pointer, Inner::Allocation* entry) noexcept;
+
+		template<CT::Sparse T>
+		KnownPointer(const T&);
+		template<CT::Sparse T>
+		KnownPointer(Disowned<T>&&) noexcept;
+		~KnownPointer() noexcept = default;
+
+		KnownPointer& operator = (const KnownPointer&) const = delete;
+
+		bool operator == (const void*) const noexcept;
+
+		template<bool KEEP, bool DESTROY_OLD = true>
+		void MoveAssign(DMeta, KnownPointer*);
+		template<bool KEEP, bool DESTROY_OLD = true>
+		void CopyAssign(DMeta, const KnownPointer*);
+
+		template<CT::Sparse T, bool DESTROY>
+		void Free() noexcept;
+		template<bool DESTROY>
+		void Free(DMeta) noexcept;
 	};
 
 		
