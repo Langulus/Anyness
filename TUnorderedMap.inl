@@ -628,19 +628,17 @@ namespace Langulus::Anyness
 			if (oldIndex != newIndex) {
 				// Immediately move the old pair to the swapper					
 				auto oldValue = &GetValue(oldIndex);
-				Key keyswap {Move(*oldKey)};
-				Value valswap {Move(*oldValue)};
+				KeyInner keyswap {Move(*oldKey)};
+				ValueInner valswap {Move(*oldValue)};
 
 				// Clean the old slot													
-				if constexpr (CT::Dense<K>)
-					RemoveInner(oldKey);
-				if constexpr (CT::Dense<V>)
-					RemoveInner(oldValue);
+				RemoveInner(oldKey);
+				RemoveInner(oldValue);
 
 				*oldInfo = 0;
 
 				// Insert the swapper													
-				InsertInner(newIndex, Move(keyswap), Move(valswap));
+				InsertInner<false>(newIndex, Move(keyswap), Move(valswap));
 			}
 			else {
 				// Nothing inserted, but since count has been previously		
@@ -675,23 +673,26 @@ namespace Langulus::Anyness
 	///	@param key - key to move in														
 	///	@param value - value to move in													
 	TABLE_TEMPLATE()
+	template<bool CHECK_FOR_MATCH>
 	void TABLE()::InsertInner(const Offset& start, KeyInner&& key, ValueInner&& value) {
 		// Get the starting index based on the key hash							
 		auto psl = GetInfo() + start;
 		const auto pslEnd = GetInfoEnd();
 		InfoType attempts {1};
 		while (*psl) {
-			auto candidate = GetRawKeys() + start;
-			if (*candidate == key) {
-				// Neat, the key already exists - just set value and go		
-				const auto index = psl - GetInfo();
-				GetValue(index) = Forward<V>(value);
-				return;
+			const auto index = psl - GetInfo();
+
+			if constexpr (CHECK_FOR_MATCH) {
+				auto candidate = GetRawKeys() + index;
+				if (*candidate == key) {
+					// Neat, the key already exists - just set value and go	
+					GetValue(index) = Forward<V>(value);
+					return;
+				}
 			}
 
 			if (attempts > *psl) {
 				// The pair we're inserting is closer to bucket, so swap		
-				const auto index = psl - GetInfo();
 				::std::swap(GetKey(index), key);
 				::std::swap(GetValue(index), value);
 				::std::swap(attempts, *psl);
@@ -701,12 +702,10 @@ namespace Langulus::Anyness
 
 			if (psl < pslEnd - 1) LIKELY() {
 				++psl;
-				++candidate;
 			}
 			else UNLIKELY() {
 				// Wrap around and start from the beginning						
 				psl = GetInfo();
-				candidate = GetRawKeys();
 			}
 		}
 
@@ -754,7 +753,7 @@ namespace Langulus::Anyness
 			"Value needs to be copy-constructible, but isn't");
 
 		Allocate(GetCount() + 1);
-		InsertInner(GetBucket(key), KeyInner {key}, ValueInner {value});
+		InsertInner<true>(GetBucket(key), KeyInner {key}, ValueInner {value});
 		return 1;
 	}
 
@@ -770,7 +769,7 @@ namespace Langulus::Anyness
 			"Value needs to be move-constructible, but isn't");
 
 		Allocate(GetCount() + 1);
-		InsertInner(GetBucket(key), KeyInner {key}, Forward<V>(value));
+		InsertInner<true>(GetBucket(key), KeyInner {key}, Forward<V>(value));
 		return 1;
 	}
 
@@ -786,7 +785,7 @@ namespace Langulus::Anyness
 			"Value needs to be copy-constructible, but isn't");
 
 		Allocate(GetCount() + 1);
-		InsertInner(GetBucket(key), Forward<K>(key), ValueInner {value});
+		InsertInner<true>(GetBucket(key), Forward<K>(key), ValueInner {value});
 		return 1;
 	}
 
@@ -802,7 +801,7 @@ namespace Langulus::Anyness
 			"Value needs to be move-constructible, but isn't");
 
 		Allocate(GetCount() + 1);
-		InsertInner(GetBucket(key), Forward<K>(key), Forward<V>(value));
+		InsertInner<true>(GetBucket(key), Forward<K>(key), Forward<V>(value));
 		return 1;
 	}
 

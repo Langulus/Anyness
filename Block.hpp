@@ -584,37 +584,37 @@ namespace Langulus::Anyness
 		bool Dereference(const Count&);
 		bool Free();
 	
-		void CallUnknownDefaultConstructors(Count);
+		void CallUnknownDefaultConstructors(Count) const;
 		template<CT::Data T>
-		void CallKnownDefaultConstructors(Count);
+		void CallKnownDefaultConstructors(Count) const;
 
 		template<bool KEEP>
-		void CallUnknownCopyConstructors(Count, const Block&);
+		void CallUnknownCopyConstructors(Count, const Block&) const;
 		template<bool KEEP, CT::Data>
-		void CallKnownCopyConstructors(Count, const Block&);
+		void CallKnownCopyConstructors(Count, const Block&) const;
 
 		template<bool KEEP>
-		void CallUnknownCopyAssignment(Count, const Block&);
+		void CallUnknownCopyAssignment(Count, const Block&) const;
 		template<bool KEEP, CT::Data>
-		void CallKnownCopyAssignment(Count, const Block&);
+		void CallKnownCopyAssignment(Count, const Block&) const;
 
 		template<bool KEEP>
-		void CallUnknownMoveConstructors(Count, Block&&);
+		void CallUnknownMoveConstructors(Count, const Block&) const;
 		template<bool KEEP, CT::Data>
-		void CallKnownMoveConstructors(Count, Block&&);
+		void CallKnownMoveConstructors(Count, const Block&) const;
 
 		template<bool KEEP>
-		void CallUnknownMoveAssignment(Count, Block&&);
+		void CallUnknownMoveAssignment(Count, const Block&) const;
 		template<bool KEEP, CT::Data>
-		void CallKnownMoveAssignment(Count, Block&&);
+		void CallKnownMoveAssignment(Count, const Block&) const;
 
-		void CallUnknownDestructors();
+		void CallUnknownDestructors() const;
 		template<CT::Data>
-		void CallKnownDestructors();
+		void CallKnownDestructors() const;
 	
-		void SwapUnknown(Block&&);
+		void SwapUnknown(const Block&) const;
 		template<CT::Data>
-		void SwapKnown(Block&&);
+		void SwapKnown(const Block&) const;
 
 		NOD() bool CallComparer(const Block&, const RTTI::Base&) const;
 
@@ -645,7 +645,7 @@ namespace Langulus::Anyness
 		constexpr KnownPointer(Byte* pointer, Inner::Allocation* entry) noexcept;
 
 		template<CT::Sparse T>
-		KnownPointer(const T&);
+		KnownPointer(T);
 		template<CT::Sparse T>
 		KnownPointer(Disowned<T>&&) noexcept;
 		~KnownPointer() noexcept = default;

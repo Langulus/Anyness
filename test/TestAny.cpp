@@ -361,7 +361,7 @@ SCENARIO("Any", "[containers]") {
 	GIVEN("Any with some POD items") {
 		#include "CollectGarbage.inl"
 
-		const Any pack;
+		const Any pack {};
 		const_cast<Any&>(pack) << int(1) << int(2) << int(3) << int(4) << int(5);
 		auto memory = pack.GetRaw();
 
@@ -498,13 +498,11 @@ SCENARIO("Any", "[containers]") {
 			movable.MakeOr();
 			Any moved = Move(movable);
 			THEN("The new pack should keep the state and data") {
-				REQUIRE(moved == pack);
-				REQUIRE(movable != pack);
-				REQUIRE(pack.GetRaw() == nullptr);
-				REQUIRE(pack.GetCount() == 0);
-				REQUIRE(pack.GetReserved() == 0);
-				REQUIRE(pack.GetState() == DataState::Default);
-				REQUIRE(pack.GetType() == nullptr);
+				REQUIRE(movable.GetRaw() == nullptr);
+				REQUIRE(movable.GetCount() == 0);
+				REQUIRE(movable.GetReserved() == 0);
+				REQUIRE(movable.GetState() == DataState::Default);
+				REQUIRE(movable.GetType() == nullptr);
 			}
 		}
 

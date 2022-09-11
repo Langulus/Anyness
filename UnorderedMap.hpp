@@ -247,22 +247,18 @@ namespace Langulus::Anyness
 
 		void Rehash(const Count&, const Count&);
 
-		template<CT::Data K, CT::Data V>
-		void InsertInner(const Offset&, K&&, V&&);
-
 		Count InsertUnknown(const Block&, const Block&);
 		Count InsertUnknown(Block&&, Block&&);
+
+		template<bool CHECK_FOR_MATCH>
 		void InsertInnerUnknown(const Offset&, Block&&, Block&&);
+		template<bool CHECK_FOR_MATCH, CT::Data K, CT::Data V>
+		void InsertInner(const Offset&, K&&, V&&);
 
 		void ClearInner();
 
 		template<class T>
 		static void CloneInner(const Count&, const InfoType*, const T*, const T*, T*);
-
-		static void RemoveInner(Block&) noexcept;
-
-		template<class T>
-		static void Overwrite(T&&, T&) noexcept;
 
 		NOD() Size RequestKeyAndInfoSize(Count, Offset&) noexcept;
 

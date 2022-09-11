@@ -364,14 +364,11 @@ namespace Langulus::Anyness
 	///	@return a reference to this container											
 	template<CT::CustomData T>
 	Any& Any::operator = (Disowned<T>&& other) requires CT::Dense<T> {
-		const auto meta = MetaData::Of<Decay<T>>();
-
 		// Since Any is type-erased, we have to make a runtime type check	
-		if (IsTypeConstrained() && !CastsToMeta(meta)) {
-			Throw<Except::Copy>(
-				"Unable to disowned value-assign type-constrained container - types are incompatible",
-				LANGULUS_LOCATION());
-		}
+		const auto meta = MetaData::Of<Decay<T>>();
+		LANGULUS_ASSERT(!IsTypeConstrained() || CastsToMeta(meta), Except::Copy,
+			"Unable to disowned value-assign type-constrained container"
+			" - types are incompatible");
 
 		if (GetUses() != 1 || IsSparse() != CT::Sparse<T> || !meta->Is(mType)) {
 			// Reset and allocate new memory											
@@ -395,8 +392,10 @@ namespace Langulus::Anyness
 				mCount = 1;
 				if constexpr (CT::DisownMakable<T>)
 					new (mRaw) T {other.Forward()};
-				else
+				else if constexpr (CT::CopyMakable<T>)
 					new (mRaw) T {other.mValue};
+				else
+					LANGULUS_ERROR("T is not disown/copy-makable");
 			}
 		}
 
@@ -408,14 +407,11 @@ namespace Langulus::Anyness
 	///	@return a reference to this container											
 	template<CT::CustomData T>
 	Any& Any::operator = (Abandoned<T>&& other) requires CT::Dense<T> {
-		const auto meta = MetaData::Of<Decay<T>>();
-
 		// Since Any is type-erased, we have to make a runtime type check	
-		if (IsTypeConstrained() && !CastsToMeta(meta)) {
-			Throw<Except::Copy>(
-				"Unable to abandoned value-assign type-constrained container - types are incompatible",
-				LANGULUS_LOCATION());
-		}
+		const auto meta = MetaData::Of<Decay<T>>();
+		LANGULUS_ASSERT(!IsTypeConstrained() || CastsToMeta(meta), Except::Copy,
+			"Unable to abandoned value-assign type-constrained container"
+			" - types are incompatible");
 
 		if (GetUses() != 1 || IsSparse() != CT::Sparse<T> || !meta->Is(mType)) {
 			// Reset and allocate new memory											
@@ -439,8 +435,10 @@ namespace Langulus::Anyness
 				mCount = 1;
 				if constexpr (CT::AbandonMakable<T>)
 					new (mRaw) T {other.Forward()};
-				else
+				else if constexpr (CT::MoveMakable<T>)
 					new (mRaw) T {Forward<T>(other.mValue)};
+				else
+					LANGULUS_ERROR("T is not abandon/move-makable");
 			}
 		}
 
@@ -481,7 +479,7 @@ namespace Langulus::Anyness
 	template<CT::Data T>
 	Any& Any::operator << (T&& other) {
 		if constexpr (CT::Abandoned<T>)
-			Insert<IndexBack, false, true>(other.mValue);
+			Insert<IndexBack, false, true>(Move(other.mValue));
 		else if constexpr (CT::Disowned<T>)
 			Insert<IndexBack, false, true>(&other.mValue, &other.mValue + 1);
 		else
@@ -512,7 +510,7 @@ namespace Langulus::Anyness
 	template<CT::Data T>
 	Any& Any::operator >> (T&& other) {
 		if constexpr (CT::Abandoned<T>)
-			Insert<IndexFront, false, true>(other.mValue);
+			Insert<IndexFront, false, true>(Move(other.mValue));
 		else if constexpr (CT::Disowned<T>)
 			Insert<IndexFront, false, true>(&other.mValue, &other.mValue + 1);
 		else

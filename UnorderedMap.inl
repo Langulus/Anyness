@@ -533,10 +533,11 @@ namespace Langulus::Anyness
 
 		// Allocate new values															
 		const Block oldValues {mValues};
-		if constexpr (REUSE)
-			mValues.mEntry = Allocator::Reallocate(count * mValues.GetStride(), oldValues.mEntry);
+		const auto valueByteSize = count * mValues.GetStride();
+			if constexpr (REUSE)
+			mValues.mEntry = Allocator::Reallocate(valueByteSize, mValues.mEntry);
 		else
-			mValues.mEntry = Allocator::Allocate(count * mValues.GetStride());
+			mValues.mEntry = Allocator::Allocate(valueByteSize);
 
 		if (!mValues.mEntry) {
 			Allocator::Deallocate(mKeys.mEntry);
@@ -593,10 +594,8 @@ namespace Langulus::Anyness
 			InsertUnknown(Move(key), Move(value));
 
 			if constexpr (REUSE) {
-				if (mKeys.IsDense())
-					RemoveInner(key);
-				if (mValues.IsDense())
-					RemoveInner(value);
+				key.CallUnknownDestructors();
+				value.CallUnknownDestructors();
 			}
 
 			key.Next();
@@ -624,15 +623,15 @@ namespace Langulus::Anyness
 		}
 	}
 
-	/// Similar to insertion, but rehashes each key 									
-	///	@attention assumes count and oldCount are a power-of-two number		
+	/// Rehashes and reinserts each pair													
+	///	@attention assumes count and oldCount are power-of-two					
 	///	@param count - the new number of pairs											
 	///	@param oldCount - the old number of pairs										
 	inline void UnorderedMap::Rehash(const Count& count, const Count& oldCount) {
 		LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(count),
-			"New Rehash count is not a power-of-two");
+			"New count is not a power-of-two");
 		LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(oldCount),
-			"Old Rehash count is not a power-of-two");
+			"Old count is not a power-of-two");
 
 		auto oldInfo = GetInfo();
 		const auto oldInfoEnd = oldInfo + oldCount;
@@ -657,8 +656,9 @@ namespace Langulus::Anyness
 			if (oldIndex != newIndex) {
 				// Move key & value to swapper										
 				auto oldValue = mValues.GetElement(oldIndex);
-				keyswap.CallUnknownMoveConstructors<false>(1, Move(oldKey));
-				valswap.CallUnknownMoveConstructors<false>(1, Move(oldValue));
+				keyswap.CallUnknownMoveConstructors<false>(1, oldKey);
+				valswap.CallUnknownMoveConstructors<false>(1, oldValue);
+				keyswap.mCount = valswap.mCount = 1;
 
 				// Clean the old abandoned slots (just in case)					
 				oldKey.CallUnknownDestructors();
@@ -666,13 +666,7 @@ namespace Langulus::Anyness
 				*oldInfo = 0;
 
 				// Insert the swapper													
-				InsertInnerUnknown(newIndex, Move(keyswap), Move(valswap));
-
-				// We assume that swappers are free for next cycle, because	
-				// InsertInnerUnknown should've consumed them both				
-				LANGULUS_ASSUME(DevAssumes,
-					keyswap.IsEmpty() && valswap.IsEmpty(),
-					"Swappers not empty after rehashing an element");
+				InsertInnerUnknown<false>(newIndex, Move(keyswap), Move(valswap));
 			}
 			else {
 				// Nothing inserted, but since count has been previously		
@@ -709,7 +703,7 @@ namespace Langulus::Anyness
 	///	@param start - the starting index												
 	///	@param key - key to move in														
 	///	@param value - value to move in													
-	template<CT::Data K, CT::Data V>
+	template<bool CHECK_FOR_MATCH, CT::Data K, CT::Data V>
 	void UnorderedMap::InsertInner(const Offset& start, K&& key, V&& value) {
 		// Get the starting index based on the key hash							
 		auto psl = GetInfo() + start;
@@ -717,11 +711,14 @@ namespace Langulus::Anyness
 		InfoType attempts {1};
 		while (*psl) {
 			const auto index = psl - GetInfo();
-			const auto candidate = GetRawKeys<K>() + index;
-			if (*candidate == key) {
-				// Neat, the key already exists - just set value and go		
-				GetRawValues<V>()[index] = Forward<V>(value);
-				return;
+
+			if constexpr (CHECK_FOR_MATCH) {
+				const auto candidate = GetRawKeys<K>() + index;
+				if (*candidate == key) {
+					// Neat, the key already exists - just set value and go	
+					GetRawValues<V>()[index] = Forward<V>(value);
+					return;
+				}
 			}
 
 			if (attempts > *psl) {
@@ -767,27 +764,31 @@ namespace Langulus::Anyness
 	///	@param start - the starting index												
 	///	@param key - key to move in														
 	///	@param value - value to move in													
-	inline void UnorderedMap::InsertInnerUnknown(const Offset& start, Block&& key, Block&& value) {
+	template<bool CHECK_FOR_MATCH>
+	void UnorderedMap::InsertInnerUnknown(const Offset& start, Block&& key, Block&& value) {
 		// Get the starting index based on the key hash							
 		auto psl = GetInfo() + start;
 		const auto pslEnd = GetInfoEnd();
 		InfoType attempts {1};
 		while (*psl) {
 			const auto index = psl - GetInfo();
-			const auto candidate = GetKey(start);
-			if (candidate == key) {
-				// Neat, the key already exists - just set value and go		
-				GetValue(index)
-					.CallUnknownMoveAssignment<false>(1, Move(value));
-				value.CallUnknownDestructors();
-				value.mCount = 0;
-				return;
+
+			if constexpr (CHECK_FOR_MATCH) {
+				const auto candidate = GetKey(index);
+				if (candidate == key) {
+					// Neat, the key already exists - just set value and go	
+					GetValue(index)
+						.CallUnknownMoveAssignment<false>(1, value);
+					value.CallUnknownDestructors();
+					value.mCount = 0;
+					return;
+				}
 			}
 
 			if (attempts > *psl) {
 				// The pair we're inserting is closer to bucket, so swap		
-				GetKey(index).SwapUnknown(Move(key));
-				GetValue(index).SwapUnknown(Move(value));
+				GetKey(index).SwapUnknown(key);
+				GetValue(index).SwapUnknown(value);
 				::std::swap(attempts, *psl);
 			}
 
@@ -807,9 +808,9 @@ namespace Langulus::Anyness
 		// eventually reached, unless key exists and returns early			
 		const auto index = psl - GetInfo();
 		GetKey(index)
-			.CallUnknownMoveConstructors<false>(1, Move(key));
+			.CallUnknownMoveConstructors<false>(1, key);
 		GetValue(index)
-			.CallUnknownMoveConstructors<false>(1, Move(value));
+			.CallUnknownMoveConstructors<false>(1, value);
 
 		key.CallUnknownDestructors();
 		value.CallUnknownDestructors();
@@ -842,7 +843,7 @@ namespace Langulus::Anyness
 		Allocate(GetCount() + 1);
 		using KeyInner = typename TAny<K>::TypeInner;
 		using ValInner = typename TAny<V>::TypeInner;
-		InsertInner(GetBucket(key), KeyInner {key}, ValInner {value});
+		InsertInner<true>(GetBucket(key), KeyInner {key}, ValInner {value});
 		return 1;
 	}
 
@@ -862,9 +863,9 @@ namespace Langulus::Anyness
 		using KeyInner = typename TAny<K>::TypeInner;
 		using ValInner = typename TAny<V>::TypeInner;
 		if constexpr (CT::Sparse<V>)
-			InsertInner(GetBucket(key), KeyInner {key}, ValInner {value});
+			InsertInner<true>(GetBucket(key), KeyInner {key}, ValInner {value});
 		else
-			InsertInner(GetBucket(key), KeyInner {key}, Forward<V>(value));
+			InsertInner<true>(GetBucket(key), KeyInner {key}, Forward<V>(value));
 		return 1;
 	}
 
@@ -884,9 +885,9 @@ namespace Langulus::Anyness
 		using KeyInner = typename TAny<K>::TypeInner;
 		using ValInner = typename TAny<V>::TypeInner;
 		if constexpr (CT::Sparse<K>)
-			InsertInner(GetBucket(key), KeyInner {key}, ValInner {value});
+			InsertInner<true>(GetBucket(key), KeyInner {key}, ValInner {value});
 		else
-			InsertInner(GetBucket(key), Forward<K>(key), ValInner {value});
+			InsertInner<true>(GetBucket(key), Forward<K>(key), ValInner {value});
 		return 1;
 	}
 
@@ -907,15 +908,15 @@ namespace Langulus::Anyness
 		using ValInner = typename TAny<V>::TypeInner;
 		if constexpr (CT::Sparse<K>) {
 			if constexpr (CT::Sparse<V>)
-				InsertInner(GetBucket(key), KeyInner {key}, ValInner {value});
+				InsertInner<true>(GetBucket(key), KeyInner {key}, ValInner {value});
 			else
-				InsertInner(GetBucket(key), KeyInner {key}, Forward<V>(value));
+				InsertInner<true>(GetBucket(key), KeyInner {key}, Forward<V>(value));
 		}
 		else {
 			if constexpr (CT::Sparse<V>)
-				InsertInner(GetBucket(key), Forward<K>(key), ValInner {value});
+				InsertInner<true>(GetBucket(key), Forward<K>(key), ValInner {value});
 			else
-				InsertInner(GetBucket(key), Forward<K>(key), Forward<V>(value));
+				InsertInner<true>(GetBucket(key), Forward<K>(key), Forward<V>(value));
 		}
 		return 1;
 	}
@@ -929,17 +930,17 @@ namespace Langulus::Anyness
 		Allocate(GetCount() + 1);
 
 		Block keySwapper {key.mType};
-		keySwapper.Allocate(1);
+		keySwapper.Allocate<false, true>(1);
 		keySwapper.CallUnknownCopyConstructors<true>(1, key);
 
 		Block valSwapper {value.mType};
-		valSwapper.Allocate(1);
+		valSwapper.Allocate<false, true>(1);
 		valSwapper.CallUnknownCopyConstructors<true>(1, value);
 
-		InsertInnerUnknown(GetBucket(key), Move(keySwapper), Move(valSwapper));
+		InsertInnerUnknown<true>(GetBucket(key), Move(keySwapper), Move(valSwapper));
 
-		keySwapper.Dereference<true>(1);
-		valSwapper.Dereference<true>(1);
+		keySwapper.Free();
+		valSwapper.Free();
 		return 1;
 	}
 
@@ -950,7 +951,7 @@ namespace Langulus::Anyness
 	inline Count UnorderedMap::InsertUnknown(Block&& key, Block&& value) {
 		Mutate(key.mType, key.IsSparse(), value.mType, value.IsSparse());
 		Allocate(GetCount() + 1);
-		InsertInnerUnknown(GetBucket(key), Forward<Block>(key), Forward<Block>(value));
+		InsertInnerUnknown<true>(GetBucket(key), Move(key), Move(value));
 		return 1;
 	}
 
@@ -995,10 +996,8 @@ namespace Langulus::Anyness
 		while (inf != infEnd) {
 			if (*inf) {
 				const auto offset = inf - GetInfo();
-				auto key = GetKey(offset);
-				RemoveInner(key);
-				auto val = GetValue(offset);
-				RemoveInner(val);
+				GetKey(offset).CallUnknownDestructors();
+				GetValue(offset).CallUnknownDestructors();
 			}
 
 			++inf;
@@ -1060,8 +1059,8 @@ namespace Langulus::Anyness
 		auto val = mValues.GetElement(offset);
 
 		// Destroy the key, info and value at the offset						
-		RemoveInner(val);
-		RemoveInner(key);
+		key.CallUnknownDestructors();
+		val.CallUnknownDestructors();
 
 		*(psl++) = 0;
 		key.Next();
@@ -1079,10 +1078,8 @@ namespace Langulus::Anyness
 			const_cast<const Block&>(val).Prev()
 				.CallUnknownMoveConstructors<false>(1, Move(val));
 
-			if (mKeys.IsDense())
-				RemoveInner(key);
-			if (mValues.IsDense())
-				RemoveInner(val);
+			key.CallUnknownDestructors();
+			val.CallUnknownDestructors();
 
 			*(psl++) = 0;
 			key.Next();
@@ -1103,10 +1100,8 @@ namespace Langulus::Anyness
 			GetValue(mValues.mReserved - 1)
 				.CallUnknownMoveConstructors<false>(1, Move(val));
 
-			if (mKeys.IsDense())
-				RemoveInner(key);
-			if (mValues.IsDense())
-				RemoveInner(val);
+			key.CallUnknownDestructors();
+			val.CallUnknownDestructors();
 
 			*(psl++) = 0;
 			key.Next();
@@ -1118,21 +1113,6 @@ namespace Langulus::Anyness
 
 		// Success																			
 		--mValues.mCount;
-	}
-
-	/// Destroy a single value or key, either sparse or dense						
-	///	@param element - the block of the element to remove						
-	inline void UnorderedMap::RemoveInner(Block& element) noexcept {
-		element.CallUnknownDestructors();
-	}
-
-	/// Insert a single value or key, either sparse or dense							
-	///	@tparam T - the type to add, either key or value (deducible)			
-	///	@param from - the value to move													
-	///	@param to - the value to overwrite												
-	template<class T>
-	void UnorderedMap::Overwrite(T&& from, T& to) noexcept {
-		to = Forward<T>(from);
 	}
 
 	/// Erase a pair via key																	

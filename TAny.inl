@@ -81,7 +81,7 @@ namespace Langulus::Anyness
 		if constexpr (CT::Same<ALT_T, TAny>) {
 			CopyProperties<false, true>(other);
 
-			if constexpr (KEEP)
+			if constexpr (!KEEP)
 				other.mEntry = nullptr;
 			else {
 				other.ResetMemory();
@@ -94,7 +94,7 @@ namespace Langulus::Anyness
 				// instead of doing allocations										
 				CopyProperties<false, true>(other);
 
-				if constexpr (KEEP)
+				if constexpr (!KEEP)
 					other.mEntry = nullptr;
 				else {
 					other.ResetMemory();
@@ -1311,13 +1311,13 @@ namespace Langulus::Anyness
 	}
 
 	/// Remove sequential raw indices in a given range									
-	///	@attention assumes starter + count is inside container bounds			
+	///	@attention assumes starter + count <= mCount									
 	///	@param starter - simple index to start removing from						
 	///	@param count - number of elements to remove									
 	///	@return the number of removed elements											
 	TEMPLATE()
 	Count TAny<T>::RemoveIndex(const Offset& starter, const Count& count) {
-		LANGULUS_ASSUME(UserAssumes, starter + count < mCount,
+		LANGULUS_ASSUME(UserAssumes, starter + count <= mCount,
 			"Index out of range");
 
 		const auto ender = starter + count;
@@ -1492,11 +1492,14 @@ namespace Langulus::Anyness
 				// Required memory is already available							
 				if constexpr (CREATE) {
 					// But is not yet initialized, so initialize it				
-					if (mCount < elements)
-						CallKnownDefaultConstructors<T>(elements - mCount);
+					if (mCount < elements) {
+						const auto count = elements - mCount;
+						CropInner(mCount, count, count)
+							.template CallKnownDefaultConstructors<T>(count);
+					}
 				}
 
-				if constexpr (!CREATE && SETSIZE)
+				if constexpr (CREATE || SETSIZE)
 					mCount = elements;
 				return;
 			}
@@ -1517,13 +1520,7 @@ namespace Langulus::Anyness
 				if (mEntry != previousBlock.mEntry) {
 					// Memory moved, and we should call move-construction		
 					mRaw = mEntry->GetBlockStart();
-					mCount = 0;
-					CallKnownMoveConstructors<false, T>(previousBlock.mCount, Move(previousBlock));
-				}
-				
-				if constexpr (CREATE) {
-					// Default-construct the rest										
-					CallKnownDefaultConstructors<T>(elements - mCount);
+					CallKnownMoveConstructors<false, T>(previousBlock.mCount, previousBlock);
 				}
 			}
 			else {
@@ -1531,76 +1528,62 @@ namespace Langulus::Anyness
 				// copy the memory for this block - we can't move it!			
 				mEntry = Inner::Allocator::Allocate(request.mByteSize);
 				LANGULUS_ASSERT(mEntry, Except::Allocate, "Out of memory");
-
 				mRaw = mEntry->GetBlockStart();
-				mCount = 0;
 				CallKnownCopyConstructors<true, T>(previousBlock.mCount, previousBlock);
-				
-				if constexpr (CREATE) {
-					// Default-construct the rest										
-					CallKnownDefaultConstructors<T>(elements - mCount);
-				}
+			}
+
+			if constexpr (CREATE) {
+				// Default-construct the rest											
+				const auto count = elements - mCount;
+				CropInner(mCount, count, count)
+					.template CallKnownDefaultConstructors<T>(count);
 			}
 		}
 		else {
 			// Allocate a fresh set of elements										
 			mEntry = Inner::Allocator::Allocate(request.mByteSize);
 			LANGULUS_ASSERT(mEntry, Except::Allocate, "Out of memory");
-
 			mRaw = mEntry->GetBlockStart();
+
 			if constexpr (CREATE) {
 				// Default-construct everything										
-				CallKnownDefaultConstructors<T>(elements);
+				CropInner(mCount, elements, elements)
+					.template CallKnownDefaultConstructors<T>(elements);
 			}
 		}
 		
-		if constexpr (!CREATE && SETSIZE)
+		if constexpr (CREATE || SETSIZE)
 			mCount = elements;
 		mReserved = request.mElementCount;
 	}
 	
 	/// Extend the container and return the new part									
 	///	@tparam WRAPPER - the container to use for the extended part			
-	///			            use Block for unreferenced container					
 	///	@return a container that represents the extended part						
 	TEMPLATE()
 	template<CT::Block WRAPPER>
 	WRAPPER TAny<T>::Extend(const Count& count) {
-		if (!count || IsStatic())
-			// You can not extend static containers								
+		if (IsStatic())
 			return {};
 
 		const auto newCount = mCount + count;
-		const auto oldCount = mCount;
-		if (newCount <= mReserved) {
-			// There is enough available space										
-			if constexpr (CT::POD<T>)
-				// No need to call constructors for POD items					
-				mCount += count;
-			else
-				CallKnownDefaultConstructors<T>(count);
-		}
-		else if (mEntry) {
+		if (mEntry && newCount > mReserved) {
 			// Allocate more space														
-			auto previousBlock = static_cast<Block&>(*this);
 			mEntry = Inner::Allocator::Reallocate(GetStride() * newCount, mEntry);
 			LANGULUS_ASSERT(mEntry, Except::Allocate, "Out of memory");
-
 			mRaw = mEntry->GetBlockStart();
-			if constexpr (CT::POD<T>) {
-				// No need to call constructors for POD items					
-				mCount = mReserved = newCount;
-			}
-			else {
-				mReserved = newCount;
-				CallKnownDefaultConstructors<T>(count);
-			}
+			mReserved = newCount;
 		}
 
-		WRAPPER result {*this};
-		result.MakeStatic();
-		result.mRaw += oldCount;
-		result.mCount = result.mReserved = count;
+		// Initialize new elements														
+		auto extension = CropInner(mCount, count, count);
+		extension.template CallKnownDefaultConstructors<T>(count);
+		extension.MakeStatic();
+
+		// Return the extension															
+		mCount += count;
+		WRAPPER result;
+		static_cast<Block&>(result) = extension;
 		return Abandon(result);
 	}
 	

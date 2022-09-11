@@ -65,7 +65,6 @@ concept IsStaticallyOptimized = requires (Decay<T> a) { typename T::Key; typenam
 /// to complex, from flat to deep															
 TEMPLATE_TEST_CASE(
 	"TOrderedMap/TUnorderedMap/OrderedMap/UnorderedMap", "[map]",
-	(TypePair<UnorderedMap, Text, int>),
 	(TypePair<TUnorderedMap<Text, int>, Text, int>),
 	(TypePair<TUnorderedMap<Text, Trait>, Text, Trait>),
 	(TypePair<TUnorderedMap<Text, Traits::Count>, Text, Traits::Count>),
@@ -82,6 +81,7 @@ TEMPLATE_TEST_CASE(
 	(TypePair<TOrderedMap<Text, Trait*>, Text, Trait*>),
 	(TypePair<TOrderedMap<Text, Traits::Count*>, Text, Traits::Count*>),
 	(TypePair<TOrderedMap<Text, Any*>, Text, Any*>),
+	(TypePair<UnorderedMap, Text, int>),
 	(TypePair<UnorderedMap, Text, Trait>),
 	(TypePair<UnorderedMap, Text, Traits::Count>),
 	(TypePair<UnorderedMap, Text, Any>),
@@ -346,7 +346,28 @@ TEMPLATE_TEST_CASE(
 		}
 
 		WHEN("Shallow-copy more of the same stuff") {
-			const_cast<T&>(map) << darray2[0] << darray2[1] << darray2[2] << darray2[3] << darray2[4];
+			for (auto& comparer : darray1)
+				REQUIRE(map[comparer.mKey] == comparer.mValue);
+
+			const_cast<T&>(map) << darray2[0];
+			for (auto& comparer : darray1)
+				REQUIRE(map[comparer.mKey] == comparer.mValue);
+
+			const_cast<T&>(map) << darray2[1];
+			for (auto& comparer : darray1)
+				REQUIRE(map[comparer.mKey] == comparer.mValue);
+
+			const_cast<T&>(map) << darray2[2];
+			for (auto& comparer : darray1)
+				REQUIRE(map[comparer.mKey] == comparer.mValue);
+
+			const_cast<T&>(map) << darray2[3];
+			for (auto& comparer : darray1)
+				REQUIRE(map[comparer.mKey] == comparer.mValue);
+
+			const_cast<T&>(map) << darray2[4];
+			for (auto& comparer : darray1)
+				REQUIRE(map[comparer.mKey] == comparer.mValue);
 
 			THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
 				REQUIRE(map.IsKeyTypeConstrained() == IsStaticallyOptimized<T>);
