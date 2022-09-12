@@ -555,7 +555,9 @@ namespace Langulus::Anyness
 			}
 
 			key.Next();
+			key.mCount = 1;
 			value.Next();
+			value.mCount = 1;
 		}
 
 		// Free the old allocations													

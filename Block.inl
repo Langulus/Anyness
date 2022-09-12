@@ -282,7 +282,6 @@ namespace Langulus::Anyness
 				if (mEntry != previousBlock.mEntry) {
 					// Memory moved, and we should call move-construction		
 					mRaw = mEntry->GetBlockStart();
-					mCount = 0;
 					CallUnknownMoveConstructors<false>(previousBlock.mCount, Move(previousBlock));
 				}
 			}
@@ -292,7 +291,6 @@ namespace Langulus::Anyness
 				mEntry = Inner::Allocator::Allocate(request.mByteSize);
 				LANGULUS_ASSERT(mEntry, Except::Allocate, "Out of memory");
 				mRaw = mEntry->GetBlockStart();
-				mCount = 0;
 				CallUnknownCopyConstructors<true>(previousBlock.mCount, previousBlock);
 				previousBlock.Free();
 			}
@@ -2350,7 +2348,7 @@ namespace Langulus::Anyness
 	/// Signed index types will be checked for negative indices (for reverse)	
 	/// Unsigned indices are directly forwarded without any overhead				
 	///	@attention assumes T is correct for type-erased containers				
-	///	@attention assumes index is in container limits, if simple				
+	///	@attention assumes index is in container limits, if unsigned			
 	///	@param index - the index to simplify											
 	///	@return the offset																	
 	template<CT::Data T, CT::Index INDEX>
@@ -2358,26 +2356,28 @@ namespace Langulus::Anyness
 		LANGULUS_ASSUME(DevAssumes, (CastsTo<T, true>()), "Type mismatch");
 
 		if constexpr (CT::Same<INDEX, Index>) {
-			// This is the only safe path												
+			// This is the most safe path												
 			return ConstrainMore<T>(index).GetOffset();
 		}
 		else if constexpr (CT::Signed<INDEX>) {
-			// Unsafe, works only on assumptions									
+			// Somehwat safe, default literal type is signed					
 			if (index < 0) {
 				const auto unsign = static_cast<Offset>(-index);
-				LANGULUS_ASSUME(UserAssumes, unsign <= mCount,
+				LANGULUS_ASSERT(unsign <= mCount, Except::Access,
 					"Reverse index out of range");
 				return mCount - unsign;
 			}
 			else {
 				const auto unsign = static_cast<Offset>(index);
-				LANGULUS_ASSUME(UserAssumes, unsign < mCount,
+				LANGULUS_ASSERT(unsign < mCount, Except::Access,
 					"Signed index out of range");
 				return unsign;
 			}
 		}
 		else {
 			// Unsafe, works only on assumptions									
+			// Using an unsigned index explicitly makes a statement, that	
+			// you know what you're doing												
 			LANGULUS_ASSUME(UserAssumes, index < mCount,
 				"Unsigned index out of range");
 			return index;

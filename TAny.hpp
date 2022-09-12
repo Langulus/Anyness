@@ -121,8 +121,11 @@ namespace Langulus::Anyness
 		NOD() auto GetRaw() noexcept;
 		NOD() auto GetRawEnd() const noexcept;
 		NOD() auto GetRawEnd() noexcept;
+		NOD() auto GetRawSparse() noexcept;
+		NOD() auto GetRawSparse() const noexcept;
+
 		NOD() decltype(auto) Last() const;
-		NOD() decltype(auto) Last() ;
+		NOD() decltype(auto) Last();
 
 		template<CT::Data = T>
 		NOD() decltype(auto) Get(const Offset&) const noexcept;
@@ -257,9 +260,10 @@ namespace Langulus::Anyness
 	///																								
 	template<CT::Data T>
 	class TAny<T>::KnownPointer {
-	private:
 		static_assert(CT::Sparse<T>, "T must be a pointer");
-
+		friend class TAny<T>;
+	private:
+	TESTING(public:)
 		T mPointer {};
 		Inner::Allocation* mEntry {};
 
@@ -287,11 +291,8 @@ namespace Langulus::Anyness
 		KnownPointer& operator = (::std::nullptr_t);
 
 		bool operator == (const KnownPointer&) const noexcept;
-		bool operator == (const T&) const noexcept;
+		bool operator == (const Decay<T>*) const noexcept;
 		bool operator == (const Decay<T>&) const noexcept;
-
-		/*operator T() const noexcept;
-		operator T() noexcept;*/
 
 		auto operator -> () const;
 		auto operator -> ();

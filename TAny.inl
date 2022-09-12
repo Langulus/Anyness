@@ -489,8 +489,8 @@ namespace Langulus::Anyness
 			if constexpr (CT::Sparse<T>) {
 				CallKnownDestructors<T>();
 				mCount = 1;
-				mRawSparse->mPointer = reinterpret_cast<Byte*>(other.mValue);
-				mRawSparse->mEntry = nullptr;
+				GetRawSparse()->mPointer = other.mValue;
+				GetRawSparse()->mEntry = nullptr;
 			}
 			else {
 				CallKnownDestructors<T>();
@@ -521,8 +521,8 @@ namespace Langulus::Anyness
 			if constexpr (CT::Sparse<T>) {
 				CallKnownDestructors<T>();
 				mCount = 1;
-				mRawSparse->mPointer = reinterpret_cast<Byte*>(other.mValue);
-				mRawSparse->mEntry = nullptr;
+				GetRawSparse()->mPointer = other.mValue;
+				GetRawSparse()->mEntry = nullptr;
 			}
 			else {
 				CallKnownDestructors<T>();
@@ -735,6 +735,20 @@ namespace Langulus::Anyness
 	TEMPLATE()
 	auto TAny<T>::GetRawEnd() noexcept {
 		return GetRaw() + mCount;
+	}
+
+	/// Return the typed raw sparse data (const)											
+	///	@return a constant pointer to the first element in the array			
+	TEMPLATE()
+	auto TAny<T>::GetRawSparse() const noexcept {
+		return reinterpret_cast<const KnownPointer*>(mRawSparse);
+	}
+
+	/// Return the typed raw sparse data													
+	///	@return a mutable pointer to the first element in the array				
+	TEMPLATE()
+	auto TAny<T>::GetRawSparse() noexcept {
+		return reinterpret_cast<KnownPointer*>(mRawSparse);
 	}
 
 	/// Get an element in the way you want (const, unsafe)							
@@ -1910,7 +1924,7 @@ namespace Langulus::Anyness
 	///	@param rhs - the pointer to compare against									
 	///	@return true if pointers/values match											
 	TEMPLATE()
-	bool KNOWNPOINTER()::operator == (const T& rhs) const noexcept {
+	bool KNOWNPOINTER()::operator == (const Decay<T>* rhs) const noexcept {
 		if constexpr (CT::Comparable<T, T>)
 			return mPointer == rhs || (mPointer && *mPointer == *rhs);
 		else

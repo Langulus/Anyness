@@ -10,13 +10,12 @@ download_project(
 	UPDATE_DISCONNECTED 1
 )
 
-add_compile_definitions(LANGULUS_ENABLE_TESTING)
-add_compile_definitions(LANGULUS_ENABLE_ASSERTION_LEVEL=1000)
-
 add_subdirectory(${Catch2_SOURCE_DIR} ${Catch2_BINARY_DIR})
-
 add_executable(Test.Anyness ${SOURCE_FILES})
-
 target_link_libraries(Test.Anyness PRIVATE Langulus.Anyness Catch2)
+
+if (MSVC)
+    target_compile_options(Test.Anyness PRIVATE /bigobj)
+endif()
 
 add_test(NAME Test.Anyness COMMAND Test.Anyness)

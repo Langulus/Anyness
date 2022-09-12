@@ -34,7 +34,7 @@ option(LANGULUS_FEATURE_ENCRYPTION
 
 option(LANGULUS_FEATURE_MANAGED_MEMORY
     "Memory will be pooled and recycled when freed, and you can safely push any kind of pointer, \
-    as long as it was allocated by the memory manager, or by the overridden new/delete feature" ON)
+    as long as it was allocated by the memory manager, or by the overridden new/delete feature")
 
 option(LANGULUS_FEATURE_MANAGED_REFLECTION
     "Reflections will be kept in a centralized location, when reflected, which speeds up \
@@ -77,6 +77,11 @@ if(LANGULUS_FEATURE_MEMORY_STATISTICS)
     add_compile_definitions(LANGULUS_ENABLE_FEATURE_MEMORY_STATISTICS)
 endif()
 
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+	message(STATUS "Debug mode, all assertions are enabled")
+	add_compile_definitions(LANGULUS_ENABLE_ASSERTION_LEVEL=1000)
+endif()
+
 # Check if this project is built as standalone, or a part of something else
 if(PROJECT_IS_TOP_LEVEL)
     # We're building Anyness as standalone
@@ -84,6 +89,7 @@ if(PROJECT_IS_TOP_LEVEL)
     fetch_langulus_module(Logger)
     fetch_langulus_module(RTTI)
 
+    add_compile_definitions(LANGULUS_ENABLE_TESTING)
     enable_testing()
     add_subdirectory(test)
 endif()
