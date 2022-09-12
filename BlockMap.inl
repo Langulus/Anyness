@@ -47,7 +47,9 @@ namespace Langulus::Anyness
 	inline BlockMap::BlockMap(Disowned<BlockMap>&& other) noexcept
 		: mKeys {other.mValue.mKeys}
 		, mInfo {other.mValue.mInfo}
-		, mValues {other.mValue.mValues} {}
+		, mValues {other.mValue.mValues} {
+		mKeys.mEntry = mValues.mEntry = nullptr;
+	}
 
 	/// Minimal move construction from abandoned table									
 	///	@param other - the abandoned table to move									

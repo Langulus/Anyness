@@ -4155,7 +4155,7 @@ namespace Langulus::Anyness
 	///	@param other - the pointer to copy												
 	inline Block::KnownPointer::KnownPointer(Disowned<KnownPointer>&& other) noexcept
 		: mPointer {other.mValue.mPointer}
-		, mEntry {other.mValue.mEntry} {}
+		, mEntry {nullptr} {}
 
 	/// Move-construct a pointer, minimally resetting the source					
 	///	@param other - the pointer to move												

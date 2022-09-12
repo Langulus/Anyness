@@ -453,22 +453,19 @@ namespace Langulus::Anyness
 		else
 			mKeys.mEntry = Allocator::Allocate(keyAndInfoSize);
 
-		LANGULUS_ASSERT(mKeys.mEntry, Except::Allocate,
-			"Out of memory on allocating/reallocating keys");
+		LANGULUS_ASSERT(mKeys.mEntry, Except::Allocate, "Out of memory");
 
 		// Allocate new values															
 		const Block oldValues {mValues};
 		if constexpr (REUSE)
-			mValues.mEntry = Allocator::Reallocate(count * sizeof(V), oldValues.mEntry);
+			mValues.mEntry = Allocator::Reallocate(count * sizeof(V), mValues.mEntry);
 		else
 			mValues.mEntry = Allocator::Allocate(count * sizeof(V));
 
 		if (!mValues.mEntry) {
 			Allocator::Deallocate(mKeys.mEntry);
 			mKeys.mEntry = nullptr;
-			Throw<Except::Allocate>(
-				"Out of memory on allocating/reallocating values",
-				LANGULUS_LOCATION());
+			Throw<Except::Allocate>("Out of memory", LANGULUS_LOCATION());
 		}
 
 		mValues.mRaw = mValues.mEntry->GetBlockStart();

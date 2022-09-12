@@ -1598,6 +1598,8 @@ namespace Langulus::Anyness
 		mCount += count;
 		WRAPPER result;
 		static_cast<Block&>(result) = extension;
+		if constexpr (!CT::Same<WRAPPER, Block>)
+			mEntry->Keep();
 		return Abandon(result);
 	}
 	
@@ -1795,7 +1797,7 @@ namespace Langulus::Anyness
 	TEMPLATE()
 	KNOWNPOINTER()::KnownPointer(Disowned<KnownPointer>&& other) noexcept
 		: mPointer {other.mValue.mPointer}
-		, mEntry {other.mValue.mEntry} {}
+		, mEntry {nullptr} {}
 
 	/// Move-construct a pointer, minimally resetting the source					
 	///	@param other - the pointer to move												
@@ -1938,18 +1940,6 @@ namespace Langulus::Anyness
 	bool KNOWNPOINTER()::operator == (const Decay<T>& rhs) const noexcept {
 		return operator == (&rhs);
 	}
-
-	/// Implicit cast to a constant pointer												
-	/*TEMPLATE()
-	KNOWNPOINTER()::operator T() const noexcept {
-		return mPointer;
-	}
-
-	/// Implicit cast to a mutable pointer													
-	TEMPLATE()
-	KNOWNPOINTER()::operator T() noexcept {
-		return mPointer;
-	}*/
 
 	/// Pointer dereferencing (const)														
 	///	@attention assumes contained pointer is valid								
