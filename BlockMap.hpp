@@ -248,9 +248,9 @@ namespace Langulus::Anyness
 		Count InsertUnknown(const Block&, const Block&);
 		Count InsertUnknown(Block&&, Block&&);
 
-		template<bool CHECK_FOR_MATCH, bool KEEP = true>
+		template<bool CHECK_FOR_MATCH, bool KEEP>
 		Offset InsertInnerUnknown(const Offset&, Block&&, Block&&);
-		template<bool CHECK_FOR_MATCH, bool KEEP = true, CT::Data K, CT::Data V>
+		template<bool CHECK_FOR_MATCH, bool KEEP, CT::Data K, CT::Data V>
 		Offset InsertInner(const Offset&, K&&, V&&);
 
 		void ClearInner();

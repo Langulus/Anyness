@@ -71,6 +71,7 @@ namespace Langulus::Anyness
 	/// lightweight intermediate structure for iteration, etc.						
 	///																								
 	class Block {
+	public:
 		LANGULUS(DEEP) true;
 
 		friend class Any;
@@ -99,10 +100,12 @@ namespace Langulus::Anyness
 		friend class TPointer;
 
 	protected:
+	TESTING(public:)
 		/// A structure used to represent an element of a sparse container		
 		struct KnownPointer;
 
-		union { 
+	protected:
+		union {
 			#if LANGULUS_DEBUG()
 				char* mRawChar;
 			#endif

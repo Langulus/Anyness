@@ -199,7 +199,7 @@ namespace Langulus::Anyness
 		void AllocateKeys(const Count&);
 		void AllocateInner(const Count&);
 		void Rehash(const Count&, const Count&);
-		template<bool CHECK_FOR_MATCH, bool KEEP = true>
+		template<bool CHECK_FOR_MATCH, bool KEEP>
 		Offset InsertInner(const Offset&, KeyInner&&, ValueInner&&);
 		void ClearInner();
 

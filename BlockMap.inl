@@ -549,12 +549,9 @@ namespace Langulus::Anyness
 				continue;
 			}
 
-			InsertUnknown(Move(key), Move(value));
-
-			if constexpr (REUSE) {
-				key.CallUnknownDestructors();
-				value.CallUnknownDestructors();
-			}
+			InsertInnerUnknown<false, false>(GetBucket(key), Move(key), Move(value));
+			key.CallUnknownDestructors();
+			value.CallUnknownDestructors();
 
 			key.Next();
 			key.mCount = 1;
@@ -623,7 +620,7 @@ namespace Langulus::Anyness
 				valswap.CallUnknownMoveConstructors<false>(1, GetValue(oldIndex));
 				keyswap.mCount = valswap.mCount = 1;
 				RemoveIndex(oldIndex);
-				if (oldIndex == InsertInnerUnknown<false>(newIndex, Move(keyswap), Move(valswap))) {
+				if (oldIndex == InsertInnerUnknown<false, false>(newIndex, Move(keyswap), Move(valswap))) {
 					// Index might still end up at its old index, make sure	
 					// we don't loop forever in that case							
 					++oldInfo;
@@ -800,7 +797,10 @@ namespace Langulus::Anyness
 	///	@return the bucket offset															
 	template<CT::Data K>
 	LANGULUS(ALWAYSINLINE) Offset BlockMap::GetBucket(const K& key) const noexcept {
-		return HashData(key).mHash & (GetReserved() - 1);
+		if constexpr (CT::Block<K>)
+			return key.GetHash().mHash & (GetReserved() - 1);
+		else
+			return HashData(key).mHash & (GetReserved() - 1);
 	}
 
 	/// Insert a single pair inside table via copy										
@@ -818,7 +818,7 @@ namespace Langulus::Anyness
 		Allocate(GetCount() + 1);
 		using KeyInner = typename TAny<K>::TypeInner;
 		using ValInner = typename TAny<V>::TypeInner;
-		InsertInner<true>(GetBucket(key), KeyInner {key}, ValInner {value});
+		InsertInner<true, false>(GetBucket(key), KeyInner {key}, ValInner {value});
 		return 1;
 	}
 
@@ -838,9 +838,9 @@ namespace Langulus::Anyness
 		using KeyInner = typename TAny<K>::TypeInner;
 		using ValInner = typename TAny<V>::TypeInner;
 		if constexpr (CT::Sparse<V>)
-			InsertInner<true>(GetBucket(key), KeyInner {key}, ValInner {value});
+			InsertInner<true, false>(GetBucket(key), KeyInner {key}, ValInner {value});
 		else
-			InsertInner<true>(GetBucket(key), KeyInner {key}, Forward<V>(value));
+			InsertInner<true, true>(GetBucket(key), KeyInner {key}, Forward<V>(value));
 		return 1;
 	}
 
@@ -860,9 +860,9 @@ namespace Langulus::Anyness
 		using KeyInner = typename TAny<K>::TypeInner;
 		using ValInner = typename TAny<V>::TypeInner;
 		if constexpr (CT::Sparse<K>)
-			InsertInner<true>(GetBucket(key), KeyInner {key}, ValInner {value});
+			InsertInner<true, false>(GetBucket(key), KeyInner {key}, ValInner {value});
 		else
-			InsertInner<true>(GetBucket(key), Forward<K>(key), ValInner {value});
+			InsertInner<true, true>(GetBucket(key), Forward<K>(key), ValInner {value});
 		return 1;
 	}
 
@@ -883,15 +883,15 @@ namespace Langulus::Anyness
 		using ValInner = typename TAny<V>::TypeInner;
 		if constexpr (CT::Sparse<K>) {
 			if constexpr (CT::Sparse<V>)
-				InsertInner<true>(GetBucket(key), KeyInner {key}, ValInner {value});
+				InsertInner<true, false>(GetBucket(key), KeyInner {key}, ValInner {value});
 			else
-				InsertInner<true>(GetBucket(key), KeyInner {key}, Forward<V>(value));
+				InsertInner<true, true>(GetBucket(key), KeyInner {key}, Forward<V>(value));
 		}
 		else {
 			if constexpr (CT::Sparse<V>)
-				InsertInner<true>(GetBucket(key), Forward<K>(key), ValInner {value});
+				InsertInner<true, true>(GetBucket(key), Forward<K>(key), ValInner {value});
 			else
-				InsertInner<true>(GetBucket(key), Forward<K>(key), Forward<V>(value));
+				InsertInner<true, true>(GetBucket(key), Forward<K>(key), Forward<V>(value));
 		}
 		return 1;
 	}
@@ -912,7 +912,7 @@ namespace Langulus::Anyness
 		valSwapper.Allocate<false, true>(1);
 		valSwapper.CallUnknownCopyConstructors<true>(1, value);
 
-		InsertInnerUnknown<true>(GetBucket(key), Move(keySwapper), Move(valSwapper));
+		InsertInnerUnknown<true, false>(GetBucket(key), Move(keySwapper), Move(valSwapper));
 
 		keySwapper.Free();
 		valSwapper.Free();
@@ -926,7 +926,7 @@ namespace Langulus::Anyness
 	inline Count BlockMap::InsertUnknown(Block&& key, Block&& value) {
 		Mutate(key.mType, key.IsSparse(), value.mType, value.IsSparse());
 		Allocate(GetCount() + 1);
-		InsertInnerUnknown<true>(GetBucket(key), Move(key), Move(value));
+		InsertInnerUnknown<true, true>(GetBucket(key), Move(key), Move(value));
 		return 1;
 	}
 

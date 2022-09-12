@@ -310,14 +310,14 @@ namespace Langulus::Anyness
 	///	@return the number of bytes a single key contains							
 	TABLE_TEMPLATE()
 	constexpr Size TABLE()::GetKeyStride() const noexcept {
-		return sizeof(K); 
+		return sizeof(KeyInner); 
 	}
 	
 	/// Get the size of a single value, in bytes											
 	///	@return the number of bytes a single value contains						
 	TABLE_TEMPLATE()
 	constexpr Size TABLE()::GetValueStride() const noexcept {
-		return sizeof(V); 
+		return sizeof(ValueInner); 
 	}
 
 	/// Get the raw key array (const)														
@@ -417,7 +417,7 @@ namespace Langulus::Anyness
 	///	@return the requested byte size													
 	TABLE_TEMPLATE()
 	Size TABLE()::RequestKeyAndInfoSize(const Count request, Offset& infoStart) noexcept {
-		const Size keymemory = request * sizeof(K);
+		const Size keymemory = request * sizeof(KeyInner);
 		infoStart = keymemory + Alignment - (keymemory % Alignment);
 		return infoStart + request + 1;
 	}
@@ -458,9 +458,9 @@ namespace Langulus::Anyness
 		// Allocate new values															
 		const Block oldValues {mValues};
 		if constexpr (REUSE)
-			mValues.mEntry = Allocator::Reallocate(count * sizeof(V), mValues.mEntry);
+			mValues.mEntry = Allocator::Reallocate(count * sizeof(ValueInner), mValues.mEntry);
 		else
-			mValues.mEntry = Allocator::Allocate(count * sizeof(V));
+			mValues.mEntry = Allocator::Allocate(count * sizeof(ValueInner));
 
 		if (!mValues.mEntry) {
 			Allocator::Deallocate(mKeys.mEntry);
@@ -504,25 +504,17 @@ namespace Langulus::Anyness
 		// If reached, then keys or values (or both) moved						
 		// Reinsert all pairs to rehash												
 		mValues.mCount = 0;
-		auto key = oldKeys.mEntry->As<K>();
-		auto value = oldValues.mEntry->As<V>();
+		auto key = oldKeys.mEntry->As<KeyInner>();
+		auto value = oldValues.mEntry->As<ValueInner>();
 		while (oldInfo != oldInfoEnd) {
 			if (!*(oldInfo++)) {
 				++key; ++value;
 				continue;
 			}
 
-			if constexpr (REUSE) {
-				Insert(Move(*key), Move(*value));
-
-				if constexpr (CT::Dense<K>)
-					RemoveInner(key);
-				if constexpr (CT::Dense<V>)
-					RemoveInner(value);
-			}
-			else Insert(*key, *value);
-
-			++key; ++value;
+			InsertInner<false, false>(GetBucket(*key), Move(*key), Move(*value));
+			RemoveInner(key++);
+			RemoveInner(value++);
 		}
 
 		// Free the old allocations													
@@ -573,7 +565,7 @@ namespace Langulus::Anyness
 				KeyInner keyswap {Move(*oldKey)};
 				ValueInner valswap {Move(*oldValue)};
 				RemoveIndex(oldIndex);
-				if (oldIndex == InsertInner<false>(newIndex, Move(keyswap), Move(valswap))) {
+				if (oldIndex == InsertInner<false, false>(newIndex, Move(keyswap), Move(valswap))) {
 					// Index might still end up at its old index, make sure	
 					// we don't loop forever in that case							
 					++oldKey;
@@ -702,7 +694,7 @@ namespace Langulus::Anyness
 			"Value needs to be copy-constructible, but isn't");
 
 		Allocate(GetCount() + 1);
-		InsertInner<true>(GetBucket(key), KeyInner {key}, ValueInner {value});
+		InsertInner<true, false>(GetBucket(key), KeyInner {key}, ValueInner {value});
 		return 1;
 	}
 
@@ -718,7 +710,7 @@ namespace Langulus::Anyness
 			"Value needs to be move-constructible, but isn't");
 
 		Allocate(GetCount() + 1);
-		InsertInner<true>(GetBucket(key), KeyInner {key}, Forward<V>(value));
+		InsertInner<true, true>(GetBucket(key), KeyInner {key}, Forward<V>(value));
 		return 1;
 	}
 
@@ -734,7 +726,7 @@ namespace Langulus::Anyness
 			"Value needs to be copy-constructible, but isn't");
 
 		Allocate(GetCount() + 1);
-		InsertInner<true>(GetBucket(key), Forward<K>(key), ValueInner {value});
+		InsertInner<true, true>(GetBucket(key), Forward<K>(key), ValueInner {value});
 		return 1;
 	}
 
@@ -750,7 +742,7 @@ namespace Langulus::Anyness
 			"Value needs to be move-constructible, but isn't");
 
 		Allocate(GetCount() + 1);
-		InsertInner<true>(GetBucket(key), Forward<K>(key), Forward<V>(value));
+		InsertInner<true, true>(GetBucket(key), Forward<K>(key), Forward<V>(value));
 		return 1;
 	}
 

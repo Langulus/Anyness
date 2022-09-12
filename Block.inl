@@ -3134,68 +3134,99 @@ namespace Langulus::Anyness
 
 		if (IsSparse()) {
 			// LHS is pointer, RHS must be dense									
-			// Move each pointer from RHS												
-			auto to = mRawSparse;
-			const auto toEnd = to + count;
-			auto from = source.mRaw;
-			const auto fromStride = source.mType->mSize;
-			while (to != toEnd) {
-				to->mPointer = const_cast<Byte*>(from);
-				(to++)->mEntry = source.mEntry;
-				from += fromStride;
+			// Copy each pointer from RHS (can't move them)						
+			auto lhs = mRawSparse;
+			auto rhs = source.mRaw;
+			const auto lhsEnd = lhs + count;
+			const auto rhsStride = source.mType->mSize;
+			while (lhs != lhsEnd) {
+				lhs->mPointer = const_cast<Byte*>(rhs);
+				(lhs++)->mEntry = source.mEntry;
+				rhs += rhsStride;
 			}
 
-			if constexpr (KEEP) {
-				// We have to reference RHS by the number of pointers we		
-				// made. Since we're converting dense to sparse, the			
-				// referencing is	mandatory											
-				source.mEntry->Keep(count);
-			}
+			// We have to reference RHS by the number of pointers we made	
+			// Since we're converting dense to sparse, the referencing is	
+			// MANDATORY!																	
+			source.mEntry->Keep(count);
 		}
 		else {
 			// LHS is dense																
 			if constexpr (KEEP) {
-				LANGULUS_ASSERT(mType->mMoveConstructor != nullptr,
+				LANGULUS_ASSERT(
+					mType->mMoveConstructor != nullptr,
 					Except::Construct,
 					"Can't move-construct elements "
-					"- no move-constructor was reflected");
+					"- no move-constructor was reflected"
+				);
 			}
 			else {
-				LANGULUS_ASSERT(mType->mAbandonConstructor != nullptr,
+				LANGULUS_ASSERT(
+					mType->mAbandonConstructor != nullptr ||
+					mType->mMoveConstructor != nullptr,
 					Except::Construct,
 					"Can't abandon-construct elements "
-					"- no abandon-constructor was reflected");
+					"- no abandon-constructor was reflected"
+				);
 			}
 
-			auto to = mRaw;
-			const auto toStride = mType->mSize;
+			auto lhs = mRaw;
+			const auto lhsStride = mType->mSize;
 
 			if (source.IsSparse()) {
 				// RHS is pointer, LHS is dense										
-				// Copy each dense element from RHS									
-				auto pointer = source.mRawSparse;
-				const auto pointersEnd = pointer + count;
-				while (pointer != pointersEnd) {
-					if constexpr (KEEP)
-						mType->mMoveConstructor(to, (pointer++)->mPointer);
-					else
-						mType->mAbandonConstructor(to, (pointer++)->mPointer);
-
-					to += toStride;
+				// Move each dense element from RHS									
+				auto rhs = source.mRawSparse;
+				const auto rhsEnd = rhs + count;
+				if constexpr (KEEP) {
+					// Move required														
+					while (rhs != rhsEnd) {
+						mType->mMoveConstructor((rhs++)->mPointer, lhs);
+						lhs += lhsStride;
+					}
+				}
+				else if (mType->mAbandonConstructor) {
+					// Attempt abandon													
+					while (rhs != rhsEnd) {
+						mType->mAbandonConstructor((rhs++)->mPointer, lhs);
+						lhs += lhsStride;
+					}
+				}
+				else {
+					// Fallback to move if abandon not available					
+					while (rhs != rhsEnd) {
+						mType->mMoveConstructor((rhs++)->mPointer, lhs);
+						lhs += lhsStride;
+					}
 				}
 			}
 			else {
 				// Both RHS and LHS are dense											
-				auto from = source.mRaw;
-				const auto fromEnd = from + count * toStride;
-				while (from != fromEnd) {
-					if constexpr (KEEP)
-						mType->mMoveConstructor(to, from);
-					else
-						mType->mAbandonConstructor(to, from);
-
-					to += toStride;
-					from += toStride;
+				auto rhs = source.mRaw;
+				const auto rhsEnd = rhs + count * lhsStride;
+				if constexpr (KEEP) {
+					// Move required														
+					while (rhs != rhsEnd) {
+						mType->mMoveConstructor(rhs, lhs);
+						lhs += lhsStride;
+						rhs += lhsStride;
+					}
+				}
+				else if (mType->mAbandonConstructor) {
+					// Attempt abandon													
+					while (rhs != rhsEnd) {
+						mType->mAbandonConstructor(rhs, lhs);
+						lhs += lhsStride;
+						rhs += lhsStride;
+					}
+				}
+				else {
+					// Fallback to move if abandon not available					
+					while (rhs != rhsEnd) {
+						mType->mMoveConstructor(rhs, lhs);
+						lhs += lhsStride;
+						rhs += lhsStride;
+					}
 				}
 			}
 		}
@@ -3294,64 +3325,97 @@ namespace Langulus::Anyness
 		if (IsSparse()) {
 			// LHS is pointer, RHS must be dense									
 			// Get each pointer from RHS, and reference it						
-			auto to = mRawSparse;
-			const auto toEnd = to + count;
-			auto from = source.mRaw;
-			const auto fromStride = source.mType->mSize;
-			while (to != toEnd) {
-				to->mPointer = const_cast<Byte*>(from);
-				to->mEntry = source.mEntry;
-				++to;
-				from += fromStride;
+			auto lhs = mRawSparse;
+			auto rhs = source.mRaw;
+			const auto lhsEnd = lhs + count;
+			const auto rhsStride = source.mType->mSize;
+			while (lhs != lhsEnd) {
+				lhs->mPointer = const_cast<Byte*>(rhs);
+				(lhs++)->mEntry = source.mEntry;
+				rhs += rhsStride;
 			}
 
-			if constexpr (KEEP)
-				source.mEntry->Keep(count);
+			// We have to reference RHS by the number of pointers we made	
+			// Since we're converting dense to sparse, the referencing is	
+			// MANDATORY!																	
+			source.mEntry->Keep(count);
 		}
 		else {
 			// LHS is dense																
 			if constexpr (KEEP) {
-				LANGULUS_ASSERT(mType->mCopyConstructor != nullptr,
+				LANGULUS_ASSERT(
+					mType->mCopyConstructor != nullptr,
 					Except::Construct,
 					"Can't copy-construct elements"
 					" - no copy-constructor was reflected");
 			}
 			else {
-				LANGULUS_ASSERT(mType->mDisownConstructor != nullptr,
+				LANGULUS_ASSERT(
+					mType->mDisownConstructor != nullptr ||
+					mType->mCopyConstructor != nullptr,
 					Except::Construct,
 					"Can't disown-construct elements"
 					" - no disown-constructor was reflected");
 			}
 
-			auto to = mRaw;
-			const auto toStride = mType->mSize;
+			auto lhs = mRaw;
+			const auto lhsStride = mType->mSize;
+
 			if (source.IsSparse()) {
 				// RHS is pointer, LHS is dense										
 				// Shallow-copy each dense element from RHS						
-				auto pointer = source.mRawSparse;
-				const auto pointerEnd = pointer + count;
-				while (pointer != pointerEnd) {
-					if constexpr (KEEP)
-						mType->mCopyConstructor(to, (pointer++)->mPointer);
-					else
-						mType->mDisownConstructor(to, (pointer++)->mPointer);
-
-					to += toStride;
+				auto rhs = source.mRawSparse;
+				const auto rhsEnd = rhs + count;
+				if constexpr (KEEP) {
+					// Move required														
+					while (rhs != rhsEnd) {
+						mType->mCopyConstructor((rhs++)->mPointer, lhs);
+						lhs += lhsStride;
+					}
+				}
+				else if (mType->mDisownConstructor) {
+					// Attempt abandon													
+					while (rhs != rhsEnd) {
+						mType->mDisownConstructor((rhs++)->mPointer, lhs);
+						lhs += lhsStride;
+					}
+				}
+				else {
+					// Fallback to move if abandon not available					
+					while (rhs != rhsEnd) {
+						mType->mCopyConstructor((rhs++)->mPointer, lhs);
+						lhs += lhsStride;
+					}
 				}
 			}
 			else {
 				// Both RHS and LHS are dense											
 				// Call the reflected copy-constructor for each element		
-				auto from = source.mRaw;
-				const auto fromEnd = from + count * toStride;
-				while (from != fromEnd) {
-					if constexpr (KEEP)
-						mType->mCopyConstructor(to, from);
-					else
-						mType->mDisownConstructor(to, from);
-
-					to += toStride;
-					from += toStride;
+				auto rhs = source.mRaw;
+				const auto rhsEnd = rhs + count * lhsStride;
+				if constexpr (KEEP) {
+					// Move required														
+					while (rhs != rhsEnd) {
+						mType->mCopyConstructor(rhs, lhs);
+						lhs += lhsStride;
+						rhs += lhsStride;
+					}
+				}
+				else if (mType->mDisownConstructor) {
+					// Attempt abandon													
+					while (rhs != rhsEnd) {
+						mType->mDisownConstructor(rhs, lhs);
+						lhs += lhsStride;
+						rhs += lhsStride;
+					}
+				}
+				else {
+					// Fallback to move if abandon not available					
+					while (rhs != rhsEnd) {
+						mType->mCopyConstructor(rhs, lhs);
+						lhs += lhsStride;
+						rhs += lhsStride;
+					}
 				}
 			}
 		}
@@ -3397,20 +3461,24 @@ namespace Langulus::Anyness
 			const auto rhsStride = source.mType->mSize;
 			while (lhs != lhsEnd) {
 				KnownPointer temporary {const_cast<Byte*>(rhs), source.mEntry};
-				(lhs++)->MoveAssign<KEEP>(mType, &temporary);
+				// We're converting dense to sparse, so always reference		
+				(lhs++)->MoveAssign<true>(mType, &temporary);
 				rhs += rhsStride;
 			}
 		}
 		else {
 			// LHS is dense																
 			if constexpr (KEEP) {
-				LANGULUS_ASSERT(mType->mMover != nullptr,
+				LANGULUS_ASSERT(
+					mType->mMover != nullptr,
 					Except::Construct,
 					"Can't move-assign elements"
 					" - no move-assignment was reflected");
 			}
 			else {
-				LANGULUS_ASSERT(mType->mAbandonMover != nullptr,
+				LANGULUS_ASSERT(
+					mType->mMover != nullptr ||
+					mType->mAbandonMover != nullptr,
 					Except::Construct,
 					"Can't abandon-assign elements"
 					" - no abandon-assignment was reflected");
@@ -3418,32 +3486,61 @@ namespace Langulus::Anyness
 
 			auto lhs = mRaw;
 			const auto lhsStride = mType->mSize;
+
 			if (source.IsSparse()) {
 				// RHS is pointer, LHS is dense										
 				// Copy each dense element from RHS									
 				auto rhs = source.mRawSparse;
 				const auto rhsEnd = rhs + count;
-				while (rhs != rhsEnd) {
-					if constexpr (KEEP)
-						mType->mMover(lhs, (rhs++)->mPointer);
-					else
-						mType->mAbandonMover(lhs, (rhs++)->mPointer);
-
-					lhs += lhsStride;
+				if constexpr (KEEP) {
+					// Move required														
+					while (rhs != rhsEnd) {
+						mType->mMover((rhs++)->mPointer, lhs);
+						lhs += lhsStride;
+					}
+				}
+				else if (mType->mAbandonMover) {
+					// Attempt abandon													
+					while (rhs != rhsEnd) {
+						mType->mAbandonMover((rhs++)->mPointer, lhs);
+						lhs += lhsStride;
+					}
+				}
+				else {
+					// Fallback to move if abandon not available					
+					while (rhs != rhsEnd) {
+						mType->mMover((rhs++)->mPointer, lhs);
+						lhs += lhsStride;
+					}
 				}
 			}
 			else {
 				// Both RHS and LHS are dense											
 				auto rhs = source.mRaw;
 				const auto rhsEnd = rhs + count * lhsStride;
-				while (rhs != rhsEnd) {
-					if constexpr (KEEP)
-						mType->mMover(lhs, rhs);
-					else
-						mType->mAbandonMover(lhs, rhs);
-
-					lhs += lhsStride;
-					rhs += lhsStride;
+				if constexpr (KEEP) {
+					// Move required														
+					while (rhs != rhsEnd) {
+						mType->mMover(rhs, lhs);
+						lhs += lhsStride;
+						rhs += lhsStride;
+					}
+				}
+				else if (mType->mAbandonMover) {
+					// Attempt abandon													
+					while (rhs != rhsEnd) {
+						mType->mAbandonMover(rhs, lhs);
+						lhs += lhsStride;
+						rhs += lhsStride;
+					}
+				}
+				else {
+					// Fallback to move if abandon not available					
+					while (rhs != rhsEnd) {
+						mType->mMover(rhs, lhs);
+						lhs += lhsStride;
+						rhs += lhsStride;
+					}
 				}
 			}
 		}
@@ -3489,37 +3586,57 @@ namespace Langulus::Anyness
 			const auto rhsStride = source.mType->mSize;
 			while (lhs != lhsEnd) {
 				KnownPointer temporary {const_cast<Byte*>(rhs), source.mEntry};
-				(lhs++)->CopyAssign<KEEP>(mType, &temporary);
+				// We're converting dense to sparse, so always reference		
+				(lhs++)->CopyAssign<true>(mType, &temporary);
 				rhs += rhsStride;
 			}
 		}
 		else {
 			// LHS is dense																
 			if constexpr (KEEP) {
-				LANGULUS_ASSERT(mType->mCopier != nullptr, Except::Construct,
+				LANGULUS_ASSERT(
+					mType->mCopier != nullptr,
+					Except::Construct,
 					"Can't copy-assign elements"
 					" - no copy-assignment was reflected");
 			}
 			else {
-				LANGULUS_ASSERT(mType->mDisownCopier != nullptr, Except::Construct,
+				LANGULUS_ASSERT(
+					mType->mCopier != nullptr ||
+					mType->mDisownCopier != nullptr,
+					Except::Construct,
 					"Can't disown-assign elements"
 					" - no disown-assignment was reflected");
 			}
 
 			auto lhs = mRaw;
 			const auto lhsStride = mType->mSize;
+
 			if (source.IsSparse()) {
 				// RHS is pointer, LHS is dense										
 				// Shallow-copy each dense element from RHS						
 				auto rhs = source.mRawSparse;
 				const auto rhsEnd = rhs + count;
-				while (rhs != rhsEnd) {
-					if constexpr (KEEP)
+				if constexpr (KEEP) {
+					// Move required														
+					while (rhs != rhsEnd) {
 						mType->mCopier((rhs++)->mPointer, lhs);
-					else
+						lhs += lhsStride;
+					}
+				}
+				else if (mType->mDisownCopier) {
+					// Attempt abandon													
+					while (rhs != rhsEnd) {
 						mType->mDisownCopier((rhs++)->mPointer, lhs);
-
-					lhs += lhsStride;
+						lhs += lhsStride;
+					}
+				}
+				else {
+					// Fallback to move if abandon not available					
+					while (rhs != rhsEnd) {
+						mType->mCopier((rhs++)->mPointer, lhs);
+						lhs += lhsStride;
+					}
 				}
 			}
 			else {
@@ -3527,14 +3644,29 @@ namespace Langulus::Anyness
 				// Call the reflected copy-constructor for each element		
 				auto rhs = source.mRaw;
 				const auto rhsEnd = rhs + count * lhsStride;
-				while (rhs != rhsEnd) {
-					if constexpr (KEEP)
+				if constexpr (KEEP) {
+					// Move required														
+					while (rhs != rhsEnd) {
 						mType->mCopier(rhs, lhs);
-					else
+						lhs += lhsStride;
+						rhs += lhsStride;
+					}
+				}
+				else if (mType->mDisownCopier) {
+					// Attempt abandon													
+					while (rhs != rhsEnd) {
 						mType->mDisownCopier(rhs, lhs);
-
-					lhs += lhsStride;
-					rhs += lhsStride;
+						lhs += lhsStride;
+						rhs += lhsStride;
+					}
+				}
+				else {
+					// Fallback to move if abandon not available					
+					while (rhs != rhsEnd) {
+						mType->mCopier(rhs, lhs);
+						lhs += lhsStride;
+						rhs += lhsStride;
+					}
 				}
 			}
 		}
