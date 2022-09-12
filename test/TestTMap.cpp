@@ -65,6 +65,7 @@ concept IsStaticallyOptimized = requires (Decay<T> a) { typename T::Key; typenam
 /// to complex, from flat to deep															
 TEMPLATE_TEST_CASE(
 	"TOrderedMap/TUnorderedMap/OrderedMap/UnorderedMap", "[map]",
+	(TypePair<UnorderedMap, Text, int*>),
 	(TypePair<TUnorderedMap<Text, int>, Text, int>),
 	(TypePair<TUnorderedMap<Text, Trait>, Text, Trait>),
 	(TypePair<TUnorderedMap<Text, Traits::Count>, Text, Traits::Count>),
@@ -85,7 +86,6 @@ TEMPLATE_TEST_CASE(
 	(TypePair<UnorderedMap, Text, Trait>),
 	(TypePair<UnorderedMap, Text, Traits::Count>),
 	(TypePair<UnorderedMap, Text, Any>),
-	(TypePair<UnorderedMap, Text, int*>),
 	(TypePair<UnorderedMap, Text, Trait*>),
 	(TypePair<UnorderedMap, Text, Traits::Count*>),
 	(TypePair<UnorderedMap, Text, Any*>),
@@ -116,17 +116,16 @@ TEMPLATE_TEST_CASE(
 			"five hundred"_text, 555);
 
 		const T map {};
-		auto meta1 = map.GetKeyType();
-		auto meta2 = map.GetValueType();
 
 		WHEN("Given a default-constructed map") {
 			THEN("These properties should be correct") {
 				if constexpr (IsStaticallyOptimized<T>) {
-					REQUIRE(meta1);
-					REQUIRE(meta2);
-					REQUIRE(meta1->template Is<K>());
-					REQUIRE(meta2->template Is<V>());
+					REQUIRE(map.template KeyIs<K>());
+					REQUIRE(map.template ValueIs<V>());
 				}
+
+				REQUIRE(map.GetKeyTypeInner() == map.GetKeyType());
+				REQUIRE(map.GetValueTypeInner() == map.GetValueType());
 				REQUIRE(map.IsKeyTypeConstrained() == IsStaticallyOptimized<T>);
 				REQUIRE(map.IsValueTypeConstrained() == IsStaticallyOptimized<T>);
 				REQUIRE(map.IsEmpty());
@@ -160,8 +159,8 @@ TEMPLATE_TEST_CASE(
 			THEN("Various traits change") {
 				REQUIRE(map.IsKeyTypeConstrained() == IsStaticallyOptimized<T>);
 				REQUIRE(map.IsValueTypeConstrained() == IsStaticallyOptimized<T>);
-				REQUIRE(map.GetKeyType());
-				REQUIRE(map.GetValueType());
+				REQUIRE(map.GetKeyTypeInner() == map.GetKeyType());
+				REQUIRE(map.GetValueTypeInner() == map.GetValueType());
 				REQUIRE(map.template KeyIs<K>());
 				REQUIRE(map.template ValueIs<V>());
 				REQUIRE(map.IsAllocated());
@@ -199,8 +198,8 @@ TEMPLATE_TEST_CASE(
 				REQUIRE(map.IsKeyTypeConstrained() == IsStaticallyOptimized<T>);
 				REQUIRE(map.IsValueTypeConstrained() == IsStaticallyOptimized<T>);
 				REQUIRE(movablePair != pair);
-				REQUIRE(map.GetKeyType());
-				REQUIRE(map.GetValueType());
+				REQUIRE(map.GetKeyTypeInner() == map.GetKeyType());
+				REQUIRE(map.GetValueTypeInner() == map.GetValueType());
 				REQUIRE(map.template KeyIs<K>());
 				REQUIRE(map.template ValueIs<V>());
 				REQUIRE(map.IsAllocated());
@@ -279,6 +278,8 @@ TEMPLATE_TEST_CASE(
 		WHEN("Given a preinitialized map with 5 elements") {
 			THEN("These properties should be correct") {
 				REQUIRE(map.GetCount() == 5);
+				REQUIRE(map.GetKeyTypeInner() == map.GetKeyType());
+				REQUIRE(map.GetValueTypeInner() == map.GetValueType());
 				REQUIRE(map.template KeyIs<K>());
 				REQUIRE(map.template ValueIs<V>());
 				REQUIRE_FALSE(map.template KeyIs<int>());
@@ -372,8 +373,8 @@ TEMPLATE_TEST_CASE(
 			THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
 				REQUIRE(map.IsKeyTypeConstrained() == IsStaticallyOptimized<T>);
 				REQUIRE(map.IsValueTypeConstrained() == IsStaticallyOptimized<T>);
-				REQUIRE(map.GetKeyType());
-				REQUIRE(map.GetValueType());
+				REQUIRE(map.GetKeyTypeInner() == map.GetKeyType());
+				REQUIRE(map.GetValueTypeInner() == map.GetValueType());
 				REQUIRE(map.template KeyIs<K>());
 				REQUIRE(map.template ValueIs<V>());
 				REQUIRE(map.HasAuthority());
@@ -475,6 +476,8 @@ TEMPLATE_TEST_CASE(
 				REQUIRE(map.HasAuthority());
 				REQUIRE(map.GetUses() == 1);
 				REQUIRE(map.GetCount() == 10);
+				REQUIRE(map.GetKeyTypeInner() == map.GetKeyType());
+				REQUIRE(map.GetValueTypeInner() == map.GetValueType());
 				for (auto& comparer : darray1)
 					REQUIRE(map[comparer.mKey] == comparer.mValue);
 				for (auto& comparer : darray2)
@@ -512,6 +515,8 @@ TEMPLATE_TEST_CASE(
 			const auto removed4 = const_cast<T&>(map).RemoveValue(darray1[3].mValue);
 
 			THEN("The size changes but not capacity") {
+				REQUIRE(map.GetKeyTypeInner() == map.GetKeyType());
+				REQUIRE(map.GetValueTypeInner() == map.GetValueType());
 				REQUIRE(map.HasAuthority());
 				REQUIRE(map.GetUses() == 1);
 				REQUIRE(removed2 == 1);
@@ -568,6 +573,8 @@ TEMPLATE_TEST_CASE(
 			const auto removed4 = const_cast<T&>(map).RemoveKey(darray1[3].mKey);
 
 			THEN("The size changes but not capacity") {
+				REQUIRE(map.GetKeyTypeInner() == map.GetKeyType());
+				REQUIRE(map.GetValueTypeInner() == map.GetValueType());
 				REQUIRE(map.HasAuthority());
 				REQUIRE(map.GetUses() == 1);
 				REQUIRE(removed2 == 1);
@@ -661,10 +668,12 @@ TEMPLATE_TEST_CASE(
 			THEN("Size goes to zero, capacity and types are unchanged") {
 				REQUIRE(map.GetCount() == 0);
 				REQUIRE(map.IsAllocated());
+				REQUIRE(map.GetKeyTypeInner() == map.GetKeyType());
+				REQUIRE(map.GetValueTypeInner() == map.GetValueType());
 				REQUIRE(map.template KeyIs<K>());
 				REQUIRE(map.template ValueIs<V>());
-				REQUIRE(map.IsKeyTypeConstrained());
-				REQUIRE(map.IsValueTypeConstrained());
+				REQUIRE(map.IsKeyTypeConstrained() == IsStaticallyOptimized<T>);
+				REQUIRE(map.IsValueTypeConstrained() == IsStaticallyOptimized<T>);
 				REQUIRE(map.IsEmpty());
 				REQUIRE(map.GetRawKeysMemory() == keyMemory);
 				REQUIRE(map.GetRawValuesMemory() == valueMemory);
@@ -681,10 +690,14 @@ TEMPLATE_TEST_CASE(
 				REQUIRE(map.GetCount() == 0);
 				REQUIRE_FALSE(map.IsAllocated());
 				REQUIRE_FALSE(map.HasAuthority());
-				REQUIRE(map.template KeyIs<K>());
-				REQUIRE(map.template ValueIs<V>());
-				REQUIRE(map.IsKeyTypeConstrained());
-				REQUIRE(map.IsValueTypeConstrained());
+				REQUIRE(map.GetKeyTypeInner() == map.GetKeyType());
+				REQUIRE(map.GetValueTypeInner() == map.GetValueType());
+				if constexpr (IsStaticallyOptimized<T>) {
+					REQUIRE(map.template KeyIs<K>());
+					REQUIRE(map.template ValueIs<V>());
+				}
+				REQUIRE(map.IsKeyTypeConstrained() == IsStaticallyOptimized<T>);
+				REQUIRE(map.IsValueTypeConstrained() == IsStaticallyOptimized<T>);
 				REQUIRE(map.IsEmpty());
 				REQUIRE(map.GetRawKeysMemory() != keyMemory);
 				REQUIRE(map.GetRawValuesMemory() != valueMemory);
@@ -709,6 +722,8 @@ TEMPLATE_TEST_CASE(
 
 			THEN("The new map should keep the state and refer to original data") {
 				REQUIRE(copy == map);
+				REQUIRE(copy.GetKeyTypeInner() == copy.GetKeyType());
+				REQUIRE(copy.GetValueTypeInner() == copy.GetValueType());
 				REQUIRE(copy.IsAllocated());
 				REQUIRE(copy.HasAuthority());
 				REQUIRE(copy.GetUses() == 2);
@@ -738,6 +753,8 @@ TEMPLATE_TEST_CASE(
 
 			THEN("The new map should keep the state, but refer to new data") {
 				REQUIRE(clone == map);
+				REQUIRE(clone.GetKeyTypeInner() == clone.GetKeyType());
+				REQUIRE(clone.GetValueTypeInner() == clone.GetValueType());
 				REQUIRE(clone.IsAllocated());
 				REQUIRE(clone.HasAuthority());
 				REQUIRE(clone.GetUses() == 1);
@@ -745,12 +762,14 @@ TEMPLATE_TEST_CASE(
 				REQUIRE(clone.GetCount() == 5);
 				REQUIRE(clone.GetRawKeysMemory() != map.GetRawKeysMemory());
 				REQUIRE(clone.GetRawValuesMemory() != map.GetRawValuesMemory());
-				for (auto& comparer : darray1)
+				for (auto& comparer : darray1) {
 					REQUIRE(clone[comparer.mKey] == comparer.mValue);
-
-				if constexpr (IsStaticallyOptimized<T>) {
-					for (auto& comparer : darray1)
+					REQUIRE(map[comparer.mKey] == comparer.mValue);
+					REQUIRE(map[comparer.mKey] == clone[comparer.mKey]);
+					if constexpr (IsStaticallyOptimized<T>)
 						REQUIRE(&map[comparer.mKey] != &clone[comparer.mKey]);
+					else
+						REQUIRE(map[comparer.mKey].GetRaw() != clone[comparer.mKey].GetRaw());
 				}
 
 				/*REQUIRE(clone.GetRaw() != map.GetRaw());
@@ -770,6 +789,8 @@ TEMPLATE_TEST_CASE(
 			THEN("The new pack should keep the state and data") {
 				REQUIRE(moved == map);
 				REQUIRE(moved != movable);
+				REQUIRE(moved.GetKeyTypeInner() == moved.GetKeyType());
+				REQUIRE(moved.GetValueTypeInner() == moved.GetValueType());
 				REQUIRE(moved.GetRawKeysMemory() == keyMemory);
 				REQUIRE(moved.GetRawValuesMemory() == valueMemory);
 				REQUIRE(moved.IsAllocated());
@@ -783,8 +804,8 @@ TEMPLATE_TEST_CASE(
 				//REQUIRE(map.GetRawKeys() == nullptr); // not really required
 				REQUIRE(movable.GetRawValuesMemory() == nullptr);
 				REQUIRE(movable.GetCount() == 0);
-				REQUIRE(movable.IsValueTypeConstrained());
-				REQUIRE(movable.IsKeyTypeConstrained());
+				REQUIRE(movable.IsValueTypeConstrained() == IsStaticallyOptimized<T>);
+				REQUIRE(movable.IsKeyTypeConstrained() == IsStaticallyOptimized<T>);
 				//REQUIRE(map.GetReserved() == 0);
 				//REQUIRE(map.GetType() == moved.GetType());
 			}
@@ -883,7 +904,7 @@ TEMPLATE_TEST_CASE(
 		}
 	}
 
-	GIVEN("Two THashMaps") {
+	GIVEN("Two maps") {
 		#include "CollectGarbage.inl"
 
 		TAny<int> pack1;

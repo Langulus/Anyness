@@ -70,13 +70,12 @@ namespace Langulus::Anyness
 		::std::swap(mValue, other.mValue);
 	}
 
-	/// Ordering comparison																		
+	/// Comparison																					
+	///	@param rhs - pair to compare against											
+	///	@return true if pairs match														
 	TEMPLATE()
-	auto PAIR()::operator <=> (const TPair& rhs) const noexcept {
-		const ::std::strong_ordering result = mKey <=> rhs.mKey;
-		if (result != 0)
-			return result;
-		return mValue <=> rhs.mValue;
+	bool PAIR()::operator == (const TPair& rhs) const {
+		return mKey == rhs.mKey && mValue == rhs.mValue;
 	}
 
 	/// Clone the pair																			

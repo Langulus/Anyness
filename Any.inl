@@ -367,7 +367,7 @@ namespace Langulus::Anyness
 		// Since Any is type-erased, we have to make a runtime type check	
 		const auto meta = MetaData::Of<Decay<T>>();
 		LANGULUS_ASSERT(!IsTypeConstrained() || CastsToMeta(meta), Except::Copy,
-			"Unable to disowned value-assign type-constrained container"
+			"Unable to disown-assign to type-constrained container"
 			" - types are incompatible");
 
 		if (GetUses() != 1 || IsSparse() != CT::Sparse<T> || !meta->Is(mType)) {
@@ -384,8 +384,8 @@ namespace Langulus::Anyness
 			if constexpr (CT::Sparse<T>) {
 				CallKnownDestructors<T>();
 				mCount = 1;
-				mRawSparse->mPointer = reinterpret_cast<Byte*>(other.mValue);
-				mRawSparse->mEntry = nullptr;
+				new (mRawSparse) KnownPointer {
+					reinterpret_cast<Byte*>(other.mValue), nullptr};
 			}
 			else {
 				CallKnownDestructors<T>();
@@ -410,7 +410,7 @@ namespace Langulus::Anyness
 		// Since Any is type-erased, we have to make a runtime type check	
 		const auto meta = MetaData::Of<Decay<T>>();
 		LANGULUS_ASSERT(!IsTypeConstrained() || CastsToMeta(meta), Except::Copy,
-			"Unable to abandoned value-assign type-constrained container"
+			"Unable to abandon-assign to type-constrained container"
 			" - types are incompatible");
 
 		if (GetUses() != 1 || IsSparse() != CT::Sparse<T> || !meta->Is(mType)) {
@@ -427,8 +427,8 @@ namespace Langulus::Anyness
 			if constexpr (CT::Sparse<T>) {
 				CallKnownDestructors<T>();
 				mCount = 1;
-				mRawSparse->mPointer = reinterpret_cast<Byte*>(other.mValue);
-				mRawSparse->mEntry = nullptr;
+				new (mRawSparse) KnownPointer {
+					reinterpret_cast<Byte*>(other.mValue), nullptr};
 			}
 			else {
 				CallKnownDestructors<T>();
@@ -443,17 +443,6 @@ namespace Langulus::Anyness
 		}
 
 		return *this;
-	}
-
-	/// Compare to any other kind of deep container, or a single custom element
-	///	@param rhs - element to compare against										
-	///	@return true if containers match													
-	template<CT::Data T>
-	bool Any::operator == (const T& rhs) const {
-		if constexpr (CT::Deep<T>)
-			return Block::operator == (rhs);
-		else
-			return mCount == 1 && Is<T>() && Get<T>() == rhs;
 	}
 
 	/// Copy-insert an element (including arrays) at the back						

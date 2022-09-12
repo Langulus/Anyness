@@ -142,7 +142,7 @@ namespace Langulus::Anyness
 			}
 		}
 
-		if (baseForComparison.mType->mIsPOD && baseForComparison.mBinaryCompatible) {
+		if (IsDense() && baseForComparison.mType->mIsPOD && baseForComparison.mBinaryCompatible) {
 			// Just compare the memory directly (optimization)					
 			VERBOSE("Batch-comparing POD memory");
 			const auto code = memcmp(mRaw, right.mRaw, 
@@ -236,82 +236,9 @@ namespace Langulus::Anyness
 				baseForComparison.mType->mToken);
 			return false;
 		}
-		/*else {
-			// Compare all elements reflected bases and members, one by one
-			// We're desperate at this point											
-			Count compared_members = 0;
-			for (Count i = 0; i < mCount; ++i) {
-				auto lhs = RESOLVE ? GetElementResolved(i) : GetElement(i);
-				auto rhs = RESOLVE ? right.GetElementResolved(i) : right.GetElement(i);
-				if (!lhs.CompareMembers(rhs, compared_members)) {
-					// Fail comparison on first mismatch							
-					VERBOSE(Logger::Red,
-						"Members in element ", i, " differ: ", 
-						lhs.GetToken(), " != ", rhs.GetToken());
-					return false;
-				}
-			}
-
-			SAFETY(if (compared_members == 0 && mCount > 0)
-				Logger::Error("Comparing checked no members"));
-
-			VERBOSE(Logger::Green,
-				"Data is the same, all members match ", 
-				Logger::Red, "(slowest)");
-		}*/
 
 		return true;
 	}
-
-	/// Compare the reflected members, and bases' members of two blocks			
-	///	@param right - block to compare against										
-	///	@param compared - [in/out] the number of compared members				
-	///	@return false if any member differs												
-	/*bool Block::CompareMembers(const Block& right, Count& compared) const {
-		VERBOSE_TAB("Comparing the members of ", GetToken());
-
-		// Take care of memory blocks directly										
-		if (Is<Block>() || Is<Any>()) {
-			++compared;
-			auto& lhs_block = Get<Block>();
-			auto& rhs_block = right.template Get<Block>();
-			return lhs_block.Compare(rhs_block);
-		}
-
-		// First we check all bases													
-		for (auto& base : mType->mBases) {
-			auto& baseMeta = base.mType;
-			if (baseMeta && baseMeta->mSize > 0) {
-				++compared;
-				auto lhs_base = GetBaseMemory(baseMeta, base);
-				auto rhs_base = right.GetBaseMemory(baseMeta, base);
-				if (!lhs_base.template Compare<false>(rhs_base))
-					return false;
-			}
-		}
-
-		// Iterate members for each element											
-		for (auto& member : mType->mMembers) {
-			if (member.template Is<Block>() || member.template Is<Any>()) {
-				// If member is a memory block, nest								
-				++compared;
-				auto& lhs_block = member.template As<Block>(mRaw);
-				auto& rhs_block = member.template As<Block>(right.mRaw);
-				if (!lhs_block.Compare(rhs_block))
-					return false;
-			}
-			else {
-				// Handle all the rest of the members								
-				++compared;
-				auto lhs_member = GetMember(member);
-				auto rhs_member = right.GetMember(member);
-				if (!lhs_member.Compare(rhs_member))
-					return false;
-			}
-		}
-
-		return true;
-	}*/
 
 } // namespace Langulus::Anyness
 

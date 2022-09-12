@@ -1898,8 +1898,35 @@ namespace Langulus::Anyness
 		return *this;
 	}
 
-	/// Implicit cast to a constant pointer												
+	/// Compare two known pointers, by pointer and value								
+	///	@param rhs - the pointer to compare against									
+	///	@return true if pointers/values match											
 	TEMPLATE()
+	bool KNOWNPOINTER()::operator == (const KNOWNPOINTER()& rhs) const noexcept {
+		return operator == (rhs.mPointer);
+	}
+
+	/// Compare two known pointers, by pointer and value								
+	///	@param rhs - the pointer to compare against									
+	///	@return true if pointers/values match											
+	TEMPLATE()
+	bool KNOWNPOINTER()::operator == (const T& rhs) const noexcept {
+		if constexpr (CT::Comparable<T, T>)
+			return mPointer == rhs || (mPointer && *mPointer == *rhs);
+		else
+			return mPointer == rhs;
+	}
+
+	/// Compare two known pointers, by pointer and value								
+	///	@param rhs - the pointer to compare against									
+	///	@return true if pointers/values match											
+	TEMPLATE()
+	bool KNOWNPOINTER()::operator == (const Decay<T>& rhs) const noexcept {
+		return operator == (&rhs);
+	}
+
+	/// Implicit cast to a constant pointer												
+	/*TEMPLATE()
 	KNOWNPOINTER()::operator T() const noexcept {
 		return mPointer;
 	}
@@ -1908,7 +1935,7 @@ namespace Langulus::Anyness
 	TEMPLATE()
 	KNOWNPOINTER()::operator T() noexcept {
 		return mPointer;
-	}
+	}*/
 
 	/// Pointer dereferencing (const)														
 	///	@attention assumes contained pointer is valid								

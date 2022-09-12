@@ -821,13 +821,6 @@ namespace Langulus::Anyness
 		return mState - DataState::Constrained;
 	}
 
-	/// Compare memory blocks - this is a slow runtime compare						
-	///	@param other - the block to compare against									
-	///	@return true if block's elements all match and are in same order		
-	inline bool Block::operator == (const Block& other) const {
-		return Compare(other);
-	}
-
 	/// Get the internal byte array with a given offset								
 	/// This is lowest level access and checks nothing									
 	///	@param byteOffset - number of bytes to add									
@@ -1119,6 +1112,25 @@ namespace Langulus::Anyness
 		T temp {Move(data[to])};
 		data[to] = Move(data[from]);
 		data[from] = Move(temp);
+	}
+
+	/// Compare to any other kind of deep container, or a single custom element
+	///	@param rhs - element to compare against										
+	///	@return true if containers match													
+	template<CT::Data T>
+	bool Block::operator == (const T& rhs) const {
+		if constexpr (CT::Sparse<T>) {
+			if constexpr (CT::Deep<T>)
+				return Compare(rhs) || (mCount == 1 && Is<T>() && (Get<T>() == rhs || (rhs && *rhs == *Get<T>())));
+			else
+				return mCount == 1 && Is<T>() && (Get<T>() == rhs || (rhs && *rhs == *Get<T>()));
+		}
+		else {
+			if constexpr (CT::Deep<T>)
+				return Compare(rhs) || (mCount == 1 && Is<T>() && Get<T>() == rhs);
+			else
+				return mCount == 1 && Is<T>() && Get<T>() == rhs;
+		}
 	}
 
 	/// Reinterpret contents of this Block as a collection of a static type		
@@ -2343,7 +2355,7 @@ namespace Langulus::Anyness
 	///	@return the offset																	
 	template<CT::Data T, CT::Index INDEX>
 	LANGULUS(ALWAYSINLINE) Offset Block::SimplifyIndex(const INDEX& index) const {
-		LANGULUS_ASSUME(DevAssumes, Is<T>(), "Type mismatch");
+		LANGULUS_ASSUME(DevAssumes, (CastsTo<T, true>()), "Type mismatch");
 
 		if constexpr (CT::Same<INDEX, Index>) {
 			// This is the only safe path												
@@ -2924,12 +2936,13 @@ namespace Langulus::Anyness
 	/// that has not been initialized yet (for internal use only)					
 	///	@param start - starting element index											
 	///	@param count - number of elements												
+	///	@param reserved - number of reserved elements								
 	///	@return the block representing the region										
 	inline Block Block::CropInner(const Offset& start, const Count& count, const Count& reserved) const noexcept {
 		Block result {*this};
-		result.mCount = count;// ::std::min(start < mCount ? mCount - start : 0, count);
+		result.mCount = count;
 		result.mRaw += start * GetStride();
-		result.mReserved = reserved;// ::std::min(reserved, mReserved - start);
+		result.mReserved = reserved;
 		return result;
 	}
 
@@ -3042,6 +3055,7 @@ namespace Langulus::Anyness
 	/// Call move constructors in a region and initialize memory					
 	///	@attention never modifies any block state										
 	///	@attention assumes T is the type of both blocks								
+	///	@attention assumes both blocks are of same sparsity						
 	///	@attention assumes count <= reserved elements								
 	///	@attention assumes source contains at least 'count' items				
 	///	@tparam KEEP - true to use move-construction, false to use abandon	
@@ -3056,6 +3070,8 @@ namespace Langulus::Anyness
 			"T doesn't match LHS type");
 		LANGULUS_ASSUME(DevAssumes, source.Is<T>(),
 			"T doesn't match RHS type");
+		LANGULUS_ASSUME(DevAssumes, IsSparse() == source.IsSparse(),
+			"Blocks are not of same sparsity");
 
 		static_assert(CT::Sparse<T> || CT::Mutable<T>,
 			"Can't move-construct in container of constant elements");
@@ -3188,6 +3204,7 @@ namespace Langulus::Anyness
 	/// Call copy constructors in a region, initializing memory						
 	///	@attention never modifies any block state										
 	///	@attention assumes T is the type of both blocks								
+	///	@attention assumes blocks are of same sparseness							
 	///	@attention assumes source has at least 'count' items						
 	///	@attention assumes this has at least 'count' items reserved				
 	///	@tparam KEEP - true to reference upon copy									
@@ -3202,6 +3219,8 @@ namespace Langulus::Anyness
 			"T doesn't match LHS type");
 		LANGULUS_ASSUME(DevAssumes, source.Is<T>(),
 			"T doesn't match RHS type");
+		LANGULUS_ASSUME(DevAssumes, IsSparse() == source.IsSparse(),
+			"Blocks are not of same sparsity");
 
 		if constexpr (CT::Sparse<T>) {
 			// Copy-construct known pointers, but LHS and RHS are sparse	
@@ -3477,12 +3496,12 @@ namespace Langulus::Anyness
 		else {
 			// LHS is dense																
 			if constexpr (KEEP) {
-				LANGULUS_ASSERT(mType->mCopier, Except::Construct,
+				LANGULUS_ASSERT(mType->mCopier != nullptr, Except::Construct,
 					"Can't copy-assign elements"
 					" - no copy-assignment was reflected");
 			}
 			else {
-				LANGULUS_ASSERT(mType->mDisownCopier, Except::Construct,
+				LANGULUS_ASSERT(mType->mDisownCopier != nullptr, Except::Construct,
 					"Can't disown-assign elements"
 					" - no disown-assignment was reflected");
 			}

@@ -50,7 +50,6 @@ SCENARIO("Text containers", "[text]") {
 				REQUIRE(text.GetReserved() == 0);
 				REQUIRE(text.GetUses() == 0);
 				REQUIRE(text == "");
-				REQUIRE(text == nullptr);
 				REQUIRE_FALSE(text == "no match");
 			}
 		}
@@ -87,7 +86,6 @@ SCENARIO("Text containers", "[text]") {
 				REQUIRE(text.GetUses() == 1);
 				REQUIRE(text.HasAuthority());
 				REQUIRE(text == "");
-				REQUIRE_FALSE(text == nullptr);
 				REQUIRE_FALSE(text == "no match");
 			}
 		}
@@ -124,7 +122,6 @@ SCENARIO("Text containers", "[text]") {
 				REQUIRE(text.GetReserved() == 0);
 				REQUIRE(text.GetUses() == 0);
 				REQUIRE(text == "");
-				REQUIRE(text == nullptr);
 				REQUIRE_FALSE(text == "no match");
 			}
 		}

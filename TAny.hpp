@@ -286,8 +286,12 @@ namespace Langulus::Anyness
 		KnownPointer& operator = (Disowned<T>&&);
 		KnownPointer& operator = (::std::nullptr_t);
 
-		operator T() const noexcept;
-		operator T() noexcept;
+		bool operator == (const KnownPointer&) const noexcept;
+		bool operator == (const T&) const noexcept;
+		bool operator == (const Decay<T>&) const noexcept;
+
+		/*operator T() const noexcept;
+		operator T() noexcept;*/
 
 		auto operator -> () const;
 		auto operator -> ();

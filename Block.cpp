@@ -121,42 +121,48 @@ namespace Langulus::Anyness
 		if (!mType || !mCount)
 			return {};
 
-		if (IsDense() && IsPOD()) {
-			// Hash everything at once													
-			return HashBytes(GetRaw(), GetByteSize());
-		}
-
-		// If reached, we'll be hashing elements one by one, and then		
-		// rehash all the combined hashes											
-		TAny<Hash> h;
-		h.Allocate<false>(mCount);
-
-		if (IsSparse() && mType->mResolver) {
-			// Resolve each element and hash it										
-			// Then do a cumulative hash by mixing up all the hashes			
-			for (Count i = 0; i < mCount; ++i)
-				h << GetElementResolved(i).GetHash();
-		}
-		else if (mType->mHasher) {
-			// All elements share the same hasher - use it						
-			// Then do a cumulative hash by mixing up all the hashes			
-			for (Count i = 0; i < mCount; ++i) {
-				const auto element = GetElementDense(i);
-				h << mType->mHasher(element.mRaw);
+		if (mCount == 1) {
+			// Exactly one element means exactly one hash						
+			// This also eliminates asymmetries when getting hash of block	
+			// and of templated element equivalents								
+			if (IsSparse())
+				return GetElementResolved(0).GetHash();
+			else if (mType->mHasher)
+				return mType->mHasher(mRaw);
+			else if (mType->mIsPOD)
+				return HashBytes(mRaw, mType->mSize);
+			else {
+				Logger::Error("Unhashable type ", GetToken());
+				Throw<Except::Access>("Unhashable type", LANGULUS_LOCATION());
 			}
 		}
-		else if (mType->mResolver) {
-			// Resolve each element and hash it										
-			// Then do a cumulative hash by mixing up all the hashes			
+
+		// Hashing multiple elements one by one, and then rehash all		
+		// the combined hashes															
+		if (IsSparse()) {
+			TAny<Hash> h;
+			h.Allocate<false>(mCount);
 			for (Count i = 0; i < mCount; ++i)
 				h << GetElementResolved(i).GetHash();
+			return HashBytes<DefaultHashSeed, false>(h.GetRaw(), h.GetByteSize());
+		}
+		else if (mType->mHasher) {
+			TAny<Hash> h;
+			h.Allocate<false>(mCount);
+			for (Count i = 0; i < mCount; ++i) {
+				const auto element = GetElement(i);
+				h << mType->mHasher(element.mRaw);
+			}
+			return HashBytes<DefaultHashSeed, false>(h.GetRaw(), h.GetByteSize());
+		}
+		else if (mType->mIsPOD) {
+			// POD data is an exception - just batch-hash it					
+			return HashBytes(mRaw, GetByteSize());
 		}
 		else {
 			Logger::Error("Unhashable type ", GetToken());
 			Throw<Except::Access>("Unhashable type", LANGULUS_LOCATION());
 		}
-
-		return HashBytes<DefaultHashSeed, false>(h.GetRaw(), h.GetByteSize());
 	}
 
 	/// Get the number of sub-blocks (this one included)								

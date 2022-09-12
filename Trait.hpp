@@ -119,6 +119,8 @@ namespace Langulus::Anyness
 		TRAIT& operator = (Abandoned<TRAIT>&&);
 
 		NOD() bool operator == (const StaticTrait<TRAIT>&) const;
+
+		NOD() TRAIT Clone() const;
 	};
 
 } // namespace Langulus::Anyness

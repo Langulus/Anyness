@@ -17,6 +17,7 @@ namespace Langulus::Anyness
 	template<CT::Data>
 	class TAny;
 	
+	class BlockMap;
 	class OrderedMap;
 	class UnorderedMap;
 	template<CT::Data, CT::Data>
@@ -76,6 +77,7 @@ namespace Langulus::Anyness
 		template<CT::Data>
 		friend class TAny;
 
+		friend class BlockMap;
 		friend class OrderedMap;
 		friend class UnorderedMap;
 		template<CT::Data, CT::Data>
@@ -231,8 +233,6 @@ namespace Langulus::Anyness
 		NOD() bool IsInsertable(DMeta) const noexcept;
 		template<CT::Data>
 		NOD() bool IsInsertable() const noexcept;
-	
-		NOD() bool operator == (const Block&) const;
 	
 		NOD() Byte* At(const Offset& = 0);
 		NOD() const Byte* At(const Offset& = 0) const;
@@ -401,7 +401,12 @@ namespace Langulus::Anyness
 	
 		template<CT::Data, CT::Index INDEX1, CT::Index INDEX2>
 		void Swap(INDEX1, INDEX2);
-	
+
+		///																							
+		///	Comparison																			
+		///																							
+		template<CT::Data T>
+		bool operator == (const T&) const;
 
 		//																						
 		//	Insertion																		

@@ -37,8 +37,8 @@ namespace Langulus::Anyness
 
 		TPair Clone() const;
 
-		bool operator == (const TPair&) const noexcept = default;
-		auto operator <=> (const TPair&) const noexcept;
+		bool operator == (const TPair&) const;
+
 		TPair& operator = (const TPair&) = default;
 		TPair& operator = (TPair&&) noexcept = default;
 	};

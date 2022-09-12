@@ -32,7 +32,7 @@ namespace Langulus::Anyness
 		static constexpr bool Ordered = false;
 
 	public:
-		TUnorderedMap() = default;
+		TUnorderedMap();
 		TUnorderedMap(::std::initializer_list<Pair>);
 		TUnorderedMap(const TUnorderedMap&);
 		TUnorderedMap(TUnorderedMap&&) noexcept;
@@ -81,13 +81,6 @@ namespace Langulus::Anyness
 		NOD() constexpr Size GetValueStride() const noexcept;
 
 		NOD() constexpr Size GetByteSize() const noexcept;
-		NOD() constexpr Count GetCount() const noexcept;
-		NOD() constexpr Count GetReserved() const noexcept;
-		NOD() constexpr bool IsEmpty() const noexcept;
-		NOD() constexpr bool IsAllocated() const noexcept;
-
-		NOD() constexpr bool HasAuthority() const noexcept;
-		NOD() constexpr Count GetUses() const noexcept;
 
 		void Allocate(const Count&);
 
@@ -206,12 +199,12 @@ namespace Langulus::Anyness
 		void AllocateKeys(const Count&);
 		void AllocateInner(const Count&);
 		void Rehash(const Count&, const Count&);
-		template<bool CHECK_FOR_MATCH>
-		void InsertInner(const Offset&, KeyInner&&, ValueInner&&);
+		template<bool CHECK_FOR_MATCH, bool KEEP = true>
+		Offset InsertInner(const Offset&, KeyInner&&, ValueInner&&);
 		void ClearInner();
 
 		template<class T>
-		static void CloneInner(const Count&, const InfoType*, const T*, const T*, T*);
+		void CloneInner(const T&, T&) const;
 
 		template<class T>
 		static void RemoveInner(T*) noexcept;
@@ -233,13 +226,7 @@ namespace Langulus::Anyness
 		NOD() Offset GetBucket(const K&) const noexcept;
 		NOD() Offset FindIndex(const K&) const;
 
-	#ifdef LANGULUS_ENABLE_TESTING
-		public:
-	#endif
-		NOD() const InfoType* GetInfo() const noexcept;
-		NOD() InfoType* GetInfo() noexcept;
-		NOD() const InfoType* GetInfoEnd() const noexcept;
-
+	TESTING(public:)
 		NOD() constexpr auto GetRawKeys() const noexcept;
 		NOD() constexpr auto GetRawKeys() noexcept;
 		NOD() constexpr auto GetRawKeysEnd() const noexcept;

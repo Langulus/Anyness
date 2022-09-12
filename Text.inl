@@ -24,14 +24,14 @@ namespace Langulus::Anyness
 	/// Data will be cloned if we don't have authority over the memory			
 	///	@param text - text memory to reference											
 	///	@param count - number of characters inside text								
-	inline Text::Text(const Letter* text, const Count& count)
+	inline Text::Text(const Letter* text, const Count& count) noexcept
 		: TAny {text, count} { }
 
 	/// Construct manually from count-terminated C string								
 	/// Data will never be cloned or referenced											
 	///	@param text - text memory to wrap												
 	///	@param count - number of characters inside text								
-	inline Text::Text(Disowned<const Letter*>&& text, const Count& count)
+	inline Text::Text(Disowned<const Letter*>&& text, const Count& count) noexcept
 		: TAny {Disown(text.mValue), count} { }
 
 	/// Construct manually from a c style array											
@@ -87,14 +87,18 @@ namespace Langulus::Anyness
 	/// Construct from null-terminated UTF text											
 	/// Data will be cloned if we don't have authority over the memory			
 	///	@param nullterminatedText - text memory to reference						
-	inline Text::Text(const Letter* nullterminatedText)
-		: Text {nullterminatedText, ::std::strlen(reinterpret_cast<const char*>(nullterminatedText))} {}
+	inline Text::Text(const Letter* nullterminatedText) noexcept
+		: Text {nullterminatedText, 
+			nullterminatedText ? ::std::strlen(nullterminatedText) : 0
+		} {}
 
 	/// Construct from null-terminated UTF text											
 	/// Data will never be cloned or referenced											
 	///	@param nullterminatedText - text to wrap										
-	inline Text::Text(Disowned<const Letter*>&& nullterminatedText)
-		: Text {Move(nullterminatedText), ::std::strlen(reinterpret_cast<const char*>(nullterminatedText.mValue))} {}
+	inline Text::Text(Disowned<const Letter*>&& nullterminatedText) noexcept
+		: Text {nullterminatedText.Forward(), 
+			nullterminatedText.mValue ? ::std::strlen(nullterminatedText.mValue) : 0
+		} {}
 
 	/// Interpret text container as a literal												
 	///	@attention the string is null-terminated only after Terminate()		

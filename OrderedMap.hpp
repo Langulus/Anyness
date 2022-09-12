@@ -6,8 +6,7 @@
 /// See LICENSE file, or https://www.gnu.org/licenses									
 ///																									
 #pragma once
-#include "UnorderedMap.hpp"
-#include "TPair.hpp"
+#include "BlockMap.hpp"
 
 namespace Langulus::Anyness
 {
@@ -15,19 +14,19 @@ namespace Langulus::Anyness
 	///																								
 	///	Type-erased ordered map																
 	///																								
-	class OrderedMap : public UnorderedMap {
+	class OrderedMap : public BlockMap {
 	public:
 		static constexpr bool Ordered = true;
 
-		using UnorderedMap::UnorderedMap;
+		using BlockMap::BlockMap;
 		OrderedMap(Disowned<OrderedMap>&&) noexcept;
 		OrderedMap(Abandoned<OrderedMap>&&) noexcept;
 
-		using UnorderedMap::operator =;
+		using BlockMap::operator =;
 
 		NOD() OrderedMap Clone() const;
 	};
 
 } // namespace Langulus::Anyness
 
-#include "UnorderedMap.inl"
+#include "OrderedMap.inl"

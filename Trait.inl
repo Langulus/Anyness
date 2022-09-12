@@ -127,25 +127,30 @@ namespace Langulus::Anyness
 		return TraitIs(MetaTrait::Of<T>());
 	}
 
-} // namespace Langulus::Anyness
 
-namespace Langulus::Anyness
-{
 
+	///																								
+	///	Static trait implementation														
+	///																								
+	
+	/// Default trait construction															
 	template<class TRAIT>
 	StaticTrait<TRAIT>::StaticTrait()
 		: Trait {MetaTrait::Of<TRAIT>(), Any{}} {}
 
+	/// Trait copy-construction with anything not abandoned or disowned			
 	template<class TRAIT>
 	template<CT::NotAbandonedOrDisowned T>
 	StaticTrait<TRAIT>::StaticTrait(const T& data)
 		: Trait {MetaTrait::Of<TRAIT>(), data} {}
 
+	/// Trait copy-construction with anything not abandoned or disowned			
 	template<class TRAIT>
 	template<CT::NotAbandonedOrDisowned T>
 	StaticTrait<TRAIT>::StaticTrait(T& data)
 		: Trait {MetaTrait::Of<TRAIT>(), data} {}
 
+	/// Trait move-construction with anything not abandoned or disowned			
 	template<class TRAIT>
 	template<CT::NotAbandonedOrDisowned T>
 	StaticTrait<TRAIT>::StaticTrait(T&& data)
@@ -200,6 +205,11 @@ namespace Langulus::Anyness
 	template<class TRAIT>
 	bool StaticTrait<TRAIT>::operator == (const StaticTrait<TRAIT>& other) const {
 		return Any::operator == (static_cast<const Any&>(other));
+	}
+
+	template<class TRAIT>
+	TRAIT StaticTrait<TRAIT>::Clone() const {
+		return TRAIT {Any::Clone()};
 	}
 
 } // namespace Langulus::Anyness

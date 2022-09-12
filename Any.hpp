@@ -91,8 +91,7 @@ namespace Langulus::Anyness
 		///																							
 		///	Comparison																			
 		///																							
-		template<CT::Data T>
-		bool operator == (const T&) const;
+		using Block::operator ==;
 
 	public:
 		NOD() static Any FromMeta(DMeta, const DataState& = {}) noexcept;
