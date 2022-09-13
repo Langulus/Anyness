@@ -624,7 +624,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 				#endif
 			}
 
-			REQUIRE_THROWS(Allocator::Deallocate(entry));
+			SAFETY(REQUIRE_THROWS(Allocator::Deallocate(entry)));
 			entry->Free();
 			Allocator::Deallocate(entry);
 		}
@@ -645,7 +645,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 				#endif
 			}
 
-			REQUIRE_THROWS(Allocator::Deallocate(entry));
+			SAFETY(REQUIRE_THROWS(Allocator::Deallocate(entry)));
 			entry->Free(5);
 			Allocator::Deallocate(entry);
 		}
@@ -687,7 +687,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 				#endif
 			}
 
-			REQUIRE_THROWS(Allocator::Deallocate(entry));
+			SAFETY(REQUIRE_THROWS(Allocator::Deallocate(entry)));
 			entry->Free(1);
 			Allocator::Deallocate(entry);
 		}
@@ -715,7 +715,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 			REQUIRE(entry);
 			entry->Keep(5);
 
-			REQUIRE_THROWS(Allocator::Deallocate(entry));
+			SAFETY(REQUIRE_THROWS(Allocator::Deallocate(entry)));
 			entry->Free(5);
 			Allocator::Deallocate(entry);
 
