@@ -1941,6 +1941,15 @@ namespace Langulus::Anyness
 		return operator == (&rhs);
 	}
 
+	/// Get hash of the pointer inside														
+	///	@return the hash																		
+	TEMPLATE()
+	Hash KNOWNPOINTER()::GetHash() const {
+		if (!mPointer)
+			return {};
+		return HashData(*mPointer);
+	}
+
 	/// Pointer dereferencing (const)														
 	///	@attention assumes contained pointer is valid								
 	TEMPLATE()

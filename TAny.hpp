@@ -294,6 +294,8 @@ namespace Langulus::Anyness
 		bool operator == (const Decay<T>*) const noexcept;
 		bool operator == (const Decay<T>&) const noexcept;
 
+		NOD() Hash GetHash() const;
+
 		auto operator -> () const;
 		auto operator -> ();
 

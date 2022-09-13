@@ -542,6 +542,7 @@ namespace Langulus::Anyness
 		mValues.mCount = 0;
 		auto key = oldKeys.GetElement();
 		auto value = oldValues.GetElement();
+		const auto hashmask = count - 1;
 		while (oldInfo != oldInfoEnd) {
 			if (!*(oldInfo++)) {
 				key.Next();
@@ -549,14 +550,20 @@ namespace Langulus::Anyness
 				continue;
 			}
 
-			InsertInnerUnknown<false, false>(GetBucket(key), Move(key), Move(value));
-			key.CallUnknownDestructors();
-			value.CallUnknownDestructors();
+			InsertInnerUnknown<false, false>(key.GetHash().mHash & hashmask, Move(key), Move(value));
+
+			if (!key.IsEmpty())
+				key.CallUnknownDestructors();
+			else
+				key.mCount = 1;
+
+			if (!value.IsEmpty())
+				value.CallUnknownDestructors();
+			else
+				value.mCount = 1;
 
 			key.Next();
-			key.mCount = 1;
 			value.Next();
-			value.mCount = 1;
 		}
 
 		// Free the old allocations													
@@ -797,10 +804,7 @@ namespace Langulus::Anyness
 	///	@return the bucket offset															
 	template<CT::Data K>
 	LANGULUS(ALWAYSINLINE) Offset BlockMap::GetBucket(const K& key) const noexcept {
-		if constexpr (CT::Block<K>)
-			return key.GetHash().mHash & (GetReserved() - 1);
-		else
-			return HashData(key).mHash & (GetReserved() - 1);
+		return HashData(key).mHash & (GetReserved() - 1);
 	}
 
 	/// Insert a single pair inside table via copy										
@@ -912,7 +916,8 @@ namespace Langulus::Anyness
 		valSwapper.Allocate<false, true>(1);
 		valSwapper.CallUnknownCopyConstructors<true>(1, value);
 
-		InsertInnerUnknown<true, false>(GetBucket(key), Move(keySwapper), Move(valSwapper));
+		const auto index = key.GetHash().mHash & (GetReserved() - 1);
+		InsertInnerUnknown<true, false>(index, Move(keySwapper), Move(valSwapper));
 
 		keySwapper.Free();
 		valSwapper.Free();
@@ -926,7 +931,8 @@ namespace Langulus::Anyness
 	inline Count BlockMap::InsertUnknown(Block&& key, Block&& value) {
 		Mutate(key.mType, key.IsSparse(), value.mType, value.IsSparse());
 		Allocate(GetCount() + 1);
-		InsertInnerUnknown<true, true>(GetBucket(key), Move(key), Move(value));
+		const auto index = key.GetHash().mHash & (GetReserved() - 1);
+		InsertInnerUnknown<true, true>(index, Move(key), Move(value));
 		return 1;
 	}
 

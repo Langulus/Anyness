@@ -126,6 +126,8 @@ namespace Langulus::Anyness::Inner
 			"Deallocating an empty allocation");
 		LANGULUS_ASSUME(DevAssumes, entry->mReferences,
 			"Deallocating an unused allocation");
+		LANGULUS_ASSUME(DevAssumes, entry->mReferences == 1,
+			"Deallocating an allocation used from multiple places");
 
 		#if LANGULUS_FEATURE(MEMORY_STATISTICS)
 			mStatistics.mBytesAllocatedByFrontend -= entry->GetTotalSize();

@@ -3750,7 +3750,7 @@ namespace Langulus::Anyness
 		LANGULUS_ASSUME(DevAssumes, mCount, "Can't swap zero count");
 		LANGULUS_ASSUME(DevAssumes, GetType() == rhs.GetType(), "Type mismatch");
 
-		Block temporary {mType};
+		Block temporary {mState, mType};
 		temporary.Allocate<false, true>(mCount);
 		// Abandon this to temporary													
 		temporary.CallUnknownMoveConstructors<false>(mCount, *this);
@@ -3778,7 +3778,7 @@ namespace Langulus::Anyness
 		LANGULUS_ASSUME(DevAssumes, mCount, "Can't swap zero count");
 		LANGULUS_ASSUME(DevAssumes, Is<T>() && rhs.Is<T>(), "Type mismatch");
 
-		Block temporary {mType};
+		Block temporary {mState, mType};
 		temporary.Allocate<false, true>(mCount);
 		// Abandon this to temporary													
 		temporary.CallKnownMoveConstructors<false, T>(mCount, *this);

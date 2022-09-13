@@ -624,6 +624,8 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 				#endif
 			}
 
+			REQUIRE_THROWS(Allocator::Deallocate(entry));
+			entry->Free();
 			Allocator::Deallocate(entry);
 		}
 
@@ -643,6 +645,8 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 				#endif
 			}
 
+			REQUIRE_THROWS(Allocator::Deallocate(entry));
+			entry->Free(5);
 			Allocator::Deallocate(entry);
 		}
 
@@ -683,6 +687,8 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 				#endif
 			}
 
+			REQUIRE_THROWS(Allocator::Deallocate(entry));
+			entry->Free(1);
 			Allocator::Deallocate(entry);
 		}
 
@@ -708,6 +714,9 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 			entry = Allocator::Allocate(512);
 			REQUIRE(entry);
 			entry->Keep(5);
+
+			REQUIRE_THROWS(Allocator::Deallocate(entry));
+			entry->Free(5);
 			Allocator::Deallocate(entry);
 
 			THEN("We shouldn't be able to access the memory any longer, but it is still under jurisdiction") {

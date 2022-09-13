@@ -65,6 +65,7 @@ concept IsStaticallyOptimized = requires (Decay<T> a) { typename T::Key; typenam
 /// to complex, from flat to deep															
 TEMPLATE_TEST_CASE(
 	"TOrderedMap/TUnorderedMap/OrderedMap/UnorderedMap", "[map]",
+	(TypePair<UnorderedMap, Text, int*>),
 	(TypePair<TUnorderedMap<Text, int*>, Text, int*>),
 	(TypePair<TUnorderedMap<Text, int>, Text, int>),
 	(TypePair<TUnorderedMap<Text, Trait>, Text, Trait>),
@@ -85,7 +86,6 @@ TEMPLATE_TEST_CASE(
 	(TypePair<UnorderedMap, Text, Trait>),
 	(TypePair<UnorderedMap, Text, Traits::Count>),
 	(TypePair<UnorderedMap, Text, Any>),
-	(TypePair<UnorderedMap, Text, int*>),
 	(TypePair<UnorderedMap, Text, Trait*>),
 	(TypePair<UnorderedMap, Text, Traits::Count*>),
 	(TypePair<UnorderedMap, Text, Any*>),
@@ -276,8 +276,6 @@ TEMPLATE_TEST_CASE(
 		const_cast<T&>(map) << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
 		auto keyMemory = map.GetRawKeysMemory();
 		auto valueMemory = map.GetRawValuesMemory();
-		//const_cast<T&>(map).~T();
-		//const_cast<T&>(map).~T();
 
 		WHEN("Given a preinitialized map with 5 elements") {
 			THEN("These properties should be correct") {
