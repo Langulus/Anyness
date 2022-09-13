@@ -50,15 +50,6 @@
 	#define LANGULUS_FEATURE_MEMORY_STATISTICS() 0
 #endif
 
-/// RTTI manager shall keep a registry of defined meta data/verbs/traits		
-/// Gives you the ability to modify types at runtime, increases type-check		
-/// performance, slows down module loading and startup, no dependencies			
-#ifdef LANGULUS_ENABLE_FEATURE_MANAGED_REFLECTION
-	#define LANGULUS_FEATURE_MANAGED_REFLECTION() 1
-#else
-	#define LANGULUS_FEATURE_MANAGED_REFLECTION() 0
-#endif
-
 /// Replace the default new-delete operators with one that use Allocator		
 /// No overhead, no dependencies																
 #ifdef LANGULUS_ENABLE_FEATURE_NEWDELETE
