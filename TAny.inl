@@ -1454,7 +1454,8 @@ namespace Langulus::Anyness
 	TEMPLATE()
 	template<CT::Block WRAPPER>
 	WRAPPER TAny<T>::Crop(const Offset& start, const Count& count) {
-		CheckRange(start, count);
+		LANGULUS_ASSUME(DevAssumes, start + count > mCount, "Out of limits");
+
 		if (count == 0) {
 			WRAPPER result {Disown(*this)};
 			result.ResetMemory();

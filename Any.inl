@@ -220,11 +220,8 @@ namespace Langulus::Anyness
 			return *this;
 
 		// Since Any is type-erased, we have to make a runtime type check	
-		if (IsTypeConstrained() && !CastsToMeta(other.mType)) {
-			Throw<Except::Copy>(
-				"Unable to copy-assign type-constrained container - types are incompatible",
-				LANGULUS_LOCATION());
-		}
+		LANGULUS_ASSERT(!IsTypeConstrained() || CastsToMeta(other.mType),
+			Except::Copy, "Incompatible types");
 
 		// First we reference, so that we don't lose the memory, in			
 		// the rare case where memory is same in both containers				
@@ -242,11 +239,8 @@ namespace Langulus::Anyness
 			return *this;
 
 		// Since Any is type-erased, we have to make a runtime type check	
-		if (IsTypeConstrained() && !CastsToMeta(other.mType)) {
-			Throw<Except::Copy>(
-				"Unable to move-assign type-constrained container - types are incompatible",
-				LANGULUS_LOCATION());
-		}
+		LANGULUS_ASSERT(!IsTypeConstrained() || CastsToMeta(other.mType),
+			Except::Move, "Incompatible types");
 
 		Free();
 		Block::operator = (other);
@@ -263,11 +257,8 @@ namespace Langulus::Anyness
 			return *this;
 
 		// Since Any is type-erased, we have to make a runtime type check	
-		if (IsTypeConstrained() && !CastsToMeta(other.mValue.mType)) {
-			Throw<Except::Copy>(
-				"Unable to disown-assign type-constrained container - types are incompatible",
-				LANGULUS_LOCATION());
-		}
+		LANGULUS_ASSERT(!IsTypeConstrained() || CastsToMeta(other.mValue.mType),
+			Except::Copy, "Incompatible types");
 
 		Free();
 		mRaw = other.mValue.mRaw;
@@ -288,11 +279,8 @@ namespace Langulus::Anyness
 			return *this;
 
 		// Since Any is type-erased, we have to make a runtime type check	
-		if (IsTypeConstrained() && !CastsToMeta(other.mValue.mType)) {
-			Throw<Except::Copy>(
-				"Unable to abandon-assign type-constrained container - types are incompatible",
-				LANGULUS_LOCATION());
-		}
+		LANGULUS_ASSERT(!IsTypeConstrained() || CastsToMeta(other.mValue.mType),
+			Except::Move, "Incompatible types");
 
 		Free();
 		Block::operator = (Forward<Block>(other.mValue));
@@ -306,11 +294,8 @@ namespace Langulus::Anyness
 		const auto meta = MetaData::Of<Decay<T>>();
 
 		// Since Any is type-erased, we have to make a runtime type check	
-		if (IsTypeConstrained() && !CastsToMeta(meta)) {
-			Throw<Except::Copy>(
-				"Unable to value-assign type-constrained container - types are incompatible",
-				LANGULUS_LOCATION());
-		}
+		LANGULUS_ASSERT(!IsTypeConstrained() || CastsToMeta(meta),
+			Except::Copy, "Incompatible types");
 
 		if (GetUses() == 1 && meta->Is(mType)) {
 			// Just destroy and reuse memory											
@@ -366,9 +351,8 @@ namespace Langulus::Anyness
 	Any& Any::operator = (Disowned<T>&& other) requires CT::Dense<T> {
 		// Since Any is type-erased, we have to make a runtime type check	
 		const auto meta = MetaData::Of<Decay<T>>();
-		LANGULUS_ASSERT(!IsTypeConstrained() || CastsToMeta(meta), Except::Copy,
-			"Unable to disown-assign to type-constrained container"
-			" - types are incompatible");
+		LANGULUS_ASSERT(!IsTypeConstrained() || CastsToMeta(meta),
+			Except::Copy, "Incompatible types");
 
 		if (GetUses() != 1 || IsSparse() != CT::Sparse<T> || !meta->Is(mType)) {
 			// Reset and allocate new memory											
@@ -409,9 +393,8 @@ namespace Langulus::Anyness
 	Any& Any::operator = (Abandoned<T>&& other) requires CT::Dense<T> {
 		// Since Any is type-erased, we have to make a runtime type check	
 		const auto meta = MetaData::Of<Decay<T>>();
-		LANGULUS_ASSERT(!IsTypeConstrained() || CastsToMeta(meta), Except::Copy,
-			"Unable to abandon-assign to type-constrained container"
-			" - types are incompatible");
+		LANGULUS_ASSERT(!IsTypeConstrained() || CastsToMeta(meta),
+			Except::Copy, "Incompatible types");
 
 		if (GetUses() != 1 || IsSparse() != CT::Sparse<T> || !meta->Is(mType)) {
 			// Reset and allocate new memory											
@@ -443,6 +426,36 @@ namespace Langulus::Anyness
 		}
 
 		return *this;
+	}
+
+	/// Clone container																			
+	///	@return the cloned container														
+	inline Any Any::Clone() const {
+		Any clone;
+		Block::Clone(clone);
+		return Abandon(clone);
+	}
+
+	/// Destroy all elements, but retain allocated memory if possible				
+	inline void Any::Clear() {
+		if (IsEmpty())
+			return;
+
+		if (GetUses() == 1) {
+			// Only one use - just destroy elements and reset count,			
+			// reusing the allocation for later										
+			CallUnknownDestructors();
+			ClearInner();
+		}
+		else {
+			// We're forced to reset the memory, because it's in use			
+			// Keep the type and state, though										
+			const auto state = GetUnconstrainedState();
+			const auto meta = mType;
+			Reset();
+			mType = meta;
+			mState += state;
+		}
 	}
 
 	/// Copy-insert an element (including arrays) at the back						

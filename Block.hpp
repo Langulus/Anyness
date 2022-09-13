@@ -237,13 +237,13 @@ namespace Langulus::Anyness
 		template<CT::Data>
 		NOD() bool IsInsertable() const noexcept;
 	
-		NOD() Byte* At(const Offset& = 0);
-		NOD() const Byte* At(const Offset& = 0) const;
+		NOD() Byte* At(const Offset& = 0) SAFETY_NOEXCEPT();
+		NOD() const Byte* At(const Offset& = 0) const SAFETY_NOEXCEPT();
 	
 		template<CT::Data>
-		NOD() decltype(auto) Get(const Offset& = 0, const Offset& = 0);
+		NOD() decltype(auto) Get(const Offset& = 0, const Offset& = 0) SAFETY_NOEXCEPT();
 		template<CT::Data>
-		NOD() decltype(auto) Get(const Offset& = 0, const Offset& = 0) const;
+		NOD() decltype(auto) Get(const Offset& = 0, const Offset& = 0) const SAFETY_NOEXCEPT();
 	
 		template<CT::Data, CT::Index IDX = Offset>
 		NOD() decltype(auto) As(const IDX& = {});
@@ -306,9 +306,6 @@ namespace Langulus::Anyness
 		Count ForEachDeepRev(F&&...);
 		template<bool SKIP = true, class... F>
 		Count ForEachDeepRev(F&&...) const;
-	
-	protected:
-		void CheckRange(const Offset&, const Count&) const;
 		
 	private:
 		template<bool MUTABLE, bool REVERSE, class F>

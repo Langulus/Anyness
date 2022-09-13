@@ -186,14 +186,10 @@ namespace Langulus::Anyness
 	template<bool DESTROY>
 	bool Block::Dereference(const Count& times) {
 		if (!mEntry)
-			// Data is either static or unallocated - don't touch it			
 			return false;
 
-		#if LANGULUS(SAFE)
-			if (mEntry->GetUses() < times)
-				Throw<Except::Reference>(
-					"Bad memory dereferencing", LANGULUS_LOCATION());
-		#endif
+		LANGULUS_ASSUME(DevAssumes, 
+			mEntry->GetUses() >= times, "Bad memory dereferencing");
 
 		if (mEntry->GetUses() == times) {
 			// Destroy all elements and deallocate the entry					
@@ -354,19 +350,6 @@ namespace Langulus::Anyness
 		if constexpr (!CREATE && SETSIZE)
 			mCount = elements;
 	}
-	
-	/// Check if a range is inside the block												
-	/// This function throws on error only if LANGULUS(SAFE) is enabled			
-	inline void Block::CheckRange(const Offset& start, const Count& count) const {
-		#if LANGULUS_SAFE()
-			if (start > mCount)
-				Throw<Except::Access>(
-					"Crop left offset is out of limits", LANGULUS_LOCATION());
-			if (start + count > mCount)
-				Throw<Except::Access>(
-					"Crop count is out of limits", LANGULUS_LOCATION());
-		#endif
-	}	
 
 	/// Get the contained type meta definition											
 	///	@return the meta data																
@@ -821,36 +804,33 @@ namespace Langulus::Anyness
 
 	/// Get the internal byte array with a given offset								
 	/// This is lowest level access and checks nothing									
+	///	@attention assumes block is allocated											
 	///	@param byteOffset - number of bytes to add									
 	///	@return the selected byte															
-	inline Byte* Block::At(const Offset& byteOffset) {
-		#if LANGULUS_SAFE()
-			if (!mRaw)
-				Throw<Except::Access>(
-					"Byte offset in invalid memory of type", LANGULUS_LOCATION());
-		#endif
+	inline Byte* Block::At(const Offset& byteOffset) SAFETY_NOEXCEPT() {
+		LANGULUS_ASSUME(DevAssumes, mRaw, "Invalid memory");
 		return GetRaw() + byteOffset;
 	}
 
-	inline const Byte* Block::At(const Offset& byte_offset) const {
+	inline const Byte* Block::At(const Offset& byte_offset) const SAFETY_NOEXCEPT() {
 		return const_cast<Block*>(this)->At(byte_offset);
 	}
 
 	/// Get templated element																	
 	/// Checks only density																		
 	template<CT::Data T>
-	decltype(auto) Block::Get(const Offset& idx, const Offset& baseOffset) const {
+	decltype(auto) Block::Get(const Offset& idx, const Offset& baseOffset) const SAFETY_NOEXCEPT() {
 		return const_cast<Block*>(this)->Get<T>(idx, baseOffset);
 	}
 
 	/// Get an element pointer or reference with a given index						
-	/// This is a lower-level routine that does no type checking					
+	/// This is a lower-level routine that does only sparseness checking			
 	/// No conversion or copying occurs, only pointer arithmetic					
 	///	@param idx - simple index for accessing										
 	///	@param baseOffset - byte offset from the element to apply				
 	///	@return either pointer or reference to the element (depends on T)		
 	template<CT::Data T>
-	decltype(auto) Block::Get(const Offset& idx, const Offset& baseOffset) {
+	decltype(auto) Block::Get(const Offset& idx, const Offset& baseOffset) SAFETY_NOEXCEPT() {
 		Byte* pointer;
 		if (IsSparse())
 			pointer = GetRawSparse()[idx].mPointer + baseOffset;
@@ -1051,33 +1031,20 @@ namespace Langulus::Anyness
 			return;
 		}
 
-		// At this point, the container has a set type							
-		if (IsTypeConstrained()) {
-			// You can't change type of a type-constrained block				
-			Throw<Except::Mutate>(
-				"Changing typed block is disallowed",
-				LANGULUS_LOCATION());
-		}
+		LANGULUS_ASSERT(!IsTypeConstrained(), Except::Mutate, "Incompatible type");
 
 		if (mType->CastsTo(type)) {
 			// Type is compatible, but only sparse data can mutate freely	
 			// Dense containers can't mutate because their destructors		
 			// might be wrong later														
-			if (IsSparse())
-				mType = type;
-			else Throw<Except::Mutate>(
-				"Changing to compatible dense type is disallowed",
-				LANGULUS_LOCATION());
+			LANGULUS_ASSERT(IsSparse(), Except::Mutate, "Incompatible type");
+			mType = type;
 		}
 		else {
 			// Type is not compatible, but container is not typed, so if	
 			// it has no constructed elements, we can still mutate it		
-			if (IsEmpty())
-				mType = type;
-			else Throw<Except::Mutate>(
-				"Changing to incompatible type while there's "
-				"initialized data is disallowed",
-				LANGULUS_LOCATION());
+			LANGULUS_ASSERT(IsEmpty(), Except::Mutate, "Incompatible type");
+			mType = type;
 		}
 
 		if constexpr (CONSTRAIN)
@@ -2318,11 +2285,8 @@ namespace Langulus::Anyness
 	T& Block::Deepen() {
 		static_assert(CT::Deep<T>, "T must be deep");
 
-		if (IsTypeConstrained() && !Is<T>()) {
-			Throw<Except::Mutate>(
-				"Attempting to deepen incompatible typed container",
-				LANGULUS_LOCATION());
-		}
+		LANGULUS_ASSERT(!IsTypeConstrained() || Is<T>(),
+			Except::Mutate, "Incompatible type");
 
 		// Back up the state so that we can restore it if not moved over	
 		UNUSED() const DataState state {mState.mState & DataState::Or};
@@ -2466,13 +2430,7 @@ namespace Langulus::Anyness
 			else idx = index;
 
 			// By simple index (signed or not)										
-			SAFETY(if (idx >= mCount || count > mCount || idx + count > mCount)
-				Throw<Except::Access>(
-					"Index out of range", LANGULUS_LOCATION()));
-			SAFETY(if (GetUses() > 1)
-				Throw<Except::Reference>(
-					"Attempting to remove elements from a used memory block",
-					LANGULUS_LOCATION()));
+			LANGULUS_ASSUME(DevAssumes, idx + count <= mCount, "Out of range");
 
 			if (IsConstant() || IsStatic()) {
 				if (mType->mIsPOD && idx + count >= mCount) {
@@ -2484,18 +2442,10 @@ namespace Langulus::Anyness
 					return removed;
 				}
 				else {
-					if (IsConstant()) {
-						Throw<Except::Access>(
-							"Attempting to RemoveIndex in a constant container",
-							LANGULUS_LOCATION());
-					}
-
-					if (IsStatic()) {
-						Throw<Except::Access>(
-							"Attempting to RemoveIndex in a static container",
-							LANGULUS_LOCATION());
-					}
-
+					LANGULUS_ASSERT(!IsConstant(), Except::Access,
+						"Removing from constant container");
+					LANGULUS_ASSERT(!IsStatic(), Except::Access,
+						"Removing from static container");
 					return 0;
 				}
 			}
@@ -2507,6 +2457,7 @@ namespace Langulus::Anyness
 
 			if (ender < mCount) {
 				// Fill gap	if any by invoking move constructions				
+				LANGULUS_ASSERT(GetUses() == 1, Except::Move, "Moving elements in use");
 				CropInner(idx, 0, mCount - ender)
 					.template CallUnknownMoveConstructors<false>(
 						mCount - ender,
@@ -2951,7 +2902,8 @@ namespace Langulus::Anyness
 	///	@param count - number of elements to remain after 'start'				
 	///	@return the block representing the region										
 	inline Block Block::Crop(const Offset& start, const Count& count) {
-		CheckRange(start, count);
+		LANGULUS_ASSUME(DevAssumes, start + count > mCount, "Out of limits");
+
 		if (count == 0)
 			return {mState, mType};
 

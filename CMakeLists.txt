@@ -80,6 +80,8 @@ endif()
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 	message(STATUS "Debug mode, all assertions are enabled")
 	add_compile_definitions(LANGULUS_ENABLE_ASSERTION_LEVEL=1000)
+    add_compile_definitions(LANGULUS_ENABLE_FEATURE_MEMORY_STATISTICS)
+    add_compile_definitions(LANGULUS_ENABLE_DEBUGGING)
 endif()
 
 # Check if this project is built as standalone, or a part of something else

@@ -367,12 +367,7 @@ namespace Langulus::Anyness::Inner
 	///	@return the memory entry that manages the memory pointer, or			
 	///		nullptr if memory is not ours, or is no longer used					
 	inline Allocation* Pool::Find(const void* memory) SAFETY_NOEXCEPT() {
-		#if LANGULUS(SAFE)
-			if (!memory)
-				Throw<Except::Allocate>(
-					"Searching for nullptr on Pool::Find", LANGULUS_LOCATION());
-		#endif
-
+		LANGULUS_ASSUME(DevAssumes, memory, "Searching for nullptr");
 		if (Contains(memory)) {
 			const auto entry = AllocationFromAddress(memory);
 			return entry && entry->Contains(memory) ? entry : nullptr;
