@@ -4253,7 +4253,7 @@ namespace Langulus::Anyness
 	///	@param pointer - the pointer to reference										
 	template<CT::Sparse T>
 	Block::KnownPointer::KnownPointer(T pointer)
-		: mPointer {reinterpret_cast<Byte*>(pointer)} {
+		: mPointer {const_cast<Byte*>(reinterpret_cast<const Byte*>(pointer))} {
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
 			// If we're using managed memory, we can search if the pointer	
 			// is owned by us, and get its block									

@@ -1454,7 +1454,7 @@ namespace Langulus::Anyness
 	TEMPLATE()
 	template<CT::Block WRAPPER>
 	WRAPPER TAny<T>::Crop(const Offset& start, const Count& count) {
-		LANGULUS_ASSUME(DevAssumes, start + count > mCount, "Out of limits");
+		LANGULUS_ASSUME(DevAssumes, start + count <= mCount, "Out of limits");
 
 		if (count == 0) {
 			WRAPPER result {Disown(*this)};
@@ -1672,7 +1672,8 @@ namespace Langulus::Anyness
 
 		auto t1 = GetRaw();
 		auto t2 = other.GetRaw();
-		while (t1 < GetRawEnd() && *(t1++) == *(t2++));
+		while (t1 < GetRawEnd() && *t1 == *(t2++))
+			++t1;
 		return (t1 - GetRaw()) == mCount;
 	}
 
@@ -1712,7 +1713,8 @@ namespace Langulus::Anyness
 
 		auto t1 = GetRaw();
 		auto t2 = other.GetRaw();
-		while (t1 < GetRawEnd() && ::std::tolower(*t1++) == ::std::tolower(*t2++));
+		while (t1 < GetRawEnd() && ::std::tolower(*t1) == ::std::tolower(*(t2++)))
+			++t1;
 		return (t1 - GetRaw()) == mCount;
 	}
 
@@ -1728,7 +1730,8 @@ namespace Langulus::Anyness
 		auto t2 = other.GetRaw();
 		const auto t1end = GetRawEnd();
 		const auto t2end = other.GetRawEnd();
-		while (t1 != t1end && t2 != t2end && *t1++ == *t2++);
+		while (t1 != t1end && t2 != t2end && *t1 == *(t2++))
+			++t1;
 
 		/*
 		__m128i first = _mm_loadu_si128( reinterpret_cast<__m128i*>( &arr1 ) );
@@ -1752,7 +1755,8 @@ namespace Langulus::Anyness
 		auto t2 = other.GetRaw();
 		const auto t1end = GetRawEnd();
 		const auto t2end = other.GetRawEnd();
-		while (t1 != t1end && t2 != t2end && ::std::tolower(*t1++) == ::std::tolower(*t2++));
+		while (t1 != t1end && t2 != t2end && ::std::tolower(*t1) == ::std::tolower(*(t2++)))
+			++t1;
 		return t1 - GetRaw();
 	}
 

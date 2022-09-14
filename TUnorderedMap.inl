@@ -506,13 +506,15 @@ namespace Langulus::Anyness
 		mValues.mCount = 0;
 		auto key = oldKeys.mEntry->As<KeyInner>();
 		auto value = oldValues.mEntry->As<ValueInner>();
+		const auto hashmask = GetReserved() - 1;
 		while (oldInfo != oldInfoEnd) {
 			if (!*(oldInfo++)) {
 				++key; ++value;
 				continue;
 			}
-
-			InsertInner<false, false>(GetBucket(*key), Move(*key), Move(*value));
+			
+			const auto index = HashData(*key).mHash & hashmask;
+			InsertInner<false, false>(index, Move(*key), Move(*value));
 			RemoveInner(key++);
 			RemoveInner(value++);
 		}
