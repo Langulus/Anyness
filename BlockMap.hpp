@@ -272,6 +272,7 @@ namespace Langulus::Anyness
 		NOD() Offset GetBucket(const K&) const noexcept;
 		template<CT::Data K>
 		NOD() Offset FindIndex(const K&) const;
+		NOD() Offset FindIndexUnknown(const Block&) const;
 
 	TESTING(public:)
 		NOD() const InfoType* GetInfo() const noexcept;

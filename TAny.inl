@@ -1284,7 +1284,7 @@ namespace Langulus::Anyness
 			while (start != end) {
 				if constexpr (BY_ADDRESS_ONLY) {
 					if constexpr (CT::Sparse<T>) {
-						if (*start == item)
+						if (DenseCast(start) == SparseCast(item))
 							return start - GetRaw();
 					}
 					else if (start == SparseCast(item))
@@ -1292,7 +1292,7 @@ namespace Langulus::Anyness
 				}
 				else {
 					if constexpr (CT::Sparse<T>) {
-						if (*start == item)
+						if (DenseCast(start) == SparseCast(item) || *DenseCast(start) == DenseCast(item))
 							return start - GetRaw();
 					}
 					else if (start == SparseCast(item) || *start == DenseCast(item))
@@ -1315,9 +1315,9 @@ namespace Langulus::Anyness
 	///	@param item - the item to search for to remove								
 	///	@return the number of removed items												
 	TEMPLATE()
-	template<bool REVERSE, CT::Data ALT_T>
+	template<bool REVERSE, bool BY_ADDRESS_ONLY, CT::Data ALT_T>
 	Count TAny<T>::RemoveValue(const ALT_T& item) {
-		const auto found = Find<REVERSE, CT::Sparse<ALT_T>>(item);
+		const auto found = Find<REVERSE, BY_ADDRESS_ONLY>(item);
 		if (found)
 			return RemoveIndex(found.GetOffset(), 1);
 		return 0;
@@ -1611,6 +1611,9 @@ namespace Langulus::Anyness
 	TEMPLATE()
 	template<class WRAPPER, class RHS>
 	TAny<T>& TAny<T>::operator += (const RHS& rhs) {
+		static_assert(CT::DerivedFrom<WRAPPER, TAny>,
+			"WRAPPER must be derived from this TAny");
+
 		if constexpr (CT::POD<T> && CT::DerivedFrom<RHS, TAny>) {
 			// Concatenate POD data directly (optimization)						
 			const auto count = rhs.GetCount();
@@ -1632,6 +1635,9 @@ namespace Langulus::Anyness
 	TEMPLATE()
 	template<class WRAPPER, class RHS>
 	WRAPPER TAny<T>::operator + (const RHS& rhs) const {
+		static_assert(CT::DerivedFrom<WRAPPER, TAny>,
+			"WRAPPER must be derived from this TAny");
+
 		if constexpr (CT::POD<T> && CT::DerivedFrom<RHS, TAny>) {
 			// Concatenate bytes															
 			WRAPPER result {Disown(*this)};
@@ -1673,8 +1679,20 @@ namespace Langulus::Anyness
 
 		auto t1 = GetRaw();
 		auto t2 = other.GetRaw();
-		while (t1 < GetRawEnd() && *t1 == *(t2++))
-			++t1;
+		const auto t1end = t1 + mCount;
+		if constexpr (CT::Dense<T>) {
+			while (t1 < t1end && *t1 == *t2) {
+				++t1;
+				++t2;
+			}
+		}
+		else {
+			while (t1 < t1end && (t1 == t2 || **t1 == **t2)) {
+				++t1;
+				++t2;
+			}
+		}
+
 		return (t1 - GetRaw()) == mCount;
 	}
 
@@ -1822,9 +1840,12 @@ namespace Langulus::Anyness
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
 			// If we're using managed memory, we can search if the pointer	
 			// is owned by us, and get its block									
-			mEntry = Inner::Allocator::Find(MetaData::Of<Decay<T>>(), pointer);
-			if (mEntry)
-				mEntry->Keep();
+			// This has no point when the pointer is a meta (optimization)	
+			if constexpr (!CT::Meta<T>) {
+				mEntry = Inner::Allocator::Find(MetaData::Of<Decay<T>>(), pointer);
+				if (mEntry)
+					mEntry->Keep();
+			}
 		#endif
 	}
 
@@ -1920,31 +1941,12 @@ namespace Langulus::Anyness
 		return *this;
 	}
 
-	/// Compare two known pointers, by pointer and value								
+	/// Compare two known pointers															
 	///	@param rhs - the pointer to compare against									
 	///	@return true if pointers/values match											
 	TEMPLATE()
 	bool KNOWNPOINTER()::operator == (const KNOWNPOINTER()& rhs) const noexcept {
-		return operator == (rhs.mPointer);
-	}
-
-	/// Compare two known pointers, by pointer and value								
-	///	@param rhs - the pointer to compare against									
-	///	@return true if pointers/values match											
-	TEMPLATE()
-	bool KNOWNPOINTER()::operator == (const Decay<T>* rhs) const noexcept {
-		if constexpr (CT::Comparable<T, T>)
-			return mPointer == rhs || (mPointer && *mPointer == *rhs);
-		else
-			return mPointer == rhs;
-	}
-
-	/// Compare two known pointers, by pointer and value								
-	///	@param rhs - the pointer to compare against									
-	///	@return true if pointers/values match											
-	TEMPLATE()
-	bool KNOWNPOINTER()::operator == (const Decay<T>& rhs) const noexcept {
-		return operator == (&rhs);
+		return mPointer == rhs.mPointer;
 	}
 
 	/// Get hash of the pointer inside														

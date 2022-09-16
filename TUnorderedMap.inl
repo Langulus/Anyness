@@ -109,10 +109,13 @@ namespace Langulus::Anyness
 
 			const auto key = GetRawKeys() + lhs;
 			const auto rhs = other.FindIndex(*key);
-			if (rhs == other.GetReserved() || GetValue(lhs) != other.GetValue(rhs)) {
-				auto dbglhs = GetValue(lhs);
-				auto dbgrhs = other.GetValue(rhs);
-				return dbglhs == dbgrhs;
+			if constexpr (CT::Sparse<V>) {
+				if (rhs == other.GetReserved() || *GetValue(lhs) != *other.GetValue(rhs))
+					return false;
+			}
+			else {
+				if (rhs == other.GetReserved() || GetValue(lhs) != other.GetValue(rhs))
+					return false;
 			}
 		}
 
@@ -712,7 +715,10 @@ namespace Langulus::Anyness
 			"Value needs to be move-constructible, but isn't");
 
 		Allocate(GetCount() + 1);
-		InsertInner<true, true>(GetBucket(key), KeyInner {key}, Forward<V>(value));
+		if constexpr (CT::Same<V, ValueInner>)
+			InsertInner<true, true>(GetBucket(key), KeyInner {key}, Forward<V>(value));
+		else
+			InsertInner<true, true>(GetBucket(key), KeyInner {key}, ValueInner {Forward<V>(value)});
 		return 1;
 	}
 
@@ -728,7 +734,10 @@ namespace Langulus::Anyness
 			"Value needs to be copy-constructible, but isn't");
 
 		Allocate(GetCount() + 1);
-		InsertInner<true, true>(GetBucket(key), Forward<K>(key), ValueInner {value});
+		if constexpr (CT::Same<K, KeyInner>)
+			InsertInner<true, true>(GetBucket(key), Forward<K>(key), ValueInner {value});
+		else
+			InsertInner<true, true>(GetBucket(key), KeyInner {Forward<K>(key)}, ValueInner {value});
 		return 1;
 	}
 
@@ -744,7 +753,18 @@ namespace Langulus::Anyness
 			"Value needs to be move-constructible, but isn't");
 
 		Allocate(GetCount() + 1);
-		InsertInner<true, true>(GetBucket(key), Forward<K>(key), Forward<V>(value));
+		if constexpr (CT::Same<K, KeyInner>) {
+			if constexpr (CT::Same<V, ValueInner>)
+				InsertInner<true, true>(GetBucket(key), Forward<K>(key), Forward<V>(value));
+			else
+				InsertInner<true, true>(GetBucket(key), Forward<K>(key), ValueInner {Forward<V>(value)});
+		}
+		else {
+			if constexpr (CT::Same<V, ValueInner>)
+				InsertInner<true, true>(GetBucket(key), KeyInner {Forward<K>(key)}, Forward<V>(value));
+			else
+				InsertInner<true, true>(GetBucket(key), KeyInner {Forward<K>(key)}, ValueInner {Forward<V>(value)});
+		}
 		return 1;
 	}
 
@@ -1156,9 +1176,17 @@ namespace Langulus::Anyness
 		auto psl = GetInfo() + start;
 		const auto pslEnd = GetInfoEnd() - 1;
 		auto candidate = GetRawKeys() + start;
+
+		const auto keysAreEqual = [](const KeyInner* lhs, const K& rhs) {
+			if constexpr (CT::Sparse<K>)
+				return *lhs == rhs || **lhs == *rhs;
+			else
+				return lhs == &rhs || *lhs == rhs;
+		};
+
 		Count attempts{};
 		while (*psl > attempts) {
-			if (*candidate != key) {
+			if (!keysAreEqual(candidate, key)) {
 				// There might be more keys to the right, check them			
 				if (psl == pslEnd) UNLIKELY() {
 					// By 'to the right' I also mean looped back to start		

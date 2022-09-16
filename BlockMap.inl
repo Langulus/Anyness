@@ -89,20 +89,16 @@ namespace Langulus::Anyness
 		if (other.GetCount() != GetCount())
 			return false;
 
-		const auto keyEnd = mKeys.mRaw + mKeys.GetByteSize();
-		auto key = mKeys.mRaw;
 		auto info = GetInfo();
-		while (key != keyEnd) {
-			if (!*(info++)) {
-				key += mKeys.GetStride();
+		const auto infoEnd = GetInfoEnd();
+		while (info != infoEnd) {
+			const auto lhs = info - GetInfo();
+			if (!*(info++))
 				continue;
-			}
 
-			const auto rhs = other.FindIndex(*key);
-			if (rhs == other.GetReserved() || GetValue(key - mKeys.mRaw) != other.GetValue(rhs))
+			const auto rhs = other.FindIndexUnknown(GetKey(lhs));
+			if (rhs == other.GetReserved() || GetValue(lhs) != other.GetValue(rhs))
 				return false;
-
-			++key; ++info;
 		}
 
 		return true;
@@ -1353,6 +1349,43 @@ namespace Langulus::Anyness
 				else LIKELY() {
 					++psl;
 					++candidate;
+				}
+
+				++attempts;
+				continue;
+			}
+
+			// Found																			
+			return psl - GetInfo();
+		}
+
+		// Nothing found, return end offset											
+		return GetReserved();
+	}
+	
+	/// Find the index of a pair by an unknown type-erased key						
+	///	@param key - the key to search for												
+	///	@return the index																		
+	inline Offset BlockMap::FindIndexUnknown(const Block& key) const {
+		// Get the starting index based on the key hash							
+		// Since reserved elements are always power-of-two, we use them	
+		// as a mask to the hash, to extract the relevant bucket				
+		const auto start = GetBucket(key);
+		auto psl = GetInfo() + start;
+		const auto pslEnd = GetInfoEnd() - 1;
+		auto candidate = GetKey(start);
+		Count attempts{};
+		while (*psl > attempts) {
+			if (candidate != key) {
+				// There might be more keys to the right, check them			
+				if (psl == pslEnd) UNLIKELY() {
+					// By 'to the right' I also mean looped back to start		
+					psl = GetInfo();
+					candidate = GetKey(0);
+				}
+				else LIKELY() {
+					++psl;
+					candidate.Next();
 				}
 
 				++attempts;

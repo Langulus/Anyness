@@ -55,9 +55,9 @@ T CreateElement(const ALT_T& e) {
 /// The main test for Any/TAny containers, with all kinds of items, from		
 /// sparse to dense, from trivial to complex, from flat to deep					
 TEMPLATE_TEST_CASE("Any/TAny", "[any]", 
+	(TypePair<TAny<int*>, int*>),
 	(TypePair<TAny<Trait>, Trait>),
 	(TypePair<TAny<int>, int>),
-	(TypePair<TAny<int*>, int*>),
 	(TypePair<TAny<Traits::Count>, Traits::Count>),
 	(TypePair<TAny<Any>, Any>),
 	(TypePair<TAny<Trait*>, Trait*>),
@@ -1526,7 +1526,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 			}
 			
 			#ifdef LANGULUS_STD_BENCHMARK
-				BENCHMARK_ADVANCED("Anyness::TAny::operator << (5 consecutive trivial copies)") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("Anyness::TAny::operator << (5 consecutive trivial copies)") (timer meter) {
 					some<T> storage(meter.runs());
 
 					meter.measure([&](int i) {
@@ -1534,7 +1534,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 					});
 				};
 
-				BENCHMARK_ADVANCED("std::vector::push_back(5 consecutive trivial copies)") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("std::vector::push_back(5 consecutive trivial copies)") (timer meter) {
 					some<StdT> storage(meter.runs());
 
 					meter.measure([&](int i) {
@@ -1567,15 +1567,21 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 				REQUIRE(pack.template Is<E>());
 				for (int i = 0; i < 5; ++i)
 					REQUIRE(pack[i] == darray1[i]);
-				for (int i = 5; i < pack.GetCount(); ++i)
-					REQUIRE(pack[i] == darray2[i-5]);
+				if constexpr (CT::Sparse<E>) {
+					for (int i = 5; i < pack.GetCount(); ++i)
+						REQUIRE(pack[i] == darray3[i - 5]);
+				}
+				else {
+					for (int i = 5; i < pack.GetCount(); ++i)
+						REQUIRE(pack[i] == darray2[i - 5]);
+				}
 				#if LANGULUS_FEATURE(MANAGED_MEMORY)
 					REQUIRE(pack.GetRaw() == memory);
 				#endif
 			}
 			
 			#ifdef LANGULUS_STD_BENCHMARK
-				BENCHMARK_ADVANCED("Anyness::TAny::operator << (5 consecutive trivial moves)") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("Anyness::TAny::operator << (5 consecutive trivial moves)") (timer meter) {
 					some<T> storage(meter.runs());
 
 					meter.measure([&](int i) {
@@ -1583,7 +1589,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 					});
 				};
 
-				BENCHMARK_ADVANCED("std::vector::emplace_back(5 consecutive trivial moves)") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("std::vector::emplace_back(5 consecutive trivial moves)") (timer meter) {
 					some<StdT> storage(meter.runs());
 
 					meter.measure([&](int i) {
@@ -1619,7 +1625,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK
-				BENCHMARK_ADVANCED("Anyness::TAny::Insert(single copy in middle)") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("Anyness::TAny::Insert(single copy in middle)") (timer meter) {
 					some<T> storage(meter.runs());
 					for (auto&& o : storage)
 						o << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
@@ -1629,7 +1635,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 					});
 				};
 
-				BENCHMARK_ADVANCED("std::vector::insert(single copy in middle)") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("std::vector::insert(single copy in middle)") (timer meter) {
 					some<StdT> storage(meter.runs());
 					for (auto&& o : storage)
 						o = { darray1[0], darray1[1], darray1[2], darray1[3], darray1[4] };
@@ -1656,13 +1662,14 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 				REQUIRE(pack[0] == darray1[0]);
 				REQUIRE(pack[1] == darray1[1]);
 				REQUIRE(pack[2] == darray1[2]);
-				REQUIRE(pack[3] == CreateElement<E>(666));
+				if constexpr (CT::Sparse<E>)
+					REQUIRE(pack[3] == i666);
 				REQUIRE(pack[4] == darray1[3]);
 				REQUIRE(pack[5] == darray1[4]);
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK
-				BENCHMARK_ADVANCED("Anyness::TAny::Emplace(single move in middle)") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("Anyness::TAny::Emplace(single move in middle)") (timer meter) {
 					some<T> storage(meter.runs());
 					for (auto&& o : storage)
 						o << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
@@ -1672,7 +1679,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 					});
 				};
 
-				BENCHMARK_ADVANCED("std::vector::insert(single move in middle)") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("std::vector::insert(single move in middle)") (timer meter) {
 					some<StdT> storage(meter.runs());
 					for (auto&& o : storage)
 						o = { darray1[0], darray1[1], darray1[2], darray1[3], darray1[4] };
@@ -1695,14 +1702,14 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 				REQUIRE(pack[0] == darray1[0]);
 				REQUIRE(pack[1] == darray1[2]);
 				REQUIRE(pack[2] == darray1[4]);
-				REQUIRE_THROWS(pack[3] == 666);
+				REQUIRE_THROWS(pack[3] == CreateElement<E>(666));
 				REQUIRE(pack.GetCount() == 3);
 				REQUIRE(pack.GetReserved() >= 5);
 				REQUIRE(pack.GetRaw() == memory);
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: 2:1 performance - needs more optimizations in Index handling
-				BENCHMARK_ADVANCED("Anyness::TAny::Remove(single element by value)") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("Anyness::TAny::Remove(single element by value)") (timer meter) {
 					some<T> storage(meter.runs());
 					for (auto&& o : storage)
 						o << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
@@ -1712,7 +1719,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 					});
 				};
 
-				BENCHMARK_ADVANCED("Anyness::vector::erase-remove(single element by value)") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("Anyness::vector::erase-remove(single element by value)") (timer meter) {
 					some<StdT> storage(meter.runs());
 					for (auto&& o : storage)
 						o = { darray1[0], darray1[1], darray1[2], darray1[3], darray1[4] };

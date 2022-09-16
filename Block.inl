@@ -1424,9 +1424,9 @@ namespace Langulus::Anyness
 	///	@param count - number of items inside array									
 	///	@param index - the index to start searching from							
 	///	@return the number of removed items												
-	template<bool REVERSE, CT::Data T>
+	template<bool REVERSE, bool BY_ADDRESS_ONLY, CT::Data T>
 	Count Block::RemoveValue(const T& item) {
-		const auto found = Find<REVERSE, false>(item);
+		const auto found = Find<REVERSE, BY_ADDRESS_ONLY>(item);
 		if (found)
 			return RemoveIndex(found.GetOffset(), 1);
 		return 0;
@@ -4316,9 +4316,12 @@ namespace Langulus::Anyness
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
 			// If we're using managed memory, we can search if the pointer	
 			// is owned by us, and get its block									
-			mEntry = Inner::Allocator::Find(MetaData::Of<Decay<T>>(), pointer);
-			if (mEntry)
-				mEntry->Keep();
+			// This has no point when the pointer is a meta (optimization)	
+			if constexpr (!CT::Meta<T>) {
+				mEntry = Inner::Allocator::Find(MetaData::Of<Decay<T>>(), pointer);
+				if (mEntry)
+					mEntry->Keep();
+			}
 		#endif
 	}
 

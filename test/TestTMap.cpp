@@ -65,8 +65,8 @@ concept IsStaticallyOptimized = requires (Decay<T> a) { typename T::Key; typenam
 /// to complex, from flat to deep															
 TEMPLATE_TEST_CASE(
 	"TOrderedMap/TUnorderedMap/OrderedMap/UnorderedMap", "[map]",
-	(TypePair<UnorderedMap, Text, int*>),
 	(TypePair<TUnorderedMap<Text, int*>, Text, int*>),
+	(TypePair<UnorderedMap, Text, int*>),
 	(TypePair<TUnorderedMap<Text, int>, Text, int>),
 	(TypePair<TUnorderedMap<Text, Trait>, Text, Trait>),
 	(TypePair<TUnorderedMap<Text, Traits::Count>, Text, Traits::Count>),
@@ -135,14 +135,14 @@ TEMPLATE_TEST_CASE(
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK
-				BENCHMARK_ADVANCED("Anyness::map::default construction") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("Anyness::map::default construction") (timer meter) {
 					some<uninitialized<MapType>> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i].construct();
 					});
 				};
 
-				BENCHMARK_ADVANCED("std::map::default construction") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("std::map::default construction") (timer meter) {
 					some<uninitialized<MapTypeStd>> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i].construct();
@@ -174,14 +174,14 @@ TEMPLATE_TEST_CASE(
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK
-				BENCHMARK_ADVANCED("Anyness::TUnorderedMap::operator = (single pair copy)") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("Anyness::TUnorderedMap::operator = (single pair copy)") (timer meter) {
 					some<MapType> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i] = pair;
 					});
 				};
 
-				BENCHMARK_ADVANCED("std::unordered_map::insert(single pair copy)") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("std::unordered_map::insert(single pair copy)") (timer meter) {
 					some<MapTypeStd> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i].insert(stdpair);
@@ -213,7 +213,7 @@ TEMPLATE_TEST_CASE(
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK
-				BENCHMARK_ADVANCED("Anyness::TUnorderedMap::operator = (single pair copy)") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("Anyness::TUnorderedMap::operator = (single pair copy)") (timer meter) {
 					some<Pair> source(meter.runs());
 					for (auto& i : source)
 						i = CreatePair<Pair, K, V>("five hundred"_text, 555);
@@ -224,7 +224,7 @@ TEMPLATE_TEST_CASE(
 					});
 				};
 
-				BENCHMARK_ADVANCED("std::unordered_map::insert(single pair copy)") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("std::unordered_map::insert(single pair copy)") (timer meter) {
 					some<StdPair> source(meter.runs());
 					for(auto& i : source)
 						i = valueStd;
@@ -394,7 +394,7 @@ TEMPLATE_TEST_CASE(
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK
-				BENCHMARK_ADVANCED("Anyness::TUnorderedMap::operator << (5 consecutive pair copies)") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("Anyness::TUnorderedMap::operator << (5 consecutive pair copies)") (timer meter) {
 					some<MapType> storage(meter.runs());
 					for (auto& i : storage)
 						i << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
@@ -404,7 +404,7 @@ TEMPLATE_TEST_CASE(
 					});
 				};
 
-				BENCHMARK_ADVANCED("std::unordered_map::insert(5 consecutive pair copies)") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("std::unordered_map::insert(5 consecutive pair copies)") (timer meter) {
 					some<MapTypeStd> storage(meter.runs());
 					for (auto& i : storage) {
 						i.insert(darray1std[0]);
@@ -424,7 +424,7 @@ TEMPLATE_TEST_CASE(
 				};
 
 				// Last result: 1:1, slightly slower than STD, can be further improved
-				BENCHMARK_ADVANCED("Anyness::TUnorderedMap::operator [] (retrieval by key from a map with 10 pairs)") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("Anyness::TUnorderedMap::operator [] (retrieval by key from a map with 10 pairs)") (timer meter) {
 					some<MapType> storage(meter.runs());
 					for (auto& i : storage) {
 						i << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
@@ -436,7 +436,7 @@ TEMPLATE_TEST_CASE(
 					});
 				};
 
-				BENCHMARK_ADVANCED("std::unordered_map::operator [] (retrieval by key from a map with 10 pairs)") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("std::unordered_map::operator [] (retrieval by key from a map with 10 pairs)") (timer meter) {
 					some<MapTypeStd> storage(meter.runs());
 					for (auto& i : storage) {
 						i.insert(darray1std[0]);
@@ -492,14 +492,14 @@ TEMPLATE_TEST_CASE(
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK
-				BENCHMARK_ADVANCED("Anyness::TUnorderedMap::operator << (5 consecutive trivial moves)") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("Anyness::TUnorderedMap::operator << (5 consecutive trivial moves)") (timer meter) {
 					some<MapType> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i] << Move(darray2[0]) << Move(darray2[1]) << Move(darray2[2]) << Move(darray2[3]) << Move(darray2[4]);
 					});
 				};
 
-				BENCHMARK_ADVANCED("std::unordered_map::emplace_back(5 consecutive trivial moves)") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("std::unordered_map::emplace_back(5 consecutive trivial moves)") (timer meter) {
 					some<MapTypeStd> storage(meter.runs());
 					meter.measure([&](int i) {
 						storage[i].emplace(Move(darray2std[0]));
@@ -535,7 +535,7 @@ TEMPLATE_TEST_CASE(
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK
-				BENCHMARK_ADVANCED("Anyness::TUnorderedMap::RemoveValue") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("Anyness::TUnorderedMap::RemoveValue") (timer meter) {
 					some<MapType> storage(meter.runs());
 					for (auto&& o : storage)
 						o << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
@@ -545,7 +545,7 @@ TEMPLATE_TEST_CASE(
 					});
 				};
 
-				BENCHMARK_ADVANCED("std::unordered_map::erase(by value)") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("std::unordered_map::erase(by value)") (timer meter) {
 					some<MapTypeStd> storage(meter.runs());
 					for (auto&& i : storage) {
 						i.insert(darray1std[0]);
@@ -593,7 +593,7 @@ TEMPLATE_TEST_CASE(
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK
-				BENCHMARK_ADVANCED("Anyness::TUnorderedMap::RemoveKey") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("Anyness::TUnorderedMap::RemoveKey") (timer meter) {
 					some<MapType> storage(meter.runs());
 					for (auto&& o : storage)
 						o << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
@@ -603,7 +603,7 @@ TEMPLATE_TEST_CASE(
 					});
 				};
 
-				BENCHMARK_ADVANCED("std::unordered_map::erase(by key)") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("std::unordered_map::erase(by key)") (timer meter) {
 					some<MapTypeStd> storage(meter.runs());
 					for (auto&& i : storage) {
 						i.insert(darray1std[0]);
@@ -765,9 +765,24 @@ TEMPLATE_TEST_CASE(
 				REQUIRE(clone.GetRawKeysMemory() != map.GetRawKeysMemory());
 				REQUIRE(clone.GetRawValuesMemory() != map.GetRawValuesMemory());
 				for (auto& comparer : darray1) {
-					REQUIRE(clone[comparer.mKey] == comparer.mValue);
+					if constexpr (CT::Sparse<V>) {
+						if constexpr (IsStaticallyOptimized<T>) {
+							REQUIRE(*map[comparer.mKey] == *clone[comparer.mKey]);
+							REQUIRE(map[comparer.mKey] != clone[comparer.mKey]);
+							REQUIRE(clone[comparer.mKey] != comparer.mValue);
+						}
+						else {
+							REQUIRE(clone[comparer.mKey] == comparer.mValue);
+							REQUIRE(map[comparer.mKey] == clone[comparer.mKey]);
+						}
+					}
+					else {
+						REQUIRE(clone[comparer.mKey] == comparer.mValue);
+						REQUIRE(map[comparer.mKey] == clone[comparer.mKey]);
+					}
+					
 					REQUIRE(map[comparer.mKey] == comparer.mValue);
-					REQUIRE(map[comparer.mKey] == clone[comparer.mKey]);
+					
 					if constexpr (IsStaticallyOptimized<T>)
 						REQUIRE(&map[comparer.mKey] != &clone[comparer.mKey]);
 					else

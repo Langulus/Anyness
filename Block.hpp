@@ -499,7 +499,7 @@ namespace Langulus::Anyness
 		///																							
 		///	Removal																				
 		///																							
-		template<bool REVERSE = false, CT::Data T>
+		template<bool REVERSE = false, bool BY_ADDRESS_ONLY = false, CT::Data T>
 		Count RemoveValue(const T&);
 		template<CT::Index INDEX>
 		Count RemoveIndex(INDEX, Count = 1);
@@ -655,7 +655,7 @@ namespace Langulus::Anyness
 		constexpr KnownPointer(Byte* pointer, Inner::Allocation* entry) noexcept;
 
 		template<CT::Sparse T>
-		KnownPointer(T);
+		explicit KnownPointer(T);
 		template<CT::Sparse T>
 		KnownPointer(Disowned<T>&&) noexcept;
 		~KnownPointer() noexcept = default;

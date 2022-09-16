@@ -203,7 +203,7 @@ namespace Langulus::Anyness
 		///																							
 		///	Removal																				
 		///																							
-		template<bool REVERSE = false, CT::Data ALT_T>
+		template<bool REVERSE = false, bool BY_ADDRESS_ONLY = false, CT::Data ALT_T>
 		Count RemoveValue(const ALT_T&);
 		Count RemoveIndex(const Offset&, const Count&);
 
@@ -301,7 +301,7 @@ namespace Langulus::Anyness
 		KnownPointer(Disowned<KnownPointer>&&) noexcept;
 		KnownPointer(Abandoned<KnownPointer>&&) noexcept;
 
-		KnownPointer(const T&);
+		explicit KnownPointer(const T&);
 		KnownPointer(Disowned<T>&&) noexcept;
 		~KnownPointer();
 
@@ -315,8 +315,6 @@ namespace Langulus::Anyness
 		KnownPointer& operator = (::std::nullptr_t);
 
 		bool operator == (const KnownPointer&) const noexcept;
-		bool operator == (const Decay<T>*) const noexcept;
-		bool operator == (const Decay<T>&) const noexcept;
 
 		NOD() Hash GetHash() const;
 
@@ -325,7 +323,12 @@ namespace Langulus::Anyness
 
 		decltype(auto) operator * () const;
 		decltype(auto) operator * ();
+
+		operator T () const noexcept {
+			return mPointer;
+		}
 	};
+
 
 	///																								
 	///	TAny iterator																			
