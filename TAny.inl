@@ -1282,7 +1282,7 @@ namespace Langulus::Anyness
 			}
 
 			while (start != end) {
-				if constexpr (BY_ADDRESS_ONLY) {
+				if constexpr (BY_ADDRESS_ONLY || !CT::Comparable<T, T>) {
 					if constexpr (CT::Sparse<T>) {
 						if (DenseCast(start) == SparseCast(item))
 							return start - GetRaw();
@@ -1680,16 +1680,19 @@ namespace Langulus::Anyness
 		auto t1 = GetRaw();
 		auto t2 = other.GetRaw();
 		const auto t1end = t1 + mCount;
-		if constexpr (CT::Dense<T>) {
+		if constexpr (CT::Dense<T> && CT::Comparable<T, T>) {
 			while (t1 < t1end && *t1 == *t2) {
-				++t1;
-				++t2;
+				++t1; ++t2;
+			}
+		}
+		else if constexpr (CT::Comparable<T, T>) {
+			while (t1 < t1end && (t1 == t2 || **t1 == **t2)) {
+				++t1; ++t2;
 			}
 		}
 		else {
-			while (t1 < t1end && (t1 == t2 || **t1 == **t2)) {
-				++t1;
-				++t2;
+			while (t1 < t1end && t1 == t2) {
+				++t1; ++t2;
 			}
 		}
 
