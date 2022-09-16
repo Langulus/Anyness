@@ -334,6 +334,8 @@ namespace Langulus::Anyness
 	template<bool MUTABLE>
 	struct TAny<T>::TIterator {
 	protected:
+		using Type = typename TAny<T>::Type;
+		using TypeInner = typename TAny<T>::TypeInner;
 		friend class TAny<T>;
 
 		const TypeInner* mElement;
