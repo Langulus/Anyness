@@ -277,8 +277,9 @@ namespace Langulus::Anyness
 
 				if (mEntry != previousBlock.mEntry) {
 					// Memory moved, and we should call move-construction		
+					// We're moving to a new allocation, so no reverse needed
 					mRaw = mEntry->GetBlockStart();
-					CallUnknownMoveConstructors<false>(previousBlock.mCount, Move(previousBlock));
+					CallUnknownMoveConstructors<false, false>(previousBlock.mCount, Move(previousBlock));
 				}
 			}
 			else {
@@ -1108,6 +1109,24 @@ namespace Langulus::Anyness
 		return ReinterpretAs(Block::From<T>());
 	}
 
+	/// Access element at a specific index													
+	///	@param idx - the index																
+	///	@return immutable type-erased element, wrapped in a Block				
+	template<CT::Index IDX>
+	Block Block::operator[] (const IDX& idx) const {
+		const auto index = SimplifyIndex<void>(idx);
+		return GetElement(index);
+	}
+
+	/// Access element at a specific index													
+	///	@param idx - the index																
+	///	@return mutable type-erased element, wrapped in a Block					
+	template<CT::Index IDX>
+	Block Block::operator[] (const IDX& idx) {
+		const auto index = SimplifyIndex<void>(idx);
+		return GetElement(index);
+	}
+
 	/// Copy-insert anything compatible at an index										
 	///	@attention assumes offset is in the block's limits, if simple			
 	///	@tparam KEEP - whether to reference data on copy							
@@ -1127,7 +1146,7 @@ namespace Langulus::Anyness
 		static_assert(CT::Sparse<T> || CT::Mutable<T>,
 			"Can't copy-insert into container of constant elements");
 
-		const auto index = SimplifyIndex(idx);
+		const auto index = SimplifyIndex<T>(idx);
 
 		if constexpr (MUTABLE) {
 			// Type may mutate															
@@ -1144,9 +1163,11 @@ namespace Langulus::Anyness
 			LANGULUS_ASSERT(GetUses() == 1, Except::Move,
 				"Moving elements that are used from multiple places");
 
+			// We're moving to the right, so make sure we do it in reverse	
+			// to avoid any overlap														
 			const auto moved = mCount - index;
 			CropInner(index + count, moved, moved)
-				.template CallKnownMoveConstructors<T>(
+				.template CallKnownMoveConstructors<T, false, true>(
 					moved, CropInner(index, moved, moved)
 				);
 		}
@@ -1173,7 +1194,7 @@ namespace Langulus::Anyness
 		static_assert(CT::Sparse<T> || CT::Mutable<T>,
 			"Can't move-insert into container of constant elements");
 
-		const auto index = SimplifyIndex(idx);
+		const auto index = SimplifyIndex<T>(idx);
 
 		if constexpr (MUTABLE) {
 			// Type may mutate															
@@ -1189,9 +1210,11 @@ namespace Langulus::Anyness
 			LANGULUS_ASSERT(GetUses() == 1, Except::Move,
 				"Moving elements that are used from multiple places");
 
+			// We're moving to the right, so make sure we do it in reverse	
+			// to avoid any overlap														
 			const auto moved = mCount - index;
 			CropInner(index + 1, moved, moved)
-				.template CallKnownMoveConstructors<T>(
+				.template CallKnownMoveConstructors<T, false, true>(
 					moved, CropInner(index, moved, moved)
 				);
 		}
@@ -1235,8 +1258,10 @@ namespace Langulus::Anyness
 			LANGULUS_ASSERT(GetUses() == 1, Except::Move,
 				"Moving elements that are used from multiple places");
 
+			// We're moving to the right, so make sure we do it in reverse	
+			// to avoid any overlap														
 			CropInner(count, 0, mCount)
-				.template CallKnownMoveConstructors<T>(
+				.template CallKnownMoveConstructors<T, false, true>(
 					mCount, CropInner(0, mCount, mCount)
 				);
 
@@ -1280,8 +1305,10 @@ namespace Langulus::Anyness
 			LANGULUS_ASSERT(GetUses() == 1, Except::Move,
 				"Moving elements that are used from multiple places");
 
+			// We're moving to the right, so make sure we do it in reverse	
+			// to avoid any overlap														
 			CropInner(1, 0, mCount)
-				.template CallKnownMoveConstructors<T>(
+				.template CallKnownMoveConstructors<T, false, true>(
 					mCount, CropInner(0, mCount, mCount)
 				);
 
@@ -1397,101 +1424,31 @@ namespace Langulus::Anyness
 	///	@param count - number of items inside array									
 	///	@param index - the index to start searching from							
 	///	@return the number of removed items												
-	template<CT::Data T>
-	Count Block::Remove(const T* items, const Count count, Index index) {
-		static_assert(CT::Sparse<T> || CT::Mutable<T>,
-			"Can't remove elements from container of constant elements");
-		Count removed {};
-		const auto itemsEnd = items + count;
-		while (items != itemsEnd) {
-			const auto idx = Find<T>(*items, index);
-			if (idx)
-				removed += RemoveIndex(idx.GetOffset(), 1);
-			++items;
-		}
-
-		return removed;
+	template<bool REVERSE, CT::Data T>
+	Count Block::RemoveValue(const T& item) {
+		const auto found = Find<REVERSE, false>(item);
+		if (found)
+			return RemoveIndex(found.GetOffset(), 1);
+		return 0;
 	}
 
 	/// Find first matching element position inside container						
 	///	@param item - the item to search for											
 	///	@param idx - index to start searching from									
 	///	@return the index of the found item, or uiNone if not found				
-	template<CT::Data T>
+	template<bool REVERSE, bool BY_ADDRESS_ONLY, CT::Data T>
 	Index Block::Find(const T& item, Index idx) const {
-		if (!mCount || !mType)
-			return IndexNone;
-
-		if (IsDense()) {
-			if (!CastsTo<T>()) {
-				// If dense and not forward compatible - fail					
-				return IndexNone;
-			}
-		}
-		else if (!MetaData::Of<T>()->CastsTo(mType)) {
-			// If sparse and not backwards compatible - fail					
-			return IndexNone;
-		}
-
-		// Setup the iterator															
-		Index starti, istep;
-		if (idx == IndexFront) {
-			starti = 0;
-			istep = 1;
-		}
-		else if (idx == IndexBack) {
-			starti = mCount - 1;
-			istep = -1;
-		}
-		else {
-			starti = Constrain(idx);
-			istep = 1;
-			if (starti + 1 >= mCount)
-				return IndexNone;
-		}
-
-		// Search																			
-		auto item_ptr = SparseCast(item);
-		for (auto i = starti; i < mCount && i >= 0; i += istep) {
-			auto left = SparseCast(Get<T>(i.GetOffset()));
-			if (left == item_ptr) {
-				// Early success if pointers match									
-				return i;
-			}
-
-			if constexpr (CT::Sparse<T>) {
-				// If searching for pointers - cease after pointer check		
-				continue;
-			}
-			else if constexpr (CT::Resolvable<T>) {
-				// Pointers didn't match, but we have ClassBlock				
-				// so we attempt to call reflected comparison operator		
-				// for the concrete types												
-				if (left->GetType() != item_ptr->GetType())
-					continue;
-
-				if (left->GetType()->mComparer) {
-					auto lhs = left->GetBlock();
-					auto rhs = item_ptr->GetBlock();
-					if (left->GetType()->mComparer(lhs.GetRaw(), rhs.GetRaw()))
-						return i;
-				}
-				else {
-					Logger::Warning() << "Dynamically resolved type " << left->GetType()->mToken
-						<< " missing compare operator implementation and/or reflection";
-					Logger::Warning() << "This means that any Find, Merge, "
-						"Select, etc. will fail for that type";
-					Logger::Warning() << "Implement operator == and != either in type "
-						"or in any relevant bases to fix this problem";
-				}
-			}
-			else if constexpr (CT::Comparable<T>) {
-				// Pointers didn't match, but we have dense & comparable		
-				// type, so attempt to compare using == operator				
-				if (*left == *item_ptr)
+		if constexpr (!REVERSE) {
+			for (Offset i = 0; i < mCount; ++i) {
+				if (GetElement(i) == item)
 					return i;
 			}
-			else LANGULUS_ERROR("Type is not comparable in order to search for it");
+		}
+		else {
+			for (Offset i = mCount - 1; i < mCount; --i) {
+				if (GetElement(i) == item)
+					return i;
+			}
 		}
 
 		// If this is reached, then no match was found							
@@ -2315,13 +2272,18 @@ namespace Langulus::Anyness
 	///	@attention assumes index is in container limits, if unsigned			
 	///	@param index - the index to simplify											
 	///	@return the offset																	
-	template<CT::Data T, CT::Index INDEX>
+	template<class T, CT::Index INDEX>
 	LANGULUS(ALWAYSINLINE) Offset Block::SimplifyIndex(const INDEX& index) const {
-		LANGULUS_ASSUME(DevAssumes, (CastsTo<T, true>()), "Type mismatch");
+		if constexpr (!CT::Void<T>) {
+			LANGULUS_ASSUME(DevAssumes, (CastsTo<T, true>()), "Type mismatch");
+		}
 
 		if constexpr (CT::Same<INDEX, Index>) {
 			// This is the most safe path												
-			return ConstrainMore<T>(index).GetOffset();
+			if constexpr (CT::Void<T>)
+				return Constrain(index).GetOffset();
+			else
+				return ConstrainMore<T>(index).GetOffset();
 		}
 		else if constexpr (CT::Signed<INDEX>) {
 			// Somehwat safe, default literal type is signed					
@@ -2457,9 +2419,10 @@ namespace Langulus::Anyness
 
 			if (ender < mCount) {
 				// Fill gap	if any by invoking move constructions				
+				// We're moving to the left, so no reverse is required		
 				LANGULUS_ASSERT(GetUses() == 1, Except::Move, "Moving elements in use");
 				CropInner(idx, 0, mCount - ender)
-					.template CallUnknownMoveConstructors<false>(
+					.template CallUnknownMoveConstructors<false, false>(
 						mCount - ender,
 						CropInner(ender, mCount - ender, mCount - ender)
 					);
@@ -2942,9 +2905,12 @@ namespace Langulus::Anyness
 			LANGULUS_ASSERT(GetUses() == 1, Except::Move,
 				"Moving elements that are used from multiple places");
 
+			// We need to shift elements right from the insertion point		
+			// Therefore, we call move constructors in reverse, to avoid	
+			// memory overlap																
 			const auto moved = mCount - index;
 			CropInner(index + other.mCount, 0, moved)
-				.template CallUnknownMoveConstructors<false>(
+				.template CallUnknownMoveConstructors<false, true>(
 					moved, CropInner(index, moved, moved)
 				);
 		}
@@ -3010,11 +2976,13 @@ namespace Langulus::Anyness
 	///	@attention assumes both blocks are of same sparsity						
 	///	@attention assumes count <= reserved elements								
 	///	@attention assumes source contains at least 'count' items				
-	///	@tparam KEEP - true to use move-construction, false to use abandon	
 	///	@tparam T - the type to move-construct											
+	///	@tparam KEEP - true to use move-construction, false to use abandon	
+	///	@tparam REVERSE - calls move constructors in reverse, to let you		
+	///							account for	potential memory overlap					
 	///	@param count - number of elements to move										
 	///	@param source - the block of elements to move								
-	template<bool KEEP, CT::Data T>
+	template<CT::Data T, bool KEEP, bool REVERSE>
 	void Block::CallKnownMoveConstructors(const Count count, const Block& source) const {
 		LANGULUS_ASSUME(DevAssumes, count <= source.mCount && count <= mReserved,
 			"Count outside limits");
@@ -3032,11 +3000,26 @@ namespace Langulus::Anyness
 			// Move and reset known pointers											
 			const auto byteSize = sizeof(KnownPointer) * count;
 			MoveMemory(source.mRaw, mRaw, byteSize);
-			memset(source.mRaw, {}, byteSize);
+			//memset(source.mRaw, {}, byteSize);
 		}
 		else if constexpr (CT::POD<T>) {
 			// Move POD memory, no need to reset it								
 			MoveMemory(source.mRaw, mRaw, sizeof(T) * count);
+		}
+		else if constexpr (REVERSE) {
+			// Both RHS and LHS are dense and non POD								
+			// Call the move-constructor for each element (in reverse)		
+			auto to = const_cast<Block&>(*this).GetRawAs<T>() + count - 1;
+			auto from = const_cast<Block&>(source).GetRawAs<T>() + count - 1;
+			const auto fromEnd = from - count;
+			while (from != fromEnd) {
+				if constexpr (!KEEP && CT::AbandonMakable<T>)
+					new (to--) T {Abandon(*(from--))};
+				else if constexpr (CT::MoveMakable<T>)
+					new (to--) T {Move(*(from--))};
+				else
+					LANGULUS_ERROR("Can't move/abandon-construct - no available constructors");
+			}
 		}
 		else {
 			// Both RHS and LHS are dense and non POD								
@@ -3062,9 +3045,11 @@ namespace Langulus::Anyness
 	///	@attention assumes source has at least 'count' items						
 	///	@attention assumes this has at least 'count' items reserved				
 	///	@tparam KEEP - true to use move-construction, false to use abandon	
+	///	@tparam REVERSE - calls move constructors in reverse, to let you		
+	///							account for	potential memory overlap					
 	///	@param count - number of elements to move-construct						
 	///	@param source - the source of the elements to move							
-	template<bool KEEP>
+	template<bool KEEP, bool REVERSE>
 	void Block::CallUnknownMoveConstructors(const Count count, const Block& source) const {
 		LANGULUS_ASSUME(DevAssumes, count <= source.mCount && count <= mReserved,
 			"Count outside limits");
@@ -3075,7 +3060,7 @@ namespace Langulus::Anyness
 			// Copy pointers																
 			const auto byteSize = sizeof(KnownPointer) * count;
 			MoveMemory(source.mRaw, mRaw, byteSize);
-			memset(source.mRaw, {}, byteSize);
+			//memset(source.mRaw, {}, byteSize);
 			return;
 		}
 		else if (mType->mIsPOD && IsDense() == source.IsDense()) {
@@ -3122,62 +3107,125 @@ namespace Langulus::Anyness
 				);
 			}
 
-			auto lhs = mRaw;
-			const auto lhsStride = mType->mSize;
+			if constexpr (REVERSE) {
+				const auto lhsStride = mType->mSize;
+				auto lhs = mRaw + (count - 1) * lhsStride;
 
-			if (source.IsSparse()) {
-				// RHS is pointer, LHS is dense										
-				// Move each dense element from RHS									
-				auto rhs = source.mRawSparse;
-				const auto rhsEnd = rhs + count;
-				if constexpr (KEEP) {
-					// Move required														
-					while (rhs != rhsEnd) {
-						mType->mMoveConstructor((rhs++)->mPointer, lhs);
-						lhs += lhsStride;
+				if (source.IsSparse()) {
+					// RHS is pointer, LHS is dense									
+					// Move each dense element from RHS								
+					auto rhs = source.mRawSparse + count - 1;
+					const auto rhsEnd = rhs - count;
+					if constexpr (KEEP) {
+						// Move required													
+						while (rhs != rhsEnd) {
+							mType->mMoveConstructor((rhs--)->mPointer, lhs);
+							lhs -= lhsStride;
+						}
 					}
-				}
-				else if (mType->mAbandonConstructor) {
-					// Attempt abandon													
-					while (rhs != rhsEnd) {
-						mType->mAbandonConstructor((rhs++)->mPointer, lhs);
-						lhs += lhsStride;
+					else if (mType->mAbandonConstructor) {
+						// Attempt abandon												
+						while (rhs != rhsEnd) {
+							mType->mAbandonConstructor((rhs--)->mPointer, lhs);
+							lhs -= lhsStride;
+						}
+					}
+					else {
+						// Fallback to move if abandon not available				
+						while (rhs != rhsEnd) {
+							mType->mMoveConstructor((rhs--)->mPointer, lhs);
+							lhs -= lhsStride;
+						}
 					}
 				}
 				else {
-					// Fallback to move if abandon not available					
-					while (rhs != rhsEnd) {
-						mType->mMoveConstructor((rhs++)->mPointer, lhs);
-						lhs += lhsStride;
+					// Both RHS and LHS are dense										
+					auto rhs = source.mRaw + (count - 1) * lhsStride;
+					const auto rhsEnd = rhs - count * lhsStride;
+					if constexpr (KEEP) {
+						// Move required													
+						while (rhs != rhsEnd) {
+							mType->mMoveConstructor(rhs, lhs);
+							lhs -= lhsStride;
+							rhs -= lhsStride;
+						}
+					}
+					else if (mType->mAbandonConstructor) {
+						// Attempt abandon												
+						while (rhs != rhsEnd) {
+							mType->mAbandonConstructor(rhs, lhs);
+							lhs -= lhsStride;
+							rhs -= lhsStride;
+						}
+					}
+					else {
+						// Fallback to move if abandon not available				
+						while (rhs != rhsEnd) {
+							mType->mMoveConstructor(rhs, lhs);
+							lhs -= lhsStride;
+							rhs -= lhsStride;
+						}
 					}
 				}
 			}
 			else {
-				// Both RHS and LHS are dense											
-				auto rhs = source.mRaw;
-				const auto rhsEnd = rhs + count * lhsStride;
-				if constexpr (KEEP) {
-					// Move required														
-					while (rhs != rhsEnd) {
-						mType->mMoveConstructor(rhs, lhs);
-						lhs += lhsStride;
-						rhs += lhsStride;
+				auto lhs = mRaw;
+				const auto lhsStride = mType->mSize;
+
+				if (source.IsSparse()) {
+					// RHS is pointer, LHS is dense									
+					// Move each dense element from RHS								
+					auto rhs = source.mRawSparse;
+					const auto rhsEnd = rhs + count;
+					if constexpr (KEEP) {
+						// Move required													
+						while (rhs != rhsEnd) {
+							mType->mMoveConstructor((rhs++)->mPointer, lhs);
+							lhs += lhsStride;
+						}
 					}
-				}
-				else if (mType->mAbandonConstructor) {
-					// Attempt abandon													
-					while (rhs != rhsEnd) {
-						mType->mAbandonConstructor(rhs, lhs);
-						lhs += lhsStride;
-						rhs += lhsStride;
+					else if (mType->mAbandonConstructor) {
+						// Attempt abandon												
+						while (rhs != rhsEnd) {
+							mType->mAbandonConstructor((rhs++)->mPointer, lhs);
+							lhs += lhsStride;
+						}
+					}
+					else {
+						// Fallback to move if abandon not available				
+						while (rhs != rhsEnd) {
+							mType->mMoveConstructor((rhs++)->mPointer, lhs);
+							lhs += lhsStride;
+						}
 					}
 				}
 				else {
-					// Fallback to move if abandon not available					
-					while (rhs != rhsEnd) {
-						mType->mMoveConstructor(rhs, lhs);
-						lhs += lhsStride;
-						rhs += lhsStride;
+					// Both RHS and LHS are dense										
+					auto rhs = source.mRaw;
+					const auto rhsEnd = rhs + count * lhsStride;
+					if constexpr (KEEP) {
+						// Move required													
+						while (rhs != rhsEnd) {
+							mType->mMoveConstructor(rhs, lhs);
+							lhs += lhsStride;
+							rhs += lhsStride;
+						}
+					}
+					else if (mType->mAbandonConstructor) {
+						// Attempt abandon												
+						while (rhs != rhsEnd) {
+							mType->mAbandonConstructor(rhs, lhs);
+							lhs += lhsStride;
+							rhs += lhsStride;
+						}
+					}
+					else {
+						// Fallback to move if abandon not available				
+						while (rhs != rhsEnd) {
+							mType->mMoveConstructor(rhs, lhs);
+							lhs += lhsStride;
+							rhs += lhsStride;
+						}
 					}
 				}
 			}
@@ -3185,16 +3233,17 @@ namespace Langulus::Anyness
 	}
 	
 	/// Call copy constructors in a region, initializing memory						
+	///	@attention don't copy to overlapping memory regions!						
 	///	@attention never modifies any block state										
 	///	@attention assumes T is the type of both blocks								
 	///	@attention assumes blocks are of same sparseness							
 	///	@attention assumes source has at least 'count' items						
 	///	@attention assumes this has at least 'count' items reserved				
-	///	@tparam KEEP - true to reference upon copy									
 	///	@tparam T - type of the data to copy-construct								
+	///	@tparam KEEP - true to reference upon copy									
 	///	@param count - the number of elements to construct							
 	///	@param source - the elements to copy											
-	template<bool KEEP, CT::Data T>
+	template<CT::Data T, bool KEEP>
 	void Block::CallKnownCopyConstructors(const Count count, const Block& source) const {
 		LANGULUS_ASSUME(DevAssumes, count <= source.mCount && count <= mReserved,
 			"Count outside limits");
@@ -3239,6 +3288,7 @@ namespace Langulus::Anyness
 	}
 	
 	/// Call copy constructors in a region, initializing memory						
+	///	@attention don't copy to overlapping memory regions!						
 	///	@attention never modifies any block state										
 	///	@attention assumes blocks are binary compatible								
 	///	@attention assumes source has at least 'count' items						
@@ -3374,6 +3424,7 @@ namespace Langulus::Anyness
 	}
 	
 	/// Call move-assignment in a region, initializing memory						
+	///	@attention don't assign to overlapping memory regions!					
 	///	@attention never modifies any block state										
 	///	@attention assumes blocks are binary compatible								
 	///	@attention assumes both blocks have at least 'count' items				
@@ -3499,10 +3550,13 @@ namespace Langulus::Anyness
 	}
 
 	/// Call copy-assignments in a region													
+	///	@attention don't assign to overlapping memory regions!					
 	///	@attention never modifies any block state										
 	///	@attention assumes blocks are binary compatible								
 	///	@attention assumes both blocks have at least 'count' items				
 	///	@tparam KEEP - true to reference upon copy									
+	///	@tparam REVERSE - calls move constructors in reverse, to let you		
+	///							account for	potential memory overlap					
 	///	@param count - the number of elements to copy								
 	///	@param source - the elements to copy											
 	template<bool KEEP>
@@ -3705,15 +3759,15 @@ namespace Langulus::Anyness
 		Block temporary {mState, mType};
 		temporary.Allocate<false, true>(mCount);
 		// Abandon this to temporary													
-		temporary.CallUnknownMoveConstructors<false>(mCount, *this);
+		temporary.CallUnknownMoveConstructors<false, false>(mCount, *this);
 		// Destroy elements in this													
 		CallUnknownDestructors();
 		// Abandon rhs to this															
-		CallUnknownMoveConstructors<false>(rhs.mCount, rhs);
+		CallUnknownMoveConstructors<false, false>(rhs.mCount, rhs);
 		// Destroy elements in rhs														
 		rhs.CallUnknownDestructors();
 		// Abandon temporary to rhs													
-		rhs.CallUnknownMoveConstructors<false>(temporary.mCount, temporary);
+		rhs.CallUnknownMoveConstructors<false, false>(temporary.mCount, temporary);
 		// Cleanup temporary																
 		temporary.CallUnknownDestructors();
 		Inner::Allocator::Deallocate(temporary.mEntry);
@@ -3733,15 +3787,15 @@ namespace Langulus::Anyness
 		Block temporary {mState, mType};
 		temporary.Allocate<false, true>(mCount);
 		// Abandon this to temporary													
-		temporary.CallKnownMoveConstructors<false, T>(mCount, *this);
+		temporary.CallKnownMoveConstructors<T, false, false>(mCount, *this);
 		// Destroy elements in this													
 		CallKnownDestructors<T>();
 		// Abandon rhs to this															
-		CallKnownMoveConstructors<false, T>(rhs.mCount, rhs);
+		CallKnownMoveConstructors<T, false, false>(rhs.mCount, rhs);
 		// Destroy elements in rhs														
 		rhs.CallKnownDestructors<T>();
 		// Abandon temporary to rhs													
-		rhs.CallKnownMoveConstructors<false, T>(temporary.mCount, temporary);
+		rhs.CallKnownMoveConstructors<T, false, false>(temporary.mCount, temporary);
 		// Cleanup temporary																
 		temporary.CallKnownDestructors<T>();
 		Inner::Allocator::Deallocate(temporary.mEntry);
@@ -3900,18 +3954,19 @@ namespace Langulus::Anyness
 				"Inserting requires moving elements, "
 				"that are used from multiple location");
 
+			// Moving to the right, do it in reverse to avoid overlap		
 			CropInner(other.mCount, 0, mCount)
-				.template CallUnknownMoveConstructors<false>(
+				.template CallUnknownMoveConstructors<false, true>(
 					mCount, CropInner(0, mCount, mCount)
 				);
 
 			CropInner(0, 0, other.mCount)
-				.template CallUnknownMoveConstructors<false>(
+				.template CallUnknownMoveConstructors<false, false>(
 					other.mCount, Forward<Block>(other));
 		}
 		else {
 			CropInner(mCount, 0, other.mCount)
-				.template CallUnknownMoveConstructors<false>(
+				.template CallUnknownMoveConstructors<false, false>(
 					other.mCount, Forward<Block>(other));
 		}
 
@@ -3945,24 +4000,26 @@ namespace Langulus::Anyness
 		// Allocate the required memory - this will not initialize it		
 		Allocate<false>(mCount + other.mValue.mCount);
 
-		// Move memory if required														
 		if constexpr (INDEX == IndexFront) {
+			// Move memory if required													
 			LANGULUS_ASSERT(GetUses() == 1, Except::Move,
 				"Inserting requires moving elements, "
 				"that are used from multiple location");
 
+			// We're moving to the right to form the gap, so we have to		
+			// call move-constructors in reverse to avoid overlap				
 			CropInner(other.mValue.mCount, 0, mCount)
-				.template CallUnknownMoveConstructors<false>(
+				.template CallUnknownMoveConstructors<false, true>(
 					mCount, CropInner(0, mCount, mCount)
 				);
 
 			CropInner(0, 0, other.mValue.mCount)
-				.template CallUnknownMoveConstructors<false>(
+				.template CallUnknownMoveConstructors<false, false>(
 					other.mValue.mCount, Forward<Block>(other.mValue));
 		}
 		else {
 			CropInner(mCount, 0, other.mValue.mCount)
-				.template CallUnknownMoveConstructors<false>(
+				.template CallUnknownMoveConstructors<false, false>(
 					other.mValue.mCount, Forward<Block>(other.mValue));
 		}
 
@@ -3997,18 +4054,20 @@ namespace Langulus::Anyness
 				"Inserting requires moving elements, "
 				"that are used from multiple location");
 
+			// We're moving to the right to form the gap, so we have to		
+			// call move-constructors in reverse to avoid overlap				
 			CropInner(other.mValue.mCount, 0, mCount)
-				.template CallUnknownMoveConstructors<false>(
+				.template CallUnknownMoveConstructors<false, true>(
 					mCount, CropInner(0, mCount, mCount)
 				);
 
 			CropInner(0, 0, other.mValue.mCount)
-				.template CallUnknownCopyConstructors<false>(
+				.template CallUnknownCopyConstructors<false, false>(
 					other.mValue.mCount, other.mValue);
 		}
 		else {
 			CropInner(mCount, 0, other.mValue.mCount)
-				.template CallUnknownCopyConstructors<false>(
+				.template CallUnknownCopyConstructors<false, false>(
 					other.mValue.mCount, other.mValue);
 		}
 

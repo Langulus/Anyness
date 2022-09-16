@@ -110,10 +110,7 @@ namespace Langulus::Anyness
 		void Allocate(Count);
 	
 		void Null(const Count&);
-		void Clear();
-		void Reset();
 		void TakeAuthority();
-		void Free();
 
 		NOD() TAny Clone() const;
 
@@ -151,13 +148,9 @@ namespace Langulus::Anyness
 		NOD() constexpr Size GetStride() const noexcept;
 		NOD() constexpr Size GetByteSize() const noexcept;
 
-		NOD() bool Compare(const TAny&) const noexcept;
-		NOD() bool CompareLoose(const TAny&) const noexcept requires CT::Character<T>;
-		NOD() Count Matches(const TAny&) const noexcept;
-		NOD() Count MatchesLoose(const TAny&) const noexcept requires CT::Character<T>;
-
-		RANGED_FOR_INTEGRATION(TAny, TypeInner);
-
+		///																							
+		///	Insertion																			
+		///																							
 		template<bool KEEP = true, CT::Index IDX = Offset>
 		Count InsertAt(const T*, const T*, const IDX&);
 		template<bool KEEP = true, CT::Index IDX = Offset>
@@ -207,22 +200,37 @@ namespace Langulus::Anyness
 		bool operator == (const TAny<ALT_T>&) const noexcept;
 		bool operator == (const Any&) const noexcept;
 
-		template<bool REVERSE = false, bool BY_ADDRESS_ONLY = false>
-		NOD() Index Find(const T&) const;
-
-		template<bool REVERSE = false>
-		Count RemoveValue(const T&);
-		Count RemovePointer(const T*);
+		///																							
+		///	Removal																				
+		///																							
+		template<bool REVERSE = false, CT::Data ALT_T>
+		Count RemoveValue(const ALT_T&);
 		Count RemoveIndex(const Offset&, const Count&);
-
-		template<bool ASCEND = false>
-		void Sort();
 
 		NOD() TAny& Trim(const Count&);
 		template<CT::Block WRAPPER = TAny>
 		NOD() WRAPPER Crop(const Offset&, const Count&) const;
 		template<CT::Block WRAPPER = TAny>
 		NOD() WRAPPER Crop(const Offset&, const Count&);
+
+		void Clear();
+		void Reset();
+		void Free();
+
+		///																							
+		///	Search																				
+		///																							
+		template<bool REVERSE = false, bool BY_ADDRESS_ONLY = false, CT::Data ALT_T>
+		NOD() Index Find(const ALT_T&) const;
+
+		NOD() bool Compare(const TAny&) const noexcept;
+		NOD() bool CompareLoose(const TAny&) const noexcept requires CT::Character<T>;
+		NOD() Count Matches(const TAny&) const noexcept;
+		NOD() Count MatchesLoose(const TAny&) const noexcept requires CT::Character<T>;
+
+		template<bool ASCEND = false>
+		void Sort();
+
 		template<CT::Block WRAPPER = TAny>
 		NOD() WRAPPER Extend(const Count&);
 
@@ -233,6 +241,22 @@ namespace Langulus::Anyness
 		TAny<T>& operator += (const RHS&);
 		template<class WRAPPER = TAny, class RHS>
 		NOD() WRAPPER operator + (const RHS&) const;
+
+		///																							
+		///	Iteration																			
+		///																							
+		template<bool MUTABLE>
+		struct TIterator;
+
+		using Iterator = TIterator<true>;
+		using ConstIterator = TIterator<false>;
+		
+		NOD() Iterator begin() noexcept;
+		NOD() Iterator end() noexcept;
+		NOD() Iterator last() noexcept;
+		NOD() ConstIterator begin() const noexcept;
+		NOD() ConstIterator end() const noexcept;
+		NOD() ConstIterator last() const noexcept;
 
 	protected:
 		constexpr void ResetState() noexcept;
@@ -302,6 +326,45 @@ namespace Langulus::Anyness
 		decltype(auto) operator * () const;
 		decltype(auto) operator * ();
 	};
+
+	///																								
+	///	TAny iterator																			
+	///																								
+	template<CT::Data T>
+	template<bool MUTABLE>
+	struct TAny<T>::TIterator {
+	protected:
+		friend class TAny<T>;
+
+		const TypeInner* mElement;
+		const TypeInner* const mSentinel;
+
+		TIterator(const TypeInner*, const TypeInner*) noexcept;
+
+	public:
+		TIterator() noexcept = default;
+		TIterator(const TIterator&) noexcept = default;
+		TIterator(TIterator&&) noexcept = default;
+
+		NOD() bool operator == (const TIterator&) const noexcept;
+
+		operator TypeInner& () const noexcept requires (MUTABLE);
+		operator const Type& () const noexcept requires (!MUTABLE);
+
+		decltype(auto) operator * () const noexcept {
+			if constexpr (MUTABLE)
+				return operator TypeInner& ();
+			else
+				return operator const Type& ();
+		}
+
+		// Prefix operator																
+		TIterator& operator ++ () noexcept;
+
+		// Suffix operator																
+		NOD() TIterator operator ++ (int) noexcept;
+	};
+
 
 	/// Concatenate anything with TAny container											
 	template<class T, class LHS, class WRAPPER = TAny<T>>

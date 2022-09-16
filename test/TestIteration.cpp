@@ -512,7 +512,7 @@ SCENARIO("Iterating containers", "[iteration]") {
 			pack.ForEach([&](Any& subcontent) {
 				if (subcontent.Is<int>()) {
 					//subcontent.Reset();
-					pack.Remove(&subcontent);
+					pack.RemoveValue(&subcontent);
 				}
 			});
 

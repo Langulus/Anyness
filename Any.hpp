@@ -146,7 +146,7 @@ namespace Langulus::Anyness
 		Any& operator >>= (T&);
 		template<CT::Data T>
 		Any& operator >>= (T&&);
-
+		
 		///																							
 		///	Concatenation																		
 		///																							

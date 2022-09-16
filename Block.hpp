@@ -279,9 +279,14 @@ namespace Langulus::Anyness
 		NOD() Block GetDense() noexcept;
 		NOD() const Block GetDense() const noexcept;
 
-		//																						
-		//	Iteration																		
-		//																						
+		///																							
+		///	Iteration																			
+		///																							
+		template<CT::Index IDX = Offset>
+		NOD() Block operator[] (const IDX&) const;
+		template<CT::Index IDX = Offset>
+		NOD() Block operator[] (const IDX&);
+
 		Count ForEachElement(TFunctor<bool(const Block&)>&&) const;
 		Count ForEachElement(TFunctor<bool(Block&)>&&);
 		Count ForEachElement(TFunctor<void(const Block&)>&&) const;
@@ -389,7 +394,7 @@ namespace Langulus::Anyness
 	
 		NOD() Hash GetHash() const;
 	
-		template<CT::Data T>
+		template<bool REVERSE = false, bool BY_ADDRESS_ONLY = false, CT::Data T>
 		NOD() Index Find(const T&, Index = IndexFront) const;
 		template<CT::Data T>
 		NOD() Index FindDeep(const T&, Index = IndexFront) const;
@@ -408,22 +413,22 @@ namespace Langulus::Anyness
 		template<CT::Data T>
 		bool operator == (const T&) const;
 
-		//																						
-		//	Insertion																		
-		//																						
-		template<bool KEEP, bool MUTABLE, CT::Data = Any, CT::NotAbandonedOrDisowned T, CT::Index INDEX>
+		///																							
+		///	Insertion																			
+		///																							
+		template<bool KEEP = true, bool MUTABLE = true, CT::Data = Any, CT::NotAbandonedOrDisowned T, CT::Index INDEX>
 		Count InsertAt(const T*, const T*, INDEX);
-		template<bool KEEP, bool MUTABLE, CT::Data = Any, CT::NotAbandonedOrDisowned T, CT::Index INDEX>
+		template<bool KEEP = true, bool MUTABLE = true, CT::Data = Any, CT::NotAbandonedOrDisowned T, CT::Index INDEX>
 		Count InsertAt(T&&, INDEX);
 
-		template<Index = IndexBack, bool KEEP, bool MUTABLE, CT::Data = Any, CT::NotAbandonedOrDisowned T>
+		template<Index = IndexBack, bool KEEP = true, bool MUTABLE = true, CT::Data = Any, CT::NotAbandonedOrDisowned T>
 		Count Insert(const T*, const T*);
-		template<Index = IndexBack, bool KEEP, bool MUTABLE, CT::Data = Any, CT::NotAbandonedOrDisowned T>
+		template<Index = IndexBack, bool KEEP = true, bool MUTABLE = true, CT::Data = Any, CT::NotAbandonedOrDisowned T>
 		Count Insert(T&&);
 
-		template<bool KEEP, bool MUTABLE, CT::Data = Any, CT::NotAbandonedOrDisowned T, CT::Index INDEX>
+		template<bool KEEP = true, bool MUTABLE = true, CT::Data = Any, CT::NotAbandonedOrDisowned T, CT::Index INDEX>
 		Count MergeAt(const T*, const T*, INDEX);
-		template<bool KEEP, bool MUTABLE, CT::Data = Any, CT::NotAbandonedOrDisowned T, CT::Index INDEX>
+		template<bool KEEP = true, bool MUTABLE = true, CT::Data = Any, CT::NotAbandonedOrDisowned T, CT::Index INDEX>
 		Count MergeAt(T&&, INDEX);
 
 		template<CT::NotAbandonedOrDisowned T, CT::Index INDEX>
@@ -491,11 +496,11 @@ namespace Langulus::Anyness
 		template<Index = IndexBack, bool CONCAT = true, bool DEEPEN = true, CT::Data T, CT::Data = Any>
 		Count SmartPush(Abandoned<T>&&, DataState = {});
 
-		//																						
-		//	Deletion																			
-		//																						
-		template<CT::Data T>
-		Count Remove(const T*, Count = 1, Index = IndexFront);
+		///																							
+		///	Removal																				
+		///																							
+		template<bool REVERSE = false, CT::Data T>
+		Count RemoveValue(const T&);
 		template<CT::Index INDEX>
 		Count RemoveIndex(INDEX, Count = 1);
 		template<CT::Index INDEX>
@@ -542,7 +547,7 @@ namespace Langulus::Anyness
 		void Reset();
 
 	protected:
-		template<CT::Data, CT::Index INDEX>
+		template<class, CT::Index INDEX>
 		Offset SimplifyIndex(const INDEX&) const;
 
 		template<bool ALLOW_DEEPEN, bool KEEP, CT::Data T, CT::Data = Any, CT::Index INDEX>
@@ -595,22 +600,22 @@ namespace Langulus::Anyness
 
 		template<bool KEEP>
 		void CallUnknownCopyConstructors(Count, const Block&) const;
-		template<bool KEEP, CT::Data>
+		template<CT::Data, bool KEEP>
 		void CallKnownCopyConstructors(Count, const Block&) const;
 
 		template<bool KEEP>
 		void CallUnknownCopyAssignment(Count, const Block&) const;
-		template<bool KEEP, CT::Data>
+		template<CT::Data, bool KEEP>
 		void CallKnownCopyAssignment(Count, const Block&) const;
 
-		template<bool KEEP>
+		template<bool KEEP, bool REVERSE>
 		void CallUnknownMoveConstructors(Count, const Block&) const;
-		template<bool KEEP, CT::Data>
+		template<CT::Data, bool KEEP, bool REVERSE>
 		void CallKnownMoveConstructors(Count, const Block&) const;
 
 		template<bool KEEP>
 		void CallUnknownMoveAssignment(Count, const Block&) const;
-		template<bool KEEP, CT::Data>
+		template<CT::Data, bool KEEP>
 		void CallKnownMoveAssignment(Count, const Block&) const;
 
 		void CallUnknownDestructors() const;
@@ -668,6 +673,11 @@ namespace Langulus::Anyness
 		void Free() noexcept;
 		template<bool DESTROY>
 		void Free(DMeta) noexcept;
+
+		template<class T>
+		const Decay<T>* As() const noexcept {
+			return reinterpret_cast<const Decay<T>*>(mPointer);
+		}
 	};
 
 		

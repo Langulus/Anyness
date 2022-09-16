@@ -89,7 +89,7 @@ namespace Langulus::Anyness
 		bool operator == (const TUnorderedMap&) const;
 
 		///																							
-		///	INSERTION																			
+		///	Insertion																			
 		///																							
 		Count Insert(const K&, const V&);
 		Count Insert(K&&, const V&);
@@ -100,7 +100,7 @@ namespace Langulus::Anyness
 		TUnorderedMap& operator << (TPair<K, V>&&);
 
 		///																							
-		///	REMOVAL																				
+		///	Removal																				
 		///																							
 		Count RemoveKey(const K&);
 		Count RemoveValue(const V&);
@@ -112,7 +112,7 @@ namespace Langulus::Anyness
 		void Compact();
 
 		///																							
-		///	SEARCH																				
+		///	Search																				
 		///																							
 		NOD() bool ContainsKey(const K&) const;
 		NOD() bool ContainsValue(const V&) const;
@@ -133,7 +133,7 @@ namespace Langulus::Anyness
 		NOD() decltype(auto) GetPair(const Index&);
 
 		///																							
-		///	ITERATION																			
+		///	Iteration																			
 		///																							
 		template<bool MUTABLE>
 		struct TIterator;

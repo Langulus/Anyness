@@ -27,7 +27,7 @@ struct TypePair {
 	using Element = E;
 };
 
-/// Detect if type is TAny, instead of Any, by searching for [] operator		
+/// Detect if type is statically optimized, by searching for ::Type				
 template<class T>
 concept IsStaticallyOptimized = requires (Decay<T> a) { typename T::Type; };
 
@@ -42,14 +42,25 @@ decltype(auto) Resolve(const SOURCE& s) {
 		return s.template As<T>();
 }
 
+template<class T, class ALT_T>
+T CreateElement(const ALT_T& e) {
+	T element;
+	if constexpr (CT::Sparse<T>)
+		element = new Decay<T> {e};
+	else
+		element = e;
+	return element;
+}
+
 /// The main test for Any/TAny containers, with all kinds of items, from		
 /// sparse to dense, from trivial to complex, from flat to deep					
 TEMPLATE_TEST_CASE("Any/TAny", "[any]", 
-	(TypePair<TAny<int>, int>),
+	(TypePair<Any, int*>),
+	(TypePair<TAny<int*>, int*>),
 	(TypePair<TAny<Trait>, Trait>),
+	(TypePair<TAny<int>, int>),
 	(TypePair<TAny<Traits::Count>, Traits::Count>),
 	(TypePair<TAny<Any>, Any>),
-	(TypePair<TAny<int*>, int*>),
 	(TypePair<TAny<Trait*>, Trait*>),
 	(TypePair<TAny<Traits::Count*>, Traits::Count*>),
 	(TypePair<TAny<Any*>, Any*>),
@@ -57,7 +68,6 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 	(TypePair<Any, Trait>),
 	(TypePair<Any, Traits::Count>),
 	(TypePair<Any, Any>),
-	(TypePair<Any, int*>),
 	(TypePair<Any, Trait*>),
 	(TypePair<Any, Traits::Count*>),
 	(TypePair<Any, Any*>)
@@ -67,12 +77,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 	using StdT = std::vector<E>;
 	using DenseE = Decay<E>;
 		
-	E element;
-	if constexpr (CT::Sparse<E>)
-		element = new DenseE {555};
-	else
-		element = 555;
-
+	E element = CreateElement<E>(555);
 	const DenseE& denseValue {DenseCast(element)};
 	const DenseE* const sparseValue = {SparseCast(element)};
 
@@ -1471,52 +1476,56 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 	}
 	
 	GIVEN("Container with some POD items") {
-		// Arrays are dynamic to avoid constexprification
-		int* darray1 = nullptr;
-		darray1 = new int[5] {1, 2, 3, 4, 5};
-		int* darray2 = nullptr;
-		darray2 = new int[5] {6, 7, 8, 9, 10};
+		const E darray1[5] {
+			CreateElement<E>(1),
+			CreateElement<E>(2),
+			CreateElement<E>(3),
+			CreateElement<E>(4),
+			CreateElement<E>(5)
+		};
+		const E darray2[5] {
+			CreateElement<E>(6),
+			CreateElement<E>(7),
+			CreateElement<E>(8),
+			CreateElement<E>(9),
+			CreateElement<E>(10)
+		};
 
-		TAny<int> pack;
-		pack << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
+		const T pack {};
+		const_cast<T&>(pack) << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
 		auto memory = pack.GetRaw();
 
-		REQUIRE(pack.GetCount() == 5);
-		REQUIRE(pack.GetReserved() >= 5);
-		REQUIRE(pack.template Is<int>());
-		REQUIRE(pack.GetRaw());
-		REQUIRE(pack[0] == 1);
-		REQUIRE(pack[1] == 2);
-		REQUIRE(pack[2] == 3);
-		REQUIRE(pack[3] == 4);
-		REQUIRE(pack[4] == 5);
-		REQUIRE_FALSE(pack.IsConstant());
+		WHEN("Given a preinitialized container with 5 elements") {
+			THEN("These properties should be correct") {
+				REQUIRE(pack.GetCount() == 5);
+				REQUIRE(pack.GetReserved() >= 5);
+				REQUIRE(pack.template Is<E>());
+				REQUIRE(pack.GetRaw());
+				for (int i = 0; i < pack.GetCount(); ++i)
+					REQUIRE(pack[i] == darray1[i]);
+				REQUIRE_FALSE(pack.IsConstant());
+			}
+		}
 
 		WHEN("Shallow-copy more of the same stuff") {
-			pack << darray2[0] << darray2[1] << darray2[2] << darray2[3] << darray2[4];
+			const_cast<T&>(pack) << darray2[0] << darray2[1] << darray2[2] << darray2[3] << darray2[4];
 
 			THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
 				REQUIRE(pack.GetCount() == 10);
 				REQUIRE(pack.GetReserved() >= 10);
-				REQUIRE(pack[0] == 1);
-				REQUIRE(pack[1] == 2);
-				REQUIRE(pack[2] == 3);
-				REQUIRE(pack[3] == 4);
-				REQUIRE(pack[4] == 5);
-				REQUIRE(pack[5] == 6);
-				REQUIRE(pack[6] == 7);
-				REQUIRE(pack[7] == 8);
-				REQUIRE(pack[8] == 9);
-				REQUIRE(pack[9] == 10);
+				REQUIRE(pack.template Is<E>());
+				for (int i = 0; i < 5; ++i)
+					REQUIRE(pack[i] == darray1[i]);
+				for (int i = 5; i < pack.GetCount(); ++i)
+					REQUIRE(pack[i] == darray2[i-5]);
 				#if LANGULUS_FEATURE(MANAGED_MEMORY)
 					REQUIRE(pack.GetRaw() == memory);
 				#endif
-				REQUIRE(pack.Is<int>());
 			}
 			
-			#ifdef LANGULUS_STD_BENCHMARK // Last result: 1:2 performance
+			#ifdef LANGULUS_STD_BENCHMARK
 				BENCHMARK_ADVANCED("Anyness::TAny::operator << (5 consecutive trivial copies)") (Catch::Benchmark::Chronometer meter) {
-					std::vector<TAny<int>> storage(meter.runs());
+					some<T> storage(meter.runs());
 
 					meter.measure([&](int i) {
 						return storage[i] << darray2[0] << darray2[1] << darray2[2] << darray2[3] << darray2[4];
@@ -1524,44 +1533,47 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 				};
 
 				BENCHMARK_ADVANCED("std::vector::push_back(5 consecutive trivial copies)") (Catch::Benchmark::Chronometer meter) {
-					std::vector<std::vector<int>> storage(meter.runs());
+					some<StdT> storage(meter.runs());
 
 					meter.measure([&](int i) {
-						storage[i].push_back(darray2[0]);
-						storage[i].push_back(darray2[1]);
-						storage[i].push_back(darray2[2]);
-						storage[i].push_back(darray2[3]);
-						return storage[i].push_back(darray2[4]);
+						auto& s = storage[i];
+						s.push_back(darray2[0]);
+						s.push_back(darray2[1]);
+						s.push_back(darray2[2]);
+						s.push_back(darray2[3]);
+						return s.push_back(darray2[4]);
 					});
 				};
 			#endif
 		}
 
 		WHEN("Move more of the same stuff") {
-			pack << Move(darray2[0]) << Move(darray2[1]) << Move(darray2[2]) << Move(darray2[3]) << Move(darray2[4]);
+			E darray3[5] {
+				CreateElement<E>(6),
+				CreateElement<E>(7),
+				CreateElement<E>(8),
+				CreateElement<E>(9),
+				CreateElement<E>(10)
+			};
+
+			const_cast<T&>(pack) << Move(darray3[0]) << Move(darray3[1]) << Move(darray3[2]) << Move(darray3[3]) << Move(darray3[4]);
 
 			THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
 				REQUIRE(pack.GetCount() == 10);
 				REQUIRE(pack.GetReserved() >= 10);
-				REQUIRE(pack[0] == 1);
-				REQUIRE(pack[1] == 2);
-				REQUIRE(pack[2] == 3);
-				REQUIRE(pack[3] == 4);
-				REQUIRE(pack[4] == 5);
-				REQUIRE(pack[5] == 6);
-				REQUIRE(pack[6] == 7);
-				REQUIRE(pack[7] == 8);
-				REQUIRE(pack[8] == 9);
-				REQUIRE(pack[9] == 10);
+				REQUIRE(pack.template Is<E>());
+				for (int i = 0; i < 5; ++i)
+					REQUIRE(pack[i] == darray1[i]);
+				for (int i = 5; i < pack.GetCount(); ++i)
+					REQUIRE(pack[i] == darray2[i-5]);
 				#if LANGULUS_FEATURE(MANAGED_MEMORY)
 					REQUIRE(pack.GetRaw() == memory);
 				#endif
-				REQUIRE(pack.Is<int>());
 			}
 			
-			#ifdef LANGULUS_STD_BENCHMARK // Last result: 1:2 performance
+			#ifdef LANGULUS_STD_BENCHMARK
 				BENCHMARK_ADVANCED("Anyness::TAny::operator << (5 consecutive trivial moves)") (Catch::Benchmark::Chronometer meter) {
-					std::vector<TAny<int>> storage(meter.runs());
+					some<T> storage(meter.runs());
 
 					meter.measure([&](int i) {
 						return storage[i] << Move(darray2[0]) << Move(darray2[1]) << Move(darray2[2]) << Move(darray2[3]) << Move(darray2[4]);
@@ -1569,52 +1581,52 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 				};
 
 				BENCHMARK_ADVANCED("std::vector::emplace_back(5 consecutive trivial moves)") (Catch::Benchmark::Chronometer meter) {
-					std::vector<std::vector<int>> storage(meter.runs());
+					some<StdT> storage(meter.runs());
 
 					meter.measure([&](int i) {
-						storage[i].emplace_back(Move(darray2[0]));
-						storage[i].emplace_back(Move(darray2[1]));
-						storage[i].emplace_back(Move(darray2[2]));
-						storage[i].emplace_back(Move(darray2[3]));
-						return storage[i].emplace_back(Move(darray2[4]));
+						auto& s = storage[i];
+						s.emplace_back(Move(darray2[0]));
+						s.emplace_back(Move(darray2[1]));
+						s.emplace_back(Move(darray2[2]));
+						s.emplace_back(Move(darray2[3]));
+						return s.emplace_back(Move(darray2[4]));
 					});
 				};
 			#endif
 		}
 
 		WHEN("Insert more trivial items at a specific place by shallow-copy") {
-			int* i666 = new int {666};
-			int& i666d = *i666;
-			pack.InsertAt(i666, i666 + 1, 3);
+			const auto i666 = CreateElement<E>(666);
+			const_cast<T&>(pack).InsertAt(&i666, &i666 + 1, 3);
 
 			THEN("The size changes, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
 				REQUIRE(pack.GetCount() == 6);
 				REQUIRE(pack.GetReserved() >= 6);
+				REQUIRE(pack.template Is<E>());
 				#if LANGULUS_FEATURE(MANAGED_MEMORY)
 					REQUIRE(pack.GetRaw() == memory);
 				#endif
-				REQUIRE(pack.Is<int>());
-				REQUIRE(pack[0] == 1);
-				REQUIRE(pack[1] == 2);
-				REQUIRE(pack[2] == 3);
-				REQUIRE(pack[3] == 666);
-				REQUIRE(pack[4] == 4);
-				REQUIRE(pack[5] == 5);
+				REQUIRE(pack[0] == darray1[0]);
+				REQUIRE(pack[1] == darray1[1]);
+				REQUIRE(pack[2] == darray1[2]);
+				REQUIRE(pack[3] == i666);
+				REQUIRE(pack[4] == darray1[3]);
+				REQUIRE(pack[5] == darray1[4]);
 			}
 
-			#ifdef LANGULUS_STD_BENCHMARK // Last result: 1:2 performance
+			#ifdef LANGULUS_STD_BENCHMARK
 				BENCHMARK_ADVANCED("Anyness::TAny::Insert(single copy in middle)") (Catch::Benchmark::Chronometer meter) {
-					std::vector<TAny<int>> storage(meter.runs());
+					some<T> storage(meter.runs());
 					for (auto&& o : storage)
 						o << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
 
 					meter.measure([&](int i) {
-						return storage[i].Insert(i666, 1, 3);
+						return storage[i].InsertAt(&i666, &i666 + 1, 3);
 					});
 				};
 
 				BENCHMARK_ADVANCED("std::vector::insert(single copy in middle)") (Catch::Benchmark::Chronometer meter) {
-					std::vector<std::vector<int>> storage(meter.runs());
+					some<StdT> storage(meter.runs());
 					for (auto&& o : storage)
 						o = { darray1[0], darray1[1], darray1[2], darray1[3], darray1[4] };
 
@@ -1626,28 +1638,27 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 		}
 
 		WHEN("Insert more trivial items at a specific place by move") {
-			int* i666 = new int {666};
-			int& i666d = *i666;
-			pack.InsertAt(Move(*i666), 3);
+			auto i666 = CreateElement<E>(666);
+			const_cast<T&>(pack).InsertAt(Move(i666), 3);
 
 			THEN("The size changes, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
 				REQUIRE(pack.GetCount() == 6);
 				REQUIRE(pack.GetReserved() >= 6);
+				REQUIRE(pack.template Is<E>());
 				#if LANGULUS_FEATURE(MANAGED_MEMORY)
 					REQUIRE(pack.GetRaw() == memory);
 				#endif
-				REQUIRE(pack.Is<int>());
-				REQUIRE(pack[0] == 1);
-				REQUIRE(pack[1] == 2);
-				REQUIRE(pack[2] == 3);
-				REQUIRE(pack[3] == 666);
-				REQUIRE(pack[4] == 4);
-				REQUIRE(pack[5] == 5);
+				REQUIRE(pack[0] == darray1[0]);
+				REQUIRE(pack[1] == darray1[1]);
+				REQUIRE(pack[2] == darray1[2]);
+				REQUIRE(pack[3] == CreateElement<E>(666));
+				REQUIRE(pack[4] == darray1[3]);
+				REQUIRE(pack[5] == darray1[4]);
 			}
 
-			#ifdef LANGULUS_STD_BENCHMARK // Last result: 1:2 performance
+			#ifdef LANGULUS_STD_BENCHMARK
 				BENCHMARK_ADVANCED("Anyness::TAny::Emplace(single move in middle)") (Catch::Benchmark::Chronometer meter) {
-					std::vector<TAny<int>> storage(meter.runs());
+					some<T> storage(meter.runs());
 					for (auto&& o : storage)
 						o << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
 
@@ -1657,7 +1668,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 				};
 
 				BENCHMARK_ADVANCED("std::vector::insert(single move in middle)") (Catch::Benchmark::Chronometer meter) {
-					std::vector<std::vector<int>> storage(meter.runs());
+					some<StdT> storage(meter.runs());
 					for (auto&& o : storage)
 						o = { darray1[0], darray1[1], darray1[2], darray1[3], darray1[4] };
 
@@ -1669,15 +1680,15 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 		}
 
 		WHEN("The size is reduced by finding and removing elements, but reserved memory should remain the same on shrinking") {
-			const auto removed2 = pack.RemoveValue(2);
-			const auto removed4 = pack.RemoveValue(4);
+			const auto removed2 = const_cast<T&>(pack).RemoveValue(CreateElement<E>(2));
+			const auto removed4 = const_cast<T&>(pack).RemoveValue(CreateElement<E>(4));
 
 			THEN("The size changes but not capacity") {
 				REQUIRE(removed2 == 1);
 				REQUIRE(removed4 == 1);
-				REQUIRE(pack[0] == 1);
-				REQUIRE(pack[1] == 3);
-				REQUIRE(pack[2] == 5);
+				REQUIRE(pack[0] == darray1[0]);
+				REQUIRE(pack[1] == darray1[2]);
+				REQUIRE(pack[2] == darray1[4]);
 				REQUIRE_THROWS(pack[3] == 666);
 				REQUIRE(pack.GetCount() == 3);
 				REQUIRE(pack.GetReserved() >= 5);
@@ -1686,7 +1697,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: 2:1 performance - needs more optimizations in Index handling
 				BENCHMARK_ADVANCED("Anyness::TAny::Remove(single element by value)") (Catch::Benchmark::Chronometer meter) {
-					std::vector<TAny<int>> storage(meter.runs());
+					some<T> storage(meter.runs());
 					for (auto&& o : storage)
 						o << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
 
@@ -1696,7 +1707,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 				};
 
 				BENCHMARK_ADVANCED("Anyness::vector::erase-remove(single element by value)") (Catch::Benchmark::Chronometer meter) {
-					std::vector<std::vector<int>> storage(meter.runs());
+					some<StdT> storage(meter.runs());
 					for (auto&& o : storage)
 						o = { darray1[0], darray1[1], darray1[2], darray1[3], darray1[4] };
 
@@ -1709,14 +1720,15 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 		}
 
 		WHEN("Removing non-available elements") {
-			const auto removed9 = pack.RemoveValue(9);
+			const auto removed9 = const_cast<T&>(pack).RemoveValue(9);
+
 			THEN("The size changes but not capacity") {
 				REQUIRE(removed9 == 0);
-				REQUIRE(pack[0] == 1);
-				REQUIRE(pack[1] == 2);
-				REQUIRE(pack[2] == 3);
-				REQUIRE(pack[3] == 4);
-				REQUIRE(pack[4] == 5);
+				REQUIRE(pack[0] == darray1[0]);
+				REQUIRE(pack[1] == darray1[1]);
+				REQUIRE(pack[2] == darray1[2]);
+				REQUIRE(pack[3] == darray1[3]);
+				REQUIRE(pack[4] == darray1[4]);
 				REQUIRE(pack.GetCount() == 5);
 				REQUIRE(pack.GetReserved() >= 5);
 				REQUIRE(pack.GetRaw() == memory);
@@ -1724,7 +1736,8 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 		}
 
 		WHEN("More capacity is reserved") {
-			pack.Allocate(20);
+			const_cast<T&>(pack).Allocate(20);
+
 			THEN("The capacity changes but not the size, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
 				REQUIRE(pack.GetCount() == 5);
 				REQUIRE(pack.GetReserved() >= 20);
@@ -1735,7 +1748,8 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 		}
 
 		WHEN("Less capacity is reserved") {
-			pack.Allocate(2);
+			const_cast<T&>(pack).Allocate(2);
+
 			THEN("Capacity remains unchanged, but count is trimmed; memory shouldn't move") {
 				REQUIRE(pack.GetCount() == 2);
 				REQUIRE(pack.GetReserved() >= 5);
@@ -1744,22 +1758,24 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 		}
 
 		WHEN("Pack is cleared") {
-			pack.Clear();
+			const_cast<T&>(pack).Clear();
+
 			THEN("Size goes to zero, capacity and type are unchanged") {
 				REQUIRE(pack.GetCount() == 0);
 				REQUIRE(pack.GetReserved() >= 5);
 				REQUIRE(pack.GetRaw() == memory);
-				REQUIRE(pack.Is<int>());
+				REQUIRE(pack.template Is<E>());
 			}
 		}
 
 		WHEN("Pack is reset") {
-			pack.Reset();
+			const_cast<T&>(pack).Reset();
+
 			THEN("Size and capacity goes to zero, type is unchanged, because it's a templated container") {
 				REQUIRE(pack.GetCount() == 0);
 				REQUIRE(pack.GetReserved() == 0);
 				REQUIRE(pack.GetRaw() == nullptr);
-				REQUIRE(pack.Is<int>());
+				REQUIRE(pack.template Is<E>() == IsStaticallyOptimized<T>);
 			}
 		}
 
@@ -1774,8 +1790,9 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 		#endif
 
 		WHEN("Pack is shallow-copied") {
-			pack.MakeOr();
+			const_cast<T&>(pack).MakeOr();
 			auto copy = pack;
+
 			THEN("The new pack should keep the state and data") {
 				REQUIRE(copy.GetRaw() == pack.GetRaw());
 				REQUIRE(copy.GetCount() == pack.GetCount());
@@ -1787,8 +1804,9 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 		}
 
 		WHEN("Pack is cloned") {
-			pack.MakeOr();
+			const_cast<T&>(pack).MakeOr();
 			auto clone = pack.Clone();
+
 			THEN("The new pack should keep the state and data") {
 				REQUIRE(clone.GetRaw() != pack.GetRaw());
 				REQUIRE(clone.GetCount() == pack.GetCount());
@@ -1801,29 +1819,35 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 		}
 
 		WHEN("Pack is moved") {
-			pack.MakeOr();
-			TAny<int> moved = Move(pack);
+			T movable = pack;
+			movable.MakeOr();
+			const T moved = Move(movable);
+
 			THEN("The new pack should keep the state and data") {
-				REQUIRE(pack.GetRaw() == nullptr);
-				REQUIRE(pack.GetCount() == 0);
-				REQUIRE(pack.GetReserved() == 0);
-				REQUIRE(pack.IsTypeConstrained());
+				REQUIRE(movable.GetRaw() == nullptr);
+				REQUIRE(movable.GetCount() == 0);
+				REQUIRE(movable.GetReserved() == 0);
+				REQUIRE(movable.IsTypeConstrained() == IsStaticallyOptimized<T>);
+				REQUIRE(pack.GetRaw() == moved.GetRaw());
+				REQUIRE(pack.GetCount() == moved.GetCount());
+				REQUIRE(pack.GetReserved() == moved.GetReserved());
+				REQUIRE(pack.GetState() + DataState::Or == moved.GetState());
 				REQUIRE(pack.GetType() == moved.GetType());
 			}
 		}
 
 		WHEN("Packs are compared") {
-			TAny<int> another_pack1;
-			another_pack1 << int(1) << int(2) << int(3) << int(4) << int(5);
-			TAny<int> another_pack2;
-			another_pack2 << int(2) << int(2) << int(3) << int(4) << int(5);
-			TAny<int> another_pack3;
-			another_pack3 << int(1) << int(2) << int(3) << int(4) << int(5) << int(6);
+			T another_pack1;
+			another_pack1 << CreateElement<E>(1) << CreateElement<E>(2) << CreateElement<E>(3) << CreateElement<E>(4) << CreateElement<E>(5);
+			T another_pack2;
+			another_pack2 << CreateElement<E>(2) << CreateElement<E>(2) << CreateElement<E>(3) << CreateElement<E>(4) << CreateElement<E>(5);
+			T another_pack3;
+			another_pack3 << CreateElement<E>(1) << CreateElement<E>(2) << CreateElement<E>(3) << CreateElement<E>(4) << CreateElement<E>(5) << CreateElement<E>(6);
 			TAny<uint> another_pack4;
 			another_pack4 << uint(1) << uint(2) << uint(3) << uint(4) << uint(5);
-
 			Any another_pack5;
-			another_pack5 << int(1) << int(2) << int(3) << int(4) << int(5);
+			another_pack5 << CreateElement<E>(1) << CreateElement<E>(2) << CreateElement<E>(3) << CreateElement<E>(4) << CreateElement<E>(5);
+
 			THEN("The comparisons should be adequate") {
 				REQUIRE(pack == another_pack1);
 				REQUIRE(pack != another_pack2);
@@ -1834,7 +1858,8 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 		}
 
 		WHEN("A forward value-based search is performed on exitent value") {
-			const auto found = pack.Find(3);
+			const auto found = pack.Find(CreateElement<E>(3));
+
 			THEN("The value's index should be correct") {
 				REQUIRE(found);
 				REQUIRE(found == 2);
@@ -1842,7 +1867,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 		}
 
 		WHEN("A forward value-based search is performed on non-exitent value") {
-			const auto found = pack.Find(8);
+			const auto found = pack.Find(CreateElement<E>(8));
 			THEN("The function should return IndexNone") {
 				REQUIRE(found == IndexNone);
 				REQUIRE_FALSE(found);
@@ -1850,7 +1875,8 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 		}
 
 		WHEN("A backward value-based search is performed on exitent value") {
-			const auto found = pack.Find<true>(3);
+			const auto found = pack.template Find<true>(CreateElement<E>(3));
+
 			THEN("The new pack should keep the state and data") {
 				REQUIRE(found);
 				REQUIRE(found == 2);
@@ -1858,10 +1884,187 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 		}
 
 		WHEN("A backward value-based search is performed on non-exitent value") {
-			const auto found = pack.Find<true>(8);
+			const auto found = pack.template Find<true>(CreateElement<E>(8));
+
 			THEN("The function should return IndexNone") {
 				REQUIRE(found == IndexNone);
 				REQUIRE_FALSE(found);
+			}
+		}
+
+		WHEN("ForEach flat dense element (immutable)") {
+			int it = 0;
+			pack.ForEach(
+				[&](const int& i) {
+					REQUIRE(i == it + 1);
+					++it;
+				},
+				[&](const Trait& i) {
+					REQUIRE(i == it + 1);
+					++it;
+				},
+				[&](const Any& i) {
+					REQUIRE(i == it + 1);
+					++it;
+				}
+			);
+
+			THEN("The number of iterated elements should be correct") {
+				REQUIRE(it == pack.GetCount());
+			}
+		}
+
+		WHEN("ForEach flat dense element (mutable)") {
+			int it = 0;
+			const_cast<T&>(pack).ForEach(
+				[&](int& i) {
+					REQUIRE(i == it + 1);
+					++it;
+				},
+				[&](const Trait& i) {
+					REQUIRE(i == it + 1);
+					++it;
+				},
+				[&](const Any& i) {
+					REQUIRE(i == it + 1);
+					++it;
+				}
+			);
+
+			THEN("The number of iterated elements should be correct") {
+				REQUIRE(it == pack.GetCount());
+			}
+		}
+
+		WHEN("ForEach flat sparse element (immutable)") {
+			int it = 0;
+			pack.ForEach(
+				[&](const int* i) {
+					REQUIRE(*i == it + 1);
+					++it;
+				},
+				[&](const Trait* i) {
+					REQUIRE(*i == it + 1);
+					++it;
+				},
+				[&](const Any* i) {
+					REQUIRE(*i == it + 1);
+					++it;
+				}
+			);
+
+			THEN("The number of iterated elements should be correct") {
+				REQUIRE(it == pack.GetCount());
+			}
+		}
+
+		WHEN("ForEach flat sparse element (mutable)") {
+			int it = 0;
+			const_cast<T&>(pack).ForEach(
+				[&](int* i) {
+					REQUIRE(*i == it + 1);
+					++it;
+				},
+				[&](const Trait* i) {
+					REQUIRE(*i == it + 1);
+					++it;
+				},
+				[&](const Any* i) {
+					REQUIRE(*i == it + 1);
+					++it;
+				}
+			);
+
+			THEN("The number of iterated elements should be correct") {
+				REQUIRE(it == pack.GetCount());
+			}
+		}
+
+		WHEN("ForEachRev flat dense element (immutable)") {
+			int it = 0;
+			pack.ForEachRev(
+				[&](const int& i) {
+					REQUIRE(i == 5 - it);
+					++it;
+				},
+				[&](const Trait& i) {
+					REQUIRE(i == 5 - it);
+					++it;
+				},
+				[&](const Any& i) {
+					REQUIRE(i == 5 - it);
+					++it;
+				}
+			);
+
+			THEN("The number of iterated elements should be correct") {
+				REQUIRE(it == pack.GetCount());
+			}
+		}
+
+		WHEN("ForEachRev flat dense element (mutable)") {
+			int it = 0;
+			const_cast<T&>(pack).ForEachRev(
+				[&](int& i) {
+					REQUIRE(i == 5 - it);
+					++it;
+				},
+				[&](const Trait& i) {
+					REQUIRE(i == 5 - it);
+					++it;
+				},
+				[&](const Any& i) {
+					REQUIRE(i == 5 - it);
+					++it;
+				}
+			);
+
+			THEN("The number of iterated elements should be correct") {
+				REQUIRE(it == pack.GetCount());
+			}
+		}
+
+		WHEN("ForEachRev flat sparse element (immutable)") {
+			int it = 0;
+			pack.ForEachRev(
+				[&](const int* i) {
+					REQUIRE(*i == 5 - it);
+					++it;
+				},
+				[&](const Trait* i) {
+					REQUIRE(*i == 5 - it);
+					++it;
+				},
+				[&](const Any* i) {
+					REQUIRE(*i == 5 - it);
+					++it;
+				}
+			);
+
+			THEN("The number of iterated elements should be correct") {
+				REQUIRE(it == pack.GetCount());
+			}
+		}
+
+		WHEN("ForEachRev flat sparse element (mutable)") {
+			int it = 0;
+			const_cast<T&>(pack).ForEachRev(
+				[&](int* i) {
+					REQUIRE(*i == 5 - it);
+					++it;
+				},
+				[&](const Trait* i) {
+					REQUIRE(*i == 5 - it);
+					++it;
+				},
+				[&](const Any* i) {
+					REQUIRE(*i == 5 - it);
+					++it;
+				}
+			);
+
+			THEN("The number of iterated elements should be correct") {
+				REQUIRE(it == pack.GetCount());
 			}
 		}
 	}

@@ -81,13 +81,6 @@ namespace Langulus::Anyness
 		return CastsToMeta(mTraitType->mDataType);
 	}
 
-	/// Compare traits																			
-	///	@param other - the trait to compare with										
-	///	@return true if traits are the same												
-	bool Trait::operator == (const Trait& other) const {
-		return TraitIs(other.mTraitType) && Compare(other);
-	}
-
 	/// Reset the trait																			
 	void Trait::Reset() {
 		Any::Reset();

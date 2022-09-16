@@ -84,7 +84,8 @@ namespace Langulus::Anyness
 		NOD() bool IsSimilar(const Trait&) const noexcept;
 		NOD() bool HasCorrectData() const;
 
-		NOD() bool operator == (const Trait&) const;
+		template<CT::Data T>
+		NOD() bool operator == (const T&) const;
 	};
 
 
@@ -118,7 +119,8 @@ namespace Langulus::Anyness
 		TRAIT& operator = (Disowned<TRAIT>&&);
 		TRAIT& operator = (Abandoned<TRAIT>&&);
 
-		NOD() bool operator == (const StaticTrait<TRAIT>&) const;
+		template<CT::Data T>
+		NOD() bool operator == (const T&) const;
 
 		NOD() TRAIT Clone() const;
 	};
@@ -145,24 +147,28 @@ namespace Langulus::Traits
 	struct Logger : public StaticTrait<Logger> {
 		using StaticTrait::StaticTrait;
 		using StaticTrait::operator =;
+		using StaticTrait::operator ==;
 	};
 
 	/// Count trait, used all over the place												
 	struct Count : public StaticTrait<Count> {
 		using StaticTrait::StaticTrait;
 		using StaticTrait::operator =;
+		using StaticTrait::operator ==;
 	};
 
 	/// Name trait, used all over the place												
 	struct Name : public StaticTrait<Name> {
 		using StaticTrait::StaticTrait;
 		using StaticTrait::operator =;
+		using StaticTrait::operator ==;
 	};
 
 	/// Context trait, used to access the current environment						
 	struct Context : public StaticTrait<Context> {
 		using StaticTrait::StaticTrait;
 		using StaticTrait::operator =;
+		using StaticTrait::operator ==;
 	};
 
 } // namespace Langulus::Traits

@@ -185,7 +185,7 @@ namespace Langulus::Anyness
 	///	@return a new text container with all letter made lowercase				
 	Text Text::Lowercase() const {
 		Text result = Clone();
-		for (auto& i : result)
+		for (auto i : result)
 			i = static_cast<Letter>(std::tolower(i));
 		return result;
 	}
@@ -194,7 +194,7 @@ namespace Langulus::Anyness
 	///	@return a new text container with all letter made uppercase				
 	Text Text::Uppercase() const {
 		Text result = Clone();
-		for (auto& i : result)
+		for (auto i : result)
 			i = static_cast<Letter>(std::toupper(i));
 		return result;
 	}

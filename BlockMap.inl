@@ -623,8 +623,9 @@ namespace Langulus::Anyness
 			const auto newIndex = oldKey.GetHash().mHash & hashmask;
 			if (oldIndex != newIndex) {
 				// Move key & value to swapper										
-				keyswap.CallUnknownMoveConstructors<false>(1, oldKey);
-				valswap.CallUnknownMoveConstructors<false>(1, GetValue(oldIndex));
+				// No chance of overlap, so do it forwards						
+				keyswap.CallUnknownMoveConstructors<false, false>(1, oldKey);
+				valswap.CallUnknownMoveConstructors<false, false>(1, GetValue(oldIndex));
 				keyswap.mCount = valswap.mCount = 1;
 				RemoveIndex(oldIndex);
 				if (oldIndex == InsertInnerUnknown<false, false>(newIndex, Move(keyswap), Move(valswap))) {
@@ -784,11 +785,12 @@ namespace Langulus::Anyness
 		// If reached, empty slot reached, so put the pair there				
 		// Might not seem like it, but we gave a guarantee, that this is	
 		// eventually reached, unless key exists and returns early			
+		// We're moving only a single element, so no chance of overlap		
 		const auto index = psl - GetInfo();
 		GetKey(index)
-			.CallUnknownMoveConstructors<KEEP>(1, key);
+			.CallUnknownMoveConstructors<KEEP, false>(1, key);
 		GetValue(index)
-			.CallUnknownMoveConstructors<KEEP>(1, value);
+			.CallUnknownMoveConstructors<KEEP, false>(1, value);
 
 		key.CallUnknownDestructors();
 		value.CallUnknownDestructors();
@@ -1057,10 +1059,11 @@ namespace Langulus::Anyness
 		while (*psl > 1) {
 			psl[-1] = (*psl) - 1;
 
+			// We're moving only a single element, so no chance of overlap	
 			const_cast<const Block&>(key).Prev()
-				.CallUnknownMoveConstructors<false>(1, key);
+				.CallUnknownMoveConstructors<false, false>(1, key);
 			const_cast<const Block&>(val).Prev()
-				.CallUnknownMoveConstructors<false>(1, val);
+				.CallUnknownMoveConstructors<false, false>(1, val);
 
 			key.CallUnknownDestructors();
 			val.CallUnknownDestructors();
@@ -1080,10 +1083,11 @@ namespace Langulus::Anyness
 			const auto last = mValues.mReserved - 1;
 			GetInfo()[last] = (*psl) - 1;
 
+			// We're moving only a single element, so no chance of overlap	
 			GetKey(last)
-				.CallUnknownMoveConstructors<false>(1, key);
+				.CallUnknownMoveConstructors<false, false>(1, key);
 			GetValue(last)
-				.CallUnknownMoveConstructors<false>(1, val);
+				.CallUnknownMoveConstructors<false, false>(1, val);
 
 			key.CallUnknownDestructors();
 			val.CallUnknownDestructors();

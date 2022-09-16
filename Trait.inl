@@ -127,6 +127,18 @@ namespace Langulus::Anyness
 		return TraitIs(MetaTrait::Of<T>());
 	}
 
+	/// Compare traits																			
+	///	@param other - the thing to compare with										
+	///	@return true if things are the same												
+	template<CT::Data T>
+	bool Trait::operator == (const T& other) const {
+		if constexpr (CT::Trait<T>)
+			return TraitIs(DenseCast(other).mTraitType)
+				&& Any::operator == (static_cast<const Any&>(other));
+		else
+			return Any::operator == (other);
+	}
+
 
 
 	///																								
@@ -203,8 +215,14 @@ namespace Langulus::Anyness
 	}
 
 	template<class TRAIT>
-	bool StaticTrait<TRAIT>::operator == (const StaticTrait<TRAIT>& other) const {
-		return Any::operator == (static_cast<const Any&>(other));
+	template<CT::Data T>
+	bool StaticTrait<TRAIT>::operator == (const T& other) const {
+		if constexpr (CT::Same<T, StaticTrait<TRAIT>>)
+			return Any::operator == (static_cast<const Any&>(DenseCast(other)));
+		else if constexpr (CT::Trait<T>)
+			return Trait::operator == (static_cast<const Trait&>(DenseCast(other)));
+		else
+			return Any::operator == (other);
 	}
 
 	template<class TRAIT>
