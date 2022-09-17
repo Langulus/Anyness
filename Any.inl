@@ -608,4 +608,155 @@ namespace Langulus::Anyness
 		return Any {Block::Crop(start, count)};
 	}
 
+
+
+
+	///																								
+	///	Concatenation																			
+	///																								
+	
+	/// An inner concatenation routine using copy/disown								
+	///	@tparam WRAPPER - the type of the concatenated container					
+	///	@tparam KEEP - true to use copy, false to use disown						
+	///	@tparam T - block type to concatenate with (deducible)					
+	///	@param rhs - block to concatenate												
+	///	@return the concatenated container												
+	template<CT::Block WRAPPER, bool KEEP, CT::Block T>
+	WRAPPER Any::Concatenate(const T& rhs) const {
+		if (IsEmpty()) {
+			if constexpr (KEEP)
+				return WRAPPER {rhs};
+			else
+				return WRAPPER {Disown(rhs)};
+		}
+		else if (rhs.IsEmpty())
+			return WRAPPER {*this};
+
+		WRAPPER result;
+		if constexpr (!CT::StaticallyTyped<WRAPPER>)
+			result.template SetType<false>(mType);
+		result.Allocate(mCount + rhs.mCount);
+		result.InsertBlock(*this);
+		if constexpr (KEEP)
+			result.InsertBlock(rhs);
+		else
+			result.InsertBlock(Disown(rhs));
+		return Abandon(result);
+	}
+
+	/// An inner concatenation routine using move/abandon								
+	///	@tparam WRAPPER - the type of the concatenated container					
+	///	@tparam KEEP - true to use move, false to use abandon						
+	///	@tparam T - block type to concatenate with (deducible)					
+	///	@param rhs - block to concatenate												
+	///	@return the concatenated container												
+	template<CT::Block WRAPPER, bool KEEP, CT::Block T>
+	WRAPPER Any::Concatenate(T&& rhs) const {
+		if (IsEmpty()) {
+			if constexpr (KEEP)
+				return WRAPPER {Forward<T>(rhs)};
+			else
+				return WRAPPER {Abandon(Forward<T>(rhs))};
+		}
+		else if (rhs.IsEmpty())
+			return WRAPPER {*this};
+
+		WRAPPER result;
+		if constexpr (!CT::StaticallyTyped<WRAPPER>)
+			result.template SetType<false>(mType);
+		result.Allocate(mCount + rhs.mCount);
+		result.InsertBlock(*this);
+		if constexpr (KEEP)
+			result.InsertBlock(Forward<T>(rhs));
+		else
+			result.InsertBlock(Abandon(Forward<T>(rhs)));
+		return Abandon(result);
+	}
+
+	/// Copy-concatenate with any deep type												
+	///	@tparam T - type of the container to concatenate (deducible)			
+	///	@param rhs - the right operand													
+	///	@return the combined container													
+	template<CT::Deep T>
+	Any Any::operator + (const T& rhs) const requires CT::Dense<T> {
+		return Concatenate<Any, true>(rhs);
+	}
+
+	template<CT::Deep T>
+	Any Any::operator + (T& rhs) const requires CT::Dense<T> {
+		return operator + (const_cast<const T&>(rhs));
+	}
+
+	/// Move-concatenate with any deep type												
+	///	@tparam T - type of the container to concatenate (deducible)			
+	///	@param rhs - the right operand													
+	///	@return the combined container													
+	template<CT::Deep T>
+	Any Any::operator + (T&& rhs) const requires CT::Dense<T> {
+		return Concatenate<Any, true>(Forward<T>(rhs));
+	}
+
+	/// Disown-concatenate with any deep type												
+	///	@tparam T - type of the container to concatenate (deducible)			
+	///	@param rhs - the right operand													
+	///	@return the combined container													
+	template<CT::Deep T>
+	Any Any::operator + (Disowned<T>&& rhs) const requires CT::Dense<T> {
+		return Concatenate<Any, false>(rhs.mValue);
+	}
+
+	/// Abandon-concatenate with any deep type											
+	///	@tparam T - type of the container to concatenate (deducible)			
+	///	@param rhs - the right operand													
+	///	@return the combined container													
+	template<CT::Deep T>
+	Any Any::operator + (Abandoned<T>&& rhs) const requires CT::Dense<T> {
+		return Concatenate<Any, false>(Forward<T>(rhs.mValue));
+	}
+
+	/// Destructive copy-concatenate with any deep type								
+	///	@tparam T - type of the container to concatenate (deducible)			
+	///	@param rhs - the right operand													
+	///	@return a reference to this modified container								
+	template<CT::Deep T>
+	Any& Any::operator += (const T& rhs) requires CT::Dense<T> {
+		InsertBlock(rhs);
+		return *this;
+	}
+
+	template<CT::Deep T>
+	Any& Any::operator += (T& rhs) requires CT::Dense<T> {
+		return operator += (const_cast<const T&>(rhs));
+	}
+
+	/// Destructive move-concatenate with any deep type								
+	///	@tparam T - type of the container to concatenate (deducible)			
+	///	@param rhs - the right operand													
+	///	@return a reference to this modified container								
+	template<CT::Deep T>
+	Any& Any::operator += (T&& rhs) requires CT::Dense<T> {
+		InsertBlock(Forward<T>(rhs));
+		return *this;
+	}
+
+	/// Destructive disown-concatenate with any deep type								
+	///	@tparam T - type of the container to concatenate (deducible)			
+	///	@param rhs - the right operand													
+	///	@return a reference to this modified container								
+	template<CT::Deep T>
+	Any& Any::operator += (Disowned<T>&& rhs) requires CT::Dense<T> {
+		InsertBlock(rhs.Forward());
+		return *this;
+	}
+
+	/// Destructive abandon-concatenate with any deep type							
+	///	@tparam T - type of the container to concatenate (deducible)			
+	///	@param rhs - the right operand													
+	///	@return a reference to this modified container								
+	template<CT::Deep T>
+	Any& Any::operator += (Abandoned<T>&& rhs) requires CT::Dense<T> {
+		InsertBlock(rhs.Forward());
+		return *this;
+	}
+
 } // namespace Langulus::Anyness

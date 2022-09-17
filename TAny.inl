@@ -1383,7 +1383,7 @@ namespace Langulus::Anyness
 				// Moving to the left, so no overlap possible if forward		
 				const auto remains = mCount - ender;
 				CropInner(starter, 0, remains)
-					.template CallKnownMoveConstructors<T, false, false>(
+					.template CallKnownMoveConstructors<T, false>(
 						remains, CropInner(ender, remains, remains)
 					);
 			}
@@ -1536,7 +1536,7 @@ namespace Langulus::Anyness
 					// Memory moved, and we should call move-construction		
 					// We're moving to new memory, so no reverse required		
 					mRaw = mEntry->GetBlockStart();
-					CallKnownMoveConstructors<T, false, false>(previousBlock.mCount, previousBlock);
+					CallKnownMoveConstructors<T, false>(previousBlock.mCount, previousBlock);
 				}
 			}
 			else {
@@ -1545,7 +1545,7 @@ namespace Langulus::Anyness
 				mEntry = Inner::Allocator::Allocate(request.mByteSize);
 				LANGULUS_ASSERT(mEntry, Except::Allocate, "Out of memory");
 				mRaw = mEntry->GetBlockStart();
-				CallKnownCopyConstructors<T, true>(previousBlock.mCount, previousBlock);
+				CallKnownCopyConstructors<T>(previousBlock.mCount, previousBlock);
 			}
 
 			if constexpr (CREATE) {
@@ -1608,7 +1608,7 @@ namespace Langulus::Anyness
 	/// Destructive concatenation																
 	///	@param rhs - any type that is convertible to this TAny<T>				
 	///	@return a reference to this container											
-	TEMPLATE()
+	/*TEMPLATE()
 	template<class WRAPPER, class RHS>
 	TAny<T>& TAny<T>::operator += (const RHS& rhs) {
 		static_assert(CT::DerivedFrom<WRAPPER, TAny>,
@@ -1665,7 +1665,7 @@ namespace Langulus::Anyness
 			return operator + <WRAPPER>(static_cast<WRAPPER>(rhs));
 		}
 		else LANGULUS_ERROR("Can't concatenate - RHS is not convertible to WRAPPER");
-	}
+	}*/
 	
 	/// Compare with another TAny, order matters											
 	///	@param other - container to compare with										
@@ -1784,7 +1784,77 @@ namespace Langulus::Anyness
 
 
 
+	///																								
+	///	Concatenation																			
+	///																								
+	
+	/// Copy-concatenate with another TAny													
+	///	@param rhs - the right operand													
+	///	@return the combined container													
+	TEMPLATE()
+	TAny<T> TAny<T>::operator + (const TAny& rhs) const {
+		return Concatenate<TAny, true>(rhs);
+	}
 
+	/// Move-concatenate with another TAny													
+	///	@param rhs - the right operand													
+	///	@return the combined container													
+	TEMPLATE()
+	TAny<T> TAny<T>::operator + (TAny&& rhs) const {
+		return Concatenate<TAny, true>(Forward<T>(rhs));
+	}
+
+	/// Disown-concatenate with another TAny												
+	///	@param rhs - the right operand													
+	///	@return the combined container													
+	TEMPLATE()
+	TAny<T> TAny<T>::operator + (Disowned<TAny>&& rhs) const {
+		return Concatenate<TAny, false>(rhs.mValue);
+	}
+
+	/// Abandon-concatenate with another TAny												
+	///	@param rhs - the right operand													
+	///	@return the combined container													
+	TEMPLATE()
+	TAny<T> TAny<T>::operator + (Abandoned<TAny>&& rhs) const {
+		return Concatenate<TAny, false>(Abandoned(Forward<T>(rhs)));
+	}
+
+	/// Destructive copy-concatenate with another TAny									
+	///	@param rhs - the right operand													
+	///	@return a reference to this modified container								
+	TEMPLATE()
+	TAny<T>& TAny<T>::operator += (const TAny& rhs) {
+		InsertBlock(rhs);
+		return *this;
+	}
+
+	/// Destructive move-concatenate with any deep type								
+	///	@param rhs - the right operand													
+	///	@return a reference to this modified container								
+	TEMPLATE()
+	TAny<T>& TAny<T>::operator += (TAny&& rhs) {
+		InsertBlock(Forward<T>(rhs));
+		return *this;
+	}
+
+	/// Destructive disown-concatenate with any deep type								
+	///	@param rhs - the right operand													
+	///	@return a reference to this modified container								
+	TEMPLATE()
+	TAny<T>& TAny<T>::operator += (Disowned<TAny>&& rhs) {
+		InsertBlock(rhs.Forward());
+		return *this;
+	}
+
+	/// Destructive abandon-concatenate with any deep type							
+	///	@param rhs - the right operand													
+	///	@return a reference to this modified container								
+	TEMPLATE()
+	TAny<T>& TAny<T>::operator += (Abandoned<TAny>&& rhs) {
+		InsertBlock(rhs.Forward());
+		return *this;
+	}
 
 
 

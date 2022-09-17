@@ -29,6 +29,8 @@ namespace Langulus::Anyness
 		LANGULUS(DEEP) true;
 		LANGULUS_BASES(Any);
 	public:
+		static constexpr bool StaticallyTyped = true;
+
 		template<CT::Data, CT::Data>
 		friend class TUnorderedMap;
 		friend class Any;
@@ -237,10 +239,18 @@ namespace Langulus::Anyness
 		void Swap(const Offset&, const Offset&);
 		void Swap(const Index&, const Index&);
 
-		template<class WRAPPER = TAny, class RHS>
-		TAny<T>& operator += (const RHS&);
-		template<class WRAPPER = TAny, class RHS>
-		NOD() WRAPPER operator + (const RHS&) const;
+		///																							
+		///	Concatenation																		
+		///																							
+		NOD() TAny operator + (const TAny&) const;
+		NOD() TAny operator + (TAny&&) const;
+		NOD() TAny operator + (Disowned<TAny>&&) const;
+		NOD() TAny operator + (Abandoned<TAny>&&) const;
+
+		TAny& operator += (const TAny&);
+		TAny& operator += (TAny&&);
+		TAny& operator += (Disowned<TAny>&&);
+		TAny& operator += (Abandoned<TAny>&&);
 
 		///																							
 		///	Iteration																			

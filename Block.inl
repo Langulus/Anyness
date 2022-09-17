@@ -279,7 +279,7 @@ namespace Langulus::Anyness
 					// Memory moved, and we should call move-construction		
 					// We're moving to a new allocation, so no reverse needed
 					mRaw = mEntry->GetBlockStart();
-					CallUnknownMoveConstructors<false, false>(previousBlock.mCount, Move(previousBlock));
+					CallUnknownMoveConstructors<false>(previousBlock.mCount, Move(previousBlock));
 				}
 			}
 			else {
@@ -288,7 +288,7 @@ namespace Langulus::Anyness
 				mEntry = Inner::Allocator::Allocate(request.mByteSize);
 				LANGULUS_ASSERT(mEntry, Except::Allocate, "Out of memory");
 				mRaw = mEntry->GetBlockStart();
-				CallUnknownCopyConstructors<true>(previousBlock.mCount, previousBlock);
+				CallUnknownCopyConstructors(previousBlock.mCount, previousBlock);
 				previousBlock.Free();
 			}
 		}
@@ -2422,7 +2422,7 @@ namespace Langulus::Anyness
 				// We're moving to the left, so no reverse is required		
 				LANGULUS_ASSERT(GetUses() == 1, Except::Move, "Moving elements in use");
 				CropInner(idx, 0, mCount - ender)
-					.template CallUnknownMoveConstructors<false, false>(
+					.template CallUnknownMoveConstructors<false>(
 						mCount - ender,
 						CropInner(ender, mCount - ender, mCount - ender)
 					);
@@ -3759,15 +3759,15 @@ namespace Langulus::Anyness
 		Block temporary {mState, mType};
 		temporary.Allocate<false, true>(mCount);
 		// Abandon this to temporary													
-		temporary.CallUnknownMoveConstructors<false, false>(mCount, *this);
+		temporary.CallUnknownMoveConstructors<false>(mCount, *this);
 		// Destroy elements in this													
 		CallUnknownDestructors();
 		// Abandon rhs to this															
-		CallUnknownMoveConstructors<false, false>(rhs.mCount, rhs);
+		CallUnknownMoveConstructors<false>(rhs.mCount, rhs);
 		// Destroy elements in rhs														
 		rhs.CallUnknownDestructors();
 		// Abandon temporary to rhs													
-		rhs.CallUnknownMoveConstructors<false, false>(temporary.mCount, temporary);
+		rhs.CallUnknownMoveConstructors<false>(temporary.mCount, temporary);
 		// Cleanup temporary																
 		temporary.CallUnknownDestructors();
 		Inner::Allocator::Deallocate(temporary.mEntry);
@@ -3787,15 +3787,15 @@ namespace Langulus::Anyness
 		Block temporary {mState, mType};
 		temporary.Allocate<false, true>(mCount);
 		// Abandon this to temporary													
-		temporary.CallKnownMoveConstructors<T, false, false>(mCount, *this);
+		temporary.CallKnownMoveConstructors<T, false>(mCount, *this);
 		// Destroy elements in this													
 		CallKnownDestructors<T>();
 		// Abandon rhs to this															
-		CallKnownMoveConstructors<T, false, false>(rhs.mCount, rhs);
+		CallKnownMoveConstructors<T, false>(rhs.mCount, rhs);
 		// Destroy elements in rhs														
 		rhs.CallKnownDestructors<T>();
 		// Abandon temporary to rhs													
-		rhs.CallKnownMoveConstructors<T, false, false>(temporary.mCount, temporary);
+		rhs.CallKnownMoveConstructors<T, false>(temporary.mCount, temporary);
 		// Cleanup temporary																
 		temporary.CallKnownDestructors<T>();
 		Inner::Allocator::Deallocate(temporary.mEntry);
@@ -3816,7 +3816,7 @@ namespace Langulus::Anyness
 
 		if (region.IsAllocated()) {
 			// Call copy-constructors in the new region							
-			region.template CallUnknownCopyConstructors<true>(other.mCount, other);
+			region.CallUnknownCopyConstructors(other.mCount, other);
 			mCount += region.mReserved;
 			return region.mReserved;
 		}
@@ -3838,7 +3838,7 @@ namespace Langulus::Anyness
 
 		if (region.IsAllocated()) {
 			// Call move-constructors in the new region							
-			region.template CallUnknownMoveConstructors<true>(other.mCount, Move(other));
+			region.template CallUnknownMoveConstructors(other.mCount, Move(other));
 			return region.mReserved;
 		}
 
@@ -3906,23 +3906,24 @@ namespace Langulus::Anyness
 		// Allocate the required memory - this will not initialize it		
 		Allocate<false>(mCount + other.mCount);
 
-		// Move memory if required														
 		if constexpr (INDEX == IndexFront) {
+			// Move memory if required													
 			LANGULUS_ASSERT(GetUses() == 1, Except::Move,
 				"Inserting requires moving elements, "
 				"that are used from multiple location");
 
+			// Moving to the right, so do it in reverse to avoid overlap	
 			CropInner(other.mCount, 0, mCount)
-				.template CallUnknownMoveConstructors<false>(
+				.template CallUnknownMoveConstructors<false, true>(
 					mCount, CropInner(0, mCount, mCount)
 				);
 
 			CropInner(0, 0, other.mCount)
-				.template CallUnknownCopyConstructors<true>(other.mCount, other);
+				.CallUnknownCopyConstructors(other.mCount, other);
 		}
 		else {
 			CropInner(mCount, 0, other.mCount)
-				.template CallUnknownCopyConstructors<true>(other.mCount, other);
+				.CallUnknownCopyConstructors(other.mCount, other);
 		}
 
 		mCount += other.mCount;
@@ -3948,8 +3949,8 @@ namespace Langulus::Anyness
 		// Allocate the required memory - this will not initialize it		
 		Allocate<false>(mCount + other.mCount);
 
-		// Move memory if required														
 		if constexpr (INDEX == IndexFront) {
+			// Move memory if required														
 			LANGULUS_ASSERT(GetUses() == 1, Except::Move,
 				"Inserting requires moving elements, "
 				"that are used from multiple location");
@@ -3961,12 +3962,12 @@ namespace Langulus::Anyness
 				);
 
 			CropInner(0, 0, other.mCount)
-				.template CallUnknownMoveConstructors<false, false>(
+				.template CallUnknownMoveConstructors<false>(
 					other.mCount, Forward<Block>(other));
 		}
 		else {
 			CropInner(mCount, 0, other.mCount)
-				.template CallUnknownMoveConstructors<false, false>(
+				.template CallUnknownMoveConstructors<false>(
 					other.mCount, Forward<Block>(other));
 		}
 
@@ -4014,12 +4015,12 @@ namespace Langulus::Anyness
 				);
 
 			CropInner(0, 0, other.mValue.mCount)
-				.template CallUnknownMoveConstructors<false, false>(
+				.template CallUnknownMoveConstructors<false>(
 					other.mValue.mCount, Forward<Block>(other.mValue));
 		}
 		else {
 			CropInner(mCount, 0, other.mValue.mCount)
-				.template CallUnknownMoveConstructors<false, false>(
+				.template CallUnknownMoveConstructors<false>(
 					other.mValue.mCount, Forward<Block>(other.mValue));
 		}
 
@@ -4048,8 +4049,8 @@ namespace Langulus::Anyness
 		// Allocate the required memory - this will not initialize it		
 		Allocate<false>(mCount + other.mValue.mCount);
 
-		// Move memory if required														
 		if constexpr (INDEX == IndexFront) {
+			// Move memory if required													
 			LANGULUS_ASSERT(GetUses() == 1, Except::Move,
 				"Inserting requires moving elements, "
 				"that are used from multiple location");
@@ -4062,12 +4063,12 @@ namespace Langulus::Anyness
 				);
 
 			CropInner(0, 0, other.mValue.mCount)
-				.template CallUnknownCopyConstructors<false, false>(
+				.template CallUnknownCopyConstructors<false>(
 					other.mValue.mCount, other.mValue);
 		}
 		else {
 			CropInner(mCount, 0, other.mValue.mCount)
-				.template CallUnknownCopyConstructors<false, false>(
+				.template CallUnknownCopyConstructors<false>(
 					other.mValue.mCount, other.mValue);
 		}
 

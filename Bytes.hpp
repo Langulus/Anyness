@@ -29,8 +29,8 @@ namespace Langulus::Anyness
 		Bytes(const TAny&);
 		Bytes(TAny&&) noexcept;
 
-		template<CT::Deep T>
-		Bytes(const T&) = delete;
+		//template<CT::Deep T>
+		//Bytes(const T&) = delete;
 
 		Bytes(const void*, const Size&);
 		Bytes(void*, const Size&);
@@ -64,10 +64,18 @@ namespace Langulus::Anyness
 		bool operator == (const Bytes&) const noexcept;
 		bool operator != (const Bytes&) const noexcept;
 
-		template<class RHS>
-		Bytes& operator += (const RHS&);
-		template<class RHS>
-		NOD() Bytes operator + (const RHS&) const;
+		///																							
+		///	Concatenation																		
+		///																							
+		NOD() Bytes operator + (const Bytes&) const;
+		NOD() Bytes operator + (Bytes&&) const;
+		NOD() Bytes operator + (Disowned<Bytes>&&) const;
+		NOD() Bytes operator + (Abandoned<Bytes>&&) const;
+
+		Bytes& operator += (const Bytes&);
+		Bytes& operator += (Bytes&&);
+		Bytes& operator += (Disowned<Bytes>&&);
+		Bytes& operator += (Abandoned<Bytes>&&);
 	};
 
 } // namespace Langulus::Anyness

@@ -55,6 +55,7 @@ T CreateElement(const ALT_T& e) {
 /// The main test for Any/TAny containers, with all kinds of items, from		
 /// sparse to dense, from trivial to complex, from flat to deep					
 TEMPLATE_TEST_CASE("Any/TAny", "[any]", 
+	(TypePair<Any, int>),
 	(TypePair<TAny<int*>, int*>),
 	(TypePair<TAny<Trait>, Trait>),
 	(TypePair<TAny<int>, int>),
@@ -63,7 +64,6 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 	(TypePair<TAny<Trait*>, Trait*>),
 	(TypePair<TAny<Traits::Count*>, Traits::Count*>),
 	(TypePair<TAny<Any*>, Any*>),
-	(TypePair<Any, int>),
 	(TypePair<Any, int*>),
 	(TypePair<Any, Trait>),
 	(TypePair<Any, Traits::Count>),
@@ -81,6 +81,20 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 	const DenseE& denseValue {DenseCast(element)};
 	const DenseE* const sparseValue = {SparseCast(element)};
 
+	const E darray1[5] {
+		CreateElement<E>(1),
+		CreateElement<E>(2),
+		CreateElement<E>(3),
+		CreateElement<E>(4),
+		CreateElement<E>(5)
+	};
+	const E darray2[5] {
+		CreateElement<E>(6),
+		CreateElement<E>(7),
+		CreateElement<E>(8),
+		CreateElement<E>(9),
+		CreateElement<E>(10)
+	};
 
 	GIVEN("Default constructed container") {
 		T pack;
@@ -1475,22 +1489,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 		#endif
 	}
 	
-	GIVEN("Container with some POD items") {
-		const E darray1[5] {
-			CreateElement<E>(1),
-			CreateElement<E>(2),
-			CreateElement<E>(3),
-			CreateElement<E>(4),
-			CreateElement<E>(5)
-		};
-		const E darray2[5] {
-			CreateElement<E>(6),
-			CreateElement<E>(7),
-			CreateElement<E>(8),
-			CreateElement<E>(9),
-			CreateElement<E>(10)
-		};
-
+	GIVEN("Container with some items") {
 		const T pack {};
 		const_cast<T&>(pack) << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
 
@@ -2092,72 +2091,119 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 		}
 	}
 
-	GIVEN("Two containers with some POD items") {
+	GIVEN("Two containers with some items") {
 		#include "CollectGarbage.inl"
 
-		TAny<int> pack1;
-		TAny<int> pack2;
-		pack1 << int(1) << int(2) << int(3) << int(4) << int(5);
-		pack2 << int(6) << int(7) << int(8) << int(9) << int(10);
-		const auto memory1 = static_cast<Block>(pack1);
-		const auto memory2 = static_cast<Block>(pack2);
+		const T pack1 {};
+		const T pack2 {};
+		const_cast<T&>(pack1) << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
+		const_cast<T&>(pack2) << darray2[0] << darray2[1] << darray2[2] << darray2[3] << darray2[4];
+		const T memory1 = pack1;
+		const T memory2 = pack2;
 
-		REQUIRE(memory1 != memory2);
+		WHEN("Copy-assign pack1 in pack2") {
+			const_cast<T&>(pack2) = pack1;
 
-		WHEN("Shallow copy pack1 in pack2") {
-			pack2 = pack1;
-			THEN("memory1 should be referenced twice, memory2 should be released") {
+			THEN("memory1 should be referenced, memory2 should be dereferenced") {
+				REQUIRE(pack1.GetUses() == 3);
+				REQUIRE(pack2.GetUses() == 3);
+				REQUIRE(memory2.GetUses() == 1);
+				REQUIRE(pack1 == pack2);
+				REQUIRE(pack2 == memory1);
+				REQUIRE(pack2 != memory2);
+				for (int i = 0; i < 5; ++i)
+					REQUIRE(pack2[i] == darray1[i]);
+			}
+		}
+
+		WHEN("Move-assign pack1 in pack2") {
+			auto movable = pack1;
+			const_cast<T&>(pack2) = Move(movable);
+
+			THEN("memory1 should be overwritten, memory2 should be released") {
+				REQUIRE(pack1.GetUses() == 3);
+				REQUIRE(pack2.GetUses() == 3);
+				REQUIRE(memory2.GetUses() == 1);
+				REQUIRE(pack1 == pack2);
+				REQUIRE(movable != pack1);
+				REQUIRE(movable == T {});
+			}
+		}
+
+		WHEN("Disown-assign pack1 in pack2") {
+			const_cast<T&>(pack2) = Disown(pack1);
+
+			THEN("memory1 should be referenced, memory2 should be dereferenced") {
 				REQUIRE(pack1.GetUses() == 2);
-				REQUIRE(pack2.GetUses() == 2);
-				REQUIRE(static_cast<Block&>(pack1) == static_cast<Block&>(pack2));
-				REQUIRE(static_cast<Block&>(pack2) == memory1);
-				#if LANGULUS_FEATURE(MANAGED_MEMORY)
-					REQUIRE_FALSE(Allocator::Find(memory2.GetType(), memory2.GetRaw()));
-				#endif
+				REQUIRE(pack2.GetUses() == 0);
+				REQUIRE(memory2.GetUses() == 1);
+				REQUIRE(pack1 == pack2);
+				REQUIRE(pack2 == memory1);
+				REQUIRE(pack2 != memory2);
+				REQUIRE(pack2.mEntry == nullptr);
+				for (int i = 0; i < 5; ++i)
+					REQUIRE(pack2[i] == darray1[i]);
+			}
+		}
+
+		WHEN("Abandon-assign pack1 in pack2") {
+			auto movable = pack1;
+			const_cast<T&>(pack2) = Abandon(movable);
+
+			THEN("memory1 should be overwritten, memory2 should be released") {
+				REQUIRE(pack1.GetUses() == 3);
+				REQUIRE(pack2.GetUses() == 3);
+				REQUIRE(memory2.GetUses() == 1);
+				REQUIRE(pack1 == pack2);
+				REQUIRE(movable.mEntry == nullptr);
 			}
 		}
 
 		WHEN("Shallow copy pack1 in pack2 and then reset pack1") {
-			pack2 = pack1;
-			pack1.Reset();
+			const_cast<T&>(pack2) = pack1;
+			const_cast<T&>(pack1).Reset();
+
 			THEN("memory1 should be referenced once, memory2 should be released") {
 				REQUIRE_FALSE(pack1.HasAuthority());
-				REQUIRE(pack2.GetUses() == 1);
+				REQUIRE(pack2.GetUses() == 2);
 				REQUIRE_FALSE(pack1.GetRaw());
 				REQUIRE(pack1.GetReserved() == 0);
-				REQUIRE(static_cast<Block&>(pack2) == memory1);
-				#if LANGULUS_FEATURE(MANAGED_MEMORY)
-					REQUIRE_FALSE(Allocator::Find(memory2.GetType(), memory2.GetRaw()));
-				#endif
+				REQUIRE(pack2 == memory1);
 			}
 		}
 
 		WHEN("Deep copy pack1 in pack2") {
-			pack2 = pack1.Clone();
+			const_cast<T&>(pack2) = pack1.Clone();
+
 			THEN("memory1 should be referenced twice, memory2 should be released") {
-				REQUIRE(pack1.GetUses() == 1);
+				REQUIRE(pack1.GetUses() == 2);
 				REQUIRE(pack2.GetUses() == 1);
-				REQUIRE(static_cast<Block&>(pack1) == static_cast<Block&>(pack2));
-				REQUIRE(static_cast<Block&>(pack2) == memory1);
-				REQUIRE(static_cast<Block&>(pack2) != memory2);
-				#if LANGULUS_FEATURE(MANAGED_MEMORY)
-					REQUIRE_FALSE(Allocator::Find(memory2.GetType(), memory2.GetRaw()));
-				#endif
+				REQUIRE(pack1 == pack2);
+				REQUIRE(pack2 == memory1);
+				REQUIRE(pack2 != memory2);
 			}
 		}
 
 		WHEN("Deep copy pack1 in pack2, then reset pack1") {
-			pack2 = pack1.Clone();
-			const auto memory3 = static_cast<Block>(pack2);
-			pack1.Reset();
+			const_cast<T&>(pack2) = pack1.Clone();
+			const T memory3 = pack2;
+			const_cast<T&>(pack1).Reset();
+
 			THEN("memory1 should be referenced once, memory2 should be released") {
 				REQUIRE_FALSE(pack1.HasAuthority());
-				REQUIRE(pack2.GetUses() == 1);
-				REQUIRE(memory3.GetUses() == 1);
-				#if LANGULUS_FEATURE(MANAGED_MEMORY)
-					REQUIRE_FALSE(Allocator::Find(memory1.GetType(), memory1.GetRaw()));
-					REQUIRE_FALSE(Allocator::Find(memory2.GetType(), memory2.GetRaw()));
-				#endif
+				REQUIRE(pack2.GetUses() == 2);
+				REQUIRE(memory3.GetUses() == 2);
+			}
+		}
+
+		WHEN("Concatenate both packs to a third pack") {
+			const auto pack3 = pack1 + pack2;
+
+			THEN("The resulting pack must be a combination of the two") {
+				for (int i = 0; i < 5; ++i)
+					REQUIRE(pack3[i] == darray1[i]);
+				for (int i = 5; i < 10; ++i)
+					REQUIRE(pack3[i] == darray2[i - 5]);
 			}
 		}
 	}

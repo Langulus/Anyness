@@ -29,8 +29,8 @@ namespace Langulus::Anyness
 		Text(const TAny&);
 		Text(TAny&&) noexcept;
 
-		template<CT::Deep T>
-		Text(const T&) = delete;
+		/*template<CT::Deep T>
+		Text(const T&) = delete;*/
 
 		Text(Disowned<Text>&&) noexcept;
 		Text(Abandoned<Text>&&) noexcept;
@@ -94,10 +94,18 @@ namespace Langulus::Anyness
 		NOD() bool Find(const Text&) const;
 		NOD() bool FindWild(const Text&) const;
 
-		template<class RHS>
-		Text& operator += (const RHS&);
-		template<class RHS>
-		NOD() Text operator + (const RHS&) const;
+		///																							
+		///	Concatenation																		
+		///																							
+		NOD() Text operator + (const Text&) const;
+		NOD() Text operator + (Text&&) const;
+		NOD() Text operator + (Disowned<Text>&&) const;
+		NOD() Text operator + (Abandoned<Text>&&) const;
+
+		Text& operator += (const Text&);
+		Text& operator += (Text&&);
+		Text& operator += (Disowned<Text>&&);
+		Text& operator += (Abandoned<Text>&&);
 	};
 
 
@@ -133,7 +141,9 @@ namespace Langulus::CT
 
 namespace Langulus
 {
+
 	Anyness::Text operator "" _text(const char*, ::std::size_t);
-}
+
+} // namespace Langulus
 
 #include "Text.inl"

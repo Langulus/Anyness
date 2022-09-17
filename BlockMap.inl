@@ -620,8 +620,8 @@ namespace Langulus::Anyness
 			if (oldIndex != newIndex) {
 				// Move key & value to swapper										
 				// No chance of overlap, so do it forwards						
-				keyswap.CallUnknownMoveConstructors<false, false>(1, oldKey);
-				valswap.CallUnknownMoveConstructors<false, false>(1, GetValue(oldIndex));
+				keyswap.CallUnknownMoveConstructors<false>(1, oldKey);
+				valswap.CallUnknownMoveConstructors<false>(1, GetValue(oldIndex));
 				keyswap.mCount = valswap.mCount = 1;
 				RemoveIndex(oldIndex);
 				if (oldIndex == InsertInnerUnknown<false, false>(newIndex, Move(keyswap), Move(valswap))) {
@@ -752,8 +752,7 @@ namespace Langulus::Anyness
 				const auto candidate = GetKey(index);
 				if (candidate == key) {
 					// Neat, the key already exists - just set value and go	
-					GetValue(index)
-						.CallUnknownMoveAssignment<KEEP>(1, value);
+					GetValue(index).CallUnknownMoveAssignment<KEEP>(1, value);
 					value.CallUnknownDestructors();
 					value.mCount = 0;
 					return index;
@@ -783,10 +782,8 @@ namespace Langulus::Anyness
 		// eventually reached, unless key exists and returns early			
 		// We're moving only a single element, so no chance of overlap		
 		const auto index = psl - GetInfo();
-		GetKey(index)
-			.CallUnknownMoveConstructors<KEEP, false>(1, key);
-		GetValue(index)
-			.CallUnknownMoveConstructors<KEEP, false>(1, value);
+		GetKey(index).CallUnknownMoveConstructors<KEEP>(1, key);
+		GetValue(index).CallUnknownMoveConstructors<KEEP>(1, value);
 
 		key.CallUnknownDestructors();
 		value.CallUnknownDestructors();
@@ -908,11 +905,11 @@ namespace Langulus::Anyness
 
 		Block keySwapper {key.GetState(), key.mType};
 		keySwapper.Allocate<false, true>(1);
-		keySwapper.CallUnknownCopyConstructors<true>(1, key);
+		keySwapper.CallUnknownCopyConstructors(1, key);
 
 		Block valSwapper {value.GetState(), value.mType};
 		valSwapper.Allocate<false, true>(1);
-		valSwapper.CallUnknownCopyConstructors<true>(1, value);
+		valSwapper.CallUnknownCopyConstructors(1, value);
 
 		const auto index = key.GetHash().mHash & (GetReserved() - 1);
 		InsertInnerUnknown<true, false>(index, Move(keySwapper), Move(valSwapper));
@@ -1057,9 +1054,9 @@ namespace Langulus::Anyness
 
 			// We're moving only a single element, so no chance of overlap	
 			const_cast<const Block&>(key).Prev()
-				.CallUnknownMoveConstructors<false, false>(1, key);
+				.CallUnknownMoveConstructors<false>(1, key);
 			const_cast<const Block&>(val).Prev()
-				.CallUnknownMoveConstructors<false, false>(1, val);
+				.CallUnknownMoveConstructors<false>(1, val);
 
 			key.CallUnknownDestructors();
 			val.CallUnknownDestructors();
@@ -1080,10 +1077,8 @@ namespace Langulus::Anyness
 			GetInfo()[last] = (*psl) - 1;
 
 			// We're moving only a single element, so no chance of overlap	
-			GetKey(last)
-				.CallUnknownMoveConstructors<false, false>(1, key);
-			GetValue(last)
-				.CallUnknownMoveConstructors<false, false>(1, val);
+			GetKey(last).CallUnknownMoveConstructors<false>(1, key);
+			GetValue(last).CallUnknownMoveConstructors<false>(1, val);
 
 			key.CallUnknownDestructors();
 			val.CallUnknownDestructors();

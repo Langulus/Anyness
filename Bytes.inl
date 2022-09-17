@@ -81,10 +81,10 @@ namespace Langulus::Anyness
 	inline Bytes::Bytes(const RTTI::Meta* value)
 		: Bytes {} {
 		if (value) {
-			*this += Count {value->mToken.size()};
-			*this += value->mToken;
+			*this += Bytes {Count {value->mToken.size()}};
+			*this += Bytes {value->mToken};
 		}
-		else *this += Count {0};
+		else *this += Bytes {Count {0}};
 	}
 
 	/// Shallow copy assignment from immutable byte container						
@@ -118,24 +118,70 @@ namespace Langulus::Anyness
 		TAny::operator = (rhs.Forward<TAny>());
 		return *this;
 	}
+
+
+	///																								
+	///	Concatenation																			
+	///																								
 	
-	/// Convert RHS to bytes and append destructively									
-	///	@tparam RHS - type of RHS (deducible)											
-	///	@param rhs - the stuff to convert and append									
-	///	@return a reference to the byte container										
-	template<class RHS>
-	Bytes& Bytes::operator += (const RHS& rhs) {
-		TAny::template operator += <Bytes, RHS> (rhs);
+	/// Copy-concatenate with another TAny													
+	///	@param rhs - the right operand													
+	///	@return the combined container													
+	inline Bytes Bytes::operator + (const Bytes& rhs) const {
+		return Concatenate<Bytes, true>(rhs);
+	}
+
+	/// Move-concatenate with another TAny													
+	///	@param rhs - the right operand													
+	///	@return the combined container													
+	inline Bytes Bytes::operator + (Bytes&& rhs) const {
+		return Concatenate<Bytes, true>(Forward<Bytes>(rhs));
+	}
+
+	/// Disown-concatenate with another TAny												
+	///	@param rhs - the right operand													
+	///	@return the combined container													
+	inline Bytes Bytes::operator + (Disowned<Bytes>&& rhs) const {
+		return Concatenate<Bytes, false>(rhs.mValue);
+	}
+
+	/// Abandon-concatenate with another TAny												
+	///	@param rhs - the right operand													
+	///	@return the combined container													
+	inline Bytes Bytes::operator + (Abandoned<Bytes>&& rhs) const {
+		return Concatenate<Bytes, false>(Forward<Bytes>(rhs.mValue));
+	}
+
+	/// Destructive copy-concatenate with another TAny									
+	///	@param rhs - the right operand													
+	///	@return a reference to this modified container								
+	inline Bytes& Bytes::operator += (const Bytes& rhs) {
+		InsertBlock(rhs);
 		return *this;
 	}
 
-	/// Convert RHS to bytes and append 													
-	///	@tparam RHS - type of RHS (deducible)											
-	///	@param rhs - the stuff to convert and append									
-	///	@return a new byte container with RHS appended								
-	template<class RHS>
-	Bytes Bytes::operator + (const RHS& rhs) const {
-		return TAny::template operator + <Bytes, RHS> (rhs);
+	/// Destructive move-concatenate with any deep type								
+	///	@param rhs - the right operand													
+	///	@return a reference to this modified container								
+	inline Bytes& Bytes::operator += (Bytes&& rhs) {
+		InsertBlock(Forward<Bytes>(rhs));
+		return *this;
+	}
+
+	/// Destructive disown-concatenate with any deep type								
+	///	@param rhs - the right operand													
+	///	@return a reference to this modified container								
+	inline Bytes& Bytes::operator += (Disowned<Bytes>&& rhs) {
+		InsertBlock(rhs.Forward());
+		return *this;
+	}
+
+	/// Destructive abandon-concatenate with any deep type							
+	///	@param rhs - the right operand													
+	///	@return a reference to this modified container								
+	inline Bytes& Bytes::operator += (Abandoned<Bytes>&& rhs) {
+		InsertBlock(rhs.Forward());
+		return *this;
 	}
 
 } // namespace Langulus::Anyness

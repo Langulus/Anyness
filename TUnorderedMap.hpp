@@ -30,6 +30,7 @@ namespace Langulus::Anyness
 		using Allocator = Inner::Allocator;
 		static constexpr Count MinimalAllocation = 8;
 		static constexpr bool Ordered = false;
+		static constexpr bool StaticallyTyped = true;
 
 	public:
 		TUnorderedMap();

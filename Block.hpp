@@ -99,12 +99,13 @@ namespace Langulus::Anyness
 		template<CT::Data, bool REFERENCED>
 		friend class TPointer;
 
+		static constexpr bool StaticallyTyped = false;
+
 	protected:
 	TESTING(public:)
 		/// A structure used to represent an element of a sparse container		
 		struct KnownPointer;
 
-	protected:
 		union {
 			#if LANGULUS_DEBUG()
 				char* mRawChar;
@@ -598,24 +599,24 @@ namespace Langulus::Anyness
 		template<CT::Data T>
 		void CallKnownDefaultConstructors(Count) const;
 
-		template<bool KEEP>
+		template<bool KEEP = true>
 		void CallUnknownCopyConstructors(Count, const Block&) const;
-		template<CT::Data, bool KEEP>
+		template<CT::Data, bool KEEP = true>
 		void CallKnownCopyConstructors(Count, const Block&) const;
 
-		template<bool KEEP>
+		template<bool KEEP = true>
 		void CallUnknownCopyAssignment(Count, const Block&) const;
-		template<CT::Data, bool KEEP>
+		template<CT::Data, bool KEEP = true>
 		void CallKnownCopyAssignment(Count, const Block&) const;
 
-		template<bool KEEP, bool REVERSE>
+		template<bool KEEP = true, bool REVERSE = false>
 		void CallUnknownMoveConstructors(Count, const Block&) const;
-		template<CT::Data, bool KEEP, bool REVERSE>
+		template<CT::Data, bool KEEP = true, bool REVERSE = false>
 		void CallKnownMoveConstructors(Count, const Block&) const;
 
-		template<bool KEEP>
+		template<bool KEEP = true>
 		void CallUnknownMoveAssignment(Count, const Block&) const;
-		template<CT::Data, bool KEEP>
+		template<CT::Data, bool KEEP = true>
 		void CallKnownMoveAssignment(Count, const Block&) const;
 
 		void CallUnknownDestructors() const;
@@ -738,6 +739,7 @@ namespace Langulus::Anyness
 	} // namespace Langulus::Anyness::Inner
 } // namespace Langulus::Anyness
 
+
 namespace Langulus::CT
 {
 
@@ -767,6 +769,10 @@ namespace Langulus::CT
 	/// doesn't	require any special handling												
 	template<class... T>
 	concept CustomData = ((Data<T> && Flat<T> && NotAbandonedOrDisowned<T>) && ...);
+
+	/// Check if a block type is statically typed										
+	template<class... T>
+	concept StaticallyTyped = ((Block<T> && Decay<T>::StaticallyTyped) && ...);
 
 } // namespace Langulus::CT
 

@@ -151,15 +151,15 @@ namespace Langulus::Anyness
 		///	Concatenation																		
 		///																							
 		template<CT::Deep T>
-		Any operator + (const T&) const requires CT::Dense<T>;
+		NOD() Any operator + (const T&) const requires CT::Dense<T>;
 		template<CT::Deep T>
-		Any operator + (T&) const requires CT::Dense<T>;
+		NOD() Any operator + (T&) const requires CT::Dense<T>;
 		template<CT::Deep T>
-		Any operator + (T&&) const requires CT::Dense<T>;
+		NOD() Any operator + (T&&) const requires CT::Dense<T>;
 		template<CT::Deep T>
-		Any operator + (Disowned<T>&&) const requires CT::Dense<T>;
+		NOD() Any operator + (Disowned<T>&&) const requires CT::Dense<T>;
 		template<CT::Deep T>
-		Any operator + (Abandoned<T>&&) const requires CT::Dense<T>;
+		NOD() Any operator + (Abandoned<T>&&) const requires CT::Dense<T>;
 
 		template<CT::Deep T>
 		Any& operator += (const T&) requires CT::Dense<T>;
@@ -175,6 +175,11 @@ namespace Langulus::Anyness
 	protected:
 		template<class T>
 		void PrepareForReassignment();
+
+		template<CT::Block WRAPPER, bool KEEP, CT::Block T>
+		WRAPPER Concatenate(const T&) const;
+		template<CT::Block WRAPPER, bool KEEP, CT::Block T>
+		WRAPPER Concatenate(T&&) const;
 	};
 
 } // namespace Langulus::Anyness

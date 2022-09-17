@@ -106,25 +106,6 @@ namespace Langulus::Anyness
 		return {GetRaw(), mCount};
 	}
 
-	/// Destructive concatenatenation of anything convertible to Text				
-	///	@tparam RHS - type to stringify (deducible)									
-	///	@param rhs - the data to stringify												
-	///	@return a reference to this Text													
-	template<class RHS>
-	Text& Text::operator += (const RHS& rhs) {
-		TAny::operator+=<Text, RHS>(rhs);
-		return *this;
-	}
-
-	/// Concatenatenation of anything convertible to Text								
-	///	@tparam RHS - type to stringify (deducible)									
-	///	@param rhs - the data to stringify												
-	///	@return a new Text container with both sides concatenated				
-	template<class RHS>
-	NOD() Text Text::operator + (const RHS& rhs) const {
-		return TAny::operator+<Text, RHS>(rhs);
-	}
-
 	/// Compare with a std::string															
 	///	@param rhs - the text to compare against										
 	///	@return true if both strings are the same										
@@ -153,6 +134,71 @@ namespace Langulus::Anyness
 		return operator == (Text {Disown(rhs)});
 	}
 
+	
+	///																								
+	///	Concatenation																			
+	///																								
+	
+	/// Copy-concatenate with another TAny													
+	///	@param rhs - the right operand													
+	///	@return the combined container													
+	inline Text Text::operator + (const Text& rhs) const {
+		return Concatenate<Text, true>(rhs);
+	}
+
+	/// Move-concatenate with another TAny													
+	///	@param rhs - the right operand													
+	///	@return the combined container													
+	inline Text Text::operator + (Text&& rhs) const {
+		return Concatenate<Text, true>(Forward<Text>(rhs));
+	}
+
+	/// Disown-concatenate with another TAny												
+	///	@param rhs - the right operand													
+	///	@return the combined container													
+	inline Text Text::operator + (Disowned<Text>&& rhs) const {
+		return Concatenate<Text, false>(rhs.mValue);
+	}
+
+	/// Abandon-concatenate with another TAny												
+	///	@param rhs - the right operand													
+	///	@return the combined container													
+	inline Text Text::operator + (Abandoned<Text>&& rhs) const {
+		return Concatenate<Text, false>(Forward<Text>(rhs.mValue));
+	}
+
+	/// Destructive copy-concatenate with another TAny									
+	///	@param rhs - the right operand													
+	///	@return a reference to this modified container								
+	inline Text& Text::operator += (const Text& rhs) {
+		InsertBlock(rhs);
+		return *this;
+	}
+
+	/// Destructive move-concatenate with any deep type								
+	///	@param rhs - the right operand													
+	///	@return a reference to this modified container								
+	inline Text& Text::operator += (Text&& rhs) {
+		InsertBlock(Forward<Text>(rhs));
+		return *this;
+	}
+
+	/// Destructive disown-concatenate with any deep type								
+	///	@param rhs - the right operand													
+	///	@return a reference to this modified container								
+	inline Text& Text::operator += (Disowned<Text>&& rhs) {
+		InsertBlock(rhs.Forward());
+		return *this;
+	}
+
+	/// Destructive abandon-concatenate with any deep type							
+	///	@param rhs - the right operand													
+	///	@return a reference to this modified container								
+	inline Text& Text::operator += (Abandoned<Text>&& rhs) {
+		InsertBlock(rhs.Forward());
+		return *this;
+	}
+
 } // namespace Langulus::Anyness
 
 namespace Langulus
@@ -163,4 +209,4 @@ namespace Langulus
 		return Anyness::Text {text, size};
 	}
 
-}
+} // namespace Langulus

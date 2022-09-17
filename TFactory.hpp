@@ -94,6 +94,7 @@ namespace Langulus::Anyness
 	public:
 		using Type = T;
 		using Producer = CT::ProducerOf<T>;
+		static constexpr bool StaticallyTyped = true;
 
 	protected:
 		// Each factory is bound to a producer instance							
