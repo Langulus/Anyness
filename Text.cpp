@@ -349,16 +349,6 @@ namespace Langulus::Anyness
 		return HashBytes(GetRaw(), GetCount());
 	}
 
-	/// Create a debug string via any text container									
-	///	@param text - text to copy															
-	Debug::Debug(const Text& text)
-		: Text {text} {}
-
-	/// Create a debug string via any text container									
-	///	@param text - text to move															
-	Debug::Debug(Text&& text) noexcept
-		: Text {text} {}
-
 	/// Disown-construct a debug string														
 	///	@param o - text to copy																
 	Debug::Debug(Disowned<Debug>&& o) noexcept

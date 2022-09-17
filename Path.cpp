@@ -30,7 +30,7 @@ namespace Langulus::Anyness
 	///	@return a cloned text container with the extension							
 	Text Path::GetExtension() const {
 		Offset offset {};
-		if (Text::FindOffsetReverse('.', offset))
+		if (Text::FindOffsetReverse(Text {'.'}, offset))
 			return Text::Crop(offset + 1, mCount - offset - 1).Lowercase();
 		return {};
 	}
@@ -39,7 +39,7 @@ namespace Langulus::Anyness
 	///	@return the directory part, including the last '/'							
 	Path Path::GetDirectory() const {
 		Offset offset {};
-		if (Text::FindOffsetReverse('/', offset))
+		if (Text::FindOffsetReverse(Text {'/'}, offset))
 			return Text::Crop(0, offset + 1);
 		return {};
 	}
@@ -48,7 +48,7 @@ namespace Langulus::Anyness
 	///	@return the filename part (after the last '/')								
 	Path Path::GetFilename() const {
 		Offset offset {};
-		if (Text::FindOffsetReverse('/', offset))
+		if (Text::FindOffsetReverse(Text {'/'}, offset))
 			return Text::Crop(offset + 1, mCount - offset - 1);
 		return *this;
 	}
@@ -67,7 +67,7 @@ namespace Langulus::Anyness
 			if (rhs.last() == '/')
 				return *this + rhs;
 			else {
-				auto temp = *this + '/';
+				auto temp = *this + Text {'/'};
 				temp += rhs;
 				return Path {Abandon(temp)};
 			}
@@ -88,7 +88,7 @@ namespace Langulus::Anyness
 			if (rhs.last() == '/')
 				*this += rhs;
 			else {
-				*this += '/';
+				*this += Text {'/'};
 				*this += rhs;
 			}
 		}

@@ -29,8 +29,8 @@ namespace Langulus::Anyness
 		Text(const TAny&);
 		Text(TAny&&) noexcept;
 
-		/*template<CT::Deep T>
-		Text(const T&) = delete;*/
+		template<CT::Deep T>
+		Text(const T&) = delete;
 
 		Text(Disowned<Text>&&) noexcept;
 		Text(Abandoned<Text>&&) noexcept;
@@ -49,8 +49,7 @@ namespace Langulus::Anyness
 
 		explicit Text(const Letter*) noexcept;
 		explicit Text(Disowned<const Letter*>&&) noexcept;
-
-		Text(const Letter&);
+		explicit Text(const Letter&);
 
 		template<CT::Dense T>
 		explicit Text(const T&) requires CT::Number<T>;
@@ -115,11 +114,12 @@ namespace Langulus::Anyness
 	class Debug : public Text {
 		LANGULUS_BASES(Text);
 	public:
-		Debug() = default;
-		Debug(const Text&);
-		Debug(Text&&) noexcept;
-		Debug(Disowned<Debug>&& o) noexcept;
-		Debug(Abandoned<Debug>&& o) noexcept;
+		using Text::Text;
+
+		Debug(Disowned<Debug>&&) noexcept;
+		Debug(Abandoned<Debug>&&) noexcept;
+
+		using Text::operator +=;
 	};
 
 } // namespace Langulus::Anyness

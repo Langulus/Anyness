@@ -1756,7 +1756,10 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 				REQUIRE(pack.GetCount() == 5);
 				REQUIRE(pack.GetReserved() >= 20);
 				#if LANGULUS_FEATURE(MANAGED_MEMORY)
-					REQUIRE(pack.GetRaw() == memory);
+					if constexpr (CT::POD<E>) {
+						// Test works only for POD types, because containers shift entries around
+						REQUIRE(pack.GetRaw() == memory);
+					}
 				#endif
 			}
 		}

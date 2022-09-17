@@ -29,8 +29,8 @@ namespace Langulus::Anyness
 		Bytes(const TAny&);
 		Bytes(TAny&&) noexcept;
 
-		//template<CT::Deep T>
-		//Bytes(const T&) = delete;
+		template<CT::Deep T>
+		Bytes(const T&) = delete;
 
 		Bytes(const void*, const Size&);
 		Bytes(void*, const Size&);

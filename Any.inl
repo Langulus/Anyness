@@ -630,13 +630,13 @@ namespace Langulus::Anyness
 				return WRAPPER {Disown(rhs)};
 		}
 		else if (rhs.IsEmpty())
-			return WRAPPER {*this};
+			return reinterpret_cast<const WRAPPER&>(*this);
 
 		WRAPPER result;
 		if constexpr (!CT::StaticallyTyped<WRAPPER>)
 			result.template SetType<false>(mType);
 		result.Allocate(mCount + rhs.mCount);
-		result.InsertBlock(*this);
+		result.InsertBlock(reinterpret_cast<const WRAPPER&>(*this));
 		if constexpr (KEEP)
 			result.InsertBlock(rhs);
 		else
@@ -659,13 +659,13 @@ namespace Langulus::Anyness
 				return WRAPPER {Abandon(Forward<T>(rhs))};
 		}
 		else if (rhs.IsEmpty())
-			return WRAPPER {*this};
+			return reinterpret_cast<const WRAPPER&>(*this);
 
 		WRAPPER result;
 		if constexpr (!CT::StaticallyTyped<WRAPPER>)
 			result.template SetType<false>(mType);
 		result.Allocate(mCount + rhs.mCount);
-		result.InsertBlock(*this);
+		result.InsertBlock(reinterpret_cast<const WRAPPER&>(*this));
 		if constexpr (KEEP)
 			result.InsertBlock(Forward<T>(rhs));
 		else
