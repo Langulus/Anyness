@@ -1834,7 +1834,7 @@ namespace Langulus::Anyness
 	///	@return a reference to this modified container								
 	TEMPLATE()
 	TAny<T>& TAny<T>::operator += (TAny&& rhs) {
-		InsertBlock(Forward<T>(rhs));
+		InsertBlock(Forward<TAny>(rhs));
 		return *this;
 	}
 
