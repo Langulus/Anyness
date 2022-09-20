@@ -646,7 +646,7 @@ namespace Langulus::Anyness
 		KnownPointer(Disowned<KnownPointer>&&) noexcept;
 		KnownPointer(Abandoned<KnownPointer>&&) noexcept;
 
-		constexpr KnownPointer(Byte* pointer, Inner::Allocation* entry) noexcept;
+		constexpr KnownPointer(const void* pointer, Inner::Allocation* entry) noexcept;
 
 		template<CT::Sparse T>
 		explicit KnownPointer(T);

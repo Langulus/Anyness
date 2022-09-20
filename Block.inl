@@ -4282,8 +4282,8 @@ namespace Langulus::Anyness
 	/// Manually construct a pointer															
 	///	@param pointer - the pointer														
 	///	@param entry - the entry															
-	constexpr Block::KnownPointer::KnownPointer(Byte* pointer, Inner::Allocation* entry) noexcept
-		: mPointer {pointer}
+	constexpr Block::KnownPointer::KnownPointer(const void* pointer, Inner::Allocation* entry) noexcept
+		: mPointer {const_cast<Byte*>(static_cast<const Byte*>(pointer))}
 		, mEntry {entry} {}
 
 	/// Move-assign or Abandon-assign														
