@@ -2592,7 +2592,7 @@ namespace Langulus::Anyness
 	///	@return the number of called functions											
 	template<bool SKIP, class... F>
 	Count Block::ForEachDeepRev(F&&... calls) const {
-		return const_cast<Block*>(*this)
+		return const_cast<Block&>(*this)
 			.template ForEachDeepRev<SKIP, false>(Forward<F>(calls)...);
 	}
 
