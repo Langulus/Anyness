@@ -159,42 +159,6 @@ namespace Langulus::Anyness
 		Count ForEachValueElement(TFunctor<void(const Block&)>&&) const;
 		Count ForEachValueElement(TFunctor<void(Block&)>&&);
 
-		template<bool MUTABLE = true, class... F>
-		Count ForEachKey(F&&...);
-		template<class... F>
-		Count ForEachKey(F&&...) const;
-		template<bool MUTABLE = true, class... F>
-		Count ForEachValue(F&&...);
-		template<class... F>
-		Count ForEachValue(F&&...) const;
-	
-		template<bool MUTABLE = true, class... F>
-		Count ForEachKeyRev(F&&...);
-		template<class... F>
-		Count ForEachKeyRev(F&&...) const;
-		template<bool MUTABLE = true, class... F>
-		Count ForEachValueRev(F&&...);
-		template<class... F>
-		Count ForEachValueRev(F&&...) const;
-	
-		template<bool SKIP = true, bool MUTABLE = true, class... F>
-		Count ForEachKeyDeep(F&&...);
-		template<bool SKIP = true, class... F>
-		Count ForEachKeyDeep(F&&...) const;
-		template<bool SKIP = true, bool MUTABLE = true, class... F>
-		Count ForEachValueDeep(F&&...);
-		template<bool SKIP = true, class... F>
-		Count ForEachValueDeep(F&&...) const;
-	
-		template<bool SKIP = true, bool MUTABLE = true, class... F>
-		Count ForEachKeyDeepRev(F&&...);
-		template<bool SKIP = true, class... F>
-		Count ForEachKeyDeepRev(F&&...) const;
-		template<bool SKIP = true, bool MUTABLE = true, class... F>
-		Count ForEachValueDeepRev(F&&...);
-		template<bool SKIP = true, class... F>
-		Count ForEachValueDeepRev(F&&...) const;
-
 	protected:
 		template<bool REUSE>
 		void AllocateKeys(const Count&);
@@ -216,6 +180,11 @@ namespace Langulus::Anyness
 		NOD() static Size RequestKeyAndInfoSize(Count, Offset&) noexcept;
 
 		void RemoveIndex(const Offset&) noexcept;
+
+		NOD() const TAny<K>& GetKeys() const noexcept;
+		NOD() TAny<K>& GetKeys() noexcept;
+		NOD() const TAny<V>& GetValues() const noexcept;
+		NOD() TAny<V>& GetValues() noexcept;
 
 		NOD() decltype(auto) GetKey(const Offset&) const noexcept;
 		NOD() decltype(auto) GetKey(const Offset&) noexcept;

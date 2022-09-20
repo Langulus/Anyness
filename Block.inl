@@ -2462,6 +2462,43 @@ namespace Langulus::Anyness
 		else TODO();
 	}
 
+	/// Iterate each element block															
+	///	@param call - the call to execute for each element block					
+	///	@return the number of iterations done											
+	template<bool MUTABLE, class F>
+	Count Block::ForEachElement(F&& call) {
+		using A = ArgumentOf<F>;
+		using R = ReturnOf<F>;
+
+		static_assert(CT::Block<A>,
+			"Function argument must be a CT::Block type");
+		static_assert(CT::Constant<A> || (CT::Mutable<A> && MUTABLE),
+			"Non constant iterator for constant memory block");
+
+		Count index {};
+		while (index < GetCount()) {
+			A block = GetElement(index);
+			if constexpr (CT::Bool<R>) {
+				if (!call(block))
+					return index + 1;
+			}
+			else call(block);
+
+			++index;
+		}
+
+		return index;
+	}
+
+	/// Iterate each element block															
+	///	@param call - the call to execute for each element block					
+	///	@return the number of iterations done											
+	template<class F>
+	Count Block::ForEachElement(F&& call) const {
+		return const_cast<Block&>(*this)
+			.template ForEachElement<false>(call);
+	}
+
 	/// Execute functions for each element inside container							
 	/// Function returns immediately after the first viable iterator is done	
 	///	@tparam MUTABLE - whether or not a change to container is allowed		
@@ -2480,7 +2517,8 @@ namespace Langulus::Anyness
 	///	@return the number of called functions											
 	template<class... F>
 	Count Block::ForEach(F&&... calls) const {
-		return const_cast<Block&>(*this).ForEach<false>(Forward<F>(calls)...);
+		return const_cast<Block&>(*this)
+			.template ForEach<false>(Forward<F>(calls)...);
 	}
 
 	/// Execute functions for each element inside container (reverse)				
@@ -2500,7 +2538,8 @@ namespace Langulus::Anyness
 	///	@return the number of called functions											
 	template<class... F>
 	Count Block::ForEachRev(F&&... calls) const {
-		return const_cast<Block&>(*this).ForEachRev<false>(Forward<F>(calls)...);
+		return const_cast<Block&>(*this)
+			.template ForEachRev<false>(Forward<F>(calls)...);
 	}
 
 	/// Execute functions for each element inside container, nested for any		
@@ -2526,7 +2565,8 @@ namespace Langulus::Anyness
 	///	@return the number of called functions											
 	template<bool SKIP, class... F>
 	Count Block::ForEachDeep(F&&... calls) const {
-		return const_cast<Block&>(*this).ForEachDeep<SKIP, false>(Forward<F>(calls)...);
+		return const_cast<Block&>(*this)
+			.template ForEachDeep<SKIP, false>(Forward<F>(calls)...);
 	}
 
 	/// Execute function F for each element inside container, nested for any	
@@ -2552,7 +2592,8 @@ namespace Langulus::Anyness
 	///	@return the number of called functions											
 	template<bool SKIP, class... F>
 	Count Block::ForEachDeepRev(F&&... calls) const {
-		return const_cast<Block*>(this)->ForEachDeepRev<SKIP, false>(Forward<F>(calls)...);
+		return const_cast<Block*>(*this)
+			.template ForEachDeepRev<SKIP, false>(Forward<F>(calls)...);
 	}
 
 	/// Execute functions for each element inside container							
@@ -2563,8 +2604,8 @@ namespace Langulus::Anyness
 	///	@return the number of called functions											
 	template<bool MUTABLE, bool REVERSE, class F>
 	Count Block::ForEachSplitter(F&& call) {
-		using A = decltype(GetLambdaArgument(&F::operator()));
-		using R = decltype(call(Uneval<A>()));
+		using A = ArgumentOf<F>;
+		using R = ReturnOf<F>;
 
 		static_assert(CT::Constant<A> || (CT::Mutable<A> && MUTABLE),
 			"Non constant iterator for constant memory block");
@@ -2583,8 +2624,8 @@ namespace Langulus::Anyness
 	///	@return the number of called functions											
 	template<bool SKIP, bool MUTABLE, bool REVERSE, class F>
 	Count Block::ForEachDeepSplitter(F&& call) {
-		using A = decltype(GetLambdaArgument(&F::operator()));
-		using R = decltype(call(Uneval<A>()));
+		using A = ArgumentOf<F>;
+		using R = ReturnOf<F>;
 
 		static_assert(CT::Constant<A> || (CT::Mutable<A> && MUTABLE),
 			"Non constant iterator for constant memory block");
@@ -2612,136 +2653,42 @@ namespace Langulus::Anyness
 	///	@return the number of executions that occured								
 	template<class R, CT::Data A, bool REVERSE, bool MUTABLE>
 	Count Block::ForEachInner(TFunctor<R(A)>&& call) {
-		if (IsEmpty())
+		if (IsEmpty() || !mType->CastsTo<A, true>())
 			return 0;
 		 
 		UNUSED() auto initialCount = mCount;
 		constexpr bool HasBreaker = CT::Bool<R>;
 		Count index {};
-		if (mType->Is<A>()) {
-			// Fast specialized routine that gives direct access				
-			// Uses Get<>() instead of As<>()										
-			while (index < mCount) {
-				// Iterator is a reference												
-				if constexpr (CT::Dense<A>) {
-					if constexpr (REVERSE) {
-						if constexpr (HasBreaker) {
-							if (!call(Get<A>(mCount - index - 1)))
-								return index + 1;
-						}
-						else call(Get<A>(mCount - index - 1));
-					}
-					else {
-						if constexpr (HasBreaker) {
-							if (!call(Get<A>(index)))
-								return index + 1;
-						}
-						else call(Get<A>(index));
-					}
-				}
-				else {
-					if constexpr (REVERSE) {
-						auto pointer = Get<A>(mCount - index - 1);
-						if constexpr (HasBreaker) {
-							if (!call(pointer))
-								return index + 1;
-						}
-						else call(pointer);
-					}
-					else {
-						auto pointer = Get<A>(index);
-						if constexpr (HasBreaker) {
-							if (!call(pointer))
-								return index + 1;
-						}
-						else call(pointer);
-					}
-				}
 
-				if constexpr (MUTABLE) {
-					// This block might change while iterating - make sure	
-					// index compensates for changes									
-					if (mCount < initialCount) {
-						initialCount = mCount;
-						continue;
-					}
-					else ++index;
+		while (index < mCount) {
+			if constexpr (REVERSE) {
+				if constexpr (HasBreaker) {
+					if (!call(Get<A>(mCount - index - 1)))
+						return ++index;
 				}
-				else ++index;
+				else call(Get<A>(mCount - index - 1));
+			}
+			else {
+				if constexpr (HasBreaker) {
+					if (!call(Get<A>(index)))
+						return ++index;
+				}
+				else call(Get<A>(index));
 			}
 
-			return index;
-		}
-		else if (mType->CastsTo<A>()) {
-			// Slow generalized routine that resolves each element			
-			// Uses As<>() instead of Get<>()										
-			Count successes {};
-			while (index < mCount) {
-				try {
-					// Iterator is a reference											
-					if constexpr (CT::Dense<A>) {
-						if constexpr (REVERSE) {
-							if constexpr (HasBreaker) {
-								if (!call(As<A>(mCount - index - 1)))
-									return successes + 1;
-							}
-							else call(As<A>(mCount - index - 1));
-						}
-						else {
-							if constexpr (HasBreaker) {
-								if (!call(As<A>(index)))
-									return successes + 1;
-							}
-							else call(As<A>(index));
-						}
-					}
-					else {
-						if constexpr (REVERSE) {
-							auto pointer = As<A>(mCount - index - 1);
-							if constexpr (HasBreaker) {
-								if (!call(pointer))
-									return successes + 1;
-							}
-							else call(pointer);
-						}
-						else {
-							auto pointer = As<A>(index);
-							if constexpr (HasBreaker) {
-								if (!call(pointer))
-									return successes + 1;
-							}
-							else call(pointer);
-						}
-					}
-				}
-				catch (const Except::Access&) {
-					// Don't count bad access exceptions as a success			
-					++index;
+			if constexpr (MUTABLE) {
+				// This block might change while iterating - make sure		
+				// index compensates for changes										
+				if (mCount < initialCount) {
+					initialCount = mCount;
 					continue;
 				}
-
-				if constexpr (MUTABLE) {
-					// This block might change while iterating - make sure	
-					// index compensates for changes									
-					if (mCount < initialCount) {
-						initialCount = mCount;
-						continue;
-					}
-					else {
-						++index;
-						++successes;
-					}
-				}
-				else {
-					++index;
-					++successes;
-				}
 			}
-
-			return successes;
+			
+			++index;
 		}
 
-		return 0;
+		return index;
 	}
 	
 	/// Iterate and execute call for each element										
@@ -2771,7 +2718,7 @@ namespace Langulus::Anyness
 			UNUSED() const auto initialBlockCount = block->GetCount();
 			if constexpr (HasBreaker) {
 				if (!call(*block))
-					return index + 1;
+					return ++index;
 			}
 			else call(*block);
 

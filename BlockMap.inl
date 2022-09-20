@@ -284,13 +284,13 @@ namespace Langulus::Anyness
 	/// Get the raw key array (const)														
 	template<CT::Data K>
 	constexpr decltype(auto) BlockMap::GetRawKeys() const noexcept {
-		return reinterpret_cast<const TAny<K>&>(mKeys).GetRaw();
+		return GetKeys<K>().GetRaw();
 	}
 
 	/// Get the raw key array																	
 	template<CT::Data K>
 	constexpr decltype(auto) BlockMap::GetRawKeys() noexcept {
-		return reinterpret_cast<TAny<K>&>(mKeys).GetRaw();
+		return GetKeys<K>().GetRaw();
 	}
 
 	/// Get the end of the raw key array													
@@ -302,13 +302,13 @@ namespace Langulus::Anyness
 	/// Get the raw value array (const)														
 	template<CT::Data V>
 	constexpr decltype(auto) BlockMap::GetRawValues() const noexcept {
-		return reinterpret_cast<const TAny<V>&>(mValues).GetRaw();
+		return GetValues<V>().GetRaw();
 	}
 
 	/// Get the raw value array																
 	template<CT::Data V>
 	constexpr decltype(auto) BlockMap::GetRawValues() noexcept {
-		return reinterpret_cast<TAny<V>&>(mValues).GetRaw();
+		return GetValues<V>().GetRaw();
 	}
 
 	/// Get end of the raw value array														
@@ -1095,6 +1095,34 @@ namespace Langulus::Anyness
 		--mValues.mCount;
 	}
 
+	/// Get the templated key container														
+	///	@attention for internal use only, elements might not be initialized	
+	template<CT::Data K>
+	const TAny<K>& BlockMap::GetKeys() const noexcept {
+		return reinterpret_cast<const TAny<K>&>(mKeys);
+	}
+
+	/// Get the templated key container														
+	///	@attention for internal use only, elements might not be initialized	
+	template<CT::Data K>
+	TAny<K>& BlockMap::GetKeys() noexcept {
+		return reinterpret_cast<TAny<K>&>(mKeys);
+	}
+
+	/// Get the templated values container													
+	///	@attention for internal use only, elements might not be initialized	
+	template<CT::Data V>
+	const TAny<V>& BlockMap::GetValues() const noexcept {
+		return reinterpret_cast<const TAny<V>&>(mValues);
+	}
+
+	/// Get the templated values container													
+	///	@attention for internal use only, elements might not be initialized	
+	template<CT::Data V>
+	TAny<V>& BlockMap::GetValues() noexcept {
+		return reinterpret_cast<TAny<V>&>(mValues);
+	}
+
 	/// Erase a pair via key																	
 	///	@param match - the key to search for											
 	///	@return the number of removed pairs												
@@ -1454,7 +1482,12 @@ namespace Langulus::Anyness
 		return mValues.GetUses();
 	}
 
-	
+
+
+	///																								
+	///	Iteration																				
+	///																								
+
 	/// Get iterator to first element														
 	///	@return an iterator to the first element, or end if empty				
 	inline typename BlockMap::Iterator BlockMap::begin() noexcept {
@@ -1522,6 +1555,286 @@ namespace Langulus::Anyness
 			GetKey(offset),
 			GetValue(offset)
 		};
+	}
+
+	/// Execute functions for each element inside container							
+	///	@tparam MUTABLE - whether or not a change to container is allowed		
+	///							while iterating												
+	///	@tparam F - the function types (deducible)									
+	///	@param call - the instance of the function F to call						
+	///	@return the number of called functions											
+	template<bool MUTABLE, bool REVERSE, class F>
+	Count BlockMap::ForEachSplitter(Block& part, F&& call) {
+		using A = ArgumentOf<F>;
+		using R = ReturnOf<F>;
+
+		static_assert(CT::Constant<A> || (CT::Mutable<A> && MUTABLE),
+			"Non constant iterator for constant memory block");
+
+		return ForEachInner<R, A, REVERSE, MUTABLE>(part, Forward<F>(call));
+	}
+
+	/// Execute functions for each element inside container, nested for any		
+	/// contained deep containers																
+	///	@tparam SKIP - set to false, to execute F for containers, too			
+	///						set to true, to execute only for non-deep elements		
+	///	@tparam MUTABLE - whether or not a change to container is allowed		
+	///							while iterating												
+	///	@tparam F - the function type (deducible)										
+	///	@param call - the instance of the function F to call						
+	///	@return the number of called functions											
+	template<bool SKIP, bool MUTABLE, bool REVERSE, class F>
+	Count BlockMap::ForEachDeepSplitter(Block& part, F&& call) {
+		using A = ArgumentOf<F>;
+		using R = ReturnOf<F>;
+
+		static_assert(CT::Constant<A> || (CT::Mutable<A> && MUTABLE),
+			"Non constant iterator for constant memory block");
+
+		if constexpr (CT::Deep<A>) {
+			// If argument type is deep												
+			return ForEachDeepInner<R, A, REVERSE, SKIP, MUTABLE>(
+				part, Forward<F>(call));
+		}
+		else if constexpr (CT::Constant<A>) {
+			// Any other type is wrapped inside another ForEachDeep call	
+			return ForEachDeep<SKIP, MUTABLE>(part, [&call](const Block& block) {
+				block.ForEach(Forward<F>(call));
+			});
+		}
+		else {
+			// Any other type is wrapped inside another ForEachDeep call	
+			return ForEachDeep<SKIP, MUTABLE>(part, [&call](Block& block) {
+				block.ForEach(Forward<F>(call));
+			});
+		}
+	}
+
+	/// Iterate and execute call for each element										
+	///	@param call - the function to execute for each element of type T		
+	///	@return the number of executions that occured								
+	template<class R, CT::Data A, bool REVERSE, bool MUTABLE>
+	Count BlockMap::ForEachInner(Block& part, TFunctor<R(A)>&& call) {
+		if (IsEmpty() || !part.mType->CastsTo<A, true>())
+			return 0;
+		 
+		constexpr bool HasBreaker = CT::Bool<R>;
+		Count done {};
+		Count index {};
+
+		while (index < mValues.mReserved) {
+			if (!mInfo[index]) {
+				++index;
+				continue;
+			}
+
+			if constexpr (REVERSE) {
+				if constexpr (HasBreaker) {
+					if (!call(part.Get<A>(mValues.mReserved - index - 1)))
+						return ++done;
+				}
+				else call(part.Get<A>(mValues.mReserved - index - 1));
+			}
+			else {
+				if constexpr (HasBreaker) {
+					if (!call(part.Get<A>(index)))
+						return ++done;
+				}
+				else call(part.Get<A>(index));
+			}
+
+			++index;
+			++done;
+		}
+
+		return done;
+	}
+	
+	/// Iterate and execute call for each element										
+	///	@param call - the function to execute for each element of type T		
+	///	@return the number of executions that occured								
+	template<class R, CT::Data A, bool REVERSE, bool SKIP, bool MUTABLE>
+	Count BlockMap::ForEachDeepInner(Block& part, TFunctor<R(A)>&& call) {
+		constexpr bool HasBreaker = CT::Bool<R>;
+		auto count {part.GetCountDeep()};
+		Count index {};
+		while (index < count) {
+			auto block = ReinterpretCast<A>(part.GetBlockDeep(index));//TODO custom checked getblockdeep here, write tests and you'll see
+			if constexpr (SKIP) {
+				// Skip deep/empty sub blocks											
+				if (block->IsDeep() || block->IsEmpty()) {
+					++index;
+					continue;
+				}
+			}
+
+			if constexpr (HasBreaker) {
+				if (!call(*block))
+					return ++index;
+			}
+			else call(*block);
+
+			++index;
+		}
+
+		return index;
+	}
+
+	/// Iterate all keys inside the map, and perform f() on them					
+	/// You can break the loop, by returning false inside f()						
+	///	@param f - the function to call for each key block							
+	///	@return the number of successful f() executions								
+	template<bool MUTABLE, class F>
+	Count BlockMap::ForEachElement(Block& part, F&& call) {
+		using A = ArgumentOf<F>;
+		using R = ReturnOf<F>;
+
+		static_assert(CT::Block<A>,
+			"Function argument must be a CT::Block type");
+		static_assert(CT::Constant<A> || (CT::Mutable<A> && MUTABLE),
+			"Non constant iterator for constant memory block");
+
+		Count index {};
+		while (index < GetReserved()) {
+			if (!mInfo[index]) {
+				++index;
+				continue;
+			}
+
+			A block = part.GetElement(index);
+			if constexpr (CT::Bool<R>) {
+				if (!call(block))
+					return ++index;
+			}
+			else call(block);
+
+			++index;
+		}
+
+		return index;
+	}
+
+	/// Iterate all keys inside the map, and perform f() on them					
+	/// You can break the loop, by returning false inside f()						
+	///	@param f - the function to call for each key block							
+	///	@return the number of successful f() executions								
+	template<bool MUTABLE, class F>
+	Count BlockMap::ForEachKeyElement(F&& f) {
+		return ForEachElement<MUTABLE>(mKeys, Forward<F>(f));
+	}
+
+	template<class F>
+	Count BlockMap::ForEachKeyElement(F&& f) const {
+		return const_cast<BlockMap&>(*this)
+			.template ForEachKeyElement<false>(Forward<F>(f));
+	}
+
+	/// Iterate all values inside the map, and perform f() on them					
+	/// You can break the loop, by returning false inside f()						
+	///	@param f - the function to call for each key block							
+	///	@return the number of successful f() executions								
+	template<bool MUTABLE, class F>
+	Count BlockMap::ForEachValueElement(F&& f) {
+		return ForEachElement<MUTABLE>(mValues, Forward<F>(f));
+	}
+
+	template<class F>
+	Count BlockMap::ForEachValueElement(F&& f) const {
+		return const_cast<BlockMap&>(*this)
+			.template ForEachValueElement<false>(Forward<F>(f));
+	}
+
+	/// Iterate keys inside the map, and perform a set of functions on them		
+	/// depending on the contained type														
+	/// You can break the loop, by returning false inside f()						
+	///	@param f - the functions to call for each key block						
+	///	@return the number of successful f() executions								
+	template<bool MUTABLE, class... F>
+	Count BlockMap::ForEachKey(F&&... f) {
+		return (... || ForEachSplitter<MUTABLE, false>(mKeys, Forward<F>(f)));
+	}
+
+	template<class... F>
+	Count BlockMap::ForEachKey(F&&... f) const {
+		return const_cast<BlockMap&>(*this)
+			.template ForEachKey<false>(Forward<F>(f)...);
+	}
+
+	template<bool MUTABLE, class... F>
+	Count BlockMap::ForEachValue(F&&... f) {
+		return (... || ForEachSplitter<MUTABLE, false>(mValues, Forward<F>(f)));
+	}
+
+	template<class... F>
+	Count BlockMap::ForEachValue(F&&... f) const {
+		return const_cast<BlockMap&>(*this)
+			.template ForEachValue<false>(Forward<F>(f)...);
+	}
+
+	template<bool MUTABLE, class... F>
+	Count BlockMap::ForEachKeyRev(F&&... f) {
+		return (... || ForEachSplitter<MUTABLE, true>(mKeys, Forward<F>(f)));
+	}
+
+	template<class... F>
+	Count BlockMap::ForEachKeyRev(F&&... f) const {
+		return const_cast<BlockMap&>(*this)
+			.template ForEachKeyRev<false>(Forward<F>(f)...);
+	}
+
+	template<bool MUTABLE, class... F>
+	Count BlockMap::ForEachValueRev(F&&... f) {
+		return (... || ForEachSplitter<MUTABLE, true>(mValues, Forward<F>(f)));
+	}
+
+	template<class... F>
+	Count BlockMap::ForEachValueRev(F&&... f) const {
+		return const_cast<BlockMap&>(*this)
+			.template ForEachValueRev<false>(Forward<F>(f)...);
+	}
+
+	template<bool SKIP, bool MUTABLE, class... F>
+	Count BlockMap::ForEachKeyDeep(F&&... f) {
+		return (... || ForEachDeepSplitter<SKIP, MUTABLE, false>(mKeys, Forward<F>(f)));
+	}
+
+	template<bool SKIP, class... F>
+	Count BlockMap::ForEachKeyDeep(F&&... f) const {
+		return const_cast<BlockMap&>(*this)
+			.template ForEachKeyDeep<SKIP, false>(Forward<F>(f)...);
+	}
+
+	template<bool SKIP, bool MUTABLE, class... F>
+	Count BlockMap::ForEachValueDeep(F&&... f) {
+		return (... || ForEachDeepSplitter<SKIP, MUTABLE, false>(mValues, Forward<F>(f)));
+	}
+
+	template<bool SKIP, class... F>
+	Count BlockMap::ForEachValueDeep(F&&... f) const {
+		return const_cast<BlockMap&>(*this)
+			.template ForEachValueDeep<SKIP, false>(Forward<F>(f)...);
+	}
+
+	template<bool SKIP, bool MUTABLE, class... F>
+	Count BlockMap::ForEachKeyDeepRev(F&&... f) {
+		return (... || ForEachDeepSplitter<SKIP, MUTABLE, true>(mKeys, Forward<F>(f)));
+	}
+
+	template<bool SKIP, class... F>
+	Count BlockMap::ForEachKeyDeepRev(F&&... f) const {
+		return const_cast<BlockMap&>(*this)
+			.template ForEachKeyDeepRev<SKIP, false>(Forward<F>(f)...);
+	}
+
+	template<bool SKIP, bool MUTABLE, class... F>
+	Count BlockMap::ForEachValueDeepRev(F&&... f) {
+		return (... || ForEachDeepSplitter<SKIP, MUTABLE, true>(mValues, Forward<F>(f)));
+	}
+
+	template<bool SKIP, class... F>
+	Count BlockMap::ForEachValueDeepRev(F&&... f) const {
+		return const_cast<BlockMap&>(*this)
+			.template ForEachValueDeepRev<SKIP, false>(Forward<F>(f)...);
 	}
 
 

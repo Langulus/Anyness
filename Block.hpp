@@ -288,11 +288,11 @@ namespace Langulus::Anyness
 		template<CT::Index IDX = Offset>
 		NOD() Block operator[] (const IDX&);
 
-		Count ForEachElement(TFunctor<bool(const Block&)>&&) const;
-		Count ForEachElement(TFunctor<bool(Block&)>&&);
-		Count ForEachElement(TFunctor<void(const Block&)>&&) const;
-		Count ForEachElement(TFunctor<void(Block&)>&&);
-	
+		template<bool MUTABLE = true, class F>
+		Count ForEachElement(F&&);
+		template<class F>
+		Count ForEachElement(F&&) const;
+		
 		template<bool MUTABLE = true, class... F>
 		Count ForEach(F&&...);
 		template<class... F>
@@ -323,13 +323,6 @@ namespace Langulus::Anyness
 		Count ForEachInner(TFunctor<R(A)>&&);
 		template<class R, CT::Data A, bool REVERSE, bool SKIP, bool MUTABLE>
 		Count ForEachDeepInner(TFunctor<R(A)>&&);
-	
-		/// This function declaration is used to decompose a lambda				
-		/// You can use it to extract the argument type of the lambda, using	
-		/// decltype on the return type. Useful for template deduction in		
-		/// the ForEach functions above, purely for convenience					
-		template<typename R, typename F, typename A>
-		A GetLambdaArgument(R(F::*)(A) const) const;
 	
 		NOD() Block CropInner(const Offset&, const Count&, const Count&) const noexcept;
 	

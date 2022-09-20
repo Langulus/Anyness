@@ -919,6 +919,69 @@ TEMPLATE_TEST_CASE(
 				REQUIRE(i == map.GetCount());
 			}
 		}
+
+		WHEN("ForEach flat dense key (immutable)") {
+			for (auto& comparer : darray1)
+				REQUIRE(map[comparer.mKey] == comparer.mValue);
+
+			int i = 0;
+			const auto done = map.ForEachKey([&](const K& key) {
+				// Different architectures result in different hashes			
+				if constexpr (Bitness == 32) {
+					switch (i) {
+					case 0:
+						REQUIRE(key == DenseCast(darray1[2].mKey));
+						break;
+					case 1:
+						REQUIRE(key == DenseCast(darray1[3].mKey));
+						break;
+					case 2:
+						REQUIRE(key == DenseCast(darray1[1].mKey));
+						break;
+					case 3:
+						REQUIRE(key == DenseCast(darray1[4].mKey));
+						break;
+					case 4:
+						REQUIRE(key == DenseCast(darray1[0].mKey));
+						break;
+					default:
+						FAIL("Index out of bounds in ranged-for");
+						break;
+					}
+				}
+				else if constexpr (Bitness == 64) {
+					switch (i) {
+					case 0:
+						REQUIRE(key == DenseCast(darray1[1].mKey));
+						break;
+					case 1:
+						REQUIRE(key == DenseCast(darray1[2].mKey));
+						break;
+					case 2:
+						REQUIRE(key == DenseCast(darray1[3].mKey));
+						break;
+					case 3:
+						REQUIRE(key == DenseCast(darray1[4].mKey));
+						break;
+					case 4:
+						REQUIRE(key == DenseCast(darray1[0].mKey));
+						break;
+					default:
+						FAIL("Index out of bounds in ranged-for");
+						break;
+					}
+				}
+				else return false;
+
+				++i;
+				return true;
+			});
+
+			THEN("The comparisons should be adequate") {
+				REQUIRE(i == map.GetCount());
+				REQUIRE(i == done);
+			}
+		}
 	}
 
 	GIVEN("Two maps") {

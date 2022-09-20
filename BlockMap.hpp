@@ -192,15 +192,15 @@ namespace Langulus::Anyness
 		NOD() ConstIterator end() const noexcept;
 		NOD() ConstIterator last() const noexcept;
 
-		Count ForEachKeyElement(TFunctor<bool(const Block&)>&&) const;
-		Count ForEachKeyElement(TFunctor<bool(Block&)>&&);
-		Count ForEachKeyElement(TFunctor<void(const Block&)>&&) const;
-		Count ForEachKeyElement(TFunctor<void(Block&)>&&);
+		template<bool MUTABLE = true, class F>
+		Count ForEachKeyElement(F&&);
+		template<class F>
+		Count ForEachKeyElement(F&&) const;
 
-		Count ForEachValueElement(TFunctor<bool(const Block&)>&&) const;
-		Count ForEachValueElement(TFunctor<bool(Block&)>&&);
-		Count ForEachValueElement(TFunctor<void(const Block&)>&&) const;
-		Count ForEachValueElement(TFunctor<void(Block&)>&&);
+		template<bool MUTABLE = true, class F>
+		Count ForEachValueElement(F&&);
+		template<class F>
+		Count ForEachValueElement(F&&) const;
 
 		template<bool MUTABLE = true, class... F>
 		Count ForEachKey(F&&...);
@@ -239,6 +239,18 @@ namespace Langulus::Anyness
 		Count ForEachValueDeepRev(F&&...) const;
 
 	protected:
+		template<bool MUTABLE, bool REVERSE, class F>
+		Count ForEachSplitter(Block&, F&&);
+		template<bool SKIP, bool MUTABLE, bool REVERSE, class F>
+		Count ForEachDeepSplitter(Block&, F&&);
+		template<class R, CT::Data A, bool REVERSE, bool MUTABLE>
+		Count ForEachInner(Block&, TFunctor<R(A)>&&);
+		template<class R, CT::Data A, bool REVERSE, bool SKIP, bool MUTABLE>
+		Count ForEachDeepInner(Block&, TFunctor<R(A)>&&);
+		template<bool MUTABLE, class F>
+		Count ForEachElement(Block&, F&&);
+
+
 		template<bool REUSE>
 		void AllocateKeys(const Count&);
 		void AllocateInner(const Count&);
@@ -260,6 +272,15 @@ namespace Langulus::Anyness
 		NOD() Size RequestKeyAndInfoSize(Count, Offset&) noexcept;
 
 		void RemoveIndex(const Offset&) noexcept;
+
+		template<CT::Data K>
+		NOD() const TAny<K>& GetKeys() const noexcept;
+		template<CT::Data K>
+		NOD() TAny<K>& GetKeys() noexcept;
+		template<CT::Data V>
+		NOD() const TAny<V>& GetValues() const noexcept;
+		template<CT::Data V>
+		NOD() TAny<V>& GetValues() noexcept;
 
 		NOD() Block GetKey(const Offset&) const noexcept;
 		NOD() Block GetKey(const Offset&) noexcept;

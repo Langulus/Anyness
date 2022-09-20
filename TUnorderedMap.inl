@@ -212,12 +212,8 @@ namespace Langulus::Anyness
 		::std::memcpy(result.mInfo, mInfo, GetReserved() + 1);
 
 		// Clone the keys & values														
-		CloneInner(
-			reinterpret_cast<const TAny<K>&>(mKeys), 
-			reinterpret_cast<TAny<K>&>(result.mKeys));
-		CloneInner(
-			reinterpret_cast<const TAny<V>&>(mValues),
-			reinterpret_cast<TAny<V>&>(result.mValues));
+		CloneInner(GetKeys(), result.GetKeys());
+		CloneInner(GetValues(), result.GetValues());
 		return Abandon(result);
 	}
 	
@@ -326,13 +322,13 @@ namespace Langulus::Anyness
 	/// Get the raw key array (const)														
 	TABLE_TEMPLATE()
 	constexpr auto TABLE()::GetRawKeys() const noexcept {
-		return reinterpret_cast<const TAny<K>&>(mKeys).GetRaw();
+		return GetKeys().GetRaw();
 	}
 
 	/// Get the raw key array																	
 	TABLE_TEMPLATE()
 	constexpr auto TABLE()::GetRawKeys() noexcept {
-		return reinterpret_cast<TAny<K>&>(mKeys).GetRaw();
+		return GetKeys().GetRaw();
 	}
 
 	/// Get the end of the raw key array													
@@ -344,13 +340,13 @@ namespace Langulus::Anyness
 	/// Get the raw value array (const)														
 	TABLE_TEMPLATE()
 	constexpr auto TABLE()::GetRawValues() const noexcept {
-		return reinterpret_cast<const TAny<V>&>(mValues).GetRaw();
+		return GetValues().GetRaw();
 	}
 
 	/// Get the raw value array																
 	TABLE_TEMPLATE()
 	constexpr auto TABLE()::GetRawValues() noexcept {
-		return reinterpret_cast<TAny<V>&>(mValues).GetRaw();
+		return GetValues().GetRaw();
 	}
 
 	/// Get end of the raw value array														
@@ -1032,6 +1028,35 @@ namespace Langulus::Anyness
 		return found != GetReserved() && GetValue(found) == pair.mValue;
 	}
 
+	/// Get the templated key container														
+	///	@attention for internal use only, elements might not be initialized	
+	TABLE_TEMPLATE()
+	const TAny<K>& TABLE()::GetKeys() const noexcept {
+		return BlockMap::GetKeys<K>();
+	}
+
+	/// Get the templated key container														
+	///	@attention for internal use only, elements might not be initialized	
+	TABLE_TEMPLATE()
+	TAny<K>& TABLE()::GetKeys() noexcept {
+		return BlockMap::GetKeys<K>();
+	}
+
+	/// Get the templated values container													
+	///	@attention for internal use only, elements might not be initialized	
+	TABLE_TEMPLATE()
+	const TAny<V>& TABLE()::GetValues() const noexcept {
+		return BlockMap::GetValues<V>();
+	}
+
+	/// Get the templated values container													
+	///	@attention for internal use only, elements might not be initialized	
+	TABLE_TEMPLATE()
+	TAny<V>& TABLE()::GetValues() noexcept {
+		return BlockMap::GetValues<V>();
+	}
+
+
 	/// Get a key by an unsafe offset (const)												
 	///	@attention as unsafe as it gets, for internal use only					
 	///	@param i - the offset to use														
@@ -1226,6 +1251,12 @@ namespace Langulus::Anyness
 		return At(key);
 	}
 
+
+
+	///																								
+	///	Iteration																				
+	///																								
+
 	/// Get iterator to first element														
 	///	@return an iterator to the first element, or end if empty				
 	TABLE_TEMPLATE()
@@ -1301,7 +1332,100 @@ namespace Langulus::Anyness
 		};
 	}
 
+	/// Iterate all keys inside the map, and perform f() on them					
+	/// You can break the loop, by returning false inside f()						
+	///	@param f - the function to call for each key block							
+	///	@return the number of successful f() executions								
+	TABLE_TEMPLATE()
+	Count TABLE()::ForEachKeyElement(TFunctor<bool(const Block&)>&& f) const {
+		Offset i {};
+		return GetKeys().ForEachElement([&](const Block& element) {
+			return mInfo[i++] ? f(element) : true;
+		});
+	}
 
+	/// Iterate all keys inside the map, and perform f() on them (mutable)		
+	/// You can break the loop, by returning false inside f()						
+	///	@param f - the function to call for each key block							
+	///	@return the number of successful f() executions								
+	TABLE_TEMPLATE()
+	Count TABLE()::ForEachKeyElement(TFunctor<bool(Block&)>&& f) {
+		Offset i {};
+		return GetKeys().ForEachElement([&](Block& element) {
+			return mInfo[i++] ? f(element) : true;
+		});
+	}
+
+	/// Iterate all keys inside the map, and perform f() on them					
+	///	@param f - the function to call for each key block							
+	///	@return the number of successful f() executions								
+	TABLE_TEMPLATE()
+	Count TABLE()::ForEachKeyElement(TFunctor<void(const Block&)>&& f) const {
+		Offset i {};
+		return GetKeys().ForEachElement([&](const Block& element) {
+			if (mInfo[i++])
+				f(element);
+		});
+	}
+
+	/// Iterate all keys inside the map, and perform f() on them (mutable)		
+	///	@param f - the function to call for each key block							
+	///	@return the number of successful f() executions								
+	TABLE_TEMPLATE()
+	Count TABLE()::ForEachKeyElement(TFunctor<void(Block&)>&& f) {
+		Offset i {};
+		return GetKeys().ForEachElement([&](Block& element) {
+			if (mInfo[i++])
+				f(element);
+		});
+	}
+
+	/// Iterate all values inside the map, and perform f() on them					
+	/// You can break the loop, by returning false inside f()						
+	///	@param f - the function to call for each value block						
+	///	@return the number of successful f() executions								
+	TABLE_TEMPLATE()
+	Count TABLE()::ForEachValueElement(TFunctor<bool(const Block&)>&& f) const {
+		Offset i {};
+		return GetValues().ForEachElement([&](const Block& element) {
+			return mInfo[i++] ? f(element) : true;
+		});
+	}
+
+	/// Iterate all values inside the map, and perform f() on them					
+	///	@param f - the function to call for each values block						
+	///	@return the number of successful f() executions								
+	TABLE_TEMPLATE()
+	Count TABLE()::ForEachValueElement(TFunctor<bool(Block&)>&& f) {
+		Offset i {};
+		return GetValues().ForEachElement([&](Block& element) {
+			return mInfo[i++] ? f(element) : true;
+		});
+	}
+
+	/// Iterate all values inside the map, and perform f() on them					
+	///	@param f - the function to call for each values block						
+	///	@return the number of successful f() executions								
+	TABLE_TEMPLATE()
+	Count TABLE()::ForEachValueElement(TFunctor<void(const Block&)>&& f) const {
+		Offset i {};
+		return GetValues().ForEachElement([&](const Block& element) {
+			if (mInfo[i++])
+				f(element);
+		});
+	}
+
+	/// Iterate all values inside the map, and perform f() on them (mutable)	
+	///	@param f - the function to call for each values block						
+	///	@return the number of successful f() executions								
+	TABLE_TEMPLATE()
+	Count TABLE()::ForEachValueElement(TFunctor<void(Block&)>&& f) {
+		Offset i {};
+		return GetValues().ForEachElement([&](Block& element) {
+			if (mInfo[i++])
+				f(element);
+		});
+	}
 
 
 	///																								
