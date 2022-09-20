@@ -101,11 +101,11 @@ namespace Langulus::Anyness
 
 		static constexpr bool StaticallyTyped = false;
 
-	protected:
-	TESTING(public:)
 		/// A structure used to represent an element of a sparse container		
 		struct KnownPointer;
 
+	protected:
+	TESTING(public:)
 		union {
 			#if LANGULUS_DEBUG()
 				char* mRawChar;
