@@ -41,7 +41,7 @@ namespace Langulus::Anyness
 	///	@param meta - the type of the memory block									
 	///	@param count - initial element count and reserve							
 	///	@param raw - pointer to the mutable memory									
-	inline Block::Block(const DataState& state, DMeta meta, Count count, void* raw) noexcept
+	inline Block::Block(const DataState& state, DMeta meta, Count count, void* raw) SAFETY_NOEXCEPT()
 		: mRaw {static_cast<Byte*>(raw)}
 		, mType {meta}
 		, mCount {count}
@@ -59,7 +59,7 @@ namespace Langulus::Anyness
 	///	@param meta - the type of the memory block									
 	///	@param count - initial element count and reserve							
 	///	@param raw - pointer to the constant memory									
-	inline Block::Block(const DataState& state, DMeta meta, Count count, const void* raw) noexcept
+	inline Block::Block(const DataState& state, DMeta meta, Count count, const void* raw) SAFETY_NOEXCEPT()
 		: Block {state, meta, count, const_cast<void*>(raw)} {
 		MakeConst();
 	}

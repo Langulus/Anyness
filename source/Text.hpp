@@ -41,13 +41,13 @@ namespace Langulus::Anyness
 		Text(const Exception&);
 		Text(const RTTI::Meta&);
 
-		Text(const Letter*, const Count&) noexcept;
+		Text(const Letter*, const Count&) SAFETY_NOEXCEPT();
 		Text(Disowned<const Letter*>&&, const Count&) noexcept;
 
 		template<Count C>
 		Text(const Letter(&)[C]);
 
-		explicit Text(const Letter*) noexcept;
+		explicit Text(const Letter*) SAFETY_NOEXCEPT();
 		explicit Text(Disowned<const Letter*>&&) noexcept;
 		explicit Text(const Letter&);
 

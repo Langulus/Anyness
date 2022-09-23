@@ -24,7 +24,7 @@ namespace Langulus::Anyness
 	/// Data will be cloned if we don't have authority over the memory			
 	///	@param text - text memory to reference											
 	///	@param count - number of characters inside text								
-	inline Text::Text(const Letter* text, const Count& count) noexcept
+	inline Text::Text(const Letter* text, const Count& count) SAFETY_NOEXCEPT()
 		: TAny {text, count} { }
 
 	/// Construct manually from count-terminated C string								
@@ -87,7 +87,7 @@ namespace Langulus::Anyness
 	/// Construct from null-terminated UTF text											
 	/// Data will be cloned if we don't have authority over the memory			
 	///	@param nullterminatedText - text memory to reference						
-	inline Text::Text(const Letter* nullterminatedText) noexcept
+	inline Text::Text(const Letter* nullterminatedText) SAFETY_NOEXCEPT()
 		: Text {nullterminatedText, 
 			nullterminatedText ? ::std::strlen(nullterminatedText) : 0
 		} {}

@@ -174,7 +174,10 @@ namespace Langulus::Anyness
 	///	@return the new container instance												
 	template<CT::Data T>
 	Any Any::From(const DataState& state) noexcept {
-		return Any {Block{state, MetaData::Of<Decay<T>>()}};
+		if constexpr (CT::Sparse<T>)
+			return Any {Block{state + DataState::Sparse, MetaData::Of<Decay<T>>()}};
+		else
+			return Any {Block{state, MetaData::Of<Decay<T>>()}};
 	}
 
 	/// Pack any number of elements sequentially											
