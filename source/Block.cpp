@@ -472,26 +472,26 @@ namespace Langulus::Anyness
 	///	@param direction - the direction to search from								
 	///	@param phase - phase filter														
 	///	@return the number of gathered elements										
-	Count GatherPolarInner(DMeta type, const Block& input, Block& output, const Index direction, Phase phase) {
-		if (input.GetPhase() != phase) {
-			if (input.GetPhase() == Phase::Now && input.IsDeep()) {
+	Count GatherPolarInner(DMeta type, const Block& input, Block& output, const Index direction, DataState state) {
+		if (input.GetState() % state) {
+			if (input.IsNow() && input.IsDeep()) {
 				// Phases don't match, but we can dig deeper if deep			
 				// and neutral, since Phase::Now is permissive					
 				auto localOutput = Any::FromMeta(type, input.GetUnconstrainedState());
 				if (direction == IndexFront) {
 					for (Count i = 0; i < input.GetCount(); ++i) {
 						GatherPolarInner(type, input.As<Block>(i),
-							localOutput, direction, phase);
+							localOutput, direction, state);
 					}
 				}
 				else {
 					for (Count i = input.GetCount(); i > 0; --i) {
 						GatherPolarInner(type, input.As<Block>(i - 1),
-							localOutput, direction, phase);
+							localOutput, direction, state);
 					}
 				}
 
-				localOutput.SetPhase(Phase::Now);
+				localOutput.MakeNow();
 				return output.SmartPush(Abandon(localOutput));
 			}
 
@@ -508,15 +508,15 @@ namespace Langulus::Anyness
 		// Iterate subpacks if any														
 		auto localOutput = Any::FromMeta(type, input.GetState());
 		GatherInner(input, localOutput, direction);
-		localOutput.SetPhase(Phase::Now);
+		localOutput.MakeNow();
 		return output.InsertBlock(localOutput);
 	}
 
 	/// Gather items from this container based on phase. Output type				
 	/// matters - it decides what you'll gather. Preserves hierarchy only if	
 	/// output is deep																			
-	Count Block::Gather(Block& output, Phase phase, const Index direction) const {
-		return GatherPolarInner(output.GetType(), *this, output, direction, phase);
+	Count Block::Gather(Block& output, DataState state, const Index direction) const {
+		return GatherPolarInner(output.GetType(), *this, output, direction, state);
 	}
 
 	/// Destroy all elements, but don't deallocate memory								

@@ -756,7 +756,7 @@ SCENARIO("Any", "[containers]") {
 		WHEN("Smart pushing an empty container (but not stateless) with retainment") {
 			Any deepened;
 			deepened << int(1) << int(2) << int(3) << int(4) << int(5);
-			auto pushed = Any::FromMeta(nullptr, DataState {DataState::Phased | DataState::Missing});
+			auto pushed = Any::FromMeta(nullptr, DataState::Missing);
 			auto result = deepened.SmartPush<IndexBack, true, true>(pushed);
 			THEN("The pack must get deeper and contain it") {
 				REQUIRE(result == 1);
@@ -764,18 +764,18 @@ SCENARIO("Any", "[containers]") {
 				REQUIRE(deepened.GetCount() == 2);
 				REQUIRE(deepened.As<Any>(0).GetCount() == 5);
 				REQUIRE(deepened.As<Any>(1).GetCount() == 0);
-				REQUIRE(deepened.As<Any>(1).GetState() == DataState::Phased + DataState::Missing);
+				REQUIRE(deepened.As<Any>(1).GetState() == DataState::Missing);
 			}
 		}
 
 		WHEN("Smart pushing an empty container (but not stateless) with retainment to another empty container") {
-			auto pushed = Any::FromMeta(nullptr, DataState {DataState::Phased | DataState::Missing});
+			auto pushed = Any::FromMeta(nullptr, DataState::Missing);
 			auto pushed2 = Any::FromMeta(nullptr, DataState {});
 			auto result = pushed2.SmartPush<IndexBack, true, true>(pushed);
 			THEN("The pack must get deeper and contain it") {
 				REQUIRE(result == 1);
 				REQUIRE(pushed2.GetCount() == 0);
-				REQUIRE(pushed2.GetState() == DataState::Phased + DataState::Missing);
+				REQUIRE(pushed2.GetState() == DataState::Missing);
 			}
 		}
 

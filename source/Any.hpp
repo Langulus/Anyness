@@ -102,7 +102,7 @@ namespace Langulus::Anyness
 
 		template<CT::Data... LIST>
 		NOD() static Any Wrap(LIST&&...);
-		template<CT::Data HEAD, CT::Data... TAIL>
+		template<class AS = void, CT::Data HEAD, CT::Data... TAIL>
 		NOD() static Any WrapCommon(HEAD&&, TAIL&&...);
 
 		void Clear();

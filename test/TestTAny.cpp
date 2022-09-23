@@ -109,7 +109,6 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 			REQUIRE_FALSE(pack.IsEncrypted());
 			REQUIRE_FALSE(pack.IsFuture());
 			REQUIRE_FALSE(pack.IsPast());
-			REQUIRE_FALSE(pack.IsPhased());
 			REQUIRE_FALSE(pack.IsMissing());
 			REQUIRE_FALSE(pack.IsStatic());
 			REQUIRE_FALSE(pack.IsValid());

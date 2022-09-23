@@ -196,9 +196,11 @@ namespace Langulus::Anyness
 			// are the same																
 			if constexpr (DR && CT::Referencable<T>)
 				other.mValue->Keep();
-			other.mEntry->Keep();
+			if (other.mEntry)
+				other.mEntry->Keep();
 			if (Base::mValue)
 				ResetInner();
+
 			Base::mValue = other.mValue;
 			mEntry = other.mEntry;
 			return *this;
@@ -215,6 +217,7 @@ namespace Langulus::Anyness
 		if (other.mValue) {
 			if (Base::mValue)
 				ResetInner();
+
 			Base::mValue = other.mValue;
 			mEntry = other.mEntry;
 			other.mValue = {};

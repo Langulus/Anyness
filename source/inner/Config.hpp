@@ -6,7 +6,7 @@
 /// See LICENSE file, or https://www.gnu.org/licenses									
 ///																									
 #pragma once
-#include <Langulus.RTTI.hpp>
+#include <LangulusRTTI.hpp>
 
 /// Use the utfcpp library to convert between utf types								
 /// No overhead, requires utfcpp to be linked											

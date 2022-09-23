@@ -199,13 +199,23 @@ namespace Langulus::Anyness
 	///	@param head - first element														
 	///	@param tail... - the rest of the elements										
 	///	@returns the new container containing the data								
-	template<CT::Data HEAD, CT::Data... TAIL>
+	template<class AS, CT::Data HEAD, CT::Data... TAIL>
 	Any Any::WrapCommon(HEAD&& head, TAIL&&... tail) {
 		if constexpr (sizeof...(TAIL) == 0)
 			return {};
-		else {
+		else if constexpr (CT::Void<AS>) {
+			static_assert(CT::Same<HEAD, TAIL...>, "Type mismatch");
 			Deref<HEAD> wrapped[] {Forward<HEAD>(head), Forward<TAIL>(tail)...};
 			auto result = Any::From<HEAD>();
+			for (auto& it : wrapped)
+				result.template Insert<IndexBack, false, false>(Move(it));
+			return result;
+		}
+		else {
+			static_assert(CT::DerivedFrom<HEAD, AS>, "Head not related");
+			static_assert((CT::DerivedFrom<TAIL, AS> && ...), "Tail not related");
+			Deref<AS> wrapped[] {Forward<AS>(head), Forward<AS>(tail)...};
+			auto result = Any::From<AS>();
 			for (auto& it : wrapped)
 				result.template Insert<IndexBack, false, false>(Move(it));
 			return result;

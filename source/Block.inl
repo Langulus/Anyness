@@ -398,25 +398,25 @@ namespace Langulus::Anyness
 	/// Check if block is left-polarized													
 	///	@returns true if this container is left-polarized							
 	constexpr bool Block::IsPast() const noexcept {
-		return GetPhase() == Phase::Past;
+		return mState.IsPast();
 	}
 
 	/// Check if block is right-polarized													
 	///	@returns true if this container is right-polarized							
 	constexpr bool Block::IsFuture() const noexcept {
-		return GetPhase() == Phase::Future;
+		return mState.IsFuture();
 	}
 
 	/// Check if block is not polarized														
 	///	@returns true if this container is not polarized							
 	constexpr bool Block::IsNow() const noexcept {
-		return GetPhase() == Phase::Now;
+		return mState.IsNow();
 	}
 
 	/// Check if block is marked as missing												
 	///	@returns true if this container is marked as vacuum						
 	constexpr bool Block::IsMissing() const noexcept {
-		return mState & DataState::Missing;
+		return mState.IsMissing();
 	}
 
 	/// Check if block has a data type														
@@ -428,31 +428,25 @@ namespace Langulus::Anyness
 	/// Check if block has a data type, and is type-constrained						
 	///	@return true if type-constrained													
 	constexpr bool Block::IsTypeConstrained() const noexcept {
-		return mType && (mState & DataState::Typed);
-	}
-
-	/// Check if block is polarized															
-	///	@returns true if this pack is either left-, or right-polar				
-	constexpr bool Block::IsPhased() const noexcept {
-		return mState & DataState::Phased;
+		return mType && mState.IsTyped();
 	}
 
 	/// Check if block is encrypted															
 	///	@returns true if the contents of this pack are encrypted					
 	constexpr bool Block::IsEncrypted() const noexcept {
-		return mState & DataState::Encrypted;
+		return mState.IsEncrypted();
 	}
 
 	/// Check if block is compressed															
 	///	@returns true if the contents of this pack are compressed				
 	constexpr bool Block::IsCompressed() const noexcept {
-		return mState & DataState::Compressed;
+		return mState.IsCompressed();
 	}
 
 	/// Check if block is constant															
 	///	@returns true if the contents are immutable									
 	constexpr bool Block::IsConstant() const noexcept {
-		return mState & DataState::Constant;
+		return mState.IsConstant();
 	}
 
 	/// Check if block is mutable																
@@ -464,13 +458,13 @@ namespace Langulus::Anyness
 	/// Check if block is static																
 	///	@returns true if the contents are static (size-constrained)				
 	constexpr bool Block::IsStatic() const noexcept {
-		return mRaw && ((mState & DataState::Static) || !mEntry);
+		return mRaw && (mState.IsStatic() || !mEntry);
 	}
 
 	/// Check if block is inhibitory (or) container										
 	///	@returns true if this is an inhibitory container							
 	constexpr bool Block::IsOr() const noexcept {
-		return mState & DataState::Or;
+		return mState.IsOr();
 	}
 
 	/// Check if block contains no created elements (it may still have state)	
@@ -489,14 +483,6 @@ namespace Langulus::Anyness
 	///	@returns true if this is an empty stateless container						
 	constexpr bool Block::IsInvalid() const noexcept {
 		return !IsValid();
-	}
-
-	/// Make memory block vacuum (a.k.a. missing)										
-	constexpr void Block::MakeMissing(bool enable) noexcept {
-		if (enable)
-			mState += DataState::Missing;
-		else
-			mState -= DataState::Missing;
 	}
 
 	/// Make memory block static (unmovable and unresizable)							
@@ -535,17 +521,18 @@ namespace Langulus::Anyness
 
 	/// Set memory block phase to past														
 	constexpr void Block::MakePast() noexcept {
-		SetPhase(Phase::Past);
+		mState -= DataState::Future;
+		mState += DataState::Missing;
 	}
 
 	/// Set memory block phase to future													
 	constexpr void Block::MakeFuture() noexcept {
-		SetPhase(Phase::Future);
+		mState += DataState::Missing | DataState::Future;
 	}
 	
 	/// Set memory block phase to neutral													
 	constexpr void Block::MakeNow() noexcept {
-		SetPhase(Phase::Now);
+		mState -= DataState::Missing | DataState::Future;
 	}
 	
 	/// Make the container type sparse														
@@ -558,42 +545,11 @@ namespace Langulus::Anyness
 		mState -= DataState::Sparse;
 	}
 	
-	/// Get polarity																				
-	///	@return the polarity of the contained data									
-	constexpr Phase Block::GetPhase() const noexcept {
-		if (!IsPhased())
-			return Phase::Now;
-		
-		return mState & DataState::Future 
-			? Phase::Future 
-			: Phase::Past;
-	}
-
-	/// Set polarity																				
-	///	@param p - polarity to enable														
-	constexpr void Block::SetPhase(const Phase p) noexcept {
-		switch (p) {
-		case Phase::Past:
-			mState -= DataState::Future;
-			mState += DataState::Past;
-			return;
-		case Phase::Now:
-			mState -= DataState::Future;
-			mState += DataState::Phased;
-			return;
-		case Phase::Future:
-			mState += DataState::Future;
-			return;
-		}
-	}
-
 	/// Check polarity compatibility															
 	///	@param other - the polarity to check											
 	///	@return true if polarity is compatible											
 	constexpr bool Block::CanFitPhase(const Block& other) const noexcept {
-		const auto p1 = GetPhase();
-		const auto p2 = other.GetPhase();
-		return p1 == p2 || p1 == Phase::Now || p2 == Phase::Now;
+		return IsFuture() == other.IsFuture() || IsNow() || other.IsNow();
 	}
 
 	/// Check state compatibility regarding orness										

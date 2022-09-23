@@ -47,20 +47,7 @@ namespace Langulus::Anyness
 		
 		Default = Fastest
 	};
-	
-	/// Data can have a temporal phase														
-	/// Temporal data phases are used extensively by Langulus, but not at all	
-	/// in standalone use. Either way - overhead is literally two bits, so		
-	/// I've not taken the initiative to remove them - use them as you wish		
-	/// Two bits for free! Free bits, yo! Check Block::GetState() and				
-	/// DataState::Phased and DataState::Future for the aforementioned 2 bits	
-	/// Remember, these are free only if you're using Anyness as standalone		
-	enum class Phase : int {
-		Past = -1,
-		Now = 0,
-		Future = 1
-	};
-	
+
 	
 	///																								
 	///	BLOCK																						
@@ -168,7 +155,6 @@ namespace Langulus::Anyness
 		//																						
 		//	Capsulation and access														
 		//																						
-		constexpr void SetPhase(Phase) noexcept;
 		constexpr void SetState(DataState) noexcept;
 		constexpr void AddState(DataState) noexcept;
 		constexpr void RemoveState(DataState) noexcept;
@@ -186,7 +172,6 @@ namespace Langulus::Anyness
 		NOD() constexpr bool IsMissing() const noexcept;
 		NOD() constexpr bool IsUntyped() const noexcept;
 		NOD() constexpr bool IsTypeConstrained() const noexcept;
-		NOD() constexpr bool IsPhased() const noexcept;
 		NOD() constexpr bool IsEncrypted() const noexcept;
 		NOD() constexpr bool IsCompressed() const noexcept;
 		NOD() constexpr bool IsConstant() const noexcept;
@@ -204,7 +189,6 @@ namespace Langulus::Anyness
 		NOD() constexpr bool IsResolvable() const noexcept;
 		NOD() constexpr bool IsNullifiable() const noexcept;
 		NOD() constexpr bool IsDeep() const noexcept;
-		NOD() constexpr Phase GetPhase() const noexcept;
 		NOD() constexpr bool CanFitPhase(const Block&) const noexcept;
 		NOD() constexpr bool CanFitState(const Block&) const noexcept;
 		NOD() constexpr bool CanFitOrAnd(const Block&) const noexcept;
@@ -352,7 +336,6 @@ namespace Langulus::Anyness
 		template<bool ALLOW_DEEPEN, CT::Data = Any>
 		bool Mutate(DMeta);
 
-		constexpr void MakeMissing(bool enable = true) noexcept;
 		constexpr void MakeStatic(bool enable = true) noexcept;
 		constexpr void MakeConst(bool enable = true) noexcept;
 		constexpr void MakeTypeConstrained(bool enable = true) noexcept;
@@ -396,7 +379,7 @@ namespace Langulus::Anyness
 		NOD() Index FindRTTI(const Block&, Index = IndexFront) const;
 	
 		Count Gather(Block&, Index = IndexFront) const;
-		Count Gather(Block&, Phase, Index = IndexFront) const;
+		Count Gather(Block&, DataState, Index = IndexFront) const;
 	
 		template<CT::Data, CT::Index INDEX1, CT::Index INDEX2>
 		void Swap(INDEX1, INDEX2);

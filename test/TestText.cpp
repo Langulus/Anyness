@@ -30,7 +30,6 @@ SCENARIO("Text containers", "[text]") {
 				REQUIRE_FALSE(text.IsEncrypted());
 				REQUIRE_FALSE(text.IsFuture());
 				REQUIRE_FALSE(text.IsPast());
-				REQUIRE_FALSE(text.IsPhased());
 				REQUIRE_FALSE(text.IsMissing());
 				REQUIRE_FALSE(text.IsOr());
 				REQUIRE_FALSE(text.IsStatic());
@@ -66,7 +65,6 @@ SCENARIO("Text containers", "[text]") {
 				REQUIRE_FALSE(text.IsEncrypted());
 				REQUIRE_FALSE(text.IsFuture());
 				REQUIRE_FALSE(text.IsPast());
-				REQUIRE_FALSE(text.IsPhased());
 				REQUIRE_FALSE(text.IsMissing());
 				REQUIRE_FALSE(text.IsOr());
 				REQUIRE_FALSE(text.IsStatic());
@@ -102,7 +100,6 @@ SCENARIO("Text containers", "[text]") {
 				REQUIRE_FALSE(text.IsEncrypted());
 				REQUIRE_FALSE(text.IsFuture());
 				REQUIRE_FALSE(text.IsPast());
-				REQUIRE_FALSE(text.IsPhased());
 				REQUIRE_FALSE(text.IsMissing());
 				REQUIRE_FALSE(text.IsOr());
 				REQUIRE_FALSE(text.IsStatic());
@@ -144,7 +141,6 @@ SCENARIO("Text containers", "[text]") {
 				REQUIRE_FALSE((*text).IsEncrypted());
 				REQUIRE_FALSE((*text).IsFuture());
 				REQUIRE_FALSE((*text).IsPast());
-				REQUIRE_FALSE((*text).IsPhased());
 				REQUIRE_FALSE((*text).IsMissing());
 				REQUIRE_FALSE((*text).IsOr());
 				REQUIRE_FALSE((*text).IsUntyped());

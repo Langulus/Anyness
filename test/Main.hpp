@@ -7,7 +7,7 @@
 ///																									
 #pragma once
 #define LANGULUS_EXPOSE_PRIVATE_HEADERS
-#include <Langulus.Anyness.hpp>
+#include <LangulusAnyness.hpp>
 
 using namespace Langulus;
 using namespace Langulus::Anyness;
