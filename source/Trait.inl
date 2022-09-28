@@ -15,7 +15,7 @@ namespace Langulus::Anyness
 	///	@tparam T - type of the contained data											
 	///	@param type - type of the trait													
 	///	@param data - data to copy inside trait										
-	template<class T>
+	template<CT::Data T>
 	Trait::Trait(TMeta type, const T& data)
 		: Any {data}
 		, mTraitType {type} {}
@@ -24,7 +24,7 @@ namespace Langulus::Anyness
 	///	@tparam T - type of the contained data											
 	///	@param type - type of the trait													
 	///	@param data - data to copy inside trait										
-	template<class T>
+	template<CT::Data T>
 	Trait::Trait(TMeta type, T& data)
 		: Any {data}
 		, mTraitType {type} {}
@@ -33,7 +33,7 @@ namespace Langulus::Anyness
 	///	@tparam T - type of the contained data											
 	///	@param type - type of the trait													
 	///	@param data - data to move inside trait										
-	template<class T>
+	template<CT::Data T>
 	Trait::Trait(TMeta type, T&& data)
 		: Any {Forward<T>(data)}
 		, mTraitType {type} {}
@@ -152,19 +152,19 @@ namespace Langulus::Anyness
 
 	/// Trait copy-construction with anything not abandoned or disowned			
 	template<class TRAIT>
-	template<CT::NotAbandonedOrDisowned T>
+	template<CT::Data T>
 	StaticTrait<TRAIT>::StaticTrait(const T& data)
 		: Trait {MetaTrait::Of<TRAIT>(), data} {}
 
 	/// Trait copy-construction with anything not abandoned or disowned			
 	template<class TRAIT>
-	template<CT::NotAbandonedOrDisowned T>
+	template<CT::Data T>
 	StaticTrait<TRAIT>::StaticTrait(T& data)
 		: Trait {MetaTrait::Of<TRAIT>(), data} {}
 
 	/// Trait move-construction with anything not abandoned or disowned			
 	template<class TRAIT>
-	template<CT::NotAbandonedOrDisowned T>
+	template<CT::Data T>
 	StaticTrait<TRAIT>::StaticTrait(T&& data)
 		: Trait {MetaTrait::Of<TRAIT>(), Forward<T>(data)} {}
 
@@ -177,28 +177,32 @@ namespace Langulus::Anyness
 		: Trait {other.mValue.mTraitType, other.template Forward<Any>()} {}
 
 	template<class TRAIT>
-	template<CT::NotAbandonedOrDisowned T>
+	template<CT::Data T>
 	TRAIT& StaticTrait<TRAIT>::operator = (const T& data) {
 		if constexpr (CT::Same<T, TRAIT>)
-			Any::operator = (data);
+			Any::operator = (static_cast<const Any&>(data));
+		else if constexpr (CT::Trait<T>)
+			Trait::operator = (static_cast<const Trait&>(data));
 		else
-			Trait::operator = (data);
+			Any::operator = (data);
 		return static_cast<TRAIT&>(*this);
 	}
 
 	template<class TRAIT>
-	template<CT::NotAbandonedOrDisowned T>
+	template<CT::Data T>
 	TRAIT& StaticTrait<TRAIT>::operator = (T& data) {
 		return operator = (const_cast<const T&>(data));
 	}
 
 	template<class TRAIT>
-	template<CT::NotAbandonedOrDisowned T>
+	template<CT::Data T>
 	TRAIT& StaticTrait<TRAIT>::operator = (T&& data) {
 		if constexpr (CT::Same<T, TRAIT>)
-			Any::operator = (data);
+			Any::operator = (Forward<Any>(data));
+		else if constexpr (CT::Trait<T>)
+			Trait::operator = (Forward<Trait>(data));
 		else
-			Trait::operator = (data);
+			Any::operator = (Forward<T>(data));
 		return static_cast<TRAIT&>(*this);
 	}
 
@@ -212,6 +216,32 @@ namespace Langulus::Anyness
 	TRAIT& StaticTrait<TRAIT>::operator = (Abandoned<TRAIT>&& other) {
 		Any::operator = (other.template Forward<Any>());
 		return static_cast<TRAIT&>(*this);
+	}
+
+	template<class TRAIT>
+	TRAIT StaticTrait<TRAIT>::operator + (const Trait& other) const {
+		return TRAIT {
+			Any::operator + (static_cast<const Any&>(other))
+		};
+	}
+
+	template<class TRAIT>
+	template<CT::Deep T>
+	TRAIT StaticTrait<TRAIT>::operator + (const T& other) const {
+		return TRAIT {Any::operator + (other)};
+	}
+
+	template<class TRAIT>
+	TRAIT& StaticTrait<TRAIT>::operator += (const Trait& other) {
+		return static_cast<TRAIT&>(
+			Any::operator += (static_cast<const Any&>(other))
+		);
+	}
+
+	template<class TRAIT>
+	template<CT::Deep T>
+	TRAIT& StaticTrait<TRAIT>::operator += (const T& other) {
+		return static_cast<TRAIT&>(Any::operator += (other));
 	}
 
 	template<class TRAIT>

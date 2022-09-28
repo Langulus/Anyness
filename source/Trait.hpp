@@ -31,11 +31,11 @@ namespace Langulus::Anyness
 	public:
 		using Any::Any;
 
-		template<class T>
+		template<CT::Data T>
 		Trait(TMeta, const T&);
-		template<class T>
+		template<CT::Data T>
 		Trait(TMeta, T&);
-		template<class T>
+		template<CT::Data T>
 		Trait(TMeta, T&&);
 
 		Trait(Disowned<Trait>&&);
@@ -99,22 +99,30 @@ namespace Langulus::Anyness
 		LANGULUS_BASES(Trait);
 
 		StaticTrait();
-		template<CT::NotAbandonedOrDisowned T>
+		template<CT::Data T>
 		StaticTrait(const T&);
-		template<CT::NotAbandonedOrDisowned T>
+		template<CT::Data T>
 		StaticTrait(T&);
-		template<CT::NotAbandonedOrDisowned T>
+		template<CT::Data T>
 		StaticTrait(T&&);
 
 		StaticTrait(Disowned<TRAIT>&&);
 		StaticTrait(Abandoned<TRAIT>&&);
 
-		template<CT::NotAbandonedOrDisowned T>
+		template<CT::Data T>
 		TRAIT& operator = (const T&);
-		template<CT::NotAbandonedOrDisowned T>
+		template<CT::Data T>
 		TRAIT& operator = (T&);
-		template<CT::NotAbandonedOrDisowned T>
+		template<CT::Data T>
 		TRAIT& operator = (T&&);
+
+		TRAIT operator + (const Trait&) const;
+		template<CT::Deep T>
+		TRAIT operator + (const T&) const;
+
+		TRAIT& operator += (const Trait&);
+		template<CT::Deep T>
+		TRAIT& operator += (const T&);
 
 		TRAIT& operator = (Disowned<TRAIT>&&);
 		TRAIT& operator = (Abandoned<TRAIT>&&);
@@ -148,6 +156,8 @@ namespace Langulus::Traits
 		using StaticTrait::StaticTrait;
 		using StaticTrait::operator =;
 		using StaticTrait::operator ==;
+		using StaticTrait::operator +;
+		using StaticTrait::operator +=;
 	};
 
 	/// Count trait, used all over the place												
@@ -155,6 +165,8 @@ namespace Langulus::Traits
 		using StaticTrait::StaticTrait;
 		using StaticTrait::operator =;
 		using StaticTrait::operator ==;
+		using StaticTrait::operator +;
+		using StaticTrait::operator +=;
 	};
 
 	/// Name trait, used all over the place												
@@ -162,6 +174,8 @@ namespace Langulus::Traits
 		using StaticTrait::StaticTrait;
 		using StaticTrait::operator =;
 		using StaticTrait::operator ==;
+		using StaticTrait::operator +;
+		using StaticTrait::operator +=;
 	};
 
 	/// Context trait, used to access the current environment						
@@ -169,6 +183,8 @@ namespace Langulus::Traits
 		using StaticTrait::StaticTrait;
 		using StaticTrait::operator =;
 		using StaticTrait::operator ==;
+		using StaticTrait::operator +;
+		using StaticTrait::operator +=;
 	};
 
 } // namespace Langulus::Traits
