@@ -11,17 +11,17 @@
 namespace Langulus::Anyness
 {
 
-	/// Copy construction via Any - does a shallow copy and references 			
+	/// Copy construct - does a shallow copy, and references							
 	///	@param other - the container to shallow-copy									
-	inline Any::Any(const Any& other) 
-		: Block {other} {
+	inline Any::Any(const Any& other)
+		: Block {static_cast<const Block&>(other)} {
 		Keep();
 	}
 
 	/// Construct by moving another container												
 	///	@param other - the container to move											
 	inline Any::Any(Any&& other) noexcept
-		: Block {Forward<Block>(other)} {
+		: Block {static_cast<const Block&>(other)} {
 		other.ResetMemory();
 		other.ResetState();
 	}
@@ -29,24 +29,22 @@ namespace Langulus::Anyness
 	/// Copy construct - does a shallow copy, and references							
 	///	@param other - the container to shallow-copy									
 	template <CT::Deep T>
-	Any::Any(const T& other) requires (CT::Dense<T> && !CT::Same<T, Any>)
-		: Block {other} {
+	Any::Any(const T& other)
+		: Block {static_cast<const Block&>(other)} {
 		Keep();
 	}
 
-	/// Copy construct - does a shallow copy, and references							
-	///	@param other - the container to shallow-copy									
 	template <CT::Deep T>
-	Any::Any(T& other) requires (CT::Dense<T> && !CT::Same<T, Any>)
-		: Block {const_cast<const T&>(other)} {
+	Any::Any(T& other)
+		: Block {static_cast<const Block&>(other)} {
 		Keep();
 	}
 
 	/// Construct by moving another container												
 	///	@param other - the container to move											
 	template <CT::Deep T>
-	Any::Any(T&& other) requires (CT::Dense<T> && !CT::Same<T, Any>)
-		: Block {const_cast<const T&>(other)} {
+	Any::Any(T&& other) requires CT::Mutable<T>
+		: Block {static_cast<const Block&>(other)} {
 		if constexpr (CT::Same<T, Block>) {
 			// Since we are not aware if that block is referenced or not	
 			// we reference it just in case, and we also do not reset		
@@ -62,7 +60,7 @@ namespace Langulus::Anyness
 	/// Same as copy-construction, but doesn't reference anything					
 	///	@param other - the block to copy													
 	template <CT::Deep T>
-	constexpr Any::Any(Disowned<T>&& other) noexcept requires CT::Dense<T>
+	constexpr Any::Any(Disowned<T>&& other) noexcept
 		: Block {other.template Forward<Block>()} {
 		mEntry = nullptr;
 	}
@@ -71,21 +69,9 @@ namespace Langulus::Anyness
 	/// instructions																				
 	///	@param other - the block to move													
 	template <CT::Deep T>
-	constexpr Any::Any(Abandoned<T>&& other) noexcept requires CT::Dense<T>
+	constexpr Any::Any(Abandoned<T>&& other) noexcept
 		: Block {other.template Forward<Block>()} {
 		other.mValue.mEntry = nullptr;
-	}
-
-	/// Construct by copying/referencing an array of non-block type				
-	///	@tparam T - the data type to push (deducible)								
-	///	@param start - start of the array												
-	///	@param end - end of the array														
-	template <CT::Data T>
-	Any::Any(const T* start, const T* end) {
-		if constexpr (CT::Sparse<T>)
-			MakeSparse();
-		SetType<T, false>();
-		Insert<IndexBack, true, false>(start, end);
 	}
 
 	/// Construct by copying/referencing value of non-block type					
@@ -99,18 +85,15 @@ namespace Langulus::Anyness
 		Insert<IndexBack, true, false>(&other, &other + 1);
 	}
 
-	/// This override is required to disambiguate automatically deduced T		
-	/// Dimo, I know you want to remove this, but don't, said Dimo to himself	
-	/// after actually deleting this function numerous times							
 	template <CT::CustomData T>
 	Any::Any(T& other)
-		: Any {const_cast<const T&>(other)} {}
+		: Any {const_cast<const T&>(other)} { }
 
 	/// Construct by moving a dense value of non-block type							
 	///	@tparam T - the data type to push (deducible)								
 	///	@param other - the dense value to forward and emplace						
 	template <CT::CustomData T>
-	Any::Any(T&& other) {
+	Any::Any(T&& other) requires CT::Mutable<T> {
 		if constexpr (CT::Sparse<T>)
 			MakeSparse();
 		SetType<T, false>();
@@ -137,6 +120,18 @@ namespace Langulus::Anyness
 			MakeSparse();
 		SetType<T, false>();
 		Insert<IndexBack, false, false>(Move(other.mValue));
+	}
+
+	/// Construct by copying/referencing an array of non-block type				
+	///	@tparam T - the data type to push (deducible)								
+	///	@param start - start of the array												
+	///	@param end - end of the array														
+	template <CT::Data T>
+	Any::Any(const T* start, const T* end) {
+		if constexpr (CT::Sparse<T>)
+			MakeSparse();
+		SetType<T, false>();
+		Insert<IndexBack, true, false>(start, end);
 	}
 
 	/// Destruction																				
@@ -189,7 +184,9 @@ namespace Langulus::Anyness
 			return {};
 		else {
 			Any result;
-			Any wrapped[] {Forward<LIST>(elements)...};
+			Any wrapped[] {
+				Any {Forward<LIST>(elements)}...
+			};
 			result.SetType<Any, false>();
 			result.Allocate(sizeof...(LIST));
 			for (auto& it : wrapped)
@@ -208,7 +205,10 @@ namespace Langulus::Anyness
 			return {};
 		else if constexpr (CT::Void<AS>) {
 			static_assert(CT::Same<HEAD, TAIL...>, "Type mismatch");
-			Deref<HEAD> wrapped[] {Forward<HEAD>(head), Forward<TAIL>(tail)...};
+			Deref<HEAD> wrapped[] {
+				Deref<HEAD> {Forward<HEAD>(head)},
+				Deref<HEAD> {Forward<HEAD>(tail)}...
+			};
 			auto result = Any::From<HEAD>();
 			for (auto& it : wrapped)
 				result.template Insert<IndexBack, false, false>(Move(it));
@@ -229,6 +229,21 @@ namespace Langulus::Anyness
 	///	@param other - the container to copy											
 	///	@return a reference to this container											
 	inline Any& Any::operator = (const Any& other) {
+		return Any::template operator = <Any>(other);
+	}
+
+	/// Move a container																			
+	///	@param other - the container to move and reset								
+	///	@return a reference to this container											
+	inline Any& Any::operator = (Any&& other) noexcept {
+		return Any::template operator = <Any>(Forward<Any>(other));
+	}
+
+	/// Shallow-copy a container																
+	///	@param other - the container to copy											
+	///	@return a reference to this container											
+	template<CT::Deep T>
+	Any& Any::operator = (const T& other) {
 		if (this == &other)
 			return *this;
 
@@ -244,10 +259,16 @@ namespace Langulus::Anyness
 		return *this;
 	}
 	
+	template<CT::Deep T>
+	Any& Any::operator = (T& other) {
+		return operator = (const_cast<const T&>(other));
+	}
+
 	/// Move a container																			
 	///	@param other - the container to move and reset								
 	///	@return a reference to this container											
-	inline Any& Any::operator = (Any&& other) {
+	template<CT::Deep T>
+	Any& Any::operator = (T&& other) requires CT::Mutable<T>{
 		if (this == &other)
 			return *this;
 
@@ -256,7 +277,7 @@ namespace Langulus::Anyness
 			Except::Move, "Incompatible types");
 
 		Free();
-		Block::operator = (other);
+		Block::operator = (Forward<Block>(other));
 		other.ResetMemory();
 		other.ResetState();
 		return *this;
@@ -265,7 +286,8 @@ namespace Langulus::Anyness
 	/// Shallow-copy a disowned container (doesn't reference anything)			
 	///	@param other - the container to copy											
 	///	@return a reference to this container											
-	inline Any& Any::operator = (Disowned<Any>&& other) {
+	template<CT::Deep T>
+	Any& Any::operator = (Disowned<T>&& other) {
 		if (this == &other.mValue)
 			return *this;
 
@@ -287,7 +309,8 @@ namespace Langulus::Anyness
 	/// Move an abandoned container, minimally resetting the source				
 	///	@param other - the container to move and reset								
 	///	@return a reference to this container											
-	inline Any& Any::operator = (Abandoned<Any>&& other) {
+	template<CT::Deep T>
+	Any& Any::operator = (Abandoned<T>&& other) {
 		if (this == &other.mValue)
 			return *this;
 
@@ -340,8 +363,6 @@ namespace Langulus::Anyness
 		return *this;
 	}
 
-	/// This override is required to disambiguate automatically deduced T		
-	/// Dimo, I know you want to remove this, but don't, said Dimo to himself	
 	template<CT::CustomData T>
 	Any& Any::operator = (T& other) {
 		return operator = (const_cast<const T&>(other));
@@ -351,7 +372,7 @@ namespace Langulus::Anyness
 	///	@param other - the item to move													
 	///	@return a reference to this container											
 	template<CT::CustomData T>
-	Any& Any::operator = (T&& other) {
+	Any& Any::operator = (T&& other) requires CT::Mutable<T> {
 		PrepareForReassignment<T>();
 		InsertInner<true>(Forward<T>(other), 0);
 		return *this;
@@ -361,7 +382,7 @@ namespace Langulus::Anyness
 	///	@param other - the disowned element to push									
 	///	@return a reference to this container											
 	template<CT::CustomData T>
-	Any& Any::operator = (Disowned<T>&& other) requires CT::Dense<T> {
+	Any& Any::operator = (Disowned<T>&& other) {
 		// Since Any is type-erased, we have to make a runtime type check	
 		const auto meta = MetaData::Of<Decay<T>>();
 		LANGULUS_ASSERT(!IsTypeConstrained() || CastsToMeta(meta),
@@ -403,7 +424,7 @@ namespace Langulus::Anyness
 	///	@param other - the abandoned element to push									
 	///	@return a reference to this container											
 	template<CT::CustomData T>
-	Any& Any::operator = (Abandoned<T>&& other) requires CT::Dense<T> {
+	Any& Any::operator = (Abandoned<T>&& other) {
 		// Since Any is type-erased, we have to make a runtime type check	
 		const auto meta = MetaData::Of<Decay<T>>();
 		LANGULUS_ASSERT(!IsTypeConstrained() || CastsToMeta(meta),

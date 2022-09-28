@@ -39,31 +39,31 @@ namespace Langulus::Anyness
 		Any(Any&&) noexcept;
 
 		template<CT::Deep T>
-		Any(const T&) requires (CT::Dense<T> && !CT::Same<T, Any>);
+		Any(const T&);
 		template<CT::Deep T>
-		Any(T&) requires (CT::Dense<T> && !CT::Same<T, Any>);
+		Any(T&);
 		template<CT::Deep T>
-		Any(T&&) requires (CT::Dense<T> && !CT::Same<T, Any>);
+		Any(T&&) requires CT::Mutable<T>;
 
 		template<CT::Deep T>
-		constexpr Any(Disowned<T>&&) noexcept requires CT::Dense<T>;
+		constexpr Any(Disowned<T>&&) noexcept;
 		template<CT::Deep T>
-		constexpr Any(Abandoned<T>&&) noexcept requires CT::Dense<T>;
-
-		template<CT::Data T>
-		Any(const T*, const T*);
+		constexpr Any(Abandoned<T>&&) noexcept;
 
 		template<CT::CustomData T>
 		Any(const T&);
 		template<CT::CustomData T>
 		Any(T&);
 		template<CT::CustomData T>
-		Any(T&&);
+		Any(T&&) requires CT::Mutable<T>;
 
 		template<CT::CustomData T>
 		Any(Disowned<T>&&);
 		template<CT::CustomData T>
 		Any(Abandoned<T>&&);
+
+		template<CT::Data T>
+		Any(const T*, const T*);
 
 		~Any();
 	
@@ -71,22 +71,31 @@ namespace Langulus::Anyness
 		///	Assignment																			
 		///																							
 		Any& operator = (const Any&);
-		Any& operator = (Any&&);
-	
-		Any& operator = (Disowned<Any>&&);
-		Any& operator = (Abandoned<Any>&&);
+		Any& operator = (Any&&) noexcept;
+
+		template<CT::Deep T>
+		Any& operator = (const T&);
+		template<CT::Deep T>
+		Any& operator = (T&);
+		template<CT::Deep T>
+		Any& operator = (T&&) requires CT::Mutable<T>;
+
+		template<CT::Deep T>
+		Any& operator = (Disowned<T>&&);
+		template<CT::Deep T>
+		Any& operator = (Abandoned<T>&&);
 	
 		template<CT::CustomData T>
 		Any& operator = (const T&);
 		template<CT::CustomData T>
 		Any& operator = (T&);
 		template<CT::CustomData T>
-		Any& operator = (T&&);
+		Any& operator = (T&&) requires CT::Mutable<T>;
 
 		template<CT::CustomData T>
-		Any& operator = (Disowned<T>&&) requires CT::Dense<T>;
+		Any& operator = (Disowned<T>&&);
 		template<CT::CustomData T>
-		Any& operator = (Abandoned<T>&&) requires CT::Dense<T>;
+		Any& operator = (Abandoned<T>&&);
 
 		///																							
 		///	Comparison																			

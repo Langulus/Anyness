@@ -29,13 +29,13 @@ namespace Langulus::Anyness
 	///	@param other - the TAny to reference											
 	TEMPLATE()
 	TAny<T>::TAny(const TAny& other)
-		: Any {static_cast<const Any&>(other)} { }
+		: Any {/*static_cast<const Any&>(*/other/*)*/} { }
 
 	/// Move construction																		
 	///	@param other - the TAny to move													
 	TEMPLATE()
 	TAny<T>::TAny(TAny&& other) noexcept
-		: Any {Forward<Any>(other)} { }
+		: Any {Forward<TAny>(other)} { }
 
 	/// Copy-construct from another container by performing runtime type check	
 	///	@tparam KEEP - whether or not to reference contents						

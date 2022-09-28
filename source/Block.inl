@@ -3712,6 +3712,8 @@ namespace Langulus::Anyness
 	template<CT::NotAbandonedOrDisowned T, CT::Index INDEX>
 	Count Block::InsertBlockAt(const T& other, INDEX idx) {
 		static_assert(CT::Block<T>, "T must be a block type");
+		if (other.IsEmpty())
+			return 0;
 
 		const auto index = SimplifyIndex(idx);
 		Block region;
@@ -3734,6 +3736,8 @@ namespace Langulus::Anyness
 	template<CT::NotAbandonedOrDisowned T, CT::Index INDEX>
 	Count Block::InsertBlockAt(T&& other, INDEX idx) {
 		static_assert(CT::Block<T>, "T must be a block type");
+		if (other.IsEmpty())
+			return 0;
 
 		const auto index = SimplifyIndex(idx);
 		Block region;
@@ -3755,6 +3759,8 @@ namespace Langulus::Anyness
 	template<CT::Data T, CT::Index INDEX>
 	Count Block::InsertBlockAt(Abandoned<T>&& other, INDEX idx) {
 		static_assert(CT::Block<T>, "T must be a block type");
+		if (other.mValue.IsEmpty())
+			return 0;
 
 		const auto index = SimplifyIndex(idx);
 		Block region;
@@ -3776,6 +3782,8 @@ namespace Langulus::Anyness
 	template<CT::Data T, CT::Index INDEX>
 	Count Block::InsertBlockAt(Disowned<T>&& other, INDEX idx) {
 		static_assert(CT::Block<T>, "T must be a block type");
+		if (other.mValue.IsEmpty())
+			return 0;
 
 		const auto index = SimplifyIndex(idx);
 		Block region;
@@ -3802,6 +3810,8 @@ namespace Langulus::Anyness
 		static_assert(INDEX == IndexFront || INDEX == IndexBack,
 			"INDEX must be either IndexFront or IndexEnd;"
 			" use InsertBlockAt for specific indices");
+		if (other.IsEmpty())
+			return 0;
 
 		// Type may mutate, but never deepen										
 		Mutate<false>(other.mType);
@@ -3845,6 +3855,8 @@ namespace Langulus::Anyness
 		static_assert(INDEX == IndexFront || INDEX == IndexBack,
 			"INDEX must be either IndexFront or IndexEnd;"
 			" use InsertBlockAt for specific indices");
+		if (other.IsEmpty())
+			return 0;
 
 		// Type may mutate, but never deepen										
 		Mutate<false>(other.mType);
@@ -3897,6 +3909,8 @@ namespace Langulus::Anyness
 		static_assert(INDEX == IndexFront || INDEX == IndexBack,
 			"INDEX must be either IndexFront or IndexEnd;"
 			" use InsertBlockAt for specific indices");
+		if (other.mValue.IsEmpty())
+			return 0;
 
 		// Type may mutate, but never deepen										
 		Mutate<false>(other.mValue.mType);
@@ -3945,6 +3959,8 @@ namespace Langulus::Anyness
 		static_assert(INDEX == IndexFront || INDEX == IndexBack,
 			"INDEX must be either IndexFront or IndexEnd; "
 			"use InsertBlockAt for specific indices");
+		if (other.mValue.IsEmpty())
+			return 0;
 
 		// Type may mutate, but never deepen										
 		Mutate<false>(other.mValue.mType);

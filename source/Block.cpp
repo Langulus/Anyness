@@ -204,6 +204,9 @@ namespace Langulus::Anyness
 	///	@param pattern - the type of data to try interpreting as					
 	///	@return a block representing this block, interpreted as the pattern	
 	Block Block::ReinterpretAs(const Block& pattern) const {
+		if (IsEmpty())
+			return {};
+
 		RTTI::Base common {};
 		if (!CompareTypes(pattern, common) || !common.mBinaryCompatible)
 			return {};

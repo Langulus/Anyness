@@ -47,30 +47,36 @@ T CreateElement(const ALT_T& e) {
 	T element;
 	if constexpr (CT::Sparse<T>)
 		element = new Decay<T> {e};
-	else
+	else if constexpr (CT::Same<T, ALT_T>)
 		element = e;
+	else 
+		element = Decay<T> {e};
 	return element;
 }
 
 /// The main test for Any/TAny containers, with all kinds of items, from		
 /// sparse to dense, from trivial to complex, from flat to deep					
 TEMPLATE_TEST_CASE("Any/TAny", "[any]", 
-	(TypePair<Any, int>),
-	(TypePair<TAny<int*>, int*>),
-	(TypePair<TAny<Trait>, Trait>),
+	(TypePair<TAny<Text>, Text>),
 	(TypePair<TAny<int>, int>),
+	(TypePair<TAny<Trait>, Trait>),
 	(TypePair<TAny<Traits::Count>, Traits::Count>),
 	(TypePair<TAny<Any>, Any>),
+	(TypePair<TAny<int*>, int*>),
 	(TypePair<TAny<Trait*>, Trait*>),
 	(TypePair<TAny<Traits::Count*>, Traits::Count*>),
 	(TypePair<TAny<Any*>, Any*>),
-	(TypePair<Any, int*>),
+	(TypePair<TAny<Text*>, Text*>),
+	(TypePair<Any, int>),
 	(TypePair<Any, Trait>),
 	(TypePair<Any, Traits::Count>),
 	(TypePair<Any, Any>),
+	(TypePair<Any, Text>),
+	(TypePair<Any, int*>),
 	(TypePair<Any, Trait*>),
 	(TypePair<Any, Traits::Count*>),
-	(TypePair<Any, Any*>)
+	(TypePair<Any, Any*>),
+	(TypePair<Any, Text*>)
 ) {
 	using T = typename TestType::Container;
 	using E = typename TestType::Element;
@@ -1928,7 +1934,8 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 					++it;
 				},
 				[&](const Any& i) {
-					REQUIRE(i == it + 1);
+					const auto temp = CreateElement<DenseE>(it + 1);
+					REQUIRE(i == static_cast<const Any&>(temp));
 					++it;
 				}
 			);
@@ -1950,7 +1957,8 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 					++it;
 				},
 				[&](const Any& i) {
-					REQUIRE(i == it + 1);
+					const auto temp = CreateElement<DenseE>(it + 1);
+					REQUIRE(i == static_cast<const Any&>(temp));
 					++it;
 				}
 			);
@@ -1972,7 +1980,8 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 					++it;
 				},
 				[&](const Any* i) {
-					REQUIRE(*i == it + 1);
+					const auto temp = CreateElement<DenseE>(it + 1);
+					REQUIRE(*i == static_cast<const Any&>(temp));
 					++it;
 				}
 			);
@@ -1994,7 +2003,8 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 					++it;
 				},
 				[&](const Any* i) {
-					REQUIRE(*i == it + 1);
+					const auto temp = CreateElement<DenseE>(it + 1);
+					REQUIRE(*i == static_cast<const Any&>(temp));
 					++it;
 				}
 			);
@@ -2016,7 +2026,8 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 					++it;
 				},
 				[&](const Any& i) {
-					REQUIRE(i == 5 - it);
+					const auto temp = CreateElement<DenseE>(5 - it);
+					REQUIRE(i == static_cast<const Any&>(temp));
 					++it;
 				}
 			);
@@ -2038,7 +2049,8 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 					++it;
 				},
 				[&](const Any& i) {
-					REQUIRE(i == 5 - it);
+					const auto temp = CreateElement<DenseE>(5 - it);
+					REQUIRE(i == static_cast<const Any&>(temp));
 					++it;
 				}
 			);
@@ -2060,7 +2072,8 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 					++it;
 				},
 				[&](const Any* i) {
-					REQUIRE(*i == 5 - it);
+					const auto temp = CreateElement<DenseE>(5 - it);
+					REQUIRE(*i == static_cast<const Any&>(temp));
 					++it;
 				}
 			);
@@ -2082,7 +2095,8 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 					++it;
 				},
 				[&](const Any* i) {
-					REQUIRE(*i == 5 - it);
+					const auto temp = CreateElement<DenseE>(5 - it);
+					REQUIRE(*i == static_cast<const Any&>(temp));
 					++it;
 				}
 			);
