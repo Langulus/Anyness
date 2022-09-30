@@ -63,11 +63,11 @@ namespace Langulus::Anyness
 
 			// Then attempt to push other container, if this container		
 			// allows for it																
-			if constexpr (CT::Deep<T>) {
+			/*if constexpr (CT::Deep<T>) {
 				auto& compatible = static_cast<const Decay<T>&>(other);
 				Insert<IndexBack, KEEP>(&compatible, &compatible + 1);
 			}
-			else Throw<Except::Copy>("Bad copy-construction", LANGULUS_LOCATION());
+			else*/ Throw<Except::Copy>("Bad copy-construction", LANGULUS_LOCATION());
 		}
 	}
 
@@ -105,9 +105,9 @@ namespace Langulus::Anyness
 
 			// Then attempt to push other container, if this container		
 			// allows for it																
-			if constexpr (CT::Deep<T>)
+			/*if constexpr (CT::Deep<T>)
 				Insert<IndexBack, KEEP>(Forward<Decay<T>>(other));
-			else
+			else*/
 				Throw<Except::Copy>("Bad move-construction", LANGULUS_LOCATION());
 		}
 	}
@@ -117,14 +117,14 @@ namespace Langulus::Anyness
 	///	@param other - the anyness to reference										
 	TEMPLATE()
 	template<CT::Deep ALT_T>
-	TAny<T>::TAny(const ALT_T& other) requires DenseButNotTheSame<ALT_T>
+	TAny<T>::TAny(const ALT_T& other)// requires DenseButNotTheSame<ALT_T>
 		: TAny {} {
 		ConstructFromContainer<true>(other);
 	}
 
 	TEMPLATE()
 	template<CT::Deep ALT_T>
-	TAny<T>::TAny(ALT_T& other) requires DenseButNotTheSame<ALT_T>
+	TAny<T>::TAny(ALT_T& other)// requires DenseButNotTheSame<ALT_T>
 		: TAny {const_cast<const ALT_T&>(other)} {}
 
 	/// Move-construction from any deep container, with a bit of					
@@ -132,7 +132,7 @@ namespace Langulus::Anyness
 	///	@param other - the anyness to reference										
 	TEMPLATE()
 	template<CT::Deep ALT_T>
-	TAny<T>::TAny(ALT_T&& other) requires DenseButNotTheSame<ALT_T>
+	TAny<T>::TAny(ALT_T&& other)// requires DenseButNotTheSame<ALT_T>
 		: TAny {} {
 		ConstructFromContainer<true>(Forward<Any>(other));
 	}
@@ -142,7 +142,7 @@ namespace Langulus::Anyness
 	///	@param other - the anyness to copy												
 	TEMPLATE()
 	template<CT::Deep ALT_T>
-	constexpr TAny<T>::TAny(Disowned<ALT_T>&& other) requires CT::Dense<ALT_T>
+	constexpr TAny<T>::TAny(Disowned<ALT_T>&& other)// requires CT::Dense<ALT_T>
 		: TAny {} {
 		ConstructFromContainer<false>(other.mValue);
 	}
@@ -152,7 +152,7 @@ namespace Langulus::Anyness
 	///	@param other - the anyness to copy												
 	TEMPLATE()
 	template<CT::Deep ALT_T>
-	constexpr TAny<T>::TAny(Abandoned<ALT_T>&& other) requires CT::Dense<ALT_T>
+	constexpr TAny<T>::TAny(Abandoned<ALT_T>&& other)// requires CT::Dense<ALT_T>
 		: TAny {} {
 		ConstructFromContainer<false>(Move(other.mValue));
 	}
@@ -263,33 +263,6 @@ namespace Langulus::Anyness
 		return *this;
 	}
 
-	/// Shallow-copy a disowned container, without referencing the data			
-	///	@param other - the container to shallow-copy									
-	///	@return a reference to this container											
-	TEMPLATE()
-	TAny<T>& TAny<T>::operator = (Disowned<TAny>&& other) noexcept {
-		if (this == &other.mValue)
-			return *this;
-
-		Free();
-		CopyProperties<true, false>(other.mValue);
-		return *this;
-	}
-
-	/// Move assignment of an abandoned container, without fully resetting it	
-	///	@param other - the container to move											
-	///	@return a reference to this container											
-	TEMPLATE()
-	TAny<T>& TAny<T>::operator = (Abandoned<TAny>&& other) noexcept {
-		if (this == &other.mValue)
-			return *this;
-
-		Free();
-		CopyProperties<true, true>(other.mValue);
-		other.mValue.mEntry = nullptr;
-		return *this;
-	}
-
 	/// Copy-construct from another container by performing runtime type check	
 	///	@tparam KEEP - whether or not to reference contents						
 	///	@tparam ALT_T - the container type (deducible)								
@@ -297,7 +270,12 @@ namespace Langulus::Anyness
 	TEMPLATE()
 	template<bool KEEP, CT::Deep ALT_T>
 	void TAny<T>::AssignFromContainer(const ALT_T& other) {
-		if (CastsToMeta(other.GetType())) {
+		if constexpr (CT::Same<TAny, ALT_T>) {
+			Free();
+			CopyProperties<true, false>(other);
+			return;
+		}
+		else if (CastsToMeta(other.GetType())) {
 			// Always attempt to copy containers directly first, instead	
 			// of doing allocations														
 			Free();
@@ -310,14 +288,14 @@ namespace Langulus::Anyness
 
 		// Then attempt to push other container, if this container allows	
 		// for it																			
-		if constexpr (CT::Deep<T>) {
+		/*if constexpr (CT::Deep<T> && CT::Insertable<ALT_T>) {
 			CallKnownDestructors<T>();
 			mCount = 0;
 			ResetState();
 			auto& compatible = static_cast<const Decay<T>&>(other);
 			Insert<IndexBack, KEEP>(&compatible, &compatible + 1);
 		}
-		else Throw<Except::Copy>("Bad copy-assignment", LANGULUS_LOCATION());
+		else*/ Throw<Except::Copy>("Bad copy-assignment", LANGULUS_LOCATION());
 	}
 
 	/// Move-construct from another container by performing runtime type check	
@@ -327,7 +305,13 @@ namespace Langulus::Anyness
 	TEMPLATE()
 	template<bool KEEP, CT::Deep ALT_T>
 	void TAny<T>::AssignFromContainer(ALT_T&& other) {
-		if (CastsToMeta(other.GetType())) {
+		if constexpr (CT::Same<TAny, ALT_T>) {
+			Free();
+			CopyProperties<true, true>(other);
+			other.mEntry = nullptr;
+			return;
+		}
+		else if (CastsToMeta(other.GetType())) {
 			// Always attempt to copy containers directly first, instead	
 			// of doing allocations														
 			Free();
@@ -345,13 +329,13 @@ namespace Langulus::Anyness
 
 		// Then attempt to push other container, if this container allows	
 		// for it																			
-		if constexpr (CT::Deep<T>) {
+		/*if constexpr (CT::Deep<T> && CT::Insertable<ALT_T>) {
 			CallKnownDestructors<T>();
 			mCount = 0;
 			ResetState();
 			Insert<IndexBack, KEEP>(Forward<Decay<T>>(other));
 		}
-		else Throw<Except::Copy>("Bad move-assignment", LANGULUS_LOCATION());
+		else*/ Throw<Except::Copy>("Bad move-assignment", LANGULUS_LOCATION());
 	}
 
 	/// Copy-assign an unknown container													
@@ -359,12 +343,19 @@ namespace Langulus::Anyness
 	///	@param other - the container to shallow-copy									
 	///	@return a reference to this container											
 	TEMPLATE()
-	TAny<T>& TAny<T>::operator = (const Any& other) {
-		if (static_cast<Any*>(this) == &other)
+	template<CT::Deep ALT_T>
+	TAny<T>& TAny<T>::operator = (const ALT_T& other) {
+		if (static_cast<Block*>(this) == &other)
 			return *this;
 
 		AssignFromContainer<true>(other);
 		return *this;
+	}
+	
+	TEMPLATE()
+	template<CT::Deep ALT_T>
+	TAny<T>& TAny<T>::operator = (ALT_T& other) {
+		return operator = (const_cast<const ALT_T&>(other));
 	}
 
 	/// Move-assign an unknown container													
@@ -372,21 +363,52 @@ namespace Langulus::Anyness
 	///	@param other - the container to move											
 	///	@return a reference to this container											
 	TEMPLATE()
-	TAny<T>& TAny<T>::operator = (Any&& other) {
-		if (static_cast<Any*>(this) == &other)
+	template<CT::Deep ALT_T>
+	TAny<T>& TAny<T>::operator = (ALT_T&& other) {
+		if (static_cast<Block*>(this) == &other)
 			return *this;
 
-		AssignFromContainer<true>(Forward<Any>(other));
+		AssignFromContainer<true>(Forward<ALT_T>(other));
 		return *this;
 	}
+
+	/// Shallow-copy a disowned container, without referencing the data			
+	///	@param other - the container to shallow-copy									
+	///	@return a reference to this container											
+	/*TEMPLATE()
+		template<CT::Deep ALT_T>
+	TAny<T>& TAny<T>::operator = (Disowned<ALT_T>&& other) noexcept {
+		if (this == &other.mValue)
+			return *this;
+
+		Free();
+		CopyProperties<true, false>(other.mValue);
+		return *this;
+	}
+
+	/// Move assignment of an abandoned container, without fully resetting it	
+	///	@param other - the container to move											
+	///	@return a reference to this container											
+	TEMPLATE()
+		template<CT::Deep ALT_T>
+	TAny<T>& TAny<T>::operator = (Abandoned<ALT_T>&& other) noexcept {
+		if (this == &other.mValue)
+			return *this;
+
+		Free();
+		CopyProperties<true, true>(other.mValue);
+		other.mValue.mEntry = nullptr;
+		return *this;
+	}*/
 
 	/// Shallow-copy disowned runtime container without referencing contents	
 	/// This is a bit slower, because checks type compatibility at runtime		
 	///	@param other - the container to shallow-copy									
 	///	@return a reference to this container											
 	TEMPLATE()
-	TAny<T>& TAny<T>::operator = (Disowned<Any>&& other) {
-		if (static_cast<Any*>(this) == &other.mValue)
+	template<CT::Deep ALT_T>
+	TAny<T>& TAny<T>::operator = (Disowned<ALT_T>&& other) {
+		if (static_cast<Block*>(this) == &other.mValue)
 			return *this;
 
 		AssignFromContainer<false>(other.mValue);
@@ -398,11 +420,12 @@ namespace Langulus::Anyness
 	///	@param other - the container to move											
 	///	@return a reference to this container											
 	TEMPLATE()
-	TAny<T>& TAny<T>::operator = (Abandoned<Any>&& other) {
-		if (static_cast<Any*>(this) == &other.mValue)
+	template<CT::Deep ALT_T>
+	TAny<T>& TAny<T>::operator = (Abandoned<ALT_T>&& other) {
+		if (static_cast<Block*>(this) == &other.mValue)
 			return *this;
 
-		AssignFromContainer<false>(Forward<Any>(other.mValue));
+		AssignFromContainer<false>(Forward<ALT_T>(other.mValue));
 		return *this;
 	}
 
@@ -410,7 +433,7 @@ namespace Langulus::Anyness
 	/// This is a bit slower, because checks type compatibility at runtime		
 	///	@param other - the container to shallow-copy									
 	///	@return a reference to this container											
-	TEMPLATE()
+	/*TEMPLATE()
 	TAny<T>& TAny<T>::operator = (const Block& other) {
 		if (static_cast<Block*>(this) == &other)
 			return *this;
@@ -431,7 +454,7 @@ namespace Langulus::Anyness
 
 		AssignFromContainer<true>(Forward<Block>(other));
 		return *this;
-	}
+	}*/
 
 	/// Assign by shallow-copying an element												
 	///	@param other - the value to copy													
@@ -451,6 +474,11 @@ namespace Langulus::Anyness
 		}
 
 		return *this;
+	}
+	
+	TEMPLATE()
+	TAny<T>& TAny<T>::operator = (T& other) requires CT::CustomData<T> {
+		return operator = (const_cast<const T&>(other));
 	}
 
 	/// Assign by moving an element															

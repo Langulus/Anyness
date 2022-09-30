@@ -48,7 +48,8 @@ namespace Langulus::Anyness
 		if constexpr (CT::Same<T, Block>) {
 			// Since we are not aware if that block is referenced or not	
 			// we reference it just in case, and we also do not reset		
-			// 'other' to avoid leaks													
+			// 'other' to avoid leaks. When using raw Blocks, it's your		
+			// responsibility to take care of ownership.							
 			Keep();
 		}
 		else {
@@ -251,11 +252,9 @@ namespace Langulus::Anyness
 		LANGULUS_ASSERT(!IsTypeConstrained() || CastsToMeta(other.mType),
 			Except::Copy, "Incompatible types");
 
-		// First we reference, so that we don't lose the memory, in			
-		// the rare case where memory is same in both containers				
-		other.Keep();
 		Free();
 		Block::operator = (other);
+		Keep();
 		return *this;
 	}
 	
@@ -278,8 +277,17 @@ namespace Langulus::Anyness
 
 		Free();
 		Block::operator = (Forward<Block>(other));
-		other.ResetMemory();
-		other.ResetState();
+		if constexpr (CT::Same<T, Block>) {
+			// Since we are not aware if that block is referenced or not	
+			// we reference it just in case, and we also do not reset		
+			// 'other' to avoid leaks. When using raw Blocks, it's your		
+			// responsibility to take care of ownership.							
+			Keep();
+		}
+		else {
+			other.ResetMemory();
+			other.ResetState();
+		}
 		return *this;
 	}
 

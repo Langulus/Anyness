@@ -25,6 +25,7 @@ namespace Langulus::Anyness
 	///																								
 	class Any : public Block {
 		LANGULUS(DEEP) true;
+		LANGULUS(UNINSERTABLE) false;
 		LANGULUS_BASES(Block);
 	public:
 		template<CT::Data T>

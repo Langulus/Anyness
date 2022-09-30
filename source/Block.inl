@@ -1193,8 +1193,8 @@ namespace Langulus::Anyness
 	Count Block::Insert(const T* start, const T* end) {
 		static_assert(CT::Deep<WRAPPER>,
 			"WRAPPER must be deep");
-		static_assert(CT::Sparse<T> || CT::Mutable<T>,
-			"Can't copy-insert into container of constant elements");
+		//static_assert(CT::Sparse<T> || CT::Mutable<T>,
+		//	"Can't copy-insert into container of constant elements");
 		static_assert(INDEX == IndexFront || INDEX == IndexBack,
 			"INDEX can be either IndexBack or IndexFront; "
 			"use Block::InsertAt to insert at specific offset");
@@ -1241,8 +1241,8 @@ namespace Langulus::Anyness
 	Count Block::Insert(T&& item) {
 		static_assert(CT::Deep<WRAPPER>,
 			"WRAPPER must be deep");
-		static_assert(CT::Sparse<T> || CT::Mutable<T>,
-			"Can't copy-insert into container of constant elements");
+		//static_assert(CT::Sparse<T> || CT::Mutable<T>,
+		//	"Can't copy-insert into container of constant elements");
 		static_assert(INDEX == IndexFront || INDEX == IndexBack,
 			"INDEX can be either IndexBack or IndexFront; "
 			"use Block::InsertAt to insert at specific offset");
@@ -1277,8 +1277,8 @@ namespace Langulus::Anyness
 
 	/// Inner copy-insertion function														
 	///	@attention this is an inner function and should be used with caution	
-	///	@attention relies that the required free space has been prepared		
-	///				  at the appropriate place												
+	///	@attention assumes required free space has been prepared at offset	
+	///	@attention assumes that T is this container's type							
 	///	@tparam KEEP - whether or not to reference the new contents				
 	///	@tparam T - the type to insert (deducible)									
 	///	@param start - pointer to the first item										
@@ -1286,9 +1286,10 @@ namespace Langulus::Anyness
 	///	@param starter - the offset at which to insert								
 	template<bool KEEP, CT::NotAbandonedOrDisowned T>
 	void Block::InsertInner(const T* start, const T* end, Offset at) {
+		static_assert(CT::Insertable<T>, "Dense type is not insertable");
 		const auto count = end - start;
-		static_assert(CT::Sparse<T> || CT::Mutable<T>,
-			"Can't copy-insert into container of constant elements");
+		//static_assert(CT::Sparse<T> || CT::Mutable<T>,
+		//	"Can't copy-insert into container of constant elements");
 
 		if constexpr (CT::Sparse<T>) {
 			// Sparse data insertion (copying pointers and referencing)		
@@ -1331,16 +1332,17 @@ namespace Langulus::Anyness
 
 	/// Inner move-insertion function														
 	///	@attention this is an inner function and should be used with caution	
-	///	@attention relies that the required free space has been prepared		
-	///				  at the appropriate place												
+	///	@attention assumes required free space has been prepared at offset	
+	///	@attention assumes that T is this container's type							
 	///	@tparam KEEP - whether or not to reference the new contents				
 	///	@tparam T - the type to insert (deducible)									
 	///	@param item - item to move in														
 	///	@param starter - the offset at which to insert								
 	template<bool KEEP, CT::NotAbandonedOrDisowned T>
 	void Block::InsertInner(T&& item, Offset at) {
-		static_assert(CT::Sparse<T> || CT::Mutable<T>,
-			"Can't move-insert into container of constant elements");
+		static_assert(CT::Insertable<T>, "Dense type is not insertable");
+		//static_assert(CT::Sparse<T> || CT::Mutable<T>,
+		//	"Can't move-insert into container of constant elements");
 
 		if constexpr (CT::Sparse<T>) {
 			// Sparse data insertion (copying a pointer)							
@@ -1352,21 +1354,22 @@ namespace Langulus::Anyness
 			static_assert(!CT::Abstract<T>,
 				"Can't move-insert abstract item in dense block");
 
-			const auto data = GetRawAs<T>() + at;
+			using DT = Decvq<Deref<T>>;
+			const auto data = GetRawAs<DT>() + at;
 			if constexpr (KEEP) {
 				if constexpr (CT::MoveMakable<T>)
-					new (data) T {Forward<T>(item)};
+					new (data) DT {Forward<T>(item)};
 				else if constexpr (CT::CopyMakable<T>)
-					new (data) T {item};
+					new (data) DT {item};
 				else
 					LANGULUS_ERROR("Can't move-insert non-move/copy-constructible item");
 			}
 			else if constexpr (CT::AbandonMakable<T>)
-				new (data) T {Abandon(item)};
+				new (data) DT {Abandon(item)};
 			else if constexpr (CT::MoveMakable<T>)
-				new (data) T {Forward<T>(item)};
+				new (data) DT {Forward<T>(item)};
 			else if constexpr (CT::Fundamental<T>)
-				new (data) T {item};
+				new (data) DT {item};
 			else
 				LANGULUS_ERROR("Can't move-insert non-abandon-constructible item");
 		}

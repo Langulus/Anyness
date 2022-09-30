@@ -45,39 +45,56 @@ decltype(auto) Resolve(const SOURCE& s) {
 template<class T, class ALT_T>
 T CreateElement(const ALT_T& e) {
 	T element;
-	if constexpr (CT::Sparse<T>)
-		element = new Decay<T> {e};
+	if constexpr (CT::Sparse<T>) {
+		if constexpr (!CT::Same<T, Block>)
+			element = new Decay<T> {e};
+		else {
+			element = new Block {};
+			element->Insert(e);
+		}
+	}
 	else if constexpr (CT::Same<T, ALT_T>)
 		element = e;
-	else 
-		element = Decay<T> {e};
+	else {
+		if constexpr (!CT::Same<T, Block>)
+			element = Decay<T> {e};
+		else {
+			element = Block {};
+			element.Insert(e);
+		}
+	}
+
 	return element;
 }
 
 /// The main test for Any/TAny containers, with all kinds of items, from		
 /// sparse to dense, from trivial to complex, from flat to deep					
 TEMPLATE_TEST_CASE("Any/TAny", "[any]", 
-	(TypePair<Traits::Name, Text>),
+	(TypePair<TAny<Any>, Any>),
 	(TypePair<TAny<int>, int>),
 	(TypePair<TAny<Trait>, Trait>),
 	(TypePair<TAny<Traits::Count>, Traits::Count>),
-	(TypePair<TAny<Any>, Any>),
 	(TypePair<TAny<Text>, Text>),
+	//(TypePair<TAny<Block>, Block>),
 	(TypePair<TAny<int*>, int*>),
 	(TypePair<TAny<Trait*>, Trait*>),
 	(TypePair<TAny<Traits::Count*>, Traits::Count*>),
 	(TypePair<TAny<Any*>, Any*>),
 	(TypePair<TAny<Text*>, Text*>),
+	//(TypePair<TAny<Block*>, Block*>),
 	(TypePair<Any, int>),
 	(TypePair<Any, Trait>),
 	(TypePair<Any, Traits::Count>),
 	(TypePair<Any, Any>),
 	(TypePair<Any, Text>),
+	//(TypePair<Any, Block>),
 	(TypePair<Any, int*>),
 	(TypePair<Any, Trait*>),
 	(TypePair<Any, Traits::Count*>),
 	(TypePair<Any, Any*>),
-	(TypePair<Any, Text*>)
+	(TypePair<Any, Text*>),
+	//(TypePair<Any, Block*>),
+	(TypePair<Traits::Name, Text>)
 ) {
 	using T = typename TestType::Container;
 	using E = typename TestType::Element;
@@ -179,7 +196,10 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 		#endif
 
 		WHEN("Assigned value by copy") {
-			pack = element;
+			if constexpr (CT::Deep<E> && CT::StaticallyTyped<T>)
+				REQUIRE_THROWS(pack = element);
+			else
+				pack = element;
 
 			THEN("Properties should match") {
 				REQUIRE(pack.GetType() != nullptr);
@@ -195,6 +215,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 					REQUIRE_FALSE(pack.IsStatic());
 					REQUIRE_FALSE(pack.IsConstant());
 					REQUIRE(pack.IsDeep() == CT::Deep<Decay<E>>);
+					REQUIRE_FALSE(pack.IsEmpty());
 				}
 				else if constexpr (CT::Same<E, T>) {
 					REQUIRE(pack.GetRaw() == element.GetRaw());
@@ -206,10 +227,12 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 					REQUIRE(pack.IsConstant() == element.IsConstant());
 					REQUIRE(pack.IsStatic() == element.IsStatic());
 					REQUIRE(pack.HasAuthority() == element.HasAuthority());
+					REQUIRE_FALSE(pack.IsEmpty());
 				}
-				else {
+				/*else {
 					REQUIRE(pack.template As<DenseE>().GetRaw() == sparseValue->GetRaw());
-					REQUIRE(pack.template Is<typename T::Type>());
+					if constexpr (CT::StaticallyTyped<T>)
+						REQUIRE(pack.template Is<typename T::Type>());
 					REQUIRE(pack.template As<DenseE>() == denseValue);
 					REQUIRE(*pack.template As<DenseE*>() == denseValue);
 					REQUIRE(pack.template As<DenseE>().IsStatic() == element.IsStatic());
@@ -223,7 +246,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 					REQUIRE_FALSE(pack.IsConstant());
 					REQUIRE(pack.HasAuthority());
 					REQUIRE(pack.IsDeep());
-				}
+				}*/
 
 				if constexpr (CT::Sparse<E>) {
 					REQUIRE(*pack.GetRawSparse() == sparseValue);
@@ -232,7 +255,6 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
 				REQUIRE_THROWS(pack.template As<float>() == 0.0f);
 				REQUIRE_THROWS(pack.template As<float*>() == nullptr);
-				REQUIRE_FALSE(pack.IsEmpty());
 				REQUIRE(pack.IsDense() == CT::Dense<E>);
 				REQUIRE(pack.IsSparse() == CT::Sparse<E>);
 			}
@@ -266,16 +288,18 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 		
 		WHEN("Assigned value by move") {
 			auto movable = element;
-			pack = Move(movable);
+			if constexpr (CT::Deep<E> && CT::StaticallyTyped<T>)
+				REQUIRE_THROWS(pack = Move(movable));
+			else
+				pack = Move(movable);
 
 			THEN("Properties should match") {
-				if constexpr (CT::Deep<E> && CT::Dense<E>) {
+				if constexpr (!CT::Deep<E> && CT::Block<E>) {
 					REQUIRE(movable.IsEmpty());
 					REQUIRE_FALSE(movable.IsAllocated());
 					REQUIRE(movable != element);
 				}
-				REQUIRE(pack.GetType() != nullptr);
-				REQUIRE(pack.GetRaw() != nullptr);
+
 				if constexpr (CT::Flat<E>) {
 					if constexpr (CT::Sparse<E>)
 						REQUIRE(&pack.template As<DenseE>() == sparseValue);
@@ -288,6 +312,9 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 					REQUIRE_FALSE(pack.IsStatic());
 					REQUIRE_FALSE(pack.IsConstant());
 					REQUIRE(pack.IsDeep() == CT::Deep<Decay<E>>);
+					REQUIRE_FALSE(pack.IsEmpty());
+					REQUIRE(pack.GetType() != nullptr);
+					REQUIRE(pack.GetRaw() != nullptr);
 				}
 				else if constexpr (CT::Same<E, T>) {
 					REQUIRE(pack.GetRaw() == element.GetRaw());
@@ -298,10 +325,14 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 					REQUIRE(pack.IsConstant() == element.IsConstant());
 					REQUIRE(pack.IsStatic() == element.IsStatic());
 					REQUIRE(pack.HasAuthority() == element.HasAuthority());
+					REQUIRE_FALSE(pack.IsEmpty());
+					REQUIRE(pack.GetType() != nullptr);
+					REQUIRE(pack.GetRaw() != nullptr);
 				}
-				else {
+				/*else {
 					REQUIRE(pack.template As<DenseE>().GetRaw() == sparseValue->GetRaw());
-					REQUIRE(pack.template Is<typename T::Type>());
+					if constexpr (CT::StaticallyTyped<T>)
+						REQUIRE(pack.template Is<typename T::Type>());
 					REQUIRE(pack.template As<DenseE>() == denseValue);
 					REQUIRE(*pack.template As<DenseE*>() == denseValue);
 					REQUIRE_FALSE(pack.template As<DenseE>().IsStatic());
@@ -315,7 +346,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 					REQUIRE_FALSE(pack.IsStatic());
 					REQUIRE_FALSE(pack.IsConstant());
 					REQUIRE(pack.HasAuthority());
-				}
+				}*/
 
 				if constexpr (CT::Sparse<E>) {
 					REQUIRE(asbytes(pack.GetRawSparse()->mPointer) == asbytes(sparseValue));
@@ -324,7 +355,6 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
 				REQUIRE_THROWS(pack.template As<float>() == 0.0f);
 				REQUIRE_THROWS(pack.template As<float*>() == nullptr);
-				REQUIRE_FALSE(pack.IsEmpty());
 				REQUIRE(pack.IsDense() == CT::Dense<E>);
 				REQUIRE(pack.IsSparse() == CT::Sparse<E>);
 			}
@@ -357,7 +387,10 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 		}
 
 		WHEN("Assigned disowned value") {
-			pack = Disown(element);
+			if constexpr (CT::Deep<E> && CT::StaticallyTyped<T>)
+				REQUIRE_THROWS(pack = Disown(element));
+			else
+				pack = Disown(element);
 
 			THEN("Properties should match") {
 				if constexpr (CT::Flat<E>) {
@@ -373,6 +406,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 					REQUIRE(pack.HasAuthority());
 					REQUIRE(pack.IsConstant() == CT::Constant<E>);
 					REQUIRE(pack.IsDeep() == CT::Deep<Decay<E>>);
+					REQUIRE_FALSE(pack.IsEmpty());
 				}
 				else if constexpr (CT::Same<E, T>) {
 					REQUIRE(pack.GetType() == element.GetType());
@@ -384,11 +418,13 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 					REQUIRE_FALSE(pack.HasAuthority());
 					REQUIRE(pack.IsDeep() == element.IsDeep());
 					REQUIRE(pack.IsConstant() == element.IsConstant());
+					REQUIRE_FALSE(pack.IsEmpty());
 				}
-				else {
+				/*else {
 					REQUIRE(pack.template As<DenseE>().GetRaw() == sparseValue->GetRaw());
 					REQUIRE(pack.template As<DenseE>().GetType() == element.GetType());
-					REQUIRE(pack.template Is<typename T::Type>());
+					if constexpr (CT::StaticallyTyped<T>)
+						REQUIRE(pack.template Is<typename T::Type>());
 					REQUIRE(pack.template As<DenseE>() == denseValue);
 					REQUIRE(*pack.template As<DenseE*>() == denseValue);
 					REQUIRE(pack.template As<DenseE>().IsStatic());
@@ -402,7 +438,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 					REQUIRE_FALSE(pack.IsConstant());
 					REQUIRE(pack.HasAuthority());
 					REQUIRE(pack.IsDeep());
-				}
+				}*/
 
 				if constexpr (CT::Sparse<E>) {
 					REQUIRE(asbytes(pack.GetRawSparse()->mPointer) == asbytes(sparseValue));
@@ -411,7 +447,6 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
 				REQUIRE_THROWS(pack.template As<float>() == 0.0f);
 				REQUIRE_THROWS(pack.template As<float*>() == nullptr);
-				REQUIRE_FALSE(pack.IsEmpty());
 				REQUIRE(pack.IsDense() == CT::Dense<E>);
 				REQUIRE(pack.IsSparse() == CT::Sparse<E>);
 			}
@@ -445,16 +480,18 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 		
 		WHEN("Assigned abandoned value") {
 			auto movable = element;
-			pack = Abandon(movable);
+			if constexpr (CT::Deep<E> && CT::StaticallyTyped<T>)
+				REQUIRE_THROWS(pack = Abandon(movable));
+			else
+				pack = Abandon(movable);
 
 			THEN("Properties should match") {
-				if constexpr (CT::Deep<E> && CT::Dense<E>) {
+				if constexpr (!CT::Deep<E> && CT::Block<E>) {
 					REQUIRE_FALSE(movable.IsEmpty());
 					REQUIRE(movable.IsAllocated());
 					REQUIRE(movable.IsStatic());
 				}
-				REQUIRE(pack.GetType() != nullptr);
-				REQUIRE(pack.GetRaw() != nullptr);
+
 				if constexpr (CT::Flat<E>) {
 					if constexpr (CT::Sparse<E>)
 						REQUIRE(&pack.template As<DenseE>() == sparseValue);
@@ -467,6 +504,9 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 					REQUIRE_FALSE(pack.IsStatic());
 					REQUIRE(pack.IsConstant() == CT::Constant<E>);
 					REQUIRE(pack.IsDeep() == CT::Deep<Decay<E>>);
+					REQUIRE_FALSE(pack.IsEmpty());
+					REQUIRE(pack.GetType() != nullptr);
+					REQUIRE(pack.GetRaw() != nullptr);
 				}
 				else if constexpr (CT::Same<E, T>) {
 					REQUIRE(pack.GetRaw() == element.GetRaw());
@@ -477,10 +517,14 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 					REQUIRE(pack.IsConstant() == element.IsConstant());
 					REQUIRE(pack.IsStatic() == element.IsStatic());
 					REQUIRE(pack.HasAuthority() == element.HasAuthority());
+					REQUIRE_FALSE(pack.IsEmpty());
+					REQUIRE(pack.GetType() != nullptr);
+					REQUIRE(pack.GetRaw() != nullptr);
 				}
-				else {
+				/*else {
 					REQUIRE(pack.template As<DenseE>().GetRaw() == sparseValue->GetRaw());
-					REQUIRE(pack.template Is<typename T::Type>());
+					if constexpr (CT::StaticallyTyped<T>)
+						REQUIRE(pack.template Is<typename T::Type>());
 					REQUIRE(pack.template As<DenseE>() == denseValue);
 					REQUIRE(*pack.template As<DenseE*>() == denseValue);
 					REQUIRE_FALSE(pack.template As<DenseE>().IsStatic());
@@ -494,7 +538,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 					REQUIRE_FALSE(pack.IsStatic());
 					REQUIRE_FALSE(pack.IsConstant());
 					REQUIRE(pack.HasAuthority());
-				}
+				}*/
 
 				if constexpr (CT::Sparse<E>) {
 					REQUIRE(asbytes(pack.GetRawSparse()->mPointer) == asbytes(sparseValue));
@@ -503,7 +547,6 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
 				REQUIRE_THROWS(pack.template As<float>() == 0.0f);
 				REQUIRE_THROWS(pack.template As<float*>() == nullptr);
-				REQUIRE_FALSE(pack.IsEmpty());
 				REQUIRE(pack.IsDense() == CT::Dense<E>);
 				REQUIRE(pack.IsSparse() == CT::Sparse<E>);
 			}
@@ -565,298 +608,645 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 					some<T> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i] = storage[i];
-					});
+						});
 				};
 
 				BENCHMARK_ADVANCED("std::vector::operator = (self)") (timer meter) {
-					#include "CollectGarbage.inl"
+#include "CollectGarbage.inl"
 					some<StdT> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i] = storage[i];
-					});
+						});
 				};
 
 				BENCHMARK_ADVANCED("std::any::operator = (self)") (timer meter) {
-					#include "CollectGarbage.inl"
+#include "CollectGarbage.inl"
 					some<std::any> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i] = storage[i];
-					});
+						});
 				};
-			#endif
+#endif
 		}
 
-		WHEN("Assigned full self") {
-			pack = element;
-			pack = pack;
-
-			THEN("Various traits change") {
-				REQUIRE(pack.IsTypeConstrained() == IsStaticallyOptimized<T>);
-				if constexpr (IsStaticallyOptimized<T>) {
-					REQUIRE(pack.GetType()->template Is<E>());
-					REQUIRE(pack.GetType()->template Is<DenseE>());
-				}
-				else {
-					REQUIRE(pack.GetType());
-				}
-				REQUIRE(pack.IsDense() == CT::Dense<E>);
-				REQUIRE(pack.IsSparse() == CT::Sparse<E>);
-				REQUIRE(pack.GetRaw() != nullptr);
-				REQUIRE_FALSE(pack.IsEmpty());
-				REQUIRE(pack.GetUses() == (CT::Deep<E> && CT::Same<T,E> ? 2 : 1));
-				REQUIRE(pack.IsDeep() == (CT::Deep<Decay<E>> && (CT::Sparse<E> || !CT::Same<T,E>)));
-				REQUIRE(pack.IsAllocated());
-			}
-
-			#ifdef LANGULUS_STD_BENCHMARK
-				BENCHMARK_ADVANCED("operator = (self)") (timer meter) {
-					#include "CollectGarbage.inl"
-					some<T> storage(meter.runs());
-					meter.measure([&](int i) {
-						return storage[i] = storage[i];
-					});
-				};
-
-				BENCHMARK_ADVANCED("std::vector::operator = (self)") (timer meter) {
-					#include "CollectGarbage.inl"
-					some<StdT> storage(meter.runs());
-					meter.measure([&](int i) {
-						return storage[i] = storage[i];
-					});
-				};
-
-				BENCHMARK_ADVANCED("std::any::operator = (self)") (timer meter) {
-					#include "CollectGarbage.inl"
-					some<std::any> storage(meter.runs());
-					meter.measure([&](int i) {
-						return storage[i] = storage[i];
-					});
-				};
-			#endif
-		}
 	}
 
 	GIVEN("Container constructed by same container copy") {
-		const T source {element};
-		T pack {source};
-
-		THEN("Properties should match") {
-			REQUIRE(pack.GetType() != nullptr);
-			if constexpr (CT::Flat<E>) {
-				REQUIRE(pack.template Is<DenseE>());
-				REQUIRE(pack.template Is<DenseE*>());
-				REQUIRE(pack.template As<DenseE>() == denseValue);
-				REQUIRE(*pack.template As<DenseE*>() == denseValue);
-				REQUIRE(pack.GetUses() == 2);
-				REQUIRE(pack.IsDeep() == CT::Deep<Decay<E>>);
-			}
-			else if constexpr (CT::Same<E, T>) {
-				REQUIRE(pack.Is(element.GetType()));
-				REQUIRE(pack == source);
-				REQUIRE(pack == element);
-				REQUIRE(pack.GetUses() == 3);
-				REQUIRE(pack.IsDeep() == element.IsDeep());
-			}
-			else {
-				REQUIRE(pack.template Is<typename T::Type>());
-				REQUIRE(pack == source);
-				REQUIRE(pack != element);
-				REQUIRE(pack.GetUses() == 2);
-				REQUIRE(pack.IsDeep());
-			}
-			REQUIRE(pack.GetRaw() != nullptr);
-			REQUIRE_THROWS(pack.template As<float>() == 0.0f);
-			REQUIRE_FALSE(pack.IsEmpty());
-			REQUIRE(pack.IsDense() == CT::Dense<E>);
-			REQUIRE(pack.IsSparse() == CT::Sparse<E>);
-			REQUIRE_FALSE(pack.IsStatic());
-			REQUIRE_FALSE(pack.IsConstant());
-			REQUIRE(pack.HasAuthority());
-			REQUIRE_THROWS(pack.template As<float*>() == nullptr);
-		}
-
-		#ifdef LANGULUS_STD_BENCHMARK
-			BENCHMARK_ADVANCED("construction (single container copy)") (timer meter) {
-				#include "CollectGarbage.inl"
-				some<uninitialized<T>> storage(meter.runs());
-				meter.measure([&](int i) {
-					return storage[i].construct(source);
-				});
-			};
-
-			BENCHMARK_ADVANCED("std::vector::construction (single container copy)") (timer meter) {
-				#include "CollectGarbage.inl"
-				StdT source {1, 555};
-				some<uninitialized<StdT>> storage(meter.runs());
-				meter.measure([&](int i) {
-					return storage[i].construct(source);
-				});
-			};
-
-			BENCHMARK_ADVANCED("std::any::construction (single container copy)") (timer meter) {
-				#include "CollectGarbage.inl"
-				std::any source {555};
-				some<uninitialized<std::any>> storage(meter.runs());
-				meter.measure([&](int i) {
-					return storage[i].construct(source);
-				});
-			};
-		#endif
-	}
-
-	GIVEN("Container constructed by value copy") {
-		T pack {element};
-
-		THEN("Properties should match") {
-			REQUIRE(pack.GetRaw() != nullptr);
-			REQUIRE(pack.GetType() != nullptr);
-			if constexpr (CT::Flat<E>) {
-				REQUIRE(pack.template Is<DenseE>());
-				REQUIRE(pack.template Is<DenseE*>());
-				REQUIRE(pack.template As<DenseE>() == denseValue);
-				REQUIRE(*pack.template As<DenseE*>() == denseValue);
-				REQUIRE(pack.GetUses() == 1);
-				REQUIRE(pack.IsDeep() == CT::Deep<Decay<E>>);
-			}
-			else if constexpr (CT::Same<E, T>) {
-				REQUIRE(pack.Is(element.GetType()));
-				REQUIRE(pack == element);
-				REQUIRE(pack.GetUses() == 2);
-				REQUIRE(pack.IsDeep() == element.IsDeep());
-			}
-			else {
-				REQUIRE(pack.template Is<typename T::Type>());
-				REQUIRE(pack.template As<DenseE>() == denseValue);
-				REQUIRE(*pack.template As<DenseE*>() == denseValue);
-				REQUIRE(pack != element);
-				REQUIRE(pack.GetUses() == 1);
-				REQUIRE(pack.IsDeep());
-			}
-			REQUIRE_THROWS(pack.template As<float>() == 0.0f);
-			REQUIRE_THROWS(pack.template As<float*>() == nullptr);
-			REQUIRE_FALSE(pack.IsEmpty());
-			REQUIRE(pack.IsDense() == CT::Dense<E>);
-			REQUIRE(pack.IsSparse() == CT::Sparse<E>);
-			REQUIRE_FALSE(pack.IsStatic());
-			REQUIRE_FALSE(pack.IsConstant());
-			REQUIRE(pack.HasAuthority());
-		}
-
-		#ifdef LANGULUS_STD_BENCHMARK
-			BENCHMARK_ADVANCED("construction (single value copy)") (timer meter) {
-				#include "CollectGarbage.inl"
-				some<uninitialized<T>> storage(meter.runs());
-				meter.measure([&](int i) {
-					return storage[i].construct(value);
-				});
-			};
-
-			BENCHMARK_ADVANCED("std::vector::construction (single value copy)") (timer meter) {
-				#include "CollectGarbage.inl"
-				some<uninitialized<StdT>> storage(meter.runs());
-				meter.measure([&](int i) {
-					return storage[i].construct(1, value);
-				});
-			};
-
-			BENCHMARK_ADVANCED("std::any::construction (single value copy)") (timer meter) {
-				#include "CollectGarbage.inl"
-				some<uninitialized<std::any>> storage(meter.runs());
-				meter.measure([&](int i) {
-					return storage[i].construct(value);
-				});
-			};
-		#endif
-
-		WHEN("Assigned compatible value by copy") {
-			pack = element;
+		if constexpr (CT::Deep<E> && CT::StaticallyTyped<T>)
+			REQUIRE_THROWS(T {element});
+		else {
+			const T source {element};
+			T pack {source};
 
 			THEN("Properties should match") {
 				REQUIRE(pack.GetType() != nullptr);
 				if constexpr (CT::Flat<E>) {
-					if constexpr (CT::Sparse<E>)
-						REQUIRE(&pack.template As<DenseE>() == sparseValue);
+					REQUIRE(pack.template Is<DenseE>());
+					REQUIRE(pack.template Is<DenseE*>());
+					REQUIRE(pack.template As<DenseE>() == denseValue);
+					REQUIRE(*pack.template As<DenseE*>() == denseValue);
+					REQUIRE(pack.GetUses() == 2);
+					REQUIRE(pack.IsDeep() == CT::Deep<Decay<E>>);
+				}
+				else if constexpr (CT::Same<E, T>) {
+					REQUIRE(pack.Is(element.GetType()));
+					REQUIRE(pack == source);
+					REQUIRE(pack == element);
+					REQUIRE(pack.GetUses() == 3);
+					REQUIRE(pack.IsDeep() == element.IsDeep());
+				}
+				/*else {
+					if constexpr (CT::StaticallyTyped<T>)
+						REQUIRE(pack.template Is<typename T::Type>());
+					REQUIRE(pack == source);
+					REQUIRE(pack != element);
+					REQUIRE(pack.GetUses() == 2);
+					REQUIRE(pack.IsDeep());
+				}*/
+
+				REQUIRE(pack.GetRaw() != nullptr);
+				REQUIRE_THROWS(pack.template As<float>() == 0.0f);
+				REQUIRE_FALSE(pack.IsEmpty());
+				REQUIRE(pack.IsDense() == CT::Dense<E>);
+				REQUIRE(pack.IsSparse() == CT::Sparse<E>);
+				REQUIRE_FALSE(pack.IsStatic());
+				REQUIRE_FALSE(pack.IsConstant());
+				REQUIRE(pack.HasAuthority());
+				REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+			}
+
+			#ifdef LANGULUS_STD_BENCHMARK
+				BENCHMARK_ADVANCED("construction (single container copy)") (timer meter) {
+					#include "CollectGarbage.inl"
+					some<uninitialized<T>> storage(meter.runs());
+					meter.measure([&](int i) {
+						return storage[i].construct(source);
+					});
+				};
+
+				BENCHMARK_ADVANCED("std::vector::construction (single container copy)") (timer meter) {
+					#include "CollectGarbage.inl"
+					StdT source {1, 555};
+					some<uninitialized<StdT>> storage(meter.runs());
+					meter.measure([&](int i) {
+						return storage[i].construct(source);
+					});
+				};
+
+				BENCHMARK_ADVANCED("std::any::construction (single container copy)") (timer meter) {
+					#include "CollectGarbage.inl"
+					std::any source {555};
+					some<uninitialized<std::any>> storage(meter.runs());
+					meter.measure([&](int i) {
+						return storage[i].construct(source);
+					});
+				};
+			#endif
+		}
+	}
+
+	GIVEN("Container constructed by value copy") {
+		if constexpr (CT::Deep<E> && CT::StaticallyTyped<T>)
+			REQUIRE_THROWS(T {element});
+		else {
+			T pack {element};
+
+			THEN("Properties should match") {
+				REQUIRE(pack.GetRaw() != nullptr);
+				REQUIRE(pack.GetType() != nullptr);
+				if constexpr (CT::Flat<E>) {
 					REQUIRE(pack.template Is<DenseE>());
 					REQUIRE(pack.template Is<DenseE*>());
 					REQUIRE(pack.template As<DenseE>() == denseValue);
 					REQUIRE(*pack.template As<DenseE*>() == denseValue);
 					REQUIRE(pack.GetUses() == 1);
-					REQUIRE(pack.HasAuthority());
-					REQUIRE_FALSE(pack.IsStatic());
-					REQUIRE_FALSE(pack.IsConstant());
 					REQUIRE(pack.IsDeep() == CT::Deep<Decay<E>>);
 				}
 				else if constexpr (CT::Same<E, T>) {
-					REQUIRE(pack.GetRaw() == element.GetRaw());
 					REQUIRE(pack.Is(element.GetType()));
 					REQUIRE(pack == element);
-					REQUIRE(pack.GetUses() == element.GetUses());
 					REQUIRE(pack.GetUses() == 2);
 					REQUIRE(pack.IsDeep() == element.IsDeep());
-					REQUIRE(pack.IsConstant() == element.IsConstant());
-					REQUIRE(pack.IsStatic() == element.IsStatic());
-					REQUIRE(pack.HasAuthority() == element.HasAuthority());
 				}
-				else {
-					REQUIRE(pack.template As<DenseE>().GetRaw() == sparseValue->GetRaw());
-					REQUIRE(pack.template Is<typename T::Type>());
+				/*else {
+					if constexpr (CT::StaticallyTyped<T>)
+						REQUIRE(pack.template Is<typename T::Type>());
 					REQUIRE(pack.template As<DenseE>() == denseValue);
 					REQUIRE(*pack.template As<DenseE*>() == denseValue);
-					REQUIRE(pack.template As<DenseE>().IsStatic() == element.IsStatic());
-					REQUIRE(pack.template As<DenseE>().IsConstant() == element.IsConstant());
-					REQUIRE(pack.template As<DenseE>().HasAuthority() == element.HasAuthority());
-					REQUIRE(pack.template As<DenseE>().GetUses() == 2);
-					REQUIRE(pack.template As<DenseE>() == element);
 					REQUIRE(pack != element);
 					REQUIRE(pack.GetUses() == 1);
-					REQUIRE_FALSE(pack.IsStatic());
-					REQUIRE_FALSE(pack.IsConstant());
-					REQUIRE(pack.HasAuthority());
 					REQUIRE(pack.IsDeep());
-				}
-
-				if constexpr (CT::Sparse<E>) {
-					REQUIRE(asbytes(pack.GetRawSparse()->mPointer) == asbytes(sparseValue));
-					REQUIRE(pack.GetRawSparse()->mEntry == nullptr);
-				}
-
+				}*/
 				REQUIRE_THROWS(pack.template As<float>() == 0.0f);
 				REQUIRE_THROWS(pack.template As<float*>() == nullptr);
 				REQUIRE_FALSE(pack.IsEmpty());
 				REQUIRE(pack.IsDense() == CT::Dense<E>);
 				REQUIRE(pack.IsSparse() == CT::Sparse<E>);
+				REQUIRE_FALSE(pack.IsStatic());
+				REQUIRE_FALSE(pack.IsConstant());
+				REQUIRE(pack.HasAuthority());
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK
-				BENCHMARK_ADVANCED("operator = (single value copy)") (timer meter) {
+				BENCHMARK_ADVANCED("construction (single value copy)") (timer meter) {
 					#include "CollectGarbage.inl"
-					some<T> storage(meter.runs(), element);
+					some<uninitialized<T>> storage(meter.runs());
 					meter.measure([&](int i) {
-						return storage[i] = value;
+						return storage[i].construct(value);
 					});
 				};
 
-				BENCHMARK_ADVANCED("std::vector::operator = (single value copy)") (timer meter) {
+				BENCHMARK_ADVANCED("std::vector::construction (single value copy)") (timer meter) {
 					#include "CollectGarbage.inl"
-					some<StdT> storage(meter.runs(), element);
+					some<uninitialized<StdT>> storage(meter.runs());
 					meter.measure([&](int i) {
-						return storage[i] = {value};
+						return storage[i].construct(1, value);
 					});
 				};
 
-				BENCHMARK_ADVANCED("std::any::operator = (single value copy)") (timer meter) {
+				BENCHMARK_ADVANCED("std::any::construction (single value copy)") (timer meter) {
 					#include "CollectGarbage.inl"
-					some<std::any> storage(meter.runs(), element);
+					some<uninitialized<std::any>> storage(meter.runs());
 					meter.measure([&](int i) {
-						return storage[i] = value;
+						return storage[i].construct(value);
 					});
 				};
 			#endif
-		}
+
+			WHEN("Assigned compatible value by copy") {
+				pack = element;
+
+				THEN("Properties should match") {
+					REQUIRE(pack.GetType() != nullptr);
+					if constexpr (CT::Flat<E>) {
+						if constexpr (CT::Sparse<E>)
+							REQUIRE(&pack.template As<DenseE>() == sparseValue);
+						REQUIRE(pack.template Is<DenseE>());
+						REQUIRE(pack.template Is<DenseE*>());
+						REQUIRE(pack.template As<DenseE>() == denseValue);
+						REQUIRE(*pack.template As<DenseE*>() == denseValue);
+						REQUIRE(pack.GetUses() == 1);
+						REQUIRE(pack.HasAuthority());
+						REQUIRE_FALSE(pack.IsStatic());
+						REQUIRE_FALSE(pack.IsConstant());
+						REQUIRE(pack.IsDeep() == CT::Deep<Decay<E>>);
+					}
+					else if constexpr (CT::Same<E, T>) {
+						REQUIRE(pack.GetRaw() == element.GetRaw());
+						REQUIRE(pack.Is(element.GetType()));
+						REQUIRE(pack == element);
+						REQUIRE(pack.GetUses() == element.GetUses());
+						REQUIRE(pack.GetUses() == 2);
+						REQUIRE(pack.IsDeep() == element.IsDeep());
+						REQUIRE(pack.IsConstant() == element.IsConstant());
+						REQUIRE(pack.IsStatic() == element.IsStatic());
+						REQUIRE(pack.HasAuthority() == element.HasAuthority());
+					}
+					/*else {
+						REQUIRE(pack.template As<DenseE>().GetRaw() == sparseValue->GetRaw());
+						if constexpr (CT::StaticallyTyped<T>)
+							REQUIRE(pack.template Is<typename T::Type>());
+						REQUIRE(pack.template As<DenseE>() == denseValue);
+						REQUIRE(*pack.template As<DenseE*>() == denseValue);
+						REQUIRE(pack.template As<DenseE>().IsStatic() == element.IsStatic());
+						REQUIRE(pack.template As<DenseE>().IsConstant() == element.IsConstant());
+						REQUIRE(pack.template As<DenseE>().HasAuthority() == element.HasAuthority());
+						REQUIRE(pack.template As<DenseE>().GetUses() == 2);
+						REQUIRE(pack.template As<DenseE>() == element);
+						REQUIRE(pack != element);
+						REQUIRE(pack.GetUses() == 1);
+						REQUIRE_FALSE(pack.IsStatic());
+						REQUIRE_FALSE(pack.IsConstant());
+						REQUIRE(pack.HasAuthority());
+						REQUIRE(pack.IsDeep());
+					}*/
+
+					if constexpr (CT::Sparse<E>) {
+						REQUIRE(asbytes(pack.GetRawSparse()->mPointer) == asbytes(sparseValue));
+						REQUIRE(pack.GetRawSparse()->mEntry == nullptr);
+					}
+
+					REQUIRE_THROWS(pack.template As<float>() == 0.0f);
+					REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+					REQUIRE_FALSE(pack.IsEmpty());
+					REQUIRE(pack.IsDense() == CT::Dense<E>);
+					REQUIRE(pack.IsSparse() == CT::Sparse<E>);
+				}
+
+				#ifdef LANGULUS_STD_BENCHMARK
+					BENCHMARK_ADVANCED("operator = (single value copy)") (timer meter) {
+						#include "CollectGarbage.inl"
+						some<T> storage(meter.runs(), element);
+						meter.measure([&](int i) {
+							return storage[i] = value;
+						});
+					};
+
+					BENCHMARK_ADVANCED("std::vector::operator = (single value copy)") (timer meter) {
+						#include "CollectGarbage.inl"
+						some<StdT> storage(meter.runs(), element);
+						meter.measure([&](int i) {
+							return storage[i] = {value};
+						});
+					};
+
+					BENCHMARK_ADVANCED("std::any::operator = (single value copy)") (timer meter) {
+						#include "CollectGarbage.inl"
+						some<std::any> storage(meter.runs(), element);
+						meter.measure([&](int i) {
+							return storage[i] = value;
+						});
+					};
+				#endif
+			}
 		
-		WHEN("Assigned compatible value by move") {
-			auto movable = element;
-			pack = Move(movable);
+			WHEN("Assigned compatible value by move") {
+				auto movable = element;
+				pack = Move(movable);
+
+				THEN("Properties should match") {
+					if constexpr (CT::Deep<E> && CT::Dense<E>) {
+						REQUIRE(movable.IsEmpty());
+						REQUIRE_FALSE(movable.IsAllocated());
+						REQUIRE(movable != element);
+					}
+					REQUIRE(pack.GetType() != nullptr);
+					REQUIRE(pack.GetRaw() != nullptr);
+					if constexpr (CT::Flat<E>) {
+						if constexpr (CT::Sparse<E>)
+							REQUIRE(&pack.template As<DenseE>() == sparseValue);
+						REQUIRE(pack.template Is<DenseE>());
+						REQUIRE(pack.template Is<DenseE*>());
+						REQUIRE(pack.template As<DenseE>() == denseValue);
+						REQUIRE(*pack.template As<DenseE*>() == denseValue);
+						REQUIRE(pack.GetUses() == 1);
+						REQUIRE(pack.HasAuthority());
+						REQUIRE_FALSE(pack.IsStatic());
+						REQUIRE_FALSE(pack.IsConstant());
+						REQUIRE(pack.IsDeep() == CT::Deep<Decay<E>>);
+					}
+					else if constexpr (CT::Same<E, T>) {
+						REQUIRE(pack.GetRaw() == element.GetRaw());
+						REQUIRE(pack.Is(element.GetType()));
+						REQUIRE(pack == element);
+						REQUIRE(pack.GetUses() == 2);
+						REQUIRE(pack.IsDeep() == element.IsDeep());
+						REQUIRE(pack.IsConstant() == element.IsConstant());
+						REQUIRE(pack.IsStatic() == element.IsStatic());
+						REQUIRE(pack.HasAuthority() == element.HasAuthority());
+					}
+					/*else {
+						REQUIRE(pack.template As<DenseE>().GetRaw() == sparseValue->GetRaw());
+						if constexpr (CT::StaticallyTyped<T>)
+							REQUIRE(pack.template Is<typename T::Type>());
+						REQUIRE(pack.template As<DenseE>() == denseValue);
+						REQUIRE(*pack.template As<DenseE*>() == denseValue);
+						REQUIRE_FALSE(pack.template As<DenseE>().IsStatic());
+						REQUIRE_FALSE(pack.template As<DenseE>().IsConstant());
+						REQUIRE(pack.template As<DenseE>().HasAuthority());
+						REQUIRE(pack.template As<DenseE>().GetUses() == 2);
+						REQUIRE(pack.template As<DenseE>() == element);
+						REQUIRE(pack != element);
+						REQUIRE(pack.GetUses() == 1);
+						REQUIRE(pack.IsDeep());
+						REQUIRE_FALSE(pack.IsStatic());
+						REQUIRE_FALSE(pack.IsConstant());
+						REQUIRE(pack.HasAuthority());
+					}*/
+
+					if constexpr (CT::Sparse<E>) {
+						REQUIRE(asbytes(pack.GetRawSparse()->mPointer) == asbytes(sparseValue));
+						REQUIRE(pack.GetRawSparse()->mEntry == nullptr);
+					}
+
+					REQUIRE_THROWS(pack.template As<float>() == 0.0f);
+					REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+					REQUIRE_FALSE(pack.IsEmpty());
+					REQUIRE(pack.IsDense() == CT::Dense<E>);
+					REQUIRE(pack.IsSparse() == CT::Sparse<E>);
+				}
+
+				#ifdef LANGULUS_STD_BENCHMARK
+					BENCHMARK_ADVANCED("operator = (single value move)") (timer meter) {
+						#include "CollectGarbage.inl"
+						some<T> storage(meter.runs(), element);
+						meter.measure([&](int i) {
+							return storage[i] = Move(value);
+						});
+					};
+
+					BENCHMARK_ADVANCED("std::vector::operator = (single value move)") (timer meter) {
+						#include "CollectGarbage.inl"
+						some<StdT> storage(meter.runs(), element);
+						meter.measure([&](int i) {
+							return storage[i] = {Move(value)};
+						});
+					};
+
+					BENCHMARK_ADVANCED("std::any::operator = (single value move)") (timer meter) {
+						#include "CollectGarbage.inl"
+						some<std::any> storage(meter.runs(), element);
+						meter.measure([&](int i) {
+							return storage[i] = Move(value);
+						});
+					};
+				#endif
+			}
+
+			WHEN("Assigned compatible disowned value") {
+				pack = Disown(element);
+
+				THEN("Properties should match") {
+					if constexpr (CT::Flat<E>) {
+						REQUIRE(pack.GetType() != nullptr);
+						if constexpr (CT::Sparse<E>)
+							REQUIRE(&pack.template As<DenseE>() == sparseValue);
+						REQUIRE(pack.template Is<DenseE>());
+						REQUIRE(pack.template Is<DenseE*>());
+						REQUIRE(pack.template As<DenseE>() == denseValue);
+						REQUIRE(*pack.template As<DenseE*>() == denseValue);
+						REQUIRE(pack.GetUses() == 1);
+						REQUIRE_FALSE(pack.IsStatic());
+						REQUIRE(pack.HasAuthority());
+						REQUIRE(pack.IsConstant() == CT::Constant<E>);
+						REQUIRE(pack.IsDeep() == CT::Deep<Decay<E>>);
+					}
+					else if constexpr (CT::Same<E, T>) {
+						REQUIRE(pack.GetType() == element.GetType());
+						REQUIRE(pack.GetRaw() == element.GetRaw());
+						REQUIRE(pack.Is(element.GetType()));
+						REQUIRE(pack == element);
+						REQUIRE(pack.GetUses() == 0);
+						REQUIRE(pack.IsStatic());
+						REQUIRE_FALSE(pack.HasAuthority());
+						REQUIRE(pack.IsDeep() == element.IsDeep());
+						REQUIRE(pack.IsConstant() == element.IsConstant());
+					}
+					/*else {
+						REQUIRE(pack.template As<DenseE>().GetRaw() == sparseValue->GetRaw());
+						REQUIRE(pack.template As<DenseE>().GetType() == element.GetType());
+						if constexpr (CT::StaticallyTyped<T>)
+							REQUIRE(pack.template Is<typename T::Type>());
+						REQUIRE(pack.template As<DenseE>() == denseValue);
+						REQUIRE(*pack.template As<DenseE*>() == denseValue);
+						REQUIRE(pack.template As<DenseE>().IsStatic());
+						REQUIRE_FALSE(pack.template As<DenseE>().IsConstant());
+						REQUIRE_FALSE(pack.template As<DenseE>().HasAuthority());
+						REQUIRE(pack.template As<DenseE>().GetUses() == 0);
+						REQUIRE(pack.template As<DenseE>() == element);
+						REQUIRE(pack != element);
+						REQUIRE(pack.GetUses() == 1);
+						REQUIRE_FALSE(pack.IsStatic());
+						REQUIRE_FALSE(pack.IsConstant());
+						REQUIRE(pack.HasAuthority());
+						REQUIRE(pack.IsDeep());
+					}*/
+
+					if constexpr (CT::Sparse<E>) {
+						REQUIRE(asbytes(pack.GetRawSparse()->mPointer) == asbytes(sparseValue));
+						REQUIRE(pack.GetRawSparse()->mEntry == nullptr);
+					}
+
+					REQUIRE_THROWS(pack.template As<float>() == 0.0f);
+					REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+					REQUIRE_FALSE(pack.IsEmpty());
+					REQUIRE(pack.IsDense() == CT::Dense<E>);
+					REQUIRE(pack.IsSparse() == CT::Sparse<E>);
+				}
+
+				#ifdef LANGULUS_STD_BENCHMARK
+					BENCHMARK_ADVANCED("operator = (single disowned value)") (timer meter) {
+						#include "CollectGarbage.inl"
+						some<T> storage(meter.runs(), element);
+						meter.measure([&](int i) {
+							return storage[i] = Disown(value);
+						});
+					};
+
+					BENCHMARK_ADVANCED("std::vector::operator = (single value copy)") (timer meter) {
+						#include "CollectGarbage.inl"
+						some<StdT> storage(meter.runs(), element);
+						meter.measure([&](int i) {
+							return storage[i] = {value};
+						});
+					};
+
+					BENCHMARK_ADVANCED("std::any::operator = (single value copy)") (timer meter) {
+						#include "CollectGarbage.inl"
+						some<std::any> storage(meter.runs(), element);
+						meter.measure([&](int i) {
+							return storage[i] = value;
+						});
+					};
+				#endif
+			}
+		
+			WHEN("Assigned compatible abandoned value") {
+				auto movable = element;
+				pack = Abandon(movable);
+
+				THEN("Properties should match") {
+					if constexpr (CT::Deep<E> && CT::Dense<E>) {
+						REQUIRE_FALSE(movable.IsEmpty());
+						REQUIRE(movable.IsAllocated());
+						REQUIRE(movable.IsStatic());
+					}
+					REQUIRE(pack.GetType() != nullptr);
+					REQUIRE(pack.GetRaw() != nullptr);
+					if constexpr (CT::Flat<E>) {
+						if constexpr (CT::Sparse<E>)
+							REQUIRE(&pack.template As<DenseE>() == sparseValue);
+						REQUIRE(pack.template Is<DenseE>());
+						REQUIRE(pack.template Is<DenseE*>());
+						REQUIRE(pack.template As<DenseE>() == denseValue);
+						REQUIRE(*pack.template As<DenseE*>() == denseValue);
+						REQUIRE(pack.GetUses() == 1);
+						REQUIRE(pack.HasAuthority());
+						REQUIRE_FALSE(pack.IsStatic());
+						REQUIRE(pack.IsConstant() == CT::Constant<E>);
+						REQUIRE(pack.IsDeep() == CT::Deep<Decay<E>>);
+					}
+					else if constexpr (CT::Same<E, T>) {
+						REQUIRE(pack.GetRaw() == element.GetRaw());
+						REQUIRE(pack.Is(element.GetType()));
+						REQUIRE(pack == element);
+						REQUIRE(pack.GetUses() == 2);
+						REQUIRE(pack.IsDeep() == element.IsDeep());
+						REQUIRE(pack.IsConstant() == element.IsConstant());
+						REQUIRE(pack.IsStatic() == element.IsStatic());
+						REQUIRE(pack.HasAuthority() == element.HasAuthority());
+					}
+					/*else {
+						REQUIRE(pack.template As<DenseE>().GetRaw() == sparseValue->GetRaw());
+						if constexpr (CT::StaticallyTyped<T>)
+							REQUIRE(pack.template Is<typename T::Type>());
+						REQUIRE(pack.template As<DenseE>() == denseValue);
+						REQUIRE(*pack.template As<DenseE*>() == denseValue);
+						REQUIRE_FALSE(pack.template As<DenseE>().IsStatic());
+						REQUIRE_FALSE(pack.template As<DenseE>().IsConstant());
+						REQUIRE(pack.template As<DenseE>().HasAuthority());
+						REQUIRE(pack.template As<DenseE>().GetUses() == 2);
+						REQUIRE(pack.template As<DenseE>() == element);
+						REQUIRE(pack != element);
+						REQUIRE(pack.GetUses() == 1);
+						REQUIRE(pack.IsDeep());
+						REQUIRE_FALSE(pack.IsStatic());
+						REQUIRE_FALSE(pack.IsConstant());
+						REQUIRE(pack.HasAuthority());
+					}*/
+
+					if constexpr (CT::Sparse<E>) {
+						REQUIRE(asbytes(pack.GetRawSparse()->mPointer) == asbytes(sparseValue));
+						REQUIRE(pack.GetRawSparse()->mEntry == nullptr);
+					}
+
+					REQUIRE_THROWS(pack.template As<float>() == 0.0f);
+					REQUIRE_THROWS(pack.template As<float*>() == nullptr);
+					REQUIRE_FALSE(pack.IsEmpty());
+					REQUIRE(pack.IsDense() == CT::Dense<E>);
+					REQUIRE(pack.IsSparse() == CT::Sparse<E>);
+				}
+
+				#ifdef LANGULUS_STD_BENCHMARK
+					BENCHMARK_ADVANCED("operator = (single abandoned value)") (timer meter) {
+						#include "CollectGarbage.inl"
+						some<T> storage(meter.runs(), element);
+						meter.measure([&](int i) {
+							return storage[i] = Abandon(value);
+						});
+					};
+
+					BENCHMARK_ADVANCED("std::vector::operator = (single value move)") (timer meter) {
+						#include "CollectGarbage.inl"
+						some<StdT> storage(meter.runs(), element);
+						meter.measure([&](int i) {
+							return storage[i] = {Move(value)};
+						});
+					};
+
+					BENCHMARK_ADVANCED("std::any::operator = (single value move)") (timer meter) {
+						#include "CollectGarbage.inl"
+						some<std::any> storage(meter.runs(), element);
+						meter.measure([&](int i) {
+							return storage[i] = Move(value);
+						});
+					};
+				#endif
+			}
+
+			WHEN("Assigned compatible empty self") {
+				pack = T {};
+
+				THEN("Various traits change") {
+					/*if constexpr (CT::Same<T, E> && CT::Dense<E>) {
+						REQUIRE(pack.GetType()->template Is<int>());
+						REQUIRE(pack.GetType()->template Is<int*>());
+						REQUIRE(pack.GetUses() == 2);
+						REQUIRE_FALSE(pack.IsDeep());
+					}
+					else {
+						REQUIRE(pack.GetType()->template Is<E>());
+						REQUIRE(pack.GetType()->template Is<DenseE>());
+						REQUIRE(pack.GetUses() == 1);
+						REQUIRE(pack.IsDeep() == CT::Deep<Decay<E>>);
+					}
+					REQUIRE(pack.IsDense() == CT::Dense<E>);
+					REQUIRE(pack.IsSparse() == CT::Sparse<E>);*/
+					REQUIRE(pack.IsTypeConstrained() == IsStaticallyOptimized<T>);
+					if constexpr (CT::StaticallyTyped<T>)
+						REQUIRE(pack.template Is<typename T::Type>());
+					REQUIRE(pack.GetRaw() == nullptr);
+					REQUIRE_FALSE(pack.IsAllocated());
+					REQUIRE(pack.IsEmpty());
+					REQUIRE(pack.GetUses() == 0);
+				}
+
+				#ifdef LANGULUS_STD_BENCHMARK
+					BENCHMARK_ADVANCED("operator = (self)") (timer meter) {
+						#include "CollectGarbage.inl"
+						some<T> storage(meter.runs(), element);
+						meter.measure([&](int i) {
+							return storage[i] = storage[i];
+						});
+					};
+
+					BENCHMARK_ADVANCED("std::vector::operator = (self)") (timer meter) {
+						#include "CollectGarbage.inl"
+						some<StdT> storage(meter.runs(), element);
+						meter.measure([&](int i) {
+							return storage[i] = storage[i];
+						});
+					};
+
+					BENCHMARK_ADVANCED("std::any::operator = (self)") (timer meter) {
+						#include "CollectGarbage.inl"
+						some<std::any> storage(meter.runs(), element);
+						meter.measure([&](int i) {
+							return storage[i] = storage[i];
+						});
+					};
+				#endif
+			}
+
+			WHEN("Assigned compatible full self") {
+				pack = element;
+				pack = pack;
+
+				THEN("Various traits change") {
+					REQUIRE(pack.IsTypeConstrained() == IsStaticallyOptimized<T>);
+					if constexpr (IsStaticallyOptimized<T>) {
+						REQUIRE(pack.GetType()->template Is<E>());
+						REQUIRE(pack.GetType()->template Is<DenseE>());
+					}
+					else {
+						REQUIRE(pack.GetType());
+					}
+					REQUIRE(pack.IsDense() == CT::Dense<E>);
+					REQUIRE(pack.IsSparse() == CT::Sparse<E>);
+					REQUIRE(pack.GetRaw() != nullptr);
+					REQUIRE_FALSE(pack.IsEmpty());
+					REQUIRE(pack.GetUses() == (CT::Deep<E> && CT::Same<T, E> ? 2 : 1));
+					REQUIRE(pack.IsDeep() == (CT::Deep<Decay<E>> && (CT::Sparse<E> || !CT::Same<T, E>)));
+					REQUIRE(pack.IsAllocated());
+				}
+
+#ifdef LANGULUS_STD_BENCHMARK
+				BENCHMARK_ADVANCED("operator = (self)") (timer meter) {
+#include "CollectGarbage.inl"
+					some<T> storage(meter.runs(), element);
+					meter.measure([&](int i) {
+						return storage[i] = storage[i];
+						});
+				};
+
+				BENCHMARK_ADVANCED("std::vector::operator = (self)") (timer meter) {
+#include "CollectGarbage.inl"
+					some<StdT> storage(meter.runs(), element);
+					meter.measure([&](int i) {
+						return storage[i] = storage[i];
+						});
+				};
+
+				BENCHMARK_ADVANCED("std::any::operator = (self)") (timer meter) {
+#include "CollectGarbage.inl"
+					some<std::any> storage(meter.runs(), element);
+					meter.measure([&](int i) {
+						return storage[i] = storage[i];
+						});
+				};
+#endif
+				}
+		}
+	}
+
+	GIVEN("Container constructed by value move") {
+		if constexpr (CT::Deep<E> && CT::StaticallyTyped<T>) {
+			E movable = element;
+			REQUIRE_THROWS(T {Move(movable)});
+		}
+		else {
+			E movable = element;
+			T pack {Move(movable)};
 
 			THEN("Properties should match") {
 				if constexpr (CT::Deep<E> && CT::Dense<E>) {
@@ -891,7 +1281,8 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 				}
 				else {
 					REQUIRE(pack.template As<DenseE>().GetRaw() == sparseValue->GetRaw());
-					REQUIRE(pack.template Is<typename T::Type>());
+					if constexpr (CT::StaticallyTyped<T>)
+						REQUIRE(pack.template Is<typename T::Type>());
 					REQUIRE(pack.template As<DenseE>() == denseValue);
 					REQUIRE(*pack.template As<DenseE*>() == denseValue);
 					REQUIRE_FALSE(pack.template As<DenseE>().IsStatic());
@@ -920,38 +1311,42 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK
-				BENCHMARK_ADVANCED("operator = (single value move)") (timer meter) {
+				BENCHMARK_ADVANCED("construction (single value move)") (timer meter) {
 					#include "CollectGarbage.inl"
-					some<T> storage(meter.runs(), element);
+					some<uninitialized<T>> storage(meter.runs());
 					meter.measure([&](int i) {
-						return storage[i] = Move(value);
+						return storage[i].construct(Move(value));
 					});
 				};
 
-				BENCHMARK_ADVANCED("std::vector::operator = (single value move)") (timer meter) {
+				BENCHMARK_ADVANCED("std::vector::construction (single value move)") (timer meter) {
 					#include "CollectGarbage.inl"
-					some<StdT> storage(meter.runs(), element);
+					some<uninitialized<StdT>> storage(meter.runs());
 					meter.measure([&](int i) {
-						return storage[i] = {Move(value)};
+						return storage[i].construct(1, Move(value));
 					});
 				};
 
-				BENCHMARK_ADVANCED("std::any::operator = (single value move)") (timer meter) {
+				BENCHMARK_ADVANCED("std::any::construction (single value move)") (timer meter) {
 					#include "CollectGarbage.inl"
-					some<std::any> storage(meter.runs(), element);
+					some<uninitialized<std::any>> storage(meter.runs());
 					meter.measure([&](int i) {
-						return storage[i] = Move(value);
+						return storage[i].construct(Move(value));
 					});
 				};
 			#endif
 		}
+	}
 
-		WHEN("Assigned compatible disowned value") {
-			pack = Disown(element);
+	GIVEN("Container constructed by disowned value") {
+		if constexpr (CT::Deep<E> && CT::StaticallyTyped<T>)
+			REQUIRE_THROWS(T {Disown(element)});
+		else {
+			T pack {Disown(element)};
 
 			THEN("Properties should match") {
+				REQUIRE(pack.GetType() != nullptr);
 				if constexpr (CT::Flat<E>) {
-					REQUIRE(pack.GetType() != nullptr);
 					if constexpr (CT::Sparse<E>)
 						REQUIRE(&pack.template As<DenseE>() == sparseValue);
 					REQUIRE(pack.template Is<DenseE>());
@@ -965,7 +1360,6 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 					REQUIRE(pack.IsDeep() == CT::Deep<Decay<E>>);
 				}
 				else if constexpr (CT::Same<E, T>) {
-					REQUIRE(pack.GetType() == element.GetType());
 					REQUIRE(pack.GetRaw() == element.GetRaw());
 					REQUIRE(pack.Is(element.GetType()));
 					REQUIRE(pack == element);
@@ -977,8 +1371,8 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 				}
 				else {
 					REQUIRE(pack.template As<DenseE>().GetRaw() == sparseValue->GetRaw());
-					REQUIRE(pack.template As<DenseE>().GetType() == element.GetType());
-					REQUIRE(pack.template Is<typename T::Type>());
+					if constexpr (CT::StaticallyTyped<T>)
+						REQUIRE(pack.template Is<typename T::Type>());
 					REQUIRE(pack.template As<DenseE>() == denseValue);
 					REQUIRE(*pack.template As<DenseE*>() == denseValue);
 					REQUIRE(pack.template As<DenseE>().IsStatic());
@@ -1007,35 +1401,41 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK
-				BENCHMARK_ADVANCED("operator = (single disowned value)") (timer meter) {
+				BENCHMARK_ADVANCED("construction (single disowned value)") (timer meter) {
 					#include "CollectGarbage.inl"
-					some<T> storage(meter.runs(), element);
+					some<uninitialized<T>> storage(meter.runs());
 					meter.measure([&](int i) {
-						return storage[i] = Disown(value);
+						return storage[i].construct(Disowned(value));
 					});
 				};
 
-				BENCHMARK_ADVANCED("std::vector::operator = (single value copy)") (timer meter) {
+				BENCHMARK_ADVANCED("std::vector::construction (single value copy)") (timer meter) {
 					#include "CollectGarbage.inl"
-					some<StdT> storage(meter.runs(), element);
+					some<uninitialized<StdT>> storage(meter.runs());
 					meter.measure([&](int i) {
-						return storage[i] = {value};
+						return storage[i].construct(1, value);
 					});
 				};
 
-				BENCHMARK_ADVANCED("std::any::operator = (single value copy)") (timer meter) {
+				BENCHMARK_ADVANCED("std::any::construction (single value copy)") (timer meter) {
 					#include "CollectGarbage.inl"
-					some<std::any> storage(meter.runs(), element);
+					some<uninitialized<std::any>> storage(meter.runs());
 					meter.measure([&](int i) {
-						return storage[i] = value;
+						return storage[i].construct(value);
 					});
 				};
 			#endif
 		}
-		
-		WHEN("Assigned compatible abandoned value") {
-			auto movable = element;
-			pack = Abandon(movable);
+	}
+	 
+	GIVEN("Container constructed by abandoned value") {
+		if constexpr (CT::Deep<E> && CT::StaticallyTyped<T>) {
+			E movable = element;
+			REQUIRE_THROWS(T {Abandon(movable)});
+		}
+		else {
+			E movable = element;
+			T pack {Abandon(movable)};
 
 			THEN("Properties should match") {
 				if constexpr (CT::Deep<E> && CT::Dense<E>) {
@@ -1070,7 +1470,8 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 				}
 				else {
 					REQUIRE(pack.template As<DenseE>().GetRaw() == sparseValue->GetRaw());
-					REQUIRE(pack.template Is<typename T::Type>());
+					if constexpr (CT::StaticallyTyped<T>)
+						REQUIRE(pack.template Is<typename T::Type>());
 					REQUIRE(pack.template As<DenseE>() == denseValue);
 					REQUIRE(*pack.template As<DenseE*>() == denseValue);
 					REQUIRE_FALSE(pack.template As<DenseE>().IsStatic());
@@ -1099,400 +1500,31 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK
-				BENCHMARK_ADVANCED("operator = (single abandoned value)") (timer meter) {
+				BENCHMARK_ADVANCED("construction (single abandoned value)") (timer meter) {
 					#include "CollectGarbage.inl"
-					some<T> storage(meter.runs(), element);
+					some<uninitialized<T>> storage(meter.runs());
 					meter.measure([&](int i) {
-						return storage[i] = Abandon(value);
+						return storage[i].construct(Abandon(value));
 					});
 				};
 
-				BENCHMARK_ADVANCED("std::vector::operator = (single value move)") (timer meter) {
+				BENCHMARK_ADVANCED("std::vector::construction (single value move)") (timer meter) {
 					#include "CollectGarbage.inl"
-					some<StdT> storage(meter.runs(), element);
+					some<uninitialized<StdT>> storage(meter.runs());
 					meter.measure([&](int i) {
-						return storage[i] = {Move(value)};
+						return storage[i].construct(1, Move(value));
 					});
 				};
 
-				BENCHMARK_ADVANCED("std::any::operator = (single value move)") (timer meter) {
+				BENCHMARK_ADVANCED("std::any::construction (single value move)") (timer meter) {
 					#include "CollectGarbage.inl"
-					some<std::any> storage(meter.runs(), element);
+					some<uninitialized<std::any>> storage(meter.runs());
 					meter.measure([&](int i) {
-						return storage[i] = Move(value);
-					});
-				};
-			#endif
-		}
-
-		WHEN("Assigned compatible empty self") {
-			pack = pack;
-
-			THEN("Various traits change") {
-				if constexpr (CT::Same<T, E> && CT::Dense<E>) {
-					REQUIRE(pack.GetType()->template Is<int>());
-					REQUIRE(pack.GetType()->template Is<int*>());
-					REQUIRE(pack.GetUses() == 2);
-					REQUIRE_FALSE(pack.IsDeep());
-				}
-				else {
-					REQUIRE(pack.GetType()->template Is<E>());
-					REQUIRE(pack.GetType()->template Is<DenseE>());
-					REQUIRE(pack.GetUses() == 1);
-					REQUIRE(pack.IsDeep() == CT::Deep<Decay<E>>);
-				}
-				REQUIRE(pack.IsDense() == CT::Dense<E>);
-				REQUIRE(pack.IsSparse() == CT::Sparse<E>);
-				REQUIRE(pack.IsTypeConstrained() == IsStaticallyOptimized<T>);
-				REQUIRE(pack.GetRaw() != nullptr);
-				REQUIRE(pack.IsAllocated());
-				REQUIRE_FALSE(pack.IsEmpty());
-			}
-
-			#ifdef LANGULUS_STD_BENCHMARK
-				BENCHMARK_ADVANCED("operator = (self)") (timer meter) {
-					#include "CollectGarbage.inl"
-					some<T> storage(meter.runs(), element);
-					meter.measure([&](int i) {
-						return storage[i] = storage[i];
-					});
-				};
-
-				BENCHMARK_ADVANCED("std::vector::operator = (self)") (timer meter) {
-					#include "CollectGarbage.inl"
-					some<StdT> storage(meter.runs(), element);
-					meter.measure([&](int i) {
-						return storage[i] = storage[i];
-					});
-				};
-
-				BENCHMARK_ADVANCED("std::any::operator = (self)") (timer meter) {
-					#include "CollectGarbage.inl"
-					some<std::any> storage(meter.runs(), element);
-					meter.measure([&](int i) {
-						return storage[i] = storage[i];
+						return storage[i].construct(Move(value));
 					});
 				};
 			#endif
 		}
-
-		WHEN("Assigned compatible full self") {
-			pack = element;
-			pack = pack;
-
-			THEN("Various traits change") {
-				REQUIRE(pack.IsTypeConstrained() == IsStaticallyOptimized<T>);
-				if constexpr (IsStaticallyOptimized<T>) {
-					REQUIRE(pack.GetType()->template Is<E>());
-					REQUIRE(pack.GetType()->template Is<DenseE>());
-				}
-				else {
-					REQUIRE(pack.GetType());
-				}
-				REQUIRE(pack.IsDense() == CT::Dense<E>);
-				REQUIRE(pack.IsSparse() == CT::Sparse<E>);
-				REQUIRE(pack.GetRaw() != nullptr);
-				REQUIRE_FALSE(pack.IsEmpty());
-				REQUIRE(pack.GetUses() == (CT::Deep<E> && CT::Same<T,E> ? 2 : 1));
-				REQUIRE(pack.IsDeep() == (CT::Deep<Decay<E>> && (CT::Sparse<E> || !CT::Same<T,E>)));
-				REQUIRE(pack.IsAllocated());
-			}
-
-			#ifdef LANGULUS_STD_BENCHMARK
-				BENCHMARK_ADVANCED("operator = (self)") (timer meter) {
-					#include "CollectGarbage.inl"
-					some<T> storage(meter.runs(), element);
-					meter.measure([&](int i) {
-						return storage[i] = storage[i];
-					});
-				};
-
-				BENCHMARK_ADVANCED("std::vector::operator = (self)") (timer meter) {
-					#include "CollectGarbage.inl"
-					some<StdT> storage(meter.runs(), element);
-					meter.measure([&](int i) {
-						return storage[i] = storage[i];
-					});
-				};
-
-				BENCHMARK_ADVANCED("std::any::operator = (self)") (timer meter) {
-					#include "CollectGarbage.inl"
-					some<std::any> storage(meter.runs(), element);
-					meter.measure([&](int i) {
-						return storage[i] = storage[i];
-					});
-				};
-			#endif
-		}
-	}
-
-	GIVEN("Container constructed by value move") {
-		E movable = element;
-		T pack {Move(movable)};
-
-		THEN("Properties should match") {
-			if constexpr (CT::Deep<E> && CT::Dense<E>) {
-				REQUIRE(movable.IsEmpty());
-				REQUIRE_FALSE(movable.IsAllocated());
-				REQUIRE(movable != element);
-			}
-			REQUIRE(pack.GetType() != nullptr);
-			REQUIRE(pack.GetRaw() != nullptr);
-			if constexpr (CT::Flat<E>) {
-				if constexpr (CT::Sparse<E>)
-					REQUIRE(&pack.template As<DenseE>() == sparseValue);
-				REQUIRE(pack.template Is<DenseE>());
-				REQUIRE(pack.template Is<DenseE*>());
-				REQUIRE(pack.template As<DenseE>() == denseValue);
-				REQUIRE(*pack.template As<DenseE*>() == denseValue);
-				REQUIRE(pack.GetUses() == 1);
-				REQUIRE(pack.HasAuthority());
-				REQUIRE_FALSE(pack.IsStatic());
-				REQUIRE_FALSE(pack.IsConstant());
-				REQUIRE(pack.IsDeep() == CT::Deep<Decay<E>>);
-			}
-			else if constexpr (CT::Same<E, T>) {
-				REQUIRE(pack.GetRaw() == element.GetRaw());
-				REQUIRE(pack.Is(element.GetType()));
-				REQUIRE(pack == element);
-				REQUIRE(pack.GetUses() == 2);
-				REQUIRE(pack.IsDeep() == element.IsDeep());
-				REQUIRE(pack.IsConstant() == element.IsConstant());
-				REQUIRE(pack.IsStatic() == element.IsStatic());
-				REQUIRE(pack.HasAuthority() == element.HasAuthority());
-			}
-			else {
-				REQUIRE(pack.template As<DenseE>().GetRaw() == sparseValue->GetRaw());
-				REQUIRE(pack.template Is<typename T::Type>());
-				REQUIRE(pack.template As<DenseE>() == denseValue);
-				REQUIRE(*pack.template As<DenseE*>() == denseValue);
-				REQUIRE_FALSE(pack.template As<DenseE>().IsStatic());
-				REQUIRE_FALSE(pack.template As<DenseE>().IsConstant());
-				REQUIRE(pack.template As<DenseE>().HasAuthority());
-				REQUIRE(pack.template As<DenseE>().GetUses() == 2);
-				REQUIRE(pack.template As<DenseE>() == element);
-				REQUIRE(pack != element);
-				REQUIRE(pack.GetUses() == 1);
-				REQUIRE(pack.IsDeep());
-				REQUIRE_FALSE(pack.IsStatic());
-				REQUIRE_FALSE(pack.IsConstant());
-				REQUIRE(pack.HasAuthority());
-			}
-
-			if constexpr (CT::Sparse<E>) {
-				REQUIRE(asbytes(pack.GetRawSparse()->mPointer) == asbytes(sparseValue));
-				REQUIRE(pack.GetRawSparse()->mEntry == nullptr);
-			}
-
-			REQUIRE_THROWS(pack.template As<float>() == 0.0f);
-			REQUIRE_THROWS(pack.template As<float*>() == nullptr);
-			REQUIRE_FALSE(pack.IsEmpty());
-			REQUIRE(pack.IsDense() == CT::Dense<E>);
-			REQUIRE(pack.IsSparse() == CT::Sparse<E>);
-		}
-
-		#ifdef LANGULUS_STD_BENCHMARK
-			BENCHMARK_ADVANCED("construction (single value move)") (timer meter) {
-				#include "CollectGarbage.inl"
-				some<uninitialized<T>> storage(meter.runs());
-				meter.measure([&](int i) {
-					return storage[i].construct(Move(value));
-				});
-			};
-
-			BENCHMARK_ADVANCED("std::vector::construction (single value move)") (timer meter) {
-				#include "CollectGarbage.inl"
-				some<uninitialized<StdT>> storage(meter.runs());
-				meter.measure([&](int i) {
-					return storage[i].construct(1, Move(value));
-				});
-			};
-
-			BENCHMARK_ADVANCED("std::any::construction (single value move)") (timer meter) {
-				#include "CollectGarbage.inl"
-				some<uninitialized<std::any>> storage(meter.runs());
-				meter.measure([&](int i) {
-					return storage[i].construct(Move(value));
-				});
-			};
-		#endif
-	}
-
-	GIVEN("Container constructed by disowned value") {
-		T pack {Disown(element)};
-
-		THEN("Properties should match") {
-			REQUIRE(pack.GetType() != nullptr);
-			if constexpr (CT::Flat<E>) {
-				if constexpr (CT::Sparse<E>)
-					REQUIRE(&pack.template As<DenseE>() == sparseValue);
-				REQUIRE(pack.template Is<DenseE>());
-				REQUIRE(pack.template Is<DenseE*>());
-				REQUIRE(pack.template As<DenseE>() == denseValue);
-				REQUIRE(*pack.template As<DenseE*>() == denseValue);
-				REQUIRE(pack.GetUses() == 1);
-				REQUIRE_FALSE(pack.IsStatic());
-				REQUIRE(pack.HasAuthority());
-				REQUIRE(pack.IsConstant() == CT::Constant<E>);
-				REQUIRE(pack.IsDeep() == CT::Deep<Decay<E>>);
-			}
-			else if constexpr (CT::Same<E, T>) {
-				REQUIRE(pack.GetRaw() == element.GetRaw());
-				REQUIRE(pack.Is(element.GetType()));
-				REQUIRE(pack == element);
-				REQUIRE(pack.GetUses() == 0);
-				REQUIRE(pack.IsStatic());
-				REQUIRE_FALSE(pack.HasAuthority());
-				REQUIRE(pack.IsDeep() == element.IsDeep());
-				REQUIRE(pack.IsConstant() == element.IsConstant());
-			}
-			else {
-				REQUIRE(pack.template As<DenseE>().GetRaw() == sparseValue->GetRaw());
-				REQUIRE(pack.template Is<typename T::Type>());
-				REQUIRE(pack.template As<DenseE>() == denseValue);
-				REQUIRE(*pack.template As<DenseE*>() == denseValue);
-				REQUIRE(pack.template As<DenseE>().IsStatic());
-				REQUIRE_FALSE(pack.template As<DenseE>().IsConstant());
-				REQUIRE_FALSE(pack.template As<DenseE>().HasAuthority());
-				REQUIRE(pack.template As<DenseE>().GetUses() == 0);
-				REQUIRE(pack.template As<DenseE>() == element);
-				REQUIRE(pack != element);
-				REQUIRE(pack.GetUses() == 1);
-				REQUIRE_FALSE(pack.IsStatic());
-				REQUIRE_FALSE(pack.IsConstant());
-				REQUIRE(pack.HasAuthority());
-				REQUIRE(pack.IsDeep());
-			}
-
-			if constexpr (CT::Sparse<E>) {
-				REQUIRE(asbytes(pack.GetRawSparse()->mPointer) == asbytes(sparseValue));
-				REQUIRE(pack.GetRawSparse()->mEntry == nullptr);
-			}
-
-			REQUIRE_THROWS(pack.template As<float>() == 0.0f);
-			REQUIRE_THROWS(pack.template As<float*>() == nullptr);
-			REQUIRE_FALSE(pack.IsEmpty());
-			REQUIRE(pack.IsDense() == CT::Dense<E>);
-			REQUIRE(pack.IsSparse() == CT::Sparse<E>);
-		}
-
-		#ifdef LANGULUS_STD_BENCHMARK
-			BENCHMARK_ADVANCED("construction (single disowned value)") (timer meter) {
-				#include "CollectGarbage.inl"
-				some<uninitialized<T>> storage(meter.runs());
-				meter.measure([&](int i) {
-					return storage[i].construct(Disowned(value));
-				});
-			};
-
-			BENCHMARK_ADVANCED("std::vector::construction (single value copy)") (timer meter) {
-				#include "CollectGarbage.inl"
-				some<uninitialized<StdT>> storage(meter.runs());
-				meter.measure([&](int i) {
-					return storage[i].construct(1, value);
-				});
-			};
-
-			BENCHMARK_ADVANCED("std::any::construction (single value copy)") (timer meter) {
-				#include "CollectGarbage.inl"
-				some<uninitialized<std::any>> storage(meter.runs());
-				meter.measure([&](int i) {
-					return storage[i].construct(value);
-				});
-			};
-		#endif
-	}
-	 
-	GIVEN("Container constructed by abandoned value") {
-		E movable = element;
-		T pack {Abandon(movable)};
-
-		THEN("Properties should match") {
-			if constexpr (CT::Deep<E> && CT::Dense<E>) {
-				REQUIRE_FALSE(movable.IsEmpty());
-				REQUIRE(movable.IsAllocated());
-				REQUIRE(movable.IsStatic());
-			}
-			REQUIRE(pack.GetType() != nullptr);
-			REQUIRE(pack.GetRaw() != nullptr);
-			if constexpr (CT::Flat<E>) {
-				if constexpr (CT::Sparse<E>)
-					REQUIRE(&pack.template As<DenseE>() == sparseValue);
-				REQUIRE(pack.template Is<DenseE>());
-				REQUIRE(pack.template Is<DenseE*>());
-				REQUIRE(pack.template As<DenseE>() == denseValue);
-				REQUIRE(*pack.template As<DenseE*>() == denseValue);
-				REQUIRE(pack.GetUses() == 1);
-				REQUIRE(pack.HasAuthority());
-				REQUIRE_FALSE(pack.IsStatic());
-				REQUIRE(pack.IsConstant() == CT::Constant<E>);
-				REQUIRE(pack.IsDeep() == CT::Deep<Decay<E>>);
-			}
-			else if constexpr (CT::Same<E, T>) {
-				REQUIRE(pack.GetRaw() == element.GetRaw());
-				REQUIRE(pack.Is(element.GetType()));
-				REQUIRE(pack == element);
-				REQUIRE(pack.GetUses() == 2);
-				REQUIRE(pack.IsDeep() == element.IsDeep());
-				REQUIRE(pack.IsConstant() == element.IsConstant());
-				REQUIRE(pack.IsStatic() == element.IsStatic());
-				REQUIRE(pack.HasAuthority() == element.HasAuthority());
-			}
-			else {
-				REQUIRE(pack.template As<DenseE>().GetRaw() == sparseValue->GetRaw());
-				REQUIRE(pack.template Is<typename T::Type>());
-				REQUIRE(pack.template As<DenseE>() == denseValue);
-				REQUIRE(*pack.template As<DenseE*>() == denseValue);
-				REQUIRE_FALSE(pack.template As<DenseE>().IsStatic());
-				REQUIRE_FALSE(pack.template As<DenseE>().IsConstant());
-				REQUIRE(pack.template As<DenseE>().HasAuthority());
-				REQUIRE(pack.template As<DenseE>().GetUses() == 2);
-				REQUIRE(pack.template As<DenseE>() == element);
-				REQUIRE(pack != element);
-				REQUIRE(pack.GetUses() == 1);
-				REQUIRE(pack.IsDeep());
-				REQUIRE_FALSE(pack.IsStatic());
-				REQUIRE_FALSE(pack.IsConstant());
-				REQUIRE(pack.HasAuthority());
-			}
-
-			if constexpr (CT::Sparse<E>) {
-				REQUIRE(asbytes(pack.GetRawSparse()->mPointer) == asbytes(sparseValue));
-				REQUIRE(pack.GetRawSparse()->mEntry == nullptr);
-			}
-
-			REQUIRE_THROWS(pack.template As<float>() == 0.0f);
-			REQUIRE_THROWS(pack.template As<float*>() == nullptr);
-			REQUIRE_FALSE(pack.IsEmpty());
-			REQUIRE(pack.IsDense() == CT::Dense<E>);
-			REQUIRE(pack.IsSparse() == CT::Sparse<E>);
-		}
-
-		#ifdef LANGULUS_STD_BENCHMARK
-			BENCHMARK_ADVANCED("construction (single abandoned value)") (timer meter) {
-				#include "CollectGarbage.inl"
-				some<uninitialized<T>> storage(meter.runs());
-				meter.measure([&](int i) {
-					return storage[i].construct(Abandon(value));
-				});
-			};
-
-			BENCHMARK_ADVANCED("std::vector::construction (single value move)") (timer meter) {
-				#include "CollectGarbage.inl"
-				some<uninitialized<StdT>> storage(meter.runs());
-				meter.measure([&](int i) {
-					return storage[i].construct(1, Move(value));
-				});
-			};
-
-			BENCHMARK_ADVANCED("std::any::construction (single value move)") (timer meter) {
-				#include "CollectGarbage.inl"
-				some<uninitialized<std::any>> storage(meter.runs());
-				meter.measure([&](int i) {
-					return storage[i].construct(Move(value));
-				});
-			};
-		#endif
 	}
 	
 	GIVEN("Container with some items") {

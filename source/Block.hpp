@@ -60,6 +60,7 @@ namespace Langulus::Anyness
 	class Block {
 	public:
 		LANGULUS(DEEP) true;
+		LANGULUS(UNINSERTABLE) true;
 
 		friend class Any;
 		template<CT::Data>
