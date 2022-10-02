@@ -114,7 +114,7 @@ namespace Langulus::Anyness
 				newCount = utf8::utf8to16(begin(), end(), to.begin()) - to.begin();
 			}
 			catch (utf8::exception&) {
-				Throw<Except::Convert>("utf8 -> utf16 conversion error", LANGULUS_LOCATION());
+				LANGULUS_THROW(Convert, "utf8 -> utf16 conversion error");
 			}
 
 			return to.Trim(newCount);
@@ -133,7 +133,7 @@ namespace Langulus::Anyness
 				newCount = utf8::utf8to32(begin(), end(), to.begin()) - to.begin();
 			}
 			catch (utf8::exception&) {
-				Throw<Except::Convert>("utf8 -> utf16 conversion error", LANGULUS_LOCATION());
+				LANGULUS_THROW(Convert, "utf8 -> utf16 conversion error");
 			}
 
 			return to.Trim(newCount);

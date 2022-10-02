@@ -29,7 +29,7 @@ namespace Langulus::Anyness
 	///	@param other - the TAny to reference											
 	TEMPLATE()
 	TAny<T>::TAny(const TAny& other)
-		: Any {/*static_cast<const Any&>(*/other/*)*/} { }
+		: Any {other} { }
 
 	/// Move construction																		
 	///	@param other - the TAny to move													
@@ -61,13 +61,7 @@ namespace Langulus::Anyness
 				return;
 			}
 
-			// Then attempt to push other container, if this container		
-			// allows for it																
-			/*if constexpr (CT::Deep<T>) {
-				auto& compatible = static_cast<const Decay<T>&>(other);
-				Insert<IndexBack, KEEP>(&compatible, &compatible + 1);
-			}
-			else*/ Throw<Except::Copy>("Bad copy-construction", LANGULUS_LOCATION());
+			LANGULUS_THROW(Copy, "Bad copy-construction");
 		}
 	}
 
@@ -103,12 +97,7 @@ namespace Langulus::Anyness
 				return;
 			}
 
-			// Then attempt to push other container, if this container		
-			// allows for it																
-			/*if constexpr (CT::Deep<T>)
-				Insert<IndexBack, KEEP>(Forward<Decay<T>>(other));
-			else*/
-				Throw<Except::Copy>("Bad move-construction", LANGULUS_LOCATION());
+			LANGULUS_THROW(Copy, "Bad move-construction");
 		}
 	}
 
@@ -117,14 +106,14 @@ namespace Langulus::Anyness
 	///	@param other - the anyness to reference										
 	TEMPLATE()
 	template<CT::Deep ALT_T>
-	TAny<T>::TAny(const ALT_T& other)// requires DenseButNotTheSame<ALT_T>
+	TAny<T>::TAny(const ALT_T& other)
 		: TAny {} {
 		ConstructFromContainer<true>(other);
 	}
 
 	TEMPLATE()
 	template<CT::Deep ALT_T>
-	TAny<T>::TAny(ALT_T& other)// requires DenseButNotTheSame<ALT_T>
+	TAny<T>::TAny(ALT_T& other)
 		: TAny {const_cast<const ALT_T&>(other)} {}
 
 	/// Move-construction from any deep container, with a bit of					
@@ -132,7 +121,7 @@ namespace Langulus::Anyness
 	///	@param other - the anyness to reference										
 	TEMPLATE()
 	template<CT::Deep ALT_T>
-	TAny<T>::TAny(ALT_T&& other)// requires DenseButNotTheSame<ALT_T>
+	TAny<T>::TAny(ALT_T&& other)
 		: TAny {} {
 		ConstructFromContainer<true>(Forward<Any>(other));
 	}
@@ -142,7 +131,7 @@ namespace Langulus::Anyness
 	///	@param other - the anyness to copy												
 	TEMPLATE()
 	template<CT::Deep ALT_T>
-	constexpr TAny<T>::TAny(Disowned<ALT_T>&& other)// requires CT::Dense<ALT_T>
+	constexpr TAny<T>::TAny(Disowned<ALT_T>&& other)
 		: TAny {} {
 		ConstructFromContainer<false>(other.mValue);
 	}
@@ -152,7 +141,7 @@ namespace Langulus::Anyness
 	///	@param other - the anyness to copy												
 	TEMPLATE()
 	template<CT::Deep ALT_T>
-	constexpr TAny<T>::TAny(Abandoned<ALT_T>&& other)// requires CT::Dense<ALT_T>
+	constexpr TAny<T>::TAny(Abandoned<ALT_T>&& other)
 		: TAny {} {
 		ConstructFromContainer<false>(Move(other.mValue));
 	}
@@ -286,16 +275,7 @@ namespace Langulus::Anyness
 			return;
 		}
 
-		// Then attempt to push other container, if this container allows	
-		// for it																			
-		/*if constexpr (CT::Deep<T> && CT::Insertable<ALT_T>) {
-			CallKnownDestructors<T>();
-			mCount = 0;
-			ResetState();
-			auto& compatible = static_cast<const Decay<T>&>(other);
-			Insert<IndexBack, KEEP>(&compatible, &compatible + 1);
-		}
-		else*/ Throw<Except::Copy>("Bad copy-assignment", LANGULUS_LOCATION());
+		LANGULUS_THROW(Copy, "Bad copy-assignment");
 	}
 
 	/// Move-construct from another container by performing runtime type check	
@@ -327,15 +307,7 @@ namespace Langulus::Anyness
 			return;
 		}
 
-		// Then attempt to push other container, if this container allows	
-		// for it																			
-		/*if constexpr (CT::Deep<T> && CT::Insertable<ALT_T>) {
-			CallKnownDestructors<T>();
-			mCount = 0;
-			ResetState();
-			Insert<IndexBack, KEEP>(Forward<Decay<T>>(other));
-		}
-		else*/ Throw<Except::Copy>("Bad move-assignment", LANGULUS_LOCATION());
+		LANGULUS_THROW(Copy, "Bad move-assignment");
 	}
 
 	/// Copy-assign an unknown container													
@@ -372,35 +344,6 @@ namespace Langulus::Anyness
 		return *this;
 	}
 
-	/// Shallow-copy a disowned container, without referencing the data			
-	///	@param other - the container to shallow-copy									
-	///	@return a reference to this container											
-	/*TEMPLATE()
-		template<CT::Deep ALT_T>
-	TAny<T>& TAny<T>::operator = (Disowned<ALT_T>&& other) noexcept {
-		if (this == &other.mValue)
-			return *this;
-
-		Free();
-		CopyProperties<true, false>(other.mValue);
-		return *this;
-	}
-
-	/// Move assignment of an abandoned container, without fully resetting it	
-	///	@param other - the container to move											
-	///	@return a reference to this container											
-	TEMPLATE()
-		template<CT::Deep ALT_T>
-	TAny<T>& TAny<T>::operator = (Abandoned<ALT_T>&& other) noexcept {
-		if (this == &other.mValue)
-			return *this;
-
-		Free();
-		CopyProperties<true, true>(other.mValue);
-		other.mValue.mEntry = nullptr;
-		return *this;
-	}*/
-
 	/// Shallow-copy disowned runtime container without referencing contents	
 	/// This is a bit slower, because checks type compatibility at runtime		
 	///	@param other - the container to shallow-copy									
@@ -428,33 +371,6 @@ namespace Langulus::Anyness
 		AssignFromContainer<false>(Forward<ALT_T>(other.mValue));
 		return *this;
 	}
-
-	/// Shallow-copy Block																		
-	/// This is a bit slower, because checks type compatibility at runtime		
-	///	@param other - the container to shallow-copy									
-	///	@return a reference to this container											
-	/*TEMPLATE()
-	TAny<T>& TAny<T>::operator = (const Block& other) {
-		if (static_cast<Block*>(this) == &other)
-			return *this;
-
-		AssignFromContainer<true>(other);
-		return *this;
-	}
-
-	/// Seems like a move, but is actually a shallow-copy of a Block				
-	/// This is a bit slower, because checks type compatibility at runtime		
-	///	@attention other is never reset													
-	///	@param other - the container to shallow-copy									
-	///	@return a reference to this container											
-	TEMPLATE()
-	TAny<T>& TAny<T>::operator = (Block&& other) {
-		if (static_cast<Block*>(this) == &other)
-			return *this;
-
-		AssignFromContainer<true>(Forward<Block>(other));
-		return *this;
-	}*/
 
 	/// Assign by shallow-copying an element												
 	///	@param other - the value to copy													
@@ -1632,68 +1548,6 @@ namespace Langulus::Anyness
 			mEntry->Keep();
 		return Abandon(result);
 	}
-	
-	/// Destructive concatenation																
-	///	@param rhs - any type that is convertible to this TAny<T>				
-	///	@return a reference to this container											
-	/*TEMPLATE()
-	template<class WRAPPER, class RHS>
-	TAny<T>& TAny<T>::operator += (const RHS& rhs) {
-		static_assert(CT::DerivedFrom<WRAPPER, TAny>,
-			"WRAPPER must be derived from this TAny");
-
-		if constexpr (CT::POD<T> && CT::DerivedFrom<RHS, TAny>) {
-			// Concatenate POD data directly (optimization)						
-			const auto count = rhs.GetCount();
-			Allocate<false>(mCount + count);
-			CopyMemory(rhs.mRaw, GetRawEnd(), count);
-			mCount += count;
-			return *this;
-		}
-		else if constexpr (CT::Convertible<RHS, WRAPPER>) {
-			// Finally, attempt converting											
-			return operator += <WRAPPER>(static_cast<WRAPPER>(rhs));
-		}
-		else LANGULUS_ERROR("Can't concatenate - RHS is not convertible to WRAPPER");
-	}
-
-	/// Concatenate containers																	
-	///	@param rhs - any type that is convertible to this TAny<T>				
-	///	@return a new container																
-	TEMPLATE()
-	template<class WRAPPER, class RHS>
-	WRAPPER TAny<T>::operator + (const RHS& rhs) const {
-		static_assert(CT::DerivedFrom<WRAPPER, TAny>,
-			"WRAPPER must be derived from this TAny");
-
-		if constexpr (CT::POD<T> && CT::DerivedFrom<RHS, TAny>) {
-			// Concatenate bytes															
-			WRAPPER result {Disown(*this)};
-			result.mCount += rhs.mCount;
-			if (result.mCount) {
-				const auto request = RequestSize(result.mCount);
-				result.mEntry = Inner::Allocator::Allocate(request.mByteSize);
-				LANGULUS_ASSERT(result.mEntry, Except::Allocate, "Out of memory");
-
-				result.mRaw = result.mEntry->GetBlockStart();
-				result.mReserved = request.mElementCount;
-				CopyMemory(mRaw, result.mRaw, mCount);
-				CopyMemory(rhs.mRaw, result.mRaw + mCount, rhs.mCount);
-			}
-			else {
-				result.mEntry = nullptr;
-				result.mRaw = nullptr;
-				result.mReserved = 0;
-			}
-
-			return Abandon(result);
-		}
-		else if constexpr (CT::Convertible<RHS, WRAPPER>) {
-			// Attempt converting														
-			return operator + <WRAPPER>(static_cast<WRAPPER>(rhs));
-		}
-		else LANGULUS_ERROR("Can't concatenate - RHS is not convertible to WRAPPER");
-	}*/
 	
 	/// Compare with another TAny, order matters											
 	///	@param other - container to compare with										

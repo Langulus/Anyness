@@ -133,7 +133,7 @@ namespace Langulus::Anyness
 				return HashBytes(mRaw, mType->mSize);
 			else {
 				Logger::Error("Unhashable type ", GetToken());
-				Throw<Except::Access>("Unhashable type", LANGULUS_LOCATION());
+				LANGULUS_THROW(Access, "Unhashable type");
 			}
 		}
 
@@ -161,7 +161,7 @@ namespace Langulus::Anyness
 		}
 		else {
 			Logger::Error("Unhashable type ", GetToken());
-			Throw<Except::Access>("Unhashable type", LANGULUS_LOCATION());
+			LANGULUS_THROW(Access, "Unhashable type");
 		}
 	}
 

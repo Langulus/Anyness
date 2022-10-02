@@ -201,7 +201,7 @@ namespace Langulus::Anyness
 		if (!result.mValues.mEntry) {
 			Allocator::Deallocate(result.mKeys.mEntry);
 			result.mKeys.mEntry = nullptr;
-			Throw<Except::Allocate>("Out of memory", LANGULUS_LOCATION());
+			LANGULUS_THROW(Allocate, "Out of memory");
 		}
 
 		// Clone the info bytes															
@@ -464,7 +464,7 @@ namespace Langulus::Anyness
 		if (!mValues.mEntry) {
 			Allocator::Deallocate(mKeys.mEntry);
 			mKeys.mEntry = nullptr;
-			Throw<Except::Allocate>("Out of memory", LANGULUS_LOCATION());
+			LANGULUS_THROW(Allocate, "Out of memory");
 		}
 
 		mValues.mRaw = mValues.mEntry->GetBlockStart();

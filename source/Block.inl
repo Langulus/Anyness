@@ -868,12 +868,10 @@ namespace Langulus::Anyness
 					return true;
 				}
 
-				Throw<Except::Mutate>(
-					"Attempting to mutate incompatible type-constrained container",
-					LANGULUS_LOCATION());
+				LANGULUS_THROW(Mutate,
+					"Attempting to mutate incompatible type-constrained container");
 			}
-			else Throw<Except::Mutate>(
-				"Can't mutate to incompatible type", LANGULUS_LOCATION());
+			else LANGULUS_THROW(Mutate, "Can't mutate to incompatible type");
 		}
 
 		return false;
@@ -1286,11 +1284,10 @@ namespace Langulus::Anyness
 	///	@param starter - the offset at which to insert								
 	template<bool KEEP, CT::NotAbandonedOrDisowned T>
 	void Block::InsertInner(const T* start, const T* end, Offset at) {
-		static_assert(CT::Insertable<T>, "Dense type is not insertable");
-		const auto count = end - start;
-		//static_assert(CT::Sparse<T> || CT::Mutable<T>,
-		//	"Can't copy-insert into container of constant elements");
+		static_assert(CT::Sparse<T> || CT::Insertable<T>,
+			"Dense type is not insertable");
 
+		const auto count = end - start;
 		if constexpr (CT::Sparse<T>) {
 			// Sparse data insertion (copying pointers and referencing)		
 			// Doesn't care about abstract items									
@@ -1340,9 +1337,8 @@ namespace Langulus::Anyness
 	///	@param starter - the offset at which to insert								
 	template<bool KEEP, CT::NotAbandonedOrDisowned T>
 	void Block::InsertInner(T&& item, Offset at) {
-		static_assert(CT::Insertable<T>, "Dense type is not insertable");
-		//static_assert(CT::Sparse<T> || CT::Mutable<T>,
-		//	"Can't move-insert into container of constant elements");
+		static_assert(CT::Sparse<T> || CT::Insertable<T>,
+			"Dense type is not insertable");
 
 		if constexpr (CT::Sparse<T>) {
 			// Sparse data insertion (copying a pointer)							
@@ -2303,7 +2299,7 @@ namespace Langulus::Anyness
 			// All stages of interpretation failed									
 			// Don't log this, because it will spam the crap out of us		
 			// That throw is used by ForEach to handle irrelevant types		
-			Throw<Except::Access>("Type mismatch", LANGULUS_LOCATION());
+			LANGULUS_THROW(Access, "Type mismatch");
 		}
 
 		// Get base memory of the required element and access					

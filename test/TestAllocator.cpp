@@ -15,6 +15,12 @@ CATCH_TRANSLATE_EXCEPTION(::Langulus::Exception const& ex) {
 	return ::std::string {Token {serialized}};
 }
 
+using timer = Catch::Benchmark::Chronometer;
+template<class T>
+using some = std::vector<T>;
+template<class T>
+using uninitialized = Catch::Benchmark::storage_for<T>;
+
 std::random_device rd;
 std::mt19937 gen(rd());
 
@@ -137,12 +143,12 @@ TEMPLATE_TEST_CASE("Testing Roof2 calls", "[allocator]", uint8_t, uint16_t, uint
 		}
 
 		#ifdef LANGULUS_STD_BENCHMARK // Last result: 
-			BENCHMARK_ADVANCED("Roof2 with instrinsics") (Catch::Benchmark::Chronometer meter) {
+			BENCHMARK_ADVANCED("Roof2 with instrinsics") (timer meter) {
 				meter.measure([&](int i) {
 					return Roof2(static_cast<T>(i % 256));
 				});
 			};
-			BENCHMARK_ADVANCED("Roof2 without intrinsics") (Catch::Benchmark::Chronometer meter) {
+			BENCHMARK_ADVANCED("Roof2 without intrinsics") (timer meter) {
 				meter.measure([&](int i) {
 					return Roof2cexpr(static_cast<T>(i % 256));
 				});
@@ -271,7 +277,7 @@ SCENARIO("Testing pool functions", "[allocator]") {
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: 
-				BENCHMARK_ADVANCED("Pool::Allocate(5)") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("Pool::Allocate(5)") (timer meter) {
 					std::vector<Allocation*> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i] = pool->Allocate(5);
@@ -280,12 +286,14 @@ SCENARIO("Testing pool functions", "[allocator]") {
 					for (auto& i : storage) {
 						if (i)
 							pool->Deallocate(i);
-						else
-							Throw<Except::Deallocate>("The test is invalid, because the pool got full - use a bigger pool", LANGULUS_LOCATION());
+						else {
+							LANGULUS_THROW(Deallocate,
+								"The test is invalid, because the pool got full - use a bigger pool");
+						}
 					}
 				};
 
-				BENCHMARK_ADVANCED("std::malloc(5)") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("std::malloc(5)") (timer meter) {
 					std::vector<void*> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i] = ::std::malloc(5);
@@ -294,12 +302,14 @@ SCENARIO("Testing pool functions", "[allocator]") {
 					for (auto& i : storage) {
 						if (i)
 							::std::free(i);
-						else
-							Throw<Except::Deallocate>("The test is invalid, because malloc returned a zero", LANGULUS_LOCATION());
+						else {
+							LANGULUS_THROW(Deallocate,
+								"The test is invalid, because malloc returned a zero");
+						}
 					}
 				};
 
-				BENCHMARK_ADVANCED("Pool::Allocate(32)") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("Pool::Allocate(32)") (timer meter) {
 					std::vector<Allocation*> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i] = pool->Allocate(32);
@@ -308,12 +318,14 @@ SCENARIO("Testing pool functions", "[allocator]") {
 					for (auto& i : storage) {
 						if (i)
 							pool->Deallocate(i);
-						else
-							Throw<Except::Deallocate>("The test is invalid, because the pool got full - use a bigger pool", LANGULUS_LOCATION());
+						else {
+							LANGULUS_THROW(Deallocate,
+								"The test is invalid, because the pool got full - use a bigger pool");
+						}
 					}
 				};
 
-				BENCHMARK_ADVANCED("std::malloc(32)") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("std::malloc(32)") (timer meter) {
 					std::vector<void*> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i] = ::std::malloc(32);
@@ -322,17 +334,21 @@ SCENARIO("Testing pool functions", "[allocator]") {
 					for (auto& i : storage) {
 						if (i)
 							::std::free(i);
-						else
-							Throw<Except::Deallocate>("The test is invalid, because malloc returned a zero", LANGULUS_LOCATION());
+						else {
+							LANGULUS_THROW(Deallocate,
+								"The test is invalid, because malloc returned a zero");
+						}
 					}
 				};
 
-				BENCHMARK_ADVANCED("Pool::Reallocate(32 -> 5)") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("Pool::Reallocate(32 -> 5)") (timer meter) {
 					std::vector<Allocation*> storage(meter.runs());
 					for (auto& i : storage) {
 						i = pool->Allocate(32);
-						if (!i)
-							Throw<Except::Deallocate>("The test is invalid, because the pool got full - use a bigger pool", LANGULUS_LOCATION());
+						if (!i) {
+							LANGULUS_THROW(Deallocate,
+								"The test is invalid, because the pool got full - use a bigger pool");
+						}
 					}
 
 					meter.measure([&](int i) {
@@ -346,12 +362,14 @@ SCENARIO("Testing pool functions", "[allocator]") {
 						pool->Deallocate(i);
 				};
 
-				BENCHMARK_ADVANCED("std::realloc(32 -> 5)") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("std::realloc(32 -> 5)") (timer meter) {
 					std::vector<void*> storage(meter.runs());
 					for (auto& i : storage) {
 						i = ::std::malloc(32);
-						if (!i)
-							Throw<Except::Deallocate>("The test is invalid, because malloc returned a zero", LANGULUS_LOCATION());
+						if (!i) {
+							LANGULUS_THROW(Deallocate,
+								"The test is invalid, because malloc returned a zero");
+						}
 					}
 
 					meter.measure([&](int i) {
@@ -365,12 +383,14 @@ SCENARIO("Testing pool functions", "[allocator]") {
 						::std::free(i);
 				};
 
-				BENCHMARK_ADVANCED("Pool::Reallocate(5 -> 32)") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("Pool::Reallocate(5 -> 32)") (timer meter) {
 					std::vector<Allocation*> storage(meter.runs());
 					for (auto& i : storage) {
 						i = pool->Allocate(5);
-						if (!i)
-							Throw<Except::Deallocate>("The test is invalid, because the pool got full - use a bigger pool", LANGULUS_LOCATION());
+						if (!i) {
+							LANGULUS_THROW(Deallocate,
+								"The test is invalid, because the pool got full - use a bigger pool");
+						}
 					}
 
 					meter.measure([&](int i) {
@@ -384,12 +404,14 @@ SCENARIO("Testing pool functions", "[allocator]") {
 						pool->Deallocate(i);
 				};
 
-				BENCHMARK_ADVANCED("std::realloc(5 -> 32)") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("std::realloc(5 -> 32)") (timer meter) {
 					std::vector<void*> storage(meter.runs());
 					for (auto& i : storage) {
 						i = ::std::malloc(5);
-						if (!i)
-							Throw<Except::Deallocate>("The test is invalid, because malloc returned a zero", LANGULUS_LOCATION());
+						if (!i) {
+							LANGULUS_THROW(Deallocate,
+								"The test is invalid, because malloc returned a zero");
+						}
 					}
 
 					meter.measure([&](int i) {
@@ -512,7 +534,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 			#ifdef LANGULUS_STD_BENCHMARK // Last result: 
 				#include "CollectGarbage.inl"
 
-				BENCHMARK_ADVANCED("Allocator::Allocate(5)") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("Allocator::Allocate(5)") (timer meter) {
 					std::vector<Allocation*> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i] = Allocator::Allocate(5);
@@ -522,13 +544,13 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 						if (i)
 							Allocator::Deallocate(i);
 						else
-							Throw<Except::Deallocate>("The test is invalid, because memory got full", LANGULUS_LOCATION());
+							LANGULUS_THROW(Deallocate, "The test is invalid, because memory got full");
 					}
 				};
 
 				#include "CollectGarbage.inl"
 
-				BENCHMARK_ADVANCED("malloc(5)") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("malloc(5)") (timer meter) {
 					std::vector<void*> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i] = ::std::malloc(5);
@@ -538,13 +560,13 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 						if (i)
 							::std::free(i);
 						else
-							Throw<Except::Deallocate>("The test is invalid, because memory got full", LANGULUS_LOCATION());
+							LANGULUS_THROW(Deallocate, "The test is invalid, because memory got full");
 					}
 				};
 
 				#include "CollectGarbage.inl"
 
-				BENCHMARK_ADVANCED("Allocator::Allocate(512)") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("Allocator::Allocate(512)") (timer meter) {
 					std::vector<Allocation*> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i] = Allocator::Allocate(512);
@@ -554,13 +576,13 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 						if (i)
 							Allocator::Deallocate(i);
 						else
-							Throw<Except::Deallocate>("The test is invalid, because memory got full", LANGULUS_LOCATION());
+							LANGULUS_THROW(Deallocate, "The test is invalid, because memory got full");
 					}
 				};
 
 				#include "CollectGarbage.inl"
 
-				BENCHMARK_ADVANCED("malloc(512)") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("malloc(512)") (timer meter) {
 					std::vector<void*> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i] = ::std::malloc(512);
@@ -570,13 +592,13 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 						if (i)
 							::std::free(i);
 						else
-							Throw<Except::Deallocate>("The test is invalid, because memory got full", LANGULUS_LOCATION());
+							LANGULUS_THROW(Deallocate, "The test is invalid, because memory got full");
 					}
 				};
 
 				#include "CollectGarbage.inl"
 
-				BENCHMARK_ADVANCED("Allocator::Allocate(Pool::DefaultPoolSize)") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("Allocator::Allocate(Pool::DefaultPoolSize)") (timer meter) {
 					std::vector<Allocation*> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i] = Allocator::Allocate(1024*1024);
@@ -586,13 +608,13 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 						if (i)
 							Allocator::Deallocate(i);
 						else
-							Throw<Except::Deallocate>("The test is invalid, because memory got full", LANGULUS_LOCATION());
+							LANGULUS_THROW(Deallocate, "The test is invalid, because memory got full");
 					}
 				};
 
 				#include "CollectGarbage.inl"
 
-				BENCHMARK_ADVANCED("malloc(Pool::DefaultPoolSize)") (Catch::Benchmark::Chronometer meter) {
+				BENCHMARK_ADVANCED("malloc(Pool::DefaultPoolSize)") (timer meter) {
 					std::vector<void*> storage(meter.runs());
 					meter.measure([&](int i) {
 						return storage[i] = ::std::malloc(1024 * 1024);
@@ -602,7 +624,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 						if (i)
 							::std::free(i);
 						else
-							Throw<Except::Deallocate>("The test is invalid, because memory got full", LANGULUS_LOCATION());
+							LANGULUS_THROW(Deallocate, "The test is invalid, because memory got full");
 					}
 				};
 			#endif

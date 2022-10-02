@@ -30,7 +30,8 @@ namespace Langulus::Anyness
 		LANGULUS_BASES(Any);
 	public:
 		static constexpr bool StaticallyTyped = true;
-		static_assert(CT::Insertable<T>, "Dense contained type is not insertable");
+		static_assert(CT::Sparse<T> || CT::Insertable<T>,
+			"Dense contained type is not insertable");
 
 		template<CT::Data, CT::Data>
 		friend class TUnorderedMap;
@@ -46,20 +47,17 @@ namespace Langulus::Anyness
 		TAny(const TAny&);
 		TAny(TAny&&) noexcept;
 
-		//template<CT::Deep ALT_T>
-		//static constexpr bool DenseButNotTheSame = CT::Dense<ALT_T> && !CT::Same<ALT_T, TAny>;
+		template<CT::Deep ALT_T>
+		TAny(const ALT_T&);
+		template<CT::Deep ALT_T>
+		TAny(ALT_T&);
+		template<CT::Deep ALT_T>
+		TAny(ALT_T&&);
 
 		template<CT::Deep ALT_T>
-		TAny(const ALT_T&);// requires DenseButNotTheSame<ALT_T>;
+		constexpr TAny(Disowned<ALT_T>&&);
 		template<CT::Deep ALT_T>
-		TAny(ALT_T&);// requires DenseButNotTheSame<ALT_T>;
-		template<CT::Deep ALT_T>
-		TAny(ALT_T&&);// requires DenseButNotTheSame<ALT_T>;
-
-		template<CT::Deep ALT_T>
-		constexpr TAny(Disowned<ALT_T>&&);// requires CT::Dense<ALT_T>;
-		template<CT::Deep ALT_T>
-		constexpr TAny(Abandoned<ALT_T>&&);// requires CT::Dense<ALT_T>;
+		constexpr TAny(Abandoned<ALT_T>&&);
 
 		TAny(const T*, const T*) requires CT::Data<T>;
 		TAny(const T&) requires CT::CustomData<T>;
@@ -76,9 +74,6 @@ namespace Langulus::Anyness
 		TAny& operator = (const TAny&);
 		TAny& operator = (TAny&&) noexcept;
 
-		//TAny& operator = (Disowned<TAny>&&) noexcept;
-		//TAny& operator = (Abandoned<TAny>&&) noexcept;
-
 		template<CT::Deep ALT_T>
 		TAny& operator = (const ALT_T&);
 		template<CT::Deep ALT_T>
@@ -90,9 +85,6 @@ namespace Langulus::Anyness
 		TAny& operator = (Disowned<ALT_T>&&);
 		template<CT::Deep ALT_T>
 		TAny& operator = (Abandoned<ALT_T>&&);
-
-		//TAny& operator = (const Block&);
-		//TAny& operator = (Block&&);
 
 		TAny& operator = (const T&) requires CT::CustomData<T>;
 		TAny& operator = (T&) requires CT::CustomData<T>;
