@@ -146,47 +146,40 @@ namespace Langulus::CT
 
 } // namespace Langulus::CT
 
-namespace Langulus::Traits
-{
+#define LANGULUS_DEFINE_TRAIT(T, INFOSTRING) \
+	namespace Langulus::Traits \
+	{ \
+		struct T : public ::Langulus::Anyness::StaticTrait<T> { \
+			LANGULUS(INFO) INFOSTRING; \
+			using StaticTrait::StaticTrait; \
+			using StaticTrait::operator =; \
+			using StaticTrait::operator ==; \
+			using StaticTrait::operator +; \
+			using StaticTrait::operator +=; \
+		}; \
+	}
 
-	using Anyness::StaticTrait;
+#define LANGULUS_DEFINE_TRAIT_WITH_PROPERTIES(T, INFOSTRING, PROPERTIES) \
+	namespace Langulus::Traits \
+	{ \
+		struct T : public ::Langulus::Anyness::StaticTrait<T> { \
+			LANGULUS(INFO) INFOSTRING; \
+			using StaticTrait::StaticTrait; \
+			using StaticTrait::operator =; \
+			using StaticTrait::operator ==; \
+			using StaticTrait::operator +; \
+			using StaticTrait::operator +=; \
+			PROPERTIES; \
+		}; \
+	}
 
-	/// Logger trait, used to access the logger instance								
-	struct Logger : public StaticTrait<Logger> {
-		using StaticTrait::StaticTrait;
-		using StaticTrait::operator =;
-		using StaticTrait::operator ==;
-		using StaticTrait::operator +;
-		using StaticTrait::operator +=;
-	};
-
-	/// Count trait, used all over the place												
-	struct Count : public StaticTrait<Count> {
-		using StaticTrait::StaticTrait;
-		using StaticTrait::operator =;
-		using StaticTrait::operator ==;
-		using StaticTrait::operator +;
-		using StaticTrait::operator +=;
-	};
-
-	/// Name trait, used all over the place												
-	struct Name : public StaticTrait<Name> {
-		using StaticTrait::StaticTrait;
-		using StaticTrait::operator =;
-		using StaticTrait::operator ==;
-		using StaticTrait::operator +;
-		using StaticTrait::operator +=;
-	};
-
-	/// Context trait, used to access the current environment						
-	struct Context : public StaticTrait<Context> {
-		using StaticTrait::StaticTrait;
-		using StaticTrait::operator =;
-		using StaticTrait::operator ==;
-		using StaticTrait::operator +;
-		using StaticTrait::operator +=;
-	};
-
-} // namespace Langulus::Traits
+LANGULUS_DEFINE_TRAIT(Logger,
+	"Logger trait, used to access the logger instance");
+LANGULUS_DEFINE_TRAIT(Count,
+	"Count trait, used all over the place");
+LANGULUS_DEFINE_TRAIT(Name,
+	"Name trait, used all over the place");
+LANGULUS_DEFINE_TRAIT(Context,
+	"Context trait, used to access the current environment");
 
 #include "Trait.inl"
