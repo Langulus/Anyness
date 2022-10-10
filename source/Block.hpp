@@ -747,10 +747,6 @@ namespace Langulus::CT
 	template<class... T>
 	concept CustomData = ((Data<T> && Flat<T> && NotAbandonedOrDisowned<T>) && ...);
 
-	/// Check if a block type is statically typed										
-	template<class... T>
-	concept StaticallyTyped = ((Block<T> && Decay<T>::StaticallyTyped) && ...);
-
 } // namespace Langulus::CT
 
 #include "Block.inl"

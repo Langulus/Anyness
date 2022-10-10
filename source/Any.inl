@@ -675,7 +675,7 @@ namespace Langulus::Anyness
 			return reinterpret_cast<const WRAPPER&>(*this);
 
 		WRAPPER result;
-		if constexpr (!CT::StaticallyTyped<WRAPPER>)
+		if constexpr (!CT::Typed<WRAPPER>)
 			result.template SetType<false>(mType);
 		result.Allocate(mCount + rhs.mCount);
 		result.InsertBlock(reinterpret_cast<const WRAPPER&>(*this));
@@ -704,7 +704,7 @@ namespace Langulus::Anyness
 			return reinterpret_cast<const WRAPPER&>(*this);
 
 		WRAPPER result;
-		if constexpr (!CT::StaticallyTyped<WRAPPER>)
+		if constexpr (!CT::Typed<WRAPPER>)
 			result.template SetType<false>(mType);
 		result.Allocate(mCount + rhs.mCount);
 		result.InsertBlock(reinterpret_cast<const WRAPPER&>(*this));
