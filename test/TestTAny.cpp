@@ -1150,7 +1150,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 					REQUIRE(pack.IsSparse() == CT::Sparse<E>);*/
 					REQUIRE(pack.IsTypeConstrained() == CT::Typed<T>);
 					if constexpr (CT::Typed<T>)
-						REQUIRE(pack.template Is<CT::TypeOf<T>>());
+						REQUIRE(pack.template Is<TypeOf<T>>());
 					REQUIRE(pack.GetRaw() == nullptr);
 					REQUIRE_FALSE(pack.IsAllocated());
 					REQUIRE(pack.IsEmpty());
