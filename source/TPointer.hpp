@@ -24,7 +24,8 @@ namespace Langulus::Anyness
 		T mValue {};
 
 	public:
-		using Type = T;
+		/// Makes TOwned CT::Typed																
+		using MemberType = T;
 
 		constexpr TOwned() noexcept = default;
 		constexpr TOwned(const TOwned&) noexcept = default;
@@ -72,19 +73,20 @@ namespace Langulus::Anyness
 	///																								
 	template<CT::Data T, bool DOUBLE_REFERENCED>
 	class TPointer : public TOwned<Conditional<CT::Constant<T>, const T*, T*>> {
+		using Base = TOwned<Conditional<CT::Constant<T>, const T*, T*>>;
 	protected:
+		using Base::mValue;
 		Inner::Allocation* mEntry {};
 	
 		void ResetInner();
 
 	public:
-		using Base = TOwned<Conditional<CT::Constant<T>, const T*, T*>>;
-		using Type = typename Base::Type;
+		using typename Base::MemberType;
 		
 		constexpr TPointer() noexcept = default;
 		TPointer(const TPointer&);
 		TPointer(TPointer&&) noexcept;
-		TPointer(Type);
+		TPointer(MemberType);
 		~TPointer();
 
 		NOD() Block GetBlock() const;
@@ -104,11 +106,11 @@ namespace Langulus::Anyness
 
 		using Base::operator bool;
 		NOD() explicit operator const T* () const noexcept;
-		NOD() explicit operator Type () noexcept;
+		NOD() explicit operator T* () noexcept;
 
 		TPointer& operator = (const TPointer&);
 		TPointer& operator = (TPointer&&);
-		TPointer& operator = (Type);
+		TPointer& operator = (MemberType);
 
 		template<CT::Sparse ALT_T>
 		TPointer& operator = (ALT_T);

@@ -28,9 +28,12 @@ namespace Langulus::Anyness
 		using PairRef = TPair<KeyInner&, ValueInner&>;
 		using PairConstRef = TPair<const KeyInner&, const ValueInner&>;
 		using Allocator = Inner::Allocator;
+
+		/// Makes TUnorderedMap CT::Typed													
+		using MemberType = Pair;
+
 		static constexpr Count MinimalAllocation = 8;
 		static constexpr bool Ordered = false;
-		static constexpr bool StaticallyTyped = true;
 
 	public:
 		TUnorderedMap();

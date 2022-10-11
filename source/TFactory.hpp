@@ -92,9 +92,9 @@ namespace Langulus::Anyness
 	template<FactoryProducible T, FactoryUsage USAGE = FactoryUsage::Default>
 	class TFactory {
 	public:
-		using Type = T;
+		/// Makes the TFactory CT::Typed														
+		using MemberType = T;
 		using Producer = CT::ProducerOf<T>;
-		static constexpr bool StaticallyTyped = true;
 
 	protected:
 		// Each factory is bound to a producer instance							

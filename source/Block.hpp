@@ -87,8 +87,6 @@ namespace Langulus::Anyness
 		template<CT::Data, bool REFERENCED>
 		friend class TPointer;
 
-		static constexpr bool StaticallyTyped = false;
-
 		/// A structure used to represent an element of a sparse container		
 		struct KnownPointer;
 

@@ -28,8 +28,10 @@ namespace Langulus::Anyness
 	class TAny : public Any {
 		LANGULUS(DEEP) true;
 		LANGULUS_BASES(Any);
+
 	public:
-		static constexpr bool StaticallyTyped = true;
+		static_assert(CT::Dense<T> || !CT::Same<T, KnownPointer>,
+			"Can only insert dense KnownPointer(s)");
 		static_assert(CT::Sparse<T> || CT::Insertable<T>,
 			"Dense contained type is not insertable");
 
@@ -38,8 +40,11 @@ namespace Langulus::Anyness
 		friend class Any;
 		friend class Block;
 
+		/// Makes the TAny CT::Typed															
+		using MemberType = T;
+
+		/// Internal representation of a sparse element									
 		class KnownPointer;
-		using Type = T;
 		using TypeInner = Conditional<CT::Dense<T>, T, KnownPointer>;
 
 		TAny();
@@ -296,8 +301,8 @@ namespace Langulus::Anyness
 	class TAny<T>::KnownPointer {
 		static_assert(CT::Sparse<T>, "T must be a pointer");
 		friend class TAny<T>;
-	private:
-	TESTING(public:)
+
+	private: TESTING(public:)
 		T mPointer {};
 		Inner::Allocation* mEntry {};
 
@@ -346,8 +351,10 @@ namespace Langulus::Anyness
 	template<CT::Data T>
 	template<bool MUTABLE>
 	struct TAny<T>::TIterator {
+		LANGULUS(UNINSERTABLE) true;
+
 	protected:
-		using Type = typename TAny<T>::Type;
+		using MemberType = typename TAny<T>::MemberType;
 		using TypeInner = typename TAny<T>::TypeInner;
 		friend class TAny<T>;
 
@@ -364,13 +371,13 @@ namespace Langulus::Anyness
 		NOD() bool operator == (const TIterator&) const noexcept;
 
 		operator TypeInner& () const noexcept requires (MUTABLE);
-		operator const Type& () const noexcept requires (!MUTABLE);
+		operator const MemberType& () const noexcept requires (!MUTABLE);
 
 		decltype(auto) operator * () const noexcept {
 			if constexpr (MUTABLE)
 				return operator TypeInner& ();
 			else
-				return operator const Type& ();
+				return operator const MemberType& ();
 		}
 
 		// Prefix operator																

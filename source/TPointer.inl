@@ -34,11 +34,11 @@ namespace Langulus::Anyness
 	TPointer<T, DR>::TPointer(const TPointer& other)
 		: Base {other}
 		, mEntry {other.mEntry} {
-		if (Base::mValue) {
+		if (mValue) {
 			if (mEntry)
 				mEntry->Keep();
 			if constexpr (DR && CT::Referencable<T>)
-				Base::mValue->Keep();
+				mValue->Keep();
 		}
 	}
 
@@ -52,22 +52,22 @@ namespace Langulus::Anyness
 	/// Reference a pointer																		
 	///	@param ptr - pointer to reference												
 	TEMPLATE_SHARED()
-	TPointer<T, DR>::TPointer(Type ptr)
+	TPointer<T, DR>::TPointer(MemberType ptr)
 		: Base {ptr}
 		#if LANGULUS_FEATURE(MANAGED_MEMORY)
 			, mEntry {Inner::Allocator::Find(MetaData::Of<T>(), ptr)} {
-			if (Base::mValue) {
+			if (mValue) {
 				if (mEntry)
 					mEntry->Keep();
 				if constexpr (DR && CT::Referencable<T>)
-					Base::mValue->Keep();
+					mValue->Keep();
 			}
 		}
 		#else
 			, mEntry {nullptr} {
-			if (Base::mValue) {
+			if (mValue) {
 				if constexpr (DR && CT::Referencable<T>)
-					Base::mValue->Keep();
+					mValue->Keep();
 			}
 		}
 		#endif
@@ -87,7 +87,7 @@ namespace Langulus::Anyness
 		pointer.mEntry = Inner::Allocator::Allocate(
 			RTTI::GetAllocationPageOf<Decay<T>>());
 		LANGULUS_ASSERT(pointer.mEntry, Except::Allocate, "Out of memory");
-		pointer.mValue = reinterpret_cast<Type>(
+		pointer.mValue = reinterpret_cast<MemberType>(
 			pointer.mEntry->GetBlockStart());
 		new (pointer.mValue) Decay<T> {Forward<Decay<T>>(initializer)};
 		return pointer;
@@ -103,7 +103,7 @@ namespace Langulus::Anyness
 		pointer.mEntry = Inner::Allocator::Allocate(
 			RTTI::GetAllocationPageOf<Decay<T>>());
 		LANGULUS_ASSERT(pointer.mEntry, Except::Allocate, "Out of memory");
-		pointer.mValue = reinterpret_cast<Type>(
+		pointer.mValue = reinterpret_cast<MemberType>(
 			pointer.mEntry->GetBlockStart());
 		new (pointer.mValue) Decay<T> {initializer};
 		return pointer;
@@ -151,14 +151,14 @@ namespace Langulus::Anyness
 	void TPointer<T, DR>::ResetInner() {
 		// Do referencing in the element itself, if available					
 		if constexpr (DR && CT::Referencable<T>)
-			Base::mValue->Free();
+			mValue->Free();
 
 		if (mEntry) {
 			// We own this data and are responsible for dereferencing it	
 			if (mEntry->GetUses() == 1) {
 				using Decayed = Decay<T>;
 				if constexpr (CT::Destroyable<T>)
-					Base::mValue->~Decayed();
+					mValue->~Decayed();
 				Inner::Allocator::Deallocate(mEntry);
 			}
 			else mEntry->Free();
@@ -168,9 +168,9 @@ namespace Langulus::Anyness
 	/// Reset the pointer																		
 	TEMPLATE_SHARED()
 	void TPointer<T, DR>::Reset() {
-		if (Base::mValue) {
+		if (mValue) {
 			ResetInner();
-			Base::mValue = {};
+			mValue = {};
 		}
 	}
 
@@ -179,8 +179,8 @@ namespace Langulus::Anyness
 	TEMPLATE_SHARED()
 	TPointer<T, DR> TPointer<T, DR>::Clone() const {
 		if constexpr (CT::Clonable<T>) {
-			if (Base::mValue)
-				return Create(Base::mValue->Clone());
+			if (mValue)
+				return Create(mValue->Clone());
 			return {};
 		}
 		else return *this;
@@ -198,10 +198,10 @@ namespace Langulus::Anyness
 				other.mValue->Keep();
 			if (other.mEntry)
 				other.mEntry->Keep();
-			if (Base::mValue)
+			if (mValue)
 				ResetInner();
 
-			Base::mValue = other.mValue;
+			mValue = other.mValue;
 			mEntry = other.mEntry;
 			return *this;
 		}
@@ -215,10 +215,10 @@ namespace Langulus::Anyness
 	TEMPLATE_SHARED()
 	TPointer<T, DR>& TPointer<T, DR>::operator = (TPointer<T, DR>&& other) {
 		if (other.mValue) {
-			if (Base::mValue)
+			if (mValue)
 				ResetInner();
 
-			Base::mValue = other.mValue;
+			mValue = other.mValue;
 			mEntry = other.mEntry;
 			other.mValue = {};
 			return *this;
@@ -231,8 +231,8 @@ namespace Langulus::Anyness
 	/// Reference a raw pointer																
 	///	@param ptr - pointer to reference												
 	TEMPLATE_SHARED()
-	TPointer<T, DR>& TPointer<T, DR>::operator = (Type ptr) {
-		if (Base::mValue)
+	TPointer<T, DR>& TPointer<T, DR>::operator = (MemberType ptr) {
+		if (mValue)
 			ResetInner();
 
 		new (this) TPointer<T, DR> {ptr};
@@ -373,7 +373,7 @@ namespace Langulus::Anyness
 	///	@return the constant equivalent to this pointer								
 	TEMPLATE_SHARED()
 	TPointer<T, DR>::operator TPointer<const T, DR>() const noexcept requires CT::Mutable<T> {
-		return {Base::mValue};
+		return {mValue};
 	}
 
 	/// Compare pointers for equality														
@@ -426,7 +426,7 @@ namespace Langulus::Anyness
 	///	@return true if we own the memory												
 	TEMPLATE_SHARED()
 	constexpr bool TPointer<T, DR>::HasAuthority() const noexcept {
-		return Base::mValue && mEntry;
+		return mValue && mEntry;
 	}
 		
 	/// Get the references for the entry, where this pointer resides in			
@@ -434,7 +434,7 @@ namespace Langulus::Anyness
 	///	@return number of uses for the pointer's memory								
 	TEMPLATE_SHARED()
 	constexpr Count TPointer<T, DR>::GetUses() const noexcept {
-		return (Base::mValue && mEntry) ? mEntry->GetUses() : 0;
+		return (mValue && mEntry) ? mEntry->GetUses() : 0;
 	}
 					
 	/// Get the block of the contained pointer											
@@ -444,7 +444,7 @@ namespace Langulus::Anyness
 	Block TPointer<T, DR>::GetBlock() const {
 		return {
 			DataState::Constrained | DataState::Sparse,
-			Base::GetType(), 1, &(Base::mValue),
+			Base::GetType(), 1, &(mValue),
 			// Notice entry is here, no search will occur						
 			mEntry
 		};

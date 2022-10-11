@@ -27,10 +27,6 @@ struct TypePair {
 	using Element = E;
 };
 
-/// Detect if type is statically optimized, by searching for ::Type				
-template<class T>
-concept IsStaticallyOptimized = requires (Decay<T> a) { typename T::Type; };
-
 /// Get simple value, no matter if inside container or not							
 template<class T, CT::Dense SOURCE>
 decltype(auto) Resolve(const SOURCE& s) {
@@ -129,7 +125,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 			REQUIRE_FALSE(pack.IsCompressed());
 			REQUIRE_FALSE(pack.IsAbstract());
 			REQUIRE_FALSE(pack.IsAllocated());
-			REQUIRE(pack.IsDeep() == (IsStaticallyOptimized<T> && CT::Deep<Decay<E>>));
+			REQUIRE(pack.IsDeep() == (CT::Typed<T> && CT::Deep<Decay<E>>));
 			REQUIRE_FALSE(pack.IsEncrypted());
 			REQUIRE_FALSE(pack.IsFuture());
 			REQUIRE_FALSE(pack.IsPast());
@@ -141,7 +137,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 			REQUIRE(pack.GetRaw() == nullptr);
 			REQUIRE(pack.IsEmpty());
 
-			if constexpr (IsStaticallyOptimized<T>) {
+			if constexpr (CT::Typed<T>) {
 				REQUIRE(pack.IsTypeConstrained());
 				REQUIRE_FALSE(pack.IsUntyped());
 				REQUIRE(pack.GetType() != nullptr);
@@ -196,7 +192,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 		#endif
 
 		WHEN("Assigned value by copy") {
-			if constexpr (CT::Deep<E> && CT::StaticallyTyped<T>)
+			if constexpr (CT::Deep<E> && CT::Typed<T>)
 				REQUIRE_THROWS(pack = element);
 			else
 				pack = element;
@@ -231,7 +227,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 				}
 				/*else {
 					REQUIRE(pack.template As<DenseE>().GetRaw() == sparseValue->GetRaw());
-					if constexpr (CT::StaticallyTyped<T>)
+					if constexpr (CT::Typed<T>)
 						REQUIRE(pack.template Is<typename T::Type>());
 					REQUIRE(pack.template As<DenseE>() == denseValue);
 					REQUIRE(*pack.template As<DenseE*>() == denseValue);
@@ -288,7 +284,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 		
 		WHEN("Assigned value by move") {
 			auto movable = element;
-			if constexpr (CT::Deep<E> && CT::StaticallyTyped<T>)
+			if constexpr (CT::Deep<E> && CT::Typed<T>)
 				REQUIRE_THROWS(pack = Move(movable));
 			else
 				pack = Move(movable);
@@ -331,7 +327,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 				}
 				/*else {
 					REQUIRE(pack.template As<DenseE>().GetRaw() == sparseValue->GetRaw());
-					if constexpr (CT::StaticallyTyped<T>)
+					if constexpr (CT::Typed<T>)
 						REQUIRE(pack.template Is<typename T::Type>());
 					REQUIRE(pack.template As<DenseE>() == denseValue);
 					REQUIRE(*pack.template As<DenseE*>() == denseValue);
@@ -387,7 +383,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 		}
 
 		WHEN("Assigned disowned value") {
-			if constexpr (CT::Deep<E> && CT::StaticallyTyped<T>)
+			if constexpr (CT::Deep<E> && CT::Typed<T>)
 				REQUIRE_THROWS(pack = Disown(element));
 			else
 				pack = Disown(element);
@@ -423,7 +419,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 				/*else {
 					REQUIRE(pack.template As<DenseE>().GetRaw() == sparseValue->GetRaw());
 					REQUIRE(pack.template As<DenseE>().GetType() == element.GetType());
-					if constexpr (CT::StaticallyTyped<T>)
+					if constexpr (CT::Typed<T>)
 						REQUIRE(pack.template Is<typename T::Type>());
 					REQUIRE(pack.template As<DenseE>() == denseValue);
 					REQUIRE(*pack.template As<DenseE*>() == denseValue);
@@ -480,7 +476,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 		
 		WHEN("Assigned abandoned value") {
 			auto movable = element;
-			if constexpr (CT::Deep<E> && CT::StaticallyTyped<T>)
+			if constexpr (CT::Deep<E> && CT::Typed<T>)
 				REQUIRE_THROWS(pack = Abandon(movable));
 			else
 				pack = Abandon(movable);
@@ -523,7 +519,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 				}
 				/*else {
 					REQUIRE(pack.template As<DenseE>().GetRaw() == sparseValue->GetRaw());
-					if constexpr (CT::StaticallyTyped<T>)
+					if constexpr (CT::Typed<T>)
 						REQUIRE(pack.template Is<typename T::Type>());
 					REQUIRE(pack.template As<DenseE>() == denseValue);
 					REQUIRE(*pack.template As<DenseE*>() == denseValue);
@@ -582,7 +578,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 			pack = pack;
 
 			THEN("Various traits change") {
-				if constexpr (IsStaticallyOptimized<T>) {
+				if constexpr (CT::Typed<T>) {
 					REQUIRE(pack.GetType()->template Is<E>());
 					REQUIRE(pack.GetType()->template Is<DenseE>());
 					REQUIRE(pack.IsDense() == CT::Dense<E>);
@@ -598,7 +594,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 				REQUIRE(pack.GetRaw() == nullptr);
 				REQUIRE(pack.IsEmpty());
 				REQUIRE(pack.GetUses() == 0);
-				REQUIRE(pack.IsDeep() == (IsStaticallyOptimized<T> && CT::Deep<Decay<E>>));
+				REQUIRE(pack.IsDeep() == (CT::Typed<T> && CT::Deep<Decay<E>>));
 				REQUIRE_FALSE(pack.IsAllocated());
 			}
 
@@ -632,7 +628,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 	}
 
 	GIVEN("Container constructed by same container copy") {
-		if constexpr (CT::Deep<E> && CT::StaticallyTyped<T>)
+		if constexpr (CT::Deep<E> && CT::Typed<T>)
 			REQUIRE_THROWS(T {element});
 		else {
 			const T source {element};
@@ -656,7 +652,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 					REQUIRE(pack.IsDeep() == element.IsDeep());
 				}
 				/*else {
-					if constexpr (CT::StaticallyTyped<T>)
+					if constexpr (CT::Typed<T>)
 						REQUIRE(pack.template Is<typename T::Type>());
 					REQUIRE(pack == source);
 					REQUIRE(pack != element);
@@ -706,7 +702,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 	}
 
 	GIVEN("Container constructed by value copy") {
-		if constexpr (CT::Deep<E> && CT::StaticallyTyped<T>)
+		if constexpr (CT::Deep<E> && CT::Typed<T>)
 			REQUIRE_THROWS(T {element});
 		else {
 			T pack {element};
@@ -729,7 +725,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 					REQUIRE(pack.IsDeep() == element.IsDeep());
 				}
 				/*else {
-					if constexpr (CT::StaticallyTyped<T>)
+					if constexpr (CT::Typed<T>)
 						REQUIRE(pack.template Is<typename T::Type>());
 					REQUIRE(pack.template As<DenseE>() == denseValue);
 					REQUIRE(*pack.template As<DenseE*>() == denseValue);
@@ -804,7 +800,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 					}
 					/*else {
 						REQUIRE(pack.template As<DenseE>().GetRaw() == sparseValue->GetRaw());
-						if constexpr (CT::StaticallyTyped<T>)
+						if constexpr (CT::Typed<T>)
 							REQUIRE(pack.template Is<typename T::Type>());
 						REQUIRE(pack.template As<DenseE>() == denseValue);
 						REQUIRE(*pack.template As<DenseE*>() == denseValue);
@@ -897,7 +893,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 					}
 					/*else {
 						REQUIRE(pack.template As<DenseE>().GetRaw() == sparseValue->GetRaw());
-						if constexpr (CT::StaticallyTyped<T>)
+						if constexpr (CT::Typed<T>)
 							REQUIRE(pack.template Is<typename T::Type>());
 						REQUIRE(pack.template As<DenseE>() == denseValue);
 						REQUIRE(*pack.template As<DenseE*>() == denseValue);
@@ -985,7 +981,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 					/*else {
 						REQUIRE(pack.template As<DenseE>().GetRaw() == sparseValue->GetRaw());
 						REQUIRE(pack.template As<DenseE>().GetType() == element.GetType());
-						if constexpr (CT::StaticallyTyped<T>)
+						if constexpr (CT::Typed<T>)
 							REQUIRE(pack.template Is<typename T::Type>());
 						REQUIRE(pack.template As<DenseE>() == denseValue);
 						REQUIRE(*pack.template As<DenseE*>() == denseValue);
@@ -1078,7 +1074,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 					}
 					/*else {
 						REQUIRE(pack.template As<DenseE>().GetRaw() == sparseValue->GetRaw());
-						if constexpr (CT::StaticallyTyped<T>)
+						if constexpr (CT::Typed<T>)
 							REQUIRE(pack.template Is<typename T::Type>());
 						REQUIRE(pack.template As<DenseE>() == denseValue);
 						REQUIRE(*pack.template As<DenseE*>() == denseValue);
@@ -1152,9 +1148,9 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 					}
 					REQUIRE(pack.IsDense() == CT::Dense<E>);
 					REQUIRE(pack.IsSparse() == CT::Sparse<E>);*/
-					REQUIRE(pack.IsTypeConstrained() == IsStaticallyOptimized<T>);
-					if constexpr (CT::StaticallyTyped<T>)
-						REQUIRE(pack.template Is<typename T::Type>());
+					REQUIRE(pack.IsTypeConstrained() == CT::Typed<T>);
+					if constexpr (CT::Typed<T>)
+						REQUIRE(pack.template Is<CT::TypeOf<T>>());
 					REQUIRE(pack.GetRaw() == nullptr);
 					REQUIRE_FALSE(pack.IsAllocated());
 					REQUIRE(pack.IsEmpty());
@@ -1193,8 +1189,8 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 				pack = pack;
 
 				THEN("Various traits change") {
-					REQUIRE(pack.IsTypeConstrained() == IsStaticallyOptimized<T>);
-					if constexpr (IsStaticallyOptimized<T>) {
+					REQUIRE(pack.IsTypeConstrained() == CT::Typed<T>);
+					if constexpr (CT::Typed<T>) {
 						REQUIRE(pack.GetType()->template Is<E>());
 						REQUIRE(pack.GetType()->template Is<DenseE>());
 					}
@@ -1240,7 +1236,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 	}
 
 	GIVEN("Container constructed by value move") {
-		if constexpr (CT::Deep<E> && CT::StaticallyTyped<T>) {
+		if constexpr (CT::Deep<E> && CT::Typed<T>) {
 			E movable = element;
 			REQUIRE_THROWS(T {Move(movable)});
 		}
@@ -1281,7 +1277,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 				}
 				else {
 					REQUIRE(pack.template As<DenseE>().GetRaw() == sparseValue->GetRaw());
-					if constexpr (CT::StaticallyTyped<T>)
+					if constexpr (CT::Typed<T>)
 						REQUIRE(pack.template Is<typename T::Type>());
 					REQUIRE(pack.template As<DenseE>() == denseValue);
 					REQUIRE(*pack.template As<DenseE*>() == denseValue);
@@ -1339,7 +1335,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 	}
 
 	GIVEN("Container constructed by disowned value") {
-		if constexpr (CT::Deep<E> && CT::StaticallyTyped<T>)
+		if constexpr (CT::Deep<E> && CT::Typed<T>)
 			REQUIRE_THROWS(T {Disown(element)});
 		else {
 			T pack {Disown(element)};
@@ -1371,7 +1367,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 				}
 				else {
 					REQUIRE(pack.template As<DenseE>().GetRaw() == sparseValue->GetRaw());
-					if constexpr (CT::StaticallyTyped<T>)
+					if constexpr (CT::Typed<T>)
 						REQUIRE(pack.template Is<typename T::Type>());
 					REQUIRE(pack.template As<DenseE>() == denseValue);
 					REQUIRE(*pack.template As<DenseE*>() == denseValue);
@@ -1429,7 +1425,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 	}
 	 
 	GIVEN("Container constructed by abandoned value") {
-		if constexpr (CT::Deep<E> && CT::StaticallyTyped<T>) {
+		if constexpr (CT::Deep<E> && CT::Typed<T>) {
 			E movable = element;
 			REQUIRE_THROWS(T {Abandon(movable)});
 		}
@@ -1470,7 +1466,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 				}
 				else {
 					REQUIRE(pack.template As<DenseE>().GetRaw() == sparseValue->GetRaw());
-					if constexpr (CT::StaticallyTyped<T>)
+					if constexpr (CT::Typed<T>)
 						REQUIRE(pack.template Is<typename T::Type>());
 					REQUIRE(pack.template As<DenseE>() == denseValue);
 					REQUIRE(*pack.template As<DenseE*>() == denseValue);
@@ -1833,7 +1829,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 				REQUIRE(pack.GetCount() == 0);
 				REQUIRE(pack.GetReserved() == 0);
 				REQUIRE(pack.GetRaw() == nullptr);
-				REQUIRE(pack.template Is<E>() == IsStaticallyOptimized<T>);
+				REQUIRE(pack.template Is<E>() == CT::Typed<T>);
 			}
 		}
 
@@ -1890,7 +1886,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 				REQUIRE(movable.GetRaw() == nullptr);
 				REQUIRE(movable.GetCount() == 0);
 				REQUIRE(movable.GetReserved() == 0);
-				REQUIRE(movable.IsTypeConstrained() == IsStaticallyOptimized<T>);
+				REQUIRE(movable.IsTypeConstrained() == CT::Typed<T>);
 				REQUIRE(pack.GetRaw() == moved.GetRaw());
 				REQUIRE(pack.GetCount() == moved.GetCount());
 				REQUIRE(pack.GetReserved() == moved.GetReserved());
