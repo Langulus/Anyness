@@ -1,37 +1,37 @@
-///																									
-/// Langulus::Anyness																			
-/// Copyright(C) 2012 Dimo Markov <langulusteam@gmail.com>							
-///																									
-/// Distributed under GNU General Public License v3+									
-/// See LICENSE file, or https://www.gnu.org/licenses									
-///																									
+///                                                                           
+/// Langulus::Anyness                                                         
+/// Copyright(C) 2012 Dimo Markov <langulusteam@gmail.com>                    
+///                                                                           
+/// Distributed under GNU General Public License v3+                          
+/// See LICENSE file, or https://www.gnu.org/licenses                         
+///                                                                           
 #pragma once
 #include "Text.hpp"
 
 namespace Langulus::Anyness
 {
 
-	///																								
-	///	File path container																	
-	///																								
-	class Path : public Text {
-	public:
-		Path() = default;
-		Path(const Text& other) : Text {other} {}
-		Path(const Path&) = default;
-		template<Count C>
-		Path(const Letter(&other)[C]) : Text {other} {}
+   ///                                                                        
+   ///   File path container                                                  
+   ///                                                                        
+   class Path : public Text {
+   public:
+      Path() = default;
+      Path(const Text& other) : Text {other} {}
+      Path(const Path&) = default;
+      template<Count C>
+      Path(const Letter(&other)[C]) : Text {other} {}
 
-		Path(const Disowned<Path>&) noexcept;
-		Path(Abandoned<Path>&&) noexcept;
+      Path(const Disowned<Path>&) noexcept;
+      Path(Abandoned<Path>&&) noexcept;
 
-	public:
-		NOD() Path Clone() const;
-		NOD() Text GetExtension() const;
-		NOD() Path GetDirectory() const;
-		NOD() Path GetFilename() const;
-		NOD() Path operator / (const Text&) const;
-		Path& operator /= (const Text&);
-	};
+   public:
+      NOD() Path Clone() const;
+      NOD() Text GetExtension() const;
+      NOD() Path GetDirectory() const;
+      NOD() Path GetFilename() const;
+      NOD() Path operator / (const Text&) const;
+      Path& operator /= (const Text&);
+   };
 
 } // namespace Langulus::Anyness
