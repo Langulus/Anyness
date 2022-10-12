@@ -29,8 +29,7 @@ namespace Langulus::Anyness
       Text(const TAny&);
       Text(TAny&&) noexcept;
 
-      template<CT::Deep T>
-      Text(const T&) = delete;
+      Text(const CT::Deep auto&) = delete;
 
       Text(Disowned<Text>&&) noexcept;
       Text(Abandoned<Text>&&) noexcept;
@@ -50,9 +49,7 @@ namespace Langulus::Anyness
       explicit Text(const Letter*) SAFETY_NOEXCEPT();
       explicit Text(Disowned<const Letter*>&&) noexcept;
       explicit Text(const Letter&);
-
-      template<CT::Dense T>
-      explicit Text(const T&) requires CT::Number<T>;
+      explicit Text(const CT::DenseNumber auto&);
 
       Text& operator = (const Text&);
       Text& operator = (Text&&) noexcept;

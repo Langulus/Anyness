@@ -53,8 +53,8 @@ namespace Langulus::Anyness
    /// Convert a number type to text                                          
    ///   @tparam T - number type to stringify                                 
    ///   @param number - the number to stringify                              
-   template<CT::Dense T>
-   Text::Text(const T& number) requires CT::Number<T> {
+   Text::Text(const CT::DenseNumber auto& number) {
+      using T = Decay<decltype(number)>;
       if constexpr (CT::Real<T>) {
          // Stringify a real number                                     
          constexpr auto size = ::std::numeric_limits<T>::max_digits10 * 2;

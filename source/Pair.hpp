@@ -8,7 +8,7 @@
 #pragma once
 #include "Any.hpp"
 
-namespace Langulus::Anyness
+namespace Langulus
 {
    namespace A
    {
@@ -26,37 +26,41 @@ namespace Langulus::Anyness
          }
       };
 
-   } // namespace Langulus::Anyness::A
+   } // namespace Langulus::A
 
-   ///                                                                        
-   ///   A helper structure for pairing keys and values of any type           
-   ///                                                                        
-   struct Pair : public A::Pair {
-      LANGULUS_ABSTRACT() false;
+   namespace Anyness
+   {
 
-      Any mKey;
-      Any mValue;
+      ///                                                                     
+      ///   A helper structure for pairing keys and values of any type        
+      ///                                                                     
+      struct Pair : public A::Pair {
+         LANGULUS_ABSTRACT() false;
 
-      template<class K, class V>
-      Pair(const K& key, const V& value)
-         : mKey {key}
-         , mValue {value} {}
+         Any mKey;
+         Any mValue;
 
-      template<class K, class V>
-      Pair(K&& key, V&& value)
-         : mKey {Forward<K>(key)}
-         , mValue {Forward<V>(value)} {}
-   };
+         template<class K, class V>
+         Pair(const K& key, const V& value)
+            : mKey {key}
+            , mValue {value} {}
 
-} // namespace Langulus::Anyness
+         template<class K, class V>
+         Pair(K&& key, V&& value)
+            : mKey {Forward<K>(key)}
+            , mValue {Forward<V>(value)} {}
+      };
 
+   } // namespace Langulus::Anyness
 
-namespace Langulus::CT
-{
+   namespace CT
+   {
 
-   /// Check if T is binary compatible to a pair                              
-   template<class T>
-   concept Pair = sizeof(T) == sizeof(Anyness::Pair)
-      && DerivedFrom<T, Anyness::A::Pair>;
+      /// Check if T is binary compatible to a pair                           
+      template<class T>
+      concept Pair = sizeof(T) == sizeof(Anyness::Pair)
+         && DerivedFrom<T, A::Pair>;
 
-} // namespace Langulus::CT
+   } // namespace Langulus::CT
+
+} // namespace Langulus
