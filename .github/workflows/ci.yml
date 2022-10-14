@@ -1,5 +1,5 @@
 name: Langulus::Anyness CI
-on: [push, pull_request] # Trigger on pushes to all branches and for all pull-requests
+on: [push, pull_request, repository_dispatch] # Trigger on pushes to all branches and for all pull-requests
 
 jobs:
   build:
@@ -41,6 +41,10 @@ jobs:
     name: "${{matrix.os}}-${{matrix.cxx}}-${{matrix.build}}-${{matrix.architecture}}${{matrix.suffix}}"
     runs-on: ${{matrix.os}}
     steps:
+      - name: Dispatch Trigger
+        if: github.event.action == 'Dependency changed'
+        run: >
+          echo "Triggered by dependency: ${{github.event.client_payload.cause}}"
       - name: Clone
         uses: actions/checkout@v2
       - name: Configure
