@@ -1578,7 +1578,7 @@ namespace Langulus::Anyness
          }
       }
 
-      return (t1 - GetRaw()) == mCount;
+      return static_cast<Count>(t1 - GetRaw()) == mCount;
    }
 
    /// Compare with another container of the same type                        

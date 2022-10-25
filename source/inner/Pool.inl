@@ -23,9 +23,9 @@ namespace Langulus::Anyness::Inner
       : mAllocatedByBackend {size}
       , mAllocatedByBackendLog2 {FastLog2(size)}
       , mAllocatedByBackendLSB {LSB(size >> Size{1})}
-      , mThresholdMin {Roof2cexpr(Allocation::GetMinAllocation())}
       , mThreshold {size}
       , mThresholdPrevious {size}
+      , mThresholdMin {Roof2cexpr(Allocation::GetMinAllocation())}
       , mHandle {memory} {
       mMemory = GetPoolStart<Byte>();
       mMemoryEnd = mMemory + mAllocatedByBackend;
@@ -279,6 +279,7 @@ namespace Langulus::Anyness::Inner
       auto it = mMemory;
       while (it < mMemoryEnd) {
          volatile auto touch = *it;
+         (void) touch;
          it += 4096;
       }
    }

@@ -12,7 +12,6 @@
 namespace Langulus::Anyness::Inner
 {
 
-
    ///                                                                        
    ///   Memory pool                                                          
    ///                                                                        

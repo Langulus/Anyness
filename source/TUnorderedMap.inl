@@ -558,8 +558,8 @@ namespace Langulus::Anyness
          }
 
          // Rehash and check if hashes match                            
-         const auto oldIndex = oldInfo - GetInfo();
-         const auto newIndex = HashData(*oldKey).mHash & hashmask;
+         const Offset oldIndex = oldInfo - GetInfo();
+         const Offset newIndex = HashData(*oldKey).mHash & hashmask;
          if (oldIndex != newIndex) {
             // Immediately move the old pair to the swapper             
             auto oldValue = &GetValue(oldIndex);

@@ -32,16 +32,6 @@
    #define LANGULUS_FEATURE_ENCRYPTION() 0
 #endif
 
-/// Memory allocations will be pooled, authority will be tracked,             
-/// memory will be reused whenever possible, and you can also tweak           
-/// runtime allocation strategies on per-type basis                           
-/// Significantly improves performance, no dependencies                       
-#ifdef LANGULUS_ENABLE_FEATURE_MANAGED_MEMORY
-   #define LANGULUS_FEATURE_MANAGED_MEMORY() 1
-#else
-   #define LANGULUS_FEATURE_MANAGED_MEMORY() 0
-#endif
-
 /// Memory manager shall keep track of statistics                             
 /// Some overhead upon allocation/deallocation/reallocation                   
 #ifdef LANGULUS_ENABLE_FEATURE_MEMORY_STATISTICS
@@ -50,7 +40,7 @@
    #define LANGULUS_FEATURE_MEMORY_STATISTICS() 0
 #endif
 
-/// Replace the default new-delete operators with one that use Allocator      
+/// Replace the default new-delete operators with custom ones                 
 /// No overhead, no dependencies                                              
 #ifdef LANGULUS_ENABLE_FEATURE_NEWDELETE
    #undef LANGULUS_FEATURE_NEWDELETE

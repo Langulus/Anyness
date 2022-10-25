@@ -13,7 +13,7 @@ namespace Langulus::Anyness
    /// Hash the byte sequence                                                 
    ///   @return a hash of the contained byte sequence                        
    Hash Bytes::GetHash() const {
-      return HashBytes(GetRaw(), GetCount());
+      return HashBytes(GetRaw(), static_cast<int>(GetCount()));
    }
 
    /// Allocate a number of bytes and zero them                               

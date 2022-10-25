@@ -130,7 +130,7 @@ namespace Langulus::Anyness
          else if (mType->mHasher)
             return mType->mHasher(mRaw);
          else if (mType->mIsPOD)
-            return HashBytes(mRaw, mType->mSize);
+            return HashBytes(mRaw, static_cast<int>(mType->mSize));
          else {
             Logger::Error("Unhashable type ", GetToken());
             LANGULUS_THROW(Access, "Unhashable type");
@@ -144,7 +144,7 @@ namespace Langulus::Anyness
          h.Allocate<false>(mCount);
          for (Count i = 0; i < mCount; ++i)
             h << GetElementResolved(i).GetHash();
-         return HashBytes<DefaultHashSeed, false>(h.GetRaw(), h.GetByteSize());
+         return HashBytes<DefaultHashSeed, false>(h.GetRaw(), static_cast<int>(h.GetByteSize()));
       }
       else if (mType->mHasher) {
          TAny<Hash> h;
@@ -153,11 +153,11 @@ namespace Langulus::Anyness
             const auto element = GetElement(i);
             h << mType->mHasher(element.mRaw);
          }
-         return HashBytes<DefaultHashSeed, false>(h.GetRaw(), h.GetByteSize());
+         return HashBytes<DefaultHashSeed, false>(h.GetRaw(), static_cast<int>(h.GetByteSize()));
       }
       else if (mType->mIsPOD) {
          // POD data is an exception - just batch-hash it               
-         return HashBytes(mRaw, GetByteSize());
+         return HashBytes(mRaw, static_cast<int>(GetByteSize()));
       }
       else {
          Logger::Error("Unhashable type ", GetToken());

@@ -346,7 +346,7 @@ namespace Langulus::Anyness
    /// Hash the text                                                          
    ///   @return a hash of the contained byte sequence                        
    Hash Text::GetHash() const {
-      return HashBytes(GetRaw(), GetCount());
+      return HashBytes(GetRaw(), static_cast<int>(GetCount()));
    }
 
    /// Disown-construct a debug string                                        

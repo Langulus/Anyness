@@ -26,8 +26,8 @@ namespace Langulus::Anyness
    /// Shallow-copy construction                                              
    ///   @param other - the table to copy                                     
    inline BlockMap::BlockMap(const BlockMap& other)
-      : mKeys {other.mKeys}
-      , mInfo {other.mInfo}
+      : mInfo {other.mInfo}
+      , mKeys {other.mKeys}
       , mValues {other.mValues} {
       mValues.Keep();
    }
@@ -35,8 +35,8 @@ namespace Langulus::Anyness
    /// Move construction                                                      
    ///   @param other - the table to move                                     
    inline BlockMap::BlockMap(BlockMap&& other) noexcept
-      : mKeys {other.mKeys}
-      , mInfo {other.mInfo}
+      : mInfo {other.mInfo}
+      , mKeys {other.mKeys}
       , mValues {other.mValues} {
       other.mValues.ResetMemory();
       other.mValues.ResetState();
@@ -45,8 +45,8 @@ namespace Langulus::Anyness
    /// Shallow-copy construction without referencing                          
    ///   @param other - the disowned table to copy                            
    inline BlockMap::BlockMap(Disowned<BlockMap>&& other) noexcept
-      : mKeys {other.mValue.mKeys}
-      , mInfo {other.mValue.mInfo}
+      : mInfo {other.mValue.mInfo}
+      , mKeys {other.mValue.mKeys}
       , mValues {other.mValue.mValues} {
       mKeys.mEntry = mValues.mEntry = nullptr;
    }
@@ -54,8 +54,8 @@ namespace Langulus::Anyness
    /// Minimal move construction from abandoned table                         
    ///   @param other - the abandoned table to move                           
    inline BlockMap::BlockMap(Abandoned<BlockMap>&& other) noexcept
-      : mKeys {other.mValue.mKeys}
-      , mInfo {other.mValue.mInfo}
+      : mInfo {other.mValue.mInfo}
+      , mKeys {other.mValue.mKeys}
       , mValues {other.mValue.mValues} {
       other.mValue.mValues.mEntry = nullptr;
    }
@@ -613,9 +613,9 @@ namespace Langulus::Anyness
          }
 
          // Rehash and check if hashes match                            
-         const auto oldIndex = oldInfo - GetInfo();
+         const Offset oldIndex = oldInfo - GetInfo();
          auto oldKey = GetKey(oldIndex);
-         const auto newIndex = oldKey.GetHash().mHash & hashmask;
+         const Offset newIndex = oldKey.GetHash().mHash & hashmask;
          if (oldIndex != newIndex) {
             // Move key & value to swapper                              
             // No chance of overlap, so do it forwards                  

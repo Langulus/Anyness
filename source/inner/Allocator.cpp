@@ -211,23 +211,37 @@ namespace Langulus::Anyness::Inner
    /// attempt to find memory entry from the memory manager                   
    /// Allows us to safely interface unknown memory, possibly reusing it      
    ///   @attention assumes memory is a valid pointer                         
-   ///   @param meta - the type of data to search for (optional)              
+   ///   @param hint - the type of data to search for (optional)              
    ///   @param memory - memory pointer                                       
    ///   @return the memory entry that manages the memory pointer, or         
    ///           nullptr if memory is not ours, or is no longer used          
-   Allocation* Allocator::Find(DMeta meta, const void* memory) SAFETY_NOEXCEPT() {
+   Allocation* Allocator::Find(DMeta hint, const void* memory) SAFETY_NOEXCEPT() {
       LANGULUS_ASSUME(DevAssumes, memory, "Nullptr provided");
 
       #if LANGULUS_FEATURE(MANAGED_MEMORY)
-         // Scan the last last pool that found something (hot region)   
+         // Scan the last pool that found something (hot region)        
          if (mLastFoundPool) {
             const auto found = mLastFoundPool->Find(memory);
             if (found)
                return found;
          }
 
+         // Check the pools associated with the provided hint, if any   
+         auto pool = hint ? hint->mPool : nullptr;
+         while (pool) {
+            const auto found = pool->Find(memory);
+            if (found) {
+               mLastFoundPool = pool;
+               return found;
+            }
+
+            // Continue inside the poolchain                            
+            pool = pool->mNext;
+         }
+         
+         // Last attempt, because nothing was found                     
          // Scan all pools, and find one that contains the memory       
-         auto pool = mDefaultPool;
+         pool = mDefaultPool;
          while (pool) {
             const auto found = pool->Find(memory);
             if (found) {
@@ -239,23 +253,25 @@ namespace Langulus::Anyness::Inner
             pool = pool->mNext;
          }
 
+         // If reahced, then memory is guaranteed to not be ours        
          return nullptr;
       #else
-         (void) (meta); (void) (memory);
+         (void) (hint);
+         (void) (memory);
          return nullptr;
       #endif
    }
 
    /// Check if memory is owned by the memory manager                         
    /// Unlike Allocator::Find, this doesn't check if memory is currently used 
-   /// and returns true, as long as the required pool is still available      
+   /// but returns true, as long as the required pool is still available      
    ///   @attention assumes memory is a valid pointer                         
    ///   @attention this function does nothing if                             
    ///              LANGULUS_FEATURE(MANAGED_MEMORY) is disabled              
-   ///   @param meta - the type of data to search for (optional)              
+   ///   @param hint - the type of data to search for (optional)              
    ///   @param memory - memory pointer                                       
    ///   @return true if we own the memory                                    
-   bool Allocator::CheckAuthority(DMeta meta, const void* memory) SAFETY_NOEXCEPT() {
+   bool Allocator::CheckAuthority(DMeta hint, const void* memory) SAFETY_NOEXCEPT() {
       LANGULUS_ASSUME(DevAssumes, memory, "Nullptr provided");
 
       #if LANGULUS_FEATURE(MANAGED_MEMORY)
@@ -266,8 +282,19 @@ namespace Langulus::Anyness::Inner
                return found;
          }
 
+         // Check the pools associated with the provided hint, if any   
+         auto pool = hint ? hint->mPool : nullptr;
+         while (pool) {
+            if (pool->Contains(memory))
+               return true;
+
+            // Continue inside the poolchain                            
+            pool = pool->mNext;
+         }
+
+         // Last attempt, because nothing was found                     
          // Scan all pools, and find one that contains the memory       
-         auto pool = mDefaultPool;
+         pool = mDefaultPool;
          while (pool) {
             if (pool->Contains(memory))
                return true;
@@ -278,7 +305,8 @@ namespace Langulus::Anyness::Inner
 
          return false;
       #else
-         (void) (meta); (void) (memory);
+         (void) (hint);
+         (void) (memory);
          return false;
       #endif
    }

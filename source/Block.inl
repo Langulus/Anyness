@@ -43,10 +43,10 @@ namespace Langulus::Anyness
    ///   @param raw - pointer to the mutable memory                           
    inline Block::Block(const DataState& state, DMeta meta, Count count, void* raw) SAFETY_NOEXCEPT()
       : mRaw {static_cast<Byte*>(raw)}
-      , mType {meta}
+      , mState {state}
       , mCount {count}
       , mReserved {count}
-      , mState {state}
+      , mType {meta}
       #if LANGULUS_FEATURE(MANAGED_MEMORY)
          , mEntry {Inner::Allocator::Find(meta, raw)} { }
       #else
@@ -72,10 +72,10 @@ namespace Langulus::Anyness
    ///   @param entry - the memory entry                                      
    inline Block::Block(const DataState& state, DMeta meta, Count count, void* raw, Inner::Allocation* entry) noexcept
       : mRaw {static_cast<Byte*>(raw)}
-      , mType {meta}
+      , mState {state}
       , mCount {count}
       , mReserved {count}
-      , mState {state}
+      , mType {meta}
       , mEntry {entry} { }
    
    /// Manual construction from constant data and preallocated entry          
@@ -1768,8 +1768,7 @@ namespace Langulus::Anyness
          else
             return Insert<INDEX, false, false>(WRAPPER {Disown(value)});
       }
-
-      return 0;
+      else return 0;
    }
 
    ///                                                                        

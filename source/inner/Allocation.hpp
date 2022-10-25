@@ -22,12 +22,6 @@ namespace Langulus::Anyness
 namespace Langulus::Anyness::Inner
 {
 
-   #if !LANGULUS_FEATURE(MANAGED_MEMORY)
-      using Pool = void;
-   #else
-      class Pool;
-   #endif
-
    template<class T>
    concept AllocationPrimitive = requires(T a) { 
       {T::GetNewAllocationSize(Size {})} -> CT::Same<Size>;
