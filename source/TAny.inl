@@ -1026,6 +1026,47 @@ namespace Langulus::Anyness
       return 1;
    }
 
+   /// Emplace a single item at the given index                               
+   ///   @tparam IDX - the type of indexing used                              
+   ///   @tparam A... - arguments for the element's construction              
+   ///   @param at - the index to emplace at                                  
+   ///   @param arguments... - the arguments for the element's constructor    
+   ///   @return 1 if the item was emplaced, 0 if not                         
+   TEMPLATE()
+   template<CT::Index IDX, class... A>
+   Count TAny<T>::EmplaceAt(const IDX& at, A&&... arguments) {
+      if constexpr (CT::Dense<T>)
+         return InsertAt<false, IDX>(T {arguments...}, at);
+      else {
+         // Allocate a new element, and push a pointer to it            
+         using DT = Decay<T>;
+         auto Tallocation = Inner::Allocator::Allocate(sizeof(DT));
+         T Tptr = reinterpret_cast<T>(Tallocation->GetBlockStart());
+         new (Tptr) DT {arguments...};
+         return InsertAt<false, IDX>(Move(Tptr), at);
+      }
+   }
+
+   /// Emplace a single item at front or back                                 
+   ///   @tparam INDEX - the index to emplace at, either front or back        
+   ///   @tparam A... - arguments for the element's construction              
+   ///   @param arguments... - the arguments for the element's constructor    
+   ///   @return 1 if the item was emplaced, 0 if not                         
+   TEMPLATE()
+   template<Index INDEX, class... A>
+   Count TAny<T>::Emplace(A&&...arguments) {
+      if constexpr (CT::Dense<T>)
+         return Insert<INDEX, false>(T {arguments...});
+      else {
+         // Allocate a new element, and push a pointer to it            
+         using DT = Decay<T>;
+         auto Tallocation = Inner::Allocator::Allocate(sizeof(DT));
+         T Tptr = reinterpret_cast<T>(Tallocation->GetBlockStart());
+         new (Tptr) DT {arguments...};
+         return Insert<INDEX, false>(Move(Tptr));
+      }
+   }
+
    /// Push data at the back by copy-construction                             
    ///   @param other - the item to insert                                    
    ///   @return a reference to this container for chaining                   

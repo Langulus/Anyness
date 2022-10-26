@@ -8,6 +8,7 @@
 #pragma once
 #include "Block.hpp"
 #include "verbs/Compare.inl"
+#include "verbs/Select.inl"
 
 namespace Langulus::Anyness
 {

@@ -834,6 +834,19 @@ namespace Langulus::Anyness
       mValues.ResetMemory();
    }
 
+   /// Safely erases element at a specific index                              
+   ///   @param start - the index to remove                                   
+   ///   @return 1 if something was removed, or zero of index not found       
+   TABLE_TEMPLATE()
+   Count TABLE()::RemoveIndex(const Index& start) {
+      const auto offset = start.GetOffset();
+      if (offset >= GetReserved() || 0 == mInfo[offset])
+         return 0;
+
+      RemoveIndex(offset);
+      return 1;
+   }
+   
    /// Erases element at a specific index                                     
    ///   @attention assumes that index points to a valid entry                
    ///   @param start - the index to remove                                   

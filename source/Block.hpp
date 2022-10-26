@@ -318,12 +318,25 @@ namespace Langulus::Anyness
    
       NOD() Block GetMember(const RTTI::Member&) const;
       NOD() Block GetMember(const RTTI::Member&);
-      NOD() Block GetMember(TMeta, Offset = 0) const;
-      NOD() Block GetMember(TMeta, Offset = 0);
-      NOD() Block GetMember(DMeta, Offset = 0) const;
-      NOD() Block GetMember(DMeta, Offset = 0);
-      NOD() Block GetMember(std::nullptr_t, Offset = 0) const;
-      NOD() Block GetMember(std::nullptr_t, Offset = 0);
+      NOD() Block GetMember(TMeta) const;
+      NOD() Block GetMember(TMeta);
+      NOD() Block GetMember(DMeta) const;
+      NOD() Block GetMember(DMeta);
+      NOD() Block GetMember(std::nullptr_t) const;
+      NOD() Block GetMember(std::nullptr_t);
+
+      template<CT::Index INDEX>
+      NOD() Block GetMember(TMeta, const INDEX&) const;
+      template<CT::Index INDEX>
+      NOD() Block GetMember(TMeta, const INDEX&);
+      template<CT::Index INDEX>
+      NOD() Block GetMember(DMeta, const INDEX&) const;
+      template<CT::Index INDEX>
+      NOD() Block GetMember(DMeta, const INDEX&);
+      template<CT::Index INDEX>
+      NOD() Block GetMember(std::nullptr_t, const INDEX&) const;
+      template<CT::Index INDEX>
+      NOD() Block GetMember(std::nullptr_t, const INDEX&);
    
       NOD() Block GetBaseMemory(DMeta, const RTTI::Base&) const;
       NOD() Block GetBaseMemory(DMeta, const RTTI::Base&);
