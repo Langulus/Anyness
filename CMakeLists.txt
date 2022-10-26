@@ -33,10 +33,6 @@ aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/source/inner SOURCE_FILES)
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/source/verbs SOURCE_FILES)
 add_library(Langulus.Anyness ${SOURCE_FILES})
 
-if (MSVC)
-    target_compile_options(Langulus.Anyness PRIVATE /utf-8)
-endif()
-
 target_include_directories(Langulus.Anyness
     PUBLIC	    include
 )
