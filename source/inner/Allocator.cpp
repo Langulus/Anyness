@@ -99,7 +99,9 @@ namespace Langulus::Anyness::Inner
 
       #if LANGULUS_FEATURE(MANAGED_MEMORY)
          // New size is bigger, precautions must be taken               
-         const auto oldSize = previous->GetTotalSize();
+         #if LANGULUS_FEATURE(MEMORY_STATISTICS)
+            const auto oldSize = previous->GetTotalSize();
+         #endif
          if (previous->mPool->Reallocate(previous, size)) {
             #if LANGULUS_FEATURE(MEMORY_STATISTICS)
                mStatistics.mBytesAllocatedByFrontend -= oldSize;

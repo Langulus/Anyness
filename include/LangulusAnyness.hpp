@@ -26,4 +26,4 @@
 #endif
 #endif
 
-#define LANGULUS_MODULE_ANYNESS()
+#define LANGULUS_LIBRARY_ANYNESS() 1

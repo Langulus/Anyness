@@ -8,6 +8,12 @@
 #pragma once
 #include <LangulusRTTI.hpp>
 
+#if defined(LANGULUS_EXPORT_ALL) || defined(LANGULUS_EXPORT_ANYNESS)
+   #define LANGULUS_API_ANYNESS() LANGULUS_EXPORT()
+#else
+   #define LANGULUS_API_ANYNESS() LANGULUS_IMPORT()
+#endif
+
 /// Use the utfcpp library to convert between utf types                       
 /// No overhead, requires utfcpp to be linked                                 
 #ifdef LANGULUS_ENABLE_FEATURE_UTFCPP
