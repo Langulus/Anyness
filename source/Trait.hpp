@@ -31,6 +31,11 @@ namespace Langulus::Anyness
    public:
       using Any::Any;
 
+      constexpr Trait() noexcept = default;
+      Trait(const Trait&);
+      Trait(Trait&&) noexcept;
+      Trait(const Block&);
+
       template<CT::Data T>
       Trait(TMeta, const T&);
       template<CT::Data T>
@@ -42,6 +47,10 @@ namespace Langulus::Anyness
       Trait(Abandoned<Trait>&&);
 
       using Any::operator =;
+
+      Trait& operator = (const Trait&);
+      Trait& operator = (Trait&&) noexcept;
+      Trait& operator = (const Block&);
 
       Trait& operator = (Disowned<Trait>&&);
       Trait& operator = (Abandoned<Trait>&&);

@@ -10,6 +10,23 @@
 namespace Langulus::Anyness
 {
 
+   /// Shallow copy constructor                                               
+   ///   @param other - the trait to copy                                     
+   Trait::Trait(const Trait& other)
+      : Any {static_cast<const Any&>(other)}
+      , mTraitType {other.mTraitType} {}
+
+   /// Move constructor                                                       
+   ///   @param other - the trait to move                                     
+   Trait::Trait(Trait&& other) noexcept
+      : Any {Forward<Any>(other)}
+      , mTraitType {other.mTraitType} {}
+
+   /// Create trait from a block                                              
+   ///   @param other - the trait to copy                                     
+   Trait::Trait(const Block& other)
+      : Any {other} {}
+
    /// Same as copy-construction, but doesn't reference anything              
    ///   @param other - the trait to copy                                     
    Trait::Trait(Disowned<Trait>&& other)
@@ -23,6 +40,32 @@ namespace Langulus::Anyness
       : Any {other.Forward<Any>()}
       , mTraitType {other.mValue.mTraitType} {}
 
+   /// Copy-assign trait                                                      
+   ///   @param other - the trait to copy                                     
+   ///   @return a reference to this trait                                    
+   Trait& Trait::operator = (const Trait& other) {
+      Any::operator = (static_cast<const Any&>(other));
+      mTraitType = other.mTraitType;
+      return *this;
+   }
+
+   /// Move a trait                                                           
+   ///   @param other - the trait to move                                     
+   ///   @return a reference to this trait                                    
+   Trait& Trait::operator = (Trait&& other) noexcept {
+      Any::operator = (Forward<Any>(other));
+      mTraitType = other.mTraitType;
+      return *this;
+   }
+   
+   /// Set memory block                                                       
+   ///   @param other - the memory block                                      
+   ///   @return a reference to this trait                                    
+   Trait& Trait::operator = (const Block& other) {
+      Any::operator = (other);
+      return *this;
+   }
+   
    /// Shallow-copy a disowned trait (doesn't reference anything)             
    ///   @param other - the trait to copy                                     
    ///   @return a reference to this trait                                    

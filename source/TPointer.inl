@@ -81,7 +81,7 @@ namespace Langulus::Anyness
    /// Create a new instance by moving an existing one                        
    ///   @param initializer - instance to move                                
    ///   @return the pointer                                                  
-   TEMPLATE_SHARED()
+   /*TEMPLATE_SHARED()
    TPointer<T, DR> TPointer<T, DR>::Create(Decay<T>&& initializer) requires CT::MoveMakable<Decay<T>> {
       TPointer pointer;
       pointer.mEntry = Inner::Allocator::Allocate(
@@ -122,22 +122,23 @@ namespace Langulus::Anyness
          pointer.mEntry->GetBlockStart());
       new (pointer.mValue) Decay<T> {};
       return pointer;
-   }
+   }*/
 
    /// Create a new instance of T by providing constructor arguments          
    ///   @tparam ...ARGS - the deduced arguments                              
    ///   @param arguments - the arguments                                     
    ///   @return the new instance                                             
-   TEMPLATE_SHARED() template<typename... ARGS>
-   TPointer<T, DR> TPointer<T, DR>::New(ARGS&&... arguments) {
+   TEMPLATE_SHARED() template<class... ARGS>
+   /*TPointer<T, DR>*/void TPointer<T, DR>::New(ARGS&&... arguments) {
       TPointer pointer;
-      pointer.mEntry = Inner::Allocator::Allocate(
-         RTTI::GetAllocationPageOf<Decay<T>>());
+      pointer.mEntry = Inner::Allocator::Allocate(sizeof(Decay<T>));
+         /*RTTI::GetAllocationPageOf<Decay<T>>());*/
       LANGULUS_ASSERT(pointer.mEntry, Except::Allocate, "Out of memory");
       pointer.mValue = reinterpret_cast<decltype(pointer.mValue)>(
          pointer.mEntry->GetBlockStart());
       new (pointer.mValue) Decay<T> {Forward<ARGS>(arguments)...};
-      return pointer;
+      *this = pointer;
+      //return pointer;
    }
 
    /// Reset the value                                                        

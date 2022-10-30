@@ -94,12 +94,12 @@ namespace Langulus::Anyness
       NOD() constexpr Count GetUses() const noexcept;
       using Base::Get;
 
-      NOD() static TPointer Create(const Decay<T>&) requires CT::CopyMakable<Decay<T>>;
+      /*NOD() static TPointer Create(const Decay<T>&) requires CT::CopyMakable<Decay<T>>;
       NOD() static TPointer Create(Decay<T>&&) requires CT::MoveMakable<Decay<T>>;
       NOD() static TPointer Create() requires CT::Defaultable<Decay<T>>;
-
-      template<typename... ARGS>
-      NOD() static TPointer New(ARGS&&...);
+      */
+      template<class... ARGS>
+      void New(ARGS&&...);
 
       void Reset();
       TPointer Clone() const;
