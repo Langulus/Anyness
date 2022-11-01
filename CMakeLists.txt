@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Check if this project is built as standalone, or a part of something else
 if(PROJECT_IS_TOP_LEVEL)
     if(LANGULUS_BUILD_SHARED_LIBRARIES)
+        add_compile_definitions(LANGULUS_EXPORT_ALL)
         set(LANGULUS_LIBRARY_TYPE SHARED)
     else()
         set(LANGULUS_LIBRARY_TYPE STATIC)
@@ -27,12 +28,11 @@ if(PROJECT_IS_TOP_LEVEL)
     fetch_langulus_module(Core)
     fetch_langulus_module(Logger)
     fetch_langulus_module(RTTI)
+    fetch_langulus_module(SIMD)
 
     add_compile_definitions(LANGULUS_ENABLE_TESTING)
     enable_testing()
     add_subdirectory(test)
-else()
-    set(LANGULUS_LIBRARY_TYPE OBJECT)
 endif()
 
 # Build and install Anyness library
@@ -46,5 +46,5 @@ target_include_directories(Langulus.Anyness
 )
 
 target_link_libraries(Langulus.Anyness
-    PUBLIC      Langulus.RTTI
+    PUBLIC      Langulus.SIMD
 )
