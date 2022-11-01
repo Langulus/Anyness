@@ -94,7 +94,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 ) {
 	using T = typename TestType::Container;
 	using E = typename TestType::Element;
-	using StdT = std::vector<E>;
+	//using StdT = std::vector<E>;
 	using DenseE = Decay<E>;
 		
 	E element = CreateElement<E>(555);
@@ -1533,23 +1533,26 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 				REQUIRE(pack.GetReserved() >= 5);
 				REQUIRE(pack.template Is<E>());
 				REQUIRE(pack.GetRaw());
-				for (int i = 0; i < pack.GetCount(); ++i)
+				for (unsigned i = 0; i < pack.GetCount(); ++i)
 					REQUIRE(pack[i] == darray1[i]);
 				REQUIRE_FALSE(pack.IsConstant());
 			}
 		}
 
 		WHEN("Shallow-copy more of the same stuff") {
-			const auto memory = pack.GetRaw();
+			#if LANGULUS_FEATURE(MANAGED_MEMORY)
+				const auto memory = pack.GetRaw();
+			#endif
+
 			const_cast<T&>(pack) << darray2[0] << darray2[1] << darray2[2] << darray2[3] << darray2[4];
 
 			THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
 				REQUIRE(pack.GetCount() == 10);
 				REQUIRE(pack.GetReserved() >= 10);
 				REQUIRE(pack.template Is<E>());
-				for (int i = 0; i < 5; ++i)
+				for (unsigned i = 0; i < 5; ++i)
 					REQUIRE(pack[i] == darray1[i]);
-				for (int i = 5; i < pack.GetCount(); ++i)
+				for (unsigned i = 5; i < pack.GetCount(); ++i)
 					REQUIRE(pack[i] == darray2[i-5]);
 				#if LANGULUS_FEATURE(MANAGED_MEMORY)
 					if constexpr (CT::Same<E, int>) {
@@ -1591,21 +1594,24 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 				CreateElement<E>(10)
 			};
 
-			const auto memory = pack.GetRaw();
+			#if LANGULUS_FEATURE(MANAGED_MEMORY)
+				const auto memory = pack.GetRaw();
+			#endif
+
 			const_cast<T&>(pack) << Move(darray3[0]) << Move(darray3[1]) << Move(darray3[2]) << Move(darray3[3]) << Move(darray3[4]);
 
 			THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
 				REQUIRE(pack.GetCount() == 10);
 				REQUIRE(pack.GetReserved() >= 10);
 				REQUIRE(pack.template Is<E>());
-				for (int i = 0; i < 5; ++i)
+				for (unsigned i = 0; i < 5; ++i)
 					REQUIRE(pack[i] == darray1[i]);
 				if constexpr (CT::Sparse<E>) {
-					for (int i = 5; i < pack.GetCount(); ++i)
+					for (unsigned i = 5; i < pack.GetCount(); ++i)
 						REQUIRE(pack[i] == darray3[i - 5]);
 				}
 				else {
-					for (int i = 5; i < pack.GetCount(); ++i)
+					for (unsigned i = 5; i < pack.GetCount(); ++i)
 						REQUIRE(pack[i] == darray2[i - 5]);
 				}
 				#if LANGULUS_FEATURE(MANAGED_MEMORY)
@@ -1639,7 +1645,11 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
 		WHEN("Insert more trivial items at a specific place by shallow-copy") {
 			const auto i666 = CreateElement<E>(666);
-			const auto memory = pack.GetRaw();
+
+			#if LANGULUS_FEATURE(MANAGED_MEMORY)
+				const auto memory = pack.GetRaw();
+			#endif
+
 			const_cast<T&>(pack).InsertAt(&i666, &i666 + 1, 3);
 
 			THEN("The size changes, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
@@ -1682,7 +1692,11 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
 		WHEN("Insert more trivial items at a specific place by move") {
 			auto i666 = CreateElement<E>(666);
-			const auto memory = pack.GetRaw();
+
+			#if LANGULUS_FEATURE(MANAGED_MEMORY)
+				const auto memory = pack.GetRaw();
+			#endif
+
 			const_cast<T&>(pack).InsertAt(Move(i666), 3);
 
 			THEN("The size changes, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
@@ -1783,7 +1797,10 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 		}
 
 		WHEN("More capacity is reserved") {
-			const auto memory = pack.GetRaw();
+			#if LANGULUS_FEATURE(MANAGED_MEMORY)
+				const auto memory = pack.GetRaw();
+			#endif
+
 			const_cast<T&>(pack).Allocate(20);
 
 			THEN("The capacity changes but not the size, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
@@ -1822,7 +1839,10 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 		}
 
 		WHEN("Pack is reset") {
-			const auto memory = pack.GetRaw();
+			#if LANGULUS_FEATURE(MANAGED_MEMORY)
+				const auto memory = pack.GetRaw();
+			#endif
+
 			const_cast<T&>(pack).Reset();
 
 			THEN("Size and capacity goes to zero, type is unchanged, because it's a templated container") {
@@ -1970,7 +1990,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 			);
 
 			THEN("The number of iterated elements should be correct") {
-				REQUIRE(it == pack.GetCount());
+				REQUIRE(static_cast<unsigned>(it) == pack.GetCount());
 			}
 		}
 
@@ -1993,7 +2013,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 			);
 
 			THEN("The number of iterated elements should be correct") {
-				REQUIRE(it == pack.GetCount());
+				REQUIRE(static_cast<unsigned>(it) == pack.GetCount());
 			}
 		}
 
@@ -2016,7 +2036,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 			);
 
 			THEN("The number of iterated elements should be correct") {
-				REQUIRE(it == pack.GetCount());
+				REQUIRE(static_cast<unsigned>(it) == pack.GetCount());
 			}
 		}
 
@@ -2039,7 +2059,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 			);
 
 			THEN("The number of iterated elements should be correct") {
-				REQUIRE(it == pack.GetCount());
+				REQUIRE(static_cast<unsigned>(it) == pack.GetCount());
 			}
 		}
 
@@ -2062,7 +2082,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 			);
 
 			THEN("The number of iterated elements should be correct") {
-				REQUIRE(it == pack.GetCount());
+				REQUIRE(static_cast<unsigned>(it) == pack.GetCount());
 			}
 		}
 
@@ -2085,7 +2105,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 			);
 
 			THEN("The number of iterated elements should be correct") {
-				REQUIRE(it == pack.GetCount());
+				REQUIRE(static_cast<unsigned>(it) == pack.GetCount());
 			}
 		}
 
@@ -2108,7 +2128,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 			);
 
 			THEN("The number of iterated elements should be correct") {
-				REQUIRE(it == pack.GetCount());
+				REQUIRE(static_cast<unsigned>(it) == pack.GetCount());
 			}
 		}
 
@@ -2131,7 +2151,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 			);
 
 			THEN("The number of iterated elements should be correct") {
-				REQUIRE(it == pack.GetCount());
+				REQUIRE(static_cast<unsigned>(it) == pack.GetCount());
 			}
 		}
 	}

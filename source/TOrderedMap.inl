@@ -14,6 +14,18 @@
 namespace Langulus::Anyness
 {
 
+   /// Copy-construct a map                                                   
+   ///   @param other - the map to copy                                       
+   TEMPLATE()
+   MAP()::TOrderedMap(const TOrderedMap& other)
+      : TUnorderedMap<K, V> {static_cast<const TUnorderedMap<K, V>&>(other)} { }
+
+   /// Move-construct a map                                                   
+   ///   @param other - the map to move                                       
+   TEMPLATE()
+   MAP()::TOrderedMap(TOrderedMap&& other) noexcept
+      : TUnorderedMap<K, V> {Forward<TUnorderedMap<K, V>>(other)} { }
+   
    /// Copy-construct a map from a disowned map                               
    /// The disowned map's contents will not be referenced                     
    ///   @param other - the map to disown                                     

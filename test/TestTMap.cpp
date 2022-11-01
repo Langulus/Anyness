@@ -99,15 +99,15 @@ TEMPLATE_TEST_CASE(
 	(TypePair<OrderedMap, Text, Any*>)
 ) {
 	using T = typename TestType::Container;
-	constexpr bool ordered = T::Ordered;
-	constexpr bool statico = IsStaticallyOptimized<T>;
+	//constexpr bool ordered = T::Ordered;
+	//constexpr bool statico = IsStaticallyOptimized<T>;
 	using K = typename TestType::Key;
 	using V = typename TestType::Value;
-	using StdT = Conditional<ordered, ::std::map<K, V>, ::std::unordered_map<K, V>>;
+	//using StdT = Conditional<ordered, ::std::map<K, V>, ::std::unordered_map<K, V>>;
 	using Pair = TPair<K, V>;
 	using StdPair = ::std::pair<K, V>;
-	using DenseK = Decay<K>;
-	using DenseV = Decay<V>;
+	//using DenseK = Decay<K>;
+	//using DenseV = Decay<V>;
 
 	GIVEN("A default-initialized map instance") {
 		const auto pair = CreatePair<Pair, K, V>(
@@ -848,7 +848,7 @@ TEMPLATE_TEST_CASE(
 			for (auto& comparer : darray1)
 				REQUIRE(map[comparer.mKey] == comparer.mValue);
 
-			int i = 0;
+			unsigned i = 0;
 			for (auto pair : map) {
 				static_assert(!IsStaticallyOptimized<T> || ::std::is_reference_v<decltype(pair.mKey)>,
 					"Pair key type is not a reference for statically optimized map");
@@ -924,7 +924,7 @@ TEMPLATE_TEST_CASE(
 			for (auto& comparer : darray1)
 				REQUIRE(map[comparer.mKey] == comparer.mValue);
 
-			int i = 0;
+			unsigned i = 0;
 			const auto done = map.ForEachKey([&](const K& key) {
 				// Different architectures result in different hashes			
 				if constexpr (Bitness == 32) {

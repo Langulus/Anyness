@@ -21,6 +21,9 @@ namespace Langulus::Anyness
       static constexpr bool Ordered = true;
 
       using TUnorderedMap<K, V>::TUnorderedMap;
+      TOrderedMap(const TOrderedMap&);
+      TOrderedMap(TOrderedMap&&) noexcept;
+
       TOrderedMap(Disowned<TOrderedMap>&&) noexcept;
       TOrderedMap(Abandoned<TOrderedMap>&&) noexcept;
 

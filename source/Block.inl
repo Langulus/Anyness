@@ -1394,14 +1394,15 @@ namespace Langulus::Anyness
    ///   @return the index of the found item, or uiNone if not found          
    template<bool REVERSE, bool BY_ADDRESS_ONLY, CT::Data T>
    Index Block::Find(const T& item, Index idx) const {
+      const auto offset = SimplifyIndex<T>(idx);
       if constexpr (!REVERSE) {
-         for (Offset i = 0; i < mCount; ++i) {
+         for (Offset i = offset + 1; i < mCount; ++i) {
             if (GetElement(i) == item)
                return i;
          }
       }
-      else {
-         for (Offset i = mCount - 1; i < mCount; --i) {
+      else if (offset > 0) {
+         for (Offset i = offset - 1; i < mCount; --i) {
             if (GetElement(i) == item)
                return i;
          }

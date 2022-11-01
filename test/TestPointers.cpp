@@ -72,7 +72,9 @@ SCENARIO("Shared pointer manipulation", "[TPointer]") {
 			#include "CollectGarbage.inl"
 
 			pointer.New(5);
-			auto backup = pointer.Get();
+			#if LANGULUS_FEATURE(MANAGED_MEMORY)
+				auto backup = pointer.Get();
+			#endif
 			pointer2.New(6);
 			pointer = pointer2;
 

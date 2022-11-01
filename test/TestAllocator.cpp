@@ -66,8 +66,8 @@ SCENARIO("Testing CountLeadingZeroes calls", "[allocator]") {
 
 	WHEN("CountLeadingZeroes is executed") {
 		THEN("Results should be correct") {
-			for (int i = 0; i < sizeof(numbers) / sizeof(Size); ++i) {
-				REQUIRE(CountLeadingZeroes(numbers[i]) == results[i]);
+			for (unsigned i = 0; i < sizeof(numbers) / sizeof(Size); ++i) {
+				REQUIRE(CountLeadingZeroes(numbers[i]) == static_cast<int>(results[i]));
 			}
 		}
 	}
@@ -92,8 +92,8 @@ SCENARIO("Testing CountTrailingZeroes calls", "[allocator]") {
 
 	WHEN("CountTrailingZeroes is executed") {
 		THEN("Results should be correct") {
-			for (int i = 0; i < sizeof(numbers) / sizeof(Size); ++i) {
-				REQUIRE(CountTrailingZeroes(numbers[i]) == results[i]);
+			for (unsigned i = 0; i < sizeof(numbers) / sizeof(Size); ++i) {
+				REQUIRE(CountTrailingZeroes(numbers[i]) == static_cast<int>(results[i]));
 			}
 		}
 	}
@@ -111,7 +111,7 @@ TEMPLATE_TEST_CASE("Testing IsPowerOfTwo calls", "[allocator]", uint8_t, uint16_
 
 	WHEN("IsPowerOfTwo is executed") {
 		THEN("Results should be correct") {
-			for (int i = 0; i < sizeof(numbers) / sizeof(T); ++i) {
+			for (unsigned i = 0; i < sizeof(numbers) / sizeof(T); ++i) {
 				REQUIRE(IsPowerOfTwo(numbers[i]) == results[i]);
 			}
 		}
@@ -130,7 +130,7 @@ TEMPLATE_TEST_CASE("Testing Roof2 calls", "[allocator]", uint8_t, uint16_t, uint
 
 	WHEN("Roof2 is executed") {
 		THEN("Results should be correct") {
-			for (int i = 0; i < sizeof(numbers) / sizeof(T); ++i) {
+			for (unsigned i = 0; i < sizeof(numbers) / sizeof(T); ++i) {
 				if (numbers[i] <= 128 || sizeof(T) > 1) {
 					REQUIRE(Roof2<true>(numbers[i]) == results[i]);
 					REQUIRE(Roof2cexpr<true>(numbers[i]) == results[i]);
@@ -168,7 +168,7 @@ SCENARIO("Testing FastLog2 calls", "[allocator]") {
 
 	WHEN("FastLog2 is executed") {
 		THEN("Results should be correct") {
-			for (int i = 0; i < sizeof(numbers) / sizeof(Size); ++i) {
+			for (unsigned i = 0; i < sizeof(numbers) / sizeof(Size); ++i) {
 				REQUIRE(Anyness::Inner::FastLog2(numbers[i]) == results[i]);
 			}
 		}
