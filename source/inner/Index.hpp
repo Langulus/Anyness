@@ -92,6 +92,8 @@ namespace Langulus::Anyness
       template<CT::UnsignedInteger T>
       constexpr Index(const T&);
 
+      constexpr Index& operator = (const Index&) noexcept = default;
+
    public:
       NOD() constexpr Index Constrained(Count) const noexcept;
       NOD() Offset GetOffset() const;

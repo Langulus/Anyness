@@ -26,7 +26,7 @@ SCENARIO("Shared pointer manipulation", "[TPointer]") {
 		WHEN("Create an instance") {
 			#include "CollectGarbage.inl"
 
-			pointer = Ptr<int>::Create(5);
+			pointer.New(5);
 
 			THEN("Should have exactly one reference and jurisdiction") {
 				REQUIRE(*pointer == 5);
@@ -38,7 +38,7 @@ SCENARIO("Shared pointer manipulation", "[TPointer]") {
 		WHEN("Create and copy an instance") {
 			#include "CollectGarbage.inl"
 
-			pointer = Ptr<int>::Create(5);
+			pointer.New(5);
 			pointer2 = pointer;
 
 			THEN("Should have exactly two references and jurisdiction") {
@@ -55,7 +55,7 @@ SCENARIO("Shared pointer manipulation", "[TPointer]") {
 		WHEN("Create and move an instance") {
 			#include "CollectGarbage.inl"
 
-			pointer = Ptr<int>::Create(5);
+			pointer.New(5);
 			pointer2 = Move(pointer);
 
 			THEN("Should have exactly one reference and jurisdiction") {
@@ -71,9 +71,9 @@ SCENARIO("Shared pointer manipulation", "[TPointer]") {
 		WHEN("Overwrite an instance") {
 			#include "CollectGarbage.inl"
 
-			pointer = Ptr<int>::Create(5);
+			pointer.New(5);
 			auto backup = pointer.Get();
-			pointer2 = Ptr<int>::Create(6);
+			pointer2.New(6);
 			pointer = pointer2;
 
 			THEN("Old memory should be freed, but still be in jurisdiction") {
