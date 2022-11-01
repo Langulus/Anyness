@@ -37,119 +37,22 @@ namespace Langulus::Anyness
       return Abandon(cloned);
    }
 
-   /*
-   
-   /// Iteration																					
+   /// Copy assignment                                                        
+   ///   @param rhs - the map to copy                                         
    TEMPLATE()
-   template<class F>
-   Count MAP()::ForEach(F&& call) {
-      using Iterator = decltype(GetLambdaArguments(&F::operator()));
-      if constexpr (CT::DerivedFrom<Iterator, APair>) {
-         // We're iterating pairs													
-         using ItKey = typename Iterator::Key;
-         using ItVal = typename Iterator::Value;
-         static_assert(CT::DerivedFrom<Key, ItKey>, "Incompatible key type for map iteration");
-         static_assert(CT::DerivedFrom<Value, ItVal>, "Incompatible value type for map iteration");
-         using R = decltype(call(::std::declval<ItKey>(), ::std::declval<ItVal>()));
-         return ForEachInner<R, ItKey, ItVal, false>(Forward<F>(call));
-      }
-      else TODO();
+   MAP()& MAP()::operator = (const TOrderedMap& rhs) {
+      TUnorderedMap<K, V>::operator = (static_cast<const TUnorderedMap<K, V>&>(rhs));
+      return *this;
    }
 
-   /// Reverse iteration																		
+   /// Move assignment                                                        
+   ///   @param rhs - the map to move                                         
    TEMPLATE()
-   template<class F>
-   Count MAP()::ForEachRev(F&& call) {
-      using Iterator = decltype(GetLambdaArguments(&F::operator()));
-      if constexpr (CT::DerivedFrom<Iterator, APair>) {
-         // We're iterating pairs													
-         using ItKey = typename Iterator::Key;
-         using ItVal = typename Iterator::Value;
-         static_assert(CT::DerivedFrom<Key, ItKey>, "Incompatible key type for map iteration");
-         static_assert(CT::DerivedFrom<Value, ItVal>, "Incompatible value type for map iteration");
-         using R = decltype(call(::std::declval<ItKey>(), ::std::declval<ItVal>()));
-         return ForEachInner<R, ItKey, ItVal, true>(Forward<F>(call));
-      }
-      else TODO();
+   MAP()& MAP()::operator = (TOrderedMap&& rhs) noexcept {
+      TUnorderedMap<K, V>::operator = (Forward<TUnorderedMap<K, V>>(rhs));
+      return *this;
    }
 
-   TEMPLATE()
-   template<class F>
-   Count MAP()::ForEach(F&& call) const {
-      using Iterator = decltype(GetLambdaArguments(&F::operator()));
-      if constexpr (CT::DerivedFrom<Iterator, APair>) {
-         // We're iterating pairs													
-         using ItKey = typename Iterator::Key;
-         using ItVal = typename Iterator::Value;
-         static_assert(CT::DerivedFrom<Key, ItKey>, "Incompatible key type for map iteration");
-         static_assert(CT::DerivedFrom<Value, ItVal>, "Incompatible value type for map iteration");
-         static_assert(CT::Constant<ItKey>, "Non constant key iterator for constant map");
-         static_assert(CT::Constant<ItVal>, "Non constant value iterator for constant map");
-         using R = decltype(call(::std::declval<ItKey>(), ::std::declval<ItVal>()));
-         return ForEachInner<R, ItKey, ItVal, false>(Forward<F>(call));
-      }
-      else TODO();
-   }
-
-   TEMPLATE()
-   template<class F>
-   Count MAP()::ForEachRev(F&& call) const {
-      using Iterator = decltype(GetLambdaArguments(&F::operator()));
-      if constexpr (CT::DerivedFrom<Iterator, APair>) {
-         // We're iterating pairs													
-         using ItKey = typename Iterator::Key;
-         using ItVal = typename Iterator::Value;
-         static_assert(CT::DerivedFrom<Key, ItKey>, "Incompatible key type for map iteration");
-         static_assert(CT::DerivedFrom<Value, ItVal>, "Incompatible value type for map iteration");
-         static_assert(CT::Constant<ItKey>, "Non constant key iterator for constant map");
-         static_assert(CT::Constant<ItVal>, "Non constant value iterator for constant map");
-         using R = decltype(call(::std::declval<ItKey>(), ::std::declval<ItVal>()));
-         return ForEachInner<R, ItKey, ItVal, true>(Forward<F>(call));
-      }
-      else TODO();
-   }
-
-   /// CT::Constant iteration																		
-   TEMPLATE()
-   template<class R, CT::Data ALT_KEY, CT::Data ALT_VALUE, bool REVERSE>
-   Count MAP()::ForEachInner(TFunctor<R(ALT_KEY, ALT_VALUE)>&& call) {
-      if (IsEmpty())
-         return 0;
-
-      constexpr bool HasBreaker = CT::Same<bool, R>;
-      const auto count = GetCount();
-      Count index {};
-      while (index < count) {
-         if constexpr (REVERSE) {
-            const auto i = count - index - 1;
-            if constexpr (HasBreaker) {
-               if (!call(GetKey<ALT_KEY>(i), GetValue<ALT_VALUE>(i)))
-                  return index + 1;
-            }
-            else call(GetKey<ALT_KEY>(i), GetValue<ALT_VALUE>(i));
-         }
-         else {
-            if constexpr (HasBreaker) {
-               if (!call(GetKey<ALT_KEY>(index), GetValue<ALT_VALUE>(index)))
-                  return index + 1;
-            }
-            else call(GetKey<ALT_KEY>(index), GetValue<ALT_VALUE>(index));
-         }
-
-         ++index;
-      }
-
-      return index;
-   }
-
-   /// CT::Constant iteration																		
-   TEMPLATE()
-   template<class R, CT::Data ALT_K, CT::Data ALT_V, bool REVERSE>
-   Count MAP()::ForEachInner(TFunctor<R(ALT_K, ALT_V)>&& call) const {
-      return const_cast<TMap*>(this)
-         ->ForEachInner<R, ALT_K, ALT_V, REVERSE>(Forward<decltype(call)>(call));
-   }
-   */
 } // namespace Langulus::Anyness
 
 #undef MAP

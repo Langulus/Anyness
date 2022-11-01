@@ -24,6 +24,9 @@ namespace Langulus::Anyness
       TOrderedMap(Disowned<TOrderedMap>&&) noexcept;
       TOrderedMap(Abandoned<TOrderedMap>&&) noexcept;
 
+      TOrderedMap& operator = (const TOrderedMap&);
+      TOrderedMap& operator = (TOrderedMap&&) noexcept;
+
       using TUnorderedMap<K, V>::operator =;
 
       NOD() TOrderedMap Clone() const;
