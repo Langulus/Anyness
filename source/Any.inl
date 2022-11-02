@@ -800,5 +800,15 @@ namespace Langulus::Anyness
       InsertBlock(rhs.Forward());
       return *this;
    }
+   
+   /// Find element(s) index inside container                                 
+   ///   @tparam REVERSE - true to perform search in reverse                  
+   ///   @tparam BY_ADDRESS_ONLY - true to compare addresses only             
+   ///   @param item - the item to search for                                 
+   ///   @return the index of the found item, or IndexNone if none found      
+   template<bool REVERSE, bool BY_ADDRESS_ONLY, CT::Data T>
+   Index Any::Find(const T& item, const Offset& cookie) const {
+      return Block::template FindKnown<REVERSE, BY_ADDRESS_ONLY>(item, cookie);
+   }
 
 } // namespace Langulus::Anyness

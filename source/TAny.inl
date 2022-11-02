@@ -264,18 +264,19 @@ namespace Langulus::Anyness
          CopyProperties<true, false>(other);
          return;
       }
-      else if (CastsToMeta(other.GetType())) {
-         // Always attempt to copy containers directly first, instead   
-         // of doing allocations                                        
-         Free();
-         if constexpr (KEEP)
-            other.Keep();
-         ResetState();
-         CopyProperties<false, true>(other);
-         return;
+      else {
+         if (CastsToMeta(other.GetType())) {
+            // Always attempt to copy containers directly first,        
+            // instead of doing allocations                             
+            Free();
+            if constexpr (KEEP)
+               other.Keep();
+            ResetState();
+            CopyProperties<false, true>(other);
+            return;
+         }
+         else LANGULUS_THROW(Copy, "Bad copy-assignment");
       }
-
-      LANGULUS_THROW(Copy, "Bad copy-assignment");
    }
 
    /// Move-construct from another container by performing runtime type check 
@@ -291,23 +292,24 @@ namespace Langulus::Anyness
          other.mEntry = nullptr;
          return;
       }
-      else if (CastsToMeta(other.GetType())) {
-         // Always attempt to copy containers directly first, instead   
-         // of doing allocations                                        
-         Free();
-         ResetState();
-         CopyProperties<false, true>(other);
+      else {
+         if (CastsToMeta(other.GetType())) {
+            // Always attempt to copy containers directly first,        
+            // instead of doing allocations                             
+            Free();
+            ResetState();
+            CopyProperties<false, true>(other);
 
-         if constexpr (KEEP)
-            other.mEntry = nullptr;
-         else {
-            other.ResetMemory();
-            other.ResetState();
+            if constexpr (KEEP)
+               other.mEntry = nullptr;
+            else {
+               other.ResetMemory();
+               other.ResetState();
+            }
+            return;
          }
-         return;
+         else LANGULUS_THROW(Copy, "Bad move-assignment");
       }
-
-      LANGULUS_THROW(Copy, "Bad move-assignment");
    }
 
    /// Copy-assign an unknown container                                       
@@ -1247,22 +1249,24 @@ namespace Langulus::Anyness
    }
 
    /// Find element(s) index inside container                                 
-   ///   @tparam REVERSE - whether to search in reverse order                 
+   ///   @tparam REVERSE - true to perform search in reverse                  
+   ///   @tparam BY_ADDRESS_ONLY - true to compare addresses only             
    ///   @param item - the item to search for                                 
+   ///   @param cookie - resume search from a given index                     
    ///   @return the index of the found item, or IndexNone if none found      
    TEMPLATE()
    template<bool REVERSE, bool BY_ADDRESS_ONLY, CT::Data ALT_T>
-   Index TAny<T>::Find(const ALT_T& item) const {
+   Index TAny<T>::Find(const ALT_T& item, const Offset& cookie) const {
       if constexpr (CT::Same<T, ALT_T>) {
          const TypeInner* start;
          const TypeInner* end;
 
          if constexpr (REVERSE) {
-            start = GetRawEnd() - 1;
+            start = GetRawEnd() - 1 - cookie;
             end = start - mCount;
          }
          else {
-            start = GetRaw();
+            start = GetRaw() + cookie;
             end = start + mCount;
          }
 

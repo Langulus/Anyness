@@ -384,12 +384,12 @@ namespace Langulus::Anyness
       NOD() Hash GetHash() const;
    
       template<bool REVERSE = false, bool BY_ADDRESS_ONLY = false, CT::Data T>
-      NOD() Index Find(const T&, Index = IndexFront) const;
-      template<CT::Data T>
-      NOD() Index FindDeep(const T&, Index = IndexFront) const;
+      NOD() Index FindKnown(const T&, const Offset& = 0) const;
+      template<bool REVERSE = false, bool BY_ADDRESS_ONLY = false>
+      NOD() Index FindUnknown(const Block&, const Offset& = 0) const;
+      template<bool REVERSE = false, CT::Data T>
+      NOD() Index FindDeep(const T&, Offset = 0) const;
 
-      NOD() Index FindRTTI(const Block&, Index = IndexFront) const;
-   
       Count Gather(Block&, Index = IndexFront) const;
       Count Gather(Block&, DataState, Index = IndexFront) const;
    

@@ -292,50 +292,107 @@ namespace Langulus::Anyness
       return result;
    }
 
-   /// Find first matching element(s) position inside container               
-   /// This is a slow and tedious RTTI search                                 
+   /// Find an element of unknown type                                        
+   ///   @attention assumes item contains exactly one element                 
+   ///   @tparam REVERSE - true to perform search in reverse                  
+   ///   @tparam BY_ADDRESS_ONLY - true to compare addresses only             
    ///   @param item - block with a single item to search for                 
-   ///   @param idx - index to start searching from                           
-   ///   @return the index of the found item, or uiNone if not found          
-   inline Index Block::FindRTTI(const Block& item, Index idx) const {
-      if (item.IsEmpty())
-         return IndexNone;
+   ///   @param cookie - continue search from a given offset                  
+   ///   @return the index of the found item, or IndexNone if not found       
+   template<bool REVERSE, bool BY_ADDRESS_ONLY>
+   Index Block::FindUnknown(const Block& item, const Offset& cookie) const {
+      LANGULUS_ASSUME(UserAssumes, item.GetCount() == 1,
+         "You can search exactly one item");
 
-      // Setup the iterator                                             
-      Index starti, istep;
-      if (idx == IndexFront) {
-         starti = 0;
-         istep = 1;
-      }
-      else if (idx == IndexBack) {
-         starti = mCount - 1;
-         istep = -1;
-      }
-      else {
-         starti = Constrain(idx).mIndex;
-         istep = 1;
-         if (starti + 1 >= mCount)
-            return IndexNone;
-      }
-
-      // Compare all elements                                           
-      for (Index i = starti; i < mCount && i >= 0; i += istep) {
-         auto left = GetElementResolved(i.GetOffset());
-         bool failure = false;
-         for (Index j = 0; j < item.GetCount() && !failure && (i + istep * j) >= 0 && (i + istep * j) < mCount; ++j) {
-            auto right = item.GetElementResolved(j.GetOffset());
-            if (!left.Compare(right)) {
-               failure = true;
-               break;
+      auto right = item.GetElementResolved(0);
+      if constexpr (!REVERSE) {
+         for (Offset i = cookie; i < mCount; ++i) {
+            const auto left = GetElementResolved(i);
+            if constexpr (BY_ADDRESS_ONLY) {
+               if (left.mRaw == right.mRaw)
+                  return {i}; // Found by pointer                       
+            }
+            else {
+               if (left.Compare(right))
+                  return {i}; // Found by value                         
             }
          }
-
-         if (!failure)
-            return i;
+      }
+      else {
+         for (Offset i = mCount - 1 - cookie; i < mCount; --i) {
+            const auto left = GetElementResolved(i);
+            if constexpr (BY_ADDRESS_ONLY) {
+               if (left.mRaw == right.mRaw)
+                  return {i}; // Found by pointer                       
+            }
+            else {
+               if (left.Compare(right))
+                  return {i}; // Found by value                         
+            }
+         }
       }
 
       // If this is reached, then no match was found                    
       return IndexNone;
+   }
+
+   /// Find first matching element position inside container                  
+   ///   @tparam REVERSE - true to perform search in reverse                  
+   ///   @tparam BY_ADDRESS_ONLY - true to compare addresses only             
+   ///   @param item - the item to search for                                 
+   ///   @param cookie - continue search from a given offset                  
+   ///   @return the index of the found item, or IndexNone if not found       
+   template<bool REVERSE, bool BY_ADDRESS_ONLY, CT::Data T>
+   Index Block::FindKnown(const T& item, const Offset& cookie) const {
+      if constexpr (!REVERSE) {
+         for (Offset i = cookie; i < mCount; ++i) {
+            if (GetElement(i) == item)
+               return i;
+         }
+      }
+      else {
+         for (Offset i = mCount - 1 - cookie; i < mCount; --i) {
+            if (GetElement(i) == item)
+               return i;
+         }
+      }
+
+      // If this is reached, then no match was found                    
+      return IndexNone;
+   }
+   
+   /// Find first matching element position inside container, deeply          
+   ///   @tparam REVERSE - true to perform search in reverse                  
+   ///   @param item - the item to search for                                 
+   ///   @param idx - index to start searching from                           
+   ///   @return the index of the found item, or IndexNone if not found       
+   template<bool REVERSE, CT::Data T>
+   Index Block::FindDeep(const T& item, Offset cookie) const {
+      Index found;
+      if constexpr (!REVERSE) {
+         ForEachDeep([&](const Block& group) {
+            if (cookie) {
+               --cookie;
+               return true;
+            }
+
+            found = group.template FindKnown<REVERSE>(item);
+            return !found;
+         });
+      }
+      else {
+         ForEachDeepRev([&](const Block& group) {
+            if (cookie) {
+               --cookie;
+               return true;
+            }
+
+            found = group.template FindKnown<REVERSE>(item);
+            return !found;
+         });
+      }
+
+      return found;
    }
 
 } // namespace Langulus::Anyness

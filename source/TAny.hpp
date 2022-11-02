@@ -228,7 +228,7 @@ namespace Langulus::Anyness
       ///   Search                                                            
       ///                                                                     
       template<bool REVERSE = false, bool BY_ADDRESS_ONLY = false, CT::Data ALT_T>
-      NOD() Index Find(const ALT_T&) const;
+      NOD() Index Find(const ALT_T&, const Offset& = 0) const;
 
       NOD() bool Compare(const TAny&) const noexcept;
       NOD() bool CompareLoose(const TAny&) const noexcept requires CT::Character<T>;

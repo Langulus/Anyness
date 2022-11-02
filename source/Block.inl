@@ -1382,49 +1382,10 @@ namespace Langulus::Anyness
    ///   @return the number of removed items                                  
    template<bool REVERSE, bool BY_ADDRESS_ONLY, CT::Data T>
    Count Block::RemoveValue(const T& item) {
-      const auto found = Find<REVERSE, BY_ADDRESS_ONLY>(item);
+      const auto found = FindKnown<REVERSE, BY_ADDRESS_ONLY>(item);
       if (found)
          return RemoveIndex(found.GetOffset(), 1);
       return 0;
-   }
-
-   /// Find first matching element position inside container                  
-   ///   @param item - the item to search for                                 
-   ///   @param idx - index to start searching from                           
-   ///   @return the index of the found item, or uiNone if not found          
-   template<bool REVERSE, bool BY_ADDRESS_ONLY, CT::Data T>
-   Index Block::Find(const T& item, Index idx) const {
-      const auto offset = SimplifyIndex<T>(idx);
-      if constexpr (!REVERSE) {
-         for (Offset i = offset + 1; i < mCount; ++i) {
-            if (GetElement(i) == item)
-               return i;
-         }
-      }
-      else if (offset > 0) {
-         for (Offset i = offset - 1; i < mCount; --i) {
-            if (GetElement(i) == item)
-               return i;
-         }
-      }
-
-      // If this is reached, then no match was found                    
-      return IndexNone;
-   }
-   
-   /// Find first matching element position inside container, deeply          
-   ///   @param item - the item to search for                                 
-   ///   @param idx - index to start searching from                           
-   ///   @return the index of the found item, or uiNone if not found          
-   template<CT::Data T>
-   Index Block::FindDeep(const T& item, Index idx) const {
-      Index found;
-      ForEachDeep([&](const Block& group) {
-         found = group.Find<T>(item, idx);
-         return !found;
-      });
-
-      return found;
    }
 
    /// Merge-copy-insert array elements at index                              
