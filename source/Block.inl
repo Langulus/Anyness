@@ -1406,7 +1406,7 @@ namespace Langulus::Anyness
       auto offset = SimplifyIndex(index);
       Count added {};
       while (start != end) {
-         if (!Find<T>(*start)) {
+         if (!FindKnown<T>(*start)) {
             added += InsertAt<KEEP, MUTABLE, WRAPPER, T>(start, start + 1, offset);
             ++offset;
          }
@@ -1431,7 +1431,7 @@ namespace Langulus::Anyness
    ///   @return the number of inserted elements                              
    template<bool KEEP, bool MUTABLE, CT::Data WRAPPER, CT::NotSemantic T, CT::Index INDEX>
    Count Block::MergeAt(T&& item, INDEX index) {
-      if (!Find<T>(item))
+      if (!FindKnown<T>(item))
          return InsertAt<KEEP, MUTABLE, WRAPPER, T>(Forward<T>(item), index);
       return 0;
    }
@@ -3969,7 +3969,7 @@ namespace Langulus::Anyness
       Count inserted {};
       for (Count i = 0; i < other.GetCount(); ++i) {
          auto right = other.GetElementResolved(i);
-         if (!FindRTTI(right))
+         if (!FindUnknown(right))
             inserted += InsertBlockAt(right, index);
       }
 
@@ -3991,7 +3991,7 @@ namespace Langulus::Anyness
       Count inserted {};
       for (Count i = 0; i < other.GetCount(); ++i) {
          auto right = other.GetElementResolved(i);
-         if (!FindRTTI(right)) {
+         if (!FindUnknown(right)) {
             inserted += InsertBlockAt(Abandon(right), index); //TODO abandon only if other has one use only!
             i -= other.RemoveIndex(i);
          }
@@ -4017,7 +4017,7 @@ namespace Langulus::Anyness
       Count inserted {};
       for (Count i = 0; i < other.GetCount(); ++i) {
          auto right = other.GetElementResolved(i);
-         if (!FindRTTI(right))
+         if (!FindUnknown(right))
             inserted += InsertBlockAt(Disown(right), index);
       }
 
@@ -4041,7 +4041,7 @@ namespace Langulus::Anyness
       Count inserted {};
       for (Count i = 0; i < other.mValue.GetCount(); ++i) {
          auto right = other.mValue.GetElementResolved(i);
-         if (!FindRTTI(right))
+         if (!FindUnknown(right))
             inserted += InsertBlockAt(Abandon(right), index); //TODO abandon only if other has one use only!
       }
 
@@ -4065,7 +4065,7 @@ namespace Langulus::Anyness
       Count inserted {};
       for (Count i = 0; i < other.GetCount(); ++i) {
          auto right = other.GetElementResolved(i);
-         if (!FindRTTI(right))
+         if (!FindUnknown(right))
             inserted += InsertBlock<INDEX>(right);
       }
 
@@ -4089,7 +4089,7 @@ namespace Langulus::Anyness
       Count inserted {};
       for (Count i = 0; i < other.GetCount(); ++i) {
          auto right = other.GetElementResolved(i);
-         if (!FindRTTI(right)) {
+         if (!FindUnknown(right)) {
             inserted += InsertBlock<INDEX>(Abandon(right)); //TODO abandon only if other has one use only!
             i -= other.RemoveIndex(i);
          }
@@ -4114,7 +4114,7 @@ namespace Langulus::Anyness
       Count inserted {};
       for (Count i = 0; i < other.GetCount(); ++i) {
          auto right = other.GetElementResolved(i);
-         if (!FindRTTI(right))
+         if (!FindUnknown(right))
             inserted += InsertBlock<INDEX>(Disown(right));
       }
 
@@ -4137,7 +4137,7 @@ namespace Langulus::Anyness
       Count inserted {};
       for (Count i = 0; i < other.mValue.GetCount(); ++i) {
          auto right = other.mValue.GetElementResolved(i);
-         if (!FindRTTI(right))
+         if (!FindUnknown(right))
             inserted += InsertBlock<INDEX>(Abandon(right)); //TODO abandon only if other has one use only!
       }
 

@@ -46,6 +46,8 @@ target_include_directories(Langulus.Anyness
 )
 
 target_link_libraries(Langulus.Anyness
-    PUBLIC      Langulus.Logger
+    PUBLIC      Langulus.Core
+                Langulus.Logger
+                Langulus.RTTI
                 Langulus.SIMD
 )
