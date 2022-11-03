@@ -689,9 +689,9 @@ namespace Langulus::Anyness
    ///   @return 1 if pair was inserted, zero otherwise                       
    TABLE_TEMPLATE()
    Count TABLE()::Insert(const K& key, const V& value) {
-      static_assert(CT::CopyMakable<K>,
+      static_assert(CT::Sparse<K> || CT::CopyMakable<K>,
          "Key needs to be copy-constructible, but isn't");
-      static_assert(CT::CopyMakable<V>,
+      static_assert(CT::Sparse<V> || CT::CopyMakable<V>,
          "Value needs to be copy-constructible, but isn't");
 
       Allocate(GetCount() + 1);
@@ -705,9 +705,9 @@ namespace Langulus::Anyness
    ///   @return 1 if pair was inserted, zero otherwise                       
    TABLE_TEMPLATE()
    Count TABLE()::Insert(const K& key, V&& value) {
-      static_assert(CT::CopyMakable<K>,
+      static_assert(CT::Sparse<K> || CT::CopyMakable<K>,
          "Key needs to be copy-constructible, but isn't");
-      static_assert(CT::MoveMakable<V>,
+      static_assert(CT::Sparse<V> || CT::MoveMakable<V>,
          "Value needs to be move-constructible, but isn't");
 
       Allocate(GetCount() + 1);
@@ -724,9 +724,9 @@ namespace Langulus::Anyness
    ///   @return 1 if pair was inserted, zero otherwise                       
    TABLE_TEMPLATE()
    Count TABLE()::Insert(K&& key, const V& value) {
-      static_assert(CT::MoveMakable<K>,
+      static_assert(CT::Sparse<K> || CT::MoveMakable<K>,
          "Key needs to be move-constructible, but isn't");
-      static_assert(CT::CopyMakable<V>,
+      static_assert(CT::Sparse<V> || CT::CopyMakable<V>,
          "Value needs to be copy-constructible, but isn't");
 
       Allocate(GetCount() + 1);
@@ -743,9 +743,9 @@ namespace Langulus::Anyness
    ///   @return 1 if pair was inserted, zero otherwise                       
    TABLE_TEMPLATE()
    Count TABLE()::Insert(K&& key, V&& value) {
-      static_assert(CT::MoveMakable<K>,
+      static_assert(CT::Sparse<K> || CT::MoveMakable<K>,
          "Key needs to be move-constructible, but isn't");
-      static_assert(CT::MoveMakable<V>,
+      static_assert(CT::Sparse<V> || CT::MoveMakable<V>,
          "Value needs to be move-constructible, but isn't");
 
       Allocate(GetCount() + 1);
@@ -1232,7 +1232,7 @@ namespace Langulus::Anyness
 
       const auto keysAreEqual = [](const KeyInner* lhs, const K& rhs) {
          if constexpr (CT::Sparse<K>)
-            return *lhs == rhs || **lhs == *rhs;
+            return *lhs == rhs/* || **lhs == *rhs*/;
          else
             return lhs == &rhs || *lhs == rhs;
       };
