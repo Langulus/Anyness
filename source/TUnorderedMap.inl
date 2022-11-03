@@ -1131,8 +1131,17 @@ namespace Langulus::Anyness
    TABLE_TEMPLATE()
    decltype(auto) TABLE()::At(const K& key) {
       auto found = GetRawValues() + FindIndex(key);
-      LANGULUS_ASSERT(found != GetRawValuesEnd(),
-         Except::OutOfRange, "Key not found");
+      if (found == GetRawValuesEnd()) {
+         // Key wasn't found, but map is mutable and we can add it      
+         if constexpr (CT::Defaultable<V>) {
+            // Defaultable value, so adding the key is acceptable       
+            Insert(key, V {});
+            return *(GetRawValues() + FindIndex(key));
+         }
+         else LANGULUS_THROW(Construct, 
+            "Can't implicitly create key - value is not default-constructible");
+      }
+
       return *found;
    }
 
@@ -1142,7 +1151,10 @@ namespace Langulus::Anyness
    ///   @return a reference to the value                                     
    TABLE_TEMPLATE()
    decltype(auto) TABLE()::At(const K& key) const {
-      return const_cast<TABLE()&>(*this).At(key);
+      auto found = GetRawValues() + FindIndex(key);
+      LANGULUS_ASSERT(found != GetRawValuesEnd(),
+         Except::OutOfRange, "Key not found");
+      return *found;
    }
 
    /// Get a key by a safe index (const)                                      
@@ -1207,6 +1219,9 @@ namespace Langulus::Anyness
    ///   @return the index                                                    
    TABLE_TEMPLATE()
    Offset TABLE()::FindIndex(const K& key) const {
+      if (IsEmpty())
+         return GetReserved();
+
       // Get the starting index based on the key hash                   
       // Since reserved elements are always power-of-two, we use them   
       // as a mask to the hash, to extract the relevant bucket          
