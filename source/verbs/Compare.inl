@@ -113,7 +113,7 @@ namespace Langulus::Anyness
          return false;
       }
 
-      if (mType == right.mType && mRaw == right.mRaw) {
+      if (mType->Is(right.mType) && mRaw == right.mRaw) {
          // Quickly return if memory and relevant states are same       
          VERBOSE(Logger::Green,
             "Blocks are the same ", Logger::Cyan, "(optimal)");
