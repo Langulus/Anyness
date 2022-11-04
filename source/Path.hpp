@@ -16,14 +16,27 @@ namespace Langulus::Anyness
    ///                                                                        
    class Path : public Text {
    public:
-      Path() = default;
-      Path(const Text& other) : Text {other} {}
-      Path(const Path&) = default;
-      template<Count C>
-      Path(const Letter(&other)[C]) : Text {other} {}
+      using Text::Text;
+      //Path() = default;
+      //Path(const Text& other);
 
-      Path(const Disowned<Path>&) noexcept;
+      //Path(const Path&);
+
+      /*template<Count C>
+      Path(const Letter(&other)[C]) : Text {other} {}*/
+
+      Path(Disowned<Path>&&) noexcept;
       Path(Abandoned<Path>&&) noexcept;
+
+      //Path& operator = (const Text&);
+      //Path& operator = (Text&&);
+
+      //Path& operator = (const Path&);
+      //Path& operator = (Path&&);
+
+      using Text::operator =;
+      Path& operator = (Disowned<Path>&&);
+      Path& operator = (Abandoned<Path>&&);
 
    public:
       NOD() Path Clone() const;

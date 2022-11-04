@@ -10,13 +10,18 @@
 namespace Langulus::Anyness
 {
 
-   /// Copy other but do not reference it, because it is disowned             
-   ///   @param other - the block to copy                                     
-   Path::Path(const Disowned<Path>& other) noexcept
+   /// Create path from text                                                  
+   ///   @param other - text container to reference                           
+   //Path::Path(const Text& other) 
+   //   : Text {other} {}
+
+   /// Copy path but do not reference it, because it is disowned              
+   ///   @param other - the path to copy                                      
+   Path::Path(Disowned<Path>&& other) noexcept
       : Text {other.Forward<Text>()} { }	
    
-   /// Move other, but do not bother cleaning it up, because it is disowned   
-   ///   @param other - the block to move                                     
+   /// Move path, but do not bother cleaning it up, because it is disowned    
+   ///   @param other - the path to move                                      
    Path::Path(Abandoned<Path>&& other) noexcept
       : Text {other.Forward<Text>()} { }	
    
