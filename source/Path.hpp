@@ -17,22 +17,8 @@ namespace Langulus::Anyness
    class Path : public Text {
    public:
       using Text::Text;
-      //Path() = default;
-      //Path(const Text& other);
-
-      //Path(const Path&);
-
-      /*template<Count C>
-      Path(const Letter(&other)[C]) : Text {other} {}*/
-
       Path(Disowned<Path>&&) noexcept;
       Path(Abandoned<Path>&&) noexcept;
-
-      //Path& operator = (const Text&);
-      //Path& operator = (Text&&);
-
-      //Path& operator = (const Path&);
-      //Path& operator = (Path&&);
 
       using Text::operator =;
       Path& operator = (Disowned<Path>&&);
@@ -43,6 +29,7 @@ namespace Langulus::Anyness
       NOD() Text GetExtension() const;
       NOD() Path GetDirectory() const;
       NOD() Path GetFilename() const;
+
       NOD() Path operator / (const Text&) const;
       Path& operator /= (const Text&);
    };

@@ -1951,7 +1951,7 @@ namespace Langulus::Anyness
    Hash KNOWNPOINTER()::GetHash() const {
       if (!mPointer)
          return {};
-      return HashData(*mPointer);
+      return HashNumber(reinterpret_cast<intptr_t>(mPointer));
    }
 
    /// Pointer dereferencing (const)                                          
