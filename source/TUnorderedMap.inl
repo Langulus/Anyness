@@ -835,11 +835,11 @@ namespace Langulus::Anyness
    }
 
    /// Safely erases element at a specific index                              
-   ///   @param start - the index to remove                                   
+   ///   @param index - the index to remove                                   
    ///   @return 1 if something was removed, or zero of index not found       
    TABLE_TEMPLATE()
-   Count TABLE()::RemoveIndex(const Index& start) {
-      const auto offset = start.GetOffset();
+   Count TABLE()::RemoveIndex(const Index& index) {
+      const auto offset = index.GetOffset();
       if (offset >= GetReserved() || 0 == mInfo[offset])
          return 0;
 
@@ -847,15 +847,43 @@ namespace Langulus::Anyness
       return 1;
    }
    
+   /// Safely erases element at a specific iterator                           
+   ///   @attention assumes iterator is produced by this map instance         
+   ///   @param index - the index to remove                                   
+   ///   @return the iterator of the previous element, unless index is the    
+   ///           first, or at the end already                                 
+   TABLE_TEMPLATE()
+   typename TABLE()::Iterator TABLE()::RemoveIndex(const Iterator& index) {
+      const auto sentinel = GetReserved();
+      auto offset = static_cast<Offset>(index.mInfo - mInfo);
+      if (offset >= sentinel)
+         return end();
+
+      RemoveIndex(offset--); //TODO what if map shrinks, offset might become invalid? Doesn't shrink for now
+      
+      while (offset < sentinel && 0 == mInfo[offset])
+         --offset;
+
+      if (offset >= sentinel)
+         offset = 0;
+
+      return {
+         mInfo + offset, 
+         index.mSentinel,
+         GetRawKeys() + offset,
+         GetRawValues() + offset
+      };
+   }
+   
    /// Erases element at a specific index                                     
    ///   @attention assumes that index points to a valid entry                
-   ///   @param start - the index to remove                                   
+   ///   @param index - the index to remove                                   
    TABLE_TEMPLATE()
-   void TABLE()::RemoveIndex(const Offset& start) noexcept {
-      auto psl = GetInfo() + start;
+   void TABLE()::RemoveIndex(const Offset& index) noexcept {
+      auto psl = GetInfo() + index;
       const auto pslEnd = GetInfoEnd();
-      auto key = GetRawKeys() + start;
-      auto value = GetRawValues() + start;
+      auto key = GetRawKeys() + index;
+      auto value = GetRawValues() + index;
 
       // Destroy the key, info and value at the start                   
       RemoveInner(key++);
@@ -1537,6 +1565,24 @@ namespace Langulus::Anyness
    LANGULUS(ALWAYSINLINE)
    typename TABLE()::PairConstRef TABLE()::TIterator<MUTABLE>::operator * () const noexcept requires (!MUTABLE) {
       return {*mKey, *mValue};
+   }
+
+   /// Iterator access operator                                               
+   ///   @return a pair at the current iterator position                      
+   TABLE_TEMPLATE()
+   template<bool MUTABLE>
+   LANGULUS(ALWAYSINLINE)
+   typename TABLE()::PairRef TABLE()::TIterator<MUTABLE>::operator -> () const noexcept requires (MUTABLE) {
+      return **this;
+   }
+
+   /// Iterator access operator                                               
+   ///   @return a pair at the current iterator position                      
+   TABLE_TEMPLATE()
+   template<bool MUTABLE>
+   LANGULUS(ALWAYSINLINE)
+   typename TABLE()::PairConstRef TABLE()::TIterator<MUTABLE>::operator -> () const noexcept requires (!MUTABLE) {
+      return **this;
    }
 
 } // namespace Langulus::Anyness

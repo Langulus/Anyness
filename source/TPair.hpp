@@ -39,6 +39,9 @@ namespace Langulus::Anyness
 
       bool operator == (const TPair&) const;
 
+      const TPair* operator -> () const noexcept { return this; }
+      TPair* operator -> () noexcept { return this; }
+
       TPair& operator = (const TPair&) = default;
       TPair& operator = (TPair&&) noexcept = default;
    };

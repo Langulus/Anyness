@@ -35,6 +35,12 @@ namespace Langulus::Anyness
       static constexpr Count MinimalAllocation = 8;
       static constexpr bool Ordered = false;
 
+      template<bool MUTABLE>
+      struct TIterator;
+
+      using Iterator = TIterator<true>;
+      using ConstIterator = TIterator<false>;
+
    public:
       TUnorderedMap();
       TUnorderedMap(::std::initializer_list<Pair>);
@@ -110,6 +116,7 @@ namespace Langulus::Anyness
       Count RemoveValue(const V&);
       Count RemovePair(const Pair&);
       Count RemoveIndex(const Index&);
+      Iterator RemoveIndex(const Iterator&);
 
       void Clear();
       void Reset();
@@ -139,12 +146,6 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Iteration                                                         
       ///                                                                     
-      template<bool MUTABLE>
-      struct TIterator;
-
-      using Iterator = TIterator<true>;
-      using ConstIterator = TIterator<false>;
-      
       NOD() Iterator begin() noexcept;
       NOD() Iterator end() noexcept;
       NOD() Iterator last() noexcept;
@@ -227,14 +228,17 @@ namespace Langulus::Anyness
       TIterator(const InfoType*, const InfoType*, const KeyInner*, const ValueInner*) noexcept;
 
    public:
-      TIterator() noexcept = default;
+      /*TIterator() noexcept = default;
       TIterator(const TIterator&) noexcept = default;
-      TIterator(TIterator&&) noexcept = default;
+      TIterator(TIterator&&) noexcept = default;*/
 
       NOD() bool operator == (const TIterator&) const noexcept;
 
       NOD() PairRef operator * () const noexcept requires (MUTABLE);
       NOD() PairConstRef operator * () const noexcept requires (!MUTABLE);
+
+      NOD() PairRef operator -> () const noexcept requires (MUTABLE);
+      NOD() PairConstRef operator -> () const noexcept requires (!MUTABLE);
 
       // Prefix operator                                                
       TIterator& operator ++ () noexcept;
