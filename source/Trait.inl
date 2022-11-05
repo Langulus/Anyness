@@ -139,6 +139,85 @@ namespace Langulus::Anyness
          return Any::operator == (other);
    }
 
+   template<CT::Deep T>
+   Trait& Trait::operator = (const T& rhs) {
+      Any::operator = (rhs);
+      return *this;
+   }
+
+   template<CT::Deep T>
+   Trait& Trait::operator = (T& rhs) {
+      Any::operator = (rhs);
+      return *this;
+   }
+
+   template<CT::Deep T>
+   Trait& Trait::operator = (T&& rhs) requires CT::Mutable<T> {
+      Any::operator = (Forward<T>(rhs));
+      return *this;
+   }
+
+   template<CT::Deep T>
+   Trait& Trait::operator = (Disowned<T>&& rhs) {
+      Any::operator = (rhs.Forward());
+      return *this;
+   }
+
+   template<CT::Deep T>
+   Trait& Trait::operator = (Abandoned<T>&& rhs) {
+      Any::operator = (rhs.Forward());
+      return *this;
+   }
+
+   template<CT::CustomData T>
+   Trait& Trait::operator = (const T& rhs) {
+      if constexpr (CT::Trait<T>) {
+         Any::operator = (static_cast<const Any&>(rhs));
+         mTraitType = rhs.mTraitType;
+      }
+      else Any::operator = (rhs);
+      return *this;
+   }
+
+   template<CT::CustomData T>
+   Trait& Trait::operator = (T& rhs) {
+      if constexpr (CT::Trait<T>) {
+         Any::operator = (static_cast<Any&>(rhs));
+         mTraitType = rhs.mTraitType;
+      }
+      else Any::operator = (rhs);
+      return *this;
+   }
+
+   template<CT::CustomData T>
+   Trait& Trait::operator = (T&& rhs) requires CT::Mutable<T> {
+      if constexpr (CT::Trait<T>) {
+         Any::operator = (Forward<Any>(rhs));
+         mTraitType = rhs.mTraitType;
+      }
+      else Any::operator = (Forward<T>(rhs));
+      return *this;
+   }
+
+   template<CT::CustomData T>
+   Trait& Trait::operator = (Disowned<T>&& rhs) {
+      if constexpr (CT::Trait<T>)
+         return operator = (rhs.Forward());
+      else {
+         Any::operator = (rhs.Forward());
+         return *this;
+      }
+   }
+
+   template<CT::CustomData T>
+   Trait& Trait::operator = (Abandoned<T>&& rhs) {
+      if constexpr (CT::Trait<T>)
+         return operator = (rhs.Forward());
+      else {
+         Any::operator = (rhs.Forward());
+         return *this;
+      }
+   }
 
 
    ///                                                                        

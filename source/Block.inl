@@ -2191,16 +2191,16 @@ namespace Langulus::Anyness
    ///   @return the offset                                                   
    template<class T, CT::Index INDEX>
    LANGULUS(ALWAYSINLINE) Offset Block::SimplifyIndex(const INDEX& index) const {
-      if constexpr (!CT::Void<T>) {
-         LANGULUS_ASSUME(DevAssumes, (CastsTo<T, true>()), "Type mismatch");
-      }
-
       if constexpr (CT::Same<INDEX, Index>) {
          // This is the most safe path                                  
          if constexpr (CT::Void<T>)
             return Constrain(index).GetOffset();
-         else
+         else {
+            if constexpr (!CT::Void<T>) {
+               LANGULUS_ASSUME(DevAssumes, (CastsTo<T, true>()), "Type mismatch");
+            }
             return ConstrainMore<T>(index).GetOffset();
+         }
       }
       else if constexpr (CT::Signed<INDEX>) {
          // Somehwat safe, default literal type is signed               
@@ -2237,13 +2237,14 @@ namespace Langulus::Anyness
    ///   @return either pointer or reference to the element (depends on T)    
    template<CT::Data T, CT::Index IDX>
    decltype(auto) Block::As(const IDX& index) {
-      const auto idx = SimplifyIndex<T>(index);
-
       // First quick type stage for fast access                         
-      if (mType->Is<T>())
+      if (mType->Is<T>()) {
+         const auto idx = SimplifyIndex<T>(index);
          return Get<T>(idx);
+      }
 
       // Second fallback stage for compatible bases and mappings        
+      const auto idx = SimplifyIndex<void>(index);
       RTTI::Base base;
       if (!mType->GetBase<T>(0, base)) {
          // There's still a chance if this container is resolvable      

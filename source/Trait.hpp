@@ -46,14 +46,36 @@ namespace Langulus::Anyness
       Trait(Disowned<Trait>&&);
       Trait(Abandoned<Trait>&&);
 
-      using Any::operator =;
-
       Trait& operator = (const Trait&);
       Trait& operator = (Trait&&) noexcept;
       Trait& operator = (const Block&);
 
       Trait& operator = (Disowned<Trait>&&);
       Trait& operator = (Abandoned<Trait>&&);
+
+      template<CT::Deep T>
+      Trait& operator = (const T&);
+      template<CT::Deep T>
+      Trait& operator = (T&);
+      template<CT::Deep T>
+      Trait& operator = (T&&) requires CT::Mutable<T>;
+
+      template<CT::Deep T>
+      Trait& operator = (Disowned<T>&&);
+      template<CT::Deep T>
+      Trait& operator = (Abandoned<T>&&);
+
+      template<CT::CustomData T>
+      Trait& operator = (const T&);
+      template<CT::CustomData T>
+      Trait& operator = (T&);
+      template<CT::CustomData T>
+      Trait& operator = (T&&) requires CT::Mutable<T>;
+
+      template<CT::CustomData T>
+      Trait& operator = (Disowned<T>&&);
+      template<CT::CustomData T>
+      Trait& operator = (Abandoned<T>&&);
 
    public:
       void Reset();
