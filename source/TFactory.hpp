@@ -53,7 +53,7 @@ namespace Langulus::Anyness
 
          // When element is not in use, this pointer points to the      
          // next free entry in the factory                              
-         typename FACTORY::Type* mNextFreeElement;
+         typename FACTORY::MemberType* mNextFreeElement;
       };
 
       // Counts the uses of a factory element                           
