@@ -1839,10 +1839,6 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 		}
 
 		WHEN("Pack is reset") {
-			#if LANGULUS_FEATURE(MANAGED_MEMORY)
-				const auto memory = pack.GetRaw();
-			#endif
-
 			const_cast<T&>(pack).Reset();
 
 			THEN("Size and capacity goes to zero, type is unchanged, because it's a templated container") {

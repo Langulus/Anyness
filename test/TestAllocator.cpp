@@ -434,14 +434,14 @@ SCENARIO("Testing pool functions", "[allocator]") {
 			REQUIRE(pool);
 
 			// Fill up
-			for (int i = 0; i < pool->GetMaxEntries(); ++i) {
+			for (Count i = 0; i < pool->GetMaxEntries(); ++i) {
 				auto entry = pool->Allocate(5);
 				REQUIRE(entry);
 				entry->Keep(i);
 
 				// Fill the entire entry to check for heap corruptions
-				for (Size i = 0; i < entry->GetAllocatedSize(); ++i) {
-					entry->GetBlockStart()[i] = {};
+				for (Size i2 = 0; i2 < entry->GetAllocatedSize(); ++i2) {
+					entry->GetBlockStart()[i2] = {};
 				}
 			}
 
@@ -457,7 +457,7 @@ SCENARIO("Testing pool functions", "[allocator]") {
 			THEN("Requirements should be met") {
 				REQUIRE(pool->GetAllocatedByFrontend() == pool->GetMaxEntries() * Allocation::GetNewAllocationSize(5));
 				REQUIRE(pool->GetMaxEntries() == full / smallest);
-				for (int i = 0; i < pool->GetMaxEntries(); ++i) {
+				for (Count i = 0; i < pool->GetMaxEntries(); ++i) {
 					auto entry = pool->AllocationFromIndex(i);
 					REQUIRE(pool->Contains(entry));
 					REQUIRE(entry->GetUses() == 1 + i);

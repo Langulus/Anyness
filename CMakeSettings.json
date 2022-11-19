@@ -24,6 +24,29 @@
       ]
     },
     {
+      "name": "MSVC-x64-Debug",
+      "generator": "Ninja",
+      "configurationType": "Debug",
+      "inheritEnvironments": [ "msvc_x64_x64" ],
+      "buildRoot": "${projectDir}\\out\\build\\${name}",
+      "installRoot": "${projectDir}\\out\\install\\${name}",
+      "cmakeCommandArgs": "",
+      "buildCommandArgs": "",
+      "ctestCommandArgs": "",
+      "variables": [
+        {
+          "name": "LANGULUS_FEATURE_MANAGED_MEMORY",
+          "value": "OFF",
+          "type": "BOOL"
+        },
+        {
+          "name": "LANGULUS_FEATURE_MANAGED_REFLECTION",
+          "value": "OFF",
+          "type": "BOOL"
+        }
+      ]
+    },
+    {
       "name": "MSVC-x86-Debug-Managed",
       "generator": "Ninja",
       "configurationType": "Debug",

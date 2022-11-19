@@ -19,10 +19,10 @@ namespace Langulus::Anyness
    ///   @return a static memory block                                        
    inline Block Block::GetMember(const RTTI::Member& member) {
       if (!IsAllocated())
-         return Block {RTTI::Database.GetMetaData(member.mType)};
+         return Block {member.GetType()};
 
       return { 
-         DataState::Member, RTTI::Database.GetMetaData(member.mType),
+         DataState::Member, member.GetType(),
          member.mCount, member.Get(mRaw)
       };
    }
@@ -36,10 +36,13 @@ namespace Langulus::Anyness
       return result;
    }
 
+   /// Get a trait-tagged member from first element inside block (const)      
+   ///   @param trait - the trait tag to search for                           
+   ///   @return the static constant block corresponding to that member       
    inline Block Block::GetMember(TMeta trait) const {
       // Scan members                                                   
       for (auto& member : mType->mMembers) {
-         if (trait && member.mTrait != trait->mToken)
+         if (trait && member.TraitIs(trait))
             continue;
 
          // Found one                                                   
@@ -63,16 +66,22 @@ namespace Langulus::Anyness
       return {};
    }
 
+   /// Get a trait-tagged member from first element inside block              
+   ///   @param trait - the trait tag to search for                           
+   ///   @return the static mutable block corresponding to that member        
    inline Block Block::GetMember(TMeta trait) {
       auto result = const_cast<const Block*>(this)->GetMember(trait);
       result.MakeConst();
       return result;
    }
 
+   /// Get a member of specific type, from first element inside block (const) 
+   ///   @param trait - the trait tag to search for                           
+   ///   @return the static constant block corresponding to that member       
    inline Block Block::GetMember(DMeta data) const {
       // Scan members                                                   
       for (auto& member : mType->mMembers) {
-         if (data && !RTTI::Database.GetMetaData(member.mType)->CastsTo(data))
+         if (data && member.GetType()->CastsTo(data))
             continue;
 
          // Found one                                                   
@@ -96,18 +105,25 @@ namespace Langulus::Anyness
       return {};
    }
 
+   /// Get a member of specific type, from first element inside block         
+   ///   @param trait - the trait tag to search for                           
+   ///   @return the static mutable block corresponding to that member        
    inline Block Block::GetMember(DMeta data) {
       auto result = const_cast<const Block*>(this)->GetMember(data);
       result.MakeConst();
       return result;
    }
 
+   /// Get the first member of the first element inside block (const)         
+   ///   @return the static constant block corresponding to that member       
    inline Block Block::GetMember(std::nullptr_t) const {
       if (mType->mMembers.empty())
          return {};
       return GetMember(mType->mMembers[0]);
    }
 
+   /// Get the first member of the first element inside block                 
+   ///   @return the static mutable block corresponding to that member        
    inline Block Block::GetMember(std::nullptr_t) {
       if (mType->mMembers.empty())
          return {};
@@ -134,7 +150,7 @@ namespace Langulus::Anyness
       // Scan members                                                   
       Offset counter = 0;
       for (auto& member : mType->mMembers) {
-         if (trait && member.mTrait != trait->mToken)
+         if (trait && member.TraitIs(trait))
             continue;
 
          // Matched, but check index first                              
@@ -196,7 +212,7 @@ namespace Langulus::Anyness
       // Scan members                                                   
       Offset counter = 0;
       for (auto& member : mType->mMembers) {
-         if (data && !RTTI::Database.GetMetaData(member.mType)->CastsTo(data))
+         if (data && member.GetType()->CastsTo(data))
             continue;
 
          // Matched, but check index first                              
@@ -364,7 +380,7 @@ namespace Langulus::Anyness
    /// Find first matching element position inside container, deeply          
    ///   @tparam REVERSE - true to perform search in reverse                  
    ///   @param item - the item to search for                                 
-   ///   @param idx - index to start searching from                           
+   ///   @param cookie - continue search from a given offset                  
    ///   @return the index of the found item, or IndexNone if not found       
    template<bool REVERSE, CT::Data T>
    Index Block::FindDeep(const T& item, Offset cookie) const {
