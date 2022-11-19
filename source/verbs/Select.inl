@@ -19,10 +19,10 @@ namespace Langulus::Anyness
    ///   @return a static memory block                                        
    inline Block Block::GetMember(const RTTI::Member& member) {
       if (!IsAllocated())
-         return Block {member.mType};
+         return Block {RTTI::Database.GetMetaData(member.mType)};
 
       return { 
-         DataState::Member, member.mType, 
+         DataState::Member, RTTI::Database.GetMetaData(member.mType),
          member.mCount, member.Get(mRaw)
       };
    }
@@ -39,7 +39,7 @@ namespace Langulus::Anyness
    inline Block Block::GetMember(TMeta trait) const {
       // Scan members                                                   
       for (auto& member : mType->mMembers) {
-         if (trait && member.mTrait != trait)
+         if (trait && member.mTrait != trait->mToken)
             continue;
 
          // Found one                                                   
@@ -72,7 +72,7 @@ namespace Langulus::Anyness
    inline Block Block::GetMember(DMeta data) const {
       // Scan members                                                   
       for (auto& member : mType->mMembers) {
-         if (data && !member.mType->CastsTo(data))
+         if (data && !RTTI::Database.GetMetaData(member.mType)->CastsTo(data))
             continue;
 
          // Found one                                                   
@@ -134,7 +134,7 @@ namespace Langulus::Anyness
       // Scan members                                                   
       Offset counter = 0;
       for (auto& member : mType->mMembers) {
-         if (trait && member.mTrait != trait)
+         if (trait && member.mTrait != trait->mToken)
             continue;
 
          // Matched, but check index first                              
@@ -196,7 +196,7 @@ namespace Langulus::Anyness
       // Scan members                                                   
       Offset counter = 0;
       for (auto& member : mType->mMembers) {
-         if (data && !member.mType->CastsTo(data))
+         if (data && !RTTI::Database.GetMetaData(member.mType)->CastsTo(data))
             continue;
 
          // Matched, but check index first                              

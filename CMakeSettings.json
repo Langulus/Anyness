@@ -1,7 +1,7 @@
 ﻿{
   "configurations": [
     {
-      "name": "MSVC-x64-Debug",
+      "name": "MSVC-x64-Debug-Managed",
       "generator": "Ninja",
       "configurationType": "Debug",
       "inheritEnvironments": [ "msvc_x64_x64" ],
@@ -9,10 +9,22 @@
       "installRoot": "${projectDir}\\out\\install\\${name}",
       "cmakeCommandArgs": "",
       "buildCommandArgs": "",
-      "ctestCommandArgs": ""
+      "ctestCommandArgs": "",
+      "variables": [
+        {
+          "name": "LANGULUS_FEATURE_MANAGED_MEMORY",
+          "value": "ON",
+          "type": "BOOL"
+        },
+        {
+          "name": "LANGULUS_FEATURE_MANAGED_REFLECTION",
+          "value": "ON",
+          "type": "BOOL"
+        }
+      ]
     },
     {
-      "name": "MSVC-x86-Debug",
+      "name": "MSVC-x86-Debug-Managed",
       "generator": "Ninja",
       "configurationType": "Debug",
       "buildRoot": "${projectDir}\\out\\build\\${name}",
@@ -20,10 +32,22 @@
       "cmakeCommandArgs": "",
       "buildCommandArgs": "",
       "ctestCommandArgs": "",
-      "inheritEnvironments": [ "msvc_x86" ]
+      "inheritEnvironments": [ "msvc_x86" ],
+      "variables": [
+        {
+          "name": "LANGULUS_FEATURE_MANAGED_MEMORY",
+          "value": "ON",
+          "type": "BOOL"
+        },
+        {
+          "name": "LANGULUS_FEATURE_MANAGED_REFLECTION",
+          "value": "ON",
+          "type": "BOOL"
+        }
+      ]
     },
     {
-      "name": "WSL-GCC-Debug",
+      "name": "WSL-GCC-Debug-Managed",
       "generator": "Ninja",
       "configurationType": "Debug",
       "buildRoot": "${projectDir}\\out\\build\\${name}",
@@ -33,10 +57,22 @@
       "buildCommandArgs": "",
       "ctestCommandArgs": "",
       "inheritEnvironments": [ "linux_x64" ],
-      "wslPath": "${defaultWSLPath}"
+      "wslPath": "${defaultWSLPath}",
+      "variables": [
+        {
+          "name": "LANGULUS_FEATURE_MANAGED_MEMORY",
+          "value": "ON",
+          "type": "BOOL"
+        },
+        {
+          "name": "LANGULUS_FEATURE_MANAGED_REFLECTION",
+          "value": "ON",
+          "type": "BOOL"
+        }
+      ]
     },
     {
-      "name": "x86-Clang-Debug",
+      "name": "x86-Clang-Debug-Managed",
       "generator": "Ninja",
       "configurationType": "Debug",
       "buildRoot": "${projectDir}\\out\\build\\${name}",
@@ -44,10 +80,22 @@
       "cmakeCommandArgs": "",
       "buildCommandArgs": "",
       "ctestCommandArgs": "",
-      "inheritEnvironments": [ "clang_cl_x86" ]
+      "inheritEnvironments": [ "clang_cl_x86" ],
+      "variables": [
+        {
+          "name": "LANGULUS_FEATURE_MANAGED_MEMORY",
+          "value": "ON",
+          "type": "BOOL"
+        },
+        {
+          "name": "LANGULUS_FEATURE_MANAGED_REFLECTION",
+          "value": "ON",
+          "type": "BOOL"
+        }
+      ]
     },
     {
-      "name": "MSVC-x86-Release",
+      "name": "MSVC-x86-Release-Managed",
       "generator": "Ninja",
       "configurationType": "RelWithDebInfo",
       "buildRoot": "${projectDir}\\out\\build\\${name}",
@@ -55,10 +103,22 @@
       "cmakeCommandArgs": "",
       "buildCommandArgs": "",
       "ctestCommandArgs": "",
-      "inheritEnvironments": [ "msvc_x86" ]
+      "inheritEnvironments": [ "msvc_x86" ],
+      "variables": [
+        {
+          "name": "LANGULUS_FEATURE_MANAGED_MEMORY",
+          "value": "ON",
+          "type": "BOOL"
+        },
+        {
+          "name": "LANGULUS_FEATURE_MANAGED_REFLECTION",
+          "value": "ON",
+          "type": "BOOL"
+        }
+      ]
     },
     {
-      "name": "MSVC-x64-Release",
+      "name": "MSVC-x64-Release-Managed",
       "generator": "Ninja",
       "configurationType": "RelWithDebInfo",
       "buildRoot": "${projectDir}\\out\\build\\${name}",
@@ -66,10 +126,22 @@
       "cmakeCommandArgs": "",
       "buildCommandArgs": "",
       "ctestCommandArgs": "",
-      "inheritEnvironments": [ "msvc_x64_x64" ]
+      "inheritEnvironments": [ "msvc_x64_x64" ],
+      "variables": [
+        {
+          "name": "LANGULUS_FEATURE_MANAGED_MEMORY",
+          "value": "ON",
+          "type": "BOOL"
+        },
+        {
+          "name": "LANGULUS_FEATURE_MANAGED_REFLECTION",
+          "value": "ON",
+          "type": "BOOL"
+        }
+      ]
     },
     {
-      "name": "x86-Clang-Release",
+      "name": "x86-Clang-Release-Managed",
       "generator": "Ninja",
       "configurationType": "RelWithDebInfo",
       "buildRoot": "${projectDir}\\out\\build\\${name}",
@@ -77,10 +149,22 @@
       "cmakeCommandArgs": "",
       "buildCommandArgs": "",
       "ctestCommandArgs": "",
-      "inheritEnvironments": [ "clang_cl_x86" ]
+      "inheritEnvironments": [ "clang_cl_x86" ],
+      "variables": [
+        {
+          "name": "LANGULUS_FEATURE_MANAGED_MEMORY",
+          "value": "ON",
+          "type": "BOOL"
+        },
+        {
+          "name": "LANGULUS_FEATURE_MANAGED_REFLECTION",
+          "value": "ON",
+          "type": "BOOL"
+        }
+      ]
     },
     {
-      "name": "WSL-GCC-Release",
+      "name": "WSL-GCC-Release-Managed",
       "generator": "Ninja",
       "configurationType": "RelWithDebInfo",
       "buildRoot": "${projectDir}\\out\\build\\${name}",
@@ -90,10 +174,22 @@
       "buildCommandArgs": "",
       "ctestCommandArgs": "",
       "inheritEnvironments": [ "linux_x64" ],
-      "wslPath": "${defaultWSLPath}"
+      "wslPath": "${defaultWSLPath}",
+      "variables": [
+        {
+          "name": "LANGULUS_FEATURE_MANAGED_MEMORY",
+          "value": "ON",
+          "type": "BOOL"
+        },
+        {
+          "name": "LANGULUS_FEATURE_MANAGED_REFLECTION",
+          "value": "ON",
+          "type": "BOOL"
+        }
+      ]
     },
     {
-      "name": "x64-Clang-Release",
+      "name": "x64-Clang-Release-Managed",
       "generator": "Ninja",
       "configurationType": "RelWithDebInfo",
       "buildRoot": "${projectDir}\\out\\build\\${name}",
@@ -101,10 +197,22 @@
       "cmakeCommandArgs": "",
       "buildCommandArgs": "",
       "ctestCommandArgs": "",
-      "inheritEnvironments": [ "clang_cl_x64_x64" ]
+      "inheritEnvironments": [ "clang_cl_x64_x64" ],
+      "variables": [
+        {
+          "name": "LANGULUS_FEATURE_MANAGED_MEMORY",
+          "value": "ON",
+          "type": "BOOL"
+        },
+        {
+          "name": "LANGULUS_FEATURE_MANAGED_REFLECTION",
+          "value": "ON",
+          "type": "BOOL"
+        }
+      ]
     },
     {
-      "name": "x64-Clang-Debug",
+      "name": "x64-Clang-Debug-Managed",
       "generator": "Ninja",
       "configurationType": "Debug",
       "buildRoot": "${projectDir}\\out\\build\\${name}",
@@ -112,7 +220,19 @@
       "cmakeCommandArgs": "",
       "buildCommandArgs": "",
       "ctestCommandArgs": "",
-      "inheritEnvironments": [ "clang_cl_x64_x64" ]
+      "inheritEnvironments": [ "clang_cl_x64_x64" ],
+      "variables": [
+        {
+          "name": "LANGULUS_FEATURE_MANAGED_MEMORY",
+          "value": "ON",
+          "type": "BOOL"
+        },
+        {
+          "name": "LANGULUS_FEATURE_MANAGED_REFLECTION",
+          "value": "ON",
+          "type": "BOOL"
+        }
+      ]
     }
   ]
 }
