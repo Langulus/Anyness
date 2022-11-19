@@ -2086,7 +2086,7 @@ namespace Langulus::Anyness
    ///   @return a constant iterator to the last element, or end if empty     
    TEMPLATE()
    typename TAny<T>::ConstIterator TAny<T>::last() const noexcept {
-      return {IsEmpty() ? GetRawEnd() - 1 : GetRawEnd()};
+      return {IsEmpty() ? GetRawEnd(): GetRawEnd() - 1};
    }
 
 
