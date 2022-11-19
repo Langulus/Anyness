@@ -212,5 +212,9 @@ LANGULUS_DEFINE_TRAIT(Name,
    "Name trait, used all over the place");
 LANGULUS_DEFINE_TRAIT(Context,
    "Context trait, used to access the current environment");
+LANGULUS_DEFINE_TRAIT(Trait, 
+   "Accesses traits (static or dynamic) of an instantiated object of any kind");
+LANGULUS_DEFINE_TRAIT(State, 
+   "State trait, used all over the place");
 
 #include "Trait.inl"

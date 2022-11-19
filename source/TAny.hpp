@@ -47,6 +47,13 @@ namespace Langulus::Anyness
       class KnownPointer;
       using TypeInner = Conditional<CT::Dense<T>, T, KnownPointer>;
 
+      template<bool MUTABLE>
+      struct TIterator;
+
+      using Iterator = TIterator<true>;
+      using ConstIterator = TIterator<false>;
+
+   public:
       TAny();
       
       TAny(const TAny&);
@@ -97,14 +104,6 @@ namespace Langulus::Anyness
 
       TAny& operator = (Disowned<T>&&) noexcept requires CT::CustomData<T>;
       TAny& operator = (Abandoned<T>&&) noexcept requires CT::CustomData<T>;
-
-   private:
-      using Any::FromMeta;
-      using Any::FromBlock;
-      using Any::FromState;
-      using Any::From;
-      using Any::Wrap;
-      using Any::WrapCommon;
 
    public:
       NOD() bool CastsToMeta(DMeta) const;
@@ -213,6 +212,7 @@ namespace Langulus::Anyness
       template<bool REVERSE = false, bool BY_ADDRESS_ONLY = false, CT::Data ALT_T>
       Count RemoveValue(const ALT_T&);
       Count RemoveIndex(const Offset&, const Count&);
+      Iterator RemoveIndex(const Iterator&);
 
       NOD() TAny& Trim(const Count&);
       template<CT::Block WRAPPER = TAny>
@@ -260,12 +260,6 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Iteration                                                         
       ///                                                                     
-      template<bool MUTABLE>
-      struct TIterator;
-
-      using Iterator = TIterator<true>;
-      using ConstIterator = TIterator<false>;
-      
       NOD() Iterator begin() noexcept;
       NOD() Iterator end() noexcept;
       NOD() Iterator last() noexcept;
@@ -291,6 +285,14 @@ namespace Langulus::Anyness
 
       template<bool OVERWRITE_STATE, bool OVERWRITE_ENTRY>
       void CopyProperties(const Block&) noexcept;
+
+   private:
+      using Any::FromMeta;
+      using Any::FromBlock;
+      using Any::FromState;
+      using Any::From;
+      using Any::Wrap;
+      using Any::WrapCommon;
    };
 
 
@@ -359,26 +361,20 @@ namespace Langulus::Anyness
       friend class TAny<T>;
 
       const TypeInner* mElement;
-      const TypeInner* const mSentinel;
 
-      TIterator(const TypeInner*, const TypeInner*) noexcept;
+      TIterator(const TypeInner*) noexcept;
 
    public:
-      TIterator() noexcept = default;
-      TIterator(const TIterator&) noexcept = default;
-      TIterator(TIterator&&) noexcept = default;
-
       NOD() bool operator == (const TIterator&) const noexcept;
 
       operator TypeInner& () const noexcept requires (MUTABLE);
       operator const MemberType& () const noexcept requires (!MUTABLE);
 
-      decltype(auto) operator * () const noexcept {
-         if constexpr (MUTABLE)
-            return operator TypeInner& ();
-         else
-            return operator const MemberType& ();
-      }
+      NOD() decltype(auto) operator * () const noexcept requires (MUTABLE);
+      NOD() decltype(auto) operator * () const noexcept requires (!MUTABLE);
+
+      NOD() decltype(auto) operator -> () const noexcept requires (MUTABLE);
+      NOD() decltype(auto) operator -> () const noexcept requires (!MUTABLE);
 
       // Prefix operator                                                
       TIterator& operator ++ () noexcept;

@@ -199,7 +199,7 @@ namespace Langulus::Anyness
    }
 
    /// Reinterpret contents of this Block as the type and state of another    
-   /// You can interpret vec4 as float[4] for example, or any other such      
+   /// You can interpret Vec4 as float[4] for example, or any other such      
    /// reinterpretation, as long as data remains tightly packed               
    ///   @param pattern - the type of data to try interpreting as             
    ///   @return a block representing this block, interpreted as the pattern  

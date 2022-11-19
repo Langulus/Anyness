@@ -18,7 +18,7 @@
 #include "../source/TUnorderedMap.hpp"
 #include "../source/UnorderedMap.hpp"
 #include "../source/TUnorderedSet.hpp"
-#include "../source/TFactory.hpp"
+#include "../source/Referenced.hpp"
 
 #if LANGULUS_FEATURE(MANAGED_MEMORY)
 #ifdef LANGULUS_EXPOSE_PRIVATE_HEADERS

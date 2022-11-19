@@ -521,7 +521,7 @@ namespace Langulus::Anyness
    }
 
    /// Check if contained data can be interpreted as a given count of type    
-   /// For example: a vec4 can interpret as float[4]                          
+   /// For example: a Vec4 can interpret as float[4]                          
    /// Beware, direction matters (this is the inverse of CanFit)              
    ///   @param type - the type check if current type interprets to           
    ///   @param count - the number of elements to interpret as                
@@ -1171,6 +1171,29 @@ namespace Langulus::Anyness
    Count TAny<T>::MergeAt(T&& item, const IDX& index) {
       return Block::MergeAt<TAny, KEEP, true, T>(Forward<T>(item), index);
    }
+   
+   /// Copy-insert elements that are not found, at a static index             
+   ///   @tparam INDEX - the static index (either IndexFront or IndexBack)    
+   ///   @tparam KEEP - whether or not to reference inserted data             
+   ///   @param start - pointer to the first element to insert                
+   ///   @param end - pointer to the end of elements to insert                
+   ///   @return the number of inserted items                                 
+   TEMPLATE()
+   template<Index INDEX, bool KEEP>
+   Count TAny<T>::Merge(const T* start, const T* end) {
+      return Block::Merge<INDEX, KEEP, true, TAny, T>(start, end);
+   }
+
+   /// Move-insert element, if not found, at a static index                   
+   ///   @tparam INDEX - the static index (either IndexFront or IndexBack)    
+   ///   @tparam KEEP - whether or not to reference inserted data             
+   ///   @param item - the item to find and push                              
+   ///   @return the number of inserted items                                 
+   TEMPLATE()
+   template<Index INDEX, bool KEEP>
+   Count TAny<T>::Merge(T&& item) {
+      return Block::Merge<INDEX, KEEP, true, TAny, T>(Forward<T>(item));
+   }
 
    /// Copy-construct element at the back, if element is not found            
    ///   @param other - the element to shallow-copy                           
@@ -1381,6 +1404,25 @@ namespace Langulus::Anyness
          return count;
       }
    }
+   
+   /// Safely erases element at a specific iterator                           
+   ///   @attention assumes iterator is produced by this TAny instance        
+   ///   @param index - the index to remove                                   
+   ///   @return the iterator of the previous element, unless index is first  
+   TEMPLATE()
+   typename TAny<T>::Iterator TAny<T>::RemoveIndex(const Iterator& index) {
+      const auto rawend = GetRawEnd();
+      if (index.mElement >= rawend)
+         return {rawend};
+
+      const auto rawstart = GetRaw();
+      RemoveIndex(static_cast<Offset>(index.mElement - rawstart), 1); //TODO what if map shrinks, offset might become invalid? Doesn't shrink for now
+      
+      if (index.mElement == rawstart)
+         return {rawstart};
+      else
+         return {index.mElement - 1};
+   }
 
    /// Sort the pack                                                          
    TEMPLATE()
@@ -1482,6 +1524,8 @@ namespace Langulus::Anyness
    void TAny<T>::Allocate(Count elements) {
       static_assert(!CREATE || CT::Sparse<T> || !CT::Abstract<T>,
          "Can't allocate and default-construct abstract items in dense TAny");
+      static_assert(!CREATE || CT::Sparse<T> || !CT::Defaultable<T>,
+         "Can't allocate non-default-constructable item in dense TAny");
 
       // Allocate/reallocate                                            
       const auto request = RequestSize(elements);
@@ -1518,23 +1562,30 @@ namespace Langulus::Anyness
             // if entry moved (enabling MANAGED_MEMORY feature          
             // significantly reduces the possiblity for a move)         
             // Also, make sure to free the previous mEntry if moved     
-            mEntry = Inner::Allocator::Reallocate(request.mByteSize, mEntry);
-            LANGULUS_ASSERT(mEntry, Except::Allocate, "Out of memory");
+            if constexpr (CT::AbandonMakable<T> || CT::MoveMakable<T>) {
+               mEntry = Inner::Allocator::Reallocate(request.mByteSize, mEntry);
+               LANGULUS_ASSERT(mEntry, Except::Allocate, "Out of memory");
 
-            if (mEntry != previousBlock.mEntry) {
-               // Memory moved, and we should call move-construction    
-               // We're moving to new memory, so no reverse required    
-               mRaw = mEntry->GetBlockStart();
-               CallKnownMoveConstructors<T, false>(previousBlock.mCount, previousBlock);
+               if (mEntry != previousBlock.mEntry) {
+                  // Memory moved, and we should call move-construction 
+                  // We're moving to new memory, so no reverse required 
+                  mRaw = mEntry->GetBlockStart();
+                  CallKnownMoveConstructors<T, false>(previousBlock.mCount, previousBlock);
+               }
             }
+            else LANGULUS_THROW(Construct, "T is not move-constructible");
          }
          else {
             // Memory is used from multiple locations, and we must      
             // copy the memory for this block - we can't move it!       
-            mEntry = Inner::Allocator::Allocate(request.mByteSize);
-            LANGULUS_ASSERT(mEntry, Except::Allocate, "Out of memory");
-            mRaw = mEntry->GetBlockStart();
-            CallKnownCopyConstructors<T>(previousBlock.mCount, previousBlock);
+            // This will throw, if data is not copy-constructible       
+            if constexpr (CT::DisownMakable<T> || CT::CopyMakable<T>) {
+               mEntry = Inner::Allocator::Allocate(request.mByteSize);
+               LANGULUS_ASSERT(mEntry, Except::Allocate, "Out of memory");
+               mRaw = mEntry->GetBlockStart();
+               CallKnownCopyConstructors<T>(previousBlock.mCount, previousBlock);
+            }
+            else LANGULUS_THROW(Construct, "T is not copy-constructible");
          }
 
          if constexpr (CREATE) {
@@ -2021,29 +2072,21 @@ namespace Langulus::Anyness
    ///   @return a constant iterator to the first element, or end if empty    
    TEMPLATE()
    typename TAny<T>::ConstIterator TAny<T>::begin() const noexcept {
-      if (IsEmpty())
-         return end();
-
-      return {GetRaw(), GetRawEnd()};
+      return {GetRaw()};
    }
 
    /// Get iterator to end                                                    
    ///   @return a constant iterator to the end element                       
    TEMPLATE()
    typename TAny<T>::ConstIterator TAny<T>::end() const noexcept {
-      const auto endptr = GetRawEnd();
-      return {endptr, endptr};
+      return {GetRawEnd()};
    }
 
    /// Get iterator to the last valid element                                 
    ///   @return a constant iterator to the last element, or end if empty     
    TEMPLATE()
    typename TAny<T>::ConstIterator TAny<T>::last() const noexcept {
-      if (IsEmpty())
-         return end();
-
-      const auto endptr = GetRawEnd();
-      return {endptr - 1, endptr};
+      return {IsEmpty() ? GetRawEnd() - 1 : GetRawEnd()};
    }
 
 
@@ -2059,9 +2102,8 @@ namespace Langulus::Anyness
    TEMPLATE()
    template<bool MUTABLE>
    LANGULUS(ALWAYSINLINE)
-   TAny<T>::TIterator<MUTABLE>::TIterator(const TypeInner* e, const TypeInner* s) noexcept
-      : mElement {e}
-      , mSentinel {s} {}
+   TAny<T>::TIterator<MUTABLE>::TIterator(const TypeInner* e) noexcept
+      : mElement {e} {}
 
    /// Prefix increment operator                                              
    ///   @attention assumes iterator points to a valid element                
@@ -2070,10 +2112,6 @@ namespace Langulus::Anyness
    template<bool MUTABLE>
    LANGULUS(ALWAYSINLINE)
    typename ITERATOR()& TAny<T>::TIterator<MUTABLE>::operator ++ () noexcept {
-      if (mElement == mSentinel)
-         return *this;
-
-      // Seek next valid info, or hit sentinel at the end               
       ++mElement;
       return *this;
    }
@@ -2090,7 +2128,7 @@ namespace Langulus::Anyness
       return backup;
    }
 
-   /// Compare unordered map entries                                          
+   /// Compare iterators                                                      
    ///   @param rhs - the other iterator                                      
    ///   @return true if entries match                                        
    TEMPLATE()
@@ -2101,7 +2139,7 @@ namespace Langulus::Anyness
    }
 
    /// Iterator access operator                                               
-   ///   @return a pair at the current iterator position                      
+   ///   @return a reference to the element at the current iterator position  
    TEMPLATE()
    template<bool MUTABLE>
    LANGULUS(ALWAYSINLINE)
@@ -2110,11 +2148,53 @@ namespace Langulus::Anyness
    }
 
    /// Iterator access operator                                               
-   ///   @return a pair at the current iterator position                      
+   ///   @return a reference to the element at the current iterator position  
    TEMPLATE()
    template<bool MUTABLE>
    LANGULUS(ALWAYSINLINE)
    TAny<T>::TIterator<MUTABLE>::operator const MemberType& () const noexcept requires (!MUTABLE) {
+      if constexpr (CT::Dense<T>)
+         return *mElement;
+      else
+         return mElement->mPointer;
+   }
+   
+   /// Iterator access operator                                               
+   ///   @return a reference to the element at the current iterator position  
+   TEMPLATE()
+   template<bool MUTABLE>
+   LANGULUS(ALWAYSINLINE)
+   decltype(auto) TAny<T>::TIterator<MUTABLE>::operator * () const noexcept requires (MUTABLE) {
+      return const_cast<TypeInner&>(*mElement);
+   }
+
+   /// Iterator access operator                                               
+   ///   @return a reference to the element at the current iterator position  
+   TEMPLATE()
+   template<bool MUTABLE>
+   LANGULUS(ALWAYSINLINE)
+   decltype(auto) TAny<T>::TIterator<MUTABLE>::operator * () const noexcept requires (!MUTABLE) {
+      if constexpr (CT::Dense<T>)
+         return *mElement;
+      else
+         return mElement->mPointer;
+   }
+
+   /// Iterator access operator                                               
+   ///   @return a reference to the element at the current iterator position  
+   TEMPLATE()
+   template<bool MUTABLE>
+   LANGULUS(ALWAYSINLINE)
+   decltype(auto) TAny<T>::TIterator<MUTABLE>::operator -> () const noexcept requires (MUTABLE) {
+      return const_cast<TypeInner&>(*mElement);
+   }
+
+   /// Iterator access operator                                               
+   ///   @return a reference to the element at the current iterator position  
+   TEMPLATE()
+   template<bool MUTABLE>
+   LANGULUS(ALWAYSINLINE)
+   decltype(auto) TAny<T>::TIterator<MUTABLE>::operator -> () const noexcept requires (!MUTABLE) {
       if constexpr (CT::Dense<T>)
          return *mElement;
       else

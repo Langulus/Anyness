@@ -35,7 +35,7 @@ namespace Langulus::Anyness
    
    template<CT::Data>
    class TOwned;
-   template<CT::Data, bool>
+   template<class, bool>
    class TPointer;
 
    /// Compression types, analogous to zlib's                                 
@@ -84,7 +84,7 @@ namespace Langulus::Anyness
 
       template<CT::Data>
       friend class TOwned;
-      template<CT::Data, bool REFERENCED>
+      template<class, bool REFERENCED>
       friend class TPointer;
 
       /// A structure used to represent an element of a sparse container      
@@ -419,6 +419,11 @@ namespace Langulus::Anyness
       Count MergeAt(const T*, const T*, INDEX);
       template<bool KEEP = true, bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T, CT::Index INDEX>
       Count MergeAt(T&&, INDEX);
+
+      template<Index = IndexBack, bool KEEP = true, bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T>
+      Count Merge(const T*, const T*);
+      template<Index = IndexBack, bool KEEP = true, bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T>
+      Count Merge(T&&);
 
       template<CT::NotSemantic T, CT::Index INDEX>
       Count InsertBlockAt(const T&, INDEX);

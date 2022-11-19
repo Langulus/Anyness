@@ -9,7 +9,7 @@
 #include "TPointer.hpp"
 
 #define TEMPLATE_OWNED() template<CT::Data T>
-#define TEMPLATE_SHARED() template<CT::Data T, bool DR>
+#define TEMPLATE_SHARED() template<class T, bool DR>
 
 namespace Langulus::Anyness
 {
@@ -78,67 +78,19 @@ namespace Langulus::Anyness
       Reset();
    }
 
-   /// Create a new instance by moving an existing one                        
-   ///   @param initializer - instance to move                                
-   ///   @return the pointer                                                  
-   /*TEMPLATE_SHARED()
-   TPointer<T, DR> TPointer<T, DR>::Create(Decay<T>&& initializer) requires CT::MoveMakable<Decay<T>> {
-      TPointer pointer;
-      pointer.mEntry = Inner::Allocator::Allocate(
-         RTTI::GetAllocationPageOf<Decay<T>>());
-      LANGULUS_ASSERT(pointer.mEntry, Except::Allocate, "Out of memory");
-      pointer.mValue = reinterpret_cast<MemberType>(
-         pointer.mEntry->GetBlockStart());
-      new (pointer.mValue) Decay<T> {Forward<Decay<T>>(initializer)};
-      return pointer;
-   }
-
-   /// Create a new instance by copying an existing one                       
-   /// Resulting pointer created that way has exactly one reference           
-   ///   @param initializer - instance to copy                                
-   ///   @return the pointer                                                  
-   TEMPLATE_SHARED()
-   TPointer<T, DR> TPointer<T, DR>::Create(const Decay<T>& initializer) requires CT::CopyMakable<Decay<T>> {
-      TPointer pointer;
-      pointer.mEntry = Inner::Allocator::Allocate(
-         RTTI::GetAllocationPageOf<Decay<T>>());
-      LANGULUS_ASSERT(pointer.mEntry, Except::Allocate, "Out of memory");
-      pointer.mValue = reinterpret_cast<MemberType>(
-         pointer.mEntry->GetBlockStart());
-      new (pointer.mValue) Decay<T> {initializer};
-      return pointer;
-   }
-
-   /// Create a default new instance                                          
-   /// Resulting pointer created that way has exactly one reference           
-   ///   @return the pointer                                                  
-   TEMPLATE_SHARED()
-   TPointer<T, DR> TPointer<T, DR>::Create() requires CT::Defaultable<Decay<T>> {
-      TPointer pointer;
-      pointer.mEntry = Inner::Allocator::Allocate(
-         RTTI::GetAllocationPageOf<Decay<T>>());
-      LANGULUS_ASSERT(pointer.mEntry, Except::Allocate, "Out of memory");
-      pointer.mValue = reinterpret_cast<decltype(pointer.mValue)>(
-         pointer.mEntry->GetBlockStart());
-      new (pointer.mValue) Decay<T> {};
-      return pointer;
-   }*/
-
    /// Create a new instance of T by providing constructor arguments          
    ///   @tparam ...ARGS - the deduced arguments                              
    ///   @param arguments - the arguments                                     
    ///   @return the new instance                                             
    TEMPLATE_SHARED() template<class... ARGS>
-   /*TPointer<T, DR>*/void TPointer<T, DR>::New(ARGS&&... arguments) {
+   void TPointer<T, DR>::New(ARGS&&... arguments) {
       TPointer pointer;
       pointer.mEntry = Inner::Allocator::Allocate(sizeof(Decay<T>));
-         /*RTTI::GetAllocationPageOf<Decay<T>>());*/
       LANGULUS_ASSERT(pointer.mEntry, Except::Allocate, "Out of memory");
       pointer.mValue = reinterpret_cast<decltype(pointer.mValue)>(
          pointer.mEntry->GetBlockStart());
       new (pointer.mValue) Decay<T> {Forward<ARGS>(arguments)...};
       *this = pointer;
-      //return pointer;
    }
 
    /// Reset the value                                                        
@@ -259,28 +211,28 @@ namespace Langulus::Anyness
 
    /// Attempt to cast any pointer to the contained pointer                   
    ///   @param ptr - pointer to reference                                    
-   TEMPLATE_SHARED() template<CT::Sparse ANY_POINTER>
-   TPointer<T, DR>& TPointer<T, DR>::operator = (ANY_POINTER rhs) {
-      static_assert(CT::Constant<T> || !CT::Constant<ANY_POINTER>,
+   TEMPLATE_SHARED() template<CT::Sparse ALT_T>
+   TPointer<T, DR>& TPointer<T, DR>::operator = (ALT_T rhs) {
+      static_assert(CT::Constant<T> || !CT::Constant<ALT_T>,
          "Can't assign a constant pointer to a non-constant pointer wrapper");
 
       Reset();
       new (this) TPointer<T, DR> {
-         dynamic_cast<Conditional<CT::Constant<ANY_POINTER>, const T*, T*>>(rhs)
+         dynamic_cast<Conditional<CT::Constant<ALT_T>, const T*, T*>>(rhs)
       };
       return *this;
    }
 
    /// Attempt to cast any pointer to the contained pointer                   
    ///   @param ptr - pointer to reference                                    
-   TEMPLATE_SHARED() template<CT::Data ANY_POINTER>
-   TPointer<T, DR>& TPointer<T, DR>::operator = (const TPointer<ANY_POINTER, DR>& ptr) {
-      static_assert(CT::Constant<T> || !CT::Constant<ANY_POINTER>,
+   TEMPLATE_SHARED() template<class ALT_T>
+   TPointer<T, DR>& TPointer<T, DR>::operator = (const TPointer<ALT_T, DR>& ptr) {
+      static_assert(CT::Constant<T> || !CT::Constant<ALT_T>,
          "Can't assign a constant pointer to a non-constant pointer wrapper");
 
       Reset();
       new (this) TPointer<T, DR> {
-         dynamic_cast<Conditional<CT::Constant<ANY_POINTER>, const T*, T*>>(ptr.Get())
+         dynamic_cast<Conditional<CT::Constant<ALT_T>, const T*, T*>>(ptr.Get())
       };
       return *this;
    }
@@ -309,7 +261,7 @@ namespace Langulus::Anyness
    /// Perform a dynamic cast on the pointer                                  
    ///   @tparam D - the desired type to cast to                              
    ///   @return the result of a dynamic_cast to the specified type           
-   TEMPLATE_OWNED() template<CT::Data D>
+   TEMPLATE_OWNED() template<class D>
    auto TOwned<T>::As() const noexcept requires CT::Sparse<T> {
       using RESOLVED = Conditional<CT::Constant<T>, const Decay<D>*, Decay<D>*>;
       return dynamic_cast<RESOLVED>(mValue);

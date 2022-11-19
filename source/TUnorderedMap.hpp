@@ -228,10 +228,6 @@ namespace Langulus::Anyness
       TIterator(const InfoType*, const InfoType*, const KeyInner*, const ValueInner*) noexcept;
 
    public:
-      /*TIterator() noexcept = default;
-      TIterator(const TIterator&) noexcept = default;
-      TIterator(TIterator&&) noexcept = default;*/
-
       NOD() bool operator == (const TIterator&) const noexcept;
 
       NOD() PairRef operator * () const noexcept requires (MUTABLE);

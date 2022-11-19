@@ -950,7 +950,7 @@ namespace Langulus::Anyness
    }
 
    /// Check if contained data can be interpreted as a given coung of type    
-   /// For example: a vec4 can interpret as float[4]                          
+   /// For example: a Vec4 can interpret as float[4]                          
    /// Beware, direction matters (this is the inverse of CanFit)              
    ///   @param type - the type check if current type interprets to           
    ///   @param count - the number of elements to interpret as                
@@ -1055,7 +1055,7 @@ namespace Langulus::Anyness
    }
 
    /// Reinterpret contents of this Block as a collection of a static type    
-   /// You can interpret vec4 as float[4] for example, or any other such      
+   /// You can interpret Vec4 as float[4] for example, or any other such      
    /// reinterpretation, as long as data remains tightly packed               
    ///   @tparam T - the type of data to try interpreting as                  
    ///   @return a block representing this block, interpreted as T            
@@ -1406,7 +1406,7 @@ namespace Langulus::Anyness
       auto offset = SimplifyIndex(index);
       Count added {};
       while (start != end) {
-         if (!FindKnown<T>(*start)) {
+         if (!FindKnown(*start)) {
             added += InsertAt<KEEP, MUTABLE, WRAPPER, T>(start, start + 1, offset);
             ++offset;
          }
@@ -1431,8 +1431,48 @@ namespace Langulus::Anyness
    ///   @return the number of inserted elements                              
    template<bool KEEP, bool MUTABLE, CT::Data WRAPPER, CT::NotSemantic T, CT::Index INDEX>
    Count Block::MergeAt(T&& item, INDEX index) {
-      if (!FindKnown<T>(item))
+      if (!FindKnown(item))
          return InsertAt<KEEP, MUTABLE, WRAPPER, T>(Forward<T>(item), index);
+      return 0;
+   }
+   
+   /// Merge-copy-insert array elements at a static index                     
+   /// Each element will be pushed only if not found in block                 
+   ///   @tparam INDEX - static index (either IndexFront or IndexBack)        
+   ///   @tparam KEEP - whether to reference data on copy                     
+   ///   @tparam MUTABLE - is it allowed the block to deepen or incorporate   
+   ///                     the new insertion, if not compatible               
+   ///   @tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled   
+   ///   @tparam T - the type to insert (deducible)                           
+   ///   @param start - pointer to the first item                             
+   ///   @param end - pointer to the end of items                             
+   ///   @return the number of inserted elements                              
+   template<Index INDEX, bool KEEP, bool MUTABLE, CT::Data WRAPPER, CT::NotSemantic T>
+   Count Block::Merge(const T* start, const T* end) {
+      Count added {};
+      while (start != end) {
+         if (!FindKnown(*start))
+            added += Insert<INDEX, KEEP, MUTABLE, WRAPPER, T>(start, start + 1);
+         ++start;
+      }
+
+      return added;
+   }
+
+   /// Merge-move-insert array elements at index                              
+   /// Element will be pushed only if not found in block                      
+   ///   @tparam INDEX - static index (either IndexFront or IndexBack)        
+   ///   @tparam KEEP - whether to reference data on copy                     
+   ///   @tparam MUTABLE - is it allowed the block to deepen or incorporate   
+   ///                     the new insertion, if not compatible               
+   ///   @tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled   
+   ///   @tparam T - the type to insert (deducible)                           
+   ///   @param item - the item to move in                                    
+   ///   @return the number of inserted elements                              
+   template<Index INDEX, bool KEEP, bool MUTABLE, CT::Data WRAPPER, CT::NotSemantic T>
+   Count Block::Merge(T&& item) {
+      if (!FindKnown(item))
+         return Insert<INDEX, KEEP, MUTABLE, WRAPPER, T>(Forward<T>(item));
       return 0;
    }
 

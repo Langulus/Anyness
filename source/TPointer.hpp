@@ -46,7 +46,7 @@ namespace Langulus::Anyness
       NOD() decltype(auto) Get() const noexcept;
       NOD() decltype(auto) Get() noexcept;
 
-      template<CT::Data>
+      template<class>
       NOD() auto As() const noexcept requires CT::Sparse<T>;
 
       NOD() auto operator -> () const requires CT::Sparse<T>;
@@ -71,7 +71,7 @@ namespace Langulus::Anyness
    /// containment, it is a bit more efficient than TAny. So, essentially     
    /// its equivalent to std::shared_ptr                                      
    ///                                                                        
-   template<CT::Data T, bool DOUBLE_REFERENCED>
+   template<class T, bool DOUBLE_REFERENCED>
    class TPointer : public TOwned<Conditional<CT::Constant<T>, const T*, T*>> {
       using Base = TOwned<Conditional<CT::Constant<T>, const T*, T*>>;
    protected:
@@ -94,10 +94,6 @@ namespace Langulus::Anyness
       NOD() constexpr Count GetUses() const noexcept;
       using Base::Get;
 
-      /*NOD() static TPointer Create(const Decay<T>&) requires CT::CopyMakable<Decay<T>>;
-      NOD() static TPointer Create(Decay<T>&&) requires CT::MoveMakable<Decay<T>>;
-      NOD() static TPointer Create() requires CT::Defaultable<Decay<T>>;
-      */
       template<class... ARGS>
       void New(ARGS&&...);
 
@@ -114,7 +110,7 @@ namespace Langulus::Anyness
 
       template<CT::Sparse ALT_T>
       TPointer& operator = (ALT_T);
-      template<CT::Data ALT_T>
+      template<class ALT_T>
       TPointer& operator = (const TPointer<ALT_T, DOUBLE_REFERENCED>&);
 
       NOD() operator TPointer<const T, DOUBLE_REFERENCED>() const noexcept requires CT::Mutable<T>;
@@ -128,14 +124,14 @@ namespace Langulus::Anyness
 
    /// Just a handle for a pointer, that provides ownage                      
    /// Pointer will be explicitly nulled after a move                         
-   template<CT::Data T>
+   template<class T>
    using Own = TOwned<T>;
 
    /// A shared pointer, that provides ownage and basic reference counting    
    /// Referencing comes from the block of memory that the pointer points to  
    /// The memory block might contain more data, that will be implicitly      
    /// referenced, too                                                        
-   template<CT::Data T>
+   template<class T>
    using Ptr = TPointer<T, false>;
 
    /// A shared pointer, that provides ownage and more reference counting     
@@ -143,7 +139,7 @@ namespace Langulus::Anyness
    /// points to, and second - the instance's individual reference counter    
    /// Useful for keeping track not only of the memory, but of the individual 
    /// element inside the memory block                                        
-   template<CT::Data T>
+   template<class T>
    using Ref = TPointer<T, true>;
 
 } // namespace Langulus::Anyness
