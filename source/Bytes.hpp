@@ -12,9 +12,9 @@ namespace Langulus::Anyness
 {
 
    ///                                                                        
-   ///   BYTE CONTAINER                                                       
+   ///   Byte sequence container                                              
    ///                                                                        
-   /// Convenient wrapper for raw byte sequences                              
+   /// Convenient wrapper for count-terminated raw byte sequences             
    /// Can represent any POD type as a sequence of bytes                      
    ///                                                                        
    class Bytes : public TAny<Byte> {
@@ -22,7 +22,7 @@ namespace Langulus::Anyness
       LANGULUS_BASES(TAny<Byte>);
 
    public:
-      Bytes() = default;
+      constexpr Bytes() = default;
       Bytes(const Bytes&);
       Bytes(Bytes&&) noexcept;
 
@@ -35,10 +35,10 @@ namespace Langulus::Anyness
       Bytes(const void*, const Size&);
       Bytes(void*, const Size&);
       
-      Bytes(Disowned<Bytes>&&) noexcept;
-      Bytes(Abandoned<Bytes>&&) noexcept;
-      Bytes(Disowned<TAny<Byte>>&&) noexcept;
-      Bytes(Abandoned<TAny<Byte>>&&) noexcept;
+      constexpr Bytes(Disowned<Bytes>&&) noexcept;
+      constexpr Bytes(Abandoned<Bytes>&&) noexcept;
+      constexpr Bytes(Disowned<TAny<Byte>>&&) noexcept;
+      constexpr Bytes(Abandoned<TAny<Byte>>&&) noexcept;
 
       template<CT::POD T>
       explicit Bytes(const T&) requires CT::Dense<T>;

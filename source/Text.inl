@@ -14,6 +14,26 @@
 namespace Langulus::Anyness
 {
 
+   /// Copy other but do not reference it, because it is disowned             
+   ///   @param other - the block to copy                                     
+   constexpr Text::Text(Disowned<Text>&& other) noexcept
+      : TAny {other.Forward<TAny>()} { }
+
+   /// Move other, but do not bother cleaning it up, because it is disowned   
+   ///   @param other - the block to move                                     
+   constexpr Text::Text(Abandoned<Text>&& other) noexcept
+      : TAny {other.Forward<TAny>()} { }
+
+   /// Construct via disowned copy of TAny<Letter>                            
+   ///   @param other - the text to move                                      
+   constexpr Text::Text(Disowned<TAny>&& other) noexcept
+      : TAny {other.Forward<TAny>()} { }
+
+   /// Construct via abandoned move of TAny<Letter>                           
+   ///   @param other - the text to move                                      
+   constexpr Text::Text(Abandoned<TAny>&& other) noexcept
+      : TAny {other.Forward<TAny>()} { }
+
    /// Construct from token                                                   
    /// Data will be cloned if we don't have authority over the memory         
    ///   @param text - the text to wrap                                       

@@ -40,14 +40,15 @@ namespace Langulus::Anyness
       Block mValues;
 
    public:
-      BlockMap() = default;
+      constexpr BlockMap() = default;
+
       template<CT::Data K, CT::Data V>
       BlockMap(::std::initializer_list<TPair<K, V>>);
       BlockMap(const BlockMap&);
       BlockMap(BlockMap&&) noexcept;
 
-      BlockMap(Disowned<BlockMap>&&) noexcept;
-      BlockMap(Abandoned<BlockMap>&&) noexcept;
+      constexpr BlockMap(Disowned<BlockMap>&&) noexcept;
+      constexpr BlockMap(Abandoned<BlockMap>&&) noexcept;
       ~BlockMap();
 
       BlockMap& operator = (const BlockMap&);
@@ -315,8 +316,6 @@ namespace Langulus::Anyness
       NOD() constexpr decltype(auto) GetRawValuesEnd() const noexcept;
 
    #ifdef LANGULUS_ENABLE_TESTING
-      NOD() constexpr DMeta GetKeyTypeInner() const noexcept;
-      NOD() constexpr DMeta GetValueTypeInner() const noexcept;
       NOD() constexpr const void* GetRawKeysMemory() const noexcept;
       NOD() constexpr const void* GetRawValuesMemory() const noexcept;
    #endif

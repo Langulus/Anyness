@@ -24,8 +24,8 @@ namespace Langulus::Anyness
       TOrderedMap(const TOrderedMap&);
       TOrderedMap(TOrderedMap&&) noexcept;
 
-      TOrderedMap(Disowned<TOrderedMap>&&) noexcept;
-      TOrderedMap(Abandoned<TOrderedMap>&&) noexcept;
+      constexpr TOrderedMap(Disowned<TOrderedMap>&&) noexcept;
+      constexpr TOrderedMap(Abandoned<TOrderedMap>&&) noexcept;
 
       TOrderedMap& operator = (const TOrderedMap&);
       TOrderedMap& operator = (TOrderedMap&&) noexcept;

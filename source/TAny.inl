@@ -15,10 +15,12 @@ namespace Langulus::Anyness
 {
 
    /// Default construction                                                   
-   /// TAny is type-constrained and always has a type                         
+   /// TAny is always type-constrained, but its type is set upon allocation   
+   /// to avoid requesting meta definitions before meta database              
+   /// initialization, and to significanty improve TAny initialization time   
    TEMPLATE()
-   TAny<T>::TAny()
-      : Any {Block {DataState::Typed, MetaData::Of<Decay<T>>()}} {
+   constexpr TAny<T>::TAny()
+      : Any {Block {DataState::Typed, nullptr}} {
       if constexpr (CT::Sparse<T>)
          MakeSparse();
       if constexpr (CT::Constant<T>)
@@ -203,6 +205,16 @@ namespace Langulus::Anyness
    TEMPLATE()
    TAny<T>::~TAny() {
       Free();
+   }
+
+   /// Get the static type of the container                                   
+   /// Also initializes the type of this container                            
+   ///   @attention this should not be called at static initialization time   
+   ///   @return the meta definition of the type                              
+   TEMPLATE()
+   const DMeta& TAny<T>::GetType() const noexcept {
+      const_cast<DMeta&>(mType) = MetaData::Of<Decay<T>>();
+      return mType;
    }
 
    /// Dereference and eventually destroy all elements                        
@@ -492,6 +504,7 @@ namespace Langulus::Anyness
       mRaw = other.mRaw;
       mCount = other.mCount;
       mReserved = other.mReserved;
+      mType = other.mType;
       if constexpr (OVERWRITE_STATE)
          mState = other.mState;
       else
@@ -517,7 +530,7 @@ namespace Langulus::Anyness
    ///   @return true if able to interpret current type to 'type'             
    TEMPLATE()
    bool TAny<T>::CastsToMeta(DMeta type) const {
-      return mType->CastsTo<CT::Sparse<T>>(type);
+      return GetType()->CastsTo<CT::Sparse<T>>(type);
    }
 
    /// Check if contained data can be interpreted as a given count of type    
@@ -528,7 +541,7 @@ namespace Langulus::Anyness
    ///   @return true if able to interpret current type to 'type'             
    TEMPLATE()
    bool TAny<T>::CastsToMeta(DMeta type, Count count) const {
-      return mType->CastsTo(type, count);
+      return GetType()->CastsTo(type, count);
    }
 
    /// Wrap stuff in a container                                              
@@ -1512,7 +1525,7 @@ namespace Langulus::Anyness
          result.mElementCount = result.mByteSize / sizeof(KnownPointer);
          return result;
       }
-      else return mType->RequestSize(sizeof(T) * count);
+      else return GetType()->RequestSize(sizeof(T) * count);
    }
 
    /// Allocate a number of elements, relying on the type of the container    
@@ -1597,6 +1610,7 @@ namespace Langulus::Anyness
       }
       else {
          // Allocate a fresh set of elements                            
+         mType = MetaData::Of<Decay<T>>();
          mEntry = Inner::Allocator::Allocate(request.mByteSize);
          LANGULUS_ASSERT(mEntry, Except::Allocate, "Out of memory");
          mRaw = mEntry->GetBlockStart();

@@ -14,13 +14,13 @@ namespace Langulus::Anyness
    /// Copy-construct a map from a disowned map                               
    /// The disowned map's contents will not be referenced                     
    ///   @param other - the map to disown                                     
-   inline UnorderedMap::UnorderedMap(Disowned<UnorderedMap>&& other) noexcept
+   constexpr UnorderedMap::UnorderedMap(Disowned<UnorderedMap>&& other) noexcept
       : BlockMap {other.Forward<BlockMap>()} { }
 
    /// Move-construct a map from an abandoned map                             
    /// The abandoned map will be minimally reset, saving on some instructions 
    ///   @param other - the map to abandon                                    
-   inline UnorderedMap::UnorderedMap(Abandoned<UnorderedMap>&& other) noexcept
+   constexpr UnorderedMap::UnorderedMap(Abandoned<UnorderedMap>&& other) noexcept
       : BlockMap {other.Forward<BlockMap>()} { }
 
    /// Clone the map                                                          

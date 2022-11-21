@@ -42,13 +42,13 @@ namespace Langulus::Anyness
       using ConstIterator = TIterator<false>;
 
    public:
-      TUnorderedMap();
+      constexpr TUnorderedMap();
       TUnorderedMap(::std::initializer_list<Pair>);
       TUnorderedMap(const TUnorderedMap&);
       TUnorderedMap(TUnorderedMap&&) noexcept;
 
-      TUnorderedMap(Disowned<TUnorderedMap>&&) noexcept;
-      TUnorderedMap(Abandoned<TUnorderedMap>&&) noexcept;
+      constexpr TUnorderedMap(Disowned<TUnorderedMap>&&) noexcept;
+      constexpr TUnorderedMap(Abandoned<TUnorderedMap>&&) noexcept;
       ~TUnorderedMap();
 
       TUnorderedMap& operator = (const TUnorderedMap&);

@@ -35,22 +35,22 @@ namespace Langulus::Anyness
 
    /// Construct via disowned copy                                            
    ///   @param other - the bytes to move                                     
-   inline Bytes::Bytes(Disowned<Bytes>&& other) noexcept
+   constexpr Bytes::Bytes(Disowned<Bytes>&& other) noexcept
       : TAny {other.Forward<TAny>()} { }
    
    /// Construct via abandoned move                                           
    ///   @param other - the bytes to move                                     
-   inline Bytes::Bytes(Abandoned<Bytes>&& other) noexcept
+   constexpr Bytes::Bytes(Abandoned<Bytes>&& other) noexcept
       : TAny {other.Forward<TAny>()} { }
 
    /// Construct via disowned copy of TAny<Byte>                              
    ///   @param other - the bytes to move                                     
-   inline Bytes::Bytes(Disowned<TAny>&& other) noexcept
+   constexpr Bytes::Bytes(Disowned<TAny>&& other) noexcept
       : TAny {other.Forward<TAny>()} { }
    
    /// Construct via abandoned move of TAny<Byte>                             
    ///   @param other - the bytes to move                                     
-   inline Bytes::Bytes(Abandoned<TAny>&& other) noexcept
+   constexpr Bytes::Bytes(Abandoned<TAny>&& other) noexcept
       : TAny {other.Forward<TAny>()} { }
 
    /// Construct manually via raw constant memory pointer and size            

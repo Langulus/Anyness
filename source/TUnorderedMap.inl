@@ -16,12 +16,10 @@ namespace Langulus::Anyness
 
    /// Default construction                                                   
    TABLE_TEMPLATE()
-   TABLE()::TUnorderedMap()
+   constexpr TABLE()::TUnorderedMap()
       : UnorderedMap {} {
       mKeys.mState = DataState::Typed;
-      mKeys.mType = MetaData::Of<Decay<K>>();
       mValues.mState = DataState::Typed;
-      mValues.mType = MetaData::Of<Decay<V>>();
       if constexpr (CT::Sparse<K>)
          mKeys.MakeSparse();
       if constexpr (CT::Sparse<V>)
@@ -57,13 +55,13 @@ namespace Langulus::Anyness
    /// Shallow-copy construction without referencing                          
    ///   @param other - the disowned table to copy                            
    TABLE_TEMPLATE()
-   TABLE()::TUnorderedMap(Disowned<TUnorderedMap>&& other) noexcept
+   constexpr TABLE()::TUnorderedMap(Disowned<TUnorderedMap>&& other) noexcept
       : UnorderedMap {other.template Forward<UnorderedMap>()} {}
 
    /// Minimal move construction from abandoned table                         
    ///   @param other - the abandoned table to move                           
    TABLE_TEMPLATE()
-   TABLE()::TUnorderedMap(Abandoned<TUnorderedMap>&& other) noexcept
+   constexpr TABLE()::TUnorderedMap(Abandoned<TUnorderedMap>&& other) noexcept
       : UnorderedMap {other.template Forward<UnorderedMap>()} {}
 
    /// Destroys the map and all it's contents                                 
@@ -363,15 +361,23 @@ namespace Langulus::Anyness
    }
 
    /// Get the key meta data                                                  
+   /// Also implicitly initializes the internal key type                      
+   ///   @attention this shouldn't be called on static initialization time    
+   ///   @return the meta definition of the key type                          
    TABLE_TEMPLATE()
    DMeta TABLE()::GetKeyType() const {
-      return MetaData::Of<Decay<K>>();
+      const_cast<DMeta&>(mKeys.mType) = MetaData::Of<Decay<K>>();
+      return mKeys.mType;
    }
 
    /// Get the value meta data                                                
+   /// Also implicitly initializes the internal key type                      
+   ///   @attention this shouldn't be called on static initialization time    
+   ///   @return the meta definition of the value type                        
    TABLE_TEMPLATE()
    DMeta TABLE()::GetValueType() const {
-      return MetaData::Of<Decay<V>>();
+      const_cast<DMeta&>(mValues.mType) = MetaData::Of<Decay<V>>();
+      return mValues.mType;
    }
 
    /// Check if key type exactly matches another                              
@@ -449,8 +455,10 @@ namespace Langulus::Anyness
       const auto keyAndInfoSize = RequestKeyAndInfoSize(count, infoOffset);
       if constexpr (REUSE)
          mKeys.mEntry = Allocator::Reallocate(keyAndInfoSize, mKeys.mEntry);
-      else
+      else {
+         mKeys.mType = MetaData::Of<Decay<K>>();
          mKeys.mEntry = Allocator::Allocate(keyAndInfoSize);
+      }
 
       LANGULUS_ASSERT(mKeys.mEntry, Except::Allocate, "Out of memory");
 
@@ -458,8 +466,10 @@ namespace Langulus::Anyness
       const Block oldValues {mValues};
       if constexpr (REUSE)
          mValues.mEntry = Allocator::Reallocate(count * sizeof(ValueInner), mValues.mEntry);
-      else
+      else {
+         mValues.mType = MetaData::Of<Decay<V>>();
          mValues.mEntry = Allocator::Allocate(count * sizeof(ValueInner));
+      }
 
       if (!mValues.mEntry) {
          Allocator::Deallocate(mKeys.mEntry);

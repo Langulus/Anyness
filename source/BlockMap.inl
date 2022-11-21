@@ -44,7 +44,7 @@ namespace Langulus::Anyness
 
    /// Shallow-copy construction without referencing                          
    ///   @param other - the disowned table to copy                            
-   inline BlockMap::BlockMap(Disowned<BlockMap>&& other) noexcept
+   constexpr BlockMap::BlockMap(Disowned<BlockMap>&& other) noexcept
       : mInfo {other.mValue.mInfo}
       , mKeys {other.mValue.mKeys}
       , mValues {other.mValue.mValues} {
@@ -53,7 +53,7 @@ namespace Langulus::Anyness
 
    /// Minimal move construction from abandoned table                         
    ///   @param other - the abandoned table to move                           
-   inline BlockMap::BlockMap(Abandoned<BlockMap>&& other) noexcept
+   constexpr BlockMap::BlockMap(Abandoned<BlockMap>&& other) noexcept
       : mInfo {other.mValue.mInfo}
       , mKeys {other.mValue.mKeys}
       , mValues {other.mValue.mValues} {
@@ -318,18 +318,6 @@ namespace Langulus::Anyness
    }
 
    #ifdef LANGULUS_ENABLE_TESTING
-      /// Get the internal key type, used only in testing                     
-      ///   @return the type                                                  
-      constexpr DMeta BlockMap::GetKeyTypeInner() const noexcept {
-         return mKeys.GetType();
-      }
-
-      /// Get the internal value type, used only in testing                   
-      ///   @return the type                                                  
-      constexpr DMeta BlockMap::GetValueTypeInner() const noexcept {
-         return mValues.GetType();
-      }
-
       /// Get raw key memory pointer, used only in testing                    
       ///   @return the pointer                                               
       constexpr const void* BlockMap::GetRawKeysMemory() const noexcept {

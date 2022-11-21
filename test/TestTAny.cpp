@@ -66,8 +66,8 @@ T CreateElement(const ALT_T& e) {
 /// The main test for Any/TAny containers, with all kinds of items, from		
 /// sparse to dense, from trivial to complex, from flat to deep					
 TEMPLATE_TEST_CASE("Any/TAny", "[any]", 
-	(TypePair<TAny<Any>, Any>),
 	(TypePair<TAny<int>, int>),
+	(TypePair<TAny<Any>, Any>),
 	(TypePair<TAny<Trait>, Trait>),
 	(TypePair<TAny<Traits::Count>, Traits::Count>),
 	(TypePair<TAny<Text>, Text>),
@@ -138,7 +138,6 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 			REQUIRE(pack.IsEmpty());
 
 			if constexpr (CT::Typed<T>) {
-				REQUIRE(pack.IsTypeConstrained());
 				REQUIRE_FALSE(pack.IsUntyped());
 				REQUIRE(pack.GetType() != nullptr);
 				REQUIRE(pack.GetType()->template Is<E>());
@@ -151,7 +150,6 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 					REQUIRE(pack.GetState() == DataState::Typed);
 			}
 			else {
-				REQUIRE_FALSE(pack.IsTypeConstrained());
 				REQUIRE(pack.IsUntyped());
 				REQUIRE(pack.GetType() == nullptr);
 				REQUIRE(pack.IsDense());
@@ -159,6 +157,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 				REQUIRE(pack.GetState() == DataState::Default);
 			}
 
+			REQUIRE(pack.IsTypeConstrained() == CT::Typed<T>);
 			REQUIRE(pack.GetRaw() == nullptr);
 			REQUIRE(pack.IsEmpty());
 			REQUIRE_FALSE(pack.IsAllocated());
@@ -225,24 +224,6 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 					REQUIRE(pack.HasAuthority() == element.HasAuthority());
 					REQUIRE_FALSE(pack.IsEmpty());
 				}
-				/*else {
-					REQUIRE(pack.template As<DenseE>().GetRaw() == sparseValue->GetRaw());
-					if constexpr (CT::Typed<T>)
-						REQUIRE(pack.template Is<typename T::Type>());
-					REQUIRE(pack.template As<DenseE>() == denseValue);
-					REQUIRE(*pack.template As<DenseE*>() == denseValue);
-					REQUIRE(pack.template As<DenseE>().IsStatic() == element.IsStatic());
-					REQUIRE(pack.template As<DenseE>().IsConstant() == element.IsConstant());
-					REQUIRE(pack.template As<DenseE>().HasAuthority() == element.HasAuthority());
-					REQUIRE(pack.template As<DenseE>().GetUses() == 2);
-					REQUIRE(pack.template As<DenseE>() == element);
-					REQUIRE(pack != element);
-					REQUIRE(pack.GetUses() == 1);
-					REQUIRE_FALSE(pack.IsStatic());
-					REQUIRE_FALSE(pack.IsConstant());
-					REQUIRE(pack.HasAuthority());
-					REQUIRE(pack.IsDeep());
-				}*/
 
 				if constexpr (CT::Sparse<E>) {
 					REQUIRE(*pack.GetRawSparse() == sparseValue);
@@ -325,24 +306,6 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 					REQUIRE(pack.GetType() != nullptr);
 					REQUIRE(pack.GetRaw() != nullptr);
 				}
-				/*else {
-					REQUIRE(pack.template As<DenseE>().GetRaw() == sparseValue->GetRaw());
-					if constexpr (CT::Typed<T>)
-						REQUIRE(pack.template Is<typename T::Type>());
-					REQUIRE(pack.template As<DenseE>() == denseValue);
-					REQUIRE(*pack.template As<DenseE*>() == denseValue);
-					REQUIRE_FALSE(pack.template As<DenseE>().IsStatic());
-					REQUIRE_FALSE(pack.template As<DenseE>().IsConstant());
-					REQUIRE(pack.template As<DenseE>().HasAuthority());
-					REQUIRE(pack.template As<DenseE>().GetUses() == 2);
-					REQUIRE(pack.template As<DenseE>() == element);
-					REQUIRE(pack != element);
-					REQUIRE(pack.GetUses() == 1);
-					REQUIRE(pack.IsDeep());
-					REQUIRE_FALSE(pack.IsStatic());
-					REQUIRE_FALSE(pack.IsConstant());
-					REQUIRE(pack.HasAuthority());
-				}*/
 
 				if constexpr (CT::Sparse<E>) {
 					REQUIRE(asbytes(pack.GetRawSparse()->mPointer) == asbytes(sparseValue));
@@ -416,25 +379,6 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 					REQUIRE(pack.IsConstant() == element.IsConstant());
 					REQUIRE_FALSE(pack.IsEmpty());
 				}
-				/*else {
-					REQUIRE(pack.template As<DenseE>().GetRaw() == sparseValue->GetRaw());
-					REQUIRE(pack.template As<DenseE>().GetType() == element.GetType());
-					if constexpr (CT::Typed<T>)
-						REQUIRE(pack.template Is<typename T::Type>());
-					REQUIRE(pack.template As<DenseE>() == denseValue);
-					REQUIRE(*pack.template As<DenseE*>() == denseValue);
-					REQUIRE(pack.template As<DenseE>().IsStatic());
-					REQUIRE_FALSE(pack.template As<DenseE>().IsConstant());
-					REQUIRE_FALSE(pack.template As<DenseE>().HasAuthority());
-					REQUIRE(pack.template As<DenseE>().GetUses() == 0);
-					REQUIRE(pack.template As<DenseE>() == element);
-					REQUIRE(pack != element);
-					REQUIRE(pack.GetUses() == 1);
-					REQUIRE_FALSE(pack.IsStatic());
-					REQUIRE_FALSE(pack.IsConstant());
-					REQUIRE(pack.HasAuthority());
-					REQUIRE(pack.IsDeep());
-				}*/
 
 				if constexpr (CT::Sparse<E>) {
 					REQUIRE(asbytes(pack.GetRawSparse()->mPointer) == asbytes(sparseValue));
@@ -517,24 +461,6 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 					REQUIRE(pack.GetType() != nullptr);
 					REQUIRE(pack.GetRaw() != nullptr);
 				}
-				/*else {
-					REQUIRE(pack.template As<DenseE>().GetRaw() == sparseValue->GetRaw());
-					if constexpr (CT::Typed<T>)
-						REQUIRE(pack.template Is<typename T::Type>());
-					REQUIRE(pack.template As<DenseE>() == denseValue);
-					REQUIRE(*pack.template As<DenseE*>() == denseValue);
-					REQUIRE_FALSE(pack.template As<DenseE>().IsStatic());
-					REQUIRE_FALSE(pack.template As<DenseE>().IsConstant());
-					REQUIRE(pack.template As<DenseE>().HasAuthority());
-					REQUIRE(pack.template As<DenseE>().GetUses() == 2);
-					REQUIRE(pack.template As<DenseE>() == element);
-					REQUIRE(pack != element);
-					REQUIRE(pack.GetUses() == 1);
-					REQUIRE(pack.IsDeep());
-					REQUIRE_FALSE(pack.IsStatic());
-					REQUIRE_FALSE(pack.IsConstant());
-					REQUIRE(pack.HasAuthority());
-				}*/
 
 				if constexpr (CT::Sparse<E>) {
 					REQUIRE(asbytes(pack.GetRawSparse()->mPointer) == asbytes(sparseValue));
@@ -583,14 +509,14 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 					REQUIRE(pack.GetType()->template Is<DenseE>());
 					REQUIRE(pack.IsDense() == CT::Dense<E>);
 					REQUIRE(pack.IsSparse() == CT::Sparse<E>);
-					REQUIRE(pack.IsTypeConstrained());
 				}
 				else {
 					REQUIRE_FALSE(pack.GetType());
-					REQUIRE_FALSE(pack.IsTypeConstrained());
 					REQUIRE(pack.IsDense());
 					REQUIRE_FALSE(pack.IsSparse());
 				}
+
+				REQUIRE(pack.IsTypeConstrained() == CT::Typed<T>);
 				REQUIRE(pack.GetRaw() == nullptr);
 				REQUIRE(pack.IsEmpty());
 				REQUIRE(pack.GetUses() == 0);
@@ -651,14 +577,6 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 					REQUIRE(pack.GetUses() == 3);
 					REQUIRE(pack.IsDeep() == element.IsDeep());
 				}
-				/*else {
-					if constexpr (CT::Typed<T>)
-						REQUIRE(pack.template Is<typename T::Type>());
-					REQUIRE(pack == source);
-					REQUIRE(pack != element);
-					REQUIRE(pack.GetUses() == 2);
-					REQUIRE(pack.IsDeep());
-				}*/
 
 				REQUIRE(pack.GetRaw() != nullptr);
 				REQUIRE_THROWS(pack.template As<float>() == 0.0f);
@@ -724,15 +642,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 					REQUIRE(pack.GetUses() == 2);
 					REQUIRE(pack.IsDeep() == element.IsDeep());
 				}
-				/*else {
-					if constexpr (CT::Typed<T>)
-						REQUIRE(pack.template Is<typename T::Type>());
-					REQUIRE(pack.template As<DenseE>() == denseValue);
-					REQUIRE(*pack.template As<DenseE*>() == denseValue);
-					REQUIRE(pack != element);
-					REQUIRE(pack.GetUses() == 1);
-					REQUIRE(pack.IsDeep());
-				}*/
+
 				REQUIRE_THROWS(pack.template As<float>() == 0.0f);
 				REQUIRE_THROWS(pack.template As<float*>() == nullptr);
 				REQUIRE_FALSE(pack.IsEmpty());
@@ -798,24 +708,6 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 						REQUIRE(pack.IsStatic() == element.IsStatic());
 						REQUIRE(pack.HasAuthority() == element.HasAuthority());
 					}
-					/*else {
-						REQUIRE(pack.template As<DenseE>().GetRaw() == sparseValue->GetRaw());
-						if constexpr (CT::Typed<T>)
-							REQUIRE(pack.template Is<typename T::Type>());
-						REQUIRE(pack.template As<DenseE>() == denseValue);
-						REQUIRE(*pack.template As<DenseE*>() == denseValue);
-						REQUIRE(pack.template As<DenseE>().IsStatic() == element.IsStatic());
-						REQUIRE(pack.template As<DenseE>().IsConstant() == element.IsConstant());
-						REQUIRE(pack.template As<DenseE>().HasAuthority() == element.HasAuthority());
-						REQUIRE(pack.template As<DenseE>().GetUses() == 2);
-						REQUIRE(pack.template As<DenseE>() == element);
-						REQUIRE(pack != element);
-						REQUIRE(pack.GetUses() == 1);
-						REQUIRE_FALSE(pack.IsStatic());
-						REQUIRE_FALSE(pack.IsConstant());
-						REQUIRE(pack.HasAuthority());
-						REQUIRE(pack.IsDeep());
-					}*/
 
 					if constexpr (CT::Sparse<E>) {
 						REQUIRE(asbytes(pack.GetRawSparse()->mPointer) == asbytes(sparseValue));
@@ -891,24 +783,6 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 						REQUIRE(pack.IsStatic() == element.IsStatic());
 						REQUIRE(pack.HasAuthority() == element.HasAuthority());
 					}
-					/*else {
-						REQUIRE(pack.template As<DenseE>().GetRaw() == sparseValue->GetRaw());
-						if constexpr (CT::Typed<T>)
-							REQUIRE(pack.template Is<typename T::Type>());
-						REQUIRE(pack.template As<DenseE>() == denseValue);
-						REQUIRE(*pack.template As<DenseE*>() == denseValue);
-						REQUIRE_FALSE(pack.template As<DenseE>().IsStatic());
-						REQUIRE_FALSE(pack.template As<DenseE>().IsConstant());
-						REQUIRE(pack.template As<DenseE>().HasAuthority());
-						REQUIRE(pack.template As<DenseE>().GetUses() == 2);
-						REQUIRE(pack.template As<DenseE>() == element);
-						REQUIRE(pack != element);
-						REQUIRE(pack.GetUses() == 1);
-						REQUIRE(pack.IsDeep());
-						REQUIRE_FALSE(pack.IsStatic());
-						REQUIRE_FALSE(pack.IsConstant());
-						REQUIRE(pack.HasAuthority());
-					}*/
 
 					if constexpr (CT::Sparse<E>) {
 						REQUIRE(asbytes(pack.GetRawSparse()->mPointer) == asbytes(sparseValue));
@@ -978,25 +852,6 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 						REQUIRE(pack.IsDeep() == element.IsDeep());
 						REQUIRE(pack.IsConstant() == element.IsConstant());
 					}
-					/*else {
-						REQUIRE(pack.template As<DenseE>().GetRaw() == sparseValue->GetRaw());
-						REQUIRE(pack.template As<DenseE>().GetType() == element.GetType());
-						if constexpr (CT::Typed<T>)
-							REQUIRE(pack.template Is<typename T::Type>());
-						REQUIRE(pack.template As<DenseE>() == denseValue);
-						REQUIRE(*pack.template As<DenseE*>() == denseValue);
-						REQUIRE(pack.template As<DenseE>().IsStatic());
-						REQUIRE_FALSE(pack.template As<DenseE>().IsConstant());
-						REQUIRE_FALSE(pack.template As<DenseE>().HasAuthority());
-						REQUIRE(pack.template As<DenseE>().GetUses() == 0);
-						REQUIRE(pack.template As<DenseE>() == element);
-						REQUIRE(pack != element);
-						REQUIRE(pack.GetUses() == 1);
-						REQUIRE_FALSE(pack.IsStatic());
-						REQUIRE_FALSE(pack.IsConstant());
-						REQUIRE(pack.HasAuthority());
-						REQUIRE(pack.IsDeep());
-					}*/
 
 					if constexpr (CT::Sparse<E>) {
 						REQUIRE(asbytes(pack.GetRawSparse()->mPointer) == asbytes(sparseValue));
@@ -1072,24 +927,6 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 						REQUIRE(pack.IsStatic() == element.IsStatic());
 						REQUIRE(pack.HasAuthority() == element.HasAuthority());
 					}
-					/*else {
-						REQUIRE(pack.template As<DenseE>().GetRaw() == sparseValue->GetRaw());
-						if constexpr (CT::Typed<T>)
-							REQUIRE(pack.template Is<typename T::Type>());
-						REQUIRE(pack.template As<DenseE>() == denseValue);
-						REQUIRE(*pack.template As<DenseE*>() == denseValue);
-						REQUIRE_FALSE(pack.template As<DenseE>().IsStatic());
-						REQUIRE_FALSE(pack.template As<DenseE>().IsConstant());
-						REQUIRE(pack.template As<DenseE>().HasAuthority());
-						REQUIRE(pack.template As<DenseE>().GetUses() == 2);
-						REQUIRE(pack.template As<DenseE>() == element);
-						REQUIRE(pack != element);
-						REQUIRE(pack.GetUses() == 1);
-						REQUIRE(pack.IsDeep());
-						REQUIRE_FALSE(pack.IsStatic());
-						REQUIRE_FALSE(pack.IsConstant());
-						REQUIRE(pack.HasAuthority());
-					}*/
 
 					if constexpr (CT::Sparse<E>) {
 						REQUIRE(asbytes(pack.GetRawSparse()->mPointer) == asbytes(sparseValue));
@@ -1134,23 +971,10 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 				pack = T {};
 
 				THEN("Various traits change") {
-					/*if constexpr (CT::Same<T, E> && CT::Dense<E>) {
-						REQUIRE(pack.GetType()->template Is<int>());
-						REQUIRE(pack.GetType()->template Is<int*>());
-						REQUIRE(pack.GetUses() == 2);
-						REQUIRE_FALSE(pack.IsDeep());
+					if constexpr (CT::Typed<T>) {
+						REQUIRE(pack.GetType()->Is<E>());
 					}
-					else {
-						REQUIRE(pack.GetType()->template Is<E>());
-						REQUIRE(pack.GetType()->template Is<DenseE>());
-						REQUIRE(pack.GetUses() == 1);
-						REQUIRE(pack.IsDeep() == CT::Deep<Decay<E>>);
-					}
-					REQUIRE(pack.IsDense() == CT::Dense<E>);
-					REQUIRE(pack.IsSparse() == CT::Sparse<E>);*/
 					REQUIRE(pack.IsTypeConstrained() == CT::Typed<T>);
-					if constexpr (CT::Typed<T>)
-						REQUIRE(pack.template Is<TypeOf<T>>());
 					REQUIRE(pack.GetRaw() == nullptr);
 					REQUIRE_FALSE(pack.IsAllocated());
 					REQUIRE(pack.IsEmpty());
@@ -1189,7 +1013,6 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 				pack = pack;
 
 				THEN("Various traits change") {
-					REQUIRE(pack.IsTypeConstrained() == CT::Typed<T>);
 					if constexpr (CT::Typed<T>) {
 						REQUIRE(pack.GetType()->template Is<E>());
 						REQUIRE(pack.GetType()->template Is<DenseE>());
@@ -1197,6 +1020,8 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 					else {
 						REQUIRE(pack.GetType());
 					}
+
+					REQUIRE(pack.IsTypeConstrained() == CT::Typed<T>);
 					REQUIRE(pack.IsDense() == CT::Dense<E>);
 					REQUIRE(pack.IsSparse() == CT::Sparse<E>);
 					REQUIRE(pack.GetRaw() != nullptr);

@@ -22,7 +22,8 @@ namespace Langulus::Anyness
       LANGULUS_BASES(A::Text, TAny<Letter>);
 
    public:
-      Text() = default;
+      constexpr Text() = default;
+
       Text(const Text&);
       Text(Text&&) noexcept;
 
@@ -31,10 +32,10 @@ namespace Langulus::Anyness
 
       Text(const CT::Deep auto&) = delete;
 
-      Text(Disowned<Text>&&) noexcept;
-      Text(Abandoned<Text>&&) noexcept;
-      Text(Disowned<TAny>&&) noexcept;
-      Text(Abandoned<TAny>&&) noexcept;
+      constexpr Text(Disowned<Text>&&) noexcept;
+      constexpr Text(Abandoned<Text>&&) noexcept;
+      constexpr Text(Disowned<TAny>&&) noexcept;
+      constexpr Text(Abandoned<TAny>&&) noexcept;
 
       Text(const Token&);
       Text(const Exception&);

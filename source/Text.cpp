@@ -33,26 +33,6 @@ namespace Langulus::Anyness
    Text::Text(TAny&& other) noexcept
       : TAny {Forward<TAny>(other)} {}
 
-   /// Copy other but do not reference it, because it is disowned             
-   ///   @param other - the block to copy                                     
-   Text::Text(Disowned<Text>&& other) noexcept
-      : TAny {other.Forward<TAny>()} { }	
-   
-   /// Move other, but do not bother cleaning it up, because it is disowned   
-   ///   @param other - the block to move                                     
-   Text::Text(Abandoned<Text>&& other) noexcept
-      : TAny {other.Forward<TAny>()} { }	
-   
-   /// Construct via disowned copy of TAny<Letter>                            
-   ///   @param other - the text to move                                      
-   Text::Text(Disowned<TAny>&& other) noexcept
-      : TAny {other.Forward<TAny>()} { }
-   
-   /// Construct via abandoned move of TAny<Letter>                           
-   ///   @param other - the text to move                                      
-   Text::Text(Abandoned<TAny>&& other) noexcept
-      : TAny {other.Forward<TAny>()} { }
-
    /// Construct from a Langulus exception                                    
    ///   @param from - the exception to stringify                             
    Text::Text(const Exception& from) {
@@ -186,7 +166,7 @@ namespace Langulus::Anyness
    Text Text::Lowercase() const {
       Text result = Clone();
       for (auto i : result)
-         i = static_cast<Letter>(std::tolower(i));
+         i = static_cast<Letter>(::std::tolower(i));
       return result;
    }
 
@@ -195,7 +175,7 @@ namespace Langulus::Anyness
    Text Text::Uppercase() const {
       Text result = Clone();
       for (auto i : result)
-         i = static_cast<Letter>(std::toupper(i));
+         i = static_cast<Letter>(::std::toupper(i));
       return result;
    }
 
