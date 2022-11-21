@@ -1092,7 +1092,7 @@ namespace Langulus::Anyness
    ///   @tparam INDEX - the type of the index (deducible)                    
    ///   @param start - pointer to the first item                             
    ///   @param end - pointer to the end of items                             
-   ///   @param index - the simple index to insert at                         
+   ///   @param idx - the simple index to insert at                           
    ///   @return number of inserted elements                                  
    template<bool KEEP, bool MUTABLE, CT::Data WRAPPER, CT::NotSemantic T, CT::Index INDEX>
    Count Block::InsertAt(const T* start, const T* end, INDEX idx) {
@@ -1192,8 +1192,6 @@ namespace Langulus::Anyness
    Count Block::Insert(const T* start, const T* end) {
       static_assert(CT::Deep<WRAPPER>,
          "WRAPPER must be deep");
-      //static_assert(CT::Sparse<T> || CT::Mutable<T>,
-      //	"Can't copy-insert into container of constant elements");
       static_assert(INDEX == IndexFront || INDEX == IndexBack,
          "INDEX can be either IndexBack or IndexFront; "
          "use Block::InsertAt to insert at specific offset");
@@ -1240,8 +1238,6 @@ namespace Langulus::Anyness
    Count Block::Insert(T&& item) {
       static_assert(CT::Deep<WRAPPER>,
          "WRAPPER must be deep");
-      //static_assert(CT::Sparse<T> || CT::Mutable<T>,
-      //	"Can't copy-insert into container of constant elements");
       static_assert(INDEX == IndexFront || INDEX == IndexBack,
          "INDEX can be either IndexBack or IndexFront; "
          "use Block::InsertAt to insert at specific offset");
@@ -1282,7 +1278,7 @@ namespace Langulus::Anyness
    ///   @tparam T - the type to insert (deducible)                           
    ///   @param start - pointer to the first item                             
    ///   @param end - pointer to the end of items                             
-   ///   @param starter - the offset at which to insert                       
+   ///   @param at - the offset at which to insert                            
    template<bool KEEP, CT::NotSemantic T>
    void Block::InsertInner(const T* start, const T* end, Offset at) {
       static_assert(CT::Sparse<T> || CT::Insertable<T>,
@@ -1335,7 +1331,7 @@ namespace Langulus::Anyness
    ///   @tparam KEEP - whether or not to reference the new contents          
    ///   @tparam T - the type to insert (deducible)                           
    ///   @param item - item to move in                                        
-   ///   @param starter - the offset at which to insert                       
+   ///   @param at - the offset at which to insert                            
    template<bool KEEP, CT::NotSemantic T>
    void Block::InsertInner(T&& item, Offset at) {
       static_assert(CT::Sparse<T> || CT::Insertable<T>,
