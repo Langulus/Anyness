@@ -933,6 +933,19 @@ namespace Langulus::Anyness
       return count;
    }
 
+   /// Copy-insert item at an index                                           
+   ///   @attention assumes index is in the container's limits, if simple     
+   ///   @tparam KEEP - whether or not to reference inserted data             
+   ///   @tparam IDX - type of indexing to use (deducible)                    
+   ///   @param item - the item to push                                       
+   ///   @param index - the index to insert at                                
+   ///   @return number of inserted items                                     
+   TEMPLATE()
+   template<bool KEEP, CT::Index IDX>
+   Count TAny<T>::InsertAt(const T& item, const IDX& index) {
+      return InsertAt<KEEP, IDX>(&item, &item + 1, index);
+   }
+
    /// Move-insert an item at an index                                        
    ///   @attention assumes index is in the container's limits, if simple     
    ///   @tparam KEEP - whether or not to reference inserted data             
@@ -1002,6 +1015,17 @@ namespace Langulus::Anyness
       else InsertInner<KEEP>(start, end, mCount);
 
       return count;
+   }
+
+   /// Copy-insert an element, either at the start or the end                 
+   ///   @tparam INDEX - use IndexBack or IndexFront to append accordingly    
+   ///   @tparam KEEP - whether to reference data on copy                     
+   ///   @param item - the item to find and push                              
+   ///   @return number of inserted elements                                  
+   TEMPLATE()
+   template<Index INDEX, bool KEEP>
+   Count TAny<T>::Insert(const T& item) {
+      return Insert<INDEX, KEEP>(&item, &item + 1);
    }
 
    /// Move-insert an element at the start or the end                         
@@ -1172,6 +1196,19 @@ namespace Langulus::Anyness
       return Block::MergeAt<TAny, KEEP, true, T>(start, end, index);
    }
 
+   /// Copy-insert element that is not found, at an index                     
+   ///   @attention assumes index is in container's limits, if simple         
+   ///   @tparam KEEP - whether or not to reference inserted data             
+   ///   @tparam IDX - type for indexing (deducible)                          
+   ///   @param item - the item to find and push                              
+   ///   @param index - the index to insert at                                
+   ///   @return the number of inserted items                                 
+   TEMPLATE()
+   template<bool KEEP, CT::Index IDX>
+   Count TAny<T>::MergeAt(const T& item, const IDX& index) {
+      return Block::MergeAt<TAny, KEEP, true, T>(&item, &item + 1, index);
+   }
+
    /// Move-insert element, if not found, at an index                         
    ///   @attention assumes index is in container's limits, if simple         
    ///   @tparam KEEP - whether or not to reference inserted data             
@@ -1195,6 +1232,17 @@ namespace Langulus::Anyness
    template<Index INDEX, bool KEEP>
    Count TAny<T>::Merge(const T* start, const T* end) {
       return Block::Merge<INDEX, KEEP, true, TAny, T>(start, end);
+   }
+
+   /// Copy-insert element if not found, at a static index                    
+   ///   @tparam INDEX - the static index (either IndexFront or IndexBack)    
+   ///   @tparam KEEP - whether or not to reference inserted data             
+   ///   @param item - the item to find and push                              
+   ///   @return the number of inserted items                                 
+   TEMPLATE()
+   template<Index INDEX, bool KEEP>
+   Count TAny<T>::Merge(const T& item) {
+      return Block::Merge<INDEX, KEEP, true, TAny, T>(&item, &item + 1);
    }
 
    /// Move-insert element, if not found, at a static index                   

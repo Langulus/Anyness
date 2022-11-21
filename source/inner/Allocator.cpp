@@ -212,14 +212,11 @@ namespace Langulus::Anyness::Inner
    /// If LANGULUS_FEATURE(MANAGED_MEMORY) is enabled, this function will     
    /// attempt to find memory entry from the memory manager                   
    /// Allows us to safely interface unknown memory, possibly reusing it      
-   ///   @attention assumes memory is a valid pointer                         
    ///   @param hint - the type of data to search for (optional)              
    ///   @param memory - memory pointer                                       
    ///   @return the memory entry that manages the memory pointer, or         
    ///           nullptr if memory is not ours, or is no longer used          
    Allocation* Allocator::Find(DMeta hint, const void* memory) SAFETY_NOEXCEPT() {
-      LANGULUS_ASSUME(DevAssumes, memory, "Nullptr provided");
-
       #if LANGULUS_FEATURE(MANAGED_MEMORY)
          // Scan the last pool that found something (hot region)        
          if (mLastFoundPool) {
