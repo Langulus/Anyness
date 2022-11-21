@@ -122,8 +122,8 @@ TEMPLATE_TEST_CASE(
 				if constexpr (IsStaticallyOptimized<T>) {
 					REQUIRE(map.template KeyIs<K>());
 					REQUIRE(map.template ValueIs<V>());
-					REQUIRE(map.GetKeyType()->Is<K>());
-					REQUIRE(map.GetValueType()->Is<V>());
+					REQUIRE(map.GetKeyType()->template Is<K>());
+					REQUIRE(map.GetValueType()->template Is<V>());
 				}
 
 				REQUIRE(map.IsKeyTypeConstrained() == IsStaticallyOptimized<T>);
@@ -158,9 +158,9 @@ TEMPLATE_TEST_CASE(
 
 			THEN("Various traits change") {
 				REQUIRE(map.IsKeyTypeConstrained() == IsStaticallyOptimized<T>);
-				REQUIRE(map.GetKeyType()->Is<K>());
+				REQUIRE(map.GetKeyType()->template Is<K>());
 				REQUIRE(map.IsValueTypeConstrained() == IsStaticallyOptimized<T>);
-				REQUIRE(map.GetValueType()->Is<V>());
+				REQUIRE(map.GetValueType()->template Is<V>());
 				REQUIRE(map.template KeyIs<K>());
 				REQUIRE(map.template ValueIs<V>());
 				REQUIRE(map.GetKeyStride() == (CT::Dense<K> ? sizeof(K) : sizeof(Block::KnownPointer)));
@@ -199,9 +199,9 @@ TEMPLATE_TEST_CASE(
 			THEN("Various traits change") {
 				REQUIRE(movablePair != pair);
 				REQUIRE(map.IsKeyTypeConstrained() == IsStaticallyOptimized<T>);
-				REQUIRE(map.GetKeyType()->Is<K>());
+				REQUIRE(map.GetKeyType()->template Is<K>());
 				REQUIRE(map.IsValueTypeConstrained() == IsStaticallyOptimized<T>);
-				REQUIRE(map.GetValueType()->Is<V>());
+				REQUIRE(map.GetValueType()->template Is<V>());
 				REQUIRE(map.template KeyIs<K>());
 				REQUIRE(map.template ValueIs<V>());
 				REQUIRE(map.IsAllocated());
@@ -280,9 +280,9 @@ TEMPLATE_TEST_CASE(
 		WHEN("Given a preinitialized map with 5 elements") {
 			THEN("These properties should be correct") {
 				REQUIRE(map.GetCount() == 5);
-				REQUIRE(map.GetKeyType()->Is<K>());
+				REQUIRE(map.GetKeyType()->template Is<K>());
 				REQUIRE(map.template KeyIs<K>());
-				REQUIRE(map.GetValueType()->Is<V>());
+				REQUIRE(map.GetValueType()->template Is<V>());
 				REQUIRE(map.template ValueIs<V>());
 				REQUIRE_FALSE(map.template KeyIs<int>());
 				REQUIRE_FALSE(map.template KeyIs<char>());
@@ -375,9 +375,9 @@ TEMPLATE_TEST_CASE(
 			THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
 				REQUIRE(map.IsKeyTypeConstrained() == IsStaticallyOptimized<T>);
 				REQUIRE(map.IsValueTypeConstrained() == IsStaticallyOptimized<T>);
-				REQUIRE(map.GetKeyType()->Is<K>());
+				REQUIRE(map.GetKeyType()->template Is<K>());
 				REQUIRE(map.template KeyIs<K>());
-				REQUIRE(map.GetValueType()->Is<V>());
+				REQUIRE(map.GetValueType()->template Is<V>());
 				REQUIRE(map.template ValueIs<V>());
 				REQUIRE(map.HasAuthority());
 				REQUIRE(map.GetUses() == 1);
@@ -478,8 +478,8 @@ TEMPLATE_TEST_CASE(
 				REQUIRE(map.HasAuthority());
 				REQUIRE(map.GetUses() == 1);
 				REQUIRE(map.GetCount() == 10);
-				REQUIRE(map.GetKeyType()->Is<K>());
-				REQUIRE(map.GetValueType()->Is<V>());
+				REQUIRE(map.GetKeyType()->template Is<K>());
+				REQUIRE(map.GetValueType()->template Is<V>());
 				for (auto& comparer : darray1)
 					REQUIRE(map[comparer.mKey] == comparer.mValue);
 				for (auto& comparer : darray2)
@@ -517,8 +517,8 @@ TEMPLATE_TEST_CASE(
 			const auto removed4 = const_cast<T&>(map).RemoveValue(darray1[3].mValue);
 
 			THEN("The size changes but not capacity") {
-				REQUIRE(map.GetKeyType()->Is<K>());
-				REQUIRE(map.GetValueType()->Is<V>());
+				REQUIRE(map.GetKeyType()->template Is<K>());
+				REQUIRE(map.GetValueType()->template Is<V>());
 				REQUIRE(map.HasAuthority());
 				REQUIRE(map.GetUses() == 1);
 				REQUIRE(removed2 == 1);
@@ -575,8 +575,8 @@ TEMPLATE_TEST_CASE(
 			const auto removed4 = const_cast<T&>(map).RemoveKey(darray1[3].mKey);
 
 			THEN("The size changes but not capacity") {
-				REQUIRE(map.GetKeyType()->Is<K>());
-				REQUIRE(map.GetValueType()->Is<V>());
+				REQUIRE(map.GetKeyType()->template Is<K>());
+				REQUIRE(map.GetValueType()->template Is<V>());
 				REQUIRE(map.HasAuthority());
 				REQUIRE(map.GetUses() == 1);
 				REQUIRE(removed2 == 1);
@@ -670,8 +670,8 @@ TEMPLATE_TEST_CASE(
 			THEN("Size goes to zero, capacity and types are unchanged") {
 				REQUIRE(map.GetCount() == 0);
 				REQUIRE(map.IsAllocated());
-				REQUIRE(map.GetKeyType()->Is<K>());
-				REQUIRE(map.GetValueType()->Is<V>());
+				REQUIRE(map.GetKeyType()->template Is<K>());
+				REQUIRE(map.GetValueType()->template Is<V>());
 				REQUIRE(map.template KeyIs<K>());
 				REQUIRE(map.template ValueIs<V>());
 				REQUIRE(map.IsKeyTypeConstrained() == IsStaticallyOptimized<T>);
@@ -695,8 +695,8 @@ TEMPLATE_TEST_CASE(
 				if constexpr (IsStaticallyOptimized<T>) {
 					REQUIRE(map.template KeyIs<K>());
 					REQUIRE(map.template ValueIs<V>());
-					REQUIRE(map.GetKeyType()->Is<K>());
-					REQUIRE(map.GetValueType()->Is<V>());
+					REQUIRE(map.GetKeyType()->template Is<K>());
+					REQUIRE(map.GetValueType()->template Is<V>());
 				}
 				REQUIRE(map.IsKeyTypeConstrained() == IsStaticallyOptimized<T>);
 				REQUIRE(map.IsValueTypeConstrained() == IsStaticallyOptimized<T>);
@@ -712,8 +712,8 @@ TEMPLATE_TEST_CASE(
 
 			THEN("The new map should keep the state and refer to original data") {
 				REQUIRE(copy == map);
-				REQUIRE(copy.GetKeyType()->Is<K>());
-				REQUIRE(copy.GetValueType()->Is<V>());
+				REQUIRE(copy.GetKeyType()->template Is<K>());
+				REQUIRE(copy.GetValueType()->template Is<V>());
 				REQUIRE(copy.IsAllocated());
 				REQUIRE(copy.HasAuthority());
 				REQUIRE(copy.GetUses() == 2);
@@ -736,8 +736,8 @@ TEMPLATE_TEST_CASE(
 
 			THEN("The new map should keep the state, but refer to new data") {
 				REQUIRE(clone == map);
-				REQUIRE(clone.GetKeyType()->Is<K>());
-				REQUIRE(clone.GetValueType()->Is<V>());
+				REQUIRE(clone.GetKeyType()->template Is<K>());
+				REQUIRE(clone.GetValueType()->template Is<V>());
 				REQUIRE(clone.IsAllocated());
 				REQUIRE(clone.HasAuthority());
 				REQUIRE(clone.GetUses() == 1);
@@ -779,8 +779,8 @@ TEMPLATE_TEST_CASE(
 			THEN("The new pack should keep the state and data") {
 				REQUIRE(moved == map);
 				REQUIRE(moved != movable);
-				REQUIRE(moved.GetKeyType()->Is<K>());
-				REQUIRE(moved.GetValueType()->Is<V>());
+				REQUIRE(moved.GetKeyType()->template Is<K>());
+				REQUIRE(moved.GetValueType()->template Is<V>());
 				REQUIRE(moved.GetRawKeysMemory() == keyMemory);
 				REQUIRE(moved.GetRawValuesMemory() == valueMemory);
 				REQUIRE(moved.IsAllocated());

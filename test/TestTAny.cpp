@@ -972,7 +972,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
 				THEN("Various traits change") {
 					if constexpr (CT::Typed<T>) {
-						REQUIRE(pack.GetType()->Is<E>());
+						REQUIRE(pack.GetType()->template Is<E>());
 					}
 					REQUIRE(pack.IsTypeConstrained() == CT::Typed<T>);
 					REQUIRE(pack.GetRaw() == nullptr);

@@ -530,7 +530,7 @@ namespace Langulus::Anyness
    ///   @return true if able to interpret current type to 'type'             
    TEMPLATE()
    bool TAny<T>::CastsToMeta(DMeta type) const {
-      return GetType()->CastsTo<CT::Sparse<T>>(type);
+      return GetType()->template CastsTo<CT::Sparse<T>>(type);
    }
 
    /// Check if contained data can be interpreted as a given count of type    
