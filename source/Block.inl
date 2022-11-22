@@ -1092,7 +1092,7 @@ namespace Langulus::Anyness
    ///   @tparam INDEX - the type of the index (deducible)                    
    ///   @param start - pointer to the first item                             
    ///   @param end - pointer to the end of items                             
-   ///   @param idx - the simple index to insert at                           
+   ///   @param idx - the index to insert at                                  
    ///   @return number of inserted elements                                  
    template<bool KEEP, bool MUTABLE, CT::Data WRAPPER, CT::NotSemantic T, CT::Index INDEX>
    Count Block::InsertAt(const T* start, const T* end, INDEX idx) {
@@ -1129,6 +1129,11 @@ namespace Langulus::Anyness
 
       InsertInner<KEEP>(start, end, index);
       return count;
+   }
+
+   template<bool KEEP, bool MUTABLE, CT::Data WRAPPER, CT::NotSemantic T, CT::Index INDEX>
+   Count Block::InsertAt(const T& item, INDEX idx) {
+      return InsertAt<KEEP, MUTABLE, WRAPPER, T, INDEX>(&item, &item + 1, idx);
    }
 
    /// Move-insert anything compatible at an index                            
@@ -1223,6 +1228,11 @@ namespace Langulus::Anyness
       else InsertInner<KEEP>(start, end, mCount);
 
       return count;
+   }
+
+   template<Index INDEX, bool KEEP, bool MUTABLE, CT::Data WRAPPER, CT::NotSemantic T>
+   Count Block::Insert(const T& item) {
+      return Insert<INDEX, KEEP, MUTABLE, WRAPPER, T>(&item, &item + 1);
    }
 
    /// Move-insert anything compatible either at the start or the end         
@@ -1413,6 +1423,11 @@ namespace Langulus::Anyness
       return added;
    }
 
+   template<bool KEEP, bool MUTABLE, CT::Data WRAPPER, CT::NotSemantic T, CT::Index INDEX>
+   Count Block::MergeAt(const T& item, INDEX index) {
+      return MergeAt<KEEP, MUTABLE, WRAPPER, T, INDEX>(&item, &item + 1, index);
+   }
+
    /// Merge-move-insert array elements at index                              
    /// Element will be pushed only if not found in block                      
    /// A bit of runtime overhead due to resolving index, when special         
@@ -1453,6 +1468,11 @@ namespace Langulus::Anyness
       }
 
       return added;
+   }
+
+   template<Index INDEX, bool KEEP, bool MUTABLE, CT::Data WRAPPER, CT::NotSemantic T>
+   Count Block::Merge(const T& item) {
+      return Merge<INDEX, KEEP, MUTABLE, WRAPPER, T>(&item, &item + 1);
    }
 
    /// Merge-move-insert array elements at index                              
@@ -3129,6 +3149,126 @@ namespace Langulus::Anyness
                   }
                }
             }
+         }
+      }
+   }
+   
+   /// Call descriptor constructors in a region, initializing memory          
+   ///   @attention never modifies any block state                            
+   ///   @attention assumes T is the type of the block                        
+   ///   @attention assumes this has at least 'count' items reserved          
+   ///   @tparam T - type of the data to descriptor-construct                 
+   ///   @param count - the number of elements to construct                   
+   ///   @param descriptor - the descriptor to pass on to constructors        
+   template<CT::Data T>
+   void Block::CallKnownDescriptorConstructors(const Count count, const Any& descriptor) const {
+      LANGULUS_ASSUME(DevAssumes, count <= mReserved,
+         "Count outside limits");
+      LANGULUS_ASSUME(DevAssumes, Is<T>(),
+         "T doesn't match LHS type");
+
+      static_assert(CT::DescriptorMakable<T>,
+         "T is not descriptor-constructible");
+
+      if constexpr (CT::Sparse<T>) {
+         // Bulk-allocate the required count, construct each instance   
+         // and push the pointers                                       
+         auto lhs = mRawSparse;
+         const auto lhsEnd = lhs + count;
+         const auto allocation = Inner::Allocator::Allocate(sizeof(Decay<T>) * count);
+         allocation->Keep(count - 1);
+
+         auto rhs = allocation->As<Decay<T>*>();
+         while (lhs != lhsEnd) {
+            new (rhs) Decay<T> {descriptor};
+            new (lhs++) KnownPointer {rhs++, allocation};
+         }
+      }
+      else {
+         // Construct all dense elements in place                       
+         auto lhs = const_cast<Block&>(*this).GetRawAs<T>();
+         const auto lhsEnd = lhs + count;
+         while (lhs != lhsEnd) {
+            new (lhs++) Decay<T> {descriptor};
+         }
+      }
+   }
+   
+   /// Call descriptor constructors in a region, initializing memory          
+   ///   @attention never modifies any block state                            
+   ///   @attention assumes this has at least 'count' items reserved          
+   ///   @param count - the number of elements to construct                   
+   ///   @param descriptor - the descriptor to pass on to constructors        
+   inline void Block::CallUnknownDescriptorConstructors(Count count, const Any& descriptor) const {
+      LANGULUS_ASSUME(DevAssumes, count <= mReserved,
+         "Count outside limits");
+      LANGULUS_ASSUME(DevAssumes, mType->mDescriptorConstructor != nullptr,
+         "Type is not descriptor-constructible");
+
+      if (IsSparse()) {
+         // Bulk-allocate the required count, construct each instance   
+         // and push the pointers                                       
+         auto lhs = mRawSparse;
+         const auto lhsEnd = lhs + count;
+         const auto allocation = Inner::Allocator::Allocate(mType->mSize * count);
+         allocation->Keep(count - 1);
+
+         auto rhs = allocation->GetBlockStart();
+         while (lhs != lhsEnd) {
+            mType->mDescriptorConstructor(rhs, descriptor);
+            new (lhs++) KnownPointer {rhs, allocation};
+            rhs += mType->mSize;
+         }
+      }
+      else {
+         // Construct all dense elements in place                       
+         auto lhs = mRaw;
+         const auto lhsEnd = lhs + count;
+         while (lhs != lhsEnd) {
+            mType->mDescriptorConstructor(lhs, descriptor);
+            lhs += mType->mSize;
+         }
+      }
+   }
+
+   /// Call a specific constructors in a region, initializing memory          
+   ///   @attention never modifies any block state                            
+   ///   @attention assumes T is the type of the block                        
+   ///   @attention assumes this has at least 'count' items reserved          
+   ///   @tparam T - type of the data to construct                            
+   ///   @tparam A... - arguments to pass to constructor                      
+   ///   @param count - the number of elements to construct                   
+   ///   @param arguments... - the arguments to forward to constructors       
+   template<CT::Data T, class... A>
+   void Block::CallKnownConstructors(const Count count, A&&... arguments) const {
+      LANGULUS_ASSUME(DevAssumes, count <= mReserved,
+         "Count outside limits");
+      LANGULUS_ASSUME(DevAssumes, Is<T>(),
+         "T doesn't match LHS type");
+
+      static_assert(::std::constructible_from<T, A...>,
+         "T is not constructible with these arguments");
+
+      if constexpr (CT::Sparse<T>) {
+         // Bulk-allocate the required count, construct each instance   
+         // and push the pointers                                       
+         auto lhs = mRawSparse;
+         const auto lhsEnd = lhs + count;
+         const auto allocation = Inner::Allocator::Allocate(sizeof(Decay<T>) * count);
+         allocation->Keep(count - 1);
+
+         auto rhs = allocation->As<Decay<T>*>();
+         while (lhs != lhsEnd) {
+            new (rhs) Decay<T> {Forward<A>(arguments)...};
+            new (lhs++) KnownPointer {rhs++, allocation};
+         }
+      }
+      else {
+         // Construct all dense elements in place                       
+         auto lhs = const_cast<Block&>(*this).GetRawAs<T>();
+         const auto lhsEnd = lhs + count;
+         while (lhs != lhsEnd) {
+            new (lhs++) Decay<T> {Forward<A>(arguments)...};
          }
       }
    }

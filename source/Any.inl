@@ -614,6 +614,77 @@ namespace Langulus::Anyness
       return *this;
    }
 
+   /// Construct an item of this container's type at the specified position   
+   /// by forwarding A... as constructor arguments                            
+   /// Since this container is type-erased and exact constructor signatures   
+   /// aren't reflected, the following constructors will be attempted:        
+   ///   1. If A is a single argument of exactly the same type, the reflected 
+   ///      move constructor will be used, if available                       
+   ///   2. If A is empty, the reflected default constructor is used          
+   ///   3. If A is not empty, not exactly same as the contained type, or     
+   ///      is more than a single argument, then all arguments will be        
+   ///      wrapped in an Any, and then forwarded to the descriptor-          
+   ///      constructor, if such is reflected                                 
+   ///   If none of these constructors are available, this function throws    
+   ///   Except::Construct                                                    
+   template<CT::Index IDX, class... A>
+   Count Any::EmplaceAt(const IDX& idx, A&&... arguments) {
+      const auto index = Block::SimplifyIndex<void>(idx);
+
+      // Allocate the required memory - this will not initialize it     
+      Allocate<false>(mCount + 1);
+
+      if (index < mCount) {
+         // Move memory if required                                     
+         LANGULUS_ASSERT(GetUses() == 1, Except::Move,
+            "Moving elements that are used from multiple places");
+
+         // We need to shift elements right from the insertion point    
+         // Therefore, we call move constructors in reverse, to avoid   
+         // memory overlap                                              
+         const auto moved = mCount - index;
+         CropInner(index + 1, 0, moved)
+            .template CallUnknownMoveConstructors<false, true>(
+               moved, CropInner(index, moved, moved)
+            );
+      }
+
+      // Pick the region that should be overwritten with new stuff      
+      auto region = CropInner(index, 0, 1);
+      if constexpr (sizeof...(A) == 0) {
+         // Attempt default construction                                
+         region.CallUnknownDefaultConstructors(1);
+      }
+      else {
+         // Attempt move-construction, if available                     
+         if constexpr (sizeof...(A) == 1) {
+            if (Is<A...>() && IsSparse() == CT::Sparse<A...>) {
+               // Single argument matches                               
+               region.template CallKnownMoveConstructors<A...>(
+                  1, Block::From(&arguments...)
+               );
+            }
+         }
+
+         // Attempt descriptor-construction, if available               
+         const auto descriptor = Any::Wrap(Forward<A>(arguments)...);
+         region.CallUnknownDescriptorConstructors(1, descriptor);
+      }
+
+      ++mCount;
+      return 1;
+   }
+
+   template<Index INDEX, class... A>
+   Count Any::Emplace(A&&... arguments) {
+      if constexpr (INDEX == IndexFront)
+         return EmplaceAt<Offset>(0, Forward<A>(arguments)...);
+      else if constexpr (INDEX == IndexBack)
+         return EmplaceAt<Offset>(mCount, Forward<A>(arguments)...);
+      else
+         LANGULUS_ERROR("Bad index for Any::Emplace");
+   }
+
    /// Reset the container                                                    
    inline void Any::Reset() {
       Free();

@@ -1364,7 +1364,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 			}
 		}
 
-		WHEN("Shallow-copy more of the same stuff") {
+		WHEN("Shallow-copy more of the same stuff to the back (<<)") {
 			#if LANGULUS_FEATURE(MANAGED_MEMORY)
 				const auto memory = pack.GetRaw();
 			#endif
@@ -1410,7 +1410,53 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 			#endif
 		}
 
-		WHEN("Move more of the same stuff") {
+		WHEN("Shallow-copy more of the same stuff to the front (>>)") {
+			#if LANGULUS_FEATURE(MANAGED_MEMORY)
+				const auto memory = pack.GetRaw();
+			#endif
+
+			const_cast<T&>(pack) >> darray2[0] >> darray2[1] >> darray2[2] >> darray2[3] >> darray2[4];
+
+			THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
+				REQUIRE(pack.GetCount() == 10);
+				REQUIRE(pack.GetReserved() >= 10);
+				REQUIRE(pack.template Is<E>());
+				for (unsigned i = 5; i > 0; --i)
+					REQUIRE(pack[5 - i] == darray2[i - 1]);
+				for (unsigned i = 5; i < pack.GetCount(); ++i)
+					REQUIRE(pack[i] == darray1[i-5]);
+				#if LANGULUS_FEATURE(MANAGED_MEMORY)
+					if constexpr (CT::Same<E, int>) {
+						REQUIRE(pack.GetRaw() == memory);
+					}
+				#endif
+			}
+			
+			#ifdef LANGULUS_STD_BENCHMARK
+				BENCHMARK_ADVANCED("Anyness::TAny::operator >> (5 consecutive trivial copies)") (timer meter) {
+					some<T> storage(meter.runs());
+
+					meter.measure([&](int i) {
+						return storage[i] >> darray2[0] >> darray2[1] >> darray2[2] >> darray2[3] >> darray2[4];
+					});
+				};
+
+				BENCHMARK_ADVANCED("std::vector::push_front(5 consecutive trivial copies)") (timer meter) {
+					some<StdT> storage(meter.runs());
+
+					meter.measure([&](int i) {
+						auto& s = storage[i];
+						s.push_front(darray2[0]);
+						s.push_front(darray2[1]);
+						s.push_front(darray2[2]);
+						s.push_front(darray2[3]);
+						return s.push_front(darray2[4]);
+					});
+				};
+			#endif
+		}
+
+		WHEN("Move more of the same stuff to the back (<<)") {
 			E darray3[5] {
 				CreateElement<E>(6),
 				CreateElement<E>(7),
@@ -1468,14 +1514,73 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 			#endif
 		}
 
-		WHEN("Insert more trivial items at a specific place by shallow-copy") {
+		WHEN("Move more of the same stuff to the front (>>)") {
+			E darray3[5] {
+				CreateElement<E>(6),
+				CreateElement<E>(7),
+				CreateElement<E>(8),
+				CreateElement<E>(9),
+				CreateElement<E>(10)
+			};
+
+			#if LANGULUS_FEATURE(MANAGED_MEMORY)
+				const auto memory = pack.GetRaw();
+			#endif
+
+			const_cast<T&>(pack) >> Move(darray3[0]) >> Move(darray3[1]) >> Move(darray3[2]) >> Move(darray3[3]) >> Move(darray3[4]);
+
+			THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
+				REQUIRE(pack.GetCount() == 10);
+				REQUIRE(pack.GetReserved() >= 10);
+				REQUIRE(pack.template Is<E>());
+				for (unsigned i = 5; i > 0; --i) {
+					if constexpr (CT::Sparse<E>) {
+						REQUIRE(pack[5 - i] == darray3[i - 1]);
+					}
+					else {
+						REQUIRE(pack[5 - i] == darray2[i - 1]);
+					}
+				}
+				for (unsigned i = 5; i < pack.GetCount(); ++i)
+					REQUIRE(pack[i] == darray1[i - 5]);
+
+				#if LANGULUS_FEATURE(MANAGED_MEMORY)
+					REQUIRE(pack.GetRaw() == memory);
+				#endif
+			}
+			
+			#ifdef LANGULUS_STD_BENCHMARK
+				BENCHMARK_ADVANCED("Anyness::TAny::operator >> (5 consecutive trivial moves)") (timer meter) {
+					some<T> storage(meter.runs());
+
+					meter.measure([&](int i) {
+						return storage[i] >> Move(darray2[0]) >> Move(darray2[1]) >> Move(darray2[2]) >> Move(darray2[3]) >> Move(darray2[4]);
+					});
+				};
+
+				BENCHMARK_ADVANCED("std::vector::emplace_front(5 consecutive trivial moves)") (timer meter) {
+					some<StdT> storage(meter.runs());
+
+					meter.measure([&](int i) {
+						auto& s = storage[i];
+						s.emplace_front(Move(darray2[0]));
+						s.emplace_front(Move(darray2[1]));
+						s.emplace_front(Move(darray2[2]));
+						s.emplace_front(Move(darray2[3]));
+						return s.emplace_front(Move(darray2[4]));
+					});
+				};
+			#endif
+		}
+
+		WHEN("Insert single item at a specific place by shallow-copy") {
 			const auto i666 = CreateElement<E>(666);
 
 			#if LANGULUS_FEATURE(MANAGED_MEMORY)
 				const auto memory = pack.GetRaw();
 			#endif
 
-			const_cast<T&>(pack).InsertAt(&i666, &i666 + 1, 3);
+			const_cast<T&>(pack).InsertAt(i666, 3);
 
 			THEN("The size changes, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
 				REQUIRE(pack.GetCount() == 6);
@@ -1515,7 +1620,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 			#endif
 		}
 
-		WHEN("Insert more trivial items at a specific place by move") {
+		WHEN("Insert single item at a specific place by move") {
 			auto i666 = CreateElement<E>(666);
 
 			#if LANGULUS_FEATURE(MANAGED_MEMORY)
@@ -1547,7 +1652,55 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 						o << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
 
 					meter.measure([&](int i) {
-						return storage[i].Insert(Move(i666d), 3);
+						return storage[i].InsertAt(Move(i666d), 3);
+					});
+				};
+
+				BENCHMARK_ADVANCED("std::vector::insert(single move in middle)") (timer meter) {
+					some<StdT> storage(meter.runs());
+					for (auto&& o : storage)
+						o = { darray1[0], darray1[1], darray1[2], darray1[3], darray1[4] };
+
+					meter.measure([&](int i) {
+						return storage[i].insert(storage[i].begin() + 3, Move(i666d));
+					});
+				};
+			#endif
+		}
+
+		WHEN("Emplace item at a specific place") {
+			auto i666 = CreateElement<E>(666);
+
+			#if LANGULUS_FEATURE(MANAGED_MEMORY)
+				const auto memory = pack.GetRaw();
+			#endif
+
+			const_cast<T&>(pack).EmplaceAt(3, Move(i666));
+
+			THEN("The size changes, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
+				REQUIRE(pack.GetCount() == 6);
+				REQUIRE(pack.GetReserved() >= 6);
+				REQUIRE(pack.template Is<E>());
+				#if LANGULUS_FEATURE(MANAGED_MEMORY)
+					REQUIRE(pack.GetRaw() == memory);
+				#endif
+				REQUIRE(pack[0] == darray1[0]);
+				REQUIRE(pack[1] == darray1[1]);
+				REQUIRE(pack[2] == darray1[2]);
+				if constexpr (CT::Sparse<E>)
+					REQUIRE(pack[3] == i666);
+				REQUIRE(pack[4] == darray1[3]);
+				REQUIRE(pack[5] == darray1[4]);
+			}
+
+			#ifdef LANGULUS_STD_BENCHMARK
+				BENCHMARK_ADVANCED("Anyness::TAny::Emplace(single move in middle)") (timer meter) {
+					some<T> storage(meter.runs());
+					for (auto&& o : storage)
+						o << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
+
+					meter.measure([&](int i) {
+						return storage[i].EmplaceAt(3, Move(i666d));
 					});
 				};
 

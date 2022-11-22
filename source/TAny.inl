@@ -933,13 +933,6 @@ namespace Langulus::Anyness
       return count;
    }
 
-   /// Copy-insert item at an index                                           
-   ///   @attention assumes index is in the container's limits, if simple     
-   ///   @tparam KEEP - whether or not to reference inserted data             
-   ///   @tparam IDX - type of indexing to use (deducible)                    
-   ///   @param item - the item to push                                       
-   ///   @param index - the index to insert at                                
-   ///   @return number of inserted items                                     
    TEMPLATE()
    template<bool KEEP, CT::Index IDX>
    Count TAny<T>::InsertAt(const T& item, const IDX& index) {
@@ -1017,11 +1010,6 @@ namespace Langulus::Anyness
       return count;
    }
 
-   /// Copy-insert an element, either at the start or the end                 
-   ///   @tparam INDEX - use IndexBack or IndexFront to append accordingly    
-   ///   @tparam KEEP - whether to reference data on copy                     
-   ///   @param item - the item to find and push                              
-   ///   @return number of inserted elements                                  
    TEMPLATE()
    template<Index INDEX, bool KEEP>
    Count TAny<T>::Insert(const T& item) {
@@ -1058,14 +1046,15 @@ namespace Langulus::Anyness
                mCount, CropInner(0, mCount, mCount)
             );
 
-         InsertInner<KEEP>(Move(item), 0);
+         InsertInner<KEEP>(Forward<T>(item), 0);
       }
-      else InsertInner<KEEP>(Move(item), mCount);
+      else InsertInner<KEEP>(Forward<T>(item), mCount);
 
       return 1;
    }
 
-   /// Emplace a single item at the given index                               
+   /// Emplace a single item at the given index, forwarding all arguments     
+   /// to its constructor                                                     
    ///   @tparam IDX - the type of indexing used                              
    ///   @tparam A... - arguments for the element's construction              
    ///   @param at - the index to emplace at                                  
@@ -1074,16 +1063,27 @@ namespace Langulus::Anyness
    TEMPLATE()
    template<CT::Index IDX, class... A>
    Count TAny<T>::EmplaceAt(const IDX& at, A&&... arguments) {
-      if constexpr (CT::Dense<T>)
-         return InsertAt<false, IDX>(T {arguments...}, at);
-      else {
-         // Allocate a new element, and push a pointer to it            
-         using DT = Decay<T>;
-         auto Tallocation = Inner::Allocator::Allocate(sizeof(DT));
-         T Tptr = reinterpret_cast<T>(Tallocation->GetBlockStart());
-         new (Tptr) DT {arguments...};
-         return InsertAt<false, IDX>(Move(Tptr), at);
+      const auto offset = SimplifyIndex<T>(at);
+      Allocate<false>(mCount + 1);
+
+      if (offset < mCount) {
+         // Move memory if required                                     
+         LANGULUS_ASSERT(GetUses() == 1, Except::Move,
+            "Emplacing elements to memory block, used from multiple places, "
+            "requires memory to move");
+
+         // We're moving to the right, so make sure we do it in reverse 
+         // to avoid any overlap                                        
+         CropInner(offset + 1, 0, mCount - offset)
+            .template CallKnownMoveConstructors<T, false, true>(
+               mCount - offset,
+               CropInner(offset, mCount - offset, mCount - offset)
+            );
       }
+
+      CropInner(offset, 0, 1)
+         .template CallKnownConstructors<T, A...>(1, Forward<A>(arguments)...);
+      return 1;
    }
 
    /// Emplace a single item at front or back                                 
@@ -1094,16 +1094,36 @@ namespace Langulus::Anyness
    TEMPLATE()
    template<Index INDEX, class... A>
    Count TAny<T>::Emplace(A&&...arguments) {
-      if constexpr (CT::Dense<T>)
-         return Insert<INDEX, false>(T {arguments...});
-      else {
-         // Allocate a new element, and push a pointer to it            
-         using DT = Decay<T>;
-         auto Tallocation = Inner::Allocator::Allocate(sizeof(DT));
-         T Tptr = reinterpret_cast<T>(Tallocation->GetBlockStart());
-         new (Tptr) DT {arguments...};
-         return Insert<INDEX, false>(Move(Tptr));
+      static_assert(CT::Sparse<T> || CT::Mutable<T>,
+         "Can't copy-insert into container of constant elements");
+      static_assert(INDEX == IndexFront || INDEX == IndexBack,
+         "Invalid index provided; use either IndexBack "
+         "or IndexFront, or Block::InsertAt to insert at an offset");
+
+      // Allocate                                                       
+      Allocate<false>(mCount + 1);
+
+      if constexpr (INDEX == IndexFront) {
+         // Move memory if required                                     
+         LANGULUS_ASSERT(GetUses() == 1, Except::Move,
+            "Inserting elements to memory block, used from multiple places, "
+            "requires memory to move");
+
+         // We're moving to the right, so make sure we do it in reverse 
+         // to avoid any overlap                                        
+         CropInner(1, 0, mCount)
+            .template CallKnownMoveConstructors<T, false, true>(
+               mCount, CropInner(0, mCount, mCount)
+            );
+
+         Block::CallKnownConstructors<T, A...>(1, Forward<A>(arguments)...);
       }
+      else {
+         CropInner(mCount, 0, 1)
+            .template CallKnownConstructors<T, A...>(1, Forward<A>(arguments)...);
+      }
+
+      return 1;
    }
 
    /// Push data at the back by copy-construction                             
@@ -1111,7 +1131,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container for chaining                   
    TEMPLATE()
    TAny<T>& TAny<T>::operator << (const T& other) {
-      Insert<IndexBack>(&other, &other + 1);
+      Insert<IndexBack>(other);
       return *this;
    }
 
@@ -1130,7 +1150,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container for chaining                   
    TEMPLATE()
    TAny<T>& TAny<T>::operator << (Disowned<T>&& other) {
-      Insert<IndexBack, false>(&other.mValue, &other.mValue + 1);
+      Insert<IndexBack, false>(other.mValue);
       return *this;
    }
 
@@ -1149,7 +1169,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container for chaining                   
    TEMPLATE()
    TAny<T>& TAny<T>::operator >> (const T& other) {
-      Insert<IndexFront>(&other, &other + 1);
+      Insert<IndexFront>(other);
       return *this;
    }
 
@@ -1168,7 +1188,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container for chaining                   
    TEMPLATE()
    TAny<T>& TAny<T>::operator >> (Disowned<T>&& other) {
-      Insert<IndexFront, false>(&other.mValue, &other.mValue + 1);
+      Insert<IndexFront, false>(other.mValue);
       return *this;
    }
 
@@ -1196,17 +1216,10 @@ namespace Langulus::Anyness
       return Block::MergeAt<TAny, KEEP, true, T>(start, end, index);
    }
 
-   /// Copy-insert element that is not found, at an index                     
-   ///   @attention assumes index is in container's limits, if simple         
-   ///   @tparam KEEP - whether or not to reference inserted data             
-   ///   @tparam IDX - type for indexing (deducible)                          
-   ///   @param item - the item to find and push                              
-   ///   @param index - the index to insert at                                
-   ///   @return the number of inserted items                                 
    TEMPLATE()
    template<bool KEEP, CT::Index IDX>
    Count TAny<T>::MergeAt(const T& item, const IDX& index) {
-      return Block::MergeAt<TAny, KEEP, true, T>(&item, &item + 1, index);
+      return Block::MergeAt<TAny, KEEP, true, T>(item, index);
    }
 
    /// Move-insert element, if not found, at an index                         
@@ -1234,15 +1247,10 @@ namespace Langulus::Anyness
       return Block::Merge<INDEX, KEEP, true, TAny, T>(start, end);
    }
 
-   /// Copy-insert element if not found, at a static index                    
-   ///   @tparam INDEX - the static index (either IndexFront or IndexBack)    
-   ///   @tparam KEEP - whether or not to reference inserted data             
-   ///   @param item - the item to find and push                              
-   ///   @return the number of inserted items                                 
    TEMPLATE()
    template<Index INDEX, bool KEEP>
    Count TAny<T>::Merge(const T& item) {
-      return Block::Merge<INDEX, KEEP, true, TAny, T>(&item, &item + 1);
+      return Block::Merge<INDEX, KEEP, true, TAny, T>(item);
    }
 
    /// Move-insert element, if not found, at a static index                   
@@ -1261,7 +1269,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container                                
    TEMPLATE()
    TAny<T>& TAny<T>::operator <<= (const T& other) {
-      Merge<IndexBack>(&other, &other + 1);
+      Merge<IndexBack>(other);
       return *this;
    }
 
@@ -1280,7 +1288,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container                                
    TEMPLATE()
    TAny<T>& TAny<T>::operator <<= (Disowned<T>&& other) {
-      Merge<IndexBack, false>(&other.mValue, &other.mValue + 1);
+      Merge<IndexBack, false>(other.mValue);
       return *this;
    }
 
@@ -1299,7 +1307,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container                                
    TEMPLATE()
    TAny<T>& TAny<T>::operator >>= (const T& other) {
-      Merge<IndexFront>(&other, &other + 1);
+      Merge<IndexFront>(other);
       return *this;
    }
 
@@ -1318,7 +1326,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container                                
    TEMPLATE()
    TAny<T>& TAny<T>::operator >>= (Disowned<T>&& other) {
-      Merge<IndexFront, false>(&other.mValue, &other.mValue + 1);
+      Merge<IndexFront, false>(other.mValue);
       return *this;
    }
 

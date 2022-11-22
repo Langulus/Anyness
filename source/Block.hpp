@@ -362,12 +362,6 @@ namespace Langulus::Anyness
       Count Copy(Block&) const;
       Count Clone(Block&) const;
    
-      //NOD() bool CompareMembers(const Block&, Count& compared) const;
-      NOD() bool CompareStates(const Block&) const noexcept;
-      NOD() bool CompareTypes(const Block&, RTTI::Base&) const noexcept;
-      template<bool RESOLVE = true>
-      NOD() bool Compare(const Block&) const;
-   
       template<bool CREATE = false, bool SETSIZE = false>
       void Allocate(const Count&);
       
@@ -399,6 +393,11 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Comparison                                                        
       ///                                                                     
+      NOD() bool CompareStates(const Block&) const noexcept;
+      NOD() bool CompareTypes(const Block&, RTTI::Base&) const noexcept;
+      template<bool RESOLVE = true>
+      NOD() bool Compare(const Block&) const;
+
       template<CT::Data T>
       bool operator == (const T&) const;
 
@@ -408,20 +407,28 @@ namespace Langulus::Anyness
       template<bool KEEP = true, bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T, CT::Index INDEX>
       Count InsertAt(const T*, const T*, INDEX);
       template<bool KEEP = true, bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T, CT::Index INDEX>
+      Count InsertAt(const T&, INDEX);
+      template<bool KEEP = true, bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T, CT::Index INDEX>
       Count InsertAt(T&&, INDEX);
 
       template<Index = IndexBack, bool KEEP = true, bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T>
       Count Insert(const T*, const T*);
+      template<Index = IndexBack, bool KEEP = true, bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T>
+      Count Insert(const T&);
       template<Index = IndexBack, bool KEEP = true, bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T>
       Count Insert(T&&);
 
       template<bool KEEP = true, bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T, CT::Index INDEX>
       Count MergeAt(const T*, const T*, INDEX);
       template<bool KEEP = true, bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T, CT::Index INDEX>
+      Count MergeAt(const T&, INDEX);
+      template<bool KEEP = true, bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T, CT::Index INDEX>
       Count MergeAt(T&&, INDEX);
 
       template<Index = IndexBack, bool KEEP = true, bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T>
       Count Merge(const T*, const T*);
+      template<Index = IndexBack, bool KEEP = true, bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T>
+      Count Merge(const T&);
       template<Index = IndexBack, bool KEEP = true, bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T>
       Count Merge(T&&);
 
@@ -591,6 +598,13 @@ namespace Langulus::Anyness
       void CallUnknownDefaultConstructors(Count) const;
       template<CT::Data T>
       void CallKnownDefaultConstructors(Count) const;
+
+      void CallUnknownDescriptorConstructors(Count, const Any&) const;
+      template<CT::Data>
+      void CallKnownDescriptorConstructors(Count, const Any&) const;
+
+      template<CT::Data, class... A>
+      void CallKnownConstructors(Count, A&&...) const;
 
       template<bool KEEP = true>
       void CallUnknownCopyConstructors(Count, const Block&) const;

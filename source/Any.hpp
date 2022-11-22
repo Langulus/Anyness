@@ -159,7 +159,12 @@ namespace Langulus::Anyness
       Any& operator >>= (T&);
       template<CT::Data T>
       Any& operator >>= (T&&);
-      
+
+      template<CT::Index IDX = Offset, class... A>
+      Count EmplaceAt(const IDX&, A&&...);
+      template<Index = IndexBack, class... A>
+      Count Emplace(A&&...);
+
       ///                                                                     
       ///   Concatenation                                                     
       ///                                                                     
