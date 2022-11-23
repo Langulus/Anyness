@@ -1687,8 +1687,8 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 				REQUIRE(pack[0] == darray1[0]);
 				REQUIRE(pack[1] == darray1[1]);
 				REQUIRE(pack[2] == darray1[2]);
-				if constexpr (CT::Sparse<E>)
-					REQUIRE(pack[3] == i666);
+				if (pack.IsSparse() && CT::Sparse<E>)
+					REQUIRE(pack[3] != i666);
 				REQUIRE(pack[4] == darray1[3]);
 				REQUIRE(pack[5] == darray1[4]);
 			}

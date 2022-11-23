@@ -125,9 +125,13 @@ namespace Langulus::Anyness
       constexpr Block(const DataState&, DMeta) noexcept;
 
       Block(const DataState&, DMeta, Count, const void*) SAFETY_NOEXCEPT();
+      Block(const DataState&, DMeta, Count, const void* const*) SAFETY_NOEXCEPT();
       Block(const DataState&, DMeta, Count, void*) SAFETY_NOEXCEPT();
+      Block(const DataState&, DMeta, Count, void**) SAFETY_NOEXCEPT();
       constexpr Block(const DataState&, DMeta, Count, const void*, Inner::Allocation*) noexcept;
+      constexpr Block(const DataState&, DMeta, Count, const void* const*, Inner::Allocation*) noexcept;
       constexpr Block(const DataState&, DMeta, Count, void*, Inner::Allocation*) noexcept;
+      constexpr Block(const DataState&, DMeta, Count, void**, Inner::Allocation*) noexcept;
    
       template<CT::Data T, bool CONSTRAIN = false>
       NOD() static Block From(T) requires CT::Sparse<T>;

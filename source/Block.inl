@@ -3232,6 +3232,8 @@ namespace Langulus::Anyness
    }
 
    /// Call a specific constructors in a region, initializing memory          
+   /// Allows you to initialize sparse data with dense arguments, and dense   
+   /// data with sparse arguments                                             
    ///   @attention never modifies any block state                            
    ///   @attention assumes T is the type of the block                        
    ///   @attention assumes this has at least 'count' items reserved          
@@ -3246,20 +3248,24 @@ namespace Langulus::Anyness
       LANGULUS_ASSUME(DevAssumes, Is<T>(),
          "T doesn't match LHS type");
 
-      static_assert(::std::constructible_from<T, A...>,
-         "T is not constructible with these arguments");
-
+      using DT = Decay<T>;
       if constexpr (CT::Sparse<T>) {
          // Bulk-allocate the required count, construct each instance   
          // and push the pointers                                       
          auto lhs = mRawSparse;
          const auto lhsEnd = lhs + count;
-         const auto allocation = Inner::Allocator::Allocate(sizeof(Decay<T>) * count);
+         const auto allocation = Inner::Allocator::Allocate(sizeof(DT) * count);
          allocation->Keep(count - 1);
 
-         auto rhs = allocation->As<Decay<T>*>();
+         auto rhs = allocation->As<DT*>();
          while (lhs != lhsEnd) {
-            new (rhs) Decay<T> {Forward<A>(arguments)...};
+            if constexpr (::std::constructible_from<DT, A...>)
+               new (rhs) DT {Forward<A>(arguments)...};
+            else if constexpr (::std::constructible_from<DT, Decay<A>...>)
+               new (rhs) DT {DenseCast(arguments)...};
+            else 
+               LANGULUS_ERROR("T is not constructible with these arguments");
+
             new (lhs++) KnownPointer {rhs++, allocation};
          }
       }
@@ -3268,7 +3274,10 @@ namespace Langulus::Anyness
          auto lhs = const_cast<Block&>(*this).GetRawAs<T>();
          const auto lhsEnd = lhs + count;
          while (lhs != lhsEnd) {
-            new (lhs++) Decay<T> {Forward<A>(arguments)...};
+            if constexpr (::std::constructible_from<T, A...>)
+               new (lhs++) T {Forward<A>(arguments)...};
+            else
+               LANGULUS_ERROR("T is not constructible with these arguments");
          }
       }
    }

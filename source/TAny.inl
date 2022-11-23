@@ -1083,6 +1083,8 @@ namespace Langulus::Anyness
 
       CropInner(offset, 0, 1)
          .template CallKnownConstructors<T, A...>(1, Forward<A>(arguments)...);
+
+      ++mCount;
       return 1;
    }
 
@@ -1123,6 +1125,7 @@ namespace Langulus::Anyness
             .template CallKnownConstructors<T, A...>(1, Forward<A>(arguments)...);
       }
 
+      ++mCount;
       return 1;
    }
 

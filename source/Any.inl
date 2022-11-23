@@ -660,9 +660,22 @@ namespace Langulus::Anyness
          if constexpr (sizeof...(A) == 1) {
             if (Is<A...>() && IsSparse() == CT::Sparse<A...>) {
                // Single argument matches                               
-               region.template CallKnownMoveConstructors<A...>(
-                  1, Block::From(&arguments...)
-               );
+               if constexpr (CT::Sparse<A...>) {
+                  // Can't directly interface pointer of pointers, we   
+                  // have to wrap it first                              
+                  Any wrapped;
+                  (wrapped << ... << Forward<A>(arguments));
+                  region.template CallKnownMoveConstructors<A...>(
+                     1, wrapped
+                  );
+               }
+               else {
+                  region.template CallKnownMoveConstructors<A...>(
+                     1, Block::From(SparseCast(arguments)...)
+                  );
+               }
+               ++mCount;
+               return 1;
             }
          }
 
