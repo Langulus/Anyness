@@ -66,8 +66,8 @@ T CreateElement(const ALT_T& e) {
 /// The main test for Any/TAny containers, with all kinds of items, from		
 /// sparse to dense, from trivial to complex, from flat to deep					
 TEMPLATE_TEST_CASE("Any/TAny", "[any]", 
-	(TypePair<TAny<int>, int>),
 	(TypePair<TAny<Any>, Any>),
+	(TypePair<TAny<int>, int>),
 	(TypePair<TAny<Trait>, Trait>),
 	(TypePair<TAny<Traits::Count>, Traits::Count>),
 	(TypePair<TAny<Text>, Text>),
@@ -1465,6 +1465,14 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 				CreateElement<E>(10)
 			};
 
+			const E darray3backup[5] {
+				darray3[0],
+				darray3[1],
+				darray3[2],
+				darray3[3],
+				darray3[4],
+			};
+
 			#if LANGULUS_FEATURE(MANAGED_MEMORY)
 				const auto memory = pack.GetRaw();
 			#endif
@@ -1475,16 +1483,13 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 				REQUIRE(pack.GetCount() == 10);
 				REQUIRE(pack.GetReserved() >= 10);
 				REQUIRE(pack.template Is<E>());
+
 				for (unsigned i = 0; i < 5; ++i)
 					REQUIRE(pack[i] == darray1[i]);
-				if constexpr (CT::Sparse<E>) {
-					for (unsigned i = 5; i < pack.GetCount(); ++i)
-						REQUIRE(pack[i] == darray3[i - 5]);
-				}
-				else {
-					for (unsigned i = 5; i < pack.GetCount(); ++i)
-						REQUIRE(pack[i] == darray2[i - 5]);
-				}
+
+				for (unsigned i = 5; i < pack.GetCount(); ++i)
+					REQUIRE(pack[i] == darray3backup[i - 5]);
+
 				#if LANGULUS_FEATURE(MANAGED_MEMORY)
 					REQUIRE(pack.GetRaw() == memory);
 				#endif
@@ -1523,6 +1528,14 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 				CreateElement<E>(10)
 			};
 
+			const E darray3backup[5] {
+				darray3[0],
+				darray3[1],
+				darray3[2],
+				darray3[3],
+				darray3[4],
+			};
+
 			#if LANGULUS_FEATURE(MANAGED_MEMORY)
 				const auto memory = pack.GetRaw();
 			#endif
@@ -1533,14 +1546,10 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 				REQUIRE(pack.GetCount() == 10);
 				REQUIRE(pack.GetReserved() >= 10);
 				REQUIRE(pack.template Is<E>());
-				for (unsigned i = 5; i > 0; --i) {
-					if constexpr (CT::Sparse<E>) {
-						REQUIRE(pack[5 - i] == darray3[i - 1]);
-					}
-					else {
-						REQUIRE(pack[5 - i] == darray2[i - 1]);
-					}
-				}
+
+				for (unsigned i = 5; i > 0; --i)
+					REQUIRE(pack[5 - i] == darray3backup[i - 1]);
+
 				for (unsigned i = 5; i < pack.GetCount(); ++i)
 					REQUIRE(pack[i] == darray1[i - 5]);
 
@@ -1622,6 +1631,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
 		WHEN("Insert single item at a specific place by move") {
 			auto i666 = CreateElement<E>(666);
+			const auto i666backup = i666;
 
 			#if LANGULUS_FEATURE(MANAGED_MEMORY)
 				const auto memory = pack.GetRaw();
@@ -1639,8 +1649,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 				REQUIRE(pack[0] == darray1[0]);
 				REQUIRE(pack[1] == darray1[1]);
 				REQUIRE(pack[2] == darray1[2]);
-				if constexpr (CT::Sparse<E>)
-					REQUIRE(pack[3] == i666);
+				REQUIRE(pack[3] == i666backup);
 				REQUIRE(pack[4] == darray1[3]);
 				REQUIRE(pack[5] == darray1[4]);
 			}
@@ -1670,6 +1679,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
 		WHEN("Emplace item at a specific place") {
 			auto i666 = CreateElement<E>(666);
+			const auto i666backup = i666;
 
 			#if LANGULUS_FEATURE(MANAGED_MEMORY)
 				const auto memory = pack.GetRaw();
@@ -1687,8 +1697,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 				REQUIRE(pack[0] == darray1[0]);
 				REQUIRE(pack[1] == darray1[1]);
 				REQUIRE(pack[2] == darray1[2]);
-				if (pack.IsSparse() && CT::Sparse<E>)
-					REQUIRE(pack[3] != i666);
+				REQUIRE(pack[3] == i666backup);
 				REQUIRE(pack[4] == darray1[3]);
 				REQUIRE(pack[5] == darray1[4]);
 			}

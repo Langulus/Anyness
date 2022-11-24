@@ -3232,8 +3232,6 @@ namespace Langulus::Anyness
    }
 
    /// Call a specific constructors in a region, initializing memory          
-   /// Allows you to initialize sparse data with dense arguments, and dense   
-   /// data with sparse arguments                                             
    ///   @attention never modifies any block state                            
    ///   @attention assumes T is the type of the block                        
    ///   @attention assumes this has at least 'count' items reserved          
@@ -3248,29 +3246,41 @@ namespace Langulus::Anyness
       LANGULUS_ASSUME(DevAssumes, Is<T>(),
          "T doesn't match LHS type");
 
-      using DT = Decay<T>;
-      if constexpr (CT::Sparse<T>) {
-         // Bulk-allocate the required count, construct each instance   
-         // and push the pointers                                       
+      if constexpr (sizeof...(A) == 0) {
+         // Just fallback to default construction                       
+         CallKnownDefaultConstructors<T>(count);
+      }
+      else if constexpr (CT::Sparse<T>) {
+         // We're constructing pointers                                 
          auto lhs = mRawSparse;
          const auto lhsEnd = lhs + count;
-         const auto allocation = Inner::Allocator::Allocate(sizeof(DT) * count);
-         allocation->Keep(count - 1);
 
-         auto rhs = allocation->As<DT*>();
-         while (lhs != lhsEnd) {
-            if constexpr (::std::constructible_from<DT, A...>)
-               new (rhs) DT {Forward<A>(arguments)...};
-            else if constexpr (::std::constructible_from<DT, Decay<A>...>)
-               new (rhs) DT {DenseCast(arguments)...};
-            else 
-               LANGULUS_ERROR("T is not constructible with these arguments");
+         if constexpr (sizeof...(A) == 1 && CT::Sparse<A...>) {
+            // Exactly one pointer as argument, we can avoid dense      
+            // element allocation at all                                
+            while (lhs != lhsEnd)
+               new (lhs++) KnownPointer {arguments...};
+         }
+         else {
+            // Bulk-allocate the required count, construct each instance
+            // and push the pointers                                    
+            using DT = Decay<T>;
+            const auto allocation = Inner::Allocator::Allocate(sizeof(DT) * count);
+            allocation->Keep(count - 1);
 
-            new (lhs++) KnownPointer {rhs++, allocation};
+            auto rhs = allocation->As<DT>();
+            while (lhs != lhsEnd) {
+               if constexpr (::std::constructible_from<DT, A...>)
+                  new (rhs) DT {Forward<A>(arguments)...};
+               else
+                  LANGULUS_ERROR("T is not constructible with these arguments");
+
+               new (lhs++) KnownPointer {rhs++, allocation};
+            }
          }
       }
       else {
-         // Construct all dense elements in place                       
+         // Construct dense stuff                                       
          auto lhs = const_cast<Block&>(*this).GetRawAs<T>();
          const auto lhsEnd = lhs + count;
          while (lhs != lhsEnd) {
