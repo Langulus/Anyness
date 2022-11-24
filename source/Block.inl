@@ -2930,8 +2930,8 @@ namespace Langulus::Anyness
       else if constexpr (REVERSE) {
          // Both RHS and LHS are dense and non POD                      
          // Call the move-constructor for each element (in reverse)     
-         auto to = const_cast<Block&>(*this).GetRawAs<T>() + count - 1;
-         auto from = const_cast<Block&>(source).GetRawAs<T>() + count - 1;
+         auto to = const_cast<Block&>(*this).template GetRawAs<T>() + count - 1;
+         auto from = const_cast<Block&>(source).template GetRawAs<T>() + count - 1;
          const auto fromEnd = from - count;
          while (from != fromEnd) {
             if constexpr (!KEEP && CT::AbandonMakable<T>)
@@ -2945,8 +2945,8 @@ namespace Langulus::Anyness
       else {
          // Both RHS and LHS are dense and non POD                      
          // Call the move-constructor for each element                  
-         auto to = const_cast<Block&>(*this).GetRawAs<T>();
-         auto from = const_cast<Block&>(source).GetRawAs<T>();
+         auto to = const_cast<Block&>(*this).template GetRawAs<T>();
+         auto from = const_cast<Block&>(source).template GetRawAs<T>();
          const auto fromEnd = from + count;
          while (from != fromEnd) {
             if constexpr (!KEEP && CT::AbandonMakable<T>)
