@@ -361,7 +361,8 @@ namespace Langulus::Anyness
       }
    }
 
-   /// Assign by shallow-copying anything                                     
+   /// Assign by shallow-copying anything non-deep                            
+   ///   @tparam T - type to copy (deducible)                                 
    ///   @param other - the item to copy                                      
    ///   @return a reference to this container                                
    template<CT::CustomData T>
@@ -376,7 +377,7 @@ namespace Langulus::Anyness
       return operator = (const_cast<const T&>(other));
    }
 
-   /// Assign by moving anything                                              
+   /// Assign by moving anything non-deep                                     
    ///   @param other - the item to move                                      
    ///   @return a reference to this container                                
    template<CT::CustomData T>
@@ -627,13 +628,17 @@ namespace Langulus::Anyness
    ///      constructor, if such is reflected                                 
    ///   If none of these constructors are available, this function throws    
    ///   Except::Construct                                                    
+   ///   @tparam IDX - type of indexing to use (deducible)                    
+   ///   @tparam A... - argument types (deducible)                            
+   ///   @param idx - the index to emplace at                                 
+   ///   @param arguments... - the arguments to forward to constructor        
+   ///   @return 1 if the element was emplace successfully                    
    template<CT::Index IDX, class... A>
    Count Any::EmplaceAt(const IDX& idx, A&&... arguments) {
-      const auto index = Block::SimplifyIndex<void>(idx);
-
       // Allocate the required memory - this will not initialize it     
       Allocate<false>(mCount + 1);
 
+      const auto index = Block::SimplifyIndex<void, false>(idx);
       if (index < mCount) {
          // Move memory if required                                     
          LANGULUS_ASSERT(GetUses() == 1, Except::Move,
@@ -653,6 +658,7 @@ namespace Langulus::Anyness
       auto region = CropInner(index, 0, 1);
       if constexpr (sizeof...(A) == 0) {
          // Attempt default construction                                
+         //TODO if stuff moved, we should move stuff back if this throws...
          region.CallUnknownDefaultConstructors(1);
       }
       else {
@@ -665,21 +671,25 @@ namespace Langulus::Anyness
                   // have to wrap it first                              
                   Any wrapped;
                   (wrapped << ... << Forward<A>(arguments));
+                  //TODO if stuff moved, we should move stuff back if this throws...
                   region.template CallKnownMoveConstructors<A...>(
                      1, wrapped
                   );
                }
                else {
-                  region.template CallKnownMoveConstructors<A...>(
+                  //TODO if stuff moved, we should move stuff back if this throws...
+                  region.template CallKnownMoveConstructors<Decay<A>...>(
                      1, Block::From(SparseCast(arguments)...)
                   );
                }
+
                ++mCount;
                return 1;
             }
          }
 
          // Attempt descriptor-construction, if available               
+         //TODO if stuff moved, we should move stuff back if this throws...
          const auto descriptor = Any::Wrap(Forward<A>(arguments)...);
          region.CallUnknownDescriptorConstructors(1, descriptor);
       }
@@ -688,14 +698,85 @@ namespace Langulus::Anyness
       return 1;
    }
 
+   /// Construct an item of this container's type at front/back               
+   /// by forwarding A... as constructor arguments                            
+   /// Since this container is type-erased and exact constructor signatures   
+   /// aren't reflected, the following constructors will be attempted:        
+   ///   1. If A is a single argument of exactly the same type, the reflected 
+   ///      move constructor will be used, if available                       
+   ///   2. If A is empty, the reflected default constructor is used          
+   ///   3. If A is not empty, not exactly same as the contained type, or     
+   ///      is more than a single argument, then all arguments will be        
+   ///      wrapped in an Any, and then forwarded to the descriptor-          
+   ///      constructor, if such is reflected                                 
+   ///   If none of these constructors are available, this function throws    
+   ///   Except::Construct                                                    
+   ///   @tparam INDEX - the index to emplace at, IndexFront or IndexBack     
+   ///   @tparam A... - argument types (deducible)                            
+   ///   @param arguments... - the arguments to forward to constructor        
+   ///   @return 1 if the element was emplace successfully                    
    template<Index INDEX, class... A>
    Count Any::Emplace(A&&... arguments) {
-      if constexpr (INDEX == IndexFront)
-         return EmplaceAt<Offset>(0, Forward<A>(arguments)...);
-      else if constexpr (INDEX == IndexBack)
-         return EmplaceAt<Offset>(mCount, Forward<A>(arguments)...);
-      else
-         LANGULUS_ERROR("Bad index for Any::Emplace");
+      // Allocate the required memory - this will not initialize it     
+      Allocate<false>(mCount + 1);
+
+      if constexpr (INDEX == IndexFront) {
+         // Move memory if required                                     
+         LANGULUS_ASSERT(GetUses() == 1, Except::Move,
+            "Moving elements that are used from multiple places");
+
+         // We need to shift elements right from the insertion point    
+         // Therefore, we call move constructors in reverse, to avoid   
+         // memory overlap                                              
+         CropInner(1, 0, mCount)
+            .template CallUnknownMoveConstructors<false, true>(
+               mCount, CropInner(0, mCount, mCount)
+            );
+      }
+
+      // Pick the region that should be overwritten with new stuff      
+      auto region = CropInner(INDEX == IndexFront ? 0 : mCount, 0, 1);
+
+      if constexpr (sizeof...(A) == 0) {
+         // Attempt default construction                                
+         //TODO if stuff moved, we should move stuff back if this throws...
+         region.CallUnknownDefaultConstructors(1);
+      }
+      else {
+         // Attempt move-construction, if available                     
+         if constexpr (sizeof...(A) == 1) {
+            if (Is<A...>() && IsSparse() == CT::Sparse<A...>) {
+               // Single argument matches                               
+               if constexpr (CT::Sparse<A...>) {
+                  // Can't directly interface pointer of pointers, we   
+                  // have to wrap it first                              
+                  Any wrapped;
+                  (wrapped << ... << Forward<A>(arguments));
+                  //TODO if stuff moved, we should move stuff back if this throws...
+                  region.template CallKnownMoveConstructors<A...>(
+                     1, wrapped
+                  );
+               }
+               else {
+                  //TODO if stuff moved, we should move stuff back if this throws...
+                  region.template CallKnownMoveConstructors<Decay<A>...>(
+                     1, Block::From(SparseCast(arguments)...)
+                  );
+               }
+
+               ++mCount;
+               return 1;
+            }
+         }
+
+         // Attempt descriptor-construction, if available               
+         //TODO if stuff moved, we should move stuff back if this throws...
+         const auto descriptor = Any::Wrap(Forward<A>(arguments)...);
+         region.CallUnknownDescriptorConstructors(1, descriptor);
+      }
+
+      ++mCount;
+      return 1;
    }
 
    /// Reset the container                                                    

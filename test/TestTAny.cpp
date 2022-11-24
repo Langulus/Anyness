@@ -66,10 +66,11 @@ T CreateElement(const ALT_T& e) {
 /// The main test for Any/TAny containers, with all kinds of items, from		
 /// sparse to dense, from trivial to complex, from flat to deep					
 TEMPLATE_TEST_CASE("Any/TAny", "[any]", 
-	(TypePair<TAny<Any>, Any>),
+	(TypePair<Any, int>),
 	(TypePair<TAny<int>, int>),
 	(TypePair<TAny<Trait>, Trait>),
 	(TypePair<TAny<Traits::Count>, Traits::Count>),
+	(TypePair<TAny<Any>, Any>),
 	(TypePair<TAny<Text>, Text>),
 	//(TypePair<TAny<Block>, Block>),
 	(TypePair<TAny<int*>, int*>),
@@ -78,7 +79,6 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 	(TypePair<TAny<Any*>, Any*>),
 	(TypePair<TAny<Text*>, Text*>),
 	//(TypePair<TAny<Block*>, Block*>),
-	(TypePair<Any, int>),
 	(TypePair<Any, Trait>),
 	(TypePair<Any, Traits::Count>),
 	(TypePair<Any, Any>),
@@ -1725,6 +1725,102 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 			#endif
 		}
 
+		WHEN("Emplace item at the front") {
+			auto i666 = CreateElement<E>(666);
+			const auto i666backup = i666;
+
+			#if LANGULUS_FEATURE(MANAGED_MEMORY)
+				const auto memory = pack.GetRaw();
+			#endif
+
+			const_cast<T&>(pack).template Emplace<IndexFront>(Move(i666));
+
+			THEN("The size changes, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
+				REQUIRE(pack.GetCount() == 6);
+				REQUIRE(pack.GetReserved() >= 6);
+				REQUIRE(pack.template Is<E>());
+				#if LANGULUS_FEATURE(MANAGED_MEMORY)
+					REQUIRE(pack.GetRaw() == memory);
+				#endif
+				REQUIRE(pack[0] == i666backup);
+				REQUIRE(pack[1] == darray1[0]);
+				REQUIRE(pack[2] == darray1[1]);
+				REQUIRE(pack[3] == darray1[2]);
+				REQUIRE(pack[4] == darray1[3]);
+				REQUIRE(pack[5] == darray1[4]);
+			}
+
+			#ifdef LANGULUS_STD_BENCHMARK
+				BENCHMARK_ADVANCED("Anyness::TAny::Emplace(single move at the front)") (timer meter) {
+					some<T> storage(meter.runs());
+					for (auto&& o : storage)
+						o << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
+
+					meter.measure([&](int i) {
+						return storage[i].template Emplace<IndexFront>(Move(i666d));
+					});
+				};
+
+				BENCHMARK_ADVANCED("std::vector::emplace_front(single move)") (timer meter) {
+					some<StdT> storage(meter.runs());
+					for (auto&& o : storage)
+						o = { darray1[0], darray1[1], darray1[2], darray1[3], darray1[4] };
+
+					meter.measure([&](int i) {
+						return storage[i].emplace_front(Move(i666d));
+					});
+				};
+			#endif
+		}
+		
+		WHEN("Emplace item at the back") {
+			auto i666 = CreateElement<E>(666);
+			const auto i666backup = i666;
+
+			#if LANGULUS_FEATURE(MANAGED_MEMORY)
+				const auto memory = pack.GetRaw();
+			#endif
+
+			const_cast<T&>(pack).template Emplace<IndexBack>(Move(i666));
+
+			THEN("The size changes, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
+				REQUIRE(pack.GetCount() == 6);
+				REQUIRE(pack.GetReserved() >= 6);
+				REQUIRE(pack.template Is<E>());
+				#if LANGULUS_FEATURE(MANAGED_MEMORY)
+					REQUIRE(pack.GetRaw() == memory);
+				#endif
+				REQUIRE(pack[0] == darray1[0]);
+				REQUIRE(pack[1] == darray1[1]);
+				REQUIRE(pack[2] == darray1[2]);
+				REQUIRE(pack[3] == darray1[3]);
+				REQUIRE(pack[4] == darray1[4]);
+				REQUIRE(pack[5] == i666backup);
+			}
+
+			#ifdef LANGULUS_STD_BENCHMARK
+				BENCHMARK_ADVANCED("Anyness::TAny::Emplace(single move at the back)") (timer meter) {
+					some<T> storage(meter.runs());
+					for (auto&& o : storage)
+						o << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
+
+					meter.measure([&](int i) {
+						return storage[i].template Emplace<IndexBack>(Move(i666d));
+					});
+				};
+
+				BENCHMARK_ADVANCED("std::vector::emplace_back(single move)") (timer meter) {
+					some<StdT> storage(meter.runs());
+					for (auto&& o : storage)
+						o = { darray1[0], darray1[1], darray1[2], darray1[3], darray1[4] };
+
+					meter.measure([&](int i) {
+						return storage[i].emplace_back(Move(i666d));
+					});
+				};
+			#endif
+		}
+
 		WHEN("The size is reduced by finding and removing elements, but reserved memory should remain the same on shrinking") {
 			const auto memory = pack.GetRaw();
 			const auto removed2 = const_cast<T&>(pack).RemoveValue(CreateElement<E>(2));
@@ -1952,6 +2048,180 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 				REQUIRE(found == IndexNone);
 				REQUIRE_FALSE(found);
 			}
+		}
+		
+		WHEN("Merge-copy an element to the back, if not found (<<=)") {
+			#if LANGULUS_FEATURE(MANAGED_MEMORY)
+				const auto memory = pack.GetRaw();
+			#endif
+
+			const_cast<T&>(pack) <<= darray2[3];
+
+			THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
+				REQUIRE(pack.GetCount() == 6);
+				REQUIRE(pack.GetReserved() >= 6);
+				REQUIRE(pack.template Is<E>());
+				for (unsigned i = 0; i < 5; ++i)
+					REQUIRE(pack[i] == darray1[i]);
+				REQUIRE(pack[5] == darray2[3]);
+
+				#if LANGULUS_FEATURE(MANAGED_MEMORY)
+					if constexpr (CT::Same<E, int>) {
+						REQUIRE(pack.GetRaw() == memory);
+					}
+				#endif
+			}
+			
+			#ifdef LANGULUS_STD_BENCHMARK
+				BENCHMARK_ADVANCED("Anyness::TAny::operator <<= (merge copy to the back)") (timer meter) {
+					some<T> storage(meter.runs());
+
+					meter.measure([&](int i) {
+						return storage[i] <<= darray2[3];
+					});
+				};
+
+				BENCHMARK_ADVANCED("std::vector::find & push_back (merge copy to the back)") (timer meter) {
+					some<StdT> storage(meter.runs());
+
+					meter.measure([&](int i) {
+						auto& s = storage[i];
+						if (std::find(s.begin(), s.end(), darray2[3]) == s.end())
+							s.push_back(darray2[3]);
+					});
+				};
+			#endif
+		}
+
+		WHEN("Merge-copy an element to the front, if not found (>>=)") {
+			#if LANGULUS_FEATURE(MANAGED_MEMORY)
+				const auto memory = pack.GetRaw();
+			#endif
+
+			const_cast<T&>(pack) >>= darray2[3];
+
+			THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
+				REQUIRE(pack.GetCount() == 6);
+				REQUIRE(pack.GetReserved() >= 6);
+				REQUIRE(pack.template Is<E>());
+				REQUIRE(pack[0] == darray2[3]);
+				for (unsigned i = 1; i < 6; ++i)
+					REQUIRE(pack[i] == darray1[i-1]);
+
+				#if LANGULUS_FEATURE(MANAGED_MEMORY)
+					if constexpr (CT::Same<E, int>) {
+						REQUIRE(pack.GetRaw() == memory);
+					}
+				#endif
+			}
+			
+			#ifdef LANGULUS_STD_BENCHMARK
+				BENCHMARK_ADVANCED("Anyness::TAny::operator >> (merge copy to the front)") (timer meter) {
+					some<T> storage(meter.runs());
+
+					meter.measure([&](int i) {
+						return storage[i] >>= darray2[3];
+					});
+				};
+
+				BENCHMARK_ADVANCED("std::vector::find & push_front (merge copy to the front)") (timer meter) {
+					some<StdT> storage(meter.runs());
+
+					meter.measure([&](int i) {
+						auto& s = storage[i];
+						if (std::find(s.begin(), s.end(), darray2[3]) == s.end())
+							s.push_front(darray2[3]);
+					});
+				};
+			#endif
+		}
+
+		WHEN("Merge-move an element to the back, if not found (<<=)") {
+			#if LANGULUS_FEATURE(MANAGED_MEMORY)
+				const auto memory = pack.GetRaw();
+			#endif
+
+			auto moved = darray2[3];
+			const_cast<T&>(pack) <<= Move(moved);
+
+			THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
+				REQUIRE(pack.GetCount() == 6);
+				REQUIRE(pack.GetReserved() >= 6);
+				REQUIRE(pack.template Is<E>());
+				for (unsigned i = 0; i < 5; ++i)
+					REQUIRE(pack[i] == darray1[i]);
+				REQUIRE(pack[5] == darray2[3]);
+
+				#if LANGULUS_FEATURE(MANAGED_MEMORY)
+					if constexpr (CT::Same<E, int>) {
+						REQUIRE(pack.GetRaw() == memory);
+					}
+				#endif
+			}
+			
+			#ifdef LANGULUS_STD_BENCHMARK
+				BENCHMARK_ADVANCED("Anyness::TAny::operator <<= (merge move to the back)") (timer meter) {
+					some<T> storage(meter.runs());
+
+					meter.measure([&](int i) {
+						return storage[i] <<= Move(moved);
+					});
+				};
+
+				BENCHMARK_ADVANCED("std::vector::find & push_back (merge move to the back)") (timer meter) {
+					some<StdT> storage(meter.runs());
+
+					meter.measure([&](int i) {
+						auto& s = storage[i];
+						if (std::find(s.begin(), s.end(), darray2[3]) == s.end())
+							s.push_back(Move(moved));
+					});
+				};
+			#endif
+		}
+
+		WHEN("Merge-move an element to the front, if not found (>>=)") {
+			#if LANGULUS_FEATURE(MANAGED_MEMORY)
+				const auto memory = pack.GetRaw();
+			#endif
+
+			auto moved = darray2[3];
+			const_cast<T&>(pack) >>= Move(moved);
+
+			THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
+				REQUIRE(pack.GetCount() == 6);
+				REQUIRE(pack.GetReserved() >= 6);
+				REQUIRE(pack.template Is<E>());
+				REQUIRE(pack[0] == darray2[3]);
+				for (unsigned i = 1; i < 6; ++i)
+					REQUIRE(pack[i] == darray1[i-1]);
+
+				#if LANGULUS_FEATURE(MANAGED_MEMORY)
+					if constexpr (CT::Same<E, int>) {
+						REQUIRE(pack.GetRaw() == memory);
+					}
+				#endif
+			}
+			
+			#ifdef LANGULUS_STD_BENCHMARK
+				BENCHMARK_ADVANCED("Anyness::TAny::operator >>= (merge move to the front)") (timer meter) {
+					some<T> storage(meter.runs());
+
+					meter.measure([&](int i) {
+						return storage[i] >>= Move(moved);
+					});
+				};
+
+				BENCHMARK_ADVANCED("std::vector::find & push_front (merge move to the front)") (timer meter) {
+					some<StdT> storage(meter.runs());
+
+					meter.measure([&](int i) {
+						auto& s = storage[i];
+						if (std::find(s.begin(), s.end(), darray2[3]) == s.end())
+							s.push_front(Move(moved));
+					});
+				};
+			#endif
 		}
 
 		WHEN("ForEach flat dense element (immutable)") {

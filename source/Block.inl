@@ -2242,10 +2242,20 @@ namespace Langulus::Anyness
    /// Signed index types will be checked for negative indices (for reverse)  
    /// Unsigned indices are directly forwarded without any overhead           
    ///   @attention assumes T is correct for type-erased containers           
-   ///   @attention assumes index is in container limits, if unsigned         
+   ///   @attention assumes index is in container count limit, if unsigned,   
+   ///              and COUNT_CONSTRAINED is true                             
+   ///   @attention assumes index is in container reserve limit, if unsigned, 
+   ///              and COUNT_CONSTRAINED is false                            
+   ///   @tparam T - the type we're indexing, used for additional special     
+   ///               index handling, like Min and Max, that require type info 
+   ///               use void to skip these indices at no cost                
+   ///   @tparam INDEX - type of the index to simplify                        
+   ///   @tparam COUNT_CONSTRAINED - will check count limits if true or       
+   ///                               reserve limit if false, when DevAssumes  
+   ///                               is enabled                               
    ///   @param index - the index to simplify                                 
    ///   @return the offset                                                   
-   template<class T, CT::Index INDEX>
+   template<class T, bool COUNT_CONSTRAINED, CT::Index INDEX>
    LANGULUS(ALWAYSINLINE) Offset Block::SimplifyIndex(const INDEX& index) const {
       if constexpr (CT::Same<INDEX, Index>) {
          // This is the most safe path                                  
@@ -2259,17 +2269,31 @@ namespace Langulus::Anyness
          }
       }
       else if constexpr (CT::Signed<INDEX>) {
-         // Somehwat safe, default literal type is signed               
+         // Somewhat safe, default literal type is signed               
          if (index < 0) {
             const auto unsign = static_cast<Offset>(-index);
-            LANGULUS_ASSERT(unsign <= mCount, Except::Access,
-               "Reverse index out of range");
+            if constexpr (COUNT_CONSTRAINED) {
+               LANGULUS_ASSERT(unsign <= mCount, Except::Access,
+                  "Reverse index out of count range");
+            }
+            else {
+               LANGULUS_ASSERT(unsign <= mReserved, Except::Access,
+                  "Reverse index out of reserved range");
+            }
+
             return mCount - unsign;
          }
          else {
             const auto unsign = static_cast<Offset>(index);
-            LANGULUS_ASSERT(unsign < mCount, Except::Access,
-               "Signed index out of range");
+            if constexpr (COUNT_CONSTRAINED) {
+               LANGULUS_ASSERT(unsign < mCount, Except::Access,
+                  "Signed index out of count range");
+            }
+            else {
+               LANGULUS_ASSERT(unsign < mReserved, Except::Access,
+                  "Signed index out of reserved range");
+            }
+
             return unsign;
          }
       }
@@ -2277,8 +2301,15 @@ namespace Langulus::Anyness
          // Unsafe, works only on assumptions                           
          // Using an unsigned index explicitly makes a statement, that  
          // you know what you're doing                                  
-         LANGULUS_ASSUME(UserAssumes, index < mCount,
-            "Unsigned index out of range");
+         if constexpr (COUNT_CONSTRAINED) {
+            LANGULUS_ASSUME(UserAssumes, index < mCount,
+               "Unsigned index out of range");
+         }
+         else {
+            LANGULUS_ASSUME(UserAssumes, index < mReserved,
+               "Unsigned index out of range");
+         }
+
          return index;
       }
    }
@@ -3223,7 +3254,7 @@ namespace Langulus::Anyness
       else {
          // Construct all dense elements in place                       
          auto lhs = mRaw;
-         const auto lhsEnd = lhs + count;
+         const auto lhsEnd = lhs + count * mType->mSize;
          while (lhs != lhsEnd) {
             mType->mDescriptorConstructor(lhs, descriptor);
             lhs += mType->mSize;

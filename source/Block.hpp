@@ -553,7 +553,7 @@ namespace Langulus::Anyness
       void Reset();
 
    protected:
-      template<class, CT::Index INDEX>
+      template<class, bool COUNT_CONSTRAINED = true, CT::Index INDEX>
       Offset SimplifyIndex(const INDEX&) const;
 
       template<bool ALLOW_DEEPEN, bool KEEP, CT::Data T, CT::Data = Any, CT::Index INDEX>
