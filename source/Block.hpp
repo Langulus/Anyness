@@ -8,6 +8,7 @@
 #pragma once
 #include "inner/Index.hpp"
 #include "inner/Allocator.hpp"
+#include <utility>
 
 namespace Langulus::Anyness
 {
