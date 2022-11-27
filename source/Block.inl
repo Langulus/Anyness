@@ -3771,12 +3771,14 @@ namespace Langulus::Anyness
 
    /// Call destructors of all initialized items                              
    ///   @attention never modifies any block state                            
-   ///   @attention assumes block is of type T                                
+   ///   @attention assumes block is of type T, or is at least virtual base   
    ///   @tparam T - the type to destroy                                      
    template<CT::Data T>
    void Block::CallKnownDestructors() const {
-      LANGULUS_ASSUME(DevAssumes, Is<T>(),
-         "T doesn't match block type");
+      LANGULUS_ASSUME(DevAssumes, 
+         Is<T>() || mType->template HasDerivation<T>(),
+         "T isn't related to contained type"
+      );
 
       constexpr bool destroy = !CT::POD<T> && CT::Destroyable<T>;
       if constexpr (CT::Sparse<T>) {
