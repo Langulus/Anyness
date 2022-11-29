@@ -388,9 +388,6 @@ namespace Langulus::Anyness
       NOD() Index FindUnknown(const Block&, const Offset& = 0) const;
       template<bool REVERSE = false, CT::Data T>
       NOD() Index FindDeep(const T&, Offset = 0) const;
-
-      Count Gather(Block&, Index = IndexFront) const;
-      Count Gather(Block&, DataState, Index = IndexFront) const;
    
       template<CT::Data, CT::Index INDEX1, CT::Index INDEX2>
       void Swap(INDEX1, INDEX2);
@@ -580,6 +577,9 @@ namespace Langulus::Anyness
       void Absorb(const T&, const DataState&);
       template<bool KEEP, CT::NotSemantic T>
       void Absorb(T&&, const DataState&);
+
+      Count GatherInner(const Block&, Block&, Index);
+      Count GatherPolarInner(DMeta, const Block&, Block&, Index, DataState);
 
       static void CopyMemory(const void*, void*, const Size&) noexcept;
       static void MoveMemory(const void*, void*, const Size&) noexcept;

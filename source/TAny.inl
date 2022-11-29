@@ -1528,6 +1528,27 @@ namespace Langulus::Anyness
       Any::Swap<T>(from, to);
    }
 
+   /// Gather items from source container, and fill this one                  
+   /// Type acts as a filter to what gets gathered                            
+   ///   @param source - container to gather from                             
+   ///   @param direction - the direction to search from                      
+   ///   @return the number of gathered elements                              
+   TEMPLATE()
+   Count TAny<T>::GatherFrom(const Block& source, const Index direction) {
+      return Block::GatherInner(source, *this, direction);
+   }
+
+   /// Gather items from this container based on data state                   
+   /// Type acts as a filter to what gets gathered                            
+   /// Preserves hierarchy only if this container is deep                     
+   ///   @param source - container to gather from                             
+   ///   @param state - data states to filter                                 
+   ///   @param direction - the direction to search from                      
+   TEMPLATE()
+   Count TAny<T>::GatherFrom(const Block& source, DataState state, const Index direction) {
+      return Block::GatherPolarInner(GetType(), source, *this, direction, state);
+   }
+
    /// Clone container array into a new owned memory block                    
    /// If we have jurisdiction, the memory won't move at all                  
    TEMPLATE()

@@ -253,6 +253,9 @@ namespace Langulus::Anyness
       void Swap(const Offset&, const Offset&);
       void Swap(const Index&, const Index&);
 
+      Count GatherFrom(const Block&, Index = IndexFront);
+      Count GatherFrom(const Block&, DataState, Index = IndexFront);
+
       ///                                                                     
       ///   Concatenation                                                     
       ///                                                                     

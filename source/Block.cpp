@@ -431,7 +431,7 @@ namespace Langulus::Anyness
    ///   @param output - [in/out] container that collects results             
    ///   @param direction - the direction to search from                      
    ///   @return the number of gathered elements                              
-   Count GatherInner(const Block& input, Block& output, const Index direction) {
+   Count Block::GatherInner(const Block& input, Block& output, const Index direction) {
       Count count {};
       if (input.IsDeep() && !output.IsDeep()) {
          // Iterate all subpacks                                        
@@ -457,17 +457,6 @@ namespace Langulus::Anyness
       return count;
    }
 
-   /// Gather items from this container, and fill output                      
-   /// Output type acts as a filter to what gets gathered                     
-   ///   @param output - [in/out] container that collects results             
-   ///   @param direction - the direction to search from                      
-   ///   @return the number of gathered elements                              
-   Count Block::Gather(Block& output, const Index direction) const {
-      if (output.IsUntyped())
-         return output.InsertBlock<IndexBack>(*this);
-      return GatherInner(*this, output, direction);
-   }
-
    /// Gather items of specific phase from input container and fill output    
    ///   @param type - type to search for                                     
    ///   @param input - source container                                      
@@ -475,7 +464,7 @@ namespace Langulus::Anyness
    ///   @param direction - the direction to search from                      
    ///   @param phase - phase filter                                          
    ///   @return the number of gathered elements                              
-   Count GatherPolarInner(DMeta type, const Block& input, Block& output, const Index direction, DataState state) {
+   Count Block::GatherPolarInner(DMeta type, const Block& input, Block& output, const Index direction, DataState state) {
       if (input.GetState() % state) {
          if (input.IsNow() && input.IsDeep()) {
             // Phases don't match, but we can dig deeper if deep        
@@ -513,13 +502,6 @@ namespace Langulus::Anyness
       GatherInner(input, localOutput, direction);
       localOutput.MakeNow();
       return output.InsertBlock(localOutput);
-   }
-
-   /// Gather items from this container based on phase. Output type           
-   /// matters - it decides what you'll gather. Preserves hierarchy only if   
-   /// output is deep                                                         
-   Count Block::Gather(Block& output, DataState state, const Index direction) const {
-      return GatherPolarInner(output.GetType(), *this, output, direction, state);
    }
 
    /// Destroy all elements, but don't deallocate memory                      
