@@ -2635,21 +2635,26 @@ namespace Langulus::Anyness
       static_assert(CT::Constant<A> || (CT::Mutable<A> && MUTABLE),
          "Non constant iterator for constant memory block");
 
-      if constexpr (CT::Deep<A>) {
+      if constexpr (CT::Deep<Decay<A>>) {
          // If argument type is deep                                    
          return ForEachDeepInner<R, A, REVERSE, SKIP, MUTABLE>(Forward<F>(call));
       }
-      else if constexpr (CT::Constant<A>) {
-         // Any other type is wrapped inside another ForEachDeep call   
-         return ForEachDeep<SKIP, MUTABLE>([&call](const Block& block) {
-            block.ForEach(Forward<F>(call));
-         });
-      }
       else {
          // Any other type is wrapped inside another ForEachDeep call   
-         return ForEachDeep<SKIP, MUTABLE>([&call](Block& block) {
-            block.ForEach(Forward<F>(call));
-         });
+         Count it = 0;
+
+         if constexpr (CT::Constant<A>) {
+            ForEachDeep<SKIP, MUTABLE>([&call, &it](const Block& block) {
+               it += block.ForEach(Forward<F>(call));
+            });
+         }
+         else {
+            ForEachDeep<SKIP, MUTABLE>([&call, &it](Block& block) {
+               it += block.ForEach(Forward<F>(call));
+            });
+         }
+
+         return it;
       }
    }
 
@@ -2704,9 +2709,10 @@ namespace Langulus::Anyness
       constexpr bool HasBreaker = CT::Bool<R>;
       UNUSED() bool atLeastOneChange = false;
       auto count {GetCountDeep()};
-      Count index {};
+      Count index = 0;
+      Count skipped = 0;
       while (index < count) {
-         auto block = ReinterpretCast<A>(GetBlockDeep(index));
+         auto block = ReinterpretCast<Decay<A>>(GetBlockDeep(index));
          if constexpr (MUTABLE) {
             if (!block)
                break;
@@ -2716,6 +2722,7 @@ namespace Langulus::Anyness
             // Skip deep/empty sub blocks                               
             if (block->IsDeep() || block->IsEmpty()) {
                ++index;
+               ++skipped;
                continue;
             }
          }
@@ -2725,7 +2732,10 @@ namespace Langulus::Anyness
             if (!call(*block))
                return ++index;
          }
-         else call(*block);
+         else if constexpr (CT::Sparse<A>)
+            call(block);
+         else
+            call(*block);
 
          if constexpr (MUTABLE) {
             // Iterator might be invalid at this point!                 
@@ -2736,7 +2746,7 @@ namespace Langulus::Anyness
                   // until all empty stateless blocks are removed       
                   while (block && block->IsEmpty() && !block->GetUnconstrainedState()) {
                      index -= RemoveIndexDeep(index);
-                     block = ReinterpretCast<A>(GetBlockDeep(index - 1));
+                     block = ReinterpretCast<Decay<A>>(GetBlockDeep(index - 1));
                   }
                }
 
@@ -2753,7 +2763,10 @@ namespace Langulus::Anyness
             Optimize();
       }
 
-      return index;
+      if constexpr (SKIP)
+         return index - skipped;
+      else
+         return index;
    }
 
    /// Wrapper for memcpy                                                     

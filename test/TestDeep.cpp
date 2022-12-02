@@ -292,6 +292,270 @@ SCENARIO("Deep containers", "[any]") {
 				REQUIRE(!pushed.As<Any>(1).IsOr());
 			}
 		}
+
+		WHEN("ForEachDeep with dense flat element (immutable, skipping)") {
+			int it = 1;
+			int total = 0;
+			const auto iterated = pack.ForEachDeep(
+				[&](const int& i) {
+					REQUIRE(i == it);
+					++total;
+					if (++it == 11)
+						it = 1;
+				}
+			);
+
+			THEN("The number of iterated elements should be correct") {
+				REQUIRE(it == 1);
+				REQUIRE(total == 20);
+				REQUIRE(total == iterated);
+			}
+		}
+
+		WHEN("ForEachDeep with sparse flat element (immutable, skipping)") {
+			int it = 1;
+			int total = 0;
+			const auto iterated = pack.ForEachDeep(
+				[&](const int* i) {
+					REQUIRE(*i == it);
+					++total;
+					if (++it == 11)
+						it = 1;
+				}
+			);
+
+			THEN("The number of iterated elements should be correct") {
+				REQUIRE(it == 1);
+				REQUIRE(total == 20);
+				REQUIRE(total == iterated);
+			}
+		}
+
+		WHEN("ForEachDeep with dense flat element (mutable, skipping)") {
+			int it = 1;
+			int total = 0;
+			const auto iterated = pack.ForEachDeep(
+				[&](int& i) {
+					REQUIRE(i == it);
+					++total;
+					if (++it == 11)
+						it = 1;
+				}
+			);
+
+			THEN("The number of iterated elements should be correct") {
+				REQUIRE(it == 1);
+				REQUIRE(total == 20);
+				REQUIRE(total == iterated);
+			}
+		}
+
+		WHEN("ForEachDeep with sparse flat element (mutable, skipping)") {
+			int it = 1;
+			int total = 0;
+			const auto iterated = pack.ForEachDeep(
+				[&](int* i) {
+					REQUIRE(*i == it);
+					++total;
+					if (++it == 11)
+						it = 1;
+				}
+			);
+
+			THEN("The number of iterated elements should be correct") {
+				REQUIRE(it == 1);
+				REQUIRE(total == 20);
+				REQUIRE(total == iterated);
+			}
+		}
+
+		WHEN("ForEachDeep with dense flat element (immutable, non-skipping)") {
+			int it = 1;
+			int total = 0;
+			const auto iterated = pack.template ForEachDeep<false>(
+				[&](const int& i) {
+					REQUIRE(i == it);
+					++total;
+					if (++it == 11)
+						it = 1;
+				}
+			);
+
+			THEN("The number of iterated elements should be correct") {
+				REQUIRE(it == 1);
+				REQUIRE(total == 20);
+				REQUIRE(total == iterated);
+			}
+		}
+
+		WHEN("ForEachDeep with sparse flat element (immutable, non-skipping)") {
+			int it = 1;
+			int total = 0;
+			const auto iterated = pack.template ForEachDeep<false>(
+				[&](const int* i) {
+					REQUIRE(*i == it);
+					++total;
+					if (++it == 11)
+						it = 1;
+				}
+			);
+
+			THEN("The number of iterated elements should be correct") {
+				REQUIRE(it == 1);
+				REQUIRE(total == 20);
+				REQUIRE(total == iterated);
+			}
+		}
+
+		WHEN("ForEachDeep with dense flat element (mutable, non-skipping)") {
+			int it = 1;
+			int total = 0;
+			const auto iterated = pack.template ForEachDeep<false>(
+				[&](int& i) {
+					REQUIRE(i == it);
+					++total;
+					if (++it == 11)
+						it = 1;
+				}
+			);
+
+			THEN("The number of iterated elements should be correct") {
+				REQUIRE(it == 1);
+				REQUIRE(total == 20);
+				REQUIRE(total == iterated);
+			}
+		}
+
+		WHEN("ForEachDeep with sparse flat element (mutable, non-skipping)") {
+			int it = 1;
+			int total = 0;
+			const auto iterated = pack.template ForEachDeep<false>(
+				[&](int* i) {
+					REQUIRE(*i == it);
+					++total;
+					if (++it == 11)
+						it = 1;
+				}
+			);
+
+			THEN("The number of iterated elements should be correct") {
+				REQUIRE(it == 1);
+				REQUIRE(total == 20);
+				REQUIRE(total == iterated);
+			}
+		}
+
+		WHEN("ForEachDeep with dense Block element (immutable, skipping)") {
+			int total = 0;
+			const auto iterated = pack.ForEachDeep(
+				[&](const Block& i) {
+					++total;
+				}
+			);
+
+			THEN("The number of iterated blocks should be correct") {
+				REQUIRE(total == 4);
+				REQUIRE(total == iterated);
+			}
+		}
+
+		WHEN("ForEachDeep with sparse Block element (immutable, skipping)") {
+			int total = 0;
+			const auto iterated = pack.ForEachDeep(
+				[&](const Block* i) {
+					++total;
+				}
+			);
+
+			THEN("The number of iterated blocks should be correct") {
+				REQUIRE(total == 4);
+				REQUIRE(total == iterated);
+			}
+		}
+
+		WHEN("ForEachDeep with dense Block element (mutable, skipping)") {
+			int total = 0;
+			const auto iterated = pack.ForEachDeep(
+				[&](Block& i) {
+					++total;
+				}
+			);
+
+			THEN("The number of iterated blocks should be correct") {
+				REQUIRE(total == 4);
+				REQUIRE(total == iterated);
+			}
+		}
+
+		WHEN("ForEachDeep with sparse Block element (mutable, skipping)") {
+			int total = 0;
+			const auto iterated = pack.ForEachDeep(
+				[&](Block* i) {
+					++total;
+				}
+			);
+
+			THEN("The number of iterated blocks should be correct") {
+				REQUIRE(total == 4);
+				REQUIRE(total == iterated);
+			}
+		}
+
+		WHEN("ForEachDeep with dense Block element (immutable, non-skipping)") {
+			int total = 0;
+			const auto iterated = pack.template ForEachDeep<false>(
+				[&](const Block& i) {
+					++total;
+				}
+			);
+
+			THEN("The number of iterated blocks should be correct") {
+				REQUIRE(total == 6);
+				REQUIRE(total == iterated);
+			}
+		}
+
+		WHEN("ForEachDeep with sparse Block element (immutable, non-skipping)") {
+			int total = 0;
+			const auto iterated = pack.template ForEachDeep<false>(
+				[&](const Block* i) {
+					++total;
+				}
+			);
+
+			THEN("The number of iterated blocks should be correct") {
+				REQUIRE(total == 6);
+				REQUIRE(total == iterated);
+			}
+		}
+
+		WHEN("ForEachDeep with dense Block element (mutable, non-skipping)") {
+			int total = 0;
+			const auto iterated = pack.template ForEachDeep<false>(
+				[&](Block& i) {
+					++total;
+				}
+			);
+
+			THEN("The number of iterated blocks should be correct") {
+				REQUIRE(total == 6);
+				REQUIRE(total == iterated);
+			}
+		}
+
+		WHEN("ForEachDeep with sparse Block element (mutable, non-skipping)") {
+			int total = 0;
+			const auto iterated = pack.template ForEachDeep<false>(
+				[&](Block* i) {
+					++total;
+				}
+			);
+
+			THEN("The number of iterated blocks should be correct") {
+				REQUIRE(total == 6);
+				REQUIRE(total == iterated);
+			}
+		}
 	}
 
 	GIVEN("Any with some deep items for the purpose of optimization") {
