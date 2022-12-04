@@ -1017,6 +1017,7 @@ namespace Langulus::Anyness
    }
 
    /// Swap two elements                                                      
+   ///   @attention assumes T is exactly the contained type                   
    ///   @tparam T - the contained type                                       
    ///   @tparam INDEX1 - type of the first index (deducible)                 
    ///   @tparam INDEX2 - type of the second index (deducible)                
@@ -1035,23 +1036,36 @@ namespace Langulus::Anyness
       data[from] = Move(temp);
    }
 
+   /// Compare with one single value, if exactly one element is contained     
+   ///   @attention compares by value if == operator is available             
+   ///   @param rhs - the value to compare against                            
+   ///   @return true if elements are the same                                
+   template<class T>
+   NOD() bool Block::CompareSingleValue(const T& rhs) const {
+      if constexpr (CT::Sparse<T>) {
+         if constexpr (CT::Comparable<T, T>)
+            // Compare by pointer and then value                        
+            return mCount == 1 && Is<T>() && (Get<T>() == rhs || (rhs && *rhs == *Get<T>()));
+         else
+            // Compare by pointer only                                  
+            return mCount == 1 && Is<T>() && Get<T>() == rhs;
+      }
+      else if constexpr (CT::Comparable<T, T>) {
+         // Compare by value                                            
+         return mCount == 1 && Is<T>() && Get<T>() == rhs;
+      }
+      else LANGULUS_ERROR("Dense T is not equality-comparable");
+   }
+
    /// Compare to any other kind of deep container, or a single custom element
    ///   @param rhs - element to compare against                              
    ///   @return true if containers match                                     
    template<CT::Data T>
    bool Block::operator == (const T& rhs) const {
-      if constexpr (CT::Sparse<T>) {
-         if constexpr (CT::Deep<T>)
-            return Compare(rhs) || (mCount == 1 && Is<T>() && (Get<T>() == rhs || (rhs && *rhs == *Get<T>())));
-         else
-            return mCount == 1 && Is<T>() && (Get<T>() == rhs || (rhs && *rhs == *Get<T>()));
-      }
-      else {
-         if constexpr (CT::Deep<T>)
-            return Compare(rhs) || (mCount == 1 && Is<T>() && Get<T>() == rhs);
-         else
-            return mCount == 1 && Is<T>() && Get<T>() == rhs;
-      }
+      if constexpr (CT::Deep<T>)
+         return Compare(rhs) || CompareSingleValue<T>(rhs);
+      else
+         return CompareSingleValue<T>(rhs);
    }
 
    /// Reinterpret contents of this Block as a collection of a static type    

@@ -8,8 +8,9 @@
 #include "Main.hpp"
 
 #define CATCH_CONFIG_RUNNER
-
 #include <catch2/catch.hpp>
+
+LANGULUS_RTTI_BOUNDARY("Test")
 
 int main(int argc, char* argv[]) {
 	Catch::Session session;

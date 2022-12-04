@@ -399,6 +399,11 @@ namespace Langulus::Anyness
       template<CT::Data T>
       bool operator == (const T&) const;
 
+   protected:
+      template<class T>
+      NOD() bool CompareSingleValue(const T&) const;
+
+   public:
       ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
