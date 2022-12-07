@@ -251,7 +251,6 @@ namespace Langulus::Anyness
       template<bool MUTABLE, class F>
       Count ForEachElement(Block&, F&&);
 
-
       template<bool REUSE>
       void AllocateKeys(const Count&);
       void AllocateInner(const Count&);

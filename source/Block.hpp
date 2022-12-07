@@ -26,9 +26,13 @@ namespace Langulus::Anyness
    template<CT::Data, CT::Data>
    class TUnorderedMap;
    
-   class Set;
+   class BlockSet;
+   class OrderedSet;
+   class UnorderedSet;
    template<CT::Data>
-   class TSet;
+   class TOrderedSet;
+   template<CT::Data>
+   class TUnorderedSet;
    
    class Bytes;
    class Text;
@@ -75,9 +79,13 @@ namespace Langulus::Anyness
       template<CT::Data, CT::Data>
       friend class TUnorderedMap;
 
-      friend class Set;
+      friend class BlockSet;
+      friend class OrderedSet;
+      friend class UnorderedSet;
       template<CT::Data>
-      friend class TSet;
+      friend class TOrderedSet;
+      template<CT::Data>
+      friend class TUnorderedSet;
 
       friend class Bytes;
       friend class Text;

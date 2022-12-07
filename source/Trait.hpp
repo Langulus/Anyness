@@ -216,5 +216,9 @@ LANGULUS_DEFINE_TRAIT(Trait,
    "Accesses traits (static or dynamic) of an instantiated object of any kind");
 LANGULUS_DEFINE_TRAIT(State, 
    "State trait, used all over the place");
+LANGULUS_DEFINE_TRAIT(Child,
+   "Accesses children in any kind of hierarchies");
+LANGULUS_DEFINE_TRAIT(Parent,
+   "Accesses parents in any kind of hierarchies");
 
 #include "Trait.inl"

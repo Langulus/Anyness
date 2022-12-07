@@ -18,6 +18,9 @@
 #include "../source/TUnorderedMap.hpp"
 #include "../source/UnorderedMap.hpp"
 #include "../source/TUnorderedSet.hpp"
+#include "../source/UnorderedSet.hpp"
+#include "../source/TOrderedSet.hpp"
+#include "../source/OrderedSet.hpp"
 #include "../source/Referenced.hpp"
 
 #if LANGULUS_FEATURE(MANAGED_MEMORY)
