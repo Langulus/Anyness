@@ -6,8 +6,8 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "Any.hpp"
-#include "TPair.hpp"
+#include "../TAny.inl"
+#include "../TPair.inl"
 
 namespace Langulus::Anyness
 {
@@ -103,6 +103,8 @@ namespace Langulus::Anyness
 
       NOD() constexpr bool HasAuthority() const noexcept;
       NOD() constexpr Count GetUses() const noexcept;
+
+      NOD() Hash GetHash() const;
 
       template<CT::Data K, CT::Data V>
       void Mutate();

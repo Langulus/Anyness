@@ -10,11 +10,6 @@
 namespace Langulus::Anyness
 {
 
-   /// Create path from text                                                  
-   ///   @param other - text container to reference                           
-   //Path::Path(const Text& other) 
-   //   : Text {other} {}
-
    /// Copy path but do not reference it, because it is disowned              
    ///   @param other - the path to copy                                      
    Path::Path(Disowned<Path>&& other) noexcept

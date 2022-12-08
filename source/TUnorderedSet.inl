@@ -17,7 +17,7 @@ namespace Langulus::Anyness
    /// Default construction                                                   
    TABLE_TEMPLATE()
    constexpr TABLE()::TUnorderedSet()
-      : UnorderedMap {} {
+      : UnorderedSet {} {
       mKeys.mState = DataState::Typed;
       if constexpr (CT::Sparse<T>)
          mKeys.MakeSparse();
@@ -97,16 +97,10 @@ namespace Langulus::Anyness
          if (!*(info++))
             continue;
 
-         const auto key = GetRaw() + lhs;
-         const auto rhs = other.FindIndex(*key);
-         if constexpr (CT::Sparse<T>) {
-            if (rhs == other.GetReserved() || *GetValue(lhs) != *other.GetValue(rhs))
-               return false;
-         }
-         else {
-            if (rhs == other.GetReserved() || GetValue(lhs) != other.GetValue(rhs))
-               return false;
-         }
+         const auto& key = Get(lhs);
+         const auto rhs = other.FindIndex(key);
+         if (rhs == other.GetReserved() || key != other.Get(rhs))
+            return false;
       }
 
       return true;
@@ -494,10 +488,10 @@ namespace Langulus::Anyness
       InfoType attempts {1};
       while (*psl) {
          const auto index = psl - GetInfo();
+         auto& candidate = Get(index);
 
          if constexpr (CHECK_FOR_MATCH) {
-            const auto candidate = GetRaw() + index;
-            if (*candidate == value) {
+            if (candidate == value) {
                // Neat, the key already exists - just return            
                return index;
             }
@@ -505,7 +499,7 @@ namespace Langulus::Anyness
 
          if (attempts > *psl) {
             // The pair we're inserting is closer to bucket, so swap    
-            ::std::swap(GetValue(index), value);
+            ::std::swap(candidate, value);
             ::std::swap(attempts, *psl);
          }
 
@@ -524,13 +518,16 @@ namespace Langulus::Anyness
       // Might not seem like it, but we gave a guarantee, that this is  
       // eventually reached, unless key exists and returns early        
       const auto index = psl - GetInfo();
+      auto& candidate = Get(index);
+
       if constexpr (!KEEP && CT::AbandonMakable<ValueInner>)
-         new (&GetValue(index)) ValueInner {Abandon(value)};
+         new (&candidate) ValueInner {Abandon(value)};
       else if constexpr (CT::MoveMakable<ValueInner>)
-         new (&GetValue(index)) ValueInner {Move(value)};
+         new (&candidate) ValueInner {Move(value)};
       else if constexpr (CT::CopyMakable<ValueInner>)
-         new (&GetValue(index)) ValueInner {value};
-      else LANGULUS_ERROR("Can't instantiate value");
+         new (&candidate) ValueInner {value};
+      else
+         LANGULUS_ERROR("Can't instantiate value");
 
       *psl = attempts;
       ++mKeys.mCount;
@@ -851,7 +848,7 @@ namespace Langulus::Anyness
    ///   @return a reference to the value                                     
    TABLE_TEMPLATE()
    decltype(auto) TABLE()::Get(const Index& index) const {
-      return const_cast<TABLE()&>(*this).GetValue(index);
+      return const_cast<TABLE()&>(*this).Get(index);
    }
 
    /// Get a value by a safe index                                            

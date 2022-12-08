@@ -6,7 +6,7 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "Any.hpp"
+#include "../TAny.inl"
 
 namespace Langulus::Anyness
 {
@@ -69,6 +69,8 @@ namespace Langulus::Anyness
       NOD() constexpr bool IsAllocated() const noexcept;
       NOD() constexpr bool HasAuthority() const noexcept;
       NOD() constexpr Count GetUses() const noexcept;
+
+      NOD() Hash GetHash() const;
 
       template<CT::Data T>
       void Mutate();

@@ -7,8 +7,8 @@
 ///                                                                           
 #pragma once
 #include "Block.hpp"
-#include "verbs/Compare.inl"
-#include "verbs/Select.inl"
+#include "../verbs/Compare.inl"
+#include "../verbs/Select.inl"
 
 namespace Langulus::Anyness
 {
@@ -960,7 +960,7 @@ namespace Langulus::Anyness
       return !mType || !type || mType->CastsTo(type, count);
    }
 
-   /// Check if this container's data is exactly one of the listed types      
+   /// Check if this container's data is similar to one of the listed types   
    ///   @attention ignores sparsity                                          
    ///   @tparam T - the types to compare against                             
    ///   @return true if data type matches at least one type                  

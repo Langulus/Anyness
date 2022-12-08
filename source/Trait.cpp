@@ -5,7 +5,7 @@
 /// Distributed under GNU General Public License v3+                          
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
-#include "Trait.hpp"
+#include "Trait.inl"
 
 namespace Langulus::Anyness
 {

@@ -5,7 +5,7 @@
 /// Distributed under GNU General Public License v3+                          
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
-#include "../Block.hpp"
+#include "../blocks/Block.hpp"
 
 #define VERBOSE(...)			//Logger::Verbose(__VA_ARGS__)
 #define VERBOSE_TAB(...)	//auto tab = Logger::Section(__VA_ARGS__)

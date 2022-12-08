@@ -6,7 +6,7 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "BlockMap.hpp"
+#include "blocks/BlockMap.hpp"
 
 namespace Langulus::Anyness
 {

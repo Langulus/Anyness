@@ -6,8 +6,7 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #include "Block.hpp"
-#include "Any.hpp"
-#include "TAny.hpp"
+#include "../TAny.hpp"
 
 namespace Langulus::Anyness
 {

@@ -6,7 +6,7 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "../Block.hpp"
+#include "../blocks/Block.hpp"
 
 #define VERBOSE(a) //pcLogFuncVerbose << a
 

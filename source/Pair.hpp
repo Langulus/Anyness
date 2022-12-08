@@ -18,12 +18,6 @@ namespace Langulus
       ///                                                                     
       struct Pair {
          LANGULUS_ABSTRACT() true;
-
-         // Needed so that inherited pairs can have default operator ==	
-         //TODO huh?
-         constexpr bool operator == (const Pair&) const noexcept {
-            return true;
-         }
       };
 
    } // namespace Langulus::A
@@ -40,15 +34,14 @@ namespace Langulus
          Any mKey;
          Any mValue;
 
+      public:
          template<class K, class V>
-         Pair(const K& key, const V& value)
-            : mKey {key}
-            , mValue {value} {}
+         Pair(const K&, const V&);
 
          template<class K, class V>
-         Pair(K&& key, V&& value)
-            : mKey {Forward<K>(key)}
-            , mValue {Forward<V>(value)} {}
+         Pair(K&&, V&&);
+
+         NOD() Hash GetHash() const;
       };
 
    } // namespace Langulus::Anyness
@@ -64,3 +57,5 @@ namespace Langulus
    } // namespace Langulus::CT
 
 } // namespace Langulus
+
+#include "Pair.inl"

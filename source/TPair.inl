@@ -6,7 +6,7 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "Pair.hpp"
+#include "TPair.hpp"
 
 #define TEMPLATE() template<CT::Data K, CT::Data V>
 #define PAIR() TPair<K, V>
