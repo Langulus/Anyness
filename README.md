@@ -1,5 +1,5 @@
 # Anyness
-Modern (C++20) type-erased containers, for standalone or Langulus use
+Modern (C++20) type-erased containers, for standalone or [Langulus](https://github.com/Langulus/Langulus) use
 
 [![Langulus::Anyness CI](https://github.com/Langulus/Anyness/actions/workflows/ci.yml/badge.svg)](https://github.com/Langulus/Anyness/actions/workflows/ci.yml)
 
