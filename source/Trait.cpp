@@ -106,7 +106,7 @@ namespace Langulus::Anyness
    ///   @param other - the trait to test against                             
    ///   @return true if trait is valid                                       
    bool Trait::IsSimilar(const Trait& other) const noexcept {
-      return mTraitType->Is(other.mTraitType) && other.CastsToMeta(mType);
+      return mTraitType->Is(other.mTraitType) && other.CastsToMeta(GetType());
    }
 
    /// Check if trait is a specific type                                      

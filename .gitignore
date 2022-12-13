@@ -1,6 +1,7 @@
 /out
 /.vs
 /external
+/docs
 *.user
 *.bak
 *.hint

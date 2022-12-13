@@ -99,7 +99,8 @@ namespace Langulus::Anyness
       /// A structure used to represent an element of a sparse container      
       struct KnownPointer;
 
-   protected:
+   private:
+   /// @cond show_protected                                                   
    TESTING(public:)
       union {
          #if LANGULUS_DEBUG()
@@ -121,6 +122,7 @@ namespace Langulus::Anyness
       // Pointer to the allocated block                                 
       // If entry is zero, then data is static                          
       Inner::Allocation* mEntry {};
+   /// @endcond                                                               
 
    public:
       constexpr Block() noexcept = default;
@@ -152,12 +154,6 @@ namespace Langulus::Anyness
          
       void TakeAuthority();
       void Optimize();
-
-   protected:
-      template<bool CONSTRAIN>
-      void SetType(DMeta);
-      template<CT::Data, bool CONSTRAIN>
-      void SetType();
 
    public:
       //                                                                
@@ -331,8 +327,8 @@ namespace Langulus::Anyness
       NOD() Block GetMember(TMeta);
       NOD() Block GetMember(DMeta) const;
       NOD() Block GetMember(DMeta);
-      NOD() Block GetMember(std::nullptr_t) const;
-      NOD() Block GetMember(std::nullptr_t);
+      NOD() Block GetMember(::std::nullptr_t) const;
+      NOD() Block GetMember(::std::nullptr_t);
 
       template<CT::Index INDEX>
       NOD() Block GetMember(TMeta, const INDEX&) const;
@@ -343,9 +339,9 @@ namespace Langulus::Anyness
       template<CT::Index INDEX>
       NOD() Block GetMember(DMeta, const INDEX&);
       template<CT::Index INDEX>
-      NOD() Block GetMember(std::nullptr_t, const INDEX&) const;
+      NOD() Block GetMember(::std::nullptr_t, const INDEX&) const;
       template<CT::Index INDEX>
-      NOD() Block GetMember(std::nullptr_t, const INDEX&);
+      NOD() Block GetMember(::std::nullptr_t, const INDEX&);
    
       NOD() Block GetBaseMemory(DMeta, const RTTI::Base&) const;
       NOD() Block GetBaseMemory(DMeta, const RTTI::Base&);
@@ -406,10 +402,6 @@ namespace Langulus::Anyness
 
       template<CT::Data T>
       bool operator == (const T&) const;
-
-   protected:
-      template<class T>
-      NOD() bool CompareSingleValue(const T&) const;
 
    public:
       ///                                                                     
@@ -559,6 +551,15 @@ namespace Langulus::Anyness
       void Reset();
 
    protected:
+      /// @cond show_protected                                                
+      template<bool CONSTRAIN>
+      void SetType(DMeta);
+      template<CT::Data, bool CONSTRAIN>
+      void SetType();
+
+      template<class T>
+      NOD() bool CompareSingleValue(const T&) const;
+
       template<class, bool COUNT_CONSTRAINED = true, CT::Index INDEX>
       Offset SimplifyIndex(const INDEX&) const;
 
@@ -601,9 +602,7 @@ namespace Langulus::Anyness
       constexpr void ResetType() noexcept;
    
       void Reference(const Count&) const noexcept;
-      void Reference(const Count&) noexcept;
       void Keep() const noexcept;
-      void Keep() noexcept;
       
       template<bool DESTROY>
       bool Dereference(const Count&);
@@ -654,6 +653,7 @@ namespace Langulus::Anyness
       void Prev() noexcept;
       NOD() Block Next() const noexcept;
       NOD() Block Prev() const noexcept;
+      /// @endcond                                                            
    };
 
 
@@ -662,10 +662,13 @@ namespace Langulus::Anyness
    ///                                                                        
    struct Block::KnownPointer {
       friend class Block;
+
    private:
-   TESTING(public:)
+      /// @cond show_protected                                                
+      TESTING(public:)
       Byte* mPointer {};
       Inner::Allocation* mEntry {};
+      /// @endcond show_protected                                             
 
    public:
       constexpr KnownPointer() noexcept = default;
@@ -727,6 +730,8 @@ namespace Langulus::Anyness
       class TReverse {
       private:
          using ITERATOR = ::std::conditional_t<::std::is_const_v<T>, const E*, E*>;
+         T& mContainer;
+
       public:
          TReverse() = delete;
          TReverse(const TReverse&) = delete;
@@ -752,9 +757,6 @@ namespace Langulus::Anyness
          NOD() PointerWrapper end() const noexcept;
          NOD() E& last() const noexcept;
          NOD() Count size() const noexcept;
-
-      private:
-         T& mContainer;
       };
 
    } // namespace Langulus::Anyness::Inner

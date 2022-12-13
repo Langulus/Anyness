@@ -156,27 +156,15 @@ namespace Langulus::Anyness
 
    /// Reference memory block if we own it                                    
    ///   @param times - number of references to add                           
-   inline void Block::Reference(const Count& times) noexcept {
-      if (mEntry)
-         mEntry->Keep(times);
-   }
-   
-   /// Reference memory block (const)                                         
-   ///   @param times - number of references to add                           
    inline void Block::Reference(const Count& times) const noexcept {
-      const_cast<Block&>(*this).Reference(times);
+      if (mEntry)
+         const_cast<Inner::Allocation*>(mEntry)->Keep(times);
    }
    
    /// Reference memory block once                                            
    ///   @return the remaining references for the block                       
-   inline void Block::Keep() noexcept {
-      Reference(1);
-   }
-   
-   /// Reference memory block once (const)                                    
-   ///   @return the remaining references for the block                       
    inline void Block::Keep() const noexcept {
-      const_cast<Block&>(*this).Keep();
+      Reference(1);
    }
          
    /// Dereference memory block                                               

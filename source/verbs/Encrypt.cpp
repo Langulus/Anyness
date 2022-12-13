@@ -9,11 +9,11 @@
 
 namespace Langulus::Anyness
 {
-
-   constexpr auto HS = sizeof(Hash);
    
    /// Encrypt data                                                           
    Size Block::Encrypt(Block& result, const ::std::size_t* keys, const Count& key_count) const {
+      constexpr auto HS = sizeof(Hash);
+
       // First compress the data, to avoid repeating bytes              
       #if LANGULUS_FEATURE(ZLIB)
          auto compressed_size = Compress(result, Compression::Fastest);
@@ -46,6 +46,8 @@ namespace Langulus::Anyness
 
    /// Decrypt data                                                           
    Size Block::Decrypt(Block& result, const ::std::size_t* keys, const Count& key_count) const {
+      constexpr auto HS = sizeof(Hash);
+
       // Copy this encrypted data                                       
       Block decrypted;
       Clone(decrypted);

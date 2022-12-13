@@ -249,11 +249,11 @@ namespace Langulus::Anyness
 
    template<class TRAIT>
    StaticTrait<TRAIT>::StaticTrait(Disowned<TRAIT>&& other)
-      : Trait {other.mValue.mTraitType, other.template Forward<Any>()} {}
+      : Trait {other.mValue.GetTrait(), other.template Forward<Any>()} {}
 
    template<class TRAIT>
    StaticTrait<TRAIT>::StaticTrait(Abandoned<TRAIT>&& other)
-      : Trait {other.mValue.mTraitType, other.template Forward<Any>()} {}
+      : Trait {other.mValue.GetTrait(), other.template Forward<Any>()} {}
 
    template<class TRAIT>
    template<CT::Data T>

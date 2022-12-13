@@ -25,7 +25,7 @@ namespace Langulus::Anyness
       LANGULUS(DEEP) false;
       LANGULUS_BASES(Any);
 
-   protected:
+   private:
       TMeta mTraitType {};
 
    public:
@@ -126,6 +126,7 @@ namespace Langulus::Anyness
    ///                                                                        
    template<class TRAIT>
    struct StaticTrait : public Trait {
+   public:
       LANGULUS(TRAIT) RTTI::LastNameOf<TRAIT>();
       LANGULUS_BASES(Trait);
 
