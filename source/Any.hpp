@@ -63,8 +63,8 @@ namespace Langulus::Anyness
       template<CT::CustomData T>
       Any(Abandoned<T>&&);
 
-      template<CT::Data T>
-      Any(const T*, const T*);
+      //template<CT::Data T>
+      //Any(const T*, const T*);
 
       ~Any();
    

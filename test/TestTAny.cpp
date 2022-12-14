@@ -1456,6 +1456,88 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 			#endif
 		}
 
+		WHEN("Shallow-copy an array to the back") {
+			#if LANGULUS_FEATURE(MANAGED_MEMORY)
+				const auto memory = pack.GetRaw();
+			#endif
+
+			const_cast<T&>(pack).template Insert<IndexBack>(darray2, darray2 + 5);
+
+			THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
+				REQUIRE(pack.GetCount() == 10);
+				REQUIRE(pack.GetReserved() >= 10);
+				REQUIRE(pack.template Is<E>());
+				for (unsigned i = 0; i < 5; ++i)
+					REQUIRE(pack[i] == darray1[i]);
+				for (unsigned i = 5; i < pack.GetCount(); ++i)
+					REQUIRE(pack[i] == darray2[i-5]);
+				#if LANGULUS_FEATURE(MANAGED_MEMORY)
+					if constexpr (CT::Same<E, int>) {
+						REQUIRE(pack.GetRaw() == memory);
+					}
+				#endif
+			}
+			
+			#ifdef LANGULUS_STD_BENCHMARK
+				BENCHMARK_ADVANCED("Anyness::TAny::Insert<IndexBack> (5 trivial copies)") (timer meter) {
+					some<T> storage(meter.runs());
+
+					meter.measure([&](int i) {
+						return storage[i].template Insert<IndexBack>(darray2, darray2 + 5);
+					});
+				};
+
+				BENCHMARK_ADVANCED("std::vector::insert to back (5 trivial copies)") (timer meter) {
+					some<StdT> storage(meter.runs());
+
+					meter.measure([&](int i) {
+						return storage[i].insert(storage[i].end(), darray2, darray2 + 5);
+					});
+				};
+			#endif
+		}
+
+		WHEN("Shallow-copy an array to the front") {
+			#if LANGULUS_FEATURE(MANAGED_MEMORY)
+				const auto memory = pack.GetRaw();
+			#endif
+
+			const_cast<T&>(pack).template Insert<IndexFront>(darray2, darray2 + 5);
+
+			THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
+				REQUIRE(pack.GetCount() == 10);
+				REQUIRE(pack.GetReserved() >= 10);
+				REQUIRE(pack.template Is<E>());
+				for (unsigned i = 0; i < 5; ++i)
+					REQUIRE(pack[i] == darray2[i]);
+				for (unsigned i = 5; i < pack.GetCount(); ++i)
+					REQUIRE(pack[i] == darray1[i-5]);
+				#if LANGULUS_FEATURE(MANAGED_MEMORY)
+					if constexpr (CT::Same<E, int>) {
+						REQUIRE(pack.GetRaw() == memory);
+					}
+				#endif
+			}
+			
+			#ifdef LANGULUS_STD_BENCHMARK
+				BENCHMARK_ADVANCED("Anyness::TAny::Insert<IndexFront> (5 trivial copies)") (timer meter) {
+					some<T> storage(meter.runs());
+
+					meter.measure([&](int i) {
+						return storage[i].template Insert<IndexFront>(darray2, darray2 + 5);
+					});
+				};
+
+				BENCHMARK_ADVANCED("std::vector::insert to front (5 trivial copies)") (timer meter) {
+					some<StdT> storage(meter.runs());
+
+					meter.measure([&](int i) {
+						return storage[i].insert(storage[i].begin(), darray2, darray2 + 5);
+					});
+				};
+			#endif
+		}
+
 		WHEN("Move more of the same stuff to the back (<<)") {
 			E darray3[5] {
 				CreateElement<E>(6),
@@ -1607,7 +1689,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 			}
 
 			#ifdef LANGULUS_STD_BENCHMARK
-				BENCHMARK_ADVANCED("Anyness::TAny::Insert(single copy in middle)") (timer meter) {
+				BENCHMARK_ADVANCED("Anyness::TAny::InsertAt(single copy in middle)") (timer meter) {
 					some<T> storage(meter.runs());
 					for (auto&& o : storage)
 						o << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
@@ -1624,6 +1706,55 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
 					meter.measure([&](int i) {
 						return storage[i].insert(storage[i].begin() + 3, i666d);
+					});
+				};
+			#endif
+		}
+
+		WHEN("Insert multiple items at a specific place by shallow-copy") {
+			#if LANGULUS_FEATURE(MANAGED_MEMORY)
+				const auto memory = pack.GetRaw();
+			#endif
+
+			const_cast<T&>(pack).InsertAt(darray2, darray2 + 5, 3);
+
+			THEN("The size changes, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
+				REQUIRE(pack.GetCount() == 10);
+				REQUIRE(pack.GetReserved() >= 10);
+				REQUIRE(pack.template Is<E>());
+				#if LANGULUS_FEATURE(MANAGED_MEMORY)
+					REQUIRE(pack.GetRaw() == memory);
+				#endif
+				REQUIRE(pack[0] == darray1[0]);
+				REQUIRE(pack[1] == darray1[1]);
+				REQUIRE(pack[2] == darray1[2]);
+				REQUIRE(pack[3] == darray2[0]);
+				REQUIRE(pack[4] == darray2[1]);
+				REQUIRE(pack[5] == darray2[2]);
+				REQUIRE(pack[6] == darray2[3]);
+				REQUIRE(pack[7] == darray2[4]);
+				REQUIRE(pack[8] == darray1[3]);
+				REQUIRE(pack[9] == darray1[4]);
+			}
+
+			#ifdef LANGULUS_STD_BENCHMARK
+				BENCHMARK_ADVANCED("Anyness::TAny::InsertAt(5 copies in the middle)") (timer meter) {
+					some<T> storage(meter.runs());
+					for (auto&& o : storage)
+						o << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
+
+					meter.measure([&](int i) {
+						return storage[i].InsertAt(darray2, darray2 + 5, 3);
+					});
+				};
+
+				BENCHMARK_ADVANCED("std::vector::insert(5 copies in the middle)") (timer meter) {
+					some<StdT> storage(meter.runs());
+					for (auto&& o : storage)
+						o = { darray1[0], darray1[1], darray1[2], darray1[3], darray1[4] };
+
+					meter.measure([&](int i) {
+						return storage[i].insert(storage[i].begin() + 3, darray2, darray2+5);
 					});
 				};
 			#endif

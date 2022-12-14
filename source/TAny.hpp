@@ -165,7 +165,7 @@ namespace Langulus::Anyness
       template<bool KEEP = true, CT::Index IDX = Offset>
       Count InsertAt(T&&, const IDX&);
 
-      template<Index = IndexBack, bool KEEP = true>
+      template<Index = IndexBack, bool KEEP = true, bool MUTABLE = false>
       Count Insert(const T*, const T*);
       template<Index = IndexBack, bool KEEP = true>
       Count Insert(const T&);

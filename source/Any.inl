@@ -127,13 +127,13 @@ namespace Langulus::Anyness
    ///   @tparam T - the data type to push (deducible)                        
    ///   @param start - start of the array                                    
    ///   @param end - end of the array                                        
-   template <CT::Data T>
+   /*template <CT::Data T>
    Any::Any(const T* start, const T* end) {
       if constexpr (CT::Sparse<T>)
          MakeSparse();
       SetType<T, false>();
       Insert<IndexBack, true, false>(start, end);
-   }
+   }*/
 
    /// Destruction                                                            
    inline Any::~Any() {

@@ -974,11 +974,12 @@ namespace Langulus::Anyness
    /// Copy-insert elements either at the start or the end                    
    ///   @tparam INDEX - use IndexBack or IndexFront to append accordingly    
    ///   @tparam KEEP - whether to reference data on copy                     
+   ///   @tparam MUTABLE - ignored for templated container                    
    ///   @param start - pointer to the first item                             
    ///   @param end - pointer to the end of items                             
    ///   @return number of inserted elements                                  
    TEMPLATE()
-   template<Index INDEX, bool KEEP>
+   template<Index INDEX, bool KEEP, bool MUTABLE>
    Count TAny<T>::Insert(const T* start, const T* end) {
       static_assert(CT::Sparse<T> || CT::Mutable<T>,
          "Can't copy-insert into container of constant elements");

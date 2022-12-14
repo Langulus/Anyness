@@ -1107,8 +1107,14 @@ namespace Langulus::Anyness
 
       if constexpr (MUTABLE) {
          // Type may mutate                                             
-         if (Mutate<T, true, WRAPPER>())
-            return InsertAt<true, false>(WRAPPER {start, end}, index);
+         if (Mutate<T, true, WRAPPER>()) {
+            WRAPPER temp;
+            if constexpr (CT::Sparse<T>)
+               temp.MakeSparse();
+            temp.template SetType<T, false>();
+            temp.template Insert<IndexBack, true, false>(start, end);
+            return InsertAt<false, false>(Move(temp), index);
+         }
       }
 
       // Allocate                                                       
@@ -1161,7 +1167,7 @@ namespace Langulus::Anyness
       if constexpr (MUTABLE) {
          // Type may mutate                                             
          if (Mutate<T, true, WRAPPER>())
-            return InsertAt<true, false>(WRAPPER {Forward<T>(item)}, index);
+            return InsertAt<false, false>(WRAPPER {Forward<T>(item)}, index);
       }
 
       // Allocate                                                       
@@ -1205,8 +1211,14 @@ namespace Langulus::Anyness
 
       if constexpr (MUTABLE) {
          // Type may mutate                                             
-         if (Mutate<T, true, WRAPPER>())
-            return Insert<INDEX, true, false>(WRAPPER {start, end});
+         if (Mutate<T, true, WRAPPER>()) {
+            WRAPPER temp;
+            if constexpr (CT::Sparse<T>)
+               temp.MakeSparse();
+            temp.template SetType<T, false>();
+            temp.template Insert<IndexBack, true, false>(start, end);
+            return Insert<INDEX, false, false>(Move(temp));
+         }
       }
 
       // Allocate                                                       
@@ -1256,8 +1268,9 @@ namespace Langulus::Anyness
 
       if constexpr (MUTABLE) {
          // Type may mutate                                             
-         if (Mutate<T, true, WRAPPER>())
-            return Insert<INDEX, true, false>(WRAPPER {Forward<T>(item)});
+         if (Mutate<T, true, WRAPPER>()) {
+            return Insert<INDEX, false, false>(WRAPPER {Forward<T>(item)});
+         }
       }
 
       // Allocate                                                       
