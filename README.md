@@ -1,5 +1,6 @@
 # Anyness
-Modern (C++20) cross-paltform set of type-erased containers, for standalone or [Langulus](https://github.com/Langulus/Langulus) use
+Modern (C++20) cross-platform set of type-erased containers, for standalone or [Langulus](https://github.com/Langulus/Langulus) use
+
 [![Langulus::Anyness CI](https://github.com/Langulus/Anyness/actions/workflows/ci.yml/badge.svg)](https://github.com/Langulus/Anyness/actions/workflows/ci.yml)
 
 ## What is it?
