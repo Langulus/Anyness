@@ -10,7 +10,7 @@ Type-erased containers can be safely reinterpreted to their statically optimized
 Additionally, all containers utilize RTTI, managed memory, encryption (WIP), and compression (WIP). Here are some examples:
 
 Simple initialization:
-```
+```c++
 Any data = 42;                  // creates a deep container similar to TAny<int> {42}
 if (data == 42) {               // will return true
    /**/
@@ -18,7 +18,7 @@ if (data == 42) {               // will return true
 ```
 
 Complex initialization:
-```
+```c++
 Thing object;
 Any data {42, 24, true, 5.0f, &object};
 // ^ creates a deep container similar to: 
@@ -26,14 +26,14 @@ Any data {42, 24, true, 5.0f, &object};
 ```
 
 Interface static data safely:
-```
+```c++
 static Thing object;
 Any data = &object;
 data.~Any();                    // will never exercise ownership over unowned pointer
 ```
 
 Iterate all elements, regardless of hierarchy:
-```
+```c++
 data.ForEachDeep(
    [](const int& i) { /**/ },   // Will be executed for 42 and 24
                                 // If no integers exist, will move to next function
@@ -45,7 +45,7 @@ data.ForEachDeep(
 ```
 
 Iterate all elements, preserving hierarchy:
-```
+```c++
 data.ForEach(
    [](const Any& group) {
       group.ForEach(
@@ -58,7 +58,7 @@ data.ForEach(
 ```
 
 You can safely reinterpret a container to a statically optimized equivalent:
-```
+```c++
 Any integers {1, 2, 3};
 if (integers.Is<int>()) {
    auto& optimized = reinterpret_cast<TAny<int>&>(integers);
@@ -67,7 +67,7 @@ if (integers.Is<int>()) {
 ```
 
 Integrated with std::range, even when type-erased:
-```
+```c++
 for (auto it : integers) {  // it is a type-erased iterator, that turns to Anyness::Block when dereferenced
    if(it == 1) { /**/ }     // you can still compare it against a single value, if type differs then simply not equal
 }
