@@ -67,7 +67,7 @@ if (integers.Is<int>()) {
 
 Integrated with std::range, even when type-erased:
 ```
-for (auto it : integers) {  // it is an integer that turns to Anyness::Block when dereferenced
+for (auto it : integers) {  // it is a type-erased iterator, that turns to Anyness::Block when dereferenced
    if(it == 1) { /**/ }     // you can still compare it against a single value, if type differs then simply not equal
 }
 ```
