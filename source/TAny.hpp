@@ -304,7 +304,7 @@ namespace Langulus::Anyness
       using Any::FromState;
       using Any::From;
       using Any::Wrap;
-      using Any::WrapCommon;
+      using Any::WrapAs;
    };
 
 

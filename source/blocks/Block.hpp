@@ -705,7 +705,7 @@ namespace Langulus::Anyness
       }
    };
 
-      
+
    /// Macro used to implement the standard container interface used in       
    /// range-for-statements like for (auto& item : array)                     
    /// In addition, a Reverse() function is added for reverse iteration       

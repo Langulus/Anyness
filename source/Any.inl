@@ -28,13 +28,13 @@ namespace Langulus::Anyness
 
    /// Copy construct - does a shallow copy, and references                   
    ///   @param other - the container to shallow-copy                         
-   template <CT::Deep T>
+   template<CT::Deep T>
    Any::Any(const T& other)
       : Block {static_cast<const Block&>(other)} {
       Keep();
    }
 
-   template <CT::Deep T>
+   template<CT::Deep T>
    Any::Any(T& other)
       : Block {static_cast<const Block&>(other)} {
       Keep();
@@ -42,7 +42,7 @@ namespace Langulus::Anyness
 
    /// Construct by moving another container                                  
    ///   @param other - the container to move                                 
-   template <CT::Deep T>
+   template<CT::Deep T>
    Any::Any(T&& other) requires CT::Mutable<T>
       : Block {static_cast<const Block&>(other)} {
       if constexpr (CT::Same<T, Block>) {
@@ -60,7 +60,7 @@ namespace Langulus::Anyness
 
    /// Same as copy-construction, but doesn't reference anything              
    ///   @param other - the block to copy                                     
-   template <CT::Deep T>
+   template<CT::Deep T>
    constexpr Any::Any(Disowned<T>&& other) noexcept
       : Block {other.template Forward<Block>()} {
       mEntry = nullptr;
@@ -69,7 +69,7 @@ namespace Langulus::Anyness
    /// Same as move-construction but doesn't fully reset other, saving some   
    /// instructions                                                           
    ///   @param other - the block to move                                     
-   template <CT::Deep T>
+   template<CT::Deep T>
    constexpr Any::Any(Abandoned<T>&& other) noexcept
       : Block {other.template Forward<Block>()} {
       other.mValue.mEntry = nullptr;
@@ -78,7 +78,7 @@ namespace Langulus::Anyness
    /// Construct by copying/referencing value of non-block type               
    ///   @tparam T - the data type to push (deducible)                        
    ///   @param other - the dense value to shallow-copy                       
-   template <CT::CustomData T>
+   template<CT::CustomData T>
    Any::Any(const T& other) {
       if constexpr (CT::Sparse<T>)
          MakeSparse();
@@ -86,14 +86,14 @@ namespace Langulus::Anyness
       Insert<IndexBack, true, false>(&other, &other + 1);
    }
 
-   template <CT::CustomData T>
+   template<CT::CustomData T>
    Any::Any(T& other)
       : Any {const_cast<const T&>(other)} { }
 
    /// Construct by moving a dense value of non-block type                    
    ///   @tparam T - the data type to push (deducible)                        
    ///   @param other - the dense value to forward and emplace	               
-   template <CT::CustomData T>
+   template<CT::CustomData T>
    Any::Any(T&& other) requires CT::Mutable<T> {
       if constexpr (CT::Sparse<T>)
          MakeSparse();
@@ -104,7 +104,7 @@ namespace Langulus::Anyness
    /// Construct by inserting a disowned value of non-block type              
    ///   @tparam T - the data type to push (deducible)                        
    ///   @param other - the disowned value                                    
-   template <CT::CustomData T>
+   template<CT::CustomData T>
    Any::Any(Disowned<T>&& other) {
       if constexpr (CT::Sparse<T>)
          MakeSparse();
@@ -115,7 +115,7 @@ namespace Langulus::Anyness
    /// Construct by inserting an abandoned value of non-block type            
    ///   @tparam T - the data type to push (deducible)                        
    ///   @param other - the abandoned value                                   
-   template <CT::CustomData T>
+   template<CT::CustomData T>
    Any::Any(Abandoned<T>&& other) {
       if constexpr (CT::Sparse<T>)
          MakeSparse();
@@ -123,17 +123,31 @@ namespace Langulus::Anyness
       Insert<IndexBack, false, false>(Move(other.mValue));
    }
 
-   /// Construct by copying/referencing an array of non-block type            
-   ///   @tparam T - the data type to push (deducible)                        
-   ///   @param start - start of the array                                    
-   ///   @param end - end of the array                                        
-   /*template <CT::Data T>
-   Any::Any(const T* start, const T* end) {
-      if constexpr (CT::Sparse<T>)
-         MakeSparse();
-      SetType<T, false>();
-      Insert<IndexBack, true, false>(start, end);
-   }*/
+   /// Pack any number of elements sequentially                               
+   /// If any of the types doesn't match exactly, the container becomes deep  
+   /// to incorporate all elements                                            
+   ///   @param head - first element                                          
+   ///   @param tail... - the rest of the elements                            
+   template<CT::Data HEAD, CT::Data... TAIL>
+   Any::Any(HEAD&& head, TAIL&&... tail) requires (sizeof...(TAIL) >= 1) {
+      if constexpr (CT::Exact<HEAD, TAIL...>) {
+         if constexpr (CT::Sparse<HEAD>)
+            MakeSparse();
+
+         SetType<Decay<HEAD>, false>();
+         AllocateInner<false>(sizeof...(TAIL) + 1);
+
+         Insert<IndexBack, true, false>(Forward<HEAD>(head));
+         (Insert<IndexBack, true, false>(Forward<TAIL>(tail)) | ...);
+      }
+      else {
+         SetType<Any, false>();
+         AllocateInner<false>(sizeof...(TAIL) + 1);
+
+         Insert<IndexBack, false, false>(Any {Forward<HEAD>(head)});
+         (Insert<IndexBack, false, false>(Any {Forward<TAIL>(tail)}) | ...);
+      }
+   }
 
    /// Destruction                                                            
    inline Any::~Any() {
@@ -177,70 +191,58 @@ namespace Langulus::Anyness
    }
 
    /// Pack any number of elements sequentially                               
+   /// If any of the elements doesn't match the rest, the container becomes   
+   /// deep to incorporate all elements                                       
+   ///   @tparam LIST... - the list of element types (deducible)              
    ///   @param elements - sequential elements                                
    ///   @returns the pack containing the data                                
    template<CT::Data... LIST>
    Any Any::Wrap(LIST&&... elements) {
       if constexpr (sizeof...(LIST) == 0)
          return {};
-      else {
-         Any result;
-         Any wrapped[] {
-            Any {Forward<LIST>(elements)}...
-         };
-         result.SetType<Any, false>();
-         result.Allocate(sizeof...(LIST));
-         for (auto& it : wrapped)
-            result.template Insert<IndexBack, false, false>(Move(it));
-         return result;
-      }
+      else
+         return {Forward<LIST>(elements)...};
    }
 
-   /// Pack any number of same-type elements sequentially                     
+   /// Pack any number of similarly typed elements sequentially               
+   ///   @tparam AS - the type to wrap elements as                            
+   ///                use 'void' to deduce AS from the HEAD                   
+   ///                (void by default)                                       
+   ///   @tparam HEAD - the first element type (deducible)                    
+   ///   @tparam TAIL... - the rest of the element types (deducible)          
    ///   @param head - first element                                          
    ///   @param tail... - the rest of the elements                            
    ///   @returns the new container containing the data                       
    template<class AS, CT::Data HEAD, CT::Data... TAIL>
-   Any Any::WrapCommon(HEAD&& head, TAIL&&... tail) {
+   Any Any::WrapAs(HEAD&& head, TAIL&&... tail) {
       if constexpr (sizeof...(TAIL) == 0)
          return {};
       else if constexpr (CT::Void<AS>) {
-         static_assert(CT::Same<HEAD, TAIL...>, "Type mismatch");
-         Deref<HEAD> wrapped[] {
-            Deref<HEAD> {Forward<HEAD>(head)},
-            Deref<HEAD> {Forward<HEAD>(tail)}...
-         };
-         auto result = Any::From<HEAD>();
-         for (auto& it : wrapped)
-            result.template Insert<IndexBack, false, false>(Move(it));
-         return result;
+         static_assert(CT::Exact<HEAD, TAIL...>, "Type mismatch");
+         return {Forward<HEAD>(head), Forward<HEAD>(tail)...};
       }
       else {
          static_assert(CT::DerivedFrom<HEAD, AS>, "Head not related");
          static_assert((CT::DerivedFrom<TAIL, AS> && ...), "Tail not related");
-         Deref<AS> wrapped[] {Forward<AS>(head), Forward<AS>(tail)...};
-         auto result = Any::From<AS>();
-         for (auto& it : wrapped)
-            result.template Insert<IndexBack, false, false>(Move(it));
-         return result;
+         return {Forward<AS>(head), Forward<AS>(tail)...};
       }
    }
    
-   /// Shallow-copy a container                                               
+   /// Shallow-copy assignment                                                
    ///   @param other - the container to copy                                 
    ///   @return a reference to this container                                
    inline Any& Any::operator = (const Any& other) {
       return Any::template operator = <Any>(other);
    }
 
-   /// Move a container                                                       
+   /// Move assignment                                                        
    ///   @param other - the container to move and reset                       
    ///   @return a reference to this container                                
    inline Any& Any::operator = (Any&& other) noexcept {
       return Any::template operator = <Any>(Forward<Any>(other));
    }
 
-   /// Shallow-copy a container                                               
+   /// Shallow-copy assignment of anything deep                               
    ///   @param other - the container to copy                                 
    ///   @return a reference to this container                                
    template<CT::Deep T>
@@ -263,7 +265,7 @@ namespace Langulus::Anyness
       return operator = (const_cast<const T&>(other));
    }
 
-   /// Move a container                                                       
+   /// Move assignment of anything deep                                       
    ///   @param other - the container to move and reset                       
    ///   @return a reference to this container                                
    template<CT::Deep T>
@@ -974,6 +976,108 @@ namespace Langulus::Anyness
    template<bool REVERSE, bool BY_ADDRESS_ONLY, CT::Data T>
    Index Any::Find(const T& item, const Offset& cookie) const {
       return Block::template FindKnown<REVERSE, BY_ADDRESS_ONLY>(item, cookie);
+   }
+
+
+   ///                                                                        
+   ///   Iteration                                                            
+   ///                                                                        
+
+   /// Get iterator to first element                                          
+   ///   @return an iterator to the first element, or end if empty            
+   inline typename Any::Iterator Any::begin() noexcept {
+      static_assert(sizeof(Iterator) == sizeof(ConstIterator),
+         "Size mismatch - types must be binary-compatible");
+      const auto constant = const_cast<const Any*>(this)->begin();
+      return reinterpret_cast<const Iterator&>(constant);
+   }
+
+   /// Get iterator to end                                                    
+   ///   @return an iterator to the end element                               
+   inline typename Any::Iterator Any::end() noexcept {
+      static_assert(sizeof(Iterator) == sizeof(ConstIterator),
+         "Size mismatch - types must be binary-compatible");
+      const auto constant = const_cast<const Any*>(this)->end();
+      return reinterpret_cast<const Iterator&>(constant);
+   }
+
+   /// Get iterator to the last element                                       
+   ///   @return an iterator to the last element, or end if empty             
+   inline typename Any::Iterator Any::last() noexcept {
+      static_assert(sizeof(Iterator) == sizeof(ConstIterator),
+         "Size mismatch - types must be binary-compatible");
+      const auto constant = const_cast<const Any*>(this)->last();
+      return reinterpret_cast<const Iterator&>(constant);
+   }
+
+   /// Get iterator to first element                                          
+   ///   @return a constant iterator to the first element, or end if empty    
+   inline typename Any::ConstIterator Any::begin() const noexcept {
+      return IsEmpty() ? end() : GetElement();
+   }
+
+   /// Get iterator to end                                                    
+   ///   @return a constant iterator to the end element                       
+   inline typename Any::ConstIterator Any::end() const noexcept {
+      return Block {mState, mType, 0, GetRawEnd(), nullptr};
+   }
+
+   /// Get iterator to the last valid element                                 
+   ///   @return a constant iterator to the last element, or end if empty     
+   inline typename Any::ConstIterator Any::last() const noexcept {
+      if (IsEmpty())
+         return end();
+      return Block {mState, mType, 1, GetRawEnd() - GetStride(), mEntry};
+   }
+
+
+   ///                                                                        
+   ///   Block iterator                                                       
+   ///                                                                        
+
+   /// Construct an iterator                                                  
+   ///   @param value - pointer to the value element                          
+   template<bool MUTABLE>
+   LANGULUS(ALWAYSINLINE)
+   Any::TIterator<MUTABLE>::TIterator(const Block& value) noexcept
+      : mValue {value} {}
+
+   /// Prefix increment operator                                              
+   ///   @attention assumes iterator points to a valid element                
+   ///   @return the modified iterator                                        
+   template<bool MUTABLE>
+   LANGULUS(ALWAYSINLINE)
+   typename Any::TIterator<MUTABLE>& Any::TIterator<MUTABLE>::operator ++ () noexcept {
+      mValue.mRaw += mValue.GetStride();
+      return *this;
+   }
+
+   /// Suffix increment operator                                              
+   ///   @attention assumes iterator points to a valid element                
+   ///   @return the previous value of the iterator                           
+   template<bool MUTABLE>
+   LANGULUS(ALWAYSINLINE)
+   typename Any::TIterator<MUTABLE> Any::TIterator<MUTABLE>::operator ++ (int) noexcept {
+      const auto backup = *this;
+      operator ++ ();
+      return backup;
+   }
+
+   /// Compare block entries                                                  
+   ///   @param rhs - the other iterator                                      
+   ///   @return true if entries match                                        
+   template<bool MUTABLE>
+   LANGULUS(ALWAYSINLINE)
+   bool Any::TIterator<MUTABLE>::operator == (const TIterator& rhs) const noexcept {
+      return mValue.mRaw == rhs.mValue.mRaw;
+   }
+
+   /// Iterator access operator                                               
+   ///   @return a pair at the current iterator position                      
+   template<bool MUTABLE>
+   LANGULUS(ALWAYSINLINE)
+   const Block& Any::TIterator<MUTABLE>::operator * () const noexcept {
+      return mValue;
    }
 
 } // namespace Langulus::Anyness

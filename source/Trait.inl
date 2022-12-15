@@ -13,64 +13,70 @@ namespace Langulus::Anyness
 
    /// Manual trait construction by copy                                      
    ///   @tparam T - type of the contained data                               
-   ///   @param type - type of the trait                                      
    ///   @param data - data to copy inside trait                              
    template<CT::Data T>
-   Trait::Trait(TMeta type, const T& data)
-      : Any {data}
-      , mTraitType {type} {}
+   Trait::Trait(const T& data) requires (!CT::Same<T, Trait>)
+      : Any {data} {}
 
    /// Manual trait construction by copy                                      
    ///   @tparam T - type of the contained data                               
-   ///   @param type - type of the trait                                      
    ///   @param data - data to copy inside trait                              
    template<CT::Data T>
-   Trait::Trait(TMeta type, T& data)
-      : Any {data}
-      , mTraitType {type} {}
+   Trait::Trait(T& data) requires (!CT::Same<T, Trait>)
+      : Any {data} {}
 
    /// Manual trait construction by movement                                  
    ///   @tparam T - type of the contained data                               
-   ///   @param type - type of the trait                                      
    ///   @param data - data to move inside trait                              
    template<CT::Data T>
-   Trait::Trait(TMeta type, T&& data)
-      : Any {Forward<T>(data)}
-      , mTraitType {type} {}
+   Trait::Trait(T&& data) requires (!CT::Same<T, Trait>)
+      : Any {Forward<T>(data)} {}
 
-   /// Create a trait from a trait definition                                 
+   /// Pack any number of elements sequentially                               
+   /// If any of the types doesn't match exactly, the container becomes deep  
+   /// to incorporate all elements                                            
+   ///   @param head - first element                                          
+   ///   @param tail... - the rest of the elements                            
+   template<CT::Data HEAD, CT::Data... TAIL>
+   Trait::Trait(HEAD&& head, TAIL&&... tail) requires (sizeof...(TAIL) >= 1)
+      : Any {Forward<HEAD>(head), Forward<TAIL>(tail)...} { }
+
+   /// Create a trait from a trait and data types                             
+   ///   @tparam T - type of trait                                            
+   ///   @tparam D - type of data                                             
+   ///   @return a trait preconfigured with the provided types                
    template<CT::Data T, CT::Data D>
    Trait Trait::From() {
       static_assert(CT::Trait<T>, "T must be a trait definition");
-      return Trait {MetaTrait::Of<Decay<T>>(), Block::From<D>()};
-   }
-
-   /// Create a trait from a trait definition                                 
-   template<CT::Data T>
-   Trait Trait::FromMemory(const Block& memory) {
-      static_assert(CT::Trait<T>, "T must be a trait definition");
-      return Trait {MetaTrait::Of<Decay<T>>(), memory};
-   }
-
-   /// Create a trait from a trait definition                                 
-   template<CT::Data T>
-   Trait Trait::FromMemory(Block&& memory) {
-      static_assert(CT::Trait<T>, "T must be a trait definition");
-      return Trait {MetaTrait::Of<Decay<T>>(), Forward<Block>(memory)};
+      Trait temp {Block::From<D>()};
+      temp.SetTrait<T>();
+      return Abandon(temp);
    }
 
    /// Create a trait from a trait definition and data                        
+   ///   @tparam T - type of trait                                            
+   ///   @tparam D - type of data (deducible)                                 
+   ///   @param stuff - the data to set inside trait                          
+   ///   @return a trait preconfigured with the provided types                
    template<CT::Data T, CT::Data D>
    Trait Trait::From(const D& stuff) {
       static_assert(CT::Trait<T>, "T must be a trait definition");
-      return Trait {MetaTrait::Of<Decay<T>>(), Any {stuff}};
+      Trait temp {stuff};
+      temp.SetTrait<T>();
+      return Abandon(temp);
    }
 
    /// Create a trait from a trait definition by moving data                  
+   ///   @tparam T - type of trait                                            
+   ///   @tparam D - type of data (deducible)                                 
+   ///   @param stuff - the data to set inside trait                          
+   ///   @return a trait preconfigured with the provided types                
    template<CT::Data T, CT::Data D>
    Trait Trait::From(D&& stuff) {
       static_assert(CT::Trait<T>, "T must be a trait definition");
-      return Trait {MetaTrait::Of<Decay<T>>(), Any {Forward<D>(stuff)}};
+      Trait temp {Forward<D>(stuff)};
+      temp.SetTrait<T>();
+      return Abandon(temp);
    }
 
    /// Create a trait from a trait definition and copy of data                
@@ -134,7 +140,7 @@ namespace Langulus::Anyness
    bool Trait::operator == (const T& other) const {
       if constexpr (CT::Trait<T>)
          return TraitIs(DenseCast(other).mTraitType)
-            && Any::operator == (static_cast<const Any&>(other));
+            && Any::operator == (static_cast<const Any&>(DenseCast(other)));
       else
          return Any::operator == (other);
    }
@@ -227,33 +233,52 @@ namespace Langulus::Anyness
    /// Default trait construction                                             
    template<class TRAIT>
    StaticTrait<TRAIT>::StaticTrait()
-      : Trait {MetaTrait::Of<TRAIT>(), Any{}} {}
+      : Trait {} {
+      SetTrait<TRAIT>();
+   }
 
    /// Trait copy-construction with anything not abandoned or disowned        
    template<class TRAIT>
    template<CT::Data T>
    StaticTrait<TRAIT>::StaticTrait(const T& data)
-      : Trait {MetaTrait::Of<TRAIT>(), data} {}
+      : Trait {data} {
+      SetTrait<TRAIT>();
+   }
 
    /// Trait copy-construction with anything not abandoned or disowned        
    template<class TRAIT>
    template<CT::Data T>
    StaticTrait<TRAIT>::StaticTrait(T& data)
-      : Trait {MetaTrait::Of<TRAIT>(), data} {}
+      : Trait {data} {
+      SetTrait<TRAIT>();
+   }
 
    /// Trait move-construction with anything not abandoned or disowned        
    template<class TRAIT>
    template<CT::Data T>
    StaticTrait<TRAIT>::StaticTrait(T&& data)
-      : Trait {MetaTrait::Of<TRAIT>(), Forward<T>(data)} {}
+      : Trait {Forward<T>(data)} {
+      SetTrait<TRAIT>();
+   }
 
    template<class TRAIT>
    StaticTrait<TRAIT>::StaticTrait(Disowned<TRAIT>&& other)
-      : Trait {other.mValue.GetTrait(), other.template Forward<Any>()} {}
+      : Trait {other.template Forward<Any>()} {
+      SetTrait(other.mValue.GetTrait());
+   }
 
    template<class TRAIT>
    StaticTrait<TRAIT>::StaticTrait(Abandoned<TRAIT>&& other)
-      : Trait {other.mValue.GetTrait(), other.template Forward<Any>()} {}
+      : Trait {other.template Forward<Any>()} {
+      SetTrait(other.mValue.GetTrait());
+   }
+
+   template<class TRAIT>
+   template<CT::Data HEAD, CT::Data... TAIL>
+   StaticTrait<TRAIT>::StaticTrait(HEAD&& head, TAIL&&... tail) requires (sizeof...(TAIL) >= 1)
+      : Trait {Forward<HEAD>(head), Forward<TAIL>(tail)...} {
+      SetTrait<TRAIT>();
+   }
 
    template<class TRAIT>
    template<CT::Data T>

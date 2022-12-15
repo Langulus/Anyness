@@ -63,8 +63,8 @@ namespace Langulus::Anyness
       template<CT::CustomData T>
       Any(Abandoned<T>&&);
 
-      //template<CT::Data T>
-      //Any(const T*, const T*);
+      template<CT::Data HEAD, CT::Data... TAIL>
+      Any(HEAD&&, TAIL&&...) requires (sizeof...(TAIL) >= 1);
 
       ~Any();
    
@@ -113,7 +113,7 @@ namespace Langulus::Anyness
       template<CT::Data... LIST>
       NOD() static Any Wrap(LIST&&...);
       template<class AS = void, CT::Data HEAD, CT::Data... TAIL>
-      NOD() static Any WrapCommon(HEAD&&, TAIL&&...);
+      NOD() static Any WrapAs(HEAD&&, TAIL&&...);
 
       void Clear();
       void Reset();
@@ -190,6 +190,22 @@ namespace Langulus::Anyness
       template<CT::Deep T>
       Any& operator += (Abandoned<T>&&) requires CT::Dense<T>;
 
+      ///                                                                     
+      ///   Iteration                                                         
+      ///                                                                     
+      template<bool MUTABLE>
+      struct TIterator;
+
+      using Iterator = TIterator<true>;
+      using ConstIterator = TIterator<false>;
+
+      NOD() Iterator begin() noexcept;
+      NOD() Iterator end() noexcept;
+      NOD() Iterator last() noexcept;
+      NOD() ConstIterator begin() const noexcept;
+      NOD() ConstIterator end() const noexcept;
+      NOD() ConstIterator last() const noexcept;
+
    protected:
       template<class T>
       void PrepareForReassignment();
@@ -198,6 +214,35 @@ namespace Langulus::Anyness
       WRAPPER Concatenate(const T&) const;
       template<CT::Block WRAPPER, bool KEEP, CT::Block T>
       WRAPPER Concatenate(T&&) const;
+   };
+
+
+   ///                                                                        
+   ///   Block iterator                                                       
+   ///                                                                        
+   template<bool MUTABLE>
+   struct Any::TIterator {
+   protected:
+      friend class Any;
+
+      Block mValue;
+
+      TIterator(const Block&) noexcept;
+
+   public:
+      TIterator() noexcept = default;
+      TIterator(const TIterator&) noexcept = default;
+      TIterator(TIterator&&) noexcept = default;
+
+      NOD() bool operator == (const TIterator&) const noexcept;
+
+      NOD() const Block& operator * () const noexcept;
+
+      // Prefix operator                                                
+      TIterator& operator ++ () noexcept;
+
+      // Suffix operator                                                
+      NOD() TIterator operator ++ (int) noexcept;
    };
 
 } // namespace Langulus::Anyness

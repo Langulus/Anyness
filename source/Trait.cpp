@@ -22,11 +22,6 @@ namespace Langulus::Anyness
       : Any {Forward<Any>(other)}
       , mTraitType {other.mTraitType} {}
 
-   /// Create trait from a block                                              
-   ///   @param other - the trait to copy                                     
-   Trait::Trait(const Block& other)
-      : Any {other} {}
-
    /// Same as copy-construction, but doesn't reference anything              
    ///   @param other - the trait to copy                                     
    Trait::Trait(Disowned<Trait>&& other)
@@ -87,7 +82,7 @@ namespace Langulus::Anyness
    /// Clone the trait                                                        
    ///   @return the cloned trait                                             
    Trait Trait::Clone() const {
-      return Trait {mTraitType, Any::Clone()};
+      return Trait::From(mTraitType, Any::Clone());
    }
 
    /// Get the trait type                                                     

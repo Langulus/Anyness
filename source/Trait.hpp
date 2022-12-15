@@ -29,22 +29,23 @@ namespace Langulus::Anyness
       TMeta mTraitType {};
 
    public:
-      using Any::Any;
-
       constexpr Trait() noexcept = default;
+
       Trait(const Trait&);
       Trait(Trait&&) noexcept;
-      Trait(const Block&);
 
       template<CT::Data T>
-      Trait(TMeta, const T&);
+      Trait(const T&) requires (!CT::Same<T, Trait>);
       template<CT::Data T>
-      Trait(TMeta, T&);
+      Trait(T&) requires (!CT::Same<T, Trait>);
       template<CT::Data T>
-      Trait(TMeta, T&&);
+      Trait(T&&) requires (!CT::Same<T, Trait>);
 
       Trait(Disowned<Trait>&&);
       Trait(Abandoned<Trait>&&);
+
+      template<CT::Data HEAD, CT::Data... TAIL>
+      Trait(HEAD&&, TAIL&&...) requires (sizeof...(TAIL) >= 1);
 
       Trait& operator = (const Trait&);
       Trait& operator = (Trait&&) noexcept;
@@ -88,11 +89,6 @@ namespace Langulus::Anyness
       template<CT::Data DATA>
       NOD() static Trait From(TMeta, DATA&&);
 
-      template<CT::Data TRAIT>
-      NOD() static Trait FromMemory(const Block&);
-      template<CT::Data TRAIT>
-      NOD() static Trait FromMemory(Block&&);
-
       template<CT::Data TRAIT, CT::Data DATA>
       NOD() static Trait From(const DATA&);
       template<CT::Data TRAIT, CT::Data DATA>
@@ -131,6 +127,7 @@ namespace Langulus::Anyness
       LANGULUS_BASES(Trait);
 
       StaticTrait();
+
       template<CT::Data T>
       StaticTrait(const T&);
       template<CT::Data T>
@@ -141,12 +138,18 @@ namespace Langulus::Anyness
       StaticTrait(Disowned<TRAIT>&&);
       StaticTrait(Abandoned<TRAIT>&&);
 
+      template<CT::Data HEAD, CT::Data... TAIL>
+      StaticTrait(HEAD&&, TAIL&&...) requires (sizeof...(TAIL) >= 1);
+
       template<CT::Data T>
       TRAIT& operator = (const T&);
       template<CT::Data T>
       TRAIT& operator = (T&);
       template<CT::Data T>
       TRAIT& operator = (T&&);
+
+      TRAIT& operator = (Disowned<TRAIT>&&);
+      TRAIT& operator = (Abandoned<TRAIT>&&);
 
       TRAIT operator + (const Trait&) const;
       template<CT::Deep T>
@@ -155,9 +158,6 @@ namespace Langulus::Anyness
       TRAIT& operator += (const Trait&);
       template<CT::Deep T>
       TRAIT& operator += (const T&);
-
-      TRAIT& operator = (Disowned<TRAIT>&&);
-      TRAIT& operator = (Abandoned<TRAIT>&&);
 
       template<CT::Data T>
       NOD() bool operator == (const T&) const;

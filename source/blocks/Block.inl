@@ -1025,7 +1025,7 @@ namespace Langulus::Anyness
    }
 
    /// Compare with one single value, if exactly one element is contained     
-   ///   @attention compares by value if == operator is available             
+   ///   @attention compares by value only if == operator is available for T  
    ///   @param rhs - the value to compare against                            
    ///   @return true if elements are the same                                
    template<class T>
