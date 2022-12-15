@@ -11,10 +11,9 @@ Additionally, all containers utilize RTTI, managed memory, encryption (WIP), and
 
 Simple initialization:
 ```c++
-Any data = 42;                  // creates a deep container similar to TAny<int> {42}
-if (data == 42) {               // will return true
-   /**/
-}
+Any data = 42;                  // creates a flat container similar to TAny<int> {42}
+if (data == 42)   { /*true*/  }
+if (data == 5.0f) { /*false*/ }
 ```
 
 Complex initialization:
@@ -22,7 +21,13 @@ Complex initialization:
 Thing object;
 Any data {42, 24, true, 5.0f, &object};
 // ^ creates a deep container similar to: 
-// TAny<Any> {TAny<int> {42}, TAny<int> {24}, TAny<bool> {true}, TAny<float> {5.0f}, TAny<Thing*> {&object}}
+// TAny<Any> {
+//    TAny<int> {42}, 
+//    TAny<int> {24}, 
+//    TAny<bool> {true}, 
+//    TAny<float> {5.0f}, 
+//    TAny<Thing*> {&object}
+// }
 ```
 
 Interface static data safely:
@@ -38,7 +43,7 @@ data.ForEachDeep(
    [](const int& i) { /**/ },   // Will be executed for 42 and 24
                                 // If no integers exist, will move to next function
    [](const Thing& t) { /**/ }, // Will be executed for the pushed object pointer
-                                // Notice how we retrieve it by reference instead
+                                // Notice how we can retrieve it by reference instead
                                 // If no Thing(s) exist, will move to next function
    [](const float& i) { /**/ }  // Will be executed for 5.0f
 );
@@ -49,8 +54,8 @@ Iterate all elements, preserving hierarchy:
 data.ForEach(
    [](const Any& group) {
       group.ForEach(
-         [](const int& i) { /**/ },
-         [](const Thing& t) { /**/ },
+         [](const int* i) { /*doesn't matter if we iterate by dense or sparse value*/ },
+         [](const Thing* t) { /**/ },
          [](const float& i) { /**/ }
       )
    }
@@ -68,9 +73,20 @@ if (integers.Is<int>()) {
 
 Integrated with std::range, even when type-erased:
 ```c++
+Any integers {1, 2, 3};
 for (auto it : integers) {  // it is a type-erased iterator, that turns to Anyness::Block when dereferenced
-   if(it == 1) { /**/ }     // you can still compare it against a single value, if type differs then simply not equal
+   if(it == 1)    { /*true*/ }
+   if(it == 1.0f) { /*false*/ }
 }
+```
+
+Index in various ways, each with advantages and disadvantages:
+```c++
+TAny<int> integers {1, 2, 3};
+if (integers[0u] == 1) { /*unsigned index is fastest, but most unsafe*/ }
+if (integers[-1] == 3) { /*signed indices allow for counting backwards*/ }
+if (integers[IndexMiddle] == 2) { /*special indices are most safe and convenient, but slowest*/ }
+if (integers[IndexMax] == 3) { /*some of them are context-dependent, IndexMax returns the biggest value*/ }
 ```
 
 ## Mission statement
@@ -125,6 +141,7 @@ The plan is to never support older C++ standards. When C++23 comes out, it will 
    - enable `LANGULUS_FEATURE_ENCRYPTION` - WIP
    - you can set `LANGULUS_ALIGNMENT` to a power-of-two number - it will affect available SIMD optimizations, as well as minimal allocation sizes
 5. Build using your favourite C++20 compliant compiler version
+6. Use by linking with Langulus.Anyness CMake target (or library output), and including <LangulusAnyness.hpp>
 
 ## Motivation
 **Anyness** started out as an educational project. 
