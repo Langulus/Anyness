@@ -28,6 +28,17 @@ Any data {42, 24, true, 5.0f, &object};
 //    TAny<float> {5.0f}, 
 //    TAny<Thing*> {&object}
 // }
+
+// To avoid TAny<int> suboptimal duplication, simply group the integers
+// When all elements of a list are exactly the same type, they're optimally packed
+Any data { Any {42, 24}, true, 5.0f, &object};
+// ^ creates a deep container similar to: 
+// TAny<Any> {
+//    TAny<int> {42, 24},
+//    TAny<bool> {true}, 
+//    TAny<float> {5.0f}, 
+//    TAny<Thing*> {&object}
+// }
 ```
 
 Interface static data safely:
