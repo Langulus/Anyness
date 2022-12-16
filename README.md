@@ -75,8 +75,8 @@ Integrated with std::range, even when type-erased:
 ```c++
 Any integers {1, 2, 3};
 for (auto it : integers) {  // it is a type-erased iterator, that turns to Anyness::Block when dereferenced
-   if(it == 1)    { /*true*/ }
-   if(it == 1.0f) { /*false*/ }
+   if(it == 1)    { /*true for first element, false for the rest*/ }
+   if(it == 1.0f) { /*always false*/ }
 }
 ```
 
@@ -145,7 +145,7 @@ The plan is to never support older C++ standards. When C++23 comes out, it will 
 
 ## Motivation
 **Anyness** started out as an educational project. 
-Few years later, as [Langulus](https://github.com/Langulus/Langulus) strayed away from standard containers, it becamse a simple drop-in replacement for `std::any`. With the years, it evolved to its own thing, with memory manager, RTTI, new semantics, and style.
+Few years later, as [Langulus](https://github.com/Langulus/Langulus) strayed away from standard containers, it became a simple drop-in replacement for `std::any`. With the years, it evolved to its own thing, with memory manager, RTTI, new semantics, and style.
 [Langulus](https://github.com/Langulus/Langulus) required a fast and flexible way to share data between independent modules, utilizing runtime polymorphism, and type-erasure to minimize interdependences.
 
 ## Container catalogue
@@ -191,16 +191,16 @@ You can check examples and feature details by following the links (WIP)
    - Features:
      + All `Any` features, but statically optimized for T
  - **Bytes** - raw byte container, with various raw byte manipulation services
-   - Binary compatible with: `Block`, `Any`, `TAny`, `Text`, `Path`
+   - Binary compatible with: `Block`, `Any`, `TAny<Byte>`
    - Status: ~90% complete, ~75% tested
    - Features:
      + All `TAny<Byte>` features, but statically optimized
      + Specialized interface for raw byte sequence manipulation
  - **Text** - count-terminated text container, analogous to `std::string`, with various string manipulation services
-   - Binary compatible with: `Block`, `Any`, `TAny`, `Bytes`, `Path`
+   - Binary compatible with: `Block`, `Any`, `TAny<Letter>`, `TAny<Byte>`, `Bytes`, `Path`
    - Status: ~90% complete, ~75% tested
  - **Path** - a specialized `Text` container, with various file-system path manipulation services
-   - Binary compatible with: `Block`, `Any`, `TAny`, `Bytes`, `Text`
+   - Binary compatible with: `Block`, `Any`, `TAny<Letter>`, `TAny<Byte>`, `Bytes`, `Text`
    - Status: ~30% complete, not tested
 
 ***
@@ -246,13 +246,13 @@ You can check examples and feature details by following the links (WIP)
      + Same as `Block` features, but indexing happens only through iterators; insertion at indices is disabled
  - **UnorderedSet** - type-erased equivalent to `std::unordered_set` based on hashing
    - Binary compatible with: `BlockSet`, `TUnorderedSet`, `OrderedSet`, `TOrderedSet`
-   - Status: ~90% complete, ~75% tested
+   - Status: ~90% complete, not tested
    - Features:
      + Ownership
      + All features of the aforementioned `BlockSet`
  - **TUnorderedSet** - templated binary-compatible equivalent to `UnorderedSet`, practically the same as `std::unordered_set<T>`
    - Binary compatible with: `BlockSet`, `TUnorderedSet`, `OrderedSet`, `TOrderedSet`
-   - Status: ~90% complete, ~75% tested
+   - Status: ~90% complete, not tested
    - Features:
      + All features of the aforementioned `UnorderedSet`, but statically optimized for `T`
  - **OrderedSet** - type-erased equivalent to `std::ordered_set` based on sorting
