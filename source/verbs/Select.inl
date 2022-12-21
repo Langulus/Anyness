@@ -358,7 +358,7 @@ namespace Langulus::Anyness
    ///   @param item - the item to search for                                 
    ///   @param cookie - continue search from a given offset                  
    ///   @return the index of the found item, or IndexNone if not found       
-   template<bool REVERSE, bool BY_ADDRESS_ONLY, CT::Data T>
+   template<bool REVERSE, bool BY_ADDRESS_ONLY, CT::NotSemantic T>
    Index Block::FindKnown(const T& item, const Offset& cookie) const {
       if constexpr (!REVERSE) {
          for (Offset i = cookie; i < mCount; ++i) {
@@ -382,7 +382,7 @@ namespace Langulus::Anyness
    ///   @param item - the item to search for                                 
    ///   @param cookie - continue search from a given offset                  
    ///   @return the index of the found item, or IndexNone if not found       
-   template<bool REVERSE, CT::Data T>
+   template<bool REVERSE, CT::NotSemantic T>
    Index Block::FindDeep(const T& item, Offset cookie) const {
       Index found;
       if constexpr (!REVERSE) {

@@ -34,7 +34,7 @@ namespace Langulus::Anyness
             // Allocate the array of pointers if not allocated yet      
             result.mState -= DataState::Static;
             result.mState -= DataState::Constant;
-            result.Allocate<false>(mCount);
+            result.AllocateFresh(result.RequestSize(mCount));
             result.mCount = mCount;
          }
 
@@ -68,7 +68,7 @@ namespace Langulus::Anyness
          if (mType->mCloner) {
             // Cloning by placement is available                        
             if (result.IsEmpty()) {
-               result.Allocate<false>(mCount);
+               result.AllocateFresh(result.RequestSize(mCount));
                result.mCount = mCount;
             }
 
@@ -84,7 +84,7 @@ namespace Langulus::Anyness
          else if (mType->mIsPOD) {
             // Just memcpy simple POD data                              
             if (result.IsEmpty()) {
-               result.Allocate<false>(mCount);
+               result.AllocateFresh(result.RequestSize(mCount));
                result.mCount = mCount;
             }
             
@@ -106,7 +106,7 @@ namespace Langulus::Anyness
             // Check if a clone operation is available for element      
             if (mType->mCloner) {
                // Placement-clone                                       
-               to.Allocate<false>(1);
+               to.AllocateFresh(to.RequestSize(1));
                to.mCount = 1;
                
                from.mType->mCloner(from.mRaw, to.mRaw);
@@ -115,7 +115,7 @@ namespace Langulus::Anyness
             }
             else if (from.mType->mIsPOD) {
                // Just memcpy simple CT::POD data                       
-               to.Allocate<false>(1);
+               to.AllocateFresh(to.RequestSize(1));
                to.mCount = 1;
                
                CopyMemory(from.mRaw, to.mRaw, from.GetByteSize());

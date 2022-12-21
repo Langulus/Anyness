@@ -153,7 +153,7 @@ namespace Langulus::Anyness
 
       // Allocate keys and info                                         
       result.mKeys.mEntry = Allocator::Allocate(mKeys.mEntry->GetAllocatedSize());
-      LANGULUS_ASSERT(result.mKeys.mEntry, Except::Allocate, "Out of memory");
+      LANGULUS_ASSERT(result.mKeys.mEntry, Allocate, "Out of memory");
 
       // Clone the info bytes (including sentinel)                      
       result.mKeys.mRaw = result.mKeys.mEntry->GetBlockStart();
@@ -301,8 +301,7 @@ namespace Langulus::Anyness
       else {
          // Key type already set, so check compatibility                
          LANGULUS_ASSERT(
-            mKeys.Is(key) && mKeys.IsSparse() == sparseKey,
-            Except::Mutate,
+            mKeys.Is(key) && mKeys.IsSparse() == sparseKey, Mutate,
             "Attempting to mutate type-erased unordered map's key type"
          );
       }
@@ -337,7 +336,7 @@ namespace Langulus::Anyness
       else
          mKeys.mEntry = Allocator::Allocate(keyAndInfoSize);
 
-      LANGULUS_ASSERT(mKeys.mEntry, Except::Allocate,
+      LANGULUS_ASSERT(mKeys.mEntry, Allocate,
          "Out of memory on allocating/reallocating keys");
 
       mKeys.mReserved = count;
@@ -378,7 +377,10 @@ namespace Langulus::Anyness
             continue;
          }
 
-         InsertInnerUnknown<false, false>(key.GetHash().mHash & hashmask, Move(key));
+         InsertInnerUnknown<false>(
+            key.GetHash().mHash & hashmask, 
+            Abandon(key)
+         );
 
          if (!key.IsEmpty())
             key.CallUnknownDestructors();
@@ -423,7 +425,7 @@ namespace Langulus::Anyness
 
       // Prepare a set of preallocated swappers                         
       Block keyswap {mKeys.GetState(), GetType()};
-      keyswap.Allocate(1);
+      keyswap.AllocateFresh(keyswap.RequestSize(1));
 
       // For each old existing key...                                   
       while (oldInfo != oldInfoEnd) {
@@ -439,10 +441,10 @@ namespace Langulus::Anyness
          if (oldIndex != newIndex) {
             // Move key & value to swapper                              
             // No chance of overlap, so do it forwards                  
-            keyswap.CallUnknownMoveConstructors<false>(1, oldKey);
+            keyswap.CallUnknownSemanticConstructors<false>(1, Abandon(oldKey));
             keyswap.mCount = 1;
             RemoveIndex(oldIndex);
-            if (oldIndex == InsertInnerUnknown<false, false>(newIndex, Move(keyswap))) {
+            if (oldIndex == InsertInnerUnknown<false>(newIndex, Abandon(keyswap))) {
                // Index might still end up at its old index, make sure  
                // we don't loop forever in that case                    
                ++oldInfo;
@@ -478,12 +480,12 @@ namespace Langulus::Anyness
 
    /// Inner insertion function                                               
    ///   @tparam CHECK_FOR_MATCH - false if you guarantee key doesn't exist   
-   ///   @tparam KEEP - false if you want to abandon-construct, true to move  
    ///   @param start - the starting index                                    
-   ///   @param key - key to move in                                          
    ///   @param value - value to move in                                      
-   template<bool CHECK_FOR_MATCH, bool KEEP, CT::Data T>
-   Offset BlockSet::InsertInner(const Offset& start, T&& value) {
+   template<bool CHECK_FOR_MATCH, CT::Semantic S>
+   Offset BlockSet::InsertInner(const Offset& start, S&& value) {
+      using T = typename S::Type;
+
       // Get the starting index based on the key hash                   
       auto psl = GetInfo() + start;
       const auto pslEnd = GetInfoEnd();
@@ -493,7 +495,7 @@ namespace Langulus::Anyness
 
          if constexpr (CHECK_FOR_MATCH) {
             const auto candidate = GetRaw<T>() + index;
-            if (*candidate == value) {
+            if (*candidate == value.mValue) {
                // Neat, the key already exists - just return            
                return index;
             }
@@ -501,32 +503,40 @@ namespace Langulus::Anyness
 
          if (attempts > *psl) {
             // The pair we're inserting is closer to bucket, so swap    
-            ::std::swap(GetRaw<T>()[index], value);
+            ::std::swap(GetRaw<T>()[index], value.mValue);
             ::std::swap(attempts, *psl);
          }
 
          ++attempts;
 
-         if (psl < pslEnd - 1) LIKELY() {
+         if (psl < pslEnd - 1)
             ++psl;
-         }
-         else UNLIKELY() {
-            // Wrap around and start from the beginning                 
+         else
             psl = GetInfo();
-         }
       }
 
-      // If reached, empty slot reached, so put the pair there          
-      // Might not seem like it, but we gave a guarantee, that this is  
+      // If reached, empty slot reached                                 
+      // Might not seem like it, but we have a guarantee, that this is  
       // eventually reached, unless key exists and returns early        
       const auto index = psl - GetInfo();
-      if constexpr (!KEEP && CT::AbandonMakable<T>)
-         new (&GetRaw<T>()[index]) T {Abandon(value)};
-      else if constexpr (CT::MoveMakable<T>)
-         new (&GetRaw<T>()[index]) T {Move(value)};
-      else if constexpr (CT::CopyMakable<T>)
-         new (&GetRaw<T>()[index]) T {value};
-      else LANGULUS_ERROR("Can't instantiate value");
+      if constexpr (S::Move) {
+         if constexpr (!S::Keep && CT::AbandonMakable<T>)
+            new (&GetRaw<T>()[index]) T {value.Forward()};
+         else if constexpr (CT::MoveMakable<T>)
+            new (&GetRaw<T>()[index]) T {std::move(value.mValue)};
+         else if constexpr (CT::CopyMakable<T>)
+            new (&GetRaw<T>()[index]) T {value.mValue};
+         else
+            LANGULUS_ERROR("Can't abandon/move/copy value");
+      }
+      else {
+         if constexpr (!S::Keep && CT::DisownMakable<T>)
+            new (&GetRaw<T>()[index]) T {value.Forward()};
+         else if constexpr (CT::CopyMakable<T>)
+            new (&GetRaw<T>()[index]) T {value.mValue};
+         else
+            LANGULUS_ERROR("Can't disown/copy value");
+      }
 
       *psl = attempts;
       ++mKeys.mCount;
@@ -536,44 +546,48 @@ namespace Langulus::Anyness
    /// Inner insertion function based on reflected move-assignment            
    ///   @attention after this call, key and/or value might be empty          
    ///   @tparam CHECK_FOR_MATCH - false if you guarantee key doesn't exist   
-   ///   @tparam KEEP - false if you want to abandon-construct, true to move  
    ///   @param start - the starting index                                    
    ///   @param value - value to move in                                      
-   template<bool CHECK_FOR_MATCH, bool KEEP>
-   Offset BlockSet::InsertInnerUnknown(const Offset& start, Block&& value) {
+   template<bool CHECK_FOR_MATCH, CT::Semantic S>
+   Offset BlockSet::InsertInnerUnknown(const Offset& start, S&& value) {
+      static_assert(CT::Block<typename S::Type>,
+         "S::Type must be a block type");
+
       // Get the starting index based on the key hash                   
       auto psl = GetInfo() + start;
       const auto pslEnd = GetInfoEnd();
       InfoType attempts {1};
       while (*psl) {
          const auto index = psl - GetInfo();
-
          if constexpr (CHECK_FOR_MATCH) {
             const auto candidate = Get(index);
-            if (candidate == value) {
+            if (candidate == value.mValue) {
                // Neat, the key already exists - just set value and go  
-               GetValue(index).CallUnknownMoveAssignment<KEEP>(1, value);
-               value.CallUnknownDestructors();
-               value.mCount = 0;
+               GetValue(index)
+                  .CallUnknownSemanticAssignment(1, value.Forward());
+
+               if constexpr (S::Move) {
+                  value.mValue.CallUnknownDestructors();
+                  value.mValue.mCount = 0;
+               }
+
                return index;
             }
          }
 
          if (attempts > *psl) {
             // The pair we're inserting is closer to bucket, so swap    
-            GetValue(index).SwapUnknown(value);
+            GetValue(index).SwapUnknown(value.Forward());
             ::std::swap(attempts, *psl);
          }
 
          ++attempts;
 
-         if (psl < pslEnd - 1) LIKELY() {
+         // Wrap around and start from the beginning if needed          
+         if (psl < pslEnd - 1)
             ++psl;
-         }
-         else UNLIKELY() {
-            // Wrap around and start from the beginning                 
+         else
             psl = GetInfo();
-         }
       }
 
       // If reached, empty slot reached, so put the pair there	         
@@ -581,10 +595,13 @@ namespace Langulus::Anyness
       // eventually reached, unless key exists and returns early        
       // We're moving only a single element, so no chance of overlap    
       const auto index = psl - GetInfo();
-      GetValue(index).CallUnknownMoveConstructors<KEEP>(1, value);
-
-      value.CallUnknownDestructors();
-      value.mCount = 0;
+      GetValue(index)
+         .CallUnknownSemanticConstructors(1, value.Forward());
+      
+      if constexpr (S::Move) {
+         value.mValue.CallUnknownDestructors();
+         value.mValue.mCount = 0;
+      }
 
       *psl = attempts;
       ++mKeys.mCount;
@@ -602,22 +619,35 @@ namespace Langulus::Anyness
    /// Insert a single pair inside table via copy                             
    ///   @param value - the value to add                                      
    ///   @return 1 if item was inserted, zero otherwise                       
-   template<CT::Data T>
+   template<CT::NotSemantic T>
    Count BlockSet::Insert(const T& value) {
-      static_assert(CT::CopyMakable<T>,
+      /*static_assert(CT::CopyMakable<T>,
          "Value needs to be copy-constructible, but isn't");
 
       Mutate<T>();
       Allocate(GetCount() + 1);
       using ValInner = typename TAny<T>::TypeInner;
       InsertInner<true, false>(GetBucket(value), ValInner {value});
+      return 1;*/
+      return Insert(Copy(value));
+   }
+
+   /// Insert a single pair inside table via key copy and value move          
+   ///   @param value - the value to add                                      
+   ///   @return 1 if item was inserted, zero otherwise                       
+   template<CT::Semantic S>
+   Count BlockSet::Insert(S&& value) {
+      using T = typename S::Type;
+      Mutate<T>();
+      Allocate(GetCount() + 1);
+      InsertInner<true>(GetBucket(value.mValue), value.Forward());
       return 1;
    }
 
    /// Insert a single pair inside table via key copy and value move          
    ///   @param value - the value to add                                      
    ///   @return 1 if item was inserted, zero otherwise                       
-   template<CT::Data T>
+   /*template<CT::Data T>
    Count BlockSet::Insert(T&& value) {
       static_assert(CT::MoveMakable<T>,
          "Value needs to be move-constructible, but isn't");
@@ -630,52 +660,67 @@ namespace Langulus::Anyness
       else
          InsertInner<true, true>(GetBucket(value), Forward<T>(value));
       return 1;
-   }
+   }*/
 
    /// Insert a single value inside table via copy (unknown version)          
    ///   @param value - the value to add                                      
    ///   @return 1 if item was inserted, zero otherwise                       
    inline Count BlockSet::InsertUnknown(const Block& value) {
-      Mutate(value.mType, value.IsSparse());
+      /*Mutate(value.mType, value.IsSparse());
       Allocate(GetCount() + 1);
 
       Block swapper {value.GetState(), value.mType};
-      swapper.Allocate<false, true>(1);
-      swapper.CallUnknownCopyConstructors(1, value);
+      swapper.AllocateFresh(swapper.RequestSize(1));
+      swapper.mCount = 1;
+      swapper.CallUnknownSemanticConstructors(1, Langulus::Copy(value));
 
       const auto index = value.GetHash().mHash & (GetReserved() - 1);
       InsertInnerUnknown<true, false>(index, Move(swapper));
 
       swapper.Free();
-      return 1;
+      return 1;*/
+      return InsertUnknown(Copy(value));
    }
 
    /// Insert a single pair inside table via move (unknown version)           
    ///   @param value - the value to add                                      
    ///   @return 1 if item was inserted, zero otherwise                       
    inline Count BlockSet::InsertUnknown(Block&& value) {
-      Mutate(value.mType, value.IsSparse());
+      /*Mutate(value.mType, value.IsSparse());
       Allocate(GetCount() + 1);
       const auto index = value.GetHash().mHash & (GetReserved() - 1);
       InsertInnerUnknown<true, true>(index, Move(value));
+      return 1;*/
+      return InsertUnknown(Move(value));
+   }
+   
+   /// Insert a single pair inside table via move (unknown version)           
+   ///   @param value - the value to add                                      
+   ///   @return 1 if item was inserted, zero otherwise                       
+   template<CT::Semantic S>
+   inline Count BlockSet::InsertUnknown(S&& value) requires (CT::Block<typename S::Type>) {
+      Mutate(value.mValue.mType, value.mValue.IsSparse());
+      Allocate(GetCount() + 1);
+      const auto index = value.mValue.GetHash().mHash & (GetReserved() - 1);
+      InsertInnerUnknown<true>(index, value.Forward());
       return 1;
    }
 
    /// Copy-insert a templated pair inside the map                            
    ///   @param item - the pair to insert                                     
    ///   @return a reference to this map for chaining                         
-   template<CT::Data T>
+   template<CT::NotSemantic T>
    BlockSet& BlockSet::operator << (const T& item) {
-      Insert(item);
+      Insert(Copy(item));
       return *this;
    }
 
    /// Move-insert a templated pair inside the map                            
    ///   @param item - the pair to insert                                     
    ///   @return a reference to this map for chaining                         
-   template<CT::Data T>
+   template<CT::NotSemantic T>
    BlockSet& BlockSet::operator << (T&& item) {
-      Insert(Forward<T>(item));
+      Insert(Move(item));
       return *this;
    }
 
@@ -776,7 +821,7 @@ namespace Langulus::Anyness
 
          // We're moving only a single element, so no chance of overlap 
          const_cast<const Block&>(key).Prev()
-            .CallUnknownMoveConstructors<false>(1, key);
+            .CallUnknownSemanticConstructors(1, Abandon(key));
 
          key.CallUnknownDestructors();
 
@@ -794,7 +839,8 @@ namespace Langulus::Anyness
          GetInfo()[last] = (*psl) - 1;
 
          // We're moving only a single element, so no chance of overlap 
-         GetValue(last).CallUnknownMoveConstructors<false>(1, key);
+         GetValue(last)
+            .CallUnknownSemanticConstructors(1, Abandon(key));
 
          key.CallUnknownDestructors();
 
@@ -826,7 +872,7 @@ namespace Langulus::Anyness
    /// Erase a pair via key                                                   
    ///   @param match - the key to search for                                 
    ///   @return the number of removed pairs                                  
-   template<CT::Data T>
+   template<CT::NotSemantic T>
    Count BlockSet::RemoveValue(const T& match) {
       // Get the starting index based on the key hash                   
       const auto start = GetBucket(match);
@@ -859,7 +905,7 @@ namespace Langulus::Anyness
    /// Search for a key inside the table                                      
    ///   @param key - the key to search for                                   
    ///   @return true if key is found, false otherwise                        
-   template<CT::Data T>
+   template<CT::NotSemantic T>
    bool BlockSet::Contains(const T& key) const {
       if (IsEmpty())
          return false;
@@ -869,7 +915,7 @@ namespace Langulus::Anyness
    /// Search for a key inside the table, and return it if found              
    ///   @param key - the key to search for                                   
    ///   @return the index if key was found, or IndexNone if not              
-   template<CT::Data T>
+   template<CT::NotSemantic T>
    Index BlockSet::Find(const T& key) const {
       const auto offset = FindIndex(key);
       return offset != GetReserved() ? Index {offset} : IndexNone;
@@ -904,7 +950,7 @@ namespace Langulus::Anyness
    inline Block BlockSet::Get(const Index& index) {
       const auto offset = index.GetOffset();
       LANGULUS_ASSERT(offset < GetReserved() && GetInfo()[offset],
-         Except::OutOfRange, "Bad index");
+         OutOfRange, "Bad index");
       return GetValue(offset);
    }
 

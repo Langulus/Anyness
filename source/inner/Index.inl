@@ -28,7 +28,7 @@ namespace Langulus::Anyness
    constexpr Index::Index(const T& value)
       : mIndex {static_cast<Type>(value)} {
       LANGULUS_ASSERT(value <= static_cast<T>(MaxIndex),
-         Except::Access, "Index overflow");
+         Access, "Index overflow");
    }
 
    /// Constrain the index to some count (immutable)                          
@@ -68,7 +68,7 @@ namespace Langulus::Anyness
    /// Throws Except::Access if not possible to extract index                 
    ///   @return a valid offset                                               
    inline Offset Index::GetOffset() const {
-      LANGULUS_ASSERT(!IsSpecial(), Except::Access,
+      LANGULUS_ASSERT(!IsSpecial(), Access,
          "Can't convert index to offset");
       return static_cast<Offset>(mIndex);
    }

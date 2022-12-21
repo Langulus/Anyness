@@ -34,6 +34,7 @@ namespace Langulus::Anyness
 
    public:
       constexpr BlockSet() = default;
+
       BlockSet(const BlockSet&);
       BlockSet(BlockSet&&) noexcept;
 
@@ -84,23 +85,34 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   INSERTION                                                         
       ///                                                                     
-      template<CT::Data T>
+      template<CT::NotSemantic T>
       Count Insert(const T&);
-      template<CT::Data T>
+      template<CT::NotSemantic T>
       Count Insert(T&&);
+      template<CT::Semantic S>
+      Count Insert(S&&);
 
-      template<CT::Data T>
+      Count InsertUnknown(const Block&);
+      Count InsertUnknown(Block&&);
+      template<CT::Semantic S>
+      Count InsertUnknown(S&&) requires (CT::Block<typename S::Type>);
+
+      template<CT::NotSemantic T>
       BlockSet& operator << (const T&);
-      template<CT::Data T>
+      template<CT::NotSemantic T>
       BlockSet& operator << (T&&);
+      template<CT::Semantic S>
+      BlockSet& operator << (S&&);
 
       BlockSet& operator << (const Block&);
       BlockSet& operator << (Block&&);
+      template<CT::Semantic S>
+      BlockSet& operator << (S&&) requires (CT::Block<typename S::Type>);
 
       ///                                                                     
       ///   REMOVAL                                                           
       ///                                                                     
-      template<CT::Data T>
+      template<CT::NotSemantic T>
       Count RemoveValue(const T&);
       Count RemoveIndex(const Index&);
 
@@ -111,9 +123,9 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   SEARCH                                                            
       ///                                                                     
-      template<CT::Data T>
+      template<CT::NotSemantic T>
       NOD() bool Contains(const T&) const;
-      template<CT::Data T>
+      template<CT::NotSemantic T>
       NOD() Index Find(const T&) const;
 
       NOD() Block Get(const Index&) const;
@@ -178,13 +190,10 @@ namespace Langulus::Anyness
 
       void Rehash(const Count&, const Count&);
 
-      Count InsertUnknown(const Block&);
-      Count InsertUnknown(Block&&);
-
-      template<bool CHECK_FOR_MATCH, bool KEEP>
-      Offset InsertInnerUnknown(const Offset&, Block&&);
-      template<bool CHECK_FOR_MATCH, bool KEEP, CT::Data T>
-      Offset InsertInner(const Offset&, T&&);
+      template<bool CHECK_FOR_MATCH, CT::Semantic S>
+      Offset InsertInnerUnknown(const Offset&, S&&);
+      template<bool CHECK_FOR_MATCH, CT::Semantic S>
+      Offset InsertInner(const Offset&, S&&);
 
       void ClearInner();
       void CloneInner(const Block&, Block&) const;

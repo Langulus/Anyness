@@ -221,5 +221,7 @@ LANGULUS_DEFINE_TRAIT(Child,
    "Accesses children in any kind of hierarchies");
 LANGULUS_DEFINE_TRAIT(Parent,
    "Accesses parents in any kind of hierarchies");
+LANGULUS_DEFINE_TRAIT(Clipboard,
+   "Accesses clipboard");
 
 #include "Trait.inl"

@@ -16,14 +16,6 @@ namespace Langulus::Anyness
       return HashBytes(GetRaw(), static_cast<int>(GetCount()));
    }
 
-   /// Allocate a number of bytes and zero them                               
-   ///   @param count - the number of bytes to allocate                       
-   void Bytes::Null(const Count& count) {
-      Allocate<false>(count);
-      mCount = count;
-      FillMemory(mRaw, {}, mCount);
-   }
-
    /// Compare with another byte container                                    
    ///   @param other - the byte container to compare with                    
    ///   @return true if both containers are identical                        
@@ -34,9 +26,9 @@ namespace Langulus::Anyness
    /// Compare with another byte container                                    
    ///   @param other - the byte container to compare with                    
    ///   @return true if both containers are not identical                    
-   bool Bytes::operator != (const Bytes& other) const noexcept {
+   /*bool Bytes::operator != (const Bytes& other) const noexcept {
       return !(*this == other);
-   }
+   }*/
 
    /// Clone the byte container                                               
    ///   @return the cloned byte container                                    
@@ -45,7 +37,7 @@ namespace Langulus::Anyness
       if (mCount) {
          const auto request = RequestSize(mCount);
          result.mEntry = Inner::Allocator::Allocate(request.mByteSize);
-         LANGULUS_ASSERT(result.mEntry, Except::Allocate, "Out of memory");
+         LANGULUS_ASSERT(result.mEntry, Allocate, "Out of memory");
 
          result.mRaw = result.mEntry->GetBlockStart();
          result.mReserved = request.mElementCount;

@@ -33,9 +33,13 @@ namespace Langulus::Anyness
    inline Bytes::Bytes(TAny&& other) noexcept
       : TAny {Forward<TAny>(other)} {}
 
+   template<CT::Semantic S>
+   constexpr Bytes::Bytes(S&& other) noexcept requires (CT::DerivedFrom<typename S::Type, TAny<Byte>>)
+      : TAny {other.template Forward<TAny<Byte>>()} { }
+
    /// Construct via disowned copy                                            
    ///   @param other - the bytes to move                                     
-   constexpr Bytes::Bytes(Disowned<Bytes>&& other) noexcept
+   /*constexpr Bytes::Bytes(Disowned<Bytes>&& other) noexcept
       : TAny {other.Forward<TAny>()} { }
    
    /// Construct via abandoned move                                           
@@ -51,7 +55,7 @@ namespace Langulus::Anyness
    /// Construct via abandoned move of TAny<Byte>                             
    ///   @param other - the bytes to move                                     
    constexpr Bytes::Bytes(Abandoned<TAny>&& other) noexcept
-      : TAny {other.Forward<TAny>()} { }
+      : TAny {other.Forward<TAny>()} { }*/
 
    /// Construct manually via raw constant memory pointer and size            
    ///   @param raw - raw memory to reference                                 
@@ -91,7 +95,8 @@ namespace Langulus::Anyness
    ///   @param rhs - the byte container to shallow-copy                      
    ///   @return a reference to this container                                
    inline Bytes& Bytes::operator = (const Bytes& rhs) {
-      TAny::operator = (static_cast<const TAny&>(rhs));
+      //TAny::operator = (static_cast<const TAny&>(rhs));
+      TAny::operator = (Langulus::Copy<TAny>(rhs));
       return *this;
    }
 
@@ -99,14 +104,24 @@ namespace Langulus::Anyness
    ///   @param rhs - the container to move                                   
    ///   @return a reference to this container                                
    inline Bytes& Bytes::operator = (Bytes&& rhs) noexcept {
-      TAny::operator = (Forward<TAny>(rhs));
+      //TAny::operator = (Forward<TAny>(rhs));
+      TAny::operator = (Langulus::Move<TAny>(rhs));
+      return *this;
+   }
+
+   /// Move byte container                                                    
+   ///   @param rhs - the container to move                                   
+   ///   @return a reference to this container                                
+   template<CT::Semantic S>
+   Bytes& Bytes::operator = (S&& rhs) requires (CT::Exact<typename S::Type, Bytes>) {
+      TAny::operator = (rhs.template Forward<TAny>());
       return *this;
    }
 
    /// Shallow copy disowned bytes                                            
    ///   @param rhs - the byte container to shallow-copy                      
    ///   @return a reference to this container                                
-   inline Bytes& Bytes::operator = (Disowned<Bytes>&& rhs) {
+   /*inline Bytes& Bytes::operator = (Disowned<Bytes>&& rhs) {
       TAny::operator = (rhs.Forward<TAny>());
       return *this;
    }
@@ -117,7 +132,7 @@ namespace Langulus::Anyness
    inline Bytes& Bytes::operator = (Abandoned<Bytes>&& rhs) noexcept {
       TAny::operator = (rhs.Forward<TAny>());
       return *this;
-   }
+   }*/
 
 
    ///                                                                        
@@ -128,20 +143,30 @@ namespace Langulus::Anyness
    ///   @param rhs - the right operand                                       
    ///   @return the combined container                                       
    inline Bytes Bytes::operator + (const Bytes& rhs) const {
-      return Concatenate<Bytes, true>(rhs);
+      return Concatenate<Bytes>(Langulus::Copy(rhs));
    }
 
    /// Move-concatenate with another TAny                                     
    ///   @param rhs - the right operand                                       
    ///   @return the combined container                                       
    inline Bytes Bytes::operator + (Bytes&& rhs) const {
-      return Concatenate<Bytes, true>(Forward<Bytes>(rhs));
+      //return Concatenate<Bytes, true>(Forward<Bytes>(rhs));
+      return Concatenate<Bytes>(Langulus::Move(rhs));
+   }
+
+   /// Move-concatenate with another TAny                                     
+   ///   @param rhs - the right operand                                       
+   ///   @return the combined container                                       
+   template<CT::Semantic S>
+   Bytes Bytes::operator + (S&& rhs) const requires (CT::Exact<typename S::Type, Bytes>) {
+      //return Concatenate<Bytes, true>(Forward<Bytes>(rhs));
+      return Concatenate<Bytes>(rhs.Forward());
    }
 
    /// Disown-concatenate with another TAny                                   
    ///   @param rhs - the right operand                                       
    ///   @return the combined container                                       
-   inline Bytes Bytes::operator + (Disowned<Bytes>&& rhs) const {
+   /*inline Bytes Bytes::operator + (Disowned<Bytes>&& rhs) const {
       return Concatenate<Bytes, false>(rhs.mValue);
    }
 
@@ -150,7 +175,7 @@ namespace Langulus::Anyness
    ///   @return the combined container                                       
    inline Bytes Bytes::operator + (Abandoned<Bytes>&& rhs) const {
       return Concatenate<Bytes, false>(Forward<Bytes>(rhs.mValue));
-   }
+   }*/
 
    /// Destructive copy-concatenate with another TAny                         
    ///   @param rhs - the right operand                                       
@@ -168,10 +193,19 @@ namespace Langulus::Anyness
       return *this;
    }
 
+   /// Destructive move-concatenate with any deep type                        
+   ///   @param rhs - the right operand                                       
+   ///   @return a reference to this modified container                       
+   template<CT::Semantic S>
+   Bytes& Bytes::operator += (S&& rhs) requires (CT::Exact<typename S::Type, Bytes>) {
+      InsertBlock(rhs.Forward());
+      return *this;
+   }
+
    /// Destructive disown-concatenate with any deep type                      
    ///   @param rhs - the right operand                                       
    ///   @return a reference to this modified container                       
-   inline Bytes& Bytes::operator += (Disowned<Bytes>&& rhs) {
+   /*inline Bytes& Bytes::operator += (Disowned<Bytes>&& rhs) {
       InsertBlock(rhs.Forward());
       return *this;
    }
@@ -182,6 +216,6 @@ namespace Langulus::Anyness
    inline Bytes& Bytes::operator += (Abandoned<Bytes>&& rhs) {
       InsertBlock(rhs.Forward());
       return *this;
-   }
+   }*/
 
 } // namespace Langulus::Anyness

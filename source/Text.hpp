@@ -32,10 +32,13 @@ namespace Langulus::Anyness
 
       Text(const CT::Deep auto&) = delete;
 
-      constexpr Text(Disowned<Text>&&) noexcept;
+      template<CT::Semantic S>
+      constexpr Text(S&&) noexcept requires (CT::DerivedFrom<typename S::Type, TAny<Letter>>);
+
+      /*constexpr Text(Disowned<Text>&&) noexcept;
       constexpr Text(Abandoned<Text>&&) noexcept;
       constexpr Text(Disowned<TAny>&&) noexcept;
-      constexpr Text(Abandoned<TAny>&&) noexcept;
+      constexpr Text(Abandoned<TAny>&&) noexcept;*/
 
       Text(const Token&);
       Text(const Exception&);
@@ -55,8 +58,11 @@ namespace Langulus::Anyness
       Text& operator = (const Text&);
       Text& operator = (Text&&) noexcept;
 
-      Text& operator = (Disowned<Text>&&);
-      Text& operator = (Abandoned<Text>&&) noexcept;
+      template<CT::Semantic S>
+      Text& operator = (S&&) requires (CT::Exact<typename S::Type, Text>);
+
+      /*Text& operator = (Disowned<Text>&&);
+      Text& operator = (Abandoned<Text>&&) noexcept;*/
 
    public:
       NOD() Hash GetHash() const;
@@ -96,13 +102,21 @@ namespace Langulus::Anyness
       ///                                                                     
       NOD() Text operator + (const Text&) const;
       NOD() Text operator + (Text&&) const;
-      NOD() Text operator + (Disowned<Text>&&) const;
-      NOD() Text operator + (Abandoned<Text>&&) const;
+
+      template<CT::Semantic S>
+      NOD() Text operator + (S&&) const requires (CT::Exact<typename S::Type, Text>);
+
+      /*NOD() Text operator + (Disowned<Text>&&) const;
+      NOD() Text operator + (Abandoned<Text>&&) const;*/
 
       Text& operator += (const Text&);
       Text& operator += (Text&&);
-      Text& operator += (Disowned<Text>&&);
-      Text& operator += (Abandoned<Text>&&);
+
+      template<CT::Semantic S>
+      Text& operator += (S&&) requires (CT::Exact<typename S::Type, Text>);
+
+      /*Text& operator += (Disowned<Text>&&);
+      Text& operator += (Abandoned<Text>&&);*/
    };
 
 

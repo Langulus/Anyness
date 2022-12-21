@@ -34,6 +34,8 @@ namespace Langulus::Anyness
          "Can only insert dense KnownPointer(s)");
       static_assert(CT::Sparse<T> || CT::Insertable<T>,
          "Dense contained type is not insertable");
+      static_assert(CT::NotSemantic<T>,
+         "Contained type can't be semantic");
 
       template<CT::Data, CT::Data>
       friend class TUnorderedMap;
@@ -65,18 +67,14 @@ namespace Langulus::Anyness
       TAny(ALT_T&);
       template<CT::Deep ALT_T>
       TAny(ALT_T&&);
-
-      template<CT::Deep ALT_T>
-      constexpr TAny(Disowned<ALT_T>&&);
-      template<CT::Deep ALT_T>
-      constexpr TAny(Abandoned<ALT_T>&&);
+      template<CT::Semantic S>
+      constexpr TAny(S&&) requires (CT::Deep<typename S::Type>);
 
       TAny(const T*, const T*) requires CT::Data<T>;
       TAny(const T&) requires CT::CustomData<T>;
       TAny(T&&) requires CT::CustomData<T>;
-
-      TAny(Disowned<T>&&) requires CT::CustomData<T>;
-      TAny(Abandoned<T>&&) requires CT::CustomData<T>;
+      template<CT::Semantic S>
+      TAny(S&&) requires (CT::CustomData<T> && S::template Exact<T>);
 
       TAny(const T*, const Count&);
       TAny(Disowned<const T*>&&, const Count&) noexcept;
@@ -92,18 +90,14 @@ namespace Langulus::Anyness
       TAny& operator = (ALT_T&);
       template<CT::Deep ALT_T>
       TAny& operator = (ALT_T&&);
-
-      template<CT::Deep ALT_T>
-      TAny& operator = (Disowned<ALT_T>&&);
-      template<CT::Deep ALT_T>
-      TAny& operator = (Abandoned<ALT_T>&&);
+      template<CT::Semantic S>
+      TAny& operator = (S&&) requires (CT::Deep<typename S::Type>);
 
       TAny& operator = (const T&) requires CT::CustomData<T>;
       TAny& operator = (T&) requires CT::CustomData<T>;
       TAny& operator = (T&&) requires CT::CustomData<T>;
-
-      TAny& operator = (Disowned<T>&&) noexcept requires CT::CustomData<T>;
-      TAny& operator = (Abandoned<T>&&) noexcept requires CT::CustomData<T>;
+      template<CT::Semantic S>
+      TAny& operator = (S&&) noexcept requires (CT::CustomData<T> && S::template Exact<T>);
 
    public:
       NOD() bool CastsToMeta(DMeta) const;
@@ -111,11 +105,8 @@ namespace Langulus::Anyness
       
       template<CT::Data... LIST_T>
       NOD() static TAny Wrap(LIST_T&&...);
-
-      template<bool CREATE = false, bool SETSIZE = false>
-      void Allocate(Count);
    
-      void Null(const Count&);
+      void Null(const Count&) requires (CT::POD<T> || CT::Nullifiable<T>);
       void TakeAuthority();
 
       NOD() TAny Clone() const;
@@ -154,23 +145,34 @@ namespace Langulus::Anyness
 
       NOD() constexpr Size GetStride() const noexcept;
       NOD() constexpr Size GetByteSize() const noexcept;
+      NOD() auto RequestSize(const Count&) const noexcept;
 
       ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
-      template<bool KEEP = true, CT::Index IDX = Offset>
+      template<CT::Index IDX = Offset>
       Count InsertAt(const T*, const T*, const IDX&);
-      template<bool KEEP = true, CT::Index IDX = Offset>
+      template<CT::Index IDX = Offset>
       Count InsertAt(const T&, const IDX&);
-      template<bool KEEP = true, CT::Index IDX = Offset>
+      template<CT::Index IDX = Offset>
       Count InsertAt(T&&, const IDX&);
 
-      template<Index = IndexBack, bool KEEP = true, bool MUTABLE = false>
+      template<CT::Semantic S, CT::Index IDX = Offset>
+      Count InsertAt(const T*, const T*, const IDX&);
+      template<CT::Semantic S, CT::Index IDX = Offset>
+      Count InsertAt(S&&, const IDX&) requires (CT::Exact<T, typename S::Type>);
+
+      template<Index = IndexBack, bool MUTABLE = false>
       Count Insert(const T*, const T*);
-      template<Index = IndexBack, bool KEEP = true>
+      template<Index = IndexBack>
       Count Insert(const T&);
-      template<Index = IndexBack, bool KEEP = true>
+      template<Index = IndexBack>
       Count Insert(T&&);
+
+      template<CT::Semantic S, Index = IndexBack, bool MUTABLE = false>
+      Count Insert(const T*, const T*);
+      template<Index = IndexBack, CT::Semantic S>
+      Count Insert(S&&) requires (CT::Exact<T, typename S::Type>);
 
       template<CT::Index IDX = Offset, class... A>
       Count EmplaceAt(const IDX&, A&&...);
@@ -179,37 +181,63 @@ namespace Langulus::Anyness
 
       TAny& operator << (const T&);
       TAny& operator << (T&&);
-      TAny& operator << (Disowned<T>&&);
-      TAny& operator << (Abandoned<T>&&);
+
+      template<CT::Semantic S>
+      TAny& operator << (S&&) requires (CT::Exact<T, typename S::Type>);
+
+      /*TAny& operator << (Disowned<T>&&);
+      TAny& operator << (Abandoned<T>&&);*/
 
       TAny& operator >> (const T&);
       TAny& operator >> (T&&);
-      TAny& operator >> (Disowned<T>&&);
-      TAny& operator >> (Abandoned<T>&&);
 
-      template<bool KEEP = true, CT::Index IDX = Offset>
+      template<CT::Semantic S>
+      TAny& operator >> (S&&) requires (CT::Exact<T, typename S::Type>);
+
+      /*TAny& operator >> (Disowned<T>&&);
+      TAny& operator >> (Abandoned<T>&&);*/
+
+      template<CT::Index IDX = Offset>
       Count MergeAt(const T*, const T*, const IDX&);
-      template<bool KEEP = true, CT::Index IDX = Offset>
+      template<CT::Index IDX = Offset>
       Count MergeAt(const T&, const IDX&);
-      template<bool KEEP = true, CT::Index IDX = Offset>
+      template<CT::Index IDX = Offset>
       Count MergeAt(T&&, const IDX&);
 
-      template<Index = IndexBack, bool KEEP = true>
+      template<CT::Semantic S, CT::Index IDX = Offset>
+      Count MergeAt(const T*, const T*, const IDX&);
+      template<CT::Semantic S, CT::Index IDX = Offset>
+      Count MergeAt(S&&, const IDX&) requires (CT::Exact<T, typename S::Type>);
+
+      template<Index = IndexBack>
       Count Merge(const T*, const T*);
-      template<Index = IndexBack, bool KEEP = true>
+      template<Index = IndexBack>
       Count Merge(const T&);
-      template<Index = IndexBack, bool KEEP = true>
+      template<Index = IndexBack>
       Count Merge(T&&);
+
+      template<CT::Semantic S, Index = IndexBack, bool MUTABLE = false>
+      Count Merge(const T*, const T*);
+      template<Index = IndexBack, CT::Semantic S>
+      Count Merge(S&&) requires (CT::Exact<T, typename S::Type>);
 
       TAny& operator <<= (const T&);
       TAny& operator <<= (T&&);
-      TAny& operator <<= (Disowned<T>&&);
-      TAny& operator <<= (Abandoned<T>&&);
+
+      template<CT::Semantic S>
+      TAny& operator <<= (S&&) requires (CT::Exact<T, typename S::Type>);
+
+      /*TAny& operator <<= (Disowned<T>&&);
+      TAny& operator <<= (Abandoned<T>&&);*/
 
       TAny& operator >>= (const T&);
       TAny& operator >>= (T&&);
-      TAny& operator >>= (Disowned<T>&&);
-      TAny& operator >>= (Abandoned<T>&&);
+
+      template<CT::Semantic S>
+      TAny& operator >>= (S&&) requires (CT::Exact<T, typename S::Type>);
+
+      /*TAny& operator >>= (Disowned<T>&&);
+      TAny& operator >>= (Abandoned<T>&&);*/
 
       template<CT::Data ALT_T = T>
       bool operator == (const TAny<ALT_T>&) const noexcept;
@@ -261,13 +289,22 @@ namespace Langulus::Anyness
       ///                                                                     
       NOD() TAny operator + (const TAny&) const;
       NOD() TAny operator + (TAny&&) const;
-      NOD() TAny operator + (Disowned<TAny>&&) const;
-      NOD() TAny operator + (Abandoned<TAny>&&) const;
+
+      template<CT::Semantic S>
+      NOD() TAny operator + (S&&) const requires (CT::Exact<TAny<T>, typename S::Type>);
+
+      /*NOD() TAny operator + (Disowned<TAny>&&) const;
+      NOD() TAny operator + (Abandoned<TAny>&&) const;*/
 
       TAny& operator += (const TAny&);
       TAny& operator += (TAny&&);
-      TAny& operator += (Disowned<TAny>&&);
-      TAny& operator += (Abandoned<TAny>&&);
+
+      template<CT::Semantic S>
+      TAny& operator += (S&&) requires (CT::Exact<TAny<T>, typename S::Type>);
+
+
+      /*TAny& operator += (Disowned<TAny>&&);
+      TAny& operator += (Abandoned<TAny>&&);*/
 
       ///                                                                     
       ///   Iteration                                                         
@@ -280,20 +317,26 @@ namespace Langulus::Anyness
       NOD() ConstIterator last() const noexcept;
 
    protected:
+      template<bool CREATE = false, bool SETSIZE = false>
+      void AllocateMore(Count);
+      void AllocateLess(Count);
+
       constexpr void ResetState() noexcept;
       constexpr void ResetType() noexcept;
 
-      template<bool KEEP, CT::Deep ALT_T>
+      template<CT::Semantic S>
+      void ConstructFromContainer(S&&) requires (CT::Deep<typename S::Type>);
+      /*template<bool KEEP, CT::Deep ALT_T>
       void ConstructFromContainer(const ALT_T&);
       template<bool KEEP, CT::Deep ALT_T>
-      void ConstructFromContainer(ALT_T&&);
+      void ConstructFromContainer(ALT_T&&);*/
 
-      template<bool KEEP, CT::Deep ALT_T>
+      template<CT::Semantic S>
+      void AssignFromContainer(S&&) requires (CT::Deep<typename S::Type>);
+      /*template<bool KEEP, CT::Deep ALT_T>
       void AssignFromContainer(const ALT_T&);
       template<bool KEEP, CT::Deep ALT_T>
-      void AssignFromContainer(ALT_T&&);
-
-      NOD() auto RequestSize(const Count&) const noexcept;
+      void AssignFromContainer(ALT_T&&);*/
 
       template<bool OVERWRITE_STATE, bool OVERWRITE_ENTRY>
       void CopyProperties(const Block&) noexcept;

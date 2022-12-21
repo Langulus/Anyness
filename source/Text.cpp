@@ -88,7 +88,7 @@ namespace Langulus::Anyness
             return {};
 
          TAny<char16_t> to;
-         to.Allocate(mCount);
+         to.AllocateFresh(to.RequestSize(mCount));
          Count newCount = 0;
          try {
             newCount = utf8::utf8to16(begin(), end(), to.begin()) - to.begin();
@@ -107,7 +107,7 @@ namespace Langulus::Anyness
             return {};
 
          TAny<char32_t> to;
-         to.Allocate(mCount);
+         to.AllocateFresh(to.RequestSize(mCount));
          Count newCount = 0;
          try {
             newCount = utf8::utf8to32(begin(), end(), to.begin()) - to.begin();
@@ -126,10 +126,7 @@ namespace Langulus::Anyness
       Text result {Disown(*this)};
       if (mCount) {
          const auto request = RequestSize(mCount);
-         result.mEntry = Inner::Allocator::Allocate(request.mByteSize);
-         LANGULUS_ASSERT(result.mEntry, Except::Allocate, "Out of memory");
-
-         result.mRaw = result.mEntry->GetBlockStart();
+         result.AllocateFresh(request);
          result.mReserved = request.mElementCount;
          CopyMemory(mRaw, result.mRaw, mCount);
       }
@@ -151,10 +148,7 @@ namespace Langulus::Anyness
       //TODO: always cloning? why tho? what if this text has one use only?
       Text result {Disown(*this)};
       const auto request = RequestSize(result.mReserved + 1);
-      result.mEntry = Inner::Allocator::Allocate(request.mByteSize);
-      LANGULUS_ASSERT(result.mEntry, Except::Allocate, "Out of memory");
-
-      result.mRaw = result.mEntry->GetBlockStart();
+      result.AllocateFresh(request);
       result.mReserved = request.mElementCount;
       CopyMemory(mRaw, result.mRaw, mCount);
       result.GetRaw()[mCount] = '\0';
@@ -307,7 +301,7 @@ namespace Langulus::Anyness
       if (0 == mCount || 0 == removed)
          return *this;
 
-      LANGULUS_ASSERT(IsMutable(), Except::Destruct,
+      LANGULUS_ASSERT(IsMutable(), Destruct,
          "Can't remove from constant container");
 
       if (end < mCount)

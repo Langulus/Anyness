@@ -46,10 +46,12 @@ namespace Langulus::Anyness
       template<CT::Deep T>
       Any(T&&) requires CT::Mutable<T>;
 
-      template<CT::Deep T>
+      template<CT::Semantic S>
+      constexpr Any(S&&) noexcept requires (CT::Deep<typename S::Type>);
+      /*template<CT::Deep T>
       constexpr Any(Disowned<T>&&) noexcept;
       template<CT::Deep T>
-      constexpr Any(Abandoned<T>&&) noexcept;
+      constexpr Any(Abandoned<T>&&) noexcept;*/
 
       template<CT::CustomData T>
       Any(const T&);
@@ -58,10 +60,12 @@ namespace Langulus::Anyness
       template<CT::CustomData T>
       Any(T&&) requires CT::Mutable<T>;
 
-      template<CT::CustomData T>
+      template<CT::Semantic S>
+      Any(S&&) requires (CT::CustomData<typename S::Type>);
+      /*template<CT::CustomData T>
       Any(Disowned<T>&&);
       template<CT::CustomData T>
-      Any(Abandoned<T>&&);
+      Any(Abandoned<T>&&);*/
 
       template<CT::Data HEAD, CT::Data... TAIL>
       Any(HEAD&&, TAIL&&...) requires (sizeof...(TAIL) >= 1);
@@ -81,10 +85,10 @@ namespace Langulus::Anyness
       template<CT::Deep T>
       Any& operator = (T&&) requires CT::Mutable<T>;
 
-      template<CT::Deep T>
+      /*template<CT::Deep T>
       Any& operator = (Disowned<T>&&);
       template<CT::Deep T>
-      Any& operator = (Abandoned<T>&&);
+      Any& operator = (Abandoned<T>&&);*/
    
       template<CT::CustomData T>
       Any& operator = (const T&);
@@ -93,10 +97,13 @@ namespace Langulus::Anyness
       template<CT::CustomData T>
       Any& operator = (T&&) requires CT::Mutable<T>;
 
-      template<CT::CustomData T>
+      /*template<CT::CustomData T>
       Any& operator = (Disowned<T>&&);
       template<CT::CustomData T>
-      Any& operator = (Abandoned<T>&&);
+      Any& operator = (Abandoned<T>&&);*/
+
+      template<CT::Semantic S>
+      Any& operator = (S&&);
 
       ///                                                                     
       ///   Comparison                                                        
@@ -132,33 +139,41 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
-      template<CT::Data T>
+      template<CT::NotSemantic T>
       Any& operator << (const T&);
-      template<CT::Data T>
+      template<CT::NotSemantic T>
       Any& operator << (T&);
-      template<CT::Data T>
+      template<CT::NotSemantic T>
       Any& operator << (T&&);
+      template<CT::Semantic S>
+      Any& operator << (S&&);
    
-      template<CT::Data T>
+      template<CT::NotSemantic T>
       Any& operator >> (const T&);
-      template<CT::Data T>
+      template<CT::NotSemantic T>
       Any& operator >> (T&);
-      template<CT::Data T>
+      template<CT::NotSemantic T>
       Any& operator >> (T&&);
+      template<CT::Semantic S>
+      Any& operator >> (S&&);
 
-      template<CT::Data T>
+      template<CT::NotSemantic T>
       Any& operator <<= (const T&);
-      template<CT::Data T>
+      template<CT::NotSemantic T>
       Any& operator <<= (T&);
-      template<CT::Data T>
+      template<CT::NotSemantic T>
       Any& operator <<= (T&&);
+      template<CT::Semantic S>
+      Any& operator <<= (S&&);
 
-      template<CT::Data T>
+      template<CT::NotSemantic T>
       Any& operator >>= (const T&);
-      template<CT::Data T>
+      template<CT::NotSemantic T>
       Any& operator >>= (T&);
-      template<CT::Data T>
+      template<CT::NotSemantic T>
       Any& operator >>= (T&&);
+      template<CT::Semantic S>
+      Any& operator >>= (S&&);
 
       template<CT::Index IDX = Offset, class... A>
       Count EmplaceAt(const IDX&, A&&...);
@@ -174,10 +189,13 @@ namespace Langulus::Anyness
       NOD() Any operator + (T&) const requires CT::Dense<T>;
       template<CT::Deep T>
       NOD() Any operator + (T&&) const requires CT::Dense<T>;
-      template<CT::Deep T>
+      template<CT::Semantic S>
+      NOD() Any operator + (S&&) const requires (CT::Deep<typename S::Type> && CT::Dense<typename S::Type>);
+
+      /*template<CT::Deep T>
       NOD() Any operator + (Disowned<T>&&) const requires CT::Dense<T>;
       template<CT::Deep T>
-      NOD() Any operator + (Abandoned<T>&&) const requires CT::Dense<T>;
+      NOD() Any operator + (Abandoned<T>&&) const requires CT::Dense<T>;*/
 
       template<CT::Deep T>
       Any& operator += (const T&) requires CT::Dense<T>;
@@ -185,10 +203,13 @@ namespace Langulus::Anyness
       Any& operator += (T&) requires CT::Dense<T>;
       template<CT::Deep T>
       Any& operator += (T&&) requires CT::Dense<T>;
-      template<CT::Deep T>
+      template<CT::Semantic S>
+      Any& operator += (S&&) requires (CT::Deep<typename S::Type>&& CT::Dense<typename S::Type>);
+
+      /*template<CT::Deep T>
       Any& operator += (Disowned<T>&&) requires CT::Dense<T>;
       template<CT::Deep T>
-      Any& operator += (Abandoned<T>&&) requires CT::Dense<T>;
+      Any& operator += (Abandoned<T>&&) requires CT::Dense<T>;*/
 
       ///                                                                     
       ///   Iteration                                                         
@@ -207,13 +228,13 @@ namespace Langulus::Anyness
       NOD() ConstIterator last() const noexcept;
 
    protected:
-      template<class T>
-      void PrepareForReassignment();
+      /*template<class T>
+      void PrepareForReassignment();*/
 
-      template<CT::Block WRAPPER, bool KEEP, CT::Block T>
-      WRAPPER Concatenate(const T&) const;
-      template<CT::Block WRAPPER, bool KEEP, CT::Block T>
-      WRAPPER Concatenate(T&&) const;
+      template<CT::Block WRAPPER, CT::Semantic S>
+      WRAPPER Concatenate(S&&) const;
+      /*template<CT::Block WRAPPER, bool KEEP, CT::Block T>
+      WRAPPER Concatenate(T&&) const;*/
    };
 
 

@@ -47,16 +47,11 @@ namespace Langulus::Anyness
    TABLE()::TUnorderedSet(TUnorderedSet&& other) noexcept
       : UnorderedSet {Forward<UnorderedSet>(other)} {}
 
-   /// Shallow-copy construction without referencing                          
-   ///   @param other - the disowned table to copy                            
+   /// Move construction                                                      
+   ///   @param other - the table to move                                     
    TABLE_TEMPLATE()
-   constexpr TABLE()::TUnorderedSet(Disowned<TUnorderedSet>&& other) noexcept
-      : UnorderedSet {other.template Forward<UnorderedSet>()} {}
-
-   /// Minimal move construction from abandoned table                         
-   ///   @param other - the abandoned table to move                           
-   TABLE_TEMPLATE()
-   constexpr TABLE()::TUnorderedSet(Abandoned<TUnorderedSet>&& other) noexcept
+   template<CT::Semantic S>
+   constexpr TABLE()::TUnorderedSet(S&& other) noexcept requires (S::template Exact<TUnorderedSet<T>>)
       : UnorderedSet {other.template Forward<UnorderedSet>()} {}
 
    /// Destroys the map and all it's contents                                 
@@ -178,7 +173,7 @@ namespace Langulus::Anyness
 
       // Allocate keys and info                                         
       result.mKeys.mEntry = Allocator::Allocate(mKeys.mEntry->GetAllocatedSize());
-      LANGULUS_ASSERT(mKeys.mEntry, Except::Allocate, "Out of memory");
+      LANGULUS_ASSERT(mKeys.mEntry, Allocate, "Out of memory");
 
       // Clone the info bytes                                           
       result.mKeys.mRaw = result.mKeys.mEntry->GetBlockStart();
@@ -349,7 +344,7 @@ namespace Langulus::Anyness
          mKeys.mType = MetaData::Of<Decay<T>>();
          mKeys.mEntry = Allocator::Allocate(keyAndInfoSize);
       }
-      LANGULUS_ASSERT(mKeys.mEntry, Except::Allocate, "Out of memory");
+      LANGULUS_ASSERT(mKeys.mEntry, Allocate, "Out of memory");
 
       mKeys.mReserved = count;
 
@@ -393,7 +388,7 @@ namespace Langulus::Anyness
          }
          
          const auto index = HashData(*key).mHash & hashmask;
-         InsertInner<false, false>(index, Move(*key));
+         InsertInner<false>(index, Abandon(*key));
          RemoveInner(key++);
       }
 
@@ -436,9 +431,10 @@ namespace Langulus::Anyness
          const Offset newIndex = HashData(*oldKey).mHash & hashmask;
          if (oldIndex != newIndex) {
             // Immediately move the old pair to the swapper             
-            ValueInner swapper {Move(*oldKey)};
+            ValueInner swapper {Abandon(*oldKey)};
             RemoveIndex(oldIndex);
-            if (oldIndex == InsertInner<false, false>(newIndex, Move(swapper))) {
+
+            if (oldIndex == InsertInner<false>(newIndex, Abandon(swapper))) {
                // Index might still end up at its old index, make sure  
                // we don't loop forever in that case                    
                ++oldKey;
@@ -474,24 +470,24 @@ namespace Langulus::Anyness
 
    /// Inner insertion function                                               
    ///   @tparam CHECK_FOR_MATCH - false if you guarantee key doesn't exist   
-   ///   @tparam KEEP - false if you want to abandon-construct, true to move  
    ///   @param start - the starting index                                    
    ///   @param key - key to move in                                          
    ///   @param value - value to move in                                      
    ///   @return the index at which item was inserted                         
    TABLE_TEMPLATE()
-   template<bool CHECK_FOR_MATCH, bool KEEP>
-   Offset TABLE()::InsertInner(const Offset& start, ValueInner&& value) {
+   template<bool CHECK_FOR_MATCH, CT::Semantic S>
+   Offset TABLE()::InsertInner(const Offset& start, S&& value) {
       // Get the starting index based on the key hash                   
       auto psl = GetInfo() + start;
       const auto pslEnd = GetInfoEnd();
+      auto swapper = SemanticMake<ValueInner>(value.Forward());
+
       InfoType attempts {1};
       while (*psl) {
          const auto index = psl - GetInfo();
          auto& candidate = Get(index);
-
          if constexpr (CHECK_FOR_MATCH) {
-            if (candidate == value) {
+            if (candidate == swapper) {
                // Neat, the key already exists - just return            
                return index;
             }
@@ -499,19 +495,17 @@ namespace Langulus::Anyness
 
          if (attempts > *psl) {
             // The pair we're inserting is closer to bucket, so swap    
-            ::std::swap(candidate, value);
+            ::std::swap(candidate, swapper);
             ::std::swap(attempts, *psl);
          }
 
          ++attempts;
 
-         if (psl < pslEnd - 1) LIKELY() {
+         // Wrap around and start from the beginning if we have to      
+         if (psl < pslEnd - 1)
             ++psl;
-         }
-         else UNLIKELY() {
-            // Wrap around and start from the beginning                 
+         else 
             psl = GetInfo();
-         }
       }
 
       // If reached, empty slot reached, so put the pair there          
@@ -519,16 +513,7 @@ namespace Langulus::Anyness
       // eventually reached, unless key exists and returns early        
       const auto index = psl - GetInfo();
       auto& candidate = Get(index);
-
-      if constexpr (!KEEP && CT::AbandonMakable<ValueInner>)
-         new (&candidate) ValueInner {Abandon(value)};
-      else if constexpr (CT::MoveMakable<ValueInner>)
-         new (&candidate) ValueInner {Move(value)};
-      else if constexpr (CT::CopyMakable<ValueInner>)
-         new (&candidate) ValueInner {value};
-      else
-         LANGULUS_ERROR("Can't instantiate value");
-
+      SemanticNew<ValueInner>(&candidate, Abandon(swapper));
       *psl = attempts;
       ++mKeys.mCount;
       return index;
@@ -543,33 +528,29 @@ namespace Langulus::Anyness
    }
 
    /// Insert a single pair inside table via copy                             
-   ///   @param key - the key to add                                          
    ///   @param value - the value to add                                      
    ///   @return 1 if pair was inserted, zero otherwise                       
    TABLE_TEMPLATE()
    Count TABLE()::Insert(const T& value) {
-      static_assert(CT::Sparse<T> || CT::CopyMakable<T>,
-         "Value needs to be copy-constructible, but isn't");
-
-      Allocate(GetCount() + 1);
-      InsertInner<true, false>(GetBucket(value), ValueInner {value});
-      return 1;
+      return Insert(Langulus::Copy(value));
    }
 
    /// Insert a single pair inside table via key copy and value move          
-   ///   @param key - the key to add                                          
    ///   @param value - the value to add                                      
    ///   @return 1 if pair was inserted, zero otherwise                       
    TABLE_TEMPLATE()
    Count TABLE()::Insert(T&& value) {
-      static_assert(CT::Sparse<T> || CT::MoveMakable<T>,
-         "Value needs to be move-constructible, but isn't");
-
+      return Insert(Langulus::Move(value));
+   }
+   
+   /// Insert a single pair inside table via key copy and value move          
+   ///   @param value - the value to add                                      
+   ///   @return 1 if pair was inserted, zero otherwise                       
+   TABLE_TEMPLATE()
+   template<CT::Semantic S>
+   Count TABLE()::Insert(S&& value) requires (S::template Exact<T>) {
       Allocate(GetCount() + 1);
-      if constexpr (CT::Same<T, ValueInner>)
-         InsertInner<true, true>(GetBucket(value), Forward<T>(value));
-      else
-         InsertInner<true, true>(GetBucket(value), ValueInner {Forward<T>(value)});
+      InsertInner<true>(GetBucket(value.mValue), value.Forward());
       return 1;
    }
 
@@ -702,7 +683,9 @@ namespace Langulus::Anyness
             #pragma GCC diagnostic push
             #pragma GCC diagnostic ignored "-Wplacement-new"
          #endif
-            new (key - 1) ValueInner {Move(*key)};
+
+         SemanticNew<ValueInner>(key - 1, Abandon(*key));
+
          #if LANGULUS_COMPILER_GCC()
             #pragma GCC diagnostic pop
          #endif
@@ -720,7 +703,7 @@ namespace Langulus::Anyness
          const auto last = mKeys.mReserved - 1;
          GetInfo()[last] = (*psl) - 1;
 
-         new (GetRaw() + last) ValueInner {Move(*key)};
+         SemanticNew<ValueInner>(GetRaw() + last, Abandon(*key));
 
          RemoveInner(key++);
          *(psl++) = 0;
@@ -858,7 +841,7 @@ namespace Langulus::Anyness
    decltype(auto) TABLE()::Get(const Index& index) {
       const auto offset = index.GetOffset();
       LANGULUS_ASSERT(offset < GetReserved() && GetInfo()[offset],
-         Except::OutOfRange, "Bad index");
+         OutOfRange, "Bad index");
       return GetValue(offset);
    }
 

@@ -32,12 +32,6 @@ namespace Langulus::Anyness
       return CastsToMeta(other);
    }
 
-   /// Shrink the block, depending on currently reserved	elements             
-   ///   @param elements - number of elements to shrink by (relative)         
-   void Block::Shrink(Count elements) {
-      Allocate<false>(mReserved - ::std::min(elements, mReserved));
-   }
-
    /// Clone all elements inside a new memory block                           
    /// If we have jurisdiction, the memory won't move                         
    void Block::TakeAuthority() {
@@ -140,19 +134,22 @@ namespace Langulus::Anyness
       // the combined hashes                                            
       if (IsSparse()) {
          TAny<Hash> h;
-         h.Allocate<false>(mCount);
+         h.AllocateFresh(h.RequestSize(mCount));
          for (Count i = 0; i < mCount; ++i)
-            h << GetElementResolved(i).GetHash();
-         return HashBytes<DefaultHashSeed, false>(h.GetRaw(), static_cast<int>(h.GetByteSize()));
+            h.InsertInner(Abandon(GetElementResolved(i).GetHash()), i);
+
+         return HashBytes<DefaultHashSeed, false>(
+            h.GetRaw(), static_cast<int>(h.GetByteSize()));
       }
       else if (mType->mHasher) {
          TAny<Hash> h;
-         h.Allocate<false>(mCount);
+         h.AllocateFresh(h.RequestSize(mCount));
          for (Count i = 0; i < mCount; ++i) {
             const auto element = GetElement(i);
-            h << mType->mHasher(element.mRaw);
+            h.InsertInner(Abandon(mType->mHasher(element.mRaw)), i);
          }
-         return HashBytes<DefaultHashSeed, false>(h.GetRaw(), static_cast<int>(h.GetByteSize()));
+         return HashBytes<DefaultHashSeed, false>(
+            h.GetRaw(), static_cast<int>(h.GetByteSize()));
       }
       else if (mType->mIsPOD) {
          // POD data is an exception - just batch-hash it               

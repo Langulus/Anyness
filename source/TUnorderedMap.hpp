@@ -19,6 +19,9 @@ namespace Langulus::Anyness
    class TUnorderedMap : public UnorderedMap {
    public:
       static_assert(CT::Comparable<K>, "Can't compare keys for map");
+      static_assert(CT::NotSemantic<K>, "Key type can't be semantic");
+      static_assert(CT::NotSemantic<V>, "Value type can't be semantic");
+
       using Key = K;
       using Value = V;
       using KeyInner = typename TAny<K>::TypeInner;
@@ -47,15 +50,20 @@ namespace Langulus::Anyness
       TUnorderedMap(const TUnorderedMap&);
       TUnorderedMap(TUnorderedMap&&) noexcept;
 
-      constexpr TUnorderedMap(Disowned<TUnorderedMap>&&) noexcept;
-      constexpr TUnorderedMap(Abandoned<TUnorderedMap>&&) noexcept;
+      template<CT::Semantic S>
+      constexpr TUnorderedMap(S&&) noexcept requires (S::template Exact<TUnorderedMap<K, V>>);
+
       ~TUnorderedMap();
 
       TUnorderedMap& operator = (const TUnorderedMap&);
       TUnorderedMap& operator = (TUnorderedMap&&) noexcept;
+      template<CT::Semantic S>
+      TUnorderedMap& operator = (S&&) noexcept requires (S::template Exact<TUnorderedMap<K, V>>);
 
       TUnorderedMap& operator = (const TPair<K, V>&);
       TUnorderedMap& operator = (TPair<K, V>&&) noexcept;
+      template<CT::Semantic S>
+      TUnorderedMap& operator = (S&&) noexcept requires (CT::Pair<typename S::Type>);
 
    public:
       NOD() DMeta GetKeyType() const;
@@ -105,9 +113,13 @@ namespace Langulus::Anyness
       Count Insert(K&&, const V&);
       Count Insert(const K&, V&&);
       Count Insert(K&&, V&&);
+      template<CT::Semantic SK, CT::Semantic SV>
+      Count Insert(SK&&, SV&&) noexcept requires (SK::template Exact<K> && SV::template Exact<V>);
 
       TUnorderedMap& operator << (const TPair<K, V>&);
       TUnorderedMap& operator << (TPair<K, V>&&);
+      template<CT::Semantic S>
+      TUnorderedMap& operator << (S&&) noexcept requires (CT::Pair<typename S::Type>);
 
       ///                                                                     
       ///   Removal                                                           
@@ -168,8 +180,10 @@ namespace Langulus::Anyness
       void AllocateKeys(const Count&);
       void AllocateInner(const Count&);
       void Rehash(const Count&, const Count&);
-      template<bool CHECK_FOR_MATCH, bool KEEP>
-      Offset InsertInner(const Offset&, KeyInner&&, ValueInner&&);
+
+      template<bool CHECK_FOR_MATCH, CT::Semantic SK, CT::Semantic SV>
+      Offset InsertInner(const Offset&, SK&&, SV&&);
+
       void ClearInner();
 
       template<class T>

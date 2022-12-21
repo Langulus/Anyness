@@ -106,7 +106,7 @@ namespace Langulus::Anyness
 
       NOD() Hash GetHash() const;
 
-      template<CT::Data K, CT::Data V>
+      template<CT::NotSemantic K, CT::NotSemantic V>
       void Mutate();
       void Mutate(DMeta, bool, DMeta, bool);
       void Allocate(const Count&);
@@ -118,31 +118,36 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   INSERTION                                                         
       ///                                                                     
-      template<CT::Data K, CT::Data V>
+      template<CT::NotSemantic K, CT::NotSemantic V>
       Count Insert(const K&, const V&);
-      template<CT::Data K, CT::Data V>
+      template<CT::NotSemantic K, CT::NotSemantic V>
       Count Insert(K&&, const V&);
-      template<CT::Data K, CT::Data V>
+      template<CT::NotSemantic K, CT::NotSemantic V>
       Count Insert(const K&, V&&);
-      template<CT::Data K, CT::Data V>
+      template<CT::NotSemantic K, CT::NotSemantic V>
       Count Insert(K&&, V&&);
+
+      template<CT::Semantic SK, CT::Semantic SV>
+      Count Insert(SK&&, SV&&);
 
       template<CT::Data K, CT::Data V>
       BlockMap& operator << (const TPair<K, V>&);
       template<CT::Data K, CT::Data V>
       BlockMap& operator << (TPair<K, V>&&);
-
       BlockMap& operator << (const Pair&);
       BlockMap& operator << (Pair&&);
+
+      template<CT::Semantic S>
+      BlockMap& operator << (S&&) requires (CT::Pair<typename S::Type>);
 
       ///                                                                     
       ///   REMOVAL                                                           
       ///                                                                     
-      template<CT::Data K>
+      template<CT::NotSemantic K>
       Count RemoveKey(const K&);
-      template<CT::Data V>
+      template<CT::NotSemantic V>
       Count RemoveValue(const V&);
-      template<CT::Data K, CT::Data V>
+      template<CT::NotSemantic K, CT::NotSemantic V>
       Count RemovePair(const TPair<K, V>&);
       Count RemoveIndex(const Index&);
 
@@ -153,23 +158,23 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   SEARCH                                                            
       ///                                                                     
-      template<CT::Data K>
+      template<CT::NotSemantic K>
       NOD() bool ContainsKey(const K&) const;
-      template<CT::Data V>
+      template<CT::NotSemantic V>
       NOD() bool ContainsValue(const V&) const;
-      template<CT::Data K, CT::Data V>
+      template<CT::NotSemantic K, CT::NotSemantic V>
       NOD() bool ContainsPair(const TPair<K, V>&) const;
-      template<CT::Data K>
+      template<CT::NotSemantic K>
       NOD() Index FindKeyIndex(const K&) const;
 
-      template<CT::Data K>
+      template<CT::NotSemantic K>
       NOD() decltype(auto) At(const K&);
-      template<CT::Data K>
+      template<CT::NotSemantic K>
       NOD() decltype(auto) At(const K&) const;
 
-      template<CT::Data K>
+      template<CT::NotSemantic K>
       NOD() Block operator[] (const K&) const;
-      template<CT::Data K>
+      template<CT::NotSemantic K>
       NOD() Block operator[] (const K&);
 
       NOD() Block GetKey(const Index&) const;
@@ -259,13 +264,15 @@ namespace Langulus::Anyness
 
       void Rehash(const Count&, const Count&);
 
-      Count InsertUnknown(const Block&, const Block&);
-      Count InsertUnknown(Block&&, Block&&);
+      /*Count InsertUnknown(const Block&, const Block&);
+      Count InsertUnknown(Block&&, Block&&);*/
+      template<CT::Semantic SK, CT::Semantic SV>
+      Count InsertUnknown(SK&&, SV&&);
 
-      template<bool CHECK_FOR_MATCH, bool KEEP>
-      Offset InsertInnerUnknown(const Offset&, Block&&, Block&&);
-      template<bool CHECK_FOR_MATCH, bool KEEP, CT::Data K, CT::Data V>
-      Offset InsertInner(const Offset&, K&&, V&&);
+      template<bool CHECK_FOR_MATCH, CT::Semantic SK, CT::Semantic SV>
+      Offset InsertInnerUnknown(const Offset&, SK&&, SV&&);
+      template<bool CHECK_FOR_MATCH, CT::Semantic SK, CT::Semantic SV>
+      Offset InsertInner(const Offset&, SK&&, SV&&);
 
       void ClearInner();
 
@@ -291,9 +298,9 @@ namespace Langulus::Anyness
       NOD() Pair GetPair(const Offset&) const noexcept;
       NOD() Pair GetPair(const Offset&) noexcept;
 
-      template<CT::Data K>
+      template<CT::NotSemantic K>
       NOD() Offset GetBucket(const K&) const noexcept;
-      template<CT::Data K>
+      template<CT::NotSemantic K>
       NOD() Offset FindIndex(const K&) const;
       NOD() Offset FindIndexUnknown(const Block&) const;
 

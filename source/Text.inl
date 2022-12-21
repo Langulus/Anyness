@@ -14,9 +14,13 @@
 namespace Langulus::Anyness
 {
 
+   template<CT::Semantic S>
+   constexpr Text::Text(S&& other) noexcept requires (CT::DerivedFrom<typename S::Type, TAny<Letter>>)
+      : TAny {other.template Forward<TAny<Letter>>()} { }
+
    /// Copy other but do not reference it, because it is disowned             
    ///   @param other - the block to copy                                     
-   constexpr Text::Text(Disowned<Text>&& other) noexcept
+   /*constexpr Text::Text(Disowned<Text>&& other) noexcept
       : TAny {other.Forward<TAny>()} { }
 
    /// Move other, but do not bother cleaning it up, because it is disowned   
@@ -32,7 +36,7 @@ namespace Langulus::Anyness
    /// Construct via abandoned move of TAny<Letter>                           
    ///   @param other - the text to move                                      
    constexpr Text::Text(Abandoned<TAny>&& other) noexcept
-      : TAny {other.Forward<TAny>()} { }
+      : TAny {other.Forward<TAny>()} { }*/
 
    /// Construct from token                                                   
    /// Data will be cloned if we don't have authority over the memory         
@@ -80,7 +84,7 @@ namespace Langulus::Anyness
          constexpr auto size = ::std::numeric_limits<T>::max_digits10 * 2;
          char temp[size];
          auto [lastChar, errorCode] = ::std::to_chars(temp, temp + size, number, ::std::chars_format::general);
-         LANGULUS_ASSERT(errorCode == ::std::errc(), Except::Convert,
+         LANGULUS_ASSERT(errorCode == ::std::errc(), Convert,
             "std::to_chars failure");
 
          while ((*lastChar == '0' || *lastChar == '.') && lastChar > temp) {
@@ -96,7 +100,7 @@ namespace Langulus::Anyness
          constexpr auto size = ::std::numeric_limits<T>::digits10 * 2;
          char temp[size];
          auto [lastChar, errorCode] = ::std::to_chars(temp, temp + size, number);
-         LANGULUS_ASSERT(errorCode == ::std::errc(), Except::Convert,
+         LANGULUS_ASSERT(errorCode == ::std::errc(), Convert,
             "std::to_chars failure");
 
          (*this) += Text {temp, static_cast<Count>(lastChar - temp)};
@@ -163,20 +167,31 @@ namespace Langulus::Anyness
    ///   @param rhs - the right operand                                       
    ///   @return the combined container                                       
    inline Text Text::operator + (const Text& rhs) const {
-      return Concatenate<Text, true>(rhs);
+      //return Concatenate<Text, true>(rhs);
+      return Concatenate<Text>(Langulus::Copy(rhs));
    }
 
    /// Move-concatenate with another TAny                                     
    ///   @param rhs - the right operand                                       
    ///   @return the combined container                                       
    inline Text Text::operator + (Text&& rhs) const {
-      return Concatenate<Text, true>(Forward<Text>(rhs));
+      //return Concatenate<Text, true>(Forward<Text>(rhs));
+      return Concatenate<Text>(Langulus::Move(rhs));
+   }
+
+   /// Move-concatenate with another TAny                                     
+   ///   @param rhs - the right operand                                       
+   ///   @return the combined container                                       
+   template<CT::Semantic S>
+   Text Text::operator + (S&& rhs) const requires (CT::Exact<typename S::Type, Text>) {
+      //return Concatenate<Bytes, true>(Forward<Bytes>(rhs));
+      return Concatenate<Text>(rhs.Forward());
    }
 
    /// Disown-concatenate with another TAny                                   
    ///   @param rhs - the right operand                                       
    ///   @return the combined container                                       
-   inline Text Text::operator + (Disowned<Text>&& rhs) const {
+   /*inline Text Text::operator + (Disowned<Text>&& rhs) const {
       return Concatenate<Text, false>(rhs.mValue);
    }
 
@@ -185,13 +200,14 @@ namespace Langulus::Anyness
    ///   @return the combined container                                       
    inline Text Text::operator + (Abandoned<Text>&& rhs) const {
       return Concatenate<Text, false>(Forward<Text>(rhs.mValue));
-   }
+   }*/
 
    /// Destructive copy-concatenate with another TAny                         
    ///   @param rhs - the right operand                                       
    ///   @return a reference to this modified container                       
    inline Text& Text::operator += (const Text& rhs) {
-      InsertBlock(rhs);
+      //InsertBlock(rhs);
+      InsertBlock(Langulus::Copy(rhs));
       return *this;
    }
 
@@ -199,14 +215,24 @@ namespace Langulus::Anyness
    ///   @param rhs - the right operand                                       
    ///   @return a reference to this modified container                       
    inline Text& Text::operator += (Text&& rhs) {
-      InsertBlock(Forward<Text>(rhs));
+      //InsertBlock(Forward<Text>(rhs));
+      InsertBlock(Langulus::Move(rhs));
+      return *this;
+   }
+
+   /// Destructive move-concatenate with any deep type                        
+   ///   @param rhs - the right operand                                       
+   ///   @return a reference to this modified container                       
+   template<CT::Semantic S>
+   Text& Text::operator += (S&& rhs) requires (CT::Exact<typename S::Type, Text>) {
+      InsertBlock(rhs.Forward());
       return *this;
    }
 
    /// Destructive disown-concatenate with any deep type                      
    ///   @param rhs - the right operand                                       
    ///   @return a reference to this modified container                       
-   inline Text& Text::operator += (Disowned<Text>&& rhs) {
+   /*inline Text& Text::operator += (Disowned<Text>&& rhs) {
       InsertBlock(rhs.Forward());
       return *this;
    }
@@ -217,7 +243,7 @@ namespace Langulus::Anyness
    inline Text& Text::operator += (Abandoned<Text>&& rhs) {
       InsertBlock(rhs.Forward());
       return *this;
-   }
+   }*/
 
 } // namespace Langulus::Anyness
 

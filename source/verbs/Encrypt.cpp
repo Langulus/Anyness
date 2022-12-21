@@ -31,7 +31,7 @@ namespace Langulus::Anyness
       // Append the hash to the back of the compressed memory           
       const auto totalSize = compressed_size + (compressed_size % HS) + HS;
       result.SetType<Byte, true>();
-      result.Allocate<false>(totalSize);
+      result.AllocateFresh(result.RequestSize(totalSize));
       result.mCount = totalSize;
       CopyMemory(&hash, result.At(compressed_size), HS);
 

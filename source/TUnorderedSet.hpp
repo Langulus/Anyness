@@ -19,6 +19,8 @@ namespace Langulus::Anyness
    class TUnorderedSet : public UnorderedSet {
    public:
       static_assert(CT::Comparable<T>, "Can't compare elements for map");
+      static_assert(CT::NotSemantic<T>, "T can't be semantic");
+
       using Value = T;
       using ValueInner = typename TAny<T>::TypeInner;
       using Self = TUnorderedSet<T>;
@@ -42,15 +44,20 @@ namespace Langulus::Anyness
       TUnorderedSet(const TUnorderedSet&);
       TUnorderedSet(TUnorderedSet&&) noexcept;
 
-      constexpr TUnorderedSet(Disowned<TUnorderedSet>&&) noexcept;
-      constexpr TUnorderedSet(Abandoned<TUnorderedSet>&&) noexcept;
+      template<CT::Semantic S>
+      constexpr TUnorderedSet(S&&) noexcept requires (S::template Exact<TUnorderedSet<T>>);
+
       ~TUnorderedSet();
 
       TUnorderedSet& operator = (const TUnorderedSet&);
       TUnorderedSet& operator = (TUnorderedSet&&) noexcept;
+      template<CT::Semantic S>
+      TUnorderedSet& operator = (S&&) noexcept requires (S::template Exact<TUnorderedSet<T>>);
 
       TUnorderedSet& operator = (const T&);
       TUnorderedSet& operator = (T&&) noexcept;
+      template<CT::Semantic S>
+      TUnorderedSet& operator = (S&&) noexcept requires (S::template Exact<T>);
 
    public:
       NOD() DMeta GetType() const;
@@ -78,9 +85,13 @@ namespace Langulus::Anyness
       ///                                                                     
       Count Insert(const T&);
       Count Insert(T&&);
+      template<CT::Semantic S>
+      Count Insert(S&&) requires (S::template Exact<T>);
 
       TUnorderedSet& operator << (const T&);
       TUnorderedSet& operator << (T&&);
+      template<CT::Semantic S>
+      TUnorderedSet& operator << (S&&) requires (S::template Exact<T>);
 
       ///                                                                     
       ///   Removal                                                           
@@ -119,8 +130,9 @@ namespace Langulus::Anyness
       void AllocateKeys(const Count&);
       void AllocateInner(const Count&);
       void Rehash(const Count&, const Count&);
-      template<bool CHECK_FOR_MATCH, bool KEEP>
-      Offset InsertInner(const Offset&, ValueInner&&);
+      template<bool CHECK_FOR_MATCH, CT::Semantic S>
+      Offset InsertInner(const Offset&, S&&);
+
       void ClearInner();
 
       template<class ALT_T>
