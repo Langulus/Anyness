@@ -1,14 +1,104 @@
 # Anyness
-Modern (C++20) type-erased containers, for standalone or [Langulus](https://github.com/Langulus/Langulus) use
+Modern (C++20) cross-platform set of type-erased containers, for standalone or [Langulus](https://github.com/Langulus/Langulus) use
 
 [![Langulus::Anyness CI](https://github.com/Langulus/Anyness/actions/workflows/ci.yml/badge.svg)](https://github.com/Langulus/Anyness/actions/workflows/ci.yml)
 
 ## What is it?
-**Anyness** is a cross-platform set of type-erased containers, such as vectors, pairs, shared pointers, lists, maps, sets.
-The main design goal behind the library, is to simplify containment of data as much as possible, without sacrificing a lot of performance/memory.
-An `Anyness::Any` can contain both sparse and dense type-erased data, manage sparse data ownership and references, ensure type safety upon conversion, etc.
-The library guarantees, that type-erased containers can be safely reinterpret_cast to their statically optimized templated equivalents.
-Optionally, all containers can utilize managed RTTI, managed memory, encryption (WIP), and compression (WIP).
+The main design goal behind the library, is to simplify containment of data as much as possible without sacrificing a lot of performance.
+An `Any` can contain sparse/dense data, manage ownership and references, and ensure type safety at runtime. 
+Type-erased containers can be safely reinterpreted to their statically optimized templated equivalents, if the contained type is known at compile time. 
+Additionally, all containers utilize RTTI, managed memory, encryption (WIP), and compression (WIP). Here are some examples:
+
+Simple initialization:
+```c++
+Any data = 42;                  // creates a flat container similar to TAny<int> {42}
+if (data == 42)   { /*true*/  }
+if (data == 5.0f) { /*false*/ }
+```
+
+Complex initialization:
+```c++
+Thing object;
+Any data {42, 24, true, 5.0f, &object};
+// ^ creates a deep container similar to: 
+// TAny<Any> {
+//    TAny<int> {42}, 
+//    TAny<int> {24}, 
+//    TAny<bool> {true}, 
+//    TAny<float> {5.0f}, 
+//    TAny<Thing*> {&object}
+// }
+
+// To avoid TAny<int> suboptimal duplication, simply group the integers
+// When all elements of a list are exactly the same type, they're optimally packed
+Any data { Any {42, 24}, true, 5.0f, &object};
+// ^ creates a deep container similar to: 
+// TAny<Any> {
+//    TAny<int> {42, 24},
+//    TAny<bool> {true}, 
+//    TAny<float> {5.0f}, 
+//    TAny<Thing*> {&object}
+// }
+```
+
+Interface static data safely:
+```c++
+static Thing object;
+Any data = &object;
+data.~Any();                    // will never exercise ownership over unowned pointer
+```
+
+Iterate all elements, regardless of hierarchy:
+```c++
+data.ForEachDeep(
+   [](const int& i) { /**/ },   // Will be executed for 42 and 24
+                                // If no integers exist, will move to next function
+   [](const Thing& t) { /**/ }, // Will be executed for the pushed object pointer
+                                // Notice how we can retrieve it by reference instead
+                                // If no Thing(s) exist, will move to next function
+   [](const float& i) { /**/ }  // Will be executed for 5.0f
+);
+```
+
+Iterate all elements, preserving hierarchy:
+```c++
+data.ForEach(
+   [](const Any& group) {
+      group.ForEach(
+         [](const int* i) { /*doesn't matter if we iterate by dense or sparse value*/ },
+         [](const Thing* t) { /**/ },
+         [](const float& i) { /**/ }
+      )
+   }
+);
+```
+
+You can safely reinterpret a container to a statically optimized equivalent:
+```c++
+Any integers {1, 2, 3};
+if (integers.Is<int>()) {
+   auto& optimized = reinterpret_cast<TAny<int>&>(integers);
+   // do stuff with the optimized container, for better performance
+}
+```
+
+Integrated with std::range, even when type-erased:
+```c++
+Any integers {1, 2, 3};
+for (auto it : integers) {  // it is a type-erased iterator, that turns to Anyness::Block when dereferenced
+   if(it == 1)    { /*true for first element, false for the rest*/ }
+   if(it == 1.0f) { /*always false*/ }
+}
+```
+
+Index in various ways, each with advantages and disadvantages:
+```c++
+TAny<int> integers {1, 2, 3};
+if (integers[0u] == 1) { /*unsigned index is fastest, but most unsafe*/ }
+if (integers[-1] == 3) { /*signed indices allow for counting backwards*/ }
+if (integers[IndexMiddle] == 2) { /*special indices are most safe and convenient, but slowest*/ }
+if (integers[IndexMax] == 3) { /*some of them are context-dependent, IndexMax returns the biggest value*/ }
+```
 
 ## Mission statement
 >*"Within C++, there is a much smaller and cleaner language struggling to get out"*
@@ -17,21 +107,18 @@ Optionally, all containers can utilize managed RTTI, managed memory, encryption 
 - Ultimately targeting C++23, and nothing less
 - Maintain binary compatibility between compatible containers
 - Maximize ease of use
-- Don't sacrifice performance for ease of use, whenever that is even remotely possible
+- Prioritize performance rather than memory footprint
 - Keep the code concise, well styled, readable, and documented, without compromise
-
-## Motivation
-**Anyness** started out as a simple drop-in replacement for `std::any`, but evolved to completely different thing, with its own memory management, RTTI, semantics, style, etc.
-[Langulus](https://github.com/Langulus/Langulus) required a fast and flexible way to share data between independent modules, utilizing runtime polymorphism, and type-erasure to minimize interdependences.
 
 ## Development status
 For the most part, the library is complete, with the exception of a couple of optional features, and containers:
 1. Ordered maps and sets remain to be finished (50%)
 2. Containers such as linked lists are not even conceived yet (you can use sparse Any/TAny containers as an alternative at this point)
-3. The encryption feature is not implemented yet, library is not decided yet, may do it myself (optional feature)
-4. The compression feature is not implemented yet, it will use [zlib](https://github.com/madler/zlib), naturally (optional feature)
-5. [utfcpp](https://github.com/nemtrif/utfcpp) is planned for the `Text` container at some point (optional feature)
-6. Some kind of JSON interoperability is planned in the far future, but it is not required at this point
+3. Thread safety patterns not decided yet, will probably use standard stuff
+4. The encryption feature is not implemented yet, library is not decided yet, may do it myself (optional feature)
+5. The compression feature is not implemented yet, it will use [zlib](https://github.com/madler/zlib), naturally (optional feature)
+6. [utfcpp](https://github.com/nemtrif/utfcpp) is planned for the `Text` container at some point (optional feature)
+7. Some kind of JSON interoperability is planned in the far future, but it is not required at this point
 
 ## Past/Future considerations
 The set of features and interfaces are likely to change radically at this point, as many features are not yet completely fleshed-out, and others will be added on demand, when [Langulus](https://github.com/Langulus/Langulus) is developed.
@@ -65,6 +152,12 @@ The plan is to never support older C++ standards. When C++23 comes out, it will 
    - enable `LANGULUS_FEATURE_ENCRYPTION` - WIP
    - you can set `LANGULUS_ALIGNMENT` to a power-of-two number - it will affect available SIMD optimizations, as well as minimal allocation sizes
 5. Build using your favourite C++20 compliant compiler version
+6. Use by linking with Langulus.Anyness CMake target (or library output), and including <LangulusAnyness.hpp>
+
+## Motivation
+**Anyness** started out as an educational project. 
+Few years later, as [Langulus](https://github.com/Langulus/Langulus) strayed away from standard containers, it became a simple drop-in replacement for `std::any`. With the years, it evolved to its own thing, with memory manager, RTTI, new semantics, and style.
+[Langulus](https://github.com/Langulus/Langulus) required a fast and flexible way to share data between independent modules, utilizing runtime polymorphism, and type-erasure to minimize interdependences.
 
 ## Container catalogue
 You can check examples and feature details by following the links (WIP)
@@ -75,7 +168,7 @@ You can check examples and feature details by following the links (WIP)
    - Status: ~90% complete, ~75% tested
    - Features:
      + Const-preserving - if you insert a constant pointer, that pointer remains constant throughout the container's lifetime
-     + Static-preserving (when managed memory is enabled) - if you interface memory that is not produced by the memory manager, that data is never destroyed or resized. That way you can safely interface static data, or data on the stack (it's your resposibility to keep track of that data's lifetime, though)
+     + Static-preserving (when managed memory is enabled) - if you interface memory that is not produced by the memory manager, that data is never destroyed or resized. That way you can safely interface static data, or data on the stack, but also data in other containers. This technically turns any container into a view, much like `std::span` or `std::string_view`
      + Density-preserving - if you insert a pointer, a pointer will be contained throughout the container's lifetime. Each inserted pointer becomes a shared pointer, and will be tracked by the memory manager, if owned by it
      + Shallow-copy semantics - by default, copy-construction and copy-assignment of a Block based containers always performs a shallow-copy. That is, no actual data gets copied, only the references to the original data gets copied (and referenced, if the container has the Ownership feature)
      + Disown-copy semantics - disown-construction and disown-assignment allows for a shallow-copy without referencing, essentially subverting container ownership. These semantics have a narrow use, and are primarily used internally as an optimization
@@ -109,16 +202,16 @@ You can check examples and feature details by following the links (WIP)
    - Features:
      + All `Any` features, but statically optimized for T
  - **Bytes** - raw byte container, with various raw byte manipulation services
-   - Binary compatible with: `Block`, `Any`, `TAny`, `Text`, `Path`
+   - Binary compatible with: `Block`, `Any`, `TAny<Byte>`
    - Status: ~90% complete, ~75% tested
    - Features:
      + All `TAny<Byte>` features, but statically optimized
      + Specialized interface for raw byte sequence manipulation
  - **Text** - count-terminated text container, analogous to `std::string`, with various string manipulation services
-   - Binary compatible with: `Block`, `Any`, `TAny`, `Bytes`, `Path`
+   - Binary compatible with: `Block`, `Any`, `TAny<Letter>`, `TAny<Byte>`, `Bytes`, `Path`
    - Status: ~90% complete, ~75% tested
  - **Path** - a specialized `Text` container, with various file-system path manipulation services
-   - Binary compatible with: `Block`, `Any`, `TAny`, `Bytes`, `Text`
+   - Binary compatible with: `Block`, `Any`, `TAny<Letter>`, `TAny<Byte>`, `Bytes`, `Text`
    - Status: ~30% complete, not tested
 
 ***
@@ -164,13 +257,13 @@ You can check examples and feature details by following the links (WIP)
      + Same as `Block` features, but indexing happens only through iterators; insertion at indices is disabled
  - **UnorderedSet** - type-erased equivalent to `std::unordered_set` based on hashing
    - Binary compatible with: `BlockSet`, `TUnorderedSet`, `OrderedSet`, `TOrderedSet`
-   - Status: ~90% complete, ~75% tested
+   - Status: ~90% complete, not tested
    - Features:
      + Ownership
      + All features of the aforementioned `BlockSet`
  - **TUnorderedSet** - templated binary-compatible equivalent to `UnorderedSet`, practically the same as `std::unordered_set<T>`
    - Binary compatible with: `BlockSet`, `TUnorderedSet`, `OrderedSet`, `TOrderedSet`
-   - Status: ~90% complete, ~75% tested
+   - Status: ~90% complete, not tested
    - Features:
      + All features of the aforementioned `UnorderedSet`, but statically optimized for `T`
  - **OrderedSet** - type-erased equivalent to `std::ordered_set` based on sorting
