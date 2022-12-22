@@ -51,19 +51,20 @@ namespace Langulus::Anyness
       TUnorderedMap(TUnorderedMap&&) noexcept;
 
       template<CT::Semantic S>
-      constexpr TUnorderedMap(S&&) noexcept requires (S::template Exact<TUnorderedMap<K, V>>);
+      constexpr TUnorderedMap(S&& other) noexcept requires (CT::Exact<TypeOf<S>, TUnorderedMap>)
+         : UnorderedMap {other.template Forward<UnorderedMap>()} {}
 
       ~TUnorderedMap();
 
       TUnorderedMap& operator = (const TUnorderedMap&);
       TUnorderedMap& operator = (TUnorderedMap&&) noexcept;
       template<CT::Semantic S>
-      TUnorderedMap& operator = (S&&) noexcept requires (S::template Exact<TUnorderedMap<K, V>>);
+      TUnorderedMap& operator = (S&&) noexcept requires (CT::Exact<TypeOf<S>, TUnorderedMap<K, V>>);
 
       TUnorderedMap& operator = (const TPair<K, V>&);
       TUnorderedMap& operator = (TPair<K, V>&&) noexcept;
       template<CT::Semantic S>
-      TUnorderedMap& operator = (S&&) noexcept requires (CT::Pair<typename S::Type>);
+      TUnorderedMap& operator = (S&&) noexcept requires (CT::Pair<TypeOf<S>>);
 
    public:
       NOD() DMeta GetKeyType() const;
@@ -114,12 +115,12 @@ namespace Langulus::Anyness
       Count Insert(const K&, V&&);
       Count Insert(K&&, V&&);
       template<CT::Semantic SK, CT::Semantic SV>
-      Count Insert(SK&&, SV&&) noexcept requires (SK::template Exact<K> && SV::template Exact<V>);
+      Count Insert(SK&&, SV&&) noexcept requires (CT::Exact<TypeOf<SK>, K> && CT::Exact<TypeOf<SV>, V>);
 
       TUnorderedMap& operator << (const TPair<K, V>&);
       TUnorderedMap& operator << (TPair<K, V>&&);
       template<CT::Semantic S>
-      TUnorderedMap& operator << (S&&) noexcept requires (CT::Pair<typename S::Type>);
+      TUnorderedMap& operator << (S&&) noexcept requires (CT::Pair<TypeOf<S>>);
 
       ///                                                                     
       ///   Removal                                                           

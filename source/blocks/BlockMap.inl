@@ -663,12 +663,6 @@ namespace Langulus::Anyness
    template<CT::NotSemantic K, CT::NotSemantic V>
    LANGULUS(ALWAYSINLINE)
    Count BlockMap::Insert(const K& key, const V& value) {
-      /*Mutate<K, V>();
-      Allocate(GetCount() + 1);
-      using KeyInner = typename TAny<K>::TypeInner;
-      using ValInner = typename TAny<V>::TypeInner;
-      InsertInner<true, false>(GetBucket(key), KeyInner {key}, ValInner {value});
-      return 1;*/
       return Insert(Copy(key), Copy(value));
    }
 
@@ -679,15 +673,6 @@ namespace Langulus::Anyness
    template<CT::NotSemantic K, CT::NotSemantic V>
    LANGULUS(ALWAYSINLINE)
    Count BlockMap::Insert(const K& key, V&& value) {
-      /*Mutate<K, V>();
-      Allocate(GetCount() + 1);
-      using KeyInner = typename TAny<K>::TypeInner;
-      using ValInner = typename TAny<V>::TypeInner;
-      if constexpr (CT::Sparse<V>)
-         InsertInner<true, false>(GetBucket(key), KeyInner {key}, ValInner {value});
-      else
-         InsertInner<true, true>(GetBucket(key), KeyInner {key}, Forward<V>(value));
-      return 1;*/
       return Insert(Copy(key), Move(value));
    }
 
@@ -698,15 +683,6 @@ namespace Langulus::Anyness
    template<CT::NotSemantic K, CT::NotSemantic V>
    LANGULUS(ALWAYSINLINE)
    Count BlockMap::Insert(K&& key, const V& value) {
-      /*Mutate<K, V>();
-      Allocate(GetCount() + 1);
-      using KeyInner = typename TAny<K>::TypeInner;
-      using ValInner = typename TAny<V>::TypeInner;
-      if constexpr (CT::Sparse<K>)
-         InsertInner<true, false>(GetBucket(key), KeyInner {key}, ValInner {value});
-      else
-         InsertInner<true, true>(GetBucket(key), Forward<K>(key), ValInner {value});
-      return 1;*/
       return Insert(Move(key), Copy(value));
    }
 
@@ -717,23 +693,6 @@ namespace Langulus::Anyness
    template<CT::NotSemantic K, CT::NotSemantic V>
    LANGULUS(ALWAYSINLINE)
    Count BlockMap::Insert(K&& key, V&& value) {
-      /*Mutate<K, V>();
-      Allocate(GetCount() + 1);
-      using KeyInner = typename TAny<K>::TypeInner;
-      using ValInner = typename TAny<V>::TypeInner;
-      if constexpr (CT::Sparse<K>) {
-         if constexpr (CT::Sparse<V>)
-            InsertInner<true, false>(GetBucket(key), KeyInner {key}, ValInner {value});
-         else
-            InsertInner<true, true>(GetBucket(key), KeyInner {key}, Forward<V>(value));
-      }
-      else {
-         if constexpr (CT::Sparse<V>)
-            InsertInner<true, true>(GetBucket(key), Forward<K>(key), ValInner {value});
-         else
-            InsertInner<true, true>(GetBucket(key), Forward<K>(key), Forward<V>(value));
-      }
-      return 1;*/
       return Insert(Move(key), Move(value));
    }
    
@@ -743,37 +702,14 @@ namespace Langulus::Anyness
    ///   @return 1 if pair was inserted, zero otherwise                       
    template<CT::Semantic SK, CT::Semantic SV>
    Count BlockMap::Insert(SK&& key, SV&& value) {
-      using K = typename SK::Type;
-      using V = typename SV::Type;
+      using K = TypeOf<SK>;
+      using V = TypeOf<SV>;
 
       Mutate<K, V>();
       Allocate(GetCount() + 1);
-      InsertInner<true>(GetBucket(key), key.Forward(), value.Forward());
+      InsertInner<true>(GetBucket(key.mValue), key.Forward(), value.Forward());
       return 1;
    }
-
-   /// Insert a single pair inside table via copy (unknown version)           
-   ///   @param key - the key to add                                          
-   ///   @param value - the value to add                                      
-   ///   @return 1 if pair was inserted, zero otherwise                       
-   /*inline Count BlockMap::InsertUnknown(const Block& key, const Block& value) {
-      Mutate(key.mType, key.IsSparse(), value.mType, value.IsSparse());
-      Allocate(GetCount() + 1);
-
-      Block keySwapper {key.GetState(), key.mType};
-      keySwapper.AllocateFresh(keySwapper.RequestSize(1));
-      keySwapper.CallUnknownSemanticConstructors(1, Copy(key));
-      keySwapper.mCount = 1;
-
-      Block valSwapper {value.GetState(), value.mType};
-      valSwapper.AllocateFresh(valSwapper.RequestSize(1));
-      valSwapper.CallUnknownSemanticConstructors(1, Copy(value));
-      valSwapper.mCount = 1;
-
-      const auto index = key.GetHash().mHash & (GetReserved() - 1);
-      InsertInnerUnknown<true>(index, Abandon(keySwapper), Abandon(valSwapper));
-      return 1;
-   }*/
 
    /// Insert a single pair inside table via move (unknown version)           
    ///   @param key - the key to add                                          
@@ -781,9 +717,9 @@ namespace Langulus::Anyness
    ///   @return 1 if pair was inserted, zero otherwise                       
    template<CT::Semantic SK, CT::Semantic SV>
    inline Count BlockMap::InsertUnknown(SK&& key, SV&& val) {
-      static_assert(CT::Block<typename SK::Type>,
+      static_assert(CT::Block<TypeOf<SK>>,
          "SK::Type must be a block type");
-      static_assert(CT::Block<typename SV::Type>,
+      static_assert(CT::Block<TypeOf<SV>>,
          "SV::Type must be a block type");
 
       Mutate(
@@ -796,18 +732,6 @@ namespace Langulus::Anyness
       InsertInnerUnknown<true>(index, key.Forward(), val.Forward());
       return 1;
    }
-
-   /// Insert a single pair inside table via move (unknown version)           
-   ///   @param key - the key to add                                          
-   ///   @param value - the value to add                                      
-   ///   @return 1 if pair was inserted, zero otherwise                       
-   /*inline Count BlockMap::InsertUnknown(Block&& key, Block&& value) {
-      Mutate(key.mType, key.IsSparse(), value.mType, value.IsSparse());
-      Allocate(GetCount() + 1);
-      const auto index = key.GetHash().mHash & (GetReserved() - 1);
-      InsertInnerUnknown<true>(index, Move(key), Move(value));
-      return 1;
-   }*/
    
    /// Inner insertion function                                               
    ///   @tparam CHECK_FOR_MATCH - false if you guarantee key doesn't exist   
@@ -816,8 +740,8 @@ namespace Langulus::Anyness
    ///   @param value - value to move in                                      
    template<bool CHECK_FOR_MATCH, CT::Semantic SK, CT::Semantic SV>
    Offset BlockMap::InsertInner(const Offset& start, SK&& key, SV&& value) {
-      using K = typename SK::Type;
-      using V = typename SV::Type;
+      using K = TypeOf<SK>;
+      using V = TypeOf<SV>;
 
       // Get the starting index based on the key hash                   
       auto psl = GetInfo() + start;
@@ -830,25 +754,7 @@ namespace Langulus::Anyness
             const auto candidate = GetRawKeys<K>() + index;
             if (*candidate == key.mValue) {
                // Neat, the key already exists - just set value and go  
-               if constexpr (SV::Move) {
-                  if constexpr (!SV::Keep && CT::AbandonAssignable<V>)
-                     GetRawValues<V>()[index] = value.Forward();
-                  else if constexpr (CT::Movable<V>)
-                     GetRawValues<V>()[index] = ::std::move(value.mValue);
-                  else if constexpr (CT::Copyable<V>)
-                     GetRawValues<V>()[index] = value.mValue;
-                  else
-                     LANGULUS_ERROR("Can't abandon/move/copy value");
-               }
-               else {
-                  if constexpr (!SV::Keep && CT::DisownAssignable<V>)
-                     GetRawValues<V>()[index] = value.Forward();
-                  else if constexpr (CT::Copyable<V>)
-                     GetRawValues<V>()[index] = value.mValue;
-                  else
-                     LANGULUS_ERROR("Can't disown/copy value");
-               }
-
+               SemanticAssign(GetRawValues<V>()[index], value.Forward());
                return index;
             }
          }
@@ -873,43 +779,8 @@ namespace Langulus::Anyness
       // Might not seem like it, but we gave a guarantee, that this is  
       // eventually reached, unless key exists and returns early        
       const auto index = psl - GetInfo();
-      if constexpr (SK::Move) {
-         if constexpr (!SK::Keep && CT::AbandonMakable<K>)
-            new (&GetRawKeys<K>()[index]) K {key.Forward()};
-         else if constexpr (CT::MoveMakable<K>)
-            new (&GetRawKeys<K>()[index]) K {std::move(key.mValue)};
-         else if constexpr (CT::CopyMakable<K>)
-            new (&GetRawKeys<K>()[index]) K {key.mValue};
-         else
-            LANGULUS_ERROR("Can't abandon/move/copy key");
-      }
-      else {
-         if constexpr (!SK::Keep && CT::DisownAssignable<K>)
-            new (&GetRawKeys<K>()[index]) K {key.Forward()};
-         else if constexpr (CT::Copyable<K>)
-            new (&GetRawKeys<K>()[index]) K {key.mValue};
-         else
-            LANGULUS_ERROR("Can't disown/copy key");
-      }
-
-      if constexpr (SV::Move) {
-         if constexpr (!SV::Keep && CT::AbandonMakable<V>)
-            new (&GetRawValues<V>()[index]) V {value.Forward()};
-         else if constexpr (CT::MoveMakable<V>)
-            new (&GetRawValues<V>()[index]) V {::std::move(value.mValue)};
-         else if constexpr (CT::CopyMakable<V>)
-            new (&GetRawValues<V>()[index]) V {value.mValue};
-         else
-            LANGULUS_ERROR("Can't abandon/move/copy value");
-      }
-      else {
-         if constexpr (!SV::Keep && CT::DisownAssignable<V>)
-            new (&GetRawValues<V>()[index]) V {value.Forward()};
-         else if constexpr (CT::Copyable<V>)
-            new (&GetRawValues<V>()[index]) V {value.mValue};
-         else
-            LANGULUS_ERROR("Can't disown/copy value");
-      }
+      SemanticNew<K>(&GetRawKeys<K>()[index], key.Forward());
+      SemanticNew<V>(&GetRawValues<V>()[index], value.Forward());
 
       *psl = attempts;
       ++mValues.mCount;
@@ -923,9 +794,9 @@ namespace Langulus::Anyness
    ///   @param value - value to move in                                      
    template<bool CHECK_FOR_MATCH, CT::Semantic SK, CT::Semantic SV>
    Offset BlockMap::InsertInnerUnknown(const Offset& start, SK&& key, SV&& value) {
-      static_assert(CT::Block<typename SK::Type>,
+      static_assert(CT::Block<TypeOf<SK>>,
          "SK::Type must be a block type");
-      static_assert(CT::Block<typename SV::Type>,
+      static_assert(CT::Block<TypeOf<SV>>,
          "SV::Type must be a block type");
 
       // Get the starting index based on the key hash                   

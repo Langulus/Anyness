@@ -264,8 +264,6 @@ namespace Langulus::Anyness
 
       void Rehash(const Count&, const Count&);
 
-      /*Count InsertUnknown(const Block&, const Block&);
-      Count InsertUnknown(Block&&, Block&&);*/
       template<CT::Semantic SK, CT::Semantic SV>
       Count InsertUnknown(SK&&, SV&&);
 

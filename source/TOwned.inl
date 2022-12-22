@@ -23,26 +23,26 @@ namespace Langulus::Anyness
    /// Semantic construction of dense semantic-constructible value            
    ///   @tparam S - the semantic used for constructing the owned value       
    ///   @param value - owned value to use                                    
-   TEMPLATE_OWNED()
+   /*TEMPLATE_OWNED()
    template<CT::Semantic S>
    LANGULUS(ALWAYSINLINE)
-   constexpr TOwned<T>::TOwned(S&& value) requires (CT::Dense<T> && S::template Exact<TOwned<T>> && CT::SemanticMakable<S, T>)
+   constexpr TOwned<T>::TOwned(S&& value) requires (CT::Dense<T> && CT::Exact<TypeOf<S>, TOwned<T>> && CT::SemanticMakable<S, T>)
       : mValue {S::Nest(value.mValue.mValue)} {
       if constexpr (S::Move && S::Keep)
          value.mValue.mValue = {};
-   }
+   }*/
 
    /// Semantic construction of sparse/fundamental value                      
    ///   @tparam S - the semantic used for constructing the owned value       
    ///   @param value - owned value to use                                    
-   TEMPLATE_OWNED()
+   /*TEMPLATE_OWNED()
    template<CT::Semantic S>
    LANGULUS(ALWAYSINLINE)
-   constexpr TOwned<T>::TOwned(S&& value) requires ((CT::Fundamental<T> || CT::Sparse<T>) && S::template Exact<TOwned<T>>)
+   constexpr TOwned<T>::TOwned(S&& value) requires ((CT::Fundamental<T> || CT::Sparse<T>) && CT::Exact<TypeOf<S>, TOwned<T>>)
       : mValue {value.mValue.mValue} {
       if constexpr (S::Move && S::Keep)
          value.mValue.mValue = {};
-   }
+   }*/
 
    /// Initialize with a value                                                
    ///   @param value - value to copy (no referencing shall occur if sparse)  
@@ -76,15 +76,15 @@ namespace Langulus::Anyness
 
    /// Semantic-assign an owned value                                         
    ///   @param value - the new value                                         
-   TEMPLATE_OWNED()
+   /*TEMPLATE_OWNED()
    template<CT::Semantic S>
    LANGULUS(ALWAYSINLINE)
-   constexpr TOwned<T>& TOwned<T>::operator = (S&& value) noexcept requires (S::template Exact<TOwned<T>>) {
+   constexpr TOwned<T>& TOwned<T>::operator = (S&& value) noexcept requires (CT::Exact<TypeOf<S>, TOwned<T>>) {
       SemanticAssign(mValue, S::Nest(value.mValue.mValue));
       if constexpr (S::Move && S::Keep)
          value.mValue.mValue = {};
       return *this;
-   }
+   }*/
 
    /// Copy-assign raw value                                                  
    ///   @param value - the new value                                         
@@ -104,15 +104,15 @@ namespace Langulus::Anyness
 
    /// Semantic-assign a raw value                                            
    ///   @param value - the new value                                         
-   TEMPLATE_OWNED()
+   /*TEMPLATE_OWNED()
    template<CT::Semantic S>
    LANGULUS(ALWAYSINLINE)
-   constexpr TOwned<T>& TOwned<T>::operator = (S&& value) noexcept requires (S::template Exact<T>) {
+   constexpr TOwned<T>& TOwned<T>::operator = (S&& value) noexcept requires (CT::Exact<TypeOf<S>, T>) {
       SemanticAssign(mValue, value.Forward());
       if constexpr (S::Move && S::Keep)
          value.mValue = {};
       return *this;
-   }
+   }*/
 
    /// Get a reference to the contained value (const)                         
    ///   @return the contained pointer                                        

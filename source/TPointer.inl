@@ -31,10 +31,10 @@ namespace Langulus::Anyness
    /// Semantic self-constructor                                              
    ///   @tparam S - type of semantic                                         
    ///   @param other - semantic value to construct with                      
-   TEMPLATE_SHARED()
+   /*TEMPLATE_SHARED()
    template<CT::Semantic S>
    LANGULUS(ALWAYSINLINE)
-   SHARED_POINTER()::TPointer(S&& other) noexcept requires (S::template Exact<TPointer<T, DR>>)
+   SHARED_POINTER()::TPointer(S&& other) noexcept requires (CT::Exact<TypeOf<S>, SHARED_POINTER()>)
       : Base {other.template Forward<Base>()} {
       if constexpr (S::Move) {
          // Move in the contents of the other shared pointer            
@@ -54,7 +54,7 @@ namespace Langulus::Anyness
          }
       }
       else mEntry = nullptr;
-   }
+   }*/
 
    /// Reference a raw pointer                                                
    ///   @param ptr - pointer to reference                                    
@@ -66,10 +66,10 @@ namespace Langulus::Anyness
    /// Semantic construction by raw pointer                                   
    ///   @tparam S - type of semantic                                         
    ///   @param other - semantic raw pointer to construct with                
-   TEMPLATE_SHARED()
+   /*TEMPLATE_SHARED()
    template<CT::Semantic S>
    LANGULUS(ALWAYSINLINE)
-   SHARED_POINTER()::TPointer(S&& ptr) noexcept requires (S::template Exact<typename SHARED_POINTER()::MemberType>)
+   SHARED_POINTER()::TPointer(S&& ptr) noexcept requires (CT::Exact<TypeOf<S>, TypeOf<SHARED_POINTER()>>)
       : Base {ptr.template Forward<Base>()} {
       if constexpr (S::Move) {
          // Move in the contents of the other shared pointer            
@@ -95,7 +95,7 @@ namespace Langulus::Anyness
          }
       }
       else mEntry = nullptr;
-   }
+   }*/
 
    /// Shared pointer destruction                                             
    TEMPLATE_SHARED()

@@ -194,7 +194,7 @@ TEMPLATE_TEST_CASE(
 			#include "CollectGarbage.inl"
 
 			auto movablePair = pair;
-			const_cast<T&>(map) = Move(movablePair);
+			const_cast<T&>(map) = ::std::move(movablePair);
 
 			THEN("Various traits change") {
 				REQUIRE(movablePair != pair);
@@ -468,11 +468,11 @@ TEMPLATE_TEST_CASE(
 			};
 
 			const_cast<T&>(map)
-				<< Move(movableDarray2[0])
-				<< Move(movableDarray2[1])
-				<< Move(movableDarray2[2])
-				<< Move(movableDarray2[3])
-				<< Move(movableDarray2[4]);
+				<< ::std::move(movableDarray2[0])
+				<< ::std::move(movableDarray2[1])
+				<< ::std::move(movableDarray2[2])
+				<< ::std::move(movableDarray2[3])
+				<< ::std::move(movableDarray2[4]);
 
 			THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
 				REQUIRE(map.HasAuthority());
@@ -495,18 +495,18 @@ TEMPLATE_TEST_CASE(
 				BENCHMARK_ADVANCED("Anyness::TUnorderedMap::operator << (5 consecutive trivial moves)") (timer meter) {
 					some<MapType> storage(meter.runs());
 					meter.measure([&](int i) {
-						return storage[i] << Move(darray2[0]) << Move(darray2[1]) << Move(darray2[2]) << Move(darray2[3]) << Move(darray2[4]);
+						return storage[i] << ::std::move(darray2[0]) << ::std::move(darray2[1]) << ::std::move(darray2[2]) << ::std::move(darray2[3]) << ::std::move(darray2[4]);
 					});
 				};
 
 				BENCHMARK_ADVANCED("std::unordered_map::emplace_back(5 consecutive trivial moves)") (timer meter) {
 					some<MapTypeStd> storage(meter.runs());
 					meter.measure([&](int i) {
-						storage[i].emplace(Move(darray2std[0]));
-						storage[i].emplace(Move(darray2std[1]));
-						storage[i].emplace(Move(darray2std[2]));
-						storage[i].emplace(Move(darray2std[3]));
-						return storage[i].emplace(Move(darray2std[4]));
+						storage[i].emplace(::std::move(darray2std[0]));
+						storage[i].emplace(::std::move(darray2std[1]));
+						storage[i].emplace(::std::move(darray2std[2]));
+						storage[i].emplace(::std::move(darray2std[3]));
+						return storage[i].emplace(::std::move(darray2std[4]));
 					});
 				};
 			#endif
@@ -774,7 +774,7 @@ TEMPLATE_TEST_CASE(
 
 		WHEN("Map is move-constructed") {
 			T movable = map;
-			T moved = Move(movable);
+			T moved = ::std::move(movable);
 
 			THEN("The new pack should keep the state and data") {
 				REQUIRE(moved == map);

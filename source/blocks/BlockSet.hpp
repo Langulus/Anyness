@@ -95,7 +95,7 @@ namespace Langulus::Anyness
       Count InsertUnknown(const Block&);
       Count InsertUnknown(Block&&);
       template<CT::Semantic S>
-      Count InsertUnknown(S&&) requires (CT::Block<typename S::Type>);
+      Count InsertUnknown(S&&) requires (CT::Block<TypeOf<S>>);
 
       template<CT::NotSemantic T>
       BlockSet& operator << (const T&);
@@ -107,7 +107,7 @@ namespace Langulus::Anyness
       BlockSet& operator << (const Block&);
       BlockSet& operator << (Block&&);
       template<CT::Semantic S>
-      BlockSet& operator << (S&&) requires (CT::Block<typename S::Type>);
+      BlockSet& operator << (S&&) requires (CT::Block<TypeOf<S>>);
 
       ///                                                                     
       ///   REMOVAL                                                           

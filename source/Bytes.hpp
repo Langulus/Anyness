@@ -36,12 +36,7 @@ namespace Langulus::Anyness
       Bytes(void*, const Size&);
       
       template<CT::Semantic S>
-      constexpr Bytes(S&&) noexcept requires (CT::DerivedFrom<typename S::Type, TAny<Byte>>);
-
-      /*constexpr Bytes(Disowned<Bytes>&&) noexcept;
-      constexpr Bytes(Abandoned<Bytes>&&) noexcept;
-      constexpr Bytes(Disowned<TAny<Byte>>&&) noexcept;
-      constexpr Bytes(Abandoned<TAny<Byte>>&&) noexcept;*/
+      constexpr Bytes(S&&) noexcept requires (CT::DerivedFrom<TypeOf<S>, TAny<Byte>>);
 
       template<CT::POD T>
       explicit Bytes(const T&) requires CT::Dense<T>;
@@ -53,10 +48,7 @@ namespace Langulus::Anyness
       Bytes& operator = (Bytes&&) noexcept;
 
       template<CT::Semantic S>
-      Bytes& operator = (S&&) requires (CT::Exact<typename S::Type, Bytes>);
-
-      /*Bytes& operator = (Disowned<Bytes>&&);
-      Bytes& operator = (Abandoned<Bytes>&&) noexcept;*/
+      Bytes& operator = (S&&) requires (CT::Exact<TypeOf<S>, Bytes>);
       
    public:
       NOD() Bytes Clone() const;
@@ -67,7 +59,6 @@ namespace Langulus::Anyness
       Hash GetHash() const;
 
       bool operator == (const Bytes&) const noexcept;
-      //bool operator != (const Bytes&) const noexcept;
 
       ///                                                                     
       ///   Concatenation                                                     
@@ -75,16 +66,12 @@ namespace Langulus::Anyness
       NOD() Bytes operator + (const Bytes&) const;
       NOD() Bytes operator + (Bytes&&) const;
       template<CT::Semantic S>
-      NOD() Bytes operator + (S&&) const requires (CT::Exact<typename S::Type, Bytes>);
-      /*NOD() Bytes operator + (Disowned<Bytes>&&) const;
-      NOD() Bytes operator + (Abandoned<Bytes>&&) const;*/
+      NOD() Bytes operator + (S&&) const requires (CT::Exact<TypeOf<S>, Bytes>);
 
       Bytes& operator += (const Bytes&);
       Bytes& operator += (Bytes&&);
       template<CT::Semantic S>
-      Bytes& operator += (S&&) requires (CT::Exact<typename S::Type, Bytes>);
-      /*Bytes& operator += (Disowned<Bytes>&&);
-      Bytes& operator += (Abandoned<Bytes>&&);*/
+      Bytes& operator += (S&&) requires (CT::Exact<TypeOf<S>, Bytes>);
    };
 
 } // namespace Langulus::Anyness

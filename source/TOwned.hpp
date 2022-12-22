@@ -34,14 +34,22 @@ namespace Langulus::Anyness
 
       constexpr TOwned(TOwned&&);
       template<CT::Semantic S>
-      constexpr TOwned(S&&) requires (CT::Dense<T> && S::template Exact<TOwned<T>> && CT::SemanticMakable<S, T>);
+      constexpr TOwned(S&& value) requires (CT::Dense<T> && CT::Exact<TypeOf<S>, TOwned> && CT::SemanticMakable<S, T>)
+         : mValue {S::Nest(value.mValue.mValue)} {
+         if constexpr (S::Move && S::Keep)
+            value.mValue.mValue = {};
+      }
       template<CT::Semantic S>
-      constexpr TOwned(S&&) requires ((CT::Fundamental<T> || CT::Sparse<T>) && S::template Exact<TOwned<T>>);
+      constexpr TOwned(S&& value) requires ((CT::Fundamental<T> || CT::Sparse<T>) && CT::Exact<TypeOf<S>, TOwned>)
+         : mValue {value.mValue.mValue} {
+         if constexpr (S::Move && S::Keep)
+            value.mValue.mValue = {};
+      }
 
       constexpr TOwned(const T&);
       constexpr TOwned(T&&);
       template<CT::Semantic S>
-      constexpr TOwned(S&&) requires (CT::Dense<T> && S::template Exact<T> && CT::SemanticMakable<S, T>);
+      constexpr TOwned(S&&) requires (CT::Dense<T> && CT::Exact<TypeOf<S>, T> && CT::SemanticMakable<S, T>);
 
       NOD() DMeta GetType() const;
 
@@ -53,12 +61,22 @@ namespace Langulus::Anyness
       constexpr TOwned& operator = (const TOwned&) noexcept;
       constexpr TOwned& operator = (TOwned&&) noexcept;
       template<CT::Semantic S>
-      constexpr TOwned& operator = (S&&) noexcept requires (S::template Exact<TOwned<T>>);
+      constexpr TOwned& operator = (S&& value) noexcept requires (CT::Exact<TypeOf<S>, TOwned>) {
+         SemanticAssign(mValue, S::Nest(value.mValue.mValue));
+         if constexpr (S::Move && S::Keep)
+            value.mValue.mValue = {};
+         return *this;
+      }
 
       constexpr TOwned& operator = (const T&) noexcept;
       constexpr TOwned& operator = (T&&) noexcept;
       template<CT::Semantic S>
-      constexpr TOwned& operator = (S&&) noexcept requires (S::template Exact<T>);
+      constexpr TOwned& operator = (S&& value) noexcept requires (CT::Exact<TypeOf<S>, T>) {
+         SemanticAssign(mValue, value.Forward());
+         if constexpr (S::Move && S::Keep)
+            value.mValue = {};
+         return *this;
+      }
 
       NOD() Hash GetHash() const requires CT::Hashable<T>;
 

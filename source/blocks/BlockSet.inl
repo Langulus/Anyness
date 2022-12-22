@@ -484,7 +484,7 @@ namespace Langulus::Anyness
    ///   @param value - value to move in                                      
    template<bool CHECK_FOR_MATCH, CT::Semantic S>
    Offset BlockSet::InsertInner(const Offset& start, S&& value) {
-      using T = typename S::Type;
+      using T = TypeOf<S>;
 
       // Get the starting index based on the key hash                   
       auto psl = GetInfo() + start;
@@ -550,7 +550,7 @@ namespace Langulus::Anyness
    ///   @param value - value to move in                                      
    template<bool CHECK_FOR_MATCH, CT::Semantic S>
    Offset BlockSet::InsertInnerUnknown(const Offset& start, S&& value) {
-      static_assert(CT::Block<typename S::Type>,
+      static_assert(CT::Block<TypeOf<S>>,
          "S::Type must be a block type");
 
       // Get the starting index based on the key hash                   
@@ -621,14 +621,6 @@ namespace Langulus::Anyness
    ///   @return 1 if item was inserted, zero otherwise                       
    template<CT::NotSemantic T>
    Count BlockSet::Insert(const T& value) {
-      /*static_assert(CT::CopyMakable<T>,
-         "Value needs to be copy-constructible, but isn't");
-
-      Mutate<T>();
-      Allocate(GetCount() + 1);
-      using ValInner = typename TAny<T>::TypeInner;
-      InsertInner<true, false>(GetBucket(value), ValInner {value});
-      return 1;*/
       return Insert(Copy(value));
    }
 
@@ -637,68 +629,32 @@ namespace Langulus::Anyness
    ///   @return 1 if item was inserted, zero otherwise                       
    template<CT::Semantic S>
    Count BlockSet::Insert(S&& value) {
-      using T = typename S::Type;
+      using T = TypeOf<S>;
       Mutate<T>();
       Allocate(GetCount() + 1);
       InsertInner<true>(GetBucket(value.mValue), value.Forward());
       return 1;
    }
 
-   /// Insert a single pair inside table via key copy and value move          
-   ///   @param value - the value to add                                      
-   ///   @return 1 if item was inserted, zero otherwise                       
-   /*template<CT::Data T>
-   Count BlockSet::Insert(T&& value) {
-      static_assert(CT::MoveMakable<T>,
-         "Value needs to be move-constructible, but isn't");
-
-      Mutate<T>();
-      Allocate(GetCount() + 1);
-      using ValInner = typename TAny<T>::TypeInner;
-      if constexpr (CT::Sparse<T>)
-         InsertInner<true, false>(GetBucket(value), ValInner {value});
-      else
-         InsertInner<true, true>(GetBucket(value), Forward<T>(value));
-      return 1;
-   }*/
-
    /// Insert a single value inside table via copy (unknown version)          
    ///   @param value - the value to add                                      
    ///   @return 1 if item was inserted, zero otherwise                       
    inline Count BlockSet::InsertUnknown(const Block& value) {
-      /*Mutate(value.mType, value.IsSparse());
-      Allocate(GetCount() + 1);
-
-      Block swapper {value.GetState(), value.mType};
-      swapper.AllocateFresh(swapper.RequestSize(1));
-      swapper.mCount = 1;
-      swapper.CallUnknownSemanticConstructors(1, Langulus::Copy(value));
-
-      const auto index = value.GetHash().mHash & (GetReserved() - 1);
-      InsertInnerUnknown<true, false>(index, Move(swapper));
-
-      swapper.Free();
-      return 1;*/
-      return InsertUnknown(Copy(value));
+      return InsertUnknown(Langulus::Copy(value));
    }
 
    /// Insert a single pair inside table via move (unknown version)           
    ///   @param value - the value to add                                      
    ///   @return 1 if item was inserted, zero otherwise                       
    inline Count BlockSet::InsertUnknown(Block&& value) {
-      /*Mutate(value.mType, value.IsSparse());
-      Allocate(GetCount() + 1);
-      const auto index = value.GetHash().mHash & (GetReserved() - 1);
-      InsertInnerUnknown<true, true>(index, Move(value));
-      return 1;*/
-      return InsertUnknown(Move(value));
+      return InsertUnknown(Langulus::Move(value));
    }
    
    /// Insert a single pair inside table via move (unknown version)           
    ///   @param value - the value to add                                      
    ///   @return 1 if item was inserted, zero otherwise                       
    template<CT::Semantic S>
-   inline Count BlockSet::InsertUnknown(S&& value) requires (CT::Block<typename S::Type>) {
+   inline Count BlockSet::InsertUnknown(S&& value) requires (CT::Block<TypeOf<S>>) {
       Mutate(value.mValue.mType, value.mValue.IsSparse());
       Allocate(GetCount() + 1);
       const auto index = value.mValue.GetHash().mHash & (GetReserved() - 1);

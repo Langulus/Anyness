@@ -49,10 +49,10 @@ namespace Langulus::Anyness
 
    /// Move construction                                                      
    ///   @param other - the table to move                                     
-   TABLE_TEMPLATE()
+   /*TABLE_TEMPLATE()
    template<CT::Semantic S>
-   constexpr TABLE()::TUnorderedSet(S&& other) noexcept requires (S::template Exact<TUnorderedSet<T>>)
-      : UnorderedSet {other.template Forward<UnorderedSet>()} {}
+   constexpr TABLE()::TUnorderedSet(S&& other) noexcept requires (CT::Exact<TypeOf<S>, TUnorderedSet<T>>)
+      : UnorderedSet {other.template Forward<UnorderedSet>()} {}*/
 
    /// Destroys the map and all it's contents                                 
    TABLE_TEMPLATE()
@@ -548,7 +548,7 @@ namespace Langulus::Anyness
    ///   @return 1 if pair was inserted, zero otherwise                       
    TABLE_TEMPLATE()
    template<CT::Semantic S>
-   Count TABLE()::Insert(S&& value) requires (S::template Exact<T>) {
+   Count TABLE()::Insert(S&& value) requires (CT::Exact<TypeOf<S>, T>) {
       Allocate(GetCount() + 1);
       InsertInner<true>(GetBucket(value.mValue), value.Forward());
       return 1;

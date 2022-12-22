@@ -45,19 +45,20 @@ namespace Langulus::Anyness
       TUnorderedSet(TUnorderedSet&&) noexcept;
 
       template<CT::Semantic S>
-      constexpr TUnorderedSet(S&&) noexcept requires (S::template Exact<TUnorderedSet<T>>);
+      constexpr TUnorderedSet(S&& other) noexcept requires (CT::Exact<TypeOf<S>, TUnorderedSet>)
+         : UnorderedSet {other.template Forward<UnorderedSet>()} {}
 
       ~TUnorderedSet();
 
       TUnorderedSet& operator = (const TUnorderedSet&);
       TUnorderedSet& operator = (TUnorderedSet&&) noexcept;
       template<CT::Semantic S>
-      TUnorderedSet& operator = (S&&) noexcept requires (S::template Exact<TUnorderedSet<T>>);
+      TUnorderedSet& operator = (S&&) noexcept requires (CT::Exact<TypeOf<S>, TUnorderedSet<T>>);
 
       TUnorderedSet& operator = (const T&);
       TUnorderedSet& operator = (T&&) noexcept;
       template<CT::Semantic S>
-      TUnorderedSet& operator = (S&&) noexcept requires (S::template Exact<T>);
+      TUnorderedSet& operator = (S&&) noexcept requires (CT::Exact<TypeOf<S>, T>);
 
    public:
       NOD() DMeta GetType() const;
@@ -86,12 +87,12 @@ namespace Langulus::Anyness
       Count Insert(const T&);
       Count Insert(T&&);
       template<CT::Semantic S>
-      Count Insert(S&&) requires (S::template Exact<T>);
+      Count Insert(S&&) requires (CT::Exact<TypeOf<S>, T>);
 
       TUnorderedSet& operator << (const T&);
       TUnorderedSet& operator << (T&&);
       template<CT::Semantic S>
-      TUnorderedSet& operator << (S&&) requires (S::template Exact<T>);
+      TUnorderedSet& operator << (S&&) requires (CT::Exact<TypeOf<S>, T>);
 
       ///                                                                     
       ///   Removal                                                           

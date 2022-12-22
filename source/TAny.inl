@@ -45,8 +45,8 @@ namespace Langulus::Anyness
    ///   @param other - the container to incorporate                          
    TEMPLATE()
    template<CT::Semantic S>
-   void TAny<T>::ConstructFromContainer(S&& other) requires (CT::Deep<typename S::Type>) {
-      using ALT_T = typename S::Type;
+   void TAny<T>::ConstructFromContainer(S&& other) requires (CT::Deep<TypeOf<S>>) {
+      using ALT_T = TypeOf<S>;
 
       if constexpr (!CT::Exact<ALT_T, TAny>) {
          LANGULUS_ASSERT(CastsToMeta(other.mValue.GetType()), 
@@ -96,7 +96,7 @@ namespace Langulus::Anyness
    ///   @param other - the anyness to copy                                   
    TEMPLATE()
    template<CT::Semantic S>
-   constexpr TAny<T>::TAny(S&& other) requires (CT::Deep<typename S::Type>)
+   constexpr TAny<T>::TAny(S&& other) requires (CT::Deep<TypeOf<S>>)
       : TAny {} {
       ConstructFromContainer(other.Forward());
    }
@@ -124,7 +124,7 @@ namespace Langulus::Anyness
    ///   @param other - the value to insert                                   
    TEMPLATE()
    template<CT::Semantic S>
-   TAny<T>::TAny(S&& other) requires (CT::CustomData<T> && S::template Exact<T>)
+   TAny<T>::TAny(S&& other) requires (CT::CustomData<T> && CT::Exact<TypeOf<S>, T>)
       : Any {other.Forward()} { }
 
    /// Construct manually by interfacing memory directly                      
@@ -218,8 +218,8 @@ namespace Langulus::Anyness
    ///   @param other - the container to incorporate                          
    TEMPLATE()
    template<CT::Semantic S>
-   void TAny<T>::AssignFromContainer(S&& other) requires (CT::Deep<typename S::Type>) {
-      using ALT_T = typename S::Type;
+   void TAny<T>::AssignFromContainer(S&& other) requires (CT::Deep<TypeOf<S>>) {
+      using ALT_T = TypeOf<S>;
 
       if constexpr (CT::Exact<TAny, ALT_T>) {
          Free();
@@ -252,17 +252,13 @@ namespace Langulus::Anyness
    TEMPLATE()
    template<CT::Deep ALT_T>
    TAny<T>& TAny<T>::operator = (const ALT_T& other) {
-      if (static_cast<Block*>(this) == &other)
-         return *this;
-
-      AssignFromContainer(Langulus::Copy(other));
-      return *this;
+      return operator = (Langulus::Copy(other));
    }
    
    TEMPLATE()
    template<CT::Deep ALT_T>
    TAny<T>& TAny<T>::operator = (ALT_T& other) {
-      return operator = (const_cast<const ALT_T&>(other));
+      return operator = (Langulus::Copy(other));
    }
 
    /// Move-assign an unknown container                                       
@@ -272,11 +268,7 @@ namespace Langulus::Anyness
    TEMPLATE()
    template<CT::Deep ALT_T>
    TAny<T>& TAny<T>::operator = (ALT_T&& other) {
-      if (static_cast<Block*>(this) == &other)
-         return *this;
-
-      AssignFromContainer(Langulus::Move(other));
-      return *this;
+      return operator = (Langulus::Move(other));
    }
 
    /// Shallow-copy disowned runtime container without referencing contents   
@@ -285,7 +277,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container                                
    TEMPLATE()
    template<CT::Semantic S>
-   TAny<T>& TAny<T>::operator = (S&& other) requires (CT::Deep<typename S::Type>) {
+   TAny<T>& TAny<T>::operator = (S&& other) requires (CT::Deep<TypeOf<S>>) {
       if (static_cast<Block*>(this) == &other.mValue)
          return *this;
 
@@ -298,19 +290,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container                                
    TEMPLATE()
    TAny<T>& TAny<T>::operator = (const T& other) requires CT::CustomData<T> {
-      if (GetUses() == 1) {
-         // Just destroy and reuse memory											
-         CallKnownDestructors<T>();
-         mCount = 0;
-         InsertInner<true>(&other, &other + 1, 0);
-      }
-      else {
-         // Reset and allocate new memory											
-         Reset();
-         operator << (other);
-      }
-
-      return *this;
+      return operator = (Langulus::Copy(other));
    }
    
    TEMPLATE()
@@ -323,19 +303,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container                                
    TEMPLATE()
    TAny<T>& TAny<T>::operator = (T&& other) requires CT::CustomData<T> {
-      if (GetUses() == 1) {
-         // Just destroy and reuse memory											
-         CallKnownDestructors<T>();
-         mCount = 0;
-         InsertInner<true>(Forward<T>(other), 0);
-      }
-      else {
-         // Reset and allocate new memory											
-         Reset();
-         operator << (Forward<T>(other));
-      }
-
-      return *this;
+      return operator = (Langulus::Move(other));
    }
 
    /// Assign by interfacing a disowned element                               
@@ -343,7 +311,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container                                
    TEMPLATE()
    template<CT::Semantic S>
-   TAny<T>& TAny<T>::operator = (S&& other) noexcept requires (CT::CustomData<T> && S::template Exact<T>) {
+   TAny<T>& TAny<T>::operator = (S&& other) noexcept requires (CT::CustomData<T> && CT::Exact<TypeOf<S>, T>) {
       if (GetUses() != 1) {
          // Reset and allocate new memory                               
          // Disowned-construction will be used if possible              
@@ -360,20 +328,8 @@ namespace Langulus::Anyness
          }
          else {
             CallKnownDestructors<T>();
+            SemanticNew<T>(mRaw, other.Forward());
             mCount = 1;
-            if constexpr (CT::Disowned<S>) {
-               if constexpr (CT::DisownMakable<T>)
-                  new (mRaw) T {other.Forward()};
-               else
-                  new (mRaw) T {other.mValue};
-            }
-            else if constexpr (CT::Abandoned<S>) {
-               if constexpr (CT::AbandonMakable<T>)
-                  new (mRaw) T {other.Forward()};
-               else
-                  new (mRaw) T {Forward<T>(other.mValue)};
-            }
-            else LANGULUS_ERROR("Unsupported semantics");
          }
       }
 
@@ -799,7 +755,7 @@ namespace Langulus::Anyness
    TEMPLATE()
    template<CT::Index IDX>
    Count TAny<T>::InsertAt(const T* start, const T* end, const IDX& index) {
-      return InsertAt<Langulus::Copy<T>>(start, end, index);
+      return InsertAt<Copied<T>>(start, end, index);
    }
    
    /// Copy-insert item(s) at an index                                        
@@ -862,7 +818,7 @@ namespace Langulus::Anyness
    ///   @return number of inserted items                                     
    TEMPLATE()
    template<CT::Semantic S, CT::Index IDX>
-   Count TAny<T>::InsertAt(S&& item, const IDX& index) requires (CT::Exact<T, typename S::Type>) {
+   Count TAny<T>::InsertAt(S&& item, const IDX& index) requires (CT::Exact<TypeOf<S>, T>) {
       const auto offset = SimplifyIndex<T>(index);
       AllocateMore<false>(mCount + 1);
 
@@ -876,12 +832,12 @@ namespace Langulus::Anyness
          // to avoid any potential overlap                              
          const auto tail = mCount - offset;
          CropInner(offset + 1, 0, tail)
-            .template CallKnownMoveConstructors<T, true>(
+            .template CallKnownSemanticConstructors<T, true>(
                tail, Abandon(CropInner(offset, tail, tail))
             );
       }
 
-      InsertInner<T>(item.Forward(), offset);
+      InsertInner(item.Forward(), offset);
       return 1;
    }
 
@@ -895,7 +851,7 @@ namespace Langulus::Anyness
    TEMPLATE()
    template<Index INDEX, bool MUTABLE>
    Count TAny<T>::Insert(const T* start, const T* end) {
-      return Insert<Langulus::Copy<T>>(start, end);
+      return Insert<Copied<T>>(start, end);
    }
 
    /// Copy-insert elements either at the start or the end                    
@@ -941,7 +897,6 @@ namespace Langulus::Anyness
    TEMPLATE()
    template<Index INDEX>
    Count TAny<T>::Insert(const T& item) {
-      //return Insert<INDEX, KEEP>(&item, &item + 1);
       return Insert<INDEX>(Langulus::Copy(item));
    }
 
@@ -962,7 +917,7 @@ namespace Langulus::Anyness
    ///   @return 1 if element was pushed                                      
    TEMPLATE()
    template<Index INDEX, CT::Semantic S>
-   Count TAny<T>::Insert(S&& item) requires (CT::Exact<T, typename S::Type>) {
+   Count TAny<T>::Insert(S&& item) requires (CT::Exact<TypeOf<S>, T>) {
       static_assert(CT::Sparse<T> || CT::Mutable<T>,
          "Can't copy-insert into container of constant elements");
       static_assert(INDEX == IndexFront || INDEX == IndexBack,
@@ -1013,10 +968,10 @@ namespace Langulus::Anyness
 
          // We're moving to the right, so make sure we do it in reverse 
          // to avoid any overlap                                        
-         CropInner(offset + 1, 0, mCount - offset)
-            .template CallKnownMoveConstructors<T, false, true>(
-               mCount - offset,
-               CropInner(offset, mCount - offset, mCount - offset)
+         const auto tail = mCount - offset;
+         CropInner(offset + 1, 0, tail)
+            .template CallKnownSemanticConstructors<T, true>(
+               tail, Abandon(CropInner(offset, tail, tail))
             );
       }
 
@@ -1053,8 +1008,8 @@ namespace Langulus::Anyness
          // We're moving to the right, so make sure we do it in reverse 
          // to avoid any overlap                                        
          CropInner(1, 0, mCount)
-            .template CallKnownMoveConstructors<T, false, true>(
-               mCount, CropInner(0, mCount, mCount)
+            .template CallKnownSemanticConstructors<T, true>(
+               mCount, Abandon(CropInner(0, mCount, mCount))
             );
 
          Block::CallKnownConstructors<T, A...>(1, Forward<A>(arguments)...);
@@ -1073,7 +1028,6 @@ namespace Langulus::Anyness
    ///   @return a reference to this container for chaining                   
    TEMPLATE()
    TAny<T>& TAny<T>::operator << (const T& other) {
-      //Insert<IndexBack>(other);
       Insert<IndexBack>(Langulus::Copy(other));
       return *this;
    }
@@ -1083,7 +1037,6 @@ namespace Langulus::Anyness
    ///   @return a reference to this container for chaining                   
    TEMPLATE()
    TAny<T>& TAny<T>::operator << (T&& other) {
-      //Insert<IndexBack>(Forward<T>(other));
       Insert<IndexBack>(Langulus::Move(other));
       return *this;
    }
@@ -1093,7 +1046,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container for chaining                   
    TEMPLATE()
    template<CT::Semantic S>
-   TAny<T>& TAny<T>::operator << (S&& other) requires (CT::Exact<T, typename S::Type>) {
+   TAny<T>& TAny<T>::operator << (S&& other) requires (CT::Exact<TypeOf<S>, T>) {
       Insert<IndexBack>(other.Forward());
       return *this;
    }
@@ -1103,7 +1056,6 @@ namespace Langulus::Anyness
    ///   @return a reference to this container for chaining                   
    TEMPLATE()
    TAny<T>& TAny<T>::operator >> (const T& other) {
-      //Insert<IndexFront>(other);
       Insert<IndexFront>(Langulus::Copy(other));
       return *this;
    }
@@ -1113,7 +1065,6 @@ namespace Langulus::Anyness
    ///   @return a reference to this container for chaining                   
    TEMPLATE()
    TAny<T>& TAny<T>::operator >> (T&& other) {
-      //Insert<IndexFront>(Forward<T>(other));
       Insert<IndexFront>(Langulus::Move(other));
       return *this;
    }
@@ -1123,7 +1074,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container for chaining                   
    TEMPLATE()
    template<CT::Semantic S>
-   TAny<T>& TAny<T>::operator >> (S&& other) requires (CT::Exact<T, typename S::Type>) {
+   TAny<T>& TAny<T>::operator >> (S&& other) requires (CT::Exact<TypeOf<S>, T>) {
       Insert<IndexFront>(other.Forward());
       return *this;
    }
@@ -1170,7 +1121,7 @@ namespace Langulus::Anyness
    ///   @return the number of inserted items                                 
    TEMPLATE()
    template<CT::Semantic S, CT::Index IDX>
-   Count TAny<T>::MergeAt(S&& item, const IDX& index) requires (CT::Exact<T, typename S::Type>) {
+   Count TAny<T>::MergeAt(S&& item, const IDX& index) requires (CT::Exact<TypeOf<S>, T>) {
       return Block::MergeAt<true, TAny>(item.Forward(), index);
    }
    
@@ -1208,7 +1159,7 @@ namespace Langulus::Anyness
    ///   @return the number of inserted items                                 
    TEMPLATE()
    template<Index INDEX, CT::Semantic S>
-   Count TAny<T>::Merge(S&& item) requires (CT::Exact<T, typename S::Type>) {
+   Count TAny<T>::Merge(S&& item) requires (CT::Exact<TypeOf<S>, T>) {
       return Block::Merge<INDEX, true, TAny>(item.Forward());
    }
 
@@ -1235,7 +1186,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container                                
    TEMPLATE()
    template<CT::Semantic S>
-   TAny<T>& TAny<T>::operator <<= (S&& other) requires (CT::Exact<T, typename S::Type>) {
+   TAny<T>& TAny<T>::operator <<= (S&& other) requires (CT::Exact<TypeOf<S>, T>) {
       Merge<IndexBack>(other.Forward());
       return *this;
    }
@@ -1263,7 +1214,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container                                
    TEMPLATE()
    template<CT::Semantic S>
-   TAny<T>& TAny<T>::operator >>= (S&& other) requires (CT::Exact<T, typename S::Type>) {
+   TAny<T>& TAny<T>::operator >>= (S&& other) requires (CT::Exact<TypeOf<S>, T>) {
       Merge<IndexFront>(other.Forward());
       return *this;
    }
@@ -1811,8 +1762,8 @@ namespace Langulus::Anyness
    ///   @param rhs - the right operand                                       
    ///   @return the combined container                                       
    TEMPLATE()
+   LANGULUS(ALWAYSINLINE)
    TAny<T> TAny<T>::operator + (const TAny& rhs) const {
-      //return Concatenate<TAny, true>(rhs);
       return Concatenate<TAny>(Langulus::Copy(rhs));
    }
 
@@ -1820,42 +1771,27 @@ namespace Langulus::Anyness
    ///   @param rhs - the right operand                                       
    ///   @return the combined container                                       
    TEMPLATE()
+   LANGULUS(ALWAYSINLINE)
    TAny<T> TAny<T>::operator + (TAny&& rhs) const {
-      //return Concatenate<TAny, true>(Forward<T>(rhs));
       return Concatenate<TAny>(Langulus::Move(rhs));
    }
 
    /// Move-concatenate with another TAny                                     
    ///   @param rhs - the right operand                                       
    ///   @return the combined container                                       
-   TEMPLATE()
-   template<CT::Semantic S>
-   TAny<T> TAny<T>::operator + (S&& rhs) const requires (CT::Exact<TAny<T>, typename S::Type>) {
-      return Concatenate<TAny>(rhs.Forward());
-   }
-
-   /// Disown-concatenate with another TAny                                   
-   ///   @param rhs - the right operand                                       
-   ///   @return the combined container                                       
    /*TEMPLATE()
-   TAny<T> TAny<T>::operator + (Disowned<TAny>&& rhs) const {
-      return Concatenate<TAny, false>(rhs.mValue);
-   }
-
-   /// Abandon-concatenate with another TAny                                  
-   ///   @param rhs - the right operand                                       
-   ///   @return the combined container                                       
-   TEMPLATE()
-   TAny<T> TAny<T>::operator + (Abandoned<TAny>&& rhs) const {
-      return Concatenate<TAny, false>(Abandoned(Forward<T>(rhs)));
+   template<CT::Semantic S>
+   LANGULUS(ALWAYSINLINE)
+   TAny<T> TAny<T>::operator + (S&& rhs) const requires (CT::Exact<TypeOf<S>, TAny<T>>) {
+      return Concatenate<TAny>(rhs.Forward());
    }*/
 
    /// Destructive copy-concatenate with another TAny                         
    ///   @param rhs - the right operand                                       
    ///   @return a reference to this modified container                       
    TEMPLATE()
+   LANGULUS(ALWAYSINLINE)
    TAny<T>& TAny<T>::operator += (const TAny& rhs) {
-      //InsertBlock(rhs);
       InsertBlock(Langulus::Copy(rhs));
       return *this;
    }
@@ -1864,8 +1800,8 @@ namespace Langulus::Anyness
    ///   @param rhs - the right operand                                       
    ///   @return a reference to this modified container                       
    TEMPLATE()
+   LANGULUS(ALWAYSINLINE)
    TAny<T>& TAny<T>::operator += (TAny&& rhs) {
-      //InsertBlock(Forward<TAny>(rhs));
       InsertBlock(Langulus::Move(rhs));
       return *this;
    }
@@ -1873,33 +1809,13 @@ namespace Langulus::Anyness
    /// Destructive move-concatenate with any deep type                        
    ///   @param rhs - the right operand                                       
    ///   @return a reference to this modified container                       
-   TEMPLATE()
-   template<CT::Semantic S>
-   TAny<T>& TAny<T>::operator += (S&& rhs) requires (CT::Exact<TAny<T>, typename S::Type>) {
-      InsertBlock(rhs.Forward());
-      return *this;
-   }
-
-   /// Destructive disown-concatenate with any deep type                      
-   ///   @param rhs - the right operand                                       
-   ///   @return a reference to this modified container                       
    /*TEMPLATE()
-   TAny<T>& TAny<T>::operator += (Disowned<TAny>&& rhs) {
-      InsertBlock(rhs.Forward());
-      return *this;
-   }
-
-   /// Destructive abandon-concatenate with any deep type                     
-   ///   @param rhs - the right operand                                       
-   ///   @return a reference to this modified container                       
-   TEMPLATE()
-   TAny<T>& TAny<T>::operator += (Abandoned<TAny>&& rhs) {
+   template<CT::Semantic S>
+   LANGULUS(ALWAYSINLINE)
+   TAny<T>& TAny<T>::operator += (S&& rhs) requires (CT::Exact<TypeOf<S>, TAny<T>>) {
       InsertBlock(rhs.Forward());
       return *this;
    }*/
-
-
-
 
 
    ///                                                                        

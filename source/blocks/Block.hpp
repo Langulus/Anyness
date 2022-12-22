@@ -420,16 +420,8 @@ namespace Langulus::Anyness
       Count InsertAt(const T&, INDEX);
       template<bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T, CT::Index INDEX>
       Count InsertAt(T&&, INDEX);
-
       template<bool MUTABLE = true, CT::Data = Any, CT::Semantic S, CT::Index INDEX>
       Count InsertAt(S&&, INDEX);
-
-      /*template<bool KEEP = true, bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T, CT::Index INDEX>
-      Count InsertAt(const T*, const T*, INDEX);
-      template<bool KEEP = true, bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T, CT::Index INDEX>
-      Count InsertAt(const T&, INDEX);
-      template<bool KEEP = true, bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T, CT::Index INDEX>
-      Count InsertAt(T&&, INDEX);*/
 
       template<Index = IndexBack, bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T>
       Count Insert(const T*, const T*);
@@ -437,16 +429,8 @@ namespace Langulus::Anyness
       Count Insert(const T&);
       template<Index = IndexBack, bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T>
       Count Insert(T&&);
-
       template<Index = IndexBack, bool MUTABLE = true, CT::Data = Any, CT::Semantic S>
       Count Insert(S&&);
-
-      /*template<Index = IndexBack, bool KEEP = true, bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T>
-      Count Insert(const T*, const T*);
-      template<Index = IndexBack, bool KEEP = true, bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T>
-      Count Insert(const T&);
-      template<Index = IndexBack, bool KEEP = true, bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T>
-      Count Insert(T&&);*/
 
       template<bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T, CT::Index INDEX>
       Count MergeAt(const T*, const T*, INDEX);
@@ -454,16 +438,8 @@ namespace Langulus::Anyness
       Count MergeAt(const T&, INDEX);
       template<bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T, CT::Index INDEX>
       Count MergeAt(T&&, INDEX);
-
       template<bool MUTABLE = true, CT::Data = Any, CT::Semantic S, CT::Index INDEX>
       Count MergeAt(S&&, INDEX);
-
-      /*template<bool KEEP = true, bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T, CT::Index INDEX>
-      Count MergeAt(const T*, const T*, INDEX);
-      template<bool KEEP = true, bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T, CT::Index INDEX>
-      Count MergeAt(const T&, INDEX);
-      template<bool KEEP = true, bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T, CT::Index INDEX>
-      Count MergeAt(T&&, INDEX);*/
 
       template<Index = IndexBack, bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T>
       Count Merge(const T*, const T*);
@@ -471,64 +447,36 @@ namespace Langulus::Anyness
       Count Merge(const T&);
       template<Index = IndexBack, bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T>
       Count Merge(T&&);
-
       template<Index = IndexBack, bool MUTABLE = true, CT::Data = Any, CT::Semantic S>
       Count Merge(S&&);
-
-      /*template<Index = IndexBack, bool KEEP = true, bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T>
-      Count Merge(const T*, const T*);
-      template<Index = IndexBack, bool KEEP = true, bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T>
-      Count Merge(const T&);
-      template<Index = IndexBack, bool KEEP = true, bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T>
-      Count Merge(T&&);*/
 
       template<CT::NotSemantic T, CT::Index INDEX>
       Count InsertBlockAt(const T&, INDEX);
       template<CT::NotSemantic T, CT::Index INDEX>
       Count InsertBlockAt(T&&, INDEX);
-
       template<CT::Semantic S, CT::Index INDEX>
       Count InsertBlockAt(S&&, INDEX);
-      /*template<CT::Data T, CT::Index INDEX>
-      Count InsertBlockAt(Disowned<T>&&, INDEX);
-      template<CT::Data T, CT::Index INDEX>
-      Count InsertBlockAt(Abandoned<T>&&, INDEX);*/
 
       template<Index = IndexBack, CT::NotSemantic T>
       Count InsertBlock(const T&);
       template<Index = IndexBack, CT::NotSemantic T>
       Count InsertBlock(T&&);
-
       template<Index = IndexBack, CT::Semantic S>
       Count InsertBlock(S&&);
-      /*template<Index = IndexBack, CT::Data T>
-      Count InsertBlock(Disowned<T>&&);
-      template<Index = IndexBack, CT::Data T>
-      Count InsertBlock(Abandoned<T>&&);*/
 
       template<CT::NotSemantic T, CT::Index INDEX>
       Count MergeBlockAt(const T&, INDEX);
       template<CT::NotSemantic T, CT::Index INDEX>
       Count MergeBlockAt(T&&, INDEX);
-
       template<CT::Semantic S, CT::Index INDEX>
       Count MergeBlockAt(S&&, INDEX);
-      /*template<CT::Data T, CT::Index INDEX>
-      Count MergeBlockAt(Disowned<T>&&, INDEX);
-      template<CT::Data T, CT::Index INDEX>
-      Count MergeBlockAt(Abandoned<T>&&, INDEX);*/
    
       template<Index = IndexBack, CT::NotSemantic T>
       Count MergeBlock(const T&);
       template<Index = IndexBack, CT::NotSemantic T>
       Count MergeBlock(T&&);
-
       template<Index = IndexBack, CT::Semantic S>
       Count MergeBlock(S&&);
-      /*template<Index = IndexBack, CT::Data T>
-      Count MergeBlock(Disowned<T>&&);
-      template<Index = IndexBack, CT::Data T>
-      Count MergeBlock(Abandoned<T>&&);*/
    
       template<CT::Data T, bool MOVE_STATE = true>
       T& Deepen();
@@ -539,13 +487,8 @@ namespace Langulus::Anyness
       Count SmartPushAt(T&, INDEX, DataState = {});
       template<bool CONCAT = true, bool DEEPEN = true, CT::Data = Any, CT::NotSemantic T, CT::Index INDEX>
       Count SmartPushAt(T&&, INDEX, DataState = {});
-
       template<bool CONCAT = true, bool DEEPEN = true, CT::Data = Any, CT::Semantic S, CT::Index INDEX>
       Count SmartPushAt(S&&, INDEX, DataState = {});
-      /*template<bool CONCAT = true, bool DEEPEN = true, CT::Data T, CT::Index INDEX, CT::Data = Any>
-      Count SmartPushAt(Disowned<T>&&, INDEX, DataState = {});
-      template<bool CONCAT = true, bool DEEPEN = true, CT::Data T, CT::Index INDEX, CT::Data = Any>
-      Count SmartPushAt(Abandoned<T>&&, INDEX, DataState = {});*/
 
       template<Index = IndexBack, bool CONCAT = true, bool DEEPEN = true, CT::Data = Any, CT::NotSemantic T>
       Count SmartPush(const T&, DataState = {});
@@ -553,13 +496,8 @@ namespace Langulus::Anyness
       Count SmartPush(T&, DataState = {});
       template<Index = IndexBack, bool CONCAT = true, bool DEEPEN = true, CT::Data = Any, CT::NotSemantic T>
       Count SmartPush(T&&, DataState = {});
-
       template<Index = IndexBack, bool CONCAT = true, bool DEEPEN = true, CT::Data = Any, CT::Semantic S>
       Count SmartPush(S&&, DataState = {});
-      /*template<Index = IndexBack, bool CONCAT = true, bool DEEPEN = true, CT::Data T, CT::Data = Any>
-      Count SmartPush(Disowned<T>&&, DataState = {});
-      template<Index = IndexBack, bool CONCAT = true, bool DEEPEN = true, CT::Data T, CT::Data = Any>
-      Count SmartPush(Abandoned<T>&&, DataState = {});*/
 
       ///                                                                     
       ///   Removal                                                           
@@ -685,30 +623,10 @@ namespace Langulus::Anyness
       template<CT::Data, bool REVERSE = false, CT::Semantic S>
       void CallKnownSemanticConstructors(Count, S&&) const;
 
-      /*template<bool KEEP = true>
-      void CallUnknownCopyConstructors(Count, const Block&) const;
-      template<CT::Data, bool KEEP = true>
-      void CallKnownCopyConstructors(Count, const Block&) const;
-
-      template<bool KEEP = true, bool REVERSE = false>
-      void CallUnknownMoveConstructors(Count, const Block&) const;
-      template<CT::Data, bool KEEP = true, bool REVERSE = false>
-      void CallKnownMoveConstructors(Count, const Block&) const;*/
-
       template<CT::Semantic S>
       void CallUnknownSemanticAssignment(Count, S&&) const;
       template<CT::Data, CT::Semantic S>
       void CallKnownSemanticAssignment(Count, S&&) const;
-
-      /*template<bool KEEP = true>
-      void CallUnknownCopyAssignment(Count, const Block&) const;
-      template<CT::Data, bool KEEP = true>
-      void CallKnownCopyAssignment(Count, const Block&) const;
-
-      template<bool KEEP = true>
-      void CallUnknownMoveAssignment(Count, const Block&) const;
-      template<CT::Data, bool KEEP = true>
-      void CallKnownMoveAssignment(Count, const Block&) const;*/
 
       void CallUnknownDestructors() const;
       template<CT::Data>

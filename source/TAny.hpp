@@ -68,13 +68,13 @@ namespace Langulus::Anyness
       template<CT::Deep ALT_T>
       TAny(ALT_T&&);
       template<CT::Semantic S>
-      constexpr TAny(S&&) requires (CT::Deep<typename S::Type>);
+      constexpr TAny(S&&) requires (CT::Deep<TypeOf<S>>);
 
       TAny(const T*, const T*) requires CT::Data<T>;
       TAny(const T&) requires CT::CustomData<T>;
       TAny(T&&) requires CT::CustomData<T>;
       template<CT::Semantic S>
-      TAny(S&&) requires (CT::CustomData<T> && S::template Exact<T>);
+      TAny(S&&) requires (CT::CustomData<T> && CT::Exact<TypeOf<S>, T>);
 
       TAny(const T*, const Count&);
       TAny(Disowned<const T*>&&, const Count&) noexcept;
@@ -91,13 +91,13 @@ namespace Langulus::Anyness
       template<CT::Deep ALT_T>
       TAny& operator = (ALT_T&&);
       template<CT::Semantic S>
-      TAny& operator = (S&&) requires (CT::Deep<typename S::Type>);
+      TAny& operator = (S&&) requires (CT::Deep<TypeOf<S>>);
 
       TAny& operator = (const T&) requires CT::CustomData<T>;
       TAny& operator = (T&) requires CT::CustomData<T>;
       TAny& operator = (T&&) requires CT::CustomData<T>;
       template<CT::Semantic S>
-      TAny& operator = (S&&) noexcept requires (CT::CustomData<T> && S::template Exact<T>);
+      TAny& operator = (S&&) noexcept requires (CT::CustomData<T> && CT::Exact<TypeOf<S>, T>);
 
    public:
       NOD() bool CastsToMeta(DMeta) const;
@@ -160,7 +160,7 @@ namespace Langulus::Anyness
       template<CT::Semantic S, CT::Index IDX = Offset>
       Count InsertAt(const T*, const T*, const IDX&);
       template<CT::Semantic S, CT::Index IDX = Offset>
-      Count InsertAt(S&&, const IDX&) requires (CT::Exact<T, typename S::Type>);
+      Count InsertAt(S&&, const IDX&) requires (CT::Exact<TypeOf<S>, T>);
 
       template<Index = IndexBack, bool MUTABLE = false>
       Count Insert(const T*, const T*);
@@ -172,7 +172,7 @@ namespace Langulus::Anyness
       template<CT::Semantic S, Index = IndexBack, bool MUTABLE = false>
       Count Insert(const T*, const T*);
       template<Index = IndexBack, CT::Semantic S>
-      Count Insert(S&&) requires (CT::Exact<T, typename S::Type>);
+      Count Insert(S&&) requires (CT::Exact<TypeOf<S>, T>);
 
       template<CT::Index IDX = Offset, class... A>
       Count EmplaceAt(const IDX&, A&&...);
@@ -181,21 +181,13 @@ namespace Langulus::Anyness
 
       TAny& operator << (const T&);
       TAny& operator << (T&&);
-
       template<CT::Semantic S>
-      TAny& operator << (S&&) requires (CT::Exact<T, typename S::Type>);
-
-      /*TAny& operator << (Disowned<T>&&);
-      TAny& operator << (Abandoned<T>&&);*/
+      TAny& operator << (S&&) requires (CT::Exact<TypeOf<S>, T>);
 
       TAny& operator >> (const T&);
       TAny& operator >> (T&&);
-
       template<CT::Semantic S>
-      TAny& operator >> (S&&) requires (CT::Exact<T, typename S::Type>);
-
-      /*TAny& operator >> (Disowned<T>&&);
-      TAny& operator >> (Abandoned<T>&&);*/
+      TAny& operator >> (S&&) requires (CT::Exact<TypeOf<S>, T>);
 
       template<CT::Index IDX = Offset>
       Count MergeAt(const T*, const T*, const IDX&);
@@ -207,7 +199,7 @@ namespace Langulus::Anyness
       template<CT::Semantic S, CT::Index IDX = Offset>
       Count MergeAt(const T*, const T*, const IDX&);
       template<CT::Semantic S, CT::Index IDX = Offset>
-      Count MergeAt(S&&, const IDX&) requires (CT::Exact<T, typename S::Type>);
+      Count MergeAt(S&&, const IDX&) requires (CT::Exact<TypeOf<S>, T>);
 
       template<Index = IndexBack>
       Count Merge(const T*, const T*);
@@ -219,25 +211,17 @@ namespace Langulus::Anyness
       template<CT::Semantic S, Index = IndexBack, bool MUTABLE = false>
       Count Merge(const T*, const T*);
       template<Index = IndexBack, CT::Semantic S>
-      Count Merge(S&&) requires (CT::Exact<T, typename S::Type>);
+      Count Merge(S&&) requires (CT::Exact<TypeOf<S>, T>);
 
       TAny& operator <<= (const T&);
       TAny& operator <<= (T&&);
-
       template<CT::Semantic S>
-      TAny& operator <<= (S&&) requires (CT::Exact<T, typename S::Type>);
-
-      /*TAny& operator <<= (Disowned<T>&&);
-      TAny& operator <<= (Abandoned<T>&&);*/
+      TAny& operator <<= (S&&) requires (CT::Exact<TypeOf<S>, T>);
 
       TAny& operator >>= (const T&);
       TAny& operator >>= (T&&);
-
       template<CT::Semantic S>
-      TAny& operator >>= (S&&) requires (CT::Exact<T, typename S::Type>);
-
-      /*TAny& operator >>= (Disowned<T>&&);
-      TAny& operator >>= (Abandoned<T>&&);*/
+      TAny& operator >>= (S&&) requires (CT::Exact<TypeOf<S>, T>);
 
       template<CT::Data ALT_T = T>
       bool operator == (const TAny<ALT_T>&) const noexcept;
@@ -289,22 +273,18 @@ namespace Langulus::Anyness
       ///                                                                     
       NOD() TAny operator + (const TAny&) const;
       NOD() TAny operator + (TAny&&) const;
-
       template<CT::Semantic S>
-      NOD() TAny operator + (S&&) const requires (CT::Exact<TAny<T>, typename S::Type>);
-
-      /*NOD() TAny operator + (Disowned<TAny>&&) const;
-      NOD() TAny operator + (Abandoned<TAny>&&) const;*/
+      NOD() TAny operator + (S&& rhs) const requires (CT::Exact<TypeOf<S>, TAny>) {
+         return Concatenate<TAny>(rhs.Forward());
+      }
 
       TAny& operator += (const TAny&);
       TAny& operator += (TAny&&);
-
       template<CT::Semantic S>
-      TAny& operator += (S&&) requires (CT::Exact<TAny<T>, typename S::Type>);
-
-
-      /*TAny& operator += (Disowned<TAny>&&);
-      TAny& operator += (Abandoned<TAny>&&);*/
+      TAny& operator += (S&& rhs) requires (CT::Exact<TypeOf<S>, TAny>) {
+         InsertBlock(rhs.Forward());
+         return *this;
+      }
 
       ///                                                                     
       ///   Iteration                                                         
@@ -325,18 +305,10 @@ namespace Langulus::Anyness
       constexpr void ResetType() noexcept;
 
       template<CT::Semantic S>
-      void ConstructFromContainer(S&&) requires (CT::Deep<typename S::Type>);
-      /*template<bool KEEP, CT::Deep ALT_T>
-      void ConstructFromContainer(const ALT_T&);
-      template<bool KEEP, CT::Deep ALT_T>
-      void ConstructFromContainer(ALT_T&&);*/
+      void ConstructFromContainer(S&&) requires (CT::Deep<TypeOf<S>>);
 
       template<CT::Semantic S>
-      void AssignFromContainer(S&&) requires (CT::Deep<typename S::Type>);
-      /*template<bool KEEP, CT::Deep ALT_T>
-      void AssignFromContainer(const ALT_T&);
-      template<bool KEEP, CT::Deep ALT_T>
-      void AssignFromContainer(ALT_T&&);*/
+      void AssignFromContainer(S&&) requires (CT::Deep<TypeOf<S>>);
 
       template<bool OVERWRITE_STATE, bool OVERWRITE_ENTRY>
       void CopyProperties(const Block&) noexcept;

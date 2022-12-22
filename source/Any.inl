@@ -14,59 +14,33 @@ namespace Langulus::Anyness
    /// Copy construct - does a shallow copy, and references                   
    ///   @param other - the container to shallow-copy                         
    inline Any::Any(const Any& other)
-      : Any {Langulus::Copy(other)} {
-      /*: Block {static_cast<const Block&>(other)} {
-      Keep();*/
-   }
+      : Any {Langulus::Copy(other)} {}
 
    /// Construct by moving another container                                  
    ///   @param other - the container to move                                 
    inline Any::Any(Any&& other) noexcept
-      : Any {Langulus::Move(other)} {
-      /*: Block {static_cast<const Block&>(other)} {
-      other.ResetMemory();
-      other.ResetState();*/
-   }
+      : Any {Langulus::Move(other)} {}
 
    /// Copy construct - does a shallow copy, and references                   
    ///   @param other - the container to shallow-copy                         
    template<CT::Deep T>
    Any::Any(const T& other)
-      : Any {Langulus::Copy(other)} {
-      /*: Block {static_cast<const Block&>(other)} {
-      Keep();*/
-   }
+      : Any {Langulus::Copy(other)} {}
 
    template<CT::Deep T>
    Any::Any(T& other)
-      : Any {Langulus::Copy(other)} {
-      /*: Block {static_cast<const Block&>(other)} {
-      Keep();*/
-   }
+      : Any {Langulus::Copy(other)} {}
 
    /// Construct by moving another container                                  
    ///   @param other - the container to move                                 
    template<CT::Deep T>
    Any::Any(T&& other) requires CT::Mutable<T>
-      : Any {Langulus::Move(other)} {
-      /*: Block {static_cast<const Block&>(other)} {
-      if constexpr (CT::Same<T, Block>) {
-         // Since we are not aware if that block is referenced or not   
-         // we reference it just in case, and we also do not reset      
-         // 'other' to avoid leaks. When using raw Blocks, it's your    
-         // responsibility to take care of ownership.                   
-         Keep();
-      }
-      else {
-         other.ResetMemory();
-         other.ResetState();
-      }*/
-   }
+      : Any {Langulus::Move(other)} {}
 
    /// Same as copy-construction, but doesn't reference anything              
    ///   @param other - the block to copy                                     
    template<CT::Semantic S>
-   constexpr Any::Any(S&& other) noexcept requires(CT::Deep<typename S::Type>)
+   constexpr Any::Any(S&& other) noexcept requires(CT::Deep<TypeOf<S>>)
       : Block {static_cast<const Block&>(other.mValue)} {
       if constexpr (!S::Move) {
          if constexpr (S::Keep)
@@ -76,7 +50,7 @@ namespace Langulus::Anyness
       }
       else {
          if constexpr (S::Keep) {
-            if constexpr (CT::Exact<typename S::Type, Block>) {
+            if constexpr (CT::Exact<TypeOf<S>, Block>) {
                // Since we are not aware if that block is referenced or 
                // not we reference it just in case, and we also do not  
                // reset 'other' to avoid leaks. When using raw Blocks,  
@@ -92,90 +66,36 @@ namespace Langulus::Anyness
       }
    }
 
-   /// Same as copy-construction, but doesn't reference anything              
-   ///   @param other - the block to copy                                     
-   /*template<CT::Deep T>
-   constexpr Any::Any(Disowned<T>&& other) noexcept
-      : Block {other.template Forward<Block>()} {
-      mEntry = nullptr;
-   }
-   
-   /// Same as move-construction but doesn't fully reset other, saving some   
-   /// instructions                                                           
-   ///   @param other - the block to move                                     
-   template<CT::Deep T>
-   constexpr Any::Any(Abandoned<T>&& other) noexcept
-      : Block {other.template Forward<Block>()} {
-      other.mValue.mEntry = nullptr;
-   }*/
-
    /// Construct by copying/referencing value of non-block type               
    ///   @tparam T - the data type to push (deducible)                        
    ///   @param other - the dense value to shallow-copy                       
    template<CT::CustomData T>
    Any::Any(const T& other) 
       : Any {Langulus::Copy(other)} {}
-      /*if constexpr (CT::Sparse<T>)
-         MakeSparse();
-      SetType<T, false>();
-      AllocateFresh(RequestSize(1));
-      InsertInner<true>(&other, &other + 1, 0);
-   }*/
 
    template<CT::CustomData T>
    Any::Any(T& other)
       : Any {Langulus::Copy(other)} {}
-      //: Any {const_cast<const T&>(other)} { }
 
    /// Construct by moving a dense value of non-block type                    
    ///   @tparam T - the data type to push (deducible)                        
    ///   @param other - the dense value to forward and emplace	               
    template<CT::CustomData T>
    Any::Any(T&& other) requires CT::Mutable<T>
-      : Any {Langulus::Move(other)} {
-      /*if constexpr (CT::Sparse<T>)
-         MakeSparse();
-      SetType<T, false>();
-      AllocateFresh(RequestSize(1));
-      InsertInner<true>(Forward<T>(other), 0);*/
-   }
+      : Any {Langulus::Move(other)} {}
 
    /// Construct by inserting a disowned value of non-block type              
    ///   @tparam T - the data type to push (deducible)                        
    ///   @param other - the disowned value                                    
    template<CT::Semantic S>
-   Any::Any(S&& other) requires (CT::CustomData<typename S::Type>) {
-      using T = typename S::Type;
+   Any::Any(S&& other) requires (CT::CustomData<TypeOf<S>>) {
+      using T = TypeOf<S>;
       if constexpr (CT::Sparse<T>)
          MakeSparse();
       SetType<T, false>();
       AllocateFresh(RequestSize(1));
       InsertInner(other.Forward(), 0);
    }
-
-   /// Construct by inserting a disowned value of non-block type              
-   ///   @tparam T - the data type to push (deducible)                        
-   ///   @param other - the disowned value                                    
-   /*template<CT::CustomData T>
-   Any::Any(Disowned<T>&& other) {
-      if constexpr (CT::Sparse<T>)
-         MakeSparse();
-      SetType<T, false>();
-      AllocateFresh(RequestSize(1));
-      InsertInner<false>(&other.mValue, &other.mValue + 1, 0);
-   }
-
-   /// Construct by inserting an abandoned value of non-block type            
-   ///   @tparam T - the data type to push (deducible)                        
-   ///   @param other - the abandoned value                                   
-   template<CT::CustomData T>
-   Any::Any(Abandoned<T>&& other) {
-      if constexpr (CT::Sparse<T>)
-         MakeSparse();
-      SetType<T, false>();
-      AllocateFresh(RequestSize(1));
-      InsertInner<false>(Move(other.mValue), 0);
-   }*/
 
    /// Pack any number of elements sequentially                               
    /// If any of the types doesn't match exactly, the container becomes deep  
@@ -302,23 +222,11 @@ namespace Langulus::Anyness
    ///   @return a reference to this container                                
    template<CT::Deep T>
    Any& Any::operator = (const T& other) {
-      /*if (this == &other)
-         return *this;
-
-      // Since Any is type-erased, we have to make a runtime type check 
-      LANGULUS_ASSERT(!IsTypeConstrained() || CastsToMeta(other.mType),
-         Assign, "Incompatible types");
-
-      Free();
-      Block::operator = (other);
-      Keep();
-      return *this;*/
       return operator = (Langulus::Copy(other));
    }
    
    template<CT::Deep T>
    Any& Any::operator = (T& other) {
-      //return operator = (const_cast<const T&>(other));
       return operator = (Langulus::Copy(other));
    }
 
@@ -327,58 +235,8 @@ namespace Langulus::Anyness
    ///   @return a reference to this container                                
    template<CT::Deep T>
    Any& Any::operator = (T&& other) requires CT::Mutable<T> {
-      /*if (this == &other)
-         return *this;
-
-      // Since Any is type-erased, we have to make a runtime type check 
-      LANGULUS_ASSERT(!IsTypeConstrained() || CastsToMeta(other.mType),
-         Assign, "Incompatible types");
-
-      Free();
-      Block::operator = (Forward<Block>(other));
-      if constexpr (CT::Same<T, Block>) {
-         // Since we are not aware if that block is referenced or not   
-         // we reference it just in case, and we also do not reset      
-         // 'other' to avoid leaks. When using raw Blocks, it's your    
-         // responsibility to take care of ownership.                   
-         Keep();
-      }
-      else {
-         other.ResetMemory();
-         other.ResetState();
-      }
-      return *this;*/
       return operator = (Langulus::Move(other));
    }
-
-   /// Helper function for preparing reassignment                             
-   /*template<class T>
-   void Any::PrepareForReassignment() {
-      const auto meta = MetaData::Of<Decay<T>>();
-
-      // Since Any is type-erased, we have to make a runtime type check 
-      LANGULUS_ASSERT(!IsTypeConstrained() || CastsToMeta(meta),
-         Assign, "Incompatible types");
-
-      if (GetUses() == 1 && meta->Is(mType)) {
-         // Just destroy and reuse memory                               
-         // Even better - types match, so we know this container        
-         // is filled with T too, therefore we can use statically       
-         // optimized routines for destruction                          
-         CallKnownDestructors<T>();
-         mCount = 0;
-      }
-      else {
-         // Reset and allocate new memory                               
-         Reset();
-         mType = meta;
-         if constexpr (CT::Sparse<T>)
-            MakeSparse();
-         else
-            MakeDense();
-         AllocateFresh(RequestSize(1));
-      }
-   }*/
 
    /// Assign by shallow-copying anything non-deep                            
    ///   @tparam T - type to copy (deducible)                                 
@@ -386,16 +244,12 @@ namespace Langulus::Anyness
    ///   @return a reference to this container                                
    template<CT::CustomData T>
    Any& Any::operator = (const T& other) {
-      /*PrepareForReassignment<T>();
-      InsertInner<true>(&other, &other + 1, 0);
-      return *this;*/
       return operator = (Langulus::Copy(other));
    }
 
    template<CT::CustomData T>
    Any& Any::operator = (T& other) {
       return operator = (Langulus::Copy(other));
-      //return operator = (const_cast<const T&>(other));
    }
 
    /// Assign by moving anything non-deep                                     
@@ -403,10 +257,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container                                
    template<CT::CustomData T>
    Any& Any::operator = (T&& other) requires CT::Mutable<T> {
-      /*PrepareForReassignment<T>();
-      InsertInner<true>(Forward<T>(other), 0);*/
       return operator = (Langulus::Move(other));
-      //return *this;
    }
 
    /// Semantic assignment                                                    
@@ -414,7 +265,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container                                
    template<CT::Semantic S>
    Any& Any::operator = (S&& other) {
-      using T = typename S::Type;
+      using T = TypeOf<S>;
 
       if constexpr (CT::Deep<T>) {
          if (this == &other.mValue)
@@ -483,40 +334,6 @@ namespace Langulus::Anyness
                MakeDense();
 
             AllocateFresh(RequestSize(1));
-
-            // Just destroy and reuse memory                            
-            // Even better - types match, so we know this container     
-            // is filled with T too, therefore we can use statically    
-            // optimized routines for destruction and creation          
-            /*if constexpr (CT::Sparse<T>) {
-               CallKnownDestructors<T>();
-               mCount = 1;
-               new (mRawSparse) KnownPointer {
-                  reinterpret_cast<Byte*>(other.mValue), nullptr};
-            }
-            else {
-               CallKnownDestructors<T>();
-               mCount = 1;
-
-               if constexpr (S::Move) {
-                  if constexpr (!S::Keep && CT::AbandonMakable<T>)
-                     new (mRaw) T {other.Forward()};
-                  else if constexpr (CT::MoveMakable<T>)
-                     new (mRaw) T {::std::move(other.mValue)};
-                  else if constexpr (CT::CopyMakable<T>)
-                     new (mRaw) T {other.mValue};
-                  else
-                     LANGULUS_ERROR("T is not abandon/move/copy-makable");
-               }
-               else {
-                  if constexpr (!S::Keep && CT::DisownMakable<T>)
-                     new (mRaw) T {other.Forward()};
-                  else if constexpr (CT::CopyMakable<T>)
-                     new (mRaw) T {other.mValue};
-                  else
-                     LANGULUS_ERROR("T is not disown/copy-makable");
-               }
-            }*/
          }
 
          InsertInner(other.Forward(), 0);
@@ -525,133 +342,6 @@ namespace Langulus::Anyness
 
       return *this;
    }
-   
-   /// Shallow-copy a disowned container (doesn't reference anything)         
-   ///   @param other - the container to copy                                 
-   ///   @return a reference to this container                                
-   /*template<CT::Deep T>
-   Any& Any::operator = (Disowned<T>&& other) {
-      if (this == &other.mValue)
-         return *this;
-
-      // Since Any is type-erased, we have to make a runtime type check 
-      LANGULUS_ASSERT(!IsTypeConstrained() || CastsToMeta(other.mValue.mType),
-         Except::Copy, "Incompatible types");
-
-      Free();
-      mRaw = other.mValue.mRaw;
-      mCount = other.mValue.mCount;
-      mReserved = other.mValue.mReserved;
-      mState = other.mValue.mState;
-      mType = other.mValue.mType;
-      // No need to copy entry - it's been reset by Free(), and this is 
-      // a disowned copy                                                
-      return *this;
-   }*/
-   
-   /// Move an abandoned container, minimally resetting the source            
-   ///   @param other - the container to move and reset                       
-   ///   @return a reference to this container                                
-   /*template<CT::Deep T>
-   Any& Any::operator = (Abandoned<T>&& other) {
-      if (this == &other.mValue)
-         return *this;
-
-      // Since Any is type-erased, we have to make a runtime type check 
-      LANGULUS_ASSERT(!IsTypeConstrained() || CastsToMeta(other.mValue.mType),
-         Except::Move, "Incompatible types");
-
-      Free();
-      Block::operator = (Forward<Block>(other.mValue));
-      other.mValue.mEntry = nullptr;
-      return *this;
-   }*/
-
-
-
-   /// Assign by disowning anything non-block                                 
-   ///   @param other - the disowned element to push                          
-   ///   @return a reference to this container                                
-   /*template<CT::CustomData T>
-   Any& Any::operator = (Disowned<T>&& other) {
-      // Since Any is type-erased, we have to make a runtime type check 
-      const auto meta = MetaData::Of<Decay<T>>();
-      LANGULUS_ASSERT(!IsTypeConstrained() || CastsToMeta(meta),
-         Except::Copy, "Incompatible types");
-
-      if (GetUses() != 1 || IsSparse() != CT::Sparse<T> || !meta->Is(mType)) {
-         // Reset and allocate new memory                               
-         // Disowned-construction will be used if possible              
-         Reset();
-         operator << (other.Forward());
-      }
-      else {
-         // Just destroy and reuse memory                               
-         // Even better - types match, so we know this container        
-         // is filled with T too, therefore we can use statically       
-         // optimized routines for destruction and creation             
-         if constexpr (CT::Sparse<T>) {
-            CallKnownDestructors<T>();
-            mCount = 1;
-            new (mRawSparse) KnownPointer {
-               reinterpret_cast<Byte*>(other.mValue), nullptr};
-         }
-         else {
-            CallKnownDestructors<T>();
-            mCount = 1;
-            if constexpr (CT::DisownMakable<T>)
-               new (mRaw) T {other.Forward()};
-            else if constexpr (CT::CopyMakable<T>)
-               new (mRaw) T {other.mValue};
-            else
-               LANGULUS_ERROR("T is not disown/copy-makable");
-         }
-      }
-
-      return *this;
-   }*/
-
-   /// Assign by abandoning anything non-block                                
-   ///   @param other - the abandoned element to push                         
-   ///   @return a reference to this container                                
-   /*template<CT::CustomData T>
-   Any& Any::operator = (Abandoned<T>&& other) {
-      // Since Any is type-erased, we have to make a runtime type check 
-      const auto meta = MetaData::Of<Decay<T>>();
-      LANGULUS_ASSERT(!IsTypeConstrained() || CastsToMeta(meta),
-         Except::Copy, "Incompatible types");
-
-      if (GetUses() != 1 || IsSparse() != CT::Sparse<T> || !meta->Is(mType)) {
-         // Reset and allocate new memory                               
-         // Abandoned-construction will be used if possible             
-         Reset();
-         operator << (other.Forward());
-      }
-      else {
-         // Just destroy and reuse memory                               
-         // Even better - types match, so we know this container        
-         // is filled with T too, therefore we can use statically       
-         // optimized routines for destruction and creation             
-         if constexpr (CT::Sparse<T>) {
-            CallKnownDestructors<T>();
-            mCount = 1;
-            new (mRawSparse) KnownPointer {
-               reinterpret_cast<Byte*>(other.mValue), nullptr};
-         }
-         else {
-            CallKnownDestructors<T>();
-            mCount = 1;
-            if constexpr (CT::AbandonMakable<T>)
-               new (mRaw) T {other.Forward()};
-            else if constexpr (CT::MoveMakable<T>)
-               new (mRaw) T {Forward<T>(other.mValue)};
-            else
-               LANGULUS_ERROR("T is not abandon/move-makable");
-         }
-      }
-
-      return *this;
-   }*/
 
    /// Clone container                                                        
    ///   @return the cloned container                                         
@@ -688,8 +378,6 @@ namespace Langulus::Anyness
    ///   @return a reference to this container for chaining                   
    template<CT::NotSemantic T>
    Any& Any::operator << (const T& other) {
-      /*Insert<IndexBack, true, true>(&other, &other + ExtentOf<T>);
-      return *this;*/
       Insert<IndexBack>(Langulus::Copy(other));
       return *this;
    }
@@ -699,7 +387,6 @@ namespace Langulus::Anyness
    /// after actually deleting this function numerous times                   
    template<CT::NotSemantic T>
    Any& Any::operator << (T& other) {
-      //return operator << (const_cast<const T&>(other));
       Insert<IndexBack>(Langulus::Copy(other));
       return *this;
    }
@@ -709,12 +396,6 @@ namespace Langulus::Anyness
    ///   @return a reference to this container for chaining                   
    template<CT::NotSemantic T>
    Any& Any::operator << (T&& other) {
-      /*if constexpr (CT::Abandoned<T>)
-         Insert<IndexBack, false, true>(Move(other.mValue));
-      else if constexpr (CT::Disowned<T>)
-         Insert<IndexBack, false, true>(&other.mValue, &other.mValue + 1);
-      else
-         Insert<IndexBack, true, true>(Forward<T>(other));*/
       Insert<IndexBack>(Langulus::Move(other));
       return *this;
    }
@@ -733,8 +414,6 @@ namespace Langulus::Anyness
    ///   @return a reference to this container for chaining                   
    template<CT::NotSemantic T>
    Any& Any::operator >> (const T& other) {
-      /*Insert<IndexFront, true, true>(&other, &other + ExtentOf<T>);
-      return *this;*/
       Insert<IndexFront>(Langulus::Copy(other));
       return *this;
    }
@@ -744,7 +423,6 @@ namespace Langulus::Anyness
    /// after actually deleting this function numerous times                   
    template<CT::NotSemantic T>
    Any& Any::operator >> (T& other) {
-      //return operator >> (const_cast<const T&>(other));
       Insert<IndexFront>(Langulus::Copy(other));
       return *this;
    }
@@ -754,12 +432,6 @@ namespace Langulus::Anyness
    ///   @return a reference to this container for chaining                   
    template<CT::NotSemantic T>
    Any& Any::operator >> (T&& other) {
-      /*if constexpr (CT::Abandoned<T>)
-         Insert<IndexFront, false, true>(Move(other.mValue));
-      else if constexpr (CT::Disowned<T>)
-         Insert<IndexFront, false, true>(&other.mValue, &other.mValue + 1);
-      else
-         Insert<IndexFront, true, true>(Forward<T>(other));*/
       Insert<IndexFront>(Langulus::Move(other));
       return *this;
    }
@@ -778,8 +450,6 @@ namespace Langulus::Anyness
    ///   @return a reference to this container for chaining                   
    template<CT::NotSemantic T>
    Any& Any::operator <<= (const T& other) {
-      /*Merge<IndexBack, true>(&other, &other + ExtentOf<T>);
-      return *this;*/
       Merge<IndexBack, true>(Langulus::Copy(other));
       return *this;
    }
@@ -789,7 +459,6 @@ namespace Langulus::Anyness
    /// after actually deleting this function numerous times                   
    template<CT::NotSemantic T>
    Any& Any::operator <<= (T& other) {
-      //return operator <<= (const_cast<const T&>(other));
       Merge<IndexBack, true>(Langulus::Copy(other));
       return *this;
    }
@@ -799,8 +468,6 @@ namespace Langulus::Anyness
    ///   @return a reference to this container for chaining                   
    template<CT::NotSemantic T>
    Any& Any::operator <<= (T&& other) {
-      /*Merge<IndexBack, true>(Forward<T>(other));
-      return *this;*/
       Merge<IndexBack, true>(Langulus::Move(other));
       return *this;
    }
@@ -819,8 +486,6 @@ namespace Langulus::Anyness
    ///   @return a reference to this container for chaining                   
    template<CT::NotSemantic T>
    Any& Any::operator >>= (const T& other) {
-      /*Merge<IndexFront, true>(&other, &other + ExtentOf<T>);
-      return *this;*/
       Merge<IndexFront, true>(Langulus::Copy(other));
       return *this;
    }
@@ -830,7 +495,6 @@ namespace Langulus::Anyness
    /// after actually deleting this function numerous times                   
    template<CT::NotSemantic T>
    Any& Any::operator >>= (T& other) {
-      //return operator >>= (const_cast<const T&>(other));
       Merge<IndexFront, true>(Langulus::Copy(other));
       return *this;
    }
@@ -840,8 +504,6 @@ namespace Langulus::Anyness
    ///   @return a reference to this container for chaining                   
    template<CT::NotSemantic T>
    Any& Any::operator >>= (T&& other) {
-      /*Merge<IndexFront, true>(Forward<T>(other));
-      return *this;*/
       Merge<IndexFront, true>(Langulus::Move(other));
       return *this;
    }
@@ -1062,36 +724,6 @@ namespace Langulus::Anyness
    ///   Concatenation                                                        
    ///                                                                        
 
-   /// An inner concatenation routine using copy/disown                       
-   ///   @tparam WRAPPER - the type of the concatenated container             
-   ///   @tparam KEEP - true to use copy, false to use disown                 
-   ///   @tparam T - block type to concatenate with (deducible)               
-   ///   @param rhs - block to concatenate                                    
-   ///   @return the concatenated container                                   
-   /*template<CT::Block WRAPPER, CT::Semantic S>
-   WRAPPER Any::Concatenate(const T& rhs) const {
-      if (IsEmpty()) {
-         if constexpr (KEEP)
-            return WRAPPER {rhs};
-         else
-            return WRAPPER {Disown(rhs)};
-      }
-      else if (rhs.IsEmpty())
-         return reinterpret_cast<const WRAPPER&>(*this);
-
-      WRAPPER result;
-      if constexpr (!CT::Typed<WRAPPER>)
-         result.template SetType<false>(mType);
-
-      result.AllocateFresh(result.RequestSize(mCount + rhs.mCount));
-      result.InsertBlock(reinterpret_cast<const WRAPPER&>(*this));
-      if constexpr (KEEP)
-         result.InsertBlock(rhs);
-      else
-         result.InsertBlock(Disown(rhs));
-      return Abandon(result);
-   }*/
-
    /// An inner concatenation routine using move/abandon                      
    ///   @tparam WRAPPER - the type of the concatenated container             
    ///   @tparam T - block type to concatenate with (deducible)               
@@ -1099,7 +731,7 @@ namespace Langulus::Anyness
    ///   @return the concatenated container                                   
    template<CT::Block WRAPPER, CT::Semantic S>
    WRAPPER Any::Concatenate(S&& rhs) const {
-      static_assert(CT::Block<typename S::Type>,
+      static_assert(CT::Block<TypeOf<S>>,
          "S::Type must be a block type");
 
       if (IsEmpty())
@@ -1123,13 +755,11 @@ namespace Langulus::Anyness
    ///   @return the combined container                                       
    template<CT::Deep T>
    Any Any::operator + (const T& rhs) const requires CT::Dense<T> {
-      //return Concatenate<Any, true>(rhs);
       return Concatenate<Any>(Langulus::Copy(rhs));
    }
 
    template<CT::Deep T>
    Any Any::operator + (T& rhs) const requires CT::Dense<T> {
-      //return operator + (const_cast<const T&>(rhs));
       return Concatenate<Any>(Langulus::Copy(rhs));
    }
 
@@ -1139,7 +769,6 @@ namespace Langulus::Anyness
    ///   @return the combined container                                       
    template<CT::Deep T>
    Any Any::operator + (T&& rhs) const requires CT::Dense<T> {
-      //return Concatenate<Any, true>(Forward<T>(rhs));
       return Concatenate<Any>(Langulus::Move(rhs));
    }
 
@@ -1152,39 +781,18 @@ namespace Langulus::Anyness
       return Concatenate<Any>(rhs.Forward());
    }
 
-   /// Disown-concatenate with any deep type                                  
-   ///   @tparam T - type of the container to concatenate (deducible)         
-   ///   @param rhs - the right operand                                       
-   ///   @return the combined container                                       
-   /*template<CT::Deep T>
-   Any Any::operator + (Disowned<T>&& rhs) const requires CT::Dense<T> {
-      return Concatenate<Any, false>(rhs.mValue);
-   }
-
-   /// Abandon-concatenate with any deep type                                 
-   ///   @tparam T - type of the container to concatenate (deducible)         
-   ///   @param rhs - the right operand                                       
-   ///   @return the combined container                                       
-   template<CT::Deep T>
-   Any Any::operator + (Abandoned<T>&& rhs) const requires CT::Dense<T> {
-      return Concatenate<Any, false>(Forward<T>(rhs.mValue));
-   }*/
-
    /// Destructive copy-concatenate with any deep type                        
    ///   @tparam T - type of the container to concatenate (deducible)         
    ///   @param rhs - the right operand                                       
    ///   @return a reference to this modified container                       
    template<CT::Deep T>
    Any& Any::operator += (const T& rhs) requires CT::Dense<T> {
-      /*InsertBlock(rhs);
-      return *this;*/
       InsertBlock(Langulus::Copy(rhs));
       return *this;
    }
 
    template<CT::Deep T>
    Any& Any::operator += (T& rhs) requires CT::Dense<T> {
-      //return operator += (const_cast<const T&>(rhs));
       InsertBlock(Langulus::Copy(rhs));
       return *this;
    }
@@ -1195,7 +803,6 @@ namespace Langulus::Anyness
    ///   @return a reference to this modified container                       
    template<CT::Deep T>
    Any& Any::operator += (T&& rhs) requires CT::Dense<T> {
-      /*InsertBlock(Forward<T>(rhs));*/
       InsertBlock(Langulus::Move(rhs));
       return *this;
    }
@@ -1209,26 +816,6 @@ namespace Langulus::Anyness
       InsertBlock(rhs.Forward());
       return *this;
    }
-
-   /// Destructive disown-concatenate with any deep type                      
-   ///   @tparam T - type of the container to concatenate (deducible)         
-   ///   @param rhs - the right operand                                       
-   ///   @return a reference to this modified container                       
-   /*template<CT::Deep T>
-   Any& Any::operator += (Disowned<T>&& rhs) requires CT::Dense<T> {
-      InsertBlock(rhs.Forward());
-      return *this;
-   }
-
-   /// Destructive abandon-concatenate with any deep type                     
-   ///   @tparam T - type of the container to concatenate (deducible)         
-   ///   @param rhs - the right operand                                       
-   ///   @return a reference to this modified container                       
-   template<CT::Deep T>
-   Any& Any::operator += (Abandoned<T>&& rhs) requires CT::Dense<T> {
-      InsertBlock(rhs.Forward());
-      return *this;
-   }*/
    
    /// Find element(s) index inside container                                 
    ///   @tparam REVERSE - true to perform search in reverse                  
