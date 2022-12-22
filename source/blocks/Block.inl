@@ -1109,7 +1109,6 @@ namespace Langulus::Anyness
    ///   @param rhs - element to compare against                              
    ///   @return true if containers match                                     
    template<CT::NotSemantic T>
-   LANGULUS(ALWAYSINLINE)
    bool Block::operator == (const T& rhs) const {
       if constexpr (CT::Deep<T>)
          return Compare(rhs) || CompareSingleValue<T>(rhs);
