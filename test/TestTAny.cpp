@@ -265,9 +265,9 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
       WHEN("Assigned value by move") {
          auto movable = element;
          if constexpr (CT::Deep<E> && CT::Typed<T>)
-            REQUIRE_THROWS(pack = Move(movable));
+            REQUIRE_THROWS(pack = ::std::move(movable));
          else
-            pack = Move(movable);
+            pack = ::std::move(movable);
 
          THEN("Properties should match") {
             if constexpr (!CT::Deep<E> && CT::Block<E>) {
@@ -322,7 +322,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                #include "CollectGarbage.inl"
                some<T> storage(meter.runs());
                meter.measure([&](int i) {
-                  return storage[i] = Move(value);
+                  return storage[i] = ::std::move(value);
                });
             };
 
@@ -330,7 +330,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                #include "CollectGarbage.inl"
                some<StdT> storage(meter.runs());
                meter.measure([&](int i) {
-                  return storage[i] = {Move(value)};
+                  return storage[i] = {::std::move(value)};
                });
             };
 
@@ -338,7 +338,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                #include "CollectGarbage.inl"
                some<std::any> storage(meter.runs());
                meter.measure([&](int i) {
-                  return storage[i] = Move(value);
+                  return storage[i] = ::std::move(value);
                });
             };
          #endif
@@ -485,7 +485,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                #include "CollectGarbage.inl"
                some<StdT> storage(meter.runs());
                meter.measure([&](int i) {
-                  return storage[i] = {Move(value)};
+                  return storage[i] = {::std::move(value)};
                });
             };
 
@@ -493,7 +493,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                #include "CollectGarbage.inl"
                some<std::any> storage(meter.runs());
                meter.measure([&](int i) {
-                  return storage[i] = Move(value);
+                  return storage[i] = ::std::move(value);
                });
             };
          #endif
@@ -749,7 +749,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
       
          WHEN("Assigned compatible value by move") {
             auto movable = element;
-            pack = Move(movable);
+            pack = ::std::move(movable);
 
             THEN("Properties should match") {
                if constexpr (CT::Deep<E> && CT::Dense<E>) {
@@ -800,7 +800,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                   #include "CollectGarbage.inl"
                   some<T> storage(meter.runs(), element);
                   meter.measure([&](int i) {
-                     return storage[i] = Move(value);
+                     return storage[i] = ::std::move(value);
                   });
                };
 
@@ -808,7 +808,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                   #include "CollectGarbage.inl"
                   some<StdT> storage(meter.runs(), element);
                   meter.measure([&](int i) {
-                     return storage[i] = {Move(value)};
+                     return storage[i] = {::std::move(value)};
                   });
                };
 
@@ -816,7 +816,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                   #include "CollectGarbage.inl"
                   some<std::any> storage(meter.runs(), element);
                   meter.measure([&](int i) {
-                     return storage[i] = Move(value);
+                     return storage[i] = ::std::move(value);
                   });
                };
             #endif
@@ -952,7 +952,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                   #include "CollectGarbage.inl"
                   some<StdT> storage(meter.runs(), element);
                   meter.measure([&](int i) {
-                     return storage[i] = {Move(value)};
+                     return storage[i] = {::std::move(value)};
                   });
                };
 
@@ -960,7 +960,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                   #include "CollectGarbage.inl"
                   some<std::any> storage(meter.runs(), element);
                   meter.measure([&](int i) {
-                     return storage[i] = Move(value);
+                     return storage[i] = ::std::move(value);
                   });
                };
             #endif
@@ -1062,11 +1062,11 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
    GIVEN("Container constructed by value move") {
       if constexpr (CT::Deep<E> && CT::Typed<T>) {
          E movable = element;
-         REQUIRE_THROWS(T {Move(movable)});
+         REQUIRE_THROWS(T {::std::move(movable)});
       }
       else {
          E movable = element;
-         T pack {Move(movable)};
+         T pack {::std::move(movable)};
 
          THEN("Properties should match") {
             if constexpr (CT::Deep<E> && CT::Dense<E>) {
@@ -1135,7 +1135,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                #include "CollectGarbage.inl"
                some<uninitialized<T>> storage(meter.runs());
                meter.measure([&](int i) {
-                  return storage[i].construct(Move(value));
+                  return storage[i].construct(::std::move(value));
                });
             };
 
@@ -1143,7 +1143,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                #include "CollectGarbage.inl"
                some<uninitialized<StdT>> storage(meter.runs());
                meter.measure([&](int i) {
-                  return storage[i].construct(1, Move(value));
+                  return storage[i].construct(1, ::std::move(value));
                });
             };
 
@@ -1151,7 +1151,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                #include "CollectGarbage.inl"
                some<uninitialized<std::any>> storage(meter.runs());
                meter.measure([&](int i) {
-                  return storage[i].construct(Move(value));
+                  return storage[i].construct(::std::move(value));
                });
             };
          #endif
@@ -1332,7 +1332,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                #include "CollectGarbage.inl"
                some<uninitialized<StdT>> storage(meter.runs());
                meter.measure([&](int i) {
-                  return storage[i].construct(1, Move(value));
+                  return storage[i].construct(1, ::std::move(value));
                });
             };
 
@@ -1340,7 +1340,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                #include "CollectGarbage.inl"
                some<uninitialized<std::any>> storage(meter.runs());
                meter.measure([&](int i) {
-                  return storage[i].construct(Move(value));
+                  return storage[i].construct(::std::move(value));
                });
             };
          #endif
@@ -1596,7 +1596,12 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
             const auto memory = pack.GetRaw();
          #endif
 
-         const_cast<T&>(pack) << Move(darray3[0]) << Move(darray3[1]) << Move(darray3[2]) << Move(darray3[3]) << Move(darray3[4]);
+         const_cast<T&>(pack)
+            << ::std::move(darray3[0])
+            << ::std::move(darray3[1])
+            << ::std::move(darray3[2])
+            << ::std::move(darray3[3])
+            << ::std::move(darray3[4]);
 
          THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
             REQUIRE(pack.GetCount() == 10);
@@ -1619,7 +1624,12 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                some<T> storage(meter.runs());
 
                meter.measure([&](int i) {
-                  return storage[i] << Move(darray2[0]) << Move(darray2[1]) << Move(darray2[2]) << Move(darray2[3]) << Move(darray2[4]);
+                  return storage[i]
+                     << ::std::move(darray2[0])
+                     << ::std::move(darray2[1])
+                     << ::std::move(darray2[2])
+                     << ::std::move(darray2[3])
+                     << ::std::move(darray2[4]);
                });
             };
 
@@ -1628,11 +1638,11 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
                meter.measure([&](int i) {
                   auto& s = storage[i];
-                  s.emplace_back(Move(darray2[0]));
-                  s.emplace_back(Move(darray2[1]));
-                  s.emplace_back(Move(darray2[2]));
-                  s.emplace_back(Move(darray2[3]));
-                  return s.emplace_back(Move(darray2[4]));
+                  s.emplace_back(::std::move(darray2[0]));
+                  s.emplace_back(::std::move(darray2[1]));
+                  s.emplace_back(::std::move(darray2[2]));
+                  s.emplace_back(::std::move(darray2[3]));
+                  return s.emplace_back(::std::move(darray2[4]));
                });
             };
          #endif
@@ -1659,7 +1669,12 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
             const auto memory = pack.GetRaw();
          #endif
 
-         const_cast<T&>(pack) >> Move(darray3[0]) >> Move(darray3[1]) >> Move(darray3[2]) >> Move(darray3[3]) >> Move(darray3[4]);
+         const_cast<T&>(pack)
+            >> ::std::move(darray3[0])
+            >> ::std::move(darray3[1])
+            >> ::std::move(darray3[2])
+            >> ::std::move(darray3[3])
+            >> ::std::move(darray3[4]);
 
          THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
             REQUIRE(pack.GetCount() == 10);
@@ -1682,7 +1697,12 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                some<T> storage(meter.runs());
 
                meter.measure([&](int i) {
-                  return storage[i] >> Move(darray2[0]) >> Move(darray2[1]) >> Move(darray2[2]) >> Move(darray2[3]) >> Move(darray2[4]);
+                  return storage[i]
+                     >> ::std::move(darray2[0])
+                     >> ::std::move(darray2[1])
+                     >> ::std::move(darray2[2])
+                     >> ::std::move(darray2[3])
+                     >> ::std::move(darray2[4]);
                });
             };
 
@@ -1691,11 +1711,11 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
                meter.measure([&](int i) {
                   auto& s = storage[i];
-                  s.emplace_front(Move(darray2[0]));
-                  s.emplace_front(Move(darray2[1]));
-                  s.emplace_front(Move(darray2[2]));
-                  s.emplace_front(Move(darray2[3]));
-                  return s.emplace_front(Move(darray2[4]));
+                  s.emplace_front(::std::move(darray2[0]));
+                  s.emplace_front(::std::move(darray2[1]));
+                  s.emplace_front(::std::move(darray2[2]));
+                  s.emplace_front(::std::move(darray2[3]));
+                  return s.emplace_front(::std::move(darray2[4]));
                });
             };
          #endif
@@ -1805,7 +1825,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
             const auto memory = pack.GetRaw();
          #endif
 
-         const_cast<T&>(pack).InsertAt(Move(i666), 3);
+         const_cast<T&>(pack).InsertAt(::std::move(i666), 3);
 
          THEN("The size changes, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
             REQUIRE(pack.GetCount() == 6);
@@ -1829,7 +1849,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                   o << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
 
                meter.measure([&](int i) {
-                  return storage[i].InsertAt(Move(i666d), 3);
+                  return storage[i].InsertAt(::std::move(i666d), 3);
                });
             };
 
@@ -1839,7 +1859,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                   o = { darray1[0], darray1[1], darray1[2], darray1[3], darray1[4] };
 
                meter.measure([&](int i) {
-                  return storage[i].insert(storage[i].begin() + 3, Move(i666d));
+                  return storage[i].insert(storage[i].begin() + 3, ::std::move(i666d));
                });
             };
          #endif
@@ -1853,7 +1873,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
             const auto memory = pack.GetRaw();
          #endif
 
-         const_cast<T&>(pack).EmplaceAt(3, Move(i666));
+         const_cast<T&>(pack).EmplaceAt(3, ::std::move(i666));
 
          THEN("The size changes, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
             REQUIRE(pack.GetCount() == 6);
@@ -1877,7 +1897,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                   o << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
 
                meter.measure([&](int i) {
-                  return storage[i].EmplaceAt(3, Move(i666d));
+                  return storage[i].EmplaceAt(3, ::std::move(i666d));
                });
             };
 
@@ -1887,7 +1907,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                   o = { darray1[0], darray1[1], darray1[2], darray1[3], darray1[4] };
 
                meter.measure([&](int i) {
-                  return storage[i].insert(storage[i].begin() + 3, Move(i666d));
+                  return storage[i].insert(storage[i].begin() + 3, ::std::move(i666d));
                });
             };
          #endif
@@ -1901,7 +1921,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
             const auto memory = pack.GetRaw();
          #endif
 
-         const_cast<T&>(pack).template Emplace<IndexFront>(Move(i666));
+         const_cast<T&>(pack).template Emplace<IndexFront>(::std::move(i666));
 
          THEN("The size changes, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
             REQUIRE(pack.GetCount() == 6);
@@ -1925,7 +1945,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                   o << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
 
                meter.measure([&](int i) {
-                  return storage[i].template Emplace<IndexFront>(Move(i666d));
+                  return storage[i].template Emplace<IndexFront>(::std::move(i666d));
                });
             };
 
@@ -1935,7 +1955,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                   o = { darray1[0], darray1[1], darray1[2], darray1[3], darray1[4] };
 
                meter.measure([&](int i) {
-                  return storage[i].emplace_front(Move(i666d));
+                  return storage[i].emplace_front(::std::move(i666d));
                });
             };
          #endif
@@ -1949,7 +1969,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
             const auto memory = pack.GetRaw();
          #endif
 
-         const_cast<T&>(pack).template Emplace<IndexBack>(Move(i666));
+         const_cast<T&>(pack).template Emplace<IndexBack>(::std::move(i666));
 
          THEN("The size changes, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
             REQUIRE(pack.GetCount() == 6);
@@ -1973,7 +1993,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                   o << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
 
                meter.measure([&](int i) {
-                  return storage[i].template Emplace<IndexBack>(Move(i666d));
+                  return storage[i].template Emplace<IndexBack>(::std::move(i666d));
                });
             };
 
@@ -1983,7 +2003,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                   o = { darray1[0], darray1[1], darray1[2], darray1[3], darray1[4] };
 
                meter.measure([&](int i) {
-                  return storage[i].emplace_back(Move(i666d));
+                  return storage[i].emplace_back(::std::move(i666d));
                });
             };
          #endif
@@ -2052,7 +2072,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
             const auto memory = pack.GetRaw();
          #endif
 
-         const_cast<T&>(pack).Allocate(20);
+         const_cast<T&>(pack).Reserve(20);
 
          THEN("The capacity changes but not the size, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
             REQUIRE(pack.GetCount() == 5);
@@ -2068,7 +2088,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
       WHEN("Less capacity is reserved") {
          const auto memory = pack.GetRaw();
-         const_cast<T&>(pack).Allocate(2);
+         const_cast<T&>(pack).Reserve(2);
 
          THEN("Capacity remains unchanged, but count is trimmed; memory shouldn't move") {
             REQUIRE(pack.GetCount() == 2);
@@ -2147,7 +2167,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
       WHEN("Pack is moved") {
          T movable = pack;
          movable.MakeOr();
-         const T moved = Move(movable);
+         const T moved = ::std::move(movable);
 
          THEN("The new pack should keep the state and data") {
             REQUIRE(movable.GetRaw() == nullptr);
@@ -2311,7 +2331,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
          #endif
 
          auto moved = darray2[3];
-         const_cast<T&>(pack) <<= Move(moved);
+         const_cast<T&>(pack) <<= ::std::move(moved);
 
          THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
             REQUIRE(pack.GetCount() == 6);
@@ -2333,7 +2353,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                some<T> storage(meter.runs());
 
                meter.measure([&](int i) {
-                  return storage[i] <<= Move(moved);
+                  return storage[i] <<= ::std::move(moved);
                });
             };
 
@@ -2343,7 +2363,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                meter.measure([&](int i) {
                   auto& s = storage[i];
                   if (std::find(s.begin(), s.end(), darray2[3]) == s.end())
-                     s.push_back(Move(moved));
+                     s.push_back(::std::move(moved));
                });
             };
          #endif
@@ -2355,7 +2375,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
          #endif
 
          auto moved = darray2[3];
-         const_cast<T&>(pack) >>= Move(moved);
+         const_cast<T&>(pack) >>= ::std::move(moved);
 
          THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
             REQUIRE(pack.GetCount() == 6);
@@ -2377,7 +2397,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                some<T> storage(meter.runs());
 
                meter.measure([&](int i) {
-                  return storage[i] >>= Move(moved);
+                  return storage[i] >>= ::std::move(moved);
                });
             };
 
@@ -2387,7 +2407,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                meter.measure([&](int i) {
                   auto& s = storage[i];
                   if (std::find(s.begin(), s.end(), darray2[3]) == s.end())
-                     s.push_front(Move(moved));
+                     s.push_front(::std::move(moved));
                });
             };
          #endif
@@ -2605,7 +2625,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
       WHEN("Move-assign pack1 in pack2") {
          auto movable = pack1;
-         const_cast<T&>(pack2) = Move(movable);
+         const_cast<T&>(pack2) = ::std::move(movable);
 
          THEN("memory1 should be overwritten, memory2 should be released") {
             REQUIRE(pack1.GetUses() == 3);

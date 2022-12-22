@@ -22,7 +22,7 @@ SCENARIO("Byte manipulation", "[bytes]") {
 		WHEN("Capacity is reserved, via Allocate()") {
 			#include "CollectGarbage.inl"
 
-			data.Allocate(500);
+			data.Reserve(500);
 			auto memory = data.GetRaw();
 
 			REQUIRE(data.IsEmpty());
@@ -69,7 +69,7 @@ SCENARIO("Byte manipulation", "[bytes]") {
 		}
 
 		WHEN("More byte capacity is reserved") {
-			data.Allocate(40);
+			data.Reserve(40);
 			THEN("The capacity changes but not the size, memory will move in order to have jurisdiction") {
 				REQUIRE(data.GetCount() == 5 * sizeof(int));
 				REQUIRE(data.GetReserved() >= 40);
@@ -95,7 +95,7 @@ SCENARIO("Byte manipulation", "[bytes]") {
 		}
 
 		WHEN("Less capacity is reserved") {
-			data.Allocate(2);
+			data.Reserve(2);
 			THEN("Capacity is not changed, but count is trimmed; memory will not move, and memory will still be outside jurisdiction") {
 				REQUIRE(data.GetCount() == 2);
 				REQUIRE(data.GetReserved() >= 5);

@@ -609,7 +609,7 @@ SCENARIO("Deep containers", "[any]") {
       pack << subpack1 << subpack2 << subpack3;
 
       auto baseRange = Any::From<Block>();
-      baseRange.Allocate(3);
+      baseRange.Reserve(3);
 
       for (Count e = 0; e < pack.GetCount(); ++e) {
          auto element = pack.GetElement(e);

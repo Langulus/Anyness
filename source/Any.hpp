@@ -47,7 +47,31 @@ namespace Langulus::Anyness
       Any(T&&) requires CT::Mutable<T>;
 
       template<CT::Semantic S>
-      constexpr Any(S&&) noexcept requires (CT::Deep<TypeOf<S>>);
+      constexpr Any(S&& other) noexcept requires (CT::Deep<TypeOf<S>>)
+         : Block {static_cast<const Block&>(other.mValue)} {
+         if constexpr (!S::Move) {
+            if constexpr (S::Keep)
+               Keep();
+            else
+               mEntry = nullptr;
+         }
+         else {
+            if constexpr (S::Keep) {
+               if constexpr (CT::Exact<TypeOf<S>, Block>) {
+                  // Since we are not aware if that block is referenced or 
+                  // not we reference it just in case, and we also do not  
+                  // reset 'other' to avoid leaks. When using raw Blocks,  
+                  // it's your responsibility to take care of ownership.   
+                  Keep();
+               }
+               else {
+                  other.mValue.ResetMemory();
+                  other.mValue.ResetState();
+               }
+            }
+            else other.mValue.mEntry = nullptr;
+         }
+      }
 
       template<CT::CustomData T>
       Any(const T&);

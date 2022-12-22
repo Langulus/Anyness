@@ -109,6 +109,7 @@ namespace Langulus::Anyness
       void Null(const Count&) requires (CT::POD<T> || CT::Nullifiable<T>);
       void TakeAuthority();
 
+      void Reserve(Count);
       NOD() TAny Clone() const;
 
       NOD() const DMeta& GetType() const noexcept;
@@ -304,11 +305,11 @@ namespace Langulus::Anyness
       constexpr void ResetState() noexcept;
       constexpr void ResetType() noexcept;
 
-      template<CT::Semantic S>
+      /*template<CT::Semantic S>
       void ConstructFromContainer(S&&) requires (CT::Deep<TypeOf<S>>);
 
       template<CT::Semantic S>
-      void AssignFromContainer(S&&) requires (CT::Deep<TypeOf<S>>);
+      void AssignFromContainer(S&&) requires (CT::Deep<TypeOf<S>>);*/
 
       template<bool OVERWRITE_STATE, bool OVERWRITE_ENTRY>
       void CopyProperties(const Block&) noexcept;

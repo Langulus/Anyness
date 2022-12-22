@@ -220,7 +220,7 @@ TEMPLATE_TEST_CASE(
 						
 					some<MapType> storage(meter.runs());
 					meter.measure([&](int i) {
-						return storage[i] = Move(source[i]);
+						return storage[i] = ::std::move(source[i]);
 					});
 				};
 
@@ -231,7 +231,7 @@ TEMPLATE_TEST_CASE(
 
 					some<MapTypeStd> storage(meter.runs());
 					meter.measure([&](int i) {
-						return storage[i].emplace(Move(source[i]));
+						return storage[i].emplace(::std::move(source[i]));
 					});
 				};
 			#endif

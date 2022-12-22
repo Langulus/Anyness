@@ -56,7 +56,7 @@ SCENARIO("Shared pointer manipulation", "[TPointer]") {
 			#include "CollectGarbage.inl"
 
 			pointer.New(5);
-			pointer2 = Move(pointer);
+			pointer2 = ::std::move(pointer);
 
 			THEN("Should have exactly one reference and jurisdiction") {
 				REQUIRE_FALSE(pointer);
@@ -101,7 +101,7 @@ SCENARIO("Shared pointer manipulation", "[TPointer]") {
 
 			auto raw = new Any {3};
 			const auto rawBackUp = raw;
-			pointer = Move(raw);
+			pointer = ::std::move(raw);
 
 			THEN("Should have exactly two references and jurisdiction, if NEWDELETE and MANAGED_MEMORY features are enabled") {
 				REQUIRE(pointer == rawBackUp);
@@ -131,7 +131,7 @@ SCENARIO("Shared pointer manipulation", "[TPointer]") {
 			WHEN("Given an xvalue pointer and then reset") {
 				Allocator::CollectGarbage();
 				auto raw = new Any {3};
-				pointer = Move(raw);
+				pointer = ::std::move(raw);
 				auto unused = Allocator::Free(pointer.GetType(), raw, 1);
 				pointer = nullptr;
 

@@ -742,6 +742,8 @@ namespace Langulus::Anyness
    Offset BlockMap::InsertInner(const Offset& start, SK&& key, SV&& value) {
       using K = TypeOf<SK>;
       using V = TypeOf<SV>;
+      auto keyswapper = SemanticMake<typename TAny<K>::TypeInner>(key.Forward());
+      auto valswapper = SemanticMake<typename TAny<V>::TypeInner>(value.Forward());
 
       // Get the starting index based on the key hash                   
       auto psl = GetInfo() + start;
@@ -752,17 +754,17 @@ namespace Langulus::Anyness
 
          if constexpr (CHECK_FOR_MATCH) {
             const auto candidate = GetRawKeys<K>() + index;
-            if (*candidate == key.mValue) {
+            if (*candidate == keyswapper) {
                // Neat, the key already exists - just set value and go  
-               SemanticAssign(GetRawValues<V>()[index], value.Forward());
+               SemanticAssign(GetRawValues<V>()[index], Abandon(valswapper));
                return index;
             }
          }
 
          if (attempts > *psl) {
             // The pair we're inserting is closer to bucket, so swap    
-            ::std::swap(GetRawKeys<K>()[index], key.mValue);
-            ::std::swap(GetRawValues<V>()[index], value.mValue);
+            ::std::swap(GetRawKeys<K>()[index], keyswapper);
+            ::std::swap(GetRawValues<V>()[index], valswapper);
             ::std::swap(attempts, *psl);
          }
 
@@ -779,8 +781,8 @@ namespace Langulus::Anyness
       // Might not seem like it, but we gave a guarantee, that this is  
       // eventually reached, unless key exists and returns early        
       const auto index = psl - GetInfo();
-      SemanticNew<K>(&GetRawKeys<K>()[index], key.Forward());
-      SemanticNew<V>(&GetRawValues<V>()[index], value.Forward());
+      SemanticNew<K>(&GetRawKeys<K>()[index], Abandon(keyswapper));
+      SemanticNew<V>(&GetRawValues<V>()[index], Abandon(valswapper));
 
       *psl = attempts;
       ++mValues.mCount;
@@ -823,10 +825,8 @@ namespace Langulus::Anyness
 
          if (attempts > *psl) {
             // The pair we're inserting is closer to bucket, so swap    
-            GetKey(index)
-               .SwapUnknown(key.Forward());
-            GetValue(index)
-               .SwapUnknown(value.Forward());
+            GetKey(index).SwapUnknown(key.Forward());
+            GetValue(index).SwapUnknown(value.Forward());
             ::std::swap(attempts, *psl);
          }
 

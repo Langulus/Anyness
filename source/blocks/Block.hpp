@@ -372,12 +372,9 @@ namespace Langulus::Anyness
       constexpr void MakeSparse() noexcept;
       constexpr void MakeDense() noexcept;
    
+      void Reserve(Count);
       Count Copy(Block&) const;
       Count Clone(Block&) const;
-   
-      template<bool CREATE = false, bool SETSIZE = false>
-      void AllocateMore(Count);
-      void AllocateLess(Count);
    
       #if LANGULUS_FEATURE(ZLIB)
          Size Compress(Block&, Compression = Compression::Default) const;
@@ -572,16 +569,20 @@ namespace Langulus::Anyness
       template<bool ALLOW_DEEPEN, Index INDEX = IndexBack, CT::Data = Any, CT::Semantic S>
       Count SmartPushInner(S&&, const DataState&);
 
+      template<bool CREATE = false, bool SETSIZE = false>
+      void AllocateMore(Count);
+      void AllocateLess(Count);
+
       template<bool CREATE = false>
       void AllocateInner(const Count&);
       void AllocateFresh(const RTTI::AllocationRequest&);
       void AllocateRegion(const Block&, Offset, Block&);
-   
+
       template<CT::Semantic S, CT::NotSemantic T>
       void InsertInner(const T*, const T*, Offset);
       template<CT::Semantic S>
       void InsertInner(S&&, Offset);
-      template<Offset, CT::Semantic HEAD, CT::Semantic... TAIL>
+      template<Offset, CT::Data HEAD, CT::Data... TAIL>
       void InsertStatic(HEAD&&, TAIL&&...);
 
       template<CT::Semantic S>

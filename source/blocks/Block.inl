@@ -203,11 +203,13 @@ namespace Langulus::Anyness
    }
 
    /// Clear the block, only zeroing its size                                 
+   LANGULUS(ALWAYSINLINE)
    constexpr void Block::ClearInner() noexcept {
       mCount = 0;
    }
 
    /// Reset the memory inside the block                                      
+   LANGULUS(ALWAYSINLINE)
    constexpr void Block::ResetMemory() noexcept {
       mRaw = nullptr;
       mEntry = nullptr;
@@ -215,6 +217,7 @@ namespace Langulus::Anyness
    }
    
    /// Reset the type of the block, unless it's type-constrained              
+   LANGULUS(ALWAYSINLINE)
    constexpr void Block::ResetType() noexcept {
       if (!IsTypeConstrained()) {
          mType = nullptr;
@@ -223,6 +226,7 @@ namespace Langulus::Anyness
    }
    
    /// Reset the block's state                                                
+   LANGULUS(ALWAYSINLINE)
    constexpr void Block::ResetState() noexcept {
       mState = mState.mState & (DataState::Typed | DataState::Sparse);
       ResetType();
@@ -242,6 +246,13 @@ namespace Langulus::Anyness
       }
       
       return mType->RequestSize(mType->mSize * count);
+   }
+
+   /// Reserve a number of elements without initializing them                 
+   ///   @param count - number of elements to reserve                         
+   LANGULUS(ALWAYSINLINE)
+   void Block::Reserve(Count count) {
+      AllocateMore(count);
    }
 
    /// Allocate a number of elements, relying on the type of the container    
@@ -314,7 +325,6 @@ namespace Langulus::Anyness
    }
 
    /// Allocate a number of elements, relying on the type of the container    
-   ///   @attention assumes 'elements' is greater than the current reserve    
    ///   @attention assumes a valid and non-abstract type, if dense           
    ///   @tparam CREATE - true to call constructors and set count             
    ///   @tparam SETSIZE - true to set count, despite not constructing        
@@ -1068,9 +1078,9 @@ namespace Langulus::Anyness
          return;
 
       auto data = &Get<T>();
-      T temp {Move(data[to])};
-      data[to] = Move(data[from]);
-      data[from] = Move(temp);
+      T temp {::std::move(data[to])};
+      data[to] = ::std::move(data[from]);
+      SemanticAssign(data[from], Abandon(temp));
    }
 
    /// Compare with one single value, if exactly one element is contained     
@@ -1466,13 +1476,16 @@ namespace Langulus::Anyness
    ///   @tparam INDEX - offset to start inserting at                         
    ///   @tparam head - first element                                         
    ///   @tparam tail... - the rest of the elements                           
-   template<Offset INDEX, CT::Semantic HEAD, CT::Semantic... TAIL>
+   template<Offset INDEX, CT::Data HEAD, CT::Data... TAIL>
    LANGULUS(ALWAYSINLINE)
    void Block::InsertStatic(HEAD&& head, TAIL&&... tail) {
-      InsertInner(head.Forward(), INDEX);
+      if constexpr (CT::Semantic<HEAD>)
+         InsertInner(head.Forward(), INDEX);
+      else
+         InsertInner(Langulus::Move(head), INDEX);
 
       if constexpr (sizeof...(TAIL) > 0)
-         InsertStatic<INDEX + 1>(tail.Forward()...);
+         InsertStatic<INDEX + 1>(Forward<TAIL>(tail)...);
    }
 
    /// Remove non-sequential element(s)                                       
@@ -2869,7 +2882,7 @@ namespace Langulus::Anyness
    ///   @param source - the block of elements to move                        
    template<CT::Data T, bool REVERSE, CT::Semantic S>
    void Block::CallKnownSemanticConstructors(const Count count, S&& source) const {
-      static_assert(CT::Exact<TypeOf<S>, Block>,
+      static_assert(CT::Block<TypeOf<S>>,
          "Semantic should apply to a Block");
       static_assert(CT::Sparse<T> || CT::Mutable<T>,
          "Can't move-construct in container of constant elements");
@@ -2894,12 +2907,8 @@ namespace Langulus::Anyness
             auto lhs = mRawSparse;
             const auto lhsEnd = lhs + count;
             auto rhs = source.mValue.mRawSparse;
-            while (lhs != lhsEnd) {
-               if constexpr (S::Keep)
-                  new (lhs++) KnownPointer {*(rhs++)};
-               else
-                  new (lhs++) KnownPointer {Disown(*(rhs++))};
-            }
+            while (lhs != lhsEnd)
+               SemanticNew<KnownPointer>(lhs++, S::Nest(*(rhs++)));
          }
       }
       else if constexpr (CT::POD<T>) {
@@ -2908,51 +2917,30 @@ namespace Langulus::Anyness
          else
             CopyMemory(source.mValue.mRaw, mRaw, count * mType->mSize);
       }
-      else if constexpr (S::Move) {
+      else {
          if constexpr (REVERSE) {
             // Both RHS and LHS are dense and non POD                   
             // Call the move-constructor for each element (in reverse)  
-            auto to = const_cast<Block&>(*this).template GetRawAs<T>() + count - 1;
-            auto from = const_cast<Block&>(source.mValue).template GetRawAs<T>() + count - 1;
+            auto to = const_cast<Block&>(*this)
+               .template GetRawAs<T>() + count - 1;
+            auto from = const_cast<Block&>(source.mValue)
+               .template GetRawAs<T>() + count - 1;
+
             const auto fromEnd = from - count;
-            while (from != fromEnd) {
-               if constexpr (!S::Keep && CT::AbandonMakable<T>)
-                  new (to--) T {Abandon(*(from--))};
-               else if constexpr (CT::MoveMakable<T>)
-                  new (to--) T {::std::move(*(from--))};
-               else
-                  LANGULUS_ERROR("Can't move/abandon-construct - no available constructors");
-            }
+            while (from != fromEnd)
+               SemanticNew<T>(to--, S::Nest(*(from--)));
          }
          else {
             // Both RHS and LHS are dense and non POD                   
             // Call the move-constructor for each element               
-            auto to = const_cast<Block&>(*this).template GetRawAs<T>();
-            auto from = const_cast<Block&>(source.mValue).template GetRawAs<T>();
+            auto to = const_cast<Block&>(*this)
+               .template GetRawAs<T>();
+            auto from = const_cast<Block&>(source.mValue)
+               .template GetRawAs<T>();
+
             const auto fromEnd = from + count;
-            while (from != fromEnd) {
-               if constexpr (!S::Keep && CT::AbandonMakable<T>)
-                  new (to++) T {Abandon(*(from++))};
-               else if constexpr (CT::MoveMakable<T>)
-                  new (to++) T {::std::move(*(from++))};
-               else
-                  LANGULUS_ERROR("Can't move/abandon-construct - no available constructors");
-            }
-         }
-      }
-      else {
-         // Both RHS and LHS are dense and non POD                      
-         // Call the reflected copy/disown-constructor for each element 
-         auto to = const_cast<Block&>(*this).GetRawAs<T>();
-         auto from = const_cast<Block&>(source.mValue).GetRawAs<T>();
-         const auto fromEnd = from + count;
-         while (from != fromEnd) {
-            if constexpr (!S::Keep && CT::DisownMakable<T>)
-               new (to++) T {Disown(*(from++))};
-            else if constexpr (CT::CopyMakable<T>)
-               new (to++) T {*(from++)};
-            else
-               LANGULUS_ERROR("Trying to copy/disown-construct type without copy/disown-constructor");
+            while (from != fromEnd)
+               SemanticNew<T>(to++, S::Nest(*(from++)));
          }
       }
    }
@@ -2989,12 +2977,8 @@ namespace Langulus::Anyness
             auto lhs = mRawSparse;
             const auto lhsEnd = lhs + count;
             auto rhs = source.mValue.mRawSparse;
-            while (lhs != lhsEnd) {
-               if constexpr (S::Keep)
-                  new (lhs++) KnownPointer {*(rhs++)};
-               else
-                  new (lhs++) KnownPointer {Disown(*(rhs++))};
-            }
+            while (lhs != lhsEnd)
+               SemanticNew<KnownPointer>(lhs++, S::Nest(*(rhs++)));
          }
 
          return;
@@ -3714,7 +3698,7 @@ namespace Langulus::Anyness
    void Block::SwapKnown(Block& rhs) {
       LANGULUS_ASSUME(DevAssumes, rhs.mCount == mCount, "Count mismatch");
       LANGULUS_ASSUME(DevAssumes, mCount, "Can't swap zero count");
-      LANGULUS_ASSUME(DevAssumes, Is<T>() && rhs.Is<T>(), "Type mismatch");
+      LANGULUS_ASSUME(DevAssumes, Is<T>() && rhs.template Is<T>(), "Type mismatch");
 
       Block temporary {mState, mType};
       temporary.AllocateFresh(temporary.RequestSize(mCount));

@@ -39,7 +39,7 @@ namespace Langulus::Anyness
 
    /// Same as copy-construction, but doesn't reference anything              
    ///   @param other - the block to copy                                     
-   template<CT::Semantic S>
+   /*template<CT::Semantic S>
    constexpr Any::Any(S&& other) noexcept requires(CT::Deep<TypeOf<S>>)
       : Block {static_cast<const Block&>(other.mValue)} {
       if constexpr (!S::Move) {
@@ -64,7 +64,7 @@ namespace Langulus::Anyness
          }
          else other.mValue.mEntry = nullptr;
       }
-   }
+   }*/
 
    /// Construct by copying/referencing value of non-block type               
    ///   @tparam T - the data type to push (deducible)                        
@@ -104,17 +104,27 @@ namespace Langulus::Anyness
    ///   @param tail... - the rest of the elements                            
    template<CT::Data HEAD, CT::Data... TAIL>
    Any::Any(HEAD&& head, TAIL&&... tail) requires (sizeof...(TAIL) >= 1) {
-      if constexpr (CT::Exact<HEAD, TAIL...>) {
+      if constexpr (CT::Semantic<HEAD>) {
+         // Types differ, so wrap each of them in a separate Any        
+         SetType<Any, false>();
+         AllocateFresh(RequestSize(sizeof...(TAIL) + 1));
+
+         InsertInner(Abandon(Any {head.Forward()}), 0);
+         InsertStatic<1>(Abandon(Any {Forward<TAIL>(tail)})...);
+      }
+      else if constexpr (CT::Exact<HEAD, TAIL...>) {
+         // All types are the same, so pack them tightly                
          if constexpr (CT::Sparse<HEAD>)
             MakeSparse();
 
          SetType<Decay<HEAD>, false>();
          AllocateFresh(RequestSize(sizeof...(TAIL) + 1));
 
-         InsertInner(Forward<HEAD>(head), 0);
+         InsertInner(Move(head), 0);
          InsertStatic<1>(Forward<TAIL>(tail)...);
       }
       else {
+         // Types differ, so wrap each of them in a separate Any        
          SetType<Any, false>();
          AllocateFresh(RequestSize(sizeof...(TAIL) + 1));
 
@@ -297,13 +307,6 @@ namespace Langulus::Anyness
          else {
             if constexpr (S::Keep)
                Keep();
-            /*mRaw = other.mValue.mRaw;
-            mCount = other.mValue.mCount;
-            mReserved = other.mValue.mReserved;
-            mState = other.mValue.mState;
-            mType = other.mValue.mType;*/
-            // No need to copy entry - it's been reset by Free(), and   
-            // this is a disowned copy                                  
          }
       }
       else if constexpr (CT::CustomData<T>) {
@@ -313,11 +316,6 @@ namespace Langulus::Anyness
             Assign, "Incompatible types");
 
          if (GetUses() != 1 || IsSparse() != CT::Sparse<T> || !meta->Is(mType)) {
-            // Reset and allocate new memory                            
-            // Disowned-construction will be used if possible           
-            /*Reset();
-            operator << (other.Forward());*/
-
             // Just destroy and reuse memory                               
             // Even better - types match, so we know this container        
             // is filled with T too, therefore we can use statically       
@@ -551,8 +549,8 @@ namespace Langulus::Anyness
          // memory overlap                                              
          const auto moved = mCount - index;
          CropInner(index + 1, 0, moved)
-            .template CallUnknownMoveConstructors<false, true>(
-               moved, CropInner(index, moved, moved)
+            .template CallUnknownSemanticConstructors<true>(
+               moved, Abandon(CropInner(index, moved, moved))
             );
       }
 
@@ -571,17 +569,17 @@ namespace Langulus::Anyness
                if constexpr (CT::Sparse<A...>) {
                   // Can't directly interface pointer of pointers, we   
                   // have to wrap it first                              
-                  Any wrapped;
-                  (wrapped << ... << Forward<A>(arguments));
+                  Any wrapped {Forward<A>(arguments)...};
+
                   //TODO if stuff moved, we should move stuff back if this throws...
-                  region.template CallKnownMoveConstructors<A...>(
-                     1, wrapped
+                  region.template CallKnownSemanticConstructors<A...>(
+                     1, Abandon(wrapped)
                   );
                }
                else {
                   //TODO if stuff moved, we should move stuff back if this throws...
-                  region.template CallKnownMoveConstructors<Decay<A>...>(
-                     1, Block::From(SparseCast(arguments)...)
+                  region.template CallKnownSemanticConstructors<Decay<A>...>(
+                     1, Abandon(Block::From(SparseCast(arguments)...))
                   );
                }
 
@@ -592,7 +590,7 @@ namespace Langulus::Anyness
 
          // Attempt descriptor-construction, if available               
          //TODO if stuff moved, we should move stuff back if this throws...
-         const auto descriptor = Any::Wrap(Forward<A>(arguments)...);
+         const Any descriptor {Forward<A>(arguments)...};
          region.CallUnknownDescriptorConstructors(1, descriptor);
       }
 
@@ -652,7 +650,7 @@ namespace Langulus::Anyness
                if constexpr (CT::Sparse<A...>) {
                   // Can't directly interface pointer of pointers, we   
                   // have to wrap it first                              
-                  Any wrapped {Forward<A>(arguments)};
+                  Any wrapped {Forward<A>(arguments)...};
 
                   //TODO if stuff moved, we should move stuff back if this throws...
                   region.template CallKnownSemanticConstructors<A...>(

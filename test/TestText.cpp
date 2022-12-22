@@ -54,7 +54,7 @@ SCENARIO("Text containers", "[text]") {
 		}
 
 		WHEN("Capacity is reserved") {
-			text.Allocate(500);
+			text.Reserve(500);
 
 			THEN("The capacity and size change") {
 				REQUIRE_FALSE(text.IsAbstract());
@@ -88,8 +88,44 @@ SCENARIO("Text containers", "[text]") {
 			}
 		}
 
-		WHEN("Assigned to itself") {
+		WHEN("Directly assigned to itself") {
 			text = text;
+
+			THEN("The capacity and size change") {
+				REQUIRE_FALSE(text.IsAbstract());
+				REQUIRE_FALSE(text.IsCompressed());
+				REQUIRE_FALSE(text.IsConstant());
+				REQUIRE_FALSE(text.IsDeep());
+				REQUIRE_FALSE(text.IsSparse());
+				REQUIRE_FALSE(text.IsEncrypted());
+				REQUIRE_FALSE(text.IsFuture());
+				REQUIRE_FALSE(text.IsPast());
+				REQUIRE_FALSE(text.IsMissing());
+				REQUIRE_FALSE(text.IsOr());
+				REQUIRE_FALSE(text.IsStatic());
+				REQUIRE_FALSE(text.IsUntyped());
+				REQUIRE_FALSE(text.IsValid());
+				REQUIRE_FALSE(text.IsAllocated());
+				REQUIRE_FALSE(text.HasAuthority());
+				REQUIRE(text.IsTypeConstrained());
+				REQUIRE(text.GetType() == MetaData::Of<Letter>());
+				REQUIRE(text.Is<Letter>());
+				REQUIRE(text.IsNow());
+				REQUIRE(text.IsInvalid());
+				REQUIRE(text.IsDense());
+				REQUIRE(text.IsDefaultable());
+				REQUIRE(text.IsEmpty());
+				REQUIRE(text.GetCount() == 0);
+				REQUIRE(text.GetReserved() == 0);
+				REQUIRE(text.GetUses() == 0);
+				REQUIRE(text == "");
+				REQUIRE_FALSE(text == "no match");
+			}
+		}
+
+		WHEN("Indirectly assigned to itself") {
+			const auto anothertext = text;
+			text = anothertext;
 
 			THEN("The capacity and size change") {
 				REQUIRE_FALSE(text.IsAbstract());
@@ -227,7 +263,7 @@ SCENARIO("Text containers", "[text]") {
 		#include "CollectGarbage.inl"
 
 		Text text;
-		text.Allocate(500);
+		text.Reserve(500);
 		auto memory = text.GetRaw();
 
 		WHEN("Text is extended") {
@@ -304,7 +340,7 @@ SCENARIO("Text containers", "[text]") {
 		}
 
 		WHEN("More capacity is reserved") {
-			text.Allocate(20);
+			text.Reserve(20);
 			THEN("The capacity changes but not the size, memory will move in order to have jurisdiction") {
 				REQUIRE(text.GetCount() == 5);
 				REQUIRE(text.GetReserved() >= 20);
@@ -330,7 +366,7 @@ SCENARIO("Text containers", "[text]") {
 		}
 
 		WHEN("Less capacity is reserved") {
-			text.Allocate(2);
+			text.Reserve(2);
 			THEN("Capacity is not changed, but count is trimmed; memory will not move, and memory will still be outside jurisdiction") {
 				REQUIRE(text.GetCount() == 2);
 				REQUIRE(text.GetReserved() >= 5);
