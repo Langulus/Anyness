@@ -17,6 +17,7 @@ namespace Langulus::Anyness
    class OrderedSet : public BlockSet {
    public:
       static constexpr bool Ordered = true;
+      static constexpr bool Ownership = true;
 
       using BlockSet::BlockSet;
       OrderedSet(Disowned<OrderedSet>&&) noexcept;

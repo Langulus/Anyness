@@ -28,6 +28,8 @@ namespace Langulus::Anyness
       LANGULUS(UNINSERTABLE) false;
       LANGULUS_BASES(Block);
    public:
+      static constexpr bool Ownership = true;
+
       template<CT::Data T>
       friend class TAny;
       friend class Block;
@@ -47,30 +49,9 @@ namespace Langulus::Anyness
       Any(T&&) requires CT::Mutable<T>;
 
       template<CT::Semantic S>
-      constexpr Any(S&& other) noexcept requires (CT::Deep<TypeOf<S>>)
-         : Block {static_cast<const Block&>(other.mValue)} {
-         if constexpr (!S::Move) {
-            if constexpr (S::Keep)
-               Keep();
-            else
-               mEntry = nullptr;
-         }
-         else {
-            if constexpr (S::Keep) {
-               if constexpr (CT::Exact<TypeOf<S>, Block>) {
-                  // Since we are not aware if that block is referenced or 
-                  // not we reference it just in case, and we also do not  
-                  // reset 'other' to avoid leaks. When using raw Blocks,  
-                  // it's your responsibility to take care of ownership.   
-                  Keep();
-               }
-               else {
-                  other.mValue.ResetMemory();
-                  other.mValue.ResetState();
-               }
-            }
-            else other.mValue.mEntry = nullptr;
-         }
+      constexpr Any(S&& other) noexcept requires (CT::Deep<TypeOf<S>>) {
+         mType = other.mValue.GetType();
+         BlockTransfer<Any>(other.Forward());
       }
 
       template<CT::CustomData T>

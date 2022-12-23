@@ -33,6 +33,8 @@ namespace Langulus::Anyness
       Block mKeys;
 
    public:
+      static constexpr bool Ownership = false;
+
       constexpr BlockSet() = default;
 
       BlockSet(const BlockSet&);

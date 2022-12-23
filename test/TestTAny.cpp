@@ -66,6 +66,7 @@ T CreateElement(const ALT_T& e) {
 /// The main test for Any/TAny containers, with all kinds of items, from      
 /// sparse to dense, from trivial to complex, from flat to deep               
 TEMPLATE_TEST_CASE("Any/TAny", "[any]", 
+   (TypePair<Any, Trait>),
    (TypePair<TAny<int>, int>),
    (TypePair<TAny<Trait>, Trait>),
    (TypePair<TAny<Traits::Count>, Traits::Count>),
@@ -79,7 +80,6 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
    (TypePair<TAny<Text*>, Text*>),
    //(TypePair<TAny<Block*>, Block*>),
    (TypePair<Any, int>),
-   (TypePair<Any, Trait>),
    (TypePair<Any, Traits::Count>),
    (TypePair<Any, Any>),
    (TypePair<Any, Text>),
@@ -1347,7 +1347,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
       }
    }
 
-   GIVEN("Container constructed by static list of exactly the same elements") {
+   GIVEN("Container constructed by static list of exactly the same shallow-copied elements") {
       if constexpr (!CT::Typed<T>) {
          const T pack {element, element};
 
@@ -1367,7 +1367,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
       }
    }
 
-   GIVEN("Container constructed by static list of somewhat different elements") {
+   GIVEN("Container constructed by static list of somewhat different shallow-copied elements") {
       if constexpr (!CT::Typed<T>) {
          const T pack {denseValue, sparseValue};
 
@@ -2088,22 +2088,28 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
       WHEN("Less capacity is reserved") {
          const auto memory = pack.GetRaw();
+         const auto previousReserved = pack.GetReserved();
          const_cast<T&>(pack).Reserve(2);
 
          THEN("Capacity remains unchanged, but count is trimmed; memory shouldn't move") {
             REQUIRE(pack.GetCount() == 2);
-            REQUIRE(pack.GetReserved() >= 5);
+            #if LANGULUS_FEATURE(MANAGED_MEMORY)
+               REQUIRE(pack.GetReserved() < previousReserved);
+            #else
+               REQUIRE(pack.GetReserved() == previousReserved);
+            #endif
             REQUIRE(pack.GetRaw() == memory);
          }
       }
 
       WHEN("Pack is cleared") {
          const auto memory = pack.GetRaw();
+         const auto previousReserved = pack.GetReserved();
          const_cast<T&>(pack).Clear();
 
          THEN("Size goes to zero, capacity and type are unchanged") {
             REQUIRE(pack.GetCount() == 0);
-            REQUIRE(pack.GetReserved() >= 5);
+            REQUIRE(pack.GetReserved() == previousReserved);
             REQUIRE(pack.GetRaw() == memory);
             REQUIRE(pack.template Is<E>());
          }

@@ -17,6 +17,7 @@ namespace Langulus::Anyness
    class OrderedMap : public BlockMap {
    public:
       static constexpr bool Ordered = true;
+      static constexpr bool Ownership = true;
 
       using BlockMap::BlockMap;
       OrderedMap(Disowned<OrderedMap>&&) noexcept;

@@ -66,6 +66,7 @@ namespace Langulus::Anyness
    public:
       LANGULUS(DEEP) true;
       LANGULUS(UNINSERTABLE) true;
+      static constexpr bool Ownership = false;
 
       friend class Any;
       template<CT::Data>
@@ -538,6 +539,8 @@ namespace Langulus::Anyness
       NOD() bool Is(DMeta) const noexcept;
       template<CT::Data...>
       NOD() bool Is() const;
+      template<CT::Data...>
+      NOD() bool IsExact() const;
       
       NOD() Block ReinterpretAs(const Block&) const;
       template<CT::Data>
@@ -548,6 +551,9 @@ namespace Langulus::Anyness
 
    protected:
       /// @cond show_protected                                                
+      template<class TO, CT::Semantic S>
+      void BlockTransfer(S&&);
+
       template<bool CONSTRAIN>
       void SetType(DMeta);
       template<CT::Data, bool CONSTRAIN>

@@ -40,6 +40,8 @@ namespace Langulus::Anyness
       Block mValues;
 
    public:
+      static constexpr bool Ownership = false;
+
       constexpr BlockMap() = default;
 
       template<CT::Data K, CT::Data V>

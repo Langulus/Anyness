@@ -50,7 +50,7 @@ SCENARIO("Byte manipulation", "[bytes]") {
 
 		REQUIRE(data.GetCount() == 5 * sizeof(int));
 		REQUIRE(data.GetReserved() >= 5 * sizeof(int));
-		REQUIRE(data.Is<Byte>());
+		REQUIRE(data.template Is<Byte>());
 		REQUIRE(data.GetRaw() != nullptr);
 		REQUIRE(data.HasAuthority());
 

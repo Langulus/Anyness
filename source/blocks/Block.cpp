@@ -187,13 +187,6 @@ namespace Langulus::Anyness
       return counter;
    }
 
-   /// Check if contained data exactly matches a given type                   
-   ///   @param type - the type to check for                                  
-   ///   @return if this block contains data of exactly 'type'                
-   bool Block::Is(DMeta type) const noexcept {
-      return mType == type || (mType && mType->Is(type));
-   }
-
    /// Reinterpret contents of this Block as the type and state of another    
    /// You can interpret Vec4 as float[4] for example, or any other such      
    /// reinterpretation, as long as data remains tightly packed               

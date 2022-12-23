@@ -249,10 +249,15 @@ namespace Langulus::Anyness
    }
 
    /// Reserve a number of elements without initializing them                 
+   /// If reserved data is smaller than currently initialized count, the      
+   /// excess elements will be destroyed                                      
    ///   @param count - number of elements to reserve                         
    LANGULUS(ALWAYSINLINE)
    void Block::Reserve(Count count) {
-      AllocateMore(count);
+      if (count < mCount)
+         AllocateLess(count);
+      else 
+         AllocateMore(count);
    }
 
    /// Allocate a number of elements, relying on the type of the container    
@@ -283,6 +288,7 @@ namespace Langulus::Anyness
             // Also, make sure to free the previous mEntry if moved     
             mEntry = Inner::Allocator::Reallocate(request.mByteSize, mEntry);
             LANGULUS_ASSERT(mEntry, Allocate, "Out of memory");
+            mReserved = request.mElementCount;
 
             if (mEntry != previousBlock.mEntry) {
                // Memory moved, and we should call abandon-construction 
@@ -310,8 +316,6 @@ namespace Langulus::Anyness
             .CallUnknownDefaultConstructors(count);
          mCount = elements;
       }
-
-      mReserved = request.mElementCount;
    }
 
    /// Allocate a fresh allocation (inner function)                           
@@ -322,6 +326,7 @@ namespace Langulus::Anyness
       mEntry = Inner::Allocator::Allocate(request.mByteSize);
       LANGULUS_ASSERT(mEntry, Allocate, "Out of memory");
       mRaw = mEntry->GetBlockStart();
+      mReserved = request.mElementCount;
    }
 
    /// Allocate a number of elements, relying on the type of the container    
@@ -331,7 +336,6 @@ namespace Langulus::Anyness
    ///   @param elements - number of elements to allocate                     
    template<bool CREATE, bool SETSIZE>
    void Block::AllocateMore(Count elements) {
-      LANGULUS_ASSUME(DevAssumes, elements > mReserved, "Bad element count");
       LANGULUS_ASSUME(DevAssumes, mType, "Invalid type");
       LANGULUS_ASSERT(!mType->mIsAbstract || IsSparse(), Allocate,
          "Abstract dense type");
@@ -346,13 +350,8 @@ namespace Langulus::Anyness
                   .CallUnknownDefaultConstructors(count);
             }
          }
-         
-         if constexpr (CREATE || SETSIZE)
-            mCount = elements;
-         return;
       }
-      
-      AllocateInner<CREATE>(elements);
+      else AllocateInner<CREATE>(elements);
 
       if constexpr (CREATE || SETSIZE)
          mCount = elements;
@@ -1004,14 +1003,88 @@ namespace Langulus::Anyness
       return !mType || !type || mType->CastsTo(type, count);
    }
 
+   /// Check if contained data exactly matches a given type                   
+   ///   @param type - the type to check for                                  
+   ///   @return if this block contains data of exactly 'type'                
+   LANGULUS(ALWAYSINLINE)
+   bool Block::Is(DMeta type) const noexcept {
+      return mType == type || (mType && mType->Is(type));
+   }
+
    /// Check if this container's data is similar to one of the listed types   
    ///   @attention ignores sparsity                                          
-   ///   @tparam T - the types to compare against                             
+   ///   @tparam T... - the types to compare against                          
    ///   @return true if data type matches at least one type                  
    template<CT::Data... T>
    LANGULUS(ALWAYSINLINE)
    bool Block::Is() const {
       return (Is(MetaData::Of<Decay<T>>()) || ...);
+   }
+
+   /// Check if this container's data is exactly as one of the listed types   
+   ///   @tparam T... - the types to compare against                          
+   ///   @return true if data type matches at least one type                  
+   template<CT::Data... T>
+   LANGULUS(ALWAYSINLINE)
+   bool Block::IsExact() const {
+      return ((IsSparse() == CT::Sparse<T> && Is(MetaData::Of<Decay<T>>())) || ...);
+   }
+
+   /// Semantically transfer the members of one block onto another            
+   ///   @attention will not set mType if TO is type-constrained container    
+   ///   @attention will combine states if TO is type-constrained container   
+   ///   @tparam TO - the type of block we're transferring to                 
+   ///   @tparam S - the semantic to use for the transfer (deducible)         
+   ///   @param other - the block to transfer                                 
+   template<class TO, CT::Semantic S>
+   LANGULUS(ALWAYSINLINE)
+   void Block::BlockTransfer(S&& other) {
+      using Container = TypeOf<S>;
+      static_assert(CT::Block<TO>, "TO must be a block type");
+      static_assert(CT::Block<Container>, "Container must be a block type");
+
+      mRaw = other.mValue.mRaw;
+      mCount = other.mValue.mCount;
+      mReserved = other.mValue.mReserved;
+
+      if constexpr (CT::Typed<TO>) {
+         // Never touch the type of statically typed blocks             
+         // Also, combine states, because state might contain sparsity  
+         // and type-constraint                                         
+         mState += other.mValue.mState;
+      }
+      else {
+         // Container is not statically typed, so we can safely         
+         // overwrite type and state directly                           
+         mType = other.mValue.mType;
+         mState = other.mValue.mState;
+      }
+
+      if constexpr (S::Keep) {
+         // Move/Copy other                                             
+         mEntry = other.mValue.mEntry;
+
+         if constexpr (S::Move) {
+            if constexpr (!Container::Ownership) {
+               // Since we are not aware if that block is referenced    
+               // or not we reference it just in case, and we also      
+               // do not reset 'other' to avoid leaks. When using       
+               // raw Blocks, it's your responsibility to take care     
+               // of ownership.                                         
+               Keep();
+            }
+            else {
+               other.mValue.ResetMemory();
+               other.mValue.ResetState();
+            }
+         }
+         else Keep();
+      }
+      else if constexpr (S::Move) {
+         // Abandon other                                               
+         mEntry = other.mValue.mEntry;
+         other.mValue.mEntry = nullptr;
+      }
    }
 
    /// Set the data ID - use this only if you really know what you're doing   
@@ -1204,7 +1277,6 @@ namespace Langulus::Anyness
    template<bool MUTABLE, CT::Data WRAPPER, CT::NotSemantic T, CT::Index INDEX>
    LANGULUS(ALWAYSINLINE)
    Count Block::InsertAt(const T& item, INDEX idx) {
-      //return InsertAt<MUTABLE, WRAPPER, T, INDEX>(&item, &item + 1, idx);
       return InsertAt<MUTABLE, WRAPPER>(Langulus::Copy(item), idx);
    }
 
@@ -1471,17 +1543,18 @@ namespace Langulus::Anyness
    }
 
    /// Statically optimized InsertInner, used in fold expressions             
-   ///   @tparam KEEP - whether or not to reference the new contents          
    ///   @tparam INDEX - offset to start inserting at                         
-   ///   @tparam head - first element                                         
-   ///   @tparam tail... - the rest of the elements                           
+   ///   @tparam head - first element, semantic or not (deducible)            
+   ///   @tparam tail... - the rest, semantic or not (deducible)              
    template<Offset INDEX, CT::Data HEAD, CT::Data... TAIL>
    LANGULUS(ALWAYSINLINE)
    void Block::InsertStatic(HEAD&& head, TAIL&&... tail) {
       if constexpr (CT::Semantic<HEAD>)
          InsertInner(head.Forward(), INDEX);
-      else
+      else if constexpr (::std::is_rvalue_reference_v<HEAD>)
          InsertInner(Langulus::Move(head), INDEX);
+      else 
+         InsertInner(Langulus::Copy(head), INDEX);
 
       if constexpr (sizeof...(TAIL) > 0)
          InsertStatic<INDEX + 1>(Forward<TAIL>(tail)...);
@@ -3788,14 +3861,16 @@ namespace Langulus::Anyness
       return InsertBlock<INDEX>(Langulus::Move(other));
    }
 
-   /// Move-insert all elements of an abandoned block either at start/end     
+   /// Semantic-insert all elements of a block either at start or end         
    ///   @tparam INDEX - either IndexBack or IndexFront                       
-   ///   @tparam T - type of the block to traverse (deducible)                
+   ///   @tparam S - semantic to use for the copy (deducible)                 
    ///   @param other - the block to insert                                   
    ///   @return the number of inserted elements                              
    template<Index INDEX, CT::Semantic S>
    Count Block::InsertBlock(S&& other) {
-      static_assert(CT::Block<TypeOf<S>>,
+      using T = TypeOf<S>;
+
+      static_assert(CT::Block<T>,
          "S::Type must be a block type");
       static_assert(INDEX == IndexFront || INDEX == IndexBack,
          "INDEX must be either IndexFront or IndexEnd;"
@@ -3835,8 +3910,9 @@ namespace Langulus::Anyness
 
       mCount += other.mValue.mCount;
 
-      if constexpr (S::Move) {
-         // Fully reset the source block if taking its elements         
+      if constexpr (S::Move && S::Keep && T::Ownership) {
+         // All elements were moved, only empty husks remain            
+         // so destroy them, and discard ownership of 'other'           
          const auto pushed = other.mValue.mCount;
          other.mValue.Free();
          other.mValue.mEntry = nullptr;

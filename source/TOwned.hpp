@@ -25,6 +25,7 @@ namespace Langulus::Anyness
 
    public:
       static_assert(CT::NotSemantic<T>, "T can't be semantic");
+      static constexpr bool Ownership = true;
 
       /// Makes TOwned CT::Typed                                              
       using MemberType = T;

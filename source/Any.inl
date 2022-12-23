@@ -37,35 +37,6 @@ namespace Langulus::Anyness
    Any::Any(T&& other) requires CT::Mutable<T>
       : Any {Langulus::Move(other)} {}
 
-   /// Same as copy-construction, but doesn't reference anything              
-   ///   @param other - the block to copy                                     
-   /*template<CT::Semantic S>
-   constexpr Any::Any(S&& other) noexcept requires(CT::Deep<TypeOf<S>>)
-      : Block {static_cast<const Block&>(other.mValue)} {
-      if constexpr (!S::Move) {
-         if constexpr (S::Keep)
-            Keep();
-         else 
-            mEntry = nullptr;
-      }
-      else {
-         if constexpr (S::Keep) {
-            if constexpr (CT::Exact<TypeOf<S>, Block>) {
-               // Since we are not aware if that block is referenced or 
-               // not we reference it just in case, and we also do not  
-               // reset 'other' to avoid leaks. When using raw Blocks,  
-               // it's your responsibility to take care of ownership.   
-               Keep();
-            }
-            else {
-               other.mValue.ResetMemory();
-               other.mValue.ResetState();
-            }
-         }
-         else other.mValue.mEntry = nullptr;
-      }
-   }*/
-
    /// Construct by copying/referencing value of non-block type               
    ///   @tparam T - the data type to push (deducible)                        
    ///   @param other - the dense value to shallow-copy                       
@@ -92,6 +63,7 @@ namespace Langulus::Anyness
       using T = TypeOf<S>;
       if constexpr (CT::Sparse<T>)
          MakeSparse();
+
       SetType<T, false>();
       AllocateFresh(RequestSize(1));
       InsertInner(other.Forward(), 0);
@@ -120,7 +92,10 @@ namespace Langulus::Anyness
          SetType<Decay<HEAD>, false>();
          AllocateFresh(RequestSize(sizeof...(TAIL) + 1));
 
-         InsertInner(Move(head), 0);
+         if constexpr (::std::is_rvalue_reference_v<HEAD>)
+            InsertInner(Langulus::Move(head), 0);
+         else
+            InsertInner(Langulus::Copy(head), 0);
          InsertStatic<1>(Forward<TAIL>(tail)...);
       }
       else {
@@ -276,67 +251,40 @@ namespace Langulus::Anyness
    template<CT::Semantic S>
    Any& Any::operator = (S&& other) {
       using T = TypeOf<S>;
-
       if constexpr (CT::Deep<T>) {
          if (this == &other.mValue)
             return *this;
 
          // Since Any is type-erased, we make a runtime type check      
-         LANGULUS_ASSERT(!IsTypeConstrained() || CastsToMeta(other.mValue.mType),
+         LANGULUS_ASSERT(!IsTypeConstrained() || CastsToMeta(other.mValue.GetType()),
             Assign, "Incompatible types");
 
          Free();
-         Block::operator = (other.mValue);
-
-         if constexpr (S::Move) {
-            if constexpr (S::Keep) {
-               if constexpr (CT::Exact<T, Block>) {
-                  // Since we are not aware if that block is referenced 
-                  // or not we reference it just in case, and we also   
-                  // do not reset 'other' to avoid leaks. When using    
-                  // raw Blocks, it's your responsibility to take care  
-                  // of ownership.                                      
-                  Keep();
-               }
-               else {
-                  other.mValue.ResetMemory();
-                  other.mValue.ResetState();
-               }
-            }
-         }
-         else {
-            if constexpr (S::Keep)
-               Keep();
-         }
+         new (this) Any(other.Forward());
       }
-      else if constexpr (CT::CustomData<T>) {
+      else {
          const auto meta = MetaData::Of<Decay<T>>();
 
          LANGULUS_ASSERT(!IsTypeConstrained() || CastsToMeta(meta),
             Assign, "Incompatible types");
 
-         if (GetUses() != 1 || IsSparse() != CT::Sparse<T> || !meta->Is(mType)) {
-            // Just destroy and reuse memory                               
-            // Even better - types match, so we know this container        
-            // is filled with T too, therefore we can use statically       
-            // optimized routines for destruction                          
-            CallKnownDestructors<T>();
-            mCount = 0;
-         }
-         else {
+         if (GetUses() != 1 || IsSparse() != CT::Sparse<T>) {
+            // Reset and allocate fresh memory                          
             Reset();
-            mType = meta;
-            if constexpr (CT::Sparse<T>)
-               MakeSparse();
-            else
-               MakeDense();
-
-            AllocateFresh(RequestSize(1));
+            operator << (other.Forward());
          }
+         else{
+            // Just destroy and reuse memory                            
+            CallKnownDestructors<T>();
+            mCount = 1;
 
-         InsertInner(other.Forward(), 0);
+            if constexpr (CT::Sparse<T>) {
+               GetRawSparse()->mPointer = reinterpret_cast<Byte*>(other.mValue);
+               GetRawSparse()->mEntry = nullptr;
+            }
+            else SemanticNew<T>(mRaw, other.Forward());
+         }
       }
-      else LANGULUS_ERROR("Unsupported data on assignment");
 
       return *this;
    }

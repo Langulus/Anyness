@@ -30,6 +30,8 @@ namespace Langulus::Anyness
       LANGULUS_BASES(Any);
 
    public:
+      static constexpr bool Ownership = true;
+
       static_assert(CT::Dense<T> || !CT::Same<T, KnownPointer>,
          "Can only insert dense KnownPointer(s)");
       static_assert(CT::Sparse<T> || CT::Insertable<T>,
@@ -100,9 +102,6 @@ namespace Langulus::Anyness
       TAny& operator = (S&&) noexcept requires (CT::CustomData<T> && CT::Exact<TypeOf<S>, T>);
 
    public:
-      NOD() bool CastsToMeta(DMeta) const;
-      NOD() bool CastsToMeta(DMeta, Count) const;
-      
       template<CT::Data... LIST_T>
       NOD() static TAny Wrap(LIST_T&&...);
    
@@ -148,6 +147,20 @@ namespace Langulus::Anyness
       NOD() constexpr Size GetByteSize() const noexcept;
       NOD() auto RequestSize(const Count&) const noexcept;
 
+      NOD() bool CastsToMeta(DMeta) const;
+      NOD() bool CastsToMeta(DMeta, Count) const;
+
+      template<CT::Data>
+      NOD() bool CastsTo() const;
+      template<CT::Data>
+      NOD() bool CastsTo(Count) const;
+
+      NOD() bool Is(DMeta) const noexcept;
+      template<CT::Data...>
+      NOD() constexpr bool Is() const noexcept;
+      template<CT::Data...>
+      NOD() constexpr bool IsExact() const noexcept;
+
       ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
@@ -157,9 +170,6 @@ namespace Langulus::Anyness
       Count InsertAt(const T&, const IDX&);
       template<CT::Index IDX = Offset>
       Count InsertAt(T&&, const IDX&);
-
-      template<CT::Semantic S, CT::Index IDX = Offset>
-      Count InsertAt(const T*, const T*, const IDX&);
       template<CT::Semantic S, CT::Index IDX = Offset>
       Count InsertAt(S&&, const IDX&) requires (CT::Exact<TypeOf<S>, T>);
 
@@ -169,9 +179,6 @@ namespace Langulus::Anyness
       Count Insert(const T&);
       template<Index = IndexBack>
       Count Insert(T&&);
-
-      template<CT::Semantic S, Index = IndexBack, bool MUTABLE = false>
-      Count Insert(const T*, const T*);
       template<Index = IndexBack, CT::Semantic S>
       Count Insert(S&&) requires (CT::Exact<TypeOf<S>, T>);
 
@@ -196,9 +203,6 @@ namespace Langulus::Anyness
       Count MergeAt(const T&, const IDX&);
       template<CT::Index IDX = Offset>
       Count MergeAt(T&&, const IDX&);
-
-      template<CT::Semantic S, CT::Index IDX = Offset>
-      Count MergeAt(const T*, const T*, const IDX&);
       template<CT::Semantic S, CT::Index IDX = Offset>
       Count MergeAt(S&&, const IDX&) requires (CT::Exact<TypeOf<S>, T>);
 
@@ -208,9 +212,6 @@ namespace Langulus::Anyness
       Count Merge(const T&);
       template<Index = IndexBack>
       Count Merge(T&&);
-
-      template<CT::Semantic S, Index = IndexBack, bool MUTABLE = false>
-      Count Merge(const T*, const T*);
       template<Index = IndexBack, CT::Semantic S>
       Count Merge(S&&) requires (CT::Exact<TypeOf<S>, T>);
 
@@ -304,12 +305,6 @@ namespace Langulus::Anyness
 
       constexpr void ResetState() noexcept;
       constexpr void ResetType() noexcept;
-
-      /*template<CT::Semantic S>
-      void ConstructFromContainer(S&&) requires (CT::Deep<TypeOf<S>>);
-
-      template<CT::Semantic S>
-      void AssignFromContainer(S&&) requires (CT::Deep<TypeOf<S>>);*/
 
       template<bool OVERWRITE_STATE, bool OVERWRITE_ENTRY>
       void CopyProperties(const Block&) noexcept;

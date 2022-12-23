@@ -34,52 +34,53 @@ namespace Langulus::Anyness
       Trait(const Trait&);
       Trait(Trait&&) noexcept;
 
-      template<CT::Data T>
-      Trait(const T&) requires (!CT::Same<T, Trait>);
-      template<CT::Data T>
-      Trait(T&) requires (!CT::Same<T, Trait>);
-      template<CT::Data T>
-      Trait(T&&) requires (!CT::Same<T, Trait>);
+      template<CT::NotSemantic T>
+      Trait(const T&) requires (CT::Sparse<T> || !CT::DerivedFrom<T, Trait>);
+      template<CT::NotSemantic T>
+      Trait(T&) requires (CT::Sparse<T> || !CT::DerivedFrom<T, Trait>);
+      template<CT::NotSemantic T>
+      Trait(T&&) requires (CT::Sparse<T> || !CT::DerivedFrom<T, Trait>);
 
-      Trait(Disowned<Trait>&&);
-      Trait(Abandoned<Trait>&&);
+      template<CT::Semantic S>
+      Trait(S&&) requires (CT::Sparse<TypeOf<S>> || !CT::DerivedFrom<TypeOf<S>, Trait>);
+
+      template<CT::NotSemantic T>
+      Trait(const T&) requires (CT::Dense<T> && CT::DerivedFrom<T, Trait>);
+      template<CT::NotSemantic T>
+      Trait(T&) requires (CT::Dense<T> && CT::DerivedFrom<T, Trait>);
+      template<CT::NotSemantic T>
+      Trait(T&&) requires (CT::Dense<T> && CT::DerivedFrom<T, Trait>);
+
+      template<CT::Semantic S>
+      Trait(S&&) requires (CT::Dense<TypeOf<S>> && CT::DerivedFrom<TypeOf<S>, Trait>);
 
       template<CT::Data HEAD, CT::Data... TAIL>
       Trait(HEAD&&, TAIL&&...) requires (sizeof...(TAIL) >= 1);
 
       Trait& operator = (const Trait&);
       Trait& operator = (Trait&&) noexcept;
-      Trait& operator = (const Block&);
 
-      Trait& operator = (Disowned<Trait>&&);
-      Trait& operator = (Abandoned<Trait>&&);
+      template<CT::NotSemantic T>
+      Trait& operator = (const T&) requires (CT::Sparse<T> || !CT::DerivedFrom<T, Trait>);
+      template<CT::NotSemantic T>
+      Trait& operator = (T&) requires (CT::Sparse<T> || !CT::DerivedFrom<T, Trait>);
+      template<CT::NotSemantic T>
+      Trait& operator = (T&&) requires (CT::Sparse<T> || !CT::DerivedFrom<T, Trait>);
 
-      template<CT::Deep T>
-      Trait& operator = (const T&);
-      template<CT::Deep T>
-      Trait& operator = (T&);
-      template<CT::Deep T>
-      Trait& operator = (T&&) requires CT::Mutable<T>;
+      template<CT::Semantic S>
+      Trait& operator = (S&&) requires (CT::Sparse<TypeOf<S>> || !CT::DerivedFrom<TypeOf<S>, Trait>);
 
-      template<CT::Deep T>
-      Trait& operator = (Disowned<T>&&);
-      template<CT::Deep T>
-      Trait& operator = (Abandoned<T>&&);
+      template<CT::NotSemantic T>
+      Trait& operator = (const T&) requires (CT::Dense<T> && CT::DerivedFrom<T, Trait>);
+      template<CT::NotSemantic T>
+      Trait& operator = (T&) requires (CT::Dense<T> && CT::DerivedFrom<T, Trait>);
+      template<CT::NotSemantic T>
+      Trait& operator = (T&&) requires (CT::Dense<T> && CT::DerivedFrom<T, Trait>);
 
-      template<CT::CustomData T>
-      Trait& operator = (const T&);
-      template<CT::CustomData T>
-      Trait& operator = (T&);
-      template<CT::CustomData T>
-      Trait& operator = (T&&) requires CT::Mutable<T>;
-
-      template<CT::CustomData T>
-      Trait& operator = (Disowned<T>&&);
-      template<CT::CustomData T>
-      Trait& operator = (Abandoned<T>&&);
+      template<CT::Semantic S>
+      Trait& operator = (S&&) requires (CT::Dense<TypeOf<S>> && CT::DerivedFrom<TypeOf<S>, Trait>);
 
    public:
-      void Reset();
       NOD() Trait Clone() const;
 
       template<CT::Data TRAIT, CT::Data DATA>
