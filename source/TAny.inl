@@ -163,7 +163,7 @@ namespace Langulus::Anyness
    ///   @return the meta definition of the type                              
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
-   const DMeta& TAny<T>::GetType() const noexcept {
+   DMeta TAny<T>::GetType() const noexcept {
       const_cast<DMeta&>(mType) = MetaData::Of<Decay<T>>();
       return mType;
    }
@@ -1666,8 +1666,10 @@ namespace Langulus::Anyness
          // Shrink the memory block                                     
          // Guaranteed that entry doesn't move                          
          const auto request = RequestSize(elements);
-         (void) Inner::Allocator::Reallocate(request.mByteSize, mEntry);
-         mReserved = request.mElementCount;
+         if (request.mElementCount != mReserved) {
+            (void)Inner::Allocator::Reallocate(request.mByteSize, mEntry);
+            mReserved = request.mElementCount;
+         }
       #endif
    }
 

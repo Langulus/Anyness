@@ -24,7 +24,8 @@ namespace Langulus::Anyness
 
    /// Shallow-copy construction                                              
    ///   @param other - the table to copy                                     
-   inline BlockMap::BlockMap(const BlockMap& other)
+   LANGULUS(ALWAYSINLINE)
+   BlockMap::BlockMap(const BlockMap& other)
       : mInfo {other.mInfo}
       , mKeys {other.mKeys}
       , mValues {other.mValues} {
@@ -33,7 +34,8 @@ namespace Langulus::Anyness
 
    /// Move construction                                                      
    ///   @param other - the table to move                                     
-   inline BlockMap::BlockMap(BlockMap&& other) noexcept
+   LANGULUS(ALWAYSINLINE)
+   BlockMap::BlockMap(BlockMap&& other) noexcept
       : mInfo {other.mInfo}
       , mKeys {other.mKeys}
       , mValues {other.mValues} {
@@ -41,22 +43,19 @@ namespace Langulus::Anyness
       other.mValues.ResetState();
    }
 
-   /// Shallow-copy construction without referencing                          
-   ///   @param other - the disowned table to copy                            
-   constexpr BlockMap::BlockMap(Disowned<BlockMap>&& other) noexcept
+   /// Semantic copy (block has no ownership, so always just shallow copy)    
+   ///   @tparam S - the semantic to use (irrelevant)                         
+   ///   @param other - the block to shallow-copy                             
+   template<CT::Semantic S>
+   LANGULUS(ALWAYSINLINE)
+   constexpr BlockMap::BlockMap(S&& other) noexcept requires (CT::Exact<TypeOf<S>, BlockMap>)
       : mInfo {other.mValue.mInfo}
       , mKeys {other.mValue.mKeys}
       , mValues {other.mValue.mValues} {
-      mKeys.mEntry = mValues.mEntry = nullptr;
-   }
-
-   /// Minimal move construction from abandoned table                         
-   ///   @param other - the abandoned table to move                           
-   constexpr BlockMap::BlockMap(Abandoned<BlockMap>&& other) noexcept
-      : mInfo {other.mValue.mInfo}
-      , mKeys {other.mValue.mKeys}
-      , mValues {other.mValue.mValues} {
-      other.mValue.mValues.mEntry = nullptr;
+      if constexpr (S::Move && !S::Keep)
+         other.mValue.mValues.mEntry = nullptr;
+      else if constexpr (!S::Move && !S::Keep)
+         mKeys.mEntry = mValues.mEntry = nullptr;
    }
 
    /// Destroys the map and all it's contents                                 
@@ -742,8 +741,10 @@ namespace Langulus::Anyness
    Offset BlockMap::InsertInner(const Offset& start, SK&& key, SV&& value) {
       using K = TypeOf<SK>;
       using V = TypeOf<SV>;
-      auto keyswapper = SemanticMake<typename TAny<K>::TypeInner>(key.Forward());
-      auto valswapper = SemanticMake<typename TAny<V>::TypeInner>(value.Forward());
+      using InnerK = typename TAny<K>::TypeInner;
+      using InnerV = typename TAny<V>::TypeInner;
+      auto keyswapper = SemanticMake<InnerK>(key.Forward());
+      auto valswapper = SemanticMake<InnerV>(value.Forward());
 
       // Get the starting index based on the key hash                   
       auto psl = GetInfo() + start;
@@ -781,8 +782,8 @@ namespace Langulus::Anyness
       // Might not seem like it, but we gave a guarantee, that this is  
       // eventually reached, unless key exists and returns early        
       const auto index = psl - GetInfo();
-      SemanticNew<K>(&GetRawKeys<K>()[index], Abandon(keyswapper));
-      SemanticNew<V>(&GetRawValues<V>()[index], Abandon(valswapper));
+      SemanticNew<InnerK>(&GetRawKeys<K>()[index], Abandon(keyswapper));
+      SemanticNew<InnerV>(&GetRawValues<V>()[index], Abandon(valswapper));
 
       *psl = attempts;
       ++mValues.mCount;
@@ -1217,10 +1218,24 @@ namespace Langulus::Anyness
    ///   @param key - the key to search for                                   
    ///   @return a reference to the value                                     
    template<CT::NotSemantic K>
-   decltype(auto) BlockMap::At(const K& key) {
-      auto found = FindIndex<K>(key);
-      LANGULUS_ASSERT(found != GetReserved(), OutOfRange, "Key not found");
-      return GetRawValues<K>()[found];
+   Block BlockMap::At(const K& key) {
+      const auto found = FindIndex(key);
+      if (found == GetReserved()) {
+         // Key wasn't found, but map is mutable and we can add it      
+         LANGULUS_ASSERT(
+            mValues.IsSparse() || GetValueType()->mDefaultConstructor != nullptr,
+            Construct,
+            "Can't implicitly create key - value is not default-constructible"
+         );
+
+         auto newk = Block::From(key);
+         auto newv = Any::FromMeta(GetValueType(), mValues.GetState());
+         newv.template AllocateMore<true>(1);
+         InsertUnknown(Copy(newk), Abandon(newv));
+         return GetValue(FindIndex(key));
+      }
+
+      return GetValue(found);
    }
 
    /// Returns a reference to the value found for key (const)                 
@@ -1228,8 +1243,10 @@ namespace Langulus::Anyness
    ///   @param key - the key to search for                                   
    ///   @return a reference to the value                                     
    template<CT::NotSemantic K>
-   decltype(auto) BlockMap::At(const K& key) const {
-      return const_cast<BlockMap&>(*this).template At<K>(key);
+   Block BlockMap::At(const K& key) const {
+      const auto found = FindIndex(key);
+      LANGULUS_ASSERT(found != GetReserved(), OutOfRange, "Key not found");
+      return GetValue(found);
    }
 
    /// Get a key by a safe index (const)                                      
@@ -1363,9 +1380,11 @@ namespace Langulus::Anyness
    ///   @return a the value wrapped inside an Any                            
    template<CT::NotSemantic K>
    Block BlockMap::operator[] (const K& key) const {
-      auto found = FindIndex<K>(key);
+      return At(key);
+
+      /*auto found = FindIndex<K>(key);
       LANGULUS_ASSERT(found != GetReserved(), OutOfRange, "Key not found");
-      return GetValue(found);
+      return GetValue(found);*/
    }
 
    /// Access value by key                                                    
@@ -1373,9 +1392,11 @@ namespace Langulus::Anyness
    ///   @return a the value wrapped inside an Any                            
    template<CT::NotSemantic K>
    Block BlockMap::operator[] (const K& key) {
-      auto found = FindIndex<K>(key);
+      return At(key);
+
+      /*auto found = FindIndex<K>(key);
       LANGULUS_ASSERT(found != GetReserved(), OutOfRange, "Key not found");
-      return GetValue(found);
+      return GetValue(found);*/
    }
 
    /// Get the number of inserted pairs                                       

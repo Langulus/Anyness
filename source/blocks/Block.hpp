@@ -136,8 +136,8 @@ namespace Langulus::Anyness
       constexpr Block(const Block&) noexcept = default;
       constexpr Block(Block&&) noexcept = default;
 
-      constexpr Block(Disowned<Block>&&) noexcept;
-      constexpr Block(Abandoned<Block>&&) noexcept;
+      template<CT::Semantic S>
+      constexpr Block(S&&) noexcept;
          
       explicit constexpr Block(DMeta) noexcept;
       constexpr Block(const DataState&, DMeta) noexcept;
@@ -158,6 +158,9 @@ namespace Langulus::Anyness
 
       constexpr Block& operator = (const Block&) noexcept = default;
       constexpr Block& operator = (Block&&) noexcept = default;
+
+      template<CT::Semantic S>
+      constexpr Block& operator = (S&&) noexcept;
          
       void TakeAuthority();
       void Optimize();
@@ -170,9 +173,9 @@ namespace Langulus::Anyness
       constexpr void AddState(DataState) noexcept;
       constexpr void RemoveState(DataState) noexcept;
    
-      NOD() constexpr const DMeta& GetType() const noexcept;
-      NOD() constexpr const Count& GetCount() const noexcept;
-      NOD() constexpr const Count& GetReserved() const noexcept;
+      NOD() constexpr DMeta GetType() const noexcept;
+      NOD() constexpr Count GetCount() const noexcept;
+      NOD() constexpr Count GetReserved() const noexcept;
       NOD() constexpr Size GetReservedSize() const noexcept;
       NOD() Count GetCountDeep() const noexcept;
       NOD() Count GetCountElementsDeep() const noexcept;

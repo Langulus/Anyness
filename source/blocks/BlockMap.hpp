@@ -6,8 +6,8 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "../TAny.inl"
-#include "../TPair.inl"
+#include "../TAny.hpp"
+#include "../TPair.hpp"
 
 namespace Langulus::Anyness
 {
@@ -40,17 +40,18 @@ namespace Langulus::Anyness
       Block mValues;
 
    public:
-      static constexpr bool Ownership = false;
+      static constexpr bool Ownership = true;
 
       constexpr BlockMap() = default;
 
-      template<CT::Data K, CT::Data V>
-      BlockMap(::std::initializer_list<TPair<K, V>>);
       BlockMap(const BlockMap&);
       BlockMap(BlockMap&&) noexcept;
+      template<CT::Semantic S>
+      constexpr BlockMap(S&&) noexcept requires (CT::Exact<TypeOf<S>, BlockMap>);
 
-      constexpr BlockMap(Disowned<BlockMap>&&) noexcept;
-      constexpr BlockMap(Abandoned<BlockMap>&&) noexcept;
+      template<CT::Data K, CT::Data V>
+      BlockMap(::std::initializer_list<TPair<K, V>>);
+
       ~BlockMap();
 
       BlockMap& operator = (const BlockMap&);
@@ -118,7 +119,7 @@ namespace Langulus::Anyness
       bool operator == (const BlockMap&) const;
 
       ///                                                                     
-      ///   INSERTION                                                         
+      ///   Insertion                                                         
       ///                                                                     
       template<CT::NotSemantic K, CT::NotSemantic V>
       Count Insert(const K&, const V&);
@@ -140,10 +141,10 @@ namespace Langulus::Anyness
       BlockMap& operator << (Pair&&);
 
       template<CT::Semantic S>
-      BlockMap& operator << (S&&) requires (CT::Pair<typename S::Type>);
+      BlockMap& operator << (S&&) requires (CT::Pair<TypeOf<S>>);
 
       ///                                                                     
-      ///   REMOVAL                                                           
+      ///   Removal                                                           
       ///                                                                     
       template<CT::NotSemantic K>
       Count RemoveKey(const K&);
@@ -158,7 +159,7 @@ namespace Langulus::Anyness
       void Compact();
 
       ///                                                                     
-      ///   SEARCH                                                            
+      ///   Search                                                            
       ///                                                                     
       template<CT::NotSemantic K>
       NOD() bool ContainsKey(const K&) const;
@@ -170,9 +171,9 @@ namespace Langulus::Anyness
       NOD() Index FindKeyIndex(const K&) const;
 
       template<CT::NotSemantic K>
-      NOD() decltype(auto) At(const K&);
+      NOD() Block At(const K&);
       template<CT::NotSemantic K>
-      NOD() decltype(auto) At(const K&) const;
+      NOD() Block At(const K&) const;
 
       template<CT::NotSemantic K>
       NOD() Block operator[] (const K&) const;
@@ -187,7 +188,7 @@ namespace Langulus::Anyness
       NOD() Pair GetPair(const Index&);
 
       ///                                                                     
-      ///   ITERATION                                                         
+      ///   Iteration                                                         
       ///                                                                     
       template<bool MUTABLE>
       struct TIterator;

@@ -10,481 +10,481 @@
 
 /// See https://github.com/catchorg/Catch2/blob/devel/docs/tostring.md			
 CATCH_TRANSLATE_EXCEPTION(::Langulus::Exception const& ex) {
-	const Text serialized {ex};
-	return ::std::string {Token {serialized}};
+   const Text serialized {ex};
+   return ::std::string {Token {serialized}};
 }
 
 SCENARIO("Text containers", "[text]") {
-	GIVEN("Default text container") {
-		#include "CollectGarbage.inl"
+   GIVEN("Default text container") {
+      #include "CollectGarbage.inl"
 
-		Text text;
+      Text text;
 
-		WHEN("Nothing is done") {
-			THEN("The capacity and size change") {
-				REQUIRE_FALSE(text.IsAbstract());
-				REQUIRE_FALSE(text.IsCompressed());
-				REQUIRE_FALSE(text.IsConstant());
-				REQUIRE_FALSE(text.IsDeep());
-				REQUIRE_FALSE(text.IsSparse());
-				REQUIRE_FALSE(text.IsEncrypted());
-				REQUIRE_FALSE(text.IsFuture());
-				REQUIRE_FALSE(text.IsPast());
-				REQUIRE_FALSE(text.IsMissing());
-				REQUIRE_FALSE(text.IsOr());
-				REQUIRE_FALSE(text.IsStatic());
-				REQUIRE_FALSE(text.IsUntyped());
-				REQUIRE_FALSE(text.IsValid());
-				REQUIRE_FALSE(text.IsAllocated());
-				REQUIRE_FALSE(text.HasAuthority());
-				REQUIRE(text.IsTypeConstrained());
-				REQUIRE(text.GetType() == MetaData::Of<Letter>());
-				REQUIRE(text.Is<Letter>());
-				REQUIRE(text.IsNow());
-				REQUIRE(text.IsInvalid());
-				REQUIRE(text.IsDense());
-				REQUIRE(text.IsDefaultable());
-				REQUIRE(text.IsEmpty());
-				REQUIRE(text.GetCount() == 0);
-				REQUIRE(text.GetReserved() == 0);
-				REQUIRE(text.GetUses() == 0);
-				REQUIRE(text == "");
-				REQUIRE_FALSE(text == "no match");
-			}
-		}
+      WHEN("Nothing is done") {
+         THEN("The capacity and size change") {
+            REQUIRE_FALSE(text.IsAbstract());
+            REQUIRE_FALSE(text.IsCompressed());
+            REQUIRE_FALSE(text.IsConstant());
+            REQUIRE_FALSE(text.IsDeep());
+            REQUIRE_FALSE(text.IsSparse());
+            REQUIRE_FALSE(text.IsEncrypted());
+            REQUIRE_FALSE(text.IsFuture());
+            REQUIRE_FALSE(text.IsPast());
+            REQUIRE_FALSE(text.IsMissing());
+            REQUIRE_FALSE(text.IsOr());
+            REQUIRE_FALSE(text.IsStatic());
+            REQUIRE_FALSE(text.IsUntyped());
+            REQUIRE_FALSE(text.IsValid());
+            REQUIRE_FALSE(text.IsAllocated());
+            REQUIRE_FALSE(text.HasAuthority());
+            REQUIRE(text.IsTypeConstrained());
+            REQUIRE(text.GetType() == MetaData::Of<Letter>());
+            REQUIRE(text.Is<Letter>());
+            REQUIRE(text.IsNow());
+            REQUIRE(text.IsInvalid());
+            REQUIRE(text.IsDense());
+            REQUIRE(text.IsDefaultable());
+            REQUIRE(text.IsEmpty());
+            REQUIRE(text.GetCount() == 0);
+            REQUIRE(text.GetReserved() == 0);
+            REQUIRE(text.GetUses() == 0);
+            REQUIRE(text == "");
+            REQUIRE_FALSE(text == "no match");
+         }
+      }
 
-		WHEN("Capacity is reserved") {
-			text.Reserve(500);
+      WHEN("Capacity is reserved") {
+         text.Reserve(500);
 
-			THEN("The capacity and size change") {
-				REQUIRE_FALSE(text.IsAbstract());
-				REQUIRE_FALSE(text.IsCompressed());
-				REQUIRE_FALSE(text.IsConstant());
-				REQUIRE_FALSE(text.IsDeep());
-				REQUIRE_FALSE(text.IsSparse());
-				REQUIRE_FALSE(text.IsEncrypted());
-				REQUIRE_FALSE(text.IsFuture());
-				REQUIRE_FALSE(text.IsPast());
-				REQUIRE_FALSE(text.IsMissing());
-				REQUIRE_FALSE(text.IsOr());
-				REQUIRE_FALSE(text.IsStatic());
-				REQUIRE_FALSE(text.IsUntyped());
-				REQUIRE_FALSE(text.IsValid());
-				REQUIRE(text.IsTypeConstrained());
-				REQUIRE(text.GetType() == MetaData::Of<Letter>());
-				REQUIRE(text.Is<Letter>());
-				REQUIRE(text.IsNow());
-				REQUIRE(text.IsInvalid());
-				REQUIRE(text.IsDense());
-				REQUIRE(text.IsDefaultable());
-				REQUIRE(text.IsEmpty());
-				REQUIRE(text.IsAllocated());
-				REQUIRE(text.GetCount() == 0);
-				REQUIRE(text.GetReserved() >= 500);
-				REQUIRE(text.GetUses() == 1);
-				REQUIRE(text.HasAuthority());
-				REQUIRE(text == "");
-				REQUIRE_FALSE(text == "no match");
-			}
-		}
+         THEN("The capacity and size change") {
+            REQUIRE_FALSE(text.IsAbstract());
+            REQUIRE_FALSE(text.IsCompressed());
+            REQUIRE_FALSE(text.IsConstant());
+            REQUIRE_FALSE(text.IsDeep());
+            REQUIRE_FALSE(text.IsSparse());
+            REQUIRE_FALSE(text.IsEncrypted());
+            REQUIRE_FALSE(text.IsFuture());
+            REQUIRE_FALSE(text.IsPast());
+            REQUIRE_FALSE(text.IsMissing());
+            REQUIRE_FALSE(text.IsOr());
+            REQUIRE_FALSE(text.IsStatic());
+            REQUIRE_FALSE(text.IsUntyped());
+            REQUIRE_FALSE(text.IsValid());
+            REQUIRE(text.IsTypeConstrained());
+            REQUIRE(text.GetType() == MetaData::Of<Letter>());
+            REQUIRE(text.Is<Letter>());
+            REQUIRE(text.IsNow());
+            REQUIRE(text.IsInvalid());
+            REQUIRE(text.IsDense());
+            REQUIRE(text.IsDefaultable());
+            REQUIRE(text.IsEmpty());
+            REQUIRE(text.IsAllocated());
+            REQUIRE(text.GetCount() == 0);
+            REQUIRE(text.GetReserved() >= 500);
+            REQUIRE(text.GetUses() == 1);
+            REQUIRE(text.HasAuthority());
+            REQUIRE(text == "");
+            REQUIRE_FALSE(text == "no match");
+         }
+      }
 
-		WHEN("Directly assigned to itself") {
-			text = text;
+      WHEN("Directly assigned to itself") {
+         text = text;
 
-			THEN("The capacity and size change") {
-				REQUIRE_FALSE(text.IsAbstract());
-				REQUIRE_FALSE(text.IsCompressed());
-				REQUIRE_FALSE(text.IsConstant());
-				REQUIRE_FALSE(text.IsDeep());
-				REQUIRE_FALSE(text.IsSparse());
-				REQUIRE_FALSE(text.IsEncrypted());
-				REQUIRE_FALSE(text.IsFuture());
-				REQUIRE_FALSE(text.IsPast());
-				REQUIRE_FALSE(text.IsMissing());
-				REQUIRE_FALSE(text.IsOr());
-				REQUIRE_FALSE(text.IsStatic());
-				REQUIRE_FALSE(text.IsUntyped());
-				REQUIRE_FALSE(text.IsValid());
-				REQUIRE_FALSE(text.IsAllocated());
-				REQUIRE_FALSE(text.HasAuthority());
-				REQUIRE(text.IsTypeConstrained());
-				REQUIRE(text.GetType() == MetaData::Of<Letter>());
-				REQUIRE(text.Is<Letter>());
-				REQUIRE(text.IsNow());
-				REQUIRE(text.IsInvalid());
-				REQUIRE(text.IsDense());
-				REQUIRE(text.IsDefaultable());
-				REQUIRE(text.IsEmpty());
-				REQUIRE(text.GetCount() == 0);
-				REQUIRE(text.GetReserved() == 0);
-				REQUIRE(text.GetUses() == 0);
-				REQUIRE(text == "");
-				REQUIRE_FALSE(text == "no match");
-			}
-		}
+         THEN("The capacity and size change") {
+            REQUIRE_FALSE(text.IsAbstract());
+            REQUIRE_FALSE(text.IsCompressed());
+            REQUIRE_FALSE(text.IsConstant());
+            REQUIRE_FALSE(text.IsDeep());
+            REQUIRE_FALSE(text.IsSparse());
+            REQUIRE_FALSE(text.IsEncrypted());
+            REQUIRE_FALSE(text.IsFuture());
+            REQUIRE_FALSE(text.IsPast());
+            REQUIRE_FALSE(text.IsMissing());
+            REQUIRE_FALSE(text.IsOr());
+            REQUIRE_FALSE(text.IsStatic());
+            REQUIRE_FALSE(text.IsUntyped());
+            REQUIRE_FALSE(text.IsValid());
+            REQUIRE_FALSE(text.IsAllocated());
+            REQUIRE_FALSE(text.HasAuthority());
+            REQUIRE(text.IsTypeConstrained());
+            REQUIRE(text.GetType() == MetaData::Of<Letter>());
+            REQUIRE(text.Is<Letter>());
+            REQUIRE(text.IsNow());
+            REQUIRE(text.IsInvalid());
+            REQUIRE(text.IsDense());
+            REQUIRE(text.IsDefaultable());
+            REQUIRE(text.IsEmpty());
+            REQUIRE(text.GetCount() == 0);
+            REQUIRE(text.GetReserved() == 0);
+            REQUIRE(text.GetUses() == 0);
+            REQUIRE(text == "");
+            REQUIRE_FALSE(text == "no match");
+         }
+      }
 
-		WHEN("Indirectly assigned to itself") {
-			const auto anothertext = text;
-			text = anothertext;
+      WHEN("Indirectly assigned to itself") {
+         const auto anothertext = text;
+         text = anothertext;
 
-			THEN("The capacity and size change") {
-				REQUIRE_FALSE(text.IsAbstract());
-				REQUIRE_FALSE(text.IsCompressed());
-				REQUIRE_FALSE(text.IsConstant());
-				REQUIRE_FALSE(text.IsDeep());
-				REQUIRE_FALSE(text.IsSparse());
-				REQUIRE_FALSE(text.IsEncrypted());
-				REQUIRE_FALSE(text.IsFuture());
-				REQUIRE_FALSE(text.IsPast());
-				REQUIRE_FALSE(text.IsMissing());
-				REQUIRE_FALSE(text.IsOr());
-				REQUIRE_FALSE(text.IsStatic());
-				REQUIRE_FALSE(text.IsUntyped());
-				REQUIRE_FALSE(text.IsValid());
-				REQUIRE_FALSE(text.IsAllocated());
-				REQUIRE_FALSE(text.HasAuthority());
-				REQUIRE(text.IsTypeConstrained());
-				REQUIRE(text.GetType() == MetaData::Of<Letter>());
-				REQUIRE(text.Is<Letter>());
-				REQUIRE(text.IsNow());
-				REQUIRE(text.IsInvalid());
-				REQUIRE(text.IsDense());
-				REQUIRE(text.IsDefaultable());
-				REQUIRE(text.IsEmpty());
-				REQUIRE(text.GetCount() == 0);
-				REQUIRE(text.GetReserved() == 0);
-				REQUIRE(text.GetUses() == 0);
-				REQUIRE(text == "");
-				REQUIRE_FALSE(text == "no match");
-			}
-		}
-	}
+         THEN("The capacity and size change") {
+            REQUIRE_FALSE(text.IsAbstract());
+            REQUIRE_FALSE(text.IsCompressed());
+            REQUIRE_FALSE(text.IsConstant());
+            REQUIRE_FALSE(text.IsDeep());
+            REQUIRE_FALSE(text.IsSparse());
+            REQUIRE_FALSE(text.IsEncrypted());
+            REQUIRE_FALSE(text.IsFuture());
+            REQUIRE_FALSE(text.IsPast());
+            REQUIRE_FALSE(text.IsMissing());
+            REQUIRE_FALSE(text.IsOr());
+            REQUIRE_FALSE(text.IsStatic());
+            REQUIRE_FALSE(text.IsUntyped());
+            REQUIRE_FALSE(text.IsValid());
+            REQUIRE_FALSE(text.IsAllocated());
+            REQUIRE_FALSE(text.HasAuthority());
+            REQUIRE(text.IsTypeConstrained());
+            REQUIRE(text.GetType() == MetaData::Of<Letter>());
+            REQUIRE(text.Is<Letter>());
+            REQUIRE(text.IsNow());
+            REQUIRE(text.IsInvalid());
+            REQUIRE(text.IsDense());
+            REQUIRE(text.IsDefaultable());
+            REQUIRE(text.IsEmpty());
+            REQUIRE(text.GetCount() == 0);
+            REQUIRE(text.GetReserved() == 0);
+            REQUIRE(text.GetUses() == 0);
+            REQUIRE(text == "");
+            REQUIRE_FALSE(text == "no match");
+         }
+      }
+   }
 
-	GIVEN("Uninitialized text container") {
-		#include "CollectGarbage.inl"
+   GIVEN("Uninitialized text container") {
+      #include "CollectGarbage.inl"
 
-		Text* text;
+      Text* text;
 
-		WHEN("Constructed with a null-terminated literal") {
-			text = new Text {"test1"};
+      WHEN("Constructed with a null-terminated literal") {
+         text = new Text {"test1"};
 
-			THEN("The capacity and size change") {
-				REQUIRE_FALSE((*text).IsAbstract());
-				REQUIRE_FALSE((*text).IsCompressed());
-				REQUIRE_FALSE((*text).IsConstant());
-				REQUIRE_FALSE((*text).IsDeep());
-				REQUIRE_FALSE((*text).IsSparse());
-				REQUIRE_FALSE((*text).IsEncrypted());
-				REQUIRE_FALSE((*text).IsFuture());
-				REQUIRE_FALSE((*text).IsPast());
-				REQUIRE_FALSE((*text).IsMissing());
-				REQUIRE_FALSE((*text).IsOr());
-				REQUIRE_FALSE((*text).IsUntyped());
-				REQUIRE_FALSE((*text).IsInvalid());
-				REQUIRE_FALSE((*text).IsStatic());
-				REQUIRE((*text).IsTypeConstrained());
-				REQUIRE((*text).IsDense());
-				REQUIRE((*text).IsValid());
-				REQUIRE((*text).IsAllocated());
-				REQUIRE((*text).GetCount() == 5);
-				REQUIRE((*text).GetReserved() >= 5);
-				REQUIRE((*text).Is<Letter>());
-				REQUIRE((*text).GetRaw());
-				REQUIRE((*text).HasAuthority());
-				REQUIRE((*text) == "test1");
-				REQUIRE((*text)[0] == 't');
-				REQUIRE((*text)[1] == 'e');
-				REQUIRE((*text)[2] == 's');
-				REQUIRE((*text)[3] == 't');
-				REQUIRE((*text)[4] == '1');
-			}
+         THEN("The capacity and size change") {
+            REQUIRE_FALSE((*text).IsAbstract());
+            REQUIRE_FALSE((*text).IsCompressed());
+            REQUIRE_FALSE((*text).IsConstant());
+            REQUIRE_FALSE((*text).IsDeep());
+            REQUIRE_FALSE((*text).IsSparse());
+            REQUIRE_FALSE((*text).IsEncrypted());
+            REQUIRE_FALSE((*text).IsFuture());
+            REQUIRE_FALSE((*text).IsPast());
+            REQUIRE_FALSE((*text).IsMissing());
+            REQUIRE_FALSE((*text).IsOr());
+            REQUIRE_FALSE((*text).IsUntyped());
+            REQUIRE_FALSE((*text).IsInvalid());
+            REQUIRE_FALSE((*text).IsStatic());
+            REQUIRE((*text).IsTypeConstrained());
+            REQUIRE((*text).IsDense());
+            REQUIRE((*text).IsValid());
+            REQUIRE((*text).IsAllocated());
+            REQUIRE((*text).GetCount() == 5);
+            REQUIRE((*text).GetReserved() >= 5);
+            REQUIRE((*text).Is<Letter>());
+            REQUIRE((*text).GetRaw());
+            REQUIRE((*text).HasAuthority());
+            REQUIRE((*text) == "test1");
+            REQUIRE((*text)[0] == 't');
+            REQUIRE((*text)[1] == 'e');
+            REQUIRE((*text)[2] == 's');
+            REQUIRE((*text)[3] == 't');
+            REQUIRE((*text)[4] == '1');
+         }
 
-			delete text;
-		}
+         delete text;
+      }
 
-		WHEN("Constructed with a count-terminated literal") {
-			text = new Text {"test1", 5};
+      WHEN("Constructed with a count-terminated literal") {
+         text = new Text {"test1", 5};
 
-			THEN("The capacity and size change") {
-				REQUIRE((*text).GetCount() == 5);
-				REQUIRE((*text).GetReserved() >= 5);
-				REQUIRE((*text).Is<Letter>());
-				REQUIRE((*text).GetRaw());
-				REQUIRE((*text).HasAuthority());
-				REQUIRE((*text) == "test1");
-				REQUIRE((*text)[0] == 't');
-				REQUIRE((*text)[1] == 'e');
-				REQUIRE((*text)[2] == 's');
-				REQUIRE((*text)[3] == 't');
-				REQUIRE((*text)[4] == '1');
-			}
+         THEN("The capacity and size change") {
+            REQUIRE((*text).GetCount() == 5);
+            REQUIRE((*text).GetReserved() >= 5);
+            REQUIRE((*text).Is<Letter>());
+            REQUIRE((*text).GetRaw());
+            REQUIRE((*text).HasAuthority());
+            REQUIRE((*text) == "test1");
+            REQUIRE((*text)[0] == 't');
+            REQUIRE((*text)[1] == 'e');
+            REQUIRE((*text)[2] == 's');
+            REQUIRE((*text)[3] == 't');
+            REQUIRE((*text)[4] == '1');
+         }
 
-			delete text;
-		}
+         delete text;
+      }
 
-		WHEN("Constructed with a c-array") {
-			char test1[] = "test1";
-			text = new Text {test1};
+      WHEN("Constructed with a c-array") {
+         char test1[] = "test1";
+         text = new Text {test1};
 
-			THEN("The capacity and size change") {
-				REQUIRE((*text).GetCount() == 5);
-				REQUIRE((*text).GetReserved() >= 5);
-				REQUIRE((*text).Is<Letter>());
-				REQUIRE((*text).GetRaw());
-				REQUIRE((*text).HasAuthority());
-				REQUIRE((*text) == "test1");
-				REQUIRE((*text)[0] == 't');
-				REQUIRE((*text)[1] == 'e');
-				REQUIRE((*text)[2] == 's');
-				REQUIRE((*text)[3] == 't');
-				REQUIRE((*text)[4] == '1');
-			}
+         THEN("The capacity and size change") {
+            REQUIRE((*text).GetCount() == 5);
+            REQUIRE((*text).GetReserved() >= 5);
+            REQUIRE((*text).Is<Letter>());
+            REQUIRE((*text).GetRaw());
+            REQUIRE((*text).HasAuthority());
+            REQUIRE((*text) == "test1");
+            REQUIRE((*text)[0] == 't');
+            REQUIRE((*text)[1] == 'e');
+            REQUIRE((*text)[2] == 's');
+            REQUIRE((*text)[3] == 't');
+            REQUIRE((*text)[4] == '1');
+         }
 
-			delete text;
-		}
+         delete text;
+      }
 
-		WHEN("Constructed with a single character") {
-			text = new Text {'?'};
+      WHEN("Constructed with a single character") {
+         text = new Text {'?'};
 
-			THEN("The capacity and size change") {
-				REQUIRE((*text).GetCount() == 1);
-				REQUIRE((*text).GetReserved() >= 1);
-				REQUIRE((*text).Is<Letter>());
-				REQUIRE((*text).GetRaw());
-				REQUIRE((*text).HasAuthority());
-				REQUIRE((*text)[0] == '?');
-			}
+         THEN("The capacity and size change") {
+            REQUIRE((*text).GetCount() == 1);
+            REQUIRE((*text).GetReserved() >= 1);
+            REQUIRE((*text).Is<Letter>());
+            REQUIRE((*text).GetRaw());
+            REQUIRE((*text).HasAuthority());
+            REQUIRE((*text)[0] == '?');
+         }
 
-			delete text;
-		}
-	}
+         delete text;
+      }
+   }
 
-	GIVEN("Reserved text container") {
-		#include "CollectGarbage.inl"
+   GIVEN("Reserved text container") {
+      #include "CollectGarbage.inl"
 
-		Text text;
-		text.Reserve(500);
-		auto memory = text.GetRaw();
+      Text text;
+      text.Reserve(500);
+      auto memory = text.GetRaw();
 
-		WHEN("Text is extended") {
-			auto region = text.Extend(10);
+      WHEN("Text is extended") {
+         auto region = text.Extend(10);
 
-			THEN("The count change") {
-				REQUIRE(text.GetCount() == 10);
-				REQUIRE(text.GetReserved() >= 500);
-				REQUIRE(text.GetRaw() == memory);
-				REQUIRE(text.HasAuthority());
-				REQUIRE(region.GetCount() == 10);
-				REQUIRE(region.GetRaw() == memory);
-			}
-		}
+         THEN("The count change") {
+            REQUIRE(text.GetCount() == 10);
+            REQUIRE(text.GetReserved() >= 500);
+            REQUIRE(text.GetRaw() == memory);
+            REQUIRE(text.HasAuthority());
+            REQUIRE(region.GetCount() == 10);
+            REQUIRE(region.GetRaw() == memory);
+         }
+      }
 
-		WHEN("Text is concatenated") {
-			text += "test";
+      WHEN("Text is concatenated") {
+         text += "test";
 
-			THEN("The count change") {
-				REQUIRE(text.GetCount() == 4);
-				REQUIRE(text.GetReserved() >= 500);
-				REQUIRE(text.GetRaw() == memory);
-				REQUIRE(text.HasAuthority());
-				REQUIRE(text == "test");
-			}
-		}
+         THEN("The count change") {
+            REQUIRE(text.GetCount() == 4);
+            REQUIRE(text.GetReserved() >= 500);
+            REQUIRE(text.GetRaw() == memory);
+            REQUIRE(text.HasAuthority());
+            REQUIRE(text == "test");
+         }
+      }
 
-		WHEN("Text is cleared") {
-			text += "test";
-			text.Clear();
+      WHEN("Text is cleared") {
+         text += "test";
+         text.Clear();
 
-			THEN("Nothing should change") {
-				REQUIRE(text.GetCount() == 0);
-				REQUIRE(text.GetReserved() >= 500);
-				REQUIRE(text.GetRaw() == memory);
-				REQUIRE(text.HasAuthority());
-				REQUIRE(text != "test");
-			}
-		}
+         THEN("Nothing should change") {
+            REQUIRE(text.GetCount() == 0);
+            REQUIRE(text.GetReserved() >= 500);
+            REQUIRE(text.GetRaw() == memory);
+            REQUIRE(text.HasAuthority());
+            REQUIRE(text != "test");
+         }
+      }
 
-		WHEN("Text is reset") {
-			text += "test";
-			text.Reset();
+      WHEN("Text is reset") {
+         text += "test";
+         text.Reset();
 
-			THEN("Memory is released") {
-				REQUIRE(text.GetCount() == 0);
-				REQUIRE(text.GetReserved() == 0);
-				REQUIRE(text.GetRaw() == nullptr);
-				REQUIRE(text.GetType() == MetaData::Of<Letter>());
-				REQUIRE_FALSE(text.HasAuthority());
-				REQUIRE(text != "test");
-			}
-		}
-	}
+         THEN("Memory is released") {
+            REQUIRE(text.GetCount() == 0);
+            REQUIRE(text.GetReserved() == 0);
+            REQUIRE(text.GetRaw() == nullptr);
+            REQUIRE(text.GetType() == MetaData::Of<Letter>());
+            REQUIRE_FALSE(text.HasAuthority());
+            REQUIRE(text != "test");
+         }
+      }
+   }
 
-	GIVEN("Full text container") {
-		#include "CollectGarbage.inl"
+   GIVEN("Full text container") {
+      #include "CollectGarbage.inl"
 
-		Text text {"test1"};
-		auto memory = text.GetRaw();
+      Text text {"test1"};
+      auto memory = text.GetRaw();
 
-		WHEN("Add more text") {
-			text += "test2";
-			THEN("The size and capacity change, type will never change, and memory won't move if MANAGED_MEMORY feature is enabled") {
-				REQUIRE(text == "test1test2");
-				REQUIRE(text.GetCount() == 10);
-				REQUIRE(text.GetReserved() >= 10);
-				#if LANGULUS_FEATURE(MANAGED_MEMORY)
-					REQUIRE(text.GetRaw() == memory);
-				#endif
-				REQUIRE(text.HasAuthority());
-				REQUIRE(text.Is<Letter>());
-			}
-		}
+      WHEN("Add more text") {
+         text += "test2";
+         THEN("The size and capacity change, type will never change, and memory won't move if MANAGED_MEMORY feature is enabled") {
+            REQUIRE(text == "test1test2");
+            REQUIRE(text.GetCount() == 10);
+            REQUIRE(text.GetReserved() >= 10);
+            #if LANGULUS_FEATURE(MANAGED_MEMORY)
+               REQUIRE(text.GetRaw() == memory);
+            #endif
+            REQUIRE(text.HasAuthority());
+            REQUIRE(text.Is<Letter>());
+         }
+      }
 
-		WHEN("More capacity is reserved") {
-			text.Reserve(20);
-			THEN("The capacity changes but not the size, memory will move in order to have jurisdiction") {
-				REQUIRE(text.GetCount() == 5);
-				REQUIRE(text.GetReserved() >= 20);
-				#if LANGULUS_FEATURE(MANAGED_MEMORY)
-					REQUIRE(text.GetRaw() == memory);
-				#endif
-				REQUIRE(text.HasAuthority());
-			}
-		}
+      WHEN("More capacity is reserved") {
+         text.Reserve(20);
+         THEN("The capacity changes but not the size, memory will move in order to have jurisdiction") {
+            REQUIRE(text.GetCount() == 5);
+            REQUIRE(text.GetReserved() >= 20);
+            #if LANGULUS_FEATURE(MANAGED_MEMORY)
+               REQUIRE(text.GetRaw() == memory);
+            #endif
+            REQUIRE(text.HasAuthority());
+         }
+      }
 
-		WHEN("More capacity is reserved, via Extend()") {
-			auto region = text.Extend(10);
-			THEN("The capacity and size change") {
-				REQUIRE(text.GetCount() == 15);
-				REQUIRE(text.GetReserved() >= 15);
-				#if LANGULUS_FEATURE(MANAGED_MEMORY)
-					REQUIRE(text.GetRaw() == memory);
-				#endif
-				REQUIRE(text.HasAuthority());
-				REQUIRE(region.GetCount() == 10);
-				REQUIRE(region.GetRaw() == text.GetRaw() + 5);
-			}
-		}
+      WHEN("More capacity is reserved, via Extend()") {
+         auto region = text.Extend(10);
+         THEN("The capacity and size change") {
+            REQUIRE(text.GetCount() == 15);
+            REQUIRE(text.GetReserved() >= 15);
+            #if LANGULUS_FEATURE(MANAGED_MEMORY)
+               REQUIRE(text.GetRaw() == memory);
+            #endif
+            REQUIRE(text.HasAuthority());
+            REQUIRE(region.GetCount() == 10);
+            REQUIRE(region.GetRaw() == text.GetRaw() + 5);
+         }
+      }
 
-		WHEN("Less capacity is reserved") {
-			text.Reserve(2);
-			THEN("Capacity is not changed, but count is trimmed; memory will not move, and memory will still be outside jurisdiction") {
-				REQUIRE(text.GetCount() == 2);
-				REQUIRE(text.GetReserved() >= 5);
-				REQUIRE(text.GetRaw() == memory);
-				REQUIRE(text.HasAuthority());
-			}
-		}
+      WHEN("Less capacity is reserved") {
+         text.Reserve(2);
+         THEN("Capacity is not changed, but count is trimmed; memory will not move, and memory will still be outside jurisdiction") {
+            REQUIRE(text.GetCount() == 2);
+            REQUIRE(text.GetReserved() >= 5);
+            REQUIRE(text.GetRaw() == memory);
+            REQUIRE(text.HasAuthority());
+         }
+      }
 
-		WHEN("Text is cleared") {
-			text.Clear();
-			THEN("Size goes to zero, capacity and type are unchanged") {
-				REQUIRE(text.GetCount() == 0);
-				REQUIRE(text.GetReserved() >= 5);
-				REQUIRE(text.GetRaw() == memory);
-				REQUIRE(text.HasAuthority());
-				REQUIRE(text.Is<Letter>());
-			}
-		}
+      WHEN("Text is cleared") {
+         text.Clear();
+         THEN("Size goes to zero, capacity and type are unchanged") {
+            REQUIRE(text.GetCount() == 0);
+            REQUIRE(text.GetReserved() >= 5);
+            REQUIRE(text.GetRaw() == memory);
+            REQUIRE(text.HasAuthority());
+            REQUIRE(text.Is<Letter>());
+         }
+      }
 
-		WHEN("Text is reset") {
-			text.Reset();
-			THEN("Size and capacity goes to zero, type is unchanged, because it's a templated container") {
-				REQUIRE(text.GetCount() == 0);
-				REQUIRE(text.GetReserved() == 0);
-				REQUIRE_FALSE(text.GetRaw());
-				REQUIRE(text.Is<Letter>());
-			}
-		}
+      WHEN("Text is reset") {
+         text.Reset();
+         THEN("Size and capacity goes to zero, type is unchanged, because it's a templated container") {
+            REQUIRE(text.GetCount() == 0);
+            REQUIRE(text.GetReserved() == 0);
+            REQUIRE_FALSE(text.GetRaw());
+            REQUIRE(text.Is<Letter>());
+         }
+      }
 
-		WHEN("Text is copied shallowly") {
-			Text copy = text;
-			THEN("The new container shall contain the same data, in the same memory block; data will only be referenced") {
-				REQUIRE(text.GetCount() == copy.GetCount());
-				REQUIRE(text.GetReserved() == copy.GetReserved());
-				REQUIRE(text.GetRaw() == copy.GetRaw());
-				REQUIRE(text.GetType() == copy.GetType());
-				REQUIRE(text.HasAuthority());
-				REQUIRE(copy.HasAuthority());
-				REQUIRE(copy.GetUses() == 2);
-				REQUIRE(text.GetUses() == 2);
-			}
-		}
+      WHEN("Text is copied shallowly") {
+         Text copy = text;
+         THEN("The new container shall contain the same data, in the same memory block; data will only be referenced") {
+            REQUIRE(text.GetCount() == copy.GetCount());
+            REQUIRE(text.GetReserved() == copy.GetReserved());
+            REQUIRE(text.GetRaw() == copy.GetRaw());
+            REQUIRE(text.GetType() == copy.GetType());
+            REQUIRE(text.HasAuthority());
+            REQUIRE(copy.HasAuthority());
+            REQUIRE(copy.GetUses() == 2);
+            REQUIRE(text.GetUses() == 2);
+         }
+      }
 
-		WHEN("Text is cloned (deep copy)") {
-			Text copy = text.Clone();
-			THEN("The new container shall contain the same data, but in separate memory block") {
-				REQUIRE(text.GetCount() == copy.GetCount());
-				REQUIRE(text.GetReserved() >= copy.GetReserved());
-				REQUIRE(text.GetRaw() != copy.GetRaw());
-				REQUIRE(text.GetType() == copy.GetType());
-				REQUIRE(text.HasAuthority());
-				REQUIRE(copy.HasAuthority());
-				REQUIRE(copy.GetUses() == 1);
-				REQUIRE(text.GetUses() == 1);
-			}
-		}
+      WHEN("Text is cloned (deep copy)") {
+         Text copy = text.Clone();
+         THEN("The new container shall contain the same data, but in separate memory block") {
+            REQUIRE(text.GetCount() == copy.GetCount());
+            REQUIRE(text.GetReserved() >= copy.GetReserved());
+            REQUIRE(text.GetRaw() != copy.GetRaw());
+            REQUIRE(text.GetType() == copy.GetType());
+            REQUIRE(text.HasAuthority());
+            REQUIRE(copy.HasAuthority());
+            REQUIRE(copy.GetUses() == 1);
+            REQUIRE(text.GetUses() == 1);
+         }
+      }
 
-		WHEN("Text is reset, then allocated again") {
-			text.Reset();
-			text += "kurec";
-			THEN("Block manager should reuse the memory") {
-				REQUIRE(text.GetCount() == 5);
-				REQUIRE(text.GetReserved() >= 5);
-				REQUIRE(text.HasAuthority());
-				REQUIRE(text.Is<Letter>());
-			}
-		}
+      WHEN("Text is reset, then allocated again") {
+         text.Reset();
+         text += "kurec";
+         THEN("Block manager should reuse the memory") {
+            REQUIRE(text.GetCount() == 5);
+            REQUIRE(text.GetReserved() >= 5);
+            REQUIRE(text.HasAuthority());
+            REQUIRE(text.Is<Letter>());
+         }
+      }
 
-		WHEN("Texts are compared") {
-			THEN("The results should match") {
-				REQUIRE(text == "test1");
-				REQUIRE(text != "Tests");
-			}
-		}
-	}
+      WHEN("Texts are compared") {
+         THEN("The results should match") {
+            REQUIRE(text == "test1");
+            REQUIRE(text != "Tests");
+         }
+      }
+   }
 }
 
 TEMPLATE_TEST_CASE("Unsigned number stringification", "[text]", /*uint8_t,*/ uint16_t, uint32_t, uint64_t) {
-	Text* text;
+   Text* text;
 
-	WHEN("Constructed with a number") {
-		text = new Text{ TestType{66} };
+   WHEN("Constructed with a number") {
+      text = new Text {TestType{66}};
 
-		THEN("The capacity and size change") {
-			REQUIRE((*text).GetCount() == 2);
-			REQUIRE((*text).GetReserved() >= 2);
-			REQUIRE((*text).Is<Letter>());
-			REQUIRE((*text).GetRaw());
-			REQUIRE((*text).HasAuthority());
-			REQUIRE((*text) == "66");
-		}
+      THEN("The capacity and size change") {
+         REQUIRE((*text).GetCount() == 2);
+         REQUIRE((*text).GetReserved() >= 2);
+         REQUIRE((*text).Is<Letter>());
+         REQUIRE((*text).GetRaw());
+         REQUIRE((*text).HasAuthority());
+         REQUIRE((*text) == "66");
+      }
 
-		delete text;
-	}
+      delete text;
+   }
 }
 
 TEMPLATE_TEST_CASE("Signed number stringification", "[text]", int8_t, int16_t, int32_t, int64_t) {
-	Text* text;
+   Text* text;
 
-	WHEN("Constructed with a number") {
-		text = new Text{ TestType{-66} };
+   WHEN("Constructed with a number") {
+      text = new Text {TestType{-66}};
 
-		THEN("The capacity and size change") {
-			REQUIRE((*text).GetCount() == 3);
-			REQUIRE((*text).GetReserved() >= 3);
-			REQUIRE((*text).Is<Letter>());
-			REQUIRE((*text).GetRaw());
-			REQUIRE((*text).HasAuthority());
-			REQUIRE((*text) == "-66");
-		}
+      THEN("The capacity and size change") {
+         REQUIRE((*text).GetCount() == 3);
+         REQUIRE((*text).GetReserved() >= 3);
+         REQUIRE((*text).Is<Letter>());
+         REQUIRE((*text).GetRaw());
+         REQUIRE((*text).HasAuthority());
+         REQUIRE((*text) == "-66");
+      }
 
-		delete text;
-	}
+      delete text;
+   }
 }
 
 TEMPLATE_TEST_CASE("Logging text containers", "[text]", Text, Debug) {
-	TestType text {"some text"};
+   TestType text {"some text"};
 
-	Logger::Info() << "You should see " << text;
-	Logger::Info("You should also see ", text);
+   Logger::Info() << "You should see " << text;
+   Logger::Info("You should also see ", text);
 }

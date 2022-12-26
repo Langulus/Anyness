@@ -111,7 +111,7 @@ namespace Langulus::Anyness
       void Reserve(Count);
       NOD() TAny Clone() const;
 
-      NOD() const DMeta& GetType() const noexcept;
+      NOD() DMeta GetType() const noexcept;
       NOD() auto GetRaw() const noexcept;
       NOD() auto GetRaw() noexcept;
       NOD() auto GetRawEnd() const noexcept;

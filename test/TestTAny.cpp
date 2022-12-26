@@ -66,7 +66,6 @@ T CreateElement(const ALT_T& e) {
 /// The main test for Any/TAny containers, with all kinds of items, from      
 /// sparse to dense, from trivial to complex, from flat to deep               
 TEMPLATE_TEST_CASE("Any/TAny", "[any]", 
-   (TypePair<Any, Trait>),
    (TypePair<TAny<int>, int>),
    (TypePair<TAny<Trait>, Trait>),
    (TypePair<TAny<Traits::Count>, Traits::Count>),
@@ -80,6 +79,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
    (TypePair<TAny<Text*>, Text*>),
    //(TypePair<TAny<Block*>, Block*>),
    (TypePair<Any, int>),
+   (TypePair<Any, Trait>),
    (TypePair<Any, Traits::Count>),
    (TypePair<Any, Any>),
    (TypePair<Any, Text>),
@@ -1386,8 +1386,10 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
    }
 
    GIVEN("Container with some items") {
-      const T pack {};
-      const_cast<T&>(pack) << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
+      T pack {};
+      pack << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
+      const auto previousReserved = pack.GetReserved();
+      const auto memory = pack.GetRaw();
 
       WHEN("Given a preinitialized container with 5 elements") {
          THEN("These properties should be correct") {
@@ -1402,11 +1404,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
       }
 
       WHEN("Shallow-copy more of the same stuff to the back (<<)") {
-         #if LANGULUS_FEATURE(MANAGED_MEMORY)
-            const auto memory = pack.GetRaw();
-         #endif
-
-         const_cast<T&>(pack) << darray2[0] << darray2[1] << darray2[2] << darray2[3] << darray2[4];
+         pack << darray2[0] << darray2[1] << darray2[2] << darray2[3] << darray2[4];
 
          THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
             REQUIRE(pack.GetCount() == 10);
@@ -1448,11 +1446,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
       }
 
       WHEN("Shallow-copy more of the same stuff to the front (>>)") {
-         #if LANGULUS_FEATURE(MANAGED_MEMORY)
-            const auto memory = pack.GetRaw();
-         #endif
-
-         const_cast<T&>(pack) >> darray2[0] >> darray2[1] >> darray2[2] >> darray2[3] >> darray2[4];
+         pack >> darray2[0] >> darray2[1] >> darray2[2] >> darray2[3] >> darray2[4];
 
          THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
             REQUIRE(pack.GetCount() == 10);
@@ -1494,11 +1488,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
       }
 
       WHEN("Shallow-copy an array to the back") {
-         #if LANGULUS_FEATURE(MANAGED_MEMORY)
-            const auto memory = pack.GetRaw();
-         #endif
-
-         const_cast<T&>(pack).template Insert<IndexBack>(darray2, darray2 + 5);
+         pack.template Insert<IndexBack>(darray2, darray2 + 5);
 
          THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
             REQUIRE(pack.GetCount() == 10);
@@ -1535,11 +1525,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
       }
 
       WHEN("Shallow-copy an array to the front") {
-         #if LANGULUS_FEATURE(MANAGED_MEMORY)
-            const auto memory = pack.GetRaw();
-         #endif
-
-         const_cast<T&>(pack).template Insert<IndexFront>(darray2, darray2 + 5);
+         pack.template Insert<IndexFront>(darray2, darray2 + 5);
 
          THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
             REQUIRE(pack.GetCount() == 10);
@@ -1592,11 +1578,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
             darray3[4],
          };
 
-         #if LANGULUS_FEATURE(MANAGED_MEMORY)
-            const auto memory = pack.GetRaw();
-         #endif
-
-         const_cast<T&>(pack)
+         pack
             << ::std::move(darray3[0])
             << ::std::move(darray3[1])
             << ::std::move(darray3[2])
@@ -1665,11 +1647,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
             darray3[4],
          };
 
-         #if LANGULUS_FEATURE(MANAGED_MEMORY)
-            const auto memory = pack.GetRaw();
-         #endif
-
-         const_cast<T&>(pack)
+         pack
             >> ::std::move(darray3[0])
             >> ::std::move(darray3[1])
             >> ::std::move(darray3[2])
@@ -1723,12 +1701,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
       WHEN("Insert single item at a specific place by shallow-copy") {
          const auto i666 = CreateElement<E>(666);
-
-         #if LANGULUS_FEATURE(MANAGED_MEMORY)
-            const auto memory = pack.GetRaw();
-         #endif
-
-         const_cast<T&>(pack).InsertAt(i666, 3);
+         pack.InsertAt(i666, 3);
 
          THEN("The size changes, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
             REQUIRE(pack.GetCount() == 6);
@@ -1769,11 +1742,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
       }
 
       WHEN("Insert multiple items at a specific place by shallow-copy") {
-         #if LANGULUS_FEATURE(MANAGED_MEMORY)
-            const auto memory = pack.GetRaw();
-         #endif
-
-         const_cast<T&>(pack).InsertAt(darray2, darray2 + 5, 3);
+         pack.InsertAt(darray2, darray2 + 5, 3);
 
          THEN("The size changes, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
             REQUIRE(pack.GetCount() == 10);
@@ -1820,12 +1789,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
       WHEN("Insert single item at a specific place by move") {
          auto i666 = CreateElement<E>(666);
          const auto i666backup = i666;
-
-         #if LANGULUS_FEATURE(MANAGED_MEMORY)
-            const auto memory = pack.GetRaw();
-         #endif
-
-         const_cast<T&>(pack).InsertAt(::std::move(i666), 3);
+         pack.InsertAt(::std::move(i666), 3);
 
          THEN("The size changes, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
             REQUIRE(pack.GetCount() == 6);
@@ -1868,12 +1832,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
       WHEN("Emplace item at a specific place") {
          auto i666 = CreateElement<E>(666);
          const auto i666backup = i666;
-
-         #if LANGULUS_FEATURE(MANAGED_MEMORY)
-            const auto memory = pack.GetRaw();
-         #endif
-
-         const_cast<T&>(pack).EmplaceAt(3, ::std::move(i666));
+         pack.EmplaceAt(3, ::std::move(i666));
 
          THEN("The size changes, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
             REQUIRE(pack.GetCount() == 6);
@@ -1916,12 +1875,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
       WHEN("Emplace item at the front") {
          auto i666 = CreateElement<E>(666);
          const auto i666backup = i666;
-
-         #if LANGULUS_FEATURE(MANAGED_MEMORY)
-            const auto memory = pack.GetRaw();
-         #endif
-
-         const_cast<T&>(pack).template Emplace<IndexFront>(::std::move(i666));
+         pack.template Emplace<IndexFront>(::std::move(i666));
 
          THEN("The size changes, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
             REQUIRE(pack.GetCount() == 6);
@@ -1964,12 +1918,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
       WHEN("Emplace item at the back") {
          auto i666 = CreateElement<E>(666);
          const auto i666backup = i666;
-
-         #if LANGULUS_FEATURE(MANAGED_MEMORY)
-            const auto memory = pack.GetRaw();
-         #endif
-
-         const_cast<T&>(pack).template Emplace<IndexBack>(::std::move(i666));
+         pack.template Emplace<IndexBack>(::std::move(i666));
 
          THEN("The size changes, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
             REQUIRE(pack.GetCount() == 6);
@@ -2010,9 +1959,8 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
       }
 
       WHEN("The size is reduced by finding and removing elements, but reserved memory should remain the same on shrinking") {
-         const auto memory = pack.GetRaw();
-         const auto removed2 = const_cast<T&>(pack).RemoveValue(CreateElement<E>(2));
-         const auto removed4 = const_cast<T&>(pack).RemoveValue(CreateElement<E>(4));
+         const auto removed2 = pack.RemoveValue(CreateElement<E>(2));
+         const auto removed4 = pack.RemoveValue(CreateElement<E>(4));
 
          THEN("The size changes but not capacity") {
             REQUIRE(removed2 == 1);
@@ -2051,8 +1999,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
       }
 
       WHEN("Removing non-available elements") {
-         const auto memory = pack.GetRaw();
-         const auto removed9 = const_cast<T&>(pack).RemoveValue(9);
+         const auto removed9 = pack.RemoveValue(9);
 
          THEN("The size changes but not capacity") {
             REQUIRE(removed9 == 0);
@@ -2068,11 +2015,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
       }
 
       WHEN("More capacity is reserved") {
-         #if LANGULUS_FEATURE(MANAGED_MEMORY)
-            const auto memory = pack.GetRaw();
-         #endif
-
-         const_cast<T&>(pack).Reserve(20);
+         pack.Reserve(20);
 
          THEN("The capacity changes but not the size, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
             REQUIRE(pack.GetCount() == 5);
@@ -2087,9 +2030,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
       }
 
       WHEN("Less capacity is reserved") {
-         const auto memory = pack.GetRaw();
-         const auto previousReserved = pack.GetReserved();
-         const_cast<T&>(pack).Reserve(2);
+         pack.Reserve(2);
 
          THEN("Capacity remains unchanged, but count is trimmed; memory shouldn't move") {
             REQUIRE(pack.GetCount() == 2);
@@ -2103,9 +2044,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
       }
 
       WHEN("Pack is cleared") {
-         const auto memory = pack.GetRaw();
-         const auto previousReserved = pack.GetReserved();
-         const_cast<T&>(pack).Clear();
+         pack.Clear();
 
          THEN("Size goes to zero, capacity and type are unchanged") {
             REQUIRE(pack.GetCount() == 0);
@@ -2116,7 +2055,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
       }
 
       WHEN("Pack is reset") {
-         const_cast<T&>(pack).Reset();
+         pack.Reset();
 
          THEN("Size and capacity goes to zero, type is unchanged, because it's a templated container") {
             REQUIRE(pack.GetCount() == 0);
@@ -2131,9 +2070,8 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
             // Works only if E doesn't move entries around
             WHEN("Pack is reset, then immediately allocated again") {
                #include "CollectGarbage.inl"
-               const auto memory = pack.GetRaw();
-               const_cast<T&>(pack).Reset();
-               const_cast<T&>(pack) << CreateElement<E>(6) << CreateElement<E>(7) << CreateElement<E>(8) << CreateElement<E>(9) << CreateElement<E>(10);
+               pack.Reset();
+               pack << CreateElement<E>(6) << CreateElement<E>(7) << CreateElement<E>(8) << CreateElement<E>(9) << CreateElement<E>(10);
                THEN("Block manager should reuse the memory, if MANAGED_MEMORY feature is enabled") {
                   REQUIRE(pack.GetRaw() == memory);
                }
@@ -2142,7 +2080,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
       #endif
 
       WHEN("Pack is shallow-copied") {
-         const_cast<T&>(pack).MakeOr();
+         pack.MakeOr();
          auto copy = pack;
 
          THEN("The new pack should keep the state and data") {
@@ -2156,7 +2094,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
       }
 
       WHEN("Pack is cloned") {
-         const_cast<T&>(pack).MakeOr();
+         pack.MakeOr();
          auto clone = pack.Clone();
 
          THEN("The new pack should keep the state and data") {
@@ -2246,11 +2184,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
       }
       
       WHEN("Merge-copy an element to the back, if not found (<<=)") {
-         #if LANGULUS_FEATURE(MANAGED_MEMORY)
-            const auto memory = pack.GetRaw();
-         #endif
-
-         const_cast<T&>(pack) <<= darray2[3];
+         pack <<= darray2[3];
 
          THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
             REQUIRE(pack.GetCount() == 6);
@@ -2289,11 +2223,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
       }
 
       WHEN("Merge-copy an element to the front, if not found (>>=)") {
-         #if LANGULUS_FEATURE(MANAGED_MEMORY)
-            const auto memory = pack.GetRaw();
-         #endif
-
-         const_cast<T&>(pack) >>= darray2[3];
+         pack >>= darray2[3];
 
          THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
             REQUIRE(pack.GetCount() == 6);
@@ -2332,12 +2262,8 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
       }
 
       WHEN("Merge-move an element to the back, if not found (<<=)") {
-         #if LANGULUS_FEATURE(MANAGED_MEMORY)
-            const auto memory = pack.GetRaw();
-         #endif
-
          auto moved = darray2[3];
-         const_cast<T&>(pack) <<= ::std::move(moved);
+         pack <<= ::std::move(moved);
 
          THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
             REQUIRE(pack.GetCount() == 6);
@@ -2376,12 +2302,8 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
       }
 
       WHEN("Merge-move an element to the front, if not found (>>=)") {
-         #if LANGULUS_FEATURE(MANAGED_MEMORY)
-            const auto memory = pack.GetRaw();
-         #endif
-
          auto moved = darray2[3];
-         const_cast<T&>(pack) >>= ::std::move(moved);
+         pack >>= ::std::move(moved);
 
          THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
             REQUIRE(pack.GetCount() == 6);
@@ -2421,7 +2343,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
       WHEN("ForEach flat dense element (immutable)") {
          int it = 0;
-         pack.ForEach(
+         const_cast<const T&>(pack).ForEach(
             [&](const int& i) {
                REQUIRE(i == it + 1);
                ++it;
@@ -2467,7 +2389,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
       WHEN("ForEach flat sparse element (immutable)") {
          int it = 0;
-         pack.ForEach(
+         const_cast<const T&>(pack).ForEach(
             [&](const int* i) {
                REQUIRE(*i == it + 1);
                ++it;
@@ -2513,7 +2435,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
       WHEN("ForEachRev flat dense element (immutable)") {
          int it = 0;
-         pack.ForEachRev(
+         const_cast<const T&>(pack).ForEachRev(
             [&](const int& i) {
                REQUIRE(i == 5 - it);
                ++it;
@@ -2536,7 +2458,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
       WHEN("ForEachRev flat dense element (mutable)") {
          int it = 0;
-         const_cast<T&>(pack).ForEachRev(
+         pack.ForEachRev(
             [&](int& i) {
                REQUIRE(i == 5 - it);
                ++it;
@@ -2559,7 +2481,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
       WHEN("ForEachRev flat sparse element (immutable)") {
          int it = 0;
-         pack.ForEachRev(
+         const_cast<const T&>(pack).ForEachRev(
             [&](const int* i) {
                REQUIRE(*i == 5 - it);
                ++it;
@@ -2582,7 +2504,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
       WHEN("ForEachRev flat sparse element (mutable)") {
          int it = 0;
-         const_cast<T&>(pack).ForEachRev(
+         pack.ForEachRev(
             [&](int* i) {
                REQUIRE(*i == 5 - it);
                ++it;
