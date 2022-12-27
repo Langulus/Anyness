@@ -36,22 +36,24 @@ namespace Langulus::Anyness
 
       TPointer(const TPointer&);
       TPointer(TPointer&&) noexcept;
+
       template<CT::Semantic S>
       TPointer(S&& other) noexcept requires (CT::Exact<TypeOf<S>, TPointer>)
-         : Base {other.template Forward<Base>()} {
+         : Base {S::Nest(other.mValue.mValue)} {
          if constexpr (S::Move) {
-            // Move in the contents of the other shared pointer            
+            // Move in the contents of the other shared pointer         
             mEntry = other.mValue.mEntry;
             other.mValue.mEntry = nullptr;
          }
          else if constexpr (S::Keep) {
-            // Copy the entry of the other shared pointer                  
+            // Copy the entry of the other shared pointer               
             mEntry = other.mValue.mEntry;
 
             if (mValue) {
-               // And reference the memory if pointer is valid             
+               // And reference the memory if pointer is valid          
                if (mEntry)
                   mEntry->Keep();
+
                if constexpr (DR && CT::Referencable<T>)
                   mValue->Keep();
             }
@@ -59,28 +61,28 @@ namespace Langulus::Anyness
          else mEntry = nullptr;
       }
 
-      TPointer(MemberType);
+      TPointer(const MemberType&);
+      TPointer(MemberType&&);
+
       template<CT::Semantic S>
-      TPointer(S&& ptr) noexcept requires (CT::Exact<TypeOf<S>, TypeOf<TPointer>>)
-         : Base {ptr.template Forward<Base>()} {
+      TPointer(S&& ptr) noexcept requires (CT::Exact<TypeOf<S>, MemberType>)
+         : Base {S::Nest(ptr.mValue)} {
          if constexpr (S::Move) {
-            // Move in the contents of the other shared pointer            
+            // Move in the contents of the other shared pointer         
             #if LANGULUS_FEATURE(MANAGED_MEMORY)
-               mEntry = Inner::Allocator::Find(MetaData::Of<T>(), ptr.mValue);
+               mEntry = Inner::Allocator::Find(MetaData::Of<T>(), mValue);
             #endif
          }
          else if constexpr (S::Keep) {
-            // Copy the entry of the other shared pointer                  
-            #if LANGULUS_FEATURE(MANAGED_MEMORY)
-               mEntry = Inner::Allocator::Find(MetaData::Of<T>(), ptr.mValue);
-            #endif
-
             if (mValue) {
-               // And reference the memory if pointer is valid             
+               // Copy the entry of the other shared pointer            
                #if LANGULUS_FEATURE(MANAGED_MEMORY)
-                  if (mEntry)
-                     mEntry->Keep();
+                  mEntry = Inner::Allocator::Find(MetaData::Of<T>(), mValue);
                #endif
+
+               // And reference the memory if pointer is valid          
+               if (mEntry)
+                  mEntry->Keep();
 
                if constexpr (DR && CT::Referencable<T>)
                   mValue->Keep();
@@ -108,23 +110,49 @@ namespace Langulus::Anyness
 
       TPointer& operator = (const TPointer&);
       TPointer& operator = (TPointer&&);
-      template<CT::Semantic S>
-      TPointer& operator = (S&&) noexcept requires (CT::Exact<TypeOf<S>, TPointer>);
 
-      TPointer& operator = (MemberType);
       template<CT::Semantic S>
-      TPointer& operator = (S&&) noexcept requires (CT::Exact<TypeOf<S>, TypeOf<TPointer>>);
+      TPointer& operator = (S&& rhs) noexcept requires (CT::Exact<TypeOf<S>, TPointer>) {
+         if (rhs.mValue.mValue) {
+            if constexpr (!S::Move && S::Keep) {
+               // Always first reference the other, before dereferencing
+               // so we don't prematurely lose the data in the rare     
+               // case pointers are the same                            
+               if constexpr (DR && CT::Referencable<T>)
+                  rhs.mValue.mValue->Keep();
+               if (rhs.mValue.mEntry)
+                  rhs.mValue.mEntry->Keep();
+            }
 
-      template<CT::Sparse ALT_T>
-      TPointer& operator = (ALT_T);
-      template<class ALT_T>
-      TPointer& operator = (const TPointer<ALT_T, DR>&);
-      template<class ALT_T>
-      TPointer& operator = (TPointer<ALT_T, DR>&&);
-      template<class ALT_T>
-      TPointer& operator = (Abandoned<TPointer<ALT_T, DR>>&&);
-      template<class ALT_T>
-      TPointer& operator = (Disowned<TPointer<ALT_T, DR>>&&);
+            if (mValue)
+               ResetInner();
+
+            mValue = rhs.mValue.mValue;
+            mEntry = rhs.mValue.mEntry;
+            if constexpr (S::Move) {
+               if constexpr (S::Keep)
+                  rhs.mValue.mValue = {};
+               rhs.mValue.mEntry = {};
+            }
+
+            return *this;
+         }
+
+         Reset();
+         return *this;
+      }
+
+      TPointer& operator = (const MemberType&);
+      TPointer& operator = (MemberType&&);
+
+      template<CT::Semantic S>
+      TPointer& operator = (S&& rhs) noexcept requires (CT::Exact<TypeOf<S>, MemberType>) {
+         if (mValue)
+            ResetInner();
+
+         new (this) TPointer {rhs.Forward()};
+         return *this;
+      }
 
       NOD() operator TPointer<const T, DR>() const noexcept requires CT::Mutable<T>;
 

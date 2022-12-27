@@ -28,74 +28,19 @@ namespace Langulus::Anyness
    SHARED_POINTER()::TPointer(TPointer&& other) noexcept
       : TPointer {Langulus::Move(other)} {}
 
-   /// Semantic self-constructor                                              
-   ///   @tparam S - type of semantic                                         
-   ///   @param other - semantic value to construct with                      
-   /*TEMPLATE_SHARED()
-   template<CT::Semantic S>
+   /// Reference a raw pointer                                                
+   ///   @param ptr - pointer to reference                                    
+   TEMPLATE_SHARED()
    LANGULUS(ALWAYSINLINE)
-   SHARED_POINTER()::TPointer(S&& other) noexcept requires (CT::Exact<TypeOf<S>, SHARED_POINTER()>)
-      : Base {other.template Forward<Base>()} {
-      if constexpr (S::Move) {
-         // Move in the contents of the other shared pointer            
-         mEntry = other.mValue.mEntry;
-         other.mValue.mEntry = nullptr;
-      }
-      else if constexpr (S::Keep) {
-         // Copy the entry of the other shared pointer                  
-         mEntry = other.mValue.mEntry;
-
-         if (mValue) {
-            // And reference the memory if pointer is valid             
-            if (mEntry)
-               mEntry->Keep();
-            if constexpr (DR && CT::Referencable<T>)
-               mValue->Keep();
-         }
-      }
-      else mEntry = nullptr;
-   }*/
+   SHARED_POINTER()::TPointer(const MemberType& ptr)
+      : TPointer {Langulus::Copy(ptr)} {}
 
    /// Reference a raw pointer                                                
    ///   @param ptr - pointer to reference                                    
    TEMPLATE_SHARED()
    LANGULUS(ALWAYSINLINE)
-   SHARED_POINTER()::TPointer(MemberType ptr)
-      : TPointer {Langulus::Copy(ptr)} {}
-
-   /// Semantic construction by raw pointer                                   
-   ///   @tparam S - type of semantic                                         
-   ///   @param other - semantic raw pointer to construct with                
-   /*TEMPLATE_SHARED()
-   template<CT::Semantic S>
-   LANGULUS(ALWAYSINLINE)
-   SHARED_POINTER()::TPointer(S&& ptr) noexcept requires (CT::Exact<TypeOf<S>, TypeOf<SHARED_POINTER()>>)
-      : Base {ptr.template Forward<Base>()} {
-      if constexpr (S::Move) {
-         // Move in the contents of the other shared pointer            
-         #if LANGULUS_FEATURE(MANAGED_MEMORY)
-            mEntry = Inner::Allocator::Find(MetaData::Of<T>(), ptr.mValue);
-         #endif
-      }
-      else if constexpr (S::Keep) {
-         // Copy the entry of the other shared pointer                  
-         #if LANGULUS_FEATURE(MANAGED_MEMORY)
-            mEntry = Inner::Allocator::Find(MetaData::Of<T>(), ptr.mValue);
-         #endif
-
-         if (mValue) {
-            // And reference the memory if pointer is valid             
-            #if LANGULUS_FEATURE(MANAGED_MEMORY)
-               if (mEntry)
-                  mEntry->Keep();
-            #endif
-
-            if constexpr (DR && CT::Referencable<T>)
-               mValue->Keep();
-         }
-      }
-      else mEntry = nullptr;
-   }*/
+   SHARED_POINTER()::TPointer(MemberType&& ptr)
+      : TPointer {Langulus::Move(ptr)} {}
 
    /// Shared pointer destruction                                             
    TEMPLATE_SHARED()
@@ -168,86 +113,30 @@ namespace Langulus::Anyness
    ///   @param other - pointer to reference                                  
    TEMPLATE_SHARED()
    LANGULUS(ALWAYSINLINE)
-   SHARED_POINTER()& SHARED_POINTER()::operator = (const SHARED_POINTER()& other) {
-      if (other.mValue) {
-         // Always first reference the other, before dereferencing, so  
-         // we	don't prematurely lose the data in the rare case         
-         // pointers are the same                                       
-         if constexpr (DR && CT::Referencable<T>)
-            other.mValue->Keep();
-         if (other.mEntry)
-            other.mEntry->Keep();
-         if (mValue)
-            ResetInner();
-
-         mValue = other.mValue;
-         mEntry = other.mEntry;
-         return *this;
-      }
-      
-      Reset();
-      return *this;
+   SHARED_POINTER()& SHARED_POINTER()::operator = (const TPointer& rhs) {
+      return operator = (Langulus::Copy(rhs));
    }
 
    /// Move a shared pointer                                                  
    ///   @param other - pointer to move                                       
    TEMPLATE_SHARED()
    LANGULUS(ALWAYSINLINE)
-   SHARED_POINTER()& SHARED_POINTER()::operator = (SHARED_POINTER()&& other) {
-      if (other.mValue) {
-         if (mValue)
-            ResetInner();
-
-         mValue = other.mValue;
-         mEntry = other.mEntry;
-         other.mValue = {};
-         return *this;
-      }
-
-      Reset();
-      return *this;
+   SHARED_POINTER()& SHARED_POINTER()::operator = (TPointer&& rhs) {
+      return operator = (Langulus::Move(rhs));
    }
 
    /// Reference a raw pointer                                                
    ///   @param ptr - pointer to reference                                    
    TEMPLATE_SHARED()
    LANGULUS(ALWAYSINLINE)
-   SHARED_POINTER()& SHARED_POINTER()::operator = (MemberType ptr) {
-      if (mValue)
-         ResetInner();
-
-      new (this) TPointer<T, DR> {ptr};
-      return *this;
+   SHARED_POINTER()& SHARED_POINTER()::operator = (const MemberType& rhs) {
+      return operator = (Langulus::Copy(rhs));
    }
 
-   /// Attempt to cast any pointer to the contained pointer                   
-   ///   @param ptr - pointer to reference                                    
-   TEMPLATE_SHARED() template<CT::Sparse ALT_T>
+   TEMPLATE_SHARED()
    LANGULUS(ALWAYSINLINE)
-   SHARED_POINTER()& SHARED_POINTER()::operator = (ALT_T rhs) {
-      static_assert(CT::Constant<T> || !CT::Constant<ALT_T>,
-         "Can't assign a constant pointer to a non-constant pointer wrapper");
-
-      Reset();
-      new (this) TPointer<T, DR> {
-         dynamic_cast<Conditional<CT::Constant<ALT_T>, const T*, T*>>(rhs)
-      };
-      return *this;
-   }
-
-   /// Attempt to cast any pointer to the contained pointer                   
-   ///   @param ptr - pointer to reference                                    
-   TEMPLATE_SHARED() template<class ALT_T>
-   LANGULUS(ALWAYSINLINE)
-   SHARED_POINTER()& SHARED_POINTER()::operator = (const TPointer<ALT_T, DR>& ptr) {
-      static_assert(CT::Constant<T> || !CT::Constant<ALT_T>,
-         "Can't assign a constant pointer to a non-constant pointer wrapper");
-
-      Reset();
-      new (this) TPointer<T, DR> {
-         dynamic_cast<Conditional<CT::Constant<ALT_T>, const T*, T*>>(ptr.Get())
-      };
-      return *this;
+   SHARED_POINTER()& SHARED_POINTER()::operator = (MemberType&& rhs) {
+      return operator = (Langulus::Move(rhs));
    }
 
    /// Cast to a constant pointer, if mutable                                 
