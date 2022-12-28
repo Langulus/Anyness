@@ -556,9 +556,9 @@ namespace Langulus::Anyness
    LANGULUS(ALWAYSINLINE)
    auto TAny<T>::GetRaw() const noexcept {
       if constexpr (CT::Dense<T>)
-         return Any::GetRawAs<T>();
+         return GetRawAs<T>();
       else
-         return Any::GetRawAs<KnownPointer>();
+         return GetRawAs<KnownPointer>();
    }
 
    /// Return the typed raw data                                              
@@ -567,9 +567,9 @@ namespace Langulus::Anyness
    LANGULUS(ALWAYSINLINE)
    auto TAny<T>::GetRaw() noexcept {
       if constexpr (CT::Dense<T>)
-         return Any::GetRawAs<T>();
+         return GetRawAs<T>();
       else
-         return Any::GetRawAs<KnownPointer>();
+         return GetRawAs<KnownPointer>();
    }
 
    /// Return the typed raw data end pointer (const)                          
@@ -1023,7 +1023,7 @@ namespace Langulus::Anyness
    ///   @return 1 if the item was emplaced, 0 if not                         
    TEMPLATE()
    template<Index INDEX, class... A>
-   Count TAny<T>::Emplace(A&&...arguments) {
+   Count TAny<T>::Emplace(A&&... arguments) {
       static_assert(CT::Sparse<T> || CT::Mutable<T>,
          "Can't copy-insert into container of constant elements");
       static_assert(INDEX == IndexFront || INDEX == IndexBack,
@@ -1055,6 +1055,30 @@ namespace Langulus::Anyness
 
       ++mCount;
       return 1;
+   }
+
+   /// Create N new elements, using the provided arguments for construction   
+   /// Elements will be added to the back of the container                    
+   ///   @tparam ...A - arguments for construction (deducible)                
+   ///   @param count - number of elements to construct                       
+   ///   @param ...arguments - constructor arguments                          
+   ///   @return the number of new elements                                   
+   TEMPLATE()
+   template<class... A>
+   LANGULUS(ALWAYSINLINE)
+   Count TAny<T>::New(Count count, A&&... arguments) {
+      static_assert(::std::constructible_from<T, A...>,
+         "T not constructible by A...");
+
+      // Allocate                                                       
+      AllocateMore<false>(mCount + count);
+
+      // Call constructors                                              
+      CropInner(mCount, 0, count)
+         .template CallKnownConstructors<T>(count, Forward<A>(arguments)...);
+
+      mCount += count;
+      return count;
    }
 
    /// Push data at the back by copy-construction                             

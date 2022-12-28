@@ -139,7 +139,7 @@ namespace Langulus::Anyness
       template<CT::Semantic S>
       constexpr Block(S&&) noexcept;
          
-      explicit constexpr Block(DMeta) noexcept;
+      constexpr Block(DMeta) noexcept;
       constexpr Block(const DataState&, DMeta) noexcept;
 
       Block(const DataState&, DMeta, Count, const void*) SAFETY_NOEXCEPT();
@@ -219,16 +219,6 @@ namespace Langulus::Anyness
       NOD() constexpr const KnownPointer* GetRawSparse() const noexcept;
       
       NOD() constexpr bool IsMissingDeep() const;
-      
-      template<CT::Data T>
-      NOD() T* GetRawAs() noexcept;
-      template<CT::Data T>
-      NOD() const T* GetRawAs() const noexcept;
-      
-      template<CT::Data T>
-      NOD() T* GetRawEndAs() noexcept;
-      template<CT::Data T>
-      NOD() const T* GetRawEndAs() const noexcept;
 
       NOD() bool IsConcatable(const Block&) const noexcept;
       
@@ -554,6 +544,16 @@ namespace Langulus::Anyness
 
    protected:
       /// @cond show_protected                                                
+      template<CT::Data T>
+      NOD() T* GetRawAs() noexcept;
+      template<CT::Data T>
+      NOD() const T* GetRawAs() const noexcept;
+
+      template<CT::Data T>
+      NOD() T* GetRawEndAs() noexcept;
+      template<CT::Data T>
+      NOD() const T* GetRawEndAs() const noexcept;
+
       template<class TO, CT::Semantic S>
       void BlockTransfer(S&&);
 

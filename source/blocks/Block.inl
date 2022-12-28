@@ -3419,7 +3419,7 @@ namespace Langulus::Anyness
       }
       else {
          // Construct all dense elements in place                       
-         auto lhs = const_cast<Block&>(*this).GetRawAs<T>();
+         auto lhs = const_cast<Block&>(*this).template GetRawAs<T>();
          const auto lhsEnd = lhs + count;
          while (lhs != lhsEnd) {
             new (lhs++) Decay<T> {descriptor};
@@ -3514,8 +3514,9 @@ namespace Langulus::Anyness
       }
       else {
          // Construct dense stuff                                       
-         auto lhs = const_cast<Block&>(*this).GetRawAs<T>();
+         auto lhs = const_cast<Block&>(*this).template GetRawAs<T>();
          const auto lhsEnd = lhs + count;
+
          while (lhs != lhsEnd) {
             if constexpr (::std::constructible_from<T, A...>)
                new (lhs++) T {Forward<A>(arguments)...};

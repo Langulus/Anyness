@@ -13,27 +13,32 @@ namespace Langulus::Anyness
 
    /// Copy construct - does a shallow copy, and references                   
    ///   @param other - the container to shallow-copy                         
-   inline Any::Any(const Any& other)
+   LANGULUS(ALWAYSINLINE)
+   Any::Any(const Any& other)
       : Any {Langulus::Copy(other)} {}
 
    /// Construct by moving another container                                  
    ///   @param other - the container to move                                 
-   inline Any::Any(Any&& other) noexcept
+   LANGULUS(ALWAYSINLINE)
+   Any::Any(Any&& other) noexcept
       : Any {Langulus::Move(other)} {}
 
    /// Copy construct - does a shallow copy, and references                   
    ///   @param other - the container to shallow-copy                         
    template<CT::Deep T>
+   LANGULUS(ALWAYSINLINE)
    Any::Any(const T& other)
       : Any {Langulus::Copy(other)} {}
 
    template<CT::Deep T>
+   LANGULUS(ALWAYSINLINE)
    Any::Any(T& other)
       : Any {Langulus::Copy(other)} {}
 
    /// Construct by moving another container                                  
    ///   @param other - the container to move                                 
    template<CT::Deep T>
+   LANGULUS(ALWAYSINLINE)
    Any::Any(T&& other) requires CT::Mutable<T>
       : Any {Langulus::Move(other)} {}
 
@@ -41,10 +46,12 @@ namespace Langulus::Anyness
    ///   @tparam T - the data type to push (deducible)                        
    ///   @param other - the dense value to shallow-copy                       
    template<CT::CustomData T>
-   Any::Any(const T& other) 
+   LANGULUS(ALWAYSINLINE)
+   Any::Any(const T& other)
       : Any {Langulus::Copy(other)} {}
 
    template<CT::CustomData T>
+   LANGULUS(ALWAYSINLINE)
    Any::Any(T& other)
       : Any {Langulus::Copy(other)} {}
 
@@ -52,6 +59,7 @@ namespace Langulus::Anyness
    ///   @tparam T - the data type to push (deducible)                        
    ///   @param other - the dense value to forward and emplace	               
    template<CT::CustomData T>
+   LANGULUS(ALWAYSINLINE)
    Any::Any(T&& other) requires CT::Mutable<T>
       : Any {Langulus::Move(other)} {}
 
@@ -59,6 +67,7 @@ namespace Langulus::Anyness
    ///   @tparam T - the data type to push (deducible)                        
    ///   @param other - the disowned value                                    
    template<CT::Semantic S>
+   LANGULUS(ALWAYSINLINE)
    Any::Any(S&& other) requires (CT::CustomData<TypeOf<S>>) {
       using T = TypeOf<S>;
       if constexpr (CT::Sparse<T>)
@@ -109,7 +118,8 @@ namespace Langulus::Anyness
    }
 
    /// Destruction                                                            
-   inline Any::~Any() {
+   LANGULUS(ALWAYSINLINE)
+   Any::~Any() {
       Free();
    }
 
@@ -117,7 +127,8 @@ namespace Langulus::Anyness
    ///   @param type - type of the container                                  
    ///   @param state - optional state of the container                       
    ///   @return the new container instance                                   
-   inline Any Any::FromMeta(DMeta type, const DataState& state) noexcept {
+   LANGULUS(ALWAYSINLINE)
+   Any Any::FromMeta(DMeta type, const DataState& state) noexcept {
       return Any {Block {state, type}};
    }
 
@@ -125,7 +136,8 @@ namespace Langulus::Anyness
    ///   @param block - the source of type and state                          
    ///   @param state - additional state of the container                     
    ///   @return the new container instance                                   
-   inline Any Any::FromBlock(const Block& block, const DataState& state) noexcept {
+   LANGULUS(ALWAYSINLINE)
+   Any Any::FromBlock(const Block& block, const DataState& state) noexcept {
       return Any::FromMeta(block.GetType(), block.GetUnconstrainedState() + state);
    }
 
@@ -133,7 +145,8 @@ namespace Langulus::Anyness
    ///   @param block - the source of the state                               
    ///   @param state - additional state of the container                     
    ///   @return the new container instance                                   
-   inline Any Any::FromState(const Block& block, const DataState& state) noexcept {
+   LANGULUS(ALWAYSINLINE)
+   Any Any::FromState(const Block& block, const DataState& state) noexcept {
       return Any::FromMeta(nullptr, block.GetUnconstrainedState() + state);
    }
 
@@ -142,6 +155,7 @@ namespace Langulus::Anyness
    ///   @param state - optional state of the container                       
    ///   @return the new container instance                                   
    template<CT::Data T>
+   LANGULUS(ALWAYSINLINE)
    Any Any::From(const DataState& state) noexcept {
       const auto meta = MetaData::Of<Decay<T>>();
       if constexpr (CT::Sparse<T>)
@@ -157,6 +171,7 @@ namespace Langulus::Anyness
    ///   @param elements - sequential elements                                
    ///   @returns the pack containing the data                                
    template<CT::Data... LIST>
+   LANGULUS(ALWAYSINLINE)
    Any Any::Wrap(LIST&&... elements) {
       if constexpr (sizeof...(LIST) == 0)
          return {};
@@ -174,6 +189,7 @@ namespace Langulus::Anyness
    ///   @param tail... - the rest of the elements                            
    ///   @returns the new container containing the data                       
    template<class AS, CT::Data HEAD, CT::Data... TAIL>
+   LANGULUS(ALWAYSINLINE)
    Any Any::WrapAs(HEAD&& head, TAIL&&... tail) {
       if constexpr (sizeof...(TAIL) == 0)
          return {};
@@ -191,14 +207,16 @@ namespace Langulus::Anyness
    /// Shallow-copy assignment                                                
    ///   @param other - the container to copy                                 
    ///   @return a reference to this container                                
-   inline Any& Any::operator = (const Any& other) {
+   LANGULUS(ALWAYSINLINE)
+   Any& Any::operator = (const Any& other) {
       return Any::template operator = <Any>(other);
    }
 
    /// Move assignment                                                        
    ///   @param other - the container to move and reset                       
    ///   @return a reference to this container                                
-   inline Any& Any::operator = (Any&& other) noexcept {
+   LANGULUS(ALWAYSINLINE)
+   Any& Any::operator = (Any&& other) noexcept {
       return Any::template operator = <Any>(Forward<Any>(other));
    }
 
@@ -206,11 +224,13 @@ namespace Langulus::Anyness
    ///   @param other - the container to copy                                 
    ///   @return a reference to this container                                
    template<CT::Deep T>
+   LANGULUS(ALWAYSINLINE)
    Any& Any::operator = (const T& other) {
       return operator = (Langulus::Copy(other));
    }
    
    template<CT::Deep T>
+   LANGULUS(ALWAYSINLINE)
    Any& Any::operator = (T& other) {
       return operator = (Langulus::Copy(other));
    }
@@ -219,6 +239,7 @@ namespace Langulus::Anyness
    ///   @param other - the container to move and reset                       
    ///   @return a reference to this container                                
    template<CT::Deep T>
+   LANGULUS(ALWAYSINLINE)
    Any& Any::operator = (T&& other) requires CT::Mutable<T> {
       return operator = (Langulus::Move(other));
    }
@@ -228,11 +249,13 @@ namespace Langulus::Anyness
    ///   @param other - the item to copy                                      
    ///   @return a reference to this container                                
    template<CT::CustomData T>
+   LANGULUS(ALWAYSINLINE)
    Any& Any::operator = (const T& other) {
       return operator = (Langulus::Copy(other));
    }
 
    template<CT::CustomData T>
+   LANGULUS(ALWAYSINLINE)
    Any& Any::operator = (T& other) {
       return operator = (Langulus::Copy(other));
    }
@@ -241,6 +264,7 @@ namespace Langulus::Anyness
    ///   @param other - the item to move                                      
    ///   @return a reference to this container                                
    template<CT::CustomData T>
+   LANGULUS(ALWAYSINLINE)
    Any& Any::operator = (T&& other) requires CT::Mutable<T> {
       return operator = (Langulus::Move(other));
    }
@@ -291,14 +315,16 @@ namespace Langulus::Anyness
 
    /// Clone container                                                        
    ///   @return the cloned container                                         
-   inline Any Any::Clone() const {
+   LANGULUS(ALWAYSINLINE)
+   Any Any::Clone() const {
       Any clone;
       Block::Clone(clone);
       return Abandon(clone);
    }
 
    /// Destroy all elements, but retain allocated memory if possible          
-   inline void Any::Clear() {
+   LANGULUS(ALWAYSINLINE)
+   void Any::Clear() {
       if (IsEmpty())
          return;
 
@@ -323,6 +349,7 @@ namespace Langulus::Anyness
    ///   @param other - the data to insert                                    
    ///   @return a reference to this container for chaining                   
    template<CT::NotSemantic T>
+   LANGULUS(ALWAYSINLINE)
    Any& Any::operator << (const T& other) {
       Insert<IndexBack>(Langulus::Copy(other));
       return *this;
@@ -332,6 +359,7 @@ namespace Langulus::Anyness
    /// Dimo, I know you want to remove this, but don't, said Dimo to himself  
    /// after actually deleting this function numerous times                   
    template<CT::NotSemantic T>
+   LANGULUS(ALWAYSINLINE)
    Any& Any::operator << (T& other) {
       Insert<IndexBack>(Langulus::Copy(other));
       return *this;
@@ -341,6 +369,7 @@ namespace Langulus::Anyness
    ///   @param other - the data to insert                                    
    ///   @return a reference to this container for chaining                   
    template<CT::NotSemantic T>
+   LANGULUS(ALWAYSINLINE)
    Any& Any::operator << (T&& other) {
       Insert<IndexBack>(Langulus::Move(other));
       return *this;
@@ -350,6 +379,7 @@ namespace Langulus::Anyness
    ///   @param other - the data to insert                                    
    ///   @return a reference to this container for chaining                   
    template<CT::Semantic S>
+   LANGULUS(ALWAYSINLINE)
    Any& Any::operator << (S&& other) {
       Insert<IndexBack>(other.Forward());
       return *this;
@@ -359,6 +389,7 @@ namespace Langulus::Anyness
    ///   @param other - the data to insert                                    
    ///   @return a reference to this container for chaining                   
    template<CT::NotSemantic T>
+   LANGULUS(ALWAYSINLINE)
    Any& Any::operator >> (const T& other) {
       Insert<IndexFront>(Langulus::Copy(other));
       return *this;
@@ -368,6 +399,7 @@ namespace Langulus::Anyness
    /// Dimo, I know you want to remove this, but don't, said Dimo to himself  
    /// after actually deleting this function numerous times                   
    template<CT::NotSemantic T>
+   LANGULUS(ALWAYSINLINE)
    Any& Any::operator >> (T& other) {
       Insert<IndexFront>(Langulus::Copy(other));
       return *this;
@@ -377,6 +409,7 @@ namespace Langulus::Anyness
    ///   @param other - the data to insert                                    
    ///   @return a reference to this container for chaining                   
    template<CT::NotSemantic T>
+   LANGULUS(ALWAYSINLINE)
    Any& Any::operator >> (T&& other) {
       Insert<IndexFront>(Langulus::Move(other));
       return *this;
@@ -386,6 +419,7 @@ namespace Langulus::Anyness
    ///   @param other - the data to insert                                    
    ///   @return a reference to this container for chaining                   
    template<CT::Semantic S>
+   LANGULUS(ALWAYSINLINE)
    Any& Any::operator >> (S&& other) {
       Insert<IndexFront>(other.Forward());
       return *this;
@@ -395,6 +429,7 @@ namespace Langulus::Anyness
    ///   @param other - the data to insert                                    
    ///   @return a reference to this container for chaining                   
    template<CT::NotSemantic T>
+   LANGULUS(ALWAYSINLINE)
    Any& Any::operator <<= (const T& other) {
       Merge<IndexBack, true>(Langulus::Copy(other));
       return *this;
@@ -404,6 +439,7 @@ namespace Langulus::Anyness
    /// Dimo, I know you want to remove this, but don't, said Dimo to himself  
    /// after actually deleting this function numerous times                   
    template<CT::NotSemantic T>
+   LANGULUS(ALWAYSINLINE)
    Any& Any::operator <<= (T& other) {
       Merge<IndexBack, true>(Langulus::Copy(other));
       return *this;
@@ -413,6 +449,7 @@ namespace Langulus::Anyness
    ///   @param other - the data to insert                                    
    ///   @return a reference to this container for chaining                   
    template<CT::NotSemantic T>
+   LANGULUS(ALWAYSINLINE)
    Any& Any::operator <<= (T&& other) {
       Merge<IndexBack, true>(Langulus::Move(other));
       return *this;
@@ -422,6 +459,7 @@ namespace Langulus::Anyness
    ///   @param other - the data to insert                                    
    ///   @return a reference to this container for chaining                   
    template<CT::Semantic S>
+   LANGULUS(ALWAYSINLINE)
    Any& Any::operator <<= (S&& other) {
       Merge<IndexBack, true>(other.Forward());
       return *this;
@@ -431,6 +469,7 @@ namespace Langulus::Anyness
    ///   @param other - the data to insert                                    
    ///   @return a reference to this container for chaining                   
    template<CT::NotSemantic T>
+   LANGULUS(ALWAYSINLINE)
    Any& Any::operator >>= (const T& other) {
       Merge<IndexFront, true>(Langulus::Copy(other));
       return *this;
@@ -440,6 +479,7 @@ namespace Langulus::Anyness
    /// Dimo, I know you want to remove this, but don't, said Dimo to himself  
    /// after actually deleting this function numerous times                   
    template<CT::NotSemantic T>
+   LANGULUS(ALWAYSINLINE)
    Any& Any::operator >>= (T& other) {
       Merge<IndexFront, true>(Langulus::Copy(other));
       return *this;
@@ -449,6 +489,7 @@ namespace Langulus::Anyness
    ///   @param other - the data to insert                                    
    ///   @return a reference to this container for chaining                   
    template<CT::NotSemantic T>
+   LANGULUS(ALWAYSINLINE)
    Any& Any::operator >>= (T&& other) {
       Merge<IndexFront, true>(Langulus::Move(other));
       return *this;
@@ -458,6 +499,7 @@ namespace Langulus::Anyness
    ///   @param other - the data to insert                                    
    ///   @return a reference to this container for chaining                   
    template<CT::Semantic S>
+   LANGULUS(ALWAYSINLINE)
    Any& Any::operator >>= (S&& other) {
       Merge<IndexFront, true>(other.Forward());
       return *this;
@@ -512,9 +554,14 @@ namespace Langulus::Anyness
       else {
          // Attempt move-construction, if available                     
          if constexpr (sizeof...(A) == 1) {
-            if (Is<A...>() && IsSparse() == CT::Sparse<A...>) {
+            if (IsExact<A...>()) {
                // Single argument matches                               
-               if constexpr (CT::Sparse<A...>) {
+               region.template CallKnownConstructors<A...>(
+                  1, Forward<A>(arguments)...
+               );
+
+               // Single argument matches                               
+               /*if constexpr (CT::Sparse<A...>) {
                   // Can't directly interface pointer of pointers, we   
                   // have to wrap it first                              
                   Any wrapped {Forward<A>(arguments)...};
@@ -529,7 +576,7 @@ namespace Langulus::Anyness
                   region.template CallKnownSemanticConstructors<Decay<A>...>(
                      1, Abandon(Block::From(SparseCast(arguments)...))
                   );
-               }
+               }*/
 
                ++mCount;
                return 1;
@@ -593,9 +640,14 @@ namespace Langulus::Anyness
       else {
          // Attempt move-construction, if available                     
          if constexpr (sizeof...(A) == 1) {
-            if (Is<A...>() && IsSparse() == CT::Sparse<A...>) {
+            if (IsExact<A...>()) {
                // Single argument matches                               
-               if constexpr (CT::Sparse<A...>) {
+               region.template CallKnownConstructors<A...>(
+                  1, Forward<A>(arguments)...
+               );
+
+               // Single argument matches                               
+               /*if constexpr (CT::Sparse<A...>) {
                   // Can't directly interface pointer of pointers, we   
                   // have to wrap it first                              
                   Any wrapped {Forward<A>(arguments)...};
@@ -610,7 +662,7 @@ namespace Langulus::Anyness
                   region.template CallKnownSemanticConstructors<Decay<A>...>(
                      1, Abandon(Block::From(SparseCast(arguments)...))
                   );
-               }
+               }*/
 
                ++mCount;
                return 1;
@@ -627,8 +679,53 @@ namespace Langulus::Anyness
       return 1;
    }
 
+   /// Create N new elements, using the provided arguments for construction   
+   /// Elements will be added to the back of the container                    
+   ///   @tparam ...A - arguments for construction (deducible)                
+   ///   @param count - number of elements to construct                       
+   ///   @param ...arguments - constructor arguments                          
+   ///   @return the number of new elements                                   
+   template<class... A>
+   LANGULUS(ALWAYSINLINE)
+   Count Any::New(Count count, A&&... arguments) {
+      // Allocate the required memory - this will not initialize it     
+      AllocateMore<false>(mCount + count);
+
+      // Pick the region that should be overwritten with new stuff      
+      const auto region = CropInner(mCount, 0, count);
+      if constexpr (sizeof...(A) == 0) {
+         // Attempt default construction                                
+         //TODO if stuff moved, we should move stuff back if this throws...
+         region.CallUnknownDefaultConstructors(count);
+      }
+      else {
+         // Attempt move-construction, if available                     
+         if constexpr (sizeof...(A) == 1) {
+            using F = typename TTypeList<Decay<A>...>::First;
+            using DA = Conditional<CT::Sparse<A...>, F*, F>;
+            if (IsExact<DA>()) {
+               // Single argument matches                               
+               region.template CallKnownConstructors<DA>(
+                  count, Forward<A>(arguments)...
+               );
+               mCount += count;
+               return count;
+            }
+         }
+
+         // Attempt descriptor-construction, if available               
+         //TODO if stuff moved, we should move stuff back if this throws...
+         const Any descriptor {Forward<A>(arguments)...};
+         region.CallUnknownDescriptorConstructors(count, descriptor);
+      }
+
+      mCount += count;
+      return count;
+   }
+
    /// Reset the container                                                    
-   inline void Any::Reset() {
+   LANGULUS(ALWAYSINLINE)
+   void Any::Reset() {
       Free();
       mRaw = nullptr;
       mCount = mReserved = 0;
@@ -636,6 +733,7 @@ namespace Langulus::Anyness
    }
 
    /// Reset container state                                                  
+   LANGULUS(ALWAYSINLINE)
    constexpr void Any::ResetState() noexcept {
       mState = mState.mState & (DataState::Typed | DataState::Sparse);
       ResetType();
@@ -643,7 +741,8 @@ namespace Langulus::Anyness
 
    /// Swap two container's contents                                          
    ///   @param other - [in/out] the container to swap contents with          
-   inline void Any::Swap(Any& other) noexcept {
+   LANGULUS(ALWAYSINLINE)
+   void Any::Swap(Any& other) noexcept {
       other = ::std::exchange(*this, ::std::move(other));
    }
 
@@ -651,7 +750,8 @@ namespace Langulus::Anyness
    ///   @param start - starting element index                                
    ///   @param count - number of elements                                    
    ///   @return the container                                                
-   inline Any Any::Crop(const Offset& start, const Count& count) const {
+   LANGULUS(ALWAYSINLINE)
+   Any Any::Crop(const Offset& start, const Count& count) const {
       return Any {Block::Crop(start, count)};
    }
 
@@ -659,7 +759,8 @@ namespace Langulus::Anyness
    ///   @param start - starting element index                                
    ///   @param count - number of elements                                    
    ///   @return the container                                                
-   inline Any Any::Crop(const Offset& start, const Count& count) {
+   LANGULUS(ALWAYSINLINE)
+   Any Any::Crop(const Offset& start, const Count& count) {
       return Any {Block::Crop(start, count)};
    }
 
@@ -700,11 +801,13 @@ namespace Langulus::Anyness
    ///   @param rhs - the right operand                                       
    ///   @return the combined container                                       
    template<CT::Deep T>
+   LANGULUS(ALWAYSINLINE)
    Any Any::operator + (const T& rhs) const requires CT::Dense<T> {
       return Concatenate<Any>(Langulus::Copy(rhs));
    }
 
    template<CT::Deep T>
+   LANGULUS(ALWAYSINLINE)
    Any Any::operator + (T& rhs) const requires CT::Dense<T> {
       return Concatenate<Any>(Langulus::Copy(rhs));
    }
@@ -714,6 +817,7 @@ namespace Langulus::Anyness
    ///   @param rhs - the right operand                                       
    ///   @return the combined container                                       
    template<CT::Deep T>
+   LANGULUS(ALWAYSINLINE)
    Any Any::operator + (T&& rhs) const requires CT::Dense<T> {
       return Concatenate<Any>(Langulus::Move(rhs));
    }
@@ -723,7 +827,8 @@ namespace Langulus::Anyness
    ///   @param rhs - the right operand                                       
    ///   @return the combined container                                       
    template<CT::Semantic S>
-   Any Any::operator + (S&& rhs) const requires (CT::Deep<typename S::Type>&& CT::Dense<typename S::Type>) {
+   LANGULUS(ALWAYSINLINE)
+   Any Any::operator + (S&& rhs) const requires (CT::Deep<TypeOf<S>>&& CT::Dense<TypeOf<S>>) {
       return Concatenate<Any>(rhs.Forward());
    }
 
@@ -732,12 +837,14 @@ namespace Langulus::Anyness
    ///   @param rhs - the right operand                                       
    ///   @return a reference to this modified container                       
    template<CT::Deep T>
+   LANGULUS(ALWAYSINLINE)
    Any& Any::operator += (const T& rhs) requires CT::Dense<T> {
       InsertBlock(Langulus::Copy(rhs));
       return *this;
    }
 
    template<CT::Deep T>
+   LANGULUS(ALWAYSINLINE)
    Any& Any::operator += (T& rhs) requires CT::Dense<T> {
       InsertBlock(Langulus::Copy(rhs));
       return *this;
@@ -748,6 +855,7 @@ namespace Langulus::Anyness
    ///   @param rhs - the right operand                                       
    ///   @return a reference to this modified container                       
    template<CT::Deep T>
+   LANGULUS(ALWAYSINLINE)
    Any& Any::operator += (T&& rhs) requires CT::Dense<T> {
       InsertBlock(Langulus::Move(rhs));
       return *this;
@@ -758,7 +866,8 @@ namespace Langulus::Anyness
    ///   @param rhs - the right operand                                       
    ///   @return a reference to this modified container                       
    template<CT::Semantic S>
-   Any& Any::operator += (S&& rhs) requires (CT::Deep<typename S::Type>&& CT::Dense<typename S::Type>) {
+   LANGULUS(ALWAYSINLINE)
+   Any& Any::operator += (S&& rhs) requires (CT::Deep<TypeOf<S>>&& CT::Dense<TypeOf<S>>) {
       InsertBlock(rhs.Forward());
       return *this;
    }
@@ -769,6 +878,7 @@ namespace Langulus::Anyness
    ///   @param item - the item to search for                                 
    ///   @return the index of the found item, or IndexNone if none found      
    template<bool REVERSE, bool BY_ADDRESS_ONLY, CT::Data T>
+   LANGULUS(ALWAYSINLINE)
    Index Any::Find(const T& item, const Offset& cookie) const {
       return Block::template FindKnown<REVERSE, BY_ADDRESS_ONLY>(item, cookie);
    }
@@ -780,7 +890,8 @@ namespace Langulus::Anyness
 
    /// Get iterator to first element                                          
    ///   @return an iterator to the first element, or end if empty            
-   inline typename Any::Iterator Any::begin() noexcept {
+   LANGULUS(ALWAYSINLINE)
+   typename Any::Iterator Any::begin() noexcept {
       static_assert(sizeof(Iterator) == sizeof(ConstIterator),
          "Size mismatch - types must be binary-compatible");
       const auto constant = const_cast<const Any*>(this)->begin();
@@ -789,7 +900,8 @@ namespace Langulus::Anyness
 
    /// Get iterator to end                                                    
    ///   @return an iterator to the end element                               
-   inline typename Any::Iterator Any::end() noexcept {
+   LANGULUS(ALWAYSINLINE)
+   typename Any::Iterator Any::end() noexcept {
       static_assert(sizeof(Iterator) == sizeof(ConstIterator),
          "Size mismatch - types must be binary-compatible");
       const auto constant = const_cast<const Any*>(this)->end();
@@ -798,7 +910,8 @@ namespace Langulus::Anyness
 
    /// Get iterator to the last element                                       
    ///   @return an iterator to the last element, or end if empty             
-   inline typename Any::Iterator Any::last() noexcept {
+   LANGULUS(ALWAYSINLINE)
+   typename Any::Iterator Any::last() noexcept {
       static_assert(sizeof(Iterator) == sizeof(ConstIterator),
          "Size mismatch - types must be binary-compatible");
       const auto constant = const_cast<const Any*>(this)->last();
@@ -807,19 +920,22 @@ namespace Langulus::Anyness
 
    /// Get iterator to first element                                          
    ///   @return a constant iterator to the first element, or end if empty    
-   inline typename Any::ConstIterator Any::begin() const noexcept {
+   LANGULUS(ALWAYSINLINE)
+   typename Any::ConstIterator Any::begin() const noexcept {
       return IsEmpty() ? end() : GetElement();
    }
 
    /// Get iterator to end                                                    
    ///   @return a constant iterator to the end element                       
-   inline typename Any::ConstIterator Any::end() const noexcept {
+   LANGULUS(ALWAYSINLINE)
+   typename Any::ConstIterator Any::end() const noexcept {
       return Block {mState, mType, 0, GetRawEnd(), nullptr};
    }
 
    /// Get iterator to the last valid element                                 
    ///   @return a constant iterator to the last element, or end if empty     
-   inline typename Any::ConstIterator Any::last() const noexcept {
+   LANGULUS(ALWAYSINLINE)
+   typename Any::ConstIterator Any::last() const noexcept {
       if (IsEmpty())
          return end();
       return Block {mState, mType, 1, GetRawEnd() - GetStride(), mEntry};

@@ -166,6 +166,8 @@ namespace Langulus::Anyness
       Count EmplaceAt(const IDX&, A&&...);
       template<Index = IndexBack, class... A>
       Count Emplace(A&&...);
+      template<class... A>
+      Count New(Count, A&&...);
 
       ///                                                                     
       ///   Concatenation                                                     
@@ -177,7 +179,7 @@ namespace Langulus::Anyness
       template<CT::Deep T>
       NOD() Any operator + (T&&) const requires CT::Dense<T>;
       template<CT::Semantic S>
-      NOD() Any operator + (S&&) const requires (CT::Deep<typename S::Type> && CT::Dense<typename S::Type>);
+      NOD() Any operator + (S&&) const requires (CT::Deep<TypeOf<S>> && CT::Dense<TypeOf<S>>);
 
       template<CT::Deep T>
       Any& operator += (const T&) requires CT::Dense<T>;
@@ -186,7 +188,7 @@ namespace Langulus::Anyness
       template<CT::Deep T>
       Any& operator += (T&&) requires CT::Dense<T>;
       template<CT::Semantic S>
-      Any& operator += (S&&) requires (CT::Deep<typename S::Type>&& CT::Dense<typename S::Type>);
+      Any& operator += (S&&) requires (CT::Deep<TypeOf<S>>&& CT::Dense<TypeOf<S>>);
 
       ///                                                                     
       ///   Iteration                                                         

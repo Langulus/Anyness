@@ -550,6 +550,30 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 #endif
       }
 
+      WHEN("Populated using Any::New") {
+         if constexpr (!CT::Typed<T>) {
+            if constexpr (CT::Trait<T>)
+               pack = T::template From<Traits::Count, E>();
+            else
+               pack = T::template From<E>();
+         }
+
+         const auto created = pack.New(3, darray2[0]);
+
+         THEN("Various traits change") {
+            REQUIRE(pack.GetCount() == 3);
+            REQUIRE(created == 3);
+            REQUIRE(pack.GetType()->template Is<E>());
+            REQUIRE(pack.GetType()->template Is<DenseE>());
+            REQUIRE(pack.IsDense() == CT::Dense<E>);
+            REQUIRE(pack.IsSparse() == CT::Sparse<E>);
+            REQUIRE(pack.IsTypeConstrained() == CT::Typed<T>);
+            REQUIRE(pack.GetRaw() != nullptr);
+            REQUIRE(pack.GetUses() == 1);
+            for (auto it : pack)
+               REQUIRE(it == darray2[0]);
+         }
+      }
    }
 
    GIVEN("Container constructed by same container copy") {
