@@ -94,6 +94,49 @@ namespace Langulus::Anyness
       MakeConst();
    }
 
+   /// Sets the currently interfaces memory                                   
+   ///   @attention for internal used only, use only if you know what you're  
+   ///              doing!                                                    
+   LANGULUS(ALWAYSINLINE)
+   void Block::SetMemory(const DataState& state, DMeta meta, Count count, const void* raw) SAFETY_NOEXCEPT() {
+      SetMemory(state + DataState::Constant, meta, count, const_cast<void*>(raw));
+   }
+
+   /// Sets the currently interfaces memory                                   
+   ///   @attention for internal used only, use only if you know what you're  
+   ///              doing!                                                    
+   LANGULUS(ALWAYSINLINE)
+   void Block::SetMemory(const DataState& state, DMeta meta, Count count, void* raw) SAFETY_NOEXCEPT() {
+      SetMemory(state, meta, count, const_cast<void*>(raw),
+      #if LANGULUS_FEATURE(MANAGED_MEMORY)
+         Inner::Allocator::Find(meta, raw)
+      #else
+         nullptr
+      #endif
+      );
+   }
+
+   /// Sets the currently interfaces memory                                   
+   ///   @attention for internal used only, use only if you know what you're  
+   ///              doing!                                                    
+   LANGULUS(ALWAYSINLINE)
+   constexpr void Block::SetMemory(const DataState& state, DMeta meta, Count count, const void* raw, Inner::Allocation* entry) {
+      SetMemory(state + DataState::Constant, meta, count, const_cast<void*>(raw), entry);
+   }
+
+   /// Sets the currently interfaces memory                                   
+   ///   @attention for internal used only, use only if you know what you're  
+   ///              doing!                                                    
+   LANGULUS(ALWAYSINLINE)
+   constexpr void Block::SetMemory(const DataState& state, DMeta meta, Count count, void* raw, Inner::Allocation* entry) {
+      mRaw = static_cast<Byte*>(raw);
+      mState = state;
+      mCount = count;
+      mReserved = count;
+      mType = meta;
+      mEntry = entry;
+   }
+
    /// Create a memory block from a single typed pointer                      
    ///   @tparam T - the type of the value to wrap (deducible)                
    ///   @tparam CONSTRAIN - makes container type-constrained                 
@@ -1540,6 +1583,188 @@ namespace Langulus::Anyness
       else InsertInner(item.Forward(), mCount);
 
       return 1;
+   }
+   
+   /// Construct an item of this container's type at the specified position   
+   /// by forwarding A... as constructor arguments                            
+   /// Since this container is type-erased and exact constructor signatures   
+   /// aren't reflected, the following constructors will be attempted:        
+   ///   1. If A is a single argument of exactly the same type, the reflected 
+   ///      move constructor will be used, if available                       
+   ///   2. If A is empty, the reflected default constructor is used          
+   ///   3. If A is not empty, not exactly same as the contained type, or     
+   ///      is more than a single argument, then all arguments will be        
+   ///      wrapped in an Any, and then forwarded to the descriptor-          
+   ///      constructor, if such is reflected                                 
+   ///   If none of these constructors are available, this function throws    
+   ///   Except::Construct                                                    
+   ///   @tparam IDX - type of indexing to use (deducible)                    
+   ///   @tparam A... - argument types (deducible)                            
+   ///   @param idx - the index to emplace at                                 
+   ///   @param arguments... - the arguments to forward to constructor        
+   ///   @return 1 if the element was emplace successfully                    
+   template<CT::Index IDX, class... A>
+   Count Block::EmplaceAt(const IDX& idx, A&&... arguments) {
+      // Allocate the required memory - this will not initialize it     
+      AllocateMore<false>(mCount + 1);
+
+      const auto index = SimplifyIndex<void, false>(idx);
+      if (index < mCount) {
+         // Move memory if required                                     
+         LANGULUS_ASSERT(GetUses() == 1, Move,
+            "Moving elements that are used from multiple places");
+
+         // We need to shift elements right from the insertion point    
+         // Therefore, we call move constructors in reverse, to avoid   
+         // memory overlap                                              
+         const auto moved = mCount - index;
+         CropInner(index + 1, 0, moved)
+            .template CallUnknownSemanticConstructors<true>(
+               moved, Abandon(CropInner(index, moved, moved))
+            );
+      }
+
+      // Pick the region that should be overwritten with new stuff      
+      auto region = CropInner(index, 0, 1);
+      if constexpr (sizeof...(A) == 0) {
+         // Attempt default construction                                
+         //TODO if stuff moved, we should move stuff back if this throws...
+         region.CallUnknownDefaultConstructors(1);
+      }
+      else {
+         // Attempt move-construction, if available                     
+         if constexpr (sizeof...(A) == 1) {
+            if (IsExact<A...>()) {
+               // Single argument matches                               
+               region.template CallKnownConstructors<A...>(
+                  1, Forward<A>(arguments)...
+               );
+
+               ++mCount;
+               return 1;
+            }
+         }
+
+         // Attempt descriptor-construction, if available               
+         //TODO if stuff moved, we should move stuff back if this throws...
+         const Any descriptor {Forward<A>(arguments)...};
+         region.CallUnknownDescriptorConstructors(1, descriptor);
+      }
+
+      ++mCount;
+      return 1;
+   }
+
+   /// Construct an item of this container's type at front/back               
+   /// by forwarding A... as constructor arguments                            
+   /// Since this container is type-erased and exact constructor signatures   
+   /// aren't reflected, the following constructors will be attempted:        
+   ///   1. If A is a single argument of exactly the same type, the reflected 
+   ///      move constructor will be used, if available                       
+   ///   2. If A is empty, the reflected default constructor is used          
+   ///   3. If A is not empty, not exactly same as the contained type, or     
+   ///      is more than a single argument, then all arguments will be        
+   ///      wrapped in an Any, and then forwarded to the descriptor-          
+   ///      constructor, if such is reflected                                 
+   ///   If none of these constructors are available, this function throws    
+   ///   Except::Construct                                                    
+   ///   @tparam INDEX - the index to emplace at, IndexFront or IndexBack     
+   ///   @tparam A... - argument types (deducible)                            
+   ///   @param arguments... - the arguments to forward to constructor        
+   ///   @return 1 if the element was emplace successfully                    
+   template<Index INDEX, class... A>
+   Count Block::Emplace(A&&... arguments) {
+      // Allocate the required memory - this will not initialize it     
+      AllocateMore<false>(mCount + 1);
+
+      if constexpr (INDEX == IndexFront) {
+         // Move memory if required                                     
+         LANGULUS_ASSERT(GetUses() == 1, Move,
+            "Moving elements that are used from multiple places");
+
+         // We need to shift elements right from the insertion point    
+         // Therefore, we call move constructors in reverse, to avoid   
+         // potential memory overlap                                    
+         CropInner(1, 0, mCount)
+            .template CallUnknownSemanticConstructors<true>(
+               mCount, Abandon(CropInner(0, mCount, mCount))
+            );
+      }
+
+      // Pick the region that should be overwritten with new stuff      
+      auto region = CropInner(INDEX == IndexFront ? 0 : mCount, 0, 1);
+
+      if constexpr (sizeof...(A) == 0) {
+         // Attempt default construction                                
+         //TODO if stuff moved, we should move stuff back if this throws...
+         region.CallUnknownDefaultConstructors(1);
+      }
+      else {
+         // Attempt move-construction, if available                     
+         if constexpr (sizeof...(A) == 1) {
+            if (IsExact<A...>()) {
+               // Single argument matches                               
+               region.template CallKnownConstructors<A...>(
+                  1, Forward<A>(arguments)...
+               );
+
+               ++mCount;
+               return 1;
+            }
+         }
+
+         // Attempt descriptor-construction, if available               
+         //TODO if stuff moved, we should move stuff back if this throws...
+         const Any descriptor {Forward<A>(arguments)...};
+         region.CallUnknownDescriptorConstructors(1, descriptor);
+      }
+
+      ++mCount;
+      return 1;
+   }
+
+   /// Create N new elements, using the provided arguments for construction   
+   /// Elements will be added to the back of the container                    
+   ///   @tparam ...A - arguments for construction (deducible)                
+   ///   @param count - number of elements to construct                       
+   ///   @param ...arguments - constructor arguments                          
+   ///   @return the number of new elements                                   
+   template<class... A>
+   LANGULUS(ALWAYSINLINE)
+   Count Block::New(Count count, A&&... arguments) {
+      // Allocate the required memory - this will not initialize it     
+      AllocateMore<false>(mCount + count);
+
+      // Pick the region that should be overwritten with new stuff      
+      const auto region = CropInner(mCount, 0, count);
+      if constexpr (sizeof...(A) == 0) {
+         // Attempt default construction                                
+         //TODO if stuff moved, we should move stuff back if this throws...
+         region.CallUnknownDefaultConstructors(count);
+      }
+      else {
+         // Attempt move-construction, if available                     
+         if constexpr (sizeof...(A) == 1) {
+            using F = typename TTypeList<Decay<A>...>::First;
+            using DA = Conditional<CT::Sparse<A...>, F*, F>;
+            if (IsExact<DA>()) {
+               // Single argument matches                               
+               region.template CallKnownConstructors<DA>(
+                  count, Forward<A>(arguments)...
+               );
+               mCount += count;
+               return count;
+            }
+         }
+
+         // Attempt descriptor-construction, if available               
+         //TODO if stuff moved, we should move stuff back if this throws...
+         const Any descriptor {Forward<A>(arguments)...};
+         region.CallUnknownDescriptorConstructors(count, descriptor);
+      }
+
+      mCount += count;
+      return count;
    }
 
    /// Inner copy-insertion function                                          

@@ -66,6 +66,7 @@ T CreateElement(const ALT_T& e) {
 /// The main test for Any/TAny containers, with all kinds of items, from      
 /// sparse to dense, from trivial to complex, from flat to deep               
 TEMPLATE_TEST_CASE("Any/TAny", "[any]", 
+   (TypePair<Traits::Name, Text>),
    (TypePair<TAny<int>, int>),
    (TypePair<TAny<Trait>, Trait>),
    (TypePair<TAny<Traits::Count>, Traits::Count>),
@@ -88,9 +89,8 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
    (TypePair<Any, Trait*>),
    (TypePair<Any, Traits::Count*>),
    (TypePair<Any, Any*>),
-   (TypePair<Any, Text*>),
+   (TypePair<Any, Text*>)
    //(TypePair<Any, Block*>),
-   (TypePair<Traits::Name, Text>)
 ) {
    using T = typename TestType::Container;
    using E = typename TestType::Element;

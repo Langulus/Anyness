@@ -15,28 +15,37 @@ namespace Langulus::Anyness
 {
 
    template<CT::Semantic S>
-   constexpr Text::Text(S&& other) noexcept requires (CT::DerivedFrom<TypeOf<S>, TAny<Letter>>)
-      : TAny {other.template Forward<TAny<Letter>>()} { }
+   LANGULUS(ALWAYSINLINE)
+   Text::Text(S&& other) requires Relevant<S>
+      : TAny {other.template Forward<TAny>()} { }
 
    /// Construct from token                                                   
    /// Data will be cloned if we don't have authority over the memory         
    ///   @param text - the text to wrap                                       
-   inline Text::Text(const Token& text)
-      : Text {text.data(), text.size()} {}
+   LANGULUS(ALWAYSINLINE)
+   Text::Text(const Token& text)
+      : Text {Langulus::Copy(text.data()), text.size()} {}
 
    /// Construct manually from count-terminated C string                      
    /// Data will be cloned if we don't have authority over the memory         
    ///   @param text - text memory to reference                               
    ///   @param count - number of characters inside text                      
-   inline Text::Text(const Letter* text, const Count& count) SAFETY_NOEXCEPT()
-      : TAny {text, count} { }
+   LANGULUS(ALWAYSINLINE)
+   Text::Text(const Letter* text, const Count& count)
+      : Text {Langulus::Copy(text), count} { }
+
+   LANGULUS(ALWAYSINLINE)
+   Text::Text(Letter* text, const Count& count)
+      : Text {Langulus::Copy(text), count} { }
 
    /// Construct manually from count-terminated C string                      
    /// Data will never be cloned or referenced                                
    ///   @param text - text memory to wrap                                    
    ///   @param count - number of characters inside text                      
-   inline Text::Text(Disowned<const Letter*>&& text, const Count& count) noexcept
-      : TAny {Disown(text.mValue), count} { }
+   template<CT::Semantic S>
+   LANGULUS(ALWAYSINLINE)
+   Text::Text(S&& text, const Count& count) requires RawTextPointer<S>
+      : TAny {TAny::From(text.Forward(), count)} { }
 
    /// Construct manually from a c style array                                
    /// Data will be cloned if we don't have authority over the memory         
@@ -44,19 +53,22 @@ namespace Langulus::Anyness
    ///   @tparam C - size of the array                                        
    ///   @param text - the array                                              
    template<Count C>
-   inline Text::Text(const Letter(&text)[C])
-      : TAny {text, C - 1} { }
+   LANGULUS(ALWAYSINLINE)
+   Text::Text(const Letter(&text)[C])
+      : Text {Langulus::Copy(text), C-1} { }
 
    /// Construct from a single character                                      
    /// Data will be cloned if we don't have authority over the memory         
    ///   @tparam T - type of the character in the array                       
    ///   @param anyCharacter - the character to stringify                     
-   inline Text::Text(const Letter& anyCharacter)
-      : Text {&anyCharacter, 1} {}
+   LANGULUS(ALWAYSINLINE)
+   Text::Text(const Letter& anyCharacter)
+      : Text {Langulus::Copy(&anyCharacter), 1} { }
 
    /// Convert a number type to text                                          
    ///   @tparam T - number type to stringify                                 
    ///   @param number - the number to stringify                              
+   LANGULUS(ALWAYSINLINE)
    Text::Text(const CT::DenseNumber auto& number) {
       using T = Decay<decltype(number)>;
       if constexpr (CT::Real<T>) {
@@ -91,50 +103,63 @@ namespace Langulus::Anyness
    /// Construct from null-terminated UTF text                                
    /// Data will be cloned if we don't have authority over the memory         
    ///   @param nullterminatedText - text memory to reference                 
-   inline Text::Text(const Letter* nullterminatedText) SAFETY_NOEXCEPT()
-      : Text {nullterminatedText, 
-         nullterminatedText ? ::std::strlen(nullterminatedText) : 0
-      } {}
+   LANGULUS(ALWAYSINLINE)
+   Text::Text(const Letter* nullterminatedText)
+      : Text {Langulus::Copy(nullterminatedText)} {}
+
+   LANGULUS(ALWAYSINLINE)
+   Text::Text(Letter* nullterminatedText)
+      : Text {Langulus::Copy(nullterminatedText)} {}
 
    /// Construct from null-terminated UTF text                                
    /// Data will never be cloned or referenced                                
    ///   @param nullterminatedText - text to wrap                             
-   inline Text::Text(Disowned<const Letter*>&& nullterminatedText) noexcept
-      : Text {nullterminatedText.Forward(), 
-         nullterminatedText.mValue ? ::std::strlen(nullterminatedText.mValue) : 0
+   template<CT::Semantic S>
+   LANGULUS(ALWAYSINLINE)
+   Text::Text(S&& nullterminatedText) requires RawTextPointer<S>
+      : Text {
+         nullterminatedText.Forward(), 
+         nullterminatedText.mValue 
+            ? ::std::strlen(nullterminatedText.mValue) 
+            : 0
       } {}
 
    /// Interpret text container as a literal                                  
    ///   @attention the string is null-terminated only after Terminate()      
-   inline Text::operator Token() const noexcept {
+   LANGULUS(ALWAYSINLINE)
+   Text::operator Token() const noexcept {
       return {GetRaw(), mCount};
    }
 
    /// Compare with a std::string                                             
    ///   @param rhs - the text to compare against                             
    ///   @return true if both strings are the same                            
-   inline bool Text::operator == (const CompatibleStdString& rhs) const noexcept {
+   LANGULUS(ALWAYSINLINE)
+   bool Text::operator == (const CompatibleStdString& rhs) const noexcept {
       return operator == (Text {Disown(rhs.data()), rhs.size()});
    }
 
    /// Compare with a std::string_view                                        
    ///   @param rhs - the text to compare against                             
    ///   @return true if both strings are the same                            
-   inline bool Text::operator == (const CompatibleStdStringView& rhs) const noexcept {
+   LANGULUS(ALWAYSINLINE)
+   bool Text::operator == (const CompatibleStdStringView& rhs) const noexcept {
       return operator == (Text {Disown(rhs.data()), rhs.size()});
    }
 
    /// Compare two text containers                                            
    ///   @param rhs - the text to compare against                             
    ///   @return true if both strings are the same                            
-   inline bool Text::operator == (const Text& rhs) const noexcept {
+   LANGULUS(ALWAYSINLINE)
+   bool Text::operator == (const Text& rhs) const noexcept {
       return TAny::operator == (static_cast<const TAny&>(rhs));
    }
 
    /// Compare with a string                                                  
    ///   @param rhs - the text to compare against                             
    ///   @return true if both strings are the same                            
-   inline bool Text::operator == (const Letter* rhs) const noexcept {
+   LANGULUS(ALWAYSINLINE)
+   bool Text::operator == (const Letter* rhs) const noexcept {
       return operator == (Text {Disown(rhs)});
    }
 
@@ -146,14 +171,16 @@ namespace Langulus::Anyness
    /// Copy-concatenate with another TAny                                     
    ///   @param rhs - the right operand                                       
    ///   @return the combined container                                       
-   inline Text Text::operator + (const Text& rhs) const {
+   LANGULUS(ALWAYSINLINE)
+   Text Text::operator + (const Text& rhs) const {
       return Concatenate<Text>(Langulus::Copy(rhs));
    }
 
    /// Move-concatenate with another TAny                                     
    ///   @param rhs - the right operand                                       
    ///   @return the combined container                                       
-   inline Text Text::operator + (Text&& rhs) const {
+   LANGULUS(ALWAYSINLINE)
+   Text Text::operator + (Text&& rhs) const {
       return Concatenate<Text>(Langulus::Move(rhs));
    }
 
@@ -161,14 +188,16 @@ namespace Langulus::Anyness
    ///   @param rhs - the right operand                                       
    ///   @return the combined container                                       
    template<CT::Semantic S>
-   Text Text::operator + (S&& rhs) const requires (CT::Exact<TypeOf<S>, Text>) {
+   LANGULUS(ALWAYSINLINE)
+   Text Text::operator + (S&& rhs) const requires Relevant<S> {
       return Concatenate<Text>(rhs.Forward());
    }
 
    /// Destructive copy-concatenate with another TAny                         
    ///   @param rhs - the right operand                                       
    ///   @return a reference to this modified container                       
-   inline Text& Text::operator += (const Text& rhs) {
+   LANGULUS(ALWAYSINLINE)
+   Text& Text::operator += (const Text& rhs) {
       InsertBlock(Langulus::Copy(rhs));
       return *this;
    }
@@ -176,7 +205,8 @@ namespace Langulus::Anyness
    /// Destructive move-concatenate with any deep type                        
    ///   @param rhs - the right operand                                       
    ///   @return a reference to this modified container                       
-   inline Text& Text::operator += (Text&& rhs) {
+   LANGULUS(ALWAYSINLINE)
+   Text& Text::operator += (Text&& rhs) {
       InsertBlock(Langulus::Move(rhs));
       return *this;
    }
@@ -185,7 +215,8 @@ namespace Langulus::Anyness
    ///   @param rhs - the right operand                                       
    ///   @return a reference to this modified container                       
    template<CT::Semantic S>
-   Text& Text::operator += (S&& rhs) requires (CT::Exact<TypeOf<S>, Text>) {
+   LANGULUS(ALWAYSINLINE)
+   Text& Text::operator += (S&& rhs) requires Relevant<S> {
       InsertBlock(rhs.Forward());
       return *this;
    }
@@ -196,7 +227,8 @@ namespace Langulus
 {
 
    /// Make a text literal                                                    
-   inline Anyness::Text operator "" _text(const char* text, ::std::size_t size) {
+   LANGULUS(ALWAYSINLINE)
+   Anyness::Text operator "" _text(const char* text, ::std::size_t size) {
       return Anyness::Text {text, size};
    }
 

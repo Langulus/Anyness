@@ -30,7 +30,7 @@ namespace Langulus::Anyness
    ///   @param data - data to copy inside trait                              
    template<CT::NotSemantic T>
    LANGULUS(ALWAYSINLINE)
-   Trait::Trait(const T& data) requires (CT::Sparse<T> || !CT::DerivedFrom<T, Trait>)
+   Trait::Trait(const T& data) requires NotRelated<T>
       : Trait {Langulus::Copy(data)} {}
 
    /// Manual trait construction by copy                                      
@@ -38,7 +38,7 @@ namespace Langulus::Anyness
    ///   @param data - data to copy inside trait                              
    template<CT::NotSemantic T>
    LANGULUS(ALWAYSINLINE)
-   Trait::Trait(T& data) requires (CT::Sparse<T> || !CT::DerivedFrom<T, Trait>)
+   Trait::Trait(T& data) requires NotRelated<T>
       : Trait {Langulus::Copy(data)} {}
 
    /// Manual trait construction by movement                                  
@@ -46,7 +46,7 @@ namespace Langulus::Anyness
    ///   @param data - data to move inside trait                              
    template<CT::NotSemantic T>
    LANGULUS(ALWAYSINLINE)
-   Trait::Trait(T&& data) requires (CT::Sparse<T> || !CT::DerivedFrom<T, Trait>)
+   Trait::Trait(T&& data) requires NotRelated<T>
       : Trait {Langulus::Move(data)} {}
 
    /// Semantic trait construction                                            
@@ -54,7 +54,7 @@ namespace Langulus::Anyness
    ///   @param data - data to move inside trait                              
    template<CT::Semantic S>
    LANGULUS(ALWAYSINLINE)
-   Trait::Trait(S&& data) requires (CT::Sparse<TypeOf<S>> || !CT::DerivedFrom<TypeOf<S>, Trait>)
+   Trait::Trait(S&& data) requires NotRelated<TypeOf<S>>
       : Any {data.Forward()} {}
    
    /// Manual trait construction by copy                                      
@@ -62,7 +62,7 @@ namespace Langulus::Anyness
    ///   @param data - data to copy inside trait                              
    template<CT::NotSemantic T>
    LANGULUS(ALWAYSINLINE)
-   Trait::Trait(const T& data) requires (CT::Dense<T>&& CT::DerivedFrom<T, Trait>)
+   Trait::Trait(const T& data) requires Related<T>
       : Trait {Langulus::Copy(data)} {}
 
    /// Manual trait construction by copy                                      
@@ -70,7 +70,7 @@ namespace Langulus::Anyness
    ///   @param data - data to copy inside trait                              
    template<CT::NotSemantic T>
    LANGULUS(ALWAYSINLINE)
-   Trait::Trait(T& data) requires (CT::Dense<T>&& CT::DerivedFrom<T, Trait>)
+   Trait::Trait(T& data) requires Related<T>
       : Trait {Langulus::Copy(data)} {}
 
    /// Manual trait construction by movement                                  
@@ -78,7 +78,7 @@ namespace Langulus::Anyness
    ///   @param data - data to move inside trait                              
    template<CT::NotSemantic T>
    LANGULUS(ALWAYSINLINE)
-   Trait::Trait(T&& data) requires (CT::Dense<T>&& CT::DerivedFrom<T, Trait>)
+   Trait::Trait(T&& data) requires Related<T>
       : Trait {Langulus::Move(data)} {}
 
    /// Semantic trait construction                                            
@@ -86,7 +86,7 @@ namespace Langulus::Anyness
    ///   @param data - data to move inside trait                              
    template<CT::Semantic S>
    LANGULUS(ALWAYSINLINE)
-   Trait::Trait(S&& data) requires (CT::Dense<TypeOf<S>>&& CT::DerivedFrom<TypeOf<S>, Trait>)
+   Trait::Trait(S&& data) requires Related<TypeOf<S>>
       : Any {data.template Forward<Any>()}
       , mTraitType {data.mValue.GetTrait()} {}
 
@@ -264,70 +264,48 @@ namespace Langulus::Anyness
    ///   @param other - the trait to copy                                     
    ///   @return a reference to this trait                                    
    LANGULUS(ALWAYSINLINE)
-   Trait& Trait::operator = (const Trait& other) {
-      Any::operator = (static_cast<const Any&>(other));
-      mTraitType = other.mTraitType;
-      return *this;
+   Trait& Trait::operator = (const Trait& rhs) {
+      return operator = (Langulus::Copy(rhs));
    }
 
    /// Move a trait                                                           
    ///   @param other - the trait to move                                     
    ///   @return a reference to this trait                                    
    LANGULUS(ALWAYSINLINE)
-   Trait& Trait::operator = (Trait&& other) noexcept {
-      Any::operator = (Forward<Any>(other));
-      mTraitType = other.mTraitType;
-      return *this;
+   Trait& Trait::operator = (Trait&& rhs) noexcept {
+      return operator = (Langulus::Move(rhs));
    }
 
    template<CT::NotSemantic T>
    LANGULUS(ALWAYSINLINE)
-   Trait& Trait::operator = (const T& rhs) requires (CT::Sparse<T> || !CT::DerivedFrom<T, Trait>) {
+   Trait& Trait::operator = (const T& rhs) {
       return operator = (Langulus::Copy(rhs));
    }
 
    template<CT::NotSemantic T>
    LANGULUS(ALWAYSINLINE)
-   Trait& Trait::operator = (T& rhs) requires (CT::Sparse<T> || !CT::DerivedFrom<T, Trait>) {
+   Trait& Trait::operator = (T& rhs) {
       return operator = (Langulus::Copy(rhs));
    }
 
    template<CT::NotSemantic T>
    LANGULUS(ALWAYSINLINE)
-   Trait& Trait::operator = (T&& rhs) requires (CT::Sparse<T> || !CT::DerivedFrom<T, Trait>) {
+   Trait& Trait::operator = (T&& rhs) {
       return operator = (Langulus::Move(rhs));
    }
 
    template<CT::Semantic S>
    LANGULUS(ALWAYSINLINE)
-   Trait& Trait::operator = (S&& rhs) requires (CT::Sparse<TypeOf<S>> || !CT::DerivedFrom<TypeOf<S>, Trait>) {
-      Any::operator = (rhs.Forward());
-      return *this;
-   }
+   Trait& Trait::operator = (S&& rhs) {
+      if constexpr (CT::Deep<TypeOf<S>>) {
+         Any::operator = (rhs.template Forward<Any>());
+      }
+      else if constexpr (CT::Trait<TypeOf<S>>) {
+         Any::operator = (rhs.template Forward<Any>());
+         mTraitType = rhs.mValue.GetTrait();
+      }
+      else Any::operator = (rhs.Forward());
 
-   template<CT::NotSemantic T>
-   LANGULUS(ALWAYSINLINE)
-   Trait& Trait::operator = (const T& rhs) requires (CT::Dense<T>&& CT::DerivedFrom<T, Trait>) {
-      return operator = (Langulus::Copy(rhs));
-   }
-
-   template<CT::NotSemantic T>
-   LANGULUS(ALWAYSINLINE)
-   Trait& Trait::operator = (T& rhs) requires (CT::Dense<T>&& CT::DerivedFrom<T, Trait>) {
-      return operator = (Langulus::Copy(rhs));
-   }
-
-   template<CT::NotSemantic T>
-   LANGULUS(ALWAYSINLINE)
-   Trait& Trait::operator = (T&& rhs) requires (CT::Dense<T>&& CT::DerivedFrom<T, Trait>) {
-      return operator = (Langulus::Move(rhs));
-   }
-
-   template<CT::Semantic S>
-   LANGULUS(ALWAYSINLINE)
-   Trait& Trait::operator = (S&& rhs) requires (CT::Dense<TypeOf<S>>&& CT::DerivedFrom<TypeOf<S>, Trait>) {
-      Any::operator = (rhs.template Forward<Any>());
-      mTraitType = rhs.mValue.GetTrait();
       return *this;
    }
 
@@ -338,45 +316,44 @@ namespace Langulus::Anyness
    
    /// Default trait construction                                             
    template<class TRAIT>
-   StaticTrait<TRAIT>::StaticTrait()
-      : Trait {} {
-      SetTrait<TRAIT>();
-   }
-
-   /// Trait copy-construction with anything not abandoned or disowned        
-   template<class TRAIT>
-   template<CT::Data T>
-   StaticTrait<TRAIT>::StaticTrait(const T& data)
-      : Trait {data} {
-      SetTrait<TRAIT>();
-   }
-
-   /// Trait copy-construction with anything not abandoned or disowned        
-   template<class TRAIT>
-   template<CT::Data T>
-   StaticTrait<TRAIT>::StaticTrait(T& data)
-      : Trait {data} {
-      SetTrait<TRAIT>();
-   }
-
-   /// Trait move-construction with anything not abandoned or disowned        
-   template<class TRAIT>
-   template<CT::Data T>
-   StaticTrait<TRAIT>::StaticTrait(T&& data)
-      : Trait {Forward<T>(data)} {
+   StaticTrait<TRAIT>::StaticTrait() {
       SetTrait<TRAIT>();
    }
 
    template<class TRAIT>
-   StaticTrait<TRAIT>::StaticTrait(Disowned<TRAIT>&& other)
-      : Trait {other.template Forward<Any>()} {
-      SetTrait(other.mValue.GetTrait());
+   StaticTrait<TRAIT>::StaticTrait(const StaticTrait& other)
+      : Trait {Langulus::Copy(other)} {}
+
+   template<class TRAIT>
+   StaticTrait<TRAIT>::StaticTrait(StaticTrait&& other)
+      : Trait {Langulus::Move(other)} {}
+
+   template<class TRAIT>
+   template<CT::NotSemantic T>
+   StaticTrait<TRAIT>::StaticTrait(const T& other)
+      : Trait {Langulus::Copy(other)} {
+      SetTrait<TRAIT>();
    }
 
    template<class TRAIT>
-   StaticTrait<TRAIT>::StaticTrait(Abandoned<TRAIT>&& other)
-      : Trait {other.template Forward<Any>()} {
-      SetTrait(other.mValue.GetTrait());
+   template<CT::NotSemantic T>
+   StaticTrait<TRAIT>::StaticTrait(T& other)
+      : Trait {Langulus::Copy(other)} {
+      SetTrait<TRAIT>();
+   }
+
+   template<class TRAIT>
+   template<CT::NotSemantic T>
+   StaticTrait<TRAIT>::StaticTrait(T&& other)
+      : Trait {Langulus::Move(other)} {
+      SetTrait<TRAIT>();
+   }
+
+   template<class TRAIT>
+   template<CT::Semantic S>
+   StaticTrait<TRAIT>::StaticTrait(S&& other)
+      : Trait {other.Forward()} {
+      SetTrait<TRAIT>();
    }
 
    template<class TRAIT>
@@ -387,45 +364,41 @@ namespace Langulus::Anyness
    }
 
    template<class TRAIT>
-   template<CT::Data T>
-   TRAIT& StaticTrait<TRAIT>::operator = (const T& data) {
-      if constexpr (CT::Same<T, TRAIT>)
-         Any::operator = (static_cast<const Any&>(data));
-      else if constexpr (CT::Trait<T>)
-         Trait::operator = (static_cast<const Trait&>(data));
+   StaticTrait<TRAIT>& StaticTrait<TRAIT>::operator = (const StaticTrait& rhs) {
+      return operator = (Langulus::Copy(rhs));
+   }
+
+   template<class TRAIT>
+   StaticTrait<TRAIT>& StaticTrait<TRAIT>::operator = (StaticTrait&& rhs) {
+      return operator = (Langulus::Move(rhs));
+   }
+
+   template<class TRAIT>
+   template<CT::NotSemantic T>
+   StaticTrait<TRAIT>& StaticTrait<TRAIT>::operator = (const T& rhs) {
+      return operator = (Langulus::Copy(rhs));
+   }
+
+   template<class TRAIT>
+   template<CT::NotSemantic T>
+   StaticTrait<TRAIT>& StaticTrait<TRAIT>::operator = (T& rhs) {
+      return operator = (Langulus::Copy(rhs));
+   }
+
+   template<class TRAIT>
+   template<CT::NotSemantic T>
+   StaticTrait<TRAIT>& StaticTrait<TRAIT>::operator = (T&& rhs) {
+      return operator = (Langulus::Move(rhs));
+   }
+
+   template<class TRAIT>
+   template<CT::Semantic S>
+   StaticTrait<TRAIT>& StaticTrait<TRAIT>::operator = (S&& rhs) {
+      if constexpr (CT::Deep<TypeOf<S>> || CT::Trait<TypeOf<S>>)
+         Any::operator = (rhs.template Forward<Any>());
       else
-         Any::operator = (data);
-      return static_cast<TRAIT&>(*this);
-   }
-
-   template<class TRAIT>
-   template<CT::Data T>
-   TRAIT& StaticTrait<TRAIT>::operator = (T& data) {
-      return operator = (const_cast<const T&>(data));
-   }
-
-   template<class TRAIT>
-   template<CT::Data T>
-   TRAIT& StaticTrait<TRAIT>::operator = (T&& data) {
-      if constexpr (CT::Same<T, TRAIT>)
-         Any::operator = (Forward<Any>(data));
-      else if constexpr (CT::Trait<T>)
-         Trait::operator = (Forward<Trait>(data));
-      else
-         Any::operator = (Forward<T>(data));
-      return static_cast<TRAIT&>(*this);
-   }
-
-   template<class TRAIT>
-   TRAIT& StaticTrait<TRAIT>::operator = (Disowned<TRAIT>&& other) {
-      Any::operator = (other.template Forward<Any>());
-      return static_cast<TRAIT&>(*this);
-   }
-
-   template<class TRAIT>
-   TRAIT& StaticTrait<TRAIT>::operator = (Abandoned<TRAIT>&& other) {
-      Any::operator = (other.template Forward<Any>());
-      return static_cast<TRAIT&>(*this);
+         Any::operator = (rhs.Forward());
+      return *this;
    }
 
    template<class TRAIT>

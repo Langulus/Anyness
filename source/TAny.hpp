@@ -39,6 +39,7 @@ namespace Langulus::Anyness
       static_assert(CT::NotSemantic<T>,
          "Contained type can't be semantic");
 
+      friend struct ::Langulus::Flow::Serializer;
       template<CT::Data, CT::Data>
       friend class TUnorderedMap;
       friend class Any;
@@ -70,21 +71,20 @@ namespace Langulus::Anyness
       template<CT::Deep ALT_T>
       TAny(ALT_T&&);
       template<CT::Semantic S>
-      constexpr TAny(S&&) requires (CT::Deep<TypeOf<S>>);
+      TAny(S&&) requires (CT::Deep<TypeOf<S>>);
 
-      TAny(const T*, const T*) requires CT::Data<T>;
       TAny(const T&) requires CT::CustomData<T>;
       TAny(T&&) requires CT::CustomData<T>;
       template<CT::Semantic S>
-      TAny(S&&) requires (CT::CustomData<T> && CT::Exact<TypeOf<S>, T>);
+      TAny(S&&) requires (CT::CustomData<TypeOf<S>>);
 
-      TAny(const T*, const Count&);
-      TAny(Disowned<const T*>&&, const Count&) noexcept;
+      template<CT::Data HEAD, CT::Data... TAIL>
+      TAny(HEAD&&, TAIL&&...) requires (sizeof...(TAIL) >= 1);
 
       ~TAny();
 
       TAny& operator = (const TAny&);
-      TAny& operator = (TAny&&) noexcept;
+      TAny& operator = (TAny&&);
 
       template<CT::Deep ALT_T>
       TAny& operator = (const ALT_T&);
@@ -99,13 +99,16 @@ namespace Langulus::Anyness
       TAny& operator = (T&) requires CT::CustomData<T>;
       TAny& operator = (T&&) requires CT::CustomData<T>;
       template<CT::Semantic S>
-      TAny& operator = (S&&) noexcept requires (CT::CustomData<T> && CT::Exact<TypeOf<S>, T>);
+      TAny& operator = (S&&) requires (CT::CustomData<TypeOf<S>>);
 
    public:
+      template<CT::Semantic S>
+      NOD() static TAny From(S&&, const Count&) requires (CT::Sparse<TypeOf<S>>);
+
       template<CT::Data... LIST_T>
       NOD() static TAny Wrap(LIST_T&&...);
    
-      void Null(const Count&) requires (CT::POD<T> || CT::Nullifiable<T>);
+      void Null(const Count&);
       void TakeAuthority();
 
       void Reserve(Count);

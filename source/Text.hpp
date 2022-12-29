@@ -21,40 +21,54 @@ namespace Langulus::Anyness
       LANGULUS(DEEP) false;
       LANGULUS_BASES(A::Text, TAny<Letter>);
 
+   private:
+      template<CT::Semantic S>
+      static constexpr bool Relevant = CT::DerivedFrom<TypeOf<S>, TAny<Letter>>;
+      template<CT::Semantic S>
+      static constexpr bool RawTextPointer = CT::Same<TypeOf<S>, Letter> && CT::Sparse<TypeOf<S>>;
+
    public:
       constexpr Text() = default;
 
       Text(const Text&);
       Text(Text&&) noexcept;
-
       Text(const TAny&);
       Text(TAny&&) noexcept;
 
+      // Constructing from other containers is disabled                 
       Text(const CT::Deep auto&) = delete;
 
       template<CT::Semantic S>
-      constexpr Text(S&&) noexcept requires (CT::DerivedFrom<TypeOf<S>, TAny<Letter>>);
+      Text(S&&) requires Relevant<S>;
 
       Text(const Token&);
       Text(const Exception&);
       Text(const RTTI::Meta&);
+      explicit Text(const Letter&);
+      explicit Text(const CT::DenseNumber auto&);
 
-      Text(const Letter*, const Count&) SAFETY_NOEXCEPT();
-      Text(Disowned<const Letter*>&&, const Count&) noexcept;
-
+      // Static array constructor                                       
       template<Count C>
       Text(const Letter(&)[C]);
 
-      explicit Text(const Letter*) SAFETY_NOEXCEPT();
-      explicit Text(Disowned<const Letter*>&&) noexcept;
-      explicit Text(const Letter&);
-      explicit Text(const CT::DenseNumber auto&);
+      // Count-terminated constructors                                  
+      Text(const Letter*, const Count&);
+      Text(Letter*, const Count&);
+      template<CT::Semantic S>
+      Text(S&&, const Count&) requires RawTextPointer<S>;
+
+      // Zero-terminated constructors                                   
+      Text(const Letter*); //explicit?
+      Text(Letter*); //explicit?
+      template<CT::Semantic S>
+      Text(S&&) requires RawTextPointer<S>;
+
 
       Text& operator = (const Text&);
       Text& operator = (Text&&) noexcept;
 
       template<CT::Semantic S>
-      Text& operator = (S&&) requires (CT::Exact<TypeOf<S>, Text>);
+      Text& operator = (S&&) requires Relevant<S>;
 
    public:
       NOD() Hash GetHash() const;
@@ -95,12 +109,12 @@ namespace Langulus::Anyness
       NOD() Text operator + (const Text&) const;
       NOD() Text operator + (Text&&) const;
       template<CT::Semantic S>
-      NOD() Text operator + (S&&) const requires (CT::Exact<TypeOf<S>, Text>);
+      NOD() Text operator + (S&&) const requires Relevant<S>;
 
       Text& operator += (const Text&);
       Text& operator += (Text&&);
       template<CT::Semantic S>
-      Text& operator += (S&&) requires (CT::Exact<TypeOf<S>, Text>);
+      Text& operator += (S&&) requires Relevant<S>;
    };
 
 

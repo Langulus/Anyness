@@ -79,7 +79,7 @@ namespace Langulus::Anyness
    TEMPLATE()
    template<CT::Semantic S>
    LANGULUS(ALWAYSINLINE)
-   constexpr TAny<T>::TAny(S&& other) requires (CT::Deep<TypeOf<S>>) 
+   TAny<T>::TAny(S&& other) requires (CT::Deep<TypeOf<S>>)
       : TAny {} {
       using Container = TypeOf<S>;
       if constexpr (!CT::Typed<Container>) {
@@ -95,14 +95,6 @@ namespace Langulus::Anyness
 
       BlockTransfer<TAny>(other.Forward());
    }
-
-   /// Construct by copying/referencing an array of non-block type            
-   ///   @param start - start of the array                                    
-   ///   @param end - end of the array                                        
-   TEMPLATE()
-   LANGULUS(ALWAYSINLINE)
-   TAny<T>::TAny(const T* start, const T* end) requires CT::Data<T>
-      : Any {start, end} { }
 
    /// Construct by copying/referencing value of non-block type               
    ///   @param other - the value to shallow-copy                             
@@ -123,38 +115,57 @@ namespace Langulus::Anyness
    TEMPLATE()
    template<CT::Semantic S>
    LANGULUS(ALWAYSINLINE)
-   TAny<T>::TAny(S&& other) requires (CT::CustomData<T> && CT::Exact<TypeOf<S>, T>)
+   TAny<T>::TAny(S&& other) requires (CT::CustomData<TypeOf<S>>)
       : Any {other.Forward()} { }
-
-   /// Construct manually by interfacing memory directly                      
-   /// Data will be copied, if not in jurisdiction, which involves a slow     
-   /// authority check. If you want to avoid checking and copying, use the    
-   /// Disowned override of this function                                     
-   ///   @param raw - raw memory to reference, or clone if not owned          
-   ///   @param count - number of items inside 'raw'                          
+   
+   /// Pack any number of elements sequentially                               
+   /// If any of the types doesn't match exactly, the container becomes deep  
+   /// to incorporate all elements                                            
+   ///   @param head - first element                                          
+   ///   @param tail... - the rest of the elements                            
    TEMPLATE()
-   LANGULUS(ALWAYSINLINE)
-   TAny<T>::TAny(const T* raw, const Count& count)
-      : Any {Block {DataState::Constrained, MetaData::Of<Decay<T>>(), count, raw}} {
-      TakeAuthority();
+   template<CT::Data HEAD, CT::Data... TAIL>
+   TAny<T>::TAny(HEAD&& head, TAIL&&... tail) requires (sizeof...(TAIL) >= 1) {
+      AllocateFresh(RequestSize(sizeof...(TAIL) + 1));
+
+      if constexpr (CT::Semantic<HEAD>) {
+         // Handle semantically different elements                      
+         InsertInner(head.Forward(), 0);
+         InsertStatic<1>(Forward<TAIL>(tail)...);
+      }
+      else {
+         // All types are semantically the same, but it still detects   
+         // built-in move/shallow copy semantics                        
+         if constexpr (::std::is_rvalue_reference_v<HEAD>)
+            InsertInner(Langulus::Move(head), 0);
+         else
+            InsertInner(Langulus::Copy(head), 0);
+         InsertStatic<1>(Forward<TAIL>(tail)...);
+      }
    }
-
-   /// Construct manually by interfacing memory directly                      
-   ///   @attention unsafe, make sure that lifetime of memory is sane         
-   ///   @param raw - raw memory to interface without referencing or copying  
-   ///   @param count - number of items inside 'raw'                          
-   TEMPLATE()
-   LANGULUS(ALWAYSINLINE)
-   TAny<T>::TAny(Disowned<const T*>&& raw, const Count& count) noexcept
-      : Any {Block {
-         DataState::Constrained, MetaData::Of<Decay<T>>(), count, raw.mValue, nullptr
-      }} {}
 
    /// Destructor                                                             
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
    TAny<T>::~TAny() {
       Free();
+   }
+
+   /// Construct manually by interfacing memory directly                      
+   /// Data will be copied, if not in jurisdiction, which involves a slow     
+   /// authority check. If you want to avoid checking and copying, use the    
+   /// Disowned semantic                                                      
+   ///   @param raw - raw memory to reference, or clone if not owned          
+   ///   @param count - number of items inside 'raw'                          
+   TEMPLATE()
+   template<CT::Semantic S>
+   LANGULUS(ALWAYSINLINE)
+   TAny<T> TAny<T>::From(S&& what, const Count& count) requires (CT::Sparse<TypeOf<S>>) {
+      TAny<T> result;
+      result.SetMemory(DataState::Constrained, result.GetType(), count, what.mValue, nullptr);
+      if constexpr (!S::Move && S::Keep)
+         result.TakeAuthority();
+      return result;
    }
 
    /// Get the static type of the container                                   
@@ -201,7 +212,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container                                
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
-   TAny<T>& TAny<T>::operator = (TAny&& other) noexcept {
+   TAny<T>& TAny<T>::operator = (TAny&& other) {
       return operator = (Langulus::Move(other));
    }
 
@@ -280,7 +291,7 @@ namespace Langulus::Anyness
    TEMPLATE()
    template<CT::Semantic S>
    LANGULUS(ALWAYSINLINE)
-   TAny<T>& TAny<T>::operator = (S&& other) noexcept requires (CT::CustomData<T> && CT::Exact<TypeOf<S>, T>) {
+   TAny<T>& TAny<T>::operator = (S&& other) requires (CT::CustomData<TypeOf<S>>) {
       if (GetUses() != 1) {
          // Reset and allocate fresh memory                             
          Reset();
@@ -429,7 +440,9 @@ namespace Langulus::Anyness
    /// Allocate 'count' elements and fill the container with zeroes           
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
-   void TAny<T>::Null(const Count& count) requires (CT::POD<T> || CT::Nullifiable<T>) {
+   void TAny<T>::Null(const Count& count) {
+      static_assert(CT::POD<T> || CT::Nullifiable<T>, "T is not nullifiable");
+
       if (count < mReserved)
          AllocateLess(count);
       else

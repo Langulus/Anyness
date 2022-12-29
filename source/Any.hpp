@@ -47,12 +47,8 @@ namespace Langulus::Anyness
       Any(T&);
       template<CT::Deep T>
       Any(T&&) requires CT::Mutable<T>;
-
       template<CT::Semantic S>
-      constexpr Any(S&& other) noexcept requires (CT::Deep<TypeOf<S>>) {
-         mType = other.mValue.GetType();
-         BlockTransfer<Any>(other.Forward());
-      }
+      Any(S&& other) noexcept requires (CT::Deep<TypeOf<S>>);
 
       template<CT::CustomData T>
       Any(const T&);
@@ -60,7 +56,6 @@ namespace Langulus::Anyness
       Any(T&);
       template<CT::CustomData T>
       Any(T&&) requires CT::Mutable<T>;
-
       template<CT::Semantic S>
       Any(S&&) requires (CT::CustomData<TypeOf<S>>);
 
@@ -161,13 +156,6 @@ namespace Langulus::Anyness
       Any& operator >>= (T&&);
       template<CT::Semantic S>
       Any& operator >>= (S&&);
-
-      template<CT::Index IDX = Offset, class... A>
-      Count EmplaceAt(const IDX&, A&&...);
-      template<Index = IndexBack, class... A>
-      Count Emplace(A&&...);
-      template<class... A>
-      Count New(Count, A&&...);
 
       ///                                                                     
       ///   Concatenation                                                     

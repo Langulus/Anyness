@@ -10,6 +10,11 @@
 #include "../inner/Allocator.hpp"
 #include <utility>
 
+namespace Langulus::Flow
+{
+   struct Serializer;
+}
+
 namespace Langulus::Anyness
 {
    
@@ -94,20 +99,20 @@ namespace Langulus::Anyness
 
       template<CT::Data>
       friend class TOwned;
-      template<class, bool REFERENCED>
+      template<class, bool>
       friend class TPointer;
 
+      friend struct ::Langulus::Flow::Serializer;
       friend class ::Langulus::Flow::Verb;
-      template<class VERB>
+      template<class>
       friend struct ::Langulus::Flow::StaticVerb;
-      template<class VERB, bool NOEXCEPT>
+      template<class, bool>
       friend struct ::Langulus::Flow::ArithmeticVerb;
 
       /// A structure used to represent an element of a sparse container      
       struct KnownPointer;
 
    private:
-   /// @cond show_protected                                                   
    TESTING(public:)
       union {
          #if LANGULUS_DEBUG()
@@ -129,7 +134,14 @@ namespace Langulus::Anyness
       // Pointer to the allocated block                                 
       // If entry is zero, then data is static                          
       Inner::Allocation* mEntry {};
-   /// @endcond                                                               
+
+   protected:
+      /// @cond show_protected                                                
+      void SetMemory(const DataState&, DMeta, Count, const void*) SAFETY_NOEXCEPT();
+      void SetMemory(const DataState&, DMeta, Count, void*) SAFETY_NOEXCEPT();
+      constexpr void SetMemory(const DataState&, DMeta, Count, const void*, Inner::Allocation*);
+      constexpr void SetMemory(const DataState&, DMeta, Count, void*, Inner::Allocation*);
+      /// @endcond                                                            
 
    public:
       constexpr Block() noexcept = default;
@@ -226,6 +238,16 @@ namespace Langulus::Anyness
       template<CT::Data>
       NOD() bool IsInsertable() const noexcept;
    
+      template<CT::Data T>
+      NOD() T* GetRawAs() noexcept;
+      template<CT::Data T>
+      NOD() const T* GetRawAs() const noexcept;
+
+      template<CT::Data T>
+      NOD() T* GetRawEndAs() noexcept;
+      template<CT::Data T>
+      NOD() const T* GetRawEndAs() const noexcept;
+
       NOD() Byte* At(const Offset& = 0) SAFETY_NOEXCEPT();
       NOD() const Byte* At(const Offset& = 0) const SAFETY_NOEXCEPT();
    
@@ -469,6 +491,13 @@ namespace Langulus::Anyness
       template<Index = IndexBack, CT::Semantic S>
       Count MergeBlock(S&&);
    
+      template<CT::Index IDX = Offset, class... A>
+      Count EmplaceAt(const IDX&, A&&...);
+      template<Index = IndexBack, class... A>
+      Count Emplace(A&&...);
+      template<class... A>
+      Count New(Count, A&&...);
+
       template<CT::Data T, bool MOVE_STATE = true>
       T& Deepen();
 
@@ -544,16 +573,6 @@ namespace Langulus::Anyness
 
    protected:
       /// @cond show_protected                                                
-      template<CT::Data T>
-      NOD() T* GetRawAs() noexcept;
-      template<CT::Data T>
-      NOD() const T* GetRawAs() const noexcept;
-
-      template<CT::Data T>
-      NOD() T* GetRawEndAs() noexcept;
-      template<CT::Data T>
-      NOD() const T* GetRawEndAs() const noexcept;
-
       template<class TO, CT::Semantic S>
       void BlockTransfer(S&&);
 

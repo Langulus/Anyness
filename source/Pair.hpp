@@ -49,10 +49,10 @@ namespace Langulus
    namespace CT
    {
 
-      /// Check if T is binary compatible to a pair                           
+      /// Check if T is a pair                           
+      ///	@attention not a test for binary compatibility!
       template<class T>
-      concept Pair = sizeof(T) == sizeof(Anyness::Pair)
-         && DerivedFrom<T, A::Pair>;
+      concept Pair = Dense<T> && DerivedFrom<T, A::Pair>;
 
    } // namespace Langulus::CT
 

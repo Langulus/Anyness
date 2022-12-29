@@ -42,6 +42,13 @@ namespace Langulus::Anyness
    Any::Any(T&& other) requires CT::Mutable<T>
       : Any {Langulus::Move(other)} {}
 
+   template<CT::Semantic S>
+   LANGULUS(ALWAYSINLINE)
+   Any::Any(S&& other) noexcept requires (CT::Deep<TypeOf<S>>) {
+      mType = other.mValue.GetType();
+      BlockTransfer<Any>(other.Forward());
+   }
+
    /// Construct by copying/referencing value of non-block type               
    ///   @tparam T - the data type to push (deducible)                        
    ///   @param other - the dense value to shallow-copy                       
@@ -209,7 +216,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container                                
    LANGULUS(ALWAYSINLINE)
    Any& Any::operator = (const Any& other) {
-      return Any::template operator = <Any>(other);
+      return operator = (Langulus::Copy(other));
    }
 
    /// Move assignment                                                        
@@ -217,7 +224,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container                                
    LANGULUS(ALWAYSINLINE)
    Any& Any::operator = (Any&& other) noexcept {
-      return Any::template operator = <Any>(Forward<Any>(other));
+      return operator = (Langulus::Move(other));
    }
 
    /// Shallow-copy assignment of anything deep                               
@@ -303,8 +310,9 @@ namespace Langulus::Anyness
             mCount = 1;
 
             if constexpr (CT::Sparse<T>) {
-               GetRawSparse()->mPointer = reinterpret_cast<Byte*>(other.mValue);
-               GetRawSparse()->mEntry = nullptr;
+               new (mRawSparse) KnownPointer {
+                  other.mValue, nullptr
+               };
             }
             else SemanticNew<T>(mRaw, other.Forward());
          }
@@ -503,224 +511,6 @@ namespace Langulus::Anyness
    Any& Any::operator >>= (S&& other) {
       Merge<IndexFront, true>(other.Forward());
       return *this;
-   }
-
-   /// Construct an item of this container's type at the specified position   
-   /// by forwarding A... as constructor arguments                            
-   /// Since this container is type-erased and exact constructor signatures   
-   /// aren't reflected, the following constructors will be attempted:        
-   ///   1. If A is a single argument of exactly the same type, the reflected 
-   ///      move constructor will be used, if available                       
-   ///   2. If A is empty, the reflected default constructor is used          
-   ///   3. If A is not empty, not exactly same as the contained type, or     
-   ///      is more than a single argument, then all arguments will be        
-   ///      wrapped in an Any, and then forwarded to the descriptor-          
-   ///      constructor, if such is reflected                                 
-   ///   If none of these constructors are available, this function throws    
-   ///   Except::Construct                                                    
-   ///   @tparam IDX - type of indexing to use (deducible)                    
-   ///   @tparam A... - argument types (deducible)                            
-   ///   @param idx - the index to emplace at                                 
-   ///   @param arguments... - the arguments to forward to constructor        
-   ///   @return 1 if the element was emplace successfully                    
-   template<CT::Index IDX, class... A>
-   Count Any::EmplaceAt(const IDX& idx, A&&... arguments) {
-      // Allocate the required memory - this will not initialize it     
-      AllocateMore<false>(mCount + 1);
-
-      const auto index = Block::SimplifyIndex<void, false>(idx);
-      if (index < mCount) {
-         // Move memory if required                                     
-         LANGULUS_ASSERT(GetUses() == 1, Move,
-            "Moving elements that are used from multiple places");
-
-         // We need to shift elements right from the insertion point    
-         // Therefore, we call move constructors in reverse, to avoid   
-         // memory overlap                                              
-         const auto moved = mCount - index;
-         CropInner(index + 1, 0, moved)
-            .template CallUnknownSemanticConstructors<true>(
-               moved, Abandon(CropInner(index, moved, moved))
-            );
-      }
-
-      // Pick the region that should be overwritten with new stuff      
-      auto region = CropInner(index, 0, 1);
-      if constexpr (sizeof...(A) == 0) {
-         // Attempt default construction                                
-         //TODO if stuff moved, we should move stuff back if this throws...
-         region.CallUnknownDefaultConstructors(1);
-      }
-      else {
-         // Attempt move-construction, if available                     
-         if constexpr (sizeof...(A) == 1) {
-            if (IsExact<A...>()) {
-               // Single argument matches                               
-               region.template CallKnownConstructors<A...>(
-                  1, Forward<A>(arguments)...
-               );
-
-               // Single argument matches                               
-               /*if constexpr (CT::Sparse<A...>) {
-                  // Can't directly interface pointer of pointers, we   
-                  // have to wrap it first                              
-                  Any wrapped {Forward<A>(arguments)...};
-
-                  //TODO if stuff moved, we should move stuff back if this throws...
-                  region.template CallKnownSemanticConstructors<A...>(
-                     1, Abandon(wrapped)
-                  );
-               }
-               else {
-                  //TODO if stuff moved, we should move stuff back if this throws...
-                  region.template CallKnownSemanticConstructors<Decay<A>...>(
-                     1, Abandon(Block::From(SparseCast(arguments)...))
-                  );
-               }*/
-
-               ++mCount;
-               return 1;
-            }
-         }
-
-         // Attempt descriptor-construction, if available               
-         //TODO if stuff moved, we should move stuff back if this throws...
-         const Any descriptor {Forward<A>(arguments)...};
-         region.CallUnknownDescriptorConstructors(1, descriptor);
-      }
-
-      ++mCount;
-      return 1;
-   }
-
-   /// Construct an item of this container's type at front/back               
-   /// by forwarding A... as constructor arguments                            
-   /// Since this container is type-erased and exact constructor signatures   
-   /// aren't reflected, the following constructors will be attempted:        
-   ///   1. If A is a single argument of exactly the same type, the reflected 
-   ///      move constructor will be used, if available                       
-   ///   2. If A is empty, the reflected default constructor is used          
-   ///   3. If A is not empty, not exactly same as the contained type, or     
-   ///      is more than a single argument, then all arguments will be        
-   ///      wrapped in an Any, and then forwarded to the descriptor-          
-   ///      constructor, if such is reflected                                 
-   ///   If none of these constructors are available, this function throws    
-   ///   Except::Construct                                                    
-   ///   @tparam INDEX - the index to emplace at, IndexFront or IndexBack     
-   ///   @tparam A... - argument types (deducible)                            
-   ///   @param arguments... - the arguments to forward to constructor        
-   ///   @return 1 if the element was emplace successfully                    
-   template<Index INDEX, class... A>
-   Count Any::Emplace(A&&... arguments) {
-      // Allocate the required memory - this will not initialize it     
-      AllocateMore<false>(mCount + 1);
-
-      if constexpr (INDEX == IndexFront) {
-         // Move memory if required                                     
-         LANGULUS_ASSERT(GetUses() == 1, Move,
-            "Moving elements that are used from multiple places");
-
-         // We need to shift elements right from the insertion point    
-         // Therefore, we call move constructors in reverse, to avoid   
-         // potential memory overlap                                    
-         CropInner(1, 0, mCount)
-            .template CallUnknownSemanticConstructors<true>(
-               mCount, Abandon(CropInner(0, mCount, mCount))
-            );
-      }
-
-      // Pick the region that should be overwritten with new stuff      
-      auto region = CropInner(INDEX == IndexFront ? 0 : mCount, 0, 1);
-
-      if constexpr (sizeof...(A) == 0) {
-         // Attempt default construction                                
-         //TODO if stuff moved, we should move stuff back if this throws...
-         region.CallUnknownDefaultConstructors(1);
-      }
-      else {
-         // Attempt move-construction, if available                     
-         if constexpr (sizeof...(A) == 1) {
-            if (IsExact<A...>()) {
-               // Single argument matches                               
-               region.template CallKnownConstructors<A...>(
-                  1, Forward<A>(arguments)...
-               );
-
-               // Single argument matches                               
-               /*if constexpr (CT::Sparse<A...>) {
-                  // Can't directly interface pointer of pointers, we   
-                  // have to wrap it first                              
-                  Any wrapped {Forward<A>(arguments)...};
-
-                  //TODO if stuff moved, we should move stuff back if this throws...
-                  region.template CallKnownSemanticConstructors<A...>(
-                     1, Abandon(wrapped)
-                  );
-               }
-               else {
-                  //TODO if stuff moved, we should move stuff back if this throws...
-                  region.template CallKnownSemanticConstructors<Decay<A>...>(
-                     1, Abandon(Block::From(SparseCast(arguments)...))
-                  );
-               }*/
-
-               ++mCount;
-               return 1;
-            }
-         }
-
-         // Attempt descriptor-construction, if available               
-         //TODO if stuff moved, we should move stuff back if this throws...
-         const Any descriptor {Forward<A>(arguments)...};
-         region.CallUnknownDescriptorConstructors(1, descriptor);
-      }
-
-      ++mCount;
-      return 1;
-   }
-
-   /// Create N new elements, using the provided arguments for construction   
-   /// Elements will be added to the back of the container                    
-   ///   @tparam ...A - arguments for construction (deducible)                
-   ///   @param count - number of elements to construct                       
-   ///   @param ...arguments - constructor arguments                          
-   ///   @return the number of new elements                                   
-   template<class... A>
-   LANGULUS(ALWAYSINLINE)
-   Count Any::New(Count count, A&&... arguments) {
-      // Allocate the required memory - this will not initialize it     
-      AllocateMore<false>(mCount + count);
-
-      // Pick the region that should be overwritten with new stuff      
-      const auto region = CropInner(mCount, 0, count);
-      if constexpr (sizeof...(A) == 0) {
-         // Attempt default construction                                
-         //TODO if stuff moved, we should move stuff back if this throws...
-         region.CallUnknownDefaultConstructors(count);
-      }
-      else {
-         // Attempt move-construction, if available                     
-         if constexpr (sizeof...(A) == 1) {
-            using F = typename TTypeList<Decay<A>...>::First;
-            using DA = Conditional<CT::Sparse<A...>, F*, F>;
-            if (IsExact<DA>()) {
-               // Single argument matches                               
-               region.template CallKnownConstructors<DA>(
-                  count, Forward<A>(arguments)...
-               );
-               mCount += count;
-               return count;
-            }
-         }
-
-         // Attempt descriptor-construction, if available               
-         //TODO if stuff moved, we should move stuff back if this throws...
-         const Any descriptor {Forward<A>(arguments)...};
-         region.CallUnknownDescriptorConstructors(count, descriptor);
-      }
-
-      mCount += count;
-      return count;
    }
 
    /// Reset the container                                                    

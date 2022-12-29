@@ -28,6 +28,12 @@ namespace Langulus::Anyness
    private:
       TMeta mTraitType {};
 
+   protected:
+      template<class T>
+      static constexpr bool NotRelated = CT::Sparse<T> || !CT::DerivedFrom<T, Trait>;
+      template<class T>
+      static constexpr bool Related = CT::Dense<T> && CT::DerivedFrom<T, Trait>;
+
    public:
       constexpr Trait() noexcept = default;
 
@@ -35,24 +41,24 @@ namespace Langulus::Anyness
       Trait(Trait&&) noexcept;
 
       template<CT::NotSemantic T>
-      Trait(const T&) requires (CT::Sparse<T> || !CT::DerivedFrom<T, Trait>);
+      Trait(const T&) requires Related<T>;
       template<CT::NotSemantic T>
-      Trait(T&) requires (CT::Sparse<T> || !CT::DerivedFrom<T, Trait>);
+      Trait(T&) requires Related<T>;
       template<CT::NotSemantic T>
-      Trait(T&&) requires (CT::Sparse<T> || !CT::DerivedFrom<T, Trait>);
+      Trait(T&&) requires Related<T>;
 
       template<CT::Semantic S>
-      Trait(S&&) requires (CT::Sparse<TypeOf<S>> || !CT::DerivedFrom<TypeOf<S>, Trait>);
+      Trait(S&&) requires Related<TypeOf<S>>;
 
       template<CT::NotSemantic T>
-      Trait(const T&) requires (CT::Dense<T> && CT::DerivedFrom<T, Trait>);
+      Trait(const T&) requires NotRelated<T>;
       template<CT::NotSemantic T>
-      Trait(T&) requires (CT::Dense<T> && CT::DerivedFrom<T, Trait>);
+      Trait(T&) requires NotRelated<T>;
       template<CT::NotSemantic T>
-      Trait(T&&) requires (CT::Dense<T> && CT::DerivedFrom<T, Trait>);
+      Trait(T&&) requires NotRelated<T>;
 
       template<CT::Semantic S>
-      Trait(S&&) requires (CT::Dense<TypeOf<S>> && CT::DerivedFrom<TypeOf<S>, Trait>);
+      Trait(S&&) requires NotRelated<TypeOf<S>>;
 
       template<CT::Data HEAD, CT::Data... TAIL>
       Trait(HEAD&&, TAIL&&...) requires (sizeof...(TAIL) >= 1);
@@ -61,24 +67,14 @@ namespace Langulus::Anyness
       Trait& operator = (Trait&&) noexcept;
 
       template<CT::NotSemantic T>
-      Trait& operator = (const T&) requires (CT::Sparse<T> || !CT::DerivedFrom<T, Trait>);
+      Trait& operator = (const T&);
       template<CT::NotSemantic T>
-      Trait& operator = (T&) requires (CT::Sparse<T> || !CT::DerivedFrom<T, Trait>);
+      Trait& operator = (T&);
       template<CT::NotSemantic T>
-      Trait& operator = (T&&) requires (CT::Sparse<T> || !CT::DerivedFrom<T, Trait>);
+      Trait& operator = (T&&);
 
       template<CT::Semantic S>
-      Trait& operator = (S&&) requires (CT::Sparse<TypeOf<S>> || !CT::DerivedFrom<TypeOf<S>, Trait>);
-
-      template<CT::NotSemantic T>
-      Trait& operator = (const T&) requires (CT::Dense<T> && CT::DerivedFrom<T, Trait>);
-      template<CT::NotSemantic T>
-      Trait& operator = (T&) requires (CT::Dense<T> && CT::DerivedFrom<T, Trait>);
-      template<CT::NotSemantic T>
-      Trait& operator = (T&&) requires (CT::Dense<T> && CT::DerivedFrom<T, Trait>);
-
-      template<CT::Semantic S>
-      Trait& operator = (S&&) requires (CT::Dense<TypeOf<S>> && CT::DerivedFrom<TypeOf<S>, Trait>);
+      Trait& operator = (S&&);
 
    public:
       NOD() Trait Clone() const;
@@ -127,30 +123,38 @@ namespace Langulus::Anyness
       LANGULUS(TRAIT) RTTI::LastNameOf<TRAIT>();
       LANGULUS_BASES(Trait);
 
+      using TraitType = TRAIT;
+
       StaticTrait();
 
-      template<CT::Data T>
+      StaticTrait(const StaticTrait&);
+      StaticTrait(StaticTrait&&);
+
+      template<CT::NotSemantic T>
       StaticTrait(const T&);
-      template<CT::Data T>
+      template<CT::NotSemantic T>
       StaticTrait(T&);
-      template<CT::Data T>
+      template<CT::NotSemantic T>
       StaticTrait(T&&);
 
-      StaticTrait(Disowned<TRAIT>&&);
-      StaticTrait(Abandoned<TRAIT>&&);
+      template<CT::Semantic S>
+      StaticTrait(S&&);
 
       template<CT::Data HEAD, CT::Data... TAIL>
       StaticTrait(HEAD&&, TAIL&&...) requires (sizeof...(TAIL) >= 1);
 
-      template<CT::Data T>
-      TRAIT& operator = (const T&);
-      template<CT::Data T>
-      TRAIT& operator = (T&);
-      template<CT::Data T>
-      TRAIT& operator = (T&&);
+      StaticTrait& operator = (const StaticTrait&);
+      StaticTrait& operator = (StaticTrait&&);
 
-      TRAIT& operator = (Disowned<TRAIT>&&);
-      TRAIT& operator = (Abandoned<TRAIT>&&);
+      template<CT::NotSemantic T>
+      StaticTrait& operator = (const T&);
+      template<CT::NotSemantic T>
+      StaticTrait& operator = (T&);
+      template<CT::NotSemantic T>
+      StaticTrait& operator = (T&&);
+
+      template<CT::Semantic S>
+      StaticTrait& operator = (S&&);
 
       TRAIT operator + (const Trait&) const;
       template<CT::Deep T>

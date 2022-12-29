@@ -21,34 +21,39 @@ namespace Langulus::Anyness
       LANGULUS(DEEP) false;		
       LANGULUS_BASES(TAny<Byte>);
 
+   private:
+      template<CT::Semantic S>
+      static constexpr bool Relevant = CT::DerivedFrom<TypeOf<S>, TAny<Byte>>;
+
    public:
       constexpr Bytes() = default;
+
       Bytes(const Bytes&);
       Bytes(Bytes&&) noexcept;
-
       Bytes(const TAny&);
       Bytes(TAny&&) noexcept;
 
-      template<CT::Deep T>
-      Bytes(const T&) = delete;
+      // Constructing from other containers is disabled                 
+      Bytes(const CT::Deep auto&) = delete;
 
-      Bytes(const void*, const Size&);
-      Bytes(void*, const Size&);
-      
       template<CT::Semantic S>
-      constexpr Bytes(S&&) noexcept requires (CT::DerivedFrom<TypeOf<S>, TAny<Byte>>);
+      Bytes(S&&) requires Relevant<S>;
 
       template<CT::POD T>
       explicit Bytes(const T&) requires CT::Dense<T>;
-
       explicit Bytes(const Token&);
       explicit Bytes(const RTTI::Meta*);
+
+      Bytes(const void*, const Size&);
+      Bytes(void*, const Size&);
+      template<CT::Semantic S>
+      Bytes(S&&, const Size&) requires (CT::Sparse<TypeOf<S>>);
 
       Bytes& operator = (const Bytes&);
       Bytes& operator = (Bytes&&) noexcept;
 
       template<CT::Semantic S>
-      Bytes& operator = (S&&) requires (CT::Exact<TypeOf<S>, Bytes>);
+      Bytes& operator = (S&&) requires Relevant<S>;
       
    public:
       NOD() Bytes Clone() const;
@@ -66,12 +71,12 @@ namespace Langulus::Anyness
       NOD() Bytes operator + (const Bytes&) const;
       NOD() Bytes operator + (Bytes&&) const;
       template<CT::Semantic S>
-      NOD() Bytes operator + (S&&) const requires (CT::Exact<TypeOf<S>, Bytes>);
+      NOD() Bytes operator + (S&&) const requires Relevant<S>;
 
       Bytes& operator += (const Bytes&);
       Bytes& operator += (Bytes&&);
       template<CT::Semantic S>
-      Bytes& operator += (S&&) requires (CT::Exact<TypeOf<S>, Bytes>);
+      Bytes& operator += (S&&) requires Relevant<S>;
    };
 
 } // namespace Langulus::Anyness
