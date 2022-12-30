@@ -6,7 +6,7 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "Block.hpp"
+#include "../Any.hpp"
 #include "../verbs/Compare.inl"
 #include "../verbs/Select.inl"
 
