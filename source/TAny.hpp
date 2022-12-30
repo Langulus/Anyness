@@ -36,8 +36,6 @@ namespace Langulus::Anyness
          "Can only insert dense KnownPointer(s)");
       static_assert(CT::Sparse<T> || CT::Insertable<T>,
          "Dense contained type is not insertable");
-      static_assert(CT::NotSemantic<T>,
-         "Contained type can't be semantic");
 
       friend struct ::Langulus::Flow::Serializer;
       template<CT::Data, CT::Data>
