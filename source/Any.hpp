@@ -38,6 +38,7 @@ namespace Langulus::Anyness
       ///   Construction                                                      
       ///                                                                     
       constexpr Any() noexcept = default;
+
       Any(const Any&);
       Any(Any&&) noexcept;
 

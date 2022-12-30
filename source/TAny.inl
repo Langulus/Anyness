@@ -78,6 +78,7 @@ namespace Langulus::Anyness
    ///   @param other - the anyness to copy                                   
    TEMPLATE()
    template<CT::Semantic S>
+   LANGULUS(ALWAYSINLINE)
    TAny<T>::TAny(S&& other) requires (CT::Deep<TypeOf<S>>)
       : TAny {} {
       using Container = TypeOf<S>;

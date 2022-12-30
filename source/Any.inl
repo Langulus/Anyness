@@ -74,7 +74,6 @@ namespace Langulus::Anyness
    ///   @tparam T - the data type to push (deducible)                        
    ///   @param other - the disowned value                                    
    template<CT::Semantic S>
-   LANGULUS(ALWAYSINLINE)
    Any::Any(S&& other) requires (CT::CustomData<TypeOf<S>>) {
       using T = TypeOf<S>;
       if constexpr (CT::Sparse<T>)
