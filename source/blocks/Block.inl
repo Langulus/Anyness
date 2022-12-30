@@ -6,7 +6,7 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "../Any.hpp"
+#include "Block.hpp"
 #include "../verbs/Compare.inl"
 #include "../verbs/Select.inl"
 
@@ -1604,6 +1604,7 @@ namespace Langulus::Anyness
    ///   @param arguments... - the arguments to forward to constructor        
    ///   @return 1 if the element was emplace successfully                    
    template<CT::Index IDX, class... A>
+   LANGULUS(ALWAYSINLINE)
    Count Block::EmplaceAt(const IDX& idx, A&&... arguments) {
       // Allocate the required memory - this will not initialize it     
       AllocateMore<false>(mCount + 1);
@@ -1625,33 +1626,8 @@ namespace Langulus::Anyness
       }
 
       // Pick the region that should be overwritten with new stuff      
-      auto region = CropInner(index, 0, 1);
-      if constexpr (sizeof...(A) == 0) {
-         // Attempt default construction                                
-         //TODO if stuff moved, we should move stuff back if this throws...
-         region.CallUnknownDefaultConstructors(1);
-      }
-      else {
-         // Attempt move-construction, if available                     
-         if constexpr (sizeof...(A) == 1) {
-            if (IsExact<A...>()) {
-               // Single argument matches                               
-               region.template CallKnownConstructors<A...>(
-                  1, Forward<A>(arguments)...
-               );
-
-               ++mCount;
-               return 1;
-            }
-         }
-
-         // Attempt descriptor-construction, if available               
-         //TODO if stuff moved, we should move stuff back if this throws...
-         const Any descriptor {Forward<A>(arguments)...};
-         region.CallUnknownDescriptorConstructors(1, descriptor);
-      }
-
-      ++mCount;
+      const auto region = CropInner(index, 0, 1);
+      EmplaceInner(region, Forward<A>(arguments)...);
       return 1;
    }
 
@@ -1673,6 +1649,7 @@ namespace Langulus::Anyness
    ///   @param arguments... - the arguments to forward to constructor        
    ///   @return 1 if the element was emplace successfully                    
    template<Index INDEX, class... A>
+   LANGULUS(ALWAYSINLINE)
    Count Block::Emplace(A&&... arguments) {
       // Allocate the required memory - this will not initialize it     
       AllocateMore<false>(mCount + 1);
@@ -1692,79 +1669,9 @@ namespace Langulus::Anyness
       }
 
       // Pick the region that should be overwritten with new stuff      
-      auto region = CropInner(INDEX == IndexFront ? 0 : mCount, 0, 1);
-
-      if constexpr (sizeof...(A) == 0) {
-         // Attempt default construction                                
-         //TODO if stuff moved, we should move stuff back if this throws...
-         region.CallUnknownDefaultConstructors(1);
-      }
-      else {
-         // Attempt move-construction, if available                     
-         if constexpr (sizeof...(A) == 1) {
-            if (IsExact<A...>()) {
-               // Single argument matches                               
-               region.template CallKnownConstructors<A...>(
-                  1, Forward<A>(arguments)...
-               );
-
-               ++mCount;
-               return 1;
-            }
-         }
-
-         // Attempt descriptor-construction, if available               
-         //TODO if stuff moved, we should move stuff back if this throws...
-         const Any descriptor {Forward<A>(arguments)...};
-         region.CallUnknownDescriptorConstructors(1, descriptor);
-      }
-
-      ++mCount;
+      const auto region = CropInner(INDEX == IndexFront ? 0 : mCount, 0, 1);
+      EmplaceInner(region, Forward<A>(arguments)...);
       return 1;
-   }
-
-   /// Create N new elements, using the provided arguments for construction   
-   /// Elements will be added to the back of the container                    
-   ///   @tparam ...A - arguments for construction (deducible)                
-   ///   @param count - number of elements to construct                       
-   ///   @param ...arguments - constructor arguments                          
-   ///   @return the number of new elements                                   
-   template<class... A>
-   LANGULUS(ALWAYSINLINE)
-   Count Block::New(Count count, A&&... arguments) {
-      // Allocate the required memory - this will not initialize it     
-      AllocateMore<false>(mCount + count);
-
-      // Pick the region that should be overwritten with new stuff      
-      const auto region = CropInner(mCount, 0, count);
-      if constexpr (sizeof...(A) == 0) {
-         // Attempt default construction                                
-         //TODO if stuff moved, we should move stuff back if this throws...
-         region.CallUnknownDefaultConstructors(count);
-      }
-      else {
-         // Attempt move-construction, if available                     
-         if constexpr (sizeof...(A) == 1) {
-            using F = typename TTypeList<Decay<A>...>::First;
-            using DA = Conditional<CT::Sparse<A...>, F*, F>;
-            if (IsExact<DA>()) {
-               // Single argument matches                               
-               region.template CallKnownConstructors<DA>(
-                  count, Forward<A>(arguments)...
-               );
-               mCount += count;
-               return count;
-            }
-         }
-
-         // Attempt descriptor-construction, if available               
-         //TODO if stuff moved, we should move stuff back if this throws...
-         const Any descriptor {Forward<A>(arguments)...};
-         region.CallUnknownDescriptorConstructors(count, descriptor);
-      }
-
-      mCount += count;
-      return count;
    }
 
    /// Inner copy-insertion function                                          

@@ -781,4 +781,100 @@ namespace Langulus::Anyness
       return mValue;
    }
 
+   
+
+
+   /// Construct an item of this container's type at the specified position   
+   /// by forwarding A... as constructor arguments                            
+   /// Since this container is type-erased and exact constructor signatures   
+   /// aren't reflected, the following constructors will be attempted:        
+   ///   1. If A is a single argument of exactly the same type, the reflected 
+   ///      move constructor will be used, if available                       
+   ///   2. If A is empty, the reflected default constructor is used          
+   ///   3. If A is not empty, not exactly same as the contained type, or     
+   ///      is more than a single argument, then all arguments will be        
+   ///      wrapped in an Any, and then forwarded to the descriptor-          
+   ///      constructor, if such is reflected                                 
+   ///   If none of these constructors are available, this function throws    
+   ///   Except::Construct                                                    
+   ///   @tparam IDX - type of indexing to use (deducible)                    
+   ///   @tparam A... - argument types (deducible)                            
+   ///   @param idx - the index to emplace at                                 
+   ///   @param arguments... - the arguments to forward to constructor        
+   ///   @return 1 if the element was emplace successfully                    
+   template<class... A>
+   void Block::EmplaceInner(const Block& region, A&&... arguments) {
+      if constexpr (sizeof...(A) == 0) {
+         // Attempt default construction                                
+         //TODO if stuff moved, we should move stuff back if this throws...
+         region.CallUnknownDefaultConstructors(1);
+      }
+      else {
+         // Attempt move-construction, if available                     
+         if constexpr (sizeof...(A) == 1) {
+            if (IsExact<A...>()) {
+               // Single argument matches                               
+               region.template CallKnownConstructors<A...>(
+                  1, Forward<A>(arguments)...
+               );
+
+               ++mCount;
+               return;
+            }
+         }
+
+         // Attempt descriptor-construction, if available               
+         //TODO if stuff moved, we should move stuff back if this throws...
+         const Any descriptor {Forward<A>(arguments)...};
+         region.CallUnknownDescriptorConstructors(1, descriptor);
+      }
+
+      ++mCount;
+   }
+   
+   /// Create N new elements, using the provided arguments for construction   
+   /// Elements will be added to the back of the container                    
+   ///   @tparam ...A - arguments for construction (deducible)                
+   ///   @param count - number of elements to construct                       
+   ///   @param ...arguments - constructor arguments                          
+   ///   @return the number of new elements                                   
+   template<class... A>
+   LANGULUS(ALWAYSINLINE)
+   Count Block::New(Count count, A&&... arguments) {
+      // Allocate the required memory - this will not initialize it     
+      AllocateMore<false>(mCount + count);
+
+      // Pick the region that should be overwritten with new stuff      
+      const auto region = CropInner(mCount, 0, count);
+      if constexpr (sizeof...(A) == 0) {
+         // Attempt default construction                                
+         //TODO if stuff moved, we should move stuff back if this throws...
+         region.CallUnknownDefaultConstructors(count);
+      }
+      else {
+         // Attempt move-construction, if available                     
+         if constexpr (sizeof...(A) == 1) {
+            using F = typename TTypeList<Decay<A>...>::First;
+            using DA = Conditional<CT::Sparse<A...>, F*, F>;
+
+            if (IsExact<DA>()) {
+               // Single argument matches                               
+               region.template CallKnownConstructors<DA>(
+                  count, Forward<A>(arguments)...
+               );
+               mCount += count;
+               return count;
+            }
+         }
+
+         // Attempt descriptor-construction, if available               
+         //TODO if stuff moved, we should move stuff back if this throws...
+         const Any descriptor {Forward<A>(arguments)...};
+         region.CallUnknownDescriptorConstructors(count, descriptor);
+      }
+
+      mCount += count;
+      return count;
+   }
+
 } // namespace Langulus::Anyness
