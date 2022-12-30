@@ -17,6 +17,7 @@ namespace Langulus::Anyness
    class BlockSet {
       using Allocator = Inner::Allocator;
       static constexpr Count MinimalAllocation = 8;
+
    protected:
       using InfoType = ::std::uint8_t;
 

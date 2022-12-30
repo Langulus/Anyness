@@ -21,6 +21,7 @@ namespace Langulus::Anyness
       static constexpr bool Ordered = true;
 
       using TUnorderedSet<T>::TUnorderedSet;
+
       TOrderedSet(const TOrderedSet&);
       TOrderedSet(TOrderedSet&&) noexcept;
 

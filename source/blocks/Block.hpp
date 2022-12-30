@@ -71,6 +71,7 @@ namespace Langulus::Anyness
    public:
       LANGULUS(DEEP) true;
       LANGULUS(UNINSERTABLE) true;
+
       static constexpr bool Ownership = false;
 
       friend class Any;

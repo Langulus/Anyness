@@ -20,6 +20,7 @@ namespace Langulus::Anyness
       static constexpr bool Ownership = true;
 
       using BlockSet::BlockSet;
+
       OrderedSet(Disowned<OrderedSet>&&) noexcept;
       OrderedSet(Abandoned<OrderedSet>&&) noexcept;
 

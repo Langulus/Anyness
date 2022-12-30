@@ -19,8 +19,6 @@ namespace Langulus::Anyness
    class TUnorderedMap : public UnorderedMap {
    public:
       static_assert(CT::Comparable<K>, "Can't compare keys for map");
-      static_assert(CT::NotSemantic<K>, "Key type can't be semantic");
-      static_assert(CT::NotSemantic<V>, "Value type can't be semantic");
 
       using Key = K;
       using Value = V;

@@ -58,8 +58,8 @@ namespace Langulus::Anyness
       Text(S&&, const Count&) requires RawTextPointer<S>;
 
       // Zero-terminated constructors                                   
-      Text(const Letter*); //explicit?
-      Text(Letter*); //explicit?
+      Text(const Letter*);
+      Text(Letter*);
       template<CT::Semantic S>
       Text(S&&) requires RawTextPointer<S>;
 

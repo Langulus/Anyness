@@ -17,6 +17,7 @@ namespace Langulus::Anyness
    class Path : public Text {
    public:
       using Text::Text;
+
       Path(Disowned<Path>&&) noexcept;
       Path(Abandoned<Path>&&) noexcept;
 

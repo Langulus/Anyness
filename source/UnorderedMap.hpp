@@ -19,6 +19,7 @@ namespace Langulus::Anyness
       static constexpr bool Ordered = false;
 
       using BlockMap::BlockMap;
+
       constexpr UnorderedMap(Disowned<UnorderedMap>&&) noexcept;
       constexpr UnorderedMap(Abandoned<UnorderedMap>&&) noexcept;
 

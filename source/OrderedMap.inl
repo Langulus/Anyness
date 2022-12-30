@@ -14,18 +14,21 @@ namespace Langulus::Anyness
    /// Copy-construct a map from a disowned map                               
    /// The disowned map's contents will not be referenced                     
    ///   @param other - the map to disown                                     
-   inline OrderedMap::OrderedMap(Disowned<OrderedMap>&& other) noexcept
+   LANGULUS(ALWAYSINLINE)
+   OrderedMap::OrderedMap(Disowned<OrderedMap>&& other) noexcept
       : BlockMap {other.Forward<BlockMap>()} { }
 
    /// Move-construct a map from an abandoned map                             
    /// The abandoned map will be minimally reset, saving on some instructions 
    ///   @param other - the map to abandon                                    
-   inline OrderedMap::OrderedMap(Abandoned<OrderedMap>&& other) noexcept
+   LANGULUS(ALWAYSINLINE)
+   OrderedMap::OrderedMap(Abandoned<OrderedMap>&& other) noexcept
       : BlockMap {other.Forward<BlockMap>()} { }
 
    /// Clone the map                                                          
    ///   @return the cloned map                                               
-   inline OrderedMap OrderedMap::Clone() const {
+   LANGULUS(ALWAYSINLINE)
+   OrderedMap OrderedMap::Clone() const {
       OrderedMap cloned;
       static_cast<BlockMap&>(cloned) = BlockMap::Clone();
       return Abandon(cloned);

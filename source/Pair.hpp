@@ -49,8 +49,8 @@ namespace Langulus
    namespace CT
    {
 
-      /// Check if T is a pair                           
-      ///	@attention not a test for binary compatibility!
+      /// Check if T is a pair                                                
+      ///	@attention not a test for binary compatibility!                   
       template<class T>
       concept Pair = Dense<T> && DerivedFrom<T, A::Pair>;
 

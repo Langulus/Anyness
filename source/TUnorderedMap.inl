@@ -53,13 +53,6 @@ namespace Langulus::Anyness
    TABLE()::TUnorderedMap(TUnorderedMap&& other) noexcept
       : UnorderedMap {Forward<UnorderedMap>(other)} {}
 
-   /// Move construction                                                      
-   ///   @param other - the table to move                                     
-   /*TABLE_TEMPLATE()
-   template<CT::Semantic S>
-   constexpr TABLE()::TUnorderedMap(S&& other) noexcept requires (CT::Exact<TypeOf<S>, TUnorderedMap<K, V>>)
-      : UnorderedMap {other.template Forward<UnorderedMap>()} {}*/
-
    /// Destroys the map and all it's contents                                 
    TABLE_TEMPLATE()
    TABLE()::~TUnorderedMap() {

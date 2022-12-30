@@ -35,7 +35,6 @@ namespace Langulus::Anyness
          = Trivial && CT::Exact<TypeOf<S>, F>;
 
    public:
-      static_assert(CT::NotSemantic<T>, "T can't be semantic");
       static constexpr bool Ownership = true;
 
       /// Makes TOwned CT::Typed                                              

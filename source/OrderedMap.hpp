@@ -20,6 +20,7 @@ namespace Langulus::Anyness
       static constexpr bool Ownership = true;
 
       using BlockMap::BlockMap;
+
       OrderedMap(Disowned<OrderedMap>&&) noexcept;
       OrderedMap(Abandoned<OrderedMap>&&) noexcept;
 

@@ -19,7 +19,6 @@ namespace Langulus::Anyness
    class TUnorderedSet : public UnorderedSet {
    public:
       static_assert(CT::Comparable<T>, "Can't compare elements for map");
-      static_assert(CT::NotSemantic<T>, "T can't be semantic");
 
       using Value = T;
       using ValueInner = typename TAny<T>::TypeInner;
