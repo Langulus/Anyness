@@ -811,9 +811,12 @@ namespace Langulus::Anyness
       else {
          // Attempt move-construction, if available                     
          if constexpr (sizeof...(A) == 1) {
-            if (IsExact<A...>()) {
+            using F = typename TTypeList<Decay<A>...>::First;
+            using DA = Conditional<CT::Sparse<A...>, F*, F>;
+
+            if (IsExact<DA>()) {
                // Single argument matches                               
-               region.template CallKnownConstructors<A...>(
+               region.template CallKnownConstructors<DA>(
                   1, Forward<A>(arguments)...
                );
 

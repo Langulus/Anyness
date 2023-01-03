@@ -37,6 +37,7 @@ namespace Langulus::Anyness
       TPointer(const TPointer&);
       TPointer(TPointer&&) noexcept;
 
+      /// Constructor needs to be declared here to avoid MSVC parser bug      
       template<CT::Semantic S>
       TPointer(S&& other) noexcept requires (CT::Exact<TypeOf<S>, TPointer>)
          : Base {S::Nest(other.mValue.mValue)} {
@@ -64,6 +65,7 @@ namespace Langulus::Anyness
       TPointer(const MemberType&);
       TPointer(MemberType&&);
 
+      /// Constructor needs to be declared here to avoid MSVC parser bug      
       template<CT::Semantic S>
       TPointer(S&& ptr) noexcept requires (CT::Exact<TypeOf<S>, MemberType>)
          : Base {S::Nest(ptr.mValue)} {
@@ -111,6 +113,7 @@ namespace Langulus::Anyness
       TPointer& operator = (const TPointer&);
       TPointer& operator = (TPointer&&);
 
+      /// Constructor needs to be declared here to avoid MSVC parser bug      
       template<CT::Semantic S>
       TPointer& operator = (S&& rhs) noexcept requires (CT::Exact<TypeOf<S>, TPointer>) {
          if (rhs.mValue.mValue) {
@@ -145,6 +148,7 @@ namespace Langulus::Anyness
       TPointer& operator = (const MemberType&);
       TPointer& operator = (MemberType&&);
 
+      /// Constructor needs to be declared here to avoid MSVC parser bug      
       template<CT::Semantic S>
       TPointer& operator = (S&& rhs) noexcept requires (CT::Exact<TypeOf<S>, MemberType>) {
          if (mValue)

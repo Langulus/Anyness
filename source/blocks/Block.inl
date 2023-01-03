@@ -1144,6 +1144,15 @@ namespace Langulus::Anyness
       return ((IsSparse() == CT::Sparse<T> && Is(MetaData::Of<Decay<T>>())) || ...);
    }
 
+   /// Check if this container's data is exactly as another                   
+   ///   @param type - the type to match                                      
+   ///   @param sparse - the sparseness to match                              
+   ///   @return true if data type matches type and density                   
+   LANGULUS(ALWAYSINLINE)
+   bool Block::IsExact(DMeta type, bool sparse) const noexcept {
+      return IsSparse() == sparse && Is(type);
+   }
+
    /// Semantically transfer the members of one block onto another            
    ///   @attention will not set mType if TO is type-constrained container    
    ///   @attention will combine states if TO is type-constrained container   

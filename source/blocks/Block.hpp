@@ -564,6 +564,7 @@ namespace Langulus::Anyness
       NOD() bool Is() const;
       template<CT::Data...>
       NOD() bool IsExact() const;
+      NOD() bool IsExact(DMeta, bool) const noexcept;
       
       NOD() Block ReinterpretAs(const Block&) const;
       template<CT::Data>

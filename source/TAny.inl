@@ -79,21 +79,54 @@ namespace Langulus::Anyness
    TEMPLATE()
    template<CT::Semantic S>
    LANGULUS(ALWAYSINLINE)
-   TAny<T>::TAny(S&& other) requires (CT::Deep<TypeOf<S>>)
-      : TAny {} {
+   TAny<T>::TAny(S&& other) requires (CT::Deep<TypeOf<S>>) : TAny {} {
       using Container = TypeOf<S>;
       if constexpr (!CT::Typed<Container>) {
-         // Container is not statically typed, so do runtime type check 
+         // Container is not statically typed, do runtime type checks   
+         if (Block::IsExact(other.mValue.GetType(), other.mValue.IsSparse())) {
+            // If types are exactly the same, it is safe to directly    
+            // transfer the block                                       
+            BlockTransfer<TAny>(other.Forward());
+            mType = other.mValue.mType;
+            return;
+         }
+
+         // Do more detailed checks, if provided type is base/child     
+         // of this typed container's type                              
          LANGULUS_ASSERT(CastsToMeta(other.mValue.GetType()),
             Construct, "Bad semantic-construction");
+         TODO();
       }
-      else if constexpr (!CT::Exact<T, TypeOf<Container>>) {
-         // Otherwise do a static check and spew compiler errors        
-         LANGULUS_ERROR("Bad semantic-construction");
+      else if constexpr (CT::Exact<T, TypeOf<Container>>) {
+         // If types are exactly the same, it is safe to directly       
+         // transfer the block                                          
+         BlockTransfer<TAny>(other.Forward());
+         mType = other.mValue.mType;
       }
-      else mType = other.mValue.mType;
-
-      BlockTransfer<TAny>(other.Forward());
+      else if constexpr (CT::DerivedFrom<T, TypeOf<Container>>) {
+         // The statically typed 'other' contains items that are base   
+         // of this container's type. Each element should be dynamic    
+         // cast to this type                                           
+         if constexpr (CT::Sparse<T> && CT::Sparse<TypeOf<Container>>) {
+            for (auto pointer : other.mValue) {
+               auto dcast = dynamic_cast<T>(&(*pointer));
+               if (dcast)
+                  (*this) << dcast;
+            }
+         }
+         else TODO();
+      }
+      else if constexpr (CT::DerivedFrom<TypeOf<Container>, T>) {
+         // The statically typed 'other' contains items that are        
+         // derived from this container's type. Each element should be  
+         // down casted to this type                                    
+         if constexpr (CT::Sparse<T> && CT::Sparse<TypeOf<Container>>) {
+            for (auto pointer : other.mValue)
+               (*this) << static_cast<T>(&(*pointer));
+         }
+         else TODO();
+      }
+      else LANGULUS_ERROR("Bad semantic-construction");
    }
 
    /// Construct by copying/referencing value of non-block type               

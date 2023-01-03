@@ -11,6 +11,18 @@
 namespace Langulus::Anyness
 {
 
+   namespace Inner
+   {
+
+      template<class T, class S, class F>
+      concept SemanticMember = CT::Semantic<S> && CT::Dense<T> && CT::Exact<TypeOf<S>, F> && CT::SemanticMakable<S, T>;
+
+      template<class T, class S, class F>
+      concept TrivialMember = CT::Semantic<S> && (CT::Fundamental<T> || CT::Sparse<T> || CT::POD<T>) && CT::Exact<TypeOf<S>, F>;
+
+   }
+
+
    ///                                                                        
    ///   An owned value, dense or sparse                                      
    ///                                                                        
@@ -23,16 +35,6 @@ namespace Langulus::Anyness
    protected:
       T mValue {};
 
-      static constexpr bool Trivial
-         = CT::Fundamental<T> || CT::Sparse<T> || CT::POD<T>;
-
-      template<CT::Semantic S, class F>
-      static constexpr bool SemanticMember
-         = CT::Dense<T> && CT::Exact<TypeOf<S>, F> && CT::SemanticMakable<S, T>;
-
-      template<CT::Semantic S, class F>
-      static constexpr bool TrivialMember
-         = Trivial && CT::Exact<TypeOf<S>, F>;
 
    public:
       static constexpr bool Ownership = true;
@@ -44,15 +46,19 @@ namespace Langulus::Anyness
       constexpr TOwned(const TOwned&);
       constexpr TOwned(TOwned&&);
 
+      /// Constructor needs to be declared here to avoid MSVC parser bug      
       template<CT::Semantic S>
-      constexpr TOwned(S&& value) requires (SemanticMember<S, TOwned>)
+      LANGULUS(ALWAYSINLINE)
+      constexpr TOwned(S&& value) requires (Inner::SemanticMember<T, S, TOwned>)
          : mValue {S::Nest(value.mValue.mValue)} {
          if constexpr (S::Move && S::Keep)
             value.mValue.mValue = {};
       }
 
+      /// Constructor needs to be declared here to avoid MSVC parser bug      
       template<CT::Semantic S>
-      constexpr TOwned(S&& value) requires (TrivialMember<S, TOwned>)
+      LANGULUS(ALWAYSINLINE)
+      constexpr TOwned(S&& value) requires (Inner::TrivialMember<T, S, TOwned>)
          : mValue {value.mValue.mValue} {
          if constexpr (S::Move && S::Keep)
             value.mValue.mValue = {};
@@ -61,12 +67,16 @@ namespace Langulus::Anyness
       constexpr TOwned(const T&);
       constexpr TOwned(T&&);
 
+      /// Constructor needs to be declared here to avoid MSVC parser bug      
       template<CT::Semantic S>
-      constexpr TOwned(S&& value) requires (SemanticMember<S, T>)
+      LANGULUS(ALWAYSINLINE)
+      constexpr TOwned(S&& value) requires (Inner::SemanticMember<T, S, T>)
          : mValue {S::Nest(value.mValue)} {}
 
+      /// Constructor needs to be declared here to avoid MSVC parser bug      
       template<CT::Semantic S>
-      constexpr TOwned(S&& value) requires (TrivialMember<S, T>)
+      LANGULUS(ALWAYSINLINE)
+      constexpr TOwned(S&& value) requires (Inner::TrivialMember<T, S, T>)
          : mValue {value.mValue} {}
 
       NOD() DMeta GetType() const;
@@ -79,7 +89,9 @@ namespace Langulus::Anyness
       constexpr TOwned& operator = (const TOwned&) noexcept;
       constexpr TOwned& operator = (TOwned&&) noexcept;
 
+      /// Constructor needs to be declared here to avoid MSVC parser bug      
       template<CT::Semantic S>
+      LANGULUS(ALWAYSINLINE)
       constexpr TOwned& operator = (S&& rhs) noexcept requires (CT::Exact<TypeOf<S>, TOwned>) {
          SemanticAssign(mValue, S::Nest(rhs.mValue.mValue));
          if constexpr (S::Move && S::Keep)
@@ -90,7 +102,9 @@ namespace Langulus::Anyness
       constexpr TOwned& operator = (const T&) noexcept;
       constexpr TOwned& operator = (T&&) noexcept;
 
+      /// Constructor needs to be declared here to avoid MSVC parser bug      
       template<CT::Semantic S>
+      LANGULUS(ALWAYSINLINE)
       constexpr TOwned& operator = (S&& rhs) noexcept requires (CT::Exact<TypeOf<S>, T>) {
          SemanticAssign(mValue, S::Nest(rhs.mValue));
          return *this;
