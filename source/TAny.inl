@@ -1662,21 +1662,23 @@ namespace Langulus::Anyness
             // we still have to call move construction for all elements 
             // if entry moved (enabling MANAGED_MEMORY feature          
             // significantly reduces the possiblity for a move)         
-            // Also, make sure to free the previous mEntry if moved     
-            if constexpr (CT::AbandonMakable<T> || CT::MoveMakable<T>) {
-               mEntry = Inner::Allocator::Reallocate(request.mByteSize, mEntry);
-               LANGULUS_ASSERT(mEntry, Allocate, "Out of memory");
+            mEntry = Inner::Allocator::Reallocate(request.mByteSize, mEntry);
+            LANGULUS_ASSERT(mEntry, Allocate, "Out of memory");
 
-               if (mEntry != previousBlock.mEntry) {
-                  // Memory moved, and we should call move-construction 
-                  // We're moving to new memory, so no reverse required 
+            if (mEntry != previousBlock.mEntry) {
+               // Memory moved, and we should move all elements in it   
+               // We're moving to new memory, so no reverse required    
+               if constexpr (CT::AbandonMakable<T> || CT::MoveMakable<T> || CT::CopyMakable<T>) {
                   mRaw = mEntry->GetBlockStart();
                   CallKnownSemanticConstructors<T>(
                      previousBlock.mCount, Abandon(previousBlock)
                   );
+
+                  // Also, we should free the previous allocation       
+                  previousBlock.Free();
                }
+               else LANGULUS_THROW(Construct, "T is not move-constructible");
             }
-            else LANGULUS_THROW(Construct, "T is not move-constructible");
          }
          else {
             // Memory is used from multiple locations, and we must      
