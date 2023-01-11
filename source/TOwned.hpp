@@ -35,7 +35,6 @@ namespace Langulus::Anyness
    protected:
       T mValue {};
 
-
    public:
       static constexpr bool Ownership = true;
 
@@ -110,7 +109,8 @@ namespace Langulus::Anyness
          return *this;
       }
 
-      NOD() Hash GetHash() const requires CT::Hashable<T>;
+      NOD() Hash GetHash() const requires (CT::Hashable<T>);
+      NOD() Hash GetHash() const requires (!CT::Hashable<T> && CT::Sparse<T>);
 
       NOD() decltype(auto) Get() const noexcept;
       NOD() decltype(auto) Get() noexcept;

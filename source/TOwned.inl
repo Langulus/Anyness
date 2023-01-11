@@ -96,14 +96,27 @@ namespace Langulus::Anyness
       return mValue;
    }
 
-   /// Get the hash of the contained type                                     
-   ///   @return the hash of the container type                               
+   /// Get the hash of the contained type, if that type is hashable directly  
+   ///   @return the hash of the contained element                            
    TEMPLATE_OWNED()
    LANGULUS(ALWAYSINLINE)
-   Hash TOwned<T>::GetHash() const requires CT::Hashable<T> {
+   Hash TOwned<T>::GetHash() const requires (CT::Hashable<T>) {
+      if constexpr (CT::Sparse<T>) {
+         if (!mValue)
+            return {};
+      }
+
+      return DenseCast(mValue).GetHash();
+   }
+
+   /// Get the hash of the contained pointer type, relying on RTTI            
+   ///   @return the hash of the contained element                            
+   TEMPLATE_OWNED()
+   LANGULUS(ALWAYSINLINE)
+   Hash TOwned<T>::GetHash() const requires (!CT::Hashable<T>&& CT::Sparse<T>) {
       if (!mValue)
          return {};
-      return mValue->GetHash();
+      TODO();
    }
 
    /// Perform a dynamic cast on the pointer                                  
