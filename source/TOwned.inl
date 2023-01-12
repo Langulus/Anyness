@@ -85,7 +85,7 @@ namespace Langulus::Anyness
    TEMPLATE_OWNED()
    LANGULUS(ALWAYSINLINE)
    decltype(auto) TOwned<T>::Get() const noexcept {
-      return mValue;
+      return (mValue);
    }
    
    /// Get a reference to the contained value                                 
@@ -93,7 +93,7 @@ namespace Langulus::Anyness
    TEMPLATE_OWNED()
    LANGULUS(ALWAYSINLINE)
    decltype(auto) TOwned<T>::Get() noexcept {
-      return mValue;
+      return (mValue);
    }
 
    /// Get the hash of the contained type, if that type is hashable directly  
