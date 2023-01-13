@@ -124,8 +124,8 @@ namespace Langulus::Anyness
       NOD() decltype(auto) operator * () requires CT::Sparse<T>;
 
       NOD() explicit operator bool() const noexcept;
-      NOD() explicit operator const T&() const noexcept;
-      NOD() explicit operator T&() noexcept;
+      NOD() operator const T&() const noexcept;
+      NOD() operator T&() noexcept;
 
       NOD() bool operator == (const TOwned&) const noexcept;
       NOD() bool operator == (const T&) const noexcept;
