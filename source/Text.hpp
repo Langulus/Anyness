@@ -63,10 +63,9 @@ namespace Langulus::Anyness
       template<CT::Semantic S>
       Text(S&&) requires RawTextPointer<S>;
 
-
       Text& operator = (const Text&);
       Text& operator = (Text&&) noexcept;
-
+      Text& operator = (const Letter&) noexcept;
       template<CT::Semantic S>
       Text& operator = (S&&) requires Relevant<S>;
 
@@ -97,6 +96,7 @@ namespace Langulus::Anyness
       bool operator == (const CompatibleStdStringView&) const noexcept;
       bool operator == (const Text&) const noexcept;
       bool operator == (const Letter*) const noexcept;
+      bool operator == (const Letter&) const noexcept;
 
       NOD() bool FindOffset(const Text&, Offset&) const;
       NOD() bool FindOffsetReverse(const Text&, Offset&) const;
@@ -108,11 +108,13 @@ namespace Langulus::Anyness
       ///                                                                     
       NOD() Text operator + (const Text&) const;
       NOD() Text operator + (Text&&) const;
+      NOD() Text operator + (const Letter&) const;
       template<CT::Semantic S>
       NOD() Text operator + (S&&) const requires Relevant<S>;
 
       Text& operator += (const Text&);
       Text& operator += (Text&&);
+      Text& operator += (const Letter&);
       template<CT::Semantic S>
       Text& operator += (S&&) requires Relevant<S>;
    };

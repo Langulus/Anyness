@@ -187,6 +187,7 @@ namespace Langulus::Anyness
       Count EmplaceAt(const IDX&, A&&...);
       template<Index = IndexBack, class... A>
       Count Emplace(A&&...);
+      Count New(Count);
       template<class... A>
       Count New(Count, A&&...);
 

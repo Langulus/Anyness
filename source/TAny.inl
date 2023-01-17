@@ -1103,6 +1103,26 @@ namespace Langulus::Anyness
       return 1;
    }
 
+   /// Create N new elements, using default construction                      
+   /// Elements will be added to the back of the container                    
+   ///   @param count - number of elements to construct                       
+   ///   @return the number of new elements                                   
+   TEMPLATE()
+   LANGULUS(ALWAYSINLINE)
+   Count TAny<T>::New(Count count) {
+      static_assert(CT::Defaultable<T>, "T not default-constructible");
+
+      // Allocate                                                       
+      AllocateMore<false>(mCount + count);
+
+      // Call constructors                                              
+      CropInner(mCount, 0, count)
+         .template CallKnownDefaultConstructors<T>(count);
+
+      mCount += count;
+      return count;
+   }
+
    /// Create N new elements, using the provided arguments for construction   
    /// Elements will be added to the back of the container                    
    ///   @tparam ...A - arguments for construction (deducible)                
