@@ -13,14 +13,11 @@ namespace Langulus::Anyness
 {
 
    ///                                                                        
-   ///   COUNT-TERMINATED TEXT WRAPPER                                        
-   ///                                                                        
-   /// Convenient wrapper for UTF8 strings                                    
+   ///   Count-terminated UTF8 text container                                 
    ///                                                                        
    class Text : public TAny<Letter> {
       LANGULUS(DEEP) false;
       LANGULUS_BASES(A::Text, TAny<Letter>);
-
    private:
       template<CT::Semantic S>
       static constexpr bool Relevant = CT::DerivedFrom<TypeOf<S>, TAny<Letter>>;
@@ -127,10 +124,6 @@ namespace Langulus::Anyness
       LANGULUS_BASES(Text);
    public:
       using Text::Text;
-
-      Debug(Disowned<Debug>&&) noexcept;
-      Debug(Abandoned<Debug>&&) noexcept;
-
       using Text::operator +=;
    };
 
