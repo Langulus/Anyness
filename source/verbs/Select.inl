@@ -8,36 +8,10 @@
 #pragma once
 #include "../blocks/Block.hpp"
 
-#define VERBOSE(a) //pcLogFuncVerbose << a
+#define VERBOSE(...) //Logger::Verbose(__VA_ARGS__)
 
 namespace Langulus::Anyness
 {
-
-   /// Get the memory block corresponding to a local member variable          
-   /// Never references data                                                  
-   ///   @tparam T - a trait or data type to search for in the reflection     
-   ///   @return a static memory block                                        
-   template<class T>
-   LANGULUS(ALWAYSINLINE)
-   Block Block::GetMember() const {
-      if constexpr (CT::Trait<T>)
-         return GetMember(MetaTrait::Of<Decay<T>>());
-      else
-         return GetMember(MetaData::Of<Decay<T>>());
-   }
-
-   /// Get the memory block corresponding to a local member variable          
-   /// Never references data                                                  
-   ///   @tparam T - a trait or data type to search for in the reflection     
-   ///   @return a static memory block                                        
-   template<class T>
-   LANGULUS(ALWAYSINLINE)
-   Block Block::GetMember() {
-      if constexpr (CT::Trait<T>)
-         return GetMember(MetaTrait::Of<Decay<T>>());
-      else
-         return GetMember(MetaData::Of<Decay<T>>());
-   }
 
    /// Get the memory block corresponding to a local member variable          
    /// Never references data                                                  
@@ -160,30 +134,6 @@ namespace Langulus::Anyness
       if (mType->mMembers.empty())
          return {};
       return GetMember(mType->mMembers[0]);
-   }
-
-   /// Select a member Block via trait/data or index (or both)                
-   ///   @param index - the trait index to get                                
-   ///   @return a static memory block (constant if block is constant)        
-   template<class T, CT::Index INDEX>
-   LANGULUS(ALWAYSINLINE)
-   Block Block::GetMember(const INDEX& index) const {
-      if constexpr (CT::Trait<T>)
-         return GetMember(MetaTrait::Of<Decay<T>>(), index);
-      else
-         return GetMember(MetaData::Of<Decay<T>>(), index);
-   }
-
-   /// Select a member Block via trait/data or index (or both)                
-   ///   @param index - the trait index to get                                
-   ///   @return a static memory block (constant if block is constant)        
-   template<class T, CT::Index INDEX>
-   LANGULUS(ALWAYSINLINE)
-   Block Block::GetMember(const INDEX&) {
-      if constexpr (CT::Trait<T>)
-         return GetMember(MetaTrait::Of<Decay<T>>(), index);
-      else
-         return GetMember(MetaData::Of<Decay<T>>(), index);
    }
 
    /// Select a member Block via trait or index (or both)                     

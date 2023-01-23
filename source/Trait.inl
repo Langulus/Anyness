@@ -401,46 +401,114 @@ namespace Langulus::Anyness
       return *this;
    }
 
+   /// Concatenate the contents of a trait to this trait                      
+   ///   @param rhs - the deep container to concatenate                       
+   ///   @return the concatenated trait                                       
    template<class TRAIT>
    TRAIT StaticTrait<TRAIT>::operator + (const Trait& other) const {
-      return TRAIT {
-         Any::operator + (static_cast<const Any&>(other))
-      };
+      return TRAIT {Any::operator + (static_cast<const Any&>(other))};
    }
 
+   /// Concatenate the contents of a deep container to this trait             
+   ///   @param rhs - the deep container to concatenate                       
+   ///   @return the concatenated trait                                       
    template<class TRAIT>
    template<CT::Deep T>
-   TRAIT StaticTrait<TRAIT>::operator + (const T& other) const {
-      return TRAIT {Any::operator + (other)};
+   TRAIT StaticTrait<TRAIT>::operator + (const T& rhs) const {
+      return TRAIT {Any::operator + (rhs)};
    }
 
+   /// Concatenate the contents of a trait to this trait                      
+   ///   @param rhs - the deep container to concatenate                       
+   ///   @return a reference to this trait                                    
    template<class TRAIT>
-   TRAIT& StaticTrait<TRAIT>::operator += (const Trait& other) {
-      return static_cast<TRAIT&>(
-         Any::operator += (static_cast<const Any&>(other))
-      );
+   TRAIT& StaticTrait<TRAIT>::operator += (const Trait& rhs) {
+      Any::operator += (static_cast<const Any&>(rhs));
+      return *this;
    }
 
+   /// Concatenate the contents of a deep container to this trait             
+   ///   @param rhs - the deep container to concatenate                       
+   ///   @return a reference to this trait                                    
    template<class TRAIT>
    template<CT::Deep T>
-   TRAIT& StaticTrait<TRAIT>::operator += (const T& other) {
-      return static_cast<TRAIT&>(Any::operator += (other));
+   TRAIT& StaticTrait<TRAIT>::operator += (const T& rhs) {
+      Any::operator += (rhs);
+      return *this;
    }
 
+   /// Compare two traits                                                     
+   ///   @param rhs - the trait to compare against                            
+   ///   @return true if traits match by contents and type                    
    template<class TRAIT>
    template<CT::Data T>
-   bool StaticTrait<TRAIT>::operator == (const T& other) const {
+   bool StaticTrait<TRAIT>::operator == (const T& rhs) const {
       if constexpr (CT::Same<T, StaticTrait<TRAIT>>)
-         return Any::operator == (static_cast<const Any&>(DenseCast(other)));
+         return Any::operator == (static_cast<const Any&>(DenseCast(rhs)));
       else if constexpr (CT::Trait<T>)
-         return Trait::operator == (static_cast<const Trait&>(DenseCast(other)));
+         return Trait::operator == (static_cast<const Trait&>(DenseCast(rhs)));
       else
-         return Any::operator == (other);
+         return Any::operator == (rhs);
    }
 
+   /// Clone the static trait                                                 
+   ///   @return the cloned static trait                                      
    template<class TRAIT>
    TRAIT StaticTrait<TRAIT>::Clone() const {
       return TRAIT {Any::Clone()};
+   }
+
+
+
+   /// Get the memory block corresponding to a local member variable          
+   /// Never references data                                                  
+   ///   @tparam T - a trait or data type to search for in the reflection     
+   ///   @return a static memory block                                        
+   template<class T>
+   LANGULUS(ALWAYSINLINE)
+   Block Block::GetMember() const {
+      if constexpr (CT::Trait<T>)
+         return GetMember(MetaTrait::Of<Decay<T>>());
+      else
+         return GetMember(MetaData::Of<Decay<T>>());
+   }
+
+   /// Get the memory block corresponding to a local member variable          
+   /// Never references data                                                  
+   ///   @tparam T - a trait or data type to search for in the reflection     
+   ///   @return a static memory block                                        
+   template<class T>
+   LANGULUS(ALWAYSINLINE)
+   Block Block::GetMember() {
+      if constexpr (CT::Trait<T>)
+         return GetMember(MetaTrait::Of<Decay<T>>());
+      else
+         return GetMember(MetaData::Of<Decay<T>>());
+   }
+
+   
+   /// Select a member Block via trait/data or index (or both)                
+   ///   @param index - the trait index to get                                
+   ///   @return a static memory block (constant if block is constant)        
+   template<class T, CT::Index INDEX>
+   LANGULUS(ALWAYSINLINE)
+   Block Block::GetMember(const INDEX& index) const {
+      if constexpr (CT::Trait<T>)
+         return GetMember(MetaTrait::Of<Decay<T>>(), index);
+      else
+         return GetMember(MetaData::Of<Decay<T>>(), index);
+   }
+
+   /// Select a member Block via trait/data or index (or both)                
+   ///   @param index - the trait index to get                                
+   ///   @return a static memory block (constant if block is constant)        
+   template<class T, CT::Index INDEX>
+   LANGULUS(ALWAYSINLINE)
+   Block Block::GetMember(const INDEX&) {
+      if constexpr (CT::Trait<T>)
+         return GetMember(MetaTrait::Of<Decay<T>>(), index);
+      else
+         return GetMember(MetaData::Of<Decay<T>>(), index);
    }
 
 } // namespace Langulus::Anyness

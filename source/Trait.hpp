@@ -216,6 +216,8 @@ LANGULUS_DEFINE_TRAIT(Count,
    "Count trait, used all over the place");
 LANGULUS_DEFINE_TRAIT(Name,
    "Name trait, used all over the place");
+LANGULUS_DEFINE_TRAIT(Index,
+   "Index trait, used all over the place");
 LANGULUS_DEFINE_TRAIT(Context,
    "Context trait, used to access the current environment");
 LANGULUS_DEFINE_TRAIT(Trait, 

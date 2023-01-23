@@ -113,6 +113,11 @@ namespace Langulus::Anyness
       template<CT::Semantic S>
       BlockSet& operator << (S&&) requires (CT::Block<TypeOf<S>>);
 
+      Count Merge(const BlockSet&);
+      Count Merge(BlockSet&&);
+      template<CT::Semantic S>
+      Count Merge(S&&);
+
       ///                                                                     
       ///   REMOVAL                                                           
       ///                                                                     

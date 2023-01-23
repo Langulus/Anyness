@@ -139,12 +139,8 @@ namespace Langulus::Anyness
    }
 
    TEMPLATE()
-   template<class K>
    LANGULUS(ALWAYSINLINE)
-   TEdit<T>& TEdit<T>::operator << (const K& other) requires (!IsText<K>) {
-      if (!mText)
-         return *this;
-
+   TEdit<T>& TEdit<T>::operator << (const MemberType& other) {
       if constexpr (Character<K> && Dense<K>)
          return operator << (Text(&other, 1));
       else if constexpr (ConstructibleWith<Text, K>)
@@ -162,12 +158,8 @@ namespace Langulus::Anyness
    /// String concatenation                                                   
    /// Appends to the front of the selection                                  
    TEMPLATE()
-   template<class K>
    LANGULUS(ALWAYSINLINE)
-   TEdit<T>& TEdit<T>::operator >> (const K& other) requires (!IsText<K>) {
-      if (!mText)
-         return *this;
-
+   TEdit<T>& TEdit<T>::operator >> (const MemberType& other) {
       if constexpr (Character<K> && Dense<K>)
          return operator >> (Text(&other, 1));
       else if constexpr (ConstructibleWith<Text, K>)
@@ -185,12 +177,8 @@ namespace Langulus::Anyness
    /// Replace selection (selection will collapse)                            
    /// Collapsed selection means mStart == mEnd                               
    TEMPLATE()
-   template<class K>
    LANGULUS(ALWAYSINLINE)
-   TEdit<T>& TEdit<T>::Replace(const K& other) requires (!IsText<K>) {
-      if (!mText)
-         return *this;
-
+   TEdit<T>& TEdit<T>::Replace(const MemberType& other) {
       if constexpr (Character<K> && Dense<K>)
          return Replace(Text(&other, 1));
       else if constexpr (ConstructibleWith<Text, K>)

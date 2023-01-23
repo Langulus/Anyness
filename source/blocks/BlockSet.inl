@@ -13,7 +13,8 @@ namespace Langulus::Anyness
 
    /// Shallow-copy construction                                              
    ///   @param other - the table to copy                                     
-   inline BlockSet::BlockSet(const BlockSet& other)
+   LANGULUS(ALWAYSINLINE)
+   BlockSet::BlockSet(const BlockSet& other)
       : mInfo {other.mInfo}
       , mKeys {other.mKeys} {
       mKeys.Keep();
@@ -21,7 +22,8 @@ namespace Langulus::Anyness
 
    /// Move construction                                                      
    ///   @param other - the table to move                                     
-   inline BlockSet::BlockSet(BlockSet&& other) noexcept
+   LANGULUS(ALWAYSINLINE)
+   BlockSet::BlockSet(BlockSet&& other) noexcept
       : mInfo {other.mInfo}
       , mKeys {other.mKeys} {
       other.mKeys.ResetMemory();
@@ -30,6 +32,7 @@ namespace Langulus::Anyness
 
    /// Shallow-copy construction without referencing                          
    ///   @param other - the disowned table to copy                            
+   LANGULUS(ALWAYSINLINE)
    constexpr BlockSet::BlockSet(Disowned<BlockSet>&& other) noexcept
       : mInfo {other.mValue.mInfo}
       , mKeys {other.mValue.mKeys} {
@@ -38,6 +41,7 @@ namespace Langulus::Anyness
 
    /// Minimal move construction from abandoned table                         
    ///   @param other - the abandoned table to move                           
+   LANGULUS(ALWAYSINLINE)
    constexpr BlockSet::BlockSet(Abandoned<BlockSet>&& other) noexcept
       : mInfo {other.mValue.mInfo}
       , mKeys {other.mValue.mKeys} {
@@ -88,7 +92,8 @@ namespace Langulus::Anyness
    /// Move a table                                                           
    ///   @param rhs - the table to move                                       
    ///   @return a reference to this table                                    
-   inline BlockSet& BlockSet::operator = (BlockSet&& rhs) noexcept {
+   LANGULUS(ALWAYSINLINE)
+   BlockSet& BlockSet::operator = (BlockSet&& rhs) noexcept {
       if (&rhs == this)
          return *this;
 
@@ -100,7 +105,8 @@ namespace Langulus::Anyness
    /// Creates a shallow copy of the given table                              
    ///   @param rhs - the table to reference                                  
    ///   @return a reference to this table                                    
-   inline BlockSet& BlockSet::operator = (const BlockSet& rhs) {
+   LANGULUS(ALWAYSINLINE)
+   BlockSet& BlockSet::operator = (const BlockSet& rhs) {
       if (&rhs == this)
          return *this;
 
@@ -113,6 +119,7 @@ namespace Langulus::Anyness
    ///   @param pair - the pair to emplace                                    
    ///   @return a reference to this table                                    
    template<CT::Data T>
+   LANGULUS(ALWAYSINLINE)
    BlockSet& BlockSet::operator = (T&& element) noexcept {
       Clear();
       Insert(Forward<T>(element));
@@ -123,6 +130,7 @@ namespace Langulus::Anyness
    ///   @param pair - the pair to copy                                       
    ///   @return a reference to this table                                    
    template<CT::Data T>
+   LANGULUS(ALWAYSINLINE)
    BlockSet& BlockSet::operator = (const T& element) {
       Clear();
       Insert(element);
@@ -133,7 +141,8 @@ namespace Langulus::Anyness
    ///   @attention assumes from & to have been preallocated                  
    ///   @param from - source                                                 
    ///   @param to - destrination                                             
-   inline void BlockSet::CloneInner(const Block& from, Block& to) const {
+   LANGULUS(ALWAYSINLINE)
+   void BlockSet::CloneInner(const Block& from, Block& to) const {
       for (Offset i = 0; i < GetReserved(); ++i) {
          if (!mInfo[i])
             continue;
@@ -168,43 +177,51 @@ namespace Langulus::Anyness
    
    /// Templated tables are always typed                                      
    ///   @return false                                                        
+   LANGULUS(ALWAYSINLINE)
    constexpr bool BlockSet::IsUntyped() const noexcept {
       return mKeys.IsUntyped();
    }
    
    /// Templated tables are always type-constrained                           
    ///   @return true                                                         
+   LANGULUS(ALWAYSINLINE)
    constexpr bool BlockSet::IsTypeConstrained() const noexcept {
       return mKeys.IsTypeConstrained();;
    }
    
    /// Check if key type is abstract                                          
+   LANGULUS(ALWAYSINLINE)
    constexpr bool BlockSet::IsAbstract() const noexcept {
       return mKeys.IsAbstract() && mKeys.IsDense();
    }
    
    /// Check if key type is default-constructible                             
+   LANGULUS(ALWAYSINLINE)
    constexpr bool BlockSet::IsConstructible() const noexcept {
       return mKeys.IsDefaultable();
    }
    
    /// Check if key type is deep                                              
+   LANGULUS(ALWAYSINLINE)
    constexpr bool BlockSet::IsDeep() const noexcept {
       return mKeys.IsDeep();
    }
 
    /// Check if the key type is a pointer                                     
+   LANGULUS(ALWAYSINLINE)
    constexpr bool BlockSet::IsSparse() const noexcept {
       return mKeys.IsSparse();
    }
 
    /// Check if the key type is not a pointer                                 
+   LANGULUS(ALWAYSINLINE)
    constexpr bool BlockSet::IsDense() const noexcept {
       return mKeys.IsDense();
    }
 
    /// Get the size of a single key, in bytes                                 
    ///   @return the number of bytes a single key contains                    
+   LANGULUS(ALWAYSINLINE)
    constexpr Size BlockSet::GetStride() const noexcept {
       return mKeys.GetStride();
    }
@@ -212,6 +229,7 @@ namespace Langulus::Anyness
    /// Get the raw array (const)                                              
    ///   @attention for internal use only                                     
    template<CT::Data T>
+   LANGULUS(ALWAYSINLINE)
    constexpr decltype(auto) BlockSet::GetRaw() const noexcept {
       return GetValues<T>().GetRaw();
    }
@@ -219,6 +237,7 @@ namespace Langulus::Anyness
    /// Get the raw array                                                      
    ///   @attention for internal use only                                     
    template<CT::Data T>
+   LANGULUS(ALWAYSINLINE)
    constexpr decltype(auto) BlockSet::GetRaw() noexcept {
       return GetValues<T>().GetRaw();
    }
@@ -226,23 +245,27 @@ namespace Langulus::Anyness
    /// Get the end of the array                                               
    ///   @attention for internal use only                                     
    template<CT::Data T>
+   LANGULUS(ALWAYSINLINE)
    constexpr decltype(auto) BlockSet::GetRawEnd() const noexcept {
       return GetRaw<T>() + GetReserved();
    }
 
    /// Get the size of all elements, in bytes                                 
    ///   @return the total amount of initialized bytes                        
+   LANGULUS(ALWAYSINLINE)
    constexpr Size BlockSet::GetByteSize() const noexcept {
       return GetStride() * GetCount(); 
    }
 
    /// Get the type of the set                                                
-   inline DMeta BlockSet::GetType() const noexcept {
+   LANGULUS(ALWAYSINLINE)
+   DMeta BlockSet::GetType() const noexcept {
       return mKeys.GetType();
    }
 
    /// Check if key type exactly matches another                              
    template<class ALT_T>
+   LANGULUS(ALWAYSINLINE)
    constexpr bool BlockSet::Is() const noexcept {
       return mKeys.template Is<ALT_T>();
    }
@@ -256,7 +279,8 @@ namespace Langulus::Anyness
    ///   @attention assumes key type has been set                             
    ///   @param infoStart - [out] the offset at which info bytes start        
    ///   @return the requested byte size                                      
-   inline Size BlockSet::RequestKeyAndInfoSize(const Count request, Offset& infoStart) noexcept {
+   LANGULUS(ALWAYSINLINE)
+   Size BlockSet::RequestKeyAndInfoSize(const Count request, Offset& infoStart) noexcept {
       const Size keymemory = request * mKeys.GetStride();
       infoStart = keymemory + Alignment - (keymemory % Alignment);
       return infoStart + request + 1;
@@ -264,19 +288,22 @@ namespace Langulus::Anyness
 
    /// Get the info array (const)                                             
    ///   @return a pointer to the first element inside the info array         
-   inline const BlockSet::InfoType* BlockSet::GetInfo() const noexcept {
+   LANGULUS(ALWAYSINLINE)
+   const BlockSet::InfoType* BlockSet::GetInfo() const noexcept {
       return mInfo;
    }
 
    /// Get the info array                                                     
    ///   @return a pointer to the first element inside the info array         
-   inline BlockSet::InfoType* BlockSet::GetInfo() noexcept {
+   LANGULUS(ALWAYSINLINE)
+   BlockSet::InfoType* BlockSet::GetInfo() noexcept {
       return mInfo;
    }
 
    /// Get the end of the info array                                          
    ///   @return a pointer to the first element inside the info array         
-   inline const BlockSet::InfoType* BlockSet::GetInfoEnd() const noexcept {
+   LANGULUS(ALWAYSINLINE)
+   const BlockSet::InfoType* BlockSet::GetInfoEnd() const noexcept {
       return mInfo + GetReserved();
    }
 
@@ -284,6 +311,7 @@ namespace Langulus::Anyness
    ///   @tparam K - the key type                                             
    ///   @tparam V - the value type                                           
    template<CT::Data T>
+   LANGULUS(ALWAYSINLINE)
    void BlockSet::Mutate() {
       Mutate(MetaData::Of<Decay<T>>(), CT::Sparse<T>);
    }
@@ -291,7 +319,8 @@ namespace Langulus::Anyness
    /// Checks type compatibility and sets type for the type-erased map        
    ///   @param key - the key type                                            
    ///   @param sparseKey - whether key type is sparse                        
-   inline void BlockSet::Mutate(DMeta key, bool sparseKey) {
+   LANGULUS(ALWAYSINLINE)
+   void BlockSet::Mutate(DMeta key, bool sparseKey) {
       if (!mKeys.mType) {
          // Set a fresh key type                                        
          mKeys.mType = key;
@@ -310,7 +339,8 @@ namespace Langulus::Anyness
    /// Reserves space for the specified number of pairs                       
    ///   @attention does nothing if reserving less than current reserve       
    ///   @param count - number of pairs to allocate                           
-   inline void BlockSet::Allocate(const Count& count) {
+   LANGULUS(ALWAYSINLINE)
+   void BlockSet::Allocate(const Count& count) {
       AllocateInner(Roof2(count < MinimalAllocation ? MinimalAllocation : count));
    }
 
@@ -465,7 +495,8 @@ namespace Langulus::Anyness
    ///   @attention does nothing if reserving less than current reserve       
    ///   @attention assumes count is a power-of-two number                    
    ///   @param count - number of pairs to allocate                           
-   inline void BlockSet::AllocateInner(const Count& count) {
+   LANGULUS(ALWAYSINLINE)
+   void BlockSet::AllocateInner(const Count& count) {
       // Shrinking is never allowed, you'll have to do it explicitly    
       // via Compact()                                                  
       if (count <= GetReserved())
@@ -612,7 +643,8 @@ namespace Langulus::Anyness
    ///   @param value - the value to hash                                     
    ///   @return the bucket offset                                            
    template<CT::Data T>
-   LANGULUS(ALWAYSINLINE) Offset BlockSet::GetBucket(const T& value) const noexcept {
+   LANGULUS(ALWAYSINLINE)
+   Offset BlockSet::GetBucket(const T& value) const noexcept {
       return HashData(value).mHash & (GetReserved() - 1);
    }
 
@@ -620,6 +652,7 @@ namespace Langulus::Anyness
    ///   @param value - the value to add                                      
    ///   @return 1 if item was inserted, zero otherwise                       
    template<CT::NotSemantic T>
+   LANGULUS(ALWAYSINLINE)
    Count BlockSet::Insert(const T& value) {
       return Insert(Copy(value));
    }
@@ -628,6 +661,7 @@ namespace Langulus::Anyness
    ///   @param value - the value to add                                      
    ///   @return 1 if item was inserted, zero otherwise                       
    template<CT::Semantic S>
+   LANGULUS(ALWAYSINLINE)
    Count BlockSet::Insert(S&& value) {
       using T = TypeOf<S>;
       Mutate<T>();
@@ -639,14 +673,16 @@ namespace Langulus::Anyness
    /// Insert a single value inside table via copy (unknown version)          
    ///   @param value - the value to add                                      
    ///   @return 1 if item was inserted, zero otherwise                       
-   inline Count BlockSet::InsertUnknown(const Block& value) {
+   LANGULUS(ALWAYSINLINE)
+   Count BlockSet::InsertUnknown(const Block& value) {
       return InsertUnknown(Langulus::Copy(value));
    }
 
    /// Insert a single pair inside table via move (unknown version)           
    ///   @param value - the value to add                                      
    ///   @return 1 if item was inserted, zero otherwise                       
-   inline Count BlockSet::InsertUnknown(Block&& value) {
+   LANGULUS(ALWAYSINLINE)
+   Count BlockSet::InsertUnknown(Block&& value) {
       return InsertUnknown(Langulus::Move(value));
    }
    
@@ -654,7 +690,8 @@ namespace Langulus::Anyness
    ///   @param value - the value to add                                      
    ///   @return 1 if item was inserted, zero otherwise                       
    template<CT::Semantic S>
-   inline Count BlockSet::InsertUnknown(S&& value) requires (CT::Block<TypeOf<S>>) {
+   LANGULUS(ALWAYSINLINE)
+   Count BlockSet::InsertUnknown(S&& value) requires (CT::Block<TypeOf<S>>) {
       Mutate(value.mValue.mType, value.mValue.IsSparse());
       Allocate(GetCount() + 1);
       const auto index = value.mValue.GetHash().mHash & (GetReserved() - 1);
@@ -666,6 +703,7 @@ namespace Langulus::Anyness
    ///   @param item - the pair to insert                                     
    ///   @return a reference to this map for chaining                         
    template<CT::NotSemantic T>
+   LANGULUS(ALWAYSINLINE)
    BlockSet& BlockSet::operator << (const T& item) {
       Insert(Copy(item));
       return *this;
@@ -675,6 +713,7 @@ namespace Langulus::Anyness
    ///   @param item - the pair to insert                                     
    ///   @return a reference to this map for chaining                         
    template<CT::NotSemantic T>
+   LANGULUS(ALWAYSINLINE)
    BlockSet& BlockSet::operator << (T&& item) {
       Insert(Move(item));
       return *this;
@@ -683,7 +722,8 @@ namespace Langulus::Anyness
    /// Copy-insert a type-erased item inside the map                          
    ///   @param item - the pair to insert                                     
    ///   @return a reference to this map for chaining                         
-   inline BlockSet& BlockSet::operator << (const Block& item) {
+   LANGULUS(ALWAYSINLINE)
+   BlockSet& BlockSet::operator << (const Block& item) {
       InsertUnknown(item);
       return *this;
    }
@@ -691,13 +731,44 @@ namespace Langulus::Anyness
    /// Move-insert a type-erased item inside the map                          
    ///   @param item - the pair to insert                                     
    ///   @return a reference to this map for chaining                         
-   inline BlockSet& BlockSet::operator << (Block&& item) {
+   LANGULUS(ALWAYSINLINE)
+   BlockSet& BlockSet::operator << (Block&& item) {
       InsertUnknown(Forward<Block>(item));
       return *this;
    }
 
-   /// Destroy everything valid inside the map                                
-   inline void BlockSet::ClearInner() {
+   /// Merge the contents of both sets in this set by doing shallow copies    
+   ///   @param set - the set to merge with this one                          
+   ///   @return the number of elements that were inserted                    
+   LANGULUS(ALWAYSINLINE)
+   Count BlockSet::Merge(const BlockSet& set) {
+      return Merge(Copy(set));
+   }
+
+   /// Merge the contents of both sets in this set by moving elements         
+   ///   @param set - the set to merge with this one                          
+   ///   @return the number of elements that were inserted                    
+   LANGULUS(ALWAYSINLINE)
+   Count BlockSet::Merge(BlockSet&& set) {
+      return Merge(Move(set));
+   }
+
+   /// Merge the contents of both sets in this set by using a semantic        
+   ///   @param set - the set to merge with this one                          
+   ///   @return the number of elements that were inserted                    
+   template<CT::Semantic S>
+   LANGULUS(ALWAYSINLINE)
+   Count BlockSet::Merge(S&& set) {
+      static_assert(CT::Set<TypeOf<S>>, "You can only merge other sets");
+      Count inserted {};
+      for (auto it : set.mValue)
+         inserted += InsertUnknown(S::Nest(it));
+      return inserted;
+   }
+
+   /// Destroy everything initialized inside the map                          
+   LANGULUS(ALWAYSINLINE)
+   void BlockSet::ClearInner() {
       auto inf = GetInfo();
       const auto infEnd = GetInfoEnd();
       while (inf != infEnd) {
@@ -814,6 +885,7 @@ namespace Langulus::Anyness
    /// Get the templated values container                                     
    ///   @attention for internal use only, elements might not be initialized  
    template<CT::Data T>
+   LANGULUS(ALWAYSINLINE)
    const TAny<T>& BlockSet::GetValues() const noexcept {
       return reinterpret_cast<const TAny<T>&>(mKeys);
    }
@@ -821,6 +893,7 @@ namespace Langulus::Anyness
    /// Get the templated values container                                     
    ///   @attention for internal use only, elements might not be initialized  
    template<CT::Data T>
+   LANGULUS(ALWAYSINLINE)
    TAny<T>& BlockSet::GetValues() noexcept {
       return reinterpret_cast<TAny<T>&>(mKeys);
    }
@@ -851,7 +924,8 @@ namespace Langulus::Anyness
    }
 
    /// If possible reallocates the map to a smaller one                       
-   inline void BlockSet::Compact() {
+   LANGULUS(ALWAYSINLINE)
+   void BlockSet::Compact() {
       //TODO();
    }
 
@@ -862,6 +936,7 @@ namespace Langulus::Anyness
    ///   @param key - the key to search for                                   
    ///   @return true if key is found, false otherwise                        
    template<CT::NotSemantic T>
+   LANGULUS(ALWAYSINLINE)
    bool BlockSet::Contains(const T& key) const {
       if (IsEmpty())
          return false;
@@ -872,6 +947,7 @@ namespace Langulus::Anyness
    ///   @param key - the key to search for                                   
    ///   @return the index if key was found, or IndexNone if not              
    template<CT::NotSemantic T>
+   LANGULUS(ALWAYSINLINE)
    Index BlockSet::Find(const T& key) const {
       const auto offset = FindIndex(key);
       return offset != GetReserved() ? Index {offset} : IndexNone;
@@ -881,7 +957,8 @@ namespace Langulus::Anyness
    ///   @attention as unsafe as it gets, for internal use only               
    ///   @param i - the offset to use                                         
    ///   @return a reference to the key                                       
-   inline Block BlockSet::GetValue(const Offset& i) const noexcept {
+   LANGULUS(ALWAYSINLINE)
+   Block BlockSet::GetValue(const Offset& i) const noexcept {
       return mKeys.GetElement(i);
    }
 
@@ -889,21 +966,24 @@ namespace Langulus::Anyness
    ///   @attention as unsafe as it gets, for internal use only               
    ///   @param i - the offset to use                                         
    ///   @return a reference to the key                                       
-   inline Block BlockSet::GetValue(const Offset& i) noexcept {
+   LANGULUS(ALWAYSINLINE)
+   Block BlockSet::GetValue(const Offset& i) noexcept {
       return mKeys.GetElement(i);
    }
 
    /// Get a key by a safe index (const)                                      
    ///   @param index - the index to use                                      
    ///   @return a reference to the key                                       
-   inline Block BlockSet::Get(const Index& index) const {
+   LANGULUS(ALWAYSINLINE)
+   Block BlockSet::Get(const Index& index) const {
       return const_cast<BlockSet&>(*this).Get(index);
    }
 
    /// Get a key by a safe index                                              
    ///   @param index - the index to use                                      
    ///   @return a reference to the key                                       
-   inline Block BlockSet::Get(const Index& index) {
+   LANGULUS(ALWAYSINLINE)
+   Block BlockSet::Get(const Index& index) {
       const auto offset = index.GetOffset();
       LANGULUS_ASSERT(offset < GetReserved() && GetInfo()[offset],
          OutOfRange, "Bad index");
@@ -987,24 +1067,28 @@ namespace Langulus::Anyness
 
    /// Get the number of inserted pairs                                       
    ///   @return the number of inserted pairs                                 
+   LANGULUS(ALWAYSINLINE)
    constexpr Count BlockSet::GetCount() const noexcept {
       return mKeys.GetCount();
    }
 
    /// Get the number of allocated pairs                                      
    ///   @return the number of allocated pairs                                
+   LANGULUS(ALWAYSINLINE)
    constexpr Count BlockSet::GetReserved() const noexcept {
       return mKeys.GetReserved();
    }
 
    /// Check if there are any pairs in this map                               
    ///   @return true if there's at least one pair available                  
+   LANGULUS(ALWAYSINLINE)
    constexpr bool BlockSet::IsEmpty() const noexcept {
       return mKeys.IsEmpty();
    }
 
    /// Check if the map has been allocated                                    
    ///   @return true if the map uses dynamic memory                          
+   LANGULUS(ALWAYSINLINE)
    constexpr bool BlockSet::IsAllocated() const noexcept {
       return mKeys.IsAllocated();
    }
@@ -1013,6 +1097,7 @@ namespace Langulus::Anyness
    /// This is always true, since the map can't be initialized with outside   
    /// memory - the memory layout requirements are too strict to allow for it 
    ///   @return true                                                         
+   LANGULUS(ALWAYSINLINE)
    constexpr bool BlockSet::HasAuthority() const noexcept {
       return IsAllocated();
    }
@@ -1020,6 +1105,7 @@ namespace Langulus::Anyness
    /// Get the number of references for the allocated memory                  
    ///   @attention always returns zero if we don't have authority            
    ///   @return the number of references                                     
+   LANGULUS(ALWAYSINLINE)
    constexpr Count BlockSet::GetUses() const noexcept {
       return mKeys.GetUses();
    }
@@ -1027,7 +1113,8 @@ namespace Langulus::Anyness
    /// Get hash of the set contents                                           
    ///   @attention the hash is not cached, so this is a slow operation       
    ///   @return the hash                                                     
-   inline Hash BlockSet::GetHash() const {
+   LANGULUS(ALWAYSINLINE)
+   Hash BlockSet::GetHash() const {
       TAny<Hash> hashes;
       for (auto element : *this)
          hashes << element.GetHash();
@@ -1041,7 +1128,8 @@ namespace Langulus::Anyness
 
    /// Get iterator to first element                                          
    ///   @return an iterator to the first element, or end if empty            
-   inline typename BlockSet::Iterator BlockSet::begin() noexcept {
+   LANGULUS(ALWAYSINLINE)
+   typename BlockSet::Iterator BlockSet::begin() noexcept {
       static_assert(sizeof(Iterator) == sizeof(ConstIterator),
          "Size mismatch - types must be binary-compatible");
       const auto constant = const_cast<const BlockSet*>(this)->begin();
@@ -1050,7 +1138,8 @@ namespace Langulus::Anyness
 
    /// Get iterator to end                                                    
    ///   @return an iterator to the end element                               
-   inline typename BlockSet::Iterator BlockSet::end() noexcept {
+   LANGULUS(ALWAYSINLINE)
+   typename BlockSet::Iterator BlockSet::end() noexcept {
       static_assert(sizeof(Iterator) == sizeof(ConstIterator),
          "Size mismatch - types must be binary-compatible");
       const auto constant = const_cast<const BlockSet*>(this)->end();
@@ -1059,7 +1148,8 @@ namespace Langulus::Anyness
 
    /// Get iterator to the last element                                       
    ///   @return an iterator to the last element, or end if empty             
-   inline typename BlockSet::Iterator BlockSet::last() noexcept {
+   LANGULUS(ALWAYSINLINE)
+   typename BlockSet::Iterator BlockSet::last() noexcept {
       static_assert(sizeof(Iterator) == sizeof(ConstIterator),
          "Size mismatch - types must be binary-compatible");
       const auto constant = const_cast<const BlockSet*>(this)->last();
@@ -1068,7 +1158,8 @@ namespace Langulus::Anyness
 
    /// Get iterator to first element                                          
    ///   @return a constant iterator to the first element, or end if empty    
-   inline typename BlockSet::ConstIterator BlockSet::begin() const noexcept {
+   LANGULUS(ALWAYSINLINE)
+   typename BlockSet::ConstIterator BlockSet::begin() const noexcept {
       if (IsEmpty())
          return end();
 
@@ -1085,13 +1176,15 @@ namespace Langulus::Anyness
 
    /// Get iterator to end                                                    
    ///   @return a constant iterator to the end element                       
-   inline typename BlockSet::ConstIterator BlockSet::end() const noexcept {
+   LANGULUS(ALWAYSINLINE)
+   typename BlockSet::ConstIterator BlockSet::end() const noexcept {
       return {GetInfoEnd(), GetInfoEnd(), {}};
    }
 
    /// Get iterator to the last valid element                                 
    ///   @return a constant iterator to the last element, or end if empty     
-   inline typename BlockSet::ConstIterator BlockSet::last() const noexcept {
+   LANGULUS(ALWAYSINLINE)
+   typename BlockSet::ConstIterator BlockSet::last() const noexcept {
       if (IsEmpty())
          return end();
 
@@ -1268,11 +1361,13 @@ namespace Langulus::Anyness
    ///   @param f - the function to call for each element block               
    ///   @return the number of successful f() executions                      
    template<bool MUTABLE, class F>
+   LANGULUS(ALWAYSINLINE)
    Count BlockSet::ForEachElement(F&& f) {
       return ForEachElement<MUTABLE>(mKeys, Forward<F>(f));
    }
 
    template<class F>
+   LANGULUS(ALWAYSINLINE)
    Count BlockSet::ForEachElement(F&& f) const {
       return const_cast<BlockSet&>(*this)
          .template ForEachElement<false>(Forward<F>(f));
@@ -1284,44 +1379,52 @@ namespace Langulus::Anyness
    ///   @param f - the functions to call for each key block                  
    ///   @return the number of successful f() executions                      
    template<bool MUTABLE, class... F>
+   LANGULUS(ALWAYSINLINE)
    Count BlockSet::ForEach(F&&... f) {
       return (... || ForEachSplitter<MUTABLE, false>(mKeys, Forward<F>(f)));
    }
 
    template<class... F>
+   LANGULUS(ALWAYSINLINE)
    Count BlockSet::ForEach(F&&... f) const {
       return const_cast<BlockSet&>(*this)
          .template ForEach<false>(Forward<F>(f)...);
    }
 
    template<bool MUTABLE, class... F>
+   LANGULUS(ALWAYSINLINE)
    Count BlockSet::ForEachRev(F&&... f) {
       return (... || ForEachSplitter<MUTABLE, true>(mKeys, Forward<F>(f)));
    }
 
    template<class... F>
+   LANGULUS(ALWAYSINLINE)
    Count BlockSet::ForEachRev(F&&... f) const {
       return const_cast<BlockSet&>(*this)
          .template ForEachRev<false>(Forward<F>(f)...);
    }
 
    template<bool SKIP, bool MUTABLE, class... F>
+   LANGULUS(ALWAYSINLINE)
    Count BlockSet::ForEachDeep(F&&... f) {
       return (... || ForEachDeepSplitter<SKIP, MUTABLE, false>(mKeys, Forward<F>(f)));
    }
 
    template<bool SKIP, class... F>
+   LANGULUS(ALWAYSINLINE)
    Count BlockSet::ForEachDeep(F&&... f) const {
       return const_cast<BlockSet&>(*this)
          .template ForEachDeep<SKIP, false>(Forward<F>(f)...);
    }
 
    template<bool SKIP, bool MUTABLE, class... F>
+   LANGULUS(ALWAYSINLINE)
    Count BlockSet::ForEachDeepRev(F&&... f) {
       return (... || ForEachDeepSplitter<SKIP, MUTABLE, true>(mKeys, Forward<F>(f)));
    }
 
    template<bool SKIP, class... F>
+   LANGULUS(ALWAYSINLINE)
    Count BlockSet::ForEachDeepRev(F&&... f) const {
       return const_cast<BlockSet&>(*this)
          .template ForEachDeepRev<SKIP, false>(Forward<F>(f)...);

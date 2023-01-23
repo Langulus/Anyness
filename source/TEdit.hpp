@@ -32,6 +32,8 @@ namespace Langulus::Anyness
 
    public:
       TEdit() = delete;
+      TEdit(const TEdit&) = delete;
+      TEdit(TEdit&&) noexcept = default;
       TEdit(T&, Offset = 0, Offset = 0) noexcept;
 
       TEdit& Select(const T&);
@@ -57,6 +59,16 @@ namespace Langulus::Anyness
       TEdit& Delete();
       TEdit& Backspace();
    };
+
+   template<CT::Sparse T>
+   auto Edit(T what) noexcept {
+      return TEdit<Decay<T>> {DenseCast(what)};
+   }
+
+   template<CT::Dense T>
+   auto Edit(T& what) noexcept {
+      return TEdit<Decay<T>> {what};
+   }
 
 } // namespace Langulus::Anyness
 
