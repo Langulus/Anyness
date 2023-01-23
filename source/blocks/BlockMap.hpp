@@ -41,6 +41,7 @@ namespace Langulus::Anyness
 
    public:
       static constexpr bool Ownership = true;
+      static constexpr bool Sequential = false;
 
       constexpr BlockMap() = default;
 

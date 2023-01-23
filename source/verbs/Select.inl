@@ -15,9 +15,36 @@ namespace Langulus::Anyness
 
    /// Get the memory block corresponding to a local member variable          
    /// Never references data                                                  
+   ///   @tparam T - a trait or data type to search for in the reflection     
+   ///   @return a static memory block                                        
+   template<class T>
+   LANGULUS(ALWAYSINLINE)
+   Block Block::GetMember() const {
+      if constexpr (CT::Trait<T>)
+         return GetMember(MetaTrait::Of<Decay<T>>());
+      else
+         return GetMember(MetaData::Of<Decay<T>>());
+   }
+
+   /// Get the memory block corresponding to a local member variable          
+   /// Never references data                                                  
+   ///   @tparam T - a trait or data type to search for in the reflection     
+   ///   @return a static memory block                                        
+   template<class T>
+   LANGULUS(ALWAYSINLINE)
+   Block Block::GetMember() {
+      if constexpr (CT::Trait<T>)
+         return GetMember(MetaTrait::Of<Decay<T>>());
+      else
+         return GetMember(MetaData::Of<Decay<T>>());
+   }
+
+   /// Get the memory block corresponding to a local member variable          
+   /// Never references data                                                  
    ///   @param member - the member to get                                    
    ///   @return a static memory block                                        
-   inline Block Block::GetMember(const RTTI::Member& member) {
+   LANGULUS(ALWAYSINLINE)
+   Block Block::GetMember(const RTTI::Member& member) {
       if (!IsAllocated())
          return Block {member.GetType()};
 
@@ -30,7 +57,8 @@ namespace Langulus::Anyness
    /// Get the memory Block corresponding to a local member variable (const)  
    ///   @param member - the member to get                                    
    ///   @return a static constant memory block                               
-   inline Block Block::GetMember(const RTTI::Member& member) const {
+   LANGULUS(ALWAYSINLINE)
+   Block Block::GetMember(const RTTI::Member& member) const {
       auto result = const_cast<Block*>(this)->GetMember(member);
       result.MakeConst();
       return result;
@@ -69,7 +97,8 @@ namespace Langulus::Anyness
    /// Get a trait-tagged member from first element inside block              
    ///   @param trait - the trait tag to search for                           
    ///   @return the static mutable block corresponding to that member        
-   inline Block Block::GetMember(TMeta trait) {
+   LANGULUS(ALWAYSINLINE)
+   Block Block::GetMember(TMeta trait) {
       auto result = const_cast<const Block*>(this)->GetMember(trait);
       result.MakeConst();
       return result;
@@ -108,7 +137,8 @@ namespace Langulus::Anyness
    /// Get a member of specific type, from first element inside block         
    ///   @param trait - the trait tag to search for                           
    ///   @return the static mutable block corresponding to that member        
-   inline Block Block::GetMember(DMeta data) {
+   LANGULUS(ALWAYSINLINE)
+   Block Block::GetMember(DMeta data) {
       auto result = const_cast<const Block*>(this)->GetMember(data);
       result.MakeConst();
       return result;
@@ -116,7 +146,8 @@ namespace Langulus::Anyness
 
    /// Get the first member of the first element inside block (const)         
    ///   @return the static constant block corresponding to that member       
-   inline Block Block::GetMember(std::nullptr_t) const {
+   LANGULUS(ALWAYSINLINE)
+   Block Block::GetMember(std::nullptr_t) const {
       if (mType->mMembers.empty())
          return {};
       return GetMember(mType->mMembers[0]);
@@ -124,10 +155,35 @@ namespace Langulus::Anyness
 
    /// Get the first member of the first element inside block                 
    ///   @return the static mutable block corresponding to that member        
-   inline Block Block::GetMember(std::nullptr_t) {
+   LANGULUS(ALWAYSINLINE)
+   Block Block::GetMember(std::nullptr_t) {
       if (mType->mMembers.empty())
          return {};
       return GetMember(mType->mMembers[0]);
+   }
+
+   /// Select a member Block via trait/data or index (or both)                
+   ///   @param index - the trait index to get                                
+   ///   @return a static memory block (constant if block is constant)        
+   template<class T, CT::Index INDEX>
+   LANGULUS(ALWAYSINLINE)
+   Block Block::GetMember(const INDEX& index) const {
+      if constexpr (CT::Trait<T>)
+         return GetMember(MetaTrait::Of<Decay<T>>(), index);
+      else
+         return GetMember(MetaData::Of<Decay<T>>(), index);
+   }
+
+   /// Select a member Block via trait/data or index (or both)                
+   ///   @param index - the trait index to get                                
+   ///   @return a static memory block (constant if block is constant)        
+   template<class T, CT::Index INDEX>
+   LANGULUS(ALWAYSINLINE)
+   Block Block::GetMember(const INDEX&) {
+      if constexpr (CT::Trait<T>)
+         return GetMember(MetaTrait::Of<Decay<T>>(), index);
+      else
+         return GetMember(MetaData::Of<Decay<T>>(), index);
    }
 
    /// Select a member Block via trait or index (or both)                     
@@ -186,6 +242,7 @@ namespace Langulus::Anyness
    ///   @param index - the trait index to get                                
    ///   @return a static constant memory block                               
    template<CT::Index INDEX>
+   LANGULUS(ALWAYSINLINE)
    Block Block::GetMember(TMeta trait, const INDEX& index) const {
       auto result = const_cast<Block*>(this)->GetMember(trait, index);
       result.MakeConst();
@@ -249,6 +306,7 @@ namespace Langulus::Anyness
    ///   @param index - the trait index to get                                
    ///   @return a static constant memory block                               
    template<CT::Index INDEX>
+   LANGULUS(ALWAYSINLINE)
    Block Block::GetMember(DMeta data, const INDEX& index) const {
       auto result = const_cast<Block*>(this)->GetMember(data, index);
       result.MakeConst();
@@ -302,6 +360,7 @@ namespace Langulus::Anyness
    ///   @param index - the trait index to get                                
    ///   @return a static constant memory block                               
    template<CT::Index INDEX>
+   LANGULUS(ALWAYSINLINE)
    Block Block::GetMember(std::nullptr_t, const INDEX& index) const {
       auto result = const_cast<Block*>(this)->GetMember(nullptr, index);
       result.MakeConst();

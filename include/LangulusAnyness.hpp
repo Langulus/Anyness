@@ -6,26 +6,27 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "../source/Any.inl"
-#include "../source/Bytes.inl"
+#include "../source/Any.hpp"
+#include "../source/Bytes.hpp"
 #include "../source/Path.hpp"
-#include "../source/TAny.inl"
-#include "../source/Text.inl"
-#include "../source/TPointer.inl"
-#include "../source/TPair.inl"
-#include "../source/Trait.inl"
+#include "../source/TAny.hpp"
+#include "../source/Text.hpp"
+#include "../source/TPointer.hpp"
+#include "../source/TPair.hpp"
+#include "../source/Trait.hpp"
+#include "../source/TEdit.hpp"
 
-#include "../source/TOrderedMap.inl"
-#include "../source/TUnorderedMap.inl"
+#include "../source/TOrderedMap.hpp"
+#include "../source/TUnorderedMap.hpp"
 
-#include "../source/TOrderedSet.inl"
-#include "../source/TUnorderedSet.inl"
+#include "../source/TOrderedSet.hpp"
+#include "../source/TUnorderedSet.hpp"
 
-#include "../source/OrderedSet.inl"
-#include "../source/UnorderedSet.inl"
+#include "../source/OrderedSet.hpp"
+#include "../source/UnorderedSet.hpp"
 
-#include "../source/OrderedMap.inl"
-#include "../source/UnorderedMap.inl"
+#include "../source/OrderedMap.hpp"
+#include "../source/UnorderedMap.hpp"
 
 #include "../source/Referenced.hpp"
 

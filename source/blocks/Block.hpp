@@ -73,6 +73,7 @@ namespace Langulus::Anyness
       LANGULUS(UNINSERTABLE) true;
 
       static constexpr bool Ownership = false;
+      static constexpr bool Sequential = true;
 
       friend class Any;
       template<CT::Data>
@@ -346,6 +347,10 @@ namespace Langulus::Anyness
       NOD() Block Crop(const Offset&, const Count&);
       NOD() Block Crop(const Offset&, const Count&) const;
    
+      template<class>
+      NOD() Block GetMember() const;
+      template<class>
+      NOD() Block GetMember();
       NOD() Block GetMember(const RTTI::Member&) const;
       NOD() Block GetMember(const RTTI::Member&);
       NOD() Block GetMember(TMeta) const;
@@ -355,6 +360,10 @@ namespace Langulus::Anyness
       NOD() Block GetMember(::std::nullptr_t) const;
       NOD() Block GetMember(::std::nullptr_t);
 
+      template<class, CT::Index INDEX>
+      NOD() Block GetMember(const INDEX&) const;
+      template<class, CT::Index INDEX>
+      NOD() Block GetMember(const INDEX&);
       template<CT::Index INDEX>
       NOD() Block GetMember(TMeta, const INDEX&) const;
       template<CT::Index INDEX>
@@ -390,6 +399,10 @@ namespace Langulus::Anyness
       constexpr void MakeDense() noexcept;
    
       void Reserve(Count);
+      template<bool CREATE = false, bool SETSIZE = false>
+      void AllocateMore(Count);
+      void AllocateLess(Count);
+
       Count Copy(Block&) const;
       Count Clone(Block&) const;
    
@@ -598,10 +611,6 @@ namespace Langulus::Anyness
       Count SmartPushAtInner(S&&, const DataState&, const INDEX&);
       template<bool ALLOW_DEEPEN, Index INDEX = IndexBack, CT::Data = Any, CT::Semantic S>
       Count SmartPushInner(S&&, const DataState&);
-
-      template<bool CREATE = false, bool SETSIZE = false>
-      void AllocateMore(Count);
-      void AllocateLess(Count);
 
       template<bool CREATE = false>
       void AllocateInner(const Count&);
