@@ -4038,20 +4038,18 @@ namespace Langulus::Anyness
 
    /// Move-insert all elements of an abandoned block at an index             
    ///   @param other - the block to move in                                  
-   ///   @param index - index to insert them at                               
+   ///   @param idx - index to insert them at                                 
    ///   @return the number of inserted elements                              
    template<CT::Semantic S, CT::Index INDEX>
    LANGULUS(ALWAYSINLINE)
    Count Block::InsertBlockAt(S&& other, INDEX idx) {
-      static_assert(CT::Block<TypeOf<S>>, "S::Type must be a block type");
-
+      using T = TypeOf<S>;
+      static_assert(CT::Block<T>, "T must be a block type");
       if (other.mValue.IsEmpty())
          return 0;
 
-      const auto index = SimplifyIndex(idx);
       Block region;
-      AllocateRegion(other.mValue, index, region);
-
+      AllocateRegion(other.mValue, SimplifyIndex<T>(idx), region);
       if (region.IsAllocated()) {
          region.CallUnknownSemanticConstructors(
             other.mValue.mCount, other.Forward());
