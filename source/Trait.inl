@@ -504,7 +504,7 @@ namespace Langulus::Anyness
    ///   @return a static memory block (constant if block is constant)        
    template<class T, CT::Index INDEX>
    LANGULUS(ALWAYSINLINE)
-   Block Block::GetMember(const INDEX&) {
+   Block Block::GetMember(const INDEX& index) {
       if constexpr (CT::Trait<T>)
          return GetMember(MetaTrait::Of<Decay<T>>(), index);
       else
