@@ -27,7 +27,7 @@ namespace Langulus::Anyness
    ///   @return a constant reference to the source container                 
    TEMPLATE() LANGULUS(ALWAYSINLINE)
    const T& TEdit<T>::GetSource() const noexcept {
-      return *mText;
+      return mSource;
    }
 
    /// Get the start of the selection                                         
@@ -87,7 +87,7 @@ namespace Langulus::Anyness
       return *this;
    }
 
-   /// Replace the selection                                                  
+   /// Replace the selection with an element sequence                         
    /// After replacement, the selection will collapse to the end of the       
    /// replacement                                                            
    ///   @param other - the container to use for replacement                  
@@ -138,87 +138,79 @@ namespace Langulus::Anyness
       return *this;
    }
 
+   /// Insert single element at the end of the selection                      
+   ///   @param other - the element to insert                                 
+   ///   @return a reference to the editor for chaining                       
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
    TEdit<T>& TEdit<T>::operator << (const MemberType& other) {
-      if constexpr (Character<K> && Dense<K>)
-         return operator << (Text(&other, 1));
-      else if constexpr (ConstructibleWith<Text, K>)
-         return operator << (Text(other));
-      else {
-         // Finally, attempt converting                                 
-         Text converted;
-         if (TConverter<K, Text>::Convert(other, converted) > 0)
-            return operator << (converted);
-         return *this;
-      }
-   }
-
-
-   /// String concatenation                                                   
-   /// Appends to the front of the selection                                  
-   TEMPLATE()
-   LANGULUS(ALWAYSINLINE)
-   TEdit<T>& TEdit<T>::operator >> (const MemberType& other) {
-      if constexpr (Character<K> && Dense<K>)
-         return operator >> (Text(&other, 1));
-      else if constexpr (ConstructibleWith<Text, K>)
-         return operator >> (Text(other));
-      else {
-         // Finally, attempt converting                                 
-         Text converted;
-         if (TConverter<K, Text>::Convert(other, converted) > 0)
-            return operator >> (converted);
-         return *this;
-      }
-   }
-
-
-   /// Replace selection (selection will collapse)                            
-   /// Collapsed selection means mStart == mEnd                               
-   TEMPLATE()
-   LANGULUS(ALWAYSINLINE)
-   TEdit<T>& TEdit<T>::Replace(const MemberType& other) {
-      if constexpr (Character<K> && Dense<K>)
-         return Replace(Text(&other, 1));
-      else if constexpr (ConstructibleWith<Text, K>)
-         return Replace(Text(other));
-      else {
-         // Finally, attempt converting                                 
-         Text converted;
-         if (TConverter<K, Text>::Convert(other, converted) > 0)
-            return Replace(converted);
-         return *this;
-      }
-   }
-
-   /// Delete selection (selection will collapse),                            
-   /// or delete symbol after collapsed selection marker                      
-   TEMPLATE() LANGULUS(ALWAYSINLINE)
-   TEdit<T>& TEdit<T>::Delete() {
-      if (mStart != mEnd) {
-         mText->Remove(mStart, mEnd);
-         mEnd = mStart;
-      }
-      else if (mStart < mText->mCount) {
-         mText->Remove(mStart, mStart + 1);
-      }
+      mSource.InsertAt(other, mEnd);
       return *this;
    }
 
-   /// Delete selection (with collapse), or delete symbol                     
-   /// before a collapsed selection marker                                    
+   /// Insert single element at the start of the selection                    
+   ///   @param other - the element to insert                                 
+   ///   @return a reference to the editor for chaining                       
+   TEMPLATE()
+   LANGULUS(ALWAYSINLINE)
+   TEdit<T>& TEdit<T>::operator >> (const MemberType& other) {
+      const auto concatenated = mSource.InsertAt(other, mStart);
+      mStart += concatenated;
+      mEnd += concatenated;
+      return *this;
+   }
+
+   /// Replace the selection with a single element                            
+   /// After replacement, the selection will collapse to the end of the       
+   /// replacement                                                            
+   ///   @param other - the element to use for replacement                    
+   ///   @return a reference to the editor for chaining                       
+   TEMPLATE()
+   LANGULUS(ALWAYSINLINE)
+   TEdit<T>& TEdit<T>::Replace(const MemberType& other) {
+      return Replace(T::Wrap(other));
+   }
+
+   /// Delete selection (collapsing it), or delete symbol after collapsed     
+   /// selection marker                                                       
+   ///   @return a reference to the editor for chaining                       
+   TEMPLATE() LANGULUS(ALWAYSINLINE)
+   TEdit<T>& TEdit<T>::Delete() {
+      const auto length = GetLength();
+      if (length) {
+         mSource.RemoveIndex(mStart, length);
+         mEnd = mStart;
+      }
+      else if (mStart < mSource.GetCount()) {
+         mSource.RemoveIndex(mStart, 1);
+      }
+      
+      if (mSource.IsEmpty())
+         mStart = mEnd = 0;
+      else if (mStart >= mSource.GetCount())
+         mStart = mEnd = mSource.GetCount() - 1;
+      return *this;
+   }
+
+   /// Delete selection (collapsing it), or delete symbol before a collapsed  
+   /// selection marker                                                       
+   ///   @return a reference to the editor for chaining                       
    TEMPLATE() LANGULUS(ALWAYSINLINE)
    TEdit<T>& TEdit<T>::Backspace() {
-      if (mStart != mEnd) {
-         mText->Remove(mStart, mEnd);
+      const auto length = GetLength();
+      if (length) {
+         mSource.RemoveIndex(mStart, length);
          mEnd = mStart;
       }
-      else if (mStart > 0 && mText->mCount > 0) {
-         mText->Remove(mStart, mStart - 1);
-         --mStart;
-         mEnd = mStart;
+      else if (mStart > 0 && !mSource.IsEmpty()) {
+         mSource.RemoveIndex(mStart - 1, 1);
+         mEnd = --mStart;
       }
+
+      if (mSource.IsEmpty())
+         mStart = mEnd = 0;
+      else if (mStart >= mSource.GetCount())
+         mStart = mEnd = mSource.GetCount() - 1;
       return *this;
    }
 
