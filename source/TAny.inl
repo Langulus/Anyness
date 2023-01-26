@@ -15,9 +15,10 @@ namespace Langulus::Anyness
 {
 
    /// Default construction                                                   
-   /// TAny is always type-constrained, but its type is set upon allocation   
-   /// to avoid requesting meta definitions before meta database              
-   /// initialization, and to significanty improve TAny initialization time   
+   /// TAny is always type-constrained, but its type is set on demand to      
+   /// avoid requesting meta definitions before meta database initialization, 
+   /// and to significanty improve TAny initialization time (also to allow    
+   /// for constexpr default construction)                                    
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
    constexpr TAny<T>::TAny() {
