@@ -287,7 +287,7 @@ namespace Langulus::Anyness
    template<CT::Semantic S>
    LANGULUS(ALWAYSINLINE)
    TAny<T>& TAny<T>::operator = (S&& other) requires (CT::Deep<TypeOf<S>>) {
-      if (this == &other.mValue)
+      if (static_cast<const Block*>(this) == static_cast<const Block*>(&other.mValue))
          return *this;
 
       Free();
