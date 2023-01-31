@@ -171,7 +171,7 @@ namespace Langulus::Anyness
    LANGULUS(ALWAYSINLINE)
    Block SHARED_POINTER()::GetBlock() const {
       return {
-         DataState::Constrained | DataState::Sparse,
+         DataState::Constrained,
          Base::GetType(), 1, &(mValue),
          // Notice entry is here, no search will occur                  
          mEntry

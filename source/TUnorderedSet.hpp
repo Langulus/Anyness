@@ -119,6 +119,8 @@ namespace Langulus::Anyness
       NOD() ConstIterator begin() const noexcept;
       NOD() ConstIterator end() const noexcept;
       NOD() ConstIterator last() const noexcept;
+      NOD() decltype(auto) Last() const;
+      NOD() decltype(auto) Last();
 
       Count ForEachElement(TFunctor<bool(const Block&)>&&) const;
       Count ForEachElement(TFunctor<bool(Block&)>&&);

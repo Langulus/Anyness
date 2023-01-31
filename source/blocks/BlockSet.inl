@@ -263,7 +263,9 @@ namespace Langulus::Anyness
       return mKeys.GetType();
    }
 
-   /// Check if key type exactly matches another                              
+   /// Check if key type matches another, ignoring qualifiers                 
+   ///   @tparam ALT_T the type to compare against                            
+   ///   @return true if types loosely match                                  
    template<class ALT_T>
    LANGULUS(ALWAYSINLINE)
    constexpr bool BlockSet::Is() const noexcept {
@@ -308,29 +310,24 @@ namespace Langulus::Anyness
    }
 
    /// Checks type compatibility and sets type for the type-erased map        
-   ///   @tparam K - the key type                                             
-   ///   @tparam V - the value type                                           
+   ///   @tparam T - the type                                                 
    template<CT::Data T>
    LANGULUS(ALWAYSINLINE)
    void BlockSet::Mutate() {
-      Mutate(MetaData::Of<Decay<T>>(), CT::Sparse<T>);
+      Mutate(MetaData::Of<T>());
    }
 
    /// Checks type compatibility and sets type for the type-erased map        
    ///   @param key - the key type                                            
-   ///   @param sparseKey - whether key type is sparse                        
    LANGULUS(ALWAYSINLINE)
-   void BlockSet::Mutate(DMeta key, bool sparseKey) {
+   void BlockSet::Mutate(DMeta key) {
       if (!mKeys.mType) {
          // Set a fresh key type                                        
          mKeys.mType = key;
-         if (sparseKey)
-            mKeys.MakeSparse();
       }
       else {
          // Key type already set, so check compatibility                
-         LANGULUS_ASSERT(
-            mKeys.Is(key) && mKeys.IsSparse() == sparseKey, Mutate,
+         LANGULUS_ASSERT(mKeys.IsExact(key), Mutate,
             "Attempting to mutate type-erased unordered map's key type"
          );
       }
@@ -692,7 +689,7 @@ namespace Langulus::Anyness
    template<CT::Semantic S>
    LANGULUS(ALWAYSINLINE)
    Count BlockSet::InsertUnknown(S&& value) requires (CT::Block<TypeOf<S>>) {
-      Mutate(value.mValue.mType, value.mValue.IsSparse());
+      Mutate(value.mValue.mType);
       Allocate(GetCount() + 1);
       const auto index = value.mValue.GetHash().mHash & (GetReserved() - 1);
       InsertInnerUnknown<true>(index, value.Forward());

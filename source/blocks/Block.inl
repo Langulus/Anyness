@@ -274,16 +274,14 @@ namespace Langulus::Anyness
    /// Reset the type of the block, unless it's type-constrained              
    LANGULUS(ALWAYSINLINE)
    constexpr void Block::ResetType() noexcept {
-      if (!IsTypeConstrained()) {
+      if (!IsTypeConstrained())
          mType = nullptr;
-         mState -= DataState::Sparse;
-      }
    }
    
    /// Reset the block's state                                                
    LANGULUS(ALWAYSINLINE)
    constexpr void Block::ResetState() noexcept {
-      mState = mState.mState & (DataState::Typed | DataState::Sparse);
+      mState = mState.mState & DataState::Typed;
       ResetType();
    }
    
@@ -580,7 +578,7 @@ namespace Langulus::Anyness
    ///   @returns true if this is not an empty stateless container            
    LANGULUS(ALWAYSINLINE)
    constexpr bool Block::IsValid() const noexcept {
-      return mCount || (GetUnconstrainedState() - DataState::Sparse);
+      return mCount || GetUnconstrainedState();
    }
 
    /// Check if block contains no elements and no relevant state              
@@ -646,18 +644,6 @@ namespace Langulus::Anyness
    LANGULUS(ALWAYSINLINE)
    constexpr void Block::MakeNow() noexcept {
       mState -= DataState::Missing | DataState::Future;
-   }
-   
-   /// Make the container type sparse                                         
-   LANGULUS(ALWAYSINLINE)
-   constexpr void Block::MakeSparse() noexcept {
-      mState += DataState::Sparse;
-   }
-   
-   /// Make the container type dense                                          
-   LANGULUS(ALWAYSINLINE)
-   constexpr void Block::MakeDense() noexcept {
-      mState -= DataState::Sparse;
    }
    
    /// Check polarity compatibility                                           
@@ -789,7 +775,7 @@ namespace Langulus::Anyness
    ///   @return true if the block contains pointers                          
    LANGULUS(ALWAYSINLINE)
    constexpr bool Block::IsSparse() const noexcept {
-      return mState.IsSparse();
+      return mType ? mType->mIsSparse : false;
    }
 
    /// Check if block contains dense data                                     
@@ -857,7 +843,7 @@ namespace Langulus::Anyness
    ///   @return the size is bytes                                            
    LANGULUS(ALWAYSINLINE)
    constexpr Size Block::GetStride() const noexcept {
-      return mState.IsSparse() ? sizeof(KnownPointer) : (mType ? mType->mSize : 0);
+      return IsSparse() ? sizeof(KnownPointer) : (mType ? mType->mSize : 0);
    }
    
    /// Get the token of the contained type                                    
@@ -968,23 +954,7 @@ namespace Langulus::Anyness
    LANGULUS(ALWAYSINLINE)
    bool Block::Mutate() {
       static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
-
-      const auto deepened = Mutate<ALLOW_DEEPEN, WRAPPER>(MetaData::Of<Decay<T>>());
-      if constexpr (ALLOW_DEEPEN && CT::Sparse<T>) {
-         if (deepened)
-            Get<WRAPPER>(mCount - 1).MakeSparse();
-         else {
-            if constexpr (CT::Sparse<T>)
-               MakeSparse();
-            else
-               MakeDense();
-         }
-      }
-      else if constexpr (CT::Sparse<T>)
-         MakeSparse();
-      else
-         MakeDense();
-      return deepened;
+      return Mutate<ALLOW_DEEPEN, WRAPPER>(MetaData::Of<T>());
    }
    
    /// Mutate to another compatible type, deepening the container if allowed  
@@ -1002,8 +972,8 @@ namespace Langulus::Anyness
          // Undefined containers can mutate freely                      
          SetType<false>(meta);
       }
-      else if (mType->Is(meta)) {
-         // No need to mutate - types are the same                      
+      else if (IsExact(meta)) {
+         // No need to mutate - types are exactly the same              
          return false;
       }
       else if (IsAbstract() && IsEmpty() && meta->CastsTo(mType)) {
@@ -1132,7 +1102,7 @@ namespace Langulus::Anyness
    template<CT::Data... T>
    LANGULUS(ALWAYSINLINE)
    bool Block::Is() const {
-      return (Is(MetaData::Of<Decay<T>>()) || ...);
+      return (Is(MetaData::Of<T>()) || ...);
    }
 
    /// Check if this container's data is exactly as one of the listed types   
@@ -1141,7 +1111,7 @@ namespace Langulus::Anyness
    template<CT::Data... T>
    LANGULUS(ALWAYSINLINE)
    bool Block::IsExact() const {
-      return ((IsSparse() == CT::Sparse<T> && Is(MetaData::Of<Decay<T>>())) || ...);
+      return (IsExact(MetaData::Of<T>()) || ...);
    }
 
    /// Check if this container's data is exactly as another                   
@@ -1149,8 +1119,8 @@ namespace Langulus::Anyness
    ///   @param sparse - the sparseness to match                              
    ///   @return true if data type matches type and density                   
    LANGULUS(ALWAYSINLINE)
-   bool Block::IsExact(DMeta type, bool sparse) const noexcept {
-      return IsSparse() == sparse && Is(type);
+   bool Block::IsExact(DMeta type) const noexcept {
+      return IsSparse() == type->mIsSparse && Is(type);
    }
 
    /// Semantically transfer the members of one block onto another            
@@ -1256,7 +1226,7 @@ namespace Langulus::Anyness
    template<CT::Data T, bool CONSTRAIN>
    LANGULUS(ALWAYSINLINE)
    void Block::SetType() {
-      SetType<CONSTRAIN>(MetaData::Of<Decay<T>>());
+      SetType<CONSTRAIN>(MetaData::Of<T>());
    }
 
    /// Swap two elements                                                      
@@ -1373,8 +1343,6 @@ namespace Langulus::Anyness
          // Type may mutate                                             
          if (Mutate<T, true, WRAPPER>()) {
             WRAPPER temp;
-            if constexpr (CT::Sparse<T>)
-               temp.MakeSparse();
             temp.template SetType<T, false>();
             temp.template Insert<IndexBack, false>(start, end);
             return InsertAt<false>(Abandon(temp), index);
@@ -1496,8 +1464,6 @@ namespace Langulus::Anyness
          // Type may mutate                                             
          if (Mutate<T, true, WRAPPER>()) {
             WRAPPER temp;
-            if constexpr (CT::Sparse<T>)
-               temp.MakeSparse();
             temp.template SetType<T, false>();
             temp.template Insert<IndexBack, false>(start, end);
             return Insert<INDEX, false>(Abandon(temp));
@@ -2048,12 +2014,16 @@ namespace Langulus::Anyness
    }
 
    /// Turn into another container (inner function)                           
+   ///   @tparam S - semantic value (deducible)                               
+   ///   @param value - semantically provided value to absorb                 
+   ///   @param state - the state to absorb                                   
    template<CT::Semantic S>
-   LANGULUS(ALWAYSINLINE) void Block::Absorb(S&& value, const DataState& state) {
+   LANGULUS(ALWAYSINLINE)
+   void Block::Absorb(S&& value, const DataState& state) {
       static_assert(CT::Deep<TypeOf<S>>, "S::Type must be deep");
 
       const auto previousType = !mType ? value.mValue.GetType() : mType;
-      const auto previousState = mState - DataState::Sparse;
+      const auto previousState = mState;
 
       operator = (value.mValue);
 
@@ -2126,7 +2096,8 @@ namespace Langulus::Anyness
 
    ///                                                                        
    template<bool ALLOW_DEEPEN, Index INDEX, CT::Data WRAPPER, CT::Semantic S>
-   LANGULUS(ALWAYSINLINE) Count Block::SmartPushInner(S&& value, const DataState& state) {
+   LANGULUS(ALWAYSINLINE)
+   Count Block::SmartPushInner(S&& value, const DataState& state) {
       if (IsUntyped() && IsInvalid()) {
          // Mutate-insert inside untyped container                      
          SetState(mState + state);
@@ -2168,7 +2139,8 @@ namespace Langulus::Anyness
 
    ///                                                                        
    template<bool ALLOW_DEEPEN, CT::Data WRAPPER, CT::Semantic S, CT::Index INDEX>
-   LANGULUS(ALWAYSINLINE) Count Block::SmartConcatAt(const bool& sc, S&& value, const DataState& state, const INDEX& index) {
+   LANGULUS(ALWAYSINLINE)
+   Count Block::SmartConcatAt(const bool& sc, S&& value, const DataState& state, const INDEX& index) {
       static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
       static_assert(CT::Deep<TypeOf<S>>, "S::Type must be deep");
 
@@ -2203,7 +2175,8 @@ namespace Langulus::Anyness
 
    ///                                                                        
    template<bool ALLOW_DEEPEN, Index INDEX, CT::Data WRAPPER, CT::Semantic S>
-   LANGULUS(ALWAYSINLINE) Count Block::SmartConcat(const bool& sc, S&& value, const DataState& state) {
+   LANGULUS(ALWAYSINLINE)
+   Count Block::SmartConcat(const bool& sc, S&& value, const DataState& state) {
       static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
       static_assert(CT::Deep<TypeOf<S>>, "S::Type must be deep");
 
@@ -2220,8 +2193,6 @@ namespace Langulus::Anyness
             // Block insert never mutates, so make sure type            
             // is valid before insertion                                
             SetType<false>(value.mValue.GetType());
-            if (value.mValue.IsSparse())
-               MakeSparse();
          }
          else {
             if constexpr (ALLOW_DEEPEN) {
@@ -4289,8 +4260,8 @@ namespace Langulus::Anyness
          // If we're using managed memory, we can search if the pointer 
          // is owned by us, and get its block                           
          // This has no point when the pointer is a meta (optimization) 
-         if constexpr (!CT::Meta<T>) {
-            mEntry = Inner::Allocator::Find(MetaData::Of<Decay<T>>(), pointer);
+         if constexpr (!CT::Meta<T> && CT::Complete<Deptr<T>>) {
+            mEntry = Inner::Allocator::Find(MetaData::Of<Deptr<T>>(), pointer);
             if (mEntry)
                mEntry->Keep();
          }

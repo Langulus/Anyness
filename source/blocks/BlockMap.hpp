@@ -112,7 +112,7 @@ namespace Langulus::Anyness
 
       template<CT::NotSemantic K, CT::NotSemantic V>
       void Mutate();
-      void Mutate(DMeta, bool, DMeta, bool);
+      void Mutate(DMeta, DMeta);
       void Allocate(const Count&);
 
       NOD() BlockMap Clone() const;

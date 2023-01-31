@@ -233,10 +233,7 @@ namespace Langulus::Anyness
    LANGULUS(ALWAYSINLINE)
    Block TOwned<T>::GetBlock() const {
       return {
-         CT::Sparse<T> 
-            ? DataState::Constrained | DataState::Sparse
-            : DataState::Constrained,
-         GetType(), 1, &mValue 
+         DataState::Constrained, GetType(), 1, &mValue 
          // Notice entry is missing, which means it will be searched    
       };
    }

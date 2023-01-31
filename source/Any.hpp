@@ -107,7 +107,6 @@ namespace Langulus::Anyness
 
       void Clear();
       void Reset();
-      constexpr void ResetState() noexcept;
       NOD() Any Clone() const;
 
       template<bool REVERSE = false, bool BY_ADDRESS_ONLY = false, CT::Data T>

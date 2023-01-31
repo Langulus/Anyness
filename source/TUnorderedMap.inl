@@ -21,10 +21,6 @@ namespace Langulus::Anyness
       : UnorderedMap {} {
       mKeys.mState = DataState::Typed;
       mValues.mState = DataState::Typed;
-      if constexpr (CT::Sparse<K>)
-         mKeys.MakeSparse();
-      if constexpr (CT::Sparse<V>)
-         mValues.MakeSparse();
       if constexpr (CT::Constant<K>)
          mKeys.MakeConst();
       if constexpr (CT::Constant<V>)
@@ -1337,6 +1333,30 @@ namespace Langulus::Anyness
          GetRawKeys() + offset,
          GetRawValues() + offset
       };
+   }
+   
+   /// Access last element                                                    
+   ///   @attention assumes container has at least one item                   
+   ///   @return a mutable reference to the last element                      
+   TABLE_TEMPLATE()
+   LANGULUS(ALWAYSINLINE)
+   decltype(auto) TABLE()::Last() {
+      LANGULUS_ASSERT(!IsEmpty(), Access, "Can't get last index");
+      auto info = GetInfoEnd();
+      while (info >= GetInfo() && !*--info);
+      return Get(static_cast<Offset>(info - GetInfo()));
+   }
+
+   /// Access last element                                                    
+   ///   @attention assumes container has at least one item                   
+   ///   @return a constant reference to the last element                     
+   TABLE_TEMPLATE()
+   LANGULUS(ALWAYSINLINE)
+   decltype(auto) TABLE()::Last() const {
+      LANGULUS_ASSERT(!IsEmpty(), Access, "Can't get last index");
+      auto info = GetInfoEnd();
+      while (info >= GetInfo() && !*--info);
+      return Get(static_cast<Offset>(info - GetInfo()));
    }
 
    /// Iterate all keys inside the map, and perform f() on them               

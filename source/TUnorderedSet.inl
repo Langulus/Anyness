@@ -19,8 +19,6 @@ namespace Langulus::Anyness
    constexpr TABLE()::TUnorderedSet()
       : UnorderedSet {} {
       mKeys.mState = DataState::Typed;
-      if constexpr (CT::Sparse<T>)
-         mKeys.MakeSparse();
       if constexpr (CT::Constant<T>)
          mKeys.MakeConst();
    }
@@ -424,7 +422,7 @@ namespace Langulus::Anyness
          const Offset newIndex = HashData(*oldKey).mHash & hashmask;
          if (oldIndex != newIndex) {
             // Immediately move the old pair to the swapper             
-            ValueInner swapper {Abandon(*oldKey)};
+            auto swapper = SemanticMake<ValueInner>(Abandon(*oldKey));
             RemoveIndex(oldIndex);
 
             if (oldIndex == InsertInner<false>(newIndex, Abandon(swapper))) {
@@ -963,6 +961,30 @@ namespace Langulus::Anyness
          info, GetInfoEnd(),
          GetRaw() + offset
       };
+   }
+
+   /// Access last element                                                    
+   ///   @attention assumes container has at least one item                   
+   ///   @return a mutable reference to the last element                      
+   TABLE_TEMPLATE()
+   LANGULUS(ALWAYSINLINE)
+   decltype(auto) TABLE()::Last() {
+      LANGULUS_ASSERT(!IsEmpty(), Access, "Can't get last index");
+      auto info = GetInfoEnd();
+      while (info >= GetInfo() && !*--info);
+      return Get(static_cast<Offset>(info - GetInfo()));
+   }
+
+   /// Access last element                                                    
+   ///   @attention assumes container has at least one item                   
+   ///   @return a constant reference to the last element                     
+   TABLE_TEMPLATE()
+   LANGULUS(ALWAYSINLINE)
+   decltype(auto) TABLE()::Last() const {
+      LANGULUS_ASSERT(!IsEmpty(), Access, "Can't get last index");
+      auto info = GetInfoEnd();
+      while (info >= GetInfo() && !*--info);
+      return Get(static_cast<Offset>(info - GetInfo()));
    }
 
    /// Iterate all keys inside the map, and perform f() on them               

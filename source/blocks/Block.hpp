@@ -395,8 +395,6 @@ namespace Langulus::Anyness
       constexpr void MakePast() noexcept;
       constexpr void MakeFuture() noexcept;
       constexpr void MakeNow() noexcept;
-      constexpr void MakeSparse() noexcept;
-      constexpr void MakeDense() noexcept;
    
       void Reserve(Count);
       template<bool CREATE = false, bool SETSIZE = false>
@@ -577,7 +575,7 @@ namespace Langulus::Anyness
       NOD() bool Is() const;
       template<CT::Data...>
       NOD() bool IsExact() const;
-      NOD() bool IsExact(DMeta, bool) const noexcept;
+      NOD() bool IsExact(DMeta) const noexcept;
       
       NOD() Block ReinterpretAs(const Block&) const;
       template<CT::Data>
@@ -585,6 +583,7 @@ namespace Langulus::Anyness
    
       void Clear();
       void Reset();
+      constexpr void ResetState() noexcept;
 
    protected:
       /// @cond show_protected                                                
@@ -639,7 +638,6 @@ namespace Langulus::Anyness
       
       constexpr void ClearInner() noexcept;
       constexpr void ResetMemory() noexcept;
-      constexpr void ResetState() noexcept;
       constexpr void ResetType() noexcept;
    
       void Reference(const Count&) const noexcept;

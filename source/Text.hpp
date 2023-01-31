@@ -42,7 +42,7 @@ namespace Langulus::Anyness
       Text(const Exception&);
       Text(const RTTI::Meta&);
       explicit Text(const Letter&);
-      explicit Text(const CT::DenseNumber auto&);
+      explicit Text(const CT::DenseBuiltinNumber auto&);
 
       // Static array constructor                                       
       template<Count C>

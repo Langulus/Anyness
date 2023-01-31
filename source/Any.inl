@@ -76,9 +76,6 @@ namespace Langulus::Anyness
    template<CT::Semantic S>
    Any::Any(S&& other) requires (CT::CustomData<TypeOf<S>>) {
       using T = TypeOf<S>;
-      if constexpr (CT::Sparse<T>)
-         MakeSparse();
-
       SetType<T, false>();
       AllocateFresh(RequestSize(1));
       InsertInner(other.Forward(), 0);
@@ -101,10 +98,7 @@ namespace Langulus::Anyness
       }
       else if constexpr (CT::Exact<HEAD, TAIL...>) {
          // All types are the same, so pack them tightly                
-         if constexpr (CT::Sparse<HEAD>)
-            MakeSparse();
-
-         SetType<Decay<HEAD>, false>();
+         SetType<HEAD, false>();
          AllocateFresh(RequestSize(sizeof...(TAIL) + 1));
 
          if constexpr (::std::is_rvalue_reference_v<HEAD>)
@@ -519,13 +513,6 @@ namespace Langulus::Anyness
       mRaw = nullptr;
       mCount = mReserved = 0;
       ResetState();
-   }
-
-   /// Reset container state                                                  
-   LANGULUS(ALWAYSINLINE)
-   constexpr void Any::ResetState() noexcept {
-      mState = mState.mState & (DataState::Typed | DataState::Sparse);
-      ResetType();
    }
 
    /// Swap two container's contents                                          

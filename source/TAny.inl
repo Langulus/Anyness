@@ -22,18 +22,10 @@ namespace Langulus::Anyness
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
    constexpr TAny<T>::TAny() {
-      if constexpr (CT::Sparse<T>) {
-         if constexpr (CT::Constant<T>)
-            mState = DataState::Typed | DataState::Sparse | DataState::Constant;
-         else
-            mState = DataState::Typed | DataState::Sparse;
-      }
-      else {
-         if constexpr (CT::Constant<T>)
-            mState = DataState::Typed | DataState::Constant;
-         else
-            mState = DataState::Typed;
-      }
+      if constexpr (CT::Constant<T>)
+         mState = DataState::Typed | DataState::Constant;
+      else
+         mState = DataState::Typed;
    }
 
    /// Shallow-copy construction (const)                                      
@@ -84,7 +76,7 @@ namespace Langulus::Anyness
       using Container = TypeOf<S>;
       if constexpr (!CT::Typed<Container>) {
          // Container is not statically typed, do runtime type checks   
-         if (Block::IsExact(other.mValue.GetType(), other.mValue.IsSparse())) {
+         if (Block::IsExact(other.mValue.GetType())) {
             // If types are exactly the same, it is safe to directly    
             // transfer the block                                       
             BlockTransfer<TAny>(other.Forward());
@@ -209,7 +201,7 @@ namespace Langulus::Anyness
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
    DMeta TAny<T>::GetType() const noexcept {
-      const_cast<DMeta&>(mType) = MetaData::Of<Decay<T>>();
+      const_cast<DMeta&>(mType) = MetaData::Of<T>();
       return mType;
    }
 
@@ -373,7 +365,7 @@ namespace Langulus::Anyness
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
    constexpr void TAny<T>::ResetState() noexcept {
-      mState = mState.mState & (DataState::Typed | DataState::Sparse);
+      mState = mState.mState & DataState::Typed;
    }
 
    /// Reset container type (does nothing for typed container)                
@@ -1111,8 +1103,6 @@ namespace Langulus::Anyness
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
    Count TAny<T>::New(Count count) {
-      static_assert(CT::Defaultable<T>, "T not default-constructible");
-
       // Allocate                                                       
       AllocateMore<false>(mCount + count);
 
@@ -1134,9 +1124,6 @@ namespace Langulus::Anyness
    template<class... A>
    LANGULUS(ALWAYSINLINE)
    Count TAny<T>::New(Count count, A&&... arguments) {
-      static_assert(::std::constructible_from<T, A...>,
-         "T not constructible by A...");
-
       // Allocate                                                       
       AllocateMore<false>(mCount + count);
 
@@ -1650,11 +1637,6 @@ namespace Langulus::Anyness
    void TAny<T>::AllocateMore(Count elements) {
       LANGULUS_ASSUME(DevAssumes, elements > mCount, "Bad element count");
 
-      static_assert(!CREATE || CT::Sparse<T> || !CT::Abstract<T>,
-         "Can't allocate and default-construct abstract items in dense TAny");
-      static_assert(!CREATE || CT::Sparse<T> || !CT::Defaultable<T>,
-         "Can't allocate non-default-constructable item in dense TAny");
-
       // Allocate/reallocate                                            
       const auto request = RequestSize(elements);
       if (mEntry) {
@@ -1723,7 +1705,7 @@ namespace Langulus::Anyness
       }
       else {
          // Allocate a fresh set of elements                            
-         mType = MetaData::Of<Decay<T>>();
+         mType = MetaData::Of<T>();
          AllocateFresh(request);
 
          if constexpr (CREATE) {
@@ -2022,8 +2004,8 @@ namespace Langulus::Anyness
          // If we're using managed memory, we can search if the pointer 
          // is owned by us, and get its block                           
          // This has no point when the pointer is a meta (optimization) 
-         if constexpr (!CT::Meta<T>) {
-            mEntry = Inner::Allocator::Find(MetaData::Of<Decay<T>>(), pointer);
+         if constexpr (!CT::Meta<T> && CT::Complete<Deptr<T>>) {
+            mEntry = Inner::Allocator::Find(MetaData::Of<Deptr<T>>(), pointer);
             if (mEntry)
                mEntry->Keep();
          }

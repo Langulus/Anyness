@@ -79,7 +79,7 @@ namespace Langulus::Anyness
 
       template<CT::Data T>
       void Mutate();
-      void Mutate(DMeta, bool);
+      void Mutate(DMeta);
       void Allocate(const Count&);
 
       NOD() BlockSet Clone() const;

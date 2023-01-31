@@ -395,28 +395,20 @@ namespace Langulus::Anyness
    ///   @tparam V - the value type                                           
    template<CT::NotSemantic K, CT::NotSemantic V>
    void BlockMap::Mutate() {
-      Mutate(
-         MetaData::Of<Decay<K>>(), CT::Sparse<K>, 
-         MetaData::Of<Decay<V>>(), CT::Sparse<V>
-      );
+      Mutate(MetaData::Of<K>(), MetaData::Of<V>());
    }
 
    /// Checks type compatibility and sets type for the type-erased map        
    ///   @param key - the key type                                            
-   ///   @param sparseKey - whether key type is sparse                        
    ///   @param value - the value type                                        
-   ///   @param sparseValue - whether value type is sparse                    
-   inline void BlockMap::Mutate(DMeta key, bool sparseKey, DMeta value, bool sparseValue) {
+   inline void BlockMap::Mutate(DMeta key, DMeta value) {
       if (!mKeys.mType) {
          // Set a fresh key type                                        
          mKeys.mType = key;
-         if (sparseKey)
-            mKeys.MakeSparse();
       }
       else {
          // Key type already set, so check compatibility                
-         LANGULUS_ASSERT(
-            mKeys.Is(key) && mKeys.IsSparse() == sparseKey, Mutate,
+         LANGULUS_ASSERT(mKeys.IsExact(key), Mutate,
             "Attempting to mutate type-erased unordered map's key type"
          );
       }
@@ -424,13 +416,10 @@ namespace Langulus::Anyness
       if (!mValues.mType) {
          // Set a fresh value type                                      
          mValues.mType = value;
-         if (sparseValue)
-            mValues.MakeSparse();
       }
       else {
          // Value type already set, so check compatibility              
-         LANGULUS_ASSERT(
-            mValues.Is(value) && mValues.IsSparse() == sparseValue, Mutate,
+         LANGULUS_ASSERT(mValues.IsExact(value), Mutate,
             "Attempting to mutate type-erased unordered map's value type"
          );
       }
@@ -721,10 +710,7 @@ namespace Langulus::Anyness
       static_assert(CT::Block<TypeOf<SV>>,
          "SV::Type must be a block type");
 
-      Mutate(
-         key.mValue.mType, key.mValue.IsSparse(), 
-         val.mValue.mType, val.mValue.IsSparse()
-      );
+      Mutate(key.mValue.mType, val.mValue.mType);
 
       Allocate(GetCount() + 1);
       const auto index = key.mValue.GetHash().mHash & (GetReserved() - 1);

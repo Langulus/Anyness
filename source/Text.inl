@@ -72,7 +72,7 @@ namespace Langulus::Anyness
    ///   @tparam T - number type to stringify                                 
    ///   @param number - the number to stringify                              
    LANGULUS(ALWAYSINLINE)
-   Text::Text(const CT::DenseNumber auto& number) {
+   Text::Text(const CT::DenseBuiltinNumber auto& number) {
       using T = Decay<decltype(number)>;
       if constexpr (CT::Real<T>) {
          // Stringify a real number                                     
