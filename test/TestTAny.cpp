@@ -143,10 +143,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
             REQUIRE(pack.GetType()->template Is<DenseE>());
             REQUIRE(pack.IsDense() == CT::Dense<E>);
             REQUIRE(pack.IsSparse() == CT::Sparse<E>);
-            if constexpr (CT::Sparse<E>)
-               REQUIRE(pack.GetState() == (DataState::Typed | DataState::Sparse));
-            else
-               REQUIRE(pack.GetState() == DataState::Typed);
+            REQUIRE(pack.GetState() == DataState::Typed);
          }
          else {
             REQUIRE(pack.IsUntyped());

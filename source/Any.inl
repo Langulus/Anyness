@@ -157,11 +157,7 @@ namespace Langulus::Anyness
    template<CT::Data T>
    LANGULUS(ALWAYSINLINE)
    Any Any::From(const DataState& state) noexcept {
-      const auto meta = MetaData::Of<Decay<T>>();
-      if constexpr (CT::Sparse<T>)
-         return Block {state + DataState::Sparse, meta};
-      else
-         return Block {state, meta};
+      return Block {state, MetaData::Of<T>()};
    }
 
    /// Pack any number of elements sequentially                               

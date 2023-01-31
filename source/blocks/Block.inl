@@ -1226,7 +1226,7 @@ namespace Langulus::Anyness
    template<CT::Data T, bool CONSTRAIN>
    LANGULUS(ALWAYSINLINE)
    void Block::SetType() {
-      SetType<CONSTRAIN>(MetaData::Of<T>());
+      SetType<CONSTRAIN>(MetaData::Of<Deref<T>>());
    }
 
    /// Swap two elements                                                      
