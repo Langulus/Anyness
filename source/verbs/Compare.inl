@@ -155,7 +155,7 @@ namespace Langulus::Anyness
          
          VERBOSE(Logger::Green, "POD memory is the same ", Logger::Yellow, "(fast)");
       }
-      else if (baseForComparison.mType->mComparer) {
+      else if (baseForComparison.mType->mOrigin && baseForComparison.mType->mOrigin->mComparer) {
          if (IsSparse()) {
             if constexpr (RESOLVE) {
                // Resolve all elements one by one and compare them by   
