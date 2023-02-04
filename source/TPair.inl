@@ -82,21 +82,7 @@ namespace Langulus::Anyness
    ///   @return a cloned pair                                                
    TEMPLATE()
    PAIR() PAIR()::Clone() const {
-      TPair result;
-      if constexpr (CT::Clonable<K>)
-         result.mKey = mKey.Clone();
-      else if constexpr (CT::POD<K>)
-         result.mKey = mKey;
-      else
-         LANGULUS_ERROR("Key type is not clonable");
-
-      if constexpr (CT::Clonable<V>)
-         result.mValue = mValue.Clone();
-      else if constexpr (CT::POD<V>)
-         result.mValue = mValue;
-      else
-         LANGULUS_ERROR("Value type is not clonable");
-      return result;
+      return {Langulus::Clone(mKey), Langulus::Clone(mValue)};
    }
 
 } // namespace Langulus::Anyness

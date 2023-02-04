@@ -49,7 +49,7 @@ namespace Langulus::Anyness
 
       template<CT::Semantic S>
       constexpr TUnorderedMap(S&& other) noexcept requires (CT::Exact<TypeOf<S>, TUnorderedMap>)
-         : UnorderedMap {other.template Forward<UnorderedMap>()} {}
+         : UnorderedMap {other.template Forward<BlockMap>()} {}
 
       ~TUnorderedMap();
 

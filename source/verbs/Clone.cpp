@@ -65,7 +65,7 @@ namespace Langulus::Anyness
       // Iterate each instance in memory                                
       if (!mType->mResolver) {
          // Type is not resolvable, so preallocate safely               
-         if (mType->mCloner) {
+         if (mType->mCloneCopier) {
             // Cloning by placement is available                        
             if (result.IsEmpty()) {
                result.AllocateFresh(result.RequestSize(mCount));
@@ -75,7 +75,7 @@ namespace Langulus::Anyness
             for (Offset index = 0; index < mCount; ++index) {
                const auto from = GetElement(index);
                auto to = result.GetElement(index);
-               result.mType->mCloner(from.mRaw, to.mRaw);
+               result.mType->mCloneCopier(from.mRaw, to.mRaw);
             }
 
             VERBOSE("Cloned non-resolvable dense by move-placement new " 
@@ -104,12 +104,12 @@ namespace Langulus::Anyness
             auto to = Any::FromMeta(from.GetType());
 
             // Check if a clone operation is available for element      
-            if (mType->mCloner) {
+            if (mType->mCloneCopier) {
                // Placement-clone                                       
                to.AllocateFresh(to.RequestSize(1));
                to.mCount = 1;
                
-               from.mType->mCloner(from.mRaw, to.mRaw);
+               from.mType->mCloneCopier(from.mRaw, to.mRaw);
                VERBOSE("Cloned resolved dense by move-placement new" 
                   << Logger::Red << "(slowest)");
             }

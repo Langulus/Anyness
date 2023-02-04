@@ -101,9 +101,9 @@ namespace Langulus::Anyness
    TEMPLATE_SHARED()
    LANGULUS(ALWAYSINLINE)
    SHARED_POINTER() SHARED_POINTER()::Clone() const {
-      if constexpr (CT::Clonable<T>) {
+      if constexpr (CT::CloneMakable<T>) {
          if (mValue)
-            return Create(mValue->Clone());
+            return Create(Langulus::Clone(*mValue));
          return {};
       }
       else return *this;

@@ -20,12 +20,12 @@ namespace Langulus::Anyness
 
       using BlockMap::BlockMap;
 
-      constexpr UnorderedMap(Disowned<UnorderedMap>&&) noexcept;
-      constexpr UnorderedMap(Abandoned<UnorderedMap>&&) noexcept;
+      /*constexpr UnorderedMap(Disowned<UnorderedMap>&&) noexcept;
+      constexpr UnorderedMap(Abandoned<UnorderedMap>&&) noexcept;*/
 
       using BlockMap::operator =;
 
-      NOD() UnorderedMap Clone() const;
+      //NOD() UnorderedMap Clone() const;
    };
 
 } // namespace Langulus::Anyness

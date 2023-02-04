@@ -668,9 +668,8 @@ namespace Langulus::Anyness
    LANGULUS(ALWAYSINLINE)
    constexpr bool Block::CanFitState(const Block& other) const noexcept {
       return IsInvalid() || (
-         IsSparse() == other.IsSparse()
-         && IsMissing() == other.IsMissing()
-         && (!IsTypeConstrained() || other.Is(mType))
+            IsMissing() == other.IsMissing()
+         && (!IsTypeConstrained() || other.IsExact(mType))
          && CanFitOrAnd(other)
          && CanFitPhase(other)
       );
@@ -687,7 +686,7 @@ namespace Langulus::Anyness
    template<CT::Data T>
    LANGULUS(ALWAYSINLINE)
    bool Block::IsInsertable() const noexcept {
-      return IsInsertable(MetaData::Of<Decay<T>>());
+      return IsInsertable(MetaData::Of<T>());
    }
 
    /// Get the raw data inside the container                                  
@@ -760,7 +759,7 @@ namespace Langulus::Anyness
    ///   @returns true if the type of this pack is abstract                   
    LANGULUS(ALWAYSINLINE)
    constexpr bool Block::IsAbstract() const noexcept {
-      return mType && mType->mIsAbstract;
+      return mType && (!mType->mOrigin || mType->mOrigin->mIsAbstract);
    }
 
    /// Check if contained type is default-constructible                       
@@ -768,7 +767,7 @@ namespace Langulus::Anyness
    ///   @returns true if the contents of this pack are constructible         
    LANGULUS(ALWAYSINLINE)
    constexpr bool Block::IsDefaultable() const noexcept {
-      return mType && mType->mDefaultConstructor;
+      return mType && mType->mOrigin && mType->mOrigin->mDefaultConstructor;
    }
 
    /// Check if block contains pointers                                       
@@ -793,7 +792,7 @@ namespace Langulus::Anyness
    ///   @return true if contained data is plain old data                     
    LANGULUS(ALWAYSINLINE)
    constexpr bool Block::IsPOD() const noexcept {
-      return mType && mType->mIsPOD;
+      return mType && mType->mOrigin && mType->mOrigin->mIsPOD;
    }
 
    /// Check if block contains resolvable items, that is, items that have a   

@@ -283,11 +283,12 @@ namespace Langulus::Anyness
    ///   @attention assumes this block is valid and has exactly one element   
    ///   @return the resolved first element                                   
    Block Block::GetResolved() noexcept {
+   	//TODO no need for GetDense() with new reflection tactic?
       auto dense = GetDense();
-      if (!dense.mRaw || !mType->mResolver)
+      if (!dense.mRaw || !dense.mType->mResolver)
          return dense;
 
-      return mType->mResolver(dense.mRaw).GetDense();
+      return dense.mType->mResolver(dense.mRaw).GetDense();
    }
 
    const Block Block::GetResolved() const noexcept {

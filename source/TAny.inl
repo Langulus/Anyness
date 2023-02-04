@@ -516,7 +516,7 @@ namespace Langulus::Anyness
    TAny<T> TAny<T>::Clone() const {
       using DT = Decay<T>;
 
-      if constexpr (CT::Clonable<T> || CT::POD<T>) {
+      if constexpr (CT::CloneMakable<T> || CT::POD<T>) {
          // Always clone the state, but make it unconstrained           
          TAny<T> result {Disown(*this)};
          result.mState -= DataState::Static | DataState::Constant;
@@ -544,7 +544,8 @@ namespace Langulus::Anyness
                   continue;
                }
 
-               if constexpr (CT::Clonable<T>)
+//TODO use SemanticMake
+               if constexpr (CT::CloneMakable<T>)
                   new (co + counter) DT {from->mPointer->Clone()};
                else if constexpr (CT::CopyMakable<T>)
                   new (co + counter) DT {*from->mPointer};
@@ -561,7 +562,7 @@ namespace Langulus::Anyness
 
             coalesced.Reference(counter);
          }
-         else if constexpr (CT::Clonable<T>) {
+         else if constexpr (CT::CloneMakable<T>) {
             // Clone dense elements by calling their Clone()            
             while (from < GetRawEnd()) {
                new (to) DT {from->Clone()};
@@ -1359,7 +1360,7 @@ namespace Langulus::Anyness
    TEMPLATE()
    template<bool REVERSE, bool BY_ADDRESS_ONLY, CT::Data ALT_T>
    Index TAny<T>::Find(const ALT_T& item, const Offset& cookie) const {
-      if constexpr (CT::Same<T, ALT_T>) {
+      if constexpr (CT::Comparable<T, ALT_T>) {
          const TypeInner* start;
          const TypeInner* end;
 
@@ -1373,22 +1374,8 @@ namespace Langulus::Anyness
          }
 
          while (start != end) {
-            if constexpr (BY_ADDRESS_ONLY || !CT::Comparable<T, T>) {
-               if constexpr (CT::Sparse<T>) {
-                  if (DenseCast(start) == SparseCast(item))
-                     return start - GetRaw();
-               }
-               else if (start == SparseCast(item))
-                  return start - GetRaw();
-            }
-            else {
-               if constexpr (CT::Sparse<T>) {
-                  if (DenseCast(start) == SparseCast(item) || *DenseCast(start) == DenseCast(item))
-                     return start - GetRaw();
-               }
-               else if (start == SparseCast(item) || *start == DenseCast(item))
-                  return start - GetRaw();
-            }
+            if (*start == item)
+               return start - GetRaw();
 
             if constexpr (REVERSE)
                --start;
