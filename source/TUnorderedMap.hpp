@@ -30,8 +30,7 @@ namespace Langulus::Anyness
       using PairConstRef = TPair<const KeyInner&, const ValueInner&>;
       using Allocator = Inner::Allocator;
 
-      /// Makes TUnorderedMap CT::Typed                                       
-      using MemberType = Pair;
+      LANGULUS(TYPED) Pair;
 
       static constexpr Count MinimalAllocation = 8;
       static constexpr bool Ordered = false;

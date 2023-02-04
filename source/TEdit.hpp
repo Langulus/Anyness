@@ -21,7 +21,8 @@ namespace Langulus::Anyness
    ///                                                                        
    template<DenseTypedBlock T>
    class TEdit {
-      using MemberType = TypeOf<T>;
+      LANGULUS(TYPED) TypeOf<T>;
+      LANGULUS(UNINSERTABLE) true;
 
       // What are we editing?                                           
       T& mSource;
@@ -52,9 +53,9 @@ namespace Langulus::Anyness
       TEdit& operator >> (const T&);
       TEdit& Replace(const T&);
 
-      TEdit& operator << (const MemberType&);
-      TEdit& operator >> (const MemberType&);
-      TEdit& Replace(const MemberType&);
+      TEdit& operator << (const CTTI_InnerType&);
+      TEdit& operator >> (const CTTI_InnerType&);
+      TEdit& Replace(const CTTI_InnerType&);
 
       TEdit& Delete();
       TEdit& Backspace();

@@ -93,7 +93,7 @@ namespace Langulus::Anyness
    ///   @param other - the container to use for replacement                  
    TEMPLATE() LANGULUS(ALWAYSINLINE)
    TEdit<T>& TEdit<T>::Replace(const T& other) {
-      if constexpr (CT::POD<MemberType> || CT::Sparse<MemberType>) {
+      if constexpr (CT::POD<CTTI_InnerType> || CT::Sparse<CTTI_InnerType>) {
          const auto offset = mStart * mSource.GetStride();
 
          // Optimization for POD/sparse containers that spares the      
@@ -143,7 +143,7 @@ namespace Langulus::Anyness
    ///   @return a reference to the editor for chaining                       
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
-   TEdit<T>& TEdit<T>::operator << (const MemberType& other) {
+   TEdit<T>& TEdit<T>::operator << (const CTTI_InnerType& other) {
       mSource.InsertAt(other, mEnd);
       return *this;
    }
@@ -153,7 +153,7 @@ namespace Langulus::Anyness
    ///   @return a reference to the editor for chaining                       
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
-   TEdit<T>& TEdit<T>::operator >> (const MemberType& other) {
+   TEdit<T>& TEdit<T>::operator >> (const CTTI_InnerType& other) {
       const auto concatenated = mSource.InsertAt(other, mStart);
       mStart += concatenated;
       mEnd += concatenated;
@@ -167,7 +167,7 @@ namespace Langulus::Anyness
    ///   @return a reference to the editor for chaining                       
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
-   TEdit<T>& TEdit<T>::Replace(const MemberType& other) {
+   TEdit<T>& TEdit<T>::Replace(const CTTI_InnerType& other) {
       return Replace(T::Wrap(other));
    }
 

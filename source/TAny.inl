@@ -2263,7 +2263,7 @@ namespace Langulus::Anyness
    TEMPLATE()
    template<bool MUTABLE>
    LANGULUS(ALWAYSINLINE)
-   TAny<T>::TIterator<MUTABLE>::operator const MemberType& () const noexcept requires (!MUTABLE) {
+   TAny<T>::TIterator<MUTABLE>::operator const CTTI_InnerType& () const noexcept requires (!MUTABLE) {
       if constexpr (CT::Dense<T>)
          return *mElement;
       else

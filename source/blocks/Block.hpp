@@ -6,6 +6,7 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
+#include "../inner/DataState.hpp"
 #include "../inner/Index.hpp"
 #include "../inner/Allocator.hpp"
 #include <utility>

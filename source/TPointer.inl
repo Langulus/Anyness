@@ -32,14 +32,14 @@ namespace Langulus::Anyness
    ///   @param ptr - pointer to reference                                    
    TEMPLATE_SHARED()
    LANGULUS(ALWAYSINLINE)
-   SHARED_POINTER()::TPointer(const MemberType& ptr)
+   SHARED_POINTER()::TPointer(const CTTI_InnerType& ptr)
       : TPointer {Langulus::Copy(ptr)} {}
 
    /// Reference a raw pointer                                                
    ///   @param ptr - pointer to reference                                    
    TEMPLATE_SHARED()
    LANGULUS(ALWAYSINLINE)
-   SHARED_POINTER()::TPointer(MemberType&& ptr)
+   SHARED_POINTER()::TPointer(CTTI_InnerType&& ptr)
       : TPointer {Langulus::Move(ptr)} {}
 
    /// Shared pointer destruction                                             
@@ -129,13 +129,13 @@ namespace Langulus::Anyness
    ///   @param ptr - pointer to reference                                    
    TEMPLATE_SHARED()
    LANGULUS(ALWAYSINLINE)
-   SHARED_POINTER()& SHARED_POINTER()::operator = (const MemberType& rhs) {
+   SHARED_POINTER()& SHARED_POINTER()::operator = (const CTTI_InnerType& rhs) {
       return operator = (Langulus::Copy(rhs));
    }
 
    TEMPLATE_SHARED()
    LANGULUS(ALWAYSINLINE)
-   SHARED_POINTER()& SHARED_POINTER()::operator = (MemberType&& rhs) {
+   SHARED_POINTER()& SHARED_POINTER()::operator = (CTTI_InnerType&& rhs) {
       return operator = (Langulus::Move(rhs));
    }
 

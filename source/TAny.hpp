@@ -19,7 +19,7 @@ namespace Langulus::Anyness
    /// to std::vector.                                                        
    ///   Don't forget that all Any containers are binary-compatible with each 
    /// other, so after you've asserted, that an Any is of a specific type,    
-   /// (by checking result of doing something like pack.Is<my type>())        
+   /// (by checking result of doing something like pack.IsExact<my type>())   
    /// you can then directly reinterpret_cast that Any to an equivalent       
    /// TAny<of the type you checked for>, essentially converting your         
    /// type-erased container to a statically-optimized equivalent.            
@@ -28,6 +28,7 @@ namespace Langulus::Anyness
    class TAny : public Any {
       LANGULUS(DEEP) true;
       LANGULUS_BASES(Any);
+      LANGULUS(TYPED) T;
 
    public:
       static constexpr bool Ownership = true;
@@ -42,9 +43,6 @@ namespace Langulus::Anyness
       friend class TUnorderedMap;
       friend class Any;
       friend class Block;
-
-      /// Makes the TAny CT::Typed                                            
-      using MemberType = T;
 
       /// Internal representation of a sparse element                         
       class KnownPointer;
@@ -381,9 +379,9 @@ namespace Langulus::Anyness
    template<bool MUTABLE>
    struct TAny<T>::TIterator {
       LANGULUS(UNINSERTABLE) true;
+      LANGULUS(TYPED) TypeOf<TAny<T>>;
 
    protected:
-      using MemberType = typename TAny<T>::MemberType;
       using TypeInner = typename TAny<T>::TypeInner;
       friend class TAny<T>;
 
@@ -395,7 +393,7 @@ namespace Langulus::Anyness
       NOD() bool operator == (const TIterator&) const noexcept;
 
       operator TypeInner& () const noexcept requires (MUTABLE);
-      operator const MemberType& () const noexcept requires (!MUTABLE);
+      operator const CTTI_InnerType& () const noexcept requires (!MUTABLE);
 
       NOD() decltype(auto) operator * () const noexcept requires (MUTABLE);
       NOD() decltype(auto) operator * () const noexcept requires (!MUTABLE);

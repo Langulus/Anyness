@@ -10,7 +10,6 @@
 
 namespace Langulus::Anyness
 {
-   using RTTI::DataState;
    using RTTI::MetaData;
    using RTTI::MetaTrait;
    using RTTI::MetaVerb;

@@ -120,7 +120,7 @@ namespace Langulus::Anyness
    template<class TRAIT>
    struct StaticTrait : public Trait {
    public:
-      LANGULUS(TRAIT) RTTI::NameOf<TRAIT>();
+      LANGULUS(TRAIT) RTTI::LastNameOf<TRAIT>();
       LANGULUS_BASES(Trait);
 
       using TraitType = TRAIT;

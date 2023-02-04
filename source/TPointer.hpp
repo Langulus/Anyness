@@ -30,8 +30,8 @@ namespace Langulus::Anyness
       void ResetInner();
 
    public:
-      using typename Base::MemberType;
-      
+      LANGULUS(TYPED) TypeOf<Base>;
+
       constexpr TPointer() noexcept = default;
 
       TPointer(const TPointer&);
@@ -62,12 +62,12 @@ namespace Langulus::Anyness
          else mEntry = nullptr;
       }
 
-      TPointer(const MemberType&);
-      TPointer(MemberType&&);
+      TPointer(const CTTI_InnerType&);
+      TPointer(CTTI_InnerType&&);
 
       /// Constructor needs to be declared here to avoid MSVC parser bug      
       template<CT::Semantic S>
-      TPointer(S&& ptr) noexcept requires (CT::Exact<TypeOf<S>, MemberType>)
+      TPointer(S&& ptr) noexcept requires (CT::Exact<TypeOf<S>, CTTI_InnerType>)
          : Base {S::Nest(ptr.mValue)} {
          if constexpr (S::Move) {
             // Move in the contents of the other shared pointer         
@@ -145,12 +145,12 @@ namespace Langulus::Anyness
          return *this;
       }
 
-      TPointer& operator = (const MemberType&);
-      TPointer& operator = (MemberType&&);
+      TPointer& operator = (const CTTI_InnerType&);
+      TPointer& operator = (CTTI_InnerType&&);
 
       /// Constructor needs to be declared here to avoid MSVC parser bug      
       template<CT::Semantic S>
-      TPointer& operator = (S&& rhs) noexcept requires (CT::Exact<TypeOf<S>, MemberType>) {
+      TPointer& operator = (S&& rhs) noexcept requires (CT::Exact<TypeOf<S>, CTTI_InnerType>) {
          if (mValue)
             ResetInner();
 

@@ -36,10 +36,9 @@ namespace Langulus::Anyness
       T mValue {};
 
    public:
-      static constexpr bool Ownership = true;
+      LANGULUS(TYPED) T;
 
-      /// Makes TOwned CT::Typed                                              
-      using MemberType = T;
+      static constexpr bool Ownership = true;
 
       constexpr TOwned() noexcept = default;
       constexpr TOwned(const TOwned&);
