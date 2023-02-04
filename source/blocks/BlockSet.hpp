@@ -122,7 +122,7 @@ namespace Langulus::Anyness
       ///   REMOVAL                                                           
       ///                                                                     
       template<CT::NotSemantic T>
-      Count RemoveValue(const T&);
+      Count Remove(const T&);
       Count RemoveIndex(const Index&);
 
       void Clear();

@@ -92,14 +92,8 @@ namespace Langulus::Anyness
 
          const auto key = GetRawKeys() + lhs;
          const auto rhs = other.FindIndex(*key);
-         if constexpr (CT::Sparse<V>) {
-            if (rhs == other.GetReserved() || *GetValue(lhs) != *other.GetValue(rhs))
-               return false;
-         }
-         else {
-            if (rhs == other.GetReserved() || GetValue(lhs) != other.GetValue(rhs))
-               return false;
-         }
+         if (rhs == other.GetReserved() || GetValue(lhs) != other.GetValue(rhs))
+            return false;
       }
 
       return true;
@@ -351,7 +345,7 @@ namespace Langulus::Anyness
    ///   @return the meta definition of the key type                          
    TABLE_TEMPLATE()
    DMeta TABLE()::GetKeyType() const {
-      const_cast<DMeta&>(mKeys.mType) = MetaData::Of<Decay<K>>();
+      mKeys.mType = MetaData::Of<K>();
       return mKeys.mType;
    }
 
@@ -361,7 +355,7 @@ namespace Langulus::Anyness
    ///   @return the meta definition of the value type                        
    TABLE_TEMPLATE()
    DMeta TABLE()::GetValueType() const {
-      const_cast<DMeta&>(mValues.mType) = MetaData::Of<Decay<V>>();
+      mValues.mType = MetaData::Of<V>();
       return mValues.mType;
    }
 
@@ -441,7 +435,7 @@ namespace Langulus::Anyness
       if constexpr (REUSE)
          mKeys.mEntry = Allocator::Reallocate(keyAndInfoSize, mKeys.mEntry);
       else {
-         mKeys.mType = MetaData::Of<Decay<K>>();
+         mKeys.mType = MetaData::Of<K>();
          mKeys.mEntry = Allocator::Allocate(keyAndInfoSize);
       }
 
@@ -452,7 +446,7 @@ namespace Langulus::Anyness
       if constexpr (REUSE)
          mValues.mEntry = Allocator::Reallocate(count * sizeof(ValueInner), mValues.mEntry);
       else {
-         mValues.mType = MetaData::Of<Decay<V>>();
+         mValues.mType = MetaData::Of<V>();
          mValues.mEntry = Allocator::Allocate(count * sizeof(ValueInner));
       }
 
@@ -1205,16 +1199,9 @@ namespace Langulus::Anyness
       const auto pslEnd = GetInfoEnd() - 1;
       auto candidate = GetRawKeys() + start;
 
-      const auto keysAreEqual = [](const KeyInner* lhs, const K& rhs) {
-         if constexpr (CT::Sparse<K>)
-            return *lhs == rhs/* || **lhs == *rhs*/;
-         else
-            return lhs == &rhs || *lhs == rhs;
-      };
-
       Count attempts{};
       while (*psl > attempts) {
-         if (!keysAreEqual(candidate, key)) {
+         if (*candidate != key) {
             // There might be more keys to the right, check them        
             if (psl == pslEnd) UNLIKELY() {
                // By 'to the right' I also mean looped back to start    
@@ -1344,7 +1331,7 @@ namespace Langulus::Anyness
       LANGULUS_ASSERT(!IsEmpty(), Access, "Can't get last index");
       auto info = GetInfoEnd();
       while (info >= GetInfo() && !*--info);
-      return Get(static_cast<Offset>(info - GetInfo()));
+      return GetPair(static_cast<Offset>(info - GetInfo()));
    }
 
    /// Access last element                                                    
@@ -1356,7 +1343,7 @@ namespace Langulus::Anyness
       LANGULUS_ASSERT(!IsEmpty(), Access, "Can't get last index");
       auto info = GetInfoEnd();
       while (info >= GetInfo() && !*--info);
-      return Get(static_cast<Offset>(info - GetInfo()));
+      return GetPair(static_cast<Offset>(info - GetInfo()));
    }
 
    /// Iterate all keys inside the map, and perform f() on them               

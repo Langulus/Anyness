@@ -16,13 +16,15 @@ namespace Langulus::Anyness
    /// Compare the relevant states of two blocks                              
    ///   @param right - the memory block to compare against                   
    ///   @return true if the two memory blocks' revelant states are identical 
-   inline bool Block::CompareStates(const Block& right) const noexcept {
+   LANGULUS(ALWAYSINLINE)
+   bool Block::CompareStates(const Block& right) const noexcept {
       return GetUnconstrainedState() == right.GetUnconstrainedState();
    }
 
-   /// Compare types of two blocks                                            
+   /// Compare types of two blocks, and a produce a common type whose         
+   /// comparison function to use                                             
    ///   @param right - the type to the right                                 
-   ///   @param common - the common base                                      
+   ///   @param common - [out] the common base                                
    ///   @return true if a common base has been found                         
    inline bool Block::CompareTypes(const Block& right, RTTI::Base& common) const noexcept {
       if (!Is(right.mType)) {
@@ -61,10 +63,18 @@ namespace Langulus::Anyness
          }
       }
       else {
-         // Types match exactly                                         
-         common.mType = mType;
-         common.mBinaryCompatible = true;
-         return true;
+         // Types match exactly, or their origins match exactly         
+         if (mType->mOrigin) {
+            common.mType = mType->mOrigin;
+            common.mBinaryCompatible = true;
+            return true;
+         }
+         else {
+            // Types match exactly, but we're interested only in an     
+            // origin type base. Unfortunately, the type is incomplete, 
+            // so comparison is not possible                            
+            return false;
+         }
       }
    }
 
@@ -72,7 +82,8 @@ namespace Langulus::Anyness
    ///   @param right - the right block                                       
    ///   @param base - the base to use                                        
    ///   @return true if comparison returns true                              
-   inline bool Block::CallComparer(const Block& right, const RTTI::Base& base) const {
+   LANGULUS(ALWAYSINLINE)
+   bool Block::CallComparer(const Block& right, const RTTI::Base& base) const {
       return mRaw == right.mRaw || (
          mRaw && right.mRaw && base.mType->mComparer(mRaw, right.mRaw)
       );
@@ -142,20 +153,23 @@ namespace Langulus::Anyness
          }
       }
 
-      if (IsDense() && baseForComparison.mType->mIsPOD && baseForComparison.mBinaryCompatible) {
+      if (  (IsSparse() && baseForComparison.mBinaryCompatible)
+         || (baseForComparison.mType->mIsPOD && baseForComparison.mBinaryCompatible)
+      ) {
          // Just compare the memory directly (optimization)             
-         VERBOSE("Batch-comparing POD memory");
-         const auto code = memcmp(mRaw, right.mRaw, 
-            mCount * baseForComparison.mType->mSize * baseForComparison.mCount);
+         // Regardless if types are sparse or dense, as long as they    
+         // are of the same density, of course                          
+         VERBOSE("Batch-comparing POD memory / pointers");
+         const auto code = memcmp(mRaw, right.mRaw, GetByteSize());
 
          if (code != 0) {
-            VERBOSE(Logger::Red, "POD memory is not the same ", Logger::Yellow, "(fast)");
+            VERBOSE(Logger::Red, "POD/pointers are not the same ", Logger::Yellow, "(fast)");
             return false;
          }
          
-         VERBOSE(Logger::Green, "POD memory is the same ", Logger::Yellow, "(fast)");
+         VERBOSE(Logger::Green, "POD/pointers memory is the same ", Logger::Yellow, "(fast)");
       }
-      else if (baseForComparison.mType->mOrigin && baseForComparison.mType->mOrigin->mComparer) {
+      else if (baseForComparison.mType->mComparer) {
          if (IsSparse()) {
             if constexpr (RESOLVE) {
                // Resolve all elements one by one and compare them by   
@@ -166,22 +180,31 @@ namespace Langulus::Anyness
                   if (!lhs.CompareTypes(rhs, baseForComparison)) {
                      // Fail comparison on first mismatch               
                      VERBOSE(Logger::Red,
-                        "Elements at ", i, " have unrelated types: ", 
+                        "Pointers at ", i, " have unrelated types: ", 
                         lhs.GetToken(), " != ", rhs.GetToken());
                      return false;
                   }
 
-                  if (!lhs.CallComparer(rhs, baseForComparison)) {
+                  // Compare pointers only                              
+                  if (lhs.mRaw != rhs.mRaw) {
+                     // Fail comparison on first mismatch               
+                     VERBOSE(Logger::Red,
+                        "Pointers at ", i, " differ: ",
+                        lhs.GetToken(), " != ", rhs.GetToken());
+                     return false;
+                  }
+
+                  /*if (!lhs.CallComparer(rhs, baseForComparison)) {
                      // Fail comparison on first mismatch               
                      VERBOSE(Logger::Red,
                         "Elements at ", i, " differ: ", 
                         lhs.GetToken(), " != ", rhs.GetToken());
                      return false;
-                  }
+                  }*/
                }
 
                VERBOSE(Logger::Green,
-                  "Data is the same, all elements match ", 
+                  "Data is the same, all pointers match ", 
                   Logger::DarkYellow, "(slow)");
             }
             else {

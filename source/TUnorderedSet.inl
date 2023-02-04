@@ -259,7 +259,7 @@ namespace Langulus::Anyness
    ///   @return the meta definition of the key type                          
    TABLE_TEMPLATE()
    DMeta TABLE()::GetType() const {
-      const_cast<DMeta&>(mKeys.mType) = MetaData::Of<Decay<T>>();
+      mKeys.mType = MetaData::Of<T>();
       return mKeys.mType;
    }
 
@@ -332,7 +332,7 @@ namespace Langulus::Anyness
       if constexpr (REUSE)
          mKeys.mEntry = Allocator::Reallocate(keyAndInfoSize, mKeys.mEntry);
       else {
-         mKeys.mType = MetaData::Of<Decay<T>>();
+         mKeys.mType = MetaData::Of<T>();
          mKeys.mEntry = Allocator::Allocate(keyAndInfoSize);
       }
       LANGULUS_ASSERT(mKeys.mEntry, Allocate, "Out of memory");
@@ -734,7 +734,7 @@ namespace Langulus::Anyness
    ///   @param key - the key to search for                                   
    ///   @return the number of removed pairs                                  
    TABLE_TEMPLATE()
-   Count TABLE()::RemoveValue(const T& match) {
+   Count TABLE()::Remove(const T& match) {
       // Get the starting index based on the key hash                   
       const auto start = GetBucket(match);
       auto key = GetRaw() + start;

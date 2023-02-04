@@ -65,7 +65,6 @@ concept IsStaticallyOptimized = requires (Decay<T> a) { typename T::Key; typenam
 /// to complex, from flat to deep                                             
 TEMPLATE_TEST_CASE(
    "TOrderedMap/TUnorderedMap/OrderedMap/UnorderedMap", "[map]",
-   (TypePair<UnorderedMap, Text, int*>),
    (TypePair<TUnorderedMap<Text, int*>, Text, int*>),
    (TypePair<TUnorderedMap<Text, int>, Text, int>),
    (TypePair<TUnorderedMap<Text, Trait>, Text, Trait>),
@@ -86,6 +85,7 @@ TEMPLATE_TEST_CASE(
    (TypePair<UnorderedMap, Text, Trait>),
    (TypePair<UnorderedMap, Text, Traits::Count>),
    (TypePair<UnorderedMap, Text, Any>),
+   (TypePair<UnorderedMap, Text, int*>),
    (TypePair<UnorderedMap, Text, Trait*>),
    (TypePair<UnorderedMap, Text, Traits::Count*>),
    (TypePair<UnorderedMap, Text, Any*>),
@@ -730,7 +730,10 @@ TEMPLATE_TEST_CASE(
          auto clone = map.Clone();
 
          THEN("The new map should keep the state, but refer to new data") {
-            REQUIRE(clone == map);
+            if constexpr (CT::Sparse<K> || CT::Sparse<V>)
+               REQUIRE(clone != map);
+            else
+               REQUIRE(clone == map);
             REQUIRE(clone.GetKeyType()->template Is<K>());
             REQUIRE(clone.GetValueType()->template Is<V>());
             REQUIRE(clone.IsAllocated());
@@ -742,15 +745,8 @@ TEMPLATE_TEST_CASE(
             REQUIRE(clone.GetRawValuesMemory() != map.GetRawValuesMemory());
             for (auto& comparer : darray1) {
                if constexpr (CT::Sparse<V>) {
-                  if constexpr (IsStaticallyOptimized<T>) {
-                     REQUIRE(*map[comparer.mKey] == *clone[comparer.mKey]);
-                     REQUIRE(map[comparer.mKey] != clone[comparer.mKey]);
-                     REQUIRE(clone[comparer.mKey] != comparer.mValue);
-                  }
-                  else {
-                     REQUIRE(clone[comparer.mKey] == comparer.mValue);
-                     REQUIRE(map[comparer.mKey] == clone[comparer.mKey]);
-                  }
+                  REQUIRE(clone[comparer.mKey] != comparer.mValue);
+                  REQUIRE(map[comparer.mKey] != clone[comparer.mKey]);
                }
                else {
                   REQUIRE(clone[comparer.mKey] == comparer.mValue);
@@ -803,7 +799,10 @@ TEMPLATE_TEST_CASE(
 
          THEN("The comparisons should be adequate") {
             REQUIRE(map == sameMap);
-            REQUIRE(map == clonedMap);
+            if constexpr (CT::Sparse<K> || CT::Sparse<V>)
+               REQUIRE(map != clonedMap);
+            else
+               REQUIRE(map == clonedMap);
             REQUIRE(map == copiedMap);
             REQUIRE(map != differentMap1);
          }

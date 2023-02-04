@@ -237,7 +237,7 @@ namespace Langulus::Anyness
       ///   Removal                                                           
       ///                                                                     
       template<bool REVERSE = false, bool BY_ADDRESS_ONLY = false, CT::Data ALT_T>
-      Count RemoveValue(const ALT_T&);
+      Count Remove(const ALT_T&);
       Count RemoveIndex(const Offset&, const Count&);
       Iterator RemoveIndex(const Iterator&);
 

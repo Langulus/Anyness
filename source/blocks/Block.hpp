@@ -132,7 +132,7 @@ namespace Langulus::Anyness
       // Number of allocated elements in the memory block               
       Count mReserved {};
       // Meta data about the elements inside the memory block           
-      DMeta mType {};
+      mutable DMeta mType {};
       // Pointer to the allocated block                                 
       // If entry is zero, then data is static                          
       Inner::Allocation* mEntry {};
@@ -535,7 +535,7 @@ namespace Langulus::Anyness
       ///   Removal                                                           
       ///                                                                     
       template<bool REVERSE = false, bool BY_ADDRESS_ONLY = false, CT::Data T>
-      Count RemoveValue(const T&);
+      Count Remove(const T&);
       template<CT::Index INDEX>
       Count RemoveIndex(INDEX, Count = 1);
       template<CT::Index INDEX>

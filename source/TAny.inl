@@ -201,7 +201,7 @@ namespace Langulus::Anyness
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
    DMeta TAny<T>::GetType() const noexcept {
-      const_cast<DMeta&>(mType) = MetaData::Of<T>();
+      mType = MetaData::Of<T>();
       return mType;
    }
 
@@ -760,8 +760,7 @@ namespace Langulus::Anyness
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
    constexpr bool TAny<T>::IsDeep() const noexcept {
-      // Sparse types are never considered deep, but when contained,    
-      // it's safe to erase that aspect                                 
+      // Sparse types are never considered deep, except when contained  
       return CT::Deep<Decay<T>>;
    }
 
@@ -1409,7 +1408,7 @@ namespace Langulus::Anyness
    TEMPLATE()
    template<bool REVERSE, bool BY_ADDRESS_ONLY, CT::Data ALT_T>
    LANGULUS(ALWAYSINLINE)
-   Count TAny<T>::RemoveValue(const ALT_T& item) {
+   Count TAny<T>::Remove(const ALT_T& item) {
       const auto found = Find<REVERSE, BY_ADDRESS_ONLY>(item);
       if (found)
          return RemoveIndex(found.GetOffset(), 1);
@@ -1802,26 +1801,22 @@ namespace Langulus::Anyness
       else if (mCount != other.mCount)
          return false;
 
-      auto t1 = GetRaw();
-      auto t2 = other.GetRaw();
-      const auto t1end = t1 + mCount;
-      if constexpr (CT::Dense<T> && CT::Comparable<T, T>) {
-         while (t1 < t1end && *t1 == *t2) {
-            ++t1; ++t2;
-         }
+      if constexpr (CT::Sparse<T> || CT::POD<T>) {
+         // Batch compare POD/pointers                                  
+         return 0 == ::std::memcmp(GetRaw(), other.GetRaw(), GetByteSize());
       }
       else if constexpr (CT::Comparable<T, T>) {
-         while (t1 < t1end && (t1 == t2 || **t1 == **t2)) {
-            ++t1; ++t2;
+         // Use comparison operator between all elements                
+         auto t1 = GetRaw();
+         auto t2 = other.GetRaw();
+         const auto t1end = t1 + mCount;
+         while (t1 < t1end && *t1 == *t2) {
+            ++t1;
+            ++t2;
          }
+         return t1 == t1end;
       }
-      else {
-         while (t1 < t1end && t1 == t2) {
-            ++t1; ++t2;
-         }
-      }
-
-      return static_cast<Count>(t1 - GetRaw()) == mCount;
+      else LANGULUS_ERROR("Elements not comparable");
    }
 
    /// Compare with another container of the same type                        

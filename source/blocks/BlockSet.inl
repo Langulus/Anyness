@@ -899,7 +899,7 @@ namespace Langulus::Anyness
    ///   @param match - the key to search for                                 
    ///   @return the number of removed pairs                                  
    template<CT::NotSemantic T>
-   Count BlockSet::RemoveValue(const T& match) {
+   Count BlockSet::Remove(const T& match) {
       // Get the starting index based on the key hash                   
       const auto start = GetBucket(match);
       auto key = GetRaw<T>() + start;

@@ -817,8 +817,7 @@ namespace Langulus::Anyness
    ///   @return true if the memory block contains memory blocks              
    LANGULUS(ALWAYSINLINE)
    constexpr bool Block::IsDeep() const noexcept {
-      // This should be the same as CT::Deep, but at runtime				
-      return mType && mType->mIsDeep && mType->mSize == sizeof(Block) && mType->CastsTo<Block, false>();
+      return mType && mType->mIsDeep;
    }
 
    /// Deep (slower) check if there's anything missing inside nested blocks   
@@ -1260,14 +1259,7 @@ namespace Langulus::Anyness
    bool Block::CompareSingleValue(const T& rhs) const {
       if constexpr (CT::Sparse<T>) {
          auto lhs = Get<T>();
-         if constexpr (CT::Comparable<T, T>) {
-            // Compare by pointer and then value                        
-            return mCount == 1 && (lhs == rhs || (rhs && lhs && *rhs == *lhs));
-         }
-         else {
-            // Compare by pointer only                                  
-            return mCount == 1 && lhs == rhs;
-         }
+         return mCount == 1 && lhs == rhs;
       }
       else if constexpr (CT::Comparable<T, T>) {
          // Compare by value                                            
@@ -1753,7 +1745,7 @@ namespace Langulus::Anyness
    ///   @return the number of removed items                                  
    template<bool REVERSE, bool BY_ADDRESS_ONLY, CT::Data T>
    LANGULUS(ALWAYSINLINE)
-   Count Block::RemoveValue(const T& item) {
+   Count Block::Remove(const T& item) {
       const auto found = FindKnown<REVERSE, BY_ADDRESS_ONLY>(item);
       if (found)
          return RemoveIndex(found.GetOffset(), 1);
@@ -2853,7 +2845,7 @@ namespace Langulus::Anyness
    template<class R, CT::Data A, bool REVERSE, bool MUTABLE>
    LANGULUS(ALWAYSINLINE)
    Count Block::ForEachInner(TFunctor<R(A)>&& call) {
-      if (IsEmpty() || !mType->CastsTo<A, true>())
+      if (IsEmpty() || !mType->template CastsTo<A, true>())
          return 0;
        
       UNUSED() auto initialCount = mCount;

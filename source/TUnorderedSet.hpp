@@ -96,7 +96,7 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Removal                                                           
       ///                                                                     
-      Count RemoveValue(const T&);
+      Count Remove(const T&);
       Count RemoveIndex(const Index&);
       Iterator RemoveIndex(const Iterator&);
 

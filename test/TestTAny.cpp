@@ -66,6 +66,7 @@ T CreateElement(const ALT_T& e) {
 /// The main test for Any/TAny containers, with all kinds of items, from      
 /// sparse to dense, from trivial to complex, from flat to deep               
 TEMPLATE_TEST_CASE("Any/TAny", "[any]", 
+   (TypePair<Any, Any*>),
    (TypePair<Traits::Name, Text>),
    (TypePair<TAny<int>, int>),
    (TypePair<TAny<Trait>, Trait>),
@@ -88,13 +89,13 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
    (TypePair<Any, int*>),
    (TypePair<Any, Trait*>),
    (TypePair<Any, Traits::Count*>),
-   (TypePair<Any, Any*>),
    (TypePair<Any, Text*>)
    //(TypePair<Any, Block*>),
 ) {
    using T = typename TestType::Container;
    using E = typename TestType::Element;
    using DenseE = Decay<E>;
+   using SparseE = E*;
       
    E element = CreateElement<E>(555);
    const DenseE& denseValue {DenseCast(element)};
@@ -139,8 +140,9 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
          if constexpr (CT::Typed<T>) {
             REQUIRE_FALSE(pack.IsUntyped());
             REQUIRE(pack.GetType() != nullptr);
-            REQUIRE(pack.GetType()->template Is<E>());
+            REQUIRE(pack.GetType()->template IsExact<E>());
             REQUIRE(pack.GetType()->template Is<DenseE>());
+            REQUIRE(pack.GetType()->template Is<SparseE>());
             REQUIRE(pack.IsDense() == CT::Dense<E>);
             REQUIRE(pack.IsSparse() == CT::Sparse<E>);
             REQUIRE(pack.GetState() == DataState::Typed);
@@ -197,8 +199,9 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
             if constexpr (CT::Flat<E>) {
                if constexpr (CT::Sparse<E>)
                   REQUIRE(&pack.template As<DenseE>() == sparseValue);
+               REQUIRE(pack.template IsExact<E>());
                REQUIRE(pack.template Is<DenseE>());
-               REQUIRE(pack.template Is<DenseE*>());
+               REQUIRE(pack.template Is<SparseE>());
                REQUIRE(pack.template As<DenseE>() == denseValue);
                REQUIRE(*pack.template As<DenseE*>() == denseValue);
                REQUIRE(pack.GetUses() == 1);
@@ -210,7 +213,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
             }
             else if constexpr (CT::Same<E, T>) {
                REQUIRE(pack.GetRaw() == element.GetRaw());
-               REQUIRE(pack.Is(element.GetType()));
+               REQUIRE(pack.IsExact(element.GetType()));
                REQUIRE(pack == element);
                REQUIRE(pack.GetUses() == element.GetUses());
                REQUIRE(pack.GetUses() == 2);
@@ -276,8 +279,9 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
             if constexpr (CT::Flat<E>) {
                if constexpr (CT::Sparse<E>)
                   REQUIRE(&pack.template As<DenseE>() == sparseValue);
+               REQUIRE(pack.template IsExact<E>());
                REQUIRE(pack.template Is<DenseE>());
-               REQUIRE(pack.template Is<DenseE*>());
+               REQUIRE(pack.template Is<SparseE>());
                REQUIRE(pack.template As<DenseE>() == denseValue);
                REQUIRE(*pack.template As<DenseE*>() == denseValue);
                REQUIRE(pack.GetUses() == 1);
@@ -291,7 +295,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
             }
             else if constexpr (CT::Same<E, T>) {
                REQUIRE(pack.GetRaw() == element.GetRaw());
-               REQUIRE(pack.Is(element.GetType()));
+               REQUIRE(pack.IsExact(element.GetType()));
                REQUIRE(pack == element);
                REQUIRE(pack.GetUses() == 2);
                REQUIRE(pack.IsDeep() == element.IsDeep());
@@ -352,8 +356,9 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                REQUIRE(pack.GetType() != nullptr);
                if constexpr (CT::Sparse<E>)
                   REQUIRE(&pack.template As<DenseE>() == sparseValue);
+               REQUIRE(pack.template IsExact<E>());
                REQUIRE(pack.template Is<DenseE>());
-               REQUIRE(pack.template Is<DenseE*>());
+               REQUIRE(pack.template Is<SparseE>());
                REQUIRE(pack.template As<DenseE>() == denseValue);
                REQUIRE(*pack.template As<DenseE*>() == denseValue);
                REQUIRE(pack.GetUses() == 1);
@@ -366,7 +371,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
             else if constexpr (CT::Same<E, T>) {
                REQUIRE(pack.GetType() == element.GetType());
                REQUIRE(pack.GetRaw() == element.GetRaw());
-               REQUIRE(pack.Is(element.GetType()));
+               REQUIRE(pack.IsExact(element.GetType()));
                REQUIRE(pack == element);
                REQUIRE(pack.GetUses() == 0);
                REQUIRE(pack.IsStatic());
@@ -431,8 +436,9 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
             if constexpr (CT::Flat<E>) {
                if constexpr (CT::Sparse<E>)
                   REQUIRE(&pack.template As<DenseE>() == sparseValue);
+               REQUIRE(pack.template IsExact<E>());
                REQUIRE(pack.template Is<DenseE>());
-               REQUIRE(pack.template Is<DenseE*>());
+               REQUIRE(pack.template Is<SparseE>());
                REQUIRE(pack.template As<DenseE>() == denseValue);
                REQUIRE(*pack.template As<DenseE*>() == denseValue);
                REQUIRE(pack.GetUses() == 1);
@@ -446,7 +452,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
             }
             else if constexpr (CT::Same<E, T>) {
                REQUIRE(pack.GetRaw() == element.GetRaw());
-               REQUIRE(pack.Is(element.GetType()));
+               REQUIRE(pack.IsExact(element.GetType()));
                REQUIRE(pack == element);
                REQUIRE(pack.GetUses() == 2);
                REQUIRE(pack.IsDeep() == element.IsDeep());
@@ -501,8 +507,9 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
          THEN("Various traits change") {
             if constexpr (CT::Typed<T>) {
-               REQUIRE(pack.GetType()->template Is<E>());
+               REQUIRE(pack.GetType()->template IsExact<E>());
                REQUIRE(pack.GetType()->template Is<DenseE>());
+               REQUIRE(pack.GetType()->template Is<SparseE>());
                REQUIRE(pack.IsDense() == CT::Dense<E>);
                REQUIRE(pack.IsSparse() == CT::Sparse<E>);
             }
@@ -560,8 +567,9 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
          THEN("Various traits change") {
             REQUIRE(pack.GetCount() == 3);
             REQUIRE(created == 3);
-            REQUIRE(pack.GetType()->template Is<E>());
+            REQUIRE(pack.GetType()->template IsExact<E>());
             REQUIRE(pack.GetType()->template Is<DenseE>());
+            REQUIRE(pack.GetType()->template Is<SparseE>());
             REQUIRE(pack.IsDense() == CT::Dense<E>);
             REQUIRE(pack.IsSparse() == CT::Sparse<E>);
             REQUIRE(pack.IsTypeConstrained() == CT::Typed<T>);
@@ -583,15 +591,16 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
          THEN("Properties should match") {
             REQUIRE(pack.GetType() != nullptr);
             if constexpr (CT::Flat<E>) {
+               REQUIRE(pack.template IsExact<E>());
                REQUIRE(pack.template Is<DenseE>());
-               REQUIRE(pack.template Is<DenseE*>());
+               REQUIRE(pack.template Is<SparseE>());
                REQUIRE(pack.template As<DenseE>() == denseValue);
                REQUIRE(*pack.template As<DenseE*>() == denseValue);
                REQUIRE(pack.GetUses() == 2);
                REQUIRE(pack.IsDeep() == CT::Deep<Decay<E>>);
             }
             else if constexpr (CT::Same<E, T>) {
-               REQUIRE(pack.Is(element.GetType()));
+               REQUIRE(pack.IsExact(element.GetType()));
                REQUIRE(pack == source);
                REQUIRE(pack == element);
                REQUIRE(pack.GetUses() == 3);
@@ -649,15 +658,16 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
             REQUIRE(pack.GetRaw() != nullptr);
             REQUIRE(pack.GetType() != nullptr);
             if constexpr (CT::Flat<E>) {
+               REQUIRE(pack.template IsExact<E>());
                REQUIRE(pack.template Is<DenseE>());
-               REQUIRE(pack.template Is<DenseE*>());
+               REQUIRE(pack.template Is<SparseE>());
                REQUIRE(pack.template As<DenseE>() == denseValue);
                REQUIRE(*pack.template As<DenseE*>() == denseValue);
                REQUIRE(pack.GetUses() == 1);
                REQUIRE(pack.IsDeep() == CT::Deep<Decay<E>>);
             }
             else if constexpr (CT::Same<E, T>) {
-               REQUIRE(pack.Is(element.GetType()));
+               REQUIRE(pack.IsExact(element.GetType()));
                REQUIRE(pack == element);
                REQUIRE(pack.GetUses() == 2);
                REQUIRE(pack.IsDeep() == element.IsDeep());
@@ -707,8 +717,9 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                if constexpr (CT::Flat<E>) {
                   if constexpr (CT::Sparse<E>)
                      REQUIRE(&pack.template As<DenseE>() == sparseValue);
+                  REQUIRE(pack.template IsExact<E>());
                   REQUIRE(pack.template Is<DenseE>());
-                  REQUIRE(pack.template Is<DenseE*>());
+                  REQUIRE(pack.template Is<SparseE>());
                   REQUIRE(pack.template As<DenseE>() == denseValue);
                   REQUIRE(*pack.template As<DenseE*>() == denseValue);
                   REQUIRE(pack.GetUses() == 1);
@@ -719,7 +730,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                }
                else if constexpr (CT::Same<E, T>) {
                   REQUIRE(pack.GetRaw() == element.GetRaw());
-                  REQUIRE(pack.Is(element.GetType()));
+                  REQUIRE(pack.IsExact(element.GetType()));
                   REQUIRE(pack == element);
                   REQUIRE(pack.GetUses() == element.GetUses());
                   REQUIRE(pack.GetUses() == 2);
@@ -783,8 +794,9 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                if constexpr (CT::Flat<E>) {
                   if constexpr (CT::Sparse<E>)
                      REQUIRE(&pack.template As<DenseE>() == sparseValue);
+                  REQUIRE(pack.template IsExact<E>());
                   REQUIRE(pack.template Is<DenseE>());
-                  REQUIRE(pack.template Is<DenseE*>());
+                  REQUIRE(pack.template Is<SparseE>());
                   REQUIRE(pack.template As<DenseE>() == denseValue);
                   REQUIRE(*pack.template As<DenseE*>() == denseValue);
                   REQUIRE(pack.GetUses() == 1);
@@ -795,7 +807,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                }
                else if constexpr (CT::Same<E, T>) {
                   REQUIRE(pack.GetRaw() == element.GetRaw());
-                  REQUIRE(pack.Is(element.GetType()));
+                  REQUIRE(pack.IsExact(element.GetType()));
                   REQUIRE(pack == element);
                   REQUIRE(pack.GetUses() == 2);
                   REQUIRE(pack.IsDeep() == element.IsDeep());
@@ -851,8 +863,9 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                   REQUIRE(pack.GetType() != nullptr);
                   if constexpr (CT::Sparse<E>)
                      REQUIRE(&pack.template As<DenseE>() == sparseValue);
+                  REQUIRE(pack.template IsExact<E>());
                   REQUIRE(pack.template Is<DenseE>());
-                  REQUIRE(pack.template Is<DenseE*>());
+                  REQUIRE(pack.template Is<SparseE>());
                   REQUIRE(pack.template As<DenseE>() == denseValue);
                   REQUIRE(*pack.template As<DenseE*>() == denseValue);
                   REQUIRE(pack.GetUses() == 1);
@@ -864,7 +877,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                else if constexpr (CT::Same<E, T>) {
                   REQUIRE(pack.GetType() == element.GetType());
                   REQUIRE(pack.GetRaw() == element.GetRaw());
-                  REQUIRE(pack.Is(element.GetType()));
+                  REQUIRE(pack.IsExact(element.GetType()));
                   REQUIRE(pack == element);
                   REQUIRE(pack.GetUses() == 0);
                   REQUIRE(pack.IsStatic());
@@ -927,8 +940,9 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                if constexpr (CT::Flat<E>) {
                   if constexpr (CT::Sparse<E>)
                      REQUIRE(&pack.template As<DenseE>() == sparseValue);
+                  REQUIRE(pack.template IsExact<E>());
                   REQUIRE(pack.template Is<DenseE>());
-                  REQUIRE(pack.template Is<DenseE*>());
+                  REQUIRE(pack.template Is<SparseE>());
                   REQUIRE(pack.template As<DenseE>() == denseValue);
                   REQUIRE(*pack.template As<DenseE*>() == denseValue);
                   REQUIRE(pack.GetUses() == 1);
@@ -939,7 +953,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                }
                else if constexpr (CT::Same<E, T>) {
                   REQUIRE(pack.GetRaw() == element.GetRaw());
-                  REQUIRE(pack.Is(element.GetType()));
+                  REQUIRE(pack.IsExact(element.GetType()));
                   REQUIRE(pack == element);
                   REQUIRE(pack.GetUses() == 2);
                   REQUIRE(pack.IsDeep() == element.IsDeep());
@@ -992,7 +1006,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
             THEN("Various traits change") {
                if constexpr (CT::Typed<T>) {
-                  REQUIRE(pack.GetType()->template Is<E>());
+                  REQUIRE(pack.GetType()->template IsExact<E>());
                }
                REQUIRE(pack.IsTypeConstrained() == CT::Typed<T>);
                REQUIRE(pack.GetRaw() == nullptr);
@@ -1034,8 +1048,9 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
             THEN("Various traits change") {
                if constexpr (CT::Typed<T>) {
-                  REQUIRE(pack.GetType()->template Is<E>());
+                  REQUIRE(pack.GetType()->template IsExact<E>());
                   REQUIRE(pack.GetType()->template Is<DenseE>());
+                  REQUIRE(pack.GetType()->template Is<SparseE>());
                }
                else {
                   REQUIRE(pack.GetType());
@@ -1100,8 +1115,9 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
             if constexpr (CT::Flat<E>) {
                if constexpr (CT::Sparse<E>)
                   REQUIRE(&pack.template As<DenseE>() == sparseValue);
+               REQUIRE(pack.template IsExact<E>());
                REQUIRE(pack.template Is<DenseE>());
-               REQUIRE(pack.template Is<DenseE*>());
+               REQUIRE(pack.template Is<SparseE>());
                REQUIRE(pack.template As<DenseE>() == denseValue);
                REQUIRE(*pack.template As<DenseE*>() == denseValue);
                REQUIRE(pack.GetUses() == 1);
@@ -1112,7 +1128,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
             }
             else if constexpr (CT::Same<E, T>) {
                REQUIRE(pack.GetRaw() == element.GetRaw());
-               REQUIRE(pack.Is(element.GetType()));
+               REQUIRE(pack.IsExact(element.GetType()));
                REQUIRE(pack == element);
                REQUIRE(pack.GetUses() == 2);
                REQUIRE(pack.IsDeep() == element.IsDeep());
@@ -1123,7 +1139,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
             else {
                REQUIRE(pack.template As<DenseE>().GetRaw() == sparseValue->GetRaw());
                if constexpr (CT::Typed<T>)
-                  REQUIRE(pack.template Is<typename T::Type>());
+                  REQUIRE(pack.template IsExact<typename T::Type>());
                REQUIRE(pack.template As<DenseE>() == denseValue);
                REQUIRE(*pack.template As<DenseE*>() == denseValue);
                REQUIRE_FALSE(pack.template As<DenseE>().IsStatic());
@@ -1190,8 +1206,9 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
             if constexpr (CT::Flat<E>) {
                if constexpr (CT::Sparse<E>)
                   REQUIRE(&pack.template As<DenseE>() == sparseValue);
+               REQUIRE(pack.template IsExact<E>());
                REQUIRE(pack.template Is<DenseE>());
-               REQUIRE(pack.template Is<DenseE*>());
+               REQUIRE(pack.template Is<SparseE>());
                REQUIRE(pack.template As<DenseE>() == denseValue);
                REQUIRE(*pack.template As<DenseE*>() == denseValue);
                REQUIRE(pack.GetUses() == 1);
@@ -1202,7 +1219,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
             }
             else if constexpr (CT::Same<E, T>) {
                REQUIRE(pack.GetRaw() == element.GetRaw());
-               REQUIRE(pack.Is(element.GetType()));
+               REQUIRE(pack.IsExact(element.GetType()));
                REQUIRE(pack == element);
                REQUIRE(pack.GetUses() == 0);
                REQUIRE(pack.IsStatic());
@@ -1213,7 +1230,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
             else {
                REQUIRE(pack.template As<DenseE>().GetRaw() == sparseValue->GetRaw());
                if constexpr (CT::Typed<T>)
-                  REQUIRE(pack.template Is<typename T::Type>());
+                  REQUIRE(pack.template IsExact<typename T::Type>());
                REQUIRE(pack.template As<DenseE>() == denseValue);
                REQUIRE(*pack.template As<DenseE*>() == denseValue);
                REQUIRE(pack.template As<DenseE>().IsStatic());
@@ -1289,8 +1306,9 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
             if constexpr (CT::Flat<E>) {
                if constexpr (CT::Sparse<E>)
                   REQUIRE(&pack.template As<DenseE>() == sparseValue);
+               REQUIRE(pack.template IsExact<E>());
                REQUIRE(pack.template Is<DenseE>());
-               REQUIRE(pack.template Is<DenseE*>());
+               REQUIRE(pack.template Is<SparseE>());
                REQUIRE(pack.template As<DenseE>() == denseValue);
                REQUIRE(*pack.template As<DenseE*>() == denseValue);
                REQUIRE(pack.GetUses() == 1);
@@ -1301,7 +1319,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
             }
             else if constexpr (CT::Same<E, T>) {
                REQUIRE(pack.GetRaw() == element.GetRaw());
-               REQUIRE(pack.Is(element.GetType()));
+               REQUIRE(pack.IsExact(element.GetType()));
                REQUIRE(pack == element);
                REQUIRE(pack.GetUses() == 2);
                REQUIRE(pack.IsDeep() == element.IsDeep());
@@ -1312,7 +1330,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
             else {
                REQUIRE(pack.template As<DenseE>().GetRaw() == sparseValue->GetRaw());
                if constexpr (CT::Typed<T>)
-                  REQUIRE(pack.template Is<typename T::Type>());
+                  REQUIRE(pack.template IsExact<typename T::Type>());
                REQUIRE(pack.template As<DenseE>() == denseValue);
                REQUIRE(*pack.template As<DenseE*>() == denseValue);
                REQUIRE_FALSE(pack.template As<DenseE>().IsStatic());
@@ -1373,7 +1391,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
          const T pack {element, element};
 
          THEN("Properties should match") {
-            REQUIRE(pack.template Is<E>());
+            REQUIRE(pack.template IsExact<E>());
             REQUIRE(pack.GetCount() == 2);
             REQUIRE(pack.GetReserved() >= 2);
             REQUIRE(pack.IsDense() == CT::Dense<E>);
@@ -1393,7 +1411,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
          const T pack {denseValue, sparseValue};
 
          THEN("Properties should match") {
-            REQUIRE(pack.template Is<Any>());
+            REQUIRE(pack.template IsExact<Any>());
             REQUIRE(pack.GetCount() == 2);
             REQUIRE(pack.GetReserved() >= 2);
             REQUIRE(pack.IsDense());
@@ -1416,7 +1434,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
          THEN("These properties should be correct") {
             REQUIRE(pack.GetCount() == 5);
             REQUIRE(pack.GetReserved() >= 5);
-            REQUIRE(pack.template Is<E>());
+            REQUIRE(pack.template IsExact<E>());
             REQUIRE(pack.GetRaw());
             for (unsigned i = 0; i < pack.GetCount(); ++i)
                REQUIRE(pack[i] == darray1[i]);
@@ -1430,7 +1448,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
          THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
             REQUIRE(pack.GetCount() == 10);
             REQUIRE(pack.GetReserved() >= 10);
-            REQUIRE(pack.template Is<E>());
+            REQUIRE(pack.template IsExact<E>());
             for (unsigned i = 0; i < 5; ++i)
                REQUIRE(pack[i] == darray1[i]);
             for (unsigned i = 5; i < pack.GetCount(); ++i)
@@ -1472,7 +1490,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
          THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
             REQUIRE(pack.GetCount() == 10);
             REQUIRE(pack.GetReserved() >= 10);
-            REQUIRE(pack.template Is<E>());
+            REQUIRE(pack.template IsExact<E>());
             for (unsigned i = 5; i > 0; --i)
                REQUIRE(pack[5 - i] == darray2[i - 1]);
             for (unsigned i = 5; i < pack.GetCount(); ++i)
@@ -1514,7 +1532,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
          THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
             REQUIRE(pack.GetCount() == 10);
             REQUIRE(pack.GetReserved() >= 10);
-            REQUIRE(pack.template Is<E>());
+            REQUIRE(pack.template IsExact<E>());
             for (unsigned i = 0; i < 5; ++i)
                REQUIRE(pack[i] == darray1[i]);
             for (unsigned i = 5; i < pack.GetCount(); ++i)
@@ -1551,7 +1569,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
          THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
             REQUIRE(pack.GetCount() == 10);
             REQUIRE(pack.GetReserved() >= 10);
-            REQUIRE(pack.template Is<E>());
+            REQUIRE(pack.template IsExact<E>());
             for (unsigned i = 0; i < 5; ++i)
                REQUIRE(pack[i] == darray2[i]);
             for (unsigned i = 5; i < pack.GetCount(); ++i)
@@ -1609,7 +1627,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
          THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
             REQUIRE(pack.GetCount() == 10);
             REQUIRE(pack.GetReserved() >= 10);
-            REQUIRE(pack.template Is<E>());
+            REQUIRE(pack.template IsExact<E>());
 
             for (unsigned i = 0; i < 5; ++i)
                REQUIRE(pack[i] == darray1[i]);
@@ -1678,7 +1696,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
          THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
             REQUIRE(pack.GetCount() == 10);
             REQUIRE(pack.GetReserved() >= 10);
-            REQUIRE(pack.template Is<E>());
+            REQUIRE(pack.template IsExact<E>());
 
             for (unsigned i = 5; i > 0; --i)
                REQUIRE(pack[5 - i] == darray3backup[i - 1]);
@@ -1727,7 +1745,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
          THEN("The size changes, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
             REQUIRE(pack.GetCount() == 6);
             REQUIRE(pack.GetReserved() >= 6);
-            REQUIRE(pack.template Is<E>());
+            REQUIRE(pack.template IsExact<E>());
             #if LANGULUS_FEATURE(MANAGED_MEMORY)
                REQUIRE(pack.GetRaw() == memory);
             #endif
@@ -1768,7 +1786,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
          THEN("The size changes, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
             REQUIRE(pack.GetCount() == 10);
             REQUIRE(pack.GetReserved() >= 10);
-            REQUIRE(pack.template Is<E>());
+            REQUIRE(pack.template IsExact<E>());
             #if LANGULUS_FEATURE(MANAGED_MEMORY)
                REQUIRE(pack.GetRaw() == memory);
             #endif
@@ -1815,7 +1833,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
          THEN("The size changes, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
             REQUIRE(pack.GetCount() == 6);
             REQUIRE(pack.GetReserved() >= 6);
-            REQUIRE(pack.template Is<E>());
+            REQUIRE(pack.template IsExact<E>());
             #if LANGULUS_FEATURE(MANAGED_MEMORY)
                REQUIRE(pack.GetRaw() == memory);
             #endif
@@ -1858,7 +1876,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
          THEN("The size changes, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
             REQUIRE(pack.GetCount() == 6);
             REQUIRE(pack.GetReserved() >= 6);
-            REQUIRE(pack.template Is<E>());
+            REQUIRE(pack.template IsExact<E>());
             #if LANGULUS_FEATURE(MANAGED_MEMORY)
                REQUIRE(pack.GetRaw() == memory);
             #endif
@@ -1901,7 +1919,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
          THEN("The size changes, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
             REQUIRE(pack.GetCount() == 6);
             REQUIRE(pack.GetReserved() >= 6);
-            REQUIRE(pack.template Is<E>());
+            REQUIRE(pack.template IsExact<E>());
             #if LANGULUS_FEATURE(MANAGED_MEMORY)
                REQUIRE(pack.GetRaw() == memory);
             #endif
@@ -1944,7 +1962,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
          THEN("The size changes, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
             REQUIRE(pack.GetCount() == 6);
             REQUIRE(pack.GetReserved() >= 6);
-            REQUIRE(pack.template Is<E>());
+            REQUIRE(pack.template IsExact<E>());
             #if LANGULUS_FEATURE(MANAGED_MEMORY)
                REQUIRE(pack.GetRaw() == memory);
             #endif
@@ -1980,8 +1998,8 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
       }
 
       WHEN("The size is reduced by finding and removing elements, but reserved memory should remain the same on shrinking") {
-         const auto removed2 = pack.RemoveValue(CreateElement<E>(2));
-         const auto removed4 = pack.RemoveValue(CreateElement<E>(4));
+         const auto removed2 = pack.Remove(darray1[1]);
+         const auto removed4 = pack.Remove(darray1[3]);
 
          THEN("The size changes but not capacity") {
             REQUIRE(removed2 == 1);
@@ -2002,7 +2020,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                   o << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
 
                meter.measure([&](int i) {
-                  return storage[i].RemoveValue(2);
+                  return storage[i].Remove(2);
                });
             };
 
@@ -2020,7 +2038,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
       }
 
       WHEN("Removing non-available elements") {
-         const auto removed9 = pack.RemoveValue(9);
+         const auto removed9 = pack.Remove(9);
 
          THEN("The size changes but not capacity") {
             REQUIRE(removed9 == 0);
@@ -2071,7 +2089,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
             REQUIRE(pack.GetCount() == 0);
             REQUIRE(pack.GetReserved() == previousReserved);
             REQUIRE(pack.GetRaw() == memory);
-            REQUIRE(pack.template Is<E>());
+            REQUIRE(pack.template IsExact<E>());
          }
       }
 
@@ -2082,7 +2100,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
             REQUIRE(pack.GetCount() == 0);
             REQUIRE(pack.GetReserved() == 0);
             REQUIRE(pack.GetRaw() == nullptr);
-            REQUIRE(pack.template Is<E>() == CT::Typed<T>);
+            REQUIRE(pack.template IsExact<E>() == CT::Typed<T>);
          }
       }
 
@@ -2126,6 +2144,20 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
             REQUIRE(clone.GetType() == pack.GetType());
             REQUIRE(clone.GetUses() == 1);
             REQUIRE(pack.GetUses() == 1);
+            if constexpr (CT::Sparse<E>) {
+               for (unsigned i = 0; i < 5; ++i)
+                  REQUIRE(pack[i] != clone[i]);
+            }
+            else {
+               for (unsigned i = 0; i < 5; ++i)
+                  REQUIRE(pack[i] == clone[i]);
+            }
+
+            for (unsigned i = 0; i < 5; ++i)
+               REQUIRE(DenseCast(pack[i]) == DenseCast(darray1[i]));
+            for (unsigned i = 0; i < 5; ++i)
+               REQUIRE(DenseCast(clone[i]) == DenseCast(darray1[i]));
+
          }
       }
 
@@ -2160,16 +2192,22 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
          another_pack5 << CreateElement<E>(1) << CreateElement<E>(2) << CreateElement<E>(3) << CreateElement<E>(4) << CreateElement<E>(5);
 
          THEN("The comparisons should be adequate") {
-            REQUIRE(pack == another_pack1);
+            if constexpr (CT::Sparse<E>)
+               REQUIRE(pack != another_pack1);
+            else
+               REQUIRE(pack == another_pack1);
             REQUIRE(pack != another_pack2);
             REQUIRE(pack != another_pack3);
             REQUIRE(pack != another_pack4);
-            REQUIRE(pack == another_pack5);
+            if constexpr (CT::Sparse<E>)
+               REQUIRE(pack != another_pack5);
+            else
+               REQUIRE(pack == another_pack5);
          }
       }
 
       WHEN("A forward value-based search is performed on existent value") {
-         const auto found = pack.Find(CreateElement<E>(3));
+         const auto found = pack.Find(darray1[2]);
 
          THEN("The value's index should be correct") {
             REQUIRE(found);
@@ -2178,7 +2216,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
       }
 
       WHEN("A forward value-based search is performed on non-exitent value") {
-         const auto found = pack.Find(CreateElement<E>(8));
+         const auto found = pack.Find(darray2[2]);
 
          THEN("The function should return IndexNone") {
             REQUIRE(found == IndexNone);
@@ -2187,7 +2225,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
       }
 
       WHEN("A backward value-based search is performed on existent value") {
-         const auto found = pack.template Find<true>(CreateElement<E>(3));
+         const auto found = pack.template Find<true>(darray1[2]);
 
          THEN("The new pack should keep the state and data") {
             REQUIRE(found);
@@ -2196,7 +2234,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
       }
 
       WHEN("A backward value-based search is performed on non-exitent value") {
-         const auto found = pack.template Find<true>(CreateElement<E>(8));
+         const auto found = pack.template Find<true>(darray2[2]);
 
          THEN("The function should return IndexNone") {
             REQUIRE(found == IndexNone);
@@ -2210,7 +2248,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
          THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
             REQUIRE(pack.GetCount() == 6);
             REQUIRE(pack.GetReserved() >= 6);
-            REQUIRE(pack.template Is<E>());
+            REQUIRE(pack.template IsExact<E>());
             for (unsigned i = 0; i < 5; ++i)
                REQUIRE(pack[i] == darray1[i]);
             REQUIRE(pack[5] == darray2[3]);
@@ -2249,7 +2287,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
          THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
             REQUIRE(pack.GetCount() == 6);
             REQUIRE(pack.GetReserved() >= 6);
-            REQUIRE(pack.template Is<E>());
+            REQUIRE(pack.template IsExact<E>());
             REQUIRE(pack[0] == darray2[3]);
             for (unsigned i = 1; i < 6; ++i)
                REQUIRE(pack[i] == darray1[i-1]);
@@ -2289,7 +2327,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
          THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
             REQUIRE(pack.GetCount() == 6);
             REQUIRE(pack.GetReserved() >= 6);
-            REQUIRE(pack.template Is<E>());
+            REQUIRE(pack.template IsExact<E>());
             for (unsigned i = 0; i < 5; ++i)
                REQUIRE(pack[i] == darray1[i]);
             REQUIRE(pack[5] == darray2[3]);
@@ -2329,7 +2367,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
          THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
             REQUIRE(pack.GetCount() == 6);
             REQUIRE(pack.GetReserved() >= 6);
-            REQUIRE(pack.template Is<E>());
+            REQUIRE(pack.template IsExact<E>());
             REQUIRE(pack[0] == darray2[3]);
             for (unsigned i = 1; i < 6; ++i)
                REQUIRE(pack[i] == darray1[i-1]);
@@ -2634,8 +2672,14 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
          THEN("memory1 should be referenced twice, memory2 should be released") {
             REQUIRE(pack1.GetUses() == 2);
             REQUIRE(pack2.GetUses() == 1);
-            REQUIRE(pack1 == pack2);
-            REQUIRE(pack2 == memory1);
+            if constexpr (CT::Sparse<E>) {
+               REQUIRE(pack1 != pack2);
+               REQUIRE(pack2 != memory1);
+            }
+            else {
+               REQUIRE(pack1 == pack2);
+               REQUIRE(pack2 == memory1);
+            }
             REQUIRE(pack2 != memory2);
          }
       }
