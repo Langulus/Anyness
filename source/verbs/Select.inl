@@ -320,11 +320,10 @@ namespace Langulus::Anyness
    /// Find an element of unknown type                                        
    ///   @attention assumes item contains exactly one element                 
    ///   @tparam REVERSE - true to perform search in reverse                  
-   ///   @tparam BY_ADDRESS_ONLY - true to compare addresses only             
    ///   @param item - block with a single item to search for                 
    ///   @param cookie - continue search from a given offset                  
    ///   @return the index of the found item, or IndexNone if not found       
-   template<bool REVERSE, bool BY_ADDRESS_ONLY>
+   template<bool REVERSE>
    Index Block::FindUnknown(const Block& item, const Offset& cookie) const {
       LANGULUS_ASSUME(UserAssumes, item.GetCount() == 1,
          "You can search exactly one item");
@@ -333,27 +332,15 @@ namespace Langulus::Anyness
       if constexpr (!REVERSE) {
          for (Offset i = cookie; i < mCount; ++i) {
             const auto left = GetElementResolved(i);
-            if constexpr (BY_ADDRESS_ONLY) {
-               if (left.mRaw == right.mRaw)
-                  return {i}; // Found by pointer                       
-            }
-            else {
-               if (left.Compare(right))
-                  return {i}; // Found by value                         
-            }
+            if (left.Compare(right))
+               return {i};
          }
       }
       else {
          for (Offset i = mCount - 1 - cookie; i < mCount; --i) {
             const auto left = GetElementResolved(i);
-            if constexpr (BY_ADDRESS_ONLY) {
-               if (left.mRaw == right.mRaw)
-                  return {i}; // Found by pointer                       
-            }
-            else {
-               if (left.Compare(right))
-                  return {i}; // Found by value                         
-            }
+            if (left.Compare(right))
+               return {i};
          }
       }
 
@@ -363,11 +350,10 @@ namespace Langulus::Anyness
 
    /// Find first matching element position inside container                  
    ///   @tparam REVERSE - true to perform search in reverse                  
-   ///   @tparam BY_ADDRESS_ONLY - true to compare addresses only             
    ///   @param item - the item to search for                                 
    ///   @param cookie - continue search from a given offset                  
    ///   @return the index of the found item, or IndexNone if not found       
-   template<bool REVERSE, bool BY_ADDRESS_ONLY, CT::NotSemantic T>
+   template<bool REVERSE, CT::NotSemantic T>
    Index Block::FindKnown(const T& item, const Offset& cookie) const {
       if constexpr (!REVERSE) {
          for (Offset i = cookie; i < mCount; ++i) {

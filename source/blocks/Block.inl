@@ -720,15 +720,35 @@ namespace Langulus::Anyness
    /// Get a constant pointer array - useful for sparse containers (const)    
    ///   @return the raw data as an array of constant pointers                
    LANGULUS(ALWAYSINLINE)
-   constexpr const Block::KnownPointer* Block::GetRawSparse() const noexcept {
+   constexpr const Byte* const* Block::GetRawSparse() const noexcept {
       return mRawSparse;
    }
 
    /// Get a pointer array - useful for sparse containers                     
    ///   @return the raw data as an array of pointers                         
    LANGULUS(ALWAYSINLINE)
-   constexpr Block::KnownPointer* Block::GetRawSparse() noexcept {
+   constexpr Byte** Block::GetRawSparse() noexcept {
       return mRawSparse;
+   }
+
+   /// Get entry array when block is sparse                                   
+   ///   @return the array of entries                                         
+   LANGULUS(ALWAYSINLINE)
+   Inner::Allocation** Block::GetEntries() noexcept {
+      LANGULUS_ASSUME(DevAssumes, IsSparse(),
+         "Entries do not exist for dense container");
+      return reinterpret_cast<Inner::Allocation**>(
+         mRawSparse + mReserved);
+   }
+
+   /// Get entry array when block is sparse (const)                           
+   ///   @return the array of entries                                         
+   LANGULUS(ALWAYSINLINE)
+   const Inner::Allocation* const* Block::GetEntries() const noexcept {
+      LANGULUS_ASSUME(DevAssumes, IsSparse(),
+         "Entries do not exist for dense container");
+      return reinterpret_cast<const Inner::Allocation* const*>(
+         mRawSparse + mReserved);
    }
 
    /// Get the raw data inside the container, reinterpreted as some type      
@@ -923,7 +943,7 @@ namespace Langulus::Anyness
    decltype(auto) Block::Get(const Offset& idx, const Offset& baseOffset) SAFETY_NOEXCEPT() {
       Byte* pointer;
       if (IsSparse())
-         pointer = GetRawSparse()[idx].mPointer + baseOffset;
+         pointer = GetRawSparse()[idx] + baseOffset;
       else
          pointer = At(mType->mSize * idx) + baseOffset;
 
@@ -3509,7 +3529,7 @@ namespace Langulus::Anyness
       if constexpr (CT::Sparse<T>) {
          // Bulk-allocate the required count, construct each instance   
          // and push the pointers                                       
-         auto lhs = mRawSparse;
+         auto lhs = GetRawSparse();
          const auto lhsEnd = lhs + count;
          const auto allocation = Inner::Allocator::Allocate(sizeof(Decay<T>) * count);
          allocation->Keep(count - 1);
@@ -3533,6 +3553,7 @@ namespace Langulus::Anyness
    /// Call descriptor constructors in a region, initializing memory          
    ///   @attention never modifies any block state                            
    ///   @attention assumes this has at least 'count' items reserved          
+   ///   @attention assumes that none of the elements is initialized          
    ///   @param count - the number of elements to construct                   
    ///   @param descriptor - the descriptor to pass on to constructors        
    inline void Block::CallUnknownDescriptorConstructors(Count count, const Any& descriptor) const {
@@ -3541,19 +3562,27 @@ namespace Langulus::Anyness
       LANGULUS_ASSUME(DevAssumes, mType->mDescriptorConstructor != nullptr,
          "Type is not descriptor-constructible");
 
-      if (IsSparse()) {
-         // Bulk-allocate the required count, construct each instance   
-         // and push the pointers                                       
-         auto lhs = mRawSparse;
-         const auto lhsEnd = lhs + count;
-         const auto allocation = Inner::Allocator::Allocate(mType->mSize * count);
-         allocation->Keep(count - 1);
+      if (mType->mDeptr) {
+         if (!mType->mDeptr->mIsSparse) {
+            // Bulk-allocate the required count, construct each instance
+            // and set the pointers                                     
+            auto lhsPtr = const_cast<Block*>(this)->GetRawSparse();
+            auto lhsEnt = const_cast<Block*>(this)->GetEntries();
+            const auto lhsEnd = lhsPtr + count;
+            const auto allocation = Inner::Allocator::Allocate(mType->mOrigin->mSize * count);
+            allocation->Keep(count - 1);
 
-         auto rhs = allocation->GetBlockStart();
-         while (lhs != lhsEnd) {
-            mType->mDescriptorConstructor(rhs, descriptor);
-            new (lhs++) KnownPointer {rhs, allocation};
-            rhs += mType->mSize;
+            auto rhs = allocation->GetBlockStart();
+            while (lhsPtr != lhsEnd) {
+               mType->mOrigin->mDescriptorConstructor(rhs, descriptor);
+               *(lhsPtr++) = rhs;
+               *(lhsEnt++) = allocation;
+               rhs += mType->mOrigin->mSize;
+            }
+         }
+         else {
+            // We need to allocate another indirection layer            
+            TODO();
          }
       }
       else {

@@ -115,15 +115,14 @@ namespace Langulus::Anyness
       /// A structure used to represent an element of a sparse container      
       struct KnownPointer;
 
-   private:
-   TESTING(public:)
+   private: TESTING(public:)
       union {
          #if LANGULUS_DEBUG()
             char* mRawChar;
          #endif
          // Raw pointer to first element inside the memory block        
          Byte* mRaw {};
-         KnownPointer* mRawSparse;
+         Byte** mRawSparse;
       };
    
       // The data state                                                 
@@ -181,9 +180,9 @@ namespace Langulus::Anyness
       void Optimize();
 
    public:
-      //                                                                
-      // Capsulation and access                                         
-      //                                                                
+      ///                                                                     
+      /// Capsulation and access                                              
+      ///                                                                     
       constexpr void SetState(DataState) noexcept;
       constexpr void AddState(DataState) noexcept;
       constexpr void RemoveState(DataState) noexcept;
@@ -230,9 +229,14 @@ namespace Langulus::Anyness
       NOD() constexpr const Byte* GetRaw() const noexcept;
       NOD() constexpr Byte* GetRawEnd() noexcept;
       NOD() constexpr const Byte* GetRawEnd() const noexcept;
-      NOD() constexpr KnownPointer* GetRawSparse() noexcept;
-      NOD() constexpr const KnownPointer* GetRawSparse() const noexcept;
+      NOD() constexpr Byte** GetRawSparse() noexcept;
+      NOD() constexpr const Byte* const* GetRawSparse() const noexcept;
       
+   protected:
+      NOD() Inner::Allocation** GetEntries() noexcept;
+      NOD() const Inner::Allocation* const* GetEntries() const noexcept;
+
+   public:
       NOD() constexpr bool IsMissingDeep() const;
 
       NOD() bool IsConcatable(const Block&) const noexcept;
@@ -415,9 +419,9 @@ namespace Langulus::Anyness
    
       NOD() Hash GetHash() const;
    
-      template<bool REVERSE = false, bool BY_ADDRESS_ONLY = false, CT::NotSemantic T>
+      template<bool REVERSE = false, CT::NotSemantic T>
       NOD() Index FindKnown(const T&, const Offset& = 0) const;
-      template<bool REVERSE = false, bool BY_ADDRESS_ONLY = false>
+      template<bool REVERSE = false>
       NOD() Index FindUnknown(const Block&, const Offset& = 0) const;
       template<bool REVERSE = false, CT::NotSemantic T>
       NOD() Index FindDeep(const T&, Offset = 0) const;
@@ -693,30 +697,20 @@ namespace Langulus::Anyness
    ///                                                                        
    struct Block::KnownPointer {
       friend class Block;
-
-   private:
+   private: TESTING(public:)
       /// @cond show_protected                                                
-      TESTING(public:)
-      Byte* mPointer {};
-      Inner::Allocation* mEntry {};
+      Byte*& mPointer;
+      Inner::Allocation*& mEntry;
       /// @endcond show_protected                                             
 
    public:
-      constexpr KnownPointer() noexcept = default;
-      KnownPointer(const KnownPointer&) noexcept;
-      KnownPointer(KnownPointer&&) noexcept;
-      KnownPointer(Disowned<KnownPointer>&&) noexcept;
-      KnownPointer(Abandoned<KnownPointer>&&) noexcept;
+      KnownPointer() = delete;
+      KnownPointer(const KnownPointer&) = delete;
+      KnownPointer(KnownPointer&&) = delete;
 
-      constexpr KnownPointer(const void* pointer, Inner::Allocation* entry) noexcept;
+      constexpr KnownPointer(Byte*&, Inner::Allocation*&) noexcept;
 
-      template<CT::Sparse T>
-      explicit KnownPointer(T);
-      template<CT::Sparse T>
-      KnownPointer(Disowned<T>&&) noexcept;
-      ~KnownPointer() noexcept = default;
-
-      KnownPointer& operator = (const KnownPointer&) const = delete;
+      /*KnownPointer& operator = (const KnownPointer&) const = delete;
 
       bool operator == (const void*) const noexcept;
 
@@ -733,7 +727,7 @@ namespace Langulus::Anyness
       template<class T>
       const Decay<T>* As() const noexcept {
          return reinterpret_cast<const Decay<T>*>(mPointer);
-      }
+      }*/
    };
 
 
