@@ -406,8 +406,7 @@ namespace Langulus::Anyness
       void AllocateMore(Count);
       void AllocateLess(Count);
 
-      Count Copy(Block&) const;
-      Count Clone(Block&) const;
+      //Count Clone(Block&) const;
    
       #if LANGULUS_FEATURE(ZLIB)
          Size Compress(Block&, Compression = Compression::Default) const;
@@ -539,7 +538,7 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Removal                                                           
       ///                                                                     
-      template<bool REVERSE = false, bool BY_ADDRESS_ONLY = false, CT::Data T>
+      template<bool REVERSE = false, CT::Data T>
       Count Remove(const T&);
       template<CT::Index INDEX>
       Count RemoveIndex(INDEX, Count = 1);

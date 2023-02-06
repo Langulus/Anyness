@@ -11,7 +11,7 @@ namespace Langulus::Anyness
 {
    
    /// Encrypt data                                                           
-   Size Block::Encrypt(Block& result, const ::std::size_t* keys, const Count& key_count) const {
+   /*Size Block::Encrypt(Block& result, const ::std::size_t* keys, const Count& key_count) const {
       constexpr auto HS = sizeof(Hash);
 
       // First compress the data, to avoid repeating bytes              
@@ -85,6 +85,6 @@ namespace Langulus::Anyness
          result = decrypted;
          return result.GetByteSize();
       #endif
-   }
+   }*/
 
 } // namespace Langulus::Anyness

@@ -1762,10 +1762,10 @@ namespace Langulus::Anyness
    ///   @param count - number of items inside array                          
    ///   @param index - the index to start searching from                     
    ///   @return the number of removed items                                  
-   template<bool REVERSE, bool BY_ADDRESS_ONLY, CT::Data T>
+   template<bool REVERSE, CT::Data T>
    LANGULUS(ALWAYSINLINE)
    Count Block::Remove(const T& item) {
-      const auto found = FindKnown<REVERSE, BY_ADDRESS_ONLY>(item);
+      const auto found = FindKnown<REVERSE>(item);
       if (found)
          return RemoveIndex(found.GetOffset(), 1);
       return 0;
@@ -3101,7 +3101,7 @@ namespace Langulus::Anyness
    ///   @param count - the number of elements to initialize                  
    template<CT::Data T>
    void Block::CallKnownDefaultConstructors(const Count count) const {
-      LANGULUS_ASSUME(DevAssumes, Is<T>(), "Type mismatch");
+      LANGULUS_ASSUME(DevAssumes, IsExact<T>(), "Type mismatch");
       LANGULUS_ASSUME(DevAssumes, count <= mReserved, "Count outside limits");
 
       if constexpr (CT::Sparse<T> || CT::Nullifiable<T>) {
@@ -3125,7 +3125,7 @@ namespace Langulus::Anyness
    inline void Block::CallUnknownDefaultConstructors(Count count) const {
       LANGULUS_ASSUME(DevAssumes, count <= mReserved, "Count outside limits");
 
-      if (IsSparse() || mType->mIsNullifiable) {
+      if (mType->mIsSparse || mType->mIsNullifiable) {
          // Just zero the memory (optimization)                         
          FillMemory(mRaw, {}, count * GetStride());
       }
@@ -3165,9 +3165,9 @@ namespace Langulus::Anyness
 
       LANGULUS_ASSUME(DevAssumes, count <= source.mValue.mCount && count <= mReserved,
          "Count outside limits");
-      LANGULUS_ASSUME(DevAssumes, Is<T>(),
+      LANGULUS_ASSUME(DevAssumes, IsExact<T>(),
          "T doesn't match LHS type");
-      LANGULUS_ASSUME(DevAssumes, source.mValue.template Is<T>(),
+      LANGULUS_ASSUME(DevAssumes, source.mValue.template IsExact<T>(),
          "T doesn't match RHS type");
       LANGULUS_ASSUME(DevAssumes, IsSparse() == source.mValue.IsSparse(),
          "Blocks are not of same sparsity");
@@ -3193,31 +3193,29 @@ namespace Langulus::Anyness
          else
             CopyMemory(source.mValue.mRaw, mRaw, count * mType->mSize);
       }
+      else if constexpr (REVERSE) {
+         // Both RHS and LHS are dense and non POD                      
+         // Call the constructor for each element (in reverse)          
+         auto to = const_cast<Block&>(*this)
+            .template GetRawAs<T>() + count - 1;
+         auto from = const_cast<Block&>(source.mValue)
+            .template GetRawAs<T>() + count - 1;
+
+         const auto fromEnd = from - count;
+         while (from != fromEnd)
+            SemanticNew<T>(to--, S::Nest(*(from--)));
+      }
       else {
-         if constexpr (REVERSE) {
-            // Both RHS and LHS are dense and non POD                   
-            // Call the move-constructor for each element (in reverse)  
-            auto to = const_cast<Block&>(*this)
-               .template GetRawAs<T>() + count - 1;
-            auto from = const_cast<Block&>(source.mValue)
-               .template GetRawAs<T>() + count - 1;
+         // Both RHS and LHS are dense and non POD                      
+         // Call the constructor for each element                       
+         auto to = const_cast<Block&>(*this)
+            .template GetRawAs<T>();
+         auto from = const_cast<Block&>(source.mValue)
+            .template GetRawAs<T>();
 
-            const auto fromEnd = from - count;
-            while (from != fromEnd)
-               SemanticNew<T>(to--, S::Nest(*(from--)));
-         }
-         else {
-            // Both RHS and LHS are dense and non POD                   
-            // Call the move-constructor for each element               
-            auto to = const_cast<Block&>(*this)
-               .template GetRawAs<T>();
-            auto from = const_cast<Block&>(source.mValue)
-               .template GetRawAs<T>();
-
-            const auto fromEnd = from + count;
-            while (from != fromEnd)
-               SemanticNew<T>(to++, S::Nest(*(from++)));
-         }
+         const auto fromEnd = from + count;
+         while (from != fromEnd)
+            SemanticNew<T>(to++, S::Nest(*(from++)));
       }
    }
    
@@ -3239,27 +3237,52 @@ namespace Langulus::Anyness
 
       LANGULUS_ASSUME(DevAssumes, count <= source.mValue.mCount && count <= mReserved,
          "Count outside limits");
-      LANGULUS_ASSUME(DevAssumes, mType == source.mValue.mType,
+      LANGULUS_ASSUME(DevAssumes, mType->IsExact(source.mValue.mType),
          "LHS and RHS are different types");
 
-      if (IsSparse() && source.mValue.IsSparse()) {
+      auto mthis = const_cast<Block*>(this);
+      if (mType->mIsSparse && source.mValue.mType->mIsSparse) {
          if constexpr (S::Move) {
-            // Move pointers                                            
-            const auto byteSize = sizeof(KnownPointer) * count;
-            MoveMemory(source.mValue.mRaw, mRaw, byteSize);
+            // Move pointers (and entries)                              
+            const auto byteSize = sizeof(Pointer) * count;
+            MoveMemory(source.mValue.GetRaw(), mthis->GetRaw(), byteSize);
+            MoveMemory(source.mValue.GetEntries(), mthis->GetEntries(), byteSize);
          }
          else {
-            // Copy known pointers, but LHS and RHS are sparse          
-            auto lhs = mRawSparse;
-            const auto lhsEnd = lhs + count;
-            auto rhs = source.mValue.mRawSparse;
-            while (lhs != lhsEnd)
-               SemanticNew<KnownPointer>(lhs++, S::Nest(*(rhs++)));
+            if constexpr (S::Shallow) {
+               // Shallow-copy pointers                                 
+               auto lhs = mthis->GetRawSparse();
+               auto lhsEntry = mthis->GetEntries();
+               const auto lhsEnd = lhs + count;
+               auto rhs = source.mValue.GetRawSparse();
+               auto rhsEntry = source.mValue.GetEntries();
+               while (lhs != lhsEnd) {
+                  *lhs = const_cast<Byte*>(*rhs);
+                  if constexpr (S::Keep) {
+                     *lhsEntry = const_cast<Inner::Allocation*>(*rhsEntry);
+                     if (*lhsEntry)
+                        (*lhsEntry)->Keep();
+                  }
+                  else *lhsEntry = nullptr;
+
+                  ++lhs;
+                  ++lhsEntry;
+                  ++rhs;
+
+                  if constexpr (S::Keep)
+                     ++rhsEntry;
+               }
+            }
+            else {
+               // Deep-copy pointers                                    
+               TODO();
+            }
          }
 
          return;
       }
-      else if (mType->mIsPOD && IsDense() == source.mValue.IsDense()) {
+      else if (mType->mIsPOD && mType->mIsSparse == source.mValue.mType->mIsSparse) {
+         // Both dense and POD                                          
          if constexpr (S::Move)
             MoveMemory(source.mValue.mRaw, mRaw, mType->mSize * count);
          else
@@ -3267,23 +3290,36 @@ namespace Langulus::Anyness
          return;
       }
 
-      if (IsSparse()) {
+      if (mType->mIsSparse) {
          // LHS is pointer, RHS must be dense                           
          // Copy each pointer from RHS (can't move them)                
-         auto lhs = mRawSparse;
-         auto rhs = source.mValue.mRaw;
+         auto lhs = mthis->GetRawSparse();
+         auto lhsEntry = mthis->GetEntries();
          const auto lhsEnd = lhs + count;
+         auto rhs = source.mValue.mRaw;
          const auto rhsStride = source.mValue.mType->mSize;
          while (lhs != lhsEnd) {
-            lhs->mPointer = const_cast<Byte*>(rhs);
-            (lhs++)->mEntry = source.mValue.mEntry;
+            if constexpr (S::Shallow) {
+               // Shallow-copy a pointer to the dense element           
+               (*lhs) = rhs;
+               (*lhsEntry) = source.mValue.mEntry;
+            }
+            else {
+               // Deep-copy dense element and set pointer to it         
+               TODO();
+            }
+
+            ++lhs;
+            ++lhsEntry;
             rhs += rhsStride;
          }
 
-         // We have to reference RHS by the number of pointers we made  
-         // Since we're converting dense to sparse, the referencing is  
-         // MANDATORY!                                                  
-         source.mValue.mEntry->Keep(count);
+         if constexpr (S::Shallow) {
+            // We have to reference RHS by the number of pointers we    
+            // made. Since we're converting dense to sparse, the        
+            // referencing is MANDATORY!                                
+            source.mValue.mEntry->Keep(count);
+         }
       }
       else {
          // LHS is dense                                                
@@ -3306,10 +3342,19 @@ namespace Langulus::Anyness
          }
          else {
             if constexpr (S::Keep) {
-               LANGULUS_ASSERT(
-                  mType->mCopyConstructor != nullptr, Construct,
-                  "Can't copy-construct elements"
-                  " - no copy-constructor was reflected");
+               if constexpr (S::Shallow) {
+                  LANGULUS_ASSERT(
+                     mType->mCopyConstructor != nullptr, Construct,
+                     "Can't copy-construct elements"
+                     " - no copy-constructor was reflected");
+               }
+               else {
+                  LANGULUS_ASSERT(
+                     mType->mCloneConstructor != nullptr ||
+                     mType->mCopyConstructor != nullptr, Construct,
+                     "Can't clone-construct elements"
+                     " - no copy/clone-constructor was reflected");
+               }
             }
             else {
                LANGULUS_ASSERT(
@@ -3321,11 +3366,12 @@ namespace Langulus::Anyness
          }
 
          if constexpr (S::Move) {
+            // Moving construction                                      
             if constexpr (REVERSE) {
                const auto lhsStride = mType->mSize;
                auto lhs = mRaw + (count - 1) * lhsStride;
 
-               if (source.mValue.IsSparse()) {
+               if (source.mValue.mType->mIsSparse) {
                   // RHS is pointer, LHS is dense                       
                   // Move each dense element from RHS                   
                   auto rhs = source.mValue.mRawSparse + count - 1;
@@ -3333,21 +3379,21 @@ namespace Langulus::Anyness
                   if constexpr (S::Keep) {
                      // Move required                                   
                      while (rhs != rhsEnd) {
-                        mType->mMoveConstructor((rhs--)->mPointer, lhs);
+                        mType->mMoveConstructor(*(rhs--), lhs);
                         lhs -= lhsStride;
                      }
                   }
                   else if (mType->mAbandonConstructor) {
                      // Attempt abandon                                 
                      while (rhs != rhsEnd) {
-                        mType->mAbandonConstructor((rhs--)->mPointer, lhs);
+                        mType->mAbandonConstructor(*(rhs--), lhs);
                         lhs -= lhsStride;
                      }
                   }
                   else {
                      // Fallback to move if abandon not available       
                      while (rhs != rhsEnd) {
-                        mType->mMoveConstructor((rhs--)->mPointer, lhs);
+                        mType->mMoveConstructor(*(rhs--), lhs);
                         lhs -= lhsStride;
                      }
                   }
@@ -3386,7 +3432,7 @@ namespace Langulus::Anyness
                auto lhs = mRaw;
                const auto lhsStride = mType->mSize;
 
-               if (source.mValue.IsSparse()) {
+               if (source.mValue.mType->mIsSparse) {
                   // RHS is pointer, LHS is dense                       
                   // Move each dense element from RHS                   
                   auto rhs = source.mValue.mRawSparse;
@@ -3394,21 +3440,21 @@ namespace Langulus::Anyness
                   if constexpr (S::Keep) {
                      // Move required                                   
                      while (rhs != rhsEnd) {
-                        mType->mMoveConstructor((rhs++)->mPointer, lhs);
+                        mType->mMoveConstructor(*(rhs++), lhs);
                         lhs += lhsStride;
                      }
                   }
                   else if (mType->mAbandonConstructor) {
                      // Attempt abandon                                 
                      while (rhs != rhsEnd) {
-                        mType->mAbandonConstructor((rhs++)->mPointer, lhs);
+                        mType->mAbandonConstructor(*(rhs++), lhs);
                         lhs += lhsStride;
                      }
                   }
                   else {
                      // Fallback to move if abandon not available       
                      while (rhs != rhsEnd) {
-                        mType->mMoveConstructor((rhs++)->mPointer, lhs);
+                        mType->mMoveConstructor(*(rhs++), lhs);
                         lhs += lhsStride;
                      }
                   }
@@ -3445,32 +3491,49 @@ namespace Langulus::Anyness
             }
          }
          else {
+            // Copy construction                                        
             auto lhs = mRaw;
             const auto lhsStride = mType->mSize;
 
-            if (source.mValue.IsSparse()) {
+            if (source.mValue.mType->mIsSparse) {
                // RHS is pointer, LHS is dense                          
-               // Shallow-copy each dense element from RHS              
+               // Shallow-copy or clone each dense element from RHS     
                auto rhs = source.mValue.mRawSparse;
                const auto rhsEnd = rhs + count;
                if constexpr (S::Keep) {
-                  // Move required                                      
-                  while (rhs != rhsEnd) {
-                     mType->mCopyConstructor((rhs++)->mPointer, lhs);
-                     lhs += lhsStride;
+                  if constexpr (S::Shallow) {
+                     // Copy required                                   
+                     while (rhs != rhsEnd) {
+                        mType->mCopyConstructor(*(rhs++), lhs);
+                        lhs += lhsStride;
+                     }
+                  }
+                  else if (mType->mCloneConstructor) {
+                     // Attempt clone                                   
+                     while (rhs != rhsEnd) {
+                        mType->mCloneConstructor(*(rhs++), lhs);
+                        lhs += lhsStride;
+                     }
+                  }
+                  else {
+                     // Fallback to copy if clone not available         
+                     while (rhs != rhsEnd) {
+                        mType->mCopyConstructor(*(rhs++), lhs);
+                        lhs += lhsStride;
+                     }
                   }
                }
                else if (mType->mDisownConstructor) {
-                  // Attempt abandon                                    
+                  // Attempt disown                                     
                   while (rhs != rhsEnd) {
-                     mType->mDisownConstructor((rhs++)->mPointer, lhs);
+                     mType->mDisownConstructor(*(rhs++), lhs);
                      lhs += lhsStride;
                   }
                }
                else {
-                  // Fallback to move if abandon not available          
+                  // Fallback to copy if disown not available           
                   while (rhs != rhsEnd) {
-                     mType->mCopyConstructor((rhs++)->mPointer, lhs);
+                     mType->mCopyConstructor(*(rhs++), lhs);
                      lhs += lhsStride;
                   }
                }
@@ -3481,15 +3544,33 @@ namespace Langulus::Anyness
                auto rhs = source.mValue.mRaw;
                const auto rhsEnd = rhs + count * lhsStride;
                if constexpr (S::Keep) {
-                  // Move required                                      
-                  while (rhs != rhsEnd) {
-                     mType->mCopyConstructor(rhs, lhs);
-                     lhs += lhsStride;
-                     rhs += lhsStride;
+                  if constexpr (S::Shallow) {
+                     // Copy required                                   
+                     while (rhs != rhsEnd) {
+                        mType->mCopyConstructor(rhs, lhs);
+                        lhs += lhsStride;
+                        rhs += lhsStride;
+                     }
+                  }
+                  else if (mType->mCloneConstructor) {
+                     // Attempt clone                                   
+                     while (rhs != rhsEnd) {
+                        mType->mCloneConstructor(rhs, lhs);
+                        lhs += lhsStride;
+                        rhs += lhsStride;
+                     }
+                  }
+                  else {
+                     // Fallback to copy if clone not available         
+                     while (rhs != rhsEnd) {
+                        mType->mCopyConstructor(rhs, lhs);
+                        lhs += lhsStride;
+                        rhs += lhsStride;
+                     }
                   }
                }
                else if (mType->mDisownConstructor) {
-                  // Attempt abandon                                    
+                  // Attempt disown                                     
                   while (rhs != rhsEnd) {
                      mType->mDisownConstructor(rhs, lhs);
                      lhs += lhsStride;
@@ -3497,7 +3578,7 @@ namespace Langulus::Anyness
                   }
                }
                else {
-                  // Fallback to move if abandon not available          
+                  // Fallback to copy if disown not available           
                   while (rhs != rhsEnd) {
                      mType->mCopyConstructor(rhs, lhs);
                      lhs += lhsStride;
@@ -3878,28 +3959,43 @@ namespace Langulus::Anyness
    template<CT::Data T>
    void Block::CallKnownDestructors() const {
       LANGULUS_ASSUME(DevAssumes, 
-         Is<T>() || mType->template HasDerivation<T>(),
+         IsExact<T>() || mType->template HasDerivation<T>(),
          "T isn't related to contained type"
       );
 
+      using DT = Decay<T>;
       constexpr bool destroy = !CT::POD<T> && CT::Destroyable<T>;
-      if constexpr (CT::Sparse<T>) {
+      if constexpr (CT::Sparse<T> && CT::Dense<Deptr<T>>) {
          // We dereference each pointer - destructors will be called    
          // if data behind these pointers is fully dereferenced, too    
-         auto data = mRawSparse;
+         auto data = GetRawSparse();
+         auto dataEntry = GetEntries();
          const auto dataEnd = data + mCount;
-         while (data != dataEnd)
-            (data++)->Free<T, destroy>();
+         while (data != dataEnd) {
+            auto entry = *dataEntry;
+            if (entry) {
+               if (entry->GetUses() == 1) {
+                  if (destroy)
+                     reinterpret_cast<T>(*data)->~DT();
+                  Inner::Allocator::Deallocate(*entry);
+               }
+               else entry->Free();
+            }
+
+            ++data;
+            ++dataEntry;
+         }
       }
-      else if constexpr (destroy) {
+      else if constexpr (CT::Dense<T> && destroy) {
+         // Destroy every dense element                                 
          auto data = GetRawAs<T>();
          const auto dataEnd = data + mCount;
-
-         // Destroy every dense element                                 
-         while (data != dataEnd) {
-            using DT = Decay<T>;
+         while (data != dataEnd)
             (data++)->~DT();
-         }
+      }
+      else {
+         // Destroy each indirection layer                              
+         TODO();
       }
 
       // Always nullify upon destruction only if we're paranoid         
@@ -3910,22 +4006,43 @@ namespace Langulus::Anyness
    ///   @attention never modifies any block state                            
    inline void Block::CallUnknownDestructors() const {
       const bool destroy = !mType->mIsPOD && mType->mDestructor;
-
-      if (IsSparse()) {
+      if (mType->mIsSparse && !mType->mDeptr->mIsSparse) {
          // We dereference each pointer - destructors will be called    
          // if data behind these pointers is fully dereferenced, too    
-         auto data = mRawSparse;
+         auto data = const_cast<Block*>(this)->GetRawSparse();
+         auto dataEntry = const_cast<Block*>(this)->GetEntries();
          const auto dataEnd = data + mCount;
          if (destroy) {
-            while (data != dataEnd)
-               (data++)->Free<true>(mType);
+            while (data != dataEnd) {
+               auto entry = *dataEntry;
+               if (entry) {
+                  if (entry->GetUses() == 1) {
+                     mType->mDeptr->mDestructor(*data);
+                     Inner::Allocator::Deallocate(entry);
+                  }
+                  else entry->Free();
+               }
+
+               ++data;
+               ++dataEntry;
+            }
          }
          else {
-            while (data != dataEnd)
-               (data++)->Free<false>(mType);
+            while (data != dataEnd) {
+               auto entry = *dataEntry;
+               if (entry) {
+                  if (entry->GetUses() == 1)
+                     Inner::Allocator::Deallocate(entry);
+                  else
+                     entry->Free();
+               }
+
+               ++data;
+               ++dataEntry;
+            }
          }
       }
-      else if (destroy) {
+      else if (!mType->mIsSparse && destroy) {
          // Destroy every dense element, one by one, using the          
          // reflected destructors (if any)                              
          auto data = mRaw;
@@ -3935,6 +4052,10 @@ namespace Langulus::Anyness
             mType->mDestructor(data);
             data += dataStride;
          }
+      }
+      else {
+         // Destroy each indirection layer                              
+         TODO();
       }
 
       // Always nullify upon destruction only if we're paranoid         
@@ -4236,7 +4357,7 @@ namespace Langulus::Anyness
 
    /// Copy-construct a pointer - references the block                        
    ///   @param other - the pointer to reference                              
-   LANGULUS(ALWAYSINLINE)
+   /*LANGULUS(ALWAYSINLINE)
    Block::KnownPointer::KnownPointer(const KnownPointer& other) noexcept
       : mPointer {other.mPointer}
       , mEntry {other.mEntry} {
@@ -4315,13 +4436,13 @@ namespace Langulus::Anyness
       rhs->mEntry = nullptr;
       if constexpr (KEEP)
          rhs->mPointer = nullptr;
-   }
+   }*/
 
    /// Copy-assign or Disown-assign                                           
    ///   @tparam KEEP - true to perform copy-assign instead of disown-assign  
    ///   @param meta - meta information about the pointer contents            
    ///   @param rhs - the pointer to reference                                
-   template<bool KEEP, bool DESTROY_OLD>
+   /*template<bool KEEP, bool DESTROY_OLD>
    LANGULUS(ALWAYSINLINE)
    void Block::KnownPointer::CopyAssign(DMeta meta, const KnownPointer* rhs) {
       Free<DESTROY_OLD>(meta);
@@ -4372,7 +4493,7 @@ namespace Langulus::Anyness
          Inner::Allocator::Deallocate(mEntry);
       }
       else mEntry->Free();
-   }
+   }*/
 
 } // namespace Langulus::Anyness
 

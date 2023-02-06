@@ -147,8 +147,8 @@ namespace Langulus::Anyness
          if (!mInfo[i])
             continue;
 
-         Block destination {to.GetElement(i)};
-         from.GetElement(i).Clone(destination);
+         to.GetElement(i).CallUnknownSemanticConstructors(
+            1, Langulus::Clone(from.GetElement(i)));
       }
    }
 

@@ -17,7 +17,7 @@ namespace Langulus::Anyness
    /// Nested for each deep inner block                                       
    ///   @param result - [out] the resulting container                        
    ///   @return the number of cloned elements                                
-   Count Block::Clone(Block& result) const {
+   /*Count Block::Clone(Block& result) const {
       // Always clone the state, but make it unconstrained              
       result.SetType<false>(mType);
       result.mState += GetUnconstrainedState();
@@ -135,6 +135,6 @@ namespace Langulus::Anyness
       }
 
       return mCount;
-   }
+   }*/
 
 } // namespace Langulus::Anyness

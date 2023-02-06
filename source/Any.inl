@@ -314,8 +314,9 @@ namespace Langulus::Anyness
    ///   @return the cloned container                                         
    LANGULUS(ALWAYSINLINE)
    Any Any::Clone() const {
-      Any clone;
-      Block::Clone(clone);
+      Any clone {Disown(*this)};
+      clone.AllocateFresh(RequestSize(mCount));
+      clone.CallUnknownSemanticConstructors(mCount, Langulus::Clone(*this));
       return Abandon(clone);
    }
 
@@ -649,10 +650,10 @@ namespace Langulus::Anyness
    ///   @tparam BY_ADDRESS_ONLY - true to compare addresses only             
    ///   @param item - the item to search for                                 
    ///   @return the index of the found item, or IndexNone if none found      
-   template<bool REVERSE, bool BY_ADDRESS_ONLY, CT::Data T>
+   template<bool REVERSE, CT::Data T>
    LANGULUS(ALWAYSINLINE)
    Index Any::Find(const T& item, const Offset& cookie) const {
-      return Block::template FindKnown<REVERSE, BY_ADDRESS_ONLY>(item, cookie);
+      return Block::template FindKnown<REVERSE>(item, cookie);
    }
 
 

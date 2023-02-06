@@ -109,7 +109,7 @@ namespace Langulus::Anyness
       void Reset();
       NOD() Any Clone() const;
 
-      template<bool REVERSE = false, bool BY_ADDRESS_ONLY = false, CT::Data T>
+      template<bool REVERSE = false, CT::Data T>
       Index Find(const T&, const Offset& = 0) const;
 
       using Block::Swap;

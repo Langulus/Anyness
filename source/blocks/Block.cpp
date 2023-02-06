@@ -301,8 +301,8 @@ namespace Langulus::Anyness
    Block Block::GetDense() noexcept {
       auto copy = *this;
       while (copy.IsSparse()) {
-         copy.mEntry = mRawSparse->mEntry;
-         copy.mRaw = mRawSparse->mPointer;
+         copy.mEntry = *GetEntries();
+         copy.mRaw = *GetRawSparse();
          copy.mType = copy.mType->RemovePointer();
          if (!copy.mType)
             LANGULUS_THROW(Meta, "Trying to interface incomplete data as dense");
