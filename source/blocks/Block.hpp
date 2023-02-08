@@ -137,15 +137,10 @@ namespace Langulus::Anyness
       // If entry is zero, then data is static                          
       Inner::Allocation* mEntry {};
 
-   protected:
-      /// @cond show_protected                                                
-      void SetMemory(const DataState&, DMeta, Count, const void*) SAFETY_NOEXCEPT();
-      void SetMemory(const DataState&, DMeta, Count, void*) SAFETY_NOEXCEPT();
-      constexpr void SetMemory(const DataState&, DMeta, Count, const void*, Inner::Allocation*);
-      constexpr void SetMemory(const DataState&, DMeta, Count, void*, Inner::Allocation*);
-      /// @endcond                                                            
-
    public:
+      ///                                                                     
+      ///   Construction & Assignment                                         
+      ///                                                                     
       constexpr Block() noexcept = default;
       constexpr Block(const Block&) noexcept = default;
       constexpr Block(Block&&) noexcept = default;
@@ -158,16 +153,16 @@ namespace Langulus::Anyness
 
       Block(const DataState&, DMeta, Count, const void*) SAFETY_NOEXCEPT();
       Block(const DataState&, DMeta, Count, void*) SAFETY_NOEXCEPT();
-      constexpr Block(const DataState&, DMeta, Count, const void*, Inner::Allocation*) noexcept;
-      constexpr Block(const DataState&, DMeta, Count, void*, Inner::Allocation*) noexcept;
+      Block(const DataState&, DMeta, Count, const void*, Inner::Allocation*) SAFETY_NOEXCEPT();
+      Block(const DataState&, DMeta, Count, void*, Inner::Allocation*) SAFETY_NOEXCEPT();
    
-      template<CT::Data T, bool CONSTRAIN = false>
+      template<bool CONSTRAIN = false, CT::Data T>
       NOD() static Block From(T) requires CT::Sparse<T>;
-      template<CT::Data T, bool CONSTRAIN = false>
+      template<bool CONSTRAIN = false, CT::Data T>
       NOD() static Block From(T, Count) requires CT::Sparse<T>;
-      template<CT::Data T, bool CONSTRAIN = false>
+      template<bool CONSTRAIN = false, CT::Data T>
       NOD() static Block From(T&) requires CT::Dense<T>;
-      template<CT::Data T, bool CONSTRAIN = false>
+      template<bool CONSTRAIN = false, CT::Data T>
       NOD() static Block From();
 
       constexpr Block& operator = (const Block&) noexcept = default;
@@ -176,17 +171,25 @@ namespace Langulus::Anyness
       template<CT::Semantic S>
       constexpr Block& operator = (S&&) noexcept;
          
-      void TakeAuthority();
-      void Optimize();
+   protected:
+      template<class TO, CT::Semantic S>
+      void BlockTransfer(S&&);
+      template<CT::Semantic S>
+      void SwapUnknown(S&&);
+      template<CT::Data>
+      void SwapKnown(Block&);
 
    public:
       ///                                                                     
-      /// Capsulation and access                                              
+      ///   Capsulation                                                       
       ///                                                                     
       constexpr void SetState(DataState) noexcept;
       constexpr void AddState(DataState) noexcept;
       constexpr void RemoveState(DataState) noexcept;
-   
+
+      NOD() bool Owns(const void*) const noexcept;
+      NOD() constexpr bool HasAuthority() const noexcept;
+      NOD() constexpr Count GetUses() const noexcept;
       NOD() constexpr DMeta GetType() const noexcept;
       NOD() constexpr Count GetCount() const noexcept;
       NOD() constexpr Count GetReserved() const noexcept;
@@ -231,7 +234,17 @@ namespace Langulus::Anyness
       NOD() constexpr const Byte* GetRawEnd() const noexcept;
       NOD() constexpr Byte** GetRawSparse() noexcept;
       NOD() constexpr const Byte* const* GetRawSparse() const noexcept;
-      
+      NOD() auto RequestSize(const Count&) const noexcept;
+
+      constexpr void MakeStatic(bool enable = true) noexcept;
+      constexpr void MakeConst(bool enable = true) noexcept;
+      constexpr void MakeTypeConstrained(bool enable = true) noexcept;
+      constexpr void MakeOr() noexcept;
+      constexpr void MakeAnd() noexcept;
+      constexpr void MakePast() noexcept;
+      constexpr void MakeFuture() noexcept;
+      constexpr void MakeNow() noexcept;
+
    protected:
       NOD() Inner::Allocation** GetEntries() noexcept;
       NOD() const Inner::Allocation* const* GetEntries() const noexcept;
@@ -255,9 +268,31 @@ namespace Langulus::Anyness
       template<CT::Data T>
       NOD() const T* GetRawEndAs() const noexcept;
 
+      ///                                                                     
+      ///   Indexing                                                          
+      ///                                                                     
+      NOD() constexpr Index Constrain(const Index&) const noexcept;
+
+      template<CT::Data>
+      NOD() Index ConstrainMore(const Index&) const noexcept;
+      template<CT::Data T>
+      NOD() Index GetIndexMax() const noexcept requires CT::Sortable<T, T>;
+      template<CT::Data T>
+      NOD() Index GetIndexMin() const noexcept requires CT::Sortable<T, T>;
+      template<CT::Data>
+      NOD() Index GetIndexMode(Count&) const noexcept;
+
+      template<CT::Data>
+      void Sort(const Index&) noexcept;
+
       NOD() Byte* At(const Offset& = 0) SAFETY_NOEXCEPT();
       NOD() const Byte* At(const Offset& = 0) const SAFETY_NOEXCEPT();
    
+      template<CT::Index IDX = Offset>
+      NOD() Block operator[] (const IDX&) const;
+      template<CT::Index IDX = Offset>
+      NOD() Block operator[] (const IDX&);
+
       template<CT::Data>
       NOD() decltype(auto) Get(const Offset& = 0, const Offset& = 0) SAFETY_NOEXCEPT();
       template<CT::Data>
@@ -273,6 +308,9 @@ namespace Langulus::Anyness
       template<CT::Data T, bool FATAL_FAILURE = true>
       NOD() T AsCast() const;
    
+      NOD() Block Crop(const Offset&, const Count&);
+      NOD() Block Crop(const Offset&, const Count&) const;
+
       NOD() Block GetElementDense(Offset);
       NOD() const Block GetElementDense(Offset) const;
    
@@ -297,16 +335,19 @@ namespace Langulus::Anyness
       NOD() Block GetDense() noexcept;
       NOD() const Block GetDense() const noexcept;
 
-      NOD() auto RequestSize(const Count&) const noexcept;
+      template<CT::Data, CT::Index INDEX1, CT::Index INDEX2>
+      void Swap(INDEX1, INDEX2);
 
+   protected:
+      NOD() Block CropInner(const Offset&, const Count&, const Count&) const noexcept;
+
+      template<class, bool COUNT_CONSTRAINED = true, CT::Index INDEX>
+      Offset SimplifyIndex(const INDEX&) const;
+
+   public:
       ///                                                                     
       ///   Iteration                                                         
       ///                                                                     
-      template<CT::Index IDX = Offset>
-      NOD() Block operator[] (const IDX&) const;
-      template<CT::Index IDX = Offset>
-      NOD() Block operator[] (const IDX&);
-
       template<bool MUTABLE = true, class F>
       Count ForEachElement(F&&);
       template<class F>
@@ -332,7 +373,7 @@ namespace Langulus::Anyness
       template<bool SKIP = true, class... F>
       Count ForEachDeepRev(F&&...) const;
       
-   private:
+   protected:
       template<bool MUTABLE, bool REVERSE, class F>
       Count ForEachSplitter(F&&);
       template<bool SKIP, bool MUTABLE, bool REVERSE, class F>
@@ -342,16 +383,37 @@ namespace Langulus::Anyness
       Count ForEachInner(TFunctor<R(A)>&&);
       template<class R, CT::Data A, bool REVERSE, bool SKIP, bool MUTABLE>
       Count ForEachDeepInner(TFunctor<R(A)>&&);
-   
-      NOD() Block CropInner(const Offset&, const Count&, const Count&) const noexcept;
-   
+
+      void Next() noexcept;
+      void Prev() noexcept;
+      NOD() Block Next() const noexcept;
+      NOD() Block Prev() const noexcept;
+
    public:
-      NOD() bool Owns(const void*) const noexcept;
-      NOD() constexpr bool HasAuthority() const noexcept;
-      NOD() constexpr Count GetUses() const noexcept;
-      NOD() Block Crop(const Offset&, const Count&);
-      NOD() Block Crop(const Offset&, const Count&) const;
-   
+      ///                                                                     
+      ///   RTTI                                                              
+      ///                                                                     
+      NOD() bool Is(DMeta) const noexcept;
+      template<CT::Data...>
+      NOD() bool Is() const;
+      template<CT::Data...>
+      NOD() bool IsExact() const;
+      NOD() bool IsExact(DMeta) const noexcept;
+
+      template<bool BINARY_COMPATIBLE = false>
+      NOD() bool CastsToMeta(DMeta) const;
+      template<bool BINARY_COMPATIBLE = false>
+      NOD() bool CastsToMeta(DMeta, Count) const;
+
+      template<CT::Data, bool BINARY_COMPATIBLE = false>
+      NOD() bool CastsTo() const;
+      template<CT::Data, bool BINARY_COMPATIBLE = false>
+      NOD() bool CastsTo(Count) const;
+
+      NOD() Block ReinterpretAs(const Block&) const;
+      template<CT::Data>
+      NOD() Block ReinterpretAs() const;
+
       template<class>
       NOD() Block GetMember() const;
       template<class>
@@ -391,53 +453,65 @@ namespace Langulus::Anyness
       bool Mutate();
       template<bool ALLOW_DEEPEN, CT::Data = Any>
       bool Mutate(DMeta);
+         
+   protected:
+      template<bool CONSTRAIN>
+      void SetType(DMeta);
+      template<CT::Data, bool CONSTRAIN>
+      void SetType();
 
-      constexpr void MakeStatic(bool enable = true) noexcept;
-      constexpr void MakeConst(bool enable = true) noexcept;
-      constexpr void MakeTypeConstrained(bool enable = true) noexcept;
-      constexpr void MakeOr() noexcept;
-      constexpr void MakeAnd() noexcept;
-      constexpr void MakePast() noexcept;
-      constexpr void MakeFuture() noexcept;
-      constexpr void MakeNow() noexcept;
-   
+      constexpr void ResetType() noexcept;
+
+   public:
+      ///                                                                     
+      ///   Comparison                                                        
+      ///                                                                     
+      template<CT::NotSemantic T>
+      bool operator == (const T&) const;
+
+      template<bool RESOLVE = true>
+      NOD() bool Compare(const Block&) const;
+      NOD() Hash GetHash() const;
+
+      template<bool REVERSE = false, CT::NotSemantic T>
+      NOD() Index FindKnown(const T&, const Offset & = 0) const;
+      template<bool REVERSE = false>
+      NOD() Index FindUnknown(const Block&, const Offset & = 0) const;
+      template<bool REVERSE = false, CT::NotSemantic T>
+      NOD() Index FindDeep(const T&, Offset = 0) const;
+
+   protected:
+      template<class T>
+      NOD() bool CompareSingleValue(const T&) const;
+      NOD() bool CompareStates(const Block&) const noexcept;
+      NOD() bool CompareTypes(const Block&, RTTI::Base&) const noexcept;
+      NOD() bool CallComparer(const Block&, const RTTI::Base&) const;
+
+      Count GatherInner(const Block&, Block&, Index);
+      Count GatherPolarInner(DMeta, const Block&, Block&, Index, DataState);
+
+   public:
+      ///                                                                     
+      ///   Memory management                                                 
+      ///                                                                     
       void Reserve(Count);
       template<bool CREATE = false, bool SETSIZE = false>
       void AllocateMore(Count);
       void AllocateLess(Count);
+      void TakeAuthority();
 
-      //Count Clone(Block&) const;
-   
-      #if LANGULUS_FEATURE(ZLIB)
-         Size Compress(Block&, Compression = Compression::Default) const;
-         Size Decompress(Block&) const;
-      #endif
-
-      Size Encrypt(Block&, const ::std::size_t*, const Count&) const;
-      Size Decrypt(Block&, const ::std::size_t*, const Count&) const;
-   
-      NOD() Hash GetHash() const;
-   
-      template<bool REVERSE = false, CT::NotSemantic T>
-      NOD() Index FindKnown(const T&, const Offset& = 0) const;
-      template<bool REVERSE = false>
-      NOD() Index FindUnknown(const Block&, const Offset& = 0) const;
-      template<bool REVERSE = false, CT::NotSemantic T>
-      NOD() Index FindDeep(const T&, Offset = 0) const;
-   
-      template<CT::Data, CT::Index INDEX1, CT::Index INDEX2>
-      void Swap(INDEX1, INDEX2);
-
-      ///                                                                     
-      ///   Comparison                                                        
-      ///                                                                     
-      NOD() bool CompareStates(const Block&) const noexcept;
-      NOD() bool CompareTypes(const Block&, RTTI::Base&) const noexcept;
-      template<bool RESOLVE = true>
-      NOD() bool Compare(const Block&) const;
-
-      template<CT::NotSemantic T>
-      bool operator == (const T&) const;
+   protected:
+      /// @cond show_protected                                                
+      void Reference(const Count&) const noexcept;
+      void Keep() const noexcept;
+      template<bool DESTROY>
+      bool Dereference(const Count&);
+      bool Free();
+      void SetMemory(const DataState&, DMeta, Count, const void*) SAFETY_NOEXCEPT();
+      void SetMemory(const DataState&, DMeta, Count, void*) SAFETY_NOEXCEPT();
+      constexpr void SetMemory(const DataState&, DMeta, Count, const void*, Inner::Allocation*);
+      constexpr void SetMemory(const DataState&, DMeta, Count, void*, Inner::Allocation*);
+      /// @endcond                                                            
 
    public:
       ///                                                                     
@@ -535,86 +609,7 @@ namespace Langulus::Anyness
       template<Index = IndexBack, bool CONCAT = true, bool DEEPEN = true, CT::Data = Any, CT::Semantic S>
       Count SmartPush(S&&, DataState = {});
 
-      ///                                                                     
-      ///   Removal                                                           
-      ///                                                                     
-      template<bool REVERSE = false, CT::Data T>
-      Count Remove(const T&);
-      template<CT::Index INDEX>
-      Count RemoveIndex(INDEX, Count = 1);
-      template<CT::Index INDEX>
-      Count RemoveIndexDeep(INDEX);
-   
-      Block& Trim(Offset);
-   
-      NOD() constexpr Index Constrain(const Index&) const noexcept;
-   
-      template<CT::Data>
-      NOD() Index ConstrainMore(const Index&) const noexcept;
-   
-      template<CT::Data T>
-      NOD() Index GetIndexMax() const noexcept requires CT::Sortable<T, T>;
-   
-      template<CT::Data T>
-      NOD() Index GetIndexMin() const noexcept requires CT::Sortable<T, T>;
-   
-      template<CT::Data>
-      NOD() Index GetIndexMode(Count&) const noexcept;
-   
-      template<CT::Data>
-      void Sort(const Index&) noexcept;
-   
-      template<bool BINARY_COMPATIBLE = false>
-      NOD() bool CastsToMeta(DMeta) const;
-      template<bool BINARY_COMPATIBLE = false>
-      NOD() bool CastsToMeta(DMeta, Count) const;
-
-      template<CT::Data, bool BINARY_COMPATIBLE = false>
-      NOD() bool CastsTo() const;
-      template<CT::Data, bool BINARY_COMPATIBLE = false>
-      NOD() bool CastsTo(Count) const;
-   
-      NOD() bool Is(DMeta) const noexcept;
-      template<CT::Data...>
-      NOD() bool Is() const;
-      template<CT::Data...>
-      NOD() bool IsExact() const;
-      NOD() bool IsExact(DMeta) const noexcept;
-      
-      NOD() Block ReinterpretAs(const Block&) const;
-      template<CT::Data>
-      NOD() Block ReinterpretAs() const;
-   
-      void Clear();
-      void Reset();
-      constexpr void ResetState() noexcept;
-
    protected:
-      /// @cond show_protected                                                
-      template<class TO, CT::Semantic S>
-      void BlockTransfer(S&&);
-
-      template<bool CONSTRAIN>
-      void SetType(DMeta);
-      template<CT::Data, bool CONSTRAIN>
-      void SetType();
-
-      template<class T>
-      NOD() bool CompareSingleValue(const T&) const;
-
-      template<class, bool COUNT_CONSTRAINED = true, CT::Index INDEX>
-      Offset SimplifyIndex(const INDEX&) const;
-
-      template<bool ALLOW_DEEPEN, CT::Data = Any, CT::Semantic S, CT::Index INDEX>
-      Count SmartConcatAt(const bool&, S&&, const DataState&, const INDEX&);
-      template<bool ALLOW_DEEPEN, Index INDEX = IndexBack, CT::Data = Any, CT::Semantic S>
-      Count SmartConcat(const bool&, S&&, const DataState&);
-      
-      template<bool ALLOW_DEEPEN, CT::Data = Any, CT::Semantic S, CT::Index INDEX>
-      Count SmartPushAtInner(S&&, const DataState&, const INDEX&);
-      template<bool ALLOW_DEEPEN, Index INDEX = IndexBack, CT::Data = Any, CT::Semantic S>
-      Count SmartPushInner(S&&, const DataState&);
-
       template<bool CREATE = false>
       void AllocateInner(const Count&);
       void AllocateFresh(const RTTI::AllocationRequest&);
@@ -632,25 +627,16 @@ namespace Langulus::Anyness
       template<CT::Semantic S>
       void Absorb(S&&, const DataState&);
 
-      Count GatherInner(const Block&, Block&, Index);
-      Count GatherPolarInner(DMeta, const Block&, Block&, Index, DataState);
+      template<bool ALLOW_DEEPEN, CT::Data = Any, CT::Semantic S, CT::Index INDEX>
+      Count SmartConcatAt(const bool&, S&&, const DataState&, const INDEX&);
+      template<bool ALLOW_DEEPEN, Index INDEX = IndexBack, CT::Data = Any, CT::Semantic S>
+      Count SmartConcat(const bool&, S&&, const DataState&);
 
-      static void CopyMemory(const void*, void*, const Size&) noexcept;
-      static void MoveMemory(const void*, void*, const Size&) noexcept;
-      static void FillMemory(void*, Byte, const Size&) noexcept;
-      NOD() static int CompareMemory(const void*, const void*, const Size&) noexcept;
-      
-      constexpr void ClearInner() noexcept;
-      constexpr void ResetMemory() noexcept;
-      constexpr void ResetType() noexcept;
-   
-      void Reference(const Count&) const noexcept;
-      void Keep() const noexcept;
-      
-      template<bool DESTROY>
-      bool Dereference(const Count&);
-      bool Free();
-   
+      template<bool ALLOW_DEEPEN, CT::Data = Any, CT::Semantic S, CT::Index INDEX>
+      Count SmartPushAtInner(S&&, const DataState&, const INDEX&);
+      template<bool ALLOW_DEEPEN, Index INDEX = IndexBack, CT::Data = Any, CT::Semantic S>
+      Count SmartPushInner(S&&, const DataState&);
+
       void CallUnknownDefaultConstructors(Count) const;
       template<CT::Data T>
       void CallKnownDefaultConstructors(Count) const;
@@ -672,21 +658,52 @@ namespace Langulus::Anyness
       template<CT::Data, CT::Semantic S>
       void CallKnownSemanticAssignment(Count, S&&) const;
 
+   public:
+      ///                                                                     
+      ///   Removal                                                           
+      ///                                                                     
+      template<bool REVERSE = false, CT::Data T>
+      Count Remove(const T&);
+      template<CT::Index INDEX>
+      Count RemoveIndex(INDEX, Count = 1);
+      template<CT::Index INDEX>
+      Count RemoveIndexDeep(INDEX);
+   
+      Block& Trim(Offset);
+   
+      void Optimize();
+      void Clear();
+      void Reset();
+      constexpr void ResetState() noexcept;
+
+   protected:
       void CallUnknownDestructors() const;
       template<CT::Data>
       void CallKnownDestructors() const;
+
+      constexpr void ClearInner() noexcept;
+      constexpr void ResetMemory() noexcept;
+
+   public:
+      ///                                                                     
+      ///   Compression                                                       
+      ///                                                                     
+      #if LANGULUS_FEATURE(ZLIB)
+         Size Compress(Block&, Compression = Compression::Default) const;
+         Size Decompress(Block&) const;
+      #endif
+
+      ///                                                                     
+      ///   Encryption                                                        
+      ///                                                                     
+      Size Encrypt(Block&, const ::std::size_t*, const Count&) const;
+      Size Decrypt(Block&, const ::std::size_t*, const Count&) const;
    
-      template<CT::Semantic S>
-      void SwapUnknown(S&&);
-      template<CT::Data>
-      void SwapKnown(Block&);
-
-      NOD() bool CallComparer(const Block&, const RTTI::Base&) const;
-
-      void Next() noexcept;
-      void Prev() noexcept;
-      NOD() Block Next() const noexcept;
-      NOD() Block Prev() const noexcept;
+   protected:
+      /// @cond show_protected                                                
+      static void CopyMemory(const void*, void*, const Size&) noexcept;
+      static void MoveMemory(const void*, void*, const Size&) noexcept;
+      static void FillMemory(void*, Byte, const Size&) noexcept;
       /// @endcond                                                            
    };
 
@@ -821,3 +838,5 @@ namespace Langulus::CT
 } // namespace Langulus::CT
 
 #include "Block.inl"
+#include "Block-Construct.inl"
+#include "Block-Capsulation.inl"

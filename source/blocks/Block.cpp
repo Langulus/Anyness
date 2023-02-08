@@ -161,32 +161,6 @@ namespace Langulus::Anyness
       }
    }
 
-   /// Get the number of sub-blocks (this one included)                       
-   ///   @return at least 1                                                   
-   Count Block::GetCountDeep() const noexcept {
-      if (!IsDeep())
-         return 1;
-
-      Count counter {1};
-      for (Count i = 0; i < mCount; ++i)
-         counter += As<Block>(i).GetCountDeep();
-      return counter;
-   }
-
-   /// Get the sum of elements in all sub-blocks                              
-   ///   @returns the deep count of elements                                  
-   Count Block::GetCountElementsDeep() const noexcept {
-      if (!mType)
-         return 0;
-      if (!IsDeep())
-         return mCount;
-
-      Count counter {};
-      for (Count i = 0; i < mCount; ++i)
-         counter += As<Block>(i).GetCountElementsDeep();
-      return counter;
-   }
-
    /// Reinterpret contents of this Block as the type and state of another    
    /// You can interpret Vec4 as float[4] for example, or any other such      
    /// reinterpretation, as long as data remains tightly packed               
