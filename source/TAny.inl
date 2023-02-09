@@ -862,10 +862,10 @@ namespace Langulus::Anyness
          // We're moving to the right, so make sure we do it in reverse 
          // to avoid any overlap                                        
          const auto tail = mCount - offset;
-         CropInner(offset + count, 0, tail)
+         CropInner(offset + count, 0)
             .template CallKnownSemanticConstructors<T, true>(
-               tail, Abandon(CropInner(offset, tail, tail))
-               );
+               tail, Abandon(CropInner(offset, tail))
+            );
       }
 
       InsertInner<Copied<T>, T>(start, end, offset);
@@ -914,9 +914,9 @@ namespace Langulus::Anyness
          // We're moving to the right, so make sure we do it in reverse 
          // to avoid any potential overlap                              
          const auto tail = mCount - offset;
-         CropInner(offset + 1, 0, tail)
+         CropInner(offset + 1, 0)
             .template CallKnownSemanticConstructors<T, true>(
-               tail, Abandon(CropInner(offset, tail, tail))
+               tail, Abandon(CropInner(offset, tail))
             );
       }
 
@@ -953,9 +953,9 @@ namespace Langulus::Anyness
 
          // We're moving to the right, so make sure we do it in reverse 
          // to avoid any overlap                                        
-         CropInner(count, 0, mCount)
+         CropInner(count, 0)
             .template CallKnownSemanticConstructors<T, true>(
-               mCount, Abandon(CropInner(0, mCount, mCount))
+               mCount, Abandon(CropInner(0, mCount))
             );
 
          InsertInner<Copied<T>>(start, end, 0);
@@ -1008,9 +1008,9 @@ namespace Langulus::Anyness
 
          // We're moving to the right, so make sure we do it in reverse 
          // to avoid any overlap                                        
-         CropInner(1, 0, mCount)
+         CropInner(1, 0)
             .template CallKnownSemanticConstructors<T, true>(
-               mCount, Abandon(CropInner(0, mCount, mCount))
+               mCount, Abandon(CropInner(0, mCount))
             );
 
          InsertInner(item.Forward(), 0);
@@ -1042,13 +1042,13 @@ namespace Langulus::Anyness
          // We're moving to the right, so make sure we do it in reverse 
          // to avoid any overlap                                        
          const auto tail = mCount - offset;
-         CropInner(offset + 1, 0, tail)
+         CropInner(offset + 1, 0)
             .template CallKnownSemanticConstructors<T, true>(
-               tail, Abandon(CropInner(offset, tail, tail))
+               tail, Abandon(CropInner(offset, tail))
             );
       }
 
-      CropInner(offset, 0, 1)
+      CropInner(offset, 0)
          .template CallKnownConstructors<T, A...>(1, Forward<A>(arguments)...);
 
       ++mCount;
@@ -1080,15 +1080,15 @@ namespace Langulus::Anyness
 
          // We're moving to the right, so make sure we do it in reverse 
          // to avoid any overlap                                        
-         CropInner(1, 0, mCount)
+         CropInner(1, 0)
             .template CallKnownSemanticConstructors<T, true>(
-               mCount, Abandon(CropInner(0, mCount, mCount))
+               mCount, Abandon(CropInner(0, mCount))
             );
 
          Block::CallKnownConstructors<T, A...>(1, Forward<A>(arguments)...);
       }
       else {
-         CropInner(mCount, 0, 1)
+         CropInner(mCount, 0)
             .template CallKnownConstructors<T, A...>(1, Forward<A>(arguments)...);
       }
 
@@ -1107,7 +1107,7 @@ namespace Langulus::Anyness
       AllocateMore<false>(mCount + count);
 
       // Call constructors                                              
-      CropInner(mCount, 0, count)
+      CropInner(mCount, 0)
          .template CallKnownDefaultConstructors<T>(count);
 
       mCount += count;
@@ -1128,7 +1128,7 @@ namespace Langulus::Anyness
       AllocateMore<false>(mCount + count);
 
       // Call constructors                                              
-      CropInner(mCount, 0, count)
+      CropInner(mCount, 0)
          .template CallKnownConstructors<T>(count, Forward<A>(arguments)...);
 
       mCount += count;
@@ -1454,16 +1454,16 @@ namespace Langulus::Anyness
             "Attempting to remove from static container");
 
          // Call the destructors on the correct region                  
-         CropInner(starter, count, count)
+         CropInner(starter, count)
             .template CallKnownDestructors<T>();
 
          if (ender < mCount) {
             // Fill gap	if any by invoking move constructions           
             // Moving to the left, so no overlap possible if forward    
             const auto tail = mCount - ender;
-            CropInner(starter, 0, tail)
+            CropInner(starter, 0)
                .template CallKnownSemanticConstructors<T>(
-                  tail, Abandon(CropInner(ender, tail, tail))
+                  tail, Abandon(CropInner(ender, tail))
                );
          }
 
@@ -1632,7 +1632,7 @@ namespace Langulus::Anyness
                // But is not yet initialized, so initialize it          
                if (mCount < elements) {
                   const auto count = elements - mCount;
-                  CropInner(mCount, count, count)
+                  CropInner(mCount, count)
                      .template CallKnownDefaultConstructors<T>(count);
                }
             }
@@ -1685,7 +1685,7 @@ namespace Langulus::Anyness
          if constexpr (CREATE) {
             // Default-construct the rest                               
             const auto count = elements - mCount;
-            CropInner(mCount, count, count)
+            CropInner(mCount, count)
                .template CallKnownDefaultConstructors<T>(count);
          }
       }
@@ -1696,7 +1696,7 @@ namespace Langulus::Anyness
 
          if constexpr (CREATE) {
             // Default-construct everything                             
-            CropInner(mCount, elements, elements)
+            CropInner(mCount, elements)
                .template CallKnownDefaultConstructors<T>(elements);
          }
       }
@@ -1765,7 +1765,7 @@ namespace Langulus::Anyness
       }
 
       // Initialize new elements                                        
-      auto extension = CropInner(mCount, count, count);
+      auto extension = CropInner(mCount, count);
       extension.template CallKnownDefaultConstructors<T>(count);
       extension.MakeStatic();
 

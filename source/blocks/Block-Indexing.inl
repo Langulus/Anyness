@@ -1,0 +1,686 @@
+///                                                                           
+/// Langulus::Anyness                                                         
+/// Copyright(C) 2012 Dimo Markov <langulusteam@gmail.com>                    
+///                                                                           
+/// Distributed under GNU General Public License v3+                          
+/// See LICENSE file, or https://www.gnu.org/licenses                         
+///                                                                           
+#pragma once
+#include "Block.hpp"
+
+namespace Langulus::Anyness
+{
+   
+   /// Constrain an index to the limits of the current block                  
+   ///   @param idx - the index to constrain                                  
+   ///   @return the constrained index or a special one of constrain fails    
+   LANGULUS(ALWAYSINLINE)
+   constexpr Index Block::Constrain(const Index& idx) const noexcept {
+      return idx.Constrained(mCount);
+   }
+   
+   /// Get the internal byte array with a given offset                        
+   /// This is lowest level access and checks nothing                         
+   ///   @attention assumes block is allocated                                
+   ///   @param byteOffset - number of bytes to add                           
+   ///   @return pointer to the selected raw data offset                      
+   LANGULUS(ALWAYSINLINE)
+   SAFETY_CONSTEXPR()
+   Byte* Block::At(const Offset& byteOffset) SAFETY_NOEXCEPT() {
+      LANGULUS_ASSUME(DevAssumes, mRaw,
+         "Invalid memory");
+      LANGULUS_ASSUME(DevAssumes, byteOffset < GetReservedSize(),
+         "Byte offset out of range");
+      return GetRaw() + byteOffset;
+   }
+
+   /// Get the internal byte array with a given offset (const)                
+   /// This is lowest level access and checks nothing                         
+   ///   @attention assumes block is allocated                                
+   ///   @param byteOffset - number of bytes to add                           
+   ///   @return pointer to the selected raw data offset                      
+   LANGULUS(ALWAYSINLINE)
+   SAFETY_CONSTEXPR()
+   const Byte* Block::At(const Offset& byte_offset) const SAFETY_NOEXCEPT() {
+      return const_cast<Block*>(this)->At(byte_offset);
+   }
+
+   /// Access element at a specific index, and wrap it in a mutable Block     
+   ///   @tparam IDX - the type of index we're using (deducible)              
+   ///   @param idx - the index                                               
+   ///   @return mutable type-erased element, wrapped in a Block              
+   template<CT::Index IDX>
+   LANGULUS(ALWAYSINLINE)
+   Block Block::operator[] (const IDX& idx) {
+      const auto index = SimplifyIndex<void>(idx);
+      return GetElement(index);
+   }
+
+   /// Access element at a specific index, and wrap it in a constant Block    
+   ///   @tparam IDX - the type of index we're using (deducible)              
+   ///   @param idx - the index                                               
+   ///   @return immutable type-erased element, wrapped in a Block            
+   template<CT::Index IDX>
+   LANGULUS(ALWAYSINLINE)
+   Block Block::operator[] (const IDX& idx) const {
+      const auto index = SimplifyIndex<void>(idx);
+      return GetElement(index);
+   }
+   
+   /// Get an element pointer or reference with a given index                 
+   /// This is a lower-level routine that does only sparseness checking       
+   /// No conversion or copying occurs, only pointer arithmetic               
+   ///   @attention assumes the container is typed                            
+   ///   @tparam T - the type of data we're accessing                         
+   ///   @param idx - simple index for accessing                              
+   ///   @param baseOffset - byte offset from the element to apply            
+   ///   @return either pointer or reference to the element (depends on T)    
+   template<CT::Data T>
+   LANGULUS(ALWAYSINLINE)
+   SAFETY_CONSTEXPR()
+   decltype(auto) Block::Get(const Offset& idx, const Offset& baseOffset) SAFETY_NOEXCEPT() {
+      LANGULUS_ASSUME(DevAssumes, IsTyped(), "Block is not typed");
+
+      Byte* pointer;
+      if (mType->mIsSparse)
+         pointer = GetRawSparse()[idx] + baseOffset;
+      else
+         pointer = At(mType->mSize * idx) + baseOffset;
+
+      if constexpr (CT::Dense<T>)
+         return *reinterpret_cast<Deref<T>*>(pointer);
+      else
+         return reinterpret_cast<Deref<T>>(pointer);
+   }
+
+   /// Get a constant element pointer or reference with a given index         
+   /// This is a lower-level routine that does only sparseness checking       
+   /// No conversion or copying occurs, only pointer arithmetic               
+   ///   @attention assumes the container is typed                            
+   ///   @tparam T - the type of data we're accessing                         
+   ///   @param idx - simple index for accessing                              
+   ///   @param baseOffset - byte offset from the element to apply            
+   ///   @return either pointer or reference to the element (depends on T)    
+   template<CT::Data T>
+   LANGULUS(ALWAYSINLINE)
+   SAFETY_CONSTEXPR()
+   decltype(auto) Block::Get(const Offset& idx, const Offset& baseOffset) const SAFETY_NOEXCEPT() {
+      return const_cast<Block*>(this)->template Get<T>(idx, baseOffset);
+   }
+   
+   /// Get an element at an index, trying to interpret it as T                
+   /// No conversion or copying shall occur in this routine, only pointer     
+   /// arithmetic based on CTTI or RTTI                                       
+   ///   @attention assumes the container is typed                            
+   ///   @tparam T - the type to interpret to                                 
+   ///   @tparam IDX - the type used for indexing (deducible)                 
+   ///   @param index - the index                                             
+   ///   @return either pointer or reference to the element (depends on T)    
+   template<CT::Data T, CT::Index IDX>
+   decltype(auto) Block::As(const IDX& index) {
+      // First quick type stage for fast access                         
+      if (mType->IsExact<T>()) {
+         const auto idx = SimplifyIndex<T>(index);
+         return Get<T>(idx);
+      }
+
+      // Second fallback stage for compatible bases and mappings        
+      const auto idx = SimplifyIndex<void>(index);
+      RTTI::Base base;
+      if (!mType->template GetBase<T>(0, base)) {
+         // There's still a chance if this container is resolvable      
+         // This is the third and final stage                           
+         auto resolved = GetElementResolved(idx);
+         if (resolved.mType->template IsExact<T>()) {
+            // Element resolved to a compatible type, so get it         
+            return resolved.template Get<T>();
+         }
+         else if (resolved.mType->template GetBase<T>(0, base)) {
+            // Get base memory of the resolved element and access       
+            return resolved.GetBaseMemory(base)
+               .template Get<T>(idx % base.mCount);
+         }
+
+         // All stages of interpretation failed                         
+         // Don't log this, because it will spam the crap out of us     
+         // That throw is used by ForEach to handle irrelevant types    
+         LANGULUS_THROW(Access, "Type mismatch");
+      }
+
+      // Get base memory of the required element and access             
+      return 
+         GetElementDense(idx / base.mCount)
+            .GetBaseMemory(base)
+               .template Get<T>(idx % base.mCount);
+   }
+
+   /// Get a constant element at an index, trying to interpret it as T        
+   /// No conversion or copying shall occur in this routine, only pointer     
+   /// arithmetic based on CTTI or RTTI                                       
+   ///   @attention assumes the container is typed                            
+   ///   @tparam T - the type to interpret to                                 
+   ///   @tparam IDX - the type used for indexing (deducible)                 
+   ///   @param index - the index                                             
+   ///   @return either pointer or reference to the element (depends on T)    
+   template<CT::Data T, CT::Index IDX>
+   LANGULUS(ALWAYSINLINE)
+   decltype(auto) Block::As(const IDX& index) const {
+      return const_cast<Block&>(*this).template As<T, IDX>(index);
+   }
+   
+   /// Select an initialized region from the memory block                     
+   ///   @param start - starting element index                                
+   ///   @param count - number of elements to remain after 'start'            
+   ///   @return the block representing the region                            
+   LANGULUS(ALWAYSINLINE)
+   SAFETY_CONSTEXPR()
+   Block Block::Crop(const Offset& start, const Count& count) SAFETY_NOEXCEPT() {
+      if (count == 0)
+         return {mState, mType};
+
+      LANGULUS_ASSUME(DevAssumes, start + count > mCount, "Out of limits");
+      Block result {*this};
+      result.mCount = count;
+      result.mRaw += start * GetStride();
+      result.mState += DataState::Member;
+      // The reserve is used as offset for the entry if sparse          
+      // It is imperative that it remains intact                        
+      result.mReserved -= start;
+      return result;
+   }
+
+   /// Select an initialized region from the memory block (const)             
+   ///   @param start - starting element index                                
+   ///   @param count - number of elements                                    
+   ///   @return the block representing the region                            
+   LANGULUS(ALWAYSINLINE)
+   SAFETY_CONSTEXPR()
+   Block Block::Crop(const Offset& start, const Count& count) const SAFETY_NOEXCEPT() {
+      auto result = const_cast<Block*>(this)->Crop(start, count);
+      result.MakeConst();
+      return result;
+   }
+
+   /// Get an element in container, and wrap it in a mutable dense block      
+   ///   @attention the result will be empty if a sparse nullptr              
+   ///   @param index - index of the element inside the block                 
+   ///   @return the dense mutable memory block for the element               
+   LANGULUS(ALWAYSINLINE)
+   Block Block::GetElementDense(Offset index) {
+      return GetElement(index).GetDense();
+   }
+
+   /// Get an element in container, and wrap it in a constant dense block     
+   ///   @attention the result will be empty if a sparse nullptr              
+   ///   @param index - index of the element inside the block                 
+   ///   @return the dense immutable memory block for the element             
+   LANGULUS(ALWAYSINLINE)
+   const Block Block::GetElementDense(Offset index) const {
+      return const_cast<Block*>(this)->GetElementDense(index);
+   }
+   
+   /// Get the dense and most concrete block of an element inside the block   
+   ///   @attention the element might be empty if resolved a sparse nullptr   
+   ///   @param index - index of the element inside the block                 
+   ///   @return the dense resolved memory block for the element              
+   LANGULUS(ALWAYSINLINE)
+   Block Block::GetElementResolved(Offset index) {
+      return GetElement(index).GetResolved();
+   }
+
+   /// Get the dense const block of an element inside the block               
+   ///   @param index - index of the element inside the block                 
+   ///   @return the dense resolved memory block for the element              
+   LANGULUS(ALWAYSINLINE)
+   const Block Block::GetElementResolved(Count index) const {
+      return const_cast<Block*>(this)->GetElementResolved(index);
+   }
+
+   /// Get a specific element block (unsafe)                                  
+   ///   @param index - the element's index                                   
+   ///   @return the element's block                                          
+   LANGULUS(ALWAYSINLINE)
+   Block Block::GetElement(Offset index) SAFETY_NOEXCEPT() {
+      LANGULUS_ASSUME(DevAssumes, mRaw,
+         "Invalid memory");
+      LANGULUS_ASSUME(DevAssumes, index < mReserved,
+         "Index out of range");
+
+      Block result {*this};
+      result.mState += DataState::Static;
+      result.mState -= DataState::Or;
+      result.mCount = 1;
+      result.mRaw += index * GetStride();
+      // The reserve is used as offset for the entry if sparse          
+      // It is imperative that it remains intact                        
+      result.mReserved -= index;
+      return result;
+   }
+
+   /// Get a specific element block (const, unsafe)                           
+   ///   @param index - the element's index                                   
+   ///   @return the element's block                                          
+   LANGULUS(ALWAYSINLINE)
+   const Block Block::GetElement(Offset index) const SAFETY_NOEXCEPT() {
+      Block result {const_cast<Block*>(this)->GetElement(index)};
+      result.MakeConst();
+      return result;
+   }
+
+   /// Get first element block (unsafe)                                       
+   ///   @return the first element's block                                    
+   LANGULUS(ALWAYSINLINE)
+   Block Block::GetElement() SAFETY_NOEXCEPT() {
+      LANGULUS_ASSUME(DevAssumes, mRaw,
+         "Invalid memory");
+      LANGULUS_ASSUME(DevAssumes, mCount > 0,
+         "Block is empty");
+
+      Block result {*this};
+      result.mState += DataState::Static;
+      result.mState -= DataState::Or;
+      result.mCount = 1;
+      return result;
+   }
+
+   /// Get first element block (const, unsafe)                                
+   ///   @return the first element's block                                    
+   LANGULUS(ALWAYSINLINE)
+   const Block Block::GetElement() const SAFETY_NOEXCEPT() {
+      Block result {const_cast<Block*>(this)->GetElement()};
+      result.MakeConst();
+      return result;
+   }
+
+   /// Get a deep memory sub-block                                            
+   ///   @param index - the index to get, where 0 corresponds to this block   
+   ///   @return a pointer to the block or nullptr if index is invalid        
+   LANGULUS(ALWAYSINLINE)
+   Block* Block::GetBlockDeep(Count index) noexcept {
+      if (index == 0)
+         return this;
+      if (!IsDeep())
+         return nullptr;
+
+      --index;
+
+      for (Count i = 0; i < mCount; i += 1) {
+         auto ith = As<Block*>(i);
+         const auto count = ith->GetCountDeep();
+         if (index <= count) {
+            auto subpack = ith->GetBlockDeep(index);
+            if (subpack != nullptr)
+               return subpack;
+         }
+
+         index -= count;
+      }
+
+      return nullptr;
+   }
+
+   /// Get a deep memory sub-block (const)                                    
+   ///   @param index - the index to get                                      
+   ///   @return a pointer to the block or nullptr if index is invalid        
+   LANGULUS(ALWAYSINLINE)
+   const Block* Block::GetBlockDeep(Count index) const noexcept {
+      return const_cast<Block*>(this)->GetBlockDeep(index);
+   }
+
+   /// Get a deep element block                                               
+   ///   @param index - the index to get                                      
+   ///   @return the element block                                            
+   LANGULUS(ALWAYSINLINE)
+   Block Block::GetElementDeep(Count index) noexcept {
+      if (!mType)
+         return {};
+
+      if (!IsDeep())
+         return index < mCount ? GetElement(index) : Block();
+
+      for (Count i = 0; i != mCount; i += 1) {
+         auto ith = As<Block*>(i);
+         const auto count = ith->GetCountElementsDeep();
+         if (index < count) 
+            return ith->GetElementDeep(index);
+
+         index -= count;
+      }
+
+      return {};
+   }
+
+   /// Get a deep element block (const)                                       
+   ///   @param index - the index to get                                      
+   ///   @return the element block                                            
+   LANGULUS(ALWAYSINLINE)
+   const Block Block::GetElementDeep(Count index) const noexcept {
+      Block result {const_cast<Block*>(this)->GetElementDeep(index)};
+      result.MakeConst();
+      return result;
+   }
+   
+   /// Get the resolved first mutable element of this block                   
+   ///   @attention assumes this block is valid and has at least one element  
+   ///   @return the mutable resolved first element                           
+   LANGULUS(ALWAYSINLINE)
+   Block Block::GetResolved() SAFETY_NOEXCEPT() {
+      LANGULUS_ASSUME(DevAssumes, IsTyped(),
+         "Block is not typed");
+      LANGULUS_ASSUME(DevAssumes, mCount > 0,
+         "Block is empty");
+      LANGULUS_ASSUME(DevAssumes, mType->mResolver != nullptr,
+         "Type is not resolvable");
+
+      return mType->mResolver(mRaw);
+   }
+
+   /// Get the resolved first constant element of this block                  
+   ///   @attention assumes this block is valid and has at least one element  
+   ///   @return the immutable resolved first element                         
+   LANGULUS(ALWAYSINLINE)
+   const Block Block::GetResolved() const SAFETY_NOEXCEPT() {
+      Block result {const_cast<Block*>(this)->GetResolved()};
+      result.MakeConst();
+      return result;
+   }
+
+   /// Get the mutable dense first element of this block                      
+   ///   @attention throws if type is incomplete                              
+   ///   @attention assumes this block is valid and has exactly one element   
+   ///   @return the mutable dense first element                              
+   LANGULUS(ALWAYSINLINE)
+   Block Block::GetDense() {
+      LANGULUS_ASSUME(DevAssumes, IsTyped(),
+         "Block is not typed");
+      LANGULUS_ASSUME(DevAssumes, mCount > 0,
+         "Block is empty");
+
+      if (!mType->mOrigin) {
+         // Can't densify an incomplete type                            
+         LANGULUS_THROW(Meta, "Trying to interface incomplete data as dense");
+      }
+
+      Block copy {*this};
+      while (copy.mType->mIsSparse) {
+         copy.mEntry = *GetEntries();
+         copy.mRaw = *GetRawSparse();
+         copy.mType = copy.mType->mDeptr;
+      }
+
+      return copy;
+   }
+
+   /// Get the immutable dense first element of this block                    
+   ///   @attention throws if type is incomplete                              
+   ///   @attention assumes this block is valid and has exactly one element   
+   ///   @return the mutable dense first element                              
+   LANGULUS(ALWAYSINLINE)
+   const Block Block::GetDense() const {
+      Block result {const_cast<Block*>(this)->GetDense()};
+      result.MakeConst();
+      return result;
+   }
+   
+   /// Swap two elements                                                      
+   ///   @attention assumes T is exactly the contained type                   
+   ///   @tparam T - the contained type                                       
+   ///   @tparam INDEX1 - type of the first index (deducible)                 
+   ///   @tparam INDEX2 - type of the second index (deducible)                
+   ///   @param from_ - first index                                           
+   ///   @param to_ - second index                                            
+   template<CT::Data T, CT::Index INDEX1, CT::Index INDEX2>
+   LANGULUS(ALWAYSINLINE)
+   void Block::Swap(INDEX1 from_, INDEX2 to_) {
+      LANGULUS_ASSUME(DevAssumes, IsExact<T>(), "Type mismatch");
+
+      const auto from = SimplifyIndex(from_);
+      const auto to = SimplifyIndex(to_);
+      if (from >= mCount || to >= mCount || from == to)
+         return;
+
+      auto data = GetRawAs<T>();
+      T temp {::std::move(data[to])};
+      data[to] = ::std::move(data[from]);
+      SemanticAssign(data[from], Abandon(temp));
+   }
+
+   /// Constrain an index to the limits of the current block                  
+   ///   @attention assumes T is the type of the container                    
+   ///   @tparam T - the type to use for comparisons                          
+   ///   @param idx - the index to constrain                                  
+   ///   @return the constrained index or a special one of constrain fails    
+   template<CT::Data T>
+   LANGULUS(ALWAYSINLINE)
+   Index Block::ConstrainMore(const Index& idx) const SAFETY_NOEXCEPT() {
+      const auto result = Constrain(idx);
+      if (result == IndexBiggest) {
+         if constexpr (CT::Sortable<T, T>)
+            return GetIndexMax<T>();
+         else
+            return IndexNone;
+      }
+      else if (result == IndexSmallest) {
+         if constexpr (CT::Sortable<T, T>)
+            return GetIndexMin<T>();
+         else
+            return IndexNone;
+      }
+      else if (result == IndexMode) {
+         if constexpr (CT::Sortable<T, T>) {
+            UNUSED() Count unused;
+            return GetIndexMode<T>(unused);
+         }
+         else return IndexNone;
+      }
+
+      return result;
+   }
+   
+   /// Get the index of the biggest element                                   
+   ///   @attention assumes T is the type of the container                    
+   ///   @tparam T - the type to use for comparison                           
+   ///   @return the index of the biggest element T inside this block         
+   template<CT::Data T>
+   LANGULUS(ALWAYSINLINE)
+   Index Block::GetIndexMax() const SAFETY_NOEXCEPT() requires (CT::Sortable<T, T>) {
+      if (IsEmpty())
+         return IndexNone;
+
+      auto data = GetRawAs<T>();
+      auto max = data;
+      for (Offset i = 1; i < mCount; ++i) {
+         if (data[i] > *max)
+            max = data + i;
+      }
+
+      return max - data;
+   }
+
+   /// Get the index of the smallest element                                  
+   ///   @attention assumes T is the type of the container                    
+   ///   @tparam T - the type to use for comparison                           
+   ///   @return the index of the smallest element T inside this block        
+   template<CT::Data T>
+   LANGULUS(ALWAYSINLINE)
+   Index Block::GetIndexMin() const SAFETY_NOEXCEPT() requires (CT::Sortable<T, T>) {
+      if (IsEmpty())
+         return IndexNone;
+
+      auto data = GetRawAs<T>();
+      auto min = data;
+      for (Offset i = 1; i < mCount; ++i) {
+         if (data[i] < *min)
+            min = data + i;
+      }
+
+      return min - data;
+   }
+
+   /// Get the index of element that repeats the most times                   
+   ///   @attention assumes T is the type of the container                    
+   ///   @tparam T - the type to use for comparison                           
+   ///   @param count - [out] count the number of repeats for the mode        
+   ///   @return the index of the first found mode                            
+   template<CT::Data T>
+   Index Block::GetIndexMode(Count& count) const SAFETY_NOEXCEPT() {
+      if (IsEmpty()) {
+         count = 0;
+         return IndexNone;
+      }
+
+      auto data = GetRawAs<T>();
+      decltype(data) best = nullptr;
+      Count best_count {};
+      for (Offset i = 0; i < mCount; ++i) {
+         Count counter {};
+         for (Count j = i; j < mCount; ++j) {
+            if (data[i] == data[j])
+               ++counter;
+            if (counter + (mCount - j) <= best_count)
+               break;
+         }
+
+         if (counter > best_count || !best) {
+            best_count = counter;
+            best = data + i;
+         }
+      }
+
+      count = best_count;
+      return best - data;
+   }
+
+   /// Sort the contents of this container using a static type                
+   ///   @attention assumes T is the type of the container                    
+   ///   @tparam T - the type to use for comparison                           
+   ///   @param first - what will the first element be after sorting?         
+   ///                  use IndexSmallest for 123, or anything else for 321   
+   template<CT::Data T>
+   void Block::Sort(const Index& first) noexcept {
+      auto data = GetRawAs<T>();
+      if (!data)
+         return;
+
+      Count j {}, i {};
+      if (first == IndexSmallest) {
+         for (; i < mCount; ++i) {
+            for (; j < i; ++j) {
+               if (data[i] > data[j])
+                  Swap<T>(i, j);
+            }
+            for (j = i + 1; j < mCount; ++j) {
+               if (data[i] > data[j])
+                  Swap<T>(i, j);
+            }
+         }
+      }
+      else {
+         for (; i < mCount; ++i) {
+            for (; j < i; ++j) {
+               if (data[i] < data[j])
+                  Swap<T>(i, j);
+            }
+            for (j = i + 1; j < mCount; ++j) {
+               if (data[i] < data[j])
+                  Swap<T>(i, j);
+            }
+         }
+      }
+   }
+   
+   /// Select region from the memory block - unsafe and may return memory     
+   /// that has not been initialized yet (for internal use only)              
+   ///   @param start - starting element index                                
+   ///   @param count - number of elements                                    
+   ///   @return the block representing the region                            
+   LANGULUS(ALWAYSINLINE)
+   Block Block::CropInner(const Offset& start, const Count& count) const noexcept {
+      Block result {*this};
+      result.mCount = count;
+      result.mRaw += start * GetStride();
+      // The reserve is used as offset for the entry if sparse          
+      // It is imperative that it remains intact                        
+      result.mReserved -= start;
+      return result;
+   }
+   
+   /// Convert an index to an offset                                          
+   /// Complex indices will be fully constrained                              
+   /// Signed index types will be checked for negative indices (for reverses) 
+   /// Unsigned indices are directly forwarded without any overhead           
+   ///   @attention assumes T is correct for type-erased containers           
+   ///   @attention assumes index is in container count limit, if unsigned,   
+   ///              and COUNT_CONSTRAINED is true                             
+   ///   @attention assumes index is in container reserve limit, if unsigned, 
+   ///              and COUNT_CONSTRAINED is false                            
+   ///   @tparam T - the type we're indexing, used for additional special     
+   ///               index handling, like Min and Max, that require type info 
+   ///               use void to skip these indices at no cost                
+   ///   @tparam COUNT_CONSTRAINED - will check count limits if true or       
+   ///                               reserve limit if false, when DevAssumes  
+   ///                               is enabled                               
+   ///   @tparam INDEX - type of the index to simplify                        
+   ///   @param index - the index to simplify                                 
+   ///   @return the offset                                                   
+   template<class T, bool COUNT_CONSTRAINED, CT::Index INDEX>
+   LANGULUS(ALWAYSINLINE)
+   Offset Block::SimplifyIndex(const INDEX& index) const {
+      if constexpr (CT::Same<INDEX, Index>) {
+         // This is the most safe path                                  
+         if constexpr (CT::Void<T>)
+            return Constrain(index).GetOffset();
+         else {
+            if constexpr (!CT::Void<T>) {
+               LANGULUS_ASSUME(DevAssumes, (CastsTo<T, true>()), "Type mismatch");
+            }
+            return ConstrainMore<T>(index).GetOffset();
+         }
+      }
+      else if constexpr (CT::Signed<INDEX>) {
+         // Somewhat safe, default literal type is signed               
+         if (index < 0) {
+            const auto unsign = static_cast<Offset>(-index);
+            if constexpr (COUNT_CONSTRAINED) {
+               LANGULUS_ASSERT(unsign <= mCount, Access,
+                  "Reverse index out of count range");
+            }
+            else {
+               LANGULUS_ASSERT(unsign <= mReserved, Access,
+                  "Reverse index out of reserved range");
+            }
+
+            return mCount - unsign;
+         }
+         else {
+            const auto unsign = static_cast<Offset>(index);
+            if constexpr (COUNT_CONSTRAINED) {
+               LANGULUS_ASSERT(unsign < mCount, Access,
+                  "Signed index out of count range");
+            }
+            else {
+               LANGULUS_ASSERT(unsign < mReserved, Access,
+                  "Signed index out of reserved range");
+            }
+
+            return unsign;
+         }
+      }
+      else {
+         // Unsafe, works only on assumptions                           
+         // Using an unsigned index explicitly makes a statement, that  
+         // you know what you're doing                                  
+         if constexpr (COUNT_CONSTRAINED) {
+            LANGULUS_ASSUME(UserAssumes, index < mCount,
+               "Unsigned index out of range");
+         }
+         else {
+            LANGULUS_ASSUME(UserAssumes, index < mReserved,
+               "Unsigned index out of range");
+         }
+
+         return index;
+      }
+   }
+
+} // namespace Langulus::Anyness

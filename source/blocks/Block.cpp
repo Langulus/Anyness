@@ -11,29 +11,9 @@
 namespace Langulus::Anyness
 {
 
-   /// Check if a memory block can be concatenated to this one                
-   ///   @param other - the block to concatenate                              
-   ///   @return true if able to concatenate                                  
-   bool Block::IsConcatable(const Block& other) const noexcept {
-      // Check if unmovable or constant                                 
-      if (IsStatic() || IsConstant())
-         return false;
-
-      // Check if types are compatible                                  
-      return CanFitState(other) && Is(other.mType);
-   }
-
-   /// Check if a type can be inserted                                        
-   ///   @param other - check if a given type is insertable to the block      
-   ///   @return true if able to insert                                       
-   bool Block::IsInsertable(DMeta other) const noexcept {
-      if (!other || IsStatic() || IsConstant() || IsDeep() != other->mIsDeep)
-         return false;
-      return CastsToMeta(other);
-   }
-
-   /// Clone all elements inside a new memory block                           
-   /// If we have jurisdiction, the memory won't move                         
+   /// Clone all elements inside this memory block, preserving hierarchy and  
+   /// density, but removing size constraints and constness                   
+   /// If we already have jurisdiction, then nothing happens                  
    void Block::TakeAuthority() {
       if (mEntry) {
          // We already own this memory, don't touch anything            
@@ -41,7 +21,8 @@ namespace Langulus::Anyness
       }
 
       // Clone everything and overwrite this block                      
-      // At the end it should have exactly one reference                
+      // At the end it, and all its subelements should have exactly one 
+      // reference                                                      
       Block clone;
       Clone(clone);
       Free();
@@ -192,44 +173,6 @@ namespace Langulus::Anyness
          };
       }
    }
-   
-   /// Get first element block (unsafe)                                       
-   ///   @return the first element's block                                    
-   Block Block::GetElement() noexcept {
-      return {
-         (mState + DataState::Static) - DataState::Or,
-         mType, 1, mRaw, mEntry
-      };
-   }
-
-   /// Get first element block (const, unsafe)                                
-   ///   @return the first element's block                                    
-   const Block Block::GetElement() const noexcept {
-      return {
-         (mState + DataState::Static) - DataState::Or,
-         mType, 1, mRaw, mEntry
-      };
-   }
-
-   /// Get a specific element block (unsafe)                                  
-   ///   @param index - the element's index                                   
-   ///   @return the element's block                                          
-   Block Block::GetElement(Offset index) noexcept {
-      return {
-         (mState + DataState::Static) - DataState::Or,
-         mType, 1, At(index * GetStride()), mEntry
-      };
-   }
-
-   /// Get a specific element block (const, unsafe)                           
-   ///   @param index - the index element                                     
-   ///   @return the element's block                                          
-   const Block Block::GetElement(Offset index) const noexcept {
-      return {
-         (mState + DataState::Static) - DataState::Or,
-         mType, 1, At(index * GetStride()), mEntry
-      };
-   }
 
    /// Get next element by incrementing data pointer (for inner use)          
    void Block::Next() noexcept {
@@ -251,133 +194,6 @@ namespace Langulus::Anyness
    ///   @return a new block with the decremented pointer                     
    Block Block::Prev() const noexcept {
       return {mState, mType, mCount, mRaw - GetStride(), mEntry};
-   }
-
-   /// Get the resolved first element of this block                           
-   ///   @attention assumes this block is valid and has exactly one element   
-   ///   @return the resolved first element                                   
-   Block Block::GetResolved() noexcept {
-   	//TODO no need for GetDense() with new reflection tactic?
-      auto dense = GetDense();
-      if (!dense.mRaw || !dense.mType->mResolver)
-         return dense;
-
-      return dense.mType->mResolver(dense.mRaw).GetDense();
-   }
-
-   const Block Block::GetResolved() const noexcept {
-      return const_cast<Block*>(this)->GetResolved();
-   }
-
-   /// Get the dense first element of this block                              
-   ///   @attention assumes this block is valid and has exactly one element   
-   ///   @return the dense first element                                      
-   Block Block::GetDense() noexcept {
-      auto copy = *this;
-      while (copy.IsSparse()) {
-         copy.mEntry = *GetEntries();
-         copy.mRaw = *GetRawSparse();
-         copy.mType = copy.mType->RemovePointer();
-         if (!copy.mType)
-            LANGULUS_THROW(Meta, "Trying to interface incomplete data as dense");
-      }
-
-      return copy;
-   }
-
-   const Block Block::GetDense() const noexcept {
-      return const_cast<Block*>(this)->GetDense();
-   }
-
-   /// Get the dense block of an element inside the block                     
-   ///   @attention the element might be empty if a sparse nullptr            
-   ///   @param index - index of the element inside the block                 
-   ///   @return the dense memory block for the element                       
-   Block Block::GetElementDense(Offset index) {
-      return GetElement(index).GetDense();
-   }
-
-   /// Get the dense block of an element inside the block                     
-   ///   @param index - index of the element inside the block                 
-   ///   @return the dense memory block for the element                       
-   const Block Block::GetElementDense(Offset index) const {
-      return const_cast<Block*>(this)->GetElementDense(index);
-   }
-   
-   /// Get the dense and most concrete block of an element inside the block   
-   ///   @attention the element might be empty if resolved a sparse nullptr   
-   ///   @param index - index of the element inside the block                 
-   ///   @return the dense resolved memory block for the element              
-   Block Block::GetElementResolved(Offset index) {
-      return GetElement(index).GetResolved();
-   }
-
-   /// Get the dense const block of an element inside the block               
-   ///   @param index - index of the element inside the block                 
-   ///   @return the dense resolved memory block for the element              
-   const Block Block::GetElementResolved(Count index) const {
-      return const_cast<Block*>(this)->GetElementResolved(index);
-   }
-   
-   /// Get a deep memory sub-block                                            
-   ///   @param index - the index to get, where 0 corresponds to this         
-   ///   @return a pointer to the block or nullptr if index is invalid        
-   Block* Block::GetBlockDeep(Count index) noexcept {
-      if (index == 0)
-         return this;
-      if (!IsDeep())
-         return nullptr;
-
-      --index;
-      for (Count i = 0; i < mCount; i += 1) {
-         auto ith = As<Block*>(i);
-         const auto count = ith->GetCountDeep();
-         if (index <= count) {
-            auto subpack = ith->GetBlockDeep(index);
-            if (subpack != nullptr)
-               return subpack;
-         }
-
-         index -= count;
-      }
-
-      return nullptr;
-   }
-
-   /// Get a deep memory sub-block (const)                                    
-   ///   @param index - the index to get                                      
-   ///   @return a pointer to the block or nullptr if index is invalid        
-   const Block* Block::GetBlockDeep(Count index) const noexcept {
-      return const_cast<Block*>(this)->GetBlockDeep(index);
-   }
-
-   /// Get a deep element block                                               
-   ///   @param index - the index to get                                      
-   ///   @return the element block                                            
-   Block Block::GetElementDeep(Count index) noexcept {
-      if (!mType)
-         return {};
-
-      if (!IsDeep())
-         return index < mCount ? GetElement(index) : Block();
-
-      for (Count i = 0; i != mCount; i += 1) {
-         auto ith = As<Block*>(i);
-         const auto count = ith->GetCountElementsDeep();
-         if (index < count) 
-            return ith->GetElementDeep(index);
-
-         index -= count;
-      }
-
-      return {};
-   }
-
-   /// Get a deep element block (const)                                       
-   ///   @param index - the index to get                                      
-   ///   @return the element block                                            
-   const Block Block::GetElementDeep(Count index) const noexcept {
-      return const_cast<Block*>(this)->GetElementDeep(index);
    }
 
    /// Remove elements on the back                                            

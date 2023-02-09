@@ -125,22 +125,6 @@ namespace Langulus::Anyness
       mState = mState.mState & DataState::Typed;
       ResetType();
    }
-   
-   /// Get a size based on reflected allocation page and count (unsafe)       
-   ///   @param count - the number of elements to request                     
-   ///   @returns both the provided byte size and reserved count              
-   LANGULUS(ALWAYSINLINE)
-   auto Block::RequestSize(const Count& count) const noexcept {
-      if (IsSparse()) {
-         RTTI::AllocationRequest result;
-         const auto requested = sizeof(KnownPointer) * count;
-         result.mByteSize = requested > Alignment ? Roof2(requested) : Alignment;
-         result.mElementCount = result.mByteSize / sizeof(KnownPointer);
-         return result;
-      }
-      
-      return mType->RequestSize(mType->mSize * count);
-   }
 
    /// Reserve a number of elements without initializing them                 
    /// If reserved data is smaller than currently initialized count, the      
@@ -206,7 +190,7 @@ namespace Langulus::Anyness
       if constexpr (CREATE) {
          // Default-construct the rest                                  
          const auto count = elements - mCount;
-         CropInner(mCount, count, count)
+         CropInner(mCount, count)
             .CallUnknownDefaultConstructors(count);
          mCount = elements;
       }
@@ -240,7 +224,7 @@ namespace Langulus::Anyness
             // But is not yet initialized, so initialize it             
             if (mCount < elements) {
                const auto count = elements - mCount;
-               CropInner(mCount, count, count)
+               CropInner(mCount, count)
                   .CallUnknownDefaultConstructors(count);
             }
          }
@@ -273,460 +257,6 @@ namespace Langulus::Anyness
          mEntry = Inner::Allocator::Reallocate(request.mByteSize, mEntry);
          mReserved = request.mElementCount;
       #endif
-   }
-   
-   /// Check if memory is allocated                                           
-   ///   @return true if the block contains any reserved memory               
-   LANGULUS(ALWAYSINLINE)
-   constexpr bool Block::IsAllocated() const noexcept {
-      return mRaw != nullptr;
-   }
-
-   /// Check if block is left-polarized                                       
-   ///   @returns true if this container is left-polarized                    
-   LANGULUS(ALWAYSINLINE)
-   constexpr bool Block::IsPast() const noexcept {
-      return mState.IsPast();
-   }
-
-   /// Check if block is right-polarized                                      
-   ///   @returns true if this container is right-polarized                   
-   LANGULUS(ALWAYSINLINE)
-   constexpr bool Block::IsFuture() const noexcept {
-      return mState.IsFuture();
-   }
-
-   /// Check if block is not polarized                                        
-   ///   @returns true if this container is not polarized                     
-   LANGULUS(ALWAYSINLINE)
-   constexpr bool Block::IsNow() const noexcept {
-      return mState.IsNow();
-   }
-
-   /// Check if block is marked as missing                                    
-   ///   @returns true if this container is marked as vacuum                  
-   LANGULUS(ALWAYSINLINE)
-   constexpr bool Block::IsMissing() const noexcept {
-      return mState.IsMissing();
-   }
-
-   /// Check if block has a data type                                         
-   ///   @returns true if data contained in this pack is unspecified          
-   LANGULUS(ALWAYSINLINE)
-   constexpr bool Block::IsUntyped() const noexcept {
-      return !mType;
-   }
-
-   /// Check if block has a data type, and is type-constrained                
-   ///   @return true if type-constrained                                     
-   LANGULUS(ALWAYSINLINE)
-   constexpr bool Block::IsTypeConstrained() const noexcept {
-      return mType && mState.IsTyped();
-   }
-
-   /// Check if block is encrypted                                            
-   ///   @returns true if the contents of this pack are encrypted             
-   LANGULUS(ALWAYSINLINE)
-   constexpr bool Block::IsEncrypted() const noexcept {
-      return mState.IsEncrypted();
-   }
-
-   /// Check if block is compressed                                           
-   ///   @returns true if the contents of this pack are compressed            
-   LANGULUS(ALWAYSINLINE)
-   constexpr bool Block::IsCompressed() const noexcept {
-      return mState.IsCompressed();
-   }
-
-   /// Check if block is constant                                             
-   ///   @returns true if the contents are immutable                          
-   LANGULUS(ALWAYSINLINE)
-   constexpr bool Block::IsConstant() const noexcept {
-      return mState.IsConstant();
-   }
-
-   /// Check if block is mutable                                              
-   ///   @returns true if the contents are mutable                            
-   LANGULUS(ALWAYSINLINE)
-   constexpr bool Block::IsMutable() const noexcept {
-      return !IsConstant();
-   }
-
-   /// Check if block is static                                               
-   ///   @returns true if the contents are static (size-constrained)          
-   LANGULUS(ALWAYSINLINE)
-   constexpr bool Block::IsStatic() const noexcept {
-      return mRaw && (mState.IsStatic() || !mEntry);
-   }
-
-   /// Check if block is inhibitory (or) container                            
-   ///   @returns true if this is an inhibitory container                     
-   LANGULUS(ALWAYSINLINE)
-   constexpr bool Block::IsOr() const noexcept {
-      return mState.IsOr();
-   }
-
-   /// Check if block contains no created elements (it may still have state)  
-   ///   @returns true if this is an empty container                          
-   LANGULUS(ALWAYSINLINE)
-   constexpr bool Block::IsEmpty() const noexcept {
-      return mCount == 0;
-   }
-
-   /// Check if block contains either created elements, or relevant state     
-   ///   @returns true if this is not an empty stateless container            
-   LANGULUS(ALWAYSINLINE)
-   constexpr bool Block::IsValid() const noexcept {
-      return mCount || GetUnconstrainedState();
-   }
-
-   /// Check if block contains no elements and no relevant state              
-   ///   @returns true if this is an empty stateless container                
-   LANGULUS(ALWAYSINLINE)
-   constexpr bool Block::IsInvalid() const noexcept {
-      return !IsValid();
-   }
-
-   /// Make memory block static (unmovable and unresizable)                   
-   LANGULUS(ALWAYSINLINE)
-   constexpr void Block::MakeStatic(bool enable) noexcept {
-      if (enable)
-         mState += DataState::Static;
-      else
-         mState -= DataState::Static;
-   }
-
-   /// Make memory block constant                                             
-   LANGULUS(ALWAYSINLINE)
-   constexpr void Block::MakeConst(bool enable) noexcept {
-      if (enable)
-         mState += DataState::Constant;
-      else
-         mState -= DataState::Constant;
-   }
-
-   /// Make memory block type-immutable                                       
-   LANGULUS(ALWAYSINLINE)
-   constexpr void Block::MakeTypeConstrained(bool enable) noexcept {
-      if (enable)
-         mState += DataState::Typed;
-      else
-         mState -= DataState::Typed;
-   }
-
-   /// Make memory block exlusive (a.k.a. OR container)                       
-   LANGULUS(ALWAYSINLINE)
-   constexpr void Block::MakeOr() noexcept {
-      mState += DataState::Or;
-   }
-
-   /// Make memory block inclusive (a.k.a. AND container)                     
-   LANGULUS(ALWAYSINLINE)
-   constexpr void Block::MakeAnd() noexcept {
-      mState -= DataState::Or;
-   }
-
-   /// Set memory block phase to past                                         
-   LANGULUS(ALWAYSINLINE)
-   constexpr void Block::MakePast() noexcept {
-      mState -= DataState::Future;
-      mState += DataState::Missing;
-   }
-
-   /// Set memory block phase to future                                       
-   LANGULUS(ALWAYSINLINE)
-   constexpr void Block::MakeFuture() noexcept {
-      mState += DataState::Missing | DataState::Future;
-   }
-   
-   /// Set memory block phase to neutral                                      
-   LANGULUS(ALWAYSINLINE)
-   constexpr void Block::MakeNow() noexcept {
-      mState -= DataState::Missing | DataState::Future;
-   }
-   
-   /// Check polarity compatibility                                           
-   ///   @param other - the polarity to check                                 
-   ///   @return true if polarity is compatible                               
-   LANGULUS(ALWAYSINLINE)
-   constexpr bool Block::CanFitPhase(const Block& other) const noexcept {
-      return IsFuture() == other.IsFuture() || IsNow() || other.IsNow();
-   }
-
-   /// Check state compatibility regarding orness                             
-   ///   @param other - the state to check                                    
-   ///   @return true if state is compatible                                  
-   LANGULUS(ALWAYSINLINE)
-   constexpr bool Block::CanFitOrAnd(const Block& other) const noexcept {
-      return IsOr() == other.IsOr() || mCount <= 1 || other.mCount <= 1;
-   }
-
-   /// Check state compatibility                                              
-   ///   @param other - the state to check                                    
-   ///   @return true if state is compatible                                  
-   LANGULUS(ALWAYSINLINE)
-   constexpr bool Block::CanFitState(const Block& other) const noexcept {
-      return IsInvalid() || (
-            IsMissing() == other.IsMissing()
-         && (!IsTypeConstrained() || other.IsExact(mType))
-         && CanFitOrAnd(other)
-         && CanFitPhase(other)
-      );
-   }
-
-   /// Get the size of the contained data, in bytes                           
-   ///   @return the byte size                                                
-   LANGULUS(ALWAYSINLINE)
-   constexpr Size Block::GetByteSize() const noexcept {
-      return GetCount() * GetStride();
-   }
-
-   /// Check if a type can be inserted                                        
-   template<CT::Data T>
-   LANGULUS(ALWAYSINLINE)
-   bool Block::IsInsertable() const noexcept {
-      return IsInsertable(MetaData::Of<T>());
-   }
-
-   /// Get the raw data inside the container                                  
-   ///   @attention as unsafe as it gets, but as fast as it gets              
-   LANGULUS(ALWAYSINLINE)
-   constexpr Byte* Block::GetRaw() noexcept {
-      return mRaw;
-   }
-
-   /// Get the raw data inside the container (const)                          
-   ///   @attention as unsafe as it gets, but as fast as it gets              
-   LANGULUS(ALWAYSINLINE)
-   constexpr const Byte* Block::GetRaw() const noexcept {
-      return mRaw;
-   }
-
-   /// Get the end raw data pointer inside the container                      
-   ///   @attention as unsafe as it gets, but as fast as it gets              
-   LANGULUS(ALWAYSINLINE)
-   constexpr Byte* Block::GetRawEnd() noexcept {
-      return GetRaw() + GetByteSize();
-   }
-
-   /// Get the end raw data pointer inside the container (const)              
-   ///   @attention as unsafe as it gets, but as fast as it gets              
-   LANGULUS(ALWAYSINLINE)
-   constexpr const Byte* Block::GetRawEnd() const noexcept {
-      return GetRaw() + GetByteSize();
-   }
-
-   /// Get a constant pointer array - useful for sparse containers (const)    
-   ///   @return the raw data as an array of constant pointers                
-   LANGULUS(ALWAYSINLINE)
-   constexpr const Byte* const* Block::GetRawSparse() const noexcept {
-      return mRawSparse;
-   }
-
-   /// Get a pointer array - useful for sparse containers                     
-   ///   @return the raw data as an array of pointers                         
-   LANGULUS(ALWAYSINLINE)
-   constexpr Byte** Block::GetRawSparse() noexcept {
-      return mRawSparse;
-   }
-
-   /// Get entry array when block is sparse                                   
-   ///   @return the array of entries                                         
-   LANGULUS(ALWAYSINLINE)
-   Inner::Allocation** Block::GetEntries() noexcept {
-      LANGULUS_ASSUME(DevAssumes, IsSparse(),
-         "Entries do not exist for dense container");
-      return reinterpret_cast<Inner::Allocation**>(
-         mRawSparse + mReserved);
-   }
-
-   /// Get entry array when block is sparse (const)                           
-   ///   @return the array of entries                                         
-   LANGULUS(ALWAYSINLINE)
-   const Inner::Allocation* const* Block::GetEntries() const noexcept {
-      LANGULUS_ASSUME(DevAssumes, IsSparse(),
-         "Entries do not exist for dense container");
-      return reinterpret_cast<const Inner::Allocation* const*>(
-         mRawSparse + mReserved);
-   }
-
-   /// Get the raw data inside the container, reinterpreted as some type      
-   ///   @attention as unsafe as it gets, but as fast as it gets              
-   template<CT::Data T>
-   LANGULUS(ALWAYSINLINE)
-   T* Block::GetRawAs() noexcept {
-      return reinterpret_cast<T*>(GetRaw());
-   }
-
-   /// Get the raw data inside the container, reinterpreted (const)           
-   ///   @attention as unsafe as it gets, but as fast as it gets              
-   template<CT::Data T>
-   LANGULUS(ALWAYSINLINE)
-   const T* Block::GetRawAs() const noexcept {
-      return reinterpret_cast<const T*>(GetRaw());
-   }
-
-   /// Get the end raw data pointer inside the container                      
-   ///   @attention as unsafe as it gets, but as fast as it gets              
-   template<CT::Data T>
-   LANGULUS(ALWAYSINLINE)
-   const T* Block::GetRawEndAs() const noexcept {
-      return reinterpret_cast<const T*>(GetRawEnd());
-   }
-   
-   /// Check if contained type is abstract                                    
-   ///   @returns true if the type of this pack is abstract                   
-   LANGULUS(ALWAYSINLINE)
-   constexpr bool Block::IsAbstract() const noexcept {
-      return mType && (!mType->mOrigin || mType->mOrigin->mIsAbstract);
-   }
-
-   /// Check if contained type is default-constructible                       
-   /// Some are only referencable, such as abstract types                     
-   ///   @returns true if the contents of this pack are constructible         
-   LANGULUS(ALWAYSINLINE)
-   constexpr bool Block::IsDefaultable() const noexcept {
-      return mType && mType->mOrigin && mType->mOrigin->mDefaultConstructor;
-   }
-
-   /// Check if block contains pointers                                       
-   ///   @return true if the block contains pointers                          
-   LANGULUS(ALWAYSINLINE)
-   constexpr bool Block::IsSparse() const noexcept {
-      return mType ? mType->mIsSparse : false;
-   }
-
-   /// Check if block contains dense data                                     
-   ///   @returns true if this container refers to dense memory               
-   LANGULUS(ALWAYSINLINE)
-   constexpr bool Block::IsDense() const noexcept {
-      return !IsSparse();
-   }
-
-   /// Check if block contains POD items - if so, it's safe to directly copy  
-   /// raw memory from container. Note, that this doesn't only consider the   
-   /// standard c++ type traits, like trivially_constructible. You also need  
-   /// to explicitly reflect your type with LANGULUS(POD) true;               
-   /// This gives a lot more control over your code                           
-   ///   @return true if contained data is plain old data                     
-   LANGULUS(ALWAYSINLINE)
-   constexpr bool Block::IsPOD() const noexcept {
-      return mType && mType->mOrigin && mType->mOrigin->mIsPOD;
-   }
-
-   /// Check if block contains resolvable items, that is, items that have a   
-   /// GetBlock() function, that can be used to represent themselves as their 
-   /// most concretely typed block                                            
-   ///   @return true if contained data can be resolved on element basis      
-   LANGULUS(ALWAYSINLINE)
-   constexpr bool Block::IsResolvable() const noexcept {
-      return IsSparse() && mType && mType->mResolver;
-   }
-
-   /// Check if block data can be safely set to zero bytes                    
-   /// This is tied to LANGULUS(NULLIFIABLE) reflection parameter             
-   ///   @return true if contained data can be memset(0) safely               
-   LANGULUS(ALWAYSINLINE)
-   constexpr bool Block::IsNullifiable() const noexcept {
-      return mType && mType->mIsNullifiable;
-   }
-
-   /// Check if the memory block contains memory blocks                       
-   ///   @return true if the memory block contains memory blocks              
-   LANGULUS(ALWAYSINLINE)
-   constexpr bool Block::IsDeep() const noexcept {
-      return mType && mType->mIsDeep;
-   }
-
-   /// Deep (slower) check if there's anything missing inside nested blocks   
-   ///   @return true if the deep or flat memory block contains missing stuff 
-   LANGULUS(ALWAYSINLINE)
-   constexpr bool Block::IsMissingDeep() const {
-      if (IsMissing())
-         return true;
-
-      bool result = false;
-      ForEachDeep([&result](const Block& group) {
-         result = group.IsMissing();
-         return !result;
-      });
-
-      return result;
-   }
-   
-   /// Get the size of a single element (in bytes)                            
-   ///   @attention this returns size of pointer if container is sparse       
-   ///   @attention this returns zero if block is untyped                     
-   ///   @return the size is bytes                                            
-   LANGULUS(ALWAYSINLINE)
-   constexpr Size Block::GetStride() const noexcept {
-      return IsSparse() ? sizeof(KnownPointer) : (mType ? mType->mSize : 0);
-   }
-   
-   /// Get the token of the contained type                                    
-   ///   @return the token                                                    
-   LANGULUS(ALWAYSINLINE)
-   constexpr Token Block::GetToken() const noexcept {
-      return IsUntyped() ? MetaData::DefaultToken : mType->mToken;
-   }
-   
-   /// Get the data state of the container                                    
-   ///   @return the current block stat                                       
-   LANGULUS(ALWAYSINLINE)
-   constexpr const DataState& Block::GetState() const noexcept {
-      return mState;
-   }
-
-   /// Get the relevant state when relaying one block	to another              
-   /// Relevant states exclude memory and type constraints                    
-   LANGULUS(ALWAYSINLINE)
-   constexpr DataState Block::GetUnconstrainedState() const noexcept {
-      return mState - DataState::Constrained;
-   }
-
-   /// Get the internal byte array with a given offset                        
-   /// This is lowest level access and checks nothing                         
-   ///   @attention assumes block is allocated                                
-   ///   @param byteOffset - number of bytes to add                           
-   ///   @return the selected byte                                            
-   LANGULUS(ALWAYSINLINE)
-   Byte* Block::At(const Offset& byteOffset) SAFETY_NOEXCEPT() {
-      LANGULUS_ASSUME(DevAssumes, mRaw, "Invalid memory");
-      return GetRaw() + byteOffset;
-   }
-
-   LANGULUS(ALWAYSINLINE)
-   const Byte* Block::At(const Offset& byte_offset) const SAFETY_NOEXCEPT() {
-      return const_cast<Block*>(this)->At(byte_offset);
-   }
-
-   /// Get templated element                                                  
-   /// Checks only density                                                    
-   template<CT::Data T>
-   LANGULUS(ALWAYSINLINE)
-   decltype(auto) Block::Get(const Offset& idx, const Offset& baseOffset) const SAFETY_NOEXCEPT() {
-      return const_cast<Block*>(this)->Get<T>(idx, baseOffset);
-   }
-
-   /// Get an element pointer or reference with a given index                 
-   /// This is a lower-level routine that does only sparseness checking       
-   /// No conversion or copying occurs, only pointer arithmetic               
-   ///   @param idx - simple index for accessing                              
-   ///   @param baseOffset - byte offset from the element to apply            
-   ///   @return either pointer or reference to the element (depends on T)    
-   template<CT::Data T>
-   LANGULUS(ALWAYSINLINE)
-   decltype(auto) Block::Get(const Offset& idx, const Offset& baseOffset) SAFETY_NOEXCEPT() {
-      Byte* pointer;
-      if (IsSparse())
-         pointer = GetRawSparse()[idx] + baseOffset;
-      else
-         pointer = At(mType->mSize * idx) + baseOffset;
-
-      if constexpr (CT::Dense<T>)
-         return *reinterpret_cast<Deref<T>*>(pointer);
-      else
-         return reinterpret_cast<Deref<T>>(pointer);
    }
 
    /// Mutate the block to a different type, if possible                      
@@ -782,46 +312,6 @@ namespace Langulus::Anyness
       }
 
       return false;
-   }
-
-   /// Constrain an index to the limits of the current block                  
-   ///   @param idx - the index to constrain                                  
-   ///   @return the constrained index or a special one of constrain fails    
-   LANGULUS(ALWAYSINLINE)
-   constexpr Index Block::Constrain(const Index& idx) const noexcept {
-      return idx.Constrained(mCount);
-   }
-
-   /// Constrain an index to the limits of the current block                  
-   /// Supports additional type-dependent constraints                         
-   ///   @tparam T - the type to use for comparisons                          
-   ///   @param idx - the index to constrain                                  
-   ///   @return the constrained index or a special one of constrain fails    
-   template<CT::Data T>
-   LANGULUS(ALWAYSINLINE)
-   Index Block::ConstrainMore(const Index& idx) const noexcept {
-      const auto result = Constrain(idx);
-      if (result == IndexBiggest) {
-         if constexpr (CT::Sortable<T, T>)
-            return GetIndexMax<T>();
-         else
-            return IndexNone;
-      }
-      else if (result == IndexSmallest) {
-         if constexpr (CT::Sortable<T, T>)
-            return GetIndexMin<T>();
-         else
-            return IndexNone;
-      }
-      else if (result == IndexMode) {
-         if constexpr (CT::Sortable<T, T>) {
-            UNUSED() Count unused;
-            return GetIndexMode<T>(unused);
-         }
-         else return IndexNone;
-      }
-
-      return result;
    }
 
    /// Check if this container's data can be represented as type T            
@@ -957,26 +447,6 @@ namespace Langulus::Anyness
       SetType<CONSTRAIN>(MetaData::Of<Deref<T>>());
    }
 
-   /// Swap two elements                                                      
-   ///   @attention assumes T is exactly the contained type                   
-   ///   @tparam T - the contained type                                       
-   ///   @tparam INDEX1 - type of the first index (deducible)                 
-   ///   @tparam INDEX2 - type of the second index (deducible)                
-   ///   @param from - first index                                            
-   ///   @param to - second index                                             
-   template<CT::Data T, CT::Index INDEX1, CT::Index INDEX2>
-   LANGULUS(ALWAYSINLINE)
-   void Block::Swap(INDEX1 from_, INDEX2 to_) {
-      const auto from = SimplifyIndex(from_);
-      const auto to = SimplifyIndex(to_);
-      if (from >= mCount || to >= mCount || from == to)
-         return;
-
-      auto data = &Get<T>();
-      T temp {::std::move(data[to])};
-      data[to] = ::std::move(data[from]);
-      SemanticAssign(data[from], Abandon(temp));
-   }
 
    /// Compare with one single value, if exactly one element is contained     
    ///   @attention assumes T is exactly the contained type                   
@@ -1018,26 +488,6 @@ namespace Langulus::Anyness
    LANGULUS(ALWAYSINLINE)
    Block Block::ReinterpretAs() const {
       return ReinterpretAs(Block::From<T>());
-   }
-
-   /// Access element at a specific index                                     
-   ///   @param idx - the index                                               
-   ///   @return immutable type-erased element, wrapped in a Block            
-   template<CT::Index IDX>
-   LANGULUS(ALWAYSINLINE)
-   Block Block::operator[] (const IDX& idx) const {
-      const auto index = SimplifyIndex<void>(idx);
-      return GetElement(index);
-   }
-
-   /// Access element at a specific index                                     
-   ///   @param idx - the index                                               
-   ///   @return mutable type-erased element, wrapped in a Block              
-   template<CT::Index IDX>
-   LANGULUS(ALWAYSINLINE)
-   Block Block::operator[] (const IDX& idx) {
-      const auto index = SimplifyIndex<void>(idx);
-      return GetElement(index);
    }
 
    /// Copy-insert anything compatible at an index                            
@@ -1082,9 +532,9 @@ namespace Langulus::Anyness
          // We're moving to the right, so make sure we do it in reverse 
          // to avoid any potential overlap                              
          const auto moved = mCount - index;
-         CropInner(index + count, moved, moved)
+         CropInner(index + count, moved)
             .template CallKnownSemanticConstructors<T, true>(
-               moved, Abandon(CropInner(index, moved, moved))
+               moved, Abandon(CropInner(index, moved))
             );
       }
 
@@ -1154,9 +604,9 @@ namespace Langulus::Anyness
          // We're moving to the right, so make sure we do it in reverse 
          // to avoid any potential overlap                              
          const auto moved = mCount - index;
-         CropInner(index + 1, moved, moved)
+         CropInner(index + 1, moved)
             .template CallKnownSemanticConstructors<T, true>(
-               moved, Abandon(CropInner(index, moved, moved))
+               moved, Abandon(CropInner(index, moved))
             );
       }
 
@@ -1202,9 +652,9 @@ namespace Langulus::Anyness
 
          // We're moving to the right, so make sure we do it in reverse 
          // to avoid any overlap                                        
-         CropInner(count, 0, mCount)
+         CropInner(count, 0)
             .template CallKnownSemanticConstructors<T, true>(
-               mCount, Abandon(CropInner(0, mCount, mCount))
+               mCount, Abandon(CropInner(0, mCount))
             );
 
          InsertInner<Copied<T>>(start, end, 0);
@@ -1269,9 +719,9 @@ namespace Langulus::Anyness
 
          // We're moving to the right, so make sure we do it in reverse 
          // to avoid any potential overlap                              
-         CropInner(1, 0, mCount)
+         CropInner(1, 0)
             .template CallKnownSemanticConstructors<T, true>(
-               mCount, Abandon(CropInner(0, mCount, mCount))
+               mCount, Abandon(CropInner(0, mCount))
             );
 
          InsertInner(item.Forward(), 0);
@@ -1315,14 +765,14 @@ namespace Langulus::Anyness
          // Therefore, we call move constructors in reverse, to avoid   
          // memory overlap                                              
          const auto moved = mCount - index;
-         CropInner(index + 1, 0, moved)
+         CropInner(index + 1, 0)
             .template CallUnknownSemanticConstructors<true>(
-               moved, Abandon(CropInner(index, moved, moved))
+               moved, Abandon(CropInner(index, moved))
             );
       }
 
       // Pick the region that should be overwritten with new stuff      
-      const auto region = CropInner(index, 0, 1);
+      const auto region = CropInner(index, 0);
       EmplaceInner(region, Forward<A>(arguments)...);
       return 1;
    }
@@ -1358,14 +808,14 @@ namespace Langulus::Anyness
          // We need to shift elements right from the insertion point    
          // Therefore, we call move constructors in reverse, to avoid   
          // potential memory overlap                                    
-         CropInner(1, 0, mCount)
+         CropInner(1, 0)
             .template CallUnknownSemanticConstructors<true>(
-               mCount, Abandon(CropInner(0, mCount, mCount))
+               mCount, Abandon(CropInner(0, mCount))
             );
       }
 
       // Pick the region that should be overwritten with new stuff      
-      const auto region = CropInner(INDEX == IndexFront ? 0 : mCount, 0, 1);
+      const auto region = CropInner(INDEX == IndexFront ? 0 : mCount, 0);
       EmplaceInner(region, Forward<A>(arguments)...);
       return 1;
    }
@@ -1627,128 +1077,6 @@ namespace Langulus::Anyness
       if (!FindKnown(item.mValue))
          return Insert<INDEX, MUTABLE, WRAPPER>(item.Forward());
       return 0;
-   }
-
-   /// Get the index of the biggest element                                   
-   ///   @attention assumes that T is binary-compatible with contained type   
-   ///   @tparam T - the type to use for comparison                           
-   ///   @return the index of the biggest element T inside this block         
-   template<CT::Data T>
-   LANGULUS(ALWAYSINLINE)
-   Index Block::GetIndexMax() const noexcept requires CT::Sortable<T, T> {
-      if (IsEmpty())
-         return IndexNone;
-
-      auto data = Get<Decay<T>*>();
-      auto max = data;
-      for (Offset i = 1; i < mCount; ++i) {
-         if (DenseCast(data[i]) > DenseCast(*max))
-            max = data + i;
-      }
-
-      return max - data;
-   }
-
-   /// Get the index of the smallest element                                  
-   ///   @attention assumes that T is binary-compatible with contained type   
-   ///   @tparam T - the type to use for comparison                           
-   ///   @return the index of the smallest element T inside this block        
-   template<CT::Data T>
-   LANGULUS(ALWAYSINLINE)
-   Index Block::GetIndexMin() const noexcept requires CT::Sortable<T, T> {
-      if (IsEmpty())
-         return IndexNone;
-
-      auto data = Get<Decay<T>*>();
-      auto min = data;
-      for (Offset i = 1; i < mCount; ++i) {
-         if (DenseCast(data[i]) < DenseCast(*min))
-            min = data + i;
-      }
-
-      return min - data;
-   }
-
-   /// Get the index of dense element that repeats the most times             
-   ///   @attention assumes that T is binary-compatible with contained type   
-   ///   @tparam T - the type to use for comparison                           
-   ///   @param count - [out] count the number of repeats for the mode        
-   ///   @return the index of the first found mode                            
-   template<CT::Data T>
-   Index Block::GetIndexMode(Count& count) const noexcept {
-      if (IsEmpty()) {
-         count = 0;
-         return IndexNone;
-      }
-
-      auto data = Get<Decay<T>*>();
-      decltype(data) best = nullptr;
-      Count best_count {};
-      for (Offset i = 0; i < mCount; ++i) {
-         Count counter {};
-         for (Count j = i; j < mCount; ++j) {
-            if constexpr (CT::Comparable<T, T>) {
-               // First we compare by memory pointer, then by ==        
-               if (SparseCast(data[i]) == SparseCast(data[j]) ||
-                   DenseCast(data[i])  == DenseCast(data[j]))
-                  ++counter;
-            }
-            else {
-               // No == operator, so just compare by memory	pointer     
-               if (SparseCast(data[i]) == SparseCast(data[j]))
-                  ++counter;
-            }
-
-            if (counter + (mCount - j) <= best_count)
-               break;
-         }
-
-         if (counter > best_count || !best) {
-            best_count = counter;
-            best = data + i;
-         }
-      }
-
-      count = best_count;
-      return best - data;
-   }
-
-   /// Sort the contents of this container using a static type                
-   ///   @attention assumes that T is binary-compatible with contained type   
-   ///   @tparam T - the type to use for comparison                           
-   ///   @param first - what will the first element be after sorting?         
-   ///                  use uiSmallest for 123, or anything else for 321      
-   template<CT::Data T>
-   void Block::Sort(const Index& first) noexcept {
-      auto data = Get<Decay<T>*>();
-      if (!data)
-         return;
-
-      Count j {}, i {};
-      if (first == IndexSmallest) {
-         for (; i < mCount; ++i) {
-            for (; j < i; ++j) {
-               if (*SparseCast(data[i]) > *SparseCast(data[j]))
-                  Swap<T>(i, j);
-            }
-            for (j = i + 1; j < mCount; ++j) {
-               if (*SparseCast(data[i]) > *SparseCast(data[j]))
-                  Swap<T>(i, j);
-            }
-         }
-      }
-      else {
-         for (; i < mCount; ++i) {
-            for (; j < i; ++j) {
-               if (*SparseCast(data[i]) < *SparseCast(data[j]))
-                  Swap<T>(i, j);
-            }
-            for (j = i + 1; j < mCount; ++j) {
-               if (*SparseCast(data[i]) < *SparseCast(data[j]))
-                  Swap<T>(i, j);
-            }
-         }
-      }
    }
 
    /// Turn into another container (inner function)                           
@@ -2149,136 +1477,6 @@ namespace Langulus::Anyness
 
       return Get<T>();
    }
-
-   /// Convert an index to an offset                                          
-   /// Complex indices will be fully constrained                              
-   /// Signed index types will be checked for negative indices (for reverse)  
-   /// Unsigned indices are directly forwarded without any overhead           
-   ///   @attention assumes T is correct for type-erased containers           
-   ///   @attention assumes index is in container count limit, if unsigned,   
-   ///              and COUNT_CONSTRAINED is true                             
-   ///   @attention assumes index is in container reserve limit, if unsigned, 
-   ///              and COUNT_CONSTRAINED is false                            
-   ///   @tparam T - the type we're indexing, used for additional special     
-   ///               index handling, like Min and Max, that require type info 
-   ///               use void to skip these indices at no cost                
-   ///   @tparam INDEX - type of the index to simplify                        
-   ///   @tparam COUNT_CONSTRAINED - will check count limits if true or       
-   ///                               reserve limit if false, when DevAssumes  
-   ///                               is enabled                               
-   ///   @param index - the index to simplify                                 
-   ///   @return the offset                                                   
-   template<class T, bool COUNT_CONSTRAINED, CT::Index INDEX>
-   LANGULUS(ALWAYSINLINE)
-   Offset Block::SimplifyIndex(const INDEX& index) const {
-      if constexpr (CT::Same<INDEX, Index>) {
-         // This is the most safe path                                  
-         if constexpr (CT::Void<T>)
-            return Constrain(index).GetOffset();
-         else {
-            if constexpr (!CT::Void<T>) {
-               LANGULUS_ASSUME(DevAssumes, (CastsTo<T, true>()), "Type mismatch");
-            }
-            return ConstrainMore<T>(index).GetOffset();
-         }
-      }
-      else if constexpr (CT::Signed<INDEX>) {
-         // Somewhat safe, default literal type is signed               
-         if (index < 0) {
-            const auto unsign = static_cast<Offset>(-index);
-            if constexpr (COUNT_CONSTRAINED) {
-               LANGULUS_ASSERT(unsign <= mCount, Access,
-                  "Reverse index out of count range");
-            }
-            else {
-               LANGULUS_ASSERT(unsign <= mReserved, Access,
-                  "Reverse index out of reserved range");
-            }
-
-            return mCount - unsign;
-         }
-         else {
-            const auto unsign = static_cast<Offset>(index);
-            if constexpr (COUNT_CONSTRAINED) {
-               LANGULUS_ASSERT(unsign < mCount, Access,
-                  "Signed index out of count range");
-            }
-            else {
-               LANGULUS_ASSERT(unsign < mReserved, Access,
-                  "Signed index out of reserved range");
-            }
-
-            return unsign;
-         }
-      }
-      else {
-         // Unsafe, works only on assumptions                           
-         // Using an unsigned index explicitly makes a statement, that  
-         // you know what you're doing                                  
-         if constexpr (COUNT_CONSTRAINED) {
-            LANGULUS_ASSUME(UserAssumes, index < mCount,
-               "Unsigned index out of range");
-         }
-         else {
-            LANGULUS_ASSUME(UserAssumes, index < mReserved,
-               "Unsigned index out of range");
-         }
-
-         return index;
-      }
-   }
-
-   /// Get an element via simple index, trying to interpret it as T           
-   /// No conversion or copying shall occur in this routine, only pointer     
-   /// arithmetic based on CTTI or RTTI                                       
-   ///   @tparam T - the type to interpret to                                 
-   ///   @tparam IDX - the type used for indexing (deducible)                 
-   ///   @param idx - simple index for accessing - use negative for reverse,  
-   ///                or special indices for smart indexing                   
-   ///   @return either pointer or reference to the element (depends on T)    
-   template<CT::Data T, CT::Index IDX>
-   decltype(auto) Block::As(const IDX& index) {
-      // First quick type stage for fast access                         
-      if (mType->Is<T>()) {
-         const auto idx = SimplifyIndex<T>(index);
-         return Get<T>(idx);
-      }
-
-      // Second fallback stage for compatible bases and mappings        
-      const auto idx = SimplifyIndex<void>(index);
-      RTTI::Base base;
-      if (!mType->GetBase<T>(0, base)) {
-         // There's still a chance if this container is resolvable      
-         // This is the third and final stage                           
-         auto resolved = GetElementResolved(idx);
-         if (resolved.mType->template Is<T>()) {
-            // Element resolved to a compatible type, so get it         
-            return resolved.template Get<T>();
-         }
-         else if (resolved.mType->template GetBase<T>(0, base)) {
-            // Get base memory of the resolved element and access       
-            return resolved.GetBaseMemory(base)
-               .template Get<T>(idx % base.mCount);
-         }
-
-         // All stages of interpretation failed                         
-         // Don't log this, because it will spam the crap out of us     
-         // That throw is used by ForEach to handle irrelevant types    
-         LANGULUS_THROW(Access, "Type mismatch");
-      }
-
-      // Get base memory of the required element and access             
-      return 
-         GetElementDense(idx / base.mCount)
-            .GetBaseMemory(base)
-               .template Get<T>(idx % base.mCount);
-   }
-
-   template<CT::Data T, CT::Index IDX>
-   LANGULUS(ALWAYSINLINE)
-   decltype(auto) Block::As(const IDX& index) const {
-      return const_cast<Block&>(*this).template As<T, IDX>(index);
-   }
    
    /// Remove sequential indices                                              
    ///   @param index - index                                                 
@@ -2336,16 +1534,16 @@ namespace Langulus::Anyness
          // First call the destructors on the correct region            
          const auto ender = idx + count;
          const auto removed = ender - idx;
-         CropInner(idx, removed, removed).CallUnknownDestructors();
+         CropInner(idx, removed).CallUnknownDestructors();
 
          if (ender < mCount) {
             // Fill gap by invoking abandon-constructors                
             // We're moving to the left, so no reverse is required      
             LANGULUS_ASSERT(GetUses() == 1, Move, "Moving elements in use");
             const auto tail = mCount - ender;
-            CropInner(idx, 0, tail)
+            CropInner(idx, 0)
                .CallUnknownSemanticConstructors(
-                  tail, Abandon(CropInner(ender, tail, tail))
+                  tail, Abandon(CropInner(ender, tail))
                );
          }
 
@@ -2383,319 +1581,6 @@ namespace Langulus::Anyness
       else TODO();
    }
 
-   /// Iterate each element block                                             
-   ///   @param call - the call to execute for each element block             
-   ///   @return the number of iterations done                                
-   template<bool MUTABLE, class F>
-   Count Block::ForEachElement(F&& call) {
-      using A = ArgumentOf<F>;
-      using R = ReturnOf<F>;
-
-      static_assert(CT::Block<A>,
-         "Function argument must be a CT::Block type");
-      static_assert(CT::Constant<A> || (CT::Mutable<A> && MUTABLE),
-         "Non constant iterator for constant memory block");
-
-      Count index {};
-      while (index < GetCount()) {
-         A block = GetElement(index);
-         if constexpr (CT::Bool<R>) {
-            if (!call(block))
-               return index + 1;
-         }
-         else call(block);
-
-         ++index;
-      }
-
-      return index;
-   }
-
-   /// Iterate each element block                                             
-   ///   @param call - the call to execute for each element block             
-   ///   @return the number of iterations done                                
-   template<class F>
-   LANGULUS(ALWAYSINLINE)
-   Count Block::ForEachElement(F&& call) const {
-      return const_cast<Block&>(*this)
-         .template ForEachElement<false>(call);
-   }
-
-   /// Execute functions for each element inside container                    
-   /// Function returns immediately after the first viable iterator is done   
-   ///   @tparam MUTABLE - whether or not a change to container is allowed    
-   ///                     while iterating                                    
-   ///   @tparam F - the function types (deducible)                           
-   ///   @param call - the instance of the function F to call                 
-   ///   @return the number of called functions                               
-   template<bool MUTABLE, class... F>
-   LANGULUS(ALWAYSINLINE)
-   Count Block::ForEach(F&&... calls) {
-      return (... || ForEachSplitter<MUTABLE, false>(Forward<F>(calls)));
-   }
-
-   /// Execute functions for each element inside container (immutable)        
-   ///   @tparam F - the function type (deducible)                            
-   ///   @param call - the instance of the function F to call                 
-   ///   @return the number of called functions                               
-   template<class... F>
-   LANGULUS(ALWAYSINLINE)
-   Count Block::ForEach(F&&... calls) const {
-      return const_cast<Block&>(*this)
-         .template ForEach<false>(Forward<F>(calls)...);
-   }
-
-   /// Execute functions for each element inside container (reverse)          
-   ///   @tparam MUTABLE - whether or not a change to container is allowed    
-   ///                     while iterating                                    
-   ///   @tparam F - the function type (deducible)                            
-   ///   @param call - the instance of the function F to call                 
-   ///   @return the number of called functions                               
-   template<bool MUTABLE, class... F>
-   LANGULUS(ALWAYSINLINE)
-   Count Block::ForEachRev(F&&... calls) {
-      return (... || ForEachSplitter<MUTABLE, true>(Forward<F>(calls)));
-   }
-
-   /// Execute F for each element inside container (immutable, reverse)       
-   ///   @tparam F - the function type (deducible)                            
-   ///   @param call - the instance of the function F to call                 
-   ///   @return the number of called functions                               
-   template<class... F>
-   LANGULUS(ALWAYSINLINE)
-   Count Block::ForEachRev(F&&... calls) const {
-      return const_cast<Block&>(*this)
-         .template ForEachRev<false>(Forward<F>(calls)...);
-   }
-
-   /// Execute functions for each element inside container, nested for any    
-   /// contained deep containers                                              
-   ///   @tparam SKIP - set to false, to execute F for containers, too        
-   ///                  set to true, to execute only for non-deep elements    
-   ///   @tparam MUTABLE - whether or not a change to container is allowed    
-   ///                     while iterating                                    
-   ///   @tparam F - the function type (deducible)                            
-   ///   @param call - the instance of the function F to call                 
-   ///   @return the number of called functions                               
-   template<bool SKIP, bool MUTABLE, class... F>
-   LANGULUS(ALWAYSINLINE)
-   Count Block::ForEachDeep(F&&... calls) {
-      return (... || ForEachDeepSplitter<SKIP, MUTABLE, false>(Forward<F>(calls)));
-   }
-
-   /// Execute function F for each element inside container, nested for any   
-   /// contained deep containers (immutable)                                  
-   ///   @tparam SKIP - set to false, to execute F for containers, too        
-   ///                  set to true, to execute only for non-deep elements    
-   ///   @tparam F - the function type (deducible)                            
-   ///   @param call - the instance of the function F to call                 
-   ///   @return the number of called functions                               
-   template<bool SKIP, class... F>
-   LANGULUS(ALWAYSINLINE)
-   Count Block::ForEachDeep(F&&... calls) const {
-      return const_cast<Block&>(*this)
-         .template ForEachDeep<SKIP, false>(Forward<F>(calls)...);
-   }
-
-   /// Execute function F for each element inside container, nested for any   
-   /// contained deep containers (reverse)                                    
-   ///   @tparam SKIP - set to false, to execute F for containers, too        
-   ///                  set to true, to execute only for non-deep elements    
-   ///   @tparam MUTABLE - whether or not a change to container is allowed    
-   ///                     while iterating                                    
-   ///   @tparam F - the function type (deducible)                            
-   ///   @param call - the instance of the function F to call                 
-   ///   @return the number of called functions                               
-   template<bool SKIP, bool MUTABLE, class... F>
-   LANGULUS(ALWAYSINLINE)
-   Count Block::ForEachDeepRev(F&&... calls) {
-      return (... || ForEachDeepSplitter<SKIP, MUTABLE, true>(Forward<F>(calls)));
-   }
-
-   /// Execute function F for each element inside container, nested for any   
-   /// contained deep containers (immutable, reverse)                         
-   ///   @tparam SKIP - set to false, to execute F for containers, too        
-   ///                  set to true, to execute only for non-deep elements    
-   ///   @tparam F - the function type (deducible)                            
-   ///   @param call - the instance of the function F to call                 
-   ///   @return the number of called functions                               
-   template<bool SKIP, class... F>
-   LANGULUS(ALWAYSINLINE)
-   Count Block::ForEachDeepRev(F&&... calls) const {
-      return const_cast<Block&>(*this)
-         .template ForEachDeepRev<SKIP, false>(Forward<F>(calls)...);
-   }
-
-   /// Execute functions for each element inside container                    
-   ///   @tparam MUTABLE - whether or not a change to container is allowed    
-   ///                     while iterating                                    
-   ///   @tparam F - the function types (deducible)                           
-   ///   @param call - the instance of the function F to call                 
-   ///   @return the number of called functions                               
-   template<bool MUTABLE, bool REVERSE, class F>
-   LANGULUS(ALWAYSINLINE)
-   Count Block::ForEachSplitter(F&& call) {
-      using A = ArgumentOf<F>;
-      using R = ReturnOf<F>;
-
-      static_assert(CT::Constant<A> || (CT::Mutable<A> && MUTABLE),
-         "Non constant iterator for constant memory block");
-
-      return ForEachInner<R, A, REVERSE, MUTABLE>(Forward<F>(call));
-   }
-
-   /// Execute functions for each element inside container, nested for any    
-   /// contained deep containers                                              
-   ///   @tparam SKIP - set to false, to execute F for containers, too        
-   ///                  set to true, to execute only for non-deep elements    
-   ///	@tparam MUTABLE - whether or not a change to container is allowed    
-   ///                     while iterating                                    
-   ///   @tparam F - the function type (deducible)                            
-   ///   @param call - the instance of the function F to call                 
-   ///   @return the number of called functions                               
-   template<bool SKIP, bool MUTABLE, bool REVERSE, class F>
-   LANGULUS(ALWAYSINLINE)
-   Count Block::ForEachDeepSplitter(F&& call) {
-      using A = ArgumentOf<F>;
-      using R = ReturnOf<F>;
-
-      static_assert(CT::Constant<A> || (CT::Mutable<A> && MUTABLE),
-         "Non constant iterator for constant memory block");
-
-      if constexpr (CT::Deep<Decay<A>>) {
-         // If argument type is deep                                    
-         return ForEachDeepInner<R, A, REVERSE, SKIP, MUTABLE>(Forward<F>(call));
-      }
-      else {
-         // Any other type is wrapped inside another ForEachDeep call   
-         Count it = 0;
-
-         if constexpr (CT::Constant<A>) {
-            ForEachDeep<SKIP, MUTABLE>([&call, &it](const Block& block) {
-               it += block.ForEach(Forward<F>(call));
-            });
-         }
-         else {
-            ForEachDeep<SKIP, MUTABLE>([&call, &it](Block& block) {
-               it += block.ForEach(Forward<F>(call));
-            });
-         }
-
-         return it;
-      }
-   }
-
-   /// Iterate and execute call for each element                              
-   ///   @param call - the function to execute for each element of type T     
-   ///   @return the number of executions that occured                        
-   template<class R, CT::Data A, bool REVERSE, bool MUTABLE>
-   LANGULUS(ALWAYSINLINE)
-   Count Block::ForEachInner(TFunctor<R(A)>&& call) {
-      if (IsEmpty() || !mType->template CastsTo<A, true>())
-         return 0;
-       
-      UNUSED() auto initialCount = mCount;
-      constexpr bool HasBreaker = CT::Bool<R>;
-      Count index {};
-
-      while (index < mCount) {
-         if constexpr (REVERSE) {
-            if constexpr (HasBreaker) {
-               if (!call(Get<A>(mCount - index - 1)))
-                  return ++index;
-            }
-            else call(Get<A>(mCount - index - 1));
-         }
-         else {
-            if constexpr (HasBreaker) {
-               if (!call(Get<A>(index)))
-                  return ++index;
-            }
-            else call(Get<A>(index));
-         }
-
-         if constexpr (MUTABLE) {
-            // This block might change while iterating - make sure      
-            // index compensates for changes                            
-            if (mCount < initialCount) {
-               initialCount = mCount;
-               continue;
-            }
-         }
-         
-         ++index;
-      }
-
-      return index;
-   }
-   
-   /// Iterate and execute call for each element                              
-   ///   @param call - the function to execute for each element of type T     
-   ///   @return the number of executions that occured                        
-   template<class R, CT::Data A, bool REVERSE, bool SKIP, bool MUTABLE>
-   Count Block::ForEachDeepInner(TFunctor<R(A)>&& call) {
-      constexpr bool HasBreaker = CT::Bool<R>;
-      UNUSED() bool atLeastOneChange = false;
-      auto count {GetCountDeep()};
-      Count index = 0;
-      Count skipped = 0;
-      while (index < count) {
-         auto block = ReinterpretCast<Decay<A>>(GetBlockDeep(index));
-         if constexpr (MUTABLE) {
-            if (!block)
-               break;
-         }
-
-         if constexpr (SKIP) {
-            // Skip deep/empty sub blocks                               
-            if (block->IsDeep() || block->IsEmpty()) {
-               ++index;
-               ++skipped;
-               continue;
-            }
-         }
-
-         UNUSED() const auto initialBlockCount = block->GetCount();
-         if constexpr (HasBreaker) {
-            if (!call(*block))
-               return ++index;
-         }
-         else if constexpr (CT::Sparse<A>)
-            call(block);
-         else
-            call(*block);
-
-         if constexpr (MUTABLE) {
-            // Iterator might be invalid at this point!                 
-            if (block->GetCount() != initialBlockCount) {
-               // Something changes, so do a recalculation              
-               if (block->GetCount() < initialBlockCount) {
-                  // Something was removed, so propagate removal upwards
-                  // until all empty stateless blocks are removed       
-                  while (block && block->IsEmpty() && !block->GetUnconstrainedState()) {
-                     index -= RemoveIndexDeep(index);
-                     block = ReinterpretCast<Decay<A>>(GetBlockDeep(index - 1));
-                  }
-               }
-
-               count = GetCountDeep();
-               atLeastOneChange = true;
-            }
-         }
-
-         ++index;
-      }
-
-      if constexpr (MUTABLE) {
-         if (atLeastOneChange)
-            Optimize();
-      }
-
-      if constexpr (SKIP)
-         return index - skipped;
-      else
-         return index;
-   }
 
    /// Wrapper for memcpy                                                     
    ///   @param from - source of data to copy                                 
@@ -2735,51 +1620,6 @@ namespace Langulus::Anyness
       return Dereference<true>(1);
    }
 
-   /// Select region from the memory block - unsafe and may return memory     
-   /// that has not been initialized yet (for internal use only)              
-   ///   @param start - starting element index                                
-   ///   @param count - number of elements                                    
-   ///   @param reserved - number of reserved elements                        
-   ///   @return the block representing the region                            
-   LANGULUS(ALWAYSINLINE)
-   Block Block::CropInner(const Offset& start, const Count& count, const Count& reserved) const noexcept {
-      Block result {*this};
-      result.mCount = count;
-      result.mRaw += start * GetStride();
-      result.mReserved = reserved;
-      return result;
-   }
-
-   /// Select an initialized region from the memory block                     
-   ///   @param start - starting element index                                
-   ///   @param count - number of elements to remain after 'start'            
-   ///   @return the block representing the region                            
-   LANGULUS(ALWAYSINLINE)
-   Block Block::Crop(const Offset& start, const Count& count) {
-      LANGULUS_ASSUME(DevAssumes, start + count > mCount, "Out of limits");
-
-      if (count == 0)
-         return {mState, mType};
-
-      Block result {*this};
-      result.mCount = result.mReserved = count;
-      result.mRaw += start * GetStride();
-      result.mState += DataState::Member;
-      return result;
-   }
-
-   /// Select a constant region from the memory block                         
-   /// Never references                                                       
-   ///   @param start - starting element index                                
-   ///   @param count - number of elements                                    
-   ///   @return the block representing the region                            
-   LANGULUS(ALWAYSINLINE)
-   Block Block::Crop(const Offset& start, const Count& count) const {
-      auto result = const_cast<Block*>(this)->Crop(start, count);
-      result.MakeConst();
-      return result;
-   }
-   
    /// A helper function, that allocates and moves inner memory               
    ///   @param other - the memory we'll be inserting                         
    ///   @param index - the place we'll be inserting at                       
@@ -2801,14 +1641,14 @@ namespace Langulus::Anyness
          // Therefore, we call move constructors in reverse, to avoid   
          // memory overlap                                              
          const auto moved = mCount - index;
-         CropInner(index + other.mCount, 0, moved)
+         CropInner(index + other.mCount, 0)
             .template CallUnknownSemanticConstructors<true>(
-               moved, Abandon(CropInner(index, moved, moved))
+               moved, Abandon(CropInner(index, moved))
             );
       }
 
       // Pick the region that should be overwritten with new stuff      
-      region = CropInner(index, 0, other.mCount);
+      region = CropInner(index, 0);
    }
 
    /// Call default constructors in a region and initialize memory            
@@ -3883,8 +2723,8 @@ namespace Langulus::Anyness
       if (region.IsAllocated()) {
          region.CallUnknownSemanticConstructors(
             other.mValue.mCount, other.Forward());
-         mCount += region.mReserved;
-         return region.mReserved;
+         mCount += other.mValue.mCount;
+         return other.mValue.mCount;
       }
 
       return 0;
@@ -3944,17 +2784,17 @@ namespace Langulus::Anyness
 
          // We're moving to the right to form the gap, so we have to    
          // call abandon-constructors in reverse to avoid overlap       
-         CropInner(other.mValue.mCount, 0, mCount)
+         CropInner(other.mValue.mCount, 0)
             .template CallUnknownSemanticConstructors<true>(
-               mCount, Abandon(CropInner(0, mCount, mCount))
+               mCount, Abandon(CropInner(0, mCount))
             );
 
-         CropInner(0, 0, other.mValue.mCount)
+         CropInner(0, 0)
             .CallUnknownSemanticConstructors(
                other.mValue.mCount, other.template Forward<Block>());
       }
       else {
-         CropInner(mCount, 0, other.mValue.mCount)
+         CropInner(mCount, 0)
             .CallUnknownSemanticConstructors(
                other.mValue.mCount, other.template Forward<Block>());
       }

@@ -831,7 +831,7 @@ namespace Langulus::Anyness
       AllocateMore<false>(mCount + count);
 
       // Pick the region that should be overwritten with new stuff      
-      const auto region = CropInner(mCount, 0, count);
+      const auto region = CropInner(mCount, 0);
       if constexpr (sizeof...(A) == 0) {
          // Attempt default construction                                
          //TODO if stuff moved, we should move stuff back if this throws...

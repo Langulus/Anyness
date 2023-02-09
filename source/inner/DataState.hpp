@@ -74,7 +74,9 @@ namespace Langulus::Anyness
          // Useful set of states to interface a mutable member          
          Member = Static | Typed,
          ConstantMember = Constrained,
-         TypedConstant = Constant | Typed
+         TypedConstant = Constant | Typed,
+         MissingFuture = Missing | Future,
+         MissingPast = Missing | Past
       };
 
       using Type = TypeOf<Enum>;

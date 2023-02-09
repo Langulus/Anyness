@@ -148,8 +148,8 @@ namespace Langulus::Anyness
          if (!mInfo[i])
             continue;
 
-         auto destination = to.CropInner(i, 1, 1);
-         from.CropInner(i, 1, 1).Clone(destination);
+         auto destination = to.CropInner(i, 1);
+         from.CropInner(i, 1).Clone(destination);
       }
    }
 
@@ -194,7 +194,7 @@ namespace Langulus::Anyness
    /// Check if key type is abstract                                          
    TABLE_TEMPLATE()
    constexpr bool TABLE()::IsAbstract() const noexcept {
-      return CT::Abstract<T> && !IsSparse();
+      return CT::Abstract<T>;
    }
    
    /// Check if key type is default-constructible                             

@@ -201,6 +201,7 @@ namespace Langulus::Anyness
       NOD() constexpr bool IsFuture() const noexcept;
       NOD() constexpr bool IsNow() const noexcept;
       NOD() constexpr bool IsMissing() const noexcept;
+      NOD() constexpr bool IsTyped() const noexcept;
       NOD() constexpr bool IsUntyped() const noexcept;
       NOD() constexpr bool IsTypeConstrained() const noexcept;
       NOD() constexpr bool IsEncrypted() const noexcept;
@@ -226,15 +227,27 @@ namespace Langulus::Anyness
       NOD() constexpr Count GetByteSize() const noexcept;
       NOD() constexpr Token GetToken() const noexcept;
       NOD() constexpr Size GetStride() const noexcept;
-      NOD() constexpr const DataState& GetState() const noexcept;
+      NOD() constexpr DataState GetState() const noexcept;
       NOD() constexpr DataState GetUnconstrainedState() const noexcept;
+      NOD() constexpr bool IsMissingDeep() const;
+      NOD() constexpr bool IsConcatable(const Block&) const noexcept;
+      NOD() constexpr bool IsInsertable(DMeta) const noexcept;
+      template<CT::Data>
+      NOD() constexpr bool IsInsertable() const noexcept;
+
       NOD() constexpr Byte* GetRaw() noexcept;
       NOD() constexpr const Byte* GetRaw() const noexcept;
-      NOD() constexpr Byte* GetRawEnd() noexcept;
       NOD() constexpr const Byte* GetRawEnd() const noexcept;
-      NOD() constexpr Byte** GetRawSparse() noexcept;
-      NOD() constexpr const Byte* const* GetRawSparse() const noexcept;
-      NOD() auto RequestSize(const Count&) const noexcept;
+      NOD() SAFETY_CONSTEXPR() Byte** GetRawSparse() SAFETY_NOEXCEPT();
+      NOD() SAFETY_CONSTEXPR() const Byte* const* GetRawSparse() const SAFETY_NOEXCEPT();
+      template<CT::Data T>
+      NOD() T* GetRawAs() noexcept;
+      template<CT::Data T>
+      NOD() const T* GetRawAs() const noexcept;
+      template<CT::Data T>
+      NOD() const T* GetRawEndAs() const noexcept;
+
+      NOD() RTTI::AllocationRequest RequestSize(const Count&) const SAFETY_NOEXCEPT();
 
       constexpr void MakeStatic(bool enable = true) noexcept;
       constexpr void MakeConst(bool enable = true) noexcept;
@@ -246,70 +259,50 @@ namespace Langulus::Anyness
       constexpr void MakeNow() noexcept;
 
    protected:
-      NOD() Inner::Allocation** GetEntries() noexcept;
-      NOD() const Inner::Allocation* const* GetEntries() const noexcept;
+      NOD() SAFETY_CONSTEXPR()
+      Inner::Allocation** GetEntries() SAFETY_NOEXCEPT();
+      NOD() SAFETY_CONSTEXPR()
+      const Inner::Allocation* const* GetEntries() const SAFETY_NOEXCEPT();
 
    public:
-      NOD() constexpr bool IsMissingDeep() const;
-
-      NOD() bool IsConcatable(const Block&) const noexcept;
-      
-      NOD() bool IsInsertable(DMeta) const noexcept;
-      template<CT::Data>
-      NOD() bool IsInsertable() const noexcept;
-   
-      template<CT::Data T>
-      NOD() T* GetRawAs() noexcept;
-      template<CT::Data T>
-      NOD() const T* GetRawAs() const noexcept;
-
-      template<CT::Data T>
-      NOD() T* GetRawEndAs() noexcept;
-      template<CT::Data T>
-      NOD() const T* GetRawEndAs() const noexcept;
-
       ///                                                                     
       ///   Indexing                                                          
       ///                                                                     
       NOD() constexpr Index Constrain(const Index&) const noexcept;
 
-      template<CT::Data>
-      NOD() Index ConstrainMore(const Index&) const noexcept;
-      template<CT::Data T>
-      NOD() Index GetIndexMax() const noexcept requires CT::Sortable<T, T>;
-      template<CT::Data T>
-      NOD() Index GetIndexMin() const noexcept requires CT::Sortable<T, T>;
-      template<CT::Data>
-      NOD() Index GetIndexMode(Count&) const noexcept;
-
-      template<CT::Data>
-      void Sort(const Index&) noexcept;
-
-      NOD() Byte* At(const Offset& = 0) SAFETY_NOEXCEPT();
-      NOD() const Byte* At(const Offset& = 0) const SAFETY_NOEXCEPT();
+      NOD() SAFETY_CONSTEXPR()
+      Byte* At(const Offset& = 0) SAFETY_NOEXCEPT();
+      NOD() SAFETY_CONSTEXPR()
+      const Byte* At(const Offset& = 0) const SAFETY_NOEXCEPT();
    
       template<CT::Index IDX = Offset>
-      NOD() Block operator[] (const IDX&) const;
-      template<CT::Index IDX = Offset>
       NOD() Block operator[] (const IDX&);
+      template<CT::Index IDX = Offset>
+      NOD() Block operator[] (const IDX&) const;
 
       template<CT::Data>
-      NOD() decltype(auto) Get(const Offset& = 0, const Offset& = 0) SAFETY_NOEXCEPT();
+      NOD() SAFETY_CONSTEXPR()
+      decltype(auto) Get(const Offset& = 0, const Offset& = 0) SAFETY_NOEXCEPT();
       template<CT::Data>
-      NOD() decltype(auto) Get(const Offset& = 0, const Offset& = 0) const SAFETY_NOEXCEPT();
+      NOD() SAFETY_CONSTEXPR() decltype(auto)
+      Get(const Offset& = 0, const Offset& = 0) const SAFETY_NOEXCEPT();
    
       template<CT::Data, CT::Index IDX = Offset>
       NOD() decltype(auto) As(const IDX& = {});
       template<CT::Data, CT::Index IDX = Offset>
       NOD() decltype(auto) As(const IDX& = {}) const;
    
+      // Intentionally undefined, because it requires Langulus::Flow    
       template<CT::Data T, bool FATAL_FAILURE = true>
       NOD() T AsCast(Index) const;
+      // Intentionally undefined, because it requires Langulus::Flow    
       template<CT::Data T, bool FATAL_FAILURE = true>
       NOD() T AsCast() const;
    
-      NOD() Block Crop(const Offset&, const Count&);
-      NOD() Block Crop(const Offset&, const Count&) const;
+      NOD() SAFETY_CONSTEXPR()
+      Block Crop(const Offset&, const Count&) SAFETY_NOEXCEPT();
+      NOD() SAFETY_CONSTEXPR()
+      Block Crop(const Offset&, const Count&) const SAFETY_NOEXCEPT();
 
       NOD() Block GetElementDense(Offset);
       NOD() const Block GetElementDense(Offset) const;
@@ -317,11 +310,11 @@ namespace Langulus::Anyness
       NOD() Block GetElementResolved(Offset);
       NOD() const Block GetElementResolved(Offset) const;
    
-      NOD() Block GetElement(Offset) noexcept;
-      NOD() const Block GetElement(Offset) const noexcept;
+      NOD() Block GetElement(Offset) SAFETY_NOEXCEPT();
+      NOD() const Block GetElement(Offset) const SAFETY_NOEXCEPT();
    
-      NOD() Block GetElement() noexcept;
-      NOD() const Block GetElement() const noexcept;
+      NOD() Block GetElement() SAFETY_NOEXCEPT();
+      NOD() const Block GetElement() const SAFETY_NOEXCEPT();
    
       NOD() Block* GetBlockDeep(Offset) noexcept;
       NOD() const Block* GetBlockDeep(Offset) const noexcept;
@@ -329,17 +322,29 @@ namespace Langulus::Anyness
       NOD() Block GetElementDeep(Offset) noexcept;
       NOD() const Block GetElementDeep(Offset) const noexcept;
 
-      NOD() Block GetResolved() noexcept;
-      NOD() const Block GetResolved() const noexcept;
+      NOD() Block GetResolved() SAFETY_NOEXCEPT();
+      NOD() const Block GetResolved() const SAFETY_NOEXCEPT();
 
-      NOD() Block GetDense() noexcept;
-      NOD() const Block GetDense() const noexcept;
+      NOD() Block GetDense();
+      NOD() const Block GetDense() const;
 
       template<CT::Data, CT::Index INDEX1, CT::Index INDEX2>
       void Swap(INDEX1, INDEX2);
 
+      template<CT::Data>
+      NOD() Index ConstrainMore(const Index&) const SAFETY_NOEXCEPT();
+      template<CT::Data T>
+      NOD() Index GetIndexMax() const SAFETY_NOEXCEPT() requires (CT::Sortable<T, T>);
+      template<CT::Data T>
+      NOD() Index GetIndexMin() const SAFETY_NOEXCEPT() requires (CT::Sortable<T, T>);
+      template<CT::Data>
+      NOD() Index GetIndexMode(Count&) const SAFETY_NOEXCEPT();
+
+      template<CT::Data>
+      void Sort(const Index&) noexcept;
+
    protected:
-      NOD() Block CropInner(const Offset&, const Count&, const Count&) const noexcept;
+      NOD() Block CropInner(const Offset&, const Count&) const noexcept;
 
       template<class, bool COUNT_CONSTRAINED = true, CT::Index INDEX>
       Offset SimplifyIndex(const INDEX&) const;
@@ -840,3 +845,4 @@ namespace Langulus::CT
 #include "Block.inl"
 #include "Block-Construct.inl"
 #include "Block-Capsulation.inl"
+#include "Block-Indexing.inl"

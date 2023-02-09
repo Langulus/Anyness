@@ -314,7 +314,7 @@ namespace Langulus::Anyness
 
       const auto end = mCount - pattern.mCount;
       for (Offset i = offset; i < end; ++i) {
-         auto remaining = Block::CropInner(i, pattern.mCount, pattern.mCount);
+         auto remaining = CropInner(i, pattern.mCount);
          auto& asText = ReinterpretCast<Text&>(remaining);
          if (asText.Compare(pattern)) {
             offset = i;
@@ -336,7 +336,7 @@ namespace Langulus::Anyness
 
       const auto start = mCount - pattern.mCount - offset;
       for (auto i = ::std::ptrdiff_t(start); i >= 0; --i) {
-         auto remaining = Block::CropInner(i, pattern.mCount, pattern.mCount);
+         auto remaining = CropInner(i, pattern.mCount);
          auto& asText = ReinterpretCast<Text&>(remaining);
          if (asText.Compare(pattern)) {
             offset = Offset(i);
