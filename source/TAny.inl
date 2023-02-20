@@ -206,6 +206,7 @@ namespace Langulus::Anyness
    }
 
    /// Dereference and eventually destroy all elements                        
+   ///   @attention this never modifies any state, except mEntry              
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
    void TAny<T>::Free() {
@@ -213,8 +214,10 @@ namespace Langulus::Anyness
          return;
 
       if (mEntry->GetUses() == 1) {
-         if constexpr (CT::Sparse<T> || !CT::POD<T>)
-            CallKnownDestructors<T>();
+         if constexpr (CT::Sparse<T> || !CT::POD<T>) {
+            if (mCount)
+               CallKnownDestructors<T>();
+         }
          Inner::Allocator::Deallocate(mEntry);
          mEntry = nullptr;
          return;

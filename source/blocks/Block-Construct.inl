@@ -178,7 +178,14 @@ namespace Langulus::Anyness
       }
       else {
          // Any other value gets wrapped inside a temporary Block       
-         result = {DataState::Static, MetaData::Of<T>(), 1, &value};
+         result = {
+            DataState::Static, 
+            MetaData::Of<Decvq<Deref<T>>>(), 
+            1, &value
+         };
+
+         if constexpr (CT::Constant<T>)
+            result.MakeConst();
       }
       
       if constexpr (CONSTRAIN)

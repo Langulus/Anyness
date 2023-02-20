@@ -15,7 +15,7 @@ namespace Langulus::Anyness
    ///   A helper structure for pairing keys and values of any type           
    ///                                                                        
    template<CT::Data K, CT::Data V>
-   struct TPair : public A::Pair {
+   struct TPair : A::Pair {
       using Key = K;
       using Value = V;
 

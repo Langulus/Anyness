@@ -1226,9 +1226,19 @@ namespace Langulus::Anyness
       LANGULUS_ASSUME(DevAssumes, IsExact<T>(), "Type mismatch");
       LANGULUS_ASSUME(DevAssumes, count <= mReserved, "Count outside limits");
 
-      if constexpr (CT::Sparse<T> || CT::Nullifiable<T>) {
-         // Just zero the memory (optimization)                         
-         FillMemory(mRaw, {}, count * GetStride());
+      if constexpr (CT::Sparse<T>) {
+         // Zero pointers                                               
+         ::std::memset(mRaw, 0, count * sizeof(Pointer));
+
+         // Zero entries if managed memory is enabled                   
+         IF_LANGULUS_MANAGED_MEMORY(::std::memset(
+            const_cast<Block*>(this)->GetEntries(),
+            0, count * sizeof(Pointer)
+         ));
+      }
+      else if constexpr (CT::Nullifiable<T>) {
+         // Zero the dense memory (optimization)                        
+         ::std::memset(mRaw, 0, count * sizeof(T));
       }
       else if constexpr (CT::Defaultable<T>) {
          // Construct requested elements in place                       
@@ -1247,13 +1257,26 @@ namespace Langulus::Anyness
    inline void Block::CallUnknownDefaultConstructors(Count count) const {
       LANGULUS_ASSUME(DevAssumes, count <= mReserved, "Count outside limits");
 
-      if (mType->mIsSparse || mType->mIsNullifiable) {
-         // Just zero the memory (optimization)                         
-         FillMemory(mRaw, {}, count * GetStride());
+      if (mType->mIsSparse) {
+         // Zero pointers                                               
+         ::std::memset(mRaw, 0, count * sizeof(Pointer));
+
+         // Zero entries if managed memory is enabled                   
+         IF_LANGULUS_MANAGED_MEMORY(::std::memset(
+            const_cast<Block*>(this)->GetEntries(),
+            0, count * sizeof(Pointer)
+         ));
+      } 
+      else if (mType->mIsNullifiable) {
+         // Zero the dense memory (optimization)                        
+         ::std::memset(mRaw, 0, count * mType->mSize);
       }
       else {
-         LANGULUS_ASSERT(mType->mDefaultConstructor != nullptr, Construct,
-            "Can't default-construct elements - no default constructor reflected");
+         LANGULUS_ASSERT(
+            mType->mDefaultConstructor != nullptr, Construct,
+            "Can't default-construct elements"
+            " - no default constructor reflected"
+         );
          
          // Construct requested elements one by one                     
          auto to = mRaw;
@@ -2177,10 +2200,11 @@ namespace Langulus::Anyness
    ///   @tparam T - the type to destroy                                      
    template<CT::Data T>
    void Block::CallKnownDestructors() const {
+      LANGULUS_ASSUME(DevAssumes, mCount > 0,
+         "Container is empty");
       LANGULUS_ASSUME(DevAssumes, 
          IsExact<T>() || mType->template HasDerivation<T>(),
-         "T isn't related to contained type"
-      );
+         "T isn't related to contained type");
 
       using DT = Decay<T>;
       const auto mthis = const_cast<Block*>(this);
@@ -2224,7 +2248,13 @@ namespace Langulus::Anyness
    
    /// Call destructors of all initialized items                              
    ///   @attention never modifies any block state                            
+   ///   @attention assumes there's at least one valid element                
    inline void Block::CallUnknownDestructors() const {
+      LANGULUS_ASSUME(DevAssumes, mCount > 0,
+         "Container is empty");
+      LANGULUS_ASSUME(DevAssumes, IsTyped(),
+         "Container has no type");
+
       const auto mthis = const_cast<Block*>(this);
       const bool destroy = !mType->mIsPOD && mType->mDestructor;
       if (mType->mIsSparse && !mType->mDeptr->mIsSparse) {

@@ -64,8 +64,10 @@ namespace Langulus::Anyness
          return;
 
       if (mValues.mEntry->GetUses() == 1) {
-         // Remove all used keys and values, they're used only here     
-         ClearInner();
+         if (!IsEmpty()) {
+            // Remove all used keys and values, they're used only here  
+            ClearInner();
+         }
 
          // Deallocate stuff                                            
          Allocator::Deallocate(mKeys.mEntry);
@@ -146,20 +148,6 @@ namespace Langulus::Anyness
       return *this;
    }
 
-   /// Clone all elements in a range                                          
-   ///   @attention assumes from & to have been preallocated                  
-   ///   @param from - source                                                 
-   ///   @param to - destrination                                             
-   inline void BlockMap::CloneInner(const Block& from, Block& to) const {
-      for (Offset i = 0; i < GetReserved(); ++i) {
-         if (!mInfo[i])
-            continue;
-
-         to.GetElement(i).CallUnknownSemanticConstructors(
-            1, Langulus::Clone(from.GetElement(i)));
-      }
-   }
-
    /// Clone the table                                                        
    ///   @return the new table                                                
    inline BlockMap BlockMap::Clone() const {
@@ -188,8 +176,25 @@ namespace Langulus::Anyness
       ::std::memcpy(result.mInfo, mInfo, GetReserved() + 1);
 
       // Clone the rest                                                 
-      CloneInner(mKeys, result.mKeys);
-      CloneInner(mValues, result.mValues);
+      auto info = GetInfo();
+      const auto infoEnd = info + GetReserved();
+      auto fromKey = GetKey(0);
+      auto toKey = result.GetKey(0);
+      auto fromVal = GetValue(0);
+      auto toVal = result.GetValue(0);
+      while (info != infoEnd) {
+         if (*info) {
+            toKey.CallUnknownSemanticConstructors(1, Langulus::Clone(fromKey));
+            toVal.CallUnknownSemanticConstructors(1, Langulus::Clone(fromVal));
+         }
+
+         ++info;
+         toKey.Next();
+         fromKey.Next();
+         toVal.Next();
+         fromVal.Next();
+      }
+
       return Abandon(result);
    }
    
@@ -281,37 +286,37 @@ namespace Langulus::Anyness
 
    /// Get the raw key array (const)                                          
    template<CT::Data K>
-   constexpr decltype(auto) BlockMap::GetRawKeys() const noexcept {
+   constexpr const K* BlockMap::GetRawKeys() const noexcept {
       return GetKeys<K>().GetRaw();
    }
 
    /// Get the raw key array                                                  
    template<CT::Data K>
-   constexpr decltype(auto) BlockMap::GetRawKeys() noexcept {
+   constexpr K* BlockMap::GetRawKeys() noexcept {
       return GetKeys<K>().GetRaw();
    }
 
    /// Get the end of the raw key array                                       
    template<CT::Data K>
-   constexpr decltype(auto) BlockMap::GetRawKeysEnd() const noexcept {
+   constexpr const K* BlockMap::GetRawKeysEnd() const noexcept {
       return GetRawKeys<K>() + GetReserved();
    }
 
    /// Get the raw value array (const)                                        
    template<CT::Data V>
-   constexpr decltype(auto) BlockMap::GetRawValues() const noexcept {
+   constexpr const V* BlockMap::GetRawValues() const noexcept {
       return GetValues<V>().GetRaw();
    }
 
    /// Get the raw value array                                                
    template<CT::Data V>
-   constexpr decltype(auto) BlockMap::GetRawValues() noexcept {
+   constexpr V* BlockMap::GetRawValues() noexcept {
       return GetValues<V>().GetRaw();
    }
 
    /// Get end of the raw value array                                         
    template<CT::Data V>
-   constexpr decltype(auto) BlockMap::GetRawValuesEnd() const noexcept {
+   constexpr const V* BlockMap::GetRawValuesEnd() const noexcept {
       return GetRawValues<V>() + GetReserved();
    }
 
@@ -359,17 +364,23 @@ namespace Langulus::Anyness
 
    /// Request a new size of keys and info via the value container            
    /// The memory layout is:                                                  
-   ///   [keys for each bucket]                                               
+   ///   [keys for each bucket, including entries, if sparse]                 
    ///         [padding for alignment]                                        
    ///               [info for each bucket]                                   
    ///                     [one sentinel byte for terminating loops]          
    ///   @attention assumes key type has been set                             
+   ///   @param count - number of keys to allocate                            
    ///   @param infoStart - [out] the offset at which info bytes start        
    ///   @return the requested byte size                                      
-   inline Size BlockMap::RequestKeyAndInfoSize(const Count request, Offset& infoStart) noexcept {
-      const Size keymemory = request * mKeys.GetStride();
+   LANGULUS(ALWAYSINLINE)
+   Size BlockMap::RequestKeyAndInfoSize(const Count count, Offset& infoStart) const SAFETY_NOEXCEPT() {
+      auto keymemory = count * mKeys.mType->mSize;
+      IF_LANGULUS_MANAGED_MEMORY(
+         if (mKeys.mType->mIsSparse)
+            keymemory *= 2;
+      );
       infoStart = keymemory + Alignment - (keymemory % Alignment);
-      return infoStart + request + 1;
+      return infoStart + count + 1;
    }
 
    /// Get the info array (const)                                             
@@ -459,7 +470,12 @@ namespace Langulus::Anyness
 
       // Allocate new values                                            
       const Block oldValues {mValues};
-      const auto valueByteSize = count * mValues.GetStride();
+      auto valueByteSize = count * mValues.mType->mSize;
+      IF_LANGULUS_MANAGED_MEMORY(
+         if (mValues.mType->mIsSparse)
+            valueByteSize *= 2;
+      );
+
       if constexpr (REUSE)
          mValues.mEntry = Allocator::Reallocate(valueByteSize, mValues.mEntry);
       else
@@ -725,12 +741,15 @@ namespace Langulus::Anyness
    ///   @param start - the starting index                                    
    ///   @param key - key & semantic to insert                                
    ///   @param value - value & semantic to insert                            
+   ///   @return the offset at which pair was inserted                        
    template<bool CHECK_FOR_MATCH, CT::Semantic SK, CT::Semantic SV>
    Offset BlockMap::InsertInner(const Offset& start, SK&& key, SV&& value) {
       using K = TypeOf<SK>;
       using V = TypeOf<SV>;
       auto keyswapper = SemanticMake<K>(key.Forward());
+      Inner::Allocation* keyentry {};
       auto valswapper = SemanticMake<V>(value.Forward());
+      Inner::Allocation* valentry {};
 
       // Get the starting index based on the key hash                   
       auto psl = GetInfo() + start;
@@ -768,8 +787,8 @@ namespace Langulus::Anyness
       // Might not seem like it, but we gave a guarantee, that this is  
       // eventually reached, unless key exists and returns early        
       const auto index = psl - GetInfo();
-      SemanticNew<K>(&GetRawKeys<K>()[index], Abandon(keyswapper));
-      SemanticNew<V>(&GetRawValues<V>()[index], Abandon(valswapper));
+      SemanticNew<K>(GetRawKeys<K>() + index, Abandon(keyswapper));
+      SemanticNew<V>(GetRawValues<V>() + index, Abandon(valswapper));
 
       *psl = attempts;
       ++mValues.mCount;
@@ -886,7 +905,9 @@ namespace Langulus::Anyness
    }
 
    /// Destroy everything valid inside the map                                
+   ///   @attention assumes there's at least one valid pair                   
    inline void BlockMap::ClearInner() {
+      LANGULUS_ASSUME(DevAssumes, !IsEmpty(), "Map is empty");
       auto inf = GetInfo();
       const auto infEnd = GetInfoEnd();
       while (inf != infEnd) {
@@ -928,7 +949,8 @@ namespace Langulus::Anyness
       if (mValues.mEntry) {
          if (mValues.mEntry->GetUses() == 1) {
             // Remove all used keys and values, they're used only here  
-            ClearInner();
+            if (!IsEmpty())
+               ClearInner();
 
             // No point in resetting info, we'll be deallocating it     
             Allocator::Deallocate(mKeys.mEntry);
@@ -954,10 +976,11 @@ namespace Langulus::Anyness
    inline void BlockMap::RemoveIndex(const Offset& offset) noexcept {
       auto psl = GetInfo() + offset;
       const auto pslEnd = GetInfoEnd();
-      auto key = mKeys.GetElement(offset);
-      auto val = mValues.GetElement(offset);
+      auto key = GetKey(offset);
+      auto val = GetValue(offset);
 
       // Destroy the key, info and value at the offset                  
+      LANGULUS_ASSUME(DevAssumes, *psl, "Removing an invalid pair");
       key.CallUnknownDestructors();
       val.CallUnknownDestructors();
 
@@ -989,8 +1012,8 @@ namespace Langulus::Anyness
       // Be aware, that psl might loop around                           
       if (psl == pslEnd && *GetInfo() > 1) UNLIKELY() {
          psl = GetInfo();
-         key = mKeys.GetElement();
-         val = mValues.GetElement();
+         key = GetKey(0);
+         val = GetValue(0);
 
          // Shift first entry to the back                               
          const auto last = mValues.mReserved - 1;
@@ -1151,36 +1174,49 @@ namespace Langulus::Anyness
       return found != GetReserved() && GetValue(found) == pair.mValue;
    }
 
-   /// Get a key by an unsafe offset (const)                                  
+   /// Get a type-erased key                                                  
    ///   @attention as unsafe as it gets, for internal use only               
    ///   @param i - the offset to use                                         
-   ///   @return a reference to the key                                       
-   inline Block BlockMap::GetKey(const Offset& i) const noexcept {
-      return mKeys.GetElement(i);
-   }
-
-   /// Get a key by an unsafe offset                                          
-   ///   @attention as unsafe as it gets, for internal use only               
-   ///   @param i - the offset to use                                         
-   ///   @return a reference to the key                                       
+   ///   @return the key, wrapped inside a block                              
    inline Block BlockMap::GetKey(const Offset& i) noexcept {
-      return mKeys.GetElement(i);
+      Block result {mKeys};
+      result.mState += DataState::Static;
+      result.mCount = 1;
+      result.mReserved = mValues.mReserved;
+      result.mRaw += i * mKeys.mType->mSize;
+      return result;
    }
 
-   /// Get a value by an unsafe offset (const)                                
+   /// Get a type-erased key (const)                                          
    ///   @attention as unsafe as it gets, for internal use only               
    ///   @param i - the offset to use                                         
-   ///   @return a reference to the value                                     
-   inline Block BlockMap::GetValue(const Offset& i) const noexcept {
-      return mValues.GetElement(i);
+   ///   @return the key, wrapped inside an immutable block                   
+   inline Block BlockMap::GetKey(const Offset& i) const noexcept {
+      auto result = const_cast<BlockMap*>(this)->GetKey(i);
+      result.MakeConst();
+      return result;
    }
 
-   /// Get a value by an unsafe offset                                        
+   /// Get a type-erased value                                                
    ///   @attention as unsafe as it gets, for internal use only               
    ///   @param i - the offset to use                                         
-   ///   @return a reference to the value                                     
+   ///   @return the value, wrapped inside a block                            
    inline Block BlockMap::GetValue(const Offset& i) noexcept {
-      return mValues.GetElement(i);
+      Block result {mValues};
+      result.mState += DataState::Static;
+      result.mCount = 1;
+      result.mRaw += i * mValues.mType->mSize;
+      return result;
+   }
+
+   /// Get a type-erased value (const)                                        
+   ///   @attention as unsafe as it gets, for internal use only               
+   ///   @param i - the offset to use                                         
+   ///   @return the value, wrapped inside an immutable block                 
+   inline Block BlockMap::GetValue(const Offset& i) const noexcept {
+      auto result = const_cast<BlockMap*>(this)->GetValue(i);
+      result.MakeConst();
+      return result;
    }
 
    /// Get a pair by an unsafe offset (const)                                 
@@ -1367,10 +1403,6 @@ namespace Langulus::Anyness
    template<CT::NotSemantic K>
    Block BlockMap::operator[] (const K& key) const {
       return At(key);
-
-      /*auto found = FindIndex<K>(key);
-      LANGULUS_ASSERT(found != GetReserved(), OutOfRange, "Key not found");
-      return GetValue(found);*/
    }
 
    /// Access value by key                                                    
@@ -1379,10 +1411,6 @@ namespace Langulus::Anyness
    template<CT::NotSemantic K>
    Block BlockMap::operator[] (const K& key) {
       return At(key);
-
-      /*auto found = FindIndex<K>(key);
-      LANGULUS_ASSERT(found != GetReserved(), OutOfRange, "Key not found");
-      return GetValue(found);*/
    }
 
    /// Get the number of inserted pairs                                       

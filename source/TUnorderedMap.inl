@@ -104,12 +104,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this table                                    
    TABLE_TEMPLATE()
    TABLE()& TABLE()::operator = (TUnorderedMap&& rhs) noexcept {
-      if (&rhs == this)
-         return *this;
-
-      Reset();
-      new (this) Self {Forward<TUnorderedMap>(rhs)};
-      return *this;
+      return operator = (Langulus::Move(rhs));
    }
 
    /// Creates a shallow copy of the given table                              
@@ -117,11 +112,20 @@ namespace Langulus::Anyness
    ///   @return a reference to this table                                    
    TABLE_TEMPLATE()
    TABLE()& TABLE()::operator = (const TUnorderedMap& rhs) {
+      return operator = (Langulus::Copy(rhs));
+   }
+
+   /// Semantic assignment for an unordered map                               
+   ///   @tparam S - the semantic (deducible)                                 
+   ///   @param rhs - the unordered map to use for construction               
+   TABLE_TEMPLATE()
+   template<CT::Semantic S>
+   TABLE()& TABLE()::operator = (S&& rhs) noexcept requires (CT::Exact<TypeOf<S>, Self>) {
       if (&rhs == this)
          return *this;
 
       Reset();
-      new (this) Self {rhs};
+      new (this) Self {rhs.Forward()};
       return *this;
    }
 
@@ -129,19 +133,26 @@ namespace Langulus::Anyness
    ///   @param pair - the pair to copy                                       
    ///   @return a reference to this table                                    
    TABLE_TEMPLATE()
-   TABLE()& TABLE()::operator = (const Pair& pair) {
-      Clear();
-      Insert(pair.mKey, pair.mValue);
-      return *this;
+   TABLE()& TABLE()::operator = (const Pair& rhs) {
+      return operator = (Langulus::Copy(rhs));
    }
 
    /// Emplace a single pair into a cleared map                               
    ///   @param pair - the pair to emplace                                    
    ///   @return a reference to this table                                    
    TABLE_TEMPLATE()
-   TABLE()& TABLE()::operator = (Pair&& pair) noexcept {
+   TABLE()& TABLE()::operator = (Pair&& rhs) noexcept {
+      return operator = (Langulus::Move(rhs));
+   }
+   
+   /// Semantic assignment for a pair                                         
+   ///   @tparam S - the semantic (deducible)                                 
+   ///   @param rhs - the pair to use                                         
+   TABLE_TEMPLATE()
+   template<CT::Semantic S>
+   TABLE()& TABLE()::operator = (S&& rhs) noexcept requires (CT::Pair<TypeOf<S>>) {
       Clear();
-      Insert(Move(pair.mKey), Move(pair.mValue));
+      Insert(S::Nest(rhs.mValue.mKey), S::Nest(rhs.mValue.mValue));
       return *this;
    }
 
@@ -380,20 +391,28 @@ namespace Langulus::Anyness
    }
 
    /// Copy-insert a pair inside the map                                      
-   ///   @param item - the pair to insert                                     
+   ///   @param rhs - the pair to insert                                      
    ///   @return a reference to this table for chaining                       
    TABLE_TEMPLATE()
-   TABLE()& TABLE()::operator << (const TPair<K, V>& item) {
-      Insert(item.mKey, item.mValue);
-      return *this;
+   TABLE()& TABLE()::operator << (const TPair<K, V>& rhs) {
+      return operator << (Langulus::Copy(rhs));
    }
 
    /// Move-insert a pair inside the map                                      
-   ///   @param item - the pair to insert                                     
+   ///   @param rhs - the pair to insert                                      
    ///   @return a reference to this table for chaining                       
    TABLE_TEMPLATE()
-   TABLE()& TABLE()::operator << (TPair<K, V>&& item) {
-      Insert(Move(item.mKey), Move(item.mValue));
+   TABLE()& TABLE()::operator << (TPair<K, V>&& rhs) {
+      return operator << (Langulus::Move(rhs));
+   }
+   
+   /// Move-insert a pair inside the map                                      
+   ///   @param rhs - the pair to insert                                      
+   ///   @return a reference to this table for chaining                       
+   TABLE_TEMPLATE()
+   template<CT::Semantic S>
+   TABLE()& TABLE()::operator << (S&& rhs) noexcept requires (CT::Pair<TypeOf<S>>) {
+      Insert(S::Nest(rhs.mValue.mKey), S::Nest(rhs.mValue.mValue));
       return *this;
    }
 

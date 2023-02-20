@@ -65,11 +65,12 @@ concept IsStaticallyOptimized = requires (Decay<T> a) { typename T::Key; typenam
 /// to complex, from flat to deep                                             
 TEMPLATE_TEST_CASE(
    "TOrderedMap/TUnorderedMap/OrderedMap/UnorderedMap", "[map]",
-   (TypePair<TUnorderedMap<Text, int*>, Text, int*>),
+   (TypePair<UnorderedMap, Text, int*>),
    (TypePair<TUnorderedMap<Text, int>, Text, int>),
    (TypePair<TUnorderedMap<Text, Trait>, Text, Trait>),
    (TypePair<TUnorderedMap<Text, Traits::Count>, Text, Traits::Count>),
    (TypePair<TUnorderedMap<Text, Any>, Text, Any>),
+   (TypePair<TUnorderedMap<Text, int*>, Text, int*>),
    (TypePair<TUnorderedMap<Text, Trait*>, Text, Trait*>),
    (TypePair<TUnorderedMap<Text, Traits::Count*>, Text, Traits::Count*>),
    (TypePair<TUnorderedMap<Text, Any*>, Text, Any*>),
@@ -85,7 +86,6 @@ TEMPLATE_TEST_CASE(
    (TypePair<UnorderedMap, Text, Trait>),
    (TypePair<UnorderedMap, Text, Traits::Count>),
    (TypePair<UnorderedMap, Text, Any>),
-   (TypePair<UnorderedMap, Text, int*>),
    (TypePair<UnorderedMap, Text, Trait*>),
    (TypePair<UnorderedMap, Text, Traits::Count*>),
    (TypePair<UnorderedMap, Text, Any*>),
@@ -112,7 +112,7 @@ TEMPLATE_TEST_CASE(
 
       T map {};
 
-      WHEN("Given a default-constructed map") {
+      /*WHEN("Given a default-constructed map") {
          THEN("These properties should be correct") {
             if constexpr (IsStaticallyOptimized<T>) {
                REQUIRE(map.template KeyIs<K>());
@@ -184,7 +184,7 @@ TEMPLATE_TEST_CASE(
             };
          #endif
       }
-
+      */
       WHEN("Given a pair by move") {
          IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 

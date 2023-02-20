@@ -295,9 +295,7 @@ namespace Langulus::Anyness
 
       void ClearInner();
 
-      void CloneInner(const Block&, Block&) const;
-
-      NOD() Size RequestKeyAndInfoSize(Count, Offset&) noexcept;
+      NOD() Size RequestKeyAndInfoSize(Count, Offset&) const SAFETY_NOEXCEPT();
 
       void RemoveIndex(const Offset&) noexcept;
 
@@ -329,18 +327,18 @@ namespace Langulus::Anyness
       NOD() const InfoType* GetInfoEnd() const noexcept;
 
       template<CT::Data K>
-      NOD() constexpr decltype(auto) GetRawKeys() const noexcept;
+      NOD() constexpr const K* GetRawKeys() const noexcept;
       template<CT::Data K>
-      NOD() constexpr decltype(auto) GetRawKeys() noexcept;
+      NOD() constexpr K* GetRawKeys() noexcept;
       template<CT::Data K>
-      NOD() constexpr decltype(auto) GetRawKeysEnd() const noexcept;
+      NOD() constexpr const K* GetRawKeysEnd() const noexcept;
 
       template<CT::Data V>
-      NOD() constexpr decltype(auto) GetRawValues() const noexcept;
+      NOD() constexpr const V* GetRawValues() const noexcept;
       template<CT::Data V>
-      NOD() constexpr decltype(auto) GetRawValues() noexcept;
+      NOD() constexpr V* GetRawValues() noexcept;
       template<CT::Data V>
-      NOD() constexpr decltype(auto) GetRawValuesEnd() const noexcept;
+      NOD() constexpr const V* GetRawValuesEnd() const noexcept;
 
    #ifdef LANGULUS_ENABLE_TESTING
       NOD() constexpr const void* GetRawKeysMemory() const noexcept;

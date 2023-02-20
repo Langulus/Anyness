@@ -226,7 +226,7 @@ namespace Langulus::Anyness
    }
          
    /// Dereference memory block                                               
-   ///   @attention doesn't affect count, state, and reserve                  
+   ///   @attention this never modifies any state, except mEntry              
    ///   @tparam DESTROY - whether to call destructors on full dereference    
    ///   @param times - number of references to subtract                      
    template<bool DESTROY>
@@ -239,20 +239,21 @@ namespace Langulus::Anyness
 
       if (mEntry->GetUses() == times) {
          // Destroy all elements and deallocate the entry               
-         if constexpr (DESTROY)
-            CallUnknownDestructors();
+         if constexpr (DESTROY) {
+            if (mCount)
+               CallUnknownDestructors();
+         }
          Inner::Allocator::Deallocate(mEntry);
-         mEntry = nullptr;
-         return;
       }
+      else mEntry->Free(times);
 
-      mEntry->Free(times);
       mEntry = nullptr;
       return;
    }
 
    /// Dereference memory block once and destroy all elements if data was     
    /// fully dereferenced                                                     
+   ///   @attention this never modifies any state, except mEntry              
    LANGULUS(ALWAYSINLINE)
    void Block::Free() {
       return Dereference<true>(1);
