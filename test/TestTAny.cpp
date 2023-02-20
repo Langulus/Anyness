@@ -66,9 +66,8 @@ T CreateElement(const ALT_T& e) {
 /// The main test for Any/TAny containers, with all kinds of items, from      
 /// sparse to dense, from trivial to complex, from flat to deep               
 TEMPLATE_TEST_CASE("Any/TAny", "[any]", 
-   (TypePair<Any, Any*>),
-   (TypePair<Traits::Name, Text>),
    (TypePair<TAny<int>, int>),
+   (TypePair<Traits::Name, Text>),
    (TypePair<TAny<Trait>, Trait>),
    (TypePair<TAny<Traits::Count>, Traits::Count>),
    (TypePair<TAny<Any>, Any>),
@@ -89,6 +88,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
    (TypePair<Any, int*>),
    (TypePair<Any, Trait*>),
    (TypePair<Any, Traits::Count*>),
+   (TypePair<Any, Any*>),
    (TypePair<Any, Text*>)
    //(TypePair<Any, Block*>),
 ) {
@@ -225,8 +225,8 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
             }
 
             if constexpr (CT::Sparse<E>) {
-               REQUIRE(*pack.GetRawSparse() == sparseValue);
-               REQUIRE(pack.GetRawSparse()->mEntry == nullptr);
+               REQUIRE(*pack.GetRawSparse() == asbytes(sparseValue));
+               REQUIRE(*pack.GetEntries() == nullptr);
             }
 
             REQUIRE_THROWS(pack.template As<float>() == 0.0f);
@@ -308,8 +308,8 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
             }
 
             if constexpr (CT::Sparse<E>) {
-               REQUIRE(asbytes(pack.GetRawSparse()->mPointer) == asbytes(sparseValue));
-               REQUIRE(pack.GetRawSparse()->mEntry == nullptr);
+               REQUIRE(*pack.GetRawSparse() == asbytes(sparseValue));
+               REQUIRE(*pack.GetEntries() == nullptr);
             }
 
             REQUIRE_THROWS(pack.template As<float>() == 0.0f);
@@ -382,8 +382,8 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
             }
 
             if constexpr (CT::Sparse<E>) {
-               REQUIRE(asbytes(pack.GetRawSparse()->mPointer) == asbytes(sparseValue));
-               REQUIRE(pack.GetRawSparse()->mEntry == nullptr);
+               REQUIRE(*pack.GetRawSparse() == asbytes(sparseValue));
+               REQUIRE(*pack.GetEntries() == nullptr);
             }
 
             REQUIRE_THROWS(pack.template As<float>() == 0.0f);
@@ -465,8 +465,8 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
             }
 
             if constexpr (CT::Sparse<E>) {
-               REQUIRE(asbytes(pack.GetRawSparse()->mPointer) == asbytes(sparseValue));
-               REQUIRE(pack.GetRawSparse()->mEntry == nullptr);
+               REQUIRE(*pack.GetRawSparse() == asbytes(sparseValue));
+               REQUIRE(*pack.GetEntries() == nullptr);
             }
 
             REQUIRE_THROWS(pack.template As<float>() == 0.0f);
@@ -741,8 +741,8 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                }
 
                if constexpr (CT::Sparse<E>) {
-                  REQUIRE(asbytes(pack.GetRawSparse()->mPointer) == asbytes(sparseValue));
-                  REQUIRE(pack.GetRawSparse()->mEntry == nullptr);
+                  REQUIRE(*pack.GetRawSparse() == asbytes(sparseValue));
+                  REQUIRE(*pack.GetEntries() == nullptr);
                }
 
                REQUIRE_THROWS(pack.template As<float>() == 0.0f);
@@ -817,8 +817,8 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                }
 
                if constexpr (CT::Sparse<E>) {
-                  REQUIRE(asbytes(pack.GetRawSparse()->mPointer) == asbytes(sparseValue));
-                  REQUIRE(pack.GetRawSparse()->mEntry == nullptr);
+                  REQUIRE(*pack.GetRawSparse() == asbytes(sparseValue));
+                  REQUIRE(*pack.GetEntries() == nullptr);
                }
 
                REQUIRE_THROWS(pack.template As<float>() == 0.0f);
@@ -887,8 +887,8 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                }
 
                if constexpr (CT::Sparse<E>) {
-                  REQUIRE(asbytes(pack.GetRawSparse()->mPointer) == asbytes(sparseValue));
-                  REQUIRE(pack.GetRawSparse()->mEntry == nullptr);
+                  REQUIRE(*pack.GetRawSparse() == asbytes(sparseValue));
+                  REQUIRE(*pack.GetEntries() == nullptr);
                }
 
                REQUIRE_THROWS(pack.template As<float>() == 0.0f);
@@ -963,8 +963,8 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                }
 
                if constexpr (CT::Sparse<E>) {
-                  REQUIRE(asbytes(pack.GetRawSparse()->mPointer) == asbytes(sparseValue));
-                  REQUIRE(pack.GetRawSparse()->mEntry == nullptr);
+                  REQUIRE(*pack.GetRawSparse() == asbytes(sparseValue));
+                  REQUIRE(*pack.GetEntries() == nullptr);
                }
 
                REQUIRE_THROWS(pack.template As<float>() == 0.0f);
@@ -1156,8 +1156,8 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
             }
 
             if constexpr (CT::Sparse<E>) {
-               REQUIRE(asbytes(pack.GetRawSparse()->mPointer) == asbytes(sparseValue));
-               REQUIRE(pack.GetRawSparse()->mEntry == nullptr);
+               REQUIRE(*pack.GetRawSparse() == asbytes(sparseValue));
+               REQUIRE(*pack.GetEntries() == nullptr);
             }
 
             REQUIRE_THROWS(pack.template As<float>() == 0.0f);
@@ -1247,8 +1247,8 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
             }
 
             if constexpr (CT::Sparse<E>) {
-               REQUIRE(asbytes(pack.GetRawSparse()->mPointer) == asbytes(sparseValue));
-               REQUIRE(pack.GetRawSparse()->mEntry == nullptr);
+               REQUIRE(*pack.GetRawSparse() == asbytes(sparseValue));
+               REQUIRE(*pack.GetEntries() == nullptr);
             }
 
             REQUIRE_THROWS(pack.template As<float>() == 0.0f);
@@ -1347,8 +1347,8 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
             }
 
             if constexpr (CT::Sparse<E>) {
-               REQUIRE(asbytes(pack.GetRawSparse()->mPointer) == asbytes(sparseValue));
-               REQUIRE(pack.GetRawSparse()->mEntry == nullptr);
+               REQUIRE(*pack.GetRawSparse() == asbytes(sparseValue));
+               REQUIRE(*pack.GetEntries() == nullptr);
             }
 
             REQUIRE_THROWS(pack.template As<float>() == 0.0f);
@@ -1429,7 +1429,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
       pack << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
       const auto previousReserved = pack.GetReserved();
       const auto memory = pack.GetRaw();
-
+      
       WHEN("Given a preinitialized container with 5 elements") {
          THEN("These properties should be correct") {
             REQUIRE(pack.GetCount() == 5);
@@ -1737,7 +1737,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
             };
          #endif
       }
-
+      
       WHEN("Insert single item at a specific place by shallow-copy") {
          const auto i666 = CreateElement<E>(666);
          pack.InsertAt(i666, 3);
@@ -2038,7 +2038,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
       }
 
       WHEN("Removing non-available elements") {
-         const auto removed9 = pack.Remove(9);
+         const auto removed9 = pack.Remove(darray2[3]);
 
          THEN("The size changes but not capacity") {
             REQUIRE(removed9 == 0);
@@ -2052,6 +2052,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
             REQUIRE(pack.GetRaw() == memory);
          }
       }
+      
 
       WHEN("More capacity is reserved") {
          pack.Reserve(20);
@@ -2108,7 +2109,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
          if constexpr (CT::Same<E, int>) {
             // Works only if E doesn't move entries around
             WHEN("Pack is reset, then immediately allocated again") {
-               #include "CollectGarbage.inl"
+               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                pack.Reset();
                pack << CreateElement<E>(6) << CreateElement<E>(7) << CreateElement<E>(8) << CreateElement<E>(9) << CreateElement<E>(10);
                THEN("Block manager should reuse the memory, if MANAGED_MEMORY feature is enabled") {
@@ -2134,7 +2135,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
       WHEN("Pack is cloned") {
          pack.MakeOr();
-         auto clone = pack.Clone();
+         T clone = Langulus::Clone(pack);
 
          THEN("The new pack should keep the state and data") {
             REQUIRE(clone.GetRaw() != pack.GetRaw());
@@ -2586,17 +2587,15 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
    }
 
    GIVEN("Two containers with some items") {
-      #include "CollectGarbage.inl"
+      IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
-      const T pack1 {};
-      const T pack2 {};
-      const_cast<T&>(pack1) << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
-      const_cast<T&>(pack2) << darray2[0] << darray2[1] << darray2[2] << darray2[3] << darray2[4];
+      T pack1 {darray1[0], darray1[1], darray1[2], darray1[3], darray1[4]};
+      T pack2 {darray2[0], darray2[1], darray2[2], darray2[3], darray2[4]};
       const T memory1 = pack1;
       const T memory2 = pack2;
 
       WHEN("Copy-assign pack1 in pack2") {
-         const_cast<T&>(pack2) = pack1;
+         pack2 = pack1;
 
          THEN("memory1 should be referenced, memory2 should be dereferenced") {
             REQUIRE(pack1.GetUses() == 3);
@@ -2612,7 +2611,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
       WHEN("Move-assign pack1 in pack2") {
          auto movable = pack1;
-         const_cast<T&>(pack2) = ::std::move(movable);
+         pack2 = ::std::move(movable);
 
          THEN("memory1 should be overwritten, memory2 should be released") {
             REQUIRE(pack1.GetUses() == 3);
@@ -2625,7 +2624,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
       }
 
       WHEN("Disown-assign pack1 in pack2") {
-         const_cast<T&>(pack2) = Disown(pack1);
+         pack2 = Disown(pack1);
 
          THEN("memory1 should be referenced, memory2 should be dereferenced") {
             REQUIRE(pack1.GetUses() == 2);
@@ -2642,7 +2641,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
       WHEN("Abandon-assign pack1 in pack2") {
          auto movable = pack1;
-         const_cast<T&>(pack2) = Abandon(movable);
+         pack2 = Abandon(movable);
 
          THEN("memory1 should be overwritten, memory2 should be released") {
             REQUIRE(pack1.GetUses() == 3);
@@ -2653,9 +2652,9 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
          }
       }
 
-      WHEN("Shallow copy pack1 in pack2 and then reset pack1") {
-         const_cast<T&>(pack2) = pack1;
-         const_cast<T&>(pack1).Reset();
+      WHEN("Copy-assign pack1 in pack2, then reset pack1") {
+         pack2 = pack1;
+         pack1.Reset();
 
          THEN("memory1 should be referenced once, memory2 should be released") {
             REQUIRE_FALSE(pack1.HasAuthority());
@@ -2666,8 +2665,8 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
          }
       }
 
-      WHEN("Deep copy pack1 in pack2") {
-         const_cast<T&>(pack2) = pack1.Clone();
+      WHEN("Clone-assign pack1 in pack2") {
+         pack2 = Langulus::Clone(pack1);
 
          THEN("memory1 should be referenced twice, memory2 should be released") {
             REQUIRE(pack1.GetUses() == 2);
@@ -2684,10 +2683,10 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
          }
       }
 
-      WHEN("Deep copy pack1 in pack2, then reset pack1") {
-         const_cast<T&>(pack2) = pack1.Clone();
+      WHEN("Clone-assign pack1 in pack2, then reset pack1") {
+         pack2 = Langulus::Clone(pack1);
          const T memory3 = pack2;
-         const_cast<T&>(pack1).Reset();
+         pack1.Reset();
 
          THEN("memory1 should be referenced once, memory2 should be released") {
             REQUIRE_FALSE(pack1.HasAuthority());

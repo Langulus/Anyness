@@ -48,7 +48,7 @@ namespace Langulus::Anyness
    ///   @param other - the block to shallow-copy                             
    template<CT::Semantic S>
    LANGULUS(ALWAYSINLINE)
-   constexpr BlockMap::BlockMap(S&& other) noexcept requires (CT::Exact<TypeOf<S>, BlockMap>)
+   constexpr BlockMap::BlockMap(S&& other) noexcept requires (CT::Map<TypeOf<S>>)
       : mInfo {other.mValue.mInfo}
       , mKeys {other.mValue.mKeys}
       , mValues {other.mValue.mValues} {
@@ -706,9 +706,9 @@ namespace Langulus::Anyness
    template<CT::Semantic SK, CT::Semantic SV>
    inline Count BlockMap::InsertUnknown(SK&& key, SV&& val) {
       static_assert(CT::Block<TypeOf<SK>>,
-         "SK::Type must be a block type");
+         "SK's type must be a block type");
       static_assert(CT::Block<TypeOf<SV>>,
-         "SV::Type must be a block type");
+         "SV's type must be a block type");
 
       Mutate(key.mValue.mType, val.mValue.mType);
 
@@ -720,17 +720,17 @@ namespace Langulus::Anyness
    
    /// Inner insertion function                                               
    ///   @tparam CHECK_FOR_MATCH - false if you guarantee key doesn't exist   
+   ///   @tparam SK - key type and semantic (deducible)                       
+   ///   @tparam SV - value type and semantic (deducible)                     
    ///   @param start - the starting index                                    
-   ///   @param key - key to move in                                          
-   ///   @param value - value to move in                                      
+   ///   @param key - key & semantic to insert                                
+   ///   @param value - value & semantic to insert                            
    template<bool CHECK_FOR_MATCH, CT::Semantic SK, CT::Semantic SV>
    Offset BlockMap::InsertInner(const Offset& start, SK&& key, SV&& value) {
       using K = TypeOf<SK>;
       using V = TypeOf<SV>;
-      using InnerK = typename TAny<K>::TypeInner;
-      using InnerV = typename TAny<V>::TypeInner;
-      auto keyswapper = SemanticMake<InnerK>(key.Forward());
-      auto valswapper = SemanticMake<InnerV>(value.Forward());
+      auto keyswapper = SemanticMake<K>(key.Forward());
+      auto valswapper = SemanticMake<V>(value.Forward());
 
       // Get the starting index based on the key hash                   
       auto psl = GetInfo() + start;
@@ -768,8 +768,8 @@ namespace Langulus::Anyness
       // Might not seem like it, but we gave a guarantee, that this is  
       // eventually reached, unless key exists and returns early        
       const auto index = psl - GetInfo();
-      SemanticNew<InnerK>(&GetRawKeys<K>()[index], Abandon(keyswapper));
-      SemanticNew<InnerV>(&GetRawValues<V>()[index], Abandon(valswapper));
+      SemanticNew<K>(&GetRawKeys<K>()[index], Abandon(keyswapper));
+      SemanticNew<V>(&GetRawValues<V>()[index], Abandon(valswapper));
 
       *psl = attempts;
       ++mValues.mCount;

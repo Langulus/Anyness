@@ -147,7 +147,7 @@ TEMPLATE_TEST_CASE(
       }
 
       WHEN("Given a pair by copy") {
-         #include "CollectGarbage.inl"
+         IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
          map = pair;
 
@@ -158,8 +158,8 @@ TEMPLATE_TEST_CASE(
             REQUIRE(map.GetValueType()->template Is<V>());
             REQUIRE(map.template KeyIs<K>());
             REQUIRE(map.template ValueIs<V>());
-            REQUIRE(map.GetKeyStride() == (CT::Dense<K> ? sizeof(K) : sizeof(Block::KnownPointer)));
-            REQUIRE(map.GetValueStride() == (CT::Dense<V> ? sizeof(V) : sizeof(Block::KnownPointer)));
+            REQUIRE(map.GetKeyStride() == sizeof(K));
+            REQUIRE(map.GetValueStride() == sizeof(V));
             REQUIRE(map.IsAllocated());
             REQUIRE(map.HasAuthority());
             REQUIRE(map.GetCount() == 1);
@@ -186,7 +186,7 @@ TEMPLATE_TEST_CASE(
       }
 
       WHEN("Given a pair by move") {
-         #include "CollectGarbage.inl"
+         IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
          auto movablePair = pair;
          map = ::std::move(movablePair);
@@ -234,7 +234,7 @@ TEMPLATE_TEST_CASE(
    }
 
    GIVEN("Map with some items") {
-      #include "CollectGarbage.inl"
+      IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
       // Arrays are dynamic to avoid constexprification                 
       const Pair darray1[5] {
@@ -792,7 +792,7 @@ TEMPLATE_TEST_CASE(
       WHEN("Maps are compared") {
          T sameMap;
          sameMap << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
-         T clonedMap {map.Clone()};
+         T clonedMap {Clone(map)};
          T copiedMap {map};
          T differentMap1;
          differentMap1 << darray1[0] << darray1[0] << darray1[2] << darray1[3] << darray1[4];
@@ -949,7 +949,7 @@ TEMPLATE_TEST_CASE(
    }
 
    GIVEN("Two maps") {
-      #include "CollectGarbage.inl"
+      IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
       TAny<int> pack1;
       TAny<int> pack2;

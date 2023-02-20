@@ -20,6 +20,10 @@ namespace Langulus::Anyness
 {
    
    /// Predeclarations                                                        
+
+   template<CT::Data T = Byte>
+   struct Handle;
+
    class Any;
    template<CT::Data>
    class TAny;
@@ -112,9 +116,6 @@ namespace Langulus::Anyness
       template<class, bool>
       friend struct ::Langulus::Flow::ArithmeticVerb;
 
-      /// A structure used to represent an element of a sparse container      
-      struct KnownPointer;
-
    private: TESTING(public:)
       union {
          #if LANGULUS_DEBUG()
@@ -162,7 +163,7 @@ namespace Langulus::Anyness
       NOD() static Block From(T, Count) requires CT::Sparse<T>;
       template<bool CONSTRAIN = false, CT::Data T>
       NOD() static Block From(T&) requires CT::Dense<T>;
-      template<bool CONSTRAIN = false, CT::Data T>
+      template<CT::Data T, bool CONSTRAIN = false>
       NOD() static Block From();
 
       constexpr Block& operator = (const Block&) noexcept = default;
@@ -247,8 +248,6 @@ namespace Langulus::Anyness
       template<CT::Data T>
       NOD() const T* GetRawEndAs() const noexcept;
 
-      NOD() RTTI::AllocationRequest RequestSize(const Count&) const SAFETY_NOEXCEPT();
-
       constexpr void MakeStatic(bool enable = true) noexcept;
       constexpr void MakeConst(bool enable = true) noexcept;
       constexpr void MakeTypeConstrained(bool enable = true) noexcept;
@@ -258,11 +257,13 @@ namespace Langulus::Anyness
       constexpr void MakeFuture() noexcept;
       constexpr void MakeNow() noexcept;
 
-   protected:
-      NOD() SAFETY_CONSTEXPR()
-      Inner::Allocation** GetEntries() SAFETY_NOEXCEPT();
-      NOD() SAFETY_CONSTEXPR()
-      const Inner::Allocation* const* GetEntries() const SAFETY_NOEXCEPT();
+   protected: TESTING(public:)
+      #if LANGULUS_FEATURE(MANAGED_MEMORY)
+         NOD() SAFETY_CONSTEXPR()
+         Inner::Allocation** GetEntries() SAFETY_NOEXCEPT();
+         NOD() SAFETY_CONSTEXPR()
+         const Inner::Allocation* const* GetEntries() const SAFETY_NOEXCEPT();
+      #endif
 
    public:
       ///                                                                     
@@ -333,18 +334,21 @@ namespace Langulus::Anyness
 
       template<CT::Data>
       NOD() Index ConstrainMore(const Index&) const SAFETY_NOEXCEPT();
-      template<CT::Data T>
-      NOD() Index GetIndexMax() const SAFETY_NOEXCEPT() requires (CT::Sortable<T, T>);
-      template<CT::Data T>
-      NOD() Index GetIndexMin() const SAFETY_NOEXCEPT() requires (CT::Sortable<T, T>);
+      template<CT::Data T, Index INDEX>
+      NOD() Index GetIndex() const SAFETY_NOEXCEPT() requires (CT::Sortable<T, T>);
       template<CT::Data>
       NOD() Index GetIndexMode(Count&) const SAFETY_NOEXCEPT();
 
-      template<CT::Data>
-      void Sort(const Index&) noexcept;
+      template<CT::Data, bool ASCEND = false>
+      void Sort() noexcept;
 
    protected:
-      NOD() Block CropInner(const Offset&, const Count&) const noexcept;
+      NOD() Block CropInner(const Offset&, const Count&) const SAFETY_NOEXCEPT();
+
+      void Next() SAFETY_NOEXCEPT();
+      void Prev() SAFETY_NOEXCEPT();
+      NOD() Block Next() const SAFETY_NOEXCEPT();
+      NOD() Block Prev() const SAFETY_NOEXCEPT();
 
       template<class, bool COUNT_CONSTRAINED = true, CT::Index INDEX>
       Offset SimplifyIndex(const INDEX&) const;
@@ -389,10 +393,8 @@ namespace Langulus::Anyness
       template<class R, CT::Data A, bool REVERSE, bool SKIP, bool MUTABLE>
       Count ForEachDeepInner(TFunctor<R(A)>&&);
 
-      void Next() noexcept;
-      void Prev() noexcept;
-      NOD() Block Next() const noexcept;
-      NOD() Block Prev() const noexcept;
+      template<class AS, bool REVERSE = false>
+      constexpr void Iterate(TFunctor<void(const AS&)>&&) const noexcept;
 
    public:
       ///                                                                     
@@ -419,40 +421,32 @@ namespace Langulus::Anyness
       template<CT::Data>
       NOD() Block ReinterpretAs() const;
 
-      template<class>
-      NOD() Block GetMember() const;
-      template<class>
-      NOD() Block GetMember();
-      NOD() Block GetMember(const RTTI::Member&) const;
       NOD() Block GetMember(const RTTI::Member&);
-      NOD() Block GetMember(TMeta) const;
+      NOD() Block GetMember(const RTTI::Member&) const;
       NOD() Block GetMember(TMeta);
-      NOD() Block GetMember(DMeta) const;
+      NOD() Block GetMember(TMeta) const;
       NOD() Block GetMember(DMeta);
-      NOD() Block GetMember(::std::nullptr_t) const;
+      NOD() Block GetMember(DMeta) const;
       NOD() Block GetMember(::std::nullptr_t);
+      NOD() Block GetMember(::std::nullptr_t) const;
 
-      template<class, CT::Index INDEX>
-      NOD() Block GetMember(const INDEX&) const;
-      template<class, CT::Index INDEX>
-      NOD() Block GetMember(const INDEX&);
-      template<CT::Index INDEX>
-      NOD() Block GetMember(TMeta, const INDEX&) const;
       template<CT::Index INDEX>
       NOD() Block GetMember(TMeta, const INDEX&);
       template<CT::Index INDEX>
-      NOD() Block GetMember(DMeta, const INDEX&) const;
+      NOD() Block GetMember(TMeta, const INDEX&) const;
       template<CT::Index INDEX>
       NOD() Block GetMember(DMeta, const INDEX&);
       template<CT::Index INDEX>
-      NOD() Block GetMember(::std::nullptr_t, const INDEX&) const;
+      NOD() Block GetMember(DMeta, const INDEX&) const;
       template<CT::Index INDEX>
       NOD() Block GetMember(::std::nullptr_t, const INDEX&);
+      template<CT::Index INDEX>
+      NOD() Block GetMember(::std::nullptr_t, const INDEX&) const;
    
-      NOD() Block GetBaseMemory(DMeta, const RTTI::Base&) const;
       NOD() Block GetBaseMemory(DMeta, const RTTI::Base&);
-      NOD() Block GetBaseMemory(const RTTI::Base&) const;
+      NOD() Block GetBaseMemory(DMeta, const RTTI::Base&) const;
       NOD() Block GetBaseMemory(const RTTI::Base&);
+      NOD() Block GetBaseMemory(const RTTI::Base&) const;
    
       template<CT::Data, bool ALLOW_DEEPEN, CT::Data = Any>
       bool Mutate();
@@ -467,6 +461,9 @@ namespace Langulus::Anyness
 
       constexpr void ResetType() noexcept;
 
+      template<CT::Index INDEX>
+      Offset SimplifyMemberIndex(const INDEX&) const noexcept;
+
    public:
       ///                                                                     
       ///   Comparison                                                        
@@ -479,9 +476,9 @@ namespace Langulus::Anyness
       NOD() Hash GetHash() const;
 
       template<bool REVERSE = false, CT::NotSemantic T>
-      NOD() Index FindKnown(const T&, const Offset & = 0) const;
+      NOD() Index FindKnown(const T&, const Offset& = 0) const;
       template<bool REVERSE = false>
-      NOD() Index FindUnknown(const Block&, const Offset & = 0) const;
+      NOD() Index FindUnknown(const Block&, const Offset& = 0) const;
       template<bool REVERSE = false, CT::NotSemantic T>
       NOD() Index FindDeep(const T&, Offset = 0) const;
 
@@ -492,13 +489,16 @@ namespace Langulus::Anyness
       NOD() bool CompareTypes(const Block&, RTTI::Base&) const noexcept;
       NOD() bool CallComparer(const Block&, const RTTI::Base&) const;
 
-      Count GatherInner(const Block&, Block&, Index);
-      Count GatherPolarInner(DMeta, const Block&, Block&, Index, DataState);
+      template<bool REVERSE = false>
+      Count GatherInner(const Block&, Block&);
+      template<bool REVERSE = false>
+      Count GatherPolarInner(DMeta, const Block&, Block&, DataState);
 
    public:
       ///                                                                     
       ///   Memory management                                                 
       ///                                                                     
+      NOD() RTTI::AllocationRequest RequestSize(const Count&) const SAFETY_NOEXCEPT();
       void Reserve(Count);
       template<bool CREATE = false, bool SETSIZE = false>
       void AllocateMore(Count);
@@ -507,15 +507,21 @@ namespace Langulus::Anyness
 
    protected:
       /// @cond show_protected                                                
+      template<bool CREATE = false>
+      void AllocateInner(const Count&);
+      void AllocateFresh(const RTTI::AllocationRequest&);
+      void AllocateRegion(const Block&, Offset, Block&);
       void Reference(const Count&) const noexcept;
       void Keep() const noexcept;
       template<bool DESTROY>
-      bool Dereference(const Count&);
-      bool Free();
+      void Dereference(const Count&);
+      void Free();
       void SetMemory(const DataState&, DMeta, Count, const void*) SAFETY_NOEXCEPT();
       void SetMemory(const DataState&, DMeta, Count, void*) SAFETY_NOEXCEPT();
-      constexpr void SetMemory(const DataState&, DMeta, Count, const void*, Inner::Allocation*);
-      constexpr void SetMemory(const DataState&, DMeta, Count, void*, Inner::Allocation*);
+      SAFETY_CONSTEXPR()
+      void SetMemory(const DataState&, DMeta, Count, const void*, Inner::Allocation*);
+      SAFETY_CONSTEXPR()
+      void SetMemory(const DataState&, DMeta, Count, void*, Inner::Allocation*);
       /// @endcond                                                            
 
    public:
@@ -615,11 +621,6 @@ namespace Langulus::Anyness
       Count SmartPush(S&&, DataState = {});
 
    protected:
-      template<bool CREATE = false>
-      void AllocateInner(const Count&);
-      void AllocateFresh(const RTTI::AllocationRequest&);
-      void AllocateRegion(const Block&, Offset, Block&);
-
       template<CT::Semantic S, CT::NotSemantic T>
       void InsertInner(const T*, const T*, Offset);
       template<CT::Semantic S>
@@ -674,8 +675,7 @@ namespace Langulus::Anyness
       template<CT::Index INDEX>
       Count RemoveIndexDeep(INDEX);
    
-      Block& Trim(Offset);
-   
+      void Trim(Count);
       void Optimize();
       void Clear();
       void Reset();
@@ -710,45 +710,6 @@ namespace Langulus::Anyness
       static void MoveMemory(const void*, void*, const Size&) noexcept;
       static void FillMemory(void*, Byte, const Size&) noexcept;
       /// @endcond                                                            
-   };
-
-
-   ///                                                                        
-   ///   A resolved pointer inside a sparse block                             
-   ///                                                                        
-   struct Block::KnownPointer {
-      friend class Block;
-   private: TESTING(public:)
-      /// @cond show_protected                                                
-      Byte*& mPointer;
-      Inner::Allocation*& mEntry;
-      /// @endcond show_protected                                             
-
-   public:
-      KnownPointer() = delete;
-      KnownPointer(const KnownPointer&) = delete;
-      KnownPointer(KnownPointer&&) = delete;
-
-      constexpr KnownPointer(Byte*&, Inner::Allocation*&) noexcept;
-
-      /*KnownPointer& operator = (const KnownPointer&) const = delete;
-
-      bool operator == (const void*) const noexcept;
-
-      template<bool KEEP, bool DESTROY_OLD = true>
-      void MoveAssign(DMeta, KnownPointer*);
-      template<bool KEEP, bool DESTROY_OLD = true>
-      void CopyAssign(DMeta, const KnownPointer*);
-
-      template<CT::Sparse T, bool DESTROY>
-      void Free() noexcept;
-      template<bool DESTROY>
-      void Free(DMeta) noexcept;
-
-      template<class T>
-      const Decay<T>* As() const noexcept {
-         return reinterpret_cast<const Decay<T>*>(mPointer);
-      }*/
    };
 
 
@@ -846,3 +807,6 @@ namespace Langulus::CT
 #include "Block-Construct.inl"
 #include "Block-Capsulation.inl"
 #include "Block-Indexing.inl"
+#include "Block-RTTI.inl"
+#include "Block-Compare.inl"
+#include "Block-Memory.inl"

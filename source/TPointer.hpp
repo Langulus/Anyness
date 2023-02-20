@@ -71,16 +71,16 @@ namespace Langulus::Anyness
          : Base {S::Nest(ptr.mValue)} {
          if constexpr (S::Move) {
             // Move in the contents of the other shared pointer         
-            #if LANGULUS_FEATURE(MANAGED_MEMORY)
-               mEntry = Inner::Allocator::Find(MetaData::Of<T>(), mValue);
-            #endif
+            IF_LANGULUS_MANAGED_MEMORY(
+               mEntry = Inner::Allocator::Find(MetaData::Of<T>(), mValue)
+            );
          }
          else if constexpr (S::Keep) {
             if (mValue) {
                // Copy the entry of the other shared pointer            
-               #if LANGULUS_FEATURE(MANAGED_MEMORY)
-                  mEntry = Inner::Allocator::Find(MetaData::Of<T>(), mValue);
-               #endif
+               IF_LANGULUS_MANAGED_MEMORY(
+                  mEntry = Inner::Allocator::Find(MetaData::Of<T>(), mValue)
+               );
 
                // And reference the memory if pointer is valid          
                if (mEntry)

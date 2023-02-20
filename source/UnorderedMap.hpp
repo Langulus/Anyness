@@ -20,12 +20,13 @@ namespace Langulus::Anyness
 
       using BlockMap::BlockMap;
 
-      /*constexpr UnorderedMap(Disowned<UnorderedMap>&&) noexcept;
-      constexpr UnorderedMap(Abandoned<UnorderedMap>&&) noexcept;*/
+      //TODO defined in header due to MSVC compiler bug (02/2023)       
+      // Might be fixed in the future                                   
+      /*template<CT::Semantic S>
+      constexpr UnorderedMap(S&& other) noexcept requires (CT::DerivedFrom<TypeOf<S>, UnorderedMap>)
+         : BlockMap {other.template Forward<BlockMap>()} { }*/
 
       using BlockMap::operator =;
-
-      //NOD() UnorderedMap Clone() const;
    };
 
 } // namespace Langulus::Anyness

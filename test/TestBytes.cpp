@@ -20,7 +20,7 @@ SCENARIO("Byte manipulation", "[bytes]") {
 		Bytes data;
 
 		WHEN("Capacity is reserved, via Allocate()") {
-			#include "CollectGarbage.inl"
+			IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
 			data.Reserve(500);
 			auto memory = data.GetRaw();
@@ -42,7 +42,7 @@ SCENARIO("Byte manipulation", "[bytes]") {
 	}
 
 	GIVEN("A filled byte container") {
-		#include "CollectGarbage.inl"
+		IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
 		const int randomStuff[] = { 1, 2, 3, 4, 5 };
 		Bytes data {randomStuff, sizeof(randomStuff)};

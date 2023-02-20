@@ -7,96 +7,10 @@
 ///                                                                           
 #pragma once
 #include "Block.hpp"
-#include "../verbs/Compare.inl"
-#include "../verbs/Select.inl"
+#include "../inner/Handle.hpp"
 
 namespace Langulus::Anyness
 {
-
-   /// Sets the currently interfaced memory                                   
-   ///   @attention for internal used only, use only if you know what you're  
-   ///              doing!                                                    
-   LANGULUS(ALWAYSINLINE)
-   void Block::SetMemory(const DataState& state, DMeta meta, Count count, const void* raw) SAFETY_NOEXCEPT() {
-      SetMemory(state + DataState::Constant, meta, count, const_cast<void*>(raw));
-   }
-
-   /// Sets the currently interfaced memory                                   
-   ///   @attention for internal used only, use only if you know what you're  
-   ///              doing!                                                    
-   LANGULUS(ALWAYSINLINE)
-   void Block::SetMemory(const DataState& state, DMeta meta, Count count, void* raw) SAFETY_NOEXCEPT() {
-      SetMemory(state, meta, count, const_cast<void*>(raw),
-      #if LANGULUS_FEATURE(MANAGED_MEMORY)
-         Inner::Allocator::Find(meta, raw)
-      #else
-         nullptr
-      #endif
-      );
-   }
-
-   /// Sets the currently interfaced memory                                   
-   ///   @attention for internal used only, use only if you know what you're  
-   ///              doing!                                                    
-   LANGULUS(ALWAYSINLINE)
-   constexpr void Block::SetMemory(const DataState& state, DMeta meta, Count count, const void* raw, Inner::Allocation* entry) {
-      SetMemory(state + DataState::Constant, meta, count, const_cast<void*>(raw), entry);
-   }
-
-   /// Sets the currently interfaces memory                                   
-   ///   @attention for internal used only, use only if you know what you're  
-   ///              doing!                                                    
-   LANGULUS(ALWAYSINLINE)
-   constexpr void Block::SetMemory(const DataState& state, DMeta meta, Count count, void* raw, Inner::Allocation* entry) {
-      mRaw = static_cast<Byte*>(raw);
-      mState = state;
-      mCount = count;
-      mReserved = count;
-      mType = meta;
-      mEntry = entry;
-   }
-
-   /// Reference memory block if we own it                                    
-   ///   @param times - number of references to add                           
-   LANGULUS(ALWAYSINLINE)
-   void Block::Reference(const Count& times) const noexcept {
-      if (mEntry)
-         const_cast<Inner::Allocation*>(mEntry)->Keep(times);
-   }
-   
-   /// Reference memory block once                                            
-   ///   @return the remaining references for the block                       
-   LANGULUS(ALWAYSINLINE)
-   void Block::Keep() const noexcept {
-      Reference(1);
-   }
-         
-   /// Dereference memory block                                               
-   /// Upon full dereference, element destructors are called if DESTROY       
-   /// It is your responsibility to clear your Block after that               
-   ///   @param times - number of references to subtract                      
-   ///   @return true if entry has been deallocated                           
-   template<bool DESTROY>
-   bool Block::Dereference(const Count& times) {
-      if (!mEntry)
-         return false;
-
-      LANGULUS_ASSUME(DevAssumes, 
-         mEntry->GetUses() >= times, "Bad memory dereferencing");
-
-      if (mEntry->GetUses() == times) {
-         // Destroy all elements and deallocate the entry               
-         if constexpr (DESTROY)
-            CallUnknownDestructors();
-         Inner::Allocator::Deallocate(mEntry);
-         mEntry = nullptr;
-         return true;
-      }
-
-      mEntry->Free(times);
-      mEntry = nullptr;
-      return false;
-   }
 
    /// Clear the block, only zeroing its size                                 
    LANGULUS(ALWAYSINLINE)
@@ -112,13 +26,6 @@ namespace Langulus::Anyness
       mCount = mReserved = 0;
    }
    
-   /// Reset the type of the block, unless it's type-constrained              
-   LANGULUS(ALWAYSINLINE)
-   constexpr void Block::ResetType() noexcept {
-      if (!IsTypeConstrained())
-         mType = nullptr;
-   }
-   
    /// Reset the block's state                                                
    LANGULUS(ALWAYSINLINE)
    constexpr void Block::ResetState() noexcept {
@@ -126,369 +33,6 @@ namespace Langulus::Anyness
       ResetType();
    }
 
-   /// Reserve a number of elements without initializing them                 
-   /// If reserved data is smaller than currently initialized count, the      
-   /// excess elements will be destroyed                                      
-   ///   @param count - number of elements to reserve                         
-   LANGULUS(ALWAYSINLINE)
-   void Block::Reserve(Count count) {
-      if (count < mCount)
-         AllocateLess(count);
-      else 
-         AllocateMore(count);
-   }
-
-   /// Allocate a number of elements, relying on the type of the container    
-   ///   @attention assumes a valid and non-abstract type, if dense           
-   ///   @tparam CREATE - true to call constructors and set count             
-   ///   @param elements - number of elements to allocate                     
-   template<bool CREATE>
-   void Block::AllocateInner(const Count& elements) {
-      LANGULUS_ASSERT(mType, Allocate,
-         "Invalid type");
-      LANGULUS_ASSERT(!mType->mIsAbstract || IsSparse(), Allocate,
-         "Abstract dense type");
-
-      // Retrieve the required byte size                                
-      const auto request = RequestSize(elements);
-      
-      // Allocate/reallocate                                            
-      if (mEntry) {
-         // Reallocate                                                  
-         Block previousBlock {*this};
-         if (mEntry->GetUses() == 1) {
-            // Memory is used only once and it is safe to move it       
-            // Make note, that Allocator::Reallocate doesn't copy       
-            // anything, it doesn't use realloc for various reasons, so 
-            // we still have to call move construction for all elements 
-            // if entry moved (enabling MANAGED_MEMORY feature          
-            // significantly reduces the possiblity for a move)         
-            // Also, make sure to free the previous mEntry if moved     
-            mEntry = Inner::Allocator::Reallocate(request.mByteSize, mEntry);
-            LANGULUS_ASSERT(mEntry, Allocate, "Out of memory");
-            mReserved = request.mElementCount;
-
-            if (mEntry != previousBlock.mEntry) {
-               // Memory moved, and we should call abandon-construction 
-               // We're moving to a new allocation, so no reverse needed
-               mRaw = mEntry->GetBlockStart();
-               CallUnknownSemanticConstructors(previousBlock.mCount, 
-                  Abandon(previousBlock));
-            }
-         }
-         else {
-            // Memory is used from multiple locations, and we must      
-            // copy the memory for this block - we can't move it!       
-            AllocateFresh(request);
-            CallUnknownSemanticConstructors(previousBlock.mCount, 
-               Langulus::Copy(previousBlock));
-            previousBlock.Free();
-         }
-      }
-      else AllocateFresh(request);
-
-      if constexpr (CREATE) {
-         // Default-construct the rest                                  
-         const auto count = elements - mCount;
-         CropInner(mCount, count)
-            .CallUnknownDefaultConstructors(count);
-         mCount = elements;
-      }
-   }
-
-   /// Allocate a fresh allocation (inner function)                           
-   ///   @attention assumes mEntry is disowned                                
-   ///   @param request - request to fulfill                                  
-   LANGULUS(ALWAYSINLINE)
-   void Block::AllocateFresh(const RTTI::AllocationRequest& request) {
-      mEntry = Inner::Allocator::Allocate(request.mByteSize);
-      LANGULUS_ASSERT(mEntry, Allocate, "Out of memory");
-      mRaw = mEntry->GetBlockStart();
-      mReserved = request.mElementCount;
-   }
-
-   /// Allocate a number of elements, relying on the type of the container    
-   ///   @attention assumes a valid and non-abstract type, if dense           
-   ///   @tparam CREATE - true to call constructors and set count             
-   ///   @tparam SETSIZE - true to set count, despite not constructing        
-   ///   @param elements - number of elements to allocate                     
-   template<bool CREATE, bool SETSIZE>
-   void Block::AllocateMore(Count elements) {
-      LANGULUS_ASSUME(DevAssumes, mType, "Invalid type");
-      LANGULUS_ASSERT(!mType->mIsAbstract || IsSparse(), Allocate,
-         "Abstract dense type");
-
-      if (mReserved >= elements) {
-         // Required memory is already available                        
-         if constexpr (CREATE) {
-            // But is not yet initialized, so initialize it             
-            if (mCount < elements) {
-               const auto count = elements - mCount;
-               CropInner(mCount, count)
-                  .CallUnknownDefaultConstructors(count);
-            }
-         }
-      }
-      else AllocateInner<CREATE>(elements);
-
-      if constexpr (CREATE || SETSIZE)
-         mCount = elements;
-   }
-
-   /// Shrink the block, depending on currently reserved	elements             
-   /// Initialized elements on the back will be destroyed                     
-   ///   @attention assumes 'elements' is smaller than the current reserve    
-   ///   @param elements - number of elements to allocate                     
-   inline void Block::AllocateLess(Count elements) {
-      LANGULUS_ASSUME(DevAssumes, elements < mReserved, "Bad element count");
-      LANGULUS_ASSUME(DevAssumes, mType, "Invalid type");
-
-      if (mCount > elements) {
-         // Destroy back entries on smaller allocation                  
-         // Allowed even when container is static and out of            
-         // jurisdiction, as in that case this acts as a simple count   
-         // decrease, and no destructors shall be called                
-         RemoveIndex(elements, mCount - elements);//TODO use a specialized trim function that doesn't move anything, only deletes from the back
-      }
-
-      // Shrink the memory block                                        
-      #if LANGULUS_FEATURE(MANAGED_MEMORY)
-         const auto request = RequestSize(elements);
-         mEntry = Inner::Allocator::Reallocate(request.mByteSize, mEntry);
-         mReserved = request.mElementCount;
-      #endif
-   }
-
-   /// Mutate the block to a different type, if possible                      
-   /// This can also change sparseness, if T is pointer                       
-   ///   @tparam T - the type to change to                                    
-   ///   @tparam ALLOW_DEEPEN - are we allowed to mutate to WRAPPER?          
-   ///   @tparam WRAPPER - container to use for deepening                     
-   ///   @return true if block was deepened to incorporate the new type       
-   template<CT::Data T, bool ALLOW_DEEPEN, CT::Data WRAPPER>
-   LANGULUS(ALWAYSINLINE)
-   bool Block::Mutate() {
-      static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
-      return Mutate<ALLOW_DEEPEN, WRAPPER>(MetaData::Of<T>());
-   }
-   
-   /// Mutate to another compatible type, deepening the container if allowed  
-   ///   @attention doesn't affect sparseness                                 
-   ///   @tparam ALLOW_DEEPEN - are we allowed to mutate to WRAPPER           
-   ///   @tparam WRAPPER - type to use to deepen                              
-   ///   @param meta - the type to mutate into                                
-   ///   @return true if block was deepened                                   
-   template<bool ALLOW_DEEPEN, CT::Data WRAPPER>
-   LANGULUS(ALWAYSINLINE)
-   bool Block::Mutate(DMeta meta) {
-      static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
-
-      if (IsUntyped()) {
-         // Undefined containers can mutate freely                      
-         SetType<false>(meta);
-      }
-      else if (IsExact(meta)) {
-         // No need to mutate - types are exactly the same              
-         return false;
-      }
-      else if (IsAbstract() && IsEmpty() && meta->CastsTo(mType)) {
-         // Abstract compatible containers can be concretized           
-         SetType<false>(meta);
-      }
-      else if (!IsInsertable(meta)) {
-         // Not insertable due to some reasons                          
-         if constexpr (ALLOW_DEEPEN) {
-            if (!IsTypeConstrained()) {
-               // Container is not type-constrained, so we can safely   
-               // deepen it, to incorporate the new data                
-               Deepen<WRAPPER>();
-               return true;
-            }
-
-            LANGULUS_THROW(Mutate,
-               "Attempting to mutate incompatible type-constrained container");
-         }
-         else LANGULUS_THROW(Mutate, "Can't mutate to incompatible type");
-      }
-
-      return false;
-   }
-
-   /// Check if this container's data can be represented as type T            
-   /// with nothing more than pointer arithmetic                              
-   ///   @tparam T - the type to compare against                              
-   ///   @tparam BINARY_COMPATIBLE - do we require for the type to be         
-   ///      binary compatible with this container's type                      
-   ///   @return true if contained data is reinterpretable as T               
-   template<CT::Data T, bool BINARY_COMPATIBLE>
-   LANGULUS(ALWAYSINLINE)
-   bool Block::CastsTo() const {
-      return CastsToMeta<BINARY_COMPATIBLE>(MetaData::Of<Decay<T>>());
-   }
-
-   /// Check if this container's data can be represented as a specific number 
-   /// of elements of type T, with nothing more than pointer arithmetic       
-   ///   @tparam T - the type to compare against                              
-   ///   @param count - the number of elements of T                           
-   ///   @return true if contained data is reinterpretable as T               
-   template<CT::Data T, bool BINARY_COMPATIBLE>
-   LANGULUS(ALWAYSINLINE)
-   bool Block::CastsTo(Count count) const {
-      return CastsToMeta<BINARY_COMPATIBLE>(MetaData::Of<Decay<T>>(), count);
-   }
-   
-   /// Check if contained data can be interpreted as a given type             
-   /// Beware, direction matters (this is the inverse of CanFit)              
-   ///   @param type - the type check if current type interprets to           
-   ///   @return true if able to interpret current type to 'type'             
-   template<bool BINARY_COMPATIBLE>
-   LANGULUS(ALWAYSINLINE)
-   bool Block::CastsToMeta(DMeta type) const {
-      if (IsSparse())
-         return mType && mType->CastsTo<true>(type);
-      else
-         return mType && mType->CastsTo(type);
-   }
-
-   /// Check if contained data can be interpreted as a given coung of type    
-   /// For example: a Vec4 can interpret as float[4]                          
-   /// Beware, direction matters (this is the inverse of CanFit)              
-   ///   @param type - the type check if current type interprets to           
-   ///   @param count - the number of elements to interpret as                
-   ///   @return true if able to interpret current type to 'type'             
-   template<bool BINARY_COMPATIBLE>
-   LANGULUS(ALWAYSINLINE)
-   bool Block::CastsToMeta(DMeta type, Count count) const {
-      return !mType || !type || mType->CastsTo(type, count);
-   }
-
-   /// Check if contained data exactly matches a given type                   
-   ///   @param type - the type to check for                                  
-   ///   @return if this block contains data of exactly 'type'                
-   LANGULUS(ALWAYSINLINE)
-   bool Block::Is(DMeta type) const noexcept {
-      return mType == type || (mType && mType->Is(type));
-   }
-
-   /// Check if this container's data is similar to one of the listed types   
-   ///   @attention ignores sparsity                                          
-   ///   @tparam T... - the types to compare against                          
-   ///   @return true if data type matches at least one type                  
-   template<CT::Data... T>
-   LANGULUS(ALWAYSINLINE)
-   bool Block::Is() const {
-      return (Is(MetaData::Of<T>()) || ...);
-   }
-
-   /// Check if this container's data is exactly as one of the listed types   
-   ///   @tparam T... - the types to compare against                          
-   ///   @return true if data type matches at least one type                  
-   template<CT::Data... T>
-   LANGULUS(ALWAYSINLINE)
-   bool Block::IsExact() const {
-      return (IsExact(MetaData::Of<T>()) || ...);
-   }
-
-   /// Check if this container's data is exactly as another                   
-   ///   @param type - the type to match                                      
-   ///   @param sparse - the sparseness to match                              
-   ///   @return true if data type matches type and density                   
-   LANGULUS(ALWAYSINLINE)
-   bool Block::IsExact(DMeta type) const noexcept {
-      return IsSparse() == type->mIsSparse && Is(type);
-   }
-
-   /// Set the data ID - use this only if you really know what you're doing   
-   ///   @attention doesn't affect sparseness                                 
-   ///   @tparam CONSTRAIN - whether or not to enable type-constraints        
-   ///   @param type - the type meta to set                                   
-   template<bool CONSTRAIN>
-   LANGULUS(ALWAYSINLINE)
-   void Block::SetType(DMeta type) {
-      if (mType == type) {
-         if constexpr (CONSTRAIN)
-            MakeTypeConstrained();
-         return;
-      }
-      else if (!mType) {
-         mType = type;
-         if constexpr (CONSTRAIN)
-            MakeTypeConstrained();
-         return;
-      }
-
-      LANGULUS_ASSERT(!IsTypeConstrained(), Mutate, "Incompatible type");
-
-      if (mType->CastsTo(type)) {
-         // Type is compatible, but only sparse data can mutate freely  
-         // Dense containers can't mutate because their destructors     
-         // might be wrong later                                        
-         LANGULUS_ASSERT(IsSparse(), Mutate, "Incompatible type");
-         mType = type;
-      }
-      else {
-         // Type is not compatible, but container is not typed, so if   
-         // it has no constructed elements, we can still mutate it      
-         LANGULUS_ASSERT(IsEmpty(), Mutate, "Incompatible type");
-         mType = type;
-      }
-
-      if constexpr (CONSTRAIN)
-         MakeTypeConstrained();
-   }
-   
-   /// Set the contained data type                                            
-   ///   @attention doesn't affect sparseness                                 
-   ///   @tparam T - the contained type                                       
-   ///   @tparam CONSTRAIN - whether or not to enable type-constraints        
-   template<CT::Data T, bool CONSTRAIN>
-   LANGULUS(ALWAYSINLINE)
-   void Block::SetType() {
-      SetType<CONSTRAIN>(MetaData::Of<Deref<T>>());
-   }
-
-
-   /// Compare with one single value, if exactly one element is contained     
-   ///   @attention assumes T is exactly the contained type                   
-   ///   @attention compares by value only if == operator is available for T  
-   ///   @param rhs - the value to compare against                            
-   ///   @return true if elements are the same                                
-   template<class T>
-   LANGULUS(ALWAYSINLINE)
-   bool Block::CompareSingleValue(const T& rhs) const {
-      if constexpr (CT::Sparse<T>) {
-         auto lhs = Get<T>();
-         return mCount == 1 && lhs == rhs;
-      }
-      else if constexpr (CT::Comparable<T, T>) {
-         // Compare by value                                            
-         auto& lhs = Get<T>();
-         return mCount == 1 && lhs == rhs;
-      }
-      else LANGULUS_ERROR("Dense T is not equality-comparable");
-   }
-
-   /// Compare to any other kind of deep container, or a single custom element
-   ///   @param rhs - element to compare against                              
-   ///   @return true if containers match                                     
-   template<CT::NotSemantic T>
-   bool Block::operator == (const T& rhs) const {
-      if constexpr (CT::Deep<T>)
-         return Compare(rhs) || (Is<T>() && CompareSingleValue<T>(rhs));
-      else
-         return Is<T>() && CompareSingleValue<T>(rhs);
-   }
-
-   /// Reinterpret contents of this Block as a collection of a static type    
-   /// You can interpret Vec4 as float[4] for example, or any other such      
-   /// reinterpretation, as long as data remains tightly packed               
-   ///   @tparam T - the type of data to try interpreting as                  
-   ///   @return a block representing this block, interpreted as T            
-   template<CT::Data T>
-   LANGULUS(ALWAYSINLINE)
-   Block Block::ReinterpretAs() const {
-      return ReinterpretAs(Block::From<T>());
-   }
 
    /// Copy-insert anything compatible at an index                            
    ///   @attention assumes offset is in the block's limits, if simple        
@@ -820,44 +364,66 @@ namespace Langulus::Anyness
       return 1;
    }
 
-   /// Inner copy-insertion function                                          
+   /// Inner semantic insertion function for a range                          
    ///   @attention this is an inner function and should be used with caution 
    ///   @attention assumes required free space has been prepared at offset   
-   ///   @attention assumes that T is this container's type                   
-   ///   @tparam KEEP - whether or not to reference the new contents          
+   ///   @attention assumes that TypeOf<S> is this container's type           
+   ///   @tparam S - the semantic to insert                                   
    ///   @tparam T - the type to insert (deducible)                           
-   ///   @param start - pointer to the first item                             
-   ///   @param end - pointer to the end of items                             
-   ///   @param at - the offset at which to insert                            
+   ///   @param start - start of range                                        
+   ///   @param end - end of range                                            
+   ///   @param at - the offset at which to start inserting                   
    template<CT::Semantic S, CT::NotSemantic T>
    void Block::InsertInner(const T* start, const T* end, Offset at) {
       static_assert(CT::Sparse<T> || CT::Insertable<T>,
          "Dense type is not insertable");
-      LANGULUS_ASSUME(DevAssumes, IsExact<T>(), "Inserting incompatible type");
+      LANGULUS_ASSUME(DevAssumes, IsExact<T>(),
+         "Inserting incompatible type");
 
       const auto count = end - start;
       if constexpr (CT::Sparse<T>) {
-         // Sparse data insertion (copying pointers and referencing)    
-         // Doesn't care about abstract items                           
-         auto data = mRawSparse + at;
-         while (start != end)
-            new (data++) KnownPointer {*(start++)};
+         if constexpr (S::Shallow) {
+            // Pointer copy/move/abandon/disown                         
+            ::std::memcpy(GetRawSparse() + at, start, sizeof(Pointer) * count);
+
+            #if LANGULUS_FEATURE(MANAGED_MEMORY)
+               // If we're using managed memory, we can search if each  
+               // pointer is owned by us, and get its allocation entry  
+               if constexpr (CT::Allocatable<Deptr<T>> && S::Keep) {
+                  auto it = start;
+                  auto entry = GetEntries() + at;
+                  while (it != end) {
+                     *entry = Inner::Allocator::Find(
+                        MetaData::Of<Deptr<T>>(), it
+                     );
+
+                     if (*entry)
+                        (*entry)->Keep();
+
+                     ++it;
+                     ++entry;
+                  }
+               }
+               else ::std::memset(GetEntries() + at, 0, sizeof(Pointer) * count);
+            #endif
+         }
+         else {
+            // Pointer clone                                            
+            TODO();
+         }
       }
       else {
-         // Abstract stuff is allowed only if sparse                    
+         // Handle dense data copy/move/abandon/disown/clone            
          static_assert(!CT::Abstract<T>,
             "Can't insert abstract item in dense container");
 
          auto data = GetRawAs<T>() + at;
          if constexpr (CT::POD<T>) {
-            // Optimized POD insertion                                  
-            if constexpr (S::Move)
-               MoveMemory(start, data, sizeof(T) * count);
-            else
-               CopyMemory(start, data, sizeof(T) * count);
+            // Optimized POD range insertion                            
+            ::std::memcpy(data, start, sizeof(T) * count);
          }
          else {
-            // Dense data insertion                                     
+            // Call semantic construction for each element in range     
             while (start != end)
                SemanticNew<T>(data++, S::Nest(*(start++)));
          }
@@ -883,24 +449,31 @@ namespace Langulus::Anyness
          "Inserting incompatible type");
 
       if constexpr (CT::Sparse<T>) {
-         // Sparse data insertion                                       
-         const auto mthis = static_cast<Block*>(this);
-         mthis->GetRawSparse()[at] = reinterpret_cast<Byte*>(item.mValue);
+         if constexpr (S::Shallow) {
+            // Pointer copy/move/abandon/disown                         
+            GetRawSparse()[at] = const_cast<Byte*>(
+               reinterpret_cast<const Byte*>(item.mValue)
+            );
 
-         #if LANGULUS_FEATURE(MANAGED_MEMORY)
-            // If we're using managed memory, we can search if the      
-            // pointer is owned by us, and get its block                
-            // Useless when the pointer is a meta (optimization)        
-            if constexpr (!CT::Meta<T>) {
-               const auto entry = Inner::Allocator::Find(MetaData::Of<T>(), item.mValue);
-               if (entry) {
-                  mthis->GetEntries()[at] = entry;
-                  entry->Keep();
+            #if LANGULUS_FEATURE(MANAGED_MEMORY)
+               // If we're using managed memory, we can search if the   
+               // pointer is owned by us, and get its allocation entry  
+               if constexpr (CT::Allocatable<Deptr<T>> && S::Keep) {
+                  const auto entry = Inner::Allocator::Find(
+                     MetaData::Of<Deptr<T>>(), item.mValue
+                  );
+
+                  GetEntries()[at] = entry;
+                  if (entry)
+                     entry->Keep();
                }
-               else mthis->GetEntries()[at] = nullptr;
-            }
-            else mthis->GetEntries()[at] = nullptr;
-         #endif
+               else GetEntries()[at] = nullptr;
+            #endif
+         }
+         else {
+            // Pointer clone                                            
+            TODO();
+         }
       }
       else {
          // Dense data insertion (moving/abandoning value)              
@@ -1581,7 +1154,6 @@ namespace Langulus::Anyness
       else TODO();
    }
 
-
    /// Wrapper for memcpy                                                     
    ///   @param from - source of data to copy                                 
    ///   @param to - [out] destination memory                                 
@@ -1610,14 +1182,6 @@ namespace Langulus::Anyness
    LANGULUS(ALWAYSINLINE)
    void Block::FillMemory(void* to, Byte filler, const Size& size) noexcept {
       ::std::memset(to, static_cast<int>(filler), size);
-   }
-
-   /// Dereference memory block once and destroy all elements if data was     
-   /// fully dereferenced                                                     
-   ///   @return the remaining references for the block                       
-   LANGULUS(ALWAYSINLINE)
-   bool Block::Free() {
-      return Dereference<true>(1);
    }
 
    /// A helper function, that allocates and moves inner memory               
@@ -1731,47 +1295,75 @@ namespace Langulus::Anyness
 
       const auto mthis = const_cast<Block*>(this);
       if constexpr (CT::Sparse<T>) {
-         // Move and reset known pointers                               
+         // We're constructing pointers                                 
+         const auto bytecount = sizeof(Pointer) * count;
+         auto lhs = mthis->GetRaw();
+         auto rhs = source.mValue.GetRaw();
+         auto lhsEntries = mthis->GetEntries();
+         auto rhsEntries = source.mValue.GetEntries();
+
          if constexpr (S::Move) {
-            const auto byteSize = sizeof(KnownPointer) * count;
-            MoveMemory(source.mValue.mRaw, mRaw, byteSize);
+            // Move/Abandon pointers                                    
+            ::std::memmove(lhs, rhs, bytecount);
+            ::std::memmove(lhsEntries, rhsEntries, bytecount);
+            if constexpr (S::Keep) {
+               // Reset pointers in source, if we're keeping it         
+               ::std::memset(rhs, 0, bytecount);
+               ::std::memset(rhsEntries, 0, bytecount);
+            }
+         }
+         else if constexpr (S::Shallow) {
+            // Copy/Disown pointers                                     
+            ::std::memcpy(lhs, rhs, bytecount);
+            if constexpr (S::Keep) {
+               // Reference each entry if keeping them                  
+               ::std::memcpy(lhsEntries, rhsEntries, bytecount);
+               const auto lhsEntriesEnd = lhsEntries + count;
+               while (lhsEntries != lhsEntriesEnd) {
+                  if (*lhsEntries)
+                     (*lhsEntries)->Keep();
+                  ++lhsEntries;
+               }
+            }
+            else {
+               // Disowning these pointers, so don't copy entries       
+               ::std::memset(lhsEntries, 0, bytecount);
+            }
          }
          else {
-            // Copy-construct known pointers with sparse LHS & RHS      
-            auto lhs = mRawSparse;
-            const auto lhsEnd = lhs + count;
-            auto rhs = source.mValue.mRawSparse;
-            while (lhs != lhsEnd)
-               SemanticNew<KnownPointer>(lhs++, S::Nest(*(rhs++)));
+            // Clone pointers                                           
+            TODO();
          }
       }
       else if constexpr (CT::POD<T>) {
-         if constexpr (S::Move)
-            MoveMemory(source.mValue.mRaw, mRaw, sizeof(T) * count); //TODO Error?
-         else
-            CopyMemory(source.mValue.mRaw, mRaw, count * mType->mSize);
-      }
-      else if constexpr (REVERSE) {
-         // Both RHS and LHS are dense and non POD                      
-         // Call the constructor for each element (in reverse)          
-         auto to = mthis->template GetRawAs<T>() + count - 1;
-         auto from = const_cast<Block&>(source.mValue)
-            .template GetRawAs<T>() + count - 1;
-
-         const auto fromEnd = from - count;
-         while (from != fromEnd)
-            SemanticNew<T>(to--, S::Nest(*(from--)));
+         // We're constructing dense POD data                           
+         const auto bytecount = sizeof(T) * count;
+         auto lhs = mthis->GetRaw();
+         auto rhs = source.mValue.GetRaw();
+         ::std::memcpy(lhs, rhs, bytecount);
       }
       else {
          // Both RHS and LHS are dense and non POD                      
-         // Call the constructor for each element                       
-         auto to = mthis->template GetRawAs<T>();
-         auto from = const_cast<Block&>(source.mValue)
-            .template GetRawAs<T>();
+         // Call constructor for each element (optionally in reverse)   
+         auto lhs = mthis->template GetRawAs<T>();
+         auto rhs = const_cast<Block&>(source.mValue).template GetRawAs<T>();
+         if constexpr (REVERSE) {
+            lhs += count - 1;
+            rhs += count - 1;
+         }
+         const auto lhsEnd = REVERSE ? lhs - count : lhs + count;
+         while (lhs != lhsEnd) {
+            SemanticNew<T>(lhs, S::Nest(*rhs));
 
-         const auto fromEnd = from + count;
-         while (from != fromEnd)
-            SemanticNew<T>(to++, S::Nest(*(from++)));
+            if constexpr (REVERSE) {
+               --lhs;
+               --rhs;
+            }
+            else {
+               ++lhs;
+               ++rhs;
+            }
+         }
       }
    }
    
@@ -1801,8 +1393,8 @@ namespace Langulus::Anyness
          if constexpr (S::Move) {
             // Move pointers (and entries)                              
             const auto byteSize = sizeof(Pointer) * count;
-            MoveMemory(source.mValue.GetRaw(), mthis->GetRaw(), byteSize);
-            MoveMemory(source.mValue.GetEntries(), mthis->GetEntries(), byteSize);
+            ::std::memmove(mthis->GetRaw(), source.mValue.GetRaw(), byteSize);
+            ::std::memmove(mthis->GetEntries(), source.mValue.GetEntries(), byteSize);
          }
          else if constexpr (S::Shallow) {
             // Shallow-copy pointers                                    
@@ -2158,21 +1750,24 @@ namespace Langulus::Anyness
 
       LANGULUS_ASSUME(DevAssumes, count <= mReserved,
          "Count outside limits");
-      LANGULUS_ASSUME(DevAssumes, Is<T>(),
+      LANGULUS_ASSUME(DevAssumes, IsExact<T>(),
          "T doesn't match LHS type");
 
       if constexpr (CT::Sparse<T>) {
          // Bulk-allocate the required count, construct each instance   
          // and push the pointers                                       
-         auto lhs = GetRawSparse();
-         const auto lhsEnd = lhs + count;
+         auto lhsPtr = const_cast<Block*>(this)->GetRawSparse();
+         auto lhsEnt = const_cast<Block*>(this)->GetEntries();
+         const auto lhsEnd = lhsPtr + count;
          const auto allocation = Inner::Allocator::Allocate(sizeof(Decay<T>) * count);
          allocation->Keep(count - 1);
 
          auto rhs = allocation->As<Decay<T>*>();
-         while (lhs != lhsEnd) {
+         while (lhsPtr != lhsEnd) {
             new (rhs) Decay<T> {descriptor};
-            new (lhs++) KnownPointer {rhs++, allocation};
+            *(lhsPtr++) = rhs;
+            *(lhsEnt++) = allocation;
+            ++rhs;
          }
       }
       else {
@@ -2236,57 +1831,60 @@ namespace Langulus::Anyness
    ///   @attention assumes T is the type of the block                        
    ///   @attention assumes this has at least 'count' items reserved          
    ///   @tparam T - type of the data to construct                            
-   ///   @tparam A... - arguments to pass to constructor                      
+   ///   @tparam A... - arguments to pass to constructor (deducible)          
    ///   @param count - the number of elements to construct                   
    ///   @param arguments... - the arguments to forward to constructors       
    template<CT::Data T, class... A>
    void Block::CallKnownConstructors(const Count count, A&&... arguments) const {
       LANGULUS_ASSUME(DevAssumes, count <= mReserved,
          "Count outside limits");
-      LANGULUS_ASSUME(DevAssumes, Is<T>(),
-         "T doesn't match LHS type");
+      LANGULUS_ASSUME(DevAssumes, IsExact<T>(),
+         "Type mismatch");
 
       if constexpr (sizeof...(A) == 0) {
-         // Just fallback to default construction                       
+         // No arguments, just fallback to default construction         
          CallKnownDefaultConstructors<T>(count);
       }
       else if constexpr (CT::Sparse<T>) {
-         // We're constructing pointers                                 
-         auto lhs = mRawSparse;
+         static_assert(sizeof...(A) == 1, "Bad argument");
+
+         // Construct pointers                                          
+         auto lhs = const_cast<Block&>(*this).template GetRawAs<T>();
          const auto lhsEnd = lhs + count;
+         IF_LANGULUS_MANAGED_MEMORY(
+            auto lhsEntry = const_cast<Block&>(*this).GetEntries()
+         );
 
-         if constexpr (sizeof...(A) == 1 && CT::Sparse<A...>) {
-            // Exactly one pointer as argument, we can avoid dense      
-            // element allocation at all                                
-            while (lhs != lhsEnd)
-               new (lhs++) KnownPointer {arguments...};
-         }
-         else {
-            // Bulk-allocate the required count, construct each instance
-            // and push the pointers                                    
-            using DT = Decay<T>;
-            const auto allocation = Inner::Allocator::Allocate(sizeof(DT) * count);
-            allocation->Keep(count - 1);
+         while (lhs != lhsEnd) {
+            if constexpr (CT::Handle<A...> && CT::Same<T, TypeOf<A>...>) {
+               // Set pointer and entry from handle                     
+               (*lhs = ... = arguments.mPointer);
 
-            auto rhs = allocation->As<DT>();
-            while (lhs != lhsEnd) {
-               if constexpr (::std::constructible_from<DT, A...>)
-                  new (rhs) DT {Forward<A>(arguments)...};
-               else
-                  LANGULUS_ERROR("T is not constructible with these arguments");
-
-               new (lhs++) KnownPointer {rhs++, allocation};
+               IF_LANGULUS_MANAGED_MEMORY(
+                  (*lhsEntry = ... = arguments.mEntry)
+               );
             }
+            else if constexpr (::std::constructible_from<T, A...>) {
+               // Set pointer and find entry                            
+               (*lhs = ... = arguments);
+
+               IF_LANGULUS_MANAGED_MEMORY(
+                  *lhsEntry = Inner::Allocator::Find(mType, *lhs)
+               );
+            }
+            else LANGULUS_ERROR("T is not constructible with these arguments");
+
+            ++lhs;
+            ++lhsEntry;
          }
       }
       else {
          // Construct dense stuff                                       
          auto lhs = const_cast<Block&>(*this).template GetRawAs<T>();
          const auto lhsEnd = lhs + count;
-
          while (lhs != lhsEnd) {
             if constexpr (::std::constructible_from<T, A...>)
-               new (lhs++) T {Forward<A>(arguments)...};
+               new (lhs++) T {arguments...};
             else
                LANGULUS_ERROR("T is not constructible with these arguments");
          }
@@ -2608,20 +2206,20 @@ namespace Langulus::Anyness
             ++dataEntry;
          }
       }
-      else if constexpr (CT::Dense<T> && destroy) {
+      else if constexpr (CT::Sparse<T>) {
+         // Destroy each indirection layer                              
+         TODO();
+      }
+      else if constexpr (destroy) {
          // Destroy every dense element                                 
          auto data = mthis->template GetRawAs<T>();
          const auto dataEnd = data + mCount;
          while (data != dataEnd)
             (data++)->~DT();
       }
-      else {
-         // Destroy each indirection layer                              
-         TODO();
-      }
 
       // Always nullify upon destruction only if we're paranoid         
-      PARANOIA(FillMemory(data, {}, GetByteSize()));
+      PARANOIA(::std::memset(GetRaw(), 0, GetByteSize()));
    }
    
    /// Call destructors of all initialized items                              
@@ -2665,7 +2263,11 @@ namespace Langulus::Anyness
             }
          }
       }
-      else if (!mType->mIsSparse && destroy) {
+      else if (mType->mIsSparse) {
+         // Destroy each indirection layer                              
+         TODO();
+      }
+      else if (destroy) {
          // Destroy every dense element, one by one, using the          
          // reflected destructors (if any)                              
          auto data = mRaw;
@@ -2676,13 +2278,9 @@ namespace Langulus::Anyness
             data += dataStride;
          }
       }
-      else {
-         // Destroy each indirection layer                              
-         TODO();
-      }
 
       // Always nullify upon destruction only if we're paranoid         
-      PARANOIA(FillMemory(mRaw, {}, GetByteSize()));
+      PARANOIA(::std::memset(GetRaw(), 0, GetByteSize()));
    }
 
    /// Copy-insert all elements of a block at an index                        
@@ -2906,152 +2504,6 @@ namespace Langulus::Anyness
 
       return inserted;
    }
-
-
-
-   ///                                                                        
-   ///   Known pointer implementation                                         
-   ///                                                                        
-
-   /// Copy-construct a pointer - references the block                        
-   ///   @param other - the pointer to reference                              
-   /*LANGULUS(ALWAYSINLINE)
-   Block::KnownPointer::KnownPointer(const KnownPointer& other) noexcept
-      : mPointer {other.mPointer}
-      , mEntry {other.mEntry} {
-      if (mEntry)
-         mEntry->Keep();
-   }
-
-   /// Move-construct a pointer                                               
-   ///   @param other - the pointer to move                                   
-   LANGULUS(ALWAYSINLINE)
-   Block::KnownPointer::KnownPointer(KnownPointer&& other) noexcept
-      : mPointer {other.mPointer}
-      , mEntry {other.mEntry} {
-      other.mPointer = nullptr;
-      other.mEntry = nullptr;
-   }
-
-   /// Copy-construct a pointer, without referencing it                       
-   ///   @param other - the pointer to copy                                   
-   LANGULUS(ALWAYSINLINE)
-   Block::KnownPointer::KnownPointer(Disowned<KnownPointer>&& other) noexcept
-      : mPointer {other.mValue.mPointer}
-      , mEntry {nullptr} {}
-
-   /// Move-construct a pointer, minimally resetting the source               
-   ///   @param other - the pointer to move                                   
-   LANGULUS(ALWAYSINLINE)
-   Block::KnownPointer::KnownPointer(Abandoned<KnownPointer>&& other) noexcept
-      : mPointer {other.mValue.mPointer}
-      , mEntry {other.mValue.mEntry} {
-      other.mValue.mEntry = nullptr;
-   }
-
-   /// Find and reference a pointer                                           
-   ///   @param pointer - the pointer to reference                            
-   template<CT::Sparse T>
-   LANGULUS(ALWAYSINLINE)
-   Block::KnownPointer::KnownPointer(T pointer)
-      : mPointer {const_cast<Byte*>(reinterpret_cast<const Byte*>(pointer))} {
-      #if LANGULUS_FEATURE(MANAGED_MEMORY)
-         // If we're using managed memory, we can search if the pointer 
-         // is owned by us, and get its block                           
-         // This has no point when the pointer is a meta (optimization) 
-         if constexpr (!CT::Meta<T> && CT::Complete<Deptr<T>>) {
-            mEntry = Inner::Allocator::Find(MetaData::Of<Deptr<T>>(), pointer);
-            if (mEntry)
-               mEntry->Keep();
-         }
-      #endif
-   }
-
-   /// Copy a disowned pointer, no search for block will be performed         
-   ///   @param pointer - the pointer to copy                                 
-   template<CT::Sparse T>
-   LANGULUS(ALWAYSINLINE)
-   Block::KnownPointer::KnownPointer(Disowned<T>&& pointer) noexcept
-      : mPointer {reinterpret_cast<Byte*>(pointer.mValue)} {}
-
-   /// Manually construct a pointer                                           
-   ///   @param pointer - the pointer                                         
-   ///   @param entry - the entry                                             
-   constexpr Block::KnownPointer::KnownPointer(const void* pointer, Inner::Allocation* entry) noexcept
-      : mPointer {const_cast<Byte*>(static_cast<const Byte*>(pointer))}
-      , mEntry {entry} {}
-
-   /// Move-assign or Abandon-assign                                          
-   ///   @tparam KEEP - true to perform move-assign instead of abandon-assign 
-   ///   @param meta - meta information about the pointer contents            
-   ///   @param rhs - the pointer to move                                     
-   template<bool KEEP, bool DESTROY_OLD>
-   LANGULUS(ALWAYSINLINE)
-   void Block::KnownPointer::MoveAssign(DMeta meta, KnownPointer* rhs) {
-      Free<DESTROY_OLD>(meta);
-      mEntry = rhs->mEntry;
-      mPointer = rhs->mPointer;
-      rhs->mEntry = nullptr;
-      if constexpr (KEEP)
-         rhs->mPointer = nullptr;
-   }*/
-
-   /// Copy-assign or Disown-assign                                           
-   ///   @tparam KEEP - true to perform copy-assign instead of disown-assign  
-   ///   @param meta - meta information about the pointer contents            
-   ///   @param rhs - the pointer to reference                                
-   /*template<bool KEEP, bool DESTROY_OLD>
-   LANGULUS(ALWAYSINLINE)
-   void Block::KnownPointer::CopyAssign(DMeta meta, const KnownPointer* rhs) {
-      Free<DESTROY_OLD>(meta);
-      mEntry = rhs->mEntry;
-      mPointer = rhs->mPointer;
-      if constexpr (KEEP)
-         mEntry->Keep();
-   }
-
-   /// Compare pointers                                                       
-   ///   @param rhs - pointer to compare against                              
-   ///   @return true if pointer is the same                                  
-   LANGULUS(ALWAYSINLINE)
-   bool Block::KnownPointer::operator == (const void* rhs) const noexcept {
-      return mPointer == rhs;
-   }
-
-   /// Dereference pointer and destroy data behind it, if fully dereferenced  
-   ///   @param meta - meta information about the pointer                     
-   template<bool DESTROY>
-   LANGULUS(ALWAYSINLINE)
-   void Block::KnownPointer::Free(DMeta meta) noexcept {
-      if (!mEntry)
-         return;
-
-      if (mEntry->GetUses() == 1) {
-         if constexpr (DESTROY)
-            meta->mDestructor(mPointer);
-         Inner::Allocator::Deallocate(mEntry);
-      }
-      else mEntry->Free();
-   }
-
-   /// Dereference pointer and destroy data behind it, if fully dereferenced  
-   /// This is statically optimized equivalent to the above function          
-   ///   @param meta - meta information about the pointer                     
-   template<CT::Sparse T, bool DESTROY>
-   LANGULUS(ALWAYSINLINE)
-   void Block::KnownPointer::Free() noexcept {
-      if (!mEntry)
-         return;
-
-      if (mEntry->GetUses() == 1) {
-         if constexpr (DESTROY) {
-            using DT = Decay<T>;
-            reinterpret_cast<T>(mPointer)->~DT();
-         }
-         Inner::Allocator::Deallocate(mEntry);
-      }
-      else mEntry->Free();
-   }*/
 
 } // namespace Langulus::Anyness
 

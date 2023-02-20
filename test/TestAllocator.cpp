@@ -504,7 +504,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 		Allocation* entry = nullptr;
 
 		WHEN("Memory is allocated on the heap") {
-			#include "CollectGarbage.inl"
+			IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
 			entry = Allocator::Allocate(512);
 
@@ -631,7 +631,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 		}
 
 		WHEN("Referenced once") {
-			#include "CollectGarbage.inl"
+			IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
 			entry = Allocator::Allocate(512);
 			REQUIRE(entry);
@@ -652,7 +652,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 		}
 
 		WHEN("Referenced multiple times") {
-			#include "CollectGarbage.inl"
+			IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
 			entry = Allocator::Allocate(512);
 			REQUIRE(entry);
@@ -673,7 +673,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 		}
 
 		WHEN("Dereferenced once without deletion") {
-			#include "CollectGarbage.inl"
+			IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
 			entry = Allocator::Allocate(512);
 			REQUIRE(entry);
@@ -693,7 +693,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 		}
 
 		WHEN("Dereferenced multiple times without deletion") {
-			#include "CollectGarbage.inl"
+			IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
 			entry = Allocator::Allocate(512);
 			REQUIRE(entry);
@@ -715,7 +715,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 		}
 
 		WHEN("Dereferenced once with deletion") {
-			#include "CollectGarbage.inl"
+			IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
 			entry = Allocator::Allocate(512);
 			REQUIRE(entry);
@@ -731,7 +731,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
 		}
 
 		WHEN("Dereferenced multiple times with deletion") {
-			#include "CollectGarbage.inl"
+			IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
 			entry = Allocator::Allocate(512);
 			REQUIRE(entry);

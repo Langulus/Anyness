@@ -216,62 +216,47 @@ namespace Langulus::Anyness
       return operator = (Langulus::Move(other));
    }
 
-   /// Shallow-copy assignment of anything deep                               
-   ///   @param other - the container to copy                                 
+   /// Shallow copy assignment of anything                                    
+   ///   @tparam T - the type to copy (deducible)                             
+   ///   @param other - the value to copy                                     
    ///   @return a reference to this container                                
-   template<CT::Deep T>
+   template<CT::NotSemantic T>
    LANGULUS(ALWAYSINLINE)
    Any& Any::operator = (const T& other) {
       return operator = (Langulus::Copy(other));
    }
    
-   template<CT::Deep T>
+   /// Shallow copy assignment of anything                                    
+   ///   @tparam T - the type to copy (deducible)                             
+   ///   @param other - the value to copy                                     
+   ///   @return a reference to this container                                
+   template<CT::NotSemantic T>
    LANGULUS(ALWAYSINLINE)
    Any& Any::operator = (T& other) {
       return operator = (Langulus::Copy(other));
    }
 
-   /// Move assignment of anything deep                                       
-   ///   @param other - the container to move and reset                       
+   /// Move assignment of anything                                            
+   ///   @tparam T - the type to move in (deducible)                          
+   ///   @param other - the value to move in                                  
    ///   @return a reference to this container                                
-   template<CT::Deep T>
-   LANGULUS(ALWAYSINLINE)
-   Any& Any::operator = (T&& other) requires CT::Mutable<T> {
-      return operator = (Langulus::Move(other));
-   }
-
-   /// Assign by shallow-copying anything non-deep                            
-   ///   @tparam T - type to copy (deducible)                                 
-   ///   @param other - the item to copy                                      
-   ///   @return a reference to this container                                
-   template<CT::CustomData T>
-   LANGULUS(ALWAYSINLINE)
-   Any& Any::operator = (const T& other) {
-      return operator = (Langulus::Copy(other));
-   }
-
-   template<CT::CustomData T>
-   LANGULUS(ALWAYSINLINE)
-   Any& Any::operator = (T& other) {
-      return operator = (Langulus::Copy(other));
-   }
-
-   /// Assign by moving anything non-deep                                     
-   ///   @param other - the item to move                                      
-   ///   @return a reference to this container                                
-   template<CT::CustomData T>
+   template<CT::NotSemantic T>
    LANGULUS(ALWAYSINLINE)
    Any& Any::operator = (T&& other) requires CT::Mutable<T> {
       return operator = (Langulus::Move(other));
    }
 
    /// Semantic assignment                                                    
+   ///   @tparam S - the semantic and type to assign (deducible)              
    ///   @param other - the container to semantically assign                  
    ///   @return a reference to this container                                
    template<CT::Semantic S>
    Any& Any::operator = (S&& other) {
       using T = TypeOf<S>;
+      static_assert(CT::Insertable<T>, "T must be an insertable type");
+
       if constexpr (CT::Deep<T>) {
+         // Assign a container                                          
          if (this == &other.mValue)
             return *this;
 
@@ -280,15 +265,16 @@ namespace Langulus::Anyness
             Assign, "Incompatible types");
 
          Free();
-         new (this) Any(other.Forward());
+         new (this) Any {other.Forward()};
       }
       else {
-         const auto meta = MetaData::Of<Decay<T>>();
+         // Assign a non-deep value                                     
+         const auto meta = MetaData::Of<T>();
 
          LANGULUS_ASSERT(!IsTypeConstrained() || CastsToMeta(meta),
             Assign, "Incompatible types");
 
-         if (GetUses() != 1 || IsSparse() != CT::Sparse<T>) {
+         if (GetUses() != 1 || mType->mIsSparse != CT::Sparse<T>) {
             // Reset and allocate fresh memory                          
             Reset();
             operator << (other.Forward());
@@ -297,13 +283,7 @@ namespace Langulus::Anyness
             // Just destroy and reuse memory                            
             CallKnownDestructors<T>();
             mCount = 1;
-
-            if constexpr (CT::Sparse<T>) {
-               new (mRawSparse) KnownPointer {
-                  other.mValue, nullptr
-               };
-            }
-            else SemanticNew<T>(mRaw, other.Forward());
+            SemanticNew<T>(mRaw, other.Forward());
          }
       }
 
@@ -702,16 +682,28 @@ namespace Langulus::Anyness
    ///   @return a constant iterator to the end element                       
    LANGULUS(ALWAYSINLINE)
    typename Any::ConstIterator Any::end() const noexcept {
-      return Block {mState, mType, 0, GetRawEnd(), nullptr};
+      Block result {*this};
+      if (IsEmpty())
+         return result;
+
+      result.MakeStatic();
+      result.mRaw = mRaw + mType->mSize * mCount;
+      result.mCount = 0;
+      return result;
    }
 
    /// Get iterator to the last valid element                                 
    ///   @return a constant iterator to the last element, or end if empty     
    LANGULUS(ALWAYSINLINE)
    typename Any::ConstIterator Any::last() const noexcept {
+      Block result {*this};
       if (IsEmpty())
-         return end();
-      return Block {mState, mType, 1, GetRawEnd() - GetStride(), mEntry};
+         return result;
+
+      result.MakeStatic();
+      result.mRaw = mRaw + mType->mSize * (mCount - 1);
+      result.mCount = 1;
+      return result;
    }
 
 
@@ -840,12 +832,10 @@ namespace Langulus::Anyness
       else {
          // Attempt move-construction, if available                     
          if constexpr (sizeof...(A) == 1) {
-            using F = typename TTypeList<Decay<A>...>::First;
-            using DA = Conditional<CT::Sparse<A...>, F*, F>;
-
-            if (IsExact<DA>()) {
+            using F = Decvq<Deref<typename TTypeList<A...>::First>>;
+            if (IsExact<F>()) {
                // Single argument matches                               
-               region.template CallKnownConstructors<DA>(
+               region.template CallKnownConstructors<F>(
                   count, Forward<A>(arguments)...
                );
                mCount += count;

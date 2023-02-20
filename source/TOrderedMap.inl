@@ -14,54 +14,63 @@
 namespace Langulus::Anyness
 {
 
-   /// Copy-construct a map                                                   
+   /// Copy-constructor                                                       
    ///   @param other - the map to copy                                       
    TEMPLATE()
    MAP()::TOrderedMap(const TOrderedMap& other)
-      : TUnorderedMap<K, V> {static_cast<const TUnorderedMap<K, V>&>(other)} { }
+      : Self {::Langulus::Copy(other)} { }
 
-   /// Move-construct a map                                                   
+   /// Move-constructor                                                       
    ///   @param other - the map to move                                       
    TEMPLATE()
    MAP()::TOrderedMap(TOrderedMap&& other) noexcept
-      : TUnorderedMap<K, V> {Forward<TUnorderedMap<K, V>>(other)} { }
-   
-   /// Copy-construct a map from a disowned map                               
-   /// The disowned map's contents will not be referenced                     
-   ///   @param other - the map to disown                                     
-   TEMPLATE()
-   constexpr MAP()::TOrderedMap(Disowned<TOrderedMap>&& other) noexcept
-      : TUnorderedMap<K, V> {other.template Forward<TUnorderedMap<K, V>>()} { }
-
-   /// Move-construct a map from an abandoned map                             
-   /// The abandoned map will be minimally reset, saving on some instructions 
-   ///   @param other - the map to abandon                                    
-   TEMPLATE()
-   constexpr MAP()::TOrderedMap(Abandoned<TOrderedMap>&& other) noexcept
-      : TUnorderedMap<K, V> {other.template Forward<TUnorderedMap<K, V>>()} { }
-
-   /// Clone the map                                                          
-   ///   @return the cloned map                                               
-   TEMPLATE()
-   MAP() MAP()::Clone() const {
-      TOrderedMap<K, V> cloned;
-      static_cast<TUnorderedMap<K, V>&>(cloned) = TUnorderedMap<K, V>::Clone();
-      return Abandon(cloned);
-   }
+      : Self {::Langulus::Move(other)} { }
 
    /// Copy assignment                                                        
    ///   @param rhs - the map to copy                                         
    TEMPLATE()
    MAP()& MAP()::operator = (const TOrderedMap& rhs) {
-      TUnorderedMap<K, V>::operator = (static_cast<const TUnorderedMap<K, V>&>(rhs));
-      return *this;
+      return operator = (Langulus::Copy(rhs));
    }
 
    /// Move assignment                                                        
    ///   @param rhs - the map to move                                         
    TEMPLATE()
    MAP()& MAP()::operator = (TOrderedMap&& rhs) noexcept {
-      TUnorderedMap<K, V>::operator = (Forward<TUnorderedMap<K, V>>(rhs));
+      return operator = (Langulus::Move(rhs));
+   }
+
+   /// Semantic assignment for an ordered map                                 
+   ///   @tparam S - the semantic (deducible)                                 
+   ///   @param rhs - the ordered map to use for construction                 
+   TEMPLATE()
+   template<CT::Semantic S>
+   MAP()& MAP()::operator = (S&& rhs) noexcept requires (CT::Exact<TypeOf<S>, Self>) {
+      Base::operator = (rhs.template Forward<Base>(rhs));
+      return *this;
+   }
+   
+   /// Copy assign a pair                                                     
+   ///   @param rhs - the pair to copy                                        
+   TEMPLATE()
+   MAP()& MAP()::operator = (const Pair& rhs) {
+      return operator = (Langulus::Copy(rhs));
+   }
+
+   /// Move assign a pair                                                     
+   ///   @param rhs - the pair to move                                        
+   TEMPLATE()
+   MAP()& MAP()::operator = (Pair&& rhs) noexcept {
+      return operator = (Langulus::Move(rhs));
+   }
+
+   /// Semantic assignment for a pair                                         
+   ///   @tparam S - the semantic (deducible)                                 
+   ///   @param rhs - the pair to use                                         
+   TEMPLATE()
+   template<CT::Semantic S>
+   MAP()& MAP()::operator = (S&& rhs) noexcept requires (CT::Pair<TypeOf<S>>) {
+      TODO();
       return *this;
    }
 

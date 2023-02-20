@@ -21,12 +21,10 @@ namespace Langulus::Anyness
 
       using BlockMap::BlockMap;
 
-      OrderedMap(Disowned<OrderedMap>&&) noexcept;
-      OrderedMap(Abandoned<OrderedMap>&&) noexcept;
+      template<CT::Semantic S>
+      constexpr OrderedMap(S&&) noexcept requires (CT::DerivedFrom<TypeOf<S>, OrderedMap>);
 
       using BlockMap::operator =;
-
-      NOD() OrderedMap Clone() const;
    };
 
 } // namespace Langulus::Anyness

@@ -10,28 +10,12 @@
 
 namespace Langulus::Anyness
 {
-
-   /// Copy-construct a map from a disowned map                               
-   /// The disowned map's contents will not be referenced                     
-   ///   @param other - the map to disown                                     
-   LANGULUS(ALWAYSINLINE)
-   OrderedMap::OrderedMap(Disowned<OrderedMap>&& other) noexcept
-      : BlockMap {other.Forward<BlockMap>()} { }
-
-   /// Move-construct a map from an abandoned map                             
-   /// The abandoned map will be minimally reset, saving on some instructions 
-   ///   @param other - the map to abandon                                    
-   LANGULUS(ALWAYSINLINE)
-   OrderedMap::OrderedMap(Abandoned<OrderedMap>&& other) noexcept
-      : BlockMap {other.Forward<BlockMap>()} { }
-
-   /// Clone the map                                                          
-   ///   @return the cloned map                                               
-   LANGULUS(ALWAYSINLINE)
-   OrderedMap OrderedMap::Clone() const {
-      OrderedMap cloned;
-      static_cast<BlockMap&>(cloned) = BlockMap::Clone();
-      return Abandon(cloned);
-   }
+   
+   /// Semantic ordered map construction                                      
+   ///   @tparam S - type and semantic (deducible)                            
+   ///   @param other - the ordered map to use                                
+   template<CT::Semantic S>
+   constexpr OrderedMap::OrderedMap(S&& other) noexcept requires (CT::DerivedFrom<TypeOf<S>, OrderedMap>)
+      : BlockMap {other.template Forward<BlockMap>()} { }
 
 } // namespace Langulus::Anyness

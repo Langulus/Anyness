@@ -31,7 +31,7 @@ namespace Langulus::Anyness
          "Invalid memory");
       LANGULUS_ASSUME(DevAssumes, byteOffset < GetReservedSize(),
          "Byte offset out of range");
-      return GetRaw() + byteOffset;
+      return mRaw + byteOffset;
    }
 
    /// Get the internal byte array with a given offset (const)                
@@ -181,11 +181,8 @@ namespace Langulus::Anyness
       LANGULUS_ASSUME(DevAssumes, start + count > mCount, "Out of limits");
       Block result {*this};
       result.mCount = count;
-      result.mRaw += start * GetStride();
+      result.mRaw += start * mType->mSize;
       result.mState += DataState::Member;
-      // The reserve is used as offset for the entry if sparse          
-      // It is imperative that it remains intact                        
-      result.mReserved -= start;
       return result;
    }
 
@@ -250,10 +247,7 @@ namespace Langulus::Anyness
       result.mState += DataState::Static;
       result.mState -= DataState::Or;
       result.mCount = 1;
-      result.mRaw += index * GetStride();
-      // The reserve is used as offset for the entry if sparse          
-      // It is imperative that it remains intact                        
-      result.mReserved -= index;
+      result.mRaw += index * mType->mSize;
       return result;
    }
 
@@ -304,16 +298,18 @@ namespace Langulus::Anyness
 
       --index;
 
-      for (Count i = 0; i < mCount; i += 1) {
-         auto ith = As<Block*>(i);
-         const auto count = ith->GetCountDeep();
+      auto data = GetRawAs<Block>();
+      const auto dataEnd = data + mCount;
+      while (data != dataEnd) {
+         const auto count = data->GetCountDeep();
          if (index <= count) {
-            auto subpack = ith->GetBlockDeep(index);
-            if (subpack != nullptr)
+            const auto subpack = data->GetBlockDeep(index);
+            if (subpack)
                return subpack;
          }
 
          index -= count;
+         ++data;
       }
 
       return nullptr;
@@ -332,19 +328,18 @@ namespace Langulus::Anyness
    ///   @return the element block                                            
    LANGULUS(ALWAYSINLINE)
    Block Block::GetElementDeep(Count index) noexcept {
-      if (!mType)
-         return {};
-
       if (!IsDeep())
-         return index < mCount ? GetElement(index) : Block();
+         return index < mCount ? GetElement(index) : Block {};
 
-      for (Count i = 0; i != mCount; i += 1) {
-         auto ith = As<Block*>(i);
-         const auto count = ith->GetCountElementsDeep();
+      auto data = GetRawAs<Block>();
+      const auto dataEnd = data + mCount;
+      while (data != dataEnd) {
+         const auto count = data->GetCountElementsDeep();
          if (index < count) 
-            return ith->GetElementDeep(index);
+            return data->GetElementDeep(index);
 
          index -= count;
+         ++data;
       }
 
       return {};
@@ -477,44 +472,35 @@ namespace Langulus::Anyness
       return result;
    }
    
-   /// Get the index of the biggest element                                   
+   /// Get the index of the biggest/smallest element                          
    ///   @attention assumes T is the type of the container                    
    ///   @tparam T - the type to use for comparison                           
+   ///   @tparam INDEX - either IndexBiggest or IndexSmallest                 
    ///   @return the index of the biggest element T inside this block         
-   template<CT::Data T>
+   template<CT::Data T, Index INDEX>
    LANGULUS(ALWAYSINLINE)
-   Index Block::GetIndexMax() const SAFETY_NOEXCEPT() requires (CT::Sortable<T, T>) {
+   Index Block::GetIndex() const SAFETY_NOEXCEPT() requires (CT::Sortable<T, T>) {
       if (IsEmpty())
          return IndexNone;
 
       auto data = GetRawAs<T>();
-      auto max = data;
-      for (Offset i = 1; i < mCount; ++i) {
-         if (data[i] > *max)
-            max = data + i;
+      const auto dataEnd = data + mCount;
+      auto selection = data++;
+      while (data != dataEnd) {
+         if constexpr (INDEX == IndexBiggest) {
+            if (*data > *selection)
+               selection = data;
+         }
+         else if constexpr (INDEX == IndexSmallest) {
+            if (*data < *selection)
+               selection = data;
+         }
+         else LANGULUS_ERROR("Unsupported index");
+
+         ++data;
       }
 
-      return max - data;
-   }
-
-   /// Get the index of the smallest element                                  
-   ///   @attention assumes T is the type of the container                    
-   ///   @tparam T - the type to use for comparison                           
-   ///   @return the index of the smallest element T inside this block        
-   template<CT::Data T>
-   LANGULUS(ALWAYSINLINE)
-   Index Block::GetIndexMin() const SAFETY_NOEXCEPT() requires (CT::Sortable<T, T>) {
-      if (IsEmpty())
-         return IndexNone;
-
-      auto data = GetRawAs<T>();
-      auto min = data;
-      for (Offset i = 1; i < mCount; ++i) {
-         if (data[i] < *min)
-            min = data + i;
-      }
-
-      return min - data;
+      return selection - GetRawAs<T>();
    }
 
    /// Get the index of element that repeats the most times                   
@@ -530,21 +516,26 @@ namespace Langulus::Anyness
       }
 
       auto data = GetRawAs<T>();
+      const auto dataEnd = data + mCount;
       decltype(data) best = nullptr;
       Count best_count {};
-      for (Offset i = 0; i < mCount; ++i) {
+      while (data != dataEnd) {
          Count counter {};
-         for (Count j = i; j < mCount; ++j) {
-            if (data[i] == data[j])
+         auto tail = data;
+         while (tail != dataEnd) {
+            if (*data == *tail)
                ++counter;
-            if (counter + (mCount - j) <= best_count)
+            if (counter + (dataEnd - tail) <= best_count)
                break;
+            ++tail;
          }
 
          if (counter > best_count || !best) {
             best_count = counter;
-            best = data + i;
+            best = data;
          }
+
+         ++data;
       }
 
       count = best_count;
@@ -554,57 +545,114 @@ namespace Langulus::Anyness
    /// Sort the contents of this container using a static type                
    ///   @attention assumes T is the type of the container                    
    ///   @tparam T - the type to use for comparison                           
-   ///   @param first - what will the first element be after sorting?         
-   ///                  use IndexSmallest for 123, or anything else for 321   
-   template<CT::Data T>
-   void Block::Sort(const Index& first) noexcept {
-      auto data = GetRawAs<T>();
-      if (!data)
-         return;
+   ///   @tparam ASCEND - whether to sort in ascending order (123)            
+   template<CT::Data T, bool ASCEND>
+   void Block::Sort() noexcept {
+      auto lhs = GetRawAs<T>();
+      const auto lhsEnd = lhs + mCount;
+      while (lhs != lhsEnd) {
+         auto rhs = GetRawAs<T>();
+         while (rhs != lhs) {
+            if constexpr (ASCEND) {
+               if (*lhs < *rhs)
+                  ::std::swap(*lhs, *rhs);
+            }
+            else {
+               if (*lhs > *rhs)
+                  ::std::swap(*lhs, *rhs);
+            }
 
-      Count j {}, i {};
-      if (first == IndexSmallest) {
-         for (; i < mCount; ++i) {
-            for (; j < i; ++j) {
-               if (data[i] > data[j])
-                  Swap<T>(i, j);
-            }
-            for (j = i + 1; j < mCount; ++j) {
-               if (data[i] > data[j])
-                  Swap<T>(i, j);
-            }
+            ++rhs;
          }
-      }
-      else {
-         for (; i < mCount; ++i) {
-            for (; j < i; ++j) {
-               if (data[i] < data[j])
-                  Swap<T>(i, j);
+
+         ++rhs;
+
+         while (rhs != lhsEnd) {
+            if constexpr (ASCEND) {
+               if (*lhs < *rhs)
+                  ::std::swap(*lhs, *rhs);
             }
-            for (j = i + 1; j < mCount; ++j) {
-               if (data[i] < data[j])
-                  Swap<T>(i, j);
+            else {
+               if (*lhs > *rhs)
+                  ::std::swap(*lhs, *rhs);
             }
+
+            ++rhs;
          }
+
+         ++lhs;
       }
    }
    
    /// Select region from the memory block - unsafe and may return memory     
    /// that has not been initialized yet (for internal use only)              
+   ///   @attention assumes block is typed and allocated                      
    ///   @param start - starting element index                                
    ///   @param count - number of elements                                    
    ///   @return the block representing the region                            
    LANGULUS(ALWAYSINLINE)
-   Block Block::CropInner(const Offset& start, const Count& count) const noexcept {
+   Block Block::CropInner(const Offset& start, const Count& count) const SAFETY_NOEXCEPT() {
+      LANGULUS_ASSUME(DevAssumes, mRaw != nullptr,
+         "Block is not allocated");
+      LANGULUS_ASSUME(DevAssumes, IsTyped(),
+         "Block is not typed");
+
       Block result {*this};
       result.mCount = count;
-      result.mRaw += start * GetStride();
-      // The reserve is used as offset for the entry if sparse          
-      // It is imperative that it remains intact                        
-      result.mReserved -= start;
+      result.mRaw += start * mType->mSize;
       return result;
    }
    
+   /// Get next element by incrementing data pointer (for inner use)          
+   LANGULUS(ALWAYSINLINE)
+   void Block::Next() SAFETY_NOEXCEPT() {
+      LANGULUS_ASSUME(DevAssumes, mRaw != nullptr,
+         "Block is not allocated");
+      LANGULUS_ASSUME(DevAssumes, IsTyped(),
+         "Block is not typed");
+
+      mRaw += mType->mSize;
+   }
+
+   /// Get previous element by decrementing data pointer (for inner use)      
+   LANGULUS(ALWAYSINLINE)
+   void Block::Prev() SAFETY_NOEXCEPT() {
+      LANGULUS_ASSUME(DevAssumes, mRaw != nullptr,
+         "Block is not allocated");
+      LANGULUS_ASSUME(DevAssumes, IsTyped(),
+         "Block is not typed");
+
+      mRaw -= mType->mSize;
+   }
+
+   /// Get next element by incrementing data pointer (for inner use)          
+   ///   @return a new block with the incremented pointer                     
+   LANGULUS(ALWAYSINLINE)
+   Block Block::Next() const SAFETY_NOEXCEPT() {
+      LANGULUS_ASSUME(DevAssumes, mRaw != nullptr,
+         "Block is not allocated");
+      LANGULUS_ASSUME(DevAssumes, IsTyped(),
+         "Block is not typed");
+
+      Block copy {*this};
+      copy.mRaw += mType->mSize;
+      return copy;
+   }
+
+   /// Get previous element by decrementing data pointer (for inner use)      
+   ///   @return a new block with the decremented pointer                     
+   LANGULUS(ALWAYSINLINE)
+   Block Block::Prev() const SAFETY_NOEXCEPT() {
+      LANGULUS_ASSUME(DevAssumes, mRaw != nullptr,
+         "Block is not allocated");
+      LANGULUS_ASSUME(DevAssumes, IsTyped(),
+         "Block is not typed");
+
+      Block copy {*this};
+      copy.mRaw += mType->mSize;
+      return copy;
+   }
+
    /// Convert an index to an offset                                          
    /// Complex indices will be fully constrained                              
    /// Signed index types will be checked for negative indices (for reverses) 

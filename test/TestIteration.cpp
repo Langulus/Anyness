@@ -16,7 +16,7 @@ CATCH_TRANSLATE_EXCEPTION(::Langulus::Exception const& ex) {
 
 SCENARIO("Iterating containers", "[iteration]") {
 	GIVEN("Templated Any with some POD items") {
-		#include "CollectGarbage.inl"
+		IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
 		TAny<int> dense;
 		dense << int(1) << int(2) << int(3) << int(4) << int(5);
@@ -380,7 +380,7 @@ SCENARIO("Iterating containers", "[iteration]") {
 	}*/
 
 	GIVEN("Any") {
-		#include "CollectGarbage.inl"
+		IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
 		constexpr float df = 5.55f;
 		constexpr float sf = 6.55f;
@@ -493,7 +493,7 @@ SCENARIO("Iterating containers", "[iteration]") {
 	}
 
 	GIVEN("A universal Any with some deep items") {
-		#include "CollectGarbage.inl"
+		IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
 		Any pack;
 		Any subpack1;

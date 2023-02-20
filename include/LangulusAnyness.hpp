@@ -31,9 +31,9 @@
 #include "../source/Referenced.hpp"
 
 #if LANGULUS_FEATURE(MANAGED_MEMORY)
-#ifdef LANGULUS_EXPOSE_PRIVATE_HEADERS
-   #include "../source/inner/Pool.hpp"
-#endif
+   #ifdef LANGULUS_EXPOSE_PRIVATE_HEADERS
+      #include "../source/inner/Pool.hpp"
+   #endif
 #endif
 
 #define LANGULUS_LIBRARY_ANYNESS() 1

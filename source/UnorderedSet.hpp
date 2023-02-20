@@ -19,13 +19,7 @@ namespace Langulus::Anyness
       static constexpr bool Ordered = false;
 
       using BlockSet::BlockSet;
-
-      constexpr UnorderedSet(Disowned<UnorderedSet>&&) noexcept;
-      constexpr UnorderedSet(Abandoned<UnorderedSet>&&) noexcept;
-
       using BlockSet::operator =;
-
-      NOD() UnorderedSet Clone() const;
    };
 
 } // namespace Langulus::Anyness

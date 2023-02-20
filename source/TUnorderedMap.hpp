@@ -22,12 +22,10 @@ namespace Langulus::Anyness
 
       using Key = K;
       using Value = V;
-      using KeyInner = typename TAny<K>::TypeInner;
-      using ValueInner = typename TAny<V>::TypeInner;
       using Self = TUnorderedMap<K, V>;
-      using Pair = TPair<KeyInner, ValueInner>;
-      using PairRef = TPair<KeyInner&, ValueInner&>;
-      using PairConstRef = TPair<const KeyInner&, const ValueInner&>;
+      using Pair = TPair<K, V>;
+      using PairRef = TPair<K&, V&>;
+      using PairConstRef = TPair<const K&, const V&>;
       using Allocator = Inner::Allocator;
 
       LANGULUS(TYPED) Pair;
@@ -47,8 +45,10 @@ namespace Langulus::Anyness
       TUnorderedMap(const TUnorderedMap&);
       TUnorderedMap(TUnorderedMap&&) noexcept;
 
+      //TODO defined in header due to MSVC compiler bug (02/2023)       
+      // Might be fixed in the future                                   
       template<CT::Semantic S>
-      constexpr TUnorderedMap(S&& other) noexcept requires (CT::Exact<TypeOf<S>, TUnorderedMap>)
+      constexpr TUnorderedMap(S&& other) noexcept requires (CT::Exact<TypeOf<S>, Self>)
          : UnorderedMap {other.template Forward<BlockMap>()} {}
 
       ~TUnorderedMap();
@@ -56,10 +56,10 @@ namespace Langulus::Anyness
       TUnorderedMap& operator = (const TUnorderedMap&);
       TUnorderedMap& operator = (TUnorderedMap&&) noexcept;
       template<CT::Semantic S>
-      TUnorderedMap& operator = (S&&) noexcept requires (CT::Exact<TypeOf<S>, TUnorderedMap<K, V>>);
+      TUnorderedMap& operator = (S&&) noexcept requires (CT::Exact<TypeOf<S>, Self>);
 
-      TUnorderedMap& operator = (const TPair<K, V>&);
-      TUnorderedMap& operator = (TPair<K, V>&&) noexcept;
+      TUnorderedMap& operator = (const Pair&);
+      TUnorderedMap& operator = (Pair&&) noexcept;
       template<CT::Semantic S>
       TUnorderedMap& operator = (S&&) noexcept requires (CT::Pair<TypeOf<S>>);
 
@@ -187,9 +187,6 @@ namespace Langulus::Anyness
       void ClearInner();
 
       template<class T>
-      void CloneInner(const T&, T&) const;
-
-      template<class T>
       static void RemoveInner(T*) noexcept;
 
       template<class T>
@@ -236,10 +233,10 @@ namespace Langulus::Anyness
 
       const InfoType* mInfo {};
       const InfoType* mSentinel {};
-      const KeyInner* mKey {};
-      const ValueInner* mValue {};
+      const K* mKey {};
+      const V* mValue {};
 
-      TIterator(const InfoType*, const InfoType*, const KeyInner*, const ValueInner*) noexcept;
+      TIterator(const InfoType*, const InfoType*, const K*, const V*) noexcept;
 
    public:
       NOD() bool operator == (const TIterator&) const noexcept;

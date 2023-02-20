@@ -33,8 +33,6 @@ namespace Langulus::Anyness
    public:
       static constexpr bool Ownership = true;
 
-      static_assert(CT::Dense<T> || !CT::Same<T, KnownPointer>,
-         "Can only insert dense KnownPointer(s)");
       static_assert(CT::Sparse<T> || CT::Insertable<T>,
          "Dense contained type is not insertable");
 
@@ -43,10 +41,6 @@ namespace Langulus::Anyness
       friend class TUnorderedMap;
       friend class Any;
       friend class Block;
-
-      /// Internal representation of a sparse element                         
-      class KnownPointer;
-      using TypeInner = Conditional<CT::Dense<T>, T, KnownPointer>;
 
       template<bool MUTABLE>
       struct TIterator;
@@ -82,20 +76,15 @@ namespace Langulus::Anyness
       TAny& operator = (const TAny&);
       TAny& operator = (TAny&&);
 
-      template<CT::Deep ALT_T>
+      template<CT::NotSemantic ALT_T>
       TAny& operator = (const ALT_T&);
-      template<CT::Deep ALT_T>
+      template<CT::NotSemantic ALT_T>
       TAny& operator = (ALT_T&);
-      template<CT::Deep ALT_T>
+      template<CT::NotSemantic ALT_T>
       TAny& operator = (ALT_T&&);
-      template<CT::Semantic S>
-      TAny& operator = (S&&) requires (CT::Deep<TypeOf<S>>);
 
-      TAny& operator = (const T&) requires CT::CustomData<T>;
-      TAny& operator = (T&) requires CT::CustomData<T>;
-      TAny& operator = (T&&) requires CT::CustomData<T>;
       template<CT::Semantic S>
-      TAny& operator = (S&&) requires (CT::CustomData<TypeOf<S>>);
+      TAny& operator = (S&&);
 
    public:
       template<CT::Semantic S>
@@ -115,9 +104,14 @@ namespace Langulus::Anyness
       NOD() auto GetRaw() noexcept;
       NOD() auto GetRawEnd() const noexcept;
       NOD() auto GetRawEnd() noexcept;
-      NOD() auto GetRawSparse() noexcept;
-      NOD() auto GetRawSparse() const noexcept;
 
+      NOD() constexpr RTTI::AllocationRequest RequestSize(const Count&) const noexcept requires (CT::Fundamental<T> || CT::Exact<T, Byte>);
+      NOD() RTTI::AllocationRequest RequestSize(const Count&) const noexcept requires (!CT::Fundamental<T> && !CT::Exact<T, Byte>);
+
+   private: TESTING(public:)
+      using Any::GetRawSparse;
+
+   public:
       NOD() decltype(auto) Last() const;
       NOD() decltype(auto) Last();
 
@@ -144,7 +138,6 @@ namespace Langulus::Anyness
 
       NOD() constexpr Size GetStride() const noexcept;
       NOD() constexpr Size GetByteSize() const noexcept;
-      NOD() auto RequestSize(const Count&) const noexcept;
 
       NOD() bool CastsToMeta(DMeta) const;
       NOD() bool CastsToMeta(DMeta, Count) const;
@@ -234,7 +227,7 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Removal                                                           
       ///                                                                     
-      template<bool REVERSE = false, bool BY_ADDRESS_ONLY = false, CT::Data ALT_T>
+      template<bool REVERSE = false, CT::Data ALT_T>
       Count Remove(const ALT_T&);
       Count RemoveIndex(const Offset&, const Count&);
       Iterator RemoveIndex(const Iterator&);
@@ -252,7 +245,7 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Search                                                            
       ///                                                                     
-      template<bool REVERSE = false, bool BY_ADDRESS_ONLY = false, CT::Data ALT_T>
+      template<bool REVERSE = false, CT::Data ALT_T>
       NOD() Index Find(const ALT_T&, const Offset& = 0) const;
 
       NOD() bool Compare(const TAny&) const noexcept;
@@ -304,6 +297,7 @@ namespace Langulus::Anyness
       template<bool CREATE = false, bool SETSIZE = false>
       void AllocateMore(Count);
       void AllocateLess(Count);
+      void AllocateFresh(const RTTI::AllocationRequest&);
 
       constexpr void ResetState() noexcept;
       constexpr void ResetType() noexcept;
@@ -322,84 +316,32 @@ namespace Langulus::Anyness
 
 
    ///                                                                        
-   ///   A sparse element access that dereferences on overwrite               
-   ///                                                                        
-   template<CT::Data T>
-   class TAny<T>::KnownPointer {
-      static_assert(CT::Sparse<T>, "T must be a pointer");
-      friend class TAny<T>;
-
-   private: TESTING(public:)
-      T mPointer {};
-      Inner::Allocation* mEntry {};
-
-      void Free();
-
-   public:
-      constexpr KnownPointer() noexcept = default;
-
-      KnownPointer(const KnownPointer&) noexcept;
-      KnownPointer(KnownPointer&&) noexcept;
-      KnownPointer(Disowned<KnownPointer>&&) noexcept;
-      KnownPointer(Abandoned<KnownPointer>&&) noexcept;
-
-      explicit KnownPointer(const T&);
-      KnownPointer(Disowned<T>&&) noexcept;
-      ~KnownPointer();
-
-      KnownPointer& operator = (const KnownPointer&) noexcept;
-      KnownPointer& operator = (KnownPointer&&) noexcept;
-      KnownPointer& operator = (Disowned<KnownPointer>&&) noexcept;
-      KnownPointer& operator = (Abandoned<KnownPointer>&&) noexcept;
-
-      KnownPointer& operator = (const T&);
-      KnownPointer& operator = (Disowned<T>&&);
-      KnownPointer& operator = (::std::nullptr_t);
-
-      bool operator == (const KnownPointer&) const noexcept;
-
-      NOD() Hash GetHash() const;
-
-      auto operator -> () const;
-      auto operator -> ();
-
-      decltype(auto) operator * () const;
-      decltype(auto) operator * ();
-
-      operator T () const noexcept {
-         return mPointer;
-      }
-   };
-
-
-   ///                                                                        
    ///   TAny iterator                                                        
    ///                                                                        
    template<CT::Data T>
    template<bool MUTABLE>
    struct TAny<T>::TIterator {
       LANGULUS(UNINSERTABLE) true;
-      LANGULUS(TYPED) TypeOf<TAny<T>>;
+      LANGULUS(TYPED) T;
 
    protected:
-      using TypeInner = typename TAny<T>::TypeInner;
       friend class TAny<T>;
 
-      const TypeInner* mElement;
+      const T* mElement;
 
-      TIterator(const TypeInner*) noexcept;
+      TIterator(const T*) noexcept;
 
    public:
       NOD() bool operator == (const TIterator&) const noexcept;
 
-      operator TypeInner& () const noexcept requires (MUTABLE);
-      operator const CTTI_InnerType& () const noexcept requires (!MUTABLE);
+      operator T& () const noexcept requires (MUTABLE);
+      operator const T& () const noexcept requires (!MUTABLE);
 
-      NOD() decltype(auto) operator * () const noexcept requires (MUTABLE);
-      NOD() decltype(auto) operator * () const noexcept requires (!MUTABLE);
+      NOD() T& operator * () const noexcept requires (MUTABLE);
+      NOD() const T& operator * () const noexcept requires (!MUTABLE);
 
-      NOD() decltype(auto) operator -> () const noexcept requires (MUTABLE);
-      NOD() decltype(auto) operator -> () const noexcept requires (!MUTABLE);
+      NOD() T& operator -> () const noexcept requires (MUTABLE);
+      NOD() const T& operator -> () const noexcept requires (!MUTABLE);
 
       // Prefix operator                                                
       TIterator& operator ++ () noexcept;

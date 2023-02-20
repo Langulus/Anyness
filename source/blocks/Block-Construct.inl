@@ -35,6 +35,7 @@ namespace Langulus::Anyness
    
    /// Manual construction from mutable data                                  
    /// This constructor has runtime overhead if managed memory is enabled     
+   ///   @attention assumes data is not sparse                                
    ///   @param state - the initial state of the container                    
    ///   @param meta - the type of the memory block                           
    ///   @param count - initial element count and reserve                     
@@ -58,8 +59,6 @@ namespace Langulus::Anyness
    {
       LANGULUS_ASSUME(DevAssumes, raw != nullptr,
          "Invalid data pointer");
-      LANGULUS_ASSUME(DevAssumes, count > 0,
-         "Invalid count");
       LANGULUS_ASSUME(DevAssumes, meta != nullptr,
          "Invalid data type");
       LANGULUS_ASSUME(DevAssumes, !meta->mIsSparse,
@@ -68,6 +67,7 @@ namespace Langulus::Anyness
    
    /// Manual construction from constant data                                 
    /// This constructor has runtime overhead if managed memory is enabled     
+   ///   @attention assumes data is not sparse                                
    ///   @param state - the initial state of the container                    
    ///   @param meta - the type of the memory block                           
    ///   @param count - initial element count and reserve                     
@@ -82,6 +82,7 @@ namespace Langulus::Anyness
    { }
 
    /// Manual construction from mutable data and known entry                  
+   ///   @attention assumes data is not sparse                                
    ///   @param state - the initial state of the container                    
    ///   @param meta - the type of the memory block                           
    ///   @param count - initial element count and reserve                     
@@ -103,8 +104,6 @@ namespace Langulus::Anyness
    {
       LANGULUS_ASSUME(DevAssumes, raw != nullptr,
          "Invalid data pointer");
-      LANGULUS_ASSUME(DevAssumes, count > 0,
-         "Invalid count");
       LANGULUS_ASSUME(DevAssumes, meta != nullptr,
          "Invalid data type");
       LANGULUS_ASSUME(DevAssumes, !meta->mIsSparse,
@@ -112,6 +111,7 @@ namespace Langulus::Anyness
    }
    
    /// Manual construction from constant data and known entry                 
+   ///   @attention assumes data is not sparse                                
    ///   @param state - the initial state of the container                    
    ///   @param meta - the type of the memory block                           
    ///   @param count - initial element count and reserve                     
@@ -187,10 +187,10 @@ namespace Langulus::Anyness
    }
 
    /// Create an empty typed block                                            
-   ///   @tparam CONSTRAIN - makes container type-constrained                 
    ///   @tparam T - the type of the container                                
+   ///   @tparam CONSTRAIN - makes container type-constrained                 
    ///   @return the block                                                    
-   template<bool CONSTRAIN, CT::Data T>
+   template<CT::Data T, bool CONSTRAIN>
    LANGULUS(ALWAYSINLINE)
    Block Block::From() {
       if constexpr (CONSTRAIN)

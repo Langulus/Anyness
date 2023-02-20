@@ -247,14 +247,14 @@ namespace Langulus::Anyness
    ///   @param other - the container to shallow-copy                         
    ///   @return a reference to this container                                
    TEMPLATE()
-   template<CT::Deep ALT_T>
+   template<CT::NotSemantic ALT_T>
    LANGULUS(ALWAYSINLINE)
    TAny<T>& TAny<T>::operator = (const ALT_T& other) {
       return operator = (Langulus::Copy(other));
    }
    
    TEMPLATE()
-   template<CT::Deep ALT_T>
+   template<CT::NotSemantic ALT_T>
    LANGULUS(ALWAYSINLINE)
    TAny<T>& TAny<T>::operator = (ALT_T& other) {
       return operator = (Langulus::Copy(other));
@@ -265,7 +265,7 @@ namespace Langulus::Anyness
    ///   @param other - the container to move                                 
    ///   @return a reference to this container                                
    TEMPLATE()
-   template<CT::Deep ALT_T>
+   template<CT::NotSemantic ALT_T>
    LANGULUS(ALWAYSINLINE)
    TAny<T>& TAny<T>::operator = (ALT_T&& other) {
       return operator = (Langulus::Move(other));
@@ -278,63 +278,35 @@ namespace Langulus::Anyness
    TEMPLATE()
    template<CT::Semantic S>
    LANGULUS(ALWAYSINLINE)
-   TAny<T>& TAny<T>::operator = (S&& other) requires (CT::Deep<TypeOf<S>>) {
-      if (static_cast<const Block*>(this) == static_cast<const Block*>(&other.mValue))
-         return *this;
+   TAny<T>& TAny<T>::operator = (S&& other) {
+      if constexpr (CT::Deep<TypeOf<S>>) {
+         if (static_cast<const Block*>(this)
+          == static_cast<const Block*>(&other.mValue))
+            return *this;
 
-      Free();
-      new (this) TAny {other.Forward()};
-      return *this;
-   }
-
-   /// Assign by shallow-copying an element                                   
-   ///   @param other - the value to copy                                     
-   ///   @return a reference to this container                                
-   TEMPLATE()
-   LANGULUS(ALWAYSINLINE)
-   TAny<T>& TAny<T>::operator = (const T& other) requires CT::CustomData<T> {
-      return operator = (Langulus::Copy(other));
-   }
-   
-   TEMPLATE()
-   LANGULUS(ALWAYSINLINE)
-   TAny<T>& TAny<T>::operator = (T& other) requires CT::CustomData<T> {
-      return operator = (Langulus::Copy(other));
-   }
-
-   /// Assign by moving an element                                            
-   ///   @param other - the value to move                                     
-   ///   @return a reference to this container                                
-   TEMPLATE()
-   LANGULUS(ALWAYSINLINE)
-   TAny<T>& TAny<T>::operator = (T&& other) requires CT::CustomData<T> {
-      return operator = (Langulus::Move(other));
-   }
-
-   /// Assign by interfacing a disowned element                               
-   ///   @param other - the element to interface                              
-   ///   @return a reference to this container                                
-   TEMPLATE()
-   template<CT::Semantic S>
-   LANGULUS(ALWAYSINLINE)
-   TAny<T>& TAny<T>::operator = (S&& other) requires (CT::CustomData<TypeOf<S>>) {
-      if (GetUses() != 1) {
-         // Reset and allocate fresh memory                             
-         Reset();
-         operator << (other.Forward());
+         Free();
+         new (this) TAny {other.Forward()};
       }
       else {
-         // Just destroy and reuse memory                               
-         if constexpr (CT::Sparse<T>) {
-            CallKnownDestructors<T>();
-            mCount = 1;
-            GetRawSparse()->mPointer = other.mValue;
-            GetRawSparse()->mEntry = nullptr;
+         if (GetUses() != 1) {
+            // Reset and allocate fresh memory                          
+            Reset();
+            operator << (other.Forward());
          }
          else {
+            // Just destroy and reuse memory                            
             CallKnownDestructors<T>();
-            SemanticNew<T>(mRaw, other.Forward());
             mCount = 1;
+
+            if constexpr (CT::Sparse<T>) {
+               *mRawSparse = const_cast<Byte*>(
+                  reinterpret_cast<const Byte*>(other.mValue)
+               );
+               *GetEntries() = nullptr;
+            }
+            else {
+               SemanticNew<T>(mRaw, other.Forward());
+            }
          }
       }
 
@@ -510,84 +482,64 @@ namespace Langulus::Anyness
    }
 
    /// Clone the templated container                                          
-   ///   @returns either a deep clone of the container data, or a shallow     
-   ///            copy, if contained type is not clonable                     
+   ///   @return the cloned container                                         
    TEMPLATE()
    TAny<T> TAny<T>::Clone() const {
-      using DT = Decay<T>;
+      // Always clone the state, but make it unconstrained              
+      TAny<T> result {Disown(*this)};
+      result.mState -= DataState::Static | DataState::Constant;
 
-      if constexpr (CT::CloneMakable<T> || CT::POD<T>) {
-         // Always clone the state, but make it unconstrained           
-         TAny<T> result {Disown(*this)};
-         result.mState -= DataState::Static | DataState::Constant;
-
-         if (!IsAllocated())
-            return Abandon(result);
-
-         result.AllocateFresh(result.RequestSize(mCount));
-         auto from = GetRaw();
-         auto to = result.GetRaw();
-
-         if constexpr (CT::Sparse<T>) {
-            // Clone all data in the same block                         
-            TAny<DT> coalesced;
-            coalesced.AllocateFresh(coalesced.RequestSize(mCount));
-            auto co = coalesced.GetRaw();
-
-            // Clone data behind each valid pointer                     
-            Count counter {};
-            while (from < GetRawEnd()) {
-               if (!from->mPointer) {
-                  to->mPointer = nullptr;
-                  to->mEntry = nullptr;
-                  ++from; ++to;
-                  continue;
-               }
-
-//TODO use SemanticMake
-               if constexpr (CT::CloneMakable<T>)
-                  new (co + counter) DT {from->mPointer->Clone()};
-               else if constexpr (CT::CopyMakable<T>)
-                  new (co + counter) DT {*from->mPointer};
-               else if constexpr (CT::POD<T>)
-                  CopyMemory(from->mPointer, co + counter, sizeof(DT));
-               else
-                  LANGULUS_ERROR("Can't clone a container made of non-clonable/non-POD type");
-
-               to->mPointer = co + counter;
-               to->mEntry = coalesced.mEntry;
-               ++from; ++to;
-               ++counter;
-            }
-
-            coalesced.Reference(counter);
-         }
-         else if constexpr (CT::CloneMakable<T>) {
-            // Clone dense elements by calling their Clone()            
-            while (from < GetRawEnd()) {
-               new (to) DT {from->Clone()};
-               ++from; ++to;
-            }
-         }
-         else if constexpr (CT::CopyMakable<T>) {
-            // Copy elements by calling their copy-constructors         
-            while (from < GetRawEnd()) {
-               new (to) DT {*from};
-               ++from; ++to;
-            }
-         }
-         else if constexpr (CT::POD<T>) {
-            // Batch copy everything at once                            
-            CopyMemory(from, to, sizeof(DT) * mCount);
-         }
-         else LANGULUS_ERROR("Can't clone a container made of non-clonable/non-POD type");
-
+      if (!IsAllocated())
          return Abandon(result);
+
+      using DT = Decay<T>;
+      result.AllocateFresh(result.RequestSize(mCount));
+
+      if constexpr (CT::Sparse<T>) {
+         // Clone all data in the same block                            
+         TAny<DT> coalesced;
+         coalesced.AllocateFresh(coalesced.RequestSize(mCount));
+         auto co = coalesced.GetRaw();
+         auto from = GetRawSparse();
+         const auto fromEnd = GetRawSparse() + mCount;
+         auto to = result.GetRawSparse();
+         auto toEntry = result.GetEntries();
+
+         // Clone data behind each valid pointer                        
+         Count counter {};
+         while (from != fromEnd) {
+            if (!*from) {
+               *to = nullptr;
+               *toEntry = nullptr;
+               ++from;
+               ++to;
+               ++toEntry;
+               continue;
+            }
+
+            *to = reinterpret_cast<Byte*>(co + counter);
+            SemanticNew<DT>(*to, Langulus::Clone(DenseCast(from)));
+            *toEntry = coalesced.mEntry;
+            ++from;
+            ++to;
+            ++toEntry;
+            ++counter;
+         }
+
+         coalesced.Reference(counter);
       }
       else {
-         // Can't clone the data, just return a shallow-copy            
-         return *this;
+         // Clone each element individually                             
+         auto from = GetRaw();
+         auto to = result.GetRaw();
+         while (from < GetRawEnd()) {
+            SemanticNew<DT>(to, Langulus::Clone(DenseCast(from)));
+            ++from;
+            ++to;
+         }
       }
+
+      return Abandon(result);
    }
 
    /// Return the typed raw data (const)                                      
@@ -595,10 +547,7 @@ namespace Langulus::Anyness
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
    auto TAny<T>::GetRaw() const noexcept {
-      if constexpr (CT::Dense<T>)
-         return GetRawAs<T>();
-      else
-         return GetRawAs<KnownPointer>();
+      return GetRawAs<T>();
    }
 
    /// Return the typed raw data                                              
@@ -606,10 +555,7 @@ namespace Langulus::Anyness
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
    auto TAny<T>::GetRaw() noexcept {
-      if constexpr (CT::Dense<T>)
-         return GetRawAs<T>();
-      else
-         return GetRawAs<KnownPointer>();
+      return GetRawAs<T>();
    }
 
    /// Return the typed raw data end pointer (const)                          
@@ -628,20 +574,27 @@ namespace Langulus::Anyness
       return GetRaw() + mCount;
    }
 
-   /// Return the typed raw sparse data (const)                               
-   ///   @return a constant pointer to the first element in the array         
+   /// Get a size based on reflected allocation page and count                
+   /// This is an optimization for predictable fundamental types              
+   ///   @param count - the number of elements to request                     
+   ///   @returns both the provided byte size and reserved count              
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
-   auto TAny<T>::GetRawSparse() const noexcept {
-      return reinterpret_cast<const KnownPointer*>(mRawSparse);
+   constexpr RTTI::AllocationRequest TAny<T>::RequestSize(const Count& count) const noexcept requires (CT::Fundamental<T> || CT::Exact<T, Byte>) {
+      RTTI::AllocationRequest result;
+      result.mByteSize = ::std::max(Roof2(count * sizeof(T)), Alignment);
+      result.mElementCount = result.mByteSize / sizeof(T);
+      return result;
    }
-
-   /// Return the typed raw sparse data                                       
-   ///   @return a mutable pointer to the first element in the array          
+   
+   /// Get a size based on reflected allocation page and count                
+   /// Implicitly makes sure that the type of block is set prior              
+   ///   @param count - the number of elements to request                     
+   ///   @returns both the provided byte size and reserved count              
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
-   auto TAny<T>::GetRawSparse() noexcept {
-      return reinterpret_cast<KnownPointer*>(mRawSparse);
+   RTTI::AllocationRequest TAny<T>::RequestSize(const Count& count) const noexcept requires (!CT::Fundamental<T> && !CT::Exact<T, Byte>) {
+      return GetType()->RequestSize(count);
    }
 
    /// Get an element in the way you want (const, unsafe)                     
@@ -823,10 +776,7 @@ namespace Langulus::Anyness
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
    constexpr Size TAny<T>::GetStride() const noexcept {
-      if constexpr (CT::Dense<T>)
-         return sizeof(T);
-      else
-         return sizeof(KnownPointer);
+      return sizeof(T);
    }
    
    /// Get the size of all elements, in bytes                                 
@@ -1353,25 +1303,17 @@ namespace Langulus::Anyness
 
    /// Find element(s) index inside container                                 
    ///   @tparam REVERSE - true to perform search in reverse                  
-   ///   @tparam BY_ADDRESS_ONLY - true to compare addresses only             
    ///   @param item - the item to search for                                 
    ///   @param cookie - resume search from a given index                     
    ///   @return the index of the found item, or IndexNone if none found      
    TEMPLATE()
-   template<bool REVERSE, bool BY_ADDRESS_ONLY, CT::Data ALT_T>
+   template<bool REVERSE, CT::Data ALT_T>
    Index TAny<T>::Find(const ALT_T& item, const Offset& cookie) const {
       if constexpr (CT::Comparable<T, ALT_T>) {
-         const TypeInner* start;
-         const TypeInner* end;
-
-         if constexpr (REVERSE) {
-            start = GetRawEnd() - 1 - cookie;
-            end = start - mCount;
-         }
-         else {
-            start = GetRaw() + cookie;
-            end = start + mCount;
-         }
+         const T* start 
+            = REVERSE ? GetRawEnd() - 1 - cookie : GetRaw() + cookie;
+         const T* const end
+            = REVERSE ? start - mCount : start + mCount;
 
          while (start != end) {
             if (*start == item)
@@ -1393,10 +1335,10 @@ namespace Langulus::Anyness
    ///   @param item - the item to search for to remove                       
    ///   @return the number of removed items                                  
    TEMPLATE()
-   template<bool REVERSE, bool BY_ADDRESS_ONLY, CT::Data ALT_T>
+   template<bool REVERSE, CT::Data ALT_T>
    LANGULUS(ALWAYSINLINE)
    Count TAny<T>::Remove(const ALT_T& item) {
-      const auto found = Find<REVERSE, BY_ADDRESS_ONLY>(item);
+      const auto found = Find<REVERSE>(item);
       if (found)
          return RemoveIndex(found.GetOffset(), 1);
       return 0;
@@ -1431,7 +1373,7 @@ namespace Langulus::Anyness
          LANGULUS_ASSERT(!IsStatic(), Access,
             "Attempting to remove from static container");
 
-         MoveMemory(GetRaw() + ender, GetRaw() + starter, sizeof(TypeInner) * (mCount - ender));
+         MoveMemory(GetRaw() + ender, GetRaw() + starter, sizeof(T) * (mCount - ender));
          mCount -= count;
          return count;
       }
@@ -1594,26 +1536,10 @@ namespace Langulus::Anyness
       WRAPPER result {*this};
       result.MakeStatic();
       result.mCount = result.mReserved = count;
-      result.mRaw += start * GetStride();
+      result.mRaw += start * mType->mSize;
       return Abandon(result);
    }
    
-   /// Get a size based on reflected allocation page and count (unsafe)       
-   ///   @param count - the number of elements to request                     
-   ///   @returns both the provided byte size and reserved count              
-   TEMPLATE()
-   LANGULUS(ALWAYSINLINE)
-   auto TAny<T>::RequestSize(const Count& count) const noexcept {
-      if constexpr (CT::Sparse<T>) {
-         RTTI::AllocationRequest result;
-         const auto requested = sizeof(KnownPointer) * count;
-         result.mByteSize = requested > Alignment ? Roof2(requested) : Alignment;
-         result.mElementCount = result.mByteSize / sizeof(KnownPointer);
-         return result;
-      }
-      else return GetType()->RequestSize(sizeof(T) * count);
-   }
-
    /// Allocate a number of elements, relying on the type of the container    
    ///   @tparam CREATE - true to call constructors and initialize count      
    ///   @tparam SETSIZE - true to set size without calling any constructors  
@@ -1732,6 +1658,26 @@ namespace Langulus::Anyness
             mReserved = request.mElementCount;
          }
       #endif
+   }
+
+   /// Allocate a fresh allocation (inner function)                           
+   ///   @attention changes entry, memory and reserve count                   
+   ///   @param request - request to fulfill                                  
+   TEMPLATE()
+   LANGULUS(ALWAYSINLINE)
+   void TAny<T>::AllocateFresh(const RTTI::AllocationRequest& request) {
+      #if LANGULUS_FEATURE(MANAGED_MEMORY)
+         // Sparse containers have additional memory allocated          
+         // for each pointer's entry                                    
+         mEntry = Inner::Allocator::Allocate(
+            request.mByteSize * (CT::Sparse<T> ? 2 : 1)
+         );
+      #else
+         mEntry = Inner::Allocator::Allocate(request.mByteSize);
+      #endif
+      LANGULUS_ASSERT(mEntry, Allocate, "Out of memory");
+      mRaw = mEntry->GetBlockStart();
+      mReserved = request.mElementCount;
    }
 
    /// Reserve a number of elements without initializing them                 
@@ -1934,208 +1880,7 @@ namespace Langulus::Anyness
       InsertBlock(Langulus::Move(rhs));
       return *this;
    }
-
-
-   ///                                                                        
-   ///   Known pointer implementation                                         
-   ///                                                                        
-   #define KNOWNPOINTER() TAny<T>::KnownPointer
-   
-   /// Copy-construct a pointer - references the block                        
-   ///   @param other - the pointer to reference                              
-   TEMPLATE()
-   KNOWNPOINTER()::KnownPointer(const KnownPointer& other) noexcept
-      : mPointer {other.mPointer}
-      , mEntry {other.mEntry} {
-      if (mEntry)
-         mEntry->Keep();
-   }
-
-   /// Move-construct a pointer                                               
-   ///   @param other - the pointer to move                                   
-   TEMPLATE()
-   KNOWNPOINTER()::KnownPointer(KnownPointer&& other) noexcept
-      : mPointer {other.mPointer}
-      , mEntry {other.mEntry} {
-      other.mPointer = nullptr;
-      other.mEntry = nullptr;
-   }
-
-   /// Copy-construct a pointer, without referencing it                       
-   ///   @param other - the pointer to copy                                   
-   TEMPLATE()
-   KNOWNPOINTER()::KnownPointer(Disowned<KnownPointer>&& other) noexcept
-      : mPointer {other.mValue.mPointer}
-      , mEntry {nullptr} {}
-
-   /// Move-construct a pointer, minimally resetting the source               
-   ///   @param other - the pointer to move                                   
-   TEMPLATE()
-   KNOWNPOINTER()::KnownPointer(Abandoned<KnownPointer>&& other) noexcept
-      : mPointer {other.mValue.mPointer}
-      , mEntry {other.mValue.mEntry} {
-      other.mValue.mEntry = nullptr;
-   }
-
-   /// Find and reference a pointer                                           
-   ///   @param pointer - the pointer to reference                            
-   TEMPLATE()
-   KNOWNPOINTER()::KnownPointer(const T& pointer)
-      : mPointer {pointer} {
-      #if LANGULUS_FEATURE(MANAGED_MEMORY)
-         // If we're using managed memory, we can search if the pointer 
-         // is owned by us, and get its block                           
-         // This has no point when the pointer is a meta (optimization) 
-         if constexpr (!CT::Meta<T> && CT::Complete<Deptr<T>>) {
-            mEntry = Inner::Allocator::Find(MetaData::Of<Deptr<T>>(), pointer);
-            if (mEntry)
-               mEntry->Keep();
-         }
-      #endif
-   }
-
-   /// Copy a disowned pointer, no search for block will be performed         
-   ///   @param pointer - the pointer to copy                                 
-   TEMPLATE()
-   KNOWNPOINTER()::KnownPointer(Disowned<T>&& pointer) noexcept
-      : mPointer {pointer.mValue} {}
-
-   /// Dereference (and eventually destroy)                                   
-   TEMPLATE()
-   KNOWNPOINTER()::~KnownPointer() {
-      Free();
-   }
-
-   /// Free the contents of the known pointer (inner function)                
-   ///   @attention doesn't reset pointers                                    
-   TEMPLATE()
-   void KNOWNPOINTER()::Free() {
-      if (!mEntry)
-         return;
-
-      if (mEntry->GetUses() == 1) {
-         if constexpr (!CT::POD<T> && CT::Destroyable<T>) {
-            using DT = Decay<T>;
-            mPointer->~DT();
-         }
-         Inner::Allocator::Deallocate(mEntry);
-      }
-      else mEntry->Free();
-   }
-
-   /// Copy-assign a known pointer, dereferencing old and referencing new     
-   ///   @param rhs - the new pointer                                         
-   TEMPLATE()
-   typename KNOWNPOINTER()& KNOWNPOINTER()::operator = (const KnownPointer& rhs) noexcept {
-      Free();
-      new (this) KnownPointer {rhs};
-      return *this;
-   }
-
-   /// Move-assign a known pointer, dereferencing old and moving new          
-   ///   @param rhs - the new pointer                                         
-   TEMPLATE()
-   typename KNOWNPOINTER()& KNOWNPOINTER()::operator = (KnownPointer&& rhs) noexcept {
-      Free();
-      new (this) KnownPointer {Forward<KnownPointer>(rhs)};
-      return *this;
-   }
-
-   /// Copy-assign a known pointer, dereferencing old but not referencing new 
-   ///   @param rhs - the new pointer                                         
-   TEMPLATE()
-   typename KNOWNPOINTER()& KNOWNPOINTER()::operator = (Disowned<KnownPointer>&& rhs) noexcept {
-      Free();
-      new (this) KnownPointer {rhs.Forward()};
-      return *this;
-   }
-
-   /// Move-assign a known pointer, dereferencing old and moving new          
-   ///   @param rhs - the new pointer                                         
-   TEMPLATE()
-   typename KNOWNPOINTER()& KNOWNPOINTER()::operator = (Abandoned<KnownPointer>&& rhs) noexcept {
-      Free();
-      new (this) KnownPointer {rhs.Forward()};
-      return *this;
-   }
-
-   /// Copy-assign a dangling pointer, finding its block and referencing      
-   ///   @param rhs - pointer to copy and reference                           
-   TEMPLATE()
-   typename KNOWNPOINTER()& KNOWNPOINTER()::operator = (const T& rhs) {
-      Free();
-      new (this) KnownPointer {rhs};
-      return *this;
-   }
-
-   /// Copy-assign a dangling pointer, but don't reference it                 
-   ///   @param rhs - pointer to copy                                         
-   TEMPLATE()
-   typename KNOWNPOINTER()& KNOWNPOINTER()::operator = (Disowned<T>&& rhs) {
-      Free();
-      new (this) KnownPointer {rhs.Forward()};
-      return *this;
-   }
-
-   /// Reset the known pointer                                                
-   TEMPLATE()
-   typename KNOWNPOINTER()& KNOWNPOINTER()::operator = (::std::nullptr_t) {
-      Free();
-      mPointer = nullptr;
-      mEntry = nullptr;
-      return *this;
-   }
-
-   /// Compare two known pointers                                             
-   ///   @param rhs - the pointer to compare against                          
-   ///   @return true if pointers/values match                                
-   TEMPLATE()
-   bool KNOWNPOINTER()::operator == (const KNOWNPOINTER()& rhs) const noexcept {
-      return mPointer == rhs.mPointer;
-   }
-
-   /// Get hash of the pointer inside                                         
-   ///   @return the hash                                                     
-   TEMPLATE()
-   Hash KNOWNPOINTER()::GetHash() const {
-      if (!mPointer)
-         return {};
-      return HashNumber(reinterpret_cast<intptr_t>(mPointer));
-   }
-
-   /// Pointer dereferencing (const)                                          
-   ///   @attention assumes contained pointer is valid                        
-   TEMPLATE()
-   auto KNOWNPOINTER()::operator -> () const {
-      LANGULUS_ASSUME(UserAssumes, mPointer, "Invalid pointer");
-      return mPointer;
-   }
-
-   /// Pointer dereferencing                                                  
-   ///   @attention assumes contained pointer is valid                        
-   TEMPLATE()
-   auto KNOWNPOINTER()::operator -> () {
-      LANGULUS_ASSUME(UserAssumes, mPointer, "Invalid pointer");
-      return mPointer;
-   }
-
-   /// Pointer dereferencing (const)                                          
-   ///   @attention assumes contained pointer is valid                        
-   TEMPLATE()
-   decltype(auto) KNOWNPOINTER()::operator * () const {
-      LANGULUS_ASSUME(UserAssumes, mPointer, "Invalid pointer");
-      return *mPointer;
-   }
-
-   /// Pointer dereferencing                                                  
-   ///   @attention assumes contained pointer is valid                        
-   TEMPLATE()
-   decltype(auto) KNOWNPOINTER()::operator * () {
-      LANGULUS_ASSUME(UserAssumes, mPointer, "Invalid pointer");
-      return *mPointer;
-   }
-
-   
+  
    /// Get iterator to first element                                          
    ///   @return an iterator to the first element, or end if empty            
    TEMPLATE()
@@ -2200,7 +1945,7 @@ namespace Langulus::Anyness
    TEMPLATE()
    template<bool MUTABLE>
    LANGULUS(ALWAYSINLINE)
-   TAny<T>::TIterator<MUTABLE>::TIterator(const TypeInner* e) noexcept
+   TAny<T>::TIterator<MUTABLE>::TIterator(const T* e) noexcept
       : mElement {e} {}
 
    /// Prefix increment operator                                              
@@ -2241,8 +1986,8 @@ namespace Langulus::Anyness
    TEMPLATE()
    template<bool MUTABLE>
    LANGULUS(ALWAYSINLINE)
-   TAny<T>::TIterator<MUTABLE>::operator TypeInner& () const noexcept requires (MUTABLE) {
-      return const_cast<TypeInner&>(*mElement);
+   TAny<T>::TIterator<MUTABLE>::operator T& () const noexcept requires (MUTABLE) {
+      return const_cast<T&>(*mElement);
    }
 
    /// Iterator access operator                                               
@@ -2250,11 +1995,8 @@ namespace Langulus::Anyness
    TEMPLATE()
    template<bool MUTABLE>
    LANGULUS(ALWAYSINLINE)
-   TAny<T>::TIterator<MUTABLE>::operator const CTTI_InnerType& () const noexcept requires (!MUTABLE) {
-      if constexpr (CT::Dense<T>)
-         return *mElement;
-      else
-         return mElement->mPointer;
+   TAny<T>::TIterator<MUTABLE>::operator const T& () const noexcept requires (!MUTABLE) {
+      return *mElement;
    }
    
    /// Iterator access operator                                               
@@ -2262,8 +2004,8 @@ namespace Langulus::Anyness
    TEMPLATE()
    template<bool MUTABLE>
    LANGULUS(ALWAYSINLINE)
-   decltype(auto) TAny<T>::TIterator<MUTABLE>::operator * () const noexcept requires (MUTABLE) {
-      return const_cast<TypeInner&>(*mElement);
+   T& TAny<T>::TIterator<MUTABLE>::operator * () const noexcept requires (MUTABLE) {
+      return const_cast<T&>(*mElement);
    }
 
    /// Iterator access operator                                               
@@ -2271,11 +2013,8 @@ namespace Langulus::Anyness
    TEMPLATE()
    template<bool MUTABLE>
    LANGULUS(ALWAYSINLINE)
-   decltype(auto) TAny<T>::TIterator<MUTABLE>::operator * () const noexcept requires (!MUTABLE) {
-      if constexpr (CT::Dense<T>)
-         return *mElement;
-      else
-         return mElement->mPointer;
+   const T& TAny<T>::TIterator<MUTABLE>::operator * () const noexcept requires (!MUTABLE) {
+      return *mElement;
    }
 
    /// Iterator access operator                                               
@@ -2283,8 +2022,8 @@ namespace Langulus::Anyness
    TEMPLATE()
    template<bool MUTABLE>
    LANGULUS(ALWAYSINLINE)
-   decltype(auto) TAny<T>::TIterator<MUTABLE>::operator -> () const noexcept requires (MUTABLE) {
-      return const_cast<TypeInner&>(*mElement);
+   T& TAny<T>::TIterator<MUTABLE>::operator -> () const noexcept requires (MUTABLE) {
+      return const_cast<T&>(*mElement);
    }
 
    /// Iterator access operator                                               
@@ -2292,11 +2031,8 @@ namespace Langulus::Anyness
    TEMPLATE()
    template<bool MUTABLE>
    LANGULUS(ALWAYSINLINE)
-   decltype(auto) TAny<T>::TIterator<MUTABLE>::operator -> () const noexcept requires (!MUTABLE) {
-      if constexpr (CT::Dense<T>)
-         return *mElement;
-      else
-         return mElement->mPointer;
+   const T& TAny<T>::TIterator<MUTABLE>::operator -> () const noexcept requires (!MUTABLE) {
+      return *mElement;
    }
 
 } // namespace Langulus::Anyness

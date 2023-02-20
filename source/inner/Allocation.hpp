@@ -40,9 +40,7 @@ namespace Langulus::Anyness::Inner
    /// This is a single allocation record                                     
    ///                                                                        
    struct Allocation final {
-   #if LANGULUS_FEATURE(MANAGED_MEMORY)
-      friend class Pool;
-   #endif
+   IF_LANGULUS_MANAGED_MEMORY(friend class Pool);
    friend class Allocator;
    protected:
       // Allocated bytes for this chunk                                 

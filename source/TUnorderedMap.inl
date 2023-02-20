@@ -129,7 +129,7 @@ namespace Langulus::Anyness
    ///   @param pair - the pair to copy                                       
    ///   @return a reference to this table                                    
    TABLE_TEMPLATE()
-      TABLE()& TABLE()::operator = (const TPair<K, V>& pair) {
+   TABLE()& TABLE()::operator = (const Pair& pair) {
       Clear();
       Insert(pair.mKey, pair.mValue);
       return *this;
@@ -139,25 +139,10 @@ namespace Langulus::Anyness
    ///   @param pair - the pair to emplace                                    
    ///   @return a reference to this table                                    
    TABLE_TEMPLATE()
-   TABLE()& TABLE()::operator = (TPair<K, V>&& pair) noexcept {
+   TABLE()& TABLE()::operator = (Pair&& pair) noexcept {
       Clear();
       Insert(Move(pair.mKey), Move(pair.mValue));
       return *this;
-   }
-
-   /// Clone all elements in a range                                          
-   ///   @param from - source container                                       
-   ///   @param to - destination container                                    
-   TABLE_TEMPLATE()
-   template<class T>
-   void TABLE()::CloneInner(const T& from, T& to) const {
-      for (Offset i = 0; i < GetReserved(); ++i) {
-         if (!mInfo[i])
-            continue;
-
-         auto destination = to.CropInner(i, 1);
-         from.CropInner(i, 1).Clone(destination);
-      }
    }
 
    /// Clone the table                                                        
@@ -181,16 +166,37 @@ namespace Langulus::Anyness
          LANGULUS_THROW(Allocate, "Out of memory");
       }
 
-      // Clone the info bytes                                           
+      // Clone the info bytes (and the sentinel at the end)             
       result.mKeys.mRaw = result.mKeys.mEntry->GetBlockStart();
       result.mValues.mRaw = result.mValues.mEntry->GetBlockStart();
-      result.mInfo = reinterpret_cast<InfoType*>(result.mKeys.mRaw)
-         + (mInfo - reinterpret_cast<const InfoType*>(mKeys.mRaw));
+      result.mInfo = result.mKeys.template GetRawAs<InfoType>()
+         + (mInfo - mKeys.template GetRawAs<InfoType>());
       ::std::memcpy(result.mInfo, mInfo, GetReserved() + 1);
 
       // Clone the keys & values                                        
-      CloneInner(GetKeys(), result.GetKeys());
-      CloneInner(GetValues(), result.GetValues());
+      auto info = result.GetInfo();
+      const auto infoEnd = result.GetInfoEnd();
+      auto dstKey = result.GetRawKeys();
+      auto dstVal = result.GetRawValues();
+      auto srcKey = GetRawKeys();
+      auto srcVal = GetRawValues();
+      while (info != infoEnd) {
+         if (0 == *info) {
+            ++info;
+            ++dstKey; ++dstVal;
+            ++srcKey; ++srcVal;
+            continue;
+         }
+
+         // Clone valid key & value                                     
+         SemanticNew<K>(dstKey, Langulus::Clone(*srcKey));
+         SemanticNew<V>(dstVal, Langulus::Clone(*srcVal));
+
+         ++info;
+         ++dstKey; ++dstVal;
+         ++srcKey; ++srcVal;
+      }
+
       return Abandon(result);
    }
    
@@ -286,14 +292,14 @@ namespace Langulus::Anyness
    ///   @return the number of bytes a single key contains                    
    TABLE_TEMPLATE()
    constexpr Size TABLE()::GetKeyStride() const noexcept {
-      return sizeof(KeyInner); 
+      return sizeof(K); 
    }
    
    /// Get the size of a single value, in bytes                               
    ///   @return the number of bytes a single value contains                  
    TABLE_TEMPLATE()
    constexpr Size TABLE()::GetValueStride() const noexcept {
-      return sizeof(ValueInner); 
+      return sizeof(V); 
    }
 
    /// Get the raw key array (const)                                          
@@ -401,7 +407,7 @@ namespace Langulus::Anyness
    ///   @return the requested byte size                                      
    TABLE_TEMPLATE()
    Size TABLE()::RequestKeyAndInfoSize(const Count request, Offset& infoStart) noexcept {
-      const Size keymemory = request * sizeof(KeyInner);
+      const Size keymemory = request * sizeof(K);
       infoStart = keymemory + Alignment - (keymemory % Alignment);
       return infoStart + request + 1;
    }
@@ -444,10 +450,10 @@ namespace Langulus::Anyness
       // Allocate new values                                            
       const Block oldVals {mValues};
       if constexpr (REUSE)
-         mValues.mEntry = Allocator::Reallocate(count * sizeof(ValueInner), mValues.mEntry);
+         mValues.mEntry = Allocator::Reallocate(count * sizeof(V), mValues.mEntry);
       else {
          mValues.mType = MetaData::Of<V>();
-         mValues.mEntry = Allocator::Allocate(count * sizeof(ValueInner));
+         mValues.mEntry = Allocator::Allocate(count * sizeof(V));
       }
 
       if (!mValues.mEntry) {
@@ -492,8 +498,8 @@ namespace Langulus::Anyness
       // If reached, then keys or values (or both) moved                
       // Reinsert all pairs to rehash                                   
       mValues.mCount = 0;
-      auto key = oldKeys.mEntry->As<KeyInner>();
-      auto val = oldVals.mEntry->As<ValueInner>();
+      auto key = oldKeys.mEntry->As<K>();
+      auto val = oldVals.mEntry->As<V>();
       const auto hashmask = GetReserved() - 1;
       while (oldInfo != oldInfoEnd) {
          if (!*(oldInfo++)) {
@@ -552,8 +558,8 @@ namespace Langulus::Anyness
          if (oldIndex != newIndex) {
             // Immediately move the old pair to the swapper             
             auto oldValue = &GetValue(oldIndex);
-            auto keyswap = SemanticMake<KeyInner>(Abandon(*oldKey));
-            auto valswap = SemanticMake<ValueInner>(Abandon(*oldValue));
+            auto keyswap = SemanticMake<K>(Abandon(*oldKey));
+            auto valswap = SemanticMake<V>(Abandon(*oldValue));
 
             RemoveIndex(oldIndex);
             if (oldIndex == InsertInner<false>(newIndex, Abandon(keyswap), Abandon(valswap))) {
@@ -597,8 +603,8 @@ namespace Langulus::Anyness
    TABLE_TEMPLATE()
    template<bool CHECK_FOR_MATCH, CT::Semantic SK, CT::Semantic SV>
    Offset TABLE()::InsertInner(const Offset& start, SK&& key, SV&& value) {
-      auto keyswap = SemanticMake<KeyInner>(key.Forward());
-      auto valswap = SemanticMake<ValueInner>(value.Forward());
+      auto keyswap = SemanticMake<K>(key.Forward());
+      auto valswap = SemanticMake<V>(value.Forward());
 
       // Get the starting index based on the key hash                   
       auto psl = GetInfo() + start;
@@ -634,8 +640,8 @@ namespace Langulus::Anyness
       // Might not seem like it, but we gave a guarantee, that this is  
       // eventually reached, unless key exists and returns early        
       const auto index = psl - GetInfo();
-      SemanticNew<KeyInner>   (&GetKey(index),   Abandon(keyswap));
-      SemanticNew<ValueInner> (&GetValue(index), Abandon(valswap));
+      SemanticNew<K>(&GetKey(index),   Abandon(keyswap));
+      SemanticNew<V>(&GetValue(index), Abandon(valswap));
       *psl = attempts;
       ++mValues.mCount;
       return index;
@@ -841,8 +847,8 @@ namespace Langulus::Anyness
             #pragma GCC diagnostic ignored "-Wplacement-new"
          #endif
 
-         SemanticNew<KeyInner>(key - 1, Abandon(*key));
-         SemanticNew<ValueInner>(val - 1, Abandon(*val));
+         SemanticNew<K>(key - 1, Abandon(*key));
+         SemanticNew<V>(val - 1, Abandon(*val));
 
          #if LANGULUS_COMPILER_GCC()
             #pragma GCC diagnostic pop
@@ -863,8 +869,8 @@ namespace Langulus::Anyness
          const auto last = mValues.mReserved - 1;
          GetInfo()[last] = (*psl) - 1;
 
-         SemanticNew<KeyInner>(GetRawKeys() + last, Abandon(*key));
-         SemanticNew<ValueInner>(GetRawValues() + last, Abandon(*val));
+         SemanticNew<K>(GetRawKeys() + last, Abandon(*key));
+         SemanticNew<V>(GetRawValues() + last, Abandon(*val));
 
          RemoveInner(key++);
          RemoveInner(val++);
@@ -1457,8 +1463,8 @@ namespace Langulus::Anyness
    TABLE()::TIterator<MUTABLE>::TIterator(
       const InfoType* info, 
       const InfoType* sentinel, 
-      const KeyInner* key, 
-      const ValueInner* value
+      const K* key, 
+      const V* value
    ) noexcept
       : mInfo {info}
       , mSentinel {sentinel}
@@ -1512,7 +1518,7 @@ namespace Langulus::Anyness
    template<bool MUTABLE>
    LANGULUS(ALWAYSINLINE)
    typename TABLE()::PairRef TABLE()::TIterator<MUTABLE>::operator * () const noexcept requires (MUTABLE) {
-      return {*const_cast<KeyInner*>(mKey), *const_cast<ValueInner*>(mValue)};
+      return {*const_cast<K*>(mKey), *const_cast<V*>(mValue)};
    }
 
    /// Iterator access operator                                               

@@ -13,7 +13,7 @@ namespace Langulus::Anyness
    
    /// Iterate each element block and execute F for it                        
    ///   @tparam MUTABLE - are we executing in a mutable, or immutable blocks 
-   ///   @tparam F - the function signature                                   
+   ///   @tparam F - the function signature (deducible)                       
    ///   @param call - function to execute for each element block             
    ///   @return the number of executions                                     
    template<bool MUTABLE, class F>
@@ -55,22 +55,29 @@ namespace Langulus::Anyness
    }
 
    /// Execute functions for each element inside container                    
-   /// Loop ends immediately after the first viable F is done                 
+   /// Each function has a distinct argument type, that is tested against the 
+   /// contained type. If argument is compatible with the type, the block is  
+   /// iterated, and F is executed for all elements. The rest of the provided 
+   /// functions are ignored, after the first function with viable argument.  
    ///   @tparam MUTABLE - whether or not a change to container is allowed    
    ///                     while iterating                                    
-   ///   @tparam F - the function types (deducible)                           
-   ///   @param call - the instance of the function F to call                 
-   ///   @return the number of called functions                               
+   ///   @tparam F - the function signatures (deducible)                      
+   ///   @param calls - all potential functions to iterate with               
+   ///   @return the number of executions                                     
    template<bool MUTABLE, class... F>
    LANGULUS(ALWAYSINLINE)
    Count Block::ForEach(F&&... calls) {
       return (... || ForEachSplitter<MUTABLE, false>(Forward<F>(calls)));
    }
 
-   /// Execute functions for each element inside container (immutable)        
-   ///   @tparam F - the function type (deducible)                            
-   ///   @param call - the instance of the function F to call                 
-   ///   @return the number of called functions                               
+   /// Execute functions for each element inside container (const)            
+   /// Each function has a distinct argument type, that is tested against the 
+   /// contained type. If argument is compatible with the type, the block is  
+   /// iterated, and F is executed for all elements. The rest of the provided 
+   /// functions are ignored, after the first function with viable argument.  
+   ///   @tparam F - the function signatures (deducible)                      
+   ///   @param calls - all potential functions to iterate with               
+   ///   @return the number of executions                                     
    template<class... F>
    LANGULUS(ALWAYSINLINE)
    Count Block::ForEach(F&&... calls) const {
@@ -79,21 +86,29 @@ namespace Langulus::Anyness
    }
 
    /// Execute functions for each element inside container (reverse)          
+   /// Each function has a distinct argument type, that is tested against the 
+   /// contained type. If argument is compatible with the type, the block is  
+   /// iterated, and F is executed for all elements. The rest of the provided 
+   /// functions are ignored, after the first function with viable argument.  
    ///   @tparam MUTABLE - whether or not a change to container is allowed    
    ///                     while iterating                                    
-   ///   @tparam F - the function type (deducible)                            
-   ///   @param call - the instance of the function F to call                 
-   ///   @return the number of called functions                               
+   ///   @tparam F - the function signatures (deducible)                      
+   ///   @param calls - all potential functions to iterate with               
+   ///   @return the number of executions                                     
    template<bool MUTABLE, class... F>
    LANGULUS(ALWAYSINLINE)
    Count Block::ForEachRev(F&&... calls) {
       return (... || ForEachSplitter<MUTABLE, true>(Forward<F>(calls)));
    }
 
-   /// Execute F for each element inside container (immutable, reverse)       
-   ///   @tparam F - the function type (deducible)                            
-   ///   @param call - the instance of the function F to call                 
-   ///   @return the number of called functions                               
+   /// Execute functions for each element inside container (reverse, const)   
+   /// Each function has a distinct argument type, that is tested against the 
+   /// contained type. If argument is compatible with the type, the block is  
+   /// iterated, and F is executed for all elements. The rest of the provided 
+   /// functions are ignored, after the first function with viable argument.  
+   ///   @tparam F - the function signatures (deducible)                      
+   ///   @param calls - all potential functions to iterate with               
+   ///   @return the number of executions                                     
    template<class... F>
    LANGULUS(ALWAYSINLINE)
    Count Block::ForEachRev(F&&... calls) const {
@@ -101,28 +116,36 @@ namespace Langulus::Anyness
          .template ForEachRev<false>(Forward<F>(calls)...);
    }
 
-   /// Execute functions for each element inside container, nested for any    
-   /// contained deep containers                                              
-   ///   @tparam SKIP - set to false, to execute F for containers, too        
-   ///                  set to true, to execute only for non-deep elements    
+   /// Execute functions in each sub-block                                    
+   /// Unlike the flat variants above, this one reaches into sub-blocks.      
+   /// Each function has a distinct argument type, that is tested against the 
+   /// contained type. If argument is compatible with the type, the block is  
+   /// iterated, and F is executed for all elements. The rest of the provided 
+   /// functions are ignored, after the first function with viable argument.  
+   ///   @tparam SKIP - set to false, to execute F for intermediate blocks,   
+   ///                  too; otherwise will execute only for non-blocks       
    ///   @tparam MUTABLE - whether or not a change to container is allowed    
    ///                     while iterating                                    
-   ///   @tparam F - the function type (deducible)                            
-   ///   @param call - the instance of the function F to call                 
-   ///   @return the number of called functions                               
+   ///   @tparam F - the function signatures (deducible)                      
+   ///   @param calls - all potential functions to iterate with               
+   ///   @return the number of executions                                     
    template<bool SKIP, bool MUTABLE, class... F>
    LANGULUS(ALWAYSINLINE)
    Count Block::ForEachDeep(F&&... calls) {
       return (... || ForEachDeepSplitter<SKIP, MUTABLE, false>(Forward<F>(calls)));
    }
 
-   /// Execute function F for each element inside container, nested for any   
-   /// contained deep containers (immutable)                                  
-   ///   @tparam SKIP - set to false, to execute F for containers, too        
-   ///                  set to true, to execute only for non-deep elements    
-   ///   @tparam F - the function type (deducible)                            
-   ///   @param call - the instance of the function F to call                 
-   ///   @return the number of called functions                               
+   /// Execute functions in each sub-block (const)                            
+   /// Unlike the flat variants above, this one reaches into sub-blocks.      
+   /// Each function has a distinct argument type, that is tested against the 
+   /// contained type. If argument is compatible with the type, the block is  
+   /// iterated, and F is executed for all elements. The rest of the provided 
+   /// functions are ignored, after the first function with viable argument.  
+   ///   @tparam SKIP - set to false, to execute F for intermediate blocks,   
+   ///                  too; otherwise will execute only for non-blocks       
+   ///   @tparam F - the function signatures (deducible)                      
+   ///   @param calls - all potential functions to iterate with               
+   ///   @return the number of executions                                     
    template<bool SKIP, class... F>
    LANGULUS(ALWAYSINLINE)
    Count Block::ForEachDeep(F&&... calls) const {
@@ -130,28 +153,36 @@ namespace Langulus::Anyness
          .template ForEachDeep<SKIP, false>(Forward<F>(calls)...);
    }
 
-   /// Execute function F for each element inside container, nested for any   
-   /// contained deep containers (reverse)                                    
-   ///   @tparam SKIP - set to false, to execute F for containers, too        
-   ///                  set to true, to execute only for non-deep elements    
+   /// Execute functions in each sub-block (reverse)                          
+   /// Unlike the flat variants above, this one reaches into sub-blocks.      
+   /// Each function has a distinct argument type, that is tested against the 
+   /// contained type. If argument is compatible with the type, the block is  
+   /// iterated, and F is executed for all elements. The rest of the provided 
+   /// functions are ignored, after the first function with viable argument.  
+   ///   @tparam SKIP - set to false, to execute F for intermediate blocks,   
+   ///                  too; otherwise will execute only for non-blocks       
    ///   @tparam MUTABLE - whether or not a change to container is allowed    
    ///                     while iterating                                    
-   ///   @tparam F - the function type (deducible)                            
-   ///   @param call - the instance of the function F to call                 
-   ///   @return the number of called functions                               
+   ///   @tparam F - the function signatures (deducible)                      
+   ///   @param calls - all potential functions to iterate with               
+   ///   @return the number of executions                                     
    template<bool SKIP, bool MUTABLE, class... F>
    LANGULUS(ALWAYSINLINE)
    Count Block::ForEachDeepRev(F&&... calls) {
       return (... || ForEachDeepSplitter<SKIP, MUTABLE, true>(Forward<F>(calls)));
    }
 
-   /// Execute function F for each element inside container, nested for any   
-   /// contained deep containers (immutable, reverse)                         
-   ///   @tparam SKIP - set to false, to execute F for containers, too        
-   ///                  set to true, to execute only for non-deep elements    
-   ///   @tparam F - the function type (deducible)                            
-   ///   @param call - the instance of the function F to call                 
-   ///   @return the number of called functions                               
+   /// Execute functions in each sub-block (reverse, const)                   
+   /// Unlike the flat variants above, this one reaches into sub-blocks.      
+   /// Each function has a distinct argument type, that is tested against the 
+   /// contained type. If argument is compatible with the type, the block is  
+   /// iterated, and F is executed for all elements. The rest of the provided 
+   /// functions are ignored, after the first function with viable argument.  
+   ///   @tparam SKIP - set to false, to execute F for intermediate blocks,   
+   ///                  too; otherwise will execute only for non-blocks       
+   ///   @tparam F - the function signatures (deducible)                      
+   ///   @param calls - all potential functions to iterate with               
+   ///   @return the number of executions                                     
    template<bool SKIP, class... F>
    LANGULUS(ALWAYSINLINE)
    Count Block::ForEachDeepRev(F&&... calls) const {
@@ -159,9 +190,11 @@ namespace Langulus::Anyness
          .template ForEachDeepRev<SKIP, false>(Forward<F>(calls)...);
    }
 
-   /// Execute functions for each element inside container                    
+   /// Execute single function from a sequence of functions for each element  
+   /// inside container                                                       
    ///   @tparam MUTABLE - whether or not a change to container is allowed    
    ///                     while iterating                                    
+   ///   @tparam REVERSE - whether to iterate in reverse                      
    ///   @tparam F - the function types (deducible)                           
    ///   @param call - the instance of the function F to call                 
    ///   @return the number of called functions                               
@@ -177,12 +210,13 @@ namespace Langulus::Anyness
       return ForEachInner<R, A, REVERSE, MUTABLE>(Forward<F>(call));
    }
 
-   /// Execute functions for each element inside container, nested for any    
-   /// contained deep containers                                              
-   ///   @tparam SKIP - set to false, to execute F for containers, too        
+   /// Execute single function from a sequence of functions for each element  
+   /// inside each sub-block in container                                     
+   ///   @tparam SKIP - set to false, to execute F for deep elements, too     
    ///                  set to true, to execute only for non-deep elements    
    ///	@tparam MUTABLE - whether or not a change to container is allowed    
    ///                     while iterating                                    
+   ///   @tparam REVERSE - whether to iterate in reverse                      
    ///   @tparam F - the function type (deducible)                            
    ///   @param call - the instance of the function F to call                 
    ///   @return the number of called functions                               
@@ -218,8 +252,16 @@ namespace Langulus::Anyness
       }
    }
 
-   /// Iterate and execute call for each element                              
-   ///   @param call - the function to execute for each element of type T     
+   /// Iterate and execute call for each flat element                         
+   ///   @tparam R - the function return type (deduced)                       
+   ///               if R is boolean, loop will cease on returning false      
+   ///   @tparam A - the function argument type (deduced)                     
+   ///               if A is incompatible with container, function wont ever  
+   ///               be called, and ForEachInner will return 0                
+   ///   @tparam REVERSE - whether to iterate in reverse                      
+   ///	@tparam MUTABLE - whether or not a change to container is allowed    
+   ///                     while iterating                                    
+   ///   @param call - the function to execute for each element of type A     
    ///   @return the number of executions that occured                        
    template<class R, CT::Data A, bool REVERSE, bool MUTABLE>
    LANGULUS(ALWAYSINLINE)
@@ -262,18 +304,27 @@ namespace Langulus::Anyness
       return index;
    }
    
-   /// Iterate and execute call for each element                              
-   ///   @param call - the function to execute for each element of type T     
+   /// Iterate and execute call for each deep element                         
+   ///   @tparam R - the function return type (deduced)                       
+   ///               if R is boolean, loop will cease on returning false      
+   ///   @tparam A - the function argument type (deduced)                     
+   ///               A must be a CT::Block type                               
+   ///   @tparam REVERSE - whether to iterate in reverse                      
+   ///	@tparam MUTABLE - whether or not a change to container is allowed    
+   ///                     while iterating                                    
+   ///   @param call - the function to execute for each element of type A     
    ///   @return the number of executions that occured                        
    template<class R, CT::Data A, bool REVERSE, bool SKIP, bool MUTABLE>
    Count Block::ForEachDeepInner(TFunctor<R(A)>&& call) {
+      using B = Decay<A>;
+      static_assert(CT::Block<B>, "A must be a Block type");
       constexpr bool HasBreaker = CT::Bool<R>;
       UNUSED() bool atLeastOneChange = false;
       auto count {GetCountDeep()};
       Count index = 0;
       Count skipped = 0;
       while (index < count) {
-         auto block = ReinterpretCast<Decay<A>>(GetBlockDeep(index));
+         auto block = ReinterpretCast<B>(GetBlockDeep(index));
          if constexpr (MUTABLE) {
             if (!block)
                break;
@@ -307,7 +358,7 @@ namespace Langulus::Anyness
                   // until all empty stateless blocks are removed       
                   while (block && block->IsEmpty() && !block->GetUnconstrainedState()) {
                      index -= RemoveIndexDeep(index);
-                     block = ReinterpretCast<Decay<A>>(GetBlockDeep(index - 1));
+                     block = ReinterpretCast<B>(GetBlockDeep(index - 1));
                   }
                }
 
@@ -328,6 +379,30 @@ namespace Langulus::Anyness
          return index - skipped;
       else
          return index;
+   }
+   
+   /// Low-level element iteration function (for internal use only)           
+   ///   @tparam AS - type of the element                                     
+   ///   @tparam REVERSE - direction we're iterating in                       
+   ///   @param call - the constexpr noexcept function to call on each item   
+   template<class AS, bool REVERSE>
+   LANGULUS(ALWAYSINLINE)
+   constexpr void Block::Iterate(TFunctor<void(const AS&)>&& call) const noexcept {
+      if (!IsExact<AS>())
+         return;
+
+      if constexpr (REVERSE) {
+         auto data = GetRawAs<AS>() + mCount - 1;
+         const auto dataEnd = data - mCount;
+         while (data != dataEnd)
+            call(*(data--));
+      }
+      else {
+         auto data = GetRawAs<AS>();
+         const auto dataEnd = data + mCount;
+         while (data != dataEnd)
+            call(*(data++));
+      }
    }
 
 } // namespace Langulus::Anyness

@@ -20,7 +20,7 @@ using uint = unsigned int;
 
 SCENARIO("Deep containers", "[any]") {
    GIVEN("Any with some deep items") {
-      #include "CollectGarbage.inl"
+      IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
       Any pack;
       Any subpack1;
@@ -567,7 +567,7 @@ SCENARIO("Deep containers", "[any]") {
    }
 
    GIVEN("Any with some deep items for the purpose of optimization") {
-      #include "CollectGarbage.inl"
+      IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
       Any pack;
       Any subpack1;
@@ -596,7 +596,7 @@ SCENARIO("Deep containers", "[any]") {
    }
 
    GIVEN("Any with some deep items, and their Blocks coalesced") {
-      #include "CollectGarbage.inl"
+      IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
       Any pack;
       Any subpack1;

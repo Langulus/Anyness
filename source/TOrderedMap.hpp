@@ -18,22 +18,37 @@ namespace Langulus::Anyness
    template<CT::Data K, CT::Data V>
    class TOrderedMap : public TUnorderedMap<K, V> {
    public:
+      using Key = K;
+      using Value = V;
+      using Self = TOrderedMap<K, V>;
+      using Pair = TPair<K, V>;
+      using PairRef = TPair<K&, V&>;
+      using PairConstRef = TPair<const K&, const V&>;
+      using Allocator = Inner::Allocator;
+      using Base = TUnorderedMap<K, V>;
+
       static constexpr bool Ordered = true;
 
-      using TUnorderedMap<K, V>::TUnorderedMap;
+      using Base::TUnorderedMap;
 
       TOrderedMap(const TOrderedMap&);
       TOrderedMap(TOrderedMap&&) noexcept;
 
-      constexpr TOrderedMap(Disowned<TOrderedMap>&&) noexcept;
-      constexpr TOrderedMap(Abandoned<TOrderedMap>&&) noexcept;
+      //TODO defined in header due to MSVC compiler bug (02/2023)       
+      // Might be fixed in the future                                   
+      template<CT::Semantic S>
+      constexpr TOrderedMap(S&& other) noexcept requires (CT::Exact<TypeOf<S>, Self>)
+         : Base {other.template Forward<Base>()} {}
 
       TOrderedMap& operator = (const TOrderedMap&);
       TOrderedMap& operator = (TOrderedMap&&) noexcept;
+      template<CT::Semantic S>
+      TOrderedMap& operator = (S&&) noexcept requires (CT::Exact<TypeOf<S>, Self>);
 
-      using TUnorderedMap<K, V>::operator =;
-
-      NOD() TOrderedMap Clone() const;
+      TOrderedMap& operator = (const Pair&);
+      TOrderedMap& operator = (Pair&&) noexcept;
+      template<CT::Semantic S>
+      TOrderedMap& operator = (S&&) noexcept requires (CT::Pair<TypeOf<S>>);
    };
 
 

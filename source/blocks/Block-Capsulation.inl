@@ -7,6 +7,7 @@
 ///                                                                           
 #pragma once
 #include "Block.hpp"
+#include "Block-Iteration.inl"
 
 namespace Langulus::Anyness
 {
@@ -41,7 +42,7 @@ namespace Langulus::Anyness
    ///   @return true if inside the immediate reserved memory block range     
    LANGULUS(ALWAYSINLINE)
    bool Block::Owns(const void* ptr) const noexcept {
-      return ptr >= GetRaw() && ptr < GetRaw() + GetReservedSize();
+      return ptr >= mRaw && ptr < mRaw + GetReservedSize();
    }
 
    /// Check if we have jurisdiction over the contained memory                
@@ -92,7 +93,7 @@ namespace Langulus::Anyness
    ///   @return the number of contained blocks, including this one           
    inline Count Block::GetCountDeep() const noexcept {
       Count counter {1};
-      ForEach([&counter](const Block& block) noexcept {
+      Iterate<Block>([&counter](const Block& block) noexcept {
          counter += block.GetCountDeep();
       });
       return counter;
@@ -107,7 +108,7 @@ namespace Langulus::Anyness
          return mCount;
 
       Count counter {};
-      ForEach([&counter](const Block& block) noexcept {
+      Iterate<Block>([&counter](const Block& block) noexcept {
          counter += block.GetCountElementsDeep();
       });
       return counter;
@@ -277,7 +278,7 @@ namespace Langulus::Anyness
    ///   @return true if contained data can be resolved on element basis      
    LANGULUS(ALWAYSINLINE)
    constexpr bool Block::IsResolvable() const noexcept {
-      return IsSparse() && mType && mType->mResolver;
+      return mType && mType->mIsSparse && mType->mResolver;
    }
 
    /// Check if block data can be safely set to zero bytes                    
@@ -309,7 +310,7 @@ namespace Langulus::Anyness
    LANGULUS(ALWAYSINLINE)
    constexpr bool Block::CanFitState(const Block& other) const noexcept {
       return IsInvalid() || (
-            IsMissing() == other.IsMissing()
+         IsMissing() == other.IsMissing()
          && (!IsTypeConstrained() || other.IsExact(mType))
          && CanFitOrAnd(other)
          && CanFitPhase(other)
@@ -328,7 +329,7 @@ namespace Langulus::Anyness
    ///   @return the byte size                                                
    LANGULUS(ALWAYSINLINE)
    constexpr Size Block::GetByteSize() const noexcept {
-      return GetCount() * GetStride();
+      return mCount * GetStride();
    }
 
    /// Get the token of the contained type                                    
@@ -430,7 +431,7 @@ namespace Langulus::Anyness
    ///   @return a pointer to the last+1 element (never initialized)          
    LANGULUS(ALWAYSINLINE)
    constexpr const Byte* Block::GetRawEnd() const noexcept {
-      return GetRaw() + GetByteSize();
+      return mRaw + GetByteSize();
    }
 
    /// Get a pointer array - useful only for sparse containers                
@@ -460,7 +461,7 @@ namespace Langulus::Anyness
    template<CT::Data T>
    LANGULUS(ALWAYSINLINE)
    T* Block::GetRawAs() noexcept {
-      return reinterpret_cast<T*>(GetRaw());
+      return reinterpret_cast<T*>(mRaw);
    }
 
    /// Get the raw data inside the container, reinterpreted (const)           
@@ -470,7 +471,7 @@ namespace Langulus::Anyness
    template<CT::Data T>
    LANGULUS(ALWAYSINLINE)
    const T* Block::GetRawAs() const noexcept {
-      return reinterpret_cast<const T*>(GetRaw());
+      return reinterpret_cast<const T*>(mRaw);
    }
 
    /// Get the end raw data pointer inside the container                      
@@ -482,16 +483,6 @@ namespace Langulus::Anyness
    LANGULUS(ALWAYSINLINE)
    const T* Block::GetRawEndAs() const noexcept {
       return reinterpret_cast<const T*>(GetRawEnd());
-   }
-
-   /// Get a size based on reflected allocation page and count (unsafe)       
-   ///   @param count - the number of elements to request                     
-   ///   @returns both the provided byte size and reserved count              
-   LANGULUS(ALWAYSINLINE)
-   RTTI::AllocationRequest Block::RequestSize(const Count& count) const SAFETY_NOEXCEPT() {
-      LANGULUS_ASSUME(DevAssumes, IsTyped(),
-         "Requesting allocation size for an untyped container");      
-      return mType->RequestSize(count);
    }
    
    /// Make memory block static (aka size-constrained)                        

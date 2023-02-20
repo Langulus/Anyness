@@ -24,7 +24,7 @@ SCENARIO("Shared pointer manipulation", "[TPointer]") {
 		REQUIRE(pointer == pointer2);
 
 		WHEN("Create an instance") {
-			#include "CollectGarbage.inl"
+			IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
 			pointer.New(5);
 
@@ -36,7 +36,7 @@ SCENARIO("Shared pointer manipulation", "[TPointer]") {
 		}
 
 		WHEN("Create and copy an instance") {
-			#include "CollectGarbage.inl"
+			IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
 			pointer.New(5);
 			pointer2 = pointer;
@@ -53,7 +53,7 @@ SCENARIO("Shared pointer manipulation", "[TPointer]") {
 		}
 
 		WHEN("Create and move an instance") {
-			#include "CollectGarbage.inl"
+			IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
 			pointer.New(5);
 			pointer2 = ::std::move(pointer);
@@ -69,7 +69,7 @@ SCENARIO("Shared pointer manipulation", "[TPointer]") {
 		}
 
 		WHEN("Overwrite an instance") {
-			#include "CollectGarbage.inl"
+			IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
 			pointer.New(5);
 			#if LANGULUS_FEATURE(MANAGED_MEMORY)
@@ -97,7 +97,7 @@ SCENARIO("Shared pointer manipulation", "[TPointer]") {
 		Ptr<Any> pointer;
 
 		WHEN("Given an xvalue pointer created via `new` statement") {
-			#include "CollectGarbage.inl"
+			IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
 			auto raw = new Any {3};
 			const auto rawBackUp = raw;
@@ -115,7 +115,7 @@ SCENARIO("Shared pointer manipulation", "[TPointer]") {
 		}
 
 		WHEN("Given an immediate xvalue pointer created via `new` statement - a very bad practice!") {
-			#include "CollectGarbage.inl"
+			IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
 			pointer = new Any {3};
 
@@ -145,7 +145,7 @@ SCENARIO("Shared pointer manipulation", "[TPointer]") {
 		#endif
 
 		WHEN("Given an lvalue pointer") {
-			#include "CollectGarbage.inl"
+			IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
 			const auto raw = new Any {4};
 			pointer = raw;

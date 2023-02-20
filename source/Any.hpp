@@ -27,6 +27,7 @@ namespace Langulus::Anyness
       LANGULUS(DEEP) true;
       LANGULUS(UNINSERTABLE) false;
       LANGULUS_BASES(Block);
+
    public:
       static constexpr bool Ownership = true;
 
@@ -71,20 +72,13 @@ namespace Langulus::Anyness
       Any& operator = (const Any&);
       Any& operator = (Any&&) noexcept;
 
-      template<CT::Deep T>
+      template<CT::NotSemantic T>
       Any& operator = (const T&);
-      template<CT::Deep T>
+      template<CT::NotSemantic T>
       Any& operator = (T&);
-      template<CT::Deep T>
+      template<CT::NotSemantic T>
       Any& operator = (T&&) requires CT::Mutable<T>;
    
-      template<CT::CustomData T>
-      Any& operator = (const T&);
-      template<CT::CustomData T>
-      Any& operator = (T&);
-      template<CT::CustomData T>
-      Any& operator = (T&&) requires CT::Mutable<T>;
-
       template<CT::Semantic S>
       Any& operator = (S&&);
 

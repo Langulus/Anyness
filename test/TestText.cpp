@@ -16,7 +16,7 @@ CATCH_TRANSLATE_EXCEPTION(::Langulus::Exception const& ex) {
 
 SCENARIO("Text containers", "[text]") {
    GIVEN("Default text container") {
-      #include "CollectGarbage.inl"
+      IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
       Text text;
 
@@ -161,7 +161,7 @@ SCENARIO("Text containers", "[text]") {
    }
 
    GIVEN("Uninitialized text container") {
-      #include "CollectGarbage.inl"
+      IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
       Text* text;
 
@@ -260,7 +260,7 @@ SCENARIO("Text containers", "[text]") {
    }
 
    GIVEN("Reserved text container") {
-      #include "CollectGarbage.inl"
+      IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
       Text text;
       text.Reserve(500);
@@ -320,7 +320,7 @@ SCENARIO("Text containers", "[text]") {
    }
 
    GIVEN("Full text container") {
-      #include "CollectGarbage.inl"
+      IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
       Text text {"test1"};
       auto memory = text.GetRaw();
