@@ -146,12 +146,12 @@ namespace Langulus::Anyness
       NOD() decltype(auto) operator[] (const K&) const;
       NOD() decltype(auto) operator[] (const K&);
 
-      NOD() decltype(auto) GetKey(const Index&) const;
+      /*NOD() decltype(auto) GetKey(const Index&) const;
       NOD() decltype(auto) GetKey(const Index&);
       NOD() decltype(auto) GetValue(const Index&) const;
       NOD() decltype(auto) GetValue(const Index&);
       NOD() decltype(auto) GetPair(const Index&) const;
-      NOD() decltype(auto) GetPair(const Index&);
+      NOD() decltype(auto) GetPair(const Index&);*/
 
       ///                                                                     
       ///   Iteration                                                         
@@ -187,7 +187,7 @@ namespace Langulus::Anyness
       void ClearInner();
 
       template<class T>
-      static void RemoveInner(T*) noexcept;
+      static void DestroyElement(T) noexcept;
 
       template<class T>
       static void Overwrite(T&&, T&) noexcept;
@@ -201,24 +201,20 @@ namespace Langulus::Anyness
       NOD() const TAny<V>& GetValues() const noexcept;
       NOD() TAny<V>& GetValues() noexcept;
 
-      NOD() decltype(auto) GetKey(const Offset&) const noexcept;
-      NOD() decltype(auto) GetKey(const Offset&) noexcept;
-      NOD() decltype(auto) GetValue(const Offset&) const noexcept;
-      NOD() decltype(auto) GetValue(const Offset&) noexcept;
-      NOD() decltype(auto) GetPair(const Offset&) const noexcept;
-      NOD() decltype(auto) GetPair(const Offset&) noexcept;
-
       NOD() Offset GetBucket(const K&) const noexcept;
       NOD() Offset FindIndex(const K&) const;
 
    TESTING(public:)
-      NOD() constexpr auto GetRawKeys() const noexcept;
-      NOD() constexpr auto GetRawKeys() noexcept;
-      NOD() constexpr auto GetRawKeysEnd() const noexcept;
+      NOD() constexpr const K& GetRawKey(Offset) const noexcept;
+      NOD() constexpr K& GetRawKey(Offset) noexcept;
+      NOD() constexpr decltype(auto) GetKeyHandle(Offset) noexcept;
 
-      NOD() constexpr auto GetRawValues() const noexcept;
-      NOD() constexpr auto GetRawValues() noexcept;
-      NOD() constexpr auto GetRawValuesEnd() const noexcept;
+      NOD() constexpr const V& GetRawValue(Offset) const noexcept;
+      NOD() constexpr V& GetRawValue(Offset) noexcept;
+      NOD() constexpr decltype(auto) GetValueHandle(Offset) noexcept;
+
+      NOD() decltype(auto) GetPair(const Offset&) const noexcept;
+      NOD() decltype(auto) GetPair(const Offset&) noexcept;
    };
 
 

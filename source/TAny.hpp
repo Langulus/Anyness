@@ -104,6 +104,8 @@ namespace Langulus::Anyness
       NOD() auto GetRaw() noexcept;
       NOD() auto GetRawEnd() const noexcept;
       NOD() auto GetRawEnd() noexcept;
+      NOD() decltype(auto) GetHandle(Offset) SAFETY_NOEXCEPT();
+      NOD() decltype(auto) GetHandle(Offset) const SAFETY_NOEXCEPT();
 
       NOD() constexpr RTTI::AllocationRequest RequestSize(const Count&) const noexcept requires (CT::Fundamental<T> || CT::Exact<T, Byte>);
       NOD() RTTI::AllocationRequest RequestSize(const Count&) const noexcept requires (!CT::Fundamental<T> && !CT::Exact<T, Byte>);

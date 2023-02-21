@@ -576,6 +576,22 @@ namespace Langulus::Anyness
    auto TAny<T>::GetRawEnd() noexcept {
       return GetRaw() + mCount;
    }
+   
+   /// Return a handle to a sparse element, or a pointer to dense one         
+   ///   @param index - the element index                                     
+   ///   @return the handle/pointer                                           
+   TEMPLATE()
+   LANGULUS(ALWAYSINLINE)
+   decltype(auto) TAny<T>::GetHandle(Offset index) SAFETY_NOEXCEPT() {
+      return Block::GetHandle<T>(index);
+   }
+
+   /// GetHandle ignores constness                                            
+   TEMPLATE()
+   LANGULUS(ALWAYSINLINE)
+   decltype(auto) TAny<T>::GetHandle(Offset index) const SAFETY_NOEXCEPT() {
+      return Block::GetHandle<T>(index);
+   }
 
    /// Get a size based on reflected allocation page and count                
    /// This is an optimization for predictable fundamental types              

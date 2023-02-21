@@ -584,6 +584,31 @@ namespace Langulus::Anyness
       }
    }
    
+   /// Return a handle to a sparse element, or a pointer to dense one         
+   ///   @attention assumes T is exactly the contained type                   
+   ///   @tparam T - the contained type                                       
+   ///   @param index - the element index                                     
+   ///   @return the handle/pointer                                           
+   template<CT::Data T>
+   LANGULUS(ALWAYSINLINE)
+   decltype(auto) Block::GetHandle(Offset index) SAFETY_NOEXCEPT() {
+      LANGULUS_ASSUME(DevAssumes, IsExact<T>(), "Type mismatch");
+
+      if constexpr (    LANGULUS_FEATURE(MANAGED_MEMORY)
+                     && CT::Sparse<T>
+                     && CT::Allocatable<Deptr<T>>)
+         return Handle<T>(GetRawAs<T>() + index, GetEntries() + index);
+      else
+         return GetRawAs<T>() + index;
+   }
+
+   /// Get handle ignores constness                                           
+   template<CT::Data T>
+   LANGULUS(ALWAYSINLINE)
+   decltype(auto) Block::GetHandle(Offset index) const SAFETY_NOEXCEPT() {
+      return const_cast<Block*>(this)->GetHandle<T>(index);
+   }
+
    /// Select region from the memory block - unsafe and may return memory     
    /// that has not been initialized yet (for internal use only)              
    ///   @attention assumes block is typed and allocated                      

@@ -284,40 +284,36 @@ namespace Langulus::Anyness
       return mValues.GetStride();
    }
 
-   /// Get the raw key array (const)                                          
+   /// Get a raw key entry (const)                                            
+   ///   @param index - the key index                                         
+   ///   @return a constant reference to the element                          
    template<CT::Data K>
-   constexpr const K* BlockMap::GetRawKeys() const noexcept {
-      return GetKeys<K>().GetRaw();
+   constexpr const K& BlockMap::GetRawKey(Offset index) const noexcept {
+      return GetKeys<K>()[index];
    }
 
-   /// Get the raw key array                                                  
+   /// Get a raw key entry                                                    
+   ///   @param index - the key index                                         
+   ///   @return a mutable reference to the element                           
    template<CT::Data K>
-   constexpr K* BlockMap::GetRawKeys() noexcept {
-      return GetKeys<K>().GetRaw();
+   constexpr K& BlockMap::GetRawKey(Offset index) noexcept {
+      return GetKeys<K>()[index];
    }
 
-   /// Get the end of the raw key array                                       
-   template<CT::Data K>
-   constexpr const K* BlockMap::GetRawKeysEnd() const noexcept {
-      return GetRawKeys<K>() + GetReserved();
-   }
-
-   /// Get the raw value array (const)                                        
+   /// Get a raw value entry (const)                                          
+   ///   @param index - the value index                                       
+   ///   @return a constant reference to the element                          
    template<CT::Data V>
-   constexpr const V* BlockMap::GetRawValues() const noexcept {
-      return GetValues<V>().GetRaw();
+   constexpr const V& BlockMap::GetRawValue(Offset index) const noexcept {
+      return GetValues<V>()[index];
    }
 
-   /// Get the raw value array                                                
+   /// Get a raw value entry                                                  
+   ///   @param index - the value index                                       
+   ///   @return a mutable reference to the element                           
    template<CT::Data V>
-   constexpr V* BlockMap::GetRawValues() noexcept {
-      return GetValues<V>().GetRaw();
-   }
-
-   /// Get end of the raw value array                                         
-   template<CT::Data V>
-   constexpr const V* BlockMap::GetRawValuesEnd() const noexcept {
-      return GetRawValues<V>() + GetReserved();
+   constexpr V& BlockMap::GetRawValue(Offset index) noexcept {
+      return GetValues<V>()[index];
    }
 
    #ifdef LANGULUS_ENABLE_TESTING
@@ -746,10 +742,8 @@ namespace Langulus::Anyness
    Offset BlockMap::InsertInner(const Offset& start, SK&& key, SV&& value) {
       using K = TypeOf<SK>;
       using V = TypeOf<SV>;
-      auto keyswapper = SemanticMake<K>(key.Forward());
-      Inner::Allocation* keyentry {};
-      auto valswapper = SemanticMake<V>(value.Forward());
-      Inner::Allocation* valentry {};
+      auto keyswapper = SemanticMakeHandle<K>(key.Forward());
+      auto valswapper = SemanticMakeHandle<V>(value.Forward());
 
       // Get the starting index based on the key hash                   
       auto psl = GetInfo() + start;
@@ -759,18 +753,18 @@ namespace Langulus::Anyness
          const auto index = psl - GetInfo();
 
          if constexpr (CHECK_FOR_MATCH) {
-            const auto candidate = GetRawKeys<K>() + index;
-            if (*candidate == keyswapper) {
+            const auto& candidate = GetRawKey<K>(index);
+            if (candidate == keyswapper) {
                // Neat, the key already exists - just set value and go  
-               SemanticAssign(GetRawValues<V>()[index], Abandon(valswapper));
+               SemanticAssignHandle(GetValueHandle<V>(index), Abandon(valswapper));
                return index;
             }
          }
 
          if (attempts > *psl) {
             // The pair we're inserting is closer to bucket, so swap    
-            ::std::swap(GetRawKeys<K>()[index], keyswapper);
-            ::std::swap(GetRawValues<V>()[index], valswapper);
+            ::std::swap(GetKeyHandle<K>(index), keyswapper);
+            ::std::swap(GetValueHandle<V>(index), valswapper);
             ::std::swap(attempts, *psl);
          }
 
@@ -787,8 +781,8 @@ namespace Langulus::Anyness
       // Might not seem like it, but we gave a guarantee, that this is  
       // eventually reached, unless key exists and returns early        
       const auto index = psl - GetInfo();
-      SemanticNew<K>(GetRawKeys<K>() + index, Abandon(keyswapper));
-      SemanticNew<V>(GetRawValues<V>() + index, Abandon(valswapper));
+      SemanticNewHandle<K>(GetKeyHandle<K>(index), Abandon(keyswapper));
+      SemanticNewHandle<V>(GetValueHandle<V>(index), Abandon(valswapper));
 
       *psl = attempts;
       ++mValues.mCount;
@@ -1075,11 +1069,11 @@ namespace Langulus::Anyness
    Count BlockMap::RemoveKey(const K& match) {
       // Get the starting index based on the key hash                   
       const auto start = GetBucket(match);
-      auto key = GetRawKeys<K>() + start;
-      const auto keyEnd = GetRawKeysEnd<K>();
+      auto key = &GetRawKey<K>(start);
       auto info = GetInfo() + start;
+      const auto infoEnd = GetInfoEnd();
 
-      while (key != keyEnd) {
+      while (info != infoEnd) {
          if (*info && *key == match) {
             // Found it                                                 
             RemoveIndex(info - GetInfo());
@@ -1099,11 +1093,11 @@ namespace Langulus::Anyness
    template<CT::NotSemantic V>
    Count BlockMap::RemoveValue(const V& match) {
       Count removed {};
-      auto value = GetRawValues<V>();
-      const auto valueEnd = GetRawValuesEnd<V>();
+      auto value = &GetRawValue<V>(0);
       auto info = GetInfo();
+      const auto infoEnd = GetInfoEnd();
 
-      while (value != valueEnd) {
+      while (info != infoEnd) {
          if (*info && *value == match) {
             // Found it, but there may be more                          
             RemoveIndex(info - GetInfo());
@@ -1151,11 +1145,11 @@ namespace Langulus::Anyness
       if (IsEmpty())
          return false;
 
-      auto value = GetRawValues<V>();
+      auto value = &GetRawValue<V>(0);
       auto info = GetInfo();
-      const auto valueEnd = GetRawValuesEnd<V>();
+      const auto infoEnd = GetInfoEnd();
 
-      while (value != valueEnd) {
+      while (info != infoEnd) {
          if (*info && *value == match)
             return true;
 
@@ -1333,7 +1327,8 @@ namespace Langulus::Anyness
       const auto start = GetBucket(key);
       auto psl = GetInfo() + start;
       const auto pslEnd = GetInfoEnd() - 1;
-      auto candidate = GetRawKeys<K>() + start;
+      auto candidate = &GetRawKeys<K>(start);
+
       Count attempts{};
       while (*psl > attempts) {
          if (*candidate != key) {
@@ -1341,7 +1336,7 @@ namespace Langulus::Anyness
             if (psl == pslEnd) UNLIKELY() {
                // By 'to the right' I also mean looped back to start    
                psl = GetInfo();
-               candidate = GetRawKeys<K>();
+               candidate = &GetRawKey<K>(0);
             }
             else LIKELY() {
                ++psl;

@@ -327,18 +327,14 @@ namespace Langulus::Anyness
       NOD() const InfoType* GetInfoEnd() const noexcept;
 
       template<CT::Data K>
-      NOD() constexpr const K* GetRawKeys() const noexcept;
+      NOD() constexpr const K& GetRawKey(Offset) const noexcept;
       template<CT::Data K>
-      NOD() constexpr K* GetRawKeys() noexcept;
-      template<CT::Data K>
-      NOD() constexpr const K* GetRawKeysEnd() const noexcept;
+      NOD() constexpr K& GetRawKey(Offset) noexcept;
 
       template<CT::Data V>
-      NOD() constexpr const V* GetRawValues() const noexcept;
+      NOD() constexpr const V& GetRawValue(Offset) const noexcept;
       template<CT::Data V>
-      NOD() constexpr V* GetRawValues() noexcept;
-      template<CT::Data V>
-      NOD() constexpr const V* GetRawValuesEnd() const noexcept;
+      NOD() constexpr V& GetRawValue(Offset) noexcept;
 
    #ifdef LANGULUS_ENABLE_TESTING
       NOD() constexpr const void* GetRawKeysMemory() const noexcept;

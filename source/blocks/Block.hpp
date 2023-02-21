@@ -21,7 +21,7 @@ namespace Langulus::Anyness
    
    /// Predeclarations                                                        
 
-   template<CT::Data T = Byte>
+   template<CT::Sparse T, bool EMBED = true>
    struct Handle;
 
    class Any;
@@ -343,6 +343,11 @@ namespace Langulus::Anyness
       void Sort() noexcept;
 
    protected:
+      template<CT::Data>
+      NOD() decltype(auto) GetHandle(Offset) SAFETY_NOEXCEPT();
+      template<CT::Data>
+      NOD() decltype(auto) GetHandle(Offset) const SAFETY_NOEXCEPT();
+
       NOD() Block CropInner(const Offset&, const Count&) const SAFETY_NOEXCEPT();
 
       void Next() SAFETY_NOEXCEPT();
