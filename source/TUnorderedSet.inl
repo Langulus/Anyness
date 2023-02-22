@@ -317,7 +317,7 @@ namespace Langulus::Anyness
    ///   @param count - the new number of pairs                               
    TABLE_TEMPLATE()
    template<bool REUSE>
-   void TABLE()::AllocateKeys(const Count& count) {
+   void TABLE()::AllocateData(const Count& count) {
       LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(count),
          "Table reallocation count is not a power-of-two");
 
@@ -412,28 +412,21 @@ namespace Langulus::Anyness
 
       // For each old existing key...                                   
       while (oldKey != oldKeyEnd) {
-         if (!*oldInfo) {
-            ++oldKey; ++oldInfo;
-            continue;
-         }
-
-         // Rehash and check if hashes match                            
-         const Offset oldIndex = oldInfo - GetInfo();
-         const Offset newIndex = HashData(*oldKey).mHash & hashmask;
-         if (oldIndex != newIndex) {
-            // Immediately move the old pair to the swapper             
-            auto swapper = SemanticMake<ValueInner>(Abandon(*oldKey));
-            RemoveIndex(oldIndex);
-
-            if (oldIndex == InsertInner<false>(newIndex, Abandon(swapper))) {
-               // Index might still end up at its old index, make sure  
-               // we don't loop forever in that case                    
-               ++oldKey;
-               ++oldInfo;
+         if (*oldInfo) {
+            // Rehash and check if hashes match                         
+            const Offset oldIndex = oldInfo - GetInfo();
+            const Offset newIndex = HashData(*oldKey).mHash & hashmask;
+            if (oldIndex != newIndex) {
+               // Immediately move the old pair to the swapper          
+               auto swapper = SemanticMake<ValueInner>(Abandon(*oldKey));
+               RemoveIndex(oldIndex);
+               InsertInner<false>(newIndex, Abandon(swapper));
+               /*if (oldIndex == InsertInner<false>(newIndex, Abandon(swapper))) {
+                  // Index might still end up at its old index, make    
+                  // sure we don't loop forever in that case            
+                  continue;
+               }*/
             }
-
-            // Notice iterators are not incremented                     
-            continue;
          }
 
          ++oldKey;
@@ -454,9 +447,9 @@ namespace Langulus::Anyness
 
       // Allocate/Reallocate the keys and info                          
       if (IsAllocated() && GetUses() == 1)
-         AllocateKeys<true>(count);
+         AllocateData<true>(count);
       else
-         AllocateKeys<false>(count);
+         AllocateData<false>(count);
    }
 
    /// Inner insertion function                                               

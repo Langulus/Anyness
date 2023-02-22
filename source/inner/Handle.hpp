@@ -10,8 +10,10 @@
 
 namespace Langulus::A
 {
+
    struct Handle {};
-}
+
+} // namespace Langulus::A
 
 namespace Langulus::Anyness
 {
@@ -29,6 +31,7 @@ namespace Langulus::Anyness
 
       static_assert(CT::Allocatable<Deptr<T>>,
          "Handle to unallocatable T is pointless");
+      static constexpr bool Embedded = EMBED;
 
    protected: TESTING(public:)
       friend class Block;
@@ -45,18 +48,29 @@ namespace Langulus::Anyness
 
       constexpr Handle(const Handle&) noexcept = default;
       constexpr Handle(Handle&&) noexcept = default;
+      template<CT::Semantic S>
+      constexpr Handle(S&&) noexcept;
       constexpr Handle(decltype(mValue), decltype(mEntry)) SAFETY_NOEXCEPT();
 
       constexpr Handle& operator = (const Handle&) noexcept = default;
       constexpr Handle& operator = (Handle&&) noexcept = default;
+
+      NOD() T Get() const noexcept;
+      NOD() Inner::Allocation* GetEntry() const noexcept;
       
-      // Prefix operator                                                
+      void Set(T) noexcept;
+      void SetEntry(Inner::Allocation*) noexcept;
+      
+      // Prefix operators                                               
       Handle& operator ++ () noexcept requires EMBED;
+      Handle& operator -- () noexcept requires EMBED;
+      Handle& operator * () noexcept;
 
-      // Suffix operator                                                
+      // Suffix operators                                               
       NOD() Handle operator ++ (int) noexcept requires EMBED;
-
-      operator T () const noexcept;
+      NOD() Handle operator -- (int) noexcept requires EMBED;
+      NOD() Handle operator + (int) noexcept requires EMBED;
+      NOD() Handle operator - (int) noexcept requires EMBED;
 
       template<bool RESET>
       void Destroy() const;
@@ -66,8 +80,10 @@ namespace Langulus::Anyness
 
 namespace Langulus::CT
 {
+
    template<class... T>
    concept Handle = (DerivedFrom<T, A::Handle> && ...);
-}
+
+} // namespace Langulus::CT
 
 #include "Handle.inl"

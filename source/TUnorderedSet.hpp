@@ -128,7 +128,7 @@ namespace Langulus::Anyness
 
    protected:
       template<bool REUSE>
-      void AllocateKeys(const Count&);
+      void AllocateData(const Count&);
       void AllocateInner(const Count&);
       void Rehash(const Count&, const Count&);
       template<bool CHECK_FOR_MATCH, CT::Semantic S>

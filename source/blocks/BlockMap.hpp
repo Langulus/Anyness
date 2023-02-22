@@ -280,7 +280,7 @@ namespace Langulus::Anyness
       Count ForEachElement(Block&, F&&);
 
       template<bool REUSE>
-      void AllocateKeys(const Count&);
+      void AllocateData(const Count&);
       void AllocateInner(const Count&);
 
       void Rehash(const Count&, const Count&);
@@ -296,6 +296,7 @@ namespace Langulus::Anyness
       void ClearInner();
 
       NOD() Size RequestKeyAndInfoSize(Count, Offset&) const SAFETY_NOEXCEPT();
+      NOD() Size RequestValuesSize(Count) const SAFETY_NOEXCEPT();
 
       void RemoveIndex(const Offset&) noexcept;
 
@@ -330,11 +331,15 @@ namespace Langulus::Anyness
       NOD() constexpr const K& GetRawKey(Offset) const noexcept;
       template<CT::Data K>
       NOD() constexpr K& GetRawKey(Offset) noexcept;
+      template<CT::Data K>
+      NOD() constexpr decltype(auto) GetKeyHandle(Offset) noexcept;
 
       template<CT::Data V>
       NOD() constexpr const V& GetRawValue(Offset) const noexcept;
       template<CT::Data V>
       NOD() constexpr V& GetRawValue(Offset) noexcept;
+      template<CT::Data K>
+      NOD() constexpr decltype(auto) GetValueHandle(Offset) noexcept;
 
    #ifdef LANGULUS_ENABLE_TESTING
       NOD() constexpr const void* GetRawKeysMemory() const noexcept;

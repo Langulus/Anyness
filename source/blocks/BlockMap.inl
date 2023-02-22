@@ -289,7 +289,7 @@ namespace Langulus::Anyness
    ///   @return a constant reference to the element                          
    template<CT::Data K>
    constexpr const K& BlockMap::GetRawKey(Offset index) const noexcept {
-      return GetKeys<K>()[index];
+      return GetKeys<K>().GetRaw()[index];
    }
 
    /// Get a raw key entry                                                    
@@ -297,7 +297,15 @@ namespace Langulus::Anyness
    ///   @return a mutable reference to the element                           
    template<CT::Data K>
    constexpr K& BlockMap::GetRawKey(Offset index) noexcept {
-      return GetKeys<K>()[index];
+      return GetKeys<K>().GetRaw()[index];
+   }
+
+   /// Get a key handle if sparse, or a key pointer                           
+   ///   @param index - the key index                                         
+   ///   @return the handle                                                   
+   template<CT::Data K>
+   constexpr decltype(auto) BlockMap::GetKeyHandle(Offset index) noexcept {
+      return GetKeys<K>().GetHandle(index);
    }
 
    /// Get a raw value entry (const)                                          
@@ -305,7 +313,7 @@ namespace Langulus::Anyness
    ///   @return a constant reference to the element                          
    template<CT::Data V>
    constexpr const V& BlockMap::GetRawValue(Offset index) const noexcept {
-      return GetValues<V>()[index];
+      return GetValues<V>().GetRaw()[index];
    }
 
    /// Get a raw value entry                                                  
@@ -313,7 +321,15 @@ namespace Langulus::Anyness
    ///   @return a mutable reference to the element                           
    template<CT::Data V>
    constexpr V& BlockMap::GetRawValue(Offset index) noexcept {
-      return GetValues<V>()[index];
+      return GetValues<V>().GetRaw()[index];
+   }
+   
+   /// Get a value handle if sparse, or a key pointer                         
+   ///   @param index - the value index                                       
+   ///   @return the handle                                                   
+   template<CT::Data V>
+   constexpr decltype(auto) BlockMap::GetValueHandle(Offset index) noexcept {
+      return GetValues<V>().GetHandle(index);
    }
 
    #ifdef LANGULUS_ENABLE_TESTING
@@ -370,6 +386,7 @@ namespace Langulus::Anyness
    ///   @return the requested byte size                                      
    LANGULUS(ALWAYSINLINE)
    Size BlockMap::RequestKeyAndInfoSize(const Count count, Offset& infoStart) const SAFETY_NOEXCEPT() {
+      LANGULUS_ASSUME(DevAssumes, mKeys.mType, "Key type was not set");
       auto keymemory = count * mKeys.mType->mSize;
       IF_LANGULUS_MANAGED_MEMORY(
          if (mKeys.mType->mIsSparse)
@@ -377,6 +394,21 @@ namespace Langulus::Anyness
       );
       infoStart = keymemory + Alignment - (keymemory % Alignment);
       return infoStart + count + 1;
+   }
+
+   /// Request a new size of value container                                  
+   ///   @attention assumes value type has been set                           
+   ///   @param count - number of values to allocate                          
+   ///   @return the requested byte size                                      
+   LANGULUS(ALWAYSINLINE)
+   Size BlockMap::RequestValuesSize(const Count count) const SAFETY_NOEXCEPT() {
+      LANGULUS_ASSUME(DevAssumes, mValues.mType, "Value type was not set");
+      auto valueByteSize = count * mValues.mType->mSize;
+      IF_LANGULUS_MANAGED_MEMORY(
+         if (mValues.mType->mIsSparse)
+            valueByteSize *= 2;
+      );
+      return valueByteSize;
    }
 
    /// Get the info array (const)                                             
@@ -439,12 +471,12 @@ namespace Langulus::Anyness
       AllocateInner(Roof2(count < MinimalAllocation ? MinimalAllocation : count));
    }
 
-   /// Allocate or reallocate key and info array                              
+   /// Allocate or reallocate key, value, and info array                      
    ///   @attention assumes count is a power-of-two                           
    ///   @tparam REUSE - true to reallocate, false to allocate fresh          
    ///   @param count - the new number of pairs                               
    template<bool REUSE>
-   void BlockMap::AllocateKeys(const Count& count) {
+   void BlockMap::AllocateData(const Count& count) {
       LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(count),
          "Table reallocation count is not a power-of-two");
 
@@ -466,12 +498,7 @@ namespace Langulus::Anyness
 
       // Allocate new values                                            
       const Block oldValues {mValues};
-      auto valueByteSize = count * mValues.mType->mSize;
-      IF_LANGULUS_MANAGED_MEMORY(
-         if (mValues.mType->mIsSparse)
-            valueByteSize *= 2;
-      );
-
+      const auto valueByteSize = RequestValuesSize(count);
       if constexpr (REUSE)
          mValues.mEntry = Allocator::Reallocate(valueByteSize, mValues.mEntry);
       else
@@ -485,7 +512,6 @@ namespace Langulus::Anyness
       }
 
       mValues.mRaw = mValues.mEntry->GetBlockStart();
-      mValues.mReserved = count;
 
       // Precalculate the info pointer, it's costly                     
       mKeys.mRaw = mKeys.mEntry->GetBlockStart();
@@ -497,19 +523,25 @@ namespace Langulus::Anyness
       if constexpr (REUSE) {
          // Check if keys were reused                                   
          if (mKeys.mEntry == oldKeys.mEntry) {
-            // Keys were reused, but info always moves (null the rest)  
+            // Data was reused, but info always moves (null the rest)   
             ::std::memmove(mInfo, oldInfo, oldCount);
             ::std::memset(mInfo + oldCount, 0, count - oldCount);
 
             if (mValues.mEntry == oldValues.mEntry) {
                // Both keys and values remain in the same place         
                Rehash(count, oldCount);
+
+               // Make sure reserved count is changed after rehash,     
+               // because entries remain at their old places initially  
+               mKeys.mReserved = mValues.mReserved = count;
                return;
             }
          }
          else ::std::memset(mInfo, 0, count);
       }
       else ::std::memset(mInfo, 0, count);
+
+      mKeys.mReserved = mValues.mReserved = count;
 
       if (oldValues.IsEmpty()) {
          // There are no old values, the previous map was empty         
@@ -596,30 +628,32 @@ namespace Langulus::Anyness
 
       // For each old existing key...                                   
       while (oldInfo != oldInfoEnd) {
-         if (!*oldInfo) {
-            ++oldInfo;
-            continue;
-         }
+         if (*oldInfo) {
+            // Rehash and check if hashes match                         
+            const Offset oldIndex = oldInfo - GetInfo();
+            auto oldKey = GetKey(oldIndex);
+            const Offset newIndex = oldKey.GetHash().mHash & hashmask;
+            if (oldIndex != newIndex) {
+               // Move key & value to swapper                           
+               // No chance of overlap, so do it forwards               
+               keyswap.CallUnknownSemanticConstructors<false>(
+                  1, Abandon(oldKey));
+               valswap.CallUnknownSemanticConstructors<false>(
+                  1, Abandon(GetValue(oldIndex)));
+               keyswap.mCount = valswap.mCount = 1;
 
-         // Rehash and check if hashes match                            
-         const Offset oldIndex = oldInfo - GetInfo();
-         auto oldKey = GetKey(oldIndex);
-         const Offset newIndex = oldKey.GetHash().mHash & hashmask;
-         if (oldIndex != newIndex) {
-            // Move key & value to swapper                              
-            // No chance of overlap, so do it forwards                  
-            keyswap.CallUnknownSemanticConstructors<false>(1, Abandon(oldKey));
-            valswap.CallUnknownSemanticConstructors<false>(1, Abandon(GetValue(oldIndex)));
-            keyswap.mCount = valswap.mCount = 1;
-            RemoveIndex(oldIndex);
-            if (oldIndex == InsertInnerUnknown<false>(newIndex, Abandon(keyswap), Abandon(valswap))) {
-               // Index might still end up at its old index, make sure  
-               // we don't loop forever in that case                    
-               ++oldInfo;
+               RemoveIndex(oldIndex);
+
+               InsertInnerUnknown<false>(
+                  newIndex, Abandon(keyswap), Abandon(valswap)
+               );
+               /*if (oldIndex == InsertInnerUnknown<false>(
+                  newIndex, Abandon(keyswap), Abandon(valswap))) {
+                  // Index might still end up at its old index, make    
+                  // sure we don't loop forever in that case            
+                  ++oldInfo;
+               }*/
             }
-
-            // Notice iterators are not incremented                     
-            continue;
          }
 
          ++oldInfo;
@@ -642,9 +676,9 @@ namespace Langulus::Anyness
 
       // Allocate/Reallocate the keys and info                          
       if (IsAllocated() && GetUses() == 1)
-         AllocateKeys<true>(count);
+         AllocateData<true>(count);
       else
-         AllocateKeys<false>(count);
+         AllocateData<false>(count);
    }
 
    /// Get the bucket index, depending on key hash                            
@@ -763,8 +797,8 @@ namespace Langulus::Anyness
 
          if (attempts > *psl) {
             // The pair we're inserting is closer to bucket, so swap    
-            ::std::swap(GetKeyHandle<K>(index), keyswapper);
-            ::std::swap(GetValueHandle<V>(index), valswapper);
+            SwapHandles(GetKeyHandle<K>(index), keyswapper);
+            SwapHandles(GetValueHandle<V>(index), valswapper);
             ::std::swap(attempts, *psl);
          }
 
@@ -1327,7 +1361,7 @@ namespace Langulus::Anyness
       const auto start = GetBucket(key);
       auto psl = GetInfo() + start;
       const auto pslEnd = GetInfoEnd() - 1;
-      auto candidate = &GetRawKeys<K>(start);
+      auto candidate = &GetRawKey<K>(start);
 
       Count attempts{};
       while (*psl > attempts) {

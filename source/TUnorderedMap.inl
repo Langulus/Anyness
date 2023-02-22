@@ -323,7 +323,7 @@ namespace Langulus::Anyness
       return GetKeys()[index];
    }
 
-   /// Get a key handle                                                       
+   /// Get a key handle if sparse, or a key pointer                           
    ///   @param index - the key index                                         
    ///   @return the handle                                                   
    TABLE_TEMPLATE()
@@ -347,7 +347,7 @@ namespace Langulus::Anyness
       return GetValues()[index];
    }
    
-   /// Get a value handle                                                     
+   /// Get a value handle if sparse, or a key pointer                         
    ///   @param index - the value index                                       
    ///   @return the handle                                                   
    TABLE_TEMPLATE()
@@ -451,7 +451,7 @@ namespace Langulus::Anyness
    ///   @param count - the new number of pairs                               
    TABLE_TEMPLATE()
    template<bool REUSE>
-   void TABLE()::AllocateKeys(const Count& count) {
+   void TABLE()::AllocateData(const Count& count) {
       LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(count),
          "Table reallocation count is not a power-of-two");
 
@@ -488,7 +488,7 @@ namespace Langulus::Anyness
       }
 
       mValues.mRaw = mValues.mEntry->GetBlockStart();
-      mValues.mReserved = count;
+      mKeys.mReserved = mValues.mReserved = count;
 
       // Precalculate the info pointer, it's costly                     
       mKeys.mRaw = mKeys.mEntry->GetBlockStart();
@@ -566,39 +566,39 @@ namespace Langulus::Anyness
    ///   @param count - the new number of pairs                               
    TABLE_TEMPLATE()
    void TABLE()::Rehash(const Count& count, const Count& oldCount) {
-      auto oldKey = &GetRawKey(0);
+      auto oldKey = GetKeyHandle(0);
       auto oldInfo = GetInfo();
-      const auto oldKeyEnd = oldKey + oldCount;
+      const auto oldInfoEnd = oldInfo + oldCount;
       const auto hashmask = count - 1;
 
       // For each old existing key...                                   
-      while (oldKey != oldKeyEnd) {
-         if (!*oldInfo) {
-            ++oldKey; ++oldInfo;
-            continue;
-         }
+      while (oldInfo != oldInfoEnd) {
+         if (*oldInfo) {
+            // Rehash and check if hashes match                         
+            const Offset oldIndex = oldInfo - GetInfo();
+            const Offset newIndex = HashData(*oldKey).mHash & hashmask;
+            if (oldIndex != newIndex) {
+               // Immediately move the old pair to the swapper          
+               auto oldValue = GetValueHandle(oldIndex);
+               auto keyswap = SemanticMakeHandle<K>(Abandon(*oldKey));
+               auto valswap = SemanticMakeHandle<V>(Abandon(*oldValue));
 
-         // Rehash and check if hashes match                            
-         const Offset oldIndex = oldInfo - GetInfo();
-         const Offset newIndex = HashData(*oldKey).mHash & hashmask;
-         if (oldIndex != newIndex) {
-            // Immediately move the old pair to the swapper             
-            auto oldValue = &GetValue(oldIndex);
-            auto keyswap = SemanticMake<K>(Abandon(*oldKey));
-            auto valswap = SemanticMake<V>(Abandon(*oldValue));
+               RemoveIndex(oldIndex);
 
-            RemoveIndex(oldIndex);
-            if (oldIndex == InsertInner<false>(newIndex, Abandon(keyswap), Abandon(valswap))) {
-               // Index might still end up at its old index, make sure  
-               // we don't loop forever in that case                    
-               ++oldKey; ++oldInfo;
+               InsertInner<false>(
+                  newIndex, Abandon(keyswap), Abandon(valswap)
+               );
+               /*if (oldIndex == InsertInner<false>(
+                  newIndex, Abandon(keyswap), Abandon(valswap))) {
+                  // Sometimes insertion can be reinserted at same spot,
+                  // make sure we account for that corner case          
+                  continue;
+               }*/
             }
-
-            // Notice iterators are not incremented                     
-            continue;
          }
 
-         ++oldKey; ++oldInfo;
+         ++oldKey;
+         ++oldInfo;
       }
    }
 
@@ -615,9 +615,9 @@ namespace Langulus::Anyness
 
       // Allocate/Reallocate the keys and info                          
       if (IsAllocated() && GetUses() == 1)
-         AllocateKeys<true>(count);
+         AllocateData<true>(count);
       else
-         AllocateKeys<false>(count);
+         AllocateData<false>(count);
    }
 
    /// Inner insertion function                                               
@@ -649,8 +649,8 @@ namespace Langulus::Anyness
 
          if (attempts > *psl) {
             // The pair we're inserting is closer to bucket, so swap    
-            ::std::swap(GetKeyHandle(index),   keyswap);
-            ::std::swap(GetValueHandle(index), valswap);
+            SwapHandles(GetKeyHandle(index),   ::std::move(keyswap));
+            SwapHandles(GetValueHandle(index), ::std::move(valswap));
             ::std::swap(attempts, *psl);
          }
 

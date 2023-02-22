@@ -456,29 +456,27 @@ namespace Langulus::Anyness
 
       // For each old existing key...                                   
       while (oldInfo != oldInfoEnd) {
-         if (!*oldInfo) {
-            ++oldInfo;
-            continue;
-         }
+         if (*oldInfo) {
+            // Rehash and check if hashes match                         
+            const Offset oldIndex = oldInfo - GetInfo();
+            auto oldKey = GetValue(oldIndex);
+            const Offset newIndex = oldKey.GetHash().mHash & hashmask;
+            if (oldIndex != newIndex) {
+               // Move key & value to swapper                           
+               // No chance of overlap, so do it forwards               
+               keyswap.CallUnknownSemanticConstructors<false>(1, Abandon(oldKey));
+               keyswap.mCount = 1;
 
-         // Rehash and check if hashes match                            
-         const Offset oldIndex = oldInfo - GetInfo();
-         auto oldKey = GetValue(oldIndex);
-         const Offset newIndex = oldKey.GetHash().mHash & hashmask;
-         if (oldIndex != newIndex) {
-            // Move key & value to swapper                              
-            // No chance of overlap, so do it forwards                  
-            keyswap.CallUnknownSemanticConstructors<false>(1, Abandon(oldKey));
-            keyswap.mCount = 1;
-            RemoveIndex(oldIndex);
-            if (oldIndex == InsertInnerUnknown<false>(newIndex, Abandon(keyswap))) {
-               // Index might still end up at its old index, make sure  
-               // we don't loop forever in that case                    
-               ++oldInfo;
+               RemoveIndex(oldIndex);
+
+               InsertInnerUnknown<false>(newIndex, Abandon(keyswap));
+
+               /*if (oldIndex == InsertInnerUnknown<false>(newIndex, Abandon(keyswap))) {
+                  // Index might still end up at its old index, make    
+                  // sure we don't loop forever in that case            
+                  continue;
+               }*/
             }
-
-            // Notice iterators are not incremented                     
-            continue;
          }
 
          ++oldInfo;
