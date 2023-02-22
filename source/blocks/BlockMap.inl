@@ -644,15 +644,14 @@ namespace Langulus::Anyness
 
                RemoveIndex(oldIndex);
 
-               InsertInnerUnknown<false>(
-                  newIndex, Abandon(keyswap), Abandon(valswap)
-               );
-               /*if (oldIndex == InsertInnerUnknown<false>(
+               if (oldIndex == InsertInnerUnknown<false>(
                   newIndex, Abandon(keyswap), Abandon(valswap))) {
                   // Index might still end up at its old index, make    
                   // sure we don't loop forever in that case            
                   ++oldInfo;
-               }*/
+               }
+
+               continue;
             }
          }
 

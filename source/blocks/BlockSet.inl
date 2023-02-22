@@ -469,13 +469,13 @@ namespace Langulus::Anyness
 
                RemoveIndex(oldIndex);
 
-               InsertInnerUnknown<false>(newIndex, Abandon(keyswap));
-
-               /*if (oldIndex == InsertInnerUnknown<false>(newIndex, Abandon(keyswap))) {
+               if (oldIndex == InsertInnerUnknown<false>(newIndex, Abandon(keyswap))) {
                   // Index might still end up at its old index, make    
                   // sure we don't loop forever in that case            
-                  continue;
-               }*/
+                  ++oldInfo;
+               }
+
+               continue;
             }
          }
 

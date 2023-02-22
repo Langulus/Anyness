@@ -420,12 +420,15 @@ namespace Langulus::Anyness
                // Immediately move the old pair to the swapper          
                auto swapper = SemanticMake<ValueInner>(Abandon(*oldKey));
                RemoveIndex(oldIndex);
-               InsertInner<false>(newIndex, Abandon(swapper));
-               /*if (oldIndex == InsertInner<false>(newIndex, Abandon(swapper))) {
+
+               if (oldIndex == InsertInner<false>(newIndex, Abandon(swapper))) {
                   // Index might still end up at its old index, make    
                   // sure we don't loop forever in that case            
-                  continue;
-               }*/
+                  ++oldKey;
+                  ++oldInfo;
+               }
+
+               continue;
             }
          }
 

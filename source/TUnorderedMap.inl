@@ -585,15 +585,15 @@ namespace Langulus::Anyness
 
                RemoveIndex(oldIndex);
 
-               InsertInner<false>(
-                  newIndex, Abandon(keyswap), Abandon(valswap)
-               );
-               /*if (oldIndex == InsertInner<false>(
+               if (oldIndex == InsertInner<false>(
                   newIndex, Abandon(keyswap), Abandon(valswap))) {
                   // Sometimes insertion can be reinserted at same spot,
                   // make sure we account for that corner case          
-                  continue;
-               }*/
+                  ++oldKey;
+                  ++oldInfo;
+               }
+
+               continue;
             }
          }
 
