@@ -354,7 +354,7 @@ namespace Langulus::Anyness
             ::std::memset(mInfo + oldCount, 0, count - oldCount);
 
             // Data was reused, but entries always move if sparse keys  
-            IF_LANGULUS_MANAGED_MEMORY(if constexpr (CT::Sparse<K>) {
+            IF_LANGULUS_MANAGED_MEMORY(if constexpr (CT::Sparse<T>) {
                ::std::memmove(
                   mKeys.mRawSparse + count,
                   mKeys.mRawSparse + oldCount,

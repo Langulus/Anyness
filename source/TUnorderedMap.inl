@@ -312,7 +312,7 @@ namespace Langulus::Anyness
    ///   @return a constant reference to the element                          
    TABLE_TEMPLATE()
    constexpr const K& TABLE()::GetRawKey(Offset index) const noexcept {
-      return GetKeys()[index];
+      return GetKeys().GetRaw()[index];
    }
 
    /// Get a raw key entry                                                    
@@ -320,7 +320,7 @@ namespace Langulus::Anyness
    ///   @return a mutable reference to the element                           
    TABLE_TEMPLATE()
    constexpr K& TABLE()::GetRawKey(Offset index) noexcept {
-      return GetKeys()[index];
+      return GetKeys().GetRaw()[index];
    }
 
    /// Get a key handle if sparse, or a key pointer                           
@@ -336,7 +336,7 @@ namespace Langulus::Anyness
    ///   @return a constant reference to the element                          
    TABLE_TEMPLATE()
    constexpr const V& TABLE()::GetRawValue(Offset index) const noexcept {
-      return GetValues()[index];
+      return GetValues().GetRaw()[index];
    }
 
    /// Get a raw value entry                                                  
@@ -344,7 +344,7 @@ namespace Langulus::Anyness
    ///   @return a mutable reference to the element                           
    TABLE_TEMPLATE()
    constexpr V& TABLE()::GetRawValue(Offset index) noexcept {
-      return GetValues()[index];
+      return GetValues().GetRaw()[index];
    }
    
    /// Get a value handle if sparse, or a key pointer                         

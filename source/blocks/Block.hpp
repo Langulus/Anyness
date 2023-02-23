@@ -326,7 +326,9 @@ namespace Langulus::Anyness
       NOD() Block GetResolved() SAFETY_NOEXCEPT();
       NOD() const Block GetResolved() const SAFETY_NOEXCEPT();
 
+      template<Count COUNT = CountMax>
       NOD() Block GetDense();
+      template<Count COUNT = CountMax>
       NOD() const Block GetDense() const;
 
       template<CT::Data, CT::Index INDEX1, CT::Index INDEX2>

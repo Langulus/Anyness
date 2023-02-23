@@ -15,6 +15,7 @@ namespace Langulus::Anyness
 {
 
    /// Semantically construct a handle from pointer/handle                    
+   ///   @attention handles have no ownership, so no referencing happens      
    ///   @param other - the pointer/handle to use for construction            
    TEMPLATE()
    template<CT::Semantic S>
@@ -217,18 +218,12 @@ namespace Langulus::Anyness
 
             Inner::Allocator::Deallocate(GetEntry());
          }
+         else GetEntry()->Free();
       }
-      else GetEntry()->Free();
 
       if constexpr (RESET) {
-         if constexpr (Embedded) {
-            *mValue = nullptr;
-            *mEntry = nullptr;
-         }
-         else {
-            mValue = nullptr;
-            mEntry = nullptr;
-         }
+         Set(nullptr);
+         SetEntry(nullptr);
       }
    }
 

@@ -65,12 +65,11 @@ concept IsStaticallyOptimized = requires (Decay<T> a) { typename T::Key; typenam
 /// to complex, from flat to deep                                             
 TEMPLATE_TEST_CASE(
    "TOrderedMap/TUnorderedMap/OrderedMap/UnorderedMap", "[map]",
-   (TypePair<UnorderedMap, Text, int*>),
+   (TypePair<TUnorderedMap<Text, int*>, Text, int*>),
    (TypePair<TUnorderedMap<Text, int>, Text, int>),
    (TypePair<TUnorderedMap<Text, Trait>, Text, Trait>),
    (TypePair<TUnorderedMap<Text, Traits::Count>, Text, Traits::Count>),
    (TypePair<TUnorderedMap<Text, Any>, Text, Any>),
-   (TypePair<TUnorderedMap<Text, int*>, Text, int*>),
    (TypePair<TUnorderedMap<Text, Trait*>, Text, Trait*>),
    (TypePair<TUnorderedMap<Text, Traits::Count*>, Text, Traits::Count*>),
    (TypePair<TUnorderedMap<Text, Any*>, Text, Any*>),
@@ -86,6 +85,7 @@ TEMPLATE_TEST_CASE(
    (TypePair<UnorderedMap, Text, Trait>),
    (TypePair<UnorderedMap, Text, Traits::Count>),
    (TypePair<UnorderedMap, Text, Any>),
+   (TypePair<UnorderedMap, Text, int*>),
    (TypePair<UnorderedMap, Text, Trait*>),
    (TypePair<UnorderedMap, Text, Traits::Count*>),
    (TypePair<UnorderedMap, Text, Any*>),
@@ -727,7 +727,7 @@ TEMPLATE_TEST_CASE(
       }
 
       WHEN("Map is cloned") {
-         auto clone = map.Clone();
+         T clone = Langulus::Clone(map);
 
          THEN("The new map should keep the state, but refer to new data") {
             if constexpr (CT::Sparse<K> || CT::Sparse<V>)

@@ -22,15 +22,16 @@ namespace Langulus::Anyness
    ///   An element & allocation pair                                         
    ///                                                                        
    /// Used as intermediate type when managed memory is enabled, to keep      
-   /// track of pointers inserted to containers.                              
+   /// track of pointers inserted to containers. This does not have ownership 
+   /// and can be used as iterator only when EMBEDed.                         
    ///                                                                        
    template<CT::Sparse T, bool EMBED>
    struct Handle : A::Handle {
       LANGULUS(TYPED) T;
       LANGULUS_BASES(A::Handle);
 
-      static_assert(CT::Allocatable<Deptr<T>>,
-         "Handle to unallocatable T is pointless");
+      static_assert(CT::Void<Deptr<T>> || CT::Allocatable<Deptr<T>>,
+         "Handle to unallocatable non-void T is pointless");
       static constexpr bool Embedded = EMBED;
 
    protected: TESTING(public:)

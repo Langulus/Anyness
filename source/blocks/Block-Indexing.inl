@@ -380,39 +380,47 @@ namespace Langulus::Anyness
       return result;
    }
 
-   /// Get the mutable dense first element of this block                      
-   ///   @attention throws if type is incomplete                              
+   /// Get the mutable first element of this block, with pointers removed     
+   ///   @attention throws if type is incomplete and origin was reached       
    ///   @attention assumes this block is valid and has exactly one element   
-   ///   @return the mutable dense first element                              
+   ///   @tparam COUNT - how many levels of indirection to remove?            
+   ///   @return the mutable denser first element                             
+   template<Count COUNT>
    LANGULUS(ALWAYSINLINE)
    Block Block::GetDense() {
+      static_assert(COUNT > 0, "COUNT must be greater than 0");
+
       LANGULUS_ASSUME(DevAssumes, IsTyped(),
          "Block is not typed");
       LANGULUS_ASSUME(DevAssumes, mCount > 0,
          "Block is empty");
 
-      if (!mType->mOrigin) {
-         // Can't densify an incomplete type                            
-         LANGULUS_THROW(Meta, "Trying to interface incomplete data as dense");
-      }
-
+      Count counter {COUNT};
       Block copy {*this};
-      while (copy.mType->mIsSparse) {
+      while (counter && copy.mType->mIsSparse) {
+         if (!copy.mType->mDeptr) {
+            // Can't densify an incomplete type                         
+            LANGULUS_THROW(Meta, "Trying to interface incomplete data as dense");
+         }
+
          copy.mEntry = *GetEntries();
          copy.mRaw = *GetRawSparse();
          copy.mType = copy.mType->mDeptr;
+         --counter;
       }
 
       return copy;
    }
 
-   /// Get the immutable dense first element of this block                    
-   ///   @attention throws if type is incomplete                              
+   /// Get the immutable first element of this block, with pointers removed   
+   ///   @attention throws if type is incomplete and origin was reached       
    ///   @attention assumes this block is valid and has exactly one element   
-   ///   @return the mutable dense first element                              
+   ///   @tparam COUNT - how many levels of indirection to remove?            
+   ///   @return the immutable denser first element                           
+   template<Count COUNT>
    LANGULUS(ALWAYSINLINE)
    const Block Block::GetDense() const {
-      Block result {const_cast<Block*>(this)->GetDense()};
+      Block result {const_cast<Block*>(this)->template GetDense<COUNT>()};
       result.MakeConst();
       return result;
    }
@@ -592,14 +600,17 @@ namespace Langulus::Anyness
    template<CT::Data T>
    LANGULUS(ALWAYSINLINE)
    decltype(auto) Block::GetHandle(Offset index) SAFETY_NOEXCEPT() {
-      LANGULUS_ASSUME(DevAssumes, IsExact<T>(), "Type mismatch");
-
-      if constexpr (    LANGULUS_FEATURE(MANAGED_MEMORY)
-                     && CT::Sparse<T>
-                     && CT::Allocatable<Deptr<T>>)
+      if constexpr (LANGULUS_FEATURE(MANAGED_MEMORY)
+         && CT::Sparse<T>
+         && (CT::Void<Deptr<T>> || CT::Allocatable<Deptr<T>>)
+      ) {
+         LANGULUS_ASSUME(DevAssumes, IsSparse(), "Sparseness mismatch");
          return Handle<T>(GetRawAs<T>() + index, GetEntries() + index);
-      else
+      }
+      else {
+         LANGULUS_ASSUME(DevAssumes, IsExact<T>(), "Type mismatch");
          return GetRawAs<T>() + index;
+      }
    }
 
    /// Get handle ignores constness                                           
