@@ -14,18 +14,6 @@ namespace Langulus::Anyness
    class BlockMap;
 }
 
-namespace Langulus::CT
-{
-
-   /// A reflected map type is any type that inherits BlockMap, and is        
-   /// binary compatible to a BlockMap                                        
-   /// Keep in mind, that sparse types are never considered CT::Map!          
-   template<class... T>
-   concept Map = ((DerivedFrom<T, Anyness::BlockMap>
-      && sizeof(T) == sizeof(Anyness::BlockMap)) && ...);
-
-} // namespace Langulus::CT
-
 namespace Langulus::Anyness
 {
 
@@ -65,7 +53,7 @@ namespace Langulus::Anyness
       BlockMap(const BlockMap&);
       BlockMap(BlockMap&&) noexcept;
       template<CT::Semantic S>
-      constexpr BlockMap(S&&) noexcept requires (CT::Map<TypeOf<S>>);
+      constexpr BlockMap(S&&) noexcept;
 
       template<CT::Data K, CT::Data V>
       BlockMap(::std::initializer_list<TPair<K, V>>);
@@ -380,5 +368,17 @@ namespace Langulus::Anyness
    };
 
 } // namespace Langulus::Anyness
+
+namespace Langulus::CT
+{
+
+   /// A reflected map type is any type that inherits BlockMap, and is        
+   /// binary compatible to a BlockMap                                        
+   /// Keep in mind, that sparse types are never considered CT::Map!          
+   template<class... T>
+   concept Map = ((DerivedFrom<T, Anyness::BlockMap>
+      && sizeof(T) == sizeof(Anyness::BlockMap)) && ...);
+
+} // namespace Langulus::CT
 
 #include "BlockMap.inl"

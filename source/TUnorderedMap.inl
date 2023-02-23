@@ -504,8 +504,26 @@ namespace Langulus::Anyness
             ::std::memmove(mInfo, oldInfo, oldCount);
             ::std::memset(mInfo + oldCount, 0, count - oldCount);
 
+            // Data was reused, but entries always move if sparse keys  
+            IF_LANGULUS_MANAGED_MEMORY(if constexpr (CT::Sparse<K>) {
+               ::std::memmove(
+                  mKeys.mRawSparse + count,
+                  mKeys.mRawSparse + oldCount,
+                  sizeof(Pointer) * oldCount
+               );
+            });
+
             if (mValues.mEntry == oldVals.mEntry) {
                // Both keys and values remain in the same place         
+               // Data was reused, but entries always move if sparse val
+               IF_LANGULUS_MANAGED_MEMORY(if constexpr (CT::Sparse<V>) {
+                  ::std::memmove(
+                     mValues.mRawSparse + count,
+                     mValues.mRawSparse + oldCount,
+                     sizeof(Pointer) * oldCount
+                  );
+               });
+
                Rehash(count, oldCount);
                return;
             }
@@ -917,7 +935,7 @@ namespace Langulus::Anyness
    template<class T>
    void TABLE()::DestroyElement(T element) noexcept {
       if constexpr (CT::Handle<T>)
-         element.Destroy<false>();
+         element.template Destroy<false>();
       else if constexpr (CT::Sparse<T> && CT::Dense<Deptr<T>>) {
          if constexpr (CT::Destroyable<T>)
             element->~Decay<T>();

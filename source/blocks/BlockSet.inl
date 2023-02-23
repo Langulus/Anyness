@@ -381,6 +381,16 @@ namespace Langulus::Anyness
             // Keys were reused, but info always moves (null the rest)  
             ::std::memmove(mInfo, oldInfo, oldCount);
             ::std::memset(mInfo + oldCount, 0, count - oldCount);
+
+            // Data was reused, but entries always move if sparse keys  
+            IF_LANGULUS_MANAGED_MEMORY(if (mKeys.IsSparse()) {
+               ::std::memmove(
+                  mKeys.mRawSparse + count,
+                  mKeys.mRawSparse + oldCount,
+                  sizeof(Pointer) * oldCount
+               );
+            });
+
             Rehash(count, oldCount);
          }
          else ::std::memset(mInfo, 0, count);

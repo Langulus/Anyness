@@ -48,10 +48,11 @@ namespace Langulus::Anyness
    ///   @param other - the block to shallow-copy                             
    template<CT::Semantic S>
    LANGULUS(ALWAYSINLINE)
-   constexpr BlockMap::BlockMap(S&& other) noexcept requires (CT::Map<TypeOf<S>>)
+   constexpr BlockMap::BlockMap(S&& other) noexcept
       : mInfo {other.mValue.mInfo}
       , mKeys {other.mValue.mKeys}
       , mValues {other.mValue.mValues} {
+      static_assert(CT::Map<TypeOf<S>>, "S type should be a map type");
       if constexpr (S::Move && !S::Keep)
          other.mValue.mValues.mEntry = nullptr;
       else if constexpr (!S::Move && !S::Keep)
@@ -512,6 +513,7 @@ namespace Langulus::Anyness
       }
 
       mValues.mRaw = mValues.mEntry->GetBlockStart();
+      mKeys.mReserved = mValues.mReserved = count;
 
       // Precalculate the info pointer, it's costly                     
       mKeys.mRaw = mKeys.mEntry->GetBlockStart();
@@ -527,21 +529,33 @@ namespace Langulus::Anyness
             ::std::memmove(mInfo, oldInfo, oldCount);
             ::std::memset(mInfo + oldCount, 0, count - oldCount);
 
+            // Data was reused, but entries always move if sparse keys  
+            IF_LANGULUS_MANAGED_MEMORY(if (mKeys.IsSparse()) {
+               ::std::memmove(
+                  mKeys.mRawSparse + count, 
+                  mKeys.mRawSparse + oldCount, 
+                  sizeof(Pointer) * oldCount
+               );
+            });
+
             if (mValues.mEntry == oldValues.mEntry) {
                // Both keys and values remain in the same place         
-               Rehash(count, oldCount);
+               // Data was reused, but entries always move if sparse val
+               IF_LANGULUS_MANAGED_MEMORY(if (mValues.IsSparse()) {
+                  ::std::memmove(
+                     mValues.mRawSparse + count,
+                     mValues.mRawSparse + oldCount,
+                     sizeof(Pointer) * oldCount
+                  );
+               });
 
-               // Make sure reserved count is changed after rehash,     
-               // because entries remain at their old places initially  
-               mKeys.mReserved = mValues.mReserved = count;
+               Rehash(count, oldCount);
                return;
             }
          }
          else ::std::memset(mInfo, 0, count);
       }
       else ::std::memset(mInfo, 0, count);
-
-      mKeys.mReserved = mValues.mReserved = count;
 
       if (oldValues.IsEmpty()) {
          // There are no old values, the previous map was empty         

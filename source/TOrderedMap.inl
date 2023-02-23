@@ -128,7 +128,7 @@ namespace Langulus::Anyness
    LANGULUS(ALWAYSINLINE)
    Count MAP()::Insert(SK&& key, SV&& value) noexcept requires (CT::Exact<TypeOf<SK>, K> && CT::Exact<TypeOf<SV>, V>) {
       Allocate(GetCount() + 1);
-      Base::InsertInner<true>(
+      Base::template InsertInner<true>(
          Base::GetBucket(key.mValue), 
          key.Forward(), 
          value.Forward()

@@ -208,7 +208,7 @@ namespace Langulus::Anyness
                // Release all nested indirection layers                 
                Handle<Deptr<T>, false> {
                   Langulus::Copy(*Get())
-               }.Destroy<false>();
+               }.template Destroy<false>();
             }
             else if constexpr (CT::Destroyable<T>) {
                // Call the destructor                                   
@@ -317,7 +317,7 @@ namespace Langulus::Anyness
          static_assert(H::Embedded, "Handle must be embedded");
 
          // Destroy old stuff                                           
-         lhs.Destroy<false>();
+         lhs.template Destroy<false>();
 
          // Overwrite with new stuff                                    
          SemanticNewHandle<TypeOf<H>>(Forward<H>(lhs), rhs.Forward());

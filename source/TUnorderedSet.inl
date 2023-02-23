@@ -353,6 +353,15 @@ namespace Langulus::Anyness
             ::std::memmove(mInfo, oldInfo, oldCount);
             ::std::memset(mInfo + oldCount, 0, count - oldCount);
 
+            // Data was reused, but entries always move if sparse keys  
+            IF_LANGULUS_MANAGED_MEMORY(if constexpr (CT::Sparse<K>) {
+               ::std::memmove(
+                  mKeys.mRawSparse + count,
+                  mKeys.mRawSparse + oldCount,
+                  sizeof(Pointer) * oldCount
+               );
+            });
+
             // Both keys and values remain in the same place            
             Rehash(count, oldCount);
             return;
@@ -419,6 +428,7 @@ namespace Langulus::Anyness
             if (oldIndex != newIndex) {
                // Immediately move the old pair to the swapper          
                auto swapper = SemanticMake<ValueInner>(Abandon(*oldKey));
+
                RemoveIndex(oldIndex);
 
                if (oldIndex == InsertInner<false>(newIndex, Abandon(swapper))) {
