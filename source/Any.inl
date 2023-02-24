@@ -11,74 +11,58 @@
 namespace Langulus::Anyness
 {
 
-   /// Copy construct - does a shallow copy, and references                   
+   /// Copy constructor - does only a shallow copy                            
    ///   @param other - the container to shallow-copy                         
    LANGULUS(ALWAYSINLINE)
    Any::Any(const Any& other)
       : Any {Langulus::Copy(other)} {}
 
-   /// Construct by moving another container                                  
+   /// Move constructor - transfers ownership                                 
    ///   @param other - the container to move                                 
    LANGULUS(ALWAYSINLINE)
    Any::Any(Any&& other) noexcept
       : Any {Langulus::Move(other)} {}
 
-   /// Copy construct - does a shallow copy, and references                   
-   ///   @param other - the container to shallow-copy                         
-   template<CT::Deep T>
+   /// Construct by shallow-copying element/container                         
+   ///   @param other - the element/container to shallow-copy                 
+   template<CT::NotSemantic T>
    LANGULUS(ALWAYSINLINE)
    Any::Any(const T& other)
       : Any {Langulus::Copy(other)} {}
 
-   template<CT::Deep T>
+   /// Construct by shallow-copying element/container                         
+   ///   @param other - the element/container to shallow-copy                 
+   template<CT::NotSemantic T>
    LANGULUS(ALWAYSINLINE)
    Any::Any(T& other)
       : Any {Langulus::Copy(other)} {}
 
-   /// Construct by moving another container                                  
-   ///   @param other - the container to move                                 
-   template<CT::Deep T>
+   /// Construct by moving element/container                                  
+   ///   @param other - the element/container to move                         
+   template<CT::NotSemantic T>
    LANGULUS(ALWAYSINLINE)
    Any::Any(T&& other) requires CT::Mutable<T>
       : Any {Langulus::Move(other)} {}
 
+   /// Semantic constructor from deep container or custom data element        
+   ///   @tparam S - type of insertion and semantic to use (deducible)        
+   ///   @param other - the element/container to initialize with              
    template<CT::Semantic S>
    LANGULUS(ALWAYSINLINE)
-   Any::Any(S&& other) noexcept requires (CT::Deep<TypeOf<S>>) {
-      mType = other.mValue.GetType();
-      BlockTransfer<Any>(other.Forward());
-   }
-
-   /// Construct by copying/referencing value of non-block type               
-   ///   @tparam T - the data type to push (deducible)                        
-   ///   @param other - the dense value to shallow-copy                       
-   template<CT::CustomData T>
-   LANGULUS(ALWAYSINLINE)
-   Any::Any(const T& other)
-      : Any {Langulus::Copy(other)} {}
-
-   template<CT::CustomData T>
-   LANGULUS(ALWAYSINLINE)
-   Any::Any(T& other)
-      : Any {Langulus::Copy(other)} {}
-
-   /// Construct by moving a dense value of non-block type                    
-   ///   @tparam T - the data type to push (deducible)                        
-   ///   @param other - the dense value to forward and emplace	               
-   template<CT::CustomData T>
-   LANGULUS(ALWAYSINLINE)
-   Any::Any(T&& other) requires CT::Mutable<T>
-      : Any {Langulus::Move(other)} {}
-
-   /// Construct by inserting a disowned value of non-block type              
-   ///   @tparam T - the data type to push (deducible)                        
-   ///   @param other - the disowned value                                    
-   template<CT::Semantic S>
-   Any::Any(S&& other) requires (CT::CustomData<TypeOf<S>>) {
+   Any::Any(S&& other) noexcept {
       using T = TypeOf<S>;
-      SetType<T, false>();
-      AllocateFresh(RequestSize(1));
-      InsertInner(other.Forward(), 0);
+
+      if constexpr (CT::Deep<T>) {
+         // Copy/Disown/Move/Abandon/Clone a deep container             
+         BlockTransfer<Any>(other.Forward());
+      }
+      else if constexpr (CT::CustomData<T>) {
+         // Copy/Disown/Move/Abandon/Clone an element                   
+         SetType<T, false>();
+         AllocateFresh(RequestSize(1));
+         InsertInner(other.Forward(), 0);
+      }
+      else LANGULUS_ERROR("Bad semantic constructor argument");
    }
 
    /// Pack any number of elements sequentially                               
@@ -288,16 +272,6 @@ namespace Langulus::Anyness
       }
 
       return *this;
-   }
-
-   /// Clone container                                                        
-   ///   @return the cloned container                                         
-   LANGULUS(ALWAYSINLINE)
-   Any Any::Clone() const {
-      Any clone {Disown(*this)};
-      clone.AllocateFresh(RequestSize(mCount));
-      clone.CallUnknownSemanticConstructors(mCount, Langulus::Clone(*this));
-      return Abandon(clone);
    }
 
    /// Destroy all elements, but retain allocated memory if possible          

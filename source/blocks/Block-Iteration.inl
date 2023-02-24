@@ -191,38 +191,60 @@ namespace Langulus::Anyness
    }
 
    /// Execute single function from a sequence of functions for each element  
-   /// inside container                                                       
+   /// inside container, if F's argument is compatible with contained type    
+   ///   @attention assumes block is not empty                                
+   ///   @attention assumes block is typed                                    
    ///   @tparam MUTABLE - whether or not a change to container is allowed    
    ///                     while iterating                                    
    ///   @tparam REVERSE - whether to iterate in reverse                      
-   ///   @tparam F - the function types (deducible)                           
+   ///   @tparam F - the function signature (deducible)                       
    ///   @param call - the instance of the function F to call                 
    ///   @return the number of called functions                               
    template<bool MUTABLE, bool REVERSE, class F>
    LANGULUS(ALWAYSINLINE)
    Count Block::ForEachSplitter(F&& call) {
+      LANGULUS_ASSUME(DevAssumes, !IsEmpty(),
+         "Container is empty");
+      LANGULUS_ASSUME(DevAssumes, IsTyped(),
+         "Container is not typed");
+
       using A = ArgumentOf<F>;
       using R = ReturnOf<F>;
 
       static_assert(CT::Constant<A> || (CT::Mutable<A> && MUTABLE),
          "Non constant iterator for constant memory block");
 
-      return ForEachInner<R, A, REVERSE, MUTABLE>(Forward<F>(call));
+      if (mType->template CastsTo<A, true>()) {
+         // Container is binary compatible                              
+         return ForEachInner<R, A, REVERSE, MUTABLE>(Forward<F>(call));
+      }
+      else if (mType->mIsSparse && mType->mResolver) {
+         // Not binary compatible, but contained pointers are resolvable
+         TODO(); //a more advanced iteration function that resolves each element is required
+      }
+      else return 0;
    }
 
    /// Execute single function from a sequence of functions for each element  
    /// inside each sub-block in container                                     
+   ///   @attention assumes block is not empty                                
+   ///   @attention assumes block is typed                                    
    ///   @tparam SKIP - set to false, to execute F for deep elements, too     
    ///                  set to true, to execute only for non-deep elements    
    ///	@tparam MUTABLE - whether or not a change to container is allowed    
    ///                     while iterating                                    
    ///   @tparam REVERSE - whether to iterate in reverse                      
-   ///   @tparam F - the function type (deducible)                            
+   ///   @tparam F - the function signature (deducible)                       
    ///   @param call - the instance of the function F to call                 
    ///   @return the number of called functions                               
    template<bool SKIP, bool MUTABLE, bool REVERSE, class F>
    LANGULUS(ALWAYSINLINE)
    Count Block::ForEachDeepSplitter(F&& call) {
+      LANGULUS_ASSUME(DevAssumes, !IsEmpty(),
+         "Container is empty");
+      LANGULUS_ASSUME(DevAssumes, IsTyped(),
+         "Container is not typed");
+
       using A = ArgumentOf<F>;
       using R = ReturnOf<F>;
 
@@ -236,69 +258,66 @@ namespace Langulus::Anyness
       else {
          // Any other type is wrapped inside another ForEachDeep call   
          Count it = 0;
-
-         if constexpr (CT::Constant<A>) {
-            ForEachDeep<SKIP, MUTABLE>([&call, &it](const Block& block) {
+         using DA = Conditional<CT::Constant<A>, const Block&, Block&>;
+         ForEachDeep<SKIP, MUTABLE>(
+            [&call, &it](DA block) {
                it += block.ForEach(Forward<F>(call));
-            });
-         }
-         else {
-            ForEachDeep<SKIP, MUTABLE>([&call, &it](Block& block) {
-               it += block.ForEach(Forward<F>(call));
-            });
-         }
-
+            }
+         );
          return it;
       }
    }
 
-   /// Iterate and execute call for each flat element                         
+   /// Iterate and execute call for each flat element, counting each          
+   /// successfull execution                                                  
+   ///   @attention assumes A is similar to the contained type                
+   ///   @attention assumes block is not empty                                
+   ///   @attention assumes block is typed                                    
    ///   @tparam R - the function return type (deduced)                       
    ///               if R is boolean, loop will cease on returning false      
    ///   @tparam A - the function argument type (deduced)                     
-   ///               if A is incompatible with container, function wont ever  
-   ///               be called, and ForEachInner will return 0                
    ///   @tparam REVERSE - whether to iterate in reverse                      
    ///	@tparam MUTABLE - whether or not a change to container is allowed    
-   ///                     while iterating                                    
+   ///                     while iterating (iteration is slower if true)      
    ///   @param call - the function to execute for each element of type A     
    ///   @return the number of executions that occured                        
    template<class R, CT::Data A, bool REVERSE, bool MUTABLE>
    LANGULUS(ALWAYSINLINE)
-   Count Block::ForEachInner(TFunctor<R(A)>&& call) {
-      if (IsEmpty() || !mType->template CastsTo<A, true>())
-         return 0;
-       
-      UNUSED() auto initialCount = mCount;
-      constexpr bool HasBreaker = CT::Bool<R>;
+   Count Block::ForEachInner(TFunctor<R(A)>&& f) noexcept(NoexceptIterator<decltype(f)>) {
+      LANGULUS_ASSUME(DevAssumes, !IsEmpty(),
+         "Container is empty");
+      LANGULUS_ASSUME(DevAssumes, IsTyped(),
+         "Container is not typed");
+      LANGULUS_ASSUME(DevAssumes, Is<A>(),
+         "Incompatible type");
+
+      constexpr auto NOE = NoexceptIterator<decltype(f)>;
       Count index {};
-
-      while (index < mCount) {
-         if constexpr (REVERSE) {
-            if constexpr (HasBreaker) {
-               if (!call(Get<A>(mCount - index - 1)))
-                  return ++index;
+      if (mType->mIsSparse) {
+         // Iterate pointers of A                                       
+         using DA = Decay<A>*;
+         IterateInner<R, DA, REVERSE, MUTABLE>(
+            [&index, &f](DA element) noexcept(NOE) -> R {
+               ++index;
+               if constexpr (CT::Sparse<A>)
+                  return f(element);
+               else
+                  return f(*element);
             }
-            else call(Get<A>(mCount - index - 1));
-         }
-         else {
-            if constexpr (HasBreaker) {
-               if (!call(Get<A>(index)))
-                  return ++index;
+         );
+      }
+      else {
+         // Iterate references of A                                     
+         using DA = Decay<A>&;
+         IterateInner<R, DA, REVERSE, MUTABLE>(
+            [&index, &f](DA element) noexcept(NOE) -> R {
+               ++index;
+               if constexpr (CT::Sparse<A>)
+                  return f(&element);
+               else
+                  return f(element);
             }
-            else call(Get<A>(index));
-         }
-
-         if constexpr (MUTABLE) {
-            // This block might change while iterating - make sure      
-            // index compensates for changes                            
-            if (mCount < initialCount) {
-               initialCount = mCount;
-               continue;
-            }
-         }
-         
-         ++index;
+         );
       }
 
       return index;
@@ -311,7 +330,7 @@ namespace Langulus::Anyness
    ///               A must be a CT::Block type                               
    ///   @tparam REVERSE - whether to iterate in reverse                      
    ///	@tparam MUTABLE - whether or not a change to container is allowed    
-   ///                     while iterating                                    
+   ///                     while iterating (iteration is slower if true)      
    ///   @param call - the function to execute for each element of type A     
    ///   @return the number of executions that occured                        
    template<class R, CT::Data A, bool REVERSE, bool SKIP, bool MUTABLE>
@@ -381,27 +400,151 @@ namespace Langulus::Anyness
          return index;
    }
    
-   /// Low-level element iteration function (for internal use only)           
-   ///   @tparam AS - type of the element                                     
+   /// Execute a function for each element inside container                   
+   /// Lowest-level element iteration function (for internal use only)        
+   ///   @attention assumes F's argument is binary compatible with the        
+   ///              contained type                                            
+   ///   @attention assumes block is not empty                                
+   ///   @attention assumes sparseness matches                                
+   ///   @tparam MUTABLE - whether or not block's allowed to change during    
+   ///                     iteration (iteration is slower if true)            
+   ///   @tparam F - the function signature (deducible)                       
    ///   @tparam REVERSE - direction we're iterating in                       
-   ///   @param call - the constexpr noexcept function to call on each item   
-   template<class AS, bool REVERSE>
+   ///   @param call - to function to execute                                 
+   template<bool MUTABLE, class F, bool REVERSE>
    LANGULUS(ALWAYSINLINE)
-   constexpr void Block::Iterate(TFunctor<void(const AS&)>&& call) const noexcept {
-      if (!IsExact<AS>())
-         return;
+   void Block::Iterate(F&& call) noexcept(NoexceptIterator<F>) {
+      using A = ArgumentOf<F>;
+      using R = ReturnOf<F>;
 
-      if constexpr (REVERSE) {
-         auto data = GetRawAs<AS>() + mCount - 1;
-         const auto dataEnd = data - mCount;
-         while (data != dataEnd)
-            call(*(data--));
+      static_assert(CT::Constant<A> || (CT::Mutable<A> && MUTABLE),
+         "Non constant iterator for constant memory block");
+
+      LANGULUS_ASSUME(DevAssumes, !IsEmpty(),
+         "Block is empty");
+      LANGULUS_ASSUME(DevAssumes, IsSparse() == CT::Sparse<A>,
+         "Sparseness mismatch");
+      LANGULUS_ASSUME(DevAssumes, (CastsTo<A, true>()),
+         "Iteration type is binary incompatible");
+
+      IterateInner<R, A, REVERSE, MUTABLE>(Forward<F>(call));
+   }
+   
+   /// Execute a function for each element inside container (const            
+   /// Lowest-level element iteration function (for internal use only)        
+   ///   @attention assumes F's argument is binary compatible with the        
+   ///              contained type                                            
+   ///   @attention assumes block is not empty                                
+   ///   @attention assumes sparseness matches                                
+   ///   @tparam F - the function signature (deducible)                       
+   ///   @tparam REVERSE - direction we're iterating in                       
+   ///   @param call - to function to execute                                 
+   template<class F, bool REVERSE>
+   LANGULUS(ALWAYSINLINE)
+   void Block::Iterate(F&& call) const noexcept(NoexceptIterator<F>) {
+      const_cast<Block*>(this)->template
+         Iterate<false, F, REVERSE>(Forward<F>(call));
+   }
+
+   /// Execute a function for each element inside container                   
+   /// Lowest-level element iteration function (for internal use only)        
+   ///   @attention assumes AS is binary compatible with the contained type   
+   ///   @attention assumes block is not empty                                
+   ///   @attention assumes sparseness matches                                
+   ///   @tparam R - optional call return (deducible)                         
+   ///               if R is boolean, loop will cease on returning false      
+   ///   @tparam A - iterator type (deducible)                                
+   ///   @tparam REVERSE - direction we're iterating in                       
+   ///   @tparam MUTABLE - whether or not block's allowed to change during    
+   ///                     iteration (iteration is slower if true)            
+   ///   @param call - the constexpr noexcept function to call on each item   
+   template<class R, CT::Data A, bool REVERSE, bool MUTABLE>
+   LANGULUS(ALWAYSINLINE)
+   void Block::IterateInner(TFunctor<R(A)>&& f) noexcept(NoexceptIterator<decltype(f)>) {
+      LANGULUS_ASSUME(DevAssumes, !IsEmpty(),
+         "Block is empty");
+      LANGULUS_ASSUME(DevAssumes, IsSparse() == CT::Sparse<A>,
+         "Sparseness mismatch");
+      LANGULUS_ASSUME(DevAssumes, (CastsTo<A, true>()),
+         "Iteration type is binary incompatible");
+
+      // These are used as detectors for block change while iterating   
+      // Should be optimized-out when !MUTABLE                          
+      using DA = Deref<A>;
+      UNUSED() DA* initialData;
+      UNUSED() Count initialCount;
+      if constexpr (MUTABLE) {
+         initialData = GetRawAs<DA>();
+         initialCount = mCount;
       }
-      else {
-         auto data = GetRawAs<AS>();
-         const auto dataEnd = data + mCount;
-         while (data != dataEnd)
-            call(*(data++));
+
+      // Prepare for the loop                                           
+      constexpr bool HasBreaker = CT::Bool<R>;
+      auto data = GetRawAs<DA>();
+      if constexpr (REVERSE)
+         data += mCount - 1;
+
+      auto dataEnd = REVERSE ? GetRawAs<DA>() - 1 : GetRawAs<DA>() + mCount;
+      while (data != dataEnd) {
+         // Execute function                                            
+         if constexpr (HasBreaker) {
+            if (!f(*data)) {
+               // Early return, if function returns a false bool        
+               return;
+            }
+         }
+         else f(*data);
+
+         if constexpr (MUTABLE) {
+            // The block might change while iterating - make sure we    
+            // consider this. It is always assumed, that the change     
+            // happened in the last call at '*data'                     
+            if (GetRawAs<DA>() != initialData) {
+               // Memory moved, so we have to recalculate iterators     
+               // based on the new memory (can happen independently)    
+               data = GetRawAs<DA>() + (data - initialData);
+               if constexpr (REVERSE)
+                  dataEnd = GetRawAs<DA>() - 1;
+               else
+                  dataEnd = GetRawAs<DA>() + mCount;
+
+               initialData = GetRawAs<DA>();
+            }
+
+            if (mCount > initialCount) {
+               // Something was inserted at that position, so make sure 
+               // we skip the addition and extend the 'dataEnd'         
+               const auto addition = mCount - initialCount;
+               if constexpr (REVERSE)
+                  data -= addition;
+               else {
+                  data += addition;
+                  dataEnd += addition;
+               }
+
+               initialCount = mCount;
+            }
+            else if (mCount < initialCount) {
+               // Something was removed at current position, so make    
+               // sure we don't advance the iterator - it's already on  
+               // the next relevant element. There is no danger for     
+               // memory moving in this case                            
+               const auto removed = initialCount - mCount;
+               if constexpr (!REVERSE)
+                  dataEnd -= removed;
+
+               initialCount = mCount;
+
+               // Skip incrementing/decrementing                        
+               continue;
+            }
+         }
+
+         // Next element                                                
+         if constexpr (REVERSE)
+            --data;
+         else
+            ++data;
       }
    }
 

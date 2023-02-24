@@ -54,6 +54,7 @@ SCENARIO("Deep containers", "[any]") {
       WHEN("Element 0 is removed") {
          const auto refsBefore = pack.GetUses();
          pack.RemoveIndex(0);
+
          THEN("The size changes but not capacity") {
             REQUIRE(pack.GetCount() == 2);
             REQUIRE(pack.As<Any>(0) == subpack2);
@@ -71,6 +72,7 @@ SCENARIO("Deep containers", "[any]") {
       WHEN("Element 1 is removed") {
          const auto refsBefore = pack.GetUses();
          pack.RemoveIndex(1);
+
          THEN("The size changes but not capacity") {
             REQUIRE(pack.GetCount() == 2);
             REQUIRE(pack.As<Any>(0) == subpack1);
@@ -88,6 +90,7 @@ SCENARIO("Deep containers", "[any]") {
       WHEN("Element 2 is removed") {
          const auto refsBefore = pack.GetUses();
          pack.RemoveIndex(2);
+
          THEN("The size changes but not capacity") {
             REQUIRE(pack.GetCount() == 2);
             REQUIRE(pack.As<Any>(0) == subpack1);
@@ -106,6 +109,7 @@ SCENARIO("Deep containers", "[any]") {
          pack.RemoveIndex(0);
          pack.RemoveIndex(0);
          pack.RemoveIndex(0);
+
          THEN("The entire container is cleared, but memory remains in use") {
             REQUIRE(pack.IsEmpty());
             REQUIRE(pack.GetReserved() > 0);
@@ -121,6 +125,7 @@ SCENARIO("Deep containers", "[any]") {
 
       WHEN("The size is reduced, by finding and removing") {
          pack.RemoveIndex(pack.Find(subpack1));
+
          THEN("The size changes but not capacity") {
             REQUIRE(pack.GetCount() == 2);
             REQUIRE(pack.As<Any>(0) == subpack2);
@@ -133,6 +138,7 @@ SCENARIO("Deep containers", "[any]") {
 
       WHEN("Pack is cleared") {
          pack.Clear();
+
          THEN("Size goes to zero, capacity and type are unchanged") {
             REQUIRE(pack.GetCount() == 0);
             REQUIRE(pack.GetReserved() >= 3);
@@ -143,6 +149,7 @@ SCENARIO("Deep containers", "[any]") {
 
       WHEN("Pack is reset") {
          pack.Reset();
+
          THEN("Size and capacity goes to zero, type is reset to udAny") {
             REQUIRE(pack.GetCount() == 0);
             REQUIRE(pack.GetReserved() == 0);
@@ -155,7 +162,9 @@ SCENARIO("Deep containers", "[any]") {
       WHEN("Pack is shallow-copied") {
          pack.As<Any>(2).As<Any>(1).MakeOr();
          pack.As<Any>(0).MakeOr();
+
          auto copy = pack;
+
          THEN("The new pack should keep the state and data") {
             REQUIRE(copy.GetRaw() == pack.GetRaw());
             REQUIRE(copy.GetCount() == pack.GetCount());
@@ -187,12 +196,14 @@ SCENARIO("Deep containers", "[any]") {
       WHEN("Pack is cloned") {
          pack.As<Any>(2).As<Any>(1).MakeOr();
          pack.As<Any>(0).MakeOr();
-         auto clone = pack.Clone();
+
+         Any clone = Clone(pack);
+
          THEN("The new pack should keep the state and data") {
             REQUIRE(clone.GetRaw() != pack.GetRaw());
             REQUIRE(clone.GetCount() == pack.GetCount());
             REQUIRE(clone.GetReserved() >= clone.GetCount());
-            REQUIRE(clone.GetState() == pack.GetUnconstrainedState());
+            REQUIRE(clone.GetState() == pack.GetState());
             REQUIRE(clone.GetType() == pack.GetType());
             REQUIRE(clone.GetUses() == 1);
             REQUIRE(pack.GetUses() == 1);
@@ -226,6 +237,7 @@ SCENARIO("Deep containers", "[any]") {
 
       WHEN("Smart pushing different type without retainment") {
          auto result = subpack1.SmartPush<IndexBack, true, false>('?');
+
          THEN("The pack must remain unchanged") {
             REQUIRE(result == 0);
             REQUIRE(subpack1.GetCount() == 5);
@@ -235,7 +247,9 @@ SCENARIO("Deep containers", "[any]") {
       WHEN("Smart pushing with retainment") {
          Any deepened;
          deepened << int(1) << int(2) << int(3) << int(4) << int(5);
+
          auto result = deepened.SmartPush<IndexBack, false, true>('?');
+
          THEN("The pack must get deeper and contain it") {
             REQUIRE(result == 1);
             REQUIRE(deepened.IsDeep());
@@ -249,7 +263,9 @@ SCENARIO("Deep containers", "[any]") {
          Any deepened;
          deepened << int(1) << int(2) << int(3) << int(4) << int(5);
          auto pushed = Any::FromMeta(nullptr, DataState::Missing);
+
          auto result = deepened.SmartPush<IndexBack, true, true>(pushed);
+
          THEN("The pack must get deeper and contain it") {
             REQUIRE(result == 1);
             REQUIRE(deepened.IsDeep());
@@ -263,7 +279,9 @@ SCENARIO("Deep containers", "[any]") {
       WHEN("Smart pushing an empty container (but not stateless) with retainment to another empty container") {
          auto pushed = Any::FromMeta(nullptr, DataState::Missing);
          auto pushed2 = Any::FromMeta(nullptr, DataState {});
+
          auto result = pushed2.SmartPush<IndexBack, true, true>(pushed);
+
          THEN("The pack must get deeper and contain it") {
             REQUIRE(result == 1);
             REQUIRE(pushed2.GetCount() == 0);
@@ -274,6 +292,7 @@ SCENARIO("Deep containers", "[any]") {
       WHEN("Smart pushing to an empty container (concat & retain enabled)") {
          Any pushed;
          auto result = pushed.SmartPush<IndexBack, true, true>(pack);
+
          THEN("The empty container becomes the pushed container") {
             REQUIRE(pushed == pack);
             REQUIRE(result == 1);
@@ -285,6 +304,7 @@ SCENARIO("Deep containers", "[any]") {
          pushed << 666;
          pushed.MakeOr();
          auto result = pushed.SmartPush<IndexBack, true, true>('?');
+
          THEN("State should be moved to the top") {
             REQUIRE(result == 1);
             REQUIRE(pushed.IsOr());

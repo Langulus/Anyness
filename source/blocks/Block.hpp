@@ -390,18 +390,26 @@ namespace Langulus::Anyness
       Count ForEachDeepRev(F&&...) const;
       
    protected:
+      template<class F>
+      static constexpr bool NoexceptIterator = 
+         !LANGULUS_SAFE() && noexcept(Uneval<F&&>().operator() (Uneval<ArgumentOf<F>>()));
+
       template<bool MUTABLE, bool REVERSE, class F>
       Count ForEachSplitter(F&&);
       template<bool SKIP, bool MUTABLE, bool REVERSE, class F>
       Count ForEachDeepSplitter(F&&);
 
       template<class R, CT::Data A, bool REVERSE, bool MUTABLE>
-      Count ForEachInner(TFunctor<R(A)>&&);
+      Count ForEachInner(TFunctor<R(A)>&& f) noexcept(NoexceptIterator<decltype(f)>);
       template<class R, CT::Data A, bool REVERSE, bool SKIP, bool MUTABLE>
       Count ForEachDeepInner(TFunctor<R(A)>&&);
 
-      template<class AS, bool REVERSE = false>
-      constexpr void Iterate(TFunctor<void(const AS&)>&&) const noexcept;
+      template<bool MUTABLE, class F, bool REVERSE = false>
+      void Iterate(F&&) noexcept(NoexceptIterator<F>);
+      template<class F, bool REVERSE = false>
+      void Iterate(F&&) const noexcept(NoexceptIterator<F>);
+      template<class R, CT::Data A, bool REVERSE = false, bool MUTABLE = false>
+      void IterateInner(TFunctor<R(A)>&& f) noexcept(NoexceptIterator<decltype(f)>);
 
    public:
       ///                                                                     

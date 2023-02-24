@@ -92,8 +92,11 @@ namespace Langulus::Anyness
    /// Get the number of sub-blocks (this one included)                       
    ///   @return the number of contained blocks, including this one           
    inline Count Block::GetCountDeep() const noexcept {
+      if (IsEmpty() || !IsDeep())
+         return 1;
+
       Count counter {1};
-      Iterate<Block>([&counter](const Block& block) noexcept {
+      Iterate([&counter](const Block& block) noexcept {
          counter += block.GetCountDeep();
       });
       return counter;
@@ -102,13 +105,13 @@ namespace Langulus::Anyness
    /// Get the sum of initialized non-deep elements in all sub-blocks         
    ///   @return the number of contained non-deep elements                    
    inline Count Block::GetCountElementsDeep() const noexcept {
-      if (!mType)
+      if (IsEmpty() || !mType)
          return 0;
       if (!IsDeep())
          return mCount;
 
       Count counter {};
-      Iterate<Block>([&counter](const Block& block) noexcept {
+      Iterate([&counter](const Block& block) noexcept {
          counter += block.GetCountElementsDeep();
       });
       return counter;
@@ -293,7 +296,7 @@ namespace Langulus::Anyness
    ///   @return true if the memory block contains memory blocks              
    LANGULUS(ALWAYSINLINE)
    constexpr bool Block::IsDeep() const noexcept {
-      return mType && mType->mIsDeep;
+      return mType && mType->mIsDeep && mType->template CastsTo<Block, true>();
    }
    
    /// Check phase compatibility                                              

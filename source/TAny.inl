@@ -66,21 +66,22 @@ namespace Langulus::Anyness
    TAny<T>::TAny(ALT_T&& other)
       : TAny {Langulus::Move(other)} {}
 
-   /// Semantic-construction from any deep container                          
-   ///   @tparam S - the semantic to use to copy (deducible)                  
-   ///   @param other - the anyness to copy                                   
+   /// Semantic construction from any container                               
+   ///   @tparam S - the semantic and type to use (deducible)                 
+   ///   @param other - the container                                         
    TEMPLATE()
    template<CT::Semantic S>
    LANGULUS(ALWAYSINLINE)
    TAny<T>::TAny(S&& other) requires (CT::Deep<TypeOf<S>>) : TAny {} {
       using Container = TypeOf<S>;
+      mType = MetaData::Of<T>();
+
       if constexpr (!CT::Typed<Container>) {
          // Container is not statically typed, do runtime type checks   
-         if (Block::IsExact(other.mValue.GetType())) {
+         if (mType->IsExact(other.mValue.GetType())) {
             // If types are exactly the same, it is safe to directly    
             // transfer the block                                       
             BlockTransfer<TAny>(other.Forward());
-            mType = other.mValue.mType;
             return;
          }
 
@@ -88,38 +89,42 @@ namespace Langulus::Anyness
          // of this typed container's type                              
          LANGULUS_ASSERT(CastsToMeta(other.mValue.GetType()),
             Construct, "Bad semantic-construction");
+
          TODO();
       }
-      else if constexpr (CT::Exact<T, TypeOf<Container>>) {
-         // If types are exactly the same, it is safe to directly       
-         // transfer the block                                          
-         BlockTransfer<TAny>(other.Forward());
-         mType = other.mValue.mType;
-      }
-      else if constexpr (CT::DerivedFrom<T, TypeOf<Container>>) {
-         // The statically typed 'other' contains items that are base   
-         // of this container's type. Each element should be dynamic    
-         // cast to this type                                           
-         if constexpr (CT::Sparse<T> && CT::Sparse<TypeOf<Container>>) {
-            for (auto pointer : other.mValue) {
-               auto dcast = dynamic_cast<T>(&(*pointer));
-               if (dcast)
-                  (*this) << dcast;
+      else {
+         using ContainedType = TypeOf<Container>;
+
+         if constexpr (CT::Exact<T, ContainedType>) {
+            // If types are exactly the same, it is safe to directly    
+            // transfer the block                                       
+            BlockTransfer<TAny>(other.Forward());
+         }
+         else if constexpr (CT::DerivedFrom<T, ContainedType>) {
+            // The statically typed 'other' contains items that are     
+            // base of this container's type. Each element should be    
+            // dynamically cast to this type                            
+            if constexpr (CT::Sparse<T> && CT::Sparse<ContainedType>) {
+               for (auto pointer : other.mValue) {
+                  auto dcast = dynamic_cast<T>(&(*pointer));
+                  if (dcast)
+                     (*this) << dcast;
+               }
             }
+            else TODO();
          }
-         else TODO();
-      }
-      else if constexpr (CT::DerivedFrom<TypeOf<Container>, T>) {
-         // The statically typed 'other' contains items that are        
-         // derived from this container's type. Each element should be  
-         // down casted to this type                                    
-         if constexpr (CT::Sparse<T> && CT::Sparse<TypeOf<Container>>) {
-            for (auto pointer : other.mValue)
-               (*this) << static_cast<T>(&(*pointer));
+         else if constexpr (CT::DerivedFrom<ContainedType, T>) {
+            // The statically typed 'other' contains items that are     
+            // derived from this container's type. Each element should  
+            // be down casted to this type                              
+            if constexpr (CT::Sparse<T> && CT::Sparse<ContainedType>) {
+               for (auto pointer : other.mValue)
+                  (*this) << static_cast<T>(&(*pointer));
+            }
+            else TODO();
          }
-         else TODO();
+         else LANGULUS_ERROR("Bad semantic-construction");
       }
-      else LANGULUS_ERROR("Bad semantic-construction");
    }
 
    /// Construct by copying/referencing value of non-block type               
@@ -152,6 +157,7 @@ namespace Langulus::Anyness
    TEMPLATE()
    template<CT::Data HEAD, CT::Data... TAIL>
    TAny<T>::TAny(HEAD&& head, TAIL&&... tail) requires (sizeof...(TAIL) >= 1) {
+      mType = MetaData::Of<T>();
       AllocateFresh(RequestSize(sizeof...(TAIL) + 1));
 
       if constexpr (CT::Semantic<HEAD>) {
@@ -166,6 +172,7 @@ namespace Langulus::Anyness
             InsertInner(Langulus::Move(head), 0);
          else
             InsertInner(Langulus::Copy(head), 0);
+
          InsertStatic<1>(Forward<TAIL>(tail)...);
       }
    }
@@ -1596,7 +1603,12 @@ namespace Langulus::Anyness
             // we still have to call move construction for all elements 
             // if entry moved (enabling MANAGED_MEMORY feature          
             // significantly reduces the possiblity for a move)         
-            mEntry = Inner::Allocator::Reallocate(request.mByteSize, mEntry);
+            // Sparse containers have additional memory allocated for   
+            // each pointer's entry, if managed memory is enabled       
+            mEntry = Inner::Allocator::Reallocate(
+               request.mByteSize IF_LANGULUS_MANAGED_MEMORY(*(CT::Sparse<T> ? 2 : 1)),
+               mEntry
+            );
             LANGULUS_ASSERT(mEntry, Allocate, "Out of memory");
 
             if (mEntry != previousBlock.mEntry) {
@@ -1685,15 +1697,11 @@ namespace Langulus::Anyness
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
    void TAny<T>::AllocateFresh(const RTTI::AllocationRequest& request) {
-      #if LANGULUS_FEATURE(MANAGED_MEMORY)
-         // Sparse containers have additional memory allocated          
-         // for each pointer's entry                                    
-         mEntry = Inner::Allocator::Allocate(
-            request.mByteSize * (CT::Sparse<T> ? 2 : 1)
-         );
-      #else
-         mEntry = Inner::Allocator::Allocate(request.mByteSize);
-      #endif
+      // Sparse containers have additional memory allocated             
+      // for each pointer's entry                                       
+      mEntry = Inner::Allocator::Allocate(
+         request.mByteSize IF_LANGULUS_MANAGED_MEMORY(* (CT::Sparse<T> ? 2 : 1))
+      );
       LANGULUS_ASSERT(mEntry, Allocate, "Out of memory");
       mRaw = mEntry->GetBlockStart();
       mReserved = request.mElementCount;
@@ -1723,7 +1731,10 @@ namespace Langulus::Anyness
       const auto newCount = mCount + count;
       if (mEntry && newCount > mReserved) {
          // Allocate more space                                         
-         mEntry = Inner::Allocator::Reallocate(GetStride() * newCount, mEntry);
+         mEntry = Inner::Allocator::Reallocate(
+            mType->mSize * newCount IF_LANGULUS_MANAGED_MEMORY(*(CT::Sparse<T> ? 2 : 1)),
+            mEntry
+         );
          LANGULUS_ASSERT(mEntry, Allocate, "Out of memory");
          mRaw = mEntry->GetBlockStart();
          mReserved = newCount;

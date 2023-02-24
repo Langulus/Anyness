@@ -193,10 +193,10 @@ namespace Langulus::Anyness
    
    /// Clone the trait                                                        
    ///   @return the cloned trait                                             
-   LANGULUS(ALWAYSINLINE)
+   /*LANGULUS(ALWAYSINLINE)
    Trait Trait::Clone() const {
-      return Trait::From(mTraitType, Any::Clone());
-   }
+      return Trait::From(mTraitType, Langulus::Clone());
+   }*/
 
    /// Get the trait type                                                     
    ///   @return the trait type                                               

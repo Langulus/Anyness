@@ -92,7 +92,10 @@ namespace Langulus::Anyness
                sizeof(Pointer) * mCount
             );
          }
-         mEntry = Inner::Allocator::Reallocate(request.mByteSize, mEntry);
+         mEntry = Inner::Allocator::Reallocate(
+            request.mByteSize IF_LANGULUS_MANAGED_MEMORY(* (mType->mIsSparse ? 2:1)),
+            mEntry
+         );
          mReserved = request.mElementCount;
       #endif
    }
@@ -141,16 +144,12 @@ namespace Langulus::Anyness
             // if entry moved (enabling MANAGED_MEMORY feature          
             // significantly reduces the possiblity for a move)         
             // Also, make sure to free the previous mEntry if moved     
-            #if LANGULUS_FEATURE(MANAGED_MEMORY)
-               // Sparse containers have additional memory allocated    
-               // for each pointer's entry                              
-               mEntry = Inner::Allocator::Reallocate(
-                  request.mByteSize * (mType->mIsSparse ? 2 : 1), 
-                  mEntry
-               );
-            #else
-               mEntry = Inner::Allocator::Reallocate(request.mByteSize, mEntry);
-            #endif
+            // Sparse containers have additional memory allocated for   
+            // each pointer's entry, if managed memory is enabled       
+            mEntry = Inner::Allocator::Reallocate(
+               request.mByteSize IF_LANGULUS_MANAGED_MEMORY(*(mType->mIsSparse ? 2 : 1)),
+               mEntry
+            );
             LANGULUS_ASSERT(mEntry, Allocate, "Out of memory");
             mReserved = request.mElementCount;
 
@@ -197,15 +196,11 @@ namespace Langulus::Anyness
    ///   @param request - request to fulfill                                  
    LANGULUS(ALWAYSINLINE)
    void Block::AllocateFresh(const RTTI::AllocationRequest& request) {
-      #if LANGULUS_FEATURE(MANAGED_MEMORY)
-         // Sparse containers have additional memory allocated          
-         // for each pointer's entry                                    
-         mEntry = Inner::Allocator::Allocate(
-            request.mByteSize * (mType->mIsSparse ? 2 : 1)
-         );
-      #else
-         mEntry = Inner::Allocator::Allocate(request.mByteSize);
-      #endif
+      // Sparse containers have additional memory allocated             
+      // for each pointer's entry                                       
+      mEntry = Inner::Allocator::Allocate(
+         request.mByteSize IF_LANGULUS_MANAGED_MEMORY(* (mType->mIsSparse ? 2 : 1))
+      );
       LANGULUS_ASSERT(mEntry, Allocate, "Out of memory");
       mRaw = mEntry->GetBlockStart();
       mReserved = request.mElementCount;

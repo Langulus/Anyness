@@ -1318,45 +1318,85 @@ namespace Langulus::Anyness
 
       const auto mthis = const_cast<Block*>(this);
       if constexpr (CT::Sparse<T>) {
-         // We're constructing pointers                                 
-         const auto bytecount = sizeof(Pointer) * count;
-         auto lhs = mthis->GetRaw();
-         auto rhs = source.mValue.GetRaw();
-         auto lhsEntries = mthis->GetEntries();
-         auto rhsEntries = source.mValue.GetEntries();
+         // Batch-optimized semantic pointer constructions              
+         const auto byteSize = sizeof(Pointer) * count;
+         const auto entriesDst = mthis->GetEntries();
+         const auto entriesSrc = source.mValue.GetEntries();
 
-         if constexpr (S::Move) {
-            // Move/Abandon pointers                                    
-            ::std::memmove(lhs, rhs, bytecount);
-            ::std::memmove(lhsEntries, rhsEntries, bytecount);
-            if constexpr (S::Keep) {
-               // Reset pointers in source, if we're keeping it         
-               ::std::memset(rhs, 0, bytecount);
-               ::std::memset(rhsEntries, 0, bytecount);
-            }
-         }
-         else if constexpr (S::Shallow) {
-            // Copy/Disown pointers                                     
-            ::std::memcpy(lhs, rhs, bytecount);
-            if constexpr (S::Keep) {
-               // Reference each entry if keeping them                  
-               ::std::memcpy(lhsEntries, rhsEntries, bytecount);
-               const auto lhsEntriesEnd = lhsEntries + count;
-               while (lhsEntries != lhsEntriesEnd) {
-                  if (*lhsEntries)
-                     (*lhsEntries)->Keep();
-                  ++lhsEntries;
-               }
+         if constexpr (S::Shallow) {
+            // Copy/Disown/Move/Abandon                                 
+            if constexpr (S::Move) {
+               // Move/Abandon                                          
+               ::std::memmove(mthis->GetRaw(), source.mValue.GetRaw(), byteSize);
+               ::std::memmove(entriesDst, entriesSrc, byteSize);
+
+               // Reset source ownership                                
+               ::std::memset(entriesSrc, 0, byteSize);
+
+               // Reset source pointers, too, if not abandoned          
+               if constexpr (S::Keep)
+                  ::std::memset(source.mValue.GetRaw(), 0, byteSize);
             }
             else {
-               // Disowning these pointers, so don't copy entries       
-               ::std::memset(lhsEntries, 0, bytecount);
+               // Copy/Disown                                           
+               ::std::memcpy(mthis->GetRaw(), source.mValue.GetRaw(), byteSize);
+               ::std::memcpy(entriesDst, entriesSrc, byteSize);
+
+               if constexpr (S::Keep) {
+                  // Reference each entry, if not disowned              
+                  auto entry = entriesDst;
+                  const auto entryEnd = entry + count;
+                  while (entry != entryEnd) {
+                     if (*entry)
+                        (*entry)->Keep();
+                     ++entry;
+                  }
+               }
+               else {
+                  // Otherwise make sure all entries are zero           
+                  ::std::memset(entriesDst, 0, byteSize);
+               }
             }
          }
          else {
-            // Clone pointers                                           
-            TODO();
+            // Clone                                                    
+            if constexpr (CT::Sparse<Deptr<T>> || !CT::Resolvable<T>) {
+               using DT = Deptr<T>;
+
+               // If contained type is not resolvable, or its deptr     
+               // version is still a pointer, we can coalesce all       
+               // clones into a single allocation (optimization)        
+               Block clonedCoalescedSrc {mType->mDeptr};
+               clonedCoalescedSrc.AllocateFresh(clonedCoalescedSrc.RequestSize(count));
+               clonedCoalescedSrc.mCount = count;
+
+               // Clone each inner element                              
+               auto handle = GetHandle<T>(0);
+               DT* dst = clonedCoalescedSrc.template GetRawAs<DT>();
+               auto src = source.mValue.GetRaw();
+               const auto srcEnd = src + count;
+               while (src != srcEnd) {
+                  SemanticNew<DT>(dst, Langulus::Clone(**src));
+
+                  handle.Set(dst);
+                  handle.SetEntry(clonedCoalescedSrc.mEntry);
+
+                  ++dst;
+                  ++src;
+                  ++handle;
+               }
+
+               clonedCoalescedSrc.mEntry->Keep(count - 1);
+            }
+            else {
+               // Type can be resolved to objects of varying size, so   
+               // we are forced to make a separate allocation for each  
+               // element                                               
+               TODO();
+            }
          }
+
+         return;
       }
       else if constexpr (CT::POD<T>) {
          // We're constructing dense POD data                           
@@ -1369,7 +1409,7 @@ namespace Langulus::Anyness
          // Both RHS and LHS are dense and non POD                      
          // Call constructor for each element (optionally in reverse)   
          auto lhs = mthis->template GetRawAs<T>();
-         auto rhs = const_cast<Block&>(source.mValue).template GetRawAs<T>();
+         auto rhs = source.mValue.template GetRawAs<T>();
          if constexpr (REVERSE) {
             lhs += count - 1;
             rhs += count - 1;
@@ -1472,7 +1512,7 @@ namespace Langulus::Anyness
                   );
 
                   handle.Set(dst.mRaw);
-                  handle.SetEntry(dst.mEntry);
+                  handle.SetEntry(clonedCoalescedSrc.mEntry);
 
                   dst.Next();
                   src.Next();

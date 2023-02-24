@@ -43,23 +43,15 @@ namespace Langulus::Anyness
       Any(const Any&);
       Any(Any&&) noexcept;
 
-      template<CT::Deep T>
+      template<CT::NotSemantic T>
       Any(const T&);
-      template<CT::Deep T>
+      template<CT::NotSemantic T>
       Any(T&);
-      template<CT::Deep T>
+      template<CT::NotSemantic T>
       Any(T&&) requires CT::Mutable<T>;
-      template<CT::Semantic S>
-      Any(S&& other) noexcept requires (CT::Deep<TypeOf<S>>);
 
-      template<CT::CustomData T>
-      Any(const T&);
-      template<CT::CustomData T>
-      Any(T&);
-      template<CT::CustomData T>
-      Any(T&&) requires CT::Mutable<T>;
       template<CT::Semantic S>
-      Any(S&&) requires (CT::CustomData<TypeOf<S>>);
+      Any(S&&) noexcept;
 
       template<CT::Data HEAD, CT::Data... TAIL>
       Any(HEAD&&, TAIL&&...) requires (sizeof...(TAIL) >= 1);
@@ -101,7 +93,6 @@ namespace Langulus::Anyness
 
       void Clear();
       void Reset();
-      NOD() Any Clone() const;
 
       template<bool REVERSE = false, CT::Data T>
       Index Find(const T&, const Offset& = 0) const;

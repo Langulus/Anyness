@@ -227,50 +227,67 @@ namespace Langulus::Anyness
    LANGULUS(ALWAYSINLINE)
    void Block::BlockTransfer(S&& from) {
       using Container = TypeOf<S>;
-      static_assert(CT::Block<TO>, "TO must be a block type");
-      static_assert(CT::Block<Container>, "Container must be a block type");
 
-      mRaw = from.mValue.mRaw;
+      static_assert(CT::Block<TO>,
+         "TO must be a block type");
+      static_assert(CT::Block<Container>,
+         "Container must be a block type");
+
       mCount = from.mValue.mCount;
-      mReserved = from.mValue.mReserved;
 
-      if constexpr (CT::Typed<TO>) {
-         // Never touch the type of statically typed blocks             
-         // Also, combine states, because state might contain sparsity  
-         // and type-constraint                                         
-         mState += from.mValue.mState;
-      }
-      else {
-         // Container is not statically typed, so we can safely         
-         // overwrite type and state directly                           
+      if constexpr (!CT::Typed<TO>) {
+         // TO is not statically typed, so we can safely                
+         // overwrite type and state                                    
          mType = from.mValue.mType;
          mState = from.mValue.mState;
       }
-
-      if constexpr (S::Keep) {
-         // Move/Copy other                                             
-         mEntry = from.mValue.mEntry;
-
-         if constexpr (S::Move) {
-            if constexpr (!Container::Ownership) {
-               // Since we are not aware if that block is referenced    
-               // or not we reference it just in case, and we also      
-               // do not reset 'other' to avoid leaks. When using       
-               // raw Blocks, it's your responsibility to take care     
-               // of ownership.                                         
-               Keep();
-            }
-            else {
-               from.mValue.ResetMemory();
-               from.mValue.ResetState();
-            }
-         }
-         else Keep();
+      else {
+         // TO is typed, so we never touch mType, and we make sure that 
+         // we don't affect Typed state                                 
+         mState = from.mValue.mState + DataState::Typed;
       }
-      else if constexpr (S::Move) {
-         // Abandon other                                               
-         mEntry = from.mValue.mEntry;
-         from.mValue.mEntry = nullptr;
+
+      if constexpr (S::Shallow) {
+         // We're transferring via a shallow semantic                   
+         mRaw = from.mValue.mRaw;
+         mReserved = from.mValue.mReserved;
+
+         if constexpr (S::Keep) {
+            // Move/Copy other                                          
+            mEntry = from.mValue.mEntry;
+
+            if constexpr (S::Move) {
+               if constexpr (!Container::Ownership) {
+                  // Since we are not aware if that block is referenced 
+                  // or not we reference it just in case, and we also   
+                  // do not reset 'other' to avoid leaks. When using    
+                  // raw Blocks, it's your responsibility to take care  
+                  // of ownership.                                      
+                  Keep();
+               }
+               else {
+                  from.mValue.ResetMemory();
+                  from.mValue.ResetState();
+               }
+            }
+            else Keep();
+         }
+         else if constexpr (S::Move) {
+            // Abandon other                                            
+            mEntry = from.mValue.mEntry;
+            from.mValue.mEntry = nullptr;
+         }
+      }
+      else {
+         // We're cloning, so we guarantee, that data is no longer      
+         // static                                                      
+         mState -= DataState::Static;
+         AllocateFresh(RequestSize(mCount));
+
+         if constexpr (CT::Typed<Container>)
+            CallKnownSemanticConstructors<TypeOf<Container>>(mCount, from.Forward());
+         else
+            CallUnknownSemanticConstructors(mCount, from.Forward());
       }
    }
    

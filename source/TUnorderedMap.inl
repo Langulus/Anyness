@@ -474,11 +474,12 @@ namespace Langulus::Anyness
 
       // Allocate new values                                            
       const Block oldVals {mValues};
+      const auto valueByteSize = RequestValuesSize(count);
       if constexpr (REUSE)
-         mValues.mEntry = Allocator::Reallocate(count * sizeof(V), mValues.mEntry);
+         mValues.mEntry = Allocator::Reallocate(valueByteSize, mValues.mEntry);
       else {
          mValues.mType = MetaData::Of<V>();
-         mValues.mEntry = Allocator::Allocate(count * sizeof(V));
+         mValues.mEntry = Allocator::Allocate(valueByteSize);
       }
 
       if (!mValues.mEntry) {
