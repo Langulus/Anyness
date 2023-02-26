@@ -392,7 +392,7 @@ SCENARIO("Deep containers", "[any]") {
       WHEN("ForEachDeep with dense flat element (immutable, non-skipping)") {
          int it = 1;
          Count total = 0;
-         const auto iterated = pack.template ForEachDeep<false>(
+         const auto iterated = pack.template ForEachDeep<false, false>(
             [&](const int& i) {
                REQUIRE(i == it);
                ++total;
@@ -411,7 +411,7 @@ SCENARIO("Deep containers", "[any]") {
       WHEN("ForEachDeep with sparse flat element (immutable, non-skipping)") {
          int it = 1;
          Count total = 0;
-         const auto iterated = pack.template ForEachDeep<false>(
+         const auto iterated = pack.template ForEachDeep<false, false>(
             [&](const int* i) {
                REQUIRE(*i == it);
                ++total;
@@ -430,7 +430,7 @@ SCENARIO("Deep containers", "[any]") {
       WHEN("ForEachDeep with dense flat element (mutable, non-skipping)") {
          int it = 1;
          Count total = 0;
-         const auto iterated = pack.template ForEachDeep<false>(
+         const auto iterated = pack.template ForEachDeep<false, false>(
             [&](int& i) {
                REQUIRE(i == it);
                ++total;
@@ -449,7 +449,7 @@ SCENARIO("Deep containers", "[any]") {
       WHEN("ForEachDeep with sparse flat element (mutable, non-skipping)") {
          int it = 1;
          Count total = 0;
-         const auto iterated = pack.template ForEachDeep<false>(
+         const auto iterated = pack.template ForEachDeep<false, false>(
             [&](int* i) {
                REQUIRE(*i == it);
                ++total;
@@ -527,7 +527,7 @@ SCENARIO("Deep containers", "[any]") {
 
       WHEN("ForEachDeep with dense Block element (immutable, non-skipping)") {
          Count total = 0;
-         const auto iterated = pack.template ForEachDeep<false>(
+         const auto iterated = pack.template ForEachDeep<false, false>(
             [&](const Block& i) {
                (void)i;
                ++total;
@@ -542,7 +542,7 @@ SCENARIO("Deep containers", "[any]") {
 
       WHEN("ForEachDeep with sparse Block element (immutable, non-skipping)") {
          Count total = 0;
-         const auto iterated = pack.template ForEachDeep<false>(
+         const auto iterated = pack.template ForEachDeep<false, false>(
             [&](const Block* i) {
                (void)i;
                ++total;
@@ -557,7 +557,7 @@ SCENARIO("Deep containers", "[any]") {
 
       WHEN("ForEachDeep with dense Block element (mutable, non-skipping)") {
          Count total = 0;
-         const auto iterated = pack.template ForEachDeep<false>(
+         const auto iterated = pack.template ForEachDeep<false, false>(
             [&](Block& i) {
                (void)i;
                ++total;
@@ -572,7 +572,7 @@ SCENARIO("Deep containers", "[any]") {
 
       WHEN("ForEachDeep with sparse Block element (mutable, non-skipping)") {
          Count total = 0;
-         const auto iterated = pack.template ForEachDeep<false>(
+         const auto iterated = pack.template ForEachDeep<false, false>(
             [&](Block* i) {
                (void)i;
                ++total;

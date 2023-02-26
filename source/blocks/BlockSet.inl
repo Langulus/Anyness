@@ -1245,15 +1245,19 @@ namespace Langulus::Anyness
       }
       else if constexpr (CT::Constant<A>) {
          // Any other type is wrapped inside another ForEachDeep call   
-         return ForEachDeep<SKIP, MUTABLE>(part, [&call](const Block& block) {
-            block.ForEach(Forward<F>(call));
-         });
+         return ForEachDeep<REVERSE, SKIP, MUTABLE>(part,
+            [&call](const Block& block) {
+               block.template ForEach<REVERSE>(Forward<F>(call));
+            }
+         );
       }
       else {
          // Any other type is wrapped inside another ForEachDeep call   
-         return ForEachDeep<SKIP, MUTABLE>(part, [&call](Block& block) {
-            block.ForEach(Forward<F>(call));
-         });
+         return ForEachDeep<REVERSE, SKIP, MUTABLE>(part,
+            [&call](Block& block) {
+               block.template ForEach<REVERSE>(Forward<F>(call));
+            }
+         );
       }
    }
 
@@ -1331,7 +1335,7 @@ namespace Langulus::Anyness
    /// You can break the loop, by returning false inside f()                  
    ///   @param f - the function to call for each key block                   
    ///   @return the number of successful f() executions                      
-   template<bool MUTABLE, class F>
+   template<bool REVERSE, bool MUTABLE, class F>
    Count BlockSet::ForEachElement(Block& part, F&& call) {
       using A = ArgumentOf<F>;
       using R = ReturnOf<F>;
@@ -1365,17 +1369,17 @@ namespace Langulus::Anyness
    /// You can break the loop, by returning false inside f()                  
    ///   @param f - the function to call for each element block               
    ///   @return the number of successful f() executions                      
-   template<bool MUTABLE, class F>
+   template<bool REVERSE, bool MUTABLE, class F>
    LANGULUS(ALWAYSINLINE)
    Count BlockSet::ForEachElement(F&& f) {
-      return ForEachElement<MUTABLE>(mKeys, Forward<F>(f));
+      return ForEachElement<REVERSE, MUTABLE>(mKeys, Forward<F>(f));
    }
 
-   template<class F>
+   template<bool REVERSE, class F>
    LANGULUS(ALWAYSINLINE)
    Count BlockSet::ForEachElement(F&& f) const {
-      return const_cast<BlockSet&>(*this)
-         .template ForEachElement<false>(Forward<F>(f));
+      return const_cast<BlockSet&>(*this).template
+         ForEachElement<REVERSE, false>(Forward<F>(f));
    }
 
    /// Iterate keys inside the map, and perform a set of functions on them    
@@ -1383,56 +1387,34 @@ namespace Langulus::Anyness
    /// You can break the loop, by returning false inside f()                  
    ///   @param f - the functions to call for each key block                  
    ///   @return the number of successful f() executions                      
-   template<bool MUTABLE, class... F>
+   template<bool REVERSE, bool MUTABLE, class... F>
    LANGULUS(ALWAYSINLINE)
    Count BlockSet::ForEach(F&&... f) {
-      return (... || ForEachSplitter<MUTABLE, false>(mKeys, Forward<F>(f)));
+      Count result {};
+      (... || (0 != (result = ForEachSplitter<MUTABLE, REVERSE>(mKeys, Forward<F>(f)))));
+      return result;
    }
 
-   template<class... F>
+   template<bool REVERSE, class... F>
    LANGULUS(ALWAYSINLINE)
    Count BlockSet::ForEach(F&&... f) const {
-      return const_cast<BlockSet&>(*this)
-         .template ForEach<false>(Forward<F>(f)...);
+      return const_cast<BlockSet&>(*this).template
+         ForEach<REVERSE, false>(Forward<F>(f)...);
    }
 
-   template<bool MUTABLE, class... F>
-   LANGULUS(ALWAYSINLINE)
-   Count BlockSet::ForEachRev(F&&... f) {
-      return (... || ForEachSplitter<MUTABLE, true>(mKeys, Forward<F>(f)));
-   }
-
-   template<class... F>
-   LANGULUS(ALWAYSINLINE)
-   Count BlockSet::ForEachRev(F&&... f) const {
-      return const_cast<BlockSet&>(*this)
-         .template ForEachRev<false>(Forward<F>(f)...);
-   }
-
-   template<bool SKIP, bool MUTABLE, class... F>
+   template<bool REVERSE, bool SKIP, bool MUTABLE, class... F>
    LANGULUS(ALWAYSINLINE)
    Count BlockSet::ForEachDeep(F&&... f) {
-      return (... || ForEachDeepSplitter<SKIP, MUTABLE, false>(mKeys, Forward<F>(f)));
+      Count result {};
+      (... || (0 != (result = ForEachDeepSplitter<SKIP, MUTABLE, REVERSE>(mKeys, Forward<F>(f)))));
+      return result;
    }
 
-   template<bool SKIP, class... F>
+   template<bool REVERSE, bool SKIP, class... F>
    LANGULUS(ALWAYSINLINE)
    Count BlockSet::ForEachDeep(F&&... f) const {
-      return const_cast<BlockSet&>(*this)
-         .template ForEachDeep<SKIP, false>(Forward<F>(f)...);
-   }
-
-   template<bool SKIP, bool MUTABLE, class... F>
-   LANGULUS(ALWAYSINLINE)
-   Count BlockSet::ForEachDeepRev(F&&... f) {
-      return (... || ForEachDeepSplitter<SKIP, MUTABLE, true>(mKeys, Forward<F>(f)));
-   }
-
-   template<bool SKIP, class... F>
-   LANGULUS(ALWAYSINLINE)
-   Count BlockSet::ForEachDeepRev(F&&... f) const {
-      return const_cast<BlockSet&>(*this)
-         .template ForEachDeepRev<SKIP, false>(Forward<F>(f)...);
+      return const_cast<BlockSet&>(*this).template
+         ForEachDeep<REVERSE, SKIP, false>(Forward<F>(f)...);
    }
 
 

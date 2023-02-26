@@ -33,7 +33,7 @@ SCENARIO("Iterating containers", "[iteration]") {
          REQUIRE(Count(it) == dense.GetCount());
 
          it = 0;
-         dense.ForEachRev([&](int& i) {
+         dense.ForEach<true>([&](int& i) {
             REQUIRE(i == 5 - it);
             ++it;
             return true;
@@ -59,7 +59,7 @@ SCENARIO("Iterating containers", "[iteration]") {
          REQUIRE(Count(it) == sparse.GetCount());
 
          it = 0;
-         sparse.ForEachRev([&](int& i) {
+         sparse.ForEach<true>([&](int& i) {
             REQUIRE(i == 10 - it);
             ++it;
             return true;
@@ -85,7 +85,7 @@ SCENARIO("Iterating containers", "[iteration]") {
          REQUIRE(Count(it) == dense.GetCount());
 
          it = 0;
-         dense.ForEachRev([&](int* i) {
+         dense.ForEach<true>([&](int* i) {
             REQUIRE(*i == 5 - it);
             ++it;
             return true;
@@ -111,7 +111,7 @@ SCENARIO("Iterating containers", "[iteration]") {
          REQUIRE(Count(it) == sparse.GetCount());
 
          it = 0;
-         sparse.ForEachRev([&](int* i) {
+         sparse.ForEach<true>([&](int* i) {
             REQUIRE(*i == 10 - it);
             ++it;
             return true;
@@ -397,7 +397,7 @@ SCENARIO("Iterating containers", "[iteration]") {
          REQUIRE(it == dense_any.GetCount());
 
          it = 0;
-         dense_any.ForEachRev([&](float& i) {
+         dense_any.ForEach<true>([&](float& i) {
             REQUIRE(i == df + float(it));
             ++it;
             return true;
@@ -423,7 +423,7 @@ SCENARIO("Iterating containers", "[iteration]") {
          REQUIRE(it == sparse_any.GetCount());
 
          it = 0;
-         sparse_any.ForEachRev([&](float& i) {
+         sparse_any.ForEach<true>([&](float& i) {
             REQUIRE(i == sf + float(it));
             ++it;
             return true;
@@ -449,7 +449,7 @@ SCENARIO("Iterating containers", "[iteration]") {
          REQUIRE(it == dense_any.GetCount());
 
          it = 0;
-         dense_any.ForEachRev([&](float* i) {
+         dense_any.ForEach<true>([&](float* i) {
             REQUIRE(*i == df + float(it));
             ++it;
             return true;
@@ -475,7 +475,7 @@ SCENARIO("Iterating containers", "[iteration]") {
          REQUIRE(it == sparse_any.GetCount());
 
          it = 0;
-         sparse_any.ForEachRev([&](float* i) {
+         sparse_any.ForEach<true>([&](float* i) {
             REQUIRE(*i == sf + float(it));
             ++it;
             return true;
@@ -511,8 +511,7 @@ SCENARIO("Iterating containers", "[iteration]") {
       WHEN("Flat-iterated with the intent to remove specific subpacks") {
          pack.ForEach([&](Any& subcontent) {
             if (subcontent.Is<int>()) {
-               //subcontent.Reset();
-               pack.Remove(&subcontent);
+               pack.Remove(subcontent);
             }
          });
 

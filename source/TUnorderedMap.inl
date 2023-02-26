@@ -27,27 +27,82 @@ namespace Langulus::Anyness
          mValues.MakeConst();
    }
 
-   /// Manual construction via an initializer list                            
-   ///   @param initlist - the initializer list to forward                    
+   /// Create from a list of pairs                                            
+   ///   @tparam P - the pair type                                            
+   ///   @param list - list of pairs                                          
    TABLE_TEMPLATE()
-   TABLE()::TUnorderedMap(::std::initializer_list<Pair> initlist)
+   template<CT::Pair P>
+   TABLE()::TUnorderedMap(::std::initializer_list<P> initlist)
       : TUnorderedMap {} {
-      Allocate(initlist.size());
-      for (auto& it : initlist)
-         Insert(*it);
+      mKeys.mType = MetaData::Of<K>();
+      mValues.mType = MetaData::Of<V>();
+
+      AllocateFresh(
+         Roof2(
+            initlist.size() < MinimalAllocation
+               ? MinimalAllocation
+               : initlist.size()
+         )
+      );
+
+      for (auto& it : initlist) {
+         InsertUnknown(
+            Langulus::Copy(it.mKey), 
+            Langulus::Copy(it.mValue)
+         );
+      }
    }
 
    /// Shallow-copy construction                                              
    ///   @param other - the table to copy                                     
    TABLE_TEMPLATE()
    TABLE()::TUnorderedMap(const TUnorderedMap& other)
-      : UnorderedMap {other} {}
+      : TUnorderedMap {Langulus::Copy(other)} {}
 
    /// Move construction                                                      
    ///   @param other - the table to move                                     
    TABLE_TEMPLATE()
    TABLE()::TUnorderedMap(TUnorderedMap&& other) noexcept
-      : UnorderedMap {Forward<UnorderedMap>(other)} {}
+      : TUnorderedMap {Langulus::Move(other)} {}
+
+   /// Semantic constructor from any map/pair                                 
+   ///   @tparam S - semantic and type (deducible)                            
+   ///   @param other - the semantic type                                     
+   TABLE_TEMPLATE()
+   template<CT::Semantic S>
+   TABLE()::TUnorderedMap(S&& other) noexcept
+      : TUnorderedMap {} {
+      using T = TypeOf<S>;
+
+      if constexpr (CT::Map<T>) {
+         // Construct from any kind of map                              
+         if constexpr (T::Ordered) {
+            // We have to reinsert everything, because source is        
+            // ordered and uses a different bucketing approach          
+            mKeys.mType = MetaData::Of<K>();
+            mValues.mType = MetaData::Of<V>();
+
+            AllocateFresh(other.mValue.GetReserved());
+            other.mValue.ForEach([this](const T::Pair& pair) {
+               InsertUnknown(S::Nest(pair));
+            });
+         }
+         else {
+            // We can directly interface map, because it is unordered   
+            // and uses the same bucketing approach                     
+            BlockTransfer<TUnorderedMap>(other.Forward());
+         }
+      }
+      else if constexpr (CT::Pair<T>) {
+         // Construct from any kind of pair                             
+         mKeys.mType = MetaData::Of<K>();
+         mValues.mType = MetaData::Of<V>();
+
+         AllocateFresh(MinimalAllocation);
+         TODO();
+      }
+      else LANGULUS_ERROR("Unsupported semantic constructor");
+   }
 
    /// Destroys the map and all it's contents                                 
    TABLE_TEMPLATE()
@@ -431,10 +486,30 @@ namespace Langulus::Anyness
    ///   @param infoStart - [out] the offset at which info bytes start        
    ///   @return the requested byte size                                      
    TABLE_TEMPLATE()
-   Size TABLE()::RequestKeyAndInfoSize(const Count request, Offset& infoStart) noexcept {
-      const Size keymemory = request * sizeof(K);
+   LANGULUS(ALWAYSINLINE)
+   Size TABLE()::RequestKeyAndInfoSize(const Count count, Offset& infoStart) noexcept {
+      const Size keymemory = count * sizeof(K);
+      IF_LANGULUS_MANAGED_MEMORY(
+         if constexpr (CT::Sparse<K>)
+            keymemory *= 2;
+      );
       infoStart = keymemory + Alignment - (keymemory % Alignment);
-      return infoStart + request + 1;
+      return infoStart + count + 1;
+   }
+
+   /// Request a new size of value container                                  
+   ///   @attention assumes value type has been set                           
+   ///   @param count - number of values to allocate                          
+   ///   @return the requested byte size                                      
+   TABLE_TEMPLATE()
+   LANGULUS(ALWAYSINLINE)
+   Size TABLE()::RequestValuesSize(const Count count) noexcept {
+      auto valueByteSize = count * sizeof(V);
+      IF_LANGULUS_MANAGED_MEMORY(
+         if constexpr (CT::Sparse<V>)
+            valueByteSize *= 2;
+      );
+      return valueByteSize;
    }
 
    /// Reserves space for the specified number of pairs                       
@@ -443,6 +518,38 @@ namespace Langulus::Anyness
    TABLE_TEMPLATE()
    void TABLE()::Allocate(const Count& count) {
       AllocateInner(Roof2(count < MinimalAllocation ? MinimalAllocation : count));
+   }
+
+   /// Allocate a fresh set keys and values (for internal use only)           
+   ///   @attention doesn't initialize anything, but the memory state         
+   ///   @attention doesn't modify count, doesn't set info sentinel           
+   ///   @attention assumes count is a power-of-two                           
+   ///   @param count - the new number of pairs                               
+   TABLE_TEMPLATE()
+   void TABLE()::AllocateFresh(const Count& count) {
+      LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(count),
+         "Table reallocation count is not a power-of-two");
+
+      Offset infoOffset;
+      const auto keyAndInfoSize = RequestKeyAndInfoSize(count, infoOffset);
+      mKeys.mEntry = Allocator::Allocate(keyAndInfoSize);
+      LANGULUS_ASSERT(mKeys.mEntry, Allocate, "Out of memory");
+
+      const auto valueByteSize = RequestValuesSize(count);
+      mValues.mEntry = Allocator::Allocate(valueByteSize);
+
+      if (!mValues.mEntry) {
+         Allocator::Deallocate(mKeys.mEntry);
+         mKeys.mEntry = nullptr;
+         LANGULUS_THROW(Allocate, "Out of memory");
+      }
+
+      mValues.mRaw = mValues.mEntry->GetBlockStart();
+      mKeys.mReserved = mValues.mReserved = count;
+
+      // Precalculate the info pointer, it's costly                     
+      mKeys.mRaw = mKeys.mEntry->GetBlockStart();
+      mInfo = reinterpret_cast<InfoType*>(mKeys.mRaw + infoOffset);
    }
 
    /// Allocate or reallocate key and info array                              

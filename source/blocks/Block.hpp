@@ -364,30 +364,20 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Iteration                                                         
       ///                                                                     
-      template<bool MUTABLE = true, class F>
+      template<bool REVERSE = false, bool MUTABLE = true, class F>
       Count ForEachElement(F&&);
-      template<class F>
+      template<bool REVERSE = false, class F>
       Count ForEachElement(F&&) const;
       
-      template<bool MUTABLE = true, class... F>
+      template<bool REVERSE = false, bool MUTABLE = true, class... F>
       Count ForEach(F&&...);
-      template<class... F>
+      template<bool REVERSE = false, class... F>
       Count ForEach(F&&...) const;
    
-      template<bool MUTABLE = true, class... F>
-      Count ForEachRev(F&&...);
-      template<class... F>
-      Count ForEachRev(F&&...) const;
-   
-      template<bool SKIP = true, bool MUTABLE = true, class... F>
+      template<bool REVERSE = false, bool SKIP = true, bool MUTABLE = true, class... F>
       Count ForEachDeep(F&&...);
-      template<bool SKIP = true, class... F>
+      template<bool REVERSE = false, bool SKIP = true, class... F>
       Count ForEachDeep(F&&...) const;
-   
-      template<bool SKIP = true, bool MUTABLE = true, class... F>
-      Count ForEachDeepRev(F&&...);
-      template<bool SKIP = true, class... F>
-      Count ForEachDeepRev(F&&...) const;
       
    protected:
       template<class F>
@@ -501,7 +491,7 @@ namespace Langulus::Anyness
       template<class T>
       NOD() bool CompareSingleValue(const T&) const;
       NOD() bool CompareStates(const Block&) const noexcept;
-      NOD() bool CompareTypes(const Block&, RTTI::Base&) const noexcept;
+      NOD() bool CompareTypes(const Block&, RTTI::Base&) const;
       NOD() bool CallComparer(const Block&, const RTTI::Base&) const;
 
       template<bool REVERSE = false>

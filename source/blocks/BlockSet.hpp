@@ -156,30 +156,20 @@ namespace Langulus::Anyness
       NOD() ConstIterator end() const noexcept;
       NOD() ConstIterator last() const noexcept;
 
-      template<bool MUTABLE = true, class F>
+      template<bool REVERSE = false, bool MUTABLE = true, class F>
       Count ForEachElement(F&&);
-      template<class F>
+      template<bool REVERSE = false, class F>
       Count ForEachElement(F&&) const;
 
-      template<bool MUTABLE = true, class... F>
+      template<bool REVERSE = false, bool MUTABLE = true, class... F>
       Count ForEach(F&&...);
-      template<class... F>
+      template<bool REVERSE = false, class... F>
       Count ForEach(F&&...) const;
    
-      template<bool MUTABLE = true, class... F>
-      Count ForEachRev(F&&...);
-      template<class... F>
-      Count ForEachRev(F&&...) const;
-   
-      template<bool SKIP = true, bool MUTABLE = true, class... F>
+      template<bool REVERSE = false, bool SKIP = true, bool MUTABLE = true, class... F>
       Count ForEachDeep(F&&...);
-      template<bool SKIP = true, class... F>
+      template<bool REVERSE = false, bool SKIP = true, class... F>
       Count ForEachDeep(F&&...) const;
-   
-      template<bool SKIP = true, bool MUTABLE = true, class... F>
-      Count ForEachDeepRev(F&&...);
-      template<bool SKIP = true, class... F>
-      Count ForEachDeepRev(F&&...) const;
 
    protected:
       template<bool MUTABLE, bool REVERSE, class F>
@@ -190,7 +180,7 @@ namespace Langulus::Anyness
       Count ForEachInner(Block&, TFunctor<R(A)>&&);
       template<class R, CT::Data A, bool REVERSE, bool SKIP, bool MUTABLE>
       Count ForEachDeepInner(Block&, TFunctor<R(A)>&&);
-      template<bool MUTABLE, class F>
+      template<bool REVERSE, bool MUTABLE, class F>
       Count ForEachElement(Block&, F&&);
 
       template<bool REUSE>

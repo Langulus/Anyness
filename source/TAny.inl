@@ -1625,6 +1625,16 @@ namespace Langulus::Anyness
                }
                else LANGULUS_THROW(Construct, "T is not move-constructible");
             }
+            else {
+               // Memory didn't move, but reserved count changed        
+               if constexpr (CT::Sparse<T>) {
+                  // Move entry data to its new place                   
+                  ::std::memmove(
+                     mRawSparse + request.mElementCount, mRawSparse + mReserved,
+                     sizeof(Pointer) * mCount
+                  );
+               }
+            }
          }
          else {
             // Memory is used from multiple locations, and we must      
@@ -1685,7 +1695,10 @@ namespace Langulus::Anyness
          // Guaranteed that entry doesn't move                          
          const auto request = RequestSize(elements);
          if (request.mElementCount != mReserved) {
-            (void)Inner::Allocator::Reallocate(request.mByteSize, mEntry);
+            (void)Inner::Allocator::Reallocate(
+               request.mByteSize * (CT::Sparse<T> ? 2 : 1),
+               mEntry
+            );
             mReserved = request.mElementCount;
          }
       #endif

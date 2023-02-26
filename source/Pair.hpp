@@ -26,22 +26,32 @@ namespace Langulus
    {
 
       ///                                                                     
-      ///   A helper structure for pairing keys and values of any type        
+      ///   Type-erased pair                                                  
       ///                                                                     
-      struct Pair : public A::Pair {
+      struct Pair : A::Pair {
          LANGULUS_ABSTRACT() false;
 
          Any mKey;
          Any mValue;
 
       public:
-         template<class K, class V>
-         Pair(const K&, const V&);
+         constexpr Pair();
 
-         template<class K, class V>
+         template<CT::NotSemantic K, CT::NotSemantic V>
+         Pair(const K&, const V&);
+         template<CT::NotSemantic K, CT::NotSemantic V>
+         Pair(const K&, V&&);
+         template<CT::NotSemantic K, CT::NotSemantic V>
+         Pair(K&&, const V&);
+         template<CT::NotSemantic K, CT::NotSemantic V>
          Pair(K&&, V&&);
 
+         template<CT::Semantic SK, CT::Semantic SV>
+         Pair(SK&&, SV&&);
+
          NOD() Hash GetHash() const;
+         NOD() DMeta GetKeyType() const noexcept;
+         NOD() DMeta GetValueType() const noexcept;
       };
 
    } // namespace Langulus::Anyness

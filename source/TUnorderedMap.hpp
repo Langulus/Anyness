@@ -18,6 +18,7 @@ namespace Langulus::Anyness
    template<CT::Data K, CT::Data V>
    class TUnorderedMap : public UnorderedMap {
    public:
+      friend class BlockMap;
       static_assert(CT::Comparable<K>, "Can't compare keys for map");
 
       using Key = K;
@@ -41,15 +42,14 @@ namespace Langulus::Anyness
 
    public:
       constexpr TUnorderedMap();
-      TUnorderedMap(::std::initializer_list<Pair>);
       TUnorderedMap(const TUnorderedMap&);
       TUnorderedMap(TUnorderedMap&&) noexcept;
 
-      //TODO defined in header due to MSVC compiler bug (02/2023)       
-      // Might be fixed in the future                                   
+      template<CT::Pair P>
+      TUnorderedMap(::std::initializer_list<P>);
+
       template<CT::Semantic S>
-      constexpr TUnorderedMap(S&& other) noexcept requires (CT::Exact<TypeOf<S>, Self>)
-         : UnorderedMap {other.template Forward<BlockMap>()} {}
+      TUnorderedMap(S&&) noexcept;
 
       ~TUnorderedMap();
 
@@ -146,13 +146,6 @@ namespace Langulus::Anyness
       NOD() decltype(auto) operator[] (const K&) const;
       NOD() decltype(auto) operator[] (const K&);
 
-      /*NOD() decltype(auto) GetKey(const Index&) const;
-      NOD() decltype(auto) GetKey(const Index&);
-      NOD() decltype(auto) GetValue(const Index&) const;
-      NOD() decltype(auto) GetValue(const Index&);
-      NOD() decltype(auto) GetPair(const Index&) const;
-      NOD() decltype(auto) GetPair(const Index&);*/
-
       ///                                                                     
       ///   Iteration                                                         
       ///                                                                     
@@ -176,6 +169,7 @@ namespace Langulus::Anyness
       Count ForEachValueElement(TFunctor<void(Block&)>&&);
 
    protected:
+      void AllocateFresh(const Count&);
       template<bool REUSE>
       void AllocateData(const Count&);
       void AllocateInner(const Count&);
@@ -193,6 +187,7 @@ namespace Langulus::Anyness
       static void Overwrite(T&&, T&) noexcept;
 
       NOD() static Size RequestKeyAndInfoSize(Count, Offset&) noexcept;
+      NOD() static Size RequestValuesSize(Count) noexcept;
 
       void RemoveIndex(const Offset&) noexcept;
 

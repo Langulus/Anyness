@@ -66,8 +66,8 @@ T CreateElement(const ALT_T& e) {
 /// The main test for Any/TAny containers, with all kinds of items, from      
 /// sparse to dense, from trivial to complex, from flat to deep               
 TEMPLATE_TEST_CASE("Any/TAny", "[any]", 
+   (TypePair<Any, int*>),
    (TypePair<TAny<int>, int>),
-   (TypePair<Traits::Name, Text>),
    (TypePair<TAny<Trait>, Trait>),
    (TypePair<TAny<Traits::Count>, Traits::Count>),
    (TypePair<TAny<Any>, Any>),
@@ -85,12 +85,12 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
    (TypePair<Any, Any>),
    (TypePair<Any, Text>),
    //(TypePair<Any, Block>),
-   (TypePair<Any, int*>),
    (TypePair<Any, Trait*>),
    (TypePair<Any, Traits::Count*>),
    (TypePair<Any, Any*>),
-   (TypePair<Any, Text*>)
+   (TypePair<Any, Text*>),
    //(TypePair<Any, Block*>),
+   (TypePair<Traits::Name, Text>)
 ) {
    using T = typename TestType::Container;
    using E = typename TestType::Element;
@@ -2145,20 +2145,21 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
             REQUIRE(clone.GetType() == pack.GetType());
             REQUIRE(clone.GetUses() == 1);
             REQUIRE(pack.GetUses() == 1);
-            if constexpr (CT::Sparse<E>) {
-               for (unsigned i = 0; i < 5; ++i)
-                  REQUIRE(pack[i] != clone[i]);
-            }
-            else {
-               for (unsigned i = 0; i < 5; ++i)
-                  REQUIRE(pack[i] == clone[i]);
-            }
 
-            for (unsigned i = 0; i < 5; ++i)
-               REQUIRE(DenseCast(pack[i]) == DenseCast(darray1[i]));
-            for (unsigned i = 0; i < 5; ++i)
-               REQUIRE(DenseCast(clone[i]) == DenseCast(darray1[i]));
-
+            for (unsigned i = 0; i < 5; ++i) {
+               if constexpr (CT::Dense<E>) {
+                  REQUIRE(pack[i] == darray1[i]);
+                  REQUIRE(clone[i] == darray1[i]);
+               }
+               else if constexpr (CT::Sparse<E>) {
+                  REQUIRE(pack[i] == darray1[i]);
+                  REQUIRE(clone[i] != darray1[i]);
+                  if constexpr (CT::Typed<T>)
+                     REQUIRE(DenseCast(clone[i]) == DenseCast(darray1[i]));
+                  else
+                     REQUIRE(DenseCast(clone[i].Get<E>()) == DenseCast(darray1[i]));
+               }
+            }
          }
       }
 
@@ -2403,7 +2404,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
       WHEN("ForEach flat dense element (immutable)") {
          int it = 0;
-         const_cast<const T&>(pack).ForEach(
+         const auto foreachit = const_cast<const T&>(pack).ForEach(
             [&](const int& i) {
                REQUIRE(i == it + 1);
                ++it;
@@ -2420,13 +2421,17 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
          );
 
          THEN("The number of iterated elements should be correct") {
-            REQUIRE(static_cast<unsigned>(it) == pack.GetCount());
+            REQUIRE(static_cast<unsigned>(it) == foreachit);
+            if constexpr (CT::Same<E, Text>)
+               REQUIRE(it == 0);
+            else
+               REQUIRE(static_cast<unsigned>(it) == pack.GetCount());
          }
       }
 
       WHEN("ForEach flat dense element (mutable)") {
          int it = 0;
-         const_cast<T&>(pack).ForEach(
+         const auto foreachit = const_cast<T&>(pack).ForEach(
             [&](int& i) {
                REQUIRE(i == it + 1);
                ++it;
@@ -2443,13 +2448,17 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
          );
 
          THEN("The number of iterated elements should be correct") {
-            REQUIRE(static_cast<unsigned>(it) == pack.GetCount());
+            REQUIRE(static_cast<unsigned>(it) == foreachit);
+            if constexpr (CT::Same<E, Text>)
+               REQUIRE(it == 0);
+            else
+               REQUIRE(static_cast<unsigned>(it) == pack.GetCount());
          }
       }
 
       WHEN("ForEach flat sparse element (immutable)") {
          int it = 0;
-         const_cast<const T&>(pack).ForEach(
+         const auto foreachit = const_cast<const T&>(pack).ForEach(
             [&](const int* i) {
                REQUIRE(*i == it + 1);
                ++it;
@@ -2466,13 +2475,17 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
          );
 
          THEN("The number of iterated elements should be correct") {
-            REQUIRE(static_cast<unsigned>(it) == pack.GetCount());
+            REQUIRE(static_cast<unsigned>(it) == foreachit);
+            if constexpr (CT::Same<E, Text>)
+               REQUIRE(it == 0);
+            else
+               REQUIRE(static_cast<unsigned>(it) == pack.GetCount());
          }
       }
 
       WHEN("ForEach flat sparse element (mutable)") {
          int it = 0;
-         const_cast<T&>(pack).ForEach(
+         const auto foreachit = const_cast<T&>(pack).ForEach(
             [&](int* i) {
                REQUIRE(*i == it + 1);
                ++it;
@@ -2489,13 +2502,17 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
          );
 
          THEN("The number of iterated elements should be correct") {
-            REQUIRE(static_cast<unsigned>(it) == pack.GetCount());
+            REQUIRE(static_cast<unsigned>(it) == foreachit);
+            if constexpr (CT::Same<E, Text>)
+               REQUIRE(it == 0);
+            else
+               REQUIRE(static_cast<unsigned>(it) == pack.GetCount());
          }
       }
 
       WHEN("ForEachRev flat dense element (immutable)") {
          int it = 0;
-         const_cast<const T&>(pack).ForEachRev(
+         const auto foreachit = const_cast<const T&>(pack).ForEach<true>(
             [&](const int& i) {
                REQUIRE(i == 5 - it);
                ++it;
@@ -2512,13 +2529,17 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
          );
 
          THEN("The number of iterated elements should be correct") {
-            REQUIRE(static_cast<unsigned>(it) == pack.GetCount());
+            REQUIRE(static_cast<unsigned>(it) == foreachit);
+            if constexpr (CT::Same<E, Text>)
+               REQUIRE(it == 0);
+            else
+               REQUIRE(static_cast<unsigned>(it) == pack.GetCount());
          }
       }
 
       WHEN("ForEachRev flat dense element (mutable)") {
          int it = 0;
-         pack.ForEachRev(
+         const auto foreachit = pack.ForEach<true>(
             [&](int& i) {
                REQUIRE(i == 5 - it);
                ++it;
@@ -2535,13 +2556,17 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
          );
 
          THEN("The number of iterated elements should be correct") {
-            REQUIRE(static_cast<unsigned>(it) == pack.GetCount());
+            REQUIRE(static_cast<unsigned>(it) == foreachit);
+            if constexpr (CT::Same<E, Text>)
+               REQUIRE(it == 0);
+            else
+               REQUIRE(static_cast<unsigned>(it) == pack.GetCount());
          }
       }
 
       WHEN("ForEachRev flat sparse element (immutable)") {
          int it = 0;
-         const_cast<const T&>(pack).ForEachRev(
+         const auto foreachit = const_cast<const T&>(pack).ForEach<true>(
             [&](const int* i) {
                REQUIRE(*i == 5 - it);
                ++it;
@@ -2558,13 +2583,17 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
          );
 
          THEN("The number of iterated elements should be correct") {
-            REQUIRE(static_cast<unsigned>(it) == pack.GetCount());
+            REQUIRE(static_cast<unsigned>(it) == foreachit);
+            if constexpr (CT::Same<E, Text>)
+               REQUIRE(it == 0);
+            else
+               REQUIRE(static_cast<unsigned>(it) == pack.GetCount());
          }
       }
 
       WHEN("ForEachRev flat sparse element (mutable)") {
          int it = 0;
-         pack.ForEachRev(
+         const auto foreachit = pack.ForEach<true>(
             [&](int* i) {
                REQUIRE(*i == 5 - it);
                ++it;
@@ -2581,7 +2610,11 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
          );
 
          THEN("The number of iterated elements should be correct") {
-            REQUIRE(static_cast<unsigned>(it) == pack.GetCount());
+            REQUIRE(static_cast<unsigned>(it) == foreachit);
+            if constexpr (CT::Same<E, Text>)
+               REQUIRE(it == 0);
+            else
+               REQUIRE(static_cast<unsigned>(it) == pack.GetCount());
          }
       }
    }

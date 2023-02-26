@@ -18,15 +18,24 @@ namespace Langulus::Anyness
    public:
       static constexpr bool Ordered = false;
 
-      using BlockMap::BlockMap;
+      constexpr UnorderedMap();
+      UnorderedMap(const UnorderedMap&);
+      UnorderedMap(UnorderedMap&&) noexcept;
 
-      //TODO defined in header due to MSVC compiler bug (02/2023)       
-      // Might be fixed in the future                                   
-      /*template<CT::Semantic S>
-      constexpr UnorderedMap(S&& other) noexcept requires (CT::DerivedFrom<TypeOf<S>, UnorderedMap>)
-         : BlockMap {other.template Forward<BlockMap>()} { }*/
+      template<CT::Pair P>
+      UnorderedMap(::std::initializer_list<P>);
 
-      using BlockMap::operator =;
+      template<CT::Semantic S>
+      UnorderedMap(S&&) noexcept;
+
+      UnorderedMap& operator = (const UnorderedMap&);
+      UnorderedMap& operator = (UnorderedMap&&) noexcept;
+
+      UnorderedMap& operator = (const CT::Pair auto&);
+      UnorderedMap& operator = (CT::Pair auto&&) noexcept;
+
+      template<CT::Semantic S>
+      UnorderedMap& operator = (S&&) noexcept;
    };
 
 } // namespace Langulus::Anyness

@@ -219,19 +219,18 @@ namespace Langulus::Anyness
    
    /// Semantically transfer the members of one block onto another            
    ///   @attention will not set mType if TO is type-constrained              
-   ///   @attention will combine states if TO is type-constrained             
    ///   @tparam TO - the type of block we're transferring to                 
    ///   @tparam S - the semantic to use for the transfer (deducible)         
    ///   @param from - the block and semantic to transfer from                
    template<class TO, CT::Semantic S>
    LANGULUS(ALWAYSINLINE)
    void Block::BlockTransfer(S&& from) {
-      using Container = TypeOf<S>;
+      using FROM = TypeOf<S>;
 
       static_assert(CT::Block<TO>,
          "TO must be a block type");
-      static_assert(CT::Block<Container>,
-         "Container must be a block type");
+      static_assert(CT::Block<FROM>,
+         "FROM must be a block type");
 
       mCount = from.mValue.mCount;
 
@@ -257,7 +256,7 @@ namespace Langulus::Anyness
             mEntry = from.mValue.mEntry;
 
             if constexpr (S::Move) {
-               if constexpr (!Container::Ownership) {
+               if constexpr (!FROM::Ownership) {
                   // Since we are not aware if that block is referenced 
                   // or not we reference it just in case, and we also   
                   // do not reset 'other' to avoid leaks. When using    
@@ -282,12 +281,21 @@ namespace Langulus::Anyness
          // We're cloning, so we guarantee, that data is no longer      
          // static                                                      
          mState -= DataState::Static;
-         AllocateFresh(RequestSize(mCount));
-
-         if constexpr (CT::Typed<Container>)
-            CallKnownSemanticConstructors<TypeOf<Container>>(mCount, from.Forward());
-         else
+         
+         if constexpr (CT::Typed<FROM>) {
+            auto asTo = reinterpret_cast<FROM*>(this);
+            asTo->AllocateFresh(asTo->RequestSize(mCount));
+            CallKnownSemanticConstructors<TypeOf<FROM>>(mCount, from.Forward());
+         }
+         else if constexpr (CT::Typed<TO>) {
+            auto asTo = reinterpret_cast<TO*>(this);
+            asTo->AllocateFresh(asTo->RequestSize(mCount));
+            CallKnownSemanticConstructors<TypeOf<TO>>(mCount, from.Forward());
+         }
+         else {
+            AllocateFresh(RequestSize(mCount));
             CallUnknownSemanticConstructors(mCount, from.Forward());
+         }
       }
    }
    

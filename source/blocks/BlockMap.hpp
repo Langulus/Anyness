@@ -21,9 +21,9 @@ namespace Langulus::Anyness
    ///   Type-erased map block, base for all map types                        
    ///                                                                        
    class BlockMap {
+   protected:
       using Allocator = Inner::Allocator;
       static constexpr Count MinimalAllocation = 8;
-   protected:
       using InfoType = ::std::uint8_t;
 
       // A precomputed pointer for the info bytes                       
@@ -45,6 +45,8 @@ namespace Langulus::Anyness
       Block mValues;
 
    public:
+      using Pair = Anyness::Pair;
+
       static constexpr bool Ownership = true;
       static constexpr bool Sequential = false;
 
@@ -59,6 +61,11 @@ namespace Langulus::Anyness
       BlockMap(::std::initializer_list<TPair<K, V>>);
 
       ~BlockMap();
+
+      template<class T, CT::Semantic S>
+      void BlockTransfer(S&&);
+      template<class T>
+      void BlockClone(const BlockMap&);
 
       BlockMap& operator = (const BlockMap&);
       BlockMap& operator = (BlockMap&&) noexcept;
@@ -120,7 +127,7 @@ namespace Langulus::Anyness
       void Mutate(DMeta, DMeta);
       void Allocate(const Count&);
 
-      NOD() BlockMap Clone() const;
+      //NOD() BlockMap Clone() const;
 
       bool operator == (const BlockMap&) const;
 
@@ -209,51 +216,38 @@ namespace Langulus::Anyness
       NOD() ConstIterator end() const noexcept;
       NOD() ConstIterator last() const noexcept;
 
-      template<bool MUTABLE = true, class F>
+      template<bool REVERSE = false, bool MUTABLE = true, class F>
+      Count ForEach(F&&);
+      template<bool REVERSE = false, class F>
+      Count ForEach(F&&) const;
+
+      template<bool REVERSE = false, bool MUTABLE = true, class F>
       Count ForEachKeyElement(F&&);
-      template<class F>
+      template<bool REVERSE = false, class F>
       Count ForEachKeyElement(F&&) const;
 
-      template<bool MUTABLE = true, class F>
+      template<bool REVERSE = false, bool MUTABLE = true, class F>
       Count ForEachValueElement(F&&);
-      template<class F>
+      template<bool REVERSE = false, class F>
       Count ForEachValueElement(F&&) const;
 
-      template<bool MUTABLE = true, class... F>
+      template<bool REVERSE = false, bool MUTABLE = true, class... F>
       Count ForEachKey(F&&...);
-      template<class... F>
+      template<bool REVERSE = false, class... F>
       Count ForEachKey(F&&...) const;
-      template<bool MUTABLE = true, class... F>
+      template<bool REVERSE = false, bool MUTABLE = true, class... F>
       Count ForEachValue(F&&...);
-      template<class... F>
+      template<bool REVERSE = false, class... F>
       Count ForEachValue(F&&...) const;
    
-      template<bool MUTABLE = true, class... F>
-      Count ForEachKeyRev(F&&...);
-      template<class... F>
-      Count ForEachKeyRev(F&&...) const;
-      template<bool MUTABLE = true, class... F>
-      Count ForEachValueRev(F&&...);
-      template<class... F>
-      Count ForEachValueRev(F&&...) const;
-   
-      template<bool SKIP = true, bool MUTABLE = true, class... F>
+      template<bool REVERSE = false, bool SKIP = true, bool MUTABLE = true, class... F>
       Count ForEachKeyDeep(F&&...);
-      template<bool SKIP = true, class... F>
+      template<bool REVERSE = false, bool SKIP = true, class... F>
       Count ForEachKeyDeep(F&&...) const;
-      template<bool SKIP = true, bool MUTABLE = true, class... F>
+      template<bool REVERSE = false, bool SKIP = true, bool MUTABLE = true, class... F>
       Count ForEachValueDeep(F&&...);
-      template<bool SKIP = true, class... F>
+      template<bool REVERSE = false, bool SKIP = true, class... F>
       Count ForEachValueDeep(F&&...) const;
-   
-      template<bool SKIP = true, bool MUTABLE = true, class... F>
-      Count ForEachKeyDeepRev(F&&...);
-      template<bool SKIP = true, class... F>
-      Count ForEachKeyDeepRev(F&&...) const;
-      template<bool SKIP = true, bool MUTABLE = true, class... F>
-      Count ForEachValueDeepRev(F&&...);
-      template<bool SKIP = true, class... F>
-      Count ForEachValueDeepRev(F&&...) const;
 
    protected:
       template<bool MUTABLE, bool REVERSE, class F>
@@ -264,17 +258,25 @@ namespace Langulus::Anyness
       Count ForEachInner(Block&, TFunctor<R(A)>&&);
       template<class R, CT::Data A, bool REVERSE, bool SKIP, bool MUTABLE>
       Count ForEachDeepInner(Block&, TFunctor<R(A)>&&);
-      template<bool MUTABLE, class F>
+      template<bool REVERSE, bool MUTABLE, class F>
       Count ForEachElement(Block&, F&&);
 
       template<bool REUSE>
       void AllocateData(const Count&);
       void AllocateInner(const Count&);
 
+      void Reference(const Count&) const noexcept;
+      void Keep() const noexcept;
+      template<bool DESTROY>
+      void Dereference(const Count&);
+      void Free();
+
       void Rehash(const Count&, const Count&);
 
       template<CT::Semantic SK, CT::Semantic SV>
       Count InsertUnknown(SK&&, SV&&);
+      template<CT::Semantic SP>
+      Count InsertUnknown(SP&&);
 
       template<bool CHECK_FOR_MATCH, CT::Semantic SK, CT::Semantic SV>
       Offset InsertInnerUnknown(const Offset&, SK&&, SV&&);
@@ -378,6 +380,12 @@ namespace Langulus::CT
    template<class... T>
    concept Map = ((DerivedFrom<T, Anyness::BlockMap>
       && sizeof(T) == sizeof(Anyness::BlockMap)) && ...);
+   
+   /// A reflected map type is any type that inherits BlockMap, and is        
+   /// binary compatible to a BlockMap                                        
+   /// Keep in mind, that sparse types are never considered CT::Map!          
+   template<class... T>
+   concept TypedMap = ((Map<T> && requires { typename T::Key; typename T::Value; }) && ...);
 
 } // namespace Langulus::CT
 

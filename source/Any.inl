@@ -82,13 +82,14 @@ namespace Langulus::Anyness
       }
       else if constexpr (CT::Exact<HEAD, TAIL...>) {
          // All types are the same, so pack them tightly                
-         SetType<HEAD, false>();
+         SetType<Decvq<Deref<HEAD>>, false>();
          AllocateFresh(RequestSize(sizeof...(TAIL) + 1));
 
          if constexpr (::std::is_rvalue_reference_v<HEAD>)
             InsertInner(Langulus::Move(head), 0);
          else
             InsertInner(Langulus::Copy(head), 0);
+
          InsertStatic<1>(Forward<TAIL>(tail)...);
       }
       else {

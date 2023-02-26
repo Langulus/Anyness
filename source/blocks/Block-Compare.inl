@@ -288,17 +288,39 @@ namespace Langulus::Anyness
    ///   @return the index of the found item, or IndexNone if not found       
    template<bool REVERSE, CT::NotSemantic T>
    Index Block::FindKnown(const T& item, const Offset& cookie) const {
-      if constexpr (!REVERSE) {
-         for (Offset i = cookie; i < mCount; ++i) {
-            if (GetElement(i) == item)
-               return i;
+      // First check if element is contained inside this block's        
+      // memory, because if so, we can easily find it, without calling  
+      // a single compare function                                      
+      if constexpr (CT::Deep<T>) {
+         // Deep items have a bit looser type requirements              
+         if (IsDense() && IsDeep() && Owns(&item)) {
+            const Offset index = &item - GetRawAs<T>();
+            // Check is required, because Owns tests in reserved range  
+            return index < mCount ? index : IndexNone;
          }
       }
       else {
-         for (Offset i = mCount - 1 - cookie; i < mCount; --i) {
-            if (GetElement(i) == item)
-               return i;
+         // Search for a conventional item                              
+         if (IsExact<T>() && Owns(&item)) {
+            const Offset index = &item - GetRawAs<T>();
+            // Check is required, because Owns tests in reserved range  
+            return index < mCount ? index : IndexNone;
          }
+      }
+
+      // Item is not in this block's memory, so we start comparing by   
+      // values                                                         
+      Offset i = REVERSE ? mCount - 1 - cookie : cookie;
+      while (i < mCount) {
+         if (GetElement(i) == item) {
+            // Match found                                              
+            return i;
+         }
+
+         if constexpr (REVERSE)
+            --i;
+         else
+            ++i;
       }
 
       // If this is reached, then no match was found                    
@@ -312,20 +334,39 @@ namespace Langulus::Anyness
    ///   @return the index of the found item, or IndexNone if not found       
    template<bool REVERSE>
    Index Block::FindUnknown(const Block& item, const Offset& cookie) const {
-      auto right = item.GetElementResolved(0);
-      if constexpr (!REVERSE) {
-         for (Offset i = cookie; i < mCount; ++i) {
-            const auto left = GetElementResolved(i);
-            if (left.Compare(right))
-               return {i};
+      // First check if element is contained inside this block's        
+      // memory, because if so, we can easily find it, without calling  
+      // a single compare function                                      
+      if (item.IsDense() && item.IsDeep()) {
+         // Deep items have a bit looser type requirements              
+         if (IsDense() && IsDeep() && Owns(item.mRaw)) {
+            const Offset index = (item.mRaw - mRaw) / sizeof(Block);
+            // Check is required, because Owns tests in reserved range  
+            return index < mCount ? index : IndexNone;
          }
       }
       else {
-         for (Offset i = mCount - 1 - cookie; i < mCount; --i) {
-            const auto left = GetElementResolved(i);
-            if (left.Compare(right))
-               return {i};
+         // Search for a conventional item                              
+         if (IsExact(item.GetType()) && Owns(item.mRaw)) {
+            const Offset index = (item.mRaw - mRaw) / mType->mSize;
+            // Check is required, because Owns tests in reserved range  
+            return index < mCount ? index : IndexNone;
          }
+      }
+
+      // Item is not in this block's memory, so we start comparing by   
+      // values                                                         
+      Offset i = REVERSE ? mCount - 1 - cookie : cookie;
+      while (i < mCount) {
+         if (GetElement(i) == item.GetElement(i)) {
+            // Match found                                              
+            return i;
+         }
+
+         if constexpr (REVERSE)
+            --i;
+         else
+            ++i;
       }
 
       // If this is reached, then no match was found                    
@@ -334,34 +375,22 @@ namespace Langulus::Anyness
 
    /// Find first matching element position inside container, deeply          
    ///   @tparam REVERSE - true to perform search in reverse                  
+   ///   @tparam T - type to use for comparison (deducible)                   
    ///   @param item - the item to search for                                 
    ///   @param cookie - continue search from a given offset                  
    ///   @return the index of the found item, or IndexNone if not found       
    template<bool REVERSE, CT::NotSemantic T>
    Index Block::FindDeep(const T& item, Offset cookie) const {
       Index found;
-      if constexpr (!REVERSE) {
-         ForEachDeep([&](const Block& group) {
-            if (cookie) {
-               --cookie;
-               return true;
-            }
+      ForEachDeep<REVERSE>([&](const Block& group) {
+         if (cookie) {
+            --cookie;
+            return true;
+         }
 
-            found = group.template FindKnown<REVERSE>(item);
-            return !found;
-         });
-      }
-      else {
-         ForEachDeepRev([&](const Block& group) {
-            if (cookie) {
-               --cookie;
-               return true;
-            }
-
-            found = group.template FindKnown<REVERSE>(item);
-            return !found;
-         });
-      }
+         found = group.template FindKnown<REVERSE>(item);
+         return !found;
+      });
 
       return found;
    }
@@ -372,11 +401,23 @@ namespace Langulus::Anyness
    template<class T>
    LANGULUS(ALWAYSINLINE)
    bool Block::CompareSingleValue(const T& rhs) const {
-      static_assert(CT::Sparse<T> || CT::Comparable<T, T>,
-         "T must either be pointer, or has a reflected == operator");
-      if (mCount != 1 || !IsExact<T>())
+      if (mCount != 1 || IsUntyped())
          return false;
-      return Get<T>() == rhs;
+
+      if constexpr (CT::Deep<T>) {
+         // Deep types can be more loosely compared                     
+         if (mType->mIsSparse || !mType->mIsDeep)
+            return false;
+         return GetRawAs<Block>()->Compare(rhs);
+      }
+      else {
+         // Non-deep element compare                                    
+         static_assert(CT::Sparse<T> || CT::Comparable<T, T>,
+            "T must either be pointer, or has a reflected == operator");
+         if (!mType->template IsExact<T>())
+            return false;
+         return *GetRawAs<T>() == rhs;
+      }
    }
    
    /// Compare the relevant states of two blocks                              
@@ -389,11 +430,15 @@ namespace Langulus::Anyness
 
    /// Compare types of two blocks, and a produce a common type whose         
    /// comparison function to use                                             
+   ///   @attention assumes that both blocks are typed                        
    ///   @param right - the type to the right                                 
    ///   @param common - [out] the common base                                
    ///   @return true if a common base has been found                         
-   inline bool Block::CompareTypes(const Block& right, RTTI::Base& common) const noexcept {
-      if (!Is(right.mType)) {
+   inline bool Block::CompareTypes(const Block& right, RTTI::Base& common) const {
+      LANGULUS_ASSUME(DevAssumes, IsTyped(), "LHS block is not typed");
+      LANGULUS_ASSUME(DevAssumes, right.IsTyped(), "RHS block is not typed");
+
+      if (!mType->Is(right.mType)) {
          // Types differ, dig deeper to find out why                    
          if (!mType->GetBase(right.mType, 0, common)) {
             // Other type is not base for this one, can't compare them  
@@ -465,17 +510,9 @@ namespace Langulus::Anyness
    Count Block::GatherInner(const Block& input, Block& output) {
       Count count {};
       if (input.IsDeep() && !output.IsDeep()) {
-         if constexpr (REVERSE) {
-            ForEachRev([&](const Block& i) {
-               count += GatherInner<REVERSE>(i, output);
-            });
-         }
-         else {
-            ForEach([&](const Block& i) {
-               count += GatherInner<REVERSE>(i, output);
-            });
-         }
-
+         ForEach<REVERSE>([&](const Block& i) {
+            count += GatherInner<REVERSE>(i, output);
+         });
          return count;
       }
 
@@ -501,17 +538,9 @@ namespace Langulus::Anyness
             // Phases don't match, but we can dig deeper if deep        
             // and neutral, since Phase::Now is permissive              
             auto localOutput = Any::FromMeta(type, input.GetUnconstrainedState());
-            if constexpr (REVERSE) {
-               ForEachRev([&](const Block& i) {
-                  GatherPolarInner<REVERSE>(type, i, localOutput, state);
-               });
-            }
-            else {
-               ForEach([&](const Block& i) {
-                  GatherPolarInner<REVERSE>(type, i, localOutput, state);
-               });
-            }
-
+            ForEach<REVERSE>([&](const Block& i) {
+               GatherPolarInner<REVERSE>(type, i, localOutput, state);
+            });
             localOutput.MakeNow();
             return output.SmartPush(Abandon(localOutput));
          }

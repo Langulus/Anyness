@@ -12,11 +12,12 @@ namespace Langulus::Anyness
 {
    
    /// Iterate each element block and execute F for it                        
+   ///   @tparam REVERSE - whether to iterate in reverse                      
    ///   @tparam MUTABLE - are we executing in a mutable, or immutable blocks 
    ///   @tparam F - the function signature (deducible)                       
    ///   @param call - function to execute for each element block             
    ///   @return the number of executions                                     
-   template<bool MUTABLE, class F>
+   template<bool REVERSE, bool MUTABLE, class F>
    Count Block::ForEachElement(F&& call) {
       using A = ArgumentOf<F>;
       using R = ReturnOf<F>;
@@ -44,14 +45,15 @@ namespace Langulus::Anyness
    }
 
    /// Iterate each immutable element block and execute F for it              
+   ///   @tparam REVERSE - whether to iterate in reverse                      
    ///   @tparam F - the function signature                                   
    ///   @param call - function to execute for each constant element block    
    ///   @return the number of executions                                     
-   template<class F>
+   template<bool REVERSE, class F>
    LANGULUS(ALWAYSINLINE)
    Count Block::ForEachElement(F&& call) const {
-      return const_cast<Block&>(*this)
-         .template ForEachElement<false>(call);
+      return const_cast<Block&>(*this).template
+         ForEachElement<REVERSE, false>(call);
    }
 
    /// Execute functions for each element inside container                    
@@ -59,15 +61,18 @@ namespace Langulus::Anyness
    /// contained type. If argument is compatible with the type, the block is  
    /// iterated, and F is executed for all elements. The rest of the provided 
    /// functions are ignored, after the first function with viable argument.  
+   ///   @tparam REVERSE - whether to iterate in reverse                      
    ///   @tparam MUTABLE - whether or not a change to container is allowed    
    ///                     while iterating                                    
    ///   @tparam F - the function signatures (deducible)                      
    ///   @param calls - all potential functions to iterate with               
    ///   @return the number of executions                                     
-   template<bool MUTABLE, class... F>
+   template<bool REVERSE, bool MUTABLE, class... F>
    LANGULUS(ALWAYSINLINE)
    Count Block::ForEach(F&&... calls) {
-      return (... || ForEachSplitter<MUTABLE, false>(Forward<F>(calls)));
+      Count result {};
+      (... || (0 != (result = ForEachSplitter<MUTABLE, REVERSE>(Forward<F>(calls)))));
+      return result;
    }
 
    /// Execute functions for each element inside container (const)            
@@ -75,45 +80,15 @@ namespace Langulus::Anyness
    /// contained type. If argument is compatible with the type, the block is  
    /// iterated, and F is executed for all elements. The rest of the provided 
    /// functions are ignored, after the first function with viable argument.  
+   ///   @tparam REVERSE - whether to iterate in reverse                      
    ///   @tparam F - the function signatures (deducible)                      
    ///   @param calls - all potential functions to iterate with               
    ///   @return the number of executions                                     
-   template<class... F>
+   template<bool REVERSE, class... F>
    LANGULUS(ALWAYSINLINE)
    Count Block::ForEach(F&&... calls) const {
-      return const_cast<Block&>(*this)
-         .template ForEach<false>(Forward<F>(calls)...);
-   }
-
-   /// Execute functions for each element inside container (reverse)          
-   /// Each function has a distinct argument type, that is tested against the 
-   /// contained type. If argument is compatible with the type, the block is  
-   /// iterated, and F is executed for all elements. The rest of the provided 
-   /// functions are ignored, after the first function with viable argument.  
-   ///   @tparam MUTABLE - whether or not a change to container is allowed    
-   ///                     while iterating                                    
-   ///   @tparam F - the function signatures (deducible)                      
-   ///   @param calls - all potential functions to iterate with               
-   ///   @return the number of executions                                     
-   template<bool MUTABLE, class... F>
-   LANGULUS(ALWAYSINLINE)
-   Count Block::ForEachRev(F&&... calls) {
-      return (... || ForEachSplitter<MUTABLE, true>(Forward<F>(calls)));
-   }
-
-   /// Execute functions for each element inside container (reverse, const)   
-   /// Each function has a distinct argument type, that is tested against the 
-   /// contained type. If argument is compatible with the type, the block is  
-   /// iterated, and F is executed for all elements. The rest of the provided 
-   /// functions are ignored, after the first function with viable argument.  
-   ///   @tparam F - the function signatures (deducible)                      
-   ///   @param calls - all potential functions to iterate with               
-   ///   @return the number of executions                                     
-   template<class... F>
-   LANGULUS(ALWAYSINLINE)
-   Count Block::ForEachRev(F&&... calls) const {
-      return const_cast<Block&>(*this)
-         .template ForEachRev<false>(Forward<F>(calls)...);
+      return const_cast<Block&>(*this).template
+         ForEach<REVERSE, false>(Forward<F>(calls)...);
    }
 
    /// Execute functions in each sub-block                                    
@@ -122,6 +97,7 @@ namespace Langulus::Anyness
    /// contained type. If argument is compatible with the type, the block is  
    /// iterated, and F is executed for all elements. The rest of the provided 
    /// functions are ignored, after the first function with viable argument.  
+   ///   @tparam REVERSE - whether to iterate in reverse                      
    ///   @tparam SKIP - set to false, to execute F for intermediate blocks,   
    ///                  too; otherwise will execute only for non-blocks       
    ///   @tparam MUTABLE - whether or not a change to container is allowed    
@@ -129,10 +105,12 @@ namespace Langulus::Anyness
    ///   @tparam F - the function signatures (deducible)                      
    ///   @param calls - all potential functions to iterate with               
    ///   @return the number of executions                                     
-   template<bool SKIP, bool MUTABLE, class... F>
+   template<bool REVERSE, bool SKIP, bool MUTABLE, class... F>
    LANGULUS(ALWAYSINLINE)
    Count Block::ForEachDeep(F&&... calls) {
-      return (... || ForEachDeepSplitter<SKIP, MUTABLE, false>(Forward<F>(calls)));
+      Count result {};
+      (... || (0 != (result = ForEachDeepSplitter<SKIP, MUTABLE, REVERSE>(Forward<F>(calls)))));
+      return result;
    }
 
    /// Execute functions in each sub-block (const)                            
@@ -141,53 +119,17 @@ namespace Langulus::Anyness
    /// contained type. If argument is compatible with the type, the block is  
    /// iterated, and F is executed for all elements. The rest of the provided 
    /// functions are ignored, after the first function with viable argument.  
+   ///   @tparam REVERSE - whether to iterate in reverse                      
    ///   @tparam SKIP - set to false, to execute F for intermediate blocks,   
    ///                  too; otherwise will execute only for non-blocks       
    ///   @tparam F - the function signatures (deducible)                      
    ///   @param calls - all potential functions to iterate with               
    ///   @return the number of executions                                     
-   template<bool SKIP, class... F>
+   template<bool REVERSE, bool SKIP, class... F>
    LANGULUS(ALWAYSINLINE)
    Count Block::ForEachDeep(F&&... calls) const {
-      return const_cast<Block&>(*this)
-         .template ForEachDeep<SKIP, false>(Forward<F>(calls)...);
-   }
-
-   /// Execute functions in each sub-block (reverse)                          
-   /// Unlike the flat variants above, this one reaches into sub-blocks.      
-   /// Each function has a distinct argument type, that is tested against the 
-   /// contained type. If argument is compatible with the type, the block is  
-   /// iterated, and F is executed for all elements. The rest of the provided 
-   /// functions are ignored, after the first function with viable argument.  
-   ///   @tparam SKIP - set to false, to execute F for intermediate blocks,   
-   ///                  too; otherwise will execute only for non-blocks       
-   ///   @tparam MUTABLE - whether or not a change to container is allowed    
-   ///                     while iterating                                    
-   ///   @tparam F - the function signatures (deducible)                      
-   ///   @param calls - all potential functions to iterate with               
-   ///   @return the number of executions                                     
-   template<bool SKIP, bool MUTABLE, class... F>
-   LANGULUS(ALWAYSINLINE)
-   Count Block::ForEachDeepRev(F&&... calls) {
-      return (... || ForEachDeepSplitter<SKIP, MUTABLE, true>(Forward<F>(calls)));
-   }
-
-   /// Execute functions in each sub-block (reverse, const)                   
-   /// Unlike the flat variants above, this one reaches into sub-blocks.      
-   /// Each function has a distinct argument type, that is tested against the 
-   /// contained type. If argument is compatible with the type, the block is  
-   /// iterated, and F is executed for all elements. The rest of the provided 
-   /// functions are ignored, after the first function with viable argument.  
-   ///   @tparam SKIP - set to false, to execute F for intermediate blocks,   
-   ///                  too; otherwise will execute only for non-blocks       
-   ///   @tparam F - the function signatures (deducible)                      
-   ///   @param calls - all potential functions to iterate with               
-   ///   @return the number of executions                                     
-   template<bool SKIP, class... F>
-   LANGULUS(ALWAYSINLINE)
-   Count Block::ForEachDeepRev(F&&... calls) const {
-      return const_cast<Block&>(*this)
-         .template ForEachDeepRev<SKIP, false>(Forward<F>(calls)...);
+      return const_cast<Block&>(*this).template
+         ForEachDeep<REVERSE, SKIP, false>(Forward<F>(calls)...);
    }
 
    /// Execute single function from a sequence of functions for each element  
@@ -214,7 +156,7 @@ namespace Langulus::Anyness
       static_assert(CT::Constant<A> || (CT::Mutable<A> && MUTABLE),
          "Non constant iterator for constant memory block");
 
-      if (mType->template CastsTo<A, true>()) {
+      if (mType->mIsDeep == CT::Deep<Decay<A>> && mType->template CastsTo<A, true>()) {
          // Container is binary compatible                              
          return ForEachInner<R, A, REVERSE, MUTABLE>(Forward<F>(call));
       }
@@ -270,7 +212,7 @@ namespace Langulus::Anyness
 
    /// Iterate and execute call for each flat element, counting each          
    /// successfull execution                                                  
-   ///   @attention assumes A is similar to the contained type                
+   ///   @attention assumes A is binary compatible to the contained type      
    ///   @attention assumes block is not empty                                
    ///   @attention assumes block is typed                                    
    ///   @tparam R - the function return type (deduced)                       
@@ -288,7 +230,7 @@ namespace Langulus::Anyness
          "Container is empty");
       LANGULUS_ASSUME(DevAssumes, IsTyped(),
          "Container is not typed");
-      LANGULUS_ASSUME(DevAssumes, Is<A>(),
+      LANGULUS_ASSUME(DevAssumes, (CastsTo<A, true>()),
          "Incompatible type");
 
       constexpr auto NOE = NoexceptIterator<decltype(f)>;
@@ -299,10 +241,8 @@ namespace Langulus::Anyness
          IterateInner<R, DA, REVERSE, MUTABLE>(
             [&index, &f](DA element) noexcept(NOE) -> R {
                ++index;
-               if constexpr (CT::Sparse<A>)
-                  return f(element);
-               else
-                  return f(*element);
+               if constexpr (CT::Sparse<A>)  return f(element);
+               else                          return f(*element);
             }
          );
       }
@@ -312,10 +252,8 @@ namespace Langulus::Anyness
          IterateInner<R, DA, REVERSE, MUTABLE>(
             [&index, &f](DA element) noexcept(NOE) -> R {
                ++index;
-               if constexpr (CT::Sparse<A>)
-                  return f(&element);
-               else
-                  return f(element);
+               if constexpr (CT::Sparse<A>)  return f(&element);
+               else                          return f(element);
             }
          );
       }

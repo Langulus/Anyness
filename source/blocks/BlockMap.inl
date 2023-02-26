@@ -60,14 +60,185 @@ namespace Langulus::Anyness
    }
 
    /// Destroys the map and all it's contents                                 
-   inline BlockMap::~BlockMap() {
+   LANGULUS(ALWAYSINLINE)
+   BlockMap::~BlockMap() {
+      Free();
+   }
+   
+   /// Semantically transfer the members of one map onto another              
+   ///   @tparam TO - the type of map we're transferring to                   
+   ///   @tparam S - the semantic to use for the transfer (deducible)         
+   ///   @param from - the map and semantic to transfer from                  
+   template<class TO, CT::Semantic S>
+   LANGULUS(ALWAYSINLINE)
+   void BlockMap::BlockTransfer(S&& other) {
+      using FROM = TypeOf<S>;
+
+      static_assert(CT::Map<TO>,
+         "TO must be a map type");
+      static_assert(CT::Map<FROM>,
+         "FROM must be a map type");
+
+      mValues.mCount = other.mValue.mValues.mCount;
+
+      if constexpr (!CT::TypedMap<TO>) {
+         // TO is not statically typed                                  
+         mKeys.mType = other.mValue.GetKeyType();
+         mKeys.mState = other.mValue.mKeys.mState;
+         mValues.mType = other.mValue.GetValueType();
+         mValues.mState = other.mValue.mValues.mState;
+      }
+      else {
+         // TO is statically typed                                      
+         mKeys.mType = MetaData::Of<typename TO::Key>();
+         mKeys.mState = other.mValue.mKeys.mState + DataState::Typed;
+         mValues.mType = MetaData::Of<typename TO::Value>();
+         mValues.mState = other.mValue.mValues.mState + DataState::Typed;
+      }
+
+      if constexpr (S::Shallow) {
+         mKeys.mRaw = other.mValue.mKeys.mRaw;
+         mKeys.mReserved = other.mValue.mKeys.mReserved;
+         mValues.mRaw = other.mValue.mValues.mRaw;
+         mValues.mReserved = other.mValue.mValues.mReserved;
+         mInfo = other.mValue.mInfo;
+
+         if constexpr (S::Keep) {
+            // Move/Copy other                                          
+            mKeys.mEntry = other.mValue.mKeys.mEntry;
+            mValues.mEntry = other.mValue.mValues.mEntry;
+
+            if constexpr (S::Move) {
+               if constexpr (!FROM::Ownership) {
+                  // Since we are not aware if that block is referenced 
+                  // or not we reference it just in case, and we also   
+                  // do not reset 'other' to avoid leaks When using raw 
+                  // BlockMaps, it's your responsibility to take care   
+                  // of ownership.                                      
+                  Keep();
+               }
+               else {
+                  other.mValue.mKeys.ResetMemory();
+                  other.mValue.mKeys.ResetState();
+                  other.mValue.mValues.ResetMemory();
+                  other.mValue.mValues.ResetState();
+               }
+            }
+            else Keep();
+         }
+         else if constexpr (S::Move) {
+            // Abandon other                                            
+            mKeys.mEntry = other.mValue.mKeys.mEntry;
+            mValues.mEntry = other.mValue.mValues.mEntry;
+            other.mValue.mValues.mEntry = nullptr;
+         }
+      }
+      else {
+         // We're cloning, so we guarantee, that data is no longer      
+         // static                                                      
+         mKeys.mState -= DataState::Static;
+         mValues.mState -= DataState::Static;
+
+         if constexpr (CT::TypedMap<TO>)
+            BlockClone<TO>(other.mValue);
+         else if constexpr (CT::TypedMap<FROM>)
+            BlockClone<FROM>(other.mValue);
+         else {
+            // Use type-erased cloning                                  
+            auto asTo = reinterpret_cast<TO*>(this);
+            asTo->AllocateFresh(other.mValue.GetReserved() + 1);
+
+            auto info = asTo->GetInfo();
+            const auto infoEnd = asTo->GetInfoEnd();
+            auto dstKey = asTo->GetKey(0);
+            auto dstVal = asTo->GetValue(0);
+            auto srcKey = other.mValue.GetKey(0);
+            auto srcVal = other.mValue.GetValue(0);
+            while (info != infoEnd) {
+               if (*info) {
+                  dstKey.CallUnknownSemanticConstructors(
+                     1, Langulus::Clone(srcKey));
+                  dstVal.CallUnknownSemanticConstructors(
+                     1, Langulus::Clone(srcVal));
+               }
+
+               ++info;
+               dstKey.Next(); dstVal.Next();
+               srcKey.Next(); srcVal.Next();
+            }
+         }
+      }
+   }
+   
+   /// Clone info, keys and values from a statically typed map                
+   ///   @tparam T - the statically optimized type of map we're using         
+   ///   @param other - the map we'll be cloning                              
+   template<class T>
+   void BlockMap::BlockClone(const BlockMap& other) {
+      static_assert(CT::Map<T>, "T must be a map type");
+      static_assert(CT::TypedMap<T>, "T must be statically typed map");
+
+      // Use statically optimized cloning                               
+      auto asFrom = reinterpret_cast<T*>(&const_cast<BlockMap&>(other));
+      auto asTo = reinterpret_cast<T*>(this);
+      asTo->AllocateFresh(other.GetReserved());
+
+      // Clone info array                                               
+      ::std::memcpy(asTo->mInfo, asFrom->mInfo, GetReserved() + 1);
+
+      using K = typename T::Key;
+      using V = typename T::Value;
+
+      // Clone keys and values                                          
+      auto info = asTo->GetInfo();
+      const auto infoEnd = asTo->GetInfoEnd();
+      auto dstKey = asTo->GetKeyHandle(0);
+      auto dstVal = asTo->GetValueHandle(0);
+      auto srcKey = asFrom->GetKeyHandle(0);
+      auto srcVal = asFrom->GetValueHandle(0);
+      while (info != infoEnd) {
+         if (*info) {
+            SemanticNewHandle<K>(dstKey, Langulus::Clone(*srcKey));
+            SemanticNewHandle<V>(dstVal, Langulus::Clone(*srcVal));
+         }
+
+         ++info;
+         ++dstKey; ++dstVal;
+         ++srcKey; ++srcVal;
+      }
+   }
+
+   /// Reference memory block if we own it                                    
+   ///   @param times - number of references to add                           
+   LANGULUS(ALWAYSINLINE)
+   void BlockMap::Reference(const Count& times) const noexcept {
+      mValues.Reference(times);
+   }
+   
+   /// Reference memory block once                                            
+   LANGULUS(ALWAYSINLINE)
+   void BlockMap::Keep() const noexcept {
+      Reference(1);
+   }
+         
+   /// Dereference memory block                                               
+   ///   @attention this never modifies any state, except mValues.mEntry      
+   ///   @tparam DESTROY - whether to call destructors on full dereference    
+   ///   @param times - number of references to subtract                      
+   template<bool DESTROY>
+   void BlockMap::Dereference(const Count& times) {
       if (!mValues.mEntry)
          return;
 
+      LANGULUS_ASSUME(DevAssumes,
+         mValues.mEntry->GetUses() >= times, "Bad memory dereferencing");
+
       if (mValues.mEntry->GetUses() == 1) {
-         if (!IsEmpty()) {
-            // Remove all used keys and values, they're used only here  
-            ClearInner();
+         if constexpr (DESTROY) {
+            if (!IsEmpty()) {
+               // Destroy all keys and values                           
+               ClearInner();
+            }
          }
 
          // Deallocate stuff                                            
@@ -80,6 +251,14 @@ namespace Langulus::Anyness
          // values' references to save on some redundancy               
          mValues.mEntry->Free();
       }
+   }
+
+   /// Dereference memory block once and destroy all elements if data was     
+   /// fully dereferenced                                                     
+   ///   @attention this never modifies any state, except mValues.mEntry      
+   LANGULUS(ALWAYSINLINE)
+   void BlockMap::Free() {
+      return Dereference<true>(1);
    }
 
    /// Checks if both tables contain the same entries                         
@@ -151,7 +330,7 @@ namespace Langulus::Anyness
 
    /// Clone the table                                                        
    ///   @return the new table                                                
-   inline BlockMap BlockMap::Clone() const {
+   /*inline BlockMap BlockMap::Clone() const {
       if (IsEmpty())
          return {};
 
@@ -197,7 +376,7 @@ namespace Langulus::Anyness
       }
 
       return Abandon(result);
-   }
+   }*/
    
    /// Templated tables are always typed                                      
    ///   @return false                                                        
@@ -398,7 +577,6 @@ namespace Langulus::Anyness
    }
 
    /// Request a new size of value container                                  
-   ///   @attention assumes value type has been set                           
    ///   @param count - number of values to allocate                          
    ///   @return the requested byte size                                      
    LANGULUS(ALWAYSINLINE)
@@ -1706,7 +1884,7 @@ namespace Langulus::Anyness
    /// You can break the loop, by returning false inside f()                  
    ///   @param f - the function to call for each key block                   
    ///   @return the number of successful f() executions                      
-   template<bool MUTABLE, class F>
+   template<bool REVERSE, bool MUTABLE, class F>
    Count BlockMap::ForEachElement(Block& part, F&& call) {
       using A = ArgumentOf<F>;
       using R = ReturnOf<F>;
@@ -1740,30 +1918,30 @@ namespace Langulus::Anyness
    /// You can break the loop, by returning false inside f()                  
    ///   @param f - the function to call for each key block                   
    ///   @return the number of successful f() executions                      
-   template<bool MUTABLE, class F>
+   template<bool REVERSE, bool MUTABLE, class F>
    Count BlockMap::ForEachKeyElement(F&& f) {
-      return ForEachElement<MUTABLE>(mKeys, Forward<F>(f));
+      return ForEachElement<REVERSE, MUTABLE>(mKeys, Forward<F>(f));
    }
 
-   template<class F>
+   template<bool REVERSE, class F>
    Count BlockMap::ForEachKeyElement(F&& f) const {
-      return const_cast<BlockMap&>(*this)
-         .template ForEachKeyElement<false>(Forward<F>(f));
+      return const_cast<BlockMap&>(*this).template
+         ForEachKeyElement<REVERSE, false>(Forward<F>(f));
    }
 
    /// Iterate all values inside the map, and perform f() on them             
    /// You can break the loop, by returning false inside f()                  
    ///   @param f - the function to call for each key block                   
    ///   @return the number of successful f() executions                      
-   template<bool MUTABLE, class F>
+   template<bool REVERSE, bool MUTABLE, class F>
    Count BlockMap::ForEachValueElement(F&& f) {
-      return ForEachElement<MUTABLE>(mValues, Forward<F>(f));
+      return ForEachElement<REVERSE, MUTABLE>(mValues, Forward<F>(f));
    }
 
-   template<class F>
+   template<bool REVERSE, class F>
    Count BlockMap::ForEachValueElement(F&& f) const {
-      return const_cast<BlockMap&>(*this)
-         .template ForEachValueElement<false>(Forward<F>(f));
+      return const_cast<BlockMap&>(*this).template
+         ForEachValueElement<REVERSE, false>(Forward<F>(f));
    }
 
    /// Iterate keys inside the map, and perform a set of functions on them    
@@ -1771,92 +1949,56 @@ namespace Langulus::Anyness
    /// You can break the loop, by returning false inside f()                  
    ///   @param f - the functions to call for each key block                  
    ///   @return the number of successful f() executions                      
-   template<bool MUTABLE, class... F>
+   template<bool REVERSE, bool MUTABLE, class... F>
    Count BlockMap::ForEachKey(F&&... f) {
-      return (... || ForEachSplitter<MUTABLE, false>(mKeys, Forward<F>(f)));
+      Count result {};
+      (... || (0 != (result = ForEachSplitter<MUTABLE, REVERSE>(mKeys, Forward<F>(f)))));
+      return result;
    }
 
-   template<class... F>
+   template<bool REVERSE, class... F>
    Count BlockMap::ForEachKey(F&&... f) const {
-      return const_cast<BlockMap&>(*this)
-         .template ForEachKey<false>(Forward<F>(f)...);
+      return const_cast<BlockMap&>(*this).template
+         ForEachKey<REVERSE, false>(Forward<F>(f)...);
    }
 
-   template<bool MUTABLE, class... F>
+   template<bool REVERSE, bool MUTABLE, class... F>
    Count BlockMap::ForEachValue(F&&... f) {
-      return (... || ForEachSplitter<MUTABLE, false>(mValues, Forward<F>(f)));
+      Count result {};
+      (... || (0 != (result = ForEachSplitter<MUTABLE, REVERSE>(mValues, Forward<F>(f)))));
+      return result;
    }
 
-   template<class... F>
+   template<bool REVERSE, class... F>
    Count BlockMap::ForEachValue(F&&... f) const {
-      return const_cast<BlockMap&>(*this)
-         .template ForEachValue<false>(Forward<F>(f)...);
+      return const_cast<BlockMap&>(*this).template
+         ForEachValue<REVERSE, false>(Forward<F>(f)...);
    }
 
-   template<bool MUTABLE, class... F>
-   Count BlockMap::ForEachKeyRev(F&&... f) {
-      return (... || ForEachSplitter<MUTABLE, true>(mKeys, Forward<F>(f)));
-   }
-
-   template<class... F>
-   Count BlockMap::ForEachKeyRev(F&&... f) const {
-      return const_cast<BlockMap&>(*this)
-         .template ForEachKeyRev<false>(Forward<F>(f)...);
-   }
-
-   template<bool MUTABLE, class... F>
-   Count BlockMap::ForEachValueRev(F&&... f) {
-      return (... || ForEachSplitter<MUTABLE, true>(mValues, Forward<F>(f)));
-   }
-
-   template<class... F>
-   Count BlockMap::ForEachValueRev(F&&... f) const {
-      return const_cast<BlockMap&>(*this)
-         .template ForEachValueRev<false>(Forward<F>(f)...);
-   }
-
-   template<bool SKIP, bool MUTABLE, class... F>
+   template<bool REVERSE, bool SKIP, bool MUTABLE, class... F>
    Count BlockMap::ForEachKeyDeep(F&&... f) {
-      return (... || ForEachDeepSplitter<SKIP, MUTABLE, false>(mKeys, Forward<F>(f)));
+      Count result {};
+      (... || (0 != (result = ForEachDeepSplitter<SKIP, MUTABLE, REVERSE>(mKeys, Forward<F>(f)))));
+      return result;
    }
 
-   template<bool SKIP, class... F>
+   template<bool REVERSE, bool SKIP, class... F>
    Count BlockMap::ForEachKeyDeep(F&&... f) const {
-      return const_cast<BlockMap&>(*this)
-         .template ForEachKeyDeep<SKIP, false>(Forward<F>(f)...);
+      return const_cast<BlockMap&>(*this).template
+         ForEachKeyDeep<REVERSE, SKIP, false>(Forward<F>(f)...);
    }
 
-   template<bool SKIP, bool MUTABLE, class... F>
+   template<bool REVERSE, bool SKIP, bool MUTABLE, class... F>
    Count BlockMap::ForEachValueDeep(F&&... f) {
-      return (... || ForEachDeepSplitter<SKIP, MUTABLE, false>(mValues, Forward<F>(f)));
+      Count result {};
+      (... || (0 != (result = ForEachDeepSplitter<SKIP, MUTABLE, REVERSE>(mValues, Forward<F>(f)))));
+      return result;
    }
 
-   template<bool SKIP, class... F>
+   template<bool REVERSE, bool SKIP, class... F>
    Count BlockMap::ForEachValueDeep(F&&... f) const {
-      return const_cast<BlockMap&>(*this)
-         .template ForEachValueDeep<SKIP, false>(Forward<F>(f)...);
-   }
-
-   template<bool SKIP, bool MUTABLE, class... F>
-   Count BlockMap::ForEachKeyDeepRev(F&&... f) {
-      return (... || ForEachDeepSplitter<SKIP, MUTABLE, true>(mKeys, Forward<F>(f)));
-   }
-
-   template<bool SKIP, class... F>
-   Count BlockMap::ForEachKeyDeepRev(F&&... f) const {
-      return const_cast<BlockMap&>(*this)
-         .template ForEachKeyDeepRev<SKIP, false>(Forward<F>(f)...);
-   }
-
-   template<bool SKIP, bool MUTABLE, class... F>
-   Count BlockMap::ForEachValueDeepRev(F&&... f) {
-      return (... || ForEachDeepSplitter<SKIP, MUTABLE, true>(mValues, Forward<F>(f)));
-   }
-
-   template<bool SKIP, class... F>
-   Count BlockMap::ForEachValueDeepRev(F&&... f) const {
-      return const_cast<BlockMap&>(*this)
-         .template ForEachValueDeepRev<SKIP, false>(Forward<F>(f)...);
+      return const_cast<BlockMap&>(*this).template
+         ForEachValueDeep<REVERSE, SKIP, false>(Forward<F>(f)...);
    }
 
 

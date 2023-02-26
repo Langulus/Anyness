@@ -65,11 +65,11 @@ concept IsStaticallyOptimized = requires (Decay<T> a) { typename T::Key; typenam
 /// to complex, from flat to deep                                             
 TEMPLATE_TEST_CASE(
    "TOrderedMap/TUnorderedMap/OrderedMap/UnorderedMap", "[map]",
-   (TypePair<TUnorderedMap<Text, int*>, Text, int*>),
    (TypePair<TUnorderedMap<Text, int>, Text, int>),
    (TypePair<TUnorderedMap<Text, Trait>, Text, Trait>),
    (TypePair<TUnorderedMap<Text, Traits::Count>, Text, Traits::Count>),
    (TypePair<TUnorderedMap<Text, Any>, Text, Any>),
+   (TypePair<TUnorderedMap<Text, int*>, Text, int*>),
    (TypePair<TUnorderedMap<Text, Trait*>, Text, Trait*>),
    (TypePair<TUnorderedMap<Text, Traits::Count*>, Text, Traits::Count*>),
    (TypePair<TUnorderedMap<Text, Any*>, Text, Any*>),
