@@ -18,6 +18,7 @@ namespace Langulus::Anyness
    ///   @param key - the key to use                                          
    ///   @param value - the value to use                                      
    TEMPLATE()
+   LANGULUS(ALWAYSINLINE)
    constexpr PAIR()::TPair(K key, V value) noexcept requires (!CT::Decayed<K, V>)
       : mKey {key}
       , mValue {value} {}
@@ -26,6 +27,7 @@ namespace Langulus::Anyness
    ///   @param key - the key to use                                          
    ///   @param value - the value to use                                      
    TEMPLATE()
+   LANGULUS(ALWAYSINLINE)
    constexpr PAIR()::TPair(K&& key, V&& value) noexcept requires (CT::Decayed<K, V> && CT::MoveMakableNoexcept<K, V>)
       : mKey {Forward<K>(key)}
       , mValue {Forward<V>(value)} {}
@@ -34,6 +36,7 @@ namespace Langulus::Anyness
    ///   @param key - the key to use                                          
    ///   @param value - the value to use                                      
    TEMPLATE()
+   LANGULUS(ALWAYSINLINE)
    constexpr PAIR()::TPair(K&& key, V&& value) requires (CT::Decayed<K, V> && CT::MoveMakable<K, V>)
       : mKey {Forward<K>(key)}
       , mValue {Forward<V>(value)} {}
@@ -42,6 +45,7 @@ namespace Langulus::Anyness
    ///   @param key - the key to use                                          
    ///   @param value - the value to use                                      
    TEMPLATE()
+   LANGULUS(ALWAYSINLINE)
    constexpr PAIR()::TPair(const K& key, const V& value) noexcept requires (CT::Decayed<K, V> && CT::CopyMakableNoexcept<K, V>)
       : mKey {key}
       , mValue {value} {}
@@ -50,6 +54,7 @@ namespace Langulus::Anyness
    ///   @param key - the key to use                                          
    ///   @param value - the value to use                                      
    TEMPLATE()
+   LANGULUS(ALWAYSINLINE)
    constexpr PAIR()::TPair(const K& key, const V& value) requires (CT::Decayed<K, V> && CT::CopyMakable<K, V>)
       : mKey {key}
       , mValue {value} {}
@@ -57,6 +62,7 @@ namespace Langulus::Anyness
    /// Swap (noexcept)                                                        
    ///   @param other - the pair to swap with                                 
    TEMPLATE()
+   LANGULUS(ALWAYSINLINE)
    constexpr void PAIR()::Swap(TPair& other) noexcept requires CT::SwappableNoexcept<K, V> {
       ::std::swap(mKey, other.mKey);
       ::std::swap(mValue, other.mValue);
@@ -65,6 +71,7 @@ namespace Langulus::Anyness
    /// Swap                                                                   
    ///   @param other - the pair to swap with                                 
    TEMPLATE()
+   LANGULUS(ALWAYSINLINE)
    constexpr void PAIR()::Swap(TPair& other) requires CT::Swappable<K, V> {
       ::std::swap(mKey, other.mKey);
       ::std::swap(mValue, other.mValue);
@@ -74,6 +81,7 @@ namespace Langulus::Anyness
    ///   @param rhs - pair to compare against                                 
    ///   @return true if pairs match                                          
    TEMPLATE()
+   LANGULUS(ALWAYSINLINE)
    bool PAIR()::operator == (const TPair& rhs) const {
       return mKey == rhs.mKey && mValue == rhs.mValue;
    }
@@ -81,8 +89,34 @@ namespace Langulus::Anyness
    /// Clone the pair                                                         
    ///   @return a cloned pair                                                
    TEMPLATE()
+   LANGULUS(ALWAYSINLINE)
    PAIR() PAIR()::Clone() const {
       return {Langulus::Clone(mKey), Langulus::Clone(mValue)};
+   }
+
+   /// Get the pair's hash                                                    
+   ///   @attention hash is not cached, so this function is slow              
+   ///   @return the hash                                                     
+   TEMPLATE()
+   LANGULUS(ALWAYSINLINE)
+   Hash PAIR()::GetHash() const {
+      return HashData(mKey, mValue);
+   }
+
+   /// Get the type of the contained key                                      
+   ///   @return the key type                                                 
+   TEMPLATE()
+   LANGULUS(ALWAYSINLINE)
+   DMeta PAIR()::GetKeyType() const noexcept {
+      return MetaData::Of<K>();
+   }
+
+   /// Get the type of the contained value                                    
+   ///   @return the value type                                               
+   TEMPLATE()
+   LANGULUS(ALWAYSINLINE)
+   DMeta PAIR()::GetValueType() const noexcept {
+      return MetaData::Of<V>();
    }
 
 } // namespace Langulus::Anyness

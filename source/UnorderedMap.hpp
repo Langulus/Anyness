@@ -36,6 +36,41 @@ namespace Langulus::Anyness
 
       template<CT::Semantic S>
       UnorderedMap& operator = (S&&) noexcept;
+
+      ///                                                                     
+      ///   Search                                                            
+      ///                                                                     
+      template<CT::NotSemantic K>
+      NOD() Block At(const K&);
+      template<CT::NotSemantic K>
+      NOD() Block operator[] (const K&);
+
+      ///                                                                     
+      ///   Insertion                                                         
+      ///                                                                     
+      Count Insert(const CT::NotSemantic auto&, const CT::NotSemantic auto&);
+      Count Insert(const CT::NotSemantic auto&, CT::NotSemantic auto&&);
+      Count Insert(CT::NotSemantic auto&&, const CT::NotSemantic auto&);
+      Count Insert(CT::NotSemantic auto&&, CT::NotSemantic auto&&);
+      Count Insert(CT::Pair auto&&);
+      Count Insert(const CT::Pair auto&);
+
+      template<CT::Semantic SK, CT::Semantic SV>
+      Count Insert(SK&&, SV&&);
+      template<CT::Semantic S>
+      Count Insert(S&&);
+
+      UnorderedMap& operator << (CT::Pair auto&&);
+      UnorderedMap& operator << (const CT::Pair auto&);
+
+      template<CT::Semantic S>
+      UnorderedMap& operator << (S&&);
+
+   protected:
+      template<CT::Semantic SK, CT::Semantic SV>
+      Count InsertUnknown(SK&&, SV&&);
+      template<CT::Semantic SP>
+      Count InsertUnknown(SP&&);
    };
 
 } // namespace Langulus::Anyness

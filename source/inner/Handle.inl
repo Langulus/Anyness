@@ -268,8 +268,18 @@ namespace Langulus::Anyness
                else
                   handle.SetEntry(nullptr);
             }
-            else {
+            else if constexpr (CT::Dense<Deptr<T>>){
                // Do a clone                                            
+               using DT = Deptr<T>;
+               auto meta = MetaData::Of<DT>();
+               auto entry = Inner::Allocator::Allocate(meta->RequestSize(1).mByteSize);
+               auto pointer = entry->template As<DT>();
+               SemanticNew<DT>(pointer, Langulus::Clone(*value.mValue.Get()));
+               handle.Set(pointer);
+               handle.SetEntry(entry);
+            }
+            else {
+               //clone an indirection layer by nesting semanticnewhandle
                TODO();
             }
          }
@@ -285,8 +295,18 @@ namespace Langulus::Anyness
                else
                   handle.SetEntry(nullptr);
             }
-            else {
+            else if constexpr (CT::Dense<Deptr<T>>) {
                // Do a clone                                            
+               using DT = Deptr<T>;
+               auto meta = MetaData::Of<DT>();
+               auto entry = Inner::Allocator::Allocate(meta->RequestSize(1).mByteSize);
+               auto pointer = entry->template As<DT>();
+               SemanticNew<DT>(pointer, Langulus::Clone(*value.mValue));
+               handle.Set(pointer);
+               handle.SetEntry(entry);
+            }
+            else {
+               //clone an indirection layer by nesting semanticnewhandle
                TODO();
             }
          }

@@ -44,6 +44,10 @@ namespace Langulus::Anyness
 
       TPair& operator = (const TPair&) = default;
       TPair& operator = (TPair&&) noexcept = default;
+
+      NOD() Hash GetHash() const;
+      NOD() DMeta GetKeyType() const noexcept;
+      NOD() DMeta GetValueType() const noexcept;
    };
 
 } // namespace Langulus::Anyness

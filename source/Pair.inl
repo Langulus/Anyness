@@ -61,7 +61,7 @@ namespace Langulus::Anyness
    ///   @return the hash                                                     
    LANGULUS(ALWAYSINLINE)
    Hash Pair::GetHash() const {
-      return HashData(mKey.GetHash(), mValue.GetHash());
+      return HashData(mKey, mValue);
    }
 
    /// Get the type of the contained key                                      

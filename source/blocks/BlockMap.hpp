@@ -127,34 +127,7 @@ namespace Langulus::Anyness
       void Mutate(DMeta, DMeta);
       void Allocate(const Count&);
 
-      //NOD() BlockMap Clone() const;
-
       bool operator == (const BlockMap&) const;
-
-      ///                                                                     
-      ///   Insertion                                                         
-      ///                                                                     
-      template<CT::NotSemantic K, CT::NotSemantic V>
-      Count Insert(const K&, const V&);
-      template<CT::NotSemantic K, CT::NotSemantic V>
-      Count Insert(K&&, const V&);
-      template<CT::NotSemantic K, CT::NotSemantic V>
-      Count Insert(const K&, V&&);
-      template<CT::NotSemantic K, CT::NotSemantic V>
-      Count Insert(K&&, V&&);
-
-      template<CT::Semantic SK, CT::Semantic SV>
-      Count Insert(SK&&, SV&&);
-
-      template<CT::Data K, CT::Data V>
-      BlockMap& operator << (const TPair<K, V>&);
-      template<CT::Data K, CT::Data V>
-      BlockMap& operator << (TPair<K, V>&&);
-      BlockMap& operator << (const Pair&);
-      BlockMap& operator << (Pair&&);
-
-      template<CT::Semantic S>
-      BlockMap& operator << (S&&) requires (CT::Pair<TypeOf<S>>);
 
       ///                                                                     
       ///   Removal                                                           
@@ -184,14 +157,10 @@ namespace Langulus::Anyness
       NOD() Index FindKeyIndex(const K&) const;
 
       template<CT::NotSemantic K>
-      NOD() Block At(const K&);
-      template<CT::NotSemantic K>
       NOD() Block At(const K&) const;
 
       template<CT::NotSemantic K>
       NOD() Block operator[] (const K&) const;
-      template<CT::NotSemantic K>
-      NOD() Block operator[] (const K&);
 
       NOD() Block GetKey(const Index&) const;
       NOD() Block GetKey(const Index&);
@@ -216,8 +185,6 @@ namespace Langulus::Anyness
       NOD() ConstIterator end() const noexcept;
       NOD() ConstIterator last() const noexcept;
 
-      template<bool REVERSE = false, bool MUTABLE = true, class F>
-      Count ForEach(F&&);
       template<bool REVERSE = false, class F>
       Count ForEach(F&&) const;
 
@@ -228,7 +195,7 @@ namespace Langulus::Anyness
 
       template<bool REVERSE = false, bool MUTABLE = true, class F>
       Count ForEachValueElement(F&&);
-      template<bool REVERSE = false, class F>
+      template<bool REVERSE = false, class F> 
       Count ForEachValueElement(F&&) const;
 
       template<bool REVERSE = false, bool MUTABLE = true, class... F>
@@ -261,6 +228,7 @@ namespace Langulus::Anyness
       template<bool REVERSE, bool MUTABLE, class F>
       Count ForEachElement(Block&, F&&);
 
+      void AllocateFresh(const Count&);
       template<bool REUSE>
       void AllocateData(const Count&);
       void AllocateInner(const Count&);
@@ -272,11 +240,6 @@ namespace Langulus::Anyness
       void Free();
 
       void Rehash(const Count&, const Count&);
-
-      template<CT::Semantic SK, CT::Semantic SV>
-      Count InsertUnknown(SK&&, SV&&);
-      template<CT::Semantic SP>
-      Count InsertUnknown(SP&&);
 
       template<bool CHECK_FOR_MATCH, CT::Semantic SK, CT::Semantic SV>
       Offset InsertInnerUnknown(const Offset&, SK&&, SV&&);
@@ -381,9 +344,7 @@ namespace Langulus::CT
    concept Map = ((DerivedFrom<T, Anyness::BlockMap>
       && sizeof(T) == sizeof(Anyness::BlockMap)) && ...);
    
-   /// A reflected map type is any type that inherits BlockMap, and is        
-   /// binary compatible to a BlockMap                                        
-   /// Keep in mind, that sparse types are never considered CT::Map!          
+   /// Check if a type is a statically typed map                              
    template<class... T>
    concept TypedMap = ((Map<T> && requires { typename T::Key; typename T::Value; }) && ...);
 

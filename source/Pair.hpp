@@ -59,10 +59,14 @@ namespace Langulus
    namespace CT
    {
 
-      /// Check if T is a pair                                                
+      /// Check if T is a pair type                                           
       ///	@attention not a test for binary compatibility!                   
-      template<class T>
-      concept Pair = Dense<T> && DerivedFrom<T, A::Pair>;
+      template<class... T>
+      concept Pair = ((Dense<T> && DerivedFrom<T, A::Pair>) && ...);
+
+      /// Check if a type is a statically typed pair                          
+      template<class... T>
+      concept TypedPair = ((Pair<T> && requires { typename T::Key; typename T::Value; }) && ...);
 
    } // namespace Langulus::CT
 

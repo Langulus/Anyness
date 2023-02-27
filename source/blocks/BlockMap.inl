@@ -14,6 +14,7 @@ namespace Langulus::Anyness
    /// Manual construction via an initializer list                            
    ///   @param initlist - the initializer list to forward                    
    template<CT::Data K, CT::Data V>
+   LANGULUS(ALWAYSINLINE)
    BlockMap::BlockMap(::std::initializer_list<TPair<K, V>> initlist)
       : BlockMap {} {
       Mutate<K, V>();
@@ -73,11 +74,8 @@ namespace Langulus::Anyness
    LANGULUS(ALWAYSINLINE)
    void BlockMap::BlockTransfer(S&& other) {
       using FROM = TypeOf<S>;
-
-      static_assert(CT::Map<TO>,
-         "TO must be a map type");
-      static_assert(CT::Map<FROM>,
-         "FROM must be a map type");
+      static_assert(CT::Map<TO>, "TO must be a map type");
+      static_assert(CT::Map<FROM>, "FROM must be a map type");
 
       mValues.mCount = other.mValue.mValues.mCount;
 
@@ -146,7 +144,10 @@ namespace Langulus::Anyness
          else {
             // Use type-erased cloning                                  
             auto asTo = reinterpret_cast<TO*>(this);
-            asTo->AllocateFresh(other.mValue.GetReserved() + 1);
+            asTo->AllocateFresh(other.mValue.GetReserved());
+
+            // Clone info array                                         
+            ::std::memcpy(asTo->mInfo, other.mValue.mInfo, GetReserved() + 1);
 
             auto info = asTo->GetInfo();
             const auto infoEnd = asTo->GetInfoEnd();
@@ -272,13 +273,14 @@ namespace Langulus::Anyness
       auto info = GetInfo();
       const auto infoEnd = GetInfoEnd();
       while (info != infoEnd) {
-         const auto lhs = info - GetInfo();
-         if (!*(info++))
-            continue;
+         if (*info) {
+            const auto lhs = info - GetInfo();
+            const auto rhs = other.FindIndexUnknown(GetKey(lhs));
+            if (rhs == other.GetReserved() || GetValue(lhs) != other.GetValue(rhs))
+               return false;
+         }
 
-         const auto rhs = other.FindIndexUnknown(GetKey(lhs));
-         if (rhs == other.GetReserved() || GetValue(lhs) != other.GetValue(rhs))
-            return false;
+         ++info;
       }
 
       return true;
@@ -287,7 +289,8 @@ namespace Langulus::Anyness
    /// Move a table                                                           
    ///   @param rhs - the table to move                                       
    ///   @return a reference to this table                                    
-   inline BlockMap& BlockMap::operator = (BlockMap&& rhs) noexcept {
+   LANGULUS(ALWAYSINLINE)
+   BlockMap& BlockMap::operator = (BlockMap&& rhs) noexcept {
       if (&rhs == this)
          return *this;
 
@@ -299,7 +302,8 @@ namespace Langulus::Anyness
    /// Creates a shallow copy of the given table                              
    ///   @param rhs - the table to reference                                  
    ///   @return a reference to this table                                    
-   inline BlockMap& BlockMap::operator = (const BlockMap& rhs) {
+   LANGULUS(ALWAYSINLINE)
+   BlockMap& BlockMap::operator = (const BlockMap& rhs) {
       if (&rhs == this)
          return *this;
 
@@ -312,6 +316,7 @@ namespace Langulus::Anyness
    ///   @param pair - the pair to emplace                                    
    ///   @return a reference to this table                                    
    template<CT::Data K, CT::Data V>
+   LANGULUS(ALWAYSINLINE)
    BlockMap& BlockMap::operator = (TPair<K, V>&& pair) noexcept {
       Clear();
       Insert(Move(pair.mKey), Move(pair.mValue));
@@ -327,139 +332,105 @@ namespace Langulus::Anyness
       Insert(pair.mKey, pair.mValue);
       return *this;
    }
-
-   /// Clone the table                                                        
-   ///   @return the new table                                                
-   /*inline BlockMap BlockMap::Clone() const {
-      if (IsEmpty())
-         return {};
-
-      BlockMap result {Disown(*this)};
-
-      // Allocate keys and info                                         
-      result.mKeys.mEntry = Allocator::Allocate(mKeys.mEntry->GetAllocatedSize());
-      LANGULUS_ASSERT(result.mKeys.mEntry, Allocate, "Out of memory");
-
-      // Allocate values                                                
-      result.mValues.mEntry = Allocator::Allocate(mValues.mEntry->GetAllocatedSize());
-      if (!result.mValues.mEntry) {
-         Allocator::Deallocate(result.mKeys.mEntry);
-         result.mKeys.mEntry = nullptr;
-         LANGULUS_THROW(Allocate, "Out of memory");
-      }
-
-      // Clone the info bytes (including sentinel)                      
-      result.mKeys.mRaw = result.mKeys.mEntry->GetBlockStart();
-      result.mValues.mRaw = result.mValues.mEntry->GetBlockStart();
-      result.mInfo = reinterpret_cast<InfoType*>(result.mKeys.mRaw)
-         + (mInfo - reinterpret_cast<const InfoType*>(mKeys.mRaw));
-      ::std::memcpy(result.mInfo, mInfo, GetReserved() + 1);
-
-      // Clone the rest                                                 
-      auto info = GetInfo();
-      const auto infoEnd = info + GetReserved();
-      auto fromKey = GetKey(0);
-      auto toKey = result.GetKey(0);
-      auto fromVal = GetValue(0);
-      auto toVal = result.GetValue(0);
-      while (info != infoEnd) {
-         if (*info) {
-            toKey.CallUnknownSemanticConstructors(1, Langulus::Clone(fromKey));
-            toVal.CallUnknownSemanticConstructors(1, Langulus::Clone(fromVal));
-         }
-
-         ++info;
-         toKey.Next();
-         fromKey.Next();
-         toVal.Next();
-         fromVal.Next();
-      }
-
-      return Abandon(result);
-   }*/
    
    /// Templated tables are always typed                                      
    ///   @return false                                                        
+   LANGULUS(ALWAYSINLINE)
    constexpr bool BlockMap::IsKeyUntyped() const noexcept {
       return mKeys.IsUntyped();
    }
    
    /// Templated tables are always typed                                      
    ///   @return false                                                        
+   LANGULUS(ALWAYSINLINE)
    constexpr bool BlockMap::IsValueUntyped() const noexcept {
       return mValues.IsUntyped();
    }
    
    /// Templated tables are always type-constrained                           
    ///   @return true                                                         
+   LANGULUS(ALWAYSINLINE)
    constexpr bool BlockMap::IsKeyTypeConstrained() const noexcept {
       return mKeys.IsTypeConstrained();;
    }
    
    /// Templated tables are always type-constrained                           
    ///   @return true                                                         
+   LANGULUS(ALWAYSINLINE)
    constexpr bool BlockMap::IsValueTypeConstrained() const noexcept {
       return mValues.IsTypeConstrained();;
    }
    
    /// Check if key type is abstract                                          
+   LANGULUS(ALWAYSINLINE)
    constexpr bool BlockMap::IsKeyAbstract() const noexcept {
       return mKeys.IsAbstract() && mKeys.IsDense();
    }
    
    /// Check if value type is abstract                                        
+   LANGULUS(ALWAYSINLINE)
    constexpr bool BlockMap::IsValueAbstract() const noexcept {
       return mValues.IsAbstract() && mKeys.IsDense();
    }
    
    /// Check if key type is default-constructible                             
+   LANGULUS(ALWAYSINLINE)
    constexpr bool BlockMap::IsKeyConstructible() const noexcept {
       return mKeys.IsDefaultable();
    }
    
    /// Check if value type is default-constructible                           
+   LANGULUS(ALWAYSINLINE)
    constexpr bool BlockMap::IsValueConstructible() const noexcept {
       return mValues.IsDefaultable();
    }
    
    /// Check if key type is deep                                              
+   LANGULUS(ALWAYSINLINE)
    constexpr bool BlockMap::IsKeyDeep() const noexcept {
       return mKeys.IsDeep();
    }
    
    /// Check if value type is deep                                            
+   LANGULUS(ALWAYSINLINE)
    constexpr bool BlockMap::IsValueDeep() const noexcept {
       return mValues.IsDeep();
    }
 
    /// Check if the key type is a pointer                                     
+   LANGULUS(ALWAYSINLINE)
    constexpr bool BlockMap::IsKeySparse() const noexcept {
       return mKeys.IsSparse();
    }
    
    /// Check if the value type is a pointer                                   
+   LANGULUS(ALWAYSINLINE)
    constexpr bool BlockMap::IsValueSparse() const noexcept {
       return mValues.IsSparse();
    }
 
    /// Check if the key type is not a pointer                                 
+   LANGULUS(ALWAYSINLINE)
    constexpr bool BlockMap::IsKeyDense() const noexcept {
       return mKeys.IsDense();
    }
 
    /// Check if the value type is not a pointer                               
+   LANGULUS(ALWAYSINLINE)
    constexpr bool BlockMap::IsValueDense() const noexcept {
       return mValues.IsDense();
    }
 
    /// Get the size of a single key, in bytes                                 
    ///   @return the number of bytes a single key contains                    
+   LANGULUS(ALWAYSINLINE)
    constexpr Size BlockMap::GetKeyStride() const noexcept {
       return mKeys.GetStride();
    }
    
    /// Get the size of a single value, in bytes                               
    ///   @return the number of bytes a single value contains                  
+   LANGULUS(ALWAYSINLINE)
    constexpr Size BlockMap::GetValueStride() const noexcept {
       return mValues.GetStride();
    }
@@ -468,6 +439,7 @@ namespace Langulus::Anyness
    ///   @param index - the key index                                         
    ///   @return a constant reference to the element                          
    template<CT::Data K>
+   LANGULUS(ALWAYSINLINE)
    constexpr const K& BlockMap::GetRawKey(Offset index) const noexcept {
       return GetKeys<K>().GetRaw()[index];
    }
@@ -476,6 +448,7 @@ namespace Langulus::Anyness
    ///   @param index - the key index                                         
    ///   @return a mutable reference to the element                           
    template<CT::Data K>
+   LANGULUS(ALWAYSINLINE)
    constexpr K& BlockMap::GetRawKey(Offset index) noexcept {
       return GetKeys<K>().GetRaw()[index];
    }
@@ -484,6 +457,7 @@ namespace Langulus::Anyness
    ///   @param index - the key index                                         
    ///   @return the handle                                                   
    template<CT::Data K>
+   LANGULUS(ALWAYSINLINE)
    constexpr decltype(auto) BlockMap::GetKeyHandle(Offset index) noexcept {
       return GetKeys<K>().GetHandle(index);
    }
@@ -492,6 +466,7 @@ namespace Langulus::Anyness
    ///   @param index - the value index                                       
    ///   @return a constant reference to the element                          
    template<CT::Data V>
+   LANGULUS(ALWAYSINLINE)
    constexpr const V& BlockMap::GetRawValue(Offset index) const noexcept {
       return GetValues<V>().GetRaw()[index];
    }
@@ -500,6 +475,7 @@ namespace Langulus::Anyness
    ///   @param index - the value index                                       
    ///   @return a mutable reference to the element                           
    template<CT::Data V>
+   LANGULUS(ALWAYSINLINE)
    constexpr V& BlockMap::GetRawValue(Offset index) noexcept {
       return GetValues<V>().GetRaw()[index];
    }
@@ -508,6 +484,7 @@ namespace Langulus::Anyness
    ///   @param index - the value index                                       
    ///   @return the handle                                                   
    template<CT::Data V>
+   LANGULUS(ALWAYSINLINE)
    constexpr decltype(auto) BlockMap::GetValueHandle(Offset index) noexcept {
       return GetValues<V>().GetHandle(index);
    }
@@ -515,12 +492,14 @@ namespace Langulus::Anyness
    #ifdef LANGULUS_ENABLE_TESTING
       /// Get raw key memory pointer, used only in testing                    
       ///   @return the pointer                                               
+      LANGULUS(ALWAYSINLINE)
       constexpr const void* BlockMap::GetRawKeysMemory() const noexcept {
          return mKeys.mRaw;
       }
 
       /// Get raw value memory pointer, used only in testing                  
       ///   @return the pointer                                               
+      LANGULUS(ALWAYSINLINE)
       constexpr const void* BlockMap::GetRawValuesMemory() const noexcept {
          return mValues.mRaw;
       }
@@ -528,28 +507,33 @@ namespace Langulus::Anyness
 
    /// Get the size of all pairs, in bytes                                    
    ///   @return the total amount of initialized bytes                        
+   LANGULUS(ALWAYSINLINE)
    constexpr Size BlockMap::GetByteSize() const noexcept {
       return sizeof(Pair) * GetCount(); 
    }
 
    /// Get the key meta data                                                  
-   inline DMeta BlockMap::GetKeyType() const noexcept {
+   LANGULUS(ALWAYSINLINE)
+   DMeta BlockMap::GetKeyType() const noexcept {
       return mKeys.GetType();
    }
 
    /// Get the value meta data                                                
-   inline DMeta BlockMap::GetValueType() const noexcept {
+   LANGULUS(ALWAYSINLINE)
+   DMeta BlockMap::GetValueType() const noexcept {
       return mValues.GetType();
    }
 
    /// Check if key type exactly matches another                              
    template<class ALT_K>
+   LANGULUS(ALWAYSINLINE)
    constexpr bool BlockMap::KeyIs() const noexcept {
       return mKeys.Is<ALT_K>();
    }
 
    /// Check if value type exactly matches another                            
    template<class ALT_V>
+   LANGULUS(ALWAYSINLINE)
    constexpr bool BlockMap::ValueIs() const noexcept {
       return mValues.Is<ALT_V>();
    }
@@ -592,19 +576,22 @@ namespace Langulus::Anyness
 
    /// Get the info array (const)                                             
    ///   @return a pointer to the first element inside the info array         
-   inline const BlockMap::InfoType* BlockMap::GetInfo() const noexcept {
+   LANGULUS(ALWAYSINLINE)
+   const BlockMap::InfoType* BlockMap::GetInfo() const noexcept {
       return mInfo;
    }
 
    /// Get the info array                                                     
    ///   @return a pointer to the first element inside the info array         
-   inline BlockMap::InfoType* BlockMap::GetInfo() noexcept {
+   LANGULUS(ALWAYSINLINE)
+   BlockMap::InfoType* BlockMap::GetInfo() noexcept {
       return mInfo;
    }
 
    /// Get the end of the info array                                          
    ///   @return a pointer to the first element inside the info array         
-   inline const BlockMap::InfoType* BlockMap::GetInfoEnd() const noexcept {
+   LANGULUS(ALWAYSINLINE)
+   const BlockMap::InfoType* BlockMap::GetInfoEnd() const noexcept {
       return mInfo + GetReserved();
    }
 
@@ -612,6 +599,7 @@ namespace Langulus::Anyness
    ///   @tparam K - the key type                                             
    ///   @tparam V - the value type                                           
    template<CT::NotSemantic K, CT::NotSemantic V>
+   LANGULUS(ALWAYSINLINE)
    void BlockMap::Mutate() {
       Mutate(MetaData::Of<K>(), MetaData::Of<V>());
    }
@@ -619,7 +607,8 @@ namespace Langulus::Anyness
    /// Checks type compatibility and sets type for the type-erased map        
    ///   @param key - the key type                                            
    ///   @param value - the value type                                        
-   inline void BlockMap::Mutate(DMeta key, DMeta value) {
+   LANGULUS(ALWAYSINLINE)
+   void BlockMap::Mutate(DMeta key, DMeta value) {
       if (!mKeys.mType) {
          // Set a fresh key type                                        
          mKeys.mType = key;
@@ -646,8 +635,40 @@ namespace Langulus::Anyness
    /// Reserves space for the specified number of pairs                       
    ///   @attention does nothing if reserving less than current reserve       
    ///   @param count - number of pairs to allocate                           
-   inline void BlockMap::Allocate(const Count& count) {
+   LANGULUS(ALWAYSINLINE)
+   void BlockMap::Allocate(const Count& count) {
       AllocateInner(Roof2(count < MinimalAllocation ? MinimalAllocation : count));
+   }
+
+   /// Allocate a fresh set keys and values (for internal use only)           
+   ///   @attention doesn't initialize anything, but the memory state         
+   ///   @attention doesn't modify count, doesn't set info sentinel           
+   ///   @attention assumes count is a power-of-two                           
+   ///   @param count - the new number of pairs                               
+   inline void BlockMap::AllocateFresh(const Count& count) {
+      LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(count),
+         "Table reallocation count is not a power-of-two");
+
+      Offset infoOffset;
+      const auto keyAndInfoSize = RequestKeyAndInfoSize(count, infoOffset);
+      mKeys.mEntry = Allocator::Allocate(keyAndInfoSize);
+      LANGULUS_ASSERT(mKeys.mEntry, Allocate, "Out of memory");
+
+      const auto valueByteSize = RequestValuesSize(count);
+      mValues.mEntry = Allocator::Allocate(valueByteSize);
+
+      if (!mValues.mEntry) {
+         Allocator::Deallocate(mKeys.mEntry);
+         mKeys.mEntry = nullptr;
+         LANGULUS_THROW(Allocate, "Out of memory");
+      }
+
+      mValues.mRaw = mValues.mEntry->GetBlockStart();
+      mKeys.mReserved = mValues.mReserved = count;
+
+      // Precalculate the info pointer, it's costly                     
+      mKeys.mRaw = mKeys.mEntry->GetBlockStart();
+      mInfo = reinterpret_cast<InfoType*>(mKeys.mRaw + infoOffset);
    }
 
    /// Allocate or reallocate key, value, and info array                      
@@ -859,7 +880,8 @@ namespace Langulus::Anyness
    ///   @attention does nothing if reserving less than current reserve       
    ///   @attention assumes count is a power-of-two number                    
    ///   @param count - number of pairs to allocate                           
-   inline void BlockMap::AllocateInner(const Count& count) {
+   LANGULUS(ALWAYSINLINE)
+   void BlockMap::AllocateInner(const Count& count) {
       // Shrinking is never allowed, you'll have to do it explicitly    
       // via Compact()                                                  
       if (count <= GetReserved())
@@ -879,80 +901,6 @@ namespace Langulus::Anyness
    LANGULUS(ALWAYSINLINE)
    Offset BlockMap::GetBucket(const K& key) const noexcept {
       return HashData(key).mHash & (GetReserved() - 1);
-   }
-
-   /// Insert a single pair inside table via copy                             
-   ///   @param key - the key to add                                          
-   ///   @param value - the value to add                                      
-   ///   @return 1 if pair was inserted, zero otherwise                       
-   template<CT::NotSemantic K, CT::NotSemantic V>
-   LANGULUS(ALWAYSINLINE)
-   Count BlockMap::Insert(const K& key, const V& value) {
-      return Insert(Copy(key), Copy(value));
-   }
-
-   /// Insert a single pair inside table via key copy and value move          
-   ///   @param key - the key to add                                          
-   ///   @param value - the value to add                                      
-   ///   @return 1 if pair was inserted, zero otherwise                       
-   template<CT::NotSemantic K, CT::NotSemantic V>
-   LANGULUS(ALWAYSINLINE)
-   Count BlockMap::Insert(const K& key, V&& value) {
-      return Insert(Copy(key), Move(value));
-   }
-
-   /// Insert a single pair inside table via key move and value copy          
-   ///   @param key - the key to add                                          
-   ///   @param value - the value to add                                      
-   ///   @return 1 if pair was inserted, zero otherwise                       
-   template<CT::NotSemantic K, CT::NotSemantic V>
-   LANGULUS(ALWAYSINLINE)
-   Count BlockMap::Insert(K&& key, const V& value) {
-      return Insert(Move(key), Copy(value));
-   }
-
-   /// Insert a single pair inside table via move                             
-   ///   @param key - the key to add                                          
-   ///   @param value - the value to add                                      
-   ///   @return 1 if pair was inserted, zero otherwise                       
-   template<CT::NotSemantic K, CT::NotSemantic V>
-   LANGULUS(ALWAYSINLINE)
-   Count BlockMap::Insert(K&& key, V&& value) {
-      return Insert(Move(key), Move(value));
-   }
-   
-   /// Insert a single pair inside table via move                             
-   ///   @param key - the key to add                                          
-   ///   @param value - the value to add                                      
-   ///   @return 1 if pair was inserted, zero otherwise                       
-   template<CT::Semantic SK, CT::Semantic SV>
-   Count BlockMap::Insert(SK&& key, SV&& value) {
-      using K = TypeOf<SK>;
-      using V = TypeOf<SV>;
-
-      Mutate<K, V>();
-      Allocate(GetCount() + 1);
-      InsertInner<true>(GetBucket(key.mValue), key.Forward(), value.Forward());
-      return 1;
-   }
-
-   /// Insert a single pair inside table via move (unknown version)           
-   ///   @param key - the key to add                                          
-   ///   @param value - the value to add                                      
-   ///   @return 1 if pair was inserted, zero otherwise                       
-   template<CT::Semantic SK, CT::Semantic SV>
-   inline Count BlockMap::InsertUnknown(SK&& key, SV&& val) {
-      static_assert(CT::Block<TypeOf<SK>>,
-         "SK's type must be a block type");
-      static_assert(CT::Block<TypeOf<SV>>,
-         "SV's type must be a block type");
-
-      Mutate(key.mValue.mType, val.mValue.mType);
-
-      Allocate(GetCount() + 1);
-      const auto index = key.mValue.GetHash().mHash & (GetReserved() - 1);
-      InsertInnerUnknown<true>(index, key.Forward(), val.Forward());
-      return 1;
    }
    
    /// Inner insertion function                                               
@@ -1088,44 +1036,11 @@ namespace Langulus::Anyness
       ++mValues.mCount;
       return index;
    }
-
-   /// Copy-insert a templated pair inside the map                            
-   ///   @param item - the pair to insert                                     
-   ///   @return a reference to this map for chaining                         
-   template<CT::Data K, CT::Data V>
-   BlockMap& BlockMap::operator << (const TPair<K, V>& item) {
-      Insert(item.mKey, item.mValue);
-      return *this;
-   }
-
-   /// Move-insert a templated pair inside the map                            
-   ///   @param item - the pair to insert                                     
-   ///   @return a reference to this map for chaining                         
-   template<CT::Data K, CT::Data V>
-   BlockMap& BlockMap::operator << (TPair<K ,V>&& item) {
-      Insert(Move(item.mKey), Move(item.mValue));
-      return *this;
-   }
-
-   /// Copy-insert a type-erased pair inside the map                          
-   ///   @param item - the pair to insert                                     
-   ///   @return a reference to this map for chaining                         
-   inline BlockMap& BlockMap::operator << (const Pair& item) {
-      InsertUnknown(Copy(item.mKey), Copy(item.mValue));
-      return *this;
-   }
-
-   /// Move-insert a type-erased pair inside the map                          
-   ///   @param item - the pair to insert                                     
-   ///   @return a reference to this map for chaining                         
-   inline BlockMap& BlockMap::operator << (Pair&& item) {
-      InsertUnknown(Move(item.mKey), Move(item.mValue));
-      return *this;
-   }
-
+   
    /// Destroy everything valid inside the map                                
    ///   @attention assumes there's at least one valid pair                   
-   inline void BlockMap::ClearInner() {
+   LANGULUS(ALWAYSINLINE)
+   void BlockMap::ClearInner() {
       LANGULUS_ASSUME(DevAssumes, !IsEmpty(), "Map is empty");
       auto inf = GetInfo();
       const auto infEnd = GetInfoEnd();
@@ -1141,7 +1056,8 @@ namespace Langulus::Anyness
    }
 
    /// Clears all data, but doesn't deallocate                                
-   inline void BlockMap::Clear() {
+   LANGULUS(ALWAYSINLINE)
+   void BlockMap::Clear() {
       if (IsEmpty())
          return;
 
@@ -1164,7 +1080,8 @@ namespace Langulus::Anyness
    }
 
    /// Clears all data and deallocates                                        
-   inline void BlockMap::Reset() {
+   LANGULUS(ALWAYSINLINE)
+   void BlockMap::Reset() {
       if (mValues.mEntry) {
          if (mValues.mEntry->GetUses() == 1) {
             // Remove all used keys and values, they're used only here  
@@ -1262,6 +1179,7 @@ namespace Langulus::Anyness
    /// Get the templated key container                                        
    ///   @attention for internal use only, elements might not be initialized  
    template<CT::Data K>
+   LANGULUS(ALWAYSINLINE)
    const TAny<K>& BlockMap::GetKeys() const noexcept {
       return reinterpret_cast<const TAny<K>&>(mKeys);
    }
@@ -1269,6 +1187,7 @@ namespace Langulus::Anyness
    /// Get the templated key container                                        
    ///   @attention for internal use only, elements might not be initialized  
    template<CT::Data K>
+   LANGULUS(ALWAYSINLINE)
    TAny<K>& BlockMap::GetKeys() noexcept {
       return reinterpret_cast<TAny<K>&>(mKeys);
    }
@@ -1276,6 +1195,7 @@ namespace Langulus::Anyness
    /// Get the templated values container                                     
    ///   @attention for internal use only, elements might not be initialized  
    template<CT::Data V>
+   LANGULUS(ALWAYSINLINE)
    const TAny<V>& BlockMap::GetValues() const noexcept {
       return reinterpret_cast<const TAny<V>&>(mValues);
    }
@@ -1283,6 +1203,7 @@ namespace Langulus::Anyness
    /// Get the templated values container                                     
    ///   @attention for internal use only, elements might not be initialized  
    template<CT::Data V>
+   LANGULUS(ALWAYSINLINE)
    TAny<V>& BlockMap::GetValues() noexcept {
       return reinterpret_cast<TAny<V>&>(mValues);
    }
@@ -1347,6 +1268,7 @@ namespace Langulus::Anyness
    ///   @param key - the key to search for                                   
    ///   @return true if key is found, false otherwise                        
    template<CT::NotSemantic K>
+   LANGULUS(ALWAYSINLINE)
    bool BlockMap::ContainsKey(const K& key) const {
       if (IsEmpty())
          return false;
@@ -1357,6 +1279,7 @@ namespace Langulus::Anyness
    ///   @param key - the key to search for                                   
    ///   @return the index if key was found, or IndexNone if not              
    template<CT::NotSemantic K>
+   LANGULUS(ALWAYSINLINE)
    Index BlockMap::FindKeyIndex(const K& key) const {
       const auto offset = FindIndex(key);
       return offset != GetReserved() ? Index {offset} : IndexNone;
@@ -1388,6 +1311,7 @@ namespace Langulus::Anyness
    ///   @param pair - the pair to search for                                 
    ///   @return true if pair is found, false otherwise                       
    template<CT::NotSemantic K, CT::NotSemantic V>
+   LANGULUS(ALWAYSINLINE)
    bool BlockMap::ContainsPair(const TPair<K, V>& pair) const {
       const auto found = FindIndex(pair.mKey);
       return found != GetReserved() && GetValue(found) == pair.mValue;
@@ -1397,7 +1321,8 @@ namespace Langulus::Anyness
    ///   @attention as unsafe as it gets, for internal use only               
    ///   @param i - the offset to use                                         
    ///   @return the key, wrapped inside a block                              
-   inline Block BlockMap::GetKey(const Offset& i) noexcept {
+   LANGULUS(ALWAYSINLINE)
+   Block BlockMap::GetKey(const Offset& i) noexcept {
       Block result {mKeys};
       result.mState += DataState::Static;
       result.mCount = 1;
@@ -1410,7 +1335,8 @@ namespace Langulus::Anyness
    ///   @attention as unsafe as it gets, for internal use only               
    ///   @param i - the offset to use                                         
    ///   @return the key, wrapped inside an immutable block                   
-   inline Block BlockMap::GetKey(const Offset& i) const noexcept {
+   LANGULUS(ALWAYSINLINE)
+   Block BlockMap::GetKey(const Offset& i) const noexcept {
       auto result = const_cast<BlockMap*>(this)->GetKey(i);
       result.MakeConst();
       return result;
@@ -1420,7 +1346,8 @@ namespace Langulus::Anyness
    ///   @attention as unsafe as it gets, for internal use only               
    ///   @param i - the offset to use                                         
    ///   @return the value, wrapped inside a block                            
-   inline Block BlockMap::GetValue(const Offset& i) noexcept {
+   LANGULUS(ALWAYSINLINE)
+   Block BlockMap::GetValue(const Offset& i) noexcept {
       Block result {mValues};
       result.mState += DataState::Static;
       result.mCount = 1;
@@ -1432,7 +1359,8 @@ namespace Langulus::Anyness
    ///   @attention as unsafe as it gets, for internal use only               
    ///   @param i - the offset to use                                         
    ///   @return the value, wrapped inside an immutable block                 
-   inline Block BlockMap::GetValue(const Offset& i) const noexcept {
+   LANGULUS(ALWAYSINLINE)
+   Block BlockMap::GetValue(const Offset& i) const noexcept {
       auto result = const_cast<BlockMap*>(this)->GetValue(i);
       result.MakeConst();
       return result;
@@ -1442,7 +1370,8 @@ namespace Langulus::Anyness
    ///   @attention as unsafe as it gets, for internal use only               
    ///   @param i - the offset to use                                         
    ///   @return the pair                                                     
-   inline Pair BlockMap::GetPair(const Offset& i) const noexcept {
+   LANGULUS(ALWAYSINLINE)
+   Pair BlockMap::GetPair(const Offset& i) const noexcept {
       return {GetKey(i), GetValue(i)};
    }
 
@@ -1450,33 +1379,9 @@ namespace Langulus::Anyness
    ///   @attention as unsafe as it gets, for internal use only               
    ///   @param i - the offset to use                                         
    ///   @return the pair                                                     
-   inline Pair BlockMap::GetPair(const Offset& i) noexcept {
+   LANGULUS(ALWAYSINLINE)
+   Pair BlockMap::GetPair(const Offset& i) noexcept {
       return {GetKey(i), GetValue(i)};
-   }
-
-   /// Returns a reference to the value found for key                         
-   /// Throws Except::OutOfRange if element cannot be found                   
-   ///   @param key - the key to search for                                   
-   ///   @return a reference to the value                                     
-   template<CT::NotSemantic K>
-   Block BlockMap::At(const K& key) {
-      const auto found = FindIndex(key);
-      if (found == GetReserved()) {
-         // Key wasn't found, but map is mutable and we can add it      
-         LANGULUS_ASSERT(
-            mValues.IsSparse() || GetValueType()->mDefaultConstructor != nullptr,
-            Construct,
-            "Can't implicitly create key - value is not default-constructible"
-         );
-
-         auto newk = Block::From(key);
-         auto newv = Any::FromMeta(GetValueType(), mValues.GetState());
-         newv.template AllocateMore<true>(1);
-         InsertUnknown(Copy(newk), Abandon(newv));
-         return GetValue(FindIndex(key));
-      }
-
-      return GetValue(found);
    }
 
    /// Returns a reference to the value found for key (const)                 
@@ -1484,6 +1389,7 @@ namespace Langulus::Anyness
    ///   @param key - the key to search for                                   
    ///   @return a reference to the value                                     
    template<CT::NotSemantic K>
+   LANGULUS(ALWAYSINLINE)
    Block BlockMap::At(const K& key) const {
       const auto found = FindIndex(key);
       LANGULUS_ASSERT(found != GetReserved(), OutOfRange, "Key not found");
@@ -1493,14 +1399,16 @@ namespace Langulus::Anyness
    /// Get a key by a safe index (const)                                      
    ///   @param index - the index to use                                      
    ///   @return a reference to the key                                       
-   inline Block BlockMap::GetKey(const Index& index) const {
+   LANGULUS(ALWAYSINLINE)
+   Block BlockMap::GetKey(const Index& index) const {
       return const_cast<BlockMap&>(*this).GetKey(index);
    }
 
    /// Get a key by a safe index                                              
    ///   @param index - the index to use                                      
    ///   @return a reference to the key                                       
-   inline Block BlockMap::GetKey(const Index& index) {
+   LANGULUS(ALWAYSINLINE)
+   Block BlockMap::GetKey(const Index& index) {
       const auto offset = index.GetOffset();
       LANGULUS_ASSERT(offset < GetReserved() && GetInfo()[offset],
          OutOfRange, "Bad index");
@@ -1510,14 +1418,16 @@ namespace Langulus::Anyness
    /// Get a value by a safe index (const)                                    
    ///   @param index - the index to use                                      
    ///   @return a reference to the value                                     
-   inline Block BlockMap::GetValue(const Index& index) const {
+   LANGULUS(ALWAYSINLINE)
+   Block BlockMap::GetValue(const Index& index) const {
       return const_cast<BlockMap&>(*this).GetValue(index);
    }
 
    /// Get a value by a safe index                                            
    ///   @param index - the index to use                                      
    ///   @return a reference to the value                                     
-   inline Block BlockMap::GetValue(const Index& index) {
+   LANGULUS(ALWAYSINLINE)
+   Block BlockMap::GetValue(const Index& index) {
       const auto offset = index.GetOffset();
       LANGULUS_ASSERT(offset < GetReserved() && GetInfo()[offset],
          OutOfRange, "Bad index");
@@ -1527,14 +1437,16 @@ namespace Langulus::Anyness
    /// Get a pair by a safe index (const)                                     
    ///   @param index - the index to use                                      
    ///   @return the pair                                                     
-   inline Pair BlockMap::GetPair(const Index& index) const {
+   LANGULUS(ALWAYSINLINE)
+   Pair BlockMap::GetPair(const Index& index) const {
       return const_cast<BlockMap&>(*this).GetPair(index);
    }
 
    /// Get a pair by a safe index                                             
    ///   @param index - the index to use                                      
    ///   @return the pair                                                     
-   inline Pair BlockMap::GetPair(const Index& index) {
+   LANGULUS(ALWAYSINLINE)
+   Pair BlockMap::GetPair(const Index& index) {
       const auto offset = index.GetOffset();
       LANGULUS_ASSERT(offset < GetReserved() && GetInfo()[offset],
          OutOfRange, "Bad index");
@@ -1621,38 +1533,35 @@ namespace Langulus::Anyness
    ///   @param key - the key to find                                         
    ///   @return a the value wrapped inside an Any                            
    template<CT::NotSemantic K>
+   LANGULUS(ALWAYSINLINE)
    Block BlockMap::operator[] (const K& key) const {
-      return At(key);
-   }
-
-   /// Access value by key                                                    
-   ///   @param key - the key to find                                         
-   ///   @return a the value wrapped inside an Any                            
-   template<CT::NotSemantic K>
-   Block BlockMap::operator[] (const K& key) {
       return At(key);
    }
 
    /// Get the number of inserted pairs                                       
    ///   @return the number of inserted pairs                                 
+   LANGULUS(ALWAYSINLINE)
    constexpr Count BlockMap::GetCount() const noexcept {
       return mValues.GetCount();
    }
 
    /// Get the number of allocated pairs                                      
    ///   @return the number of allocated pairs                                
+   LANGULUS(ALWAYSINLINE)
    constexpr Count BlockMap::GetReserved() const noexcept {
       return mValues.GetReserved();
    }
 
    /// Check if there are any pairs in this map                               
    ///   @return true if there's at least one pair available                  
+   LANGULUS(ALWAYSINLINE)
    constexpr bool BlockMap::IsEmpty() const noexcept {
       return mValues.IsEmpty();
    }
 
    /// Check if the map has been allocated                                    
    ///   @return true if the map uses dynamic memory                          
+   LANGULUS(ALWAYSINLINE)
    constexpr bool BlockMap::IsAllocated() const noexcept {
       return mValues.IsAllocated();
    }
@@ -1661,6 +1570,7 @@ namespace Langulus::Anyness
    /// This is always true, since the map can't be initialized with outside   
    /// memory - the memory layout requirements are too strict to allow for it 
    ///   @return true                                                         
+   LANGULUS(ALWAYSINLINE)
    constexpr bool BlockMap::HasAuthority() const noexcept {
       return IsAllocated();
    }
@@ -1668,6 +1578,7 @@ namespace Langulus::Anyness
    /// Get the number of references for the allocated memory                  
    ///   @attention always returns zero if we don't have authority            
    ///   @return the number of references                                     
+   LANGULUS(ALWAYSINLINE)
    constexpr Count BlockMap::GetUses() const noexcept {
       return mValues.GetUses();
    }
@@ -1675,7 +1586,8 @@ namespace Langulus::Anyness
    /// Get hash of the map contents                                           
    ///   @attention the hash is not cached, so this is a slow operation       
    ///   @return the hash                                                     
-   inline Hash BlockMap::GetHash() const {
+   LANGULUS(ALWAYSINLINE)
+   Hash BlockMap::GetHash() const {
       TAny<Hash> hashes;
       for (auto pair : *this)
          hashes << pair.GetHash();
@@ -1690,7 +1602,8 @@ namespace Langulus::Anyness
 
    /// Get iterator to first element                                          
    ///   @return an iterator to the first element, or end if empty            
-   inline typename BlockMap::Iterator BlockMap::begin() noexcept {
+   LANGULUS(ALWAYSINLINE)
+   typename BlockMap::Iterator BlockMap::begin() noexcept {
       static_assert(sizeof(Iterator) == sizeof(ConstIterator),
          "Size mismatch - types must be binary-compatible");
       const auto constant = const_cast<const BlockMap*>(this)->begin();
@@ -1699,7 +1612,8 @@ namespace Langulus::Anyness
 
    /// Get iterator to end                                                    
    ///   @return an iterator to the end element                               
-   inline typename BlockMap::Iterator BlockMap::end() noexcept {
+   LANGULUS(ALWAYSINLINE)
+   typename BlockMap::Iterator BlockMap::end() noexcept {
       static_assert(sizeof(Iterator) == sizeof(ConstIterator),
          "Size mismatch - types must be binary-compatible");
       const auto constant = const_cast<const BlockMap*>(this)->end();
@@ -1708,7 +1622,8 @@ namespace Langulus::Anyness
 
    /// Get iterator to the last element                                       
    ///   @return an iterator to the last element, or end if empty             
-   inline typename BlockMap::Iterator BlockMap::last() noexcept {
+   LANGULUS(ALWAYSINLINE)
+   typename BlockMap::Iterator BlockMap::last() noexcept {
       static_assert(sizeof(Iterator) == sizeof(ConstIterator),
          "Size mismatch - types must be binary-compatible");
       const auto constant = const_cast<const BlockMap*>(this)->last();
@@ -1735,7 +1650,8 @@ namespace Langulus::Anyness
 
    /// Get iterator to end                                                    
    ///   @return a constant iterator to the end element                       
-   inline typename BlockMap::ConstIterator BlockMap::end() const noexcept {
+   LANGULUS(ALWAYSINLINE)
+   typename BlockMap::ConstIterator BlockMap::end() const noexcept {
       return {GetInfoEnd(), GetInfoEnd(), {}, {}};
    }
 
@@ -1757,6 +1673,102 @@ namespace Langulus::Anyness
       };
    }
 
+   /// Execute a call for each type-erased pair inside the map                
+   ///   @tparam REVERSE - whether or not to iterate in reverse               
+   ///   @tparam F - the call to execute for each pair (deducible)            
+   ///   @param call - the function to execute for each pair                  
+   ///   @return the number of successfull executions                         
+   template<bool REVERSE, class F>
+   Count BlockMap::ForEach(F&& call) const {
+      if (IsEmpty())
+         return 0;
+
+      using A = Decay<ArgumentOf<F>>;
+      using R = ReturnOf<F>;
+
+      static_assert(CT::Pair<A>, "F's argument must be a pair type");
+      static_assert(CT::Dense<A>, "F's argument must be a dense pair");
+
+      if constexpr (CT::TypedPair<A>) {
+         // If the pair is statically typed, we check contained types   
+         // against it prior to iterating                               
+         using K = typename A::Key;
+         using V = typename A::Value;
+         if (!KeyIs<K>() || !ValueIs<V>()) {
+            // Key/Value mismatch, no need to iterate at all            
+            return 0;
+         }
+      }
+
+      // Prepare for the loop                                           
+      constexpr bool HasBreaker = CT::Bool<R>;
+      auto key = mKeys.GetElement(REVERSE ? -1 : 0);
+      auto val = mValues.GetElement(REVERSE ? -1 : 0);
+      auto inf = REVERSE ? mInfo + GetReserved() - 1 : mInfo;
+      const auto infEnd = REVERSE ? mInfo - 1 : mInfo + GetReserved();
+      Count executions {};
+
+      while (inf != infEnd) {
+         if (*inf) {
+            ++executions;
+
+            // Execute function for each valid pair                     
+            if constexpr (HasBreaker) {
+               if constexpr (CT::TypedPair<A>) {
+                  // The pair is statically typed, so we need to access 
+                  // the elements by the provided types                 
+                  using K = typename A::Key;
+                  using V = typename A::Value;
+                  A pair {key.template Get<K>(), val.template Get<V>()};
+                  if (!call(pair)) {
+                     // Early return, if function returns a false bool  
+                     return executions;
+                  }
+               }
+               else {
+                  // The pair is dynamically typed, so we directly      
+                  // forward the element blocks                         
+                  A pair {key, val};
+                  if (!call(pair)) {
+                     // Early return, if function returns a false bool  
+                     return executions;
+                  }
+               }
+            }
+            else {
+               if constexpr (CT::TypedPair<A>) {
+                  // The pair is statically typed, so we need to access 
+                  // the elements by the provided types                 
+                  using K = typename A::Key;
+                  using V = typename A::Value;
+                  A pair {key.template Get<K>(), val.template Get<V>()};
+                  call(pair);
+               }
+               else {
+                  // The pair is dynamically typed, so we directly      
+                  // forward the element blocks                         
+                  A pair {key, val};
+                  call(pair);
+               }
+            }
+         }
+
+         // Next element                                                
+         if constexpr (REVERSE) {
+            --inf;
+            key.Prev();
+            val.Prev();
+         }
+         else {
+            ++inf;
+            key.Next();
+            val.Next();
+         }
+      }
+
+      return executions;
+   }
+
    /// Execute functions for each element inside container                    
    ///   @tparam MUTABLE - whether or not a change to container is allowed    
    ///                     while iterating                                    
@@ -1764,6 +1776,7 @@ namespace Langulus::Anyness
    ///   @param call - the instance of the function F to call                 
    ///   @return the number of called functions                               
    template<bool MUTABLE, bool REVERSE, class F>
+   LANGULUS(ALWAYSINLINE)
    Count BlockMap::ForEachSplitter(Block& part, F&& call) {
       using A = ArgumentOf<F>;
       using R = ReturnOf<F>;
@@ -1784,6 +1797,7 @@ namespace Langulus::Anyness
    ///   @param call - the instance of the function F to call                 
    ///   @return the number of called functions                               
    template<bool SKIP, bool MUTABLE, bool REVERSE, class F>
+   LANGULUS(ALWAYSINLINE)
    Count BlockMap::ForEachDeepSplitter(Block& part, F&& call) {
       using A = ArgumentOf<F>;
       using R = ReturnOf<F>;
@@ -1919,11 +1933,13 @@ namespace Langulus::Anyness
    ///   @param f - the function to call for each key block                   
    ///   @return the number of successful f() executions                      
    template<bool REVERSE, bool MUTABLE, class F>
+   LANGULUS(ALWAYSINLINE)
    Count BlockMap::ForEachKeyElement(F&& f) {
       return ForEachElement<REVERSE, MUTABLE>(mKeys, Forward<F>(f));
    }
 
    template<bool REVERSE, class F>
+   LANGULUS(ALWAYSINLINE)
    Count BlockMap::ForEachKeyElement(F&& f) const {
       return const_cast<BlockMap&>(*this).template
          ForEachKeyElement<REVERSE, false>(Forward<F>(f));
@@ -1934,11 +1950,13 @@ namespace Langulus::Anyness
    ///   @param f - the function to call for each key block                   
    ///   @return the number of successful f() executions                      
    template<bool REVERSE, bool MUTABLE, class F>
+   LANGULUS(ALWAYSINLINE)
    Count BlockMap::ForEachValueElement(F&& f) {
       return ForEachElement<REVERSE, MUTABLE>(mValues, Forward<F>(f));
    }
 
    template<bool REVERSE, class F>
+   LANGULUS(ALWAYSINLINE)
    Count BlockMap::ForEachValueElement(F&& f) const {
       return const_cast<BlockMap&>(*this).template
          ForEachValueElement<REVERSE, false>(Forward<F>(f));
@@ -1950,6 +1968,7 @@ namespace Langulus::Anyness
    ///   @param f - the functions to call for each key block                  
    ///   @return the number of successful f() executions                      
    template<bool REVERSE, bool MUTABLE, class... F>
+   LANGULUS(ALWAYSINLINE)
    Count BlockMap::ForEachKey(F&&... f) {
       Count result {};
       (... || (0 != (result = ForEachSplitter<MUTABLE, REVERSE>(mKeys, Forward<F>(f)))));
@@ -1957,12 +1976,14 @@ namespace Langulus::Anyness
    }
 
    template<bool REVERSE, class... F>
+   LANGULUS(ALWAYSINLINE)
    Count BlockMap::ForEachKey(F&&... f) const {
       return const_cast<BlockMap&>(*this).template
          ForEachKey<REVERSE, false>(Forward<F>(f)...);
    }
 
    template<bool REVERSE, bool MUTABLE, class... F>
+   LANGULUS(ALWAYSINLINE)
    Count BlockMap::ForEachValue(F&&... f) {
       Count result {};
       (... || (0 != (result = ForEachSplitter<MUTABLE, REVERSE>(mValues, Forward<F>(f)))));
@@ -1970,12 +1991,14 @@ namespace Langulus::Anyness
    }
 
    template<bool REVERSE, class... F>
+   LANGULUS(ALWAYSINLINE)
    Count BlockMap::ForEachValue(F&&... f) const {
       return const_cast<BlockMap&>(*this).template
          ForEachValue<REVERSE, false>(Forward<F>(f)...);
    }
 
    template<bool REVERSE, bool SKIP, bool MUTABLE, class... F>
+   LANGULUS(ALWAYSINLINE)
    Count BlockMap::ForEachKeyDeep(F&&... f) {
       Count result {};
       (... || (0 != (result = ForEachDeepSplitter<SKIP, MUTABLE, REVERSE>(mKeys, Forward<F>(f)))));
@@ -1983,12 +2006,14 @@ namespace Langulus::Anyness
    }
 
    template<bool REVERSE, bool SKIP, class... F>
+   LANGULUS(ALWAYSINLINE)
    Count BlockMap::ForEachKeyDeep(F&&... f) const {
       return const_cast<BlockMap&>(*this).template
          ForEachKeyDeep<REVERSE, SKIP, false>(Forward<F>(f)...);
    }
 
    template<bool REVERSE, bool SKIP, bool MUTABLE, class... F>
+   LANGULUS(ALWAYSINLINE)
    Count BlockMap::ForEachValueDeep(F&&... f) {
       Count result {};
       (... || (0 != (result = ForEachDeepSplitter<SKIP, MUTABLE, REVERSE>(mValues, Forward<F>(f)))));
@@ -1996,6 +2021,7 @@ namespace Langulus::Anyness
    }
 
    template<bool REVERSE, bool SKIP, class... F>
+   LANGULUS(ALWAYSINLINE)
    Count BlockMap::ForEachValueDeep(F&&... f) const {
       return const_cast<BlockMap&>(*this).template
          ForEachValueDeep<REVERSE, SKIP, false>(Forward<F>(f)...);
@@ -2013,7 +2039,7 @@ namespace Langulus::Anyness
    ///   @param value - pointer to the value element                          
    template<bool MUTABLE>
    LANGULUS(ALWAYSINLINE)
-      BlockMap::TIterator<MUTABLE>::TIterator(
+   BlockMap::TIterator<MUTABLE>::TIterator(
       const InfoType* info, 
       const InfoType* sentinel, 
       const Block& key, 

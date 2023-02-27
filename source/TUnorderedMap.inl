@@ -17,6 +17,7 @@ namespace Langulus::Anyness
 
    /// Default construction                                                   
    TABLE_TEMPLATE()
+   LANGULUS(ALWAYSINLINE)
    constexpr TABLE()::TUnorderedMap()
       : UnorderedMap {} {
       mKeys.mState = DataState::Typed;
@@ -32,6 +33,7 @@ namespace Langulus::Anyness
    ///   @param list - list of pairs                                          
    TABLE_TEMPLATE()
    template<CT::Pair P>
+   LANGULUS(ALWAYSINLINE)
    TABLE()::TUnorderedMap(::std::initializer_list<P> initlist)
       : TUnorderedMap {} {
       mKeys.mType = MetaData::Of<K>();
@@ -45,6 +47,9 @@ namespace Langulus::Anyness
          )
       );
 
+      ::std::memset(mInfo, 0, GetReserved());
+      mInfo[GetReserved()] = 1;
+
       for (auto& it : initlist) {
          InsertUnknown(
             Langulus::Copy(it.mKey), 
@@ -56,12 +61,14 @@ namespace Langulus::Anyness
    /// Shallow-copy construction                                              
    ///   @param other - the table to copy                                     
    TABLE_TEMPLATE()
+   LANGULUS(ALWAYSINLINE)
    TABLE()::TUnorderedMap(const TUnorderedMap& other)
       : TUnorderedMap {Langulus::Copy(other)} {}
 
    /// Move construction                                                      
    ///   @param other - the table to move                                     
    TABLE_TEMPLATE()
+   LANGULUS(ALWAYSINLINE)
    TABLE()::TUnorderedMap(TUnorderedMap&& other) noexcept
       : TUnorderedMap {Langulus::Move(other)} {}
 
@@ -70,6 +77,7 @@ namespace Langulus::Anyness
    ///   @param other - the semantic type                                     
    TABLE_TEMPLATE()
    template<CT::Semantic S>
+   LANGULUS(ALWAYSINLINE)
    TABLE()::TUnorderedMap(S&& other) noexcept
       : TUnorderedMap {} {
       using T = TypeOf<S>;
@@ -83,6 +91,10 @@ namespace Langulus::Anyness
             mValues.mType = MetaData::Of<V>();
 
             AllocateFresh(other.mValue.GetReserved());
+
+            ::std::memset(mInfo, 0, GetReserved());
+            mInfo[GetReserved()] = 1;
+
             other.mValue.ForEach([this](const T::Pair& pair) {
                InsertUnknown(S::Nest(pair));
             });
@@ -99,6 +111,10 @@ namespace Langulus::Anyness
          mValues.mType = MetaData::Of<V>();
 
          AllocateFresh(MinimalAllocation);
+
+         ::std::memset(mInfo, 0, GetReserved());
+         mInfo[GetReserved()] = 1;
+
          TODO();
       }
       else LANGULUS_ERROR("Unsupported semantic constructor");
