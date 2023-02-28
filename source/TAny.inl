@@ -312,11 +312,9 @@ namespace Langulus::Anyness
                *mRawSparse = const_cast<Byte*>(
                   reinterpret_cast<const Byte*>(other.mValue)
                );
-               *GetEntries() = nullptr;
+               IF_LANGULUS_MANAGED_MEMORY(*GetEntries() = nullptr);
             }
-            else {
-               SemanticNew<T>(mRaw, other.Forward());
-            }
+            else SemanticNew<T>(mRaw, other.Forward());
          }
       }
 

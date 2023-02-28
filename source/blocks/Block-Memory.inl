@@ -160,6 +160,7 @@ namespace Langulus::Anyness
                CallUnknownSemanticConstructors(previousBlock.mCount, 
                   Abandon(previousBlock));
             }
+            #if LANGULUS_FEATURE(MANAGED_MEMORY)
             else {
                // Memory didn't move, but reserved count changed        
                if (mType->mIsSparse) {
@@ -170,6 +171,7 @@ namespace Langulus::Anyness
                   );
                }
             }
+            #endif
          }
          else {
             // Memory is used from multiple locations, and we must      

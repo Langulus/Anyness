@@ -91,7 +91,7 @@ namespace Langulus::Anyness
             ::std::memset(mInfo, 0, GetReserved());
             mInfo[GetReserved()] = 1;
 
-            using TP = T::Pair;
+            using TP = typename T::Pair;
             other.mValue.ForEach([this, hashmask](TP& pair) {
                if constexpr (CT::TypedPair<TP>) {
                   // Insert a statically typed pair                     

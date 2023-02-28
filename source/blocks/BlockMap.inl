@@ -831,7 +831,7 @@ namespace Langulus::Anyness
 
       auto oldInfo = GetInfo();
       const auto oldInfoEnd = oldInfo + oldCount;
-      const auto hashmask = count - 1;
+      const Offset hashmask = count - 1;
 
       // Prepare a set of preallocated swappers                         
       Block keyswap {mKeys.GetState(), GetKeyType()};
@@ -1971,7 +1971,7 @@ namespace Langulus::Anyness
    LANGULUS(ALWAYSINLINE)
    Count BlockMap::ForEachKey(F&&... f) {
       Count result {};
-      (... || (0 != (result = ForEachSplitter<MUTABLE, REVERSE>(mKeys, Forward<F>(f)))));
+      (void) (... || (0 != (result = ForEachSplitter<MUTABLE, REVERSE>(mKeys, Forward<F>(f)))));
       return result;
    }
 
@@ -1986,7 +1986,7 @@ namespace Langulus::Anyness
    LANGULUS(ALWAYSINLINE)
    Count BlockMap::ForEachValue(F&&... f) {
       Count result {};
-      (... || (0 != (result = ForEachSplitter<MUTABLE, REVERSE>(mValues, Forward<F>(f)))));
+      (void) (... || (0 != (result = ForEachSplitter<MUTABLE, REVERSE>(mValues, Forward<F>(f)))));
       return result;
    }
 
@@ -2001,7 +2001,7 @@ namespace Langulus::Anyness
    LANGULUS(ALWAYSINLINE)
    Count BlockMap::ForEachKeyDeep(F&&... f) {
       Count result {};
-      (... || (0 != (result = ForEachDeepSplitter<SKIP, MUTABLE, REVERSE>(mKeys, Forward<F>(f)))));
+      (void) (... || (0 != (result = ForEachDeepSplitter<SKIP, MUTABLE, REVERSE>(mKeys, Forward<F>(f)))));
       return result;
    }
 
@@ -2016,7 +2016,7 @@ namespace Langulus::Anyness
    LANGULUS(ALWAYSINLINE)
    Count BlockMap::ForEachValueDeep(F&&... f) {
       Count result {};
-      (... || (0 != (result = ForEachDeepSplitter<SKIP, MUTABLE, REVERSE>(mValues, Forward<F>(f)))));
+      (void) (... || (0 != (result = ForEachDeepSplitter<SKIP, MUTABLE, REVERSE>(mValues, Forward<F>(f)))));
       return result;
    }
 

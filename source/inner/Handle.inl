@@ -29,10 +29,13 @@ namespace Langulus::Anyness
          if constexpr (S::Shallow) {
             // Copy/Disown/Move/Abandon a handle                        
             mValue = other.mValue.Get();
-            if constexpr (S::Keep || S::Move)
-               mEntry = other.mValue.GetEntry();
-            else
-               mEntry = nullptr;
+
+            #if LANGULUS_FEATURE(MANAGED_MEMORY)
+               if constexpr (S::Keep || S::Move)
+                  mEntry = other.mValue.GetEntry();
+               else
+            #endif
+                  mEntry = nullptr;
 
             if constexpr (S::Move) {
                // Reset remote entry, when moving                       
@@ -56,10 +59,13 @@ namespace Langulus::Anyness
             // Since pointers don't have ownership, it's just a copy    
             // with an optional entry search, if not disowned           
             mValue = other.mValue;
-            if constexpr (CT::Allocatable<Deptr<T>> && (S::Keep || S::Move))
-               mEntry = Inner::Allocator::Find(MetaData::Of<Deptr<T>>(), mValue);
-            else
-               mEntry = nullptr;
+
+            #if LANGULUS_FEATURE(MANAGED_MEMORY)
+               if constexpr (CT::Allocatable<Deptr<T>> && (S::Keep || S::Move))
+                  mEntry = Inner::Allocator::Find(MetaData::Of<Deptr<T>>(), mValue);
+               else
+            #endif
+                  mEntry = nullptr;
          }
          else {
             // Clone a pointer                                          

@@ -359,12 +359,13 @@ namespace Langulus::Anyness
    ///   @attention assumes this block is valid and has at least one element  
    ///   @return the mutable resolved first element                           
    LANGULUS(ALWAYSINLINE)
-   Block Block::GetResolved() SAFETY_NOEXCEPT() {
+   Block Block::GetResolved() {
       LANGULUS_ASSUME(DevAssumes, IsTyped(),
          "Block is not typed");
       LANGULUS_ASSUME(DevAssumes, mCount > 0,
          "Block is empty");
-      LANGULUS_ASSUME(DevAssumes, mType->mResolver != nullptr,
+
+      LANGULUS_ASSERT(mType->mResolver != nullptr, Access,
          "Type is not resolvable");
 
       return mType->mResolver(mRaw);
@@ -374,7 +375,7 @@ namespace Langulus::Anyness
    ///   @attention assumes this block is valid and has at least one element  
    ///   @return the immutable resolved first element                         
    LANGULUS(ALWAYSINLINE)
-   const Block Block::GetResolved() const SAFETY_NOEXCEPT() {
+   const Block Block::GetResolved() const {
       Block result {const_cast<Block*>(this)->GetResolved()};
       result.MakeConst();
       return result;
@@ -398,12 +399,10 @@ namespace Langulus::Anyness
       Count counter {COUNT};
       Block copy {*this};
       while (counter && copy.mType->mIsSparse) {
-         if (!copy.mType->mDeptr) {
-            // Can't densify an incomplete type                         
-            LANGULUS_THROW(Meta, "Trying to interface incomplete data as dense");
-         }
+         LANGULUS_ASSERT(copy.mType->mDeptr, Access,
+            "Trying to interface incomplete data as dense");
 
-         copy.mEntry = *GetEntries();
+         IF_LANGULUS_MANAGED_MEMORY(copy.mEntry = *GetEntries());
          copy.mRaw = *GetRawSparse();
          copy.mType = copy.mType->mDeptr;
          --counter;
@@ -600,24 +599,26 @@ namespace Langulus::Anyness
    template<CT::Data T>
    LANGULUS(ALWAYSINLINE)
    decltype(auto) Block::GetHandle(Offset index) SAFETY_NOEXCEPT() {
-      if constexpr (LANGULUS_FEATURE(MANAGED_MEMORY)
-         && CT::Sparse<T>
-         && (CT::Void<Deptr<T>> || CT::Allocatable<Deptr<T>>)
-      ) {
-         LANGULUS_ASSUME(DevAssumes, IsSparse(), "Sparseness mismatch");
-         return Handle<T>(GetRawAs<T>() + index, GetEntries() + index);
-      }
-      else {
+      #if LANGULUS_FEATURE(MANAGED_MEMORY)
+         if constexpr (CT::Sparse<T> && (CT::Void<Deptr<T>> || CT::Allocatable<Deptr<T>>)) {
+            LANGULUS_ASSUME(DevAssumes, IsSparse(), "Sparseness mismatch");
+            return Handle<T>(GetRawAs<T>() + index, GetEntries() + index);
+         }
+         else {
+            LANGULUS_ASSUME(DevAssumes, IsExact<T>(), "Type mismatch");
+            return GetRawAs<T>() + index;
+         }
+      #else
          LANGULUS_ASSUME(DevAssumes, IsExact<T>(), "Type mismatch");
          return GetRawAs<T>() + index;
-      }
+      #endif
    }
 
    /// Get handle ignores constness                                           
    template<CT::Data T>
    LANGULUS(ALWAYSINLINE)
    decltype(auto) Block::GetHandle(Offset index) const SAFETY_NOEXCEPT() {
-      return const_cast<Block*>(this)->GetHandle<T>(index);
+      return const_cast<Block*>(this)->template GetHandle<T>(index);
    }
 
    /// Select region from the memory block - unsafe and may return memory     
@@ -685,7 +686,7 @@ namespace Langulus::Anyness
          "Block is not typed");
 
       Block copy {*this};
-      copy.mRaw += mType->mSize;
+      copy.mRaw -= mType->mSize;
       return copy;
    }
 

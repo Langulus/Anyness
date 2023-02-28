@@ -95,7 +95,7 @@ namespace Langulus::Anyness
             ::std::memset(mInfo, 0, GetReserved());
             mInfo[GetReserved()] = 1;
 
-            other.mValue.ForEach([this](const T::Pair& pair) {
+            other.mValue.ForEach([this](const typename T::Pair& pair) {
                InsertUnknown(S::Nest(pair));
             });
          }
@@ -504,7 +504,7 @@ namespace Langulus::Anyness
    TABLE_TEMPLATE()
    LANGULUS(ALWAYSINLINE)
    Size TABLE()::RequestKeyAndInfoSize(const Count count, Offset& infoStart) noexcept {
-      const Size keymemory = count * sizeof(K);
+      Size keymemory = count * sizeof(K);
       IF_LANGULUS_MANAGED_MEMORY(
          if constexpr (CT::Sparse<K>)
             keymemory *= 2;
@@ -520,7 +520,7 @@ namespace Langulus::Anyness
    TABLE_TEMPLATE()
    LANGULUS(ALWAYSINLINE)
    Size TABLE()::RequestValuesSize(const Count count) noexcept {
-      auto valueByteSize = count * sizeof(V);
+      Size valueByteSize = count * sizeof(V);
       IF_LANGULUS_MANAGED_MEMORY(
          if constexpr (CT::Sparse<V>)
             valueByteSize *= 2;
@@ -1064,7 +1064,7 @@ namespace Langulus::Anyness
          if constexpr (CT::Destroyable<T>)
             element->~Decay<T>();
       }
-      else LANGULUS_ERROR("Bad element handle");
+      else IF_LANGULUS_MANAGED_MEMORY(LANGULUS_ERROR("Bad element handle"));
    }
 
    /// Insert a single value or key, either sparse or dense                   

@@ -71,7 +71,7 @@ namespace Langulus::Anyness
    LANGULUS(ALWAYSINLINE)
    Count Block::ForEach(F&&... calls) {
       Count result {};
-      (... || (0 != (result = ForEachSplitter<MUTABLE, REVERSE>(Forward<F>(calls)))));
+      (void) (... || (0 != (result = ForEachSplitter<MUTABLE, REVERSE>(Forward<F>(calls)))));
       return result;
    }
 
@@ -109,7 +109,7 @@ namespace Langulus::Anyness
    LANGULUS(ALWAYSINLINE)
    Count Block::ForEachDeep(F&&... calls) {
       Count result {};
-      (... || (0 != (result = ForEachDeepSplitter<SKIP, MUTABLE, REVERSE>(Forward<F>(calls)))));
+      (void) (... || (0 != (result = ForEachDeepSplitter<SKIP, MUTABLE, REVERSE>(Forward<F>(calls)))));
       return result;
    }
 

@@ -1320,18 +1320,22 @@ namespace Langulus::Anyness
       if constexpr (CT::Sparse<T>) {
          // Batch-optimized semantic pointer constructions              
          const auto byteSize = sizeof(Pointer) * count;
-         const auto entriesDst = mthis->GetEntries();
-         const auto entriesSrc = source.mValue.GetEntries();
+         #if LANGULUS_FEATURE(MANAGED_MEMORY)
+            const auto entriesDst = mthis->GetEntries();
+            const auto entriesSrc = source.mValue.GetEntries();
+         #endif
 
          if constexpr (S::Shallow) {
             // Copy/Disown/Move/Abandon                                 
             if constexpr (S::Move) {
                // Move/Abandon                                          
                ::std::memmove(mthis->GetRaw(), source.mValue.GetRaw(), byteSize);
-               ::std::memmove(entriesDst, entriesSrc, byteSize);
+               #if LANGULUS_FEATURE(MANAGED_MEMORY)
+                  ::std::memmove(entriesDst, entriesSrc, byteSize);
 
-               // Reset source ownership                                
-               ::std::memset(entriesSrc, 0, byteSize);
+                  // Reset source ownership                             
+                  ::std::memset(entriesSrc, 0, byteSize);
+               #endif
 
                // Reset source pointers, too, if not abandoned          
                if constexpr (S::Keep)
@@ -1340,22 +1344,25 @@ namespace Langulus::Anyness
             else {
                // Copy/Disown                                           
                ::std::memcpy(mthis->GetRaw(), source.mValue.GetRaw(), byteSize);
-               ::std::memcpy(entriesDst, entriesSrc, byteSize);
 
-               if constexpr (S::Keep) {
-                  // Reference each entry, if not disowned              
-                  auto entry = entriesDst;
-                  const auto entryEnd = entry + count;
-                  while (entry != entryEnd) {
-                     if (*entry)
-                        (*entry)->Keep();
-                     ++entry;
+               #if LANGULUS_FEATURE(MANAGED_MEMORY)
+                  ::std::memcpy(entriesDst, entriesSrc, byteSize);
+
+                  if constexpr (S::Keep) {
+                     // Reference each entry, if not disowned           
+                     auto entry = entriesDst;
+                     const auto entryEnd = entry + count;
+                     while (entry != entryEnd) {
+                        if (*entry)
+                           (*entry)->Keep();
+                        ++entry;
+                     }
                   }
-               }
-               else {
-                  // Otherwise make sure all entries are zero           
-                  ::std::memset(entriesDst, 0, byteSize);
-               }
+                  else {
+                     // Otherwise make sure all entries are zero        
+                     ::std::memset(entriesDst, 0, byteSize);
+                  }
+               #endif
             }
          }
          else {
@@ -1454,18 +1461,22 @@ namespace Langulus::Anyness
       if (mType->mIsSparse && source.mValue.mType->mIsSparse) {
          // Batch-optimized semantic pointer constructions              
          const auto byteSize = sizeof(Pointer) * count;
-         const auto entriesDst = mthis->GetEntries();
-         const auto entriesSrc = source.mValue.GetEntries();
+         #if LANGULUS_FEATURE(MANAGED_MEMORY)
+            const auto entriesDst = mthis->GetEntries();
+            const auto entriesSrc = source.mValue.GetEntries();
+         #endif
 
          if constexpr (S::Shallow) {
             // Copy/Disown/Move/Abandon                                 
             if constexpr (S::Move) {
                // Move/Abandon                                          
                ::std::memmove(mthis->GetRaw(), source.mValue.GetRaw(), byteSize);
-               ::std::memmove(entriesDst, entriesSrc, byteSize);
+               #if LANGULUS_FEATURE(MANAGED_MEMORY)
+                  ::std::memmove(entriesDst, entriesSrc, byteSize);
 
-               // Reset source ownership                                
-               ::std::memset(entriesSrc, 0, byteSize);
+                  // Reset source ownership                             
+                  ::std::memset(entriesSrc, 0, byteSize);
+               #endif
 
                // Reset source pointers, too, if not abandoned          
                if constexpr (S::Keep)
@@ -1474,22 +1485,25 @@ namespace Langulus::Anyness
             else {
                // Copy/Disown                                           
                ::std::memcpy(mthis->GetRaw(), source.mValue.GetRaw(), byteSize);
-               ::std::memcpy(entriesDst, entriesSrc, byteSize);
 
-               if constexpr (S::Keep) {
-                  // Reference each entry, if not disowned              
-                  auto entry = entriesDst;
-                  const auto entryEnd = entry + count;
-                  while (entry != entryEnd) {
-                     if (*entry)
-                        (*entry)->Keep();
-                     ++entry;
+               #if LANGULUS_FEATURE(MANAGED_MEMORY)
+                  ::std::memcpy(entriesDst, entriesSrc, byteSize);
+
+                  if constexpr (S::Keep) {
+                     // Reference each entry, if not disowned           
+                     auto entry = entriesDst;
+                     const auto entryEnd = entry + count;
+                     while (entry != entryEnd) {
+                        if (*entry)
+                           (*entry)->Keep();
+                        ++entry;
+                     }
                   }
-               }
-               else {
-                  // Otherwise make sure all entries are zero           
-                  ::std::memset(entriesDst, 0, byteSize);
-               }
+                  else {
+                     // Otherwise make sure all entries are zero        
+                     ::std::memset(entriesDst, 0, byteSize);
+                  }
+               #endif
             }
          }
          else {
@@ -1511,8 +1525,12 @@ namespace Langulus::Anyness
                      1, Langulus::Clone(src.template GetDense<1>())
                   );
 
-                  handle.Set(dst.mRaw);
-                  handle.SetEntry(clonedCoalescedSrc.mEntry);
+                  #if LANGULUS_FEATURE(MANAGED_MEMORY)
+                     handle.Set(dst.mRaw);
+                     handle.SetEntry(clonedCoalescedSrc.mEntry);
+                  #else
+                     *handle = dst.mRaw;
+                  #endif
 
                   dst.Next();
                   src.Next();
@@ -1545,7 +1563,7 @@ namespace Langulus::Anyness
          // LHS is pointer, RHS must be dense                           
          // Copy each pointer from RHS (can't move them)                
          auto lhs = mthis->GetRawSparse();
-         auto lhsEntry = mthis->GetEntries();
+         IF_LANGULUS_MANAGED_MEMORY(auto lhsEntry = mthis->GetEntries());
          const auto lhsEnd = lhs + count;
          auto rhs = source.mValue.mRaw;
          const auto rhsStride = source.mValue.mType->mSize;
@@ -1553,7 +1571,7 @@ namespace Langulus::Anyness
             if constexpr (S::Shallow) {
                // Shallow-copy a pointer to the dense element           
                (*lhs) = rhs;
-               (*lhsEntry) = source.mValue.mEntry;
+               IF_LANGULUS_MANAGED_MEMORY((*lhsEntry) = source.mValue.mEntry);
             }
             else {
                // Deep-copy dense element and set pointer to it         
@@ -1561,7 +1579,7 @@ namespace Langulus::Anyness
             }
 
             ++lhs;
-            ++lhsEntry;
+            IF_LANGULUS_MANAGED_MEMORY(++lhsEntry);
             rhs += rhsStride;
          }
 
@@ -1862,7 +1880,7 @@ namespace Langulus::Anyness
          // Bulk-allocate the required count, construct each instance   
          // and push the pointers                                       
          auto lhsPtr = const_cast<Block*>(this)->GetRawSparse();
-         auto lhsEnt = const_cast<Block*>(this)->GetEntries();
+         IF_LANGULUS_MANAGED_MEMORY(auto lhsEnt = const_cast<Block*>(this)->GetEntries());
          const auto lhsEnd = lhsPtr + count;
          const auto allocation = Inner::Allocator::Allocate(sizeof(Decay<T>) * count);
          allocation->Keep(count - 1);
@@ -1871,7 +1889,7 @@ namespace Langulus::Anyness
          while (lhsPtr != lhsEnd) {
             new (rhs) Decay<T> {descriptor};
             *(lhsPtr++) = rhs;
-            *(lhsEnt++) = allocation;
+            IF_LANGULUS_MANAGED_MEMORY(*(lhsEnt++) = allocation);
             ++rhs;
          }
       }
@@ -1902,7 +1920,7 @@ namespace Langulus::Anyness
             // Bulk-allocate the required count, construct each instance
             // and set the pointers                                     
             auto lhsPtr = const_cast<Block*>(this)->GetRawSparse();
-            auto lhsEnt = const_cast<Block*>(this)->GetEntries();
+            IF_LANGULUS_MANAGED_MEMORY(auto lhsEnt = const_cast<Block*>(this)->GetEntries());
             const auto lhsEnd = lhsPtr + count;
             const auto allocation = Inner::Allocator::Allocate(mType->mOrigin->mSize * count);
             allocation->Keep(count - 1);
@@ -1911,7 +1929,7 @@ namespace Langulus::Anyness
             while (lhsPtr != lhsEnd) {
                mType->mOrigin->mDescriptorConstructor(rhs, descriptor);
                *(lhsPtr++) = rhs;
-               *(lhsEnt++) = allocation;
+               IF_LANGULUS_MANAGED_MEMORY(*(lhsEnt++) = allocation);
                rhs += mType->mOrigin->mSize;
             }
          }
@@ -1980,7 +1998,7 @@ namespace Langulus::Anyness
             else LANGULUS_ERROR("T is not constructible with these arguments");
 
             ++lhs;
-            ++lhsEntry;
+            IF_LANGULUS_MANAGED_MEMORY(++lhsEntry);
          }
       }
       else {
@@ -2019,25 +2037,35 @@ namespace Langulus::Anyness
          // Since we're overwriting pointers, we have to dereference    
          // the old ones, but conditionally reference the new ones      
          auto lhs = mthis->GetRawSparse();
-         auto lhsEntry = mthis->GetEntries();
          const auto lhsEnd = lhs + count;
          auto rhs = source.mValue.GetRawSparse();
-         auto rhsEntry = source.mValue.GetEntries();
+
+         IF_LANGULUS_MANAGED_MEMORY(
+            auto lhsEntry = mthis->GetEntries();
+            auto rhsEntry = source.mValue.GetEntries();
+         );
+
          while (lhs != lhsEnd) {
-            if (*lhsEntry) {
-               // Free old LHS                                          
-               if ((*lhsEntry)->GetUses() == 1) {
-                  mType->mOrigin->mDestructor(*lhs);
-                  Inner::Allocator::Deallocate(*lhsEntry);
+            #if LANGULUS_FEATURE(MANAGED_MEMORY)
+               if (*lhsEntry) {
+                  // Free old LHS                                       
+                  if ((*lhsEntry)->GetUses() == 1) {
+                     mType->mOrigin->mDestructor(*lhs);
+                     Inner::Allocator::Deallocate(*lhsEntry);
+                  }
+                  else (*lhsEntry)->Free();
                }
-               else (*lhsEntry)->Free();
-            }
+            #endif
 
             if constexpr (S::Move) {
                // Move/Abandon RHS in LHS                               
                *lhs = const_cast<Byte*>(*rhs);
-               *lhsEntry = const_cast<Inner::Allocation*>(*rhsEntry);
-               *rhsEntry = nullptr;
+
+               IF_LANGULUS_MANAGED_MEMORY(
+                  *lhsEntry = const_cast<Inner::Allocation*>(*rhsEntry);
+                  *rhsEntry = nullptr;
+               );
+
                if constexpr (S::Keep) {
                   // We're not abandoning RHS, make sure it's cleared   
                   *rhs = nullptr;
@@ -2046,12 +2074,15 @@ namespace Langulus::Anyness
             else if constexpr (S::Shallow) {
                // Copy/Disown RHS in LHS                                
                *lhs = const_cast<Byte*>(*rhs);
-               if constexpr (S::Keep) {
-                  *lhsEntry = const_cast<Inner::Allocation*>(*rhsEntry);
-                  if (*lhsEntry)
-                     (*lhsEntry)->Keep();
-               }
-               else *lhsEntry = nullptr;
+
+               #if LANGULUS_FEATURE(MANAGED_MEMORY)
+                  if constexpr (S::Keep) {
+                     *lhsEntry = const_cast<Inner::Allocation*>(*rhsEntry);
+                     if (*lhsEntry)
+                        (*lhsEntry)->Keep();
+                  }
+                  else *lhsEntry = nullptr;
+               #endif
             }
             else {
                // Clone RHS in LHS                                      
@@ -2059,9 +2090,12 @@ namespace Langulus::Anyness
             }
 
             ++lhs;
-            ++lhsEntry;
             ++rhs;
-            ++rhsEntry;
+
+            IF_LANGULUS_MANAGED_MEMORY(
+               ++lhsEntry;
+               ++rhsEntry;
+            );
          }
 
          return;
@@ -2078,28 +2112,33 @@ namespace Langulus::Anyness
          // LHS is pointer, RHS must be dense                           
          // Move each pointer from RHS                                  
          auto lhs = mRawSparse;
-         auto lhsEntry = mthis->GetEntries();
+         IF_LANGULUS_MANAGED_MEMORY(auto lhsEntry = mthis->GetEntries());
          const auto lhsEnd = lhs + count;
          auto rhs = source.mValue.mRaw;
          const auto rhsStride = source.mValue.mType->mSize;
          while (lhs != lhsEnd) {
-            if (*lhsEntry) {
-               // Free old LHS                                          
-               if ((*lhsEntry)->GetUses() == 1) {
-                  mType->mOrigin->mDestructor(*lhs);
-                  Inner::Allocator::Deallocate(*lhsEntry);
+            #if LANGULUS_FEATURE(MANAGED_MEMORY)
+               if (*lhsEntry) {
+                  // Free old LHS                                       
+                  if ((*lhsEntry)->GetUses() == 1) {
+                     mType->mOrigin->mDestructor(*lhs);
+                     Inner::Allocator::Deallocate(*lhsEntry);
+                  }
+                  else (*lhsEntry)->Free();
                }
-               else (*lhsEntry)->Free();
-            }
+            #endif
 
             if constexpr (S::Move || S::Shallow) {
                // Set LHS to point to dense RHS element                 
                *lhs = const_cast<Byte*>(rhs);
-               *lhsEntry = source.mValue.mEntry;
 
-               // We're converting dense to sparse, so always reference 
-               if (*lhsEntry)
-                  (*lhsEntry)->Keep();
+               #if LANGULUS_FEATURE(MANAGED_MEMORY)
+                  *lhsEntry = source.mValue.mEntry;
+
+                  // We're converting dense to sparse, so reference     
+                  if (*lhsEntry)
+                     (*lhsEntry)->Keep();
+               #endif
             }
             else {
                // Clone RHS and set a pointer to it in LHS              
@@ -2107,7 +2146,7 @@ namespace Langulus::Anyness
             }
          
             ++lhs;
-            ++lhsEntry;
+            IF_LANGULUS_MANAGED_MEMORY(++lhsEntry);
             rhs += rhsStride;
          }
       }
@@ -2292,25 +2331,27 @@ namespace Langulus::Anyness
       const auto mthis = const_cast<Block*>(this);
       constexpr bool destroy = !CT::POD<T> && CT::Destroyable<T>;
       if constexpr (CT::Sparse<T> && CT::Dense<Deptr<T>>) {
-         // We dereference each pointer - destructors will be called    
-         // if data behind these pointers is fully dereferenced, too    
-         auto data = mthis->GetRawSparse();
-         auto dataEntry = mthis->GetEntries();
-         const auto dataEnd = data + mCount;
-         while (data != dataEnd) {
-            auto entry = *dataEntry;
-            if (entry) {
-               if (entry->GetUses() == 1) {
-                  if (destroy)
-                     reinterpret_cast<T>(*data)->~DT();
-                  Inner::Allocator::Deallocate(entry);
+         #if LANGULUS_FEATURE(MANAGED_MEMORY)
+            // We dereference each pointer - destructors will be called 
+            // if data behind these pointers is fully dereferenced, too 
+            auto data = mthis->GetRawSparse();
+            auto dataEntry = mthis->GetEntries();
+            const auto dataEnd = data + mCount;
+            while (data != dataEnd) {
+               auto entry = *dataEntry;
+               if (entry) {
+                  if (entry->GetUses() == 1) {
+                     if (destroy)
+                        reinterpret_cast<T>(*data)->~DT();
+                     Inner::Allocator::Deallocate(entry);
+                  }
+                  else entry->Free();
                }
-               else entry->Free();
-            }
 
-            ++data;
-            ++dataEntry;
-         }
+               ++data;
+               ++dataEntry;
+            }
+         #endif
       }
       else if constexpr (CT::Sparse<T>) {
          // Destroy each indirection layer                              
@@ -2337,43 +2378,45 @@ namespace Langulus::Anyness
       LANGULUS_ASSUME(DevAssumes, IsTyped(),
          "Container has no type");
 
-      const auto mthis = const_cast<Block*>(this);
       const bool destroy = !mType->mIsPOD && mType->mDestructor;
       if (mType->mIsSparse && !mType->mDeptr->mIsSparse) {
          // We dereference each pointer - destructors will be called    
          // if data behind these pointers is fully dereferenced, too    
-         auto data = mthis->GetRawSparse();
-         auto dataEntry = mthis->GetEntries();
-         const auto dataEnd = data + mCount;
-         if (destroy) {
-            while (data != dataEnd) {
-               auto entry = *dataEntry;
-               if (entry) {
-                  if (entry->GetUses() == 1) {
-                     mType->mDeptr->mDestructor(*data);
-                     Inner::Allocator::Deallocate(entry);
+         #if LANGULUS_FEATURE(MANAGED_MEMORY)
+            const auto mthis = const_cast<Block*>(this);
+            auto data = mthis->GetRawSparse();
+            auto dataEntry = mthis->GetEntries();
+            const auto dataEnd = data + mCount;
+            if (destroy) {
+               while (data != dataEnd) {
+                  auto entry = *dataEntry;
+                  if (entry) {
+                     if (entry->GetUses() == 1) {
+                        mType->mDeptr->mDestructor(*data);
+                        Inner::Allocator::Deallocate(entry);
+                     }
+                     else entry->Free();
                   }
-                  else entry->Free();
-               }
 
-               ++data;
-               ++dataEntry;
-            }
-         }
-         else {
-            while (data != dataEnd) {
-               auto entry = *dataEntry;
-               if (entry) {
-                  if (entry->GetUses() == 1)
-                     Inner::Allocator::Deallocate(entry);
-                  else
-                     entry->Free();
+                  ++data;
+                  ++dataEntry;
                }
-
-               ++data;
-               ++dataEntry;
             }
-         }
+            else {
+               while (data != dataEnd) {
+                  auto entry = *dataEntry;
+                  if (entry) {
+                     if (entry->GetUses() == 1)
+                        Inner::Allocator::Deallocate(entry);
+                     else
+                        entry->Free();
+                  }
+
+                  ++data;
+                  ++dataEntry;
+               }
+            }
+         #endif
       }
       else if (mType->mIsSparse) {
          // Destroy each indirection layer                              

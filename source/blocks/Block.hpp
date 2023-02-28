@@ -259,10 +259,8 @@ namespace Langulus::Anyness
 
    protected: TESTING(public:)
       #if LANGULUS_FEATURE(MANAGED_MEMORY)
-         NOD() SAFETY_CONSTEXPR()
-         Inner::Allocation** GetEntries() SAFETY_NOEXCEPT();
-         NOD() SAFETY_CONSTEXPR()
-         const Inner::Allocation* const* GetEntries() const SAFETY_NOEXCEPT();
+         NOD() Inner::Allocation** GetEntries() SAFETY_NOEXCEPT();
+         NOD() const Inner::Allocation* const* GetEntries() const SAFETY_NOEXCEPT();
       #endif
 
    public:
@@ -323,8 +321,8 @@ namespace Langulus::Anyness
       NOD() Block GetElementDeep(Offset) noexcept;
       NOD() const Block GetElementDeep(Offset) const noexcept;
 
-      NOD() Block GetResolved() SAFETY_NOEXCEPT();
-      NOD() const Block GetResolved() const SAFETY_NOEXCEPT();
+      NOD() Block GetResolved();
+      NOD() const Block GetResolved() const;
 
       template<Count COUNT = CountMax>
       NOD() Block GetDense();

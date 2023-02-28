@@ -2157,7 +2157,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                   if constexpr (CT::Typed<T>)
                      REQUIRE(DenseCast(clone[i]) == DenseCast(darray1[i]));
                   else
-                     REQUIRE(DenseCast(clone[i].Get<E>()) == DenseCast(darray1[i]));
+                     REQUIRE(DenseCast(clone[i].template Get<E>()) == DenseCast(darray1[i]));
                }
             }
          }
@@ -2512,7 +2512,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
       WHEN("ForEachRev flat dense element (immutable)") {
          int it = 0;
-         const auto foreachit = const_cast<const T&>(pack).ForEach<true>(
+         const auto foreachit = const_cast<const T&>(pack).template ForEach<true>(
             [&](const int& i) {
                REQUIRE(i == 5 - it);
                ++it;
@@ -2539,7 +2539,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
       WHEN("ForEachRev flat dense element (mutable)") {
          int it = 0;
-         const auto foreachit = pack.ForEach<true>(
+         const auto foreachit = pack.template ForEach<true>(
             [&](int& i) {
                REQUIRE(i == 5 - it);
                ++it;
@@ -2566,7 +2566,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
       WHEN("ForEachRev flat sparse element (immutable)") {
          int it = 0;
-         const auto foreachit = const_cast<const T&>(pack).ForEach<true>(
+         const auto foreachit = const_cast<const T&>(pack).template ForEach<true>(
             [&](const int* i) {
                REQUIRE(*i == 5 - it);
                ++it;
@@ -2593,7 +2593,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
       WHEN("ForEachRev flat sparse element (mutable)") {
          int it = 0;
-         const auto foreachit = pack.ForEach<true>(
+         const auto foreachit = pack.template ForEach<true>(
             [&](int* i) {
                REQUIRE(*i == 5 - it);
                ++it;

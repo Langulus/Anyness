@@ -10,10 +10,8 @@
 
 namespace Langulus::A
 {
-
    struct Handle {};
-
-} // namespace Langulus::A
+}
 
 namespace Langulus::Anyness
 {
