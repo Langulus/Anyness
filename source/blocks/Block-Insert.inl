@@ -686,7 +686,7 @@ namespace Langulus::Anyness
 
       // Pick the region that should be overwritten with new stuff      
       const auto region = CropInner(index, 0);
-      EmplaceInner(region, Forward<A>(arguments)...);
+      EmplaceInner(region, 1, Forward<A>(arguments)...);
       return 1;
    }
 
@@ -729,7 +729,7 @@ namespace Langulus::Anyness
 
       // Pick the region that should be overwritten with new stuff      
       const auto region = CropInner(INDEX == IndexFront ? 0 : mCount, 0);
-      EmplaceInner(region, Forward<A>(arguments)...);
+      EmplaceInner(region, 1, Forward<A>(arguments)...);
       return 1;
    }
    
@@ -747,32 +747,7 @@ namespace Langulus::Anyness
 
       // Pick the region that should be overwritten with new stuff      
       const auto region = CropInner(mCount, 0);
-      if constexpr (sizeof...(A) == 0) {
-         // Attempt default construction                                
-         //TODO if stuff moved, we should move stuff back if this throws...
-         region.CallUnknownDefaultConstructors(count);
-      }
-      else {
-         // Attempt move-construction, if available                     
-         if constexpr (sizeof...(A) == 1) {
-            using F = Decvq<Deref<typename TTypeList<A...>::First>>;
-            if (IsExact<F>()) {
-               // Single argument matches                               
-               region.template CallKnownConstructors<F>(
-                  count, Forward<A>(arguments)...
-               );
-               mCount += count;
-               return count;
-            }
-         }
-
-         // Attempt descriptor-construction, if available               
-         //TODO if stuff moved, we should move stuff back if this throws...
-         const Any descriptor {Forward<A>(arguments)...};
-         region.CallUnknownDescriptorConstructors(count, descriptor);
-      }
-
-      mCount += count;
+      EmplaceInner(region, count, Forward<A>(arguments)...);
       return count;
    }
    
@@ -1136,28 +1111,27 @@ namespace Langulus::Anyness
    ///   Except::Construct                                                    
    ///   @tparam A... - argument types (deducible)                            
    ///   @param region - the region to emplace at                             
+   ///   @param count - the number of elements to emplace                     
    ///   @param arguments... - the arguments to forward to constructor        
-   ///   @return 1 if the element was emplace successfully                    
+   ///   @return the number of emplaced elements                              
    template<class... A>
-   void Block::EmplaceInner(const Block& region, A&&... arguments) {
+   void Block::EmplaceInner(const Block& region, Count count, A&&... arguments) {
       if constexpr (sizeof...(A) == 0) {
          // Attempt default construction                                
          //TODO if stuff moved, we should move stuff back if this throws...
-         region.CallUnknownDefaultConstructors(1);
+         region.CallUnknownDefaultConstructors(count);
       }
       else {
          // Attempt move-construction, if available                     
          if constexpr (sizeof...(A) == 1) {
-            using F = typename TTypeList<Decay<A>...>::First;
-            using DA = Conditional<CT::Sparse<A...>, F*, F>;
-
-            if (IsExact<DA>()) {
+            using F = Decvq<Deref<typename TTypeList<A...>::First>>;
+            if (IsExact<F>()) {
                // Single argument matches                               
-               region.template CallKnownConstructors<DA>(
-                  1, Forward<A>(arguments)...
+               region.template CallKnownConstructors<F>(
+                  count, Forward<A>(arguments)...
                );
 
-               ++mCount;
+               mCount += count;
                return;
             }
          }
@@ -1167,11 +1141,11 @@ namespace Langulus::Anyness
          Block descriptor {MetaData::Of<Block>()};
          descriptor.AllocateFresh(RequestSize(sizeof...(A)));
          descriptor.InsertStatic<0>(Block::From(arguments)...);
-         region.CallUnknownDescriptorConstructors(1, descriptor);
+         region.CallUnknownDescriptorConstructors(count, descriptor);
          descriptor.Free();
       }
 
-      ++mCount;
+      mCount += count;
    }
    
    /// Turn into another container (inner function)                           

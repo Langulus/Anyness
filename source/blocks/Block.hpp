@@ -631,7 +631,7 @@ namespace Langulus::Anyness
       template<Offset, CT::Data HEAD, CT::Data... TAIL>
       void InsertStatic(HEAD&&, TAIL&&...);
       template<class... A>
-      void EmplaceInner(const Block&, A&&... arguments);
+      void EmplaceInner(const Block&, Count, A&&... arguments);
 
       template<CT::Semantic S>
       void Absorb(S&&, const DataState&);
