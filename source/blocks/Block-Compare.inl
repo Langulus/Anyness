@@ -47,12 +47,18 @@ namespace Langulus::Anyness
          return false;
       }
 
-      if (mType != right.mType && (IsUntyped() || right.IsUntyped())) {
-         // Cheap early return for blocks of differing undefined type   
-         VERBOSE(Logger::Red,
-            "One of the containers is untyped: ", 
-            GetToken(), " != ", right.GetToken());
-         return false;
+      if (mType != right.mType) {
+         if (IsUntyped() || right.IsUntyped()) {
+            // Cheap early return if differing undefined types          
+            VERBOSE(Logger::Red,
+               "One of the containers is untyped: ",
+               GetToken(), " != ", right.GetToken());
+            return false;
+         }
+      }
+      else if (IsUntyped()) {
+         // Both blocks are not initialized, just compare states        
+         return CompareStates(right);
       }
 
       if (!CompareStates(right)) {
