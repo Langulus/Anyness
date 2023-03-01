@@ -650,9 +650,9 @@ namespace Langulus::Anyness
       template<CT::Data T>
       void CallKnownDefaultConstructors(Count) const;
 
-      void CallUnknownDescriptorConstructors(Count, const Any&) const;
+      void CallUnknownDescriptorConstructors(Count, const Block&) const;
       template<CT::Data>
-      void CallKnownDescriptorConstructors(Count, const Any&) const;
+      void CallKnownDescriptorConstructors(Count, const Block&) const;
 
       template<CT::Data, class... A>
       void CallKnownConstructors(Count, A&&...) const;
