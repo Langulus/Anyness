@@ -190,13 +190,6 @@ namespace Langulus::Anyness
    constexpr void Trait::SetTrait(TMeta trait) noexcept {
       mTraitType = trait;
    }
-   
-   /// Clone the trait                                                        
-   ///   @return the cloned trait                                             
-   /*LANGULUS(ALWAYSINLINE)
-   Trait Trait::Clone() const {
-      return Trait::From(mTraitType, Langulus::Clone());
-   }*/
 
    /// Get the trait type                                                     
    ///   @return the trait type                                               
@@ -449,13 +442,6 @@ namespace Langulus::Anyness
          return Trait::operator == (static_cast<const Trait&>(DenseCast(rhs)));
       else
          return Any::operator == (rhs);
-   }
-
-   /// Clone the static trait                                                 
-   ///   @return the cloned static trait                                      
-   template<class TRAIT>
-   TRAIT StaticTrait<TRAIT>::Clone() const {
-      return TRAIT {Any::Clone()};
    }
 
 } // namespace Langulus::Anyness

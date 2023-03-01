@@ -77,8 +77,6 @@ namespace Langulus::Anyness
       Trait& operator = (S&&);
 
    public:
-      //NOD() Trait Clone() const;
-
       template<CT::Data TRAIT, CT::Data DATA>
       NOD() static Trait From();
       template<CT::Data DATA>
@@ -166,8 +164,6 @@ namespace Langulus::Anyness
 
       template<CT::Data T>
       NOD() bool operator == (const T&) const;
-
-      NOD() TRAIT Clone() const;
    };
 
 } // namespace Langulus::Anyness
