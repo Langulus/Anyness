@@ -75,7 +75,6 @@ namespace Langulus::Anyness
    class Block {
    public:
       LANGULUS(DEEP) true;
-      LANGULUS(UNINSERTABLE) true;
       LANGULUS(POD) true;
 
       static constexpr bool Ownership = false;
@@ -809,3 +808,4 @@ namespace Langulus::CT
 #include "Block-RTTI.inl"
 #include "Block-Compare.inl"
 #include "Block-Memory.inl"
+#include "Block-Insert.inl"
