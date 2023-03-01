@@ -289,8 +289,7 @@ namespace Langulus::Anyness
    /// Get a deep memory sub-block                                            
    ///   @param index - the index to get, where 0 corresponds to this block   
    ///   @return a pointer to the block or nullptr if index is invalid        
-   LANGULUS(ALWAYSINLINE)
-   Block* Block::GetBlockDeep(Count index) noexcept {
+   inline Block* Block::GetBlockDeep(Count index) noexcept {
       if (index == 0)
          return this;
       if (!IsDeep())
