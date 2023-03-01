@@ -537,12 +537,14 @@ namespace Langulus::Anyness
          if (input.IsNow() && input.IsDeep()) {
             // Phases don't match, but we can dig deeper if deep        
             // and neutral, since Phase::Now is permissive              
-            auto localOutput = Any::FromMeta(type, input.GetUnconstrainedState());
+            Block localOutput {input.GetUnconstrainedState(), type};
             ForEach<REVERSE>([&](const Block& i) {
                GatherPolarInner<REVERSE>(type, i, localOutput, state);
             });
             localOutput.MakeNow();
-            return output.SmartPush(Abandon(localOutput));
+            const auto inserted = output.SmartPush(Abandon(localOutput));
+            localOutput.Free();
+            return inserted;
          }
 
          // Polarity mismatch                                           
@@ -552,14 +554,16 @@ namespace Langulus::Anyness
       // Input is flat and neutral/same                                 
       if (!type) {
          // Output is any, so no need to iterate                        
-         return output.SmartPush(Any {input});
+         return output.SmartPush(input);
       }
 
       // Iterate subpacks if any                                        
-      auto localOutput = Any::FromMeta(type, input.GetState());
+      Block localOutput {input.GetState(), type};
       GatherInner<REVERSE>(input, localOutput);
       localOutput.MakeNow();
-      return output.InsertBlock(localOutput);
+      const auto inserted = output.InsertBlock(Abandon(localOutput));
+      localOutput.Free();
+      return inserted;
    }
 
 } // namespace Langulus::Anyness

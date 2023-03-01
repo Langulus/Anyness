@@ -458,13 +458,13 @@ namespace Langulus::Anyness
       const auto result = Constrain(idx);
       if (result == IndexBiggest) {
          if constexpr (CT::Sortable<T, T>)
-            return GetIndexMax<T>();
+            return GetIndex<T, IndexBiggest>();
          else
             return IndexNone;
       }
       else if (result == IndexSmallest) {
          if constexpr (CT::Sortable<T, T>)
-            return GetIndexMin<T>();
+            return GetIndex<T, IndexSmallest>();
          else
             return IndexNone;
       }
