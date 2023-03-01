@@ -194,7 +194,7 @@ namespace Langulus::Anyness
 
          result.mRaw = result.mEntry->GetBlockStart();
          result.mReserved = request.mElementCount;
-         CopyMemory(mRaw, result.mRaw, mCount);
+         CopyMemory(result.mRaw, mRaw, mCount);
       }
       else {
          result.mEntry = nullptr;
@@ -236,7 +236,7 @@ namespace Langulus::Anyness
       const auto removed = end - start;
       if (end < mCount) {
          // Removing in the middle, so memory has to move               
-         MoveMemory(mRaw + end, mRaw + start, mCount - removed);
+         MoveMemory(mRaw + start, mRaw + end, mCount - removed);
       }
 
       mCount -= removed;

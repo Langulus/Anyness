@@ -270,7 +270,7 @@ namespace Langulus::Anyness::Inner
 
    /// Null the memory                                                        
    inline void Pool::Null() {
-      ::std::memset(static_cast<void*>(mMemory), 0, mAllocatedByBackend);
+      ZeroMemory(mMemory, mAllocatedByBackend);
    }
 
    /// Touch unused memory                                                    

@@ -384,7 +384,7 @@ namespace Langulus::Anyness
       if constexpr (CT::Sparse<T>) {
          if constexpr (S::Shallow) {
             // Pointer copy/move/abandon/disown                         
-            ::std::memcpy(GetRawSparse() + at, start, sizeof(Pointer) * count);
+            CopyMemory(GetRawAs<T>() + at, start, count);
 
             #if LANGULUS_FEATURE(MANAGED_MEMORY)
                // If we're using managed memory, we can search if each  
@@ -404,7 +404,7 @@ namespace Langulus::Anyness
                      ++entry;
                   }
                }
-               else ::std::memset(GetEntries() + at, 0, sizeof(Pointer) * count);
+               else ZeroMemory(GetEntries() + at, count);
             #endif
          }
          else {
@@ -420,7 +420,7 @@ namespace Langulus::Anyness
          auto data = GetRawAs<T>() + at;
          if constexpr (CT::POD<T>) {
             // Optimized POD range insertion                            
-            ::std::memcpy(data, start, sizeof(T) * count);
+            CopyMemory(data, start, count);
          }
          else {
             // Call semantic construction for each element in range     
@@ -1154,36 +1154,6 @@ namespace Langulus::Anyness
       else TODO();
    }
 
-   /// Wrapper for memcpy                                                     
-   ///   @param from - source of data to copy                                 
-   ///   @param to - [out] destination memory                                 
-   ///   @param size - number of bytes to copy                                
-   LANGULUS(ALWAYSINLINE)
-   void Block::CopyMemory(const void* from, void* to, const Size& size) noexcept {
-      ::std::memcpy(to, from, size);
-   }
-   
-   /// Wrapper for memmove                                                    
-   ///   @param from - source of data to move                                 
-   ///   @param to - [out] destination memory                                 
-   ///   @param size - number of bytes to move                                
-   LANGULUS(ALWAYSINLINE)
-   void Block::MoveMemory(const void* from, void* to, const Size& size) noexcept {
-      ::std::memmove(to, from, size);
-      #if LANGULUS(PARANOID)
-         TODO() // zero old memory, but beware - `from` and `to` might overlap
-      #endif
-   }
-   
-   /// Wrapper for memset                                                     
-   ///   @param to - [out] destination memory                                 
-   ///   @param filler - the byte to fill with                                
-   ///   @param size - number of bytes to move                                
-   LANGULUS(ALWAYSINLINE)
-   void Block::FillMemory(void* to, Byte filler, const Size& size) noexcept {
-      ::std::memset(to, static_cast<int>(filler), size);
-   }
-
    /// A helper function, that allocates and moves inner memory               
    ///   @param other - the memory we'll be inserting                         
    ///   @param index - the place we'll be inserting at                       
@@ -1226,19 +1196,19 @@ namespace Langulus::Anyness
       LANGULUS_ASSUME(DevAssumes, IsExact<T>(), "Type mismatch");
       LANGULUS_ASSUME(DevAssumes, count <= mReserved, "Count outside limits");
 
+      auto mthis = const_cast<Block*>(this);
       if constexpr (CT::Sparse<T>) {
          // Zero pointers                                               
-         ::std::memset(mRaw, 0, count * sizeof(Pointer));
+         ZeroMemory(mthis->mRawSparse, count);
 
          // Zero entries if managed memory is enabled                   
-         IF_LANGULUS_MANAGED_MEMORY(::std::memset(
-            const_cast<Block*>(this)->GetEntries(),
-            0, count * sizeof(Pointer)
+         IF_LANGULUS_MANAGED_MEMORY(ZeroMemory(
+            mthis->GetEntries(), count
          ));
       }
       else if constexpr (CT::Nullifiable<T>) {
          // Zero the dense memory (optimization)                        
-         ::std::memset(mRaw, 0, count * sizeof(T));
+         ZeroMemory(mthis->GetRawAs<T>(), count);
       }
       else if constexpr (CT::Defaultable<T>) {
          // Construct requested elements in place                       
@@ -1259,17 +1229,16 @@ namespace Langulus::Anyness
 
       if (mType->mIsSparse) {
          // Zero pointers                                               
-         ::std::memset(mRaw, 0, count * sizeof(Pointer));
+         ZeroMemory(mRawSparse, count);
 
          // Zero entries if managed memory is enabled                   
-         IF_LANGULUS_MANAGED_MEMORY(::std::memset(
-            const_cast<Block*>(this)->GetEntries(),
-            0, count * sizeof(Pointer)
+         IF_LANGULUS_MANAGED_MEMORY(ZeroMemory(
+            const_cast<Block*>(this)->GetEntries(), count
          ));
       } 
       else if (mType->mIsNullifiable) {
          // Zero the dense memory (optimization)                        
-         ::std::memset(mRaw, 0, count * mType->mSize);
+         ZeroMemory(mRaw, count * mType->mSize);
       }
       else {
          LANGULUS_ASSERT(
@@ -1288,6 +1257,63 @@ namespace Langulus::Anyness
          }
       }
    }
+
+   /// Batch-optimized semantic pointer constructions                         
+   ///   @tparam S - the semantic and type to use                             
+   ///   @param count - number of elements to construct                       
+   ///   @param source - source                                               
+   template<CT::Semantic S>
+   void Block::ShallowBatchPointerConstruction(const Count count, S&& source) const {
+      const auto mthis = const_cast<Block*>(this);
+
+      const auto pointersDst = mthis->GetRawSparse();
+      const auto pointersSrc = source.mValue.GetRawSparse();
+
+      #if LANGULUS_FEATURE(MANAGED_MEMORY)
+         const auto entriesDst = mthis->GetEntries();
+         const auto entriesSrc = source.mValue.GetEntries();
+      #endif
+
+      // Copy/Disown/Move/Abandon                                       
+      if constexpr (S::Move) {
+         // Move/Abandon                                                
+         MoveMemory(pointersDst, pointersSrc, count);
+         #if LANGULUS_FEATURE(MANAGED_MEMORY)
+            MoveMemory(entriesDst, entriesSrc, count);
+
+            // Reset source ownership                                   
+            ZeroMemory(entriesSrc, count);
+         #endif
+
+         // Reset source pointers, too, if not abandoned                
+         if constexpr (S::Keep)
+            ZeroMemory(pointersSrc, count);
+      }
+      else {
+         // Copy/Disown                                                 
+         CopyMemory(pointersDst, pointersSrc, count);
+
+         #if LANGULUS_FEATURE(MANAGED_MEMORY)
+            CopyMemory(entriesDst, entriesSrc, count);
+
+            if constexpr (S::Keep) {
+               // Reference each entry, if not disowned                 
+               auto entry = entriesDst;
+               const auto entryEnd = entry + count;
+               while (entry != entryEnd) {
+                  if (*entry)
+                     (*entry)->Keep();
+                  ++entry;
+               }
+            }
+            else {
+               // Otherwise make sure all entries are zero              
+               ZeroMemory(entriesDst, count);
+            }
+         #endif
+      }
+   }
+
 
    /// Call move constructors in a region and initialize memory               
    ///   @attention never modifies any block state                            
@@ -1318,53 +1344,8 @@ namespace Langulus::Anyness
 
       const auto mthis = const_cast<Block*>(this);
       if constexpr (CT::Sparse<T>) {
-         // Batch-optimized semantic pointer constructions              
-         const auto byteSize = sizeof(Pointer) * count;
-         #if LANGULUS_FEATURE(MANAGED_MEMORY)
-            const auto entriesDst = mthis->GetEntries();
-            const auto entriesSrc = source.mValue.GetEntries();
-         #endif
-
-         if constexpr (S::Shallow) {
-            // Copy/Disown/Move/Abandon                                 
-            if constexpr (S::Move) {
-               // Move/Abandon                                          
-               ::std::memmove(mthis->GetRaw(), source.mValue.GetRaw(), byteSize);
-               #if LANGULUS_FEATURE(MANAGED_MEMORY)
-                  ::std::memmove(entriesDst, entriesSrc, byteSize);
-
-                  // Reset source ownership                             
-                  ::std::memset(entriesSrc, 0, byteSize);
-               #endif
-
-               // Reset source pointers, too, if not abandoned          
-               if constexpr (S::Keep)
-                  ::std::memset(source.mValue.GetRaw(), 0, byteSize);
-            }
-            else {
-               // Copy/Disown                                           
-               ::std::memcpy(mthis->GetRaw(), source.mValue.GetRaw(), byteSize);
-
-               #if LANGULUS_FEATURE(MANAGED_MEMORY)
-                  ::std::memcpy(entriesDst, entriesSrc, byteSize);
-
-                  if constexpr (S::Keep) {
-                     // Reference each entry, if not disowned           
-                     auto entry = entriesDst;
-                     const auto entryEnd = entry + count;
-                     while (entry != entryEnd) {
-                        if (*entry)
-                           (*entry)->Keep();
-                        ++entry;
-                     }
-                  }
-                  else {
-                     // Otherwise make sure all entries are zero        
-                     ::std::memset(entriesDst, 0, byteSize);
-                  }
-               #endif
-            }
-         }
+         if constexpr (S::Shallow)
+            ShallowBatchPointerConstruction(count, source.Forward());
          else {
             // Clone                                                    
             if constexpr (CT::Sparse<Deptr<T>> || !CT::Resolvable<T>) {
@@ -1407,10 +1388,9 @@ namespace Langulus::Anyness
       }
       else if constexpr (CT::POD<T>) {
          // We're constructing dense POD data                           
-         const auto bytecount = sizeof(T) * count;
-         auto lhs = mthis->GetRaw();
-         auto rhs = source.mValue.GetRaw();
-         ::std::memcpy(lhs, rhs, bytecount);
+         auto lhs = mthis->template GetRawAs<T>();
+         auto rhs = source.mValue.template GetRawAs<T>();
+         CopyMemory(lhs, rhs, count);
       }
       else {
          // Both RHS and LHS are dense and non POD                      
@@ -1459,53 +1439,8 @@ namespace Langulus::Anyness
 
       auto mthis = const_cast<Block*>(this);
       if (mType->mIsSparse && source.mValue.mType->mIsSparse) {
-         // Batch-optimized semantic pointer constructions              
-         const auto byteSize = sizeof(Pointer) * count;
-         #if LANGULUS_FEATURE(MANAGED_MEMORY)
-            const auto entriesDst = mthis->GetEntries();
-            const auto entriesSrc = source.mValue.GetEntries();
-         #endif
-
-         if constexpr (S::Shallow) {
-            // Copy/Disown/Move/Abandon                                 
-            if constexpr (S::Move) {
-               // Move/Abandon                                          
-               ::std::memmove(mthis->GetRaw(), source.mValue.GetRaw(), byteSize);
-               #if LANGULUS_FEATURE(MANAGED_MEMORY)
-                  ::std::memmove(entriesDst, entriesSrc, byteSize);
-
-                  // Reset source ownership                             
-                  ::std::memset(entriesSrc, 0, byteSize);
-               #endif
-
-               // Reset source pointers, too, if not abandoned          
-               if constexpr (S::Keep)
-                  ::std::memset(source.mValue.GetRaw(), 0, byteSize);
-            }
-            else {
-               // Copy/Disown                                           
-               ::std::memcpy(mthis->GetRaw(), source.mValue.GetRaw(), byteSize);
-
-               #if LANGULUS_FEATURE(MANAGED_MEMORY)
-                  ::std::memcpy(entriesDst, entriesSrc, byteSize);
-
-                  if constexpr (S::Keep) {
-                     // Reference each entry, if not disowned           
-                     auto entry = entriesDst;
-                     const auto entryEnd = entry + count;
-                     while (entry != entryEnd) {
-                        if (*entry)
-                           (*entry)->Keep();
-                        ++entry;
-                     }
-                  }
-                  else {
-                     // Otherwise make sure all entries are zero        
-                     ::std::memset(entriesDst, 0, byteSize);
-                  }
-               #endif
-            }
-         }
+         if constexpr (S::Shallow)
+            ShallowBatchPointerConstruction(count, source.Forward());
          else {
             // Clone                                                    
             if (mType->mDeptr->mIsSparse || mType->mResolver == nullptr) {
@@ -1552,10 +1487,11 @@ namespace Langulus::Anyness
       else if (mType->mIsPOD && mType->mIsSparse == source.mValue.mType->mIsSparse) {
          // Both dense and POD                                          
          // Copy/Disown/Move/Abandon/Clone                              
+         const auto bytesize = mType->mSize * count;
          if constexpr (S::Move)
-            ::std::memmove(mRaw, source.mValue.mRaw, mType->mSize * count);
+            MoveMemory(mRaw, source.mValue.mRaw, bytesize);
          else
-            ::std::memcpy(mRaw, source.mValue.mRaw, mType->mSize * count);
+            CopyMemory(mRaw, source.mValue.mRaw, bytesize);
          return;
       }
 
@@ -2101,10 +2037,11 @@ namespace Langulus::Anyness
          return;
       }
       else if (mType->mIsPOD && mType->mIsSparse == source.mValue.mType->mIsSparse) {
+         const auto bytesize = mType->mSize * count;
          if constexpr (S::Move)
-            MoveMemory(source.mValue.mRaw, mRaw, mType->mSize * count);
+            MoveMemory(mRaw, source.mValue.mRaw, bytesize);
          else
-            CopyMemory(source.mValue.mRaw, mRaw, mType->mSize * count);
+            CopyMemory(mRaw, source.mValue.mRaw, bytesize);
          return;
       }
 
@@ -2366,7 +2303,7 @@ namespace Langulus::Anyness
       }
 
       // Always nullify upon destruction only if we're paranoid         
-      PARANOIA(::std::memset(GetRaw(), 0, GetByteSize()));
+      PARANOIA(ZeroMemory(mRaw, GetByteSize()));
    }
    
    /// Call destructors of all initialized items                              
@@ -2435,7 +2372,7 @@ namespace Langulus::Anyness
       }
 
       // Always nullify upon destruction only if we're paranoid         
-      PARANOIA(::std::memset(GetRaw(), 0, GetByteSize()));
+      PARANOIA(ZeroMemory(mRaw, GetByteSize()));
    }
 
    /// Copy-insert all elements of a block at an index                        

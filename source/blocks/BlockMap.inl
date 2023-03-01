@@ -147,7 +147,7 @@ namespace Langulus::Anyness
             asTo->AllocateFresh(other.mValue.GetReserved());
 
             // Clone info array                                         
-            ::std::memcpy(asTo->mInfo, other.mValue.mInfo, GetReserved() + 1);
+            CopyMemory(asTo->mInfo, other.mValue.mInfo, GetReserved() + 1);
 
             auto info = asTo->GetInfo();
             const auto infoEnd = asTo->GetInfoEnd();
@@ -185,7 +185,7 @@ namespace Langulus::Anyness
       asTo->AllocateFresh(other.GetReserved());
 
       // Clone info array                                               
-      ::std::memcpy(asTo->mInfo, asFrom->mInfo, GetReserved() + 1);
+      CopyMemory(asTo->mInfo, asFrom->mInfo, GetReserved() + 1);
 
       using K = typename T::Key;
       using V = typename T::Value;
@@ -725,15 +725,15 @@ namespace Langulus::Anyness
          // Check if keys were reused                                   
          if (mKeys.mEntry == oldKeys.mEntry) {
             // Data was reused, but info always moves (null the rest)   
-            ::std::memmove(mInfo, oldInfo, oldCount);
-            ::std::memset(mInfo + oldCount, 0, count - oldCount);
+            MoveMemory(mInfo, oldInfo, oldCount);
+            ZeroMemory(mInfo + oldCount, count - oldCount);
 
             // Data was reused, but entries always move if sparse keys  
             IF_LANGULUS_MANAGED_MEMORY(if (mKeys.IsSparse()) {
-               ::std::memmove(
+               MoveMemory(
                   mKeys.mRawSparse + count, 
                   mKeys.mRawSparse + oldCount, 
-                  sizeof(Pointer) * oldCount
+                  oldCount
                );
             });
 
@@ -741,10 +741,10 @@ namespace Langulus::Anyness
                // Both keys and values remain in the same place         
                // Data was reused, but entries always move if sparse val
                IF_LANGULUS_MANAGED_MEMORY(if (mValues.IsSparse()) {
-                  ::std::memmove(
+                  MoveMemory(
                      mValues.mRawSparse + count,
                      mValues.mRawSparse + oldCount,
-                     sizeof(Pointer) * oldCount
+                     oldCount
                   );
                });
 
@@ -752,9 +752,9 @@ namespace Langulus::Anyness
                return;
             }
          }
-         else ::std::memset(mInfo, 0, count);
+         else ZeroMemory(mInfo, count);
       }
-      else ::std::memset(mInfo, 0, count);
+      else ZeroMemory(mInfo, count);
 
       if (oldValues.IsEmpty()) {
          // There are no old values, the previous map was empty         
@@ -1066,7 +1066,7 @@ namespace Langulus::Anyness
          ClearInner();
 
          // Clear all info to zero                                      
-         ::std::memset(GetInfo(), 0, GetReserved());
+         ZeroMemory(mInfo, GetReserved());
          mValues.mCount = 0;
       }
       else {

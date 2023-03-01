@@ -86,10 +86,9 @@ namespace Langulus::Anyness
          const auto request = RequestSize(elements);
          if (mType->mIsSparse) {
             // Move entry data to its new place                         
-            ::std::memmove(
-               mRawSparse + request.mElementCount,
-               GetEntries(),
-               sizeof(Pointer) * mCount
+            MoveMemory(
+               GetEntries() - mReserved + request.mElementCount,
+               GetEntries(), mCount
             );
          }
          mEntry = Inner::Allocator::Reallocate(
@@ -115,7 +114,7 @@ namespace Langulus::Anyness
       clone.AllocateFresh(RequestSize(mCount));
       clone.CallUnknownSemanticConstructors(mCount, Langulus::Clone(*this));
       Free();
-      ::std::memcpy(this, &clone, sizeof(Block));
+      CopyMemory(this, &clone);
    }
 
    /// Allocate a number of elements, relying on the type of the container    
@@ -165,9 +164,8 @@ namespace Langulus::Anyness
                // Memory didn't move, but reserved count changed        
                if (mType->mIsSparse) {
                   // Move entry data to its new place                   
-                  ::std::memmove(
-                     GetEntries(), previousBlock.GetEntries(),
-                     sizeof(Pointer) * mCount
+                  MoveMemory(
+                     GetEntries(), previousBlock.GetEntries(), mCount
                   );
                }
             }

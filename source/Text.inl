@@ -255,7 +255,7 @@ namespace Langulus::Anyness
          const auto request = RequestSize(mCount);
          result.AllocateFresh(request);
          result.mReserved = request.mElementCount;
-         CopyMemory(mRaw, result.mRaw, mCount);
+         CopyMemory(result.mRaw, mRaw, mCount);
       }
       else {
          result.mEntry = nullptr;
@@ -278,7 +278,7 @@ namespace Langulus::Anyness
       const auto request = RequestSize(result.mReserved + 1);
       result.AllocateFresh(request);
       result.mReserved = request.mElementCount;
-      CopyMemory(mRaw, result.mRaw, mCount);
+      CopyMemory(result.mRaw, mRaw, mCount);
       result.GetRaw()[mCount] = '\0';
       return Abandon(result);
    }
@@ -416,7 +416,7 @@ namespace Langulus::Anyness
             const auto size = end - start;
             if (size) {
                auto segment = result.Extend(size);
-               CopyMemory(GetRaw() + start, segment.GetRaw(), size);
+               CopyMemory(segment.GetRaw(), GetRaw() + start, size);
             }
 
             start = end = i + 1;
@@ -443,7 +443,7 @@ namespace Langulus::Anyness
          "Can't remove from constant container");
 
       if (end < mCount)
-         Block::MoveMemory(mRaw + end, mRaw + start, mCount - end);
+         MoveMemory(mRaw + start, mRaw + end, mCount - end);
 
       mCount -= removed;
       return *this;

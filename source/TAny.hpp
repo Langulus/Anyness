@@ -27,8 +27,9 @@ namespace Langulus::Anyness
    template<CT::Data T>
    class TAny : public Any {
       LANGULUS(DEEP) true;
-      LANGULUS_BASES(Any);
+      LANGULUS(POD) false;
       LANGULUS(TYPED) T;
+      LANGULUS_BASES(Any);
 
    public:
       static constexpr bool Ownership = true;

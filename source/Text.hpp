@@ -17,7 +17,9 @@ namespace Langulus::Anyness
    ///                                                                        
    class Text : public TAny<Letter> {
       LANGULUS(DEEP) false;
+      LANGULUS(POD) false;
       LANGULUS_BASES(A::Text, TAny<Letter>);
+
    private:
       template<CT::Semantic S>
       static constexpr bool Relevant = CT::DerivedFrom<TypeOf<S>, TAny<Letter>>;

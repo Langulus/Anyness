@@ -47,7 +47,7 @@ namespace Langulus::Anyness
          )
       );
 
-      ::std::memset(mInfo, 0, GetReserved());
+      ZeroMemory(mInfo, GetReserved());
       mInfo[GetReserved()] = 1;
 
       for (auto& it : initlist) {
@@ -92,7 +92,7 @@ namespace Langulus::Anyness
 
             AllocateFresh(other.mValue.GetReserved());
 
-            ::std::memset(mInfo, 0, GetReserved());
+            ZeroMemory(mInfo, GetReserved());
             mInfo[GetReserved()] = 1;
 
             other.mValue.ForEach([this](const typename T::Pair& pair) {
@@ -112,7 +112,7 @@ namespace Langulus::Anyness
 
          AllocateFresh(MinimalAllocation);
 
-         ::std::memset(mInfo, 0, GetReserved());
+         ZeroMemory(mInfo, GetReserved());
          mInfo[GetReserved()] = 1;
 
          TODO();
@@ -252,7 +252,7 @@ namespace Langulus::Anyness
       result.mValues.mRaw = result.mValues.mEntry->GetBlockStart();
       result.mInfo = result.mKeys.template GetRawAs<InfoType>()
          + (mInfo - mKeys.template GetRawAs<InfoType>());
-      ::std::memcpy(result.mInfo, mInfo, GetReserved() + 1);
+      CopyMemory(result.mInfo, mInfo, GetReserved() + 1);
 
       // Clone the keys & values                                        
       auto info = result.GetInfo();
@@ -625,15 +625,15 @@ namespace Langulus::Anyness
          // Check if keys were reused                                   
          if (mKeys.mEntry == oldKeys.mEntry) {
             // Keys were reused, but info always moves (null the rest)  
-            ::std::memmove(mInfo, oldInfo, oldCount);
-            ::std::memset(mInfo + oldCount, 0, count - oldCount);
+            MoveMemory(mInfo, oldInfo, oldCount);
+            ZeroMemory(mInfo + oldCount, count - oldCount);
 
             // Data was reused, but entries always move if sparse keys  
             IF_LANGULUS_MANAGED_MEMORY(if constexpr (CT::Sparse<K>) {
-               ::std::memmove(
+               MoveMemory(
                   mKeys.mRawSparse + count,
                   mKeys.mRawSparse + oldCount,
-                  sizeof(Pointer) * oldCount
+                  oldCount
                );
             });
 
@@ -641,10 +641,10 @@ namespace Langulus::Anyness
                // Both keys and values remain in the same place         
                // Data was reused, but entries always move if sparse val
                IF_LANGULUS_MANAGED_MEMORY(if constexpr (CT::Sparse<V>) {
-                  ::std::memmove(
+                  MoveMemory(
                      mValues.mRawSparse + count,
                      mValues.mRawSparse + oldCount,
-                     sizeof(Pointer) * oldCount
+                     oldCount
                   );
                });
 
@@ -652,9 +652,9 @@ namespace Langulus::Anyness
                return;
             }
          }
-         else ::std::memset(mInfo, 0, count);
+         else ZeroMemory(mInfo, count);
       }
-      else ::std::memset(mInfo, 0, count);
+      else ZeroMemory(mInfo, count);
 
       if (oldVals.IsEmpty()) {
          // There are no old values, the previous map was empty         
@@ -904,7 +904,7 @@ namespace Langulus::Anyness
          ClearInner();
 
          // Clear all info to zero                                      
-         ::std::memset(mInfo, 0, GetReserved());
+         ZeroMemory(mInfo, GetReserved());
          mValues.mCount = 0;
       }
       else {

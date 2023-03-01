@@ -76,6 +76,7 @@ namespace Langulus::Anyness
    public:
       LANGULUS(DEEP) true;
       LANGULUS(UNINSERTABLE) true;
+      LANGULUS(POD) true;
 
       static constexpr bool Ownership = false;
       static constexpr bool Sequential = true;
@@ -661,6 +662,8 @@ namespace Langulus::Anyness
       void CallUnknownSemanticConstructors(Count, S&&) const;
       template<CT::Data, bool REVERSE = false, CT::Semantic S>
       void CallKnownSemanticConstructors(Count, S&&) const;
+      template<CT::Semantic S>
+      void ShallowBatchPointerConstruction(Count, S&&) const;
 
       template<CT::Semantic S>
       void CallUnknownSemanticAssignment(Count, S&&) const;
@@ -706,13 +709,6 @@ namespace Langulus::Anyness
       ///                                                                     
       Size Encrypt(Block&, const ::std::size_t*, const Count&) const;
       Size Decrypt(Block&, const ::std::size_t*, const Count&) const;
-   
-   protected:
-      /// @cond show_protected                                                
-      static void CopyMemory(const void*, void*, const Size&) noexcept;
-      static void MoveMemory(const void*, void*, const Size&) noexcept;
-      static void FillMemory(void*, Byte, const Size&) noexcept;
-      /// @endcond                                                            
    };
 
 

@@ -286,7 +286,7 @@ namespace Langulus::Anyness
 
    /// Check if block data can be safely set to zero bytes                    
    /// This is tied to `LANGULUS(NULLIFIABLE) true` reflection member         
-   ///   @return true if contained data can be memset(0) safely               
+   ///   @return true if contained data can be zeroed safely                  
    LANGULUS(ALWAYSINLINE)
    constexpr bool Block::IsNullifiable() const noexcept {
       return mType && mType->mIsNullifiable;

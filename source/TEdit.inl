@@ -103,11 +103,10 @@ namespace Langulus::Anyness
             const auto surplus = (other.GetCount() + mStart) - mEnd;
             mSource.AllocateMore<false, true>(mSource.GetCount() + surplus);
 
-            const auto surplusBytes = surplus * mSource.GetStride();
-            ::std::memmove(
-               mSource.GetRaw() + offset + surplusBytes,
+            MoveMemory(
+               mSource.GetRaw() + offset + surplus,
                mSource.GetRaw() + offset,
-               mSource.GetByteSize() - offset - surplusBytes
+               mSource.GetCount() - offset - surplus
             );
          }
          else if (other.GetCount() < GetLength()) {
@@ -117,7 +116,7 @@ namespace Langulus::Anyness
          }
 
          // Copy new data over the old one                              
-         ::std::memcpy(
+         CopyMemory(
             mSource.GetRaw() + offset,
             other.GetRaw(), 
             other.GetByteSize()

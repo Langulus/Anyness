@@ -170,7 +170,7 @@ namespace Langulus::Anyness
       result.mKeys.mRaw = result.mKeys.mEntry->GetBlockStart();
       result.mInfo = reinterpret_cast<InfoType*>(result.mKeys.mRaw)
           + (mInfo - reinterpret_cast<const InfoType*>(mKeys.mRaw));
-      ::std::memcpy(result.mInfo, mInfo, GetReserved() + 1);
+      CopyMemory(result.mInfo, mInfo, GetReserved() + 1);
 
       // Clone the keys & values                                        
       CloneInner(GetValues(), result.GetValues());
@@ -350,15 +350,15 @@ namespace Langulus::Anyness
          // Check if keys were reused                                   
          if (mKeys.mEntry == oldKeys.mEntry) {
             // Keys were reused, but info always moves (null the rest)  
-            ::std::memmove(mInfo, oldInfo, oldCount);
-            ::std::memset(mInfo + oldCount, 0, count - oldCount);
+            MoveMemory(mInfo, oldInfo, oldCount);
+            ZeroMemory(mInfo + oldCount, count - oldCount);
 
             // Data was reused, but entries always move if sparse keys  
             IF_LANGULUS_MANAGED_MEMORY(if constexpr (CT::Sparse<T>) {
-               ::std::memmove(
+               MoveMemory(
                   mKeys.mRawSparse + count,
                   mKeys.mRawSparse + oldCount,
-                  sizeof(Pointer) * oldCount
+                  oldCount
                );
             });
 
@@ -366,9 +366,9 @@ namespace Langulus::Anyness
             Rehash(count, oldCount);
             return;
          }
-         else ::std::memset(mInfo, 0, count);
+         else ZeroMemory(mInfo, count);
       }
-      else ::std::memset(mInfo, 0, count);
+      else ZeroMemory(mInfo, count);
 
       if (oldKeys.IsEmpty()) {
          // There are no old values, the previous map was empty         
@@ -577,7 +577,7 @@ namespace Langulus::Anyness
          ClearInner();
 
          // Clear all info to zero                                      
-         ::std::memset(mInfo, 0, GetReserved());
+         ZeroMemory(mInfo, GetReserved());
          mKeys.mCount = 0;
       }
       else {

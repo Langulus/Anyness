@@ -34,7 +34,7 @@ namespace Langulus::Anyness
       );
       const auto hashmask = GetReserved() - 1;
 
-      ::std::memset(mInfo, 0, GetReserved());
+      ZeroMemory(mInfo, GetReserved());
       mInfo[GetReserved()] = 1;
 
       for (auto& it : list) {
@@ -88,7 +88,7 @@ namespace Langulus::Anyness
             AllocateFresh(other.mValue.GetReserved());
             const auto hashmask = GetReserved() - 1;
 
-            ::std::memset(mInfo, 0, GetReserved());
+            ZeroMemory(mInfo, GetReserved());
             mInfo[GetReserved()] = 1;
 
             using TP = typename T::Pair;
@@ -125,7 +125,7 @@ namespace Langulus::Anyness
          AllocateFresh(MinimalAllocation);
          constexpr auto hashmask = MinimalAllocation - 1;
 
-         ::std::memset(mInfo, 0, GetReserved());
+         ZeroMemory(mInfo, GetReserved());
          mInfo[GetReserved()] = 1;
 
          if constexpr (CT::TypedPair<T>) {

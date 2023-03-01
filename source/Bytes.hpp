@@ -18,7 +18,8 @@ namespace Langulus::Anyness
    /// Can represent any POD type as a sequence of bytes                      
    ///                                                                        
    class Bytes : public TAny<Byte> {
-      LANGULUS(DEEP) false;		
+      LANGULUS(DEEP) false;
+      LANGULUS(POD) false;
       LANGULUS_BASES(TAny<Byte>);
 
    private:

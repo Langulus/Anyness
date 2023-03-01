@@ -447,14 +447,14 @@ namespace Langulus::Anyness
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
    void TAny<T>::Null(const Count& count) {
-      static_assert(CT::POD<T> || CT::Nullifiable<T>, "T is not nullifiable");
+      static_assert(CT::Sparse<T> || CT::Nullifiable<T>, "T is not nullifiable");
 
       if (count < mReserved)
          AllocateLess(count);
       else
          AllocateMore<false, true>(count);
 
-      FillMemory(mRaw, {}, GetByteSize());
+      ZeroMemory(GetRaw(), count);
    }
 
    /// Clear the container, destroying all elements,                          
@@ -1397,7 +1397,7 @@ namespace Langulus::Anyness
          LANGULUS_ASSERT(!IsStatic(), Access,
             "Attempting to remove from static container");
 
-         MoveMemory(GetRaw() + ender, GetRaw() + starter, sizeof(T) * (mCount - ender));
+         MoveMemory(GetRaw() + starter, GetRaw() + ender, mCount - ender);
          mCount -= count;
          return count;
       }
@@ -1627,9 +1627,9 @@ namespace Langulus::Anyness
                // Memory didn't move, but reserved count changed        
                if constexpr (CT::Sparse<T>) {
                   // Move entry data to its new place                   
-                  ::std::memmove(
-                     mRawSparse + request.mElementCount, mRawSparse + mReserved,
-                     sizeof(Pointer) * mCount
+                  MoveMemory(
+                     mRawSparse + request.mElementCount,
+                     mRawSparse + mReserved, mCount
                   );
                }
             }

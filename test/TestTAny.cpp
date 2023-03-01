@@ -226,7 +226,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
             if constexpr (CT::Sparse<E>) {
                REQUIRE(*pack.GetRawSparse() == asbytes(sparseValue));
-               REQUIRE(*pack.GetEntries() == nullptr);
+               IF_LANGULUS_MANAGED_MEMORY(REQUIRE(*pack.GetEntries() == nullptr));
             }
 
             REQUIRE_THROWS(pack.template As<float>() == 0.0f);

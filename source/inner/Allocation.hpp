@@ -10,13 +10,96 @@
 
 namespace Langulus::Anyness
 {
+
    using RTTI::MetaData;
    using RTTI::MetaTrait;
    using RTTI::MetaVerb;
    using RTTI::DMeta;
    using RTTI::TMeta;
    using RTTI::VMeta;
-}
+
+   /// Wrapper for memcpy                                                     
+   ///   @tparam TO - destination memory type (deducible)                     
+   ///   @tparam FROM - source memory type (deducible)                        
+   ///   @param to - [out] destination memory                                 
+   ///   @param from - source of data to copy                                 
+   ///   @param count - number of elements to copy                            
+   template<class TO, class FROM>
+   LANGULUS(ALWAYSINLINE)
+   void CopyMemory(TO* to, const FROM* from, const Count& count = 1) noexcept {
+      static_assert(CT::Void<TO> || CT::Sparse<TO> || CT::POD<TO> || ::std::is_trivial_v<TO>, 
+         "TO must be either pointer, reflected as POD, or trivial. "
+         "(you can suppress this error by casting pointer to void*)");
+
+      static_assert(CT::Void<TO> || (CT::Same<TO, FROM> && CT::Sparse<TO> == CT::Sparse<FROM>),
+         "TO and FROM must be the exact same types"
+         "(you can suppress this error by casting pointer to void*)");
+
+      ::std::memcpy(
+         static_cast<void*>(to), 
+         static_cast<const void*>(from), 
+         sizeof(TO) * count
+      );
+   }
+   
+   /// Wrapper for memset                                                     
+   ///   @tparam TO - destination memory type (deducible)                     
+   ///   @tparam FILLER - value to fill in with                               
+   ///   @param to - [out] destination memory                                 
+   ///   @param count - number of elements to fill                            
+   template<int FILLER, class TO>
+   LANGULUS(ALWAYSINLINE)
+   void FillMemory(TO* to, const Count& count = 1) noexcept {
+      static_assert(CT::Void<TO> || CT::Sparse<TO> || CT::POD<TO> || ::std::is_trivial_v<TO>,
+         "TO must be either pointer, reflected as POD, or trivial. "
+         "(you can suppress this error by casting to void*)");
+
+      static_assert(FILLER || CT::Nullifiable<TO> || CT::Void<TO> || CT::Sparse<TO> || CT::Fundamental<TO>,
+         "Filling with zeroes requires the type to be reflected as nullifiable, "
+         "or be a pointer/fundamental (you can suppress this error by casting to void*)");
+
+      ::std::memset(static_cast<void*>(to), FILLER, sizeof(TO) * count);
+   }
+
+   /// Wrapper for memset 0                                                   
+   ///   @tparam TO - destination memory type (deducible)                     
+   ///   @param to - [out] destination memory                                 
+   ///   @param count - number of elements to zero                            
+   template<class TO>
+   LANGULUS(ALWAYSINLINE)
+   void ZeroMemory(TO* to, const Count& count = 1) noexcept {
+      return FillMemory<0>(to, count);
+   }
+      
+   /// Wrapper for memmove                                                    
+   ///   @tparam TO - destination memory type (deducible)                     
+   ///   @tparam FROM - source memory type (deducible)                        
+   ///   @param to - [out] destination memory                                 
+   ///   @param from - source of data to move                                 
+   ///   @param count - number of elements to move                            
+   template<class TO, class FROM>
+   LANGULUS(ALWAYSINLINE)
+   void MoveMemory(TO* to, const FROM* from, const Count& count = 1) noexcept {
+      static_assert(CT::Void<TO> || CT::Sparse<TO> || CT::POD<TO> || ::std::is_trivial_v<TO>,
+         "TO must be either pointer, reflected as POD, or trivial. "
+         "(You can suppress this error by casting pointer to void*)");
+
+      static_assert(CT::Void<TO> || (CT::Same<TO, FROM> && CT::Sparse<TO> == CT::Sparse<FROM>),
+         "TO and FROM must be the exact same types"
+         "(you can suppress this error by casting pointer to void*)");
+
+      ::std::memmove(
+         static_cast<void*>(to), 
+         static_cast<const void*>(from), 
+         sizeof(TO) * count
+      );
+
+      #if LANGULUS(PARANOID)
+         TODO() // zero old memory, but beware - `from` and `to` might overlap
+      #endif
+   }
+   
+} // namespace Langulus::Anyness
 
 namespace Langulus::Anyness::Inner
 {
