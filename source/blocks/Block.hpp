@@ -801,7 +801,6 @@ namespace Langulus::CT
 
 } // namespace Langulus::CT
 
-#include "Block.inl"
 #include "Block-Construct.inl"
 #include "Block-Capsulation.inl"
 #include "Block-Indexing.inl"
@@ -809,3 +808,4 @@ namespace Langulus::CT
 #include "Block-Compare.inl"
 #include "Block-Memory.inl"
 #include "Block-Insert.inl"
+#include "Block-Remove.inl"

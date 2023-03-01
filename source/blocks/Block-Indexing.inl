@@ -7,6 +7,7 @@
 ///                                                                           
 #pragma once
 #include "Block.hpp"
+#include "../inner/Handle.hpp"
 
 namespace Langulus::Anyness
 {

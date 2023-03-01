@@ -7,6 +7,7 @@
 ///                                                                           
 #pragma once
 #include "Block.hpp"
+#include "Block-Indexing.inl"
 
 namespace Langulus::Anyness
 {
@@ -205,7 +206,38 @@ namespace Langulus::Anyness
       mRaw = mEntry->GetBlockStart();
       mReserved = request.mElementCount;
    }
-   
+
+   /// A helper function, that allocates and moves inner memory               
+   ///   @param other - the memory we'll be inserting                         
+   ///   @param index - the place we'll be inserting at                       
+   ///   @param region - the newly allocated region (!mCount, only mReserved) 
+   ///   @return number if inserted items in case of mutation                 
+   inline void Block::AllocateRegion(const Block& other, Offset index, Block& region) {
+      // Type may mutate, but never deepen                              
+      Mutate<false>(other.mType);
+
+      // Allocate the required memory - this will not initialize it     
+      AllocateMore<false>(mCount + other.mCount);
+
+      if (index < mCount) {
+         // Move memory if required                                     
+         LANGULUS_ASSERT(GetUses() == 1, Move,
+            "Moving elements that are used from multiple places");
+
+         // We need to shift elements right from the insertion point    
+         // Therefore, we call move constructors in reverse, to avoid   
+         // memory overlap                                              
+         const auto moved = mCount - index;
+         CropInner(index + other.mCount, 0)
+            .template CallUnknownSemanticConstructors<true>(
+               moved, Abandon(CropInner(index, moved))
+            );
+      }
+
+      // Pick the region that should be overwritten with new stuff      
+      region = CropInner(index, 0);
+   }
+
    /// Reference memory block if we own it                                    
    ///   @param times - number of references to add                           
    LANGULUS(ALWAYSINLINE)
