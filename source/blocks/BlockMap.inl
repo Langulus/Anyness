@@ -172,12 +172,13 @@ namespace Langulus::Anyness
    }
    
    /// Clone info, keys and values from a statically typed map                
+   ///   @attention assumes this is not allocated                             
    ///   @tparam T - the statically optimized type of map we're using         
    ///   @param other - the map we'll be cloning                              
    template<class T>
    void BlockMap::BlockClone(const BlockMap& other) {
-      static_assert(CT::Map<T>, "T must be a map type");
       static_assert(CT::TypedMap<T>, "T must be statically typed map");
+      LANGULUS_ASSUME(DevAssumes, !mValues.mRaw, "Map is already allocated");
 
       // Use statically optimized cloning                               
       auto asFrom = reinterpret_cast<T*>(&const_cast<BlockMap&>(other));
@@ -186,9 +187,6 @@ namespace Langulus::Anyness
 
       // Clone info array                                               
       CopyMemory(asTo->mInfo, asFrom->mInfo, GetReserved() + 1);
-
-      using K = typename T::Key;
-      using V = typename T::Value;
 
       // Clone keys and values                                          
       auto info = asTo->GetInfo();
@@ -199,8 +197,8 @@ namespace Langulus::Anyness
       auto srcVal = asFrom->GetValueHandle(0);
       while (info != infoEnd) {
          if (*info) {
-            SemanticNewHandle<K>(dstKey, Langulus::Clone(*srcKey));
-            SemanticNewHandle<V>(dstVal, Langulus::Clone(*srcVal));
+            dstKey.New(Langulus::Clone(srcKey));
+            dstVal.New(Langulus::Clone(srcVal));
          }
 
          ++info;
@@ -458,7 +456,7 @@ namespace Langulus::Anyness
    ///   @return the handle                                                   
    template<CT::Data K>
    LANGULUS(ALWAYSINLINE)
-   constexpr decltype(auto) BlockMap::GetKeyHandle(Offset index) noexcept {
+   constexpr Handle<K> BlockMap::GetKeyHandle(Offset index) const noexcept {
       return GetKeys<K>().GetHandle(index);
    }
 
@@ -485,7 +483,7 @@ namespace Langulus::Anyness
    ///   @return the handle                                                   
    template<CT::Data V>
    LANGULUS(ALWAYSINLINE)
-   constexpr decltype(auto) BlockMap::GetValueHandle(Offset index) noexcept {
+   constexpr Handle<V> BlockMap::GetValueHandle(Offset index) const noexcept {
       return GetValues<V>().GetHandle(index);
    }
 
@@ -686,7 +684,7 @@ namespace Langulus::Anyness
       const auto oldInfoEnd = oldInfo + oldCount;
 
       // Allocate new keys                                              
-      const Block oldKeys {mKeys};
+      Block oldKeys {mKeys};
       const auto keyAndInfoSize = RequestKeyAndInfoSize(count, infoOffset);
       if constexpr (REUSE)
          mKeys.mEntry = Allocator::Reallocate(keyAndInfoSize, mKeys.mEntry);
@@ -697,7 +695,7 @@ namespace Langulus::Anyness
          "Out of memory on allocating/reallocating keys");
 
       // Allocate new values                                            
-      const Block oldValues {mValues};
+      Block oldValues {mValues};
       const auto valueByteSize = RequestValuesSize(count);
       if constexpr (REUSE)
          mValues.mEntry = Allocator::Reallocate(valueByteSize, mValues.mEntry);
@@ -765,32 +763,31 @@ namespace Langulus::Anyness
       // If reached, then keys or values (or both) moved                
       // Reinsert all pairs to rehash                                   
       mValues.mCount = 0;
+      SAFETY(oldKeys.mCount = oldCount);
+      SAFETY(oldValues.mCount = oldCount);
       auto key = oldKeys.GetElement();
       auto value = oldValues.GetElement();
       const auto hashmask = count - 1;
       while (oldInfo != oldInfoEnd) {
-         if (!*(oldInfo++)) {
-            key.Next();
-            value.Next();
-            continue;
+         if (*oldInfo) {
+            InsertInnerUnknown<false>(
+               key.GetHash().mHash & hashmask, 
+               Abandon(key), 
+               Abandon(value)
+            );
+
+            if (!key.IsEmpty())
+               key.CallUnknownDestructors();
+            else
+               key.mCount = 1;
+
+            if (!value.IsEmpty())
+               value.CallUnknownDestructors();
+            else
+               value.mCount = 1;
          }
 
-         InsertInnerUnknown<false>(
-            key.GetHash().mHash & hashmask, 
-            Abandon(key), 
-            Abandon(value)
-         );
-
-         if (!key.IsEmpty())
-            key.CallUnknownDestructors();
-         else
-            key.mCount = 1;
-
-         if (!value.IsEmpty())
-            value.CallUnknownDestructors();
-         else
-            value.mCount = 1;
-
+         ++oldInfo;
          key.Next();
          value.Next();
       }
@@ -912,11 +909,11 @@ namespace Langulus::Anyness
    ///   @param value - value & semantic to insert                            
    ///   @return the offset at which pair was inserted                        
    template<bool CHECK_FOR_MATCH, CT::Semantic SK, CT::Semantic SV>
-   Offset BlockMap::InsertInner(const Offset& start, SK&& key, SV&& value) {
+   Offset BlockMap::InsertInner(const Offset& start, SK&& key, SV&& val) {
       using K = TypeOf<SK>;
       using V = TypeOf<SV>;
-      auto keyswapper = SemanticMakeHandle<K>(key.Forward());
-      auto valswapper = SemanticMakeHandle<V>(value.Forward());
+      HandleLocal<K> keyswapper {key.Forward()};
+      HandleLocal<V> valswapper {val.Forward()};
 
       // Get the starting index based on the key hash                   
       auto psl = GetInfo() + start;
@@ -927,17 +924,17 @@ namespace Langulus::Anyness
 
          if constexpr (CHECK_FOR_MATCH) {
             const auto& candidate = GetRawKey<K>(index);
-            if (candidate == keyswapper) {
+            if (keyswapper.Compare(candidate)) {
                // Neat, the key already exists - just set value and go  
-               SemanticAssignHandle(GetValueHandle<V>(index), Abandon(valswapper));
+               GetValueHandle<V>(index).Assign(Abandon(valswapper));
                return index;
             }
          }
 
          if (attempts > *psl) {
             // The pair we're inserting is closer to bucket, so swap    
-            SwapHandles(GetKeyHandle<K>(index), keyswapper);
-            SwapHandles(GetValueHandle<V>(index), valswapper);
+            GetKeyHandle<K>(index).Swap(keyswapper);
+            GetValueHandle<V>(index).Swap(valswapper);
             ::std::swap(attempts, *psl);
          }
 
@@ -954,8 +951,8 @@ namespace Langulus::Anyness
       // Might not seem like it, but we gave a guarantee, that this is  
       // eventually reached, unless key exists and returns early        
       const auto index = psl - GetInfo();
-      SemanticNewHandle<K>(GetKeyHandle<K>(index), Abandon(keyswapper));
-      SemanticNewHandle<V>(GetValueHandle<V>(index), Abandon(valswapper));
+      GetKeyHandle<K>(index).New(Abandon(keyswapper));
+      GetValueHandle<V>(index).New(Abandon(valswapper));
 
       *psl = attempts;
       ++mValues.mCount;

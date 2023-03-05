@@ -1641,24 +1641,19 @@ namespace Langulus::Anyness
                clonedCoalescedSrc.mCount = count;
 
                // Clone each inner element                              
-               auto handle = GetHandle<void*>(0);
+               auto lhs = mthis->template GetHandle<Byte*>(0);
+               const auto lhsEnd = lhs.mValue + count;
                auto dst = clonedCoalescedSrc.GetElement();
                auto src = source.mValue.GetElement();
-               for (Count i = 0; i < count; ++i) {
+               while (lhs != lhsEnd) {
                   dst.CallUnknownSemanticConstructors(
                      1, Langulus::Clone(src.template GetDense<1>())
                   );
 
-                  #if LANGULUS_FEATURE(MANAGED_MEMORY)
-                     handle.Set(dst.mRaw);
-                     handle.SetEntry(clonedCoalescedSrc.mEntry);
-                  #else
-                     *handle = dst.mRaw;
-                  #endif
-
+                  lhs.New(dst.mRaw, clonedCoalescedSrc.mEntry);
                   dst.Next();
                   src.Next();
-                  ++handle;
+                  ++lhs;
                }
 
                clonedCoalescedSrc.mEntry->Keep(count - 1);
@@ -1687,24 +1682,13 @@ namespace Langulus::Anyness
       if (mType->mIsSparse) {
          // LHS is pointer, RHS must be dense                           
          // Copy each pointer from RHS (can't move them)                
-         auto lhs = mthis->GetRawSparse();
-         IF_LANGULUS_MANAGED_MEMORY(auto lhsEntry = mthis->GetEntries());
-         const auto lhsEnd = lhs + count;
-         auto rhs = source.mValue.mRaw;
+         auto lhs = mthis->template GetHandle<Byte*>(0);
+         const auto lhsEnd = lhs.mValue + count;
+         auto rhs = source.mValue.template GetHandle<Byte>(0);
          const auto rhsStride = source.mValue.mType->mSize;
          while (lhs != lhsEnd) {
-            if constexpr (S::Shallow) {
-               // Shallow-copy a pointer to the dense element           
-               (*lhs) = rhs;
-               IF_LANGULUS_MANAGED_MEMORY((*lhsEntry) = source.mValue.mEntry);
-            }
-            else {
-               // Deep-copy dense element and set pointer to it         
-               TODO();
-            }
-
+            lhs.NewUnknown(mType, S::Nest(rhs));
             ++lhs;
-            IF_LANGULUS_MANAGED_MEMORY(++lhsEntry);
             rhs += rhsStride;
          }
 
@@ -1986,8 +1970,7 @@ namespace Langulus::Anyness
    
    /// Call move constructors in a region and initialize memory               
    ///   @attention never modifies any block state                            
-   ///   @attention assumes T is the type of both blocks                      
-   ///   @attention assumes both blocks are of same sparsity                  
+   ///   @attention assumes T is the exact type of both blocks                
    ///   @attention assumes count <= reserved elements                        
    ///   @attention assumes source contains at least 'count' items            
    ///   @tparam T - the type to move-construct                               
@@ -2034,9 +2017,7 @@ namespace Langulus::Anyness
                const auto srcEnd = src + count;
                while (src != srcEnd) {
                   SemanticNew<DT>(dst, Langulus::Clone(**src));
-
-                  handle.Set(dst);
-                  handle.SetEntry(clonedCoalescedSrc.mEntry);
+                  handle.New(dst, clonedCoalescedSrc.mEntry);
 
                   ++dst;
                   ++src;

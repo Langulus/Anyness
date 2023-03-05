@@ -23,23 +23,23 @@ namespace Langulus::Anyness
    /// track of pointers inserted to containers. This does not have ownership 
    /// and can be used as iterator only when EMBEDed.                         
    ///                                                                        
-   template<CT::Sparse T, bool EMBED>
+   template<class T, bool EMBED>
    struct Handle : A::Handle {
       LANGULUS(TYPED) T;
       LANGULUS_BASES(A::Handle);
 
-      static_assert(CT::Void<Deptr<T>> || CT::Allocatable<Deptr<T>>,
-         "Handle to unallocatable non-void T is pointless");
+   public:
       static constexpr bool Embedded = EMBED;
 
-   protected: TESTING(public:)
       friend class Block;
-
       /// @cond show_protected                                                
       // The value                                                      
       Conditional<EMBED, T*, T> mValue;
-      // The entry                                                      
-      Conditional<EMBED, Inner::Allocation**, Inner::Allocation*> mEntry;
+
+      #if LANGULUS_FEATURE(MANAGED_MEMORY)
+         // The entry, enabled only when managed memory is enabled      
+         Conditional<EMBED && CT::Sparse<T>, Inner::Allocation**, Inner::Allocation*> mEntry;
+      #endif
       /// @endcond show_protected                                             
 
    public:
@@ -47,34 +47,63 @@ namespace Langulus::Anyness
 
       constexpr Handle(const Handle&) noexcept = default;
       constexpr Handle(Handle&&) noexcept = default;
+
       template<CT::Semantic S>
-      constexpr Handle(S&&) noexcept;
-      constexpr Handle(decltype(mValue), decltype(mEntry)) SAFETY_NOEXCEPT();
+      constexpr Handle(S&&) noexcept requires (!EMBED);
+
+      #if LANGULUS_FEATURE(MANAGED_MEMORY)
+         constexpr Handle(T&, Inner::Allocation*&) SAFETY_NOEXCEPT() requires (EMBED && CT::Sparse<T>);
+         constexpr Handle(T&, Inner::Allocation*) SAFETY_NOEXCEPT() requires (EMBED && CT::Dense<T>);
+         constexpr Handle(T&&, Inner::Allocation* = nullptr) SAFETY_NOEXCEPT() requires (!EMBED);
+      #else
+         constexpr Handle(T&) noexcept requires EMBED;
+      #endif
 
       constexpr Handle& operator = (const Handle&) noexcept = default;
       constexpr Handle& operator = (Handle&&) noexcept = default;
 
-      NOD() T Get() const noexcept;
-      NOD() Inner::Allocation* GetEntry() const noexcept;
-      
-      void Set(T) noexcept;
-      void SetEntry(Inner::Allocation*) noexcept;
-      
+      constexpr bool operator == (const T*) const noexcept requires EMBED;
+
+      NOD() T& Get() const noexcept;
+
+      #if LANGULUS_FEATURE(MANAGED_MEMORY)
+         NOD() Inner::Allocation*& GetEntry() const noexcept;
+      #endif
+
+      void New(T, Inner::Allocation* = nullptr) noexcept requires CT::Sparse<T>;
+      void New(T&&, Inner::Allocation* = nullptr) noexcept requires CT::Dense<T>;
+      template<CT::Semantic S>
+      void New(S&&);
+      template<CT::Semantic S>
+      void NewUnknown(DMeta, S&&);
+
+      template<CT::Semantic S>
+      void Assign(S&&);
+
+      template<bool RHS_EMBED>
+      void Swap(Handle<T, RHS_EMBED>&);
+
+      NOD() bool Compare(const T&) const;
+
       // Prefix operators                                               
       Handle& operator ++ () noexcept requires EMBED;
       Handle& operator -- () noexcept requires EMBED;
-      Handle& operator * () noexcept;
 
       // Suffix operators                                               
       NOD() Handle operator ++ (int) noexcept requires EMBED;
       NOD() Handle operator -- (int) noexcept requires EMBED;
-      NOD() Handle operator + (int) noexcept requires EMBED;
-      NOD() Handle operator - (int) noexcept requires EMBED;
+      NOD() Handle operator + (Offset) noexcept requires EMBED;
+      NOD() Handle operator - (Offset) noexcept requires EMBED;
+      Handle& operator += (Offset) noexcept requires EMBED;
+      Handle& operator -= (Offset) noexcept requires EMBED;
 
-      template<bool RESET>
+      template<bool RESET = false>
       void Destroy() const;
    };
    
+   template<class T>
+   using HandleLocal = Handle<T, false>;
+
 } // namespace Langulus::Anyness
 
 namespace Langulus::CT

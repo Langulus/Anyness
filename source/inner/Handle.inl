@@ -8,7 +8,7 @@
 #pragma once
 #include "Handle.hpp"
 
-#define TEMPLATE() template<CT::Sparse T, bool EMBED>
+#define TEMPLATE() template<class T, bool EMBED>
 #define HAND() Handle<T, EMBED>
 
 namespace Langulus::Anyness
@@ -16,34 +16,35 @@ namespace Langulus::Anyness
 
    /// Semantically construct a handle from pointer/handle                    
    ///   @attention handles have no ownership, so no referencing happens      
-   ///   @param other - the pointer/handle to use for construction            
+   ///   @tparam S - the semantic and type to use for the handle              
+   ///   @param other - the value to use for construction                     
    TEMPLATE()
    template<CT::Semantic S>
    LANGULUS(ALWAYSINLINE)
-   constexpr HAND()::Handle(S&& other) noexcept {
-      static_assert(!Embedded, "Handle mustn't be embedded for this constructor");
+   constexpr HAND()::Handle(S&& other) noexcept requires (!EMBED) {
+      using ST = TypeOf<S>;
 
-      if constexpr (CT::Handle<TypeOf<S>>) {
-         static_assert(CT::Exact<T, TypeOf<TypeOf<S>>>, "Type mismatch");
+      if constexpr (CT::Handle<ST>) {
+         static_assert(CT::Exact<T, TypeOf<ST>>, "Type mismatch");
 
          if constexpr (S::Shallow) {
             // Copy/Disown/Move/Abandon a handle                        
-            mValue = other.mValue.Get();
+            SemanticAssign<T>(mValue, S::Nest(other.mValue.Get()));
 
             #if LANGULUS_FEATURE(MANAGED_MEMORY)
                if constexpr (S::Keep || S::Move)
                   mEntry = other.mValue.GetEntry();
                else
-            #endif
                   mEntry = nullptr;
+            #endif
 
             if constexpr (S::Move) {
                // Reset remote entry, when moving                       
-               other.mValue.SetEntry(nullptr);
+               IF_LANGULUS_MANAGED_MEMORY(other.mValue.GetEntry() = nullptr);
 
                // Optionally reset remote value, if not abandoned       
                if constexpr (S::Keep)
-                  other.mValue.Set(nullptr);
+                  other.mValue.Get() = nullptr;
             }
          }
          else {
@@ -52,20 +53,20 @@ namespace Langulus::Anyness
          }
       }
       else {
-         static_assert(CT::Exact<T, TypeOf<S>>, "Type mismatch");
+         static_assert(CT::Exact<T, ST>, "Type mismatch");
 
          if constexpr (S::Shallow) {
             // Copy/Disown/Move/Abandon a pointer                       
             // Since pointers don't have ownership, it's just a copy    
             // with an optional entry search, if not disowned           
-            mValue = other.mValue;
+            SemanticAssign<T>(mValue, S::Nest(other.mValue));
 
             #if LANGULUS_FEATURE(MANAGED_MEMORY)
-               if constexpr (CT::Allocatable<Deptr<T>> && (S::Keep || S::Move))
+               if constexpr (CT::Sparse<T> && CT::Allocatable<Deptr<T>> && (S::Keep || S::Move))
                   mEntry = Inner::Allocator::Find(MetaData::Of<Deptr<T>>(), mValue);
                else
-            #endif
                   mEntry = nullptr;
+            #endif
          }
          else {
             // Clone a pointer                                          
@@ -74,26 +75,47 @@ namespace Langulus::Anyness
       }
    }
 
-   /// Create a handle                                                        
-   ///   @param v - the pointer to element                                    
-   ///   @param e - the pointer to element's entry                            
+#if LANGULUS_FEATURE(MANAGED_MEMORY)
+   /// Create an embedded handle                                              
+   ///   @param v - a reference to the element                                
+   ///   @param e - a reference to the element's entry                        
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
-   constexpr HAND()::Handle(decltype(mValue) v, decltype(mEntry) e) SAFETY_NOEXCEPT()
-      : mValue {v}
-      , mEntry {e} {
-      LANGULUS_ASSUME(DevAssumes, v != nullptr, "Bad value pointer");
-      LANGULUS_ASSUME(DevAssumes, e != nullptr, "Bad entry pointer");
-   }
+   constexpr HAND()::Handle(T& v, Inner::Allocation*& e) SAFETY_NOEXCEPT() requires (EMBED && CT::Sparse<T>)
+      : mValue {&v}
+      , mEntry {&e} {}
       
-   /// Prefix dereference operator does nothing. Handles are interchangable   
-   /// with pointers and often used in the same place as them, but handles    
-   /// should remain dense and be forwarded, instead of dereferenced.         
-   ///   @return this handle                                                  
+   /// Create an embedded handle                                              
+   ///   @param v - a reference to the element                                
+   ///   @param e - the entry (optional)                                      
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
-   HAND()& HAND()::operator * () noexcept {
-      return *this;
+   constexpr HAND()::Handle(T& v, Inner::Allocation* e) SAFETY_NOEXCEPT() requires (EMBED && CT::Dense<T>)
+      : mValue {&v}
+      , mEntry {e} {}
+      
+   /// Create a standalone handle                                             
+   ///   @param v - the element                                               
+   ///   @param e - the entry (optional)                                      
+   TEMPLATE()
+   LANGULUS(ALWAYSINLINE)
+   constexpr HAND()::Handle(T&& v, Inner::Allocation* e) SAFETY_NOEXCEPT() requires (!EMBED)
+      : mValue {Forward<T>(v)}
+      , mEntry {e} {}
+#else
+   /// Semantically construct a handle from content reference                 
+   ///   @attention handles have no ownership, so no referencing happens      
+   ///   @param other - the value to use for construction                     
+   TEMPLATE()
+   LANGULUS(ALWAYSINLINE)
+   constexpr HAND()::Handle(T& other) noexcept requires EMBED
+      : mValue {&other} {}
+#endif
+
+   TEMPLATE()
+   LANGULUS(ALWAYSINLINE)
+   constexpr bool HAND()::operator == (const T* rhs) const noexcept requires EMBED {
+      return mValue == rhs;
    }
       
    /// Prefix increment operator                                              
@@ -102,7 +124,7 @@ namespace Langulus::Anyness
    LANGULUS(ALWAYSINLINE)
    HAND()& HAND()::operator ++ () noexcept requires EMBED {
       ++mValue;
-      ++mEntry;
+      IF_LANGULUS_MANAGED_MEMORY(if constexpr (CT::Sparse<T>) ++mEntry);
       return *this;
    }
 
@@ -112,7 +134,27 @@ namespace Langulus::Anyness
    LANGULUS(ALWAYSINLINE)
    HAND()& HAND()::operator -- () noexcept requires EMBED {
       --mValue;
-      --mEntry;
+      IF_LANGULUS_MANAGED_MEMORY(if constexpr (CT::Sparse<T>) --mEntry);
+      return *this;
+   }
+      
+   /// Prefix increment operator                                              
+   ///   @return the next handle                                              
+   TEMPLATE()
+   LANGULUS(ALWAYSINLINE)
+   HAND()& HAND()::operator += (Offset offset) noexcept requires EMBED {
+      mValue += offset;
+      IF_LANGULUS_MANAGED_MEMORY(if constexpr (CT::Sparse<T>) mEntry += offset);
+      return *this;
+   }
+
+   /// Prefix decrement operator                                              
+   ///   @return the next handle                                              
+   TEMPLATE()
+   LANGULUS(ALWAYSINLINE)
+   HAND()& HAND()::operator -= (Offset offset) noexcept requires EMBED {
+      mValue -= offset;
+      IF_LANGULUS_MANAGED_MEMORY(if constexpr (CT::Sparse<T>) mEntry -= offset);
       return *this;
    }
 
@@ -141,11 +183,9 @@ namespace Langulus::Anyness
    ///   @return the offsetted handle                                         
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
-   HAND() HAND()::operator + (int offset) noexcept requires EMBED {
+   HAND() HAND()::operator + (Offset offset) noexcept requires EMBED {
       auto backup = *this;
-      backup.mValue += offset;
-      backup.mEntry += offset;
-      return backup;
+      return backup += offset;
    }
 
    /// Offset the handle                                                      
@@ -153,229 +193,229 @@ namespace Langulus::Anyness
    ///   @return the offsetted handle                                         
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
-   HAND() HAND()::operator - (int offset) noexcept requires EMBED {
+   HAND() HAND()::operator - (Offset offset) noexcept requires EMBED {
       auto backup = *this;
-      backup.mValue -= offset;
-      backup.mEntry -= offset;
-      return backup;
+      return backup -= offset;
    }
 
-   /// Get the pointer                                                        
+   /// Get a reference to the contents                                        
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
-   T HAND()::Get() const noexcept {
+   T& HAND()::Get() const noexcept {
       if constexpr (Embedded)
-         return *mValue;
+         return const_cast<T&>(*mValue);
       else
-         return mValue;
+         return const_cast<T&>(mValue);
    }
-
+   
+#if LANGULUS_FEATURE(MANAGED_MEMORY)
    /// Get the entry                                                          
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
-   Inner::Allocation* HAND()::GetEntry() const noexcept {
-      if constexpr (Embedded)
-         return *mEntry;
+   Inner::Allocation*& HAND()::GetEntry() const noexcept {
+      if constexpr (Embedded && CT::Sparse<T>)
+         return const_cast<Inner::Allocation*&>(*mEntry);
       else
-         return mEntry;
+         return const_cast<Inner::Allocation*&>(mEntry);
+   }
+#endif
+
+   /// Assign a new pointer and entry at the handle                           
+   TEMPLATE()
+   LANGULUS(ALWAYSINLINE)
+   void HAND()::New(T pointer, Inner::Allocation* IF_LANGULUS_MANAGED_MEMORY(entry)) noexcept requires CT::Sparse<T> {
+      Get() = pointer;
+      IF_LANGULUS_MANAGED_MEMORY(GetEntry() = entry);
    }
    
-   /// Set the pointer                                                        
+   /// Assign a new pointer and entry at the handle                           
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
-   void HAND()::Set(T value) noexcept {
-      if constexpr (Embedded)
-         *mValue = value;
-      else
-         mValue = value;
+   void HAND()::New(T&& pointer, Inner::Allocation* IF_LANGULUS_MANAGED_MEMORY(entry)) noexcept requires CT::Dense<T> {
+      Get() = Forward<T>(pointer);
+      IF_LANGULUS_MANAGED_MEMORY(GetEntry() = entry);
    }
 
-   /// Set the entry                                                          
+   /// Semantically assign anything at the handle                             
+   TEMPLATE()
+   template<CT::Semantic S>
+   LANGULUS(ALWAYSINLINE)
+   void HAND()::New(S&& rhs) {
+      using ST = TypeOf<S>;
+
+      if constexpr (S::Shallow) {
+         // Do a copy/disown/abandon/move                               
+         if constexpr (CT::Handle<ST>) {
+            // RHS is a handle                                          
+            using HT = TypeOf<ST>;
+            static_assert(CT::Same<T, HT>, "Type mismatch");
+
+            if constexpr (CT::Dense<HT>) {
+               if constexpr (CT::Dense<T>)
+                  // Dense = Dense                                      
+                  SemanticNew<T>(&Get(), S::Nest(rhs.mValue.Get()));
+               else
+                  // Sparse = Dense                                     
+                  Get() = &rhs.mValue.Get();
+            }
+            else {
+               if constexpr (CT::Dense<T>)
+                  // Dense = Sparse                                     
+                  SemanticNew<T>(&Get(), S::Nest(*rhs.mValue.Get()));
+               else
+                  // Sparse = Sparse                                    
+                  Get() = rhs.mValue.Get();
+            }
+
+            #if LANGULUS_FEATURE(MANAGED_MEMORY)
+               if constexpr (S::Keep || S::Move)
+                  GetEntry() = rhs.mValue.GetEntry();
+               else
+                  GetEntry() = nullptr;
+            #endif
+         }
+         else {
+            static_assert(CT::Exact<T, ST>, "Type mismatch");
+            HandleLocal<T> rhsh {rhs.Forward()};
+            Get() = rhsh.Get();
+            IF_LANGULUS_MANAGED_MEMORY(GetEntry() = rhsh.GetEntry());
+         }
+      }
+      else if constexpr (CT::Dense<T>) {
+         // Do a clone inside a dense handle                            
+         if constexpr (CT::Handle<ST>) {
+            static_assert(CT::Exact<T, TypeOf<ST>>, "Type mismatch");
+            SemanticNew<T>(&Get(), S::Nest(rhs.mValue.Get()));
+         }
+         else {
+            static_assert(CT::Exact<T, ST>, "Type mismatch");
+            SemanticNew<T>(&Get(), rhs.Forward());
+         }
+      }
+      else if constexpr (CT::Dense<Deptr<T>>) {
+         // Do a clone                                                  
+         using DT = Decay<T>;
+         auto meta = MetaData::Of<DT>();
+         auto entry = Inner::Allocator::Allocate(meta->RequestSize(1).mByteSize);
+         auto pointer = entry->template As<DT>();
+
+         if constexpr (CT::Handle<ST>) {
+            static_assert(CT::Exact<T, TypeOf<ST>>, "Type mismatch");
+            SemanticNew<DT>(pointer, S::Nest(*rhs.mValue.Get()));
+         }
+         else {
+            static_assert(CT::Exact<T, ST>, "Type mismatch");
+            SemanticNew<DT>(pointer, S::Nest(*rhs.mValue));
+         }
+
+         Get() = pointer;
+         IF_LANGULUS_MANAGED_MEMORY(GetEntry() = entry);
+      }
+      else {
+         //clone an indirection layer by nesting semanticnewhandle      
+         TODO();
+      }
+   }
+   
+   /// Semantically assign anything at the handle                             
+   ///   @tparam S - semantic to use for assignment (deducible)               
+   ///   @param meta - the reflected type to use for assignment               
+   ///   @param rhs - the data to assign                                      
+   TEMPLATE()
+   template<CT::Semantic S>
+   LANGULUS(ALWAYSINLINE)
+   void HAND()::NewUnknown(DMeta meta, S&& rhs) {
+      if constexpr (S::Shallow) {
+         // Do a copy/disown/abandon/move                               
+         New(rhs.Forward());
+      }
+      else if (!meta->mDeptr->mIsSparse) {
+         // Do a clone                                                  
+         const auto bytesize = meta->mDeptr->RequestSize(1).mByteSize;
+         auto entry = Inner::Allocator::Allocate(bytesize);
+         auto pointer = entry->GetBlockStart();
+
+         if constexpr (CT::Handle<TypeOf<S>>)
+            SemanticNewUnknown(meta->mDeptr, pointer, S::Nest(rhs.mValue.mValue));
+         else
+            SemanticNewUnknown(meta->mDeptr, pointer, rhs.Forward());
+
+         Get() = pointer;
+         IF_LANGULUS_MANAGED_MEMORY(GetEntry() = entry);
+      }
+      else {
+         //clone an indirection layer by nesting semanticnewhandle      
+         TODO();
+      }
+   }
+
+   /// Dereference/destroy the current handle contents, and set new ones      
+   ///   @tparam S - the semantic to use for the assignment                   
+   ///   @param rhs - new contents to assign                                  
+   TEMPLATE()
+   template<CT::Semantic S>
+   LANGULUS(ALWAYSINLINE)
+   void HAND()::Assign(S&& rhs) {
+      Destroy();
+      New(rhs.Forward());
+   }
+   
+   /// Swap two handles                                                       
+   ///   @tparam RHS_EMBED - right handle embedness (deducible)               
+   ///   @param rhs - right hand side                                         
+   TEMPLATE()
+   template<bool RHS_EMBED>
+   LANGULUS(ALWAYSINLINE)
+   void HAND()::Swap(Handle<T, RHS_EMBED>& rhs) {
+      HandleLocal<T> tmp {Abandon(*this)};
+      New(Abandon(rhs));
+      rhs.New(Abandon(tmp));
+   }
+
+   /// Compare the contents of the handle                                     
+   ///   @param rhs - data to compare against                                 
+   ///   @return true if contents are equal                                   
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
-   void HAND()::SetEntry(Inner::Allocation* entry) noexcept {
-      if constexpr (Embedded)
-         *mEntry = entry;
-      else
-         mEntry = entry;
+   bool HAND()::Compare(const T& rhs) const {
+      return Get() == rhs;
    }
 
    /// Reset the handle, by dereferencing entry, and destroying value, if     
    /// entry has been fully dereferenced                                      
+   /// Does absolutely nothing for dense handles, they are destroyed when     
+   /// handle is destroyed                                                    
    ///   @tparam RESET - whether or not to reset pointers to null             
    TEMPLATE()
    template<bool RESET>
    LANGULUS(ALWAYSINLINE)
    void HAND()::Destroy() const {
-      if (GetEntry()) {
-         if (1 == GetEntry()->GetUses()) {
-            LANGULUS_ASSUME(DevAssumes, Get(), "Null pointer");
-
-            if constexpr (CT::Sparse<Deptr<T>>) {
-               // Release all nested indirection layers                 
-               Handle<Deptr<T>, false> {
-                  Langulus::Copy(*Get())
-               }.template Destroy<false>();
-            }
-            else if constexpr (CT::Destroyable<T>) {
-               // Call the destructor                                   
-               Get()->~Decay<T>();
-            }
-
-            Inner::Allocator::Deallocate(GetEntry());
-         }
-         else GetEntry()->Free();
-      }
-
-      if constexpr (RESET) {
-         Set(nullptr);
-         SetEntry(nullptr);
-      }
-   }
-
-   /// Create an unembedded handle on the stack, using the provided semantic  
-   ///   @tparam T - the type to instantiate                                  
-   ///   @tparam S - the semantic to use (deducible)                          
-   ///   @param value - the constructor arguments and the semantic            
-   ///   @return the handle                                                   
-   template<class T, CT::Semantic S>
-   NOD() LANGULUS(ALWAYSINLINE)
-   auto SemanticMakeHandle(S&& value) {
+      #if LANGULUS_FEATURE(MANAGED_MEMORY)
       if constexpr (CT::Sparse<T>) {
-         // Making a pointer, so a handle is required                   
-         return Handle<T, false> {value.Forward()};
-      }
-      else {
-         // Not making pointer, so use conventional semantic make       
-         return SemanticMake<T>(value.Forward());
-      }
-   }
+         if (GetEntry()) {
+            if (1 == GetEntry()->GetUses()) {
+               LANGULUS_ASSUME(DevAssumes, Get(), "Null pointer");
 
-   /// Invoke a placement new inside a handle                                 
-   /// Pretty much overwrites handles disregarding their old values           
-   ///   @tparam T - the type to instantiate                                  
-   ///   @tparam H - the handle and type to place in (deducible)              
-   ///   @tparam S - the semantic to use (deducible)                          
-   ///   @param handle - the handle to place in                               
-   ///   @param value - the constructor arguments and the semantic            
-   template<class T, class H, CT::Semantic S>
-   LANGULUS(ALWAYSINLINE)
-   void SemanticNewHandle(H&& handle, S&& value) {
-      if constexpr (CT::Handle<H>) {
-         // Destination is an embedded handle                           
-         if constexpr (CT::Handle<TypeOf<S>>) {
-            // Source is a handle, too                                  
-            if constexpr (S::Shallow) {
-               // Do a copy/disown/abandon/move                         
-               handle.Set(value.mValue.Get());
+               if constexpr (CT::Sparse<Deptr<T>>) {
+                  // Release all nested indirection layers              
+                  HandleLocal<Deptr<T>> {
+                     Langulus::Copy(*Get())
+                  }.Destroy();
+               }
+               else if constexpr (CT::Destroyable<T>) {
+                  // Call the destructor                                
+                  Get()->~Decay<T>();
+               }
 
-               if constexpr (S::Keep || S::Move)
-                  handle.SetEntry(value.mValue.GetEntry());
-               else
-                  handle.SetEntry(nullptr);
+               Inner::Allocator::Deallocate(GetEntry());
             }
-            else if constexpr (CT::Dense<Deptr<T>>){
-               // Do a clone                                            
-               using DT = Deptr<T>;
-               auto meta = MetaData::Of<DT>();
-               auto entry = Inner::Allocator::Allocate(meta->RequestSize(1).mByteSize);
-               auto pointer = entry->template As<DT>();
-               SemanticNew<DT>(pointer, Langulus::Clone(*value.mValue.Get()));
-               handle.Set(pointer);
-               handle.SetEntry(entry);
-            }
-            else {
-               //clone an indirection layer by nesting semanticnewhandle
-               TODO();
-            }
+            else GetEntry()->Free();
          }
-         else if constexpr (CT::Sparse<TypeOf<S>>) {
-            // Source should be a pointer                               
-            if constexpr (S::Shallow) {
-               // Do a copy/disown/abandon/move                         
-               handle.Set(value.mValue);
+      }
+      #endif
 
-               using DT = Deptr<TypeOf<S>>;
-               if constexpr (CT::Allocatable<DT> && (S::Keep || S::Move))
-                  handle.SetEntry(Inner::Allocator::Find(MetaData::Of<DT>(), value.mValue));
-               else
-                  handle.SetEntry(nullptr);
-            }
-            else if constexpr (CT::Dense<Deptr<T>>) {
-               // Do a clone                                            
-               using DT = Deptr<T>;
-               auto meta = MetaData::Of<DT>();
-               auto entry = Inner::Allocator::Allocate(meta->RequestSize(1).mByteSize);
-               auto pointer = entry->template As<DT>();
-               SemanticNew<DT>(pointer, Langulus::Clone(*value.mValue));
-               handle.Set(pointer);
-               handle.SetEntry(entry);
-            }
-            else {
-               //clone an indirection layer by nesting semanticnewhandle
-               TODO();
-            }
-         }
-         else LANGULUS_ERROR("Bad argument for in-handle semantic placement");
-      }
-      else if constexpr (CT::Sparse<H>) {
-         // Destination is pointer, so just conventional SemanticNew    
-         SemanticNew<T>(handle, value.Forward());
-      }
-      else LANGULUS_ERROR("Bad placement argument");
-   }
-   
-   /// Assign new value to a handle, using the provided semantic              
-   /// Overwrites embedded handles, by freeing their old values               
-   ///   @tparam H - the handle/type to assign to (deducible)                 
-   ///   @tparam S - the semantic to assign (deducible)                       
-   ///   @param lhs - left hand side (what are we assigning to)               
-   ///   @param rhs - right hand side (what are we assigning)                 
-   template<class H, CT::Semantic S>
-   LANGULUS(ALWAYSINLINE)
-   void SemanticAssignHandle(H&& lhs, S&& rhs) {
-      if constexpr (CT::Handle<H>) {
-         static_assert(H::Embedded, "Handle must be embedded");
-
-         // Destroy old stuff                                           
-         lhs.template Destroy<false>();
-
-         // Overwrite with new stuff                                    
-         SemanticNewHandle<TypeOf<H>>(Forward<H>(lhs), rhs.Forward());
-      }
-      else if constexpr (CT::Sparse<H>) {
-         // LHS is not a handle, so just conventional SemanticAssign    
-         SemanticAssign(*lhs, rhs.Forward());
-      }
-      else LANGULUS_ERROR("Bad LHS type");
-   }
-   
-   /// Swap two handles                                                       
-   ///   @tparam LHS - left handle (deducible)                                
-   ///   @tparam RHS - right handle (deducible)                               
-   ///   @param lhs - left hand side                                          
-   ///   @param rhs - right hand side                                         
-   template<CT::NotSemantic LHS, CT::NotSemantic RHS>
-   LANGULUS(ALWAYSINLINE)
-   void SwapHandles(LHS&& lhs, RHS&& rhs) {
-      if constexpr (CT::Handle<LHS, RHS>) {
-         // Different kinds of handles are allowed, as long as their    
-         // types are an exact match                                    
-         static_assert(CT::Exact<TypeOf<LHS>, TypeOf<RHS>>,
-            "Handle type mismatch");
-
-         // Swap handles                                                
-         // First make a temporary swapper on the stack                 
-         using T = TypeOf<LHS>;
-         auto tmp = SemanticMakeHandle<T>(Abandon(lhs));
-         SemanticNewHandle<T>(Forward<LHS>(lhs), Abandon(rhs));
-         SemanticNewHandle<T>(Forward<RHS>(rhs), Abandon(tmp));
-      }
-      else {
-         // Value - Value swap                                          
-         static_assert(CT::Same<LHS, RHS>, "Type mismatch");
-         ::std::swap(DenseCast(lhs), DenseCast(rhs));
-      }
+      if constexpr (RESET && CT::Sparse<T>)
+         New(nullptr, nullptr);
    }
 
 } // namespace Langulus::Anyness

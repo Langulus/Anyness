@@ -181,9 +181,6 @@ namespace Langulus::Anyness
       void ClearInner();
 
       template<class T>
-      static void DestroyElement(T) noexcept;
-
-      template<class T>
       static void Overwrite(T&&, T&) noexcept;
 
       NOD() static Size RequestKeyAndInfoSize(Count, Offset&) noexcept;
@@ -202,11 +199,11 @@ namespace Langulus::Anyness
    TESTING(public:)
       NOD() constexpr const K& GetRawKey(Offset) const noexcept;
       NOD() constexpr K& GetRawKey(Offset) noexcept;
-      NOD() constexpr decltype(auto) GetKeyHandle(Offset) noexcept;
+      NOD() constexpr Handle<K> GetKeyHandle(Offset) noexcept;
 
       NOD() constexpr const V& GetRawValue(Offset) const noexcept;
       NOD() constexpr V& GetRawValue(Offset) noexcept;
-      NOD() constexpr decltype(auto) GetValueHandle(Offset) noexcept;
+      NOD() constexpr Handle<V> GetValueHandle(Offset) noexcept;
 
       NOD() decltype(auto) GetPair(const Offset&) const noexcept;
       NOD() decltype(auto) GetPair(const Offset&) noexcept;

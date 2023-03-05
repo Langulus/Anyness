@@ -285,14 +285,14 @@ namespace Langulus::Anyness
       template<CT::Data K>
       NOD() constexpr K& GetRawKey(Offset) noexcept;
       template<CT::Data K>
-      NOD() constexpr decltype(auto) GetKeyHandle(Offset) noexcept;
+      NOD() constexpr Handle<K> GetKeyHandle(Offset) const noexcept;
 
       template<CT::Data V>
       NOD() constexpr const V& GetRawValue(Offset) const noexcept;
       template<CT::Data V>
       NOD() constexpr V& GetRawValue(Offset) noexcept;
-      template<CT::Data K>
-      NOD() constexpr decltype(auto) GetValueHandle(Offset) noexcept;
+      template<CT::Data V>
+      NOD() constexpr Handle<V> GetValueHandle(Offset) const noexcept;
 
    #ifdef LANGULUS_ENABLE_TESTING
       NOD() constexpr const void* GetRawKeysMemory() const noexcept;

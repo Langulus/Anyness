@@ -591,34 +591,24 @@ namespace Langulus::Anyness
       }
    }
    
-   /// Return a handle to a sparse element, or a pointer to dense one         
-   ///   @attention assumes T is exactly the contained type                   
-   ///   @tparam T - the contained type                                       
+   /// Return a handle to an element                                          
+   ///   @tparam T - the contained type, or alternatively a Byte*             
    ///   @param index - the element index                                     
-   ///   @return the handle/pointer                                           
+   ///   @return the handle                                                   
    template<CT::Data T>
    LANGULUS(ALWAYSINLINE)
-   decltype(auto) Block::GetHandle(Offset index) SAFETY_NOEXCEPT() {
+   Handle<T> Block::GetHandle(Offset index) const SAFETY_NOEXCEPT() {
+      const auto mthis = const_cast<Block*>(this);
       #if LANGULUS_FEATURE(MANAGED_MEMORY)
-         if constexpr (CT::Sparse<T> && (CT::Void<Deptr<T>> || CT::Allocatable<Deptr<T>>)) {
-            LANGULUS_ASSUME(DevAssumes, IsSparse(), "Sparseness mismatch");
-            return Handle<T>(GetRawAs<T>() + index, GetEntries() + index);
-         }
-         else {
-            LANGULUS_ASSUME(DevAssumes, IsExact<T>(), "Type mismatch");
-            return GetRawAs<T>() + index;
-         }
+         return {
+            mthis->template GetRawAs<T>()[index], 
+            CT::Sparse<T> ? mthis->GetEntries()[index] : mthis->mEntry
+         };
       #else
-         LANGULUS_ASSUME(DevAssumes, IsExact<T>(), "Type mismatch");
-         return GetRawAs<T>() + index;
+         return {
+            mthis->template GetRawAs<T>()[index]
+         };
       #endif
-   }
-
-   /// Get handle ignores constness                                           
-   template<CT::Data T>
-   LANGULUS(ALWAYSINLINE)
-   decltype(auto) Block::GetHandle(Offset index) const SAFETY_NOEXCEPT() {
-      return const_cast<Block*>(this)->template GetHandle<T>(index);
    }
 
    /// Select region from the memory block - unsafe and may return memory     

@@ -16,13 +16,14 @@ namespace Langulus::Anyness
    ///   Count-terminated UTF8 text container                                 
    ///                                                                        
    class Text : public TAny<Letter> {
+      using Base = TAny<Letter>;
       LANGULUS(DEEP) false;
       LANGULUS(POD) false;
-      LANGULUS_BASES(A::Text, TAny<Letter>);
+      LANGULUS_BASES(A::Text, Base);
 
    private:
       template<CT::Semantic S>
-      static constexpr bool Relevant = CT::DerivedFrom<TypeOf<S>, TAny<Letter>>;
+      static constexpr bool Relevant = CT::DerivedFrom<TypeOf<S>, Base>;
       template<CT::Semantic S>
       static constexpr bool RawTextPointer = CT::Same<TypeOf<S>, Letter> && CT::Sparse<TypeOf<S>>;
 
@@ -66,7 +67,7 @@ namespace Langulus::Anyness
       Text& operator = (Text&&) noexcept;
       Text& operator = (const Letter&) noexcept;
       template<CT::Semantic S>
-      Text& operator = (S&&) requires Relevant<S>;
+      Text& operator = (S&&);
 
    public:
       NOD() Hash GetHash() const;

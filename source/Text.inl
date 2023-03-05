@@ -20,7 +20,7 @@ namespace Langulus::Anyness
    template<CT::Semantic S>
    LANGULUS(ALWAYSINLINE)
    Text::Text(S&& other) requires Relevant<S>
-      : TAny {other.template Forward<TAny>()} { }
+      : Base {other.template Forward<Base>()} { }
 
    /// Construct from token                                                   
    /// Data will be cloned if we don't have authority over the memory         
@@ -48,7 +48,7 @@ namespace Langulus::Anyness
    template<CT::Semantic S>
    LANGULUS(ALWAYSINLINE)
    Text::Text(S&& text, const Count& count) requires RawTextPointer<S>
-      : TAny {TAny::From(text.Forward(), count)} { }
+      : Base {Base::From(text.Forward(), count)} { }
 
    /// Construct manually from a c style array                                
    /// Data will be cloned if we don't have authority over the memory         
@@ -134,25 +134,25 @@ namespace Langulus::Anyness
    ///   @param other - container to reference                                
    LANGULUS(ALWAYSINLINE)
    Text::Text(const Text& other)
-      : TAny {static_cast<const TAny&>(other)} {}
+      : Base {static_cast<const Base&>(other)} {}
 
    /// Text container move-construction                                       
    ///   @param other - container to move                                     
    LANGULUS(ALWAYSINLINE)
    Text::Text(Text&& other) noexcept
-      : TAny {Forward<TAny>(other)} {}
+      : Base {Forward<Base>(other)} {}
 
    /// Text container copy-construction from TAny<Byte> base                  
    ///   @param other - container to reference                                
    LANGULUS(ALWAYSINLINE)
    Text::Text(const TAny& other)
-      : TAny {other} {}
+      : Base {other} {}
 
    /// Text container mvoe-construction from TAny<Byte> base                  
    ///   @param other - container to move                                     
    LANGULUS(ALWAYSINLINE)
    Text::Text(TAny&& other) noexcept
-      : TAny {Forward<TAny>(other)} {}
+      : Base {Forward<Base>(other)} {}
 
    /// Construct from a Langulus exception                                    
    ///   @param from - the exception to stringify                             
@@ -188,21 +188,43 @@ namespace Langulus::Anyness
       return lines;
    }
 
-   /// Shallow copy assignment an immutable text container                    
-   ///   @param rhs - the text container to copy                              
+   /// Shallow copy assignment                                                
+   ///   @param rhs - the text to copy                                        
    ///   @return a reference to this container                                
    LANGULUS(ALWAYSINLINE)
    Text& Text::operator = (const Text& rhs) {
-      TAny::operator = (static_cast<const TAny&>(rhs));
-      return *this;
+      return operator = (Langulus::Copy(rhs));
    }
 
-   /// Move text container                                                    
-   ///   @param rhs - the text container to move                              
+   /// Move assignment                                                        
+   ///   @param rhs - the text to move                                        
    ///   @return a reference to this container                                
    LANGULUS(ALWAYSINLINE)
    Text& Text::operator = (Text&& rhs) noexcept {
-      TAny::operator = (Forward<TAny>(rhs));
+      return operator = (Langulus::Move(rhs));
+   }
+   
+   /// Assign a single character                                              
+   ///   @param rhs - the character                                           
+   ///   @return a reference to this container                                
+   LANGULUS(ALWAYSINLINE)
+   Text& Text::operator = (const Letter& rhs) noexcept {
+      return operator = (Langulus::Copy(rhs));
+   }
+   
+   /// Set to a single character                                              
+   ///   @param rhs - the character                                           
+   ///   @return a reference to this container                                
+   template<CT::Semantic S>
+   LANGULUS(ALWAYSINLINE)
+   Text& Text::operator = (S&& rhs) {
+      using T = TypeOf<S>;
+      if constexpr (CT::DerivedFrom<T, Base>)
+         Base::operator = (rhs.template Forward<Base>());
+      else if constexpr (CT::Same<T, Letter>)
+         Base::operator = (rhs.Forward());
+      else
+         LANGULUS_ERROR("Bad semantic assignment");
       return *this;
    }
 
@@ -392,7 +414,7 @@ namespace Langulus::Anyness
    ///   @return new text that references the original memory                 
    LANGULUS(ALWAYSINLINE)
    Text Text::Crop(Count start, Count count) const {
-      return TAny::Crop<Text>(start, count);
+      return Base::Crop<Text>(start, count);
    }
 
    /// Pick a part of the text                                                
@@ -401,7 +423,7 @@ namespace Langulus::Anyness
    ///   @return new text that references the original memory                 
    LANGULUS(ALWAYSINLINE)
    Text Text::Crop(Count start, Count count) {
-      return TAny::Crop<Text>(start, count);
+      return Base::Crop<Text>(start, count);
    }
 
    /// Remove all instances of a symbol from the text container               
@@ -453,7 +475,7 @@ namespace Langulus::Anyness
    ///   @return an array that represents the extended part                   
    LANGULUS(ALWAYSINLINE)
    Text Text::Extend(Count count) {
-      return TAny::Extend<Text>(count);
+      return Base::Extend<Text>(count);
    }
 
    /// Hash the text                                                          
@@ -491,7 +513,7 @@ namespace Langulus::Anyness
    ///   @return true if both strings are the same                            
    LANGULUS(ALWAYSINLINE)
    bool Text::operator == (const Text& rhs) const noexcept {
-      return TAny::operator == (static_cast<const TAny&>(rhs));
+      return Base::operator == (static_cast<const Base&>(rhs));
    }
 
    /// Compare with a string                                                  

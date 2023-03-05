@@ -398,7 +398,7 @@ namespace Langulus::Anyness
    ///   @param index - the key index                                         
    ///   @return the handle                                                   
    TABLE_TEMPLATE()
-   constexpr decltype(auto) TABLE()::GetKeyHandle(Offset index) noexcept {
+   constexpr Handle<K> TABLE()::GetKeyHandle(Offset index) noexcept {
       return GetKeys().GetHandle(index);
    }
 
@@ -422,7 +422,7 @@ namespace Langulus::Anyness
    ///   @param index - the value index                                       
    ///   @return the handle                                                   
    TABLE_TEMPLATE()
-   constexpr decltype(auto) TABLE()::GetValueHandle(Offset index) noexcept {
+   constexpr Handle<V> TABLE()::GetValueHandle(Offset index) noexcept {
       return GetValues().GetHandle(index);
    }
 
@@ -670,10 +670,10 @@ namespace Langulus::Anyness
       const auto hashmask = GetReserved() - 1;
       while (oldInfo != oldInfoEnd) {
          if (*oldInfo) {
-            const auto index = HashData(*key).mHash & hashmask;
-            InsertInner<false>(index, Abandon(*key), Abandon(*val));
-            DestroyElement(key);
-            DestroyElement(val);
+            const auto index = HashData(key.Get()).mHash & hashmask;
+            InsertInner<false>(index, Abandon(key), Abandon(val));
+            key.Destroy();
+            val.Destroy();
          }
          
          ++oldInfo;
@@ -702,12 +702,17 @@ namespace Langulus::Anyness
       }
    }
 
-   /// Similar to insertion, but rehashes each key                            
-   ///   @attention does nothing if reserving less than current reserve       
-   ///   @attention assumes count is a power-of-two number                    
+   /// Rehashes each key and reinserts pair                                   
+   ///   @attention assumes counts are a power-of-two number                  
    ///   @param count - the new number of pairs                               
+   ///   @param oldCount - the old number of pairs                            
    TABLE_TEMPLATE()
    void TABLE()::Rehash(const Count& count, const Count& oldCount) {
+      LANGULUS_ASSUME(DevAssumes, 
+         IsPowerOfTwo(count) && IsPowerOfTwo(oldCount),
+         "A count is not a power-of-two"
+      );
+
       auto oldKey = GetKeyHandle(0);
       auto oldInfo = GetInfo();
       const auto oldInfoEnd = oldInfo + oldCount;
@@ -718,12 +723,12 @@ namespace Langulus::Anyness
          if (*oldInfo) {
             // Rehash and check if hashes match                         
             const Offset oldIndex = oldInfo - GetInfo();
-            const Offset newIndex = HashData(*oldKey).mHash & hashmask;
+            const Offset newIndex = HashData(oldKey.Get()).mHash & hashmask;
             if (oldIndex != newIndex) {
                // Immediately move the old pair to the swapper          
                auto oldValue = GetValueHandle(oldIndex);
-               auto keyswap = SemanticMakeHandle<K>(Abandon(*oldKey));
-               auto valswap = SemanticMakeHandle<V>(Abandon(*oldValue));
+               HandleLocal<K> keyswap {Abandon(oldKey)};
+               HandleLocal<V> valswap {Abandon(oldValue)};
 
                RemoveIndex(oldIndex);
 
@@ -766,13 +771,13 @@ namespace Langulus::Anyness
    ///   @tparam CHECK_FOR_MATCH - false if you guarantee key doesn't exist   
    ///   @param start - the starting index                                    
    ///   @param key - key to move in                                          
-   ///   @param value - value to move in                                      
+   ///   @param val - value to move in                                        
    ///   @return the index at which item was inserted                         
    TABLE_TEMPLATE()
    template<bool CHECK_FOR_MATCH, CT::Semantic SK, CT::Semantic SV>
-   Offset TABLE()::InsertInner(const Offset& start, SK&& key, SV&& value) {
-      auto keyswap = SemanticMakeHandle<K>(key.Forward());
-      auto valswap = SemanticMakeHandle<V>(value.Forward());
+   Offset TABLE()::InsertInner(const Offset& start, SK&& key, SV&& val) {
+      HandleLocal<K> keyswap {key.Forward()};
+      HandleLocal<V> valswap {val.Forward()};
 
       // Get the starting index based on the key hash                   
       auto psl = GetInfo() + start;
@@ -782,17 +787,17 @@ namespace Langulus::Anyness
          const auto index = psl - GetInfo();
          if constexpr (CHECK_FOR_MATCH) {
             const auto& candidate = GetRawKey(index);
-            if (candidate == keyswap) {
+            if (keyswap.Compare(candidate)) {
                // Neat, the key already exists - just reassign          
-               SemanticAssignHandle(GetValueHandle(index), Abandon(valswap));
+               GetValueHandle(index).Assign(Abandon(valswap));
                return index;
             }
          }
 
          if (attempts > *psl) {
             // The pair we're inserting is closer to bucket, so swap    
-            SwapHandles(GetKeyHandle(index),   ::std::move(keyswap));
-            SwapHandles(GetValueHandle(index), ::std::move(valswap));
+            GetKeyHandle(index).Swap(keyswap);
+            GetValueHandle(index).Swap(valswap);
             ::std::swap(attempts, *psl);
          }
 
@@ -808,8 +813,8 @@ namespace Langulus::Anyness
       // Might not seem like it, but we gave a guarantee, that this is  
       // eventually reached, unless key exists and returns early        
       const auto index = psl - GetInfo();
-      SemanticNewHandle<K>(GetKeyHandle(index),   Abandon(keyswap));
-      SemanticNewHandle<V>(GetValueHandle(index), Abandon(valswap));
+      GetKeyHandle(index).New(Abandon(keyswap));
+      GetValueHandle(index).New(Abandon(valswap));
       *psl = attempts;
       ++mValues.mCount;
       return index;
@@ -885,8 +890,8 @@ namespace Langulus::Anyness
       while (inf != infEnd) {
          if (*inf) {
             const auto offset = inf - GetInfo();
-            DestroyElement(GetKeyHandle(offset));
-            DestroyElement(GetValueHandle(offset));
+            GetKeyHandle(offset).Destroy();
+            GetValueHandle(offset).Destroy();
          }
 
          ++inf;
@@ -999,8 +1004,8 @@ namespace Langulus::Anyness
       auto val = GetValueHandle(index);
 
       // Destroy the key, info and value at the start                   
-      DestroyElement(key++);
-      DestroyElement(val++);
+      (key++).Destroy();
+      (val++).Destroy();
       *(psl++) = 0;
 
       // And shift backwards, until a zero or 1 is reached              
@@ -1015,15 +1020,15 @@ namespace Langulus::Anyness
             #pragma GCC diagnostic ignored "-Wplacement-new"
          #endif
 
-         SemanticNewHandle<K>(key - 1, Abandon(*key));
-         SemanticNewHandle<V>(val - 1, Abandon(*val));
+         (key - 1).New(Abandon(key));
+         (val - 1).New(Abandon(val));
 
          #if LANGULUS_COMPILER_GCC()
             #pragma GCC diagnostic pop
          #endif
 
-         DestroyElement(key++);
-         DestroyElement(val++);
+         (key++).Destroy();
+         (val++).Destroy();
          *(psl++) = 0;
       }
 
@@ -1037,11 +1042,11 @@ namespace Langulus::Anyness
          const auto last = mValues.mReserved - 1;
          GetInfo()[last] = (*psl) - 1;
 
-         SemanticNewHandle<K>(GetKeyHandle(last), Abandon(*key));
-         SemanticNewHandle<V>(GetValueHandle(last), Abandon(*val));
+         GetKeyHandle(last).New(Abandon(key));
+         GetValueHandle(last).New(Abandon(val));
 
-         DestroyElement(key++);
-         DestroyElement(val++);
+         (key++).Destroy();
+         (val++).Destroy();
          *(psl++) = 0;
 
          // And continue the vicious cycle                              
@@ -1050,21 +1055,6 @@ namespace Langulus::Anyness
 
       // Success                                                        
       --mValues.mCount;
-   }
-
-   /// Destroy a single value or key, either sparse or dense                  
-   ///   @tparam T - the type to remove, either key or value (deducible)      
-   ///   @param element - the element to remove                               
-   TABLE_TEMPLATE()
-   template<class T>
-   void TABLE()::DestroyElement(T element) noexcept {
-      if constexpr (CT::Handle<T>)
-         element.template Destroy<false>();
-      else if constexpr (CT::Sparse<T> && CT::Dense<Deptr<T>>) {
-         if constexpr (CT::Destroyable<T>)
-            element->~Decay<T>();
-      }
-      else IF_LANGULUS_MANAGED_MEMORY(LANGULUS_ERROR("Bad element handle"));
    }
 
    /// Insert a single value or key, either sparse or dense                   
