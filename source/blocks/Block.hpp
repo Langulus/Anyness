@@ -375,6 +375,21 @@ namespace Langulus::Anyness
       template<bool REVERSE = false, bool SKIP = true, class... F>
       Count ForEachDeep(F&&...) const;
       
+      template<bool MUTABLE = true, class... F>
+      Count ForEachElementRev(F&&...);
+      template<class... F>
+      Count ForEachElementRev(F&&...) const;
+      
+      template<bool MUTABLE = true, class... F>
+      Count ForEachRev(F&&...);
+      template<class... F>
+      Count ForEachRev(F&&...) const;
+
+      template<bool SKIP = true, bool MUTABLE = true, class... F>
+      Count ForEachDeepRev(F&&...);
+      template<bool SKIP = true, class... F>
+      Count ForEachDeepRev(F&&...) const;
+
    protected:
       template<class F>
       static constexpr bool NoexceptIterator = 

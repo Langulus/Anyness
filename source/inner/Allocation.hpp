@@ -24,6 +24,7 @@ namespace Langulus::Anyness
    ///   @param to - [out] destination memory                                 
    ///   @param from - source of data to copy                                 
    ///   @param count - number of elements to copy                            
+   ///   @attention count becomes bytecount, when TO is void                  
    template<class TO, class FROM>
    LANGULUS(ALWAYSINLINE)
    void CopyMemory(TO* to, const FROM* from, const Count& count = 1) noexcept {
@@ -35,11 +36,20 @@ namespace Langulus::Anyness
          "TO and FROM must be the exact same types"
          "(you can suppress this error by casting pointer to void*)");
 
-      ::std::memcpy(
-         static_cast<void*>(to), 
-         static_cast<const void*>(from), 
-         sizeof(TO) * count
-      );
+      if constexpr (CT::Void<TO>) {
+         ::std::memcpy(
+            static_cast<void*>(to),
+            static_cast<const void*>(from),
+            count
+         );
+      }
+      else {
+         ::std::memcpy(
+            static_cast<void*>(to),
+            static_cast<const void*>(from),
+            sizeof(TO) * count
+         );
+      }
    }
    
    /// Wrapper for memset                                                     
@@ -47,6 +57,7 @@ namespace Langulus::Anyness
    ///   @tparam FILLER - value to fill in with                               
    ///   @param to - [out] destination memory                                 
    ///   @param count - number of elements to fill                            
+   ///   @attention count becomes bytecount, when TO is void                  
    template<int FILLER, class TO>
    LANGULUS(ALWAYSINLINE)
    void FillMemory(TO* to, const Count& count = 1) noexcept {
@@ -58,7 +69,10 @@ namespace Langulus::Anyness
          "Filling with zeroes requires the type to be reflected as nullifiable, "
          "or be a pointer/fundamental (you can suppress this error by casting to void*)");
 
-      ::std::memset(static_cast<void*>(to), FILLER, sizeof(TO) * count);
+      if constexpr (CT::Void<TO>)
+         ::std::memset(static_cast<void*>(to), FILLER, count);
+      else
+         ::std::memset(static_cast<void*>(to), FILLER, sizeof(TO) * count);
    }
 
    /// Wrapper for memset 0                                                   
@@ -88,11 +102,20 @@ namespace Langulus::Anyness
          "TO and FROM must be the exact same types"
          "(you can suppress this error by casting pointer to void*)");
 
-      ::std::memmove(
-         static_cast<void*>(to), 
-         static_cast<const void*>(from), 
-         sizeof(TO) * count
-      );
+      if constexpr (CT::Void<TO>) {
+         ::std::memmove(
+            static_cast<void*>(to),
+            static_cast<const void*>(from),
+            count
+         );
+      }
+      else {
+         ::std::memmove(
+            static_cast<void*>(to),
+            static_cast<const void*>(from),
+            sizeof(TO) * count
+         );
+      }
 
       #if LANGULUS(PARANOID)
          TODO() // zero old memory, but beware - `from` and `to` might overlap

@@ -270,7 +270,7 @@ namespace Langulus::Anyness
 
    /// Clone the text container                                               
    ///   @return a new container that owns its memory                         
-   LANGULUS(ALWAYSINLINE)
+   /*LANGULUS(ALWAYSINLINE)
    Text Text::Clone() const {
       Text result {Disown(*this)};
       if (mCount) {
@@ -286,7 +286,7 @@ namespace Langulus::Anyness
       }
 
       return Abandon(result);
-   }
+   }*/
 
    /// Terminate text so that it ends with a zero character at the end        
    ///   @return a new container that ownes its memory                        
@@ -309,8 +309,8 @@ namespace Langulus::Anyness
    ///   @return a new text container with all letter made lowercase          
    LANGULUS(ALWAYSINLINE)
    Text Text::Lowercase() const {
-      Text result = Clone();
-      for (auto i : result)
+      Text result {Clone(*this)};
+      for (auto& i : result)
          i = static_cast<Letter>(::std::tolower(i));
       return result;
    }
@@ -319,8 +319,8 @@ namespace Langulus::Anyness
    ///   @return a new text container with all letter made uppercase          
    LANGULUS(ALWAYSINLINE)
    Text Text::Uppercase() const {
-      Text result = Clone();
-      for (auto i : result)
+      Text result {Clone(*this)};
+      for (auto& i : result)
          i = static_cast<Letter>(::std::toupper(i));
       return result;
    }

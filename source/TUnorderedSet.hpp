@@ -18,14 +18,14 @@ namespace Langulus::Anyness
    template<CT::Data T>
    class TUnorderedSet : public UnorderedSet {
    public:
-      static_assert(CT::Comparable<T>, "Can't compare elements for map");
+      friend class BlockSet;
+      static_assert(CT::Comparable<T>, "Can't compare elements for set");
 
       using Value = T;
-      using ValueInner = typename TAny<T>::TypeInner;
       using Self = TUnorderedSet<T>;
       using Allocator = Inner::Allocator;
 
-      LANGULUS(TYPED) ValueInner;
+      LANGULUS(TYPED) T;
 
       static constexpr Count MinimalAllocation = 8;
       static constexpr bool Ordered = false;
@@ -38,20 +38,20 @@ namespace Langulus::Anyness
 
    public:
       constexpr TUnorderedSet();
-      TUnorderedSet(::std::initializer_list<T>);
       TUnorderedSet(const TUnorderedSet&);
       TUnorderedSet(TUnorderedSet&&) noexcept;
 
+      TUnorderedSet(::std::initializer_list<T>);
+
       template<CT::Semantic S>
-      constexpr TUnorderedSet(S&& other) noexcept requires (CT::Exact<TypeOf<S>, TUnorderedSet>)
-         : UnorderedSet {other.template Forward<UnorderedSet>()} {}
+      TUnorderedSet(S&&) noexcept;
 
       ~TUnorderedSet();
 
       TUnorderedSet& operator = (const TUnorderedSet&);
       TUnorderedSet& operator = (TUnorderedSet&&) noexcept;
       template<CT::Semantic S>
-      TUnorderedSet& operator = (S&&) noexcept requires (CT::Exact<TypeOf<S>, TUnorderedSet<T>>);
+      TUnorderedSet& operator = (S&&) noexcept requires (CT::Exact<TypeOf<S>, Self>);
 
       TUnorderedSet& operator = (const T&);
       TUnorderedSet& operator = (T&&) noexcept;
@@ -74,8 +74,6 @@ namespace Langulus::Anyness
       NOD() constexpr Size GetByteSize() const noexcept;
 
       void Allocate(const Count&);
-
-      NOD() TUnorderedSet Clone() const;
 
       bool operator == (const TUnorderedSet&) const;
 
@@ -109,6 +107,9 @@ namespace Langulus::Anyness
       NOD() bool Contains(const T&) const;
       NOD() Index Find(const T&) const;
 
+      NOD() const T& Get(const CT::Index auto&) const;
+      NOD() T& Get(const CT::Index auto&);
+
       ///                                                                     
       ///   Iteration                                                         
       ///                                                                     
@@ -127,6 +128,7 @@ namespace Langulus::Anyness
       Count ForEachElement(TFunctor<void(Block&)>&&);
 
    protected:
+      void AllocateFresh(const Count&);
       template<bool REUSE>
       void AllocateData(const Count&);
       void AllocateInner(const Count&);
@@ -152,18 +154,13 @@ namespace Langulus::Anyness
       NOD() const TAny<T>& GetValues() const noexcept;
       NOD() TAny<T>& GetValues() noexcept;
 
-      NOD() decltype(auto) Get(const Index&) const;
-      NOD() decltype(auto) Get(const Index&);
-      NOD() decltype(auto) Get(const Offset&) const noexcept;
-      NOD() decltype(auto) Get(const Offset&) noexcept;
-
       NOD() Offset GetBucket(const T&) const noexcept;
       NOD() Offset FindIndex(const T&) const;
 
    TESTING(public:)
-      NOD() constexpr auto GetRaw() const noexcept;
-      NOD() constexpr auto GetRaw() noexcept;
-      NOD() constexpr auto GetRawEnd() const noexcept;
+      NOD() constexpr const T& GetRaw(Offset) const noexcept;
+      NOD() constexpr T& GetRaw(Offset) noexcept;
+      NOD() constexpr Handle<T> GetHandle(Offset) noexcept;
    };
 
 
@@ -178,18 +175,18 @@ namespace Langulus::Anyness
 
       const InfoType* mInfo {};
       const InfoType* mSentinel {};
-      const ValueInner* mValue {};
+      const T* mValue {};
 
-      TIterator(const InfoType*, const InfoType*, const ValueInner*) noexcept;
+      TIterator(const InfoType*, const InfoType*, const T*) noexcept;
 
    public:
       NOD() bool operator == (const TIterator&) const noexcept;
 
-      NOD() ValueInner& operator * () const noexcept requires (MUTABLE);
-      NOD() const ValueInner& operator * () const noexcept requires (!MUTABLE);
+      NOD() T& operator * () const noexcept requires (MUTABLE);
+      NOD() const T& operator * () const noexcept requires (!MUTABLE);
 
-      NOD() ValueInner& operator -> () const noexcept requires (MUTABLE);
-      NOD() const ValueInner& operator -> () const noexcept requires (!MUTABLE);
+      NOD() T& operator -> () const noexcept requires (MUTABLE);
+      NOD() const T& operator -> () const noexcept requires (!MUTABLE);
 
       // Prefix operator                                                
       TIterator& operator ++ () noexcept;

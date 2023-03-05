@@ -63,6 +63,7 @@ namespace Langulus::Anyness
       constexpr Handle& operator = (Handle&&) noexcept = default;
 
       constexpr bool operator == (const T*) const noexcept requires (EMBED);
+      constexpr bool operator == (const Handle&) const noexcept requires (EMBED);
 
       NOD() T& Get() const noexcept;
 
@@ -84,6 +85,8 @@ namespace Langulus::Anyness
       void Swap(Handle<T, RHS_EMBED>&);
 
       NOD() bool Compare(const T&) const;
+      template<bool RHS_EMBED>
+      NOD() bool Compare(const Handle<T, RHS_EMBED>&) const;
 
       // Prefix operators                                               
       Handle& operator ++ () noexcept requires (EMBED);

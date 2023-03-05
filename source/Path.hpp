@@ -26,7 +26,6 @@ namespace Langulus::Anyness
       Path& operator = (Abandoned<Path>&&);
 
    public:
-      NOD() Path Clone() const;
       NOD() Text GetExtension() const;
       NOD() Path GetDirectory() const;
       NOD() Path GetFilename() const;

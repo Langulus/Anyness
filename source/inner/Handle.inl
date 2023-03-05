@@ -118,6 +118,12 @@ namespace Langulus::Anyness
       return mValue == rhs;
    }
       
+   TEMPLATE()
+   LANGULUS(ALWAYSINLINE)
+   constexpr bool HAND()::operator == (const HAND()& rhs) const noexcept requires (EMBED) {
+      return mValue == rhs.mValue;
+   }
+      
    /// Prefix increment operator                                              
    ///   @return the next handle                                              
    TEMPLATE()
@@ -372,13 +378,23 @@ namespace Langulus::Anyness
       rhs.New(Abandon(tmp));
    }
 
-   /// Compare the contents of the handle                                     
+   /// Compare the contents of the handle with content                        
    ///   @param rhs - data to compare against                                 
    ///   @return true if contents are equal                                   
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
    bool HAND()::Compare(const T& rhs) const {
       return Get() == rhs;
+   }
+
+   /// Compare the contents of the handle with another handle                 
+   ///   @param rhs - handle to compare against                               
+   ///   @return true if contents are equal                                   
+   TEMPLATE()
+   template<bool RHS_EMBED>
+   LANGULUS(ALWAYSINLINE)
+   bool HAND()::Compare(const Handle<T, RHS_EMBED>& rhs) const {
+      return Get() == rhs.Get();
    }
 
    /// Reset the handle, by dereferencing entry, and destroying value, if     

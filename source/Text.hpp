@@ -71,7 +71,6 @@ namespace Langulus::Anyness
 
    public:
       NOD() Hash GetHash() const;
-      NOD() Text Clone() const;
       NOD() Text Terminate() const;
       NOD() Text Lowercase() const;
       NOD() Text Uppercase() const;

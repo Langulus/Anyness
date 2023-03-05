@@ -67,9 +67,9 @@ namespace Langulus::Anyness
       NOD() DMeta GetKeyType() const;
       NOD() DMeta GetValueType() const;
 
-      template<class ALT_K>
+      template<class>
       NOD() constexpr bool KeyIs() const noexcept;
-      template<class ALT_V>
+      template<class>
       NOD() constexpr bool ValueIs() const noexcept;
 
       NOD() constexpr bool IsKeyUntyped() const noexcept;
@@ -99,8 +99,6 @@ namespace Langulus::Anyness
       NOD() constexpr Size GetByteSize() const noexcept;
 
       void Allocate(const Count&);
-
-      NOD() TUnorderedMap Clone() const;
 
       bool operator == (const TUnorderedMap&) const;
 
@@ -145,6 +143,13 @@ namespace Langulus::Anyness
 
       NOD() decltype(auto) operator[] (const K&) const;
       NOD() decltype(auto) operator[] (const K&);
+
+      NOD() const K& GetKey(const CT::Index auto&) const;
+      NOD() K& GetKey(const CT::Index auto&);
+      NOD() const V& GetValue(const CT::Index auto&) const;
+      NOD() V& GetValue(const CT::Index auto&);
+      NOD() PairConstRef GetPair(const CT::Index auto&) const;
+      NOD() PairRef GetPair(const CT::Index auto&);
 
       ///                                                                     
       ///   Iteration                                                         
@@ -204,9 +209,6 @@ namespace Langulus::Anyness
       NOD() constexpr const V& GetRawValue(Offset) const noexcept;
       NOD() constexpr V& GetRawValue(Offset) noexcept;
       NOD() constexpr Handle<V> GetValueHandle(Offset) noexcept;
-
-      NOD() decltype(auto) GetPair(const Offset&) const noexcept;
-      NOD() decltype(auto) GetPair(const Offset&) noexcept;
    };
 
 

@@ -18,13 +18,7 @@ namespace Langulus::Anyness
    /// Move path, but do not bother cleaning it up, because it is disowned    
    ///   @param other - the path to move                                      
    Path::Path(Abandoned<Path>&& other) noexcept
-      : Text {other.Forward<Text>()} { }	
-   
-   /// Clone the path, preserving type                                        
-   ///   @return the cloned path                                              
-   Path Path::Clone() const {
-      return Path {Abandon(Text::Clone())};
-   }
+      : Text {other.Forward<Text>()} { }
 
    /// Return the lowercase file extension (the part after the last '.')      
    ///   @return a cloned text container with the extension                   

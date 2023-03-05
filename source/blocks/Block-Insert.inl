@@ -1293,7 +1293,7 @@ namespace Langulus::Anyness
          SetState(mState + state);
          return InsertAt<true>(value.Forward(), index);
       }
-      else if (Is<typename S::Type>()) {
+      else if (IsExact<TypeOf<S>>()) {
          // Insert to a same-typed container                            
          SetState(mState + state);
          return InsertAt<false>(value.Forward(), index);
@@ -1344,7 +1344,7 @@ namespace Langulus::Anyness
          SetState(mState + state);
          return Insert<INDEX, true>(value.Forward());
       }
-      else if (Is<TypeOf<S>>()) {
+      else if (IsExact<TypeOf<S>>()) {
          // Insert to a same-typed container                            
          SetState(mState + state);
          return Insert<INDEX, false>(value.Forward());
@@ -1628,8 +1628,16 @@ namespace Langulus::Anyness
 
       auto mthis = const_cast<Block*>(this);
       if (mType->mIsSparse && source.mValue.mType->mIsSparse) {
-         if constexpr (S::Shallow)
+         if constexpr (S::Shallow) {
+            // Shallow pointer transfer                                 
             ShallowBatchPointerConstruction(count, source.Forward());
+         }
+         else if (mType->mIsUnallocatable || !mType->mCloneConstructor) {
+            // Shallow pointer transfer, because its requesting to      
+            // clone unallocatable/unclonable data, such as meta        
+            // definitions, or factory elements                         
+            ShallowBatchPointerConstruction(count, Langulus::Copy(source.mValue));
+         }
          else {
             // Clone                                                    
             if (mType->mDeptr->mIsSparse || mType->mResolver == nullptr) {
@@ -1996,13 +2004,21 @@ namespace Langulus::Anyness
 
       const auto mthis = const_cast<Block*>(this);
       if constexpr (CT::Sparse<T>) {
-         if constexpr (S::Shallow)
+         using DT = Deptr<T>;
+
+         if constexpr (S::Shallow) {
+            // Shallow pointer transfer                                 
             ShallowBatchPointerConstruction(count, source.Forward());
+         }
+         else if constexpr (CT::Unallocatable<DT> || !CT::CloneMakable<DT>) {
+            // Shallow pointer transfer, because its requesting to      
+            // clone unallocatable/unclonable data, such as meta        
+            // definitions, or factory elements                         
+            ShallowBatchPointerConstruction(count, Langulus::Copy(source.mValue));
+         }
          else {
             // Clone                                                    
-            if constexpr (CT::Sparse<Deptr<T>> || !CT::Resolvable<T>) {
-               using DT = Deptr<T>;
-
+            if constexpr (CT::Sparse<DT> || !CT::Resolvable<T>) {
                // If contained type is not resolvable, or its deptr     
                // version is still a pointer, we can coalesce all       
                // clones into a single allocation (optimization)        

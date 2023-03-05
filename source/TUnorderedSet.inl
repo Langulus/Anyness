@@ -155,7 +155,7 @@ namespace Langulus::Anyness
 
    /// Clone the table                                                        
    ///   @return the new table                                                
-   TABLE_TEMPLATE()
+   /*TABLE_TEMPLATE()
    TABLE() TABLE()::Clone() const {
       if (IsEmpty())
          return {};
@@ -175,7 +175,7 @@ namespace Langulus::Anyness
       // Clone the keys & values                                        
       CloneInner(GetValues(), result.GetValues());
       return Abandon(result);
-   }
+   }*/
    
    /// Templated tables are always typed                                      
    ///   @return false                                                        
@@ -225,32 +225,38 @@ namespace Langulus::Anyness
    ///   @return the number of bytes a single key contains                    
    TABLE_TEMPLATE()
    constexpr Size TABLE()::GetStride() const noexcept {
-      return sizeof(ValueInner); 
+      return sizeof(T); 
    }
 
-   /// Get the raw key array (const)                                          
+   /// Get a raw element (const)                                              
+   ///   @param index - the key index                                         
+   ///   @return a constant reference to the element                          
    TABLE_TEMPLATE()
-   constexpr auto TABLE()::GetRaw() const noexcept {
-      return GetValues().GetRaw();
+   constexpr const T& TABLE()::GetRaw(Offset index) const noexcept {
+      return GetValues().GetRaw()[index];
    }
 
-   /// Get the raw key array                                                  
+   /// Get a raw element                                                      
+   ///   @param index - the key index                                         
+   ///   @return a mutable reference to the element                           
    TABLE_TEMPLATE()
-   constexpr auto TABLE()::GetRaw() noexcept {
-      return GetValues().GetRaw();
+   constexpr T& TABLE()::GetRaw(Offset index) noexcept {
+      return GetValues().GetRaw()[index];
    }
 
-   /// Get the end of the raw key array                                       
+   /// Get a handle to an element                                             
+   ///   @param index - the value index                                       
+   ///   @return the handle                                                   
    TABLE_TEMPLATE()
-   constexpr auto TABLE()::GetRawEnd() const noexcept {
-      return GetRaw() + GetReserved();
+   constexpr Handle<T> TABLE()::GetHandle(Offset index) noexcept {
+      return GetValues().GetHandle(index);
    }
 
    /// Get the size of all pairs, in bytes                                    
    ///   @return the total amount of initialized bytes                        
    TABLE_TEMPLATE()
    constexpr Size TABLE()::GetByteSize() const noexcept {
-      return sizeof(ValueInner) * GetCount();
+      return sizeof(T) * GetCount();
    }
 
    /// Get the key meta data                                                  
@@ -298,7 +304,7 @@ namespace Langulus::Anyness
    ///   @return the requested byte size                                      
    TABLE_TEMPLATE()
    Size TABLE()::RequestKeyAndInfoSize(const Count request, Offset& infoStart) noexcept {
-      const Size keymemory = request * sizeof(ValueInner);
+      const Size keymemory = request * sizeof(T);
       infoStart = keymemory + Alignment - (keymemory % Alignment);
       return infoStart + request + 1;
    }
@@ -379,7 +385,7 @@ namespace Langulus::Anyness
       // If reached, then keys or values (or both) moved                
       // Reinsert all pairs to rehash                                   
       mKeys.mCount = 0;
-      auto key = oldKeys.mEntry->As<ValueInner>();
+      auto key = oldKeys.mEntry->As<T>();
       const auto hashmask = GetReserved() - 1;
       while (oldInfo != oldInfoEnd) {
          if (!*(oldInfo++)) {
@@ -414,21 +420,25 @@ namespace Langulus::Anyness
    ///   @param count - the new number of pairs                               
    TABLE_TEMPLATE()
    void TABLE()::Rehash(const Count& count, const Count& oldCount) {
-      auto oldKey = GetRaw();
+      LANGULUS_ASSUME(DevAssumes,
+         IsPowerOfTwo(count) && IsPowerOfTwo(oldCount),
+         "A count is not a power-of-two"
+      );
+
+      auto oldKey = GetHandle(0);
       auto oldInfo = GetInfo();
-      const auto oldKeyEnd = oldKey + oldCount;
+      const auto oldInfoEnd = oldInfo + oldCount;
       const auto hashmask = count - 1;
 
       // For each old existing key...                                   
-      while (oldKey != oldKeyEnd) {
+      while (oldInfo != oldInfoEnd) {
          if (*oldInfo) {
             // Rehash and check if hashes match                         
             const Offset oldIndex = oldInfo - GetInfo();
-            const Offset newIndex = HashData(*oldKey).mHash & hashmask;
+            const Offset newIndex = HashData(oldKey.Get()).mHash & hashmask;
             if (oldIndex != newIndex) {
-               // Immediately move the old pair to the swapper          
-               auto swapper = SemanticMake<ValueInner>(Abandon(*oldKey));
-
+               // Immediately move the old key to the swapper           
+               HandleLocal<T> swapper {Abandon(oldKey)};
                RemoveIndex(oldIndex);
 
                if (oldIndex == InsertInner<false>(newIndex, Abandon(swapper))) {
@@ -477,14 +487,14 @@ namespace Langulus::Anyness
       // Get the starting index based on the key hash                   
       auto psl = GetInfo() + start;
       const auto pslEnd = GetInfoEnd();
-      auto swapper = SemanticMake<ValueInner>(value.Forward());
+      HandleLocal<T> swapper {value.Forward()};
 
       InfoType attempts {1};
       while (*psl) {
          const auto index = psl - GetInfo();
-         auto& candidate = Get(index);
+         auto candidate = GetHandle(index);
          if constexpr (CHECK_FOR_MATCH) {
-            if (candidate == swapper) {
+            if (candidate.Compare(swapper)) {
                // Neat, the key already exists - just return            
                return index;
             }
@@ -492,7 +502,7 @@ namespace Langulus::Anyness
 
          if (attempts > *psl) {
             // The pair we're inserting is closer to bucket, so swap    
-            ::std::swap(candidate, swapper);
+            candidate.Swap(swapper);
             ::std::swap(attempts, *psl);
          }
 
@@ -509,8 +519,7 @@ namespace Langulus::Anyness
       // Might not seem like it, but we gave a guarantee, that this is  
       // eventually reached, unless key exists and returns early        
       const auto index = psl - GetInfo();
-      auto& candidate = Get(index);
-      SemanticNew<ValueInner>(&candidate, Abandon(swapper));
+      GetHandle(index).New(Abandon(swapper));
       *psl = attempts;
       ++mKeys.mCount;
       return index;
@@ -559,7 +568,7 @@ namespace Langulus::Anyness
       while (inf != infEnd) {
          if (*inf) {
             const auto offset = inf - GetInfo();
-            RemoveInner(GetRaw() + offset);
+            RemoveInner(GetRaw(offset));
          }
 
          ++inf;
@@ -663,10 +672,10 @@ namespace Langulus::Anyness
    void TABLE()::RemoveIndex(const Offset& index) noexcept {
       auto psl = GetInfo() + index;
       const auto pslEnd = GetInfoEnd();
-      auto key = GetRaw() + index;
+      auto key = GetHandle(index);
 
       // Destroy the key, info and value at the start                   
-      RemoveInner(key++);
+      (key++).Destroy();
       *(psl++) = 0;
 
       // And shift backwards, until a zero or 1 is reached              
@@ -681,28 +690,27 @@ namespace Langulus::Anyness
             #pragma GCC diagnostic ignored "-Wplacement-new"
          #endif
 
-         SemanticNew<ValueInner>(key - 1, Abandon(*key));
+         (key - 1).New(Abandon(key));
 
          #if LANGULUS_COMPILER_GCC()
             #pragma GCC diagnostic pop
          #endif
 
-         RemoveInner(key++);
+         (key++).Destroy();
          *(psl++) = 0;
       }
 
       // Be aware, that psl might loop around                           
-      if (psl == pslEnd && *GetInfo() > 1) UNLIKELY() {
+      if (psl == pslEnd && *GetInfo() > 1) {
          psl = GetInfo();
-         key = GetRaw();
+         key = GetHandle(0);
 
          // Shift first entry to the back                               
          const auto last = mKeys.mReserved - 1;
          GetInfo()[last] = (*psl) - 1;
+         GetHandle(last).New(Abandon(key));
 
-         SemanticNew<ValueInner>(GetRaw() + last, Abandon(*key));
-
-         RemoveInner(key++);
+         (key++).Destroy();
          *(psl++) = 0;
 
          // And continue the vicious cycle                              
@@ -805,41 +813,28 @@ namespace Langulus::Anyness
       return BlockSet::GetValues<T>();
    }
 
-   /// Get a value by an unsafe offset (const)                                
-   ///   @attention as unsafe as it gets, for internal use only               
-   ///   @param i - the offset to use                                         
-   ///   @return a reference to the value                                     
+   /// Get element at an index                                                
+   ///   @attention will throw OutOfRange if there's no element at the index  
+   ///   @param i - the index                                                 
+   ///   @return the constant element reference                               
    TABLE_TEMPLATE()
-   decltype(auto) TABLE()::Get(const Offset& i) const noexcept {
-      return GetRaw()[i];
+   const T& TABLE()::Get(const CT::Index auto& index) const {
+      const auto idx = GetValues().template SimplifyIndex<T, false>(index);
+      if (!mInfo[idx])
+         LANGULUS_THROW(OutOfRange, "No element at given index");
+      return GetValues().GetRaw()[idx];
    }
 
-   /// Get a value by an unsafe offset                                        
-   ///   @attention as unsafe as it gets, for internal use only               
-   ///   @param i - the offset to use                                         
-   ///   @return a reference to the value                                     
+   /// Get element at an index                                                
+   ///   @attention will throw OutOfRange if there's no element at the index  
+   ///   @param i - the index                                                 
+   ///   @return the mutable element reference                                
    TABLE_TEMPLATE()
-   decltype(auto) TABLE()::Get(const Offset& i) noexcept {
-      return GetRaw()[i];
-   }
-
-   /// Get a value by a safe index (const)                                    
-   ///   @param index - the index to use                                      
-   ///   @return a reference to the value                                     
-   TABLE_TEMPLATE()
-   decltype(auto) TABLE()::Get(const Index& index) const {
-      return const_cast<TABLE()&>(*this).Get(index);
-   }
-
-   /// Get a value by a safe index                                            
-   ///   @param index - the index to use                                      
-   ///   @return a reference to the value                                     
-   TABLE_TEMPLATE()
-   decltype(auto) TABLE()::Get(const Index& index) {
-      const auto offset = index.GetOffset();
-      LANGULUS_ASSERT(offset < GetReserved() && GetInfo()[offset],
-         OutOfRange, "Bad index");
-      return GetValue(offset);
+   T& TABLE()::Get(const CT::Index auto& index) {
+      const auto idx = GetValues().template SimplifyIndex<T, false>(index);
+      if (!mInfo[idx])
+         LANGULUS_THROW(OutOfRange, "No element at given index");
+      return GetValues().GetRaw()[idx];
    }
 
    /// Find the index of a pair by key                                        
@@ -856,25 +851,17 @@ namespace Langulus::Anyness
       const auto start = GetBucket(key);
       auto psl = GetInfo() + start;
       const auto pslEnd = GetInfoEnd() - 1;
-      auto candidate = GetRaw() + start;
-
-      const auto keysAreEqual = [](const ValueInner* lhs, const T& rhs) {
-         if constexpr (CT::Sparse<T>)
-            return *lhs == rhs/* || **lhs == *rhs*/;
-         else
-            return lhs == &rhs || *lhs == rhs;
-      };
-
+      auto candidate = &GetRaw(start);
       Count attempts{};
       while (*psl > attempts) {
-         if (!keysAreEqual(candidate, key)) {
+         if (*candidate != key) {
             // There might be more keys to the right, check them        
-            if (psl == pslEnd) UNLIKELY() {
+            if (psl == pslEnd) {
                // By 'to the right' I also mean looped back to start    
                psl = GetInfo();
-               candidate = GetRaw();
+               candidate = &GetRaw(0);
             }
-            else LIKELY() {
+            else {
                ++psl;
                ++candidate;
             }
@@ -1058,7 +1045,7 @@ namespace Langulus::Anyness
    TABLE()::TIterator<MUTABLE>::TIterator(
       const InfoType* info, 
       const InfoType* sentinel, 
-      const ValueInner* value
+      const T* value
    ) noexcept
       : mInfo {info}
       , mSentinel {sentinel}
@@ -1109,8 +1096,8 @@ namespace Langulus::Anyness
    TABLE_TEMPLATE()
    template<bool MUTABLE>
    LANGULUS(ALWAYSINLINE)
-   typename TABLE()::ValueInner& TABLE()::TIterator<MUTABLE>::operator * () const noexcept requires (MUTABLE) {
-      return {*const_cast<ValueInner*>(mValue)};
+   T& TABLE()::TIterator<MUTABLE>::operator * () const noexcept requires (MUTABLE) {
+      return {*const_cast<T*>(mValue)};
    }
 
    /// Iterator access operator                                               
@@ -1118,7 +1105,7 @@ namespace Langulus::Anyness
    TABLE_TEMPLATE()
    template<bool MUTABLE>
    LANGULUS(ALWAYSINLINE)
-   const typename TABLE()::ValueInner& TABLE()::TIterator<MUTABLE>::operator * () const noexcept requires (!MUTABLE) {
+   const T& TABLE()::TIterator<MUTABLE>::operator * () const noexcept requires (!MUTABLE) {
       return {*mValue};
    }
 
@@ -1127,7 +1114,7 @@ namespace Langulus::Anyness
    TABLE_TEMPLATE()
    template<bool MUTABLE>
    LANGULUS(ALWAYSINLINE)
-   typename TABLE()::ValueInner& TABLE()::TIterator<MUTABLE>::operator -> () const noexcept requires (MUTABLE) {
+   T& TABLE()::TIterator<MUTABLE>::operator -> () const noexcept requires (MUTABLE) {
       return **this;
    }
 
@@ -1136,7 +1123,7 @@ namespace Langulus::Anyness
    TABLE_TEMPLATE()
    template<bool MUTABLE>
    LANGULUS(ALWAYSINLINE)
-   const typename TABLE()::ValueInner& TABLE()::TIterator<MUTABLE>::operator -> () const noexcept requires (!MUTABLE) {
+   const T& TABLE()::TIterator<MUTABLE>::operator -> () const noexcept requires (!MUTABLE) {
       return **this;
    }
 

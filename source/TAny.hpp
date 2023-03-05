@@ -98,7 +98,6 @@ namespace Langulus::Anyness
       void TakeAuthority();
 
       void Reserve(Count);
-      NOD() TAny Clone() const;
 
       NOD() DMeta GetType() const noexcept;
       NOD() auto GetRaw() const noexcept;
@@ -265,8 +264,10 @@ namespace Langulus::Anyness
       void Swap(const Offset&, const Offset&);
       void Swap(const Index&, const Index&);
 
-      Count GatherFrom(const Block&, Index = IndexFront);
-      Count GatherFrom(const Block&, DataState, Index = IndexFront);
+      template<bool REVERSE = false>
+      Count GatherFrom(const Block&);
+      template<bool REVERSE = false>
+      Count GatherFrom(const Block&, DataState);
 
       ///                                                                     
       ///   Concatenation                                                     

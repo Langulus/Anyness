@@ -132,6 +132,42 @@ namespace Langulus::Anyness
          ForEachDeep<REVERSE, SKIP, false>(Forward<F>(calls)...);
    }
 
+   template<bool MUTABLE, class... F>
+   LANGULUS(ALWAYSINLINE)
+   Count Block::ForEachElementRev(F&&... f) {
+      return ForEachElement<true, MUTABLE, F...>(Forward<F>(f)...);
+   }
+
+   template<class... F>
+   LANGULUS(ALWAYSINLINE)
+   Count Block::ForEachElementRev(F&&... f) const {
+      return ForEachElement<true, F...>(Forward<F>(f)...);
+   }
+
+   template<bool MUTABLE, class... F>
+   LANGULUS(ALWAYSINLINE)
+   Count Block::ForEachRev(F&&... f) {
+      return ForEach<true, MUTABLE, F...>(Forward<F>(f)...);
+   }
+
+   template<class... F>
+   LANGULUS(ALWAYSINLINE)
+   Count Block::ForEachRev(F&&... f) const {
+      return ForEach<true, F...>(Forward<F>(f)...);
+   }
+
+   template<bool SKIP, bool MUTABLE, class... F>
+   LANGULUS(ALWAYSINLINE)
+   Count Block::ForEachDeepRev(F&&... f) {
+      return ForEachDeep<true, SKIP, MUTABLE, F...>(Forward<F>(f)...);
+   }
+
+   template<bool SKIP, class... F>
+   LANGULUS(ALWAYSINLINE)
+   Count Block::ForEachDeepRev(F&&... f) const {
+      return ForEachDeep<true, SKIP, F...>(Forward<F>(f)...);
+   }
+
    /// Execute single function from a sequence of functions for each element  
    /// inside container, if F's argument is compatible with contained type    
    ///   @attention assumes block is not empty                                

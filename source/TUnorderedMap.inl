@@ -191,7 +191,7 @@ namespace Langulus::Anyness
    TABLE_TEMPLATE()
    template<CT::Semantic S>
    TABLE()& TABLE()::operator = (S&& rhs) noexcept requires (CT::Exact<TypeOf<S>, Self>) {
-      if (&rhs == this)
+      if (&static_cast<const BlockMap&>(rhs.mValue) == this)
          return *this;
 
       Reset();
@@ -228,7 +228,7 @@ namespace Langulus::Anyness
 
    /// Clone the table                                                        
    ///   @return the new table                                                
-   TABLE_TEMPLATE()
+   /*TABLE_TEMPLATE()
    TABLE() TABLE()::Clone() const {
       if (IsEmpty())
          return {};
@@ -274,7 +274,7 @@ namespace Langulus::Anyness
       }
 
       return Abandon(result);
-   }
+   }*/
    
    /// Templated tables are always typed                                      
    ///   @return false                                                        
@@ -394,7 +394,7 @@ namespace Langulus::Anyness
       return GetKeys().GetRaw()[index];
    }
 
-   /// Get a key handle if sparse, or a key pointer                           
+   /// Get a handle to a key                                                  
    ///   @param index - the key index                                         
    ///   @return the handle                                                   
    TABLE_TEMPLATE()
@@ -418,7 +418,7 @@ namespace Langulus::Anyness
       return GetValues().GetRaw()[index];
    }
    
-   /// Get a value handle if sparse, or a key pointer                         
+   /// Get a handle to a value                                                
    ///   @param index - the value index                                       
    ///   @return the handle                                                   
    TABLE_TEMPLATE()
@@ -729,7 +729,6 @@ namespace Langulus::Anyness
                auto oldValue = GetValueHandle(oldIndex);
                HandleLocal<K> keyswap {Abandon(oldKey)};
                HandleLocal<V> valswap {Abandon(oldValue)};
-
                RemoveIndex(oldIndex);
 
                if (oldIndex == InsertInner<false>(
@@ -1207,24 +1206,6 @@ namespace Langulus::Anyness
       return BlockMap::GetValues<V>();
    }
 
-   /// Get a pair by an unsafe offset (const)                                 
-   ///   @attention as unsafe as it gets, for internal use only               
-   ///   @param i - the offset to use                                         
-   ///   @return the pair                                                     
-   TABLE_TEMPLATE()
-   decltype(auto) TABLE()::GetPair(const Offset& i) const noexcept {
-      return TPair<const K&, const V&> {GetKey(i), GetValue(i)};
-   }
-
-   /// Get a pair by an unsafe offset                                         
-   ///   @attention as unsafe as it gets, for internal use only               
-   ///   @param i - the offset to use                                         
-   ///   @return the pair                                                     
-   TABLE_TEMPLATE()
-   decltype(auto) TABLE()::GetPair(const Offset& i) noexcept {
-      return TPair<K&, V&> {GetKey(i), GetValue(i)};
-   }
-
    /// Returns a reference to the value found for key                         
    /// Throws Except::OutOfRange if element cannot be found                   
    ///   @param key - the key to search for                                   
@@ -1256,6 +1237,76 @@ namespace Langulus::Anyness
       const auto found = FindIndex(key);
       LANGULUS_ASSERT(found != GetReserved(), OutOfRange, "Key not found");
       return GetRawValue(found);
+   }
+
+   /// Get a key at an index                                                  
+   ///   @attention will throw OutOfRange if there's no pair at the index     
+   ///   @param i - the index                                                 
+   ///   @return the constant key reference                                   
+   TABLE_TEMPLATE()
+   const K& TABLE()::GetKey(const CT::Index auto& index) const {
+      const auto idx = GetKeys().template SimplifyIndex<K, false>(index);
+      if (!mInfo[idx])
+         LANGULUS_THROW(OutOfRange, "No pair at given index");
+      return GetKeys().GetRaw()[idx];
+   }
+
+   /// Get a key at an index                                                  
+   ///   @attention will throw OutOfRange if there's no pair at the index     
+   ///   @param i - the index                                                 
+   ///   @return the mutable key reference                                    
+   TABLE_TEMPLATE()
+   K& TABLE()::GetKey(const CT::Index auto& index) {
+      const auto idx = GetKeys().template SimplifyIndex<K, false>(index);
+      if (!mInfo[idx])
+         LANGULUS_THROW(OutOfRange, "No pair at given index");
+      return GetKeys().GetRaw()[idx];
+   }
+
+   /// Get a value at an index                                                
+   ///   @attention will throw OutOfRange if there's no pair at the index     
+   ///   @param i - the index                                                 
+   ///   @return the constant value reference                                 
+   TABLE_TEMPLATE()
+   const V& TABLE()::GetValue(const CT::Index auto& index) const {
+      const auto idx = GetValues().template SimplifyIndex<V, false>(index);
+      if (!mInfo[idx])
+         LANGULUS_THROW(OutOfRange, "No pair at given index");
+      return GetValues().GetRaw()[idx];
+   }
+
+   /// Get a value at an index                                                
+   ///   @attention will throw OutOfRange if there's no pair at the index     
+   ///   @param i - the index                                                 
+   ///   @return the mutable value reference                                  
+   TABLE_TEMPLATE()
+   V& TABLE()::GetValue(const CT::Index auto& index) {
+      const auto idx = GetValues().template SimplifyIndex<V, false>(index);
+      if (!mInfo[idx])
+         LANGULUS_THROW(OutOfRange, "No pair at given index");
+      return GetValues().GetRaw()[idx];
+   }
+
+   /// Get a pair at an index                                                 
+   ///   @attention will throw OutOfRange if there's no pair at the index     
+   ///   @param i - the index                                                 
+   ///   @return the constant pair reference                                  
+   TABLE_TEMPLATE()
+   typename TABLE()::PairConstRef TABLE()::GetPair(const CT::Index auto& i) const {
+      const auto idx = GetValues().template SimplifyIndex<V, false>(i);
+      if (!mInfo[idx])
+         LANGULUS_THROW(OutOfRange, "No pair at given index");
+      return {GetKey(idx), GetValue(idx)};
+   }
+
+   /// Get a pair at an index                                                 
+   ///   @attention will throw OutOfRange if there's no pair at the index     
+   ///   @param i - the index                                                 
+   ///   @return the mutable pair reference                                   
+   TABLE_TEMPLATE()
+   typename TABLE()::PairRef TABLE()::GetPair(const CT::Index auto& i) {
+      const auto idx = GetValues().template SimplifyIndex<V, false>(i);
+      return {GetKey(idx), GetValue(idx)};
    }
 
    /// Find the index of a pair by key                                        

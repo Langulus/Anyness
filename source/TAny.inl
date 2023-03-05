@@ -491,7 +491,7 @@ namespace Langulus::Anyness
 
    /// Clone the templated container                                          
    ///   @return the cloned container                                         
-   TEMPLATE()
+   /*TEMPLATE()
    TAny<T> TAny<T>::Clone() const {
       // Always clone the state, but make it unconstrained              
       TAny<T> result {Disown(*this)};
@@ -548,7 +548,7 @@ namespace Langulus::Anyness
       }
 
       return Abandon(result);
-   }
+   }*/
 
    /// Return the typed raw data (const)                                      
    ///   @return a constant pointer to the first element in the array         
@@ -1495,26 +1495,26 @@ namespace Langulus::Anyness
    }
 
    /// Gather items from source container, and fill this one                  
-   /// Type acts as a filter to what gets gathered                            
-   ///   @param source - container to gather from                             
-   ///   @param direction - the direction to search from                      
+   ///   @tparam REVERSE - iterate in reverse?                                
+   ///   @param source - container to gather from, type acts as filter        
    ///   @return the number of gathered elements                              
    TEMPLATE()
+   template<bool REVERSE>
    LANGULUS(ALWAYSINLINE)
-   Count TAny<T>::GatherFrom(const Block& source, const Index direction) {
-      return Block::GatherInner(source, *this, direction);
+   Count TAny<T>::GatherFrom(const Block& source) {
+      return GatherInner<REVERSE>(source, *this);
    }
 
-   /// Gather items from this container based on data state                   
-   /// Type acts as a filter to what gets gathered                            
-   /// Preserves hierarchy only if this container is deep                     
-   ///   @param source - container to gather from                             
-   ///   @param state - data states to filter                                 
-   ///   @param direction - the direction to search from                      
+   /// Gather items of specific state from source container, and fill this one
+   ///   @tparam REVERSE - iterate in reverse?                                
+   ///   @param source - container to gather from, type acts as filter        
+   ///   @param state - state filter                                          
+   ///   @return the number of gathered elements                              
    TEMPLATE()
+   template<bool REVERSE>
    LANGULUS(ALWAYSINLINE)
-   Count TAny<T>::GatherFrom(const Block& source, DataState state, const Index direction) {
-      return Block::GatherPolarInner(GetType(), source, *this, direction, state);
+   Count TAny<T>::GatherFrom(const Block& source, DataState state) {
+      return GatherPolarInner<REVERSE>(GetType(), source, *this, state);
    }
 
    /// Clone container array into a new owned memory block                    
@@ -1522,10 +1522,9 @@ namespace Langulus::Anyness
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
    void TAny<T>::TakeAuthority() {
-      if (mEntry)
-         return;
-
-      operator = (Clone());
+      TAny<T> clone {Clone(*this)};
+      Free();
+      CopyMemory<void, void>(this, &clone);
    }
 
    /// Get a constant part of this container                                  

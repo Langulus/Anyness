@@ -46,7 +46,7 @@ namespace Langulus::Anyness
    TEMPLATE()
    template<CT::Semantic S>
    MAP()& MAP()::operator = (S&& rhs) noexcept requires (CT::Exact<TypeOf<S>, Self>) {
-      if (&rhs == this)
+      if (&static_cast<const BlockMap&>(rhs.mValue) == this)
          return *this;
 
       Reset();
