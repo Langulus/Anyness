@@ -50,7 +50,7 @@ SCENARIO("Byte manipulation", "[bytes]") {
 
       REQUIRE(data.GetCount() == 5 * sizeof(int));
       REQUIRE(data.GetReserved() >= 5 * sizeof(int));
-      REQUIRE(data.template Is<Byte>());
+      REQUIRE(data.template IsExact<Byte>());
       REQUIRE(data.GetRaw() != nullptr);
       REQUIRE(data.HasAuthority());
 
@@ -70,6 +70,7 @@ SCENARIO("Byte manipulation", "[bytes]") {
 
       WHEN("More byte capacity is reserved") {
          data.Reserve(40);
+
          THEN("The capacity changes but not the size, memory will move in order to have jurisdiction") {
             REQUIRE(data.GetCount() == 5 * sizeof(int));
             REQUIRE(data.GetReserved() >= 40);
@@ -82,6 +83,7 @@ SCENARIO("Byte manipulation", "[bytes]") {
 
       WHEN("More byte capacity is reserved, via Extend()") {
          auto region = data.Extend(10);
+
          THEN("The capacity and size change") {
             REQUIRE(data.GetCount() == 5 * sizeof(int) + 10);
             REQUIRE(data.GetReserved() >= 5 * sizeof(int) + 10);
@@ -96,6 +98,7 @@ SCENARIO("Byte manipulation", "[bytes]") {
 
       WHEN("Less capacity is reserved") {
          data.Reserve(2);
+
          THEN("Capacity is not changed, but count is trimmed; memory will not move, and memory will still be outside jurisdiction") {
             REQUIRE(data.GetCount() == 2);
             REQUIRE(data.GetReserved() >= 5);
@@ -106,6 +109,7 @@ SCENARIO("Byte manipulation", "[bytes]") {
 
       WHEN("Bytes are cleared") {
          data.Clear();
+
          THEN("Size goes to zero, capacity and type are unchanged") {
             REQUIRE(data.GetCount() == 0);
             REQUIRE(data.GetReserved() >= 5);
@@ -117,6 +121,7 @@ SCENARIO("Byte manipulation", "[bytes]") {
 
       WHEN("Bytes are reset") {
          data.Reset();
+
          THEN("Size and capacity goes to zero, type is unchanged, because it's a templated container") {
             REQUIRE(data.GetCount() == 0);
             REQUIRE(data.GetReserved() == 0);
@@ -127,6 +132,7 @@ SCENARIO("Byte manipulation", "[bytes]") {
 
       WHEN("Bytes are copied shallowly") {
          Bytes copy = data;
+
          THEN("Size and capacity goes to zero, type is unchanged, because it's a templated container") {
             REQUIRE(data.GetCount() == copy.GetCount());
             REQUIRE(data.GetReserved() == copy.GetReserved());
@@ -141,6 +147,7 @@ SCENARIO("Byte manipulation", "[bytes]") {
 
       WHEN("Bytes are cloned") {
          Bytes copy = data.Clone();
+
          THEN("Bytes get copied") {
             REQUIRE(data.GetCount() == copy.GetCount());
             REQUIRE(data.GetReserved() == copy.GetReserved());
@@ -157,6 +164,7 @@ SCENARIO("Byte manipulation", "[bytes]") {
          const int randomStuff2[] = {4, 5, 6, 7, 8, 9};
          data.Reset();
          data += Bytes {randomStuff2, sizeof(randomStuff2)};
+
          THEN("Block manager should reuse the memory") {
             REQUIRE(data.GetCount() == sizeof(int) * 6);
             REQUIRE(data.GetReserved() >= sizeof(int) * 6);

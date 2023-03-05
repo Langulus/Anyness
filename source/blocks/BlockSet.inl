@@ -10,6 +10,18 @@
 
 namespace Langulus::Anyness
 {
+   
+   /// Manual construction via an initializer list                            
+   ///   @param initlist - the initializer list to forward                    
+   template<CT::NotSemantic T>
+   LANGULUS(ALWAYSINLINE)
+   BlockSet::BlockSet(::std::initializer_list<T> initlist)
+      : BlockSet {} {
+      Mutate<T>();
+      Allocate(initlist.size());
+      for (auto& it : initlist)
+         Insert(it);
+   }
 
    /// Shallow-copy construction                                              
    ///   @param other - the table to copy                                     
@@ -29,41 +41,200 @@ namespace Langulus::Anyness
       other.mKeys.ResetMemory();
       other.mKeys.ResetState();
    }
-
-   /// Shallow-copy construction without referencing                          
-   ///   @param other - the disowned table to copy                            
+   
+   /// Semantic copy (block has no ownership, so always just shallow copy)    
+   ///   @tparam S - the semantic to use (irrelevant)                         
+   ///   @param other - the block to shallow-copy                             
+   template<CT::Semantic S>
    LANGULUS(ALWAYSINLINE)
-   constexpr BlockSet::BlockSet(Disowned<BlockSet>&& other) noexcept
+   constexpr BlockSet::BlockSet(S&& other) noexcept
       : mInfo {other.mValue.mInfo}
       , mKeys {other.mValue.mKeys} {
-      mKeys.mEntry = nullptr;
-   }
-
-   /// Minimal move construction from abandoned table                         
-   ///   @param other - the abandoned table to move                           
-   LANGULUS(ALWAYSINLINE)
-   constexpr BlockSet::BlockSet(Abandoned<BlockSet>&& other) noexcept
-      : mInfo {other.mValue.mInfo}
-      , mKeys {other.mValue.mKeys} {
-      other.mValue.mKeys.mEntry = nullptr;
+      static_assert(CT::Set<TypeOf<S>>, "S type should be a set type");
+      if constexpr (S::Move && !S::Keep)
+         other.mValue.mKeys.mEntry = nullptr;
+      else if constexpr (!S::Move && !S::Keep)
+         mKeys.mEntry = nullptr;
    }
 
    /// Destroys the map and all it's contents                                 
-   inline BlockSet::~BlockSet() {
+   LANGULUS(ALWAYSINLINE)
+   BlockSet::~BlockSet() {
+      Free();
+   }
+   
+   /// Semantically transfer the members of one set onto another              
+   ///   @tparam TO - the type of set we're transferring to                   
+   ///   @tparam S - the semantic to use for the transfer (deducible)         
+   ///   @param from - the set and semantic to transfer from                  
+   template<class TO, CT::Semantic S>
+   LANGULUS(ALWAYSINLINE)
+   void BlockSet::BlockTransfer(S&& other) {
+      using FROM = TypeOf<S>;
+      static_assert(CT::Set<TO>, "TO must be a set type");
+      static_assert(CT::Set<FROM>, "FROM must be a set type");
+
+      mKeys.mCount = other.mValue.mKeys.mCount;
+
+      if constexpr (!CT::TypedSet<TO>) {
+         // TO is not statically typed                                  
+         mKeys.mType = other.mValue.GetType();
+         mKeys.mState = other.mValue.mKeys.mState;
+      }
+      else {
+         // TO is statically typed                                      
+         mKeys.mType = MetaData::Of<TypeOf<TO>>();
+         mKeys.mState = other.mValue.mKeys.mState + DataState::Typed;
+      }
+
+      if constexpr (S::Shallow) {
+         mKeys.mRaw = other.mValue.mKeys.mRaw;
+         mKeys.mReserved = other.mValue.mKeys.mReserved;
+         mInfo = other.mValue.mInfo;
+
+         if constexpr (S::Keep) {
+            // Move/Copy other                                          
+            mKeys.mEntry = other.mValue.mKeys.mEntry;
+
+            if constexpr (S::Move) {
+               if constexpr (!FROM::Ownership) {
+                  // Since we are not aware if that block is referenced 
+                  // or not we reference it just in case, and we also   
+                  // do not reset 'other' to avoid leaks When using raw 
+                  // BlockSets, it's your responsibility to take care   
+                  // of ownership.                                      
+                  Keep();
+               }
+               else {
+                  other.mValue.mKeys.ResetMemory();
+                  other.mValue.mKeys.ResetState();
+               }
+            }
+            else Keep();
+         }
+         else if constexpr (S::Move) {
+            // Abandon other                                            
+            mKeys.mEntry = other.mValue.mKeys.mEntry;
+            other.mValue.mKeys.mEntry = nullptr;
+         }
+      }
+      else {
+         // We're cloning, so we guarantee, that data is no longer      
+         // static                                                      
+         mKeys.mState -= DataState::Static;
+
+         if constexpr (CT::TypedSet<TO>)
+            BlockClone<TO>(other.mValue);
+         else if constexpr (CT::TypedSet<FROM>)
+            BlockClone<FROM>(other.mValue);
+         else {
+            // Use type-erased cloning                                  
+            auto asTo = reinterpret_cast<TO*>(this);
+            asTo->AllocateFresh(other.mValue.GetReserved());
+
+            // Clone info array                                         
+            CopyMemory(asTo->mInfo, other.mValue.mInfo, GetReserved() + 1);
+
+            auto info = asTo->GetInfo();
+            const auto infoEnd = asTo->GetInfoEnd();
+            auto dstKey = asTo->GetKey(0);
+            auto srcKey = other.mValue.GetKey(0);
+            while (info != infoEnd) {
+               if (*info) {
+                  dstKey.CallUnknownSemanticConstructors(
+                     1, Langulus::Clone(srcKey));
+               }
+
+               ++info;
+               dstKey.Next();
+               srcKey.Next();
+            }
+         }
+      }
+   }
+   
+   /// Clone info, keys and values from a statically typed set                
+   ///   @attention assumes this is not allocated                             
+   ///   @tparam T - the statically optimized type of set we're using         
+   ///   @param other - the set we'll be cloning                              
+   template<class T>
+   void BlockSet::BlockClone(const BlockSet& other) {
+      static_assert(CT::TypedSet<T>, "T must be statically typed set");
+      LANGULUS_ASSUME(DevAssumes, !mKeys.mRaw, "Set is already allocated");
+
+      // Use statically optimized cloning                               
+      auto asFrom = reinterpret_cast<T*>(&const_cast<BlockSet&>(other));
+      auto asTo = reinterpret_cast<T*>(this);
+      asTo->AllocateFresh(other.GetReserved());
+
+      // Clone info array                                               
+      CopyMemory(asTo->mInfo, asFrom->mInfo, GetReserved() + 1);
+
+      // Clone keys and values                                          
+      auto info = asTo->GetInfo();
+      const auto infoEnd = asTo->GetInfoEnd();
+      auto dstKey = asTo->GetKeyHandle(0);
+      auto srcKey = asFrom->GetKeyHandle(0);
+      while (info != infoEnd) {
+         if (*info)
+            dstKey.New(Langulus::Clone(srcKey));
+
+         ++info;
+         ++dstKey;
+         ++srcKey;
+      }
+   }
+
+   /// Reference memory block if we own it                                    
+   ///   @param times - number of references to add                           
+   LANGULUS(ALWAYSINLINE)
+   void BlockSet::Reference(const Count& times) const noexcept {
+      mKeys.Reference(times);
+   }
+   
+   /// Reference memory block once                                            
+   LANGULUS(ALWAYSINLINE)
+   void BlockSet::Keep() const noexcept {
+      Reference(1);
+   }
+         
+   /// Dereference memory block                                               
+   ///   @attention this never modifies any state, except mKeys.mEntry        
+   ///   @tparam DESTROY - whether to call destructors on full dereference    
+   ///   @param times - number of references to subtract                      
+   template<bool DESTROY>
+   void BlockSet::Dereference(const Count& times) {
       if (!mKeys.mEntry)
          return;
 
+      LANGULUS_ASSUME(DevAssumes,
+         mKeys.mEntry->GetUses() >= times, "Bad memory dereferencing");
+
       if (mKeys.mEntry->GetUses() == 1) {
-         // Remove all used values, they're used only here              
-         ClearInner();
+         if constexpr (DESTROY) {
+            if (!IsEmpty()) {
+               // Destroy all keys and values                           
+               ClearInner();
+            }
+         }
 
          // Deallocate stuff                                            
          Allocator::Deallocate(mKeys.mEntry);
       }
       else {
-         // Data is used from multiple locations, just deref            
+         // Data is used from multiple locations, just deref values     
+         // Notice how we don't dereference keys, since we use only the 
+         // values' references to save on some redundancy               
          mKeys.mEntry->Free();
       }
+   }
+
+   /// Dereference memory block once and destroy all elements if data was     
+   /// fully dereferenced                                                     
+   ///   @attention this never modifies any state, except mValues.mEntry      
+   LANGULUS(ALWAYSINLINE)
+   void BlockSet::Free() {
+      return Dereference<true>(1);
    }
 
    /// Checks if both tables contain the same entries                         
@@ -225,29 +396,32 @@ namespace Langulus::Anyness
    constexpr Size BlockSet::GetStride() const noexcept {
       return mKeys.GetStride();
    }
-
-   /// Get the raw array (const)                                              
-   ///   @attention for internal use only                                     
+   
+   /// Get a constant element reference                                       
+   ///   @param index - the key index                                         
+   ///   @return a constant reference to the element                          
    template<CT::Data T>
    LANGULUS(ALWAYSINLINE)
-   constexpr decltype(auto) BlockSet::GetRaw() const noexcept {
-      return GetValues<T>().GetRaw();
+   constexpr const T& BlockSet::GetRaw(Offset index) const noexcept {
+      return GetValues<T>().GetRaw()[index];
    }
 
-   /// Get the raw array                                                      
-   ///   @attention for internal use only                                     
+   /// Get a mutable element reference                                        
+   ///   @param index - the key index                                         
+   ///   @return a mutable reference to the element                           
    template<CT::Data T>
    LANGULUS(ALWAYSINLINE)
-   constexpr decltype(auto) BlockSet::GetRaw() noexcept {
-      return GetValues<T>().GetRaw();
+   constexpr T& BlockSet::GetRaw(Offset index) noexcept {
+      return GetValues<T>().GetRaw()[index];
    }
 
-   /// Get the end of the array                                               
-   ///   @attention for internal use only                                     
+   /// Get an element handle                                                  
+   ///   @param index - the key index                                         
+   ///   @return the handle                                                   
    template<CT::Data T>
    LANGULUS(ALWAYSINLINE)
-   constexpr decltype(auto) BlockSet::GetRawEnd() const noexcept {
-      return GetRaw<T>() + GetReserved();
+   constexpr Handle<T> BlockSet::GetHandle(Offset index) const noexcept {
+      return GetValues<T>().GetHandle(index);
    }
 
    /// Get the size of all elements, in bytes                                 
@@ -521,6 +695,7 @@ namespace Langulus::Anyness
    template<bool CHECK_FOR_MATCH, CT::Semantic S>
    Offset BlockSet::InsertInner(const Offset& start, S&& value) {
       using T = TypeOf<S>;
+      HandleLocal<T> swapper {value.Forward()};
 
       // Get the starting index based on the key hash                   
       auto psl = GetInfo() + start;
@@ -530,49 +705,33 @@ namespace Langulus::Anyness
          const auto index = psl - GetInfo();
 
          if constexpr (CHECK_FOR_MATCH) {
-            const auto candidate = GetRaw<T>() + index;
-            if (*candidate == value.mValue) {
-               // Neat, the key already exists - just return            
+            const auto& candidate = GetRaw<T>(index);
+            if (swapper.Compare(candidate)) {
+               // Neat, the value already exists - just return          
                return index;
             }
          }
 
          if (attempts > *psl) {
-            // The pair we're inserting is closer to bucket, so swap    
-            ::std::swap(GetRaw<T>()[index], value.mValue);
+            // The value we're inserting is closer to bucket, so swap   
+            GetHandle<T>(index).Swap(swapper);
             ::std::swap(attempts, *psl);
          }
 
          ++attempts;
 
+         // Wrap around and start from the beginning if we have to      
          if (psl < pslEnd - 1)
             ++psl;
-         else
+         else 
             psl = GetInfo();
       }
 
-      // If reached, empty slot reached                                 
-      // Might not seem like it, but we have a guarantee, that this is  
+      // If reached, empty slot reached, so put the value there         
+      // Might not seem like it, but we gave a guarantee, that this is  
       // eventually reached, unless key exists and returns early        
       const auto index = psl - GetInfo();
-      if constexpr (S::Move) {
-         if constexpr (!S::Keep && CT::AbandonMakable<T>)
-            new (&GetRaw<T>()[index]) T {value.Forward()};
-         else if constexpr (CT::MoveMakable<T>)
-            new (&GetRaw<T>()[index]) T {std::move(value.mValue)};
-         else if constexpr (CT::CopyMakable<T>)
-            new (&GetRaw<T>()[index]) T {value.mValue};
-         else
-            LANGULUS_ERROR("Can't abandon/move/copy value");
-      }
-      else {
-         if constexpr (!S::Keep && CT::DisownMakable<T>)
-            new (&GetRaw<T>()[index]) T {value.Forward()};
-         else if constexpr (CT::CopyMakable<T>)
-            new (&GetRaw<T>()[index]) T {value.mValue};
-         else
-            LANGULUS_ERROR("Can't disown/copy value");
-      }
+      GetHandle<T>(index).New(Abandon(swapper));
 
       *psl = attempts;
       ++mKeys.mCount;
@@ -596,17 +755,9 @@ namespace Langulus::Anyness
       while (*psl) {
          const auto index = psl - GetInfo();
          if constexpr (CHECK_FOR_MATCH) {
-            const auto candidate = Get(index);
+            const auto candidate = GetValue(index);
             if (candidate == value.mValue) {
-               // Neat, the key already exists - just set value and go  
-               GetValue(index)
-                  .CallUnknownSemanticAssignment(1, value.Forward());
-
-               if constexpr (S::Move) {
-                  value.mValue.CallUnknownDestructors();
-                  value.mValue.mCount = 0;
-               }
-
+               // Neat, the key already exists - just return            
                return index;
             }
          }
@@ -628,12 +779,12 @@ namespace Langulus::Anyness
 
       // If reached, empty slot reached, so put the pair there	         
       // Might not seem like it, but we gave a guarantee, that this is  
-      // eventually reached, unless key exists and returns early        
+      // eventually reached, unless element exists and returns early    
       // We're moving only a single element, so no chance of overlap    
       const auto index = psl - GetInfo();
       GetValue(index)
          .CallUnknownSemanticConstructors(1, value.Forward());
-      
+
       if constexpr (S::Move) {
          value.mValue.CallUnknownDestructors();
          value.mValue.mCount = 0;

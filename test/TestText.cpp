@@ -411,7 +411,7 @@ SCENARIO("Text containers", "[text]") {
       }
 
       WHEN("Text is cloned (deep copy)") {
-         Text copy = text.Clone();
+         Text copy = Clone(text);
          THEN("The new container shall contain the same data, but in separate memory block") {
             REQUIRE(text.GetCount() == copy.GetCount());
             REQUIRE(text.GetReserved() >= copy.GetReserved());

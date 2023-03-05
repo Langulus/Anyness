@@ -57,7 +57,7 @@ namespace Langulus::Anyness
       template<CT::Semantic S>
       constexpr BlockMap(S&&) noexcept;
 
-      template<CT::Data K, CT::Data V>
+      template<CT::NotSemantic K, CT::NotSemantic V>
       BlockMap(::std::initializer_list<TPair<K, V>>);
 
       ~BlockMap();

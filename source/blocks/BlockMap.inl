@@ -13,7 +13,7 @@ namespace Langulus::Anyness
 
    /// Manual construction via an initializer list                            
    ///   @param initlist - the initializer list to forward                    
-   template<CT::Data K, CT::Data V>
+   template<CT::NotSemantic K, CT::NotSemantic V>
    LANGULUS(ALWAYSINLINE)
    BlockMap::BlockMap(::std::initializer_list<TPair<K, V>> initlist)
       : BlockMap {} {

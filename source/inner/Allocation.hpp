@@ -23,11 +23,37 @@ namespace Langulus::Anyness
    ///   @tparam FROM - source memory type (deducible)                        
    ///   @param to - [out] destination memory                                 
    ///   @param from - source of data to copy                                 
+   template<class TO, class FROM>
+   LANGULUS(ALWAYSINLINE)
+   void CopyMemory(TO* to, const FROM* from) noexcept {
+      static_assert(CT::Void<TO> || CT::Sparse<TO> || CT::POD<TO> || ::std::is_trivial_v<TO>, 
+         "TO must be either pointer, reflected as POD, or trivial. "
+         "(you can suppress this error by casting pointer to void*)");
+
+      static_assert(CT::Void<TO> || (CT::Same<TO, FROM> && CT::Sparse<TO> == CT::Sparse<FROM>),
+         "TO and FROM must be the exact same types"
+         "(you can suppress this error by casting pointer to void*)");
+
+      if constexpr (CT::Void<TO>)
+         LANGULUS_ERROR("Bytecount not specified when copying void pointers");
+
+      ::std::memcpy(
+         static_cast<void*>(to),
+         static_cast<const void*>(from),
+         sizeof(TO)
+      );
+   }
+
+   /// Wrapper for memcpy                                                     
+   ///   @tparam TO - destination memory type (deducible)                     
+   ///   @tparam FROM - source memory type (deducible)                        
+   ///   @param to - [out] destination memory                                 
+   ///   @param from - source of data to copy                                 
    ///   @param count - number of elements to copy                            
    ///   @attention count becomes bytecount, when TO is void                  
    template<class TO, class FROM>
    LANGULUS(ALWAYSINLINE)
-   void CopyMemory(TO* to, const FROM* from, const Count& count = 1) noexcept {
+   void CopyMemory(TO* to, const FROM* from, const Count& count) noexcept {
       static_assert(CT::Void<TO> || CT::Sparse<TO> || CT::POD<TO> || ::std::is_trivial_v<TO>, 
          "TO must be either pointer, reflected as POD, or trivial. "
          "(you can suppress this error by casting pointer to void*)");
@@ -56,11 +82,32 @@ namespace Langulus::Anyness
    ///   @tparam TO - destination memory type (deducible)                     
    ///   @tparam FILLER - value to fill in with                               
    ///   @param to - [out] destination memory                                 
+   template<int FILLER, class TO>
+   LANGULUS(ALWAYSINLINE)
+   void FillMemory(TO* to) noexcept {
+      static_assert(CT::Void<TO> || CT::Sparse<TO> || CT::POD<TO> || ::std::is_trivial_v<TO>,
+         "TO must be either pointer, reflected as POD, or trivial. "
+         "(you can suppress this error by casting to void*)");
+
+      static_assert(FILLER || CT::Nullifiable<TO> || CT::Void<TO> || CT::Sparse<TO> || CT::Fundamental<TO>,
+         "Filling with zeroes requires the type to be reflected as nullifiable, "
+         "or be a pointer/fundamental (you can suppress this error by casting to void*)");
+
+      if constexpr (CT::Void<TO>)
+         LANGULUS_ERROR("Bytecount not specified when filling void pointer");
+      
+      ::std::memset(static_cast<void*>(to), FILLER, sizeof(TO));
+   }
+   
+   /// Wrapper for memset                                                     
+   ///   @tparam TO - destination memory type (deducible)                     
+   ///   @tparam FILLER - value to fill in with                               
+   ///   @param to - [out] destination memory                                 
    ///   @param count - number of elements to fill                            
    ///   @attention count becomes bytecount, when TO is void                  
    template<int FILLER, class TO>
    LANGULUS(ALWAYSINLINE)
-   void FillMemory(TO* to, const Count& count = 1) noexcept {
+   void FillMemory(TO* to, const Count& count) noexcept {
       static_assert(CT::Void<TO> || CT::Sparse<TO> || CT::POD<TO> || ::std::is_trivial_v<TO>,
          "TO must be either pointer, reflected as POD, or trivial. "
          "(you can suppress this error by casting to void*)");
@@ -78,10 +125,20 @@ namespace Langulus::Anyness
    /// Wrapper for memset 0                                                   
    ///   @tparam TO - destination memory type (deducible)                     
    ///   @param to - [out] destination memory                                 
-   ///   @param count - number of elements to zero                            
    template<class TO>
    LANGULUS(ALWAYSINLINE)
-   void ZeroMemory(TO* to, const Count& count = 1) noexcept {
+   void ZeroMemory(TO* to) noexcept {
+      return FillMemory<0>(to);
+   }
+      
+   /// Wrapper for memset 0                                                   
+   ///   @tparam TO - destination memory type (deducible)                     
+   ///   @param to - [out] destination memory                                 
+   ///   @param count - number of elements to fill                            
+   ///   @attention count becomes bytecount, when TO is void                  
+   template<class TO>
+   LANGULUS(ALWAYSINLINE)
+   void ZeroMemory(TO* to, const Count& count) noexcept {
       return FillMemory<0>(to, count);
    }
       
@@ -90,10 +147,41 @@ namespace Langulus::Anyness
    ///   @tparam FROM - source memory type (deducible)                        
    ///   @param to - [out] destination memory                                 
    ///   @param from - source of data to move                                 
-   ///   @param count - number of elements to move                            
    template<class TO, class FROM>
    LANGULUS(ALWAYSINLINE)
-   void MoveMemory(TO* to, const FROM* from, const Count& count = 1) noexcept {
+   void MoveMemory(TO* to, const FROM* from) noexcept {
+      static_assert(CT::Void<TO> || CT::Sparse<TO> || CT::POD<TO> || ::std::is_trivial_v<TO>,
+         "TO must be either pointer, reflected as POD, or trivial. "
+         "(You can suppress this error by casting pointer to void*)");
+
+      static_assert(CT::Void<TO> || (CT::Same<TO, FROM> && CT::Sparse<TO> == CT::Sparse<FROM>),
+         "TO and FROM must be the exact same types"
+         "(you can suppress this error by casting pointer to void*)");
+
+      if constexpr (CT::Void<TO>)
+         LANGULUS_ERROR("Bytecount not specified when filling void pointer");
+
+      ::std::memmove(
+         static_cast<void*>(to),
+         static_cast<const void*>(from),
+         sizeof(TO)
+      );
+
+      #if LANGULUS(PARANOID)
+         TODO() // zero old memory, but beware - `from` and `to` might overlap
+      #endif
+   }
+
+   /// Wrapper for memmove                                                    
+   ///   @tparam TO - destination memory type (deducible)                     
+   ///   @tparam FROM - source memory type (deducible)                        
+   ///   @param to - [out] destination memory                                 
+   ///   @param from - source of data to move                                 
+   ///   @param count - number of elements to move                            
+   ///   @attention count becomes bytecount, when TO is void                  
+   template<class TO, class FROM>
+   LANGULUS(ALWAYSINLINE)
+   void MoveMemory(TO* to, const FROM* from, const Count& count) noexcept {
       static_assert(CT::Void<TO> || CT::Sparse<TO> || CT::POD<TO> || ::std::is_trivial_v<TO>,
          "TO must be either pointer, reflected as POD, or trivial. "
          "(You can suppress this error by casting pointer to void*)");

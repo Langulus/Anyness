@@ -28,27 +28,9 @@ namespace Langulus::Anyness
    ///   @param value - the value to use                                      
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
-   constexpr PAIR()::TPair(K&& key, V&& value) noexcept requires (CT::Decayed<K, V> && CT::MoveMakableNoexcept<K, V>)
-      : mKey {Forward<K>(key)}
-      , mValue {Forward<V>(value)} {}
-
-   /// Initialize manually by a move (noexcept)                               
-   ///   @param key - the key to use                                          
-   ///   @param value - the value to use                                      
-   TEMPLATE()
-   LANGULUS(ALWAYSINLINE)
    constexpr PAIR()::TPair(K&& key, V&& value) requires (CT::Decayed<K, V> && CT::MoveMakable<K, V>)
       : mKey {Forward<K>(key)}
       , mValue {Forward<V>(value)} {}
-
-   /// Initialize manually by a shallow-copy (noexcept)                       
-   ///   @param key - the key to use                                          
-   ///   @param value - the value to use                                      
-   TEMPLATE()
-   LANGULUS(ALWAYSINLINE)
-   constexpr PAIR()::TPair(const K& key, const V& value) noexcept requires (CT::Decayed<K, V> && CT::CopyMakableNoexcept<K, V>)
-      : mKey {key}
-      , mValue {value} {}
 
    /// Initialize manually by a shallow-copy                                  
    ///   @param key - the key to use                                          

@@ -41,10 +41,18 @@ namespace Langulus::Anyness
 
       BlockSet(const BlockSet&);
       BlockSet(BlockSet&&) noexcept;
+      template<CT::Semantic S>
+      constexpr BlockSet(S&&) noexcept;
 
-      constexpr BlockSet(Disowned<BlockSet>&&) noexcept;
-      constexpr BlockSet(Abandoned<BlockSet>&&) noexcept;
+      template<CT::NotSemantic T>
+      BlockSet(::std::initializer_list<T>);
+
       ~BlockSet();
+
+      template<class T, CT::Semantic S>
+      void BlockTransfer(S&&);
+      template<class T>
+      void BlockClone(const BlockSet&);
 
       BlockSet& operator = (const BlockSet&);
       BlockSet& operator = (BlockSet&&) noexcept;
@@ -183,9 +191,16 @@ namespace Langulus::Anyness
       template<bool REVERSE, bool MUTABLE, class F>
       Count ForEachElement(Block&, F&&);
 
+      void AllocateFresh(const Count&);
       template<bool REUSE>
       void Allocate(const Count&);
       void AllocateInner(const Count&);
+
+      void Reference(const Count&) const noexcept;
+      void Keep() const noexcept;
+      template<bool DESTROY>
+      void Dereference(const Count&);
+      void Free();
 
       void Rehash(const Count&, const Count&);
 
@@ -220,12 +235,12 @@ namespace Langulus::Anyness
       NOD() InfoType* GetInfo() noexcept;
       NOD() const InfoType* GetInfoEnd() const noexcept;
 
-      template<CT::Data>
-      NOD() constexpr decltype(auto) GetRaw() const noexcept;
-      template<CT::Data>
-      NOD() constexpr decltype(auto) GetRaw() noexcept;
-      template<CT::Data>
-      NOD() constexpr decltype(auto) GetRawEnd() const noexcept;
+      template<CT::Data T>
+      NOD() constexpr const T& GetRaw(Offset) const noexcept;
+      template<CT::Data T>
+      NOD() constexpr T& GetRaw(Offset) noexcept;
+      template<CT::Data T>
+      NOD() constexpr Handle<T> GetHandle(Offset) const noexcept;
    };
 
 
@@ -266,12 +281,15 @@ namespace Langulus::CT
 {
 
    /// A reflected set type is any type that inherits BlockSet, and is        
-   /// binary compatible to a BlockSet - this is a mandatory requirement for  
-   /// any CT::Set type                                                       
+   /// binary compatible to a BlockSet                                        
    /// Keep in mind, that sparse types are never considered CT::Set!          
    template<class... T>
    concept Set = ((DerivedFrom<T, Anyness::BlockSet>
       && sizeof(T) == sizeof(Anyness::BlockSet)) && ...);
+
+   /// Check if a type is a statically typed set                              
+   template<class... T>
+   concept TypedSet = ((Set<T> && Typed<T>) && ...);
 
 } // namespace Langulus::CT
 

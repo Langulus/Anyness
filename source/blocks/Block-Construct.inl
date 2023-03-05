@@ -279,8 +279,8 @@ namespace Langulus::Anyness
       }
       else {
          // We're cloning, so we guarantee, that data is no longer      
-         // static                                                      
-         mState -= DataState::Static;
+         // static and constant (unless mType is constant)              
+         mState -= DataState::Static | DataState::Constant;
          
          if constexpr (CT::Typed<FROM>) {
             auto asTo = reinterpret_cast<FROM*>(this);

@@ -751,11 +751,11 @@ namespace Langulus::Anyness
    Count TABLE()::Remove(const T& match) {
       // Get the starting index based on the key hash                   
       const auto start = GetBucket(match);
-      auto key = GetRaw() + start;
+      auto key = &GetValue(start);
       auto info = GetInfo() + start;
-      const auto keyEnd = GetRawEnd();
+      const auto infoEnd = GetInfoEnd();
 
-      while (key != keyEnd) {
+      while (info != infoEnd) {
          if (*info && *key == match) {
             // Found it                                                 
             RemoveIndex(info - GetInfo());
@@ -764,7 +764,7 @@ namespace Langulus::Anyness
 
          ++key; ++info;
       }
-      
+
       // No such key was found                                          
       return 0;
    }

@@ -27,9 +27,7 @@ namespace Langulus::Anyness
       TPair(TPair&&) noexcept = default;
 
       constexpr TPair(K, V) noexcept requires (!CT::Decayed<K, V>);
-      constexpr TPair(K&&, V&&) noexcept requires (CT::Decayed<K, V> && CT::MoveMakableNoexcept<K, V>);
       constexpr TPair(K&&, V&&) requires (CT::Decayed<K, V> && CT::MoveMakable<K, V>);
-      constexpr TPair(const K&, const V&) noexcept requires (CT::Decayed<K, V> && CT::CopyMakableNoexcept<K, V>);
       constexpr TPair(const K&, const V&) requires (CT::Decayed<K, V> && CT::CopyMakable<K, V>);
 
       constexpr void Swap(TPair&) noexcept requires CT::SwappableNoexcept<K, V>;

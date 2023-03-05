@@ -1524,7 +1524,8 @@ namespace Langulus::Anyness
    void TAny<T>::TakeAuthority() {
       TAny<T> clone {Clone(*this)};
       Free();
-      CopyMemory<void, void>(this, &clone);
+      CopyMemory<void, void>(this, &clone, sizeof(TAny<T>));
+      clone.mEntry = nullptr;
    }
 
    /// Get a constant part of this container                                  
@@ -1535,7 +1536,8 @@ namespace Langulus::Anyness
    template<CT::Block WRAPPER>
    LANGULUS(ALWAYSINLINE)
    WRAPPER TAny<T>::Crop(const Offset& start, const Count& count) const {
-      auto result = const_cast<TAny*>(this)->Crop<WRAPPER>(start, count);
+      auto result = const_cast<TAny*>(this)->template 
+         Crop<WRAPPER>(start, count);
       result.MakeConst();
       return Abandon(result);
    }
