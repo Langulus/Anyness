@@ -56,13 +56,13 @@ namespace Langulus::Anyness
          constexpr Handle(T&, Inner::Allocation*) SAFETY_NOEXCEPT() requires (EMBED && CT::Dense<T>);
          constexpr Handle(T&&, Inner::Allocation* = nullptr) SAFETY_NOEXCEPT() requires (!EMBED);
       #else
-         constexpr Handle(T&) noexcept requires EMBED;
+         constexpr Handle(T&) noexcept requires (EMBED);
       #endif
 
       constexpr Handle& operator = (const Handle&) noexcept = default;
       constexpr Handle& operator = (Handle&&) noexcept = default;
 
-      constexpr bool operator == (const T*) const noexcept requires EMBED;
+      constexpr bool operator == (const T*) const noexcept requires (EMBED);
 
       NOD() T& Get() const noexcept;
 
@@ -86,16 +86,16 @@ namespace Langulus::Anyness
       NOD() bool Compare(const T&) const;
 
       // Prefix operators                                               
-      Handle& operator ++ () noexcept requires EMBED;
-      Handle& operator -- () noexcept requires EMBED;
+      Handle& operator ++ () noexcept requires (EMBED);
+      Handle& operator -- () noexcept requires (EMBED);
 
       // Suffix operators                                               
-      NOD() Handle operator ++ (int) noexcept requires EMBED;
-      NOD() Handle operator -- (int) noexcept requires EMBED;
-      NOD() Handle operator + (Offset) noexcept requires EMBED;
-      NOD() Handle operator - (Offset) noexcept requires EMBED;
-      Handle& operator += (Offset) noexcept requires EMBED;
-      Handle& operator -= (Offset) noexcept requires EMBED;
+      NOD() Handle operator ++ (int) noexcept requires (EMBED);
+      NOD() Handle operator -- (int) noexcept requires (EMBED);
+      NOD() Handle operator + (Offset) noexcept requires (EMBED);
+      NOD() Handle operator - (Offset) noexcept requires (EMBED);
+      Handle& operator += (Offset) noexcept requires (EMBED);
+      Handle& operator -= (Offset) noexcept requires (EMBED);
 
       template<bool RESET = false>
       void Destroy() const;

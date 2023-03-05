@@ -108,13 +108,13 @@ namespace Langulus::Anyness
    ///   @param other - the value to use for construction                     
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
-   constexpr HAND()::Handle(T& other) noexcept requires EMBED
+   constexpr HAND()::Handle(T& other) noexcept requires (EMBED)
       : mValue {&other} {}
 #endif
 
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
-   constexpr bool HAND()::operator == (const T* rhs) const noexcept requires EMBED {
+   constexpr bool HAND()::operator == (const T* rhs) const noexcept requires (EMBED) {
       return mValue == rhs;
    }
       
@@ -122,7 +122,7 @@ namespace Langulus::Anyness
    ///   @return the next handle                                              
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
-   HAND()& HAND()::operator ++ () noexcept requires EMBED {
+   HAND()& HAND()::operator ++ () noexcept requires (EMBED) {
       ++mValue;
       IF_LANGULUS_MANAGED_MEMORY(if constexpr (CT::Sparse<T>) ++mEntry);
       return *this;
@@ -132,7 +132,7 @@ namespace Langulus::Anyness
    ///   @return the next handle                                              
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
-   HAND()& HAND()::operator -- () noexcept requires EMBED {
+   HAND()& HAND()::operator -- () noexcept requires (EMBED) {
       --mValue;
       IF_LANGULUS_MANAGED_MEMORY(if constexpr (CT::Sparse<T>) --mEntry);
       return *this;
@@ -142,7 +142,7 @@ namespace Langulus::Anyness
    ///   @return the next handle                                              
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
-   HAND()& HAND()::operator += (Offset offset) noexcept requires EMBED {
+   HAND()& HAND()::operator += (Offset offset) noexcept requires (EMBED) {
       mValue += offset;
       IF_LANGULUS_MANAGED_MEMORY(if constexpr (CT::Sparse<T>) mEntry += offset);
       return *this;
@@ -152,7 +152,7 @@ namespace Langulus::Anyness
    ///   @return the next handle                                              
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
-   HAND()& HAND()::operator -= (Offset offset) noexcept requires EMBED {
+   HAND()& HAND()::operator -= (Offset offset) noexcept requires (EMBED) {
       mValue -= offset;
       IF_LANGULUS_MANAGED_MEMORY(if constexpr (CT::Sparse<T>) mEntry -= offset);
       return *this;
@@ -162,7 +162,7 @@ namespace Langulus::Anyness
    ///   @return the previous value of the handle                             
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
-   HAND() HAND()::operator ++ (int) noexcept requires EMBED {
+   HAND() HAND()::operator ++ (int) noexcept requires (EMBED) {
       const auto backup = *this;
       operator ++ ();
       return backup;
@@ -172,7 +172,7 @@ namespace Langulus::Anyness
    ///   @return the previous value of the handle                             
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
-   HAND() HAND()::operator -- (int) noexcept requires EMBED {
+   HAND() HAND()::operator -- (int) noexcept requires (EMBED) {
       const auto backup = *this;
       operator -- ();
       return backup;
@@ -183,7 +183,7 @@ namespace Langulus::Anyness
    ///   @return the offsetted handle                                         
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
-   HAND() HAND()::operator + (Offset offset) noexcept requires EMBED {
+   HAND() HAND()::operator + (Offset offset) noexcept requires (EMBED) {
       auto backup = *this;
       return backup += offset;
    }
@@ -193,7 +193,7 @@ namespace Langulus::Anyness
    ///   @return the offsetted handle                                         
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
-   HAND() HAND()::operator - (Offset offset) noexcept requires EMBED {
+   HAND() HAND()::operator - (Offset offset) noexcept requires (EMBED) {
       auto backup = *this;
       return backup -= offset;
    }
