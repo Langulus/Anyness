@@ -50,13 +50,11 @@ namespace Langulus::Anyness
 
       TUnorderedSet& operator = (const TUnorderedSet&);
       TUnorderedSet& operator = (TUnorderedSet&&) noexcept;
-      template<CT::Semantic S>
-      TUnorderedSet& operator = (S&&) noexcept requires (CT::Exact<TypeOf<S>, Self>);
 
-      TUnorderedSet& operator = (const T&);
-      TUnorderedSet& operator = (T&&) noexcept;
+      TUnorderedSet& operator = (const CT::NotSemantic auto&);
+      TUnorderedSet& operator = (CT::NotSemantic auto&&) noexcept;
       template<CT::Semantic S>
-      TUnorderedSet& operator = (S&&) noexcept requires (CT::Exact<TypeOf<S>, T>);
+      TUnorderedSet& operator = (S&&) noexcept;
 
    public:
       NOD() DMeta GetType() const;

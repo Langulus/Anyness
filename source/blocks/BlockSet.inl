@@ -137,8 +137,8 @@ namespace Langulus::Anyness
 
             auto info = asTo->GetInfo();
             const auto infoEnd = asTo->GetInfoEnd();
-            auto dstKey = asTo->GetKey(0);
-            auto srcKey = other.mValue.GetKey(0);
+            auto dstKey = asTo->GetValue(0);
+            auto srcKey = other.mValue.GetValue(0);
             while (info != infoEnd) {
                if (*info) {
                   dstKey.CallUnknownSemanticConstructors(

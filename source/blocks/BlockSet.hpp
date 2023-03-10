@@ -15,10 +15,9 @@ namespace Langulus::Anyness
    ///   Type-erased set block, base for all set types                        
    ///                                                                        
    class BlockSet {
+   protected:
       using Allocator = Inner::Allocator;
       static constexpr Count MinimalAllocation = 8;
-
-   protected:
       using InfoType = ::std::uint8_t;
 
       // A precomputed pointer for the info bytes                       

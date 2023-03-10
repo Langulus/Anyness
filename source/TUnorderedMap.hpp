@@ -55,13 +55,11 @@ namespace Langulus::Anyness
 
       TUnorderedMap& operator = (const TUnorderedMap&);
       TUnorderedMap& operator = (TUnorderedMap&&) noexcept;
-      template<CT::Semantic S>
-      TUnorderedMap& operator = (S&&) noexcept requires (CT::Exact<TypeOf<S>, Self>);
 
-      TUnorderedMap& operator = (const Pair&);
-      TUnorderedMap& operator = (Pair&&) noexcept;
+      TUnorderedMap& operator = (const CT::NotSemantic auto&);
+      TUnorderedMap& operator = (CT::NotSemantic auto&&) noexcept;
       template<CT::Semantic S>
-      TUnorderedMap& operator = (S&&) noexcept requires (CT::Pair<TypeOf<S>>);
+      TUnorderedMap& operator = (S&&) noexcept;
 
    public:
       NOD() DMeta GetKeyType() const;

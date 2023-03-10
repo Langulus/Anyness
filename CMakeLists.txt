@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Check if this project is built as standalone, or a part of something else
-if(PROJECT_IS_TOP_LEVEL)
+if (PROJECT_IS_TOP_LEVEL)
     if(LANGULUS_BUILD_SHARED_LIBRARIES)
         add_compile_definitions(LANGULUS_EXPORT_ALL)
         set(LANGULUS_LIBRARY_TYPE SHARED)

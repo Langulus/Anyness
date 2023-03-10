@@ -18,8 +18,37 @@ namespace Langulus::Anyness
    public:
       static constexpr bool Ordered = false;
 
-      using BlockSet::BlockSet;
-      using BlockSet::operator =;
+      constexpr UnorderedSet();
+      UnorderedSet(const UnorderedSet&);
+      UnorderedSet(UnorderedSet&&) noexcept;
+
+      template<CT::NotSemantic T>
+      UnorderedSet(::std::initializer_list<T>);
+
+      template<CT::Semantic S>
+      UnorderedSet(S&&) noexcept;
+
+      UnorderedSet& operator = (const UnorderedSet&);
+      UnorderedSet& operator = (UnorderedSet&&) noexcept;
+
+      template<CT::Semantic S>
+      UnorderedSet& operator = (S&&) noexcept;
+
+      ///                                                                     
+      ///   Insertion                                                         
+      ///                                                                     
+      Count Insert(const CT::NotSemantic auto&);
+      Count Insert(CT::NotSemantic auto&&);
+      template<CT::Semantic S>
+      Count Insert(S&&);
+
+      UnorderedSet& operator << (CT::NotSemantic auto&&);
+      UnorderedSet& operator << (const CT::NotSemantic auto&);
+      UnorderedSet& operator << (CT::Semantic auto&&);
+
+   protected:
+      template<CT::Semantic S>
+      Count InsertUnknown(S&&);
    };
 
 } // namespace Langulus::Anyness

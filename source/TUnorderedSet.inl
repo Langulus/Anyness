@@ -10,12 +10,14 @@
 
 #define TABLE_TEMPLATE() template<CT::Data T>
 #define TABLE() TUnorderedSet<T>
+#define ITERATOR() TABLE()::template TIterator<MUTABLE>
 
 namespace Langulus::Anyness
 {
 
    /// Default construction                                                   
    TABLE_TEMPLATE()
+   LANGULUS(ALWAYSINLINE)
    constexpr TABLE()::TUnorderedSet()
       : UnorderedSet {} {
       mKeys.mState = DataState::Typed;
@@ -23,36 +25,97 @@ namespace Langulus::Anyness
          mKeys.MakeConst();
    }
 
-   /// Manual construction via an initializer list                            
-   ///   @param initlist - the initializer list to forward                    
+   /// Create from a list of elements                                         
+   ///   @param list - list of elements                                       
    TABLE_TEMPLATE()
+   LANGULUS(ALWAYSINLINE)
    TABLE()::TUnorderedSet(::std::initializer_list<T> initlist)
       : TUnorderedSet {} {
-      Allocate(initlist.size());
+      mKeys.mType = MetaData::Of<T>();
+
+      AllocateFresh(
+         Roof2(
+            initlist.size() < MinimalAllocation
+               ? MinimalAllocation
+               : initlist.size()
+         )
+      );
+
+      ZeroMemory(mInfo, GetReserved());
+      mInfo[GetReserved()] = 1;
+
       for (auto& it : initlist)
-         Insert(*it);
+         InsertUnknown(Copy(it));
    }
 
    /// Shallow-copy construction                                              
    ///   @param other - the table to copy                                     
    TABLE_TEMPLATE()
+   LANGULUS(ALWAYSINLINE)
    TABLE()::TUnorderedSet(const TUnorderedSet& other)
-      : UnorderedSet {other} {}
+      : TUnorderedSet {Langulus::Copy(other)} {}
 
    /// Move construction                                                      
    ///   @param other - the table to move                                     
    TABLE_TEMPLATE()
+   LANGULUS(ALWAYSINLINE)
    TABLE()::TUnorderedSet(TUnorderedSet&& other) noexcept
-      : UnorderedSet {Forward<UnorderedSet>(other)} {}
+      : TUnorderedSet {Langulus::Move(other)} {}
 
-   /// Destroys the map and all it's contents                                 
+   /// Semantic constructor from any set/element                              
+   ///   @tparam S - semantic and type (deducible)                            
+   ///   @param other - the semantic type                                     
+   TABLE_TEMPLATE()
+   template<CT::Semantic S>
+   LANGULUS(ALWAYSINLINE)
+   TABLE()::TUnorderedSet(S&& other) noexcept
+      : TUnorderedSet {} {
+      using ST = TypeOf<S>;
+
+      if constexpr (CT::Set<ST>) {
+         // Construct from any kind of set                              
+         if constexpr (ST::Ordered) {
+            // We have to reinsert everything, because source is        
+            // ordered and uses a different bucketing approach          
+            mKeys.mType = MetaData::Of<T>();
+
+            AllocateFresh(other.mValue.GetReserved());
+
+            ZeroMemory(mInfo, GetReserved());
+            mInfo[GetReserved()] = 1;
+
+            other.mValue.ForEach([this](const Block& element) {
+               InsertUnknown(S::Nest(element));
+               });
+         }
+         else {
+            // We can directly interface set, because it is unordered   
+            // and uses the same bucketing approach                     
+            BlockTransfer<TUnorderedSet>(other.Forward());
+         }
+      }
+      else if constexpr (CT::Exact<T, ST>) {
+         // Construct from any kind of element                          
+         mKeys.mType = MetaData::Of<T>();
+
+         AllocateFresh(MinimalAllocation);
+
+         ZeroMemory(mInfo, GetReserved());
+         mInfo[GetReserved()] = 1;
+
+         TODO();
+      }
+      else LANGULUS_ERROR("Unsupported semantic constructor");
+   }
+
+   /// Destroys the set and all it's contents                                 
    TABLE_TEMPLATE()
    TABLE()::~TUnorderedSet() {
       if (!mKeys.mEntry)
          return;
 
       if (mKeys.mEntry->GetUses() == 1) {
-         // Remove all used keys and values, they're used only here     
+         // Remove all used keys, they're used only here                
          // This is a statically-optimized equivalent                   
          ClearInner();
 
@@ -60,7 +123,7 @@ namespace Langulus::Anyness
          Allocator::Deallocate(mKeys.mEntry);
       }
       else {
-         // Data is used from multiple locations, just deref values     
+         // Data is used from multiple locations, just deref            
          mKeys.mEntry->Free();
       }
 
@@ -83,9 +146,8 @@ namespace Langulus::Anyness
          if (!*(info++))
             continue;
 
-         const auto& key = Get(lhs);
-         const auto rhs = other.FindIndex(key);
-         if (rhs == other.GetReserved() || key != other.Get(rhs))
+         const auto rhs = other.FindIndex(GetRaw(lhs));
+         if (rhs == other.GetReserved())
             return false;
       }
 
@@ -97,12 +159,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this table                                    
    TABLE_TEMPLATE()
    TABLE()& TABLE()::operator = (TUnorderedSet&& rhs) noexcept {
-      if (&rhs == this)
-         return *this;
-
-      Reset();
-      new (this) Self {Forward<TUnorderedSet>(rhs)};
-      return *this;
+      return operator = (Move(rhs));
    }
 
    /// Creates a shallow copy of the given table                              
@@ -110,80 +167,56 @@ namespace Langulus::Anyness
    ///   @return a reference to this table                                    
    TABLE_TEMPLATE()
    TABLE()& TABLE()::operator = (const TUnorderedSet& rhs) {
-      if (&rhs == this)
-         return *this;
-
-      Reset();
-      new (this) Self {rhs};
-      return *this;
+      return operator = (Copy(rhs));
    }
-
-   /// Insert a single pair into a cleared map                                
-   ///   @param pair - the pair to copy                                       
-   ///   @return a reference to this table                                    
-   TABLE_TEMPLATE()
-      TABLE()& TABLE()::operator = (const T& element) {
-      Clear();
-      Insert(element);
-      return *this;
-   }
-
-   /// Emplace a single pair into a cleared map                               
-   ///   @param pair - the pair to emplace                                    
-   ///   @return a reference to this table                                    
-   TABLE_TEMPLATE()
-   TABLE()& TABLE()::operator = (T&& element) noexcept {
-      Clear();
-      Insert(Forward<T>(element));
-      return *this;
-   }
-
-   /// Clone all elements in a range                                          
-   ///   @param from - source container                                       
-   ///   @param to - destination container                                    
-   TABLE_TEMPLATE()
-   template<class ALT_T>
-   void TABLE()::CloneInner(const ALT_T& from, ALT_T& to) const {
-      for (Offset i = 0; i < GetReserved(); ++i) {
-         if (!mInfo[i])
-            continue;
-
-         auto destination = to.CropInner(i, 1);
-         from.CropInner(i, 1).Clone(destination);
-      }
-   }
-
-   /// Clone the table                                                        
-   ///   @return the new table                                                
-   /*TABLE_TEMPLATE()
-   TABLE() TABLE()::Clone() const {
-      if (IsEmpty())
-         return {};
-
-      TUnorderedSet result {Disown(*this)};
-
-      // Allocate keys and info                                         
-      result.mKeys.mEntry = Allocator::Allocate(mKeys.mEntry->GetAllocatedSize());
-      LANGULUS_ASSERT(mKeys.mEntry, Allocate, "Out of memory");
-
-      // Clone the info bytes                                           
-      result.mKeys.mRaw = result.mKeys.mEntry->GetBlockStart();
-      result.mInfo = reinterpret_cast<InfoType*>(result.mKeys.mRaw)
-          + (mInfo - reinterpret_cast<const InfoType*>(mKeys.mRaw));
-      CopyMemory(result.mInfo, mInfo, GetReserved() + 1);
-
-      // Clone the keys & values                                        
-      CloneInner(GetValues(), result.GetValues());
-      return Abandon(result);
-   }*/
    
+   /// Insert a single element into a cleared set                             
+   ///   @param rhs - the element to copy                                     
+   ///   @return a reference to this table                                    
+   TABLE_TEMPLATE()
+   TABLE()& TABLE()::operator = (const CT::NotSemantic auto& rhs) {
+      return operator = (Copy(rhs));
+   }
+
+   /// Emplace a single element into a cleared set                            
+   ///   @param rhs - the element to emplace                                  
+   ///   @return a reference to this table                                    
+   TABLE_TEMPLATE()
+   TABLE()& TABLE()::operator = (CT::NotSemantic auto&& rhs) noexcept {
+      return operator = (Move(rhs));
+   }
+   
+   /// Semantic assignment for any set/element                                
+   ///   @tparam S - the semantic (deducible)                                 
+   ///   @param rhs - the set/element to use for construction                 
+   TABLE_TEMPLATE()
+   template<CT::Semantic S>
+   TABLE()& TABLE()::operator = (S&& rhs) noexcept {
+      using ST = TypeOf<S>;
+
+      if constexpr (CT::Set<ST>) {
+         if (&static_cast<const BlockSet&>(rhs.mValue) == this)
+            return *this;
+
+         Reset();
+         new (this) Self {rhs.Forward()};
+      }
+      else if constexpr (CT::Exact<T, ST>) {
+         Clear();
+         Insert(S::Nest(rhs.mValue));
+      }
+      else LANGULUS_ERROR("Unsupported semantic assignment");
+
+      return *this;
+   }
+
    /// Templated tables are always typed                                      
    ///   @return false                                                        
    TABLE_TEMPLATE()
    constexpr bool TABLE()::IsUntyped() const noexcept {
       return false;
    }
-
+   
    /// Templated tables are always type-constrained                           
    ///   @return true                                                         
    TABLE_TEMPLATE()
@@ -228,7 +261,7 @@ namespace Langulus::Anyness
       return sizeof(T); 
    }
 
-   /// Get a raw element (const)                                              
+   /// Get a raw key entry (const)                                            
    ///   @param index - the key index                                         
    ///   @return a constant reference to the element                          
    TABLE_TEMPLATE()
@@ -236,7 +269,7 @@ namespace Langulus::Anyness
       return GetValues().GetRaw()[index];
    }
 
-   /// Get a raw element                                                      
+   /// Get a raw key entry                                                    
    ///   @param index - the key index                                         
    ///   @return a mutable reference to the element                           
    TABLE_TEMPLATE()
@@ -244,8 +277,8 @@ namespace Langulus::Anyness
       return GetValues().GetRaw()[index];
    }
 
-   /// Get a handle to an element                                             
-   ///   @param index - the value index                                       
+   /// Get a handle to a key                                                  
+   ///   @param index - the key index                                         
    ///   @return the handle                                                   
    TABLE_TEMPLATE()
    constexpr Handle<T> TABLE()::GetHandle(Offset index) noexcept {
@@ -256,7 +289,7 @@ namespace Langulus::Anyness
    ///   @return the total amount of initialized bytes                        
    TABLE_TEMPLATE()
    constexpr Size TABLE()::GetByteSize() const noexcept {
-      return sizeof(T) * GetCount();
+      return sizeof(Pair) * GetCount(); 
    }
 
    /// Get the key meta data                                                  
@@ -277,20 +310,28 @@ namespace Langulus::Anyness
    }
 
    /// Copy-insert a pair inside the map                                      
-   ///   @param item - the pair to insert                                     
+   ///   @param rhs - the pair to insert                                      
    ///   @return a reference to this table for chaining                       
    TABLE_TEMPLATE()
-   TABLE()& TABLE()::operator << (const T& item) {
-      Insert(item);
-      return *this;
+   TABLE()& TABLE()::operator << (const T& rhs) {
+      return operator << (Copy(rhs));
    }
 
    /// Move-insert a pair inside the map                                      
-   ///   @param item - the pair to insert                                     
+   ///   @param rhs - the pair to insert                                      
    ///   @return a reference to this table for chaining                       
    TABLE_TEMPLATE()
-   TABLE()& TABLE()::operator << (T&& item) {
-      Insert(Forward<T>(item));
+   TABLE()& TABLE()::operator << (T&& rhs) {
+      return operator << (Move(rhs));
+   }
+   
+   /// Move-insert a pair inside the map                                      
+   ///   @param rhs - the pair to insert                                      
+   ///   @return a reference to this table for chaining                       
+   TABLE_TEMPLATE()
+   template<CT::Semantic S>
+   TABLE()& TABLE()::operator << (S&& rhs) requires (CT::Exact<TypeOf<S>, T>) {
+      Insert(S::Nest(rhs.mValue));
       return *this;
    }
 
@@ -303,10 +344,15 @@ namespace Langulus::Anyness
    ///   @param infoStart - [out] the offset at which info bytes start        
    ///   @return the requested byte size                                      
    TABLE_TEMPLATE()
-   Size TABLE()::RequestKeyAndInfoSize(const Count request, Offset& infoStart) noexcept {
-      const Size keymemory = request * sizeof(T);
+   LANGULUS(ALWAYSINLINE)
+   Size TABLE()::RequestKeyAndInfoSize(const Count count, Offset& infoStart) noexcept {
+      Size keymemory = count * sizeof(T);
+      IF_LANGULUS_MANAGED_MEMORY(
+         if constexpr (CT::Sparse<T>)
+            keymemory *= 2;
+      );
       infoStart = keymemory + Alignment - (keymemory % Alignment);
-      return infoStart + request + 1;
+      return infoStart + count + 1;
    }
 
    /// Reserves space for the specified number of pairs                       
@@ -315,6 +361,28 @@ namespace Langulus::Anyness
    TABLE_TEMPLATE()
    void TABLE()::Allocate(const Count& count) {
       AllocateInner(Roof2(count < MinimalAllocation ? MinimalAllocation : count));
+   }
+
+   /// Allocate a fresh set keys and values (for internal use only)           
+   ///   @attention doesn't initialize anything, but the memory state         
+   ///   @attention doesn't modify count, doesn't set info sentinel           
+   ///   @attention assumes count is a power-of-two                           
+   ///   @param count - the new number of pairs                               
+   TABLE_TEMPLATE()
+   void TABLE()::AllocateFresh(const Count& count) {
+      LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(count),
+         "Table reallocation count is not a power-of-two");
+
+      Offset infoOffset;
+      const auto keyAndInfoSize = RequestKeyAndInfoSize(count, infoOffset);
+      mKeys.mEntry = Allocator::Allocate(keyAndInfoSize);
+      LANGULUS_ASSERT(mKeys.mEntry, Allocate, "Out of memory");
+
+      mKeys.mReserved = count;
+
+      // Precalculate the info pointer, it's costly                     
+      mKeys.mRaw = mKeys.mEntry->GetBlockStart();
+      mInfo = reinterpret_cast<InfoType*>(mKeys.mRaw + infoOffset);
    }
 
    /// Allocate or reallocate key and info array                              
@@ -341,6 +409,7 @@ namespace Langulus::Anyness
          mKeys.mType = MetaData::Of<T>();
          mKeys.mEntry = Allocator::Allocate(keyAndInfoSize);
       }
+
       LANGULUS_ASSERT(mKeys.mEntry, Allocate, "Out of memory");
 
       mKeys.mReserved = count;
@@ -368,9 +437,7 @@ namespace Langulus::Anyness
                );
             });
 
-            // Both keys and values remain in the same place            
             Rehash(count, oldCount);
-            return;
          }
          else ZeroMemory(mInfo, count);
       }
@@ -384,18 +451,17 @@ namespace Langulus::Anyness
 
       // If reached, then keys or values (or both) moved                
       // Reinsert all pairs to rehash                                   
-      mKeys.mCount = 0;
-      auto key = oldKeys.mEntry->As<T>();
+      auto key = oldKeys.GetHandle<T>(0);
       const auto hashmask = GetReserved() - 1;
       while (oldInfo != oldInfoEnd) {
-         if (!*(oldInfo++)) {
-            ++key;
-            continue;
+         if (*oldInfo) {
+            const auto index = HashData(key.Get()).mHash & hashmask;
+            InsertInner<false>(index, Abandon(key));
+            key.Destroy();
          }
          
-         const auto index = HashData(*key).mHash & hashmask;
-         InsertInner<false>(index, Abandon(*key));
-         RemoveInner(key++);
+         ++oldInfo;
+         ++key;
       }
 
       // Free the old allocations                                       
@@ -407,6 +473,7 @@ namespace Langulus::Anyness
       }
       else if (oldKeys.mEntry) {
          // Not reusing, so either deallocate, or dereference           
+         // (keys are always present, if values are present)            
          if (oldKeys.mEntry->GetUses() > 1)
             oldKeys.mEntry->Free();
          else
@@ -414,13 +481,13 @@ namespace Langulus::Anyness
       }
    }
 
-   /// Similar to insertion, but rehashes each key                            
-   ///   @attention does nothing if reserving less than current reserve       
-   ///   @attention assumes count is a power-of-two number                    
+   /// Rehashes each key and reinserts pair                                   
+   ///   @attention assumes counts are a power-of-two number                  
    ///   @param count - the new number of pairs                               
+   ///   @param oldCount - the old number of pairs                            
    TABLE_TEMPLATE()
    void TABLE()::Rehash(const Count& count, const Count& oldCount) {
-      LANGULUS_ASSUME(DevAssumes,
+      LANGULUS_ASSUME(DevAssumes, 
          IsPowerOfTwo(count) && IsPowerOfTwo(oldCount),
          "A count is not a power-of-two"
       );
@@ -437,13 +504,13 @@ namespace Langulus::Anyness
             const Offset oldIndex = oldInfo - GetInfo();
             const Offset newIndex = HashData(oldKey.Get()).mHash & hashmask;
             if (oldIndex != newIndex) {
-               // Immediately move the old key to the swapper           
-               HandleLocal<T> swapper {Abandon(oldKey)};
+               // Immediately move the old pair to the swapper          
+               HandleLocal<T> keyswap {Abandon(oldKey)};
                RemoveIndex(oldIndex);
 
-               if (oldIndex == InsertInner<false>(newIndex, Abandon(swapper))) {
-                  // Index might still end up at its old index, make    
-                  // sure we don't loop forever in that case            
+               if (oldIndex == InsertInner<false>(newIndex, Abandon(keyswap))) {
+                  // Sometimes insertion can be reinserted at same spot,
+                  // make sure we account for that corner case          
                   ++oldKey;
                   ++oldInfo;
                }
@@ -479,22 +546,22 @@ namespace Langulus::Anyness
    ///   @tparam CHECK_FOR_MATCH - false if you guarantee key doesn't exist   
    ///   @param start - the starting index                                    
    ///   @param key - key to move in                                          
-   ///   @param value - value to move in                                      
+   ///   @param val - value to move in                                        
    ///   @return the index at which item was inserted                         
    TABLE_TEMPLATE()
    template<bool CHECK_FOR_MATCH, CT::Semantic S>
-   Offset TABLE()::InsertInner(const Offset& start, S&& value) {
+   Offset TABLE()::InsertInner(const Offset& start, S&& key) {
+      HandleLocal<T> keyswap {key.Forward()};
+
       // Get the starting index based on the key hash                   
       auto psl = GetInfo() + start;
       const auto pslEnd = GetInfoEnd();
-      HandleLocal<T> swapper {value.Forward()};
-
       InfoType attempts {1};
       while (*psl) {
          const auto index = psl - GetInfo();
-         auto candidate = GetHandle(index);
          if constexpr (CHECK_FOR_MATCH) {
-            if (candidate.Compare(swapper)) {
+            const auto& candidate = GetRaw(index);
+            if (keyswap.Compare(candidate)) {
                // Neat, the key already exists - just return            
                return index;
             }
@@ -502,24 +569,23 @@ namespace Langulus::Anyness
 
          if (attempts > *psl) {
             // The pair we're inserting is closer to bucket, so swap    
-            candidate.Swap(swapper);
+            GetHandle(index).Swap(keyswap);
             ::std::swap(attempts, *psl);
          }
 
          ++attempts;
 
-         // Wrap around and start from the beginning if we have to      
          if (psl < pslEnd - 1)
             ++psl;
-         else 
+         else
             psl = GetInfo();
-      }
+      } 
 
       // If reached, empty slot reached, so put the pair there          
       // Might not seem like it, but we gave a guarantee, that this is  
       // eventually reached, unless key exists and returns early        
       const auto index = psl - GetInfo();
-      GetHandle(index).New(Abandon(swapper));
+      GetHandle(index).New(Abandon(keyswap));
       *psl = attempts;
       ++mKeys.mCount;
       return index;
@@ -529,34 +595,41 @@ namespace Langulus::Anyness
    ///   @param key - the key to hash                                         
    ///   @return the bucket offset                                            
    TABLE_TEMPLATE()
-   LANGULUS(ALWAYSINLINE) Offset TABLE()::GetBucket(const T& key) const noexcept {
+   LANGULUS(ALWAYSINLINE)
+   Offset TABLE()::GetBucket(const T& key) const noexcept {
       return HashData(key).mHash & (GetReserved() - 1);
    }
 
    /// Insert a single pair inside table via copy                             
+   ///   @param key - the key to add                                          
    ///   @param value - the value to add                                      
    ///   @return 1 if pair was inserted, zero otherwise                       
    TABLE_TEMPLATE()
-   Count TABLE()::Insert(const T& value) {
-      return Insert(Langulus::Copy(value));
+   LANGULUS(ALWAYSINLINE)
+   Count TABLE()::Insert(const T& key) {
+      return Insert(Copy(key));
    }
 
-   /// Insert a single pair inside table via key copy and value move          
+   /// Insert a single pair inside table via key move and value copy          
+   ///   @param key - the key to add                                          
    ///   @param value - the value to add                                      
    ///   @return 1 if pair was inserted, zero otherwise                       
    TABLE_TEMPLATE()
-   Count TABLE()::Insert(T&& value) {
-      return Insert(Langulus::Move(value));
+   LANGULUS(ALWAYSINLINE)
+   Count TABLE()::Insert(T&& key) {
+      return Insert(Move(key));
    }
-   
-   /// Insert a single pair inside table via key copy and value move          
+
+   /// Insert a single pair inside table via move                             
+   ///   @param key - the key to add                                          
    ///   @param value - the value to add                                      
    ///   @return 1 if pair was inserted, zero otherwise                       
    TABLE_TEMPLATE()
    template<CT::Semantic S>
-   Count TABLE()::Insert(S&& value) requires (CT::Exact<TypeOf<S>, T>) {
+   LANGULUS(ALWAYSINLINE)
+   Count TABLE()::Insert(S&& key) requires (CT::Exact<TypeOf<S>, T>) {
       Allocate(GetCount() + 1);
-      InsertInner<true>(GetBucket(value.mValue), value.Forward());
+      InsertInner<true>(GetBucket(key.mValue), key.Forward());
       return 1;
    }
 
@@ -568,7 +641,7 @@ namespace Langulus::Anyness
       while (inf != infEnd) {
          if (*inf) {
             const auto offset = inf - GetInfo();
-            RemoveInner(GetRaw(offset));
+            GetHandle(offset).Destroy();
          }
 
          ++inf;
@@ -658,11 +731,7 @@ namespace Langulus::Anyness
       if (offset >= sentinel)
          offset = 0;
 
-      return {
-         mInfo + offset, 
-         index.mSentinel,
-         GetRaw() + offset,
-      };
+      return {mInfo + offset, index.mSentinel, &GetRaw(offset)};
    }
    
    /// Erases element at a specific index                                     
@@ -708,6 +777,7 @@ namespace Langulus::Anyness
          // Shift first entry to the back                               
          const auto last = mKeys.mReserved - 1;
          GetInfo()[last] = (*psl) - 1;
+
          GetHandle(last).New(Abandon(key));
 
          (key++).Destroy();
@@ -721,16 +791,6 @@ namespace Langulus::Anyness
       --mKeys.mCount;
    }
 
-   /// Destroy a single value or key, either sparse or dense                  
-   ///   @tparam T - the type to remove, either key or value (deducible)      
-   ///   @param element - the address of the element to remove                
-   TABLE_TEMPLATE()
-   template<class ALT_T>
-   void TABLE()::RemoveInner(ALT_T* element) noexcept {
-      if constexpr (CT::Destroyable<ALT_T>)
-         element->~ALT_T();
-   }
-
    /// Insert a single value or key, either sparse or dense                   
    ///   @tparam T - the type to add, either key or value (deducible)         
    ///   @param element - the address of the element to remove                
@@ -741,7 +801,7 @@ namespace Langulus::Anyness
       RemoveInner(&to);
 
       // Reconstruct the new one in place                               
-      new (&to) ALT_T {Forward<ALT_T>(from)};
+      new (&to) T {Forward<T>(from)};
    }
 
    /// Erase a pair via key                                                   
@@ -751,7 +811,7 @@ namespace Langulus::Anyness
    Count TABLE()::Remove(const T& match) {
       // Get the starting index based on the key hash                   
       const auto start = GetBucket(match);
-      auto key = &GetValue(start);
+      auto key = &GetRaw(start);
       auto info = GetInfo() + start;
       const auto infoEnd = GetInfoEnd();
 
@@ -764,7 +824,7 @@ namespace Langulus::Anyness
 
          ++key; ++info;
       }
-
+      
       // No such key was found                                          
       return 0;
    }
@@ -799,41 +859,41 @@ namespace Langulus::Anyness
       return offset != GetReserved() ? Index {offset} : IndexNone;
    }
 
-   /// Get the templated key container                                        
+   /// Get the templated values container                                     
    ///   @attention for internal use only, elements might not be initialized  
    TABLE_TEMPLATE()
    const TAny<T>& TABLE()::GetValues() const noexcept {
       return BlockSet::GetValues<T>();
    }
 
-   /// Get the templated key container                                        
+   /// Get the templated values container                                     
    ///   @attention for internal use only, elements might not be initialized  
    TABLE_TEMPLATE()
    TAny<T>& TABLE()::GetValues() noexcept {
       return BlockSet::GetValues<T>();
    }
 
-   /// Get element at an index                                                
-   ///   @attention will throw OutOfRange if there's no element at the index  
+   /// Get a key at an index                                                  
+   ///   @attention will throw OutOfRange if there's no pair at the index     
    ///   @param i - the index                                                 
-   ///   @return the constant element reference                               
+   ///   @return the constant key reference                                   
    TABLE_TEMPLATE()
    const T& TABLE()::Get(const CT::Index auto& index) const {
       const auto idx = GetValues().template SimplifyIndex<T, false>(index);
       if (!mInfo[idx])
-         LANGULUS_THROW(OutOfRange, "No element at given index");
+         LANGULUS_THROW(OutOfRange, "No pair at given index");
       return GetValues().GetRaw()[idx];
    }
 
-   /// Get element at an index                                                
-   ///   @attention will throw OutOfRange if there's no element at the index  
+   /// Get a key at an index                                                  
+   ///   @attention will throw OutOfRange if there's no pair at the index     
    ///   @param i - the index                                                 
-   ///   @return the mutable element reference                                
+   ///   @return the mutable key reference                                    
    TABLE_TEMPLATE()
    T& TABLE()::Get(const CT::Index auto& index) {
       const auto idx = GetValues().template SimplifyIndex<T, false>(index);
       if (!mInfo[idx])
-         LANGULUS_THROW(OutOfRange, "No element at given index");
+         LANGULUS_THROW(OutOfRange, "No pair at given index");
       return GetValues().GetRaw()[idx];
    }
 
@@ -852,16 +912,17 @@ namespace Langulus::Anyness
       auto psl = GetInfo() + start;
       const auto pslEnd = GetInfoEnd() - 1;
       auto candidate = &GetRaw(start);
+
       Count attempts{};
       while (*psl > attempts) {
          if (*candidate != key) {
             // There might be more keys to the right, check them        
-            if (psl == pslEnd) {
+            if (psl == pslEnd) UNLIKELY() {
                // By 'to the right' I also mean looped back to start    
                psl = GetInfo();
                candidate = &GetRaw(0);
             }
-            else {
+            else LIKELY() {
                ++psl;
                ++candidate;
             }
@@ -925,17 +986,14 @@ namespace Langulus::Anyness
       while (!*info) ++info;
 
       const auto offset = info - GetInfo();
-      return {
-         info, GetInfoEnd(), 
-         GetRaw() + offset
-      };
+      return {info, GetInfoEnd(), &GetRaw(offset)};
    }
 
    /// Get iterator to end                                                    
    ///   @return a constant iterator to the end element                       
    TABLE_TEMPLATE()
    typename TABLE()::ConstIterator TABLE()::end() const noexcept {
-      return {GetInfoEnd(), GetInfoEnd(), nullptr};
+      return {GetInfoEnd(), GetInfoEnd(), nullptr, nullptr};
    }
 
    /// Get iterator to the last valid element                                 
@@ -950,12 +1008,9 @@ namespace Langulus::Anyness
       while (info >= GetInfo() && !*--info);
 
       const auto offset = info - GetInfo();
-      return {
-         info, GetInfoEnd(),
-         GetRaw() + offset
-      };
+      return {info, GetInfoEnd(), &GetRaw(offset)};
    }
-
+   
    /// Access last element                                                    
    ///   @attention assumes container has at least one item                   
    ///   @return a mutable reference to the last element                      
@@ -965,7 +1020,7 @@ namespace Langulus::Anyness
       LANGULUS_ASSERT(!IsEmpty(), Access, "Can't get last index");
       auto info = GetInfoEnd();
       while (info >= GetInfo() && !*--info);
-      return Get(static_cast<Offset>(info - GetInfo()));
+      return GetPair(static_cast<Offset>(info - GetInfo()));
    }
 
    /// Access last element                                                    
@@ -977,7 +1032,7 @@ namespace Langulus::Anyness
       LANGULUS_ASSERT(!IsEmpty(), Access, "Can't get last index");
       auto info = GetInfoEnd();
       while (info >= GetInfo() && !*--info);
-      return Get(static_cast<Offset>(info - GetInfo()));
+      return GetPair(static_cast<Offset>(info - GetInfo()));
    }
 
    /// Iterate all keys inside the map, and perform f() on them               
@@ -1032,12 +1087,10 @@ namespace Langulus::Anyness
    ///                                                                        
    ///   Unordered map iterator                                               
    ///                                                                        
-   #define ITERATOR() TABLE()::template TIterator<MUTABLE>
 
    /// Construct an iterator                                                  
    ///   @param info - the info pointer                                       
    ///   @param sentinel - the end of info pointers                           
-   ///   @param key - pointer to the key element                              
    ///   @param value - pointer to the value element                          
    TABLE_TEMPLATE()
    template<bool MUTABLE>

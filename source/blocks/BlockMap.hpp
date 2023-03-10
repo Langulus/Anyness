@@ -11,11 +11,6 @@
 
 namespace Langulus::Anyness
 {
-   class BlockMap;
-}
-
-namespace Langulus::Anyness
-{
 
    ///                                                                        
    ///   Type-erased map block, base for all map types                        
