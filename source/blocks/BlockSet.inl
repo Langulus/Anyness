@@ -1056,16 +1056,16 @@ namespace Langulus::Anyness
 
    /// Erase a pair via key                                                   
    ///   @param match - the key to search for                                 
-   ///   @return the number of removed pairs                                  
+   ///   @return 1 if pair was removed, 0 if not                              
    template<CT::NotSemantic T>
    Count BlockSet::Remove(const T& match) {
       // Get the starting index based on the key hash                   
       const auto start = GetBucket(match);
       auto key = GetRaw<T>() + start;
-      const auto keyEnd = GetRawEnd<T>();
       auto info = GetInfo() + start;
+      const auto infoEnd = GetInfoEnd();
 
-      while (key != keyEnd) {
+      while (info != infoEnd) {
          if (*info && *key == match) {
             // Found it                                                 
             RemoveIndex(info - GetInfo());
