@@ -1029,7 +1029,6 @@ namespace Langulus::Anyness
    ///   @param item - item to insert                                         
    ///   @param at - the offset at which to insert                            
    template<CT::Semantic S>
-   LANGULUS(ALWAYSINLINE)
    void Block::InsertInner(S&& item, Offset at) {
       using T = TypeOf<S>;
 
