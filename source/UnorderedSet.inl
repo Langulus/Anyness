@@ -31,16 +31,13 @@ namespace Langulus::Anyness
                : list.size()
          )
       );
-      const auto hashmask = GetReserved() - 1;
 
       ZeroMemory(mInfo, GetReserved());
       mInfo[GetReserved()] = 1;
 
       for (auto& it : list) {
          // Insert a dynamically typed pair                             
-         InsertInner<true>(
-            HashData(it).mHash & hashmask, Copy(it)
-         );
+         InsertInner<true>(GetBucket(it), Copy(it));
       }
    }
 
@@ -72,11 +69,10 @@ namespace Langulus::Anyness
             mKeys.mType = other.mValue.GetType();
 
             AllocateFresh(other.mValue.GetReserved());
-            const auto hashmask = GetReserved() - 1;
-
             ZeroMemory(mInfo, GetReserved());
             mInfo[GetReserved()] = 1;
 
+            const auto hashmask = GetReserved() - 1;
             other.mValue.ForEach([this, hashmask](Block& element) {
                // Insert a dynamically typed element                    
                InsertInnerUnknown<false>(
@@ -96,8 +92,6 @@ namespace Langulus::Anyness
          mKeys.mType = MetaData::Of<T>();
 
          AllocateFresh(MinimalAllocation);
-         constexpr auto hashmask = MinimalAllocation - 1;
-
          ZeroMemory(mInfo, GetReserved());
          mInfo[GetReserved()] = 1;
 
@@ -150,7 +144,6 @@ namespace Langulus::Anyness
          else {
             // Just destroy and reuse memory                            
             Clear();
-            const auto hashmask = GetReserved() - 1;
 
             // Insert a statically typed pair                           
             InsertInner<false>(
