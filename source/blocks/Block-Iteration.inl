@@ -202,13 +202,13 @@ namespace Langulus::Anyness
       else if (mType->mIsSparse && mType->mResolver) {
          // Not binary compatible, but contained pointers are resolvable
          Count counter {};
-         Iterate<MUTABLE, REVERSE>([&](const void* element) -> R {
+         Iterate<MUTABLE, REVERSE>([&](const void*& element) -> R {
             if constexpr (CT::Bool<R>) {
                if (!element) return true;
             }
             else if (!element) return;
 
-            auto resolved = mType->mResolver(element);
+            auto resolved = mType->mResolver(&element);
             if (resolved.template Is<A>()) {
                ++counter;
                return call(resolved.template Get<A>());
