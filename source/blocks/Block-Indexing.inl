@@ -365,10 +365,10 @@ namespace Langulus::Anyness
       LANGULUS_ASSUME(DevAssumes, mCount > 0,
          "Block is empty");
 
-      LANGULUS_ASSERT(mType->mResolver != nullptr, Access,
-         "Type is not resolvable");
-
-      return mType->mResolver(mRaw);
+      if (mType->mResolver)
+         return mType->mResolver(mRaw);
+      else
+         return GetDense();
    }
 
    /// Get the resolved first constant element of this block                  

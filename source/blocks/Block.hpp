@@ -405,9 +405,9 @@ namespace Langulus::Anyness
       template<class R, CT::Data A, bool REVERSE, bool SKIP, bool MUTABLE>
       Count ForEachDeepInner(TFunctor<R(A)>&&);
 
-      template<bool MUTABLE, class F, bool REVERSE = false>
+      template<bool MUTABLE, bool REVERSE = false, class F>
       void Iterate(F&&) noexcept(NoexceptIterator<F>);
-      template<class F, bool REVERSE = false>
+      template<bool REVERSE = false, class F>
       void Iterate(F&&) const noexcept(NoexceptIterator<F>);
       template<class R, CT::Data A, bool REVERSE = false, bool MUTABLE = false>
       void IterateInner(TFunctor<R(A)>&& f) noexcept(NoexceptIterator<decltype(f)>);

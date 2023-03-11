@@ -70,6 +70,9 @@ namespace Langulus::Anyness
    template<bool REVERSE, bool MUTABLE, class... F>
    LANGULUS(ALWAYSINLINE)
    Count Block::ForEach(F&&... calls) {
+      if (IsEmpty())
+         return 0;
+
       Count result {};
       (void) (... || (0 != (result = ForEachSplitter<MUTABLE, REVERSE>(Forward<F>(calls)))));
       return result;
@@ -198,7 +201,26 @@ namespace Langulus::Anyness
       }
       else if (mType->mIsSparse && mType->mResolver) {
          // Not binary compatible, but contained pointers are resolvable
-         TODO(); //a more advanced iteration function that resolves each element is required
+         Count counter {};
+         Iterate<MUTABLE, REVERSE>([&](const void* element) -> R {
+            if constexpr (CT::Bool<R>) {
+               if (!element) return true;
+            }
+            else if (!element) return;
+
+            auto resolved = mType->mResolver(element);
+            if (resolved.template Is<A>()) {
+               ++counter;
+               return call(resolved.template Get<A>());
+            }
+            else {
+               if constexpr (CT::Bool<R>)
+                  return true;
+               else return;
+            }
+         });
+
+         return counter;
       }
       else return 0;
    }
@@ -218,11 +240,7 @@ namespace Langulus::Anyness
    template<bool SKIP, bool MUTABLE, bool REVERSE, class F>
    LANGULUS(ALWAYSINLINE)
    Count Block::ForEachDeepSplitter(F&& call) {
-      LANGULUS_ASSUME(DevAssumes, !IsEmpty(),
-         "Container is empty");
-      LANGULUS_ASSUME(DevAssumes, IsTyped(),
-         "Container is not typed");
-
+      // Notice, that no assumptions required here                      
       using A = ArgumentOf<F>;
       using R = ReturnOf<F>;
 
@@ -382,10 +400,10 @@ namespace Langulus::Anyness
    ///   @attention assumes sparseness matches                                
    ///   @tparam MUTABLE - whether or not block's allowed to change during    
    ///                     iteration (iteration is slower if true)            
-   ///   @tparam F - the function signature (deducible)                       
    ///   @tparam REVERSE - direction we're iterating in                       
+   ///   @tparam F - the function signature (deducible)                       
    ///   @param call - to function to execute                                 
-   template<bool MUTABLE, class F, bool REVERSE>
+   template<bool MUTABLE, bool REVERSE, class F>
    LANGULUS(ALWAYSINLINE)
    void Block::Iterate(F&& call) noexcept(NoexceptIterator<F>) {
       using A = ArgumentOf<F>;
@@ -398,7 +416,7 @@ namespace Langulus::Anyness
          "Block is empty");
       LANGULUS_ASSUME(DevAssumes, IsSparse() == CT::Sparse<A>,
          "Sparseness mismatch");
-      LANGULUS_ASSUME(DevAssumes, (CastsTo<A, true>()),
+      LANGULUS_ASSUME(DevAssumes, CT::Sparse<A> || (CastsTo<A, true>()),
          "Iteration type is binary incompatible");
 
       IterateInner<R, A, REVERSE, MUTABLE>(Forward<F>(call));
@@ -410,14 +428,14 @@ namespace Langulus::Anyness
    ///              contained type                                            
    ///   @attention assumes block is not empty                                
    ///   @attention assumes sparseness matches                                
-   ///   @tparam F - the function signature (deducible)                       
    ///   @tparam REVERSE - direction we're iterating in                       
+   ///   @tparam F - the function signature (deducible)                       
    ///   @param call - to function to execute                                 
-   template<class F, bool REVERSE>
+   template<bool REVERSE, class F>
    LANGULUS(ALWAYSINLINE)
    void Block::Iterate(F&& call) const noexcept(NoexceptIterator<F>) {
       const_cast<Block*>(this)->template
-         Iterate<false, F, REVERSE>(Forward<F>(call));
+         Iterate<false, REVERSE>(Forward<F>(call));
    }
 
    /// Execute a function for each element inside container                   
@@ -439,7 +457,7 @@ namespace Langulus::Anyness
          "Block is empty");
       LANGULUS_ASSUME(DevAssumes, IsSparse() == CT::Sparse<A>,
          "Sparseness mismatch");
-      LANGULUS_ASSUME(DevAssumes, (CastsTo<A, true>()),
+      LANGULUS_ASSUME(DevAssumes, CT::Sparse<A> || (CastsTo<A, true>()),
          "Iteration type is binary incompatible");
 
       // These are used as detectors for block change while iterating   
