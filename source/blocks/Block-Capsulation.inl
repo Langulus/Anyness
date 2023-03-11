@@ -339,7 +339,11 @@ namespace Langulus::Anyness
    ///   @return the token                                                    
    LANGULUS(ALWAYSINLINE)
    constexpr Token Block::GetToken() const noexcept {
-      return IsUntyped() ? MetaData::DefaultToken : mType->mToken;
+      #if LANGULUS_FEATURE(MANAGED_REFLECTION)
+         return IsUntyped() ? MetaData::DefaultToken : mType->GetShortestUnambiguousToken();
+      #else
+         return IsUntyped() ? MetaData::DefaultToken : mType->mToken;
+      #endif
    }
    
    /// Get the size of a single element (in bytes)                            

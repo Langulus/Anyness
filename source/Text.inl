@@ -170,7 +170,11 @@ namespace Langulus::Anyness
    ///   @param meta - the definition to stringify                            
    LANGULUS(ALWAYSINLINE)
    Text::Text(const RTTI::Meta& meta)
-      : Text {meta.mToken} {}
+      #if LANGULUS_FEATURE(MANAGED_REFLECTION)
+         : Text {meta.GetShortestUnambiguousToken()} {}
+      #else
+         : Text {meta.mToken} {}
+      #endif
 
    /// Count the number of newline characters                                 
    ///   @return the number of newline characters + 1, or zero if empty       
@@ -268,26 +272,6 @@ namespace Langulus::Anyness
       }
    #endif
 
-   /// Clone the text container                                               
-   ///   @return a new container that owns its memory                         
-   /*LANGULUS(ALWAYSINLINE)
-   Text Text::Clone() const {
-      Text result {Disown(*this)};
-      if (mCount) {
-         const auto request = RequestSize(mCount);
-         result.AllocateFresh(request);
-         result.mReserved = request.mElementCount;
-         CopyMemory(result.mRaw, mRaw, mCount);
-      }
-      else {
-         result.mEntry = nullptr;
-         result.mRaw = nullptr;
-         result.mReserved = 0;
-      }
-
-      return Abandon(result);
-   }*/
-
    /// Terminate text so that it ends with a zero character at the end        
    ///   @return a new container that ownes its memory                        
    LANGULUS(ALWAYSINLINE)
@@ -334,14 +318,31 @@ namespace Langulus::Anyness
       if (pattern.IsEmpty() || offset >= mCount || pattern.mCount > mCount - offset)
          return false;
 
-      const auto end = mCount - pattern.mCount;
-      for (Offset i = offset; i < end; ++i) {
-         auto remaining = CropInner(i, pattern.mCount);
-         auto& asText = ReinterpretCast<Text&>(remaining);
-         if (asText.Compare(pattern)) {
-            offset = i;
-            return true;
+      auto lhs = GetRaw() + offset;
+      auto rhs = pattern.GetRaw();
+      const auto lhsEnd = GetRawEnd() - pattern.GetCount() + 1;
+      const auto rhsEnd = pattern.GetRawEnd();
+      while (lhs != lhsEnd) {
+         if (*lhs == *rhs) {
+            offset = lhs - GetRaw();
+            ++lhs;
+            ++rhs;
+
+            while (rhs != rhsEnd && *lhs == *rhs) {
+               ++lhs;
+               ++rhs;
+            }
+
+            if (rhs == rhsEnd) {
+               // Match found                                           
+               return true;
+            }
+
+            lhs = GetRaw() + offset;
+            rhs = pattern.GetRaw();
          }
+
+         ++lhs;
       }
 
       return false;
@@ -356,14 +357,31 @@ namespace Langulus::Anyness
       if (pattern.IsEmpty() || offset >= mCount || pattern.mCount > mCount - offset)
          return false;
 
-      const auto start = mCount - pattern.mCount - offset;
-      for (auto i = ::std::ptrdiff_t(start); i >= 0; --i) {
-         auto remaining = CropInner(i, pattern.mCount);
-         auto& asText = ReinterpretCast<Text&>(remaining);
-         if (asText.Compare(pattern)) {
-            offset = Offset(i);
-            return true;
+      auto lhs = GetRawEnd() - offset - pattern.GetCount();
+      auto rhs = pattern.GetRaw();
+      const auto lhsEnd = GetRaw() - 1;
+      const auto rhsEnd = pattern.GetRawEnd();
+      while (lhs != lhsEnd) {
+         if (*lhs == *rhs) {
+            offset = GetRawEnd() - lhs - 1;
+            ++lhs;
+            ++rhs;
+
+            while (rhs != rhsEnd && *lhs == *rhs) {
+               ++lhs;
+               ++rhs;
+            }
+
+            if (rhs == rhsEnd) {
+               // Match found                                           
+               return true;
+            }
+
+            lhs = GetRawEnd() - offset - 1;
+            rhs = pattern.GetRaw();
          }
+
+         --lhs;
       }
 
       return false;
@@ -374,7 +392,7 @@ namespace Langulus::Anyness
    ///   @return true on first match                                          
    LANGULUS(ALWAYSINLINE)
    bool Text::Find(const Text& pattern) const {
-      UNUSED() Offset unused;
+      UNUSED() Offset unused {};
       return FindOffset(pattern, unused);
    }
 
