@@ -948,30 +948,33 @@ namespace Langulus::Anyness
    ///   @return an iterator to the first element, or end if empty            
    TABLE_TEMPLATE()
    typename TABLE()::Iterator TABLE()::begin() noexcept {
-      static_assert(sizeof(Iterator) == sizeof(ConstIterator),
-         "Size mismatch - types must be binary-compatible");
-      const auto constant = const_cast<const TABLE()*>(this)->begin();
-      return reinterpret_cast<const Iterator&>(constant);
+      if (IsEmpty())
+         return end();
+
+      // Seek first valid info, or hit sentinel at the end              
+      auto info = GetInfo();
+      while (!*info) ++info;
+      return {info, GetInfoEnd(), &GetRaw(info - GetInfo())};
    }
 
    /// Get iterator to end                                                    
    ///   @return an iterator to the end element                               
    TABLE_TEMPLATE()
    typename TABLE()::Iterator TABLE()::end() noexcept {
-      static_assert(sizeof(Iterator) == sizeof(ConstIterator),
-         "Size mismatch - types must be binary-compatible");
-      const auto constant = const_cast<const TABLE()*>(this)->end();
-      return reinterpret_cast<const Iterator&>(constant);
+      return {GetInfoEnd(), GetInfoEnd(), nullptr, nullptr};
    }
 
    /// Get iterator to the last element                                       
    ///   @return an iterator to the last element, or end if empty             
    TABLE_TEMPLATE()
    typename TABLE()::Iterator TABLE()::last() noexcept {
-      static_assert(sizeof(Iterator) == sizeof(ConstIterator),
-         "Size mismatch - types must be binary-compatible");
-      const auto constant = const_cast<const TABLE()*>(this)->last();
-      return reinterpret_cast<const Iterator&>(constant);
+      if (IsEmpty())
+         return end();
+
+      // Seek first valid info in reverse, until one past first is met  
+      auto info = GetInfoEnd();
+      while (info >= GetInfo() && !*--info);
+      return {info, GetInfoEnd(), &GetRaw(info - GetInfo())};
    }
 
    /// Get iterator to first element                                          
@@ -984,9 +987,7 @@ namespace Langulus::Anyness
       // Seek first valid info, or hit sentinel at the end              
       auto info = GetInfo();
       while (!*info) ++info;
-
-      const auto offset = info - GetInfo();
-      return {info, GetInfoEnd(), &GetRaw(offset)};
+      return {info, GetInfoEnd(), &GetRaw(info - GetInfo())};
    }
 
    /// Get iterator to end                                                    
@@ -1006,9 +1007,7 @@ namespace Langulus::Anyness
       // Seek first valid info in reverse, until one past first is met  
       auto info = GetInfoEnd();
       while (info >= GetInfo() && !*--info);
-
-      const auto offset = info - GetInfo();
-      return {info, GetInfoEnd(), &GetRaw(offset)};
+      return {info, GetInfoEnd(), &GetRaw(info - GetInfo())};
    }
    
    /// Access last element                                                    
@@ -1016,11 +1015,11 @@ namespace Langulus::Anyness
    ///   @return a mutable reference to the last element                      
    TABLE_TEMPLATE()
    LANGULUS(ALWAYSINLINE)
-   decltype(auto) TABLE()::Last() {
+   T& TABLE()::Last() {
       LANGULUS_ASSERT(!IsEmpty(), Access, "Can't get last index");
       auto info = GetInfoEnd();
       while (info >= GetInfo() && !*--info);
-      return GetPair(static_cast<Offset>(info - GetInfo()));
+      return GetRaw(static_cast<Offset>(info - GetInfo()));
    }
 
    /// Access last element                                                    
@@ -1028,11 +1027,11 @@ namespace Langulus::Anyness
    ///   @return a constant reference to the last element                     
    TABLE_TEMPLATE()
    LANGULUS(ALWAYSINLINE)
-   decltype(auto) TABLE()::Last() const {
+   const T& TABLE()::Last() const {
       LANGULUS_ASSERT(!IsEmpty(), Access, "Can't get last index");
       auto info = GetInfoEnd();
       while (info >= GetInfo() && !*--info);
-      return GetPair(static_cast<Offset>(info - GetInfo()));
+      return GetRaw(static_cast<Offset>(info - GetInfo()));
    }
 
    /// Iterate all keys inside the map, and perform f() on them               

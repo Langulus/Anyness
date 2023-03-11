@@ -1286,30 +1286,43 @@ namespace Langulus::Anyness
    ///   @return an iterator to the first element, or end if empty            
    LANGULUS(ALWAYSINLINE)
    typename BlockSet::Iterator BlockSet::begin() noexcept {
-      static_assert(sizeof(Iterator) == sizeof(ConstIterator),
-         "Size mismatch - types must be binary-compatible");
-      const auto constant = const_cast<const BlockSet*>(this)->begin();
-      return reinterpret_cast<const Iterator&>(constant);
+      if (IsEmpty())
+         return end();
+
+      // Seek first valid info, or hit sentinel at the end              
+      auto info = GetInfo();
+      while (!*info) ++info;
+
+      const auto offset = info - GetInfo();
+      return {
+         info, GetInfoEnd(),
+         GetValue(offset)
+      };
    }
 
    /// Get iterator to end                                                    
    ///   @return an iterator to the end element                               
    LANGULUS(ALWAYSINLINE)
    typename BlockSet::Iterator BlockSet::end() noexcept {
-      static_assert(sizeof(Iterator) == sizeof(ConstIterator),
-         "Size mismatch - types must be binary-compatible");
-      const auto constant = const_cast<const BlockSet*>(this)->end();
-      return reinterpret_cast<const Iterator&>(constant);
+      return {GetInfoEnd(), GetInfoEnd(), {}};
    }
 
    /// Get iterator to the last element                                       
    ///   @return an iterator to the last element, or end if empty             
    LANGULUS(ALWAYSINLINE)
    typename BlockSet::Iterator BlockSet::last() noexcept {
-      static_assert(sizeof(Iterator) == sizeof(ConstIterator),
-         "Size mismatch - types must be binary-compatible");
-      const auto constant = const_cast<const BlockSet*>(this)->last();
-      return reinterpret_cast<const Iterator&>(constant);
+      if (IsEmpty())
+         return end();
+
+      // Seek first valid info in reverse, until one past first is met  
+      auto info = GetInfoEnd();
+      while (info >= GetInfo() && !*--info);
+
+      const auto offset = info - GetInfo();
+      return {
+         info, GetInfoEnd(),
+         GetValue(offset)
+      };
    }
 
    /// Get iterator to first element                                          

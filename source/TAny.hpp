@@ -114,8 +114,8 @@ namespace Langulus::Anyness
       using Any::GetRawSparse;
 
    public:
-      NOD() decltype(auto) Last() const;
-      NOD() decltype(auto) Last();
+      NOD() const T& Last() const;
+      NOD() T& Last();
 
       template<CT::Data = T>
       NOD() decltype(auto) Get(const Offset&) const noexcept;
@@ -123,9 +123,9 @@ namespace Langulus::Anyness
       NOD() decltype(auto) Get(const Offset&) noexcept;
 
       template<CT::Index IDX>
-      NOD() decltype(auto) operator [] (const IDX&) const;
+      NOD() const T& operator [] (const IDX&) const;
       template<CT::Index IDX>
-      NOD() decltype(auto) operator [] (const IDX&);
+      NOD() T& operator [] (const IDX&);
 
       NOD() constexpr bool IsUntyped() const noexcept;
       NOD() constexpr bool IsTypeConstrained() const noexcept;

@@ -620,30 +620,35 @@ namespace Langulus::Anyness
    ///   @return an iterator to the first element, or end if empty            
    LANGULUS(ALWAYSINLINE)
    typename Any::Iterator Any::begin() noexcept {
-      static_assert(sizeof(Iterator) == sizeof(ConstIterator),
-         "Size mismatch - types must be binary-compatible");
-      const auto constant = const_cast<const Any*>(this)->begin();
-      return reinterpret_cast<const Iterator&>(constant);
+      return IsEmpty() ? end() : GetElement();
    }
 
    /// Get iterator to end                                                    
    ///   @return an iterator to the end element                               
    LANGULUS(ALWAYSINLINE)
    typename Any::Iterator Any::end() noexcept {
-      static_assert(sizeof(Iterator) == sizeof(ConstIterator),
-         "Size mismatch - types must be binary-compatible");
-      const auto constant = const_cast<const Any*>(this)->end();
-      return reinterpret_cast<const Iterator&>(constant);
+      Block result {*this};
+      if (IsEmpty())
+         return result;
+
+      result.MakeStatic();
+      result.mRaw = mRaw + mType->mSize * mCount;
+      result.mCount = 0;
+      return result;
    }
 
    /// Get iterator to the last element                                       
    ///   @return an iterator to the last element, or end if empty             
    LANGULUS(ALWAYSINLINE)
    typename Any::Iterator Any::last() noexcept {
-      static_assert(sizeof(Iterator) == sizeof(ConstIterator),
-         "Size mismatch - types must be binary-compatible");
-      const auto constant = const_cast<const Any*>(this)->last();
-      return reinterpret_cast<const Iterator&>(constant);
+      Block result {*this};
+      if (IsEmpty())
+         return result;
+
+      result.MakeStatic();
+      result.mRaw = mRaw + mType->mSize * (mCount - 1);
+      result.mCount = 1;
+      return result;
    }
 
    /// Get iterator to first element                                          

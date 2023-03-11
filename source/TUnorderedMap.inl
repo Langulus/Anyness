@@ -1379,10 +1379,19 @@ namespace Langulus::Anyness
    TABLE_TEMPLATE()
    LANGULUS(ALWAYSINLINE)
    typename TABLE()::Iterator TABLE()::begin() noexcept {
-      static_assert(sizeof(Iterator) == sizeof(ConstIterator),
-         "Size mismatch - types must be binary-compatible");
-      const auto constant = const_cast<const TABLE()*>(this)->begin();
-      return reinterpret_cast<const Iterator&>(constant);
+      if (IsEmpty())
+         return end();
+
+      // Seek first valid info, or hit sentinel at the end              
+      auto info = GetInfo();
+      while (!*info) ++info;
+
+      const auto offset = info - GetInfo();
+      return {
+         info, GetInfoEnd(), 
+         &GetRawKey(offset),
+         &GetRawValue(offset)
+      };
    }
 
    /// Get iterator to end                                                    
@@ -1390,10 +1399,7 @@ namespace Langulus::Anyness
    TABLE_TEMPLATE()
    LANGULUS(ALWAYSINLINE)
    typename TABLE()::Iterator TABLE()::end() noexcept {
-      static_assert(sizeof(Iterator) == sizeof(ConstIterator),
-         "Size mismatch - types must be binary-compatible");
-      const auto constant = const_cast<const TABLE()*>(this)->end();
-      return reinterpret_cast<const Iterator&>(constant);
+      return {GetInfoEnd(), GetInfoEnd(), nullptr, nullptr};
    }
 
    /// Get iterator to the last element                                       
@@ -1401,10 +1407,19 @@ namespace Langulus::Anyness
    TABLE_TEMPLATE()
    LANGULUS(ALWAYSINLINE)
    typename TABLE()::Iterator TABLE()::last() noexcept {
-      static_assert(sizeof(Iterator) == sizeof(ConstIterator),
-         "Size mismatch - types must be binary-compatible");
-      const auto constant = const_cast<const TABLE()*>(this)->last();
-      return reinterpret_cast<const Iterator&>(constant);
+      if (IsEmpty())
+         return end();
+
+      // Seek first valid info in reverse, until one past first is met  
+      auto info = GetInfoEnd();
+      while (info >= GetInfo() && !*--info);
+
+      const auto offset = info - GetInfo();
+      return {
+         info, GetInfoEnd(),
+         &GetRawKey(offset),
+         &GetRawValue(offset)
+      };
    }
 
    /// Get iterator to first element                                          

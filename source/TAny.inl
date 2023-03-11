@@ -669,7 +669,7 @@ namespace Langulus::Anyness
    TEMPLATE()
    template<CT::Index IDX>
    LANGULUS(ALWAYSINLINE)
-   decltype(auto) TAny<T>::operator [] (const IDX& index) const {
+   const T& TAny<T>::operator [] (const IDX& index) const {
       const auto offset = SimplifyIndex<T>(index);
       return TAny<T>::GetRaw()[offset];
    }
@@ -677,7 +677,7 @@ namespace Langulus::Anyness
    TEMPLATE()
    template<CT::Index IDX>
    LANGULUS(ALWAYSINLINE)
-   decltype(auto) TAny<T>::operator [] (const IDX& index) {
+   T& TAny<T>::operator [] (const IDX& index) {
       const auto offset = SimplifyIndex<T>(index);
       return TAny<T>::GetRaw()[offset];
    }
@@ -687,7 +687,7 @@ namespace Langulus::Anyness
    ///   @return a mutable reference to the last element                      
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
-   decltype(auto) TAny<T>::Last() {
+   T& TAny<T>::Last() {
       LANGULUS_ASSUME(UserAssumes, mCount, "Can't get last index");
       return Get<T>(mCount - 1);
    }
@@ -697,7 +697,7 @@ namespace Langulus::Anyness
    ///   @return a constant reference to the last element                     
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
-   decltype(auto) TAny<T>::Last() const {
+   const T& TAny<T>::Last() const {
       LANGULUS_ASSUME(UserAssumes, mCount, "Can't get last index");
       return Get<T>(mCount - 1);
    }
@@ -1927,30 +1927,21 @@ namespace Langulus::Anyness
    ///   @return an iterator to the first element, or end if empty            
    TEMPLATE()
    typename TAny<T>::Iterator TAny<T>::begin() noexcept {
-      static_assert(sizeof(Iterator) == sizeof(ConstIterator),
-         "Size mismatch - types must be binary-compatible");
-      const auto constant = const_cast<const TAny<T>*>(this)->begin();
-      return reinterpret_cast<const Iterator&>(constant);
+      return {GetRaw()};
    }
 
    /// Get iterator to end                                                    
    ///   @return an iterator to the end element                               
    TEMPLATE()
    typename TAny<T>::Iterator TAny<T>::end() noexcept {
-      static_assert(sizeof(Iterator) == sizeof(ConstIterator),
-         "Size mismatch - types must be binary-compatible");
-      const auto constant = const_cast<const TAny<T>*>(this)->end();
-      return reinterpret_cast<const Iterator&>(constant);
+      return {GetRawEnd()};
    }
 
    /// Get iterator to the last element                                       
    ///   @return an iterator to the last element, or end if empty             
    TEMPLATE()
    typename TAny<T>::Iterator TAny<T>::last() noexcept {
-      static_assert(sizeof(Iterator) == sizeof(ConstIterator),
-         "Size mismatch - types must be binary-compatible");
-      const auto constant = const_cast<const TAny<T>*>(this)->last();
-      return reinterpret_cast<const Iterator&>(constant);
+      return {IsEmpty() ? GetRawEnd() : GetRawEnd() - 1};
    }
 
    /// Get iterator to first element                                          
