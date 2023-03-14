@@ -267,7 +267,10 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Indexing                                                          
       ///                                                                     
+      template<bool COUNT_CONSTRAINED = true>
       NOD() constexpr Index Constrain(const Index&) const noexcept;
+      template<CT::Data, bool COUNT_CONSTRAINED = true>
+      NOD() Index ConstrainMore(const Index&) const SAFETY_NOEXCEPT();
 
       NOD() SAFETY_CONSTEXPR()
       Byte* At(const Offset& = 0) SAFETY_NOEXCEPT();
@@ -332,8 +335,6 @@ namespace Langulus::Anyness
       template<CT::Data, CT::Index INDEX1, CT::Index INDEX2>
       void Swap(INDEX1, INDEX2);
 
-      template<CT::Data>
-      NOD() Index ConstrainMore(const Index&) const SAFETY_NOEXCEPT();
       template<CT::Data T, Index INDEX>
       NOD() Index GetIndex() const SAFETY_NOEXCEPT() requires (CT::Sortable<T, T>);
       template<CT::Data>
@@ -354,7 +355,7 @@ namespace Langulus::Anyness
       NOD() Block Prev() const SAFETY_NOEXCEPT();
 
       template<class, bool COUNT_CONSTRAINED = true, CT::Index INDEX>
-      Offset SimplifyIndex(const INDEX&) const;
+      Offset SimplifyIndex(const INDEX&) const noexcept(!LANGULUS_SAFE() && CT::Unsigned<INDEX>);
 
    public:
       ///                                                                     

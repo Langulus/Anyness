@@ -13,13 +13,49 @@ namespace Langulus::Anyness
 {
    
    /// Constrain an index to the limits of the current block                  
+   ///   @tparam COUNT_CONSTRAINED - whether to use mCount or mReserved       
    ///   @param idx - the index to constrain                                  
    ///   @return the constrained index or a special one of constrain fails    
+   template<bool COUNT_CONSTRAINED>
    LANGULUS(ALWAYSINLINE)
    constexpr Index Block::Constrain(const Index& idx) const noexcept {
-      return idx.Constrained(mCount);
+      return idx.Constrained(COUNT_CONSTRAINED ? mCount : mReserved);
    }
    
+   /// Constrain an index to the limits of the current block                  
+   ///   @attention assumes T is the type of the container                    
+   ///   @tparam T - the type to use for comparisons                          
+   ///   @tparam COUNT_CONSTRAINED - whether to use mCount or mReserved       
+   ///   @param idx - the index to constrain                                  
+   ///   @return the constrained index or a special one of constrain fails    
+   template<CT::Data T, bool COUNT_CONSTRAINED>
+   LANGULUS(ALWAYSINLINE)
+   Index Block::ConstrainMore(const Index& idx) const SAFETY_NOEXCEPT() {
+      const auto result = Constrain<COUNT_CONSTRAINED>(idx);
+
+      if (result == IndexBiggest) {
+         if constexpr (CT::Sortable<T, T>)
+            return GetIndex<T, IndexBiggest>();
+         else
+            return IndexNone;
+      }
+      else if (result == IndexSmallest) {
+         if constexpr (CT::Sortable<T, T>)
+            return GetIndex<T, IndexSmallest>();
+         else
+            return IndexNone;
+      }
+      else if (result == IndexMode) {
+         if constexpr (CT::Sortable<T, T>) {
+            UNUSED() Count unused;
+            return GetIndexMode<T>(unused);
+         }
+         else return IndexNone;
+      }
+
+      return result;
+   }
+
    /// Get the internal byte array with a given offset                        
    /// This is lowest level access and checks nothing                         
    ///   @attention assumes block is allocated                                
@@ -446,38 +482,6 @@ namespace Langulus::Anyness
       data[to] = ::std::move(data[from]);
       SemanticAssign(data[from], Abandon(temp));
    }
-
-   /// Constrain an index to the limits of the current block                  
-   ///   @attention assumes T is the type of the container                    
-   ///   @tparam T - the type to use for comparisons                          
-   ///   @param idx - the index to constrain                                  
-   ///   @return the constrained index or a special one of constrain fails    
-   template<CT::Data T>
-   LANGULUS(ALWAYSINLINE)
-   Index Block::ConstrainMore(const Index& idx) const SAFETY_NOEXCEPT() {
-      const auto result = Constrain(idx);
-      if (result == IndexBiggest) {
-         if constexpr (CT::Sortable<T, T>)
-            return GetIndex<T, IndexBiggest>();
-         else
-            return IndexNone;
-      }
-      else if (result == IndexSmallest) {
-         if constexpr (CT::Sortable<T, T>)
-            return GetIndex<T, IndexSmallest>();
-         else
-            return IndexNone;
-      }
-      else if (result == IndexMode) {
-         if constexpr (CT::Sortable<T, T>) {
-            UNUSED() Count unused;
-            return GetIndexMode<T>(unused);
-         }
-         else return IndexNone;
-      }
-
-      return result;
-   }
    
    /// Get the index of the biggest/smallest element                          
    ///   @attention assumes T is the type of the container                    
@@ -700,44 +704,34 @@ namespace Langulus::Anyness
    ///   @return the offset                                                   
    template<class T, bool COUNT_CONSTRAINED, CT::Index INDEX>
    LANGULUS(ALWAYSINLINE)
-   Offset Block::SimplifyIndex(const INDEX& index) const {
+   Offset Block::SimplifyIndex(const INDEX& index) const noexcept(!LANGULUS_SAFE() && CT::Unsigned<INDEX>) {
       if constexpr (CT::Same<INDEX, Index>) {
-         // This is the most safe path                                  
+         // This is the most safe path, throws on errors                
          if constexpr (CT::Void<T>)
-            return Constrain(index).GetOffset();
+            return Constrain<COUNT_CONSTRAINED>(index).GetOffset();
          else {
-            if constexpr (!CT::Void<T>) {
+            if constexpr (!CT::Void<T>)
                LANGULUS_ASSUME(DevAssumes, (CastsTo<T, true>()), "Type mismatch");
-            }
-            return ConstrainMore<T>(index).GetOffset();
+
+            return ConstrainMore<T, COUNT_CONSTRAINED>(index).GetOffset();
          }
       }
       else if constexpr (CT::Signed<INDEX>) {
          // Somewhat safe, default literal type is signed               
          if (index < 0) {
             const auto unsign = static_cast<Offset>(-index);
-            if constexpr (COUNT_CONSTRAINED) {
-               LANGULUS_ASSERT(unsign <= mCount, Access,
-                  "Reverse index out of count range");
-            }
-            else {
-               LANGULUS_ASSERT(unsign <= mReserved, Access,
-                  "Reverse index out of reserved range");
-            }
-
+            LANGULUS_ASSERT(
+               unsign <= (COUNT_CONSTRAINED ? mCount : mReserved), Access,
+               "Reverse index out of count range"
+            );
             return mCount - unsign;
          }
          else {
             const auto unsign = static_cast<Offset>(index);
-            if constexpr (COUNT_CONSTRAINED) {
-               LANGULUS_ASSERT(unsign < mCount, Access,
-                  "Signed index out of count range");
-            }
-            else {
-               LANGULUS_ASSERT(unsign < mReserved, Access,
-                  "Signed index out of reserved range");
-            }
-
+            LANGULUS_ASSERT(
+               unsign < (COUNT_CONSTRAINED ? mCount : mReserved), Access,
+               "Signed index out of count range"
+            );
             return unsign;
          }
       }
@@ -745,15 +739,10 @@ namespace Langulus::Anyness
          // Unsafe, works only on assumptions                           
          // Using an unsigned index explicitly makes a statement, that  
          // you know what you're doing                                  
-         if constexpr (COUNT_CONSTRAINED) {
-            LANGULUS_ASSUME(UserAssumes, index < mCount,
-               "Unsigned index out of range");
-         }
-         else {
-            LANGULUS_ASSUME(UserAssumes, index < mReserved,
-               "Unsigned index out of range");
-         }
-
+         LANGULUS_ASSUME(UserAssumes, 
+            index < (COUNT_CONSTRAINED ? mCount : mReserved),
+            "Unsigned index out of range"
+         );
          return index;
       }
    }
