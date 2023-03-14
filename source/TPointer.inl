@@ -13,6 +13,17 @@
 
 namespace Langulus::Anyness
 {
+   
+   TEMPLATE_SHARED()
+   LANGULUS(ALWAYSINLINE)
+   auto SHARED_POINTER()::GetHandle() const {
+      const auto mthis = const_cast<SHARED_POINTER()*>(this);
+      #if LANGULUS_FEATURE(MANAGED_MEMORY)
+         return Handle<Type> {mthis->mValue, mthis->mEntry};
+      #else
+         return Handle<Type> {mthis->mValue};
+      #endif
+   }
 
    /// Copy a shared pointer                                                  
    ///   @param other - pointer to reference                                  
@@ -25,22 +36,36 @@ namespace Langulus::Anyness
    ///   @param other - pointer to move                                       
    TEMPLATE_SHARED()
    LANGULUS(ALWAYSINLINE)
-   SHARED_POINTER()::TPointer(TPointer&& other) noexcept
+   SHARED_POINTER()::TPointer(TPointer&& other)
       : TPointer {Langulus::Move(other)} {}
 
-   /// Reference a raw pointer                                                
-   ///   @param ptr - pointer to reference                                    
    TEMPLATE_SHARED()
    LANGULUS(ALWAYSINLINE)
-   SHARED_POINTER()::TPointer(const CTTI_InnerType& ptr)
-      : TPointer {Langulus::Copy(ptr)} {}
+   SHARED_POINTER()::TPointer(const CT::NotSemantic auto& value)
+      : TPointer {Copy(value)} {}
 
-   /// Reference a raw pointer                                                
-   ///   @param ptr - pointer to reference                                    
    TEMPLATE_SHARED()
    LANGULUS(ALWAYSINLINE)
-   SHARED_POINTER()::TPointer(CTTI_InnerType&& ptr)
-      : TPointer {Langulus::Move(ptr)} {}
+   SHARED_POINTER()::TPointer(CT::NotSemantic auto& value)
+      : TPointer {Copy(value)} {}
+
+   TEMPLATE_SHARED()
+   LANGULUS(ALWAYSINLINE)
+   SHARED_POINTER()::TPointer(CT::NotSemantic auto&& value)
+      : TPointer {Move(value)} {}
+
+   TEMPLATE_SHARED()
+   template<CT::Semantic S>
+   LANGULUS(ALWAYSINLINE)
+   SHARED_POINTER()::TPointer(S&& other) {
+      if constexpr (CT::Exact<TypeOf<S>, TPointer>)
+         GetHandle().New(S::Nest(other.mValue.GetHandle()));
+      else
+         GetHandle().New(other.Forward());
+
+      if constexpr (S::Shallow && !S::Move && S::Keep && DR && CT::Referencable<T>)
+         mValue->Keep();
+   }
 
    /// Shared pointer destruction                                             
    TEMPLATE_SHARED()
@@ -74,16 +99,7 @@ namespace Langulus::Anyness
       if constexpr (DR && CT::Referencable<T>)
          mValue->Free();
 
-      if (mEntry) {
-         // We own this data and are responsible for dereferencing it   
-         if (mEntry->GetUses() == 1) {
-            using Decayed = Decay<T>;
-            if constexpr (CT::Destroyable<T>)
-               mValue->~Decayed();
-            Inner::Allocator::Deallocate(mEntry);
-         }
-         else mEntry->Free();
-      }
+      GetHandle().template Destroy<false>();
    }
 
    /// Reset the pointer                                                      
@@ -125,18 +141,43 @@ namespace Langulus::Anyness
       return operator = (Langulus::Move(rhs));
    }
 
-   /// Reference a raw pointer                                                
-   ///   @param ptr - pointer to reference                                    
    TEMPLATE_SHARED()
    LANGULUS(ALWAYSINLINE)
-   SHARED_POINTER()& SHARED_POINTER()::operator = (const CTTI_InnerType& rhs) {
+   SHARED_POINTER()& SHARED_POINTER()::operator = (const CT::NotSemantic auto& rhs) {
       return operator = (Langulus::Copy(rhs));
    }
 
    TEMPLATE_SHARED()
    LANGULUS(ALWAYSINLINE)
-   SHARED_POINTER()& SHARED_POINTER()::operator = (CTTI_InnerType&& rhs) {
+   SHARED_POINTER()& SHARED_POINTER()::operator = (CT::NotSemantic auto& rhs) {
+      return operator = (Langulus::Copy(rhs));
+   }
+
+   TEMPLATE_SHARED()
+   LANGULUS(ALWAYSINLINE)
+   SHARED_POINTER()& SHARED_POINTER()::operator = (CT::NotSemantic auto&& rhs) {
       return operator = (Langulus::Move(rhs));
+   }
+
+   /// Constructor needs to be declared here to avoid MSVC parser bug      
+   TEMPLATE_SHARED()
+   template<CT::Semantic S>
+   LANGULUS(ALWAYSINLINE)
+   SHARED_POINTER()& SHARED_POINTER()::operator = (S&& rhs) {
+      if constexpr (DR && CT::Referencable<T>) {
+         if (mValue)
+            mValue->Free();
+      }
+
+      if constexpr (CT::Exact<TypeOf<S>, TPointer>)
+         GetHandle().Assign(S::Nest(rhs.mValue.GetHandle()));
+      else
+         GetHandle().Assign(rhs.Forward());
+
+      if constexpr (S::Shallow && !S::Move && S::Keep && DR && CT::Referencable<T>)
+         mValue->Keep();
+
+      return *this;
    }
 
    /// Cast to a constant pointer, if mutable                                 

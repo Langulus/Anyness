@@ -275,7 +275,7 @@ namespace Langulus::Anyness
    ///   @tparam REVERSE - whether to iterate in reverse                      
    ///	@tparam MUTABLE - whether or not a change to container is allowed    
    ///                     while iterating (iteration is slower if true)      
-   ///   @param call - the function to execute for each element of type A     
+   ///   @param f - the function to execute for each element of type A        
    ///   @return the number of executions that occured                        
    template<class R, CT::Data A, bool REVERSE, bool MUTABLE>
    LANGULUS(ALWAYSINLINE)

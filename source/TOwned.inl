@@ -26,20 +26,33 @@ namespace Langulus::Anyness
    LANGULUS(ALWAYSINLINE)
    constexpr TOwned<T>::TOwned(TOwned&& value)
       : TOwned {Langulus::Move(value)} {}
-
-   /// Initialize with a value                                                
-   ///   @param value - value to copy (no referencing shall occur if sparse)  
+   
    TEMPLATE_OWNED()
    LANGULUS(ALWAYSINLINE)
-   constexpr TOwned<T>::TOwned(const T& value)
-      : TOwned {Langulus::Copy(value)} {}
+   constexpr TOwned<T>::TOwned(const CT::NotSemantic auto& value)
+      : TOwned {Copy(value)} {}
 
-   /// Initialize with a value                                                
-   ///   @param value - value to copy (no referencing shall occur if sparse)  
    TEMPLATE_OWNED()
    LANGULUS(ALWAYSINLINE)
-   constexpr TOwned<T>::TOwned(T&& value)
-      : TOwned {Langulus::Move(value)} {}
+   constexpr TOwned<T>::TOwned(CT::NotSemantic auto& value)
+      : TOwned {Copy(value)} {}
+
+   TEMPLATE_OWNED()
+   LANGULUS(ALWAYSINLINE)
+   constexpr TOwned<T>::TOwned(CT::NotSemantic auto&& value)
+      : TOwned {Move(value)} {}
+
+   TEMPLATE_OWNED()
+   template<CT::Semantic S>
+   LANGULUS(ALWAYSINLINE)
+   constexpr TOwned<T>::TOwned(S&& value) {
+      if constexpr (CT::Exact<TypeOf<S>, TOwned>) {
+         SemanticNew<T>(&mValue, S::Nest(value.mValue.mValue));
+         if constexpr (S::Move && S::Keep)
+            value.mValue.mValue = {};
+      }
+      else SemanticNew<T>(&mValue, value.Forward());
+   }
 
    /// Reset the value                                                        
    TEMPLATE_OWNED()
@@ -52,32 +65,48 @@ namespace Langulus::Anyness
    ///   @param value - the new value                                         
    TEMPLATE_OWNED()
    LANGULUS(ALWAYSINLINE)
-   constexpr TOwned<T>& TOwned<T>::operator = (const TOwned& value) noexcept {
-      return operator = (Langulus::Copy(value));
+   constexpr TOwned<T>& TOwned<T>::operator = (const TOwned& value) {
+      return operator = (Copy(value));
    }
 
    /// Move-assign an owned value                                             
    ///   @param value - the new value                                         
    TEMPLATE_OWNED()
    LANGULUS(ALWAYSINLINE)
-   constexpr TOwned<T>& TOwned<T>::operator = (TOwned&& value) noexcept {
-      return operator = (Langulus::Move(value));
+   constexpr TOwned<T>& TOwned<T>::operator = (TOwned&& value) {
+      return operator = (Move(value));
    }
 
-   /// Copy-assign raw value                                                  
-   ///   @param value - the new value                                         
    TEMPLATE_OWNED()
    LANGULUS(ALWAYSINLINE)
-   constexpr TOwned<T>& TOwned<T>::operator = (const T& value) noexcept {
-      return operator = (Langulus::Copy(value));
+   constexpr TOwned<T>& TOwned<T>::operator = (const CT::NotSemantic auto& value) {
+      return operator = (Move(value));
    }
 
-   /// Move-assign raw value                                                  
-   ///   @param value - the new value                                         
    TEMPLATE_OWNED()
    LANGULUS(ALWAYSINLINE)
-   constexpr TOwned<T>& TOwned<T>::operator = (T&& value) noexcept {
-      return operator = (Langulus::Move(value));
+   constexpr TOwned<T>& TOwned<T>::operator = (CT::NotSemantic auto& value) {
+      return operator = (Move(value));
+   }
+
+   TEMPLATE_OWNED()
+   LANGULUS(ALWAYSINLINE)
+   constexpr TOwned<T>& TOwned<T>::operator = (CT::NotSemantic auto&& value) {
+      return operator = (Move(value));
+   }
+
+   TEMPLATE_OWNED()
+   template<CT::Semantic S>
+   LANGULUS(ALWAYSINLINE)
+   constexpr TOwned<T>& TOwned<T>::operator = (S&& rhs) {
+      if constexpr (CT::Exact<TypeOf<S>, TOwned>) {
+         SemanticAssign(mValue, S::Nest(rhs.mValue.mValue));
+         if constexpr (S::Move && S::Keep)
+            rhs.mValue.mValue = {};
+      }
+      else SemanticAssign(mValue, rhs.Forward());
+
+      return *this;
    }
 
    /// Get a reference to the contained value (const)                         

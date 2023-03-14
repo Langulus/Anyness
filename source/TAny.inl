@@ -1183,7 +1183,7 @@ namespace Langulus::Anyness
    template<CT::Index IDX>
    LANGULUS(ALWAYSINLINE)
    Count TAny<T>::MergeAt(const T* start, const T* end, const IDX& index) {
-      return Block::MergeAt<true, TAny>(start, end, index);
+      return Block::MergeAt<false>(start, end, index);
    }
 
    TEMPLATE()
@@ -1218,7 +1218,7 @@ namespace Langulus::Anyness
    template<CT::Semantic S, CT::Index IDX>
    LANGULUS(ALWAYSINLINE)
    Count TAny<T>::MergeAt(S&& item, const IDX& index) requires (CT::Exact<TypeOf<S>, T>) {
-      return Block::MergeAt<true, TAny>(item.Forward(), index);
+      return Block::MergeAt<false>(item.Forward(), index);
    }
    
    /// Copy-insert elements that are not found, at a static index             
@@ -1231,7 +1231,7 @@ namespace Langulus::Anyness
    template<Index INDEX>
    LANGULUS(ALWAYSINLINE)
    Count TAny<T>::Merge(const T* start, const T* end) {
-      return Block::Merge<INDEX, true, TAny>(start, end);
+      return Block::Merge<INDEX, false>(start, end);
    }
 
    TEMPLATE()
@@ -1260,7 +1260,7 @@ namespace Langulus::Anyness
    template<Index INDEX, CT::Semantic S>
    LANGULUS(ALWAYSINLINE)
    Count TAny<T>::Merge(S&& item) requires (CT::Exact<TypeOf<S>, T>) {
-      return Block::Merge<INDEX, true, TAny>(item.Forward());
+      return Block::Merge<INDEX, false>(item.Forward());
    }
 
    /// Copy-construct element at the back, if element is not found            
