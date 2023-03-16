@@ -25,25 +25,24 @@ namespace Langulus::Anyness
       using ST = TypeOf<S>;
 
       if constexpr (CT::Handle<ST>) {
-         static_assert(CT::Exact<T, TypeOf<ST>>, "Type mismatch");
+         using HT = TypeOf<ST>;
+         static_assert(CT::Exact<T, HT>, "Type mismatch");
 
          if constexpr (S::Shallow) {
             // Copy/Disown/Move/Abandon a handle                        
             SemanticAssign<T>(mValue, S::Nest(other.mValue.Get()));
 
-            #if LANGULUS_FEATURE(MANAGED_MEMORY)
-               if constexpr (S::Keep || S::Move)
-                  mEntry = other.mValue.GetEntry();
-               else
-                  mEntry = nullptr;
-            #endif
+            if constexpr (S::Keep || S::Move)
+               mEntry = other.mValue.GetEntry();
+            else
+               mEntry = nullptr;
 
             if constexpr (S::Move) {
                // Reset remote entry, when moving                       
-               IF_LANGULUS_MANAGED_MEMORY(other.mValue.GetEntry() = nullptr);
+               other.mValue.GetEntry() = nullptr;
 
                // Optionally reset remote value, if not abandoned       
-               if constexpr (S::Keep)
+               if constexpr (S::Keep && CT::Sparse<T, HT>)
                   other.mValue.Get() = nullptr;
             }
          }
@@ -58,7 +57,8 @@ namespace Langulus::Anyness
          if constexpr (S::Shallow) {
             // Copy/Disown/Move/Abandon a pointer                       
             // Since pointers don't have ownership, it's just a copy    
-            // with an optional entry search, if not disowned           
+            // with an optional entry search, if not disowned, and if   
+            // managed memory is enabled                                
             SemanticAssign<T>(mValue, S::Nest(other.mValue));
 
             #if LANGULUS_FEATURE(MANAGED_MEMORY)
@@ -66,6 +66,8 @@ namespace Langulus::Anyness
                   mEntry = Inner::Allocator::Find(MetaData::Of<Deptr<T>>(), mValue);
                else
                   mEntry = nullptr;
+            #else
+               mEntry = nullptr;
             #endif
          }
          else {
@@ -75,7 +77,6 @@ namespace Langulus::Anyness
       }
    }
 
-#if LANGULUS_FEATURE(MANAGED_MEMORY)
    /// Create an embedded handle                                              
    ///   @param v - a reference to the element                                
    ///   @param e - a reference to the element's entry                        
@@ -102,15 +103,6 @@ namespace Langulus::Anyness
    constexpr HAND()::Handle(T&& v, Inner::Allocation* e) SAFETY_NOEXCEPT() requires (!EMBED)
       : mValue {Forward<T>(v)}
       , mEntry {e} {}
-#else
-   /// Semantically construct a handle from content reference                 
-   ///   @attention handles have no ownership, so no referencing happens      
-   ///   @param other - the value to use for construction                     
-   TEMPLATE()
-   LANGULUS(ALWAYSINLINE)
-   constexpr HAND()::Handle(T& other) noexcept requires (EMBED)
-      : mValue {&other} {}
-#endif
 
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
@@ -214,7 +206,6 @@ namespace Langulus::Anyness
          return const_cast<T&>(mValue);
    }
    
-#if LANGULUS_FEATURE(MANAGED_MEMORY)
    /// Get the entry                                                          
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
@@ -224,7 +215,6 @@ namespace Langulus::Anyness
       else
          return const_cast<Inner::Allocation*&>(mEntry);
    }
-#endif
 
    /// Assign a new pointer and entry at the handle                           
    TEMPLATE()
@@ -242,7 +232,9 @@ namespace Langulus::Anyness
       IF_LANGULUS_MANAGED_MEMORY(GetEntry() = entry);
    }
 
-   /// Semantically assign anything at the handle                             
+   /// Semantically assign anything at the handle, ignoring the old handle    
+   ///   @tparam S - the semantic to use                                      
+   ///   @param rhs - what are we assigning                                   
    TEMPLATE()
    template<CT::Semantic S>
    LANGULUS(ALWAYSINLINE)
@@ -273,18 +265,41 @@ namespace Langulus::Anyness
                   Get() = rhs.mValue.Get();
             }
 
-            #if LANGULUS_FEATURE(MANAGED_MEMORY)
-               if constexpr (S::Keep || S::Move)
-                  GetEntry() = rhs.mValue.GetEntry();
-               else
-                  GetEntry() = nullptr;
-            #endif
+            if constexpr (S::Keep || S::Move)
+               GetEntry() = rhs.mValue.GetEntry();
+            else
+               GetEntry() = nullptr;
+
+            if constexpr (S::Move) {
+               // We're moving RHS, so we need to clear it up           
+               if constexpr (S::Keep && CT::Sparse<T, HT>) {
+                  // Clear the value only if we're not abandoning RHS   
+                  // (and if the value is a pointer)                    
+                  rhs.mValue.Get() = nullptr;
+               }
+
+               // Clearing entry is mandatory, because we're            
+               // transferring the ownership                            
+               rhs.mValue.GetEntry() = nullptr;
+            }
+            else if constexpr (S::Keep) {
+               // Copying RHS, but keep it only if not disowning it     
+               if (GetEntry())
+                  GetEntry()->Keep();
+            }
          }
          else {
+            // RHS is not a handle, but we'll wrap it in a handle, in   
+            // order to find its entry (if managed memory is enabled)   
             static_assert(CT::Exact<T, ST>, "Type mismatch");
             HandleLocal<T> rhsh {rhs.Forward()};
             Get() = rhsh.Get();
-            IF_LANGULUS_MANAGED_MEMORY(GetEntry() = rhsh.GetEntry());
+            GetEntry() = rhsh.GetEntry();
+
+            if constexpr (S::Keep) {
+               if (GetEntry())
+                  GetEntry()->Keep();
+            }
          }
       }
       else if constexpr (CT::Dense<T>) {
@@ -315,7 +330,7 @@ namespace Langulus::Anyness
          }
 
          Get() = pointer;
-         IF_LANGULUS_MANAGED_MEMORY(GetEntry() = entry);
+         GetEntry() = entry;
       }
       else {
          //clone an indirection layer by nesting semanticnewhandle      
@@ -347,7 +362,7 @@ namespace Langulus::Anyness
             SemanticNewUnknown(meta->mDeptr, pointer, rhs.Forward());
 
          Get() = pointer;
-         IF_LANGULUS_MANAGED_MEMORY(GetEntry() = entry);
+         GetEntry() = entry;
       }
       else {
          //clone an indirection layer by nesting semanticnewhandle      

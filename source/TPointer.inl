@@ -18,11 +18,7 @@ namespace Langulus::Anyness
    LANGULUS(ALWAYSINLINE)
    auto SHARED_POINTER()::GetHandle() const {
       const auto mthis = const_cast<SHARED_POINTER()*>(this);
-      #if LANGULUS_FEATURE(MANAGED_MEMORY)
-         return Handle<Type> {mthis->mValue, mthis->mEntry};
-      #else
-         return Handle<Type> {mthis->mValue};
-      #endif
+      return Handle<Type> {mthis->mValue, mthis->mEntry};
    }
 
    /// Copy a shared pointer                                                  
@@ -63,15 +59,18 @@ namespace Langulus::Anyness
       else
          GetHandle().New(other.Forward());
 
-      if constexpr (S::Shallow && !S::Move && S::Keep && DR && CT::Referencable<T>)
-         mValue->Keep();
+      if constexpr (S::Shallow && !S::Move && S::Keep) {
+         if constexpr (DR && CT::Referencable<T>)
+            mValue->Keep();
+      }
    }
 
    /// Shared pointer destruction                                             
    TEMPLATE_SHARED()
    LANGULUS(ALWAYSINLINE)
    SHARED_POINTER()::~TPointer() {
-      Reset();
+      if (mValue)
+         ResetInner();
    }
 
    /// Create a new instance of T by providing constructor arguments          
@@ -88,7 +87,7 @@ namespace Langulus::Anyness
       pointer.mValue = reinterpret_cast<decltype(pointer.mValue)>(
          pointer.mEntry->GetBlockStart());
       new (pointer.mValue) Decay<T> {Forward<ARGS>(arguments)...};
-      *this = pointer;
+      *this = Abandon(pointer);
    }
 
    /// Reset the pointer                                                      
@@ -159,23 +158,22 @@ namespace Langulus::Anyness
       return operator = (Langulus::Move(rhs));
    }
 
-   /// Constructor needs to be declared here to avoid MSVC parser bug      
+   /// Constructor needs to be declared here to avoid MSVC parser bug         
    TEMPLATE_SHARED()
    template<CT::Semantic S>
    LANGULUS(ALWAYSINLINE)
    SHARED_POINTER()& SHARED_POINTER()::operator = (S&& rhs) {
-      if constexpr (DR && CT::Referencable<T>) {
-         if (mValue)
-            mValue->Free();
-      }
-
       if constexpr (CT::Exact<TypeOf<S>, TPointer>)
          GetHandle().Assign(S::Nest(rhs.mValue.GetHandle()));
       else
          GetHandle().Assign(rhs.Forward());
 
-      if constexpr (S::Shallow && !S::Move && S::Keep && DR && CT::Referencable<T>)
-         mValue->Keep();
+      if constexpr (S::Shallow && !S::Move && S::Keep) {
+         if constexpr (DR && CT::Referencable<T>) {
+            if (mValue)
+               mValue->Keep();
+         }
+      }
 
       return *this;
    }
@@ -193,7 +191,7 @@ namespace Langulus::Anyness
    TEMPLATE_SHARED()
    LANGULUS(ALWAYSINLINE)
    constexpr bool SHARED_POINTER()::HasAuthority() const noexcept {
-      return mValue && mEntry;
+      return mEntry;
    }
       
    /// Get the references for the entry, where this pointer resides in        
@@ -202,7 +200,7 @@ namespace Langulus::Anyness
    TEMPLATE_SHARED()
    LANGULUS(ALWAYSINLINE)
    constexpr Count SHARED_POINTER()::GetUses() const noexcept {
-      return (mValue && mEntry) ? mEntry->GetUses() : 0;
+      return mEntry ? mEntry->GetUses() : 0;
    }
                
    /// Get the block of the contained pointer                                 

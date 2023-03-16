@@ -134,8 +134,8 @@ namespace Langulus::Anyness
       Count mReserved {};
       // Meta data about the elements inside the memory block           
       mutable DMeta mType {};
-      // Pointer to the allocated block                                 
-      // If entry is zero, then data is static                          
+      // Pointer to the allocated block. If entry is zero, then data is 
+      // static, or we simply have no authority over it (just a view)   
       Inner::Allocation* mEntry {};
 
    public:
@@ -258,10 +258,8 @@ namespace Langulus::Anyness
       constexpr void MakeNow() noexcept;
 
    protected: TESTING(public:)
-      #if LANGULUS_FEATURE(MANAGED_MEMORY)
-         NOD() Inner::Allocation** GetEntries() SAFETY_NOEXCEPT();
-         NOD() const Inner::Allocation* const* GetEntries() const SAFETY_NOEXCEPT();
-      #endif
+      NOD() Inner::Allocation** GetEntries() SAFETY_NOEXCEPT();
+      NOD() const Inner::Allocation* const* GetEntries() const SAFETY_NOEXCEPT();
 
    public:
       ///                                                                     

@@ -550,10 +550,8 @@ namespace Langulus::Anyness
    Size BlockMap::RequestKeyAndInfoSize(const Count count, Offset& infoStart) const SAFETY_NOEXCEPT() {
       LANGULUS_ASSUME(DevAssumes, mKeys.mType, "Key type was not set");
       auto keymemory = count * mKeys.mType->mSize;
-      IF_LANGULUS_MANAGED_MEMORY(
-         if (mKeys.mType->mIsSparse)
-            keymemory *= 2;
-      );
+      if (mKeys.mType->mIsSparse)
+         keymemory *= 2;
       infoStart = keymemory + Alignment - (keymemory % Alignment);
       return infoStart + count + 1;
    }
@@ -565,10 +563,8 @@ namespace Langulus::Anyness
    Size BlockMap::RequestValuesSize(const Count count) const SAFETY_NOEXCEPT() {
       LANGULUS_ASSUME(DevAssumes, mValues.mType, "Value type was not set");
       auto valueByteSize = count * mValues.mType->mSize;
-      IF_LANGULUS_MANAGED_MEMORY(
-         if (mValues.mType->mIsSparse)
-            valueByteSize *= 2;
-      );
+      if (mValues.mType->mIsSparse)
+         valueByteSize *= 2;
       return valueByteSize;
    }
 
@@ -727,24 +723,24 @@ namespace Langulus::Anyness
             ZeroMemory(mInfo + oldCount, count - oldCount);
 
             // Data was reused, but entries always move if sparse keys  
-            IF_LANGULUS_MANAGED_MEMORY(if (mKeys.IsSparse()) {
+            if (mKeys.IsSparse()) {
                MoveMemory(
                   mKeys.mRawSparse + count, 
                   mKeys.mRawSparse + oldCount, 
                   oldCount
                );
-            });
+            };
 
             if (mValues.mEntry == oldValues.mEntry) {
                // Both keys and values remain in the same place         
                // Data was reused, but entries always move if sparse val
-               IF_LANGULUS_MANAGED_MEMORY(if (mValues.IsSparse()) {
+               if (mValues.IsSparse()) {
                   MoveMemory(
                      mValues.mRawSparse + count,
                      mValues.mRawSparse + oldCount,
                      oldCount
                   );
-               });
+               };
 
                Rehash(count, oldCount);
                return;

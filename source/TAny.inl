@@ -312,7 +312,7 @@ namespace Langulus::Anyness
                *mRawSparse = const_cast<Byte*>(
                   reinterpret_cast<const Byte*>(other.mValue)
                );
-               IF_LANGULUS_MANAGED_MEMORY(*GetEntries() = nullptr);
+               *GetEntries() = nullptr;
             }
             else SemanticNew<T>(mRaw, other.Forward());
          }
@@ -488,67 +488,6 @@ namespace Langulus::Anyness
       ResetMemory();
       ResetState();
    }
-
-   /// Clone the templated container                                          
-   ///   @return the cloned container                                         
-   /*TEMPLATE()
-   TAny<T> TAny<T>::Clone() const {
-      // Always clone the state, but make it unconstrained              
-      TAny<T> result {Disown(*this)};
-      result.mState -= DataState::Static | DataState::Constant;
-
-      if (!IsAllocated())
-         return Abandon(result);
-
-      using DT = Decay<T>;
-      result.AllocateFresh(result.RequestSize(mCount));
-
-      if constexpr (CT::Sparse<T>) {
-         // Clone all data in the same block                            
-         TAny<DT> coalesced;
-         coalesced.AllocateFresh(coalesced.RequestSize(mCount));
-         auto co = coalesced.GetRaw();
-         auto from = GetRawSparse();
-         const auto fromEnd = GetRawSparse() + mCount;
-         auto to = result.GetRawSparse();
-         auto toEntry = result.GetEntries();
-
-         // Clone data behind each valid pointer                        
-         Count counter {};
-         while (from != fromEnd) {
-            if (!*from) {
-               *to = nullptr;
-               *toEntry = nullptr;
-               ++from;
-               ++to;
-               ++toEntry;
-               continue;
-            }
-
-            *to = reinterpret_cast<Byte*>(co + counter);
-            SemanticNew<DT>(*to, Langulus::Clone(DenseCast(from)));
-            *toEntry = coalesced.mEntry;
-            ++from;
-            ++to;
-            ++toEntry;
-            ++counter;
-         }
-
-         coalesced.Reference(counter);
-      }
-      else {
-         // Clone each element individually                             
-         auto from = GetRaw();
-         auto to = result.GetRaw();
-         while (from < GetRawEnd()) {
-            SemanticNew<DT>(to, Langulus::Clone(DenseCast(from)));
-            ++from;
-            ++to;
-         }
-      }
-
-      return Abandon(result);
-   }*/
 
    /// Return the typed raw data (const)                                      
    ///   @return a constant pointer to the first element in the array         
@@ -1605,7 +1544,7 @@ namespace Langulus::Anyness
             // Sparse containers have additional memory allocated for   
             // each pointer's entry, if managed memory is enabled       
             mEntry = Inner::Allocator::Reallocate(
-               request.mByteSize IF_LANGULUS_MANAGED_MEMORY(*(CT::Sparse<T> ? 2 : 1)),
+               request.mByteSize * (CT::Sparse<T> ? 2 : 1),
                mEntry
             );
             LANGULUS_ASSERT(mEntry, Allocate, "Out of memory");
@@ -1712,7 +1651,7 @@ namespace Langulus::Anyness
       // Sparse containers have additional memory allocated             
       // for each pointer's entry                                       
       mEntry = Inner::Allocator::Allocate(
-         request.mByteSize IF_LANGULUS_MANAGED_MEMORY(* (CT::Sparse<T> ? 2 : 1))
+         request.mByteSize * (CT::Sparse<T> ? 2 : 1)
       );
       LANGULUS_ASSERT(mEntry, Allocate, "Out of memory");
       mRaw = mEntry->GetBlockStart();
@@ -1744,7 +1683,7 @@ namespace Langulus::Anyness
       if (mEntry && newCount > mReserved) {
          // Allocate more space                                         
          mEntry = Inner::Allocator::Reallocate(
-            mType->mSize * newCount IF_LANGULUS_MANAGED_MEMORY(*(CT::Sparse<T> ? 2 : 1)),
+            mType->mSize * newCount * (CT::Sparse<T> ? 2 : 1),
             mEntry
          );
          LANGULUS_ASSERT(mEntry, Allocate, "Out of memory");

@@ -93,7 +93,7 @@ namespace Langulus::Anyness
             );
          }
          mEntry = Inner::Allocator::Reallocate(
-            request.mByteSize IF_LANGULUS_MANAGED_MEMORY(* (mType->mIsSparse ? 2:1)),
+            request.mByteSize * (mType->mIsSparse ? 2:1),
             mEntry
          );
          mReserved = request.mElementCount;
@@ -147,7 +147,7 @@ namespace Langulus::Anyness
             // Sparse containers have additional memory allocated for   
             // each pointer's entry, if managed memory is enabled       
             mEntry = Inner::Allocator::Reallocate(
-               request.mByteSize IF_LANGULUS_MANAGED_MEMORY(*(mType->mIsSparse ? 2 : 1)),
+               request.mByteSize * (mType->mIsSparse ? 2 : 1),
                mEntry
             );
             LANGULUS_ASSERT(mEntry, Allocate, "Out of memory");
@@ -160,7 +160,6 @@ namespace Langulus::Anyness
                CallUnknownSemanticConstructors(previousBlock.mCount, 
                   Abandon(previousBlock));
             }
-            #if LANGULUS_FEATURE(MANAGED_MEMORY)
             else {
                // Memory didn't move, but reserved count changed        
                if (mType->mIsSparse) {
@@ -170,7 +169,6 @@ namespace Langulus::Anyness
                   );
                }
             }
-            #endif
          }
          else {
             // Memory is used from multiple locations, and we must      
@@ -200,7 +198,7 @@ namespace Langulus::Anyness
       // Sparse containers have additional memory allocated             
       // for each pointer's entry                                       
       mEntry = Inner::Allocator::Allocate(
-         request.mByteSize IF_LANGULUS_MANAGED_MEMORY(* (mType->mIsSparse ? 2 : 1))
+         request.mByteSize * (mType->mIsSparse ? 2 : 1)
       );
       LANGULUS_ASSERT(mEntry, Allocate, "Out of memory");
       mRaw = mEntry->GetBlockStart();

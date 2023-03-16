@@ -603,16 +603,10 @@ namespace Langulus::Anyness
    LANGULUS(ALWAYSINLINE)
    Handle<T> Block::GetHandle(Offset index) const SAFETY_NOEXCEPT() {
       const auto mthis = const_cast<Block*>(this);
-      #if LANGULUS_FEATURE(MANAGED_MEMORY)
-         return {
-            mthis->template GetRawAs<T>()[index], 
-            CT::Sparse<T> ? mthis->GetEntries()[index] : mthis->mEntry
-         };
-      #else
-         return {
-            mthis->template GetRawAs<T>()[index]
-         };
-      #endif
+      return {
+         mthis->template GetRawAs<T>()[index], 
+         CT::Sparse<T> ? mthis->GetEntries()[index] : mthis->mEntry
+      };
    }
 
    /// Select region from the memory block - unsafe and may return memory     

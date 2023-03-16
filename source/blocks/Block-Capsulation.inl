@@ -569,7 +569,6 @@ namespace Langulus::Anyness
       mState -= DataState::MissingFuture;
    }
 
-#if LANGULUS_FEATURE(MANAGED_MEMORY)
    /// Get entry array when block is sparse                                   
    ///   @attention entries exist only for sparse containers                  
    ///   @return the array of entries                                         
@@ -591,6 +590,5 @@ namespace Langulus::Anyness
       return reinterpret_cast<const Inner::Allocation* const*>(
          mRawSparse + mReserved);
    }
-#endif
 
 } // namespace Langulus::Anyness

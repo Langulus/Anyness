@@ -488,10 +488,8 @@ namespace Langulus::Anyness
    LANGULUS(ALWAYSINLINE)
    Size TABLE()::RequestKeyAndInfoSize(const Count count, Offset& infoStart) noexcept {
       Size keymemory = count * sizeof(K);
-      IF_LANGULUS_MANAGED_MEMORY(
-         if constexpr (CT::Sparse<K>)
-            keymemory *= 2;
-      );
+      if constexpr (CT::Sparse<K>)
+         keymemory *= 2;
       infoStart = keymemory + Alignment - (keymemory % Alignment);
       return infoStart + count + 1;
    }
@@ -504,10 +502,8 @@ namespace Langulus::Anyness
    LANGULUS(ALWAYSINLINE)
    Size TABLE()::RequestValuesSize(const Count count) noexcept {
       Size valueByteSize = count * sizeof(V);
-      IF_LANGULUS_MANAGED_MEMORY(
-         if constexpr (CT::Sparse<V>)
-            valueByteSize *= 2;
-      );
+      if constexpr (CT::Sparse<V>)
+         valueByteSize *= 2;
       return valueByteSize;
    }
 
@@ -613,24 +609,24 @@ namespace Langulus::Anyness
             ZeroMemory(mInfo + oldCount, count - oldCount);
 
             // Data was reused, but entries always move if sparse keys  
-            IF_LANGULUS_MANAGED_MEMORY(if constexpr (CT::Sparse<K>) {
+            if constexpr (CT::Sparse<K>) {
                MoveMemory(
                   mKeys.mRawSparse + count,
                   mKeys.mRawSparse + oldCount,
                   oldCount
                );
-            });
+            };
 
             if (mValues.mEntry == oldVals.mEntry) {
                // Both keys and values remain in the same place         
                // Data was reused, but entries always move if sparse val
-               IF_LANGULUS_MANAGED_MEMORY(if constexpr (CT::Sparse<V>) {
+               if constexpr (CT::Sparse<V>) {
                   MoveMemory(
                      mValues.mRawSparse + count,
                      mValues.mRawSparse + oldCount,
                      oldCount
                   );
-               });
+               };
 
                Rehash(count, oldCount);
                return;

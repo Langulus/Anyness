@@ -36,10 +36,8 @@ namespace Langulus::Anyness
       // The value                                                      
       Conditional<EMBED, T*, T> mValue;
 
-      #if LANGULUS_FEATURE(MANAGED_MEMORY)
-         // The entry, enabled only when managed memory is enabled      
-         Conditional<EMBED && CT::Sparse<T>, Inner::Allocation**, Inner::Allocation*> mEntry;
-      #endif
+      // The entry                                                      
+      Conditional<EMBED && CT::Sparse<T>, Inner::Allocation**, Inner::Allocation*> mEntry;
       /// @endcond show_protected                                             
 
    public:
@@ -51,13 +49,9 @@ namespace Langulus::Anyness
       template<CT::Semantic S>
       constexpr Handle(S&&) noexcept requires (!EMBED);
 
-      #if LANGULUS_FEATURE(MANAGED_MEMORY)
-         constexpr Handle(T&, Inner::Allocation*&) SAFETY_NOEXCEPT() requires (EMBED && CT::Sparse<T>);
-         constexpr Handle(T&, Inner::Allocation*) SAFETY_NOEXCEPT() requires (EMBED && CT::Dense<T>);
-         constexpr Handle(T&&, Inner::Allocation* = nullptr) SAFETY_NOEXCEPT() requires (!EMBED);
-      #else
-         constexpr Handle(T&) noexcept requires (EMBED);
-      #endif
+      constexpr Handle(T&, Inner::Allocation*&) SAFETY_NOEXCEPT() requires (EMBED && CT::Sparse<T>);
+      constexpr Handle(T&, Inner::Allocation*) SAFETY_NOEXCEPT() requires (EMBED && CT::Dense<T>);
+      constexpr Handle(T&&, Inner::Allocation* = nullptr) SAFETY_NOEXCEPT() requires (!EMBED);
 
       constexpr Handle& operator = (const Handle&) noexcept = default;
       constexpr Handle& operator = (Handle&&) noexcept = default;
@@ -66,10 +60,7 @@ namespace Langulus::Anyness
       constexpr bool operator == (const Handle&) const noexcept requires (EMBED);
 
       NOD() T& Get() const noexcept;
-
-      #if LANGULUS_FEATURE(MANAGED_MEMORY)
-         NOD() Inner::Allocation*& GetEntry() const noexcept;
-      #endif
+      NOD() Inner::Allocation*& GetEntry() const noexcept;
 
       void New(T, Inner::Allocation* = nullptr) noexcept requires CT::Sparse<T>;
       void New(T&&, Inner::Allocation* = nullptr) noexcept requires CT::Dense<T>;
