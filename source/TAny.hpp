@@ -34,9 +34,6 @@ namespace Langulus::Anyness
    public:
       static constexpr bool Ownership = true;
 
-      static_assert(CT::Sparse<T> || CT::Insertable<T>,
-         "Dense contained type is not insertable");
-
       friend struct ::Langulus::Flow::Serializer;
       template<CT::Data, CT::Data>
       friend class TUnorderedMap;
@@ -55,12 +52,9 @@ namespace Langulus::Anyness
       TAny(const TAny&);
       TAny(TAny&&) noexcept;
 
-      template<CT::Deep ALT_T>
-      TAny(const ALT_T&);
-      template<CT::Deep ALT_T>
-      TAny(ALT_T&);
-      template<CT::Deep ALT_T>
-      TAny(ALT_T&&);
+      TAny(const CT::Deep auto&);
+      TAny(CT::Deep auto&);
+      TAny(CT::Deep auto&&);
       template<CT::Semantic S>
       TAny(S&&) requires (CT::Deep<TypeOf<S>>);
 
@@ -77,12 +71,9 @@ namespace Langulus::Anyness
       TAny& operator = (const TAny&);
       TAny& operator = (TAny&&);
 
-      template<CT::NotSemantic ALT_T>
-      TAny& operator = (const ALT_T&);
-      template<CT::NotSemantic ALT_T>
-      TAny& operator = (ALT_T&);
-      template<CT::NotSemantic ALT_T>
-      TAny& operator = (ALT_T&&);
+      TAny& operator = (const CT::NotSemantic auto&);
+      TAny& operator = (CT::NotSemantic auto&);
+      TAny& operator = (CT::NotSemantic auto&&);
 
       template<CT::Semantic S>
       TAny& operator = (S&&);
@@ -107,8 +98,7 @@ namespace Langulus::Anyness
       NOD() decltype(auto) GetHandle(Offset) SAFETY_NOEXCEPT();
       NOD() decltype(auto) GetHandle(Offset) const SAFETY_NOEXCEPT();
 
-      NOD() constexpr RTTI::AllocationRequest RequestSize(const Count&) const noexcept requires (CT::Fundamental<T> || CT::Exact<T, Byte>);
-      NOD() RTTI::AllocationRequest RequestSize(const Count&) const noexcept requires (!CT::Fundamental<T> && !CT::Exact<T, Byte>);
+      NOD() RTTI::AllocationRequest RequestSize(const Count&) const noexcept;
 
    private: TESTING(public:)
       using Any::GetRawSparse;
@@ -251,9 +241,9 @@ namespace Langulus::Anyness
       NOD() Index Find(const ALT_T&, const Offset& = 0) const;
 
       NOD() bool Compare(const TAny&) const noexcept;
-      NOD() bool CompareLoose(const TAny&) const noexcept requires CT::Character<T>;
+      NOD() bool CompareLoose(const TAny&) const noexcept;
       NOD() Count Matches(const TAny&) const noexcept;
-      NOD() Count MatchesLoose(const TAny&) const noexcept requires CT::Character<T>;
+      NOD() Count MatchesLoose(const TAny&) const noexcept;
 
       template<bool ASCEND = false>
       void Sort();

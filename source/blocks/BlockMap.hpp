@@ -341,7 +341,9 @@ namespace Langulus::CT
    
    /// Check if a type is a statically typed map                              
    template<class... T>
-   concept TypedMap = ((Map<T> && requires { typename T::Key; typename T::Value; }) && ...);
+   concept TypedMap = ((Map<T> && requires {
+         typename T::Key; typename T::Value; }
+      ) && ...);
 
 } // namespace Langulus::CT
 

@@ -54,7 +54,12 @@ namespace Langulus::Anyness
    template<CT::Semantic S>
    LANGULUS(ALWAYSINLINE)
    SHARED_POINTER()::TPointer(S&& other) {
-      if constexpr (CT::Exact<TypeOf<S>, TPointer>)
+      if constexpr (CT::Exact<TypeOf<S>, ::std::nullptr_t>) {
+         mValue = nullptr;
+         mEntry = nullptr;
+         return;
+      }
+      else if constexpr (CT::Exact<TypeOf<S>, TPointer>)
          GetHandle().New(S::Nest(other.mValue.GetHandle()));
       else
          GetHandle().New(other.Forward());
@@ -111,19 +116,6 @@ namespace Langulus::Anyness
       }
    }
 
-   /// Clone the pointer                                                      
-   ///   @return the cloned pointer                                           
-   TEMPLATE_SHARED()
-   LANGULUS(ALWAYSINLINE)
-   SHARED_POINTER() SHARED_POINTER()::Clone() const {
-      if constexpr (CT::CloneMakable<T>) {
-         if (mValue)
-            return Create(Langulus::Clone(*mValue));
-         return {};
-      }
-      else return *this;
-   }
-
    /// Copy a shared pointer                                                  
    ///   @param other - pointer to reference                                  
    TEMPLATE_SHARED()
@@ -163,7 +155,11 @@ namespace Langulus::Anyness
    template<CT::Semantic S>
    LANGULUS(ALWAYSINLINE)
    SHARED_POINTER()& SHARED_POINTER()::operator = (S&& rhs) {
-      if constexpr (CT::Exact<TypeOf<S>, TPointer>)
+      if constexpr (CT::Exact<TypeOf<S>, ::std::nullptr_t>) {
+         Reset();
+         return *this;
+      }
+      else if constexpr (CT::Exact<TypeOf<S>, TPointer>)
          GetHandle().Assign(S::Nest(rhs.mValue.GetHandle()));
       else
          GetHandle().Assign(rhs.Forward());

@@ -28,25 +28,22 @@ namespace Langulus::Anyness
    /// Manual trait construction by copy                                      
    ///   @tparam T - type of the contained data                               
    ///   @param data - data to copy inside trait                              
-   template<CT::NotSemantic T>
    LANGULUS(ALWAYSINLINE)
-   Trait::Trait(const T& data) requires NotRelated<T>
+   Trait::Trait(const CT::NotSemantic auto& data)
       : Trait {Langulus::Copy(data)} {}
 
    /// Manual trait construction by copy                                      
    ///   @tparam T - type of the contained data                               
    ///   @param data - data to copy inside trait                              
-   template<CT::NotSemantic T>
    LANGULUS(ALWAYSINLINE)
-   Trait::Trait(T& data) requires NotRelated<T>
+   Trait::Trait(CT::NotSemantic auto& data)
       : Trait {Langulus::Copy(data)} {}
 
    /// Manual trait construction by movement                                  
    ///   @tparam T - type of the contained data                               
    ///   @param data - data to move inside trait                              
-   template<CT::NotSemantic T>
    LANGULUS(ALWAYSINLINE)
-   Trait::Trait(T&& data) requires NotRelated<T>
+   Trait::Trait(CT::NotSemantic auto&& data)
       : Trait {Langulus::Move(data)} {}
 
    /// Semantic trait construction                                            
@@ -54,41 +51,13 @@ namespace Langulus::Anyness
    ///   @param data - data to move inside trait                              
    template<CT::Semantic S>
    LANGULUS(ALWAYSINLINE)
-   Trait::Trait(S&& data) requires NotRelated<TypeOf<S>>
-      : Any {data.Forward()} {}
-   
-   /// Manual trait construction by copy                                      
-   ///   @tparam T - type of the contained data                               
-   ///   @param data - data to copy inside trait                              
-   template<CT::NotSemantic T>
-   LANGULUS(ALWAYSINLINE)
-   Trait::Trait(const T& data) requires Related<T>
-      : Trait {Langulus::Copy(data)} {}
-
-   /// Manual trait construction by copy                                      
-   ///   @tparam T - type of the contained data                               
-   ///   @param data - data to copy inside trait                              
-   template<CT::NotSemantic T>
-   LANGULUS(ALWAYSINLINE)
-   Trait::Trait(T& data) requires Related<T>
-      : Trait {Langulus::Copy(data)} {}
-
-   /// Manual trait construction by movement                                  
-   ///   @tparam T - type of the contained data                               
-   ///   @param data - data to move inside trait                              
-   template<CT::NotSemantic T>
-   LANGULUS(ALWAYSINLINE)
-   Trait::Trait(T&& data) requires Related<T>
-      : Trait {Langulus::Move(data)} {}
-
-   /// Semantic trait construction                                            
-   ///   @tparam T - type of the contained data                               
-   ///   @param data - data to move inside trait                              
-   template<CT::Semantic S>
-   LANGULUS(ALWAYSINLINE)
-   Trait::Trait(S&& data) requires Related<TypeOf<S>>
-      : Any {data.template Forward<Any>()}
-      , mTraitType {data.mValue.GetTrait()} {}
+   Trait::Trait(S&& data)
+      : Any {CT::Trait<TypeOf<S>>
+         ? Any {data.template Forward<Any>()}
+         : Any {data.Forward()}} {
+      if constexpr (CT::Trait<TypeOf<S>>)
+         mTraitType = data.mValue.GetTrait();
+   }
 
    /// Pack any number of elements sequentially                               
    /// If any of the types doesn't match exactly, the container becomes deep  

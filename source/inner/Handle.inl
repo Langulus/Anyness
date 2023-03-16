@@ -288,6 +288,11 @@ namespace Langulus::Anyness
                   GetEntry()->Keep();
             }
          }
+         else if constexpr (CT::Sparse<T> && CT::Exact<ST, ::std::nullptr_t>) {
+            // RHS is a simple nullptr                                  
+            Get() = nullptr;
+            GetEntry() = nullptr;
+         }
          else {
             // RHS is not a handle, but we'll wrap it in a handle, in   
             // order to find its entry (if managed memory is enabled)   

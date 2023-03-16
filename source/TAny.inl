@@ -46,24 +46,21 @@ namespace Langulus::Anyness
    /// runtime type-checking overhead                                         
    ///   @param other - the anyness to reference                              
    TEMPLATE()
-   template<CT::Deep ALT_T>
    LANGULUS(ALWAYSINLINE)
-   TAny<T>::TAny(const ALT_T& other)
+   TAny<T>::TAny(const CT::Deep auto& other)
       : TAny {Langulus::Copy(other)} {}
 
    TEMPLATE()
-   template<CT::Deep ALT_T>
    LANGULUS(ALWAYSINLINE)
-   TAny<T>::TAny(ALT_T& other)
+   TAny<T>::TAny(CT::Deep auto& other)
       : TAny {Langulus::Copy(other)} {}
 
    /// Move-construction from any deep container, with a bit of               
    /// runtime type-checking overhead                                         
    ///   @param other - the anyness to reference                              
    TEMPLATE()
-   template<CT::Deep ALT_T>
    LANGULUS(ALWAYSINLINE)
-   TAny<T>::TAny(ALT_T&& other)
+   TAny<T>::TAny(CT::Deep auto&& other)
       : TAny {Langulus::Move(other)} {}
 
    /// Semantic construction from any container                               
@@ -543,23 +540,16 @@ namespace Langulus::Anyness
    ///   @returns both the provided byte size and reserved count              
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
-   constexpr RTTI::AllocationRequest TAny<T>::RequestSize(const Count& count) const noexcept requires (CT::Fundamental<T> || CT::Exact<T, Byte>) {
-      RTTI::AllocationRequest result;
-      result.mByteSize = ::std::max(Roof2(count * sizeof(T)), Alignment);
-      result.mElementCount = result.mByteSize / sizeof(T);
-      return result;
+   RTTI::AllocationRequest TAny<T>::RequestSize(const Count& count) const noexcept {
+      if constexpr (CT::Fundamental<T> || CT::Exact<T, Byte>) {
+         RTTI::AllocationRequest result;
+         result.mByteSize = ::std::max(Roof2(count * sizeof(T)), Alignment);
+         result.mElementCount = result.mByteSize / sizeof(T);
+         return result;
+      }
+      else return GetType()->RequestSize(count);
    }
    
-   /// Get a size based on reflected allocation page and count                
-   /// Implicitly makes sure that the type of block is set prior              
-   ///   @param count - the number of elements to request                     
-   ///   @returns both the provided byte size and reserved count              
-   TEMPLATE()
-   LANGULUS(ALWAYSINLINE)
-   RTTI::AllocationRequest TAny<T>::RequestSize(const Count& count) const noexcept requires (!CT::Fundamental<T> && !CT::Exact<T, Byte>) {
-      return GetType()->RequestSize(count);
-   }
-
    /// Get an element in the way you want (const, unsafe)                     
    /// This is a statically optimized variant of Block::Get                   
    TEMPLATE()
@@ -1763,17 +1753,22 @@ namespace Langulus::Anyness
    ///   @param other - text to compare with                                  
    ///   @return true if both containers match loosely                        
    TEMPLATE()
-   bool TAny<T>::CompareLoose(const TAny& other) const noexcept requires CT::Character<T> {
-      if (mRaw == other.mRaw)
-         return mCount == other.mCount;
-      else if (mCount != other.mCount)
-         return false;
+   bool TAny<T>::CompareLoose(const TAny& other) const noexcept {
+      if constexpr (!CT::Character<T>) {
+         return Compare(other);
+      }
+      else {
+         if (mRaw == other.mRaw)
+            return mCount == other.mCount;
+         else if (mCount != other.mCount)
+            return false;
 
-      auto t1 = GetRaw();
-      auto t2 = other.GetRaw();
-      while (t1 < GetRawEnd() && ::std::tolower(*t1) == ::std::tolower(*(t2++)))
-         ++t1;
-      return (t1 - GetRaw()) == mCount;
+         auto t1 = GetRaw();
+         auto t2 = other.GetRaw();
+         while (t1 < GetRawEnd() && ::std::tolower(*t1) == ::std::tolower(*(t2++)))
+            ++t1;
+         return (t1 - GetRaw()) == mCount;
+      }
    }
 
    /// Count how many consecutive elements match in two containers            
@@ -1805,17 +1800,22 @@ namespace Langulus::Anyness
    ///   @param other - text to compare with                                  
    ///   @return the number of matching symbols                               
    TEMPLATE()
-   Count TAny<T>::MatchesLoose(const TAny& other) const noexcept requires CT::Character<T> {
-      if (mRaw == other.mRaw)
-         return ::std::min(mCount, other.mCount);
+   Count TAny<T>::MatchesLoose(const TAny& other) const noexcept {
+      if constexpr (!CT::Character<T>) {
+         return Compare(other);
+      }
+      else {
+         if (mRaw == other.mRaw)
+            return ::std::min(mCount, other.mCount);
 
-      auto t1 = GetRaw();
-      auto t2 = other.GetRaw();
-      const auto t1end = GetRawEnd();
-      const auto t2end = other.GetRawEnd();
-      while (t1 != t1end && t2 != t2end && ::std::tolower(*t1) == ::std::tolower(*(t2++)))
-         ++t1;
-      return t1 - GetRaw();
+         auto t1 = GetRaw();
+         auto t2 = other.GetRaw();
+         const auto t1end = GetRawEnd();
+         const auto t2end = other.GetRawEnd();
+         while (t1 != t1end && t2 != t2end && ::std::tolower(*t1) == ::std::tolower(*(t2++)))
+            ++t1;
+         return t1 - GetRaw();
+      }
    }
 
 

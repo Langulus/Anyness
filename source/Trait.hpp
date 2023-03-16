@@ -28,37 +28,18 @@ namespace Langulus::Anyness
    private:
       TMeta mTraitType {};
 
-   protected:
-      template<class T>
-      static constexpr bool NotRelated = CT::Sparse<T> || !CT::DerivedFrom<T, Trait>;
-      template<class T>
-      static constexpr bool Related = CT::Dense<T> && CT::DerivedFrom<T, Trait>;
-
    public:
       constexpr Trait() noexcept = default;
 
       Trait(const Trait&);
       Trait(Trait&&) noexcept;
 
-      template<CT::NotSemantic T>
-      Trait(const T&) requires Related<T>;
-      template<CT::NotSemantic T>
-      Trait(T&) requires Related<T>;
-      template<CT::NotSemantic T>
-      Trait(T&&) requires Related<T>;
+      Trait(const CT::NotSemantic auto&);
+      Trait(CT::NotSemantic auto&);
+      Trait(CT::NotSemantic auto&&);
 
       template<CT::Semantic S>
-      Trait(S&&) requires Related<TypeOf<S>>;
-
-      template<CT::NotSemantic T>
-      Trait(const T&) requires NotRelated<T>;
-      template<CT::NotSemantic T>
-      Trait(T&) requires NotRelated<T>;
-      template<CT::NotSemantic T>
-      Trait(T&&) requires NotRelated<T>;
-
-      template<CT::Semantic S>
-      Trait(S&&) requires NotRelated<TypeOf<S>>;
+      Trait(S&&);
 
       template<CT::Data HEAD, CT::Data... TAIL>
       Trait(HEAD&&, TAIL&&...) requires (sizeof...(TAIL) >= 1);
