@@ -56,8 +56,7 @@ namespace Langulus::Anyness
       template<CT::Semantic S>
       constexpr TOwned& operator = (S&&);
 
-      NOD() Hash GetHash() const requires (CT::Hashable<T>);
-      NOD() Hash GetHash() const requires (!CT::Hashable<T> && CT::Sparse<T>);
+      NOD() Hash GetHash() const;
 
       NOD() decltype(auto) Get() const noexcept;
       NOD() decltype(auto) Get() noexcept;

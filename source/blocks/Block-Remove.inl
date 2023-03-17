@@ -316,38 +316,16 @@ namespace Langulus::Anyness
          IsExact<T>() || mType->template HasDerivation<T>(),
          "T isn't related to contained type");
 
-      using DT = Decay<T>;
       const auto mthis = const_cast<Block*>(this);
-      constexpr bool destroy = !CT::POD<T> && CT::Destroyable<T>;
-      if constexpr (CT::Sparse<T> && CT::Dense<Deptr<T>>) {
-         #if LANGULUS_FEATURE(MANAGED_MEMORY)
-            // We dereference each pointer - destructors will be called 
-            // if data behind these pointers is fully dereferenced, too 
-            auto data = mthis->GetRawSparse();
-            auto dataEntry = mthis->GetEntries();
-            const auto dataEnd = data + mCount;
-            while (data != dataEnd) {
-               auto entry = *dataEntry;
-               if (entry) {
-                  if (entry->GetUses() == 1) {
-                     if (destroy)
-                        reinterpret_cast<T>(*data)->~DT();
-                     Inner::Allocator::Deallocate(entry);
-                  }
-                  else entry->Free();
-               }
-
-               ++data;
-               ++dataEntry;
-            }
-         #endif
+      if constexpr (CT::Sparse<T>) {
+         auto handle = GetHandle<T>(0);
+         const auto handleEnd = handle.mValue + mCount;
+         while (handle != handleEnd)
+            (handle++).Destroy();
       }
-      else if constexpr (CT::Sparse<T>) {
-         // Destroy each indirection layer                              
-         TODO();
-      }
-      else if constexpr (destroy) {
+      else if constexpr (!CT::POD<T> && CT::Destroyable<T>) {
          // Destroy every dense element                                 
+         using DT = Decay<T>;
          auto data = mthis->template GetRawAs<T>();
          const auto dataEnd = data + mCount;
          while (data != dataEnd)

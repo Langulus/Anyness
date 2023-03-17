@@ -426,7 +426,6 @@ namespace Langulus::Anyness
    template<bool RESET>
    LANGULUS(ALWAYSINLINE)
    void HAND()::Destroy() const {
-      #if LANGULUS_FEATURE(MANAGED_MEMORY)
       if constexpr (CT::Sparse<T>) {
          if (GetEntry()) {
             if (1 == GetEntry()->GetUses()) {
@@ -448,7 +447,6 @@ namespace Langulus::Anyness
             else GetEntry()->Free();
          }
       }
-      #endif
 
       if constexpr (RESET && CT::Sparse<T>)
          New(nullptr, nullptr);

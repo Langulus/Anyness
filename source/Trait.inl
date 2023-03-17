@@ -51,12 +51,24 @@ namespace Langulus::Anyness
    ///   @param data - data to move inside trait                              
    template<CT::Semantic S>
    LANGULUS(ALWAYSINLINE)
-   Trait::Trait(S&& data)
-      : Any {CT::Trait<TypeOf<S>>
-         ? Any {data.template Forward<Any>()}
-         : Any {data.Forward()}} {
-      if constexpr (CT::Trait<TypeOf<S>>)
+   Trait::Trait(S&& data) {
+      using T = TypeOf<S>;
+
+      if constexpr (CT::Trait<T>) {
+         BlockTransfer<Any>(data.template Forward<Any>());
          mTraitType = data.mValue.GetTrait();
+      }
+      else if constexpr (CT::Deep<T>) {
+         // Copy/Disown/Move/Abandon/Clone a deep container             
+         BlockTransfer<Any>(data.Forward());
+      }
+      else if constexpr (CT::CustomData<T>) {
+         // Copy/Disown/Move/Abandon/Clone an element                   
+         SetType<T, false>();
+         AllocateFresh(RequestSize(1));
+         InsertInner(data.Forward(), 0);
+      }
+      else LANGULUS_ERROR("Bad semantic constructor argument");
    }
 
    /// Pack any number of elements sequentially                               
