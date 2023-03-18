@@ -435,14 +435,19 @@ namespace Langulus::Anyness
                LANGULUS_ASSUME(DevAssumes, Get(), "Null pointer");
 
                if constexpr (CT::Sparse<Deptr<T>>) {
+                  // Pointer to pointer                                 
                   // Release all nested indirection layers              
                   HandleLocal<Deptr<T>> {
                      Langulus::Copy(*Get())
                   }.Destroy();
                }
-               else if constexpr (CT::Complete<Decay<T>> && CT::Destroyable<T>) {
-                  // Call the destructor                                
-                  Get()->~Decay<T>();
+               else if constexpr (CT::Complete<Decay<T>>) {
+                  if constexpr (!CT::POD<T> && CT::Destroyable<T>) {
+                     // Pointer to a complete, destroyable dense        
+                     // Call the destructor                             
+                     using DT = Decay<T>;
+                     Get()->~DT();
+                  }
                }
 
                Inner::Allocator::Deallocate(GetEntry());
@@ -460,6 +465,7 @@ namespace Langulus::Anyness
    /// Does absolutely nothing for dense handles, they are destroyed when     
    /// handle is destroyed                                                    
    ///   @tparam RESET - whether or not to reset pointers to null             
+   ///   @param meta - the true type behind the Byte pointer in handle        
    TEMPLATE()
    template<bool RESET>
    void HAND()::DestroyUnknown(DMeta meta) const {
@@ -477,7 +483,7 @@ namespace Langulus::Anyness
                      Langulus::Copy(*reinterpret_cast<Byte**>(Get()))
                   }.DestroyUnknown(meta->mDeptr);
                }
-               else if (meta->mDeptr->mDestructor) {
+               else if (!meta->mIsPOD && meta->mDeptr->mDestructor) {
                   // Call the destructor                                
                   meta->mDeptr->mDestructor(Get());
                }

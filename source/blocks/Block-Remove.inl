@@ -282,18 +282,21 @@ namespace Langulus::Anyness
 
       const auto mthis = const_cast<Block*>(this);
       if constexpr (CT::Sparse<T>) {
+         // Destroy all indirection layers                              
          auto handle = GetHandle<T>(0);
          const auto handleEnd = handle.mValue + mCount;
          while (handle != handleEnd)
             (handle++).Destroy();
       }
-      else if constexpr (!CT::POD<T> && CT::Destroyable<T>) {
-         // Destroy every dense element                                 
-         using DT = Decay<T>;
-         auto data = mthis->template GetRawAs<T>();
-         const auto dataEnd = data + mCount;
-         while (data != dataEnd)
-            (data++)->~DT();
+      else if constexpr (CT::Complete<Decay<T>>) {
+         if constexpr (!CT::POD<T> && CT::Destroyable<T>) {
+            // Destroy every dense element                              
+            using DT = Decay<T>;
+            auto data = mthis->template GetRawAs<T>();
+            const auto dataEnd = data + mCount;
+            while (data != dataEnd)
+               (data++)->~DT();
+         }
       }
 
       // Always nullify upon destruction only if we're paranoid         
