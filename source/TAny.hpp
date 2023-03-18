@@ -52,16 +52,11 @@ namespace Langulus::Anyness
       TAny(const TAny&);
       TAny(TAny&&) noexcept;
 
-      TAny(const CT::Deep auto&);
-      TAny(CT::Deep auto&);
-      TAny(CT::Deep auto&&);
+      TAny(const CT::NotSemantic auto&);
+      TAny(CT::NotSemantic auto&);
+      TAny(CT::NotSemantic auto&&);
       template<CT::Semantic S>
-      TAny(S&&) requires (CT::Deep<TypeOf<S>>);
-
-      TAny(const T&) requires CT::CustomData<T>;
-      TAny(T&&) requires CT::CustomData<T>;
-      template<CT::Semantic S>
-      TAny(S&&) requires (CT::CustomData<TypeOf<S>>);
+      TAny(S&&);
 
       template<CT::Data HEAD, CT::Data... TAIL>
       TAny(HEAD&&, TAIL&&...) requires (sizeof...(TAIL) >= 1);
