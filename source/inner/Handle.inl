@@ -440,7 +440,7 @@ namespace Langulus::Anyness
                      Langulus::Copy(*Get())
                   }.Destroy();
                }
-               else if constexpr (CT::Destroyable<T>) {
+               else if constexpr (CT::Complete<Decay<T>> && CT::Destroyable<T>) {
                   // Call the destructor                                
                   Get()->~Decay<T>();
                }
