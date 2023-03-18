@@ -1538,6 +1538,7 @@ namespace Langulus::Anyness
                mEntry
             );
             LANGULUS_ASSERT(mEntry, Allocate, "Out of memory");
+            mReserved = request.mElementCount;
 
             if (mEntry != previousBlock.mEntry) {
                // Memory moved, and we should move all elements in it   
@@ -1558,8 +1559,7 @@ namespace Langulus::Anyness
                if constexpr (CT::Sparse<T>) {
                   // Move entry data to its new place                   
                   MoveMemory(
-                     mRawSparse + request.mElementCount,
-                     mRawSparse + mReserved, mCount
+                     GetEntries(), previousBlock.GetEntries(), mCount
                   );
                }
             }
@@ -1598,7 +1598,6 @@ namespace Langulus::Anyness
       
       if constexpr (CREATE || SETSIZE)
          mCount = elements;
-      mReserved = request.mElementCount;
    }
    
    /// Shrink the block, depending on currently reserved	elements             

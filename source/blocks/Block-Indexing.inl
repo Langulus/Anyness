@@ -438,7 +438,7 @@ namespace Langulus::Anyness
          LANGULUS_ASSERT(copy.mType->mDeptr, Access,
             "Trying to interface incomplete data as dense");
 
-         IF_LANGULUS_MANAGED_MEMORY(copy.mEntry = *GetEntries());
+         copy.mEntry = *GetEntries();
          copy.mRaw = *GetRawSparse();
          copy.mType = copy.mType->mDeptr;
          --counter;
@@ -596,7 +596,9 @@ namespace Langulus::Anyness
    }
    
    /// Return a handle to an element                                          
-   ///   @tparam T - the contained type, or alternatively a Byte*             
+   ///   @tparam T - the contained type, or alternatively a Byte* for sparse  
+   ///               unknowns; Byte for dense unknowns                        
+   ///   @attention you must iterate handle differently if handling uknowns   
    ///   @param index - the element index                                     
    ///   @return the handle                                                   
    template<CT::Data T>

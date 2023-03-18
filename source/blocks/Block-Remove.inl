@@ -244,59 +244,23 @@ namespace Langulus::Anyness
       LANGULUS_ASSUME(DevAssumes, IsTyped(),
          "Container has no type");
 
-      const bool destroy = !mType->mIsPOD && mType->mDestructor;
-      if (mType->mIsSparse && !mType->mDeptr->mIsSparse) {
-         // We dereference each pointer - destructors will be called    
-         // if data behind these pointers is fully dereferenced, too    
-         #if LANGULUS_FEATURE(MANAGED_MEMORY)
-            const auto mthis = const_cast<Block*>(this);
-            auto data = mthis->GetRawSparse();
-            auto dataEntry = mthis->GetEntries();
-            const auto dataEnd = data + mCount;
-            if (destroy) {
-               while (data != dataEnd) {
-                  auto entry = *dataEntry;
-                  if (entry) {
-                     if (entry->GetUses() == 1) {
-                        mType->mDeptr->mDestructor(*data);
-                        Inner::Allocator::Deallocate(entry);
-                     }
-                     else entry->Free();
-                  }
-
-                  ++data;
-                  ++dataEntry;
-               }
-            }
-            else {
-               while (data != dataEnd) {
-                  auto entry = *dataEntry;
-                  if (entry) {
-                     if (entry->GetUses() == 1)
-                        Inner::Allocator::Deallocate(entry);
-                     else
-                        entry->Free();
-                  }
-
-                  ++data;
-                  ++dataEntry;
-               }
-            }
-         #endif
+      const auto mthis = const_cast<Block*>(this);
+      if (mType->mIsSparse) {
+         // Destroy every sparse element                                
+         auto handle = mthis->template GetHandle<Byte*>(0);
+         const auto handleEnd = handle.mValue + mCount;
+         while (handle != handleEnd) {
+            handle.DestroyUnknown(mType);
+            ++handle;
+         }
       }
-      else if (mType->mIsSparse) {
-         // Destroy each indirection layer                              
-         TODO();
-      }
-      else if (destroy) {
-         // Destroy every dense element, one by one, using the          
-         // reflected destructors (if any)                              
-         auto data = mRaw;
-         const auto dataStride = mType->mSize;
-         const auto dataEnd = data + mCount * dataStride;
+      else if (!mType->mIsPOD && mType->mDestructor) {
+         // Destroy every dense element                                 
+         auto data = mthis->GetRaw();
+         const auto dataEnd = data + mType->mSize * mCount;
          while (data != dataEnd) {
             mType->mDestructor(data);
-            data += dataStride;
+            data += mType->mSize;
          }
       }
 

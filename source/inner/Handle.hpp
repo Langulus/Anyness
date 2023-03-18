@@ -93,6 +93,8 @@ namespace Langulus::Anyness
 
       template<bool RESET = false>
       void Destroy() const;
+      template<bool RESET = false>
+      void DestroyUnknown(DMeta) const;
    };
    
    template<class T>

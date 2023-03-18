@@ -557,13 +557,13 @@ namespace Langulus::Anyness
             ZeroMemory(mInfo + oldCount, count - oldCount);
 
             // Data was reused, but entries always move if sparse keys  
-            IF_LANGULUS_MANAGED_MEMORY(if (mKeys.IsSparse()) {
+            if (mKeys.IsSparse()) {
                MoveMemory(
                   mKeys.mRawSparse + count,
                   mKeys.mRawSparse + oldCount,
                   oldCount
                );
-            });
+            };
 
             Rehash(count, oldCount);
          }

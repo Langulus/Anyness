@@ -347,10 +347,8 @@ namespace Langulus::Anyness
    LANGULUS(ALWAYSINLINE)
    Size TABLE()::RequestKeyAndInfoSize(const Count count, Offset& infoStart) noexcept {
       Size keymemory = count * sizeof(T);
-      IF_LANGULUS_MANAGED_MEMORY(
-         if constexpr (CT::Sparse<T>)
-            keymemory *= 2;
-      );
+      if constexpr (CT::Sparse<T>)
+         keymemory *= 2;
       infoStart = keymemory + Alignment - (keymemory % Alignment);
       return infoStart + count + 1;
    }
@@ -429,13 +427,13 @@ namespace Langulus::Anyness
             ZeroMemory(mInfo + oldCount, count - oldCount);
 
             // Data was reused, but entries always move if sparse keys  
-            IF_LANGULUS_MANAGED_MEMORY(if constexpr (CT::Sparse<T>) {
+            if constexpr (CT::Sparse<T>) {
                MoveMemory(
                   mKeys.mRawSparse + count,
                   mKeys.mRawSparse + oldCount,
                   oldCount
                );
-            });
+            };
 
             Rehash(count, oldCount);
          }

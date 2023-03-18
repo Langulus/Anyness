@@ -82,8 +82,8 @@ namespace Langulus::Anyness
          Trim(elements);
       }
 
-      // Shrink the memory block                                        
       #if LANGULUS_FEATURE(MANAGED_MEMORY)
+         // Shrink the memory block                                     
          const auto request = RequestSize(elements);
          if (mType->mIsSparse) {
             // Move entry data to its new place                         

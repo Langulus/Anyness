@@ -122,7 +122,8 @@ namespace Langulus::Anyness
    LANGULUS(ALWAYSINLINE)
    HAND()& HAND()::operator ++ () noexcept requires (EMBED) {
       ++mValue;
-      IF_LANGULUS_MANAGED_MEMORY(if constexpr (CT::Sparse<T>) ++mEntry);
+      if constexpr (CT::Sparse<T>)
+         ++mEntry;
       return *this;
    }
 
@@ -132,7 +133,8 @@ namespace Langulus::Anyness
    LANGULUS(ALWAYSINLINE)
    HAND()& HAND()::operator -- () noexcept requires (EMBED) {
       --mValue;
-      IF_LANGULUS_MANAGED_MEMORY(if constexpr (CT::Sparse<T>) --mEntry);
+      if constexpr (CT::Sparse<T>)
+         --mEntry;
       return *this;
    }
       
@@ -142,7 +144,8 @@ namespace Langulus::Anyness
    LANGULUS(ALWAYSINLINE)
    HAND()& HAND()::operator += (Offset offset) noexcept requires (EMBED) {
       mValue += offset;
-      IF_LANGULUS_MANAGED_MEMORY(if constexpr (CT::Sparse<T>) mEntry += offset);
+      if constexpr (CT::Sparse<T>)
+         mEntry += offset;
       return *this;
    }
 
@@ -152,7 +155,8 @@ namespace Langulus::Anyness
    LANGULUS(ALWAYSINLINE)
    HAND()& HAND()::operator -= (Offset offset) noexcept requires (EMBED) {
       mValue -= offset;
-      IF_LANGULUS_MANAGED_MEMORY(if constexpr (CT::Sparse<T>) mEntry -= offset);
+      if constexpr (CT::Sparse<T>)
+         mEntry -= offset;
       return *this;
    }
 
@@ -219,17 +223,17 @@ namespace Langulus::Anyness
    /// Assign a new pointer and entry at the handle                           
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
-   void HAND()::New(T pointer, Inner::Allocation* IF_LANGULUS_MANAGED_MEMORY(entry)) noexcept requires CT::Sparse<T> {
+   void HAND()::New(T pointer, Inner::Allocation* entry) noexcept requires CT::Sparse<T> {
       Get() = pointer;
-      IF_LANGULUS_MANAGED_MEMORY(GetEntry() = entry);
+      GetEntry() = entry;
    }
    
    /// Assign a new pointer and entry at the handle                           
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
-   void HAND()::New(T&& pointer, Inner::Allocation* IF_LANGULUS_MANAGED_MEMORY(entry)) noexcept requires CT::Dense<T> {
+   void HAND()::New(T&& pointer, Inner::Allocation* entry) noexcept requires CT::Dense<T> {
       Get() = Forward<T>(pointer);
-      IF_LANGULUS_MANAGED_MEMORY(GetEntry() = entry);
+      GetEntry() = entry;
    }
 
    /// Semantically assign anything at the handle, ignoring the old handle    
@@ -446,10 +450,48 @@ namespace Langulus::Anyness
             }
             else GetEntry()->Free();
          }
-      }
 
-      if constexpr (RESET && CT::Sparse<T>)
-         New(nullptr, nullptr);
+         if constexpr (RESET)
+            New(nullptr, nullptr);
+      }
+   }
+   
+   /// Reset the handle, by dereferencing entry, and destroying value, if     
+   /// entry has been fully dereferenced                                      
+   /// Does absolutely nothing for dense handles, they are destroyed when     
+   /// handle is destroyed                                                    
+   ///   @tparam RESET - whether or not to reset pointers to null             
+   TEMPLATE()
+   template<bool RESET>
+   LANGULUS(ALWAYSINLINE)
+   void HAND()::DestroyUnknown(DMeta meta) const {
+      if constexpr (CT::Sparse<T>) {
+         LANGULUS_ASSUME(DevAssumes, meta->mIsSparse,
+            "Provided meta must match T sparseness");
+
+         if (GetEntry()) {
+            if (1 == GetEntry()->GetUses()) {
+               LANGULUS_ASSUME(DevAssumes, Get(), "Null pointer");
+
+               if (meta->mDeptr->mIsSparse) {
+                  // Release all nested indirection layers              
+                  HandleLocal<Byte*> {
+                     Langulus::Copy(*reinterpret_cast<Byte**>(Get()))
+                  }.DestroyUnknown(meta->mDeptr);
+               }
+               else if (meta->mDeptr->mDestructor) {
+                  // Call the destructor                                
+                  meta->mDeptr->mDestructor(Get());
+               }
+
+               Inner::Allocator::Deallocate(GetEntry());
+            }
+            else GetEntry()->Free();
+         }
+
+         if constexpr (RESET)
+            New(nullptr, nullptr);
+      }
    }
 
 } // namespace Langulus::Anyness
