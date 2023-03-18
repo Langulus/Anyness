@@ -428,7 +428,6 @@ namespace Langulus::Anyness
    ///   @tparam RESET - whether or not to reset pointers to null             
    TEMPLATE()
    template<bool RESET>
-   LANGULUS(ALWAYSINLINE)
    void HAND()::Destroy() const {
       if constexpr (CT::Sparse<T>) {
          if (GetEntry()) {
@@ -463,7 +462,6 @@ namespace Langulus::Anyness
    ///   @tparam RESET - whether or not to reset pointers to null             
    TEMPLATE()
    template<bool RESET>
-   LANGULUS(ALWAYSINLINE)
    void HAND()::DestroyUnknown(DMeta meta) const {
       if constexpr (CT::Sparse<T>) {
          LANGULUS_ASSUME(DevAssumes, meta->mIsSparse,
