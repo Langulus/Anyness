@@ -27,6 +27,8 @@ namespace Langulus::Anyness
       template<CT::Semantic S>
       static constexpr bool RawTextPointer = CT::Same<TypeOf<S>, Letter> && CT::Sparse<TypeOf<S>>;
 
+      using Base::TAny;
+
    public:
       constexpr Text() = default;
 
@@ -122,9 +124,8 @@ namespace Langulus::Anyness
    /// Text container specialized for logging                                 
    /// Serializing to text might produce a lot of unncessesary text, so this  
    /// differentiation is quite handy                                         
-   class Debug : public Text {
+   struct Debug : Text {
       LANGULUS_BASES(Text);
-   public:
       using Text::Text;
       using Text::operator +=;
    };
