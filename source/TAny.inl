@@ -70,12 +70,14 @@ namespace Langulus::Anyness
    template<CT::Semantic S>
    LANGULUS(ALWAYSINLINE)
    TAny<T>::TAny(S&& other) : TAny {} {
-      if constexpr (CT::Deep<TypeOf<S>>) {
-         using Container = TypeOf<S>;
+      using ST = TypeOf<S>;
+
+      if constexpr (CT::Deep<ST> || CT::DerivedFrom<ST, TAny<T>>) {
+         // Constructing using either deep, or derived from this TAny   
          mType = MetaData::Of<T>();
 
-         if constexpr (!CT::Typed<Container>) {
-            // Container is not statically typed, do runtime type checks
+         if constexpr (!CT::Typed<ST>) {
+            // Container is type-erased, do runtime type checks         
             if (mType->IsExact(other.mValue.GetType())) {
                // If types are exactly the same, it is safe to directly 
                // transfer the block                                    
@@ -91,7 +93,8 @@ namespace Langulus::Anyness
             TODO();
          }
          else {
-            using ContainedType = TypeOf<Container>;
+            // Container is not type-erased, do compile-time checks     
+            using ContainedType = TypeOf<ST>;
 
             if constexpr (CT::Exact<T, ContainedType>) {
                // If types are exactly the same, it is safe to directly 
@@ -115,6 +118,7 @@ namespace Langulus::Anyness
                // The statically typed 'other' contains items that are  
                // derived from this container's type. Each element      
                // should be down casted to this type                    
+               //TODO questionable slicing
                if constexpr (CT::Sparse<T> && CT::Sparse<ContainedType>) {
                   for (auto pointer : other.mValue)
                      (*this) << static_cast<T>(&(*pointer));
@@ -124,11 +128,19 @@ namespace Langulus::Anyness
             else LANGULUS_ERROR("Bad semantic-construction");
          }
       }
-      else if constexpr (CT::Exact<T, TypeOf<S>>) {
-         // Copy/Disown/Move/Abandon/Clone an element                   
+      else if constexpr (CT::Exact<T, ST>) {
+         // Copy/Disown/Move/Abandon/Clone a compatible element         
          mType = MetaData::Of<T>();
          AllocateFresh(RequestSize(1));
          InsertInner(other.Forward(), 0);
+      }
+      else if constexpr (CT::BuiltinCharacter<T> && CT::Exact<ST, ::std::basic_string_view<T>>) {
+         // Integration with std::string_view - clone its contents if   
+         // compatible with this TAny                                   
+         mType = MetaData::Of<T>();
+         const auto count = other.mValue.size();
+         AllocateFresh(RequestSize(count));
+         InsertInner<Copied<T>>(other.mValue.data(), other.mValue.data() + count, 0);
       }
       else LANGULUS_ERROR("Bad semantic construction");
    }
@@ -1803,50 +1815,6 @@ namespace Langulus::Anyness
          return t1 - GetRaw();
       }
    }
-
-
-
-   ///                                                                        
-   ///   Concatenation                                                        
-   ///                                                                        
-
-   /// Copy-concatenate with another TAny                                     
-   ///   @param rhs - the right operand                                       
-   ///   @return the combined container                                       
-   TEMPLATE()
-   LANGULUS(ALWAYSINLINE)
-   TAny<T> TAny<T>::operator + (const TAny& rhs) const {
-      return Concatenate<TAny>(Langulus::Copy(rhs));
-   }
-
-   /// Move-concatenate with another TAny                                     
-   ///   @param rhs - the right operand                                       
-   ///   @return the combined container                                       
-   TEMPLATE()
-   LANGULUS(ALWAYSINLINE)
-   TAny<T> TAny<T>::operator + (TAny&& rhs) const {
-      return Concatenate<TAny>(Langulus::Move(rhs));
-   }
-
-   /// Destructive copy-concatenate with another TAny                         
-   ///   @param rhs - the right operand                                       
-   ///   @return a reference to this modified container                       
-   TEMPLATE()
-   LANGULUS(ALWAYSINLINE)
-   TAny<T>& TAny<T>::operator += (const TAny& rhs) {
-      InsertBlock(Langulus::Copy(rhs));
-      return *this;
-   }
-
-   /// Destructive move-concatenate with any deep type                        
-   ///   @param rhs - the right operand                                       
-   ///   @return a reference to this modified container                       
-   TEMPLATE()
-   LANGULUS(ALWAYSINLINE)
-   TAny<T>& TAny<T>::operator += (TAny&& rhs) {
-      InsertBlock(Langulus::Move(rhs));
-      return *this;
-   }
   
    /// Get iterator to first element                                          
    ///   @return an iterator to the first element, or end if empty            
@@ -1890,6 +1858,123 @@ namespace Langulus::Anyness
       return {IsEmpty() ? GetRawEnd(): GetRawEnd() - 1};
    }
 
+   ///                                                                        
+   ///   Concatenation                                                        
+   ///                                                                        
+   TEMPLATE()
+   TAny<T> TAny<T>::operator + (const CT::NotSemantic auto& rhs) const {
+      return operator + (Copy(rhs));
+   }
+
+   TEMPLATE()
+   TAny<T> TAny<T>::operator + (CT::NotSemantic auto& rhs) const {
+      return operator + (Copy(rhs));
+   }
+
+   TEMPLATE()
+   TAny<T> TAny<T>::operator + (CT::NotSemantic auto&& rhs) const {
+      return operator + (Move(rhs));
+   }
+
+   TEMPLATE()
+   template<CT::Semantic S>
+   TAny<T> TAny<T>::operator + (S&& rhs) const {
+      using ST = TypeOf<S>;
+
+      if constexpr (CT::DerivedFrom<ST, TAny<T>>) {
+         // Concatenate any compatible container                        
+         TAny<T> combined;
+         combined.mType = MetaData::Of<T>();
+         combined.AllocateFresh(RequestSize(mCount + rhs.mValue.mCount));
+         combined.InsertInner<Copied<T>>(GetRaw(), GetRawEnd(), 0);
+         combined.InsertInner<S>(rhs.mValue.GetRaw(), rhs.mValue.GetRawEnd(), mCount);
+         return Abandon(combined);
+      }
+      else if constexpr (CT::BuiltinCharacter<T> && CT::Exact<ST, ::std::basic_string_view<T>>) {
+         // Concatenate std::string_view if TAny is compatible          
+         TAny<T> combined;
+         combined.mType = MetaData::Of<T>();
+         const auto strsize = rhs.mValue.size();
+         combined.AllocateFresh(RequestSize(mCount + strsize));
+         combined.InsertInner<Copied<T>>(GetRaw(), GetRawEnd(), 0);
+         combined.InsertInner<Copied<T>>(rhs.mValue.data(), rhs.mValue.data() + strsize, mCount);
+         return Abandon(combined);
+      }
+      else if constexpr (CT::Array<ST> && CT::Exact<T, ::std::remove_extent_t<ST>>) {
+         // Concatenate T[N] if TAny is compatible                      
+         TAny<T> combined;
+         combined.mType = MetaData::Of<T>();
+         if constexpr (CT::BuiltinCharacter<T>) {
+            // Special handling for c-strings                           
+            const auto strsize = strnlen(rhs.mValue, ExtentOf<ST>);
+            combined.AllocateFresh(RequestSize(mCount + strsize));
+            combined.InsertInner<Copied<T>>(GetRaw(), GetRawEnd(), 0);
+            combined.InsertInner<Copied<T>>(rhs.mValue, rhs.mValue + strsize, mCount);
+         }
+         else {
+            constexpr auto strsize = ExtentOf<ST>;
+            combined.AllocateFresh(RequestSize(mCount + strsize));
+            combined.InsertInner<Copied<T>>(GetRaw(), GetRawEnd(), 0);
+            combined.InsertInner<S>(rhs.mValue, rhs.mValue + strsize, mCount);
+         }
+         return Abandon(combined);
+      }
+      else LANGULUS_ERROR("Bad semantic concatenation");
+   }
+
+   TEMPLATE()
+   TAny<T>& TAny<T>::operator += (const CT::NotSemantic auto& rhs) {
+      return operator += (Copy(rhs));
+   }
+
+   TEMPLATE()
+   TAny<T>& TAny<T>::operator += (CT::NotSemantic auto& rhs) {
+      return operator += (Copy(rhs));
+   }
+
+   TEMPLATE()
+   TAny<T>& TAny<T>::operator += (CT::NotSemantic auto&& rhs) {
+      return operator += (Move(rhs));
+   }
+
+   TEMPLATE()
+   template<CT::Semantic S>
+   TAny<T>& TAny<T>::operator += (S&& rhs) {
+      using ST = TypeOf<S>;
+
+      if constexpr (CT::DerivedFrom<ST, TAny<T>>) {
+         // Concatenate any compatible container                        
+         mType = MetaData::Of<T>();
+         AllocateMore(mCount + rhs.mValue.mCount);
+         InsertInner<S>(rhs.mValue.GetRaw(), rhs.mValue.GetRawEnd(), mCount);
+         return *this;
+      }
+      else if constexpr (CT::BuiltinCharacter<T> && CT::Exact<ST, ::std::basic_string_view<T>>) {
+         // Concatenate std::string_view if TAny is compatible          
+         mType = MetaData::Of<T>();
+         const auto strsize = rhs.mValue.size();
+         AllocateMore(mCount + strsize);
+         InsertInner<Copied<T>>(rhs.mValue.data(), rhs.mValue.data() + strsize, mCount);
+         return *this;
+      }
+      else if constexpr (CT::Array<ST> && CT::Exact<T, ::std::remove_extent_t<ST>>) {
+         // Concatenate T[N] if TAny is compatible                      
+         mType = MetaData::Of<T>();
+         if constexpr (CT::BuiltinCharacter<T>) {
+            // Special handling for c-strings                           
+            const auto strsize = strnlen(rhs.mValue, ExtentOf<ST>);
+            AllocateMore(mCount + strsize);
+            InsertInner<Copied<T>>(rhs.mValue, rhs.mValue + strsize, mCount);
+         }
+         else {
+            constexpr auto strsize = ExtentOf<ST>;
+            AllocateMore(mCount + strsize);
+            InsertInner<S>(rhs.mValue, rhs.mValue + strsize, mCount);
+         }
+         return *this;
+      }
+      else LANGULUS_ERROR("Bad semantic concatenation");
+   }
 
 
    

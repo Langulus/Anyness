@@ -46,7 +46,7 @@ namespace Langulus::Anyness
    
    class Bytes;
    class Text;
-   class Path;
+   struct Path;
    
    template<CT::Data>
    class TOwned;
@@ -102,7 +102,7 @@ namespace Langulus::Anyness
 
       friend class Bytes;
       friend class Text;
-      friend class Path;
+      friend struct Path;
 
       template<CT::Data>
       friend class TOwned;

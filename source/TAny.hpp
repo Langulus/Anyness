@@ -257,20 +257,17 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Concatenation                                                     
       ///                                                                     
-      NOD() TAny operator + (const TAny&) const;
-      NOD() TAny operator + (TAny&&) const;
+      NOD() TAny operator + (const CT::NotSemantic auto&) const;
+      NOD() TAny operator + (CT::NotSemantic auto&) const;
+      NOD() TAny operator + (CT::NotSemantic auto&&) const;
       template<CT::Semantic S>
-      NOD() TAny operator + (S&& rhs) const requires (CT::Exact<TypeOf<S>, TAny>) {
-         return Concatenate<TAny>(rhs.Forward());
-      }
+      NOD() TAny operator + (S&&) const;
 
-      TAny& operator += (const TAny&);
-      TAny& operator += (TAny&&);
+      TAny& operator += (const CT::NotSemantic auto&);
+      TAny& operator += (CT::NotSemantic auto&);
+      TAny& operator += (CT::NotSemantic auto&&);
       template<CT::Semantic S>
-      TAny& operator += (S&& rhs) requires (CT::Exact<TypeOf<S>, TAny>) {
-         InsertBlock(rhs.Forward());
-         return *this;
-      }
+      TAny& operator += (S&&);
 
       ///                                                                     
       ///   Iteration                                                         
@@ -338,20 +335,6 @@ namespace Langulus::Anyness
       // Suffix operator                                                
       NOD() TIterator operator ++ (int) noexcept;
    };
-
-
-   /// Concatenate anything with TAny container                               
-   template<class T, class LHS, class WRAPPER = TAny<T>>
-   NOD() WRAPPER operator + (const LHS& lhs, const TAny<T>& rhs) requires (!CT::DerivedFrom<LHS, TAny<T>>) {
-      if constexpr (CT::Sparse<LHS>)
-         return operator + (*lhs, rhs);
-      else if constexpr (CT::Convertible<LHS, WRAPPER>) {
-         auto result = static_cast<WRAPPER>(lhs);
-         result += rhs;
-         return result;
-      }
-      else LANGULUS_ERROR("Can't concatenate - LHS is not convertible to WRAPPER");
-   }
 
 } // namespace Langulus::Anyness
 

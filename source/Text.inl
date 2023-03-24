@@ -126,7 +126,6 @@ namespace Langulus::Anyness
             ? ::std::strlen(nullterminatedText.mValue) 
             : 0
       } {}
-
    
    /// Text container copy-construction                                       
    /// Notice how container is explicitly cast to base class when forwarded   
@@ -540,81 +539,6 @@ namespace Langulus::Anyness
    LANGULUS(ALWAYSINLINE)
    bool Text::operator == (const Letter* rhs) const noexcept {
       return operator == (Text {Disown(rhs)});
-   }
-
-   
-   ///                                                                        
-   ///   Concatenation                                                        
-   ///                                                                        
-
-   /// Copy-concatenate with another TAny                                     
-   ///   @param rhs - the right operand                                       
-   ///   @return the combined container                                       
-   LANGULUS(ALWAYSINLINE)
-   Text Text::operator + (const Text& rhs) const {
-      return Concatenate<Text>(Langulus::Copy(rhs));
-   }
-
-   /// Copy-concatenate with a letter                                         
-   ///   @param rhs - the right operand                                       
-   ///   @return the combined container                                       
-   LANGULUS(ALWAYSINLINE)
-   Text Text::operator + (const Letter& rhs) const {
-      return Concatenate<Text>(Langulus::Abandon(Text {rhs}));
-   }
-
-   /// Move-concatenate with another TAny                                     
-   ///   @param rhs - the right operand                                       
-   ///   @return the combined container                                       
-   LANGULUS(ALWAYSINLINE)
-   Text Text::operator + (Text&& rhs) const {
-      return Concatenate<Text>(Langulus::Move(rhs));
-   }
-
-   /// Move-concatenate with another TAny                                     
-   ///   @param rhs - the right operand                                       
-   ///   @return the combined container                                       
-   template<CT::Semantic S>
-   LANGULUS(ALWAYSINLINE)
-   Text Text::operator + (S&& rhs) const requires Relevant<S> {
-      return Concatenate<Text>(rhs.Forward());
-   }
-
-   /// Destructive copy-concatenate with another TAny                         
-   ///   @param rhs - the right operand                                       
-   ///   @return a reference to this modified container                       
-   LANGULUS(ALWAYSINLINE)
-   Text& Text::operator += (const Text& rhs) {
-      InsertBlock(Langulus::Copy(rhs));
-      return *this;
-   }
-
-   /// Destructive copy-concatenate with a character                          
-   ///   @param rhs - the right operand                                       
-   ///   @return a reference to this modified container                       
-   LANGULUS(ALWAYSINLINE)
-   Text& Text::operator += (const Letter& rhs) {
-      Emplace(rhs);
-      return *this;
-   }
-
-   /// Destructive move-concatenate with any deep type                        
-   ///   @param rhs - the right operand                                       
-   ///   @return a reference to this modified container                       
-   LANGULUS(ALWAYSINLINE)
-   Text& Text::operator += (Text&& rhs) {
-      InsertBlock(Langulus::Move(rhs));
-      return *this;
-   }
-
-   /// Destructive move-concatenate with any deep type                        
-   ///   @param rhs - the right operand                                       
-   ///   @return a reference to this modified container                       
-   template<CT::Semantic S>
-   LANGULUS(ALWAYSINLINE)
-   Text& Text::operator += (S&& rhs) requires Relevant<S> {
-      InsertBlock(rhs.Forward());
-      return *this;
    }
 
 } // namespace Langulus::Anyness

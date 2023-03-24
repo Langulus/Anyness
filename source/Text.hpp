@@ -27,8 +27,6 @@ namespace Langulus::Anyness
       template<CT::Semantic S>
       static constexpr bool RawTextPointer = CT::Same<TypeOf<S>, Letter> && CT::Sparse<TypeOf<S>>;
 
-      using Base::TAny;
-
    public:
       constexpr Text() = default;
 
@@ -107,17 +105,8 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Concatenation                                                     
       ///                                                                     
-      NOD() Text operator + (const Text&) const;
-      NOD() Text operator + (Text&&) const;
-      NOD() Text operator + (const Letter&) const;
-      template<CT::Semantic S>
-      NOD() Text operator + (S&&) const requires Relevant<S>;
-
-      Text& operator += (const Text&);
-      Text& operator += (Text&&);
-      Text& operator += (const Letter&);
-      template<CT::Semantic S>
-      Text& operator += (S&&) requires Relevant<S>;
+      using Base::operator +;
+      using Base::operator +=;
    };
 
 
@@ -126,7 +115,10 @@ namespace Langulus::Anyness
    /// differentiation is quite handy                                         
    struct Debug : Text {
       LANGULUS_BASES(Text);
+
       using Text::Text;
+      using Text::operator =;
+      using Text::operator +;
       using Text::operator +=;
    };
 

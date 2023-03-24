@@ -10,16 +10,6 @@
 namespace Langulus::Anyness
 {
 
-   /// Copy path but do not reference it, because it is disowned              
-   ///   @param other - the path to copy                                      
-   Path::Path(Disowned<Path>&& other) noexcept
-      : Text {other.Forward<Text>()} { }	
-   
-   /// Move path, but do not bother cleaning it up, because it is disowned    
-   ///   @param other - the path to move                                      
-   Path::Path(Abandoned<Path>&& other) noexcept
-      : Text {other.Forward<Text>()} { }
-
    /// Return the lowercase file extension (the part after the last '.')      
    ///   @return a cloned text container with the extension                   
    Text Path::GetExtension() const {
