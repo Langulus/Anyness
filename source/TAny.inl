@@ -137,7 +137,7 @@ namespace Langulus::Anyness
       else if constexpr (CT::BuiltinCharacter<T> && CT::Exact<ST, ::std::basic_string_view<T>>) {
          // Integration with std::string_view                           
          if (other.mValue.empty())
-            return *this;
+            return;
 
          mType = MetaData::Of<T>();
          const auto count = other.mValue.size();
