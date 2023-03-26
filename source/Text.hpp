@@ -16,38 +16,41 @@ namespace Langulus::Anyness
    ///   Count-terminated UTF8 text container                                 
    ///                                                                        
    class Text : public TAny<Letter> {
+   public:
       using Base = TAny<Letter>;
       LANGULUS(DEEP) false;
       LANGULUS(POD) false;
       LANGULUS_BASES(A::Text, Base);
 
-   private:
+      using CompatibleStdString = ::std::basic_string<Letter>;
+      using CompatibleStdStringView = ::std::basic_string_view<Letter>;
+
+   protected:
       template<CT::Semantic S>
       static constexpr bool Relevant = CT::DerivedFrom<TypeOf<S>, Base>;
       template<CT::Semantic S>
-      static constexpr bool RawTextPointer = CT::Same<TypeOf<S>, Letter> && CT::Sparse<TypeOf<S>>;
+      static constexpr bool RawTextPointer = CT::BuiltinCharacter<TypeOf<S>> && CT::Sparse<TypeOf<S>>;
+
+      Text(const Base&);
+      Text(Base&&) noexcept;
 
    public:
       constexpr Text() = default;
 
       Text(const Text&);
       Text(Text&&) noexcept;
-      Text(const TAny&);
-      Text(TAny&&) noexcept;
-
-      // Constructing from other containers is disabled                 
-      Text(const CT::Deep auto&) = delete;
 
       template<CT::Semantic S>
       Text(S&&) requires Relevant<S>;
 
-      Text(const Token&);
+      Text(const CompatibleStdString&);
+      Text(const CompatibleStdStringView&);
       Text(const Exception&);
       Text(const RTTI::Meta&);
-      explicit Text(const Letter&);
-      explicit Text(const CT::DenseBuiltinNumber auto&);
+      Text(const Letter&);
+      Text(const CT::DenseBuiltinNumber auto&);
 
-      // Static array constructor                                       
+      // Bounded array constructor                                      
       template<Count C>
       Text(const Letter(&)[C]);
 
@@ -89,11 +92,9 @@ namespace Langulus::Anyness
 
       NOD() Count GetLineCount() const noexcept;
 
-      using CompatibleStdString = ::std::basic_string<Letter, ::std::char_traits<Letter>, ::std::allocator<Letter>>;
-      bool operator == (const CompatibleStdString&) const noexcept;
-      using CompatibleStdStringView = ::std::basic_string_view<Letter>;
-      bool operator == (const CompatibleStdStringView&) const noexcept;
       bool operator == (const Text&) const noexcept;
+      bool operator == (const CompatibleStdString&) const noexcept;
+      bool operator == (const CompatibleStdStringView&) const noexcept;
       bool operator == (const Letter*) const noexcept;
       bool operator == (const Letter&) const noexcept;
 
@@ -105,8 +106,9 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Concatenation                                                     
       ///                                                                     
-      using Base::operator +;
-      using Base::operator +=;
+      NOD() Text operator + (const Text&) const;
+
+      Text& operator += (const Text&);
    };
 
 
@@ -117,9 +119,8 @@ namespace Langulus::Anyness
       LANGULUS_BASES(Text);
 
       using Text::Text;
-      using Text::operator =;
-      using Text::operator +;
-      using Text::operator +=;
+
+      Debug(const Text&);
    };
 
 } // namespace Langulus::Anyness

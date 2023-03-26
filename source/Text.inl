@@ -14,66 +14,101 @@
 namespace Langulus::Anyness
 {
 
+   /// Text container copy-construction from base                             
+   ///   @param other - container to reference                                
+   LANGULUS(ALWAYSINLINE)
+   Text::Text(const Base& other)
+      : Base {other} {
+      // TAny's have no null-termination considerations, add them here  
+      mCount = strnlen(GetRaw(), mCount);
+   }
+
+   /// Text container move-construction from base                             
+   ///   @param other - container to move                                     
+   LANGULUS(ALWAYSINLINE)
+   Text::Text(Base&& other) noexcept
+      : Base {Forward<Base>(other)} {
+      // TAny's have no null-termination considerations, add them here  
+      mCount = strnlen(GetRaw(), mCount);
+   }
+
+   /// Text container copy-construction                                       
+   /// Notice how container is explicitly cast to base class when forwarded   
+   /// If that is not done, TAny will use the CT::Deep constructor instead    
+   ///   @param other - container to reference                                
+   LANGULUS(ALWAYSINLINE)
+   Text::Text(const Text& other)
+      : Base {static_cast<const Base&>(other)} {}
+
+   /// Text container move-construction                                       
+   ///   @param other - container to move                                     
+   LANGULUS(ALWAYSINLINE)
+   Text::Text(Text&& other) noexcept
+      : Base {Forward<Base>(other)} {}
+
    /// Semantic text constructor                                              
    ///   @tparam S - the semantic to use                                      
    ///   @param other - the text container to use semantically                
    template<CT::Semantic S>
    LANGULUS(ALWAYSINLINE)
    Text::Text(S&& other) requires Relevant<S>
-      : Base {other.template Forward<Base>()} { }
+      : Base {other.template Forward<Base>()} {
+      // Base constructor should handle initialization from anything    
+      // TAny<Letter> based, as well as strings, string_views, bounded  
+      // arrays, etc. But it will not make any null-termination         
+      // corrections, so we have to do them here.                       
+      if constexpr (!CT::Text<TypeOf<S>>)
+         mCount = strnlen(GetRaw(), mCount);
+   }
 
-   /// Construct from token                                                   
+   /// Construct from compatible std::string                                  
    /// Data will be cloned if we don't have authority over the memory         
    ///   @param text - the text to wrap                                       
    LANGULUS(ALWAYSINLINE)
-   Text::Text(const Token& text)
+   Text::Text(const CompatibleStdString& text)
       : Text {Langulus::Copy(text.data()), text.size()} {}
 
-   /// Construct manually from count-terminated C string                      
+   /// Construct from compatible std::string_view                             
    /// Data will be cloned if we don't have authority over the memory         
-   ///   @param text - text memory to reference                               
-   ///   @param count - number of characters inside text                      
+   ///   @param text - the text to wrap                                       
    LANGULUS(ALWAYSINLINE)
-   Text::Text(const Letter* text, const Count& count)
-      : Text {Langulus::Copy(text), count} { }
+   Text::Text(const CompatibleStdStringView& text)
+      : Text {Langulus::Copy(text.data()), text.size()} {}
 
+   /// Stringify a Langulus::Exception                                        
+   ///   @param from - the exception to stringify                             
    LANGULUS(ALWAYSINLINE)
-   Text::Text(Letter* text, const Count& count)
-      : Text {Langulus::Copy(text), count} { }
-
-   /// Construct manually from count-terminated C string                      
-   /// Data will never be cloned or referenced                                
-   ///   @param text - text memory to wrap                                    
-   ///   @param count - number of characters inside text                      
-   template<CT::Semantic S>
+   Text::Text(const Exception& from) {
+      (*this) += from.GetName();
+      (*this) += '(';
+      (*this) += from.GetMessage();
+      (*this) += " at ";
+      (*this) += from.GetLocation();
+      (*this) += ')';
+   }
+   
+   /// Stringify meta                                                         
+   ///   @param meta - the definition to stringify                            
    LANGULUS(ALWAYSINLINE)
-   Text::Text(S&& text, const Count& count) requires RawTextPointer<S>
-      : Base {Base::From(text.Forward(), count)} { }
-
-   /// Construct manually from a c style array                                
-   /// Data will be cloned if we don't have authority over the memory         
-   ///   @tparam T - type of the character in the array                       
-   ///   @tparam C - size of the array                                        
-   ///   @param text - the array                                              
-   template<Count C>
-   LANGULUS(ALWAYSINLINE)
-   Text::Text(const Letter(&text)[C])
-      : Text {Langulus::Copy(text), C-1} { }
-
+   Text::Text(const RTTI::Meta& meta)
+      #if LANGULUS_FEATURE(MANAGED_REFLECTION)
+         : Text {meta.GetShortestUnambiguousToken()} {}
+      #else
+         : Text {meta.mToken} {}
+      #endif
+   
    /// Construct from a single character                                      
-   /// Data will be cloned if we don't have authority over the memory         
-   ///   @tparam T - type of the character in the array                       
-   ///   @param anyCharacter - the character to stringify                     
+   ///   @param anyCharacter - the character                                  
    LANGULUS(ALWAYSINLINE)
    Text::Text(const Letter& anyCharacter)
       : Text {Langulus::Copy(&anyCharacter), 1} { }
 
    /// Convert a number type to text                                          
-   ///   @tparam T - number type to stringify                                 
    ///   @param number - the number to stringify                              
    LANGULUS(ALWAYSINLINE)
    Text::Text(const CT::DenseBuiltinNumber auto& number) {
       using T = Decay<decltype(number)>;
+
       if constexpr (CT::Real<T>) {
          // Stringify a real number                                     
          constexpr auto size = ::std::numeric_limits<T>::max_digits10 * 2;
@@ -102,9 +137,36 @@ namespace Langulus::Anyness
       }
       else LANGULUS_ERROR("Unsupported number type");
    }
+   
+   /// Construct from bounded array                                           
+   ///   @tparam C - size of the array                                        
+   ///   @param text - the bounded array                                      
+   template<Count C>
+   LANGULUS(ALWAYSINLINE)
+   Text::Text(const Letter(&text)[C])
+      : Text {Langulus::Copy(text), strnlen(text, C)} { }
 
-   /// Construct from null-terminated UTF text                                
-   /// Data will be cloned if we don't have authority over the memory         
+   /// Construct manually from count-terminated array                         
+   ///   @param text - text memory to reference                               
+   ///   @param count - number of characters inside text, not including any   
+   ///                  termination character, if any                         
+   LANGULUS(ALWAYSINLINE)
+   Text::Text(const Letter* text, const Count& count)
+      : Text {Langulus::Copy(text), count} { }
+
+   LANGULUS(ALWAYSINLINE)
+   Text::Text(Letter* text, const Count& count)
+      : Text {Langulus::Copy(text), count} { }
+
+   /// Semantic construction from count-terminated array                      
+   ///   @param text - text memory to wrap                                    
+   ///   @param count - number of characters inside text                      
+   template<CT::Semantic S>
+   LANGULUS(ALWAYSINLINE)
+   Text::Text(S&& text, const Count& count) requires RawTextPointer<S>
+      : Base {Base::From(text.Forward(), count)} { }
+
+   /// Construct from null-terminated array                                   
    ///   @param nullterminatedText - text memory to reference                 
    LANGULUS(ALWAYSINLINE)
    Text::Text(const Letter* nullterminatedText)
@@ -114,9 +176,8 @@ namespace Langulus::Anyness
    Text::Text(Letter* nullterminatedText)
       : Text {Langulus::Copy(nullterminatedText)} {}
 
-   /// Construct from null-terminated UTF text                                
-   /// Data will never be cloned or referenced                                
-   ///   @param nullterminatedText - text to wrap                             
+   /// Semantically construct from null-terminated array                      
+   ///   @param nullterminatedText - text memory to reference                 
    template<CT::Semantic S>
    LANGULUS(ALWAYSINLINE)
    Text::Text(S&& nullterminatedText) requires RawTextPointer<S>
@@ -126,54 +187,6 @@ namespace Langulus::Anyness
             ? ::std::strlen(nullterminatedText.mValue) 
             : 0
       } {}
-   
-   /// Text container copy-construction                                       
-   /// Notice how container is explicitly cast to base class when forwarded   
-   /// If that is not done, TAny will use the CT::Deep constructor instead    
-   ///   @param other - container to reference                                
-   LANGULUS(ALWAYSINLINE)
-   Text::Text(const Text& other)
-      : Base {static_cast<const Base&>(other)} {}
-
-   /// Text container move-construction                                       
-   ///   @param other - container to move                                     
-   LANGULUS(ALWAYSINLINE)
-   Text::Text(Text&& other) noexcept
-      : Base {Forward<Base>(other)} {}
-
-   /// Text container copy-construction from TAny<Byte> base                  
-   ///   @param other - container to reference                                
-   LANGULUS(ALWAYSINLINE)
-   Text::Text(const TAny& other)
-      : Base {other} {}
-
-   /// Text container mvoe-construction from TAny<Byte> base                  
-   ///   @param other - container to move                                     
-   LANGULUS(ALWAYSINLINE)
-   Text::Text(TAny&& other) noexcept
-      : Base {Forward<Base>(other)} {}
-
-   /// Construct from a Langulus exception                                    
-   ///   @param from - the exception to stringify                             
-   LANGULUS(ALWAYSINLINE)
-   Text::Text(const Exception& from) {
-      (*this) += from.GetName();
-      (*this) += "(";
-      (*this) += from.GetMessage();
-      (*this) += " at ";
-      (*this) += from.GetLocation();
-      (*this) += ")";
-   }
-
-   /// Stringify meta                                                         
-   ///   @param meta - the definition to stringify                            
-   LANGULUS(ALWAYSINLINE)
-   Text::Text(const RTTI::Meta& meta)
-      #if LANGULUS_FEATURE(MANAGED_REFLECTION)
-         : Text {meta.GetShortestUnambiguousToken()} {}
-      #else
-         : Text {meta.mToken} {}
-      #endif
 
    /// Count the number of newline characters                                 
    ///   @return the number of newline characters + 1, or zero if empty       
@@ -215,15 +228,23 @@ namespace Langulus::Anyness
       return operator = (Langulus::Copy(rhs));
    }
    
-   /// Set to a single character                                              
-   ///   @param rhs - the character                                           
+   /// Semantic assignment                                                    
+   ///   @tparam S - the semantic and type of assignment (deducible)          
+   ///   @param rhs - the right hand side                                     
    ///   @return a reference to this container                                
    template<CT::Semantic S>
    LANGULUS(ALWAYSINLINE)
    Text& Text::operator = (S&& rhs) {
       using T = TypeOf<S>;
-      if constexpr (CT::DerivedFrom<T, Base>)
+      if constexpr (CT::DerivedFrom<T, Base>) {
          Base::operator = (rhs.template Forward<Base>());
+
+         // Base constructor should handle initialization from anything 
+         // TAny<Letter> based, but it will not make any null-          
+         // termination corrections, so we have to do them here.        
+         if constexpr (!CT::Text<T>)
+            mCount = strnlen(GetRaw(), mCount);
+      }
       else if constexpr (CT::Same<T, Letter>)
          Base::operator = (rhs.Forward());
       else
@@ -431,7 +452,7 @@ namespace Langulus::Anyness
    ///   @return new text that references the original memory                 
    LANGULUS(ALWAYSINLINE)
    Text Text::Crop(Count start, Count count) const {
-      return Base::Crop<Text>(start, count);
+      return Base::Crop(start, count);
    }
 
    /// Pick a part of the text                                                
@@ -440,7 +461,7 @@ namespace Langulus::Anyness
    ///   @return new text that references the original memory                 
    LANGULUS(ALWAYSINLINE)
    Text Text::Crop(Count start, Count count) {
-      return Base::Crop<Text>(start, count);
+      return Base::Crop(start, count);
    }
 
    /// Remove all instances of a symbol from the text container               
@@ -533,12 +554,36 @@ namespace Langulus::Anyness
       return Base::operator == (static_cast<const Base&>(rhs));
    }
 
-   /// Compare with a string                                                  
+   /// Compare with a null-terminated string                                  
    ///   @param rhs - the text to compare against                             
    ///   @return true if both strings are the same                            
    LANGULUS(ALWAYSINLINE)
    bool Text::operator == (const Letter* rhs) const noexcept {
       return operator == (Text {Disown(rhs)});
+   }
+
+   /// Concatenate two text containers                                        
+   ///   @param rhs - right hand side                                         
+   ///   @return the concatenated text container                              
+   LANGULUS(ALWAYSINLINE)
+   Text Text::operator + (const Text& rhs) const {
+      Text combined;
+      combined.mType = MetaData::Of<Letter>();
+      combined.AllocateFresh(RequestSize(mCount + rhs.mCount));
+      combined.InsertInner<Copied<Letter>>(GetRaw(), GetRawEnd(), 0);
+      combined.InsertInner<Copied<Letter>>(rhs.GetRaw(), rhs.GetRawEnd(), mCount);
+      return Abandon(combined);
+   }
+
+   /// Concatenate (destructively) text container                             
+   ///   @param rhs - right hand side                                         
+   ///   @return a reference to this container                                
+   LANGULUS(ALWAYSINLINE)
+   Text& Text::operator += (const Text& rhs) {
+      mType = MetaData::Of<Letter>();
+      AllocateMore(mCount + rhs.mCount);
+      InsertInner<Copied<Letter>>(rhs.GetRaw(), rhs.GetRawEnd(), mCount);
+      return *this;
    }
 
 } // namespace Langulus::Anyness

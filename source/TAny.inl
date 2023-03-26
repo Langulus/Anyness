@@ -135,12 +135,18 @@ namespace Langulus::Anyness
          InsertInner(other.Forward(), 0);
       }
       else if constexpr (CT::BuiltinCharacter<T> && CT::Exact<ST, ::std::basic_string_view<T>>) {
-         // Integration with std::string_view - clone its contents if   
-         // compatible with this TAny                                   
+         // Integration with std::string_view                           
          mType = MetaData::Of<T>();
          const auto count = other.mValue.size();
          AllocateFresh(RequestSize(count));
          InsertInner<Copied<T>>(other.mValue.data(), other.mValue.data() + count, 0);
+      }
+      else if constexpr (CT::Array<ST> && CT::Exact<T, ::std::remove_extent_t<ST>>) {
+         // Integration with bounded arrays                             
+         mType = MetaData::Of<T>();
+         constexpr auto count = ExtentOf<ST>;
+         AllocateFresh(RequestSize(count));
+         InsertInner<Copied<T>>(other.mValue, other.mValue + count, 0);
       }
       else LANGULUS_ERROR("Bad semantic construction");
    }
@@ -1904,19 +1910,10 @@ namespace Langulus::Anyness
          // Concatenate T[N] if TAny is compatible                      
          TAny<T> combined;
          combined.mType = MetaData::Of<T>();
-         if constexpr (CT::BuiltinCharacter<T>) {
-            // Special handling for c-strings                           
-            const auto strsize = strnlen(rhs.mValue, ExtentOf<ST>);
-            combined.AllocateFresh(RequestSize(mCount + strsize));
-            combined.InsertInner<Copied<T>>(GetRaw(), GetRawEnd(), 0);
-            combined.InsertInner<Copied<T>>(rhs.mValue, rhs.mValue + strsize, mCount);
-         }
-         else {
-            constexpr auto strsize = ExtentOf<ST>;
-            combined.AllocateFresh(RequestSize(mCount + strsize));
-            combined.InsertInner<Copied<T>>(GetRaw(), GetRawEnd(), 0);
-            combined.InsertInner<S>(rhs.mValue, rhs.mValue + strsize, mCount);
-         }
+         constexpr auto strsize = ExtentOf<ST>;
+         combined.AllocateFresh(RequestSize(mCount + strsize));
+         combined.InsertInner<Copied<T>>(GetRaw(), GetRawEnd(), 0);
+         combined.InsertInner<S>(rhs.mValue, rhs.mValue + strsize, mCount);
          return Abandon(combined);
       }
       else LANGULUS_ERROR("Bad semantic concatenation");
@@ -1960,17 +1957,9 @@ namespace Langulus::Anyness
       else if constexpr (CT::Array<ST> && CT::Exact<T, ::std::remove_extent_t<ST>>) {
          // Concatenate T[N] if TAny is compatible                      
          mType = MetaData::Of<T>();
-         if constexpr (CT::BuiltinCharacter<T>) {
-            // Special handling for c-strings                           
-            const auto strsize = strnlen(rhs.mValue, ExtentOf<ST>);
-            AllocateMore(mCount + strsize);
-            InsertInner<Copied<T>>(rhs.mValue, rhs.mValue + strsize, mCount);
-         }
-         else {
-            constexpr auto strsize = ExtentOf<ST>;
-            AllocateMore(mCount + strsize);
-            InsertInner<S>(rhs.mValue, rhs.mValue + strsize, mCount);
-         }
+         constexpr auto strsize = ExtentOf<ST>;
+         AllocateMore(mCount + strsize);
+         InsertInner<S>(rhs.mValue, rhs.mValue + strsize, mCount);
          return *this;
       }
       else LANGULUS_ERROR("Bad semantic concatenation");

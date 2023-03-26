@@ -15,10 +15,14 @@ namespace Langulus::Anyness
    ///   File path container                                                  
    ///                                                                        
    struct Path : Text {
+      LANGULUS_BASES(Text);
+
       using Text::Text;
-      using Text::operator =;
+      Path(const Text&);
+
+      /*using Text::operator =;
       using Text::operator +;
-      using Text::operator +=;
+      using Text::operator +=;*/
 
       NOD() Text GetExtension() const;
       NOD() Path GetDirectory() const;
