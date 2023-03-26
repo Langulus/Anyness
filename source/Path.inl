@@ -5,13 +5,27 @@
 /// Distributed under GNU General Public License v3+                          
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
+#pragma once
 #include "Path.hpp"
 
 namespace Langulus::Anyness
 {
 
+   /// Construct by copying a text container                                  
+   ///   @param other - the container to copy                                 
+   LANGULUS(ALWAYSINLINE)
+   Path::Path(const Text& other)
+      : Text {other} {}
+
+   /// Construct by moving a text container                                   
+   ///   @param other - the container to copy                                 
+   LANGULUS(ALWAYSINLINE)
+   Path::Path(Text&& other)
+      : Text {Forward<Text>(other)} {}
+
    /// Return the lowercase file extension (the part after the last '.')      
    ///   @return a cloned text container with the extension                   
+   LANGULUS(ALWAYSINLINE)
    Text Path::GetExtension() const {
       Offset offset {};
       if (Text::FindOffsetReverse(Text {'.'}, offset))
@@ -21,6 +35,7 @@ namespace Langulus::Anyness
 
    /// Return the directory part of the path                                  
    ///   @return the directory part, including the last '/'                   
+   LANGULUS(ALWAYSINLINE)
    Path Path::GetDirectory() const {
       Offset offset {};
       if (Text::FindOffsetReverse(Text {'/'}, offset))
@@ -30,6 +45,7 @@ namespace Langulus::Anyness
 
    /// Return the filename part of the path                                   
    ///   @return the filename part (after the last '/')                       
+   LANGULUS(ALWAYSINLINE)
    Path Path::GetFilename() const {
       Offset offset {};
       if (Text::FindOffsetReverse(Text {'/'}, offset))
@@ -40,7 +56,7 @@ namespace Langulus::Anyness
    /// Append a subdirectory or filename                                      
    ///   @param rhs - the text to append                                      
    ///   @return the combined directory name                                  
-   Path Path::operator / (const Text& rhs) const {
+   inline Path Path::operator / (const Text& rhs) const {
       if (last() == '/') {
          if (rhs.last() == '/')
             return *this + rhs.Crop(1, rhs.GetCount() - 1);
@@ -61,7 +77,7 @@ namespace Langulus::Anyness
    /// Append a subdirectory or filename                                      
    ///   @param rhs - the text to append                                      
    ///   @return the combined directory name                                  
-   Path& Path::operator /= (const Text& rhs) {
+   inline Path& Path::operator /= (const Text& rhs) {
       if (last() == '/') {
          if (rhs.last() == '/')
             *this += rhs.Crop(1, rhs.GetCount() - 1);

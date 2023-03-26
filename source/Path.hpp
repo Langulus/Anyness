@@ -18,11 +18,9 @@ namespace Langulus::Anyness
       LANGULUS_BASES(Text);
 
       using Text::Text;
-      Path(const Text&);
 
-      /*using Text::operator =;
-      using Text::operator +;
-      using Text::operator +=;*/
+      Path(const Text&);
+      Path(Text&&);
 
       NOD() Text GetExtension() const;
       NOD() Path GetDirectory() const;
@@ -33,3 +31,5 @@ namespace Langulus::Anyness
    };
 
 } // namespace Langulus::Anyness
+
+#include "Path.inl"

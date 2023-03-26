@@ -32,7 +32,7 @@ CATCH_TRANSLATE_EXCEPTION(::Langulus::Exception const& ex) {
    return ::std::string {Token {serialized}};
 }
 
-TEMPLATE_TEST_CASE("Testing text containers", "[text]", Text, Debug) {
+TEMPLATE_TEST_CASE("Testing text containers", "[text]", Text, Debug, Path) {
    GIVEN("Default text container") {
       IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
@@ -492,6 +492,21 @@ TEMPLATE_TEST_CASE("Unsigned number stringification", "[text]", /*uint8_t,*/ uin
 
       delete text;
    }
+
+   WHEN("Constructed Path with a number") {
+      Path* text = new Path {TestType{66}};
+
+      THEN("The capacity and size change") {
+         REQUIRE((*text).GetCount() == 2);
+         REQUIRE((*text).GetReserved() >= 2);
+         REQUIRE((*text).template Is<Letter>());
+         REQUIRE((*text).GetRaw());
+         REQUIRE((*text).HasAuthority());
+         REQUIRE((*text) == "66");
+      }
+
+      delete text;
+   }
 }
 
 TEMPLATE_TEST_CASE("Signed number stringification", "[text]", int8_t, int16_t, int32_t, int64_t) {
@@ -524,9 +539,24 @@ TEMPLATE_TEST_CASE("Signed number stringification", "[text]", int8_t, int16_t, i
 
       delete text;
    }
+
+   WHEN("Constructed Path with a number") {
+      Path* text = new Path {TestType{-66}};
+
+      THEN("The capacity and size change") {
+         REQUIRE((*text).GetCount() == 3);
+         REQUIRE((*text).GetReserved() >= 3);
+         REQUIRE((*text).template Is<Letter>());
+         REQUIRE((*text).GetRaw());
+         REQUIRE((*text).HasAuthority());
+         REQUIRE((*text) == "-66");
+      }
+
+      delete text;
+   }
 }
 
-TEMPLATE_TEST_CASE("Logging text containers", "[text]", Text, Debug) {
+TEMPLATE_TEST_CASE("Logging text containers", "[text]", Text, Debug, Path) {
    TestType text {"some text"};
 
    Logger::Info() << "You should see " << text;
@@ -623,6 +653,44 @@ SCENARIO("Text container interoperability", "[text]") {
       WHEN("Concatenated using Text container") {
          Debug text {"one"};
          Debug text2 = text + Text {"two"};
+
+         THEN("Should be concatenated") {
+            REQUIRE(text == "one");
+            REQUIRE(text2 == "onetwo");
+         }
+      }
+   }
+
+   GIVEN("Path container") {
+      WHEN("Constructed using Text container") {
+         Path text {Text{"one"}};
+
+         THEN("Should be identical") {
+            REQUIRE(text == "one");
+         }
+      }
+
+      WHEN("Assigned using Text container") {
+         Path text {"one"};
+         text = Text {"two"};
+
+         THEN("Should be identical") {
+            REQUIRE(text == "two");
+         }
+      }
+
+      WHEN("Concatenated (destructively) using Text container") {
+         Path text {"one"};
+         text += Text {"two"};
+
+         THEN("Should be concatenated") {
+            REQUIRE(text == "onetwo");
+         }
+      }
+
+      WHEN("Concatenated using Text container") {
+         Path text {"one"};
+         Path text2 = text + Text {"two"};
 
          THEN("Should be concatenated") {
             REQUIRE(text == "one");
