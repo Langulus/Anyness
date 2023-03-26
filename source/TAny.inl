@@ -136,6 +136,9 @@ namespace Langulus::Anyness
       }
       else if constexpr (CT::BuiltinCharacter<T> && CT::Exact<ST, ::std::basic_string_view<T>>) {
          // Integration with std::string_view                           
+         if (other.mValue.empty())
+            return *this;
+
          mType = MetaData::Of<T>();
          const auto count = other.mValue.size();
          AllocateFresh(RequestSize(count));
@@ -1889,6 +1892,9 @@ namespace Langulus::Anyness
 
       if constexpr (CT::DerivedFrom<ST, TAny<T>>) {
          // Concatenate any compatible container                        
+         if (rhs.mValue.IsEmpty())
+            return *this;
+
          TAny<T> combined;
          combined.mType = MetaData::Of<T>();
          combined.AllocateFresh(RequestSize(mCount + rhs.mValue.mCount));
@@ -1898,6 +1904,9 @@ namespace Langulus::Anyness
       }
       else if constexpr (CT::BuiltinCharacter<T> && CT::Exact<ST, ::std::basic_string_view<T>>) {
          // Concatenate std::string_view if TAny is compatible          
+         if (rhs.mValue.empty())
+            return *this;
+
          TAny<T> combined;
          combined.mType = MetaData::Of<T>();
          const auto strsize = rhs.mValue.size();
@@ -1941,6 +1950,8 @@ namespace Langulus::Anyness
 
       if constexpr (CT::DerivedFrom<ST, TAny<T>>) {
          // Concatenate any compatible container                        
+         if (rhs.mValue.IsEmpty())
+            return *this;
          mType = MetaData::Of<T>();
          AllocateMore(mCount + rhs.mValue.mCount);
          InsertInner<S>(rhs.mValue.GetRaw(), rhs.mValue.GetRawEnd(), mCount);
@@ -1948,6 +1959,9 @@ namespace Langulus::Anyness
       }
       else if constexpr (CT::BuiltinCharacter<T> && CT::Exact<ST, ::std::basic_string_view<T>>) {
          // Concatenate std::string_view if TAny is compatible          
+         if (rhs.mValue.empty())
+            return *this;
+
          mType = MetaData::Of<T>();
          const auto strsize = rhs.mValue.size();
          AllocateMore(mCount + strsize);

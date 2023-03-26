@@ -567,6 +567,9 @@ namespace Langulus::Anyness
    ///   @return the concatenated text container                              
    LANGULUS(ALWAYSINLINE)
    Text Text::operator + (const Text& rhs) const {
+      if (rhs.IsEmpty())
+         return *this;
+
       Text combined;
       combined.mType = MetaData::Of<Letter>();
       combined.AllocateFresh(RequestSize(mCount + rhs.mCount));
@@ -580,6 +583,9 @@ namespace Langulus::Anyness
    ///   @return a reference to this container                                
    LANGULUS(ALWAYSINLINE)
    Text& Text::operator += (const Text& rhs) {
+      if (rhs.IsEmpty())
+         return *this;
+
       mType = MetaData::Of<Letter>();
       AllocateMore(mCount + rhs.mCount);
       InsertInner<Copied<Letter>>(rhs.GetRaw(), rhs.GetRawEnd(), mCount);
