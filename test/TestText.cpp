@@ -8,17 +8,35 @@
 #include "Main.hpp"
 #include <catch2/catch.hpp>
 
+/// A type that is reflected, as convertible to Debug                         
+struct Stringifiable {
+   LANGULUS_CONVERSIONS(Debug);
+   
+   explicit operator Debug() {
+      return "Stringifiable converted to Debug";
+   }
+};
+
+/// A type that is reflected, as convertible to Debug                         
+struct StringifiableConst {
+   LANGULUS_CONVERSIONS(Debug);
+   
+   explicit operator Debug() const {
+      return "Stringifiable converted to Debug";
+   }
+};
+
 /// See https://github.com/catchorg/Catch2/blob/devel/docs/tostring.md        
 CATCH_TRANSLATE_EXCEPTION(::Langulus::Exception const& ex) {
    const Text serialized {ex};
    return ::std::string {Token {serialized}};
 }
 
-SCENARIO("Text containers", "[text]") {
+TEMPLATE_TEST_CASE("Testing text containers", "[text]", Text, Debug) {
    GIVEN("Default text container") {
       IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
-      Text text;
+      TestType text;
 
       WHEN("Nothing is done") {
          THEN("The capacity and size change") {
@@ -39,7 +57,7 @@ SCENARIO("Text containers", "[text]") {
             REQUIRE_FALSE(text.HasAuthority());
             REQUIRE(text.IsTypeConstrained());
             REQUIRE(text.GetType() == MetaData::Of<Letter>());
-            REQUIRE(text.Is<Letter>());
+            REQUIRE(text.template Is<Letter>());
             REQUIRE(text.IsNow());
             REQUIRE(text.IsInvalid());
             REQUIRE(text.IsDense());
@@ -72,7 +90,7 @@ SCENARIO("Text containers", "[text]") {
             REQUIRE_FALSE(text.IsValid());
             REQUIRE(text.IsTypeConstrained());
             REQUIRE(text.GetType() == MetaData::Of<Letter>());
-            REQUIRE(text.Is<Letter>());
+            REQUIRE(text.template Is<Letter>());
             REQUIRE(text.IsNow());
             REQUIRE(text.IsInvalid());
             REQUIRE(text.IsDense());
@@ -109,7 +127,7 @@ SCENARIO("Text containers", "[text]") {
             REQUIRE_FALSE(text.HasAuthority());
             REQUIRE(text.IsTypeConstrained());
             REQUIRE(text.GetType() == MetaData::Of<Letter>());
-            REQUIRE(text.Is<Letter>());
+            REQUIRE(text.template Is<Letter>());
             REQUIRE(text.IsNow());
             REQUIRE(text.IsInvalid());
             REQUIRE(text.IsDense());
@@ -145,7 +163,7 @@ SCENARIO("Text containers", "[text]") {
             REQUIRE_FALSE(text.HasAuthority());
             REQUIRE(text.IsTypeConstrained());
             REQUIRE(text.GetType() == MetaData::Of<Letter>());
-            REQUIRE(text.Is<Letter>());
+            REQUIRE(text.template Is<Letter>());
             REQUIRE(text.IsNow());
             REQUIRE(text.IsInvalid());
             REQUIRE(text.IsDense());
@@ -163,10 +181,10 @@ SCENARIO("Text containers", "[text]") {
    GIVEN("Uninitialized text container") {
       IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
-      Text* text;
+      TestType* text;
 
       WHEN("Constructed with a null-terminated literal") {
-         text = new Text {"test1"};
+         text = new TestType {"test1"};
 
          THEN("The capacity and size change") {
             REQUIRE_FALSE((*text).IsAbstract());
@@ -188,7 +206,7 @@ SCENARIO("Text containers", "[text]") {
             REQUIRE((*text).IsAllocated());
             REQUIRE((*text).GetCount() == 5);
             REQUIRE((*text).GetReserved() >= 5);
-            REQUIRE((*text).Is<Letter>());
+            REQUIRE((*text).template Is<Letter>());
             REQUIRE((*text).GetRaw());
             REQUIRE((*text).HasAuthority());
             REQUIRE((*text) == "test1");
@@ -203,12 +221,12 @@ SCENARIO("Text containers", "[text]") {
       }
 
       WHEN("Constructed with a count-terminated literal") {
-         text = new Text {"test1", 5};
+         text = new TestType {"test1", 5};
 
          THEN("The capacity and size change") {
             REQUIRE((*text).GetCount() == 5);
             REQUIRE((*text).GetReserved() >= 5);
-            REQUIRE((*text).Is<Letter>());
+            REQUIRE((*text).template Is<Letter>());
             REQUIRE((*text).GetRaw());
             REQUIRE((*text).HasAuthority());
             REQUIRE((*text) == "test1");
@@ -224,12 +242,12 @@ SCENARIO("Text containers", "[text]") {
 
       WHEN("Constructed with a c-array") {
          char test1[] = "test1";
-         text = new Text {test1};
+         text = new TestType {test1};
 
          THEN("The capacity and size change") {
             REQUIRE((*text).GetCount() == 5);
             REQUIRE((*text).GetReserved() >= 5);
-            REQUIRE((*text).Is<Letter>());
+            REQUIRE((*text).template Is<Letter>());
             REQUIRE((*text).GetRaw());
             REQUIRE((*text).HasAuthority());
             REQUIRE((*text) == "test1");
@@ -244,12 +262,12 @@ SCENARIO("Text containers", "[text]") {
       }
 
       WHEN("Constructed with a single character") {
-         text = new Text {'?'};
+         text = new TestType {'?'};
 
          THEN("The capacity and size change") {
             REQUIRE((*text).GetCount() == 1);
             REQUIRE((*text).GetReserved() >= 1);
-            REQUIRE((*text).Is<Letter>());
+            REQUIRE((*text).template Is<Letter>());
             REQUIRE((*text).GetRaw());
             REQUIRE((*text).HasAuthority());
             REQUIRE((*text)[0] == '?');
@@ -262,7 +280,7 @@ SCENARIO("Text containers", "[text]") {
    GIVEN("Reserved text container") {
       IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
-      Text text;
+      TestType text;
       text.Reserve(500);
       auto memory = text.GetRaw();
 
@@ -322,7 +340,7 @@ SCENARIO("Text containers", "[text]") {
    GIVEN("Full text container") {
       IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
-      Text text {"test1"};
+      TestType text {"test1"};
       auto memory = text.GetRaw();
 
       WHEN("Add more text") {
@@ -335,7 +353,7 @@ SCENARIO("Text containers", "[text]") {
                REQUIRE(text.GetRaw() == memory);
             #endif
             REQUIRE(text.HasAuthority());
-            REQUIRE(text.Is<Letter>());
+            REQUIRE(text.template Is<Letter>());
          }
       }
 
@@ -382,7 +400,7 @@ SCENARIO("Text containers", "[text]") {
             REQUIRE(text.GetReserved() >= 5);
             REQUIRE(text.GetRaw() == memory);
             REQUIRE(text.HasAuthority());
-            REQUIRE(text.Is<Letter>());
+            REQUIRE(text.template Is<Letter>());
          }
       }
 
@@ -392,12 +410,12 @@ SCENARIO("Text containers", "[text]") {
             REQUIRE(text.GetCount() == 0);
             REQUIRE(text.GetReserved() == 0);
             REQUIRE_FALSE(text.GetRaw());
-            REQUIRE(text.Is<Letter>());
+            REQUIRE(text.template Is<Letter>());
          }
       }
 
       WHEN("Text is copied shallowly") {
-         Text copy = text;
+         TestType copy = text;
          THEN("The new container shall contain the same data, in the same memory block; data will only be referenced") {
             REQUIRE(text.GetCount() == copy.GetCount());
             REQUIRE(text.GetReserved() == copy.GetReserved());
@@ -411,7 +429,7 @@ SCENARIO("Text containers", "[text]") {
       }
 
       WHEN("Text is cloned (deep copy)") {
-         Text copy = Clone(text);
+         TestType copy = Clone(text);
          THEN("The new container shall contain the same data, but in separate memory block") {
             REQUIRE(text.GetCount() == copy.GetCount());
             REQUIRE(text.GetReserved() >= copy.GetReserved());
@@ -431,7 +449,7 @@ SCENARIO("Text containers", "[text]") {
             REQUIRE(text.GetCount() == 5);
             REQUIRE(text.GetReserved() >= 5);
             REQUIRE(text.HasAuthority());
-            REQUIRE(text.Is<Letter>());
+            REQUIRE(text.template Is<Letter>());
          }
       }
 
@@ -445,15 +463,28 @@ SCENARIO("Text containers", "[text]") {
 }
 
 TEMPLATE_TEST_CASE("Unsigned number stringification", "[text]", /*uint8_t,*/ uint16_t, uint32_t, uint64_t) {
-   Text* text;
-
-   WHEN("Constructed with a number") {
-      text = new Text {TestType{66}};
+   WHEN("Constructed Text with a number") {
+      Text* text = new Text {TestType{66}};
 
       THEN("The capacity and size change") {
          REQUIRE((*text).GetCount() == 2);
          REQUIRE((*text).GetReserved() >= 2);
-         REQUIRE((*text).Is<Letter>());
+         REQUIRE((*text).template Is<Letter>());
+         REQUIRE((*text).GetRaw());
+         REQUIRE((*text).HasAuthority());
+         REQUIRE((*text) == "66");
+      }
+
+      delete text;
+   }
+
+   WHEN("Constructed Debug with a number") {
+      Debug* text = new Debug {TestType{66}};
+
+      THEN("The capacity and size change") {
+         REQUIRE((*text).GetCount() == 2);
+         REQUIRE((*text).GetReserved() >= 2);
+         REQUIRE((*text).template Is<Letter>());
          REQUIRE((*text).GetRaw());
          REQUIRE((*text).HasAuthority());
          REQUIRE((*text) == "66");
@@ -464,15 +495,28 @@ TEMPLATE_TEST_CASE("Unsigned number stringification", "[text]", /*uint8_t,*/ uin
 }
 
 TEMPLATE_TEST_CASE("Signed number stringification", "[text]", int8_t, int16_t, int32_t, int64_t) {
-   Text* text;
-
-   WHEN("Constructed with a number") {
-      text = new Text {TestType{-66}};
+   WHEN("Constructed Text with a number") {
+      Text* text = new Text {TestType{-66}};
 
       THEN("The capacity and size change") {
          REQUIRE((*text).GetCount() == 3);
          REQUIRE((*text).GetReserved() >= 3);
-         REQUIRE((*text).Is<Letter>());
+         REQUIRE((*text).template Is<Letter>());
+         REQUIRE((*text).GetRaw());
+         REQUIRE((*text).HasAuthority());
+         REQUIRE((*text) == "-66");
+      }
+
+      delete text;
+   }
+
+   WHEN("Constructed Debug with a number") {
+      Debug* text = new Debug {TestType{-66}};
+
+      THEN("The capacity and size change") {
+         REQUIRE((*text).GetCount() == 3);
+         REQUIRE((*text).GetReserved() >= 3);
+         REQUIRE((*text).template Is<Letter>());
          REQUIRE((*text).GetRaw());
          REQUIRE((*text).HasAuthority());
          REQUIRE((*text) == "-66");
@@ -487,4 +531,103 @@ TEMPLATE_TEST_CASE("Logging text containers", "[text]", Text, Debug) {
 
    Logger::Info() << "You should see " << text;
    Logger::Info("You should also see ", text);
+}
+
+TEMPLATE_TEST_CASE("Reflected coverters to text", "[text]", Stringifiable, StringifiableConst) {
+   GIVEN("A stringifiable type") {
+      const auto debugMeta = MetaData::Of<Debug>();
+      const auto meta = MetaData::Of<TestType>();
+      TestType instance;
+
+      WHEN("Converted") {
+         // Calling static_cast<Debug> here doesn't work, because of MSVC bug
+         const Debug staticallyConverted = instance.operator Debug();
+         
+         Debug rttiConverted;
+         meta->mConverters.at(debugMeta).mFunction(&instance, &rttiConverted);
+
+         THEN("Results should be correct") {
+            REQUIRE(staticallyConverted == rttiConverted);
+            REQUIRE(staticallyConverted == "Stringifiable converted to Debug");
+         }
+      }
+   }
+}
+
+SCENARIO("Text container interoperability", "[text]") {
+   GIVEN("Text container") {
+      WHEN("Constructed using Debug container") {
+         Text text {Debug{"one"}};
+
+         THEN("Should be identical") {
+            REQUIRE(text == "one");
+         }
+      }
+
+      WHEN("Assigned using Debug container") {
+         Text text {"one"};
+         text = Debug {"two"};
+
+         THEN("Should be identical") {
+            REQUIRE(text == "two");
+         }
+      }
+
+      WHEN("Concatenated (destructively) using Debug container") {
+         Text text {"one"};
+         text += Debug {"two"};
+
+         THEN("Should be concatenated") {
+            REQUIRE(text == "onetwo");
+         }
+      }
+
+      WHEN("Concatenated using Debug container") {
+         Text text {"one"};
+         Text text2 = text + Debug {"two"};
+
+         THEN("Should be concatenated") {
+            REQUIRE(text == "one");
+            REQUIRE(text2 == "onetwo");
+         }
+      }
+   }
+
+   GIVEN("Debug container") {
+      WHEN("Constructed using Text container") {
+         Debug text {Text{"one"}};
+
+         THEN("Should be identical") {
+            REQUIRE(text == "one");
+         }
+      }
+
+      WHEN("Assigned using Text container") {
+         Debug text {"one"};
+         text = Text {"two"};
+
+         THEN("Should be identical") {
+            REQUIRE(text == "two");
+         }
+      }
+
+      WHEN("Concatenated (destructively) using Text container") {
+         Debug text {"one"};
+         text += Text {"two"};
+
+         THEN("Should be concatenated") {
+            REQUIRE(text == "onetwo");
+         }
+      }
+
+      WHEN("Concatenated using Text container") {
+         Debug text {"one"};
+         Debug text2 = text + Text {"two"};
+
+         THEN("Should be concatenated") {
+            REQUIRE(text == "one");
+            REQUIRE(text2 == "onetwo");
+         }
+      }
+   }
 }

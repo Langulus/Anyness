@@ -31,6 +31,7 @@ namespace Langulus::Anyness
       template<CT::Semantic S>
       static constexpr bool RawTextPointer = CT::BuiltinCharacter<TypeOf<S>> && CT::Sparse<TypeOf<S>>;
 
+   private:
       Text(const Base&);
       Text(Base&&) noexcept;
 
@@ -121,6 +122,7 @@ namespace Langulus::Anyness
       using Text::Text;
 
       Debug(const Text&);
+      Debug(Text&&);
    };
 
 } // namespace Langulus::Anyness

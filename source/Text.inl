@@ -586,6 +586,18 @@ namespace Langulus::Anyness
       return *this;
    }
 
+   /// Construct by copying a text container                                  
+   ///   @param other - the container to copy                                 
+   LANGULUS(ALWAYSINLINE)
+   Debug::Debug(const Text& other)
+      : Text {other} {}
+
+   /// Construct by moving a text container                                   
+   ///   @param other - the container to copy                                 
+   LANGULUS(ALWAYSINLINE)
+   Debug::Debug(Text&& other)
+      : Text {Forward<Text>(other)} {}
+
 } // namespace Langulus::Anyness
 
 namespace Langulus
