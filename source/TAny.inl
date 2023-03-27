@@ -1110,7 +1110,6 @@ namespace Langulus::Anyness
 
    /// Copy-insert elements that are not found, at an index                   
    ///   @attention assumes index is in container's limits, if simple         
-   ///   @tparam KEEP - whether or not to reference inserted data             
    ///   @tparam IDX - type for indexing (deducible)                          
    ///   @param start - pointer to the first element to insert                
    ///   @param end - pointer to the end of elements to insert                
@@ -1120,7 +1119,18 @@ namespace Langulus::Anyness
    template<CT::Index IDX>
    LANGULUS(ALWAYSINLINE)
    Count TAny<T>::MergeAt(const T* start, const T* end, const IDX& index) {
-      return Block::MergeAt<false>(start, end, index);
+      auto offset = SimplifyIndex(index);
+      Count added {};
+      while (start != end) {
+         if (!Find(*start)) {
+            added += InsertAt(Langulus::Copy(*start), offset);
+            ++offset;
+         }
+
+         ++start;
+      }
+
+      return added;
    }
 
    TEMPLATE()
@@ -1132,7 +1142,6 @@ namespace Langulus::Anyness
 
    /// Move-insert element, if not found, at an index                         
    ///   @attention assumes index is in container's limits, if simple         
-   ///   @tparam KEEP - whether or not to reference inserted data             
    ///   @tparam IDX - type for indexing (deducible)                          
    ///   @param item - the item to find and push                              
    ///   @param index - the index to insert at                                
@@ -1146,7 +1155,6 @@ namespace Langulus::Anyness
    
    /// Move-insert element, if not found, at an index                         
    ///   @attention assumes index is in container's limits, if simple         
-   ///   @tparam KEEP - whether or not to reference inserted data             
    ///   @tparam IDX - type for indexing (deducible)                          
    ///   @param item - the item to find and push                              
    ///   @param index - the index to insert at                                
@@ -1155,12 +1163,13 @@ namespace Langulus::Anyness
    template<CT::Semantic S, CT::Index IDX>
    LANGULUS(ALWAYSINLINE)
    Count TAny<T>::MergeAt(S&& item, const IDX& index) requires (CT::Exact<TypeOf<S>, T>) {
-      return Block::MergeAt<false>(item.Forward(), index);
+      if (!Find(item.mValue))
+         return InsertAt(item.Forward(), index);
+      return 0;
    }
    
    /// Copy-insert elements that are not found, at a static index             
    ///   @tparam INDEX - the static index (either IndexFront or IndexBack)    
-   ///   @tparam KEEP - whether or not to reference inserted data             
    ///   @param start - pointer to the first element to insert                
    ///   @param end - pointer to the end of elements to insert                
    ///   @return the number of inserted items                                 
@@ -1168,7 +1177,14 @@ namespace Langulus::Anyness
    template<Index INDEX>
    LANGULUS(ALWAYSINLINE)
    Count TAny<T>::Merge(const T* start, const T* end) {
-      return Block::Merge<INDEX, false>(start, end);
+      Count added {};
+      while (start != end) {
+         if (!Find(*start))
+            added += Insert<INDEX>(Langulus::Copy(*start));
+         ++start;
+      }
+
+      return added;
    }
 
    TEMPLATE()
@@ -1197,7 +1213,9 @@ namespace Langulus::Anyness
    template<Index INDEX, CT::Semantic S>
    LANGULUS(ALWAYSINLINE)
    Count TAny<T>::Merge(S&& item) requires (CT::Exact<TypeOf<S>, T>) {
-      return Block::Merge<INDEX, false>(item.Forward());
+      if (!Find(item.mValue))
+         return Insert<INDEX>(item.Forward());
+      return 0;
    }
 
    /// Copy-construct element at the back, if element is not found            
@@ -1750,9 +1768,9 @@ namespace Langulus::Anyness
    LANGULUS(ALWAYSINLINE)
    bool TAny<T>::operator == (const Any& other) const noexcept {
       static_assert(sizeof(Block) == sizeof(TAny), "Binary incompatiblity");
-      if (!Is(other.GetType()))
-         return false;
-      return Compare(reinterpret_cast<const TAny&>(other));
+      //if (!Is(other.GetType()))
+      //   return false;
+      return Any::Compare(other);
    }
 
    /// Compare loosely with another TAny, ignoring case                       

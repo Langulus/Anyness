@@ -246,6 +246,9 @@ namespace Langulus::Anyness
          mState = from.mValue.mState + DataState::Typed;
       }
 
+      if (IsEmpty())
+         return;
+
       if constexpr (S::Shallow) {
          // We're transferring via a shallow semantic                   
          mRaw = from.mValue.mRaw;

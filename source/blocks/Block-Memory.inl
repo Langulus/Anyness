@@ -41,10 +41,10 @@ namespace Langulus::Anyness
    ///   @param elements - number of elements to allocate                     
    template<bool CREATE, bool SETSIZE>
    void Block::AllocateMore(Count elements) {
-      LANGULUS_ASSUME(DevAssumes, mType,
-         "Invalid type");
-      LANGULUS_ASSERT(!mType->mIsAbstract || mType->mIsSparse, Allocate,
-         "Abstract dense type");
+      LANGULUS_ASSERT(
+         !mType || !mType->mIsAbstract || mType->mIsSparse, Allocate,
+         "Allocating either in untyped block, or an abstract dense type"
+      );
 
       if (mReserved >= elements) {
          // Required memory is already available                        

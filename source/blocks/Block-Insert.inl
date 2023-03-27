@@ -655,8 +655,8 @@ namespace Langulus::Anyness
    ///      is more than a single argument, then all arguments will be        
    ///      wrapped in an Any, and then forwarded to the descriptor-          
    ///      constructor, if such is reflected                                 
-   ///   If none of these constructors are available, this function throws    
-   ///   Except::Construct                                                    
+   ///   If none of these constructors are available, or block is not typed,  
+   ///   this function throws Except::Allocate                                
    ///   @tparam IDX - type of indexing to use (deducible)                    
    ///   @tparam A... - argument types (deducible)                            
    ///   @param idx - the index to emplace at                                 
@@ -701,8 +701,8 @@ namespace Langulus::Anyness
    ///      is more than a single argument, then all arguments will be        
    ///      wrapped in an Any, and then forwarded to the descriptor-          
    ///      constructor, if such is reflected                                 
-   ///   If none of these constructors are available, this function throws    
-   ///   Except::Construct                                                    
+   ///   If none of these constructors are available, or block is not typed,  
+   ///   this function throws Except::Allocate                                
    ///   @tparam INDEX - the index to emplace at, IndexFront or IndexBack     
    ///   @tparam A... - argument types (deducible)                            
    ///   @param arguments... - the arguments to forward to constructor        
@@ -735,6 +735,8 @@ namespace Langulus::Anyness
    
    /// Create N new elements, using the provided arguments for construction   
    /// Elements will be added to the back of the container                    
+   /// If none of the constructors are available, or block is not typed,      
+   /// this function throws Except::Allocate                                  
    ///   @tparam ...A - arguments for construction (deducible)                
    ///   @param count - number of elements to construct                       
    ///   @param ...arguments - constructor arguments                          

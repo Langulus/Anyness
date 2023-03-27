@@ -66,19 +66,19 @@ T CreateElement(const ALT_T& e) {
 /// The main test for Any/TAny containers, with all kinds of items, from      
 /// sparse to dense, from trivial to complex, from flat to deep               
 TEMPLATE_TEST_CASE("Any/TAny", "[any]", 
-   (TypePair<TAny<int*>, int*>),
+   (TypePair<Any, int>),
    (TypePair<TAny<int>, int>),
    (TypePair<TAny<Trait>, Trait>),
    (TypePair<TAny<Traits::Count>, Traits::Count>),
    (TypePair<TAny<Any>, Any>),
    (TypePair<TAny<Text>, Text>),
    //(TypePair<TAny<Block>, Block>),
+   (TypePair<TAny<int*>, int*>),
    (TypePair<TAny<Trait*>, Trait*>),
    (TypePair<TAny<Traits::Count*>, Traits::Count*>),
    (TypePair<TAny<Any*>, Any*>),
    (TypePair<TAny<Text*>, Text*>),
    //(TypePair<TAny<Block*>, Block*>),
-   (TypePair<Any, int>),
    (TypePair<Any, Trait>),
    (TypePair<Any, Traits::Count>),
    (TypePair<Any, Any>),
@@ -577,6 +577,710 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
             REQUIRE(pack.GetUses() == 1);
             for (auto it : pack)
                REQUIRE(it == darray2[0]);
+         }
+      }
+
+      WHEN("Shallow-copy more of the same stuff to the back (<<)") {
+         pack << darray2[0] << darray2[1] << darray2[2] << darray2[3] << darray2[4];
+
+         THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
+            REQUIRE(pack.GetCount() == 5);
+            REQUIRE(pack.GetReserved() >= 5);
+            REQUIRE(pack.template IsExact<E>());
+            for (unsigned i = 0; i < 5; ++i)
+               REQUIRE(pack[i] == darray2[i]);
+         }
+         
+         #ifdef LANGULUS_STD_BENCHMARK
+            BENCHMARK_ADVANCED("Anyness::TAny::operator << (5 consecutive trivial copies)") (timer meter) {
+               some<T> storage(meter.runs());
+
+               meter.measure([&](int i) {
+                  return storage[i] << darray2[0] << darray2[1] << darray2[2] << darray2[3] << darray2[4];
+               });
+            };
+
+            BENCHMARK_ADVANCED("std::vector::push_back(5 consecutive trivial copies)") (timer meter) {
+               some<StdT> storage(meter.runs());
+
+               meter.measure([&](int i) {
+                  auto& s = storage[i];
+                  s.push_back(darray2[0]);
+                  s.push_back(darray2[1]);
+                  s.push_back(darray2[2]);
+                  s.push_back(darray2[3]);
+                  return s.push_back(darray2[4]);
+               });
+            };
+         #endif
+      }
+
+      WHEN("Shallow-copy more of the same stuff to the front (>>)") {
+         pack >> darray2[0] >> darray2[1] >> darray2[2] >> darray2[3] >> darray2[4];
+
+         THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
+            REQUIRE(pack.GetCount() == 5);
+            REQUIRE(pack.GetReserved() >= 5);
+            REQUIRE(pack.template IsExact<E>());
+            for (unsigned i = 0; i < 5; ++i)
+               REQUIRE(pack[i] == darray2[4-i]);
+      }
+         
+         #ifdef LANGULUS_STD_BENCHMARK
+            BENCHMARK_ADVANCED("Anyness::TAny::operator >> (5 consecutive trivial copies)") (timer meter) {
+               some<T> storage(meter.runs());
+
+               meter.measure([&](int i) {
+                  return storage[i] >> darray2[0] >> darray2[1] >> darray2[2] >> darray2[3] >> darray2[4];
+               });
+            };
+
+            BENCHMARK_ADVANCED("std::vector::push_front(5 consecutive trivial copies)") (timer meter) {
+               some<StdT> storage(meter.runs());
+
+               meter.measure([&](int i) {
+                  auto& s = storage[i];
+                  s.push_front(darray2[0]);
+                  s.push_front(darray2[1]);
+                  s.push_front(darray2[2]);
+                  s.push_front(darray2[3]);
+                  return s.push_front(darray2[4]);
+               });
+            };
+         #endif
+      }
+
+      WHEN("Shallow-copy an array to the back") {
+         pack.template Insert<IndexBack>(darray2, darray2 + 5);
+
+         THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
+            REQUIRE(pack.GetCount() == 5);
+            REQUIRE(pack.GetReserved() >= 5);
+            REQUIRE(pack.template IsExact<E>());
+            for (unsigned i = 0; i < 5; ++i)
+               REQUIRE(pack[i] == darray2[i]);
+         }
+         
+         #ifdef LANGULUS_STD_BENCHMARK
+            BENCHMARK_ADVANCED("Anyness::TAny::Insert<IndexBack> (5 trivial copies)") (timer meter) {
+               some<T> storage(meter.runs());
+
+               meter.measure([&](int i) {
+                  return storage[i].template Insert<IndexBack>(darray2, darray2 + 5);
+               });
+            };
+
+            BENCHMARK_ADVANCED("std::vector::insert to back (5 trivial copies)") (timer meter) {
+               some<StdT> storage(meter.runs());
+
+               meter.measure([&](int i) {
+                  return storage[i].insert(storage[i].end(), darray2, darray2 + 5);
+               });
+            };
+         #endif
+      }
+
+      WHEN("Shallow-copy an array to the front") {
+         pack.template Insert<IndexFront>(darray2, darray2 + 5);
+
+         THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
+            REQUIRE(pack.GetCount() == 5);
+            REQUIRE(pack.GetReserved() >= 5);
+            REQUIRE(pack.template IsExact<E>());
+            for (unsigned i = 0; i < 5; ++i)
+               REQUIRE(pack[i] == darray2[i]);
+         }
+         
+         #ifdef LANGULUS_STD_BENCHMARK
+            BENCHMARK_ADVANCED("Anyness::TAny::Insert<IndexFront> (5 trivial copies)") (timer meter) {
+               some<T> storage(meter.runs());
+
+               meter.measure([&](int i) {
+                  return storage[i].template Insert<IndexFront>(darray2, darray2 + 5);
+               });
+            };
+
+            BENCHMARK_ADVANCED("std::vector::insert to front (5 trivial copies)") (timer meter) {
+               some<StdT> storage(meter.runs());
+
+               meter.measure([&](int i) {
+                  return storage[i].insert(storage[i].begin(), darray2, darray2 + 5);
+               });
+            };
+         #endif
+      }
+
+      WHEN("Move more of the same stuff to the back (<<)") {
+         E darray3[5] {
+            CreateElement<E>(6),
+            CreateElement<E>(7),
+            CreateElement<E>(8),
+            CreateElement<E>(9),
+            CreateElement<E>(10)
+         };
+
+         const E darray3backup[5] {
+            darray3[0],
+            darray3[1],
+            darray3[2],
+            darray3[3],
+            darray3[4],
+         };
+
+         pack
+            << ::std::move(darray3[0])
+            << ::std::move(darray3[1])
+            << ::std::move(darray3[2])
+            << ::std::move(darray3[3])
+            << ::std::move(darray3[4]);
+
+         THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
+            REQUIRE(pack.GetCount() == 5);
+            REQUIRE(pack.GetReserved() >= 5);
+            REQUIRE(pack.template IsExact<E>());
+            for (unsigned i = 0; i < 5; ++i)
+               REQUIRE(pack[i] == darray3backup[i]);
+         }
+         
+         #ifdef LANGULUS_STD_BENCHMARK
+            BENCHMARK_ADVANCED("Anyness::TAny::operator << (5 consecutive trivial moves)") (timer meter) {
+               some<T> storage(meter.runs());
+
+               meter.measure([&](int i) {
+                  return storage[i]
+                     << ::std::move(darray2[0])
+                     << ::std::move(darray2[1])
+                     << ::std::move(darray2[2])
+                     << ::std::move(darray2[3])
+                     << ::std::move(darray2[4]);
+               });
+            };
+
+            BENCHMARK_ADVANCED("std::vector::emplace_back(5 consecutive trivial moves)") (timer meter) {
+               some<StdT> storage(meter.runs());
+
+               meter.measure([&](int i) {
+                  auto& s = storage[i];
+                  s.emplace_back(::std::move(darray2[0]));
+                  s.emplace_back(::std::move(darray2[1]));
+                  s.emplace_back(::std::move(darray2[2]));
+                  s.emplace_back(::std::move(darray2[3]));
+                  return s.emplace_back(::std::move(darray2[4]));
+               });
+            };
+         #endif
+      }
+
+      WHEN("Move more of the same stuff to the front (>>)") {
+         E darray3[5] {
+            CreateElement<E>(6),
+            CreateElement<E>(7),
+            CreateElement<E>(8),
+            CreateElement<E>(9),
+            CreateElement<E>(10)
+         };
+
+         const E darray3backup[5] {
+            darray3[0],
+            darray3[1],
+            darray3[2],
+            darray3[3],
+            darray3[4],
+         };
+
+         pack
+            >> ::std::move(darray3[0])
+            >> ::std::move(darray3[1])
+            >> ::std::move(darray3[2])
+            >> ::std::move(darray3[3])
+            >> ::std::move(darray3[4]);
+
+         THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
+            REQUIRE(pack.GetCount() == 5);
+            REQUIRE(pack.GetReserved() >= 5);
+            REQUIRE(pack.template IsExact<E>());
+            for (unsigned i = 0; i < 5; ++i)
+               REQUIRE(pack[i] == darray3backup[4 - i]);
+         }
+         
+         #ifdef LANGULUS_STD_BENCHMARK
+            BENCHMARK_ADVANCED("Anyness::TAny::operator >> (5 consecutive trivial moves)") (timer meter) {
+               some<T> storage(meter.runs());
+
+               meter.measure([&](int i) {
+                  return storage[i]
+                     >> ::std::move(darray2[0])
+                     >> ::std::move(darray2[1])
+                     >> ::std::move(darray2[2])
+                     >> ::std::move(darray2[3])
+                     >> ::std::move(darray2[4]);
+               });
+            };
+
+            BENCHMARK_ADVANCED("std::vector::emplace_front(5 consecutive trivial moves)") (timer meter) {
+               some<StdT> storage(meter.runs());
+
+               meter.measure([&](int i) {
+                  auto& s = storage[i];
+                  s.emplace_front(::std::move(darray2[0]));
+                  s.emplace_front(::std::move(darray2[1]));
+                  s.emplace_front(::std::move(darray2[2]));
+                  s.emplace_front(::std::move(darray2[3]));
+                  return s.emplace_front(::std::move(darray2[4]));
+               });
+            };
+         #endif
+      }
+      
+      WHEN("Insert single item at a specific place by shallow-copy") {
+         const auto i666 = CreateElement<E>(666);
+         REQUIRE_THROWS(pack.InsertAt(i666, 0));
+      }
+
+      WHEN("Insert multiple items at a specific place by shallow-copy") {
+         REQUIRE_THROWS(pack.InsertAt(darray2, darray2 + 5, 0));
+      }
+
+      WHEN("Insert single item at a specific place by move") {
+         auto i666 = CreateElement<E>(666);
+         REQUIRE_THROWS(pack.InsertAt(::std::move(i666), 0));
+      }
+
+      WHEN("Emplace item at a specific place") {
+         auto i666 = CreateElement<E>(666);
+         REQUIRE_THROWS(pack.EmplaceAt(0, ::std::move(i666)));
+      }
+
+      WHEN("Emplace item at the front") {
+         auto i666 = CreateElement<E>(666);
+         const auto i666backup = i666;
+
+         if constexpr (CT::Typed<T>) {
+            pack.template Emplace<IndexFront>(::std::move(i666));
+
+            THEN("The size changes, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
+               REQUIRE(pack.GetCount() == 1);
+               REQUIRE(pack.GetReserved() >= 1);
+               REQUIRE(pack.template IsExact<E>());
+               REQUIRE(pack[0] == i666backup);
+            }
+
+            #ifdef LANGULUS_STD_BENCHMARK
+               BENCHMARK_ADVANCED("Anyness::TAny::Emplace(single move at the front)") (timer meter) {
+                  some<T> storage(meter.runs());
+                  for (auto&& o : storage)
+                     o << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
+
+                  meter.measure([&](int i) {
+                     return storage[i].template Emplace<IndexFront>(::std::move(i666d));
+                  });
+               };
+
+               BENCHMARK_ADVANCED("std::vector::emplace_front(single move)") (timer meter) {
+                  some<StdT> storage(meter.runs());
+                  for (auto&& o : storage)
+                     o = { darray1[0], darray1[1], darray1[2], darray1[3], darray1[4] };
+
+                  meter.measure([&](int i) {
+                     return storage[i].emplace_front(::std::move(i666d));
+                  });
+               };
+            #endif
+         }
+         else {
+            REQUIRE_THROWS(pack.template Emplace<IndexFront>(::std::move(i666)));
+         }
+      }
+      
+      WHEN("Emplace item at the back") {
+         auto i666 = CreateElement<E>(666);
+         const auto i666backup = i666;
+         if constexpr (CT::Typed<T>) {
+            pack.template Emplace<IndexBack>(::std::move(i666));
+
+            THEN("The size changes, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
+               REQUIRE(pack.GetCount() == 1);
+               REQUIRE(pack.GetReserved() >= 1);
+               REQUIRE(pack.template IsExact<E>());
+               REQUIRE(pack[0] == i666backup);
+            }
+
+            #ifdef LANGULUS_STD_BENCHMARK
+               BENCHMARK_ADVANCED("Anyness::TAny::Emplace(single move at the back)") (timer meter) {
+                  some<T> storage(meter.runs());
+                  for (auto&& o : storage)
+                     o << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
+
+                  meter.measure([&](int i) {
+                     return storage[i].template Emplace<IndexBack>(::std::move(i666d));
+                  });
+               };
+
+               BENCHMARK_ADVANCED("std::vector::emplace_back(single move)") (timer meter) {
+                  some<StdT> storage(meter.runs());
+                  for (auto&& o : storage)
+                     o = { darray1[0], darray1[1], darray1[2], darray1[3], darray1[4] };
+
+                  meter.measure([&](int i) {
+                     return storage[i].emplace_back(::std::move(i666d));
+                  });
+               };
+            #endif
+         }
+         else {
+            REQUIRE_THROWS(pack.template Emplace<IndexBack>(::std::move(i666)));
+         }
+      }
+
+      WHEN("Removing non-available elements") {
+         const auto removed9 = pack.Remove(darray2[3]);
+
+         THEN("Nothing changes") {
+            REQUIRE(removed9 == 0);
+            REQUIRE(pack.IsEmpty());
+         }
+      }    
+
+      WHEN("More capacity is reserved") {
+         if constexpr (CT::Typed<T>) {
+            pack.Reserve(20);
+
+            THEN("Nothing changes") {
+               REQUIRE(pack.GetCount() == 0);
+               REQUIRE(pack.GetReserved() >= 20);
+            }
+         }
+         else {
+            REQUIRE_THROWS(pack.Reserve(20));
+         }
+      }
+
+      WHEN("Pack is cleared") {
+         pack.Clear();
+
+         THEN("Nothing changes") {
+            REQUIRE(pack.IsEmpty());
+         }
+      }
+
+      WHEN("Pack is reset") {
+         pack.Reset();
+
+         THEN("Nothing changes") {
+            REQUIRE(pack.IsEmpty());
+         }
+      }
+
+      WHEN("Pack is shallow-copied") {
+         pack.MakeOr();
+         auto copy = pack;
+
+         THEN("The new pack should keep the state and data") {
+            REQUIRE(copy.GetRaw() == pack.GetRaw());
+            REQUIRE(copy.GetCount() == pack.GetCount());
+            REQUIRE(copy.GetReserved() == pack.GetReserved());
+            REQUIRE(copy.GetState() == pack.GetState());
+            REQUIRE(copy.GetType() == pack.GetType());
+            REQUIRE(copy.GetUses() == 0);
+         }
+      }
+
+      WHEN("Pack is cloned") {
+         pack.MakeOr();
+         T clone = Langulus::Clone(pack);
+
+         THEN("The new pack should keep the state and data") {
+            REQUIRE(clone.GetRaw() == pack.GetRaw());
+            REQUIRE(clone.GetCount() == pack.GetCount());
+            REQUIRE(clone.GetReserved() == clone.GetReserved());
+            REQUIRE(clone.GetState() == pack.GetState());
+            REQUIRE(clone.GetType() == pack.GetType());
+            REQUIRE(clone.GetUses() == 0);
+            REQUIRE(pack.GetUses() == 0);
+         }
+      }
+
+      WHEN("Pack is moved") {
+         T movable = pack;
+         movable.MakeOr();
+         const T moved = ::std::move(movable);
+
+         THEN("The new pack should keep the state and data") {
+            REQUIRE(movable.GetRaw() == nullptr);
+            REQUIRE(movable.GetCount() == 0);
+            REQUIRE(movable.GetReserved() == 0);
+            REQUIRE(movable.IsTypeConstrained() == CT::Typed<T>);
+            REQUIRE(pack.GetRaw() == moved.GetRaw());
+            REQUIRE(pack.GetCount() == moved.GetCount());
+            REQUIRE(pack.GetReserved() == moved.GetReserved());
+            REQUIRE(pack.GetState() + DataState::Or == moved.GetState());
+            REQUIRE(pack.GetType() == moved.GetType());
+         }
+      }
+
+      WHEN("Packs are compared") {
+         T another_pack1;
+         another_pack1 << CreateElement<E>(1) << CreateElement<E>(2) << CreateElement<E>(3) << CreateElement<E>(4) << CreateElement<E>(5);
+         T another_pack2;
+         another_pack2 << CreateElement<E>(2) << CreateElement<E>(2) << CreateElement<E>(3) << CreateElement<E>(4) << CreateElement<E>(5);
+         T another_pack3;
+         another_pack3 << CreateElement<E>(1) << CreateElement<E>(2) << CreateElement<E>(3) << CreateElement<E>(4) << CreateElement<E>(5) << CreateElement<E>(6);
+         T defaulted_pack1;
+
+         TAny<uint> another_pack4;
+         another_pack4 << uint(1) << uint(2) << uint(3) << uint(4) << uint(5);
+         Any another_pack5;
+         another_pack5 << CreateElement<E>(1) << CreateElement<E>(2) << CreateElement<E>(3) << CreateElement<E>(4) << CreateElement<E>(5);
+         Any defaulted_pack2;
+
+         THEN("The comparisons should be adequate") {
+            REQUIRE(pack != another_pack1);
+            REQUIRE(pack != another_pack2);
+            REQUIRE(pack != another_pack3);
+            REQUIRE(pack != another_pack4);
+            REQUIRE(pack != another_pack5);
+            REQUIRE(pack == defaulted_pack1);
+            REQUIRE(pack == defaulted_pack2);
+         }
+      }
+
+      WHEN("A forward value-based search is performed on non-exitent value") {
+         const auto found = pack.Find(darray2[2]);
+
+         THEN("The function should return IndexNone") {
+            REQUIRE(found == IndexNone);
+            REQUIRE_FALSE(found);
+         }
+      }
+
+      WHEN("A backward value-based search is performed on non-exitent value") {
+         const auto found = pack.template Find<true>(darray2[2]);
+
+         THEN("The function should return IndexNone") {
+            REQUIRE(found == IndexNone);
+            REQUIRE_FALSE(found);
+         }
+      }
+      
+      WHEN("Merge-copy an element to the back, if not found (<<=)") {
+         pack <<= darray2[3];
+
+         THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
+            REQUIRE(pack.GetCount() == 1);
+            REQUIRE(pack.GetReserved() >= 1);
+            REQUIRE(pack.template IsExact<E>());
+            REQUIRE(pack[0] == darray2[3]);
+         }
+         
+         #ifdef LANGULUS_STD_BENCHMARK
+            BENCHMARK_ADVANCED("Anyness::TAny::operator <<= (merge copy to the back)") (timer meter) {
+               some<T> storage(meter.runs());
+
+               meter.measure([&](int i) {
+                  return storage[i] <<= darray2[3];
+               });
+            };
+
+            BENCHMARK_ADVANCED("std::vector::find & push_back (merge copy to the back)") (timer meter) {
+               some<StdT> storage(meter.runs());
+
+               meter.measure([&](int i) {
+                  auto& s = storage[i];
+                  if (std::find(s.begin(), s.end(), darray2[3]) == s.end())
+                     s.push_back(darray2[3]);
+               });
+            };
+         #endif
+      }
+
+      WHEN("Merge-copy an element to the front, if not found (>>=)") {
+         pack >>= darray2[3];
+
+         THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
+            REQUIRE(pack.GetCount() == 1);
+            REQUIRE(pack.GetReserved() >= 1);
+            REQUIRE(pack.template IsExact<E>());
+            REQUIRE(pack[0] == darray2[3]);
+         }
+         
+         #ifdef LANGULUS_STD_BENCHMARK
+            BENCHMARK_ADVANCED("Anyness::TAny::operator >> (merge copy to the front)") (timer meter) {
+               some<T> storage(meter.runs());
+
+               meter.measure([&](int i) {
+                  return storage[i] >>= darray2[3];
+               });
+            };
+
+            BENCHMARK_ADVANCED("std::vector::find & push_front (merge copy to the front)") (timer meter) {
+               some<StdT> storage(meter.runs());
+
+               meter.measure([&](int i) {
+                  auto& s = storage[i];
+                  if (std::find(s.begin(), s.end(), darray2[3]) == s.end())
+                     s.push_front(darray2[3]);
+               });
+            };
+         #endif
+      }
+
+      WHEN("Merge-move an element to the back, if not found (<<=)") {
+         auto moved = darray2[3];
+         pack <<= ::std::move(moved);
+
+         THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
+            REQUIRE(pack.GetCount() == 1);
+            REQUIRE(pack.GetReserved() >= 1);
+            REQUIRE(pack.template IsExact<E>());
+            REQUIRE(pack[0] == darray2[3]);
+         }
+         
+         #ifdef LANGULUS_STD_BENCHMARK
+            BENCHMARK_ADVANCED("Anyness::TAny::operator <<= (merge move to the back)") (timer meter) {
+               some<T> storage(meter.runs());
+
+               meter.measure([&](int i) {
+                  return storage[i] <<= ::std::move(moved);
+               });
+            };
+
+            BENCHMARK_ADVANCED("std::vector::find & push_back (merge move to the back)") (timer meter) {
+               some<StdT> storage(meter.runs());
+
+               meter.measure([&](int i) {
+                  auto& s = storage[i];
+                  if (std::find(s.begin(), s.end(), darray2[3]) == s.end())
+                     s.push_back(::std::move(moved));
+               });
+            };
+         #endif
+      }
+
+      WHEN("Merge-move an element to the front, if not found (>>=)") {
+         auto moved = darray2[3];
+         pack >>= ::std::move(moved);
+
+         THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
+            REQUIRE(pack.GetCount() == 1);
+            REQUIRE(pack.GetReserved() >= 1);
+            REQUIRE(pack.template IsExact<E>());
+            REQUIRE(pack[0] == darray2[3]);
+         }
+         
+         #ifdef LANGULUS_STD_BENCHMARK
+            BENCHMARK_ADVANCED("Anyness::TAny::operator >>= (merge move to the front)") (timer meter) {
+               some<T> storage(meter.runs());
+
+               meter.measure([&](int i) {
+                  return storage[i] >>= ::std::move(moved);
+               });
+            };
+
+            BENCHMARK_ADVANCED("std::vector::find & push_front (merge move to the front)") (timer meter) {
+               some<StdT> storage(meter.runs());
+
+               meter.measure([&](int i) {
+                  auto& s = storage[i];
+                  if (std::find(s.begin(), s.end(), darray2[3]) == s.end())
+                     s.push_front(::std::move(moved));
+               });
+            };
+         #endif
+      }
+
+      WHEN("ForEach flat dense element (immutable)") {
+         const auto foreachit = const_cast<const T&>(pack).ForEach(
+            [&](const int&)    {FAIL();},
+            [&](const Trait&)  {FAIL();},
+            [&](const Any&)    {FAIL();}
+         );
+
+         THEN("The number of iterated elements should be correct") {
+            REQUIRE(0 == foreachit);
+         }
+      }
+
+      WHEN("ForEach flat dense element (mutable)") {
+         const auto foreachit = const_cast<T&>(pack).ForEach(
+            [&](int&) {FAIL(); },
+            [&](Trait&) {FAIL(); },
+            [&](Any&) {FAIL(); }
+         );
+
+         THEN("The number of iterated elements should be correct") {
+            REQUIRE(0 == foreachit);
+         }
+      }
+
+      WHEN("ForEach flat sparse element (immutable)") {
+         const auto foreachit = const_cast<const T&>(pack).ForEach(
+            [&](const int*) {FAIL(); },
+            [&](const Trait*) {FAIL(); },
+            [&](const Any*) {FAIL(); }
+         );
+
+         THEN("The number of iterated elements should be correct") {
+            REQUIRE(0 == foreachit);
+         }
+      }
+
+      WHEN("ForEach flat sparse element (mutable)") {
+         const auto foreachit = const_cast<T&>(pack).ForEach(
+            [&](int*) {FAIL(); },
+            [&](Trait*) {FAIL(); },
+            [&](Any*) {FAIL(); }
+         );
+
+         THEN("The number of iterated elements should be correct") {
+            REQUIRE(0 == foreachit);
+         }
+      }
+
+      WHEN("ForEachRev flat dense element (immutable)") {
+         const auto foreachit = const_cast<const T&>(pack).ForEachRev(
+            [&](const int&) {FAIL(); },
+            [&](const Trait&) {FAIL(); },
+            [&](const Any&) {FAIL(); }
+         );
+
+         THEN("The number of iterated elements should be correct") {
+            REQUIRE(0 == foreachit);
+         }
+      }
+
+      WHEN("ForEachRev flat dense element (mutable)") {
+         const auto foreachit = pack.ForEachRev(
+            [&](const int&) {FAIL(); },
+            [&](const Trait&) {FAIL(); },
+            [&](const Any&) {FAIL(); }
+         );
+
+         THEN("The number of iterated elements should be correct") {
+            REQUIRE(0 == foreachit);
+         }
+      }
+
+      WHEN("ForEachRev flat sparse element (immutable)") {
+         const auto foreachit = const_cast<const T&>(pack).ForEachRev(
+            [&](const int*) {FAIL(); },
+            [&](const Trait*) {FAIL(); },
+            [&](const Any*) {FAIL(); }
+         );
+
+         THEN("The number of iterated elements should be correct") {
+            REQUIRE(0 == foreachit);
+         }
+      }
+
+      WHEN("ForEachRev flat sparse element (mutable)") {
+         const auto foreachit = pack.ForEachRev(
+            [&](const int*) {FAIL(); },
+            [&](const Trait*) {FAIL(); },
+            [&](const Any*) {FAIL(); }
+         );
+
+         THEN("The number of iterated elements should be correct") {
+            REQUIRE(0 == foreachit);
          }
       }
    }
@@ -2051,8 +2755,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
             REQUIRE(pack.GetReserved() >= 5);
             REQUIRE(pack.GetRaw() == memory);
          }
-      }
-      
+      }    
 
       WHEN("More capacity is reserved") {
          pack.Reserve(20);
