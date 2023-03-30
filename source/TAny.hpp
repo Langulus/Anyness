@@ -137,6 +137,8 @@ namespace Langulus::Anyness
       NOD() bool Is(DMeta) const noexcept;
       template<CT::Data...>
       NOD() constexpr bool Is() const noexcept;
+
+      NOD() bool IsExact(DMeta) const noexcept;
       template<CT::Data...>
       NOD() constexpr bool IsExact() const noexcept;
 

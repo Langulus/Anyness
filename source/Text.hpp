@@ -48,6 +48,7 @@ namespace Langulus::Anyness
       Text(const CompatibleStdStringView&);
       Text(const Exception&);
       Text(const RTTI::Meta&);
+      Text(const RTTI::Meta*);
       Text(const Letter&);
       Text(const CT::DenseBuiltinNumber auto&);
 

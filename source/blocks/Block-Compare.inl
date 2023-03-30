@@ -47,17 +47,18 @@ namespace Langulus::Anyness
          return false;
       }
 
-      if (mType != right.mType) {
+      if (mCount && mType != right.mType) {
          if (IsUntyped() || right.IsUntyped()) {
-            // Cheap early return if differing undefined types          
+            // Cheap early return if differing undefined types, when    
+            // packs are not empty                                      
             VERBOSE(Logger::Red,
                "One of the containers is untyped: ",
                GetToken(), " != ", right.GetToken());
             return false;
          }
       }
-      else if (IsUntyped()) {
-         // Both blocks are not initialized, just compare states        
+      else if (!mCount || IsUntyped()) {
+         // Both blocks are untyped or empty, just compare states       
          return CompareStates(right);
       }
 

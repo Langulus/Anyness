@@ -156,7 +156,7 @@ namespace Langulus::Anyness
    template<CT::Data T, CT::Index IDX>
    decltype(auto) Block::As(const IDX& index) {
       // First quick type stage for fast access                         
-      if (mType->IsExact<T>()) {
+      if (mType->Is<T>()) {
          const auto idx = SimplifyIndex<T>(index);
          return Get<T>(idx);
       }

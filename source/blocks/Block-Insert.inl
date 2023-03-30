@@ -458,8 +458,17 @@ namespace Langulus::Anyness
       Block region;
       AllocateRegion(other.mValue, SimplifyIndex<T>(idx), region);
       if (region.IsAllocated()) {
-         region.CallUnknownSemanticConstructors(
-            other.mValue.mCount, other.Forward());
+         if constexpr (CT::Typed<T>) {
+            region.CallKnownSemanticConstructors<TypeOf<T>>(
+               other.mValue.mCount, other.Forward()
+            );
+         }
+         else {
+            region.CallUnknownSemanticConstructors(
+               other.mValue.mCount, other.Forward()
+            );
+         }
+
          mCount += other.mValue.mCount;
          return other.mValue.mCount;
       }
@@ -1591,7 +1600,7 @@ namespace Langulus::Anyness
          const auto lhsEnd = lhs + count;
          while (lhs != lhsEnd) {
             if constexpr (::std::constructible_from<T, A...>)
-               new (lhs++) T {arguments...};
+               new (lhs++) T (arguments...);
             else
                LANGULUS_ERROR("T is not constructible with these arguments");
          }
@@ -1612,6 +1621,8 @@ namespace Langulus::Anyness
    void Block::CallUnknownSemanticConstructors(const Count count, S&& source) const {
       static_assert(CT::Block<TypeOf<S>>,
          "S type must be a block type");
+      static_assert(!CT::Typed<TypeOf<S>>,
+         "Block type is statically typed, use CallKnownSemanticConstructors instead");
 
       LANGULUS_ASSUME(DevAssumes, count <= source.mValue.mCount && count <= mReserved,
          "Count outside limits");

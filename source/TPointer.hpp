@@ -25,6 +25,12 @@ namespace Langulus::Anyness
       using Self = TPointer<T, DR>;
       using Type = TypeOf<Base>;
 
+      /// Semantic constraints, should be kept to date with constructor       
+      template<CT::NotSemantic S>
+      static constexpr bool RelevantT = CT::ExactAsOneOf<S, Self, ::std::nullptr_t, T*>;
+      template<CT::Semantic S>
+      static constexpr bool RelevantS = RelevantT<TypeOf<S>>;
+
    protected:
       using Base::mValue;
       Inner::Allocation* mEntry {};
@@ -39,12 +45,15 @@ namespace Langulus::Anyness
       TPointer(const TPointer&);
       TPointer(TPointer&&);
 
-      TPointer(const CT::NotSemantic auto&);
-      TPointer(CT::NotSemantic auto&);
-      TPointer(CT::NotSemantic auto&&);
+      template<CT::NotSemantic ALT>
+      TPointer(const ALT&) requires RelevantT<ALT>;
+      template<CT::NotSemantic ALT>
+      TPointer(ALT&) requires RelevantT<ALT>;
+      template<CT::NotSemantic ALT>
+      TPointer(ALT &&) requires RelevantT<ALT>;
 
       template<CT::Semantic S>
-      TPointer(S&&);
+      TPointer(S&&) requires RelevantS<S>;
 
       ~TPointer();
 

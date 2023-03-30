@@ -80,13 +80,13 @@ namespace Langulus::Anyness
    TEMPLATE_OWNED()
    LANGULUS(ALWAYSINLINE)
    constexpr TOwned<T>& TOwned<T>::operator = (const CT::NotSemantic auto& value) {
-      return operator = (Move(value));
+      return operator = (Copy(value));
    }
 
    TEMPLATE_OWNED()
    LANGULUS(ALWAYSINLINE)
    constexpr TOwned<T>& TOwned<T>::operator = (CT::NotSemantic auto& value) {
-      return operator = (Move(value));
+      return operator = (Copy(value));
    }
 
    TEMPLATE_OWNED()

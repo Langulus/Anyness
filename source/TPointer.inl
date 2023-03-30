@@ -36,33 +36,40 @@ namespace Langulus::Anyness
       : TPointer {Langulus::Move(other)} {}
 
    TEMPLATE_SHARED()
+   template<CT::NotSemantic ALT>
    LANGULUS(ALWAYSINLINE)
-   SHARED_POINTER()::TPointer(const CT::NotSemantic auto& value)
+   SHARED_POINTER()::TPointer(const ALT& value) requires RelevantT<ALT>
       : TPointer {Copy(value)} {}
 
    TEMPLATE_SHARED()
+   template<CT::NotSemantic ALT>
    LANGULUS(ALWAYSINLINE)
-   SHARED_POINTER()::TPointer(CT::NotSemantic auto& value)
+   SHARED_POINTER()::TPointer(ALT& value) requires RelevantT<ALT>
       : TPointer {Copy(value)} {}
 
    TEMPLATE_SHARED()
+   template<CT::NotSemantic ALT>
    LANGULUS(ALWAYSINLINE)
-   SHARED_POINTER()::TPointer(CT::NotSemantic auto&& value)
+   SHARED_POINTER()::TPointer(ALT&& value) requires RelevantT<ALT>
       : TPointer {Move(value)} {}
 
    TEMPLATE_SHARED()
    template<CT::Semantic S>
    LANGULUS(ALWAYSINLINE)
-   SHARED_POINTER()::TPointer(S&& other) {
-      if constexpr (CT::Exact<TypeOf<S>, ::std::nullptr_t>) {
+   SHARED_POINTER()::TPointer(S&& other) requires RelevantS<S> {
+      using ST = TypeOf<S>;
+
+      if constexpr (CT::Exact<ST, ::std::nullptr_t>) {
          mValue = nullptr;
          mEntry = nullptr;
          return;
       }
-      else if constexpr (CT::Exact<TypeOf<S>, TPointer>)
+      else if constexpr (CT::Exact<ST, TPointer>)
          GetHandle().New(S::Nest(other.mValue.GetHandle()));
-      else
+      else if constexpr (CT::Exact<ST, T*>)
          GetHandle().New(other.Forward());
+      else
+         LANGULUS_ERROR("Bad semantic construction");
 
       if constexpr (S::Shallow && !S::Move && S::Keep) {
          if constexpr (DR && CT::Referencable<T>)

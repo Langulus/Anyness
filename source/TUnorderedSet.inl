@@ -959,7 +959,7 @@ namespace Langulus::Anyness
    ///   @return an iterator to the end element                               
    TABLE_TEMPLATE()
    typename TABLE()::Iterator TABLE()::end() noexcept {
-      return {GetInfoEnd(), GetInfoEnd(), nullptr, nullptr};
+      return {GetInfoEnd(), GetInfoEnd(), nullptr};
    }
 
    /// Get iterator to the last element                                       
@@ -992,7 +992,7 @@ namespace Langulus::Anyness
    ///   @return a constant iterator to the end element                       
    TABLE_TEMPLATE()
    typename TABLE()::ConstIterator TABLE()::end() const noexcept {
-      return {GetInfoEnd(), GetInfoEnd(), nullptr, nullptr};
+      return {GetInfoEnd(), GetInfoEnd(), nullptr};
    }
 
    /// Get iterator to the last valid element                                 

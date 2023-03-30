@@ -52,7 +52,12 @@ namespace Langulus::Anyness
          }
       }
       else {
-         static_assert(CT::Exact<T, ST>, "Type mismatch");
+         // Assigning mutable pointer to a const handle is allowed      
+         static_assert(
+               (CT::Mutable<Deptr<T>> && CT::Exact<T, ST>)
+            || (CT::Constant<Deptr<T>> && CT::Exact<T, const Deptr<ST>*>),
+            "Type mismatch"
+         );
 
          if constexpr (S::Shallow) {
             // Copy/Disown/Move/Abandon a pointer                       
@@ -300,7 +305,13 @@ namespace Langulus::Anyness
          else {
             // RHS is not a handle, but we'll wrap it in a handle, in   
             // order to find its entry (if managed memory is enabled)   
-            static_assert(CT::Exact<T, ST>, "Type mismatch");
+            // Assigning mutable pointer to a const handle is allowed   
+            static_assert(
+                  (CT::Mutable<Deptr<T>> && CT::Exact<T, ST>)
+               || (CT::Constant<Deptr<T>> && CT::Exact<T, const Deptr<ST>*>),
+               "Type mismatch"
+            );
+
             HandleLocal<T> rhsh {rhs.Forward()};
             Get() = rhsh.Get();
             GetEntry() = rhsh.GetEntry();

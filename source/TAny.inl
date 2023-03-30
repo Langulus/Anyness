@@ -405,9 +405,10 @@ namespace Langulus::Anyness
       return CastsToMeta(MetaData::Of<Decay<ALT_T>>(), count);
    }
 
-   /// Check if contained data exactly matches a given type                   
+   /// Check if contained data is similar given type                          
+   ///   @attention ignores sparsity and constness                            
    ///   @param type - the type to check for                                  
-   ///   @return if this block contains data of exactly 'type'                
+   ///   @return if this block contains data similar to 'type'                
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
    bool TAny<T>::Is(DMeta type) const noexcept {
@@ -415,7 +416,7 @@ namespace Langulus::Anyness
    }
 
    /// Check if this container's data is similar to one of the listed types   
-   ///   @attention ignores sparsity                                          
+   ///   @attention ignores sparsity and constness                            
    ///   @tparam T... - the types to compare against                          
    ///   @return true if data type matches at least one type                  
    TEMPLATE()
@@ -423,6 +424,15 @@ namespace Langulus::Anyness
    LANGULUS(ALWAYSINLINE)
    constexpr bool TAny<T>::Is() const noexcept {
       return CT::Same<T, ALT_T...>;
+   }
+
+   /// Check if contained data exactly matches a given type                   
+   ///   @param type - the type to check for                                  
+   ///   @return if this block contains data of exactly 'type'                
+   TEMPLATE()
+   LANGULUS(ALWAYSINLINE)
+   bool TAny<T>::IsExact(DMeta type) const noexcept {
+      return GetType() == type || (mType && mType->IsExact(type));
    }
 
    /// Check if this container's data is exactly as one of the listed types   
@@ -1767,9 +1777,12 @@ namespace Langulus::Anyness
    TEMPLATE()
    LANGULUS(ALWAYSINLINE)
    bool TAny<T>::operator == (const Any& other) const noexcept {
-      static_assert(sizeof(Block) == sizeof(TAny), "Binary incompatiblity");
-      //if (!Is(other.GetType()))
-      //   return false;
+      if (IsExact(other.GetType())) {
+         // Use statically optimized routine if possible                
+         return Compare(reinterpret_cast<const TAny<T>&>(other));
+      }
+
+      // Fallback to RTTI routine                                       
       return Any::Compare(other);
    }
 

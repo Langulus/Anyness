@@ -96,6 +96,12 @@ namespace Langulus::Anyness
       #else
          : Text {meta.mToken} {}
       #endif
+
+   /// Stringify meta                                                         
+   ///   @param meta - the definition to stringify                            
+   LANGULUS(ALWAYSINLINE)
+   Text::Text(const RTTI::Meta* meta)
+      : Text {*meta} {}
    
    /// Construct from a single character                                      
    ///   @param anyCharacter - the character                                  
