@@ -32,8 +32,8 @@ namespace Langulus::Anyness
       static constexpr bool RawTextPointer = CT::BuiltinCharacter<TypeOf<S>> && CT::Sparse<TypeOf<S>>;
 
    private:
-      Text(const Base&);
-      Text(Base&&) noexcept;
+      explicit Text(const Base&);
+      explicit Text(Base&&) noexcept;
 
    public:
       constexpr Text() = default;

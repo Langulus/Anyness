@@ -19,9 +19,71 @@ namespace Langulus::Anyness
    ///   @param end - the ending marker of the selection (optional)           
    TEMPLATE() LANGULUS(ALWAYSINLINE)
    TEdit<T>::TEdit(T& container, Offset start, Offset end) noexcept
-      : mSource(container)
-      , mStart(start)
-      , mEnd(end) {}
+      : mSource {container}
+      , mStart {start}
+      , mEnd {end} {}
+
+   /// Select a subpattern                                                    
+   ///   @param pattern - the pattern to select                               
+   ///   @return a reference to this editor                                   
+   TEMPLATE() LANGULUS(ALWAYSINLINE)
+   TEdit<T>& TEdit<T>::Select(const T& pattern) {
+      if (mSource.IsEmpty() || pattern.IsEmpty())
+         return *this;
+
+      auto lhs = mSource.GetRaw();
+      auto rhs = pattern.GetRaw();
+      const auto endlhs = mSource.GetRawEnd() - pattern.GetCount();
+      const auto endrhs = pattern.GetRawEnd();
+      while (lhs != endlhs) {
+         if (*lhs != *rhs) {
+            ++lhs;
+            continue;
+         }
+
+         const auto lhsBackup = ++lhs;
+         ++rhs;
+
+         while (rhs != endrhs) {
+            if (*lhs != *rhs) {
+               lhs = lhsBackup;
+               rhs = pattern.GetRaw();
+               break;
+            }
+
+            ++lhs;
+            ++rhs;
+         }
+
+         if (rhs == endrhs) {
+            mStart = (lhsBackup - 1) - mSource.GetRaw();
+            mEnd = mStart + pattern.GetCount();
+            break;
+         }
+      }
+
+      return *this;
+   }
+
+   /// Select a subregion                                                     
+   ///   @param start - the starting marker of the selection                  
+   ///   @param end - the ending marker of the selection                      
+   ///   @return a reference to this editor                                   
+   TEMPLATE() LANGULUS(ALWAYSINLINE)
+   TEdit<T>& TEdit<T>::Select(Offset start, Offset end) {
+      mStart = ::std::min(start, mSource.GetCount());
+      mEnd = ::std::max(::std::min(end, mSource.GetCount()), mStart);
+      return *this;
+   }
+
+   /// Select a subregion                                                     
+   ///   @param start - the starting marker of the selection                  
+   ///   @return a reference to this editor                                   
+   TEMPLATE() LANGULUS(ALWAYSINLINE)
+   TEdit<T>& TEdit<T>::Select(Offset start) {
+      mEnd = mStart = ::std::min(start, mSource.GetCount());
+      return *this;
+   }
 
    /// Get the container we're editing                                        
    ///   @return a constant reference to the source container                 

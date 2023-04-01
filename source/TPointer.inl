@@ -166,19 +166,21 @@ namespace Langulus::Anyness
          Reset();
          return *this;
       }
-      else if constexpr (CT::Exact<TypeOf<S>, TPointer>)
-         GetHandle().Assign(S::Nest(rhs.mValue.GetHandle()));
-      else
-         GetHandle().Assign(rhs.Forward());
+      else {
+         if constexpr (CT::Exact<TypeOf<S>, TPointer>)
+            GetHandle().Assign(S::Nest(rhs.mValue.GetHandle()));
+         else
+            GetHandle().Assign(rhs.Forward());
 
-      if constexpr (S::Shallow && !S::Move && S::Keep) {
-         if constexpr (DR && CT::Referencable<T>) {
-            if (mValue)
-               mValue->Keep();
+         if constexpr (S::Shallow && !S::Move && S::Keep) {
+            if constexpr (DR && CT::Referencable<T>) {
+               if (mValue)
+                  mValue->Keep();
+            }
          }
-      }
 
-      return *this;
+         return *this;
+      }
    }
 
    /// Cast to a constant pointer, if mutable                                 

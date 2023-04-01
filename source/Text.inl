@@ -458,7 +458,7 @@ namespace Langulus::Anyness
    ///   @return new text that references the original memory                 
    LANGULUS(ALWAYSINLINE)
    Text Text::Crop(Count start, Count count) const {
-      return Base::Crop(start, count);
+      return Text {Base::Crop(start, count)};
    }
 
    /// Pick a part of the text                                                
@@ -467,7 +467,7 @@ namespace Langulus::Anyness
    ///   @return new text that references the original memory                 
    LANGULUS(ALWAYSINLINE)
    Text Text::Crop(Count start, Count count) {
-      return Base::Crop(start, count);
+      return Text {Base::Crop(start, count)};
    }
 
    /// Remove all instances of a symbol from the text container               

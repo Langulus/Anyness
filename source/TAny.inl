@@ -72,8 +72,8 @@ namespace Langulus::Anyness
    TAny<T>::TAny(S&& other) : TAny {} {
       using ST = TypeOf<S>;
 
-      if constexpr (CT::Deep<ST> || CT::DerivedFrom<ST, TAny<T>>) {
-         // Constructing using either deep, or derived from this TAny   
+      if constexpr (CT::Deep<ST>) {
+         // Constructing using deep source                              
          mType = MetaData::Of<T>();
 
          if constexpr (!CT::Typed<ST>) {
@@ -127,6 +127,10 @@ namespace Langulus::Anyness
             }
             else LANGULUS_ERROR("Bad semantic-construction");
          }
+      }
+      else if constexpr (CT::DerivedFrom<ST, TAny<T>>) {
+         mType = MetaData::Of<T>();
+         BlockTransfer<TAny>(other.Forward());
       }
       else if constexpr (CT::Exact<T, ST>) {
          // Copy/Disown/Move/Abandon/Clone a compatible element         

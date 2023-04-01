@@ -81,9 +81,6 @@ namespace Langulus::Anyness
       NOD() static TAny Wrap(LIST_T&&...);
    
       void Null(const Count&);
-      void TakeAuthority();
-
-      void Reserve(Count);
 
       NOD() DMeta GetType() const noexcept;
       NOD() auto GetRaw() const noexcept;
@@ -93,7 +90,6 @@ namespace Langulus::Anyness
       NOD() decltype(auto) GetHandle(Offset) SAFETY_NOEXCEPT();
       NOD() decltype(auto) GetHandle(Offset) const SAFETY_NOEXCEPT();
 
-      NOD() RTTI::AllocationRequest RequestSize(const Count&) const noexcept;
 
    private: TESTING(public:)
       using Any::GetRawSparse;
@@ -141,6 +137,17 @@ namespace Langulus::Anyness
       NOD() bool IsExact(DMeta) const noexcept;
       template<CT::Data...>
       NOD() constexpr bool IsExact() const noexcept;
+
+   public:
+      ///                                                                     
+      ///   Memory management                                                 
+      ///                                                                     
+      NOD() RTTI::AllocationRequest RequestSize(const Count&) const noexcept;
+      void Reserve(Count);
+      template<bool CREATE = false, bool SETSIZE = false>
+      void AllocateMore(Count);
+      void AllocateLess(Count);
+      void TakeAuthority();
 
       ///                                                                     
       ///   Insertion                                                         
@@ -282,9 +289,6 @@ namespace Langulus::Anyness
       NOD() ConstIterator last() const noexcept;
 
    protected:
-      template<bool CREATE = false, bool SETSIZE = false>
-      void AllocateMore(Count);
-      void AllocateLess(Count);
       void AllocateFresh(const RTTI::AllocationRequest&);
 
       constexpr void ResetState() noexcept;
