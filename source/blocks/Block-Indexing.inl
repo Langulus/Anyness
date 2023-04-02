@@ -155,6 +155,9 @@ namespace Langulus::Anyness
    ///   @return either pointer or reference to the element (depends on T)    
    template<CT::Data T, CT::Index IDX>
    decltype(auto) Block::As(const IDX& index) {
+      if (!mType)
+         LANGULUS_THROW(Access, "Untyped block");
+
       // First quick type stage for fast access                         
       if (mType->Is<T>()) {
          const auto idx = SimplifyIndex<T>(index);
