@@ -441,6 +441,7 @@ namespace Langulus::Anyness
    template<bool RESET>
    void HAND()::Destroy() const {
       if constexpr (CT::Sparse<T>) {
+         // Handle is sparse, we should handle each indirection layer   
          if (GetEntry()) {
             if (1 == GetEntry()->GetUses()) {
                LANGULUS_ASSUME(DevAssumes, Get(), "Null pointer");
@@ -468,6 +469,12 @@ namespace Langulus::Anyness
 
          if constexpr (RESET)
             New(nullptr, nullptr);
+      }
+      else if constexpr (EMBED) {
+         // Handle is dense and embedded, we should call the remote     
+         // destructor, but don't touch the entry, its irrelevant       
+         if constexpr (!CT::POD<T> && CT::Destroyable<T>)
+            Get().~T();
       }
    }
    

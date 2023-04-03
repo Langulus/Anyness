@@ -709,7 +709,11 @@ namespace Langulus::Anyness
                auto oldValue = GetValueHandle(oldIndex);
                HandleLocal<K> keyswap {Abandon(oldKey)};
                HandleLocal<V> valswap {Abandon(oldValue)};
-               RemoveIndex(oldIndex);
+
+               // Destroy the key, info and value                       
+               oldKey.Destroy();
+               oldValue.Destroy();
+               *oldInfo = 0;
 
                if (oldIndex == InsertInner<false>(
                   newIndex, Abandon(keyswap), Abandon(valswap))) {
