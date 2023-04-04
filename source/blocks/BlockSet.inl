@@ -153,7 +153,7 @@ namespace Langulus::Anyness
       }
    }
    
-   /// Clone info, keys and values from a statically typed set                
+   /// Clone info and keys from a statically typed set                        
    ///   @attention assumes this is not allocated                             
    ///   @tparam T - the statically optimized type of set we're using         
    ///   @param other - the set we'll be cloning                              
@@ -173,8 +173,8 @@ namespace Langulus::Anyness
       // Clone keys and values                                          
       auto info = asTo->GetInfo();
       const auto infoEnd = asTo->GetInfoEnd();
-      auto dstKey = asTo->GetKeyHandle(0);
-      auto srcKey = asFrom->GetKeyHandle(0);
+      auto dstKey = asTo->GetHandle(0);
+      auto srcKey = asFrom->GetHandle(0);
       while (info != infoEnd) {
          if (*info)
             dstKey.New(Langulus::Clone(srcKey));
