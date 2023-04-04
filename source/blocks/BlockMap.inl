@@ -842,22 +842,23 @@ namespace Langulus::Anyness
             if (oldIndex != newIndex) {
                // Move key & value to swapper                           
                // No chance of overlap, so do it forwards               
+               auto oldValue = GetValue(oldIndex);
                keyswap.CallUnknownSemanticConstructors<false>(
                   1, Abandon(oldKey));
                valswap.CallUnknownSemanticConstructors<false>(
-                  1, Abandon(GetValue(oldIndex)));
+                  1, Abandon(oldValue));
                keyswap.mCount = valswap.mCount = 1;
 
-               RemoveIndex(oldIndex);
+               // Destroy the key, info and value                       
+               oldKey.CallUnknownDestructors();
+               oldValue.CallUnknownDestructors();
+               *oldInfo = 0;
+               --mValues.mCount;
 
-               if (oldIndex == InsertInnerUnknown<false>(
+               if (oldIndex != InsertInnerUnknown<false>(
                   newIndex, Abandon(keyswap), Abandon(valswap))) {
-                  // Index might still end up at its old index, make    
-                  // sure we don't loop forever in that case            
-                  ++oldInfo;
+                  continue;
                }
-
-               continue;
             }
          }
 

@@ -651,15 +651,15 @@ namespace Langulus::Anyness
                keyswap.CallUnknownSemanticConstructors<false>(1, Abandon(oldKey));
                keyswap.mCount = 1;
 
-               RemoveIndex(oldIndex);
+               // Destroy the key and info                              
+               oldKey.CallUnknownDestructors();
+               *oldInfo = 0;
+               --mKeys.mCount;
 
-               if (oldIndex == InsertInnerUnknown<false>(newIndex, Abandon(keyswap))) {
-                  // Index might still end up at its old index, make    
-                  // sure we don't loop forever in that case            
-                  ++oldInfo;
+               if (oldIndex != InsertInnerUnknown<false>(
+                  newIndex, Abandon(keyswap))) {
+                  continue;
                }
-
-               continue;
             }
          }
 

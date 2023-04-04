@@ -714,16 +714,12 @@ namespace Langulus::Anyness
                oldKey.Destroy();
                oldValue.Destroy();
                *oldInfo = 0;
+               --mValues.mCount;
 
                if (oldIndex == InsertInner<false>(
                   newIndex, Abandon(keyswap), Abandon(valswap))) {
-                  // Sometimes insertion can be reinserted at same spot,
-                  // make sure we account for that corner case          
-                  ++oldKey;
-                  ++oldInfo;
+                  continue;
                }
-
-               continue;
             }
          }
 

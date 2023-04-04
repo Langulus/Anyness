@@ -504,16 +504,16 @@ namespace Langulus::Anyness
             if (oldIndex != newIndex) {
                // Immediately move the old pair to the swapper          
                HandleLocal<T> keyswap {Abandon(oldKey)};
-               RemoveIndex(oldIndex);
 
-               if (oldIndex == InsertInner<false>(newIndex, Abandon(keyswap))) {
-                  // Sometimes insertion can be reinserted at same spot,
-                  // make sure we account for that corner case          
-                  ++oldKey;
-                  ++oldInfo;
+               // Destroy the key and info                              
+               oldKey.Destroy();
+               *oldInfo = 0;
+               --mKeys.mCount;
+
+               if (oldIndex == InsertInner<false>(
+                  newIndex, Abandon(keyswap))) {
+                  continue;
                }
-
-               continue;
             }
          }
 
