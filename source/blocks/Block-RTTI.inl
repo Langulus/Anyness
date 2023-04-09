@@ -15,7 +15,7 @@ namespace Langulus::Anyness
    /// density and constness                                                  
    ///   @param type - the type to check for                                  
    ///   @return true if this block contains similar data                     
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    bool Block::Is(DMeta type) const noexcept {
       return mType == type || (mType && mType->Is(type));
    }
@@ -25,7 +25,7 @@ namespace Langulus::Anyness
    ///   @tparam T... - the types to compare against                          
    ///   @return true if data type is similar to at least one of the types    
    template<CT::Data... T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    bool Block::Is() const {
       return (Is(MetaData::Of<T>()) || ...);
    }
@@ -35,7 +35,7 @@ namespace Langulus::Anyness
    ///   @tparam T... - the types to compare against                          
    ///   @return true if data type exactly matches at least one type          
    template<CT::Data... T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    bool Block::IsExact() const {
       return (IsExact(MetaData::Of<T>()) || ...);
    }
@@ -44,7 +44,7 @@ namespace Langulus::Anyness
    /// including the density and constness                                    
    ///   @param type - the type to match                                      
    ///   @return true if data type matches type exactly                       
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    bool Block::IsExact(DMeta type) const noexcept {
       return mType == type || (mType && mType->IsExact(type));
    }
@@ -54,7 +54,7 @@ namespace Langulus::Anyness
    ///   @param type - the type check if current type interprets to           
    ///   @return true if able to interpret current type to 'type'             
    template<bool BINARY_COMPATIBLE>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    bool Block::CastsToMeta(DMeta type) const {
       return mType && (mType->mIsSparse
          ? mType->CastsTo<true>(type)
@@ -69,7 +69,7 @@ namespace Langulus::Anyness
    ///   @param count - the number of elements to interpret as                
    ///   @return true if able to interpret current type to 'type'             
    template<bool BINARY_COMPATIBLE>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    bool Block::CastsToMeta(DMeta type, Count count) const {
       return !mType || !type || mType->CastsTo(type, count);
    }
@@ -81,7 +81,7 @@ namespace Langulus::Anyness
    ///      binary compatible with this container's type                      
    ///   @return true if contained data is reinterpretable as T               
    template<CT::Data T, bool BINARY_COMPATIBLE>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    bool Block::CastsTo() const {
       return CastsToMeta<BINARY_COMPATIBLE>(MetaData::Of<T>());
    }
@@ -94,7 +94,7 @@ namespace Langulus::Anyness
    ///   @param count - the number of elements of T                           
    ///   @return true if contained data is reinterpretable as T               
    template<CT::Data T, bool BINARY_COMPATIBLE>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    bool Block::CastsTo(Count count) const {
       return CastsToMeta<BINARY_COMPATIBLE>(MetaData::Of<T>(), count);
    }
@@ -131,7 +131,7 @@ namespace Langulus::Anyness
    ///   @tparam T - the type of data to try interpreting as                  
    ///   @return a block representing this block, interpreted as T            
    template<CT::Data T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Block Block::ReinterpretAs() const {
       static_assert(CT::Dense<T>, "T must be dense");
       return ReinterpretAs(Block::From<T>());
@@ -141,7 +141,7 @@ namespace Langulus::Anyness
    ///   @attention assumes block is not empty                                
    ///   @param member - the member to get                                    
    ///   @return a static memory block                                        
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Block Block::GetMember(const RTTI::Member& member) {
       return { 
          DataState::Member, member.GetType(),
@@ -154,7 +154,7 @@ namespace Langulus::Anyness
    ///   @attention assumes block is not empty                                
    ///   @param member - the member to get                                    
    ///   @return a static constant memory block                               
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Block Block::GetMember(const RTTI::Member& member) const {
       auto result = const_cast<Block*>(this)->GetMember(member);
       result.MakeConst();
@@ -187,7 +187,7 @@ namespace Langulus::Anyness
    ///   @attention assumes block is not empty                                
    ///   @param trait - the trait tag to search for                           
    ///   @return the static constant block corresponding to that member       
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Block Block::GetMember(TMeta trait) const {
       auto result = const_cast<Block*>(this)->GetMember(trait);
       result.MakeConst();
@@ -220,7 +220,7 @@ namespace Langulus::Anyness
    ///   @attention assumes block is not empty                                
    ///   @param data - the type to search for                                 
    ///   @return the static constant block corresponding to that member       
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Block Block::GetMember(DMeta data) const {
       auto result = const_cast<Block*>(this)->GetMember(data);
       result.MakeConst();
@@ -230,7 +230,7 @@ namespace Langulus::Anyness
    /// Get the first member of the first element inside block                 
    ///   @attention assumes block is not empty                                
    ///   @return the static mutable block corresponding to that member        
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Block Block::GetMember(::std::nullptr_t) {
       if (mType->mMembers.empty())
          return {};
@@ -240,7 +240,7 @@ namespace Langulus::Anyness
    /// Get the first member of the first element inside block (const)         
    ///   @attention assumes block is not empty                                
    ///   @return the static constant block corresponding to that member       
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Block Block::GetMember(::std::nullptr_t) const {
       if (mType->mMembers.empty())
          return {};
@@ -292,7 +292,7 @@ namespace Langulus::Anyness
    ///   @param index - the trait index to get                                
    ///   @return the static constant memory block of the member               
    template<CT::Index INDEX>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Block Block::GetMember(TMeta trait, const INDEX& index) const {
       auto result = const_cast<Block*>(this)->GetMember(trait, index);
       result.MakeConst();
@@ -345,7 +345,7 @@ namespace Langulus::Anyness
    ///   @param index - the trait index to get                                
    ///   @return the static constant memory block of the member               
    template<CT::Index INDEX>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Block Block::GetMember(DMeta data, const INDEX& index) const {
       auto result = const_cast<Block*>(this)->GetMember(data, index);
       result.MakeConst();
@@ -384,7 +384,7 @@ namespace Langulus::Anyness
    ///   @param index - the member index to get                               
    ///   @return the static constant memory block of the member               
    template<CT::Index INDEX>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Block Block::GetMember(std::nullptr_t, const INDEX& index) const {
       auto result = const_cast<Block*>(this)->GetMember(nullptr, index);
       result.MakeConst();
@@ -396,7 +396,7 @@ namespace Langulus::Anyness
    ///   @param meta - the type of the resulting base block                   
    ///   @param base - the base reflection to use                             
    ///   @return the static block for the base                                
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Block Block::GetBaseMemory(DMeta meta, const RTTI::Base& base) {
       return {
          DataState::Member, meta,
@@ -410,7 +410,7 @@ namespace Langulus::Anyness
    ///   @param meta - the type of the resulting base block                   
    ///   @param base - the base reflection to use                             
    ///   @return the static immutable block for the base                      
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Block Block::GetBaseMemory(DMeta meta, const RTTI::Base& base) const {
       auto result = const_cast<Block*>(this)->GetBaseMemory(meta, base);
       result.MakeConst();
@@ -421,7 +421,7 @@ namespace Langulus::Anyness
    ///   @attention assumes block is not empty                                
    ///   @param base - the base reflection to use                             
    ///   @return the static block for the base                                
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Block Block::GetBaseMemory(const RTTI::Base& base) {
       return GetBaseMemory(base.mType, base);
    }
@@ -430,7 +430,7 @@ namespace Langulus::Anyness
    ///   @attention assumes block is not empty                                
    ///   @param base - the base reflection to use                             
    ///   @return the static immutable block for the base                      
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Block Block::GetBaseMemory(const RTTI::Base& base) const {
       return GetBaseMemory(base.mType, base);
    }
@@ -441,7 +441,7 @@ namespace Langulus::Anyness
    ///   @tparam WRAPPER - container to use for deepening, if allowed         
    ///   @return true if block was deepened to incorporate the new type       
    template<CT::Data T, bool ALLOW_DEEPEN, CT::Data WRAPPER>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    bool Block::Mutate() {
       static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
       return Mutate<ALLOW_DEEPEN, WRAPPER>(MetaData::Of<T>());
@@ -453,7 +453,7 @@ namespace Langulus::Anyness
    ///   @param meta - the type to mutate into                                
    ///   @return true if block was deepened to incorporate the new type       
    template<bool ALLOW_DEEPEN, CT::Data WRAPPER>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    bool Block::Mutate(DMeta meta) {
       static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
 
@@ -489,7 +489,7 @@ namespace Langulus::Anyness
    ///   @tparam CONSTRAIN - whether or not to enable type-constraint         
    ///   @param type - the type meta to set                                   
    template<bool CONSTRAIN>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    void Block::SetType(DMeta type) {
       if (mType == type) {
          if constexpr (CONSTRAIN)
@@ -527,13 +527,13 @@ namespace Langulus::Anyness
    ///   @tparam T - the contained type                                       
    ///   @tparam CONSTRAIN - whether or not to enable type-constraints        
    template<CT::Data T, bool CONSTRAIN>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    void Block::SetType() {
       SetType<CONSTRAIN>(MetaData::Of<Deref<T>>());
    }
    
    /// Reset the type of the block, unless it's type-constrained              
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    constexpr void Block::ResetType() noexcept {
       if (!IsTypeConstrained())
          mType = nullptr;
@@ -545,7 +545,7 @@ namespace Langulus::Anyness
    ///   @param index - the index to simplify                                 
    ///   @return the simple index                                             
    template<CT::Index INDEX>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Offset Block::SimplifyMemberIndex(const INDEX& index) const noexcept {
       if constexpr (CT::Same<INDEX, Index>)
          return index.Constrained(mType->GetMemberCount()).GetOffset();

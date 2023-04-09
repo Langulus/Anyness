@@ -24,7 +24,7 @@ namespace Langulus::Anyness
    ///   @param to - [out] destination memory                                 
    ///   @param from - source of data to copy                                 
    template<class TO, class FROM>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    void CopyMemory(TO* to, const FROM* from) noexcept {
       static_assert(CT::Void<TO> || CT::Sparse<TO> || CT::POD<TO> || ::std::is_trivial_v<TO>, 
          "TO must be either pointer, reflected as POD, or trivial. "
@@ -52,7 +52,7 @@ namespace Langulus::Anyness
    ///   @param count - number of elements to copy                            
    ///   @attention count becomes bytecount, when TO is void                  
    template<class TO, class FROM>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    void CopyMemory(TO* to, const FROM* from, const Count& count) noexcept {
       static_assert(CT::Void<TO> || CT::Sparse<TO> || CT::POD<TO> || ::std::is_trivial_v<TO>, 
          "TO must be either pointer, reflected as POD, or trivial. "
@@ -83,7 +83,7 @@ namespace Langulus::Anyness
    ///   @tparam FILLER - value to fill in with                               
    ///   @param to - [out] destination memory                                 
    template<int FILLER, class TO>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    void FillMemory(TO* to) noexcept {
       static_assert(CT::Void<TO> || CT::Sparse<TO> || CT::POD<TO> || ::std::is_trivial_v<TO>,
          "TO must be either pointer, reflected as POD, or trivial. "
@@ -106,7 +106,7 @@ namespace Langulus::Anyness
    ///   @param count - number of elements to fill                            
    ///   @attention count becomes bytecount, when TO is void                  
    template<int FILLER, class TO>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    void FillMemory(TO* to, const Count& count) noexcept {
       static_assert(CT::Void<TO> || CT::Sparse<TO> || CT::POD<TO> || ::std::is_trivial_v<TO>,
          "TO must be either pointer, reflected as POD, or trivial. "
@@ -126,7 +126,7 @@ namespace Langulus::Anyness
    ///   @tparam TO - destination memory type (deducible)                     
    ///   @param to - [out] destination memory                                 
    template<class TO>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    void ZeroMemory(TO* to) noexcept {
       return FillMemory<0>(to);
    }
@@ -137,7 +137,7 @@ namespace Langulus::Anyness
    ///   @param count - number of elements to fill                            
    ///   @attention count becomes bytecount, when TO is void                  
    template<class TO>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    void ZeroMemory(TO* to, const Count& count) noexcept {
       return FillMemory<0>(to, count);
    }
@@ -148,7 +148,7 @@ namespace Langulus::Anyness
    ///   @param to - [out] destination memory                                 
    ///   @param from - source of data to move                                 
    template<class TO, class FROM>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    void MoveMemory(TO* to, const FROM* from) noexcept {
       static_assert(CT::Void<TO> || CT::Sparse<TO> || CT::POD<TO> || ::std::is_trivial_v<TO>,
          "TO must be either pointer, reflected as POD, or trivial. "
@@ -180,7 +180,7 @@ namespace Langulus::Anyness
    ///   @param count - number of elements to move                            
    ///   @attention count becomes bytecount, when TO is void                  
    template<class TO, class FROM>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    void MoveMemory(TO* to, const FROM* from, const Count& count) noexcept {
       static_assert(CT::Void<TO> || CT::Sparse<TO> || CT::POD<TO> || ::std::is_trivial_v<TO>,
          "TO must be either pointer, reflected as POD, or trivial. "

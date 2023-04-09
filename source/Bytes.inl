@@ -15,65 +15,65 @@ namespace Langulus::Anyness
    /// Notice how container is explicitly cast to base class when forwarded   
    /// If that is not done, TAny will use the CT::Deep constructor instead    
    ///   @param other - container to reference                                
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Bytes::Bytes(const Bytes& other)
       : Bytes {Langulus::Copy(other)} {}
 
    /// Byte container move-construction                                       
    ///   @param other - container to move                                     
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Bytes::Bytes(Bytes&& other) noexcept
       : Bytes {Langulus::Move(other)} {}
 
    /// Byte container copy-construction from TAny<Byte> base                  
    ///   @param other - container to reference                                
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Bytes::Bytes(const TAny& other)
       : Bytes {Langulus::Copy(other)} {}
 
    /// Byte container mvoe-construction from TAny<Byte> base                  
    ///   @param other - container to move                                     
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Bytes::Bytes(TAny&& other) noexcept
       : Bytes {Langulus::Move(other)} {}
 
    template<CT::Semantic S>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Bytes::Bytes(S&& other) requires Relevant<S>
       : TAny {other.template Forward<TAny<Byte>>()} {}
 
    /// Construct manually via raw constant memory pointer and size            
    ///   @param raw - raw memory to reference                                 
    ///   @param size - number of bytes inside 'raw'                           
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Bytes::Bytes(const void* raw, const Size& size)
       : Bytes {Langulus::Copy(raw), size} {}
 
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Bytes::Bytes(void* raw, const Size& size)
       : Bytes {Langulus::Copy(raw), size} {}
 
    template<CT::Semantic S>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Bytes::Bytes(S&& raw, const Size& size) requires (CT::Sparse<TypeOf<S>>)
       : TAny {TAny::From(raw.Forward(), size)} { }
 
    /// Construct by interpreting anything POD as bytes                        
    ///   @param value - the data to interpret                                 
    template<CT::POD T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Bytes::Bytes(const T& value) requires CT::Dense<T>
       : Bytes {&value, sizeof(T)} { }
 
    /// Construct by interpreting a string literal                             
    ///   @param value - the string to interpret                               
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Bytes::Bytes(const Token& value)
       : Bytes {value.data(), value.size() * sizeof(Letter)} { }
 
    /// Construct by interpreting a meta definition                            
    ///   @param value - the meta to interpret                                 
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Bytes::Bytes(const RTTI::Meta* value)
       : Bytes {} {
       if (value) {
@@ -86,7 +86,7 @@ namespace Langulus::Anyness
    /// Shallow copy assignment from immutable byte container                  
    ///   @param rhs - the byte container to shallow-copy                      
    ///   @return a reference to this container                                
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Bytes& Bytes::operator = (const Bytes& rhs) {
       return operator = (Langulus::Copy(rhs));
    }
@@ -94,7 +94,7 @@ namespace Langulus::Anyness
    /// Move byte container                                                    
    ///   @param rhs - the container to move                                   
    ///   @return a reference to this container                                
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Bytes& Bytes::operator = (Bytes&& rhs) noexcept {
       return operator = (Langulus::Move(rhs));
    }
@@ -103,7 +103,7 @@ namespace Langulus::Anyness
    ///   @param rhs - the container to move                                   
    ///   @return a reference to this container                                
    template<CT::Semantic S>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Bytes& Bytes::operator = (S&& rhs) requires Relevant<S> {
       TAny::operator = (rhs.template Forward<TAny>());
       return *this;
@@ -117,7 +117,7 @@ namespace Langulus::Anyness
    /// Copy-concatenate with another TAny                                     
    ///   @param rhs - the right operand                                       
    ///   @return the combined container                                       
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Bytes Bytes::operator + (const Bytes& rhs) const {
       return Concatenate<Bytes>(Langulus::Copy(rhs));
    }
@@ -125,7 +125,7 @@ namespace Langulus::Anyness
    /// Move-concatenate with another TAny                                     
    ///   @param rhs - the right operand                                       
    ///   @return the combined container                                       
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Bytes Bytes::operator + (Bytes&& rhs) const {
       return Concatenate<Bytes>(Langulus::Move(rhs));
    }
@@ -134,7 +134,7 @@ namespace Langulus::Anyness
    ///   @param rhs - the right operand                                       
    ///   @return the combined container                                       
    template<CT::Semantic S>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Bytes Bytes::operator + (S&& rhs) const requires Relevant<S> {
       return Concatenate<Bytes>(rhs.Forward());
    }
@@ -142,7 +142,7 @@ namespace Langulus::Anyness
    /// Destructive copy-concatenate with another TAny                         
    ///   @param rhs - the right operand                                       
    ///   @return a reference to this modified container                       
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Bytes& Bytes::operator += (const Bytes& rhs) {
       InsertBlock(rhs);
       return *this;
@@ -151,7 +151,7 @@ namespace Langulus::Anyness
    /// Destructive move-concatenate with any deep type                        
    ///   @param rhs - the right operand                                       
    ///   @return a reference to this modified container                       
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Bytes& Bytes::operator += (Bytes&& rhs) {
       InsertBlock(Forward<Bytes>(rhs));
       return *this;
@@ -161,7 +161,7 @@ namespace Langulus::Anyness
    ///   @param rhs - the right operand                                       
    ///   @return a reference to this modified container                       
    template<CT::Semantic S>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Bytes& Bytes::operator += (S&& rhs) requires Relevant<S> {
       InsertBlock(rhs.Forward());
       return *this;
@@ -169,7 +169,7 @@ namespace Langulus::Anyness
    
    /// Hash the byte sequence                                                 
    ///   @return a hash of the contained byte sequence                        
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Hash Bytes::GetHash() const {
       return HashBytes(GetRaw(), static_cast<int>(GetCount()));
    }
@@ -177,14 +177,14 @@ namespace Langulus::Anyness
    /// Compare with another byte container                                    
    ///   @param other - the byte container to compare with                    
    ///   @return true if both containers are identical                        
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    bool Bytes::operator == (const Bytes& other) const noexcept {
       return Compare(other);
    }
 
    /// Clone the byte container                                               
    ///   @return the cloned byte container                                    
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Bytes Bytes::Clone() const {
       Bytes result {Disown(*this)};
       if (mCount) {
@@ -209,7 +209,7 @@ namespace Langulus::Anyness
    ///   @param start - the starting byte offset                              
    ///   @param count - the number of bytes after 'start' to remain           
    ///   @return a new container that references the original memory          
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Bytes Bytes::Crop(const Offset& start, const Count& count) const {
       return TAny::Crop<Bytes>(start, count);
    }
@@ -218,7 +218,7 @@ namespace Langulus::Anyness
    ///   @param start - the starting byte offset                              
    ///   @param count - the number of bytes after 'start' to remain           
    ///   @return a new container that references the original memory          
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Bytes Bytes::Crop(const Offset& start, const Count& count) {
       return TAny::Crop<Bytes>(start, count);
    }
@@ -228,7 +228,7 @@ namespace Langulus::Anyness
    ///   @param start - the starting offset                                   
    ///   @param end - the ending offset                                       
    ///   @return a reference to the byte container                            
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Bytes& Bytes::Remove(const Offset& start, const Offset& end) {
       if (IsEmpty() || IsStatic() || start >= end)
          return *this;
@@ -247,7 +247,7 @@ namespace Langulus::Anyness
    /// Static byte containers can't be extended                               
    ///   @param count - the number of bytes to append                         
    ///   @return the extended part - you will not be allowed to resize it     
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Bytes Bytes::Extend(const Count& count) {
       return TAny::Extend<Bytes>(count);
    }

@@ -406,7 +406,7 @@ namespace Langulus::Anyness
    ///   @param rhs - the value to compare against                            
    ///   @return true if elements are the same                                
    template<class T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    bool Block::CompareSingleValue(const T& rhs) const {
       if (mCount != 1 || IsUntyped())
          return false;
@@ -430,7 +430,7 @@ namespace Langulus::Anyness
    /// Compare the relevant states of two blocks                              
    ///   @param rhs - the memory block to compare against                     
    ///   @return true if the two memory blocks' revelant states are identical 
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    bool Block::CompareStates(const Block& rhs) const noexcept {
       return GetUnconstrainedState() == rhs.GetUnconstrainedState();
    }
@@ -500,7 +500,7 @@ namespace Langulus::Anyness
    ///   @param right - the right block                                       
    ///   @param base - the base to use                                        
    ///   @return true if comparison returns true                              
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    bool Block::CallComparer(const Block& right, const RTTI::Base& base) const {
       return mRaw == right.mRaw || (
          mRaw && right.mRaw && base.mType->mComparer(mRaw, right.mRaw)

@@ -15,7 +15,7 @@ namespace Langulus::Anyness
    /// Get a size based on reflected allocation page and count                
    ///   @param count - the number of elements to request                     
    ///   @return both the provided byte size and reserved count               
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    RTTI::AllocationRequest Block::RequestSize(const Count& count) const SAFETY_NOEXCEPT() {
       LANGULUS_ASSUME(DevAssumes, IsTyped(),
          "Requesting allocation size for an untyped container");
@@ -26,7 +26,7 @@ namespace Langulus::Anyness
    /// If reserved data is smaller than currently initialized count, the      
    /// excess elements will be destroyed                                      
    ///   @param count - number of elements to reserve                         
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    void Block::Reserve(Count count) {
       if (count < mCount)
          AllocateLess(count);
@@ -67,7 +67,7 @@ namespace Langulus::Anyness
    /// Initialized elements on the back will be destroyed                     
    ///   @attention assumes 'elements' is smaller than the current reserve    
    ///   @param elements - number of elements to allocate                     
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    void Block::AllocateLess(Count elements) {
       LANGULUS_ASSUME(DevAssumes, elements < mReserved,
          "Bad element count");
@@ -103,7 +103,7 @@ namespace Langulus::Anyness
    /// Clone all elements inside this memory block, preserving hierarchy and  
    /// density, but removing size constraints and constness                   
    /// If we already have jurisdiction, then nothing happens                  
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    void Block::TakeAuthority() {
       if (mEntry || !mRaw) {
          // We already own this memory, or there's nothing to own       
@@ -193,7 +193,7 @@ namespace Langulus::Anyness
    /// Allocate a fresh allocation (inner function)                           
    ///   @attention changes entry, memory and reserve count                   
    ///   @param request - request to fulfill                                  
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    void Block::AllocateFresh(const RTTI::AllocationRequest& request) {
       // Sparse containers have additional memory allocated             
       // for each pointer's entry                                       
@@ -238,14 +238,14 @@ namespace Langulus::Anyness
 
    /// Reference memory block if we own it                                    
    ///   @param times - number of references to add                           
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    void Block::Reference(const Count& times) const noexcept {
       if (mEntry)
          mEntry->Keep(times);
    }
    
    /// Reference memory block once                                            
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    void Block::Keep() const noexcept {
       Reference(1);
    }
@@ -279,7 +279,7 @@ namespace Langulus::Anyness
    /// Dereference memory block once and destroy all elements if data was     
    /// fully dereferenced                                                     
    ///   @attention this never modifies any state, except mEntry              
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    void Block::Free() {
       return Dereference<true>(1);
    }
@@ -287,7 +287,7 @@ namespace Langulus::Anyness
    /// Sets the currently interfaced memory                                   
    ///   @attention for internal use only, use only if you know what you're   
    ///              doing!                                                    
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    void Block::SetMemory(const DataState& state
       , DMeta meta
       , Count count
@@ -302,7 +302,7 @@ namespace Langulus::Anyness
    /// Sets the currently interfaced memory                                   
    ///   @attention for internal use only, use only if you know what you're   
    ///              doing!                                                    
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    void Block::SetMemory(const DataState& state
       , DMeta meta
       , Count count
@@ -322,7 +322,7 @@ namespace Langulus::Anyness
    /// Sets the currently interfaced memory                                   
    ///   @attention for internal used only, use only if you know what you're  
    ///              doing!                                                    
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    SAFETY_CONSTEXPR()
    void Block::SetMemory(const DataState& state
       , DMeta meta
@@ -339,7 +339,7 @@ namespace Langulus::Anyness
    /// Sets the currently interfaces memory                                   
    ///   @attention for internal used only, use only if you know what you're  
    ///              doing!                                                    
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    SAFETY_CONSTEXPR()
    void Block::SetMemory(const DataState& state
       , DMeta meta

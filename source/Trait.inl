@@ -13,14 +13,14 @@ namespace Langulus::Anyness
 
    /// Shallow copy constructor                                               
    ///   @param other - the trait to copy                                     
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Trait::Trait(const Trait& other)
       : Any {static_cast<const Any&>(other)}
       , mTraitType {other.mTraitType} {}
 
    /// Move constructor                                                       
    ///   @param other - the trait to move                                     
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Trait::Trait(Trait&& other) noexcept
       : Any {Forward<Any>(other)}
       , mTraitType {other.mTraitType} {}
@@ -28,21 +28,21 @@ namespace Langulus::Anyness
    /// Manual trait construction by copy                                      
    ///   @tparam T - type of the contained data                               
    ///   @param data - data to copy inside trait                              
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Trait::Trait(const CT::NotSemantic auto& data)
       : Trait {Langulus::Copy(data)} {}
 
    /// Manual trait construction by copy                                      
    ///   @tparam T - type of the contained data                               
    ///   @param data - data to copy inside trait                              
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Trait::Trait(CT::NotSemantic auto& data)
       : Trait {Langulus::Copy(data)} {}
 
    /// Manual trait construction by movement                                  
    ///   @tparam T - type of the contained data                               
    ///   @param data - data to move inside trait                              
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Trait::Trait(CT::NotSemantic auto&& data)
       : Trait {Langulus::Move(data)} {}
 
@@ -50,7 +50,7 @@ namespace Langulus::Anyness
    ///   @tparam T - type of the contained data                               
    ///   @param data - data to move inside trait                              
    template<CT::Semantic S>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Trait::Trait(S&& data) {
       using T = TypeOf<S>;
 
@@ -77,7 +77,7 @@ namespace Langulus::Anyness
    ///   @param head - first element                                          
    ///   @param tail... - the rest of the elements                            
    template<CT::Data HEAD, CT::Data... TAIL>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Trait::Trait(HEAD&& head, TAIL&&... tail) requires (sizeof...(TAIL) >= 1)
       : Any {Forward<HEAD>(head), Forward<TAIL>(tail)...} { }
 
@@ -86,7 +86,7 @@ namespace Langulus::Anyness
    ///   @tparam D - type of data                                             
    ///   @return a trait preconfigured with the provided types                
    template<CT::Data T, CT::Data D>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Trait Trait::From() {
       static_assert(CT::Trait<T>, "T must be a trait definition");
       Trait temp {Block::From<D>()};
@@ -100,7 +100,7 @@ namespace Langulus::Anyness
    ///   @param stuff - the data to set inside trait                          
    ///   @return a trait preconfigured with the provided types                
    template<CT::Data T, CT::Data D>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Trait Trait::From(const D& stuff) {
       static_assert(CT::Trait<T>, "T must be a trait definition");
       Trait temp {stuff};
@@ -114,7 +114,7 @@ namespace Langulus::Anyness
    ///   @param stuff - the data to set inside trait                          
    ///   @return a trait preconfigured with the provided types                
    template<CT::Data T, CT::Data D>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Trait Trait::From(D&& stuff) {
       static_assert(CT::Trait<T>, "T must be a trait definition");
       Trait temp {Forward<D>(stuff)};
@@ -128,7 +128,7 @@ namespace Langulus::Anyness
    ///   @param stuff - the data to copy                                      
    ///   @return the trait                                                    
    template<CT::Data DATA>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Trait Trait::From(TMeta meta, const DATA& stuff) {
       Trait result {stuff};
       result.SetTrait(meta);
@@ -141,7 +141,7 @@ namespace Langulus::Anyness
    ///   @param stuff - the data to copy                                      
    ///   @return the trait                                                    
    template<CT::Data DATA>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Trait Trait::From(TMeta meta, DATA&& stuff) {
       Trait result {Forward<DATA>(stuff)};
       result.SetTrait(meta);
@@ -149,7 +149,7 @@ namespace Langulus::Anyness
    }
 
    /// Create a trait from a trait definition and data                        
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Trait Trait::FromMeta(TMeta tmeta, DMeta dmeta) {
       Trait result {Block(DataState::Default, dmeta)};
       result.SetTrait(tmeta);
@@ -159,7 +159,7 @@ namespace Langulus::Anyness
    /// Set the trait type via a static type                                   
    ///   @tparam T - the trait                                                
    template<CT::Data T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    void Trait::SetTrait() noexcept {
       static_assert(CT::Trait<T>, "TRAIT must be a trait definition");
       mTraitType = MetaTrait::Of<T>();
@@ -167,21 +167,21 @@ namespace Langulus::Anyness
 
    /// Set the trait type via a dynamic type                                  
    ///   @tparam trait - the trait                                            
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    constexpr void Trait::SetTrait(TMeta trait) noexcept {
       mTraitType = trait;
    }
 
    /// Get the trait type                                                     
    ///   @return the trait type                                               
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    TMeta Trait::GetTrait() const noexcept {
       return mTraitType;
    }
 
    /// Check if trait is valid                                                
    ///   @return true if trait is valid                                       
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    bool Trait::IsTraitValid() const noexcept {
       return mTraitType && !Any::IsEmpty();
    }
@@ -189,7 +189,7 @@ namespace Langulus::Anyness
    /// Check if trait is similar to another                                   
    ///   @param other - the trait to test against                             
    ///   @return true if trait is valid                                       
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    bool Trait::IsSimilar(const Trait& other) const noexcept {
       return mTraitType->Is(other.mTraitType) && other.CastsToMeta(GetType());
    }
@@ -197,14 +197,14 @@ namespace Langulus::Anyness
    /// Check if trait is a specific type                                      
    ///   @param traitId - the id to match                                     
    ///   @return true if ID matches                                           
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    bool Trait::TraitIs(TMeta trait) const {
       return mTraitType == trait || (mTraitType && mTraitType->Is(trait));
    }
 
    /// Check if trait has correct data (always true if trait has no filter)   
    ///   @return true if trait definition filter is compatible                
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    bool Trait::HasCorrectData() const {
       if (!mTraitType)
          return true;
@@ -215,7 +215,7 @@ namespace Langulus::Anyness
    ///   @tparam T - the trait                                                
    ///   @return true if this trait is of the given type                      
    template<CT::Data T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    bool Trait::TraitIs() const {
       static_assert(CT::Trait<T>, "TRAIT must be a trait definition");
       return TraitIs(MetaTrait::Of<T>());
@@ -225,7 +225,7 @@ namespace Langulus::Anyness
    ///   @param other - the thing to compare with                             
    ///   @return true if things are the same                                  
    template<CT::Data T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    bool Trait::operator == (const T& other) const {
       if constexpr (CT::Trait<T>)
          return TraitIs(DenseCast(other).mTraitType)
@@ -237,7 +237,7 @@ namespace Langulus::Anyness
    /// Copy-assign trait                                                      
    ///   @param other - the trait to copy                                     
    ///   @return a reference to this trait                                    
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Trait& Trait::operator = (const Trait& rhs) {
       return operator = (Langulus::Copy(rhs));
    }
@@ -245,31 +245,31 @@ namespace Langulus::Anyness
    /// Move a trait                                                           
    ///   @param other - the trait to move                                     
    ///   @return a reference to this trait                                    
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Trait& Trait::operator = (Trait&& rhs) noexcept {
       return operator = (Langulus::Move(rhs));
    }
 
    template<CT::NotSemantic T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Trait& Trait::operator = (const T& rhs) {
       return operator = (Langulus::Copy(rhs));
    }
 
    template<CT::NotSemantic T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Trait& Trait::operator = (T& rhs) {
       return operator = (Langulus::Copy(rhs));
    }
 
    template<CT::NotSemantic T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Trait& Trait::operator = (T&& rhs) {
       return operator = (Langulus::Move(rhs));
    }
 
    template<CT::Semantic S>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Trait& Trait::operator = (S&& rhs) {
       if constexpr (CT::Deep<TypeOf<S>>) {
          Any::operator = (rhs.template Forward<Any>());

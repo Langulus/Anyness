@@ -13,34 +13,34 @@ namespace Langulus::Anyness
 
    /// Copy constructor - does only a shallow copy                            
    ///   @param other - the container to shallow-copy                         
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Any::Any(const Any& other)
       : Any {Langulus::Copy(other)} {}
 
    /// Move constructor - transfers ownership                                 
    ///   @param other - the container to move                                 
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Any::Any(Any&& other) noexcept
       : Any {Langulus::Move(other)} {}
 
    /// Construct by shallow-copying element/container                         
    ///   @param other - the element/container to shallow-copy                 
    template<CT::NotSemantic T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Any::Any(const T& other)
       : Any {Langulus::Copy(other)} {}
 
    /// Construct by shallow-copying element/container                         
    ///   @param other - the element/container to shallow-copy                 
    template<CT::NotSemantic T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Any::Any(T& other)
       : Any {Langulus::Copy(other)} {}
 
    /// Construct by moving element/container                                  
    ///   @param other - the element/container to move                         
    template<CT::NotSemantic T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Any::Any(T&& other) requires CT::Mutable<T>
       : Any {Langulus::Move(other)} {}
 
@@ -48,7 +48,7 @@ namespace Langulus::Anyness
    ///   @tparam S - type of insertion and semantic to use (deducible)        
    ///   @param other - the element/container to initialize with              
    template<CT::Semantic S>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Any::Any(S&& other) noexcept {
       using T = TypeOf<S>;
 
@@ -103,7 +103,7 @@ namespace Langulus::Anyness
    }
 
    /// Destruction                                                            
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Any::~Any() {
       Free();
    }
@@ -112,7 +112,7 @@ namespace Langulus::Anyness
    ///   @param type - type of the container                                  
    ///   @param state - optional state of the container                       
    ///   @return the new container instance                                   
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Any Any::FromMeta(DMeta type, const DataState& state) noexcept {
       return Any {Block {state, type}};
    }
@@ -121,7 +121,7 @@ namespace Langulus::Anyness
    ///   @param block - the source of type and state                          
    ///   @param state - additional state of the container                     
    ///   @return the new container instance                                   
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Any Any::FromBlock(const Block& block, const DataState& state) noexcept {
       return Any::FromMeta(block.GetType(), block.GetUnconstrainedState() + state);
    }
@@ -130,7 +130,7 @@ namespace Langulus::Anyness
    ///   @param block - the source of the state                               
    ///   @param state - additional state of the container                     
    ///   @return the new container instance                                   
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Any Any::FromState(const Block& block, const DataState& state) noexcept {
       return Any::FromMeta(nullptr, block.GetUnconstrainedState() + state);
    }
@@ -140,7 +140,7 @@ namespace Langulus::Anyness
    ///   @param state - optional state of the container                       
    ///   @return the new container instance                                   
    template<CT::Data T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Any Any::From(const DataState& state) noexcept {
       return Block {state, MetaData::Of<T>()};
    }
@@ -152,7 +152,7 @@ namespace Langulus::Anyness
    ///   @param elements - sequential elements                                
    ///   @returns the pack containing the data                                
    template<CT::Data... LIST>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Any Any::Wrap(LIST&&... elements) {
       if constexpr (sizeof...(LIST) == 0)
          return {};
@@ -170,7 +170,7 @@ namespace Langulus::Anyness
    ///   @param tail... - the rest of the elements                            
    ///   @returns the new container containing the data                       
    template<class AS, CT::Data HEAD, CT::Data... TAIL>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Any Any::WrapAs(HEAD&& head, TAIL&&... tail) {
       if constexpr (sizeof...(TAIL) == 0)
          return {};
@@ -188,7 +188,7 @@ namespace Langulus::Anyness
    /// Shallow-copy assignment                                                
    ///   @param other - the container to copy                                 
    ///   @return a reference to this container                                
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Any& Any::operator = (const Any& other) {
       return operator = (Langulus::Copy(other));
    }
@@ -196,7 +196,7 @@ namespace Langulus::Anyness
    /// Move assignment                                                        
    ///   @param other - the container to move and reset                       
    ///   @return a reference to this container                                
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Any& Any::operator = (Any&& other) noexcept {
       return operator = (Langulus::Move(other));
    }
@@ -206,7 +206,7 @@ namespace Langulus::Anyness
    ///   @param other - the value to copy                                     
    ///   @return a reference to this container                                
    template<CT::NotSemantic T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Any& Any::operator = (const T& other) {
       return operator = (Langulus::Copy(other));
    }
@@ -216,7 +216,7 @@ namespace Langulus::Anyness
    ///   @param other - the value to copy                                     
    ///   @return a reference to this container                                
    template<CT::NotSemantic T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Any& Any::operator = (T& other) {
       return operator = (Langulus::Copy(other));
    }
@@ -226,7 +226,7 @@ namespace Langulus::Anyness
    ///   @param other - the value to move in                                  
    ///   @return a reference to this container                                
    template<CT::NotSemantic T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Any& Any::operator = (T&& other) requires CT::Mutable<T> {
       return operator = (Langulus::Move(other));
    }
@@ -276,7 +276,7 @@ namespace Langulus::Anyness
    }
 
    /// Destroy all elements, but retain allocated memory if possible          
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    void Any::Clear() {
       if (IsEmpty())
          return;
@@ -302,7 +302,7 @@ namespace Langulus::Anyness
    ///   @param other - the data to insert                                    
    ///   @return a reference to this container for chaining                   
    template<CT::NotSemantic T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Any& Any::operator << (const T& other) {
       Insert<IndexBack>(Langulus::Copy(other));
       return *this;
@@ -312,7 +312,7 @@ namespace Langulus::Anyness
    /// Dimo, I know you want to remove this, but don't, said Dimo to himself  
    /// after actually deleting this function numerous times                   
    template<CT::NotSemantic T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Any& Any::operator << (T& other) {
       Insert<IndexBack>(Langulus::Copy(other));
       return *this;
@@ -322,7 +322,7 @@ namespace Langulus::Anyness
    ///   @param other - the data to insert                                    
    ///   @return a reference to this container for chaining                   
    template<CT::NotSemantic T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Any& Any::operator << (T&& other) {
       Insert<IndexBack>(Langulus::Move(other));
       return *this;
@@ -332,7 +332,7 @@ namespace Langulus::Anyness
    ///   @param other - the data to insert                                    
    ///   @return a reference to this container for chaining                   
    template<CT::Semantic S>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Any& Any::operator << (S&& other) {
       Insert<IndexBack>(other.Forward());
       return *this;
@@ -342,7 +342,7 @@ namespace Langulus::Anyness
    ///   @param other - the data to insert                                    
    ///   @return a reference to this container for chaining                   
    template<CT::NotSemantic T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Any& Any::operator >> (const T& other) {
       Insert<IndexFront>(Langulus::Copy(other));
       return *this;
@@ -352,7 +352,7 @@ namespace Langulus::Anyness
    /// Dimo, I know you want to remove this, but don't, said Dimo to himself  
    /// after actually deleting this function numerous times                   
    template<CT::NotSemantic T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Any& Any::operator >> (T& other) {
       Insert<IndexFront>(Langulus::Copy(other));
       return *this;
@@ -362,7 +362,7 @@ namespace Langulus::Anyness
    ///   @param other - the data to insert                                    
    ///   @return a reference to this container for chaining                   
    template<CT::NotSemantic T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Any& Any::operator >> (T&& other) {
       Insert<IndexFront>(Langulus::Move(other));
       return *this;
@@ -372,7 +372,7 @@ namespace Langulus::Anyness
    ///   @param other - the data to insert                                    
    ///   @return a reference to this container for chaining                   
    template<CT::Semantic S>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Any& Any::operator >> (S&& other) {
       Insert<IndexFront>(other.Forward());
       return *this;
@@ -382,7 +382,7 @@ namespace Langulus::Anyness
    ///   @param other - the data to insert                                    
    ///   @return a reference to this container for chaining                   
    template<CT::NotSemantic T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Any& Any::operator <<= (const T& other) {
       Merge<IndexBack, true>(Langulus::Copy(other));
       return *this;
@@ -392,7 +392,7 @@ namespace Langulus::Anyness
    /// Dimo, I know you want to remove this, but don't, said Dimo to himself  
    /// after actually deleting this function numerous times                   
    template<CT::NotSemantic T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Any& Any::operator <<= (T& other) {
       Merge<IndexBack, true>(Langulus::Copy(other));
       return *this;
@@ -402,7 +402,7 @@ namespace Langulus::Anyness
    ///   @param other - the data to insert                                    
    ///   @return a reference to this container for chaining                   
    template<CT::NotSemantic T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Any& Any::operator <<= (T&& other) {
       Merge<IndexBack, true>(Langulus::Move(other));
       return *this;
@@ -412,7 +412,7 @@ namespace Langulus::Anyness
    ///   @param other - the data to insert                                    
    ///   @return a reference to this container for chaining                   
    template<CT::Semantic S>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Any& Any::operator <<= (S&& other) {
       Merge<IndexBack, true>(other.Forward());
       return *this;
@@ -422,7 +422,7 @@ namespace Langulus::Anyness
    ///   @param other - the data to insert                                    
    ///   @return a reference to this container for chaining                   
    template<CT::NotSemantic T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Any& Any::operator >>= (const T& other) {
       Merge<IndexFront, true>(Langulus::Copy(other));
       return *this;
@@ -432,7 +432,7 @@ namespace Langulus::Anyness
    /// Dimo, I know you want to remove this, but don't, said Dimo to himself  
    /// after actually deleting this function numerous times                   
    template<CT::NotSemantic T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Any& Any::operator >>= (T& other) {
       Merge<IndexFront, true>(Langulus::Copy(other));
       return *this;
@@ -442,7 +442,7 @@ namespace Langulus::Anyness
    ///   @param other - the data to insert                                    
    ///   @return a reference to this container for chaining                   
    template<CT::NotSemantic T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Any& Any::operator >>= (T&& other) {
       Merge<IndexFront, true>(Langulus::Move(other));
       return *this;
@@ -452,14 +452,14 @@ namespace Langulus::Anyness
    ///   @param other - the data to insert                                    
    ///   @return a reference to this container for chaining                   
    template<CT::Semantic S>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Any& Any::operator >>= (S&& other) {
       Merge<IndexFront, true>(other.Forward());
       return *this;
    }
 
    /// Reset the container                                                    
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    void Any::Reset() {
       Free();
       mRaw = nullptr;
@@ -469,7 +469,7 @@ namespace Langulus::Anyness
 
    /// Swap two container's contents                                          
    ///   @param other - [in/out] the container to swap contents with          
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    void Any::Swap(Any& other) noexcept {
       other = ::std::exchange(*this, ::std::move(other));
    }
@@ -478,7 +478,7 @@ namespace Langulus::Anyness
    ///   @param start - starting element index                                
    ///   @param count - number of elements                                    
    ///   @return the container                                                
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Any Any::Crop(const Offset& start, const Count& count) const {
       return Any {Block::Crop(start, count)};
    }
@@ -487,7 +487,7 @@ namespace Langulus::Anyness
    ///   @param start - starting element index                                
    ///   @param count - number of elements                                    
    ///   @return the container                                                
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Any Any::Crop(const Offset& start, const Count& count) {
       return Any {Block::Crop(start, count)};
    }
@@ -529,13 +529,13 @@ namespace Langulus::Anyness
    ///   @param rhs - the right operand                                       
    ///   @return the combined container                                       
    template<CT::Deep T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Any Any::operator + (const T& rhs) const requires CT::Dense<T> {
       return Concatenate<Any>(Langulus::Copy(rhs));
    }
 
    template<CT::Deep T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Any Any::operator + (T& rhs) const requires CT::Dense<T> {
       return Concatenate<Any>(Langulus::Copy(rhs));
    }
@@ -545,7 +545,7 @@ namespace Langulus::Anyness
    ///   @param rhs - the right operand                                       
    ///   @return the combined container                                       
    template<CT::Deep T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Any Any::operator + (T&& rhs) const requires CT::Dense<T> {
       return Concatenate<Any>(Langulus::Move(rhs));
    }
@@ -555,7 +555,7 @@ namespace Langulus::Anyness
    ///   @param rhs - the right operand                                       
    ///   @return the combined container                                       
    template<CT::Semantic S>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Any Any::operator + (S&& rhs) const requires (CT::Deep<TypeOf<S>>&& CT::Dense<TypeOf<S>>) {
       return Concatenate<Any>(rhs.Forward());
    }
@@ -565,14 +565,14 @@ namespace Langulus::Anyness
    ///   @param rhs - the right operand                                       
    ///   @return a reference to this modified container                       
    template<CT::Deep T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Any& Any::operator += (const T& rhs) requires CT::Dense<T> {
       InsertBlock(Langulus::Copy(rhs));
       return *this;
    }
 
    template<CT::Deep T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Any& Any::operator += (T& rhs) requires CT::Dense<T> {
       InsertBlock(Langulus::Copy(rhs));
       return *this;
@@ -583,7 +583,7 @@ namespace Langulus::Anyness
    ///   @param rhs - the right operand                                       
    ///   @return a reference to this modified container                       
    template<CT::Deep T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Any& Any::operator += (T&& rhs) requires CT::Dense<T> {
       InsertBlock(Langulus::Move(rhs));
       return *this;
@@ -594,7 +594,7 @@ namespace Langulus::Anyness
    ///   @param rhs - the right operand                                       
    ///   @return a reference to this modified container                       
    template<CT::Semantic S>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Any& Any::operator += (S&& rhs) requires (CT::Deep<TypeOf<S>>&& CT::Dense<TypeOf<S>>) {
       InsertBlock(rhs.Forward());
       return *this;
@@ -606,7 +606,7 @@ namespace Langulus::Anyness
    ///   @param item - the item to search for                                 
    ///   @return the index of the found item, or IndexNone if none found      
    template<bool REVERSE, CT::Data T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Index Any::Find(const T& item, const Offset& cookie) const {
       return Block::template FindKnown<REVERSE>(item, cookie);
    }
@@ -618,14 +618,14 @@ namespace Langulus::Anyness
 
    /// Get iterator to first element                                          
    ///   @return an iterator to the first element, or end if empty            
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    typename Any::Iterator Any::begin() noexcept {
       return IsEmpty() ? end() : GetElement();
    }
 
    /// Get iterator to end                                                    
    ///   @return an iterator to the end element                               
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    typename Any::Iterator Any::end() noexcept {
       Block result {*this};
       if (IsEmpty())
@@ -639,7 +639,7 @@ namespace Langulus::Anyness
 
    /// Get iterator to the last element                                       
    ///   @return an iterator to the last element, or end if empty             
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    typename Any::Iterator Any::last() noexcept {
       Block result {*this};
       if (IsEmpty())
@@ -653,14 +653,14 @@ namespace Langulus::Anyness
 
    /// Get iterator to first element                                          
    ///   @return a constant iterator to the first element, or end if empty    
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    typename Any::ConstIterator Any::begin() const noexcept {
       return IsEmpty() ? end() : GetElement();
    }
 
    /// Get iterator to end                                                    
    ///   @return a constant iterator to the end element                       
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    typename Any::ConstIterator Any::end() const noexcept {
       Block result {*this};
       if (IsEmpty())
@@ -674,7 +674,7 @@ namespace Langulus::Anyness
 
    /// Get iterator to the last valid element                                 
    ///   @return a constant iterator to the last element, or end if empty     
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    typename Any::ConstIterator Any::last() const noexcept {
       Block result {*this};
       if (IsEmpty())
@@ -694,7 +694,7 @@ namespace Langulus::Anyness
    /// Construct an iterator                                                  
    ///   @param value - pointer to the value element                          
    template<bool MUTABLE>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Any::TIterator<MUTABLE>::TIterator(const Block& value) noexcept
       : mValue {value} {}
 
@@ -702,7 +702,7 @@ namespace Langulus::Anyness
    ///   @attention assumes iterator points to a valid element                
    ///   @return the modified iterator                                        
    template<bool MUTABLE>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    typename Any::TIterator<MUTABLE>& Any::TIterator<MUTABLE>::operator ++ () noexcept {
       mValue.mRaw += mValue.GetStride();
       return *this;
@@ -712,7 +712,7 @@ namespace Langulus::Anyness
    ///   @attention assumes iterator points to a valid element                
    ///   @return the previous value of the iterator                           
    template<bool MUTABLE>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    typename Any::TIterator<MUTABLE> Any::TIterator<MUTABLE>::operator ++ (int) noexcept {
       const auto backup = *this;
       operator ++ ();
@@ -723,7 +723,7 @@ namespace Langulus::Anyness
    ///   @param rhs - the other iterator                                      
    ///   @return true if entries match                                        
    template<bool MUTABLE>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    bool Any::TIterator<MUTABLE>::operator == (const TIterator& rhs) const noexcept {
       return mValue.mRaw == rhs.mValue.mRaw;
    }
@@ -731,7 +731,7 @@ namespace Langulus::Anyness
    /// Iterator access operator                                               
    ///   @return a pair at the current iterator position                      
    template<bool MUTABLE>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    const Block& Any::TIterator<MUTABLE>::operator * () const noexcept {
       return mValue;
    }

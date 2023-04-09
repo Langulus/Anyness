@@ -15,20 +15,20 @@ namespace Langulus::Anyness
    ///   @tparam S - the semantic to use (irrelevant)                         
    ///   @param other - the block to shallow-copy                             
    template<CT::Semantic S>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    constexpr Block::Block(S&& other) noexcept
       : Block {static_cast<const Block&>(other.mValue)} {}
 
    /// Manual construction via type                                           
    ///   @param meta - the type of the memory block                           
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    constexpr Block::Block(DMeta meta) noexcept
       : mType {meta} { }
 
    /// Manual construction via state and type                                 
    ///   @param state - the initial state of the container                    
    ///   @param meta - the type of the memory block                           
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    constexpr Block::Block(const DataState& state, DMeta meta) noexcept
       : mState {state}
       , mType {meta} { }
@@ -40,7 +40,7 @@ namespace Langulus::Anyness
    ///   @param meta - the type of the memory block                           
    ///   @param count - initial element count and reserve                     
    ///   @param raw - pointer to the mutable memory                           
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Block::Block(const DataState& state
       , DMeta meta
       , Count count
@@ -72,7 +72,7 @@ namespace Langulus::Anyness
    ///   @param meta - the type of the memory block                           
    ///   @param count - initial element count and reserve                     
    ///   @param raw - pointer to the constant memory                          
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Block::Block(const DataState& state
       , DMeta meta
       , Count count
@@ -88,7 +88,7 @@ namespace Langulus::Anyness
    ///   @param count - initial element count and reserve                     
    ///   @param raw - pointer to the mutable memory                           
    ///   @param entry - the memory entry                                      
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Block::Block(const DataState& state
       , DMeta meta
       , Count count
@@ -117,7 +117,7 @@ namespace Langulus::Anyness
    ///   @param count - initial element count and reserve                     
    ///   @param raw - pointer to the constant memory                          
    ///   @param entry - the memory entry                                      
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Block::Block(const DataState& state
       , DMeta meta
       , Count count
@@ -133,7 +133,7 @@ namespace Langulus::Anyness
    ///   @param value - the pointer to interface                              
    ///   @return the block                                                    
    template<bool CONSTRAIN, CT::Data T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Block Block::From(T value) requires CT::Sparse<T> {
       if constexpr (CONSTRAIN)
          return {DataState::Member, MetaData::Of<Deptr<T>>(), 1, value};
@@ -148,7 +148,7 @@ namespace Langulus::Anyness
    ///   @param count - the number of elements                                
    ///   @return the block                                                    
    template<bool CONSTRAIN, CT::Data T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Block Block::From(T value, Count count) requires CT::Sparse<T> {
       if constexpr (CONSTRAIN)
          return {DataState::Member, MetaData::Of<Deptr<T>>(), count, value};
@@ -165,7 +165,7 @@ namespace Langulus::Anyness
    ///   @tparam T - the type of the value to wrap (deducible)                
    ///   @return a block that wraps the dense value                           
    template<bool CONSTRAIN, CT::Data T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Block Block::From(T& value) requires CT::Dense<T> {
       Block result;
       if constexpr (CT::Resolvable<T>) {
@@ -198,7 +198,7 @@ namespace Langulus::Anyness
    ///   @tparam CONSTRAIN - makes container type-constrained                 
    ///   @return the block                                                    
    template<CT::Data T, bool CONSTRAIN>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Block Block::From() {
       if constexpr (CONSTRAIN)
          return {DataState::Typed, MetaData::Of<T>()};
@@ -212,7 +212,7 @@ namespace Langulus::Anyness
    ///   @tparam S - semantic to use (irrelevant)                             
    ///   @param rhs - the block to shallow copy                               
    template<CT::Semantic S>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    constexpr Block& Block::operator = (S&& rhs) noexcept {
       return operator = (static_cast<const Block&>(rhs.mValue));
    }
@@ -223,7 +223,7 @@ namespace Langulus::Anyness
    ///   @tparam S - the semantic to use for the transfer (deducible)         
    ///   @param from - the block and semantic to transfer from                
    template<class TO, CT::Semantic S>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    void Block::BlockTransfer(S&& from) {
       using FROM = TypeOf<S>;
 

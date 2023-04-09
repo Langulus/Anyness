@@ -16,35 +16,35 @@ namespace Langulus::Anyness
    /// Move ownership, resetting source value to default if sparse            
    ///   @param value - owned value to move                                   
    TEMPLATE_OWNED()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    constexpr TOwned<T>::TOwned(const TOwned& value)
       : TOwned {Langulus::Copy(value)} {}
 
    /// Move ownership, resetting source value to default if sparse            
    ///   @param value - owned value to move                                   
    TEMPLATE_OWNED()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    constexpr TOwned<T>::TOwned(TOwned&& value)
       : TOwned {Langulus::Move(value)} {}
    
    TEMPLATE_OWNED()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    constexpr TOwned<T>::TOwned(const CT::NotSemantic auto& value)
       : TOwned {Copy(value)} {}
 
    TEMPLATE_OWNED()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    constexpr TOwned<T>::TOwned(CT::NotSemantic auto& value)
       : TOwned {Copy(value)} {}
 
    TEMPLATE_OWNED()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    constexpr TOwned<T>::TOwned(CT::NotSemantic auto&& value)
       : TOwned {Move(value)} {}
 
    TEMPLATE_OWNED()
    template<CT::Semantic S>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    constexpr TOwned<T>::TOwned(S&& value) {
       if constexpr (CT::Exact<TypeOf<S>, TOwned>) {
          SemanticNew<T>(&mValue, S::Nest(value.mValue.mValue));
@@ -56,7 +56,7 @@ namespace Langulus::Anyness
 
    /// Reset the value                                                        
    TEMPLATE_OWNED()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    void TOwned<T>::Reset() {
       mValue = {};
    }
@@ -64,7 +64,7 @@ namespace Langulus::Anyness
    /// Copy-assign an owned value                                             
    ///   @param value - the new value                                         
    TEMPLATE_OWNED()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    constexpr TOwned<T>& TOwned<T>::operator = (const TOwned& value) {
       return operator = (Copy(value));
    }
@@ -72,32 +72,32 @@ namespace Langulus::Anyness
    /// Move-assign an owned value                                             
    ///   @param value - the new value                                         
    TEMPLATE_OWNED()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    constexpr TOwned<T>& TOwned<T>::operator = (TOwned&& value) {
       return operator = (Move(value));
    }
 
    TEMPLATE_OWNED()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    constexpr TOwned<T>& TOwned<T>::operator = (const CT::NotSemantic auto& value) {
       return operator = (Copy(value));
    }
 
    TEMPLATE_OWNED()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    constexpr TOwned<T>& TOwned<T>::operator = (CT::NotSemantic auto& value) {
       return operator = (Copy(value));
    }
 
    TEMPLATE_OWNED()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    constexpr TOwned<T>& TOwned<T>::operator = (CT::NotSemantic auto&& value) {
       return operator = (Move(value));
    }
 
    TEMPLATE_OWNED()
    template<CT::Semantic S>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    constexpr TOwned<T>& TOwned<T>::operator = (S&& rhs) {
       if constexpr (CT::Exact<TypeOf<S>, TOwned>) {
          SemanticAssign(mValue, S::Nest(rhs.mValue.mValue));
@@ -112,7 +112,7 @@ namespace Langulus::Anyness
    /// Get a reference to the contained value (const)                         
    ///   @return the contained pointer                                        
    TEMPLATE_OWNED()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    decltype(auto) TOwned<T>::Get() const noexcept {
       return (mValue);
    }
@@ -120,7 +120,7 @@ namespace Langulus::Anyness
    /// Get a reference to the contained value                                 
    ///   @return the contained pointer                                        
    TEMPLATE_OWNED()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    decltype(auto) TOwned<T>::Get() noexcept {
       return (mValue);
    }
@@ -129,7 +129,7 @@ namespace Langulus::Anyness
    /// If data is incomplete or not hashable, hash the pointer instead        
    ///   @return the hash of the contained element                            
    TEMPLATE_OWNED()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Hash TOwned<T>::GetHash() const {
       if constexpr (CT::Sparse<T>) {
          if (!mValue)
@@ -157,7 +157,7 @@ namespace Langulus::Anyness
    ///   @attention assumes contained pointer is valid                        
    ///   @return the contained constant raw pointer                           
    TEMPLATE_OWNED()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    auto TOwned<T>::operator -> () const requires CT::Sparse<T> {
       LANGULUS_ASSUME(UserAssumes, mValue, "Invalid pointer");
       return mValue;
@@ -167,7 +167,7 @@ namespace Langulus::Anyness
    ///   @attention assumes contained pointer is valid                        
    ///   @return the contained raw pointer                                    
    TEMPLATE_OWNED()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    auto TOwned<T>::operator -> () requires CT::Sparse<T> {
       LANGULUS_ASSUME(UserAssumes, mValue, "Invalid pointer");
       return mValue;
@@ -177,7 +177,7 @@ namespace Langulus::Anyness
    ///   @attention assumes contained pointer is valid                        
    ///   @return the contained constant reference                             
    TEMPLATE_OWNED()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    decltype(auto) TOwned<T>::operator * () const requires CT::Sparse<T> {
       LANGULUS_ASSUME(UserAssumes, mValue, "Invalid pointer");
       return *mValue;
@@ -187,7 +187,7 @@ namespace Langulus::Anyness
    ///   @attention assumes contained pointer is valid                        
    ///   @return the contained mutable reference                              
    TEMPLATE_OWNED()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    decltype(auto) TOwned<T>::operator * () requires CT::Sparse<T> {
       LANGULUS_ASSUME(UserAssumes, mValue, "Invalid pointer");
       return *mValue;
@@ -196,7 +196,7 @@ namespace Langulus::Anyness
    /// Explicit boolean cast                                                  
    ///   @return true if value differs from default value                     
    TEMPLATE_OWNED()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    TOwned<T>::operator bool() const noexcept {
       return mValue != T {};
    }
@@ -204,13 +204,13 @@ namespace Langulus::Anyness
    /// Cast to a constant pointer, if mutable                                 
    ///   @return the constant equivalent to this pointer                      
    TEMPLATE_OWNED()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    TOwned<T>::operator const T&() const noexcept {
       return mValue;
    }
 
    TEMPLATE_OWNED()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    TOwned<T>::operator T&() noexcept {
       return mValue;
    }
@@ -219,7 +219,7 @@ namespace Langulus::Anyness
    ///   @param rhs - the right pointer                                       
    ///   @return true if pointers match                                       
    TEMPLATE_OWNED()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    bool TOwned<T>::operator == (const TOwned<T>& rhs) const noexcept {
       return mValue == rhs.mValue;
    }
@@ -228,7 +228,7 @@ namespace Langulus::Anyness
    ///   @param rhs - the right pointer                                       
    ///   @return true if pointers match                                       
    TEMPLATE_OWNED()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    bool TOwned<T>::operator == (const T& rhs) const noexcept {
       return mValue == rhs;
    }
@@ -237,7 +237,7 @@ namespace Langulus::Anyness
    ///   @param rhs - the right pointer                                       
    ///   @return true if pointers match                                       
    TEMPLATE_OWNED()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    bool TOwned<T>::operator == (std::nullptr_t) const noexcept requires CT::Sparse<T> {
       return mValue == nullptr;
    }
@@ -246,7 +246,7 @@ namespace Langulus::Anyness
    /// Can be invoked by the reflected resolver                               
    ///   @return the value, interfaced via a memory block                     
    TEMPLATE_OWNED()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    DMeta TOwned<T>::GetType() const {
       return MetaData::Of<Decay<T>>();
    }
@@ -255,7 +255,7 @@ namespace Langulus::Anyness
    /// Can be invoked by the reflected resolver                               
    ///   @return the value, interfaced via a memory block                     
    TEMPLATE_OWNED()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Block TOwned<T>::GetBlock() const {
       return {
          DataState::Constrained, GetType(), 1, &mValue 

@@ -20,7 +20,7 @@ namespace Langulus::Anyness
    ///   @param other - the value to use for construction                     
    TEMPLATE()
    template<CT::Semantic S>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    constexpr HAND()::Handle(S&& other) noexcept requires (!EMBED) {
       using ST = TypeOf<S>;
 
@@ -86,7 +86,7 @@ namespace Langulus::Anyness
    ///   @param v - a reference to the element                                
    ///   @param e - a reference to the element's entry                        
    TEMPLATE()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    constexpr HAND()::Handle(T& v, Inner::Allocation*& e) SAFETY_NOEXCEPT() requires (EMBED && CT::Sparse<T>)
       : mValue {&v}
       , mEntry {&e} {}
@@ -95,7 +95,7 @@ namespace Langulus::Anyness
    ///   @param v - a reference to the element                                
    ///   @param e - the entry (optional)                                      
    TEMPLATE()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    constexpr HAND()::Handle(T& v, Inner::Allocation* e) SAFETY_NOEXCEPT() requires (EMBED && CT::Dense<T>)
       : mValue {&v}
       , mEntry {e} {}
@@ -104,19 +104,19 @@ namespace Langulus::Anyness
    ///   @param v - the element                                               
    ///   @param e - the entry (optional)                                      
    TEMPLATE()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    constexpr HAND()::Handle(T&& v, Inner::Allocation* e) SAFETY_NOEXCEPT() requires (!EMBED)
       : mValue {Forward<T>(v)}
       , mEntry {e} {}
 
    TEMPLATE()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    constexpr bool HAND()::operator == (const T* rhs) const noexcept requires (EMBED) {
       return mValue == rhs;
    }
       
    TEMPLATE()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    constexpr bool HAND()::operator == (const HAND()& rhs) const noexcept requires (EMBED) {
       return mValue == rhs.mValue;
    }
@@ -124,7 +124,7 @@ namespace Langulus::Anyness
    /// Prefix increment operator                                              
    ///   @return the next handle                                              
    TEMPLATE()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    HAND()& HAND()::operator ++ () noexcept requires (EMBED) {
       ++mValue;
       if constexpr (CT::Sparse<T>)
@@ -135,7 +135,7 @@ namespace Langulus::Anyness
    /// Prefix decrement operator                                              
    ///   @return the next handle                                              
    TEMPLATE()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    HAND()& HAND()::operator -- () noexcept requires (EMBED) {
       --mValue;
       if constexpr (CT::Sparse<T>)
@@ -146,7 +146,7 @@ namespace Langulus::Anyness
    /// Prefix increment operator                                              
    ///   @return the next handle                                              
    TEMPLATE()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    HAND()& HAND()::operator += (Offset offset) noexcept requires (EMBED) {
       mValue += offset;
       if constexpr (CT::Sparse<T>)
@@ -157,7 +157,7 @@ namespace Langulus::Anyness
    /// Prefix decrement operator                                              
    ///   @return the next handle                                              
    TEMPLATE()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    HAND()& HAND()::operator -= (Offset offset) noexcept requires (EMBED) {
       mValue -= offset;
       if constexpr (CT::Sparse<T>)
@@ -168,7 +168,7 @@ namespace Langulus::Anyness
    /// Suffix increment operator                                              
    ///   @return the previous value of the handle                             
    TEMPLATE()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    HAND() HAND()::operator ++ (int) noexcept requires (EMBED) {
       const auto backup = *this;
       operator ++ ();
@@ -178,7 +178,7 @@ namespace Langulus::Anyness
    /// Suffix decrement operator                                              
    ///   @return the previous value of the handle                             
    TEMPLATE()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    HAND() HAND()::operator -- (int) noexcept requires (EMBED) {
       const auto backup = *this;
       operator -- ();
@@ -189,7 +189,7 @@ namespace Langulus::Anyness
    ///   @param offset - the offset to apply                                  
    ///   @return the offsetted handle                                         
    TEMPLATE()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    HAND() HAND()::operator + (Offset offset) noexcept requires (EMBED) {
       auto backup = *this;
       return backup += offset;
@@ -199,7 +199,7 @@ namespace Langulus::Anyness
    ///   @param offset - the offset to apply                                  
    ///   @return the offsetted handle                                         
    TEMPLATE()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    HAND() HAND()::operator - (Offset offset) noexcept requires (EMBED) {
       auto backup = *this;
       return backup -= offset;
@@ -207,7 +207,7 @@ namespace Langulus::Anyness
 
    /// Get a reference to the contents                                        
    TEMPLATE()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    T& HAND()::Get() const noexcept {
       if constexpr (Embedded)
          return const_cast<T&>(*mValue);
@@ -217,7 +217,7 @@ namespace Langulus::Anyness
    
    /// Get the entry                                                          
    TEMPLATE()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Inner::Allocation*& HAND()::GetEntry() const noexcept {
       if constexpr (Embedded && CT::Sparse<T>)
          return const_cast<Inner::Allocation*&>(*mEntry);
@@ -227,7 +227,7 @@ namespace Langulus::Anyness
 
    /// Assign a new pointer and entry at the handle                           
    TEMPLATE()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    void HAND()::New(T pointer, Inner::Allocation* entry) noexcept requires CT::Sparse<T> {
       Get() = pointer;
       GetEntry() = entry;
@@ -235,7 +235,7 @@ namespace Langulus::Anyness
    
    /// Assign a new pointer and entry at the handle                           
    TEMPLATE()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    void HAND()::New(T&& pointer, Inner::Allocation* entry) noexcept requires CT::Dense<T> {
       Get() = Forward<T>(pointer);
       GetEntry() = entry;
@@ -246,7 +246,7 @@ namespace Langulus::Anyness
    ///   @param rhs - what are we assigning                                   
    TEMPLATE()
    template<CT::Semantic S>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    void HAND()::New(S&& rhs) {
       using ST = TypeOf<S>;
 
@@ -364,7 +364,7 @@ namespace Langulus::Anyness
    ///   @param rhs - the data to assign                                      
    TEMPLATE()
    template<CT::Semantic S>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    void HAND()::NewUnknown(DMeta meta, S&& rhs) {
       if constexpr (S::Shallow) {
          // Do a copy/disown/abandon/move                               
@@ -395,7 +395,7 @@ namespace Langulus::Anyness
    ///   @param rhs - new contents to assign                                  
    TEMPLATE()
    template<CT::Semantic S>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    void HAND()::Assign(S&& rhs) {
       Destroy();
       New(rhs.Forward());
@@ -406,7 +406,7 @@ namespace Langulus::Anyness
    ///   @param rhs - right hand side                                         
    TEMPLATE()
    template<bool RHS_EMBED>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    void HAND()::Swap(Handle<T, RHS_EMBED>& rhs) {
       HandleLocal<T> tmp {Abandon(*this)};
       New(Abandon(rhs));
@@ -417,7 +417,7 @@ namespace Langulus::Anyness
    ///   @param rhs - data to compare against                                 
    ///   @return true if contents are equal                                   
    TEMPLATE()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    bool HAND()::Compare(const T& rhs) const {
       return Get() == rhs;
    }
@@ -427,7 +427,7 @@ namespace Langulus::Anyness
    ///   @return true if contents are equal                                   
    TEMPLATE()
    template<bool RHS_EMBED>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    bool HAND()::Compare(const Handle<T, RHS_EMBED>& rhs) const {
       return Get() == rhs.Get();
    }

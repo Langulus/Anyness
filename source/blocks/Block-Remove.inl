@@ -17,7 +17,7 @@ namespace Langulus::Anyness
    ///   @param item - the item type to search for and remove                 
    ///   @return 1 if the element was found and removed, 0 otherwise          
    template<bool REVERSE, CT::Data T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count Block::Remove(const T& item) {
       const auto found = FindKnown<REVERSE>(item);
       if (found)
@@ -193,7 +193,7 @@ namespace Langulus::Anyness
    }
 
    /// Destroy all elements, but don't deallocate memory if possible          
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    void Block::Clear() {
       if (!mEntry) {
          // Data is either static or unallocated                        
@@ -220,7 +220,7 @@ namespace Langulus::Anyness
    }
 
    /// Destroy all elements, deallocate block and reset state                 
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    void Block::Reset() {
       Free();
       ResetMemory();
@@ -229,7 +229,7 @@ namespace Langulus::Anyness
    
    /// Reset the block's state                                                
    /// Type constraints shall remain, if any                                  
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    constexpr void Block::ResetState() noexcept {
       mState = mState.mState & DataState::Typed;
       ResetType();
@@ -304,13 +304,13 @@ namespace Langulus::Anyness
    }
 
    /// Clear the block, only zeroing its size                                 
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    constexpr void Block::ClearInner() noexcept {
       mCount = 0;
    }
 
    /// Reset the memory inside the block                                      
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    constexpr void Block::ResetMemory() noexcept {
       mRaw = nullptr;
       mEntry = nullptr;

@@ -50,7 +50,7 @@ namespace Langulus::Anyness
    ///   @param call - function to execute for each constant element block    
    ///   @return the number of executions                                     
    template<bool REVERSE, class F>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count Block::ForEachElement(F&& call) const {
       return const_cast<Block&>(*this).template
          ForEachElement<REVERSE, false>(call);
@@ -68,7 +68,7 @@ namespace Langulus::Anyness
    ///   @param calls - all potential functions to iterate with               
    ///   @return the number of executions                                     
    template<bool REVERSE, bool MUTABLE, class... F>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count Block::ForEach(F&&... calls) {
       if (IsEmpty())
          return 0;
@@ -88,7 +88,7 @@ namespace Langulus::Anyness
    ///   @param calls - all potential functions to iterate with               
    ///   @return the number of executions                                     
    template<bool REVERSE, class... F>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count Block::ForEach(F&&... calls) const {
       return const_cast<Block&>(*this).template
          ForEach<REVERSE, false>(Forward<F>(calls)...);
@@ -109,7 +109,7 @@ namespace Langulus::Anyness
    ///   @param calls - all potential functions to iterate with               
    ///   @return the number of executions                                     
    template<bool REVERSE, bool SKIP, bool MUTABLE, class... F>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count Block::ForEachDeep(F&&... calls) {
       Count result {};
       (void) (... || (0 != (result = ForEachDeepSplitter<SKIP, MUTABLE, REVERSE>(Forward<F>(calls)))));
@@ -129,44 +129,44 @@ namespace Langulus::Anyness
    ///   @param calls - all potential functions to iterate with               
    ///   @return the number of executions                                     
    template<bool REVERSE, bool SKIP, class... F>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count Block::ForEachDeep(F&&... calls) const {
       return const_cast<Block&>(*this).template
          ForEachDeep<REVERSE, SKIP, false>(Forward<F>(calls)...);
    }
 
    template<bool MUTABLE, class... F>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count Block::ForEachElementRev(F&&... f) {
       return ForEachElement<true, MUTABLE, F...>(Forward<F>(f)...);
    }
 
    template<class... F>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count Block::ForEachElementRev(F&&... f) const {
       return ForEachElement<true, F...>(Forward<F>(f)...);
    }
 
    template<bool MUTABLE, class... F>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count Block::ForEachRev(F&&... f) {
       return ForEach<true, MUTABLE, F...>(Forward<F>(f)...);
    }
 
    template<class... F>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count Block::ForEachRev(F&&... f) const {
       return ForEach<true, F...>(Forward<F>(f)...);
    }
 
    template<bool SKIP, bool MUTABLE, class... F>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count Block::ForEachDeepRev(F&&... f) {
       return ForEachDeep<true, SKIP, MUTABLE, F...>(Forward<F>(f)...);
    }
 
    template<bool SKIP, class... F>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count Block::ForEachDeepRev(F&&... f) const {
       return ForEachDeep<true, SKIP, F...>(Forward<F>(f)...);
    }
@@ -182,7 +182,7 @@ namespace Langulus::Anyness
    ///   @param call - the instance of the function F to call                 
    ///   @return the number of called functions                               
    template<bool MUTABLE, bool REVERSE, class F>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count Block::ForEachSplitter(F&& call) {
       LANGULUS_ASSUME(DevAssumes, !IsEmpty(),
          "Container is empty");
@@ -247,7 +247,7 @@ namespace Langulus::Anyness
    ///   @param call - the instance of the function F to call                 
    ///   @return the number of called functions                               
    template<bool SKIP, bool MUTABLE, bool REVERSE, class F>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count Block::ForEachDeepSplitter(F&& call) {
       // Notice, that no assumptions required here                      
       using A = ArgumentOf<F>;
@@ -287,7 +287,7 @@ namespace Langulus::Anyness
    ///   @param f - the function to execute for each element of type A        
    ///   @return the number of executions that occured                        
    template<class R, CT::Data A, bool REVERSE, bool MUTABLE>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count Block::ForEachInner(TFunctor<R(A)>&& f) noexcept(NoexceptIterator<decltype(f)>) {
       LANGULUS_ASSUME(DevAssumes, !IsEmpty(),
          "Container is empty");
@@ -433,7 +433,7 @@ namespace Langulus::Anyness
    ///   @tparam F - the function signature (deducible)                       
    ///   @param call - to function to execute                                 
    template<bool MUTABLE, bool REVERSE, class F>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    void Block::Iterate(F&& call) noexcept(NoexceptIterator<F>) {
       using A = ArgumentOf<F>;
       using R = ReturnOf<F>;
@@ -464,7 +464,7 @@ namespace Langulus::Anyness
    ///   @tparam F - the function signature (deducible)                       
    ///   @param call - to function to execute                                 
    template<bool REVERSE, class F>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    void Block::Iterate(F&& call) const noexcept(NoexceptIterator<F>) {
       const_cast<Block*>(this)->template
          Iterate<false, REVERSE>(Forward<F>(call));
@@ -483,7 +483,7 @@ namespace Langulus::Anyness
    ///                     iteration (iteration is slower if true)            
    ///   @param call - the constexpr noexcept function to call on each item   
    template<class R, CT::Data A, bool REVERSE, bool MUTABLE>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    void Block::IterateInner(TFunctor<R(A)>&& f) noexcept(NoexceptIterator<decltype(f)>) {
       LANGULUS_ASSUME(DevAssumes, !IsEmpty(),
          "Block is empty");

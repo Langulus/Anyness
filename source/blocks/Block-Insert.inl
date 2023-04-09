@@ -73,7 +73,7 @@ namespace Langulus::Anyness
    ///   @param idx - the index to insert at                                  
    ///   @return number of inserted elements                                  
    template<bool MUTABLE, CT::Data WRAPPER, CT::NotSemantic T, CT::Index INDEX>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count Block::InsertAt(const T& item, INDEX idx) {
       return InsertAt<MUTABLE, WRAPPER>(Langulus::Copy(item), idx);
    }
@@ -88,7 +88,7 @@ namespace Langulus::Anyness
    ///   @param idx - the index to insert at                                  
    ///   @return number of inserted elements                                  
    template<bool MUTABLE, CT::Data WRAPPER, CT::NotSemantic T, CT::Index INDEX>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count Block::InsertAt(T&& item, INDEX idx) {
       return InsertAt<MUTABLE, WRAPPER>(Langulus::Move(item), idx);
    }
@@ -202,7 +202,7 @@ namespace Langulus::Anyness
    ///   @param item - item to insert                                         
    ///   @return number of inserted elements                                  
    template<Index INDEX, bool MUTABLE, CT::Data WRAPPER, CT::NotSemantic T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count Block::Insert(const T& item) {
       return Insert<INDEX, MUTABLE, WRAPPER>(Langulus::Copy(item));
    }
@@ -217,7 +217,7 @@ namespace Langulus::Anyness
    ///   @param item - item to insert                                         
    ///   @return number of inserted elements                                  
    template<Index INDEX, bool MUTABLE, CT::Data WRAPPER, CT::NotSemantic T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count Block::Insert(T&& item) {
       return Insert<INDEX, MUTABLE, WRAPPER>(Langulus::Move(item));
    }
@@ -308,7 +308,7 @@ namespace Langulus::Anyness
    ///   @param index - the special index to insert at                        
    ///   @return the number of inserted elements                              
    template<bool MUTABLE, CT::Data WRAPPER, CT::NotSemantic T, CT::Index INDEX>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count Block::MergeAt(const T& item, INDEX index) {
       return MergeAt<MUTABLE, WRAPPER>(Langulus::Copy(item), index);
    }
@@ -324,7 +324,7 @@ namespace Langulus::Anyness
    ///   @param index - the special index to insert at                        
    ///   @return the number of inserted elements                              
    template<bool MUTABLE, CT::Data WRAPPER, CT::NotSemantic T, CT::Index INDEX>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count Block::MergeAt(T&& item, INDEX index) {
       return MergeAt<MUTABLE, WRAPPER>(Langulus::Move(item), index);
    }
@@ -340,7 +340,7 @@ namespace Langulus::Anyness
    ///   @param index - the special index to insert at                        
    ///   @return the number of inserted elements                              
    template<bool MUTABLE, CT::Data WRAPPER, CT::Semantic S, CT::Index INDEX>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count Block::MergeAt(S&& item, INDEX index) {
       if (!FindKnown(item.mValue))
          return InsertAt<MUTABLE, WRAPPER>(item.Forward(), index);
@@ -358,7 +358,7 @@ namespace Langulus::Anyness
    ///   @param end - pointer to the end of items                             
    ///   @return the number of inserted elements                              
    template<Index INDEX, bool MUTABLE, CT::Data WRAPPER, CT::NotSemantic T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count Block::Merge(const T* start, const T* end) {
       Count added {};
       while (start != end) {
@@ -380,7 +380,7 @@ namespace Langulus::Anyness
    ///   @param item - item to insert                                         
    ///   @return the number of inserted elements                              
    template<Index INDEX, bool MUTABLE, CT::Data WRAPPER, CT::NotSemantic T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count Block::Merge(const T& item) {
       return Merge<INDEX, MUTABLE, WRAPPER>(Langulus::Copy(item));
    }
@@ -395,7 +395,7 @@ namespace Langulus::Anyness
    ///   @param item - item to insert                                         
    ///   @return the number of inserted elements                              
    template<Index INDEX, bool MUTABLE, CT::Data WRAPPER, CT::NotSemantic T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count Block::Merge(T&& item) {
       return Merge<INDEX, MUTABLE, WRAPPER>(Langulus::Move(item));
    }
@@ -410,7 +410,7 @@ namespace Langulus::Anyness
    ///   @param item - item to insert                                         
    ///   @return the number of inserted elements                              
    template<Index INDEX, bool MUTABLE, CT::Data WRAPPER, CT::Semantic S>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count Block::Merge(S&& item) {
       if (!FindKnown(item.mValue))
          return Insert<INDEX, MUTABLE, WRAPPER>(item.Forward());
@@ -424,7 +424,7 @@ namespace Langulus::Anyness
    ///   @param idx - index to insert them at                                 
    ///   @return the number of inserted elements                              
    template<CT::NotSemantic T, CT::Index INDEX>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count Block::InsertBlockAt(const T& other, INDEX idx) {
       return InsertBlockAt(Langulus::Copy(other), idx);
    }
@@ -436,7 +436,7 @@ namespace Langulus::Anyness
    ///   @param idx - index to insert them at                                 
    ///   @return the number of inserted elements                              
    template<CT::NotSemantic T, CT::Index INDEX>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count Block::InsertBlockAt(T&& other, INDEX idx) {
       return InsertBlockAt(Langulus::Move(other), idx);
    }
@@ -448,7 +448,7 @@ namespace Langulus::Anyness
    ///   @param idx - index to insert them at                                 
    ///   @return the number of inserted elements                              
    template<CT::Semantic S, CT::Index INDEX>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count Block::InsertBlockAt(S&& other, INDEX idx) {
       using T = TypeOf<S>;
       static_assert(CT::Block<T>, "T must be a block type");
@@ -482,7 +482,7 @@ namespace Langulus::Anyness
    ///   @param other - the block to insert                                   
    ///   @return the number of inserted elements                              
    template<Index INDEX, CT::NotSemantic T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count Block::InsertBlock(const T& other) {
       return InsertBlock<INDEX>(Langulus::Copy(other));
    }
@@ -493,7 +493,7 @@ namespace Langulus::Anyness
    ///   @param other - the block to insert                                   
    ///   @return the number of inserted elements                              
    template<Index INDEX, CT::NotSemantic T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count Block::InsertBlock(T&& other) {
       return InsertBlock<INDEX>(Langulus::Move(other));
    }
@@ -565,7 +565,7 @@ namespace Langulus::Anyness
    ///   @param index - special/simple index to insert at                     
    ///   @return the number of inserted elements                              
    template<CT::NotSemantic T, CT::Index INDEX>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count Block::MergeBlockAt(const T& other, INDEX index) {
       return MergeBlockAt(Langulus::Copy(other), index);
    }
@@ -577,7 +577,7 @@ namespace Langulus::Anyness
    ///   @param index - special/simple index to insert at                     
    ///   @return the number of inserted elements                              
    template<CT::NotSemantic T, CT::Index INDEX>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count Block::MergeBlockAt(T&& other, INDEX index) {
       return MergeBlockAt(Langulus::Move(other), index);
    }
@@ -612,7 +612,7 @@ namespace Langulus::Anyness
    ///   @param other - the block to merge                                    
    ///   @return the number of inserted elements                              
    template<Index INDEX, CT::NotSemantic T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count Block::MergeBlock(const T& other) {
       return MergeBlock<INDEX>(Langulus::Copy(other));
    }
@@ -624,7 +624,7 @@ namespace Langulus::Anyness
    ///   @param other - the block to merge                                    
    ///   @return the number of inserted elements                              
    template<Index INDEX, CT::NotSemantic T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count Block::MergeBlock(T&& other) {
       return MergeBlock<INDEX>(Langulus::Move(other));
    }
@@ -672,7 +672,7 @@ namespace Langulus::Anyness
    ///   @param arguments... - the arguments to forward to constructor        
    ///   @return 1 if the element was emplaced successfully                   
    template<CT::Index IDX, class... A>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count Block::EmplaceAt(const IDX& idx, A&&... arguments) {
       // Allocate the required memory - this will not initialize it     
       AllocateMore<false>(mCount + 1);
@@ -717,7 +717,7 @@ namespace Langulus::Anyness
    ///   @param arguments... - the arguments to forward to constructor        
    ///   @return 1 if the element was emplaced successfully                   
    template<Index INDEX, class... A>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count Block::Emplace(A&&... arguments) {
       // Allocate the required memory - this will not initialize it     
       AllocateMore<false>(mCount + 1);
@@ -751,7 +751,7 @@ namespace Langulus::Anyness
    ///   @param ...arguments - constructor arguments                          
    ///   @return the number of new elements                                   
    template<class... A>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count Block::New(Count count, A&&... arguments) {
       // Allocate the required memory - this will not initialize it     
       AllocateMore<false>(mCount + count);
@@ -767,7 +767,7 @@ namespace Langulus::Anyness
    ///   @tparam MOVE_STATE - whether or not to send the current orness over  
    ///   @return a reference to this container                                
    template<CT::Data T, bool MOVE_STATE>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    T& Block::Deepen() {
       static_assert(CT::Deep<T>, "T must be deep");
 
@@ -805,7 +805,7 @@ namespace Langulus::Anyness
    ///   @param state - a state to apply after pushing is done                
    ///   @return the number of pushed items (zero if unsuccessful)            
    template<bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data WRAPPER, CT::NotSemantic T, CT::Index INDEX>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count Block::SmartPushAt(const T& value, INDEX index, DataState state) {
       return SmartPushAt<ALLOW_CONCAT, ALLOW_DEEPEN, WRAPPER>(
          Langulus::Copy(value), index, state);
@@ -814,7 +814,7 @@ namespace Langulus::Anyness
    /// This is required to disambiguate calls correctly                       
    /// It's the same as the above                                             
    template<bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data WRAPPER, CT::NotSemantic T, CT::Index INDEX>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count Block::SmartPushAt(T& value, INDEX index, DataState state) {
       return SmartPushAt<ALLOW_CONCAT, ALLOW_DEEPEN, WRAPPER>(
          Langulus::Copy(value), index, state);
@@ -832,7 +832,7 @@ namespace Langulus::Anyness
    ///   @param state - a state to apply after pushing is done                
    ///   @return the number of pushed items (zero if unsuccessful)            
    template<bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data WRAPPER, CT::NotSemantic T, CT::Index INDEX>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count Block::SmartPushAt(T&& value, INDEX index, DataState state) {
       return SmartPushAt<ALLOW_CONCAT, ALLOW_DEEPEN, WRAPPER>(
          Langulus::Move(value), index, state);
@@ -891,7 +891,7 @@ namespace Langulus::Anyness
    ///   @param state - a state to apply after pushing is done                
    ///   @return the number of pushed items (zero if unsuccessful)            
    template<Index INDEX, bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data WRAPPER, CT::NotSemantic T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count Block::SmartPush(const T& value, DataState state) {
       return SmartPush<INDEX, ALLOW_CONCAT, ALLOW_DEEPEN, WRAPPER>(
          Langulus::Copy(value), state);
@@ -900,7 +900,7 @@ namespace Langulus::Anyness
    /// Required to disambiguate calls correctly                               
    /// It's the same as the above                                             
    template<Index INDEX, bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data WRAPPER, CT::NotSemantic T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count Block::SmartPush(T& value, DataState state) {
       return SmartPush<INDEX, ALLOW_CONCAT, ALLOW_DEEPEN, WRAPPER>(
          Langulus::Copy(value), state);
@@ -917,7 +917,7 @@ namespace Langulus::Anyness
    ///   @param state - a state to apply after pushing is done                
    ///   @return the number of pushed items (zero if unsuccessful)            
    template<Index INDEX, bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data WRAPPER, CT::NotSemantic T>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count Block::SmartPush(T&& value, DataState state) {
       return SmartPush<INDEX, ALLOW_CONCAT, ALLOW_DEEPEN, WRAPPER>(
          Langulus::Move(value), state);
@@ -1095,7 +1095,7 @@ namespace Langulus::Anyness
    ///   @tparam head - first element, semantic or not (deducible)            
    ///   @tparam tail... - the rest, semantic or not (deducible)              
    template<Offset INDEX, CT::Data HEAD, CT::Data... TAIL>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    void Block::InsertStatic(HEAD&& head, TAIL&&... tail) {
       if constexpr (CT::Semantic<HEAD>)
          InsertInner(head.Forward(), INDEX);
@@ -1165,7 +1165,7 @@ namespace Langulus::Anyness
    ///   @param value - semantically provided value to absorb                 
    ///   @param state - the state to absorb                                   
    template<CT::Semantic S>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    void Block::Absorb(S&& value, const DataState& state) {
       static_assert(CT::Deep<TypeOf<S>>, "S::Type must be deep");
 
@@ -1209,7 +1209,7 @@ namespace Langulus::Anyness
    ///   @param index - the place to insert at                                
    ///   @return the number of inserted elements                              
    template<bool ALLOW_DEEPEN, CT::Data WRAPPER, CT::Semantic S, CT::Index INDEX>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count Block::SmartConcatAt(const bool& sc, S&& value, const DataState& state, const INDEX& index) {
       static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
       static_assert(CT::Deep<TypeOf<S>>, "S::Type must be deep");
@@ -1254,7 +1254,7 @@ namespace Langulus::Anyness
    ///   @param state - the state to apply after concatenation                
    ///   @return the number of inserted elements                              
    template<bool ALLOW_DEEPEN, Index INDEX, CT::Data WRAPPER, CT::Semantic S>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count Block::SmartConcat(const bool& sc, S&& value, const DataState& state) {
       static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
       static_assert(CT::Deep<TypeOf<S>>, "S::Type must be deep");
@@ -1298,7 +1298,7 @@ namespace Langulus::Anyness
    ///   @param index - the place to insert at                                
    ///   @return the number of inserted elements                              
    template<bool ALLOW_DEEPEN, CT::Data WRAPPER, CT::Semantic S, CT::Index INDEX>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count Block::SmartPushAtInner(S&& value, const DataState& state, const INDEX& index) {
       if (IsUntyped() && IsInvalid()) {
          // Mutate-insert inside untyped container                      
@@ -1349,7 +1349,7 @@ namespace Langulus::Anyness
    ///   @param state - the state to apply after concatenation                
    ///   @return the number of inserted elements                              
    template<bool ALLOW_DEEPEN, Index INDEX, CT::Data WRAPPER, CT::Semantic S>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count Block::SmartPushInner(S&& value, const DataState& state) {
       if (IsUntyped() && IsInvalid()) {
          // Mutate-insert inside untyped container                      

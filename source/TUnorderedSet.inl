@@ -17,7 +17,7 @@ namespace Langulus::Anyness
 
    /// Default construction                                                   
    TABLE_TEMPLATE()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    constexpr TABLE()::TUnorderedSet()
       : UnorderedSet {} {
       mKeys.mState = DataState::Typed;
@@ -28,7 +28,7 @@ namespace Langulus::Anyness
    /// Create from a list of elements                                         
    ///   @param list - list of elements                                       
    TABLE_TEMPLATE()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    TABLE()::TUnorderedSet(::std::initializer_list<T> initlist)
       : TUnorderedSet {} {
       mKeys.mType = MetaData::Of<T>();
@@ -51,14 +51,14 @@ namespace Langulus::Anyness
    /// Shallow-copy construction                                              
    ///   @param other - the table to copy                                     
    TABLE_TEMPLATE()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    TABLE()::TUnorderedSet(const TUnorderedSet& other)
       : TUnorderedSet {Langulus::Copy(other)} {}
 
    /// Move construction                                                      
    ///   @param other - the table to move                                     
    TABLE_TEMPLATE()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    TABLE()::TUnorderedSet(TUnorderedSet&& other) noexcept
       : TUnorderedSet {Langulus::Move(other)} {}
 
@@ -67,7 +67,7 @@ namespace Langulus::Anyness
    ///   @param other - the semantic type                                     
    TABLE_TEMPLATE()
    template<CT::Semantic S>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    TABLE()::TUnorderedSet(S&& other) noexcept
       : TUnorderedSet {} {
       using ST = TypeOf<S>;
@@ -344,7 +344,7 @@ namespace Langulus::Anyness
    ///   @param infoStart - [out] the offset at which info bytes start        
    ///   @return the requested byte size                                      
    TABLE_TEMPLATE()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Size TABLE()::RequestKeyAndInfoSize(const Count count, Offset& infoStart) noexcept {
       Size keymemory = count * sizeof(T);
       if constexpr (CT::Sparse<T>)
@@ -593,7 +593,7 @@ namespace Langulus::Anyness
    ///   @param key - the key to hash                                         
    ///   @return the bucket offset                                            
    TABLE_TEMPLATE()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Offset TABLE()::GetBucket(const T& key) const noexcept {
       return HashData(key).mHash & (GetReserved() - 1);
    }
@@ -603,7 +603,7 @@ namespace Langulus::Anyness
    ///   @param value - the value to add                                      
    ///   @return 1 if pair was inserted, zero otherwise                       
    TABLE_TEMPLATE()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count TABLE()::Insert(const T& key) {
       return Insert(Copy(key));
    }
@@ -613,7 +613,7 @@ namespace Langulus::Anyness
    ///   @param value - the value to add                                      
    ///   @return 1 if pair was inserted, zero otherwise                       
    TABLE_TEMPLATE()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count TABLE()::Insert(T&& key) {
       return Insert(Move(key));
    }
@@ -624,7 +624,7 @@ namespace Langulus::Anyness
    ///   @return 1 if pair was inserted, zero otherwise                       
    TABLE_TEMPLATE()
    template<CT::Semantic S>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count TABLE()::Insert(S&& key) requires (CT::Exact<TypeOf<S>, T>) {
       Allocate(GetCount() + 1);
       InsertInner<true>(GetBucket(key.mValue), key.Forward());
@@ -1012,7 +1012,7 @@ namespace Langulus::Anyness
    ///   @attention assumes container has at least one item                   
    ///   @return a mutable reference to the last element                      
    TABLE_TEMPLATE()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    T& TABLE()::Last() {
       LANGULUS_ASSERT(!IsEmpty(), Access, "Can't get last index");
       auto info = GetInfoEnd();
@@ -1024,7 +1024,7 @@ namespace Langulus::Anyness
    ///   @attention assumes container has at least one item                   
    ///   @return a constant reference to the last element                     
    TABLE_TEMPLATE()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    const T& TABLE()::Last() const {
       LANGULUS_ASSERT(!IsEmpty(), Access, "Can't get last index");
       auto info = GetInfoEnd();
@@ -1091,7 +1091,7 @@ namespace Langulus::Anyness
    ///   @param value - pointer to the value element                          
    TABLE_TEMPLATE()
    template<bool MUTABLE>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    TABLE()::TIterator<MUTABLE>::TIterator(
       const InfoType* info, 
       const InfoType* sentinel, 
@@ -1106,7 +1106,7 @@ namespace Langulus::Anyness
    ///   @return the modified iterator                                        
    TABLE_TEMPLATE()
    template<bool MUTABLE>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    typename ITERATOR()& TABLE()::TIterator<MUTABLE>::operator ++ () noexcept {
       if (mInfo == mSentinel)
          return *this;
@@ -1124,7 +1124,7 @@ namespace Langulus::Anyness
    ///   @return the previous value of the iterator                           
    TABLE_TEMPLATE()
    template<bool MUTABLE>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    typename ITERATOR() TABLE()::TIterator<MUTABLE>::operator ++ (int) noexcept {
       const auto backup = *this;
       operator ++ ();
@@ -1136,7 +1136,7 @@ namespace Langulus::Anyness
    ///   @return true if entries match                                        
    TABLE_TEMPLATE()
    template<bool MUTABLE>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    bool TABLE()::TIterator<MUTABLE>::operator == (const TIterator& rhs) const noexcept {
       return mInfo == rhs.mInfo;
    }
@@ -1145,7 +1145,7 @@ namespace Langulus::Anyness
    ///   @return a pair at the current iterator position                      
    TABLE_TEMPLATE()
    template<bool MUTABLE>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    T& TABLE()::TIterator<MUTABLE>::operator * () const noexcept requires (MUTABLE) {
       return {*const_cast<T*>(mValue)};
    }
@@ -1154,7 +1154,7 @@ namespace Langulus::Anyness
    ///   @return a pair at the current iterator position                      
    TABLE_TEMPLATE()
    template<bool MUTABLE>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    const T& TABLE()::TIterator<MUTABLE>::operator * () const noexcept requires (!MUTABLE) {
       return {*mValue};
    }
@@ -1163,7 +1163,7 @@ namespace Langulus::Anyness
    ///   @return a pair at the current iterator position                      
    TABLE_TEMPLATE()
    template<bool MUTABLE>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    T& TABLE()::TIterator<MUTABLE>::operator -> () const noexcept requires (MUTABLE) {
       return **this;
    }
@@ -1172,7 +1172,7 @@ namespace Langulus::Anyness
    ///   @return a pair at the current iterator position                      
    TABLE_TEMPLATE()
    template<bool MUTABLE>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    const T& TABLE()::TIterator<MUTABLE>::operator -> () const noexcept requires (!MUTABLE) {
       return **this;
    }

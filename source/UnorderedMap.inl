@@ -12,7 +12,7 @@ namespace Langulus::Anyness
 {
 
    /// Default unordered map constructor                                      
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    constexpr UnorderedMap::UnorderedMap()
       : BlockMap {} {}
 
@@ -20,7 +20,7 @@ namespace Langulus::Anyness
    ///   @tparam P - the pair type                                            
    ///   @param list - list of pairs                                          
    template<CT::Pair P>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    UnorderedMap::UnorderedMap(::std::initializer_list<P> list) {
       mKeys.mType = list.begin()->GetKeyType();
       mValues.mType = list.begin()->GetValueType();
@@ -59,13 +59,13 @@ namespace Langulus::Anyness
 
    /// Copy constructor                                                       
    ///   @param other - map to shallow-copy                                   
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    UnorderedMap::UnorderedMap(const UnorderedMap& other)
       : UnorderedMap {Langulus::Copy(other)} {}
 
    /// Move constructor                                                       
    ///   @param other - map to move                                           
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    UnorderedMap::UnorderedMap(UnorderedMap&& other) noexcept
       : UnorderedMap {Langulus::Move(other)} {}
 
@@ -73,7 +73,7 @@ namespace Langulus::Anyness
    ///   @tparam S - semantic and type (deducible)                            
    ///   @param other - the semantic type                                     
    template<CT::Semantic S>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    UnorderedMap::UnorderedMap(S&& other) noexcept {
       using T = TypeOf<S>;
 
@@ -151,7 +151,7 @@ namespace Langulus::Anyness
    /// Copy assignment of a pair                                              
    ///   @param rhs - pair to copy-insert                                     
    ///   @return a reference to this map                                      
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    UnorderedMap& UnorderedMap::operator = (const CT::Pair auto& rhs) {
       return operator = (Langulus::Copy(rhs));
    }
@@ -159,7 +159,7 @@ namespace Langulus::Anyness
    /// Move assignment of a pair                                              
    ///   @param rhs - pair to move-insert                                     
    ///   @return a reference to this map                                      
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    UnorderedMap& UnorderedMap::operator = (CT::Pair auto&& rhs) noexcept {
       return operator = (Langulus::Move(rhs));
    }
@@ -167,7 +167,7 @@ namespace Langulus::Anyness
    /// Copy assignment                                                        
    ///   @param rhs - unordered map to copy-insert                            
    ///   @return a reference to this map                                      
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    UnorderedMap& UnorderedMap::operator = (const UnorderedMap& rhs) {
       return operator = (Langulus::Copy(rhs));
    }
@@ -175,7 +175,7 @@ namespace Langulus::Anyness
    /// Move assignment                                                        
    ///   @param rhs - unordered map to move-insert                            
    ///   @return a reference to this map                                      
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    UnorderedMap& UnorderedMap::operator = (UnorderedMap&& rhs) noexcept {
       return operator = (Langulus::Move(rhs));
    }
@@ -184,7 +184,7 @@ namespace Langulus::Anyness
    ///   @tparam S - semantic and type (deducible)                            
    ///   @param other - the semantic type                                     
    template<CT::Semantic S>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    UnorderedMap& UnorderedMap::operator = (S&& other) noexcept {
       using T = TypeOf<S>;
 
@@ -234,7 +234,7 @@ namespace Langulus::Anyness
    ///   @param key - the key to add                                          
    ///   @param value - the value to add                                      
    ///   @return 1 if pair was inserted, zero otherwise                       
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count UnorderedMap::Insert(
       const CT::NotSemantic auto& key, 
       const CT::NotSemantic auto& value
@@ -246,7 +246,7 @@ namespace Langulus::Anyness
    ///   @param key - the key to add                                          
    ///   @param value - the value to add                                      
    ///   @return 1 if pair was inserted, zero otherwise                       
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count UnorderedMap::Insert(
       const CT::NotSemantic auto& key, 
       CT::NotSemantic auto&& value
@@ -258,7 +258,7 @@ namespace Langulus::Anyness
    ///   @param key - the key to add                                          
    ///   @param value - the value to add                                      
    ///   @return 1 if pair was inserted, zero otherwise                       
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count UnorderedMap::Insert(
       CT::NotSemantic auto&& key, 
       const CT::NotSemantic auto& value
@@ -270,7 +270,7 @@ namespace Langulus::Anyness
    ///   @param key - the key to add                                          
    ///   @param value - the value to add                                      
    ///   @return 1 if pair was inserted, zero otherwise                       
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count UnorderedMap::Insert(
       CT::NotSemantic auto&& key, 
       CT::NotSemantic auto&& value
@@ -310,7 +310,7 @@ namespace Langulus::Anyness
    /// Copy-insert any pair inside the map                                    
    ///   @param item - the pair to insert                                     
    ///   @return a reference to this map for chaining                         
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    UnorderedMap& UnorderedMap::operator << (const CT::Pair auto& item) {
       return operator << (Copy(item));
    }
@@ -318,7 +318,7 @@ namespace Langulus::Anyness
    /// Move-insert any pair inside the map                                    
    ///   @param item - the pair to insert                                     
    ///   @return a reference to this map for chaining                         
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    UnorderedMap& UnorderedMap::operator << (CT::Pair auto&& item) {
       return operator << (Move(item));
    }
@@ -327,7 +327,7 @@ namespace Langulus::Anyness
    ///   @param item - the pair to insert                                     
    ///   @return a reference to this map for chaining                         
    template<CT::Semantic S>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    UnorderedMap& UnorderedMap::operator << (S&& item) {
       Insert(item.Forward());
       return *this;
@@ -338,7 +338,7 @@ namespace Langulus::Anyness
    ///   @param value - the value to insert                                   
    ///   @return 1 if pair was inserted or value was overwritten              
    template<CT::Semantic SK, CT::Semantic SV>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count UnorderedMap::InsertUnknown(SK&& key, SV&& val) {
       static_assert(CT::Block<TypeOf<SK>>,
          "SK's type must be a block type");
@@ -357,7 +357,7 @@ namespace Langulus::Anyness
    ///   @param pair - the pair to insert                                     
    ///   @return 1 if pair was inserted or value was overwritten              
    template<CT::Semantic SP>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count UnorderedMap::InsertUnknown(SP&& pair) {
       using T = TypeOf<SP>;
       static_assert(CT::Pair<T> && !CT::TypedPair<T>,
@@ -397,7 +397,7 @@ namespace Langulus::Anyness
    ///   @param key - the key to find                                         
    ///   @return the corresponding value block                                
    template<CT::NotSemantic K>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Block UnorderedMap::operator[] (const K& key) {
       return At(key);
    }

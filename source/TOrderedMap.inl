@@ -84,7 +84,7 @@ namespace Langulus::Anyness
    ///   @param value - the value to add                                      
    ///   @return 1 if pair was inserted, zero otherwise                       
    TEMPLATE()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count MAP()::Insert(const K& key, const V& value) {
       return Insert(Langulus::Copy(key), Langulus::Copy(value));
    }
@@ -94,7 +94,7 @@ namespace Langulus::Anyness
    ///   @param value - the value to add                                      
    ///   @return 1 if pair was inserted, zero otherwise                       
    TEMPLATE()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count MAP()::Insert(const K& key, V&& value) {
       return Insert(Langulus::Copy(key), Langulus::Move(value));
    }
@@ -104,7 +104,7 @@ namespace Langulus::Anyness
    ///   @param value - the value to add                                      
    ///   @return 1 if pair was inserted, zero otherwise                       
    TEMPLATE()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count MAP()::Insert(K&& key, const V& value) {
       return Insert(Langulus::Move(key), Langulus::Copy(value));
    }
@@ -114,7 +114,7 @@ namespace Langulus::Anyness
    ///   @param value - the value to add                                      
    ///   @return 1 if pair was inserted, zero otherwise                       
    TEMPLATE()
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count MAP()::Insert(K&& key, V&& value) {
       return Insert(Langulus::Move(key), Langulus::Move(value));
    }
@@ -125,7 +125,7 @@ namespace Langulus::Anyness
    ///   @return 1 if pair was inserted, zero otherwise                       
    TEMPLATE()
    template<CT::Semantic SK, CT::Semantic SV>
-   LANGULUS(ALWAYSINLINE)
+   LANGULUS(INLINED)
    Count MAP()::Insert(SK&& key, SV&& value) noexcept requires (CT::Exact<TypeOf<SK>, K> && CT::Exact<TypeOf<SV>, V>) {
       Allocate(GetCount() + 1);
       Base::template InsertInner<true>(
