@@ -235,7 +235,7 @@ namespace Langulus::Anyness::Inner
    ///                                                                        
    struct Allocation final {
    IF_LANGULUS_MANAGED_MEMORY(friend class Pool);
-   friend class Allocator;
+   friend struct Allocator;
    protected:
       // Allocated bytes for this chunk                                 
       Size mAllocatedBytes;

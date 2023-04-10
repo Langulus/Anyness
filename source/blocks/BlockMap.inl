@@ -1103,14 +1103,15 @@ namespace Langulus::Anyness
    /// Erases element at a specific index                                     
    ///   @attention assumes that offset points to a valid entry               
    ///   @param offset - the index to remove                                  
-   inline void BlockMap::RemoveIndex(const Offset& offset) noexcept {
+   inline void BlockMap::RemoveIndex(const Offset& offset) SAFETY_NOEXCEPT() {
       auto psl = GetInfo() + offset;
+      LANGULUS_ASSUME(DevAssumes, *psl, "Removing an invalid pair");
+
       const auto pslEnd = GetInfoEnd();
       auto key = GetKey(offset);
       auto val = GetValue(offset);
 
       // Destroy the key, info and value at the offset                  
-      LANGULUS_ASSUME(DevAssumes, *psl, "Removing an invalid pair");
       key.CallUnknownDestructors();
       val.CallUnknownDestructors();
 

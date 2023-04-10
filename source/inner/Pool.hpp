@@ -16,7 +16,7 @@ namespace Langulus::Anyness::Inner
    ///   Memory pool                                                          
    ///                                                                        
    class Pool final {
-   friend class Allocator;
+   friend struct Allocator;
    protected:
       // Bytes allocated by the backend                                 
       const Size mAllocatedByBackend {};

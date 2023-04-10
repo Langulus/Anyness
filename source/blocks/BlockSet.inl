@@ -984,8 +984,10 @@ namespace Langulus::Anyness
    /// Erases element at a specific index                                     
    ///   @attention assumes that offset points to a valid entry               
    ///   @param offset - the index to remove                                  
-   inline void BlockSet::RemoveIndex(const Offset& offset) noexcept {
+   inline void BlockSet::RemoveIndex(const Offset& offset) SAFETY_NOEXCEPT() {
       auto psl = GetInfo() + offset;
+      LANGULUS_ASSUME(DevAssumes, *psl, "Removing an invalid key");
+
       const auto pslEnd = GetInfoEnd();
       auto key = mKeys.GetElement(offset);
 

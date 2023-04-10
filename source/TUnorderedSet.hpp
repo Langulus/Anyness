@@ -147,7 +147,7 @@ namespace Langulus::Anyness
 
       NOD() static Size RequestKeyAndInfoSize(Count, Offset&) noexcept;
 
-      void RemoveIndex(const Offset&) noexcept;
+      void RemoveIndex(const Offset&) SAFETY_NOEXCEPT();
 
       NOD() const TAny<T>& GetValues() const noexcept;
       NOD() TAny<T>& GetValues() noexcept;

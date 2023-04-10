@@ -53,8 +53,7 @@ namespace Langulus::Anyness::Inner
    /// The lowest-level memory management interface                           
    /// Basically an overcomplicated wrapper for malloc/free                   
    ///                                                                        
-   class Allocator {
-   private:
+   struct Allocator {
       #if LANGULUS_FEATURE(MEMORY_STATISTICS)
          struct Statistics {
             // The real allocated bytes, provided by malloc in backend  
@@ -79,13 +78,14 @@ namespace Langulus::Anyness::Inner
             #endif
 
             bool operator == (const Statistics&) const noexcept = default;
-            bool operator != (const Statistics&) const noexcept = default;
          };
       
+      private:
          static Statistics mStatistics;
       #endif
 
       #if LANGULUS_FEATURE(MANAGED_MEMORY)
+      private:
          static Pool* mDefaultPool;
          static Pool* mLastFoundPool;
       #endif

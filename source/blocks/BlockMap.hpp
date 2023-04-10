@@ -246,7 +246,7 @@ namespace Langulus::Anyness
       NOD() Size RequestKeyAndInfoSize(Count, Offset&) const SAFETY_NOEXCEPT();
       NOD() Size RequestValuesSize(Count) const SAFETY_NOEXCEPT();
 
-      void RemoveIndex(const Offset&) noexcept;
+      void RemoveIndex(const Offset&) SAFETY_NOEXCEPT();
 
       template<CT::Data K>
       NOD() const TAny<K>& GetKeys() const noexcept;

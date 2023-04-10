@@ -736,8 +736,10 @@ namespace Langulus::Anyness
    ///   @attention assumes that index points to a valid entry                
    ///   @param index - the index to remove                                   
    TABLE_TEMPLATE()
-   void TABLE()::RemoveIndex(const Offset& index) noexcept {
+   void TABLE()::RemoveIndex(const Offset& index) SAFETY_NOEXCEPT() {
       auto psl = GetInfo() + index;
+      LANGULUS_ASSUME(DevAssumes, *psl, "Removing an invalid key");
+
       const auto pslEnd = GetInfoEnd();
       auto key = GetHandle(index);
 
