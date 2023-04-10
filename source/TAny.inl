@@ -1870,7 +1870,7 @@ namespace Langulus::Anyness
    /// Get iterator to end                                                    
    ///   @return an iterator to the end element                               
    TEMPLATE()
-   typename TAny<T>::Iterator TAny<T>::end() noexcept {
+   typename TAny<T>::IteratorEnd TAny<T>::end() noexcept {
       return {GetRawEnd()};
    }
 
@@ -1891,7 +1891,7 @@ namespace Langulus::Anyness
    /// Get iterator to end                                                    
    ///   @return a constant iterator to the end element                       
    TEMPLATE()
-   typename TAny<T>::ConstIterator TAny<T>::end() const noexcept {
+   typename TAny<T>::ConstIteratorEnd TAny<T>::end() const noexcept {
       return {GetRawEnd()};
    }
 
@@ -2014,110 +2014,7 @@ namespace Langulus::Anyness
       else LANGULUS_ERROR("Bad semantic concatenation");
    }
 
-
-   
-   ///                                                                        
-   ///   TAny iterator                                                        
-   ///                                                                        
-   #define ITERATOR() TAny<T>::template TIterator<MUTABLE>
-
-   /// Construct an iterator                                                  
-   ///   @param e - element                                                   
-   TEMPLATE()
-   template<bool MUTABLE>
-   LANGULUS(INLINED)
-   TAny<T>::TIterator<MUTABLE>::TIterator(const T* e) noexcept
-      : mElement {e} {}
-
-   /// Prefix increment operator                                              
-   ///   @attention assumes iterator points to a valid element                
-   ///   @return the modified iterator                                        
-   TEMPLATE()
-   template<bool MUTABLE>
-   LANGULUS(INLINED)
-   typename ITERATOR()& TAny<T>::TIterator<MUTABLE>::operator ++ () noexcept {
-      ++mElement;
-      return *this;
-   }
-
-   /// Suffix increment operator                                              
-   ///   @attention assumes iterator points to a valid element                
-   ///   @return the previous value of the iterator                           
-   TEMPLATE()
-   template<bool MUTABLE>
-   LANGULUS(INLINED)
-   typename ITERATOR() TAny<T>::TIterator<MUTABLE>::operator ++ (int) noexcept {
-      const auto backup = *this;
-      operator ++ ();
-      return backup;
-   }
-
-   /// Compare iterators                                                      
-   ///   @param rhs - the other iterator                                      
-   ///   @return true if entries match                                        
-   TEMPLATE()
-   template<bool MUTABLE>
-   LANGULUS(INLINED)
-   bool TAny<T>::TIterator<MUTABLE>::operator == (const TIterator& rhs) const noexcept {
-      return mElement == rhs.mElement;
-   }
-
-   /// Iterator access operator                                               
-   ///   @return a reference to the element at the current iterator position  
-   TEMPLATE()
-   template<bool MUTABLE>
-   LANGULUS(INLINED)
-   TAny<T>::TIterator<MUTABLE>::operator T& () const noexcept requires (MUTABLE) {
-      return const_cast<T&>(*mElement);
-   }
-
-   /// Iterator access operator                                               
-   ///   @return a reference to the element at the current iterator position  
-   TEMPLATE()
-   template<bool MUTABLE>
-   LANGULUS(INLINED)
-   TAny<T>::TIterator<MUTABLE>::operator const T& () const noexcept requires (!MUTABLE) {
-      return *mElement;
-   }
-   
-   /// Iterator access operator                                               
-   ///   @return a reference to the element at the current iterator position  
-   TEMPLATE()
-   template<bool MUTABLE>
-   LANGULUS(INLINED)
-   T& TAny<T>::TIterator<MUTABLE>::operator * () const noexcept requires (MUTABLE) {
-      return const_cast<T&>(*mElement);
-   }
-
-   /// Iterator access operator                                               
-   ///   @return a reference to the element at the current iterator position  
-   TEMPLATE()
-   template<bool MUTABLE>
-   LANGULUS(INLINED)
-   const T& TAny<T>::TIterator<MUTABLE>::operator * () const noexcept requires (!MUTABLE) {
-      return *mElement;
-   }
-
-   /// Iterator access operator                                               
-   ///   @return a reference to the element at the current iterator position  
-   TEMPLATE()
-   template<bool MUTABLE>
-   LANGULUS(INLINED)
-   T& TAny<T>::TIterator<MUTABLE>::operator -> () const noexcept requires (MUTABLE) {
-      return const_cast<T&>(*mElement);
-   }
-
-   /// Iterator access operator                                               
-   ///   @return a reference to the element at the current iterator position  
-   TEMPLATE()
-   template<bool MUTABLE>
-   LANGULUS(INLINED)
-   const T& TAny<T>::TIterator<MUTABLE>::operator -> () const noexcept requires (!MUTABLE) {
-      return *mElement;
-   }
-
 } // namespace Langulus::Anyness
 
 #undef TEMPLATE
 #undef KNOWNPOINTER
-#undef ITERATOR

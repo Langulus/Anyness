@@ -9,6 +9,7 @@
 #include "../inner/DataState.hpp"
 #include "../inner/Index.hpp"
 #include "../inner/Allocator.hpp"
+#include "../inner/Iterator.hpp"
 #include <utility>
 
 namespace Langulus::Flow

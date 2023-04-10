@@ -42,9 +42,13 @@ namespace Langulus::Anyness
 
       template<bool MUTABLE>
       struct TIterator;
-
       using Iterator = TIterator<true>;
       using ConstIterator = TIterator<false>;
+
+      template<bool MUTABLE>
+      struct TIteratorEnd;
+      using IteratorEnd = TIteratorEnd<true>;
+      using ConstIteratorEnd = TIteratorEnd<false>;
 
    public:
       constexpr TAny();
@@ -282,10 +286,10 @@ namespace Langulus::Anyness
       ///   Iteration                                                         
       ///                                                                     
       NOD() Iterator begin() noexcept;
-      NOD() Iterator end() noexcept;
+      NOD() IteratorEnd end() noexcept;
       NOD() Iterator last() noexcept;
       NOD() ConstIterator begin() const noexcept;
-      NOD() ConstIterator end() const noexcept;
+      NOD() ConstIteratorEnd end() const noexcept;
       NOD() ConstIterator last() const noexcept;
 
    protected:
@@ -312,19 +316,23 @@ namespace Langulus::Anyness
    ///                                                                        
    template<CT::Data T>
    template<bool MUTABLE>
-   struct TAny<T>::TIterator {
+   struct TAny<T>::TIterator : A::Iterator {
       LANGULUS(UNINSERTABLE) true;
       LANGULUS(TYPED) T;
 
    protected:
       friend class TAny<T>;
+      template<bool>
+      friend struct TAny<T>::TIteratorEnd;
 
       const T* mElement;
 
-      TIterator(const T*) noexcept;
+      constexpr TIterator(const T*) noexcept;
 
    public:
-      NOD() bool operator == (const TIterator&) const noexcept;
+      template<bool RHS_MUTABLE>
+      NOD() constexpr bool operator == (const TIteratorEnd<RHS_MUTABLE>&) const noexcept;
+      NOD() constexpr bool operator == (const TIterator&) const noexcept;
 
       operator T& () const noexcept requires (MUTABLE);
       operator const T& () const noexcept requires (!MUTABLE);
@@ -336,12 +344,44 @@ namespace Langulus::Anyness
       NOD() const T& operator -> () const noexcept requires (!MUTABLE);
 
       // Prefix operator                                                
-      TIterator& operator ++ () noexcept;
+      constexpr TIterator& operator ++ () noexcept;
 
       // Suffix operator                                                
-      NOD() TIterator operator ++ (int) noexcept;
+      NOD() constexpr TIterator operator ++ (int) noexcept;
+   };
+   
+
+   ///                                                                        
+   ///   TAny iterator end marker                                             
+   ///                                                                        
+   template<CT::Data T>
+   template<bool MUTABLE>
+   struct TAny<T>::TIteratorEnd : A::Iterator {
+      LANGULUS(UNINSERTABLE) true;
+      LANGULUS(TYPED) T;
+
+   protected:
+      friend class TAny<T>;
+      template<bool>
+      friend struct TAny<T>::TIterator;
+
+      const T* mEndMarker;
+
+      constexpr TIteratorEnd(const T*) noexcept;
+
+   public:
+      template<bool RHS_MUTABLE>
+      NOD() constexpr bool operator == (const TIterator<RHS_MUTABLE>&) const noexcept;
+      NOD() constexpr bool operator == (const TIteratorEnd&) const noexcept;
+
+      // Prefix operator                                                
+      constexpr TIteratorEnd& operator ++ () const noexcept;
+
+      // Suffix operator                                                
+      NOD() constexpr TIteratorEnd operator ++ (int) const noexcept;
    };
 
 } // namespace Langulus::Anyness
 
 #include "TAny.inl"
+#include "TAny-Iteration.inl"
