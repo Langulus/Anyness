@@ -19,7 +19,8 @@ namespace Langulus::Anyness
    class TUnorderedMap : public UnorderedMap {
    public:
       friend class BlockMap;
-      static_assert(CT::Comparable<K>, "Can't compare keys for map");
+      static_assert(CT::Inner::Comparable<K>,
+         "Can't compare keys for map");
 
       using Key = K;
       using Value = V;

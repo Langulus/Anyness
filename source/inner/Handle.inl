@@ -250,8 +250,8 @@ namespace Langulus::Anyness
    void HAND()::New(S&& rhs) {
       using ST = TypeOf<S>;
 
-      if constexpr (S::Shallow) {
-         // Do a copy/disown/abandon/move                               
+      if constexpr (S::Shallow && CT::Sparse<T>) {
+         // Do a copy/disown/abandon/move sparse LHS                    
          if constexpr (CT::Handle<ST>) {
             // RHS is a handle                                          
             using HT = TypeOf<ST>;
@@ -323,7 +323,7 @@ namespace Langulus::Anyness
          }
       }
       else if constexpr (CT::Dense<T>) {
-         // Do a clone inside a dense handle                            
+         // Do a copy/disown/abandon/move/clone inside a dense handle   
          if constexpr (CT::Handle<ST>) {
             static_assert(CT::Exact<T, TypeOf<ST>>, "Type mismatch");
             SemanticNew<T>(&Get(), S::Nest(rhs.mValue.Get()));

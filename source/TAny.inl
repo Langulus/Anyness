@@ -1302,11 +1302,13 @@ namespace Langulus::Anyness
    TEMPLATE()
    template<bool REVERSE, CT::Data ALT_T>
    Index TAny<T>::Find(const ALT_T& item, const Offset& cookie) const {
-      if constexpr (CT::Comparable<T, ALT_T>) {
-         const T* start 
-            = REVERSE ? GetRawEnd() - 1 - cookie : GetRaw() + cookie;
-         const T* const end
-            = REVERSE ? start - mCount : start + mCount;
+      if constexpr (CT::Inner::Comparable<T, ALT_T>) {
+         const T* start = REVERSE
+            ? GetRawEnd() - 1 - cookie
+            : GetRaw() + cookie;
+         const T* const end = REVERSE
+            ? start - mCount
+            : start + mCount;
 
          while (start != end) {
             if (*start == item)
@@ -1748,7 +1750,7 @@ namespace Langulus::Anyness
          // Batch compare POD/pointers                                  
          return 0 == ::std::memcmp(GetRaw(), other.GetRaw(), GetByteSize());
       }
-      else if constexpr (CT::Comparable<T, T>) {
+      else if constexpr (CT::Inner::Comparable<T>) {
          // Use comparison operator between all elements                
          auto t1 = GetRaw();
          auto t2 = other.GetRaw();

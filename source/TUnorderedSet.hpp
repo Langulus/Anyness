@@ -19,7 +19,8 @@ namespace Langulus::Anyness
    class TUnorderedSet : public UnorderedSet {
    public:
       friend class BlockSet;
-      static_assert(CT::Comparable<T>, "Can't compare elements for set");
+      static_assert(CT::Inner::Comparable<T>,
+         "Can't compare elements for set");
 
       using Value = T;
       using Self = TUnorderedSet<T>;

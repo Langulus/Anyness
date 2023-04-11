@@ -419,8 +419,9 @@ namespace Langulus::Anyness
       }
       else {
          // Non-deep element compare                                    
-         static_assert(CT::Sparse<T> || CT::Comparable<T, T>,
-            "T must either be pointer, or has a reflected == operator");
+         static_assert(CT::Inner::Comparable<T>,
+            "T is not equality-comparable");
+
          if (!mType->template IsExact<T>())
             return false;
          return *GetRawAs<T>() == rhs;

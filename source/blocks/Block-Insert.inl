@@ -1044,12 +1044,14 @@ namespace Langulus::Anyness
    void Block::InsertInner(S&& item, Offset at) {
       using T = TypeOf<S>;
 
-      static_assert(CT::Sparse<T> || CT::Insertable<T>,
-         "Dense type is not insertable");
+      //static_assert(CT::Sparse<T> || CT::Insertable<T>,
+      //   "Dense type is not insertable");
       LANGULUS_ASSUME(DevAssumes, IsExact<T>(),
          "Inserting incompatible type");
 
-      if constexpr (CT::Sparse<T>) {
+      GetHandle<T>(at).New(item.Forward());
+
+      /*if constexpr (CT::Sparse<T>) {
          if constexpr (S::Shallow) {
             // Pointer copy/move/abandon/disown                         
             GetRawSparse()[at] = const_cast<Byte*>(
@@ -1085,7 +1087,7 @@ namespace Langulus::Anyness
          using DT = Decvq<Deref<T>>;
          const auto data = GetRawAs<DT>() + at;
          SemanticNew<DT>(data, item.Forward());
-      }
+      }*/
 
       ++mCount;
    }
