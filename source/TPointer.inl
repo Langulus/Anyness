@@ -60,21 +60,35 @@ namespace Langulus::Anyness
       using ST = TypeOf<S>;
 
       if constexpr (CT::Exact<ST, ::std::nullptr_t>) {
+         // Assign a nullptr                                            
          mValue = nullptr;
          mEntry = nullptr;
          return;
       }
-      else if constexpr (CT::Exact<ST, TPointer>)
+      else if constexpr (CT::Exact<ST, TPointer>) {
+         // Move/Abandon/Disown/Copy/Clone another TPointer             
          GetHandle().New(S::Nest(other.mValue.GetHandle()));
-      else if constexpr (CT::Exact<ST, T*>)
+         
+         if constexpr (S::Move) {
+            // Remote value is removed, if moved and double-referenced  
+            if constexpr (DR && CT::Referencable<T>)
+               other.mValue.mValue = {};
+         }
+         else if constexpr (S::Shallow && S::Keep) {
+            // Reference value, if double-referenced and copied         
+            if constexpr (DR && CT::Referencable<T>)
+               mValue->Keep();
+         }
+      }
+      else if constexpr (CT::Exact<ST, T*>) {
+         // Move/Abandon/Disown/Copy/Clone raw pointer                  
          GetHandle().New(other.Forward());
-      else
-         LANGULUS_ERROR("Bad semantic construction");
 
-      if constexpr (S::Shallow && !S::Move && S::Keep) {
-         if constexpr (DR && CT::Referencable<T>)
+         // Always reference value, if double-referenced and not cloned 
+         if constexpr (S::Shallow && DR && CT::Referencable<T>)
             mValue->Keep();
       }
+      else LANGULUS_ERROR("Bad semantic construction");
    }
 
    /// Shared pointer destruction                                             
@@ -99,7 +113,7 @@ namespace Langulus::Anyness
       pointer.mValue = reinterpret_cast<decltype(pointer.mValue)>(
          pointer.mEntry->GetBlockStart());
       new (pointer.mValue) Decay<T> {Forward<ARGS>(arguments)...};
-      *this = Abandon(pointer);
+      *this = Move(pointer);
    }
 
    /// Reset the pointer                                                      
@@ -107,10 +121,16 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    void SHARED_POINTER()::ResetInner() {
       // Do referencing in the element itself, if available             
-      if constexpr (DR && CT::Referencable<T>)
-         mValue->Free();
-
-      GetHandle().template Destroy<false>();
+      if constexpr (DR && CT::Referencable<T>) {
+         if (mValue->GetReferences() == 1) {
+            GetHandle().template Destroy<false>();
+         }
+         else {
+            mValue->Free();
+            GetHandle().template Destroy<false>();
+         }
+      }
+      else GetHandle().template Destroy<false>();
    }
 
    /// Reset the pointer                                                      
