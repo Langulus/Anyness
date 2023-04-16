@@ -187,6 +187,13 @@ namespace Langulus::Anyness
          return *this;
       }
       else {
+         if constexpr (S::Shallow && !S::Move && S::Keep) {
+            if constexpr (DR && CT::Referencable<T>) {
+               if (mValue)
+                  mValue->Free();
+            }
+         }
+
          if constexpr (CT::Exact<TypeOf<S>, TPointer>)
             GetHandle().Assign(S::Nest(rhs.mValue.GetHandle()));
          else

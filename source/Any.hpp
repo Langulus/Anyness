@@ -36,6 +36,12 @@ namespace Langulus::Anyness
       friend class TAny;
       friend class Block;
 
+      template<bool MUTABLE>
+      struct TIterator;
+
+      using Iterator = TIterator<true>;
+      using ConstIterator = TIterator<false>;
+
       ///                                                                     
       ///   Construction                                                      
       ///                                                                     
@@ -144,6 +150,12 @@ namespace Langulus::Anyness
       Any& operator >>= (S&&);
 
       ///                                                                     
+      ///   Removal                                                           
+      ///                                                                     
+      using Block::RemoveIndex;
+      Iterator RemoveIndex(const Iterator&, Count = 1);
+
+      ///                                                                     
       ///   Concatenation                                                     
       ///                                                                     
       template<CT::Deep T>
@@ -167,12 +179,6 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Iteration                                                         
       ///                                                                     
-      template<bool MUTABLE>
-      struct TIterator;
-
-      using Iterator = TIterator<true>;
-      using ConstIterator = TIterator<false>;
-
       NOD() Iterator begin() noexcept;
       NOD() Iterator end() noexcept;
       NOD() Iterator last() noexcept;

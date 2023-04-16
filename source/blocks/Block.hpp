@@ -689,7 +689,7 @@ namespace Langulus::Anyness
       template<bool REVERSE = false, CT::Data T>
       Count Remove(const T&);
       template<CT::Index INDEX>
-      Count RemoveIndex(INDEX, Count = 1);
+      Count RemoveIndex(const INDEX&, Count = 1);
       template<CT::Index INDEX>
       Count RemoveIndexDeep(INDEX);
    

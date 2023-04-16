@@ -229,8 +229,9 @@ namespace Langulus::Anyness
       ///                                                                     
       template<bool REVERSE = false, CT::Data ALT_T>
       Count Remove(const ALT_T&);
-      Count RemoveIndex(const Offset&, const Count&);
-      Iterator RemoveIndex(const Iterator&);
+      template<CT::Index INDEX>
+      Count RemoveIndex(const INDEX&, Count = 1);
+      Iterator RemoveIndex(const Iterator&, Count = 1);
 
       NOD() TAny& Trim(const Count&);
       template<CT::Block WRAPPER = TAny>

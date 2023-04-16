@@ -1341,67 +1341,93 @@ namespace Langulus::Anyness
 
    /// Remove sequential raw indices in a given range                         
    ///   @attention assumes starter + count <= mCount                         
-   ///   @param starter - simple index to start removing from                 
+   ///   @param index - index to start removing from                          
    ///   @param count - number of elements to remove                          
    ///   @return the number of removed elements                               
    TEMPLATE()
-   Count TAny<T>::RemoveIndex(const Offset& starter, const Count& count) {
-      LANGULUS_ASSUME(UserAssumes, starter + count <= mCount,
-         "Index out of range");
-
-      const auto ender = starter + count;
-      if constexpr (CT::Sparse<T> || CT::POD<T>) {
-         if (ender == mCount) {
-            // If data is POD and elements are on the back, we can      
-            // get around constantness and staticness, by simply        
-            // truncating the count without any reprecussions           
-            // We can completely skip destroying POD things             
-            mCount = starter;
-            return count;
+   template<CT::Index INDEX>
+   Count TAny<T>::RemoveIndex(const INDEX& index, Count count) {
+      if constexpr (CT::Same<INDEX, Index>) {
+         // By special indices                                          
+         if (index == IndexAll) {
+            const auto oldCount = mCount;
+            Free();
+            ResetMemory();
+            ResetState();
+            return oldCount;
          }
 
-         LANGULUS_ASSERT(GetUses() == 1, Move,
-            "Removing elements from memory block, used from multiple places, "
-            "requires memory to move");
-         LANGULUS_ASSERT(IsMutable(), Access,
-            "Attempting to remove from constant container");
-         LANGULUS_ASSERT(!IsStatic(), Access,
-            "Attempting to remove from static container");
+         const auto idx = ConstrainMore<T>(index);
+         if (idx.IsSpecial())
+            return 0;
 
-         MoveMemory(GetRaw() + starter, GetRaw() + ender, mCount - ender);
-         mCount -= count;
-         return count;
+         return RemoveIndex(idx.GetOffset(), count);
       }
       else {
-         if (IsStatic() && ender == mCount) {
-            // If data is static and elements are on the back, we can   
-            // get around constantness and staticness, by simply        
-            // truncating the count without any reprecussions           
-            // We can't destroy static element anyways                  
-            mCount = starter;
-            return count;
+         Offset idx;
+         if constexpr (CT::Signed<INDEX>) {
+            if (index < 0)
+               idx = mCount - static_cast<Offset>(-index);
+            else
+               idx = static_cast<Offset>(index);
          }
+         else idx = index;
 
-         LANGULUS_ASSERT(GetUses() == 1, Move,
-            "Removing elements from memory block, used from multiple places, "
-            "requires memory to move");
-         LANGULUS_ASSERT(IsMutable(), Access,
-            "Attempting to remove from constant container");
-         LANGULUS_ASSERT(!IsStatic(), Access,
-            "Attempting to remove from static container");
+         // By simple index (signed or not)                             
+         const auto ender = idx + count;
+         LANGULUS_ASSUME(DevAssumes, ender <= mCount, "Out of range");
 
-         // Call the destructors on the correct region                  
-         CropInner(starter, count)
-            .template CallKnownDestructors<T>();
+         if constexpr (CT::Sparse<T> || CT::POD<T>) {
+            if (ender == mCount) {
+               // If data is POD and elements are on the back, we can   
+               // get around constantness and staticness, by simply     
+               // truncating the count without any reprecussions        
+               // We can completely skip destroying POD things          
+               mCount = idx;
+               return count;
+            }
 
-         if (ender < mCount) {
-            // Fill gap	if any by invoking move constructions           
-            // Moving to the left, so no overlap possible if forward    
-            const auto tail = mCount - ender;
-            CropInner(starter, 0)
-               .template CallKnownSemanticConstructors<T>(
-                  tail, Abandon(CropInner(ender, tail))
-               );
+            LANGULUS_ASSERT(GetUses() == 1, Move,
+               "Removing elements from memory block, used from multiple places, "
+               "requires memory to move");
+            LANGULUS_ASSERT(IsMutable(), Access,
+               "Attempting to remove from constant container");
+            LANGULUS_ASSERT(!IsStatic(), Access,
+               "Attempting to remove from static container");
+
+            MoveMemory(GetRaw() + idx, GetRaw() + ender, mCount - ender);
+         }
+         else {
+            if (IsStatic() && ender == mCount) {
+               // If data is static and elements are on the back, we    
+               // can get around constantness and staticness, by simply 
+               // truncating the count without any reprecussions        
+               // We can't destroy static element anyways               
+               mCount = idx;
+               return count;
+            }
+
+            LANGULUS_ASSERT(GetUses() == 1, Move,
+               "Removing elements from memory block, used from multiple places, "
+               "requires memory to move");
+            LANGULUS_ASSERT(IsMutable(), Access,
+               "Attempting to remove from constant container");
+            LANGULUS_ASSERT(!IsStatic(), Access,
+               "Attempting to remove from static container");
+
+            // Call the destructors on the correct region               
+            CropInner(idx, count)
+               .template CallKnownDestructors<T>();
+
+            if (ender < mCount) {
+               // Fill gap	if any by invoking move constructions        
+               // Moving to the left, so no overlap possible if forward 
+               const auto tail = mCount - ender;
+               CropInner(idx, 0)
+                  .template CallKnownSemanticConstructors<T>(
+                     tail, Abandon(CropInner(ender, tail))
+                  );
+            }
          }
 
          mCount -= count;
@@ -1411,16 +1437,17 @@ namespace Langulus::Anyness
    
    /// Safely erases element at a specific iterator                           
    ///   @attention assumes iterator is produced by this TAny instance        
-   ///   @param index - the index to remove                                   
+   ///   @param index - the index to start removing at                        
+   ///   @param count - number of elements to remove                          
    ///   @return the iterator of the previous element, unless index is first  
    TEMPLATE()
-   typename TAny<T>::Iterator TAny<T>::RemoveIndex(const Iterator& index) {
+   typename TAny<T>::Iterator TAny<T>::RemoveIndex(const Iterator& index, Count count) {
       const auto rawend = GetRawEnd();
       if (index.mElement >= rawend)
          return {rawend};
 
       const auto rawstart = GetRaw();
-      RemoveIndex(static_cast<Offset>(index.mElement - rawstart), 1); //TODO what if map shrinks, offset might become invalid? Doesn't shrink for now
+      RemoveIndex(static_cast<Offset>(index.mElement - rawstart), count); //TODO what if map shrinks, offset might become invalid? Doesn't shrink for now
       
       if (index.mElement == rawstart)
          return {rawstart};

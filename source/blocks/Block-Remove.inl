@@ -31,7 +31,7 @@ namespace Langulus::Anyness
    ///   @param count - number of items to remove                             
    ///   @return the number of removed elements                               
    template<CT::Index INDEX>
-   Count Block::RemoveIndex(const INDEX index, const Count count) {
+   Count Block::RemoveIndex(const INDEX& index, const Count count) {
       if constexpr (CT::Same<INDEX, Index>) {
          // By special indices                                          
          if (index == IndexAll) {

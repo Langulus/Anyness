@@ -38,7 +38,7 @@ namespace Langulus::Anyness
       void ResetInner();
 
    public:
-      LANGULUS(TYPED) TypeOf<Base>;
+      //LANGULUS(TYPED) TypeOf<Base>;
 
       constexpr TPointer() noexcept = default;
 
@@ -61,7 +61,7 @@ namespace Langulus::Anyness
       NOD() auto GetHandle() const;
       NOD() constexpr bool HasAuthority() const noexcept;
       NOD() constexpr Count GetUses() const noexcept;
-      using Base::Get;
+      //using Base::Get;
 
       template<class... ARGS>
       void New(ARGS&&...);

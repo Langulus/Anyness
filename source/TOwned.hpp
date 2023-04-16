@@ -8,6 +8,11 @@
 #pragma once
 #include "Text.hpp"
 
+namespace Langulus::A
+{
+   struct Owned {};
+}
+
 namespace Langulus::Anyness
 {
 
@@ -19,7 +24,7 @@ namespace Langulus::Anyness
    /// a move. Wrapping them inside this ensures they are.                    
    ///                                                                        
    template<CT::Data T>
-   class TOwned {
+   class TOwned : public A::Owned {
    protected:
       T mValue {};
 
@@ -58,14 +63,14 @@ namespace Langulus::Anyness
 
       NOD() Hash GetHash() const;
 
-      NOD() decltype(auto) Get() const noexcept;
-      NOD() decltype(auto) Get() noexcept;
+      NOD() const T& Get() const noexcept;
+      NOD() T& Get() noexcept;
 
       template<class>
       NOD() auto As() const noexcept requires CT::Sparse<T>;
 
-      NOD() auto operator -> () const requires CT::Sparse<T>;
-      NOD() auto operator -> () requires CT::Sparse<T>;
+      NOD() T operator -> () const requires CT::Sparse<T>;
+      NOD() T operator -> () requires CT::Sparse<T>;
       NOD() decltype(auto) operator * () const requires CT::Sparse<T>;
       NOD() decltype(auto) operator * () requires CT::Sparse<T>;
 
@@ -84,5 +89,13 @@ namespace Langulus::Anyness
    using Own = TOwned<T>;
 
 } // namespace Langulus::Anyness
+
+namespace Langulus::CT
+{
+
+   template<class... T>
+   concept Owned = (DerivedFrom<T, A::Owned> && ...);
+
+} // namespace Langulus::CT
 
 #include "TOwned.inl"
