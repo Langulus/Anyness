@@ -38,8 +38,6 @@ namespace Langulus::Anyness
       void ResetInner();
 
    public:
-      //LANGULUS(TYPED) TypeOf<Base>;
-
       constexpr TPointer() noexcept = default;
 
       TPointer(const TPointer&);
@@ -61,16 +59,11 @@ namespace Langulus::Anyness
       NOD() auto GetHandle() const;
       NOD() constexpr bool HasAuthority() const noexcept;
       NOD() constexpr Count GetUses() const noexcept;
-      //using Base::Get;
 
       template<class... ARGS>
       void New(ARGS&&...);
 
       void Reset();
-
-      using Base::operator bool;
-      NOD() explicit operator const T* () const noexcept;
-      NOD() explicit operator T* () noexcept;
 
       TPointer& operator = (const TPointer&);
       TPointer& operator = (TPointer&&);
@@ -82,6 +75,7 @@ namespace Langulus::Anyness
       template<CT::Semantic S>
       TPointer& operator = (S&&);
 
+      using Base::operator bool;
       NOD() operator TPointer<const T, DR>() const noexcept requires CT::Mutable<T>;
 
       using Base::operator ==;
