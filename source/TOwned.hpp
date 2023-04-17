@@ -10,7 +10,9 @@
 
 namespace Langulus::A
 {
-   struct Owned {};
+   struct Owned {
+      LANGULUS(ABSTRACT) true;
+   };
 }
 
 namespace Langulus::Anyness
