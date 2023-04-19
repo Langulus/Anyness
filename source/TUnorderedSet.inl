@@ -357,7 +357,7 @@ namespace Langulus::Anyness
    ///   @attention does nothing if reserving less than current reserve       
    ///   @param count - number of pairs to allocate                           
    TABLE_TEMPLATE()
-   void TABLE()::Allocate(const Count& count) {
+   void TABLE()::Reserve(const Count& count) {
       AllocateInner(Roof2(count < MinimalAllocation ? MinimalAllocation : count));
    }
 
@@ -598,9 +598,8 @@ namespace Langulus::Anyness
       return HashData(key).mHash & (GetReserved() - 1);
    }
 
-   /// Insert a single pair inside table via copy                             
-   ///   @param key - the key to add                                          
-   ///   @param value - the value to add                                      
+   /// Merge an element by copy                                               
+   ///   @param key - the key to merge                                        
    ///   @return 1 if pair was inserted, zero otherwise                       
    TABLE_TEMPLATE()
    LANGULUS(INLINED)
@@ -608,9 +607,8 @@ namespace Langulus::Anyness
       return Insert(Copy(key));
    }
 
-   /// Insert a single pair inside table via key move and value copy          
-   ///   @param key - the key to add                                          
-   ///   @param value - the value to add                                      
+   /// Merge an element by moving                                             
+   ///   @param key - the key to merge                                        
    ///   @return 1 if pair was inserted, zero otherwise                       
    TABLE_TEMPLATE()
    LANGULUS(INLINED)
@@ -618,15 +616,14 @@ namespace Langulus::Anyness
       return Insert(Move(key));
    }
 
-   /// Insert a single pair inside table via move                             
+   /// Merge an element via semantic                                          
    ///   @param key - the key to add                                          
-   ///   @param value - the value to add                                      
    ///   @return 1 if pair was inserted, zero otherwise                       
    TABLE_TEMPLATE()
    template<CT::Semantic S>
    LANGULUS(INLINED)
    Count TABLE()::Insert(S&& key) requires (CT::Exact<TypeOf<S>, T>) {
-      Allocate(GetCount() + 1);
+      Reserve(GetCount() + 1);
       InsertInner<true>(GetBucket(key.mValue), key.Forward());
       return 1;
    }

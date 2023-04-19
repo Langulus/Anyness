@@ -285,8 +285,8 @@ namespace Langulus::Anyness
       NOD() SAFETY_CONSTEXPR()
       decltype(auto) Get(const Offset& = 0, const Offset& = 0) SAFETY_NOEXCEPT();
       template<CT::Data>
-      NOD() SAFETY_CONSTEXPR() decltype(auto)
-      Get(const Offset& = 0, const Offset& = 0) const SAFETY_NOEXCEPT();
+      NOD() SAFETY_CONSTEXPR()
+      decltype(auto) Get(const Offset& = 0, const Offset& = 0) const SAFETY_NOEXCEPT();
    
       template<CT::Data, CT::Index IDX = Offset>
       NOD() decltype(auto) As(const IDX& = {});
@@ -294,9 +294,11 @@ namespace Langulus::Anyness
       NOD() decltype(auto) As(const IDX& = {}) const;
    
       // Intentionally undefined, because it requires Langulus::Flow    
+      // and relies on Verbs::Interpret                                 
       template<CT::Data T, bool FATAL_FAILURE = true>
       NOD() T AsCast(Index) const;
       // Intentionally undefined, because it requires Langulus::Flow    
+      // and relies on Verbs::Interpret                                 
       template<CT::Data T, bool FATAL_FAILURE = true>
       NOD() T AsCast() const;
    

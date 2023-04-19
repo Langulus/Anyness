@@ -36,6 +36,9 @@ namespace Langulus::Anyness
       static constexpr bool Ownership = true;
       static constexpr bool Sequential = false;
 
+      ///                                                                     
+      ///   Construction & Assignment                                         
+      ///                                                                     
       constexpr BlockSet() = default;
 
       BlockSet(const BlockSet&);
@@ -48,24 +51,23 @@ namespace Langulus::Anyness
 
       ~BlockSet();
 
+      BlockSet& operator = (const BlockSet&);
+      BlockSet& operator = (BlockSet&&) noexcept;
+
+      BlockSet& operator = (const CT::Data auto&);
+      BlockSet& operator = (CT::Data auto&&) noexcept;
+
+   protected:
       template<class T, CT::Semantic S>
       void BlockTransfer(S&&);
       template<class T>
       void BlockClone(const BlockSet&);
 
-      BlockSet& operator = (const BlockSet&);
-      BlockSet& operator = (BlockSet&&) noexcept;
-
-      template<CT::Data T>
-      BlockSet& operator = (const T&);
-      template<CT::Data T>
-      BlockSet& operator = (T&&) noexcept;
-
    public:
+      ///                                                                     
+      ///   Capsulation                                                       
+      ///                                                                     
       NOD() DMeta GetType() const noexcept;
-
-      template<class ALT_T>
-      NOD() constexpr bool Is() const noexcept;
       NOD() constexpr bool IsUntyped() const noexcept;
       NOD() constexpr bool IsTypeConstrained() const noexcept;
       NOD() constexpr bool IsAbstract() const noexcept;
@@ -82,73 +84,43 @@ namespace Langulus::Anyness
       NOD() constexpr bool HasAuthority() const noexcept;
       NOD() constexpr Count GetUses() const noexcept;
 
-      NOD() Hash GetHash() const;
+   protected:
+      template<CT::Data T>
+      NOD() const TAny<T>& GetValues() const noexcept;
+      template<CT::Data T>
+      NOD() TAny<T>& GetValues() noexcept;
+
+      NOD() const InfoType* GetInfo() const noexcept;
+      NOD() InfoType* GetInfo() noexcept;
+      NOD() const InfoType* GetInfoEnd() const noexcept;
+
+   public:
+      ///                                                                     
+      ///   Indexing                                                          
+      ///                                                                     
+      NOD() Block Get(const CT::Index auto&);
+      NOD() Block Get(const CT::Index auto&) const;
+
+      NOD() Block operator[] (const CT::Index auto&);
+      NOD() Block operator[] (const CT::Index auto&) const;
+
+   protected:
+      NOD() Block GetValue(const Offset&) SAFETY_NOEXCEPT();
+      NOD() Block GetValue(const Offset&) const SAFETY_NOEXCEPT();
+
+      NOD() Offset GetBucket(const CT::Data auto&) const noexcept;
 
       template<CT::Data T>
-      void Mutate();
-      void Mutate(DMeta);
-      void Allocate(const Count&);
+      NOD() constexpr T& GetRaw(Offset) SAFETY_NOEXCEPT();
+      template<CT::Data T>
+      NOD() constexpr const T& GetRaw(Offset) const SAFETY_NOEXCEPT();
 
-      NOD() BlockSet Clone() const;
+      template<CT::Data T>
+      NOD() constexpr Handle<T> GetHandle(Offset) const SAFETY_NOEXCEPT();
 
-      bool operator == (const BlockSet&) const;
-
+   public:
       ///                                                                     
-      ///   INSERTION                                                         
-      ///                                                                     
-      template<CT::NotSemantic T>
-      Count Insert(const T&);
-      template<CT::NotSemantic T>
-      Count Insert(T&&);
-      template<CT::Semantic S>
-      Count Insert(S&&);
-
-      Count InsertUnknown(const Block&);
-      Count InsertUnknown(Block&&);
-      template<CT::Semantic S>
-      Count InsertUnknown(S&&) requires (CT::Block<TypeOf<S>>);
-
-      template<CT::NotSemantic T>
-      BlockSet& operator << (const T&);
-      template<CT::NotSemantic T>
-      BlockSet& operator << (T&&);
-      template<CT::Semantic S>
-      BlockSet& operator << (S&&);
-
-      BlockSet& operator << (const Block&);
-      BlockSet& operator << (Block&&);
-      template<CT::Semantic S>
-      BlockSet& operator << (S&&) requires (CT::Block<TypeOf<S>>);
-
-      Count Merge(const BlockSet&);
-      Count Merge(BlockSet&&);
-      template<CT::Semantic S>
-      Count Merge(S&&);
-
-      ///                                                                     
-      ///   REMOVAL                                                           
-      ///                                                                     
-      template<CT::NotSemantic T>
-      Count Remove(const T&);
-      Count RemoveIndex(const Index&);
-
-      void Clear();
-      void Reset();
-      void Compact();
-
-      ///                                                                     
-      ///   SEARCH                                                            
-      ///                                                                     
-      template<CT::NotSemantic T>
-      NOD() bool Contains(const T&) const;
-      template<CT::NotSemantic T>
-      NOD() Index Find(const T&) const;
-
-      NOD() Block Get(const Index&) const;
-      NOD() Block Get(const Index&);
-
-      ///                                                                     
-      ///   ITERATION                                                         
+      ///   Iteration                                                         
       ///                                                                     
       template<bool MUTABLE>
       struct TIterator;
@@ -190,9 +162,43 @@ namespace Langulus::Anyness
       template<bool REVERSE, bool MUTABLE, class F>
       Count ForEachElement(Block&, F&&);
 
-      void AllocateFresh(const Count&);
+   public:
+      ///                                                                     
+      ///   RTTI                                                              
+      ///                                                                     
+      template<CT::Data T>
+      void Mutate();
+      void Mutate(DMeta);
+
+      template<class ALT_T>
+      NOD() constexpr bool Is() const noexcept;
+
+      ///                                                                     
+      ///   Comparison                                                        
+      ///                                                                     
+      bool operator == (const BlockSet&) const;
+
+      NOD() Hash GetHash() const;
+
+      NOD() bool Contains(const CT::NotSemantic auto&) const;
+      NOD() Index Find(const CT::NotSemantic auto&) const;
+
+   protected:
+      template<CT::Data T>
+      NOD() Offset FindIndex(const T&) const;
+      NOD() Offset FindIndexUnknown(const Block&) const;
+
+   public:
+      ///                                                                     
+      ///   Memory management                                                 
+      ///                                                                     
+      void Reserve(const Count& count);
+      
+   protected:
+      /// @cond show_protected                                                
       template<bool REUSE>
       void Allocate(const Count&);
+      void AllocateFresh(const Count&);
       void AllocateInner(const Count&);
 
       void Reference(const Count&) const noexcept;
@@ -200,6 +206,37 @@ namespace Langulus::Anyness
       template<bool DESTROY>
       void Dereference(const Count&);
       void Free();
+      /// @endcond                                                            
+
+   public:
+      ///                                                                     
+      ///   Insertion                                                         
+      ///                                                                     
+      Count Insert(const CT::NotSemantic auto&);
+      Count Insert(CT::NotSemantic auto&&);
+      Count Insert(CT::Semantic auto&&);
+
+      Count InsertUnknown(const Block&);
+      Count InsertUnknown(Block&&);
+      template<CT::Semantic S>
+      Count InsertUnknown(S&&) requires (CT::Block<TypeOf<S>>);
+
+      Count Merge(const BlockSet&);
+      Count Merge(BlockSet&&);
+      template<CT::Semantic S>
+      Count Merge(S&&);
+
+      BlockSet& operator << (const CT::NotSemantic auto&);
+      BlockSet& operator << (CT::NotSemantic auto&&);
+      BlockSet& operator << (CT::Semantic auto&&);
+
+      BlockSet& operator << (const Block&);
+      BlockSet& operator << (Block&&);
+      template<CT::Semantic S>
+      BlockSet& operator << (S&&) requires (CT::Block<TypeOf<S>>);
+
+   protected:
+      NOD() Size RequestKeyAndInfoSize(Count, Offset&) noexcept;
 
       void Rehash(const Count&, const Count&);
 
@@ -208,38 +245,23 @@ namespace Langulus::Anyness
       template<bool CHECK_FOR_MATCH, CT::Semantic S>
       Offset InsertInner(const Offset&, S&&);
 
-      void ClearInner();
       void CloneInner(const Block&, Block&) const;
 
-      NOD() Size RequestKeyAndInfoSize(Count, Offset&) noexcept;
+   public:
+      ///                                                                     
+      ///   Removal                                                           
+      ///                                                                     
+      template<CT::NotSemantic T>
+      Count Remove(const T&);
+      Count RemoveIndex(const Index&);
 
+      void Clear();
+      void Reset();
+      void Compact();
+
+   protected:
+      void ClearInner();
       void RemoveIndex(const Offset&) SAFETY_NOEXCEPT();
-
-      template<CT::Data T>
-      NOD() const TAny<T>& GetValues() const noexcept;
-      template<CT::Data T>
-      NOD() TAny<T>& GetValues() noexcept;
-
-      NOD() Block GetValue(const Offset&) const noexcept;
-      NOD() Block GetValue(const Offset&) noexcept;
-
-      template<CT::Data T>
-      NOD() Offset GetBucket(const T&) const noexcept;
-      template<CT::Data T>
-      NOD() Offset FindIndex(const T&) const;
-      NOD() Offset FindIndexUnknown(const Block&) const;
-
-   TESTING(public:)
-      NOD() const InfoType* GetInfo() const noexcept;
-      NOD() InfoType* GetInfo() noexcept;
-      NOD() const InfoType* GetInfoEnd() const noexcept;
-
-      template<CT::Data T>
-      NOD() constexpr const T& GetRaw(Offset) const noexcept;
-      template<CT::Data T>
-      NOD() constexpr T& GetRaw(Offset) noexcept;
-      template<CT::Data T>
-      NOD() constexpr Handle<T> GetHandle(Offset) const noexcept;
    };
 
 
@@ -292,4 +314,11 @@ namespace Langulus::CT
 
 } // namespace Langulus::CT
 
-#include "BlockSet.inl"
+#include "BlockSet-Construct.inl"
+#include "BlockSet-Capsulation.inl"
+#include "BlockSet-Indexing.inl"
+#include "BlockSet-RTTI.inl"
+#include "BlockSet-Compare.inl"
+#include "BlockSet-Memory.inl"
+#include "BlockSet-Insert.inl"
+#include "BlockSet-Remove.inl"

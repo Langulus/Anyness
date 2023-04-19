@@ -17,16 +17,38 @@ namespace Langulus::Anyness
    class OrderedSet : public BlockSet {
    public:
       static constexpr bool Ordered = true;
-      static constexpr bool Ownership = true;
 
-      using BlockSet::BlockSet;
+      constexpr OrderedSet();
+      OrderedSet(const OrderedSet&);
+      OrderedSet(OrderedSet&&) noexcept;
 
-      OrderedSet(Disowned<OrderedSet>&&) noexcept;
-      OrderedSet(Abandoned<OrderedSet>&&) noexcept;
+      template<CT::NotSemantic T>
+      OrderedSet(::std::initializer_list<T>);
 
-      using BlockSet::operator =;
+      template<CT::Semantic S>
+      OrderedSet(S&&) noexcept;
 
-      NOD() OrderedSet Clone() const;
+      OrderedSet& operator = (const OrderedSet&);
+      OrderedSet& operator = (OrderedSet&&) noexcept;
+
+      template<CT::Semantic S>
+      OrderedSet& operator = (S&&) noexcept;
+
+      ///                                                                     
+      ///   Insertion                                                         
+      ///                                                                     
+      Count Insert(const CT::NotSemantic auto&);
+      Count Insert(CT::NotSemantic auto&&);
+      template<CT::Semantic S>
+      Count Insert(S&&);
+
+      OrderedSet& operator << (CT::NotSemantic auto&&);
+      OrderedSet& operator << (const CT::NotSemantic auto&);
+      OrderedSet& operator << (CT::Semantic auto&&);
+
+   protected:
+      template<CT::Semantic S>
+      Count InsertUnknown(S&&);
    };
 
 } // namespace Langulus::Anyness
