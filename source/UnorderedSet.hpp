@@ -16,9 +16,10 @@ namespace Langulus::Anyness
    ///                                                                        
    class UnorderedSet : public BlockSet {
    public:
+      static constexpr bool Ownership = true;
       static constexpr bool Ordered = false;
 
-      constexpr UnorderedSet();
+      constexpr UnorderedSet() noexcept = default;
       UnorderedSet(const UnorderedSet&);
       UnorderedSet(UnorderedSet&&);
 
@@ -29,6 +30,8 @@ namespace Langulus::Anyness
 
       template<CT::Data HEAD, CT::Data... TAIL>
       UnorderedSet(HEAD&&, TAIL&&...) requires (sizeof...(TAIL) >= 1);
+
+      ~UnorderedSet();
 
       UnorderedSet& operator = (const UnorderedSet&);
       UnorderedSet& operator = (UnorderedSet&&);

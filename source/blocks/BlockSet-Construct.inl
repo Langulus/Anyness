@@ -10,118 +10,30 @@
 
 namespace Langulus::Anyness
 {
-
-   /// Shallow-copy construction                                              
-   ///   @param other - the table to copy                                     
-   LANGULUS(INLINED)
-   BlockSet::BlockSet(const BlockSet& other)
-      : mInfo {other.mInfo}
-      , mKeys {other.mKeys} {
-      mKeys.Keep();
-   }
-
-   /// Move construction                                                      
-   ///   @param other - the table to move                                     
-   LANGULUS(INLINED)
-   BlockSet::BlockSet(BlockSet&& other) noexcept
-      : mInfo {other.mInfo}
-      , mKeys {other.mKeys} {
-      other.mKeys.ResetMemory();
-      other.mKeys.ResetState();
-   }
    
    /// Semantic copy (block has no ownership, so always just shallow copy)    
-   ///   @tparam S - the semantic to use (irrelevant)                         
    ///   @param other - the block to shallow-copy                             
-   template<CT::Semantic S>
    LANGULUS(INLINED)
-   constexpr BlockSet::BlockSet(S&& other) noexcept
-      : mInfo {other.mValue.mInfo}
-      , mKeys {other.mValue.mKeys} {
-      static_assert(CT::Set<TypeOf<S>>, "S type should be a set type");
-      if constexpr (S::Move && !S::Keep)
-         other.mValue.mKeys.mEntry = nullptr;
-      else if constexpr (!S::Move && !S::Keep)
-         mKeys.mEntry = nullptr;
-   }
-   
-   /// Manual construction via an initializer list                            
-   ///   @param initlist - the initializer list to forward                    
-   template<CT::NotSemantic T>
-   LANGULUS(INLINED)
-   BlockSet::BlockSet(::std::initializer_list<T> initlist)
-      : BlockSet {} {
-      Mutate<T>();
-      Allocate(initlist.size());
-      for (auto& it : initlist)
-         Insert(it);
-   }
+   constexpr BlockSet::BlockSet(CT::Semantic auto&& other) noexcept
+      : BlockSet {static_cast<const BlockSet&>(other.mValue)} {}
 
-   /// Destroys the map and all it's contents                                 
-   LANGULUS(INLINED)
-   BlockSet::~BlockSet() {
-      Free();
-   }
-
-   /// Creates a shallow copy of the given table                              
-   ///   @param rhs - the table to reference                                  
-   ///   @return a reference to this table                                    
-   LANGULUS(INLINED)
-   BlockSet& BlockSet::operator = (const BlockSet& rhs) {
-      if (&rhs == this)
-         return *this;
-
-      Reset();
-      new (this) BlockSet {rhs};
-      return *this;
-   }
-   
-   /// Move a table                                                           
-   ///   @param rhs - the table to move                                       
-   ///   @return a reference to this table                                    
-   LANGULUS(INLINED)
-   BlockSet& BlockSet::operator = (BlockSet&& rhs) noexcept {
-      if (&rhs == this)
-         return *this;
-
-      Reset();
-      new (this) BlockSet {Forward<BlockSet>(rhs)};
-      return *this;
-   }
-
-   /// Insert a single element into a cleared set by copy                     
-   ///   @param element - the element to copy                                 
+   /// Semantic assignment                                                    
+   /// Blocks have no ownership, so this always results in a block transfer   
+   ///   @attention will never affect RHS                                     
+   ///   @param rhs - the block to shallow copy                               
    ///   @return a reference to this set                                      
    LANGULUS(INLINED)
-   BlockSet& BlockSet::operator = (const CT::NotSemantic auto& element) {
-      return operator = (Copy(element));
-   }
-
-   /// Insert a single element into a cleared set by move                     
-   ///   @param element - the element to move                                 
-   ///   @return a reference to this set                                      
-   LANGULUS(INLINED)
-   BlockSet& BlockSet::operator = (CT::NotSemantic auto&& element) {
-      return operator = (Move(element));
-   }
-   
-   /// Insert a single element into a cleared set by a semantic               
-   ///   @param element - the element and semantic to use                     
-   ///   @return a reference to this set                                      
-   LANGULUS(INLINED)
-   BlockSet& BlockSet::operator = (CT::Semantic auto&& element) {
-      Clear();
-      Insert(element.Forward());
-      return *this;
+   constexpr BlockSet& BlockSet::operator = (CT::Semantic auto&& rhs) noexcept {
+      return operator = (static_cast<const BlockSet&>(rhs.mValue));
    }
    
    /// Semantically transfer the members of one set onto another              
    ///   @tparam TO - the type of set we're transferring to                   
-   ///   @tparam S - the semantic to use for the transfer (deducible)         
    ///   @param from - the set and semantic to transfer from                  
-   template<class TO, CT::Semantic S>
+   template<class TO>
    LANGULUS(INLINED)
-   void BlockSet::BlockTransfer(S&& other) {
+   void BlockSet::BlockTransfer(CT::Semantic auto&& other) {
+      using S = Decay<decltype(other)>;
       using FROM = TypeOf<S>;
       static_assert(CT::Set<TO>, "TO must be a set type");
       static_assert(CT::Set<FROM>, "FROM must be a set type");

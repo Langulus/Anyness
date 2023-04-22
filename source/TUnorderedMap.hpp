@@ -99,7 +99,7 @@ namespace Langulus::Anyness
 
       NOD() constexpr Size GetByteSize() const noexcept;
 
-      void Allocate(const Count&);
+      void Reserve(const Count&);
 
       bool operator == (const TUnorderedMap&) const;
 

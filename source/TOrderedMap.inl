@@ -127,7 +127,7 @@ namespace Langulus::Anyness
    template<CT::Semantic SK, CT::Semantic SV>
    LANGULUS(INLINED)
    Count MAP()::Insert(SK&& key, SV&& value) noexcept requires (CT::Exact<TypeOf<SK>, K> && CT::Exact<TypeOf<SV>, V>) {
-      Base::Allocate(Base::GetCount() + 1);
+      Base::Reserve(Base::GetCount() + 1);
       Base::template InsertInner<true>(
          Base::GetBucket(Base::GetReserved() - 1, key.mValue),
          key.Forward(), value.Forward()

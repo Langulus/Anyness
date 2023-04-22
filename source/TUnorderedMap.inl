@@ -498,8 +498,10 @@ namespace Langulus::Anyness
    ///   @attention does nothing if reserving less than current reserve       
    ///   @param count - number of pairs to allocate                           
    TABLE_TEMPLATE() LANGULUS(INLINED)
-   void TABLE()::Allocate(const Count& count) {
-      AllocateInner(Roof2(count < MinimalAllocation ? MinimalAllocation : count));
+   void TABLE()::Reserve(const Count& count) {
+      AllocateInner(
+         Roof2(count < MinimalAllocation ? MinimalAllocation : count)
+      );
    }
 
    /// Allocate a fresh set keys and values (for internal use only)           
@@ -832,7 +834,7 @@ namespace Langulus::Anyness
    template<CT::Semantic SK, CT::Semantic SV>
    LANGULUS(INLINED)
    Count TABLE()::Insert(SK&& key, SV&& value) noexcept requires (CT::Exact<TypeOf<SK>, K> && CT::Exact<TypeOf<SV>, V>) {
-      Allocate(GetCount() + 1);
+      Reserve(GetCount() + 1);
       InsertInner<true>(
          GetBucket(GetReserved() - 1, key.mValue), 
          key.Forward(), value.Forward()

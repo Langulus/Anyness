@@ -10,69 +10,30 @@
 
 namespace Langulus::Anyness
 {
-
-   /// Manual construction via an initializer list                            
-   ///   @param initlist - the initializer list to forward                    
-   template<CT::NotSemantic K, CT::NotSemantic V>
-   LANGULUS(INLINED)
-   BlockMap::BlockMap(::std::initializer_list<TPair<K, V>> initlist)
-      : BlockMap {} {
-      Mutate<K, V>();
-      Allocate(initlist.size());
-      for (auto& it : initlist)
-         Insert(*it);
-   }
-
-   /// Shallow-copy construction                                              
-   ///   @param other - the table to copy                                     
-   LANGULUS(INLINED)
-   BlockMap::BlockMap(const BlockMap& other)
-      : mInfo {other.mInfo}
-      , mKeys {other.mKeys}
-      , mValues {other.mValues} {
-      mValues.Keep();
-   }
-
-   /// Move construction                                                      
-   ///   @param other - the table to move                                     
-   LANGULUS(INLINED)
-   BlockMap::BlockMap(BlockMap&& other) noexcept
-      : mInfo {other.mInfo}
-      , mKeys {other.mKeys}
-      , mValues {other.mValues} {
-      other.mValues.ResetMemory();
-      other.mValues.ResetState();
-   }
-
+   
    /// Semantic copy (block has no ownership, so always just shallow copy)    
-   ///   @tparam S - the semantic to use (irrelevant)                         
    ///   @param other - the block to shallow-copy                             
-   template<CT::Semantic S>
    LANGULUS(INLINED)
-   constexpr BlockMap::BlockMap(S&& other) noexcept
-      : mInfo {other.mValue.mInfo}
-      , mKeys {other.mValue.mKeys}
-      , mValues {other.mValue.mValues} {
-      static_assert(CT::Map<TypeOf<S>>, "S type should be a map type");
-      if constexpr (S::Move && !S::Keep)
-         other.mValue.mValues.mEntry = nullptr;
-      else if constexpr (!S::Move && !S::Keep)
-         mKeys.mEntry = mValues.mEntry = nullptr;
-   }
+   constexpr BlockMap::BlockMap(CT::Semantic auto&& other) noexcept
+      : BlockMap {static_cast<const BlockMap&>(other.mValue)} {}
 
-   /// Destroys the map and all it's contents                                 
+   /// Semantic assignment                                                    
+   /// Blocks have no ownership, so this always results in a block transfer   
+   ///   @attention will never affect RHS                                     
+   ///   @param rhs - the block to shallow copy                               
+   ///   @return a reference to this set                                      
    LANGULUS(INLINED)
-   BlockMap::~BlockMap() {
-      Free();
+   constexpr BlockMap& BlockMap::operator = (CT::Semantic auto&& rhs) noexcept {
+      return operator = (static_cast<const BlockMap&>(rhs.mValue));
    }
    
    /// Semantically transfer the members of one map onto another              
    ///   @tparam TO - the type of map we're transferring to                   
-   ///   @tparam S - the semantic to use for the transfer (deducible)         
    ///   @param from - the map and semantic to transfer from                  
-   template<class TO, CT::Semantic S>
+   template<class TO>
    LANGULUS(INLINED)
-   void BlockMap::BlockTransfer(S&& other) {
+   void BlockMap::BlockTransfer(CT::Semantic auto&& other) {
+      using S = Decay<decltype(other)>;
       using FROM = TypeOf<S>;
       static_assert(CT::Map<TO>, "TO must be a map type");
       static_assert(CT::Map<FROM>, "FROM must be a map type");
@@ -282,53 +243,6 @@ namespace Langulus::Anyness
       }
 
       return true;
-   }
-
-   /// Move a table                                                           
-   ///   @param rhs - the table to move                                       
-   ///   @return a reference to this table                                    
-   LANGULUS(INLINED)
-   BlockMap& BlockMap::operator = (BlockMap&& rhs) noexcept {
-      if (&rhs == this)
-         return *this;
-
-      Reset();
-      new (this) BlockMap {Forward<BlockMap>(rhs)};
-      return *this;
-   }
-
-   /// Creates a shallow copy of the given table                              
-   ///   @param rhs - the table to reference                                  
-   ///   @return a reference to this table                                    
-   LANGULUS(INLINED)
-   BlockMap& BlockMap::operator = (const BlockMap& rhs) {
-      if (&rhs == this)
-         return *this;
-
-      Reset();
-      new (this) BlockMap {rhs};
-      return *this;
-   }
-
-   /// Emplace a single pair into a cleared map                               
-   ///   @param pair - the pair to emplace                                    
-   ///   @return a reference to this table                                    
-   template<CT::Data K, CT::Data V>
-   LANGULUS(INLINED)
-   BlockMap& BlockMap::operator = (TPair<K, V>&& pair) noexcept {
-      Clear();
-      Insert(Move(pair.mKey), Move(pair.mValue));
-      return *this;
-   }
-
-   /// Insert a single pair into a cleared map                                
-   ///   @param pair - the pair to copy                                       
-   ///   @return a reference to this table                                    
-   template<CT::Data K, CT::Data V>
-   BlockMap& BlockMap::operator = (const TPair<K, V>& pair) {
-      Clear();
-      Insert(pair.mKey, pair.mValue);
-      return *this;
    }
    
    /// Templated tables are always typed                                      
@@ -630,8 +544,10 @@ namespace Langulus::Anyness
    ///   @attention does nothing if reserving less than current reserve       
    ///   @param count - number of pairs to allocate                           
    LANGULUS(INLINED)
-   void BlockMap::Allocate(const Count& count) {
-      AllocateInner(Roof2(count < MinimalAllocation ? MinimalAllocation : count));
+   void BlockMap::Reserve(const Count& count) {
+      AllocateInner(
+         Roof2(count < MinimalAllocation ? MinimalAllocation : count)
+      );
    }
 
    /// Allocate a fresh set keys and values (for internal use only)           

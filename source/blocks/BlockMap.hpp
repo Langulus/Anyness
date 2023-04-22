@@ -42,36 +42,23 @@ namespace Langulus::Anyness
    public:
       using Pair = Anyness::Pair;
 
-      static constexpr bool Ownership = true;
+      static constexpr bool Ownership = false;
       static constexpr bool Sequential = false;
 
-      constexpr BlockMap() = default;
+      constexpr BlockMap() noexcept = default;
+      constexpr BlockMap(const BlockMap&) noexcept = default;
+      constexpr BlockMap(BlockMap&&) noexcept = default;
+      constexpr BlockMap(CT::Semantic auto&&) noexcept;
 
-      BlockMap(const BlockMap&);
-      BlockMap(BlockMap&&) noexcept;
-      template<CT::Semantic S>
-      constexpr BlockMap(S&&) noexcept;
+      constexpr BlockMap& operator = (const BlockMap&) noexcept = default;
+      constexpr BlockMap& operator = (BlockMap&&) noexcept = default;
+      constexpr BlockMap& operator = (CT::Semantic auto&&) noexcept;
 
-      template<CT::NotSemantic K, CT::NotSemantic V>
-      BlockMap(::std::initializer_list<TPair<K, V>>);
-
-      ~BlockMap();
-
-      template<class T, CT::Semantic S>
-      void BlockTransfer(S&&);
+   protected:
+      template<class T>
+      void BlockTransfer(CT::Semantic auto&&);
       template<class T>
       void BlockClone(const BlockMap&);
-
-      BlockMap& operator = (const BlockMap&);
-      BlockMap& operator = (BlockMap&&) noexcept;
-
-      BlockMap& operator = (const Pair&);
-      BlockMap& operator = (Pair&&) noexcept;
-
-      template<CT::Data K, CT::Data V>
-      BlockMap& operator = (const TPair<K, V>&);
-      template<CT::Data K, CT::Data V>
-      BlockMap& operator = (TPair<K, V>&&) noexcept;
 
    public:
       NOD() DMeta GetKeyType() const noexcept;
@@ -120,7 +107,7 @@ namespace Langulus::Anyness
       template<CT::NotSemantic K, CT::NotSemantic V>
       void Mutate();
       void Mutate(DMeta, DMeta);
-      void Allocate(const Count&);
+      void Reserve(const Count&);
 
       bool operator == (const BlockMap&) const;
 

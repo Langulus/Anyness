@@ -12,11 +12,9 @@ namespace Langulus::Anyness
 {
    
    /// Semantic copy (block has no ownership, so always just shallow copy)    
-   ///   @tparam S - the semantic to use (irrelevant)                         
    ///   @param other - the block to shallow-copy                             
-   template<CT::Semantic S>
    LANGULUS(INLINED)
-   constexpr Block::Block(S&& other) noexcept
+   constexpr Block::Block(CT::Semantic auto&& other) noexcept
       : Block {static_cast<const Block&>(other.mValue)} {}
 
    /// Manual construction via type                                           
@@ -209,22 +207,21 @@ namespace Langulus::Anyness
    /// Semantic assignment                                                    
    /// Blocks have no ownership, so this always results in a block transfer   
    ///   @attention will never affect RHS                                     
-   ///   @tparam S - semantic to use (irrelevant)                             
    ///   @param rhs - the block to shallow copy                               
-   template<CT::Semantic S>
+   ///   @return a reference to this block                                    
    LANGULUS(INLINED)
-   constexpr Block& Block::operator = (S&& rhs) noexcept {
+   constexpr Block& Block::operator = (CT::Semantic auto&& rhs) noexcept {
       return operator = (static_cast<const Block&>(rhs.mValue));
    }
    
    /// Semantically transfer the members of one block onto another            
    ///   @attention will not set mType if TO is type-constrained              
    ///   @tparam TO - the type of block we're transferring to                 
-   ///   @tparam S - the semantic to use for the transfer (deducible)         
    ///   @param from - the block and semantic to transfer from                
-   template<class TO, CT::Semantic S>
+   template<class TO>
    LANGULUS(INLINED)
-   void Block::BlockTransfer(S&& from) {
+   void Block::BlockTransfer(CT::Semantic auto&& from) {
+      using S = Decay<decltype(from)>;
       using FROM = TypeOf<S>;
 
       static_assert(CT::Block<TO>,
@@ -307,8 +304,8 @@ namespace Langulus::Anyness
    ///   @attention assumes both containers have same initialized count       
    ///   @attention assumes both containers have same type                    
    ///   @param rhs - the block to swap with                                  
-   template<CT::Semantic S>
-   void Block::SwapUnknown(S&& rhs) {
+   void Block::SwapUnknown(CT::Semantic auto&& rhs) {
+      using S = Decay<decltype(rhs)>;
       static_assert(CT::Block<TypeOf<S>>,
          "S::Type must be a block type");
 

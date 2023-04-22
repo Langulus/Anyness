@@ -146,9 +146,7 @@ namespace Langulus::Anyness
       constexpr Block() noexcept = default;
       constexpr Block(const Block&) noexcept = default;
       constexpr Block(Block&&) noexcept = default;
-
-      template<CT::Semantic S>
-      constexpr Block(S&&) noexcept;
+      constexpr Block(CT::Semantic auto&&) noexcept;
          
       constexpr Block(DMeta) noexcept;
       constexpr Block(const DataState&, DMeta) noexcept;
@@ -169,15 +167,12 @@ namespace Langulus::Anyness
 
       constexpr Block& operator = (const Block&) noexcept = default;
       constexpr Block& operator = (Block&&) noexcept = default;
-
-      template<CT::Semantic S>
-      constexpr Block& operator = (S&&) noexcept;
+      constexpr Block& operator = (CT::Semantic auto&&) noexcept;
          
    protected:
-      template<class TO, CT::Semantic S>
-      void BlockTransfer(S&&);
-      template<CT::Semantic S>
-      void SwapUnknown(S&&);
+      template<class TO>
+      void BlockTransfer(CT::Semantic auto&&);
+      void SwapUnknown(CT::Semantic auto&&);
       template<CT::Data>
       void SwapKnown(Block&);
 

@@ -33,34 +33,24 @@ namespace Langulus::Anyness
       Block mKeys;
 
    public:
-      static constexpr bool Ownership = true;
+      static constexpr bool Ownership = false;
       static constexpr bool Sequential = false;
 
       ///                                                                     
       ///   Construction & Assignment                                         
       ///                                                                     
-      constexpr BlockSet() = default;
+      constexpr BlockSet() noexcept = default;
+      constexpr BlockSet(const BlockSet&) noexcept = default;
+      constexpr BlockSet(BlockSet&&) noexcept = default;
+      constexpr BlockSet(CT::Semantic auto&&) noexcept;
 
-      BlockSet(const BlockSet&);
-      BlockSet(BlockSet&&) noexcept;
-      template<CT::Semantic S>
-      constexpr BlockSet(S&&) noexcept;
-
-      template<CT::NotSemantic T>
-      BlockSet(::std::initializer_list<T>);
-
-      ~BlockSet();
-
-      BlockSet& operator = (const BlockSet&);
-      BlockSet& operator = (BlockSet&&) noexcept;
-
-      BlockSet& operator = (const CT::NotSemantic auto&);
-      BlockSet& operator = (CT::NotSemantic auto&&);
-      BlockSet& operator = (CT::Semantic auto&&);
+      constexpr BlockSet& operator = (const BlockSet&) noexcept = default;
+      constexpr BlockSet& operator = (BlockSet&&) noexcept = default;
+      constexpr BlockSet& operator = (CT::Semantic auto&&) noexcept;
 
    protected:
-      template<class T, CT::Semantic S>
-      void BlockTransfer(S&&);
+      template<class T>
+      void BlockTransfer(CT::Semantic auto&&);
       template<class T>
       void BlockClone(const BlockSet&);
 

@@ -10,70 +10,42 @@
 
 namespace Langulus::Anyness
 {
-
-   /// Default ordered map constructor                                        
-   LANGULUS(INLINED)
-   constexpr OrderedMap::OrderedMap()
-      : BlockMap {} {}
-
-   /// Create from a list of pairs                                            
-   ///   @tparam P - the pair type                                            
-   ///   @param list - list of pairs                                          
-   template<CT::Pair P>
-   LANGULUS(INLINED)
-   OrderedMap::OrderedMap(::std::initializer_list<P> list) {
-      mKeys.mType = list.begin()->GetKeyType();
-      mValues.mType = list.begin()->GetValueType();
-
-      AllocateFresh(
-         Roof2(
-            list.size() < MinimalAllocation
-               ? MinimalAllocation
-               : list.size()
-         )
-      );
-      ZeroMemory(mInfo, GetReserved());
-      mInfo[GetReserved()] = 1;
-
-      const auto hashmask = GetReserved() - 1;
-      for (auto& it : list) {
-         if constexpr (CT::TypedPair<P>) {
-            // Insert a statically typed pair                           
-            InsertInner<true>(
-               GetBucket(hashmask, it.mKey),
-               Copy(it.mKey),
-               Copy(it.mValue)
-            );
-         }
-         else {
-            // Insert a dynamically typed pair                          
-            InsertInnerUnknown<true>(
-               GetBucketUnknown(hashmask, it.mKey),
-               Copy(it.mKey),
-               Copy(it.mValue)
-            );
-         }
-      }
-   }
-
+   
    /// Copy constructor                                                       
    ///   @param other - map to shallow-copy                                   
    LANGULUS(INLINED)
    OrderedMap::OrderedMap(const OrderedMap& other)
-      : OrderedMap {Langulus::Copy(other)} {}
+      : OrderedMap {Copy(other)} {}
 
    /// Move constructor                                                       
    ///   @param other - map to move                                           
    LANGULUS(INLINED)
-   OrderedMap::OrderedMap(OrderedMap&& other) noexcept
-      : OrderedMap {Langulus::Move(other)} {}
+   OrderedMap::OrderedMap(OrderedMap&& other)
+      : OrderedMap {Move(other)} {}
+
+   /// Constructor from any map/pair by copy                                  
+   ///   @param other - the map/pair                                          
+   LANGULUS(INLINED)
+   OrderedMap::OrderedMap(const CT::NotSemantic auto& other)
+      : OrderedMap {Copy(other)} {}
+   
+   /// Constructor from any map/pair by copy                                  
+   ///   @param other - the map/pair                                          
+   LANGULUS(INLINED)
+   OrderedMap::OrderedMap(CT::NotSemantic auto& other)
+      : OrderedMap {Copy(other)} {}
+   
+   /// Constructor from any map/pair by move                                  
+   ///   @param other - the map/pair                                          
+   LANGULUS(INLINED)
+   OrderedMap::OrderedMap(CT::NotSemantic auto&& other)
+      : OrderedMap {Move(other)} {}
 
    /// Semantic constructor from any map/pair                                 
-   ///   @tparam S - semantic and type (deducible)                            
    ///   @param other - the semantic type                                     
-   template<CT::Semantic S>
    LANGULUS(INLINED)
-   OrderedMap::OrderedMap(S&& other) noexcept {
+   OrderedMap::OrderedMap(CT::Semantic auto&& other) {
+      using S = Decay<decltype(other)>;
       using T = TypeOf<S>;
 
       if constexpr (CT::Map<T>) {
@@ -121,8 +93,8 @@ namespace Langulus::Anyness
          mValues.mType = other.mValue.GetValueType();
 
          AllocateFresh(MinimalAllocation);
-         ZeroMemory(mInfo, GetReserved());
-         mInfo[GetReserved()] = 1;
+         ZeroMemory(mInfo, MinimalAllocation);
+         mInfo[MinimalAllocation] = 1;
 
          constexpr auto hashmask = MinimalAllocation - 1;
          if constexpr (CT::TypedPair<T>) {
@@ -144,45 +116,89 @@ namespace Langulus::Anyness
       }
       else LANGULUS_ERROR("Unsupported semantic constructor");
    }
+   
+   /// Create from a list of pairs                                            
+   ///   @param head - first pair                                             
+   ///   @param tail - tail of pairs                                          
+   template<CT::Data HEAD, CT::Data... TAIL>
+   OrderedMap::OrderedMap(HEAD&& head, TAIL&&... tail) requires (sizeof...(TAIL) >= 1) {
+      if constexpr (CT::Semantic<HEAD>) {
+         if constexpr (CT::Pair<TypeOf<HEAD>>) {
+            mKeys.mType = head.mValue.GetKeyType();
+            mValues.mType = head.mValue.GetValueType();
+         }
+         else LANGULUS_ERROR("Type inside semantic is not a Pair");
+      }
+      else {
+         if constexpr (CT::Pair<HEAD>) {
+            mKeys.mType = head.GetKeyType();
+            mValues.mType = head.GetValueType();
+         }
+         else LANGULUS_ERROR("Type is not a Pair");
+      }
 
-   /// Copy assignment of a pair                                              
-   ///   @param rhs - pair to copy-insert                                     
-   ///   @return a reference to this map                                      
-   LANGULUS(INLINED)
-   OrderedMap& OrderedMap::operator = (const CT::Pair auto& rhs) {
-      return operator = (Langulus::Copy(rhs));
+      constexpr auto capacity = Roof2(
+         sizeof...(TAIL) + 1 < MinimalAllocation
+            ? MinimalAllocation
+            : sizeof...(TAIL) + 1
+      );
+
+      AllocateFresh(capacity);
+      ZeroMemory(mInfo, capacity);
+      mInfo[capacity] = 1;
+      Inner::NestedSemanticInsertion(
+         *this, Forward<HEAD>(head), Forward<TAIL>(tail)...
+      );
    }
-
-   /// Move assignment of a pair                                              
-   ///   @param rhs - pair to move-insert                                     
-   ///   @return a reference to this map                                      
+   
+   /// Map destructor                                                         
    LANGULUS(INLINED)
-   OrderedMap& OrderedMap::operator = (CT::Pair auto&& rhs) noexcept {
-      return operator = (Langulus::Move(rhs));
+   OrderedMap::~OrderedMap() {
+      Free();
    }
-
+   
    /// Copy assignment                                                        
-   ///   @param rhs - ordered map to copy-insert                              
+   ///   @param rhs - unordered map to shallow-copy                           
    ///   @return a reference to this map                                      
    LANGULUS(INLINED)
    OrderedMap& OrderedMap::operator = (const OrderedMap& rhs) {
-      return operator = (Langulus::Copy(rhs));
+      return operator = (Copy(rhs));
    }
 
    /// Move assignment                                                        
-   ///   @param rhs - ordered map to move-insert                              
+   ///   @param rhs - unordered map to move over                              
    ///   @return a reference to this map                                      
    LANGULUS(INLINED)
-   OrderedMap& OrderedMap::operator = (OrderedMap&& rhs) noexcept {
-      return operator = (Langulus::Move(rhs));
+   OrderedMap& OrderedMap::operator = (OrderedMap&& rhs) {
+      return operator = (Move(rhs));
+   }
+
+   /// Copy assignment from any map/pair                                      
+   ///   @param rhs - the semantic type and map/pair to assign                
+   LANGULUS(INLINED)
+   OrderedMap& OrderedMap::operator = (const CT::NotSemantic auto& rhs) {
+      return operator = (Copy(rhs));
+   }
+   
+   /// Copy assignment from any map/pair                                      
+   ///   @param rhs - the semantic type and map/pair to assign                
+   LANGULUS(INLINED)
+   OrderedMap& OrderedMap::operator = (CT::NotSemantic auto& rhs) {
+      return operator = (Copy(rhs));
+   }
+   
+   /// Move assignment from any map/pair                                      
+   ///   @param rhs - the semantic type and map/pair to assign                
+   LANGULUS(INLINED)
+   OrderedMap& OrderedMap::operator = (CT::NotSemantic auto&& rhs) {
+      return operator = (Move(rhs));
    }
 
    /// Semantic assignment from any map/pair                                  
-   ///   @tparam S - semantic and type (deducible)                            
-   ///   @param other - the semantic type                                     
-   template<CT::Semantic S>
+   ///   @param other - the semantic type and map/pair to assign              
    LANGULUS(INLINED)
-   OrderedMap& OrderedMap::operator = (S&& other) noexcept {
+   OrderedMap& OrderedMap::operator = (CT::Semantic auto&& other) {
+      using S = Decay<decltype(other)>;
       using T = TypeOf<S>;
 
       if constexpr (CT::Map<T>) {
@@ -227,65 +243,78 @@ namespace Langulus::Anyness
       return *this;
    }
    
-   /// Insert a single pair inside table via copy                             
-   ///   @param key - the key to add                                          
-   ///   @param value - the value to add                                      
-   ///   @return 1 if pair was inserted, zero otherwise                       
-   LANGULUS(INLINED)
-   Count OrderedMap::Insert(
-      const CT::NotSemantic auto& key, 
-      const CT::NotSemantic auto& value
-   ) {
-      return Insert(Copy(key), Copy(value));
+   Count OrderedMap::Insert(const CT::NotSemantic auto& k, const CT::NotSemantic auto& v) {
+      return Insert(Copy(k), Copy(v));
    }
 
-   /// Insert a single pair inside table via key copy and value move          
-   ///   @param key - the key to add                                          
-   ///   @param value - the value to add                                      
-   ///   @return 1 if pair was inserted, zero otherwise                       
-   LANGULUS(INLINED)
-   Count OrderedMap::Insert(
-      const CT::NotSemantic auto& key, 
-            CT::NotSemantic auto&& value
-   ) {
-      return Insert(Copy(key), Move(value));
+   Count OrderedMap::Insert(const CT::NotSemantic auto& k, CT::NotSemantic auto& v) {
+      return Insert(Copy(k), Copy(v));
    }
 
-   /// Insert a single pair inside table via key move and value copy          
-   ///   @param key - the key to add                                          
-   ///   @param value - the value to add                                      
-   ///   @return 1 if pair was inserted, zero otherwise                       
-   LANGULUS(INLINED)
-   Count OrderedMap::Insert(
-            CT::NotSemantic auto&& key, 
-      const CT::NotSemantic auto& value
-   ) {
-      return Insert(Move(key), Copy(value));
+   Count OrderedMap::Insert(const CT::NotSemantic auto& k, CT::NotSemantic auto&& v) {
+      return Insert(Copy(k), Move(v));
    }
 
-   /// Insert a single pair inside table via move                             
-   ///   @param key - the key to add                                          
-   ///   @param value - the value to add                                      
-   ///   @return 1 if pair was inserted, zero otherwise                       
-   LANGULUS(INLINED)
-   Count OrderedMap::Insert(
-      CT::NotSemantic auto&& key, 
-      CT::NotSemantic auto&& value
-   ) {
-      return Insert(Move(key), Move(value));
+   Count OrderedMap::Insert(const CT::NotSemantic auto& k, CT::Semantic auto&& v) {
+      return Insert(Copy(k), v.Forward());
+   }
+
+   Count OrderedMap::Insert(CT::NotSemantic auto& k, const CT::NotSemantic auto& v) {
+      return Insert(Copy(k), Copy(v));
+   }
+
+   Count OrderedMap::Insert(CT::NotSemantic auto& k, CT::NotSemantic auto& v) {
+      return Insert(Copy(k), Copy(v));
+   }
+
+   Count OrderedMap::Insert(CT::NotSemantic auto& k, CT::NotSemantic auto&& v) {
+      return Insert(Copy(k), Move(v));
+   }
+
+   Count OrderedMap::Insert(CT::NotSemantic auto& k, CT::Semantic auto&& v) {
+      return Insert(Copy(k), v.Forward());
+   }
+
+   Count OrderedMap::Insert(CT::NotSemantic auto&& k, const CT::NotSemantic auto& v) {
+      return Insert(Move(k), Copy(v));
+   }
+
+   Count OrderedMap::Insert(CT::NotSemantic auto&& k, CT::NotSemantic auto& v) {
+      return Insert(Move(k), Copy(v));
+   }
+
+   Count OrderedMap::Insert(CT::NotSemantic auto&& k, CT::NotSemantic auto&& v) {
+      return Insert(Move(k), Move(v));
+   }
+
+   Count OrderedMap::Insert(CT::NotSemantic auto&& k, CT::Semantic auto&& v) {
+      return Insert(Move(k), v.Forward());
+   }
+
+   Count OrderedMap::Insert(CT::Semantic auto&& k, const CT::NotSemantic auto& v) {
+      return Insert(k.Forward(), Copy(v));
+   }
+
+   Count OrderedMap::Insert(CT::Semantic auto&& k, CT::NotSemantic auto& v) {
+      return Insert(k.Forward(), Copy(v));
+   }
+
+   Count OrderedMap::Insert(CT::Semantic auto&& k, CT::NotSemantic auto&& v) {
+      return Insert(k.Forward(), Move(v));
    }
    
    /// Semantically insert key and value                                      
    ///   @param key - the key to insert                                       
    ///   @param value - the value to insert                                   
    ///   @return 1 if pair was inserted, zero otherwise                       
-   template<CT::Semantic SK, CT::Semantic SV>
-   Count OrderedMap::Insert(SK&& key, SV&& value) {
+   Count OrderedMap::Insert(CT::Semantic auto&& key, CT::Semantic auto&& value) {
+      using SK = Decay<decltype(key)>;
+      using SV = Decay<decltype(value)>;
       using K = TypeOf<SK>;
       using V = TypeOf<SV>;
 
       Mutate<K, V>();
-      Allocate(GetCount() + 1);
+      Reserve(GetCount() + 1);
       InsertInner<true>(
          GetBucket(GetReserved() - 1, key.mValue),
          key.Forward(), value.Forward()
@@ -296,8 +325,8 @@ namespace Langulus::Anyness
    /// Semantically insert any pair                                           
    ///   @param pair - the pair to insert                                     
    ///   @return 1 if pair was inserted, zero otherwise                       
-   template<CT::Semantic S>
-   Count OrderedMap::Insert(S&& pair) {
+   Count OrderedMap::Insert(CT::Semantic auto&& pair) {
+      using S = Decay<decltype(pair)>;
       using T = TypeOf<S>;
       static_assert(CT::Pair<T>, "T must be a pair");
 
@@ -306,12 +335,20 @@ namespace Langulus::Anyness
       else
          return InsertUnknown(S::Nest(pair.mValue.mKey), S::Nest(pair.mValue.mValue));
    }
+   
+   /// Copy-insert any pair inside the map                                    
+   ///   @param item - the pair to insert                                     
+   ///   @return a reference to this map for chaining                         
+   LANGULUS(INLINED)
+   OrderedMap& OrderedMap::operator << (const CT::NotSemantic auto& item) {
+      return operator << (Copy(item));
+   }
 
    /// Copy-insert any pair inside the map                                    
    ///   @param item - the pair to insert                                     
    ///   @return a reference to this map for chaining                         
    LANGULUS(INLINED)
-   OrderedMap& OrderedMap::operator << (const CT::Pair auto& item) {
+   OrderedMap& OrderedMap::operator << (CT::NotSemantic auto& item) {
       return operator << (Copy(item));
    }
 
@@ -319,35 +356,35 @@ namespace Langulus::Anyness
    ///   @param item - the pair to insert                                     
    ///   @return a reference to this map for chaining                         
    LANGULUS(INLINED)
-   OrderedMap& OrderedMap::operator << (CT::Pair auto&& item) {
+   OrderedMap& OrderedMap::operator << (CT::NotSemantic auto&& item) {
       return operator << (Move(item));
    }
 
    /// Semantic insertion of any pair inside the map                          
    ///   @param item - the pair to insert                                     
    ///   @return a reference to this map for chaining                         
-   template<CT::Semantic S>
    LANGULUS(INLINED)
-   OrderedMap& OrderedMap::operator << (S&& item) {
+   OrderedMap& OrderedMap::operator << (CT::Semantic auto&& item) {
       Insert(item.Forward());
       return *this;
    }
-
+   
    /// Semantically insert a type-erased pair                                 
    ///   @param key - the key to insert                                       
    ///   @param value - the value to insert                                   
    ///   @return 1 if pair was inserted or value was overwritten              
-   template<CT::Semantic SK, CT::Semantic SV>
    LANGULUS(INLINED)
-   Count OrderedMap::InsertUnknown(SK&& key, SV&& val) {
+   Count OrderedMap::InsertUnknown(CT::Semantic auto&& key, CT::Semantic auto&& val) {
+      using SK = Decay<decltype(key)>;
+      using SV = Decay<decltype(val)>;
+
       static_assert(CT::Block<TypeOf<SK>>,
          "SK's type must be a block type");
       static_assert(CT::Block<TypeOf<SV>>,
          "SV's type must be a block type");
 
       Mutate(key.mValue.mType, val.mValue.mType);
-      Allocate(GetCount() + 1);
-
+      Reserve(GetCount() + 1);
       InsertInnerUnknown<true>(
          GetBucketUnknown(GetReserved() - 1, key.mValue), 
          key.Forward(), val.Forward()
@@ -358,16 +395,16 @@ namespace Langulus::Anyness
    /// Semantically insert a type-erased pair                                 
    ///   @param pair - the pair to insert                                     
    ///   @return 1 if pair was inserted or value was overwritten              
-   template<CT::Semantic SP>
    LANGULUS(INLINED)
-   Count OrderedMap::InsertUnknown(SP&& pair) {
-      using T = TypeOf<SP>;
+   Count OrderedMap::InsertUnknown(CT::Semantic auto&& pair) {
+      using S = Decay<decltype(pair)>;
+      using T = TypeOf<S>;
       static_assert(CT::Pair<T> && !CT::TypedPair<T>,
          "SP's type must be type-erased pair type");
 
       return InsertUnknown(
-         SP::Nest(pair.mValue.mKey), 
-         SP::Nest(pair.mValue.mValue)
+         S::Nest(pair.mValue.mKey), 
+         S::Nest(pair.mValue.mValue)
       );
    }
 
@@ -386,7 +423,7 @@ namespace Langulus::Anyness
       auto newk = Block::From(key);
       auto newv = Block {mValues.mState, mValues.mType};
       newv.template AllocateMore<true>(1);
-      Allocate(GetCount() + 1);
+      Reserve(GetCount() + 1);
 
       const auto insertedAt = InsertInnerUnknown<false>(
          GetBucket(GetReserved() - 1, key), 

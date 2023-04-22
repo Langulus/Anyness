@@ -16,26 +16,30 @@ namespace Langulus::Anyness
    ///                                                                        
    class UnorderedMap : public BlockMap {
    public:
+      static constexpr bool Ownership = true;
       static constexpr bool Ordered = false;
 
-      constexpr UnorderedMap();
+      constexpr UnorderedMap() noexcept = default;
       UnorderedMap(const UnorderedMap&);
-      UnorderedMap(UnorderedMap&&) noexcept;
+      UnorderedMap(UnorderedMap&&);
 
-      template<CT::Pair P>
-      UnorderedMap(::std::initializer_list<P>);
+      UnorderedMap(const CT::NotSemantic auto&);
+      UnorderedMap(CT::NotSemantic auto&);
+      UnorderedMap(CT::NotSemantic auto&&);
+      UnorderedMap(CT::Semantic auto&&);
 
-      template<CT::Semantic S>
-      UnorderedMap(S&&) noexcept;
+      template<CT::Data HEAD, CT::Data... TAIL>
+      UnorderedMap(HEAD&&, TAIL&&...) requires (sizeof...(TAIL) >= 1);
+
+      ~UnorderedMap();
 
       UnorderedMap& operator = (const UnorderedMap&);
-      UnorderedMap& operator = (UnorderedMap&&) noexcept;
+      UnorderedMap& operator = (UnorderedMap&&);
 
-      UnorderedMap& operator = (const CT::Pair auto&);
-      UnorderedMap& operator = (CT::Pair auto&&) noexcept;
-
-      template<CT::Semantic S>
-      UnorderedMap& operator = (S&&) noexcept;
+      UnorderedMap& operator = (const CT::NotSemantic auto&);
+      UnorderedMap& operator = (CT::NotSemantic auto&);
+      UnorderedMap& operator = (CT::NotSemantic auto&&);
+      UnorderedMap& operator = (CT::Semantic auto&&);
 
       ///                                                                     
       ///   Search                                                            
@@ -48,29 +52,39 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
-      Count Insert(const CT::NotSemantic auto&, const CT::NotSemantic auto&);
-      Count Insert(const CT::NotSemantic auto&, CT::NotSemantic auto&&);
-      Count Insert(CT::NotSemantic auto&&, const CT::NotSemantic auto&);
-      Count Insert(CT::NotSemantic auto&&, CT::NotSemantic auto&&);
-      Count Insert(CT::Pair auto&&);
-      Count Insert(const CT::Pair auto&);
+      Count Insert(const CT::NotSemantic auto&,  const CT::NotSemantic auto&);
+      Count Insert(const CT::NotSemantic auto&,        CT::NotSemantic auto&);
+      Count Insert(const CT::NotSemantic auto&,        CT::NotSemantic auto&&);
+      Count Insert(const CT::NotSemantic auto&,        CT::Semantic    auto&&);
 
-      template<CT::Semantic SK, CT::Semantic SV>
-      Count Insert(SK&&, SV&&);
-      template<CT::Semantic S>
-      Count Insert(S&&);
+      Count Insert(      CT::NotSemantic auto&,  const CT::NotSemantic auto&);
+      Count Insert(      CT::NotSemantic auto&,        CT::NotSemantic auto&);
+      Count Insert(      CT::NotSemantic auto&,        CT::NotSemantic auto&&);
+      Count Insert(      CT::NotSemantic auto&,        CT::Semantic    auto&&);
 
-      UnorderedMap& operator << (CT::Pair auto&&);
-      UnorderedMap& operator << (const CT::Pair auto&);
+      Count Insert(      CT::NotSemantic auto&&, const CT::NotSemantic auto&);
+      Count Insert(      CT::NotSemantic auto&&,       CT::NotSemantic auto&);
+      Count Insert(      CT::NotSemantic auto&&,       CT::NotSemantic auto&&);
+      Count Insert(      CT::NotSemantic auto&&,       CT::Semantic    auto&&);
 
-      template<CT::Semantic S>
-      UnorderedMap& operator << (S&&);
+      Count Insert(      CT::Semantic    auto&&, const CT::NotSemantic auto&);
+      Count Insert(      CT::Semantic    auto&&,       CT::NotSemantic auto&);
+      Count Insert(      CT::Semantic    auto&&,       CT::NotSemantic auto&&);
+      Count Insert(      CT::Semantic    auto&&,       CT::Semantic    auto&&);
+
+      Count Insert(const CT::NotSemantic auto&);
+      Count Insert(      CT::NotSemantic auto&);
+      Count Insert(      CT::NotSemantic auto&&);
+      Count Insert(      CT::Semantic    auto&&);
+
+      UnorderedMap& operator << (const CT::NotSemantic auto&);
+      UnorderedMap& operator << (      CT::NotSemantic auto&);
+      UnorderedMap& operator << (      CT::NotSemantic auto&&);
+      UnorderedMap& operator << (      CT::Semantic    auto&&);
 
    protected:
-      template<CT::Semantic SK, CT::Semantic SV>
-      Count InsertUnknown(SK&&, SV&&);
-      template<CT::Semantic SP>
-      Count InsertUnknown(SP&&);
+      Count InsertUnknown(CT::Semantic auto&&, CT::Semantic auto&&);
+      Count InsertUnknown(CT::Semantic auto&&);
    };
 
 } // namespace Langulus::Anyness

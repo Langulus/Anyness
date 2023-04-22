@@ -16,9 +16,10 @@ namespace Langulus::Anyness
    ///                                                                        
    class OrderedSet : public BlockSet {
    public:
+      static constexpr bool Ownership = true;
       static constexpr bool Ordered = true;
 
-      constexpr OrderedSet();
+      constexpr OrderedSet() noexcept = default;
       OrderedSet(const OrderedSet&);
       OrderedSet(OrderedSet&&);
 
@@ -29,6 +30,8 @@ namespace Langulus::Anyness
 
       template<CT::Data HEAD, CT::Data... TAIL>
       OrderedSet(HEAD&&, TAIL&&...) requires (sizeof...(TAIL) >= 1);
+
+      ~OrderedSet();
 
       OrderedSet& operator = (const OrderedSet&);
       OrderedSet& operator = (OrderedSet&&);

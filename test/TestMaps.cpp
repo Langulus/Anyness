@@ -595,7 +595,7 @@ TEMPLATE_TEST_CASE(
       }
 
       WHEN("More capacity is reserved") {
-         map.Allocate(20);
+         map.Reserve(20);
 
          THEN("The capacity changes but not the size, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
             REQUIRE(map.HasAuthority());
@@ -610,7 +610,7 @@ TEMPLATE_TEST_CASE(
       }
 
       WHEN("Less capacity is reserved") {
-         map.Allocate(2);
+         map.Reserve(2);
 
          THEN("Capacity and count remain unchanged") {
             REQUIRE(map.HasAuthority());

@@ -10,11 +10,6 @@
 
 namespace Langulus::Anyness
 {
-   
-   /// Default unordered set constructor                                      
-   LANGULUS(INLINED)
-   constexpr UnorderedSet::UnorderedSet()
-      : BlockSet {} {}
 
    /// Copy constructor                                                       
    ///   @param other - set to shallow-copy                                   
@@ -119,6 +114,12 @@ namespace Langulus::Anyness
       Inner::NestedSemanticInsertion(
          *this, Forward<HEAD>(head), Forward<TAIL>(tail)...
       );
+   }
+
+   /// Set destructor                                                         
+   LANGULUS(INLINED)
+   UnorderedSet::~UnorderedSet() {
+      Free();
    }
 
    /// Copy assignment                                                        

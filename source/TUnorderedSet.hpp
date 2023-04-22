@@ -24,11 +24,9 @@ namespace Langulus::Anyness
 
       using Value = T;
       using Self = TUnorderedSet<T>;
-      using Allocator = Inner::Allocator;
 
       LANGULUS(TYPED) T;
 
-      static constexpr Count MinimalAllocation = 8;
       static constexpr bool Ordered = false;
 
    public:

@@ -10,23 +10,18 @@
 
 namespace Langulus::Anyness
 {
-   
-   /// Default unordered set constructor                                      
-   LANGULUS(INLINED)
-   constexpr OrderedSet::OrderedSet()
-      : BlockSet {} {}
 
    /// Copy constructor                                                       
    ///   @param other - set to shallow-copy                                   
    LANGULUS(INLINED)
    OrderedSet::OrderedSet(const OrderedSet& other)
-      : OrderedSet {Langulus::Copy(other)} {}
+      : OrderedSet {Copy(other)} {}
 
    /// Move constructor                                                       
    ///   @param other - set to move                                           
    LANGULUS(INLINED)
    OrderedSet::OrderedSet(OrderedSet&& other)
-      : OrderedSet {Langulus::Move(other)} {}
+      : OrderedSet {Move(other)} {}
 
    /// Constructor from any set/element by copy                               
    ///   @param other - the set/element                                       
@@ -119,6 +114,12 @@ namespace Langulus::Anyness
       Inner::NestedSemanticInsertion(
          *this, Forward<HEAD>(head), Forward<TAIL>(tail)...
       );
+   }
+
+   /// Set destructor                                                         
+   LANGULUS(INLINED)
+   OrderedSet::~OrderedSet() {
+      Free();
    }
 
    /// Copy assignment                                                        

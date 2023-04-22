@@ -16,7 +16,9 @@ namespace Langulus::Anyness
    ///   @param count - number of pairs to allocate                           
    LANGULUS(INLINED)
    void BlockSet::Reserve(const Count& count) {
-      AllocateInner(Roof2(count < MinimalAllocation ? MinimalAllocation : count));
+      AllocateInner(
+         Roof2(count < MinimalAllocation ? MinimalAllocation : count)
+      );
    }
    
    /// Allocate or reallocate key and info array                              
