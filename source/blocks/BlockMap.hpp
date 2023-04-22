@@ -264,8 +264,9 @@ namespace Langulus::Anyness
       NOD() Pair GetPair(const Offset&) const noexcept;
       NOD() Pair GetPair(const Offset&) noexcept;
 
-      template<CT::NotSemantic K>
-      NOD() Offset GetBucket(const K&) const noexcept;
+      NOD() static Offset GetBucket(Offset, const CT::NotSemantic auto&) noexcept;
+      NOD() static Offset GetBucketUnknown(Offset, const Block&) noexcept;
+
       template<CT::NotSemantic K>
       NOD() Offset FindIndex(const K&) const;
       NOD() Offset FindIndexUnknown(const Block&) const;
@@ -341,10 +342,35 @@ namespace Langulus::CT
    
    /// Check if a type is a statically typed map                              
    template<class... T>
-   concept TypedMap = ((Map<T> && requires {
-         typename T::Key; typename T::Value; }
-      ) && ...);
+   concept TypedMap = Map<T...> && Typed<T...>;
 
 } // namespace Langulus::CT
+
+namespace Langulus::Anyness::Inner
+{
+
+   template<CT::Data HEAD, CT::Data... TAIL>
+   void NestedSemanticInsertion(CT::Map auto& map, HEAD head, TAIL... tail) {
+      if constexpr (CT::Semantic<HEAD>) {
+         using S = Decay<HEAD>;
+
+         if constexpr (CT::Pair<TypeOf<S>>)
+            map.Insert(S::Nest(head.mValue.mKey), S::Nest(head.mValue.mValue));
+         else
+            LANGULUS_ERROR("Semantic element does not contain a pair type");
+      }
+      else if constexpr (CT::Pair<HEAD>) {
+         if constexpr (::std::is_rvalue_reference_v<HEAD>)
+            map.Insert(Move(head.mKey), Move(head.mValue));
+         else
+            map.Insert(Copy(head.mKey), Copy(head.mValue));
+      }
+      else LANGULUS_ERROR("Element is not a pair type");
+
+      if constexpr (sizeof...(TAIL))
+         NestedSemanticInsertion(map, tail...);
+   }
+
+} // namespace Langulus::Anyness::Inner
 
 #include "BlockMap.inl"

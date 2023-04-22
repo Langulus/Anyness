@@ -16,10 +16,19 @@ namespace Langulus::Anyness
    ///   @return the element, wrapped in a Block                              
    LANGULUS(INLINED)
    Block BlockSet::Get(const CT::Index auto& index) {
-      const auto offset = index.GetOffset();
-      LANGULUS_ASSERT(offset < GetReserved() && GetInfo()[offset],
-         OutOfRange, "Bad index");
-      return GetValue(offset);
+      auto offset = mKeys.SimplifyIndex<void, true>(index);
+      auto info = GetInfo();
+      const auto infoEnd = GetInfoEnd();
+      while (info != infoEnd) {
+         if (*info) {
+            if (offset == 0)
+               return GetValue(info - GetInfo());
+            --offset;
+         }
+         ++info;
+      }
+
+      LANGULUS_THROW(Access, "This shouldn't be reached, ever");
    }
 
    /// Get a valid key by any index, safely (const)                           
@@ -27,10 +36,7 @@ namespace Langulus::Anyness
    ///   @return the element, wrapped in a Block                              
    LANGULUS(INLINED)
    Block BlockSet::Get(const CT::Index auto& index) const {
-      const auto offset = index.GetOffset();
-      LANGULUS_ASSERT(offset < GetReserved() && GetInfo()[offset],
-         OutOfRange, "Bad index");
-      return GetValue(offset);
+      return const_cast<BlockSet*>(this)->Get(index);
    }
    
    /// Get a valid key by any index, safely                                   
@@ -70,11 +76,21 @@ namespace Langulus::Anyness
    }
 
    /// Get the bucket index, based on the provided value's hash               
+   ///   @param mask - a mask for ANDing the relevant part of the hash        
    ///   @param value - the value to hash                                     
    ///   @return the bucket index                                             
    LANGULUS(INLINED)
-   Offset BlockSet::GetBucket(const CT::Data auto& value) const noexcept {
-      return HashData(value).mHash & (GetReserved() - 1);
+   Offset BlockSet::GetBucket(Offset mask, const CT::NotSemantic auto& value) noexcept {
+      return HashData(value).mHash & mask;
+   }
+   
+   /// Get the bucket index, based on the wrapped value's hash                
+   ///   @param mask - a mask for ANDing the relevant part of the hash        
+   ///   @param value - the value to hash, wrapped in a block                 
+   ///   @return the bucket index                                             
+   LANGULUS(INLINED)
+   Offset BlockSet::GetBucketUnknown(Offset mask, const Block& value) noexcept {
+      return value.GetHash().mHash & mask;
    }
 
    /// Get a mutable element reference                                        
@@ -88,7 +104,7 @@ namespace Langulus::Anyness
    constexpr T& BlockSet::GetRaw(Offset i) SAFETY_NOEXCEPT() {
       LANGULUS_ASSUME(DevAssumes, i < GetReserved(), "Bad index");
       LANGULUS_ASSUME(DevAssumes, mKeys.template IsExact<T>(), "Bad type");
-      return GetValues<T>().GetRaw()[i];
+      return mKeys.template GetRawAs<T>()[i];
    }
 
    /// Get a constant element reference                                       
@@ -102,7 +118,7 @@ namespace Langulus::Anyness
    constexpr const T& BlockSet::GetRaw(Offset i) const SAFETY_NOEXCEPT() {
       LANGULUS_ASSUME(DevAssumes, i < GetReserved(), "Bad index");
       LANGULUS_ASSUME(DevAssumes, mKeys.template IsExact<T>(), "Bad type");
-      return GetValues<T>().GetRaw()[i];
+      return mKeys.template GetRawAs<T>()[i];
    }
 
    /// Get an element handle                                                  
@@ -116,7 +132,7 @@ namespace Langulus::Anyness
    constexpr Handle<T> BlockSet::GetHandle(Offset i) const SAFETY_NOEXCEPT() {
       LANGULUS_ASSUME(DevAssumes, i < GetReserved(), "Bad index");
       LANGULUS_ASSUME(DevAssumes, mKeys.template IsExact<T>(), "Bad type");
-      return GetValues<T>().GetHandle(i);
+      return mKeys.template GetHandle<T>(i);
    }
 
 } // namespace Langulus::Anyness

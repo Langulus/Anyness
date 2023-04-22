@@ -16,49 +16,41 @@ namespace Langulus::Anyness
    constexpr UnorderedSet::UnorderedSet()
       : BlockSet {} {}
 
-   /// Create from a list of elements                                         
-   ///   @tparam T - the element type                                         
-   ///   @param list - list of elements                                       
-   template<CT::NotSemantic T>
-   LANGULUS(INLINED)
-   UnorderedSet::UnorderedSet(::std::initializer_list<T> list) {
-      mKeys.mType = MetaData::Of<T>();
-
-      AllocateFresh(
-         Roof2(
-            list.size() < MinimalAllocation
-               ? MinimalAllocation
-               : list.size()
-         )
-      );
-
-      ZeroMemory(mInfo, GetReserved());
-      mInfo[GetReserved()] = 1;
-
-      for (auto& it : list) {
-         // Insert a dynamically typed pair                             
-         InsertInner<true>(GetBucket(it), Copy(it));
-      }
-   }
-
    /// Copy constructor                                                       
    ///   @param other - set to shallow-copy                                   
    LANGULUS(INLINED)
       UnorderedSet::UnorderedSet(const UnorderedSet& other)
-      : UnorderedSet {Langulus::Copy(other)} {}
+      : UnorderedSet {Copy(other)} {}
 
    /// Move constructor                                                       
    ///   @param other - set to move                                           
    LANGULUS(INLINED)
-   UnorderedSet::UnorderedSet(UnorderedSet&& other) noexcept
-      : UnorderedSet {Langulus::Move(other)} {}
+   UnorderedSet::UnorderedSet(UnorderedSet&& other) 
+      : UnorderedSet {Move(other)} {}
 
-   /// Semantic constructor from any set/element                              
-   ///   @tparam S - semantic and type (deducible)                            
-   ///   @param other - the semantic type                                     
-   template<CT::Semantic S>
+   /// Constructor from any set/element by copy                               
+   ///   @param other - the set/element                                       
    LANGULUS(INLINED)
-   UnorderedSet::UnorderedSet(S&& other) noexcept {
+   UnorderedSet::UnorderedSet(const CT::NotSemantic auto& other)
+      : UnorderedSet {Copy(other)} {}
+   
+   /// Constructor from any set/element by copy                               
+   ///   @param other - the set/element                                       
+   LANGULUS(INLINED)
+   UnorderedSet::UnorderedSet(CT::NotSemantic auto& other)
+      : UnorderedSet {Copy(other)} {}
+   
+   /// Constructor from any set/element by move                               
+   ///   @param other - the set/element                                       
+   LANGULUS(INLINED)
+   UnorderedSet::UnorderedSet(CT::NotSemantic auto&& other)
+      : UnorderedSet {Move(other)} {}
+   
+   /// Semantic constructor from any set/element                              
+   ///   @param other - the semantic type                                     
+   LANGULUS(INLINED)
+   UnorderedSet::UnorderedSet(CT::Semantic auto&& other) {
+      using S = Decay<decltype(other)>;
       using T = TypeOf<S>;
 
       if constexpr (CT::Set<T>) {
@@ -73,13 +65,15 @@ namespace Langulus::Anyness
             mInfo[GetReserved()] = 1;
 
             const auto hashmask = GetReserved() - 1;
-            other.mValue.ForEach([this, hashmask](Block& element) {
-               // Insert a dynamically typed element                    
-               InsertInnerUnknown<false>(
-                  element.GetHash().mHash & hashmask,
-                  S::Nest(element)
-               );
-            });
+            other.mValue.ForEach(
+               [this, hashmask](Block& element) {
+                  // Insert a dynamically typed element                 
+                  InsertInnerUnknown<false>(
+                     GetBucketUnknown(hashmask, element),
+                     S::Nest(element)
+                  );
+               }
+            );
          }
          else {
             // We can directly interface set, because it is unordered   
@@ -92,15 +86,39 @@ namespace Langulus::Anyness
          mKeys.mType = MetaData::Of<T>();
 
          AllocateFresh(MinimalAllocation);
-         ZeroMemory(mInfo, GetReserved());
-         mInfo[GetReserved()] = 1;
+         ZeroMemory(mInfo, MinimalAllocation);
+         mInfo[MinimalAllocation] = 1;
 
          // Insert a statically typed element                           
          InsertInner<false>(
-            GetBucket(other.mValue),
+            GetBucket(MinimalAllocation - 1, other.mValue),
             S::Nest(other.mValue)
          );
       }
+   }
+   
+   /// Create from a list of elements                                         
+   ///   @param head - first element                                          
+   ///   @param tail - tail of elements                                       
+   template<CT::Data HEAD, CT::Data... TAIL>
+   UnorderedSet::UnorderedSet(HEAD&& head, TAIL&&... tail) requires (sizeof...(TAIL) >= 1) {
+      if constexpr (CT::Semantic<HEAD>)
+         mKeys.mType = MetaData::Of<TypeOf<HEAD>>();
+      else
+         mKeys.mType = MetaData::Of<HEAD>();
+
+      constexpr auto capacity = Roof2(
+         sizeof...(TAIL) + 1 < MinimalAllocation
+            ? MinimalAllocation
+            : sizeof...(TAIL) + 1
+      );
+
+      AllocateFresh(capacity);
+      ZeroMemory(mInfo, capacity);
+      mInfo[capacity] = 1;
+      Inner::NestedSemanticInsertion(
+         *this, Forward<HEAD>(head), Forward<TAIL>(tail)...
+      );
    }
 
    /// Copy assignment                                                        
@@ -108,23 +126,47 @@ namespace Langulus::Anyness
    ///   @return a reference to this set                                      
    LANGULUS(INLINED)
    UnorderedSet& UnorderedSet::operator = (const UnorderedSet& rhs) {
-      return operator = (Langulus::Copy(rhs));
+      return operator = (Copy(rhs));
    }
 
    /// Move assignment                                                        
    ///   @param rhs - unordered set to move-insert                            
    ///   @return a reference to this set                                      
    LANGULUS(INLINED)
-   UnorderedSet& UnorderedSet::operator = (UnorderedSet&& rhs) noexcept {
-      return operator = (Langulus::Move(rhs));
+   UnorderedSet& UnorderedSet::operator = (UnorderedSet&& rhs) {
+      return operator = (Move(rhs));
    }
 
-   /// Semantic assignment from any set/element                               
-   ///   @tparam S - semantic and type (deducible)                            
-   ///   @param other - the semantic type                                     
-   template<CT::Semantic S>
+   /// Assign any set/element by copy                                         
+   ///   @param other - the set/element to assign                             
+   ///   @return a reference to this set                                      
    LANGULUS(INLINED)
-   UnorderedSet& UnorderedSet::operator = (S&& other) noexcept {
+   UnorderedSet& UnorderedSet::operator = (const CT::NotSemantic auto& other) {
+      return operator = (Copy(other));
+   }
+
+   /// Assign any set/element by copy                                         
+   ///   @param other - the set/element to assign                             
+   ///   @return a reference to this set                                      
+   LANGULUS(INLINED)
+   UnorderedSet& UnorderedSet::operator = (CT::NotSemantic auto& other) {
+      return operator = (Copy(other));
+   }
+   
+   /// Assign any set/element by move                                         
+   ///   @param other - the set/element to assign                             
+   ///   @return a reference to this set                                      
+   LANGULUS(INLINED)
+   UnorderedSet& UnorderedSet::operator = (CT::NotSemantic auto&& other) {
+      return operator = (Move(other));
+   }
+
+   /// Assign from any set/element by a semantic                              
+   ///   @param other - the semantic type                                     
+   ///   @return a reference to this set                                      
+   LANGULUS(INLINED)
+   UnorderedSet& UnorderedSet::operator = (CT::Semantic auto&& other) {
+      using S = Decay<decltype(other)>;
       using T = TypeOf<S>;
 
       if constexpr (CT::Set<T>) {
@@ -147,7 +189,7 @@ namespace Langulus::Anyness
 
             // Insert a statically typed pair                           
             InsertInner<false>(
-               GetBucket(other.mValue),
+               GetBucket(GetReserved() - 1, other.mValue),
                S::Nest(other.mValue)
             );
          }
@@ -163,6 +205,14 @@ namespace Langulus::Anyness
    Count UnorderedSet::Insert(const CT::NotSemantic auto& key) {
       return Insert(Copy(key));
    }
+   
+   /// Insert a single element inside table via copy                          
+   ///   @param key - the key to add                                          
+   ///   @return 1 if element was inserted, zero otherwise                    
+   LANGULUS(INLINED)
+   Count UnorderedSet::Insert(CT::NotSemantic auto& key) {
+      return Insert(Copy(key));
+   }
 
    /// Insert a single element inside table via move                          
    ///   @param key - the key to add                                          
@@ -175,13 +225,17 @@ namespace Langulus::Anyness
    /// Semantically insert key                                                
    ///   @param key - the key to insert                                       
    ///   @return 1 if element was inserted, zero otherwise                    
-   template<CT::Semantic S>
-   Count UnorderedSet::Insert(S&& key) {
+   LANGULUS(INLINED)
+   Count UnorderedSet::Insert(CT::Semantic auto&& key) {
+      using S = Decay<decltype(key)>;
       using T = TypeOf<S>;
 
       Mutate<T>();
-      Allocate(GetCount() + 1);
-      InsertInner<true>(GetBucket(key.mValue), key.Forward());
+      Reserve(GetCount() + 1);
+      InsertInner<true>(
+         GetBucket(GetReserved() - 1, key.mValue),
+         key.Forward()
+      );
       return 1;
    }
    
@@ -190,6 +244,14 @@ namespace Langulus::Anyness
    ///   @return a reference to this set for chaining                         
    LANGULUS(INLINED)
    UnorderedSet& UnorderedSet::operator << (const CT::NotSemantic auto& item) {
+      return operator << (Copy(item));
+   }
+   
+   /// Copy-insert any element inside the set                                 
+   ///   @param item - the element to insert                                  
+   ///   @return a reference to this set for chaining                         
+   LANGULUS(INLINED)
+   UnorderedSet& UnorderedSet::operator << (CT::NotSemantic auto& item) {
       return operator << (Copy(item));
    }
 
@@ -213,16 +275,17 @@ namespace Langulus::Anyness
    /// Semantically insert a type-erased element                              
    ///   @param key - the key to insert                                       
    ///   @return 1 if element was inserted                                    
-   template<CT::Semantic S>
    LANGULUS(INLINED)
-   Count UnorderedSet::InsertUnknown(S&& key) {
-      static_assert(CT::Block<TypeOf<S>>,
-         "S's type must be a block type");
+   Count UnorderedSet::InsertUnknown(CT::Semantic auto&& key) {
+      using S = Decay<decltype(key)>;
+      static_assert(CT::Block<TypeOf<S>>, "S's type must be a block type");
 
       Mutate(key.mValue.mType);
-      Allocate(GetCount() + 1);
-      const auto index = key.mValue.GetHash().mHash & (GetReserved() - 1);
-      InsertInnerUnknown<true>(index, key.Forward());
+      Reserve(GetCount() + 1);
+      InsertInnerUnknown<true>(
+         GetBucketUnknown(GetReserved() - 1, key.mValue),
+         key.Forward()
+      );
       return 1;
    }
    

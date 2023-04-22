@@ -70,6 +70,7 @@ namespace Langulus::Anyness
             };
 
             Rehash(count, oldCount);
+            return;
          }
          else ZeroMemory(mInfo, count);
       }
@@ -81,8 +82,7 @@ namespace Langulus::Anyness
          return;
       }
 
-      // If reached, then keys or values (or both) moved                
-      // Reinsert all pairs to rehash                                   
+      // If reached, then keys moved - reinsert all pairs to rehash     
       mKeys.mCount = 0;
       auto key = oldKeys.GetElement();
       const auto hashmask = count - 1;
@@ -93,7 +93,7 @@ namespace Langulus::Anyness
          }
 
          InsertInnerUnknown<false>(
-            key.GetHash().mHash & hashmask, 
+            GetBucketUnknown(hashmask, key), 
             Abandon(key)
          );
 
@@ -119,6 +119,27 @@ namespace Langulus::Anyness
          else
             Allocator::Deallocate(oldKeys.mEntry);
       }
+   }
+   
+   /// Allocate a fresh set of keys (for internal use only)                   
+   ///   @attention doesn't initialize anything, but the memory state         
+   ///   @attention doesn't modify count, doesn't set info sentinel           
+   ///   @attention assumes count is a power-of-two                           
+   ///   @param count - the new number of elements                            
+   inline void BlockSet::AllocateFresh(const Count& count) {
+      LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(count),
+         "Table reallocation count is not a power-of-two");
+
+      Offset infoOffset;
+      const auto keyAndInfoSize = RequestKeyAndInfoSize(count, infoOffset);
+      mKeys.mEntry = Allocator::Allocate(keyAndInfoSize);
+      LANGULUS_ASSERT(mKeys.mEntry, Allocate, "Out of memory");
+
+      mKeys.mReserved = count;
+
+      // Precalculate the info pointer, it's costly                     
+      mKeys.mRaw = mKeys.mEntry->GetBlockStart();
+      mInfo = reinterpret_cast<InfoType*>(mKeys.mRaw + infoOffset);
    }
 
    /// Reserves space for the specified number of pairs                       
@@ -167,7 +188,7 @@ namespace Langulus::Anyness
       if (mKeys.mEntry->GetUses() == 1) {
          if constexpr (DESTROY) {
             if (!IsEmpty()) {
-               // Destroy all keys and values                           
+               // Destroy all valid entries                             
                ClearInner();
             }
          }
@@ -176,16 +197,14 @@ namespace Langulus::Anyness
          Allocator::Deallocate(mKeys.mEntry);
       }
       else {
-         // Data is used from multiple locations, just deref values     
-         // Notice how we don't dereference keys, since we use only the 
-         // values' references to save on some redundancy               
+         // Data is used from multiple locations, just deref            
          mKeys.mEntry->Free();
       }
    }
 
    /// Dereference memory block once and destroy all elements if data was     
    /// fully dereferenced                                                     
-   ///   @attention this never modifies any state, except mValues.mEntry      
+   ///   @attention this never modifies any state, except mKeys.mEntry        
    LANGULUS(INLINED)
    void BlockSet::Free() {
       return Dereference<true>(1);

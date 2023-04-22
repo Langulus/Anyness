@@ -63,19 +63,6 @@ namespace Langulus::Anyness
       Free();
    }
 
-   /// Move a table                                                           
-   ///   @param rhs - the table to move                                       
-   ///   @return a reference to this table                                    
-   LANGULUS(INLINED)
-   BlockSet& BlockSet::operator = (BlockSet&& rhs) noexcept {
-      if (&rhs == this)
-         return *this;
-
-      Reset();
-      new (this) BlockSet {Forward<BlockSet>(rhs)};
-      return *this;
-   }
-
    /// Creates a shallow copy of the given table                              
    ///   @param rhs - the table to reference                                  
    ///   @return a reference to this table                                    
@@ -89,23 +76,42 @@ namespace Langulus::Anyness
       return *this;
    }
    
-   /// Insert a single pair into a cleared map                                
-   ///   @param pair - the pair to copy                                       
+   /// Move a table                                                           
+   ///   @param rhs - the table to move                                       
    ///   @return a reference to this table                                    
    LANGULUS(INLINED)
-   BlockSet& BlockSet::operator = (const CT::Data auto& element) {
-      Clear();
-      Insert(element);
+   BlockSet& BlockSet::operator = (BlockSet&& rhs) noexcept {
+      if (&rhs == this)
+         return *this;
+
+      Reset();
+      new (this) BlockSet {Forward<BlockSet>(rhs)};
       return *this;
    }
 
-   /// Emplace a single pair into a cleared map                               
-   ///   @param pair - the pair to emplace                                    
-   ///   @return a reference to this table                                    
+   /// Insert a single element into a cleared set by copy                     
+   ///   @param element - the element to copy                                 
+   ///   @return a reference to this set                                      
    LANGULUS(INLINED)
-   BlockSet& BlockSet::operator = (CT::Data auto&& element) noexcept {
+   BlockSet& BlockSet::operator = (const CT::NotSemantic auto& element) {
+      return operator = (Copy(element));
+   }
+
+   /// Insert a single element into a cleared set by move                     
+   ///   @param element - the element to move                                 
+   ///   @return a reference to this set                                      
+   LANGULUS(INLINED)
+   BlockSet& BlockSet::operator = (CT::NotSemantic auto&& element) {
+      return operator = (Move(element));
+   }
+   
+   /// Insert a single element into a cleared set by a semantic               
+   ///   @param element - the element and semantic to use                     
+   ///   @return a reference to this set                                      
+   LANGULUS(INLINED)
+   BlockSet& BlockSet::operator = (CT::Semantic auto&& element) {
       Clear();
-      Insert(::std::move(element));
+      Insert(element.Forward());
       return *this;
    }
    

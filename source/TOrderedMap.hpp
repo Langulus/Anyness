@@ -50,9 +50,6 @@ namespace Langulus::Anyness
       template<CT::Semantic S>
       TOrderedMap& operator = (S&&) noexcept requires (CT::Pair<TypeOf<S>>);
 
-      using Base::GetCount;
-      using Base::Allocate;
-
       ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
@@ -67,12 +64,6 @@ namespace Langulus::Anyness
       TOrderedMap& operator << (TPair<K, V>&&);
       template<CT::Semantic S>
       TOrderedMap& operator << (S&&) noexcept requires (CT::Pair<TypeOf<S>>);
-
-      ///                                                                     
-      ///   Removal                                                           
-      ///                                                                     
-      using Base::Reset;
-      using Base::Clear;
    };
 
 

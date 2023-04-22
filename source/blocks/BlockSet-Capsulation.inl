@@ -7,6 +7,7 @@
 ///                                                                           
 #pragma once
 #include "BlockSet.hpp"
+#include "BlockSet-Iteration.inl"
 
 namespace Langulus::Anyness
 {
@@ -156,5 +157,39 @@ namespace Langulus::Anyness
    constexpr Count BlockSet::GetUses() const noexcept {
       return mKeys.GetUses();
    }
+
+#ifdef LANGULUS_ENABLE_TESTING
+   /// Get raw key memory pointer, used only in testing                       
+   ///   @return the pointer                                                  
+   LANGULUS(INLINED)
+   constexpr const void* BlockSet::GetRawMemory() const noexcept {
+      return mKeys.mRaw;
+   }
+
+   /// Get allocation, used only in testing                                   
+   ///   @return the allocation entry                                         
+   LANGULUS(INLINED)
+   Inner::Allocation* BlockSet::GetEntry() const noexcept {
+      return mKeys.mEntry;
+   }
+#endif
+
+#ifdef LANGULUS_ENABLE_DEBUGGING
+   inline void BlockSet::Dump() const {
+      Logger::Info("---------------- BlockSet::Dump start ----------------");
+      auto info = GetInfo();
+      const auto infoEnd = GetInfoEnd();
+      while (info != infoEnd) {
+         const auto index = info - GetInfo();
+         if (*info)
+            Logger::Info('[', index, "] -", (*info-1), " -> ", GetValue(index).GetHash().mHash);
+         else
+            Logger::Info('[', index, "] empty");
+
+         ++info;
+      }
+      Logger::Info("----------------  BlockSet::Dump end  ----------------");
+   }
+#endif
 
 } // namespace Langulus::Anyness

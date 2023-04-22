@@ -284,7 +284,7 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Count BlockSet::ForEach(F&&... f) {
       Count result {};
-      (... || (0 != (result = ForEachSplitter<MUTABLE, REVERSE>(mKeys, Forward<F>(f)))));
+      (void) (... || (0 != (result = ForEachSplitter<MUTABLE, REVERSE>(mKeys, Forward<F>(f)))));
       return result;
    }
 
@@ -299,7 +299,7 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Count BlockSet::ForEachDeep(F&&... f) {
       Count result {};
-      (... || (0 != (result = ForEachDeepSplitter<SKIP, MUTABLE, REVERSE>(mKeys, Forward<F>(f)))));
+      (void) (... || (0 != (result = ForEachDeepSplitter<SKIP, MUTABLE, REVERSE>(mKeys, Forward<F>(f)))));
       return result;
    }
 

@@ -11,14 +11,15 @@
 namespace Langulus::Anyness
 {
 
-   /// Erase a pair via key                                                   
-   ///   @param match - the key to search for                                 
-   ///   @return 1 if pair was removed, 0 if not                              
+   /// Erase an element                                                       
+   ///   @tparam T - the type of the element to remove (deducible)            
+   ///   @param match - the element to search for                             
+   ///   @return 1 if element was removed, 0 if not                           
    template<CT::NotSemantic T>
    Count BlockSet::Remove(const T& match) {
       // Get the starting index based on the key hash                   
-      const auto start = GetBucket(match);
-      auto key = GetRaw<T>() + start;
+      const auto start = GetBucket(GetReserved() - 1, match);
+      auto key = mKeys.GetRawAs<T>() + start;
       auto info = GetInfo() + start;
       const auto infoEnd = GetInfoEnd();
 

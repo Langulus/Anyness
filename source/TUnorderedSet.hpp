@@ -38,21 +38,23 @@ namespace Langulus::Anyness
       constexpr TUnorderedSet();
 
       TUnorderedSet(const TUnorderedSet&);
-      TUnorderedSet(TUnorderedSet&&) noexcept;
-      template<CT::Semantic S>
-      TUnorderedSet(S&&) noexcept;
+      TUnorderedSet(TUnorderedSet&&);
 
-      TUnorderedSet(::std::initializer_list<T>);
+      TUnorderedSet(const T&);
+      TUnorderedSet(T&&);
+      TUnorderedSet(CT::Semantic auto&&);
+
+      template<CT::Data HEAD, CT::Data... TAIL>
+      TUnorderedSet(HEAD&&, TAIL&&...) requires (sizeof...(TAIL) >= 1);
 
       ~TUnorderedSet();
 
       TUnorderedSet& operator = (const TUnorderedSet&);
-      TUnorderedSet& operator = (TUnorderedSet&&) noexcept;
+      TUnorderedSet& operator = (TUnorderedSet&&);
 
-      TUnorderedSet& operator = (const CT::NotSemantic auto&);
-      TUnorderedSet& operator = (CT::NotSemantic auto&&) noexcept;
-      template<CT::Semantic S>
-      TUnorderedSet& operator = (S&&) noexcept;
+      TUnorderedSet& operator = (const T&);
+      TUnorderedSet& operator = (T&&);
+      TUnorderedSet& operator = (CT::Semantic auto&&);
 
    public:
       ///                                                                     
@@ -82,8 +84,6 @@ namespace Langulus::Anyness
    protected:
       NOD() const TAny<T>& GetValues() const noexcept;
       NOD()       TAny<T>& GetValues() noexcept;
-
-      NOD() Offset GetBucket(const T&) const noexcept;
 
       NOD() constexpr       T&  GetRaw(Offset) noexcept;
       NOD() constexpr const T&  GetRaw(Offset) const noexcept;
@@ -148,13 +148,11 @@ namespace Langulus::Anyness
       ///                                                                     
       Count Insert(const T&);
       Count Insert(T&&);
-      template<CT::Semantic S>
-      Count Insert(S&&) requires (CT::Exact<TypeOf<S>, T>);
+      Count Insert(CT::Semantic auto&&);
 
       TUnorderedSet& operator << (const T&);
       TUnorderedSet& operator << (T&&);
-      template<CT::Semantic S>
-      TUnorderedSet& operator << (S&&) requires (CT::Exact<TypeOf<S>, T>);
+      TUnorderedSet& operator << (CT::Semantic auto&&);
 
    protected:
       NOD() static Size RequestKeyAndInfoSize(Count, Offset&) noexcept;

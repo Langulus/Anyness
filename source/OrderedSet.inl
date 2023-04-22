@@ -16,31 +16,6 @@ namespace Langulus::Anyness
    constexpr OrderedSet::OrderedSet()
       : BlockSet {} {}
 
-   /// Create from a list of elements                                         
-   ///   @tparam T - the element type                                         
-   ///   @param list - list of elements                                       
-   template<CT::NotSemantic T>
-   LANGULUS(INLINED)
-   OrderedSet::OrderedSet(::std::initializer_list<T> list) {
-      mKeys.mType = MetaData::Of<T>();
-
-      AllocateFresh(
-         Roof2(
-            list.size() < MinimalAllocation
-               ? MinimalAllocation
-               : list.size()
-         )
-      );
-
-      ZeroMemory(mInfo, GetReserved());
-      mInfo[GetReserved()] = 1;
-
-      for (auto& it : list) {
-         // Insert a dynamically typed pair                             
-         InsertInner<true>(GetBucket(it), Copy(it));
-      }
-   }
-
    /// Copy constructor                                                       
    ///   @param other - set to shallow-copy                                   
    LANGULUS(INLINED)
@@ -50,15 +25,32 @@ namespace Langulus::Anyness
    /// Move constructor                                                       
    ///   @param other - set to move                                           
    LANGULUS(INLINED)
-   OrderedSet::OrderedSet(OrderedSet&& other) noexcept
+   OrderedSet::OrderedSet(OrderedSet&& other)
       : OrderedSet {Langulus::Move(other)} {}
 
-   /// Semantic constructor from any set/element                              
-   ///   @tparam S - semantic and type (deducible)                            
-   ///   @param other - the semantic type                                     
-   template<CT::Semantic S>
+   /// Constructor from any set/element by copy                               
+   ///   @param other - the set/element                                       
    LANGULUS(INLINED)
-   OrderedSet::OrderedSet(S&& other) noexcept {
+   OrderedSet::OrderedSet(const CT::NotSemantic auto& other)
+      : OrderedSet {Copy(other)} {}
+   
+   /// Constructor from any set/element by copy                               
+   ///   @param other - the set/element                                       
+   LANGULUS(INLINED)
+   OrderedSet::OrderedSet(CT::NotSemantic auto& other)
+      : OrderedSet {Copy(other)} {}
+   
+   /// Constructor from any set/element by move                               
+   ///   @param other - the set/element                                       
+   LANGULUS(INLINED)
+   OrderedSet::OrderedSet(CT::NotSemantic auto&& other)
+      : OrderedSet {Move(other)} {}
+
+   /// Semantic constructor from any set/element                              
+   ///   @param other - the semantic type                                     
+   LANGULUS(INLINED)
+   OrderedSet::OrderedSet(CT::Semantic auto&& other) {
+      using S = Decay<decltype(other)>;
       using T = TypeOf<S>;
 
       if constexpr (CT::Set<T>) {
@@ -73,13 +65,15 @@ namespace Langulus::Anyness
             mInfo[GetReserved()] = 1;
 
             const auto hashmask = GetReserved() - 1;
-            other.mValue.ForEach([this, hashmask](Block& element) {
-               // Insert a dynamically typed element                    
-               InsertInnerUnknown<false>(
-                  element.GetHash().mHash & hashmask,
-                  S::Nest(element)
-               );
-            });
+            other.mValue.ForEach(
+               [this, hashmask](Block& element) {
+                  // Insert a dynamically typed element                 
+                  InsertInnerUnknown<false>(
+                     element.GetHash().mHash & hashmask,
+                     S::Nest(element)
+                  );
+               }
+            );
          }
          else {
             // We can directly interface set, because it is ordered     
@@ -92,15 +86,39 @@ namespace Langulus::Anyness
          mKeys.mType = MetaData::Of<T>();
 
          AllocateFresh(MinimalAllocation);
-         ZeroMemory(mInfo, GetReserved());
-         mInfo[GetReserved()] = 1;
+         ZeroMemory(mInfo, MinimalAllocation);
+         mInfo[MinimalAllocation] = 1;
 
          // Insert a statically typed element                           
          InsertInner<false>(
-            GetBucket(other.mValue),
+            GetBucket(MinimalAllocation - 1, other.mValue),
             S::Nest(other.mValue)
          );
       }
+   }
+   
+   /// Create from a list of elements                                         
+   ///   @param head - first element                                          
+   ///   @param tail - tail of elements                                       
+   template<CT::Data HEAD, CT::Data... TAIL>
+   OrderedSet::OrderedSet(HEAD&& head, TAIL&&... tail) requires (sizeof...(TAIL) >= 1) {
+      if constexpr (CT::Semantic<HEAD>)
+         mKeys.mType = MetaData::Of<TypeOf<HEAD>>();
+      else
+         mKeys.mType = MetaData::Of<HEAD>();
+
+      constexpr auto capacity = Roof2(
+         sizeof...(TAIL) + 1 < MinimalAllocation
+            ? MinimalAllocation
+            : sizeof...(TAIL) + 1
+      );
+
+      AllocateFresh(capacity);
+      ZeroMemory(mInfo, capacity);
+      mInfo[capacity] = 1;
+      Inner::NestedSemanticInsertion(
+         *this, Forward<HEAD>(head), Forward<TAIL>(tail)...
+      );
    }
 
    /// Copy assignment                                                        
@@ -108,23 +126,47 @@ namespace Langulus::Anyness
    ///   @return a reference to this set                                      
    LANGULUS(INLINED)
    OrderedSet& OrderedSet::operator = (const OrderedSet& rhs) {
-      return operator = (Langulus::Copy(rhs));
+      return operator = (Copy(rhs));
    }
 
    /// Move assignment                                                        
    ///   @param rhs - ordered set to move-insert                              
    ///   @return a reference to this set                                      
    LANGULUS(INLINED)
-   OrderedSet& OrderedSet::operator = (OrderedSet&& rhs) noexcept {
-      return operator = (Langulus::Move(rhs));
+   OrderedSet& OrderedSet::operator = (OrderedSet&& rhs) {
+      return operator = (Move(rhs));
    }
 
-   /// Semantic assignment from any set/element                               
-   ///   @tparam S - semantic and type (deducible)                            
-   ///   @param other - the semantic type                                     
-   template<CT::Semantic S>
+   /// Assign any set/element by copy                                         
+   ///   @param other - the semantic and element to merge                     
+   ///   @return a reference to this set                                      
    LANGULUS(INLINED)
-   OrderedSet& OrderedSet::operator = (S&& other) noexcept {
+   OrderedSet& OrderedSet::operator = (const CT::NotSemantic auto& other) {
+      return operator = (Copy(other));
+   }
+   
+   /// Assign any set/element by copy                                         
+   ///   @param other - the semantic and element to merge                     
+   ///   @return a reference to this set                                      
+   LANGULUS(INLINED)
+   OrderedSet& OrderedSet::operator = (CT::NotSemantic auto& other) {
+      return operator = (Copy(other));
+   }
+
+   /// Assign any set/element by move                                         
+   ///   @param other - the semantic and element to merge                     
+   ///   @return a reference to this set                                      
+   LANGULUS(INLINED)
+   OrderedSet& OrderedSet::operator = (CT::NotSemantic auto&& other) {
+      return operator = (Move(other));
+   }
+
+   /// Assignment any set/element by a semantic                               
+   ///   @param other - the semantic and element to merge                     
+   ///   @return a reference to this set                                      
+   LANGULUS(INLINED)
+   OrderedSet& OrderedSet::operator = (CT::Semantic auto&& other) {
+      using S = Decay<decltype(other)>;
       using T = TypeOf<S>;
 
       if constexpr (CT::Set<T>) {
@@ -147,7 +189,7 @@ namespace Langulus::Anyness
 
             // Insert a statically typed pair                           
             InsertInner<false>(
-               GetBucket(other.mValue),
+               GetBucket(GetReserved() - 1, other.mValue),
                S::Nest(other.mValue)
             );
          }
@@ -163,6 +205,14 @@ namespace Langulus::Anyness
    Count OrderedSet::Insert(const CT::NotSemantic auto& key) {
       return Insert(Copy(key));
    }
+   
+   /// Insert a single element inside table via copy                          
+   ///   @param key - the key to add                                          
+   ///   @return 1 if element was inserted, zero otherwise                    
+   LANGULUS(INLINED)
+   Count OrderedSet::Insert(CT::NotSemantic auto& key) {
+      return Insert(Copy(key));
+   }
 
    /// Insert a single element inside table via move                          
    ///   @param key - the key to add                                          
@@ -175,13 +225,16 @@ namespace Langulus::Anyness
    /// Semantically insert key                                                
    ///   @param key - the key to insert                                       
    ///   @return 1 if element was inserted, zero otherwise                    
-   template<CT::Semantic S>
-   Count OrderedSet::Insert(S&& key) {
+   Count OrderedSet::Insert(CT::Semantic auto&& key) {
+      using S = Decay<decltype(key)>;
       using T = TypeOf<S>;
 
       Mutate<T>();
-      Allocate(GetCount() + 1);
-      InsertInner<true>(GetBucket(key.mValue), key.Forward());
+      Reserve(GetCount() + 1);
+      InsertInner<true>(
+         GetBucket(GetReserved() - 1, key.mValue),
+         key.Forward()
+      );
       return 1;
    }
    
@@ -190,6 +243,14 @@ namespace Langulus::Anyness
    ///   @return a reference to this set for chaining                         
    LANGULUS(INLINED)
    OrderedSet& OrderedSet::operator << (const CT::NotSemantic auto& item) {
+      return operator << (Copy(item));
+   }
+   
+   /// Copy-insert any element inside the set                                 
+   ///   @param item - the element to insert                                  
+   ///   @return a reference to this set for chaining                         
+   LANGULUS(INLINED)
+   OrderedSet& OrderedSet::operator << (CT::NotSemantic auto& item) {
       return operator << (Copy(item));
    }
 
@@ -213,16 +274,17 @@ namespace Langulus::Anyness
    /// Semantically insert a type-erased element                              
    ///   @param key - the key to insert                                       
    ///   @return 1 if element was inserted                                    
-   template<CT::Semantic S>
    LANGULUS(INLINED)
-   Count OrderedSet::InsertUnknown(S&& key) {
-      static_assert(CT::Block<TypeOf<S>>,
-         "S's type must be a block type");
+   Count OrderedSet::InsertUnknown(CT::Semantic auto&& key) {
+      using S = Decay<decltype(key)>;
+      static_assert(CT::Block<TypeOf<S>>, "S's type must be a block type");
 
       Mutate(key.mValue.mType);
-      Allocate(GetCount() + 1);
-      const auto index = key.mValue.GetHash().mHash & (GetReserved() - 1);
-      InsertInnerUnknown<true>(index, key.Forward());
+      Reserve(GetCount() + 1);
+      InsertInnerUnknown<true>(
+         GetBucketUnknown(GetReserved() - 1, key.mValue),
+         key.Forward()
+      );
       return 1;
    }
    

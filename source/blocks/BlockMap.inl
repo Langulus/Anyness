@@ -767,7 +767,7 @@ namespace Langulus::Anyness
       while (oldInfo != oldInfoEnd) {
          if (*oldInfo) {
             InsertInnerUnknown<false>(
-               key.GetHash().mHash & hashmask, 
+               GetBucketUnknown(hashmask, key),
                Abandon(key), 
                Abandon(value)
             );
@@ -838,7 +838,7 @@ namespace Langulus::Anyness
             // Rehash and check if hashes match                         
             const Offset oldIndex = oldInfo - GetInfo();
             auto oldKey = GetKey(oldIndex);
-            const Offset newIndex = oldKey.GetHash().mHash & hashmask;
+            const Offset newIndex = GetBucketUnknown(hashmask, oldKey);
             if (oldIndex != newIndex) {
                // Move key & value to swapper                           
                // No chance of overlap, so do it forwards               
@@ -855,10 +855,13 @@ namespace Langulus::Anyness
                *oldInfo = 0;
                --mValues.mCount;
 
-               if (oldIndex != InsertInnerUnknown<false>(
+               InsertInnerUnknown<false>(
+                  newIndex, Abandon(keyswap), Abandon(valswap)
+               );
+               /*if (oldIndex != InsertInnerUnknown<false>(
                   newIndex, Abandon(keyswap), Abandon(valswap))) {
                   continue;
-               }
+               }*/
             }
          }
 
@@ -887,14 +890,23 @@ namespace Langulus::Anyness
       else
          AllocateData<false>(count);
    }
-
-   /// Get the bucket index, depending on key hash                            
-   ///   @param key - the key to hash                                         
-   ///   @return the bucket offset                                            
-   template<CT::NotSemantic K>
+   
+   /// Get the bucket index, based on the provided value's hash               
+   ///   @param mask - a mask for ANDing the relevant part of the hash        
+   ///   @param value - the value to hash                                     
+   ///   @return the bucket index                                             
    LANGULUS(INLINED)
-   Offset BlockMap::GetBucket(const K& key) const noexcept {
-      return HashData(key).mHash & (GetReserved() - 1);
+   Offset BlockMap::GetBucket(Offset mask, const CT::NotSemantic auto& value) noexcept {
+      return HashData(value).mHash & mask;
+   }
+   
+   /// Get the bucket index, based on the wrapped value's hash                
+   ///   @param mask - a mask for ANDing the relevant part of the hash        
+   ///   @param value - the value to hash, wrapped in a block                 
+   ///   @return the bucket index                                             
+   LANGULUS(INLINED)
+   Offset BlockMap::GetBucketUnknown(Offset mask, const Block& value) noexcept {
+      return value.GetHash().mHash & mask;
    }
    
    /// Inner insertion function                                               
@@ -1209,7 +1221,7 @@ namespace Langulus::Anyness
    template<CT::NotSemantic K>
    Count BlockMap::RemoveKey(const K& match) {
       // Get the starting index based on the key hash                   
-      const auto start = GetBucket(match);
+      const auto start = GetBucket(GetReserved() - 1, match);
       auto key = &GetRawKey<K>(start);
       auto info = GetInfo() + start;
       const auto infoEnd = GetInfoEnd();
@@ -1229,6 +1241,7 @@ namespace Langulus::Anyness
    }
 
    /// Erase all pairs with a given value                                     
+   ///   @attention this is very significantly slower than removing a key     
    ///   @param match - the value to search for                               
    ///   @return the number of removed pairs                                  
    template<CT::NotSemantic V>
@@ -1456,7 +1469,7 @@ namespace Langulus::Anyness
       // Get the starting index based on the key hash                   
       // Since reserved elements are always power-of-two, we use them   
       // as a mask to the hash, to extract the relevant bucket          
-      const auto start = GetBucket(key);
+      const auto start = GetBucket(GetReserved() - 1, key);
       auto psl = GetInfo() + start;
       const auto pslEnd = GetInfoEnd() - 1;
       auto candidate = &GetRawKey<K>(start);
@@ -1494,7 +1507,7 @@ namespace Langulus::Anyness
       // Get the starting index based on the key hash                   
       // Since reserved elements are always power-of-two, we use them   
       // as a mask to the hash, to extract the relevant bucket          
-      const auto start = GetBucket(key);
+      const auto start = GetBucketUnknown(GetReserved() - 1, key);
       auto psl = GetInfo() + start;
       const auto pslEnd = GetInfoEnd() - 1;
       auto candidate = GetKey(start);

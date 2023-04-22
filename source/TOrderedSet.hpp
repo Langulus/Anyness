@@ -18,26 +18,45 @@ namespace Langulus::Anyness
    template<CT::Data T>
    class TOrderedSet : public TUnorderedSet<T> {
    public:
+      using Self = TOrderedSet<T>;
+      using Allocator = Inner::Allocator;
+      using Base = TUnorderedSet<T>;
+
       static constexpr bool Ordered = true;
 
-      using TUnorderedSet<T>::TUnorderedSet;
+      using Base::TUnorderedSet;
 
       TOrderedSet(const TOrderedSet&);
       TOrderedSet(TOrderedSet&&) noexcept;
 
-      constexpr TOrderedSet(Disowned<TOrderedSet>&&) noexcept;
-      constexpr TOrderedSet(Abandoned<TOrderedSet>&&) noexcept;
+      //TODO defined in header due to MSVC compiler bug (02/2023)       
+      // Might be fixed in the future                                   
+      template<CT::Semantic S>
+      constexpr TOrderedSet(S&& other) noexcept requires (CT::Exact<TypeOf<S>, Self>)
+         : Base {other.template Forward<Base>()} {}
 
       TOrderedSet& operator = (const TOrderedSet&);
       TOrderedSet& operator = (TOrderedSet&&) noexcept;
 
-      using TUnorderedSet<T>::operator =;
+      TOrderedSet& operator = (const T&);
+      TOrderedSet& operator = (T&&);
+      TOrderedSet& operator = (CT::Semantic auto&&);
 
-      NOD() TOrderedSet Clone() const;
+      ///                                                                     
+      ///   Insertion                                                         
+      ///                                                                     
+      Count Insert(const T&);
+      Count Insert(T&&);
+      template<CT::Semantic S>
+      Count Insert(S&&) requires (CT::Exact<TypeOf<S>, T>);
+
+      TOrderedSet& operator << (const T&);
+      TOrderedSet& operator << (T&&);
+      template<CT::Semantic S>
+      TOrderedSet& operator << (S&&) requires (CT::Exact<TypeOf<S>, T>);
    };
 
-
-   /// The default map is always ordered                                      
+   /// The default set is always ordered                                      
    template<CT::Data T>
    using TSet = TOrderedSet<T>;
 

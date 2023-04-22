@@ -46,11 +46,13 @@ namespace Langulus::Anyness
       TUnorderedMap(const TUnorderedMap&);
       TUnorderedMap(TUnorderedMap&&) noexcept;
 
-      template<CT::Pair P>
-      TUnorderedMap(::std::initializer_list<P>);
+      TUnorderedMap(const CT::NotSemantic auto&);
+      TUnorderedMap(CT::NotSemantic auto&);
+      TUnorderedMap(CT::NotSemantic auto&&);
+      TUnorderedMap(CT::Semantic auto&&);
 
-      template<CT::Semantic S>
-      TUnorderedMap(S&&) noexcept;
+      template<CT::Data HEAD, CT::Data... TAIL>
+      TUnorderedMap(HEAD&&, TAIL&&...) requires (sizeof...(TAIL) >= 1);
 
       ~TUnorderedMap();
 
@@ -58,9 +60,9 @@ namespace Langulus::Anyness
       TUnorderedMap& operator = (TUnorderedMap&&) noexcept;
 
       TUnorderedMap& operator = (const CT::NotSemantic auto&);
-      TUnorderedMap& operator = (CT::NotSemantic auto&&) noexcept;
-      template<CT::Semantic S>
-      TUnorderedMap& operator = (S&&) noexcept;
+      TUnorderedMap& operator = (CT::NotSemantic auto&);
+      TUnorderedMap& operator = (CT::NotSemantic auto&&);
+      TUnorderedMap& operator = (CT::Semantic auto&&);
 
    public:
       NOD() DMeta GetKeyType() const;
@@ -197,7 +199,6 @@ namespace Langulus::Anyness
       NOD() const TAny<V>& GetValues() const noexcept;
       NOD() TAny<V>& GetValues() noexcept;
 
-      NOD() Offset GetBucket(const K&) const noexcept;
       NOD() Offset FindIndex(const K&) const;
 
    TESTING(public:)

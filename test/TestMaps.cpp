@@ -55,11 +55,6 @@ P CreatePair(const ALT_K& key, const ALT_V& value) {
    return P {keyValue, valueValue};
 }
 
-/// Detect if type is TAny, instead of Any, by searching for [] operator      
-template<class T>
-concept IsStaticallyOptimized = requires (Decay<T> a) { typename T::Key; typename T::Value; };
-
-
 /// The main test for TOrderedMap/TUnorderedMap/OrderedMap/UnorderedMap       
 /// containers, with all kinds of items, from sparse to dense, from trivial   
 /// to complex, from flat to deep                                             
@@ -112,17 +107,17 @@ TEMPLATE_TEST_CASE(
 
       T map {};
 
-      /*WHEN("Given a default-constructed map") {
+      WHEN("Given a default-constructed map") {
          THEN("These properties should be correct") {
-            if constexpr (IsStaticallyOptimized<T>) {
+            if constexpr (CT::Typed<T>) {
                REQUIRE(map.template KeyIs<K>());
                REQUIRE(map.template ValueIs<V>());
                REQUIRE(map.GetKeyType()->template Is<K>());
                REQUIRE(map.GetValueType()->template Is<V>());
             }
 
-            REQUIRE(map.IsKeyTypeConstrained() == IsStaticallyOptimized<T>);
-            REQUIRE(map.IsValueTypeConstrained() == IsStaticallyOptimized<T>);
+            REQUIRE(map.IsKeyTypeConstrained() == CT::Typed<T>);
+            REQUIRE(map.IsValueTypeConstrained() == CT::Typed<T>);
             REQUIRE(map.IsEmpty());
             REQUIRE(map.GetUses() == 0);
             REQUIRE_FALSE(map.IsAllocated());
@@ -146,45 +141,6 @@ TEMPLATE_TEST_CASE(
          #endif
       }
 
-      WHEN("Given a pair by copy") {
-         IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
-
-         map = pair;
-
-         THEN("Various traits change") {
-            REQUIRE(map.IsKeyTypeConstrained() == IsStaticallyOptimized<T>);
-            REQUIRE(map.GetKeyType()->template Is<K>());
-            REQUIRE(map.IsValueTypeConstrained() == IsStaticallyOptimized<T>);
-            REQUIRE(map.GetValueType()->template Is<V>());
-            REQUIRE(map.template KeyIs<K>());
-            REQUIRE(map.template ValueIs<V>());
-            REQUIRE(map.GetKeyStride() == sizeof(K));
-            REQUIRE(map.GetValueStride() == sizeof(V));
-            REQUIRE(map.IsAllocated());
-            REQUIRE(map.HasAuthority());
-            REQUIRE(map.GetCount() == 1);
-            REQUIRE(map.GetUses() == 1);
-            REQUIRE(map[pair.mKey] == pair.mValue);
-            REQUIRE(map["missing"_text] != pair.mValue);
-         }
-
-         #ifdef LANGULUS_STD_BENCHMARK
-            BENCHMARK_ADVANCED("Anyness::TUnorderedMap::operator = (single pair copy)") (timer meter) {
-               some<MapType> storage(meter.runs());
-               meter.measure([&](int i) {
-                  return storage[i] = pair;
-               });
-            };
-
-            BENCHMARK_ADVANCED("std::unordered_map::insert(single pair copy)") (timer meter) {
-               some<MapTypeStd> storage(meter.runs());
-               meter.measure([&](int i) {
-                  return storage[i].insert(stdpair);
-               });
-            };
-         #endif
-      }
-      */
       WHEN("Given a pair by move") {
          IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
@@ -193,9 +149,9 @@ TEMPLATE_TEST_CASE(
 
          THEN("Various traits change") {
             REQUIRE(movablePair != pair);
-            REQUIRE(map.IsKeyTypeConstrained() == IsStaticallyOptimized<T>);
+            REQUIRE(map.IsKeyTypeConstrained() == CT::Typed<T>);
             REQUIRE(map.GetKeyType()->template Is<K>());
-            REQUIRE(map.IsValueTypeConstrained() == IsStaticallyOptimized<T>);
+            REQUIRE(map.IsValueTypeConstrained() == CT::Typed<T>);
             REQUIRE(map.GetValueType()->template Is<V>());
             REQUIRE(map.template KeyIs<K>());
             REQUIRE(map.template ValueIs<V>());
@@ -292,7 +248,8 @@ TEMPLATE_TEST_CASE(
       }
 
       WHEN("Create 2048 and then 4096 maps, and initialize them (weird corner case test)") {
-         auto storage = new some<T> {2048};
+         auto storage = new some<T>;
+         storage->resize(2048);
          const void* prevKeys = nullptr;
          const void* prevValues = nullptr;
 
@@ -316,7 +273,8 @@ TEMPLATE_TEST_CASE(
          }
 
          delete storage;
-         storage = new some<T>();
+         storage = new some<T>;
+         storage->resize(4096);
 
          prevValues = nullptr;
          prevKeys = nullptr;
@@ -368,8 +326,8 @@ TEMPLATE_TEST_CASE(
             REQUIRE(map[comparer.mKey] == comparer.mValue);
 
          THEN("The size and capacity change, type will never change, memory shouldn't move if MANAGED_MEMORY feature is enabled") {
-            REQUIRE(map.IsKeyTypeConstrained() == IsStaticallyOptimized<T>);
-            REQUIRE(map.IsValueTypeConstrained() == IsStaticallyOptimized<T>);
+            REQUIRE(map.IsKeyTypeConstrained() == CT::Typed<T>);
+            REQUIRE(map.IsValueTypeConstrained() == CT::Typed<T>);
             REQUIRE(map.GetKeyType()->template Is<K>());
             REQUIRE(map.template KeyIs<K>());
             REQUIRE(map.GetValueType()->template Is<V>());
@@ -490,7 +448,12 @@ TEMPLATE_TEST_CASE(
             BENCHMARK_ADVANCED("Anyness::TUnorderedMap::operator << (5 consecutive trivial moves)") (timer meter) {
                some<MapType> storage(meter.runs());
                meter.measure([&](int i) {
-                  return storage[i] << ::std::move(darray2[0]) << ::std::move(darray2[1]) << ::std::move(darray2[2]) << ::std::move(darray2[3]) << ::std::move(darray2[4]);
+                  return storage[i] 
+                     << ::std::move(darray2[0]) 
+                     << ::std::move(darray2[1]) 
+                     << ::std::move(darray2[2]) 
+                     << ::std::move(darray2[3]) 
+                     << ::std::move(darray2[4]);
                });
             };
 
@@ -669,8 +632,8 @@ TEMPLATE_TEST_CASE(
             REQUIRE(map.GetValueType()->template Is<V>());
             REQUIRE(map.template KeyIs<K>());
             REQUIRE(map.template ValueIs<V>());
-            REQUIRE(map.IsKeyTypeConstrained() == IsStaticallyOptimized<T>);
-            REQUIRE(map.IsValueTypeConstrained() == IsStaticallyOptimized<T>);
+            REQUIRE(map.IsKeyTypeConstrained() == CT::Typed<T>);
+            REQUIRE(map.IsValueTypeConstrained() == CT::Typed<T>);
             REQUIRE(map.IsEmpty());
             REQUIRE(map.GetRawKeysMemory() == keyMemory);
             REQUIRE(map.GetRawValuesMemory() == valueMemory);
@@ -687,14 +650,14 @@ TEMPLATE_TEST_CASE(
             REQUIRE(map.GetCount() == 0);
             REQUIRE_FALSE(map.IsAllocated());
             REQUIRE_FALSE(map.HasAuthority());
-            if constexpr (IsStaticallyOptimized<T>) {
+            if constexpr (CT::Typed<T>) {
                REQUIRE(map.template KeyIs<K>());
                REQUIRE(map.template ValueIs<V>());
                REQUIRE(map.GetKeyType()->template Is<K>());
                REQUIRE(map.GetValueType()->template Is<V>());
             }
-            REQUIRE(map.IsKeyTypeConstrained() == IsStaticallyOptimized<T>);
-            REQUIRE(map.IsValueTypeConstrained() == IsStaticallyOptimized<T>);
+            REQUIRE(map.IsKeyTypeConstrained() == CT::Typed<T>);
+            REQUIRE(map.IsValueTypeConstrained() == CT::Typed<T>);
             REQUIRE(map.IsEmpty());
             REQUIRE(map.GetRawKeysMemory() != keyMemory);
             REQUIRE(map.GetRawValuesMemory() != valueMemory);
@@ -719,7 +682,7 @@ TEMPLATE_TEST_CASE(
             for (auto& comparer : darray1)
                REQUIRE(copy[comparer.mKey] == comparer.mValue);
 
-            if constexpr (IsStaticallyOptimized<T>) {
+            if constexpr (CT::Typed<T>) {
                for (auto& comparer : darray1)
                   REQUIRE(&map[comparer.mKey] == &copy[comparer.mKey]);
             }
@@ -730,10 +693,7 @@ TEMPLATE_TEST_CASE(
          T clone = Langulus::Clone(map);
 
          THEN("The new map should keep the state, but refer to new data") {
-            if constexpr (CT::Sparse<K> || CT::Sparse<V>)
-               REQUIRE(clone != map);
-            else
-               REQUIRE(clone == map);
+            REQUIRE((clone != map) == (CT::Sparse<K> || CT::Sparse<V>));
             REQUIRE(clone.GetKeyType()->template Is<K>());
             REQUIRE(clone.GetValueType()->template Is<V>());
             REQUIRE(clone.IsAllocated());
@@ -755,7 +715,7 @@ TEMPLATE_TEST_CASE(
                
                REQUIRE(map[comparer.mKey] == comparer.mValue);
                
-               if constexpr (IsStaticallyOptimized<T>)
+               if constexpr (CT::Typed<T>)
                   REQUIRE(&map[comparer.mKey] != &clone[comparer.mKey]);
                else
                   REQUIRE(map[comparer.mKey].GetRaw() != clone[comparer.mKey].GetRaw());
@@ -784,8 +744,8 @@ TEMPLATE_TEST_CASE(
             REQUIRE(movable.IsEmpty());
             REQUIRE(movable.GetRawValuesMemory() == nullptr);
             REQUIRE(movable.GetCount() == 0);
-            REQUIRE(movable.IsValueTypeConstrained() == IsStaticallyOptimized<T>);
-            REQUIRE(movable.IsKeyTypeConstrained() == IsStaticallyOptimized<T>);
+            REQUIRE(movable.IsValueTypeConstrained() == CT::Typed<T>);
+            REQUIRE(movable.IsKeyTypeConstrained() == CT::Typed<T>);
          }
       }
 
@@ -799,10 +759,7 @@ TEMPLATE_TEST_CASE(
 
          THEN("The comparisons should be adequate") {
             REQUIRE(map == sameMap);
-            if constexpr (CT::Sparse<K> || CT::Sparse<V>)
-               REQUIRE(map != clonedMap);
-            else
-               REQUIRE(map == clonedMap);
+            REQUIRE((map != clonedMap) == (CT::Sparse<K> || CT::Sparse<V>));
             REQUIRE(map == copiedMap);
             REQUIRE(map != differentMap1);
          }
@@ -814,9 +771,9 @@ TEMPLATE_TEST_CASE(
 
          unsigned i = 0;
          for (auto pair : map) {
-            static_assert(!IsStaticallyOptimized<T> || ::std::is_reference_v<decltype(pair.mKey)>,
+            static_assert(!CT::Typed<T> || ::std::is_reference_v<decltype(pair.mKey)>,
                "Pair key type is not a reference for statically optimized map");
-            static_assert(!IsStaticallyOptimized<T> || ::std::is_reference_v<decltype(pair.mValue)>,
+            static_assert(!CT::Typed<T> || ::std::is_reference_v<decltype(pair.mValue)>,
                "Pair value type is not a reference for statically optimized map");
 
             // Different architectures result in different hashes       
@@ -894,19 +851,19 @@ TEMPLATE_TEST_CASE(
             if constexpr (Bitness == 32) {
                switch (i) {
                case 0:
-                  REQUIRE(key == DenseCast(darray1[2].mKey));
+                  REQUIRE(key == darray1[2].mKey);
                   break;
                case 1:
-                  REQUIRE(key == DenseCast(darray1[3].mKey));
+                  REQUIRE(key == darray1[3].mKey);
                   break;
                case 2:
-                  REQUIRE(key == DenseCast(darray1[1].mKey));
+                  REQUIRE(key == darray1[1].mKey);
                   break;
                case 3:
-                  REQUIRE(key == DenseCast(darray1[4].mKey));
+                  REQUIRE(key == darray1[4].mKey);
                   break;
                case 4:
-                  REQUIRE(key == DenseCast(darray1[0].mKey));
+                  REQUIRE(key == darray1[0].mKey);
                   break;
                default:
                   FAIL("Index out of bounds in ranged-for");
@@ -916,19 +873,19 @@ TEMPLATE_TEST_CASE(
             else if constexpr (Bitness == 64) {
                switch (i) {
                case 0:
-                  REQUIRE(key == DenseCast(darray1[1].mKey));
+                  REQUIRE(key == darray1[1].mKey);
                   break;
                case 1:
-                  REQUIRE(key == DenseCast(darray1[2].mKey));
+                  REQUIRE(key == darray1[2].mKey);
                   break;
                case 2:
-                  REQUIRE(key == DenseCast(darray1[3].mKey));
+                  REQUIRE(key == darray1[3].mKey);
                   break;
                case 3:
-                  REQUIRE(key == DenseCast(darray1[4].mKey));
+                  REQUIRE(key == darray1[4].mKey);
                   break;
                case 4:
-                  REQUIRE(key == DenseCast(darray1[0].mKey));
+                  REQUIRE(key == darray1[0].mKey);
                   break;
                default:
                   FAIL("Index out of bounds in ranged-for");

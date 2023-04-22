@@ -20,35 +20,39 @@ namespace Langulus::Anyness
 
       constexpr UnorderedSet();
       UnorderedSet(const UnorderedSet&);
-      UnorderedSet(UnorderedSet&&) noexcept;
+      UnorderedSet(UnorderedSet&&);
 
-      template<CT::NotSemantic T>
-      UnorderedSet(::std::initializer_list<T>);
+      UnorderedSet(const CT::NotSemantic auto&);
+      UnorderedSet(CT::NotSemantic auto&);
+      UnorderedSet(CT::NotSemantic auto&&);
+      UnorderedSet(CT::Semantic auto&&);
 
-      template<CT::Semantic S>
-      UnorderedSet(S&&) noexcept;
+      template<CT::Data HEAD, CT::Data... TAIL>
+      UnorderedSet(HEAD&&, TAIL&&...) requires (sizeof...(TAIL) >= 1);
 
       UnorderedSet& operator = (const UnorderedSet&);
-      UnorderedSet& operator = (UnorderedSet&&) noexcept;
+      UnorderedSet& operator = (UnorderedSet&&);
 
-      template<CT::Semantic S>
-      UnorderedSet& operator = (S&&) noexcept;
+      UnorderedSet& operator = (const CT::NotSemantic auto&);
+      UnorderedSet& operator = (CT::NotSemantic auto&);
+      UnorderedSet& operator = (CT::NotSemantic auto&&);
+      UnorderedSet& operator = (CT::Semantic auto&&);
 
       ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
       Count Insert(const CT::NotSemantic auto&);
+      Count Insert(CT::NotSemantic auto&);
       Count Insert(CT::NotSemantic auto&&);
-      template<CT::Semantic S>
-      Count Insert(S&&);
+      Count Insert(CT::Semantic auto&&);
 
-      UnorderedSet& operator << (CT::NotSemantic auto&&);
       UnorderedSet& operator << (const CT::NotSemantic auto&);
+      UnorderedSet& operator << (CT::NotSemantic auto&);
+      UnorderedSet& operator << (CT::NotSemantic auto&&);
       UnorderedSet& operator << (CT::Semantic auto&&);
 
    protected:
-      template<CT::Semantic S>
-      Count InsertUnknown(S&&);
+      Count InsertUnknown(CT::Semantic auto&&);
    };
 
 } // namespace Langulus::Anyness

@@ -34,41 +34,43 @@ namespace Langulus::Anyness
    Count BlockSet::Insert(CT::Semantic auto&& value) {
       using T = TypeOf<decltype(value)>;
       Mutate<T>();
-      Allocate(GetCount() + 1);
+      Reserve(GetCount() + 1);
       InsertInner<true>(GetBucket(value.mValue), value.Forward());
       return 1;
    }
 
-   /// Insert a single value inside table via copy (unknown version)          
-   ///   @param value - the value to add                                      
-   ///   @return 1 if item was inserted, zero otherwise                       
+   /// Merge type-erased value via copy                                       
+   ///   @param value - the value to merge, wrapped in a Block                
+   ///   @return 1 if element was inserted, zero otherwise                    
    LANGULUS(INLINED)
    Count BlockSet::InsertUnknown(const Block& value) {
       return InsertUnknown(Langulus::Copy(value));
    }
 
-   /// Insert a single pair inside table via move (unknown version)           
-   ///   @param value - the value to add                                      
-   ///   @return 1 if item was inserted, zero otherwise                       
+   /// Merge type-erased value via move                                       
+   ///   @param value - the value to merge, wrapped in a Block                
+   ///   @return 1 if element was inserted, zero otherwise                    
    LANGULUS(INLINED)
    Count BlockSet::InsertUnknown(Block&& value) {
       return InsertUnknown(Langulus::Move(value));
    }
    
-   /// Insert a single pair inside table via move (unknown version)           
-   ///   @param value - the value to add                                      
-   ///   @return 1 if item was inserted, zero otherwise                       
+   /// Merge type-erased value via semantic                                   
+   ///   @param value - the value to merge, wrapped in a Block                
+   ///   @return 1 if element was inserted, zero otherwise                    
    template<CT::Semantic S>
    LANGULUS(INLINED)
    Count BlockSet::InsertUnknown(S&& value) requires (CT::Block<TypeOf<S>>) {
       Mutate(value.mValue.mType);
       Reserve(GetCount() + 1);
-      const auto index = value.mValue.GetHash().mHash & (GetReserved() - 1);
-      InsertInnerUnknown<true>(index, value.Forward());
+      InsertInnerUnknown<true>(
+         GetBucketUnknown(GetReserved() - 1, value.mValue), 
+         value.Forward()
+      );
       return 1;
    }
    
-   /// Merge the contents of both sets in this set by doing shallow copies    
+   /// Merge the contents of two sets by shallow copy                         
    ///   @param set - the set to merge with this one                          
    ///   @return the number of elements that were inserted                    
    LANGULUS(INLINED)
@@ -76,7 +78,7 @@ namespace Langulus::Anyness
       return Merge(Copy(set));
    }
 
-   /// Merge the contents of both sets in this set by moving elements         
+   /// Merge the contents of two sets by move                                 
    ///   @param set - the set to merge with this one                          
    ///   @return the number of elements that were inserted                    
    LANGULUS(INLINED)
@@ -84,7 +86,7 @@ namespace Langulus::Anyness
       return Merge(Move(set));
    }
 
-   /// Merge the contents of both sets in this set by using a semantic        
+   /// Merge the contents of two sets by using a semantic                     
    ///   @param set - the set to merge with this one                          
    ///   @return the number of elements that were inserted                    
    template<CT::Semantic S>
@@ -97,63 +99,67 @@ namespace Langulus::Anyness
       return inserted;
    }
 
-   /// Copy-insert a templated pair inside the map                            
-   ///   @param item - the pair to insert                                     
-   ///   @return a reference to this map for chaining                         
+   /// Merge an element via copy                                              
+   ///   @param item - the value to merge                                     
+   ///   @return a reference to this set for chaining                         
    LANGULUS(INLINED)
    BlockSet& BlockSet::operator << (const CT::NotSemantic auto& item) {
       Insert(Copy(item));
       return *this;
    }
 
-   /// Move-insert a templated pair inside the map                            
-   ///   @param item - the pair to insert                                     
-   ///   @return a reference to this map for chaining                         
+   /// Merge an element via move                                              
+   ///   @param item - the value to merge                                     
+   ///   @return a reference to this set for chaining                         
    LANGULUS(INLINED)
    BlockSet& BlockSet::operator << (CT::NotSemantic auto&& item) {
       Insert(Move(item));
       return *this;
    }
 
-   /// Move-insert a templated pair inside the map                            
-   ///   @param item - the pair to insert                                     
-   ///   @return a reference to this map for chaining                         
+   /// Merge an element via semantic                                          
+   ///   @param item - the value to merge                                     
+   ///   @return a reference to this set for chaining                         
    LANGULUS(INLINED)
    BlockSet& BlockSet::operator << (CT::Semantic auto&& item) {
       Insert(item.Forward());
       return *this;
    }
 
-   /// Copy-insert a type-erased item inside the map                          
-   ///   @param item - the pair to insert                                     
-   ///   @return a reference to this map for chaining                         
+   /// Merge a type-erased element via copy                                   
+   ///   @param item - the value to merge, wrapped in a Block                 
+   ///   @return a reference to this set for chaining                         
    LANGULUS(INLINED)
    BlockSet& BlockSet::operator << (const Block& item) {
       InsertUnknown(item);
       return *this;
    }
 
-   /// Move-insert a type-erased item inside the map                          
-   ///   @param item - the pair to insert                                     
-   ///   @return a reference to this map for chaining                         
+   /// Merge a type-erased element via move                                   
+   ///   @param item - the value to merge, wrapped in a Block                 
+   ///   @return a reference to this set for chaining                         
    LANGULUS(INLINED)
    BlockSet& BlockSet::operator << (Block&& item) {
       InsertUnknown(Forward<Block>(item));
       return *this;
    }
    
-   /// Request a new size of keys and info via the value container            
+   /// Request a new size of keys and info                                    
    /// The memory layout is:                                                  
-   ///   [keys for each bucket]                                               
+   ///   [keys for each bucket, including entries, if sparse]                 
    ///         [padding for alignment]                                        
    ///               [info for each bucket]                                   
    ///                     [one sentinel byte for terminating loops]          
    ///   @attention assumes key type has been set                             
+   ///   @param count - number of keys to allocate                            
    ///   @param infoStart - [out] the offset at which info bytes start        
    ///   @return the requested byte size                                      
    LANGULUS(INLINED)
    Size BlockSet::RequestKeyAndInfoSize(const Count request, Offset& infoStart) noexcept {
-      const Size keymemory = request * mKeys.GetStride();
+      LANGULUS_ASSUME(DevAssumes, mKeys.mType, "Key type was not set");
+      auto keymemory = request * mKeys.mType->mSize;
+      if (mKeys.mType->mIsSparse)
+         keymemory *= 2;
       infoStart = keymemory + Alignment - (keymemory % Alignment);
       return infoStart + request + 1;
    }
@@ -175,40 +181,82 @@ namespace Langulus::Anyness
       const auto oldInfoEnd = oldInfo + oldCount;
       const auto hashmask = count - 1;
 
-      // Prepare a set of preallocated swappers                         
-      Block keyswap {mKeys.GetState(), GetType()};
-      keyswap.AllocateFresh(keyswap.RequestSize(1));
-
       // For each old existing key...                                   
       while (oldInfo != oldInfoEnd) {
          if (*oldInfo) {
             // Rehash and check if hashes match                         
             const Offset oldIndex = oldInfo - GetInfo();
+            Offset oldBucket = oldIndex - (*oldInfo - 1);
+            if (oldBucket >= oldCount) {
+               // Bucket might loop around                              
+               oldBucket += oldCount;
+            }
+
             auto oldKey = GetValue(oldIndex);
-            const Offset newIndex = oldKey.GetHash().mHash & hashmask;
-            if (oldIndex != newIndex) {
-               // Move key & value to swapper                           
-               // No chance of overlap, so do it forwards               
-               keyswap.CallUnknownSemanticConstructors<false>(1, Abandon(oldKey));
+            const Offset newBucket = GetBucketUnknown(hashmask, oldKey);
+            if (oldBucket != newBucket) {
+               // Move element only if it won't end up in same bucket   
+               Block keyswap {mKeys.GetState(), GetType()};
+               keyswap.AllocateFresh(keyswap.RequestSize(1));
+               keyswap.CallUnknownSemanticConstructors(1, Abandon(oldKey));
                keyswap.mCount = 1;
 
-               // Destroy the key and info                              
-               oldKey.CallUnknownDestructors();
-               *oldInfo = 0;
-               --mKeys.mCount;
+               // Destroy the key and info at old index                 
+               // Keep in mind, that oldCount is used for wrapping      
+               {
+                  auto psl = GetInfo() + oldIndex;
+                  auto key = mKeys.GetElement(oldIndex);
 
-               if (oldIndex != InsertInnerUnknown<false>(
-                  newIndex, Abandon(keyswap))) {
-                  continue;
+                  // Destroy the element and mark spot empty            
+                  key.CallUnknownDestructors();
+                  *(psl++) = 0;
+                  key.Next();
+
+                  // And shift backwards, until a zero or 1 is reached  
+                  // That way we move every entry that is far from its  
+                  // start closer to it. Moving is costly, unless you   
+                  // use pointers                                       
+               try_again:
+                  while (*psl > 1) {
+                     psl[-1] = (*psl) - 1;
+                     const_cast<const Block&>(key).Prev()
+                        .CallUnknownSemanticConstructors(1, Abandon(key));
+                     key.CallUnknownDestructors();
+                     *(psl++) = 0;
+                     key.Next();
+                  }
+
+                  // Be aware, that psl might loop around               
+                  if (psl == oldInfoEnd && *GetInfo() > 1) UNLIKELY() {
+                     psl = GetInfo();
+                     key = mKeys.GetElement();
+
+                     // Shift first entry to the back                   
+                     const auto last = oldCount - 1;
+                     GetInfo()[last] = (*psl) - 1;
+                     GetValue(last)
+                        .CallUnknownSemanticConstructors(1, Abandon(key));
+
+                     key.CallUnknownDestructors();
+                     *(psl++) = 0;
+                     key.Next();
+
+                     // And continue the vicious cycle                  
+                     goto try_again;
+                  }
+
+                  // Element successfully removed                       
+                  --mKeys.mCount;
                }
+
+               // Reinsert at the new bucket                            
+               InsertInnerUnknown<false>(newBucket, Abandon(keyswap));
+               keyswap.Free();
             }
          }
 
          ++oldInfo;
       }
-
-      // Free the allocated swapper memory                              
-      keyswap.Free();
    }
    
    /// Inner insertion function based on reflected move-assignment            

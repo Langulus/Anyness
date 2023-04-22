@@ -9,65 +9,139 @@
 #include "TOrderedSet.hpp"
 
 #define TEMPLATE() template<CT::Data T>
-#define MAP() TOrderedSet<T>
+#define SET() TOrderedSet<T>
 
 namespace Langulus::Anyness
 {
 
-   /// Copy-construct a map                                                   
+   /// Copy-constructor                                                       
    ///   @param other - the map to copy                                       
    TEMPLATE()
-   MAP()::TOrderedSet(const TOrderedSet& other)
-      : TUnorderedSet<T> {static_cast<const TUnorderedSet<T>&>(other)} { }
+   SET()::TOrderedSet(const TOrderedSet& other)
+      : Self {Copy(other)} { }
 
-   /// Move-construct a map                                                   
+   /// Move-constructor                                                       
    ///   @param other - the map to move                                       
    TEMPLATE()
-   MAP()::TOrderedSet(TOrderedSet&& other) noexcept
-      : TUnorderedSet<T> {Forward<TUnorderedSet<T>>(other)} { }
-   
-   /// Copy-construct a map from a disowned map                               
-   /// The disowned map's contents will not be referenced                     
-   ///   @param other - the map to disown                                     
-   TEMPLATE()
-   constexpr MAP()::TOrderedSet(Disowned<TOrderedSet>&& other) noexcept
-      : TUnorderedSet<T> {other.template Forward<TUnorderedSet<T>>()} { }
-
-   /// Move-construct a map from an abandoned map                             
-   /// The abandoned map will be minimally reset, saving on some instructions 
-   ///   @param other - the map to abandon                                    
-   TEMPLATE()
-   constexpr MAP()::TOrderedSet(Abandoned<TOrderedSet>&& other) noexcept
-      : TUnorderedSet<T> {other.template Forward<TUnorderedSet<T>>()} { }
-
-   /// Clone the map                                                          
-   ///   @return the cloned map                                               
-   TEMPLATE()
-   MAP() MAP()::Clone() const {
-      TOrderedSet<T> cloned;
-      static_cast<TUnorderedSet<T>&>(cloned) = TUnorderedSet<T>::Clone();
-      return Abandon(cloned);
-   }
+   SET()::TOrderedSet(TOrderedSet&& other) noexcept
+      : Self {Move(other)} { }
 
    /// Copy assignment                                                        
    ///   @param rhs - the map to copy                                         
    TEMPLATE()
-   MAP()& MAP()::operator = (const TOrderedSet& rhs) {
-      TUnorderedSet<T>::operator = (static_cast<const TUnorderedSet<T>&>(rhs));
-      return *this;
+   SET()& SET()::operator = (const TOrderedSet& rhs) {
+      return operator = (Copy(rhs));
    }
 
    /// Move assignment                                                        
    ///   @param rhs - the map to move                                         
    TEMPLATE()
-   MAP()& MAP()::operator = (TOrderedSet&& rhs) noexcept {
-      TUnorderedSet<T>::operator = (Forward<TUnorderedSet<T>>(rhs));
+   SET()& SET()::operator = (TOrderedSet&& rhs) noexcept {
+      return operator = (Move(rhs));
+   }
+
+   /// Assign a single element by copy                                        
+   ///   @param rhs - the element to assign                                   
+   ///   @return a reference to this set for chaining                         
+   TEMPLATE()
+   SET()& SET()::operator = (const T& rhs) {
+      return operator = (Copy(rhs));
+   }
+   
+   /// Assign a single element by move                                        
+   ///   @param rhs - the element to assign                                   
+   ///   @return a reference to this set for chaining                         
+   TEMPLATE()
+   SET()& SET()::operator = (T&& rhs) {
+      return operator = (Move(rhs));
+   }
+
+   /// Semantic assignment for an ordered set                                 
+   ///   @tparam S - the semantic (deducible)                                 
+   ///   @param rhs - the ordered set to use for construction                 
+   TEMPLATE()
+   SET()& SET()::operator = (CT::Semantic auto&& rhs) {
+      using S = Decay<decltype(rhs)>;
+      using ST = TypeOf<S>;
+
+      if constexpr (CT::Set<ST>) {
+         if (&static_cast<const BlockSet&>(rhs.mValue) == this)
+            return *this;
+
+         Base::Reset();
+         new (this) Self {rhs.Forward()};
+      }
+      else if constexpr (CT::Exact<T, ST>) {
+         Base::Clear();
+         Insert(S::Nest(rhs.mValue));
+      }
+      else LANGULUS_ERROR("Unsupported semantic assignment");
+
+      return *this;
+   }
+   
+   /// Merge an element inside the set by copy                                
+   ///   @param rhs - the element to insert                                   
+   ///   @return a reference to this set for chaining                         
+   TEMPLATE()
+   LANGULUS(INLINED)
+   Count SET()::Insert(const T& key) {
+      return Insert(Copy(key));
+   }
+
+   /// Merge an element inside the set by move                                
+   ///   @param rhs - the element to insert                                   
+   ///   @return a reference to this set for chaining                         
+   TEMPLATE()
+   LANGULUS(INLINED)
+   Count SET()::Insert(T&& key) {
+      return Insert(Move(key));
+   }
+
+   /// Merge an element inside the set by a semantic                          
+   ///   @param key - the element to insert                                   
+   ///   @return 1 if key was inserted, 0 otherwise                           
+   TEMPLATE()
+   template<CT::Semantic S>
+   LANGULUS(INLINED)
+   Count SET()::Insert(S&& key) requires (CT::Exact<TypeOf<S>, T>) {
+      Base::Reserve(Base::GetCount() + 1);
+      Base::template InsertInner<true>(
+         Base::GetBucket(Base::GetReserved() - 1, key.mValue),
+         key.Forward()
+      );
+      return 1;
+   }
+
+   /// Merge an element inside the set by copy                                
+   ///   @param rhs - the element to insert                                   
+   ///   @return a reference to this set for chaining                         
+   TEMPLATE()
+   SET()& SET()::operator << (const T& rhs) {
+      return operator << (Copy(rhs));
+   }
+
+   /// Merge an element inside the set by move                                
+   ///   @param rhs - the element to insert                                   
+   ///   @return a reference to this set for chaining                         
+   TEMPLATE()
+   SET()& SET()::operator << (T&& rhs) {
+      return operator << (Move(rhs));
+   }
+
+   /// Merge an element inside the set by a semantic                          
+   ///   @param rhs - the element to insert                                   
+   ///   @return a reference to this set for chaining                         
+   TEMPLATE()
+   template<CT::Semantic S>
+   SET()& SET()::operator << (S&& rhs) requires (CT::Exact<TypeOf<S>, T>) {
+      Insert(S::Nest(rhs.mValue));
       return *this;
    }
 
 } // namespace Langulus::Anyness
 
-#undef MAP
+#undef SET
 #undef TEMPLATE
 
    

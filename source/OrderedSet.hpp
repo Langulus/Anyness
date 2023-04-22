@@ -20,35 +20,39 @@ namespace Langulus::Anyness
 
       constexpr OrderedSet();
       OrderedSet(const OrderedSet&);
-      OrderedSet(OrderedSet&&) noexcept;
+      OrderedSet(OrderedSet&&);
 
-      template<CT::NotSemantic T>
-      OrderedSet(::std::initializer_list<T>);
+      OrderedSet(const CT::NotSemantic auto&);
+      OrderedSet(CT::NotSemantic auto&);
+      OrderedSet(CT::NotSemantic auto&&);
+      OrderedSet(CT::Semantic auto&&);
 
-      template<CT::Semantic S>
-      OrderedSet(S&&) noexcept;
+      template<CT::Data HEAD, CT::Data... TAIL>
+      OrderedSet(HEAD&&, TAIL&&...) requires (sizeof...(TAIL) >= 1);
 
       OrderedSet& operator = (const OrderedSet&);
-      OrderedSet& operator = (OrderedSet&&) noexcept;
+      OrderedSet& operator = (OrderedSet&&);
 
-      template<CT::Semantic S>
-      OrderedSet& operator = (S&&) noexcept;
+      OrderedSet& operator = (const CT::NotSemantic auto&);
+      OrderedSet& operator = (CT::NotSemantic auto&);
+      OrderedSet& operator = (CT::NotSemantic auto&&);
+      OrderedSet& operator = (CT::Semantic auto&&);
 
       ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
       Count Insert(const CT::NotSemantic auto&);
+      Count Insert(CT::NotSemantic auto&);
       Count Insert(CT::NotSemantic auto&&);
-      template<CT::Semantic S>
-      Count Insert(S&&);
+      Count Insert(CT::Semantic auto&&);
 
-      OrderedSet& operator << (CT::NotSemantic auto&&);
       OrderedSet& operator << (const CT::NotSemantic auto&);
+      OrderedSet& operator << (CT::NotSemantic auto&);
+      OrderedSet& operator << (CT::NotSemantic auto&&);
       OrderedSet& operator << (CT::Semantic auto&&);
 
    protected:
-      template<CT::Semantic S>
-      Count InsertUnknown(S&&);
+      Count InsertUnknown(CT::Semantic auto&&);
    };
 
 } // namespace Langulus::Anyness

@@ -72,10 +72,11 @@ namespace Langulus::Anyness
       // Get the starting index based on the key hash                   
       // Since reserved elements are always power-of-two, we use them   
       // as a mask to the hash, to extract the relevant bucket          
-      const auto start = GetBucket(key);
+      const auto start = GetBucket(GetReserved() - 1, key);
       auto psl = GetInfo() + start;
       const auto pslEnd = GetInfoEnd() - 1;
-      auto candidate = GetRaw<T>() + start;
+      auto candidate = &GetRaw<T>(start);
+
       Count attempts{};
       while (*psl > attempts) {
          if (*candidate != key) {
@@ -83,7 +84,7 @@ namespace Langulus::Anyness
             if (psl == pslEnd) UNLIKELY() {
                // By 'to the right' I also mean looped back to start    
                psl = GetInfo();
-               candidate = GetRaw<T>();
+               candidate = &GetRaw<T>(0);
             }
             else LIKELY() {
                ++psl;
@@ -109,7 +110,7 @@ namespace Langulus::Anyness
       // Get the starting index based on the key hash                   
       // Since reserved elements are always power-of-two, we use them   
       // as a mask to the hash, to extract the relevant bucket          
-      const auto start = GetBucket(key);
+      const auto start = GetBucketUnknown(GetReserved() - 1, key);
       auto psl = GetInfo() + start;
       const auto pslEnd = GetInfoEnd() - 1;
       auto candidate = GetValue(start);

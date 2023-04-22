@@ -54,8 +54,9 @@ namespace Langulus::Anyness
       BlockSet& operator = (const BlockSet&);
       BlockSet& operator = (BlockSet&&) noexcept;
 
-      BlockSet& operator = (const CT::Data auto&);
-      BlockSet& operator = (CT::Data auto&&) noexcept;
+      BlockSet& operator = (const CT::NotSemantic auto&);
+      BlockSet& operator = (CT::NotSemantic auto&&);
+      BlockSet& operator = (CT::Semantic auto&&);
 
    protected:
       template<class T, CT::Semantic S>
@@ -84,6 +85,8 @@ namespace Langulus::Anyness
       NOD() constexpr bool HasAuthority() const noexcept;
       NOD() constexpr Count GetUses() const noexcept;
 
+      DEBUGGERY(void Dump() const);
+
    protected:
       template<CT::Data T>
       NOD() const TAny<T>& GetValues() const noexcept;
@@ -108,7 +111,8 @@ namespace Langulus::Anyness
       NOD() Block GetValue(const Offset&) SAFETY_NOEXCEPT();
       NOD() Block GetValue(const Offset&) const SAFETY_NOEXCEPT();
 
-      NOD() Offset GetBucket(const CT::Data auto&) const noexcept;
+      NOD() static Offset GetBucket(Offset, const CT::NotSemantic auto&) noexcept;
+      NOD() static Offset GetBucketUnknown(Offset, const Block&) noexcept;
 
       template<CT::Data T>
       NOD() constexpr T& GetRaw(Offset) SAFETY_NOEXCEPT();
@@ -262,6 +266,11 @@ namespace Langulus::Anyness
    protected:
       void ClearInner();
       void RemoveIndex(const Offset&) SAFETY_NOEXCEPT();
+
+   #ifdef LANGULUS_ENABLE_TESTING
+      public: NOD() constexpr const void* GetRawMemory() const noexcept;
+      public: NOD() Inner::Allocation* GetEntry() const noexcept;
+   #endif
    };
 
 
@@ -310,9 +319,25 @@ namespace Langulus::CT
 
    /// Check if a type is a statically typed set                              
    template<class... T>
-   concept TypedSet = ((Set<T> && Typed<T>) && ...);
+   concept TypedSet = Set<T...> && Typed<T...>;
 
 } // namespace Langulus::CT
+
+namespace Langulus::Anyness::Inner
+{
+
+   template<CT::Data HEAD, CT::Data... TAIL>
+   void NestedSemanticInsertion(CT::Set auto& set, HEAD&& head, TAIL&&... tail) {
+      if constexpr (CT::Semantic<HEAD>)
+         set.Insert(head.Forward());
+      else
+         set.Insert(Forward<HEAD>(head));
+
+      if constexpr (sizeof...(TAIL))
+         NestedSemanticInsertion(set, tail...);
+   }
+
+} // namespace Langulus::Anyness::Inner
 
 #include "BlockSet-Construct.inl"
 #include "BlockSet-Capsulation.inl"

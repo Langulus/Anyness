@@ -86,30 +86,31 @@ namespace Langulus::Anyness
             mValues.mType = other.mValue.GetValueType();
 
             AllocateFresh(other.mValue.GetReserved());
-            const auto hashmask = GetReserved() - 1;
-
             ZeroMemory(mInfo, GetReserved());
             mInfo[GetReserved()] = 1;
 
+            const auto hashmask = GetReserved() - 1;
             using TP = typename T::Pair;
-            other.mValue.ForEach([this, hashmask](TP& pair) {
-               if constexpr (CT::TypedPair<TP>) {
-                  // Insert a statically typed pair                     
-                  InsertInner<false>(
-                     GetBucket(pair.mKey), 
-                     S::Nest(pair.mKey), 
-                     S::Nest(pair.mValue)
-                  );
+            other.mValue.ForEach(
+               [this, hashmask](TP& pair) {
+                  if constexpr (CT::TypedPair<TP>) {
+                     // Insert a statically typed pair                  
+                     InsertInner<false>(
+                        GetBucket(hashmask, pair.mKey),
+                        S::Nest(pair.mKey), 
+                        S::Nest(pair.mValue)
+                     );
+                  }
+                  else {
+                     // Insert a dynamically typed pair                 
+                     InsertInnerUnknown<false>(
+                        GetBucketUnknown(hashmask, pair.mKey),
+                        S::Nest(pair.mKey), 
+                        S::Nest(pair.mValue)
+                     );
+                  }
                }
-               else {
-                  // Insert a dynamically typed pair                    
-                  InsertInnerUnknown<false>(
-                     pair.mKey.GetHash().mHash & hashmask,
-                     S::Nest(pair.mKey), 
-                     S::Nest(pair.mValue)
-                  );
-               }
-            });
+            );
          }
          else {
             // We can directly interface map, because it is unordered   
@@ -123,15 +124,14 @@ namespace Langulus::Anyness
          mValues.mType = other.mValue.GetValueType();
 
          AllocateFresh(MinimalAllocation);
+         ZeroMemory(mInfo, MinimalAllocation);
+         mInfo[MinimalAllocation] = 1;
+
          constexpr auto hashmask = MinimalAllocation - 1;
-
-         ZeroMemory(mInfo, GetReserved());
-         mInfo[GetReserved()] = 1;
-
          if constexpr (CT::TypedPair<T>) {
             // Insert a statically typed pair                           
             InsertInner<false>(
-               GetBucket(other.mValue.mKey),
+               GetBucket(hashmask, other.mValue.mKey),
                S::Nest(other.mValue.mKey),
                S::Nest(other.mValue.mValue)
             );
@@ -139,7 +139,7 @@ namespace Langulus::Anyness
          else {
             // Insert a dynamically typed pair                          
             InsertInnerUnknown<false>(
-               other.mValue.mKey.GetHash().mHash & hashmask,
+               GetBucketUnknown(hashmask, other.mValue.mKey),
                S::Nest(other.mValue.mKey),
                S::Nest(other.mValue.mValue)
             );
@@ -205,12 +205,12 @@ namespace Langulus::Anyness
          else {
             // Just destroy and reuse memory                            
             Clear();
-            const auto hashmask = GetReserved() - 1;
 
+            const auto hashmask = GetReserved() - 1;
             if constexpr (CT::TypedPair<T>) {
                // Insert a statically typed pair                        
                InsertInner<false>(
-                  GetBucket(other.mValue.mKey),
+                  GetBucket(hashmask, other.mValue.mKey),
                   S::Nest(other.mValue.mKey),
                   S::Nest(other.mValue.mValue)
                );
@@ -218,7 +218,7 @@ namespace Langulus::Anyness
             else {
                // Insert a dynamically typed pair                       
                InsertInnerUnknown<false>(
-                  other.mValue.mKey.GetHash().mHash & hashmask,
+                  GetBucketUnknown(hashmask, other.mValue.mKey),
                   S::Nest(other.mValue.mKey),
                   S::Nest(other.mValue.mValue)
                );
@@ -289,7 +289,10 @@ namespace Langulus::Anyness
 
       Mutate<K, V>();
       Allocate(GetCount() + 1);
-      InsertInner<true>(GetBucket(key.mValue), key.Forward(), value.Forward());
+      InsertInner<true>(
+         GetBucket(GetReserved() - 1, key.mValue), 
+         key.Forward(), value.Forward()
+      );
       return 1;
    }
    
@@ -346,10 +349,11 @@ namespace Langulus::Anyness
          "SV's type must be a block type");
 
       Mutate(key.mValue.mType, val.mValue.mType);
-
       Allocate(GetCount() + 1);
-      const auto index = key.mValue.GetHash().mHash & (GetReserved() - 1);
-      InsertInnerUnknown<true>(index, key.Forward(), val.Forward());
+      InsertInnerUnknown<true>(
+         GetBucketUnknown(GetReserved() - 1, key.mValue),
+         key.Forward(), val.Forward()
+      );
       return 1;
    }
    
@@ -381,15 +385,16 @@ namespace Langulus::Anyness
 
       // Key wasn't found, but map is mutable and we can add it         
       Mutate(MetaData::Of<K>(), mValues.mType);
-
       auto newk = Block::From(key);
       auto newv = Block {mValues.mState, mValues.mType};
       newv.template AllocateMore<true>(1);
-
       Allocate(GetCount() + 1);
-      const auto index = HashData(key).mHash & (GetReserved() - 1);
-      InsertInnerUnknown<false>(index, Copy(newk), Abandon(newv));
-      return GetValue(index);
+
+      const auto insertedAt = InsertInnerUnknown<false>(
+         GetBucket(GetReserved() - 1, key),
+         Copy(newk), Abandon(newv)
+      );
+      return GetValue(insertedAt);
    }
 
    /// Access value by key, or implicitly add the key if not found            
