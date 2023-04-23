@@ -9,6 +9,29 @@
 #include "TOwned.hpp"
 #include "inner/Handle.hpp"
 
+namespace Langulus
+{
+   namespace A
+   {
+      /// An abstract shared pointer                                          
+      struct Pointer : Owned {
+         LANGULUS_BASES(Owned);
+      };
+   }
+
+   namespace CT
+   {
+      /// Anything derived from A::Pointer                                    
+      template<class... T>
+      concept Pointer = (DerivedFrom<T, A::Pointer> && ...);
+
+      /// Anything usable to initialize a shared pointer                      
+      template<class... T>
+      concept PointerRelated = ((Pointer<T> || Sparse<T> || Exact<T, ::std::nullptr_t>) && ...);
+   }
+
+} // namespace Langulus
+
 namespace Langulus::Anyness
 {
 
@@ -20,16 +43,12 @@ namespace Langulus::Anyness
    /// it's equivalent to std::shared_ptr                                     
    ///                                                                        
    template<class T, bool DR>
-   class TPointer : public TOwned<Conditional<CT::Constant<T>, const T*, T*>> {
+   class TPointer 
+      : public A::Pointer
+      , public TOwned<Conditional<CT::Constant<T>, const T*, T*>> {
       using Base = TOwned<Conditional<CT::Constant<T>, const T*, T*>>;
       using Self = TPointer<T, DR>;
       using Type = TypeOf<Base>;
-
-      /// Semantic constraints, should be kept to date with constructor       
-      template<CT::NotSemantic S>
-      static constexpr bool RelevantT = CT::ExactAsOneOf<S, Self, ::std::nullptr_t, T*>;
-      template<CT::Semantic S>
-      static constexpr bool RelevantS = RelevantT<TypeOf<S>>;
 
    protected:
       using Base::mValue;
@@ -43,15 +62,10 @@ namespace Langulus::Anyness
       TPointer(const TPointer&);
       TPointer(TPointer&&);
 
-      template<CT::NotSemantic ALT>
-      TPointer(const ALT&) requires RelevantT<ALT>;
-      template<CT::NotSemantic ALT>
-      TPointer(ALT&) requires RelevantT<ALT>;
-      template<CT::NotSemantic ALT>
-      TPointer(ALT &&) requires RelevantT<ALT>;
-
-      template<CT::Semantic S>
-      TPointer(S&&) requires RelevantS<S>;
+      TPointer(const CT::PointerRelated auto&);
+      TPointer(CT::PointerRelated auto&);
+      TPointer(CT::PointerRelated auto&&);
+      TPointer(CT::Semantic auto&&);
 
       ~TPointer();
 
@@ -68,12 +82,10 @@ namespace Langulus::Anyness
       TPointer& operator = (const TPointer&);
       TPointer& operator = (TPointer&&);
 
-      TPointer& operator = (const CT::NotSemantic auto&);
-      TPointer& operator = (CT::NotSemantic auto&);
-      TPointer& operator = (CT::NotSemantic auto&&);
-
-      template<CT::Semantic S>
-      TPointer& operator = (S&&);
+      TPointer& operator = (const CT::PointerRelated auto&);
+      TPointer& operator = (CT::PointerRelated auto&);
+      TPointer& operator = (CT::PointerRelated auto&&);
+      TPointer& operator = (CT::Semantic auto&&);
 
       using Base::operator bool;
       NOD() operator TPointer<const T, DR>() const noexcept requires CT::Mutable<T>;
@@ -85,18 +97,17 @@ namespace Langulus::Anyness
       using Base::operator *;
    };
 
-   /// A shared pointer, that provides ownage and basic reference counting    
+   /// A shared pointer, that provides ownership and basic reference counting 
    /// Referencing comes from the block of memory that the pointer points to  
-   /// The memory block might contain more data, that will be implicitly      
-   /// referenced, too                                                        
    template<class T>
    using Ptr = TPointer<T, false>;
 
-   /// A shared pointer, that provides ownage and more reference counting     
+   /// A shared pointer, that provides ownership and more reference counting  
    /// Referencing comes first from the block of memory that the pointer      
    /// points to, and second - the instance's individual reference counter    
    /// Useful for keeping track not only of the memory, but of the individual 
-   /// element inside the memory block                                        
+   /// element inside the memory block. Used to keep track of elements inside 
+   /// THive and Hive (component factories for example)                       
    template<class T>
    using Ref = TPointer<T, true>;
 

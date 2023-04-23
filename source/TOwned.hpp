@@ -8,12 +8,24 @@
 #pragma once
 #include "Text.hpp"
 
-namespace Langulus::A
+namespace Langulus
 {
-   struct Owned {
-      LANGULUS(ABSTRACT) true;
-   };
-}
+   namespace A
+   {
+      /// An abstract owned value                                             
+      struct Owned {
+         LANGULUS(ABSTRACT) true;
+      };
+   }
+
+   namespace CT
+   {
+      /// Anything derived from A::Owned                                      
+      template<class... T>
+      concept Owned = (DerivedFrom<T, A::Owned> && ...);
+   }
+
+} // namespace Langulus
 
 namespace Langulus::Anyness
 {
@@ -91,13 +103,5 @@ namespace Langulus::Anyness
    using Own = TOwned<T>;
 
 } // namespace Langulus::Anyness
-
-namespace Langulus::CT
-{
-
-   template<class... T>
-   concept Owned = (DerivedFrom<T, A::Owned> && ...);
-
-} // namespace Langulus::CT
 
 #include "TOwned.inl"
