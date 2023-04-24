@@ -58,10 +58,8 @@ namespace Langulus::Anyness
       using S = Decay<decltype(other)>;
       using ST = TypeOf<S>;
 
-      if constexpr (CT::Exact<ST, ::std::nullptr_t>) {
+      if constexpr (CT::Nullptr<ST>) {
          // Assign a nullptr                                            
-         mValue = nullptr;
-         mEntry = nullptr;
          return;
       }
       else if constexpr (CT::Pointer<ST>) {
@@ -85,9 +83,10 @@ namespace Langulus::Anyness
                mValue->Keep();
          }
       }
-      else if constexpr (CT::Exact<Type, ST> || CT::DerivedFrom<ST, T>) {
+      else if constexpr (CT::DerivedFrom<ST, T>) {
          // Move/Abandon/Disown/Copy/Clone raw pointer                  
-         GetHandle().New(other.template Forward<Type>());
+         Type converted = static_cast<Type>(other.mValue);
+         GetHandle().New(S::Nest(converted));
 
          // Always reference value, if double-referenced and not cloned 
          if constexpr (S::Shallow && DR && CT::Referencable<T>)
@@ -193,7 +192,7 @@ namespace Langulus::Anyness
       using S = Decay<decltype(rhs)>;
       using ST = TypeOf<S>;
 
-      if constexpr (CT::Exact<ST, ::std::nullptr_t>) {
+      if constexpr (CT::Nullptr<ST>) {
          // Assign a nullptr, essentially resetting the shared pointer  
          Reset();
          return *this;

@@ -297,7 +297,7 @@ namespace Langulus::Anyness
                   GetEntry()->Keep();
             }
          }
-         else if constexpr (CT::Sparse<T> && CT::Exact<ST, ::std::nullptr_t>) {
+         else if constexpr (CT::Nullptr<ST>) {
             // RHS is a simple nullptr                                  
             Get() = nullptr;
             GetEntry() = nullptr;

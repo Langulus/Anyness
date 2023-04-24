@@ -307,7 +307,6 @@ namespace Langulus::Anyness
       using Any::FromBlock;
       using Any::FromState;
       using Any::From;
-      using Any::Wrap;
       using Any::WrapAs;
    };
 

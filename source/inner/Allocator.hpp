@@ -94,22 +94,37 @@ namespace Langulus::Anyness::Inner
       //                                                                
       // Standard functionality                                         
       //                                                                
-      NOD() static Allocation* Allocate(const Size&) SAFETY_NOEXCEPT();
-      NOD() static Allocation* Reallocate(const Size&, Allocation*) SAFETY_NOEXCEPT();
+      NOD() LANGULUS_API(ANYNESS)
+      static Allocation* Allocate(const Size&) SAFETY_NOEXCEPT();
+
+      NOD() LANGULUS_API(ANYNESS)
+      static Allocation* Reallocate(const Size&, Allocation*) SAFETY_NOEXCEPT();
+
+      LANGULUS_API(ANYNESS)
       static void Deallocate(Allocation*) SAFETY_NOEXCEPT();
 
       #if LANGULUS_FEATURE(MEMORY_STATISTICS)
-         NOD() static const Statistics& GetStatistics() noexcept;
+         NOD() LANGULUS_API(ANYNESS)
+         static const Statistics& GetStatistics() noexcept;
       #endif
 
       #if LANGULUS_FEATURE(MANAGED_MEMORY)
          //                                                             
          // More functionality, when feature MANAGED_MEMORY is enabled  
          //                                                             
-         NOD() static Allocation* Find(RTTI::DMeta, const void*) SAFETY_NOEXCEPT();
-         NOD() static bool CheckAuthority(RTTI::DMeta, const void*) SAFETY_NOEXCEPT();
-         NOD() static Pool* AllocatePool(const Size&) SAFETY_NOEXCEPT();
+         NOD() LANGULUS_API(ANYNESS)
+         static Allocation* Find(RTTI::DMeta, const void*) SAFETY_NOEXCEPT();
+
+         NOD() LANGULUS_API(ANYNESS)
+         static bool CheckAuthority(RTTI::DMeta, const void*) SAFETY_NOEXCEPT();
+
+         NOD() LANGULUS_API(ANYNESS)
+         static Pool* AllocatePool(const Size&) SAFETY_NOEXCEPT();
+
+         LANGULUS_API(ANYNESS)
          static void DeallocatePool(Pool*) SAFETY_NOEXCEPT();
+
+         LANGULUS_API(ANYNESS)
          static void CollectGarbage();
       #endif
    };

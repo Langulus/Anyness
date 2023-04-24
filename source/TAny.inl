@@ -449,19 +449,6 @@ namespace Langulus::Anyness
       return CT::Exact<T, ALT_T...>;
    }
 
-   /// Wrap stuff in a container                                              
-   ///   @param anything - pack it inside a dense container                   
-   ///   @returns the pack containing the data                                
-   TEMPLATE()
-   template<CT::Data... LIST_T>
-   LANGULUS(INLINED)
-   TAny<T> TAny<T>::Wrap(LIST_T&&... list) {
-      TAny<T> temp;
-      temp.AllocateFresh(temp.RequestSize(sizeof...(list)));
-      temp.InsertStatic<0>(Forward<LIST_T>(list)...);
-      return temp;
-   }
-
    /// Allocate 'count' elements and fill the container with zeroes           
    TEMPLATE()
    LANGULUS(INLINED)

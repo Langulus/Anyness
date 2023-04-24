@@ -93,8 +93,6 @@ namespace Langulus::Anyness
       template<CT::Data T>
       NOD() static Any From(const DataState& = {}) noexcept;
 
-      template<CT::Data... LIST>
-      NOD() static Any Wrap(LIST&&...);
       template<class AS = void, CT::Data HEAD, CT::Data... TAIL>
       NOD() static Any WrapAs(HEAD&&, TAIL&&...);
 

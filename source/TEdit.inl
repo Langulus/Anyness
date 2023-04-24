@@ -229,7 +229,7 @@ namespace Langulus::Anyness
    TEMPLATE()
    LANGULUS(INLINED)
    TEdit<T>& TEdit<T>::Replace(const CTTI_InnerType& other) {
-      return Replace(T::Wrap(other));
+      return Replace(T {other});
    }
 
    /// Delete selection (collapsing it), or delete symbol after collapsed     

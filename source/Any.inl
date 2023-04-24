@@ -145,21 +145,6 @@ namespace Langulus::Anyness
       return Block {state, MetaData::Of<T>()};
    }
 
-   /// Pack any number of elements sequentially                               
-   /// If any of the elements doesn't match the rest, the container becomes   
-   /// deep to incorporate all elements                                       
-   ///   @tparam LIST... - the list of element types (deducible)              
-   ///   @param elements - sequential elements                                
-   ///   @returns the pack containing the data                                
-   template<CT::Data... LIST>
-   LANGULUS(INLINED)
-   Any Any::Wrap(LIST&&... elements) {
-      if constexpr (sizeof...(LIST) == 0)
-         return {};
-      else
-         return {Forward<LIST>(elements)...};
-   }
-
    /// Pack any number of similarly typed elements sequentially               
    ///   @tparam AS - the type to wrap elements as                            
    ///                use 'void' to deduce AS from the HEAD                   

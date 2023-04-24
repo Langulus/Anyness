@@ -27,7 +27,7 @@ namespace Langulus
 
       /// Anything usable to initialize a shared pointer                      
       template<class... T>
-      concept PointerRelated = ((Pointer<T> || Sparse<T> || Exact<T, ::std::nullptr_t>) && ...);
+      concept PointerRelated = ((Pointer<T> || Sparse<T> || Nullptr<T>) && ...);
    }
 
 } // namespace Langulus

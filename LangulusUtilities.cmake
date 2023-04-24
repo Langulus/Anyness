@@ -12,7 +12,6 @@ function(langulus_init_git_submodule NAME)
 endfunction()
 
 function(langulus_import_framework)
-    set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS OFF PARENT_SCOPE)
     remove_definitions(-DLANGULUS_EXPORT_ALL)
     if(NOT WIN32)
         add_compile_options(-fvisibility=hidden)
