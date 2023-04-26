@@ -390,7 +390,7 @@ namespace Langulus::Anyness
    protected:
       template<class F>
       static constexpr bool NoexceptIterator = 
-         !LANGULUS_SAFE() && noexcept(Uneval<F&&>().operator() (Uneval<ArgumentOf<F>>()));
+         !LANGULUS_SAFE() && noexcept(Fake<F&&>().operator() (Fake<ArgumentOf<F>>()));
 
       template<bool MUTABLE, bool REVERSE, class F>
       Count ForEachSplitter(F&&);

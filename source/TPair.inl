@@ -82,7 +82,7 @@ namespace Langulus::Anyness
    TEMPLATE()
    LANGULUS(INLINED)
    Hash PAIR()::GetHash() const {
-      return HashData(mKey, mValue);
+      return HashOf(mKey, mValue);
    }
 
    /// Get the type of the contained key                                      

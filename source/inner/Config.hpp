@@ -6,7 +6,7 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include <LangulusRTTI.hpp>
+#include <Core/Config.hpp>
 
 #if defined(LANGULUS_EXPORT_ALL) || defined(LANGULUS_EXPORT_ANYNESS)
    #define LANGULUS_API_ANYNESS() LANGULUS_EXPORT()
@@ -54,3 +54,6 @@
 #else
    #define LANGULUS_FEATURE_NEWDELETE() 0
 #endif
+
+/// Make the rest of the code aware, that Langulus::Anyness has been included 
+#define LANGULUS_LIBRARY_ANYNESS() 1

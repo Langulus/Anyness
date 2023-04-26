@@ -292,11 +292,11 @@ namespace Langulus::Anyness
       return GetValues().GetHandle(index);
    }
 
-   /// Get the size of all pairs, in bytes                                    
+   /// Get the size of all elements, in bytes                                 
    ///   @return the total amount of initialized bytes                        
    TABLE_TEMPLATE()
    constexpr Size TABLE()::GetByteSize() const noexcept {
-      return sizeof(Pair) * GetCount(); 
+      return sizeof(T) * GetCount(); 
    }
 
    /// Get the key meta data                                                  
@@ -460,7 +460,7 @@ namespace Langulus::Anyness
       const auto hashmask = GetReserved() - 1;
       while (oldInfo != oldInfoEnd) {
          if (*oldInfo) {
-            const auto index = HashData(key.Get()).mHash & hashmask;
+            const auto index = HashOf(key.Get()).mHash & hashmask;
             InsertInner<false>(index, Abandon(key));
             key.Destroy();
          }

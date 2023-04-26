@@ -7,6 +7,7 @@
 ///                                                                           
 #pragma once
 #include "Block.hpp"
+#include <RTTI/Hash.hpp>
 
 #define VERBOSE(...) //Logger::Verbose(_VA_ARGS_)
 #define VERBOSE_TAB(...) //auto tab = Logger::Section(__VA_ARGS__)

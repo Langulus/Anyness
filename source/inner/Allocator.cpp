@@ -6,6 +6,7 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #include "Allocator.hpp"
+#include <RTTI/Assume.hpp>
 
 #if LANGULUS_FEATURE(MANAGED_MEMORY)
    #include "Pool.hpp"

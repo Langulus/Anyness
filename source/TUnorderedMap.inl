@@ -638,7 +638,7 @@ namespace Langulus::Anyness
       const auto hashmask = GetReserved() - 1;
       while (oldInfo != oldInfoEnd) {
          if (*oldInfo) {
-            const auto index = HashData(key.Get()).mHash & hashmask;
+            const auto index = HashOf(key.Get()).mHash & hashmask;
             InsertInner<false>(index, Abandon(key), Abandon(val));
             key.Destroy();
             val.Destroy();
@@ -691,7 +691,7 @@ namespace Langulus::Anyness
          if (*oldInfo) {
             // Rehash and check if hashes match                         
             const Offset oldIndex = oldInfo - GetInfo();
-            const Offset newIndex = HashData(oldKey.Get()).mHash & hashmask;
+            const Offset newIndex = HashOf(oldKey.Get()).mHash & hashmask;
             if (oldIndex != newIndex) {
                // Immediately move the old pair to the swapper          
                auto oldValue = GetValueHandle(oldIndex);

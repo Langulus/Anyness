@@ -60,7 +60,7 @@ TEMPLATE_TEST_CASE(
       OrderedSet oset2 {element};
 
       WHEN("Their hashes are taken") {
-         const auto elementHash = HashData(element);
+         const auto elementHash = HashOf(element);
 
          const auto uhash1 = uset1.GetHash();
          const auto uhash2 = uset2.GetHash();

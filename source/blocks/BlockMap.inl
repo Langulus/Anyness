@@ -813,7 +813,7 @@ namespace Langulus::Anyness
    ///   @return the bucket index                                             
    LANGULUS(INLINED)
    Offset BlockMap::GetBucket(Offset mask, const CT::NotSemantic auto& value) noexcept {
-      return HashData(value).mHash & mask;
+      return HashOf(value).mHash & mask;
    }
    
    /// Get the bucket index, based on the wrapped value's hash                

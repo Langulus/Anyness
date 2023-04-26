@@ -6,7 +6,8 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include <limits>
+#include <Core/Utilities.hpp>
+#include <RTTI/Assume.hpp>
 
 namespace Langulus::Anyness
 {

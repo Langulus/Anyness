@@ -165,7 +165,7 @@ namespace Langulus::Anyness
       if constexpr (CT::Hashable<T>)
          return DenseCast(mValue).GetHash();
       else if constexpr (CT::Sparse<T>)
-         return HashData(mValue);
+         return HashOf(mValue);
       else
          LANGULUS_ERROR("Contained value is not hashable");
    }

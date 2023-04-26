@@ -7,6 +7,7 @@
 ///                                                                           
 #pragma once
 #include "Config.hpp"
+#include <RTTI/Reflect.hpp>
 
 namespace Langulus::Anyness
 {

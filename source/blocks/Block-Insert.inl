@@ -1050,45 +1050,6 @@ namespace Langulus::Anyness
          "Inserting incompatible type");
 
       GetHandle<T>(at).New(item.Forward());
-
-      /*if constexpr (CT::Sparse<T>) {
-         if constexpr (S::Shallow) {
-            // Pointer copy/move/abandon/disown                         
-            GetRawSparse()[at] = const_cast<Byte*>(
-               reinterpret_cast<const Byte*>(item.mValue)
-            );
-
-            #if LANGULUS_FEATURE(MANAGED_MEMORY)
-               // If we're using managed memory, we can search if the   
-               // pointer is owned by us, and get its allocation entry  
-               if constexpr (CT::Allocatable<Deptr<T>> && S::Keep) {
-                  const auto entry = Inner::Allocator::Find(
-                     MetaData::Of<Deptr<T>>(), item.mValue
-                  );
-
-                  GetEntries()[at] = entry;
-                  if (entry)
-                     entry->Keep();
-               }
-               else
-            #endif
-               GetEntries()[at] = nullptr;
-         }
-         else {
-            // Pointer clone                                            
-            TODO();
-         }
-      }
-      else {
-         // Dense data insertion (moving/abandoning value)              
-         static_assert(!CT::Abstract<T>,
-            "Can't insert abstract item in dense block");
-
-         using DT = Decvq<Deref<T>>;
-         const auto data = GetRawAs<DT>() + at;
-         SemanticNew<DT>(data, item.Forward());
-      }*/
-
       ++mCount;
    }
    

@@ -7,6 +7,7 @@
 ///                                                                           
 #pragma once
 #include "Allocation.hpp"
+#include <Core/Utilities.hpp>
 
 namespace Langulus::Anyness::Inner
 {
