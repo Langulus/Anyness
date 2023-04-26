@@ -6,4 +6,8 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "../../source/inner/Pool.hpp"
+#include "../../source/inner/Config.hpp"
+
+#if LANGULUS_FEATURE(MANAGED_MEMORY)
+   #include "../../source/inner/Pool.hpp"
+#endif
