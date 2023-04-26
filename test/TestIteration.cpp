@@ -6,6 +6,7 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #include "Main.hpp"
+#include <Anyness/Text.hpp>
 #include <catch2/catch.hpp>
 
 /// See https://github.com/catchorg/Catch2/blob/devel/docs/tostring.md        

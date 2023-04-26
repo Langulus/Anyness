@@ -6,6 +6,8 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #include "Main.hpp"
+#include <Anyness/Text.hpp>
+#include <Anyness/Path.hpp>
 #include <catch2/catch.hpp>
 
 /// A type that is reflected, as convertible to Debug                         

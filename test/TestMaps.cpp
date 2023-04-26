@@ -6,6 +6,13 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #include "Main.hpp"
+#include <Anyness/Text.hpp>
+#include <Anyness/Trait.hpp>
+#include <Anyness/TPair.hpp>
+#include <Anyness/TUnorderedMap.hpp>
+#include <Anyness/TMap.hpp>
+#include <Anyness/UnorderedMap.hpp>
+#include <Anyness/Map.hpp>
 #include <catch2/catch.hpp>
 #include <unordered_map>
 

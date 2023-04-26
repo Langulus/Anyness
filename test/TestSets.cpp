@@ -6,6 +6,12 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #include "Main.hpp"
+#include <Anyness/Text.hpp>
+#include <Anyness/Trait.hpp>
+#include <Anyness/TUnorderedSet.hpp>
+#include <Anyness/UnorderedSet.hpp>
+#include <Anyness/TSet.hpp>
+#include <Anyness/Set.hpp>
 #include <catch2/catch.hpp>
 #include <unordered_set>
 

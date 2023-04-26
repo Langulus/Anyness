@@ -6,6 +6,7 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #include "Main.hpp"
+#include <Anyness/Text.hpp>
 #include <catch2/catch.hpp>
 #include <any>
 #include <vector>

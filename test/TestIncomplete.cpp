@@ -6,6 +6,11 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #include "Main.hpp"
+#include <Anyness/Text.hpp>
+#include <Anyness/Trait.hpp>
+#include <Anyness/Own.hpp>
+#include <Anyness/Ref.hpp>
+#include <Anyness/TUnorderedMap.hpp>
 #include <catch2/catch.hpp>
 
 struct Resolvable {
