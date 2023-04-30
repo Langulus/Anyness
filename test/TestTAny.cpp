@@ -1024,17 +1024,38 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
       WHEN("Packs are compared") {
          T another_pack1;
-         another_pack1 << CreateElement<E>(1) << CreateElement<E>(2) << CreateElement<E>(3) << CreateElement<E>(4) << CreateElement<E>(5);
+         another_pack1  << CreateElement<E>(1) 
+                        << CreateElement<E>(2)
+                        << CreateElement<E>(3)
+                        << CreateElement<E>(4)
+                        << CreateElement<E>(5);
+
          T another_pack2;
-         another_pack2 << CreateElement<E>(2) << CreateElement<E>(2) << CreateElement<E>(3) << CreateElement<E>(4) << CreateElement<E>(5);
+         another_pack2  << CreateElement<E>(2)
+                        << CreateElement<E>(2)
+                        << CreateElement<E>(3)
+                        << CreateElement<E>(4)
+                        << CreateElement<E>(5);
+
          T another_pack3;
-         another_pack3 << CreateElement<E>(1) << CreateElement<E>(2) << CreateElement<E>(3) << CreateElement<E>(4) << CreateElement<E>(5) << CreateElement<E>(6);
+         another_pack3  << CreateElement<E>(1)
+                        << CreateElement<E>(2)
+                        << CreateElement<E>(3)
+                        << CreateElement<E>(4)
+                        << CreateElement<E>(5)
+                        << CreateElement<E>(6);
          T defaulted_pack1;
 
          TAny<uint> another_pack4;
-         another_pack4 << uint(1) << uint(2) << uint(3) << uint(4) << uint(5);
+         another_pack4  << uint(1) << uint(2) << uint(3) << uint(4) << uint(5);
+
          Any another_pack5;
-         another_pack5 << CreateElement<E>(1) << CreateElement<E>(2) << CreateElement<E>(3) << CreateElement<E>(4) << CreateElement<E>(5);
+         another_pack5  << CreateElement<E>(1)
+                        << CreateElement<E>(2)
+                        << CreateElement<E>(3)
+                        << CreateElement<E>(4)
+                        << CreateElement<E>(5);
+
          Any defaulted_pack2;
 
          THEN("The comparisons should be adequate") {
@@ -2816,9 +2837,13 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
          if constexpr (CT::Same<E, int>) {
             // Works only if E doesn't move entries around
             WHEN("Pack is reset, then immediately allocated again") {
-               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
+               IF_LANGULUS_MANAGED_MEMORY(Fractalloc.CollectGarbage());
                pack.Reset();
-               pack << CreateElement<E>(6) << CreateElement<E>(7) << CreateElement<E>(8) << CreateElement<E>(9) << CreateElement<E>(10);
+               pack  << CreateElement<E>(6) 
+                     << CreateElement<E>(7) 
+                     << CreateElement<E>(8) 
+                     << CreateElement<E>(9) 
+                     << CreateElement<E>(10);
                THEN("Block manager should reuse the memory, if MANAGED_MEMORY feature is enabled") {
                   REQUIRE(pack.GetRaw() == memory);
                }
@@ -3327,7 +3352,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
    }
 
    GIVEN("Two containers with some items") {
-      IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
+      IF_LANGULUS_MANAGED_MEMORY(Fractalloc.CollectGarbage());
 
       T pack1 {darray1[0], darray1[1], darray1[2], darray1[3], darray1[4]};
       T pack2 {darray2[0], darray2[1], darray2[2], darray2[3], darray2[4]};

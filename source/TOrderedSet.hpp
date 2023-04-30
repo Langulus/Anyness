@@ -19,7 +19,6 @@ namespace Langulus::Anyness
    class TOrderedSet : public TUnorderedSet<T> {
    public:
       using Self = TOrderedSet<T>;
-      using Allocator = Inner::Allocator;
       using Base = TUnorderedSet<T>;
 
       static constexpr bool Ordered = true;

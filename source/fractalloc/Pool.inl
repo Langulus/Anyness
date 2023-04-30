@@ -10,22 +10,26 @@
 #include "Allocator.hpp"
 #include <bit>
 
-namespace Langulus::Anyness::Inner
+namespace Langulus::Anyness
 {
 
    /// Initialize a pool                                                      
    ///   @attention relies that size is a power-of-two                        
    ///   @attention this constructor relies that instance is placed in the    
    ///      beginning of a heap allocation of size Pool::NewAllocationSize()  
+   ///   @param meta - optional meta data associated with pool                
    ///   @param size - bytes of the usable block to initialize with           
    ///   @param memory - handle for use with std::free()                      
-   inline Pool::Pool(const Size& size, void* memory) noexcept
+   inline Pool::Pool(DMeta meta, const Size& size, void* memory) noexcept
       : mAllocatedByBackend {size}
-      , mAllocatedByBackendLog2 {FastLog2(size)}
-      , mAllocatedByBackendLSB {LSB(size >> Size{1})}
+      , mAllocatedByBackendLog2 {Inner::FastLog2(size)}
+      , mAllocatedByBackendLSB {Inner::LSB(size >> Size{1})}
       , mThreshold {size}
       , mThresholdPrevious {size}
-      , mThresholdMin {Roof2cexpr(Allocation::GetMinAllocation())}
+      , mThresholdMin {Roof2cexpr(meta 
+         ? meta->mAllocationPage 
+         : Allocation::GetMinAllocation())}
+      , mMeta {meta}
       , mHandle {memory} {
       mMemory = GetPoolStart<Byte>();
       mMemoryEnd = mMemory + mAllocatedByBackend;
@@ -61,7 +65,6 @@ namespace Langulus::Anyness::Inner
    inline void Pool::FreePoolChain() {
       if (mNext)
          mNext->FreePoolChain();
-
       ::std::free(mHandle);
    }
 
@@ -289,7 +292,7 @@ namespace Langulus::Anyness::Inner
    ///   @param index - the index                                             
    ///   @return the threshold                                                
    inline Size Pool::ThresholdFromIndex(const Offset& index) const noexcept {
-      return Size {1} << (mAllocatedByBackendLSB - FastLog2(index));
+      return Size {1} << (mAllocatedByBackendLSB - Inner::FastLog2(index));
    }
 
    /// Get allocation from index                                              
@@ -301,7 +304,7 @@ namespace Langulus::Anyness::Inner
          return reinterpret_cast<Allocation*>(mMemory);
 
       constexpr Size one {1};
-      const Size basePower = FastLog2(index);
+      const Size basePower = Inner::FastLog2(index);
       const Size baselessIndex = index - (one << basePower);
       const Size levelIndex = (baselessIndex << one) + one;
       const Size levelSize = (one << (mAllocatedByBackendLSB - basePower));
@@ -359,7 +362,7 @@ namespace Langulus::Anyness::Inner
    ///   @return index above the given one                                    
    inline Offset Pool::UpIndex(const Offset index) const noexcept {
       // Credit goes to Vladislav Penchev                               
-      return index >> (LSB(index) + Offset {1});
+      return index >> (Inner::LSB(index) + Offset {1});
    }
 
    /// Check if a memory address resigns inside pool's range                  
@@ -391,4 +394,4 @@ namespace Langulus::Anyness::Inner
       return const_cast<Pool*>(this)->Find(memory);
    }
 
-} // namespace Langulus::Anyness::Inner
+} // namespace Langulus::Anyness

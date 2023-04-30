@@ -52,7 +52,7 @@ namespace Langulus::Anyness
 
    protected:
       using Base::mValue;
-      Inner::Allocation* mEntry {};
+      Allocation* mEntry {};
    
       void ResetInner();
 

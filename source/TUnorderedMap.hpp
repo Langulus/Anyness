@@ -28,7 +28,6 @@ namespace Langulus::Anyness
       using Pair = TPair<K, V>;
       using PairRef = TPair<K&, V&>;
       using PairConstRef = TPair<const K&, const V&>;
-      using Allocator = Inner::Allocator;
 
       LANGULUS(TYPED) Pair;
 
@@ -179,7 +178,11 @@ namespace Langulus::Anyness
       template<bool REUSE>
       void AllocateData(const Count&);
       void AllocateInner(const Count&);
+
       void Rehash(const Count&, const Count&);
+      void RehashKeys(const Count&, const Count&, Block&);
+      void RehashValues(const Count&, const Count&, Block&);
+      void ShiftPairs(const Count&);
 
       template<bool CHECK_FOR_MATCH, CT::Semantic SK, CT::Semantic SV>
       Offset InsertInner(const Offset&, SK&&, SV&&);

@@ -37,7 +37,7 @@ namespace Langulus::Anyness
       Conditional<EMBED, T*, T> mValue;
 
       // The entry                                                      
-      Conditional<EMBED && CT::Sparse<T>, Inner::Allocation**, Inner::Allocation*> mEntry;
+      Conditional<EMBED && CT::Sparse<T>, Allocation**, Allocation*> mEntry;
       /// @endcond show_protected                                             
 
    public:
@@ -49,9 +49,9 @@ namespace Langulus::Anyness
       template<CT::Semantic S>
       constexpr Handle(S&&) noexcept requires (!EMBED);
 
-      constexpr Handle(T&, Inner::Allocation*&) SAFETY_NOEXCEPT() requires (EMBED && CT::Sparse<T>);
-      constexpr Handle(T&, Inner::Allocation*) SAFETY_NOEXCEPT() requires (EMBED && CT::Dense<T>);
-      constexpr Handle(T&&, Inner::Allocation* = nullptr) SAFETY_NOEXCEPT() requires (!EMBED);
+      constexpr Handle(T&, Allocation*&) SAFETY_NOEXCEPT() requires (EMBED && CT::Sparse<T>);
+      constexpr Handle(T&, Allocation*) SAFETY_NOEXCEPT() requires (EMBED && CT::Dense<T>);
+      constexpr Handle(T&&, Allocation* = nullptr) SAFETY_NOEXCEPT() requires (!EMBED);
 
       constexpr Handle& operator = (const Handle&) noexcept = default;
       constexpr Handle& operator = (Handle&&) noexcept = default;
@@ -60,10 +60,10 @@ namespace Langulus::Anyness
       constexpr bool operator == (const Handle&) const noexcept requires (EMBED);
 
       NOD() T& Get() const noexcept;
-      NOD() Inner::Allocation*& GetEntry() const noexcept;
+      NOD() Allocation*& GetEntry() const noexcept;
 
-      void New(T, Inner::Allocation* = nullptr) noexcept requires CT::Sparse<T>;
-      void New(T&&, Inner::Allocation* = nullptr) noexcept requires CT::Dense<T>;
+      void New(T, Allocation* = nullptr) noexcept requires CT::Sparse<T>;
+      void New(T&&, Allocation* = nullptr) noexcept requires CT::Dense<T>;
       template<CT::Semantic S>
       void New(S&&);
       template<CT::Semantic S>

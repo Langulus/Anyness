@@ -21,7 +21,7 @@ using uint = unsigned int;
 
 SCENARIO("Deep containers", "[any]") {
    GIVEN("Any with some deep items") {
-      IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
+      IF_LANGULUS_MANAGED_MEMORY(Fractalloc.CollectGarbage());
 
       Any pack;
       Any subpack1;
@@ -588,7 +588,7 @@ SCENARIO("Deep containers", "[any]") {
    }
 
    GIVEN("Any with some deep items for the purpose of optimization") {
-      IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
+      IF_LANGULUS_MANAGED_MEMORY(Fractalloc.CollectGarbage());
 
       Any pack;
       Any subpack1;
@@ -617,7 +617,7 @@ SCENARIO("Deep containers", "[any]") {
    }
 
    GIVEN("Any with some deep items, and their Blocks coalesced") {
-      IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
+      IF_LANGULUS_MANAGED_MEMORY(Fractalloc.CollectGarbage());
 
       Any pack;
       Any subpack1;

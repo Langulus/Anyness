@@ -16,7 +16,6 @@ namespace Langulus::Anyness
    ///                                                                        
    class BlockSet {
    protected:
-      using Allocator = Inner::Allocator;
       static constexpr Count MinimalAllocation = 8;
       using InfoType = ::std::uint8_t;
 
@@ -259,7 +258,7 @@ namespace Langulus::Anyness
 
    #ifdef LANGULUS_ENABLE_TESTING
       public: NOD() constexpr const void* GetRawMemory() const noexcept;
-      public: NOD() Inner::Allocation* GetEntry() const noexcept;
+      public: NOD() Allocation* GetEntry() const noexcept;
    #endif
    };
 

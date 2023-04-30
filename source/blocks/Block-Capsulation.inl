@@ -573,22 +573,20 @@ namespace Langulus::Anyness
    ///   @attention entries exist only for sparse containers                  
    ///   @return the array of entries                                         
    LANGULUS(INLINED)
-   Inner::Allocation** Block::GetEntries() SAFETY_NOEXCEPT() {
+   Allocation** Block::GetEntries() SAFETY_NOEXCEPT() {
       LANGULUS_ASSUME(DevAssumes, IsSparse(),
          "Entries do not exist for dense container");
-      return reinterpret_cast<Inner::Allocation**>(
-         mRawSparse + mReserved);
+      return reinterpret_cast<Allocation**>(mRawSparse + mReserved);
    }
 
    /// Get entry array when block is sparse (const)                           
    ///   @attention entries exist only for sparse containers                  
    ///   @return the array of entries                                         
    LANGULUS(INLINED)
-   const Inner::Allocation* const* Block::GetEntries() const SAFETY_NOEXCEPT() {
+   const Allocation* const* Block::GetEntries() const SAFETY_NOEXCEPT() {
       LANGULUS_ASSUME(DevAssumes, IsSparse(),
          "Entries do not exist for dense container");
-      return reinterpret_cast<const Inner::Allocation* const*>(
-         mRawSparse + mReserved);
+      return reinterpret_cast<const Allocation* const*>(mRawSparse + mReserved);
    }
 
 } // namespace Langulus::Anyness

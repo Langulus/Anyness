@@ -224,6 +224,12 @@ namespace Langulus::Anyness
       bool operator == (const TAny<ALT_T>&) const noexcept;
       bool operator == (const Any&) const noexcept;
 
+   private:
+      // Disable these inherited functions                              
+      using Any::SmartPushAt;
+      using Any::SmartPush;
+
+   public:
       ///                                                                     
       ///   Removal                                                           
       ///                                                                     

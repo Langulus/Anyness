@@ -21,7 +21,7 @@ SCENARIO("Byte manipulation", "[bytes]") {
       Bytes data;
 
       WHEN("Capacity is reserved, via Allocate()") {
-         IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
+         IF_LANGULUS_MANAGED_MEMORY(Fractalloc.CollectGarbage());
 
          data.Reserve(500);
          auto memory = data.GetRaw();
@@ -43,7 +43,7 @@ SCENARIO("Byte manipulation", "[bytes]") {
    }
 
    GIVEN("A filled byte container") {
-      IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
+      IF_LANGULUS_MANAGED_MEMORY(Fractalloc.CollectGarbage());
 
       const int randomStuff[] = { 1, 2, 3, 4, 5 };
       Bytes data {randomStuff, sizeof(randomStuff)};

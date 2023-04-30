@@ -164,7 +164,7 @@ TEMPLATE_TEST_CASE(
       }
 
       WHEN("Given a value by move") {
-         IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
+         IF_LANGULUS_MANAGED_MEMORY(Fractalloc.CollectGarbage());
 
          auto movable = element;
          set = ::std::move(movable);
@@ -208,7 +208,7 @@ TEMPLATE_TEST_CASE(
    }
 
    GIVEN("Set with some items") {
-      IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
+      IF_LANGULUS_MANAGED_MEMORY(Fractalloc.CollectGarbage());
 
       // Arrays are dynamic to avoid constexprification                 
       const K darray1[5] {

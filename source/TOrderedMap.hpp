@@ -24,7 +24,6 @@ namespace Langulus::Anyness
       using Pair = TPair<K, V>;
       using PairRef = TPair<K&, V&>;
       using PairConstRef = TPair<const K&, const V&>;
-      using Allocator = Inner::Allocator;
       using Base = TUnorderedMap<K, V>;
 
       static constexpr bool Ordered = true;

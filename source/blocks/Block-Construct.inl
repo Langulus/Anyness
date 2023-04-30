@@ -49,11 +49,7 @@ namespace Langulus::Anyness
       , mCount {count}
       , mReserved {count}
       , mType {meta}
-      #if LANGULUS_FEATURE(MANAGED_MEMORY)
-         , mEntry {Inner::Allocator::Find(meta, raw)}
-      #else
-         , mEntry {nullptr}
-      #endif
+      , mEntry {Fractalloc.Find(meta, raw)}
    {
       LANGULUS_ASSUME(DevAssumes, raw != nullptr,
          "Invalid data pointer");
@@ -91,7 +87,7 @@ namespace Langulus::Anyness
       , DMeta meta
       , Count count
       , void* raw
-      , Inner::Allocation* entry
+      , Allocation* entry
    ) SAFETY_NOEXCEPT()
       : mRaw {static_cast<Byte*>(raw)}
       , mState {state}
@@ -120,7 +116,7 @@ namespace Langulus::Anyness
       , DMeta meta
       , Count count
       , const void* raw
-      , Inner::Allocation* entry
+      , Allocation* entry
    ) SAFETY_NOEXCEPT()
       : Block {state + DataState::Constant, meta, count, const_cast<void*>(raw), entry}
    {}
@@ -333,7 +329,7 @@ namespace Langulus::Anyness
 
       // Cleanup temporary                                              
       temporary.CallUnknownDestructors();
-      Inner::Allocator::Deallocate(temporary.mEntry);
+      Fractalloc.Deallocate(temporary.mEntry);
    }
 
    /// Swap contents of this block, with the contents of another, using       
@@ -367,7 +363,7 @@ namespace Langulus::Anyness
 
       // Cleanup temporary                                              
       temporary.CallKnownDestructors<T>();
-      Inner::Allocator::Deallocate(temporary.mEntry);
+      Fractalloc.Deallocate(temporary.mEntry);
    }
 
 } // namespace Langulus::Anyness

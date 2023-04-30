@@ -6,10 +6,9 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "Allocation.hpp"
-#include <thread>
+#include "../inner/Allocation.hpp"
 
-namespace Langulus::Anyness::Inner
+namespace Langulus::Anyness
 {
 
    ///                                                                        
@@ -39,6 +38,9 @@ namespace Langulus::Anyness::Inner
       // Pointer to start of usable memory                              
       Byte* mMemory {};
       Byte* mMemoryEnd {};
+      // Associated meta data, when types are reflected with nondefault 
+      // PoolTactic                                                     
+      DMeta mMeta {};
       // Handle for the pool allocation, for use with ::std::free       
       void* mHandle {};
 
@@ -51,7 +53,7 @@ namespace Langulus::Anyness::Inner
       Pool(Pool&&) = delete;
       ~Pool() = delete;
 
-      Pool(const Size&, void*) noexcept;
+      Pool(DMeta, const Size&, void*) noexcept;
 
       // Default pool allocation is 1 MB                                
       static constexpr Size DefaultPoolSize = 1024 * 1024;
@@ -94,6 +96,6 @@ namespace Langulus::Anyness::Inner
       NOD() const Allocation* AllocationFromAddress(const void*) const noexcept;
    };
 
-} // namespace Langulus::Anyness::Inner
+} // namespace Langulus::Anyness
 
 #include "Pool.inl"

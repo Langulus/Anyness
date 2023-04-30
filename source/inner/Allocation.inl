@@ -9,38 +9,45 @@
 #include "Allocation.hpp"
 #include <Core/Utilities.hpp>
 
-namespace Langulus::Anyness::Inner
+namespace Langulus::Anyness
 {
-   
-   /// MSVC will likely never support std::aligned_alloc, so we use           
-   /// a custom portable routine that's almost the same                       
-   /// https://stackoverflow.com/questions/62962839                           
-   ///                                                                        
-   /// Each allocation has the following prefixed bytes:                      
-   /// [padding][T::GetSize()][client bytes...]                               
-   ///                                                                        
-   ///   @param size - the number of client bytes to allocate                 
-   ///   @return a newly allocated memory that is correctly aligned           
-   ///   @attention if LANGULUS_FEATURE(MANAGED_MEMORY) is enabled, this      
-   ///              is used to allocate Pool. If not, then it's used to       
-   ///              allocate Allocation. For internal use only!               
-   template<AllocationPrimitive T>
-   T* AlignedAllocate(const Size& size) SAFETY_NOEXCEPT() {
-      const auto finalSize = T::GetNewAllocationSize(size) + Alignment;
-      const auto base = ::std::malloc(finalSize);
-      if (!base) UNLIKELY()
-         return nullptr;
+   namespace Inner
+   {
+      /// Fast log2                                                           
+      /// https://stackoverflow.com/questions/11376288                        
+      ///   @param u - number                                                 
+      ///   @return the log2                                                  
+      constexpr Size FastLog2(Size x) noexcept {
+         return x < 2 
+            ? 0 : Size{8 * sizeof(Size)} - ::std::countl_zero(x) - Size{1};
+      }
 
-      // Align pointer to LANGULUS_ALIGN()                              
-      auto ptr = reinterpret_cast<T*>(
-         (reinterpret_cast<Size>(base) + Alignment)
-         & ~(Alignment - Size {1})
-      );
-
-      // Place the entry there                                          
-      new (ptr) T {size, base};
-      return ptr;
-   }
+      /// Get least significant bit                                           
+      /// https://stackoverflow.com/questions/757059                          
+      ///   @param n - number                                                 
+      ///   @return the least significant bit                                 
+      constexpr Size LSB(const Size& n) noexcept {
+         #if LANGULUS(BITNESS) == 32
+            constexpr Size DeBruijnBitPosition[32] = {
+               0, 1, 28, 2, 29, 14, 24, 3, 30, 22, 20, 15, 25, 17, 4, 8,
+               31, 27, 13, 23, 21, 19, 16, 7, 26, 12, 18, 6, 11, 5, 10, 9
+            };
+            constexpr Size f = 0x077CB531u;
+            return DeBruijnBitPosition[(Size {n & (0 - n)} * f) >> Size {27}];
+         #elif LANGULUS(BITNESS) == 64
+            constexpr Size DeBruijnBitPosition[64] = {
+               0,   1,  2, 53,  3,  7, 54, 27,  4, 38, 41,  8, 34, 55, 48, 28,
+               62,  5, 39, 46, 44, 42, 22,  9, 24, 35, 59, 56, 49, 18, 29, 11,
+               63, 52,  6, 26, 37, 40, 33, 47, 61, 45, 43, 21, 23, 58, 17, 10,
+               51, 25, 36, 32, 60, 20, 57, 16, 50, 31, 19, 15, 30, 14, 13, 12
+            };
+            constexpr Size f = 0x022fdd63cc95386dul;
+            return DeBruijnBitPosition[(Size {n & (0 - n)} * f) >> Size {58}];
+         #else
+            #error Implement for your architecture
+         #endif
+      }
+   } // namespace Langulus::Anyness::Inner
 
 
    /// Initialize an allocation                                               
@@ -164,4 +171,4 @@ namespace Langulus::Anyness::Inner
       mReferences -= c;
    }
 
-} // namespace Langulus::Anyness::Inner
+} // namespace Langulus::Anyness

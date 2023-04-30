@@ -66,14 +66,10 @@ namespace Langulus::Anyness
             // managed memory is enabled                                
             SemanticAssign<T>(mValue, S::Nest(other.mValue));
 
-            #if LANGULUS_FEATURE(MANAGED_MEMORY)
-               if constexpr (CT::Sparse<T> && CT::Allocatable<Deptr<T>> && (S::Keep || S::Move))
-                  mEntry = Inner::Allocator::Find(MetaData::Of<Deptr<T>>(), mValue);
-               else
-                  mEntry = nullptr;
-            #else
+            if constexpr (CT::Sparse<T> && CT::Allocatable<Deptr<T>> && (S::Keep || S::Move))
+               mEntry = Fractalloc.Find(MetaData::Of<Deptr<T>>(), mValue);
+            else
                mEntry = nullptr;
-            #endif
          }
          else {
             // Clone a pointer                                          
@@ -87,7 +83,7 @@ namespace Langulus::Anyness
    ///   @param e - a reference to the element's entry                        
    TEMPLATE()
    LANGULUS(INLINED)
-   constexpr HAND()::Handle(T& v, Inner::Allocation*& e) SAFETY_NOEXCEPT() requires (EMBED && CT::Sparse<T>)
+   constexpr HAND()::Handle(T& v, Allocation*& e) SAFETY_NOEXCEPT() requires (EMBED && CT::Sparse<T>)
       : mValue {&v}
       , mEntry {&e} {}
       
@@ -96,7 +92,7 @@ namespace Langulus::Anyness
    ///   @param e - the entry (optional)                                      
    TEMPLATE()
    LANGULUS(INLINED)
-   constexpr HAND()::Handle(T& v, Inner::Allocation* e) SAFETY_NOEXCEPT() requires (EMBED && CT::Dense<T>)
+   constexpr HAND()::Handle(T& v, Allocation* e) SAFETY_NOEXCEPT() requires (EMBED && CT::Dense<T>)
       : mValue {&v}
       , mEntry {e} {}
       
@@ -105,7 +101,7 @@ namespace Langulus::Anyness
    ///   @param e - the entry (optional)                                      
    TEMPLATE()
    LANGULUS(INLINED)
-   constexpr HAND()::Handle(T&& v, Inner::Allocation* e) SAFETY_NOEXCEPT() requires (!EMBED)
+   constexpr HAND()::Handle(T&& v, Allocation* e) SAFETY_NOEXCEPT() requires (!EMBED)
       : mValue {Forward<T>(v)}
       , mEntry {e} {}
 
@@ -218,17 +214,17 @@ namespace Langulus::Anyness
    /// Get the entry                                                          
    TEMPLATE()
    LANGULUS(INLINED)
-   Inner::Allocation*& HAND()::GetEntry() const noexcept {
+   Allocation*& HAND()::GetEntry() const noexcept {
       if constexpr (Embedded && CT::Sparse<T>)
-         return const_cast<Inner::Allocation*&>(*mEntry);
+         return const_cast<Allocation*&>(*mEntry);
       else
-         return const_cast<Inner::Allocation*&>(mEntry);
+         return const_cast<Allocation*&>(mEntry);
    }
 
    /// Assign a new pointer and entry at the handle                           
    TEMPLATE()
    LANGULUS(INLINED)
-   void HAND()::New(T pointer, Inner::Allocation* entry) noexcept requires CT::Sparse<T> {
+   void HAND()::New(T pointer, Allocation* entry) noexcept requires CT::Sparse<T> {
       Get() = pointer;
       GetEntry() = entry;
    }
@@ -236,7 +232,7 @@ namespace Langulus::Anyness
    /// Assign a new pointer and entry at the handle                           
    TEMPLATE()
    LANGULUS(INLINED)
-   void HAND()::New(T&& pointer, Inner::Allocation* entry) noexcept requires CT::Dense<T> {
+   void HAND()::New(T&& pointer, Allocation* entry) noexcept requires CT::Dense<T> {
       Get() = Forward<T>(pointer);
       GetEntry() = entry;
    }
@@ -337,7 +333,7 @@ namespace Langulus::Anyness
          // Do a clone                                                  
          using DT = Decay<T>;
          auto meta = MetaData::Of<DT>();
-         auto entry = Inner::Allocator::Allocate(meta->RequestSize(1).mByteSize);
+         auto entry = Fractalloc.Allocate(meta, meta->RequestSize(1).mByteSize);
          auto pointer = entry->template As<DT>();
 
          if constexpr (CT::Handle<ST>) {
@@ -373,7 +369,7 @@ namespace Langulus::Anyness
       else if (!meta->mDeptr->mIsSparse) {
          // Do a clone                                                  
          const auto bytesize = meta->mDeptr->RequestSize(1).mByteSize;
-         auto entry = Inner::Allocator::Allocate(bytesize);
+         auto entry = Fractalloc.Allocate(meta->mDeptr, bytesize);
          auto pointer = entry->GetBlockStart();
 
          if constexpr (CT::Handle<TypeOf<S>>)
@@ -449,9 +445,7 @@ namespace Langulus::Anyness
                if constexpr (CT::Sparse<Deptr<T>>) {
                   // Pointer to pointer                                 
                   // Release all nested indirection layers              
-                  HandleLocal<Deptr<T>> {
-                     Langulus::Copy(*Get())
-                  }.Destroy();
+                  HandleLocal<Deptr<T>> {Copy(*Get())}.Destroy();
                }
                else if constexpr (CT::Complete<Decay<T>>) {
                   if constexpr (!CT::POD<T> && CT::Destroyable<T>) {
@@ -462,7 +456,7 @@ namespace Langulus::Anyness
                   }
                }
 
-               Inner::Allocator::Deallocate(GetEntry());
+               Fractalloc.Deallocate(GetEntry());
             }
             else GetEntry()->Free();
          }
@@ -498,7 +492,7 @@ namespace Langulus::Anyness
                if (meta->mDeptr->mIsSparse) {
                   // Release all nested indirection layers              
                   HandleLocal<Byte*> {
-                     Langulus::Copy(*reinterpret_cast<Byte**>(Get()))
+                     Copy(*reinterpret_cast<Byte**>(Get()))
                   }.DestroyUnknown(meta->mDeptr);
                }
                else if (!meta->mIsPOD && meta->mDeptr->mDestructor) {
@@ -506,7 +500,7 @@ namespace Langulus::Anyness
                   meta->mDeptr->mDestructor(Get());
                }
 
-               Inner::Allocator::Deallocate(GetEntry());
+               Fractalloc.Deallocate(GetEntry());
             }
             else GetEntry()->Free();
          }

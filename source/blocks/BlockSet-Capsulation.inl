@@ -169,7 +169,7 @@ namespace Langulus::Anyness
    /// Get allocation, used only in testing                                   
    ///   @return the allocation entry                                         
    LANGULUS(INLINED)
-   Inner::Allocation* BlockSet::GetEntry() const noexcept {
+   Allocation* BlockSet::GetEntry() const noexcept {
       return mKeys.mEntry;
    }
 #endif

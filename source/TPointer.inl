@@ -25,13 +25,13 @@ namespace Langulus::Anyness
    ///   @param other - pointer to reference                                  
    TEMPLATE_SHARED() LANGULUS(INLINED)
    SHARED_POINTER()::TPointer(const TPointer& other)
-      : TPointer {Langulus::Copy(other)} {}
+      : TPointer {Copy(other)} {}
 
    /// Move constructor                                                       
    ///   @param other - pointer to move                                       
    TEMPLATE_SHARED() LANGULUS(INLINED)
    SHARED_POINTER()::TPointer(TPointer&& other)
-      : TPointer {Langulus::Move(other)} {}
+      : TPointer {Move(other)} {}
 
    /// Copy construct from any pointer/shared pointer/nullptr/related pointer 
    ///   @param value - the value to use for initialization                   
@@ -111,7 +111,7 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    void SHARED_POINTER()::New(ARGS&&... arguments) {
       TPointer pointer;
-      pointer.mEntry = Inner::Allocator::Allocate(sizeof(Decay<T>));
+      pointer.mEntry = Fractalloc.Allocate(RTTI::MetaData::Of<Decay<T>>(), sizeof(Decay<T>));
       LANGULUS_ASSERT(pointer.mEntry, Allocate, "Out of memory");
       pointer.mValue = reinterpret_cast<decltype(pointer.mValue)>(
          pointer.mEntry->GetBlockStart());
@@ -120,19 +120,16 @@ namespace Langulus::Anyness
    }
 
    /// Reset the pointer                                                      
+   ///   @attention assumes mValue is a valid pointer                         
    TEMPLATE_SHARED() LANGULUS(INLINED)
    void SHARED_POINTER()::ResetInner() {
       // Do referencing in the element itself, if available             
       if constexpr (DR && CT::Referencable<T>) {
-         if (mValue->GetReferences() == 1) {
-            GetHandle().template Destroy<false>();
-         }
-         else {
+         if (mValue->GetReferences() > 1)
             mValue->Free();
-            GetHandle().template Destroy<false>();
-         }
       }
-      else GetHandle().template Destroy<false>();
+
+      GetHandle().template Destroy<false>();
    }
 
    /// Reset the pointer                                                      
@@ -149,7 +146,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this shared pointer                           
    TEMPLATE_SHARED() LANGULUS(INLINED)
    SHARED_POINTER()& SHARED_POINTER()::operator = (const TPointer& rhs) {
-      return operator = (Langulus::Copy(rhs));
+      return operator = (Copy(rhs));
    }
 
    /// Move-assignment                                                        
@@ -157,7 +154,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this shared pointer                           
    TEMPLATE_SHARED() LANGULUS(INLINED)
    SHARED_POINTER()& SHARED_POINTER()::operator = (TPointer&& rhs) {
-      return operator = (Langulus::Move(rhs));
+      return operator = (Move(rhs));
    }
 
    /// Copy-assign from any pointer/shared pointer/nullptr/related pointer    
@@ -165,7 +162,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this shared pointer                           
    TEMPLATE_SHARED() LANGULUS(INLINED)
    SHARED_POINTER()& SHARED_POINTER()::operator = (const CT::PointerRelated auto& rhs) {
-      return operator = (Langulus::Copy(rhs));
+      return operator = (Copy(rhs));
    }
 
    /// Copy-assign from any pointer/shared pointer/nullptr/related pointer    
@@ -173,7 +170,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this shared pointer                           
    TEMPLATE_SHARED() LANGULUS(INLINED)
    SHARED_POINTER()& SHARED_POINTER()::operator = (CT::PointerRelated auto& rhs) {
-      return operator = (Langulus::Copy(rhs));
+      return operator = (Copy(rhs));
    }
 
    /// Move-assign from any pointer/shared pointer/nullptr/related pointer    
@@ -181,7 +178,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this shared pointer                           
    TEMPLATE_SHARED() LANGULUS(INLINED)
    SHARED_POINTER()& SHARED_POINTER()::operator = (CT::PointerRelated auto&& rhs) {
-      return operator = (Langulus::Move(rhs));
+      return operator = (Move(rhs));
    }
 
    /// Semantically assign from any pointer/shared pointer/nullptr/related    
@@ -202,7 +199,7 @@ namespace Langulus::Anyness
          // pointer, as long as it is related                           
          if constexpr (S::Shallow && !S::Move && S::Keep) {
             if constexpr (DR && CT::Referencable<T>) {
-               if (mValue)
+               if (mValue && mEntry->GetUses() > 1)
                   mValue->Free();
             }
          }

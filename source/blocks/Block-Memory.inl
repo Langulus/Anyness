@@ -92,7 +92,7 @@ namespace Langulus::Anyness
                GetEntries(), mCount
             );
          }
-         mEntry = Inner::Allocator::Reallocate(
+         mEntry = Fractalloc.Reallocate(
             request.mByteSize * (mType->mIsSparse ? 2:1),
             mEntry
          );
@@ -146,7 +146,7 @@ namespace Langulus::Anyness
             // Also, make sure to free the previous mEntry if moved     
             // Sparse containers have additional memory allocated for   
             // each pointer's entry, if managed memory is enabled       
-            mEntry = Inner::Allocator::Reallocate(
+            mEntry = Fractalloc.Reallocate(
                request.mByteSize * (mType->mIsSparse ? 2 : 1),
                mEntry
             );
@@ -175,7 +175,7 @@ namespace Langulus::Anyness
             // copy the memory for this block - we can't move it!       
             AllocateFresh(request);
             CallUnknownSemanticConstructors(previousBlock.mCount, 
-               Langulus::Copy(previousBlock));
+               Copy(previousBlock));
             previousBlock.Free();
          }
       }
@@ -197,8 +197,8 @@ namespace Langulus::Anyness
    void Block::AllocateFresh(const RTTI::AllocationRequest& request) {
       // Sparse containers have additional memory allocated             
       // for each pointer's entry                                       
-      mEntry = Inner::Allocator::Allocate(
-         request.mByteSize * (mType->mIsSparse ? 2 : 1)
+      mEntry = Fractalloc.Allocate(
+         mType, request.mByteSize * (mType->mIsSparse ? 2 : 1)
       );
       LANGULUS_ASSERT(mEntry, Allocate, "Out of memory");
       mRaw = mEntry->GetBlockStart();
@@ -268,7 +268,7 @@ namespace Langulus::Anyness
             if (mCount)
                CallUnknownDestructors();
          }
-         Inner::Allocator::Deallocate(mEntry);
+         Fractalloc.Deallocate(mEntry);
       }
       else mEntry->Free(times);
 
@@ -311,11 +311,7 @@ namespace Langulus::Anyness
       SetMemory(
          state, meta, count, 
          const_cast<void*>(raw),
-         #if LANGULUS_FEATURE(MANAGED_MEMORY)
-            Inner::Allocator::Find(meta, raw)
-         #else
-            nullptr
-         #endif
+         Fractalloc.Find(meta, raw)
       );
    }
 
@@ -328,7 +324,7 @@ namespace Langulus::Anyness
       , DMeta meta
       , Count count
       , const void* raw
-      , Inner::Allocation* entry
+      , Allocation* entry
    ) {
       SetMemory(
          state + DataState::Constant, meta, count, 
@@ -345,7 +341,7 @@ namespace Langulus::Anyness
       , DMeta meta
       , Count count
       , void* raw
-      , Inner::Allocation* entry
+      , Allocation* entry
    ) {
       LANGULUS_ASSUME(DevAssumes, raw != nullptr,
          "Invalid data pointer");

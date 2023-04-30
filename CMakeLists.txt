@@ -36,6 +36,12 @@ aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/source LANGULUS_ANYNESS_SOURCES
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/source/inner LANGULUS_ANYNESS_SOURCES)
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/source/verbs LANGULUS_ANYNESS_SOURCES)
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/source/blocks LANGULUS_ANYNESS_SOURCES)
+if (LANGULUS_FEATURE_MANAGED_MEMORY)
+    aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/source/fractalloc LANGULUS_ANYNESS_SOURCES)
+else()
+    aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/source/unmanaged LANGULUS_ANYNESS_SOURCES)
+endif()
+
 add_library(Langulus.Anyness ${LANGULUS_LIBRARY_TYPE} ${LANGULUS_ANYNESS_SOURCES})
 
 target_include_directories(Langulus.Anyness

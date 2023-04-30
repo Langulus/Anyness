@@ -13,6 +13,11 @@
 
 namespace Langulus::Anyness
 {
+   #if LANGULUS_FEATURE(MANAGED_MEMORY)
+      class Pool;
+   #else
+      using Pool = void;
+   #endif 
 
    using RTTI::MetaData;
    using RTTI::MetaTrait;
@@ -20,6 +25,7 @@ namespace Langulus::Anyness
    using RTTI::DMeta;
    using RTTI::TMeta;
    using RTTI::VMeta;
+
 
    /// Wrapper for memcpy                                                     
    ///   @tparam TO - destination memory type (deducible)                     
@@ -213,22 +219,10 @@ namespace Langulus::Anyness
       #endif
    }
    
-} // namespace Langulus::Anyness
-
-namespace Langulus::Anyness::Inner
-{
-
    template<class T>
    concept AllocationPrimitive = requires(T a) { 
       {T::GetNewAllocationSize(Size {})} -> CT::Same<Size>;
    };
-            
-   template<AllocationPrimitive T>
-   T* AlignedAllocate(const Size& size) SAFETY_NOEXCEPT();
-
-
-   NOD() constexpr Size FastLog2(Size) noexcept;
-   NOD() constexpr Size LSB(const Size&) noexcept;
 
 
    ///                                                                        
@@ -285,6 +279,6 @@ namespace Langulus::Anyness::Inner
       constexpr void Free(const Count&) noexcept;
    };
 
-} // namespace Langulus::Anyness::Inner
+} // namespace Langulus::Anyness
 
 #include "Allocation.inl"

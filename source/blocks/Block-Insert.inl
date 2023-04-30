@@ -797,7 +797,7 @@ namespace Langulus::Anyness
    /// container in order to keep hierarchy and states, but also reuse memory 
    ///   @tparam ALLOW_CONCAT - whether or not concatenation is allowed       
    ///   @tparam ALLOW_DEEPEN - whether or not deepening is allowed           
-   ///   @tparam WRAPPER - type of container used for deepening if enabled    
+   ///   @tparam WRAPPER - type of container used for deepening or transfer   
    ///   @tparam T - type of data to push (deducible)                         
    ///   @tparam INDEX - type of index to use                                 
    ///   @param value - the value to smart-push                               
@@ -808,7 +808,7 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Count Block::SmartPushAt(const T& value, INDEX index, DataState state) {
       return SmartPushAt<ALLOW_CONCAT, ALLOW_DEEPEN, WRAPPER>(
-         Langulus::Copy(value), index, state);
+         Copy(value), index, state);
    }
 
    /// This is required to disambiguate calls correctly                       
@@ -817,14 +817,14 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Count Block::SmartPushAt(T& value, INDEX index, DataState state) {
       return SmartPushAt<ALLOW_CONCAT, ALLOW_DEEPEN, WRAPPER>(
-         Langulus::Copy(value), index, state);
+         Copy(value), index, state);
    }
 
    /// A move-insert that uses the best approach to push anything inside      
    /// container in order to keep hierarchy and states, but also reuse memory 
    ///   @tparam ALLOW_CONCAT - whether or not concatenation is allowed       
    ///   @tparam ALLOW_DEEPEN - whether or not deepening is allowed           
-   ///   @tparam WRAPPER - type of container used for deepening if enabled    
+   ///   @tparam WRAPPER - type of container used for deepening or transfer   
    ///   @tparam T - type of data to push (deducible)                         
    ///   @tparam INDEX - type of index to use                                 
    ///   @param value - the value to smart-push                               
@@ -835,14 +835,14 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Count Block::SmartPushAt(T&& value, INDEX index, DataState state) {
       return SmartPushAt<ALLOW_CONCAT, ALLOW_DEEPEN, WRAPPER>(
-         Langulus::Move(value), index, state);
+         Move(value), index, state);
    }
 
    /// Semantic-insert that uses the best approach to push anything inside    
    /// container in order to keep hierarchy and states, but also reuse memory 
    ///   @tparam ALLOW_CONCAT - whether or not concatenation is allowed       
    ///   @tparam ALLOW_DEEPEN - whether or not deepening is allowed           
-   ///   @tparam WRAPPER - type of container used for deepening if enabled    
+   ///   @tparam WRAPPER - type of container used for deepening or transfer   
    ///   @tparam S - type of data and semantic to push (deducible)            
    ///   @tparam INDEX - type of index to use                                 
    ///   @param value - the value to smart-push                               
@@ -863,7 +863,7 @@ namespace Langulus::Anyness
 
          const bool stateCompliant = CanFitState(value.mValue);
          if (IsEmpty() && !value.mValue.IsStatic() && stateCompliant) {
-            Absorb(value.Forward(), state);
+            BlockTransfer<WRAPPER>(value.Forward());
             return 1;
          }
 
@@ -885,7 +885,7 @@ namespace Langulus::Anyness
    ///   @tparam INDEX - either IndexFront or IndexBack to insert there       
    ///   @tparam ALLOW_CONCAT - whether or not concatenation is allowed       
    ///   @tparam ALLOW_DEEPEN - whether or not deepening is allowed           
-   ///   @tparam WRAPPER - type of container used for deepening if enabled    
+   ///   @tparam WRAPPER - type of container used for deepening or transfer   
    ///   @tparam T - type of data to push (deducible)                         
    ///   @param value - the value to smart-push                               
    ///   @param state - a state to apply after pushing is done                
@@ -894,7 +894,7 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Count Block::SmartPush(const T& value, DataState state) {
       return SmartPush<INDEX, ALLOW_CONCAT, ALLOW_DEEPEN, WRAPPER>(
-         Langulus::Copy(value), state);
+         Copy(value), state);
    }
 
    /// Required to disambiguate calls correctly                               
@@ -903,7 +903,7 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Count Block::SmartPush(T& value, DataState state) {
       return SmartPush<INDEX, ALLOW_CONCAT, ALLOW_DEEPEN, WRAPPER>(
-         Langulus::Copy(value), state);
+         Copy(value), state);
    }
    
    /// A smart move-insert uses the best approach to push anything inside     
@@ -911,7 +911,7 @@ namespace Langulus::Anyness
    ///   @tparam INDEX - either IndexFront or IndexBack to insert there       
    ///   @tparam ALLOW_CONCAT - whether or not concatenation is allowed       
    ///   @tparam ALLOW_DEEPEN - whether or not deepening is allowed           
-   ///   @tparam WRAPPER - type of container used for deepening if enabled    
+   ///   @tparam WRAPPER - type of container used for deepening or transfer   
    ///   @tparam T - type of data to push (deducible)                         
    ///   @param value - the value to smart-push                               
    ///   @param state - a state to apply after pushing is done                
@@ -920,7 +920,7 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Count Block::SmartPush(T&& value, DataState state) {
       return SmartPush<INDEX, ALLOW_CONCAT, ALLOW_DEEPEN, WRAPPER>(
-         Langulus::Move(value), state);
+         Move(value), state);
    }
 
    /// Semantic-insert that uses the best approach to push anything inside    
@@ -928,7 +928,7 @@ namespace Langulus::Anyness
    ///   @tparam INDEX - either IndexFront or IndexBack to insert there       
    ///   @tparam ALLOW_CONCAT - whether or not concatenation is allowed       
    ///   @tparam ALLOW_DEEPEN - whether or not deepening is allowed           
-   ///   @tparam WRAPPER - type of container used for deepening if enabled    
+   ///   @tparam WRAPPER - type of container used for deepening or transfer   
    ///   @tparam S - type of data and semantic to push (deducible)            
    ///   @param value - the value to smart-push                               
    ///   @param state - a state to apply after pushing is done                
@@ -947,7 +947,7 @@ namespace Langulus::Anyness
 
          const bool stateCompliant = CanFitState(value.mValue);
          if (IsEmpty() && !value.mValue.IsStatic() && stateCompliant) {
-            Absorb(value.Forward(), state);
+            BlockTransfer<WRAPPER>(value.Forward());
             return 1;
          }
 
@@ -993,10 +993,7 @@ namespace Langulus::Anyness
                   auto it = start;
                   auto entry = GetEntries() + at;
                   while (it != end) {
-                     *entry = Inner::Allocator::Find(
-                        MetaData::Of<Deptr<T>>(), it
-                     );
-
+                     *entry = Fractalloc.Find(MetaData::Of<Deptr<T>>(), it);
                      if (*entry)
                         (*entry)->Keep();
 
@@ -1121,43 +1118,6 @@ namespace Langulus::Anyness
       }
 
       mCount += count;
-   }
-   
-   /// Turn into another container (inner function)                           
-   ///   @tparam S - semantic and value type (deducible)                      
-   ///   @param value - semantically provided value to absorb                 
-   ///   @param state - the state to absorb                                   
-   template<CT::Semantic S>
-   LANGULUS(INLINED)
-   void Block::Absorb(S&& value, const DataState& state) {
-      static_assert(CT::Deep<TypeOf<S>>, "S::Type must be deep");
-
-      const auto previousType = !mType ? value.mValue.GetType() : mType;
-      const auto previousState = mState;
-
-      operator = (value.mValue);
-
-      if constexpr (S::Keep)
-         Keep();
-
-      mState = mState + previousState + state;
-
-      if (previousState.IsTyped()) {
-         // Retain type if original package was constrained             
-         SetType<true>(previousType);
-      }
-      else if (IsSparse()) {
-         // Retain type if current package is sparse                    
-         SetType<false>(previousType);
-      }
-
-      if constexpr (S::Move) {
-         if constexpr (S::Keep) {
-            value.mValue.ResetMemory();
-            value.mValue.ResetState();
-         }
-         else value.mValue.mEntry = nullptr;
-      }
    }
    
    /// Smart concatenation inner call, used by smart push                     
@@ -1437,7 +1397,7 @@ namespace Langulus::Anyness
             auto lhsPtr = const_cast<Block*>(this)->GetRawSparse();
             auto lhsEnt = const_cast<Block*>(this)->GetEntries();
             const auto lhsEnd = lhsPtr + count;
-            const auto allocation = Inner::Allocator::Allocate(mType->mOrigin->mSize * count);
+            const auto allocation = Fractalloc.Allocate(mType->mOrigin, mType->mOrigin->mSize * count);
             allocation->Keep(count - 1);
 
             auto rhs = allocation->GetBlockStart();
@@ -1487,7 +1447,7 @@ namespace Langulus::Anyness
          auto lhsPtr = const_cast<Block*>(this)->GetRawSparse();
          auto lhsEnt = const_cast<Block*>(this)->GetEntries();
          const auto lhsEnd = lhsPtr + count;
-         const auto allocation = Inner::Allocator::Allocate(sizeof(Decay<T>) * count);
+         const auto allocation = Fractalloc.Allocate(MetaData::Of<Decay<T>>(), sizeof(Decay<T>) * count);
          allocation->Keep(count - 1);
 
          auto rhs = allocation->As<Decay<T>*>();
@@ -1544,12 +1504,7 @@ namespace Langulus::Anyness
             else if constexpr (::std::constructible_from<T, A...>) {
                // Set pointer and find entry                            
                (*lhs = ... = arguments);
-
-               #if LANGULUS_FEATURE(MANAGED_MEMORY)
-                  *lhsEntry = Inner::Allocator::Find(mType, *lhs);
-               #else
-                  *lhsEntry = nullptr;
-               #endif
+               *lhsEntry = Fractalloc.Find(mType, *lhs);
             }
             else LANGULUS_ERROR("T is not constructible with these arguments");
 
@@ -2129,7 +2084,7 @@ namespace Langulus::Anyness
                // Free old LHS                                          
                if ((*lhsEntry)->GetUses() == 1) {
                   mType->mOrigin->mDestructor(*lhs);
-                  Inner::Allocator::Deallocate(*lhsEntry);
+                  Fractalloc.Deallocate(*lhsEntry);
                }
                else (*lhsEntry)->Free();
             }
@@ -2137,7 +2092,7 @@ namespace Langulus::Anyness
             if constexpr (S::Move) {
                // Move/Abandon RHS in LHS                               
                *lhs = const_cast<Byte*>(*rhs);
-               *lhsEntry = const_cast<Inner::Allocation*>(*rhsEntry);
+               *lhsEntry = const_cast<Allocation*>(*rhsEntry);
                *rhsEntry = nullptr;
 
                if constexpr (S::Keep) {
@@ -2150,7 +2105,7 @@ namespace Langulus::Anyness
                *lhs = const_cast<Byte*>(*rhs);
 
                if constexpr (S::Keep) {
-                  *lhsEntry = const_cast<Inner::Allocation*>(*rhsEntry);
+                  *lhsEntry = const_cast<Allocation*>(*rhsEntry);
                   if (*lhsEntry)
                      (*lhsEntry)->Keep();
                }
@@ -2191,7 +2146,7 @@ namespace Langulus::Anyness
                // Free old LHS                                       
                if ((*lhsEntry)->GetUses() == 1) {
                   mType->mOrigin->mDestructor(*lhs);
-                  Inner::Allocator::Deallocate(*lhsEntry);
+                  Fractalloc.Deallocate(*lhsEntry);
                }
                else (*lhsEntry)->Free();
             }

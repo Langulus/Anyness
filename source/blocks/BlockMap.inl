@@ -119,9 +119,9 @@ namespace Langulus::Anyness
             while (info != infoEnd) {
                if (*info) {
                   dstKey.CallUnknownSemanticConstructors(
-                     1, Langulus::Clone(srcKey));
+                     1, Clone(srcKey));
                   dstVal.CallUnknownSemanticConstructors(
-                     1, Langulus::Clone(srcVal));
+                     1, Clone(srcVal));
                }
 
                ++info;
@@ -158,8 +158,8 @@ namespace Langulus::Anyness
       auto srcVal = asFrom->GetValueHandle(0);
       while (info != infoEnd) {
          if (*info) {
-            dstKey.New(Langulus::Clone(srcKey));
-            dstVal.New(Langulus::Clone(srcVal));
+            dstKey.New(Clone(srcKey));
+            dstVal.New(Clone(srcVal));
          }
 
          ++info;
@@ -202,8 +202,8 @@ namespace Langulus::Anyness
          }
 
          // Deallocate stuff                                            
-         Allocator::Deallocate(mKeys.mEntry);
-         Allocator::Deallocate(mValues.mEntry);
+         Fractalloc.Deallocate(mKeys.mEntry);
+         Fractalloc.Deallocate(mValues.mEntry);
       }
       else {
          // Data is used from multiple locations, just deref values     
@@ -561,14 +561,14 @@ namespace Langulus::Anyness
 
       Offset infoOffset;
       const auto keyAndInfoSize = RequestKeyAndInfoSize(count, infoOffset);
-      mKeys.mEntry = Allocator::Allocate(keyAndInfoSize);
+      mKeys.mEntry = Fractalloc.Allocate(mKeys.mType, keyAndInfoSize);
       LANGULUS_ASSERT(mKeys.mEntry, Allocate, "Out of memory");
 
       const auto valueByteSize = RequestValuesSize(count);
-      mValues.mEntry = Allocator::Allocate(valueByteSize);
+      mValues.mEntry = Fractalloc.Allocate(mValues.mType, valueByteSize);
 
       if (!mValues.mEntry) {
-         Allocator::Deallocate(mKeys.mEntry);
+         Fractalloc.Deallocate(mKeys.mEntry);
          mKeys.mEntry = nullptr;
          LANGULUS_THROW(Allocate, "Out of memory");
       }
@@ -599,9 +599,9 @@ namespace Langulus::Anyness
       Block oldKeys {mKeys};
       const auto keyAndInfoSize = RequestKeyAndInfoSize(count, infoOffset);
       if constexpr (REUSE)
-         mKeys.mEntry = Allocator::Reallocate(keyAndInfoSize, mKeys.mEntry);
+         mKeys.mEntry = Fractalloc.Reallocate(keyAndInfoSize, mKeys.mEntry);
       else
-         mKeys.mEntry = Allocator::Allocate(keyAndInfoSize);
+         mKeys.mEntry = Fractalloc.Allocate(mKeys.mType, keyAndInfoSize);
 
       LANGULUS_ASSERT(mKeys.mEntry, Allocate,
          "Out of memory on allocating/reallocating keys");
@@ -610,12 +610,12 @@ namespace Langulus::Anyness
       Block oldValues {mValues};
       const auto valueByteSize = RequestValuesSize(count);
       if constexpr (REUSE)
-         mValues.mEntry = Allocator::Reallocate(valueByteSize, mValues.mEntry);
+         mValues.mEntry = Fractalloc.Reallocate(valueByteSize, mValues.mEntry);
       else
-         mValues.mEntry = Allocator::Allocate(valueByteSize);
+         mValues.mEntry = Fractalloc.Allocate(mValues.mType, valueByteSize);
 
       if (!mValues.mEntry) {
-         Allocator::Deallocate(mKeys.mEntry);
+         Fractalloc.Deallocate(mKeys.mEntry);
          mKeys.mEntry = nullptr;
          LANGULUS_THROW(Allocate,
             "Out of memory on allocating/reallocating values");
@@ -659,33 +659,41 @@ namespace Langulus::Anyness
                };
 
                Rehash(count, oldCount);
-               return;
             }
+            else {
+               // Only values moved, reinsert them, rehash the rest     
+               RehashKeys(count, oldCount, oldValues);
+               Fractalloc.Deallocate(oldValues.mEntry);
+            }
+            return;
          }
-         else ZeroMemory(mInfo, count);
+         else if (mValues.mEntry == oldValues.mEntry) {
+            // Only keys moved, reinsert them, rehash the rest          
+            RehashValues(count, oldCount, oldKeys);
+            Fractalloc.Deallocate(oldKeys.mEntry);
+            return;
+         }
       }
-      else ZeroMemory(mInfo, count);
 
-      if (oldValues.IsEmpty()) {
-         // There are no old values, the previous map was empty         
-         // Just do an early return right here                          
+      // If reached, then both keys and values are newly allocated      
+      ZeroMemory(mInfo, count);
+      if (oldValues.IsEmpty())
          return;
-      }
 
-      // If reached, then keys or values (or both) moved                
-      // Reinsert all pairs to rehash                                   
+      // Reinsert everything                                            
+      ZeroMemory(mInfo, count);
       mValues.mCount = 0;
       SAFETY(oldKeys.mCount = oldCount);
       SAFETY(oldValues.mCount = oldCount);
       auto key = oldKeys.GetElement();
-      auto value = oldValues.GetElement();
+      auto val = oldValues.GetElement();
       const auto hashmask = count - 1;
       while (oldInfo != oldInfoEnd) {
          if (*oldInfo) {
             InsertInnerUnknown<false>(
                GetBucketUnknown(hashmask, key),
-               Abandon(key), 
-               Abandon(value)
+               Abandon(key),
+               Abandon(val)
             );
 
             if (!key.IsEmpty())
@@ -693,34 +701,25 @@ namespace Langulus::Anyness
             else
                key.mCount = 1;
 
-            if (!value.IsEmpty())
-               value.CallUnknownDestructors();
+            if (!val.IsEmpty())
+               val.CallUnknownDestructors();
             else
-               value.mCount = 1;
+               val.mCount = 1;
          }
 
          ++oldInfo;
          key.Next();
-         value.Next();
+         val.Next();
       }
-
-      // Free the old allocations                                       
-      if constexpr (REUSE) {
-         // When reusing, keys and values can potentially remain same   
-         // Avoid deallocating them if that's the case                  
-         if (oldValues.mEntry != mValues.mEntry)
-            Allocator::Deallocate(oldValues.mEntry);
-         if (oldKeys.mEntry != mKeys.mEntry)
-            Allocator::Deallocate(oldKeys.mEntry);
-      }
-      else if (oldValues.mEntry) {
+      
+      if (oldValues.mEntry) {
          // Not reusing, so either deallocate, or dereference           
          // (keys are always present, if values are present)            
          if (oldValues.mEntry->GetUses() > 1)
             oldValues.mEntry->Free();
          else {
-            Allocator::Deallocate(oldValues.mEntry);
-            Allocator::Deallocate(oldKeys.mEntry);
+            Fractalloc.Deallocate(oldValues.mEntry);
+            Fractalloc.Deallocate(oldKeys.mEntry);
          }
       }
    }
@@ -740,53 +739,241 @@ namespace Langulus::Anyness
 
       auto oldInfo = GetInfo();
       const auto oldInfoEnd = oldInfo + oldCount;
-      const Offset hashmask = count - 1;
+      const auto hashmask = count - 1;
 
-      // Prepare a set of preallocated swappers                         
-      Block keyswap {mKeys.GetState(), GetKeyType()};
-      Block valswap {mValues.GetState(), GetValueType()};
-      keyswap.AllocateFresh(keyswap.RequestSize(1));
-      valswap.AllocateFresh(valswap.RequestSize(1));
-
-      // For each old existing key...                                   
+      // First run: move elements closer to their new buckets           
       while (oldInfo != oldInfoEnd) {
          if (*oldInfo) {
             // Rehash and check if hashes match                         
             const Offset oldIndex = oldInfo - GetInfo();
-            auto oldKey = GetKey(oldIndex);
-            const Offset newIndex = GetBucketUnknown(hashmask, oldKey);
-            if (oldIndex != newIndex) {
-               // Move key & value to swapper                           
-               // No chance of overlap, so do it forwards               
-               auto oldValue = GetValue(oldIndex);
-               keyswap.CallUnknownSemanticConstructors<false>(
-                  1, Abandon(oldKey));
-               valswap.CallUnknownSemanticConstructors<false>(
-                  1, Abandon(oldValue));
-               keyswap.mCount = valswap.mCount = 1;
+            Offset oldBucket = oldIndex - (*oldInfo - 1);
+            if (oldBucket >= oldCount) {
+               // Bucket might loop around                              
+               oldBucket += oldCount;
+            }
 
-               // Destroy the key, info and value                       
+            auto oldKey = GetKey(oldIndex);
+            const auto newBucket = GetBucketUnknown(hashmask, oldKey);
+            if (oldBucket != newBucket) {
+               // Move pair only if it won't end up in same bucket      
+               Block keyswap {mKeys.GetState(), GetKeyType()};
+               keyswap.AllocateFresh(keyswap.RequestSize(1));
+               keyswap.CallUnknownSemanticConstructors(1, Abandon(oldKey));
+               keyswap.mCount = 1;
+
+               auto oldValue = GetValue(oldIndex);
+               Block valswap {mValues.GetState(), GetValueType()};
+               valswap.AllocateFresh(valswap.RequestSize(1));
+               valswap.CallUnknownSemanticConstructors(1, Abandon(oldValue));
+               valswap.mCount = 1;
+               
+               // Destroy the pair and info at old index                
                oldKey.CallUnknownDestructors();
                oldValue.CallUnknownDestructors();
                *oldInfo = 0;
                --mValues.mCount;
 
-               InsertInnerUnknown<false>(
-                  newIndex, Abandon(keyswap), Abandon(valswap)
+               //Logger::Verbose(oldIndex, " emptied ");
+               //Dump();
+               
+               // Reinsert at the new bucket                            
+               /*const auto ins =*/ InsertInnerUnknown<false>(
+                  newBucket, Abandon(keyswap), Abandon(valswap)
                );
-               /*if (oldIndex != InsertInnerUnknown<false>(
-                  newIndex, Abandon(keyswap), Abandon(valswap))) {
-                  continue;
-               }*/
+
+               keyswap.Free();
+               valswap.Free();
+
+               //Logger::Verbose("inserted at ", ins);
+               //Dump();
             }
          }
 
          ++oldInfo;
       }
 
-      // Free the allocated swapper memory                              
-      keyswap.Free();
-      valswap.Free();
+      // First run might cause gaps                                     
+      // Second run: shift elements left, where possible                
+      ShiftPairs(count);
+   }
+   
+   /// Rehashes and reinserts each value in the same block, and moves all     
+   /// keys in from the provided block                                        
+   ///   @attention assumes count and oldCount are power-of-two               
+   ///   @attention assumes count > oldCount                                  
+   ///   @param count - the new number of pairs                               
+   ///   @param oldCount - the old number of pairs                            
+   ///   @param keys - the source of keys                                     
+   inline void BlockMap::RehashValues(const Count& count, const Count& oldCount, Block& keys) {
+      LANGULUS_ASSUME(DevAssumes, count > oldCount,
+         "New count is not larger than oldCount");
+      LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(count),
+         "New count is not a power-of-two");
+      LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(oldCount),
+         "Old count is not a power-of-two");
+
+      auto oldInfo = GetInfo();
+      const auto oldInfoEnd = oldInfo + oldCount;
+      const auto hashmask = count - 1;
+
+      // First run: move elements closer to their new buckets           
+      while (oldInfo != oldInfoEnd) {
+         if (*oldInfo) {
+            // Rehash and check if hashes match                         
+            const Offset oldIndex = oldInfo - GetInfo();
+            Offset oldBucket = oldIndex - (*oldInfo - 1);
+            if (oldBucket >= oldCount) {
+               // Bucket might loop around                              
+               oldBucket += oldCount;
+            }
+
+            auto oldKey = keys.GetElement(oldIndex);
+            const auto newBucket = GetBucketUnknown(hashmask, oldKey);
+            if (oldBucket != newBucket) {
+               // Move pair only if it won't end up in same bucket      
+               auto oldValue = GetValue(oldIndex);
+               Block valswap {mValues.GetState(), GetValueType()};
+               valswap.AllocateFresh(valswap.RequestSize(1));
+               valswap.CallUnknownSemanticConstructors(1, Abandon(oldValue));
+               valswap.mCount = 1;
+               
+               // Destroy the pair and info at old index                
+               oldValue.CallUnknownDestructors();
+               *oldInfo = 0;
+               --mValues.mCount;
+               
+               InsertInnerUnknown<false>(
+                  newBucket, Abandon(oldKey), Abandon(valswap)
+               );
+               oldKey.CallUnknownDestructors();
+
+               valswap.Free();
+            }
+            else {
+               // Just move key in                                      
+               TODO();
+            }
+         }
+
+         ++oldInfo;
+      }
+
+      // First run might cause gaps                                     
+      // Second run: shift elements left, where possible                
+      ShiftPairs(count);
+   }
+   
+   /// Rehashes and reinserts each key in the same block, and moves all       
+   /// values in from the provided block                                      
+   ///   @attention assumes count and oldCount are power-of-two               
+   ///   @attention assumes count > oldCount                                  
+   ///   @param count - the new number of pairs                               
+   ///   @param oldCount - the old number of pairs                            
+   ///   @param values - the source of values                                 
+   inline void BlockMap::RehashKeys(const Count& count, const Count& oldCount, Block& values) {
+      LANGULUS_ASSUME(DevAssumes, count > oldCount,
+         "New count is not larger than oldCount");
+      LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(count),
+         "New count is not a power-of-two");
+      LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(oldCount),
+         "Old count is not a power-of-two");
+
+      auto oldInfo = GetInfo();
+      const auto oldInfoEnd = oldInfo + oldCount;
+      const auto hashmask = count - 1;
+
+      // First run: move elements closer to their new buckets           
+      while (oldInfo != oldInfoEnd) {
+         if (*oldInfo) {
+            // Rehash and check if hashes match                         
+            const Offset oldIndex = oldInfo - GetInfo();
+            Offset oldBucket = oldIndex - (*oldInfo - 1);
+            if (oldBucket >= oldCount) {
+               // Bucket might loop around                              
+               oldBucket += oldCount;
+            }
+
+            auto oldKey = GetKey(oldIndex);
+            const auto newBucket = GetBucketUnknown(hashmask, oldKey);
+            if (oldBucket != newBucket) {
+               // Move pair only if it won't end up in same bucket      
+               Block keyswap {mKeys.GetState(), GetKeyType()};
+               keyswap.AllocateFresh(keyswap.RequestSize(1));
+               keyswap.CallUnknownSemanticConstructors(1, Abandon(oldKey));
+               keyswap.mCount = 1;
+               
+               // Destroy the pair and info at old index                
+               oldKey.CallUnknownDestructors();
+               *oldInfo = 0;
+               --mValues.mCount;
+               
+               auto oldValue = values.GetElement(oldIndex);
+               InsertInnerUnknown<false>(
+                  newBucket, Abandon(keyswap), Abandon(oldValue)
+               );
+               oldValue.CallUnknownDestructors();
+
+               keyswap.Free();
+            }
+            else {
+               // Just move value in                                    
+               TODO();
+            }
+         }
+
+         ++oldInfo;
+      }
+
+      // First run might cause gaps                                     
+      // Second run: shift elements left, where possible                
+      ShiftPairs(count);
+   }
+
+   /// Shift elements left, where possible                                    
+   ///   @param count - the new number of pairs                               
+   inline void BlockMap::ShiftPairs(const Count& count) {
+      auto oldInfo = mInfo;
+      const auto newInfoEnd = GetInfoEnd();
+      while (oldInfo != newInfoEnd) {
+         if (*oldInfo > 1) {
+            const Offset oldIndex = oldInfo - GetInfo();
+            // Might loop around                                        
+            Offset to = oldIndex - (*oldInfo - 1);
+            if (to >= count)
+               to += count;
+
+            InfoType attempt = 1;
+            while (mInfo[to] && attempt < *oldInfo) {
+               // Might loop around                                     
+               ++to;
+               if (to >= count)
+                  to -= count;
+
+               ++attempt;
+            }
+
+            if (!mInfo[to] && attempt < *oldInfo) {
+               // Empty spot found, so move pair there                  
+               auto key = GetKey(oldIndex);
+               auto val = GetValue(oldIndex);
+
+               GetKey(to).CallUnknownSemanticConstructors(
+                  1, Abandon(key));
+               GetValue(to).CallUnknownSemanticConstructors(
+                  1, Abandon(val));
+               mInfo[to] = attempt;
+
+               key.CallUnknownDestructors();
+               val.CallUnknownDestructors();
+               *oldInfo = 0;
+
+               //Logger::Verbose(oldIndex, " shifts left to ", to);
+               //Dump();
+            }
+         }
+
+         ++oldInfo;
+      }
    }
 
    /// Reserves space for the specified number of pairs                       
@@ -1011,8 +1198,8 @@ namespace Langulus::Anyness
                ClearInner();
 
             // No point in resetting info, we'll be deallocating it     
-            Allocator::Deallocate(mKeys.mEntry);
-            Allocator::Deallocate(mValues.mEntry);
+            Fractalloc.Deallocate(mKeys.mEntry);
+            Fractalloc.Deallocate(mValues.mEntry);
          }
          else {
             // Data is used from multiple locations, just deref values  
@@ -1506,6 +1693,27 @@ namespace Langulus::Anyness
    constexpr Count BlockMap::GetUses() const noexcept {
       return mValues.GetUses();
    }
+   
+#ifdef LANGULUS_ENABLE_DEBUGGING
+   inline void BlockMap::Dump() const {
+      Logger::Info("---------------- BlockMap::Dump start ----------------");
+      auto info = GetInfo();
+      const auto infoEnd = GetInfoEnd();
+      while (info != infoEnd) {
+         const auto index = info - GetInfo();
+         if (*info) {
+            Logger::Info('[', index, "] -", (*info - 1), " -> ",
+               GetKey(index).GetHash().mHash, " | ",
+               GetValue(index).GetHash().mHash
+            );
+         }
+         else Logger::Info('[', index, "] empty");
+
+         ++info;
+      }
+      Logger::Info("----------------  BlockMap::Dump end  ----------------");
+   }
+#endif
 
    /// Get hash of the map contents                                           
    ///   @attention the hash is not cached, so this is a slow operation       

@@ -516,7 +516,10 @@ namespace Langulus::Anyness
    ///   @param output - [in/out] container that collects results             
    ///   @return the number of gathered elements                              
    template<bool REVERSE>
-   Count Block::GatherInner(const Block& input, Block& output) {
+   Count Block::GatherInner(const Block& input, CT::Data auto& output) {
+      static_assert(CT::Block<decltype(output)>,
+         "Output must be a block type");
+
       Count count {};
       if (input.IsDeep() && !output.IsDeep()) {
          ForEach<REVERSE>([&](const Block& i) {
@@ -527,7 +530,7 @@ namespace Langulus::Anyness
 
       if (output.IsConcatable(input)) {
          // Catenate input if compatible                                
-         count += output.InsertBlock<IndexBack>(input);
+         count += output.template InsertBlock<IndexBack>(input);
       }
 
       return count;
@@ -541,7 +544,10 @@ namespace Langulus::Anyness
    ///   @param state - the data state filter                                 
    ///   @return the number of gathered elements                              
    template<bool REVERSE>
-   Count Block::GatherPolarInner(DMeta type, const Block& input, Block& output, DataState state) {
+   Count Block::GatherPolarInner(DMeta type, const Block& input, CT::Data auto& output, DataState state) {
+      static_assert(CT::Block<decltype(output)>,
+         "Output must be a block type");
+
       if (input.GetState() % state) {
          if (input.IsNow() && input.IsDeep()) {
             // Phases don't match, but we can dig deeper if deep        

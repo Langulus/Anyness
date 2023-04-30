@@ -178,9 +178,9 @@ namespace Langulus::Anyness
          // All types are semantically the same, but it still detects   
          // built-in move/shallow copy semantics                        
          if constexpr (::std::is_rvalue_reference_v<HEAD>)
-            InsertInner(Langulus::Move(head), 0);
+            InsertInner(Move(head), 0);
          else
-            InsertInner(Langulus::Copy(head), 0);
+            InsertInner(Copy(head), 0);
 
          InsertStatic<1>(Forward<TAIL>(tail)...);
       }
@@ -234,7 +234,7 @@ namespace Langulus::Anyness
             if (mCount)
                CallKnownDestructors<T>();
          }
-         Inner::Allocator::Deallocate(mEntry);
+         Fractalloc.Deallocate(mEntry);
          mEntry = nullptr;
          return;
       }
@@ -249,7 +249,7 @@ namespace Langulus::Anyness
    TEMPLATE()
    LANGULUS(INLINED)
    TAny<T>& TAny<T>::operator = (const TAny& other) {
-      return operator = (Langulus::Copy(other));
+      return operator = (Copy(other));
    }
 
    /// Move assignment                                                        
@@ -258,7 +258,7 @@ namespace Langulus::Anyness
    TEMPLATE()
    LANGULUS(INLINED)
    TAny<T>& TAny<T>::operator = (TAny&& other) {
-      return operator = (Langulus::Move(other));
+      return operator = (Move(other));
    }
 
    /// Copy-assign an unknown container                                       
@@ -269,14 +269,14 @@ namespace Langulus::Anyness
    template<CT::NotSemantic ALT_T>
    LANGULUS(INLINED)
    TAny<T>& TAny<T>::operator = (const ALT_T& other) {
-      return operator = (Langulus::Copy(other));
+      return operator = (Copy(other));
    }
    
    TEMPLATE()
    template<CT::NotSemantic ALT_T>
    LANGULUS(INLINED)
    TAny<T>& TAny<T>::operator = (ALT_T& other) {
-      return operator = (Langulus::Copy(other));
+      return operator = (Copy(other));
    }
 
    /// Move-assign an unknown container                                       
@@ -287,7 +287,7 @@ namespace Langulus::Anyness
    template<CT::NotSemantic ALT_T>
    LANGULUS(INLINED)
    TAny<T>& TAny<T>::operator = (ALT_T&& other) {
-      return operator = (Langulus::Move(other));
+      return operator = (Move(other));
    }
 
    /// Shallow-copy disowned runtime container without referencing contents   
@@ -1589,7 +1589,7 @@ namespace Langulus::Anyness
             // significantly reduces the possiblity for a move)         
             // Sparse containers have additional memory allocated for   
             // each pointer's entry, if managed memory is enabled       
-            mEntry = Inner::Allocator::Reallocate(
+            mEntry = Fractalloc.Reallocate(
                request.mByteSize * (CT::Sparse<T> ? 2 : 1),
                mEntry
             );
@@ -1627,7 +1627,7 @@ namespace Langulus::Anyness
             if constexpr (CT::DisownMakable<T> || CT::CopyMakable<T>) {
                AllocateFresh(request);
                CallKnownSemanticConstructors<T>(
-                  previousBlock.mCount, Langulus::Copy(previousBlock)
+                  previousBlock.mCount, Copy(previousBlock)
                );
             }
             else LANGULUS_THROW(Construct, "T is not copy-constructible");
@@ -1678,7 +1678,7 @@ namespace Langulus::Anyness
          // Guaranteed that entry doesn't move                          
          const auto request = RequestSize(elements);
          if (request.mElementCount != mReserved) {
-            (void)Inner::Allocator::Reallocate(
+            (void)Fractalloc.Reallocate(
                request.mByteSize * (CT::Sparse<T> ? 2 : 1),
                mEntry
             );
@@ -1695,8 +1695,8 @@ namespace Langulus::Anyness
    void TAny<T>::AllocateFresh(const RTTI::AllocationRequest& request) {
       // Sparse containers have additional memory allocated             
       // for each pointer's entry                                       
-      mEntry = Inner::Allocator::Allocate(
-         request.mByteSize * (CT::Sparse<T> ? 2 : 1)
+      mEntry = Fractalloc.Allocate(
+         GetType(), request.mByteSize * (CT::Sparse<T> ? 2 : 1)
       );
       LANGULUS_ASSERT(mEntry, Allocate, "Out of memory");
       mRaw = mEntry->GetBlockStart();
@@ -1727,7 +1727,7 @@ namespace Langulus::Anyness
       const auto newCount = mCount + count;
       if (mEntry && newCount > mReserved) {
          // Allocate more space                                         
-         mEntry = Inner::Allocator::Reallocate(
+         mEntry = Fractalloc.Reallocate(
             mType->mSize * newCount * (CT::Sparse<T> ? 2 : 1),
             mEntry
          );

@@ -17,7 +17,6 @@ namespace Langulus::Anyness
    ///                                                                        
    class BlockMap {
    protected:
-      using Allocator = Inner::Allocator;
       static constexpr Count MinimalAllocation = 8;
       using InfoType = ::std::uint8_t;
 
@@ -101,6 +100,8 @@ namespace Langulus::Anyness
 
       NOD() constexpr bool HasAuthority() const noexcept;
       NOD() constexpr Count GetUses() const noexcept;
+
+      DEBUGGERY(void Dump() const);
 
       NOD() Hash GetHash() const;
 
@@ -222,6 +223,9 @@ namespace Langulus::Anyness
       void Free();
 
       void Rehash(const Count&, const Count&);
+      void RehashKeys(const Count&, const Count&, Block&);
+      void RehashValues(const Count&, const Count&, Block&);
+      void ShiftPairs(const Count&);
 
       template<bool CHECK_FOR_MATCH, CT::Semantic SK, CT::Semantic SV>
       Offset InsertInnerUnknown(const Offset&, SK&&, SV&&);

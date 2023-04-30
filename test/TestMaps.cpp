@@ -36,6 +36,12 @@ struct TypePair {
    using Value = V;
 };
 
+template<class K, class V>
+struct TypePair2 {
+   using Key = K;
+   using Value = V;
+};
+
 namespace std {
    template<>
    struct hash<Text> {
@@ -62,11 +68,54 @@ P CreatePair(const ALT_K& key, const ALT_V& value) {
    return P {keyValue, valueValue};
 }
 
+/// Cross-container consistency tests                                         
+TEMPLATE_TEST_CASE(
+   "Cross-container consistency tests for TOrderedMap/TUnorderedMap/OrderedMap/UnorderedMap", "[map]",
+   (TypePair2<Text, Any>),
+   (TypePair2<Text, int>),
+   (TypePair2<Text, Trait>),
+   (TypePair2<Text, Traits::Count>),
+   (TypePair2<Text, int*>),
+   (TypePair2<Text, Trait*>),
+   (TypePair2<Text, Traits::Count*>),
+   (TypePair2<Text, Any*>)
+) {
+   GIVEN("A single element initialized maps of all kinds") {
+      using K = typename TestType::Key;
+      using V = typename TestType::Value;
+
+      const auto pair = CreatePair<TPair<K, V>, K, V>(
+         "five hundred"_text, 555);
+
+      TUnorderedMap<K, V> uset1 {pair};
+      UnorderedMap uset2 {pair};
+      TOrderedMap<K, V> oset1 {pair};
+      OrderedMap oset2 {pair};
+
+      WHEN("Their hashes are taken") {
+         const auto elementHash = HashOf(pair);
+
+         const auto uhash1 = uset1.GetHash();
+         const auto uhash2 = uset2.GetHash();
+         const auto ohash1 = oset1.GetHash();
+         const auto ohash2 = oset2.GetHash();
+
+         THEN("These hashes should all be the same as the element") {
+            REQUIRE(uhash1 == uhash2);
+            REQUIRE(ohash1 == ohash2);
+            REQUIRE(uhash1 == ohash1);
+            REQUIRE(uhash1 == elementHash);
+         }
+      }
+   }
+}
+
 /// The main test for TOrderedMap/TUnorderedMap/OrderedMap/UnorderedMap       
 /// containers, with all kinds of items, from sparse to dense, from trivial   
 /// to complex, from flat to deep                                             
 TEMPLATE_TEST_CASE(
    "TOrderedMap/TUnorderedMap/OrderedMap/UnorderedMap", "[map]",
+   (TypePair<UnorderedMap, Text, int>),
    (TypePair<TUnorderedMap<Text, int>, Text, int>),
    (TypePair<TUnorderedMap<Text, Trait>, Text, Trait>),
    (TypePair<TUnorderedMap<Text, Traits::Count>, Text, Traits::Count>),
@@ -83,7 +132,6 @@ TEMPLATE_TEST_CASE(
    (TypePair<TOrderedMap<Text, Trait*>, Text, Trait*>),
    (TypePair<TOrderedMap<Text, Traits::Count*>, Text, Traits::Count*>),
    (TypePair<TOrderedMap<Text, Any*>, Text, Any*>),
-   (TypePair<UnorderedMap, Text, int>),
    (TypePair<UnorderedMap, Text, Trait>),
    (TypePair<UnorderedMap, Text, Traits::Count>),
    (TypePair<UnorderedMap, Text, Any>),
@@ -149,7 +197,7 @@ TEMPLATE_TEST_CASE(
       }
 
       WHEN("Given a pair by move") {
-         IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
+         IF_LANGULUS_MANAGED_MEMORY(Fractalloc.CollectGarbage());
 
          auto movablePair = pair;
          map = ::std::move(movablePair);
@@ -197,7 +245,7 @@ TEMPLATE_TEST_CASE(
    }
 
    GIVEN("Map with some items") {
-      IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
+      IF_LANGULUS_MANAGED_MEMORY(Fractalloc.CollectGarbage());
 
       // Arrays are dynamic to avoid constexprification                 
       const Pair darray1[5] {
@@ -231,7 +279,12 @@ TEMPLATE_TEST_CASE(
       };
 
       T map {};
-      map << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
+      map << darray1[0];
+      map << darray1[1];
+      map << darray1[2];
+      map << darray1[3];
+      map << darray1[4];
+
       auto keyMemory = map.GetRawKeysMemory();
       auto valueMemory = map.GetRawValuesMemory();
 

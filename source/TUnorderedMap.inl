@@ -74,13 +74,29 @@ namespace Langulus::Anyness
             mValues.mType = MetaData::Of<V>();
 
             AllocateFresh(other.mValue.GetReserved());
-
             ZeroMemory(mInfo, GetReserved());
             mInfo[GetReserved()] = 1;
 
+            const auto hashmask = GetReserved() - 1;
+            using TP = typename T::Pair;
             other.mValue.ForEach(
-               [this](const typename T::Pair& pair) {
-                  InsertUnknown(S::Nest(pair));
+               [this, hashmask](TP& pair) {
+                  if constexpr (CT::TypedPair<TP>) {
+                     // Insert a statically typed pair                  
+                     InsertInner<false>(
+                        GetBucket(hashmask, pair.mKey),
+                        S::Nest(pair.mKey), 
+                        S::Nest(pair.mValue)
+                     );
+                  }
+                  else {
+                     // Insert a dynamically typed pair                 
+                     InsertInnerUnknown<false>(
+                        GetBucketUnknown(hashmask, pair.mKey),
+                        S::Nest(pair.mKey), 
+                        S::Nest(pair.mValue)
+                     );
+                  }
                }
             );
          }
@@ -99,12 +115,23 @@ namespace Langulus::Anyness
          ZeroMemory(mInfo, MinimalAllocation);
          mInfo[MinimalAllocation] = 1;
 
-         // Insert a statically typed element                           
-         InsertInner<false>(
-            GetBucket(MinimalAllocation - 1, other.mValue.mKey),
-            S::Nest(other.mValue.mKey),
-            S::Nest(other.mValue.mValue)
-         );
+         constexpr auto hashmask = MinimalAllocation - 1;
+         if constexpr (CT::TypedPair<T>) {
+            // Insert a statically typed pair                           
+            InsertInner<false>(
+               GetBucket(hashmask, other.mValue.mKey),
+               S::Nest(other.mValue.mKey),
+               S::Nest(other.mValue.mValue)
+            );
+         }
+         else {
+            // Insert a dynamically typed pair                          
+            InsertInnerUnknown<false>(
+               GetBucketUnknown(hashmask, other.mValue.mKey),
+               S::Nest(other.mValue.mKey),
+               S::Nest(other.mValue.mValue)
+            );
+         }
       }
       else LANGULUS_ERROR("Unsupported semantic constructor");
    }
@@ -144,8 +171,8 @@ namespace Langulus::Anyness
          ClearInner();
 
          // Deallocate stuff                                            
-         Allocator::Deallocate(mKeys.mEntry);
-         Allocator::Deallocate(mValues.mEntry);
+         Fractalloc.Deallocate(mKeys.mEntry);
+         Fractalloc.Deallocate(mValues.mEntry);
       }
       else {
          // Data is used from multiple locations, just deref values     
@@ -186,7 +213,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this table                                    
    TABLE_TEMPLATE() LANGULUS(INLINED)
    TABLE()& TABLE()::operator = (TUnorderedMap&& rhs) noexcept {
-      return operator = (Langulus::Move(rhs));
+      return operator = (Move(rhs));
    }
 
    /// Creates a shallow copy of the given table                              
@@ -194,7 +221,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this table                                    
    TABLE_TEMPLATE() LANGULUS(INLINED)
    TABLE()& TABLE()::operator = (const TUnorderedMap& rhs) {
-      return operator = (Langulus::Copy(rhs));
+      return operator = (Copy(rhs));
    }
    
    /// Insert a single pair into a cleared map                                
@@ -516,14 +543,14 @@ namespace Langulus::Anyness
 
       Offset infoOffset;
       const auto keyAndInfoSize = RequestKeyAndInfoSize(count, infoOffset);
-      mKeys.mEntry = Allocator::Allocate(keyAndInfoSize);
+      mKeys.mEntry = Fractalloc.Allocate(mKeys.mType, keyAndInfoSize);
       LANGULUS_ASSERT(mKeys.mEntry, Allocate, "Out of memory");
 
       const auto valueByteSize = RequestValuesSize(count);
-      mValues.mEntry = Allocator::Allocate(valueByteSize);
+      mValues.mEntry = Fractalloc.Allocate(mValues.mType, valueByteSize);
 
       if (!mValues.mEntry) {
-         Allocator::Deallocate(mKeys.mEntry);
+         Fractalloc.Deallocate(mKeys.mEntry);
          mKeys.mEntry = nullptr;
          LANGULUS_THROW(Allocate, "Out of memory");
       }
@@ -555,10 +582,10 @@ namespace Langulus::Anyness
       const Block oldKeys {mKeys};
       const auto keyAndInfoSize = RequestKeyAndInfoSize(count, infoOffset);
       if constexpr (REUSE)
-         mKeys.mEntry = Allocator::Reallocate(keyAndInfoSize, mKeys.mEntry);
+         mKeys.mEntry = Fractalloc.Reallocate(keyAndInfoSize, mKeys.mEntry);
       else {
          mKeys.mType = MetaData::Of<K>();
-         mKeys.mEntry = Allocator::Allocate(keyAndInfoSize);
+         mKeys.mEntry = Fractalloc.Allocate(mKeys.mType, keyAndInfoSize);
       }
 
       LANGULUS_ASSERT(mKeys.mEntry, Allocate, "Out of memory");
@@ -567,14 +594,14 @@ namespace Langulus::Anyness
       const Block oldVals {mValues};
       const auto valueByteSize = RequestValuesSize(count);
       if constexpr (REUSE)
-         mValues.mEntry = Allocator::Reallocate(valueByteSize, mValues.mEntry);
+         mValues.mEntry = Fractalloc.Reallocate(valueByteSize, mValues.mEntry);
       else {
          mValues.mType = MetaData::Of<V>();
-         mValues.mEntry = Allocator::Allocate(valueByteSize);
+         mValues.mEntry = Fractalloc.Allocate(mValues.mType, valueByteSize);
       }
 
       if (!mValues.mEntry) {
-         Allocator::Deallocate(mKeys.mEntry);
+         Fractalloc.Deallocate(mKeys.mEntry);
          mKeys.mEntry = nullptr;
          LANGULUS_THROW(Allocate, "Out of memory");
       }
@@ -654,9 +681,9 @@ namespace Langulus::Anyness
          // When reusing, keys and values can potentially remain same   
          // Avoid deallocating them if that's the case                  
          if (oldVals.mEntry != mValues.mEntry)
-            Allocator::Deallocate(oldVals.mEntry);
+            Fractalloc.Deallocate(oldVals.mEntry);
          if (oldKeys.mEntry != mKeys.mEntry)
-            Allocator::Deallocate(oldKeys.mEntry);
+            Fractalloc.Deallocate(oldKeys.mEntry);
       }
       else if (oldVals.mEntry) {
          // Not reusing, so either deallocate, or dereference           
@@ -664,8 +691,8 @@ namespace Langulus::Anyness
          if (oldVals.mEntry->GetUses() > 1)
             oldVals.mEntry->Free();
          else {
-            Allocator::Deallocate(oldVals.mEntry);
-            Allocator::Deallocate(oldKeys.mEntry);
+            Fractalloc.Deallocate(oldVals.mEntry);
+            Fractalloc.Deallocate(oldKeys.mEntry);
          }
       }
    }
@@ -686,14 +713,20 @@ namespace Langulus::Anyness
       const auto oldInfoEnd = oldInfo + oldCount;
       const auto hashmask = count - 1;
 
-      // For each old existing key...                                   
+      // First run: move elements closer to their new buckets           
       while (oldInfo != oldInfoEnd) {
          if (*oldInfo) {
             // Rehash and check if hashes match                         
             const Offset oldIndex = oldInfo - GetInfo();
-            const Offset newIndex = HashOf(oldKey.Get()).mHash & hashmask;
-            if (oldIndex != newIndex) {
-               // Immediately move the old pair to the swapper          
+            Offset oldBucket = oldIndex - (*oldInfo - 1);
+            if (oldBucket >= oldCount) {
+               // Bucket might loop around                              
+               oldBucket += oldCount;
+            }
+
+            const auto newBucket = GetBucket(hashmask, oldKey.Get());
+            if (oldBucket != newBucket) {
+               // Move pair only if it won't end up in same bucket      
                auto oldValue = GetValueHandle(oldIndex);
                HandleLocal<K> keyswap {Abandon(oldKey)};
                HandleLocal<V> valswap {Abandon(oldValue)};
@@ -704,17 +737,61 @@ namespace Langulus::Anyness
                *oldInfo = 0;
                --mValues.mCount;
 
+               // Reinsert at the new bucket                            
                InsertInner<false>(
-                  newIndex, Abandon(keyswap), Abandon(valswap)
+                  newBucket, Abandon(keyswap), Abandon(valswap)
                );
-               /*if (oldIndex == InsertInner<false>(
-                  newIndex, Abandon(keyswap), Abandon(valswap))) {
-                  continue;
-               }*/
             }
          }
 
          ++oldKey;
+         ++oldInfo;
+      }
+
+      // First run might cause gaps                                     
+      // Second run: shift elements left, where possible                
+      ShiftPairs(count);
+   }
+   
+   /// Shift elements left, where possible                                    
+   ///   @param count - the new number of pairs                               
+   TABLE_TEMPLATE()
+   void TABLE()::ShiftPairs(const Count& count) {
+      auto oldInfo = mInfo;
+      const auto newInfoEnd = GetInfoEnd();
+      while (oldInfo != newInfoEnd) {
+         if (*oldInfo > 1) {
+            const Offset oldIndex = oldInfo - GetInfo();
+            // Might loop around                                        
+            Offset to = oldIndex - (*oldInfo - 1);
+            if (to >= count)
+               to += count;
+
+            InfoType attempt = 1;
+            while (mInfo[to] && attempt < *oldInfo) {
+               // Might loop around                                     
+               ++to;
+               if (to >= count)
+                  to -= count;
+
+               ++attempt;
+            }
+
+            if (!mInfo[to] && attempt < *oldInfo) {
+               // Empty spot found, so move pair there                  
+               auto key = GetKeyHandle(oldIndex);
+               auto val = GetValueHandle(oldIndex);
+
+               GetKeyHandle(to).New(Abandon(key));
+               GetValueHandle(to).New(Abandon(val));
+               mInfo[to] = attempt;
+
+               key.Destroy();
+               val.Destroy();
+               *oldInfo = 0;
+            }
+         }
+
          ++oldInfo;
       }
    }
@@ -895,8 +972,8 @@ namespace Langulus::Anyness
          ClearInner();
 
          // No point in resetting info, we'll be deallocating it        
-         Allocator::Deallocate(mKeys.mEntry);
-         Allocator::Deallocate(mValues.mEntry);
+         Fractalloc.Deallocate(mKeys.mEntry);
+         Fractalloc.Deallocate(mValues.mEntry);
       }
       else {
          // Data is used from multiple locations, just deref values     

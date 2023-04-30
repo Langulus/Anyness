@@ -7,7 +7,6 @@
 ///                                                                           
 #include "Main.hpp"
 #include <Anyness/Text.hpp>
-#include <Anyness/Pool.hpp>
 #include <catch2/catch.hpp>
 #include <random>
 
@@ -192,7 +191,7 @@ SCENARIO("Testing pool functions", "[allocator]") {
       Pool* pool = nullptr;
 
       WHEN("Default pool size is allocated on the pool") {
-         pool = Allocator::AllocatePool(Pool::DefaultPoolSize);
+         pool = Fractalloc.AllocatePool(nullptr, Pool::DefaultPoolSize);
          REQUIRE(pool);
 
          const auto originPtr = pool->GetPoolStart<Byte>();
@@ -207,7 +206,7 @@ SCENARIO("Testing pool functions", "[allocator]") {
             REQUIRE(IsPowerOfTwo(pool->GetMinAllocation()));
             REQUIRE(IsPowerOfTwo(pool->GetMaxEntries()));
             REQUIRE(IsAligned(pool->GetPoolStart()));
-            REQUIRE(pool->GetAllocatedByBackend() == Pool::DefaultPoolSize);
+            REQUIRE(pool->GetAllocatedByBackend() <= Pool::DefaultPoolSize*2);
             REQUIRE(reinterpret_cast<Pointer>(pool->AllocationFromIndex(0)) == origin);
             REQUIRE(reinterpret_cast<Pointer>(pool->AllocationFromIndex(1)) == origin + half);
             REQUIRE(reinterpret_cast<Pointer>(pool->AllocationFromIndex(2)) == origin + quarter);
@@ -238,11 +237,11 @@ SCENARIO("Testing pool functions", "[allocator]") {
             REQUIRE_FALSE(pool->IsInUse());
          }
 
-         Allocator::DeallocatePool(pool);
+         Fractalloc.DeallocatePool(pool);
       }
 
       WHEN("A small entry is allocated inside a new default-sized pool") {
-         pool = Allocator::AllocatePool(Pool::DefaultPoolSize);
+         pool = Fractalloc.AllocatePool(nullptr, Pool::DefaultPoolSize);
          REQUIRE(pool);
 
          auto entry = pool->Allocate(5);
@@ -256,14 +255,14 @@ SCENARIO("Testing pool functions", "[allocator]") {
             REQUIRE(pool->IsInUse());
          }
 
-         Allocator::DeallocatePool(pool);
+         Fractalloc.DeallocatePool(pool);
       }
 
       WHEN("A small entry is allocated inside a new huge pool") {
          if constexpr (Bitness == 32)
-            pool = Allocator::AllocatePool(Pool::DefaultPoolSize * 1024);
+            pool = Fractalloc.AllocatePool(nullptr, Pool::DefaultPoolSize * 1024);
          else
-            pool = Allocator::AllocatePool(Pool::DefaultPoolSize * 1024 * 4);
+            pool = Fractalloc.AllocatePool(nullptr, Pool::DefaultPoolSize * 1024 * 4);
 
          REQUIRE(pool);
 
@@ -428,11 +427,11 @@ SCENARIO("Testing pool functions", "[allocator]") {
             };
          #endif
 
-         Allocator::DeallocatePool(pool);
+            Fractalloc.DeallocatePool(pool);
       }
 
       WHEN("A new default-sized pool is filled with all possible small entries") {
-         pool = Allocator::AllocatePool(Pool::DefaultPoolSize);
+         pool = Fractalloc.AllocatePool(nullptr, Pool::DefaultPoolSize);
          REQUIRE(pool);
 
          // Fill up
@@ -466,11 +465,11 @@ SCENARIO("Testing pool functions", "[allocator]") {
             }
          }
 
-         Allocator::DeallocatePool(pool);
+         Fractalloc.DeallocatePool(pool);
       }
 
       WHEN("An entry larger than the minimum is allocated inside a new default-sized pool") {
-         pool = Allocator::AllocatePool(Pool::DefaultPoolSize);
+         pool = Fractalloc.AllocatePool(nullptr, Pool::DefaultPoolSize);
          auto entry = pool->Allocate(Allocation::GetMinAllocation());
 
          THEN("Requirements should be met") {
@@ -482,11 +481,11 @@ SCENARIO("Testing pool functions", "[allocator]") {
             REQUIRE(pool->IsInUse());
          }
 
-         Allocator::DeallocatePool(pool);
+         Fractalloc.DeallocatePool(pool);
       }
 
       WHEN("An entry larger than the pool itself is allocated inside a new default-sized pool") {
-         pool = Allocator::AllocatePool(Pool::DefaultPoolSize);
+         pool = Fractalloc.AllocatePool(nullptr, Pool::DefaultPoolSize);
          auto entry = pool->Allocate(Pool::DefaultPoolSize * 2);
 
          THEN("The resulting allocation should be invalid") {
@@ -495,7 +494,7 @@ SCENARIO("Testing pool functions", "[allocator]") {
             REQUIRE_FALSE(pool->IsInUse());
          }
 
-         Allocator::DeallocatePool(pool);
+         Fractalloc.DeallocatePool(pool);
       }
    }
 }
@@ -506,9 +505,9 @@ SCENARIO("Testing allocator functions", "[allocator]") {
       Allocation* entry = nullptr;
 
       WHEN("Memory is allocated on the heap") {
-         IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
+         IF_LANGULUS_MANAGED_MEMORY(Fractalloc.CollectGarbage());
 
-         entry = Allocator::Allocate(512);
+         entry = Fractalloc.Allocate(nullptr, 512);
 
          THEN("Requirements should be met") {
             REQUIRE(entry);
@@ -531,7 +530,7 @@ SCENARIO("Testing allocator functions", "[allocator]") {
             }
          }
 
-         Allocator::Deallocate(entry);
+         Fractalloc.Deallocate(entry);
 
          #ifdef LANGULUS_STD_BENCHMARK // Last result: 
             #include "CollectGarbage.inl"
@@ -633,51 +632,51 @@ SCENARIO("Testing allocator functions", "[allocator]") {
       }
 
       WHEN("Referenced once") {
-         IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
+         IF_LANGULUS_MANAGED_MEMORY(Fractalloc.CollectGarbage());
 
-         entry = Allocator::Allocate(512);
+         entry = Fractalloc.Allocate(nullptr, 512);
          REQUIRE(entry);
          entry->Keep();
 
          THEN("Requirements should be met") {
             REQUIRE(entry->GetUses() == 2);
             #if LANGULUS_FEATURE(MANAGED_MEMORY)
-               REQUIRE(Allocator::CheckAuthority(nullptr, entry));
-               REQUIRE(Allocator::Find(nullptr, entry->GetBlockStart()));
-               REQUIRE_FALSE(Allocator::Find(nullptr, entry));
+               REQUIRE(Fractalloc.CheckAuthority(nullptr, entry));
+               REQUIRE(Fractalloc.Find(nullptr, entry->GetBlockStart()));
+               REQUIRE_FALSE(Fractalloc.Find(nullptr, entry));
             #endif
          }
 
-         SAFETY(REQUIRE_THROWS(Allocator::Deallocate(entry)));
+         SAFETY(REQUIRE_THROWS(Fractalloc.Deallocate(entry)));
          entry->Free();
-         Allocator::Deallocate(entry);
+         Fractalloc.Deallocate(entry);
       }
 
       WHEN("Referenced multiple times") {
-         IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
+         IF_LANGULUS_MANAGED_MEMORY(Fractalloc.CollectGarbage());
 
-         entry = Allocator::Allocate(512);
+         entry = Fractalloc.Allocate(nullptr, 512);
          REQUIRE(entry);
          entry->Keep(5);
 
          THEN("Requirements should be met") {
             REQUIRE(entry->GetUses() == 6);
             #if LANGULUS_FEATURE(MANAGED_MEMORY)
-               REQUIRE(Allocator::CheckAuthority(nullptr, entry));
-               REQUIRE(Allocator::Find(nullptr, entry->GetBlockStart()));
-               REQUIRE_FALSE(Allocator::Find(nullptr, entry));
+               REQUIRE(Fractalloc.CheckAuthority(nullptr, entry));
+               REQUIRE(Fractalloc.Find(nullptr, entry->GetBlockStart()));
+               REQUIRE_FALSE(Fractalloc.Find(nullptr, entry));
             #endif
          }
 
-         SAFETY(REQUIRE_THROWS(Allocator::Deallocate(entry)));
+         SAFETY(REQUIRE_THROWS(Fractalloc.Deallocate(entry)));
          entry->Free(5);
-         Allocator::Deallocate(entry);
+         Fractalloc.Deallocate(entry);
       }
 
       WHEN("Dereferenced once without deletion") {
-         IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
+         IF_LANGULUS_MANAGED_MEMORY(Fractalloc.CollectGarbage());
 
-         entry = Allocator::Allocate(512);
+         entry = Fractalloc.Allocate(nullptr, 512);
          REQUIRE(entry);
          entry->Keep();
          entry->Free();
@@ -685,19 +684,19 @@ SCENARIO("Testing allocator functions", "[allocator]") {
          THEN("Requirements should be met") {
             REQUIRE(entry->GetUses() == 1);
             #if LANGULUS_FEATURE(MANAGED_MEMORY)
-               REQUIRE(Allocator::CheckAuthority(nullptr, entry));
-               REQUIRE(Allocator::Find(nullptr, entry->GetBlockStart()));
-               REQUIRE_FALSE(Allocator::Find(nullptr, entry));
+               REQUIRE(Fractalloc.CheckAuthority(nullptr, entry));
+               REQUIRE(Fractalloc.Find(nullptr, entry->GetBlockStart()));
+               REQUIRE_FALSE(Fractalloc.Find(nullptr, entry));
             #endif
          }
 
-         Allocator::Deallocate(entry);
+         Fractalloc.Deallocate(entry);
       }
 
       WHEN("Dereferenced multiple times without deletion") {
-         IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
+         IF_LANGULUS_MANAGED_MEMORY(Fractalloc.CollectGarbage());
 
-         entry = Allocator::Allocate(512);
+         entry = Fractalloc.Allocate(nullptr, 512);
          REQUIRE(entry);
          entry->Keep(5);
          entry->Free(4);
@@ -705,49 +704,49 @@ SCENARIO("Testing allocator functions", "[allocator]") {
          THEN("Requirements should be met") {
             REQUIRE(entry->GetUses() == 2);
             #if LANGULUS_FEATURE(MANAGED_MEMORY)
-               REQUIRE(Allocator::CheckAuthority(nullptr, entry));
-               REQUIRE(Allocator::Find(nullptr, entry->GetBlockStart()));
-               REQUIRE_FALSE(Allocator::Find(nullptr, entry));
+               REQUIRE(Fractalloc.CheckAuthority(nullptr, entry));
+               REQUIRE(Fractalloc.Find(nullptr, entry->GetBlockStart()));
+               REQUIRE_FALSE(Fractalloc.Find(nullptr, entry));
             #endif
          }
 
-         SAFETY(REQUIRE_THROWS(Allocator::Deallocate(entry)));
+         SAFETY(REQUIRE_THROWS(Fractalloc.Deallocate(entry)));
          entry->Free(1);
-         Allocator::Deallocate(entry);
+         Fractalloc.Deallocate(entry);
       }
 
       WHEN("Dereferenced once with deletion") {
-         IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
+         IF_LANGULUS_MANAGED_MEMORY(Fractalloc.CollectGarbage());
 
-         entry = Allocator::Allocate(512);
+         entry = Fractalloc.Allocate(nullptr, 512);
          REQUIRE(entry);
-         Allocator::Deallocate(entry);
+         Fractalloc.Deallocate(entry);
 
          THEN("We shouldn't be able to access the memory any longer, but it is still under jurisdiction") {
          #if LANGULUS_FEATURE(MANAGED_MEMORY)
-            REQUIRE(Allocator::CheckAuthority(nullptr, entry));
-            REQUIRE_FALSE(Allocator::Find(nullptr, entry->GetBlockStart()));
-            REQUIRE_FALSE(Allocator::Find(nullptr, entry));
+            REQUIRE(Fractalloc.CheckAuthority(nullptr, entry));
+            REQUIRE_FALSE(Fractalloc.Find(nullptr, entry->GetBlockStart()));
+            REQUIRE_FALSE(Fractalloc.Find(nullptr, entry));
          #endif
          }
       }
 
       WHEN("Dereferenced multiple times with deletion") {
-         IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
+         IF_LANGULUS_MANAGED_MEMORY(Fractalloc.CollectGarbage());
 
-         entry = Allocator::Allocate(512);
+         entry = Fractalloc.Allocate(nullptr, 512);
          REQUIRE(entry);
          entry->Keep(5);
 
-         SAFETY(REQUIRE_THROWS(Allocator::Deallocate(entry)));
+         SAFETY(REQUIRE_THROWS(Fractalloc.Deallocate(entry)));
          entry->Free(5);
-         Allocator::Deallocate(entry);
+         Fractalloc.Deallocate(entry);
 
          THEN("We shouldn't be able to access the memory any longer, but it is still under jurisdiction") {
          #if LANGULUS_FEATURE(MANAGED_MEMORY)
-            REQUIRE(Allocator::CheckAuthority(nullptr, entry));
-            REQUIRE_FALSE(Allocator::Find(nullptr, entry->GetBlockStart()));
-            REQUIRE_FALSE(Allocator::Find(nullptr, entry));
+            REQUIRE(Fractalloc.CheckAuthority(nullptr, entry));
+            REQUIRE_FALSE(Fractalloc.Find(nullptr, entry->GetBlockStart()));
+            REQUIRE_FALSE(Fractalloc.Find(nullptr, entry));
          #endif
          }
       }

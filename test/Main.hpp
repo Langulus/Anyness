@@ -11,10 +11,6 @@
 using namespace Langulus;
 using namespace Langulus::Anyness;
 
-using Anyness::Inner::Allocator;
-using Anyness::Inner::Allocation;
-using Anyness::Inner::Pool;
-
 //#define LANGULUS_STD_BENCHMARK
 
 //#ifdef LANGULUS_STD_BENCHMARK

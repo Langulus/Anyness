@@ -36,7 +36,7 @@ CATCH_TRANSLATE_EXCEPTION(::Langulus::Exception const& ex) {
 
 TEMPLATE_TEST_CASE("Testing text containers", "[text]", Text, Debug, Path) {
    GIVEN("Default text container") {
-      IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
+      IF_LANGULUS_MANAGED_MEMORY(Fractalloc.CollectGarbage());
 
       TestType text;
 
@@ -181,7 +181,7 @@ TEMPLATE_TEST_CASE("Testing text containers", "[text]", Text, Debug, Path) {
    }
 
    GIVEN("Uninitialized text container") {
-      IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
+      IF_LANGULUS_MANAGED_MEMORY(Fractalloc.CollectGarbage());
 
       TestType* text;
 
@@ -280,7 +280,7 @@ TEMPLATE_TEST_CASE("Testing text containers", "[text]", Text, Debug, Path) {
    }
 
    GIVEN("Reserved text container") {
-      IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
+      IF_LANGULUS_MANAGED_MEMORY(Fractalloc.CollectGarbage());
 
       TestType text;
       text.Reserve(500);
@@ -340,7 +340,7 @@ TEMPLATE_TEST_CASE("Testing text containers", "[text]", Text, Debug, Path) {
    }
 
    GIVEN("Full text container") {
-      IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
+      IF_LANGULUS_MANAGED_MEMORY(Fractalloc.CollectGarbage());
 
       TestType text {"test1"};
       auto memory = text.GetRaw();

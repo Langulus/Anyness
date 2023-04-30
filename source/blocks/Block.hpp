@@ -8,9 +8,13 @@
 #pragma once
 #include "../inner/DataState.hpp"
 #include "../inner/Index.hpp"
-#include "../inner/Allocator.hpp"
 #include "../inner/Iterator.hpp"
-#include <utility>
+
+#if LANGULUS_FEATURE(MANAGED_MEMORY)
+   #include "../fractalloc/Allocator.hpp"
+#else
+   #include "../unmanaged/NoAllocator.hpp"
+#endif
 
 namespace Langulus::Flow
 {
@@ -137,7 +141,7 @@ namespace Langulus::Anyness
       mutable DMeta mType {};
       // Pointer to the allocated block. If entry is zero, then data is 
       // static, or we simply have no authority over it (just a view)   
-      Inner::Allocation* mEntry {};
+      Allocation* mEntry {};
 
    public:
       ///                                                                     
@@ -153,8 +157,8 @@ namespace Langulus::Anyness
 
       Block(const DataState&, DMeta, Count, const void*) SAFETY_NOEXCEPT();
       Block(const DataState&, DMeta, Count, void*) SAFETY_NOEXCEPT();
-      Block(const DataState&, DMeta, Count, const void*, Inner::Allocation*) SAFETY_NOEXCEPT();
-      Block(const DataState&, DMeta, Count, void*, Inner::Allocation*) SAFETY_NOEXCEPT();
+      Block(const DataState&, DMeta, Count, const void*, Allocation*) SAFETY_NOEXCEPT();
+      Block(const DataState&, DMeta, Count, void*, Allocation*) SAFETY_NOEXCEPT();
    
       template<bool CONSTRAIN = false, CT::Data T>
       NOD() static Block From(T) requires CT::Sparse<T>;
@@ -254,8 +258,8 @@ namespace Langulus::Anyness
       constexpr void MakeNow() noexcept;
 
    protected: TESTING(public:)
-      NOD() Inner::Allocation** GetEntries() SAFETY_NOEXCEPT();
-      NOD() const Inner::Allocation* const* GetEntries() const SAFETY_NOEXCEPT();
+      NOD() Allocation** GetEntries() SAFETY_NOEXCEPT();
+      NOD() const Allocation* const* GetEntries() const SAFETY_NOEXCEPT();
 
    public:
       ///                                                                     
@@ -503,9 +507,9 @@ namespace Langulus::Anyness
       NOD() bool CallComparer(const Block&, const RTTI::Base&) const;
 
       template<bool REVERSE = false>
-      Count GatherInner(const Block&, Block&);
+      Count GatherInner(const Block&, CT::Data auto&);
       template<bool REVERSE = false>
-      Count GatherPolarInner(DMeta, const Block&, Block&, DataState);
+      Count GatherPolarInner(DMeta, const Block&, CT::Data auto&, DataState);
 
    public:
       ///                                                                     
@@ -532,9 +536,9 @@ namespace Langulus::Anyness
       void SetMemory(const DataState&, DMeta, Count, const void*) SAFETY_NOEXCEPT();
       void SetMemory(const DataState&, DMeta, Count, void*) SAFETY_NOEXCEPT();
       SAFETY_CONSTEXPR()
-      void SetMemory(const DataState&, DMeta, Count, const void*, Inner::Allocation*);
+      void SetMemory(const DataState&, DMeta, Count, const void*, Allocation*);
       SAFETY_CONSTEXPR()
-      void SetMemory(const DataState&, DMeta, Count, void*, Inner::Allocation*);
+      void SetMemory(const DataState&, DMeta, Count, void*, Allocation*);
       /// @endcond                                                            
 
    public:
@@ -642,9 +646,6 @@ namespace Langulus::Anyness
       void InsertStatic(HEAD&&, TAIL&&...);
       template<class... A>
       void EmplaceInner(const Block&, Count, A&&... arguments);
-
-      template<CT::Semantic S>
-      void Absorb(S&&, const DataState&);
 
       template<bool ALLOW_DEEPEN, CT::Data = Any, CT::Semantic S, CT::Index INDEX>
       Count SmartConcatAt(const bool&, S&&, const DataState&, const INDEX&);
