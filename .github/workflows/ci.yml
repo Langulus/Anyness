@@ -56,6 +56,7 @@ jobs:
           -DCMAKE_BUILD_TYPE=${{matrix.build}}
           ${{matrix.cmake_args}}
           -DLANGULUS_FEATURE_MANAGED_MEMORY=${{matrix.managed}}
+          -DLANGULUS_FEATURE_MANAGED_REFLECTION=${{matrix.managed}}
       - name: Build
         run: cmake --build out/${{matrix.name}} --config ${{matrix.build}}
       - name: Test
