@@ -1450,7 +1450,7 @@ namespace Langulus::Anyness
          const auto allocation = Fractalloc.Allocate(MetaData::Of<Decay<T>>(), sizeof(Decay<T>) * count);
          allocation->Keep(count - 1);
 
-         auto rhs = allocation->As<Decay<T>*>();
+         auto rhs = allocation->template As<Decay<T>*>();
          while (lhsPtr != lhsEnd) {
             new (rhs) Decay<T> {descriptor};
             *(lhsPtr++) = rhs;
