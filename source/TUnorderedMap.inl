@@ -1530,95 +1530,104 @@ namespace Langulus::Anyness
    /// You can break the loop, by returning false inside f()                  
    ///   @param f - the function to call for each key block                   
    ///   @return the number of successful f() executions                      
-   TABLE_TEMPLATE() LANGULUS(INLINED)
-   Count TABLE()::ForEachKeyElement(TFunctor<bool(const Block&)>&& f) const {
+   TABLE_TEMPLATE()
+   template<class F>
+   LANGULUS(INLINED)
+   Count TABLE()::ForEachKeyElement(F&& f) const {
+      using A = ArgumentOf<F>;
+      using R = ReturnOf<F>;
+      static_assert(CT::Block<A>, "Function argument must be a block type");
+
       Offset i {};
-      return GetKeys().ForEachElement([&](const Block& element) {
-         return mInfo[i++] ? f(element) : true;
-      });
+      if constexpr (!CT::Void<R>) {
+         return GetKeys().ForEachElement([&](const Block& element) {
+            return mInfo[i++] ? f(element) : true;
+         });
+      }
+      else {
+         return GetKeys().ForEachElement([&](const Block& element) {
+            if (mInfo[i++])
+               f(element);
+         });
+      }
    }
 
    /// Iterate all keys inside the map, and perform f() on them (mutable)     
    /// You can break the loop, by returning false inside f()                  
    ///   @param f - the function to call for each key block                   
    ///   @return the number of successful f() executions                      
-   TABLE_TEMPLATE() LANGULUS(INLINED)
-   Count TABLE()::ForEachKeyElement(TFunctor<bool(Block&)>&& f) {
-      Offset i {};
-      return GetKeys().ForEachElement([&](Block& element) {
-         return mInfo[i++] ? f(element) : true;
-      });
-   }
+   TABLE_TEMPLATE()
+   template<class F>
+   LANGULUS(INLINED)
+   Count TABLE()::ForEachKeyElement(F&& f) {
+      using A = ArgumentOf<F>;
+      using R = ReturnOf<F>;
+      static_assert(CT::Block<A>, "Function argument must be a block type");
 
-   /// Iterate all keys inside the map, and perform f() on them               
-   ///   @param f - the function to call for each key block                   
-   ///   @return the number of successful f() executions                      
-   TABLE_TEMPLATE() LANGULUS(INLINED)
-   Count TABLE()::ForEachKeyElement(TFunctor<void(const Block&)>&& f) const {
       Offset i {};
-      return GetKeys().ForEachElement([&](const Block& element) {
-         if (mInfo[i++])
-            f(element);
-      });
+      if constexpr (!CT::Void<R>) {
+         return GetKeys().ForEachElement([&](const Block& element) {
+            return mInfo[i++] ? f(element) : true;
+         });
+      }
+      else {
+         return GetKeys().ForEachElement([&](const Block& element) {
+            if (mInfo[i++])
+               f(element);
+         });
+      }
    }
-
-   /// Iterate all keys inside the map, and perform f() on them (mutable)     
-   ///   @param f - the function to call for each key block                   
-   ///   @return the number of successful f() executions                      
-   TABLE_TEMPLATE() LANGULUS(INLINED)
-   Count TABLE()::ForEachKeyElement(TFunctor<void(Block&)>&& f) {
-      Offset i {};
-      return GetKeys().ForEachElement([&](Block& element) {
-         if (mInfo[i++])
-            f(element);
-      });
-   }
-
+   
    /// Iterate all values inside the map, and perform f() on them             
    /// You can break the loop, by returning false inside f()                  
    ///   @param f - the function to call for each value block                 
    ///   @return the number of successful f() executions                      
-   TABLE_TEMPLATE() LANGULUS(INLINED)
-   Count TABLE()::ForEachValueElement(TFunctor<bool(const Block&)>&& f) const {
-      Offset i {};
-      return GetValues().ForEachElement([&](const Block& element) {
-         return mInfo[i++] ? f(element) : true;
-      });
-   }
+   TABLE_TEMPLATE()
+   template<class F>
+   LANGULUS(INLINED)
+   Count TABLE()::ForEachValueElement(F&& f) const {
+      using A = ArgumentOf<F>;
+      using R = ReturnOf<F>;
+      static_assert(CT::Block<A>, "Function argument must be a block type");
 
-   /// Iterate all values inside the map, and perform f() on them             
-   ///   @param f - the function to call for each values block                
-   ///   @return the number of successful f() executions                      
-   TABLE_TEMPLATE() LANGULUS(INLINED)
-   Count TABLE()::ForEachValueElement(TFunctor<bool(Block&)>&& f) {
       Offset i {};
-      return GetValues().ForEachElement([&](Block& element) {
-         return mInfo[i++] ? f(element) : true;
-      });
-   }
-
-   /// Iterate all values inside the map, and perform f() on them             
-   ///   @param f - the function to call for each values block                
-   ///   @return the number of successful f() executions                      
-   TABLE_TEMPLATE() LANGULUS(INLINED)
-   Count TABLE()::ForEachValueElement(TFunctor<void(const Block&)>&& f) const {
-      Offset i {};
-      return GetValues().ForEachElement([&](const Block& element) {
-         if (mInfo[i++])
-            f(element);
-      });
+      if constexpr (!CT::Void<R>) {
+         return GetValues().ForEachElement([&](const Block& element) {
+            return mInfo[i++] ? f(element) : true;
+         });
+      }
+      else {
+         return GetValues().ForEachElement([&](const Block& element) {
+            if (mInfo[i++])
+               f(element);
+         });
+      }
    }
 
    /// Iterate all values inside the map, and perform f() on them (mutable)   
-   ///   @param f - the function to call for each values block                
+   /// You can break the loop, by returning false inside f()                  
+   ///   @param f - the function to call for each value block                 
    ///   @return the number of successful f() executions                      
-   TABLE_TEMPLATE() LANGULUS(INLINED)
-   Count TABLE()::ForEachValueElement(TFunctor<void(Block&)>&& f) {
+   TABLE_TEMPLATE()
+   template<class F>
+   LANGULUS(INLINED)
+   Count TABLE()::ForEachValueElement(F&& f) {
+      using A = ArgumentOf<F>;
+      using R = ReturnOf<F>;
+      static_assert(CT::Block<A>, "Function argument must be a block type");
+
       Offset i {};
-      return GetValues().ForEachElement([&](Block& element) {
-         if (mInfo[i++])
-            f(element);
-      });
+      if constexpr (!CT::Void<R>) {
+         return GetValues().ForEachElement([&](const Block& element) {
+            return mInfo[i++] ? f(element) : true;
+         });
+      }
+      else {
+         return GetValues().ForEachElement([&](const Block& element) {
+            if (mInfo[i++])
+               f(element);
+         });
+      }
    }
 
 

@@ -106,10 +106,10 @@ namespace Langulus::Anyness
       NOD() const T& Last() const;
       NOD() T& Last();
 
-      Count ForEachElement(TFunctor<bool(const Block&)>&&) const;
-      Count ForEachElement(TFunctor<bool(Block&)>&&);
-      Count ForEachElement(TFunctor<void(const Block&)>&&) const;
-      Count ForEachElement(TFunctor<void(Block&)>&&);
+      template<class F>
+      Count ForEachElement(F&&) const;
+      template<class F>
+      Count ForEachElement(F&&);
 
       ///                                                                     
       ///   RTTI                                                              

@@ -401,17 +401,17 @@ namespace Langulus::Anyness
       template<bool SKIP, bool MUTABLE, bool REVERSE, class F>
       Count ForEachDeepSplitter(F&&);
 
-      template<class R, CT::Data A, bool REVERSE, bool MUTABLE>
-      Count ForEachInner(TFunctor<R(A)>&& f) noexcept(NoexceptIterator<decltype(f)>);
-      template<class R, CT::Data A, bool REVERSE, bool SKIP, bool MUTABLE>
-      Count ForEachDeepInner(TFunctor<R(A)>&&);
+      template<class R, CT::Data A, bool REVERSE, bool MUTABLE, class F>
+      Count ForEachInner(F&& f) noexcept(NoexceptIterator<decltype(f)>);
+      template<class R, CT::Data A, bool REVERSE, bool SKIP, bool MUTABLE, class F>
+      Count ForEachDeepInner(F&&);
 
       template<bool MUTABLE, bool REVERSE = false, class F>
       void Iterate(F&&) noexcept(NoexceptIterator<F>);
       template<bool REVERSE = false, class F>
       void Iterate(F&&) const noexcept(NoexceptIterator<F>);
-      template<class R, CT::Data A, bool REVERSE = false, bool MUTABLE = false>
-      void IterateInner(TFunctor<R(A)>&& f) noexcept(NoexceptIterator<decltype(f)>);
+      template<class R, CT::Data A, bool REVERSE = false, bool MUTABLE = false, class F>
+      void IterateInner(F&& f) noexcept(NoexceptIterator<decltype(f)>);
 
    public:
       ///                                                                     

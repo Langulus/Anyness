@@ -204,10 +204,10 @@ namespace Langulus::Anyness
       Count ForEachSplitter(Block&, F&&);
       template<bool SKIP, bool MUTABLE, bool REVERSE, class F>
       Count ForEachDeepSplitter(Block&, F&&);
-      template<class R, CT::Data A, bool REVERSE, bool MUTABLE>
-      Count ForEachInner(Block&, TFunctor<R(A)>&&);
-      template<class R, CT::Data A, bool REVERSE, bool SKIP, bool MUTABLE>
-      Count ForEachDeepInner(Block&, TFunctor<R(A)>&&);
+      template<class R, CT::Data A, bool REVERSE, bool MUTABLE, class F>
+      Count ForEachInner(Block&, F&&);
+      template<class R, CT::Data A, bool REVERSE, bool SKIP, bool MUTABLE, class F>
+      Count ForEachDeepInner(Block&, F&&);
       template<bool REVERSE, bool MUTABLE, class F>
       Count ForEachElement(Block&, F&&);
 

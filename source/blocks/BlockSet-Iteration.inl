@@ -157,8 +157,8 @@ namespace Langulus::Anyness
    /// Iterate and execute call for each element                              
    ///   @param call - the function to execute for each element of type T     
    ///   @return the number of executions that occured                        
-   template<class R, CT::Data A, bool REVERSE, bool MUTABLE>
-   Count BlockSet::ForEachInner(Block& part, TFunctor<R(A)>&& call) {
+   template<class R, CT::Data A, bool REVERSE, bool MUTABLE, class F>
+   Count BlockSet::ForEachInner(Block& part, F&& call) {
       if (IsEmpty() || !part.mType->template CastsTo<A, true>())
          return 0;
        
@@ -197,8 +197,8 @@ namespace Langulus::Anyness
    /// Iterate and execute call for each element                              
    ///   @param call - the function to execute for each element of type T     
    ///   @return the number of executions that occured                        
-   template<class R, CT::Data A, bool REVERSE, bool SKIP, bool MUTABLE>
-   Count BlockSet::ForEachDeepInner(Block& part, TFunctor<R(A)>&& call) {
+   template<class R, CT::Data A, bool REVERSE, bool SKIP, bool MUTABLE, class F>
+   Count BlockSet::ForEachDeepInner(Block& part, F&& call) {
       constexpr bool HasBreaker = CT::Bool<R>;
       auto count {part.GetCountDeep()};
       Count index {};

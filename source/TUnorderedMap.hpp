@@ -163,15 +163,15 @@ namespace Langulus::Anyness
       NOD() decltype(auto) Last() const;
       NOD() decltype(auto) Last();
 
-      Count ForEachKeyElement(TFunctor<bool(const Block&)>&&) const;
-      Count ForEachKeyElement(TFunctor<bool(Block&)>&&);
-      Count ForEachKeyElement(TFunctor<void(const Block&)>&&) const;
-      Count ForEachKeyElement(TFunctor<void(Block&)>&&);
+      template<class F>
+      Count ForEachKeyElement(F&&) const;
+      template<class F>
+      Count ForEachKeyElement(F&&);
 
-      Count ForEachValueElement(TFunctor<bool(const Block&)>&&) const;
-      Count ForEachValueElement(TFunctor<bool(Block&)>&&);
-      Count ForEachValueElement(TFunctor<void(const Block&)>&&) const;
-      Count ForEachValueElement(TFunctor<void(Block&)>&&);
+      template<class F>
+      Count ForEachValueElement(F&&) const;
+      template<class F>
+      Count ForEachValueElement(F&&);
 
    protected:
       void AllocateFresh(const Count&);

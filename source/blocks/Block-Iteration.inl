@@ -286,9 +286,9 @@ namespace Langulus::Anyness
    ///                     while iterating (iteration is slower if true)      
    ///   @param f - the function to execute for each element of type A        
    ///   @return the number of executions that occured                        
-   template<class R, CT::Data A, bool REVERSE, bool MUTABLE>
+   template<class R, CT::Data A, bool REVERSE, bool MUTABLE, class F>
    LANGULUS(INLINED)
-   Count Block::ForEachInner(TFunctor<R(A)>&& f) noexcept(NoexceptIterator<decltype(f)>) {
+   Count Block::ForEachInner(F&& f) noexcept(NoexceptIterator<decltype(f)>) {
       LANGULUS_ASSUME(DevAssumes, !IsEmpty(),
          "Container is empty");
       LANGULUS_ASSUME(DevAssumes, IsTyped(),
@@ -354,8 +354,8 @@ namespace Langulus::Anyness
    ///                     while iterating (iteration is slower if true)      
    ///   @param call - the function to execute for each element of type A     
    ///   @return the number of executions that occured                        
-   template<class R, CT::Data A, bool REVERSE, bool SKIP, bool MUTABLE>
-   Count Block::ForEachDeepInner(TFunctor<R(A)>&& call) {
+   template<class R, CT::Data A, bool REVERSE, bool SKIP, bool MUTABLE, class F>
+   Count Block::ForEachDeepInner(F&& call) {
       using B = Decay<A>;
       static_assert(CT::Block<B>, "A must be a Block type");
       constexpr bool HasBreaker = CT::Bool<R>;
@@ -482,9 +482,9 @@ namespace Langulus::Anyness
    ///   @tparam MUTABLE - whether or not block's allowed to change during    
    ///                     iteration (iteration is slower if true)            
    ///   @param call - the constexpr noexcept function to call on each item   
-   template<class R, CT::Data A, bool REVERSE, bool MUTABLE>
+   template<class R, CT::Data A, bool REVERSE, bool MUTABLE, class F>
    LANGULUS(INLINED)
-   void Block::IterateInner(TFunctor<R(A)>&& f) noexcept(NoexceptIterator<decltype(f)>) {
+   void Block::IterateInner(F&& f) noexcept(NoexceptIterator<decltype(f)>) {
       LANGULUS_ASSUME(DevAssumes, !IsEmpty(),
          "Block is empty");
       LANGULUS_ASSUME(DevAssumes, IsSparse() == CT::Sparse<A>,
