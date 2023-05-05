@@ -63,22 +63,7 @@ namespace Langulus::Anyness
             const auto hashmask = GetReserved() - 1;
             using TP = typename T::Pair;
             other.mValue.ForEach([this, hashmask](TP& pair) {
-               if constexpr (CT::TypedPair<TP>) {
-                  // Insert a statically typed pair                     
-                  InsertInner<false>(
-                     GetBucket(hashmask, pair.mKey),
-                     S::Nest(pair.mKey), 
-                     S::Nest(pair.mValue)
-                  );
-               }
-               else {
-                  // Insert a dynamically typed pair                    
-                  InsertInnerUnknown<false>(
-                     GetBucketUnknown(hashmask, pair.mKey),
-                     S::Nest(pair.mKey), 
-                     S::Nest(pair.mValue)
-                  );
-               }
+               InsertPairInner<OrderedMap>(hashmask, S::Nest(pair));
             });
          }
          else {
@@ -97,22 +82,26 @@ namespace Langulus::Anyness
          mInfo[MinimalAllocation] = 1;
 
          constexpr auto hashmask = MinimalAllocation - 1;
-         if constexpr (CT::TypedPair<T>) {
-            // Insert a statically typed pair                           
-            InsertInner<false>(
-               GetBucket(hashmask, other.mValue.mKey),
-               S::Nest(other.mValue.mKey),
-               S::Nest(other.mValue.mValue)
-            );
+         InsertPairInner<OrderedMap>(hashmask, other.Forward());
+      }
+      else if constexpr (CT::Array<T>) {
+         if constexpr (CT::Pair<Deext<T>>) {
+            // Construct from an array of pairs                         
+            mKeys.mType = other.mValue[0].GetKeyType();
+            mValues.mType = other.mValue[0].GetValueType();
+
+            constexpr auto reserved = Roof2(ExtentOf<T>);
+            AllocateFresh(reserved);
+            ZeroMemory(mInfo, reserved);
+            mInfo[reserved] = 1;
+
+            constexpr auto hashmask = reserved - 1;
+            for (auto& pair : other.mValue)
+               InsertPairInner<OrderedMap>(hashmask, S::Nest(pair));
          }
-         else {
-            // Insert a dynamically typed pair                          
-            InsertInnerUnknown<false>(
-               GetBucketUnknown(hashmask, other.mValue.mKey),
-               S::Nest(other.mValue.mKey),
-               S::Nest(other.mValue.mValue)
-            );
-         }
+         else LANGULUS_ERROR("Unsupported semantic array constructor");
+
+         //TODO perhaps constructor from map array, by merging them?
       }
       else LANGULUS_ERROR("Unsupported semantic constructor");
    }
@@ -218,24 +207,7 @@ namespace Langulus::Anyness
          else {
             // Just destroy and reuse memory                            
             Clear();
-
-            const auto hashmask = GetReserved() - 1;
-            if constexpr (CT::TypedPair<T>) {
-               // Insert a statically typed pair                        
-               InsertInner<false>(
-                  GetBucket(hashmask, other.mValue.mKey),
-                  S::Nest(other.mValue.mKey),
-                  S::Nest(other.mValue.mValue)
-               );
-            }
-            else {
-               // Insert a dynamically typed pair                       
-               InsertInnerUnknown<false>(
-                  GetBucketUnknown(hashmask, other.mValue.mKey),
-                  S::Nest(other.mValue.mKey),
-                  S::Nest(other.mValue.mValue)
-               );
-            }
+            InsertPairInner<OrderedMap>(GetReserved() - 1, other.Forward());
          }
       }
       else LANGULUS_ERROR("Unsupported ordered map assignment");
@@ -407,7 +379,7 @@ namespace Langulus::Anyness
          S::Nest(pair.mValue.mValue)
       );
    }
-
+   
    /// Access value by key, or implicitly add the key if not found            
    /// Value will be default-constructed in the latter case                   
    ///   @param key - the key to search for                                   
@@ -420,14 +392,16 @@ namespace Langulus::Anyness
 
       // Key wasn't found, but map is mutable and we can add it         
       Mutate(MetaData::Of<K>(), mValues.mType);
-      auto newk = Block::From(key);
+
+      Any newk {key};
       auto newv = Block {mValues.mState, mValues.mType};
       newv.template AllocateMore<true>(1);
       Reserve(GetCount() + 1);
 
+      // Insert the new pair                                            
       const auto insertedAt = InsertInnerUnknown<false>(
-         GetBucket(GetReserved() - 1, key), 
-         Copy(newk), Abandon(newv)
+         GetBucket(GetReserved() - 1, key),
+         Abandon(newk), Abandon(newv)
       );
       return GetValue(insertedAt);
    }

@@ -60,21 +60,33 @@ namespace Langulus::Anyness
             mInfo[GetReserved()] = 1;
 
             const auto hashmask = GetReserved() - 1;
-            other.mValue.ForEach(
-               [this, hashmask](Block& element) {
-                  // Insert a dynamically typed element                 
-                  InsertInnerUnknown<false>(
-                     element.GetHash().mHash & hashmask,
-                     S::Nest(element)
+            if constexpr (CT::TypedSet<T>) {
+               for (auto& key : other.mValues) {
+                  InsertInner<false>(
+                     GetBucket(hashmask, key),
+                     S::Nest(key)
                   );
                }
-            );
+            }
+            else {
+               for (auto key : other.mValues) {
+                  InsertUnkownInner<false>(
+                     GetBucket(hashmask, key),
+                     S::Nest(key)
+                  );
+               }
+            }
          }
          else {
             // We can directly interface set, because it is ordered     
             // and uses the same bucketing approach                     
             BlockTransfer<OrderedSet>(other.Forward());
          }
+      }
+      else if constexpr (CT::Array<T>) {
+         // Construct from array of elements                            
+         for (auto& key : other.mValue)
+            Insert(S::Nest(key));
       }
       else {
          // Construct from any kind of pair                             

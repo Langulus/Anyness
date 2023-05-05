@@ -231,7 +231,7 @@ namespace Langulus::Anyness
    protected:
       NOD() Size RequestKeyAndInfoSize(Count, Offset&) noexcept;
 
-      void Rehash(const Count&, const Count&);
+      void Rehash(const Count&);
 
       template<bool CHECK_FOR_MATCH, CT::Semantic S>
       Offset InsertInnerUnknown(const Offset&, S&&);

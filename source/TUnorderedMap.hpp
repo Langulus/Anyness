@@ -179,10 +179,10 @@ namespace Langulus::Anyness
       void AllocateData(const Count&);
       void AllocateInner(const Count&);
 
-      void Rehash(const Count&, const Count&);
-      void RehashKeys(const Count&, const Count&, Block&);
-      void RehashValues(const Count&, const Count&, Block&);
-      void ShiftPairs(const Count&);
+      void Rehash(const Count&);
+      void RehashKeys(const Count&, Block&);
+      void RehashValues(const Count&, Block&);
+      void ShiftPairs();
 
       template<bool CHECK_FOR_MATCH, CT::Semantic SK, CT::Semantic SV>
       Offset InsertInner(const Offset&, SK&&, SV&&);

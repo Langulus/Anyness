@@ -38,8 +38,9 @@ namespace Langulus::Anyness
       TUnorderedSet(const TUnorderedSet&);
       TUnorderedSet(TUnorderedSet&&);
 
-      TUnorderedSet(const T&);
-      TUnorderedSet(T&&);
+      TUnorderedSet(const CT::NotSemantic auto&);
+      TUnorderedSet(CT::NotSemantic auto&);
+      TUnorderedSet(CT::NotSemantic auto&&);
       TUnorderedSet(CT::Semantic auto&&);
 
       template<CT::Data HEAD, CT::Data... TAIL>
@@ -50,8 +51,9 @@ namespace Langulus::Anyness
       TUnorderedSet& operator = (const TUnorderedSet&);
       TUnorderedSet& operator = (TUnorderedSet&&);
 
-      TUnorderedSet& operator = (const T&);
-      TUnorderedSet& operator = (T&&);
+      TUnorderedSet& operator = (const CT::NotSemantic auto&);
+      TUnorderedSet& operator = (CT::NotSemantic auto&);
+      TUnorderedSet& operator = (CT::NotSemantic auto&&);
       TUnorderedSet& operator = (CT::Semantic auto&&);
 
    public:
@@ -155,7 +157,7 @@ namespace Langulus::Anyness
    protected:
       NOD() static Size RequestKeyAndInfoSize(Count, Offset&) noexcept;
 
-      void Rehash(const Count&, const Count&);
+      void Rehash(const Count&);
 
       template<bool CHECK_FOR_MATCH, CT::Semantic S>
       Offset InsertInner(const Offset&, S&&);

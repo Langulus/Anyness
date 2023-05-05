@@ -139,12 +139,6 @@ namespace Langulus::Anyness
       template<CT::NotSemantic K>
       NOD() Index FindKeyIndex(const K&) const;
 
-      template<CT::NotSemantic K>
-      NOD() Block At(const K&) const;
-
-      template<CT::NotSemantic K>
-      NOD() Block operator[] (const K&) const;
-
       NOD() Block GetKey(const Index&) const;
       NOD() Block GetKey(const Index&);
       NOD() Block GetValue(const Index&) const;
@@ -222,15 +216,18 @@ namespace Langulus::Anyness
       void Dereference(const Count&);
       void Free();
 
-      void Rehash(const Count&, const Count&);
-      void RehashKeys(const Count&, const Count&, Block&);
-      void RehashValues(const Count&, const Count&, Block&);
-      void ShiftPairs(const Count&);
+      void Rehash(const Count&);
+      void RehashKeys(const Count&, Block&);
+      void RehashValues(const Count&, Block&);
+      void ShiftPairs();
 
       template<bool CHECK_FOR_MATCH, CT::Semantic SK, CT::Semantic SV>
-      Offset InsertInnerUnknown(const Offset&, SK&&, SV&&);
-      template<bool CHECK_FOR_MATCH, CT::Semantic SK, CT::Semantic SV>
       Offset InsertInner(const Offset&, SK&&, SV&&);
+      template<bool CHECK_FOR_MATCH, CT::Semantic SK, CT::Semantic SV>
+      Offset InsertInnerUnknown(const Offset&, SK&&, SV&&);
+
+      template<class, CT::Semantic S>
+      void InsertPairInner(const Count&, S&&);
 
       void ClearInner();
 

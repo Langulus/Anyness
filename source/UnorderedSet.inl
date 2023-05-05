@@ -14,7 +14,7 @@ namespace Langulus::Anyness
    /// Copy constructor                                                       
    ///   @param other - set to shallow-copy                                   
    LANGULUS(INLINED)
-      UnorderedSet::UnorderedSet(const UnorderedSet& other)
+   UnorderedSet::UnorderedSet(const UnorderedSet& other)
       : UnorderedSet {Copy(other)} {}
 
    /// Move constructor                                                       
@@ -60,15 +60,22 @@ namespace Langulus::Anyness
             mInfo[GetReserved()] = 1;
 
             const auto hashmask = GetReserved() - 1;
-            other.mValue.ForEach(
-               [this, hashmask](Block& element) {
-                  // Insert a dynamically typed element                 
-                  InsertInnerUnknown<false>(
-                     GetBucketUnknown(hashmask, element),
-                     S::Nest(element)
+            if constexpr (CT::TypedSet<T>) {
+               for (auto& key : other.mValues) {
+                  InsertInner<false>(
+                     GetBucket(hashmask, key),
+                     S::Nest(key)
                   );
                }
-            );
+            }
+            else {
+               for (auto key : other.mValues) {
+                  InsertUnkownInner<false>(
+                     GetBucket(hashmask, key),
+                     S::Nest(key)
+                  );
+               }
+            }
          }
          else {
             // We can directly interface set, because it is unordered   
@@ -76,8 +83,13 @@ namespace Langulus::Anyness
             BlockTransfer<UnorderedSet>(other.Forward());
          }
       }
+      else if constexpr (CT::Array<T>) {
+         // Construct from array of elements                            
+         for (auto& key : other.mValue)
+            Insert(S::Nest(key));
+      }
       else {
-         // Construct from any kind of pair                             
+         // Construct from any kind of element                          
          mKeys.mType = MetaData::Of<T>();
 
          AllocateFresh(MinimalAllocation);
@@ -188,7 +200,7 @@ namespace Langulus::Anyness
             // Just destroy and reuse memory                            
             Clear();
 
-            // Insert a statically typed pair                           
+            // Insert an element                                        
             InsertInner<false>(
                GetBucket(GetReserved() - 1, other.mValue),
                S::Nest(other.mValue)

@@ -71,7 +71,7 @@ namespace Langulus::Anyness
                );
             };
 
-            Rehash(count, oldCount);
+            Rehash(oldCount);
             return;
          }
          else ZeroMemory(mInfo, count);

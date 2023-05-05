@@ -167,19 +167,18 @@ namespace Langulus::Anyness
    /// Rehashes and reinserts each pair in the same block                     
    ///   @attention assumes count and oldCount are power-of-two               
    ///   @attention assumes count > oldCount                                  
-   ///   @param count - the new number of pairs                               
    ///   @param oldCount - the old number of pairs                            
-   inline void BlockSet::Rehash(const Count& count, const Count& oldCount) {
-      LANGULUS_ASSUME(DevAssumes, count > oldCount,
+   inline void BlockSet::Rehash(const Count& oldCount) {
+      LANGULUS_ASSUME(DevAssumes, mKeys.mReserved > oldCount,
          "New count is not larger than oldCount");
-      LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(count),
+      LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(mKeys.mReserved),
          "New count is not a power-of-two");
       LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(oldCount),
          "Old count is not a power-of-two");
 
       auto oldInfo = GetInfo();
       const auto oldInfoEnd = oldInfo + oldCount;
-      const auto hashmask = count - 1;
+      const auto hashmask = mKeys.mReserved - 1;
 
       // For each old existing key...                                   
       while (oldInfo != oldInfoEnd) {

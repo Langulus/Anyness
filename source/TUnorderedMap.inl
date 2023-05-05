@@ -64,41 +64,23 @@ namespace Langulus::Anyness
       : TUnorderedMap {} {
       using S = Decay<decltype(other)>;
       using T = TypeOf<S>;
+      mKeys.mType = MetaData::Of<K>();
+      mValues.mType = MetaData::Of<V>();
 
       if constexpr (CT::Map<T>) {
          // Construct from any kind of map                              
          if constexpr (T::Ordered) {
             // We have to reinsert everything, because source is        
             // ordered and uses a different bucketing approach          
-            mKeys.mType = MetaData::Of<K>();
-            mValues.mType = MetaData::Of<V>();
-
             AllocateFresh(other.mValue.GetReserved());
             ZeroMemory(mInfo, GetReserved());
             mInfo[GetReserved()] = 1;
 
             const auto hashmask = GetReserved() - 1;
             using TP = typename T::Pair;
-            other.mValue.ForEach(
-               [this, hashmask](TP& pair) {
-                  if constexpr (CT::TypedPair<TP>) {
-                     // Insert a statically typed pair                  
-                     InsertInner<false>(
-                        GetBucket(hashmask, pair.mKey),
-                        S::Nest(pair.mKey), 
-                        S::Nest(pair.mValue)
-                     );
-                  }
-                  else {
-                     // Insert a dynamically typed pair                 
-                     InsertInnerUnknown<false>(
-                        GetBucketUnknown(hashmask, pair.mKey),
-                        S::Nest(pair.mKey), 
-                        S::Nest(pair.mValue)
-                     );
-                  }
-               }
-            );
+            other.mValue.ForEach([this, hashmask](TP& pair) {
+               InsertPairInner<Self>(hashmask, S::Nest(pair));
+            });
          }
          else {
             // We can directly interface map, because it is unordered   
@@ -108,30 +90,28 @@ namespace Langulus::Anyness
       }
       else if constexpr (CT::Pair<T>) {
          // Construct from any kind of pair                             
-         mKeys.mType = MetaData::Of<K>();
-         mValues.mType = MetaData::Of<V>();
-
          AllocateFresh(MinimalAllocation);
          ZeroMemory(mInfo, MinimalAllocation);
          mInfo[MinimalAllocation] = 1;
 
          constexpr auto hashmask = MinimalAllocation - 1;
-         if constexpr (CT::TypedPair<T>) {
-            // Insert a statically typed pair                           
-            InsertInner<false>(
-               GetBucket(hashmask, other.mValue.mKey),
-               S::Nest(other.mValue.mKey),
-               S::Nest(other.mValue.mValue)
-            );
+         InsertPairInner<Self>(hashmask, other.Forward());
+      }
+      else if constexpr (CT::Array<T>) {
+         if constexpr (CT::Pair<Deext<T>>) {
+            // Construct from an array of pairs                         
+            constexpr auto reserved = Roof2(ExtentOf<T>);
+            AllocateFresh(reserved);
+            ZeroMemory(mInfo, reserved);
+            mInfo[reserved] = 1;
+
+            constexpr auto hashmask = reserved - 1;
+            for (auto& pair : other.mValue)
+               InsertPairInner<Self>(hashmask, S::Nest(pair));
          }
-         else {
-            // Insert a dynamically typed pair                          
-            InsertInnerUnknown<false>(
-               GetBucketUnknown(hashmask, other.mValue.mKey),
-               S::Nest(other.mValue.mKey),
-               S::Nest(other.mValue.mValue)
-            );
-         }
+         else LANGULUS_ERROR("Unsupported semantic array constructor");
+
+         //TODO perhaps constructor from map array, by merging them?
       }
       else LANGULUS_ERROR("Unsupported semantic constructor");
    }
@@ -252,20 +232,28 @@ namespace Langulus::Anyness
    ///   @tparam S - the semantic (deducible)                                 
    ///   @param rhs - the unordered map to use for construction               
    TABLE_TEMPLATE()
-   template<CT::Semantic S>
-   TABLE()& TABLE()::operator = (S&& rhs) {
-      using ST = TypeOf<S>;
+   TABLE()& TABLE()::operator = (CT::Semantic auto&& other) {
+      using S = Decay<decltype(other)>;
+      using T = TypeOf<S>;
 
-      if constexpr (CT::Map<ST>) {
-         if (&static_cast<const BlockMap&>(rhs.mValue) == this)
+      if constexpr (CT::Map<T>) {
+         if (&static_cast<const BlockMap&>(other.mValue) == this)
             return *this;
 
          Reset();
-         new (this) Self {rhs.Forward()};
+         new (this) Self {other.Forward()};
       }
-      else if constexpr (CT::Pair<ST>) {
-         Clear();
-         Insert(S::Nest(rhs.mValue.mKey), S::Nest(rhs.mValue.mValue));
+      else if constexpr (CT::Pair<T>) {
+         if (GetUses() != 1) {
+            // Reset and allocate fresh memory                          
+            Free();
+            new (this) Self {other.Forward()};
+         }
+         else {
+            // Just destroy and reuse memory                            
+            Clear();
+            InsertPairInner<Self>(GetReserved() - 1, other.Forward());
+         }
       }
       else LANGULUS_ERROR("Unsupported semantic assignment");
 
@@ -643,7 +631,7 @@ namespace Langulus::Anyness
                   );
                };
 
-               Rehash(count, oldCount);
+               Rehash(oldCount);
                return;
             }
          }
@@ -699,19 +687,20 @@ namespace Langulus::Anyness
 
    /// Rehashes each key and reinserts pair                                   
    ///   @attention assumes counts are a power-of-two number                  
-   ///   @param count - the new number of pairs                               
    ///   @param oldCount - the old number of pairs                            
    TABLE_TEMPLATE()
-   void TABLE()::Rehash(const Count& count, const Count& oldCount) {
-      LANGULUS_ASSUME(DevAssumes, 
-         IsPowerOfTwo(count) && IsPowerOfTwo(oldCount),
-         "A count is not a power-of-two"
-      );
+   void TABLE()::Rehash(const Count& oldCount) {
+      LANGULUS_ASSUME(DevAssumes, mValues.mReserved > oldCount,
+         "New count is not larger than oldCount");
+      LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(mValues.mReserved),
+         "New count is not a power-of-two");
+      LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(oldCount),
+         "Old count is not a power-of-two");
 
       auto oldKey = GetKeyHandle(0);
       auto oldInfo = GetInfo();
       const auto oldInfoEnd = oldInfo + oldCount;
-      const auto hashmask = count - 1;
+      const auto hashmask = mValues.mReserved - 1;
 
       // First run: move elements closer to their new buckets           
       while (oldInfo != oldInfoEnd) {
@@ -750,13 +739,12 @@ namespace Langulus::Anyness
 
       // First run might cause gaps                                     
       // Second run: shift elements left, where possible                
-      ShiftPairs(count);
+      ShiftPairs();
    }
    
    /// Shift elements left, where possible                                    
-   ///   @param count - the new number of pairs                               
    TABLE_TEMPLATE()
-   void TABLE()::ShiftPairs(const Count& count) {
+   void TABLE()::ShiftPairs() {
       auto oldInfo = mInfo;
       const auto newInfoEnd = GetInfoEnd();
       while (oldInfo != newInfoEnd) {
@@ -764,15 +752,15 @@ namespace Langulus::Anyness
             const Offset oldIndex = oldInfo - GetInfo();
             // Might loop around                                        
             Offset to = oldIndex - (*oldInfo - 1);
-            if (to >= count)
-               to += count;
+            if (to >= mValues.mReserved)
+               to += mValues.mReserved;
 
             InfoType attempt = 1;
             while (mInfo[to] && attempt < *oldInfo) {
                // Might loop around                                     
                ++to;
-               if (to >= count)
-                  to -= count;
+               if (to >= mValues.mReserved)
+                  to -= mValues.mReserved;
 
                ++attempt;
             }
@@ -1111,24 +1099,53 @@ namespace Langulus::Anyness
    }
 
    /// Erase a pair via key                                                   
-   ///   @param key - the key to search for                                   
-   ///   @return the number of removed pairs                                  
+   ///   @param match - the key to search for                                 
+   ///   @return 1 if key was found and was removed                           
    TABLE_TEMPLATE()
    Count TABLE()::RemoveKey(const K& match) {
       // Get the starting index based on the key hash                   
       const auto start = GetBucket(GetReserved() - 1, match);
-      auto key = &GetRawKey(start);
       auto info = GetInfo() + start;
       const auto infoEnd = GetInfoEnd();
 
-      while (info != infoEnd) {
-         if (*info && *key == match) {
-            // Found it                                                 
+      // Test first candidate                                           
+      auto key = &GetRawKey(start);
+      if (*info && *key == match) {
+         RemoveIndex(start);
+         return 1;
+      }
+
+      // Test all candidates on the right up until the end              
+      ++key;
+      auto prev = info++;
+      while (info != infoEnd && *prev + 1 == *info) {
+         if (*key == match) {
             RemoveIndex(info - GetInfo());
             return 1;
          }
 
-         ++key; ++info;
+         ++key; ++info; ++prev;
+      }
+
+      // Keys might loop around, continue the search from the start     
+      if (info == infoEnd) {
+         key = &GetRawKey(0);
+         info = GetInfo();
+         if (*prev + 1 == *info && *key == match) {
+            RemoveIndex(0);
+            return 1;
+         }
+
+         ++key;
+         prev = info++;
+         while (info != infoEnd && *prev + 1 == *info) {
+            if (*key == match) {
+               RemoveIndex(info - GetInfo());
+               return 1;
+            }
+
+            ++key; ++info; ++prev;
+         }
       }
       
       // No such key was found                                          
@@ -1136,7 +1153,7 @@ namespace Langulus::Anyness
    }
 
    /// Erase all pairs with a given value                                     
-   ///   @param value - the value to search for                               
+   ///   @param match - the match to search for                               
    ///   @return the number of removed pairs                                  
    TABLE_TEMPLATE()
    Count TABLE()::RemoveValue(const V& match) {

@@ -39,13 +39,19 @@ namespace Langulus::Anyness
    /// Copy-constructor from any set/element                                  
    ///   @param other - the semantic type                                     
    TABLE_TEMPLATE() LANGULUS(INLINED)
-   TABLE()::TUnorderedSet(const T& other)
+   TABLE()::TUnorderedSet(const CT::NotSemantic auto& other)
+      : TUnorderedSet {Copy(other)} {}
+   
+   /// Copy-constructor from any set/element                                  
+   ///   @param other - the semantic type                                     
+   TABLE_TEMPLATE() LANGULUS(INLINED)
+   TABLE()::TUnorderedSet(CT::NotSemantic auto& other)
       : TUnorderedSet {Copy(other)} {}
 
    /// Move-constructor from any set/element                                  
    ///   @param other - the semantic type                                     
    TABLE_TEMPLATE() LANGULUS(INLINED)
-   TABLE()::TUnorderedSet(T&& other)
+   TABLE()::TUnorderedSet(CT::NotSemantic auto&& other)
       : TUnorderedSet {Move(other)} {}
 
    /// Semantic constructor from any set/element                              
@@ -55,21 +61,34 @@ namespace Langulus::Anyness
       : TUnorderedSet {} {
       using S = Decay<decltype(other)>;
       using ST = TypeOf<S>;
+      mKeys.mType = MetaData::Of<T>();
 
       if constexpr (CT::Set<ST>) {
          // Construct from any kind of set                              
          if constexpr (ST::Ordered) {
             // We have to reinsert everything, because source is        
             // ordered and uses a different bucketing approach          
-            mKeys.mType = MetaData::Of<T>();
-
             AllocateFresh(other.mValue.GetReserved());
             ZeroMemory(mInfo, GetReserved());
             mInfo[GetReserved()] = 1;
 
-            other.mValue.ForEach([this](const Block& element) {
-               InsertUnknown(S::Nest(element));
-            });
+            const auto hashmask = GetReserved() - 1;
+            if constexpr (CT::TypedSet<ST>) {
+               for (auto& key : other.mValues) {
+                  InsertInner<false>(
+                     GetBucket(hashmask, key),
+                     S::Nest(key)
+                  );
+               }
+            }
+            else {
+               for (auto key : other.mValues) {
+                  InsertUnkownInner<false>(
+                     GetBucket(hashmask, key),
+                     S::Nest(key)
+                  );
+               }
+            }
          }
          else {
             // We can directly interface set, because it is unordered   
@@ -79,8 +98,6 @@ namespace Langulus::Anyness
       }
       else if constexpr (CT::Exact<T, ST>) {
          // Construct from any kind of element                          
-         mKeys.mType = MetaData::Of<T>();
-
          AllocateFresh(MinimalAllocation);
          ZeroMemory(mInfo, MinimalAllocation);
          mInfo[MinimalAllocation] = 1;
@@ -90,6 +107,16 @@ namespace Langulus::Anyness
             GetBucket(MinimalAllocation - 1, other.mValue),
             S::Nest(other.mValue)
          );
+      }
+      else if constexpr (CT::Array<ST>) {
+         if constexpr (CT::Exact<T, Deext<ST>>) {
+            // Construct from an array of elements                      
+            for (auto& key : other.mValue)
+               Insert(S::Nest(key));
+         }
+         else LANGULUS_ERROR("Unsupported semantic array constructor");
+
+         //TODO perhaps constructor from map array, by merging them?
       }
       else LANGULUS_ERROR("Unsupported semantic constructor");
    }
@@ -182,7 +209,15 @@ namespace Langulus::Anyness
    ///   @param rhs - the element to copy                                     
    ///   @return a reference to this table                                    
    TABLE_TEMPLATE()
-   TABLE()& TABLE()::operator = (const T& rhs) {
+   TABLE()& TABLE()::operator = (const CT::NotSemantic auto& rhs) {
+      return operator = (Copy(rhs));
+   }
+   
+   /// Insert a single element into a cleared set                             
+   ///   @param rhs - the element to copy                                     
+   ///   @return a reference to this table                                    
+   TABLE_TEMPLATE()
+   TABLE()& TABLE()::operator = (CT::NotSemantic auto& rhs) {
       return operator = (Copy(rhs));
    }
 
@@ -190,7 +225,7 @@ namespace Langulus::Anyness
    ///   @param rhs - the element to emplace                                  
    ///   @return a reference to this table                                    
    TABLE_TEMPLATE()
-   TABLE()& TABLE()::operator = (T&& rhs) {
+   TABLE()& TABLE()::operator = (CT::NotSemantic auto&& rhs) {
       return operator = (Move(rhs));
    }
    
@@ -441,7 +476,7 @@ namespace Langulus::Anyness
                );
             };
 
-            Rehash(count, oldCount);
+            Rehash(oldCount);
             return;
          }
          else ZeroMemory(mInfo, count);
@@ -487,20 +522,19 @@ namespace Langulus::Anyness
 
    /// Rehashes each key and reinserts pair                                   
    ///   @attention assumes counts are a power-of-two number                  
-   ///   @param count - the new number of pairs                               
    ///   @param oldCount - the old number of pairs                            
    TABLE_TEMPLATE()
-   void TABLE()::Rehash(const Count& count, const Count& oldCount) {
-      LANGULUS_ASSUME(DevAssumes, count > oldCount,
+   void TABLE()::Rehash(const Count& oldCount) {
+      LANGULUS_ASSUME(DevAssumes, mKeys.mReserved > oldCount,
          "New count is not larger than oldCount");
-      LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(count),
+      LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(mKeys.mReserved),
          "New count is not a power-of-two");
       LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(oldCount),
          "Old count is not a power-of-two");
 
       auto oldInfo = GetInfo();
       const auto oldInfoEnd = oldInfo + oldCount;
-      const auto hashmask = count - 1;
+      const auto hashmask = mKeys.mReserved - 1;
 
       // For each old existing key...                                   
       while (oldInfo != oldInfoEnd) {
@@ -514,54 +548,51 @@ namespace Langulus::Anyness
             }
 
             auto oldKey = GetHandle(oldIndex);
-            const Offset newBucket = GetBucket(hashmask, oldKey.Get());
+            const auto newBucket = GetBucket(hashmask, oldKey.Get());
             if (oldBucket != newBucket) {
                // Move element only if it won't end up in same bucket   
                HandleLocal<T> keyswap {Abandon(oldKey)};
 
                // Destroy the key and info at old index                 
                // Keep in mind, that oldCount is used for wrapping      
-               {
-                  auto psl = GetInfo() + oldIndex;
-                  auto key = GetHandle(oldIndex);
+               auto psl = GetInfo() + oldIndex;
+               auto key = GetHandle(oldIndex);
 
-                  // Destroy the key, info and value at the start       
+               // Destroy the key, info and value at the start          
+               (key++).Destroy();
+               *(psl++) = 0;
+
+               // And shift backwards, until a zero or 1 is reached     
+               // That way we move every entry that is far from its     
+               // start closer to it. Moving is costly, unless you      
+               // use pointers                                          
+            try_again:
+               while (*psl > 1) {
+                  psl[-1] = (*psl) - 1;
+                  (key - 1).New(Abandon(key));
+                  (key++).Destroy();
+                  *(psl++) = 0;
+               }
+
+               // Be aware, that psl might loop around                  
+               if (psl == oldInfoEnd && *GetInfo() > 1) {
+                  psl = GetInfo();
+                  key = GetHandle(0);
+
+                  // Shift first entry to the back                      
+                  const auto last = oldCount - 1;
+                  GetInfo()[last] = (*psl) - 1;
+                  GetHandle(last).New(Abandon(key));
+
                   (key++).Destroy();
                   *(psl++) = 0;
 
-                  // And shift backwards, until a zero or 1 is reached  
-                  // That way we move every entry that is far from its  
-                  // start closer to it. Moving is costly, unless you   
-                  // use pointers                                       
-               try_again:
-                  while (*psl > 1) {
-                     psl[-1] = (*psl) - 1;
-                     (key - 1).New(Abandon(key));
-                     (key++).Destroy();
-                     *(psl++) = 0;
-                  }
-
-                  // Be aware, that psl might loop around               
-                  if (psl == oldInfoEnd && *GetInfo() > 1) {
-                     psl = GetInfo();
-                     key = GetHandle(0);
-
-                     // Shift first entry to the back                   
-                     const auto last = oldCount - 1;
-                     GetInfo()[last] = (*psl) - 1;
-
-                     GetHandle(last).New(Abandon(key));
-
-                     (key++).Destroy();
-                     *(psl++) = 0;
-
-                     // And continue the vicious cycle                  
-                     goto try_again;
-                  }
-
-                  // Success                                            
-                  --mKeys.mCount;
+                  // And continue the vicious cycle                     
+                  goto try_again;
                }
+
+               // Success                                               
+               --mKeys.mCount;
 
                InsertInner<false>(newBucket, Abandon(keyswap));
             }

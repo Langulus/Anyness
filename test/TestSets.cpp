@@ -163,7 +163,7 @@ TEMPLATE_TEST_CASE(
          #endif
       }
 
-      WHEN("Given a value by move") {
+      WHEN("Assigned a value by move") {
          IF_LANGULUS_MANAGED_MEMORY(Fractalloc.CollectGarbage());
 
          auto movable = element;
@@ -204,6 +204,54 @@ TEMPLATE_TEST_CASE(
                });
             };
          #endif
+      }
+   }
+
+   GIVEN("A copy-initialized set instance") {
+      const auto element = CreateElement<K>(555);
+
+      T set {element};
+
+      WHEN("Given an element-constructed set") {
+         THEN("These properties should be correct") {
+            REQUIRE(set.IsTypeConstrained() == CT::Typed<T>);
+            REQUIRE(set.GetType()->template Is<K>());
+            REQUIRE(set.template Is<K>());
+            REQUIRE(set.IsAllocated());
+            REQUIRE(set.HasAuthority());
+            REQUIRE(set.GetCount() == 1);
+            REQUIRE(set.GetUses() == 1);
+            REQUIRE(set.Contains(element));
+         }
+
+         //TODO benchmark
+      }
+   }
+   
+   GIVEN("An array copy-initialized set instance") {
+      const K darray1[5] {
+         CreateElement<K>(1),
+         CreateElement<K>(2),
+         CreateElement<K>(3),
+         CreateElement<K>(4),
+         CreateElement<K>(5)
+      };
+
+      T set {darray1};
+
+      WHEN("Given a preinitialized set with 5 elements") {
+         THEN("These properties should be correct") {
+            REQUIRE(set.GetCount() == 5);
+            REQUIRE(set.GetType()->template Is<K>());
+            REQUIRE(set.template Is<K>());
+            REQUIRE(set.HasAuthority());
+            REQUIRE(set.GetUses() == 1);
+            for (auto& i : darray1)
+               REQUIRE(set.Contains(i));
+            REQUIRE(set.GetReserved() >= 5);
+         }
+
+         //TODO benchmark
       }
    }
 
@@ -812,6 +860,70 @@ TEMPLATE_TEST_CASE(
          THEN("The comparisons should be adequate") {
             REQUIRE(i == set.GetCount());
             REQUIRE(i == done);
+         }
+      }
+   }
+}
+
+struct VulkanLayer {};
+struct VulkanRenderer {};
+struct VulkanCamera {};
+struct Platform {};
+struct Vulkan {};
+struct Window {};
+struct VulkanLight {};
+struct Monitor {};
+struct VulkanRenderable {};
+struct Cursor {};
+
+/// Testing some corner cases encountered during the use of the container     
+TEMPLATE_TEST_CASE("Set corner cases", "[set]",
+   (TypePair<UnorderedSet, DMeta>),
+   (TypePair<TUnorderedSet<DMeta>, DMeta>),
+   (TypePair<TOrderedSet<DMeta>, DMeta>),
+   (TypePair<OrderedSet, DMeta>)
+) {
+   using T = typename TestType::Container;
+   using K = typename TestType::Key;
+
+   GIVEN("Map instance initialized with 10 specific pairs for the corner case") {
+      const K keys[10] = {
+         MetaData::Of<VulkanLayer>(),
+         MetaData::Of<VulkanRenderer>(),
+         MetaData::Of<VulkanCamera>(),
+         MetaData::Of<Platform>(),
+         MetaData::Of<Vulkan>(),
+         MetaData::Of<Window>(),
+         MetaData::Of<VulkanLight>(),
+         MetaData::Of<Monitor>(),
+         MetaData::Of<VulkanRenderable>(),
+         MetaData::Of<Cursor>()
+      };
+
+      T set {keys};
+
+      WHEN("Removing around-the-end elements (corner case)") {
+         Count removed {};
+         removed += set.Remove(MetaData::Of<VulkanRenderer>());
+         removed += set.Remove(MetaData::Of<VulkanCamera>());
+         removed += set.Remove(MetaData::Of<Vulkan>());
+         removed += set.Remove(MetaData::Of<VulkanRenderable>());
+         removed += set.Remove(MetaData::Of<VulkanLight>());
+         removed += set.Remove(MetaData::Of<VulkanLayer>());
+
+         THEN("The set should be correct") {
+            REQUIRE(removed == 6);
+            REQUIRE(set.GetCount() == 4);
+            REQUIRE_FALSE(set.Contains(MetaData::Of<VulkanLayer>()));
+            REQUIRE_FALSE(set.Contains(MetaData::Of<VulkanRenderer>()));
+            REQUIRE_FALSE(set.Contains(MetaData::Of<VulkanCamera>()));
+            REQUIRE_FALSE(set.Contains(MetaData::Of<Vulkan>()));
+            REQUIRE_FALSE(set.Contains(MetaData::Of<VulkanLight>()));
+            REQUIRE_FALSE(set.Contains(MetaData::Of<VulkanRenderable>()));
+            REQUIRE(set.Contains(MetaData::Of<Platform>()));
+            REQUIRE(set.Contains(MetaData::Of<Window>()));
+            REQUIRE(set.Contains(MetaData::Of<Monitor>()));
+            REQUIRE(set.Contains(MetaData::Of<Cursor>()));
          }
       }
    }

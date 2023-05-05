@@ -658,18 +658,18 @@ namespace Langulus::Anyness
                   );
                };
 
-               Rehash(count, oldCount);
+               Rehash(oldCount);
             }
             else {
                // Only values moved, reinsert them, rehash the rest     
-               RehashKeys(count, oldCount, oldValues);
+               RehashKeys(oldCount, oldValues);
                Fractalloc.Deallocate(oldValues.mEntry);
             }
             return;
          }
          else if (mValues.mEntry == oldValues.mEntry) {
             // Only keys moved, reinsert them, rehash the rest          
-            RehashValues(count, oldCount, oldKeys);
+            RehashValues(oldCount, oldKeys);
             Fractalloc.Deallocate(oldKeys.mEntry);
             return;
          }
@@ -727,19 +727,19 @@ namespace Langulus::Anyness
    /// Rehashes and reinserts each pair in the same block                     
    ///   @attention assumes count and oldCount are power-of-two               
    ///   @attention assumes count > oldCount                                  
-   ///   @param count - the new number of pairs                               
    ///   @param oldCount - the old number of pairs                            
-   inline void BlockMap::Rehash(const Count& count, const Count& oldCount) {
-      LANGULUS_ASSUME(DevAssumes, count > oldCount,
+   inline void BlockMap::Rehash(const Count& oldCount) {
+      LANGULUS_ASSUME(DevAssumes, mValues.mReserved > oldCount,
          "New count is not larger than oldCount");
-      LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(count),
+      LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(mValues.mReserved),
          "New count is not a power-of-two");
       LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(oldCount),
          "Old count is not a power-of-two");
 
+      auto oldKey = GetKey(0);
       auto oldInfo = GetInfo();
       const auto oldInfoEnd = oldInfo + oldCount;
-      const auto hashmask = count - 1;
+      const auto hashmask = mValues.mReserved - 1;
 
       // First run: move elements closer to their new buckets           
       while (oldInfo != oldInfoEnd) {
@@ -752,7 +752,6 @@ namespace Langulus::Anyness
                oldBucket += oldCount;
             }
 
-            auto oldKey = GetKey(oldIndex);
             const auto newBucket = GetBucketUnknown(hashmask, oldKey);
             if (oldBucket != newBucket) {
                // Move pair only if it won't end up in same bucket      
@@ -772,49 +771,42 @@ namespace Langulus::Anyness
                oldValue.CallUnknownDestructors();
                *oldInfo = 0;
                --mValues.mCount;
-
-               //Logger::Verbose(oldIndex, " emptied ");
-               //Dump();
                
-               // Reinsert at the new bucket                            
-               /*const auto ins =*/ InsertInnerUnknown<false>(
+               InsertInnerUnknown<false>(
                   newBucket, Abandon(keyswap), Abandon(valswap)
                );
 
                keyswap.Free();
                valswap.Free();
-
-               //Logger::Verbose("inserted at ", ins);
-               //Dump();
             }
          }
 
+         oldKey.Next();
          ++oldInfo;
       }
 
       // First run might cause gaps                                     
       // Second run: shift elements left, where possible                
-      ShiftPairs(count);
+      ShiftPairs();
    }
    
    /// Rehashes and reinserts each value in the same block, and moves all     
    /// keys in from the provided block                                        
    ///   @attention assumes count and oldCount are power-of-two               
    ///   @attention assumes count > oldCount                                  
-   ///   @param count - the new number of pairs                               
    ///   @param oldCount - the old number of pairs                            
    ///   @param keys - the source of keys                                     
-   inline void BlockMap::RehashValues(const Count& count, const Count& oldCount, Block& keys) {
-      LANGULUS_ASSUME(DevAssumes, count > oldCount,
+   inline void BlockMap::RehashValues(const Count& oldCount, Block& keys) {
+      LANGULUS_ASSUME(DevAssumes, mValues.mReserved > oldCount,
          "New count is not larger than oldCount");
-      LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(count),
+      LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(mValues.mReserved),
          "New count is not a power-of-two");
       LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(oldCount),
          "Old count is not a power-of-two");
 
       auto oldInfo = GetInfo();
       const auto oldInfoEnd = oldInfo + oldCount;
-      const auto hashmask = count - 1;
+      const auto hashmask = mValues.mReserved - 1;
 
       // First run: move elements closer to their new buckets           
       while (oldInfo != oldInfoEnd) {
@@ -860,27 +852,26 @@ namespace Langulus::Anyness
 
       // First run might cause gaps                                     
       // Second run: shift elements left, where possible                
-      ShiftPairs(count);
+      ShiftPairs();
    }
    
    /// Rehashes and reinserts each key in the same block, and moves all       
    /// values in from the provided block                                      
    ///   @attention assumes count and oldCount are power-of-two               
    ///   @attention assumes count > oldCount                                  
-   ///   @param count - the new number of pairs                               
    ///   @param oldCount - the old number of pairs                            
    ///   @param values - the source of values                                 
-   inline void BlockMap::RehashKeys(const Count& count, const Count& oldCount, Block& values) {
-      LANGULUS_ASSUME(DevAssumes, count > oldCount,
+   inline void BlockMap::RehashKeys(const Count& oldCount, Block& values) {
+      LANGULUS_ASSUME(DevAssumes, mValues.mReserved > oldCount,
          "New count is not larger than oldCount");
-      LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(count),
+      LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(mValues.mReserved),
          "New count is not a power-of-two");
       LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(oldCount),
          "Old count is not a power-of-two");
 
       auto oldInfo = GetInfo();
       const auto oldInfoEnd = oldInfo + oldCount;
-      const auto hashmask = count - 1;
+      const auto hashmask = mValues.mReserved - 1;
 
       // First run: move elements closer to their new buckets           
       while (oldInfo != oldInfoEnd) {
@@ -926,12 +917,11 @@ namespace Langulus::Anyness
 
       // First run might cause gaps                                     
       // Second run: shift elements left, where possible                
-      ShiftPairs(count);
+      ShiftPairs();
    }
 
    /// Shift elements left, where possible                                    
-   ///   @param count - the new number of pairs                               
-   inline void BlockMap::ShiftPairs(const Count& count) {
+   inline void BlockMap::ShiftPairs() {
       auto oldInfo = mInfo;
       const auto newInfoEnd = GetInfoEnd();
       while (oldInfo != newInfoEnd) {
@@ -939,15 +929,15 @@ namespace Langulus::Anyness
             const Offset oldIndex = oldInfo - GetInfo();
             // Might loop around                                        
             Offset to = oldIndex - (*oldInfo - 1);
-            if (to >= count)
-               to += count;
+            if (to >= mValues.mReserved)
+               to += mValues.mReserved;
 
             InfoType attempt = 1;
             while (mInfo[to] && attempt < *oldInfo) {
                // Might loop around                                     
                ++to;
-               if (to >= count)
-                  to -= count;
+               if (to >= mValues.mReserved)
+                  to -= mValues.mReserved;
 
                ++attempt;
             }
@@ -966,9 +956,6 @@ namespace Langulus::Anyness
                key.CallUnknownDestructors();
                val.CallUnknownDestructors();
                *oldInfo = 0;
-
-               //Logger::Verbose(oldIndex, " shifts left to ", to);
-               //Dump();
             }
          }
 
@@ -1031,6 +1018,7 @@ namespace Langulus::Anyness
       auto psl = GetInfo() + start;
       const auto pslEnd = GetInfoEnd();
       InfoType attempts {1};
+      Offset insertedAt = mValues.mReserved;
       while (*psl) {
          const auto index = psl - GetInfo();
 
@@ -1048,6 +1036,8 @@ namespace Langulus::Anyness
             GetKeyHandle<K>(index).Swap(keyswapper);
             GetValueHandle<V>(index).Swap(valswapper);
             ::std::swap(attempts, *psl);
+            if (insertedAt == mValues.mReserved)
+               insertedAt = index;
          }
 
          ++attempts;
@@ -1065,10 +1055,12 @@ namespace Langulus::Anyness
       const auto index = psl - GetInfo();
       GetKeyHandle<K>(index).New(Abandon(keyswapper));
       GetValueHandle<V>(index).New(Abandon(valswapper));
+      if (insertedAt == mValues.mReserved)
+         insertedAt = index;
 
       *psl = attempts;
       ++mValues.mCount;
-      return index;
+      return insertedAt;
    }
    
    /// Inner insertion function based on reflected move-assignment            
@@ -1087,6 +1079,7 @@ namespace Langulus::Anyness
       auto psl = GetInfo() + start;
       const auto pslEnd = GetInfoEnd();
       InfoType attempts {1};
+      Offset insertedAt = mValues.mReserved;
       while (*psl) {
          const auto index = psl - GetInfo();
          if constexpr (CHECK_FOR_MATCH) {
@@ -1110,6 +1103,8 @@ namespace Langulus::Anyness
             GetKey(index).SwapUnknown(key.Forward());
             GetValue(index).SwapUnknown(value.Forward());
             ::std::swap(attempts, *psl);
+            if (insertedAt == mValues.mReserved)
+               insertedAt = index;
          }
 
          ++attempts;
@@ -1131,6 +1126,9 @@ namespace Langulus::Anyness
       GetValue(index)
          .CallUnknownSemanticConstructors(1, value.Forward());
 
+      if (insertedAt == mValues.mReserved)
+         insertedAt = index;
+
       if constexpr (SK::Move) {
          key.mValue.CallUnknownDestructors();
          key.mValue.mCount = 0;
@@ -1143,9 +1141,38 @@ namespace Langulus::Anyness
 
       *psl = attempts;
       ++mValues.mCount;
-      return index;
+      return insertedAt;
    }
    
+   /// Insert any pair into a preinitialized map                              
+   ///   @tparam THIS - used to reinterpret this container to call optimized  
+   ///                  functions                                             
+   ///   @tparam S - the semantic to use for the insertion (deducible)        
+   ///   @param hashmask - precalculated hashmask                             
+   ///   @param other - the semantic and pair type to insert                  
+   template<class THIS, CT::Semantic S>
+   void BlockMap::InsertPairInner(const Count& hashmask, S&& other) {
+      static_assert(CT::Map<THIS>, "THIS must be a map type");
+      auto& This = reinterpret_cast<THIS&>(*this);
+
+      if constexpr (CT::TypedPair<TypeOf<S>>) {
+         // Insert a statically typed pair                              
+         This.template InsertInner<false>(
+            This.GetBucket(hashmask, other.mValue.mKey),
+            S::Nest(other.mValue.mKey),
+            S::Nest(other.mValue.mValue)
+         );
+      }
+      else {
+         // Insert a type-erased pair                                   
+         This.template InsertInnerUnknown<false>(
+            This.GetBucketUnknown(hashmask, other.mValue.mKey),
+            S::Nest(other.mValue.mKey),
+            S::Nest(other.mValue.mValue)
+         );
+      }
+   }
+
    /// Destroy everything valid inside the map                                
    ///   @attention assumes there's at least one valid pair                   
    LANGULUS(INLINED)
@@ -1350,20 +1377,25 @@ namespace Langulus::Anyness
    template<CT::NotSemantic V>
    Count BlockMap::RemoveValue(const V& match) {
       Count removed {};
-      auto value = &GetRawValue<V>(0);
-      auto info = GetInfo();
-      const auto infoEnd = GetInfoEnd();
+      auto psl = GetInfo();
+      const auto pslEnd = GetInfoEnd();
+      auto val = GetValueHandle<V>(0);
 
-      while (info != infoEnd) {
-         if (*info && *value == match) {
-            // Found it, but there may be more                          
-            RemoveIndex(info - GetInfo());
+      while (psl != pslEnd) {
+         if (*psl && val.Get() == match) {
+            // Remove every pair with matching value                    
+            GetKey(psl - GetInfo()).CallUnknownDestructors();
+            val.Destroy();
+            *psl = 0;
             ++removed;
+            --mValues.mCount;
          }
 
-         ++value; ++info;
+         ++psl; ++val;
       }
 
+      // Fill gaps if any                                               
+      ShiftPairs();
       return removed;
    }
 
@@ -1493,18 +1525,6 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Pair BlockMap::GetPair(const Offset& i) noexcept {
       return {GetKey(i), GetValue(i)};
-   }
-
-   /// Returns a reference to the value found for key (const)                 
-   /// Throws Except::OutOfRange if element cannot be found                   
-   ///   @param key - the key to search for                                   
-   ///   @return a reference to the value                                     
-   template<CT::NotSemantic K>
-   LANGULUS(INLINED)
-   Block BlockMap::At(const K& key) const {
-      const auto found = FindIndex(key);
-      LANGULUS_ASSERT(found != GetReserved(), OutOfRange, "Key not found");
-      return GetValue(found);
    }
 
    /// Get a key by a safe index (const)                                      
@@ -1638,15 +1658,6 @@ namespace Langulus::Anyness
 
       // Nothing found, return end offset                               
       return GetReserved();
-   }
-
-   /// Access value by key                                                    
-   ///   @param key - the key to find                                         
-   ///   @return a the value wrapped inside an Any                            
-   template<CT::NotSemantic K>
-   LANGULUS(INLINED)
-   Block BlockMap::operator[] (const K& key) const {
-      return At(key);
    }
 
    /// Get the number of inserted pairs                                       
