@@ -222,21 +222,34 @@ namespace Langulus::Anyness
    }
 
    /// Checks if both tables contain the same entries                         
-   /// Order is irrelevant                                                    
+   ///   @attention assumes both maps are unordered                           
    ///   @param other - the table to compare against                          
    ///   @return true if tables match                                         
-   inline bool BlockMap::operator == (const BlockMap& other) const {
-      if (other.GetCount() != GetCount())
-         return false;
+   template<class T>
+   bool BlockMap::operator == (const T& other) const {
+      static_assert(CT::Map<T>, "T must be a map type");
+      if (other.GetCount() != GetCount()
+         || !GetKeyType()->IsExact(other.GetKeyType())
+         || !GetValueType()->IsExact(other.GetValueType())
+      ) return false;
 
       auto info = GetInfo();
       const auto infoEnd = GetInfoEnd();
       while (info != infoEnd) {
          if (*info) {
             const auto lhs = info - GetInfo();
-            const auto rhs = other.FindIndexUnknown(GetKey(lhs));
-            if (rhs == other.GetReserved() || GetValue(lhs) != other.GetValue(rhs))
-               return false;
+            if constexpr (CT::Typed<T>) {
+               using K = typename T::Key;
+               using V = typename T::Value;
+               const auto rhs = other.FindIndex(GetRawKey<K>(lhs));
+               if (rhs == other.GetReserved() || GetRawValue<V>(lhs) != other.GetValue(rhs))
+                  return false;
+            }
+            else {
+               const auto rhs = other.template FindIndexUnknown<T>(GetKey(lhs));
+               if (rhs == other.GetReserved() || GetValue(lhs) != other.GetValue(rhs))
+                  return false;
+            }
          }
 
          ++info;
@@ -245,6 +258,11 @@ namespace Langulus::Anyness
       return true;
    }
    
+   template<class T>
+   bool BlockMap::operator != (const T& other) const {
+      return !(operator == (other));
+   }
+
    /// Templated tables are always typed                                      
    ///   @return false                                                        
    LANGULUS(INLINED)
@@ -746,13 +764,8 @@ namespace Langulus::Anyness
          if (*oldInfo) {
             // Rehash and check if hashes match                         
             const Offset oldIndex = oldInfo - GetInfo();
-            Offset oldBucket = oldIndex - (*oldInfo - 1);
-            if (oldBucket >= oldCount) {
-               // Bucket might loop around                              
-               oldBucket += oldCount;
-            }
-
-            const auto newBucket = GetBucketUnknown(hashmask, oldKey);
+            Offset oldBucket = (oldCount + oldIndex) - *oldInfo + 1;
+            const auto newBucket = mValues.mReserved + GetBucketUnknown(hashmask, oldKey);
             if (oldBucket != newBucket) {
                // Move pair only if it won't end up in same bucket      
                Block keyswap {mKeys.GetState(), GetKeyType()};
@@ -773,7 +786,7 @@ namespace Langulus::Anyness
                --mValues.mCount;
                
                InsertInnerUnknown<false>(
-                  newBucket, Abandon(keyswap), Abandon(valswap)
+                  newBucket - mValues.mReserved, Abandon(keyswap), Abandon(valswap)
                );
 
                keyswap.Free();
@@ -787,7 +800,7 @@ namespace Langulus::Anyness
 
       // First run might cause gaps                                     
       // Second run: shift elements left, where possible                
-      ShiftPairs();
+      ShiftPairs<void, void>();
    }
    
    /// Rehashes and reinserts each value in the same block, and moves all     
@@ -797,62 +810,7 @@ namespace Langulus::Anyness
    ///   @param oldCount - the old number of pairs                            
    ///   @param keys - the source of keys                                     
    inline void BlockMap::RehashValues(const Count& oldCount, Block& keys) {
-      LANGULUS_ASSUME(DevAssumes, mValues.mReserved > oldCount,
-         "New count is not larger than oldCount");
-      LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(mValues.mReserved),
-         "New count is not a power-of-two");
-      LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(oldCount),
-         "Old count is not a power-of-two");
-
-      auto oldInfo = GetInfo();
-      const auto oldInfoEnd = oldInfo + oldCount;
-      const auto hashmask = mValues.mReserved - 1;
-
-      // First run: move elements closer to their new buckets           
-      while (oldInfo != oldInfoEnd) {
-         if (*oldInfo) {
-            // Rehash and check if hashes match                         
-            const Offset oldIndex = oldInfo - GetInfo();
-            Offset oldBucket = oldIndex - (*oldInfo - 1);
-            if (oldBucket >= oldCount) {
-               // Bucket might loop around                              
-               oldBucket += oldCount;
-            }
-
-            auto oldKey = keys.GetElement(oldIndex);
-            const auto newBucket = GetBucketUnknown(hashmask, oldKey);
-            if (oldBucket != newBucket) {
-               // Move pair only if it won't end up in same bucket      
-               auto oldValue = GetValue(oldIndex);
-               Block valswap {mValues.GetState(), GetValueType()};
-               valswap.AllocateFresh(valswap.RequestSize(1));
-               valswap.CallUnknownSemanticConstructors(1, Abandon(oldValue));
-               valswap.mCount = 1;
-               
-               // Destroy the pair and info at old index                
-               oldValue.CallUnknownDestructors();
-               *oldInfo = 0;
-               --mValues.mCount;
-               
-               InsertInnerUnknown<false>(
-                  newBucket, Abandon(oldKey), Abandon(valswap)
-               );
-               oldKey.CallUnknownDestructors();
-
-               valswap.Free();
-            }
-            else {
-               // Just move key in                                      
-               TODO();
-            }
-         }
-
-         ++oldInfo;
-      }
-
-      // First run might cause gaps                                     
-      // Second run: shift elements left, where possible                
-      ShiftPairs();
+      TODO();
    }
    
    /// Rehashes and reinserts each key in the same block, and moves all       
@@ -862,71 +820,20 @@ namespace Langulus::Anyness
    ///   @param oldCount - the old number of pairs                            
    ///   @param values - the source of values                                 
    inline void BlockMap::RehashKeys(const Count& oldCount, Block& values) {
-      LANGULUS_ASSUME(DevAssumes, mValues.mReserved > oldCount,
-         "New count is not larger than oldCount");
-      LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(mValues.mReserved),
-         "New count is not a power-of-two");
-      LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(oldCount),
-         "Old count is not a power-of-two");
-
-      auto oldInfo = GetInfo();
-      const auto oldInfoEnd = oldInfo + oldCount;
-      const auto hashmask = mValues.mReserved - 1;
-
-      // First run: move elements closer to their new buckets           
-      while (oldInfo != oldInfoEnd) {
-         if (*oldInfo) {
-            // Rehash and check if hashes match                         
-            const Offset oldIndex = oldInfo - GetInfo();
-            Offset oldBucket = oldIndex - (*oldInfo - 1);
-            if (oldBucket >= oldCount) {
-               // Bucket might loop around                              
-               oldBucket += oldCount;
-            }
-
-            auto oldKey = GetKey(oldIndex);
-            const auto newBucket = GetBucketUnknown(hashmask, oldKey);
-            if (oldBucket != newBucket) {
-               // Move pair only if it won't end up in same bucket      
-               Block keyswap {mKeys.GetState(), GetKeyType()};
-               keyswap.AllocateFresh(keyswap.RequestSize(1));
-               keyswap.CallUnknownSemanticConstructors(1, Abandon(oldKey));
-               keyswap.mCount = 1;
-               
-               // Destroy the pair and info at old index                
-               oldKey.CallUnknownDestructors();
-               *oldInfo = 0;
-               --mValues.mCount;
-               
-               auto oldValue = values.GetElement(oldIndex);
-               InsertInnerUnknown<false>(
-                  newBucket, Abandon(keyswap), Abandon(oldValue)
-               );
-               oldValue.CallUnknownDestructors();
-
-               keyswap.Free();
-            }
-            else {
-               // Just move value in                                    
-               TODO();
-            }
-         }
-
-         ++oldInfo;
-      }
-
-      // First run might cause gaps                                     
-      // Second run: shift elements left, where possible                
-      ShiftPairs();
+      TODO();
    }
-
+   
    /// Shift elements left, where possible                                    
-   inline void BlockMap::ShiftPairs() {
+   ///   @param K - type of key (use void for type-erasure)                   
+   ///   @param V - type of value (use void for type-erasure)                 
+   template<class K, class V>
+   void BlockMap::ShiftPairs() {
       auto oldInfo = mInfo;
       const auto newInfoEnd = GetInfoEnd();
       while (oldInfo != newInfoEnd) {
          if (*oldInfo > 1) {
             const Offset oldIndex = oldInfo - GetInfo();
+
             // Might loop around                                        
             Offset to = oldIndex - (*oldInfo - 1);
             if (to >= mValues.mReserved)
@@ -944,17 +851,31 @@ namespace Langulus::Anyness
 
             if (!mInfo[to] && attempt < *oldInfo) {
                // Empty spot found, so move pair there                  
-               auto key = GetKey(oldIndex);
-               auto val = GetValue(oldIndex);
+               if constexpr (CT::Void<K>) {
+                  auto key = GetKey(oldIndex);
+                  GetKey(to).CallUnknownSemanticConstructors(
+                     1, Abandon(key));
+                  key.CallUnknownDestructors();
+               }
+               else {
+                  auto key = GetKeyHandle<K>(oldIndex);
+                  GetKeyHandle<K>(to).New(Abandon(key));
+                  key.Destroy();
+               }
 
-               GetKey(to).CallUnknownSemanticConstructors(
-                  1, Abandon(key));
-               GetValue(to).CallUnknownSemanticConstructors(
-                  1, Abandon(val));
+               if constexpr (CT::Void<V>) {
+                  auto val = GetValue(oldIndex);
+                  GetValue(to).CallUnknownSemanticConstructors(
+                     1, Abandon(val));
+                  val.CallUnknownDestructors();
+               }
+               else {
+                  auto val = GetValueHandle<V>(oldIndex);
+                  GetValueHandle<V>(to).New(Abandon(val));
+                  val.Destroy();
+               }
+
                mInfo[to] = attempt;
-
-               key.CallUnknownDestructors();
-               val.CallUnknownDestructors();
                *oldInfo = 0;
             }
          }
@@ -1346,36 +1267,34 @@ namespace Langulus::Anyness
    }
 
    /// Erase a pair via key                                                   
+   ///   @tparam THIS - type of map to use for FindIndex and RemoveIndex      
+   ///   @tparam K - type of key (deducible)                                  
    ///   @param match - the key to search for                                 
    ///   @return the number of removed pairs                                  
-   template<CT::NotSemantic K>
+   template<class THIS, CT::NotSemantic K>
    Count BlockMap::RemoveKey(const K& match) {
-      // Get the starting index based on the key hash                   
-      const auto start = GetBucket(GetReserved() - 1, match);
-      auto key = &GetRawKey<K>(start);
-      auto info = GetInfo() + start;
-      const auto infoEnd = GetInfoEnd();
-
-      while (info != infoEnd) {
-         if (*info && *key == match) {
-            // Found it                                                 
-            RemoveIndex(info - GetInfo());
-            return 1;
-         }
-
-         ++key; ++info;
+      static_assert(CT::Map<THIS>, "THIS must be a map type");
+      auto& This = reinterpret_cast<THIS&>(*this);
+      const auto found = FindIndex<THIS>(match);
+      if (found != GetReserved()) {
+         // Key found, remove the pair                                  
+         This.RemoveIndex(found);
+         return 1;
       }
-      
+
       // No such key was found                                          
       return 0;
    }
 
    /// Erase all pairs with a given value                                     
+   ///   @tparam THIS - type of map to use for FindIndex and RemoveIndex      
+   ///   @tparam V - type of value to seek (deducible)                        
    ///   @attention this is very significantly slower than removing a key     
    ///   @param match - the value to search for                               
    ///   @return the number of removed pairs                                  
-   template<CT::NotSemantic V>
+   template<class THIS, CT::NotSemantic V>
    Count BlockMap::RemoveValue(const V& match) {
+      static_assert(CT::Map<THIS>, "THIS must be a map type");
       Count removed {};
       auto psl = GetInfo();
       const auto pslEnd = GetInfoEnd();
@@ -1384,7 +1303,10 @@ namespace Langulus::Anyness
       while (psl != pslEnd) {
          if (*psl && val.Get() == match) {
             // Remove every pair with matching value                    
-            GetKey(psl - GetInfo()).CallUnknownDestructors();
+            if constexpr (CT::Typed<THIS>)
+               GetKeyHandle<typename THIS::Key>(psl - GetInfo()).Destroy();
+            else
+               GetKey(psl - GetInfo()).CallUnknownDestructors();
             val.Destroy();
             *psl = 0;
             ++removed;
@@ -1395,7 +1317,10 @@ namespace Langulus::Anyness
       }
 
       // Fill gaps if any                                               
-      ShiftPairs();
+      if constexpr (CT::Typed<THIS>)
+         ShiftPairs<typename THIS::Key, V>();
+      else
+         ShiftPairs<void, V>();
       return removed;
    }
 
@@ -1585,78 +1510,141 @@ namespace Langulus::Anyness
    }
 
    /// Find the index of a pair by key                                        
-   ///   @param key - the key to search for                                   
-   ///   @return the index                                                    
-   template<CT::NotSemantic K>
-   Offset BlockMap::FindIndex(const K& key) const {
+   ///   @tparam THIS - map to interpret this one as, for optimal bucketing   
+   ///   @tparam K - key type to use for comparison                           
+   ///   @param match - the key to search for                                 
+   ///   @return the index, or mValues.mReserved if not found                 
+   template<class THIS, CT::NotSemantic K>
+   Offset BlockMap::FindIndex(const K& match) const {
+      if (IsEmpty())
+         return GetReserved();
+
+      static_assert(CT::Map<THIS>, "THIS must be a map type");
+      auto& This = reinterpret_cast<const THIS&>(*this);
+
       // Get the starting index based on the key hash                   
-      // Since reserved elements are always power-of-two, we use them   
-      // as a mask to the hash, to extract the relevant bucket          
-      const auto start = GetBucket(GetReserved() - 1, key);
-      auto psl = GetInfo() + start;
-      const auto pslEnd = GetInfoEnd() - 1;
-      auto candidate = &GetRawKey<K>(start);
+      const auto start = This.GetBucket(GetReserved() - 1, match);
+      auto info = GetInfo() + start;
+      if (!*info)
+         return GetReserved();
 
-      Count attempts{};
-      while (*psl > attempts) {
-         if (*candidate != key) {
-            // There might be more keys to the right, check them        
-            if (psl == pslEnd) UNLIKELY() {
-               // By 'to the right' I also mean looped back to start    
-               psl = GetInfo();
-               candidate = &GetRawKey<K>(0);
-            }
-            else LIKELY() {
-               ++psl;
-               ++candidate;
-            }
+      // Test first candidate                                           
+      auto key = &GetRawKey<K>(start);
+      if (*key == match)
+         return start;
 
-            ++attempts;
-            continue;
-         }
+      // Test all candidates on the right up until the end              
+      ++key;
+      ++info;
 
-         // Found                                                       
-         return psl - GetInfo();
+      const auto infoEnd = GetInfoEnd();
+      const auto starti = static_cast<::std::ptrdiff_t>(start);
+      while (info != infoEnd) {
+         const ::std::ptrdiff_t index = info - GetInfo();
+         if (index - *info > starti)
+            return GetReserved();
+
+         if (*key == match)
+            return static_cast<Offset>(index);
+
+         ++key; ++info;
       }
 
-      // Nothing found, return end offset                               
+      // Reached only if info has reached the end                       
+      // Keys might loop around, continue the search from the start     
+      info = GetInfo();
+      if (GetReserved() - *info > start)
+         return GetReserved();
+
+      key = &GetRawKey<K>(0);
+      if (*key == match)
+         return 0;
+
+      ++key;
+      ++info;
+
+      while (info != infoEnd) {
+         const Offset index = info - GetInfo();
+         if (GetReserved() - index - *info > start)
+            return GetReserved();
+
+         if (*key == match)
+            return index;
+
+         ++key; ++info;
+      }
+      
+      // No such key was found                                          
       return GetReserved();
    }
    
    /// Find the index of a pair by an unknown type-erased key                 
-   ///   @param key - the key to search for                                   
-   ///   @return the index                                                    
-   inline Offset BlockMap::FindIndexUnknown(const Block& key) const {
+   ///   @tparam THIS - map to interpret this one as, for optimal bucketing   
+   ///   @param match - the key to search for                                 
+   ///   @return the index, or mValues.mReserved if not found                 
+   template<class THIS>
+   Offset BlockMap::FindIndexUnknown(const Block& match) const {
+      if (IsEmpty())
+         return GetReserved();
+
+      static_assert(CT::Map<THIS>, "THIS must be a map type");
+      auto& This = reinterpret_cast<const THIS&>(*this);
+
       // Get the starting index based on the key hash                   
-      // Since reserved elements are always power-of-two, we use them   
-      // as a mask to the hash, to extract the relevant bucket          
-      const auto start = GetBucketUnknown(GetReserved() - 1, key);
-      auto psl = GetInfo() + start;
-      const auto pslEnd = GetInfoEnd() - 1;
-      auto candidate = GetKey(start);
-      Count attempts{};
-      while (*psl > attempts) {
-         if (candidate != key) {
-            // There might be more keys to the right, check them        
-            if (psl == pslEnd) UNLIKELY() {
-               // By 'to the right' I also mean looped back to start    
-               psl = GetInfo();
-               candidate = GetKey(0);
-            }
-            else LIKELY() {
-               ++psl;
-               candidate.Next();
-            }
+      const auto start = This.GetBucketUnknown(GetReserved() - 1, match);
+      auto info = GetInfo() + start;
+      if (!*info)
+         return GetReserved();
 
-            ++attempts;
-            continue;
-         }
+      // Test first candidate                                           
+      auto key = GetKey(start);
+      if (key == match)
+         return start;
 
-         // Found                                                       
-         return psl - GetInfo();
+      // Test all candidates on the right up until the end              
+      key.Next();
+      ++info;
+
+      const auto infoEnd = GetInfoEnd();
+      const auto starti = static_cast<::std::ptrdiff_t>(start);
+      while (info != infoEnd) {
+         const ::std::ptrdiff_t index = info - GetInfo();
+         if (index - *info > starti)
+            return GetReserved();
+
+         if (key == match)
+            return static_cast<Offset>(index);
+
+         ++info;
+         key.Next();
       }
 
-      // Nothing found, return end offset                               
+      // Reached only if info has reached the end                       
+      // Keys might loop around, continue the search from the start     
+      info = GetInfo();
+      if (GetReserved() - *info > start)
+         return GetReserved();
+
+      key = GetKey(0);
+      if (key == match)
+         return 0;
+
+      key.Next();
+      ++info;
+
+      while (info != infoEnd) {
+         const Offset index = info - GetInfo();
+         if (GetReserved() - index - *info > start)
+            return GetReserved();
+
+         if (key == match)
+            return index;
+
+         ++info;
+         key.Next();
+      }
+      
+      // No such key was found                                          
       return GetReserved();
    }
 

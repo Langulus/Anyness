@@ -11,28 +11,22 @@
 namespace Langulus::Anyness
 {
 
-   /// Erase an element                                                       
-   ///   @tparam T - the type of the element to remove (deducible)            
-   ///   @param match - the element to search for                             
-   ///   @return 1 if element was removed, 0 if not                           
-   template<CT::NotSemantic T>
-   Count BlockSet::Remove(const T& match) {
-      // Get the starting index based on the key hash                   
-      const auto start = GetBucket(GetReserved() - 1, match);
-      auto key = mKeys.GetRawAs<T>() + start;
-      auto info = GetInfo() + start;
-      const auto infoEnd = GetInfoEnd();
-
-      while (info != infoEnd) {
-         if (*info && *key == match) {
-            // Found it                                                 
-            RemoveIndex(info - GetInfo());
-            return 1;
-         }
-
-         ++key; ++info;
+   /// Erase an element by value                                              
+   ///   @tparam THIS - type of map to use for FindIndex and RemoveIndex      
+   ///   @tparam K - type of key (deducible)                                  
+   ///   @param match - the key to search for                                 
+   ///   @return the number of removed pairs                                  
+   template<class THIS, CT::NotSemantic K>
+   Count BlockSet::Remove(const K& match) {
+      static_assert(CT::Set<THIS>, "THIS must be a set type");
+      auto& This = reinterpret_cast<THIS&>(*this);
+      const auto found = FindIndex<THIS>(match);
+      if (found != GetReserved()) {
+         // Key found, remove it                                        
+         This.RemoveIndex(found);
+         return 1;
       }
-      
+
       // No such key was found                                          
       return 0;
    }

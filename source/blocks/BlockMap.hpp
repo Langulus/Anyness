@@ -110,14 +110,17 @@ namespace Langulus::Anyness
       void Mutate(DMeta, DMeta);
       void Reserve(const Count&);
 
-      bool operator == (const BlockMap&) const;
+      template<class T>
+      bool operator == (const T&) const;
+      template<class T>
+      bool operator != (const T&) const;
 
       ///                                                                     
       ///   Removal                                                           
       ///                                                                     
-      template<CT::NotSemantic K>
+      template<class THIS = BlockMap, CT::NotSemantic K>
       Count RemoveKey(const K&);
-      template<CT::NotSemantic V>
+      template<class THIS = BlockMap, CT::NotSemantic V>
       Count RemoveValue(const V&);
       template<CT::NotSemantic K, CT::NotSemantic V>
       Count RemovePair(const TPair<K, V>&);
@@ -219,6 +222,7 @@ namespace Langulus::Anyness
       void Rehash(const Count&);
       void RehashKeys(const Count&, Block&);
       void RehashValues(const Count&, Block&);
+      template<class K, class V>
       void ShiftPairs();
 
       template<bool CHECK_FOR_MATCH, CT::Semantic SK, CT::Semantic SV>
@@ -255,8 +259,9 @@ namespace Langulus::Anyness
       NOD() static Offset GetBucket(Offset, const CT::NotSemantic auto&) noexcept;
       NOD() static Offset GetBucketUnknown(Offset, const Block&) noexcept;
 
-      template<CT::NotSemantic K>
+      template<class THIS = BlockMap, CT::NotSemantic K>
       NOD() Offset FindIndex(const K&) const;
+      template<class THIS = BlockMap>
       NOD() Offset FindIndexUnknown(const Block&) const;
 
    TESTING(public:)

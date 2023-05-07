@@ -91,6 +91,7 @@ TEMPLATE_TEST_CASE(
 /// to complex, from flat to deep                                             
 TEMPLATE_TEST_CASE(
    "TOrderedSet/TUnorderedSet/OrderedSet/UnorderedSet", "[set]",
+   (TypePair<UnorderedSet, Any>),
    (TypePair<TUnorderedSet<int>, int>),
    (TypePair<TUnorderedSet<Trait>, Trait>),
    (TypePair<TUnorderedSet<Traits::Count>, Traits::Count>),
@@ -110,7 +111,6 @@ TEMPLATE_TEST_CASE(
    (TypePair<UnorderedSet, int>),
    (TypePair<UnorderedSet, Trait>),
    (TypePair<UnorderedSet, Traits::Count>),
-   (TypePair<UnorderedSet, Any>),
    (TypePair<UnorderedSet, int*>),
    (TypePair<UnorderedSet, Trait*>),
    (TypePair<UnorderedSet, Traits::Count*>),

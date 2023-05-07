@@ -386,7 +386,7 @@ namespace Langulus::Anyness
    ///   @return the corresponding value block                                
    template<CT::NotSemantic K>
    Block OrderedMap::At(const K& key) {
-      const auto found = FindIndex(key);
+      const auto found = FindIndex<OrderedMap>(key);
       if (found != GetReserved())
          return GetValue(found);
 

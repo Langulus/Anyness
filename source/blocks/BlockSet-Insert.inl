@@ -176,88 +176,95 @@ namespace Langulus::Anyness
       LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(oldCount),
          "Old count is not a power-of-two");
 
+      auto oldKey = GetValue(0);
       auto oldInfo = GetInfo();
       const auto oldInfoEnd = oldInfo + oldCount;
       const auto hashmask = mKeys.mReserved - 1;
 
-      // For each old existing key...                                   
+      // First run: move elements closer to their new buckets           
       while (oldInfo != oldInfoEnd) {
          if (*oldInfo) {
             // Rehash and check if hashes match                         
             const Offset oldIndex = oldInfo - GetInfo();
-            Offset oldBucket = oldIndex - (*oldInfo - 1);
-            if (oldBucket >= oldCount) {
-               // Bucket might loop around                              
-               oldBucket += oldCount;
-            }
-
-            auto oldKey = GetValue(oldIndex);
-            const Offset newBucket = GetBucketUnknown(hashmask, oldKey);
+            Offset oldBucket = (oldCount + oldIndex) - *oldInfo + 1;
+            const auto newBucket = mKeys.mReserved + GetBucketUnknown(hashmask, oldKey);
             if (oldBucket != newBucket) {
-               // Move element only if it won't end up in same bucket   
+               // Move it only if it won't end up in same bucket        
                Block keyswap {mKeys.GetState(), GetType()};
                keyswap.AllocateFresh(keyswap.RequestSize(1));
                keyswap.CallUnknownSemanticConstructors(1, Abandon(oldKey));
                keyswap.mCount = 1;
+               
+               // Destroy the pair and info at old index                
+               oldKey.CallUnknownDestructors();
+               *oldInfo = 0;
+               --mKeys.mCount;
+               
+               InsertInnerUnknown<false>(
+                  newBucket - mKeys.mReserved, Abandon(keyswap)
+               );
 
-               // Destroy the key and info at old index                 
-               // Keep in mind, that oldCount is used for wrapping      
-               {
-                  auto psl = GetInfo() + oldIndex;
-                  auto key = mKeys.GetElement(oldIndex);
+               keyswap.Free();
+            }
+         }
 
-                  // Destroy the element and mark spot empty            
+         oldKey.Next();
+         ++oldInfo;
+      }
+
+      // First run might cause gaps                                     
+      // Second run: shift elements left, where possible                
+      ShiftPairs<void>();
+   }
+   
+   /// Shift elements left, where possible                                    
+   ///   @param K - type of key (use void for type-erasure)                   
+   template<class K>
+   void BlockSet::ShiftPairs() {
+      auto oldInfo = mInfo;
+      const auto newInfoEnd = GetInfoEnd();
+      while (oldInfo != newInfoEnd) {
+         if (*oldInfo > 1) {
+            const Offset oldIndex = oldInfo - GetInfo();
+
+            // Might loop around                                        
+            Offset to = oldIndex - (*oldInfo - 1);
+            if (to >= mKeys.mReserved)
+               to += mKeys.mReserved;
+
+            InfoType attempt = 1;
+            while (mInfo[to] && attempt < *oldInfo) {
+               // Might loop around                                     
+               ++to;
+               if (to >= mKeys.mReserved)
+                  to -= mKeys.mReserved;
+
+               ++attempt;
+            }
+
+            if (!mInfo[to] && attempt < *oldInfo) {
+               // Empty spot found, so move element there               
+               if constexpr (CT::Void<K>) {
+                  auto key = GetValue(oldIndex);
+                  GetValue(to)
+                     .CallUnknownSemanticConstructors(1, Abandon(key));
                   key.CallUnknownDestructors();
-                  *(psl++) = 0;
-                  key.Next();
-
-                  // And shift backwards, until a zero or 1 is reached  
-                  // That way we move every entry that is far from its  
-                  // start closer to it. Moving is costly, unless you   
-                  // use pointers                                       
-               try_again:
-                  while (*psl > 1) {
-                     psl[-1] = (*psl) - 1;
-                     const_cast<const Block&>(key).Prev()
-                        .CallUnknownSemanticConstructors(1, Abandon(key));
-                     key.CallUnknownDestructors();
-                     *(psl++) = 0;
-                     key.Next();
-                  }
-
-                  // Be aware, that psl might loop around               
-                  if (psl == oldInfoEnd && *GetInfo() > 1) UNLIKELY() {
-                     psl = GetInfo();
-                     key = mKeys.GetElement();
-
-                     // Shift first entry to the back                   
-                     const auto last = oldCount - 1;
-                     GetInfo()[last] = (*psl) - 1;
-                     GetValue(last)
-                        .CallUnknownSemanticConstructors(1, Abandon(key));
-
-                     key.CallUnknownDestructors();
-                     *(psl++) = 0;
-                     key.Next();
-
-                     // And continue the vicious cycle                  
-                     goto try_again;
-                  }
-
-                  // Element successfully removed                       
-                  --mKeys.mCount;
+               }
+               else {
+                  auto key = GetHandle<K>(oldIndex);
+                  GetHandle<K>(to).New(Abandon(key));
+                  key.Destroy();
                }
 
-               // Reinsert at the new bucket                            
-               InsertInnerUnknown<false>(newBucket, Abandon(keyswap));
-               keyswap.Free();
+               mInfo[to] = attempt;
+               *oldInfo = 0;
             }
          }
 
          ++oldInfo;
       }
    }
-   
+
    /// Inner insertion function based on reflected move-assignment            
    ///   @attention after this call, key and/or value might be empty          
    ///   @tparam CHECK_FOR_MATCH - false if you guarantee key doesn't exist   

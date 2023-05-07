@@ -164,30 +164,6 @@ namespace Langulus::Anyness
       mValues.mEntry = nullptr;
    }
 
-   /// Checks if both tables contain the same entries                         
-   /// Order is irrelevant                                                    
-   ///   @param other - the table to compare against                          
-   ///   @return true if tables match                                         
-   TABLE_TEMPLATE()
-   bool TABLE()::operator == (const TUnorderedMap& other) const {
-      if (other.GetCount() != GetCount())
-         return false;
-
-      auto info = GetInfo();
-      const auto infoEnd = GetInfoEnd();
-      while (info != infoEnd) {
-         const auto lhs = info - GetInfo();
-         if (!*(info++))
-            continue;
-
-         const auto rhs = other.FindIndex(GetRawKey(lhs));
-         if (rhs == other.GetReserved() || GetValue(lhs) != other.GetValue(rhs))
-            return false;
-      }
-
-      return true;
-   }
-
    /// Move a table                                                           
    ///   @param rhs - the table to move                                       
    ///   @return a reference to this table                                    
@@ -653,7 +629,7 @@ namespace Langulus::Anyness
       const auto hashmask = GetReserved() - 1;
       while (oldInfo != oldInfoEnd) {
          if (*oldInfo) {
-            const auto index = HashOf(key.Get()).mHash & hashmask;
+            const auto index = GetBucket(hashmask, key.Get());
             InsertInner<false>(index, Abandon(key), Abandon(val));
             key.Destroy();
             val.Destroy();
@@ -707,13 +683,8 @@ namespace Langulus::Anyness
          if (*oldInfo) {
             // Rehash and check if hashes match                         
             const Offset oldIndex = oldInfo - GetInfo();
-            Offset oldBucket = oldIndex - (*oldInfo - 1);
-            if (oldBucket >= oldCount) {
-               // Bucket might loop around                              
-               oldBucket += oldCount;
-            }
-
-            const auto newBucket = GetBucket(hashmask, oldKey.Get());
+            Offset oldBucket = (oldCount + oldIndex) - *oldInfo + 1;
+            const auto newBucket = mValues.mReserved + GetBucket(hashmask, oldKey.Get());
             if (oldBucket != newBucket) {
                // Move pair only if it won't end up in same bucket      
                auto oldValue = GetValueHandle(oldIndex);
@@ -728,7 +699,7 @@ namespace Langulus::Anyness
 
                // Reinsert at the new bucket                            
                InsertInner<false>(
-                  newBucket, Abandon(keyswap), Abandon(valswap)
+                  newBucket - mValues.mReserved, Abandon(keyswap), Abandon(valswap)
                );
             }
          }
@@ -739,49 +710,7 @@ namespace Langulus::Anyness
 
       // First run might cause gaps                                     
       // Second run: shift elements left, where possible                
-      ShiftPairs();
-   }
-   
-   /// Shift elements left, where possible                                    
-   TABLE_TEMPLATE()
-   void TABLE()::ShiftPairs() {
-      auto oldInfo = mInfo;
-      const auto newInfoEnd = GetInfoEnd();
-      while (oldInfo != newInfoEnd) {
-         if (*oldInfo > 1) {
-            const Offset oldIndex = oldInfo - GetInfo();
-            // Might loop around                                        
-            Offset to = oldIndex - (*oldInfo - 1);
-            if (to >= mValues.mReserved)
-               to += mValues.mReserved;
-
-            InfoType attempt = 1;
-            while (mInfo[to] && attempt < *oldInfo) {
-               // Might loop around                                     
-               ++to;
-               if (to >= mValues.mReserved)
-                  to -= mValues.mReserved;
-
-               ++attempt;
-            }
-
-            if (!mInfo[to] && attempt < *oldInfo) {
-               // Empty spot found, so move pair there                  
-               auto key = GetKeyHandle(oldIndex);
-               auto val = GetValueHandle(oldIndex);
-
-               GetKeyHandle(to).New(Abandon(key));
-               GetValueHandle(to).New(Abandon(val));
-               mInfo[to] = attempt;
-
-               key.Destroy();
-               val.Destroy();
-               *oldInfo = 0;
-            }
-         }
-
-         ++oldInfo;
-      }
+      BlockMap::template ShiftPairs<K, V>();
    }
 
    /// Reserves space for the specified number of pairs                       
@@ -1100,56 +1029,10 @@ namespace Langulus::Anyness
 
    /// Erase a pair via key                                                   
    ///   @param match - the key to search for                                 
-   ///   @return 1 if key was found and was removed                           
+   ///   @return 1 if key was found and pair was removed                      
    TABLE_TEMPLATE()
    Count TABLE()::RemoveKey(const K& match) {
-      // Get the starting index based on the key hash                   
-      const auto start = GetBucket(GetReserved() - 1, match);
-      auto info = GetInfo() + start;
-      const auto infoEnd = GetInfoEnd();
-
-      // Test first candidate                                           
-      auto key = &GetRawKey(start);
-      if (*info && *key == match) {
-         RemoveIndex(start);
-         return 1;
-      }
-
-      // Test all candidates on the right up until the end              
-      ++key;
-      auto prev = info++;
-      while (info != infoEnd && *prev + 1 == *info) {
-         if (*key == match) {
-            RemoveIndex(info - GetInfo());
-            return 1;
-         }
-
-         ++key; ++info; ++prev;
-      }
-
-      // Keys might loop around, continue the search from the start     
-      if (info == infoEnd) {
-         key = &GetRawKey(0);
-         info = GetInfo();
-         if (*prev + 1 == *info && *key == match) {
-            RemoveIndex(0);
-            return 1;
-         }
-
-         ++key;
-         prev = info++;
-         while (info != infoEnd && *prev + 1 == *info) {
-            if (*key == match) {
-               RemoveIndex(info - GetInfo());
-               return 1;
-            }
-
-            ++key; ++info; ++prev;
-         }
-      }
-      
-      // No such key was found                                          
-      return 0;
+      return BlockMap::template RemoveKey<TABLE(), K>(match);
    }
 
    /// Erase all pairs with a given value                                     
@@ -1157,22 +1040,7 @@ namespace Langulus::Anyness
    ///   @return the number of removed pairs                                  
    TABLE_TEMPLATE()
    Count TABLE()::RemoveValue(const V& match) {
-      Count removed {};
-      auto value = &GetRawValue(0);
-      auto info = GetInfo();
-      const auto infoEnd = GetInfoEnd();
-
-      while (info != infoEnd) {
-         if (*info && *value == match) {
-            // Found it, but there may be more                          
-            RemoveIndex(info - GetInfo());
-            ++removed;
-         }
-
-         ++value; ++info;
-      }
-
-      return removed;
+      return BlockMap::template RemoveValue<TABLE(), V>(match);
    }
 
    /// If possible reallocates the map to a smaller one                       
@@ -1191,8 +1059,6 @@ namespace Langulus::Anyness
    ///   @return true if key is found, false otherwise                        
    TABLE_TEMPLATE() LANGULUS(INLINED)
    bool TABLE()::ContainsKey(const K& key) const {
-      if (IsEmpty())
-         return false;
       return FindIndex(key) != GetReserved();
    }
 
@@ -1368,45 +1234,11 @@ namespace Langulus::Anyness
    }
 
    /// Find the index of a pair by key                                        
-   ///   @param key - the key to search for                                   
+   ///   @param match - the key to search for                                 
    ///   @return the index                                                    
    TABLE_TEMPLATE()
-   Offset TABLE()::FindIndex(const K& key) const {
-      if (IsEmpty())
-         return GetReserved();
-
-      // Get the starting index based on the key hash                   
-      // Since reserved elements are always power-of-two, we use them   
-      // as a mask to the hash, to extract the relevant bucket          
-      const auto start = GetBucket(GetReserved() - 1, key);
-      auto psl = GetInfo() + start;
-      const auto pslEnd = GetInfoEnd() - 1;
-      auto candidate = &GetRawKey(start);
-
-      Count attempts{};
-      while (*psl > attempts) {
-         if (*candidate != key) {
-            // There might be more keys to the right, check them        
-            if (psl == pslEnd) UNLIKELY() {
-               // By 'to the right' I also mean looped back to start    
-               psl = GetInfo();
-               candidate = &GetRawKey(0);
-            }
-            else LIKELY() {
-               ++psl;
-               ++candidate;
-            }
-
-            ++attempts;
-            continue;
-         }
-
-         // Found                                                       
-         return psl - GetInfo();
-      }
-
-      // Nothing found, return end offset                               
-      return GetReserved();
+   Offset TABLE()::FindIndex(const K& match) const {
+      return BlockMap::FindIndex<TABLE(), K>(match);
    }
 
    /// Access value by key                                                    

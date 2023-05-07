@@ -122,8 +122,6 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Comparison                                                        
       ///                                                                     
-      bool operator == (const TUnorderedSet&) const;
-
       NOD() bool Contains(const T&) const;
       NOD() Index Find(const T&) const;
 

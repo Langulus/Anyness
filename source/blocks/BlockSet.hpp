@@ -169,7 +169,10 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Comparison                                                        
       ///                                                                     
-      bool operator == (const BlockSet&) const;
+      template<class T>
+      bool operator == (const T&) const;
+      template<class T>
+      bool operator != (const T&) const;
 
       NOD() Hash GetHash() const;
 
@@ -177,8 +180,9 @@ namespace Langulus::Anyness
       NOD() Index Find(const CT::NotSemantic auto&) const;
 
    protected:
-      template<CT::Data T>
-      NOD() Offset FindIndex(const T&) const;
+      template<class THIS = BlockSet, CT::NotSemantic K>
+      NOD() Offset FindIndex(const K&) const;
+      template<class THIS = BlockSet>
       NOD() Offset FindIndexUnknown(const Block&) const;
 
    public:
@@ -232,6 +236,8 @@ namespace Langulus::Anyness
       NOD() Size RequestKeyAndInfoSize(Count, Offset&) noexcept;
 
       void Rehash(const Count&);
+      template<class K>
+      void ShiftPairs();
 
       template<bool CHECK_FOR_MATCH, CT::Semantic S>
       Offset InsertInnerUnknown(const Offset&, S&&);
@@ -244,8 +250,8 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Removal                                                           
       ///                                                                     
-      template<CT::NotSemantic T>
-      Count Remove(const T&);
+      template<class THIS = BlockSet, CT::NotSemantic K>
+      Count Remove(const K&);
       Count RemoveIndex(const Index&);
 
       void Clear();

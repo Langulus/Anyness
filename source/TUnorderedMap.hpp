@@ -100,8 +100,6 @@ namespace Langulus::Anyness
 
       void Reserve(const Count&);
 
-      bool operator == (const TUnorderedMap&) const;
-
       ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
@@ -182,7 +180,6 @@ namespace Langulus::Anyness
       void Rehash(const Count&);
       void RehashKeys(const Count&, Block&);
       void RehashValues(const Count&, Block&);
-      void ShiftPairs();
 
       template<bool CHECK_FOR_MATCH, CT::Semantic SK, CT::Semantic SV>
       Offset InsertInner(const Offset&, SK&&, SV&&);
