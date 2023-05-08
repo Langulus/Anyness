@@ -15,6 +15,10 @@ namespace Langulus::Anyness
    ///                                                                        
    ///   Type-erased map block, base for all map types                        
    ///                                                                        
+   ///   This is an inner structure, that doesn't reference any memory,       
+   /// only provides the functionality to do so. You can use BlockMap as a    
+   /// lightweight intermediate structure for iteration, etc.                 
+   ///                                                                        
    class BlockMap {
    protected:
       static constexpr Count MinimalAllocation = 8;
@@ -44,6 +48,9 @@ namespace Langulus::Anyness
       static constexpr bool Ownership = false;
       static constexpr bool Sequential = false;
 
+      ///                                                                     
+      ///   Construction & Assignment                                         
+      ///                                                                     
       constexpr BlockMap() noexcept = default;
       constexpr BlockMap(const BlockMap&) noexcept = default;
       constexpr BlockMap(BlockMap&&) noexcept = default;
@@ -60,13 +67,11 @@ namespace Langulus::Anyness
       void BlockClone(const BlockMap&);
 
    public:
+      ///                                                                     
+      ///   Capsulation                                                       
+      ///                                                                     
       NOD() DMeta GetKeyType() const noexcept;
       NOD() DMeta GetValueType() const noexcept;
-
-      template<class ALT_K>
-      NOD() constexpr bool KeyIs() const noexcept;
-      template<class ALT_V>
-      NOD() constexpr bool ValueIs() const noexcept;
 
       NOD() constexpr bool IsKeyUntyped() const noexcept;
       NOD() constexpr bool IsValueUntyped() const noexcept;
@@ -103,52 +108,57 @@ namespace Langulus::Anyness
 
       DEBUGGERY(void Dump() const);
 
-      NOD() Hash GetHash() const;
+   protected:
+      template<CT::Data K>
+      NOD() const TAny<K>& GetKeys() const noexcept;
+      template<CT::Data K>
+      NOD() TAny<K>& GetKeys() noexcept;
+      template<CT::Data V>
+      NOD() const TAny<V>& GetValues() const noexcept;
+      template<CT::Data V>
+      NOD() TAny<V>& GetValues() noexcept;
 
-      template<CT::NotSemantic K, CT::NotSemantic V>
-      void Mutate();
-      void Mutate(DMeta, DMeta);
-      void Reserve(const Count&);
+      NOD() const InfoType* GetInfo() const noexcept;
+      NOD() InfoType* GetInfo() noexcept;
+      NOD() const InfoType* GetInfoEnd() const noexcept;
 
-      template<class T>
-      bool operator == (const T&) const;
-      template<class T>
-      bool operator != (const T&) const;
-
+   public:
       ///                                                                     
-      ///   Removal                                                           
+      ///   Indexing                                                          
       ///                                                                     
-      template<class THIS = BlockMap, CT::NotSemantic K>
-      Count RemoveKey(const K&);
-      template<class THIS = BlockMap, CT::NotSemantic V>
-      Count RemoveValue(const V&);
-      template<CT::NotSemantic K, CT::NotSemantic V>
-      Count RemovePair(const TPair<K, V>&);
-      Count RemoveIndex(const Index&);
+      NOD() Block GetKey(const CT::Index auto&);
+      NOD() Block GetKey(const CT::Index auto&) const;
+      NOD() Block GetValue(const CT::Index auto&);
+      NOD() Block GetValue(const CT::Index auto&) const;
+      NOD() Pair GetPair(const CT::Index auto&);
+      NOD() Pair GetPair(const CT::Index auto&) const;
 
-      void Clear();
-      void Reset();
-      void Compact();
+   protected:
+      NOD() Block GetKeyInner(const Offset&) SAFETY_NOEXCEPT();
+      NOD() Block GetKeyInner(const Offset&) const SAFETY_NOEXCEPT();
+      NOD() Block GetValueInner(const Offset&) SAFETY_NOEXCEPT();
+      NOD() Block GetValueInner(const Offset&) const SAFETY_NOEXCEPT();
+      NOD() Pair GetPairInner(const Offset&) SAFETY_NOEXCEPT();
+      NOD() Pair GetPairInner(const Offset&) const SAFETY_NOEXCEPT();
 
-      ///                                                                     
-      ///   Search                                                            
-      ///                                                                     
-      template<CT::NotSemantic K>
-      NOD() bool ContainsKey(const K&) const;
-      template<CT::NotSemantic V>
-      NOD() bool ContainsValue(const V&) const;
-      template<CT::NotSemantic K, CT::NotSemantic V>
-      NOD() bool ContainsPair(const TPair<K, V>&) const;
-      template<CT::NotSemantic K>
-      NOD() Index FindKeyIndex(const K&) const;
+      NOD() static Offset GetBucket(Offset, const CT::NotSemantic auto&) noexcept;
+      NOD() static Offset GetBucketUnknown(Offset, const Block&) noexcept;
 
-      NOD() Block GetKey(const Index&) const;
-      NOD() Block GetKey(const Index&);
-      NOD() Block GetValue(const Index&) const;
-      NOD() Block GetValue(const Index&);
-      NOD() Pair GetPair(const Index&) const;
-      NOD() Pair GetPair(const Index&);
+      template<CT::Data K>
+      NOD() constexpr const K& GetRawKey(Offset) const noexcept;
+      template<CT::Data K>
+      NOD() constexpr K& GetRawKey(Offset) noexcept;
+      template<CT::Data K>
+      NOD() constexpr Handle<K> GetKeyHandle(Offset) const noexcept;
 
+      template<CT::Data V>
+      NOD() constexpr const V& GetRawValue(Offset) const noexcept;
+      template<CT::Data V>
+      NOD() constexpr V& GetRawValue(Offset) noexcept;
+      template<CT::Data V>
+      NOD() constexpr Handle<V> GetValueHandle(Offset) const noexcept;
+
+   public:
       ///                                                                     
       ///   Iteration                                                         
       ///                                                                     
@@ -208,6 +218,51 @@ namespace Langulus::Anyness
       template<bool REVERSE, bool MUTABLE, class F>
       Count ForEachElement(Block&, F&&);
 
+   public:
+      ///                                                                     
+      ///   RTTI                                                              
+      ///                                                                     
+      template<CT::NotSemantic K, CT::NotSemantic V>
+      void Mutate();
+      void Mutate(DMeta, DMeta);
+      
+      template<class ALT_K>
+      NOD() constexpr bool KeyIs() const noexcept;
+      template<class ALT_V>
+      NOD() constexpr bool ValueIs() const noexcept;
+
+      NOD() bool IsTypeCompatibleWith(const BlockMap&) const noexcept;
+
+      ///                                                                     
+      ///   Comparison                                                        
+      ///                                                                     
+      bool operator == (const BlockMap&) const;
+
+      NOD() Hash GetHash() const;
+
+      template<CT::NotSemantic K>
+      NOD() bool ContainsKey(const K&) const;
+      template<CT::NotSemantic V>
+      NOD() bool ContainsValue(const V&) const;
+      template<CT::NotSemantic K, CT::NotSemantic V>
+      NOD() bool ContainsPair(const TPair<K, V>&) const;
+      template<CT::NotSemantic K>
+      NOD() Index FindKeyIndex(const K&) const;
+
+   protected:
+      template<class THIS = BlockMap, CT::NotSemantic K>
+      NOD() Offset FindIndex(const K&) const;
+      template<class THIS = BlockMap>
+      NOD() Offset FindIndexUnknown(const Block&) const;
+
+   public:
+      ///                                                                     
+      ///   Memory management                                                 
+      ///                                                                     
+      void Reserve(const Count&);
+
+   protected:
+      /// @cond show_protected                                                
       void AllocateFresh(const Count&);
       template<bool REUSE>
       void AllocateData(const Count&);
@@ -218,7 +273,17 @@ namespace Langulus::Anyness
       template<bool DESTROY>
       void Dereference(const Count&);
       void Free();
+      /// @endcond                                                            
 
+   public:
+      ///                                                                     
+      ///   Insertion                                                         
+      ///                                                                     
+
+   protected:
+      NOD() Size RequestKeyAndInfoSize(Count, Offset&) const SAFETY_NOEXCEPT();
+      NOD() Size RequestValuesSize(Count) const SAFETY_NOEXCEPT();
+      
       void Rehash(const Count&);
       void RehashKeys(const Count&, Block&);
       void RehashValues(const Count&, Block&);
@@ -233,59 +298,29 @@ namespace Langulus::Anyness
       template<class, CT::Semantic S>
       void InsertPairInner(const Count&, S&&);
 
+   public:
+      ///                                                                     
+      ///   Removal                                                           
+      ///                                                                     
+      template<class THIS = BlockMap, CT::NotSemantic K>
+      Count RemoveKey(const K&);
+      template<class THIS = BlockMap, CT::NotSemantic V>
+      Count RemoveValue(const V&);
+      template<CT::NotSemantic K, CT::NotSemantic V>
+      Count RemovePair(const TPair<K, V>&);
+      Count RemoveIndex(const Index&);
+
+      void Clear();
+      void Reset();
+      void Compact();
+
+   protected:
       void ClearInner();
-
-      NOD() Size RequestKeyAndInfoSize(Count, Offset&) const SAFETY_NOEXCEPT();
-      NOD() Size RequestValuesSize(Count) const SAFETY_NOEXCEPT();
-
       void RemoveIndex(const Offset&) SAFETY_NOEXCEPT();
 
-      template<CT::Data K>
-      NOD() const TAny<K>& GetKeys() const noexcept;
-      template<CT::Data K>
-      NOD() TAny<K>& GetKeys() noexcept;
-      template<CT::Data V>
-      NOD() const TAny<V>& GetValues() const noexcept;
-      template<CT::Data V>
-      NOD() TAny<V>& GetValues() noexcept;
-
-      NOD() Block GetKey(const Offset&) const noexcept;
-      NOD() Block GetKey(const Offset&) noexcept;
-      NOD() Block GetValue(const Offset&) const noexcept;
-      NOD() Block GetValue(const Offset&) noexcept;
-      NOD() Pair GetPair(const Offset&) const noexcept;
-      NOD() Pair GetPair(const Offset&) noexcept;
-
-      NOD() static Offset GetBucket(Offset, const CT::NotSemantic auto&) noexcept;
-      NOD() static Offset GetBucketUnknown(Offset, const Block&) noexcept;
-
-      template<class THIS = BlockMap, CT::NotSemantic K>
-      NOD() Offset FindIndex(const K&) const;
-      template<class THIS = BlockMap>
-      NOD() Offset FindIndexUnknown(const Block&) const;
-
-   TESTING(public:)
-      NOD() const InfoType* GetInfo() const noexcept;
-      NOD() InfoType* GetInfo() noexcept;
-      NOD() const InfoType* GetInfoEnd() const noexcept;
-
-      template<CT::Data K>
-      NOD() constexpr const K& GetRawKey(Offset) const noexcept;
-      template<CT::Data K>
-      NOD() constexpr K& GetRawKey(Offset) noexcept;
-      template<CT::Data K>
-      NOD() constexpr Handle<K> GetKeyHandle(Offset) const noexcept;
-
-      template<CT::Data V>
-      NOD() constexpr const V& GetRawValue(Offset) const noexcept;
-      template<CT::Data V>
-      NOD() constexpr V& GetRawValue(Offset) noexcept;
-      template<CT::Data V>
-      NOD() constexpr Handle<V> GetValueHandle(Offset) const noexcept;
-
    #ifdef LANGULUS_ENABLE_TESTING
-      NOD() constexpr const void* GetRawKeysMemory() const noexcept;
-      NOD() constexpr const void* GetRawValuesMemory() const noexcept;
+      public: NOD() constexpr const void* GetRawKeysMemory() const noexcept;
+      public: NOD() constexpr const void* GetRawValuesMemory() const noexcept;
    #endif
    };
 
@@ -366,4 +401,12 @@ namespace Langulus::Anyness::Inner
 
 } // namespace Langulus::Anyness::Inner
 
-#include "BlockMap.inl"
+#include "BlockMap/BlockMap-Construct.inl"
+#include "BlockMap/BlockMap-Capsulation.inl"
+#include "BlockMap/BlockMap-Indexing.inl"
+#include "BlockMap/BlockMap-RTTI.inl"
+#include "BlockMap/BlockMap-Compare.inl"
+#include "BlockMap/BlockMap-Memory.inl"
+#include "BlockMap/BlockMap-Insert.inl"
+#include "BlockMap/BlockMap-Remove.inl"
+#include "BlockMap/BlockMap-Iteration.inl"

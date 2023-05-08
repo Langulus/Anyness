@@ -9,7 +9,7 @@
 #include "TOrderedSet.hpp"
 
 #define TEMPLATE() template<CT::Data T>
-#define SET() TOrderedSet<T>
+#define TABLE() TOrderedSet<T>
 
 namespace Langulus::Anyness
 {
@@ -17,26 +17,26 @@ namespace Langulus::Anyness
    /// Copy-constructor                                                       
    ///   @param other - the map to copy                                       
    TEMPLATE()
-   SET()::TOrderedSet(const TOrderedSet& other)
+   TABLE()::TOrderedSet(const TOrderedSet& other)
       : Self {Copy(other)} { }
 
    /// Move-constructor                                                       
    ///   @param other - the map to move                                       
    TEMPLATE()
-   SET()::TOrderedSet(TOrderedSet&& other) noexcept
+   TABLE()::TOrderedSet(TOrderedSet&& other) noexcept
       : Self {Move(other)} { }
 
    /// Copy assignment                                                        
    ///   @param rhs - the map to copy                                         
    TEMPLATE()
-   SET()& SET()::operator = (const TOrderedSet& rhs) {
+   TABLE()& TABLE()::operator = (const TOrderedSet& rhs) {
       return operator = (Copy(rhs));
    }
 
    /// Move assignment                                                        
    ///   @param rhs - the map to move                                         
    TEMPLATE()
-   SET()& SET()::operator = (TOrderedSet&& rhs) noexcept {
+   TABLE()& TABLE()::operator = (TOrderedSet&& rhs) noexcept {
       return operator = (Move(rhs));
    }
 
@@ -44,7 +44,7 @@ namespace Langulus::Anyness
    ///   @param rhs - the element to assign                                   
    ///   @return a reference to this set for chaining                         
    TEMPLATE()
-   SET()& SET()::operator = (const T& rhs) {
+   TABLE()& TABLE()::operator = (const T& rhs) {
       return operator = (Copy(rhs));
    }
    
@@ -52,7 +52,7 @@ namespace Langulus::Anyness
    ///   @param rhs - the element to assign                                   
    ///   @return a reference to this set for chaining                         
    TEMPLATE()
-   SET()& SET()::operator = (T&& rhs) {
+   TABLE()& TABLE()::operator = (T&& rhs) {
       return operator = (Move(rhs));
    }
 
@@ -60,7 +60,7 @@ namespace Langulus::Anyness
    ///   @tparam S - the semantic (deducible)                                 
    ///   @param rhs - the ordered set to use for construction                 
    TEMPLATE()
-   SET()& SET()::operator = (CT::Semantic auto&& rhs) {
+   TABLE()& TABLE()::operator = (CT::Semantic auto&& rhs) {
       using S = Decay<decltype(rhs)>;
       using ST = TypeOf<S>;
 
@@ -80,21 +80,43 @@ namespace Langulus::Anyness
       return *this;
    }
    
+   /// Checks if both tables contain the same entries                         
+   ///   @param other - the table to compare against                          
+   ///   @return true if tables match                                         
+   TEMPLATE() LANGULUS(INLINED)
+   bool TABLE()::operator == (const TOrderedSet& other) const {
+      if (other.GetCount() != Base::GetCount())
+         return false;
+
+      auto info = Base::GetInfo();
+      const auto infoEnd = Base::GetInfoEnd();
+      while (info != infoEnd) {
+         if (*info) {
+            const auto lhs = info - Base::GetInfo();
+            const auto rhs = other.FindIndex(Base::GetRaw(lhs));
+            if (rhs == other.GetReserved())
+               return false;
+         }
+
+         ++info;
+      }
+
+      return true;
+   }
+
    /// Merge an element inside the set by copy                                
    ///   @param rhs - the element to insert                                   
    ///   @return a reference to this set for chaining                         
-   TEMPLATE()
-   LANGULUS(INLINED)
-   Count SET()::Insert(const T& key) {
+   TEMPLATE() LANGULUS(INLINED)
+   Count TABLE()::Insert(const T& key) {
       return Insert(Copy(key));
    }
 
    /// Merge an element inside the set by move                                
    ///   @param rhs - the element to insert                                   
    ///   @return a reference to this set for chaining                         
-   TEMPLATE()
-   LANGULUS(INLINED)
-   Count SET()::Insert(T&& key) {
+   TEMPLATE() LANGULUS(INLINED)
+   Count TABLE()::Insert(T&& key) {
       return Insert(Move(key));
    }
 
@@ -104,7 +126,7 @@ namespace Langulus::Anyness
    TEMPLATE()
    template<CT::Semantic S>
    LANGULUS(INLINED)
-   Count SET()::Insert(S&& key) requires (CT::Exact<TypeOf<S>, T>) {
+   Count TABLE()::Insert(S&& key) requires (CT::Exact<TypeOf<S>, T>) {
       Base::Reserve(Base::GetCount() + 1);
       Base::template InsertInner<true>(
          Base::GetBucket(Base::GetReserved() - 1, key.mValue),
@@ -117,7 +139,7 @@ namespace Langulus::Anyness
    ///   @param rhs - the element to insert                                   
    ///   @return a reference to this set for chaining                         
    TEMPLATE()
-   SET()& SET()::operator << (const T& rhs) {
+   TABLE()& TABLE()::operator << (const T& rhs) {
       return operator << (Copy(rhs));
    }
 
@@ -125,7 +147,7 @@ namespace Langulus::Anyness
    ///   @param rhs - the element to insert                                   
    ///   @return a reference to this set for chaining                         
    TEMPLATE()
-   SET()& SET()::operator << (T&& rhs) {
+   TABLE()& TABLE()::operator << (T&& rhs) {
       return operator << (Move(rhs));
    }
 
@@ -134,14 +156,14 @@ namespace Langulus::Anyness
    ///   @return a reference to this set for chaining                         
    TEMPLATE()
    template<CT::Semantic S>
-   SET()& SET()::operator << (S&& rhs) requires (CT::Exact<TypeOf<S>, T>) {
+   TABLE()& TABLE()::operator << (S&& rhs) requires (CT::Exact<TypeOf<S>, T>) {
       Insert(S::Nest(rhs.mValue));
       return *this;
    }
 
 } // namespace Langulus::Anyness
 
-#undef SET
+#undef TABLE
 #undef TEMPLATE
 
    

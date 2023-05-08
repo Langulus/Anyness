@@ -101,36 +101,10 @@ namespace Langulus::Anyness
       void Reserve(const Count&);
 
       ///                                                                     
-      ///   Insertion                                                         
+      ///   Comparison                                                        
       ///                                                                     
-      Count Insert(const K&, const V&);
-      Count Insert(K&&, const V&);
-      Count Insert(const K&, V&&);
-      Count Insert(K&&, V&&);
-      template<CT::Semantic SK, CT::Semantic SV>
-      Count Insert(SK&&, SV&&) noexcept requires (CT::Exact<TypeOf<SK>, K> && CT::Exact<TypeOf<SV>, V>);
+      bool operator == (const TUnorderedMap&) const;
 
-      TUnorderedMap& operator << (const TPair<K, V>&);
-      TUnorderedMap& operator << (TPair<K, V>&&);
-      template<CT::Semantic S>
-      TUnorderedMap& operator << (S&&) noexcept requires (CT::Pair<TypeOf<S>>);
-
-      ///                                                                     
-      ///   Removal                                                           
-      ///                                                                     
-      Count RemoveKey(const K&);
-      Count RemoveValue(const V&);
-      Count RemovePair(const Pair&);
-      Count RemoveIndex(const Index&);
-      Iterator RemoveIndex(const Iterator&);
-
-      void Clear();
-      void Reset();
-      void Compact();
-
-      ///                                                                     
-      ///   Search                                                            
-      ///                                                                     
       NOD() bool ContainsKey(const K&) const;
       NOD() bool ContainsValue(const V&) const;
       NOD() bool ContainsPair(const Pair&) const;
@@ -170,6 +144,34 @@ namespace Langulus::Anyness
       Count ForEachValueElement(F&&) const;
       template<class F>
       Count ForEachValueElement(F&&);
+      
+      ///                                                                     
+      ///   Insertion                                                         
+      ///                                                                     
+      Count Insert(const K&, const V&);
+      Count Insert(K&&, const V&);
+      Count Insert(const K&, V&&);
+      Count Insert(K&&, V&&);
+      template<CT::Semantic SK, CT::Semantic SV>
+      Count Insert(SK&&, SV&&) noexcept requires (CT::Exact<TypeOf<SK>, K> && CT::Exact<TypeOf<SV>, V>);
+
+      TUnorderedMap& operator << (const TPair<K, V>&);
+      TUnorderedMap& operator << (TPair<K, V>&&);
+      template<CT::Semantic S>
+      TUnorderedMap& operator << (S&&) noexcept requires (CT::Pair<TypeOf<S>>);
+
+      ///                                                                     
+      ///   Removal                                                           
+      ///                                                                     
+      Count RemoveKey(const K&);
+      Count RemoveValue(const V&);
+      Count RemovePair(const Pair&);
+      Count RemoveIndex(const Index&);
+      Iterator RemoveIndex(const Iterator&);
+
+      void Clear();
+      void Reset();
+      void Compact();
 
    protected:
       void AllocateFresh(const Count&);

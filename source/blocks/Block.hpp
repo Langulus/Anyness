@@ -812,11 +812,12 @@ namespace Langulus::CT
 
 } // namespace Langulus::CT
 
-#include "Block-Construct.inl"
-#include "Block-Capsulation.inl"
-#include "Block-Indexing.inl"
-#include "Block-RTTI.inl"
-#include "Block-Compare.inl"
-#include "Block-Memory.inl"
-#include "Block-Insert.inl"
-#include "Block-Remove.inl"
+#include "Block/Block-Construct.inl"
+#include "Block/Block-Capsulation.inl"
+#include "Block/Block-Indexing.inl"
+#include "Block/Block-RTTI.inl"
+#include "Block/Block-Compare.inl"
+#include "Block/Block-Memory.inl"
+#include "Block/Block-Insert.inl"
+#include "Block/Block-Remove.inl"
+#include "Block/Block-Iteration.inl"

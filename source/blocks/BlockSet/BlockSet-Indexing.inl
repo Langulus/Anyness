@@ -6,7 +6,7 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "BlockSet.hpp"
+#include "../BlockSet.hpp"
 
 namespace Langulus::Anyness
 {
@@ -22,7 +22,7 @@ namespace Langulus::Anyness
       while (info != infoEnd) {
          if (*info) {
             if (offset == 0)
-               return GetValue(info - GetInfo());
+               return GetInner(info - GetInfo());
             --offset;
          }
          ++info;
@@ -60,8 +60,7 @@ namespace Langulus::Anyness
    ///   @param i - the offset to use                                         
    ///   @return the element, wrapped in a Block                              
    LANGULUS(INLINED)
-   Block BlockSet::GetValue(const Offset& i) SAFETY_NOEXCEPT() {
-      LANGULUS_ASSUME(DevAssumes, i < GetReserved(), "Bad index");
+   Block BlockSet::GetInner(const Offset& i) SAFETY_NOEXCEPT() {
       return mKeys.GetElement(i);
    }
 
@@ -70,8 +69,7 @@ namespace Langulus::Anyness
    ///   @param i - the offset to use                                         
    ///   @return the element, wrapped in a Block                              
    LANGULUS(INLINED)
-   Block BlockSet::GetValue(const Offset& i) const SAFETY_NOEXCEPT() {
-      LANGULUS_ASSUME(DevAssumes, i < GetReserved(), "Bad index");
+   Block BlockSet::GetInner(const Offset& i) const SAFETY_NOEXCEPT() {
       return mKeys.GetElement(i);
    }
 

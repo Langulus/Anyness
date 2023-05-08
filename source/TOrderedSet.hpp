@@ -42,6 +42,11 @@ namespace Langulus::Anyness
       TOrderedSet& operator = (CT::Semantic auto&&);
 
       ///                                                                     
+      ///   Comparison                                                        
+      ///                                                                     
+      bool operator == (const TOrderedSet&) const;
+
+      ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
       Count Insert(const T&);

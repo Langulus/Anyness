@@ -50,6 +50,11 @@ namespace Langulus::Anyness
       TOrderedMap& operator = (S&&) noexcept requires (CT::Pair<TypeOf<S>>);
 
       ///                                                                     
+      ///   Comparison                                                        
+      ///                                                                     
+      bool operator == (const TOrderedMap&) const;
+
+      ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
       Count Insert(const K&, const V&);

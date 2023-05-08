@@ -388,7 +388,7 @@ namespace Langulus::Anyness
    Block OrderedMap::At(const K& key) {
       const auto found = FindIndex<OrderedMap>(key);
       if (found != GetReserved())
-         return GetValue(found);
+         return GetValueInner(found);
 
       // Key wasn't found, but map is mutable and we can add it         
       Mutate(MetaData::Of<K>(), mValues.mType);
@@ -403,7 +403,7 @@ namespace Langulus::Anyness
          GetBucket(GetReserved() - 1, key),
          Abandon(newk), Abandon(newv)
       );
-      return GetValue(insertedAt);
+      return GetValueInner(insertedAt);
    }
 
    /// Access value by key, or implicitly add the key if not found            

@@ -6,20 +6,17 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "BlockSet.hpp"
+#include "../BlockSet.hpp"
 
 namespace Langulus::Anyness
 {
 
    /// Checks if both tables contain the same entries                         
-   ///   @attention assumes both sets are unordered                           
+   ///   @attention assumes both sets are of same orderness                   
    ///   @param other - the table to compare against                          
    ///   @return true if tables match                                         
-   template<class T>
-   bool BlockSet::operator == (const T& other) const {
-      static_assert(CT::Set<T>, "T must be a set type");
-      if (other.GetCount() != GetCount() 
-         || !GetType()->IsExact(other.GetType()))
+   inline bool BlockSet::operator == (const BlockSet& other) const {
+      if (other.GetCount() != GetCount() || !IsTypeCompatibleWith(other))
          return false;
 
       auto info = GetInfo();
@@ -27,17 +24,9 @@ namespace Langulus::Anyness
       while (info != infoEnd) {
          if (*info) {
             const auto lhs = info - GetInfo();
-            if constexpr (CT::Typed<T>) {
-               using K = TypeOf<T>;
-               const auto rhs = other.FindIndex(GetRaw<K>(lhs));
-               if (rhs == other.GetReserved())
-                  return false;
-            }
-            else {
-               const auto rhs = other.template FindIndexUnknown<T>(GetValue(lhs));
-               if (rhs == other.GetReserved())
-                  return false;
-            }
+            const auto rhs = other.FindIndexUnknown(GetInner(lhs));
+            if (rhs == other.GetReserved())
+               return false;
          }
 
          ++info;
@@ -45,10 +34,13 @@ namespace Langulus::Anyness
 
       return true;
    }
-   
-   template<class T>
-   bool BlockSet::operator != (const T& other) const {
-      return !(operator == (other));
+
+   /// Check if types of two sets are compatible for writing                  
+   ///   @param other - set to test with                                      
+   ///   @return true if both sets are type-compatible                        
+   LANGULUS(INLINED)
+   bool BlockSet::IsTypeCompatibleWith(const BlockSet& other) const noexcept {
+      return mKeys.IsExact(other.mKeys.mType);
    }
 
    /// Get hash of the set contents                                           
@@ -167,7 +159,7 @@ namespace Langulus::Anyness
          return GetReserved();
 
       // Test first candidate                                           
-      auto key = GetValue(start);
+      auto key = GetInner(start);
       if (key == match)
          return start;
 
@@ -195,7 +187,7 @@ namespace Langulus::Anyness
       if (GetReserved() - *info > start)
          return GetReserved();
 
-      key = Get(0);
+      key = GetInner(0);
       if (key == match)
          return 0;
 

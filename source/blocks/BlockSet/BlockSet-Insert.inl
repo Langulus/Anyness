@@ -6,7 +6,7 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "BlockSet.hpp"
+#include "../BlockSet.hpp"
 
 namespace Langulus::Anyness
 {
@@ -176,7 +176,7 @@ namespace Langulus::Anyness
       LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(oldCount),
          "Old count is not a power-of-two");
 
-      auto oldKey = GetValue(0);
+      auto oldKey = GetInner(0);
       auto oldInfo = GetInfo();
       const auto oldInfoEnd = oldInfo + oldCount;
       const auto hashmask = mKeys.mReserved - 1;
@@ -245,8 +245,8 @@ namespace Langulus::Anyness
             if (!mInfo[to] && attempt < *oldInfo) {
                // Empty spot found, so move element there               
                if constexpr (CT::Void<K>) {
-                  auto key = GetValue(oldIndex);
-                  GetValue(to)
+                  auto key = GetInner(oldIndex);
+                  GetInner(to)
                      .CallUnknownSemanticConstructors(1, Abandon(key));
                   key.CallUnknownDestructors();
                }
@@ -282,7 +282,7 @@ namespace Langulus::Anyness
       while (*psl) {
          const auto index = psl - GetInfo();
          if constexpr (CHECK_FOR_MATCH) {
-            const auto candidate = GetValue(index);
+            const auto candidate = GetInner(index);
             if (candidate == value.mValue) {
                // Neat, the key already exists - just return            
                return index;
@@ -291,7 +291,7 @@ namespace Langulus::Anyness
 
          if (attempts > *psl) {
             // The pair we're inserting is closer to bucket, so swap    
-            GetValue(index).SwapUnknown(value.Forward());
+            GetInner(index).SwapUnknown(value.Forward());
             ::std::swap(attempts, *psl);
          }
 
@@ -309,7 +309,7 @@ namespace Langulus::Anyness
       // eventually reached, unless element exists and returns early    
       // We're moving only a single element, so no chance of overlap    
       const auto index = psl - GetInfo();
-      GetValue(index)
+      GetInner(index)
          .CallUnknownSemanticConstructors(1, value.Forward());
 
       if constexpr (S::Move) {

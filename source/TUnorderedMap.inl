@@ -1053,6 +1053,30 @@ namespace Langulus::Anyness
    ///                                                                        
    ///   SEARCH                                                               
    ///                                                                        
+   
+   /// Checks if both tables contain the same entries                         
+   ///   @param other - the table to compare against                          
+   ///   @return true if tables match                                         
+   TABLE_TEMPLATE() LANGULUS(INLINED)
+   bool TABLE()::operator == (const TUnorderedMap& other) const {
+      if (other.GetCount() != GetCount())
+         return false;
+
+      auto info = GetInfo();
+      const auto infoEnd = GetInfoEnd();
+      while (info != infoEnd) {
+         if (*info) {
+            const auto lhs = info - GetInfo();
+            const auto rhs = other.FindIndex(GetRawKey(lhs));
+            if (rhs == other.GetReserved() || GetRawValue(lhs) != other.GetRawValue(rhs))
+               return false;
+         }
+
+         ++info;
+      }
+
+      return true;
+   }
 
    /// Search for a key inside the table                                      
    ///   @param key - the key to search for                                   

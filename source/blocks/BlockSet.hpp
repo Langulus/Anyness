@@ -14,6 +14,10 @@ namespace Langulus::Anyness
    ///                                                                        
    ///   Type-erased set block, base for all set types                        
    ///                                                                        
+   ///   This is an inner structure, that doesn't reference any memory,       
+   /// only provides the functionality to do so. You can use BlockSet as a    
+   /// lightweight intermediate structure for iteration, etc.                 
+   ///                                                                        
    class BlockSet {
    protected:
       static constexpr Count MinimalAllocation = 8;
@@ -97,8 +101,8 @@ namespace Langulus::Anyness
       NOD() Block operator[] (const CT::Index auto&) const;
 
    protected:
-      NOD() Block GetValue(const Offset&) SAFETY_NOEXCEPT();
-      NOD() Block GetValue(const Offset&) const SAFETY_NOEXCEPT();
+      NOD() Block GetInner(const Offset&) SAFETY_NOEXCEPT();
+      NOD() Block GetInner(const Offset&) const SAFETY_NOEXCEPT();
 
       NOD() static Offset GetBucket(Offset, const CT::NotSemantic auto&) noexcept;
       NOD() static Offset GetBucketUnknown(Offset, const Block&) noexcept;
@@ -166,13 +170,12 @@ namespace Langulus::Anyness
       template<class ALT_T>
       NOD() constexpr bool Is() const noexcept;
 
+      NOD() bool IsTypeCompatibleWith(const BlockSet&) const noexcept;
+
       ///                                                                     
       ///   Comparison                                                        
       ///                                                                     
-      template<class T>
-      bool operator == (const T&) const;
-      template<class T>
-      bool operator != (const T&) const;
+      bool operator == (const BlockSet&) const;
 
       NOD() Hash GetHash() const;
 
@@ -189,7 +192,7 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Memory management                                                 
       ///                                                                     
-      void Reserve(const Count& count);
+      void Reserve(const Count&);
       
    protected:
       /// @cond show_protected                                                
@@ -334,11 +337,12 @@ namespace Langulus::Anyness::Inner
 
 } // namespace Langulus::Anyness::Inner
 
-#include "BlockSet-Construct.inl"
-#include "BlockSet-Capsulation.inl"
-#include "BlockSet-Indexing.inl"
-#include "BlockSet-RTTI.inl"
-#include "BlockSet-Compare.inl"
-#include "BlockSet-Memory.inl"
-#include "BlockSet-Insert.inl"
-#include "BlockSet-Remove.inl"
+#include "BlockSet/BlockSet-Construct.inl"
+#include "BlockSet/BlockSet-Capsulation.inl"
+#include "BlockSet/BlockSet-Indexing.inl"
+#include "BlockSet/BlockSet-RTTI.inl"
+#include "BlockSet/BlockSet-Compare.inl"
+#include "BlockSet/BlockSet-Memory.inl"
+#include "BlockSet/BlockSet-Insert.inl"
+#include "BlockSet/BlockSet-Remove.inl"
+#include "BlockSet/BlockSet-Iteration.inl"

@@ -6,7 +6,6 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "BlockSet.hpp"
 #include "BlockSet-Iteration.inl"
 
 namespace Langulus::Anyness
@@ -182,7 +181,7 @@ namespace Langulus::Anyness
       while (info != infoEnd) {
          const auto index = info - GetInfo();
          if (*info)
-            Logger::Info('[', index, "] -", (*info-1), " -> ", GetValue(index).GetHash().mHash);
+            Logger::Info('[', index, "] -", (*info-1), " -> ", GetInner(index).GetHash().mHash);
          else
             Logger::Info('[', index, "] empty");
 

@@ -9,7 +9,7 @@
 #include "TOrderedMap.hpp"
 
 #define TEMPLATE() template<CT::Data K, CT::Data V>
-#define MAP() TOrderedMap<K, V>
+#define TABLE() TOrderedMap<K, V>
 
 namespace Langulus::Anyness
 {
@@ -17,26 +17,26 @@ namespace Langulus::Anyness
    /// Copy-constructor                                                       
    ///   @param other - the map to copy                                       
    TEMPLATE()
-   MAP()::TOrderedMap(const TOrderedMap& other)
+   TABLE()::TOrderedMap(const TOrderedMap& other)
       : Self {Copy(other)} { }
 
    /// Move-constructor                                                       
    ///   @param other - the map to move                                       
    TEMPLATE()
-   MAP()::TOrderedMap(TOrderedMap&& other) noexcept
+   TABLE()::TOrderedMap(TOrderedMap&& other) noexcept
       : Self {Move(other)} { }
 
    /// Copy assignment                                                        
    ///   @param rhs - the map to copy                                         
    TEMPLATE()
-   MAP()& MAP()::operator = (const TOrderedMap& rhs) {
+   TABLE()& TABLE()::operator = (const TOrderedMap& rhs) {
       return operator = (Copy(rhs));
    }
 
    /// Move assignment                                                        
    ///   @param rhs - the map to move                                         
    TEMPLATE()
-   MAP()& MAP()::operator = (TOrderedMap&& rhs) noexcept {
+   TABLE()& TABLE()::operator = (TOrderedMap&& rhs) noexcept {
       return operator = (Move(rhs));
    }
 
@@ -45,7 +45,7 @@ namespace Langulus::Anyness
    ///   @param rhs - the ordered map to use for construction                 
    TEMPLATE()
    template<CT::Semantic S>
-   MAP()& MAP()::operator = (S&& rhs) noexcept requires (CT::Exact<TypeOf<S>, Self>) {
+   TABLE()& TABLE()::operator = (S&& rhs) noexcept requires (CT::Exact<TypeOf<S>, Self>) {
       if (&static_cast<const BlockMap&>(rhs.mValue) == this)
          return *this;
 
@@ -57,14 +57,14 @@ namespace Langulus::Anyness
    /// Copy assign a pair                                                     
    ///   @param rhs - the pair to copy                                        
    TEMPLATE()
-   MAP()& MAP()::operator = (const Pair& rhs) {
+   TABLE()& TABLE()::operator = (const Pair& rhs) {
       return operator = (Copy(rhs));
    }
 
    /// Move assign a pair                                                     
    ///   @param rhs - the pair to move                                        
    TEMPLATE()
-   MAP()& MAP()::operator = (Pair&& rhs) noexcept {
+   TABLE()& TABLE()::operator = (Pair&& rhs) noexcept {
       return operator = (Move(rhs));
    }
 
@@ -73,19 +73,42 @@ namespace Langulus::Anyness
    ///   @param rhs - the pair to use                                         
    TEMPLATE()
    template<CT::Semantic S>
-   MAP()& MAP()::operator = (S&& rhs) noexcept requires (CT::Pair<TypeOf<S>>) {
+   TABLE()& TABLE()::operator = (S&& rhs) noexcept requires (CT::Pair<TypeOf<S>>) {
       Base::Clear();
       Insert(S::Nest(rhs.mValue.mKey), S::Nest(rhs.mValue.mValue));
       return *this;
    }
    
+   /// Checks if both tables contain the same entries                         
+   ///   @param other - the table to compare against                          
+   ///   @return true if tables match                                         
+   TEMPLATE() LANGULUS(INLINED)
+   bool TABLE()::operator == (const TOrderedMap& other) const {
+      if (other.GetCount() != Base::GetCount())
+         return false;
+
+      auto info = Base::GetInfo();
+      const auto infoEnd = Base::GetInfoEnd();
+      while (info != infoEnd) {
+         if (*info) {
+            const auto lhs = info - Base::GetInfo();
+            const auto rhs = other.FindIndex(Base::GetRawKey(lhs));
+            if (rhs == other.GetReserved() || Base::GetRawValue(lhs) != other.GetRawValue(rhs))
+               return false;
+         }
+
+         ++info;
+      }
+
+      return true;
+   }
+
    /// Insert a single pair inside table via copy                             
    ///   @param key - the key to add                                          
    ///   @param value - the value to add                                      
    ///   @return 1 if pair was inserted, zero otherwise                       
-   TEMPLATE()
-   LANGULUS(INLINED)
-   Count MAP()::Insert(const K& key, const V& value) {
+   TEMPLATE() LANGULUS(INLINED)
+   Count TABLE()::Insert(const K& key, const V& value) {
       return Insert(Copy(key), Copy(value));
    }
 
@@ -93,9 +116,8 @@ namespace Langulus::Anyness
    ///   @param key - the key to add                                          
    ///   @param value - the value to add                                      
    ///   @return 1 if pair was inserted, zero otherwise                       
-   TEMPLATE()
-   LANGULUS(INLINED)
-   Count MAP()::Insert(const K& key, V&& value) {
+   TEMPLATE() LANGULUS(INLINED)
+   Count TABLE()::Insert(const K& key, V&& value) {
       return Insert(Copy(key), Move(value));
    }
 
@@ -103,9 +125,8 @@ namespace Langulus::Anyness
    ///   @param key - the key to add                                          
    ///   @param value - the value to add                                      
    ///   @return 1 if pair was inserted, zero otherwise                       
-   TEMPLATE()
-   LANGULUS(INLINED)
-   Count MAP()::Insert(K&& key, const V& value) {
+   TEMPLATE() LANGULUS(INLINED)
+   Count TABLE()::Insert(K&& key, const V& value) {
       return Insert(Move(key), Copy(value));
    }
 
@@ -113,9 +134,8 @@ namespace Langulus::Anyness
    ///   @param key - the key to add                                          
    ///   @param value - the value to add                                      
    ///   @return 1 if pair was inserted, zero otherwise                       
-   TEMPLATE()
-   LANGULUS(INLINED)
-   Count MAP()::Insert(K&& key, V&& value) {
+   TEMPLATE() LANGULUS(INLINED)
+   Count TABLE()::Insert(K&& key, V&& value) {
       return Insert(Move(key), Move(value));
    }
 
@@ -126,7 +146,7 @@ namespace Langulus::Anyness
    TEMPLATE()
    template<CT::Semantic SK, CT::Semantic SV>
    LANGULUS(INLINED)
-   Count MAP()::Insert(SK&& key, SV&& value) noexcept requires (CT::Exact<TypeOf<SK>, K> && CT::Exact<TypeOf<SV>, V>) {
+   Count TABLE()::Insert(SK&& key, SV&& value) noexcept requires (CT::Exact<TypeOf<SK>, K> && CT::Exact<TypeOf<SV>, V>) {
       Base::Reserve(Base::GetCount() + 1);
       Base::template InsertInner<true>(
          Base::GetBucket(Base::GetReserved() - 1, key.mValue),
@@ -139,7 +159,7 @@ namespace Langulus::Anyness
    ///   @param rhs - the pair to insert                                      
    ///   @return a reference to this table for chaining                       
    TEMPLATE()
-   MAP()& MAP()::operator << (const TPair<K, V>& rhs) {
+   TABLE()& TABLE()::operator << (const TPair<K, V>& rhs) {
       return operator << (Copy(rhs));
    }
 
@@ -147,7 +167,7 @@ namespace Langulus::Anyness
    ///   @param rhs - the pair to insert                                      
    ///   @return a reference to this table for chaining                       
    TEMPLATE()
-   MAP()& MAP()::operator << (TPair<K, V>&& rhs) {
+   TABLE()& TABLE()::operator << (TPair<K, V>&& rhs) {
       return operator << (Move(rhs));
    }
    
@@ -156,14 +176,14 @@ namespace Langulus::Anyness
    ///   @return a reference to this table for chaining                       
    TEMPLATE()
    template<CT::Semantic S>
-   MAP()& MAP()::operator << (S&& rhs) noexcept requires (CT::Pair<TypeOf<S>>) {
+   TABLE()& TABLE()::operator << (S&& rhs) noexcept requires (CT::Pair<TypeOf<S>>) {
       Insert(S::Nest(rhs.mValue.mKey), S::Nest(rhs.mValue.mValue));
       return *this;
    }
 
 } // namespace Langulus::Anyness
 
-#undef MAP
+#undef TABLE
 #undef TEMPLATE
 
    

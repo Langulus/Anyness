@@ -6,7 +6,7 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "Block.hpp"
+#include "../Block.hpp"
 #include <RTTI/Hash.hpp>
 
 #define VERBOSE(...) //Logger::Verbose(_VA_ARGS_)

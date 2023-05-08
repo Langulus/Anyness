@@ -6,7 +6,7 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "BlockSet.hpp"
+#include "../BlockSet.hpp"
 
 namespace Langulus::Anyness
 {
@@ -22,10 +22,9 @@ namespace Langulus::Anyness
       auto info = GetInfo();
       while (!*info) ++info;
 
-      const auto offset = info - GetInfo();
       return {
          info, GetInfoEnd(),
-         GetValue(offset)
+         GetInner(info - GetInfo())
       };
    }
 
@@ -47,10 +46,9 @@ namespace Langulus::Anyness
       auto info = GetInfoEnd();
       while (info >= GetInfo() && !*--info);
 
-      const auto offset = info - GetInfo();
       return {
          info, GetInfoEnd(),
-         GetValue(offset)
+         GetInner(info - GetInfo())
       };
    }
 
@@ -65,10 +63,9 @@ namespace Langulus::Anyness
       auto info = GetInfo();
       while (!*info) ++info;
 
-      const auto offset = info - GetInfo();
       return {
          info, GetInfoEnd(), 
-         GetValue(offset)
+         GetInner(info - GetInfo())
       };
    }
 
@@ -90,10 +87,9 @@ namespace Langulus::Anyness
       auto info = GetInfoEnd();
       while (info >= GetInfo() && !*--info);
 
-      const auto offset = info - GetInfo();
       return {
          info, GetInfoEnd(),
-         GetValue(offset)
+         GetInner(info - GetInfo())
       };
    }
 

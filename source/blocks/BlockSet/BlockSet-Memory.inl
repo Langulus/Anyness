@@ -6,7 +6,7 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "BlockSet.hpp"
+#include "../BlockSet.hpp"
 
 namespace Langulus::Anyness
 {
