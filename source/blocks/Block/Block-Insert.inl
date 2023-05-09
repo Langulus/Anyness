@@ -7,6 +7,7 @@
 ///                                                                           
 #pragma once
 #include "Block-Indexing.inl"
+#include "../../Any.hpp"
 
 namespace Langulus::Anyness
 {
