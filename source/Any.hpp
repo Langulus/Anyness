@@ -218,6 +218,14 @@ namespace Langulus::Anyness
       NOD() TIterator operator ++ (int) noexcept;
    };
 
+   /// A descriptor is just an uniquely typed Any, in order to be used in     
+   /// dedicated constructors                                                 
+   struct Descriptor : Any {
+      LANGULUS_BASES(Any);
+
+      using Any::Any;
+   };
+
 } // namespace Langulus::Anyness
 
 #include "Any.inl"

@@ -723,12 +723,6 @@ namespace Langulus::Anyness
       Size Decrypt(Block&, const ::std::size_t*, const Count&) const;
    };
 
-   /// A descriptor is just an uniquely typed block, in order to have its own 
-   /// dedicated constructors                                                 
-   struct Descriptor {
-      Block mData;
-   };
-
    /// Macro used to implement the standard container interface used in       
    /// range-for-statements like for (auto& item : array)                     
    /// In addition, a Reverse() function is added for reverse iteration       

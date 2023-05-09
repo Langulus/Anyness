@@ -1109,11 +1109,8 @@ namespace Langulus::Anyness
 
          // Attempt descriptor-construction, if available               
          //TODO if stuff moved, we should move stuff back if this throws...
-         Descriptor descriptor {MetaData::Of<Block>()};
-         descriptor.mData.AllocateFresh(RequestSize(sizeof...(A)));
-         descriptor.mData.InsertStatic<0>(Block::From(arguments)...);
+         Descriptor descriptor { Block::From(arguments)...};
          region.CallUnknownDescriptorConstructors(count, descriptor);
-         descriptor.mData.Free();
       }
 
       mCount += count;
