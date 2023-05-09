@@ -671,7 +671,56 @@ namespace Langulus::Anyness
       result.mCount = 1;
       return result;
    }
+   
+   /// Construct an item of this container's type at the specified position   
+   /// by forwarding A... as constructor arguments                            
+   /// Since this container is type-erased and exact constructor signatures   
+   /// aren't reflected, the following constructors will be attempted:        
+   ///   1. If A is a single argument of exactly the same type, the reflected 
+   ///      move constructor will be used, if available                       
+   ///   2. If A is empty, the reflected default constructor is used          
+   ///   3. If A is not empty, not exactly same as the contained type, or     
+   ///      is more than a single argument, then all arguments will be        
+   ///      wrapped in an Any, and then forwarded to the descriptor-          
+   ///      constructor, if such is reflected                                 
+   ///   If none of these constructors are available, this function throws    
+   ///   Except::Construct                                                    
+   ///   @tparam A... - argument types (deducible)                            
+   ///   @param region - the region to emplace at                             
+   ///   @param count - the number of elements to emplace                     
+   ///   @param arguments... - the arguments to forward to constructor        
+   ///   @return the number of emplaced elements                              
+   template<class... A>
+   void Block::EmplaceInner(const Block& region, Count count, A&&... arguments) {
+      if constexpr (sizeof...(A) == 0) {
+         // Attempt default construction                                
+         //TODO if stuff moved, we should move stuff back if this throws...
+         region.CallUnknownDefaultConstructors(count);
+      }
+      else {
+         // Attempt move-construction, if available                     
+         if constexpr (sizeof...(A) == 1) {
+            using F = Decvq<Deref<typename TTypeList<A...>::First>>;
+            if (IsExact<F>()) {
+               // Single argument matches                               
+               region.template CallKnownConstructors<F>(
+                  count, Forward<A>(arguments)...
+               );
 
+               mCount += count;
+               return;
+            }
+         }
+
+         // Attempt descriptor-construction, if available               
+         //TODO if stuff moved, we should move stuff back if this throws...
+         Descriptor descriptor { Block::From(arguments)...};
+         region.CallUnknownDescriptorConstructors(count, descriptor);
+      }
+
+      mCount += count;
+   }
+   
 
    ///                                                                        
    ///   Block iterator                                                       
