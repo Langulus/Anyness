@@ -224,6 +224,11 @@ namespace Langulus::Anyness
       LANGULUS_BASES(Any);
 
       using Any::Any;
+
+      Descriptor(const Any& other)
+         : Any {other} {}
+      Descriptor(Any&& other)
+         : Any {Forward<Any>(other)} {}
    };
 
 } // namespace Langulus::Anyness
