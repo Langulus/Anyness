@@ -16,34 +16,34 @@ namespace Langulus::Anyness
    ///   @param other - the container to shallow-copy                         
    LANGULUS(INLINED)
    Any::Any(const Any& other)
-      : Any {Langulus::Copy(other)} {}
+      : Any {Copy(other)} {}
 
    /// Move constructor - transfers ownership                                 
    ///   @param other - the container to move                                 
    LANGULUS(INLINED)
    Any::Any(Any&& other) noexcept
-      : Any {Langulus::Move(other)} {}
+      : Any {Move(other)} {}
 
    /// Construct by shallow-copying element/container                         
    ///   @param other - the element/container to shallow-copy                 
    template<CT::NotSemantic T>
    LANGULUS(INLINED)
    Any::Any(const T& other)
-      : Any {Langulus::Copy(other)} {}
+      : Any {Copy(other)} {}
 
    /// Construct by shallow-copying element/container                         
    ///   @param other - the element/container to shallow-copy                 
    template<CT::NotSemantic T>
    LANGULUS(INLINED)
    Any::Any(T& other)
-      : Any {Langulus::Copy(other)} {}
+      : Any {Copy(other)} {}
 
    /// Construct by moving element/container                                  
    ///   @param other - the element/container to move                         
    template<CT::NotSemantic T>
    LANGULUS(INLINED)
    Any::Any(T&& other) requires CT::Mutable<T>
-      : Any {Langulus::Move(other)} {}
+      : Any {Move(other)} {}
 
    /// Semantic constructor from deep container or custom data element        
    ///   @tparam S - type of insertion and semantic to use (deducible)        
@@ -176,7 +176,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container                                
    LANGULUS(INLINED)
    Any& Any::operator = (const Any& other) {
-      return operator = (Langulus::Copy(other));
+      return operator = (Copy(other));
    }
 
    /// Move assignment                                                        
@@ -184,7 +184,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container                                
    LANGULUS(INLINED)
    Any& Any::operator = (Any&& other) noexcept {
-      return operator = (Langulus::Move(other));
+      return operator = (Move(other));
    }
 
    /// Shallow copy assignment of anything                                    
@@ -194,7 +194,7 @@ namespace Langulus::Anyness
    template<CT::NotSemantic T>
    LANGULUS(INLINED)
    Any& Any::operator = (const T& other) {
-      return operator = (Langulus::Copy(other));
+      return operator = (Copy(other));
    }
    
    /// Shallow copy assignment of anything                                    
@@ -204,7 +204,7 @@ namespace Langulus::Anyness
    template<CT::NotSemantic T>
    LANGULUS(INLINED)
    Any& Any::operator = (T& other) {
-      return operator = (Langulus::Copy(other));
+      return operator = (Copy(other));
    }
 
    /// Move assignment of anything                                            
@@ -214,7 +214,7 @@ namespace Langulus::Anyness
    template<CT::NotSemantic T>
    LANGULUS(INLINED)
    Any& Any::operator = (T&& other) requires CT::Mutable<T> {
-      return operator = (Langulus::Move(other));
+      return operator = (Move(other));
    }
 
    /// Semantic assignment                                                    
@@ -290,7 +290,7 @@ namespace Langulus::Anyness
    template<CT::NotSemantic T>
    LANGULUS(INLINED)
    Any& Any::operator << (const T& other) {
-      Insert<IndexBack>(Langulus::Copy(other));
+      Insert<IndexBack>(Copy(other));
       return *this;
    }
 
@@ -300,7 +300,7 @@ namespace Langulus::Anyness
    template<CT::NotSemantic T>
    LANGULUS(INLINED)
    Any& Any::operator << (T& other) {
-      Insert<IndexBack>(Langulus::Copy(other));
+      Insert<IndexBack>(Copy(other));
       return *this;
    }
 
@@ -310,7 +310,7 @@ namespace Langulus::Anyness
    template<CT::NotSemantic T>
    LANGULUS(INLINED)
    Any& Any::operator << (T&& other) {
-      Insert<IndexBack>(Langulus::Move(other));
+      Insert<IndexBack>(Move(other));
       return *this;
    }
 
@@ -330,7 +330,7 @@ namespace Langulus::Anyness
    template<CT::NotSemantic T>
    LANGULUS(INLINED)
    Any& Any::operator >> (const T& other) {
-      Insert<IndexFront>(Langulus::Copy(other));
+      Insert<IndexFront>(Copy(other));
       return *this;
    }
 
@@ -340,7 +340,7 @@ namespace Langulus::Anyness
    template<CT::NotSemantic T>
    LANGULUS(INLINED)
    Any& Any::operator >> (T& other) {
-      Insert<IndexFront>(Langulus::Copy(other));
+      Insert<IndexFront>(Copy(other));
       return *this;
    }
 
@@ -350,7 +350,7 @@ namespace Langulus::Anyness
    template<CT::NotSemantic T>
    LANGULUS(INLINED)
    Any& Any::operator >> (T&& other) {
-      Insert<IndexFront>(Langulus::Move(other));
+      Insert<IndexFront>(Move(other));
       return *this;
    }
    
@@ -370,7 +370,7 @@ namespace Langulus::Anyness
    template<CT::NotSemantic T>
    LANGULUS(INLINED)
    Any& Any::operator <<= (const T& other) {
-      Merge<IndexBack, true>(Langulus::Copy(other));
+      Merge<IndexBack, true>(Copy(other));
       return *this;
    }
 
@@ -380,7 +380,7 @@ namespace Langulus::Anyness
    template<CT::NotSemantic T>
    LANGULUS(INLINED)
    Any& Any::operator <<= (T& other) {
-      Merge<IndexBack, true>(Langulus::Copy(other));
+      Merge<IndexBack, true>(Copy(other));
       return *this;
    }
 
@@ -390,7 +390,7 @@ namespace Langulus::Anyness
    template<CT::NotSemantic T>
    LANGULUS(INLINED)
    Any& Any::operator <<= (T&& other) {
-      Merge<IndexBack, true>(Langulus::Move(other));
+      Merge<IndexBack, true>(Move(other));
       return *this;
    }
 
@@ -410,7 +410,7 @@ namespace Langulus::Anyness
    template<CT::NotSemantic T>
    LANGULUS(INLINED)
    Any& Any::operator >>= (const T& other) {
-      Merge<IndexFront, true>(Langulus::Copy(other));
+      Merge<IndexFront, true>(Copy(other));
       return *this;
    }
 
@@ -420,7 +420,7 @@ namespace Langulus::Anyness
    template<CT::NotSemantic T>
    LANGULUS(INLINED)
    Any& Any::operator >>= (T& other) {
-      Merge<IndexFront, true>(Langulus::Copy(other));
+      Merge<IndexFront, true>(Copy(other));
       return *this;
    }
 
@@ -430,7 +430,7 @@ namespace Langulus::Anyness
    template<CT::NotSemantic T>
    LANGULUS(INLINED)
    Any& Any::operator >>= (T&& other) {
-      Merge<IndexFront, true>(Langulus::Move(other));
+      Merge<IndexFront, true>(Move(other));
       return *this;
    }
 
@@ -517,13 +517,13 @@ namespace Langulus::Anyness
    template<CT::Deep T>
    LANGULUS(INLINED)
    Any Any::operator + (const T& rhs) const requires CT::Dense<T> {
-      return Concatenate<Any>(Langulus::Copy(rhs));
+      return Concatenate<Any>(Copy(rhs));
    }
 
    template<CT::Deep T>
    LANGULUS(INLINED)
    Any Any::operator + (T& rhs) const requires CT::Dense<T> {
-      return Concatenate<Any>(Langulus::Copy(rhs));
+      return Concatenate<Any>(Copy(rhs));
    }
 
    /// Move-concatenate with any deep type                                    
@@ -533,7 +533,7 @@ namespace Langulus::Anyness
    template<CT::Deep T>
    LANGULUS(INLINED)
    Any Any::operator + (T&& rhs) const requires CT::Dense<T> {
-      return Concatenate<Any>(Langulus::Move(rhs));
+      return Concatenate<Any>(Move(rhs));
    }
 
    /// Move-concatenate with any deep type                                    
@@ -553,14 +553,14 @@ namespace Langulus::Anyness
    template<CT::Deep T>
    LANGULUS(INLINED)
    Any& Any::operator += (const T& rhs) requires CT::Dense<T> {
-      InsertBlock(Langulus::Copy(rhs));
+      InsertBlock(Copy(rhs));
       return *this;
    }
 
    template<CT::Deep T>
    LANGULUS(INLINED)
    Any& Any::operator += (T& rhs) requires CT::Dense<T> {
-      InsertBlock(Langulus::Copy(rhs));
+      InsertBlock(Copy(rhs));
       return *this;
    }
 
@@ -571,7 +571,7 @@ namespace Langulus::Anyness
    template<CT::Deep T>
    LANGULUS(INLINED)
    Any& Any::operator += (T&& rhs) requires CT::Dense<T> {
-      InsertBlock(Langulus::Move(rhs));
+      InsertBlock(Move(rhs));
       return *this;
    }
 
@@ -722,8 +722,4 @@ namespace Langulus::Anyness
       return mValue;
    }
 
-   
-
-
-   
 } // namespace Langulus::Anyness

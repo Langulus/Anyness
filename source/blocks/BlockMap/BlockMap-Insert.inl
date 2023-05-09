@@ -111,7 +111,54 @@ namespace Langulus::Anyness
    ///   @param oldCount - the old number of pairs                            
    ///   @param values - the source of values                                 
    inline void BlockMap::RehashKeys(const Count& oldCount, Block& values) {
-      TODO();
+      LANGULUS_ASSUME(DevAssumes, mValues.mReserved > oldCount,
+         "New count is not larger than oldCount");
+      LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(mValues.mReserved),
+         "New count is not a power-of-two");
+      LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(oldCount),
+         "Old count is not a power-of-two");
+
+      auto oldKey = GetKeyInner(0);
+      auto oldInfo = GetInfo();
+      const auto oldInfoEnd = oldInfo + oldCount;
+      const auto hashmask = mValues.mReserved - 1;
+
+      // First run: move elements closer to their new buckets           
+      while (oldInfo != oldInfoEnd) {
+         if (*oldInfo) {
+            // Rehash and check if hashes match                         
+            const Offset oldIndex = oldInfo - GetInfo();
+            Offset oldBucket = (oldCount + oldIndex) - *oldInfo + 1;
+            const auto newBucket = mValues.mReserved + GetBucketUnknown(hashmask, oldKey);
+            if (oldBucket != newBucket) {
+               // Move pair only if it won't end up in same bucket      
+               Block keyswap {mKeys.GetState(), GetKeyType()};
+               keyswap.AllocateFresh(keyswap.RequestSize(1));
+               keyswap.CallUnknownSemanticConstructors(1, Abandon(oldKey));
+               keyswap.mCount = 1;
+               
+               // Destroy the pair and info at old index                
+               oldKey.CallUnknownDestructors();
+               *oldInfo = 0;
+               --mValues.mCount;
+               
+               InsertInnerUnknown<false>(
+                  newBucket - mValues.mReserved, 
+                  Abandon(keyswap), 
+                  Copy(values.GetElement(oldIndex))
+               );
+
+               keyswap.Free();
+            }
+         }
+
+         oldKey.Next();
+         ++oldInfo;
+      }
+
+      // First run might cause gaps                                     
+      // Second run: shift elements left, where possible                
+      ShiftPairs<void, void>();
    }
    
    /// Rehashes and reinserts each value in the same block, and moves all     
@@ -121,7 +168,55 @@ namespace Langulus::Anyness
    ///   @param oldCount - the old number of pairs                            
    ///   @param keys - the source of keys                                     
    inline void BlockMap::RehashValues(const Count& oldCount, Block& keys) {
-      TODO();
+      LANGULUS_ASSUME(DevAssumes, mValues.mReserved > oldCount,
+         "New count is not larger than oldCount");
+      LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(mValues.mReserved),
+         "New count is not a power-of-two");
+      LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(oldCount),
+         "Old count is not a power-of-two");
+
+      auto oldKey = keys.GetElement(0);
+      auto oldInfo = GetInfo();
+      const auto oldInfoEnd = oldInfo + oldCount;
+      const auto hashmask = mValues.mReserved - 1;
+
+      // First run: move elements closer to their new buckets           
+      while (oldInfo != oldInfoEnd) {
+         if (*oldInfo) {
+            // Rehash and check if hashes match                         
+            const Offset oldIndex = oldInfo - GetInfo();
+            Offset oldBucket = (oldCount + oldIndex) - *oldInfo + 1;
+            const auto newBucket = mValues.mReserved + GetBucketUnknown(hashmask, oldKey);
+            if (oldBucket != newBucket) {
+               // Move pair only if it won't end up in same bucket      
+               auto oldValue = GetValueInner(oldIndex);
+               Block valswap {mValues.GetState(), GetValueType()};
+               valswap.AllocateFresh(valswap.RequestSize(1));
+               valswap.CallUnknownSemanticConstructors(1, Abandon(oldValue));
+               valswap.mCount = 1;
+               
+               // Destroy the pair and info at old index                
+               oldValue.CallUnknownDestructors();
+               *oldInfo = 0;
+               --mValues.mCount;
+               
+               InsertInnerUnknown<false>(
+                  newBucket - mValues.mReserved,
+                  Copy(oldKey),
+                  Abandon(valswap)
+               );
+
+               valswap.Free();
+            }
+         }
+
+         oldKey.Next();
+         ++oldInfo;
+      }
+
+      // First run might cause gaps                                     
+      // Second run: shift elements left, where possible                
+      ShiftPairs<void, void>();
    }
    
    /// Shift elements left, where possible                                    

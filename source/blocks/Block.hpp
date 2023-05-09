@@ -85,6 +85,8 @@ namespace Langulus::Anyness
       static constexpr bool Ownership = false;
       static constexpr bool Sequential = true;
 
+      friend struct Descriptor;
+
       friend class Any;
       template<CT::Data>
       friend class TAny;
@@ -661,9 +663,9 @@ namespace Langulus::Anyness
       template<CT::Data T>
       void CallKnownDefaultConstructors(Count) const;
 
-      void CallUnknownDescriptorConstructors(Count, const Block&) const;
+      void CallUnknownDescriptorConstructors(Count, const Descriptor&) const;
       template<CT::Data>
-      void CallKnownDescriptorConstructors(Count, const Block&) const;
+      void CallKnownDescriptorConstructors(Count, const Descriptor&) const;
 
       template<CT::Data, class... A>
       void CallKnownConstructors(Count, A&&...) const;
@@ -721,6 +723,11 @@ namespace Langulus::Anyness
       Size Decrypt(Block&, const ::std::size_t*, const Count&) const;
    };
 
+   /// A descriptor is just an uniquely typed block, in order to have its own 
+   /// dedicated constructors                                                 
+   struct Descriptor {
+      Block mData;
+   };
 
    /// Macro used to implement the standard container interface used in       
    /// range-for-statements like for (auto& item : array)                     
@@ -788,8 +795,8 @@ namespace Langulus::CT
    /// any CT::Deep type                                                      
    /// Keep in mind, that sparse types are never considered Block!            
    template<class... T>
-   concept Block = ((DerivedFrom<T, ::Langulus::Anyness::Block>
-      && sizeof(T) == sizeof(::Langulus::Anyness::Block)) && ...);
+   concept Block = ((DerivedFrom<T, Anyness::Block> 
+      && sizeof(T) == sizeof(Anyness::Block)) && ...);
 
    /// A deep type is any type with a true static member T::CTTI_Deep,        
    /// is binary compatible with Block, as well as having the same interface  

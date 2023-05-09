@@ -30,21 +30,21 @@ namespace Langulus::Anyness
    ///   @param data - data to copy inside trait                              
    LANGULUS(INLINED)
    Trait::Trait(const CT::NotSemantic auto& data)
-      : Trait {Langulus::Copy(data)} {}
+      : Trait {Copy(data)} {}
 
    /// Manual trait construction by copy                                      
    ///   @tparam T - type of the contained data                               
    ///   @param data - data to copy inside trait                              
    LANGULUS(INLINED)
    Trait::Trait(CT::NotSemantic auto& data)
-      : Trait {Langulus::Copy(data)} {}
+      : Trait {Copy(data)} {}
 
    /// Manual trait construction by movement                                  
    ///   @tparam T - type of the contained data                               
    ///   @param data - data to move inside trait                              
    LANGULUS(INLINED)
    Trait::Trait(CT::NotSemantic auto&& data)
-      : Trait {Langulus::Move(data)} {}
+      : Trait {Move(data)} {}
 
    /// Semantic trait construction                                            
    ///   @tparam T - type of the contained data                               
