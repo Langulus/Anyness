@@ -63,8 +63,10 @@ namespace Langulus::Anyness
       ::std::unordered_set<DMeta> mInstantiatedTypes;
 
    private:
-      LANGULUS_API(ANYNESS)
-      void DumpPool(Offset, const Pool*) const noexcept;
+      #if LANGULUS_FEATURE(MEMORY_STATISTICS)
+         LANGULUS_API(ANYNESS)
+         void DumpPool(Offset, const Pool*) const noexcept;
+      #endif
 
       LANGULUS_API(ANYNESS)
       void CollectGarbageChain(Pool*&);
