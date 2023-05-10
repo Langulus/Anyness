@@ -210,7 +210,7 @@ namespace Langulus::Anyness
                }
                else if (!element) return;
 
-               auto resolved = mType->mResolver(&element);
+               auto resolved = mType->mResolver(element);
                if (resolved.template Is<A>()) {
                   ++counter;
                   return call(resolved.template Get<A>());
