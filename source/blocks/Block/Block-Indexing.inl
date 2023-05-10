@@ -404,8 +404,8 @@ namespace Langulus::Anyness
       LANGULUS_ASSUME(DevAssumes, mCount > 0,
          "Block is empty");
 
-      if (mType->mResolver)
-         return mType->mResolver(mRaw);
+      if (mType->mOrigin && mType->mOrigin->mResolver)
+         return mType->mOrigin->mResolver(GetDense().mRaw);
       else
          return GetDense();
    }
