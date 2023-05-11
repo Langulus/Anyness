@@ -15,7 +15,7 @@ namespace Langulus::Anyness
    ///   @param other - the block to shallow-copy                             
    LANGULUS(INLINED)
    constexpr BlockSet::BlockSet(CT::Semantic auto&& other) noexcept
-      : BlockSet {static_cast<const BlockSet&>(other.mValue)} {}
+      : BlockSet {static_cast<const BlockSet&>(*other)} {}
 
    /// Semantic assignment                                                    
    /// Blocks have no ownership, so this always results in a block transfer   
@@ -24,7 +24,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this set                                      
    LANGULUS(INLINED)
    constexpr BlockSet& BlockSet::operator = (CT::Semantic auto&& rhs) noexcept {
-      return operator = (static_cast<const BlockSet&>(rhs.mValue));
+      return operator = (static_cast<const BlockSet&>(*rhs));
    }
    
    /// Semantically transfer the members of one set onto another              
@@ -38,27 +38,27 @@ namespace Langulus::Anyness
       static_assert(CT::Set<TO>, "TO must be a set type");
       static_assert(CT::Set<FROM>, "FROM must be a set type");
 
-      mKeys.mCount = other.mValue.mKeys.mCount;
+      mKeys.mCount = other->mKeys.mCount;
 
       if constexpr (!CT::TypedSet<TO>) {
          // TO is not statically typed                                  
-         mKeys.mType = other.mValue.GetType();
-         mKeys.mState = other.mValue.mKeys.mState;
+         mKeys.mType = other->GetType();
+         mKeys.mState = other->mKeys.mState;
       }
       else {
          // TO is statically typed                                      
          mKeys.mType = MetaData::Of<TypeOf<TO>>();
-         mKeys.mState = other.mValue.mKeys.mState + DataState::Typed;
+         mKeys.mState = other->mKeys.mState + DataState::Typed;
       }
 
       if constexpr (S::Shallow) {
-         mKeys.mRaw = other.mValue.mKeys.mRaw;
-         mKeys.mReserved = other.mValue.mKeys.mReserved;
-         mInfo = other.mValue.mInfo;
+         mKeys.mRaw = other->mKeys.mRaw;
+         mKeys.mReserved = other->mKeys.mReserved;
+         mInfo = other->mInfo;
 
          if constexpr (S::Keep) {
             // Move/Copy other                                          
-            mKeys.mEntry = other.mValue.mKeys.mEntry;
+            mKeys.mEntry = other->mKeys.mEntry;
 
             if constexpr (S::Move) {
                if constexpr (!FROM::Ownership) {
@@ -70,16 +70,16 @@ namespace Langulus::Anyness
                   Keep();
                }
                else {
-                  other.mValue.mKeys.ResetMemory();
-                  other.mValue.mKeys.ResetState();
+                  other->mKeys.ResetMemory();
+                  other->mKeys.ResetState();
                }
             }
             else Keep();
          }
          else if constexpr (S::Move) {
             // Abandon other                                            
-            mKeys.mEntry = other.mValue.mKeys.mEntry;
-            other.mValue.mKeys.mEntry = nullptr;
+            mKeys.mEntry = other->mKeys.mEntry;
+            other->mKeys.mEntry = nullptr;
          }
       }
       else {
@@ -88,21 +88,21 @@ namespace Langulus::Anyness
          mKeys.mState -= DataState::Static;
 
          if constexpr (CT::TypedSet<TO>)
-            BlockClone<TO>(other.mValue);
+            BlockClone<TO>(*other);
          else if constexpr (CT::TypedSet<FROM>)
-            BlockClone<FROM>(other.mValue);
+            BlockClone<FROM>(*other);
          else {
             // Use type-erased cloning                                  
             auto asTo = reinterpret_cast<TO*>(this);
-            asTo->AllocateFresh(other.mValue.GetReserved());
+            asTo->AllocateFresh(other->GetReserved());
 
             // Clone info array                                         
-            CopyMemory(asTo->mInfo, other.mValue.mInfo, GetReserved() + 1);
+            CopyMemory(asTo->mInfo, other->mInfo, GetReserved() + 1);
 
             auto info = asTo->GetInfo();
             const auto infoEnd = asTo->GetInfoEnd();
             auto dstKey = asTo->GetInner(0);
-            auto srcKey = other.mValue.GetInner(0);
+            auto srcKey = other->GetInner(0);
             while (info != infoEnd) {
                if (*info) {
                   dstKey.CallUnknownSemanticConstructors(

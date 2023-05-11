@@ -30,20 +30,20 @@ namespace Langulus::Anyness
 
          if constexpr (S::Shallow) {
             // Copy/Disown/Move/Abandon a handle                        
-            SemanticAssign<T>(mValue, S::Nest(other.mValue.Get()));
+            SemanticAssign<T>(mValue, S::Nest(other->Get()));
 
             if constexpr (S::Keep || S::Move)
-               mEntry = other.mValue.GetEntry();
+               mEntry = other->GetEntry();
             else
                mEntry = nullptr;
 
             if constexpr (S::Move) {
                // Reset remote entry, when moving                       
-               other.mValue.GetEntry() = nullptr;
+               other->GetEntry() = nullptr;
 
                // Optionally reset remote value, if not abandoned       
                if constexpr (S::Keep && CT::Sparse<T, HT>)
-                  other.mValue.Get() = nullptr;
+                  other->Get() = nullptr;
             }
          }
          else {
@@ -64,7 +64,7 @@ namespace Langulus::Anyness
             // Since pointers don't have ownership, it's just a copy    
             // with an optional entry search, if not disowned, and if   
             // managed memory is enabled                                
-            SemanticAssign<T>(mValue, S::Nest(other.mValue));
+            SemanticAssign<T>(mValue, other.Forward());
 
             if constexpr (CT::Sparse<T> && CT::Allocatable<Deptr<T>> && (S::Keep || S::Move))
                mEntry = Fractalloc.Find(MetaData::Of<Deptr<T>>(), mValue);
@@ -256,22 +256,22 @@ namespace Langulus::Anyness
             if constexpr (CT::Dense<HT>) {
                if constexpr (CT::Dense<T>)
                   // Dense = Dense                                      
-                  SemanticNew<T>(&Get(), S::Nest(rhs.mValue.Get()));
+                  SemanticNew<T>(&Get(), S::Nest(rhs->Get()));
                else
                   // Sparse = Dense                                     
-                  Get() = &rhs.mValue.Get();
+                  Get() = &rhs->Get();
             }
             else {
                if constexpr (CT::Dense<T>)
                   // Dense = Sparse                                     
-                  SemanticNew<T>(&Get(), S::Nest(*rhs.mValue.Get()));
+                  SemanticNew<T>(&Get(), S::Nest(*rhs->Get()));
                else
                   // Sparse = Sparse                                    
-                  Get() = rhs.mValue.Get();
+                  Get() = rhs->Get();
             }
 
             if constexpr (S::Keep || S::Move)
-               GetEntry() = rhs.mValue.GetEntry();
+               GetEntry() = rhs->GetEntry();
             else
                GetEntry() = nullptr;
 
@@ -280,12 +280,12 @@ namespace Langulus::Anyness
                if constexpr (S::Keep && CT::Sparse<T, HT>) {
                   // Clear the value only if we're not abandoning RHS   
                   // (and if the value is a pointer)                    
-                  rhs.mValue.Get() = nullptr;
+                  rhs->Get() = nullptr;
                }
 
                // Clearing entry is mandatory, because we're            
                // transferring the ownership                            
-               rhs.mValue.GetEntry() = nullptr;
+               rhs->GetEntry() = nullptr;
             }
             else if constexpr (S::Keep) {
                // Copying RHS, but keep it only if not disowning it     
@@ -322,7 +322,7 @@ namespace Langulus::Anyness
          // Do a copy/disown/abandon/move/clone inside a dense handle   
          if constexpr (CT::Handle<ST>) {
             static_assert(CT::Exact<T, TypeOf<ST>>, "Type mismatch");
-            SemanticNew<T>(&Get(), S::Nest(rhs.mValue.Get()));
+            SemanticNew<T>(&Get(), S::Nest(rhs->Get()));
          }
          else {
             static_assert(CT::Exact<T, ST>, "Type mismatch");
@@ -338,11 +338,11 @@ namespace Langulus::Anyness
 
          if constexpr (CT::Handle<ST>) {
             static_assert(CT::Exact<T, TypeOf<ST>>, "Type mismatch");
-            SemanticNew<DT>(pointer, S::Nest(*rhs.mValue.Get()));
+            SemanticNew<DT>(pointer, S::Nest(*rhs->Get()));
          }
          else {
             static_assert(CT::Exact<T, ST>, "Type mismatch");
-            SemanticNew<DT>(pointer, S::Nest(*rhs.mValue));
+            SemanticNew<DT>(pointer, S::Nest(**rhs));
          }
 
          Get() = pointer;
@@ -373,7 +373,7 @@ namespace Langulus::Anyness
          auto pointer = entry->GetBlockStart();
 
          if constexpr (CT::Handle<TypeOf<S>>)
-            SemanticNewUnknown(meta->mDeptr, pointer, S::Nest(rhs.mValue.mValue));
+            SemanticNewUnknown(meta->mDeptr, pointer, S::Nest(rhs->mValue));
          else
             SemanticNewUnknown(meta->mDeptr, pointer, rhs.Forward());
 

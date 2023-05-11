@@ -112,7 +112,7 @@ namespace Langulus::Anyness
       // Clone everything and overwrite this block                      
       Block clone {*this};
       clone.AllocateFresh(RequestSize(mCount));
-      clone.CallUnknownSemanticConstructors(mCount, Langulus::Clone(*this));
+      clone.CallUnknownSemanticConstructors(mCount, Clone(*this));
       Free();
       CopyMemory(this, &clone);
    }

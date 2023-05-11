@@ -38,34 +38,34 @@ namespace Langulus::Anyness
       static_assert(CT::Map<TO>, "TO must be a map type");
       static_assert(CT::Map<FROM>, "FROM must be a map type");
 
-      mValues.mCount = other.mValue.mValues.mCount;
+      mValues.mCount = other->mValues.mCount;
 
       if constexpr (!CT::TypedMap<TO>) {
          // TO is not statically typed                                  
-         mKeys.mType = other.mValue.GetKeyType();
-         mKeys.mState = other.mValue.mKeys.mState;
-         mValues.mType = other.mValue.GetValueType();
-         mValues.mState = other.mValue.mValues.mState;
+         mKeys.mType = other->GetKeyType();
+         mKeys.mState = other->mKeys.mState;
+         mValues.mType = other->GetValueType();
+         mValues.mState = other->mValues.mState;
       }
       else {
          // TO is statically typed                                      
          mKeys.mType = MetaData::Of<typename TO::Key>();
-         mKeys.mState = other.mValue.mKeys.mState + DataState::Typed;
+         mKeys.mState = other->mKeys.mState + DataState::Typed;
          mValues.mType = MetaData::Of<typename TO::Value>();
-         mValues.mState = other.mValue.mValues.mState + DataState::Typed;
+         mValues.mState = other->mValues.mState + DataState::Typed;
       }
 
       if constexpr (S::Shallow) {
-         mKeys.mRaw = other.mValue.mKeys.mRaw;
-         mKeys.mReserved = other.mValue.mKeys.mReserved;
-         mValues.mRaw = other.mValue.mValues.mRaw;
-         mValues.mReserved = other.mValue.mValues.mReserved;
-         mInfo = other.mValue.mInfo;
+         mKeys.mRaw = other->mKeys.mRaw;
+         mKeys.mReserved = other->mKeys.mReserved;
+         mValues.mRaw = other->mValues.mRaw;
+         mValues.mReserved = other->mValues.mReserved;
+         mInfo = other->mInfo;
 
          if constexpr (S::Keep) {
             // Move/Copy other                                          
-            mKeys.mEntry = other.mValue.mKeys.mEntry;
-            mValues.mEntry = other.mValue.mValues.mEntry;
+            mKeys.mEntry = other->mKeys.mEntry;
+            mValues.mEntry = other->mValues.mEntry;
 
             if constexpr (S::Move) {
                if constexpr (!FROM::Ownership) {
@@ -77,19 +77,19 @@ namespace Langulus::Anyness
                   Keep();
                }
                else {
-                  other.mValue.mKeys.ResetMemory();
-                  other.mValue.mKeys.ResetState();
-                  other.mValue.mValues.ResetMemory();
-                  other.mValue.mValues.ResetState();
+                  other->mKeys.ResetMemory();
+                  other->mKeys.ResetState();
+                  other->mValues.ResetMemory();
+                  other->mValues.ResetState();
                }
             }
             else Keep();
          }
          else if constexpr (S::Move) {
             // Abandon other                                            
-            mKeys.mEntry = other.mValue.mKeys.mEntry;
-            mValues.mEntry = other.mValue.mValues.mEntry;
-            other.mValue.mValues.mEntry = nullptr;
+            mKeys.mEntry = other->mKeys.mEntry;
+            mValues.mEntry = other->mValues.mEntry;
+            other->mValues.mEntry = nullptr;
          }
       }
       else {
@@ -99,23 +99,23 @@ namespace Langulus::Anyness
          mValues.mState -= DataState::Static;
 
          if constexpr (CT::TypedMap<TO>)
-            BlockClone<TO>(other.mValue);
+            BlockClone<TO>(*other);
          else if constexpr (CT::TypedMap<FROM>)
-            BlockClone<FROM>(other.mValue);
+            BlockClone<FROM>(*other);
          else {
             // Use type-erased cloning                                  
             auto asTo = reinterpret_cast<TO*>(this);
-            asTo->AllocateFresh(other.mValue.GetReserved());
+            asTo->AllocateFresh(other->GetReserved());
 
             // Clone info array                                         
-            CopyMemory(asTo->mInfo, other.mValue.mInfo, GetReserved() + 1);
+            CopyMemory(asTo->mInfo, other->mInfo, GetReserved() + 1);
 
             auto info = asTo->GetInfo();
             const auto infoEnd = asTo->GetInfoEnd();
             auto dstKey = asTo->GetKeyInner(0);
             auto dstVal = asTo->GetValueInner(0);
-            auto srcKey = other.mValue.GetKeyInner(0);
-            auto srcVal = other.mValue.GetValueInner(0);
+            auto srcKey = other->GetKeyInner(0);
+            auto srcVal = other->GetValueInner(0);
             while (info != infoEnd) {
                if (*info) {
                   dstKey.CallUnknownSemanticConstructors(

@@ -18,14 +18,14 @@ namespace Langulus::Anyness
    TEMPLATE_OWNED()
    LANGULUS(INLINED)
    constexpr TOwned<T>::TOwned(const TOwned& value)
-      : TOwned {Langulus::Copy(value)} {}
+      : TOwned {Copy(value)} {}
 
    /// Move constructor                                                       
    ///   @param value - owned value to move                                   
    TEMPLATE_OWNED()
    LANGULUS(INLINED)
    constexpr TOwned<T>::TOwned(TOwned&& value)
-      : TOwned {Langulus::Move(value)} {}
+      : TOwned {Move(value)} {}
    
    /// Copy a value                                                           
    ///   @param value - value to copy                                         
@@ -57,9 +57,9 @@ namespace Langulus::Anyness
    constexpr TOwned<T>::TOwned(S&& value) {
       if constexpr (CT::Exact<TypeOf<S>, TOwned>) {
          // Semantically construct via another owned value              
-         SemanticNew<T>(&mValue, S::Nest(value.mValue.mValue));
+         SemanticNew<T>(&mValue, S::Nest(value->mValue));
          if constexpr (S::Move && S::Keep)
-            value.mValue.mValue = {};
+            value->mValue = {};
       }
       else {
          // Semantically construct by raw value                         
@@ -123,9 +123,9 @@ namespace Langulus::Anyness
    constexpr TOwned<T>& TOwned<T>::operator = (S&& rhs) {
       if constexpr (CT::Exact<TypeOf<S>, TOwned>) {
          // Assign another TOwned                                       
-         SemanticAssign(mValue, S::Nest(rhs.mValue.mValue));
+         SemanticAssign(mValue, S::Nest(rhs->mValue));
          if constexpr (S::Move && S::Keep)
-            rhs.mValue.mValue = {};
+            rhs->mValue = {};
       }
       else {
          // Assign a raw value                                          

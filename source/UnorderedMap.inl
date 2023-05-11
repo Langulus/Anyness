@@ -56,16 +56,16 @@ namespace Langulus::Anyness
          if constexpr (T::Ordered) {
             // We have to reinsert everything, because source is        
             // ordered and uses a different bucketing approach          
-            mKeys.mType = other.mValue.GetKeyType();
-            mValues.mType = other.mValue.GetValueType();
+            mKeys.mType = other->GetKeyType();
+            mValues.mType = other->GetValueType();
 
-            AllocateFresh(other.mValue.GetReserved());
+            AllocateFresh(other->GetReserved());
             ZeroMemory(mInfo, GetReserved());
             mInfo[GetReserved()] = 1;
 
             const auto hashmask = GetReserved() - 1;
             using TP = typename T::Pair;
-            other.mValue.ForEach([this, hashmask](TP& pair) {
+            other->ForEach([this, hashmask](TP& pair) {
                InsertPairInner<UnorderedMap>(hashmask, S::Nest(pair));
             });
          }
@@ -77,8 +77,8 @@ namespace Langulus::Anyness
       }
       else if constexpr (CT::Pair<T>) {
          // Construct from any kind of pair                             
-         mKeys.mType = other.mValue.GetKeyType();
-         mValues.mType = other.mValue.GetValueType();
+         mKeys.mType = other->GetKeyType();
+         mValues.mType = other->GetValueType();
 
          AllocateFresh(MinimalAllocation);
          ZeroMemory(mInfo, MinimalAllocation);
@@ -90,8 +90,8 @@ namespace Langulus::Anyness
       else if constexpr (CT::Array<T>) {
          if constexpr (CT::Pair<Deext<T>>) {
             // Construct from an array of pairs                         
-            mKeys.mType = other.mValue[0].GetKeyType();
-            mValues.mType = other.mValue[0].GetValueType();
+            mKeys.mType = (*other)[0].GetKeyType();
+            mValues.mType = (*other)[0].GetValueType();
 
             constexpr auto reserved = Roof2(ExtentOf<T>);
             AllocateFresh(reserved);
@@ -99,7 +99,7 @@ namespace Langulus::Anyness
             mInfo[reserved] = 1;
 
             constexpr auto hashmask = reserved - 1;
-            for (auto& pair : other.mValue)
+            for (auto& pair : *other)
                InsertPairInner<UnorderedMap>(hashmask, S::Nest(pair));
          }
          else LANGULUS_ERROR("Unsupported semantic array constructor");
@@ -116,8 +116,8 @@ namespace Langulus::Anyness
    UnorderedMap::UnorderedMap(HEAD&& head, TAIL&&... tail) requires (sizeof...(TAIL) >= 1) {
       if constexpr (CT::Semantic<HEAD>) {
          if constexpr (CT::Pair<TypeOf<HEAD>>) {
-            mKeys.mType = head.mValue.GetKeyType();
-            mValues.mType = head.mValue.GetValueType();
+            mKeys.mType = head->GetKeyType();
+            mValues.mType = head->GetValueType();
          }
          else LANGULUS_ERROR("Type inside semantic is not a Pair");
       }
@@ -195,7 +195,7 @@ namespace Langulus::Anyness
 
       if constexpr (CT::Map<T>) {
          if (static_cast<const BlockMap*>(this)
-          == static_cast<const BlockMap*>(&other.mValue))
+          == static_cast<const BlockMap*>(&*other))
             return *this;
 
          Free();
@@ -305,18 +305,10 @@ namespace Langulus::Anyness
       using T = TypeOf<S>;
       static_assert(CT::Pair<T>, "T must be a pair");
 
-      if constexpr (CT::TypedPair<T>) {
-         return Insert(
-            S::Nest(pair.mValue.mKey),
-            S::Nest(pair.mValue.mValue)
-         );
-      }
-      else {
-         return InsertUnknown(
-            S::Nest(pair.mValue.mKey),
-            S::Nest(pair.mValue.mValue)
-         );
-      }
+      if constexpr (CT::TypedPair<T>)
+         return Insert(S::Nest(pair->mKey), S::Nest(pair->mValue));
+      else
+         return InsertUnknown(S::Nest(pair->mKey), S::Nest(pair->mValue));
    }
 
    /// Copy-insert any pair inside the map                                    
@@ -366,10 +358,10 @@ namespace Langulus::Anyness
       static_assert(CT::Block<TypeOf<SV>>,
          "SV's type must be a block type");
 
-      Mutate(key.mValue.mType, val.mValue.mType);
+      Mutate(key->mType, val->mType);
       Reserve(GetCount() + 1);
       InsertInnerUnknown<true>(
-         GetBucketUnknown(GetReserved() - 1, key.mValue),
+         GetBucketUnknown(GetReserved() - 1, *key),
          key.Forward(), val.Forward()
       );
       return 1;
@@ -385,10 +377,7 @@ namespace Langulus::Anyness
       static_assert(CT::Pair<T> && !CT::TypedPair<T>,
          "SP's type must be type-erased pair type");
 
-      return InsertUnknown(
-         S::Nest(pair.mValue.mKey), 
-         S::Nest(pair.mValue.mValue)
-      );
+      return InsertUnknown(S::Nest(pair->mKey), S::Nest(pair->mValue));
    }
    
    /// Access value by key, or implicitly add the key if not found            

@@ -66,14 +66,14 @@ namespace Langulus::Anyness
    ///   @param text - the text to wrap                                       
    LANGULUS(INLINED)
    Text::Text(const CompatibleStdString& text)
-      : Text {Langulus::Copy(text.data()), text.size()} {}
+      : Text {Copy(text.data()), text.size()} {}
 
    /// Construct from compatible std::string_view                             
    /// Data will be cloned if we don't have authority over the memory         
    ///   @param text - the text to wrap                                       
    LANGULUS(INLINED)
    Text::Text(const CompatibleStdStringView& text)
-      : Text {Langulus::Copy(text.data()), text.size()} {}
+      : Text {Copy(text.data()), text.size()} {}
 
    /// Stringify a Langulus::Exception                                        
    ///   @param from - the exception to stringify                             
@@ -107,7 +107,7 @@ namespace Langulus::Anyness
    ///   @param anyCharacter - the character                                  
    LANGULUS(INLINED)
    Text::Text(const Letter& anyCharacter)
-      : Text {Langulus::Copy(&anyCharacter), 1} { }
+      : Text {Copy(&anyCharacter), 1} { }
 
    /// Convert a number type to text                                          
    ///   @param number - the number to stringify                              
@@ -150,7 +150,7 @@ namespace Langulus::Anyness
    template<Count C>
    LANGULUS(INLINED)
    Text::Text(const Letter(&text)[C])
-      : Text {Langulus::Copy(text), strnlen(text, C)} { }
+      : Text {Copy(text), strnlen(text, C)} { }
 
    /// Construct manually from count-terminated array                         
    ///   @param text - text memory to reference                               
@@ -158,11 +158,11 @@ namespace Langulus::Anyness
    ///                  termination character, if any                         
    LANGULUS(INLINED)
    Text::Text(const Letter* text, const Count& count)
-      : Text {Langulus::Copy(text), count} { }
+      : Text {Copy(text), count} { }
 
    LANGULUS(INLINED)
    Text::Text(Letter* text, const Count& count)
-      : Text {Langulus::Copy(text), count} { }
+      : Text {Copy(text), count} { }
 
    /// Semantic construction from count-terminated array                      
    ///   @param text - text memory to wrap                                    
@@ -176,11 +176,11 @@ namespace Langulus::Anyness
    ///   @param nullterminatedText - text memory to reference                 
    LANGULUS(INLINED)
    Text::Text(const Letter* nullterminatedText)
-      : Text {Langulus::Copy(nullterminatedText)} {}
+      : Text {Copy(nullterminatedText)} {}
 
    LANGULUS(INLINED)
    Text::Text(Letter* nullterminatedText)
-      : Text {Langulus::Copy(nullterminatedText)} {}
+      : Text {Copy(nullterminatedText)} {}
 
    /// Semantically construct from null-terminated array                      
    ///   @param nullterminatedText - text memory to reference                 
@@ -189,8 +189,8 @@ namespace Langulus::Anyness
    Text::Text(S&& nullterminatedText) requires RawTextPointer<S>
       : Text {
          nullterminatedText.Forward(), 
-         nullterminatedText.mValue 
-            ? ::std::strlen(nullterminatedText.mValue) 
+         *nullterminatedText 
+            ? ::std::strlen(*nullterminatedText) 
             : 0
       } {}
 
@@ -215,7 +215,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container                                
    LANGULUS(INLINED)
    Text& Text::operator = (const Text& rhs) {
-      return operator = (Langulus::Copy(rhs));
+      return operator = (Copy(rhs));
    }
 
    /// Move assignment                                                        
@@ -223,7 +223,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container                                
    LANGULUS(INLINED)
    Text& Text::operator = (Text&& rhs) noexcept {
-      return operator = (Langulus::Move(rhs));
+      return operator = (Move(rhs));
    }
    
    /// Assign a single character                                              
@@ -231,7 +231,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container                                
    LANGULUS(INLINED)
    Text& Text::operator = (const Letter& rhs) noexcept {
-      return operator = (Langulus::Copy(rhs));
+      return operator = (Copy(rhs));
    }
    
    /// Semantic assignment                                                    

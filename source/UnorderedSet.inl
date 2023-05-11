@@ -184,7 +184,7 @@ namespace Langulus::Anyness
 
       if constexpr (CT::Set<T>) {
          if (static_cast<const BlockSet*>(this)
-          == static_cast<const BlockSet*>(&other.mValue))
+          == static_cast<const BlockSet*>(&*other))
             return *this;
 
          Free();
@@ -202,8 +202,8 @@ namespace Langulus::Anyness
 
             // Insert an element                                        
             InsertInner<false>(
-               GetBucket(GetReserved() - 1, other.mValue),
-               S::Nest(other.mValue)
+               GetBucket(GetReserved() - 1, *other),
+               other.Forward()
             );
          }
       }
@@ -246,7 +246,7 @@ namespace Langulus::Anyness
       Mutate<T>();
       Reserve(GetCount() + 1);
       InsertInner<true>(
-         GetBucket(GetReserved() - 1, key.mValue),
+         GetBucket(GetReserved() - 1, *key),
          key.Forward()
       );
       return 1;
@@ -293,10 +293,10 @@ namespace Langulus::Anyness
       using S = Decay<decltype(key)>;
       static_assert(CT::Block<TypeOf<S>>, "S's type must be a block type");
 
-      Mutate(key.mValue.mType);
+      Mutate(key->mType);
       Reserve(GetCount() + 1);
       InsertInnerUnknown<true>(
-         GetBucketUnknown(GetReserved() - 1, key.mValue),
+         GetBucketUnknown(GetReserved() - 1, *key),
          key.Forward()
       );
       return 1;

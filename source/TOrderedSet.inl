@@ -65,7 +65,7 @@ namespace Langulus::Anyness
       using ST = TypeOf<S>;
 
       if constexpr (CT::Set<ST>) {
-         if (&static_cast<const BlockSet&>(rhs.mValue) == this)
+         if (&static_cast<const BlockSet&>(*rhs) == this)
             return *this;
 
          Base::Reset();
@@ -73,7 +73,7 @@ namespace Langulus::Anyness
       }
       else if constexpr (CT::Exact<T, ST>) {
          Base::Clear();
-         Insert(S::Nest(rhs.mValue));
+         Insert(rhs.Forward());
       }
       else LANGULUS_ERROR("Unsupported semantic assignment");
 
@@ -129,7 +129,7 @@ namespace Langulus::Anyness
    Count TABLE()::Insert(S&& key) requires (CT::Exact<TypeOf<S>, T>) {
       Base::Reserve(Base::GetCount() + 1);
       Base::template InsertInner<true>(
-         Base::GetBucket(Base::GetReserved() - 1, key.mValue),
+         Base::GetBucket(Base::GetReserved() - 1, *key),
          key.Forward()
       );
       return 1;
@@ -157,7 +157,7 @@ namespace Langulus::Anyness
    TEMPLATE()
    template<CT::Semantic S>
    TABLE()& TABLE()::operator << (S&& rhs) requires (CT::Exact<TypeOf<S>, T>) {
-      Insert(S::Nest(rhs.mValue));
+      Insert(rhs.Forward());
       return *this;
    }
 

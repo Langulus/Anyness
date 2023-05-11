@@ -44,7 +44,7 @@ namespace Langulus::Anyness
    ///   @return 1 if element was inserted, zero otherwise                    
    LANGULUS(INLINED)
    Count BlockSet::InsertUnknown(const Block& value) {
-      return InsertUnknown(Langulus::Copy(value));
+      return InsertUnknown(Copy(value));
    }
 
    /// Merge type-erased value via move                                       
@@ -52,7 +52,7 @@ namespace Langulus::Anyness
    ///   @return 1 if element was inserted, zero otherwise                    
    LANGULUS(INLINED)
    Count BlockSet::InsertUnknown(Block&& value) {
-      return InsertUnknown(Langulus::Move(value));
+      return InsertUnknown(Move(value));
    }
    
    /// Merge type-erased value via semantic                                   
@@ -61,10 +61,10 @@ namespace Langulus::Anyness
    template<CT::Semantic S>
    LANGULUS(INLINED)
    Count BlockSet::InsertUnknown(S&& value) requires (CT::Block<TypeOf<S>>) {
-      Mutate(value.mValue.mType);
+      Mutate(value->mType);
       Reserve(GetCount() + 1);
       InsertInnerUnknown<true>(
-         GetBucketUnknown(GetReserved() - 1, value.mValue), 
+         GetBucketUnknown(GetReserved() - 1, *value), 
          value.Forward()
       );
       return 1;
@@ -94,7 +94,7 @@ namespace Langulus::Anyness
    Count BlockSet::Merge(S&& set) {
       static_assert(CT::Set<TypeOf<S>>, "You can only merge other sets");
       Count inserted {};
-      for (auto it : set.mValue)
+      for (auto it : *set)
          inserted += InsertUnknown(S::Nest(it));
       return inserted;
    }
@@ -283,7 +283,7 @@ namespace Langulus::Anyness
          const auto index = psl - GetInfo();
          if constexpr (CHECK_FOR_MATCH) {
             const auto candidate = GetInner(index);
-            if (candidate == value.mValue) {
+            if (candidate == *value) {
                // Neat, the key already exists - just return            
                return index;
             }
@@ -313,8 +313,8 @@ namespace Langulus::Anyness
          .CallUnknownSemanticConstructors(1, value.Forward());
 
       if constexpr (S::Move) {
-         value.mValue.CallUnknownDestructors();
-         value.mValue.mCount = 0;
+         value->CallUnknownDestructors();
+         value->mCount = 0;
       }
 
       *psl = attempts;

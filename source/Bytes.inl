@@ -17,25 +17,25 @@ namespace Langulus::Anyness
    ///   @param other - container to reference                                
    LANGULUS(INLINED)
    Bytes::Bytes(const Bytes& other)
-      : Bytes {Langulus::Copy(other)} {}
+      : Bytes {Copy(other)} {}
 
    /// Byte container move-construction                                       
    ///   @param other - container to move                                     
    LANGULUS(INLINED)
    Bytes::Bytes(Bytes&& other) noexcept
-      : Bytes {Langulus::Move(other)} {}
+      : Bytes {Move(other)} {}
 
    /// Byte container copy-construction from TAny<Byte> base                  
    ///   @param other - container to reference                                
    LANGULUS(INLINED)
    Bytes::Bytes(const TAny& other)
-      : Bytes {Langulus::Copy(other)} {}
+      : Bytes {Copy(other)} {}
 
    /// Byte container mvoe-construction from TAny<Byte> base                  
    ///   @param other - container to move                                     
    LANGULUS(INLINED)
    Bytes::Bytes(TAny&& other) noexcept
-      : Bytes {Langulus::Move(other)} {}
+      : Bytes {Move(other)} {}
 
    template<CT::Semantic S>
    LANGULUS(INLINED)
@@ -47,11 +47,11 @@ namespace Langulus::Anyness
    ///   @param size - number of bytes inside 'raw'                           
    LANGULUS(INLINED)
    Bytes::Bytes(const void* raw, const Size& size)
-      : Bytes {Langulus::Copy(raw), size} {}
+      : Bytes {Copy(raw), size} {}
 
    LANGULUS(INLINED)
    Bytes::Bytes(void* raw, const Size& size)
-      : Bytes {Langulus::Copy(raw), size} {}
+      : Bytes {Copy(raw), size} {}
 
    template<CT::Semantic S>
    LANGULUS(INLINED)
@@ -88,7 +88,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container                                
    LANGULUS(INLINED)
    Bytes& Bytes::operator = (const Bytes& rhs) {
-      return operator = (Langulus::Copy(rhs));
+      return operator = (Copy(rhs));
    }
 
    /// Move byte container                                                    
@@ -96,7 +96,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container                                
    LANGULUS(INLINED)
    Bytes& Bytes::operator = (Bytes&& rhs) noexcept {
-      return operator = (Langulus::Move(rhs));
+      return operator = (Move(rhs));
    }
 
    /// Move byte container                                                    
@@ -119,7 +119,7 @@ namespace Langulus::Anyness
    ///   @return the combined container                                       
    LANGULUS(INLINED)
    Bytes Bytes::operator + (const Bytes& rhs) const {
-      return Concatenate<Bytes>(Langulus::Copy(rhs));
+      return Concatenate<Bytes>(Copy(rhs));
    }
 
    /// Move-concatenate with another TAny                                     
@@ -127,7 +127,7 @@ namespace Langulus::Anyness
    ///   @return the combined container                                       
    LANGULUS(INLINED)
    Bytes Bytes::operator + (Bytes&& rhs) const {
-      return Concatenate<Bytes>(Langulus::Move(rhs));
+      return Concatenate<Bytes>(Move(rhs));
    }
 
    /// Move-concatenate with another TAny                                     

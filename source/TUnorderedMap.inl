@@ -213,7 +213,7 @@ namespace Langulus::Anyness
       using T = TypeOf<S>;
 
       if constexpr (CT::Map<T>) {
-         if (&static_cast<const BlockMap&>(other.mValue) == this)
+         if (&static_cast<const BlockMap&>(*other) == this)
             return *this;
 
          Reset();
@@ -830,7 +830,7 @@ namespace Langulus::Anyness
    Count TABLE()::Insert(SK&& key, SV&& value) noexcept requires (CT::Exact<TypeOf<SK>, K> && CT::Exact<TypeOf<SV>, V>) {
       Reserve(GetCount() + 1);
       InsertInner<true>(
-         GetBucket(GetReserved() - 1, key.mValue), 
+         GetBucket(GetReserved() - 1, *key), 
          key.Forward(), value.Forward()
       );
       return 1;

@@ -46,7 +46,7 @@ namespace Langulus::Anyness
    TEMPLATE()
    template<CT::Semantic S>
    TABLE()& TABLE()::operator = (S&& rhs) noexcept requires (CT::Exact<TypeOf<S>, Self>) {
-      if (&static_cast<const BlockMap&>(rhs.mValue) == this)
+      if (&static_cast<const BlockMap&>(*rhs) == this)
          return *this;
 
       Base::Reset();
@@ -75,7 +75,7 @@ namespace Langulus::Anyness
    template<CT::Semantic S>
    TABLE()& TABLE()::operator = (S&& rhs) noexcept requires (CT::Pair<TypeOf<S>>) {
       Base::Clear();
-      Insert(S::Nest(rhs.mValue.mKey), S::Nest(rhs.mValue.mValue));
+      Insert(S::Nest(rhs->mKey), S::Nest(rhs->mValue));
       return *this;
    }
    
@@ -149,7 +149,7 @@ namespace Langulus::Anyness
    Count TABLE()::Insert(SK&& key, SV&& value) noexcept requires (CT::Exact<TypeOf<SK>, K> && CT::Exact<TypeOf<SV>, V>) {
       Base::Reserve(Base::GetCount() + 1);
       Base::template InsertInner<true>(
-         Base::GetBucket(Base::GetReserved() - 1, key.mValue),
+         Base::GetBucket(Base::GetReserved() - 1, *key),
          key.Forward(), value.Forward()
       );
       return 1;
@@ -177,7 +177,7 @@ namespace Langulus::Anyness
    TEMPLATE()
    template<CT::Semantic S>
    TABLE()& TABLE()::operator << (S&& rhs) noexcept requires (CT::Pair<TypeOf<S>>) {
-      Insert(S::Nest(rhs.mValue.mKey), S::Nest(rhs.mValue.mValue));
+      Insert(S::Nest(rhs->mKey), S::Nest(rhs->mValue));
       return *this;
    }
 

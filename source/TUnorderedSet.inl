@@ -213,7 +213,7 @@ namespace Langulus::Anyness
       using ST = TypeOf<S>;
 
       if constexpr (CT::Set<ST>) {
-         if (&static_cast<const BlockSet&>(rhs.mValue) == this)
+         if (&static_cast<const BlockSet&>(*rhs) == this)
             return *this;
 
          Reset();
@@ -221,7 +221,7 @@ namespace Langulus::Anyness
       }
       else if constexpr (CT::Exact<T, ST>) {
          Clear();
-         Insert(S::Nest(rhs.mValue));
+         Insert(rhs.Forward());
       }
       else LANGULUS_ERROR("Unsupported semantic assignment");
 
@@ -639,7 +639,7 @@ namespace Langulus::Anyness
 
       Reserve(GetCount() + 1);
       InsertInner<true>(
-         GetBucket(GetReserved() - 1, key.mValue),
+         GetBucket(GetReserved() - 1, *key),
          key.Forward()
       );
       return 1;

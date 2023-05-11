@@ -33,14 +33,14 @@ namespace Langulus::Anyness
    TEMPLATE()
    LANGULUS(INLINED)
    TAny<T>::TAny(const TAny& other)
-      : TAny {Langulus::Copy(other)} {}
+      : TAny {Copy(other)} {}
 
    /// Move construction                                                      
    ///   @param other - the TAny to move                                      
    TEMPLATE()
    LANGULUS(INLINED)
    TAny<T>::TAny(TAny&& other) noexcept
-      : TAny {Langulus::Move(other)} {}
+      : TAny {Move(other)} {}
 
    /// Copy-construction from any deep container, with a bit of               
    /// runtime type-checking overhead                                         
@@ -48,12 +48,12 @@ namespace Langulus::Anyness
    TEMPLATE()
    LANGULUS(INLINED)
    TAny<T>::TAny(const CT::NotSemantic auto& other)
-      : TAny {Langulus::Copy(other)} {}
+      : TAny {Copy(other)} {}
 
    TEMPLATE()
    LANGULUS(INLINED)
    TAny<T>::TAny(CT::NotSemantic auto& other)
-      : TAny {Langulus::Copy(other)} {}
+      : TAny {Copy(other)} {}
 
    /// Move-construction from any deep container, with a bit of               
    /// runtime type-checking overhead                                         
@@ -61,7 +61,7 @@ namespace Langulus::Anyness
    TEMPLATE()
    LANGULUS(INLINED)
    TAny<T>::TAny(CT::NotSemantic auto&& other)
-      : TAny {Langulus::Move(other)} {}
+      : TAny {Move(other)} {}
 
    /// Semantic construction from any container                               
    ///   @tparam S - the semantic and type to use (deducible)                 
@@ -78,7 +78,7 @@ namespace Langulus::Anyness
 
          if constexpr (!CT::Typed<ST>) {
             // Container is type-erased, do runtime type checks         
-            if (mType->IsExact(other.mValue.GetType())) {
+            if (mType->IsExact(other->GetType())) {
                // If types are exactly the same, it is safe to directly 
                // transfer the block                                    
                BlockTransfer<TAny>(other.Forward());
@@ -87,7 +87,7 @@ namespace Langulus::Anyness
 
             // Do more detailed checks, if provided type is base/child  
             // of this typed container's type                           
-            LANGULUS_ASSERT(CastsToMeta(other.mValue.GetType()),
+            LANGULUS_ASSERT(CastsToMeta(other->GetType()),
                Construct, "Bad semantic-construction");
 
             TODO();
@@ -106,7 +106,7 @@ namespace Langulus::Anyness
                // base of this container's type. Each element should be 
                // dynamically cast to this type                         
                if constexpr (CT::Sparse<T> && CT::Sparse<ContainedType>) {
-                  for (auto pointer : other.mValue) {
+                  for (auto pointer : *other) {
                      auto dcast = dynamic_cast<T>(&(*pointer));
                      if (dcast)
                         (*this) << dcast;
@@ -120,7 +120,7 @@ namespace Langulus::Anyness
                // should be down casted to this type                    
                //TODO questionable slicing
                if constexpr (CT::Sparse<T> && CT::Sparse<ContainedType>) {
-                  for (auto pointer : other.mValue)
+                  for (auto pointer : *other)
                      (*this) << static_cast<T>(&(*pointer));
                }
                else TODO();
@@ -144,16 +144,16 @@ namespace Langulus::Anyness
             return;
 
          mType = MetaData::Of<T>();
-         const auto count = other.mValue.size();
+         const auto count = other->size();
          AllocateFresh(RequestSize(count));
-         InsertInner<Copied<T>>(other.mValue.data(), other.mValue.data() + count, 0);
+         InsertInner<Copied<T>>(other->data(), other->data() + count, 0);
       }
       else if constexpr (CT::Array<ST> && CT::Exact<T, ::std::remove_extent_t<ST>>) {
          // Integration with bounded arrays                             
          mType = MetaData::Of<T>();
          constexpr auto count = ExtentOf<ST>;
          AllocateFresh(RequestSize(count));
-         InsertInner<Copied<T>>(other.mValue, other.mValue + count, 0);
+         InsertInner<Copied<T>>(*other, *other + count, 0);
       }
       else LANGULUS_ERROR("Bad semantic construction");
    }
@@ -204,7 +204,7 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    TAny<T> TAny<T>::From(S&& what, const Count& count) requires (CT::Sparse<TypeOf<S>>) {
       TAny<T> result;
-      result.SetMemory(DataState::Constrained, result.GetType(), count, what.mValue, nullptr);
+      result.SetMemory(DataState::Constrained, result.GetType(), count, *what, nullptr);
       if constexpr (!S::Move && S::Keep)
          result.TakeAuthority();
       return result;
@@ -300,7 +300,7 @@ namespace Langulus::Anyness
    TAny<T>& TAny<T>::operator = (S&& other) {
       if constexpr (CT::Deep<TypeOf<S>>) {
          if (static_cast<const Block*>(this)
-          == static_cast<const Block*>(&other.mValue))
+          == static_cast<const Block*>(&*other))
             return *this;
 
          Free();
@@ -319,7 +319,7 @@ namespace Langulus::Anyness
 
             if constexpr (CT::Sparse<T>) {
                *mRawSparse = const_cast<Byte*>(
-                  reinterpret_cast<const Byte*>(other.mValue)
+                  reinterpret_cast<const Byte*>(*other)
                );
                *GetEntries() = nullptr;
             }
@@ -881,7 +881,7 @@ namespace Langulus::Anyness
    template<Index INDEX>
    LANGULUS(INLINED)
    Count TAny<T>::Insert(const T& item) {
-      return Insert<INDEX>(Langulus::Copy(item));
+      return Insert<INDEX>(Copy(item));
    }
 
    /// Move-insert an element at the start or the end                         
@@ -893,7 +893,7 @@ namespace Langulus::Anyness
    template<Index INDEX>
    LANGULUS(INLINED)
    Count TAny<T>::Insert(T&& item) {
-      return Insert<INDEX>(Langulus::Move(item));
+      return Insert<INDEX>(Move(item));
    }
 
    /// Move-insert an element at the start or the end                         
@@ -1053,7 +1053,7 @@ namespace Langulus::Anyness
    TEMPLATE()
    LANGULUS(INLINED)
    TAny<T>& TAny<T>::operator << (const T& other) {
-      Insert<IndexBack>(Langulus::Copy(other));
+      Insert<IndexBack>(Copy(other));
       return *this;
    }
 
@@ -1063,7 +1063,7 @@ namespace Langulus::Anyness
    TEMPLATE()
    LANGULUS(INLINED)
    TAny<T>& TAny<T>::operator << (T&& other) {
-      Insert<IndexBack>(Langulus::Move(other));
+      Insert<IndexBack>(Move(other));
       return *this;
    }
 
@@ -1084,7 +1084,7 @@ namespace Langulus::Anyness
    TEMPLATE()
    LANGULUS(INLINED)
    TAny<T>& TAny<T>::operator >> (const T& other) {
-      Insert<IndexFront>(Langulus::Copy(other));
+      Insert<IndexFront>(Copy(other));
       return *this;
    }
 
@@ -1094,7 +1094,7 @@ namespace Langulus::Anyness
    TEMPLATE()
    LANGULUS(INLINED)
    TAny<T>& TAny<T>::operator >> (T&& other) {
-      Insert<IndexFront>(Langulus::Move(other));
+      Insert<IndexFront>(Move(other));
       return *this;
    }
 
@@ -1138,7 +1138,7 @@ namespace Langulus::Anyness
    template<CT::Index IDX>
    LANGULUS(INLINED)
    Count TAny<T>::MergeAt(const T& item, const IDX& index) {
-      return MergeAt(Langulus::Copy(item), index);
+      return MergeAt(Copy(item), index);
    }
 
    /// Move-insert element, if not found, at an index                         
@@ -1151,7 +1151,7 @@ namespace Langulus::Anyness
    template<CT::Index IDX>
    LANGULUS(INLINED)
    Count TAny<T>::MergeAt(T&& item, const IDX& index) {
-      return MergeAt(Langulus::Move(item), index);
+      return MergeAt(Move(item), index);
    }
    
    /// Move-insert element, if not found, at an index                         
@@ -1164,7 +1164,7 @@ namespace Langulus::Anyness
    template<CT::Semantic S, CT::Index IDX>
    LANGULUS(INLINED)
    Count TAny<T>::MergeAt(S&& item, const IDX& index) requires (CT::Exact<TypeOf<S>, T>) {
-      if (!Find(item.mValue))
+      if (!Find(*item))
          return InsertAt(item.Forward(), index);
       return 0;
    }
@@ -1181,7 +1181,7 @@ namespace Langulus::Anyness
       Count added {};
       while (start != end) {
          if (!Find(*start))
-            added += Insert<INDEX>(Langulus::Copy(*start));
+            added += Insert<INDEX>(Copy(*start));
          ++start;
       }
 
@@ -1192,7 +1192,7 @@ namespace Langulus::Anyness
    template<Index INDEX>
    LANGULUS(INLINED)
    Count TAny<T>::Merge(const T& item) {
-      return Merge(Langulus::Copy(item));
+      return Merge(Copy(item));
    }
 
    /// Move-insert element, if not found, at a static index                   
@@ -1203,7 +1203,7 @@ namespace Langulus::Anyness
    template<Index INDEX>
    LANGULUS(INLINED)
    Count TAny<T>::Merge(T&& item) {
-      return Merge(Langulus::Move(item));
+      return Merge(Move(item));
    }
 
    /// Move-insert element, if not found, at a static index                   
@@ -1214,7 +1214,7 @@ namespace Langulus::Anyness
    template<Index INDEX, CT::Semantic S>
    LANGULUS(INLINED)
    Count TAny<T>::Merge(S&& item) requires (CT::Exact<TypeOf<S>, T>) {
-      if (!Find(item.mValue))
+      if (!Find(*item))
          return Insert<INDEX>(item.Forward());
       return 0;
    }
@@ -1225,7 +1225,7 @@ namespace Langulus::Anyness
    TEMPLATE()
    LANGULUS(INLINED)
    TAny<T>& TAny<T>::operator <<= (const T& other) {
-      Merge<IndexBack>(Langulus::Copy(other));
+      Merge<IndexBack>(Copy(other));
       return *this;
    }
 
@@ -1235,7 +1235,7 @@ namespace Langulus::Anyness
    TEMPLATE()
    LANGULUS(INLINED)
    TAny<T>& TAny<T>::operator <<= (T&& other) {
-      Merge<IndexBack>(Langulus::Move(other));
+      Merge<IndexBack>(Move(other));
       return *this;
    }
 
@@ -1256,7 +1256,7 @@ namespace Langulus::Anyness
    TEMPLATE()
    LANGULUS(INLINED)
    TAny<T>& TAny<T>::operator >>= (const T& other) {
-      Merge<IndexFront>(Langulus::Copy(other));
+      Merge<IndexFront>(Copy(other));
       return *this;
    }
 
@@ -1266,7 +1266,7 @@ namespace Langulus::Anyness
    TEMPLATE()
    LANGULUS(INLINED)
    TAny<T>& TAny<T>::operator >>= (T&& other) {
-      Merge<IndexFront>(Langulus::Move(other));
+      Merge<IndexFront>(Move(other));
       return *this;
    }
 
@@ -1943,27 +1943,27 @@ namespace Langulus::Anyness
 
       if constexpr (CT::DerivedFrom<ST, TAny<T>>) {
          // Concatenate any compatible container                        
-         if (rhs.mValue.IsEmpty())
+         if (rhs->IsEmpty())
             return *this;
 
          TAny<T> combined;
          combined.mType = MetaData::Of<T>();
-         combined.AllocateFresh(RequestSize(mCount + rhs.mValue.mCount));
+         combined.AllocateFresh(RequestSize(mCount + rhs->mCount));
          combined.InsertInner<Copied<T>>(GetRaw(), GetRawEnd(), 0);
-         combined.InsertInner<S>(rhs.mValue.GetRaw(), rhs.mValue.GetRawEnd(), mCount);
+         combined.InsertInner<S>(rhs->GetRaw(), rhs->GetRawEnd(), mCount);
          return Abandon(combined);
       }
       else if constexpr (CT::BuiltinCharacter<T> && CT::Exact<ST, ::std::basic_string_view<T>>) {
          // Concatenate std::string_view if TAny is compatible          
-         if (rhs.mValue.empty())
+         if (rhs->empty())
             return *this;
 
          TAny<T> combined;
          combined.mType = MetaData::Of<T>();
-         const auto strsize = rhs.mValue.size();
+         const auto strsize = rhs->size();
          combined.AllocateFresh(RequestSize(mCount + strsize));
          combined.InsertInner<Copied<T>>(GetRaw(), GetRawEnd(), 0);
-         combined.InsertInner<Copied<T>>(rhs.mValue.data(), rhs.mValue.data() + strsize, mCount);
+         combined.InsertInner<Copied<T>>(rhs->data(), rhs->data() + strsize, mCount);
          return Abandon(combined);
       }
       else if constexpr (CT::Array<ST> && CT::Exact<T, ::std::remove_extent_t<ST>>) {
@@ -1973,7 +1973,7 @@ namespace Langulus::Anyness
          constexpr auto strsize = ExtentOf<ST>;
          combined.AllocateFresh(RequestSize(mCount + strsize));
          combined.InsertInner<Copied<T>>(GetRaw(), GetRawEnd(), 0);
-         combined.InsertInner<S>(rhs.mValue, rhs.mValue + strsize, mCount);
+         combined.InsertInner<S>(*rhs, *rhs + strsize, mCount);
          return Abandon(combined);
       }
       else LANGULUS_ERROR("Bad semantic concatenation");
@@ -2001,22 +2001,23 @@ namespace Langulus::Anyness
 
       if constexpr (CT::DerivedFrom<ST, TAny<T>>) {
          // Concatenate any compatible container                        
-         if (rhs.mValue.IsEmpty())
+         if (rhs->IsEmpty())
             return *this;
+
          mType = MetaData::Of<T>();
-         AllocateMore(mCount + rhs.mValue.mCount);
-         InsertInner<S>(rhs.mValue.GetRaw(), rhs.mValue.GetRawEnd(), mCount);
+         AllocateMore(mCount + rhs->mCount);
+         InsertInner<S>(rhs->GetRaw(), rhs->GetRawEnd(), mCount);
          return *this;
       }
       else if constexpr (CT::BuiltinCharacter<T> && CT::Exact<ST, ::std::basic_string_view<T>>) {
          // Concatenate std::string_view if TAny is compatible          
-         if (rhs.mValue.empty())
+         if (rhs->empty())
             return *this;
 
          mType = MetaData::Of<T>();
-         const auto strsize = rhs.mValue.size();
+         const auto strsize = rhs->size();
          AllocateMore(mCount + strsize);
-         InsertInner<Copied<T>>(rhs.mValue.data(), rhs.mValue.data() + strsize, mCount);
+         InsertInner<Copied<T>>(rhs->data(), rhs->data() + strsize, mCount);
          return *this;
       }
       else if constexpr (CT::Array<ST> && CT::Exact<T, ::std::remove_extent_t<ST>>) {
@@ -2024,7 +2025,7 @@ namespace Langulus::Anyness
          mType = MetaData::Of<T>();
          constexpr auto strsize = ExtentOf<ST>;
          AllocateMore(mCount + strsize);
-         InsertInner<S>(rhs.mValue, rhs.mValue + strsize, mCount);
+         InsertInner<S>(*rhs, *rhs + strsize, mCount);
          return *this;
       }
       else LANGULUS_ERROR("Bad semantic concatenation");

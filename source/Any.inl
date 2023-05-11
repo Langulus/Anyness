@@ -228,11 +228,11 @@ namespace Langulus::Anyness
 
       if constexpr (CT::Deep<T>) {
          // Assign a container                                          
-         if (this == &other.mValue)
+         if (this == &*other)
             return *this;
 
          // Since Any is type-erased, we make a runtime type check      
-         LANGULUS_ASSERT(!IsTypeConstrained() || CastsToMeta(other.mValue.GetType()),
+         LANGULUS_ASSERT(!IsTypeConstrained() || CastsToMeta(other->GetType()),
             Assign, "Incompatible types");
 
          Free();
@@ -487,24 +487,24 @@ namespace Langulus::Anyness
 
    /// An inner concatenation routine using move/abandon                      
    ///   @tparam WRAPPER - the type of the concatenated container             
-   ///   @tparam T - block type to concatenate with (deducible)               
+   ///   @tparam S - block type and semantic to concatenate with (deducible)  
    ///   @param rhs - block to concatenate                                    
    ///   @return the concatenated container                                   
    template<CT::Block WRAPPER, CT::Semantic S>
    WRAPPER Any::Concatenate(S&& rhs) const {
       static_assert(CT::Block<TypeOf<S>>,
-         "S::Type must be a block type");
+         "S type must be a block type");
 
       if (IsEmpty())
          return {rhs.Forward()};
-      else if (rhs.mValue.IsEmpty())
+      else if (rhs->IsEmpty())
          return reinterpret_cast<const WRAPPER&>(*this);
 
       WRAPPER result;
       if constexpr (!CT::Typed<WRAPPER>)
          result.template SetType<false>(mType);
 
-      result.AllocateFresh(result.RequestSize(mCount + rhs.mValue.mCount));
+      result.AllocateFresh(result.RequestSize(mCount + rhs->mCount));
       result.InsertBlock(reinterpret_cast<const WRAPPER&>(*this));
       result.InsertBlock(rhs.Forward());
       return Abandon(result);

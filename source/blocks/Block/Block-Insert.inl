@@ -74,7 +74,7 @@ namespace Langulus::Anyness
    template<bool MUTABLE, CT::Data WRAPPER, CT::NotSemantic T, CT::Index INDEX>
    LANGULUS(INLINED)
    Count Block::InsertAt(const T& item, INDEX idx) {
-      return InsertAt<MUTABLE, WRAPPER>(Langulus::Copy(item), idx);
+      return InsertAt<MUTABLE, WRAPPER>(Copy(item), idx);
    }
 
    /// Insert a single element by move                                        
@@ -89,7 +89,7 @@ namespace Langulus::Anyness
    template<bool MUTABLE, CT::Data WRAPPER, CT::NotSemantic T, CT::Index INDEX>
    LANGULUS(INLINED)
    Count Block::InsertAt(T&& item, INDEX idx) {
-      return InsertAt<MUTABLE, WRAPPER>(Langulus::Move(item), idx);
+      return InsertAt<MUTABLE, WRAPPER>(Move(item), idx);
    }
    
    /// Insert a single element by a semantic                                  
@@ -203,7 +203,7 @@ namespace Langulus::Anyness
    template<Index INDEX, bool MUTABLE, CT::Data WRAPPER, CT::NotSemantic T>
    LANGULUS(INLINED)
    Count Block::Insert(const T& item) {
-      return Insert<INDEX, MUTABLE, WRAPPER>(Langulus::Copy(item));
+      return Insert<INDEX, MUTABLE, WRAPPER>(Copy(item));
    }
 
    /// Insert a single element by move at a static index                      
@@ -218,7 +218,7 @@ namespace Langulus::Anyness
    template<Index INDEX, bool MUTABLE, CT::Data WRAPPER, CT::NotSemantic T>
    LANGULUS(INLINED)
    Count Block::Insert(T&& item) {
-      return Insert<INDEX, MUTABLE, WRAPPER>(Langulus::Move(item));
+      return Insert<INDEX, MUTABLE, WRAPPER>(Move(item));
    }
    
    /// Insert a single element by semantic at a static index                  
@@ -286,7 +286,7 @@ namespace Langulus::Anyness
       Count added {};
       while (start != end) {
          if (!FindKnown(*start)) {
-            added += InsertAt<MUTABLE, WRAPPER>(Langulus::Copy(*start), offset);
+            added += InsertAt<MUTABLE, WRAPPER>(Copy(*start), offset);
             ++offset;
          }
 
@@ -309,7 +309,7 @@ namespace Langulus::Anyness
    template<bool MUTABLE, CT::Data WRAPPER, CT::NotSemantic T, CT::Index INDEX>
    LANGULUS(INLINED)
    Count Block::MergeAt(const T& item, INDEX index) {
-      return MergeAt<MUTABLE, WRAPPER>(Langulus::Copy(item), index);
+      return MergeAt<MUTABLE, WRAPPER>(Copy(item), index);
    }
 
    /// Merge a single element by move                                         
@@ -325,7 +325,7 @@ namespace Langulus::Anyness
    template<bool MUTABLE, CT::Data WRAPPER, CT::NotSemantic T, CT::Index INDEX>
    LANGULUS(INLINED)
    Count Block::MergeAt(T&& item, INDEX index) {
-      return MergeAt<MUTABLE, WRAPPER>(Langulus::Move(item), index);
+      return MergeAt<MUTABLE, WRAPPER>(Move(item), index);
    }
    
    /// Merge a single element by a semantic                                   
@@ -362,7 +362,7 @@ namespace Langulus::Anyness
       Count added {};
       while (start != end) {
          if (!FindKnown(*start))
-            added += Insert<INDEX, MUTABLE, WRAPPER, T>(Langulus::Copy(*start));
+            added += Insert<INDEX, MUTABLE, WRAPPER, T>(Copy(*start));
          ++start;
       }
 
@@ -381,7 +381,7 @@ namespace Langulus::Anyness
    template<Index INDEX, bool MUTABLE, CT::Data WRAPPER, CT::NotSemantic T>
    LANGULUS(INLINED)
    Count Block::Merge(const T& item) {
-      return Merge<INDEX, MUTABLE, WRAPPER>(Langulus::Copy(item));
+      return Merge<INDEX, MUTABLE, WRAPPER>(Copy(item));
    }
 
    /// Merge an elements by move at a static index                            
@@ -396,7 +396,7 @@ namespace Langulus::Anyness
    template<Index INDEX, bool MUTABLE, CT::Data WRAPPER, CT::NotSemantic T>
    LANGULUS(INLINED)
    Count Block::Merge(T&& item) {
-      return Merge<INDEX, MUTABLE, WRAPPER>(Langulus::Move(item));
+      return Merge<INDEX, MUTABLE, WRAPPER>(Move(item));
    }
    
    /// Merge an elements by semantic at a static index                        
@@ -425,7 +425,7 @@ namespace Langulus::Anyness
    template<CT::NotSemantic T, CT::Index INDEX>
    LANGULUS(INLINED)
    Count Block::InsertBlockAt(const T& other, INDEX idx) {
-      return InsertBlockAt(Langulus::Copy(other), idx);
+      return InsertBlockAt(Copy(other), idx);
    }
 
    /// Move-insert all elements of a block at an index                        
@@ -437,7 +437,7 @@ namespace Langulus::Anyness
    template<CT::NotSemantic T, CT::Index INDEX>
    LANGULUS(INLINED)
    Count Block::InsertBlockAt(T&& other, INDEX idx) {
-      return InsertBlockAt(Langulus::Move(other), idx);
+      return InsertBlockAt(Move(other), idx);
    }
 
    /// Semantically insert all elements of a block at an index                
@@ -451,25 +451,25 @@ namespace Langulus::Anyness
    Count Block::InsertBlockAt(S&& other, INDEX idx) {
       using T = TypeOf<S>;
       static_assert(CT::Block<T>, "T must be a block type");
-      if (other.mValue.IsEmpty())
+      if (other->IsEmpty())
          return 0;
 
       Block region;
-      AllocateRegion(other.mValue, SimplifyIndex<T>(idx), region);
+      AllocateRegion(*other, SimplifyIndex<T>(idx), region);
       if (region.IsAllocated()) {
          if constexpr (CT::Typed<T>) {
             region.CallKnownSemanticConstructors<TypeOf<T>>(
-               other.mValue.mCount, other.Forward()
+               other->mCount, other.Forward()
             );
          }
          else {
             region.CallUnknownSemanticConstructors(
-               other.mValue.mCount, other.Forward()
+               other->mCount, other.Forward()
             );
          }
 
-         mCount += other.mValue.mCount;
-         return other.mValue.mCount;
+         mCount += other->mCount;
+         return other->mCount;
       }
 
       return 0;
@@ -483,7 +483,7 @@ namespace Langulus::Anyness
    template<Index INDEX, CT::NotSemantic T>
    LANGULUS(INLINED)
    Count Block::InsertBlock(const T& other) {
-      return InsertBlock<INDEX>(Langulus::Copy(other));
+      return InsertBlock<INDEX>(Copy(other));
    }
 
    /// Move-insert all elements of a block either at the start or at end      
@@ -494,7 +494,7 @@ namespace Langulus::Anyness
    template<Index INDEX, CT::NotSemantic T>
    LANGULUS(INLINED)
    Count Block::InsertBlock(T&& other) {
-      return InsertBlock<INDEX>(Langulus::Move(other));
+      return InsertBlock<INDEX>(Move(other));
    }
 
    /// Semantic-insert all elements of a block either at start or end         
@@ -512,14 +512,14 @@ namespace Langulus::Anyness
          "INDEX must be either IndexFront or IndexEnd;"
          " use InsertBlockAt for specific indices");
 
-      if (other.mValue.IsEmpty())
+      if (other->IsEmpty())
          return 0;
 
       // Type may mutate, but never deepen                              
-      Mutate<false>(other.mValue.mType);
+      Mutate<false>(other->mType);
 
       // Allocate the required memory - this will not initialize it     
-      AllocateMore<false>(mCount + other.mValue.mCount);
+      AllocateMore<false>(mCount + other->mCount);
 
       if constexpr (INDEX == IndexFront) {
          // Move memory if required                                     
@@ -529,32 +529,32 @@ namespace Langulus::Anyness
 
          // We're moving to the right to form the gap, so we have to    
          // call abandon-constructors in reverse to avoid overlap       
-         CropInner(other.mValue.mCount, 0)
+         CropInner(other->mCount, 0)
             .template CallUnknownSemanticConstructors<true>(
                mCount, Abandon(CropInner(0, mCount))
             );
 
          CropInner(0, 0)
             .CallUnknownSemanticConstructors(
-               other.mValue.mCount, other.template Forward<Block>());
+               other->mCount, other.template Forward<Block>());
       }
       else {
          CropInner(mCount, 0)
             .CallUnknownSemanticConstructors(
-               other.mValue.mCount, other.template Forward<Block>());
+               other->mCount, other.template Forward<Block>());
       }
 
-      mCount += other.mValue.mCount;
+      mCount += other->mCount;
 
       if constexpr (S::Move && S::Keep && T::Ownership) {
          // All elements were moved, only empty husks remain            
          // so destroy them, and discard ownership of 'other'           
-         const auto pushed = other.mValue.mCount;
-         other.mValue.Free();
-         other.mValue.mEntry = nullptr;
+         const auto pushed = other->mCount;
+         other->Free();
+         other->mEntry = nullptr;
          return pushed;
       }
-      else return other.mValue.mCount;
+      else return other->mCount;
    }
    
    /// Copy-insert each block element that is not found in this container     
@@ -566,7 +566,7 @@ namespace Langulus::Anyness
    template<CT::NotSemantic T, CT::Index INDEX>
    LANGULUS(INLINED)
    Count Block::MergeBlockAt(const T& other, INDEX index) {
-      return MergeBlockAt(Langulus::Copy(other), index);
+      return MergeBlockAt(Copy(other), index);
    }
 
    /// Move-insert each block element that is not found in this container     
@@ -578,7 +578,7 @@ namespace Langulus::Anyness
    template<CT::NotSemantic T, CT::Index INDEX>
    LANGULUS(INLINED)
    Count Block::MergeBlockAt(T&& other, INDEX index) {
-      return MergeBlockAt(Langulus::Move(other), index);
+      return MergeBlockAt(Move(other), index);
    }
 
    /// Semantically insert each element that is not found in this container   
@@ -595,8 +595,8 @@ namespace Langulus::Anyness
          "INDEX must be an index type");
 
       Count inserted {};
-      for (Count i = 0; i < other.mValue.GetCount(); ++i) {
-         auto right = other.mValue.GetElement(i);
+      for (Count i = 0; i < other->GetCount(); ++i) {
+         auto right = other->GetElement(i);
          if (!FindUnknown(right))
             inserted += InsertBlockAt(S::Nest(right), index);
       }
@@ -613,7 +613,7 @@ namespace Langulus::Anyness
    template<Index INDEX, CT::NotSemantic T>
    LANGULUS(INLINED)
    Count Block::MergeBlock(const T& other) {
-      return MergeBlock<INDEX>(Langulus::Copy(other));
+      return MergeBlock<INDEX>(Copy(other));
    }
 
    /// Move-insert each block element that is not found in this container     
@@ -625,7 +625,7 @@ namespace Langulus::Anyness
    template<Index INDEX, CT::NotSemantic T>
    LANGULUS(INLINED)
    Count Block::MergeBlock(T&& other) {
-      return MergeBlock<INDEX>(Langulus::Move(other));
+      return MergeBlock<INDEX>(Move(other));
    }
 
    /// Semantically insert each block element that is not found in this       
@@ -643,8 +643,8 @@ namespace Langulus::Anyness
 
       //TODO do a pass first and allocate & move once instead of each time?
       Count inserted {};
-      for (Count i = 0; i < other.mValue.GetCount(); ++i) {
-         auto right = other.mValue.GetElementResolved(i);
+      for (Count i = 0; i < other->GetCount(); ++i) {
+         auto right = other->GetElementResolved(i);
          if (!FindUnknown(right))
             inserted += InsertBlock<INDEX>(S::Nest(right));
       }
@@ -935,17 +935,16 @@ namespace Langulus::Anyness
    template<Index INDEX, bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data WRAPPER, CT::Semantic S>
    Count Block::SmartPush(S&& value, DataState state) {
       static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
-
       using T = TypeOf<S>;
 
       if constexpr (CT::Deep<T>) {
          // We're inserting a deep item, so we can do various smart     
          // things before inserting, like absorbing and concatenating   
-         if (!value.mValue.IsValid())
+         if (!value->IsValid())
             return 0;
 
-         const bool stateCompliant = CanFitState(value.mValue);
-         if (IsEmpty() && !value.mValue.IsStatic() && stateCompliant) {
+         const bool stateCompliant = CanFitState(*value);
+         if (IsEmpty() && !value->IsStatic() && stateCompliant) {
             BlockTransfer<WRAPPER>(value.Forward());
             return 1;
          }
@@ -1059,9 +1058,9 @@ namespace Langulus::Anyness
       if constexpr (CT::Semantic<HEAD>)
          InsertInner(head.Forward(), INDEX);
       else if constexpr (::std::is_rvalue_reference_v<HEAD>)
-         InsertInner(Langulus::Move(head), INDEX);
+         InsertInner(Move(head), INDEX);
       else 
-         InsertInner(Langulus::Copy(head), INDEX);
+         InsertInner(Copy(head), INDEX);
 
       if constexpr (sizeof...(TAIL) > 0)
          InsertStatic<INDEX + 1>(Forward<TAIL>(tail)...);
@@ -1132,8 +1131,8 @@ namespace Langulus::Anyness
       // If this container is compatible and concatenation is           
       // enabled, try concatenating the two containers                  
       const bool typeCompliant = IsUntyped()
-         || (ALLOW_DEEPEN && value.mValue.IsDeep())
-         || Is(value.mValue.GetType());
+         || (ALLOW_DEEPEN && value->IsDeep())
+         || Is(value->GetType());
 
       if (!IsConstant() && !IsStatic() && typeCompliant && sc
          // Make sure container is or-compliant after the change        
@@ -1141,11 +1140,11 @@ namespace Langulus::Anyness
          if (IsUntyped()) {
             // Block insert never mutates, so make sure type            
             // is valid before insertion                                
-            SetType<false>(value.mValue.GetType());
+            SetType<false>(value->GetType());
          }
          else {
             if constexpr (ALLOW_DEEPEN) {
-               if (!IsDeep() && value.mValue.IsDeep())
+               if (!IsDeep() && value->IsDeep())
                   Deepen<WRAPPER, false>();
             }
          }
@@ -1489,13 +1488,13 @@ namespace Langulus::Anyness
       static_assert(!CT::Typed<TypeOf<S>>,
          "Block type is statically typed, use CallKnownSemanticConstructors instead");
 
-      LANGULUS_ASSUME(DevAssumes, count <= source.mValue.mCount && count <= mReserved,
+      LANGULUS_ASSUME(DevAssumes, count <= source->mCount && count <= mReserved,
          "Count outside limits");
-      LANGULUS_ASSUME(DevAssumes, mType->IsExact(source.mValue.mType),
+      LANGULUS_ASSUME(DevAssumes, mType->IsExact(source->mType),
          "LHS and RHS are different types");
 
       auto mthis = const_cast<Block*>(this);
-      if (mType->mIsSparse && source.mValue.mType->mIsSparse) {
+      if (mType->mIsSparse && source->mType->mIsSparse) {
          if constexpr (S::Shallow) {
             // Shallow pointer transfer                                 
             ShallowBatchPointerConstruction(count, source.Forward());
@@ -1504,7 +1503,7 @@ namespace Langulus::Anyness
             // Shallow pointer transfer, because its requesting to      
             // clone unallocatable/unclonable data, such as meta        
             // definitions, or factory elements                         
-            ShallowBatchPointerConstruction(count, Langulus::Copy(source.mValue));
+            ShallowBatchPointerConstruction(count, Copy(*source));
          }
          else {
             // Clone                                                    
@@ -1520,10 +1519,10 @@ namespace Langulus::Anyness
                auto lhs = mthis->template GetHandle<Byte*>(0);
                const auto lhsEnd = lhs.mValue + count;
                auto dst = clonedCoalescedSrc.GetElement();
-               auto src = source.mValue.GetElement();
+               auto src = source->GetElement();
                while (lhs != lhsEnd) {
                   dst.CallUnknownSemanticConstructors(
-                     1, Langulus::Clone(src.template GetDense<1>())
+                     1, Clone(src.template GetDense<1>())
                   );
 
                   lhs.New(dst.mRaw, clonedCoalescedSrc.mEntry);
@@ -1544,14 +1543,14 @@ namespace Langulus::Anyness
 
          return;
       }
-      else if (mType->mIsPOD && mType->mIsSparse == source.mValue.mType->mIsSparse) {
+      else if (mType->mIsPOD && mType->mIsSparse == source->mType->mIsSparse) {
          // Both dense and POD                                          
          // Copy/Disown/Move/Abandon/Clone                              
          const auto bytesize = mType->mSize * count;
          if constexpr (S::Move)
-            MoveMemory(mRaw, source.mValue.mRaw, bytesize);
+            MoveMemory(mRaw, source->mRaw, bytesize);
          else
-            CopyMemory(mRaw, source.mValue.mRaw, bytesize);
+            CopyMemory(mRaw, source->mRaw, bytesize);
          return;
       }
 
@@ -1560,8 +1559,8 @@ namespace Langulus::Anyness
          // Copy each pointer from RHS (can't move them)                
          auto lhs = mthis->template GetHandle<Byte*>(0);
          const auto lhsEnd = lhs.mValue + count;
-         auto rhs = source.mValue.template GetHandle<Byte>(0);
-         const auto rhsStride = source.mValue.mType->mSize;
+         auto rhs = source->template GetHandle<Byte>(0);
+         const auto rhsStride = source->mType->mSize;
          while (lhs != lhsEnd) {
             lhs.NewUnknown(mType, S::Nest(rhs));
             ++lhs;
@@ -1572,7 +1571,7 @@ namespace Langulus::Anyness
             // We have to reference RHS by the number of pointers we    
             // made. Since we're converting dense to sparse, the        
             // referencing is MANDATORY!                                
-            source.mValue.mEntry->Keep(count);
+            source->mEntry->Keep(count);
          }
       }
       else {
@@ -1625,10 +1624,10 @@ namespace Langulus::Anyness
                const auto lhsStride = mType->mSize;
                auto lhs = mRaw + (count - 1) * lhsStride;
 
-               if (source.mValue.mType->mIsSparse) {
+               if (source->mType->mIsSparse) {
                   // RHS is pointer, LHS is dense                       
                   // Move each dense element from RHS                   
-                  auto rhs = source.mValue.mRawSparse + count - 1;
+                  auto rhs = source->mRawSparse + count - 1;
                   const auto rhsEnd = rhs - count;
                   if constexpr (S::Keep) {
                      // Move required                                   
@@ -1654,7 +1653,7 @@ namespace Langulus::Anyness
                }
                else {
                   // Both RHS and LHS are dense                         
-                  auto rhs = source.mValue.mRaw + (count - 1) * lhsStride;
+                  auto rhs = source->mRaw + (count - 1) * lhsStride;
                   const auto rhsEnd = rhs - count * lhsStride;
                   if constexpr (S::Keep) {
                      // Move required                                   
@@ -1686,10 +1685,10 @@ namespace Langulus::Anyness
                auto lhs = mRaw;
                const auto lhsStride = mType->mSize;
 
-               if (source.mValue.mType->mIsSparse) {
+               if (source->mType->mIsSparse) {
                   // RHS is pointer, LHS is dense                       
                   // Move each dense element from RHS                   
-                  auto rhs = source.mValue.mRawSparse;
+                  auto rhs = source->mRawSparse;
                   const auto rhsEnd = rhs + count;
                   if constexpr (S::Keep) {
                      // Move required                                   
@@ -1715,7 +1714,7 @@ namespace Langulus::Anyness
                }
                else {
                   // Both RHS and LHS are dense                         
-                  auto rhs = source.mValue.mRaw;
+                  auto rhs = source->mRaw;
                   const auto rhsEnd = rhs + count * lhsStride;
                   if constexpr (S::Keep) {
                      // Move required                                   
@@ -1749,10 +1748,10 @@ namespace Langulus::Anyness
             auto lhs = mRaw;
             const auto lhsStride = mType->mSize;
 
-            if (source.mValue.mType->mIsSparse) {
+            if (source->mType->mIsSparse) {
                // RHS is pointer, LHS is dense                          
                // Shallow-copy or clone each dense element from RHS     
-               auto rhs = source.mValue.mRawSparse;
+               auto rhs = source->mRawSparse;
                const auto rhsEnd = rhs + count;
                if constexpr (S::Keep) {
                   if constexpr (S::Shallow) {
@@ -1795,7 +1794,7 @@ namespace Langulus::Anyness
             else {
                // Both RHS and LHS are dense                            
                // Call the reflected copy-constructor for each element  
-               auto rhs = source.mValue.mRaw;
+               auto rhs = source->mRaw;
                const auto rhsEnd = rhs + count * lhsStride;
                if constexpr (S::Keep) {
                   if constexpr (S::Shallow) {
@@ -1861,13 +1860,13 @@ namespace Langulus::Anyness
       static_assert(CT::Sparse<T> || CT::Mutable<T>,
          "Can't move-construct in container of constant elements");
 
-      LANGULUS_ASSUME(DevAssumes, count <= source.mValue.mCount && count <= mReserved,
+      LANGULUS_ASSUME(DevAssumes, count <= source->mCount && count <= mReserved,
          "Count outside limits");
       LANGULUS_ASSUME(DevAssumes, IsExact<T>(),
          "T doesn't match LHS type");
-      LANGULUS_ASSUME(DevAssumes, source.mValue.template IsExact<T>(),
+      LANGULUS_ASSUME(DevAssumes, source->template IsExact<T>(),
          "T doesn't match RHS type");
-      LANGULUS_ASSUME(DevAssumes, IsSparse() == source.mValue.IsSparse(),
+      LANGULUS_ASSUME(DevAssumes, IsSparse() == source->IsSparse(),
          "Blocks are not of same sparsity");
 
       const auto mthis = const_cast<Block*>(this);
@@ -1882,7 +1881,7 @@ namespace Langulus::Anyness
             // Shallow pointer transfer, because its requesting to      
             // clone unallocatable/unclonable data, such as meta        
             // definitions, or factory elements                         
-            ShallowBatchPointerConstruction(count, Langulus::Copy(source.mValue));
+            ShallowBatchPointerConstruction(count, Copy(*source));
          }
          else {
             // Clone                                                    
@@ -1897,10 +1896,10 @@ namespace Langulus::Anyness
                // Clone each inner element                              
                auto handle = GetHandle<T>(0);
                DT* dst = clonedCoalescedSrc.template GetRawAs<DT>();
-               auto src = source.mValue.GetRaw();
+               auto src = source->GetRaw();
                const auto srcEnd = src + count;
                while (src != srcEnd) {
-                  SemanticNew<DT>(dst, Langulus::Clone(**src));
+                  SemanticNew<DT>(dst, Clone(**src));
                   handle.New(dst, clonedCoalescedSrc.mEntry);
 
                   ++dst;
@@ -1923,14 +1922,14 @@ namespace Langulus::Anyness
       else if constexpr (CT::POD<T>) {
          // We're constructing dense POD data                           
          auto lhs = mthis->template GetRawAs<T>();
-         auto rhs = source.mValue.template GetRawAs<T>();
+         auto rhs = source->template GetRawAs<T>();
          CopyMemory(lhs, rhs, count);
       }
       else {
          // Both RHS and LHS are dense and non POD                      
          // Call constructor for each element (optionally in reverse)   
          auto lhs = mthis->template GetRawAs<T>();
-         auto rhs = source.mValue.template GetRawAs<T>();
+         auto rhs = source->template GetRawAs<T>();
          if constexpr (REVERSE) {
             lhs += count - 1;
             rhs += count - 1;
@@ -1959,9 +1958,9 @@ namespace Langulus::Anyness
    void Block::ShallowBatchPointerConstruction(const Count count, S&& source) const {
       const auto mthis = const_cast<Block*>(this);
       const auto pointersDst = mthis->GetRawSparse();
-      const auto pointersSrc = source.mValue.GetRawSparse();
+      const auto pointersSrc = source->GetRawSparse();
       const auto entriesDst = mthis->GetEntries();
-      const auto entriesSrc = source.mValue.GetEntries();
+      const auto entriesSrc = source->GetEntries();
 
       // Copy/Disown/Move/Abandon                                       
       if constexpr (S::Move) {
@@ -2011,20 +2010,20 @@ namespace Langulus::Anyness
       static_assert(CT::Block<TypeOf<S>>,
          "S::Type must be a block type");
 
-      LANGULUS_ASSUME(DevAssumes, mCount >= count && source.mValue.mCount >= count,
+      LANGULUS_ASSUME(DevAssumes, mCount >= count && source->mCount >= count,
          "Count outside limits");
-      LANGULUS_ASSUME(DevAssumes, mType->IsExact(source.mValue.mType),
+      LANGULUS_ASSUME(DevAssumes, mType->IsExact(source->mType),
          "LHS and RHS are different types");
 
       const auto mthis = const_cast<Block*>(this);
-      if (mType->mIsSparse && source.mValue.mType->mIsSparse) {
+      if (mType->mIsSparse && source->mType->mIsSparse) {
          // Since we're overwriting pointers, we have to dereference    
          // the old ones, but conditionally reference the new ones      
          auto lhs = mthis->GetRawSparse();
          const auto lhsEnd = lhs + count;
-         auto rhs = source.mValue.GetRawSparse();
+         auto rhs = source->GetRawSparse();
          auto lhsEntry = mthis->GetEntries();
-         auto rhsEntry = source.mValue.GetEntries();
+         auto rhsEntry = source->GetEntries();
 
          while (lhs != lhsEnd) {
             if (*lhsEntry) {
@@ -2071,12 +2070,12 @@ namespace Langulus::Anyness
 
          return;
       }
-      else if (mType->mIsPOD && mType->mIsSparse == source.mValue.mType->mIsSparse) {
+      else if (mType->mIsPOD && mType->mIsSparse == source->mType->mIsSparse) {
          const auto bytesize = mType->mSize * count;
          if constexpr (S::Move)
-            MoveMemory(mRaw, source.mValue.mRaw, bytesize);
+            MoveMemory(mRaw, source->mRaw, bytesize);
          else
-            CopyMemory(mRaw, source.mValue.mRaw, bytesize);
+            CopyMemory(mRaw, source->mRaw, bytesize);
          return;
       }
 
@@ -2086,8 +2085,8 @@ namespace Langulus::Anyness
          auto lhs = mRawSparse;
          auto lhsEntry = mthis->GetEntries();
          const auto lhsEnd = lhs + count;
-         auto rhs = source.mValue.mRaw;
-         const auto rhsStride = source.mValue.mType->mSize;
+         auto rhs = source->mRaw;
+         const auto rhsStride = source->mType->mSize;
          while (lhs != lhsEnd) {
             if (*lhsEntry) {
                // Free old LHS                                       
@@ -2101,7 +2100,7 @@ namespace Langulus::Anyness
             if constexpr (S::Move || S::Shallow) {
                // Set LHS to point to dense RHS element                 
                *lhs = const_cast<Byte*>(rhs);
-               *lhsEntry = source.mValue.mEntry;
+               *lhsEntry = source->mEntry;
 
                // We're converting dense to sparse, so reference     
                if (*lhsEntry)
@@ -2162,10 +2161,10 @@ namespace Langulus::Anyness
 
          if constexpr (S::Move) {
             // Moving/Abandoning                                        
-            if (source.mValue.mType->mIsSparse) {
+            if (source->mType->mIsSparse) {
                // RHS is pointer, LHS is dense                          
                // Copy each dense element from RHS                      
-               auto rhs = source.mValue.mRawSparse;
+               auto rhs = source->mRawSparse;
                const auto rhsEnd = rhs + count;
                if constexpr (S::Keep) {
                   // Move required                                      
@@ -2191,7 +2190,7 @@ namespace Langulus::Anyness
             }
             else {
                // Both RHS and LHS are dense                            
-               auto rhs = source.mValue.mRaw;
+               auto rhs = source->mRaw;
                const auto rhsEnd = rhs + count * lhsStride;
                if constexpr (S::Keep) {
                   // Move required                                      
@@ -2221,10 +2220,10 @@ namespace Langulus::Anyness
          }
          else {
             // Copying/Disowning/Cloning                                
-            if (source.mValue.mType->mIsSparse) {
+            if (source->mType->mIsSparse) {
                // RHS is pointer, LHS is dense                          
                // Shallow-copy each dense element from RHS              
-               auto rhs = source.mValue.mRawSparse;
+               auto rhs = source->mRawSparse;
                const auto rhsEnd = rhs + count;
                if constexpr (S::Keep) {
                   // Move required                                      
@@ -2251,7 +2250,7 @@ namespace Langulus::Anyness
             else {
                // Both RHS and LHS are dense                            
                // Call the reflected copy-constructor for each element  
-               auto rhs = source.mValue.mRaw;
+               auto rhs = source->mRaw;
                const auto rhsEnd = rhs + count * lhsStride;
                if constexpr (S::Keep) {
                   // Move required                                      

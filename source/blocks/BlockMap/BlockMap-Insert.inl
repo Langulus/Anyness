@@ -371,8 +371,8 @@ namespace Langulus::Anyness
                   .CallUnknownSemanticAssignment(1, value.Forward());
 
                if constexpr (SV::Move) {
-                  value.mValue.CallUnknownDestructors();
-                  value.mValue.mCount = 0;
+                  value->CallUnknownDestructors();
+                  value->mCount = 0;
                }
 
                return index;
@@ -411,13 +411,13 @@ namespace Langulus::Anyness
          insertedAt = index;
 
       if constexpr (SK::Move) {
-         key.mValue.CallUnknownDestructors();
-         key.mValue.mCount = 0;
+         key->CallUnknownDestructors();
+         key->mCount = 0;
       }
 
       if constexpr (SV::Move) {
-         value.mValue.CallUnknownDestructors();
-         value.mValue.mCount = 0;
+         value->CallUnknownDestructors();
+         value->mCount = 0;
       }
 
       *psl = attempts;
@@ -439,17 +439,17 @@ namespace Langulus::Anyness
       if constexpr (CT::TypedPair<TypeOf<S>>) {
          // Insert a statically typed pair                              
          This.template InsertInner<false>(
-            This.GetBucket(hashmask, other.mValue.mKey),
-            S::Nest(other.mValue.mKey),
-            S::Nest(other.mValue.mValue)
+            This.GetBucket(hashmask, other->mKey),
+            S::Nest(other->mKey),
+            S::Nest(other->mValue)
          );
       }
       else {
          // Insert a type-erased pair                                   
          This.template InsertInnerUnknown<false>(
-            This.GetBucketUnknown(hashmask, other.mValue.mKey),
-            S::Nest(other.mValue.mKey),
-            S::Nest(other.mValue.mValue)
+            This.GetBucketUnknown(hashmask, other->mKey),
+            S::Nest(other->mKey),
+            S::Nest(other->mValue)
          );
       }
    }

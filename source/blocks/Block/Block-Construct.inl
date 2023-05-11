@@ -15,7 +15,7 @@ namespace Langulus::Anyness
    ///   @param other - the block to shallow-copy                             
    LANGULUS(INLINED)
    constexpr Block::Block(CT::Semantic auto&& other) noexcept
-      : Block {static_cast<const Block&>(other.mValue)} {}
+      : Block {static_cast<const Block&>(*other)} {}
 
    /// Manual construction via type                                           
    ///   @param meta - the type of the memory block                           
@@ -207,7 +207,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this block                                    
    LANGULUS(INLINED)
    constexpr Block& Block::operator = (CT::Semantic auto&& rhs) noexcept {
-      return operator = (static_cast<const Block&>(rhs.mValue));
+      return operator = (static_cast<const Block&>(*rhs));
    }
    
    /// Semantically transfer the members of one block onto another            
@@ -225,18 +225,18 @@ namespace Langulus::Anyness
       static_assert(CT::Block<FROM>,
          "FROM must be a block type");
 
-      mCount = from.mValue.mCount;
+      mCount = from->mCount;
 
       if constexpr (!CT::Typed<TO>) {
          // TO is not statically typed, so we can safely                
          // overwrite type and state                                    
-         mType = from.mValue.mType;
-         mState = from.mValue.mState;
+         mType = from->mType;
+         mState = from->mState;
       }
       else {
          // TO is typed, so we never touch mType, and we make sure that 
          // we don't affect Typed state                                 
-         mState = from.mValue.mState + DataState::Typed;
+         mState = from->mState + DataState::Typed;
       }
 
       if (IsEmpty())
@@ -244,12 +244,12 @@ namespace Langulus::Anyness
 
       if constexpr (S::Shallow) {
          // We're transferring via a shallow semantic                   
-         mRaw = from.mValue.mRaw;
-         mReserved = from.mValue.mReserved;
+         mRaw = from->mRaw;
+         mReserved = from->mReserved;
 
          if constexpr (S::Keep) {
             // Move/Copy other                                          
-            mEntry = from.mValue.mEntry;
+            mEntry = from->mEntry;
 
             if constexpr (S::Move) {
                if constexpr (!FROM::Ownership) {
@@ -261,16 +261,16 @@ namespace Langulus::Anyness
                   Keep();
                }
                else {
-                  from.mValue.ResetMemory();
-                  from.mValue.ResetState();
+                  from->ResetMemory();
+                  from->ResetState();
                }
             }
             else Keep();
          }
          else if constexpr (S::Move) {
             // Abandon other                                            
-            mEntry = from.mValue.mEntry;
-            from.mValue.mEntry = nullptr;
+            mEntry = from->mEntry;
+            from->mEntry = nullptr;
          }
       }
       else {
@@ -305,11 +305,11 @@ namespace Langulus::Anyness
       static_assert(CT::Block<TypeOf<S>>,
          "S::Type must be a block type");
 
-      LANGULUS_ASSUME(DevAssumes, rhs.mValue.mCount == mCount,
+      LANGULUS_ASSUME(DevAssumes, rhs->mCount == mCount,
          "Count mismatch");
       LANGULUS_ASSUME(DevAssumes, mCount,
          "Can't swap zero count");
-      LANGULUS_ASSUME(DevAssumes, IsExact(rhs.mValue.GetType()),
+      LANGULUS_ASSUME(DevAssumes, IsExact(rhs->GetType()),
          "Type mismatch");
 
       Block temporary {mState, mType};
@@ -321,11 +321,11 @@ namespace Langulus::Anyness
       // Destroy elements in this                                       
       CallUnknownDestructors();
       // Abandon rhs to this                                            
-      CallUnknownSemanticConstructors(rhs.mValue.mCount, rhs.Forward());
+      CallUnknownSemanticConstructors(rhs->mCount, rhs.Forward());
       // Destroy elements in rhs                                        
-      rhs.mValue.CallUnknownDestructors();
+      rhs->CallUnknownDestructors();
       // Abandon temporary to rhs                                       
-      rhs.mValue.CallUnknownSemanticConstructors(temporary.mCount, Abandon(temporary));
+      rhs->CallUnknownSemanticConstructors(temporary.mCount, Abandon(temporary));
 
       // Cleanup temporary                                              
       temporary.CallUnknownDestructors();

@@ -70,12 +70,12 @@ namespace Langulus::Anyness
             "Unrelated type inside shared pointer"
          );
 
-         GetHandle().New(S::Nest(other.mValue.GetHandle()));
+         GetHandle().New(S::Nest(other->GetHandle()));
          
          if constexpr (S::Move) {
             // Remote value is removed, if moved and double-referenced  
             if constexpr (DR && CT::Referencable<T>)
-               other.mValue.mValue = {};
+               other->mValue = {};
          }
          else if constexpr (S::Shallow && S::Keep) {
             // Reference value, if double-referenced and copied         
@@ -85,7 +85,7 @@ namespace Langulus::Anyness
       }
       else if constexpr (CT::DerivedFrom<ST, T>) {
          // Move/Abandon/Disown/Copy/Clone raw pointer                  
-         Type converted = static_cast<Type>(other.mValue);
+         Type converted = static_cast<Type>(*other);
          GetHandle().New(S::Nest(converted));
 
          // Always reference value, if double-referenced and not cloned 
@@ -111,7 +111,10 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    void SHARED_POINTER()::New(ARGS&&... arguments) {
       TPointer pointer;
-      pointer.mEntry = Fractalloc.Allocate(RTTI::MetaData::Of<Decay<T>>(), sizeof(Decay<T>));
+      pointer.mEntry = Fractalloc.Allocate(
+         RTTI::MetaData::Of<Decay<T>>(), 
+         sizeof(Decay<T>)
+      );
       LANGULUS_ASSERT(pointer.mEntry, Allocate, "Out of memory");
       pointer.mValue = reinterpret_cast<decltype(pointer.mValue)>(
          pointer.mEntry->GetBlockStart());
@@ -210,7 +213,7 @@ namespace Langulus::Anyness
                "Unrelated type inside shared pointer"
             );
 
-            GetHandle().Assign(S::Nest(rhs.mValue.GetHandle()));
+            GetHandle().Assign(S::Nest(rhs->GetHandle()));
          }
          else {
             static_assert(
