@@ -383,7 +383,7 @@ namespace Langulus::Anyness::Inner
          using S = Decay<HEAD>;
 
          if constexpr (CT::Pair<TypeOf<S>>)
-            map.Insert(S::Nest(head.mValue.mKey), S::Nest(head.mValue.mValue));
+            map.Insert(S::Nest(head->mKey), S::Nest(head->mValue));
          else
             LANGULUS_ERROR("Semantic element does not contain a pair type");
       }

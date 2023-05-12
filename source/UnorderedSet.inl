@@ -53,15 +53,15 @@ namespace Langulus::Anyness
          if constexpr (T::Ordered) {
             // We have to reinsert everything, because source is        
             // ordered and uses a different bucketing approach          
-            mKeys.mType = other.mValue.GetType();
+            mKeys.mType = other->GetType();
 
-            AllocateFresh(other.mValue.GetReserved());
+            AllocateFresh(other->GetReserved());
             ZeroMemory(mInfo, GetReserved());
             mInfo[GetReserved()] = 1;
 
             const auto hashmask = GetReserved() - 1;
             if constexpr (CT::TypedSet<T>) {
-               for (auto& key : other.mValues) {
+               for (auto& key : *other) {
                   InsertInner<false>(
                      GetBucket(hashmask, key),
                      S::Nest(key)
@@ -69,7 +69,7 @@ namespace Langulus::Anyness
                }
             }
             else {
-               for (auto key : other.mValues) {
+               for (auto key : *other) {
                   InsertUnkownInner<false>(
                      GetBucket(hashmask, key),
                      S::Nest(key)
@@ -85,7 +85,7 @@ namespace Langulus::Anyness
       }
       else if constexpr (CT::Array<T>) {
          // Construct from array of elements                            
-         for (auto& key : other.mValue)
+         for (auto& key : *other)
             Insert(S::Nest(key));
       }
       else {
@@ -98,8 +98,8 @@ namespace Langulus::Anyness
 
          // Insert a statically typed element                           
          InsertInner<false>(
-            GetBucket(MinimalAllocation - 1, other.mValue),
-            S::Nest(other.mValue)
+            GetBucket(MinimalAllocation - 1, *other),
+            other.Forward()
          );
       }
    }

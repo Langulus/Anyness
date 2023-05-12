@@ -291,7 +291,7 @@ namespace Langulus::Anyness
       Mutate<K, V>();
       Reserve(GetCount() + 1);
       InsertInner<true>(
-         GetBucket(GetReserved() - 1, key.mValue), 
+         GetBucket(GetReserved() - 1, *key), 
          key.Forward(), value.Forward()
       );
       return 1;

@@ -411,7 +411,7 @@ namespace Langulus::Anyness
    template<Index INDEX, bool MUTABLE, CT::Data WRAPPER, CT::Semantic S>
    LANGULUS(INLINED)
    Count Block::Merge(S&& item) {
-      if (!FindKnown(item.mValue))
+      if (!FindKnown(*item))
          return Insert<INDEX, MUTABLE, WRAPPER>(item.Forward());
       return 0;
    }
@@ -857,11 +857,11 @@ namespace Langulus::Anyness
       if constexpr (CT::Deep<T>) {
          // We're inserting a deep item, so we can do various smart     
          // things before inserting, like absorbing and concatenating   
-         if (!value.mValue.IsValid())
+         if (!value->IsValid())
             return 0;
 
-         const bool stateCompliant = CanFitState(value.mValue);
-         if (IsEmpty() && !value.mValue.IsStatic() && stateCompliant) {
+         const bool stateCompliant = CanFitState(*value);
+         if (IsEmpty() && !value->IsStatic() && stateCompliant) {
             BlockTransfer<WRAPPER>(value.Forward());
             return 1;
          }
@@ -1086,8 +1086,8 @@ namespace Langulus::Anyness
       // If this container is compatible and concatenation is           
       // enabled, try concatenating the two containers                  
       const bool typeCompliant = IsUntyped()
-         || (ALLOW_DEEPEN && value.mValue.IsDeep())
-         || CanFit(value.mValue.GetType());
+         || (ALLOW_DEEPEN && value->IsDeep())
+         || CanFit(value->GetType());
 
       if (!IsConstant() && !IsStatic() && typeCompliant && sc
          // Make sure container is or-compliant after the change        
@@ -1095,11 +1095,11 @@ namespace Langulus::Anyness
          if (IsUntyped()) {
             // Block insert never mutates, so make sure type            
             // is valid before insertion                                
-            SetType<false>(value.mValue.GetType());
+            SetType<false>(value->GetType());
          }
          else {
             if constexpr (ALLOW_DEEPEN) {
-               if (!IsDeep() && value.mValue.IsDeep())
+               if (!IsDeep() && value->IsDeep())
                   Deepen<WRAPPER, false>();
             }
          }

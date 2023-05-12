@@ -68,13 +68,13 @@ namespace Langulus::Anyness
          if constexpr (ST::Ordered) {
             // We have to reinsert everything, because source is        
             // ordered and uses a different bucketing approach          
-            AllocateFresh(other.mValue.GetReserved());
+            AllocateFresh(other->GetReserved());
             ZeroMemory(mInfo, GetReserved());
             mInfo[GetReserved()] = 1;
 
             const auto hashmask = GetReserved() - 1;
             if constexpr (CT::TypedSet<ST>) {
-               for (auto& key : other.mValues) {
+               for (auto& key : *other) {
                   InsertInner<false>(
                      GetBucket(hashmask, key),
                      S::Nest(key)
@@ -82,7 +82,7 @@ namespace Langulus::Anyness
                }
             }
             else {
-               for (auto key : other.mValues) {
+               for (auto key : *other) {
                   InsertUnkownInner<false>(
                      GetBucket(hashmask, key),
                      S::Nest(key)
@@ -104,14 +104,14 @@ namespace Langulus::Anyness
 
          // Insert a statically typed element                           
          InsertInner<false>(
-            GetBucket(MinimalAllocation - 1, other.mValue),
-            S::Nest(other.mValue)
+            GetBucket(MinimalAllocation - 1, *other),
+            other.Forward()
          );
       }
       else if constexpr (CT::Array<ST>) {
          if constexpr (CT::Exact<T, Deext<ST>>) {
             // Construct from an array of elements                      
-            for (auto& key : other.mValue)
+            for (auto& key : *other)
                Insert(S::Nest(key));
          }
          else LANGULUS_ERROR("Unsupported semantic array constructor");

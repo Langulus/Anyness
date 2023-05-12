@@ -72,13 +72,13 @@ namespace Langulus::Anyness
          if constexpr (T::Ordered) {
             // We have to reinsert everything, because source is        
             // ordered and uses a different bucketing approach          
-            AllocateFresh(other.mValue.GetReserved());
+            AllocateFresh(other->GetReserved());
             ZeroMemory(mInfo, GetReserved());
             mInfo[GetReserved()] = 1;
 
             const auto hashmask = GetReserved() - 1;
             using TP = typename T::Pair;
-            other.mValue.ForEach([this, hashmask](TP& pair) {
+            other->ForEach([this, hashmask](TP& pair) {
                InsertPairInner<Self>(hashmask, S::Nest(pair));
             });
          }
@@ -106,7 +106,7 @@ namespace Langulus::Anyness
             mInfo[reserved] = 1;
 
             constexpr auto hashmask = reserved - 1;
-            for (auto& pair : other.mValue)
+            for (auto& pair : *other)
                InsertPairInner<Self>(hashmask, S::Nest(pair));
          }
          else LANGULUS_ERROR("Unsupported semantic array constructor");
@@ -434,7 +434,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this table for chaining                       
    TABLE_TEMPLATE() LANGULUS(INLINED)
    TABLE()& TABLE()::operator << (const TPair<K, V>& rhs) {
-      return operator << (Langulus::Copy(rhs));
+      return operator << (Copy(rhs));
    }
 
    /// Move-insert a pair inside the map                                      
@@ -442,7 +442,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this table for chaining                       
    TABLE_TEMPLATE() LANGULUS(INLINED)
    TABLE()& TABLE()::operator << (TPair<K, V>&& rhs) {
-      return operator << (Langulus::Move(rhs));
+      return operator << (Move(rhs));
    }
    
    /// Move-insert a pair inside the map                                      
@@ -452,7 +452,7 @@ namespace Langulus::Anyness
    template<CT::Semantic S>
    LANGULUS(INLINED)
    TABLE()& TABLE()::operator << (S&& rhs) noexcept requires (CT::Pair<TypeOf<S>>) {
-      Insert(S::Nest(rhs.mValue.mKey), S::Nest(rhs.mValue.mValue));
+      Insert(S::Nest(rhs->mKey), S::Nest(rhs->mValue));
       return *this;
    }
 
