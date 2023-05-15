@@ -1316,8 +1316,11 @@ namespace Langulus::Anyness
          ZeroMemory(mthis->GetRawAs<T>(), count);
       }
       else if constexpr (CT::Defaultable<T>) {
-         // Construct requested elements in place                       
-         new (mRaw) T [count];
+         // Construct requested elements one by one                     
+         auto to = mthis->GetRawAs<T>();
+         const auto toEnd = to + count;
+         while (to != toEnd)
+            new (to++) T {};
       }
       else LANGULUS_ERROR(
          "Trying to default-construct elements that are "

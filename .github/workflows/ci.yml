@@ -38,15 +38,16 @@ jobs:
           - managed: ON
             suffix: '-managed'
 
+
     name: "${{matrix.os}}-${{matrix.cxx}}-${{matrix.build}}-${{matrix.architecture}}${{matrix.suffix}}"
     runs-on: ${{matrix.os}}
     steps:
       - name: Dispatch Trigger
-        if: github.event.action == 'Dependency changed'
+        if: ${{ startsWith(github.event.action, 'Dependency') }}
         run: >
           echo "Triggered by dependency: ${{github.event.client_payload.cause}}"
       - name: Clone
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Configure
         run: >
           cmake
@@ -57,6 +58,8 @@ jobs:
           ${{matrix.cmake_args}}
           -DLANGULUS_FEATURE_MANAGED_MEMORY=${{matrix.managed}}
           -DLANGULUS_FEATURE_MANAGED_REFLECTION=${{matrix.managed}}
+          -DLANGULUS_ENABLE_TESTING=ON
+          -DLANGULUS_BUILD_SHARED_LIBRARIES=ON
       - name: Build
         run: cmake --build out/${{matrix.name}} --config ${{matrix.build}}
       - name: Test

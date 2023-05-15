@@ -11,21 +11,42 @@ function(langulus_init_git_submodule NAME)
 	endif()
 endfunction()
 
-function(langulus_import_framework)
-    remove_definitions(-DLANGULUS_EXPORT_ALL)
-    if(NOT WIN32)
-        add_compile_options(-fvisibility=hidden)
+function(langulus_copy_dlls TARGET ON THIS)
+    if(WIN32 AND LANGULUS_BUILD_SHARED_LIBRARIES)
+        add_custom_command(
+            TARGET ${THIS} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_RUNTIME_DLLS:${TARGET}>" "$<TARGET_FILE_DIR:${TARGET}>"
+            COMMAND_EXPAND_LISTS
+        )
     endif()
 endfunction()
 
-function(langulus_copy_dlls TO TARGET FROM)
+function(langulus_copy_dlls_advanced THIS TO TARGET FROM)
     if(WIN32)
+        add_dependencies(${TARGET} ${ARGN})
         foreach(element ${ARGN})
             add_custom_command(
-                TARGET ${TARGET} POST_BUILD
+                TARGET ${THIS} POST_BUILD
                 COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_FILE:${element}>" "$<TARGET_FILE_DIR:${TARGET}>"
                 COMMENT "Copying `$<TARGET_FILE:${element}>` to `$<TARGET_FILE_DIR:${TARGET}>`"
             )
         endforeach()
     endif()
+endfunction()
+
+include(FetchContent)
+function(langulus_fetch_cmake)
+    message(STATUS "Fetching cmake scripts...")
+    FetchContent_Declare(
+        LangulusCMake
+        GIT_REPOSITORY  https://github.com/Langulus/CMake.git
+        GIT_TAG         main
+        GIT_SHALLOW     TRUE
+        SOURCE_DIR      "${CMAKE_SOURCE_DIR}/external/cmake-src"
+        SUBBUILD_DIR    "${CMAKE_SOURCE_DIR}/external/cmake-subbuild"
+        ${ARGN}
+    )
+    FetchContent_MakeAvailable(LangulusCMake)
+    list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/external/cmake-src")
+    set(CMAKE_MODULE_PATH  ${CMAKE_MODULE_PATH} PARENT_SCOPE)
 endfunction()

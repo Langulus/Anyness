@@ -1,24 +1,28 @@
-project(Langulus_Test_Anyness)
+project(Langulus::Anyness::Test)
 
-# Configure Catch2 library
-download_project(
-	PROJ                Catch2
-	GIT_REPOSITORY      https://github.com/catchorg/Catch2.git
-	GIT_TAG             v2.x
-	UPDATE_DISCONNECTED 1
+add_executable(LangulusAnynessTest 
+	Main.cpp
+	TestAllocator.cpp
+	TestBytes.cpp
+	TestDeep.cpp
+	TestIncomplete.cpp
+	TestIteration.cpp
+	TestMaps.cpp
+	TestNewDelete.cpp
+	TestPointers.cpp
+	TestSets.cpp
+	TestTAny.cpp
+	TestText.cpp
 )
-add_subdirectory(${Catch2_SOURCE_DIR} ${Catch2_BINARY_DIR})
 
-aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR} LANGULUS_ANYNESS_TEST_SOURCES)
-add_executable(Test.Anyness ${LANGULUS_ANYNESS_TEST_SOURCES})
-
-target_link_libraries(Test.Anyness
-	PRIVATE		Langulus.Anyness 
+target_link_libraries(LangulusAnynessTest
+	PRIVATE		LangulusAnyness
 				Catch2
 )
 
-if (MSVC)
-    target_compile_options(Test.Anyness PRIVATE /bigobj)
-endif()
+add_test(
+	NAME		Langulus::Anyness::Test 
+	COMMAND		LangulusAnynessTest
+)
 
-add_test(NAME Test.Anyness COMMAND Test.Anyness)
+langulus_copy_dlls(LangulusAnynessTest ON LangulusAnynessTest)
