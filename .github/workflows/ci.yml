@@ -8,14 +8,14 @@ jobs:
       matrix:
         os: [ubuntu-22.04, windows-latest]
         build: [Debug, Release]
-        architecture: [x86, x64]
+        arch: [x86, x64]
         managed: [ON, OFF]
         cxx: [g++, clang++, cl]
         exclude:
           - os: ubuntu-22.04
             cxx: cl
           - os: ubuntu-22.04
-            architecture: x86
+            arch: x86
           - os: windows-latest
             cxx: g++
           - os: windows-latest
@@ -25,13 +25,13 @@ jobs:
           #  architecture: x86
           #  cmake_args: "-DCMAKE_CXX_FLAGS=-m32"
           - os: ubuntu-22.04
-            architecture: x64
+            arch: x64
             cmake_args: "-DCMAKE_CXX_FLAGS=-m64"
           - os: windows-latest
-            architecture: x86
+            arch: x86
             cmake_args: "-G \"Visual Studio 17 2022\" -A Win32"
           - os: windows-latest
-            architecture: x64
+            arch: x64
             cmake_args: "-G \"Visual Studio 17 2022\" -A x64"
           - managed: OFF
             suffix: ''
@@ -39,7 +39,7 @@ jobs:
             suffix: '-managed'
 
 
-    name: "${{matrix.os}}-${{matrix.cxx}}-${{matrix.build}}-${{matrix.architecture}}${{matrix.suffix}}"
+    name: "${{matrix.os}}-${{matrix.cxx}}-${{matrix.build}}-${{matrix.arch}}${{matrix.suffix}}"
     runs-on: ${{matrix.os}}
     steps:
       - name: Dispatch Trigger
@@ -53,14 +53,14 @@ jobs:
           cmake
           -DCMAKE_CXX_COMPILER=${{matrix.cxx}}
           -S .
-          -B out/${{matrix.name}}
+          -B out
           -DCMAKE_BUILD_TYPE=${{matrix.build}}
-          ${{matrix.cmake_args}}
           -DLANGULUS_FEATURE_MANAGED_MEMORY=${{matrix.managed}}
           -DLANGULUS_FEATURE_MANAGED_REFLECTION=${{matrix.managed}}
           -DLANGULUS_ENABLE_TESTING=ON
           -DLANGULUS_BUILD_SHARED_LIBRARIES=ON
+          ${{matrix.cmake_args}}
       - name: Build
-        run: cmake --build out/${{matrix.name}} --config ${{matrix.build}}
+        run: cmake --build out --config ${{matrix.build}}
       - name: Test
-        run: cd out/${{matrix.name}} && ctest -V -C ${{matrix.build}}
+        run: cd out && ctest -V -C ${{matrix.build}}

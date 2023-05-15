@@ -48,6 +48,6 @@ target_compile_definitions(LangulusAnyness
 )
 
 if(LANGULUS_ENABLE_TESTING)
+    enable_testing()
 	add_subdirectory(test)
-    langulus_copy_dlls(LangulusAnynessTest ON LangulusAnyness)
 endif()
