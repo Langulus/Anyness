@@ -1,4 +1,4 @@
-project(Langulus::Anyness::Test)
+project(LangulusAnynessTest)
 
 add_executable(LangulusAnynessTest 
 	Main.cpp
@@ -21,7 +21,7 @@ target_link_libraries(LangulusAnynessTest
 )
 
 add_test(
-	NAME		Langulus::Anyness::Test 
+	NAME		LangulusAnynessTest 
 	COMMAND		LangulusAnynessTest
 )
 
