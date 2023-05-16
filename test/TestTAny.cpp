@@ -2803,7 +2803,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
          THEN("Capacity remains unchanged, but count is trimmed; memory shouldn't move") {
             REQUIRE(pack.GetCount() == 2);
             #if LANGULUS_FEATURE(MANAGED_MEMORY)
-               REQUIRE(pack.GetReserved() < previousReserved);
+               REQUIRE(pack.GetReserved() <= previousReserved);
             #else
                REQUIRE(pack.GetReserved() == previousReserved);
             #endif
