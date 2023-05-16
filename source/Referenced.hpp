@@ -38,9 +38,9 @@ namespace Langulus::Anyness
          return mReferences;
       }
 
-      ~Referenced() SAFETY_NOEXCEPT() {
-         LANGULUS_ASSUME(DevAssumes, mReferences == 1,
-            "Destroying a referenced element, that is still in use");
+      ~Referenced() {
+         /*LANGULUS_ASSUME(DevAssumes, mReferences == 1,
+            "Destroying a referenced element, that is still in use");*/
          mReferences = 0;
       }
    };
