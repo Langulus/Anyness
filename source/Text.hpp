@@ -109,6 +109,7 @@ namespace Langulus::Anyness
       ///   Concatenation                                                     
       ///                                                                     
       NOD() Text operator + (const Text&) const;
+      friend NOD() Text operator + (const char*, const Text&);
 
       Text& operator += (const Text&);
    };

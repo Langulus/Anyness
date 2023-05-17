@@ -583,6 +583,23 @@ namespace Langulus::Anyness
       combined.InsertInner<Copied<Letter>>(rhs.GetRaw(), rhs.GetRawEnd(), mCount);
       return Abandon(combined);
    }
+   
+   /// Concatenate two text containers                                        
+   ///   @param rhs - right hand side                                         
+   ///   @return the concatenated text container                              
+   LANGULUS(INLINED)
+   Text operator + (const char* lhs, const Text& rhs) {
+      if (rhs.IsEmpty())
+         return Text {lhs};
+
+      Text leftside {lhs};
+      Text combined;
+      combined.mType = MetaData::Of<Letter>();
+      combined.AllocateFresh(leftside.RequestSize(leftside.mCount + rhs.mCount));
+      combined.InsertInner<Copied<Letter>>(leftside.GetRaw(), leftside.GetRawEnd(), 0);
+      combined.InsertInner<Copied<Letter>>(rhs.GetRaw(), rhs.GetRawEnd(), leftside.mCount);
+      return Abandon(combined);
+   }
 
    /// Concatenate (destructively) text container                             
    ///   @param rhs - right hand side                                         

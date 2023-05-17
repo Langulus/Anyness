@@ -193,6 +193,10 @@ LANGULUS_DEFINE_TRAIT(Count,
    "Count trait, used all over the place");
 LANGULUS_DEFINE_TRAIT(Name,
    "Name trait, used all over the place");
+LANGULUS_DEFINE_TRAIT(File,
+   "Filename trait, used all over the place");
+LANGULUS_DEFINE_TRAIT(Data,
+   "Raw data trait, used all over the place");
 LANGULUS_DEFINE_TRAIT(Index,
    "Index trait, used all over the place");
 LANGULUS_DEFINE_TRAIT(Context,

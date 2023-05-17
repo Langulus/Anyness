@@ -58,10 +58,20 @@ namespace Langulus::Anyness
          BlockTransfer<Any>(other.Forward());
       }
       else if constexpr (CT::CustomData<T>) {
-         // Copy/Disown/Move/Abandon/Clone an element                   
-         SetType<T, false>();
-         AllocateFresh(RequestSize(1));
-         InsertInner(other.Forward(), 0);
+         if constexpr (CT::Array<T>) {
+            // Copy/Disown/Move/Abandon/Clone an array of elements      
+            SetType<Deext<T>, false>();
+            AllocateFresh(RequestSize(ExtentOf<T>));
+            Offset offset {};
+            for (auto& element : *other)
+               InsertInner(S::Nest(element), offset++);
+         }
+         else {
+            // Copy/Disown/Move/Abandon/Clone a single element          
+            SetType<T, false>();
+            AllocateFresh(RequestSize(1));
+            InsertInner(other.Forward(), 0);
+         }
       }
       else LANGULUS_ERROR("Bad semantic constructor argument");
    }
