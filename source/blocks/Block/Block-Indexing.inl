@@ -218,7 +218,7 @@ namespace Langulus::Anyness
       if (count == 0)
          return {mState, mType};
 
-      LANGULUS_ASSUME(DevAssumes, start + count > mCount, "Out of limits");
+      LANGULUS_ASSUME(DevAssumes, start + count <= mCount, "Out of limits");
       Block result {*this};
       result.mCount = count;
       result.mRaw += start * mType->mSize;

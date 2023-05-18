@@ -1717,37 +1717,15 @@ namespace Langulus::Anyness
    
    /// Extend the container and return the new part                           
    ///   @tparam WRAPPER - the container to use for the extended part         
+   ///   @param count - the number of elements to extend by                   
    ///   @return a container that represents the extended part                
    TEMPLATE()
    template<CT::Block WRAPPER>
    WRAPPER TAny<T>::Extend(const Count& count) {
-      if (IsStatic())
-         return {};
-
-      const auto newCount = mCount + count;
-      if (mEntry && newCount > mReserved) {
-         // Allocate more space                                         
-         mEntry = Fractalloc.Reallocate(
-            mType->mSize * newCount * (CT::Sparse<T> ? 2 : 1),
-            mEntry
-         );
-         LANGULUS_ASSERT(mEntry, Allocate, "Out of memory");
-         mRaw = mEntry->GetBlockStart();
-         mReserved = newCount;
-      }
-
-      // Initialize new elements                                        
-      auto extension = CropInner(mCount, count);
-      extension.template CallKnownDefaultConstructors<T>(count);
-      extension.MakeStatic();
-
-      // Return the extension                                           
-      mCount += count;
-      WRAPPER result;
-      static_cast<Block&>(result) = extension;
-      if constexpr (!CT::Same<WRAPPER, Block>)
-         mEntry->Keep();
-      return Abandon(result);
+      const auto previousCount = mCount;
+      AllocateMore<true>(mCount + count);
+      const auto wrapped = Crop(previousCount, count);
+      return reinterpret_cast<const WRAPPER&>(wrapped);
    }
    
    /// Compare with another TAny, order matters                               

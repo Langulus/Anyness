@@ -78,6 +78,41 @@ namespace Langulus::Anyness
       Bytes& operator += (Bytes&&);
       template<CT::Semantic S>
       Bytes& operator += (S&&) requires Relevant<S>;
+
+      ///                                                                     
+      ///   Deserialization                                                   
+      ///                                                                     
+      #pragma pack(push, 1)
+      struct Header {
+         ::std::uint8_t mAtomSize;
+         ::std::uint8_t mFlags;
+         ::std::uint16_t mUnused;
+
+      public:
+         Header() noexcept;
+
+         enum {Default, BigEndian};
+
+         bool operator == (const Header&) const noexcept;
+      };
+      #pragma pack(pop)
+
+      using Loader = void(*)(Bytes&, Size);
+
+      // Intentionally undefined, because it requires Langulus::Flow    
+      // and relies on Verbs::Interpret                                 
+      #if LANGULUS_FEATURE(MANAGED_REFLECTION)
+         template<bool HEADER, CT::Block TO>
+         Size Deserialize(TO& result, const Header& header = {}, Offset readOffset = 0, const Loader& loader = {}) const;
+
+      protected:
+         void RequestMoreBytes(Offset, Size, const Loader&) const;
+
+         NOD() Size DeserializeAtom(Offset&, Offset, const Header&, const Loader&) const;
+
+         template<class META>
+         NOD() Size DeserializeMeta(META const*&, Offset, const Header&, const Loader&) const;
+      #endif
    };
 
 } // namespace Langulus::Anyness

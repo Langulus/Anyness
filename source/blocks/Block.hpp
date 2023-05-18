@@ -16,11 +16,6 @@
    #include "../unmanaged/NoAllocator.hpp"
 #endif
 
-namespace Langulus::Flow
-{
-   struct Serializer;
-}
-
 namespace Langulus::Anyness
 {
    
@@ -116,7 +111,6 @@ namespace Langulus::Anyness
       template<class, bool>
       friend class TPointer;
 
-      friend struct ::Langulus::Flow::Serializer;
       friend class ::Langulus::Flow::Verb;
       template<class>
       friend struct ::Langulus::Flow::StaticVerb;
@@ -721,6 +715,14 @@ namespace Langulus::Anyness
       ///                                                                     
       Size Encrypt(Block&, const ::std::size_t*, const Count&) const;
       Size Decrypt(Block&, const ::std::size_t*, const Count&) const;
+
+      ///                                                                     
+      ///   Serialization                                                     
+      ///                                                                     
+      // Intentionally undefined, because it requires Langulus::Flow    
+      // and relies on Verbs::Interpret                                 
+      template<bool ENSCOPE = true, class TO, class TO_ORIGINAL = TO>
+      NOD() Count Serialize(TO&) const;
    };
 
    /// Macro used to implement the standard container interface used in       

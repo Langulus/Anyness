@@ -34,7 +34,6 @@ namespace Langulus::Anyness
    public:
       static constexpr bool Ownership = true;
 
-      friend struct ::Langulus::Flow::Serializer;
       template<CT::Data, CT::Data>
       friend class TUnorderedMap;
       friend class Any;

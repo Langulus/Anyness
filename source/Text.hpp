@@ -135,7 +135,7 @@ namespace Langulus::CT
 
    /// Concept for differentiating managed Anyness Text types                 
    template<class T>
-   concept Text = DerivedFrom<T, ::Langulus::Anyness::Text>;
+   concept Text = DerivedFrom<T, Anyness::Text>;
 
    /// Concept for differentiating managed Anyness Text types                 
    template<class T>
