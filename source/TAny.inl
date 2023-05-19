@@ -19,8 +19,7 @@ namespace Langulus::Anyness
    /// avoid requesting meta definitions before meta database initialization, 
    /// and to significanty improve TAny initialization time (also to allow    
    /// for constexpr default construction)                                    
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    constexpr TAny<T>::TAny() {
       if constexpr (CT::Constant<T>)
          mState = DataState::Typed | DataState::Constant;
@@ -30,36 +29,31 @@ namespace Langulus::Anyness
 
    /// Shallow-copy construction (const)                                      
    ///   @param other - the TAny to reference                                 
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    TAny<T>::TAny(const TAny& other)
       : TAny {Copy(other)} {}
 
    /// Move construction                                                      
    ///   @param other - the TAny to move                                      
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    TAny<T>::TAny(TAny&& other) noexcept
       : TAny {Move(other)} {}
 
    /// Copy-construction from any deep container, with a bit of               
    /// runtime type-checking overhead                                         
    ///   @param other - the anyness to reference                              
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    TAny<T>::TAny(const CT::NotSemantic auto& other)
       : TAny {Copy(other)} {}
 
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    TAny<T>::TAny(CT::NotSemantic auto& other)
       : TAny {Copy(other)} {}
 
    /// Move-construction from any deep container, with a bit of               
    /// runtime type-checking overhead                                         
    ///   @param other - the anyness to reference                              
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    TAny<T>::TAny(CT::NotSemantic auto&& other)
       : TAny {Move(other)} {}
 
@@ -187,8 +181,7 @@ namespace Langulus::Anyness
    }
 
    /// Destructor                                                             
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    TAny<T>::~TAny() {
       Free();
    }
@@ -214,8 +207,7 @@ namespace Langulus::Anyness
    /// Also initializes the type of this container                            
    ///   @attention this should not be called at static initialization time   
    ///   @return the meta definition of the type                              
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    DMeta TAny<T>::GetType() const noexcept {
       mType = MetaData::Of<T>();
       return mType;
@@ -223,8 +215,7 @@ namespace Langulus::Anyness
 
    /// Dereference and eventually destroy all elements                        
    ///   @attention this never modifies any state, except mEntry              
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    void TAny<T>::Free() {
       if (!mEntry)
          return;
@@ -246,8 +237,7 @@ namespace Langulus::Anyness
    /// Shallow-copy assignment                                                
    ///   @param other - the container to shallow-copy                         
    ///   @return a reference to this container                                
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    TAny<T>& TAny<T>::operator = (const TAny& other) {
       return operator = (Copy(other));
    }
@@ -255,8 +245,7 @@ namespace Langulus::Anyness
    /// Move assignment                                                        
    ///   @param other - the container to move                                 
    ///   @return a reference to this container                                
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    TAny<T>& TAny<T>::operator = (TAny&& other) {
       return operator = (Move(other));
    }
@@ -351,23 +340,20 @@ namespace Langulus::Anyness
    }
 
    /// Reset container state (inner function)                                 
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    constexpr void TAny<T>::ResetState() noexcept {
       mState = mState.mState & DataState::Typed;
    }
 
    /// Reset container type (does nothing for typed container)                
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    constexpr void TAny<T>::ResetType() noexcept {}
 
    /// Check if contained data can be interpreted as a given type             
    /// Beware, direction matters (this is the inverse of CanFit)              
    ///   @param type - the type check if current type interprets to           
    ///   @return true if able to interpret current type to 'type'             
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    bool TAny<T>::CastsToMeta(DMeta type) const {
       return GetType()->template CastsTo<CT::Sparse<T>>(type);
    }
@@ -378,8 +364,7 @@ namespace Langulus::Anyness
    ///   @param type - the type check if current type interprets to           
    ///   @param count - the number of elements to interpret as                
    ///   @return true if able to interpret current type to 'type'             
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    bool TAny<T>::CastsToMeta(DMeta type, Count count) const {
       return GetType()->CastsTo(type, count);
    }
@@ -450,8 +435,7 @@ namespace Langulus::Anyness
    }
 
    /// Allocate 'count' elements and fill the container with zeroes           
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    void TAny<T>::Null(const Count& count) {
       static_assert(CT::Sparse<T> || CT::Nullifiable<T>, "T is not nullifiable");
 
@@ -465,8 +449,7 @@ namespace Langulus::Anyness
 
    /// Clear the container, destroying all elements,                          
    /// but retaining allocation if possible                                   
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    void TAny<T>::Clear() {
       if (!mCount)
          return;
@@ -487,8 +470,7 @@ namespace Langulus::Anyness
    }
 
    /// Reset the container, destroying all elements, and deallocating         
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    void TAny<T>::Reset() {
       Free();
       ResetMemory();
@@ -497,32 +479,28 @@ namespace Langulus::Anyness
 
    /// Return the typed raw data (const)                                      
    ///   @return a constant pointer to the first element in the array         
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    auto TAny<T>::GetRaw() const noexcept {
       return GetRawAs<T>();
    }
 
    /// Return the typed raw data                                              
    ///   @return a mutable pointer to the first element in the array          
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    auto TAny<T>::GetRaw() noexcept {
       return GetRawAs<T>();
    }
 
    /// Return the typed raw data end pointer (const)                          
    ///   @return a constant pointer to one past the last element in the array 
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    auto TAny<T>::GetRawEnd() const noexcept {
       return GetRaw() + mCount;
    }
 
    /// Return the typed raw data	end pointer                                  
    ///   @return a mutable pointer to one past the last element in the array  
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    auto TAny<T>::GetRawEnd() noexcept {
       return GetRaw() + mCount;
    }
@@ -530,15 +508,13 @@ namespace Langulus::Anyness
    /// Return a handle to a sparse element, or a pointer to dense one         
    ///   @param index - the element index                                     
    ///   @return the handle/pointer                                           
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    decltype(auto) TAny<T>::GetHandle(Offset index) SAFETY_NOEXCEPT() {
       return Block::GetHandle<T>(index);
    }
 
    /// GetHandle ignores constness                                            
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    decltype(auto) TAny<T>::GetHandle(Offset index) const SAFETY_NOEXCEPT() {
       return Block::GetHandle<T>(index);
    }
@@ -547,8 +523,7 @@ namespace Langulus::Anyness
    /// This is an optimization for predictable fundamental types              
    ///   @param count - the number of elements to request                     
    ///   @returns both the provided byte size and reserved count              
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    RTTI::AllocationRequest TAny<T>::RequestSize(const Count& count) const noexcept {
       if constexpr (CT::Fundamental<T> || CT::Exact<T, Byte>) {
          RTTI::AllocationRequest result;
@@ -623,8 +598,7 @@ namespace Langulus::Anyness
    /// Access last element                                                    
    ///   @attention assumes container has at least one item                   
    ///   @return a mutable reference to the last element                      
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    T& TAny<T>::Last() {
       LANGULUS_ASSUME(UserAssumes, mCount, "Can't get last index");
       return Get<T>(mCount - 1);
@@ -633,39 +607,34 @@ namespace Langulus::Anyness
    /// Access last element                                                    
    ///   @attention assumes container has at least one item                   
    ///   @return a constant reference to the last element                     
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    const T& TAny<T>::Last() const {
       LANGULUS_ASSUME(UserAssumes, mCount, "Can't get last index");
       return Get<T>(mCount - 1);
    }
    
    /// Templated Any containers are always typed                              
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    constexpr bool TAny<T>::IsUntyped() const noexcept {
       return false;
    }
    
    /// Templated Any containers are always type-constrained                   
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    constexpr bool TAny<T>::IsTypeConstrained() const noexcept {
       return true;
    }
    
    /// Check if contained type is abstract                                    
    /// This is a statically optimized alternative to Block::IsAbstract        
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    constexpr bool TAny<T>::IsAbstract() const noexcept {
       return CT::Abstract<T>;
    }
    
    /// Check if contained type is default-constructible                       
    /// This is a statically optimized alternative to Block::IsDefaultable     
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    constexpr bool TAny<T>::IsDefaultable() const noexcept {
       return CT::Defaultable<T>;
    }
@@ -673,8 +642,7 @@ namespace Langulus::Anyness
    /// Check if contained type is deep                                        
    /// This is a statically optimized alternative to Block::IsDeep            
    ///   @return true if this container contains deep items                   
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    constexpr bool TAny<T>::IsDeep() const noexcept {
       // Sparse types are never considered deep, except when contained  
       return CT::Deep<Decay<T>>;
@@ -683,8 +651,7 @@ namespace Langulus::Anyness
    /// Check if the contained type is a pointer                               
    /// This is a statically optimized alternative to Block::IsSparse          
    ///   @return true if container contains pointers                          
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    constexpr bool TAny<T>::IsSparse() const noexcept {
       return CT::Sparse<T>;
    }
@@ -692,8 +659,7 @@ namespace Langulus::Anyness
    /// Check if the contained type is not a pointer                           
    /// This is a statically optimized alternative to Block::IsDense           
    ///   @return true if container contains sequential data                   
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    constexpr bool TAny<T>::IsDense() const noexcept {
       return CT::Dense<T>;
    }
@@ -705,8 +671,7 @@ namespace Langulus::Anyness
    /// This gives a lot more control over your code                           
    /// This is a statically optimized alternative to Block::IsPOD             
    ///   @return true if contained data is plain old data                     
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    constexpr bool TAny<T>::IsPOD() const noexcept {
       return CT::POD<T>;
    }
@@ -716,8 +681,7 @@ namespace Langulus::Anyness
    /// most concretely typed block                                            
    /// This is a statically optimized alternative to Block::IsResolvable      
    ///   @return true if contained data can be resolved on element basis      
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    constexpr bool TAny<T>::IsResolvable() const noexcept {
       return CT::Resolvable<T>;
    }
@@ -726,8 +690,7 @@ namespace Langulus::Anyness
    /// This is tied to LANGULUS(NULLIFIABLE) reflection parameter             
    /// This is a statically optimized alternative to Block::IsNullifiable     
    ///   @return true if contained data can be memset(0) safely               
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    constexpr bool TAny<T>::IsNullifiable() const noexcept {
       return CT::Nullifiable<T>;
    }
@@ -735,16 +698,14 @@ namespace Langulus::Anyness
    /// Get the size of a single contained element, in bytes                   
    /// This is a statically optimized alternative to Block::GetStride         
    ///   @return the number of bytes a single element contains                
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    constexpr Size TAny<T>::GetStride() const noexcept {
       return sizeof(T);
    }
    
    /// Get the size of all elements, in bytes                                 
    ///   @return the total amount of initialized bytes                        
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    constexpr Size TAny<T>::GetByteSize() const noexcept {
       return GetStride() * mCount;
    }
@@ -1012,8 +973,7 @@ namespace Langulus::Anyness
    /// Elements will be added to the back of the container                    
    ///   @param count - number of elements to construct                       
    ///   @return the number of new elements                                   
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    Count TAny<T>::New(Count count) {
       // Allocate                                                       
       AllocateMore<false>(mCount + count);
@@ -1050,8 +1010,7 @@ namespace Langulus::Anyness
    /// Push data at the back by copy-construction                             
    ///   @param other - the item to insert                                    
    ///   @return a reference to this container for chaining                   
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    TAny<T>& TAny<T>::operator << (const T& other) {
       Insert<IndexBack>(Copy(other));
       return *this;
@@ -1060,8 +1019,7 @@ namespace Langulus::Anyness
    /// Push data at the back by move-construction                             
    ///   @param other - the item to move                                      
    ///   @return a reference to this container for chaining                   
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    TAny<T>& TAny<T>::operator << (T&& other) {
       Insert<IndexBack>(Move(other));
       return *this;
@@ -1081,8 +1039,7 @@ namespace Langulus::Anyness
    /// Push data at the front by copy-construction                            
    ///   @param other - the item to insert                                    
    ///   @return a reference to this container for chaining                   
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    TAny<T>& TAny<T>::operator >> (const T& other) {
       Insert<IndexFront>(Copy(other));
       return *this;
@@ -1091,8 +1048,7 @@ namespace Langulus::Anyness
    /// Push data at the front by move-construction                            
    ///   @param other - the item to move                                      
    ///   @return a reference to this container for chaining                   
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    TAny<T>& TAny<T>::operator >> (T&& other) {
       Insert<IndexFront>(Move(other));
       return *this;
@@ -1222,8 +1178,7 @@ namespace Langulus::Anyness
    /// Copy-construct element at the back, if element is not found            
    ///   @param other - the element to shallow-copy                           
    ///   @return a reference to this container                                
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    TAny<T>& TAny<T>::operator <<= (const T& other) {
       Merge<IndexBack>(Copy(other));
       return *this;
@@ -1232,8 +1187,7 @@ namespace Langulus::Anyness
    /// Move-construct element at the back, if element is not found            
    ///   @param other - the element to move                                   
    ///   @return a reference to this container                                
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    TAny<T>& TAny<T>::operator <<= (T&& other) {
       Merge<IndexBack>(Move(other));
       return *this;
@@ -1253,8 +1207,7 @@ namespace Langulus::Anyness
    /// Copy-construct element at the front, if element is not found           
    ///   @param other - the element to shallow-copy                           
    ///   @return a reference to this container                                
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    TAny<T>& TAny<T>::operator >>= (const T& other) {
       Merge<IndexFront>(Copy(other));
       return *this;
@@ -1263,8 +1216,7 @@ namespace Langulus::Anyness
    /// Move-construct element at the front, if element is not found           
    ///   @param other - the element to move                                   
    ///   @return a reference to this container                                
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    TAny<T>& TAny<T>::operator >>= (T&& other) {
       Merge<IndexFront>(Move(other));
       return *this;
@@ -1454,8 +1406,7 @@ namespace Langulus::Anyness
    }
 
    /// Remove elements on the back                                            
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    TAny<T>& TAny<T>::Trim(const Count& count) {
       Any::Trim(count);
       return *this;
@@ -1464,8 +1415,7 @@ namespace Langulus::Anyness
    /// Swap two elements                                                      
    ///   @param from - the first element                                      
    ///   @param to - the second element                                       
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    void TAny<T>::Swap(const Offset& from, const Offset& to) {
       Any::Swap<T>(from, to);
    }
@@ -1473,8 +1423,7 @@ namespace Langulus::Anyness
    /// Swap two elements using special indices                                
    ///   @param from - the first element                                      
    ///   @param to - the second element                                       
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    void TAny<T>::Swap(const Index& from, const Index& to) {
       Any::Swap<T>(from, to);
    }
@@ -1504,8 +1453,7 @@ namespace Langulus::Anyness
 
    /// Clone container array into a new owned memory block                    
    /// If we have jurisdiction, the memory won't move at all                  
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    void TAny<T>::TakeAuthority() {
       TAny<T> clone {Clone(*this)};
       Free();
@@ -1690,8 +1638,7 @@ namespace Langulus::Anyness
    /// Allocate a fresh allocation (inner function)                           
    ///   @attention changes entry, memory and reserve count                   
    ///   @param request - request to fulfill                                  
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    void TAny<T>::AllocateFresh(const RTTI::AllocationRequest& request) {
       // Sparse containers have additional memory allocated             
       // for each pointer's entry                                       
@@ -1705,8 +1652,7 @@ namespace Langulus::Anyness
 
    /// Reserve a number of elements without initializing them                 
    ///   @param count - number of elements to reserve                         
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    void TAny<T>::Reserve(Count count) {
       // Notice, it calls the locally defined function equivalents      
       if (count < mCount)
@@ -1772,8 +1718,7 @@ namespace Langulus::Anyness
    /// Compare with block of unknown type                                     
    ///   @param other - the block to compare with                             
    ///   @return true if both containers are identical                        
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    bool TAny<T>::operator == (const Any& other) const noexcept {
       if (IsExact(other.GetType())) {
          // Use statically optimized routine if possible                

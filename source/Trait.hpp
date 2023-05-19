@@ -99,7 +99,7 @@ namespace Langulus::Anyness
    template<class TRAIT>
    struct StaticTrait : public Trait {
    public:
-      LANGULUS(TRAIT) RTTI::LastNameOf<TRAIT>();
+      LANGULUS(TRAIT) RTTI::LastCppNameOf<TRAIT>();
       LANGULUS_BASES(Trait);
 
       using TraitType = TRAIT;
@@ -155,15 +155,15 @@ namespace Langulus::CT
    /// A reflected trait type is any type that inherits Trait, and is         
    /// binary compatible to a Trait                                           
    template<class... T>
-   concept Trait = ((DerivedFrom<T, ::Langulus::Anyness::Trait>
-      && sizeof(T) == sizeof(::Langulus::Anyness::Trait)) && ...);
+   concept Trait = ((DerivedFrom<T, Anyness::Trait>
+      && sizeof(T) == sizeof(Anyness::Trait)) && ...);
 
 } // namespace Langulus::CT
 
 #define LANGULUS_DEFINE_TRAIT(T, INFOSTRING) \
    namespace Langulus::Traits \
    { \
-      struct T : public ::Langulus::Anyness::StaticTrait<T> { \
+      struct T : public Anyness::StaticTrait<T> { \
          LANGULUS(INFO) INFOSTRING; \
          using StaticTrait::StaticTrait; \
          using StaticTrait::operator =; \
@@ -176,7 +176,7 @@ namespace Langulus::CT
 #define LANGULUS_DEFINE_TRAIT_WITH_PROPERTIES(T, INFOSTRING, PROPERTIES) \
    namespace Langulus::Traits \
    { \
-      struct T : public ::Langulus::Anyness::StaticTrait<T> { \
+      struct T : public Anyness::StaticTrait<T> { \
          LANGULUS(INFO) INFOSTRING; \
          using StaticTrait::StaticTrait; \
          using StaticTrait::operator =; \
