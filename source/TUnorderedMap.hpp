@@ -160,6 +160,8 @@ namespace Langulus::Anyness
       template<CT::Semantic S>
       TUnorderedMap& operator << (S&&) noexcept requires (CT::Pair<TypeOf<S>>);
 
+      TUnorderedMap& operator += (const TUnorderedMap&);
+
       ///                                                                     
       ///   Removal                                                           
       ///                                                                     

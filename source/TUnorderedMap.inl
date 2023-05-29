@@ -456,6 +456,25 @@ namespace Langulus::Anyness
       return *this;
    }
 
+   /// Combine the contents of two maps (destructively)                       
+   ///   @param rhs - the map to concatenate                                  
+   ///   @return a reference to this table for chaining                       
+   TABLE_TEMPLATE()
+   LANGULUS(INLINED)
+   TABLE()& TABLE()::operator += (const TABLE()& rhs) {
+      for (auto pair : rhs) {
+         auto found = FindKeyIndex(pair.mKey);
+         if (found) {
+            if constexpr (requires (V& lhs) { lhs += rhs; })
+               GetValue(found) += pair.mValue;
+            else
+               LANGULUS_THROW(Concat, "No concat operator available");
+         }
+         else Insert(pair.mKey, pair.mValue);
+      }
+      return *this;
+   }
+
    /// Request a new size of keys and info via the value container            
    /// The memory layout is:                                                  
    ///   [keys for each bucket]                                               
