@@ -211,5 +211,7 @@ LANGULUS_DEFINE_TRAIT(Parent,
    "Accesses parents in any kind of hierarchies");
 LANGULUS_DEFINE_TRAIT(Clipboard,
    "Accesses clipboard");
+LANGULUS_DEFINE_TRAIT(Color,
+   "Color trait");
 
 #include "Trait.inl"

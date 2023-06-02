@@ -1336,8 +1336,11 @@ namespace Langulus::Anyness
    inline void Block::CallUnknownDescriptorConstructors(Count count, const Descriptor& descriptor) const {
       LANGULUS_ASSUME(DevAssumes, count <= mReserved,
          "Count outside limits");
-      LANGULUS_ASSUME(DevAssumes, mType->mDescriptorConstructor != nullptr,
-         "Type is not descriptor-constructible");
+      LANGULUS_ASSERT(
+         mType->mDefaultConstructor != nullptr, Construct,
+         "Can't descriptor-construct elements"
+         " - no descriptor-constructor reflected"
+      );
 
       if (mType->mDeptr) {
          if (!mType->mDeptr->mIsSparse) {

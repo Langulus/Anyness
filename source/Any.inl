@@ -707,9 +707,13 @@ namespace Langulus::Anyness
          //TODO if stuff moved, we should move stuff back if this throws...
          region.CallUnknownDefaultConstructors(count);
       }
-      else {
-         // Attempt move-construction, if available                     
-         if constexpr (sizeof...(A) == 1) {
+      else if constexpr (sizeof...(A) == 1) {
+         if constexpr (CT::Exact<A..., Descriptor>) {
+            // Attempt descriptor-construction                          
+            region.CallUnknownDescriptorConstructors(count, arguments...);
+         }
+         else {
+            // Attempt move-construction, if available                  
             using F = Decvq<Deref<typename TTypeList<A...>::First>>;
             if (IsExact<F>()) {
                // Single argument matches                               
@@ -721,13 +725,19 @@ namespace Langulus::Anyness
                return;
             }
          }
-
-         // Attempt descriptor-construction, if available               
-         //TODO if stuff moved, we should move stuff back if this throws...
-         Descriptor descriptor { Block::From(arguments)...};
-         region.CallUnknownDescriptorConstructors(count, descriptor);
       }
 
+      LANGULUS_ASSERT(
+         mType->mDefaultConstructor != nullptr, Construct,
+         "Can't descriptor-construct element"
+         " - no descriptor-constructor reflected"
+      );
+
+      // Attempt wrapping argument(s) in a Descriptor, and doing        
+      // descriptor-construction, if available                          
+      //TODO if stuff moved, we should move stuff back if this throws...
+      Descriptor descriptor {Block::From(arguments)...};
+      region.CallUnknownDescriptorConstructors(count, descriptor);
       mCount += count;
    }
    
