@@ -708,7 +708,7 @@ namespace Langulus::Anyness
          region.CallUnknownDefaultConstructors(count);
       }
       else if constexpr (sizeof...(A) == 1) {
-         if constexpr (CT::Exact<A..., Descriptor>) {
+         if constexpr (CT::Exact<Descriptor, A...>) {
             // Attempt descriptor-construction                          
             region.CallUnknownDescriptorConstructors(count, arguments...);
          }

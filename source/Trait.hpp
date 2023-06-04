@@ -213,5 +213,9 @@ LANGULUS_DEFINE_TRAIT(Clipboard,
    "Accesses clipboard");
 LANGULUS_DEFINE_TRAIT(Color,
    "Color trait");
+LANGULUS_DEFINE_TRAIT(Min,
+   "Accesses smallest element in a context");
+LANGULUS_DEFINE_TRAIT(Max,
+   "Accesses biggest element in a context");
 
 #include "Trait.inl"

@@ -204,7 +204,7 @@ namespace Langulus::Anyness
    ///   @return a reference to the editor for chaining                       
    TEMPLATE()
    LANGULUS(INLINED)
-   TEdit<T>& TEdit<T>::operator << (const CTTI_InnerType& other) {
+   TEdit<T>& TEdit<T>::operator << (const TypeOf<T>& other) {
       mSource.InsertAt(other, mEnd);
       return *this;
    }
@@ -214,7 +214,7 @@ namespace Langulus::Anyness
    ///   @return a reference to the editor for chaining                       
    TEMPLATE()
    LANGULUS(INLINED)
-   TEdit<T>& TEdit<T>::operator >> (const CTTI_InnerType& other) {
+   TEdit<T>& TEdit<T>::operator >> (const TypeOf<T>& other) {
       const auto concatenated = mSource.InsertAt(other, mStart);
       mStart += concatenated;
       mEnd += concatenated;
@@ -228,7 +228,7 @@ namespace Langulus::Anyness
    ///   @return a reference to the editor for chaining                       
    TEMPLATE()
    LANGULUS(INLINED)
-   TEdit<T>& TEdit<T>::Replace(const CTTI_InnerType& other) {
+   TEdit<T>& TEdit<T>::Replace(const TypeOf<T>& other) {
       return Replace(T {other});
    }
 

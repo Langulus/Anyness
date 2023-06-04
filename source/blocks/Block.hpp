@@ -461,16 +461,16 @@ namespace Langulus::Anyness
       NOD() Block GetBaseMemory(const RTTI::Base&);
       NOD() Block GetBaseMemory(const RTTI::Base&) const;
    
+      template<bool CONSTRAIN = false>
+      void SetType(DMeta);
+      template<CT::Data, bool CONSTRAIN = false>
+      void SetType();
+
+   protected:
       template<CT::Data, bool ALLOW_DEEPEN, CT::Data = Any>
       bool Mutate();
       template<bool ALLOW_DEEPEN, CT::Data = Any>
       bool Mutate(DMeta);
-         
-   protected:
-      template<bool CONSTRAIN>
-      void SetType(DMeta);
-      template<CT::Data, bool CONSTRAIN>
-      void SetType();
 
       constexpr void ResetType() noexcept;
 

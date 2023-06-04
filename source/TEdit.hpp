@@ -53,9 +53,9 @@ namespace Langulus::Anyness
       TEdit& operator >> (const T&);
       TEdit& Replace(const T&);
 
-      TEdit& operator << (const CTTI_InnerType&);
-      TEdit& operator >> (const CTTI_InnerType&);
-      TEdit& Replace(const CTTI_InnerType&);
+      TEdit& operator << (const TypeOf<T>&);
+      TEdit& operator >> (const TypeOf<T>&);
+      TEdit& Replace(const TypeOf<T>&);
 
       TEdit& Delete();
       TEdit& Backspace();
