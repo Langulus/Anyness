@@ -77,6 +77,12 @@ namespace Langulus::Anyness
       return InsertAt<MUTABLE, WRAPPER>(Copy(item), idx);
    }
 
+   template<bool MUTABLE, CT::Data WRAPPER, CT::NotSemantic T, CT::Index INDEX>
+   LANGULUS(INLINED)
+   Count Block::InsertAt(T& item, INDEX idx) {
+      return InsertAt<MUTABLE, WRAPPER>(Copy(item), idx);
+   }
+
    /// Insert a single element by move                                        
    ///   @tparam MUTABLE - is it allowed the block to deepen or incorporate   
    ///                     the new insertion, if not compatible?              
@@ -206,6 +212,12 @@ namespace Langulus::Anyness
       return Insert<INDEX, MUTABLE, WRAPPER>(Copy(item));
    }
 
+   template<Index INDEX, bool MUTABLE, CT::Data WRAPPER, CT::NotSemantic T>
+   LANGULUS(INLINED)
+   Count Block::Insert(T& item) {
+      return Insert<INDEX, MUTABLE, WRAPPER>(Copy(item));
+   }
+
    /// Insert a single element by move at a static index                      
    ///   @tparam INDEX - use IndexBack or IndexFront to append accordingly    
    ///   @tparam MUTABLE - is it allowed the block to deepen or incorporate   
@@ -312,6 +324,12 @@ namespace Langulus::Anyness
       return MergeAt<MUTABLE, WRAPPER>(Copy(item), index);
    }
 
+   template<bool MUTABLE, CT::Data WRAPPER, CT::NotSemantic T, CT::Index INDEX>
+   LANGULUS(INLINED)
+   Count Block::MergeAt(T& item, INDEX index) {
+      return MergeAt<MUTABLE, WRAPPER>(Copy(item), index);
+   }
+
    /// Merge a single element by move                                         
    /// Element will be pushed only if not found in block                      
    ///   @tparam MUTABLE - is it allowed the block to deepen or incorporate   
@@ -384,6 +402,12 @@ namespace Langulus::Anyness
       return Merge<INDEX, MUTABLE, WRAPPER>(Copy(item));
    }
 
+   template<Index INDEX, bool MUTABLE, CT::Data WRAPPER, CT::NotSemantic T>
+   LANGULUS(INLINED)
+   Count Block::Merge(T& item) {
+      return Merge<INDEX, MUTABLE, WRAPPER>(Copy(item));
+   }
+
    /// Merge an elements by move at a static index                            
    /// Each element will be pushed only if not found in block                 
    ///   @tparam INDEX - static index (either IndexFront or IndexBack)        
@@ -425,6 +449,12 @@ namespace Langulus::Anyness
    template<CT::NotSemantic T, CT::Index INDEX>
    LANGULUS(INLINED)
    Count Block::InsertBlockAt(const T& other, INDEX idx) {
+      return InsertBlockAt(Copy(other), idx);
+   }
+
+   template<CT::NotSemantic T, CT::Index INDEX>
+   LANGULUS(INLINED)
+   Count Block::InsertBlockAt(T& other, INDEX idx) {
       return InsertBlockAt(Copy(other), idx);
    }
 
@@ -483,6 +513,12 @@ namespace Langulus::Anyness
    template<Index INDEX, CT::NotSemantic T>
    LANGULUS(INLINED)
    Count Block::InsertBlock(const T& other) {
+      return InsertBlock<INDEX>(Copy(other));
+   }
+
+   template<Index INDEX, CT::NotSemantic T>
+   LANGULUS(INLINED)
+   Count Block::InsertBlock(T& other) {
       return InsertBlock<INDEX>(Copy(other));
    }
 
@@ -569,6 +605,12 @@ namespace Langulus::Anyness
       return MergeBlockAt(Copy(other), index);
    }
 
+   template<CT::NotSemantic T, CT::Index INDEX>
+   LANGULUS(INLINED)
+   Count Block::MergeBlockAt(T& other, INDEX index) {
+      return MergeBlockAt(Copy(other), index);
+   }
+
    /// Move-insert each block element that is not found in this container     
    ///   @tparam T - the block type to merge (deducible)                      
    ///   @tparam INDEX - the type of indexing (deducible)                     
@@ -613,6 +655,12 @@ namespace Langulus::Anyness
    template<Index INDEX, CT::NotSemantic T>
    LANGULUS(INLINED)
    Count Block::MergeBlock(const T& other) {
+      return MergeBlock<INDEX>(Copy(other));
+   }
+
+   template<Index INDEX, CT::NotSemantic T>
+   LANGULUS(INLINED)
+   Count Block::MergeBlock(T& other) {
       return MergeBlock<INDEX>(Copy(other));
    }
 
@@ -1337,7 +1385,7 @@ namespace Langulus::Anyness
       LANGULUS_ASSUME(DevAssumes, count <= mReserved,
          "Count outside limits");
       LANGULUS_ASSERT(
-         mType->mDefaultConstructor != nullptr, Construct,
+         mType->mDescriptorConstructor != nullptr, Construct,
          "Can't descriptor-construct elements"
          " - no descriptor-constructor reflected"
       );

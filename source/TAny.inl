@@ -162,22 +162,8 @@ namespace Langulus::Anyness
    TAny<T>::TAny(HEAD&& head, TAIL&&... tail) requires (sizeof...(TAIL) >= 1) {
       mType = MetaData::Of<T>();
       AllocateFresh(RequestSize(sizeof...(TAIL) + 1));
-
-      if constexpr (CT::Semantic<HEAD>) {
-         // Handle semantically different elements                      
-         InsertInner(head.Forward(), 0);
-         InsertStatic<1>(Forward<TAIL>(tail)...);
-      }
-      else {
-         // All types are semantically the same, but it still detects   
-         // built-in move/shallow copy semantics                        
-         if constexpr (::std::is_rvalue_reference_v<HEAD>)
-            InsertInner(Move(head), 0);
-         else
-            InsertInner(Copy(head), 0);
-
-         InsertStatic<1>(Forward<TAIL>(tail)...);
-      }
+      Insert(Forward<HEAD>(head));
+      (Insert(Forward<TAIL>(tail)), ...);
    }
 
    /// Destructor                                                             

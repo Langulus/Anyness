@@ -546,6 +546,8 @@ namespace Langulus::Anyness
       template<bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T, CT::Index INDEX>
       Count InsertAt(const T&, INDEX);
       template<bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T, CT::Index INDEX>
+      Count InsertAt(T&, INDEX);
+      template<bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T, CT::Index INDEX>
       Count InsertAt(T&&, INDEX);
       template<bool MUTABLE = true, CT::Data = Any, CT::Semantic S, CT::Index INDEX>
       Count InsertAt(S&&, INDEX);
@@ -554,6 +556,8 @@ namespace Langulus::Anyness
       Count Insert(const T*, const T*);
       template<Index = IndexBack, bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T>
       Count Insert(const T&);
+      template<Index = IndexBack, bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T>
+      Count Insert(T&);
       template<Index = IndexBack, bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T>
       Count Insert(T&&);
       template<Index = IndexBack, bool MUTABLE = true, CT::Data = Any, CT::Semantic S>
@@ -564,6 +568,8 @@ namespace Langulus::Anyness
       template<bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T, CT::Index INDEX>
       Count MergeAt(const T&, INDEX);
       template<bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T, CT::Index INDEX>
+      Count MergeAt(T&, INDEX);
+      template<bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T, CT::Index INDEX>
       Count MergeAt(T&&, INDEX);
       template<bool MUTABLE = true, CT::Data = Any, CT::Semantic S, CT::Index INDEX>
       Count MergeAt(S&&, INDEX);
@@ -573,12 +579,16 @@ namespace Langulus::Anyness
       template<Index = IndexBack, bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T>
       Count Merge(const T&);
       template<Index = IndexBack, bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T>
+      Count Merge(T&);
+      template<Index = IndexBack, bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T>
       Count Merge(T&&);
       template<Index = IndexBack, bool MUTABLE = true, CT::Data = Any, CT::Semantic S>
       Count Merge(S&&);
 
       template<CT::NotSemantic T, CT::Index INDEX>
       Count InsertBlockAt(const T&, INDEX);
+      template<CT::NotSemantic T, CT::Index INDEX>
+      Count InsertBlockAt(T&, INDEX);
       template<CT::NotSemantic T, CT::Index INDEX>
       Count InsertBlockAt(T&&, INDEX);
       template<CT::Semantic S, CT::Index INDEX>
@@ -587,6 +597,8 @@ namespace Langulus::Anyness
       template<Index = IndexBack, CT::NotSemantic T>
       Count InsertBlock(const T&);
       template<Index = IndexBack, CT::NotSemantic T>
+      Count InsertBlock(T&);
+      template<Index = IndexBack, CT::NotSemantic T>
       Count InsertBlock(T&&);
       template<Index = IndexBack, CT::Semantic S>
       Count InsertBlock(S&&);
@@ -594,12 +606,16 @@ namespace Langulus::Anyness
       template<CT::NotSemantic T, CT::Index INDEX>
       Count MergeBlockAt(const T&, INDEX);
       template<CT::NotSemantic T, CT::Index INDEX>
+      Count MergeBlockAt(T&, INDEX);
+      template<CT::NotSemantic T, CT::Index INDEX>
       Count MergeBlockAt(T&&, INDEX);
       template<CT::Semantic S, CT::Index INDEX>
       Count MergeBlockAt(S&&, INDEX);
    
       template<Index = IndexBack, CT::NotSemantic T>
       Count MergeBlock(const T&);
+      template<Index = IndexBack, CT::NotSemantic T>
+      Count MergeBlock(T&);
       template<Index = IndexBack, CT::NotSemantic T>
       Count MergeBlock(T&&);
       template<Index = IndexBack, CT::Semantic S>

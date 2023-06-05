@@ -374,32 +374,29 @@ namespace Langulus::CT
 
 } // namespace Langulus::CT
 
-namespace Langulus::Anyness::Inner
+/*namespace Langulus::Anyness::Inner
 {
 
-   template<CT::Data HEAD, CT::Data... TAIL>
-   void NestedSemanticInsertion(CT::Map auto& map, HEAD head, TAIL... tail) {
-      if constexpr (CT::Semantic<HEAD>) {
-         using S = Decay<HEAD>;
+   template<CT::Data T>
+   void NestedSemanticInsertion(CT::Map auto& map, T&& head) {
+      if constexpr (CT::Semantic<T>) {
+         using S = Decay<T>;
 
          if constexpr (CT::Pair<TypeOf<S>>)
             map.Insert(S::Nest(head->mKey), S::Nest(head->mValue));
          else
             LANGULUS_ERROR("Semantic element does not contain a pair type");
       }
-      else if constexpr (CT::Pair<HEAD>) {
-         if constexpr (::std::is_rvalue_reference_v<HEAD>)
+      else if constexpr (CT::Pair<T>) {
+         if constexpr (::std::is_rvalue_reference_v<T>)
             map.Insert(Move(head.mKey), Move(head.mValue));
          else
             map.Insert(Copy(head.mKey), Copy(head.mValue));
       }
       else LANGULUS_ERROR("Element is not a pair type");
-
-      if constexpr (sizeof...(TAIL))
-         NestedSemanticInsertion(map, tail...);
    }
 
-} // namespace Langulus::Anyness::Inner
+} // namespace Langulus::Anyness::Inner*/
 
 #include "BlockMap/BlockMap-Construct.inl"
 #include "BlockMap/BlockMap-Capsulation.inl"

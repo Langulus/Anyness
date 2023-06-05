@@ -60,7 +60,7 @@ namespace Langulus::Anyness
       else if constexpr (CT::CustomData<T>) {
          if constexpr (CT::Array<T>) {
             // Copy/Disown/Move/Abandon/Clone an array of elements      
-            SetType<Deext<T>, false>();
+            SetType<Deext<T>>();
             AllocateFresh(RequestSize(ExtentOf<T>));
             Offset offset {};
             for (auto& element : *other)
@@ -68,7 +68,7 @@ namespace Langulus::Anyness
          }
          else {
             // Copy/Disown/Move/Abandon/Clone a single element          
-            SetType<T, false>();
+            SetType<T>();
             AllocateFresh(RequestSize(1));
             InsertInner(other.Forward(), 0);
          }
@@ -83,33 +83,19 @@ namespace Langulus::Anyness
    ///   @param tail... - the rest of the elements                            
    template<CT::Data HEAD, CT::Data... TAIL>
    Any::Any(HEAD&& head, TAIL&&... tail) requires (sizeof...(TAIL) >= 1) {
-      if constexpr (CT::Semantic<HEAD>) {
-         // Types differ, so wrap each of them in a separate Any        
-         SetType<Any, false>();
-         AllocateFresh(RequestSize(sizeof...(TAIL) + 1));
-
-         InsertInner(Abandon(Any {head.Forward()}), 0);
-         InsertStatic<1>(Abandon(Any {Forward<TAIL>(tail)})...);
-      }
-      else if constexpr (CT::Exact<HEAD, TAIL...>) {
+      if constexpr (CT::Exact<HEAD, TAIL...>) {
          // All types are the same, so pack them tightly                
-         SetType<Decvq<Deref<HEAD>>, false>();
+         SetType<Decvq<Deref<HEAD>>>();
          AllocateFresh(RequestSize(sizeof...(TAIL) + 1));
-
-         if constexpr (::std::is_rvalue_reference_v<HEAD>)
-            InsertInner(Langulus::Move(head), 0);
-         else
-            InsertInner(Langulus::Copy(head), 0);
-
-         InsertStatic<1>(Forward<TAIL>(tail)...);
+         Insert(Forward<HEAD>(head));
+         (Insert(Forward<TAIL>(tail)), ...);
       }
       else {
          // Types differ, so wrap each of them in a separate Any        
-         SetType<Any, false>();
+         SetType<Any>();
          AllocateFresh(RequestSize(sizeof...(TAIL) + 1));
-
-         InsertInner(Abandon(Any {Forward<HEAD>(head)}), 0);
-         InsertStatic<1>(Abandon(Any {Forward<TAIL>(tail)})...);
+         Insert(Abandon(Any {Forward<HEAD>(head)}));
+         (Insert(Abandon(Any {Forward<TAIL>(tail)})), ...);
       }
    }
 
