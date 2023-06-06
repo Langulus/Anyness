@@ -393,7 +393,7 @@ namespace Langulus::Anyness
       ForEachDeep<REVERSE>([&](const Block& group) {
          if (cookie) {
             --cookie;
-            return true;
+            return Flow::Continue;
          }
 
          found = group.template FindKnown<REVERSE>(item);

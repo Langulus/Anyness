@@ -16,6 +16,16 @@
    #include "../unmanaged/NoAllocator.hpp"
 #endif
 
+namespace Langulus::Flow
+{
+
+   /// Just syntax sugar, for breaking ForEach loop                           
+   constexpr bool Break = false;
+   /// Just syntax sugar, for continuing ForEach loop                         
+   constexpr bool Continue = true;
+
+} // namespace Langulus::Flow
+
 namespace Langulus::Anyness
 {
    

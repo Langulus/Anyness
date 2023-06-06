@@ -206,7 +206,7 @@ namespace Langulus::Anyness
             Count counter {};
             Iterate<MUTABLE, REVERSE>([&](const void*& element) -> R {
                if constexpr (CT::Bool<R>) {
-                  if (!element) return true;
+                  if (!element) return Flow::Continue;
                }
                else if (!element) return;
 
@@ -217,7 +217,7 @@ namespace Langulus::Anyness
                }
                else {
                   if constexpr (CT::Bool<R>)
-                     return true;
+                     return Flow::Continue;
                   else return;
                }
                });

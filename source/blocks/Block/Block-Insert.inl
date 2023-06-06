@@ -1326,7 +1326,7 @@ namespace Langulus::Anyness
       }
       else {
          LANGULUS_ASSERT(
-            mType->mDefaultConstructor != nullptr, Construct,
+            mType->mDefaultConstructor, Construct,
             "Can't default-construct elements"
             " - no default constructor reflected"
          );
@@ -1385,7 +1385,7 @@ namespace Langulus::Anyness
       LANGULUS_ASSUME(DevAssumes, count <= mReserved,
          "Count outside limits");
       LANGULUS_ASSERT(
-         mType->mDescriptorConstructor != nullptr, Construct,
+         mType->mDescriptorConstructor, Construct,
          "Can't descriptor-construct elements"
          " - no descriptor-constructor reflected"
       );

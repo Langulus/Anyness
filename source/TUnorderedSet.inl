@@ -1040,7 +1040,7 @@ namespace Langulus::Anyness
       Offset i {};
       if constexpr (!CT::Void<R>) {
          return GetValues().ForEachElement([&](const Block& element) {
-            return mInfo[i++] ? f(element) : true;
+            return mInfo[i++] ? f(element) : Flow::Continue;
          });
       }
       else {
@@ -1065,7 +1065,7 @@ namespace Langulus::Anyness
       Offset i {};
       if constexpr (!CT::Void<R>) {
          return GetValues().ForEachElement([&](const Block& element) {
-            return mInfo[i++] ? f(element) : true;
+            return mInfo[i++] ? f(element) : Flow::Continue;
          });
       }
       else {

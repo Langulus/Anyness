@@ -692,35 +692,36 @@ namespace Langulus::Anyness
          // Attempt default construction                                
          //TODO if stuff moved, we should move stuff back if this throws...
          region.CallUnknownDefaultConstructors(count);
+         mCount += count;
+         return;
       }
       else if constexpr (sizeof...(A) == 1) {
-         if constexpr (CT::Exact<Descriptor, A...>) {
+         using F = Decvq<Deref<typename TTypeList<A...>::First>>;
+
+         if constexpr (CT::Exact<Descriptor, F>) {
             // Attempt descriptor-construction                          
             region.CallUnknownDescriptorConstructors(count, arguments...);
+            mCount += count;
+            return;
          }
-         else {
+         else if (IsExact<F>()) {
             // Attempt move-construction, if available                  
-            using F = Decvq<Deref<typename TTypeList<A...>::First>>;
-            if (IsExact<F>()) {
-               // Single argument matches                               
-               region.template CallKnownConstructors<F>(
-                  count, Forward<A>(arguments)...
-               );
-
-               mCount += count;
-               return;
-            }
+            region.template CallKnownConstructors<F>(
+               count, Forward<A>(arguments)...
+            );
+            mCount += count;
+            return;
          }
       }
 
+      // Attempt wrapping argument(s) in a Descriptor, and doing        
+      // descriptor-construction, if available                          
       LANGULUS_ASSERT(
-         mType->mDefaultConstructor != nullptr, Construct,
+         mType->mDescriptorConstructor, Construct,
          "Can't descriptor-construct element"
          " - no descriptor-constructor reflected"
       );
 
-      // Attempt wrapping argument(s) in a Descriptor, and doing        
-      // descriptor-construction, if available                          
       //TODO if stuff moved, we should move stuff back if this throws...
       Descriptor descriptor {Block::From(arguments)...};
       region.CallUnknownDescriptorConstructors(count, descriptor);
