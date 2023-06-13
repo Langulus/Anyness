@@ -435,4 +435,15 @@ namespace Langulus::Anyness
          return Any::operator == (rhs);
    }
 
+   /// Set the data type of the trait                                         
+   ///   @tparam T - the data type to set                                     
+   ///   @return the empty trait of the given type                            
+   template<class TRAIT>
+   template<CT::Data T>
+   TRAIT StaticTrait<TRAIT>::OfType() {
+      TRAIT instance;
+      instance.template SetType<T>();
+      return instance;
+   }
+
 } // namespace Langulus::Anyness

@@ -145,6 +145,9 @@ namespace Langulus::Anyness
 
       template<CT::Data T>
       NOD() bool operator == (const T&) const;
+
+      template<CT::Data T>
+      NOD() static TRAIT OfType();
    };
 
 } // namespace Langulus::Anyness
