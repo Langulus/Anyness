@@ -350,10 +350,10 @@ namespace Langulus::Anyness
       using SK = Decay<decltype(key)>;
       using SV = Decay<decltype(val)>;
 
-      static_assert(CT::Block<TypeOf<SK>>,
-         "SK's type must be a block type");
-      static_assert(CT::Block<TypeOf<SV>>,
-         "SV's type must be a block type");
+      static_assert(CT::Exact<TypeOf<SK>, Block>,
+         "SK type must be exactly Block (build-time optimization)");
+      static_assert(CT::Exact<TypeOf<SV>, Block>,
+         "SV type must be exactly Block (build-time optimization)");
 
       Mutate(key->mType, val->mType);
       Reserve(GetCount() + 1);
@@ -391,14 +391,15 @@ namespace Langulus::Anyness
       Mutate(MetaData::Of<K>(), mValues.mType);
 
       Any newk {key};
-      auto newv = Block {mValues.mState, mValues.mType};
+      Any newv = Any::FromMeta(mValues.mType, mValues.mState);
       newv.template AllocateMore<true>(1);
       Reserve(GetCount() + 1);
 
       // Insert the new pair                                            
       const auto insertedAt = InsertInnerUnknown<false>(
          GetBucket(GetReserved() - 1, key),
-         Abandon(newk), Abandon(newv)
+         Abandon(Forward<Block>(newk)),
+         Abandon(Forward<Block>(newv))
       );
       return GetValueInner(insertedAt);
    }

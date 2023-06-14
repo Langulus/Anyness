@@ -15,7 +15,11 @@ namespace Langulus::Anyness
    ///   @param other - the block to shallow-copy                             
    LANGULUS(INLINED)
    constexpr BlockSet::BlockSet(CT::Semantic auto&& other) noexcept
-      : BlockSet {static_cast<const BlockSet&>(*other)} {}
+      : BlockSet {*other} {
+      using S = Decay<decltype(other)>;
+      static_assert(CT::Exact<TypeOf<S>, BlockSet>,
+         "S type must be exactly BlockSet (build-time optimization)");
+   }
 
    /// Semantic assignment                                                    
    /// Blocks have no ownership, so this always results in a block transfer   
@@ -24,7 +28,10 @@ namespace Langulus::Anyness
    ///   @return a reference to this set                                      
    LANGULUS(INLINED)
    constexpr BlockSet& BlockSet::operator = (CT::Semantic auto&& rhs) noexcept {
-      return operator = (static_cast<const BlockSet&>(*rhs));
+      using S = Decay<decltype(rhs)>;
+      static_assert(CT::Exact<TypeOf<S>, BlockSet>,
+         "S type must be exactly BlockSet (build-time optimization)");
+      return operator = (*rhs);
    }
    
    /// Semantically transfer the members of one set onto another              

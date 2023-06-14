@@ -38,37 +38,6 @@ namespace Langulus::Anyness
       InsertInner<true>(GetBucket(value.mValue), value.Forward());
       return 1;
    }
-
-   /// Merge type-erased value via copy                                       
-   ///   @param value - the value to merge, wrapped in a Block                
-   ///   @return 1 if element was inserted, zero otherwise                    
-   LANGULUS(INLINED)
-   Count BlockSet::InsertUnknown(const Block& value) {
-      return InsertUnknown(Copy(value));
-   }
-
-   /// Merge type-erased value via move                                       
-   ///   @param value - the value to merge, wrapped in a Block                
-   ///   @return 1 if element was inserted, zero otherwise                    
-   LANGULUS(INLINED)
-   Count BlockSet::InsertUnknown(Block&& value) {
-      return InsertUnknown(Move(value));
-   }
-   
-   /// Merge type-erased value via semantic                                   
-   ///   @param value - the value to merge, wrapped in a Block                
-   ///   @return 1 if element was inserted, zero otherwise                    
-   template<CT::Semantic S>
-   LANGULUS(INLINED)
-   Count BlockSet::InsertUnknown(S&& value) requires (CT::Block<TypeOf<S>>) {
-      Mutate(value->mType);
-      Reserve(GetCount() + 1);
-      InsertInnerUnknown<true>(
-         GetBucketUnknown(GetReserved() - 1, *value), 
-         value.Forward()
-      );
-      return 1;
-   }
    
    /// Merge the contents of two sets by shallow copy                         
    ///   @param set - the set to merge with this one                          
@@ -88,15 +57,39 @@ namespace Langulus::Anyness
 
    /// Merge the contents of two sets by using a semantic                     
    ///   @param set - the set to merge with this one                          
-   ///   @return the number of elements that were inserted                    
-   template<CT::Semantic S>
+   ///   @return the size of provided set                                     
    LANGULUS(INLINED)
-   Count BlockSet::Merge(S&& set) {
-      static_assert(CT::Set<TypeOf<S>>, "You can only merge other sets");
-      Count inserted {};
-      for (auto it : *set)
-         inserted += InsertUnknown(S::Nest(it));
-      return inserted;
+   Count BlockSet::Merge(CT::Semantic auto&& set) {
+      using S = Decay<decltype(set)>;
+      using T = TypeOf<S>;
+      static_assert(CT::Set<T>, "You can only merge other sets");
+
+      if constexpr (CT::Typed<T>) {
+         // Merging with a statically typed set                         
+         Mutate<TypeOf<T>>(set->GetType());
+         Reserve(GetCount() + set->GetCount());
+
+         for (auto& it : *set) {
+            InsertInner<true>(
+               GetBucket(GetReserved() - 1, it),
+               S::Nest(it)
+            );
+         }
+      }
+      else {
+         // Merging with a type-erased set                              
+         Mutate(set->GetType());
+         Reserve(GetCount() + set->GetCount());
+
+         for (Block it : static_cast<const BlockSet&>(*set)) {
+            InsertInnerUnknown<true>(
+               GetBucketUnknown(GetReserved() - 1, it),
+               S::Nest(it)
+            );
+         }
+      }
+
+      return set->GetCount();
    }
 
    /// Merge an element via copy                                              
@@ -123,24 +116,6 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    BlockSet& BlockSet::operator << (CT::Semantic auto&& item) {
       Insert(item.Forward());
-      return *this;
-   }
-
-   /// Merge a type-erased element via copy                                   
-   ///   @param item - the value to merge, wrapped in a Block                 
-   ///   @return a reference to this set for chaining                         
-   LANGULUS(INLINED)
-   BlockSet& BlockSet::operator << (const Block& item) {
-      InsertUnknown(item);
-      return *this;
-   }
-
-   /// Merge a type-erased element via move                                   
-   ///   @param item - the value to merge, wrapped in a Block                 
-   ///   @return a reference to this set for chaining                         
-   LANGULUS(INLINED)
-   BlockSet& BlockSet::operator << (Block&& item) {
-      InsertUnknown(Forward<Block>(item));
       return *this;
    }
    
@@ -272,8 +247,8 @@ namespace Langulus::Anyness
    ///   @param value - value to move in                                      
    template<bool CHECK_FOR_MATCH, CT::Semantic S>
    Offset BlockSet::InsertInnerUnknown(const Offset& start, S&& value) {
-      static_assert(CT::Block<TypeOf<S>>,
-         "S::Type must be a block type");
+      static_assert(CT::Exact<TypeOf<S>, Block>,
+         "S type must be exactly Block (build-time optimization)");
 
       // Get the starting index based on the key hash                   
       auto psl = GetInfo() + start;

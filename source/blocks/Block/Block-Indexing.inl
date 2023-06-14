@@ -61,8 +61,7 @@ namespace Langulus::Anyness
    ///   @attention assumes block is allocated                                
    ///   @param byteOffset - number of bytes to add                           
    ///   @return pointer to the selected raw data offset                      
-   LANGULUS(INLINED)
-   SAFETY_CONSTEXPR()
+   LANGULUS(INLINED) SAFETY_CONSTEXPR()
    Byte* Block::At(const Offset& byteOffset) SAFETY_NOEXCEPT() {
       LANGULUS_ASSUME(DevAssumes, mRaw,
          "Invalid memory");
@@ -76,8 +75,7 @@ namespace Langulus::Anyness
    ///   @attention assumes block is allocated                                
    ///   @param byteOffset - number of bytes to add                           
    ///   @return pointer to the selected raw data offset                      
-   LANGULUS(INLINED)
-   SAFETY_CONSTEXPR()
+   LANGULUS(INLINED) SAFETY_CONSTEXPR()
    const Byte* Block::At(const Offset& byte_offset) const SAFETY_NOEXCEPT() {
       return const_cast<Block*>(this)->At(byte_offset);
    }
@@ -113,8 +111,7 @@ namespace Langulus::Anyness
    ///   @param baseOffset - byte offset from the element to apply            
    ///   @return either pointer or reference to the element (depends on T)    
    template<CT::Data T>
-   LANGULUS(INLINED)
-   SAFETY_CONSTEXPR()
+   LANGULUS(INLINED) SAFETY_CONSTEXPR()
    decltype(auto) Block::Get(const Offset& idx, const Offset& baseOffset) SAFETY_NOEXCEPT() {
       LANGULUS_ASSUME(DevAssumes, IsTyped(), "Block is not typed");
 
@@ -139,8 +136,7 @@ namespace Langulus::Anyness
    ///   @param baseOffset - byte offset from the element to apply            
    ///   @return either pointer or reference to the element (depends on T)    
    template<CT::Data T>
-   LANGULUS(INLINED)
-   SAFETY_CONSTEXPR()
+   LANGULUS(INLINED) SAFETY_CONSTEXPR()
    decltype(auto) Block::Get(const Offset& idx, const Offset& baseOffset) const SAFETY_NOEXCEPT() {
       return const_cast<Block*>(this)->template Get<T>(idx, baseOffset);
    }
@@ -212,8 +208,7 @@ namespace Langulus::Anyness
    ///   @param start - starting element index                                
    ///   @param count - number of elements to remain after 'start'            
    ///   @return the block representing the region                            
-   LANGULUS(INLINED)
-   SAFETY_CONSTEXPR()
+   LANGULUS(INLINED) SAFETY_CONSTEXPR()
    Block Block::Crop(const Offset& start, const Count& count) SAFETY_NOEXCEPT() {
       if (count == 0)
          return {mState, mType};
@@ -230,8 +225,7 @@ namespace Langulus::Anyness
    ///   @param start - starting element index                                
    ///   @param count - number of elements                                    
    ///   @return the block representing the region                            
-   LANGULUS(INLINED)
-   SAFETY_CONSTEXPR()
+   LANGULUS(INLINED) SAFETY_CONSTEXPR()
    Block Block::Crop(const Offset& start, const Count& count) const SAFETY_NOEXCEPT() {
       auto result = const_cast<Block*>(this)->Crop(start, count);
       result.MakeConst();

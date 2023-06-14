@@ -12,8 +12,6 @@ namespace Langulus::Anyness
 {
 
    /// Byte container copy-construction                                       
-   /// Notice how container is explicitly cast to base class when forwarded   
-   /// If that is not done, TAny will use the CT::Deep constructor instead    
    ///   @param other - container to reference                                
    LANGULUS(INLINED)
    Bytes::Bytes(const Bytes& other)
@@ -37,10 +35,12 @@ namespace Langulus::Anyness
    Bytes::Bytes(TAny&& other) noexcept
       : Bytes {Move(other)} {}
 
+   /// Byte container semantic-construction from anything relevant            
+   ///   @param other - the container and semantic to use                     
    template<CT::Semantic S>
    LANGULUS(INLINED)
    Bytes::Bytes(S&& other) requires Relevant<S>
-      : TAny {other.template Forward<TAny<Byte>>()} {}
+      : TAny {other.template Forward<TAny>()} {}
 
    /// Construct manually via raw constant memory pointer and size            
    ///   @param raw - raw memory to reference                                 
@@ -49,10 +49,16 @@ namespace Langulus::Anyness
    Bytes::Bytes(const void* raw, const Size& size)
       : Bytes {Copy(raw), size} {}
 
+   /// Construct manually via raw mutable memory pointer and size             
+   ///   @param raw - raw memory to reference                                 
+   ///   @param size - number of bytes inside 'raw'                           
    LANGULUS(INLINED)
    Bytes::Bytes(void* raw, const Size& size)
       : Bytes {Copy(raw), size} {}
 
+   /// Construct semantically via raw memory pointer, semantic, and size      
+   ///   @param raw - raw memory and semantic to use                          
+   ///   @param size - number of bytes inside 'raw'                           
    template<CT::Semantic S>
    LANGULUS(INLINED)
    Bytes::Bytes(S&& raw, const Size& size) requires (CT::Sparse<TypeOf<S>>)
@@ -119,7 +125,7 @@ namespace Langulus::Anyness
    ///   @return the combined container                                       
    LANGULUS(INLINED)
    Bytes Bytes::operator + (const Bytes& rhs) const {
-      return Concatenate<Bytes>(Copy(rhs));
+      return Concatenate<Bytes>(Copy(static_cast<const Block&>(rhs)));
    }
 
    /// Move-concatenate with another TAny                                     
@@ -127,7 +133,7 @@ namespace Langulus::Anyness
    ///   @return the combined container                                       
    LANGULUS(INLINED)
    Bytes Bytes::operator + (Bytes&& rhs) const {
-      return Concatenate<Bytes>(Move(rhs));
+      return Concatenate<Bytes>(Move(Forward<Block>(rhs)));
    }
 
    /// Move-concatenate with another TAny                                     
@@ -136,7 +142,7 @@ namespace Langulus::Anyness
    template<CT::Semantic S>
    LANGULUS(INLINED)
    Bytes Bytes::operator + (S&& rhs) const requires Relevant<S> {
-      return Concatenate<Bytes>(rhs.Forward());
+      return Concatenate<Bytes>(rhs.template Forward<Block>());
    }
 
    /// Destructive copy-concatenate with another TAny                         

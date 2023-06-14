@@ -279,14 +279,12 @@ namespace Langulus::Anyness
       NOD() TAny operator + (const CT::NotSemantic auto&) const;
       NOD() TAny operator + (CT::NotSemantic auto&) const;
       NOD() TAny operator + (CT::NotSemantic auto&&) const;
-      template<CT::Semantic S>
-      NOD() TAny operator + (S&&) const;
+      NOD() TAny operator + (CT::Semantic auto&&) const;
 
       TAny& operator += (const CT::NotSemantic auto&);
       TAny& operator += (CT::NotSemantic auto&);
       TAny& operator += (CT::NotSemantic auto&&);
-      template<CT::Semantic S>
-      TAny& operator += (S&&);
+      TAny& operator += (CT::Semantic auto&&);
 
       ///                                                                     
       ///   Iteration                                                         

@@ -15,7 +15,11 @@ namespace Langulus::Anyness
    ///   @param other - the block to shallow-copy                             
    LANGULUS(INLINED)
    constexpr Block::Block(CT::Semantic auto&& other) noexcept
-      : Block {static_cast<const Block&>(*other)} {}
+      : Block {*other} {
+      using S = Decay<decltype(other)>;
+      static_assert(CT::Exact<TypeOf<S>, Block>,
+         "S type must be exactly Block (build-time optimization)");
+   }
 
    /// Manual construction via type                                           
    ///   @param meta - the type of the memory block                           
@@ -207,7 +211,10 @@ namespace Langulus::Anyness
    ///   @return a reference to this block                                    
    LANGULUS(INLINED)
    constexpr Block& Block::operator = (CT::Semantic auto&& rhs) noexcept {
-      return operator = (static_cast<const Block&>(*rhs));
+      using S = Decay<decltype(rhs)>;
+      static_assert(CT::Exact<TypeOf<S>, Block>,
+         "S type must be exactly Block (build-time optimization)");
+      return operator = (*rhs);
    }
    
    /// Semantically transfer the members of one block onto another            
@@ -281,16 +288,19 @@ namespace Langulus::Anyness
          if constexpr (CT::Typed<FROM>) {
             auto asTo = reinterpret_cast<FROM*>(this);
             asTo->AllocateFresh(asTo->RequestSize(mCount));
-            CallKnownSemanticConstructors<TypeOf<FROM>>(mCount, from.Forward());
+            CallKnownSemanticConstructors<TypeOf<FROM>>(
+               mCount, from.template Forward<Block>());
          }
          else if constexpr (CT::Typed<TO>) {
             auto asTo = reinterpret_cast<TO*>(this);
             asTo->AllocateFresh(asTo->RequestSize(mCount));
-            CallKnownSemanticConstructors<TypeOf<TO>>(mCount, from.Forward());
+            CallKnownSemanticConstructors<TypeOf<TO>>(
+               mCount, from.template Forward<Block>());
          }
          else {
             AllocateFresh(RequestSize(mCount));
-            CallUnknownSemanticConstructors(mCount, from.Forward());
+            CallUnknownSemanticConstructors(
+               mCount, from.template Forward<Block>());
          }
       }
    }
@@ -302,8 +312,8 @@ namespace Langulus::Anyness
    ///   @param rhs - the block to swap with                                  
    void Block::SwapUnknown(CT::Semantic auto&& rhs) {
       using S = Decay<decltype(rhs)>;
-      static_assert(CT::Block<TypeOf<S>>,
-         "S::Type must be a block type");
+      static_assert(CT::Exact<TypeOf<S>, Block>,
+         "S type must be exactly Block (build-time optimization)");
 
       LANGULUS_ASSUME(DevAssumes, rhs->mCount == mCount,
          "Count mismatch");

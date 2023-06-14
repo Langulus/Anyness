@@ -138,9 +138,9 @@ namespace Langulus::Anyness
       AllocateFresh(capacity);
       ZeroMemory(mInfo, capacity);
       mInfo[capacity] = 1;
-      Inner::NestedSemanticInsertion(
-         *this, Forward<HEAD>(head), Forward<TAIL>(tail)...
-      );
+
+      Insert(Forward<HEAD>(head));
+      (Insert(Forward<TAIL>(tail)), ...);
    }
 
    /// Destroys the set and all it's contents                                 

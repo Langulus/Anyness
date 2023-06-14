@@ -216,24 +216,13 @@ namespace Langulus::Anyness
       Count Insert(CT::NotSemantic auto&&);
       Count Insert(CT::Semantic auto&&);
 
-      Count InsertUnknown(const Block&);
-      Count InsertUnknown(Block&&);
-      template<CT::Semantic S>
-      Count InsertUnknown(S&&) requires (CT::Block<TypeOf<S>>);
-
       Count Merge(const BlockSet&);
       Count Merge(BlockSet&&);
-      template<CT::Semantic S>
-      Count Merge(S&&);
+      Count Merge(CT::Semantic auto&&);
 
       BlockSet& operator << (const CT::NotSemantic auto&);
       BlockSet& operator << (CT::NotSemantic auto&&);
       BlockSet& operator << (CT::Semantic auto&&);
-
-      BlockSet& operator << (const Block&);
-      BlockSet& operator << (Block&&);
-      template<CT::Semantic S>
-      BlockSet& operator << (S&&) requires (CT::Block<TypeOf<S>>);
 
    protected:
       NOD() Size RequestKeyAndInfoSize(Count, Offset&) noexcept;
@@ -242,10 +231,10 @@ namespace Langulus::Anyness
       template<class K>
       void ShiftPairs();
 
-      template<bool CHECK_FOR_MATCH, CT::Semantic S>
-      Offset InsertInnerUnknown(const Offset&, S&&);
-      template<bool CHECK_FOR_MATCH, CT::Semantic S>
-      Offset InsertInner(const Offset&, S&&);
+      template<bool CHECK_FOR_MATCH>
+      Offset InsertInnerUnknown(const Offset&, CT::Semantic auto&&);
+      template<bool CHECK_FOR_MATCH>
+      Offset InsertInner(const Offset&, CT::Semantic auto&&);
 
       void CloneInner(const Block&, Block&) const;
 
@@ -320,22 +309,6 @@ namespace Langulus::CT
    concept TypedSet = Set<T...> && Typed<T...>;
 
 } // namespace Langulus::CT
-
-namespace Langulus::Anyness::Inner
-{
-
-   template<CT::Data HEAD, CT::Data... TAIL>
-   void NestedSemanticInsertion(CT::Set auto& set, HEAD&& head, TAIL&&... tail) {
-      if constexpr (CT::Semantic<HEAD>)
-         set.Insert(head.Forward());
-      else
-         set.Insert(Forward<HEAD>(head));
-
-      if constexpr (sizeof...(TAIL))
-         NestedSemanticInsertion(set, tail...);
-   }
-
-} // namespace Langulus::Anyness::Inner
 
 #include "BlockSet/BlockSet-Construct.inl"
 #include "BlockSet/BlockSet-Capsulation.inl"

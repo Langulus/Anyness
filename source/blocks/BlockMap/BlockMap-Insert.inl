@@ -249,8 +249,8 @@ namespace Langulus::Anyness
                // Empty spot found, so move pair there                  
                if constexpr (CT::Void<K>) {
                   auto key = GetKeyInner(oldIndex);
-                  GetKeyInner(to).CallUnknownSemanticConstructors(
-                     1, Abandon(key));
+                  GetKeyInner(to)
+                     .CallUnknownSemanticConstructors(1, Abandon(key));
                   key.CallUnknownDestructors();
                }
                else {
@@ -261,8 +261,8 @@ namespace Langulus::Anyness
 
                if constexpr (CT::Void<V>) {
                   auto val = GetValueInner(oldIndex);
-                  GetValueInner(to).CallUnknownSemanticConstructors(
-                     1, Abandon(val));
+                  GetValueInner(to)
+                     .CallUnknownSemanticConstructors(1, Abandon(val));
                   val.CallUnknownDestructors();
                }
                else {
@@ -351,10 +351,10 @@ namespace Langulus::Anyness
    ///   @param value - value to move in                                      
    template<bool CHECK_FOR_MATCH, CT::Semantic SK, CT::Semantic SV>
    Offset BlockMap::InsertInnerUnknown(const Offset& start, SK&& key, SV&& value) {
-      static_assert(CT::Block<TypeOf<SK>>,
-         "SK::Type must be a block type");
-      static_assert(CT::Block<TypeOf<SV>>,
-         "SV::Type must be a block type");
+      static_assert(CT::Exact<TypeOf<SK>, Block>,
+         "SK type must be exactly Block (build-time optimization)");
+      static_assert(CT::Exact<TypeOf<SV>, Block>,
+         "SV type must be exactly Block (build-time optimization)");
 
       // Get the starting index based on the key hash                   
       auto psl = GetInfo() + start;
@@ -381,8 +381,11 @@ namespace Langulus::Anyness
 
          if (attempts > *psl) {
             // The pair we're inserting is closer to bucket, so swap    
-            GetKeyInner(index).SwapUnknown(key.Forward());
-            GetValueInner(index).SwapUnknown(value.Forward());
+            GetKeyInner(index)
+               .SwapUnknown(key.Forward());
+            GetValueInner(index)
+               .SwapUnknown(value.Forward());
+
             ::std::swap(attempts, *psl);
             if (insertedAt == mValues.mReserved)
                insertedAt = index;

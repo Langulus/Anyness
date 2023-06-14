@@ -93,7 +93,7 @@ namespace Langulus::Anyness
             if constexpr (CT::Exact<T, ContainedType>) {
                // If types are exactly the same, it is safe to directly 
                // transfer the block                                    
-               BlockTransfer<TAny>(other.Forward());
+               BlockTransfer<TAny<T>>(other.Forward());
             }
             else if constexpr (CT::DerivedFrom<T, ContainedType>) {
                // The statically typed 'other' contains items that are  
@@ -1830,6 +1830,9 @@ namespace Langulus::Anyness
    ///                                                                        
    ///   Concatenation                                                        
    ///                                                                        
+   /// Concatenate anything nonsemantic by copy                               
+   ///   @param rhs - the element/block/array to copy-concatenate             
+   ///   @return a new container, containing both blocks                      
    TEMPLATE()
    TAny<T> TAny<T>::operator + (const CT::NotSemantic auto& rhs) const {
       return operator + (Copy(rhs));
@@ -1840,14 +1843,20 @@ namespace Langulus::Anyness
       return operator + (Copy(rhs));
    }
 
+   /// Concatenate anything nonsemantic by move                               
+   ///   @param rhs - the element/block/array to move-concatenate             
+   ///   @return a new container, containing both blocks                      
    TEMPLATE()
    TAny<T> TAny<T>::operator + (CT::NotSemantic auto&& rhs) const {
       return operator + (Move(rhs));
    }
 
+   /// Concatenate anything semantically                                      
+   ///   @param rhs - the element/block/array and semantic to concatenate     
+   ///   @return a new container, containing both blocks                      
    TEMPLATE()
-   template<CT::Semantic S>
-   TAny<T> TAny<T>::operator + (S&& rhs) const {
+   TAny<T> TAny<T>::operator + (CT::Semantic auto&& rhs) const {
+      using S = Decay<decltype(rhs)>;
       using ST = TypeOf<S>;
 
       if constexpr (CT::DerivedFrom<ST, TAny<T>>) {
@@ -1859,7 +1868,8 @@ namespace Langulus::Anyness
          combined.mType = MetaData::Of<T>();
          combined.AllocateFresh(RequestSize(mCount + rhs->mCount));
          combined.InsertInner<Copied<T>>(GetRaw(), GetRawEnd(), 0);
-         combined.InsertInner<S>(rhs->GetRaw(), rhs->GetRawEnd(), mCount);
+         combined.InsertInner<typename S::template Nested<T>>(
+            rhs->GetRaw(), rhs->GetRawEnd(), mCount);
          return Abandon(combined);
       }
       else if constexpr (CT::BuiltinCharacter<T> && CT::Exact<ST, ::std::basic_string_view<T>>) {
@@ -1872,7 +1882,8 @@ namespace Langulus::Anyness
          const auto strsize = rhs->size();
          combined.AllocateFresh(RequestSize(mCount + strsize));
          combined.InsertInner<Copied<T>>(GetRaw(), GetRawEnd(), 0);
-         combined.InsertInner<Copied<T>>(rhs->data(), rhs->data() + strsize, mCount);
+         combined.InsertInner<Copied<T>>(
+            rhs->data(), rhs->data() + strsize, mCount);
          return Abandon(combined);
       }
       else if constexpr (CT::Array<ST> && CT::Exact<T, ::std::remove_extent_t<ST>>) {
@@ -1882,12 +1893,16 @@ namespace Langulus::Anyness
          constexpr auto strsize = ExtentOf<ST>;
          combined.AllocateFresh(RequestSize(mCount + strsize));
          combined.InsertInner<Copied<T>>(GetRaw(), GetRawEnd(), 0);
-         combined.InsertInner<S>(*rhs, *rhs + strsize, mCount);
+         combined.InsertInner<typename S::template Nested<T>>(
+            *rhs, *rhs + strsize, mCount);
          return Abandon(combined);
       }
       else LANGULUS_ERROR("Bad semantic concatenation");
    }
 
+   /// Concatenate destructively anything nonsemantic by copy                 
+   ///   @param rhs - the element/block/array to copy-concatenate             
+   ///   @return a reference to this container                                
    TEMPLATE()
    TAny<T>& TAny<T>::operator += (const CT::NotSemantic auto& rhs) {
       return operator += (Copy(rhs));
@@ -1898,14 +1913,20 @@ namespace Langulus::Anyness
       return operator += (Copy(rhs));
    }
 
+   /// Concatenate destructively anything nonsemantic by move                 
+   ///   @param rhs - the element/block/array to move-concatenate             
+   ///   @return a reference to this container                                
    TEMPLATE()
    TAny<T>& TAny<T>::operator += (CT::NotSemantic auto&& rhs) {
       return operator += (Move(rhs));
    }
 
+   /// Concatenate destructively anything using semantic                      
+   ///   @param rhs - the element/block/array to semantically concatenate     
+   ///   @return a reference to this container                                
    TEMPLATE()
-   template<CT::Semantic S>
-   TAny<T>& TAny<T>::operator += (S&& rhs) {
+   TAny<T>& TAny<T>::operator += (CT::Semantic auto&& rhs) {
+      using S = Decay<decltype(rhs)>;
       using ST = TypeOf<S>;
 
       if constexpr (CT::DerivedFrom<ST, TAny<T>>) {
@@ -1915,7 +1936,8 @@ namespace Langulus::Anyness
 
          mType = MetaData::Of<T>();
          AllocateMore(mCount + rhs->mCount);
-         InsertInner<S>(rhs->GetRaw(), rhs->GetRawEnd(), mCount);
+         InsertInner<typename S::template Nested<T>>(
+            rhs->GetRaw(), rhs->GetRawEnd(), mCount);
          return *this;
       }
       else if constexpr (CT::BuiltinCharacter<T> && CT::Exact<ST, ::std::basic_string_view<T>>) {
@@ -1926,7 +1948,8 @@ namespace Langulus::Anyness
          mType = MetaData::Of<T>();
          const auto strsize = rhs->size();
          AllocateMore(mCount + strsize);
-         InsertInner<Copied<T>>(rhs->data(), rhs->data() + strsize, mCount);
+         InsertInner<Copied<T>>(
+            rhs->data(), rhs->data() + strsize, mCount);
          return *this;
       }
       else if constexpr (CT::Array<ST> && CT::Exact<T, ::std::remove_extent_t<ST>>) {
@@ -1934,7 +1957,8 @@ namespace Langulus::Anyness
          mType = MetaData::Of<T>();
          constexpr auto strsize = ExtentOf<ST>;
          AllocateMore(mCount + strsize);
-         InsertInner<S>(*rhs, *rhs + strsize, mCount);
+         InsertInner<typename S::template Nested<T>>(
+            *rhs, *rhs + strsize, mCount);
          return *this;
       }
       else LANGULUS_ERROR("Bad semantic concatenation");

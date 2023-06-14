@@ -1021,6 +1021,8 @@ namespace Langulus::Anyness
    ///   @param at - the offset at which to start inserting                   
    template<CT::Semantic S, CT::NotSemantic T>
    void Block::InsertInner(const T* start, const T* end, Offset at) {
+      static_assert(CT::Exact<TypeOf<S>, T>,
+         "S type must be exactly T (build-time optimization)");
       static_assert(CT::Sparse<T> || CT::Insertable<T>,
          "Dense type is not insertable");
       LANGULUS_ASSUME(DevAssumes, IsExact<T>(),
@@ -1086,32 +1088,11 @@ namespace Langulus::Anyness
    template<CT::Semantic S>
    void Block::InsertInner(S&& item, Offset at) {
       using T = TypeOf<S>;
-
-      //static_assert(CT::Sparse<T> || CT::Insertable<T>,
-      //   "Dense type is not insertable");
       LANGULUS_ASSUME(DevAssumes, IsExact<T>(),
          "Inserting incompatible type");
 
       GetHandle<T>(at).New(item.Forward());
       ++mCount;
-   }
-   
-   /// Statically optimized InsertInner, used in fold expressions             
-   ///   @tparam INDEX - offset to start inserting at                         
-   ///   @tparam head - first element, semantic or not (deducible)            
-   ///   @tparam tail... - the rest, semantic or not (deducible)              
-   template<Offset INDEX, CT::Data HEAD, CT::Data... TAIL>
-   LANGULUS(INLINED)
-   void Block::InsertStatic(HEAD&& head, TAIL&&... tail) {
-      if constexpr (CT::Semantic<HEAD>)
-         InsertInner(head.Forward(), INDEX);
-      else if constexpr (::std::is_rvalue_reference_v<HEAD>)
-         InsertInner(Move(head), INDEX);
-      else 
-         InsertInner(Copy(head), INDEX);
-
-      if constexpr (sizeof...(TAIL) > 0)
-         InsertStatic<INDEX + 1>(Forward<TAIL>(tail)...);
    }
    
    /// Smart concatenation inner call, used by smart push                     
@@ -1537,11 +1518,8 @@ namespace Langulus::Anyness
    ///   @param source - the source of the elements to move                   
    template<bool REVERSE, CT::Semantic S>
    void Block::CallUnknownSemanticConstructors(const Count count, S&& source) const {
-      static_assert(CT::Block<TypeOf<S>>,
-         "S type must be a block type");
-      static_assert(!CT::Typed<TypeOf<S>>,
-         "Block type is statically typed, use CallKnownSemanticConstructors instead");
-
+      static_assert(CT::Exact<TypeOf<S>, Block>,
+         "S type must be exactly Block (build-time optimization)");
       LANGULUS_ASSUME(DevAssumes, count <= source->mCount && count <= mReserved,
          "Count outside limits");
       LANGULUS_ASSUME(DevAssumes, mType->IsExact(source->mType),
@@ -1909,8 +1887,8 @@ namespace Langulus::Anyness
    ///   @param source - the block of elements to move                        
    template<CT::Data T, bool REVERSE, CT::Semantic S>
    void Block::CallKnownSemanticConstructors(const Count count, S&& source) const {
-      static_assert(CT::Block<TypeOf<S>>,
-         "Semantic should apply to a Block");
+      static_assert(CT::Exact<TypeOf<S>, Block>,
+         "S type must be exactly Block (build-time optimization)");
       static_assert(CT::Sparse<T> || CT::Mutable<T>,
          "Can't move-construct in container of constant elements");
 
@@ -1949,8 +1927,8 @@ namespace Langulus::Anyness
 
                // Clone each inner element                              
                auto handle = GetHandle<T>(0);
-               DT* dst = clonedCoalescedSrc.template GetRawAs<DT>();
-               auto src = source->GetRaw();
+               auto dst = clonedCoalescedSrc.template GetRawAs<DT>();
+               auto src = source->template GetRawAs<T>();
                const auto srcEnd = src + count;
                while (src != srcEnd) {
                   SemanticNew<DT>(dst, Clone(**src));
@@ -2010,6 +1988,9 @@ namespace Langulus::Anyness
    ///   @param source - source                                               
    template<CT::Semantic S>
    void Block::ShallowBatchPointerConstruction(const Count count, S&& source) const {
+      static_assert(CT::Exact<TypeOf<S>, Block>,
+         "S type must be exactly Block (build-time optimization)");
+
       const auto mthis = const_cast<Block*>(this);
       const auto pointersDst = mthis->GetRawSparse();
       const auto pointersSrc = source->GetRawSparse();
@@ -2061,8 +2042,8 @@ namespace Langulus::Anyness
    ///   @param source - the elements to assign                               
    template<CT::Semantic S>
    void Block::CallUnknownSemanticAssignment(const Count count, S&& source) const {
-      static_assert(CT::Block<TypeOf<S>>,
-         "S::Type must be a block type");
+      static_assert(CT::Exact<TypeOf<S>, Block>,
+         "S type must be exactly Block (build-time optimization)");
 
       LANGULUS_ASSUME(DevAssumes, mCount >= count && source->mCount >= count,
          "Count outside limits");
@@ -2346,6 +2327,9 @@ namespace Langulus::Anyness
    ///   @param source - the elements to assign                               
    template<CT::Data T, CT::Semantic S>
    void Block::CallKnownSemanticAssignment(Count, S&&) const {
+      static_assert(CT::Exact<TypeOf<S>, Block>,
+         "S type must be exactly Block (build-time optimization)");
+
       TODO();
    }
 

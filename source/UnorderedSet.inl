@@ -123,9 +123,9 @@ namespace Langulus::Anyness
       AllocateFresh(capacity);
       ZeroMemory(mInfo, capacity);
       mInfo[capacity] = 1;
-      Inner::NestedSemanticInsertion(
-         *this, Forward<HEAD>(head), Forward<TAIL>(tail)...
-      );
+
+      Insert(Forward<HEAD>(head));
+      (Insert(Forward<TAIL>(tail)), ...);
    }
 
    /// Set destructor                                                         
@@ -291,7 +291,8 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Count UnorderedSet::InsertUnknown(CT::Semantic auto&& key) {
       using S = Decay<decltype(key)>;
-      static_assert(CT::Block<TypeOf<S>>, "S's type must be a block type");
+      static_assert(CT::Exact<TypeOf<S>, Block>,
+         "S type must be exactly Block (build-time optimization)");
 
       Mutate(key->mType);
       Reserve(GetCount() + 1);

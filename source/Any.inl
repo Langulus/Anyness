@@ -481,15 +481,15 @@ namespace Langulus::Anyness
    ///   Concatenation                                                        
    ///                                                                        
 
-   /// An inner concatenation routine using move/abandon                      
+   /// An inner concatenation routine using semantics                         
    ///   @tparam WRAPPER - the type of the concatenated container             
-   ///   @tparam S - block type and semantic to concatenate with (deducible)  
-   ///   @param rhs - block to concatenate                                    
+   ///   @tparam S - semantic to concatenate with (deducible)                 
+   ///   @param rhs - block and semantic to concatenate                       
    ///   @return the concatenated container                                   
    template<CT::Block WRAPPER, CT::Semantic S>
    WRAPPER Any::Concatenate(S&& rhs) const {
-      static_assert(CT::Block<TypeOf<S>>,
-         "S type must be a block type");
+      static_assert(CT::Exact<TypeOf<S>, Block>,
+         "S type must be exactly Block (build-time optimization)");
 
       if (IsEmpty())
          return {rhs.Forward()};
@@ -513,13 +513,13 @@ namespace Langulus::Anyness
    template<CT::Deep T>
    LANGULUS(INLINED)
    Any Any::operator + (const T& rhs) const requires CT::Dense<T> {
-      return Concatenate<Any>(Copy(rhs));
+      return Concatenate<Any>(Copy(static_cast<const Block&>(rhs)));
    }
 
    template<CT::Deep T>
    LANGULUS(INLINED)
    Any Any::operator + (T& rhs) const requires CT::Dense<T> {
-      return Concatenate<Any>(Copy(rhs));
+      return Concatenate<Any>(Copy(static_cast<const Block&>(rhs)));
    }
 
    /// Move-concatenate with any deep type                                    
@@ -529,7 +529,7 @@ namespace Langulus::Anyness
    template<CT::Deep T>
    LANGULUS(INLINED)
    Any Any::operator + (T&& rhs) const requires CT::Dense<T> {
-      return Concatenate<Any>(Move(rhs));
+      return Concatenate<Any>(Move(Forward<Block>(rhs)));
    }
 
    /// Move-concatenate with any deep type                                    
@@ -539,7 +539,7 @@ namespace Langulus::Anyness
    template<CT::Semantic S>
    LANGULUS(INLINED)
    Any Any::operator + (S&& rhs) const requires (CT::Deep<TypeOf<S>>&& CT::Dense<TypeOf<S>>) {
-      return Concatenate<Any>(rhs.Forward());
+      return Concatenate<Any>(rhs.template Forward<Block>());
    }
 
    /// Destructive copy-concatenate with any deep type                        

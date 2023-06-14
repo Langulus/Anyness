@@ -664,8 +664,6 @@ namespace Langulus::Anyness
       void InsertInner(const T*, const T*, Offset);
       template<CT::Semantic S>
       void InsertInner(S&&, Offset);
-      template<Offset, CT::Data HEAD, CT::Data... TAIL>
-      void InsertStatic(HEAD&&, TAIL&&...);
       template<class... A>
       void EmplaceInner(const Block&, Count, A&&... arguments);
 

@@ -54,9 +54,7 @@ namespace Langulus::Anyness
       constexpr TOwned(const CT::NotSemantic auto&);
       constexpr TOwned(CT::NotSemantic auto&);
       constexpr TOwned(CT::NotSemantic auto&&);
-
-      template<CT::Semantic S>
-      constexpr TOwned(S&&);
+      constexpr TOwned(CT::Semantic auto&&);
 
       NOD() DMeta GetType() const;
 
@@ -71,9 +69,7 @@ namespace Langulus::Anyness
       constexpr TOwned& operator = (const CT::NotSemantic auto&);
       constexpr TOwned& operator = (CT::NotSemantic auto&);
       constexpr TOwned& operator = (CT::NotSemantic auto&&);
-
-      template<CT::Semantic S>
-      constexpr TOwned& operator = (S&&);
+      constexpr TOwned& operator = (CT::Semantic auto&&);
 
       NOD() Hash GetHash() const;
 
