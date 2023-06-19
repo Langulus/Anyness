@@ -101,3 +101,41 @@ namespace Langulus::Anyness
 } // namespace Langulus::Anyness
 
 #include "TOwned.inl"
+
+namespace fmt
+{
+
+   ///                                                                        
+   /// Extend FMT to be capable of logging any owned values                   
+   ///                                                                        
+   template<Langulus::CT::Owned T>
+   struct formatter<T> {
+      template<class CONTEXT>
+      constexpr auto parse(CONTEXT& ctx) {
+         return ctx.begin();
+      }
+
+      template<class CONTEXT>
+      LANGULUS(INLINED)
+      auto format(T const& element, CONTEXT& ctx) {
+         using namespace Langulus;
+
+         if constexpr (CT::Sparse<TypeOf<T>>) {
+            if (element == nullptr) {
+               const auto type = element.GetType();
+               if (type)
+                  return fmt::format_to(ctx.out(), "{}(null)", *type);
+               else
+                  return fmt::format_to(ctx.out(), "null");
+            }
+            else return fmt::format_to(ctx.out(), "{}", *element.Get());
+         }
+         else {
+            static_assert(CT::Dense<decltype(element.Get())>,
+               "T not dense, but not sparse either????");
+            return fmt::format_to(ctx.out(), "{}", element.Get());
+         }
+      }
+   };
+
+} // namespace fmt

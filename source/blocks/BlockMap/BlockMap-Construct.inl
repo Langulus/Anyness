@@ -36,7 +36,7 @@ namespace Langulus::Anyness
    
    /// Semantically transfer the members of one map onto another              
    ///   @tparam TO - the type of map we're transferring to                   
-   ///   @param from - the map and semantic to transfer from                  
+   ///   @param other - the map and semantic to transfer from                 
    template<class TO>
    LANGULUS(INLINED)
    void BlockMap::BlockTransfer(CT::Semantic auto&& other) {

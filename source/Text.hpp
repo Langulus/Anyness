@@ -129,7 +129,6 @@ namespace Langulus::Anyness
 
 } // namespace Langulus::Anyness
 
-
 namespace Langulus::CT
 {
 
@@ -141,8 +140,32 @@ namespace Langulus::CT
    template<class T>
    concept NotText = !Text<T>;
 
-} // namespace Langulus::CT
+   namespace Inner
+   {
+      template<class T>
+      concept Stringifiable =
+         requires (T& a) { a.operator Anyness::Text(); } ||
+         requires (const T& a) { a.operator Anyness::Text(); };
 
+      template<class T>
+      concept Debuggable =
+         requires (T& a) { a.operator Anyness::Debug(); } ||
+         requires (const T& a) { a.operator Anyness::Debug(); };
+   }
+
+   /// A stringifiable type is one that has either an implicit or explicit    
+   /// cast operator to Text type. Reverse conversion through                 
+   /// constructors is avoided to mitigate ambiguity problems.                
+   template<class... T>
+   concept Stringifiable = (Inner::Stringifiable<T> && ...);
+
+   /// A debuggable type is one that has either an implicit or explicit       
+   /// cast operator to Debug type. Reverse conversion through                
+   /// constructors is avoided to mitigate ambiguity problems.                
+   template<class... T>
+   concept Debuggable = ((Inner::Stringifiable<T> || Inner::Debuggable<T>) && ...);
+
+} // namespace Langulus::CT
 
 namespace Langulus
 {
@@ -152,3 +175,37 @@ namespace Langulus
 } // namespace Langulus
 
 #include "Text.inl"
+
+namespace fmt
+{
+   
+   ///                                                                        
+   /// Extend FMT to be capable of logging anything that is statically        
+   /// convertible to a Debug/Text string by an explicit or implicit          
+   /// conversion operator.                                                   
+   ///                                                                        
+   template<Langulus::CT::Debuggable T>
+   struct formatter<T> {
+      template<class CONTEXT>
+      constexpr auto parse(CONTEXT& ctx) {
+         return ctx.begin();
+      }
+
+      template<class CONTEXT>
+      LANGULUS(INLINED)
+      auto format(T const& element, CONTEXT& ctx) {
+         using namespace Langulus;
+         if constexpr (CT::Inner::Debuggable<T>) {
+            auto asText = element.operator Anyness::Debug();
+            return fmt::format_to(ctx.out(), "{}",
+               static_cast<Logger::TextView>(asText));
+         }
+         else if constexpr (CT::Inner::Stringifiable<T>) {
+            auto asText = element.operator Anyness::Text();
+            return fmt::format_to(ctx.out(), "{}",
+               static_cast<Logger::TextView>(asText));
+         }
+      }
+   };
+
+} // namespace fmt

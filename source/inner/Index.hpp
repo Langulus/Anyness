@@ -21,14 +21,14 @@ namespace Langulus::Anyness
       LANGULUS(SUFFIX) "i";
       LANGULUS(INFO) "Used to safely access elements inside containers";
 
-   public:
+   protected:
       using Type = ::std::ptrdiff_t;
 
       /// These are defines useful for special indices                        
       static constexpr Type MaxIndex = ::std::numeric_limits<Type>::max();
       static constexpr Type MinIndex = ::std::numeric_limits<Type>::min();
 
-   protected:
+   public:
       enum SpecialIndices : Type {
          // All, Many, and Single must be compared in separate context  
          All = MinIndex,
@@ -89,8 +89,10 @@ namespace Langulus::Anyness
       constexpr Index(const Index&) noexcept = default;
       constexpr Index(const SpecialIndices&) noexcept;
       template<CT::SignedInteger T>
-      constexpr Index(const T&) noexcept;
+      constexpr Index(const T&) noexcept (sizeof(T) < sizeof(Type));
       template<CT::UnsignedInteger T>
+      constexpr Index(const T&) noexcept (sizeof(T) <= sizeof(Type)/2);
+      template<CT::Real T>
       constexpr Index(const T&);
 
       constexpr Index& operator = (const Index&) noexcept = default;
@@ -149,18 +151,18 @@ namespace Langulus::CT
 namespace Langulus::Anyness
 {
 
-   constexpr Index IndexAll {Index::MinIndex};
-   constexpr Index IndexMany {Index::MinIndex + 1};
-   constexpr Index IndexSingle {Index::MinIndex + 2};
-   constexpr Index IndexNone {Index::MinIndex + 3};
-   constexpr Index IndexFront {Index::MinIndex + 4};
-   constexpr Index IndexMiddle {Index::MinIndex + 5};
-   constexpr Index IndexBack {Index::MinIndex + 6};
-   constexpr Index IndexMode {Index::MinIndex + 7};
-   constexpr Index IndexBiggest {Index::MinIndex + 8};
-   constexpr Index IndexSmallest {Index::MinIndex + 9};
-   constexpr Index IndexAuto {Index::MinIndex + 10};
-   constexpr Index IndexRandom {Index::MinIndex + 11};
+   constexpr Index IndexAll {Index::All};
+   constexpr Index IndexMany {Index::Many};
+   constexpr Index IndexSingle {Index::Single};
+   constexpr Index IndexNone {Index::None};
+   constexpr Index IndexFront {Index::Front};
+   constexpr Index IndexMiddle {Index::Middle};
+   constexpr Index IndexBack {Index::Back};
+   constexpr Index IndexMode {Index::Mode};
+   constexpr Index IndexBiggest {Index::Biggest};
+   constexpr Index IndexSmallest {Index::Smallest};
+   constexpr Index IndexAuto {Index::Auto};
+   constexpr Index IndexRandom {Index::Random};
    constexpr Index IndexFirst {0};
    constexpr Index IndexLast {-1};
 

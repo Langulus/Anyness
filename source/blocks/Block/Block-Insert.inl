@@ -489,12 +489,12 @@ namespace Langulus::Anyness
       if (region.IsAllocated()) {
          if constexpr (CT::Typed<T>) {
             region.CallKnownSemanticConstructors<TypeOf<T>>(
-               other->mCount, other.Forward()
+               other->mCount, other.template Forward<Block>()
             );
          }
          else {
             region.CallUnknownSemanticConstructors(
-               other->mCount, other.Forward()
+               other->mCount, other.template Forward<Block>()
             );
          }
 

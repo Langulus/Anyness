@@ -20,16 +20,33 @@ namespace Langulus::Anyness
    /// Constructor from signed integer                                        
    ///   @param value - integer to set                                        
    template<CT::SignedInteger T>
-   constexpr Index::Index(const T& value) noexcept
-      : mIndex {value} { }
+   constexpr Index::Index(const T& value) noexcept (sizeof(T) < sizeof(Type))
+      : mIndex {value} {
+      if constexpr (sizeof(T) >= sizeof(Type))
+         LANGULUS_ASSERT(IsArithmetic(), Access, "Index is not arithmetic");
+      if constexpr (sizeof(T) > sizeof(Type)) {
+         constexpr T limit = static_cast<T>(MaxIndex);
+         LANGULUS_ASSERT(value <= limit, Access, "Index overflow");
+      }
+   }
    
    /// Constructor from unsigned integer                                      
    ///   @param value - integer to set                                        
    template<CT::UnsignedInteger T>
+   constexpr Index::Index(const T& value) noexcept (sizeof(T) <= sizeof(Type) / 2)
+      : mIndex {static_cast<Type>(value)} {
+      if constexpr (sizeof(T) > sizeof(Type)/2) {
+         constexpr T limit = static_cast<T>(MaxIndex);
+         LANGULUS_ASSERT(value <= limit, Access, "Index overflow");
+      }
+   }
+
+   /// Constructor from real number (round to nearest)                        
+   ///   @param value - real to set                                           
+   template<CT::Real T>
    constexpr Index::Index(const T& value)
       : mIndex {static_cast<Type>(value)} {
-      LANGULUS_ASSERT(value <= static_cast<T>(MaxIndex),
-         Access, "Index overflow");
+      LANGULUS_ASSERT(IsArithmetic(), Access, "Index is not arithmetic");
    }
 
    /// Constrain the index to some count (immutable)                          

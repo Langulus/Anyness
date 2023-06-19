@@ -58,8 +58,7 @@ namespace Langulus::Anyness
    bool Block::CastsToMeta(DMeta type) const {
       return mType && (mType->mIsSparse
          ? mType->CastsTo<true>(type)
-         : mType->CastsTo(type)
-      );
+         : mType->CastsTo(type));
    }
 
    /// Check if contained data can be interpreted as a number of a type       
@@ -112,10 +111,9 @@ namespace Langulus::Anyness
       if (!CompareTypes(pattern, common) || !common.mBinaryCompatible)
          return {};
 
-      const auto baseBytes = (common.mType->mSize * common.mCount)
+      const Size baseBytes = (common.mType->mSize * common.mCount)
          / pattern.GetStride();
-
-      const Count resultSize = pattern.IsEmpty()
+      const Size resultSize = pattern.IsEmpty()
          ? baseBytes : (baseBytes / pattern.mCount) * pattern.mCount;
 
       return {
@@ -275,7 +273,8 @@ namespace Langulus::Anyness
       // If reached, then nothing found in local members, so check bases
       offset -= counter;
       for (auto& base : mType->mBases) {
-         auto found = GetBaseMemory(base.mType, base).GetMember(trait, offset);
+         auto found = GetBaseMemory(base.mType, base)
+            .GetMember(trait, offset);
          if (found.IsTyped())
             return found;
 
@@ -453,7 +452,6 @@ namespace Langulus::Anyness
    ///   @param meta - the type to mutate into                                
    ///   @return true if block was deepened to incorporate the new type       
    template<bool ALLOW_DEEPEN, CT::Data WRAPPER>
-   LANGULUS(INLINED)
    bool Block::Mutate(DMeta meta) {
       static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
 
@@ -489,7 +487,6 @@ namespace Langulus::Anyness
    ///   @tparam CONSTRAIN - whether or not to enable type-constraint         
    ///   @param type - the type meta to set                                   
    template<bool CONSTRAIN>
-   LANGULUS(INLINED)
    void Block::SetType(DMeta type) {
       if (mType == type) {
          if constexpr (CONSTRAIN)

@@ -172,7 +172,7 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    void Trait::SetTrait() noexcept {
       static_assert(CT::Trait<T>, "TRAIT must be a trait definition");
-      mTraitType = MetaTrait::Of<T>();
+      mTraitType = T::GetTrait();
    }
 
    /// Set the trait type via a dynamic type                                  
@@ -228,7 +228,7 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    bool Trait::TraitIs() const {
       static_assert(CT::Trait<T>, "TRAIT must be a trait definition");
-      return TraitIs(MetaTrait::Of<T>());
+      return TraitIs(T::GetTrait());
    }
 
    /// Compare traits                                                         
@@ -300,20 +300,24 @@ namespace Langulus::Anyness
    
    /// Default trait construction                                             
    template<class TRAIT>
+   LANGULUS(INLINED)
    StaticTrait<TRAIT>::StaticTrait() {
       SetTrait<TRAIT>();
    }
 
    template<class TRAIT>
+   LANGULUS(INLINED)
    StaticTrait<TRAIT>::StaticTrait(const StaticTrait& other)
       : Trait {Copy(other)} {}
 
    template<class TRAIT>
+   LANGULUS(INLINED)
    StaticTrait<TRAIT>::StaticTrait(StaticTrait&& other)
       : Trait {Move(other)} {}
 
    template<class TRAIT>
    template<CT::NotSemantic T>
+   LANGULUS(INLINED)
    StaticTrait<TRAIT>::StaticTrait(const T& other)
       : Trait {Copy(other)} {
       SetTrait<TRAIT>();
@@ -321,6 +325,7 @@ namespace Langulus::Anyness
 
    template<class TRAIT>
    template<CT::NotSemantic T>
+   LANGULUS(INLINED)
    StaticTrait<TRAIT>::StaticTrait(T& other)
       : Trait {Copy(other)} {
       SetTrait<TRAIT>();
@@ -328,6 +333,7 @@ namespace Langulus::Anyness
 
    template<class TRAIT>
    template<CT::NotSemantic T>
+   LANGULUS(INLINED)
    StaticTrait<TRAIT>::StaticTrait(T&& other)
       : Trait {Move(other)} {
       SetTrait<TRAIT>();
@@ -342,41 +348,48 @@ namespace Langulus::Anyness
 
    template<class TRAIT>
    template<CT::Data HEAD, CT::Data... TAIL>
+   LANGULUS(INLINED)
    StaticTrait<TRAIT>::StaticTrait(HEAD&& head, TAIL&&... tail) requires (sizeof...(TAIL) >= 1)
       : Trait {Forward<HEAD>(head), Forward<TAIL>(tail)...} {
       SetTrait<TRAIT>();
    }
 
    template<class TRAIT>
+   LANGULUS(INLINED)
    StaticTrait<TRAIT>& StaticTrait<TRAIT>::operator = (const StaticTrait& rhs) {
       return operator = (Copy(rhs));
    }
 
    template<class TRAIT>
+   LANGULUS(INLINED)
    StaticTrait<TRAIT>& StaticTrait<TRAIT>::operator = (StaticTrait&& rhs) {
       return operator = (Move(rhs));
    }
 
    template<class TRAIT>
    template<CT::NotSemantic T>
+   LANGULUS(INLINED)
    StaticTrait<TRAIT>& StaticTrait<TRAIT>::operator = (const T& rhs) {
       return operator = (Copy(rhs));
    }
 
    template<class TRAIT>
    template<CT::NotSemantic T>
+   LANGULUS(INLINED)
    StaticTrait<TRAIT>& StaticTrait<TRAIT>::operator = (T& rhs) {
       return operator = (Copy(rhs));
    }
 
    template<class TRAIT>
    template<CT::NotSemantic T>
+   LANGULUS(INLINED)
    StaticTrait<TRAIT>& StaticTrait<TRAIT>::operator = (T&& rhs) {
       return operator = (Move(rhs));
    }
 
    template<class TRAIT>
    template<CT::Semantic S>
+   LANGULUS(INLINED)
    StaticTrait<TRAIT>& StaticTrait<TRAIT>::operator = (S&& rhs) {
       if constexpr (CT::Deep<TypeOf<S>> || CT::Trait<TypeOf<S>>)
          Any::operator = (rhs.template Forward<Any>());
@@ -389,6 +402,7 @@ namespace Langulus::Anyness
    ///   @param rhs - the deep container to concatenate                       
    ///   @return the concatenated trait                                       
    template<class TRAIT>
+   LANGULUS(INLINED)
    TRAIT StaticTrait<TRAIT>::operator + (const Trait& other) const {
       return TRAIT {Any::operator + (static_cast<const Any&>(other))};
    }
@@ -398,6 +412,7 @@ namespace Langulus::Anyness
    ///   @return the concatenated trait                                       
    template<class TRAIT>
    template<CT::Deep T>
+   LANGULUS(INLINED)
    TRAIT StaticTrait<TRAIT>::operator + (const T& rhs) const {
       return TRAIT {Any::operator + (rhs)};
    }
@@ -406,6 +421,7 @@ namespace Langulus::Anyness
    ///   @param rhs - the deep container to concatenate                       
    ///   @return a reference to this trait                                    
    template<class TRAIT>
+   LANGULUS(INLINED)
    TRAIT& StaticTrait<TRAIT>::operator += (const Trait& rhs) {
       Any::operator += (static_cast<const Any&>(rhs));
       return *this;
@@ -416,6 +432,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this trait                                    
    template<class TRAIT>
    template<CT::Deep T>
+   LANGULUS(INLINED)
    TRAIT& StaticTrait<TRAIT>::operator += (const T& rhs) {
       Any::operator += (rhs);
       return *this;
@@ -426,6 +443,7 @@ namespace Langulus::Anyness
    ///   @return true if traits match by contents and type                    
    template<class TRAIT>
    template<CT::Data T>
+   LANGULUS(INLINED)
    bool StaticTrait<TRAIT>::operator == (const T& rhs) const {
       if constexpr (CT::Same<T, StaticTrait<TRAIT>>)
          return Any::operator == (static_cast<const Any&>(DenseCast(rhs)));
@@ -440,10 +458,19 @@ namespace Langulus::Anyness
    ///   @return the empty trait of the given type                            
    template<class TRAIT>
    template<CT::Data T>
+   LANGULUS(INLINED)
    TRAIT StaticTrait<TRAIT>::OfType() {
       TRAIT instance;
       instance.template SetType<T>();
       return instance;
+   }
+   
+   /// Get the trait meta definition                                          
+   ///   @return the meta trait                                               
+   template<class TRAIT>
+   LANGULUS(INLINED)
+   TMeta StaticTrait<TRAIT>::GetTrait() {
+      return RTTI::MetaTrait::Of<TRAIT>();
    }
 
 } // namespace Langulus::Anyness

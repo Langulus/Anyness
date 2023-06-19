@@ -148,6 +148,8 @@ namespace Langulus::Anyness
 
       template<CT::Data T>
       NOD() static TRAIT OfType();
+
+      NOD() static TMeta GetTrait();
    };
 
 } // namespace Langulus::Anyness
@@ -155,11 +157,17 @@ namespace Langulus::Anyness
 namespace Langulus::CT
 {
 
-   /// A reflected trait type is any type that inherits Trait, and is         
-   /// binary compatible to a Trait                                           
+   /// A TraitBased type is any type that inherits Trait, and is binary       
+   /// compatible to a Trait                                                  
    template<class... T>
-   concept Trait = ((DerivedFrom<T, Anyness::Trait>
-      && sizeof(T) == sizeof(Anyness::Trait)) && ...);
+   concept TraitBased = ((DerivedFrom<T, Anyness::Trait>
+         && sizeof(T) == sizeof(Anyness::Trait)
+      ) && ...);
+
+   /// A reflected trait type is any type that inherits Trait, is not Trait   
+   /// itself, and is binary compatible to a Trait                            
+   template<class... T>
+   concept Trait = TraitBased<T...> && (!Same<T, Anyness::Trait> && ...);
 
 } // namespace Langulus::CT
 
@@ -193,32 +201,36 @@ namespace Langulus::CT
 LANGULUS_DEFINE_TRAIT(Logger,
    "Logger trait, used to access the logger instance");
 LANGULUS_DEFINE_TRAIT(Count,
-   "Count trait, used all over the place");
+   "Count trait, used to access container size, or other similar properties");
 LANGULUS_DEFINE_TRAIT(Name,
-   "Name trait, used all over the place");
+   "Name trait, used to access names, or other similar properties");
 LANGULUS_DEFINE_TRAIT(File,
-   "Filename trait, used all over the place");
+   "File trait, used to access file handles, associated file names, or other similar properties");
 LANGULUS_DEFINE_TRAIT(Data,
-   "Raw data trait, used all over the place");
+   "Raw data trait, used to access raw container data, or other similar properties");
 LANGULUS_DEFINE_TRAIT(Index,
-   "Index trait, used all over the place");
+   "Index trait, used to access the index of elements, or other similar properties");
 LANGULUS_DEFINE_TRAIT(Context,
-   "Context trait, used to access the current environment");
+   "Context trait, used to access verb source, the current environment, or other similar properties");
 LANGULUS_DEFINE_TRAIT(Trait, 
-   "Accesses traits (static or dynamic) of an instantiated object of any kind");
+   "Accesses traits (static or dynamic variables) of an instantiated object of any kind");
 LANGULUS_DEFINE_TRAIT(State, 
-   "State trait, used all over the place");
+   "State trait, used to access the state of an object");
 LANGULUS_DEFINE_TRAIT(Child,
-   "Accesses children in any kind of hierarchies");
+   "Accesses children in any kind of hierarchy");
 LANGULUS_DEFINE_TRAIT(Parent,
-   "Accesses parents in any kind of hierarchies");
+   "Accesses parents in any kind of hierarchy");
 LANGULUS_DEFINE_TRAIT(Clipboard,
-   "Accesses clipboard");
+   "Accesses the system clipboard");
 LANGULUS_DEFINE_TRAIT(Color,
-   "Color trait");
+   "Accesses associated color properties");
 LANGULUS_DEFINE_TRAIT(Min,
-   "Accesses smallest element in a context");
+   "Accesses smallest element in a container, or in other similar contexts");
 LANGULUS_DEFINE_TRAIT(Max,
-   "Accesses biggest element in a context");
+   "Accesses biggest element in a container, or in other similar contexts");
+LANGULUS_DEFINE_TRAIT(Input,
+   "For accessing verb arguments, or general inputs of some operation");
+LANGULUS_DEFINE_TRAIT(Output,
+   "For accessing the outputs of a verb, or general output of some operation");
 
 #include "Trait.inl"
