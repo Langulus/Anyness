@@ -71,9 +71,9 @@ P CreatePair(const ALT_K& key, const ALT_V& value) {
 /// Cross-container consistency tests                                         
 TEMPLATE_TEST_CASE(
    "Cross-container consistency tests for TOrderedMap/TUnorderedMap/OrderedMap/UnorderedMap", "[map]",
+   (TypePair2<Text, Trait>),
    (TypePair2<Text, Any>),
    (TypePair2<Text, int>),
-   (TypePair2<Text, Trait>),
    (TypePair2<Text, Traits::Count>),
    (TypePair2<Text, int*>),
    (TypePair2<Text, Trait*>),

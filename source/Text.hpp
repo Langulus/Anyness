@@ -134,7 +134,7 @@ namespace Langulus::CT
 
    /// Concept for differentiating managed Anyness Text types                 
    template<class T>
-   concept Text = DerivedFrom<T, Anyness::Text>;
+   concept Text = DerivedFrom<T, ::Langulus::Anyness::Text>;
 
    /// Concept for differentiating managed Anyness Text types                 
    template<class T>
@@ -144,13 +144,13 @@ namespace Langulus::CT
    {
       template<class T>
       concept Stringifiable =
-         requires (T& a) { a.operator Anyness::Text(); } ||
-         requires (const T& a) { a.operator Anyness::Text(); };
+         requires (T& a) { a.operator ::Langulus::Anyness::Text(); } ||
+         requires (const T& a) { a.operator ::Langulus::Anyness::Text(); };
 
       template<class T>
       concept Debuggable =
-         requires (T& a) { a.operator Anyness::Debug(); } ||
-         requires (const T& a) { a.operator Anyness::Debug(); };
+         requires (T& a) { a.operator ::Langulus::Anyness::Debug(); } ||
+         requires (const T& a) { a.operator ::Langulus::Anyness::Debug(); };
    }
 
    /// A stringifiable type is one that has either an implicit or explicit    

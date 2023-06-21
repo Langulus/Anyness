@@ -163,7 +163,7 @@ namespace Langulus::Anyness
    constexpr Index IndexSmallest {Index::Smallest};
    constexpr Index IndexAuto {Index::Auto};
    constexpr Index IndexRandom {Index::Random};
-   constexpr Index IndexFirst {0};
-   constexpr Index IndexLast {-1};
+   constexpr Index IndexFirst {Index::First};
+   constexpr Index IndexLast {Index::Last};
 
 } // namespace Langulus::Anyness

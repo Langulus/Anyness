@@ -54,7 +54,7 @@ namespace Langulus::Anyness
    Trait::Trait(S&& data) {
       using T = TypeOf<S>;
 
-      if constexpr (CT::Trait<T>) {
+      if constexpr (CT::TraitBased<T>) {
          BlockTransfer<Any>(data.template Forward<Any>());
          mTraitType = data->GetTrait();
       }
@@ -237,7 +237,7 @@ namespace Langulus::Anyness
    template<CT::Data T>
    LANGULUS(INLINED)
    bool Trait::operator == (const T& other) const {
-      if constexpr (CT::Trait<T>)
+      if constexpr (CT::TraitBased<T>)
          return TraitIs(DenseCast(other).mTraitType)
             && Any::operator == (static_cast<const Any&>(DenseCast(other)));
       else
@@ -284,7 +284,7 @@ namespace Langulus::Anyness
       if constexpr (CT::Deep<TypeOf<S>>) {
          Any::operator = (rhs.template Forward<Any>());
       }
-      else if constexpr (CT::Trait<TypeOf<S>>) {
+      else if constexpr (CT::TraitBased<TypeOf<S>>) {
          Any::operator = (rhs.template Forward<Any>());
          mTraitType = rhs->GetTrait();
       }
@@ -391,7 +391,7 @@ namespace Langulus::Anyness
    template<CT::Semantic S>
    LANGULUS(INLINED)
    StaticTrait<TRAIT>& StaticTrait<TRAIT>::operator = (S&& rhs) {
-      if constexpr (CT::Deep<TypeOf<S>> || CT::Trait<TypeOf<S>>)
+      if constexpr (CT::Deep<TypeOf<S>> || CT::TraitBased<TypeOf<S>>)
          Any::operator = (rhs.template Forward<Any>());
       else
          Any::operator = (rhs.Forward());
@@ -447,7 +447,7 @@ namespace Langulus::Anyness
    bool StaticTrait<TRAIT>::operator == (const T& rhs) const {
       if constexpr (CT::Same<T, StaticTrait<TRAIT>>)
          return Any::operator == (static_cast<const Any&>(DenseCast(rhs)));
-      else if constexpr (CT::Trait<T>)
+      else if constexpr (CT::TraitBased<T>)
          return Trait::operator == (static_cast<const Trait&>(DenseCast(rhs)));
       else
          return Any::operator == (rhs);
