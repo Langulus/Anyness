@@ -313,30 +313,30 @@ namespace Langulus::Anyness
       Block Crop(const Offset&, const Count&) const SAFETY_NOEXCEPT();
 
       NOD() Block GetElementDense(Offset);
-      NOD() const Block GetElementDense(Offset) const;
+      NOD() Block GetElementDense(Offset) const;
    
       NOD() Block GetElementResolved(Offset);
-      NOD() const Block GetElementResolved(Offset) const;
+      NOD() Block GetElementResolved(Offset) const;
    
       NOD() Block GetElement(Offset) SAFETY_NOEXCEPT();
-      NOD() const Block GetElement(Offset) const SAFETY_NOEXCEPT();
+      NOD() Block GetElement(Offset) const SAFETY_NOEXCEPT();
    
       NOD() Block GetElement() SAFETY_NOEXCEPT();
-      NOD() const Block GetElement() const SAFETY_NOEXCEPT();
+      NOD() Block GetElement() const SAFETY_NOEXCEPT();
    
       NOD() Block* GetBlockDeep(Offset) noexcept;
       NOD() const Block* GetBlockDeep(Offset) const noexcept;
    
       NOD() Block GetElementDeep(Offset) noexcept;
-      NOD() const Block GetElementDeep(Offset) const noexcept;
+      NOD() Block GetElementDeep(Offset) const noexcept;
 
       NOD() Block GetResolved();
-      NOD() const Block GetResolved() const;
+      NOD() Block GetResolved() const;
 
       template<Count COUNT = CountMax>
       NOD() Block GetDense();
       template<Count COUNT = CountMax>
-      NOD() const Block GetDense() const;
+      NOD() Block GetDense() const;
 
       template<CT::Data, CT::Index INDEX1, CT::Index INDEX2>
       void Swap(INDEX1, INDEX2);

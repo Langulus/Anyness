@@ -58,8 +58,7 @@ namespace Langulus::Anyness
       TAny(const CT::NotSemantic auto&);
       TAny(CT::NotSemantic auto&);
       TAny(CT::NotSemantic auto&&);
-      template<CT::Semantic S>
-      TAny(S&&);
+      TAny(CT::Semantic auto&&);
 
       template<CT::Data HEAD, CT::Data... TAIL>
       TAny(HEAD&&, TAIL&&...) requires (sizeof...(TAIL) >= 1);
@@ -72,13 +71,10 @@ namespace Langulus::Anyness
       TAny& operator = (const CT::NotSemantic auto&);
       TAny& operator = (CT::NotSemantic auto&);
       TAny& operator = (CT::NotSemantic auto&&);
-
-      template<CT::Semantic S>
-      TAny& operator = (S&&);
+      TAny& operator = (CT::Semantic auto&&);
 
    public:
-      template<CT::Semantic S>
-      NOD() static TAny From(S&&, const Count&) requires (CT::Sparse<TypeOf<S>>);
+      NOD() static TAny From(CT::Semantic auto&&, const Count& = 1);
 
       template<CT::Data... LIST_T>
       NOD() static TAny Wrap(LIST_T&&...);

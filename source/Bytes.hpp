@@ -19,10 +19,11 @@ namespace Langulus::Anyness
    ///                                                                        
    class Bytes : public TAny<Byte> {
       LANGULUS(DEEP) false;
-      LANGULUS(POD) false;
       LANGULUS_BASES(TAny<Byte>);
 
    private:
+      using Base = TAny<Byte>;
+
       template<CT::Semantic S>
       static constexpr bool Relevant = CT::DerivedFrom<TypeOf<S>, TAny<Byte>>;
 
@@ -31,19 +32,11 @@ namespace Langulus::Anyness
 
       Bytes(const Bytes&);
       Bytes(Bytes&&) noexcept;
-      Bytes(const TAny&);
-      Bytes(TAny&&) noexcept;
 
-      // Constructing from other containers is disabled                 
-      Bytes(const CT::Deep auto&) = delete;
-
-      template<CT::Semantic S>
-      Bytes(S&&) requires Relevant<S>;
-
-      template<CT::POD T>
-      explicit Bytes(const T&) requires CT::Dense<T>;
-      explicit Bytes(const Token&);
-      explicit Bytes(const RTTI::Meta*);
+      Bytes(const CT::NotSemantic auto&);
+      Bytes(CT::NotSemantic auto&);
+      Bytes(CT::NotSemantic auto&&);
+      Bytes(CT::Semantic auto&&);
 
       Bytes(const void*, const Size&);
       Bytes(void*, const Size&);
@@ -51,10 +44,12 @@ namespace Langulus::Anyness
       Bytes(S&&, const Size&) requires (CT::Sparse<TypeOf<S>>);
 
       Bytes& operator = (const Bytes&);
-      Bytes& operator = (Bytes&&) noexcept;
+      Bytes& operator = (Bytes&&);
 
-      template<CT::Semantic S>
-      Bytes& operator = (S&&) requires Relevant<S>;
+      Bytes& operator = (const CT::NotSemantic auto&);
+      Bytes& operator = (CT::NotSemantic auto&);
+      Bytes& operator = (CT::NotSemantic auto&&);
+      Bytes& operator = (CT::Semantic auto&&);
       
    public:
       NOD() Bytes Clone() const;

@@ -23,24 +23,72 @@ namespace Langulus::Anyness
    Bytes::Bytes(Bytes&& other) noexcept
       : Bytes {Move(other)} {}
 
-   /// Byte container copy-construction from TAny<Byte> base                  
-   ///   @param other - container to reference                                
+   /// Copy-construction from any container/element                           
+   ///   @param other - container/element to shallow-copy                     
    LANGULUS(INLINED)
-   Bytes::Bytes(const TAny& other)
+   Bytes::Bytes(const CT::NotSemantic auto& other)
       : Bytes {Copy(other)} {}
 
-   /// Byte container mvoe-construction from TAny<Byte> base                  
-   ///   @param other - container to move                                     
    LANGULUS(INLINED)
-   Bytes::Bytes(TAny&& other) noexcept
+   Bytes::Bytes(CT::NotSemantic auto& other)
+      : Bytes {Copy(other)} {}
+
+   /// Move-construction from any container/element                           
+   ///   @param other - container/element to move                             
+   LANGULUS(INLINED)
+   Bytes::Bytes(CT::NotSemantic auto&& other)
       : Bytes {Move(other)} {}
 
-   /// Byte container semantic-construction from anything relevant            
-   ///   @param other - the container and semantic to use                     
-   template<CT::Semantic S>
+   /// Semantic construction from any container/element                       
+   ///   @param other - the container/element and the semantic                
    LANGULUS(INLINED)
-   Bytes::Bytes(S&& other) requires Relevant<S>
-      : TAny {other.template Forward<TAny>()} {}
+   Bytes::Bytes(CT::Semantic auto&& other) : Bytes {} {
+      using S = Decay<decltype(other)>;
+      using T = TypeOf<S>;
+
+      if constexpr (CT::DerivedFrom<T, Base>) {
+         // Transfer any TAny<Byte> based container                     
+         mType = MetaData::Of<Byte>();
+         BlockTransfer<Base>(other.Forward());
+      }
+      else if constexpr (CT::Exact<T, Token>) {
+         // Integration with std::string_view                           
+         // Copies the string as a byte sequence                        
+         if (other->empty())
+            return;
+
+         new (this) Bytes {Base::From(
+            S::Nest(reinterpret_cast<const Byte*>(other->data())),
+            other->size()
+         )};
+      }
+      else if constexpr (CT::Array<T>) {
+         // Integration with bounded arrays                             
+         static_assert(CT::POD<::std::remove_extent_t<T>>,
+            "Bounded array should be made of CT::POD elements");
+
+         new (this) Bytes {Base::From(
+            S::Nest(reinterpret_cast<const Byte*>(*other)),
+            sizeof(T)
+         )};
+      }
+      else if constexpr (CT::Meta<T>) {
+         // Serialize any meta definition                               
+         if (*other) {
+            *this += Bytes {Count {(*other)->mToken.size()}};
+            *this += Bytes {(*other)->mToken};
+         }
+         else *this += Bytes {Count {0}};
+      }
+      else if constexpr (CT::POD<T> && CT::Dense<T>) {
+         // Copy/Move/Abandon/Disown/Clone anything dense and POD       
+         new (this) Bytes {Base::From(
+            S::Nest(reinterpret_cast<const Byte*>(&(*other))),
+            sizeof(T)
+         )};
+      }
+      else LANGULUS_ERROR("Bad semantic construction");
+   }
 
    /// Construct manually via raw constant memory pointer and size            
    ///   @param raw - raw memory to reference                                 
@@ -64,31 +112,6 @@ namespace Langulus::Anyness
    Bytes::Bytes(S&& raw, const Size& size) requires (CT::Sparse<TypeOf<S>>)
       : TAny {TAny::From(raw.Forward(), size)} { }
 
-   /// Construct by interpreting anything POD as bytes                        
-   ///   @param value - the data to interpret                                 
-   template<CT::POD T>
-   LANGULUS(INLINED)
-   Bytes::Bytes(const T& value) requires CT::Dense<T>
-      : Bytes {&value, sizeof(T)} { }
-
-   /// Construct by interpreting a string literal                             
-   ///   @param value - the string to interpret                               
-   LANGULUS(INLINED)
-   Bytes::Bytes(const Token& value)
-      : Bytes {value.data(), value.size() * sizeof(Letter)} { }
-
-   /// Construct by interpreting a meta definition                            
-   ///   @param value - the meta to interpret                                 
-   LANGULUS(INLINED)
-   Bytes::Bytes(const RTTI::Meta* value)
-      : Bytes {} {
-      if (value) {
-         *this += Bytes {Count {value->mToken.size()}};
-         *this += Bytes {value->mToken};
-      }
-      else *this += Bytes {Count {0}};
-   }
-
    /// Shallow copy assignment from immutable byte container                  
    ///   @param rhs - the byte container to shallow-copy                      
    ///   @return a reference to this container                                
@@ -101,17 +124,50 @@ namespace Langulus::Anyness
    ///   @param rhs - the container to move                                   
    ///   @return a reference to this container                                
    LANGULUS(INLINED)
-   Bytes& Bytes::operator = (Bytes&& rhs) noexcept {
+   Bytes& Bytes::operator = (Bytes&& rhs) {
       return operator = (Move(rhs));
    }
-
-   /// Move byte container                                                    
-   ///   @param rhs - the container to move                                   
+   
+   /// Copy-assign an unknown container                                       
+   /// This is a bit slower, because it checks type compatibility at runtime  
+   ///   @param other - the container to shallow-copy                         
    ///   @return a reference to this container                                
-   template<CT::Semantic S>
    LANGULUS(INLINED)
-   Bytes& Bytes::operator = (S&& rhs) requires Relevant<S> {
-      TAny::operator = (rhs.template Forward<TAny>());
+   Bytes& Bytes::operator = (const CT::NotSemantic auto& other) {
+      return operator = (Copy(other));
+   }
+   
+   LANGULUS(INLINED)
+   Bytes& Bytes::operator = (CT::NotSemantic auto& other) {
+      return operator = (Copy(other));
+   }
+
+   /// Move-assign an unknown container                                       
+   /// This is a bit slower, because it checks type compatibility at runtime  
+   ///   @param other - the container to move                                 
+   ///   @return a reference to this container                                
+   LANGULUS(INLINED)
+   Bytes& Bytes::operator = (CT::NotSemantic auto&& other) {
+      return operator = (Move(other));
+   }
+
+   /// Shallow-copy disowned runtime container without referencing contents   
+   /// This is a bit slower, because checks type compatibility at runtime     
+   ///   @param other - the container to shallow-copy                         
+   ///   @return a reference to this container                                
+   LANGULUS(INLINED)
+   Bytes& Bytes::operator = (CT::Semantic auto&& other) {
+      using S = Decay<decltype(other)>;
+      using T = TypeOf<S>;
+
+      if constexpr (CT::DerivedFrom<T, Base>) {
+         if (static_cast<const Block*>(this)
+            == static_cast<const Block*>(&*other))
+            return *this;
+      }
+
+      Free();
+      new (this) Bytes {other.Forward()};
       return *this;
    }
 

@@ -26,31 +26,28 @@ namespace Langulus::Anyness
 
    /// Construct by shallow-copying element/container                         
    ///   @param other - the element/container to shallow-copy                 
-   template<CT::NotSemantic T>
    LANGULUS(INLINED)
-   Any::Any(const T& other)
+   Any::Any(const CT::NotSemantic auto& other)
       : Any {Copy(other)} {}
 
    /// Construct by shallow-copying element/container                         
    ///   @param other - the element/container to shallow-copy                 
-   template<CT::NotSemantic T>
    LANGULUS(INLINED)
-   Any::Any(T& other)
+   Any::Any(CT::NotSemantic auto& other)
       : Any {Copy(other)} {}
 
    /// Construct by moving element/container                                  
    ///   @param other - the element/container to move                         
-   template<CT::NotSemantic T>
    LANGULUS(INLINED)
-   Any::Any(T&& other) requires CT::Mutable<T>
+   Any::Any(CT::NotSemantic auto&& other)
       : Any {Move(other)} {}
 
    /// Semantic constructor from deep container or custom data element        
    ///   @tparam S - type of insertion and semantic to use (deducible)        
    ///   @param other - the element/container to initialize with              
-   template<CT::Semantic S>
    LANGULUS(INLINED)
-   Any::Any(S&& other) noexcept {
+   Any::Any(CT::Semantic auto&& other) noexcept {
+      using S = Decay<decltype(other)>;
       using T = TypeOf<S>;
 
       if constexpr (CT::Deep<T>) {
@@ -187,19 +184,13 @@ namespace Langulus::Anyness
    ///   @tparam T - the type to copy (deducible)                             
    ///   @param other - the value to copy                                     
    ///   @return a reference to this container                                
-   template<CT::NotSemantic T>
    LANGULUS(INLINED)
-   Any& Any::operator = (const T& other) {
+   Any& Any::operator = (const CT::NotSemantic auto& other) {
       return operator = (Copy(other));
    }
    
-   /// Shallow copy assignment of anything                                    
-   ///   @tparam T - the type to copy (deducible)                             
-   ///   @param other - the value to copy                                     
-   ///   @return a reference to this container                                
-   template<CT::NotSemantic T>
    LANGULUS(INLINED)
-   Any& Any::operator = (T& other) {
+   Any& Any::operator = (CT::NotSemantic auto& other) {
       return operator = (Copy(other));
    }
 
@@ -207,9 +198,8 @@ namespace Langulus::Anyness
    ///   @tparam T - the type to move in (deducible)                          
    ///   @param other - the value to move in                                  
    ///   @return a reference to this container                                
-   template<CT::NotSemantic T>
    LANGULUS(INLINED)
-   Any& Any::operator = (T&& other) requires CT::Mutable<T> {
+   Any& Any::operator = (CT::NotSemantic auto&& other) {
       return operator = (Move(other));
    }
 
@@ -217,8 +207,8 @@ namespace Langulus::Anyness
    ///   @tparam S - the semantic and type to assign (deducible)              
    ///   @param other - the container to semantically assign                  
    ///   @return a reference to this container                                
-   template<CT::Semantic S>
-   Any& Any::operator = (S&& other) {
+   Any& Any::operator = (CT::Semantic auto&& other) {
+      using S = Decay<decltype(other)>;
       using T = TypeOf<S>;
       static_assert(CT::Insertable<T>, "T must be an insertable type");
 
@@ -283,9 +273,8 @@ namespace Langulus::Anyness
    /// Copy-insert an element (including arrays) at the back                  
    ///   @param other - the data to insert                                    
    ///   @return a reference to this container for chaining                   
-   template<CT::NotSemantic T>
    LANGULUS(INLINED)
-   Any& Any::operator << (const T& other) {
+   Any& Any::operator << (const CT::NotSemantic auto& other) {
       Insert<IndexBack>(Copy(other));
       return *this;
    }
@@ -293,9 +282,8 @@ namespace Langulus::Anyness
    /// Used to disambiguate from the && variant                               
    /// Dimo, I know you want to remove this, but don't, said Dimo to himself  
    /// after actually deleting this function numerous times                   
-   template<CT::NotSemantic T>
    LANGULUS(INLINED)
-   Any& Any::operator << (T& other) {
+   Any& Any::operator << (CT::NotSemantic auto& other) {
       Insert<IndexBack>(Copy(other));
       return *this;
    }
@@ -303,9 +291,8 @@ namespace Langulus::Anyness
    /// Move-insert an element at the back                                     
    ///   @param other - the data to insert                                    
    ///   @return a reference to this container for chaining                   
-   template<CT::NotSemantic T>
    LANGULUS(INLINED)
-   Any& Any::operator << (T&& other) {
+   Any& Any::operator << (CT::NotSemantic auto&& other) {
       Insert<IndexBack>(Move(other));
       return *this;
    }
@@ -313,9 +300,8 @@ namespace Langulus::Anyness
    /// Move-insert an element at the back                                     
    ///   @param other - the data to insert                                    
    ///   @return a reference to this container for chaining                   
-   template<CT::Semantic S>
    LANGULUS(INLINED)
-   Any& Any::operator << (S&& other) {
+   Any& Any::operator << (CT::Semantic auto&& other) {
       Insert<IndexBack>(other.Forward());
       return *this;
    }
@@ -323,9 +309,8 @@ namespace Langulus::Anyness
    /// Copy-insert an element (including arrays) at the front                 
    ///   @param other - the data to insert                                    
    ///   @return a reference to this container for chaining                   
-   template<CT::NotSemantic T>
    LANGULUS(INLINED)
-   Any& Any::operator >> (const T& other) {
+   Any& Any::operator >> (const CT::NotSemantic auto& other) {
       Insert<IndexFront>(Copy(other));
       return *this;
    }
@@ -333,9 +318,8 @@ namespace Langulus::Anyness
    /// Used to disambiguate from the && variant                               
    /// Dimo, I know you want to remove this, but don't, said Dimo to himself  
    /// after actually deleting this function numerous times                   
-   template<CT::NotSemantic T>
    LANGULUS(INLINED)
-   Any& Any::operator >> (T& other) {
+   Any& Any::operator >> (CT::NotSemantic auto& other) {
       Insert<IndexFront>(Copy(other));
       return *this;
    }
@@ -343,9 +327,8 @@ namespace Langulus::Anyness
    /// Move-insert element at the front                                       
    ///   @param other - the data to insert                                    
    ///   @return a reference to this container for chaining                   
-   template<CT::NotSemantic T>
    LANGULUS(INLINED)
-   Any& Any::operator >> (T&& other) {
+   Any& Any::operator >> (CT::NotSemantic auto&& other) {
       Insert<IndexFront>(Move(other));
       return *this;
    }
@@ -353,9 +336,8 @@ namespace Langulus::Anyness
    /// Move-insert element at the front                                       
    ///   @param other - the data to insert                                    
    ///   @return a reference to this container for chaining                   
-   template<CT::Semantic S>
    LANGULUS(INLINED)
-   Any& Any::operator >> (S&& other) {
+   Any& Any::operator >> (CT::Semantic auto&& other) {
       Insert<IndexFront>(other.Forward());
       return *this;
    }
@@ -363,9 +345,8 @@ namespace Langulus::Anyness
    /// Merge data (including arrays) at the back                              
    ///   @param other - the data to insert                                    
    ///   @return a reference to this container for chaining                   
-   template<CT::NotSemantic T>
    LANGULUS(INLINED)
-   Any& Any::operator <<= (const T& other) {
+   Any& Any::operator <<= (const CT::NotSemantic auto& other) {
       Merge<IndexBack, true>(Copy(other));
       return *this;
    }
@@ -373,9 +354,8 @@ namespace Langulus::Anyness
    /// Used to disambiguate from the && variant                               
    /// Dimo, I know you want to remove this, but don't, said Dimo to himself  
    /// after actually deleting this function numerous times                   
-   template<CT::NotSemantic T>
    LANGULUS(INLINED)
-   Any& Any::operator <<= (T& other) {
+   Any& Any::operator <<= (CT::NotSemantic auto& other) {
       Merge<IndexBack, true>(Copy(other));
       return *this;
    }
@@ -383,9 +363,8 @@ namespace Langulus::Anyness
    /// Merge data at the back by move-insertion                               
    ///   @param other - the data to insert                                    
    ///   @return a reference to this container for chaining                   
-   template<CT::NotSemantic T>
    LANGULUS(INLINED)
-   Any& Any::operator <<= (T&& other) {
+   Any& Any::operator <<= (CT::NotSemantic auto&& other) {
       Merge<IndexBack, true>(Move(other));
       return *this;
    }
@@ -393,9 +372,8 @@ namespace Langulus::Anyness
    /// Merge data at the back by move-insertion                               
    ///   @param other - the data to insert                                    
    ///   @return a reference to this container for chaining                   
-   template<CT::Semantic S>
    LANGULUS(INLINED)
-   Any& Any::operator <<= (S&& other) {
+   Any& Any::operator <<= (CT::Semantic auto&& other) {
       Merge<IndexBack, true>(other.Forward());
       return *this;
    }
@@ -403,9 +381,8 @@ namespace Langulus::Anyness
    /// Merge data at the front                                                
    ///   @param other - the data to insert                                    
    ///   @return a reference to this container for chaining                   
-   template<CT::NotSemantic T>
    LANGULUS(INLINED)
-   Any& Any::operator >>= (const T& other) {
+   Any& Any::operator >>= (const CT::NotSemantic auto& other) {
       Merge<IndexFront, true>(Copy(other));
       return *this;
    }
@@ -413,9 +390,8 @@ namespace Langulus::Anyness
    /// Used to disambiguate from the && variant                               
    /// Dimo, I know you want to remove this, but don't, said Dimo to himself  
    /// after actually deleting this function numerous times                   
-   template<CT::NotSemantic T>
    LANGULUS(INLINED)
-   Any& Any::operator >>= (T& other) {
+   Any& Any::operator >>= (CT::NotSemantic auto& other) {
       Merge<IndexFront, true>(Copy(other));
       return *this;
    }
@@ -423,9 +399,8 @@ namespace Langulus::Anyness
    /// Merge data at the front by move-insertion                              
    ///   @param other - the data to insert                                    
    ///   @return a reference to this container for chaining                   
-   template<CT::NotSemantic T>
    LANGULUS(INLINED)
-   Any& Any::operator >>= (T&& other) {
+   Any& Any::operator >>= (CT::NotSemantic auto&& other) {
       Merge<IndexFront, true>(Move(other));
       return *this;
    }
@@ -433,9 +408,8 @@ namespace Langulus::Anyness
    /// Merge data at the front by move-insertion                              
    ///   @param other - the data to insert                                    
    ///   @return a reference to this container for chaining                   
-   template<CT::Semantic S>
    LANGULUS(INLINED)
-   Any& Any::operator >>= (S&& other) {
+   Any& Any::operator >>= (CT::Semantic auto&& other) {
       Merge<IndexFront, true>(other.Forward());
       return *this;
    }
@@ -484,25 +458,31 @@ namespace Langulus::Anyness
    /// An inner concatenation routine using semantics                         
    ///   @tparam WRAPPER - the type of the concatenated container             
    ///   @tparam S - semantic to concatenate with (deducible)                 
+   ///   @attention assumes TypeOf<S> is binary compatible to WRAPPER,        
+   ///              despite being a block to reduce compilation time and RAM  
    ///   @param rhs - block and semantic to concatenate                       
    ///   @return the concatenated container                                   
    template<CT::Block WRAPPER, CT::Semantic S>
-   WRAPPER Any::Concatenate(S&& rhs) const {
-      static_assert(CT::Exact<TypeOf<S>, Block>,
+   WRAPPER Any::Concatenate(S&& other) const {
+      using T = TypeOf<S>;
+      using NestedT = Conditional<S::Move, WRAPPER&, const WRAPPER&>;
+      static_assert(CT::Exact<T, Block>,
          "S type must be exactly Block (build-time optimization)");
 
+      auto& lhs = reinterpret_cast<const WRAPPER&>(*this);
+      auto& rhs = reinterpret_cast<NestedT>(*other);
       if (IsEmpty())
-         return {rhs.Forward()};
-      else if (rhs->IsEmpty())
-         return reinterpret_cast<const WRAPPER&>(*this);
+         return S::Nest(rhs);
+      else if (rhs.IsEmpty())
+         return lhs;
 
       WRAPPER result;
       if constexpr (!CT::Typed<WRAPPER>)
-         result.template SetType<false>(mType);
+         result.SetType(mType);
 
-      result.AllocateFresh(result.RequestSize(mCount + rhs->mCount));
-      result.InsertBlock(reinterpret_cast<const WRAPPER&>(*this));
-      result.InsertBlock(rhs.Forward());
+      result.AllocateFresh(result.RequestSize(mCount + rhs.mCount));
+      result.InsertBlock(lhs);
+      result.InsertBlock(S::Nest(rhs));
       return Abandon(result);
    }
 

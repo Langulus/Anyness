@@ -50,15 +50,10 @@ namespace Langulus::Anyness
       Any(const Any&);
       Any(Any&&) noexcept;
 
-      template<CT::NotSemantic T>
-      Any(const T&);
-      template<CT::NotSemantic T>
-      Any(T&);
-      template<CT::NotSemantic T>
-      Any(T&&) requires CT::Mutable<T>;
-
-      template<CT::Semantic S>
-      Any(S&&) noexcept;
+      Any(const CT::NotSemantic auto&);
+      Any(CT::NotSemantic auto&);
+      Any(CT::NotSemantic auto&&);
+      Any(CT::Semantic auto&&) noexcept;
 
       template<CT::Data HEAD, CT::Data... TAIL>
       Any(HEAD&&, TAIL&&...) requires (sizeof...(TAIL) >= 1);
@@ -71,15 +66,10 @@ namespace Langulus::Anyness
       Any& operator = (const Any&);
       Any& operator = (Any&&) noexcept;
 
-      template<CT::NotSemantic T>
-      Any& operator = (const T&);
-      template<CT::NotSemantic T>
-      Any& operator = (T&);
-      template<CT::NotSemantic T>
-      Any& operator = (T&&) requires CT::Mutable<T>;
-   
-      template<CT::Semantic S>
-      Any& operator = (S&&);
+      Any& operator = (const CT::NotSemantic auto&);
+      Any& operator = (CT::NotSemantic auto&);
+      Any& operator = (CT::NotSemantic auto&&);
+      Any& operator = (CT::Semantic auto&&);
 
       ///                                                                     
       ///   Comparison                                                        
@@ -111,41 +101,25 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
-      template<CT::NotSemantic T>
-      Any& operator << (const T&);
-      template<CT::NotSemantic T>
-      Any& operator << (T&);
-      template<CT::NotSemantic T>
-      Any& operator << (T&&);
-      template<CT::Semantic S>
-      Any& operator << (S&&);
+      Any& operator << (const CT::NotSemantic auto&);
+      Any& operator << (CT::NotSemantic auto&);
+      Any& operator << (CT::NotSemantic auto&&);
+      Any& operator << (CT::Semantic auto&&);
    
-      template<CT::NotSemantic T>
-      Any& operator >> (const T&);
-      template<CT::NotSemantic T>
-      Any& operator >> (T&);
-      template<CT::NotSemantic T>
-      Any& operator >> (T&&);
-      template<CT::Semantic S>
-      Any& operator >> (S&&);
+      Any& operator >> (const CT::NotSemantic auto&);
+      Any& operator >> (CT::NotSemantic auto&);
+      Any& operator >> (CT::NotSemantic auto&&);
+      Any& operator >> (CT::Semantic auto&&);
 
-      template<CT::NotSemantic T>
-      Any& operator <<= (const T&);
-      template<CT::NotSemantic T>
-      Any& operator <<= (T&);
-      template<CT::NotSemantic T>
-      Any& operator <<= (T&&);
-      template<CT::Semantic S>
-      Any& operator <<= (S&&);
+      Any& operator <<= (const CT::NotSemantic auto&);
+      Any& operator <<= (CT::NotSemantic auto&);
+      Any& operator <<= (CT::NotSemantic auto&&);
+      Any& operator <<= (CT::Semantic auto&&);
 
-      template<CT::NotSemantic T>
-      Any& operator >>= (const T&);
-      template<CT::NotSemantic T>
-      Any& operator >>= (T&);
-      template<CT::NotSemantic T>
-      Any& operator >>= (T&&);
-      template<CT::Semantic S>
-      Any& operator >>= (S&&);
+      Any& operator >>= (const CT::NotSemantic auto&);
+      Any& operator >>= (CT::NotSemantic auto&);
+      Any& operator >>= (CT::NotSemantic auto&&);
+      Any& operator >>= (CT::Semantic auto&&);
 
       ///                                                                     
       ///   Removal                                                           

@@ -246,8 +246,10 @@ namespace Langulus::Anyness
    ///   @param index - index of the element inside the block                 
    ///   @return the dense immutable memory block for the element             
    LANGULUS(INLINED)
-   const Block Block::GetElementDense(Offset index) const {
-      return const_cast<Block*>(this)->GetElementDense(index);
+   Block Block::GetElementDense(Offset index) const {
+      auto result = const_cast<Block*>(this)->GetElementDense(index);
+      result.MakeConst();
+      return result;
    }
    
    /// Get the dense and most concrete block of an element inside the block   
@@ -263,8 +265,10 @@ namespace Langulus::Anyness
    ///   @param index - index of the element inside the block                 
    ///   @return the dense resolved memory block for the element              
    LANGULUS(INLINED)
-   const Block Block::GetElementResolved(Count index) const {
-      return const_cast<Block*>(this)->GetElementResolved(index);
+   Block Block::GetElementResolved(Count index) const {
+      auto result = const_cast<Block*>(this)->GetElementResolved(index);
+      result.MakeConst();
+      return result;
    }
 
    /// Get a specific element block (unsafe)                                  
@@ -289,8 +293,8 @@ namespace Langulus::Anyness
    ///   @param index - the element's index                                   
    ///   @return the element's block                                          
    LANGULUS(INLINED)
-   const Block Block::GetElement(Offset index) const SAFETY_NOEXCEPT() {
-      Block result {const_cast<Block*>(this)->GetElement(index)};
+   Block Block::GetElement(Offset index) const SAFETY_NOEXCEPT() {
+      auto result = const_cast<Block*>(this)->GetElement(index);
       result.MakeConst();
       return result;
    }
@@ -314,8 +318,8 @@ namespace Langulus::Anyness
    /// Get first element block (const, unsafe)                                
    ///   @return the first element's block                                    
    LANGULUS(INLINED)
-   const Block Block::GetElement() const SAFETY_NOEXCEPT() {
-      Block result {const_cast<Block*>(this)->GetElement()};
+   Block Block::GetElement() const SAFETY_NOEXCEPT() {
+      auto result = const_cast<Block*>(this)->GetElement();
       result.MakeConst();
       return result;
    }
@@ -382,8 +386,8 @@ namespace Langulus::Anyness
    ///   @param index - the index to get                                      
    ///   @return the element block                                            
    LANGULUS(INLINED)
-   const Block Block::GetElementDeep(Count index) const noexcept {
-      Block result {const_cast<Block*>(this)->GetElementDeep(index)};
+   Block Block::GetElementDeep(Count index) const noexcept {
+      auto result = const_cast<Block*>(this)->GetElementDeep(index);
       result.MakeConst();
       return result;
    }
@@ -408,8 +412,8 @@ namespace Langulus::Anyness
    ///   @attention assumes this block is valid and has at least one element  
    ///   @return the immutable resolved first element                         
    LANGULUS(INLINED)
-   const Block Block::GetResolved() const {
-      Block result {const_cast<Block*>(this)->GetResolved()};
+   Block Block::GetResolved() const {
+      auto result = const_cast<Block*>(this)->GetResolved();
       result.MakeConst();
       return result;
    }
@@ -451,8 +455,8 @@ namespace Langulus::Anyness
    ///   @return the immutable denser first element                           
    template<Count COUNT>
    LANGULUS(INLINED)
-   const Block Block::GetDense() const {
-      Block result {const_cast<Block*>(this)->template GetDense<COUNT>()};
+   Block Block::GetDense() const {
+      auto result = const_cast<Block*>(this)->template GetDense<COUNT>();
       result.MakeConst();
       return result;
    }

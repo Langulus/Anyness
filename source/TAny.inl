@@ -39,9 +39,8 @@ namespace Langulus::Anyness
    TAny<T>::TAny(TAny&& other) noexcept
       : TAny {Move(other)} {}
 
-   /// Copy-construction from any deep container, with a bit of               
-   /// runtime type-checking overhead                                         
-   ///   @param other - the anyness to reference                              
+   /// Copy-construction from any container/element                           
+   ///   @param other - container/element to shallow-copy                     
    TEMPLATE() LANGULUS(INLINED)
    TAny<T>::TAny(const CT::NotSemantic auto& other)
       : TAny {Copy(other)} {}
@@ -50,20 +49,17 @@ namespace Langulus::Anyness
    TAny<T>::TAny(CT::NotSemantic auto& other)
       : TAny {Copy(other)} {}
 
-   /// Move-construction from any deep container, with a bit of               
-   /// runtime type-checking overhead                                         
-   ///   @param other - the anyness to reference                              
+   /// Move-construction from any container/element                           
+   ///   @param other - container/element to move                             
    TEMPLATE() LANGULUS(INLINED)
    TAny<T>::TAny(CT::NotSemantic auto&& other)
       : TAny {Move(other)} {}
 
-   /// Semantic construction from any container                               
-   ///   @tparam S - the semantic and type to use (deducible)                 
-   ///   @param other - the container                                         
-   TEMPLATE()
-   template<CT::Semantic S>
-   LANGULUS(INLINED)
-   TAny<T>::TAny(S&& other) : TAny {} {
+   /// Semantic construction from any container/element                       
+   ///   @param other - the container/element and semantic                    
+   TEMPLATE() LANGULUS(INLINED)
+   TAny<T>::TAny(CT::Semantic auto&& other) : TAny {} {
+      using S = Decay<decltype(other)>;
       using ST = TypeOf<S>;
 
       if constexpr (CT::Deep<ST>) {
@@ -123,6 +119,8 @@ namespace Langulus::Anyness
          }
       }
       else if constexpr (CT::DerivedFrom<ST, TAny<T>>) {
+         // Some containers, like Bytes and Text aren't CT::Deep, so    
+         // we have this special case for them                          
          mType = MetaData::Of<T>();
          BlockTransfer<TAny>(other.Forward());
       }
@@ -152,9 +150,8 @@ namespace Langulus::Anyness
       else LANGULUS_ERROR("Bad semantic construction");
    }
    
-   /// Pack any number of elements sequentially                               
-   /// If any of the types doesn't match exactly, the container becomes deep  
-   /// to incorporate all elements                                            
+   /// Pack any number of T elements sequentially                             
+   /// Optionally, each element can be individually semantic                  
    ///   @param head - first element                                          
    ///   @param tail... - the rest of the elements                            
    TEMPLATE()
@@ -176,14 +173,18 @@ namespace Langulus::Anyness
    /// Data will be copied, if not in jurisdiction, which involves a slow     
    /// authority check. If you want to avoid checking and copying, use the    
    /// Disowned semantic                                                      
-   ///   @param raw - raw memory to reference, or clone if not owned          
-   ///   @param count - number of items inside 'raw'                          
-   TEMPLATE()
-   template<CT::Semantic S>
-   LANGULUS(INLINED)
-   TAny<T> TAny<T>::From(S&& what, const Count& count) requires (CT::Sparse<TypeOf<S>>) {
+   ///   @param what - data to semantically interface                         
+   ///   @param count - number of items, in case 'what' is a pointer          
+   TEMPLATE() LANGULUS(INLINED)
+   TAny<T> TAny<T>::From(CT::Semantic auto&& what, const Count& count) {
+      using S = Decay<decltype(what)>;
+
       TAny<T> result;
-      result.SetMemory(DataState::Constrained, result.GetType(), count, *what, nullptr);
+      if constexpr (CT::Sparse<TypeOf<S>>)
+         result.SetMemory(DataState::Constrained, result.GetType(), count, *what, nullptr);
+      else
+         result.SetMemory(DataState::Constrained, result.GetType(), 1, &(*what), nullptr);
+
       if constexpr (!S::Move && S::Keep)
          result.TakeAuthority();
       return result;
@@ -240,17 +241,13 @@ namespace Langulus::Anyness
    /// This is a bit slower, because it checks type compatibility at runtime  
    ///   @param other - the container to shallow-copy                         
    ///   @return a reference to this container                                
-   TEMPLATE()
-   template<CT::NotSemantic ALT_T>
-   LANGULUS(INLINED)
-   TAny<T>& TAny<T>::operator = (const ALT_T& other) {
+   TEMPLATE() LANGULUS(INLINED)
+   TAny<T>& TAny<T>::operator = (const CT::NotSemantic auto& other) {
       return operator = (Copy(other));
    }
    
-   TEMPLATE()
-   template<CT::NotSemantic ALT_T>
-   LANGULUS(INLINED)
-   TAny<T>& TAny<T>::operator = (ALT_T& other) {
+   TEMPLATE() LANGULUS(INLINED)
+   TAny<T>& TAny<T>::operator = (CT::NotSemantic auto& other) {
       return operator = (Copy(other));
    }
 
@@ -258,10 +255,8 @@ namespace Langulus::Anyness
    /// This is a bit slower, because it checks type compatibility at runtime  
    ///   @param other - the container to move                                 
    ///   @return a reference to this container                                
-   TEMPLATE()
-   template<CT::NotSemantic ALT_T>
-   LANGULUS(INLINED)
-   TAny<T>& TAny<T>::operator = (ALT_T&& other) {
+   TEMPLATE() LANGULUS(INLINED)
+   TAny<T>& TAny<T>::operator = (CT::NotSemantic auto&& other) {
       return operator = (Move(other));
    }
 
@@ -269,10 +264,10 @@ namespace Langulus::Anyness
    /// This is a bit slower, because checks type compatibility at runtime     
    ///   @param other - the container to shallow-copy                         
    ///   @return a reference to this container                                
-   TEMPLATE()
-   template<CT::Semantic S>
-   LANGULUS(INLINED)
-   TAny<T>& TAny<T>::operator = (S&& other) {
+   TEMPLATE() LANGULUS(INLINED)
+   TAny<T>& TAny<T>::operator = (CT::Semantic auto&& other) {
+      using S = Decay<decltype(other)>;
+
       if constexpr (CT::Deep<TypeOf<S>>) {
          if (static_cast<const Block*>(this)
           == static_cast<const Block*>(&*other))
