@@ -103,7 +103,6 @@ namespace Langulus::Anyness
       NOD() bool FindOffset(const Text&, Offset&) const;
       NOD() bool FindOffsetReverse(const Text&, Offset&) const;
       NOD() bool Find(const Text&) const;
-      NOD() bool FindWild(const Text&) const;
 
       ///                                                                     
       ///   Concatenation                                                     

@@ -215,10 +215,6 @@ namespace Langulus::Anyness
       template<CT::Semantic S>
       TAny& operator >>= (S&&) requires (CT::Exact<TypeOf<S>, T>);
 
-      template<CT::Data ALT_T = T>
-      bool operator == (const TAny<ALT_T>&) const noexcept;
-      bool operator == (const Any&) const noexcept;
-
    private:
       // Disable these inherited functions                              
       using Any::SmartPushAt;
@@ -248,7 +244,11 @@ namespace Langulus::Anyness
       ///   Search                                                            
       ///                                                                     
       template<bool REVERSE = false, CT::Data ALT_T>
-      NOD() Index Find(const ALT_T&, const Offset& = 0) const;
+      NOD() Index Find(const ALT_T&, const Offset& = 0) const noexcept;
+
+      template<CT::Data ALT_T = T>
+      bool operator == (const TAny<ALT_T>&) const noexcept requires (CT::Inner::Comparable<T, ALT_T>);
+      bool operator == (const Any&) const noexcept requires (CT::Inner::Comparable<T>);
 
       NOD() bool Compare(const TAny&) const noexcept;
       NOD() bool CompareLoose(const TAny&) const noexcept;

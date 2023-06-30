@@ -216,19 +216,11 @@ namespace Langulus::Anyness
       return mValue;
    }
 
-   /// Compare owned values for equality                                      
-   ///   @param rhs - the right value                                         
-   ///   @return true if values match                                         
-   TEMPLATE_OWNED() LANGULUS(INLINED)
-   bool TOwned<T>::operator == (const TOwned<T>& rhs) const noexcept {
-      return mValue == rhs.mValue;
-   }
-
    /// Compare raw values for equality                                        
    ///   @param rhs - the right value                                         
    ///   @return true if values match                                         
    TEMPLATE_OWNED() LANGULUS(INLINED)
-   bool TOwned<T>::operator == (const T& rhs) const noexcept {
+   bool TOwned<T>::operator == (const T& rhs) const noexcept requires CT::Inner::Comparable<T> {
       return mValue == rhs;
    }
 

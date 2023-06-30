@@ -87,12 +87,10 @@ namespace Langulus::Anyness
       TPointer& operator = (CT::PointerRelated auto&&);
       TPointer& operator = (CT::Semantic auto&&);
 
-      using Base::operator bool;
       NOD() operator TPointer<const T, DR>() const noexcept requires CT::Mutable<T>;
 
+      using Base::operator bool;
       using Base::operator ==;
-      NOD() bool operator == (const TPointer&) const noexcept;
-
       using Base::operator ->;
       using Base::operator *;
    };

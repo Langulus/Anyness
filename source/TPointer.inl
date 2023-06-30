@@ -270,14 +270,6 @@ namespace Langulus::Anyness
       };
    }
 
-   /// Compare pointers for equality                                          
-   ///   @param rhs - the right pointer                                       
-   ///   @return true if pointers match                                       
-   TEMPLATE_SHARED() LANGULUS(INLINED)
-   bool SHARED_POINTER()::operator == (const SHARED_POINTER()& rhs) const noexcept {
-      return Base::operator == (rhs);
-   }
-
 } // namespace Langulus::Anyness
 
 #undef TEMPLATE_SHARED

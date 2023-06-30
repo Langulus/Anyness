@@ -335,9 +335,11 @@ namespace Langulus::Anyness
       return result;
    }
 
-   /// Find a substring and set 'offset' to its location                      
+   /// Find a substring and set 'offset' to the start of the first match      
+   /// The search begins at 'offset'                                          
    ///   @param pattern - the pattern to search for                           
    ///   @param offset - [in/out] offset to set if found                      
+   ///   @attention offset might change, even if nothing was found            
    ///   @return true if pattern was found                                    
    LANGULUS(INLINED)
    bool Text::FindOffset(const Text& pattern, Offset& offset) const {
@@ -420,36 +422,6 @@ namespace Langulus::Anyness
    bool Text::Find(const Text& pattern) const {
       UNUSED() Offset unused {};
       return FindOffset(pattern, unused);
-   }
-
-   /// Find a match using wildcards in a pattern                              
-   ///   @param pattern - the pattern with the wildcards                      
-   ///   @return true on first match                                          
-   LANGULUS(INLINED)
-   bool Text::FindWild(const Text& pattern) const {
-      if (pattern.IsEmpty() || pattern.mCount > mCount)
-         return false;
-
-      Offset offset {};
-      for (Offset i = 0; i < pattern.mCount; ++i) {
-         if (pattern[i] == '*')
-            continue;
-
-         // Get every substring between *s                              
-         Offset accum {};
-         while (i + accum < pattern.mCount && pattern[i + accum] != '*')
-            ++accum;
-
-         if (accum > 0 && !FindOffset(pattern.Crop(i, accum), offset))
-            // Mismatch                                                 
-            return false;
-
-         offset += accum;
-         i += accum;
-      }
-
-      // Success                                                        
-      return true;
    }
 
    /// Pick a part of the text (const)                                        

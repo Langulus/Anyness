@@ -88,8 +88,7 @@ namespace Langulus::Anyness
       NOD() operator const T&() const noexcept;
       NOD() operator T&() noexcept;
 
-      NOD() bool operator == (const TOwned&) const noexcept;
-      NOD() bool operator == (const T&) const noexcept;
+      NOD() bool operator == (const T&) const noexcept requires CT::Inner::Comparable<T>;
       NOD() bool operator == (::std::nullptr_t) const noexcept requires CT::Sparse<T>;
    };
 

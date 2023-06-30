@@ -565,7 +565,7 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    const T& TAny<T>::operator [] (const IDX& index) const {
       const auto offset = SimplifyIndex<T>(index);
-      return TAny<T>::GetRaw()[offset];
+      return GetRaw()[offset];
    }
 
    TEMPLATE()
@@ -573,7 +573,7 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    T& TAny<T>::operator [] (const IDX& index) {
       const auto offset = SimplifyIndex<T>(index);
-      return TAny<T>::GetRaw()[offset];
+      return GetRaw()[offset];
    }
 
    /// Access last element                                                    
@@ -582,7 +582,7 @@ namespace Langulus::Anyness
    TEMPLATE() LANGULUS(INLINED)
    T& TAny<T>::Last() {
       LANGULUS_ASSUME(UserAssumes, mCount, "Can't get last index");
-      return Get<T>(mCount - 1);
+      return GetRaw()[mCount - 1];
    }
 
    /// Access last element                                                    
@@ -591,7 +591,7 @@ namespace Langulus::Anyness
    TEMPLATE() LANGULUS(INLINED)
    const T& TAny<T>::Last() const {
       LANGULUS_ASSUME(UserAssumes, mCount, "Can't get last index");
-      return Get<T>(mCount - 1);
+      return GetRaw()[mCount - 1];
    }
    
    /// Templated Any containers are always typed                              
@@ -1221,24 +1221,25 @@ namespace Langulus::Anyness
    ///   @return the index of the found item, or IndexNone if none found      
    TEMPLATE()
    template<bool REVERSE, CT::Data ALT_T>
-   Index TAny<T>::Find(const ALT_T& item, const Offset& cookie) const {
-      if constexpr (CT::Inner::Comparable<T, ALT_T>) {
-         const T* start = REVERSE
-            ? GetRawEnd() - 1 - cookie
-            : GetRaw() + cookie;
-         const T* const end = REVERSE
-            ? start - mCount
-            : start + mCount;
+   Index TAny<T>::Find(const ALT_T& item, const Offset& cookie) const noexcept {
+      static_assert(CT::Inner::Comparable<T, ALT_T>, 
+         "Can't find non-comparable element");
 
-         while (start != end) {
-            if (*start == item)
-               return start - GetRaw();
+      const T* start = REVERSE
+         ? GetRawEnd() - 1 - cookie
+         : GetRaw() + cookie;
+      const T* const end = REVERSE
+         ? start - mCount
+         : start + mCount;
 
-            if constexpr (REVERSE)
-               --start;
-            else
-               ++start;
-         }
+      while (start != end) {
+         if (*start == item)
+            return start - GetRaw();
+
+         if constexpr (REVERSE)
+            --start;
+         else
+            ++start;
       }
 
       // If this is reached, then no match was found                    
@@ -1689,7 +1690,7 @@ namespace Langulus::Anyness
    TEMPLATE()
    template<CT::Data ALT_T>
    LANGULUS(INLINED)
-   bool TAny<T>::operator == (const TAny<ALT_T>& other) const noexcept {
+   bool TAny<T>::operator == (const TAny<ALT_T>& other) const noexcept requires (CT::Inner::Comparable<T, ALT_T>) {
       if constexpr (CT::Same<T, ALT_T>)
          return Compare(other);
       else
@@ -1700,7 +1701,7 @@ namespace Langulus::Anyness
    ///   @param other - the block to compare with                             
    ///   @return true if both containers are identical                        
    TEMPLATE() LANGULUS(INLINED)
-   bool TAny<T>::operator == (const Any& other) const noexcept {
+   bool TAny<T>::operator == (const Any& other) const noexcept requires (CT::Inner::Comparable<T>) {
       if (IsExact(other.GetType())) {
          // Use statically optimized routine if possible                
          return Compare(reinterpret_cast<const TAny<T>&>(other));
@@ -1716,21 +1717,19 @@ namespace Langulus::Anyness
    ///   @return true if both containers match loosely                        
    TEMPLATE()
    bool TAny<T>::CompareLoose(const TAny& other) const noexcept {
-      if constexpr (!CT::Character<T>) {
-         return Compare(other);
-      }
-      else {
-         if (mRaw == other.mRaw)
-            return mCount == other.mCount;
-         else if (mCount != other.mCount)
-            return false;
+      static_assert(CT::Character<T>,
+         "Can't do a loose match on non-character container");
 
-         auto t1 = GetRaw();
-         auto t2 = other.GetRaw();
-         while (t1 < GetRawEnd() && ::std::tolower(*t1) == ::std::tolower(*(t2++)))
-            ++t1;
-         return (t1 - GetRaw()) == mCount;
-      }
+      if (mRaw == other.mRaw)
+         return mCount == other.mCount;
+      else if (mCount != other.mCount)
+         return false;
+
+      auto t1 = GetRaw();
+      auto t2 = other.GetRaw();
+      while (t1 < GetRawEnd() && ::std::tolower(*t1) == ::std::tolower(*(t2++)))
+         ++t1;
+      return (t1 - GetRaw()) == mCount;
    }
 
    /// Count how many consecutive elements match in two containers            
@@ -1763,21 +1762,18 @@ namespace Langulus::Anyness
    ///   @return the number of matching symbols                               
    TEMPLATE()
    Count TAny<T>::MatchesLoose(const TAny& other) const noexcept {
-      if constexpr (!CT::Character<T>) {
-         return Compare(other);
-      }
-      else {
-         if (mRaw == other.mRaw)
-            return ::std::min(mCount, other.mCount);
+      static_assert(CT::Character<T>,
+         "Can't do a loose match on non-character container");
+      if (mRaw == other.mRaw)
+         return ::std::min(mCount, other.mCount);
 
-         auto t1 = GetRaw();
-         auto t2 = other.GetRaw();
-         const auto t1end = GetRawEnd();
-         const auto t2end = other.GetRawEnd();
-         while (t1 != t1end && t2 != t2end && ::std::tolower(*t1) == ::std::tolower(*(t2++)))
-            ++t1;
-         return t1 - GetRaw();
-      }
+      auto t1 = GetRaw();
+      auto t2 = other.GetRaw();
+      const auto t1end = GetRawEnd();
+      const auto t2end = other.GetRawEnd();
+      while (t1 != t1end && t2 != t2end && ::std::tolower(*t1) == ::std::tolower(*(t2++)))
+         ++t1;
+      return t1 - GetRaw();
    }
   
    /// Get iterator to first element                                          
