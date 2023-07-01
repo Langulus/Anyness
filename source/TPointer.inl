@@ -270,6 +270,25 @@ namespace Langulus::Anyness
       };
    }
 
+   /// Compare any similar shared pointer                                     
+   ///   @tparam ALT_T - type of rhs pointer                                  
+   ///   @tparam ALT_DR - referencing type of rhs pointer                     
+   ///   @param rhs - the pointer to compare against                          
+   ///   @return true if pointers match                                       
+   TEMPLATE_SHARED()
+   template<class ALT_T, bool ALT_DR>
+   LANGULUS(INLINED)
+   bool SHARED_POINTER()::operator == (const TPointer<ALT_T, ALT_DR>& rhs) const noexcept requires (CT::Inner::Comparable<T*, ALT_T*>) {
+      return mValue == rhs.mValue;
+   }
+
+   /// Check if shared pointer is valid, by comparing it with nullptr         
+   ///   @return true if pointer is nullptr                                   
+   TEMPLATE_SHARED() LANGULUS(INLINED)
+   bool SHARED_POINTER()::operator == (::std::nullptr_t) const noexcept {
+      return mValue == nullptr;
+   }
+
 } // namespace Langulus::Anyness
 
 #undef TEMPLATE_SHARED

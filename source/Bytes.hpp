@@ -113,3 +113,12 @@ namespace Langulus::Anyness
 } // namespace Langulus::Anyness
 
 #include "Bytes.inl"
+
+namespace Langulus::CT
+{
+
+   /// Concept for differentiating managed Anyness Text types                 
+   template<class T>
+   concept Bytes = DerivedFrom<T, ::Langulus::Anyness::Bytes>;
+
+} // namespace Langulus::CT

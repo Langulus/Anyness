@@ -142,14 +142,14 @@ namespace Langulus::CT
    namespace Inner
    {
       template<class T>
-      concept Stringifiable =
-         requires (T& a) { a.operator ::Langulus::Anyness::Text(); } ||
-         requires (const T& a) { a.operator ::Langulus::Anyness::Text(); };
+      concept Stringifiable = !Text<T> && !Same<T, ::Langulus::Token()> && (
+         requires (T& a) { a.operator ::Langulus::Anyness::Text(); }
+      );
 
       template<class T>
-      concept Debuggable =
-         requires (T& a) { a.operator ::Langulus::Anyness::Debug(); } ||
-         requires (const T& a) { a.operator ::Langulus::Anyness::Debug(); };
+      concept Debuggable = !Text<T> && !Same<T, ::Langulus::Token()> && (
+         requires (T& a) { a.operator ::Langulus::Anyness::Debug(); }
+      );
    }
 
    /// A stringifiable type is one that has either an implicit or explicit    
@@ -179,9 +179,30 @@ namespace fmt
 {
    
    ///                                                                        
+   /// Extend FMT to be capable of logging anything that is derived from      
+   /// Anyness::Text                                                          
+   ///                                                                        
+   template<Langulus::CT::Text T>
+   struct formatter<T> {
+      template<class CONTEXT>
+      constexpr auto parse(CONTEXT& ctx) {
+         return ctx.begin();
+      }
+
+      template<class CONTEXT>
+      LANGULUS(INLINED)
+      auto format(T const& element, CONTEXT& ctx) {
+         using namespace Langulus;
+         auto asText = element.operator Token();
+         return fmt::format_to(ctx.out(), "{}", asText);
+      }
+   };
+
+
+   ///                                                                        
    /// Extend FMT to be capable of logging anything that is statically        
-   /// convertible to a Debug/Text string by an explicit or implicit          
-   /// conversion operator.                                                   
+   /// convertible to a Token/Debug/Text string by an explicit or implicit    
+   /// conversion operator. It doesn't apply to these typed directly.         
    ///                                                                        
    template<Langulus::CT::Debuggable T>
    struct formatter<T> {
@@ -194,12 +215,12 @@ namespace fmt
       LANGULUS(INLINED)
       auto format(T const& element, CONTEXT& ctx) {
          using namespace Langulus;
-         if constexpr (CT::Inner::Debuggable<T>) {
+         if constexpr (requires (T& a) { a.operator Anyness::Debug(); }) {
             auto asText = element.operator Anyness::Debug();
             return fmt::format_to(ctx.out(), "{}",
                static_cast<Logger::TextView>(asText));
          }
-         else if constexpr (CT::Inner::Stringifiable<T>) {
+         else if constexpr (requires (T & a) { a.operator Anyness::Text(); }) {
             auto asText = element.operator Anyness::Text();
             return fmt::format_to(ctx.out(), "{}",
                static_cast<Logger::TextView>(asText));
