@@ -587,6 +587,70 @@ namespace Langulus::Anyness
       return *this;
    }
 
+   /// Fill template arguments using libfmt                                   
+   ///   @tparam ...ARGS - arguments for the template                         
+   ///   @param format - the template string                                  
+   ///   @param args... - the arguments                                       
+   ///   @return the instantiated template                                    
+   template<class... ARGS>
+   Text Text::Template(const Token& format, ARGS&&...args) {
+      const auto size = fmt::formatted_size(format, Forward<ARGS>(args)...);
+
+      Text result;
+      result.Reserve(size);
+      fmt::format_to_n(
+         result.GetRaw(), size, format,
+         Forward<ARGS>(args)...
+      );
+      return Abandon(result);
+   }
+   
+   /// Fill template arguments using libfmt (at runtime)                      
+   ///   @tparam ...ARGS - arguments for the template                         
+   ///   @param format - the template string                                  
+   ///   @param args... - the arguments                                       
+   ///   @return the instantiated template                                    
+   template<class... ARGS>
+   Text Text::TemplateRt(const Token& format, ARGS&&...args) {
+      const auto size = fmt::formatted_size(
+         fmt::runtime(format),
+         Forward<ARGS>(args)...
+      );
+
+      Text result;
+      result.Reserve(size);
+      fmt::format_to_n(
+         result.GetRaw(), size,
+         fmt::runtime(format),
+         Forward<ARGS>(args)...
+      );
+      return Abandon(result);
+   }
+
+   /// Should complain at compile-time if format string has mismatching       
+   /// number of arguments                                                    
+   template<::std::size_t...N>
+   LANGULUS(INLINED)
+   constexpr auto Text::CheckPattern(const Token& f, ::std::index_sequence<N...>) {
+      return fmt::format_string<decltype(N)...> {fmt::runtime(f)};
+   }
+
+   /// Attempt filling the template, statically checking if argument count is 
+   /// satisfied, and other erroneous conditions. Since arguments contain     
+   /// unformattable data, that has more to do with seeking actual data from  
+   /// the node hierarchy later, arguments are substituted with an index      
+   /// sequence.                                                              
+   ///   @tparam ...ARGS - arguments for the template                         
+   ///   @param format - the template string                                  
+   ///   @param args... - the arguments                                       
+   template<class... ARGS>
+   LANGULUS(INLINED)
+   constexpr auto Text::TemplateCheck(const Token& f, ARGS&&...) {
+      return CheckPattern(f, ::std::make_index_sequence<sizeof...(ARGS)> {});
+   }
+
+
+
    /// Construct by copying a text container                                  
    ///   @param other - the container to copy                                 
    LANGULUS(INLINED)
@@ -598,46 +662,6 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Debug::Debug(Text&& other)
       : Text {Forward<Text>(other)} {}
-
-   /// Fill template arguments using libfmt                                      
-   ///   @tparam ...ARGS - arguments for the template                            
-   ///   @param format - the template string                                     
-   ///   @param args... - the arguments                                          
-   ///   @return the instantiated template                                       
-   template<class... ARGS>
-   Text TemplateFill(const Token& format, ARGS&&...args) {
-      const auto size = fmt::formatted_size(
-         fmt::format_string<ARGS...> {format},
-         Forward<ARGS>(args)...
-      );
-
-      Text result;
-      result.Reserve(size);
-      fmt::format_to_n(result.GetRaw(), size, format, Forward<ARGS>(args)...);
-      return Abandon(result);
-   }
-
-   namespace Inner
-   {
-      template<::std::size_t...N>
-      LANGULUS(INLINED)
-      constexpr auto CheckPattern(const Token& p, ::std::index_sequence<N...>) {
-         return fmt::format_string<decltype(N)...> {p};
-      }
-   }
-
-   /// Attempt filling the template, statically checking if argument count is    
-   /// satisfied, and other erroneous conditions. Since arguments contain        
-   /// unformattable data, that has more to do with seeking actual data from the 
-   /// node hierarchy later, arguments are substituted with an index sequence.   
-   ///   @tparam ...ARGS - arguments for the template                            
-   ///   @param format - the template string                                     
-   ///   @param args... - the arguments                                          
-   template<class... ARGS>
-   LANGULUS(INLINED)
-   constexpr auto TemplateCheck(const Token& f, ARGS&&...) {
-      return Inner::CheckPattern(f, ::std::make_index_sequence<sizeof...(ARGS)> {});
-   }
 
 } // namespace Langulus::Anyness
 

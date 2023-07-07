@@ -104,6 +104,13 @@ namespace Langulus::Anyness
       NOD() bool FindOffsetReverse(const Text&, Offset&) const;
       NOD() bool Find(const Text&) const;
 
+      template<class... ARGS>
+      NOD() static Text Template(const Token&, ARGS&&...);
+      template<class... ARGS>
+      NOD() static Text TemplateRt(const Token&, ARGS&&...);
+      template<class... ARGS>
+      NOD() static constexpr auto TemplateCheck(const Token&, ARGS&&...);
+
       ///                                                                     
       ///   Concatenation                                                     
       ///                                                                     
@@ -111,6 +118,10 @@ namespace Langulus::Anyness
       friend Text operator + (const char*, const Text&);
 
       Text& operator += (const Text&);
+
+   protected:
+      template<::std::size_t...N>
+      static constexpr auto CheckPattern(const Token&, ::std::index_sequence<N...>);
    };
 
 
