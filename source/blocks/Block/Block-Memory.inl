@@ -40,10 +40,16 @@ namespace Langulus::Anyness
    ///   @param elements - number of elements to allocate                     
    template<bool CREATE, bool SETSIZE>
    void Block::AllocateMore(Count elements) {
-      LANGULUS_ASSERT(
-         !mType || !mType->mIsAbstract || mType->mIsSparse, Allocate,
-         "Allocating either in untyped block, or an abstract dense type"
-      );
+      if (!mType || (mType->mIsAbstract && !mType->mIsSparse)) {
+         if (!mType) {
+            Logger::Error("Can't instantiate unknown type");
+         }
+         else {
+            Logger::Error("Unable to instantiate ", elements,
+               " elements of abstract type ", mType);
+         }
+         LANGULUS_THROW(Allocate, "Allocating untyped/abstract/sparse data");
+      }
 
       if (mReserved >= elements) {
          // Required memory is already available                        
