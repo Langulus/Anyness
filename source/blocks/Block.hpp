@@ -161,6 +161,7 @@ namespace Langulus::Anyness
       constexpr Block(DMeta) noexcept;
       constexpr Block(const DataState&, DMeta) noexcept;
 
+      Block(const DataState&, CMeta) SAFETY_NOEXCEPT();
       Block(const DataState&, DMeta, Count, const void*) SAFETY_NOEXCEPT();
       Block(const DataState&, DMeta, Count, void*) SAFETY_NOEXCEPT();
       Block(const DataState&, DMeta, Count, const void*, Allocation*) SAFETY_NOEXCEPT();

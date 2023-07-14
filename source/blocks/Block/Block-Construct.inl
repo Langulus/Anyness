@@ -35,6 +35,16 @@ namespace Langulus::Anyness
       : mState {state}
       , mType {meta} { }
    
+   /// Manual construction via state and a reflected constant                 
+   ///   @param state - the initial state of the container                    
+   ///   @param meta - the constant definition                                
+   LANGULUS(INLINED)
+   Block::Block(const DataState& state, CMeta meta) SAFETY_NOEXCEPT()
+      : Block {
+         state + DataState::Constrained,
+         meta->mValueType, 1, meta->mPtrToValue, nullptr
+      } {}
+   
    /// Manual construction from mutable data                                  
    /// This constructor has runtime overhead if managed memory is enabled     
    ///   @attention assumes data is not sparse                                
@@ -48,20 +58,10 @@ namespace Langulus::Anyness
       , Count count
       , void* raw
    ) SAFETY_NOEXCEPT()
-      : mRaw {static_cast<Byte*>(raw)}
-      , mState {state}
-      , mCount {count}
-      , mReserved {count}
-      , mType {meta}
-      , mEntry {Fractalloc.Find(meta, raw)}
-   {
-      LANGULUS_ASSUME(DevAssumes, raw != nullptr,
-         "Invalid data pointer");
-      LANGULUS_ASSUME(DevAssumes, meta != nullptr,
-         "Invalid data type");
-      LANGULUS_ASSUME(DevAssumes, !meta->mIsSparse,
-         "Sparse raw data initialization is not allowed");
-   }
+      : Block {
+         state + DataState::Constrained,
+         meta, count, raw, Fractalloc.Find(meta, raw)
+      } {}
    
    /// Manual construction from constant data                                 
    /// This constructor has runtime overhead if managed memory is enabled     

@@ -104,7 +104,7 @@ namespace Langulus::Anyness
    ///   @param pattern - the type of data to try interpreting as             
    ///   @return a block representing this block, interpreted as the pattern  
    inline Block Block::ReinterpretAs(const Block& pattern) const {
-      if (IsEmpty() || IsSparse())
+      if (IsEmpty() || IsSparse() || IsUntyped() || pattern.IsUntyped())
          return {};
 
       RTTI::Base common {};

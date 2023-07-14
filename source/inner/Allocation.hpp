@@ -25,6 +25,7 @@ namespace Langulus::Anyness
    using RTTI::DMeta;
    using RTTI::TMeta;
    using RTTI::VMeta;
+   using RTTI::CMeta;
 
 
    /// Wrapper for memcpy                                                     
