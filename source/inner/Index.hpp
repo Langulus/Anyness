@@ -20,6 +20,7 @@ namespace Langulus::Anyness
       LANGULUS(NULLIFIABLE) true;
       LANGULUS(SUFFIX) "i";
       LANGULUS(INFO) "Used to safely access elements inside containers";
+      LANGULUS_BASES(A::Number);
 
    protected:
       using Type = ::std::ptrdiff_t;

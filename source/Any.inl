@@ -218,8 +218,11 @@ namespace Langulus::Anyness
             return *this;
 
          // Since Any is type-erased, we make a runtime type check      
-         LANGULUS_ASSERT(!IsTypeConstrained() || CastsToMeta(other->GetType()),
-            Assign, "Incompatible types");
+         LANGULUS_ASSERT(
+            !IsTypeConstrained() || CastsToMeta(other->GetType()),
+            Assign, "Incompatible types on assignment (deep)",
+            " of ", other->GetType(), " to ", mType
+         );
 
          Free();
          new (this) Any {other.Forward()};
@@ -228,8 +231,11 @@ namespace Langulus::Anyness
          // Assign a non-deep value                                     
          const auto meta = MetaData::Of<T>();
 
-         LANGULUS_ASSERT(!IsTypeConstrained() || CastsToMeta(meta),
-            Assign, "Incompatible types");
+         LANGULUS_ASSERT(
+            !IsTypeConstrained() || CastsToMeta(meta),
+            Assign, "Incompatible types on assignment (flat)",
+            " of ", meta, " to ", mType
+         );
 
          if (GetUses() != 1 || mType->mIsSparse != CT::Sparse<T>) {
             // Reset and allocate fresh memory                          
