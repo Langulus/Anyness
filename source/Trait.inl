@@ -221,14 +221,14 @@ namespace Langulus::Anyness
       return CastsToMeta(mTraitType->mDataType);
    }
 
-   /// Check if a trait matches a static definition                           
-   ///   @tparam T - the trait                                                
-   ///   @return true if this trait is of the given type                      
-   template<CT::Data T>
+   /// Check if a trait matches one of a set of trait types                   
+   ///   @tparam T... - the trait list                                        
+   ///   @return true if this trait is one of the given types                 
+   template<CT::Data... T>
    LANGULUS(INLINED)
    bool Trait::TraitIs() const {
-      static_assert(CT::Trait<T>, "TRAIT must be a trait definition");
-      return TraitIs(T::GetTrait());
+      static_assert(CT::Trait<T...>, "Ts must be trait definitions");
+      return (TraitIs(T::GetTrait()) || ...);
    }
 
    /// Compare traits                                                         

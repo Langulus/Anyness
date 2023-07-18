@@ -77,7 +77,7 @@ namespace Langulus::Anyness
       void SetTrait() noexcept;
       constexpr void SetTrait(TMeta) noexcept;
 
-      template<CT::Data T>
+      template<CT::Data... T>
       NOD() bool TraitIs() const;
       NOD() bool TraitIs(TMeta) const;
 
