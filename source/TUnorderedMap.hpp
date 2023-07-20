@@ -108,7 +108,7 @@ namespace Langulus::Anyness
       NOD() bool ContainsKey(const K&) const;
       NOD() bool ContainsValue(const V&) const;
       NOD() bool ContainsPair(const Pair&) const;
-      NOD() Index FindKeyIndex(const K&) const;
+      NOD() Index Find(const K&) const;
 
       NOD() decltype(auto) At(const K&);
       NOD() decltype(auto) At(const K&) const;

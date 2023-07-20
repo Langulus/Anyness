@@ -463,7 +463,7 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    TABLE()& TABLE()::operator += (const TABLE()& rhs) {
       for (auto pair : rhs) {
-         auto found = FindKeyIndex(pair.mKey);
+         auto found = Find(pair.mKey);
          if (found) {
             if constexpr (requires (V& lhs) { lhs += rhs; })
                GetValue(found) += pair.mValue;
@@ -1109,7 +1109,7 @@ namespace Langulus::Anyness
    ///   @param key - the key to search for                                   
    ///   @return the index if key was found, or IndexNone if not              
    TABLE_TEMPLATE() LANGULUS(INLINED)
-   Index TABLE()::FindKeyIndex(const K& key) const {
+   Index TABLE()::Find(const K& key) const {
       const auto offset = FindIndex(key);
       return offset != GetReserved() ? Index {offset} : IndexNone;
    }

@@ -95,7 +95,7 @@ namespace Langulus::Anyness
    ///   @return the index if key was found, or IndexNone if not              
    template<CT::NotSemantic K>
    LANGULUS(INLINED)
-   Index BlockMap::FindKeyIndex(const K& key) const {
+   Index BlockMap::Find(const K& key) const {
       const auto offset = FindIndex(key);
       return offset != GetReserved() ? Index {offset} : IndexNone;
    }

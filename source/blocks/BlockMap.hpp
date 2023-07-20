@@ -247,7 +247,7 @@ namespace Langulus::Anyness
       template<CT::NotSemantic K, CT::NotSemantic V>
       NOD() bool ContainsPair(const TPair<K, V>&) const;
       template<CT::NotSemantic K>
-      NOD() Index FindKeyIndex(const K&) const;
+      NOD() Index Find(const K&) const;
 
    protected:
       template<class THIS = BlockMap, CT::NotSemantic K>
