@@ -17,6 +17,12 @@ namespace Langulus::Anyness
    struct Path : Text {
       LANGULUS_BASES(Text);
 
+      #ifdef _WIN32
+         static constexpr char Separator = '\\';
+      #else
+         static constexpr char Separator = '/';
+      #endif
+
       using Text::Text;
 
       Path(const Text&);
@@ -31,5 +37,12 @@ namespace Langulus::Anyness
    };
 
 } // namespace Langulus::Anyness
+
+namespace Langulus
+{
+
+   Anyness::Path operator "" _path(const char*, ::std::size_t);
+
+} // namespace Langulus
 
 #include "Path.inl"

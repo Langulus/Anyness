@@ -38,7 +38,7 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Path Path::GetDirectory() const {
       Offset offset {};
-      if (Text::FindOffsetReverse(Text {'/'}, offset))
+      if (Text::FindOffsetReverse(Text {Separator}, offset))
          return Text::Crop(0, offset + 1);
       return {};
    }
@@ -48,7 +48,7 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Path Path::GetFilename() const {
       Offset offset {};
-      if (Text::FindOffsetReverse(Text {'/'}, offset))
+      if (Text::FindOffsetReverse(Text {Separator}, offset))
          return Text::Crop(offset + 1, mCount - offset - 1);
       return *this;
    }
@@ -57,17 +57,17 @@ namespace Langulus::Anyness
    ///   @param rhs - the text to append                                      
    ///   @return the combined directory name                                  
    inline Path Path::operator / (const Text& rhs) const {
-      if (last() == '/') {
-         if (rhs.last() == '/')
+      if (last() == Separator) {
+         if (rhs.last() == Separator)
             return *this + rhs.Crop(1, rhs.GetCount() - 1);
          else
             return *this + rhs;
       }
       else {
-         if (rhs.last() == '/')
+         if (rhs.last() == Separator)
             return *this + rhs;
          else {
-            auto temp = *this + Text {'/'};
+            auto temp = *this + Text {Separator};
             temp += rhs;
             return Path {Abandon(temp)};
          }
@@ -78,17 +78,17 @@ namespace Langulus::Anyness
    ///   @param rhs - the text to append                                      
    ///   @return the combined directory name                                  
    inline Path& Path::operator /= (const Text& rhs) {
-      if (last() == '/') {
-         if (rhs.last() == '/')
+      if (last() == Separator) {
+         if (rhs.last() == Separator)
             *this += rhs.Crop(1, rhs.GetCount() - 1);
          else
             *this += rhs;
       }
       else {
-         if (rhs.last() == '/')
+         if (rhs.last() == Separator)
             *this += rhs;
          else {
-            *this += Text {'/'};
+            *this += Text {Separator};
             *this += rhs;
          }
       }
