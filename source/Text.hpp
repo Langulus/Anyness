@@ -131,6 +131,7 @@ namespace Langulus::Anyness
    /// differentiation is quite handy                                         
    struct Debug : Text {
       LANGULUS_BASES(Text);
+      LANGULUS(FILES) "";
 
       using Text::Text;
 

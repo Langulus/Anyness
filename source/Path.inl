@@ -29,7 +29,7 @@ namespace Langulus::Anyness
    Text Path::GetExtension() const {
       Offset offset {};
       if (Text::FindOffsetReverse(Text {'.'}, offset))
-         return Text::Crop(offset + 1, mCount - offset - 1).Lowercase();
+         return Text::Crop(mCount - offset, offset);
       return {};
    }
 
