@@ -28,6 +28,12 @@ struct StringifiableConst {
    }
 };
 
+template<class L, class R>
+struct TypePair {
+   using LHS = L;
+   using RHS = R;
+};
+
 /// See https://github.com/catchorg/Catch2/blob/devel/docs/tostring.md        
 CATCH_TRANSLATE_EXCEPTION(::Langulus::Exception const& ex) {
    const Text serialized {ex};
@@ -586,37 +592,47 @@ TEMPLATE_TEST_CASE("Reflected coverters to text", "[text]", Stringifiable, Strin
    }
 }
 
-SCENARIO("Text container interoperability", "[text]") {
-   GIVEN("Text container") {
-      WHEN("Constructed using Debug container") {
-         Text text {Debug{"one"}};
+TEMPLATE_TEST_CASE("Text container interoperability", "[text]",
+   (TypePair<Text, Debug>),
+   (TypePair<Debug, Text>),
+   (TypePair<Path, Text>),
+   (TypePair<Text, Path>),
+   (TypePair<Debug, Path>),
+   (TypePair<Path, Debug>)
+) {
+   using LHS = typename TestType::LHS;
+   using RHS = typename TestType::RHS;
+
+   GIVEN("Two types of text containers") {
+      WHEN("Constructed") {
+         LHS text {RHS{"one"}};
 
          THEN("Should be identical") {
             REQUIRE(text == "one");
          }
       }
 
-      WHEN("Assigned using Debug container") {
-         Text text {"one"};
-         text = Debug {"two"};
+      WHEN("Assigned") {
+         LHS text {"one"};
+         text = RHS {"two"};
 
          THEN("Should be identical") {
             REQUIRE(text == "two");
          }
       }
 
-      WHEN("Concatenated (destructively) using Debug container") {
-         Text text {"one"};
-         text += Debug {"two"};
+      WHEN("Concatenated (destructively)") {
+         LHS text {"one"};
+         text += RHS {"two"};
 
          THEN("Should be concatenated") {
             REQUIRE(text == "onetwo");
          }
       }
 
-      WHEN("Concatenated using Debug container") {
-         Text text {"one"};
-         Text text2 = text + Debug {"two"};
+      WHEN("Concatenated") {
+         LHS text {"one"};
+         LHS text2 = text + RHS {"two"};
 
          THEN("Should be concatenated") {
             REQUIRE(text == "one");
@@ -624,79 +640,57 @@ SCENARIO("Text container interoperability", "[text]") {
          }
       }
    }
+}
 
-   GIVEN("Debug container") {
-      WHEN("Constructed using Text container") {
-         Debug text {Text{"one"}};
-
-         THEN("Should be identical") {
-            REQUIRE(text == "one");
-         }
-      }
-
-      WHEN("Assigned using Text container") {
-         Debug text {"one"};
-         text = Text {"two"};
+TEMPLATE_TEST_CASE("Containing literals", "[text]",
+   Any
+) {
+   GIVEN("Two types of text containers") {
+      WHEN("Constructed") {
+         TestType text {"one"};
 
          THEN("Should be identical") {
-            REQUIRE(text == "two");
+            REQUIRE(text.GetCount() == 1);
+            REQUIRE(text.template IsExact<Text>());
+            REQUIRE(text.template As<Text>() == "one");
          }
       }
 
-      WHEN("Concatenated (destructively) using Text container") {
-         Debug text {"one"};
-         text += Text {"two"};
-
-         THEN("Should be concatenated") {
-            REQUIRE(text == "onetwo");
-         }
-      }
-
-      WHEN("Concatenated using Text container") {
-         Debug text {"one"};
-         Debug text2 = text + Text {"two"};
-
-         THEN("Should be concatenated") {
-            REQUIRE(text == "one");
-            REQUIRE(text2 == "onetwo");
-         }
-      }
-   }
-
-   GIVEN("Path container") {
-      WHEN("Constructed using Text container") {
-         Path text {Text{"one"}};
+      WHEN("Assigned") {
+         TestType text {"one"};
+         text = "two";
 
          THEN("Should be identical") {
-            REQUIRE(text == "one");
+            REQUIRE(text.GetCount() == 1);
+            REQUIRE(text.template IsExact<Text>());
+            REQUIRE(text.template As<Text>() == "two");
          }
       }
 
-      WHEN("Assigned using Text container") {
-         Path text {"one"};
-         text = Text {"two"};
-
-         THEN("Should be identical") {
-            REQUIRE(text == "two");
-         }
-      }
-
-      WHEN("Concatenated (destructively) using Text container") {
-         Path text {"one"};
-         text += Text {"two"};
+      WHEN("Concatenated (destructively)") {
+         TestType text {"one"};
+         text += TestType {"two"};
 
          THEN("Should be concatenated") {
-            REQUIRE(text == "onetwo");
+            REQUIRE(text.GetCount() == 2);
+            REQUIRE(text.template IsExact<Text>());
+            REQUIRE(text.template As<Text>(0) == "one");
+            REQUIRE(text.template As<Text>(1) == "two");
          }
       }
 
-      WHEN("Concatenated using Text container") {
-         Path text {"one"};
-         Path text2 = text + Text {"two"};
+      WHEN("Concatenated") {
+         TestType text {"one"};
+         TestType text2 = text + TestType {"two"};
 
          THEN("Should be concatenated") {
-            REQUIRE(text == "one");
-            REQUIRE(text2 == "onetwo");
+            REQUIRE(text.GetCount() == 1);
+            REQUIRE(text2.GetCount() == 2);
+            REQUIRE(text.template IsExact<Text>());
+            REQUIRE(text2.template IsExact<Text>());
+            REQUIRE(text.template As<Text>() == "one");
+            REQUIRE(text2.template As<Text>(0) == "one");
+            REQUIRE(text2.template As<Text>(1) == "two");
          }
       }
    }
