@@ -246,6 +246,13 @@ namespace Langulus::Anyness
       return mValues.GetUses();
    }
    
+   /// Explicit bool cast operator, for use in if statements                  
+   ///   @return true if block contains at least one valid element            
+   LANGULUS(INLINED)
+   constexpr BlockMap::operator bool() const noexcept {
+      return !IsEmpty();
+   }
+
 #ifdef LANGULUS_ENABLE_DEBUGGING
    inline void BlockMap::Dump() const {
       Logger::Info("---------------- BlockMap::Dump start ----------------");

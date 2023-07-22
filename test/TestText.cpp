@@ -8,6 +8,7 @@
 #include "Main.hpp"
 #include <Anyness/Text.hpp>
 #include <Anyness/Path.hpp>
+#include <Anyness/Trait.hpp>
 #include <catch2/catch.hpp>
 
 /// A type that is reflected, as convertible to Debug                         
@@ -70,7 +71,7 @@ TEMPLATE_TEST_CASE("Testing text containers", "[text]", Text, Debug, Path) {
             REQUIRE(text.IsInvalid());
             REQUIRE(text.IsDense());
             REQUIRE(text.IsDefaultable());
-            REQUIRE(text.IsEmpty());
+            REQUIRE(!text);
             REQUIRE(text.GetCount() == 0);
             REQUIRE(text.GetReserved() == 0);
             REQUIRE(text.GetUses() == 0);
@@ -103,7 +104,7 @@ TEMPLATE_TEST_CASE("Testing text containers", "[text]", Text, Debug, Path) {
             REQUIRE(text.IsInvalid());
             REQUIRE(text.IsDense());
             REQUIRE(text.IsDefaultable());
-            REQUIRE(text.IsEmpty());
+            REQUIRE(!text);
             REQUIRE(text.IsAllocated());
             REQUIRE(text.GetCount() == 0);
             REQUIRE(text.GetReserved() >= 500);
@@ -140,7 +141,7 @@ TEMPLATE_TEST_CASE("Testing text containers", "[text]", Text, Debug, Path) {
             REQUIRE(text.IsInvalid());
             REQUIRE(text.IsDense());
             REQUIRE(text.IsDefaultable());
-            REQUIRE(text.IsEmpty());
+            REQUIRE(!text);
             REQUIRE(text.GetCount() == 0);
             REQUIRE(text.GetReserved() == 0);
             REQUIRE(text.GetUses() == 0);
@@ -176,7 +177,7 @@ TEMPLATE_TEST_CASE("Testing text containers", "[text]", Text, Debug, Path) {
             REQUIRE(text.IsInvalid());
             REQUIRE(text.IsDense());
             REQUIRE(text.IsDefaultable());
-            REQUIRE(text.IsEmpty());
+            REQUIRE(!text);
             REQUIRE(text.GetCount() == 0);
             REQUIRE(text.GetReserved() == 0);
             REQUIRE(text.GetUses() == 0);
@@ -643,7 +644,7 @@ TEMPLATE_TEST_CASE("Text container interoperability", "[text]",
 }
 
 TEMPLATE_TEST_CASE("Containing literals", "[text]",
-   Any
+   Any, Trait
 ) {
    GIVEN("Two types of text containers") {
       WHEN("Constructed") {

@@ -139,7 +139,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
          REQUIRE(pack.IsNow());
          REQUIRE(pack.IsInvalid());
          REQUIRE(pack.GetRaw() == nullptr);
-         REQUIRE(pack.IsEmpty());
+         REQUIRE(!pack);
 
          if constexpr (CT::Typed<T>) {
             REQUIRE_FALSE(pack.IsUntyped());
@@ -161,7 +161,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
          REQUIRE(pack.IsTypeConstrained() == CT::Typed<T>);
          REQUIRE(pack.GetRaw() == nullptr);
-         REQUIRE(pack.IsEmpty());
+         REQUIRE(!pack);
          REQUIRE_FALSE(pack.IsAllocated());
          REQUIRE(pack.GetUses() == 0);
       }
@@ -213,7 +213,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                REQUIRE_FALSE(pack.IsStatic());
                REQUIRE_FALSE(pack.IsConstant());
                REQUIRE(pack.IsDeep() == CT::Deep<Decay<E>>);
-               REQUIRE_FALSE(pack.IsEmpty());
+               REQUIRE_FALSE(!pack);
             }
             else if constexpr (CT::Same<E, T>) {
                REQUIRE(pack.GetRaw() == element.GetRaw());
@@ -225,7 +225,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                REQUIRE(pack.IsConstant() == element.IsConstant());
                REQUIRE(pack.IsStatic() == element.IsStatic());
                REQUIRE(pack.HasAuthority() == element.HasAuthority());
-               REQUIRE_FALSE(pack.IsEmpty());
+               REQUIRE_FALSE(!pack);
             }
 
             if constexpr (CT::Sparse<E>) {
@@ -275,7 +275,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
          THEN("Properties should match") {
             if constexpr (!CT::Deep<E> && CT::Block<E>) {
-               REQUIRE(movable.IsEmpty());
+               REQUIRE(!movable);
                REQUIRE_FALSE(movable.IsAllocated());
                REQUIRE(movable != element);
             }
@@ -293,7 +293,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                REQUIRE_FALSE(pack.IsStatic());
                REQUIRE_FALSE(pack.IsConstant());
                REQUIRE(pack.IsDeep() == CT::Deep<Decay<E>>);
-               REQUIRE_FALSE(pack.IsEmpty());
+               REQUIRE_FALSE(!pack);
                REQUIRE(pack.GetType() != nullptr);
                REQUIRE(pack.GetRaw() != nullptr);
             }
@@ -306,7 +306,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                REQUIRE(pack.IsConstant() == element.IsConstant());
                REQUIRE(pack.IsStatic() == element.IsStatic());
                REQUIRE(pack.HasAuthority() == element.HasAuthority());
-               REQUIRE_FALSE(pack.IsEmpty());
+               REQUIRE_FALSE(!pack);
                REQUIRE(pack.GetType() != nullptr);
                REQUIRE(pack.GetRaw() != nullptr);
             }
@@ -370,7 +370,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                REQUIRE(pack.HasAuthority());
                REQUIRE(pack.IsConstant() == CT::Constant<E>);
                REQUIRE(pack.IsDeep() == CT::Deep<Decay<E>>);
-               REQUIRE_FALSE(pack.IsEmpty());
+               REQUIRE_FALSE(!pack);
             }
             else if constexpr (CT::Same<E, T>) {
                REQUIRE(pack.GetType() == element.GetType());
@@ -382,7 +382,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                REQUIRE_FALSE(pack.HasAuthority());
                REQUIRE(pack.IsDeep() == element.IsDeep());
                REQUIRE(pack.IsConstant() == element.IsConstant());
-               REQUIRE_FALSE(pack.IsEmpty());
+               REQUIRE_FALSE(!pack);
             }
 
             if constexpr (CT::Sparse<E>) {
@@ -432,7 +432,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
          THEN("Properties should match") {
             if constexpr (!CT::Deep<E> && CT::Block<E>) {
-               REQUIRE_FALSE(movable.IsEmpty());
+               REQUIRE_FALSE(!movable);
                REQUIRE(movable.IsAllocated());
                REQUIRE(movable.IsStatic());
             }
@@ -450,7 +450,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                REQUIRE_FALSE(pack.IsStatic());
                REQUIRE(pack.IsConstant() == CT::Constant<E>);
                REQUIRE(pack.IsDeep() == CT::Deep<Decay<E>>);
-               REQUIRE_FALSE(pack.IsEmpty());
+               REQUIRE_FALSE(!pack);
                REQUIRE(pack.GetType() != nullptr);
                REQUIRE(pack.GetRaw() != nullptr);
             }
@@ -463,7 +463,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                REQUIRE(pack.IsConstant() == element.IsConstant());
                REQUIRE(pack.IsStatic() == element.IsStatic());
                REQUIRE(pack.HasAuthority() == element.HasAuthority());
-               REQUIRE_FALSE(pack.IsEmpty());
+               REQUIRE_FALSE(!pack);
                REQUIRE(pack.GetType() != nullptr);
                REQUIRE(pack.GetRaw() != nullptr);
             }
@@ -525,7 +525,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
             REQUIRE(pack.IsTypeConstrained() == CT::Typed<T>);
             REQUIRE(pack.GetRaw() == nullptr);
-            REQUIRE(pack.IsEmpty());
+            REQUIRE(!pack);
             REQUIRE(pack.GetUses() == 0);
             REQUIRE(pack.IsDeep() == (CT::Typed<T> && CT::Deep<Decay<E>>));
             REQUIRE_FALSE(pack.IsAllocated());
@@ -941,7 +941,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
          THEN("Nothing changes") {
             REQUIRE(removed9 == 0);
-            REQUIRE(pack.IsEmpty());
+            REQUIRE(!pack);
          }
       }    
 
@@ -963,7 +963,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
          pack.Clear();
 
          THEN("Nothing changes") {
-            REQUIRE(pack.IsEmpty());
+            REQUIRE(!pack);
          }
       }
 
@@ -971,7 +971,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
          pack.Reset();
 
          THEN("Nothing changes") {
-            REQUIRE(pack.IsEmpty());
+            REQUIRE(!pack);
          }
       }
 
@@ -1338,7 +1338,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
             REQUIRE(pack.GetRaw() != nullptr);
             REQUIRE_THROWS(pack.template As<float>() == 0.0f);
-            REQUIRE_FALSE(pack.IsEmpty());
+            REQUIRE_FALSE(!pack);
             REQUIRE(pack.IsDense() == CT::Dense<E>);
             REQUIRE(pack.IsSparse() == CT::Sparse<E>);
             REQUIRE_FALSE(pack.IsStatic());
@@ -1404,7 +1404,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
             REQUIRE_THROWS(pack.template As<float>() == 0.0f);
             REQUIRE_THROWS(pack.template As<float*>() == nullptr);
-            REQUIRE_FALSE(pack.IsEmpty());
+            REQUIRE_FALSE(!pack);
             REQUIRE(pack.IsDense() == CT::Dense<E>);
             REQUIRE(pack.IsSparse() == CT::Sparse<E>);
             REQUIRE_FALSE(pack.IsStatic());
@@ -1476,7 +1476,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
                REQUIRE_THROWS(pack.template As<float>() == 0.0f);
                REQUIRE_THROWS(pack.template As<float*>() == nullptr);
-               REQUIRE_FALSE(pack.IsEmpty());
+               REQUIRE_FALSE(!pack);
                REQUIRE(pack.IsDense() == CT::Dense<E>);
                REQUIRE(pack.IsSparse() == CT::Sparse<E>);
             }
@@ -1514,7 +1514,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
             THEN("Properties should match") {
                if constexpr (CT::Deep<E> && CT::Dense<E>) {
-                  REQUIRE(movable.IsEmpty());
+                  REQUIRE(!movable);
                   REQUIRE_FALSE(movable.IsAllocated());
                   REQUIRE(movable != element);
                }
@@ -1552,7 +1552,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
                REQUIRE_THROWS(pack.template As<float>() == 0.0f);
                REQUIRE_THROWS(pack.template As<float*>() == nullptr);
-               REQUIRE_FALSE(pack.IsEmpty());
+               REQUIRE_FALSE(!pack);
                REQUIRE(pack.IsDense() == CT::Dense<E>);
                REQUIRE(pack.IsSparse() == CT::Sparse<E>);
             }
@@ -1622,7 +1622,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
                REQUIRE_THROWS(pack.template As<float>() == 0.0f);
                REQUIRE_THROWS(pack.template As<float*>() == nullptr);
-               REQUIRE_FALSE(pack.IsEmpty());
+               REQUIRE_FALSE(!pack);
                REQUIRE(pack.IsDense() == CT::Dense<E>);
                REQUIRE(pack.IsSparse() == CT::Sparse<E>);
             }
@@ -1660,7 +1660,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
             THEN("Properties should match") {
                if constexpr (CT::Deep<E> && CT::Dense<E>) {
-                  REQUIRE_FALSE(movable.IsEmpty());
+                  REQUIRE_FALSE(!movable);
                   REQUIRE(movable.IsAllocated());
                   REQUIRE(movable.IsStatic());
                }
@@ -1698,7 +1698,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
                REQUIRE_THROWS(pack.template As<float>() == 0.0f);
                REQUIRE_THROWS(pack.template As<float*>() == nullptr);
-               REQUIRE_FALSE(pack.IsEmpty());
+               REQUIRE_FALSE(!pack);
                REQUIRE(pack.IsDense() == CT::Dense<E>);
                REQUIRE(pack.IsSparse() == CT::Sparse<E>);
             }
@@ -1740,7 +1740,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                REQUIRE(pack.IsTypeConstrained() == CT::Typed<T>);
                REQUIRE(pack.GetRaw() == nullptr);
                REQUIRE_FALSE(pack.IsAllocated());
-               REQUIRE(pack.IsEmpty());
+               REQUIRE(!pack);
                REQUIRE(pack.GetUses() == 0);
             }
 
@@ -1789,7 +1789,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                REQUIRE(pack.IsDense() == CT::Dense<E>);
                REQUIRE(pack.IsSparse() == CT::Sparse<E>);
                REQUIRE(pack.GetRaw() != nullptr);
-               REQUIRE_FALSE(pack.IsEmpty());
+               REQUIRE_FALSE(!pack);
                REQUIRE(pack.GetUses() == (CT::Deep<E> && CT::Same<T, E> ? 2 : 1));
                REQUIRE(pack.IsDeep() == (CT::Deep<Decay<E>> && (CT::Sparse<E> || !CT::Same<T, E>)));
                REQUIRE(pack.IsAllocated());
@@ -1835,7 +1835,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
          THEN("Properties should match") {
             if constexpr (CT::Deep<E> && CT::Dense<E>) {
-               REQUIRE(movable.IsEmpty());
+               REQUIRE(!movable);
                REQUIRE_FALSE(movable.IsAllocated());
                REQUIRE(movable != element);
             }
@@ -1891,7 +1891,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
             REQUIRE_THROWS(pack.template As<float>() == 0.0f);
             REQUIRE_THROWS(pack.template As<float*>() == nullptr);
-            REQUIRE_FALSE(pack.IsEmpty());
+            REQUIRE_FALSE(!pack);
             REQUIRE(pack.IsDense() == CT::Dense<E>);
             REQUIRE(pack.IsSparse() == CT::Sparse<E>);
          }
@@ -1982,7 +1982,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
             REQUIRE_THROWS(pack.template As<float>() == 0.0f);
             REQUIRE_THROWS(pack.template As<float*>() == nullptr);
-            REQUIRE_FALSE(pack.IsEmpty());
+            REQUIRE_FALSE(!pack);
             REQUIRE(pack.IsDense() == CT::Dense<E>);
             REQUIRE(pack.IsSparse() == CT::Sparse<E>);
          }
@@ -2026,7 +2026,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
          THEN("Properties should match") {
             if constexpr (CT::Deep<E> && CT::Dense<E>) {
-               REQUIRE_FALSE(movable.IsEmpty());
+               REQUIRE_FALSE(!movable);
                REQUIRE(movable.IsAllocated());
                REQUIRE(movable.IsStatic());
             }
@@ -2082,7 +2082,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
             REQUIRE_THROWS(pack.template As<float>() == 0.0f);
             REQUIRE_THROWS(pack.template As<float*>() == nullptr);
-            REQUIRE_FALSE(pack.IsEmpty());
+            REQUIRE_FALSE(!pack);
             REQUIRE(pack.IsDense() == CT::Dense<E>);
             REQUIRE(pack.IsSparse() == CT::Sparse<E>);
          }

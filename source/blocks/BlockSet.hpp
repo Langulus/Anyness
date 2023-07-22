@@ -78,6 +78,8 @@ namespace Langulus::Anyness
       NOD() constexpr bool HasAuthority() const noexcept;
       NOD() constexpr Count GetUses() const noexcept;
 
+      NOD() constexpr explicit operator bool() const noexcept;
+
       DEBUGGERY(void Dump() const);
 
    protected:

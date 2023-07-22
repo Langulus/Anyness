@@ -133,23 +133,15 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Concatenation                                                     
       ///                                                                     
-      template<CT::Deep T>
-      NOD() Any operator + (const T&) const requires CT::Dense<T>;
-      template<CT::Deep T>
-      NOD() Any operator + (T&) const requires CT::Dense<T>;
-      template<CT::Deep T>
-      NOD() Any operator + (T&&) const requires CT::Dense<T>;
-      template<CT::Semantic S>
-      NOD() Any operator + (S&&) const requires (CT::Deep<TypeOf<S>> && CT::Dense<TypeOf<S>>);
+      NOD() Any operator + (const CT::Deep auto&) const;
+      NOD() Any operator + (CT::Deep auto&) const;
+      NOD() Any operator + (CT::Deep auto&&) const;
+      NOD() Any operator + (CT::Semantic auto&&) const;
 
-      template<CT::Deep T>
-      Any& operator += (const T&) requires CT::Dense<T>;
-      template<CT::Deep T>
-      Any& operator += (T&) requires CT::Dense<T>;
-      template<CT::Deep T>
-      Any& operator += (T&&) requires CT::Dense<T>;
-      template<CT::Semantic S>
-      Any& operator += (S&&) requires (CT::Deep<TypeOf<S>>&& CT::Dense<TypeOf<S>>);
+      Any& operator += (const CT::Deep auto&);
+      Any& operator += (CT::Deep auto&);
+      Any& operator += (CT::Deep auto&&);
+      Any& operator += (CT::Semantic auto&&);
 
       ///                                                                     
       ///   Iteration                                                         

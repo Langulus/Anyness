@@ -172,6 +172,13 @@ namespace Langulus::Anyness
       return mKeys.mEntry;
    }
 #endif
+      
+   /// Explicit bool cast operator, for use in if statements                  
+   ///   @return true if block contains at least one valid element            
+   LANGULUS(INLINED)
+   constexpr BlockSet::operator bool() const noexcept {
+      return !IsEmpty();
+   }
 
 #ifdef LANGULUS_ENABLE_DEBUGGING
    inline void BlockSet::Dump() const {

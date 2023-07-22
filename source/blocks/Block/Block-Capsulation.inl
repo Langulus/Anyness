@@ -35,6 +35,13 @@ namespace Langulus::Anyness
       mState -= state - DataState::Constrained;
    }
 
+   /// Explicit bool cast operator, for use in if statements                  
+   ///   @return true if block contains at least one valid element            
+   LANGULUS(INLINED)
+   constexpr Block::operator bool() const noexcept {
+      return !IsEmpty();
+   }
+
    /// Check if a pointer is anywhere inside the block's reserved memory      
    ///   @attention doesn't check deep or sparse data regions                 
    ///   @param ptr - the pointer to check                                    

@@ -112,7 +112,7 @@ SCENARIO("Deep containers", "[any]") {
          pack.RemoveIndex(0);
 
          THEN("The entire container is cleared, but memory remains in use") {
-            REQUIRE(pack.IsEmpty());
+            REQUIRE(!pack);
             REQUIRE(pack.GetReserved() > 0);
             REQUIRE(pack.Is<Any>());
             REQUIRE(pack.IsTypeConstrained());

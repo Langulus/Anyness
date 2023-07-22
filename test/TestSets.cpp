@@ -140,7 +140,7 @@ TEMPLATE_TEST_CASE(
             }
 
             REQUIRE(set.IsTypeConstrained() == CT::Typed<T>);
-            REQUIRE(set.IsEmpty());
+            REQUIRE(!set);
             REQUIRE(set.GetUses() == 0);
             REQUIRE_FALSE(set.IsAllocated());
             REQUIRE_FALSE(set.HasAuthority());
@@ -632,7 +632,7 @@ TEMPLATE_TEST_CASE(
             REQUIRE(set.GetType()->template Is<K>());
             REQUIRE(set.template Is<K>());
             REQUIRE(set.IsTypeConstrained() == CT::Typed<T>);
-            REQUIRE(set.IsEmpty());
+            REQUIRE(!set);
             REQUIRE(set.GetRawMemory() == memory);
             REQUIRE(set.HasAuthority());
             REQUIRE(set.GetUses() == 1);
@@ -652,7 +652,7 @@ TEMPLATE_TEST_CASE(
                REQUIRE(set.GetType()->template Is<K>());
             }
             REQUIRE(set.IsTypeConstrained() == CT::Typed<T>);
-            REQUIRE(set.IsEmpty());
+            REQUIRE(!set);
             REQUIRE(set.GetRawMemory() != memory);
             REQUIRE(set.GetUses() == 0);
          }
@@ -710,7 +710,7 @@ TEMPLATE_TEST_CASE(
             REQUIRE(moved.HasAuthority());
             REQUIRE(moved.GetUses() == 2);
             REQUIRE_FALSE(movable.IsAllocated());
-            REQUIRE(movable.IsEmpty());
+            REQUIRE(!movable);
             REQUIRE(movable.GetRawMemory() == nullptr);
             REQUIRE(movable.GetCount() == 0);
             REQUIRE(movable.IsTypeConstrained() == CT::Typed<T>);

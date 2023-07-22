@@ -240,38 +240,136 @@ namespace Langulus::Anyness
       return operator = (Move(rhs));
    }
 
-   template<CT::NotSemantic T>
    LANGULUS(INLINED)
-   Trait& Trait::operator = (const T& rhs) {
+   Trait& Trait::operator = (const CT::NotSemantic auto& rhs) {
       return operator = (Copy(rhs));
    }
 
-   template<CT::NotSemantic T>
    LANGULUS(INLINED)
-   Trait& Trait::operator = (T& rhs) {
+   Trait& Trait::operator = (CT::NotSemantic auto& rhs) {
       return operator = (Copy(rhs));
    }
 
-   template<CT::NotSemantic T>
    LANGULUS(INLINED)
-   Trait& Trait::operator = (T&& rhs) {
+   Trait& Trait::operator = (CT::NotSemantic auto&& rhs) {
       return operator = (Move(rhs));
    }
 
-   template<CT::Semantic S>
    LANGULUS(INLINED)
-   Trait& Trait::operator = (S&& rhs) {
-      if constexpr (CT::Deep<TypeOf<S>>) {
+   Trait& Trait::operator = (CT::Semantic auto&& rhs) {
+      using S = Decay<decltype(rhs)>;
+
+      if constexpr (CT::Deep<TypeOf<S>>)
          Any::operator = (rhs.template Forward<Any>());
-      }
       else if constexpr (CT::TraitBased<TypeOf<S>>) {
          Any::operator = (rhs.template Forward<Any>());
          mTraitType = rhs->GetTrait();
       }
       else Any::operator = (rhs.Forward());
-
       return *this;
    }
+   
+   /// Copy-concatenate with any other trait                                  
+   ///   @param rhs - the right operand                                       
+   ///   @return the combined container                                       
+   LANGULUS(INLINED)
+   Trait Trait::operator + (const Trait& rhs) const {
+      auto result = Any::operator + (static_cast<const Block&>(rhs));
+      return Trait::From(
+         GetTrait() ? GetTrait() : rhs.GetTrait(),
+         Abandon(result)
+      );
+   }
+   
+   /// Move-concatenate with any other trait                                  
+   ///   @param rhs - the right operand                                       
+   ///   @return the combined container                                       
+   LANGULUS(INLINED)
+   Trait Trait::operator + (Trait&& rhs) const {
+      auto result = Any::operator + (Forward<Block>(rhs));
+      return Trait::From(
+         GetTrait() ? GetTrait() : rhs.GetTrait(),
+         Abandon(result)
+      );
+   }
+   
+   /// Copy-concatenate with any deep type                                    
+   ///   @param rhs - the right operand                                       
+   ///   @return the combined container                                       
+   LANGULUS(INLINED)
+   Trait Trait::operator + (const CT::Deep auto& rhs) const {
+      return operator + (Copy(rhs));
+   }
+
+   LANGULUS(INLINED)
+   Trait Trait::operator + (CT::Deep auto& rhs) const {
+      return operator + (Copy(rhs));
+   }
+
+   /// Move-concatenate with any deep type                                    
+   ///   @param rhs - the right operand                                       
+   ///   @return the combined container                                       
+   LANGULUS(INLINED)
+   Trait Trait::operator + (CT::Deep auto&& rhs) const {
+      return operator + (Move(rhs));
+   }
+
+   /// Semantically concatenate with any deep type                            
+   ///   @param rhs - the right operand                                       
+   ///   @return the combined container                                       
+   LANGULUS(INLINED)
+   Trait Trait::operator + (CT::Semantic auto&& rhs) const {
+      auto result = Any::operator + (rhs.template Forward<Block>());
+      return Trait::From(GetTrait(), Abandon(result));
+   }
+
+   /// Destructive copy-concatenate with any trait                            
+   ///   @param rhs - the right operand                                       
+   ///   @return a reference to this modified container                       
+   LANGULUS(INLINED)
+   Trait& Trait::operator += (const Trait& rhs) {
+      return operator += (Copy(static_cast<const Block&>(rhs)));
+   }
+   
+   /// Destructive copy-concatenate with any trait                            
+   ///   @param rhs - the right operand                                       
+   ///   @return a reference to this modified container                       
+   LANGULUS(INLINED)
+   Trait& Trait::operator += (Trait&& rhs) {
+      return operator += (Forward<Block>(rhs));
+   }
+   
+   /// Destructive copy-concatenate with any deep type                        
+   ///   @param rhs - the right operand                                       
+   ///   @return a reference to this modified container                       
+   LANGULUS(INLINED)
+   Trait& Trait::operator += (const CT::Deep auto& rhs) {
+      return operator += (Copy(rhs));
+   }
+
+   LANGULUS(INLINED)
+   Trait& Trait::operator += (CT::Deep auto& rhs) {
+      return operator += (Copy(rhs));
+   }
+
+   /// Destructive move-concatenate with any deep type                        
+   ///   @param rhs - the right operand                                       
+   ///   @return a reference to this modified container                       
+   LANGULUS(INLINED)
+   Trait& Trait::operator += (CT::Deep auto&& rhs) {
+      return operator += (Move(rhs));
+   }
+
+   /// Destructive semantically concatenate with any deep type                
+   ///   @param rhs - the right operand                                       
+   ///   @return a reference to this modified container                       
+   LANGULUS(INLINED)
+   Trait& Trait::operator += (CT::Semantic auto&& rhs) {
+      Any::operator += (rhs.template Forward<Block>());
+      return *this;
+   }
+
+
 
 
    ///                                                                        

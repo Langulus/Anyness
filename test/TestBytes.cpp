@@ -16,7 +16,6 @@ CATCH_TRANSLATE_EXCEPTION(::Langulus::Exception const& ex) {
 }
 
 SCENARIO("Byte manipulation", "[bytes]") {
-
    GIVEN("An empty byte container") {
       Bytes data;
 
@@ -26,7 +25,7 @@ SCENARIO("Byte manipulation", "[bytes]") {
          data.Reserve(500);
          auto memory = data.GetRaw();
 
-         REQUIRE(data.IsEmpty());
+         REQUIRE(!data);
          REQUIRE(data.GetCount() == 0);
          REQUIRE(data.GetReserved() >= 500);
 

@@ -558,77 +558,63 @@ namespace Langulus::Anyness
    }
 
    /// Copy-concatenate with any deep type                                    
-   ///   @tparam T - type of the container to concatenate (deducible)         
    ///   @param rhs - the right operand                                       
    ///   @return the combined container                                       
-   template<CT::Deep T>
    LANGULUS(INLINED)
-   Any Any::operator + (const T& rhs) const requires CT::Dense<T> {
+   Any Any::operator + (const CT::Deep auto& rhs) const {
       return Concatenate<Any>(Copy(static_cast<const Block&>(rhs)));
    }
 
-   template<CT::Deep T>
    LANGULUS(INLINED)
-   Any Any::operator + (T& rhs) const requires CT::Dense<T> {
+   Any Any::operator + (CT::Deep auto& rhs) const {
       return Concatenate<Any>(Copy(static_cast<const Block&>(rhs)));
    }
 
    /// Move-concatenate with any deep type                                    
-   ///   @tparam T - type of the container to concatenate (deducible)         
    ///   @param rhs - the right operand                                       
    ///   @return the combined container                                       
-   template<CT::Deep T>
    LANGULUS(INLINED)
-   Any Any::operator + (T&& rhs) const requires CT::Dense<T> {
+   Any Any::operator + (CT::Deep auto&& rhs) const {
       return Concatenate<Any>(Move(Forward<Block>(rhs)));
    }
 
-   /// Move-concatenate with any deep type                                    
-   ///   @tparam T - type of the container to concatenate (deducible)         
+   /// Semantically concatenate with any deep type                            
    ///   @param rhs - the right operand                                       
    ///   @return the combined container                                       
-   template<CT::Semantic S>
    LANGULUS(INLINED)
-   Any Any::operator + (S&& rhs) const requires (CT::Deep<TypeOf<S>>&& CT::Dense<TypeOf<S>>) {
+   Any Any::operator + (CT::Semantic auto&& rhs) const {
       return Concatenate<Any>(rhs.template Forward<Block>());
    }
 
    /// Destructive copy-concatenate with any deep type                        
-   ///   @tparam T - type of the container to concatenate (deducible)         
    ///   @param rhs - the right operand                                       
    ///   @return a reference to this modified container                       
-   template<CT::Deep T>
    LANGULUS(INLINED)
-   Any& Any::operator += (const T& rhs) requires CT::Dense<T> {
+   Any& Any::operator += (const CT::Deep auto& rhs) {
       InsertBlock(Copy(rhs));
       return *this;
    }
 
-   template<CT::Deep T>
    LANGULUS(INLINED)
-   Any& Any::operator += (T& rhs) requires CT::Dense<T> {
+   Any& Any::operator += (CT::Deep auto& rhs) {
       InsertBlock(Copy(rhs));
       return *this;
    }
 
    /// Destructive move-concatenate with any deep type                        
-   ///   @tparam T - type of the container to concatenate (deducible)         
    ///   @param rhs - the right operand                                       
    ///   @return a reference to this modified container                       
-   template<CT::Deep T>
    LANGULUS(INLINED)
-   Any& Any::operator += (T&& rhs) requires CT::Dense<T> {
+   Any& Any::operator += (CT::Deep auto&& rhs) {
       InsertBlock(Move(rhs));
       return *this;
    }
 
-   /// Destructive move-concatenate with any deep type                        
-   ///   @tparam T - type of the container to concatenate (deducible)         
+   /// Destructive semantically concatenate with any deep type                
    ///   @param rhs - the right operand                                       
    ///   @return a reference to this modified container                       
-   template<CT::Semantic S>
    LANGULUS(INLINED)
-   Any& Any::operator += (S&& rhs) requires (CT::Deep<TypeOf<S>>&& CT::Dense<TypeOf<S>>) {
+   Any& Any::operator += (CT::Semantic auto&& rhs) {
       InsertBlock(rhs.Forward());
       return *this;
    }

@@ -195,6 +195,8 @@ namespace Langulus::Anyness
       constexpr void AddState(DataState) noexcept;
       constexpr void RemoveState(DataState) noexcept;
 
+      NOD() constexpr explicit operator bool() const noexcept;
+
       NOD() bool Owns(const void*) const noexcept;
       NOD() constexpr bool HasAuthority() const noexcept;
       NOD() constexpr Count GetUses() const noexcept;

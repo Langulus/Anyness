@@ -47,15 +47,10 @@ namespace Langulus::Anyness
       Trait& operator = (const Trait&);
       Trait& operator = (Trait&&) noexcept;
 
-      template<CT::NotSemantic T>
-      Trait& operator = (const T&);
-      template<CT::NotSemantic T>
-      Trait& operator = (T&);
-      template<CT::NotSemantic T>
-      Trait& operator = (T&&);
-
-      template<CT::Semantic S>
-      Trait& operator = (S&&);
+      Trait& operator = (const CT::NotSemantic auto&);
+      Trait& operator = (CT::NotSemantic auto&);
+      Trait& operator = (CT::NotSemantic auto&&);
+      Trait& operator = (CT::Semantic auto&&);
 
    public:
       template<CT::Data TRAIT, CT::Data DATA>
@@ -89,6 +84,26 @@ namespace Langulus::Anyness
 
       template<CT::Data T>
       NOD() bool operator == (const T&) const;
+
+
+      ///                                                                     
+      ///   Concatenation                                                     
+      ///                                                                     
+      NOD() Trait operator + (const Trait&) const;
+      NOD() Trait operator + (Trait&&) const;
+
+      NOD() Trait operator + (const CT::Deep auto&) const;
+      NOD() Trait operator + (CT::Deep auto&) const;
+      NOD() Trait operator + (CT::Deep auto&&) const;
+      NOD() Trait operator + (CT::Semantic auto&&) const;
+
+      Trait& operator += (const Trait&);
+      Trait& operator += (Trait&&);
+
+      Trait& operator += (const CT::Deep auto&);
+      Trait& operator += (CT::Deep auto&);
+      Trait& operator += (CT::Deep auto&&);
+      Trait& operator += (CT::Semantic auto&&);
    };
 
 

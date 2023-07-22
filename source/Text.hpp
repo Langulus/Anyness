@@ -21,6 +21,7 @@ namespace Langulus::Anyness
       LANGULUS(DEEP) false;
       LANGULUS(POD) false;
       LANGULUS_BASES(A::Text, Base);
+      LANGULUS(FILES) "txt";
 
       using CompatibleStdString = ::std::basic_string<Letter>;
       using CompatibleStdStringView = ::std::basic_string_view<Letter>;

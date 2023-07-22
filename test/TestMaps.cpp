@@ -173,7 +173,7 @@ TEMPLATE_TEST_CASE(
 
             REQUIRE(map.IsKeyTypeConstrained() == CT::Typed<T>);
             REQUIRE(map.IsValueTypeConstrained() == CT::Typed<T>);
-            REQUIRE(map.IsEmpty());
+            REQUIRE(!map);
             REQUIRE(map.GetUses() == 0);
             REQUIRE_FALSE(map.IsAllocated());
             REQUIRE_FALSE(map.HasAuthority());
@@ -779,7 +779,7 @@ TEMPLATE_TEST_CASE(
             REQUIRE(map.template ValueIs<V>());
             REQUIRE(map.IsKeyTypeConstrained() == CT::Typed<T>);
             REQUIRE(map.IsValueTypeConstrained() == CT::Typed<T>);
-            REQUIRE(map.IsEmpty());
+            REQUIRE(!map);
             REQUIRE(map.GetRawKeysMemory() == keyMemory);
             REQUIRE(map.GetRawValuesMemory() == valueMemory);
             REQUIRE(map.HasAuthority());
@@ -803,7 +803,7 @@ TEMPLATE_TEST_CASE(
             }
             REQUIRE(map.IsKeyTypeConstrained() == CT::Typed<T>);
             REQUIRE(map.IsValueTypeConstrained() == CT::Typed<T>);
-            REQUIRE(map.IsEmpty());
+            REQUIRE(!map);
             REQUIRE(map.GetRawKeysMemory() != keyMemory);
             REQUIRE(map.GetRawValuesMemory() != valueMemory);
             REQUIRE(map.GetUses() == 0);
@@ -886,7 +886,7 @@ TEMPLATE_TEST_CASE(
             for (auto& comparer : darray1)
                REQUIRE(moved[comparer.mKey] == comparer.mValue);
             REQUIRE_FALSE(movable.IsAllocated());
-            REQUIRE(movable.IsEmpty());
+            REQUIRE(!movable);
             REQUIRE(movable.GetRawValuesMemory() == nullptr);
             REQUIRE(movable.GetCount() == 0);
             REQUIRE(movable.IsValueTypeConstrained() == CT::Typed<T>);
