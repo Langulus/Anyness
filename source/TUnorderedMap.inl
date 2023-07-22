@@ -1180,9 +1180,9 @@ namespace Langulus::Anyness
    TABLE_TEMPLATE() LANGULUS(INLINED)
    decltype(auto) TABLE()::At(const K& key) {
       const auto found = FindIndex(key);
-      if (found == GetReserved()) {
+      if (found >= GetReserved()) {
          // Key wasn't found, but map is mutable and we can add it      
-         if constexpr (CT::Defaultable<V>) {
+         if constexpr (CT::Sparse<V> || CT::Nullifiable<V> || CT::Defaultable<V>) {
             // Defaultable value, so adding the key is acceptable       
             Insert(key, V {});
             return GetRawValue(FindIndex(key));
@@ -1202,7 +1202,7 @@ namespace Langulus::Anyness
    TABLE_TEMPLATE() LANGULUS(INLINED)
    decltype(auto) TABLE()::At(const K& key) const {
       const auto found = FindIndex(key);
-      LANGULUS_ASSERT(found != GetReserved(), OutOfRange, "Key not found");
+      LANGULUS_ASSERT(found < GetReserved(), OutOfRange, "Key not found");
       return GetRawValue(found);
    }
 

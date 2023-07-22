@@ -115,7 +115,6 @@ TEMPLATE_TEST_CASE(
 /// to complex, from flat to deep                                             
 TEMPLATE_TEST_CASE(
    "TOrderedMap/TUnorderedMap/OrderedMap/UnorderedMap", "[map]",
-   (TypePair<UnorderedMap, Text, int>),
    (TypePair<TUnorderedMap<Text, int>, Text, int>),
    (TypePair<TUnorderedMap<Text, Trait>, Text, Trait>),
    (TypePair<TUnorderedMap<Text, Traits::Count>, Text, Traits::Count>),
@@ -132,6 +131,7 @@ TEMPLATE_TEST_CASE(
    (TypePair<TOrderedMap<Text, Trait*>, Text, Trait*>),
    (TypePair<TOrderedMap<Text, Traits::Count*>, Text, Traits::Count*>),
    (TypePair<TOrderedMap<Text, Any*>, Text, Any*>),
+   (TypePair<UnorderedMap, Text, int>),
    (TypePair<UnorderedMap, Text, Trait>),
    (TypePair<UnorderedMap, Text, Traits::Count>),
    (TypePair<UnorderedMap, Text, Any>),

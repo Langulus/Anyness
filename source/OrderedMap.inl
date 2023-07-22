@@ -384,7 +384,7 @@ namespace Langulus::Anyness
    template<CT::NotSemantic K>
    Block OrderedMap::At(const K& key) {
       const auto found = FindIndex<OrderedMap>(key);
-      if (found != GetReserved())
+      if (found < GetReserved())
          return GetValueInner(found);
 
       // Key wasn't found, but map is mutable and we can add it         
