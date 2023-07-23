@@ -17,11 +17,7 @@ namespace Langulus::Anyness
    struct Path : Text {
       LANGULUS_BASES(Text);
 
-      #ifdef _WIN32
-         static constexpr char Separator = '\\';
-      #else
-         static constexpr char Separator = '/';
-      #endif
+      static constexpr char Separator = '/';
 
       using Text::Text;
 

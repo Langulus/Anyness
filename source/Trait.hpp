@@ -219,8 +219,8 @@ LANGULUS_DEFINE_TRAIT(Count,
    "Count trait, used to access container size, or other similar properties");
 LANGULUS_DEFINE_TRAIT(Name,
    "Name trait, used to access names, or other similar properties");
-LANGULUS_DEFINE_TRAIT(File,
-   "File trait, used to access file handles, associated file names, or other similar properties");
+LANGULUS_DEFINE_TRAIT(Path,
+   "Path trait, used to access files and folders, or other file-system related stuff");
 LANGULUS_DEFINE_TRAIT(Data,
    "Raw data trait, used to access raw container data, or other similar properties");
 LANGULUS_DEFINE_TRAIT(Index,

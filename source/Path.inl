@@ -57,6 +57,9 @@ namespace Langulus::Anyness
    ///   @param rhs - the text to append                                      
    ///   @return the combined directory name                                  
    inline Path Path::operator / (const Text& rhs) const {
+      if (IsEmpty())
+         return rhs;
+
       if (last() == Separator) {
          if (rhs.last() == Separator)
             return *this + rhs.Crop(1, rhs.GetCount() - 1);
@@ -78,6 +81,9 @@ namespace Langulus::Anyness
    ///   @param rhs - the text to append                                      
    ///   @return the combined directory name                                  
    inline Path& Path::operator /= (const Text& rhs) {
+      if (IsEmpty())
+         return operator = (rhs);
+
       if (last() == Separator) {
          if (rhs.last() == Separator)
             *this += rhs.Crop(1, rhs.GetCount() - 1);
