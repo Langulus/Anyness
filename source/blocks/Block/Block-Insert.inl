@@ -910,6 +910,7 @@ namespace Langulus::Anyness
 
          const bool stateCompliant = CanFitState(*value);
          if (IsEmpty() && !value->IsStatic() && stateCompliant) {
+            Free();
             BlockTransfer<WRAPPER>(value.Forward());
             return 1;
          }
@@ -993,6 +994,7 @@ namespace Langulus::Anyness
 
          const bool stateCompliant = CanFitState(*value);
          if (IsEmpty() && !value->IsStatic() && stateCompliant) {
+            Free();
             BlockTransfer<WRAPPER>(value.Forward());
             return 1;
          }

@@ -195,6 +195,9 @@ namespace Langulus::Anyness
 
       using Any::Any;
 
+      // Disable semantic constructors to avoid some implicit conversts 
+      Descriptor(CT::Semantic auto&&) = delete;
+
       Descriptor(const Any& other)
          : Any {other} {}
       Descriptor(Any&& other)
