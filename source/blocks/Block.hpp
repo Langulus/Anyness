@@ -127,7 +127,7 @@ namespace Langulus::Anyness
       template<class, bool>
       friend struct ::Langulus::Flow::ArithmeticVerb;
 
-   private: TESTING(public:)
+   private: IF_LANGULUS_TESTING(public:)
       union {
          #if LANGULUS_DEBUG()
             char* mRawChar;
@@ -266,7 +266,7 @@ namespace Langulus::Anyness
       constexpr void MakeFuture() noexcept;
       constexpr void MakeNow() noexcept;
 
-   protected: TESTING(public:)
+   protected: IF_LANGULUS_TESTING(public:)
       NOD() Allocation** GetEntries() SAFETY_NOEXCEPT();
       NOD() const Allocation* const* GetEntries() const SAFETY_NOEXCEPT();
 
@@ -732,7 +732,7 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Compression                                                       
       ///                                                                     
-      #if LANGULUS_FEATURE(ZLIB)
+      #if LANGULUS_FEATURE(COMPRESSION)
          Size Compress(Block&, Compression = Compression::Default) const;
          Size Decompress(Block&) const;
       #endif

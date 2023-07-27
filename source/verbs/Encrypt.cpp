@@ -15,7 +15,7 @@ namespace Langulus::Anyness
       constexpr auto HS = sizeof(Hash);
 
       // First compress the data, to avoid repeating bytes              
-      #if LANGULUS_FEATURE(ZLIB)
+      #if LANGULUS_FEATURE(COMPRESSION)
          auto compressed_size = Compress(result, Compression::Fastest);
       #else
          Clone(result);
@@ -74,7 +74,7 @@ namespace Langulus::Anyness
          return 0;
       }
 
-      #if LANGULUS_FEATURE(ZLIB)
+      #if LANGULUS_FEATURE(COMPRESSION)
          // Decompress data                                             
          const auto decompressed_size = decrypted.Decompress(result);
 

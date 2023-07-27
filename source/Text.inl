@@ -258,7 +258,7 @@ namespace Langulus::Anyness
       return *this;
    }
 
-   #if LANGULUS_FEATURE(UTFCPP)
+   #if LANGULUS_FEATURE(UNICODE)
       /// Widen the text container to the utf16                               
       ///   @return the widened text container                                
       TAny<char16_t> Text::Widen16() const {
@@ -299,20 +299,63 @@ namespace Langulus::Anyness
    #endif
 
    /// Terminate text so that it ends with a zero character at the end        
-   ///   @return a new container that ownes its memory                        
+   /// This works even if the text container was empty                        
+   ///   @return null-terminated equivalent to this Text                      
    LANGULUS(INLINED)
    Text Text::Terminate() const {
-      if (mReserved > mCount && GetRaw()[mCount] == '\0')
-         return *this;
+      // This greatly improves performance, but gives inconsistent      
+      // results if MEMORY_STATISTICS feature is enabled (gives false   
+      // positives for leaks if by random chance, the end of the string 
+      // turns out to be \0 due to memory junk).                        
+      // So, when MEMORY_STATISTICS is enabled we sacrifice performance 
+      // for memory consistency. Generally, MEMORY_STATISTICS           
+      // sacrifices performance anyways.                                
+      #if not LANGULUS_FEATURE(MEMORY_STATISTICS)
+         if (mReserved > mCount && GetRaw()[mCount] == '\0')
+            return *this;
+      #endif
 
-      //TODO: always cloning? why tho? what if this text has one use only?
-      Text result {Disown(*this)};
-      const auto request = RequestSize(result.mReserved + 1);
-      result.AllocateFresh(request);
-      result.mReserved = request.mElementCount;
-      CopyMemory(result.mRaw, mRaw, mCount);
-      result.GetRaw()[mCount] = '\0';
-      return Abandon(result);
+      if (mEntry && mEntry->GetUses() == 1) {
+         auto mutableThis = const_cast<Text*>(this);
+
+         // If we have ownership and this is the only place where data  
+         // is referenced, then we can simply resize this container,    
+         // and attach a zero at the end of it                          
+         if (mReserved > mCount) {
+            // Required memory is already available                     
+            mutableThis->GetRaw()[mCount] = '\0';
+            return *this;
+         }
+
+         Block previousBlock {*this};
+         const auto request = RequestSize(mCount + 1);
+         mutableThis->mEntry = Fractalloc.Reallocate(request.mByteSize, mEntry);
+         LANGULUS_ASSERT(mEntry, Allocate, "Out of memory");
+         mutableThis->mReserved = request.mElementCount;
+
+         if (mEntry != previousBlock.mEntry) {
+            // Memory moved, and we should move all elements in it      
+            mutableThis->mRaw = mEntry->GetBlockStart();
+            CopyMemory(mutableThis->mRaw, previousBlock.mRaw, mCount);
+            previousBlock.Free();
+         }
+
+         // Add the null-termination                                    
+         mutableThis->GetRaw()[mCount] = '\0';
+         return *this;
+      }
+      else {
+         // We have to branch-off and make another allocation           
+         Text result;
+         const auto request = RequestSize(mCount + 1);
+         result.mType = mType;
+         result.AllocateFresh(request);
+         result.mCount = mCount;
+         result.mReserved = request.mElementCount;
+         CopyMemory(result.mRaw, mRaw, mCount);
+         result.GetRaw()[mCount] = '\0';
+         return Abandon(result);
+      }
    }
 
    /// Make all letters lowercase                                             

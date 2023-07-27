@@ -205,7 +205,7 @@ namespace Langulus::Anyness
 
       NOD() Offset FindIndex(const K&) const;
 
-   TESTING(public:)
+   IF_LANGULUS_TESTING(public:)
       NOD() constexpr const K& GetRawKey(Offset) const noexcept;
       NOD() constexpr K& GetRawKey(Offset) noexcept;
       NOD() constexpr Handle<K> GetKeyHandle(Offset) noexcept;

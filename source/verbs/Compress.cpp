@@ -7,7 +7,7 @@
 ///                                                                           
 #include "../Any.hpp"
 
-#if LANGULUS_FEATURE(ZLIB)
+#if LANGULUS_FEATURE(COMPRESSION)
 #include <zlib.h>
 
 namespace Langulus::Anyness

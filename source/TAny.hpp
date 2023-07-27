@@ -90,7 +90,7 @@ namespace Langulus::Anyness
       NOD() decltype(auto) GetHandle(Offset) const SAFETY_NOEXCEPT();
 
 
-   private: TESTING(public:)
+   private: IF_LANGULUS_TESTING(public:)
       using Any::GetRawSparse;
 
    public:

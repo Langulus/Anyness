@@ -88,7 +88,7 @@ namespace Langulus::Anyness
 
       NOD() operator Token () const noexcept;
 
-      #if LANGULUS_FEATURE(UTFCPP)
+      #if LANGULUS_FEATURE(UNICODE)
          NOD() TAny<char16_t> Widen16() const;
          NOD() TAny<char32_t> Widen32() const;
       #endif

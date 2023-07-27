@@ -147,8 +147,8 @@ The plan is to never support older C++ standards. When C++23 comes out, it will 
    - enable `LANGULUS_ENABLE_DEBUGGING` to explicitly enable some verbose logging (this is usually automatically deduced from popular IDEs)
    - enable `LANGULUS_FEATURE_MEMORY_STATISTICS` for keeping track of managed memory (disabled by default, works only if managed memory feature is enabled, too)
    - enable `LANGULUS_FEATURE_NEWDELETE` overrides new/delete operators for anything statically linked to this library, or provides LANGULUS_MONOPOLIZE_MEMORY() macro for you to use to override them, if dynamically linked (disabled by default, works only if managed memory feature is enabled, too)
-   - enable `LANGULUS_FEATURE_UTFCPP` - WIP
-   - enable `LANGULUS_FEATURE_ZLIB` - WIP
+   - enable `LANGULUS_FEATURE_UNICODE` - WIP
+   - enable `LANGULUS_FEATURE_COMPRESSION` - WIP
    - enable `LANGULUS_FEATURE_ENCRYPTION` - WIP
    - you can set `LANGULUS_ALIGNMENT` to a power-of-two number - it will affect available SIMD optimizations, as well as minimal allocation sizes
 5. Build using your favourite C++20 compliant compiler version
