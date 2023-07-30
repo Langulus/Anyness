@@ -21,6 +21,9 @@ namespace Langulus::Anyness
    ///                                                                        
    struct Allocator {
       #if LANGULUS_FEATURE(MEMORY_STATISTICS)
+         ///                                                                  
+         /// Structure for keeping track of allocations                       
+         ///                                                                  
          struct Statistics {
             // The real allocated bytes, provided by malloc in backend  
             Size mBytesAllocatedByBackend {};
@@ -46,8 +49,27 @@ namespace Langulus::Anyness
             void DelPool(const Pool*) noexcept;
          };
       
+         ///                                                                  
+         /// Structure that holds a single memory manager state, used for     
+         /// comparing states in order to detect leaks while testing          
+         ///                                                                  
+         struct State {
+         private:
+            bool mAvailable = false;
+            Statistics mState;
+
+         public:
+            LANGULUS_API(ANYNESS) bool Assert();
+         };
+
       private:
+         // The current memory manager statistics                       
          Statistics mStatistics {};
+      #else
+         /// No state when MEMORY_STATISTICS feature is disabled              
+         struct State {
+            constexpr bool Assert() const noexcept { return true; }
+         };
       #endif
 
    private:

@@ -292,6 +292,14 @@ namespace Langulus::Anyness
       NOD() ConstIteratorEnd end() const noexcept;
       NOD() ConstIterator last() const noexcept;
 
+      ///                                                                     
+      ///   Flow                                                              
+      ///                                                                     
+      // Intentionally undefined, because it requires Langulus::Flow    
+      void Run(Flow::Verb&) const;
+      // Intentionally undefined, because it requires Langulus::Flow    
+      void Run(Flow::Verb&);
+
    protected:
       void AllocateFresh(const RTTI::AllocationRequest&);
 

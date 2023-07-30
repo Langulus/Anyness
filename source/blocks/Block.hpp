@@ -7,6 +7,7 @@
 ///                                                                           
 #pragma once
 #include "../inner/DataState.hpp"
+#include "../inner/Compare.hpp"
 #include "../inner/Index.hpp"
 #include "../inner/Iterator.hpp"
 
@@ -750,6 +751,14 @@ namespace Langulus::Anyness
       // and relies on Verbs::Interpret                                 
       template<bool ENSCOPE = true, class TO, class TO_ORIGINAL = TO>
       NOD() Count Serialize(TO&) const;
+
+      ///                                                                     
+      ///   Flow                                                              
+      ///                                                                     
+      // Intentionally undefined, because it requires Langulus::Flow    
+      void Run(Flow::Verb&) const;
+      // Intentionally undefined, because it requires Langulus::Flow    
+      void Run(Flow::Verb&);
    };
 
    /// Macro used to implement the standard container interface used in       

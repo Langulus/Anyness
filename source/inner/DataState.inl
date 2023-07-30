@@ -1,5 +1,5 @@
 ///                                                                           
-/// Langulus::RTTI                                                            
+/// Langulus::Anyness                                                         
 /// Copyright(C) 2012 Dimo Markov <langulusteam@gmail.com>                    
 ///                                                                           
 /// Distributed under GNU General Public License v3+                          

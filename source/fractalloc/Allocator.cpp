@@ -546,7 +546,29 @@ namespace Langulus::Anyness
       return false;
    }
    
-#if LANGULUS_FEATURE(MEMORY_STATISTICS)   
+#if LANGULUS_FEATURE(MEMORY_STATISTICS)
+
+   /// Check for memory leaks, by retrieving the new memory manager state     
+   /// and comparing it against this one                                      
+   ///   @return true if no functional difference between the states          
+   bool Allocator::State::Assert() {
+      Fractalloc.CollectGarbage();
+
+      if (mAvailable) {
+         if (mState != Fractalloc.GetStatistics()) {
+            // Assertion failure                                        
+            Fractalloc.DumpPools();
+            mState = Fractalloc.GetStatistics();
+            return false;
+         }
+      }
+
+      // All is fine                                                    
+      mState = Fractalloc.GetStatistics();
+      mAvailable = true;
+      return true;
+   }
+   
    /// Get allocator statistics                                               
    ///   @return a reference to the statistics structure                      
    const Allocator::Statistics& Allocator::GetStatistics() const noexcept {
