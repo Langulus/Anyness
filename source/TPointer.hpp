@@ -57,6 +57,9 @@ namespace Langulus::Anyness
       void ResetInner();
 
    public:
+      LANGULUS(ABSTRACT) false;
+      LANGULUS(TYPED) Type;
+
       constexpr TPointer() noexcept = default;
 
       TPointer(const TPointer&);
@@ -111,6 +114,23 @@ namespace Langulus::Anyness
    /// THive and Hive (component factories for example)                       
    template<class T>
    using Ref = TPointer<T, true>;
+
+   /// Get value behind Ptr/Ref/Own                                           
+   ///   @param value - the container to decay                                
+   ///   @return the contained value                                          
+   LANGULUS(INLINED)
+   decltype(auto) PointerDecay(const CT::Pointer auto& value) {
+      using T = TypeOf<Decay<decltype(value)>>;
+      return static_cast<const T&>(value);
+   }
+   
+   /// Get value behind Ptr/Ref/Own                                           
+   ///   @param value - the container to decay                                
+   ///   @return the contained value                                          
+   LANGULUS(INLINED)
+   decltype(auto) PointerDecay(const CT::Sparse auto& value) {
+      return value;
+   }
 
 } // namespace Langulus::Anyness
 

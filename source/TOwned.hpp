@@ -43,6 +43,7 @@ namespace Langulus::Anyness
       T mValue {};
 
    public:
+      LANGULUS(ABSTRACT) false;
       LANGULUS(TYPED) T;
 
       static constexpr bool Ownership = true;

@@ -132,7 +132,7 @@ namespace Langulus::Anyness
    /// Get the size of all pairs, in bytes                                    
    ///   @return the total amount of initialized bytes                        
    LANGULUS(INLINED)
-   constexpr Size BlockMap::GetByteSize() const noexcept {
+   constexpr Size BlockMap::GetBytesize() const noexcept {
       return sizeof(Pair) * GetCount(); 
    }
 

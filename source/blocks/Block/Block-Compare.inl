@@ -80,7 +80,7 @@ namespace Langulus::Anyness
          }
          else if (mType->mIsPOD || mType->mIsSparse) {
             // Batch-compare memory if POD or sparse                    
-            return 0 == memcmp(mRaw, right.mRaw, GetByteSize());
+            return 0 == memcmp(mRaw, right.mRaw, GetBytesize());
          }
          else if (mType->mComparer) {
             // Call compare operator for each element pair              
@@ -129,7 +129,7 @@ namespace Langulus::Anyness
          // Regardless if types are sparse or dense, as long as they    
          // are of the same density, of course                          
          VERBOSE("Batch-comparing POD memory / pointers");
-         const auto code = memcmp(mRaw, right.mRaw, GetByteSize());
+         const auto code = memcmp(mRaw, right.mRaw, GetBytesize());
 
          if (code != 0) {
             VERBOSE(Logger::Red, "POD/pointers are not the same ", Logger::Yellow, "(fast)");
@@ -257,7 +257,7 @@ namespace Langulus::Anyness
             h.InsertInner(Abandon(GetElementResolved(i).GetHash()), i);
 
          const auto result = HashBytes<DefaultHashSeed, false>(
-            h.GetRaw(), static_cast<int>(h.GetByteSize())
+            h.GetRaw(), static_cast<int>(h.GetBytesize())
          );
 
          h.Free();
@@ -273,14 +273,14 @@ namespace Langulus::Anyness
          }
 
          const auto result = HashBytes<DefaultHashSeed, false>(
-            h.GetRaw(), static_cast<int>(h.GetByteSize()));
+            h.GetRaw(), static_cast<int>(h.GetBytesize()));
 
          h.Free();
          return result;
       }
       else if (mType->mIsPOD) {
          // POD data is an exception - just batch-hash it               
-         return HashBytes(mRaw, static_cast<int>(GetByteSize()));
+         return HashBytes(mRaw, static_cast<int>(GetBytesize()));
       }
       else {
          Logger::Error("Unhashable type ", GetToken());

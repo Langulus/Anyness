@@ -96,7 +96,7 @@ namespace Langulus::Anyness
       NOD() constexpr Size GetKeyStride() const noexcept;
       NOD() constexpr Size GetValueStride() const noexcept;
 
-      NOD() constexpr Size GetByteSize() const noexcept;
+      NOD() constexpr Size GetBytesize() const noexcept;
 
       void Reserve(const Count&);
 

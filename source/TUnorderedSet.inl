@@ -306,7 +306,7 @@ namespace Langulus::Anyness
    /// Get the size of all elements, in bytes                                 
    ///   @return the total amount of initialized bytes                        
    TABLE_TEMPLATE()
-   constexpr Size TABLE()::GetByteSize() const noexcept {
+   constexpr Size TABLE()::GetBytesize() const noexcept {
       return sizeof(T) * GetCount(); 
    }
 

@@ -70,7 +70,7 @@ namespace Langulus::Anyness
       NOD() constexpr bool IsSparse() const noexcept;
       NOD() constexpr bool IsDense() const noexcept;
       NOD() constexpr Size GetStride() const noexcept;
-      NOD() constexpr Size GetByteSize() const noexcept;
+      NOD() constexpr Size GetBytesize() const noexcept;
       NOD() constexpr Count GetCount() const noexcept;
       NOD() constexpr Count GetReserved() const noexcept;
       NOD() constexpr bool IsEmpty() const noexcept;

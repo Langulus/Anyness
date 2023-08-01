@@ -687,7 +687,7 @@ namespace Langulus::Anyness
    /// Get the size of all elements, in bytes                                 
    ///   @return the total amount of initialized bytes                        
    TEMPLATE() LANGULUS(INLINED)
-   constexpr Size TAny<T>::GetByteSize() const noexcept {
+   constexpr Size TAny<T>::GetBytesize() const noexcept {
       return GetStride() * mCount;
    }
 
@@ -1668,7 +1668,7 @@ namespace Langulus::Anyness
 
       if constexpr (CT::Sparse<T> || CT::POD<T>) {
          // Batch compare POD/pointers                                  
-         return 0 == ::std::memcmp(GetRaw(), other.GetRaw(), GetByteSize());
+         return 0 == ::std::memcmp(GetRaw(), other.GetRaw(), GetBytesize());
       }
       else if constexpr (CT::Inner::Comparable<T>) {
          // Use comparison operator between all elements                

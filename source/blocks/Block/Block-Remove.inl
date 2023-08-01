@@ -265,7 +265,7 @@ namespace Langulus::Anyness
       }
 
       // Always nullify upon destruction only if we're paranoid         
-      IF_LANGULUS_PARANOID(ZeroMemory(mRaw, GetByteSize()));
+      IF_LANGULUS_PARANOID(ZeroMemory(mRaw, GetBytesize()));
    }
 
    /// Call destructors of all initialized items                              
@@ -300,7 +300,7 @@ namespace Langulus::Anyness
       }
 
       // Always nullify upon destruction only if we're paranoid         
-      IF_LANGULUS_PARANOID(ZeroMemory(mRaw, GetByteSize()));
+      IF_LANGULUS_PARANOID(ZeroMemory(mRaw, GetBytesize()));
    }
 
    /// Clear the block, only zeroing its size                                 

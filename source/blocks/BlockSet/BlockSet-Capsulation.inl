@@ -65,7 +65,7 @@ namespace Langulus::Anyness
    /// Get the size of all elements, in bytes                                 
    ///   @return the total amount of initialized bytes                        
    LANGULUS(INLINED)
-   constexpr Size BlockSet::GetByteSize() const noexcept {
+   constexpr Size BlockSet::GetBytesize() const noexcept {
       return GetStride() * GetCount(); 
    }
 

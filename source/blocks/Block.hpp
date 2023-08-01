@@ -235,7 +235,7 @@ namespace Langulus::Anyness
       NOD() constexpr bool CanFitPhase(const Block&) const noexcept;
       NOD() constexpr bool CanFitState(const Block&) const noexcept;
       NOD() constexpr bool CanFitOrAnd(const Block&) const noexcept;
-      NOD() constexpr Count GetByteSize() const noexcept;
+      NOD() constexpr Count GetBytesize() const noexcept;
       NOD() constexpr Token GetToken() const noexcept;
       NOD() constexpr Size GetStride() const noexcept;
       NOD() constexpr DataState GetState() const noexcept;

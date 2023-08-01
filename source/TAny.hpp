@@ -119,7 +119,7 @@ namespace Langulus::Anyness
       NOD() constexpr bool IsNullifiable() const noexcept;
 
       NOD() constexpr Size GetStride() const noexcept;
-      NOD() constexpr Size GetByteSize() const noexcept;
+      NOD() constexpr Size GetBytesize() const noexcept;
 
       NOD() bool CastsToMeta(DMeta) const;
       NOD() bool CastsToMeta(DMeta, Count) const;

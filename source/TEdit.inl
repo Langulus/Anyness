@@ -181,7 +181,7 @@ namespace Langulus::Anyness
          CopyMemory(
             mSource.GetRaw() + offset,
             other.GetRaw(), 
-            other.GetByteSize()
+            other.GetBytesize()
          );
       }
       else {

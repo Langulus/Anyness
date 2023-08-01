@@ -337,7 +337,7 @@ namespace Langulus::Anyness
    /// Get the size of the contained data, in bytes                           
    ///   @return the byte size                                                
    LANGULUS(INLINED)
-   constexpr Size Block::GetByteSize() const noexcept {
+   constexpr Size Block::GetBytesize() const noexcept {
       return mCount * GetStride();
    }
 
@@ -444,7 +444,7 @@ namespace Langulus::Anyness
    ///   @return a pointer to the last+1 element (never initialized)          
    LANGULUS(INLINED)
    constexpr const Byte* Block::GetRawEnd() const noexcept {
-      return mRaw + GetByteSize();
+      return mRaw + GetBytesize();
    }
 
    /// Get a pointer array - useful only for sparse containers                
