@@ -174,8 +174,8 @@ namespace Langulus::Anyness
                ClearInner();
 
             // No point in resetting info, we'll be deallocating it     
-            Fractalloc.Deallocate(mKeys.mEntry);
-            Fractalloc.Deallocate(mValues.mEntry);
+            Allocator::Deallocate(mKeys.mEntry);
+            Allocator::Deallocate(mValues.mEntry);
          }
          else {
             // Data is used from multiple locations, just deref values  

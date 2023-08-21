@@ -11,17 +11,13 @@
 #include <any>
 #include <vector>
 
-/// See https://github.com/catchorg/Catch2/blob/devel/docs/tostring.md        
-CATCH_TRANSLATE_EXCEPTION(::Langulus::Exception const& ex) {
-   const Text serialized {ex};
-   return ::std::string {Token {serialized}};
-}
+LANGULUS_EXCEPTION_HANDLER
 
 using uint = unsigned int;
 
 SCENARIO("Deep containers", "[any]") {
    GIVEN("Any with some deep items") {
-      IF_LANGULUS_MANAGED_MEMORY(Fractalloc.CollectGarbage());
+      IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
       Any pack;
       Any subpack1;
@@ -588,7 +584,7 @@ SCENARIO("Deep containers", "[any]") {
    }
 
    GIVEN("Any with some deep items for the purpose of optimization") {
-      IF_LANGULUS_MANAGED_MEMORY(Fractalloc.CollectGarbage());
+      IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
       Any pack;
       Any subpack1;
@@ -617,7 +613,7 @@ SCENARIO("Deep containers", "[any]") {
    }
 
    GIVEN("Any with some deep items, and their Blocks coalesced") {
-      IF_LANGULUS_MANAGED_MEMORY(Fractalloc.CollectGarbage());
+      IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
       Any pack;
       Any subpack1;

@@ -71,7 +71,7 @@ namespace Langulus::Anyness
                SemanticAssign<T>(mValue, other.template Forward<T>());
 
             if constexpr (CT::Sparse<T> && CT::Allocatable<DT> && (S::Keep || S::Move))
-               mEntry = Fractalloc.Find(MetaData::Of<DT>(), mValue);
+               mEntry = Allocator::Find(MetaData::Of<DT>(), mValue);
             else
                mEntry = nullptr;
          }
@@ -320,7 +320,7 @@ namespace Langulus::Anyness
          // Do a clone                                                  
          using DT = Decay<T>;
          auto meta = MetaData::Of<DT>();
-         auto entry = Fractalloc.Allocate(meta, meta->RequestSize(1).mByteSize);
+         auto entry = Allocator::Allocate(meta, meta->RequestSize(1).mByteSize);
          auto pointer = entry->template As<DT>();
 
          if constexpr (CT::Handle<ST>) {
@@ -356,7 +356,7 @@ namespace Langulus::Anyness
       else if (!meta->mDeptr->mIsSparse) {
          // Do a clone                                                  
          const auto bytesize = meta->mDeptr->RequestSize(1).mByteSize;
-         auto entry = Fractalloc.Allocate(meta->mDeptr, bytesize);
+         auto entry = Allocator::Allocate(meta->mDeptr, bytesize);
          auto pointer = entry->GetBlockStart();
 
          if constexpr (CT::Handle<TypeOf<S>>)
@@ -442,7 +442,7 @@ namespace Langulus::Anyness
                   }
                }
 
-               Fractalloc.Deallocate(GetEntry());
+               Allocator::Deallocate(GetEntry());
             }
             else GetEntry()->Free();
          }
@@ -486,7 +486,7 @@ namespace Langulus::Anyness
                   meta->mDeptr->mDestructor(Get());
                }
 
-               Fractalloc.Deallocate(GetEntry());
+               Allocator::Deallocate(GetEntry());
             }
             else GetEntry()->Free();
          }

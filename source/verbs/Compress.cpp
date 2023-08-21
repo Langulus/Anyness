@@ -6,8 +6,6 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #include "../Any.hpp"
-
-#if LANGULUS_FEATURE(COMPRESSION)
 #include <zlib.h>
 
 namespace Langulus::Anyness
@@ -152,5 +150,3 @@ namespace Langulus::Anyness
    }
 
 } // namespace Langulus::Anyness
-
-#endif

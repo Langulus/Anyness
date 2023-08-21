@@ -251,7 +251,7 @@ namespace Langulus::Anyness
       Bytes result {Disown(*this)};
       if (mCount) {
          const auto request = RequestSize(mCount);
-         result.mEntry = Fractalloc.Allocate(nullptr, request.mByteSize);
+         result.mEntry = Allocator::Allocate(nullptr, request.mByteSize);
          LANGULUS_ASSERT(result.mEntry, Allocate, "Out of memory");
          result.mRaw = result.mEntry->GetBlockStart();
          result.mReserved = request.mElementCount;

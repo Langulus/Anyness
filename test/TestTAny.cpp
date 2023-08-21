@@ -12,11 +12,7 @@
 #include <Anyness/TAny.hpp>
 #include <catch2/catch.hpp>
 
-/// See https://github.com/catchorg/Catch2/blob/devel/docs/tostring.md        
-CATCH_TRANSLATE_EXCEPTION(::Langulus::Exception const& ex) {
-   const Text serialized {ex};
-   return ::std::string {Token {serialized}};
-}
+LANGULUS_EXCEPTION_HANDLER
 
 using uint = unsigned int;
 using timer = Catch::Benchmark::Chronometer;
@@ -2837,7 +2833,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
          if constexpr (CT::Same<E, int>) {
             // Works only if E doesn't move entries around
             WHEN("Pack is reset, then immediately allocated again") {
-               IF_LANGULUS_MANAGED_MEMORY(Fractalloc.CollectGarbage());
+               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                pack.Reset();
                pack  << CreateElement<E>(6) 
                      << CreateElement<E>(7) 
@@ -3352,7 +3348,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
    }
 
    GIVEN("Two containers with some items") {
-      IF_LANGULUS_MANAGED_MEMORY(Fractalloc.CollectGarbage());
+      IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
       T pack1 {darray1[0], darray1[1], darray1[2], darray1[3], darray1[4]};
       T pack2 {darray2[0], darray2[1], darray2[2], darray2[3], darray2[4]};

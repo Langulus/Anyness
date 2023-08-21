@@ -1,14 +1,10 @@
-project(LangulusAnynessTest)
-
 add_executable(LangulusAnynessTest 
 	Main.cpp
-	TestAllocator.cpp
 	TestBytes.cpp
 	TestDeep.cpp
 	TestIncomplete.cpp
 	TestIteration.cpp
 	TestMaps.cpp
-	TestNewDelete.cpp
 	TestPointers.cpp
 	TestSets.cpp
 	TestTAny.cpp

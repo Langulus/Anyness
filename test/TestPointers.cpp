@@ -22,11 +22,7 @@ struct RT : Referenced {
    }
 };
 
-/// See https://github.com/catchorg/Catch2/blob/devel/docs/tostring.md        
-CATCH_TRANSLATE_EXCEPTION(::Langulus::Exception const& ex) {
-   const Text serialized {ex};
-   return ::std::string {Token {serialized}};
-}
+LANGULUS_EXCEPTION_HANDLER
 
 ///                                                                           
 TEMPLATE_TEST_CASE("Shared pointer", "[TPointer]",
@@ -36,7 +32,7 @@ TEMPLATE_TEST_CASE("Shared pointer", "[TPointer]",
    using TT = TypeOf<T>;
 
    GIVEN("A templated shared pointer") {
-      IF_LANGULUS_MANAGED_MEMORY(Fractalloc.CollectGarbage());
+      IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
       T pointer;
       T pointer2;
@@ -96,8 +92,8 @@ TEMPLATE_TEST_CASE("Shared pointer", "[TPointer]",
             REQUIRE(*pointer == 6);
             REQUIRE(*pointer2 == 6);
             #if LANGULUS_FEATURE(MANAGED_MEMORY)
-               REQUIRE(Fractalloc.CheckAuthority(pointer.GetType(), backup));
-               REQUIRE_FALSE(Fractalloc.Find(pointer.GetType(), backup));
+               REQUIRE(Allocator::CheckAuthority(pointer.GetType(), backup));
+               REQUIRE_FALSE(Allocator::Find(pointer.GetType(), backup));
             #endif
             REQUIRE(pointer2.HasAuthority());
             REQUIRE(pointer.HasAuthority());
@@ -173,7 +169,7 @@ TEMPLATE_TEST_CASE("Double-referenced shared pointer", "[TPointer]",
    using TT = TypeOf<T>;
 
    GIVEN("A templated shared pointer") {
-      IF_LANGULUS_MANAGED_MEMORY(Fractalloc.CollectGarbage());
+      IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
       T pointer;
       T pointer2;
@@ -239,8 +235,8 @@ TEMPLATE_TEST_CASE("Double-referenced shared pointer", "[TPointer]",
             REQUIRE(*pointer == 6);
             REQUIRE(*pointer2 == 6);
             #if LANGULUS_FEATURE(MANAGED_MEMORY)
-               REQUIRE(Fractalloc.CheckAuthority(pointer.GetType(), backup));
-               REQUIRE_FALSE(Fractalloc.Find(pointer.GetType(), backup));
+               REQUIRE(Allocator::CheckAuthority(pointer.GetType(), backup));
+               REQUIRE_FALSE(Allocator::Find(pointer.GetType(), backup));
             #endif
             REQUIRE(pointer2.HasAuthority());
             REQUIRE(pointer.HasAuthority());

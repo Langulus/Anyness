@@ -329,7 +329,7 @@ namespace Langulus::Anyness
 
          Block previousBlock {*this};
          const auto request = RequestSize(mCount + 1);
-         mutableThis->mEntry = Fractalloc.Reallocate(request.mByteSize, mEntry);
+         mutableThis->mEntry = Allocator::Reallocate(request.mByteSize, mEntry);
          LANGULUS_ASSERT(mEntry, Allocate, "Out of memory");
          mutableThis->mReserved = request.mElementCount;
 

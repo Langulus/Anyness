@@ -32,14 +32,14 @@ namespace Langulus::Anyness
 
       Offset infoOffset;
       const auto keyAndInfoSize = RequestKeyAndInfoSize(count, infoOffset);
-      mKeys.mEntry = Fractalloc.Allocate(mKeys.mType, keyAndInfoSize);
+      mKeys.mEntry = Allocator::Allocate(mKeys.mType, keyAndInfoSize);
       LANGULUS_ASSERT(mKeys.mEntry, Allocate, "Out of memory");
 
       const auto valueByteSize = RequestValuesSize(count);
-      mValues.mEntry = Fractalloc.Allocate(mValues.mType, valueByteSize);
+      mValues.mEntry = Allocator::Allocate(mValues.mType, valueByteSize);
 
       if (!mValues.mEntry) {
-         Fractalloc.Deallocate(mKeys.mEntry);
+         Allocator::Deallocate(mKeys.mEntry);
          mKeys.mEntry = nullptr;
          LANGULUS_THROW(Allocate, "Out of memory");
       }
@@ -70,9 +70,9 @@ namespace Langulus::Anyness
       Block oldKeys {mKeys};
       const auto keyAndInfoSize = RequestKeyAndInfoSize(count, infoOffset);
       if constexpr (REUSE)
-         mKeys.mEntry = Fractalloc.Reallocate(keyAndInfoSize, mKeys.mEntry);
+         mKeys.mEntry = Allocator::Reallocate(keyAndInfoSize, mKeys.mEntry);
       else
-         mKeys.mEntry = Fractalloc.Allocate(mKeys.mType, keyAndInfoSize);
+         mKeys.mEntry = Allocator::Allocate(mKeys.mType, keyAndInfoSize);
 
       LANGULUS_ASSERT(mKeys.mEntry, Allocate,
          "Out of memory on allocating/reallocating keys");
@@ -81,12 +81,12 @@ namespace Langulus::Anyness
       Block oldValues {mValues};
       const auto valueByteSize = RequestValuesSize(count);
       if constexpr (REUSE)
-         mValues.mEntry = Fractalloc.Reallocate(valueByteSize, mValues.mEntry);
+         mValues.mEntry = Allocator::Reallocate(valueByteSize, mValues.mEntry);
       else
-         mValues.mEntry = Fractalloc.Allocate(mValues.mType, valueByteSize);
+         mValues.mEntry = Allocator::Allocate(mValues.mType, valueByteSize);
 
       if (!mValues.mEntry) {
-         Fractalloc.Deallocate(mKeys.mEntry);
+         Allocator::Deallocate(mKeys.mEntry);
          mKeys.mEntry = nullptr;
          LANGULUS_THROW(Allocate,
             "Out of memory on allocating/reallocating values");
@@ -134,14 +134,14 @@ namespace Langulus::Anyness
             else {
                // Only values moved, reinsert them, rehash the rest     
                RehashKeys(oldCount, oldValues);
-               Fractalloc.Deallocate(oldValues.mEntry);
+               Allocator::Deallocate(oldValues.mEntry);
             }
             return;
          }
          else if (mValues.mEntry == oldValues.mEntry) {
             // Only keys moved, reinsert them, rehash the rest          
             RehashValues(oldCount, oldKeys);
-            Fractalloc.Deallocate(oldKeys.mEntry);
+            Allocator::Deallocate(oldKeys.mEntry);
             return;
          }
       }
@@ -189,8 +189,8 @@ namespace Langulus::Anyness
          if (oldValues.mEntry->GetUses() > 1)
             oldValues.mEntry->Free();
          else {
-            Fractalloc.Deallocate(oldValues.mEntry);
-            Fractalloc.Deallocate(oldKeys.mEntry);
+            Allocator::Deallocate(oldValues.mEntry);
+            Allocator::Deallocate(oldKeys.mEntry);
          }
       }
    }
@@ -247,8 +247,8 @@ namespace Langulus::Anyness
          }
 
          // Deallocate stuff                                            
-         Fractalloc.Deallocate(mKeys.mEntry);
-         Fractalloc.Deallocate(mValues.mEntry);
+         Allocator::Deallocate(mKeys.mEntry);
+         Allocator::Deallocate(mValues.mEntry);
       }
       else {
          // Data is used from multiple locations, just deref values     

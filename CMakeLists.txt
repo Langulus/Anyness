@@ -1,5 +1,10 @@
 cmake_minimum_required(VERSION 3.24)
-project(LangulusAnyness)
+project(LangulusAnyness
+    VERSION         1.0.0
+    DESCRIPTION     "Langulus container library"
+    HOMEPAGE_URL    https://langulus.com
+    LANGUAGES       CXX
+)
 
 # Check if this project is built as standalone, or a part of something else 
 if(PROJECT_IS_TOP_LEVEL OR NOT LANGULUS)
@@ -16,26 +21,26 @@ if(PROJECT_IS_TOP_LEVEL OR NOT LANGULUS)
     fetch_langulus_module(Core)
     fetch_langulus_module(Logger)
     fetch_langulus_module(RTTI)
+    if(LANGULUS_FEATURE_MANAGED_MEMORY)
+        fetch_langulus_module(Fractalloc)
+    endif()
     fetch_langulus_module(SIMD)
 endif()
 
 # Build and install Anyness library                                         
-if(LANGULUS_FEATURE_MANAGED_REFLECTION)
-    set(LANGULUS_ANYNESS_SOURCES source/fractalloc/Allocator.cpp)
-endif()
-
 add_library(LangulusAnyness ${LANGULUS_LIBRARY_TYPE}
     $<TARGET_OBJECTS:LangulusLogger>
     $<TARGET_OBJECTS:LangulusRTTI>
-    source/verbs/Compress.cpp
-    source/verbs/Encrypt.cpp
-    ${LANGULUS_ANYNESS_SOURCES}
+    $<$<BOOL:${LANGULUS_FEATURE_MANAGED_MEMORY}>:$<TARGET_OBJECTS:LangulusFractalloc>>
+    $<$<BOOL:${LANGULUS_FEATURE_COMPRESSION}>:source/verbs/Compress.cpp>
+    $<$<BOOL:${LANGULUS_FEATURE_ENCRYPTION}>:source/verbs/Encrypt.cpp>
 )
 
 target_include_directories(LangulusAnyness
     PUBLIC	    include
                 $<TARGET_PROPERTY:LangulusLogger,INTERFACE_INCLUDE_DIRECTORIES>
                 $<TARGET_PROPERTY:LangulusRTTI,INTERFACE_INCLUDE_DIRECTORIES>
+                $<$<BOOL:${LANGULUS_FEATURE_MANAGED_MEMORY}>:$<TARGET_PROPERTY:LangulusFractalloc,INTERFACE_INCLUDE_DIRECTORIES>>
 )
 
 target_link_libraries(LangulusAnyness

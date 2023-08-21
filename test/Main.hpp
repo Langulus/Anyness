@@ -24,3 +24,10 @@ inline Byte* asbytes(void* a) noexcept {
 inline const Byte* asbytes(const void* a) noexcept {
 	return reinterpret_cast<const Byte*>(a);
 }
+
+/// See https://github.com/catchorg/Catch2/blob/devel/docs/tostring.md        
+#define LANGULUS_EXCEPTION_HANDLER \
+   CATCH_TRANSLATE_EXCEPTION(::Langulus::Exception const& ex) { \
+      const Text serialized {ex}; \
+      return ::std::string {Token {serialized}}; \
+   }

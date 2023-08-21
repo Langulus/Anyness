@@ -40,11 +40,7 @@ struct Thing final : Resolvable {
 
 Thing::Thing() : Resolvable {MetaData::Of<Thing>()} {}
 
-/// See https://github.com/catchorg/Catch2/blob/devel/docs/tostring.md        
-CATCH_TRANSLATE_EXCEPTION(::Langulus::Exception const& ex) {
-   const Text serialized {ex};
-   return ::std::string {Token {serialized}};
-}
+LANGULUS_EXCEPTION_HANDLER
 
 SCENARIO("Testing incomplete type hierarchy", "[incomplete]") {
    GIVEN("A thing instance") {

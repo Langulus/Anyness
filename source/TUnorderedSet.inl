@@ -155,7 +155,7 @@ namespace Langulus::Anyness
          ClearInner();
 
          // Deallocate stuff                                            
-         Fractalloc.Deallocate(mKeys.mEntry);
+         Allocator::Deallocate(mKeys.mEntry);
       }
       else {
          // Data is used from multiple locations, just deref            
@@ -390,7 +390,7 @@ namespace Langulus::Anyness
 
       Offset infoOffset;
       const auto keyAndInfoSize = RequestKeyAndInfoSize(count, infoOffset);
-      mKeys.mEntry = Fractalloc.Allocate(mKeys.mType, keyAndInfoSize);
+      mKeys.mEntry = Allocator::Allocate(mKeys.mType, keyAndInfoSize);
       LANGULUS_ASSERT(mKeys.mEntry, Allocate, "Out of memory");
 
       mKeys.mReserved = count;
@@ -419,10 +419,10 @@ namespace Langulus::Anyness
       const Block oldKeys {mKeys};
       const auto keyAndInfoSize = RequestKeyAndInfoSize(count, infoOffset);
       if constexpr (REUSE)
-         mKeys.mEntry = Fractalloc.Reallocate(keyAndInfoSize, mKeys.mEntry);
+         mKeys.mEntry = Allocator::Reallocate(keyAndInfoSize, mKeys.mEntry);
       else {
          mKeys.mType = MetaData::Of<T>();
-         mKeys.mEntry = Fractalloc.Allocate(mKeys.mType, keyAndInfoSize);
+         mKeys.mEntry = Allocator::Allocate(mKeys.mType, keyAndInfoSize);
       }
 
       LANGULUS_ASSERT(mKeys.mEntry, Allocate, "Out of memory");
@@ -485,14 +485,14 @@ namespace Langulus::Anyness
          // When reusing, keys and values can potentially remain same   
          // Avoid deallocating them if that's the case                  
          if (oldKeys.mEntry != mKeys.mEntry)
-            Fractalloc.Deallocate(oldKeys.mEntry);
+            Allocator::Deallocate(oldKeys.mEntry);
       }
       else if (oldKeys.mEntry) {
          // Not reusing, so either deallocate, or dereference           
          if (oldKeys.mEntry->GetUses() > 1)
             oldKeys.mEntry->Free();
          else
-            Fractalloc.Deallocate(oldKeys.mEntry);
+            Allocator::Deallocate(oldKeys.mEntry);
       }
    }
 
@@ -696,7 +696,7 @@ namespace Langulus::Anyness
          ClearInner();
 
          // No point in resetting info, we'll be deallocating it        
-         Fractalloc.Deallocate(mKeys.mEntry);
+         Allocator::Deallocate(mKeys.mEntry);
       }
       else {
          // Data is used from multiple locations, just deref values     

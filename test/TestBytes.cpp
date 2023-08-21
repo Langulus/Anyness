@@ -9,18 +9,14 @@
 #include <Anyness/Text.hpp>
 #include <catch2/catch.hpp>
 
-/// See https://github.com/catchorg/Catch2/blob/devel/docs/tostring.md        
-CATCH_TRANSLATE_EXCEPTION(::Langulus::Exception const& ex) {
-   const Text serialized {ex};
-   return ::std::string {Token {serialized}};
-}
+LANGULUS_EXCEPTION_HANDLER
 
 SCENARIO("Byte manipulation", "[bytes]") {
    GIVEN("An empty byte container") {
       Bytes data;
 
       WHEN("Capacity is reserved, via Allocate()") {
-         IF_LANGULUS_MANAGED_MEMORY(Fractalloc.CollectGarbage());
+         IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
          data.Reserve(500);
          auto memory = data.GetRaw();
@@ -42,7 +38,7 @@ SCENARIO("Byte manipulation", "[bytes]") {
    }
 
    GIVEN("A filled byte container") {
-      IF_LANGULUS_MANAGED_MEMORY(Fractalloc.CollectGarbage());
+      IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
       const int randomStuff[] = { 1, 2, 3, 4, 5 };
       Bytes data {randomStuff, sizeof(randomStuff)};

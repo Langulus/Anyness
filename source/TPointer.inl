@@ -111,7 +111,7 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    void SHARED_POINTER()::New(ARGS&&... arguments) {
       TPointer pointer;
-      pointer.mEntry = Fractalloc.Allocate(
+      pointer.mEntry = Allocator::Allocate(
          RTTI::MetaData::Of<Decay<T>>(), 
          sizeof(Decay<T>)
       );

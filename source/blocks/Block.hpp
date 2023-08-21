@@ -11,12 +11,6 @@
 #include "../inner/Index.hpp"
 #include "../inner/Iterator.hpp"
 
-#if LANGULUS_FEATURE(MANAGED_MEMORY)
-   #include "../fractalloc/Allocator.hpp"
-#else
-   #include "../unmanaged/NoAllocator.hpp"
-#endif
-
 namespace Langulus::Flow
 {
 
@@ -29,8 +23,9 @@ namespace Langulus::Flow
 
 namespace Langulus::Anyness
 {
-   
+
    /// Predeclarations                                                        
+   using namespace ::Langulus::RTTI;
 
    template<class T, bool EMBED = true>
    struct Handle;
@@ -64,6 +59,7 @@ namespace Langulus::Anyness
    template<class, bool>
    class TPointer;
 
+#if LANGULUS_FEATURE(COMPRESSION)
    /// Compression types, analogous to zlib's                                 
    enum class Compression {
       None = 0,
@@ -73,6 +69,7 @@ namespace Langulus::Anyness
       
       Default = Fastest
    };
+#endif
 
    
    ///                                                                        

@@ -212,7 +212,8 @@ namespace Langulus::Anyness
             if (mCount)
                CallKnownDestructors<T>();
          }
-         Fractalloc.Deallocate(mEntry);
+
+         Allocator::Deallocate(mEntry);
          mEntry = nullptr;
          return;
       }
@@ -1519,7 +1520,7 @@ namespace Langulus::Anyness
             // significantly reduces the possiblity for a move)         
             // Sparse containers have additional memory allocated for   
             // each pointer's entry, if managed memory is enabled       
-            mEntry = Fractalloc.Reallocate(
+            mEntry = Allocator::Reallocate(
                request.mByteSize * (CT::Sparse<T> ? 2 : 1),
                mEntry
             );
@@ -1608,7 +1609,7 @@ namespace Langulus::Anyness
          // Guaranteed that entry doesn't move                          
          const auto request = RequestSize(elements);
          if (request.mElementCount != mReserved) {
-            (void)Fractalloc.Reallocate(
+            (void)Allocator::Reallocate(
                request.mByteSize * (CT::Sparse<T> ? 2 : 1),
                mEntry
             );
@@ -1624,7 +1625,7 @@ namespace Langulus::Anyness
    void TAny<T>::AllocateFresh(const RTTI::AllocationRequest& request) {
       // Sparse containers have additional memory allocated             
       // for each pointer's entry                                       
-      mEntry = Fractalloc.Allocate(
+      mEntry = Allocator::Allocate(
          GetType(), request.mByteSize * (CT::Sparse<T> ? 2 : 1)
       );
       LANGULUS_ASSERT(mEntry, Allocate, "Out of memory");

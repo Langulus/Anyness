@@ -60,7 +60,7 @@ namespace Langulus::Anyness
    ) SAFETY_NOEXCEPT()
       : Block {
          state + DataState::Constrained,
-         meta, count, raw, Fractalloc.Find(meta, raw)
+         meta, count, raw, Allocator::Find(meta, raw)
       } {}
    
    /// Manual construction from constant data                                 
@@ -339,7 +339,7 @@ namespace Langulus::Anyness
 
       // Cleanup temporary                                              
       temporary.CallUnknownDestructors();
-      Fractalloc.Deallocate(temporary.mEntry);
+      Allocator::Deallocate(temporary.mEntry);
    }
 
    /// Swap contents of this block, with the contents of another, using       
@@ -373,7 +373,7 @@ namespace Langulus::Anyness
 
       // Cleanup temporary                                              
       temporary.CallKnownDestructors<T>();
-      Fractalloc.Deallocate(temporary.mEntry);
+      Allocator::Deallocate(temporary.mEntry);
    }
 
 } // namespace Langulus::Anyness

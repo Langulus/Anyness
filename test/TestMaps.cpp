@@ -16,11 +16,7 @@
 #include <catch2/catch.hpp>
 #include <unordered_map>
 
-/// See https://github.com/catchorg/Catch2/blob/devel/docs/tostring.md        
-CATCH_TRANSLATE_EXCEPTION(::Langulus::Exception const& ex) {
-   const Text serialized {ex};
-   return ::std::string {Token {serialized}};
-}
+LANGULUS_EXCEPTION_HANDLER
 
 using uint = unsigned int;
 using timer = Catch::Benchmark::Chronometer;
@@ -197,7 +193,7 @@ TEMPLATE_TEST_CASE(
       }
 
       WHEN("Assigned a pair by move") {
-         IF_LANGULUS_MANAGED_MEMORY(Fractalloc.CollectGarbage());
+         IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
          auto movablePair = pair;
          map = ::std::move(movablePair);
@@ -314,7 +310,7 @@ TEMPLATE_TEST_CASE(
    }
 
    GIVEN("Map with some items") {
-      IF_LANGULUS_MANAGED_MEMORY(Fractalloc.CollectGarbage());
+      IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
       // Arrays are dynamic to avoid constexprification                 
       const Pair darray1[5] {

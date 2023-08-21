@@ -1043,7 +1043,7 @@ namespace Langulus::Anyness
                   auto it = start;
                   auto entry = GetEntries() + at;
                   while (it != end) {
-                     *entry = Fractalloc.Find(MetaData::Of<Deptr<T>>(), it);
+                     *entry = Allocator::Find(MetaData::Of<Deptr<T>>(), it);
                      if (*entry)
                         (*entry)->Keep();
 
@@ -1380,7 +1380,7 @@ namespace Langulus::Anyness
             auto lhsPtr = const_cast<Block*>(this)->GetRawSparse();
             auto lhsEnt = const_cast<Block*>(this)->GetEntries();
             const auto lhsEnd = lhsPtr + count;
-            const auto allocation = Fractalloc.Allocate(mType->mOrigin, mType->mOrigin->mSize * count);
+            const auto allocation = Allocator::Allocate(mType->mOrigin, mType->mOrigin->mSize * count);
             allocation->Keep(count - 1);
 
             auto rhs = allocation->GetBlockStart();
@@ -1430,7 +1430,7 @@ namespace Langulus::Anyness
          auto lhsPtr = const_cast<Block*>(this)->GetRawSparse();
          auto lhsEnt = const_cast<Block*>(this)->GetEntries();
          const auto lhsEnd = lhsPtr + count;
-         const auto allocation = Fractalloc.Allocate(MetaData::Of<Decay<T>>(), sizeof(Decay<T>) * count);
+         const auto allocation = Allocator::Allocate(MetaData::Of<Decay<T>>(), sizeof(Decay<T>) * count);
          allocation->Keep(count - 1);
 
          auto rhs = allocation->template As<Decay<T>*>();
@@ -1487,7 +1487,7 @@ namespace Langulus::Anyness
             else if constexpr (::std::constructible_from<T, A...>) {
                // Set pointer and find entry                            
                (*lhs = ... = arguments);
-               *lhsEntry = Fractalloc.Find(mType, *lhs);
+               *lhsEntry = Allocator::Find(mType, *lhs);
             }
             else LANGULUS_ERROR("T is not constructible with these arguments");
 
@@ -2067,7 +2067,7 @@ namespace Langulus::Anyness
                // Free old LHS                                          
                if ((*lhsEntry)->GetUses() == 1) {
                   mType->mOrigin->mDestructor(*lhs);
-                  Fractalloc.Deallocate(*lhsEntry);
+                  Allocator::Deallocate(*lhsEntry);
                }
                else (*lhsEntry)->Free();
             }
@@ -2129,7 +2129,7 @@ namespace Langulus::Anyness
                // Free old LHS                                       
                if ((*lhsEntry)->GetUses() == 1) {
                   mType->mOrigin->mDestructor(*lhs);
-                  Fractalloc.Deallocate(*lhsEntry);
+                  Allocator::Deallocate(*lhsEntry);
                }
                else (*lhsEntry)->Free();
             }
