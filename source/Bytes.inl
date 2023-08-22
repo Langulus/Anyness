@@ -402,13 +402,13 @@ namespace Langulus::Anyness
          RequestMoreBytes(read, count, loader);
          const Token token {GetRawAs<Letter>() + read, count};
          if constexpr (CT::Same<META, MetaData>)
-            result = RTTI::Database.GetMetaData(token);
+            result = RTTI::GetMetaData(token);
          else if constexpr (CT::Same<META, RTTI::MetaVerb>)
-            result = RTTI::Database.GetMetaVerb(token);
+            result = RTTI::GetMetaVerb(token);
          else if constexpr (CT::Same<META, RTTI::MetaTrait>)
-            result = RTTI::Database.GetMetaTrait(token);
+            result = RTTI::GetMetaTrait(token);
          else if constexpr (CT::Same<META, RTTI::MetaConst>)
-            result = RTTI::Database.GetMetaConstant(token);
+            result = RTTI::GetMetaConstant(token);
          else
             LANGULUS_ERROR("Unsupported meta deserialization");
 
