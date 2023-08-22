@@ -49,14 +49,14 @@ namespace Langulus::Anyness
          constexpr bool Assert() const noexcept { return true; }
       };
 
-      LANGULUS(INLINED)
-      static NOD() Allocation* Allocate(RTTI::DMeta, const Size& size) SAFETY_NOEXCEPT() {
+      NOD() LANGULUS(INLINED)
+      static Allocation* Allocate(RTTI::DMeta, const Size& size) SAFETY_NOEXCEPT() {
          LANGULUS_ASSUME(DevAssumes, size, "Zero allocation is not allowed");
          return AlignedAllocate<Allocation>(size);
       }
 
-      LANGULUS(INLINED)
-      static NOD() Allocation* Reallocate(const Size& size, Allocation* previous) SAFETY_NOEXCEPT() {
+      NOD() LANGULUS(INLINED)
+      static Allocation* Reallocate(const Size& size, Allocation* previous) SAFETY_NOEXCEPT() {
          LANGULUS_ASSUME(DevAssumes, previous,
             "Reallocating nullptr");
          LANGULUS_ASSUME(DevAssumes, size != previous->GetAllocatedSize(),
@@ -83,13 +83,13 @@ namespace Langulus::Anyness
          ::std::free(entry->mPool);
       }
 
-      LANGULUS(INLINED)
-      static constexpr NOD() Allocation* Find(RTTI::DMeta, const void*) noexcept {
+      NOD() LANGULUS(INLINED)
+      static constexpr Allocation* Find(RTTI::DMeta, const void*) noexcept {
          return nullptr;
       }
 
-      LANGULUS(INLINED)
-      static constexpr NOD() bool CheckAuthority(RTTI::DMeta, const void*) noexcept {
+      NOD() LANGULUS(INLINED)
+      static constexpr bool CheckAuthority(RTTI::DMeta, const void*) noexcept {
          return false;
       }
 
