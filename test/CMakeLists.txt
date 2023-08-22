@@ -5,6 +5,7 @@ add_executable(LangulusAnynessTest
 	TestIncomplete.cpp
 	TestIteration.cpp
 	TestMaps.cpp
+	TestNeat.cpp
 	TestPointers.cpp
 	TestSets.cpp
 	TestTAny.cpp
