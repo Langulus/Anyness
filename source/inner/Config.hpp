@@ -64,6 +64,9 @@
    #define IF_LANGULUS_MANAGED_MEMORY(a) 
    #define IF_NOT_LANGULUS_MANAGED_MEMORY(a) a
    #include "NoAllocator.hpp"
+
+   using Allocator = ::Langulus::Anyness::Allocator;
+   using Allocation = ::Langulus::Anyness::Allocation;
 #endif
 
 /// Make the rest of the code aware, that Langulus::Anyness has been included 
