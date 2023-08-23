@@ -229,7 +229,7 @@ namespace Langulus::Anyness
    template<CT::Data T>
    LANGULUS(INLINED)
    TAny<Messy>* Neat::GetData() {
-      auto found = mAnythingElse.Find(MetaOf<T>());
+      auto found = mAnythingElse.Find(MetaData::Of<T>());
       if (not found)
          return nullptr;
       
@@ -251,7 +251,7 @@ namespace Langulus::Anyness
    template<CT::Data T>
    LANGULUS(INLINED)
    TAny<Construct>* Neat::GetConstructs() {
-      auto found = mConstructs.Find(MetaOf<T>());
+      auto found = mConstructs.Find(MetaData::Of<T>());
       if (not found)
          return nullptr;
       
