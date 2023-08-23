@@ -77,6 +77,8 @@ namespace Langulus::Anyness
       template<CT::Semantic S>
       Neat& operator = (S&&);
 
+      bool operator == (const Neat&) const;
+
       void Clear();
       void Reset();
 
@@ -84,16 +86,15 @@ namespace Langulus::Anyness
       template<CT::Data T>
       NOD() Construct MakeConstruct() const;
 
+      ///                                                                     
+      ///   Encapsulation                                                     
+      ///                                                                     
       NOD() Hash GetHash() const;
       NOD() constexpr bool IsEmpty() const noexcept;
       NOD() constexpr bool IsMissing() const;
       NOD() constexpr bool IsMissingDeep() const;
 
       NOD() constexpr explicit operator bool() const noexcept;
-
-      bool operator == (const Neat&) const;
-
-      void Merge(const Neat&);
 
       template<CT::Trait T>
       TAny<Any>* GetTraits();
@@ -122,6 +123,39 @@ namespace Langulus::Anyness
       bool ExtractData(D&) const;
       template<CT::Data D>
       bool ExtractDataAs(D&) const;
+
+      NOD() const Any* Get(TMeta, const Offset & = 0) const;
+      template<CT::Trait T>
+      NOD() const Any* Get(const Offset & = 0) const;
+
+      ///                                                                     
+      ///   Insertion                                                         
+      ///                                                                     
+      Neat& operator << (const CT::NotSemantic auto&);
+      Neat& operator << (CT::NotSemantic auto&);
+      Neat& operator << (CT::NotSemantic auto&&);
+      Neat& operator << (CT::Semantic auto&&);
+
+      Neat& operator >> (const CT::NotSemantic auto&);
+      Neat& operator >> (CT::NotSemantic auto&);
+      Neat& operator >> (CT::NotSemantic auto&&);
+      Neat& operator >> (CT::Semantic auto&&);
+
+      Neat& operator <<= (const CT::NotSemantic auto&);
+      Neat& operator <<= (CT::NotSemantic auto&);
+      Neat& operator <<= (CT::NotSemantic auto&&);
+      Neat& operator <<= (CT::Semantic auto&&);
+
+      Neat& operator >>= (const CT::NotSemantic auto&);
+      Neat& operator >>= (CT::NotSemantic auto&);
+      Neat& operator >>= (CT::NotSemantic auto&&);
+      Neat& operator >>= (CT::Semantic auto&&);
+
+      Neat& Set(const Trait&, const Offset & = 0);
+      template<CT::Trait T, CT::Semantic S>
+      void Set(S&&) const;
+
+      void Merge(const Neat&);
 
    protected:
       template<CT::Data... D, Offset... IDX>

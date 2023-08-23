@@ -426,5 +426,57 @@ namespace Langulus::Anyness
 
       return false;
    }
+   
+   /// Set a tagged argument inside constructor                               
+   ///   @param trait - trait to set                                          
+   ///   @param index - the index we're interested with if repeated           
+   ///   @return a reference to this construct for chaining                   
+   inline Neat& Neat::Set(const Trait& trait, const Offset& index) {
+      auto found = mTraits.Find(trait.GetTrait());
+      if (found) {
+         // A group of similar traits was found                         
+         auto& group = mTraits.GetValue(found);
+         if (group.GetCount() > index)
+            group[index] = static_cast<const Any&>(trait);
+         else
+            group << static_cast<const Any&>(trait);
+      }
+      else {
+         // If reached, a new trait group to be inserted                
+         mTraits[trait.GetTrait()] << static_cast<const Any&>(trait);
+      }
+
+      mHash = {};
+      return *this;
+   }
+
+   /// Get a tagged argument inside constructor                               
+   ///   @param meta - trait to search for                                    
+   ///   @param index - the index we're interested in, if repeated            
+   ///   @return selected data or nullptr if none was found                   
+   ///   @attention if not nullptr, returned Any might contain a Neat         
+   inline const Any* Neat::Get(TMeta meta, const Offset& index) const {
+      auto found = mTraits.Find(meta);
+      if (found) {
+         auto& group = mTraits.GetValue(found);
+         if (group.GetCount() > index) {
+            // Found                                                    
+            return &group[index];
+         }
+      }
+
+      // Not found                                                      
+      return nullptr;
+   }
+
+   /// Get traits from constructor                                            
+   ///   @tparam T - the type of trait to search for                          
+   ///   @return selected data or nullptr if none was found                   
+   ///   @attention if not nullptr, returned Any might contain a Neat         
+   template<CT::Trait T>
+   LANGULUS(INLINED)
+   const Any* Neat::Get(const Offset& index) const {
+      return Get(T::GetTrait(), index);
+   }
 
 } // namespace Langulus::Anyness

@@ -104,32 +104,6 @@ namespace Langulus::Anyness
       void Clear();
       void Reset();
       void ResetCharge() noexcept;
-
-      /*template<CT::Data T>
-      Construct& operator << (const T&);
-      template<CT::Data T>
-      Construct& operator << (T&&);
-      template<CT::Data T>
-      Construct& operator >> (const T&);
-      template<CT::Data T>
-      Construct& operator >> (T&&);
-
-      template<CT::Data T>
-      Construct& operator <<= (const T&);
-      template<CT::Data T>
-      Construct& operator <<= (T&&);
-      template<CT::Data T>
-      Construct& operator >>= (const T&);
-      template<CT::Data T>
-      Construct& operator >>= (T&&);*/
-
-      Construct& Set(const Trait&, const Offset& = 0);
-      template<CT::Trait T, CT::Semantic S>
-      void Set(S&&) const;
-
-      NOD() const Any* Get(TMeta, const Offset& = 0) const;
-      template<CT::Trait T>
-      NOD() const Any* Get(const Offset& = 0) const;
    };
 
 } // namespace Langulus::Anyness
