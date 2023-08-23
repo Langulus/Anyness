@@ -140,6 +140,20 @@ namespace Langulus::Anyness
       return mKeys.IsAllocated();
    }
 
+   /// Check if the set is marked missing                                     
+   ///   @return true if the set is marked as missing                         
+   LANGULUS(INLINED)
+   constexpr bool BlockSet::IsMissing() const noexcept {
+      return mKeys.IsMissing();
+   }
+   
+   /// Check if the set contains at least one missing entry (nested)          
+   ///   @return true if the set has missing entries                          
+   LANGULUS(INLINED)
+   constexpr bool BlockSet::IsMissingDeep() const {
+      return mKeys.IsMissingDeep();
+   }
+
    /// Check if the memory for the table is owned by us                       
    /// This is always true, since the map can't be initialized with outside   
    /// memory - the memory layout requirements are too strict to allow for it 

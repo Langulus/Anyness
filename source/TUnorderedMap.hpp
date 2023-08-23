@@ -20,7 +20,7 @@ namespace Langulus::Anyness
    public:
       friend class BlockMap;
       static_assert(CT::Inner::Comparable<K>,
-         "Can't compare keys for map");
+         "Map's key type must be equality-comparable to itself");
 
       using Key = K;
       using Value = V;
@@ -103,11 +103,11 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Comparison                                                        
       ///                                                                     
-      bool operator == (const TUnorderedMap&) const;
+      bool operator == (const TUnorderedMap&) const requires (CT::Inner::Comparable<V>);
 
       NOD() bool ContainsKey(const K&) const;
-      NOD() bool ContainsValue(const V&) const;
-      NOD() bool ContainsPair(const Pair&) const;
+      NOD() bool ContainsValue(const V&) const requires (CT::Inner::Comparable<V>);
+      NOD() bool ContainsPair(const Pair&) const requires (CT::Inner::Comparable<V>);
       NOD() Index Find(const K&) const;
 
       NOD() decltype(auto) At(const K&);

@@ -75,6 +75,8 @@ namespace Langulus::Anyness
       NOD() constexpr Count GetReserved() const noexcept;
       NOD() constexpr bool IsEmpty() const noexcept;
       NOD() constexpr bool IsAllocated() const noexcept;
+      NOD() constexpr bool IsMissing() const noexcept;
+      NOD() constexpr bool IsMissingDeep() const;
       NOD() constexpr bool HasAuthority() const noexcept;
       NOD() constexpr Count GetUses() const noexcept;
 

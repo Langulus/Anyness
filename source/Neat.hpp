@@ -7,54 +7,89 @@
 ///                                                                           
 #pragma once
 #include "TUnorderedMap.hpp"
-#include "Construct.hpp"
+#include "Trait.hpp"
+#include "inner/Charge.hpp"
+
 
 namespace Langulus::Anyness
 {
 
+   class Construct;
    using Messy = Any;
 
 
    ///                                                                        
    ///   Neat - a normalized data container                                   
    ///                                                                        
-   /// Turns messy containers into neatly and consistently ordered ones,      
-   /// that are very fast on compare/search/insert/remove, but a bit larger.  
+   ///   Turns messy containers into neatly and consistently orderless ones,  
+   /// that are very fast on compare/search/insert/remove, albeit quite a bit 
+   /// larger.                                                                
+   ///   Neats are extensively used as descriptors in factories, to check     
+   /// whether an element with the same signature already exists.             
    ///                                                                        
-   struct Neat {
+   class Neat {
+   protected:
+      // The hash of the container                                      
+      // Kept as first member, in order to quickly access it            
+      mutable Hash mHash;
+
       // Traits are ordered first by their trait type, then by their    
       // order of appearance. Duplicate trait types are allowed         
       // Trait contents are also normalized all the way through         
       TUnorderedMap<TMeta, TAny<Any>> mTraits;
+
+      // Constructs pushed to Neat are deconstructed, because Construct 
+      // itself uses Neat as base, and we can't nest dense types        
+      struct DeConstruct {
+         Hash mHash;
+         Charge mCharge;
+         Any mData;
+
+         LANGULUS(INLINED)
+         bool operator == (const DeConstruct& rhs) const {
+            return mHash == rhs.mHash
+               and mCharge == rhs.mCharge
+               and mData == rhs.mData;
+         }
+      };
+
       // Subconstructs are sorted first by the construct type, and then 
       // by their order of appearance. Their contents are also          
       // nest-normalized all the way through                            
-      TUnorderedMap<DMeta, TAny<Construct>> mConstructs;
+      TUnorderedMap<DMeta, TAny<DeConstruct>> mConstructs;
       // Any other block type that doesn't fit in the above is sorted   
       // first by the block type, then by the order of appearance       
       // These sub-blocks won't contain Neat elements                   
       TUnorderedMap<DMeta, TAny<Messy>> mAnythingElse;
 
-      mutable Hash mHash;
-
    public:
-      Neat(const Neat&) = default;
-      Neat(Neat&&) noexcept = default;
+      constexpr Neat() = default;
+      constexpr Neat(const Neat&) = default;
+      constexpr Neat(Neat&&) noexcept = default;
+
       template<CT::Semantic S>
       Neat(S&&);
 
       Neat(const Messy&);
 
-      Neat& operator = (const Neat&) = default;
-      Neat& operator = (Neat&&) noexcept = default;
+      constexpr Neat& operator = (const Neat&) = default;
+      constexpr Neat& operator = (Neat&&) noexcept = default;
       template<CT::Semantic S>
       Neat& operator = (S&&);
+
+      void Clear();
+      void Reset();
 
       NOD() Messy MakeMessy() const;
       template<CT::Data T>
       NOD() Construct MakeConstruct() const;
 
       NOD() Hash GetHash() const;
+      NOD() constexpr bool IsEmpty() const noexcept;
+      NOD() constexpr bool IsMissing() const;
+      NOD() constexpr bool IsMissingDeep() const;
+
+      NOD() constexpr explicit operator bool() const noexcept;
 
       bool operator == (const Neat&) const;
 
@@ -96,5 +131,3 @@ namespace Langulus::Anyness
    };
 
 } // namespace Langulus::Anyness
-
-#include "Neat.inl"

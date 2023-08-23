@@ -25,7 +25,7 @@ namespace Langulus::Anyness
       static_assert(CT::Exact<TypeOf<S>, Neat>, "S type must be Neat");
 
       // Reset remote hash if moving                                    
-      if constexpr (S::Move)
+      if constexpr (S::Move && S::Keep)
          other->mHash = {};
    }
 
@@ -54,7 +54,7 @@ namespace Langulus::Anyness
             },
             [this](const MetaData* type) {
                // Insert an empty Construct to signify solo type ID     
-               mConstructs[type] << Construct {type};
+               mConstructs[type] << DeConstruct {};
             },
             [this](const MetaTrait* type) {
                // Insert an empty Any to signify trait without content  
@@ -69,13 +69,12 @@ namespace Langulus::Anyness
                Merge(Neat {cloned});
             },
             [this](const Construct& construct) {
-               // Normalize contents and push sort it by type           
-               if (construct.IsDeep()) {
-                  mConstructs[construct.GetType()] << Construct {
-                     construct.GetType(), Neat {construct}
-                  };
-               }
-               else mConstructs[construct.GetType()] << construct;
+               // Construct's arguments are always Neat, just push them 
+               mConstructs[construct.GetType()] << DeConstruct {
+                  construct.GetHash(),
+                  construct.GetCharge(),
+                  construct.GetArgument()
+               };
             }
          )) return;
 
@@ -100,9 +99,25 @@ namespace Langulus::Anyness
       mHash = other->mHash;
 
       // Reset remote hash if moving                                    
-      if constexpr (S::Move)
+      if constexpr (S::Move && S::Keep)
          other->mHash = {};
       return *this;
+   }
+
+   /// Clear the container without deallocating                               
+   inline void Neat::Clear() {
+      mHash = {};
+      mTraits.Clear();
+      mConstructs.Clear();
+      mAnythingElse.Clear();
+   }
+   
+   /// Clear and deallocate the container                                     
+   inline void Neat::Reset() {
+      mHash = {};
+      mTraits.Reset();
+      mConstructs.Reset();
+      mAnythingElse.Reset();
    }
 
    /// Turn the neat container to a messy one                                 
@@ -112,10 +127,15 @@ namespace Langulus::Anyness
       TAny<Trait> traits;
       for (auto pair : mTraits) {
          for (auto& data : pair.mValue) {
-            if (data.Is<Neat>())
-               traits << Trait::From(pair.mKey, data.Get<Neat>().MakeMessy());
-            else
-               traits << Trait::From(pair.mKey, data);
+            if (data.Is<Neat>()) {
+               traits << Trait::From(
+                  pair.mKey,
+                  data.Is<Neat>()
+                     ? data.Get<Neat>().MakeMessy()
+                     : data
+               );
+            }
+            else traits << Trait::From(pair.mKey, data);
          }
       }
       
@@ -123,14 +143,13 @@ namespace Langulus::Anyness
       TAny<Construct> constructs;
       for (auto pair : mConstructs) {
          for (auto& construct : pair.mValue) {
-            if (construct.GetArgument().Is<Neat>()) {
-               constructs << Construct(
-                  construct.GetType(),
-                  construct.GetArgument().Get<Neat>().MakeMessy(),
-                  construct.GetCharge()
-               );
-            }
-            else constructs << construct;
+            constructs << Construct {
+               pair.mKey,
+               construct.mData.Is<Neat>()
+                  ? construct.mData.Get<Neat>().MakeMessy()
+                  : construct.mData,
+               construct.mCharge
+            };
          }
       }
       
@@ -171,8 +190,41 @@ namespace Langulus::Anyness
       return mHash;
    }
 
+   /// Check if the container is empty                                        
+   ///   @return true if empty                                                
+   LANGULUS(INLINED)
+   constexpr bool Neat::IsEmpty() const noexcept {
+      return mTraits.IsEmpty()
+         and mConstructs.IsEmpty()
+         and mAnythingElse.IsEmpty();
+   }
+   
+   /// Check if the container has missing entries                             
+   ///   @return true if there's at least one missing entry                   
+   LANGULUS(INLINED)
+   constexpr bool Neat::IsMissing() const {
+      // Buckets are flattened anyways, so same as IsMissingDeep        
+      return IsMissingDeep();
+   }
+   
+   /// Check if the container has missing entries, nest-scan                  
+   ///   @return true if there's at least one missing entry                   
+   LANGULUS(INLINED)
+   constexpr bool Neat::IsMissingDeep() const {
+      return mTraits.IsMissingDeep()
+          or mConstructs.IsMissingDeep()
+          or mAnythingElse.IsMissingDeep();
+   }
+
+   /// Check if the container is not empty                                    
+   ///   @return true if not empty                                            
+   LANGULUS(INLINED)
+   constexpr Neat::operator bool() const noexcept {
+      return not IsEmpty();
+   }
+
    /// Compare neat container                                                 
-   ///   @attention order doesn't matter                                      
+   ///   @attention order matters only for data and traits of the same type   
    ///   @param rhs - the container to compare with                           
    ///   @return true if descriptors match                                    
    LANGULUS(INLINED)

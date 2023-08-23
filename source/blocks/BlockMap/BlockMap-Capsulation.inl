@@ -228,6 +228,20 @@ namespace Langulus::Anyness
    constexpr bool BlockMap::IsAllocated() const noexcept {
       return mValues.IsAllocated();
    }
+   
+   /// Check if the map is marked missing                                     
+   ///   @return true if the map is marked missing                            
+   LANGULUS(INLINED)
+   constexpr bool BlockMap::IsMissing() const noexcept {
+      return mValues.IsMissing();
+   }
+   
+   /// Check if the map contains at least one missing entry (nested)          
+   ///   @return true if the map has missing entries                          
+   LANGULUS(INLINED)
+   constexpr bool BlockMap::IsMissingDeep() const {
+      return mValues.IsMissingDeep();
+   }
 
    /// Check if the memory for the table is owned by us                       
    /// This is always true, since the map can't be initialized with outside   

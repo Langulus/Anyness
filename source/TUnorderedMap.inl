@@ -142,7 +142,7 @@ namespace Langulus::Anyness
    /// Destroys the map and all it's contents                                 
    TABLE_TEMPLATE()
    TABLE()::~TUnorderedMap() {
-      if (!mValues.mEntry)
+      if (not mValues.mEntry)
          return;
 
       if (mValues.mEntry->GetUses() == 1) {
@@ -532,7 +532,7 @@ namespace Langulus::Anyness
       const auto valueByteSize = RequestValuesSize(count);
       mValues.mEntry = Allocator::Allocate(mValues.mType, valueByteSize);
 
-      if (!mValues.mEntry) {
+      if (not mValues.mEntry) {
          Allocator::Deallocate(mKeys.mEntry);
          mKeys.mEntry = nullptr;
          LANGULUS_THROW(Allocate, "Out of memory");
@@ -583,7 +583,7 @@ namespace Langulus::Anyness
          mValues.mEntry = Allocator::Allocate(mValues.mType, valueByteSize);
       }
 
-      if (!mValues.mEntry) {
+      if (not mValues.mEntry) {
          Allocator::Deallocate(mKeys.mEntry);
          mKeys.mEntry = nullptr;
          LANGULUS_THROW(Allocate, "Out of memory");
@@ -744,7 +744,7 @@ namespace Langulus::Anyness
          return;
 
       // Allocate/Reallocate the keys and info                          
-      if (IsAllocated() && GetUses() == 1)
+      if (IsAllocated() and GetUses() == 1)
          AllocateData<true>(count);
       else
          AllocateData<false>(count);
@@ -931,7 +931,7 @@ namespace Langulus::Anyness
    TABLE_TEMPLATE()
    Count TABLE()::RemoveIndex(const Index& index) {
       const auto offset = index.GetOffset();
-      if (offset >= GetReserved() || 0 == mInfo[offset])
+      if (offset >= GetReserved() and not mInfo[offset])
          return 0;
 
       RemoveIndex(offset);
@@ -953,7 +953,7 @@ namespace Langulus::Anyness
 
       RemoveIndex(offset--); //TODO what if map shrinks, offset might become invalid? Doesn't shrink for now
       
-      while (offset < sentinel && 0 == mInfo[offset])
+      while (offset < sentinel and not mInfo[offset])
          --offset;
 
       if (offset >= sentinel)
@@ -1009,7 +1009,7 @@ namespace Langulus::Anyness
       }
 
       // Be aware, that psl might loop around                           
-      if (psl == pslEnd && *GetInfo() > 1) {
+      if (psl == pslEnd and *GetInfo() > 1) {
          psl = GetInfo();
          key = GetKeyHandle(0);
          val = GetValueHandle(0);
@@ -1077,7 +1077,7 @@ namespace Langulus::Anyness
    ///   @param other - the table to compare against                          
    ///   @return true if tables match                                         
    TABLE_TEMPLATE() LANGULUS(INLINED)
-   bool TABLE()::operator == (const TUnorderedMap& other) const {
+   bool TABLE()::operator == (const TUnorderedMap& other) const requires (CT::Inner::Comparable<V>) {
       if (other.GetCount() != GetCount())
          return false;
 
@@ -1087,7 +1087,7 @@ namespace Langulus::Anyness
          if (*info) {
             const auto lhs = info - GetInfo();
             const auto rhs = other.FindIndex(GetRawKey(lhs));
-            if (rhs == other.GetReserved() || GetRawValue(lhs) != other.GetRawValue(rhs))
+            if (rhs == other.GetReserved() or GetRawValue(lhs) != other.GetRawValue(rhs))
                return false;
          }
 
@@ -1118,7 +1118,7 @@ namespace Langulus::Anyness
    ///   @param value - the value to search for                               
    ///   @return true if value is found, false otherwise                      
    TABLE_TEMPLATE()
-   bool TABLE()::ContainsValue(const V& match) const {
+   bool TABLE()::ContainsValue(const V& match) const requires (CT::Inner::Comparable<V>) {
       if (IsEmpty())
          return false;
 
@@ -1127,7 +1127,7 @@ namespace Langulus::Anyness
       const auto infoEnd = GetInfoEnd();
 
       while (info != infoEnd) {
-         if (*info && *value == match)
+         if (*info and *value == match)
             return true;
 
          ++value; ++info;
@@ -1140,9 +1140,9 @@ namespace Langulus::Anyness
    ///   @param pair - the pair to search for                                 
    ///   @return true if pair is found, false otherwise                       
    TABLE_TEMPLATE() LANGULUS(INLINED)
-   bool TABLE()::ContainsPair(const Pair& pair) const {
+   bool TABLE()::ContainsPair(const Pair& pair) const requires (CT::Inner::Comparable<V>) {
       const auto found = FindIndex(pair.mKey);
-      return found != GetReserved() && GetValue(found) == pair.mValue;
+      return found != GetReserved() and GetValue(found) == pair.mValue;
    }
 
    /// Get the templated key container                                        
@@ -1182,7 +1182,7 @@ namespace Langulus::Anyness
       const auto found = FindIndex(key);
       if (found >= GetReserved()) {
          // Key wasn't found, but map is mutable and we can add it      
-         if constexpr (CT::Sparse<V> || CT::Nullifiable<V> || CT::Defaultable<V>) {
+         if constexpr (CT::Sparse<V> or CT::Nullifiable<V> or CT::Defaultable<V>) {
             // Defaultable value, so adding the key is acceptable       
             Insert(key, V {});
             return GetRawValue(FindIndex(key));
@@ -1213,7 +1213,7 @@ namespace Langulus::Anyness
    TABLE_TEMPLATE() LANGULUS(INLINED)
    const K& TABLE()::GetKey(const CT::Index auto& index) const {
       const auto idx = GetKeys().template SimplifyIndex<K, false>(index);
-      if (!mInfo[idx])
+      if (not mInfo[idx])
          LANGULUS_THROW(OutOfRange, "No pair at given index");
       return GetKeys().GetRaw()[idx];
    }
@@ -1225,7 +1225,7 @@ namespace Langulus::Anyness
    TABLE_TEMPLATE() LANGULUS(INLINED)
    K& TABLE()::GetKey(const CT::Index auto& index) {
       const auto idx = GetKeys().template SimplifyIndex<K, false>(index);
-      if (!mInfo[idx])
+      if (not mInfo[idx])
          LANGULUS_THROW(OutOfRange, "No pair at given index");
       return GetKeys().GetRaw()[idx];
    }
@@ -1237,7 +1237,7 @@ namespace Langulus::Anyness
    TABLE_TEMPLATE() LANGULUS(INLINED)
    const V& TABLE()::GetValue(const CT::Index auto& index) const {
       const auto idx = GetValues().template SimplifyIndex<V, false>(index);
-      if (!mInfo[idx])
+      if (not mInfo[idx])
          LANGULUS_THROW(OutOfRange, "No pair at given index");
       return GetValues().GetRaw()[idx];
    }
@@ -1249,7 +1249,7 @@ namespace Langulus::Anyness
    TABLE_TEMPLATE() LANGULUS(INLINED)
    V& TABLE()::GetValue(const CT::Index auto& index) {
       const auto idx = GetValues().template SimplifyIndex<V, false>(index);
-      if (!mInfo[idx])
+      if (not mInfo[idx])
          LANGULUS_THROW(OutOfRange, "No pair at given index");
       return GetValues().GetRaw()[idx];
    }
@@ -1261,7 +1261,7 @@ namespace Langulus::Anyness
    TABLE_TEMPLATE() LANGULUS(INLINED)
    typename TABLE()::PairConstRef TABLE()::GetPair(const CT::Index auto& i) const {
       const auto idx = GetValues().template SimplifyIndex<V, false>(i);
-      if (!mInfo[idx])
+      if (not mInfo[idx])
          LANGULUS_THROW(OutOfRange, "No pair at given index");
       return {GetKey(idx), GetValue(idx)};
    }
@@ -1315,7 +1315,7 @@ namespace Langulus::Anyness
 
       // Seek first valid info, or hit sentinel at the end              
       auto info = GetInfo();
-      while (!*info) ++info;
+      while (not *info) ++info;
 
       const auto offset = info - GetInfo();
       return {
@@ -1341,7 +1341,7 @@ namespace Langulus::Anyness
 
       // Seek first valid info in reverse, until one past first is met  
       auto info = GetInfoEnd();
-      while (info >= GetInfo() && !*--info);
+      while (info >= GetInfo() and not *--info);
 
       const auto offset = info - GetInfo();
       return {
@@ -1360,7 +1360,7 @@ namespace Langulus::Anyness
 
       // Seek first valid info, or hit sentinel at the end              
       auto info = GetInfo();
-      while (!*info) ++info;
+      while (not *info) ++info;
 
       const auto offset = info - GetInfo();
       return {
@@ -1386,7 +1386,7 @@ namespace Langulus::Anyness
 
       // Seek first valid info in reverse, until one past first is met  
       auto info = GetInfoEnd();
-      while (info >= GetInfo() && !*--info);
+      while (info >= GetInfo() and not *--info);
 
       const auto offset = info - GetInfo();
       return {
@@ -1403,7 +1403,7 @@ namespace Langulus::Anyness
    decltype(auto) TABLE()::Last() {
       LANGULUS_ASSERT(!IsEmpty(), Access, "Can't get last index");
       auto info = GetInfoEnd();
-      while (info >= GetInfo() && !*--info);
+      while (info >= GetInfo() and not *--info);
       return GetPair(static_cast<Offset>(info - GetInfo()));
    }
 
@@ -1414,7 +1414,7 @@ namespace Langulus::Anyness
    decltype(auto) TABLE()::Last() const {
       LANGULUS_ASSERT(!IsEmpty(), Access, "Can't get last index");
       auto info = GetInfoEnd();
-      while (info >= GetInfo() && !*--info);
+      while (info >= GetInfo() and not *--info);
       return GetPair(static_cast<Offset>(info - GetInfo()));
    }
 
@@ -1431,7 +1431,7 @@ namespace Langulus::Anyness
       static_assert(CT::Block<A>, "Function argument must be a block type");
 
       Offset i {};
-      if constexpr (!CT::Void<R>) {
+      if constexpr (not CT::Void<R>) {
          return GetKeys().ForEachElement([&](const Block& element) {
             return mInfo[i++] ? f(element) : Flow::Continue;
          });
@@ -1457,7 +1457,7 @@ namespace Langulus::Anyness
       static_assert(CT::Block<A>, "Function argument must be a block type");
 
       Offset i {};
-      if constexpr (!CT::Void<R>) {
+      if constexpr (not CT::Void<R>) {
          return GetKeys().ForEachElement([&](const Block& element) {
             return mInfo[i++] ? f(element) : Flow::Continue;
          });
@@ -1483,7 +1483,7 @@ namespace Langulus::Anyness
       static_assert(CT::Block<A>, "Function argument must be a block type");
 
       Offset i {};
-      if constexpr (!CT::Void<R>) {
+      if constexpr (not CT::Void<R>) {
          return GetValues().ForEachElement([&](const Block& element) {
             return mInfo[i++] ? f(element) : Flow::Continue;
          });
@@ -1509,7 +1509,7 @@ namespace Langulus::Anyness
       static_assert(CT::Block<A>, "Function argument must be a block type");
 
       Offset i {};
-      if constexpr (!CT::Void<R>) {
+      if constexpr (not CT::Void<R>) {
          return GetValues().ForEachElement([&](const Block& element) {
             return mInfo[i++] ? f(element) : Flow::Continue;
          });
@@ -1558,7 +1558,7 @@ namespace Langulus::Anyness
 
       // Seek next valid info, or hit sentinel at the end               
       const auto previous = mInfo;
-      while (!*++mInfo);
+      while (not *++mInfo);
       const auto offset = mInfo - previous;
       mKey += offset;
       mValue += offset;

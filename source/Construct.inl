@@ -7,102 +7,17 @@
 ///                                                                           
 #pragma once
 #include "Construct.hpp"
+#include "Neat.inl"
 
 namespace Langulus::Anyness
 {
+
+   /// Default constructor                                                    
+   LANGULUS(INLINED)
+   constexpr Construct::Construct() noexcept
+      : Neat {}
+      , Charge {} {}
    
-   /// Charge construction                                                    
-   ///   @param mass - the mass charge                                        
-   ///   @param freq - the frequency charge                                   
-   ///   @param time - the time charge                                        
-   ///   @param prio - the priority charge                                    
-   LANGULUS(INLINED)
-   constexpr Charge::Charge(Real mass, Real rate, Real time, Real prio) noexcept
-      : mMass {mass}
-      , mRate {rate}
-      , mTime {time}
-      , mPriority {prio} {}
-
-   /// Compare charges                                                        
-   ///   @param rhs - the charge to compare against                           
-   ///   @return true if both charges match exactly                           
-   LANGULUS(INLINED)
-   constexpr bool Charge::operator == (const Charge& rhs) const noexcept {
-      return mMass == rhs.mMass
-         and mRate == rhs.mRate
-         and mTime == rhs.mTime
-         and mPriority == rhs.mPriority;
-   }
-
-   /// Check if charge is default                                             
-   ///   @return true if charge is default                                    
-   LANGULUS(INLINED)
-   constexpr bool Charge::IsDefault() const noexcept {
-      return *this == Charge {};
-   }
-
-   /// Check if charge is default                                             
-   ///   @return true if charge is default                                    
-   LANGULUS(INLINED)
-   constexpr bool Charge::IsFlowDependent() const noexcept {
-      return mRate != DefaultRate
-          or mTime != DefaultTime
-          or mPriority != DefaultPriority;
-   }
-
-   /// Get the hash of the charge                                             
-   ///   @return the hash of the charge                                       
-   LANGULUS(INLINED)
-   Hash Charge::GetHash() const noexcept {
-      return HashOf(mMass, mRate, mTime, mPriority);
-   }
-
-   /// Reset the charge to the default                                        
-   LANGULUS(INLINED)
-   void Charge::Reset() noexcept {
-      mMass = DefaultMass;
-      mRate = DefaultRate;
-      mTime = DefaultTime;
-      mPriority = DefaultPriority;
-   }
-
-   /// Scale the mass of a charge                                             
-   ///   @param scalar - the scalar to multiply by                            
-   ///   @return a new charge instance with changed mass                      
-   LANGULUS(INLINED)
-   constexpr Charge Charge::operator * (const Real& scalar) const noexcept {
-      return {mMass * scalar, mRate, mTime, mPriority};
-   }
-
-   /// Scale the rate of a charge                                             
-   ///   @param scalar - the scalar to multiply by                            
-   ///   @return a new charge instance with changed rate                      
-   LANGULUS(INLINED)
-   constexpr Charge Charge::operator ^ (const Real& scalar) const noexcept {
-      return {mMass, mRate * scalar, mTime, mPriority};
-   }
-
-   /// Scale the mass of a charge (destructive)                               
-   ///   @param scalar - the scalar to multiply by                            
-   ///   @return a reference to this charge                                   
-   LANGULUS(INLINED)
-   constexpr Charge& Charge::operator *= (const Real& scalar) noexcept {
-      mMass *= scalar;
-      return *this;
-   }
-
-   /// Scale the rate of a charge (destructive)                               
-   ///   @param scalar - the scalar to multiply by                            
-   ///   @return a reference to this charge                                   
-   LANGULUS(INLINED)
-   constexpr Charge& Charge::operator ^= (const Real& scalar) noexcept {
-      mRate *= scalar;
-      return *this;
-   }
-
-
-
-
    /// Shallow-copy constructor                                               
    ///   @param other - construct to shallow-copy                             
    LANGULUS(INLINED)
@@ -121,14 +36,12 @@ namespace Langulus::Anyness
    template<CT::Semantic S>
    LANGULUS(INLINED)
    Construct::Construct(S&& other) requires (CT::Exact<TypeOf<S>, Construct>)
-      : Any {other.template Forward<Any>()}
+      : Neat {other.template Forward<Neat>()}
       , Charge {*other}
-      , mType {other->mType}
-      , mHash {other->mHash} {
+      , mType {other->mType} {
       if constexpr (S::Move && S::Keep) {
          other->ResetCharge();
          other->mType = nullptr;
-         other->mHash = {};
       }
    }
 
@@ -171,7 +84,7 @@ namespace Langulus::Anyness
    template<CT::Semantic S>
    LANGULUS(INLINED)
    Construct::Construct(DMeta type, S&& arguments, const Charge& charge)
-      : Any {arguments.Forward()}
+      : Neat {arguments.Forward()}
       , Charge {charge}
       , mType {type ? type->mOrigin : nullptr} { }
 
@@ -226,8 +139,12 @@ namespace Langulus::Anyness
    template<CT::Semantic S>
    LANGULUS(INLINED)
    Construct& Construct::operator = (S&& rhs) requires (CT::Exact<TypeOf<S>, Construct>) {
-      Any::Free();
-      new (this) Construct {rhs.Forward()};
+      Neat::operator = (rhs.Forward<Neat>());
+      Charge::operator = (rhs->GetCharge());
+      if constexpr (S::Move && S::Keep) {
+         rhs->ResetCharge();
+         rhs->mType = nullptr;
+      }
       return *this;
    }
 
@@ -296,20 +213,27 @@ namespace Langulus::Anyness
       if (mHash.mHash)
          return mHash;
 
+      // Hash is the same as the Neat base, with the type on top        
       if (mType)
-         mHash = HashOf(mType->mHash, Any::GetHash());
+         mHash = HashOf(mType->mHash, Neat::GetHash());
       else
-         mHash = Any::GetHash();
+         mHash = Neat::GetHash();
 
       return mHash;
    }
 
-   /// Clears arguments and charge                                            
+   /// Clears arguments and charge, but doesn't deallocate                    
    LANGULUS(INLINED)
    void Construct::Clear() {
+      Neat::Clear();
       Charge::Reset();
-      Any::Reset();
-      mHash = {};
+   }
+   
+   /// Clears and deallocates arguments and charge                            
+   LANGULUS(INLINED)
+   void Construct::Reset() {
+      Neat::Reset();
+      Charge::Reset();
    }
 
    /// Reset charge                                                           
@@ -325,7 +249,7 @@ namespace Langulus::Anyness
    bool Construct::operator == (const Construct& rhs) const {
       return GetHash() == rhs.GetHash()
          and (mType == rhs.mType or (mType and mType->IsExact(rhs.mType)))
-         and Any::operator == (rhs.GetArgument());
+         and Neat::operator == (rhs.GetArgument());
    }
 
    /// Check if construct type can be interpreted as another type             
@@ -333,7 +257,7 @@ namespace Langulus::Anyness
    ///   @return true if able to interpret current header to 'type'           
    LANGULUS(INLINED)
    bool Construct::CastsTo(DMeta type) const {
-      return !type or (mType == type or mType->CastsTo(type));
+      return not type or (mType == type or mType->CastsTo(type));
    }
 
    /// Check if constructor header is exactly another type                    
@@ -341,57 +265,7 @@ namespace Langulus::Anyness
    ///   @return true if current header is 'type'                             
    LANGULUS(INLINED)
    bool Construct::Is(DMeta type) const {
-      return !type or (mType and mType->Is(type));
-   }
-
-   /// Set a tagged argument inside constructor                               
-   ///   @param trait - trait to set                                          
-   ///   @param index - the index we're interested with if repeated           
-   ///   @return a reference to this construct for chaining                   
-   inline Construct& Construct::Set(const Trait& trait, const Offset& index) {
-      bool done = false;
-      Count counter = 0;
-      ForEachDeep([&](Trait& t) {
-         if (t.GetTrait() != trait.GetTrait())
-            return Flow::Continue;
-
-         if (counter == index) {
-            t = trait;
-            mHash = {};
-            done = true;
-            return Flow::Break;
-         }
-            
-         ++counter;
-         return Flow::Continue;
-      });
-
-      if (!done)
-         *this << Any {trait};
-      return *this;
-   }
-
-   /// Get a tagged argument inside constructor                               
-   ///   @param meta - trait to search for                                    
-   ///   @param index - the index we're interested in, if repeated            
-   ///   @return selected trait or nullptr if none was found                  
-   inline const Trait* Construct::Get(TMeta meta, const Offset& index) const {
-      const Trait* found = nullptr;
-      Count counter = 0;
-      ForEachDeep([&](const Trait& t) {
-         if (t.GetTrait() != meta)
-            return Flow::Continue;
-
-         if (counter == index) {
-            found = &t;
-            return Flow::Break;
-         }
-
-         ++counter;
-         return Flow::Continue;
-      });
-
-      return found;
+      return not type or (mType and mType->Is(type));
    }
 
    /// Check if construct type can be interpreted as a given static type      
@@ -413,15 +287,15 @@ namespace Langulus::Anyness
    /// Get the argument for the construct                                     
    ///   @return the constant arguments container                             
    LANGULUS(INLINED)
-   const Any& Construct::GetArgument() const noexcept {
-      return static_cast<const Any&>(*this);
+   const Neat& Construct::GetArgument() const noexcept {
+      return static_cast<const Neat&>(*this);
    }
 
    /// Get the argument for the construct                                     
    ///   @return the arguments container                                      
    LANGULUS(INLINED)
-   Any& Construct::GetArgument() noexcept {
-      return static_cast<Any&>(*this);
+   Neat& Construct::GetArgument() noexcept {
+      return static_cast<Neat&>(*this);
    }
 
    /// Get construct's charge                                                 
@@ -465,7 +339,7 @@ namespace Langulus::Anyness
 
    /// Push arguments to the back by copy                                     
    ///   @param whatever - the thing you wish to copy and push                
-   template<CT::Data T>
+   /*template<CT::Data T>
    LANGULUS(INLINED)
    Construct& Construct::operator << (const T& whatever) {
       if (SmartPush<IndexBack>(whatever))
@@ -511,7 +385,7 @@ namespace Langulus::Anyness
       if constexpr (CT::Same<T, Trait>)
          return Set(DenseCast(whatever));
       else {
-         if (!FindDeep(whatever) and SmartPush<IndexBack>(whatever))
+         if (not FindDeep(whatever) and SmartPush<IndexBack>(whatever))
             mHash = {};
          return *this;
       }
@@ -525,7 +399,7 @@ namespace Langulus::Anyness
       if constexpr (CT::Same<T, Trait>)
          return Set(DenseCast(whatever));
       else {
-         if (!FindDeep(whatever) and SmartPush<IndexBack>(Forward<T>(whatever)))
+         if (not FindDeep(whatever) and SmartPush<IndexBack>(Forward<T>(whatever)))
             mHash = {};
          return *this;
       }
@@ -539,7 +413,7 @@ namespace Langulus::Anyness
       if constexpr (CT::Same<T, Trait>)
          Set(DenseCast(whatever));
       else {
-         if (!FindDeep(whatever) and SmartPush<IndexFront>(whatever))
+         if (not FindDeep(whatever) and SmartPush<IndexFront>(whatever))
             mHash = {};
       }
 
@@ -554,18 +428,60 @@ namespace Langulus::Anyness
       if constexpr (CT::Same<T, Trait>)
          Set(DenseCast(whatever));
       else {
-         if (!FindDeep(whatever) and SmartPush<IndexFront>(Forward<T>(whatever)))
+         if (not FindDeep(whatever) and SmartPush<IndexFront>(Forward<T>(whatever)))
             mHash = {};
       }
 
       return *this;
+   }*/
+   
+   /// Set a tagged argument inside constructor                               
+   ///   @param trait - trait to set                                          
+   ///   @param index - the index we're interested with if repeated           
+   ///   @return a reference to this construct for chaining                   
+   inline Construct& Construct::Set(const Trait& trait, const Offset& index) {
+      auto found = mTraits.Find(trait.GetTrait());
+      if (found) {
+         // A group of similar traits was found                         
+         auto& group = mTraits.GetValue(found);
+         if (group.GetCount() > index)
+            group[index] = static_cast<const Any&>(trait);
+         else
+            group << static_cast<const Any&>(trait);
+      }
+      else {
+         // If reached, a new trait group to be inserted                
+         mTraits[trait.GetTrait()] << static_cast<const Any&>(trait);
+      }
+
+      mHash = {};
+      return *this;
+   }
+
+   /// Get a tagged argument inside constructor                               
+   ///   @param meta - trait to search for                                    
+   ///   @param index - the index we're interested in, if repeated            
+   ///   @return selected data or nullptr if none was found                   
+   inline const Any* Construct::Get(TMeta meta, const Offset& index) const {
+      auto found = mTraits.Find(meta);
+      if (found) {
+         auto& group = mTraits.GetValue(found);
+         if (group.GetCount() > index) {
+            // Found                                                    
+            return &group[index];
+         }
+      }
+
+      // Not found                                                      
+      return nullptr;
    }
 
    /// Get traits from constructor                                            
-   ///   @return pointer to found traits or nullptr if none found             
+   ///   @tparam T - the type of trait to search for                          
+   ///   @return pointer to found trait data or nullptr if none found         
    template<CT::Trait T>
    LANGULUS(INLINED)
-   const Trait* Construct::Get(const Offset& index) const {
+   const Any* Construct::Get(const Offset& index) const {
       return Get(T::GetTrait(), index);
    }
 

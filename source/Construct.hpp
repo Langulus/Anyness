@@ -6,79 +6,28 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "Trait.hpp"
+#include "Neat.hpp"
 
 namespace Langulus::Anyness
 {
-   
-   
-   ///                                                                        
-   ///   Charge, carrying the four verb dimensions                            
-   ///                                                                        
-   class Charge {
-      LANGULUS(POD) true;
-      LANGULUS(NULLIFIABLE) false;
-
-      // Mass of the verb                                               
-      Real mMass = DefaultMass;
-      // Frequency of the verb                                          
-      Real mRate = DefaultRate;
-      // Time of the verb                                               
-      Real mTime = DefaultTime;
-      // Priority of the verb                                           
-      Real mPriority = DefaultPriority;
-
-   public:
-      static constexpr Real DefaultMass {1};
-      static constexpr Real DefaultRate {0};
-      static constexpr Real DefaultTime {0};
-
-      static constexpr Real DefaultPriority {0};
-      static constexpr Real MinPriority {-10000};
-      static constexpr Real MaxPriority {+10000};
-
-      constexpr Charge(
-         Real = DefaultMass,
-         Real = DefaultRate,
-         Real = DefaultTime,
-         Real = DefaultPriority
-      ) noexcept;
-
-      NOD() constexpr bool operator == (const Charge&) const noexcept;
-
-      NOD() constexpr Charge operator * (const Real&) const noexcept;
-      NOD() constexpr Charge operator ^ (const Real&) const noexcept;
-
-      NOD() constexpr Charge& operator *= (const Real&) noexcept;
-      NOD() constexpr Charge& operator ^= (const Real&) noexcept;
-
-      NOD() constexpr bool IsDefault() const noexcept;
-      NOD() constexpr bool IsFlowDependent() const noexcept;
-      NOD() Hash GetHash() const noexcept;
-      void Reset() noexcept;
-   };
-
 
    ///                                                                        
    ///   Construct                                                            
    ///                                                                        
    ///   Used to contain constructor arguments for any type. It is just a     
-   /// type-erased Any, but also carries a charge and a type. Also, unlike    
-   /// Any, this one caches and updates its hash value on any change,         
-   /// speeding up comparisons a lot.                                         
+   /// type-erased Neat, but also carries a charge and a type. It is often    
+   /// used in Verbs::Create to provide instructions on how to instantiate a  
+   /// data type.                                                             
    ///                                                                        
-   class Construct : public Any, public Charge {
-      LANGULUS(POD) false;
-      LANGULUS(NULLIFIABLE) false;
-      LANGULUS(DEEP) false;
-      LANGULUS_BASES(Any, Charge);
-
+   class Construct : public Neat, public Charge {
    private:
+      // What are we constructing?                                      
       DMeta mType {};
-      mutable Hash mHash {};
 
    public:
-      constexpr Construct() noexcept = default;
+      LANGULUS_BASES(Neat, Charge);
+
+      constexpr Construct() noexcept;
       Construct(const Construct&) noexcept;
       Construct(Construct&&) noexcept;
 
@@ -131,12 +80,6 @@ namespace Langulus::Anyness
       // and relies on Verbs::Create                                    
       NOD() bool StaticCreation(Any&) const;
 
-   private:
-      // Omit these inherited from Any                                  
-      using Any::FromMeta;
-      using Any::FromBlock;
-      using Any::FromState;
-
    public:
       NOD() bool operator == (const Construct&) const;
 
@@ -148,8 +91,8 @@ namespace Langulus::Anyness
       template<CT::Data T>
       NOD() bool Is() const;
 
-      NOD() const Any& GetArgument() const noexcept;
-      NOD() Any& GetArgument() noexcept;
+      NOD() const Neat& GetArgument() const noexcept;
+      NOD() Neat& GetArgument() noexcept;
 
       NOD() const Charge& GetCharge() const noexcept;
       NOD() Charge& GetCharge() noexcept;
@@ -159,9 +102,10 @@ namespace Langulus::Anyness
       NOD() DMeta GetProducer() const noexcept;
 
       void Clear();
+      void Reset();
       void ResetCharge() noexcept;
 
-      template<CT::Data T>
+      /*template<CT::Data T>
       Construct& operator << (const T&);
       template<CT::Data T>
       Construct& operator << (T&&);
@@ -177,15 +121,15 @@ namespace Langulus::Anyness
       template<CT::Data T>
       Construct& operator >>= (const T&);
       template<CT::Data T>
-      Construct& operator >>= (T&&);
+      Construct& operator >>= (T&&);*/
 
       Construct& Set(const Trait&, const Offset& = 0);
       template<CT::Trait T, CT::Semantic S>
       void Set(S&&) const;
 
-      NOD() const Trait* Get(TMeta, const Offset& = 0) const;
+      NOD() const Any* Get(TMeta, const Offset& = 0) const;
       template<CT::Trait T>
-      NOD() const Trait* Get(const Offset& = 0) const;
+      NOD() const Any* Get(const Offset& = 0) const;
    };
 
 } // namespace Langulus::Anyness

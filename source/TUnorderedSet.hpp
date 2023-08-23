@@ -20,7 +20,7 @@ namespace Langulus::Anyness
    public:
       friend class BlockSet;
       static_assert(CT::Inner::Comparable<T>,
-         "Can't compare elements for set");
+         "Set's type must be equality-comparable to itself");
 
       using Value = T;
       using Self = TUnorderedSet<T>;
