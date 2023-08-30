@@ -112,8 +112,6 @@ namespace Langulus::Anyness
 
 } // namespace Langulus::Anyness
 
-#include "Bytes.inl"
-
 namespace Langulus::CT
 {
 

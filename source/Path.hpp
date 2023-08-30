@@ -40,5 +40,3 @@ namespace Langulus
    Anyness::Path operator "" _path(const char*, ::std::size_t);
 
 } // namespace Langulus
-
-#include "Path.inl"

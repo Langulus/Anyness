@@ -313,13 +313,3 @@ namespace Langulus::CT
    concept TypedSet = Set<T...> && Typed<T...>;
 
 } // namespace Langulus::CT
-
-#include "BlockSet/BlockSet-Construct.inl"
-#include "BlockSet/BlockSet-Capsulation.inl"
-#include "BlockSet/BlockSet-Indexing.inl"
-#include "BlockSet/BlockSet-RTTI.inl"
-#include "BlockSet/BlockSet-Compare.inl"
-#include "BlockSet/BlockSet-Memory.inl"
-#include "BlockSet/BlockSet-Insert.inl"
-#include "BlockSet/BlockSet-Remove.inl"
-#include "BlockSet/BlockSet-Iteration.inl"

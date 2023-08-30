@@ -7,6 +7,16 @@
 ///                                                                           
 #pragma once
 #include "UnorderedSet.hpp"
+#include "blocks/BlockSet/BlockSet-Construct.inl"
+#include "blocks/BlockSet/BlockSet-Capsulation.inl"
+#include "blocks/BlockSet/BlockSet-Indexing.inl"
+#include "blocks/BlockSet/BlockSet-RTTI.inl"
+#include "blocks/BlockSet/BlockSet-Compare.inl"
+#include "blocks/BlockSet/BlockSet-Memory.inl"
+#include "blocks/BlockSet/BlockSet-Insert.inl"
+#include "blocks/BlockSet/BlockSet-Remove.inl"
+#include "blocks/BlockSet/BlockSet-Iteration.inl"
+
 
 namespace Langulus::Anyness
 {

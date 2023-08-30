@@ -6,4 +6,4 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "../../source/TOrderedMap.hpp"
+#include "../../source/TOrderedMap.inl"

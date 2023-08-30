@@ -7,7 +7,9 @@
 ///                                                                           
 #pragma once
 #include "Neat.hpp"
-#include "Construct.hpp"
+#include "Construct.inl"
+#include "TUnorderedMap.inl"
+
 
 namespace Langulus::Anyness
 {

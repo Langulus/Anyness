@@ -8,6 +8,7 @@
 #pragma once
 #include "blocks/BlockMap.hpp"
 
+
 namespace Langulus::Anyness
 {
 
@@ -88,5 +89,3 @@ namespace Langulus::Anyness
    };
 
 } // namespace Langulus::Anyness
-
-#include "OrderedMap.inl"

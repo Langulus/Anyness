@@ -49,5 +49,3 @@ namespace Langulus::Anyness
    };
 
 } // namespace Langulus::Anyness
-
-#include "TPair.inl"

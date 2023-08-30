@@ -6,4 +6,4 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "../../source/TUnorderedMap.hpp"
+#include "../../source/TUnorderedMap.inl"

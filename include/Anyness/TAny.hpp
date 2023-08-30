@@ -6,4 +6,5 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "../../source/TAny.hpp"
+#include "../../source/TAny.inl"
+#include "../../source/TAny-Iteration.inl"

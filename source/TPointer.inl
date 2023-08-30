@@ -7,9 +7,11 @@
 ///                                                                           
 #pragma once
 #include "TPointer.hpp"
+#include "TOwned.inl"
 
 #define TEMPLATE_SHARED() template<class T, bool DR>
 #define SHARED_POINTER() TPointer<T, DR>
+
 
 namespace Langulus::Anyness
 {

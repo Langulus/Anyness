@@ -7,10 +7,15 @@
 ///                                                                           
 #pragma once
 #include "TUnorderedMap.hpp"
+#include "UnorderedMap.inl"
+#include "TPair.inl"
+#include "TAny.inl"
+#include "TAny-Iteration.inl"
 
 #define TABLE_TEMPLATE() template<CT::Data K, CT::Data V>
 #define TABLE() TUnorderedMap<K, V>
 #define ITERATOR() TABLE()::template TIterator<MUTABLE>
+
 
 namespace Langulus::Anyness
 {

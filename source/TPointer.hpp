@@ -134,8 +134,6 @@ namespace Langulus::Anyness
 
 } // namespace Langulus::Anyness
 
-#include "TPointer.inl"
-
 namespace fmt
 {
    

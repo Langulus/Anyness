@@ -7,6 +7,7 @@
 ///                                                                           
 #pragma once
 #include "TAny.hpp"
+#include "Any.inl"
 #include <cctype>
 
 #define TEMPLATE() template<CT::Data T>

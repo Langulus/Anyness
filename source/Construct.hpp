@@ -116,5 +116,3 @@ LANGULUS_DEFINE_TRAIT(Time,
    "Time of anything with charge, or with a temporal component");
 LANGULUS_DEFINE_TRAIT(Priority,
    "Priority of anything with charge, or some kind of priority");
-
-#include "Construct.inl"

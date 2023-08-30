@@ -71,5 +71,3 @@ namespace Langulus
    } // namespace Langulus::CT
 
 } // namespace Langulus
-
-#include "Pair.inl"

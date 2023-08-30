@@ -186,8 +186,6 @@ namespace Langulus
 
 } // namespace Langulus
 
-#include "Text.inl"
-
 namespace fmt
 {
    

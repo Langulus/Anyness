@@ -7,7 +7,6 @@
 ///                                                                           
 #pragma once
 #include "Config.hpp"
-#include <RTTI/MetaData.hpp>
 #include "../Text.hpp"
 
 

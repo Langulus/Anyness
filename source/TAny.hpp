@@ -8,6 +8,7 @@
 #pragma once
 #include "Any.hpp"
 
+
 namespace Langulus::Anyness
 {
    
@@ -389,6 +390,3 @@ namespace Langulus::Anyness
    };
 
 } // namespace Langulus::Anyness
-
-#include "TAny.inl"
-#include "TAny-Iteration.inl"

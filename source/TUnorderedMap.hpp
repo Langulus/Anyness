@@ -249,5 +249,3 @@ namespace Langulus::Anyness
    };
 
 } // namespace Langulus::Anyness
-
-#include "TUnorderedMap.inl"

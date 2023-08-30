@@ -8,7 +8,6 @@
 #include "Main.hpp"
 #include <Anyness/Text.hpp>
 #include <Anyness/Trait.hpp>
-#include <Anyness/TPair.hpp>
 #include <Anyness/TUnorderedMap.hpp>
 #include <Anyness/TMap.hpp>
 #include <Anyness/UnorderedMap.hpp>

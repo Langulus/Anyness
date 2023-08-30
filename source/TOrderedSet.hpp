@@ -65,5 +65,3 @@ namespace Langulus::Anyness
    using TSet = TOrderedSet<T>;
 
 } // namespace Langulus::Anyness
-
-#include "TOrderedSet.inl"

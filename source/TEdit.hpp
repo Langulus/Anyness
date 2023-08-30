@@ -72,5 +72,3 @@ namespace Langulus::Anyness
    }
 
 } // namespace Langulus::Anyness
-
-#include "TEdit.inl"

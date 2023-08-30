@@ -8,6 +8,7 @@
 #pragma once
 #include "blocks/BlockSet.hpp"
 
+
 namespace Langulus::Anyness
 {
 
@@ -59,5 +60,3 @@ namespace Langulus::Anyness
    };
 
 } // namespace Langulus::Anyness
-
-#include "UnorderedSet.inl"

@@ -7,6 +7,8 @@
 ///                                                                           
 #pragma once
 #include "Pair.hpp"
+#include "Any.inl"
+
 
 namespace Langulus::Anyness
 {

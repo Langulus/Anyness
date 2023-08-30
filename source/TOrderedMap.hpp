@@ -76,5 +76,3 @@ namespace Langulus::Anyness
    using TMap = TOrderedMap<K, V>;
 
 } // namespace Langulus::Anyness
-
-#include "TOrderedMap.inl"

@@ -11,6 +11,7 @@
 #include <Anyness/Referenced.hpp>
 #include <catch2/catch.hpp>
 
+
 /// Simple type for testing Ref                                              
 struct RT : Referenced {
    int data;

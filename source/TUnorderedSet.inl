@@ -7,10 +7,12 @@
 ///                                                                           
 #pragma once
 #include "TUnorderedSet.hpp"
+#include "UnorderedSet.inl"
 
 #define TABLE_TEMPLATE() template<CT::Data T>
 #define TABLE() TUnorderedSet<T>
 #define ITERATOR() TABLE()::template TIterator<MUTABLE>
+
 
 namespace Langulus::Anyness
 {

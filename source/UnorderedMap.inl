@@ -7,6 +7,17 @@
 ///                                                                           
 #pragma once
 #include "UnorderedMap.hpp"
+#include "Pair.inl"
+#include "blocks/BlockMap/BlockMap-Construct.inl"
+#include "blocks/BlockMap/BlockMap-Capsulation.inl"
+#include "blocks/BlockMap/BlockMap-Indexing.inl"
+#include "blocks/BlockMap/BlockMap-RTTI.inl"
+#include "blocks/BlockMap/BlockMap-Compare.inl"
+#include "blocks/BlockMap/BlockMap-Memory.inl"
+#include "blocks/BlockMap/BlockMap-Insert.inl"
+#include "blocks/BlockMap/BlockMap-Remove.inl"
+#include "blocks/BlockMap/BlockMap-Iteration.inl"
+
 
 namespace Langulus::Anyness
 {

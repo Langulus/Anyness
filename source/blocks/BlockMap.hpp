@@ -385,13 +385,3 @@ namespace Langulus::CT
    concept TypedMap = Map<T...> && Typed<T...>;
 
 } // namespace Langulus::CT
-
-#include "BlockMap/BlockMap-Construct.inl"
-#include "BlockMap/BlockMap-Capsulation.inl"
-#include "BlockMap/BlockMap-Indexing.inl"
-#include "BlockMap/BlockMap-RTTI.inl"
-#include "BlockMap/BlockMap-Compare.inl"
-#include "BlockMap/BlockMap-Memory.inl"
-#include "BlockMap/BlockMap-Insert.inl"
-#include "BlockMap/BlockMap-Remove.inl"
-#include "BlockMap/BlockMap-Iteration.inl"

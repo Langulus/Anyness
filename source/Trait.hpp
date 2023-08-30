@@ -176,13 +176,13 @@ namespace Langulus::CT
    /// compatible to a Trait                                                  
    template<class... T>
    concept TraitBased = ((DerivedFrom<T, Anyness::Trait>
-         && sizeof(T) == sizeof(Anyness::Trait)
-      ) && ...);
+         and sizeof(T) == sizeof(Anyness::Trait)
+      ) and ...);
 
    /// A reflected trait type is any type that inherits Trait, is not Trait   
    /// itself, and is binary compatible to a Trait                            
    template<class... T>
-   concept Trait = TraitBased<T...> && (!Same<T, Anyness::Trait> && ...);
+   concept Trait = TraitBased<T...> and ((not Same<T, Anyness::Trait>) and ...);
 
 } // namespace Langulus::CT
 
@@ -247,5 +247,3 @@ LANGULUS_DEFINE_TRAIT(Input,
    "For accessing verb arguments, or general inputs of some operation");
 LANGULUS_DEFINE_TRAIT(Output,
    "For accessing the outputs of a verb, or general output of some operation");
-
-#include "Trait.inl"

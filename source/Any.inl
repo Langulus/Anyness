@@ -7,9 +7,18 @@
 ///                                                                           
 #pragma once
 #include "Any.hpp"
-#include "Text.hpp"
 #include "Neat.hpp"
+#include "blocks/Block/Block-Capsulation.inl"
+#include "blocks/Block/Block-Compare.inl"
+#include "blocks/Block/Block-Construct.inl"
+#include "blocks/Block/Block-Indexing.inl"
+#include "blocks/Block/Block-Insert.inl"
+#include "blocks/Block/Block-Iteration.inl"
+#include "blocks/Block/Block-Memory.inl"
+#include "blocks/Block/Block-Remove.inl"
+#include "blocks/Block/Block-RTTI.inl"
 #include <utility>
+
 
 namespace Langulus::Anyness
 {

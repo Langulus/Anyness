@@ -7,6 +7,8 @@
 ///                                                                           
 #pragma once
 #include "Trait.hpp"
+#include "Any.inl"
+
 
 namespace Langulus::Anyness
 {

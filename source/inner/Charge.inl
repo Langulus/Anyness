@@ -7,6 +7,8 @@
 ///                                                                           
 #pragma once
 #include "DataState.hpp"
+#include "../Text.inl"
+
 
 namespace Langulus::Anyness
 {

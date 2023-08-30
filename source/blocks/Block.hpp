@@ -860,13 +860,3 @@ namespace Langulus::CT
    concept Construct = ((Exact<Decay<T>, Anyness::Construct>) and ...);
 
 } // namespace Langulus::CT
-
-#include "Block/Block-Construct.inl"
-#include "Block/Block-Capsulation.inl"
-#include "Block/Block-Indexing.inl"
-#include "Block/Block-RTTI.inl"
-#include "Block/Block-Compare.inl"
-#include "Block/Block-Memory.inl"
-#include "Block/Block-Insert.inl"
-#include "Block/Block-Remove.inl"
-#include "Block/Block-Iteration.inl"

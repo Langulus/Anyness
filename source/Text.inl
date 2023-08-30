@@ -7,9 +7,12 @@
 ///                                                                           
 #pragma once
 #include "Text.hpp"
+#include "TAny.inl"
+#include "TAny-Iteration.inl"
 #include <charconv>
 #include <limits>
 #include <cstring>
+
 
 namespace Langulus::Anyness
 {

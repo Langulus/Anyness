@@ -8,6 +8,7 @@
 #pragma once
 #include "blocks/Block.hpp"
 
+
 namespace Langulus::Anyness
 {
    
@@ -188,5 +189,3 @@ namespace Langulus::Anyness
    };
 
 } // namespace Langulus::Anyness
-
-#include "Any.inl"

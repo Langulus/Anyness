@@ -7,9 +7,14 @@
 ///                                                                           
 #pragma once
 #include "TOrderedMap.hpp"
+#include "OrderedMap.inl"
+#include "TPair.inl"
+#include "TAny.inl"
+#include "TAny-Iteration.inl"
 
 #define TEMPLATE() template<CT::Data K, CT::Data V>
 #define TABLE() TOrderedMap<K, V>
+
 
 namespace Langulus::Anyness
 {

@@ -7,9 +7,11 @@
 ///                                                                           
 #pragma once
 #include "TOrderedSet.hpp"
+#include "OrderedSet.inl"
 
 #define TEMPLATE() template<CT::Data T>
 #define TABLE() TOrderedSet<T>
+
 
 namespace Langulus::Anyness
 {
