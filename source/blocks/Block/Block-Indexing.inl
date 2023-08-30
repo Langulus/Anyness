@@ -373,8 +373,7 @@ namespace Langulus::Anyness
    /// Get a deep element block                                               
    ///   @param index - the index to get                                      
    ///   @return the element block                                            
-   LANGULUS(INLINED)
-   Block Block::GetElementDeep(Count index) noexcept {
+   inline Block Block::GetElementDeep(Count index) noexcept {
       if (not IsDeep())
          return index < mCount ? GetElement(index) : Block {};
 
