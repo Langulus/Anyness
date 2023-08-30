@@ -58,6 +58,10 @@ namespace Langulus::Anyness
    class TOwned;
    template<class, bool>
    class TPointer;
+   
+   class Construct;
+   using Messy = Any;
+   class Neat;
 
 #if LANGULUS_FEATURE(COMPRESSION)
    /// Compression types, analogous to zlib's                                 
@@ -88,8 +92,6 @@ namespace Langulus::Anyness
       static constexpr bool Ownership = false;
       static constexpr bool Sequential = true;
 
-      friend struct Descriptor;
-
       friend class Any;
       template<CT::Data>
       friend class TAny;
@@ -118,6 +120,9 @@ namespace Langulus::Anyness
       friend class TOwned;
       template<class, bool>
       friend class TPointer;
+
+      friend class Neat;
+      friend class Construct;
 
       friend class ::Langulus::Flow::Verb;
       template<class>
@@ -301,12 +306,10 @@ namespace Langulus::Anyness
    
       // Intentionally undefined, because it requires Langulus::Flow    
       // and relies on Verbs::Interpret                                 
-      template<CT::Data T, bool FATAL_FAILURE = true>
-      NOD() T AsCast(Index) const;
-      // Intentionally undefined, because it requires Langulus::Flow    
-      // and relies on Verbs::Interpret                                 
-      template<CT::Data T, bool FATAL_FAILURE = true>
-      NOD() T AsCast() const;
+      // If you receive missing externals, include the following:       
+      //    #include <Flow/Verbs/Interpret.hpp>                         
+      template<CT::Data T, bool FATAL_FAILURE = true, CT::Index IDX = Offset>
+      NOD() T AsCast(const IDX& = {}) const;
    
       NOD() SAFETY_CONSTEXPR()
       Block Crop(const Offset&, const Count&) SAFETY_NOEXCEPT();
@@ -362,7 +365,7 @@ namespace Langulus::Anyness
       NOD() Block Prev() const SAFETY_NOEXCEPT();
 
       template<class, bool COUNT_CONSTRAINED = true, CT::Index INDEX>
-      Offset SimplifyIndex(const INDEX&) const noexcept(!LANGULUS_SAFE() && CT::Unsigned<INDEX>);
+      Offset SimplifyIndex(const INDEX&) const noexcept(not LANGULUS_SAFE() and CT::Unsigned<INDEX>);
 
    public:
       ///                                                                     
@@ -682,9 +685,9 @@ namespace Langulus::Anyness
       template<CT::Data T>
       void CallKnownDefaultConstructors(Count) const;
 
-      void CallUnknownDescriptorConstructors(Count, const Descriptor&) const;
+      void CallUnknownDescriptorConstructors(Count, const Neat&) const;
       template<CT::Data>
-      void CallKnownDescriptorConstructors(Count, const Descriptor&) const;
+      void CallKnownDescriptorConstructors(Count, const Neat&) const;
 
       template<CT::Data, class... A>
       void CallKnownConstructors(Count, A&&...) const;
@@ -696,10 +699,12 @@ namespace Langulus::Anyness
       template<CT::Semantic S>
       void ShallowBatchPointerConstruction(Count, S&&) const;
 
-      template<CT::Semantic S>
-      void CallUnknownSemanticAssignment(Count, S&&) const;
       template<CT::Data, CT::Semantic S>
       void CallKnownSemanticAssignment(Count, S&&) const;
+
+   public:
+      template<CT::Semantic S>
+      void CallUnknownSemanticAssignment(Count, S&&) const;
 
    public:
       ///                                                                     
@@ -825,7 +830,7 @@ namespace Langulus::CT
    /// Keep in mind, that sparse types are never considered Block!            
    template<class... T>
    concept Block = ((DerivedFrom<T, Anyness::Block> 
-      && sizeof(T) == sizeof(Anyness::Block)) && ...);
+      and sizeof(T) == sizeof(Anyness::Block)) and ...);
 
    /// A deep type is any type with a true static member T::CTTI_Deep,        
    /// is binary compatible with Block, as well as having the same interface  
@@ -835,16 +840,24 @@ namespace Langulus::CT
    /// itself. Use LANGULUS(DEEP) macro as member to tag deep types           
    /// Keep in mind, that sparse types are never considered Deep!             
    template<class... T>
-   concept Deep = ((Block<T> && Decay<T>::CTTI_Deep) && ...);
+   concept Deep = ((Block<T> and Decay<T>::CTTI_Deep) and ...);
 
    /// Type that is not deep, see CT::Deep                                    
    template<class... T>
-   concept Flat = ((!Deep<T>) && ...);
+   concept Flat = ((not Deep<T>) and ...);
 
    /// Check if a type can be handled generically by templates, and           
    /// doesn't	require any special handling                                   
    template<class... T>
-   concept CustomData = ((Data<T> && Flat<T> && NotSemantic<T>) && ...);
+   concept CustomData = ((Data<T> and Flat<T> and NotSemantic<T>) and ...);
+
+   /// Check if Ts are Neat(s)                                                
+   template<class... T>
+   concept Neat = ((Exact<Decay<T>, Anyness::Neat>) and ...);
+
+   /// Check if Ts are Construct(s)                                           
+   template<class... T>
+   concept Construct = ((Exact<Decay<T>, Anyness::Construct>) and ...);
 
 } // namespace Langulus::CT
 

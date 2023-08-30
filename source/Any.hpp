@@ -187,23 +187,6 @@ namespace Langulus::Anyness
       NOD() TIterator operator ++ (int) noexcept;
    };
 
-   /// A descriptor is just an uniquely typed Any, in order to be used in     
-   /// dedicated constructors                                                 
-   struct Descriptor : Any {
-      LANGULUS(DEEP) false;
-      LANGULUS_BASES(Any);
-
-      using Any::Any;
-
-      // Disable semantic constructors to avoid some implicit conversts 
-      Descriptor(CT::Semantic auto&&) = delete;
-
-      Descriptor(const Any& other)
-         : Any {other} {}
-      Descriptor(Any&& other)
-         : Any {Forward<Any>(other)} {}
-   };
-
 } // namespace Langulus::Anyness
 
 #include "Any.inl"

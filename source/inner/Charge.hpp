@@ -8,6 +8,8 @@
 #pragma once
 #include "Config.hpp"
 #include <RTTI/MetaData.hpp>
+#include "../Text.hpp"
+
 
 namespace Langulus::Anyness
 {
@@ -18,6 +20,7 @@ namespace Langulus::Anyness
    class Charge {
       LANGULUS(POD) true;
       LANGULUS(NULLIFIABLE) false;
+      LANGULUS_CONVERSIONS(Debug);
 
       // Mass of the verb                                               
       Real mMass = DefaultMass;
@@ -56,6 +59,8 @@ namespace Langulus::Anyness
       NOD() constexpr bool IsFlowDependent() const noexcept;
       NOD() Hash GetHash() const noexcept;
       void Reset() noexcept;
+
+      NOD() explicit operator Debug() const;
    };
 
 } // namespace Langulus::Anyness

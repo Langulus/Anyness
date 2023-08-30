@@ -35,7 +35,7 @@ namespace Langulus::Anyness
    ///   @param other - the construct and semantic                            
    template<CT::Semantic S>
    LANGULUS(INLINED)
-   Construct::Construct(S&& other) requires (CT::Exact<TypeOf<S>, Construct>)
+   Construct::Construct(S&& other) requires (CT::Construct<TypeOf<S>>)
       : Neat {other.template Forward<Neat>()}
       , Charge {*other}
       , mType {other->mType} {
@@ -138,10 +138,10 @@ namespace Langulus::Anyness
    ///   @return a reference to this construct                                
    template<CT::Semantic S>
    LANGULUS(INLINED)
-   Construct& Construct::operator = (S&& rhs) requires (CT::Exact<TypeOf<S>, Construct>) {
-      Neat::operator = (rhs.Forward<Neat>());
+   Construct& Construct::operator = (S&& rhs) requires (CT::Construct<TypeOf<S>>) {
+      Neat::operator = (rhs.template Forward<Neat>());
       Charge::operator = (rhs->GetCharge());
-      if constexpr (S::Move && S::Keep) {
+      if constexpr (S::Move and S::Keep) {
          rhs->ResetCharge();
          rhs->mType = nullptr;
       }

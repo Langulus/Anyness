@@ -735,7 +735,7 @@ namespace Langulus::Anyness
       else if constexpr (sizeof...(A) == 1) {
          using F = Decvq<Deref<typename TTypeList<A...>::First>>;
 
-         if constexpr (CT::Exact<Descriptor, F>) {
+         if constexpr (CT::Exact<Neat, F>) {
             // Attempt descriptor-construction                          
             region.CallUnknownDescriptorConstructors(count, arguments...);
             mCount += count;
@@ -751,7 +751,7 @@ namespace Langulus::Anyness
          }
       }
 
-      // Attempt wrapping argument(s) in a Descriptor, and doing        
+      // Attempt wrapping argument(s) in a Neat, and doing              
       // descriptor-construction, if available                          
       LANGULUS_ASSERT(
          mType->mDescriptorConstructor, Construct,
@@ -760,7 +760,7 @@ namespace Langulus::Anyness
       );
 
       //TODO if stuff moved, we should move stuff back if this throws...
-      Descriptor descriptor {Block::From(arguments)...};
+      Neat descriptor {Block::From(arguments)...};
       region.CallUnknownDescriptorConstructors(count, descriptor);
       mCount += count;
    }

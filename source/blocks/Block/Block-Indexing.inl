@@ -151,7 +151,7 @@ namespace Langulus::Anyness
    ///   @return either pointer or reference to the element (depends on T)    
    template<CT::Data T, CT::Index IDX>
    decltype(auto) Block::As(const IDX& index) {
-      if (!mType)
+      if (not mType)
          LANGULUS_THROW(Access, "Untyped block");
 
       // First quick type stage for fast access                         
@@ -163,7 +163,7 @@ namespace Langulus::Anyness
       // Second fallback stage for compatible bases and mappings        
       const auto idx = SimplifyIndex<void>(index);
       RTTI::Base base;
-      if (!mType->template GetBase<T>(0, base)) {
+      if (not mType->template GetBase<T>(0, base)) {
          // There's still a chance if this container is resolvable      
          // This is the third and final stage                           
          auto resolved = GetElementResolved(idx);
@@ -325,27 +325,37 @@ namespace Langulus::Anyness
    }
 
    /// Get a deep memory sub-block                                            
-   ///   @param index - the index to get, where 0 corresponds to this block   
+   ///   @param index - the index to get, indices are mapped as the following:
+   ///      0 always refers to this block                                     
+   ///      [1; mCount] always refer to subblocks in this block               
+   ///      [mCount + 1; mCount + N] refer to subblocks in the first subblock 
+   ///                               N being the size of that subblock        
+   ///      ... and so on ...                                                 
    ///   @return a pointer to the block or nullptr if index is invalid        
    inline Block* Block::GetBlockDeep(Count index) noexcept {
+      // Zero index always returns this                                 
       if (index == 0)
          return this;
-      if (!IsDeep())
+      if (not IsDeep())
          return nullptr;
 
       --index;
 
+      // [1; mCount] always refer to subblocks in this block            
+      if (index < mCount)
+         return GetRawAs<Block>() + index;
+
+      index -= mCount;
+
+      // [mCount + 1; mCount + N] refer to subblocks in local blocks    
       auto data = GetRawAs<Block>();
       const auto dataEnd = data + mCount;
       while (data != dataEnd) {
-         const auto count = data->GetCountDeep();
-         if (index <= count) {
-            const auto subpack = data->GetBlockDeep(index);
-            if (subpack)
-               return subpack;
-         }
+         const auto subpack = data->GetBlockDeep(index + 1);
+         if (subpack)
+            return subpack;
 
-         index -= count;
+         index -= data->GetCountDeep() - 1; //TODO excess loops here, should be retrieved from GetElementDeep above as an optimization
          ++data;
       }
 
@@ -365,17 +375,17 @@ namespace Langulus::Anyness
    ///   @return the element block                                            
    LANGULUS(INLINED)
    Block Block::GetElementDeep(Count index) noexcept {
-      if (!IsDeep())
+      if (not IsDeep())
          return index < mCount ? GetElement(index) : Block {};
 
       auto data = GetRawAs<Block>();
       const auto dataEnd = data + mCount;
       while (data != dataEnd) {
-         const auto count = data->GetCountElementsDeep();
-         if (index < count) 
-            return data->GetElementDeep(index);
+         const auto subpack = data->GetElementDeep(index);
+         if (subpack)
+            return subpack;
 
-         index -= count;
+         index -= data->GetCountElementsDeep(); //TODO excess loops here, should be retrieved from GetElementDeep above as an optimization
          ++data;
       }
 
@@ -433,9 +443,9 @@ namespace Langulus::Anyness
       LANGULUS_ASSUME(DevAssumes, mCount > 0,
          "Block is empty");
 
-      Count counter {COUNT};
+      Count counter = COUNT;
       Block copy {*this};
-      while (counter && copy.mType->mIsSparse) {
+      while (counter and copy.mType->mIsSparse) {
          LANGULUS_ASSERT(copy.mType->mDeptr, Access,
             "Trying to interface incomplete data as dense");
 
@@ -475,7 +485,7 @@ namespace Langulus::Anyness
 
       const auto from = SimplifyIndex(from_);
       const auto to = SimplifyIndex(to_);
-      if (from >= mCount || to >= mCount || from == to)
+      if (from >= mCount or to >= mCount or from == to)
          return;
 
       auto data = GetRawAs<T>();
@@ -537,12 +547,14 @@ namespace Langulus::Anyness
          while (tail != dataEnd) {
             if (*data == *tail)
                ++counter;
+
             if (counter + (dataEnd - tail) <= best_count)
                break;
+
             ++tail;
          }
 
-         if (counter > best_count || !best) {
+         if (counter > best_count or not best) {
             best_count = counter;
             best = data;
          }
@@ -620,7 +632,7 @@ namespace Langulus::Anyness
    ///   @return the block representing the region                            
    LANGULUS(INLINED)
    Block Block::CropInner(const Offset& start, const Count& count) const SAFETY_NOEXCEPT() {
-      LANGULUS_ASSUME(DevAssumes, mRaw != nullptr,
+      LANGULUS_ASSUME(DevAssumes, mRaw,
          "Block is not allocated");
       LANGULUS_ASSUME(DevAssumes, IsTyped(),
          "Block is not typed");
@@ -634,7 +646,7 @@ namespace Langulus::Anyness
    /// Get next element by incrementing data pointer (for inner use)          
    LANGULUS(INLINED)
    void Block::Next() SAFETY_NOEXCEPT() {
-      LANGULUS_ASSUME(DevAssumes, mRaw != nullptr,
+      LANGULUS_ASSUME(DevAssumes, mRaw,
          "Block is not allocated");
       LANGULUS_ASSUME(DevAssumes, IsTyped(),
          "Block is not typed");
@@ -645,7 +657,7 @@ namespace Langulus::Anyness
    /// Get previous element by decrementing data pointer (for inner use)      
    LANGULUS(INLINED)
    void Block::Prev() SAFETY_NOEXCEPT() {
-      LANGULUS_ASSUME(DevAssumes, mRaw != nullptr,
+      LANGULUS_ASSUME(DevAssumes, mRaw,
          "Block is not allocated");
       LANGULUS_ASSUME(DevAssumes, IsTyped(),
          "Block is not typed");
@@ -657,7 +669,7 @@ namespace Langulus::Anyness
    ///   @return a new block with the incremented pointer                     
    LANGULUS(INLINED)
    Block Block::Next() const SAFETY_NOEXCEPT() {
-      LANGULUS_ASSUME(DevAssumes, mRaw != nullptr,
+      LANGULUS_ASSUME(DevAssumes, mRaw,
          "Block is not allocated");
       LANGULUS_ASSUME(DevAssumes, IsTyped(),
          "Block is not typed");
@@ -671,7 +683,7 @@ namespace Langulus::Anyness
    ///   @return a new block with the decremented pointer                     
    LANGULUS(INLINED)
    Block Block::Prev() const SAFETY_NOEXCEPT() {
-      LANGULUS_ASSUME(DevAssumes, mRaw != nullptr,
+      LANGULUS_ASSUME(DevAssumes, mRaw,
          "Block is not allocated");
       LANGULUS_ASSUME(DevAssumes, IsTyped(),
          "Block is not typed");
@@ -701,13 +713,13 @@ namespace Langulus::Anyness
    ///   @return the offset                                                   
    template<class T, bool COUNT_CONSTRAINED, CT::Index INDEX>
    LANGULUS(INLINED)
-   Offset Block::SimplifyIndex(const INDEX& index) const noexcept(!LANGULUS_SAFE() && CT::Unsigned<INDEX>) {
+   Offset Block::SimplifyIndex(const INDEX& index) const noexcept(not LANGULUS_SAFE() and CT::Unsigned<INDEX>) {
       if constexpr (CT::Same<INDEX, Index>) {
          // This is the most safe path, throws on errors                
          if constexpr (CT::Void<T>)
             return Constrain<COUNT_CONSTRAINED>(index).GetOffset();
          else {
-            if constexpr (!CT::Void<T>)
+            if constexpr (not CT::Void<T>)
                LANGULUS_ASSUME(DevAssumes, (CastsTo<T, true>()), "Type mismatch");
 
             return ConstrainMore<T, COUNT_CONSTRAINED>(index).GetOffset();

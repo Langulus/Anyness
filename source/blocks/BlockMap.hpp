@@ -99,6 +99,10 @@ namespace Langulus::Anyness
 
       NOD() constexpr Size GetBytesize() const noexcept;
       NOD() constexpr Count GetCount() const noexcept;
+      NOD() Count GetKeyCountDeep() const noexcept;
+      NOD() Count GetKeyCountElementsDeep() const noexcept;
+      NOD() Count GetValueCountDeep() const noexcept;
+      NOD() Count GetValueCountElementsDeep() const noexcept;
       NOD() constexpr Count GetReserved() const noexcept;
       NOD() constexpr bool IsEmpty() const noexcept;
       NOD() constexpr bool IsAllocated() const noexcept;
@@ -125,6 +129,9 @@ namespace Langulus::Anyness
       NOD() const InfoType* GetInfo() const noexcept;
       NOD() InfoType* GetInfo() noexcept;
       NOD() const InfoType* GetInfoEnd() const noexcept;
+
+      NOD() Count GetCountDeep(const Block&) const noexcept;
+      NOD() Count GetCountElementsDeep(const Block&) const noexcept;
 
    public:
       ///                                                                     
@@ -213,14 +220,15 @@ namespace Langulus::Anyness
    protected:
       template<bool MUTABLE, bool REVERSE, class F>
       Count ForEachSplitter(Block&, F&&);
-      template<bool SKIP, bool MUTABLE, bool REVERSE, class F>
-      Count ForEachDeepSplitter(Block&, F&&);
       template<class R, CT::Data A, bool REVERSE, bool MUTABLE, class F>
       Count ForEachInner(Block&, F&&);
-      template<class R, CT::Data A, bool REVERSE, bool SKIP, bool MUTABLE, class F>
-      Count ForEachDeepInner(Block&, F&&);
       template<bool REVERSE, bool MUTABLE, class F>
       Count ForEachElement(Block&, F&&);
+
+      template<bool SKIP, bool MUTABLE, bool REVERSE, class F>
+      Count ForEachDeepSplitter(Count, Block&, F&&);
+      template<class R, CT::Data A, bool REVERSE, bool SKIP, bool MUTABLE, class F>
+      Count ForEachDeepInner(Count, Block&, F&&);
 
    public:
       ///                                                                     

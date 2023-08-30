@@ -147,6 +147,10 @@ namespace Langulus::Anyness
          AllocateFresh(RequestSize(count));
          InsertInner<Copied<T>>(*other, *other + count, 0);
       }
+      else if constexpr (CT::Neat<ST>) {
+         // Descriptor constructor - check if Neat contains Ts          
+         TODO();
+      }
       else LANGULUS_ERROR("Bad semantic construction");
    }
    

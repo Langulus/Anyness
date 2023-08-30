@@ -12,86 +12,131 @@
 namespace Langulus::Anyness
 {
 
-   /// Semantic initialization from another neat container                    
+   /// Copy-constructor                                                       
+   ///   @param other - neat container to shallow-copy                        
+   LANGULUS(INLINED)
+   Neat::Neat(const Neat& other)
+      : Neat {Copy(other)} {}
+
+   /// Move-constructor                                                       
+   ///   @param other - neat container to move                                
+   LANGULUS(INLINED)
+   Neat::Neat(Neat&& other) noexcept
+      : Neat {Move(other)} {}
+
+   /// Semantic constructor from Neat                                         
    ///   @tparam S - semantic to use (deducible)                              
    ///   @param other - the container to use                                  
    template<CT::Semantic S>
    LANGULUS(INLINED)
-   Neat::Neat(S&& other)
-      : mTraits {S::Nest(other->mTraits)}
+   Neat::Neat(S&& other) requires (CT::Neat<TypeOf<S>>)
+      : mHash {other->mHash}
+      , mTraits {S::Nest(other->mTraits)}
       , mConstructs {S::Nest(other->mConstructs)}
-      , mAnythingElse {S::Nest(other->mAnythingElse)}
-      , mHash {other->mHash} {
-      static_assert(CT::Exact<TypeOf<S>, Neat>, "S type must be Neat");
-
+      , mAnythingElse {S::Nest(other->mAnythingElse)} {
       // Reset remote hash if moving                                    
-      if constexpr (S::Move && S::Keep)
+      if constexpr (S::Move and S::Keep)
          other->mHash = {};
    }
 
-   /// Compile a messy container, by removing Traits::Parent, and grouping    
-   /// elements in predictable ways, ensuring further comparisons are fast &  
-   /// orderless. Nested contents are normalized only if deep                 
-   ///   @param messy - the messy container to normalize                      
+   /// Copy-constructor from anything messy                                   
+   ///   @tparam T - messy type to use (deducible)                            
+   ///   @param messy - the messy thing to copy                               
+   template<CT::NotSemantic T>
    LANGULUS(INLINED)
-   Neat::Neat(const Messy& messy) {
-      messy.ForEachDeep([this](const Messy& group) {
-         if (group.IsOr())
-            TODO();
+   Neat::Neat(const T& messy) requires (not CT::Neat<T>)
+      : Neat {Copy(messy)} {}
 
-         if (group.ForEach(
-            [this](const Trait& trait) {
-               // Always skip parent traits                             
-               if (trait.TraitIs<Traits::Parent>())
-                  return;
-               
-               // Normalize trait contents and push sort it by its      
-               // trait type                                            
-               if (trait.IsDeep())
-                  mTraits[trait.GetTrait()] << Neat {trait};
-               else
-                  mTraits[trait.GetTrait()] << static_cast<const Any&>(trait);
-            },
-            [this](const MetaData* type) {
-               // Insert an empty Construct to signify solo type ID     
-               mConstructs[type] << DeConstruct {};
-            },
-            [this](const MetaTrait* type) {
-               // Insert an empty Any to signify trait without content  
-               mTraits[type] << Any {};
-            },
-            [this](const MetaConst* type) {
-               // Expand the constant, then normalize, and merge it     
-               Any wrapped = Block {{}, type};
+   /// Copy-constructor from anything messy                                   
+   ///   @tparam T - messy type to use (deducible)                            
+   ///   @param messy - the messy thing to copy                               
+   template<CT::NotSemantic T>
+   LANGULUS(INLINED)
+   Neat::Neat(T& messy) requires (not CT::Neat<T>)
+      : Neat {Copy(messy)} {}
 
-               // Clone it, so that we take authority over the data     
-               Any cloned = Clone(wrapped);
-               Merge(Neat {cloned});
-            },
-            [this](const Construct& construct) {
-               // Construct's arguments are always Neat, just push them 
-               mConstructs[construct.GetType()] << DeConstruct {
-                  construct.GetHash(),
-                  construct.GetCharge(),
-                  construct.GetArgument()
-               };
-            }
-         )) return;
+   /// Move-constructor from anything messy                                   
+   ///   @tparam T - messy type to use (deducible)                            
+   ///   @param messy - the messy thing to move                               
+   template<CT::NotSemantic T>
+   LANGULUS(INLINED)
+   Neat::Neat(T&& messy) requires (not CT::Neat<T>)
+      : Neat {Move(messy)} {}
 
-         // If reached, just propagate the block without changing it    
-         // But still sort it by block type                             
-         mAnythingElse[group.GetType()] << group;
-      });
+   /// Semantic constructor from anything messy                               
+   /// If container, it compiles it, by grouping elements in predictable      
+   /// ways, ensuring further comparisons are fast & orderless. Nested        
+   /// contents are normalized only if deep                                   
+   ///   @param messy - the messy stuff to normalize                          
+   template<CT::Semantic S>
+   LANGULUS(INLINED)
+   Neat::Neat(S&& messy) requires (not CT::Neat<TypeOf<S>>) {
+      using T = TypeOf<S>;
+
+      if constexpr (CT::Block<T>) {
+         // We'll be compiling a messy container                        
+         messy->ForEachDeep([this](const Messy& group) {
+            if (group.IsOr())
+               TODO();
+
+            if (group.ForEach(
+               [this](const Trait& trait) {
+                  AddTrait(Copy(trait));
+               },
+               [this](const MetaData* type) {
+                  // Insert an empty Construct to signify solo type ID  
+                  mConstructs[type] << Inner::DeConstruct {};
+               },
+               [this](const MetaTrait* type) {
+                  // Insert empty Any to signify trait without content  
+                  mTraits[type] << Any {};
+               },
+               [this](const MetaConst* type) {
+                  // Expand the constant, then normalize, and merge it  
+                  Any wrapped = Block {{}, type};
+
+                  // Clone it, so that we take authority over the data  
+                  Any cloned = Clone(wrapped);
+                  Merge(Neat {cloned});
+               },
+               [this](const Construct& construct) {
+                  // Construct's arguments are always Neat              
+                  mConstructs[construct.GetType()] << Inner::DeConstruct {
+                     construct.GetHash(),
+                     construct.GetCharge(),
+                     construct.GetArgument()
+                  };
+               }
+            )) return;
+
+            // If reached, just propagate the block without changing it 
+            // But still sort it by block's origin type                 
+            if (group.GetType())
+               mAnythingElse[group.GetType()->mOrigin] << group;
+         });
+      }
+      else operator << (messy.Forward());
+   }
+   
+   /// Pack any number of elements sequentially                               
+   /// If any of the types doesn't match exactly, the container becomes deep  
+   /// to incorporate all elements                                            
+   ///   @param head - first element                                          
+   ///   @param tail... - the rest of the elements                            
+   template<CT::Data HEAD, CT::Data... TAIL>
+   Neat::Neat(HEAD&& head, TAIL&&... tail) requires (sizeof...(TAIL) >= 1) {
+      operator << (Forward<HEAD>(head));
+      (operator << (Forward<TAIL>(tail)), ...);
    }
 
    /// Semantic assignment with another normalized descriptor                 
    ///   @tparam S - semantic to use (deducible)                              
    ///   @param other - normalized descriptor to assign                       
    ///   @return a reference to this descriptor                               
-   template<CT::Semantic S>
    LANGULUS(INLINED)
-   Neat& Neat::operator = (S&& other) {
-      static_assert(CT::Exact<TypeOf<S>, Neat>, "S type must be Neat");
+   Neat& Neat::operator = (CT::Semantic auto&& other) {
+      using S = Decay<decltype(other)>;
+      static_assert(CT::Neat<TypeOf<S>>, "S type must be Neat");
 
       mTraits = S::Nest(other->mTraits);
       mConstructs = S::Nest(other->mConstructs);
@@ -99,7 +144,7 @@ namespace Langulus::Anyness
       mHash = other->mHash;
 
       // Reset remote hash if moving                                    
-      if constexpr (S::Move && S::Keep)
+      if constexpr (S::Move and S::Keep)
          other->mHash = {};
       return *this;
    }
@@ -127,15 +172,10 @@ namespace Langulus::Anyness
       TAny<Trait> traits;
       for (auto pair : mTraits) {
          for (auto& data : pair.mValue) {
-            if (data.Is<Neat>()) {
-               traits << Trait::From(
-                  pair.mKey,
-                  data.Is<Neat>()
-                     ? data.Get<Neat>().MakeMessy()
-                     : data
-               );
-            }
-            else traits << Trait::From(pair.mKey, data);
+            if (data.Is<Neat>())
+               traits << Trait::From(pair.mKey, data.Get<Neat>().MakeMessy());
+            else
+               traits << Trait::From(pair.mKey, data);
          }
       }
       
@@ -143,13 +183,20 @@ namespace Langulus::Anyness
       TAny<Construct> constructs;
       for (auto pair : mConstructs) {
          for (auto& construct : pair.mValue) {
-            constructs << Construct {
-               pair.mKey,
-               construct.mData.Is<Neat>()
-                  ? construct.mData.Get<Neat>().MakeMessy()
-                  : construct.mData,
-               construct.mCharge
-            };
+            if (construct.mData.Is<Neat>()) {
+               constructs << Construct {
+                  pair.mKey,
+                  construct.mData.Get<Neat>().MakeMessy(),
+                  construct.mCharge
+               };
+            }
+            else {
+               constructs << Construct {
+                  pair.mKey,
+                  construct.mData,
+                  construct.mCharge
+               };
+            }
          }
       }
       
@@ -162,10 +209,20 @@ namespace Langulus::Anyness
             result << pair.mValue;
       }
 
-      if (traits)
-         result << Abandon(traits);
-      if (constructs)
-         result << Abandon(constructs);
+      if (traits) {
+         if (result)
+            result << Abandon(traits);
+         else
+            result = Abandon(traits);
+      }
+
+      if (constructs) {
+         if (result)
+            result << Abandon(constructs);
+         else
+            result = Abandon(constructs);
+      }
+
       return Abandon(result);
    }
 
@@ -249,7 +306,7 @@ namespace Langulus::Anyness
       mHash = HashOf(mTraits, mConstructs, mAnythingElse);
    }
 
-   /// Get list of traits, corresponding to a type                            
+   /// Get list of traits, corresponding to a static trait                    
    ///   @tparam T - trait type to search for                                 
    ///   @return the trait list, or nullptr if no such list exists            
    ///   @attention the list can be empty, if trait was provided with no      
@@ -257,14 +314,10 @@ namespace Langulus::Anyness
    template<CT::Trait T>
    LANGULUS(INLINED)
    TAny<Any>* Neat::GetTraits() {
-      auto found = mTraits.Find(T::GetTrait());
-      if (not found)
-         return nullptr;
-      
-      return &mTraits.GetValue(found);
+      return GetTraits(T::GetTrait());
    }
 
-   /// Get list of traits, corresponding to a type (const)                    
+   /// Get list of traits, corresponding to a static trait (const)            
    ///   @tparam T - trait type to search for                                 
    ///   @return the trait list, or nullptr if no such list exists            
    ///   @attention the list can be empty, if trait was provided with no      
@@ -272,16 +325,59 @@ namespace Langulus::Anyness
    template<CT::Trait T>
    LANGULUS(INLINED)
    const TAny<Any>* Neat::GetTraits() const {
-      return const_cast<Neat*>(this)->template GetTraits<T>();
+      return GetTraits(T::GetTrait());
    }
    
-   /// Get list of data, corresponding to a type                              
+   /// Get list of traits, corresponding to a type                            
+   ///   @param t - trait type to search for                                  
+   ///   @return the trait list, or nullptr if no such list exists            
+   ///   @attention the list can be empty, if trait was provided with no      
+   ///              contents                                                  
+   LANGULUS(INLINED)
+   TAny<Any>* Neat::GetTraits(TMeta t) {
+      LANGULUS_ASSUME(UserAssumes, t, "Can't get invalid trait");
+      auto found = mTraits.Find(t);
+      if (not found)
+         return nullptr;
+      
+      return &mTraits.GetValue(found);
+   }
+
+   /// Get list of traits, corresponding to a type (const)                    
+   ///   @param t - trait type to search for                                  
+   ///   @return the trait list, or nullptr if no such list exists            
+   ///   @attention the list can be empty, if trait was provided with no      
+   ///              contents                                                  
+   LANGULUS(INLINED)
+   const TAny<Any>* Neat::GetTraits(TMeta t) const {
+      return const_cast<Neat*>(this)->GetTraits(t);
+   }
+   
+   /// Get list of data, corresponding to a static type                       
    ///   @tparam T - type to search for                                       
    ///   @return the data list, or nullptr if no such list exists             
    template<CT::Data T>
    LANGULUS(INLINED)
    TAny<Messy>* Neat::GetData() {
-      auto found = mAnythingElse.Find(MetaData::Of<T>());
+      return GetData(MetaData::Of<Decay<T>>());
+   }
+
+   /// Get list of data, corresponding to a static type (const)               
+   ///   @tparam T - type to search for                                       
+   ///   @return the data list, or nullptr if no such list exists             
+   template<CT::Data T>
+   LANGULUS(INLINED)
+   const TAny<Messy>* Neat::GetData() const {
+      return GetData(MetaData::Of<Decay<T>>());
+   }
+      
+   /// Get list of data, corresponding to a type                              
+   ///   @param d - type to search for                                        
+   ///   @return the data list, or nullptr if no such list exists             
+   LANGULUS(INLINED)
+   TAny<Messy>* Neat::GetData(DMeta d) {
+      LANGULUS_ASSUME(UserAssumes, d, "Can't get invalid data");
+      auto found = mAnythingElse.Find(d);
       if (not found)
          return nullptr;
       
@@ -289,21 +385,38 @@ namespace Langulus::Anyness
    }
 
    /// Get list of data, corresponding to a type (const)                      
-   ///   @tparam T - type to search for                                       
+   ///   @param d - type to search for                                        
    ///   @return the data list, or nullptr if no such list exists             
-   template<CT::Data T>
    LANGULUS(INLINED)
-   const TAny<Messy>* Neat::GetData() const {
-      return const_cast<Neat*>(this)->template GetData<T>();
+   const TAny<Messy>* Neat::GetData(DMeta d) const {
+      return const_cast<Neat*>(this)->GetData(d);
    }
 
-   /// Get list of constructs, corresponding to a type                        
+   /// Get list of constructs, corresponding to a static type                 
    ///   @tparam T - type to search for                                       
    ///   @return the construct list, or nullptr if no such list exists        
    template<CT::Data T>
    LANGULUS(INLINED)
-   TAny<Construct>* Neat::GetConstructs() {
-      auto found = mConstructs.Find(MetaData::Of<T>());
+   TAny<Inner::DeConstruct>* Neat::GetConstructs() {
+      return GetConstructs(MetaData::Of<Decay<T>>());
+   }
+
+   /// Get list of constructs, corresponding to a static type (const)         
+   ///   @tparam T - type to search for                                       
+   ///   @return the construct list, or nullptr if no such list exists        
+   template<CT::Data T>
+   LANGULUS(INLINED)
+   const TAny<Inner::DeConstruct>* Neat::GetConstructs() const {
+      return GetConstructs(MetaData::Of<Decay<T>>());
+   }
+   
+   /// Get list of constructs, corresponding to a type                        
+   ///   @param d - type to search for                                        
+   ///   @return the construct list, or nullptr if no such list exists        
+   LANGULUS(INLINED)
+   TAny<Inner::DeConstruct>* Neat::GetConstructs(DMeta d) {
+      LANGULUS_ASSUME(UserAssumes, d, "Can't get invalid construct");
+      auto found = mConstructs.Find(d);
       if (not found)
          return nullptr;
       
@@ -311,52 +424,58 @@ namespace Langulus::Anyness
    }
 
    /// Get list of constructs, corresponding to a type (const)                
-   ///   @tparam T - type to search for                                       
+   ///   @param d - type to search for                                        
    ///   @return the construct list, or nullptr if no such list exists        
-   template<CT::Data T>
    LANGULUS(INLINED)
-   const TAny<Construct>* Neat::GetConstructs() const {
-      return const_cast<Neat*>(this)->template GetConstructs<T>();
+   const TAny<Inner::DeConstruct>* Neat::GetConstructs(DMeta d) const {
+      return const_cast<Neat*>(this)->GetConstructs(d);
    }
 
    /// Set a default trait, if such wasn't already set                        
    ///   @tparam T - trait to set                                             
-   ///   @tparam D - type of data to set it to (deducible)                    
    ///   @param value - the value to assign                                   
-   template<CT::Trait T, CT::Data D>
+   template<CT::Trait T>
    LANGULUS(INLINED)
-   void Neat::SetDefaultTrait(D&& value) {
+   void Neat::SetDefaultTrait(CT::Data auto&& value) {
       auto found = GetTraits<T>();
       if (found and *found)
          return;
 
-      *found = Forward<D>(value);
+      *found = ::std::move(value);
    }
 
    /// Overwrite trait, or add a new one, if not already set                  
    ///   @tparam T - trait to set                                             
-   ///   @tparam D - type of data to set it to (deducible)                    
    ///   @param value - the value to assign                                   
-   template<CT::Trait T, CT::Data D>
+   template<CT::Trait T>
    LANGULUS(INLINED)
-   void Neat::OverwriteTrait(D&& value) {
+   void Neat::OverwriteTrait(CT::Data auto&& value) {
       // Trait was found, overwrite it                                  
-      mTraits[T::GetTrait()] = Forward<D>(value);
+      mTraits[T::GetTrait()] = ::std::move(value);
    }
 
    /// Extract a trait from the descriptor                                    
-   ///   @tparam T - the trait we're searching for                            
-   ///   @tparam D - the type of the data we're extracting (deducible)        
+   ///   @tparam T... - trait(s) we're searching for                          
    ///   @param values - [out] where to save the value, if found              
    ///   @return true if value changed                                        
-   template<CT::Trait T, CT::Data... D>
+   template<CT::Trait... T>
    LANGULUS(INLINED)
-   bool Neat::ExtractTrait(D&... values) const {
+   bool Neat::ExtractTrait(CT::Data auto&... values) const {
+      return (ExtractTraitInner<T>(values...) || ...);
+   }
+   
+   /// Extract a trait from the descriptor                                    
+   ///   @tparam T - trait we're searching for                                
+   ///   @param values - [out] where to save the value, if found              
+   ///   @return true if value changed                                        
+   template<CT::Trait T>
+   LANGULUS(INLINED)
+   bool Neat::ExtractTraitInner(CT::Data auto&... values) const {
       auto found = GetTraits<T>();
       if (found) {
          return ExtractTraitInner(
             *found,
-            ::std::make_integer_sequence<Offset, sizeof...(D)> {},
+            ::std::make_integer_sequence<Offset, sizeof...(values)> {},
             values...
          );
       }
@@ -364,21 +483,22 @@ namespace Langulus::Anyness
    }
 
    ///                                                                        
-   template<CT::Data... D, Offset... IDX>
+   template<Offset... IDX>
    bool Neat::ExtractTraitInner(
       const TAny<Any>& found, 
       ::std::integer_sequence<Offset, IDX...>, 
-      D&... values
+      CT::Data auto&... values
    ) const {
-      return (ExtractTraitInnerInner<IDX, D>(found, values) or ...);
+      return (ExtractTraitInnerInner<IDX>(found, values) or ...);
    }
    
    ///                                                                        
-   template<Offset IDX, CT::Data D>
-   bool Neat::ExtractTraitInnerInner(const TAny<Any>& found, D& value) const {
+   template<Offset IDX>
+   bool Neat::ExtractTraitInnerInner(const TAny<Any>& found, CT::Data auto& value) const {
       if (IDX >= found.GetCount())
          return false;
 
+      using D = Deref<decltype(value)>;
       if constexpr (CT::Deep<D>) {
          value = found[IDX];
          return true;
@@ -391,42 +511,185 @@ namespace Langulus::Anyness
       return false;
    }
    
-   /// Extract data of an exact type                                          
-   ///   @tparam D - the type of the data we're extracting (deducible)        
-   ///   @param value - [out] where to save the value, if found               
-   ///   @return true if value changed                                        
-   template<CT::Data D>
+   /// Extract data of an exact type, doing only pointer arithmetic           
+   ///   @param value - [out] where to save the value(s), if found            
+   ///   @return the number of extracted values (always 1 if not an array)    
    LANGULUS(INLINED)
-   bool Neat::ExtractData(D& value) const {
-      auto found = GetData<D>();
-      if (found) {
-         value = found->Last().template Get<D>();
-         return true;
-      }
+   Count Neat::ExtractData(CT::Data auto& value) const {
+      using D = Deref<decltype(value)>;
+      if constexpr (CT::Array<D>) {
+         // Fill a bounded array                                        
+         auto found = GetData<Decay<D>>();
+         if (found) {
+            Count scanned = 0;
+            for (auto& group : *found) {
+               const auto toscan = ::std::min(ExtentOf<D> - scanned, group.GetCount());
+               for (Offset i = 0; i < toscan; ++i) {
+                  //TODO can be optimized-out for POD
+                  value[scanned + i] = group.template Get<Deext<D>>(i);
+               }
 
-      return false;
-   }
-   
-   /// Extract any data, convertible to D                                     
-   ///   @tparam D - the type of the data we're extracting (deducible)        
-   ///   @param value - [out] where to save the value, if found               
-   ///   @return true if value changed                                        
-   template<CT::Data D>
-   LANGULUS(INLINED)
-   bool Neat::ExtractDataAs(D& value) const {
-      for (auto pair : mAnythingElse) {
-         for (auto& group : pair.mValue) {
-            try {
-               value = group.AsCast<D>();
-               return true;
+               scanned += toscan;
+               if (scanned >= ExtentOf<D>)
+                  return ExtentOf<D>;
             }
-            catch (...) {}
+
+            return scanned;
+         }
+      }
+      else {
+         // Fill a single value                                         
+         auto found = GetData<Decay<D>>();
+         if (found) {
+            value = (*found)[0].template Get<D>();
+            return 1;
          }
       }
 
-      return false;
+      return 0;
    }
    
+   /// Push and sort anything non-semantic by a shallow-copy                  
+   ///   @param rhs - the thing to push                                       
+   ///   @return a reference to this Neat container                           
+   Neat& Neat::operator << (const CT::NotSemantic auto& rhs) {
+      return operator << (Copy(rhs));
+   }
+
+   /// Push and sort anything non-semantic by a shallow-copy                  
+   ///   @param rhs - the thing to push                                       
+   ///   @return a reference to this Neat container                           
+   Neat& Neat::operator << (CT::NotSemantic auto& rhs) {
+      return operator << (Copy(rhs));
+   }
+
+   /// Push and sort anything non-semantic by a move                          
+   ///   @param rhs - the thing to push                                       
+   ///   @return a reference to this Neat container                           
+   Neat& Neat::operator << (CT::NotSemantic auto&& rhs) {
+      return operator << (Move(rhs));
+   }
+
+   /// Push and sort anything semantically                                    
+   ///   @param rhs - the thing to push, as well as the semantic to use       
+   ///   @return a reference to this Neat container                           
+   Neat& Neat::operator << (CT::Semantic auto&& rhs) {
+      using S = Decay<decltype(rhs)>;
+      using T = TypeOf<S>;
+
+      if constexpr (CT::TraitBased<T>) {
+         // Insert trait to its bucket                                  
+         AddTrait(rhs.Forward());
+      }
+      else if constexpr (CT::Same<T, MetaData>) {
+         // Insert an empty Construct to signify solo type ID           
+         mConstructs[SparseCast(*rhs)] << Inner::DeConstruct {};
+      }
+      else if constexpr (CT::Same<T, MetaTrait>) {
+         // Insert empty Any to signify trait without content           
+         mTraits[SparseCast(*rhs)] << Any {};
+      }
+      else if constexpr (CT::Same<T, MetaConst>) {
+         // Expand the constant, then normalize, and merge it           
+         Any wrapped = Block {{}, SparseCast(*rhs)};
+
+         // Clone it, so that we take authority over the data           
+         Any cloned = Clone(wrapped);
+         Merge(Neat {cloned});
+      }
+      else if constexpr (CT::Construct<T>) {
+         // Construct's arguments are always Neat                       
+         mConstructs[rhs->GetType()] << Inner::DeConstruct {
+            rhs->GetHash(),
+            rhs->GetCharge(),
+            rhs->GetArgument()
+         };
+      }
+      else if constexpr (CT::Deep<T>) {
+         // Push anything deep here, flattening it, unless it is OR     
+         if (rhs->IsOr())
+            mAnythingElse[MetaData::Of<Any>()] << rhs.template Forward<Any>();
+         else {
+            rhs->ForEach([&](const Any& group) {
+               operator << (S::Nest(const_cast<Any&>(group)));
+            });
+         }
+      }
+      else mAnythingElse[MetaData::Of<Decay<T>>()] << rhs.Forward();
+
+      // Demand a new hash on the next compare                          
+      mHash = {};
+      return *this;
+   }
+
+   /// Merge anything non-semantic by a shallow-copy, if it doesn't exist yet 
+   ///   @param rhs - the thing to push                                       
+   ///   @return a reference to this Neat container                           
+   Neat& Neat::operator <<= (const CT::NotSemantic auto& rhs) {
+      return operator <<= (Copy(rhs));
+   }
+
+   /// Merge anything non-semantic by a shallow-copy, if it doesn't exist yet 
+   ///   @param rhs - the thing to push                                       
+   ///   @return a reference to this Neat container                           
+   Neat& Neat::operator <<= (CT::NotSemantic auto& rhs) {
+      return operator <<= (Copy(rhs));
+   }
+
+   /// Merge anything non-semantic by a move, if it doesn't exist yet         
+   ///   @param rhs - the thing to push                                       
+   ///   @return a reference to this Neat container                           
+   Neat& Neat::operator <<= (CT::NotSemantic auto&& rhs) {
+      return operator <<= (Move(rhs));
+   }
+
+   /// Merge anything semantically, if it doesn't exist yet                   
+   ///   @param rhs - the thing to push, as well as the semantic to use       
+   ///   @return a reference to this Neat container                           
+   Neat& Neat::operator <<= (CT::Semantic auto&& rhs) {
+      using S = Decay<decltype(rhs)>;
+      using T = TypeOf<S>;
+
+      if constexpr (CT::TraitBased<T>) {
+         // Check if the trait already exists, before pushing it        
+         if (not GetTraits(rhs->GetTrait()))
+            return operator << (rhs.Forward());
+      }
+      else if constexpr (CT::Same<T, MetaTrait>) {
+         // Check if the trait already exists, before pushing it        
+         if (not GetTraits(SparseCast(*rhs)))
+            return operator << (rhs.Forward());
+      }
+      else if constexpr (CT::Construct<T>) {
+         // Check if the construct already exists, before pushing it    
+         if (not GetConstructs(rhs->GetType()))
+            return operator << (rhs.Forward());
+      }
+      else if constexpr (CT::Same<T, MetaData>) {
+         // Check if the construct already exists, before pushing it    
+         if (not GetConstructs(SparseCast(*rhs)))
+            return operator << (rhs.Forward());
+      }
+      else if constexpr (CT::Deep<T>) {
+         // Check anything deep here, flattening it, unless it is OR    
+         if (rhs->IsOr() and not GetData<T>())
+            return operator << (rhs.Forward());
+         else {
+            rhs->ForEach([&](const Any& group) {
+               if (not GetData(group.GetType()->mOrigin))
+                  operator << (S::Nest(const_cast<Any&>(group)));
+            });
+         }
+      }
+      else {
+         // Check anything else                                         
+         if (not GetData<T>())
+            return operator << (rhs.Forward());
+      }
+
+      return *this;
+   }
+
    /// Set a tagged argument inside constructor                               
    ///   @param trait - trait to set                                          
    ///   @param index - the index we're interested with if repeated           
@@ -448,6 +711,22 @@ namespace Langulus::Anyness
 
       mHash = {};
       return *this;
+   }
+
+   /// Push a trait to the appropriate bucket                                 
+   ///   @attention this is an inner function that doesn't affect the hash    
+   ///   @tparam S - the semantic to use for the insertion (deducible)        
+   ///   @param messy - the trait and semantic to use                         
+   ///   @return a reference to this container                                
+   template<CT::Semantic S>
+   LANGULUS(INLINED)
+   void Neat::AddTrait(S&& messy) requires (CT::TraitBased<TypeOf<S>>) {
+      // Normalize trait contents and push sort it by its               
+      // trait type                                                     
+      if (messy->IsDeep())
+         mTraits[messy->GetTrait()] << Neat {messy.template Forward<Any>()};
+      else
+         mTraits[messy->GetTrait()] << messy.template Forward<Any>();
    }
 
    /// Get a tagged argument inside constructor                               
@@ -477,6 +756,359 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    const Any* Neat::Get(const Offset& index) const {
       return Get(T::GetTrait(), index);
+   }
+
+   /// Iterate through all relevant bucketed items                            
+   /// Depending on F's arguments, different portions of the container will   
+   /// be iterated. Use a generic Block/Any type to iterate everything.       
+   ///   @attention since Trait and Construct are disassembled when inserted  
+   ///      in this container, temporary instances will be created on the     
+   ///      stack when iterated. If MUTABLE is true, any changes to these     
+   ///      temporary instances will be used to overwite the real contents.   
+   ///   @tparam F - the function signature (deducible)                       
+   ///   @tparam MUTABLE - whether changes inside container are allowed       
+   ///   @param call - the function to execute for each element               
+   ///   @return the number of executions of 'call'                           
+   template<bool MUTABLE, class... F>
+   Count Neat::ForEach(F&&... call) {
+      return (... or ForEachInner<MUTABLE>(Forward<F>(call)));
+   }
+
+   ///                                                                        
+   template<class... F>
+   Count Neat::ForEach(F&&... call) const {
+      return const_cast<Neat*>(this)->template 
+         ForEach<false>(Forward<F>(call)...);
+   }
+   
+   /// Iterate through all relevant bucketed items                            
+   /// Depending on F's arguments, different portions of the container will   
+   /// be iterated. Use a generic Block/Any type to iterate everything.       
+   ///   @attention since Trait and Construct are disassembled when inserted  
+   ///      in this container, temporary instances will be created on the     
+   ///      stack when iterated. If MUTABLE is true, any changes to these     
+   ///      temporary instances will be used to overwite the real contents.   
+   ///   @tparam F - the function signature (deducible)                       
+   ///   @tparam MUTABLE - whether changes inside container are allowed       
+   ///   @param call - the function to execute for each element               
+   ///   @return the number of executions of 'call'                           
+   template<bool MUTABLE, class F>
+   Count Neat::ForEachInner(F&& call) {
+      using A = ArgumentOf<F>;
+
+      static_assert(CT::Constant<A> or MUTABLE,
+         "Non constant iterator for constant Neat block");
+
+      if constexpr (CT::Deep<A>) {
+         // Iterate everything                                          
+         Count counter = 0;
+         counter += ForEachTrait<MUTABLE>(call);
+         counter += ForEachConstruct<MUTABLE>(call);
+         counter += ForEachTail<MUTABLE>(call);
+         return counter;
+      }
+      else if constexpr (CT::TraitBased<A>) {
+         // Iterate traits only                                         
+         return ForEachTrait<MUTABLE>(Forward<F>(call));
+      }
+      else if constexpr (CT::Construct<A>) {
+         // Iterate constructs only                                     
+         return ForEachConstruct<MUTABLE>(Forward<F>(call));
+      }
+      else {
+         // Iterate anything else inside the tail                       
+         return ForEachTail<MUTABLE>(Forward<F>(call));
+      }
+   }
+
+   ///                                                                        
+   template<class F>
+   Count Neat::ForEachInner(F&& call) const {
+      return const_cast<Neat*>(this)->template 
+         ForEach<false>(Forward<F>(call));
+   }
+
+   /// Iterate all traits                                                     
+   /// You can provide a static Trait iterator, to filter based on trait type 
+   ///   @attention if F's argument is a generic Block/Any type, the trait    
+   ///      will be wrapped in it                                             
+   ///   @attention since Trait is disassembled upon insertion in this        
+   ///      container, temporary instances will be created on the stack when  
+   ///      iterated. If iterator is mutable, any changes to these temporary  
+   ///      instances will be used to overwite the real contents.             
+   ///   @tparam F - the function signature (deducible)                       
+   ///   @tparam MUTABLE - whether changes inside container are allowed       
+   ///   @param call - the function to execute for each trait                 
+   ///   @return the number of executions of 'call'                           
+   template<bool MUTABLE, class F>
+   Count Neat::ForEachTrait(F&& call) {
+      using A = ArgumentOf<F>;
+      using R = ReturnOf<F>;
+
+      static_assert(CT::TraitBased<A> or CT::Deep<A>,
+         "Iterator must be either trait-based or deep");
+      static_assert(CT::Constant<A> or MUTABLE,
+         "Non constant iterator for constant Neat block");
+
+      if constexpr (CT::Trait<A>) {
+         // Static trait provided, extract filter                       
+         const auto filter = Decay<A>::GetTrait();
+         const auto found = mTraits.Find(filter);
+         if (not found)
+            return 0;
+
+         // Iterate all relevant traits                                 
+         Count index {};
+         for (auto& data : mTraits.GetValue(found)) {
+            // Create a temporary trait                                 
+            Decay<A> temporaryTrait {data};
+
+            if constexpr (CT::Bool<R>) {
+               // If F returns bool, you can decide when to break the   
+               // loop by simply returning Flow::Break (or just false)  
+               if (not call(temporaryTrait)) {
+                  if constexpr (CT::Mutable<A>) {
+                     // Make sure change is commited before proceeding  
+                     data = static_cast<const Any&>(temporaryTrait);
+                  }
+                  return index + 1;
+               }
+            }
+            else {
+               call(temporaryTrait);
+
+               if constexpr (CT::Mutable<A>) {
+                  // Make sure change is commited before proceeding     
+                  data = static_cast<const Any&>(temporaryTrait);
+               }
+            }
+
+            ++index;
+         }
+
+         return index;
+      }
+
+      // Iterate all traits                                             
+      Count index {};
+      for (auto group : mTraits) {
+         for (auto& data : group.mValue) {
+            // Create a temporary trait                                 
+            Conditional<CT::Deep<A>, Any, Trait> temporaryTrait
+               = Trait::From(group.mKey, data);
+
+            if constexpr (CT::Bool<R>) {
+               // If F returns bool, you can decide when to break the   
+               // loop by simply returning Flow::Break (or just false)  
+               if (not call(temporaryTrait)) {
+                  if constexpr (CT::Mutable<A>) {
+                     // Make sure change is commited before proceeding  
+                     if constexpr (CT::Deep<A>)
+                        data = static_cast<const Any&>(temporaryTrait.template Get<Trait>());
+                     else
+                        data = static_cast<const Any&>(temporaryTrait);
+                  }
+                  return index + 1;
+               }
+            }
+            else {
+               call(temporaryTrait);
+
+               if constexpr (CT::Mutable<A>) {
+                  // Make sure change is commited before proceeding     
+                  if constexpr (CT::Deep<A>)
+                     data = static_cast<const Any&>(temporaryTrait.template Get<Trait>());
+                  else
+                     data = static_cast<const Any&>(temporaryTrait);
+               }
+            }
+
+            ++index;
+         }
+      }
+
+      return index;
+   }
+
+   ///                                                                        
+   template<class F>
+   Count Neat::ForEachTrait(F&& call) const {
+      return const_cast<Neat*>(this)->template
+         ForEachTrait<false>(Forward<F>(call));
+   }
+
+   /// Iterate all constructs                                                 
+   ///   @attention if F's argument is a generic Block/Any type, construct    
+   ///      will be wrapped in it                                             
+   ///   @attention since Construct is disassembled upon insertion in this    
+   ///      container, temporary instances will be created on the stack when  
+   ///      iterated. If iterator is mutable, any changes to these temporary  
+   ///      instances will be used to overwite the real contents.             
+   ///   @tparam F - the function signature (deducible)                       
+   ///   @tparam MUTABLE - whether changes inside container are allowed       
+   ///   @param call - the function to execute for each construct             
+   ///   @return the number of executions of 'call'                           
+   template<bool MUTABLE, class F>
+   Count Neat::ForEachConstruct(F&& call) {
+      using A = ArgumentOf<F>;
+      using R = ReturnOf<F>;
+
+      static_assert(CT::Construct<A> or CT::Deep<A>,
+         "Iterator must be either a Construct or deep");
+      static_assert(CT::Constant<A> or MUTABLE,
+         "Non constant iterator for constant Neat block");
+
+      // Iterate all constructs                                         
+      Count index {};
+      for (auto group : mConstructs) {
+         for (auto& data : group.mValue) {
+            // Create a temporary construct                             
+            Conditional<CT::Deep<A>, Any, Construct> temporaryConstruct
+               = Construct {group.mKey, data.mData, data.mCharge};
+
+            if constexpr (CT::Bool<R>) {
+               // If F returns bool, you can decide when to break the   
+               // loop by simply returning Flow::Break (or just false)  
+               if (not call(temporaryConstruct)) {
+                  if constexpr (CT::Mutable<A>) {
+                     // Make sure change is commited before proceeding  
+                     if constexpr (CT::Deep<A>) {
+                        data.mHash = temporaryConstruct.template Get<Construct>().GetHash();
+                        data.mData = temporaryConstruct.template Get<Construct>().GetArgument();
+                        data.mCharge = temporaryConstruct.template Get<Construct>().GetCharge();
+                     }
+                     else {
+                        data.mHash = temporaryConstruct.GetHash();
+                        data.mData = temporaryConstruct.GetArgument();
+                        data.mCharge = temporaryConstruct.GetCharge();
+                     }
+                  }
+
+                  return index + 1;
+               }
+            }
+            else {
+               call(temporaryConstruct);
+
+               if constexpr (CT::Mutable<A>) {
+                  // Make sure change is commited before proceeding     
+                  if constexpr (CT::Deep<A>) {
+                     data.mHash = temporaryConstruct.template Get<Construct>().GetHash();
+                     data.mData = temporaryConstruct.template Get<Construct>().GetArgument();
+                     data.mCharge = temporaryConstruct.template Get<Construct>().GetCharge();
+                  }
+                  else {
+                     data.mHash = temporaryConstruct.GetHash();
+                     data.mData = temporaryConstruct.GetArgument();
+                     data.mCharge = temporaryConstruct.GetCharge();
+                  }
+               }
+            }
+
+            ++index;
+         }
+      }
+
+      return index;
+   }
+
+   ///                                                                        
+   template<class F>
+   Count Neat::ForEachConstruct(F&& call) const {
+      return const_cast<Neat*>(this)->template
+         ForEachConstruct<false>(Forward<F>(call));
+   }
+
+   /// Iterate all other types of data                                        
+   /// You can provide a TAny iterator, to filter based on data type          
+   ///   @tparam F - the function signature (deducible)                       
+   ///   @tparam MUTABLE - whether changes inside container are allowed       
+   ///   @param call - the function to execute for each block                 
+   ///   @return the number of executions of 'call'                           
+   template<bool MUTABLE, class F>
+   Count Neat::ForEachTail(F&& call) {
+      using A = ArgumentOf<F>;
+      using R = ReturnOf<F>;
+
+      static_assert(CT::Constant<A> or MUTABLE,
+         "Non constant iterator for constant Neat block");
+
+      if constexpr (CT::Deep<A> && CT::Typed<A>) {
+         // Statically typed container provided, extract filter         
+         const auto filter = MetaData::Of<Decay<TypeOf<A>>>;
+         const auto found = mAnythingElse.Find(filter);
+         if (not found)
+            return 0;
+
+         // Iterate all relevant datas                                  
+         Count index {};
+         for (auto& data : mAnythingElse.GetValue(found)) {
+            auto& dataTyped = reinterpret_cast<Decay<A>&>(data);
+            if constexpr (CT::Bool<R>) {
+               // If F returns bool, you can decide when to break the   
+               // loop by simply returning Flow::Break (or just false)  
+               if (not call(dataTyped))
+                  return index + 1;
+            }
+            else call(dataTyped);
+
+            ++index;
+         }
+
+         return index;
+      }
+      else if constexpr (CT::Deep<A>) {
+         // Iterate all datas                                           
+         Count index {};
+         for (auto group : mAnythingElse) {
+            for (auto& data : group.mValue) {
+               if constexpr (CT::Bool<R>) {
+                  // If F returns bool, you can decide when to break    
+                  // the loop by returning Flow::Break (or just false)  
+                  if (not call(data))
+                     return index + 1;
+               }
+               else call(data);
+
+               ++index;
+            }
+         }
+
+         return index;
+      }
+      else {
+         // Anything else                                               
+         const auto filter = MetaData::Of<Decay<A>>();
+         const auto found = mAnythingElse.Find(filter);
+         if (not found)
+            return 0;
+
+         // Iterate all relevant datas                                  
+         Count index {};
+         for (auto& data : mAnythingElse.GetValue(found)) {
+            auto& dataTyped = reinterpret_cast<TAny<Deref<A>>&>(data);
+            for (auto& element : dataTyped) {
+               if constexpr (CT::Bool<R>) {
+                  // If F returns bool, you can decide when to break    
+                  // the loop by returning Flow::Break (or just false)  
+                  if (not call(element))
+                     return index + 1;
+               }
+               else call(element);
+            }
+
+            ++index;
+         }
+
+         return index;
+      }
+   }
+
+   ///                                                                        
+   template<class F>
+   Count Neat::ForEachTail(F&& call) const {
+      return const_cast<Neat*>(this)->template
+         ForEachTail<false>(Forward<F>(call));
    }
 
 } // namespace Langulus::Anyness

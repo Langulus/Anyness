@@ -87,6 +87,10 @@ namespace Langulus::Anyness
             sizeof(T)
          )};
       }
+      else if constexpr (CT::Neat<T>) {
+         // Descriptor constructor - check if Neat contains bytes       
+         TODO();
+      }
       else LANGULUS_ERROR("Bad semantic construction");
    }
 

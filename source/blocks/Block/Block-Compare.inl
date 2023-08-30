@@ -22,7 +22,7 @@ namespace Langulus::Anyness
    template<CT::NotSemantic T>
    bool Block::operator == (const T& rhs) const {
       if constexpr (CT::Deep<T>)
-         return Compare(rhs) || CompareSingleValue<T>(rhs);
+         return Compare(rhs) or CompareSingleValue<T>(rhs);
       else
          return CompareSingleValue<T>(rhs);
    }
@@ -48,8 +48,8 @@ namespace Langulus::Anyness
          return false;
       }
 
-      if (mCount && mType != right.mType) {
-         if (IsUntyped() || right.IsUntyped()) {
+      if (mCount and mType != right.mType) {
+         if (IsUntyped() or right.IsUntyped()) {
             // Cheap early return if differing undefined types, when    
             // packs are not empty                                      
             VERBOSE(Logger::Red,
@@ -58,12 +58,12 @@ namespace Langulus::Anyness
             return false;
          }
       }
-      else if (!mCount || IsUntyped()) {
+      else if (not mCount or IsUntyped()) {
          // Both blocks are untyped or empty, just compare states       
          return CompareStates(right);
       }
 
-      if (!CompareStates(right)) {
+      if (not CompareStates(right)) {
          // Cheap early return for blocks of differing states           
          VERBOSE(Logger::Red,
             "Data states are not compatible");
@@ -78,7 +78,7 @@ namespace Langulus::Anyness
                "Blocks are the same ", Logger::Cyan, "(optimal)");
             return true;
          }
-         else if (mType->mIsPOD || mType->mIsSparse) {
+         else if (mType->mIsPOD or mType->mIsSparse) {
             // Batch-compare memory if POD or sparse                    
             return 0 == memcmp(mRaw, right.mRaw, GetBytesize());
          }
@@ -88,7 +88,7 @@ namespace Langulus::Anyness
             auto rhs = right.GetRaw();
             const auto lhsEnd = GetRawEnd();
             while (lhs != lhsEnd) {
-               if (!mType->mComparer(lhs, rhs))
+               if (not mType->mComparer(lhs, rhs))
                   return false;
                lhs += mType->mSize;
                rhs += mType->mSize;
@@ -103,7 +103,7 @@ namespace Langulus::Anyness
       RTTI::Base baseForComparison {};
       if constexpr (RESOLVE) {
          // We will test type for each resolved element, individually   
-         if (!IsResolvable() && !right.IsResolvable() && !CompareTypes(right, baseForComparison)) {
+         if (not IsResolvable()and not right.IsResolvable() and not CompareTypes(right, baseForComparison)) {
             // Types differ and are not resolvable                      
             VERBOSE(Logger::Red,
                "Data types are not related: ",
@@ -113,7 +113,7 @@ namespace Langulus::Anyness
       }
       else {
          // We won't be resolving, so we have only one global type      
-         if (!CompareTypes(right, baseForComparison)) {
+         if (not CompareTypes(right, baseForComparison)) {
             // Types differ                                             
             VERBOSE(Logger::Red,
                "Data types are not related: ",
@@ -122,8 +122,8 @@ namespace Langulus::Anyness
          }
       }
 
-      if (  (IsSparse() && baseForComparison.mBinaryCompatible)
-         || (baseForComparison.mType->mIsPOD && baseForComparison.mBinaryCompatible)
+      if (  (IsSparse() and baseForComparison.mBinaryCompatible)
+         or (baseForComparison.mType->mIsPOD and baseForComparison.mBinaryCompatible)
       ) {
          // Just compare the memory directly (optimization)             
          // Regardless if types are sparse or dense, as long as they    
@@ -146,7 +146,7 @@ namespace Langulus::Anyness
                for (Count i = 0; i < mCount; ++i) {
                   auto lhs = GetElementResolved(i);
                   auto rhs = right.GetElementResolved(i);
-                  if (!lhs.CompareTypes(rhs, baseForComparison)) {
+                  if (not lhs.CompareTypes(rhs, baseForComparison)) {
                      // Fail comparison on first mismatch               
                      VERBOSE(Logger::Red,
                         "Pointers at ", i, " have unrelated types: ", 
@@ -179,7 +179,7 @@ namespace Langulus::Anyness
                   auto lhs = GetElementDense(i);
                   auto rhs = right.GetElementDense(i);
 
-                  if (!lhs.CallComparer(rhs, baseForComparison)) {
+                  if (not lhs.CallComparer(rhs, baseForComparison)) {
                      // Fail comparison on first mismatch               
                      VERBOSE(Logger::Red, "Elements at ", i, " differ");
                      return false;
@@ -201,7 +201,7 @@ namespace Langulus::Anyness
                auto lhs = GetElement(i);
                auto rhs = right.GetElement(i);
 
-               if (!lhs.CallComparer(rhs, baseForComparison)) {
+               if (not lhs.CallComparer(rhs, baseForComparison)) {
                   // Fail comparison on first mismatch                  
                   VERBOSE(Logger::Red, "Elements at ", i, " differ");
                   return false;
@@ -228,7 +228,7 @@ namespace Langulus::Anyness
    ///   @attention order matters, so you might want to normalize data first  
    ///   @return the hash                                                     
    inline Hash Block::GetHash() const {
-      if (!mType || !mCount)
+      if (not mType or not mCount)
          return {};
 
       if (mCount == 1) {
@@ -301,7 +301,7 @@ namespace Langulus::Anyness
       // a single compare function                                      
       if constexpr (CT::Deep<T>) {
          // Deep items have a bit looser type requirements              
-         if (IsDense() && IsDeep() && Owns(&item)) {
+         if (IsDense() and IsDeep() and Owns(&item)) {
             const Offset index = &item - GetRawAs<T>();
             // Check is required, because Owns tests in reserved range  
             return index < mCount ? index : IndexNone;
@@ -309,7 +309,7 @@ namespace Langulus::Anyness
       }
       else {
          // Search for a conventional item                              
-         if (IsExact<T>() && Owns(&item)) {
+         if (IsExact<T>() and Owns(&item)) {
             const Offset index = &item - GetRawAs<T>();
             // Check is required, because Owns tests in reserved range  
             return index < mCount ? index : IndexNone;
@@ -345,9 +345,9 @@ namespace Langulus::Anyness
       // First check if element is contained inside this block's        
       // memory, because if so, we can easily find it, without calling  
       // a single compare function                                      
-      if (item.IsDense() && item.IsDeep()) {
+      if (item.IsDense() and item.IsDeep()) {
          // Deep items have a bit looser type requirements              
-         if (IsDense() && IsDeep() && Owns(item.mRaw)) {
+         if (IsDense() and IsDeep() and Owns(item.mRaw)) {
             const Offset index = (item.mRaw - mRaw) / sizeof(Block);
             // Check is required, because Owns tests in reserved range  
             return index < mCount ? index : IndexNone;
@@ -355,7 +355,7 @@ namespace Langulus::Anyness
       }
       else {
          // Search for a conventional item                              
-         if (IsExact(item.GetType()) && Owns(item.mRaw)) {
+         if (IsExact(item.GetType()) and Owns(item.mRaw)) {
             const Offset index = (item.mRaw - mRaw) / mType->mSize;
             // Check is required, because Owns tests in reserved range  
             return index < mCount ? index : IndexNone;
@@ -409,12 +409,12 @@ namespace Langulus::Anyness
    template<class T>
    LANGULUS(INLINED)
    bool Block::CompareSingleValue(const T& rhs) const {
-      if (mCount != 1 || IsUntyped())
+      if (mCount != 1 or IsUntyped())
          return false;
 
       if constexpr (CT::Deep<T>) {
          // Deep types can be more loosely compared                     
-         if (mType->mIsSparse || !mType->mIsDeep)
+         if (mType->mIsSparse or not mType->mIsDeep)
             return false;
          return GetRawAs<Block>()->Compare(rhs);
       }
@@ -423,7 +423,7 @@ namespace Langulus::Anyness
          static_assert(CT::Inner::Comparable<T>,
             "T is not equality-comparable");
 
-         if (!mType->template IsExact<T>())
+         if (not mType->template IsExact<T>())
             return false;
          return *GetRawAs<T>() == rhs;
       }
@@ -449,12 +449,12 @@ namespace Langulus::Anyness
       LANGULUS_ASSUME(DevAssumes, right.IsTyped(),
          "RHS block is not typed", " comparing with LHS: ", GetType());
 
-      if (!mType->Is(right.mType)) {
+      if (not mType->Is(right.mType)) {
          // Types differ, dig deeper to find out why                    
-         if (!mType->GetBase(right.mType, 0, common)) {
+         if (not mType->GetBase(right.mType, 0, common)) {
             // Other type is not base for this one, can't compare them  
             // Let's check in reverse                                   
-            if (!right.mType->GetBase(mType, 0, common)) {
+            if (not right.mType->GetBase(mType, 0, common)) {
                // Other type is not derived from this one, can't        
                // compare them                                          
                return false;
@@ -462,7 +462,7 @@ namespace Langulus::Anyness
 
             // Other is derived from this, but it has to be binary      
             // compatible to be able to compare them                    
-            if (!common.mBinaryCompatible) {
+            if (not common.mBinaryCompatible) {
                VERBOSE(Logger::Red,
                   "Data types are related, but not binary compatible: ",
                   GetToken(), " != ", right.GetToken());
@@ -474,7 +474,7 @@ namespace Langulus::Anyness
          else {
             // This is derived from other, but it has to be binary      
             // compatible to be able to compare them                    
-            if (!common.mBinaryCompatible) {
+            if (not common.mBinaryCompatible) {
                VERBOSE(Logger::Red,
                   "Data types are related, but not binary compatible: ",
                   GetToken(), " != ", right.GetToken());
@@ -506,9 +506,8 @@ namespace Langulus::Anyness
    ///   @return true if comparison returns true                              
    LANGULUS(INLINED)
    bool Block::CallComparer(const Block& right, const RTTI::Base& base) const {
-      return mRaw == right.mRaw || (
-         mRaw && right.mRaw && base.mType->mComparer(mRaw, right.mRaw)
-      );
+      return mRaw == right.mRaw 
+          or (mRaw and right.mRaw and base.mType->mComparer(mRaw, right.mRaw));
    }
 
    /// Gather items from input container, and fill output                     
@@ -523,7 +522,7 @@ namespace Langulus::Anyness
          "Output must be a block type");
 
       Count count {};
-      if (input.IsDeep() && !output.IsDeep()) {
+      if (input.IsDeep() and not output.IsDeep()) {
          ForEach<REVERSE>([&](const Block& i) {
             count += GatherInner<REVERSE>(i, output);
          });
@@ -551,7 +550,7 @@ namespace Langulus::Anyness
          "Output must be a block type");
 
       if (input.GetState() % state) {
-         if (input.IsNow() && input.IsDeep()) {
+         if (input.IsNow() and input.IsDeep()) {
             // Phases don't match, but we can dig deeper if deep        
             // and neutral, since Phase::Now is permissive              
             Block localOutput {input.GetUnconstrainedState(), type};
@@ -569,7 +568,7 @@ namespace Langulus::Anyness
       }
 
       // Input is flat and neutral/same                                 
-      if (!type) {
+      if (not type) {
          // Output is any, so no need to iterate                        
          return output.SmartPush(input);
       }

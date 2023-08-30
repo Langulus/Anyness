@@ -100,4 +100,27 @@ namespace Langulus::Anyness
       return *this;
    }
 
+   /// Serialize charge as text                                               
+   inline Charge::operator Debug() const {
+      Debug text;
+      if (mMass != Charge::DefaultMass) {
+         text += " *";
+         text += Text {mMass};
+      }
+      if (mRate != Charge::DefaultRate) {
+         text += " ^";
+         text += Text {mRate};
+      }
+      if (mTime != Charge::DefaultTime) {
+         text += " @";
+         text += Text {mTime};
+      }
+      if (mPriority != Charge::DefaultPriority) {
+         text += " !";
+         text += Text {mPriority};
+      }
+
+      return text;
+   }
+
 } // namespace Langulus::Anyness

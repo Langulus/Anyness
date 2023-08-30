@@ -33,7 +33,7 @@ namespace Langulus::Anyness
          if constexpr (CT::Bool<R>) {
             // If F returns bool, you can decide when to break the loop 
             // by simply returning false                                
-            if (!call(block))
+            if (not call(block))
                return index + 1;
          }
          else call(block);
@@ -74,7 +74,7 @@ namespace Langulus::Anyness
          return 0;
 
       Count result {};
-      (void) (... || (0 != (result = ForEachSplitter<MUTABLE, REVERSE>(Forward<F>(calls)))));
+      (void) (... or (0 != (result = ForEachSplitter<MUTABLE, REVERSE>(Forward<F>(calls)))));
       return result;
    }
 
@@ -112,7 +112,7 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Count Block::ForEachDeep(F&&... calls) {
       Count result {};
-      (void) (... || (0 != (result = ForEachDeepSplitter<SKIP, MUTABLE, REVERSE>(Forward<F>(calls)))));
+      (void) (... or (0 != (result = ForEachDeepSplitter<SKIP, MUTABLE, REVERSE>(Forward<F>(calls)))));
       return result;
    }
 
@@ -192,23 +192,25 @@ namespace Langulus::Anyness
       using A = ArgumentOf<F>;
       using R = ReturnOf<F>;
 
-      static_assert(CT::Constant<A> || (CT::Mutable<A> && MUTABLE),
+      static_assert(CT::Constant<A> or MUTABLE,
          "Non constant iterator for constant memory block");
 
       if constexpr (CT::Complete<Decay<A>>) {
          // If the decayed argument is complete, we can try more things 
-         if (mType->mIsDeep == CT::Deep<Decay<A>> && mType->template CastsTo<A, true>()) {
+         if (mType->mIsDeep == CT::Deep<Decay<A>> and mType->template CastsTo<A, true>()) {
             // Container is binary compatible, and of same deepness     
             return ForEachInner<R, A, REVERSE, MUTABLE>(Forward<F>(call));
          }
-         else if (mType->mIsSparse && mType->mResolver) {
+         else if (mType->mIsSparse and mType->mResolver) {
             // Not binary compatible, but pointers are resolvable       
             Count counter {};
             Iterate<MUTABLE, REVERSE>([&](const void*& element) -> R {
                if constexpr (CT::Bool<R>) {
-                  if (!element) return Flow::Continue;
+                  if (not element)
+                     return Flow::Continue;
                }
-               else if (!element) return;
+               else if (not element)
+                  return;
 
                auto resolved = mType->mResolver(element);
                if (resolved.template Is<A>()) {
@@ -218,9 +220,10 @@ namespace Langulus::Anyness
                else {
                   if constexpr (CT::Bool<R>)
                      return Flow::Continue;
-                  else return;
+                  else
+                     return;
                }
-               });
+            });
 
             return counter;
          }
@@ -253,7 +256,7 @@ namespace Langulus::Anyness
       using A = ArgumentOf<F>;
       using R = ReturnOf<F>;
 
-      static_assert(CT::Constant<A> || (CT::Mutable<A> && MUTABLE),
+      static_assert(CT::Constant<A> or MUTABLE,
          "Non constant iterator for constant memory block");
 
       if constexpr (CT::Deep<Decay<A>>) {
@@ -264,11 +267,9 @@ namespace Langulus::Anyness
          // Any other type is wrapped inside another ForEachDeep call   
          Count it = 0;
          using DA = Conditional<CT::Constant<A>, const Block&, Block&>;
-         ForEachDeep<SKIP, MUTABLE>(
-            [&call, &it](DA block) {
-               it += block.ForEach(Forward<F>(call));
-            }
-         );
+         ForEachDeep<SKIP, MUTABLE>([&call, &it](DA block) {
+            it += block.ForEach(Forward<F>(call));
+         });
          return it;
       }
    }
@@ -289,13 +290,13 @@ namespace Langulus::Anyness
    template<class R, CT::Data A, bool REVERSE, bool MUTABLE, class F>
    LANGULUS(INLINED)
    Count Block::ForEachInner(F&& f) noexcept(NoexceptIterator<decltype(f)>) {
-      LANGULUS_ASSUME(DevAssumes, !IsEmpty(),
+      LANGULUS_ASSUME(DevAssumes, not IsEmpty(),
          "Container is empty");
       LANGULUS_ASSUME(DevAssumes, IsTyped(),
          "Container is not typed");
 
       constexpr auto NOE = NoexceptIterator<decltype(f)>;
-      Count index {};
+      Count index = 0;
 
       if constexpr (CT::Complete<Decay<A>>) {
          // Argument type is complete, and we can allow to be more      
@@ -329,7 +330,7 @@ namespace Langulus::Anyness
       else {
          // Argument type is incomplete, and we allow only iteration    
          // by pointers                                                 
-         LANGULUS_ASSUME(DevAssumes, CT::Sparse<A> && mType->mIsSparse,
+         LANGULUS_ASSUME(DevAssumes, CT::Sparse<A> and mType->mIsSparse,
             "Iterating with dense incomplete type");
 
          using DA = Decay<A>*;
@@ -360,19 +361,19 @@ namespace Langulus::Anyness
       static_assert(CT::Block<B>, "A must be a Block type");
       constexpr bool HasBreaker = CT::Bool<R>;
       UNUSED() bool atLeastOneChange = false;
-      auto count {GetCountDeep()};
+      auto count = GetCountDeep();
       Count index = 0;
       Count skipped = 0;
       while (index < count) {
          auto block = ReinterpretCast<B>(GetBlockDeep(index));
          if constexpr (MUTABLE) {
-            if (!block)
+            if (not block)
                break;
          }
 
          if constexpr (SKIP) {
             // Skip deep/empty sub blocks                               
-            if (block->IsDeep() || block->IsEmpty()) {
+            if (block->IsDeep() or block->IsEmpty()) {
                ++index;
                ++skipped;
                continue;
@@ -381,7 +382,7 @@ namespace Langulus::Anyness
 
          UNUSED() const auto initialBlockCount = block->GetCount();
          if constexpr (HasBreaker) {
-            if (!call(*block))
+            if (not call(*block))
                return ++index;
          }
          else if constexpr (CT::Sparse<A>)
@@ -396,7 +397,7 @@ namespace Langulus::Anyness
                if (block->GetCount() < initialBlockCount) {
                   // Something was removed, so propagate removal upwards
                   // until all empty stateless blocks are removed       
-                  while (block && block->IsEmpty() && !block->GetUnconstrainedState()) {
+                  while (block and block->IsEmpty() and not block->GetUnconstrainedState()) {
                      index -= RemoveIndexDeep(index);
                      block = ReinterpretCast<B>(GetBlockDeep(index - 1));
                   }
@@ -438,10 +439,10 @@ namespace Langulus::Anyness
       using A = ArgumentOf<F>;
       using R = ReturnOf<F>;
 
-      static_assert(CT::Constant<A> || (CT::Mutable<A> && MUTABLE),
+      static_assert(CT::Constant<A> or MUTABLE,
          "Non constant iterator for constant memory block");
 
-      LANGULUS_ASSUME(DevAssumes, !IsEmpty(),
+      LANGULUS_ASSUME(DevAssumes, not IsEmpty(),
          "Block is empty");
       LANGULUS_ASSUME(DevAssumes, IsSparse() == CT::Sparse<A>,
          "Sparseness mismatch");
@@ -485,7 +486,7 @@ namespace Langulus::Anyness
    template<class R, CT::Data A, bool REVERSE, bool MUTABLE, class F>
    LANGULUS(INLINED)
    void Block::IterateInner(F&& f) noexcept(NoexceptIterator<decltype(f)>) {
-      LANGULUS_ASSUME(DevAssumes, !IsEmpty(),
+      LANGULUS_ASSUME(DevAssumes, not IsEmpty(),
          "Block is empty");
       LANGULUS_ASSUME(DevAssumes, IsSparse() == CT::Sparse<A>,
          "Sparseness mismatch");
@@ -515,7 +516,7 @@ namespace Langulus::Anyness
       while (data != dataEnd) {
          // Execute function                                            
          if constexpr (HasBreaker) {
-            if (!f(*data)) {
+            if (not f(*data)) {
                // Early return, if function returns a false bool        
                return;
             }

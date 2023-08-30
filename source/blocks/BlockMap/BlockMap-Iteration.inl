@@ -20,7 +20,7 @@ namespace Langulus::Anyness
 
       // Seek first valid info, or hit sentinel at the end              
       auto info = GetInfo();
-      while (!*info) ++info;
+      while (not *info) ++info;
 
       const auto offset = info - GetInfo();
       return {
@@ -46,7 +46,7 @@ namespace Langulus::Anyness
 
       // Seek first valid info in reverse, until one past first is met  
       auto info = GetInfoEnd();
-      while (info >= GetInfo() && !*--info);
+      while (info >= GetInfo() and not *--info);
 
       const auto offset = info - GetInfo();
       return {
@@ -64,7 +64,7 @@ namespace Langulus::Anyness
 
       // Seek first valid info, or hit sentinel at the end              
       auto info = GetInfo();
-      while (!*info) ++info;
+      while (not *info) ++info;
 
       const auto offset = info - GetInfo();
       return {
@@ -89,7 +89,7 @@ namespace Langulus::Anyness
 
       // Seek first valid info in reverse, until one past first is met  
       auto info = GetInfoEnd();
-      while (info >= GetInfo() && !*--info);
+      while (info >= GetInfo() and not *--info);
 
       const auto offset = info - GetInfo();
       return {
@@ -120,7 +120,7 @@ namespace Langulus::Anyness
          // against it prior to iterating                               
          using K = typename A::Key;
          using V = typename A::Value;
-         if (!KeyIs<K>() || !ValueIs<V>()) {
+         if (not KeyIs<K>() or not ValueIs<V>()) {
             // Key/Value mismatch, no need to iterate at all            
             return 0;
          }
@@ -146,7 +146,7 @@ namespace Langulus::Anyness
                   using K = typename A::Key;
                   using V = typename A::Value;
                   A pair {key.template Get<K>(), val.template Get<V>()};
-                  if (!call(pair)) {
+                  if (not call(pair)) {
                      // Early return, if function returns a false bool  
                      return executions;
                   }
@@ -155,7 +155,7 @@ namespace Langulus::Anyness
                   // The pair is dynamically typed, so we directly      
                   // forward the element blocks                         
                   A pair {key, val};
-                  if (!call(pair)) {
+                  if (not call(pair)) {
                      // Early return, if function returns a false bool  
                      return executions;
                   }
@@ -207,47 +207,10 @@ namespace Langulus::Anyness
       using A = ArgumentOf<F>;
       using R = ReturnOf<F>;
 
-      static_assert(CT::Constant<A> || (CT::Mutable<A> && MUTABLE),
+      static_assert(CT::Constant<A> or MUTABLE,
          "Non constant iterator for constant memory block");
 
       return ForEachInner<R, A, REVERSE, MUTABLE>(part, Forward<F>(call));
-   }
-
-   /// Execute functions for each element inside container, nested for any    
-   /// contained deep containers                                              
-   ///   @tparam SKIP - set to false, to execute F for containers, too        
-   ///                  set to true, to execute only for non-deep elements    
-   ///   @tparam MUTABLE - whether or not a change to container is allowed    
-   ///                     while iterating                                    
-   ///   @tparam F - the function type (deducible                             
-   ///   @param call - the instance of the function F to call                 
-   ///   @return the number of called functions                               
-   template<bool SKIP, bool MUTABLE, bool REVERSE, class F>
-   LANGULUS(INLINED)
-   Count BlockMap::ForEachDeepSplitter(Block& part, F&& call) {
-      using A = ArgumentOf<F>;
-      using R = ReturnOf<F>;
-
-      static_assert(CT::Constant<A> || (CT::Mutable<A> && MUTABLE),
-         "Non constant iterator for constant memory block");
-
-      if constexpr (CT::Deep<A>) {
-         // If argument type is deep                                    
-         return ForEachDeepInner<R, A, REVERSE, SKIP, MUTABLE>(
-            part, Forward<F>(call));
-      }
-      else if constexpr (CT::Constant<A>) {
-         // Any other type is wrapped inside another ForEachDeep call   
-         return ForEachDeep<SKIP, MUTABLE>(part, [&call](const Block& block) {
-            block.ForEach(Forward<F>(call));
-         });
-      }
-      else {
-         // Any other type is wrapped inside another ForEachDeep call   
-         return ForEachDeep<SKIP, MUTABLE>(part, [&call](Block& block) {
-            block.ForEach(Forward<F>(call));
-         });
-      }
    }
 
    /// Iterate and execute call for each element                              
@@ -255,7 +218,7 @@ namespace Langulus::Anyness
    ///   @return the number of executions that occured                        
    template<class R, CT::Data A, bool REVERSE, bool MUTABLE, class F>
    Count BlockMap::ForEachInner(Block& part, F&& call) {
-      if (IsEmpty() || !part.mType->CastsTo<A, true>())
+      if (IsEmpty() or not part.mType->CastsTo<A, true>())
          return 0;
        
       constexpr bool HasBreaker = CT::Bool<R>;
@@ -263,21 +226,21 @@ namespace Langulus::Anyness
       Count index {};
 
       while (index < mValues.mReserved) {
-         if (!mInfo[index]) {
+         if (not mInfo[index]) {
             ++index;
             continue;
          }
 
          if constexpr (REVERSE) {
             if constexpr (HasBreaker) {
-               if (!call(part.Get<A>(mValues.mReserved - index - 1)))
+               if (not call(part.Get<A>(mValues.mReserved - index - 1)))
                   return ++done;
             }
             else call(part.Get<A>(mValues.mReserved - index - 1));
          }
          else {
             if constexpr (HasBreaker) {
-               if (!call(part.Get<A>(index)))
+               if (not call(part.Get<A>(index)))
                   return ++done;
             }
             else call(part.Get<A>(index));
@@ -290,36 +253,6 @@ namespace Langulus::Anyness
       return done;
    }
    
-   /// Iterate and execute call for each element                              
-   ///   @param call - the function to execute for each element of type T     
-   ///   @return the number of executions that occured                        
-   template<class R, CT::Data A, bool REVERSE, bool SKIP, bool MUTABLE, class F>
-   Count BlockMap::ForEachDeepInner(Block& part, F&& call) {
-      constexpr bool HasBreaker = CT::Bool<R>;
-      auto count {part.GetCountDeep()};
-      Count index {};
-      while (index < count) {
-         auto block = ReinterpretCast<A>(part.GetBlockDeep(index));//TODO custom checked getblockdeep here, write tests and you'll see
-         if constexpr (SKIP) {
-            // Skip deep/empty sub blocks                               
-            if (block->IsDeep() || block->IsEmpty()) {
-               ++index;
-               continue;
-            }
-         }
-
-         if constexpr (HasBreaker) {
-            if (!call(*block))
-               return ++index;
-         }
-         else call(*block);
-
-         ++index;
-      }
-
-      return index;
-   }
-
    /// Iterate all keys inside the map, and perform f() on them               
    /// You can break the loop, by returning false inside f()                  
    ///   @param f - the function to call for each key block                   
@@ -331,22 +264,95 @@ namespace Langulus::Anyness
 
       static_assert(CT::Block<A>,
          "Function argument must be a CT::Block type");
-      static_assert(CT::Constant<A> || (CT::Mutable<A> && MUTABLE),
+      static_assert(CT::Constant<A> or MUTABLE,
          "Non constant iterator for constant memory block");
 
       Count index {};
       while (index < GetReserved()) {
-         if (!mInfo[index]) {
+         if (not mInfo[index]) {
             ++index;
             continue;
          }
 
          A block = part.GetElement(index);
          if constexpr (CT::Bool<R>) {
-            if (!call(block))
+            if (not call(block))
                return ++index;
          }
          else call(block);
+
+         ++index;
+      }
+
+      return index;
+   }
+   
+   /// Execute functions for each element inside container, nested for any    
+   /// contained deep containers                                              
+   ///   @tparam SKIP - set to false, to execute F for containers, too        
+   ///                  set to true, to execute only for non-deep elements    
+   ///   @tparam MUTABLE - whether or not a change to container is allowed    
+   ///                     while iterating                                    
+   ///   @tparam F - the function type (deducible                             
+   ///   @param call - the instance of the function F to call                 
+   ///   @return the number of called functions                               
+   template<bool SKIP, bool MUTABLE, bool REVERSE, class F>
+   LANGULUS(INLINED)
+   Count BlockMap::ForEachDeepSplitter(const Count count, Block& part, F&& call) {
+      using A = ArgumentOf<F>;
+      using R = ReturnOf<F>;
+
+      static_assert(CT::Constant<A> or MUTABLE,
+         "Non constant iterator for constant memory block");
+
+      if constexpr (CT::Deep<A>) {
+         // If argument type is deep                                    
+         return ForEachDeepInner<R, A, REVERSE, SKIP, MUTABLE>(
+            count, part, Forward<F>(call)
+         );
+      }
+      else if constexpr (CT::Constant<A>) {
+         // Any other type is wrapped inside another ForEachDeep call   
+         return ForEachDeep<SKIP, MUTABLE>(
+            count, part, 
+            [&call](const Block& block) {
+               block.ForEach(Forward<F>(call));
+            }
+         );
+      }
+      else {
+         // Any other type is wrapped inside another ForEachDeep call   
+         return ForEachDeep<SKIP, MUTABLE>(
+            count, part,
+            [&call](Block& block) {
+               block.ForEach(Forward<F>(call));
+            }
+         );
+      }
+   }
+
+   /// Iterate and execute call for each element                              
+   ///   @param call - the function to execute for each element of type T     
+   ///   @return the number of executions that occured                        
+   template<class R, CT::Data A, bool REVERSE, bool SKIP, bool MUTABLE, class F>
+   Count BlockMap::ForEachDeepInner(const Count count, Block& part, F&& call) {
+      constexpr bool HasBreaker = CT::Bool<R>;
+      Offset index = 0;
+      while (index < count) {
+         auto block = ReinterpretCast<A>(part.GetBlockDeep(index));//TODO custom checked getblockdeep here, write tests and you'll see
+         if constexpr (SKIP) {
+            // Skip deep/empty sub blocks                               
+            if (block->IsDeep() or block->IsEmpty()) {
+               ++index;
+               continue;
+            }
+         }
+
+         if constexpr (HasBreaker) {
+            if (not call(*block))
+               return ++index;
+         }
+         else call(*block);
 
          ++index;
       }
@@ -397,7 +403,8 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Count BlockMap::ForEachKey(F&&... f) {
       Count result {};
-      (void) (... || (0 != (result = ForEachSplitter<MUTABLE, REVERSE>(mKeys, Forward<F>(f)))));
+      (void) (... or (0 != (result = ForEachSplitter<MUTABLE, REVERSE>(
+         mKeys, Forward<F>(f)))));
       return result;
    }
 
@@ -412,7 +419,8 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Count BlockMap::ForEachValue(F&&... f) {
       Count result {};
-      (void) (... || (0 != (result = ForEachSplitter<MUTABLE, REVERSE>(mValues, Forward<F>(f)))));
+      (void) (... or (0 != (result = ForEachSplitter<MUTABLE, REVERSE>(
+         mValues, Forward<F>(f)))));
       return result;
    }
 
@@ -427,7 +435,8 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Count BlockMap::ForEachKeyDeep(F&&... f) {
       Count result {};
-      (void) (... || (0 != (result = ForEachDeepSplitter<SKIP, MUTABLE, REVERSE>(mKeys, Forward<F>(f)))));
+      (void) (... or (0 != (result = ForEachDeepSplitter<SKIP, MUTABLE, REVERSE>(
+         GetKeyCountDeep(), mKeys, Forward<F>(f)))));
       return result;
    }
 
@@ -442,7 +451,8 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Count BlockMap::ForEachValueDeep(F&&... f) {
       Count result {};
-      (void) (... || (0 != (result = ForEachDeepSplitter<SKIP, MUTABLE, REVERSE>(mValues, Forward<F>(f)))));
+      (void) (... or (0 != (result = ForEachDeepSplitter<SKIP, MUTABLE, REVERSE>(
+         GetValueCountDeep(), mValues, Forward<F>(f)))));
       return result;
    }
 
@@ -487,7 +497,7 @@ namespace Langulus::Anyness
 
       // Seek next valid info, or hit sentinel at the end               
       const auto previous = mInfo;
-      while (!*++mInfo);
+      while (not *++mInfo);
       const auto offset = mInfo - previous;
       mKey.mRaw += offset * mKey.GetStride();
       mValue.mRaw += offset * mValue.GetStride();

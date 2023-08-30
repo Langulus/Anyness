@@ -20,7 +20,7 @@ namespace Langulus::Anyness
 
       // Seek first valid info, or hit sentinel at the end              
       auto info = GetInfo();
-      while (!*info) ++info;
+      while (not *info) ++info;
 
       return {
          info, GetInfoEnd(),
@@ -44,7 +44,7 @@ namespace Langulus::Anyness
 
       // Seek first valid info in reverse, until one past first is met  
       auto info = GetInfoEnd();
-      while (info >= GetInfo() && !*--info);
+      while (info >= GetInfo() and not *--info);
 
       return {
          info, GetInfoEnd(),
@@ -61,7 +61,7 @@ namespace Langulus::Anyness
 
       // Seek first valid info, or hit sentinel at the end              
       auto info = GetInfo();
-      while (!*info) ++info;
+      while (not *info) ++info;
 
       return {
          info, GetInfoEnd(), 
@@ -85,7 +85,7 @@ namespace Langulus::Anyness
 
       // Seek first valid info in reverse, until one past first is met  
       auto info = GetInfoEnd();
-      while (info >= GetInfo() && !*--info);
+      while (info >= GetInfo() and not *--info);
 
       return {
          info, GetInfoEnd(),
@@ -104,7 +104,7 @@ namespace Langulus::Anyness
       using A = ArgumentOf<F>;
       using R = ReturnOf<F>;
 
-      static_assert(CT::Constant<A> || (CT::Mutable<A> && MUTABLE),
+      static_assert(CT::Constant<A> or MUTABLE,
          "Non constant iterator for constant memory block");
 
       return ForEachInner<R, A, REVERSE, MUTABLE>(part, Forward<F>(call));
@@ -124,7 +124,7 @@ namespace Langulus::Anyness
       using A = ArgumentOf<F>;
       using R = ReturnOf<F>;
 
-      static_assert(CT::Constant<A> || (CT::Mutable<A> && MUTABLE),
+      static_assert(CT::Constant<A> or MUTABLE,
          "Non constant iterator for constant memory block");
 
       if constexpr (CT::Deep<A>) {
@@ -155,7 +155,7 @@ namespace Langulus::Anyness
    ///   @return the number of executions that occured                        
    template<class R, CT::Data A, bool REVERSE, bool MUTABLE, class F>
    Count BlockSet::ForEachInner(Block& part, F&& call) {
-      if (IsEmpty() || !part.mType->template CastsTo<A, true>())
+      if (IsEmpty() or not part.mType->template CastsTo<A, true>())
          return 0;
        
       constexpr bool HasBreaker = CT::Bool<R>;
@@ -163,21 +163,21 @@ namespace Langulus::Anyness
       Count index {};
 
       while (index < mKeys.mReserved) {
-         if (!mInfo[index]) {
+         if (not mInfo[index]) {
             ++index;
             continue;
          }
 
          if constexpr (REVERSE) {
             if constexpr (HasBreaker) {
-               if (!call(part.template Get<A>(mKeys.mReserved - index - 1)))
+               if (not call(part.template Get<A>(mKeys.mReserved - index - 1)))
                   return ++done;
             }
             else call(part.template Get<A>(mKeys.mReserved - index - 1));
          }
          else {
             if constexpr (HasBreaker) {
-               if (!call(part.template Get<A>(index)))
+               if (not call(part.template Get<A>(index)))
                   return ++done;
             }
             else call(part.template Get<A>(index));
@@ -202,14 +202,14 @@ namespace Langulus::Anyness
          auto block = ReinterpretCast<A>(part.GetBlockDeep(index));//TODO custom checked getblockdeep here, write tests and you'll see
          if constexpr (SKIP) {
             // Skip deep/empty sub blocks                               
-            if (block->IsDeep() || block->IsEmpty()) {
+            if (block->IsDeep() or block->IsEmpty()) {
                ++index;
                continue;
             }
          }
 
          if constexpr (HasBreaker) {
-            if (!call(*block))
+            if (not call(*block))
                return ++index;
          }
          else call(*block);
@@ -231,19 +231,19 @@ namespace Langulus::Anyness
 
       static_assert(CT::Block<A>,
          "Function argument must be a CT::Block type");
-      static_assert(CT::Constant<A> || (CT::Mutable<A> && MUTABLE),
+      static_assert(CT::Constant<A> or MUTABLE,
          "Non constant iterator for constant memory block");
 
       Count index {};
       while (index < GetReserved()) {
-         if (!mInfo[index]) {
+         if (not mInfo[index]) {
             ++index;
             continue;
          }
 
          A block = part.GetElement(index);
          if constexpr (CT::Bool<R>) {
-            if (!call(block))
+            if (not call(block))
                return ++index;
          }
          else call(block);
@@ -280,7 +280,7 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Count BlockSet::ForEach(F&&... f) {
       Count result {};
-      (void) (... || (0 != (result = ForEachSplitter<MUTABLE, REVERSE>(mKeys, Forward<F>(f)))));
+      (void) (... or (0 != (result = ForEachSplitter<MUTABLE, REVERSE>(mKeys, Forward<F>(f)))));
       return result;
    }
 
@@ -295,7 +295,7 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Count BlockSet::ForEachDeep(F&&... f) {
       Count result {};
-      (void) (... || (0 != (result = ForEachDeepSplitter<SKIP, MUTABLE, REVERSE>(mKeys, Forward<F>(f)))));
+      (void) (... or (0 != (result = ForEachDeepSplitter<SKIP, MUTABLE, REVERSE>(mKeys, Forward<F>(f)))));
       return result;
    }
 
@@ -338,7 +338,7 @@ namespace Langulus::Anyness
 
       // Seek next valid info, or hit sentinel at the end               
       const auto previous = mInfo;
-      while (!*++mInfo);
+      while (not *++mInfo);
       const auto offset = mInfo - previous;
       mKey.mRaw += offset * mKey.GetStride();
       return *this;

@@ -208,6 +208,76 @@ namespace Langulus::Anyness
       return mValues.GetCount();
    }
 
+   /// Get the number of deep key containers                                  
+   ///   @return the number of deep key containers                            
+   LANGULUS(INLINED)
+   Count BlockMap::GetKeyCountDeep() const noexcept {
+      return GetCountDeep(mKeys);
+   }
+
+   /// Get the number of deep key containers                                  
+   ///   @return the number of deep key containers                            
+   LANGULUS(INLINED)
+   Count BlockMap::GetKeyCountElementsDeep() const noexcept {
+      return GetCountElementsDeep(mKeys);
+   }
+
+   /// Get the number of deep key containers                                  
+   ///   @return the number of deep key containers                            
+   LANGULUS(INLINED)
+   Count BlockMap::GetValueCountDeep() const noexcept {
+      return GetCountDeep(mValues);
+   }
+
+   /// Get the number of deep key containers                                  
+   ///   @return the number of deep key containers                            
+   LANGULUS(INLINED)
+   Count BlockMap::GetValueCountElementsDeep() const noexcept {
+      return GetCountElementsDeep(mValues);
+   }
+
+   /// Inner function, for counting nested containers in key or value blocks  
+   ///   @param what - the block to scan                                      
+   ///   @return the number of found blocks                                   
+   inline Count BlockMap::GetCountDeep(const Block& what) const noexcept {
+      if (IsEmpty() or not what.IsDeep())
+         return 1;
+
+      Count counter = 1;
+      auto data = what.template GetRawAs<Block>();
+      auto info = GetInfo();
+      const auto infoEnd = GetInfoEnd();
+      while (info != infoEnd) {
+         if (*info)
+            counter += (data + (info - GetInfo()))->GetCountDeep();
+         ++info;
+      }
+      return counter;
+   }
+
+   /// Inner function, for counting nested elements in key or value blocks    
+   ///   @param what - the block to scan                                      
+   ///   @return the number of found blocks                                   
+   inline Count BlockMap::GetCountElementsDeep(const Block& what) const noexcept {
+      if (IsEmpty() or not what.mType)
+         return 0;
+
+      if (not what.IsDeep())
+         return GetCount();
+
+      Count counter = 0;
+      auto data = what.template GetRawAs<Block>();
+      auto info = GetInfo();
+      const auto infoEnd = GetInfoEnd();
+      while (info != infoEnd) {
+         if (*info)
+            counter += (data + (info - GetInfo()))->GetCountElementsDeep();
+         ++info;
+      }
+
+      return counter;
+   }
+
    /// Get the number of allocated pairs                                      
    ///   @return the number of allocated pairs                                
    LANGULUS(INLINED)
@@ -240,7 +310,13 @@ namespace Langulus::Anyness
    ///   @return true if the map has missing entries                          
    LANGULUS(INLINED)
    constexpr bool BlockMap::IsMissingDeep() const {
-      return mValues.IsMissingDeep();
+      bool missing = false;
+      ForEachValueDeep([&](const Block& value) {
+         missing = value.IsMissing();
+         return not missing;
+      });
+
+      return missing;
    }
 
    /// Check if the memory for the table is owned by us                       
@@ -264,7 +340,7 @@ namespace Langulus::Anyness
    ///   @return true if block contains at least one valid element            
    LANGULUS(INLINED)
    constexpr BlockMap::operator bool() const noexcept {
-      return !IsEmpty();
+      return not IsEmpty();
    }
 
 #ifdef LANGULUS_ENABLE_DEBUGGING

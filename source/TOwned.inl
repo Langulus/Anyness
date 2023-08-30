@@ -44,8 +44,7 @@ namespace Langulus::Anyness
       : TOwned {Move(value)} {}
 
    /// Semantic constructor                                                   
-   ///   @tparam S - the semantic and type to construct with                  
-   ///   @param value - the value to use for initialization                   
+   ///   @param value - the value and semantic to use for initialization      
    TEMPLATE_OWNED() LANGULUS(INLINED)
    constexpr TOwned<T>::TOwned(CT::Semantic auto&& value) {
       operator = (value.Forward());
@@ -93,21 +92,25 @@ namespace Langulus::Anyness
    }
 
    /// Semantic assignment                                                    
-   ///   @tparam S - the semantic and type to assign                          
-   ///   @param rhs - the value to use for assignment                         
+   ///   @param rhs - the value and semantic to use for assignment            
    TEMPLATE_OWNED() LANGULUS(INLINED)
    constexpr TOwned<T>& TOwned<T>::operator = (CT::Semantic auto&& rhs) {
       using S = Decay<decltype(rhs)>;
+      using ST = TypeOf<S>;
 
-      if constexpr (CT::Exact<TypeOf<S>, TOwned>) {
+      if constexpr (CT::Exact<ST, TOwned>) {
          // Assign another TOwned                                       
          SemanticAssign(mValue, S::Nest(rhs->mValue));
-         if constexpr (S::Move && S::Keep)
+         if constexpr (S::Move and S::Keep)
             rhs->Reset();
       }
-      else if constexpr (CT::Sparse<T> && CT::Nullptr<TypeOf<S>>) {
+      else if constexpr (CT::Sparse<T> and CT::Nullptr<ST>) {
          // Assign a nullptr (simply reset this)                        
          Reset();
+      }
+      else if constexpr (CT::Neat<ST>) {
+         // Use a Neat to initialize the owned value                    
+         TODO();
       }
       else {
          // Assign a raw value                                          
@@ -137,7 +140,7 @@ namespace Langulus::Anyness
    TEMPLATE_OWNED() LANGULUS(INLINED)
    Hash TOwned<T>::GetHash() const {
       if constexpr (CT::Sparse<T>) {
-         if (!mValue)
+         if (not mValue)
             return {};
       }
 

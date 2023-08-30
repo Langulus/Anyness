@@ -32,7 +32,7 @@ namespace Langulus::Anyness
       Construct(Construct&&) noexcept;
 
       template<CT::Semantic S>
-      Construct(S&&) requires (CT::Exact<TypeOf<S>, Construct>);
+      Construct(S&&) requires (CT::Construct<TypeOf<S>>);
 
       Construct(DMeta);
 
@@ -60,7 +60,7 @@ namespace Langulus::Anyness
       Construct& operator = (const Construct&) noexcept;
       Construct& operator = (Construct&&) noexcept;
       template<CT::Semantic S>
-      Construct& operator = (S&&) requires (CT::Exact<TypeOf<S>, Construct>);
+      Construct& operator = (S&&) requires (CT::Construct<TypeOf<S>>);
 
    public:
       NOD() Hash GetHash() const;

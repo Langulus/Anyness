@@ -13,9 +13,30 @@
 
 namespace Langulus::Anyness
 {
+   namespace Inner
+   {
 
-   class Construct;
-   using Messy = Any;
+      /// Constructs pushed to Neat are deconstructed, because Construct      
+      /// itself uses Neat as base, and that's a circular dependency          
+      struct DeConstruct {
+         Hash mHash;
+         Charge mCharge;
+         Any mData;
+
+         LANGULUS(INLINED)
+         Hash GetHash() const noexcept {
+            return mHash;
+         }
+
+         LANGULUS(INLINED)
+         bool operator == (const DeConstruct& rhs) const {
+            return mHash == rhs.mHash
+               and mCharge == rhs.mCharge
+               and mData == rhs.mData;
+         }
+      };
+
+   } // namespace Langulus::Anyness::Inner
 
 
    ///                                                                        
@@ -38,45 +59,48 @@ namespace Langulus::Anyness
       // Trait contents are also normalized all the way through         
       TUnorderedMap<TMeta, TAny<Any>> mTraits;
 
-      // Constructs pushed to Neat are deconstructed, because Construct 
-      // itself uses Neat as base, and we can't nest dense types        
-      struct DeConstruct {
-         Hash mHash;
-         Charge mCharge;
-         Any mData;
-
-         LANGULUS(INLINED)
-         bool operator == (const DeConstruct& rhs) const {
-            return mHash == rhs.mHash
-               and mCharge == rhs.mCharge
-               and mData == rhs.mData;
-         }
-      };
-
       // Subconstructs are sorted first by the construct type, and then 
       // by their order of appearance. Their contents are also          
       // nest-normalized all the way through                            
-      TUnorderedMap<DMeta, TAny<DeConstruct>> mConstructs;
+      TUnorderedMap<DMeta, TAny<Inner::DeConstruct>> mConstructs;
       // Any other block type that doesn't fit in the above is sorted   
       // first by the block type, then by the order of appearance       
       // These sub-blocks won't contain Neat elements                   
       TUnorderedMap<DMeta, TAny<Messy>> mAnythingElse;
 
    public:
+      ///                                                                     
+      ///   Construction                                                      
+      ///                                                                     
       constexpr Neat() = default;
-      constexpr Neat(const Neat&) = default;
-      constexpr Neat(Neat&&) noexcept = default;
+      Neat(const Neat&);
+      Neat(Neat&&) noexcept;
 
       template<CT::Semantic S>
-      Neat(S&&);
+      Neat(S&&) requires (CT::Neat<TypeOf<S>>);
 
-      Neat(const Messy&);
-
-      constexpr Neat& operator = (const Neat&) = default;
-      constexpr Neat& operator = (Neat&&) noexcept = default;
+      template<CT::NotSemantic T>
+      Neat(const T&) requires (not CT::Neat<T>);
+      template<CT::NotSemantic T>
+      Neat(T&) requires (not CT::Neat<T>);
+      template<CT::NotSemantic T>
+      Neat(T&&) requires (not CT::Neat<T>);
       template<CT::Semantic S>
-      Neat& operator = (S&&);
+      Neat(S&&) requires (not CT::Neat<TypeOf<S>>);
 
+      template<CT::Data HEAD, CT::Data... TAIL>
+      Neat(HEAD&&, TAIL&&...) requires (sizeof...(TAIL) >= 1);
+
+      ///                                                                     
+      ///   Assignment                                                        
+      ///                                                                     
+      Neat& operator = (const Neat&) = default;
+      Neat& operator = (Neat&&) noexcept = default;
+      Neat& operator = (CT::Semantic auto&&);
+
+      ///                                                                     
+      ///   Comparison                                                        
+      ///                                                                     
       bool operator == (const Neat&) const;
 
       void Clear();
@@ -101,33 +125,80 @@ namespace Langulus::Anyness
       template<CT::Trait T>
       const TAny<Any>* GetTraits() const;
 
+      TAny<Any>* GetTraits(TMeta);
+      const TAny<Any>* GetTraits(TMeta) const;
+
       template<CT::Data T>
       TAny<Messy>* GetData();
       template<CT::Data T>
       const TAny<Messy>* GetData() const;
       
+      TAny<Messy>* GetData(DMeta);
+      const TAny<Messy>* GetData(DMeta) const;
+      
       template<CT::Data T>
-      TAny<Construct>* GetConstructs();
+      TAny<Inner::DeConstruct>* GetConstructs();
       template<CT::Data T>
-      const TAny<Construct>* GetConstructs() const;
+      const TAny<Inner::DeConstruct>* GetConstructs() const;
 
-      template<CT::Trait T, CT::Data D>
-      void SetDefaultTrait(D&&);
+      TAny<Inner::DeConstruct>* GetConstructs(DMeta);
+      const TAny<Inner::DeConstruct>* GetConstructs(DMeta) const;
 
-      template<CT::Trait T, CT::Data D>
-      void OverwriteTrait(D&&);
-
-      template<CT::Trait T, CT::Data... D>
-      bool ExtractTrait(D&...) const;
-      template<CT::Data D>
-      bool ExtractData(D&) const;
-      template<CT::Data D>
-      bool ExtractDataAs(D&) const;
-
-      NOD() const Any* Get(TMeta, const Offset & = 0) const;
       template<CT::Trait T>
-      NOD() const Any* Get(const Offset & = 0) const;
+      void SetDefaultTrait(CT::Data auto&&);
 
+      template<CT::Trait T>
+      void OverwriteTrait(CT::Data auto&&);
+
+      template<CT::Trait... T>
+      bool ExtractTrait(CT::Data auto&...) const;
+      Count ExtractData(CT::Data auto&) const;
+
+      // Intentionally undefined, because it requires Langulus::Flow    
+      // and relies on Verbs::Interpret                                 
+      // If you receive missing externals, include the following:       
+      //    #include <Flow/Verbs/Interpret.hpp>                         
+      Count ExtractDataAs(CT::Data auto&) const;
+
+      NOD() const Any* Get(TMeta, const Offset& = 0) const;
+      template<CT::Trait T>
+      NOD() const Any* Get(const Offset& = 0) const;
+
+   protected:
+      template<CT::Trait T>
+      bool ExtractTraitInner(CT::Data auto&...) const;
+
+   public:
+      ///                                                                     
+      ///   Iteration                                                         
+      ///                                                                     
+      template<bool MUTABLE = true, class... F>
+      Count ForEach(F&&...);
+      template<class... F>
+      Count ForEach(F&&...) const;
+
+      template<bool MUTABLE = true, class F>
+      Count ForEachTrait(F&&);
+      template<class F>
+      Count ForEachTrait(F&&) const;
+
+      template<bool MUTABLE = true, class F>
+      Count ForEachConstruct(F&&);
+      template<class F>
+      Count ForEachConstruct(F&&) const;
+
+      template<bool MUTABLE = true, class F>
+      Count ForEachTail(F&&);
+      template<class F>
+      Count ForEachTail(F&&) const;
+
+   protected:
+      template<bool MUTABLE = true, class F>
+      Count ForEachInner(F&&);
+      template<class F>
+      Count ForEachInner(F&&) const;
+
+   public:
       ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
@@ -136,32 +207,25 @@ namespace Langulus::Anyness
       Neat& operator << (CT::NotSemantic auto&&);
       Neat& operator << (CT::Semantic auto&&);
 
-      Neat& operator >> (const CT::NotSemantic auto&);
-      Neat& operator >> (CT::NotSemantic auto&);
-      Neat& operator >> (CT::NotSemantic auto&&);
-      Neat& operator >> (CT::Semantic auto&&);
-
       Neat& operator <<= (const CT::NotSemantic auto&);
       Neat& operator <<= (CT::NotSemantic auto&);
       Neat& operator <<= (CT::NotSemantic auto&&);
       Neat& operator <<= (CT::Semantic auto&&);
 
-      Neat& operator >>= (const CT::NotSemantic auto&);
-      Neat& operator >>= (CT::NotSemantic auto&);
-      Neat& operator >>= (CT::NotSemantic auto&&);
-      Neat& operator >>= (CT::Semantic auto&&);
-
-      Neat& Set(const Trait&, const Offset & = 0);
-      template<CT::Trait T, CT::Semantic S>
-      void Set(S&&) const;
+      Neat& Set(const Trait&, const Offset& = 0);
+      template<CT::Trait T>
+      void Set(CT::Semantic auto&&) const;
 
       void Merge(const Neat&);
 
    protected:
-      template<CT::Data... D, Offset... IDX>
-      bool ExtractTraitInner(const TAny<Any>&, ::std::integer_sequence<Offset, IDX...>, D&...) const;
-      template<Offset, CT::Data D>
-      bool ExtractTraitInnerInner(const TAny<Any>&, D&) const;
+      template<CT::Semantic S>
+      void AddTrait(S&&) requires (CT::TraitBased<TypeOf<S>>);
+
+      template<Offset... IDX>
+      bool ExtractTraitInner(const TAny<Any>&, ::std::integer_sequence<Offset, IDX...>, CT::Data auto&...) const;
+      template<Offset>
+      bool ExtractTraitInnerInner(const TAny<Any>&, CT::Data auto&) const;
    };
 
 } // namespace Langulus::Anyness

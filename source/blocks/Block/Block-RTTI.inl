@@ -17,7 +17,7 @@ namespace Langulus::Anyness
    ///   @return true if this block contains similar data                     
    LANGULUS(INLINED)
    bool Block::Is(DMeta type) const noexcept {
-      return mType == type || (mType && mType->Is(type));
+      return mType == type or (mType and mType->Is(type));
    }
 
    /// Check if this container's data is similar to one of the listed types,  
@@ -27,7 +27,7 @@ namespace Langulus::Anyness
    template<CT::Data... T>
    LANGULUS(INLINED)
    bool Block::Is() const {
-      return (Is(MetaData::Of<T>()) || ...);
+      return (Is(MetaData::Of<T>()) or ...);
    }
 
    /// Check if this container's data is exactly as one of the listed types,  
@@ -37,7 +37,7 @@ namespace Langulus::Anyness
    template<CT::Data... T>
    LANGULUS(INLINED)
    bool Block::IsExact() const {
-      return (IsExact(MetaData::Of<T>()) || ...);
+      return (IsExact(MetaData::Of<T>()) or ...);
    }
 
    /// Check if this container's data is exactly the provided type,           
@@ -46,7 +46,7 @@ namespace Langulus::Anyness
    ///   @return true if data type matches type exactly                       
    LANGULUS(INLINED)
    bool Block::IsExact(DMeta type) const noexcept {
-      return mType == type || (mType && mType->IsExact(type));
+      return mType == type or (mType and mType->IsExact(type));
    }
 
    /// Check if contained data can be interpreted as a given type             
@@ -56,7 +56,7 @@ namespace Langulus::Anyness
    template<bool BINARY_COMPATIBLE>
    LANGULUS(INLINED)
    bool Block::CastsToMeta(DMeta type) const {
-      return mType && (mType->mIsSparse
+      return mType and (mType->mIsSparse
          ? mType->CastsTo<true>(type)
          : mType->CastsTo(type));
    }
@@ -70,7 +70,7 @@ namespace Langulus::Anyness
    template<bool BINARY_COMPATIBLE>
    LANGULUS(INLINED)
    bool Block::CastsToMeta(DMeta type, Count count) const {
-      return !mType || !type || mType->CastsTo(type, count);
+      return not mType or not type or mType->CastsTo(type, count);
    }
 
    /// Check if this container's data can be represented as type T            
@@ -104,11 +104,11 @@ namespace Langulus::Anyness
    ///   @param pattern - the type of data to try interpreting as             
    ///   @return a block representing this block, interpreted as the pattern  
    inline Block Block::ReinterpretAs(const Block& pattern) const {
-      if (IsEmpty() || IsSparse() || IsUntyped() || pattern.IsUntyped())
+      if (IsEmpty() or IsSparse() or IsUntyped() or pattern.IsUntyped())
          return {};
 
       RTTI::Base common {};
-      if (!CompareTypes(pattern, common) || !common.mBinaryCompatible)
+      if (not CompareTypes(pattern, common) or not common.mBinaryCompatible)
          return {};
 
       const Size baseBytes = (common.mType->mSize * common.mCount)
@@ -257,7 +257,7 @@ namespace Langulus::Anyness
       Offset offset = SimplifyMemberIndex(index);
       Offset counter = 0;
       for (auto& member : mType->mMembers) {
-         if (trait && !member.TraitIs(trait))
+         if (trait and not member.TraitIs(trait))
             continue;
 
          // Matched, but check index first                              
@@ -310,7 +310,7 @@ namespace Langulus::Anyness
       Offset offset = SimplifyMemberIndex(index);
       Offset counter = 0;
       for (auto& member : mType->mMembers) {
-         if (data && !member.GetType()->CastsTo(data))
+         if (data and not member.GetType()->CastsTo(data))
             continue;
 
          // Matched, but check index first                              
@@ -455,7 +455,7 @@ namespace Langulus::Anyness
    bool Block::Mutate(DMeta meta) {
       static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
 
-      if (!mType || (!mState.IsTyped() && mType->mIsAbstract && IsEmpty() && meta->CastsTo(mType))) {
+      if (not mType or (not mState.IsTyped() and mType->mIsAbstract and IsEmpty() and meta->CastsTo(mType))) {
          // Undefined/abstract containers can mutate freely             
          SetType<false>(meta);
       }
@@ -463,10 +463,10 @@ namespace Langulus::Anyness
          // No need to mutate - types are exactly the same              
          return false;
       }
-      else if (!IsInsertable(meta)) {
+      else if (not IsInsertable(meta)) {
          // Not insertable due to some reasons                          
          if constexpr (ALLOW_DEEPEN) {
-            if (!IsTypeConstrained()) {
+            if (not IsTypeConstrained()) {
                // Container is not type-constrained, so we can safely   
                // deepen it, to incorporate the new data                
                Deepen<WRAPPER>();
@@ -493,14 +493,14 @@ namespace Langulus::Anyness
             MakeTypeConstrained();
          return;
       }
-      else if (!mType) {
+      else if (not mType) {
          mType = type;
          if constexpr (CONSTRAIN)
             MakeTypeConstrained();
          return;
       }
 
-      LANGULUS_ASSERT(!IsTypeConstrained(), Mutate, "Incompatible type");
+      LANGULUS_ASSERT(not IsTypeConstrained(), Mutate, "Incompatible type");
 
       if (mType->CastsTo(type)) {
          // Type is compatible, but only sparse data can mutate freely  
@@ -532,7 +532,7 @@ namespace Langulus::Anyness
    /// Reset the type of the block, unless it's type-constrained              
    LANGULUS(INLINED)
    constexpr void Block::ResetType() noexcept {
-      if (!IsTypeConstrained())
+      if (not IsTypeConstrained())
          mType = nullptr;
    }
 

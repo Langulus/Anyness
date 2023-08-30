@@ -39,7 +39,7 @@ namespace Langulus::Anyness
    ///   @return true if block contains at least one valid element            
    LANGULUS(INLINED)
    constexpr Block::operator bool() const noexcept {
-      return !IsEmpty();
+      return not IsEmpty();
    }
 
    /// Check if a pointer is anywhere inside the block's reserved memory      
@@ -48,7 +48,7 @@ namespace Langulus::Anyness
    ///   @return true if inside the immediate reserved memory block range     
    LANGULUS(INLINED)
    bool Block::Owns(const void* ptr) const noexcept {
-      return ptr >= mRaw && ptr < mRaw + GetReservedSize();
+      return ptr >= mRaw and ptr < mRaw + GetReservedSize();
    }
 
    /// Check if we have jurisdiction over the contained memory                
@@ -98,10 +98,10 @@ namespace Langulus::Anyness
    /// Get the number of sub-blocks (this one included)                       
    ///   @return the number of contained blocks, including this one           
    inline Count Block::GetCountDeep() const noexcept {
-      if (IsEmpty() || !IsDeep())
+      if (IsEmpty() or not IsDeep())
          return 1;
 
-      Count counter {1};
+      Count counter = 1;
       Iterate([&counter](const Block& block) noexcept {
          counter += block.GetCountDeep();
       });
@@ -111,12 +111,13 @@ namespace Langulus::Anyness
    /// Get the sum of initialized non-deep elements in all sub-blocks         
    ///   @return the number of contained non-deep elements                    
    inline Count Block::GetCountElementsDeep() const noexcept {
-      if (IsEmpty() || !mType)
+      if (IsEmpty() or not mType)
          return 0;
-      if (!IsDeep())
+
+      if (not IsDeep())
          return mCount;
 
-      Count counter {};
+      Count counter = 0;
       Iterate([&counter](const Block& block) noexcept {
          counter += block.GetCountElementsDeep();
       });
@@ -169,14 +170,14 @@ namespace Langulus::Anyness
    ///   @return true if data contained in this pack is unspecified           
    LANGULUS(INLINED)
    constexpr bool Block::IsUntyped() const noexcept {
-      return !IsTyped();
+      return not IsTyped();
    }
 
    /// Check if block has a data type, and is type-constrained                
    ///   @return true if type-constrained                                     
    LANGULUS(INLINED)
    constexpr bool Block::IsTypeConstrained() const noexcept {
-      return mType && mState.IsTyped();
+      return mType and mState.IsTyped();
    }
 
    /// Check if block is encrypted                                            
@@ -204,28 +205,28 @@ namespace Langulus::Anyness
    ///   @return true if the contents are mutable                             
    LANGULUS(INLINED)
    constexpr bool Block::IsMutable() const noexcept {
-      return !IsConstant();
+      return not IsConstant();
    }
 
    /// Check if block is static (size-constrained)                            
    ///   @return true if the contents are static (size-constrained)           
    LANGULUS(INLINED)
    constexpr bool Block::IsStatic() const noexcept {
-      return mRaw && (mState.IsStatic() || !mEntry);
+      return mRaw and (mState.IsStatic() or not mEntry);
    }
    
    /// Check if contained type is abstract                                    
    ///   @return true if the type of this pack is abstract                    
    LANGULUS(INLINED)
    constexpr bool Block::IsAbstract() const noexcept {
-      return mType && mType->mIsAbstract;
+      return mType and mType->mIsAbstract;
    }
 
    /// Check if contained type is default-constructible                       
    ///   @return true if the contents of this pack are constructible          
    LANGULUS(INLINED)
    constexpr bool Block::IsDefaultable() const noexcept {
-      return mType && mType->mDefaultConstructor;
+      return mType and mType->mDefaultConstructor;
    }
    
    /// Check if block is inhibitory (or) container                            
@@ -246,21 +247,21 @@ namespace Langulus::Anyness
    ///   @return true if block either contains state, or has inserted stuff   
    LANGULUS(INLINED)
    constexpr bool Block::IsValid() const noexcept {
-      return mCount || GetUnconstrainedState();
+      return mCount or GetUnconstrainedState();
    }
 
    /// Check if block contains no elements and no relevant state              
    ///   @return true if this is an empty stateless container                 
    LANGULUS(INLINED)
    constexpr bool Block::IsInvalid() const noexcept {
-      return !IsValid();
+      return not IsValid();
    }
    
    /// Check if block contains dense data                                     
    ///   @returns true if this container refers to dense memory               
    LANGULUS(INLINED)
    constexpr bool Block::IsDense() const noexcept {
-      return !IsSparse();
+      return not IsSparse();
    }
 
    /// Check if block contains pointers                                       
@@ -278,7 +279,7 @@ namespace Langulus::Anyness
    ///   @return true if contained data is plain old data                     
    LANGULUS(INLINED)
    constexpr bool Block::IsPOD() const noexcept {
-      return mType && mType->mIsPOD;
+      return mType and mType->mIsPOD;
    }
 
    /// Check if block contains resolvable items, that is, items that have a   
@@ -287,7 +288,7 @@ namespace Langulus::Anyness
    ///   @return true if contained data can be resolved on element basis      
    LANGULUS(INLINED)
    constexpr bool Block::IsResolvable() const noexcept {
-      return mType && mType->mIsSparse && mType->mResolver;
+      return mType and mType->mIsSparse and mType->mResolver;
    }
 
    /// Check if block data can be safely set to zero bytes                    
@@ -295,14 +296,14 @@ namespace Langulus::Anyness
    ///   @return true if contained data can be zeroed safely                  
    LANGULUS(INLINED)
    constexpr bool Block::IsNullifiable() const noexcept {
-      return mType && mType->mIsNullifiable;
+      return mType and mType->mIsNullifiable;
    }
 
    /// Check if the memory block contains memory blocks                       
    ///   @return true if the memory block contains memory blocks              
    LANGULUS(INLINED)
    constexpr bool Block::IsDeep() const noexcept {
-      return mType && mType->mIsDeep && mType->template CastsTo<Block, true>();
+      return mType and mType->mIsDeep and mType->template CastsTo<Block, true>();
    }
    
    /// Check phase compatibility                                              
@@ -310,7 +311,7 @@ namespace Langulus::Anyness
    ///   @return true if phase is compatible                                  
    LANGULUS(INLINED)
    constexpr bool Block::CanFitPhase(const Block& other) const noexcept {
-      return IsNow() || other.IsNow() || IsFuture() == other.IsFuture();
+      return IsNow() or other.IsNow() or IsFuture() == other.IsFuture();
    }
 
    /// Check state compatibility                                              
@@ -318,11 +319,11 @@ namespace Langulus::Anyness
    ///   @return true if state is compatible                                  
    LANGULUS(INLINED)
    constexpr bool Block::CanFitState(const Block& other) const noexcept {
-      return IsInvalid() || (
+      return IsInvalid() or (
          IsMissing() == other.IsMissing()
-         && (!IsTypeConstrained() || other.IsExact(mType))
-         && CanFitOrAnd(other)
-         && CanFitPhase(other)
+         and (not IsTypeConstrained() or other.IsExact(mType))
+         and CanFitOrAnd(other)
+         and CanFitPhase(other)
       );
    }
 
@@ -331,7 +332,7 @@ namespace Langulus::Anyness
    ///   @return true if state is compatible                                  
    LANGULUS(INLINED)
    constexpr bool Block::CanFitOrAnd(const Block& other) const noexcept {
-      return mCount <= 1 || other.mCount <= 1 || IsOr() == other.IsOr();
+      return mCount <= 1 or other.mCount <= 1 or IsOr() == other.IsOr();
    }
 
    /// Get the size of the contained data, in bytes                           
@@ -385,7 +386,7 @@ namespace Langulus::Anyness
       bool result {};
       ForEachDeep([&result](const Block& group) noexcept {
          result = group.IsMissing();
-         return !result;
+         return not result;
       });
       return result;
    }
@@ -395,10 +396,10 @@ namespace Langulus::Anyness
    ///   @return true if able to concatenate to this one                      
    LANGULUS(INLINED)
    constexpr bool Block::IsConcatable(const Block& other) const noexcept {
-      return !IsStatic()
-          && !IsConstant() 
-          && CanFitState(other)
-          && IsExact(other.mType);
+      return not IsStatic()
+         and not IsConstant() 
+         and CanFitState(other)
+         and IsExact(other.mType);
    }
 
    /// Check if a type can be inserted to this block                          
@@ -407,10 +408,10 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    constexpr bool Block::IsInsertable(DMeta other) const noexcept {
       return other
-         && !IsStatic()
-         && !IsConstant()
-         && IsDeep() == other->mIsDeep
-         && CastsToMeta(other);
+         and not IsStatic()
+         and not IsConstant()
+         and IsDeep() == other->mIsDeep
+         and CastsToMeta(other);
    }
    
    /// Check if a static type can be inserted                                 

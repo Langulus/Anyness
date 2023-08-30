@@ -118,6 +118,10 @@ namespace Langulus::Anyness
 
          //TODO perhaps constructor from map array, by merging them?
       }
+      else if constexpr (CT::Neat<ST>) {
+         // Descriptor constructor - check if Neat contains Ts          
+         TODO();
+      }
       else LANGULUS_ERROR("Unsupported semantic constructor");
    }
 

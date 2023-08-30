@@ -15,7 +15,7 @@ LANGULUS_EXCEPTION_HANDLER
 
 using uint = unsigned int;
 
-SCENARIO("Deep containers", "[any]") {
+SCENARIO("Deep sequential containers", "[any]") {
    GIVEN("Any with some deep items") {
       IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
@@ -37,6 +37,31 @@ SCENARIO("Deep containers", "[any]") {
       REQUIRE(pack.GetReserved() >= 3);
       REQUIRE(pack.Is<Any>());
       REQUIRE(pack.GetRaw());
+
+      WHEN("Getting deep elements") {
+         THEN("Make sure indices point to the correct items") {
+            REQUIRE(pack.GetCountDeep() == 6);
+            REQUIRE(pack.GetCountElementsDeep() == 20);
+            REQUIRE(pack.GetBlockDeep(0));
+            REQUIRE(pack.GetBlockDeep(1));
+            REQUIRE(pack.GetBlockDeep(2));
+            REQUIRE(pack.GetBlockDeep(3));
+            REQUIRE(pack.GetBlockDeep(4));
+            REQUIRE(pack.GetBlockDeep(5));
+            REQUIRE(pack.GetBlockDeep(666) == nullptr);
+            REQUIRE(*pack.GetBlockDeep(0) == pack);
+            REQUIRE(*pack.GetBlockDeep(1) == subpack1);
+            REQUIRE(*pack.GetBlockDeep(2) == subpack2);
+            REQUIRE(*pack.GetBlockDeep(3) == subpack3);
+            REQUIRE(*pack.GetBlockDeep(4) == subpack1);
+            REQUIRE(*pack.GetBlockDeep(5) == subpack2);
+            for (int i = 1; i < 11; ++i) {
+               REQUIRE(pack.GetElementDeep(i - 1) == i);
+               REQUIRE(pack.GetElementDeep(i - 1 + 10) == i);
+            }
+            REQUIRE(pack.GetElementDeep(666).IsEmpty());
+         }
+      }
 
       WHEN("Push more stuff") {
          REQUIRE_THROWS_AS(pack << int(6), Except::Mutate);

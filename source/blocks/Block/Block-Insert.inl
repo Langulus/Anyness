@@ -1364,7 +1364,7 @@ namespace Langulus::Anyness
    ///   @attention assumes that none of the elements is initialized          
    ///   @param count - the number of elements to construct                   
    ///   @param descriptor - the descriptor to pass on to constructors        
-   inline void Block::CallUnknownDescriptorConstructors(Count count, const Descriptor& descriptor) const {
+   inline void Block::CallUnknownDescriptorConstructors(Count count, const Neat& descriptor) const {
       LANGULUS_ASSUME(DevAssumes, count <= mReserved,
          "Count outside limits");
       LANGULUS_ASSERT(
@@ -1415,7 +1415,7 @@ namespace Langulus::Anyness
    ///   @param count - the number of elements to construct                   
    ///   @param descriptor - the descriptor to pass on to constructors        
    template<CT::Data T>
-   void Block::CallKnownDescriptorConstructors(const Count count, const Descriptor& descriptor) const {
+   void Block::CallKnownDescriptorConstructors(const Count count, const Neat& descriptor) const {
       static_assert(CT::DescriptorMakable<T>,
          "T is not descriptor-constructible");
 
