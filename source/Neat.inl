@@ -259,7 +259,7 @@ namespace Langulus::Anyness
    /// Check if the container has missing entries                             
    ///   @return true if there's at least one missing entry                   
    LANGULUS(INLINED)
-   constexpr bool Neat::IsMissing() const {
+   bool Neat::IsMissing() const {
       // Buckets are flattened anyways, so same as IsMissingDeep        
       return IsMissingDeep();
    }
@@ -267,7 +267,7 @@ namespace Langulus::Anyness
    /// Check if the container has missing entries, nest-scan                  
    ///   @return true if there's at least one missing entry                   
    LANGULUS(INLINED)
-   constexpr bool Neat::IsMissingDeep() const {
+   bool Neat::IsMissingDeep() const {
       return mTraits.IsMissingDeep()
           or mConstructs.IsMissingDeep()
           or mAnythingElse.IsMissingDeep();

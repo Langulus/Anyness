@@ -302,14 +302,14 @@ namespace Langulus::Anyness
    /// Check if the map is marked missing                                     
    ///   @return true if the map is marked missing                            
    LANGULUS(INLINED)
-   constexpr bool BlockMap::IsMissing() const noexcept {
+   bool BlockMap::IsMissing() const noexcept {
       return mValues.IsMissing();
    }
    
    /// Check if the map contains at least one missing entry (nested)          
    ///   @return true if the map has missing entries                          
    LANGULUS(INLINED)
-   constexpr bool BlockMap::IsMissingDeep() const {
+   bool BlockMap::IsMissingDeep() const {
       bool missing = false;
       ForEachValueDeep([&](const Block& value) {
          missing = value.IsMissing();

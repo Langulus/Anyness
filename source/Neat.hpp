@@ -115,8 +115,8 @@ namespace Langulus::Anyness
       ///                                                                     
       NOD() Hash GetHash() const;
       NOD() constexpr bool IsEmpty() const noexcept;
-      NOD() constexpr bool IsMissing() const;
-      NOD() constexpr bool IsMissingDeep() const;
+      NOD() bool IsMissing() const;
+      NOD() bool IsMissingDeep() const;
 
       NOD() constexpr explicit operator bool() const noexcept;
 
