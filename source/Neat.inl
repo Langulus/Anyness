@@ -7,6 +7,7 @@
 ///                                                                           
 #pragma once
 #include "Neat.hpp"
+#include "Trait.inl"
 #include "Construct.inl"
 #include "TUnorderedMap.inl"
 
