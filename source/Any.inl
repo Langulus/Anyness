@@ -8,6 +8,7 @@
 #pragma once
 #include "Any.hpp"
 #include "Text.hpp"
+#include "Neat.hpp"
 #include <utility>
 
 namespace Langulus::Anyness
@@ -760,7 +761,7 @@ namespace Langulus::Anyness
       );
 
       //TODO if stuff moved, we should move stuff back if this throws...
-      Neat descriptor {Block::From(arguments)...};
+      const Neat descriptor {arguments...};
       region.CallUnknownDescriptorConstructors(count, descriptor);
       mCount += count;
    }

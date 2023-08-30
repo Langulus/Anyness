@@ -6,8 +6,8 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "TUnorderedMap.hpp"
 #include "Trait.hpp"
+#include "TUnorderedMap.hpp"
 #include "inner/Charge.hpp"
 
 

@@ -290,54 +290,28 @@ namespace Langulus::Anyness
    template<class R, CT::Data A, bool REVERSE, bool MUTABLE, class F>
    LANGULUS(INLINED)
    Count Block::ForEachInner(F&& f) noexcept(NoexceptIterator<decltype(f)>) {
-      LANGULUS_ASSUME(DevAssumes, not IsEmpty(),
-         "Container is empty");
-      LANGULUS_ASSUME(DevAssumes, IsTyped(),
-         "Container is not typed");
-
       constexpr auto NOE = NoexceptIterator<decltype(f)>;
+
       Count index = 0;
-
-      if constexpr (CT::Complete<Decay<A>>) {
-         // Argument type is complete, and we can allow to be more      
-         // flexible with our iterations                                
-         LANGULUS_ASSUME(DevAssumes, (CastsTo<A, true>()),
-            "Incompatible type");
-
-         if (mType->mIsSparse) {
-            // Iterate pointers of A                                    
-            using DA = Decay<A>*;
-            IterateInner<R, DA, REVERSE, MUTABLE>(
-               [&index, &f](DA element) noexcept(NOE) -> R {
-                  ++index;
-                  if constexpr (CT::Sparse<A>)  return f(element);
-                  else                          return f(*element);
-               }
-            );
-         }
-         else {
-            // Iterate references of A                                  
-            using DA = Decay<A>&;
-            IterateInner<R, DA, REVERSE, MUTABLE>(
-               [&index, &f](DA element) noexcept(NOE) -> R {
-                  ++index;
-                  if constexpr (CT::Sparse<A>)  return f(&element);
-                  else                          return f(element);
-               }
-            );
-         }
-      }
-      else {
-         // Argument type is incomplete, and we allow only iteration    
-         // by pointers                                                 
-         LANGULUS_ASSUME(DevAssumes, CT::Sparse<A> and mType->mIsSparse,
-            "Iterating with dense incomplete type");
-
-         using DA = Decay<A>*;
+      if (mType->mIsSparse) {
+         // Iterate using pointers of A                                 
+         using DA = Conditional<MUTABLE, Decay<A>*, const Decay<A>*>;
          IterateInner<R, DA, REVERSE, MUTABLE>(
             [&index, &f](DA element) noexcept(NOE) -> R {
                ++index;
-               return f(element);
+               if constexpr (CT::Sparse<A>)  return f(element);
+               else                          return f(*element);
+            }
+         );
+      }
+      else {
+         // Iterate using of A                                          
+         using DA = Conditional<MUTABLE, Decay<A>&, const Decay<A>&>;
+         IterateInner<R, DA, REVERSE, MUTABLE>(
+            [&index, &f](DA element) noexcept(NOE) -> R {
+               ++index;
+               if constexpr (CT::Sparse<A>)  return f(&element);
+               else                          return f(element);
             }
          );
       }
@@ -438,20 +412,6 @@ namespace Langulus::Anyness
    void Block::Iterate(F&& call) noexcept(NoexceptIterator<F>) {
       using A = ArgumentOf<F>;
       using R = ReturnOf<F>;
-
-      static_assert(CT::Constant<A> or MUTABLE,
-         "Non constant iterator for constant memory block");
-
-      LANGULUS_ASSUME(DevAssumes, not IsEmpty(),
-         "Block is empty");
-      LANGULUS_ASSUME(DevAssumes, IsSparse() == CT::Sparse<A>,
-         "Sparseness mismatch");
-
-      if constexpr (CT::Dense<A>) {
-         LANGULUS_ASSUME(DevAssumes, (CastsTo<A, true>()),
-            "Iteration type is binary incompatible");
-      }
-
       IterateInner<R, A, REVERSE, MUTABLE>(Forward<F>(call));
    }
    
@@ -473,7 +433,7 @@ namespace Langulus::Anyness
 
    /// Execute a function for each element inside container                   
    /// Lowest-level element iteration function (for internal use only)        
-   ///   @attention assumes AS is binary compatible with the contained type   
+   ///   @attention assumes A is binary compatible with the contained type    
    ///   @attention assumes block is not empty                                
    ///   @attention assumes sparseness matches                                
    ///   @tparam R - optional call return (deducible)                         
@@ -486,8 +446,15 @@ namespace Langulus::Anyness
    template<class R, CT::Data A, bool REVERSE, bool MUTABLE, class F>
    LANGULUS(INLINED)
    void Block::IterateInner(F&& f) noexcept(NoexceptIterator<decltype(f)>) {
+      static_assert(CT::Complete<Decay<A>> or CT::Sparse<A>,
+         "Can't iterate with incomplete type, use pointer instead");
+      static_assert(CT::Constant<A> or MUTABLE,
+         "Non constant iterator for constant memory is not allowed");
+
       LANGULUS_ASSUME(DevAssumes, not IsEmpty(),
          "Block is empty");
+      LANGULUS_ASSUME(DevAssumes, IsTyped(),
+         "Container is not typed");
       LANGULUS_ASSUME(DevAssumes, IsSparse() == CT::Sparse<A>,
          "Sparseness mismatch");
 
