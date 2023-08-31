@@ -3150,7 +3150,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
 
          THEN("The number of iterated elements should be correct") {
             REQUIRE(static_cast<unsigned>(it) == foreachit);
-            if constexpr (CT::Same<E, Text>)
+            if constexpr (CT::Text<E>)
                REQUIRE(it == 0);
             else
                REQUIRE(static_cast<unsigned>(it) == pack.GetCount());

@@ -195,30 +195,14 @@ namespace Langulus::Anyness
       return executions;
    }
 
-   /// Execute functions for each element inside container                    
-   ///   @tparam MUTABLE - whether or not a change to container is allowed    
-   ///                     while iterating                                    
-   ///   @tparam F - the function types (deducible)                           
-   ///   @param call - the instance of the function F to call                 
-   ///   @return the number of called functions                               
-   template<bool MUTABLE, bool REVERSE, class F>
-   LANGULUS(INLINED)
-   Count BlockMap::ForEachSplitter(Block& part, F&& call) {
-      using A = ArgumentOf<F>;
-      using R = ReturnOf<F>;
-
-      static_assert(CT::Constant<A> or MUTABLE,
-         "Non constant iterator for constant memory block");
-
-      return ForEachInner<R, A, REVERSE, MUTABLE>(part, Forward<F>(call));
-   }
-
    /// Iterate and execute call for each element                              
+   ///   @attention assumes map is not empty, and part is typed               
    ///   @param call - the function to execute for each element of type T     
    ///   @return the number of executions that occured                        
    template<class R, CT::Data A, bool REVERSE, bool MUTABLE, class F>
    Count BlockMap::ForEachInner(Block& part, F&& call) {
-      if (IsEmpty() or not part.mType->CastsTo<A, true>())
+      LANGULUS_ASSUME(DevAssumes, not IsEmpty(), "Map is empty");
+      if (not part.mType->CastsTo<A, true>())
          return 0;
        
       constexpr bool HasBreaker = CT::Bool<R>;
@@ -259,6 +243,9 @@ namespace Langulus::Anyness
    ///   @return the number of successful f() executions                      
    template<bool REVERSE, bool MUTABLE, class F>
    Count BlockMap::ForEachElement(Block& part, F&& call) {
+      if (IsEmpty())
+         return 0;
+
       using A = ArgumentOf<F>;
       using R = ReturnOf<F>;
 
@@ -286,78 +273,46 @@ namespace Langulus::Anyness
 
       return index;
    }
-   
-   /// Execute functions for each element inside container, nested for any    
-   /// contained deep containers                                              
-   ///   @tparam SKIP - set to false, to execute F for containers, too        
-   ///                  set to true, to execute only for non-deep elements    
-   ///   @tparam MUTABLE - whether or not a change to container is allowed    
-   ///                     while iterating                                    
-   ///   @tparam F - the function type (deducible                             
-   ///   @param call - the instance of the function F to call                 
-   ///   @return the number of called functions                               
-   template<bool SKIP, bool MUTABLE, bool REVERSE, class F>
-   LANGULUS(INLINED)
-   Count BlockMap::ForEachDeepSplitter(const Count count, Block& part, F&& call) {
-      using A = ArgumentOf<F>;
-      using R = ReturnOf<F>;
-
-      static_assert(CT::Constant<A> or MUTABLE,
-         "Non constant iterator for constant memory block");
-
-      if constexpr (CT::Deep<A>) {
-         // If argument type is deep                                    
-         return ForEachDeepInner<R, A, REVERSE, SKIP, MUTABLE>(
-            count, part, Forward<F>(call)
-         );
-      }
-      else if constexpr (CT::Constant<A>) {
-         // Any other type is wrapped inside another ForEachDeep call   
-         return ForEachDeep<SKIP, MUTABLE>(
-            count, part, 
-            [&call](const Block& block) {
-               block.ForEach(Forward<F>(call));
-            }
-         );
-      }
-      else {
-         // Any other type is wrapped inside another ForEachDeep call   
-         return ForEachDeep<SKIP, MUTABLE>(
-            count, part,
-            [&call](Block& block) {
-               block.ForEach(Forward<F>(call));
-            }
-         );
-      }
-   }
 
    /// Iterate and execute call for each element                              
    ///   @param call - the function to execute for each element of type T     
    ///   @return the number of executions that occured                        
    template<class R, CT::Data A, bool REVERSE, bool SKIP, bool MUTABLE, class F>
-   Count BlockMap::ForEachDeepInner(const Count count, Block& part, F&& call) {
-      constexpr bool HasBreaker = CT::Bool<R>;
-      Offset index = 0;
-      while (index < count) {
-         auto block = ReinterpretCast<A>(part.GetBlockDeep(index));//TODO custom checked getblockdeep here, write tests and you'll see
-         if constexpr (SKIP) {
-            // Skip deep/empty sub blocks                               
-            if (block->IsDeep() or block->IsEmpty()) {
-               ++index;
-               continue;
-            }
+   Count BlockMap::ForEachDeepInner(Block& part, F&& call) {
+      Count counter = 0;
+      if constexpr (CT::Block<Decay<A>>) {
+         if (part.IsDeep()) {
+            // Iterate using a block type                               
+            ForEachInner<void, A, REVERSE, MUTABLE>(part, 
+               [&counter, &call](A group) {
+                  counter += const_cast<Decay<A>&>(DenseCast(group))
+                     .template ForEachDeepInner<R, A, REVERSE, SKIP, MUTABLE>(
+                        Forward<F>(call));
+               }
+            );
          }
 
-         if constexpr (HasBreaker) {
-            if (not call(*block))
-               return ++index;
-         }
-         else call(*block);
-
-         ++index;
+         return counter;
       }
+      else {
+         if (part.IsDeep()) {
+            // Iterate deep keys/values using non-block type            
+            using BlockType = Conditional<MUTABLE, Block&, const Block&>;
+            ForEachInner<void, BlockType, REVERSE, MUTABLE>(part,
+               [&counter, &call](BlockType group) {
+                  counter += group
+                     .template ForEachDeepInner<R, A, REVERSE, SKIP, MUTABLE>(
+                        Forward<F>(call));
+               }
+            );
+         }
+         else {
+            // Equivalent to non-deep iteration                         
+            counter += ForEachInner<R, A, REVERSE, MUTABLE>(part, Forward<F>(call));
+         }
 
-      return index;
+         return counter;
+      }
    }
 
    /// Iterate all keys inside the map, and perform f() on them               
@@ -402,9 +357,15 @@ namespace Langulus::Anyness
    template<bool REVERSE, bool MUTABLE, class... F>
    LANGULUS(INLINED)
    Count BlockMap::ForEachKey(F&&... f) {
-      Count result {};
-      (void) (... or (0 != (result = ForEachSplitter<MUTABLE, REVERSE>(
-         mKeys, Forward<F>(f)))));
+      if (IsEmpty())
+         return 0;
+
+      Count result = 0;
+      (void) (... or (
+         0 != (result = ForEachInner<ReturnOf<F>, ArgumentOf<F>, REVERSE, MUTABLE>(
+            mKeys, Forward<F>(f))
+         )
+      ));
       return result;
    }
 
@@ -415,12 +376,23 @@ namespace Langulus::Anyness
          ForEachKey<REVERSE, false>(Forward<F>(f)...);
    }
 
+   /// Iterate values inside the map, and perform a set of functions on them  
+   /// depending on the contained type                                        
+   /// You can break the loop, by returning false inside f()                  
+   ///   @param f - the functions to call for each value block                
+   ///   @return the number of successful f() executions                      
    template<bool REVERSE, bool MUTABLE, class... F>
    LANGULUS(INLINED)
    Count BlockMap::ForEachValue(F&&... f) {
-      Count result {};
-      (void) (... or (0 != (result = ForEachSplitter<MUTABLE, REVERSE>(
-         mValues, Forward<F>(f)))));
+      if (IsEmpty())
+         return 0;
+
+      Count result = 0;
+      (void) (... or (
+         0 != (result = ForEachInner<ReturnOf<F>, ArgumentOf<F>, REVERSE, MUTABLE>(
+            mValues, Forward<F>(f))
+         )
+      ));
       return result;
    }
 
@@ -431,12 +403,22 @@ namespace Langulus::Anyness
          ForEachValue<REVERSE, false>(Forward<F>(f)...);
    }
 
+   /// Iterate each subblock of keys inside the map, and perform a set of     
+   /// functions on them                                                      
+   ///   @param f - the functions to call for each key block                  
+   ///   @return the number of successful f() executions                      
    template<bool REVERSE, bool SKIP, bool MUTABLE, class... F>
    LANGULUS(INLINED)
    Count BlockMap::ForEachKeyDeep(F&&... f) {
-      Count result {};
-      (void) (... or (0 != (result = ForEachDeepSplitter<SKIP, MUTABLE, REVERSE>(
-         GetKeyCountDeep(), mKeys, Forward<F>(f)))));
+      if (IsEmpty())
+         return 0;
+
+      Count result = 0;
+      (void) (... or (
+         0 != (result = ForEachDeepInner<ReturnOf<F>, ArgumentOf<F>, REVERSE, SKIP, MUTABLE>(
+            mKeys, Forward<F>(f))
+         )
+      ));
       return result;
    }
 
@@ -447,12 +429,22 @@ namespace Langulus::Anyness
          ForEachKeyDeep<REVERSE, SKIP, false>(Forward<F>(f)...);
    }
 
+   /// Iterate each subblock of values inside the map, and perform a set of   
+   /// functions on them                                                      
+   ///   @param f - the functions to call for each key block                  
+   ///   @return the number of successful f() executions                      
    template<bool REVERSE, bool SKIP, bool MUTABLE, class... F>
    LANGULUS(INLINED)
    Count BlockMap::ForEachValueDeep(F&&... f) {
-      Count result {};
-      (void) (... or (0 != (result = ForEachDeepSplitter<SKIP, MUTABLE, REVERSE>(
-         GetValueCountDeep(), mValues, Forward<F>(f)))));
+      if (IsEmpty())
+         return 0;
+
+      Count result = 0;
+      (void) (... or (
+         0 != (result = ForEachDeepInner<ReturnOf<F>, ArgumentOf<F>, REVERSE, SKIP, MUTABLE>(
+            mValues, Forward<F>(f))
+         )
+      ));
       return result;
    }
 

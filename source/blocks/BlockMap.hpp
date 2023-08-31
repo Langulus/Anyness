@@ -218,17 +218,12 @@ namespace Langulus::Anyness
       Count ForEachValueDeep(F&&...) const;
 
    protected:
-      template<bool MUTABLE, bool REVERSE, class F>
-      Count ForEachSplitter(Block&, F&&);
-      template<class R, CT::Data A, bool REVERSE, bool MUTABLE, class F>
-      Count ForEachInner(Block&, F&&);
       template<bool REVERSE, bool MUTABLE, class F>
       Count ForEachElement(Block&, F&&);
-
-      template<bool SKIP, bool MUTABLE, bool REVERSE, class F>
-      Count ForEachDeepSplitter(Count, Block&, F&&);
+      template<class R, CT::Data A, bool REVERSE, bool MUTABLE, class F>
+      Count ForEachInner(Block&, F&&);
       template<class R, CT::Data A, bool REVERSE, bool SKIP, bool MUTABLE, class F>
-      Count ForEachDeepInner(Count, Block&, F&&);
+      Count ForEachDeepInner(Block&, F&&);
 
    public:
       ///                                                                     

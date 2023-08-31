@@ -404,12 +404,7 @@ namespace Langulus::Anyness
    protected:
       template<class F>
       static constexpr bool NoexceptIterator = 
-         !LANGULUS_SAFE() && noexcept(Fake<F&&>().operator() (Fake<ArgumentOf<F>>()));
-
-      template<bool MUTABLE, bool REVERSE, class F>
-      Count ForEachSplitter(F&&);
-      template<bool SKIP, bool MUTABLE, bool REVERSE, class F>
-      Count ForEachDeepSplitter(F&&);
+         not LANGULUS_SAFE() and noexcept(Fake<F&&>().operator() (Fake<ArgumentOf<F>>()));
 
       template<class R, CT::Data A, bool REVERSE, bool MUTABLE, class F>
       Count ForEachInner(F&& f) noexcept(NoexceptIterator<decltype(f)>);
