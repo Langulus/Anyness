@@ -290,41 +290,6 @@ namespace Langulus::Anyness
 
       return counter;
    }
-   
-   /// Execute a function for each element inside container                   
-   /// Lowest-level element iteration function (for internal use only)        
-   ///   @attention assumes F's argument is binary compatible with the        
-   ///              contained type                                            
-   ///   @attention assumes block is not empty                                
-   ///   @attention assumes sparseness matches                                
-   ///   @tparam MUTABLE - whether or not block's allowed to change during    
-   ///                     iteration (iteration is slower if true)            
-   ///   @tparam REVERSE - direction we're iterating in                       
-   ///   @tparam F - the function signature (deducible)                       
-   ///   @param call - to function to execute                                 
-   template<bool MUTABLE, bool REVERSE, class F>
-   LANGULUS(INLINED)
-   void Block::Iterate(F&& call) noexcept(NoexceptIterator<F>) {
-      using A = ArgumentOf<F>;
-      using R = ReturnOf<F>;
-      IterateInner<R, A, REVERSE, MUTABLE>(Forward<F>(call));
-   }
-   
-   /// Execute a function for each element inside container (const            
-   /// Lowest-level element iteration function (for internal use only)        
-   ///   @attention assumes F's argument is binary compatible with the        
-   ///              contained type                                            
-   ///   @attention assumes block is not empty                                
-   ///   @attention assumes sparseness matches                                
-   ///   @tparam REVERSE - direction we're iterating in                       
-   ///   @tparam F - the function signature (deducible)                       
-   ///   @param call - to function to execute                                 
-   template<bool REVERSE, class F>
-   LANGULUS(INLINED)
-   void Block::Iterate(F&& call) const noexcept(NoexceptIterator<F>) {
-      const_cast<Block*>(this)->template
-         Iterate<false, REVERSE>(Forward<F>(call));
-   }
 
    /// Execute a function for each element inside container                   
    /// Lowest-level element iteration function (for internal use only)        

@@ -113,9 +113,9 @@ namespace Langulus::Anyness
             )) return;
 
             // If reached, just propagate the block without changing it 
-            // But still sort it by block's origin type                 
-            if (group.GetType())
-               mAnythingElse[group.GetType()->mOrigin] << group;
+            // But still sort it by block's origin type, even if that   
+            // type is nullptr, as the group might contain only state   
+            mAnythingElse[group.GetType() ? group.GetType()->mOrigin : nullptr] << group;
          });
       }
       else operator << (messy.Forward());

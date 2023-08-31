@@ -109,14 +109,17 @@ namespace Langulus::Anyness
          text += " *";
          text += Text {mMass};
       }
+
       if (mRate != Charge::DefaultRate) {
          text += " ^";
          text += Text {mRate};
       }
+
       if (mTime != Charge::DefaultTime) {
          text += " @";
          text += Text {mTime};
       }
+
       if (mPriority != Charge::DefaultPriority) {
          text += " !";
          text += Text {mPriority};
