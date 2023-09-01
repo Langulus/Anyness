@@ -46,7 +46,7 @@ namespace Langulus::Anyness
       auto val = GetValueHandle<V>(0);
 
       while (psl != pslEnd) {
-         if (*psl && val.Get() == match) {
+         if (*psl and val.Get() == match) {
             // Remove every pair with matching value                    
             if constexpr (CT::Typed<THIS>)
                GetKeyHandle<typename THIS::Key>(psl - GetInfo()).Destroy();
@@ -110,7 +110,7 @@ namespace Langulus::Anyness
       }
 
       // Be aware, that psl might loop around                           
-      if (psl == pslEnd && *GetInfo() > 1) UNLIKELY() {
+      if (psl == pslEnd and *GetInfo() > 1) UNLIKELY() {
          psl = GetInfo();
          key = GetKeyInner(0);
          val = GetValueInner(0);
@@ -170,7 +170,7 @@ namespace Langulus::Anyness
       if (mValues.mEntry) {
          if (mValues.mEntry->GetUses() == 1) {
             // Remove all used keys and values, they're used only here  
-            if (!IsEmpty())
+            if (not IsEmpty())
                ClearInner();
 
             // No point in resetting info, we'll be deallocating it     
@@ -200,7 +200,7 @@ namespace Langulus::Anyness
    ///   @attention assumes there's at least one valid pair                   
    LANGULUS(INLINED)
    void BlockMap::ClearInner() {
-      LANGULUS_ASSUME(DevAssumes, !IsEmpty(), "Map is empty");
+      LANGULUS_ASSUME(DevAssumes, not IsEmpty(), "Map is empty");
       auto inf = GetInfo();
       const auto infEnd = GetInfoEnd();
       while (inf != infEnd) {

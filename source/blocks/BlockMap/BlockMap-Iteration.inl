@@ -279,14 +279,18 @@ namespace Langulus::Anyness
    ///   @return the number of executions that occured                        
    template<class R, CT::Data A, bool REVERSE, bool SKIP, bool MUTABLE, class F>
    Count BlockMap::ForEachDeepInner(Block& part, F&& call) {
+      using DA = Decay<A>;
+
       Count counter = 0;
-      if constexpr (CT::Block<Decay<A>>) {
+      if constexpr (CT::Deep<DA>) {
+         using BlockType = Conditional<MUTABLE, DA*, const DA*>;
+
          if (part.IsDeep()) {
             // Iterate using a block type                               
-            ForEachInner<void, A, REVERSE, MUTABLE>(part, 
-               [&counter, &call](A group) {
-                  counter += const_cast<Decay<A>&>(DenseCast(group))
-                     .template ForEachDeepInner<R, A, REVERSE, SKIP, MUTABLE>(
+            ForEachInner<void, BlockType, REVERSE, MUTABLE>(part,
+               [&counter, &call](BlockType group) {
+                  counter += const_cast<DA*>(group)->
+                     template ForEachDeepInner<R, A, REVERSE, SKIP, MUTABLE>(
                         Forward<F>(call));
                }
             );
@@ -300,8 +304,8 @@ namespace Langulus::Anyness
             using BlockType = Conditional<MUTABLE, Block&, const Block&>;
             ForEachInner<void, BlockType, REVERSE, MUTABLE>(part,
                [&counter, &call](BlockType group) {
-                  counter += group
-                     .template ForEachDeepInner<R, A, REVERSE, SKIP, MUTABLE>(
+                  counter += const_cast<Block&>(group).
+                     template ForEachDeepInner<R, A, REVERSE, SKIP, MUTABLE>(
                         Forward<F>(call));
                }
             );

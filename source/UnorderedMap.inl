@@ -385,7 +385,7 @@ namespace Langulus::Anyness
    Count UnorderedMap::InsertUnknown(CT::Semantic auto&& pair) {
       using S = Decay<decltype(pair)>;
       using T = TypeOf<S>;
-      static_assert(CT::Pair<T> && !CT::TypedPair<T>,
+      static_assert(CT::Pair<T> and not CT::TypedPair<T>,
          "SP's type must be type-erased pair type");
 
       return InsertUnknown(S::Nest(pair->mKey), S::Nest(pair->mValue));

@@ -22,13 +22,13 @@ namespace Langulus::Anyness
    ///   @return true                                                         
    LANGULUS(INLINED)
    constexpr bool BlockSet::IsTypeConstrained() const noexcept {
-      return mKeys.IsTypeConstrained();;
+      return mKeys.IsTypeConstrained();
    }
    
    /// Check if key type is abstract                                          
    LANGULUS(INLINED)
    constexpr bool BlockSet::IsAbstract() const noexcept {
-      return mKeys.IsAbstract() && mKeys.IsDense();
+      return mKeys.IsAbstract() and mKeys.IsDense();
    }
    
    /// Check if key type is default-constructible                             
@@ -191,7 +191,7 @@ namespace Langulus::Anyness
    ///   @return true if block contains at least one valid element            
    LANGULUS(INLINED)
    constexpr BlockSet::operator bool() const noexcept {
-      return !IsEmpty();
+      return not IsEmpty();
    }
 
 #ifdef LANGULUS_ENABLE_DEBUGGING

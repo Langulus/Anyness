@@ -306,10 +306,10 @@ namespace Langulus::CT
    /// Keep in mind, that sparse types are never considered CT::Set!          
    template<class... T>
    concept Set = ((DerivedFrom<T, Anyness::BlockSet>
-      && sizeof(T) == sizeof(Anyness::BlockSet)) && ...);
+       and sizeof(T) == sizeof(Anyness::BlockSet)) and ...);
 
    /// Check if a type is a statically typed set                              
    template<class... T>
-   concept TypedSet = Set<T...> && Typed<T...>;
+   concept TypedSet = Set<T...> and Typed<T...>;
 
 } // namespace Langulus::CT

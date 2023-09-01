@@ -851,7 +851,7 @@ namespace Langulus::Anyness
    TABLE_TEMPLATE()
    template<CT::Semantic SK, CT::Semantic SV>
    LANGULUS(INLINED)
-   Count TABLE()::Insert(SK&& key, SV&& value) noexcept requires (CT::Exact<TypeOf<SK>, K> && CT::Exact<TypeOf<SV>, V>) {
+   Count TABLE()::Insert(SK&& key, SV&& value) noexcept requires (CT::Exact<TypeOf<SK>, K> and CT::Exact<TypeOf<SV>, V>) {
       Reserve(GetCount() + 1);
       InsertInner<true>(
          GetBucket(GetReserved() - 1, *key), 
@@ -905,7 +905,7 @@ namespace Langulus::Anyness
    /// Clears all data, state, and deallocates                                
    TABLE_TEMPLATE()
    void TABLE()::Reset() {
-      if (!mValues.mEntry)
+      if (not mValues.mEntry)
          return;
 
       if (mValues.mEntry->GetUses() == 1) {

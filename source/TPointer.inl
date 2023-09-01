@@ -68,7 +68,7 @@ namespace Langulus::Anyness
          // Move/Abandon/Disown/Copy/Clone another TPointer, as long as 
          // it is related                                               
          static_assert(
-            CT::Exact<Type, TypeOf<ST>> || CT::DerivedFrom<TypeOf<ST>, T>,
+            CT::Exact<Type, TypeOf<ST>> or CT::DerivedFrom<TypeOf<ST>, T>,
             "Unrelated type inside shared pointer"
          );
 
@@ -76,12 +76,12 @@ namespace Langulus::Anyness
          
          if constexpr (S::Move) {
             // Remote value is removed, if moved and double-referenced  
-            if constexpr (DR && CT::Referencable<T>)
+            if constexpr (DR and CT::Referencable<T>)
                other->mValue = {};
          }
-         else if constexpr (S::Shallow && S::Keep) {
+         else if constexpr (S::Shallow and S::Keep) {
             // Reference value, if double-referenced and copied         
-            if constexpr (DR && CT::Referencable<T>)
+            if constexpr (DR and CT::Referencable<T>)
                mValue->Keep();
          }
       }
@@ -91,7 +91,7 @@ namespace Langulus::Anyness
          GetHandle().New(S::Nest(converted));
 
          // Always reference value, if double-referenced and not cloned 
-         if constexpr (S::Shallow && DR && CT::Referencable<T>)
+         if constexpr (S::Shallow and DR and CT::Referencable<T>)
             mValue->Keep();
       }
       else LANGULUS_ERROR("Bad semantic construction");
@@ -129,7 +129,7 @@ namespace Langulus::Anyness
    TEMPLATE_SHARED() LANGULUS(INLINED)
    void SHARED_POINTER()::ResetInner() {
       // Do referencing in the element itself, if available             
-      if constexpr (DR && CT::Referencable<T>) {
+      if constexpr (DR and CT::Referencable<T>) {
          if (mValue->GetReferences() > 1)
             mValue->Free();
       }
@@ -202,16 +202,16 @@ namespace Langulus::Anyness
       else {
          // Move/Abandon/Disown/Copy/Clone another TPointer or raw,     
          // pointer, as long as it is related                           
-         if constexpr (S::Shallow && !S::Move && S::Keep) {
-            if constexpr (DR && CT::Referencable<T>) {
-               if (mValue && mEntry->GetUses() > 1)
+         if constexpr (S::Shallow and not S::Move and S::Keep) {
+            if constexpr (DR and CT::Referencable<T>) {
+               if (mValue and mEntry->GetUses() > 1)
                   mValue->Free();
             }
          }
 
          if constexpr (CT::Pointer<ST>) {
             static_assert(
-               CT::Exact<Type, TypeOf<ST>> || CT::DerivedFrom<TypeOf<ST>, T>,
+               CT::Exact<Type, TypeOf<ST>> or CT::DerivedFrom<TypeOf<ST>, T>,
                "Unrelated type inside shared pointer"
             );
 
@@ -219,15 +219,15 @@ namespace Langulus::Anyness
          }
          else {
             static_assert(
-               CT::Exact<Type, ST> || CT::DerivedFrom<ST, T>,
+               CT::Exact<Type, ST> or CT::DerivedFrom<ST, T>,
                "Unrelated raw pointer"
             );
 
             GetHandle().Assign(rhs.Forward());
          }
 
-         if constexpr (S::Shallow && !S::Move && S::Keep) {
-            if constexpr (DR && CT::Referencable<T>) {
+         if constexpr (S::Shallow and not S::Move and S::Keep) {
+            if constexpr (DR and CT::Referencable<T>) {
                if (mValue)
                   mValue->Keep();
             }

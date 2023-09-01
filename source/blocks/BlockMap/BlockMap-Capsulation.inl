@@ -29,26 +29,26 @@ namespace Langulus::Anyness
    ///   @return true                                                         
    LANGULUS(INLINED)
    constexpr bool BlockMap::IsKeyTypeConstrained() const noexcept {
-      return mKeys.IsTypeConstrained();;
+      return mKeys.IsTypeConstrained();
    }
    
    /// Templated tables are always type-constrained                           
    ///   @return true                                                         
    LANGULUS(INLINED)
    constexpr bool BlockMap::IsValueTypeConstrained() const noexcept {
-      return mValues.IsTypeConstrained();;
+      return mValues.IsTypeConstrained();
    }
    
    /// Check if key type is abstract                                          
    LANGULUS(INLINED)
    constexpr bool BlockMap::IsKeyAbstract() const noexcept {
-      return mKeys.IsAbstract() && mKeys.IsDense();
+      return mKeys.IsAbstract() and mKeys.IsDense();
    }
    
    /// Check if value type is abstract                                        
    LANGULUS(INLINED)
    constexpr bool BlockMap::IsValueAbstract() const noexcept {
-      return mValues.IsAbstract() && mKeys.IsDense();
+      return mValues.IsAbstract() and mKeys.IsDense();
    }
    
    /// Check if key type is default-constructible                             

@@ -143,7 +143,7 @@ namespace Langulus::CT
 
    /// Generalized index concept                                              
    template<class T>
-   concept Index = Integer<T> || Same<T, Anyness::Index>;
+   concept Index = Integer<T> or Same<T, Anyness::Index>;
 
 } // namespace Langulus::CT
 

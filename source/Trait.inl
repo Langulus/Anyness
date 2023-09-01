@@ -175,7 +175,7 @@ namespace Langulus::Anyness
    ///   @return true if trait is valid                                       
    LANGULUS(INLINED)
    bool Trait::IsTraitValid() const noexcept {
-      return mTraitType && !Any::IsEmpty();
+      return mTraitType and not Any::IsEmpty();
    }
 
    /// Check if trait is similar to another                                   
@@ -183,7 +183,7 @@ namespace Langulus::Anyness
    ///   @return true if trait is valid                                       
    LANGULUS(INLINED)
    bool Trait::IsSimilar(const Trait& other) const noexcept {
-      return mTraitType->Is(other.mTraitType) && other.CastsToMeta(GetType());
+      return mTraitType->Is(other.mTraitType) and other.CastsToMeta(GetType());
    }
 
    /// Check if trait is a specific type                                      
@@ -191,14 +191,14 @@ namespace Langulus::Anyness
    ///   @return true if ID matches                                           
    LANGULUS(INLINED)
    bool Trait::TraitIs(TMeta trait) const {
-      return mTraitType == trait || (mTraitType && mTraitType->Is(trait));
+      return mTraitType == trait or (mTraitType and mTraitType->Is(trait));
    }
 
    /// Check if trait has correct data (always true if trait has no filter)   
    ///   @return true if trait definition filter is compatible                
    LANGULUS(INLINED)
    bool Trait::HasCorrectData() const {
-      if (!mTraitType)
+      if (not mTraitType)
          return true;
       return CastsToMeta(mTraitType->mDataType);
    }
@@ -210,7 +210,7 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    bool Trait::TraitIs() const {
       static_assert(CT::Trait<T...>, "Ts must be trait definitions");
-      return (TraitIs(T::GetTrait()) || ...);
+      return (TraitIs(T::GetTrait()) or ...);
    }
 
    /// Compare traits                                                         
@@ -221,7 +221,7 @@ namespace Langulus::Anyness
    bool Trait::operator == (const T& other) const {
       if constexpr (CT::TraitBased<T>)
          return TraitIs(DenseCast(other).mTraitType)
-            && Any::operator == (static_cast<const Any&>(DenseCast(other)));
+            and Any::operator == (static_cast<const Any&>(DenseCast(other)));
       else
          return Any::operator == (other);
    }
@@ -471,7 +471,7 @@ namespace Langulus::Anyness
    template<CT::Semantic S>
    LANGULUS(INLINED)
    StaticTrait<TRAIT>& StaticTrait<TRAIT>::operator = (S&& rhs) {
-      if constexpr (CT::Deep<TypeOf<S>> || CT::TraitBased<TypeOf<S>>)
+      if constexpr (CT::Deep<TypeOf<S>> or CT::TraitBased<TypeOf<S>>)
          Any::operator = (rhs.template Forward<Any>());
       else
          Any::operator = (rhs.Forward());

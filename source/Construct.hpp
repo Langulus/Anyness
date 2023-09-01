@@ -25,6 +25,7 @@ namespace Langulus::Anyness
       DMeta mType {};
 
    public:
+      LANGULUS(POD) false;
       LANGULUS_BASES(Neat, Charge);
 
       constexpr Construct() noexcept;
@@ -104,6 +105,10 @@ namespace Langulus::Anyness
       void Clear();
       void Reset();
       void ResetCharge() noexcept;
+
+      // Intentionally left undefined                                   
+      template<CT::Text T>
+      NOD() T SerializeAs() const;
    };
 
 } // namespace Langulus::Anyness

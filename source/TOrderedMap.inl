@@ -98,7 +98,7 @@ namespace Langulus::Anyness
          if (*info) {
             const auto lhs = info - Base::GetInfo();
             const auto rhs = other.FindIndex(Base::GetRawKey(lhs));
-            if (rhs == other.GetReserved() || Base::GetRawValue(lhs) != other.GetRawValue(rhs))
+            if (rhs == other.GetReserved() or Base::GetRawValue(lhs) != other.GetRawValue(rhs))
                return false;
          }
 
@@ -151,7 +151,7 @@ namespace Langulus::Anyness
    TEMPLATE()
    template<CT::Semantic SK, CT::Semantic SV>
    LANGULUS(INLINED)
-   Count TABLE()::Insert(SK&& key, SV&& value) noexcept requires (CT::Exact<TypeOf<SK>, K> && CT::Exact<TypeOf<SV>, V>) {
+   Count TABLE()::Insert(SK&& key, SV&& value) noexcept requires (CT::Exact<TypeOf<SK>, K> and CT::Exact<TypeOf<SV>, V>) {
       Base::Reserve(Base::GetCount() + 1);
       Base::template InsertInner<true>(
          Base::GetBucket(Base::GetReserved() - 1, *key),

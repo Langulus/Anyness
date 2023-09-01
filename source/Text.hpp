@@ -30,7 +30,7 @@ namespace Langulus::Anyness
       template<CT::Semantic S>
       static constexpr bool Relevant = CT::DerivedFrom<TypeOf<S>, Base>;
       template<CT::Semantic S>
-      static constexpr bool RawTextPointer = CT::BuiltinCharacter<TypeOf<S>> && CT::Sparse<TypeOf<S>>;
+      static constexpr bool RawTextPointer = CT::BuiltinCharacter<TypeOf<S>> and CT::Sparse<TypeOf<S>>;
 
    private:
       explicit Text(const Base&);
@@ -155,12 +155,12 @@ namespace Langulus::CT
    namespace Inner
    {
       template<class T>
-      concept Stringifiable = !Text<T> && !Same<T, ::Langulus::Token()> && (
+      concept Stringifiable = not Text<T> and not Same<T, ::Langulus::Token()> and (
          requires (T& a) { a.operator ::Langulus::Anyness::Text(); }
       );
 
       template<class T>
-      concept Debuggable = !Text<T> && !Same<T, ::Langulus::Token()> && (
+      concept Debuggable = not Text<T> and not Same<T, ::Langulus::Token()> and (
          requires (T& a) { a.operator ::Langulus::Anyness::Debug(); }
       );
    }
@@ -169,13 +169,13 @@ namespace Langulus::CT
    /// cast operator to Text type. Reverse conversion through                 
    /// constructors is avoided to mitigate ambiguity problems.                
    template<class... T>
-   concept Stringifiable = (Inner::Stringifiable<T> && ...);
+   concept Stringifiable = (Inner::Stringifiable<T> and ...);
 
    /// A debuggable type is one that has either an implicit or explicit       
    /// cast operator to Debug type. Reverse conversion through                
    /// constructors is avoided to mitigate ambiguity problems.                
    template<class... T>
-   concept Debuggable = ((Inner::Stringifiable<T> || Inner::Debuggable<T>) && ...);
+   concept Debuggable = ((Inner::Stringifiable<T> or Inner::Debuggable<T>) and ...);
 
 } // namespace Langulus::CT
 
@@ -231,7 +231,7 @@ namespace fmt
             return fmt::format_to(ctx.out(), "{}",
                static_cast<Logger::TextView>(asText));
          }
-         else if constexpr (requires (T & a) { a.operator Anyness::Text(); }) {
+         else if constexpr (requires (T& a) { a.operator Anyness::Text(); }) {
             auto asText = element.operator Anyness::Text();
             return fmt::format_to(ctx.out(), "{}",
                static_cast<Logger::TextView>(asText));

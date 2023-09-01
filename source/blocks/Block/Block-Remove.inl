@@ -61,8 +61,8 @@ namespace Langulus::Anyness
          // By simple index (signed or not)                             
          LANGULUS_ASSUME(DevAssumes, idx + count <= mCount, "Out of range");
 
-         if (IsConstant() || IsStatic()) {
-            if (mType->mIsPOD && idx + count >= mCount) {
+         if (IsConstant() or IsStatic()) {
+            if (mType->mIsPOD and idx + count >= mCount) {
                // If data is POD and elements are on the back, we can   
                // get around constantness and staticness, by simply     
                // truncating the count without any reprecussions        
@@ -71,9 +71,9 @@ namespace Langulus::Anyness
                return removed;
             }
             else {
-               LANGULUS_ASSERT(!IsConstant(), Access,
+               LANGULUS_ASSERT(not IsConstant(), Access,
                   "Removing from constant container");
-               LANGULUS_ASSERT(!IsStatic(), Access,
+               LANGULUS_ASSERT(not IsStatic(), Access,
                   "Removing from static container");
                return 0;
             }
@@ -107,8 +107,8 @@ namespace Langulus::Anyness
    ///   @return 1 if block at that index was removed, 0 otherwise            
    template<CT::Index INDEX>
    Count Block::RemoveIndexDeep(INDEX index) {
-      if constexpr (!CT::Same<INDEX, Index>) {
-         if (!IsDeep())
+      if constexpr (not CT::Same<INDEX, Index>) {
+         if (not IsDeep())
             return 0;
 
          --index;
@@ -119,7 +119,7 @@ namespace Langulus::Anyness
 
             auto ith = As<Block*>(i);
             const auto count = ith->GetCountDeep();
-            if (index <= count && ith->RemoveIndexDeep(index))
+            if (index <= count and ith->RemoveIndexDeep(index))
                return 1;
 
             index -= count;
@@ -136,7 +136,7 @@ namespace Langulus::Anyness
       if (count >= mCount)
          return;
 
-      if (IsConstant() || IsStatic()) {
+      if (IsConstant() or IsStatic()) {
          if (mType->mIsPOD) {
             // If data is POD and elements are on the back, we can      
             // get around constantness and staticness, by simply        
@@ -144,9 +144,9 @@ namespace Langulus::Anyness
             mCount = count;
          }
          else {
-            LANGULUS_ASSERT(!IsConstant(), Access,
+            LANGULUS_ASSERT(not IsConstant(), Access,
                "Removing from constant container");
-            LANGULUS_ASSERT(!IsStatic(), Access,
+            LANGULUS_ASSERT(not IsStatic(), Access,
                "Removing from static container");
          }
 
@@ -162,12 +162,12 @@ namespace Langulus::Anyness
    /// when possible                                                          
    /// Discards ORness if container has only one element                      
    inline void Block::Optimize() {
-      if (IsOr() && GetCount() == 1)
+      if (IsOr() and GetCount() == 1)
          MakeAnd();
 
-      while (GetCount() == 1 && IsDeep()) {
+      while (GetCount() == 1 and IsDeep()) {
          auto& subPack = As<Block>();
-         if (!CanFitState(subPack)) {
+         if (not CanFitState(subPack)) {
             subPack.Optimize();
             if (subPack.IsEmpty())
                Reset();
@@ -195,7 +195,7 @@ namespace Langulus::Anyness
    /// Destroy all elements, but don't deallocate memory if possible          
    LANGULUS(INLINED)
    void Block::Clear() {
-      if (!mEntry) {
+      if (not mEntry) {
          // Data is either static or unallocated                        
          // Don't call destructors, just clear it up                    
          mRaw = nullptr;
@@ -254,7 +254,7 @@ namespace Langulus::Anyness
             ++handle;
          }
       }
-      else if (!mType->mIsPOD && mType->mDestructor) {
+      else if (not mType->mIsPOD and mType->mDestructor) {
          // Destroy every dense element                                 
          auto data = mthis->GetRaw();
          const auto dataEnd = data + mType->mSize * mCount;
@@ -277,7 +277,7 @@ namespace Langulus::Anyness
       LANGULUS_ASSUME(DevAssumes, mCount > 0,
          "Container is empty");
       LANGULUS_ASSUME(DevAssumes, 
-         IsExact<T>() || mType->template HasDerivation<T>(),
+         IsExact<T>() or mType->template HasDerivation<T>(),
          "T isn't related to contained type");
 
       const auto mthis = const_cast<Block*>(this);
@@ -289,7 +289,7 @@ namespace Langulus::Anyness
             (handle++).Destroy();
       }
       else if constexpr (CT::Complete<Decay<T>>) {
-         if constexpr (!CT::POD<T> && CT::Destroyable<T>) {
+         if constexpr (not CT::POD<T> and CT::Destroyable<T>) {
             // Destroy every dense element                              
             using DT = Decay<T>;
             auto data = mthis->template GetRawAs<T>();

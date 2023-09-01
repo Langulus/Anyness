@@ -86,7 +86,7 @@ namespace Langulus::Anyness
    /// Throws Except::Access if not possible to extract index                 
    ///   @return a valid offset                                               
    inline Offset Index::GetOffset() const {
-      LANGULUS_ASSERT(!IsSpecial(), Access,
+      LANGULUS_ASSERT(not IsSpecial(), Access,
          "Can't convert index to offset");
       return static_cast<Offset>(mIndex);
    }
@@ -129,7 +129,7 @@ namespace Langulus::Anyness
 
    /// Check if index is special                                              
    constexpr bool Index::IsReverse() const noexcept {
-      return IsSpecial() && IsArithmetic();
+      return IsSpecial() and IsArithmetic();
    }
 
    /// Check if index is special                                              
@@ -161,50 +161,50 @@ namespace Langulus::Anyness
 
    /// Index - Index Arithmetics                                              
    constexpr void Index::operator += (const Index& v) noexcept {
-      if (!IsArithmetic() || !v.IsArithmetic())
+      if (not IsArithmetic() or not v.IsArithmetic())
          return; 
       mIndex += v.mIndex; 
    }
 
    constexpr void Index::operator -= (const Index& v) noexcept {
-      if (!IsArithmetic() || !v.IsArithmetic())
+      if (not IsArithmetic() or not v.IsArithmetic())
          return;
       mIndex -= v.mIndex; 
    }
 
    constexpr void Index::operator *= (const Index& v) noexcept {
-      if (!IsArithmetic() || !v.IsArithmetic())
+      if (not IsArithmetic() or not v.IsArithmetic())
          return;
       mIndex *= v.mIndex; 
    }
 
    constexpr void Index::operator /= (const Index& v) noexcept {
-      if (!IsArithmetic() || !v.IsArithmetic())
+      if (not IsArithmetic() or not v.IsArithmetic())
          return;
       mIndex /= v.mIndex; 
    }
 
    constexpr Index Index::operator + (const Index& v) const noexcept {
-      if (!IsArithmetic() || !v.IsArithmetic())
+      if (not IsArithmetic() or not v.IsArithmetic())
          return *this;
       return mIndex + v.mIndex; 
    }
 
    constexpr Index Index::operator - (const Index& v) const noexcept {
-      if (!IsArithmetic() || !v.IsArithmetic()
-         || mIndex - v.mIndex < Counter)
+      if (not IsArithmetic() or not v.IsArithmetic()
+         or mIndex - v.mIndex < Counter)
          return *this; 
       return mIndex - v.mIndex; 
    }
 
    constexpr Index Index::operator * (const Index& v) const noexcept {
-      if (!IsArithmetic() || !v.IsArithmetic())
+      if (not IsArithmetic() or not v.IsArithmetic())
          return *this;
       return mIndex * v.mIndex; 
    }
 
    constexpr Index Index::operator / (const Index& v) const noexcept {
-      if (!IsArithmetic() || !v.IsArithmetic())
+      if (not IsArithmetic() or not v.IsArithmetic())
          return *this;
       return mIndex / v.mIndex; 
    }
@@ -252,7 +252,7 @@ namespace Langulus::Anyness
          // Index is not special                                        
          if (mIndex < 0) {
             // Comparison is inverted                                   
-            if (v.mIndex < 0 && v.mIndex >= Counter)
+            if (v.mIndex < 0 and v.mIndex >= Counter)
                return mIndex > v.mIndex;
          }
          else {
@@ -265,15 +265,15 @@ namespace Langulus::Anyness
    }
 
    constexpr bool Index::operator > (const Index& v) const noexcept {
-      return *this != v && !(*this < v);
+      return *this != v and not (*this < v);
    }
 
    constexpr bool Index::operator <= (const Index& v) const noexcept {
-      return *this == v || *this < v;
+      return *this == v or (*this < v);
    }
 
    constexpr bool Index::operator >= (const Index& v) const noexcept {
-      return *this == v || !(*this < v);
+      return *this == v or not (*this < v);
    }
 
 } // namespace Langulus::Anyness

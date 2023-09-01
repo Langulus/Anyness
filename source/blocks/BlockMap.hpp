@@ -365,6 +365,7 @@ namespace Langulus::Anyness
 
 } // namespace Langulus::Anyness
 
+
 namespace Langulus::CT
 {
 
@@ -373,10 +374,10 @@ namespace Langulus::CT
    /// Keep in mind, that sparse types are never considered CT::Map!          
    template<class... T>
    concept Map = ((DerivedFrom<T, Anyness::BlockMap>
-      && sizeof(T) == sizeof(Anyness::BlockMap)) && ...);
+       and sizeof(T) == sizeof(Anyness::BlockMap)) and ...);
    
    /// Check if a type is a statically typed map                              
    template<class... T>
-   concept TypedMap = Map<T...> && Typed<T...>;
+   concept TypedMap = Map<T...> and Typed<T...>;
 
 } // namespace Langulus::CT

@@ -61,7 +61,7 @@ namespace Langulus::Anyness
 
       if constexpr (CT::Map<T>) {
          // Construct from any kind of map                              
-         if constexpr (!T::Ordered) {
+         if constexpr (not T::Ordered) {
             // We have to reinsert everything, because source is        
             // unordered and uses a different bucketing approach        
             mKeys.mType = other->GetKeyType();
@@ -382,7 +382,7 @@ namespace Langulus::Anyness
    Count OrderedMap::InsertUnknown(CT::Semantic auto&& pair) {
       using S = Decay<decltype(pair)>;
       using T = TypeOf<S>;
-      static_assert(CT::Pair<T> && !CT::TypedPair<T>,
+      static_assert(CT::Pair<T> and not CT::TypedPair<T>,
          "SP's type must be type-erased pair type");
 
       return InsertUnknown(S::Nest(pair->mKey), S::Nest(pair->mValue));

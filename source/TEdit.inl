@@ -28,7 +28,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this editor                                   
    TEMPLATE() LANGULUS(INLINED)
    TEdit<T>& TEdit<T>::Select(const T& pattern) {
-      if (mSource.IsEmpty() || pattern.IsEmpty())
+      if (mSource.IsEmpty() or pattern.IsEmpty())
          return *this;
 
       auto lhs = mSource.GetRaw();
@@ -155,7 +155,7 @@ namespace Langulus::Anyness
    ///   @param other - the container to use for replacement                  
    TEMPLATE() LANGULUS(INLINED)
    TEdit<T>& TEdit<T>::Replace(const T& other) {
-      if constexpr (CT::POD<CTTI_InnerType> || CT::Sparse<CTTI_InnerType>) {
+      if constexpr (CT::POD<CTTI_InnerType> or CT::Sparse<CTTI_InnerType>) {
          const auto offset = mStart * mSource.GetStride();
 
          // Optimization for POD/sparse containers that spares the      
@@ -263,7 +263,7 @@ namespace Langulus::Anyness
          mSource.RemoveIndex(mStart, length);
          mEnd = mStart;
       }
-      else if (mStart > 0 && !mSource.IsEmpty()) {
+      else if (mStart > 0 and not mSource.IsEmpty()) {
          mSource.RemoveIndex(mStart - 1, 1);
          mEnd = --mStart;
       }

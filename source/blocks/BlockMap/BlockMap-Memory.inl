@@ -38,7 +38,7 @@ namespace Langulus::Anyness
       const auto valueByteSize = RequestValuesSize(count);
       mValues.mEntry = Allocator::Allocate(mValues.mType, valueByteSize);
 
-      if (!mValues.mEntry) {
+      if (not mValues.mEntry) {
          Allocator::Deallocate(mKeys.mEntry);
          mKeys.mEntry = nullptr;
          LANGULUS_THROW(Allocate, "Out of memory");
@@ -85,7 +85,7 @@ namespace Langulus::Anyness
       else
          mValues.mEntry = Allocator::Allocate(mValues.mType, valueByteSize);
 
-      if (!mValues.mEntry) {
+      if (not mValues.mEntry) {
          Allocator::Deallocate(mKeys.mEntry);
          mKeys.mEntry = nullptr;
          LANGULUS_THROW(Allocate,
@@ -167,12 +167,12 @@ namespace Langulus::Anyness
                Abandon(val)
             );
 
-            if (!key.IsEmpty())
+            if (not key.IsEmpty())
                key.CallUnknownDestructors();
             else
                key.mCount = 1;
 
-            if (!val.IsEmpty())
+            if (not val.IsEmpty())
                val.CallUnknownDestructors();
             else
                val.mCount = 1;
@@ -207,7 +207,7 @@ namespace Langulus::Anyness
          return;
 
       // Allocate/Reallocate the keys and info                          
-      if (IsAllocated() && GetUses() == 1)
+      if (IsAllocated() and GetUses() == 1)
          AllocateData<true>(count);
       else
          AllocateData<false>(count);
@@ -232,7 +232,7 @@ namespace Langulus::Anyness
    ///   @param times - number of references to subtract                      
    template<bool DESTROY>
    void BlockMap::Dereference(const Count& times) {
-      if (!mValues.mEntry)
+      if (not mValues.mEntry)
          return;
 
       LANGULUS_ASSUME(DevAssumes,
@@ -240,7 +240,7 @@ namespace Langulus::Anyness
 
       if (mValues.mEntry->GetUses() == 1) {
          if constexpr (DESTROY) {
-            if (!IsEmpty()) {
+            if (not IsEmpty()) {
                // Destroy all keys and values                           
                ClearInner();
             }

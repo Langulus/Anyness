@@ -18,7 +18,7 @@ namespace Langulus::Anyness
    ///   @param key - the key to use                                          
    ///   @param value - the value to use                                      
    TEMPLATE_PAIR() LANGULUS(INLINED)
-   constexpr PAIR()::TPair(K key, V value) noexcept requires (!CT::Decayed<K, V>)
+   constexpr PAIR()::TPair(K key, V value) noexcept requires (not CT::Decayed<K, V>)
       : mKey {key}
       , mValue {value} {}
 
@@ -26,7 +26,7 @@ namespace Langulus::Anyness
    ///   @param key - the key to use                                          
    ///   @param value - the value to use                                      
    TEMPLATE_PAIR() LANGULUS(INLINED)
-   constexpr PAIR()::TPair(K&& key, V&& value) requires (CT::Decayed<K, V> && CT::MoveMakable<K, V>)
+   constexpr PAIR()::TPair(K&& key, V&& value) requires (CT::Decayed<K, V> and CT::MoveMakable<K, V>)
       : mKey {Forward<K>(key)}
       , mValue {Forward<V>(value)} {}
 
@@ -34,7 +34,7 @@ namespace Langulus::Anyness
    ///   @param key - the key to use                                          
    ///   @param value - the value to use                                      
    TEMPLATE_PAIR() LANGULUS(INLINED)
-   constexpr PAIR()::TPair(const K& key, const V& value) requires (CT::Decayed<K, V> && CT::CopyMakable<K, V>)
+   constexpr PAIR()::TPair(const K& key, const V& value) requires (CT::Decayed<K, V> and CT::CopyMakable<K, V>)
       : mKey {key}
       , mValue {value} {}
 
@@ -59,7 +59,7 @@ namespace Langulus::Anyness
    ///   @return true if pairs match                                          
    TEMPLATE_PAIR() LANGULUS(INLINED)
    bool PAIR()::operator == (const TPair& rhs) const {
-      return mKey == rhs.mKey && mValue == rhs.mValue;
+      return mKey == rhs.mKey and mValue == rhs.mValue;
    }
 
    /// Clone the pair                                                         

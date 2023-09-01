@@ -19,7 +19,7 @@ namespace Langulus::Anyness
    /// Explicit convertion to bool                                            
    ///   @return true if state is not default                                 
    constexpr DataState::operator bool() const noexcept {
-      return !IsDefault();
+      return not IsDefault();
    }
 
    /// Combine two states                                                     
@@ -89,17 +89,17 @@ namespace Langulus::Anyness
 
    /// Check if data is not missing                                           
    constexpr bool DataState::IsNow() const noexcept {
-      return !IsMissing();
+      return not IsMissing();
    }
 
    /// Check if data is future-phased                                         
    constexpr bool DataState::IsFuture() const noexcept {
-      return IsMissing() && 0 != (mState & DataState::Future);
+      return IsMissing() and 0 != (mState & DataState::Future);
    }
 
    /// Check if data is past-phased                                           
    constexpr bool DataState::IsPast() const noexcept {
-      return IsMissing() && 0 == (mState & DataState::Future);
+      return IsMissing() and 0 == (mState & DataState::Future);
    }
 
    /// Check if data is static (size-constrained)                             

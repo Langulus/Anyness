@@ -184,7 +184,7 @@ namespace Langulus::Anyness
       }
       else {
          static_assert(CT::DerivedFrom<HEAD, AS>, "Head not related");
-         static_assert((CT::DerivedFrom<TAIL, AS> && ...), "Tail not related");
+         static_assert((CT::DerivedFrom<TAIL, AS> and ...), "Tail not related");
          return {Forward<AS>(head), Forward<AS>(tail)...};
       }
    }
@@ -244,7 +244,7 @@ namespace Langulus::Anyness
 
          // Since Any is type-erased, we make a runtime type check      
          LANGULUS_ASSERT(
-            !IsTypeConstrained() || CastsToMeta(other->GetType()),
+            not IsTypeConstrained() or CastsToMeta(other->GetType()),
             Assign, "Incompatible types on assignment (deep)",
             " of ", other->GetType(), " to ", mType
          );
@@ -258,13 +258,13 @@ namespace Langulus::Anyness
             if constexpr (CT::ExactAsOneOf<Deext<T>, char, wchar_t>) {
                const auto meta = MetaData::Of<Text>();
                LANGULUS_ASSERT(
-                  !IsTypeConstrained() || CastsToMeta(meta),
+                  not IsTypeConstrained() or CastsToMeta(meta),
                   Assign, "Incompatible types on assignment (flat)",
                   " of ", meta, " to ", mType
                );
 
                // Copy/Disown/Move/Abandon/Clone a text literal         
-               if (GetUses() != 1 || mType->mIsSparse) {
+               if (GetUses() != 1 or mType->mIsSparse) {
                   // Reset and allocate fresh memory                    
                   Reset();
                   operator << (Text {other.Forward()});
@@ -279,13 +279,13 @@ namespace Langulus::Anyness
             else {
                const auto meta = MetaData::Of<Deext<T>>();
                LANGULUS_ASSERT(
-                  !IsTypeConstrained() || CastsToMeta(meta),
+                  not IsTypeConstrained() or CastsToMeta(meta),
                   Assign, "Incompatible types on assignment (flat)",
                   " of ", meta, " to ", mType
                );
 
                // Copy/Disown/Move/Abandon/Clone an array of elements   
-               if (GetUses() != 1 || mType->mIsSparse != CT::Sparse<Deext<T>>) {
+               if (GetUses() != 1 or mType->mIsSparse != CT::Sparse<Deext<T>>) {
                   // Reset and allocate fresh memory                    
                   Reset();
                   SetType<Deext<T>>();
@@ -305,13 +305,13 @@ namespace Langulus::Anyness
          else {
             const auto meta = MetaData::Of<T>();
             LANGULUS_ASSERT(
-               !IsTypeConstrained() || CastsToMeta(meta),
+               not IsTypeConstrained() or CastsToMeta(meta),
                Assign, "Incompatible types on assignment (flat)",
                " of ", meta, " to ", mType
             );
 
             // Copy/Disown/Move/Abandon/Clone a single element          
-            if (GetUses() != 1 || mType->mIsSparse != CT::Sparse<T>) {
+            if (GetUses() != 1 or mType->mIsSparse != CT::Sparse<T>) {
                // Reset and allocate fresh memory                       
                Reset();
                operator << (other.Forward());
@@ -558,7 +558,7 @@ namespace Langulus::Anyness
          return lhs;
 
       WRAPPER result;
-      if constexpr (!CT::Typed<WRAPPER>)
+      if constexpr (not CT::Typed<WRAPPER>)
          result.SetType(mType);
 
       result.AllocateFresh(result.RequestSize(mCount + rhs.mCount));

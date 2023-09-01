@@ -23,11 +23,11 @@ namespace Langulus
    {
       /// Anything derived from A::Pointer                                    
       template<class... T>
-      concept Pointer = (DerivedFrom<T, A::Pointer> && ...);
+      concept Pointer = (DerivedFrom<T, A::Pointer> and ...);
 
       /// Anything usable to initialize a shared pointer                      
       template<class... T>
-      concept PointerRelated = ((Pointer<T> || Sparse<T> || Nullptr<T>) && ...);
+      concept PointerRelated = ((Pointer<T> or Sparse<T> or Nullptr<T>) and ...);
    }
 
 } // namespace Langulus

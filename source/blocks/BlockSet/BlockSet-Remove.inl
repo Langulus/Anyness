@@ -64,7 +64,7 @@ namespace Langulus::Anyness
       }
 
       // Be aware, that psl might loop around                           
-      if (psl == pslEnd && *GetInfo() > 1) UNLIKELY() {
+      if (psl == pslEnd and *GetInfo() > 1) UNLIKELY() {
          psl = GetInfo();
          key = mKeys.GetElement();
 

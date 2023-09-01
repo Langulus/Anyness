@@ -62,7 +62,7 @@ namespace Langulus::Anyness
       Count Insert(const K&, V&&);
       Count Insert(K&&, V&&);
       template<CT::Semantic SK, CT::Semantic SV>
-      Count Insert(SK&&, SV&&) noexcept requires (CT::Exact<TypeOf<SK>, K>&& CT::Exact<TypeOf<SV>, V>);
+      Count Insert(SK&&, SV&&) noexcept requires (CT::Exact<TypeOf<SK>, K> and CT::Exact<TypeOf<SV>, V>);
 
       TOrderedMap& operator << (const TPair<K, V>&);
       TOrderedMap& operator << (TPair<K, V>&&);

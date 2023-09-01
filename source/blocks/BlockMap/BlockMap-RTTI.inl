@@ -25,7 +25,7 @@ namespace Langulus::Anyness
    ///   @param value - the value type                                        
    LANGULUS(INLINED)
    void BlockMap::Mutate(DMeta key, DMeta value) {
-      if (!mKeys.mType) {
+      if (not mKeys.mType) {
          // Set a fresh key type                                        
          mKeys.mType = key;
       }
@@ -36,7 +36,7 @@ namespace Langulus::Anyness
          );
       }
 
-      if (!mValues.mType) {
+      if (not mValues.mType) {
          // Set a fresh value type                                      
          mValues.mType = value;
       }
@@ -68,7 +68,7 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    bool BlockMap::IsTypeCompatibleWith(const BlockMap& other) const noexcept {
       return mKeys.IsExact(other.mKeys.mType)
-          && mValues.IsExact(other.mValues.mType);
+         and mValues.IsExact(other.mValues.mType);
    }
 
 } // namespace Langulus::Anyness

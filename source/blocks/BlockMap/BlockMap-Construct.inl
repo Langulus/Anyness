@@ -47,7 +47,7 @@ namespace Langulus::Anyness
 
       mValues.mCount = other->mValues.mCount;
 
-      if constexpr (!CT::TypedMap<TO>) {
+      if constexpr (not CT::TypedMap<TO>) {
          // TO is not statically typed                                  
          mKeys.mType = other->GetKeyType();
          mKeys.mState = other->mKeys.mState;
@@ -146,7 +146,7 @@ namespace Langulus::Anyness
    template<class T>
    void BlockMap::BlockClone(const BlockMap& other) {
       static_assert(CT::TypedMap<T>, "T must be statically typed map");
-      LANGULUS_ASSUME(DevAssumes, !mValues.mRaw, "Map is already allocated");
+      LANGULUS_ASSUME(DevAssumes, not mValues.mRaw, "Map is already allocated");
 
       // Use statically optimized cloning                               
       auto asFrom = reinterpret_cast<T*>(&const_cast<BlockMap&>(other));

@@ -152,7 +152,7 @@ namespace Langulus::Anyness
    /// Destroys the set and all it's contents                                 
    TABLE_TEMPLATE()
    TABLE()::~TUnorderedSet() {
-      if (!mKeys.mEntry)
+      if (not mKeys.mEntry)
          return;
 
       if (mKeys.mEntry->GetUses() == 1) {
@@ -563,7 +563,7 @@ namespace Langulus::Anyness
          return;
 
       // Allocate/Reallocate the keys and info                          
-      if (IsAllocated() && GetUses() == 1)
+      if (IsAllocated() and GetUses() == 1)
          AllocateData<true>(count);
       else
          AllocateData<false>(count);
@@ -694,7 +694,7 @@ namespace Langulus::Anyness
    /// Clears all data, state, and deallocates                                
    TABLE_TEMPLATE()
    void TABLE()::Reset() {
-      if (!mKeys.mEntry)
+      if (not mKeys.mEntry)
          return;
 
       if (mKeys.mEntry->GetUses() == 1) {
@@ -722,7 +722,7 @@ namespace Langulus::Anyness
    TABLE_TEMPLATE()
    Count TABLE()::RemoveIndex(const Index& index) {
       const auto offset = index.GetOffset();
-      if (offset >= GetReserved() || 0 == mInfo[offset])
+      if (offset >= GetReserved() or 0 == mInfo[offset])
          return 0;
 
       RemoveIndex(offset);
@@ -743,7 +743,7 @@ namespace Langulus::Anyness
 
       RemoveIndex(offset--); //TODO what if map shrinks, offset might become invalid? Doesn't shrink for now
       
-      while (offset < sentinel && 0 == mInfo[offset])
+      while (offset < sentinel and 0 == mInfo[offset])
          --offset;
 
       if (offset >= sentinel)
@@ -779,7 +779,7 @@ namespace Langulus::Anyness
       }
 
       // Be aware, that psl might loop around                           
-      if (psl == pslEnd && *GetInfo() > 1) {
+      if (psl == pslEnd and *GetInfo() > 1) {
          psl = GetInfo();
          key = GetHandle(0);
 
@@ -953,7 +953,7 @@ namespace Langulus::Anyness
 
       // Seek first valid info, or hit sentinel at the end              
       auto info = GetInfo();
-      while (!*info) ++info;
+      while (not *info) ++info;
       return {info, GetInfoEnd(), &GetRaw(info - GetInfo())};
    }
 
@@ -973,7 +973,7 @@ namespace Langulus::Anyness
 
       // Seek first valid info in reverse, until one past first is met  
       auto info = GetInfoEnd();
-      while (info >= GetInfo() && !*--info);
+      while (info >= GetInfo() and not *--info);
       return {info, GetInfoEnd(), &GetRaw(info - GetInfo())};
    }
 
@@ -986,7 +986,7 @@ namespace Langulus::Anyness
 
       // Seek first valid info, or hit sentinel at the end              
       auto info = GetInfo();
-      while (!*info) ++info;
+      while (not *info) ++info;
       return {info, GetInfoEnd(), &GetRaw(info - GetInfo())};
    }
 
@@ -1006,7 +1006,7 @@ namespace Langulus::Anyness
 
       // Seek first valid info in reverse, until one past first is met  
       auto info = GetInfoEnd();
-      while (info >= GetInfo() && !*--info);
+      while (info >= GetInfo() and not *--info);
       return {info, GetInfoEnd(), &GetRaw(info - GetInfo())};
    }
    
@@ -1015,9 +1015,9 @@ namespace Langulus::Anyness
    ///   @return a mutable reference to the last element                      
    TABLE_TEMPLATE() LANGULUS(INLINED)
    T& TABLE()::Last() {
-      LANGULUS_ASSERT(!IsEmpty(), Access, "Can't get last index");
+      LANGULUS_ASSERT(not IsEmpty(), Access, "Can't get last index");
       auto info = GetInfoEnd();
-      while (info >= GetInfo() && !*--info);
+      while (info >= GetInfo() and not *--info);
       return GetRaw(static_cast<Offset>(info - GetInfo()));
    }
 
@@ -1026,9 +1026,9 @@ namespace Langulus::Anyness
    ///   @return a constant reference to the last element                     
    TABLE_TEMPLATE() LANGULUS(INLINED)
    const T& TABLE()::Last() const {
-      LANGULUS_ASSERT(!IsEmpty(), Access, "Can't get last index");
+      LANGULUS_ASSERT(not IsEmpty(), Access, "Can't get last index");
       auto info = GetInfoEnd();
-      while (info >= GetInfo() && !*--info);
+      while (info >= GetInfo() and not *--info);
       return GetRaw(static_cast<Offset>(info - GetInfo()));
    }
 
@@ -1044,7 +1044,7 @@ namespace Langulus::Anyness
       static_assert(CT::Block<A>, "Function argument must be a block type");
 
       Offset i {};
-      if constexpr (!CT::Void<R>) {
+      if constexpr (not CT::Void<R>) {
          return GetValues().ForEachElement([&](const Block& element) {
             return mInfo[i++] ? f(element) : Flow::Continue;
          });
@@ -1069,7 +1069,7 @@ namespace Langulus::Anyness
       static_assert(CT::Block<A>, "Function argument must be a block type");
 
       Offset i {};
-      if constexpr (!CT::Void<R>) {
+      if constexpr (not CT::Void<R>) {
          return GetValues().ForEachElement([&](const Block& element) {
             return mInfo[i++] ? f(element) : Flow::Continue;
          });
@@ -1115,7 +1115,7 @@ namespace Langulus::Anyness
 
       // Seek next valid info, or hit sentinel at the end               
       const auto previous = mInfo;
-      while (!*++mInfo);
+      while (not *++mInfo);
       const auto offset = mInfo - previous;
       mValue += offset;
       return *this;

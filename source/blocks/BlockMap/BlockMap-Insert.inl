@@ -237,7 +237,7 @@ namespace Langulus::Anyness
                to += mValues.mReserved;
 
             InfoType attempt = 1;
-            while (mInfo[to] && attempt < *oldInfo) {
+            while (mInfo[to] and attempt < *oldInfo) {
                // Might loop around                                     
                ++to;
                if (to >= mValues.mReserved)
@@ -246,7 +246,7 @@ namespace Langulus::Anyness
                ++attempt;
             }
 
-            if (!mInfo[to] && attempt < *oldInfo) {
+            if (not mInfo[to] and attempt < *oldInfo) {
                // Empty spot found, so move pair there                  
                if constexpr (CT::Void<K>) {
                   auto key = GetKeyInner(oldIndex);

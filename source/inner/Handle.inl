@@ -21,7 +21,7 @@ namespace Langulus::Anyness
    TEMPLATE()
    template<CT::Semantic S>
    LANGULUS(INLINED)
-   constexpr HAND()::Handle(S&& other) noexcept requires (!EMBED) {
+   constexpr HAND()::Handle(S&& other) noexcept requires (not EMBED) {
       using ST = TypeOf<S>;
 
       if constexpr (CT::Handle<ST>) {
@@ -32,7 +32,7 @@ namespace Langulus::Anyness
             // Copy/Disown/Move/Abandon a handle                        
             SemanticAssign<T>(mValue, S::Nest(other->Get()));
 
-            if constexpr (S::Keep || S::Move)
+            if constexpr (S::Keep or S::Move)
                mEntry = other->GetEntry();
             else
                mEntry = nullptr;
@@ -42,7 +42,7 @@ namespace Langulus::Anyness
                other->GetEntry() = nullptr;
 
                // Optionally reset remote value, if not abandoned       
-               if constexpr (S::Keep && CT::Sparse<T, HT>)
+               if constexpr (S::Keep and CT::Sparse<T, HT>)
                   other->Get() = nullptr;
             }
          }
@@ -54,9 +54,8 @@ namespace Langulus::Anyness
       else {
          // Assigning mutable pointer to a const handle is allowed      
          using DT = Deptr<T>;
-         static_assert(
-               (CT::Mutable<DT> && CT::Exact<T, ST>)
-            || (CT::Constant<DT> && CT::Exact<T, const Deptr<ST>*>),
+         static_assert((CT::Mutable<DT> and CT::Exact<T, ST>)
+            or (CT::Constant<DT> and CT::Exact<T, const Deptr<ST>*>),
             "Type mismatch"
          );
 
@@ -70,7 +69,7 @@ namespace Langulus::Anyness
             else
                SemanticAssign<T>(mValue, other.template Forward<T>());
 
-            if constexpr (CT::Sparse<T> && CT::Allocatable<DT> && (S::Keep || S::Move))
+            if constexpr (CT::Sparse<T> and CT::Allocatable<DT> and (S::Keep or S::Move))
                mEntry = Allocator::Find(MetaData::Of<DT>(), mValue);
             else
                mEntry = nullptr;
@@ -86,7 +85,7 @@ namespace Langulus::Anyness
    ///   @param v - a reference to the element                                
    ///   @param e - a reference to the element's entry                        
    TEMPLATE() LANGULUS(INLINED)
-   constexpr HAND()::Handle(T& v, Allocation*& e) SAFETY_NOEXCEPT() requires (EMBED && CT::Sparse<T>)
+   constexpr HAND()::Handle(T& v, Allocation*& e) SAFETY_NOEXCEPT() requires (EMBED and CT::Sparse<T>)
       : mValue {&v}
       , mEntry {&e} {}
       
@@ -94,7 +93,7 @@ namespace Langulus::Anyness
    ///   @param v - a reference to the element                                
    ///   @param e - the entry (optional)                                      
    TEMPLATE() LANGULUS(INLINED)
-   constexpr HAND()::Handle(T& v, Allocation* e) SAFETY_NOEXCEPT() requires (EMBED && CT::Dense<T>)
+   constexpr HAND()::Handle(T& v, Allocation* e) SAFETY_NOEXCEPT() requires (EMBED and CT::Dense<T>)
       : mValue {&v}
       , mEntry {e} {}
       
@@ -102,7 +101,7 @@ namespace Langulus::Anyness
    ///   @param v - the element                                               
    ///   @param e - the entry (optional)                                      
    TEMPLATE() LANGULUS(INLINED)
-   constexpr HAND()::Handle(T&& v, Allocation* e) SAFETY_NOEXCEPT() requires (!EMBED)
+   constexpr HAND()::Handle(T&& v, Allocation* e) SAFETY_NOEXCEPT() requires (not EMBED)
       : mValue {Forward<T>(v)}
       , mEntry {e} {}
 
@@ -204,7 +203,7 @@ namespace Langulus::Anyness
    /// Get the entry                                                          
    TEMPLATE() LANGULUS(INLINED)
    Allocation*& HAND()::GetEntry() const noexcept {
-      if constexpr (Embedded && CT::Sparse<T>)
+      if constexpr (Embedded and CT::Sparse<T>)
          return const_cast<Allocation*&>(*mEntry);
       else
          return const_cast<Allocation*&>(mEntry);
@@ -233,7 +232,7 @@ namespace Langulus::Anyness
    void HAND()::New(S&& rhs) {
       using ST = TypeOf<S>;
 
-      if constexpr (S::Shallow && CT::Sparse<T>) {
+      if constexpr (S::Shallow and CT::Sparse<T>) {
          // Do a copy/disown/abandon/move sparse LHS                    
          if constexpr (CT::Handle<ST>) {
             // RHS is a handle                                          
@@ -257,14 +256,14 @@ namespace Langulus::Anyness
                   Get() = rhs->Get();
             }
 
-            if constexpr (S::Keep || S::Move)
+            if constexpr (S::Keep or S::Move)
                GetEntry() = rhs->GetEntry();
             else
                GetEntry() = nullptr;
 
             if constexpr (S::Move) {
                // We're moving RHS, so we need to clear it up           
-               if constexpr (S::Keep && CT::Sparse<T, HT>) {
+               if constexpr (S::Keep and CT::Sparse<T, HT>) {
                   // Clear the value only if we're not abandoning RHS   
                   // (and if the value is a pointer)                    
                   rhs->Get() = nullptr;
@@ -289,9 +288,8 @@ namespace Langulus::Anyness
             // RHS is not a handle, but we'll wrap it in a handle, in   
             // order to find its entry (if managed memory is enabled)   
             // Assigning mutable pointer to a const handle is allowed   
-            static_assert(
-                  (CT::Mutable<Deptr<T>> && CT::Exact<T, ST>)
-               || (CT::Constant<Deptr<T>> && CT::Exact<T, const Deptr<ST>*>),
+            static_assert((CT::Mutable<Deptr<T>> and CT::Exact<T, ST>)
+               or (CT::Constant<Deptr<T>> and CT::Exact<T, const Deptr<ST>*>),
                "Type mismatch"
             );
 
@@ -434,7 +432,7 @@ namespace Langulus::Anyness
                   HandleLocal<Deptr<T>> {Copy(*Get())}.Destroy();
                }
                else if constexpr (CT::Complete<Decay<T>>) {
-                  if constexpr (!CT::POD<T> && CT::Destroyable<T>) {
+                  if constexpr (not CT::POD<T> and CT::Destroyable<T>) {
                      // Pointer to a complete, destroyable dense        
                      // Call the destructor                             
                      using DT = Decay<T>;
@@ -453,7 +451,7 @@ namespace Langulus::Anyness
       else if constexpr (EMBED) {
          // Handle is dense and embedded, we should call the remote     
          // destructor, but don't touch the entry, its irrelevant       
-         if constexpr (!CT::POD<T> && CT::Destroyable<T>)
+         if constexpr (not CT::POD<T> and CT::Destroyable<T>)
             Get().~T();
       }
    }
@@ -481,7 +479,7 @@ namespace Langulus::Anyness
                      Copy(*reinterpret_cast<Byte**>(Get()))
                   }.DestroyUnknown(meta->mDeptr);
                }
-               else if (!meta->mIsPOD && meta->mDeptr->mDestructor) {
+               else if (not meta->mIsPOD and meta->mDeptr->mDestructor) {
                   // Call the destructor                                
                   meta->mDeptr->mDestructor(Get());
                }

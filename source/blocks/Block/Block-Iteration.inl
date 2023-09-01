@@ -239,35 +239,40 @@ namespace Langulus::Anyness
    template<class R, CT::Data A, bool REVERSE, bool SKIP, bool MUTABLE, class F>
    Count Block::ForEachDeepInner(F&& call) {
       constexpr bool HasBreaker = CT::Bool<R>;
+      using DA = Decay<A>;
 
       Count counter = 0;
-      if constexpr (CT::Block<Decay<A>>) {
+      if constexpr (CT::Deep<DA>) {
+         using BlockType = Conditional<MUTABLE, DA*, const DA*>;
+
          if (not SKIP or not IsDeep()) {
             // Always execute for intermediate/non-deep *this           
             ++counter;
             if constexpr (CT::Dense<A>) {
                if constexpr (HasBreaker) {
-                  if (not call(*this))
+                  if (not call(*reinterpret_cast<BlockType>(this)))
                      return counter;
                }
-               else call(*this);
+               else call(*reinterpret_cast<BlockType>(this));
             }
             else {
                if constexpr (HasBreaker) {
-                  if (not call(this))
+                  if (not call(reinterpret_cast<BlockType>(this)))
                      return counter;
                }
-               else call(this);
+               else call(reinterpret_cast<BlockType>(this));
             }
          }
 
          if (IsDeep()) {
             // Iterate using a block type                               
-            ForEachInner<void, A, REVERSE, MUTABLE>([&counter, &call](A group) {
-               counter += const_cast<Decay<A>&>(DenseCast(group))
-                  .template ForEachDeepInner<R, A, REVERSE, SKIP, MUTABLE>(
-                     Forward<F>(call));
-            });
+            ForEachInner<void, BlockType, REVERSE, MUTABLE>(
+               [&counter, &call](BlockType group) {
+                  counter += const_cast<DA*>(group)->
+                     template ForEachDeepInner<R, A, REVERSE, SKIP, MUTABLE>(
+                        Forward<F>(call));
+               }
+            );
          }
       }
       else {
@@ -276,8 +281,8 @@ namespace Langulus::Anyness
             using BlockType = Conditional<MUTABLE, Block&, const Block&>;
             ForEachInner<void, BlockType, REVERSE, MUTABLE>(
                [&counter, &call](BlockType group) {
-                  counter += group
-                     .template ForEachDeepInner<R, A, REVERSE, SKIP, MUTABLE>(
+                  counter += const_cast<Block&>(group).
+                     template ForEachDeepInner<R, A, REVERSE, SKIP, MUTABLE>(
                         Forward<F>(call));
                }
             );

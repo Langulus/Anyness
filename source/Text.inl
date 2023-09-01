@@ -60,7 +60,7 @@ namespace Langulus::Anyness
       // TAny<Letter> based, as well as strings, string_views, bounded  
       // arrays, etc. But it will not make any null-termination         
       // corrections, so we have to do them here.                       
-      if constexpr (!CT::Text<TypeOf<S>>)
+      if constexpr (not CT::Text<TypeOf<S>>)
          mCount = strnlen(GetRaw(), mCount);
    }
 
@@ -126,7 +126,7 @@ namespace Langulus::Anyness
          LANGULUS_ASSERT(errorCode == ::std::errc(), Convert,
             "std::to_chars failure");
 
-         while ((*lastChar == '0' || *lastChar == '.') && lastChar > temp) {
+         while ((*lastChar == '0' || *lastChar == '.') and lastChar > temp) {
             if (*lastChar == '.')
                break;
             --lastChar;
@@ -251,7 +251,7 @@ namespace Langulus::Anyness
          // Base constructor should handle initialization from anything 
          // TAny<Letter> based, but it will not make any null-          
          // termination corrections, so we have to do them here.        
-         if constexpr (!CT::Text<T>)
+         if constexpr (not CT::Text<T>)
             mCount = strnlen(GetRaw(), mCount);
       }
       else if constexpr (CT::Same<T, Letter>)
@@ -314,11 +314,11 @@ namespace Langulus::Anyness
       // for memory consistency. Generally, MEMORY_STATISTICS           
       // sacrifices performance anyways.                                
       #if not LANGULUS_FEATURE(MEMORY_STATISTICS)
-         if (mReserved > mCount && GetRaw()[mCount] == '\0')
+         if (mReserved > mCount and GetRaw()[mCount] == '\0')
             return *this;
       #endif
 
-      if (mEntry && mEntry->GetUses() == 1) {
+      if (mEntry and mEntry->GetUses() == 1) {
          auto mutableThis = const_cast<Text*>(this);
 
          // If we have ownership and this is the only place where data  
@@ -389,7 +389,7 @@ namespace Langulus::Anyness
    ///   @return true if pattern was found                                    
    LANGULUS(INLINED)
    bool Text::FindOffset(const Text& pattern, Offset& offset) const {
-      if (pattern.IsEmpty() || offset >= mCount || pattern.mCount > mCount - offset)
+      if (pattern.IsEmpty() or offset >= mCount or pattern.mCount > mCount - offset)
          return false;
 
       auto lhs = GetRaw() + offset;
@@ -402,7 +402,7 @@ namespace Langulus::Anyness
             ++lhs;
             ++rhs;
 
-            while (rhs != rhsEnd && *lhs == *rhs) {
+            while (rhs != rhsEnd and *lhs == *rhs) {
                ++lhs;
                ++rhs;
             }
@@ -428,7 +428,7 @@ namespace Langulus::Anyness
    ///   @return true if pattern was found                                    
    LANGULUS(INLINED)
    bool Text::FindOffsetReverse(const Text& pattern, Offset& offset) const {
-      if (pattern.IsEmpty() || offset >= mCount || pattern.mCount > mCount - offset)
+      if (pattern.IsEmpty() or offset >= mCount or pattern.mCount > mCount - offset)
          return false;
 
       auto lhs = GetRawEnd() - offset - pattern.GetCount();
@@ -441,7 +441,7 @@ namespace Langulus::Anyness
             ++lhs;
             ++rhs;
 
-            while (rhs != rhsEnd && *lhs == *rhs) {
+            while (rhs != rhsEnd and *lhs == *rhs) {
                ++lhs;
                ++rhs;
             }
@@ -496,7 +496,7 @@ namespace Langulus::Anyness
       Text result;
       Count start {}, end {};
       for (Count i = 0; i <= mCount; ++i) {
-         if (i == mCount || (*this)[i] == symbol) {
+         if (i == mCount or (*this)[i] == symbol) {
             const auto size = end - start;
             if (size) {
                auto segment = result.Extend(size);
@@ -520,7 +520,7 @@ namespace Langulus::Anyness
    Text& Text::Remove(Count start, Count end) {
       LANGULUS_ASSUME(UserAssumes, end >= start, "end < start");
       const auto removed = ::std::min(end, mCount) - ::std::min(start, mCount);
-      if (0 == mCount || 0 == removed)
+      if (0 == mCount or 0 == removed)
          return *this;
 
       LANGULUS_ASSERT(IsMutable(), Destruct,

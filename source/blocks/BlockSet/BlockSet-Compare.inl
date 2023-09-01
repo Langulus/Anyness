@@ -16,7 +16,7 @@ namespace Langulus::Anyness
    ///   @param other - the table to compare against                          
    ///   @return true if tables match                                         
    inline bool BlockSet::operator == (const BlockSet& other) const {
-      if (other.GetCount() != GetCount() || !IsTypeCompatibleWith(other))
+      if (other.GetCount() != GetCount() or not IsTypeCompatibleWith(other))
          return false;
 
       auto info = GetInfo();
@@ -87,7 +87,7 @@ namespace Langulus::Anyness
       // Get the starting index based on the key hash                   
       const auto start = This.GetBucket(GetReserved() - 1, match);
       auto info = GetInfo() + start;
-      if (!*info)
+      if (not *info)
          return GetReserved();
 
       // Test first candidate                                           
@@ -155,7 +155,7 @@ namespace Langulus::Anyness
       // Get the starting index based on the key hash                   
       const auto start = This.GetBucketUnknown(GetReserved() - 1, match);
       auto info = GetInfo() + start;
-      if (!*info)
+      if (not *info)
          return GetReserved();
 
       // Test first candidate                                           

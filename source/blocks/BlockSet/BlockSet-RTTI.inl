@@ -32,7 +32,7 @@ namespace Langulus::Anyness
    ///   @param key - the key type                                            
    LANGULUS(INLINED)
    void BlockSet::Mutate(DMeta key) {
-      if (!mKeys.mType) {
+      if (not mKeys.mType) {
          // Set a fresh key type                                        
          mKeys.mType = key;
       }

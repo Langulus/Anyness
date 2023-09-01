@@ -120,6 +120,10 @@ namespace Langulus::Anyness
 
       NOD() constexpr explicit operator bool() const noexcept;
 
+      // Intentionally left undefined                                   
+      template<CT::Text T>
+      NOD() T SerializeAs() const;
+
       template<CT::Trait T>
       TAny<Any>* GetTraits();
       template<CT::Trait T>

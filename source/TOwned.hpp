@@ -22,7 +22,7 @@ namespace Langulus
    {
       /// Anything derived from A::Owned                                      
       template<class... T>
-      concept Owned = (DerivedFrom<T, A::Owned> && ...);
+      concept Owned = (DerivedFrom<T, A::Owned> and ...);
    }
 
 } // namespace Langulus

@@ -47,7 +47,7 @@ namespace Langulus::Anyness
 
       mKeys.mCount = other->mKeys.mCount;
 
-      if constexpr (!CT::TypedSet<TO>) {
+      if constexpr (not CT::TypedSet<TO>) {
          // TO is not statically typed                                  
          mKeys.mType = other->GetType();
          mKeys.mState = other->mKeys.mState;
@@ -68,7 +68,7 @@ namespace Langulus::Anyness
             mKeys.mEntry = other->mKeys.mEntry;
 
             if constexpr (S::Move) {
-               if constexpr (!FROM::Ownership) {
+               if constexpr (not FROM::Ownership) {
                   // Since we are not aware if that block is referenced 
                   // or not we reference it just in case, and we also   
                   // do not reset 'other' to avoid leaks When using raw 
@@ -131,7 +131,7 @@ namespace Langulus::Anyness
    template<class T>
    void BlockSet::BlockClone(const BlockSet& other) {
       static_assert(CT::TypedSet<T>, "T must be statically typed set");
-      LANGULUS_ASSUME(DevAssumes, !mKeys.mRaw, "Set is already allocated");
+      LANGULUS_ASSUME(DevAssumes, not mKeys.mRaw, "Set is already allocated");
 
       // Use statically optimized cloning                               
       auto asFrom = reinterpret_cast<T*>(&const_cast<BlockSet&>(other));

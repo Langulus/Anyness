@@ -60,7 +60,7 @@ namespace Langulus::Anyness
 
       if constexpr (CT::Set<T>) {
          // Construct from any kind of set                              
-         if constexpr (!T::Ordered) {
+         if constexpr (not T::Ordered) {
             // We have to reinsert everything, because source is        
             // unordered and uses a different bucketing approach        
             mKeys.mType = other->GetType();

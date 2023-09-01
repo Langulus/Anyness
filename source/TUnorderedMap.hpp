@@ -153,7 +153,7 @@ namespace Langulus::Anyness
       Count Insert(const K&, V&&);
       Count Insert(K&&, V&&);
       template<CT::Semantic SK, CT::Semantic SV>
-      Count Insert(SK&&, SV&&) noexcept requires (CT::Exact<TypeOf<SK>, K> && CT::Exact<TypeOf<SV>, V>);
+      Count Insert(SK&&, SV&&) noexcept requires (CT::Exact<TypeOf<SK>, K> and CT::Exact<TypeOf<SV>, V>);
 
       TUnorderedMap& operator << (const TPair<K, V>&);
       TUnorderedMap& operator << (TPair<K, V>&&);
@@ -236,10 +236,10 @@ namespace Langulus::Anyness
       NOD() bool operator == (const TIterator&) const noexcept;
 
       NOD() PairRef operator * () const noexcept requires (MUTABLE);
-      NOD() PairConstRef operator * () const noexcept requires (!MUTABLE);
+      NOD() PairConstRef operator * () const noexcept requires (not MUTABLE);
 
       NOD() PairRef operator -> () const noexcept requires (MUTABLE);
-      NOD() PairConstRef operator -> () const noexcept requires (!MUTABLE);
+      NOD() PairConstRef operator -> () const noexcept requires (not MUTABLE);
 
       // Prefix operator                                                
       TIterator& operator ++ () noexcept;

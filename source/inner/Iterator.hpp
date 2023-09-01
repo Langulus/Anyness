@@ -21,7 +21,7 @@ namespace Langulus
    {
       /// Check if a type is an iterator                                      
       template<class... T>
-      concept Iterator = (DerivedFrom<T, A::Iterator> && ...);
+      concept Iterator = (DerivedFrom<T, A::Iterator> and ...);
    }
 
 } // namespace Langulus

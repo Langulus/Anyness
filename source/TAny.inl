@@ -67,7 +67,7 @@ namespace Langulus::Anyness
          // Constructing using deep source                              
          mType = MetaData::Of<T>();
 
-         if constexpr (!CT::Typed<ST>) {
+         if constexpr (not CT::Typed<ST>) {
             // Container is type-erased, do runtime type checks         
             if (mType->IsExact(other->GetType())) {
                // If types are exactly the same, it is safe to directly 
@@ -131,7 +131,7 @@ namespace Langulus::Anyness
          AllocateFresh(RequestSize(1));
          InsertInner(other.Forward(), 0);
       }
-      else if constexpr (CT::BuiltinCharacter<T> && CT::Exact<ST, ::std::basic_string_view<T>>) {
+      else if constexpr (CT::BuiltinCharacter<T> and CT::Exact<ST, ::std::basic_string_view<T>>) {
          // Integration with std::string_view                           
          if (other->empty())
             return;
@@ -141,7 +141,7 @@ namespace Langulus::Anyness
          AllocateFresh(RequestSize(count));
          InsertInner<Copied<T>>(other->data(), other->data() + count, 0);
       }
-      else if constexpr (CT::Array<ST> && CT::Exact<T, ::std::remove_extent_t<ST>>) {
+      else if constexpr (CT::Array<ST> and CT::Exact<T, ::std::remove_extent_t<ST>>) {
          // Integration with bounded arrays                             
          mType = MetaData::Of<T>();
          constexpr auto count = ExtentOf<ST>;
@@ -190,7 +190,7 @@ namespace Langulus::Anyness
       else
          result.SetMemory(DataState::Constrained, result.GetType(), 1, &(*what), nullptr);
 
-      if constexpr (!S::Move && S::Keep)
+      if constexpr (not S::Move and S::Keep)
          result.TakeAuthority();
       return result;
    }
@@ -209,11 +209,11 @@ namespace Langulus::Anyness
    ///   @attention this never modifies any state, except mEntry              
    TEMPLATE() LANGULUS(INLINED)
    void TAny<T>::Free() {
-      if (!mEntry)
+      if (not mEntry)
          return;
 
       if (mEntry->GetUses() == 1) {
-         if constexpr (CT::Sparse<T> || !CT::POD<T>) {
+         if constexpr (CT::Sparse<T> or not CT::POD<T>) {
             if (mCount)
                CallKnownDestructors<T>();
          }
@@ -388,7 +388,7 @@ namespace Langulus::Anyness
    TEMPLATE()
    LANGULUS(INLINED)
    bool TAny<T>::Is(DMeta type) const noexcept {
-      return GetType() == type || (mType && mType->Is(type));
+      return GetType() == type or (mType and mType->Is(type));
    }
 
    /// Check if this container's data is similar to one of the listed types   
@@ -424,7 +424,7 @@ namespace Langulus::Anyness
    /// Allocate 'count' elements and fill the container with zeroes           
    TEMPLATE() LANGULUS(INLINED)
    void TAny<T>::Null(const Count& count) {
-      static_assert(CT::Sparse<T> || CT::Nullifiable<T>, "T is not nullifiable");
+      static_assert(CT::Sparse<T> or CT::Nullifiable<T>, "T is not nullifiable");
 
       if (count < mReserved)
          AllocateLess(count);
@@ -438,7 +438,7 @@ namespace Langulus::Anyness
    /// but retaining allocation if possible                                   
    TEMPLATE() LANGULUS(INLINED)
    void TAny<T>::Clear() {
-      if (!mCount)
+      if (not mCount)
          return;
 
       if (GetUses() == 1) {
@@ -512,7 +512,7 @@ namespace Langulus::Anyness
    ///   @returns both the provided byte size and reserved count              
    TEMPLATE() LANGULUS(INLINED)
    RTTI::AllocationRequest TAny<T>::RequestSize(const Count& count) const noexcept {
-      if constexpr (CT::Fundamental<T> || CT::Exact<T, Byte>) {
+      if constexpr (CT::Fundamental<T> or CT::Exact<T, Byte>) {
          RTTI::AllocationRequest result;
          result.mByteSize = ::std::max(Roof2(count * sizeof(T)), Alignment);
          result.mElementCount = result.mByteSize / sizeof(T);
@@ -528,13 +528,13 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    decltype(auto) TAny<T>::Get(const Offset& index) const noexcept {
       const auto& element = GetRaw()[index];
-      if constexpr (CT::Dense<T> && CT::Dense<ALT_T>)
+      if constexpr (CT::Dense<T> and CT::Dense<ALT_T>)
          // Dense -> Dense (returning a reference)                      
          return static_cast<const Decay<ALT_T>&>(element);
-      else if constexpr (CT::Dense<T> && CT::Sparse<ALT_T>)
+      else if constexpr (CT::Dense<T> and CT::Sparse<ALT_T>)
          // Dense -> Sparse (returning a pointer)                       
          return static_cast<const Decay<ALT_T>*>(&element);
-      else if constexpr (CT::Sparse<T> && CT::Dense<ALT_T>)
+      else if constexpr (CT::Sparse<T> and CT::Dense<ALT_T>)
          // Sparse -> Dense (returning a reference)                     
          return static_cast<const Decay<ALT_T>&>(*element.mPointer);
       else
@@ -549,13 +549,13 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    decltype(auto) TAny<T>::Get(const Offset& index) noexcept {
       auto& element = GetRaw()[index];
-      if constexpr (CT::Dense<T> && CT::Dense<ALT_T>)
+      if constexpr (CT::Dense<T> and CT::Dense<ALT_T>)
          // Dense -> Dense (returning a reference)                      
          return static_cast<Decay<ALT_T>&>(element);
-      else if constexpr (CT::Dense<T> && CT::Sparse<ALT_T>)
+      else if constexpr (CT::Dense<T> and CT::Sparse<ALT_T>)
          // Dense -> Sparse (returning a pointer)                       
          return static_cast<Decay<ALT_T>*>(&element);
-      else if constexpr (CT::Sparse<T> && CT::Dense<ALT_T>)
+      else if constexpr (CT::Sparse<T> and CT::Dense<ALT_T>)
          // Sparse -> Dense (returning a reference)                     
          return static_cast<Decay<ALT_T>&>(*element.mPointer);
       else
@@ -795,9 +795,9 @@ namespace Langulus::Anyness
    template<Index INDEX, bool MUTABLE>
    LANGULUS(INLINED)
    Count TAny<T>::Insert(const T* start, const T* end) {
-      static_assert(CT::Sparse<T> || CT::Mutable<T>,
+      static_assert(CT::Sparse<T> or CT::Mutable<T>,
          "Can't copy-insert into container of constant elements");
-      static_assert(INDEX == IndexFront || INDEX == IndexBack,
+      static_assert(INDEX == IndexFront or INDEX == IndexBack,
          "Invalid index provided; use either IndexBack "
          "or IndexFront, or Block::InsertAt to insert at an offset");
 
@@ -851,9 +851,9 @@ namespace Langulus::Anyness
    TEMPLATE()
    template<Index INDEX, CT::Semantic S>
    Count TAny<T>::Insert(S&& item) requires (CT::Exact<TypeOf<S>, T>) {
-      static_assert(CT::Sparse<T> || CT::Mutable<T>,
+      static_assert(CT::Sparse<T> or CT::Mutable<T>,
          "Can't copy-insert into container of constant elements");
-      static_assert(INDEX == IndexFront || INDEX == IndexBack,
+      static_assert(INDEX == IndexFront or INDEX == IndexBack,
          "Invalid index provided; use either IndexBack "
          "or IndexFront, or Block::InsertAt to insert at an offset");
 
@@ -923,9 +923,9 @@ namespace Langulus::Anyness
    TEMPLATE()
    template<Index INDEX, class... A>
    Count TAny<T>::Emplace(A&&... arguments) {
-      static_assert(CT::Sparse<T> || CT::Mutable<T>,
+      static_assert(CT::Sparse<T> or CT::Mutable<T>,
          "Can't copy-insert into container of constant elements");
-      static_assert(INDEX == IndexFront || INDEX == IndexBack,
+      static_assert(INDEX == IndexFront or INDEX == IndexBack,
          "Invalid index provided; use either IndexBack "
          "or IndexFront, or Block::InsertAt to insert at an offset");
 
@@ -1066,7 +1066,7 @@ namespace Langulus::Anyness
       auto offset = SimplifyIndex(index);
       Count added {};
       while (start != end) {
-         if (!Find(*start)) {
+         if (not Find(*start)) {
             added += InsertAt(Langulus::Copy(*start), offset);
             ++offset;
          }
@@ -1107,7 +1107,7 @@ namespace Langulus::Anyness
    template<CT::Semantic S, CT::Index IDX>
    LANGULUS(INLINED)
    Count TAny<T>::MergeAt(S&& item, const IDX& index) requires (CT::Exact<TypeOf<S>, T>) {
-      if (!Find(*item))
+      if (not Find(*item))
          return InsertAt(item.Forward(), index);
       return 0;
    }
@@ -1123,7 +1123,7 @@ namespace Langulus::Anyness
    Count TAny<T>::Merge(const T* start, const T* end) {
       Count added {};
       while (start != end) {
-         if (!Find(*start))
+         if (not Find(*start))
             added += Insert<INDEX>(Copy(*start));
          ++start;
       }
@@ -1157,7 +1157,7 @@ namespace Langulus::Anyness
    template<Index INDEX, CT::Semantic S>
    LANGULUS(INLINED)
    Count TAny<T>::Merge(S&& item) requires (CT::Exact<TypeOf<S>, T>) {
-      if (!Find(*item))
+      if (not Find(*item))
          return Insert<INDEX>(item.Forward());
       return 0;
    }
@@ -1304,7 +1304,7 @@ namespace Langulus::Anyness
          const auto ender = idx + count;
          LANGULUS_ASSUME(DevAssumes, ender <= mCount, "Out of range");
 
-         if constexpr (CT::Sparse<T> || CT::POD<T>) {
+         if constexpr (CT::Sparse<T> or CT::POD<T>) {
             if (ender == mCount) {
                // If data is POD and elements are on the back, we can   
                // get around constantness and staticness, by simply     
@@ -1319,13 +1319,13 @@ namespace Langulus::Anyness
                "requires memory to move");
             LANGULUS_ASSERT(IsMutable(), Access,
                "Attempting to remove from constant container");
-            LANGULUS_ASSERT(!IsStatic(), Access,
+            LANGULUS_ASSERT(not IsStatic(), Access,
                "Attempting to remove from static container");
 
             MoveMemory(GetRaw() + idx, GetRaw() + ender, mCount - ender);
          }
          else {
-            if (IsStatic() && ender == mCount) {
+            if (IsStatic() and ender == mCount) {
                // If data is static and elements are on the back, we    
                // can get around constantness and staticness, by simply 
                // truncating the count without any reprecussions        
@@ -1339,7 +1339,7 @@ namespace Langulus::Anyness
                "requires memory to move");
             LANGULUS_ASSERT(IsMutable(), Access,
                "Attempting to remove from constant container");
-            LANGULUS_ASSERT(!IsStatic(), Access,
+            LANGULUS_ASSERT(not IsStatic(), Access,
                "Attempting to remove from static container");
 
             // Call the destructors on the correct region               
@@ -1509,7 +1509,7 @@ namespace Langulus::Anyness
                }
             }
 
-            if constexpr (CREATE || SETSIZE)
+            if constexpr (CREATE or SETSIZE)
                mCount = elements;
             return;
          }
@@ -1535,7 +1535,7 @@ namespace Langulus::Anyness
             if (mEntry != previousBlock.mEntry) {
                // Memory moved, and we should move all elements in it   
                // We're moving to new memory, so no reverse required    
-               if constexpr (CT::AbandonMakable<T> || CT::MoveMakable<T> || CT::CopyMakable<T>) {
+               if constexpr (CT::AbandonMakable<T> or CT::MoveMakable<T> or CT::CopyMakable<T>) {
                   mRaw = mEntry->GetBlockStart();
                   CallKnownSemanticConstructors<T>(
                      previousBlock.mCount, Abandon(previousBlock)
@@ -1560,7 +1560,7 @@ namespace Langulus::Anyness
             // Memory is used from multiple locations, and we must      
             // copy the memory for this block - we can't move it!       
             // This will throw, if data is not copy-constructible       
-            if constexpr (CT::DisownMakable<T> || CT::CopyMakable<T>) {
+            if constexpr (CT::DisownMakable<T> or CT::CopyMakable<T>) {
                AllocateFresh(request);
                CallKnownSemanticConstructors<T>(
                   previousBlock.mCount, Copy(previousBlock)
@@ -1588,7 +1588,7 @@ namespace Langulus::Anyness
          }
       }
       
-      if constexpr (CREATE || SETSIZE)
+      if constexpr (CREATE or SETSIZE)
          mCount = elements;
    }
    
@@ -1672,7 +1672,7 @@ namespace Langulus::Anyness
       else if (mCount != other.mCount)
          return false;
 
-      if constexpr (CT::Sparse<T> || CT::POD<T>) {
+      if constexpr (CT::Sparse<T> or CT::POD<T>) {
          // Batch compare POD/pointers                                  
          return 0 == ::std::memcmp(GetRaw(), other.GetRaw(), GetBytesize());
       }
@@ -1681,7 +1681,7 @@ namespace Langulus::Anyness
          auto t1 = GetRaw();
          auto t2 = other.GetRaw();
          const auto t1end = t1 + mCount;
-         while (t1 < t1end && *t1 == *t2) {
+         while (t1 < t1end and *t1 == *t2) {
             ++t1;
             ++t2;
          }
@@ -1733,7 +1733,7 @@ namespace Langulus::Anyness
 
       auto t1 = GetRaw();
       auto t2 = other.GetRaw();
-      while (t1 < GetRawEnd() && ::std::tolower(*t1) == ::std::tolower(*(t2++)))
+      while (t1 < GetRawEnd() and ::std::tolower(*t1) == ::std::tolower(*(t2++)))
          ++t1;
       return (t1 - GetRaw()) == mCount;
    }
@@ -1750,7 +1750,7 @@ namespace Langulus::Anyness
       auto t2 = other.GetRaw();
       const auto t1end = GetRawEnd();
       const auto t2end = other.GetRawEnd();
-      while (t1 != t1end && t2 != t2end && *t1 == *(t2++))
+      while (t1 != t1end and t2 != t2end and *t1 == *(t2++))
          ++t1;
 
       /*
@@ -1777,7 +1777,7 @@ namespace Langulus::Anyness
       auto t2 = other.GetRaw();
       const auto t1end = GetRawEnd();
       const auto t2end = other.GetRawEnd();
-      while (t1 != t1end && t2 != t2end && ::std::tolower(*t1) == ::std::tolower(*(t2++)))
+      while (t1 != t1end and t2 != t2end and ::std::tolower(*t1) == ::std::tolower(*(t2++)))
          ++t1;
       return t1 - GetRaw();
    }
@@ -1869,7 +1869,7 @@ namespace Langulus::Anyness
             rhs->GetRaw(), rhs->GetRawEnd(), mCount);
          return Abandon(combined);
       }
-      else if constexpr (CT::BuiltinCharacter<T> && CT::Exact<ST, ::std::basic_string_view<T>>) {
+      else if constexpr (CT::BuiltinCharacter<T> and CT::Exact<ST, ::std::basic_string_view<T>>) {
          // Concatenate std::string_view if TAny is compatible          
          if (rhs->empty())
             return *this;
@@ -1883,7 +1883,7 @@ namespace Langulus::Anyness
             rhs->data(), rhs->data() + strsize, mCount);
          return Abandon(combined);
       }
-      else if constexpr (CT::Array<ST> && CT::Exact<T, ::std::remove_extent_t<ST>>) {
+      else if constexpr (CT::Array<ST> and CT::Exact<T, ::std::remove_extent_t<ST>>) {
          // Concatenate T[N] if TAny is compatible                      
          TAny<T> combined;
          combined.mType = MetaData::Of<T>();
@@ -1937,7 +1937,7 @@ namespace Langulus::Anyness
             rhs->GetRaw(), rhs->GetRawEnd(), mCount);
          return *this;
       }
-      else if constexpr (CT::BuiltinCharacter<T> && CT::Exact<ST, ::std::basic_string_view<T>>) {
+      else if constexpr (CT::BuiltinCharacter<T> and CT::Exact<ST, ::std::basic_string_view<T>>) {
          // Concatenate std::string_view if TAny is compatible          
          if (rhs->empty())
             return *this;
@@ -1949,7 +1949,7 @@ namespace Langulus::Anyness
             rhs->data(), rhs->data() + strsize, mCount);
          return *this;
       }
-      else if constexpr (CT::Array<ST> && CT::Exact<T, ::std::remove_extent_t<ST>>) {
+      else if constexpr (CT::Array<ST> and CT::Exact<T, ::std::remove_extent_t<ST>>) {
          // Concatenate T[N] if TAny is compatible                      
          mType = MetaData::Of<T>();
          constexpr auto strsize = ExtentOf<ST>;

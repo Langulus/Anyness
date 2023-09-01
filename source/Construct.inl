@@ -39,7 +39,7 @@ namespace Langulus::Anyness
       : Neat {other.template Forward<Neat>()}
       , Charge {*other}
       , mType {other->mType} {
-      if constexpr (S::Move && S::Keep) {
+      if constexpr (S::Move and S::Keep) {
          other->ResetCharge();
          other->mType = nullptr;
       }
@@ -336,103 +336,5 @@ namespace Langulus::Anyness
    DMeta Construct::GetProducer() const noexcept {
       return mType ? mType->mProducer : nullptr;
    }
-
-   /// Push arguments to the back by copy                                     
-   ///   @param whatever - the thing you wish to copy and push                
-   /*template<CT::Data T>
-   LANGULUS(INLINED)
-   Construct& Construct::operator << (const T& whatever) {
-      if (SmartPush<IndexBack>(whatever))
-         mHash = {};
-      return *this;
-   }
-
-   /// Push arguments to the back by move                                     
-   ///   @param whatever - the thing you wish to move and push                
-   template<CT::Data T>
-   LANGULUS(INLINED)
-   Construct& Construct::operator << (T&& whatever) {
-      if (SmartPush<IndexBack>(Forward<T>(whatever)))
-         mHash = {};
-      return *this;
-   }
-
-   /// Push arguments to the front by copy                                    
-   ///   @param whatever - the thing you wish to copy and push                
-   template<CT::Data T>
-   LANGULUS(INLINED)
-   Construct& Construct::operator >> (const T& whatever) {
-      if (SmartPush<IndexFront>(whatever))
-         mHash = {};
-      return *this;
-   }
-
-   /// Push arguments to the front by move                                    
-   ///   @param whatever - the thing you wish to move and push                
-   template<CT::Data T>
-   LANGULUS(INLINED)
-   Construct& Construct::operator >> (T&& whatever) {
-      if (SmartPush<IndexFront>(Forward<T>(whatever)))
-         mHash = {};
-      return *this;
-   }
-
-   /// Merge items at the back of the arguments by copy                       
-   ///   @param whatever - the thing you wish to copy and push                
-   template<CT::Data T>
-   LANGULUS(INLINED)
-   Construct& Construct::operator <<= (const T& whatever) {
-      if constexpr (CT::Same<T, Trait>)
-         return Set(DenseCast(whatever));
-      else {
-         if (not FindDeep(whatever) and SmartPush<IndexBack>(whatever))
-            mHash = {};
-         return *this;
-      }
-   }
-
-   /// Merge items at the back of the arguments by move                       
-   ///   @param whatever - the thing you wish to move and push                
-   template<CT::Data T>
-   LANGULUS(INLINED)
-   Construct& Construct::operator <<= (T&& whatever) {
-      if constexpr (CT::Same<T, Trait>)
-         return Set(DenseCast(whatever));
-      else {
-         if (not FindDeep(whatever) and SmartPush<IndexBack>(Forward<T>(whatever)))
-            mHash = {};
-         return *this;
-      }
-   }
-
-   /// Merge items at the back of the arguments by copy                       
-   ///   @param whatever - the thing you wish to copy and push                
-   template<CT::Data T>
-   LANGULUS(INLINED)
-   Construct& Construct::operator >>= (const T& whatever) {
-      if constexpr (CT::Same<T, Trait>)
-         Set(DenseCast(whatever));
-      else {
-         if (not FindDeep(whatever) and SmartPush<IndexFront>(whatever))
-            mHash = {};
-      }
-
-      return *this;
-   }
-
-   /// Merge items at the back of the arguments by move                       
-   ///   @param whatever - the thing you wish to move and push                
-   template<CT::Data T>
-   LANGULUS(INLINED)
-   Construct& Construct::operator >>= (T&& whatever) {
-      if constexpr (CT::Same<T, Trait>)
-         Set(DenseCast(whatever));
-      else {
-         if (not FindDeep(whatever) and SmartPush<IndexFront>(Forward<T>(whatever)))
-            mHash = {};
-      }
-
-      return *this;
-   }*/
 
 } // namespace Langulus::Anyness

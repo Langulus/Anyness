@@ -128,7 +128,7 @@ namespace Langulus::Anyness
    inline bool Allocation::Contains(const void* address) const noexcept {
       const auto a = reinterpret_cast<const Byte*>(address);
       const auto blockStart = GetBlockStart();
-      return a >= blockStart && a < blockStart + mAllocatedBytes;
+      return a >= blockStart and a < blockStart + mAllocatedBytes;
    }
 
    /// Test if one entry overlaps another                                     
@@ -138,7 +138,7 @@ namespace Langulus::Anyness
       const auto blockStart1 = GetBlockStart();
       const auto blockStart2 = other.GetBlockStart();
       return 
-         (blockStart2 - blockStart1) > ::std::ptrdiff_t(mAllocatedBytes) &&
+         (blockStart2 - blockStart1) > ::std::ptrdiff_t(mAllocatedBytes) and
          (blockStart1 - blockStart2) > ::std::ptrdiff_t(other.mAllocatedBytes);
    }
 

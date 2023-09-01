@@ -16,7 +16,7 @@ namespace Langulus::Anyness
    ///   @param other - the table to compare against                          
    ///   @return true if tables match                                         
    inline bool BlockMap::operator == (const BlockMap& other) const {
-      if (other.GetCount() != GetCount() || !IsTypeCompatibleWith(other))
+      if (other.GetCount() != GetCount() or not IsTypeCompatibleWith(other))
          return false;
 
       auto info = GetInfo();
@@ -26,7 +26,7 @@ namespace Langulus::Anyness
             const auto lhs = info - GetInfo();
             const auto rhs = other.FindIndexUnknown(GetKeyInner(lhs));
             if (rhs == other.GetReserved()
-               || GetValueInner(lhs) != other.GetValueInner(rhs))
+               or GetValueInner(lhs) != other.GetValueInner(rhs))
                return false;
          }
 
@@ -71,7 +71,7 @@ namespace Langulus::Anyness
       const auto infoEnd = GetInfoEnd();
 
       while (info != infoEnd) {
-         if (*info && *value == match)
+         if (*info and *value == match)
             return true;
 
          ++value; ++info;
@@ -87,7 +87,7 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    bool BlockMap::ContainsPair(const TPair<K, V>& pair) const {
       const auto found = FindIndex(pair.mKey);
-      return found != GetReserved() && GetValueInner(found) == pair.mValue;
+      return found != GetReserved() and GetValueInner(found) == pair.mValue;
    }
    
    /// Search for a key inside the table, and return it if found              
@@ -116,7 +116,7 @@ namespace Langulus::Anyness
       // Get the starting index based on the key hash                   
       const auto start = This.GetBucket(GetReserved() - 1, match);
       auto info = GetInfo() + start;
-      if (!*info)
+      if (not *info)
          return GetReserved();
 
       // Test first candidate                                           
@@ -184,7 +184,7 @@ namespace Langulus::Anyness
       // Get the starting index based on the key hash                   
       const auto start = This.GetBucketUnknown(GetReserved() - 1, match);
       auto info = GetInfo() + start;
-      if (!*info)
+      if (not *info)
          return GetReserved();
 
       // Test first candidate                                           

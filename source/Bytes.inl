@@ -298,7 +298,7 @@ namespace Langulus::Anyness
    ///   @return a reference to the byte container                            
    LANGULUS(INLINED)
    Bytes& Bytes::Remove(const Offset& start, const Offset& end) {
-      if (IsEmpty() || IsStatic() || start >= end)
+      if (IsEmpty() or IsStatic() or start >= end)
          return *this;
       
       const auto removed = end - start;
@@ -335,7 +335,7 @@ namespace Langulus::Anyness
 
    LANGULUS(INLINED)
    bool Bytes::Header::operator == (const Header& rhs) const noexcept {
-      return mAtomSize == rhs.mAtomSize && mFlags == rhs.mFlags;
+      return mAtomSize == rhs.mAtomSize and mFlags == rhs.mFlags;
    }
    
 
@@ -344,8 +344,8 @@ namespace Langulus::Anyness
    ///                                                                        
    LANGULUS(INLINED)
    void Bytes::RequestMoreBytes(Offset read, Size byteCount, const Loader& loader) const {
-      if (read >= GetCount() || GetCount() - read < byteCount) {
-         if (!loader)
+      if (read >= GetCount() or GetCount() - read < byteCount) {
+         if (not loader)
             LANGULUS_THROW(Access, "Deserializer has no loader");
          loader(const_cast<Bytes&>(*this), byteCount - (GetCount() - read));
       }

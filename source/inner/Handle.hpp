@@ -49,9 +49,9 @@ namespace Langulus::Anyness
       template<CT::Semantic S>
       constexpr Handle(S&&) noexcept requires (!EMBED);
 
-      constexpr Handle(T&, Allocation*&) SAFETY_NOEXCEPT() requires (EMBED && CT::Sparse<T>);
-      constexpr Handle(T&, Allocation*) SAFETY_NOEXCEPT() requires (EMBED && CT::Dense<T>);
-      constexpr Handle(T&&, Allocation* = nullptr) SAFETY_NOEXCEPT() requires (!EMBED);
+      constexpr Handle(T&, Allocation*&) SAFETY_NOEXCEPT() requires (EMBED and CT::Sparse<T>);
+      constexpr Handle(T&, Allocation*) SAFETY_NOEXCEPT() requires (EMBED and CT::Dense<T>);
+      constexpr Handle(T&&, Allocation* = nullptr) SAFETY_NOEXCEPT() requires (not EMBED);
 
       constexpr Handle& operator = (const Handle&) noexcept = default;
       constexpr Handle& operator = (Handle&&) noexcept = default;

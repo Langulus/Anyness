@@ -89,7 +89,7 @@ namespace Langulus::Anyness
       auto key = oldKeys.GetElement();
       const auto hashmask = count - 1;
       while (oldInfo != oldInfoEnd) {
-         if (!*(oldInfo++)) {
+         if (not *(oldInfo++)) {
             key.Next();
             continue;
          }
@@ -99,7 +99,7 @@ namespace Langulus::Anyness
             Abandon(key)
          );
 
-         if (!key.IsEmpty())
+         if (not key.IsEmpty())
             key.CallUnknownDestructors();
          else
             key.mCount = 1;
@@ -156,7 +156,7 @@ namespace Langulus::Anyness
          return;
 
       // Allocate/Reallocate the keys and info                          
-      if (IsAllocated() && GetUses() == 1)
+      if (IsAllocated() and GetUses() == 1)
          Allocate<true>(count);
       else
          Allocate<false>(count);
@@ -181,7 +181,7 @@ namespace Langulus::Anyness
    ///   @param times - number of references to subtract                      
    template<bool DESTROY>
    void BlockSet::Dereference(const Count& times) {
-      if (!mKeys.mEntry)
+      if (not mKeys.mEntry)
          return;
 
       LANGULUS_ASSUME(DevAssumes,
@@ -189,7 +189,7 @@ namespace Langulus::Anyness
 
       if (mKeys.mEntry->GetUses() == 1) {
          if constexpr (DESTROY) {
-            if (!IsEmpty()) {
+            if (not IsEmpty()) {
                // Destroy all valid entries                             
                ClearInner();
             }
