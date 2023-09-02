@@ -74,51 +74,7 @@ namespace Langulus::Anyness
    template<CT::Semantic S>
    LANGULUS(INLINED)
    Neat::Neat(S&& messy) requires (not CT::Neat<TypeOf<S>>) {
-      using T = TypeOf<S>;
-
-      if constexpr (CT::Block<T>) {
-         // We'll be compiling a messy container                        
-         messy->ForEachDeep([this](const Messy& group) {
-            if (group.IsOr())
-               TODO();
-
-            if (group.ForEach(
-               [this](const Trait& trait) {
-                  AddTrait(Copy(trait));
-               },
-               [this](const MetaData* type) {
-                  // Insert an empty Construct to signify solo type ID  
-                  mConstructs[type] << Inner::DeConstruct {};
-               },
-               [this](const MetaTrait* type) {
-                  // Insert empty Any to signify trait without content  
-                  mTraits[type] << Any {};
-               },
-               [this](const MetaConst* type) {
-                  // Expand the constant, then normalize, and merge it  
-                  Any wrapped = Block {{}, type};
-
-                  // Clone it, so that we take authority over the data  
-                  Any cloned = Clone(wrapped);
-                  Merge(Neat {cloned});
-               },
-               [this](const Construct& construct) {
-                  // Construct's arguments are always Neat              
-                  mConstructs[construct.GetType()] << Inner::DeConstruct {
-                     construct.GetHash(),
-                     construct.GetCharge(),
-                     construct.GetArgument()
-                  };
-               }
-            )) return;
-
-            // If reached, just propagate the block without changing it 
-            // But still sort it by block's origin type, even if that   
-            // type is nullptr, as the group might contain only state   
-            mAnythingElse[group.GetType() ? group.GetType()->mOrigin : nullptr] << group;
-         });
-      }
-      else operator << (messy.Forward());
+      operator << (messy.Forward());
    }
    
    /// Pack any number of elements sequentially                               
@@ -227,15 +183,6 @@ namespace Langulus::Anyness
       }
 
       return Abandon(result);
-   }
-
-   /// Convert all neat nested data to a Construct of the given type          
-   ///   @tparam T - type of the construct                                    
-   ///   @return a new construct                                              
-   template<CT::Data T>
-   LANGULUS(INLINED)
-   Construct Neat::MakeConstruct() const {
-      return Construct::From<T>(MakeMessy());
    }
 
    /// Get the hash of a neat container (and cache it)                        
@@ -379,8 +326,7 @@ namespace Langulus::Anyness
    ///   @return the data list, or nullptr if no such list exists             
    LANGULUS(INLINED)
    TAny<Messy>* Neat::GetData(DMeta d) {
-      LANGULUS_ASSUME(UserAssumes, d, "Can't get invalid data");
-      auto found = mAnythingElse.Find(d);
+      auto found = mAnythingElse.Find(d ? d->mOrigin : nullptr);
       if (not found)
          return nullptr;
       
@@ -418,8 +364,7 @@ namespace Langulus::Anyness
    ///   @return the construct list, or nullptr if no such list exists        
    LANGULUS(INLINED)
    TAny<Inner::DeConstruct>* Neat::GetConstructs(DMeta d) {
-      LANGULUS_ASSUME(UserAssumes, d, "Can't get invalid construct");
-      auto found = mConstructs.Find(d);
+      auto found = mConstructs.Find(d ? d->mOrigin : nullptr);
       if (not found)
          return nullptr;
       
@@ -580,45 +525,84 @@ namespace Langulus::Anyness
       using S = Decay<decltype(rhs)>;
       using T = TypeOf<S>;
 
-      if constexpr (CT::TraitBased<T>) {
+      if constexpr (CT::Neat<T>) {
+         // Merge neats                                                 
+         Merge(rhs.Forward());
+      }
+      else if constexpr (CT::TraitBased<T>) {
          // Insert trait to its bucket                                  
          AddTrait(rhs.Forward());
       }
       else if constexpr (CT::Same<T, MetaData>) {
          // Insert an empty Construct to signify solo type ID           
-         mConstructs[SparseCast(*rhs)] << Inner::DeConstruct {};
+         const auto meta = SparseCast(*rhs);
+         mAnythingElse[meta ? meta->mOrigin : nullptr] << Any {};
       }
       else if constexpr (CT::Same<T, MetaTrait>) {
          // Insert empty Any to signify trait without content           
          mTraits[SparseCast(*rhs)] << Any {};
       }
       else if constexpr (CT::Same<T, MetaConst>) {
-         // Expand the constant, then normalize, and merge it           
-         Any wrapped = Block {{}, SparseCast(*rhs)};
-
-         // Clone it, so that we take authority over the data           
-         Any cloned = Clone(wrapped);
-         Merge(Neat {cloned});
+         // Expand the constant, and push it                            
+         Any wrapped = Clone(Block {{}, SparseCast(*rhs)});
+         const auto meta = wrapped.GetType() ? wrapped.GetType()->mOrigin : nullptr;
+         mAnythingElse[meta] << Abandon(wrapped);
       }
       else if constexpr (CT::Construct<T>) {
          // Construct's arguments are always Neat                       
-         mConstructs[rhs->GetType()] << Inner::DeConstruct {
+         const auto meta = rhs->GetType() ? rhs->GetType()->mOrigin : nullptr;
+         mConstructs[meta] << Inner::DeConstruct {
             rhs->GetHash(),
             rhs->GetCharge(),
             rhs->GetArgument()
          };
       }
       else if constexpr (CT::Deep<T>) {
-         // Push anything deep here, flattening it, unless it is OR     
-         if (rhs->IsOr())
-            mAnythingElse[MetaData::Of<Any>()] << rhs.template Forward<Any>();
-         else {
+         // Push anything deep here, flattening it, unless it has state 
+         if (rhs->GetUnconstrainedState()) {
+            const auto meta = rhs->GetType() ? rhs->GetType()->mOrigin : nullptr;
+            mAnythingElse[meta] << Messy {rhs.Forward()};
+         }
+         else if (rhs->IsDeep()) {
             rhs->ForEach([&](const Any& group) {
                operator << (S::Nest(const_cast<Any&>(group)));
             });
          }
+         else {
+            if (not rhs->ForEach(
+               [&](const Neat& neat) {
+                  Merge(neat);
+               },
+               [&](const Trait& trait) {
+                  AddTrait(S::Nest(const_cast<Trait&>(trait)));
+               },
+               [&](const MetaData* meta) {
+                  mAnythingElse[meta ? meta->mOrigin : nullptr] << Any {};
+               },
+               [&](const MetaTrait* meta) {
+                  mTraits[meta] << Any {};
+               },
+               [&](const MetaConst* meta) {
+                  Any wrapped = Clone(Block {{}, meta});
+                  const auto dmeta = wrapped.GetType() ? wrapped.GetType()->mOrigin : nullptr;
+                  mAnythingElse[dmeta] << Abandon(wrapped);
+               },
+               [&](const Construct& c) {
+                  const auto meta = c.GetType() ? c.GetType()->mOrigin : nullptr;
+                  mConstructs[meta] << Inner::DeConstruct {
+                     c.GetHash(),
+                     c.GetCharge(),
+                     c.GetArgument()
+                  };
+               }
+            )) {
+               mAnythingElse[rhs->GetType() ? rhs->GetType()->mOrigin : nullptr] << rhs.Forward();
+            }
+         }
       }
-      else mAnythingElse[MetaData::Of<Decay<T>>()] << rhs.Forward();
+      else {
+         mAnythingElse[MetaData::Of<Decay<T>>()] << rhs.Forward();
+      }
 
       // Demand a new hash on the next compare                          
       mHash = {};
@@ -670,16 +654,16 @@ namespace Langulus::Anyness
       }
       else if constexpr (CT::Same<T, MetaData>) {
          // Check if the construct already exists, before pushing it    
-         if (not GetConstructs(SparseCast(*rhs)))
+         if (not GetData(SparseCast(*rhs)))
             return operator << (rhs.Forward());
       }
       else if constexpr (CT::Deep<T>) {
          // Check anything deep here, flattening it, unless it is OR    
-         if (rhs->IsOr() and not GetData<T>())
+         if (rhs->GetUnsconstrainedState())
             return operator << (rhs.Forward());
          else {
             rhs->ForEach([&](const Any& group) {
-               if (not GetData(group.GetType()->mOrigin))
+               if (not GetData(group.GetType()))
                   operator << (S::Nest(const_cast<Any&>(group)));
             });
          }

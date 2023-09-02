@@ -107,8 +107,6 @@ namespace Langulus::Anyness
       void Reset();
 
       NOD() Messy MakeMessy() const;
-      template<CT::Data T>
-      NOD() Construct MakeConstruct() const;
 
       ///                                                                     
       ///   Encapsulation                                                     

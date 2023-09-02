@@ -103,8 +103,10 @@ namespace Langulus::Anyness
    /// Stringify meta                                                         
    ///   @param meta - the definition to stringify                            
    LANGULUS(INLINED)
-   Text::Text(const RTTI::Meta* meta)
-      : Text {*meta} {}
+   Text::Text(const RTTI::Meta* meta) {
+      if (meta)
+         *this = Text {*meta};
+   }
    
    /// Construct from a single character                                      
    ///   @param anyCharacter - the character                                  
