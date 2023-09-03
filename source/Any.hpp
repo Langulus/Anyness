@@ -56,8 +56,8 @@ namespace Langulus::Anyness
       Any(CT::NotSemantic auto&&);
       Any(CT::Semantic auto&&) noexcept;
 
-      template<CT::Data HEAD, CT::Data... TAIL>
-      Any(HEAD&&, TAIL&&...) requires (sizeof...(TAIL) >= 1);
+      template<CT::Data T1, CT::Data T2, CT::Data... TN>
+      Any(T1&&, T2&&, TN&&...);
 
       ~Any();
    
@@ -87,8 +87,8 @@ namespace Langulus::Anyness
       template<CT::Data T>
       NOD() static Any From(const DataState& = {}) noexcept;
 
-      template<class AS = void, CT::Data HEAD, CT::Data... TAIL>
-      NOD() static Any WrapAs(HEAD&&, TAIL&&...);
+      template<class AS = void, CT::Data T1, CT::Data T2, CT::Data... TN>
+      NOD() static Any WrapAs(T1&&, T2&&, TN&&...);
 
       void Clear();
       void Reset();

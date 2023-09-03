@@ -103,21 +103,23 @@ namespace Langulus::Anyness
    /// to incorporate all elements                                            
    ///   @param head - first element                                          
    ///   @param tail... - the rest of the elements                            
-   template<CT::Data HEAD, CT::Data... TAIL>
-   Any::Any(HEAD&& head, TAIL&&... tail) requires (sizeof...(TAIL) >= 1) {
-      if constexpr (CT::Exact<HEAD, TAIL...>) {
+   template<CT::Data T1, CT::Data T2, CT::Data... TN>
+   Any::Any(T1&& t1, T2&& t2, TN&&... tail) {
+      if constexpr (CT::Exact<T1, T2, TN...>) {
          // All types are the same, so pack them tightly                
-         SetType<Decvq<Deref<HEAD>>>();
-         AllocateFresh(RequestSize(sizeof...(TAIL) + 1));
-         Insert(Forward<HEAD>(head));
-         (Insert(Forward<TAIL>(tail)), ...);
+         SetType<Decvq<Deref<T1>>>();
+         AllocateFresh(RequestSize(sizeof...(TN) + 2));
+         Insert(Forward<T1>(t1));
+         Insert(Forward<T2>(t2));
+         (Insert(Forward<TN>(tail)), ...);
       }
       else {
          // Types differ, so wrap each of them in a separate Any        
          SetType<Any>();
-         AllocateFresh(RequestSize(sizeof...(TAIL) + 1));
-         Insert(Abandon(Any {Forward<HEAD>(head)}));
-         (Insert(Abandon(Any {Forward<TAIL>(tail)})), ...);
+         AllocateFresh(RequestSize(sizeof...(TN) + 2));
+         Insert(Abandon(Any {Forward<T1>(t1)}));
+         Insert(Abandon(Any {Forward<T2>(t2)}));
+         (Insert(Abandon(Any {Forward<TN>(tail)})), ...);
       }
    }
 
@@ -168,24 +170,25 @@ namespace Langulus::Anyness
    ///   @tparam AS - the type to wrap elements as                            
    ///                use 'void' to deduce AS from the HEAD                   
    ///                (void by default)                                       
-   ///   @tparam HEAD - the first element type (deducible)                    
-   ///   @tparam TAIL... - the rest of the element types (deducible)          
-   ///   @param head - first element                                          
+   ///   @tparam T1 - the first element type (deducible)                      
+   ///   @tparam T2 - the first element type (deducible)                      
+   ///   @tparam TN... - the rest of the element types (deducible)            
+   ///   @param t1 - first element                                            
+   ///   @param t2 - second element                                           
    ///   @param tail... - the rest of the elements                            
    ///   @returns the new container containing the data                       
-   template<class AS, CT::Data HEAD, CT::Data... TAIL>
+   template<class AS, CT::Data T1, CT::Data T2, CT::Data... TN>
    LANGULUS(INLINED)
-   Any Any::WrapAs(HEAD&& head, TAIL&&... tail) {
-      if constexpr (sizeof...(TAIL) == 0)
-         return {};
-      else if constexpr (CT::Void<AS>) {
-         static_assert(CT::Exact<HEAD, TAIL...>, "Type mismatch");
-         return {Forward<HEAD>(head), Forward<HEAD>(tail)...};
+   Any Any::WrapAs(T1&& t1, T2&& t2, TN&&... tail) {
+      if constexpr (CT::Void<AS>) {
+         static_assert(CT::Exact<T1, T2, TN...>, "Type mismatch");
+         return {Forward<T1>(t1), Forward<T2>(t2), Forward<TN>(tail)...};
       }
       else {
-         static_assert(CT::DerivedFrom<HEAD, AS>, "Head not related");
-         static_assert((CT::DerivedFrom<TAIL, AS> and ...), "Tail not related");
-         return {Forward<AS>(head), Forward<AS>(tail)...};
+         static_assert(CT::DerivedFrom<T1, AS>, "T1 not related");
+         static_assert(CT::DerivedFrom<T2, AS>, "T2 not related");
+         static_assert((CT::DerivedFrom<TN, AS> and ...), "Tail not related");
+         return {Forward<AS>(t1), Forward<AS>(t2), Forward<AS>(tail)...};
       }
    }
    

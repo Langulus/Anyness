@@ -396,10 +396,10 @@ namespace Langulus::Anyness
    ///   @tparam T... - the types to compare against                          
    ///   @return true if data type matches at least one type                  
    TEMPLATE()
-   template<CT::Data... ALT_T>
+   template<CT::Data ALT_T, CT::Data... ALT_MORE>
    LANGULUS(INLINED)
    constexpr bool TAny<T>::Is() const noexcept {
-      return CT::Same<T, ALT_T...>;
+      return CT::Same<T, ALT_T, ALT_MORE...>;
    }
 
    /// Check if contained data exactly matches a given type                   
@@ -408,17 +408,17 @@ namespace Langulus::Anyness
    TEMPLATE()
    LANGULUS(INLINED)
    bool TAny<T>::IsExact(DMeta type) const noexcept {
-      return GetType() == type || (mType && mType->IsExact(type));
+      return GetType() == type or (mType and mType->IsExact(type));
    }
 
    /// Check if this container's data is exactly as one of the listed types   
    ///   @tparam T... - the types to compare against                          
    ///   @return true if data type matches at least one type                  
    TEMPLATE()
-   template<CT::Data... ALT_T>
+   template<CT::Data ALT_T, CT::Data... ALT_MORE>
    LANGULUS(INLINED)
    constexpr bool TAny<T>::IsExact() const noexcept {
-      return CT::Exact<T, ALT_T...>;
+      return CT::Exact<T, ALT_T, ALT_MORE...>;
    }
 
    /// Allocate 'count' elements and fill the container with zeroes           

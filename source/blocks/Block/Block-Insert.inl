@@ -1476,6 +1476,7 @@ namespace Langulus::Anyness
       }
       else if constexpr (CT::Sparse<T>) {
          static_assert(sizeof...(A) == 1, "Bad argument");
+         using AA = FirstOf<A...>;
 
          // Construct pointers                                          
          auto lhs = const_cast<Block&>(*this).template GetRawAs<T>();
@@ -1483,12 +1484,12 @@ namespace Langulus::Anyness
          auto lhsEntry = const_cast<Block&>(*this).GetEntries();
 
          while (lhs != lhsEnd) {
-            if constexpr (CT::Handle<A...> && CT::Same<T, TypeOf<A>...>) {
+            if constexpr (CT::Handle<AA> and CT::Same<T, AA>) {
                // Set pointer and entry from handle                     
                (*lhs = ... = arguments.mPointer);
                (*lhsEntry = ... = arguments.mEntry);
             }
-            else if constexpr (::std::constructible_from<T, A...>) {
+            else if constexpr (::std::constructible_from<T, AA>) {
                // Set pointer and find entry                            
                (*lhs = ... = arguments);
                *lhsEntry = Allocator::Find(mType, *lhs);

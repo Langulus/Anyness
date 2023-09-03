@@ -570,6 +570,14 @@ namespace Langulus::Anyness
          }
          else {
             if (not rhs->ForEach(
+               [&](const Construct& c) {
+                  const auto meta = c.GetType() ? c.GetType()->mOrigin : nullptr;
+                  mConstructs[meta] << Inner::DeConstruct {
+                     c.GetHash(),
+                     c.GetCharge(),
+                     c.GetArgument()
+                  };
+               },
                [&](const Neat& neat) {
                   Merge(neat);
                },
@@ -586,14 +594,6 @@ namespace Langulus::Anyness
                   Any wrapped = Clone(Block {{}, meta});
                   const auto dmeta = wrapped.GetType() ? wrapped.GetType()->mOrigin : nullptr;
                   mAnythingElse[dmeta] << Abandon(wrapped);
-               },
-               [&](const Construct& c) {
-                  const auto meta = c.GetType() ? c.GetType()->mOrigin : nullptr;
-                  mConstructs[meta] << Inner::DeConstruct {
-                     c.GetHash(),
-                     c.GetCharge(),
-                     c.GetArgument()
-                  };
                }
             )) {
                mAnythingElse[rhs->GetType() ? rhs->GetType()->mOrigin : nullptr] << rhs.Forward();
