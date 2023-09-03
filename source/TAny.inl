@@ -1516,25 +1516,26 @@ namespace Langulus::Anyness
 
          // Reallocate                                                  
          Block previousBlock {*this};
-         if (mEntry->GetUses() == 1) {
-            // Memory is used only once and it is safe to move it       
-            // Make note, that Allocator::Reallocate doesn't copy       
-            // anything, it doesn't use realloc for various reasons, so 
-            // we still have to call move construction for all elements 
-            // if entry moved (enabling MANAGED_MEMORY feature          
-            // significantly reduces the possiblity for a move)         
-            // Sparse containers have additional memory allocated for   
-            // each pointer's entry, if managed memory is enabled       
-            mEntry = Allocator::Reallocate(
-               request.mByteSize * (CT::Sparse<T> ? 2 : 1),
-               mEntry
-            );
-            LANGULUS_ASSERT(mEntry, Allocate, "Out of memory");
-            mReserved = request.mElementCount;
+         mEntry = Allocator::Reallocate(
+            request.mByteSize * (CT::Sparse<T> ? 2 : 1),
+            mEntry
+         );
+         LANGULUS_ASSERT(mEntry, Allocate, "Out of memory");
+         mReserved = request.mElementCount;
 
-            if (mEntry != previousBlock.mEntry) {
-               // Memory moved, and we should move all elements in it   
-               // We're moving to new memory, so no reverse required    
+         if (mEntry != previousBlock.mEntry) {
+            // Memory moved, and we should move all elements in it      
+            // We're moving to new memory, so no reverse required       
+            if (mEntry->GetUses() == 1) {
+               // Memory is used only once and it is safe to move it    
+               // Make note, that Allocator::Reallocate doesn't copy    
+               // anything, it doesn't use realloc for various          
+               // reasons, so we still have to call move construction   
+               // for all elements if entry moved (enabling             
+               // MANAGED_MEMORY feature significantly reduces the      
+               // chance for a move). Sparse containers have            
+               // additional memory allocated for each pointer's        
+               // entry, if managed memory is enabled                   
                if constexpr (CT::AbandonMakable<T> or CT::MoveMakable<T> or CT::CopyMakable<T>) {
                   mRaw = mEntry->GetBlockStart();
                   CallKnownSemanticConstructors<T>(
@@ -1544,29 +1545,29 @@ namespace Langulus::Anyness
                   // Also, we should free the previous allocation       
                   previousBlock.Free();
                }
-               else LANGULUS_THROW(Construct, "T is not move-constructible");
+               else LANGULUS_THROW(Construct, "Memory moved, but T is not move-constructible");
             }
             else {
-               // Memory didn't move, but reserved count changed        
-               if constexpr (CT::Sparse<T>) {
-                  // Move entry data to its new place                   
-                  MoveMemory(
-                     GetEntries(), previousBlock.GetEntries(), mCount
+               // Memory is used from multiple locations, and we must   
+               // copy the memory for this block - we can't move it!    
+               // This will throw, if data is not copy-constructible    
+               if constexpr (CT::DisownMakable<T> or CT::CopyMakable<T>) {
+                  AllocateFresh(request);
+                  CallKnownSemanticConstructors<T>(
+                     previousBlock.mCount, Copy(previousBlock)
                   );
                }
+               else LANGULUS_THROW(Construct, "Memory moved, but T is not copy-constructible");
             }
          }
          else {
-            // Memory is used from multiple locations, and we must      
-            // copy the memory for this block - we can't move it!       
-            // This will throw, if data is not copy-constructible       
-            if constexpr (CT::DisownMakable<T> or CT::CopyMakable<T>) {
-               AllocateFresh(request);
-               CallKnownSemanticConstructors<T>(
-                  previousBlock.mCount, Copy(previousBlock)
+            // Memory didn't move, but reserved count changed           
+            if constexpr (CT::Sparse<T>) {
+               // Move entry data to its new place                      
+               MoveMemory(
+                  GetEntries(), previousBlock.GetEntries(), mCount
                );
             }
-            else LANGULUS_THROW(Construct, "T is not copy-constructible");
          }
 
          if constexpr (CREATE) {

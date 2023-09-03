@@ -40,14 +40,13 @@ namespace Langulus::Anyness
    ///   @param elements - number of elements to allocate                     
    template<bool CREATE, bool SETSIZE>
    void Block::AllocateMore(Count elements) {
-      if (!mType || (mType->mIsAbstract && !mType->mIsSparse)) {
-         if (!mType) {
+      if (not mType or (mType->mIsAbstract and not mType->mIsSparse)) {
+         if (not mType)
             Logger::Error("Can't instantiate unknown type");
-         }
-         else {
+         else
             Logger::Error("Unable to instantiate ", elements,
-               " elements of abstract type ", mType);
-         }
+                          " elements of abstract type ", mType);
+
          LANGULUS_THROW(Allocate, "Allocating untyped/abstract/sparse data");
       }
 
@@ -64,7 +63,7 @@ namespace Langulus::Anyness
       }
       else AllocateInner<CREATE>(elements);
 
-      if constexpr (CREATE || SETSIZE)
+      if constexpr (CREATE or SETSIZE)
          mCount = elements;
    }
 
@@ -110,7 +109,7 @@ namespace Langulus::Anyness
    /// If we already have jurisdiction, then nothing happens                  
    LANGULUS(INLINED)
    void Block::TakeAuthority() {
-      if (mEntry || !mRaw) {
+      if (mEntry or not mRaw) {
          // We already own this memory, or there's nothing to own       
          return;
       }
@@ -131,7 +130,7 @@ namespace Langulus::Anyness
    void Block::AllocateInner(const Count& elements) {
       LANGULUS_ASSERT(mType, Allocate,
          "Invalid type");
-      LANGULUS_ASSERT(!mType->mIsAbstract || IsSparse(), Allocate,
+      LANGULUS_ASSERT(not mType->mIsAbstract or IsSparse(), Allocate,
          "Abstract dense type");
 
       // Retrieve the required byte size                                
@@ -141,47 +140,47 @@ namespace Langulus::Anyness
       if (mEntry) {
          // Reallocate                                                  
          Block previousBlock {*this};
-         if (mEntry->GetUses() == 1) {
-            // Memory is used only once and it is safe to move it       
-            // Make note, that Allocator::Reallocate doesn't copy       
-            // anything, it doesn't use realloc for various reasons, so 
-            // we still have to call move construction for all elements 
-            // if entry moved (enabling MANAGED_MEMORY feature          
-            // significantly reduces the possiblity for a move)         
-            // Also, make sure to free the previous mEntry if moved     
-            // Sparse containers have additional memory allocated for   
-            // each pointer's entry, if managed memory is enabled       
-            mEntry = Allocator::Reallocate(
-               request.mByteSize * (mType->mIsSparse ? 2 : 1),
-               mEntry
-            );
-            LANGULUS_ASSERT(mEntry, Allocate, "Out of memory");
-            mReserved = request.mElementCount;
+         mEntry = Allocator::Reallocate(
+            request.mByteSize * (mType->mIsSparse ? 2 : 1),
+            mEntry
+         );
+         LANGULUS_ASSERT(mEntry, Allocate, "Out of memory");
+         mReserved = request.mElementCount;
 
-            if (mEntry != previousBlock.mEntry) {
-               // Memory moved, and we should call abandon-construction 
-               // We're moving to a new allocation, so no reverse needed
+         if (mEntry != previousBlock.mEntry) {
+            // Memory moved, and we should call abandon-construction    
+            // We're moving to a new allocation, so no reverse needed   
+            if (mEntry->GetUses() == 1) {
+               // Memory is used only once and it is safe to move it    
+               // Make note, that Allocator::Reallocate doesn't copy    
+               // anything, it doesn't use realloc for various reasons, 
+               // so we still have to call move construction for all    
+               // elements if entry moved (enabling MANAGED_MEMORY      
+               // feature significantly reduces the chance for a move)  
+               // Also, make sure to free the previous mEntry if moved  
+               // Sparse containers have additional memory allocated for
+               // each pointer's entry, if managed memory is enabled    
                mRaw = mEntry->GetBlockStart();
-               CallUnknownSemanticConstructors(previousBlock.mCount, 
+               CallUnknownSemanticConstructors(previousBlock.mCount,
                   Abandon(previousBlock));
             }
             else {
-               // Memory didn't move, but reserved count changed        
-               if (mType->mIsSparse) {
-                  // Move entry data to its new place                   
-                  MoveMemory(
-                     GetEntries(), previousBlock.GetEntries(), mCount
-                  );
-               }
+               // Memory is used from multiple locations, and we must      
+               // copy the memory for this block - we can't move it!       
+               AllocateFresh(request);
+               CallUnknownSemanticConstructors(previousBlock.mCount,
+                  Copy(previousBlock));
+               previousBlock.Free();
             }
          }
          else {
-            // Memory is used from multiple locations, and we must      
-            // copy the memory for this block - we can't move it!       
-            AllocateFresh(request);
-            CallUnknownSemanticConstructors(previousBlock.mCount, 
-               Copy(previousBlock));
-            previousBlock.Free();
+            // Memory didn't move, but reserved count changed        
+            if (mType->mIsSparse) {
+               // Move entry data to its new place                   
+               MoveMemory(
+                  GetEntries(), previousBlock.GetEntries(), mCount
+               );
+            }
          }
       }
       else AllocateFresh(request);
@@ -261,7 +260,7 @@ namespace Langulus::Anyness
    ///   @param times - number of references to subtract                      
    template<bool DESTROY>
    void Block::Dereference(const Count& times) {
-      if (!mEntry)
+      if (not mEntry)
          return;
 
       LANGULUS_ASSUME(DevAssumes, 
@@ -348,11 +347,9 @@ namespace Langulus::Anyness
       , void* raw
       , Allocation* entry
    ) {
-      LANGULUS_ASSUME(DevAssumes, raw != nullptr,
-         "Invalid data pointer");
-      LANGULUS_ASSUME(DevAssumes, meta != nullptr,
-         "Invalid data type");
-      LANGULUS_ASSUME(DevAssumes, !meta->mIsSparse,
+      LANGULUS_ASSUME(DevAssumes, raw, "Invalid data pointer");
+      LANGULUS_ASSUME(DevAssumes, meta, "Invalid data type");
+      LANGULUS_ASSUME(DevAssumes, not meta->mIsSparse,
          "Sparse raw data initialization is not allowed");
 
       mRaw = static_cast<Byte*>(raw);
