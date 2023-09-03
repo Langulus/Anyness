@@ -179,6 +179,11 @@ namespace Langulus::Anyness
       template<class... F>
       Count ForEach(F&&...) const;
 
+      template<bool MUTABLE = true, class... F>
+      Count ForEachDeep(F&&...);
+      template<class... F>
+      Count ForEachDeep(F&&...) const;
+
       template<bool MUTABLE = true, class F>
       Count ForEachTrait(F&&);
       template<class F>

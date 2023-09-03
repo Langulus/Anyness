@@ -752,13 +752,22 @@ namespace Langulus::Anyness
    ///      in this container, temporary instances will be created on the     
    ///      stack when iterated. If MUTABLE is true, any changes to these     
    ///      temporary instances will be used to overwite the real contents.   
-   ///   @tparam F - the function signature (deducible)                       
    ///   @tparam MUTABLE - whether changes inside container are allowed       
-   ///   @param call - the function to execute for each element               
+   ///   @tparam F - the function(s) signature(s) (deducible)                 
+   ///   @param call - the function(s) to execute for each element            
    ///   @return the number of executions of 'call'                           
    template<bool MUTABLE, class... F>
    Count Neat::ForEach(F&&... call) {
-      return (... or ForEachInner<MUTABLE>(Forward<F>(call)));
+      if (IsEmpty())
+         return 0;
+
+      Count result = 0;
+      (void) (... or (
+         0 != (result = ForEachInner<MUTABLE>(
+            Forward<F>(call))
+         )
+      ));
+      return result;
    }
 
    ///                                                                        
@@ -766,6 +775,29 @@ namespace Langulus::Anyness
    Count Neat::ForEach(F&&... call) const {
       return const_cast<Neat*>(this)->template 
          ForEach<false>(Forward<F>(call)...);
+   }
+   
+   /// Iterate through all relevant bucketed items, inclusively               
+   ///   @attention since Trait and Construct are disassembled when inserted  
+   ///      in this container, temporary instances will be created on the     
+   ///      stack when iterated. If MUTABLE is true, any changes to these     
+   ///      temporary instances will be used to overwite the real contents.   
+   ///   @tparam MUTABLE - whether changes inside container are allowed       
+   ///   @tparam F - the function(s) signature(s) (deducible)                 
+   ///   @param call - the function(s) to execute for each element            
+   ///   @return the number of executions of all calls                        
+   template<bool MUTABLE, class... F>
+   Count Neat::ForEachDeep(F&&... call) {
+      Count executions = 0;
+      ((executions += ForEachInner<MUTABLE>(Forward<F>(call))), ...);
+      return executions;
+   }
+
+   /// Neat containers are always flat, so deep iteration is same as flat one 
+   template<class... F>
+   Count Neat::ForEachDeep(F&&... call) const {
+      return const_cast<Neat*>(this)->template
+         ForEachDeep<false>(Forward<F>(call)...);
    }
    
    /// Iterate through all relevant bucketed items                            

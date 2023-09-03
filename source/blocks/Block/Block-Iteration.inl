@@ -82,15 +82,6 @@ namespace Langulus::Anyness
       return result;
    }
 
-   /// Execute functions for each element inside container (const)            
-   /// Each function has a distinct argument type, that is tested against the 
-   /// contained type. If argument is compatible with the type, the block is  
-   /// iterated, and F is executed for all elements. The rest of the provided 
-   /// functions are ignored, after the first function with viable argument.  
-   ///   @tparam REVERSE - whether to iterate in reverse                      
-   ///   @tparam F - the function signatures (deducible)                      
-   ///   @param calls - all potential functions to iterate with               
-   ///   @return the number of executions                                     
    template<bool REVERSE, class... F>
    LANGULUS(INLINED)
    Count Block::ForEach(F&&... calls) const {
@@ -98,12 +89,12 @@ namespace Langulus::Anyness
          ForEach<REVERSE, false>(Forward<F>(calls)...);
    }
 
-   /// Execute functions in each sub-block                                    
+   /// Execute functions in each sub-block, inclusively                       
    /// Unlike the flat variants above, this one reaches into sub-blocks.      
    /// Each function has a distinct argument type, that is tested against the 
    /// contained type. If argument is compatible with the type, the block is  
-   /// iterated, and F is executed for all elements. The rest of the provided 
-   /// functions are ignored, after the first function with viable argument.  
+   /// iterated, and F is executed for all elements. None of the provided     
+   /// functions are ignored.                                                 
    ///   @tparam REVERSE - whether to iterate in reverse                      
    ///   @tparam SKIP - set to false, to execute F for intermediate blocks,   
    ///                  too; otherwise will execute only for non-blocks       
@@ -116,26 +107,12 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Count Block::ForEachDeep(F&&... calls) {
       Count result = 0;
-      (void) (... or (
-         0 != (result = ForEachDeepInner<ReturnOf<F>, ArgumentOf<F>, REVERSE, SKIP, MUTABLE>(
-            Forward<F>(calls))
-         )
-      ));
+      ((result += ForEachDeepInner<ReturnOf<F>, ArgumentOf<F>, REVERSE, SKIP, MUTABLE>(
+         Forward<F>(calls))
+      ), ...);
       return result;
    }
 
-   /// Execute functions in each sub-block (const)                            
-   /// Unlike the flat variants above, this one reaches into sub-blocks.      
-   /// Each function has a distinct argument type, that is tested against the 
-   /// contained type. If argument is compatible with the type, the block is  
-   /// iterated, and F is executed for all elements. The rest of the provided 
-   /// functions are ignored, after the first function with viable argument.  
-   ///   @tparam REVERSE - whether to iterate in reverse                      
-   ///   @tparam SKIP - set to false, to execute F for intermediate blocks,   
-   ///                  too; otherwise will execute only for non-blocks       
-   ///   @tparam F - the function signatures (deducible)                      
-   ///   @param calls - all potential functions to iterate with               
-   ///   @return the number of executions                                     
    template<bool REVERSE, bool SKIP, class... F>
    LANGULUS(INLINED)
    Count Block::ForEachDeep(F&&... calls) const {

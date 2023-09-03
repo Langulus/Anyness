@@ -273,6 +273,8 @@ namespace Langulus::Anyness
    template<CT::Data T>
    LANGULUS(INLINED)
    bool Construct::CastsTo() const {
+      if (not mType)
+         return false;
       return CastsTo(RTTI::MetaData::Of<T>());
    }
 
@@ -281,6 +283,8 @@ namespace Langulus::Anyness
    template<CT::Data T>
    LANGULUS(INLINED)
    bool Construct::Is() const {
+      if (not mType)
+         return false;
       return Is(RTTI::MetaData::Of<T>());
    }
 
