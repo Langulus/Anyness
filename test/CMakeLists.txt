@@ -1,6 +1,7 @@
 add_executable(LangulusAnynessTest 
 	Main.cpp
 	TestBytes.cpp
+	TestConstruct.cpp
 	TestDeep.cpp
 	TestIncomplete.cpp
 	TestIteration.cpp
