@@ -1,6 +1,7 @@
 ///                                                                           
 /// Langulus::Anyness                                                         
-/// Copyright(C) 2012 Dimo Markov <langulusteam@gmail.com>                    
+/// Copyright (c) 2012 Dimo Markov <team@langulus.com>                        
+/// Part of the Langulus framework, see https://langulus.com                  
 ///                                                                           
 /// Distributed under GNU General Public License v3+                          
 /// See LICENSE file, or https://www.gnu.org/licenses                         
@@ -171,7 +172,7 @@ namespace Langulus::Anyness
       return mKeys.GetUses();
    }
 
-#ifdef LANGULUS_ENABLE_TESTING
+#if LANGULUS(TESTING)
    /// Get raw key memory pointer, used only in testing                       
    ///   @return the pointer                                                  
    LANGULUS(INLINED)
@@ -194,7 +195,7 @@ namespace Langulus::Anyness
       return not IsEmpty();
    }
 
-#ifdef LANGULUS_ENABLE_DEBUGGING
+#if LANGULUS(DEBUGGING)
    inline void BlockSet::Dump() const {
       Logger::Info("---------------- BlockSet::Dump start ----------------");
       auto info = GetInfo();

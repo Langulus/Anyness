@@ -1,6 +1,7 @@
 ///                                                                           
 /// Langulus::Anyness                                                         
-/// Copyright(C) 2012 Dimo Markov <langulusteam@gmail.com>                    
+/// Copyright (c) 2012 Dimo Markov <team@langulus.com>                        
+/// Part of the Langulus framework, see https://langulus.com                  
 ///                                                                           
 /// Distributed under GNU General Public License v3+                          
 /// See LICENSE file, or https://www.gnu.org/licenses                         
@@ -10,26 +11,6 @@
 #include <RTTI/MetaTrait.hpp>
 #include <RTTI/MetaVerb.hpp>
 
-// These macros are usually provided by fractalloc                      
-#ifdef LANGULUS_ENABLE_FEATURE_MEMORY_STATISTICS
-   #define LANGULUS_FEATURE_MEMORY_STATISTICS() 1
-   #define IF_LANGULUS_MEMORY_STATISTICS(a) a
-   #define IF_NOT_LANGULUS_MEMORY_STATISTICS(a)
-#else
-   #define LANGULUS_FEATURE_MEMORY_STATISTICS() 0
-   #define IF_LANGULUS_MEMORY_STATISTICS(a)
-   #define IF_NOT_LANGULUS_MEMORY_STATISTICS(a) a
-#endif
-
-#ifdef LANGULUS_ENABLE_FEATURE_NEWDELETE
-   #define LANGULUS_FEATURE_NEWDELETE() 1
-   #define IF_LANGULUS_NEWDELETE(a) a
-   #define IF_NOT_LANGULUS_NEWDELETE(a)
-#else
-   #define LANGULUS_FEATURE_NEWDELETE() 0
-   #define IF_LANGULUS_NEWDELETE(a) 
-   #define IF_NOT_LANGULUS_NEWDELETE(a) a
-#endif
 
 namespace Langulus::Anyness
 {

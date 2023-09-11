@@ -22,12 +22,12 @@
           "type": "BOOL"
         },
         {
-          "name": "LANGULUS_ENABLE_TESTING",
+          "name": "LANGULUS_TESTING",
           "value": "ON",
           "type": "BOOL"
         },
         {
-          "name": "LANGULUS_BUILD_SHARED_LIBRARIES",
+          "name": "LANGULUS_SHARED_LIBRARIES",
           "value": "ON",
           "type": "BOOL"
         }
@@ -55,12 +55,12 @@
           "type": "BOOL"
         },
         {
-          "name": "LANGULUS_ENABLE_TESTING",
+          "name": "LANGULUS_TESTING",
           "value": "ON",
           "type": "BOOL"
         },
         {
-          "name": "LANGULUS_BUILD_SHARED_LIBRARIES",
+          "name": "LANGULUS_SHARED_LIBRARIES",
           "value": "ON",
           "type": "BOOL"
         }
@@ -88,12 +88,12 @@
           "type": "BOOL"
         },
         {
-          "name": "LANGULUS_ENABLE_TESTING",
+          "name": "LANGULUS_TESTING",
           "value": "ON",
           "type": "BOOL"
         },
         {
-          "name": "LANGULUS_BUILD_SHARED_LIBRARIES",
+          "name": "LANGULUS_SHARED_LIBRARIES",
           "value": "ON",
           "type": "BOOL"
         }
@@ -123,12 +123,12 @@
           "type": "BOOL"
         },
         {
-          "name": "LANGULUS_ENABLE_TESTING",
+          "name": "LANGULUS_TESTING",
           "value": "ON",
           "type": "BOOL"
         },
         {
-          "name": "LANGULUS_BUILD_SHARED_LIBRARIES",
+          "name": "LANGULUS_SHARED_LIBRARIES",
           "value": "ON",
           "type": "BOOL"
         }
@@ -156,12 +156,12 @@
           "type": "BOOL"
         },
         {
-          "name": "LANGULUS_ENABLE_TESTING",
+          "name": "LANGULUS_TESTING",
           "value": "ON",
           "type": "BOOL"
         },
         {
-          "name": "LANGULUS_BUILD_SHARED_LIBRARIES",
+          "name": "LANGULUS_SHARED_LIBRARIES",
           "value": "ON",
           "type": "BOOL"
         }
@@ -189,12 +189,12 @@
           "type": "BOOL"
         },
         {
-          "name": "LANGULUS_ENABLE_TESTING",
+          "name": "LANGULUS_TESTING",
           "value": "ON",
           "type": "BOOL"
         },
         {
-          "name": "LANGULUS_BUILD_SHARED_LIBRARIES",
+          "name": "LANGULUS_SHARED_LIBRARIES",
           "value": "ON",
           "type": "BOOL"
         }
@@ -222,12 +222,12 @@
           "type": "BOOL"
         },
         {
-          "name": "LANGULUS_ENABLE_TESTING",
+          "name": "LANGULUS_TESTING",
           "value": "ON",
           "type": "BOOL"
         },
         {
-          "name": "LANGULUS_BUILD_SHARED_LIBRARIES",
+          "name": "LANGULUS_SHARED_LIBRARIES",
           "value": "ON",
           "type": "BOOL"
         }
@@ -255,12 +255,12 @@
           "type": "BOOL"
         },
         {
-          "name": "LANGULUS_ENABLE_TESTING",
+          "name": "LANGULUS_TESTING",
           "value": "ON",
           "type": "BOOL"
         },
         {
-          "name": "LANGULUS_BUILD_SHARED_LIBRARIES",
+          "name": "LANGULUS_SHARED_LIBRARIES",
           "value": "ON",
           "type": "BOOL"
         }
@@ -290,12 +290,12 @@
           "type": "BOOL"
         },
         {
-          "name": "LANGULUS_ENABLE_TESTING",
+          "name": "LANGULUS_TESTING",
           "value": "ON",
           "type": "BOOL"
         },
         {
-          "name": "LANGULUS_BUILD_SHARED_LIBRARIES",
+          "name": "LANGULUS_SHARED_LIBRARIES",
           "value": "ON",
           "type": "BOOL"
         }
@@ -323,12 +323,12 @@
           "type": "BOOL"
         },
         {
-          "name": "LANGULUS_ENABLE_TESTING",
+          "name": "LANGULUS_TESTING",
           "value": "ON",
           "type": "BOOL"
         },
         {
-          "name": "LANGULUS_BUILD_SHARED_LIBRARIES",
+          "name": "LANGULUS_SHARED_LIBRARIES",
           "value": "ON",
           "type": "BOOL"
         }
@@ -356,12 +356,12 @@
           "type": "BOOL"
         },
         {
-          "name": "LANGULUS_ENABLE_TESTING",
+          "name": "LANGULUS_TESTING",
           "value": "ON",
           "type": "BOOL"
         },
         {
-          "name": "LANGULUS_BUILD_SHARED_LIBRARIES",
+          "name": "LANGULUS_SHARED_LIBRARIES",
           "value": "ON",
           "type": "BOOL"
         }

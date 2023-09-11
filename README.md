@@ -139,12 +139,12 @@ The plan is to never support older C++ standards. When C++23 comes out, it will 
    - [Langulus::SIMD](https://github.com/Langulus/SIMD) is used for statically optimized containers of vectorizable types (WIP)
       - [SIMDe](https://github.com/simd-everywhere/simde) will be downloaded, too
 4. Setup CMake options for features (and reconfigure if you have to)
-   - enable `LANGULUS_BUILD_SHARED_LIBRARIES` option, if you want a shared library build (disabled by default)
-   - enable `LANGULUS_ENABLE_SAFE_MODE` for additional runtime assertions and sanity checks (disabled by default)
+   - enable `LANGULUS_SHARED_LIBRARIES` option, if you want a shared library build (disabled by default)
+   - enable `LANGULUS_SAFE_MODE` for additional runtime assertions and sanity checks (disabled by default)
+   - enable `LANGULUS_PARANOIA` to make sure that any released memory gets wiped to zero (disabled by default)
+   - enable `LANGULUS_DEBUGGING` to explicitly enable some verbose logging (this is usually automatically deduced from popular IDEs)
    - enable `LANGULUS_FEATURE_MANAGED_MEMORY` if you want memory to be pooled and recycled when freed. You can safely push any kind of pointer, as long as it was allocated by the memory manager, or by the overridden new/delete feature. You can specify pooling strategies by reflection to fine tune your software. Allows you to basically distinguish between your data, and data on the stack/heap that is not yours (enabled by default)
    - enable `LANGULUS_FEATURE_MANAGED_REFLECTION`, so that reflections will be kept in a centralized location, when reflected, which speeds up type comparisons, and allows you to dynamically modify the reflection at runtime (enabled by default)
-   - enable `LANGULUS_ENABLE_PARANOIA` to make sure that any released memory gets wiped to zero (disabled by default)
-   - enable `LANGULUS_ENABLE_DEBUGGING` to explicitly enable some verbose logging (this is usually automatically deduced from popular IDEs)
    - enable `LANGULUS_FEATURE_MEMORY_STATISTICS` for keeping track of managed memory (disabled by default, works only if managed memory feature is enabled, too)
    - enable `LANGULUS_FEATURE_NEWDELETE` overrides new/delete operators for anything statically linked to this library, or provides LANGULUS_MONOPOLIZE_MEMORY() macro for you to use to override them, if dynamically linked (disabled by default, works only if managed memory feature is enabled, too)
    - enable `LANGULUS_FEATURE_UNICODE` - WIP

@@ -1,6 +1,7 @@
 ///                                                                           
 /// Langulus::Anyness                                                         
-/// Copyright(C) 2012 Dimo Markov <langulusteam@gmail.com>                    
+/// Copyright (c) 2012 Dimo Markov <team@langulus.com>                        
+/// Part of the Langulus framework, see https://langulus.com                  
 ///                                                                           
 /// Distributed under GNU General Public License v3+                          
 /// See LICENSE file, or https://www.gnu.org/licenses                         
@@ -258,7 +259,7 @@ namespace Langulus::Anyness
       void ClearInner();
       void RemoveIndex(const Offset&) SAFETY_NOEXCEPT();
 
-   #ifdef LANGULUS_ENABLE_TESTING
+   #if LANGULUS(TESTING)
       public: NOD() constexpr const void* GetRawMemory() const noexcept;
       public: NOD() Allocation* GetEntry() const noexcept;
    #endif
