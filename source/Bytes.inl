@@ -203,10 +203,14 @@ namespace Langulus::Anyness
    /// Move-concatenate with another TAny                                     
    ///   @param rhs - the right operand                                       
    ///   @return the combined container                                       
-   template<CT::Semantic S>
    LANGULUS(INLINED)
-   Bytes Bytes::operator + (S&& rhs) const requires (CT::DerivedFrom<TypeOf<S>, Base>) {
-      return Concatenate<Bytes>(rhs.template Forward<Block>());
+   Bytes Bytes::operator + (CT::Semantic auto&& rhs) const {
+      using S = Decay<decltype(rhs)>;
+
+      if constexpr (CT::DerivedFrom<TypeOf<S>, Base>)
+         return Concatenate<Bytes>(rhs.template Forward<Block>());
+      else
+         LANGULUS_ERROR("Bad semantic concatenation");
    }
 
    /// Destructive copy-concatenate with another TAny                         
@@ -230,11 +234,15 @@ namespace Langulus::Anyness
    /// Destructive move-concatenate with any deep type                        
    ///   @param rhs - the right operand                                       
    ///   @return a reference to this modified container                       
-   template<CT::Semantic S>
    LANGULUS(INLINED)
-   Bytes& Bytes::operator += (S&& rhs) requires (CT::DerivedFrom<TypeOf<S>, Base>) {
-      InsertBlock(rhs.Forward());
-      return *this;
+   Bytes& Bytes::operator += (CT::Semantic auto&& rhs) {
+      using S = Decay<decltype(rhs)>;
+
+      if constexpr (CT::DerivedFrom<TypeOf<S>, Base>) {
+         InsertBlock(rhs.Forward());
+         return *this;
+      }
+      else LANGULUS_ERROR("Bad semantic concatenation");
    }
    
    /// Hash the byte sequence                                                 

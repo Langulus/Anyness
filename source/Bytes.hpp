@@ -68,13 +68,11 @@ namespace Langulus::Anyness
       ///                                                                     
       NOD() Bytes operator + (const Bytes&) const;
       NOD() Bytes operator + (Bytes&&) const;
-      template<CT::Semantic S>
-      NOD() Bytes operator + (S&&) const requires (CT::DerivedFrom<TypeOf<S>, Base>);
+      NOD() Bytes operator + (CT::Semantic auto&&) const;
 
       Bytes& operator += (const Bytes&);
       Bytes& operator += (Bytes&&);
-      template<CT::Semantic S>
-      Bytes& operator += (S&&) requires (CT::DerivedFrom<TypeOf<S>, Base>);
+      Bytes& operator += (CT::Semantic auto&&);
 
       ///                                                                     
       ///   Deserialization                                                   
