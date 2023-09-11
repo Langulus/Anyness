@@ -84,10 +84,9 @@ namespace Langulus::Anyness
       void Null(const Count&);
 
       NOD() DMeta GetType() const noexcept;
-      NOD() auto GetRaw() const noexcept;
-      NOD() auto GetRaw() noexcept;
-      NOD() auto GetRawEnd() const noexcept;
-      NOD() auto GetRawEnd() noexcept;
+      NOD() const T* GetRaw() const noexcept;
+      NOD() T* GetRaw() noexcept;
+      NOD() const T* GetRawEnd() const noexcept;
       NOD() decltype(auto) GetHandle(Offset) SAFETY_NOEXCEPT();
       NOD() decltype(auto) GetHandle(Offset) const SAFETY_NOEXCEPT();
 

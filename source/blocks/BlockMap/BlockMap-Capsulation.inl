@@ -344,7 +344,7 @@ namespace Langulus::Anyness
       return not IsEmpty();
    }
 
-#if LANGULUS(DEBUGGING)
+#if LANGULUS(DEBUG)
    inline void BlockMap::Dump() const {
       Logger::Info("---------------- BlockMap::Dump start ----------------");
       auto info = GetInfo();

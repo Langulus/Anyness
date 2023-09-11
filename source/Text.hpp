@@ -151,7 +151,7 @@ namespace Langulus::CT
 
    /// Concept for differentiating managed Anyness Text types                 
    template<class T>
-   concept NotText = !Text<T>;
+   concept NotText = not Text<T>;
 
    namespace Inner
    {

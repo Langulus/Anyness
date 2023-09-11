@@ -195,7 +195,7 @@ namespace Langulus::Anyness
       return not IsEmpty();
    }
 
-#if LANGULUS(DEBUGGING)
+#if LANGULUS(DEBUG)
    inline void BlockSet::Dump() const {
       Logger::Info("---------------- BlockSet::Dump start ----------------");
       auto info = GetInfo();

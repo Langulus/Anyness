@@ -468,28 +468,21 @@ namespace Langulus::Anyness
    /// Return the typed raw data (const)                                      
    ///   @return a constant pointer to the first element in the array         
    TEMPLATE() LANGULUS(INLINED)
-   auto TAny<T>::GetRaw() const noexcept {
+   const T* TAny<T>::GetRaw() const noexcept {
       return GetRawAs<T>();
    }
 
    /// Return the typed raw data                                              
    ///   @return a mutable pointer to the first element in the array          
    TEMPLATE() LANGULUS(INLINED)
-   auto TAny<T>::GetRaw() noexcept {
+   T* TAny<T>::GetRaw() noexcept {
       return GetRawAs<T>();
    }
 
    /// Return the typed raw data end pointer (const)                          
    ///   @return a constant pointer to one past the last element in the array 
    TEMPLATE() LANGULUS(INLINED)
-   auto TAny<T>::GetRawEnd() const noexcept {
-      return GetRaw() + mCount;
-   }
-
-   /// Return the typed raw data	end pointer                                  
-   ///   @return a mutable pointer to one past the last element in the array  
-   TEMPLATE() LANGULUS(INLINED)
-   auto TAny<T>::GetRawEnd() noexcept {
+   const T* TAny<T>::GetRawEnd() const noexcept {
       return GetRaw() + mCount;
    }
    
