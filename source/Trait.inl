@@ -69,10 +69,10 @@ namespace Langulus::Anyness
    /// to incorporate all elements                                            
    ///   @param head - first element                                          
    ///   @param tail... - the rest of the elements                            
-   template<CT::Data HEAD, CT::Data... TAIL>
+   template<CT::Data T1, CT::Data T2, CT::Data... TAIL>
    LANGULUS(INLINED)
-   Trait::Trait(HEAD&& head, TAIL&&... tail) requires (sizeof...(TAIL) >= 1)
-      : Any {Forward<HEAD>(head), Forward<TAIL>(tail)...} { }
+   Trait::Trait(T1&& t1, T2&& t2, TAIL&&... tail)
+      : Any {Forward<T1>(t1), Forward<T2>(t2), Forward<TAIL>(tail)...} { }
 
    /// Create a trait from a trait and data types                             
    ///   @tparam T - type of trait                                            
@@ -428,10 +428,10 @@ namespace Langulus::Anyness
    }
 
    template<class TRAIT>
-   template<CT::Data HEAD, CT::Data... TAIL>
+   template<CT::Data T1, CT::Data T2, CT::Data... TAIL>
    LANGULUS(INLINED)
-   StaticTrait<TRAIT>::StaticTrait(HEAD&& head, TAIL&&... tail) requires (sizeof...(TAIL) >= 1)
-      : Trait {Forward<HEAD>(head), Forward<TAIL>(tail)...} {
+   StaticTrait<TRAIT>::StaticTrait(T1&& t1, T2&& t2, TAIL&&... tail)
+      : Trait {Forward<T1>(t1), Forward<T2>(t2), Forward<TAIL>(tail)...} {
       SetTrait<TRAIT>();
    }
 

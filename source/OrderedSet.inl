@@ -118,24 +118,25 @@ namespace Langulus::Anyness
    /// Create from a list of elements                                         
    ///   @param head - first element                                          
    ///   @param tail - tail of elements                                       
-   template<CT::Data HEAD, CT::Data... TAIL>
-   OrderedSet::OrderedSet(HEAD&& head, TAIL&&... tail) requires (sizeof...(TAIL) >= 1) {
-      if constexpr (CT::Semantic<HEAD>)
-         mKeys.mType = MetaData::Of<TypeOf<HEAD>>();
+   template<CT::Data T1, CT::Data T2, CT::Data... TAIL>
+   OrderedSet::OrderedSet(T1&& t1, T2&& t2, TAIL&&... tail) {
+      if constexpr (CT::Semantic<T1>)
+         mKeys.mType = MetaData::Of<TypeOf<T1>>();
       else
-         mKeys.mType = MetaData::Of<HEAD>();
+         mKeys.mType = MetaData::Of<T1>();
 
       constexpr auto capacity = Roof2(
-         sizeof...(TAIL) + 1 < MinimalAllocation
+         sizeof...(TAIL) + 2 < MinimalAllocation
             ? MinimalAllocation
-            : sizeof...(TAIL) + 1
+            : sizeof...(TAIL) + 2
       );
 
       AllocateFresh(capacity);
       ZeroMemory(mInfo, capacity);
       mInfo[capacity] = 1;
 
-      Insert(Forward<HEAD>(head));
+      Insert(Forward<T1>(t1));
+      Insert(Forward<T2>(t2));
       (Insert(Forward<TAIL>(tail)), ...);
    }
 

@@ -89,8 +89,8 @@ namespace Langulus::Anyness
       template<CT::Semantic S>
       explicit Neat(S&&) requires (not CT::Neat<TypeOf<S>>);
 
-      template<CT::Data HEAD, CT::Data... TAIL>
-      explicit Neat(HEAD&&, TAIL&&...) requires (sizeof...(TAIL) >= 1);
+      template<CT::Data T1, CT::Data T2, CT::Data... TAIL>
+      explicit Neat(T1&&, T2&&, TAIL&&...);
 
       ///                                                                     
       ///   Assignment                                                        

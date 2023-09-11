@@ -161,11 +161,12 @@ namespace Langulus::Anyness
    ///   @param head - first element                                          
    ///   @param tail... - the rest of the elements                            
    TEMPLATE()
-   template<CT::Data HEAD, CT::Data... TAIL>
-   TAny<T>::TAny(HEAD&& head, TAIL&&... tail) requires (sizeof...(TAIL) >= 1) {
+   template<CT::Data T1, CT::Data T2, CT::Data... TAIL>
+   TAny<T>::TAny(T1&& t1, T2&& t2, TAIL&&... tail) {
       mType = MetaData::Of<T>();
-      AllocateFresh(RequestSize(sizeof...(TAIL) + 1));
-      Insert(Forward<HEAD>(head));
+      AllocateFresh(RequestSize(sizeof...(TAIL) + 2));
+      Insert(Forward<T1>(t1));
+      Insert(Forward<T2>(t2));
       (Insert(Forward<TAIL>(tail)), ...);
    }
 

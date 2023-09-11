@@ -42,8 +42,8 @@ namespace Langulus::Anyness
       template<CT::Semantic S>
       Trait(S&&);
 
-      template<CT::Data HEAD, CT::Data... TAIL>
-      Trait(HEAD&&, TAIL&&...) requires (sizeof...(TAIL) >= 1);
+      template<CT::Data T1, CT::Data T2, CT::Data... TAIL>
+      Trait(T1&&, T2&&, TAIL&&...);
 
       Trait& operator = (const Trait&);
       Trait& operator = (Trait&&) noexcept;
@@ -135,8 +135,8 @@ namespace Langulus::Anyness
       template<CT::Semantic S>
       StaticTrait(S&&);
 
-      template<CT::Data HEAD, CT::Data... TAIL>
-      StaticTrait(HEAD&&, TAIL&&...) requires (sizeof...(TAIL) >= 1);
+      template<CT::Data T1, CT::Data T2, CT::Data... TAIL>
+      StaticTrait(T1&&, T2&&, TAIL&&...);
 
       StaticTrait& operator = (const StaticTrait&);
       StaticTrait& operator = (StaticTrait&&);

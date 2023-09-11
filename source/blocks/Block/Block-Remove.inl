@@ -181,7 +181,7 @@ namespace Langulus::Anyness
          *this = temporary;
       }
 
-      if (GetCount() > 1 && IsDeep()) {
+      if (GetCount() > 1 and IsDeep()) {
          for (Count i = 0; i < mCount; ++i) {
             auto& subBlock = As<Block>(i);
             subBlock.Optimize();

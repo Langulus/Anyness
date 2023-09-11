@@ -25,7 +25,7 @@ namespace Langulus::Anyness
 
       static_assert(CT::Block<A>,
          "Function argument must be a CT::Block binary-compatible type");
-      static_assert(CT::Constant<A> || (CT::Mutable<A> && MUTABLE),
+      static_assert(CT::Constant<A> or MUTABLE,
          "Non constant iterator for constant memory block");
 
       Count index {};

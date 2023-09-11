@@ -30,8 +30,8 @@ namespace Langulus::Anyness
       UnorderedSet(CT::NotSemantic auto&&);
       UnorderedSet(CT::Semantic auto&&);
 
-      template<CT::Data HEAD, CT::Data... TAIL>
-      UnorderedSet(HEAD&&, TAIL&&...) requires (sizeof...(TAIL) >= 1);
+      template<CT::Data T1, CT::Data T2, CT::Data... TAIL>
+      UnorderedSet(T1&&, T2&&, TAIL&&...);
 
       ~UnorderedSet();
 

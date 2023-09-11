@@ -51,18 +51,37 @@ namespace Langulus::Anyness
       : Base {Forward<Base>(other)} {}
 
    /// Semantic text constructor                                              
-   ///   @tparam S - the semantic to use                                      
    ///   @param other - the text container to use semantically                
-   template<CT::Semantic S>
    LANGULUS(INLINED)
-   Text::Text(S&& other) requires Relevant<S>
-      : Base {other.template Forward<Base>()} {
-      // Base constructor should handle initialization from anything    
-      // TAny<Letter> based, as well as strings, string_views, bounded  
-      // arrays, etc. But it will not make any null-termination         
-      // corrections, so we have to do them here.                       
-      if constexpr (not CT::Text<TypeOf<S>>)
-         mCount = strnlen(GetRaw(), mCount);
+   Text::Text(CT::Semantic auto&& other) {
+      using S = Decay<decltype(other)>;
+      using T = TypeOf<S>;
+      mType = MetaData::Of<TypeOf<Base>>();
+
+      if constexpr (Relevant<S>) {
+         BlockTransfer<Text>(other.Forward());
+
+         // Base constructor should handle initialization from anything 
+         // TAny<Letter> based, but it will not make any null-          
+         // termination corrections, so we have to do them here         
+         if constexpr (not CT::Text<T>)
+            mCount = strnlen(GetRaw(), mCount);
+      }
+      else if constexpr (CT::Exact<T, Letter>) {
+         AllocateFresh(RequestSize(1));
+         mRaw[0] = reinterpret_cast<Byte&>(*other);
+      }
+      else if constexpr (RawTextPointer<S>) {
+         const Count count = *other ? ::std::strlen(*other) : 0;
+         if constexpr (CT::Sparse<T>)
+            SetMemory(DataState::Constrained, mType, count, *other, nullptr);
+         else
+            SetMemory(DataState::Constrained, mType, 1, &(*other), nullptr);
+
+         if constexpr (not S::Move and S::Keep)
+            TakeAuthority();
+      }
+      else LANGULUS_ERROR("Bad semantic construction");
    }
 
    /// Construct from compatible std::string                                  
@@ -173,9 +192,8 @@ namespace Langulus::Anyness
    /// Semantic construction from count-terminated array                      
    ///   @param text - text memory to wrap                                    
    ///   @param count - number of characters inside text                      
-   template<CT::Semantic S>
    LANGULUS(INLINED)
-   Text::Text(S&& text, const Count& count) requires RawTextPointer<S>
+   Text::Text(CT::Semantic auto&& text, const Count& count)
       : Base {Base::From(text.Forward(), count)} { }
 
    /// Construct from null-terminated array                                   
@@ -187,18 +205,6 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Text::Text(Letter* nullterminatedText)
       : Text {Copy(nullterminatedText)} {}
-
-   /// Semantically construct from null-terminated array                      
-   ///   @param nullterminatedText - text memory to reference                 
-   template<CT::Semantic S>
-   LANGULUS(INLINED)
-   Text::Text(S&& nullterminatedText) requires RawTextPointer<S>
-      : Text {
-         nullterminatedText.Forward(), 
-         *nullterminatedText 
-            ? ::std::strlen(*nullterminatedText) 
-            : 0
-      } {}
 
    /// Count the number of newline characters                                 
    ///   @return the number of newline characters + 1, or zero if empty       
@@ -244,11 +250,12 @@ namespace Langulus::Anyness
    ///   @tparam S - the semantic and type of assignment (deducible)          
    ///   @param rhs - the right hand side                                     
    ///   @return a reference to this container                                
-   template<CT::Semantic S>
    LANGULUS(INLINED)
-   Text& Text::operator = (S&& rhs) {
+   Text& Text::operator = (CT::Semantic auto&& rhs) {
+      using S = Decay<decltype(rhs)>;
       using T = TypeOf<S>;
-      if constexpr (CT::DerivedFrom<T, Base>) {
+
+      if constexpr (Relevant<S>) {
          Base::operator = (rhs.template Forward<Base>());
 
          // Base constructor should handle initialization from anything 

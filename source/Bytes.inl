@@ -205,7 +205,7 @@ namespace Langulus::Anyness
    ///   @return the combined container                                       
    template<CT::Semantic S>
    LANGULUS(INLINED)
-   Bytes Bytes::operator + (S&& rhs) const requires Relevant<S> {
+   Bytes Bytes::operator + (S&& rhs) const requires (CT::DerivedFrom<TypeOf<S>, Base>) {
       return Concatenate<Bytes>(rhs.template Forward<Block>());
    }
 
@@ -232,7 +232,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this modified container                       
    template<CT::Semantic S>
    LANGULUS(INLINED)
-   Bytes& Bytes::operator += (S&& rhs) requires Relevant<S> {
+   Bytes& Bytes::operator += (S&& rhs) requires (CT::DerivedFrom<TypeOf<S>, Base>) {
       InsertBlock(rhs.Forward());
       return *this;
    }

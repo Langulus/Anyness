@@ -76,7 +76,7 @@ namespace Langulus::Anyness
             mValues.mEntry = other->mValues.mEntry;
 
             if constexpr (S::Move) {
-               if constexpr (!FROM::Ownership) {
+               if constexpr (not FROM::Ownership) {
                   // Since we are not aware if that block is referenced 
                   // or not we reference it just in case, and we also   
                   // do not reset 'other' to avoid leaks When using raw 

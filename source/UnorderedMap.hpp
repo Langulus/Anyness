@@ -30,8 +30,8 @@ namespace Langulus::Anyness
       UnorderedMap(CT::NotSemantic auto&&);
       UnorderedMap(CT::Semantic auto&&);
 
-      template<CT::Data HEAD, CT::Data... TAIL>
-      UnorderedMap(HEAD&&, TAIL&&...) requires (sizeof...(TAIL) >= 1);
+      template<CT::Data T1, CT::Data T2, CT::Data... TAIL>
+      UnorderedMap(T1&&, T2&&, TAIL&&...);
 
       ~UnorderedMap();
 

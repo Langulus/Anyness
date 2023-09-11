@@ -62,8 +62,8 @@ namespace Langulus::Anyness
       TAny(CT::NotSemantic auto&&);
       TAny(CT::Semantic auto&&);
 
-      template<CT::Data HEAD, CT::Data... TAIL>
-      TAny(HEAD&&, TAIL&&...) requires (sizeof...(TAIL) >= 1);
+      template<CT::Data T1, CT::Data T2, CT::Data... TAIL>
+      TAny(T1&&, T2&&, TAIL&&...);
 
       ~TAny();
 

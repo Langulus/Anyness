@@ -10,6 +10,7 @@
 #include "Bytes.hpp"
 #include <string>
 
+
 namespace Langulus::Anyness
 {
 
@@ -29,7 +30,7 @@ namespace Langulus::Anyness
 
    protected:
       template<CT::Semantic S>
-      static constexpr bool Relevant = CT::DerivedFrom<TypeOf<S>, Base>;
+      static constexpr bool Relevant = (CT::DerivedFrom<TypeOf<S>, Base>);
       template<CT::Semantic S>
       static constexpr bool RawTextPointer = CT::BuiltinCharacter<TypeOf<S>> and CT::Sparse<TypeOf<S>>;
 
@@ -43,9 +44,6 @@ namespace Langulus::Anyness
       Text(const Text&);
       Text(Text&&) noexcept;
 
-      template<CT::Semantic S>
-      Text(S&&) requires Relevant<S>;
-
       Text(const CompatibleStdString&);
       Text(const CompatibleStdStringView&);
       Text(const Exception&);
@@ -53,6 +51,7 @@ namespace Langulus::Anyness
       Text(const RTTI::Meta*);
       Text(const Letter&);
       Text(const CT::DenseBuiltinNumber auto&);
+      Text(CT::Semantic auto&&);
 
       // Bounded array constructor                                      
       template<Count C>
@@ -61,20 +60,16 @@ namespace Langulus::Anyness
       // Count-terminated constructors                                  
       Text(const Letter*, const Count&);
       Text(Letter*, const Count&);
-      template<CT::Semantic S>
-      Text(S&&, const Count&) requires RawTextPointer<S>;
+      Text(CT::Semantic auto&&, const Count&);
 
       // Zero-terminated constructors                                   
       Text(const Letter*);
       Text(Letter*);
-      template<CT::Semantic S>
-      Text(S&&) requires RawTextPointer<S>;
 
       Text& operator = (const Text&);
       Text& operator = (Text&&) noexcept;
       Text& operator = (const Letter&) noexcept;
-      template<CT::Semantic S>
-      Text& operator = (S&&);
+      Text& operator = (CT::Semantic auto&&);
 
    public:
       NOD() Hash GetHash() const;

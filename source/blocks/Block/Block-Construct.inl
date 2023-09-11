@@ -101,11 +101,9 @@ namespace Langulus::Anyness
       , mType {meta}
       , mEntry {entry}
    {
-      LANGULUS_ASSUME(DevAssumes, raw != nullptr,
-         "Invalid data pointer");
-      LANGULUS_ASSUME(DevAssumes, meta != nullptr,
-         "Invalid data type");
-      LANGULUS_ASSUME(DevAssumes, !meta->mIsSparse,
+      LANGULUS_ASSUME(DevAssumes, raw, "Invalid data pointer");
+      LANGULUS_ASSUME(DevAssumes, meta, "Invalid data type");
+      LANGULUS_ASSUME(DevAssumes, not meta->mIsSparse,
          "Sparse raw data initialization is not allowed");
    }
    
@@ -235,7 +233,7 @@ namespace Langulus::Anyness
 
       mCount = from->mCount;
 
-      if constexpr (!CT::Typed<TO>) {
+      if constexpr (not CT::Typed<TO>) {
          // TO is not statically typed, so we can safely                
          // overwrite type and state                                    
          mType = from->mType;
@@ -260,7 +258,7 @@ namespace Langulus::Anyness
             mEntry = from->mEntry;
 
             if constexpr (S::Move) {
-               if constexpr (!FROM::Ownership) {
+               if constexpr (not FROM::Ownership) {
                   // Since we are not aware if that block is referenced 
                   // or not we reference it just in case, and we also   
                   // do not reset 'other' to avoid leaks. When using    
@@ -354,7 +352,7 @@ namespace Langulus::Anyness
          "Count mismatch");
       LANGULUS_ASSUME(DevAssumes, mCount,
          "Can't swap zero count");
-      LANGULUS_ASSUME(DevAssumes, IsExact<T>() && rhs.IsExact<T>(),
+      LANGULUS_ASSUME(DevAssumes, IsExact<T>() and rhs.IsExact<T>(),
          "Type mismatch");
 
       Block temporary {mState, mType};

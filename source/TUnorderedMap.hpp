@@ -51,8 +51,8 @@ namespace Langulus::Anyness
       TUnorderedMap(CT::NotSemantic auto&&);
       TUnorderedMap(CT::Semantic auto&&);
 
-      template<CT::Data HEAD, CT::Data... TAIL>
-      TUnorderedMap(HEAD&&, TAIL&&...) requires (sizeof...(TAIL) >= 1);
+      template<CT::Data T1, CT::Data T2, CT::Data... TAIL>
+      TUnorderedMap(T1&&, T2&&, TAIL&&...);
 
       ~TUnorderedMap();
 

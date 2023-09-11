@@ -9,6 +9,7 @@
 #pragma once
 #include "TAny.hpp"
 
+
 namespace Langulus::Anyness
 {
 
@@ -25,8 +26,8 @@ namespace Langulus::Anyness
    private:
       using Base = TAny<Byte>;
 
-      template<CT::Semantic S>
-      static constexpr bool Relevant = CT::DerivedFrom<TypeOf<S>, TAny<Byte>>;
+      //template<CT::Semantic S>
+      //static constexpr bool Relevant = CT::DerivedFrom<TypeOf<S>, Base>;
 
    public:
       constexpr Bytes() = default;
@@ -68,12 +69,12 @@ namespace Langulus::Anyness
       NOD() Bytes operator + (const Bytes&) const;
       NOD() Bytes operator + (Bytes&&) const;
       template<CT::Semantic S>
-      NOD() Bytes operator + (S&&) const requires Relevant<S>;
+      NOD() Bytes operator + (S&&) const requires (CT::DerivedFrom<TypeOf<S>, Base>);
 
       Bytes& operator += (const Bytes&);
       Bytes& operator += (Bytes&&);
       template<CT::Semantic S>
-      Bytes& operator += (S&&) requires Relevant<S>;
+      Bytes& operator += (S&&) requires (CT::DerivedFrom<TypeOf<S>, Base>);
 
       ///                                                                     
       ///   Deserialization                                                   

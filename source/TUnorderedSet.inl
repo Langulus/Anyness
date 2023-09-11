@@ -132,21 +132,22 @@ namespace Langulus::Anyness
    ///   @param head - first element                                          
    ///   @param tail - tail of elements                                       
    TABLE_TEMPLATE()
-   template<CT::Data HEAD, CT::Data... TAIL>
-   TABLE()::TUnorderedSet(HEAD&& head, TAIL&&... tail) requires (sizeof...(TAIL) >= 1) {
+   template<CT::Data T1, CT::Data T2, CT::Data... TAIL>
+   TABLE()::TUnorderedSet(T1&& t1, T2&& t2, TAIL&&... tail) {
       mKeys.mType = MetaData::Of<T>();
 
       constexpr auto capacity = Roof2(
-         sizeof...(TAIL) + 1 < MinimalAllocation
+         sizeof...(TAIL) + 2 < MinimalAllocation
             ? MinimalAllocation
-            : sizeof...(TAIL) + 1
+            : sizeof...(TAIL) + 2
       );
 
       AllocateFresh(capacity);
       ZeroMemory(mInfo, capacity);
       mInfo[capacity] = 1;
 
-      Insert(Forward<HEAD>(head));
+      Insert(Forward<T1>(t1));
+      Insert(Forward<T2>(t2));
       (Insert(Forward<TAIL>(tail)), ...);
    }
 

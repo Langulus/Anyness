@@ -83,9 +83,10 @@ namespace Langulus::Anyness
    /// to incorporate all elements                                            
    ///   @param head - first element                                          
    ///   @param tail... - the rest of the elements                            
-   template<CT::Data HEAD, CT::Data... TAIL>
-   Neat::Neat(HEAD&& head, TAIL&&... tail) requires (sizeof...(TAIL) >= 1) {
-      operator << (Forward<HEAD>(head));
+   template<CT::Data T1, CT::Data T2, CT::Data... TAIL>
+   Neat::Neat(T1&& t1, T2&& t2, TAIL&&... tail) {
+      operator << (Forward<T1>(t1));
+      operator << (Forward<T2>(t2));
       (operator << (Forward<TAIL>(tail)), ...);
    }
 

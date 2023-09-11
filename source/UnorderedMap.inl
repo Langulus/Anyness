@@ -124,34 +124,35 @@ namespace Langulus::Anyness
    /// Create from a list of pairs                                            
    ///   @param head - first pair                                             
    ///   @param tail - tail of pairs                                          
-   template<CT::Data HEAD, CT::Data... TAIL>
-   UnorderedMap::UnorderedMap(HEAD&& head, TAIL&&... tail) requires (sizeof...(TAIL) >= 1) {
-      if constexpr (CT::Semantic<HEAD>) {
-         if constexpr (CT::Pair<TypeOf<HEAD>>) {
-            mKeys.mType = head->GetKeyType();
-            mValues.mType = head->GetValueType();
+   template<CT::Data T1, CT::Data T2, CT::Data... TAIL>
+   UnorderedMap::UnorderedMap(T1&& t1, T2&& t2, TAIL&&... tail) {
+      if constexpr (CT::Semantic<T1>) {
+         if constexpr (CT::Pair<TypeOf<T1>>) {
+            mKeys.mType = t1->GetKeyType();
+            mValues.mType = t1->GetValueType();
          }
-         else LANGULUS_ERROR("Type inside semantic is not a Pair");
+         else LANGULUS_ERROR("T inside semantic is not a Pair");
       }
       else {
-         if constexpr (CT::Pair<HEAD>) {
-            mKeys.mType = head.GetKeyType();
-            mValues.mType = head.GetValueType();
+         if constexpr (CT::Pair<T1>) {
+            mKeys.mType = t1.GetKeyType();
+            mValues.mType = t1.GetValueType();
          }
-         else LANGULUS_ERROR("Type is not a Pair");
+         else LANGULUS_ERROR("T is not a Pair");
       }
 
       constexpr auto capacity = Roof2(
-         sizeof...(TAIL) + 1 < MinimalAllocation
+         sizeof...(TAIL) + 2 < MinimalAllocation
             ? MinimalAllocation
-            : sizeof...(TAIL) + 1
+            : sizeof...(TAIL) + 2
       );
 
       AllocateFresh(capacity);
       ZeroMemory(mInfo, capacity);
       mInfo[capacity] = 1;
 
-      Insert(Forward<HEAD>(head));
+      Insert(Forward<T1>(t1));
+      Insert(Forward<T2>(t2));
       (Insert(Forward<TAIL>(tail)), ...);
    }
 
