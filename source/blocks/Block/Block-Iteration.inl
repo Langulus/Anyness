@@ -294,16 +294,20 @@ namespace Langulus::Anyness
       static_assert(CT::Constant<A> or MUTABLE,
          "Non constant iterator for constant memory is not allowed");
 
-      LANGULUS_ASSUME(DevAssumes, not IsEmpty(),
-         "Block is empty");
       LANGULUS_ASSUME(DevAssumes, IsTyped(),
-         "Container is not typed");
+         "Block is not typed");
+      LANGULUS_ASSUME(DevAssumes, not IsEmpty(),
+         "Block is empty", " (of type `", mType, "`)");
       LANGULUS_ASSUME(DevAssumes, IsSparse() == CT::Sparse<A>,
-         "Sparseness mismatch");
+         "Sparseness mismatch", 
+         " (`", mType, "` compared against `", RTTI::MetaData::Of<A>(), "`)"
+      );
 
       if constexpr (CT::Dense<A>) {
          LANGULUS_ASSUME(DevAssumes, (CastsTo<A, true>()),
-            "Iteration type is binary incompatible");
+            "Incompatible iterator type", " `", RTTI::MetaData::Of<A>(),
+            "` (iterating block of type `", mType, "`)"
+         );
       }
 
       // These are used as detectors for block change while iterating   

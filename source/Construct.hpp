@@ -28,6 +28,7 @@ namespace Langulus::Anyness
    public:
       LANGULUS(POD) false;
       LANGULUS_BASES(Neat, Charge);
+      LANGULUS_CONVERSIONS();
 
       constexpr Construct() noexcept;
       Construct(const Construct&) noexcept;
@@ -110,6 +111,9 @@ namespace Langulus::Anyness
       // Intentionally left undefined                                   
       template<CT::Text T>
       NOD() T SerializeAs() const;
+
+      // Intentionally left undefined                                   
+      NOD() explicit operator Debug() const;
    };
 
 } // namespace Langulus::Anyness

@@ -47,7 +47,9 @@ namespace Langulus::Anyness
    /// that are very fast on compare/search/insert/remove, albeit quite a bit 
    /// larger.                                                                
    ///   Neats are extensively used as descriptors in factories, to check     
-   /// whether an element with the same signature already exists.             
+   /// whether an element with the same signature already exists. This is why 
+   /// traits like Traits::Parent are never actually considered, when taking  
+   /// the hash of the Neat, or when comparing two Neat containers.           
    ///                                                                        
    class Neat {
    protected:

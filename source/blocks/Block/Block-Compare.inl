@@ -242,10 +242,8 @@ namespace Langulus::Anyness
             return mType->mHasher(mRaw);
          else if (mType->mIsPOD)
             return HashBytes(mRaw, static_cast<int>(mType->mSize));
-         else {
-            Logger::Error("Unhashable type ", GetToken());
-            LANGULUS_THROW(Access, "Unhashable type");
-         }
+         else
+            LANGULUS_OOPS(Access, "Unhashable type", ": ", GetToken());
       }
 
       // Hashing multiple elements one by one, and then rehash all      
@@ -283,10 +281,8 @@ namespace Langulus::Anyness
          // POD data is an exception - just batch-hash it               
          return HashBytes(mRaw, static_cast<int>(GetBytesize()));
       }
-      else {
-         Logger::Error("Unhashable type ", GetToken());
-         LANGULUS_THROW(Access, "Unhashable type");
-      }
+      else LANGULUS_OOPS(Access, "Unhashable type", ": ", GetToken());
+      return {};
    }
    
    /// Find first matching element position inside container                  

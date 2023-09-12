@@ -188,14 +188,23 @@ namespace Langulus::Anyness
    }
 
    /// Get the hash of a neat container (and cache it)                        
+   ///   @attention Traits::Parent never participate in hashing/comparison    
    ///   @return the hash                                                     
    LANGULUS(INLINED)
    Hash Neat::GetHash() const {
       if (mHash)
          return mHash;
 
+      // Traits::Parent never participates in the hash                  
+      Hash traitHash {};
+      for (auto pair : mTraits) {
+         if (pair.mKey->Is<Traits::Parent>())
+            continue;
+         traitHash.mHash ^= Trait::From(pair.mKey, pair.mValue).GetHash().mHash;
+      }
+
       // Cache hash so we don't recompute it all the time               
-      mHash = HashOf(mTraits, mConstructs, mAnythingElse);
+      mHash = HashOf(traitHash, mConstructs, mAnythingElse);
       return mHash;
    }
 
@@ -234,15 +243,33 @@ namespace Langulus::Anyness
 
    /// Compare neat container                                                 
    ///   @attention order matters only for data and traits of the same type   
+   ///   @attention Traits::Parent are never compared                         
    ///   @param rhs - the container to compare with                           
    ///   @return true if descriptors match                                    
    LANGULUS(INLINED)
    bool Neat::operator == (const Neat& rhs) const {
-      if (GetHash() != rhs.GetHash())
+      if (GetHash() != rhs.GetHash()
+      or mTraits.GetCount() != rhs.mTraits.GetCount())
          return false;
 
-      return mTraits == rhs.mTraits
-         and mConstructs == rhs.mConstructs
+      for (Offset i = 0; i < mTraits.GetCount(); ++i) {
+         auto lp = mTraits.GetPair(i);
+         auto rp = rhs.mTraits.GetPair(i);
+         if (lp.mKey != rp.mKey)
+            // Early failure on key mismatch                            
+            return false;
+
+         // Traits::Parent never participate in the comparison          
+         if (lp.mKey->Is<Traits::Parent>())
+            continue;
+
+         if (lp.mValue != rp.mValue)
+            // Early failure on value mismatch                          
+            return false;
+      }
+
+      // If reached - traits match, so check the rest                   
+      return mConstructs == rhs.mConstructs
          and mAnythingElse == rhs.mAnythingElse;
    }
 

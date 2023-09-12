@@ -60,7 +60,7 @@ namespace Langulus::Anyness
       , void* raw
    ) SAFETY_NOEXCEPT()
       : Block {
-         state + DataState::Constrained,
+         state + DataState::Member,
          meta, count, raw, Allocator::Find(meta, raw)
       } {}
    
@@ -180,9 +180,6 @@ namespace Langulus::Anyness
             MetaData::Of<Decvq<Deref<T>>>(), 
             1, &value
          };
-
-         if constexpr (CT::Constant<T>)
-            result.MakeConst();
       }
       
       if constexpr (CONSTRAIN)

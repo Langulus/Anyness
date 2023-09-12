@@ -103,11 +103,13 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Text::Text(const Exception& from) {
       (*this) += from.GetName();
-      (*this) += '(';
-      (*this) += from.GetMessage();
-      (*this) += " at ";
-      (*this) += from.GetLocation();
-      (*this) += ')';
+      #if LANGULUS(DEBUG)
+         (*this) += '(';
+         (*this) += from.GetMessage();
+         (*this) += " at ";
+         (*this) += from.GetLocation();
+         (*this) += ')';
+      #endif
    }
    
    /// Stringify meta                                                         
