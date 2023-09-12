@@ -59,7 +59,7 @@ namespace Langulus::Anyness
       mType = MetaData::Of<TypeOf<Base>>();
 
       if constexpr (Relevant<S>) {
-         BlockTransfer<Text>(other.Forward());
+         BlockTransfer<Text>(other.template Forward<Block>());
 
          // Base constructor should handle initialization from anything 
          // TAny<Letter> based, but it will not make any null-          

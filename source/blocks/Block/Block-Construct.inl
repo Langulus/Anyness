@@ -222,11 +222,8 @@ namespace Langulus::Anyness
    void Block::BlockTransfer(CT::Semantic auto&& from) {
       using S = Decay<decltype(from)>;
       using FROM = TypeOf<S>;
-
-      static_assert(CT::Block<TO>,
-         "TO must be a block type");
-      static_assert(CT::Block<FROM>,
-         "FROM must be a block type");
+      static_assert(CT::Block<TO>, "TO must be a block type");
+      static_assert(CT::Block<FROM>, "FROM must be a block type");
 
       mCount = from->mCount;
 
