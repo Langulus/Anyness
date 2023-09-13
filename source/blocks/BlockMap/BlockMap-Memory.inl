@@ -155,8 +155,8 @@ namespace Langulus::Anyness
       // Reinsert everything                                            
       ZeroMemory(mInfo, count);
       mValues.mCount = 0;
-      SAFETY(oldKeys.mCount = oldCount);
-      SAFETY(oldValues.mCount = oldCount);
+      IF_SAFE(oldKeys.mCount = oldCount);
+      IF_SAFE(oldValues.mCount = oldCount);
       auto key = oldKeys.GetElement();
       auto val = oldValues.GetElement();
       const auto hashmask = count - 1;

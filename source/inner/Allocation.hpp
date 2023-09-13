@@ -15,7 +15,6 @@
 namespace Langulus::Anyness
 {
 
-   using namespace ::Langulus::RTTI;
    using Pool = void;
    
    template<class T>

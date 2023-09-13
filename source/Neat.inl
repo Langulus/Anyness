@@ -16,6 +16,9 @@
 namespace Langulus::Anyness
 {
 
+   using RTTI::MetaTrait;
+   using RTTI::MetaConst;
+
    /// Copy-constructor                                                       
    ///   @param other - neat container to shallow-copy                        
    LANGULUS(INLINED)

@@ -101,7 +101,7 @@ namespace Langulus::Anyness
    ///   @param i - the offset to use                                         
    ///   @return the key, wrapped inside a block                              
    LANGULUS(INLINED)
-   Block BlockMap::GetKeyInner(const Offset& i) SAFETY_NOEXCEPT() {
+   Block BlockMap::GetKeyInner(const Offset& i) IF_UNSAFE(noexcept) {
       return mKeys.GetElement(i);
    }
 
@@ -110,7 +110,7 @@ namespace Langulus::Anyness
    ///   @param i - the offset to use                                         
    ///   @return the key, wrapped inside an immutable block                   
    LANGULUS(INLINED)
-   Block BlockMap::GetKeyInner(const Offset& i) const SAFETY_NOEXCEPT() {
+   Block BlockMap::GetKeyInner(const Offset& i) const IF_UNSAFE(noexcept) {
       return mKeys.GetElement(i);
    }
 
@@ -119,7 +119,7 @@ namespace Langulus::Anyness
    ///   @param i - the offset to use                                         
    ///   @return the value, wrapped inside a block                            
    LANGULUS(INLINED)
-   Block BlockMap::GetValueInner(const Offset& i) SAFETY_NOEXCEPT() {
+   Block BlockMap::GetValueInner(const Offset& i) IF_UNSAFE(noexcept) {
       return mValues.GetElement(i);
    }
 
@@ -128,7 +128,7 @@ namespace Langulus::Anyness
    ///   @param i - the offset to use                                         
    ///   @return the value, wrapped inside an immutable block                 
    LANGULUS(INLINED)
-   Block BlockMap::GetValueInner(const Offset& i) const SAFETY_NOEXCEPT() {
+   Block BlockMap::GetValueInner(const Offset& i) const IF_UNSAFE(noexcept) {
       return mValues.GetElement(i);
    }
 
@@ -137,7 +137,7 @@ namespace Langulus::Anyness
    ///   @param i - the offset to use                                         
    ///   @return the pair                                                     
    LANGULUS(INLINED)
-   Pair BlockMap::GetPairInner(const Offset& i) const SAFETY_NOEXCEPT() {
+   Pair BlockMap::GetPairInner(const Offset& i) const IF_UNSAFE(noexcept) {
       return {GetKeyInner(i), GetValueInner(i)};
    }
 
@@ -146,7 +146,7 @@ namespace Langulus::Anyness
    ///   @param i - the offset to use                                         
    ///   @return the pair                                                     
    LANGULUS(INLINED)
-   Pair BlockMap::GetPairInner(const Offset& i) SAFETY_NOEXCEPT() {
+   Pair BlockMap::GetPairInner(const Offset& i) IF_UNSAFE(noexcept) {
       return {GetKeyInner(i), GetValueInner(i)};
    }
 

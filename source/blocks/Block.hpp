@@ -25,9 +25,11 @@ namespace Langulus::Flow
 namespace Langulus::Anyness
 {
 
-   /// Predeclarations                                                        
-   using namespace ::Langulus::RTTI;
+   using RTTI::DMeta;
+   using RTTI::CMeta;
+   using RTTI::TMeta;
 
+   /// Predeclarations                                                        
    template<class T, bool EMBED = true>
    struct Handle;
 
@@ -165,11 +167,11 @@ namespace Langulus::Anyness
       constexpr Block(DMeta) noexcept;
       constexpr Block(const DataState&, DMeta) noexcept;
 
-      Block(const DataState&, CMeta) SAFETY_NOEXCEPT();
-      Block(const DataState&, DMeta, Count, const void*) SAFETY_NOEXCEPT();
-      Block(const DataState&, DMeta, Count, void*) SAFETY_NOEXCEPT();
-      Block(const DataState&, DMeta, Count, const void*, Allocation*) SAFETY_NOEXCEPT();
-      Block(const DataState&, DMeta, Count, void*, Allocation*) SAFETY_NOEXCEPT();
+      Block(const DataState&, CMeta) IF_UNSAFE(noexcept);
+      Block(const DataState&, DMeta, Count, const void*) IF_UNSAFE(noexcept);
+      Block(const DataState&, DMeta, Count, void*) IF_UNSAFE(noexcept);
+      Block(const DataState&, DMeta, Count, const void*, Allocation*) IF_UNSAFE(noexcept);
+      Block(const DataState&, DMeta, Count, void*, Allocation*) IF_UNSAFE(noexcept);
    
       template<bool CONSTRAIN = false, CT::Data T>
       NOD() static Block From(T) requires CT::Sparse<T>;
@@ -252,8 +254,10 @@ namespace Langulus::Anyness
       NOD() constexpr Byte* GetRaw() noexcept;
       NOD() constexpr const Byte* GetRaw() const noexcept;
       NOD() constexpr const Byte* GetRawEnd() const noexcept;
-      NOD() SAFETY_CONSTEXPR() Byte** GetRawSparse() SAFETY_NOEXCEPT();
-      NOD() SAFETY_CONSTEXPR() const Byte* const* GetRawSparse() const SAFETY_NOEXCEPT();
+      NOD() IF_UNSAFE(constexpr)
+      Byte** GetRawSparse() IF_UNSAFE(noexcept);
+      NOD() IF_UNSAFE(constexpr)
+      const Byte* const* GetRawSparse() const IF_UNSAFE(noexcept);
       template<CT::Data T>
       NOD() T* GetRawAs() noexcept;
       template<CT::Data T>
@@ -271,8 +275,8 @@ namespace Langulus::Anyness
       constexpr void MakeNow() noexcept;
 
    protected: IF_LANGULUS_TESTING(public:)
-      NOD() Allocation** GetEntries() SAFETY_NOEXCEPT();
-      NOD() const Allocation* const* GetEntries() const SAFETY_NOEXCEPT();
+      NOD() Allocation** GetEntries() IF_UNSAFE(noexcept);
+      NOD() const Allocation* const* GetEntries() const IF_UNSAFE(noexcept);
 
    public:
       ///                                                                     
@@ -281,12 +285,12 @@ namespace Langulus::Anyness
       template<bool COUNT_CONSTRAINED = true>
       NOD() constexpr Index Constrain(const Index&) const noexcept;
       template<CT::Data, bool COUNT_CONSTRAINED = true>
-      NOD() Index ConstrainMore(const Index&) const SAFETY_NOEXCEPT();
+      NOD() Index ConstrainMore(const Index&) const IF_UNSAFE(noexcept);
 
-      NOD() SAFETY_CONSTEXPR()
-      Byte* At(const Offset& = 0) SAFETY_NOEXCEPT();
-      NOD() SAFETY_CONSTEXPR()
-      const Byte* At(const Offset& = 0) const SAFETY_NOEXCEPT();
+      NOD() IF_UNSAFE(constexpr)
+      Byte* At(const Offset& = 0) IF_UNSAFE(noexcept);
+      NOD() IF_UNSAFE(constexpr)
+      const Byte* At(const Offset& = 0) const IF_UNSAFE(noexcept);
    
       template<CT::Index IDX = Offset>
       NOD() Block operator[] (const IDX&);
@@ -294,11 +298,11 @@ namespace Langulus::Anyness
       NOD() Block operator[] (const IDX&) const;
 
       template<CT::Data>
-      NOD() SAFETY_CONSTEXPR()
-      decltype(auto) Get(const Offset& = 0, const Offset& = 0) SAFETY_NOEXCEPT();
+      NOD() IF_UNSAFE(constexpr)
+      decltype(auto) Get(const Offset& = 0, const Offset& = 0) IF_UNSAFE(noexcept);
       template<CT::Data>
-      NOD() SAFETY_CONSTEXPR()
-      decltype(auto) Get(const Offset& = 0, const Offset& = 0) const SAFETY_NOEXCEPT();
+      NOD() IF_UNSAFE(constexpr)
+      decltype(auto) Get(const Offset& = 0, const Offset& = 0) const IF_UNSAFE(noexcept);
    
       template<CT::Data, CT::Index IDX = Offset>
       NOD() decltype(auto) As(const IDX& = {});
@@ -312,10 +316,10 @@ namespace Langulus::Anyness
       template<CT::Data T, bool FATAL_FAILURE = true, CT::Index IDX = Offset>
       NOD() T AsCast(const IDX& = {}) const;
    
-      NOD() SAFETY_CONSTEXPR()
-      Block Crop(const Offset&, const Count&) SAFETY_NOEXCEPT();
-      NOD() SAFETY_CONSTEXPR()
-      Block Crop(const Offset&, const Count&) const SAFETY_NOEXCEPT();
+      NOD() IF_UNSAFE(constexpr)
+      Block Crop(const Offset&, const Count&) IF_UNSAFE(noexcept);
+      NOD() IF_UNSAFE(constexpr)
+      Block Crop(const Offset&, const Count&) const IF_UNSAFE(noexcept);
 
       NOD() Block GetElementDense(Offset);
       NOD() Block GetElementDense(Offset) const;
@@ -323,11 +327,11 @@ namespace Langulus::Anyness
       NOD() Block GetElementResolved(Offset);
       NOD() Block GetElementResolved(Offset) const;
    
-      NOD() Block GetElement(Offset) SAFETY_NOEXCEPT();
-      NOD() Block GetElement(Offset) const SAFETY_NOEXCEPT();
+      NOD() Block GetElement(Offset) IF_UNSAFE(noexcept);
+      NOD() Block GetElement(Offset) const IF_UNSAFE(noexcept);
    
-      NOD() Block GetElement() SAFETY_NOEXCEPT();
-      NOD() Block GetElement() const SAFETY_NOEXCEPT();
+      NOD() Block GetElement() IF_UNSAFE(noexcept);
+      NOD() Block GetElement() const IF_UNSAFE(noexcept);
    
       NOD() Block* GetBlockDeep(Offset) noexcept;
       NOD() const Block* GetBlockDeep(Offset) const noexcept;
@@ -347,23 +351,23 @@ namespace Langulus::Anyness
       void Swap(INDEX1, INDEX2);
 
       template<CT::Data T, Index INDEX>
-      NOD() Index GetIndex() const SAFETY_NOEXCEPT() requires (CT::Sortable<T, T>);
+      NOD() Index GetIndex() const IF_UNSAFE(noexcept) requires (CT::Sortable<T, T>);
       template<CT::Data>
-      NOD() Index GetIndexMode(Count&) const SAFETY_NOEXCEPT();
+      NOD() Index GetIndexMode(Count&) const IF_UNSAFE(noexcept);
 
       template<CT::Data, bool ASCEND = false>
       void Sort() noexcept;
 
    protected:
       template<CT::Data T>
-      NOD() Handle<T> GetHandle(Offset) const SAFETY_NOEXCEPT();
+      NOD() Handle<T> GetHandle(Offset) const IF_UNSAFE(noexcept);
 
-      NOD() Block CropInner(const Offset&, const Count&) const SAFETY_NOEXCEPT();
+      NOD() Block CropInner(const Offset&, const Count&) const IF_UNSAFE(noexcept);
 
-      void Next() SAFETY_NOEXCEPT();
-      void Prev() SAFETY_NOEXCEPT();
-      NOD() Block Next() const SAFETY_NOEXCEPT();
-      NOD() Block Prev() const SAFETY_NOEXCEPT();
+      void Next() IF_UNSAFE(noexcept);
+      void Prev() IF_UNSAFE(noexcept);
+      NOD() Block Next() const IF_UNSAFE(noexcept);
+      NOD() Block Prev() const IF_UNSAFE(noexcept);
 
       template<class, bool COUNT_CONSTRAINED = true, CT::Index INDEX>
       Offset SimplifyIndex(const INDEX&) const noexcept(not LANGULUS_SAFE() and CT::Unsigned<INDEX>);
@@ -517,7 +521,7 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Memory management                                                 
       ///                                                                     
-      NOD() RTTI::AllocationRequest RequestSize(const Count&) const SAFETY_NOEXCEPT();
+      NOD() RTTI::AllocationRequest RequestSize(const Count&) const IF_UNSAFE(noexcept);
       void Reserve(Count);
       template<bool CREATE = false, bool SETSIZE = false>
       void AllocateMore(Count);
@@ -535,11 +539,11 @@ namespace Langulus::Anyness
       template<bool DESTROY>
       void Dereference(const Count&);
       void Free();
-      void SetMemory(const DataState&, DMeta, Count, const void*) SAFETY_NOEXCEPT();
-      void SetMemory(const DataState&, DMeta, Count, void*) SAFETY_NOEXCEPT();
-      SAFETY_CONSTEXPR()
+      void SetMemory(const DataState&, DMeta, Count, const void*) IF_UNSAFE(noexcept);
+      void SetMemory(const DataState&, DMeta, Count, void*) IF_UNSAFE(noexcept);
+      IF_UNSAFE(constexpr)
       void SetMemory(const DataState&, DMeta, Count, const void*, Allocation*);
-      SAFETY_CONSTEXPR()
+      IF_UNSAFE(constexpr)
       void SetMemory(const DataState&, DMeta, Count, void*, Allocation*);
       /// @endcond                                                            
 

@@ -40,7 +40,7 @@ namespace Langulus::Anyness
    ///   @param state - the initial state of the container                    
    ///   @param meta - the constant definition                                
    LANGULUS(INLINED)
-   Block::Block(const DataState& state, CMeta meta) SAFETY_NOEXCEPT()
+   Block::Block(const DataState& state, CMeta meta) IF_UNSAFE(noexcept)
       : Block {
          state + DataState::Constrained,
          meta->mValueType, 1, meta->mPtrToValue, nullptr
@@ -58,7 +58,7 @@ namespace Langulus::Anyness
       , DMeta meta
       , Count count
       , void* raw
-   ) SAFETY_NOEXCEPT()
+   ) IF_UNSAFE(noexcept)
       : Block {
          state + DataState::Member,
          meta, count, raw, Allocator::Find(meta, raw)
@@ -76,7 +76,7 @@ namespace Langulus::Anyness
       , DMeta meta
       , Count count
       , const void* raw
-   ) SAFETY_NOEXCEPT()
+   ) IF_UNSAFE(noexcept)
       : Block {state + DataState::Constant, meta, count, const_cast<void*>(raw)}
    { }
 
@@ -93,7 +93,7 @@ namespace Langulus::Anyness
       , Count count
       , void* raw
       , Allocation* entry
-   ) SAFETY_NOEXCEPT()
+   ) IF_UNSAFE(noexcept)
       : mRaw {static_cast<Byte*>(raw)}
       , mState {state}
       , mCount {count}
@@ -120,7 +120,7 @@ namespace Langulus::Anyness
       , Count count
       , const void* raw
       , Allocation* entry
-   ) SAFETY_NOEXCEPT()
+   ) IF_UNSAFE(noexcept)
       : Block {state + DataState::Constant, meta, count, const_cast<void*>(raw), entry}
    {}
    

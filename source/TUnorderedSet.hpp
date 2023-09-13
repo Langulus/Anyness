@@ -184,7 +184,7 @@ namespace Langulus::Anyness
       static void RemoveInner(ALT_T*) noexcept;
       template<class ALT_T>
       static void Overwrite(ALT_T&&, ALT_T&) noexcept;
-      void RemoveIndex(const Offset&) SAFETY_NOEXCEPT();
+      void RemoveIndex(const Offset&) IF_UNSAFE(noexcept);
    };
 
 

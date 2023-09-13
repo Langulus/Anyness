@@ -106,19 +106,19 @@ namespace Langulus::Anyness
       NOD() Block operator[] (const CT::Index auto&) const;
 
    protected:
-      NOD() Block GetInner(const Offset&) SAFETY_NOEXCEPT();
-      NOD() Block GetInner(const Offset&) const SAFETY_NOEXCEPT();
+      NOD() Block GetInner(const Offset&) IF_UNSAFE(noexcept);
+      NOD() Block GetInner(const Offset&) const IF_UNSAFE(noexcept);
 
       NOD() static Offset GetBucket(Offset, const CT::NotSemantic auto&) noexcept;
       NOD() static Offset GetBucketUnknown(Offset, const Block&) noexcept;
 
       template<CT::Data T>
-      NOD() constexpr T& GetRaw(Offset) SAFETY_NOEXCEPT();
+      NOD() constexpr T& GetRaw(Offset) IF_UNSAFE(noexcept);
       template<CT::Data T>
-      NOD() constexpr const T& GetRaw(Offset) const SAFETY_NOEXCEPT();
+      NOD() constexpr const T& GetRaw(Offset) const IF_UNSAFE(noexcept);
 
       template<CT::Data T>
-      NOD() constexpr Handle<T> GetHandle(Offset) const SAFETY_NOEXCEPT();
+      NOD() constexpr Handle<T> GetHandle(Offset) const IF_UNSAFE(noexcept);
 
    public:
       ///                                                                     
@@ -257,7 +257,7 @@ namespace Langulus::Anyness
 
    protected:
       void ClearInner();
-      void RemoveIndex(const Offset&) SAFETY_NOEXCEPT();
+      void RemoveIndex(const Offset&) IF_UNSAFE(noexcept);
 
    #if LANGULUS(TESTING)
       public: NOD() constexpr const void* GetRawMemory() const noexcept;

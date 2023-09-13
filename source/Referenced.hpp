@@ -29,7 +29,7 @@ namespace Langulus::Anyness
          ++const_cast<Count&>(mReferences);
       }
 
-      Count Free() const SAFETY_NOEXCEPT() {
+      Count Free() const IF_UNSAFE(noexcept) {
          LANGULUS_ASSUME(DevAssumes, mReferences > 1,
             "Last dereference is reserved for destructor only");
          return --const_cast<Count&>(mReferences);

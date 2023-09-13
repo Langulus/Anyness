@@ -73,7 +73,7 @@ namespace Langulus::Anyness
    /// Erases element at a specific index                                     
    ///   @attention assumes that offset points to a valid entry               
    ///   @param offset - the index to remove                                  
-   inline void BlockMap::RemoveIndex(const Offset& offset) SAFETY_NOEXCEPT() {
+   inline void BlockMap::RemoveIndex(const Offset& offset) IF_UNSAFE(noexcept) {
       auto psl = GetInfo() + offset;
       LANGULUS_ASSUME(DevAssumes, *psl, "Removing an invalid pair");
 

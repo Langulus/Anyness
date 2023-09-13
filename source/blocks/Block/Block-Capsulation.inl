@@ -455,9 +455,8 @@ namespace Langulus::Anyness
 
    /// Get a pointer array - useful only for sparse containers                
    ///   @return the raw data as an array of pointers                         
-   LANGULUS(INLINED)
-   SAFETY_CONSTEXPR()
-   Byte** Block::GetRawSparse() SAFETY_NOEXCEPT() {
+   LANGULUS(INLINED) IF_UNSAFE(constexpr)
+   Byte** Block::GetRawSparse() IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, IsSparse(),
          "Representing dense data as sparse");
       return mRawSparse;
@@ -465,9 +464,8 @@ namespace Langulus::Anyness
 
    /// Get a constant pointer array - useful only for sparse containers       
    ///   @return the raw data as an array of constant pointers                
-   LANGULUS(INLINED)
-   SAFETY_CONSTEXPR()
-   const Byte* const* Block::GetRawSparse() const SAFETY_NOEXCEPT() {
+   LANGULUS(INLINED) IF_UNSAFE(constexpr)
+   const Byte* const* Block::GetRawSparse() const IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, IsSparse(),
          "Representing dense data as sparse");
       return mRawSparse;
@@ -585,7 +583,7 @@ namespace Langulus::Anyness
    ///   @attention entries exist only for sparse containers                  
    ///   @return the array of entries                                         
    LANGULUS(INLINED)
-   Allocation** Block::GetEntries() SAFETY_NOEXCEPT() {
+   Allocation** Block::GetEntries() IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, IsSparse(),
          "Entries do not exist for dense container");
       return reinterpret_cast<Allocation**>(mRawSparse + mReserved);
@@ -595,7 +593,7 @@ namespace Langulus::Anyness
    ///   @attention entries exist only for sparse containers                  
    ///   @return the array of entries                                         
    LANGULUS(INLINED)
-   const Allocation* const* Block::GetEntries() const SAFETY_NOEXCEPT() {
+   const Allocation* const* Block::GetEntries() const IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, IsSparse(),
          "Entries do not exist for dense container");
       return reinterpret_cast<const Allocation* const*>(mRawSparse + mReserved);

@@ -16,7 +16,7 @@ namespace Langulus::Anyness
    ///   @param count - the number of elements to request                     
    ///   @return both the provided byte size and reserved count               
    LANGULUS(INLINED)
-   RTTI::AllocationRequest Block::RequestSize(const Count& count) const SAFETY_NOEXCEPT() {
+   RTTI::AllocationRequest Block::RequestSize(const Count& count) const IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, IsTyped(),
          "Requesting allocation size for an untyped container");
       return mType->RequestSize(count);
@@ -297,7 +297,7 @@ namespace Langulus::Anyness
       , DMeta meta
       , Count count
       , const void* raw
-   ) SAFETY_NOEXCEPT() {
+   ) IF_UNSAFE(noexcept) {
       SetMemory(
          state + DataState::Constant, meta, count, 
          const_cast<void*>(raw)
@@ -312,7 +312,7 @@ namespace Langulus::Anyness
       , DMeta meta
       , Count count
       , void* raw
-   ) SAFETY_NOEXCEPT() {
+   ) IF_UNSAFE(noexcept) {
       SetMemory(
          state, meta, count, 
          const_cast<void*>(raw),
@@ -324,7 +324,7 @@ namespace Langulus::Anyness
    ///   @attention for internal used only, use only if you know what you're  
    ///              doing!                                                    
    LANGULUS(INLINED)
-   SAFETY_CONSTEXPR()
+   IF_UNSAFE(constexpr)
    void Block::SetMemory(const DataState& state
       , DMeta meta
       , Count count
@@ -341,7 +341,7 @@ namespace Langulus::Anyness
    ///   @attention for internal used only, use only if you know what you're  
    ///              doing!                                                    
    LANGULUS(INLINED)
-   SAFETY_CONSTEXPR()
+   IF_UNSAFE(constexpr)
    void Block::SetMemory(const DataState& state
       , DMeta meta
       , Count count

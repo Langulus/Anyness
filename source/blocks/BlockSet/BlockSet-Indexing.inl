@@ -61,7 +61,7 @@ namespace Langulus::Anyness
    ///   @param i - the offset to use                                         
    ///   @return the element, wrapped in a Block                              
    LANGULUS(INLINED)
-   Block BlockSet::GetInner(const Offset& i) SAFETY_NOEXCEPT() {
+   Block BlockSet::GetInner(const Offset& i) IF_UNSAFE(noexcept) {
       return mKeys.GetElement(i);
    }
 
@@ -70,7 +70,7 @@ namespace Langulus::Anyness
    ///   @param i - the offset to use                                         
    ///   @return the element, wrapped in a Block                              
    LANGULUS(INLINED)
-   Block BlockSet::GetInner(const Offset& i) const SAFETY_NOEXCEPT() {
+   Block BlockSet::GetInner(const Offset& i) const IF_UNSAFE(noexcept) {
       return mKeys.GetElement(i);
    }
 
@@ -100,7 +100,7 @@ namespace Langulus::Anyness
    ///   @return a constant reference to the element                          
    template<CT::Data T>
    LANGULUS(INLINED)
-   constexpr T& BlockSet::GetRaw(Offset i) SAFETY_NOEXCEPT() {
+   constexpr T& BlockSet::GetRaw(Offset i) IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, i < GetReserved(), "Bad index");
       LANGULUS_ASSUME(DevAssumes, mKeys.template IsExact<T>(), "Bad type");
       return mKeys.template GetRawAs<T>()[i];
@@ -114,7 +114,7 @@ namespace Langulus::Anyness
    ///   @return a constant reference to the element                          
    template<CT::Data T>
    LANGULUS(INLINED)
-   constexpr const T& BlockSet::GetRaw(Offset i) const SAFETY_NOEXCEPT() {
+   constexpr const T& BlockSet::GetRaw(Offset i) const IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, i < GetReserved(), "Bad index");
       LANGULUS_ASSUME(DevAssumes, mKeys.template IsExact<T>(), "Bad type");
       return mKeys.template GetRawAs<T>()[i];
@@ -128,7 +128,7 @@ namespace Langulus::Anyness
    ///   @return the handle                                                   
    template<CT::Data T>
    LANGULUS(INLINED)
-   constexpr Handle<T> BlockSet::GetHandle(Offset i) const SAFETY_NOEXCEPT() {
+   constexpr Handle<T> BlockSet::GetHandle(Offset i) const IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, i < GetReserved(), "Bad index");
       LANGULUS_ASSUME(DevAssumes, mKeys.template IsExact<T>(), "Bad type");
       return mKeys.template GetHandle<T>(i);

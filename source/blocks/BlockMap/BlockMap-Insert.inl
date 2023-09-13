@@ -24,7 +24,7 @@ namespace Langulus::Anyness
    ///   @param infoStart - [out] the offset at which info bytes start        
    ///   @return the requested byte size                                      
    LANGULUS(INLINED)
-   Size BlockMap::RequestKeyAndInfoSize(const Count count, Offset& infoStart) const SAFETY_NOEXCEPT() {
+   Size BlockMap::RequestKeyAndInfoSize(const Count count, Offset& infoStart) const IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, mKeys.mType, "Key type was not set");
       auto keymemory = count * mKeys.mType->mSize;
       if (mKeys.mType->mIsSparse)
@@ -37,7 +37,7 @@ namespace Langulus::Anyness
    ///   @param count - number of values to allocate                          
    ///   @return the requested byte size                                      
    LANGULUS(INLINED)
-   Size BlockMap::RequestValuesSize(const Count count) const SAFETY_NOEXCEPT() {
+   Size BlockMap::RequestValuesSize(const Count count) const IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, mValues.mType, "Value type was not set");
       auto valueByteSize = count * mValues.mType->mSize;
       if (mValues.mType->mIsSparse)

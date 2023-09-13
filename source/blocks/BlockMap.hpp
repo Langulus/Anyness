@@ -146,12 +146,12 @@ namespace Langulus::Anyness
       NOD() Pair GetPair(const CT::Index auto&) const;
 
    protected:
-      NOD() Block GetKeyInner(const Offset&) SAFETY_NOEXCEPT();
-      NOD() Block GetKeyInner(const Offset&) const SAFETY_NOEXCEPT();
-      NOD() Block GetValueInner(const Offset&) SAFETY_NOEXCEPT();
-      NOD() Block GetValueInner(const Offset&) const SAFETY_NOEXCEPT();
-      NOD() Pair GetPairInner(const Offset&) SAFETY_NOEXCEPT();
-      NOD() Pair GetPairInner(const Offset&) const SAFETY_NOEXCEPT();
+      NOD() Block GetKeyInner(const Offset&) IF_UNSAFE(noexcept);
+      NOD() Block GetKeyInner(const Offset&) const IF_UNSAFE(noexcept);
+      NOD() Block GetValueInner(const Offset&) IF_UNSAFE(noexcept);
+      NOD() Block GetValueInner(const Offset&) const IF_UNSAFE(noexcept);
+      NOD() Pair GetPairInner(const Offset&) IF_UNSAFE(noexcept);
+      NOD() Pair GetPairInner(const Offset&) const IF_UNSAFE(noexcept);
 
       NOD() static Offset GetBucket(Offset, const CT::NotSemantic auto&) noexcept;
       NOD() static Offset GetBucketUnknown(Offset, const Block&) noexcept;
@@ -289,8 +289,8 @@ namespace Langulus::Anyness
       ///                                                                     
 
    protected:
-      NOD() Size RequestKeyAndInfoSize(Count, Offset&) const SAFETY_NOEXCEPT();
-      NOD() Size RequestValuesSize(Count) const SAFETY_NOEXCEPT();
+      NOD() Size RequestKeyAndInfoSize(Count, Offset&) const IF_UNSAFE(noexcept);
+      NOD() Size RequestValuesSize(Count) const IF_UNSAFE(noexcept);
       
       void Rehash(const Count&);
       void RehashKeys(const Count&, Block&);
@@ -324,7 +324,7 @@ namespace Langulus::Anyness
 
    protected:
       void ClearInner();
-      void RemoveIndex(const Offset&) SAFETY_NOEXCEPT();
+      void RemoveIndex(const Offset&) IF_UNSAFE(noexcept);
 
    #if LANGULUS(TESTING)
       public: NOD() constexpr const void* GetRawKeysMemory() const noexcept;

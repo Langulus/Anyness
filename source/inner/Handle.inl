@@ -86,7 +86,7 @@ namespace Langulus::Anyness
    ///   @param v - a reference to the element                                
    ///   @param e - a reference to the element's entry                        
    TEMPLATE() LANGULUS(INLINED)
-   constexpr HAND()::Handle(T& v, Allocation*& e) SAFETY_NOEXCEPT() requires (EMBED and CT::Sparse<T>)
+   constexpr HAND()::Handle(T& v, Allocation*& e) IF_UNSAFE(noexcept) requires (EMBED and CT::Sparse<T>)
       : mValue {&v}
       , mEntry {&e} {}
       
@@ -94,7 +94,7 @@ namespace Langulus::Anyness
    ///   @param v - a reference to the element                                
    ///   @param e - the entry (optional)                                      
    TEMPLATE() LANGULUS(INLINED)
-   constexpr HAND()::Handle(T& v, Allocation* e) SAFETY_NOEXCEPT() requires (EMBED and CT::Dense<T>)
+   constexpr HAND()::Handle(T& v, Allocation* e) IF_UNSAFE(noexcept) requires (EMBED and CT::Dense<T>)
       : mValue {&v}
       , mEntry {e} {}
       
@@ -102,7 +102,7 @@ namespace Langulus::Anyness
    ///   @param v - the element                                               
    ///   @param e - the entry (optional)                                      
    TEMPLATE() LANGULUS(INLINED)
-   constexpr HAND()::Handle(T&& v, Allocation* e) SAFETY_NOEXCEPT() requires (not EMBED)
+   constexpr HAND()::Handle(T&& v, Allocation* e) IF_UNSAFE(noexcept) requires (not EMBED)
       : mValue {Forward<T>(v)}
       , mEntry {e} {}
 

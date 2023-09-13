@@ -491,13 +491,13 @@ namespace Langulus::Anyness
    ///   @param index - the element index                                     
    ///   @return the handle/pointer                                           
    TEMPLATE() LANGULUS(INLINED)
-   decltype(auto) TAny<T>::GetHandle(Offset index) SAFETY_NOEXCEPT() {
+   decltype(auto) TAny<T>::GetHandle(Offset index) IF_UNSAFE(noexcept) {
       return Block::GetHandle<T>(index);
    }
 
    /// GetHandle ignores constness                                            
    TEMPLATE() LANGULUS(INLINED)
-   decltype(auto) TAny<T>::GetHandle(Offset index) const SAFETY_NOEXCEPT() {
+   decltype(auto) TAny<T>::GetHandle(Offset index) const IF_UNSAFE(noexcept) {
       return Block::GetHandle<T>(index);
    }
 

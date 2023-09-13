@@ -31,7 +31,7 @@ namespace Langulus::Anyness
    ///   @return the constrained index or a special one of constrain fails    
    template<CT::Data T, bool COUNT_CONSTRAINED>
    LANGULUS(INLINED)
-   Index Block::ConstrainMore(const Index& idx) const SAFETY_NOEXCEPT() {
+   Index Block::ConstrainMore(const Index& idx) const IF_UNSAFE(noexcept) {
       const auto result = Constrain<COUNT_CONSTRAINED>(idx);
 
       if (result == IndexBiggest) {
@@ -62,8 +62,8 @@ namespace Langulus::Anyness
    ///   @attention assumes block is allocated                                
    ///   @param byteOffset - number of bytes to add                           
    ///   @return pointer to the selected raw data offset                      
-   LANGULUS(INLINED) SAFETY_CONSTEXPR()
-   Byte* Block::At(const Offset& byteOffset) SAFETY_NOEXCEPT() {
+   LANGULUS(INLINED) IF_UNSAFE(constexpr)
+   Byte* Block::At(const Offset& byteOffset) IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, mRaw,
          "Invalid memory");
       LANGULUS_ASSUME(DevAssumes, byteOffset < GetReservedSize(),
@@ -76,8 +76,8 @@ namespace Langulus::Anyness
    ///   @attention assumes block is allocated                                
    ///   @param byteOffset - number of bytes to add                           
    ///   @return pointer to the selected raw data offset                      
-   LANGULUS(INLINED) SAFETY_CONSTEXPR()
-   const Byte* Block::At(const Offset& byte_offset) const SAFETY_NOEXCEPT() {
+   LANGULUS(INLINED) IF_UNSAFE(constexpr)
+   const Byte* Block::At(const Offset& byte_offset) const IF_UNSAFE(noexcept) {
       return const_cast<Block*>(this)->At(byte_offset);
    }
 
@@ -112,8 +112,8 @@ namespace Langulus::Anyness
    ///   @param baseOffset - byte offset from the element to apply            
    ///   @return either pointer or reference to the element (depends on T)    
    template<CT::Data T>
-   LANGULUS(INLINED) SAFETY_CONSTEXPR()
-   decltype(auto) Block::Get(const Offset& idx, const Offset& baseOffset) SAFETY_NOEXCEPT() {
+   LANGULUS(INLINED) IF_UNSAFE(constexpr)
+   decltype(auto) Block::Get(const Offset& idx, const Offset& baseOffset) IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, IsTyped(), "Block is not typed");
 
       Byte* pointer;
@@ -137,8 +137,8 @@ namespace Langulus::Anyness
    ///   @param baseOffset - byte offset from the element to apply            
    ///   @return either pointer or reference to the element (depends on T)    
    template<CT::Data T>
-   LANGULUS(INLINED) SAFETY_CONSTEXPR()
-   decltype(auto) Block::Get(const Offset& idx, const Offset& baseOffset) const SAFETY_NOEXCEPT() {
+   LANGULUS(INLINED) IF_UNSAFE(constexpr)
+   decltype(auto) Block::Get(const Offset& idx, const Offset& baseOffset) const IF_UNSAFE(noexcept) {
       return const_cast<Block*>(this)->template Get<T>(idx, baseOffset);
    }
    
@@ -209,8 +209,8 @@ namespace Langulus::Anyness
    ///   @param start - starting element index                                
    ///   @param count - number of elements to remain after 'start'            
    ///   @return the block representing the region                            
-   LANGULUS(INLINED) SAFETY_CONSTEXPR()
-   Block Block::Crop(const Offset& start, const Count& count) SAFETY_NOEXCEPT() {
+   LANGULUS(INLINED) IF_UNSAFE(constexpr)
+   Block Block::Crop(const Offset& start, const Count& count) IF_UNSAFE(noexcept) {
       if (count == 0)
          return {mState, mType};
 
@@ -226,8 +226,8 @@ namespace Langulus::Anyness
    ///   @param start - starting element index                                
    ///   @param count - number of elements                                    
    ///   @return the block representing the region                            
-   LANGULUS(INLINED) SAFETY_CONSTEXPR()
-   Block Block::Crop(const Offset& start, const Count& count) const SAFETY_NOEXCEPT() {
+   LANGULUS(INLINED) IF_UNSAFE(constexpr)
+   Block Block::Crop(const Offset& start, const Count& count) const IF_UNSAFE(noexcept) {
       auto result = const_cast<Block*>(this)->Crop(start, count);
       result.MakeConst();
       return result;
@@ -276,7 +276,7 @@ namespace Langulus::Anyness
    ///   @param index - the element's index                                   
    ///   @return the element's block                                          
    LANGULUS(INLINED)
-   Block Block::GetElement(Offset index) SAFETY_NOEXCEPT() {
+   Block Block::GetElement(Offset index) IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, mRaw,
          "Invalid memory");
       LANGULUS_ASSUME(DevAssumes, index < mReserved,
@@ -294,7 +294,7 @@ namespace Langulus::Anyness
    ///   @param index - the element's index                                   
    ///   @return the element's block                                          
    LANGULUS(INLINED)
-   Block Block::GetElement(Offset index) const SAFETY_NOEXCEPT() {
+   Block Block::GetElement(Offset index) const IF_UNSAFE(noexcept) {
       auto result = const_cast<Block*>(this)->GetElement(index);
       result.MakeConst();
       return result;
@@ -303,7 +303,7 @@ namespace Langulus::Anyness
    /// Get first element block (unsafe)                                       
    ///   @return the first element's block                                    
    LANGULUS(INLINED)
-   Block Block::GetElement() SAFETY_NOEXCEPT() {
+   Block Block::GetElement() IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, mRaw,
          "Invalid memory");
       LANGULUS_ASSUME(DevAssumes, mCount > 0,
@@ -319,7 +319,7 @@ namespace Langulus::Anyness
    /// Get first element block (const, unsafe)                                
    ///   @return the first element's block                                    
    LANGULUS(INLINED)
-   Block Block::GetElement() const SAFETY_NOEXCEPT() {
+   Block Block::GetElement() const IF_UNSAFE(noexcept) {
       auto result = const_cast<Block*>(this)->GetElement();
       result.MakeConst();
       return result;
@@ -501,7 +501,7 @@ namespace Langulus::Anyness
    ///   @return the index of the biggest element T inside this block         
    template<CT::Data T, Index INDEX>
    LANGULUS(INLINED)
-   Index Block::GetIndex() const SAFETY_NOEXCEPT() requires (CT::Sortable<T, T>) {
+   Index Block::GetIndex() const IF_UNSAFE(noexcept) requires (CT::Sortable<T, T>) {
       if (IsEmpty())
          return IndexNone;
 
@@ -531,7 +531,7 @@ namespace Langulus::Anyness
    ///   @param count - [out] count the number of repeats for the mode        
    ///   @return the index of the first found mode                            
    template<CT::Data T>
-   Index Block::GetIndexMode(Count& count) const SAFETY_NOEXCEPT() {
+   Index Block::GetIndexMode(Count& count) const IF_UNSAFE(noexcept) {
       if (IsEmpty()) {
          count = 0;
          return IndexNone;
@@ -616,7 +616,7 @@ namespace Langulus::Anyness
    ///   @return the handle                                                   
    template<CT::Data T>
    LANGULUS(INLINED)
-   Handle<T> Block::GetHandle(Offset index) const SAFETY_NOEXCEPT() {
+   Handle<T> Block::GetHandle(Offset index) const IF_UNSAFE(noexcept) {
       const auto mthis = const_cast<Block*>(this);
       return {
          mthis->template GetRawAs<T>()[index], 
@@ -631,7 +631,7 @@ namespace Langulus::Anyness
    ///   @param count - number of elements                                    
    ///   @return the block representing the region                            
    LANGULUS(INLINED)
-   Block Block::CropInner(const Offset& start, const Count& count) const SAFETY_NOEXCEPT() {
+   Block Block::CropInner(const Offset& start, const Count& count) const IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, mRaw,
          "Block is not allocated");
       LANGULUS_ASSUME(DevAssumes, IsTyped(),
@@ -645,7 +645,7 @@ namespace Langulus::Anyness
    
    /// Get next element by incrementing data pointer (for inner use)          
    LANGULUS(INLINED)
-   void Block::Next() SAFETY_NOEXCEPT() {
+   void Block::Next() IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, mRaw,
          "Block is not allocated");
       LANGULUS_ASSUME(DevAssumes, IsTyped(),
@@ -656,7 +656,7 @@ namespace Langulus::Anyness
 
    /// Get previous element by decrementing data pointer (for inner use)      
    LANGULUS(INLINED)
-   void Block::Prev() SAFETY_NOEXCEPT() {
+   void Block::Prev() IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, mRaw,
          "Block is not allocated");
       LANGULUS_ASSUME(DevAssumes, IsTyped(),
@@ -668,7 +668,7 @@ namespace Langulus::Anyness
    /// Get next element by incrementing data pointer (for inner use)          
    ///   @return a new block with the incremented pointer                     
    LANGULUS(INLINED)
-   Block Block::Next() const SAFETY_NOEXCEPT() {
+   Block Block::Next() const IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, mRaw,
          "Block is not allocated");
       LANGULUS_ASSUME(DevAssumes, IsTyped(),
@@ -682,7 +682,7 @@ namespace Langulus::Anyness
    /// Get previous element by decrementing data pointer (for inner use)      
    ///   @return a new block with the decremented pointer                     
    LANGULUS(INLINED)
-   Block Block::Prev() const SAFETY_NOEXCEPT() {
+   Block Block::Prev() const IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, mRaw,
          "Block is not allocated");
       LANGULUS_ASSUME(DevAssumes, IsTyped(),

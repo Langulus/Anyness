@@ -87,8 +87,8 @@ namespace Langulus::Anyness
       NOD() const T* GetRaw() const noexcept;
       NOD() T* GetRaw() noexcept;
       NOD() const T* GetRawEnd() const noexcept;
-      NOD() decltype(auto) GetHandle(Offset) SAFETY_NOEXCEPT();
-      NOD() decltype(auto) GetHandle(Offset) const SAFETY_NOEXCEPT();
+      NOD() decltype(auto) GetHandle(Offset) IF_UNSAFE(noexcept);
+      NOD() decltype(auto) GetHandle(Offset) const IF_UNSAFE(noexcept);
 
 
    private: IF_LANGULUS_TESTING(public:)

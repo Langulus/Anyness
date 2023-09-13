@@ -51,13 +51,13 @@ namespace Langulus::Anyness
       };
 
       NOD() LANGULUS(INLINED)
-      static Allocation* Allocate(RTTI::DMeta, const Size& size) SAFETY_NOEXCEPT() {
+      static Allocation* Allocate(RTTI::DMeta, const Size& size) IF_UNSAFE(noexcept) {
          LANGULUS_ASSUME(DevAssumes, size, "Zero allocation is not allowed");
          return AlignedAllocate<Allocation>(size);
       }
 
       NOD() LANGULUS(INLINED)
-      static Allocation* Reallocate(const Size& size, Allocation* previous) SAFETY_NOEXCEPT() {
+      static Allocation* Reallocate(const Size& size, Allocation* previous) IF_UNSAFE(noexcept) {
          LANGULUS_ASSUME(DevAssumes, previous,
             "Reallocating nullptr");
          LANGULUS_ASSUME(DevAssumes, size != previous->GetAllocatedSize(),
@@ -71,7 +71,7 @@ namespace Langulus::Anyness
       }
 
       LANGULUS(INLINED)
-      static void Deallocate(Allocation* entry) SAFETY_NOEXCEPT() {
+      static void Deallocate(Allocation* entry) IF_UNSAFE(noexcept) {
          LANGULUS_ASSUME(DevAssumes, entry,
             "Deallocating nullptr");
          LANGULUS_ASSUME(DevAssumes, entry->GetAllocatedSize(),

@@ -18,6 +18,8 @@
 namespace Langulus::Anyness
 {
 
+   using RTTI::MetaData;
+
    /// Text container copy-construction from base                             
    ///   @param other - container to reference                                
    LANGULUS(INLINED)
@@ -59,7 +61,7 @@ namespace Langulus::Anyness
       mType = MetaData::Of<TypeOf<Base>>();
 
       if constexpr (Relevant<S>) {
-         BlockTransfer<Text>(other.Forward());
+         BlockTransfer<Text>(other.template Forward<Base>());
 
          // Base constructor should handle initialization from anything 
          // TAny<Letter> based, but it will not make any null-          
