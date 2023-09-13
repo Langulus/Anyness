@@ -16,6 +16,8 @@
 namespace Langulus::Anyness
 {
 
+   using RTTI::MetaData;
+
    /// Default construction                                                   
    /// TAny is always type-constrained, but its type is set on demand to      
    /// avoid requesting meta definitions before meta database initialization, 
