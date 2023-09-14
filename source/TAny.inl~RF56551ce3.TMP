@@ -16,8 +16,6 @@
 namespace Langulus::Anyness
 {
 
-   using RTTI::MetaData;
-
    /// Default construction                                                   
    /// TAny is always type-constrained, but its type is set on demand to      
    /// avoid requesting meta definitions before meta database initialization, 
@@ -36,7 +34,7 @@ namespace Langulus::Anyness
    TEMPLATE() LANGULUS(INLINED)
    TAny<T>::TAny(const TAny& other)
       : TAny {Copy(other)} {}
-    
+
    /// Move construction                                                      
    ///   @param other - the TAny to move                                      
    TEMPLATE() LANGULUS(INLINED)
