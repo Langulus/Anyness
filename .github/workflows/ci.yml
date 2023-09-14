@@ -1,6 +1,9 @@
 name: Langulus::Anyness CI
 on: [push, pull_request, repository_dispatch] # Trigger on pushes to all branches and for all pull-requests
-
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
+  
 jobs:
   build:
     strategy:

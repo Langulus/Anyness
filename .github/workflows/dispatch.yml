@@ -8,7 +8,7 @@ jobs:
     strategy:
       fail-fast: false # do not abort on a failed job
       matrix:
-        dependents: [Flow, Entity, Math]
+        dependents: [Flow, Math, Entity]
     name: Trigger Langulus::${{matrix.dependents}}'s workflow
     runs-on: ubuntu-latest
     steps:
