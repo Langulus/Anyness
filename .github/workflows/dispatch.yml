@@ -6,7 +6,7 @@ on:
 jobs:
   build:
     strategy:
-      fail-fast: false # do not abort on a failed job
+      fail-fast: false
       matrix:
         dependents: [Flow, Math, Entity]
     name: Trigger Langulus::${{matrix.dependents}}'s workflow
