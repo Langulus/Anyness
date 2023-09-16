@@ -1593,7 +1593,7 @@ namespace Langulus::Anyness
          // Both dense and POD                                          
          // Copy/Disown/Move/Abandon/Clone                              
          const auto bytesize = mType->mSize * count;
-         if constexpr (S::Move)
+         if constexpr (S::Move or REVERSE)
             MoveMemory(mRaw, source->mRaw, bytesize);
          else
             CopyMemory(mRaw, source->mRaw, bytesize);
@@ -1967,7 +1967,10 @@ namespace Langulus::Anyness
          // We're constructing dense POD data                           
          auto lhs = mthis->template GetRawAs<T>();
          auto rhs = source->template GetRawAs<T>();
-         CopyMemory(lhs, rhs, count);
+         if constexpr (S::Move or REVERSE)
+            MoveMemory(lhs, rhs, count);
+         else
+            CopyMemory(lhs, rhs, count);
       }
       else {
          // Both RHS and LHS are dense and non POD                      
