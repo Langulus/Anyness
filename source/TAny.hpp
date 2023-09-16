@@ -231,7 +231,7 @@ namespace Langulus::Anyness
       Count RemoveIndex(const INDEX&, Count = 1);
       Iterator RemoveIndex(const Iterator&, Count = 1);
 
-      NOD() TAny& Trim(const Count&);
+      void Trim(const Count&);
       template<CT::Block WRAPPER = TAny>
       NOD() WRAPPER Crop(const Offset&, const Count&) const;
       template<CT::Block WRAPPER = TAny>

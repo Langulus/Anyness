@@ -292,7 +292,8 @@ namespace Langulus::Anyness
             LANGULUS_THROW(Convert, "utf8 -> utf16 conversion error");
          }
 
-         return to.Trim(newCount);
+         to.Trim(newCount);
+         return to;
       }
 
       /// Widen the text container to the utf32                               
@@ -311,7 +312,8 @@ namespace Langulus::Anyness
             LANGULUS_THROW(Convert, "utf8 -> utf16 conversion error");
          }
 
-         return to.Trim(newCount);
+         to.Trim(newCount);
+         return to;
       }
    #endif
 
