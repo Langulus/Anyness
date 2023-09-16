@@ -1391,10 +1391,32 @@ namespace Langulus::Anyness
    }
 
    /// Remove elements on the back                                            
+   ///   @param count - the new count                                         
    TEMPLATE() LANGULUS(INLINED)
-   TAny<T>& TAny<T>::Trim(const Count& count) {
-      Any::Trim(count);
-      return *this;
+   void TAny<T>::Trim(const Count& count) {
+      if (count >= mCount)
+         return;
+
+      if (IsConstant() or IsStatic()) {
+         if (mType->mIsPOD) {
+            // If data is POD and elements are on the back, we can      
+            // get around constantness and staticness, by simply        
+            // truncating the count without any reprecussions           
+            mCount = count;
+         }
+         else {
+            LANGULUS_ASSERT(not IsConstant(), Access,
+               "Removing from constant container");
+            LANGULUS_ASSERT(not IsStatic(), Access,
+               "Removing from static container");
+         }
+
+         return;
+      }
+
+      // Call destructors and change count                              
+      CropInner(count, mCount - count).template CallKnownDestructors<T>();
+      mCount = count;
    }
 
    /// Swap two elements                                                      
@@ -1604,7 +1626,8 @@ namespace Langulus::Anyness
          // Allowed even when container is static and out of            
          // jurisdiction, as in that case this acts as a simple count   
          // decrease, and no destructors shall be called                
-         RemoveIndex(elements, mCount - elements);//TODO use a specialized trim function that doesn't move anything, only deletes from the back
+         Trim(elements);
+         return;
       }
 
       #if LANGULUS_FEATURE(MANAGED_MEMORY)

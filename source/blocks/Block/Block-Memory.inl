@@ -74,17 +74,16 @@ namespace Langulus::Anyness
    ///   @param elements - number of elements to allocate                     
    LANGULUS(INLINED)
    void Block::AllocateLess(Count elements) {
-      LANGULUS_ASSUME(DevAssumes, elements < mReserved,
-         "Bad element count");
-      LANGULUS_ASSUME(DevAssumes, mType,
-         "Invalid type");
+      LANGULUS_ASSUME(DevAssumes, elements < mReserved, "Bad element count");
+      LANGULUS_ASSUME(DevAssumes, mType, "Invalid type");
 
-      if (mCount > elements) {
+      if (mCount >= elements) {
          // Destroy back entries on smaller allocation                  
          // Allowed even when container is static and out of            
          // jurisdiction, as in that case this acts as a simple count   
          // decrease, and no destructors shall be called                
          Trim(elements);
+         return;
       }
 
       #if LANGULUS_FEATURE(MANAGED_MEMORY)
