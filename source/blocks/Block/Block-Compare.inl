@@ -263,14 +263,8 @@ namespace Langulus::Anyness
 
       // Hashing multiple elements                                      
       if (mType->mIsSparse) {
-      #if LANGULUS_FEATURE(MANAGED_REFLECTION)
-         // When reflection is managed, meta pointer can be used        
-         // instead of the hash - this speeds up hashing in containers  
-         return HashBytes(mRaw, static_cast<int>(GetBytesize()));
-      #else
-         // Otherwise always dereference the metas and get their hash   
-         // as there may be many meta instances scattered in memory     
          if (mType->CastsTo<RTTI::Meta>()) {
+            // Always dereference the metas and get their hash          
             auto h = Block::From<Hash, true>();
             h.AllocateFresh(h.RequestSize(mCount));
 
@@ -284,7 +278,6 @@ namespace Langulus::Anyness
             return result;
          }
          else return HashBytes(mRaw, static_cast<int>(GetBytesize()));
-      #endif
       }
       else if (mType->mIsPOD and not mType->mHasher) {
          // Hash all PODs at once                                       
