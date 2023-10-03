@@ -246,7 +246,7 @@ namespace Langulus::Anyness
          #else
             // Otherwise always dereference the metas and get their hash
             // as there may be many meta instances scattered in memory  
-            try { return As<Meta>().GetHash(); }
+            try { return As<RTTI::Meta>().GetHash(); }
             catch (...) { }
             return HashOf(*GetRawSparse());
          #endif
@@ -270,12 +270,12 @@ namespace Langulus::Anyness
       #else
          // Otherwise always dereference the metas and get their hash   
          // as there may be many meta instances scattered in memory     
-         if (mType->CastsTo<Meta>()) {
+         if (mType->CastsTo<RTTI::Meta>()) {
             auto h = Block::From<Hash, true>();
             h.AllocateFresh(h.RequestSize(mCount));
 
             for (Count i = 0; i < mCount; ++i)
-               h.InsertInner(Abandon(As<Meta>(i).GetHash()), i);
+               h.InsertInner(Abandon(As<RTTI::Meta>(i).GetHash()), i);
 
             const auto result = HashBytes<DefaultHashSeed, false>(
                h.GetRaw(), static_cast<int>(h.GetBytesize()));
