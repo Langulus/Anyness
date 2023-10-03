@@ -275,7 +275,7 @@ namespace Langulus::Anyness
             h.AllocateFresh(h.RequestSize(mCount));
 
             for (Count i = 0; i < mCount; ++i)
-               h.InsertInner(Abandon(As<RTTI::Meta>(i).GetHash()), i);
+               h.InsertInner(Copy(As<RTTI::Meta>(i).GetHash()), i);
 
             const auto result = HashBytes<DefaultHashSeed, false>(
                h.GetRaw(), static_cast<int>(h.GetBytesize()));
@@ -298,7 +298,7 @@ namespace Langulus::Anyness
 
          for (Count i = 0; i < mCount; ++i) {
             const auto element = GetElement(i);
-            h.InsertInner(Abandon(mType->mHasher(element.mRaw)), i);
+            h.InsertInner(Copy(mType->mHasher(element.mRaw)), i);
          }
 
          const auto result = HashBytes<DefaultHashSeed, false>(
