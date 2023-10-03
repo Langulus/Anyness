@@ -743,51 +743,53 @@ TEMPLATE_TEST_CASE(
          unsigned i = 0;
          for (auto item : set) {
             // Different architectures result in different hashes       
-            if constexpr (Bitness == 32) {
-               switch (i) {
-               case 0:
-                  REQUIRE(item == darray1[0]);
-                  break;
-               case 1:
-                  REQUIRE(item == darray1[3]);
-                  break;
-               case 2:
-                  REQUIRE(item == darray1[2]);
-                  break;
-               case 3:
-                  REQUIRE(item == darray1[1]);
-                  break;
-               case 4:
-                  REQUIRE(item == darray1[4]);
-                  break;
-               default:
-                  FAIL("Index out of bounds in ranged-for");
-                  break;
+            if constexpr (CT::Dense<K>) {
+               if constexpr (Bitness == 32) {
+                  switch (i) {
+                  case 0:
+                     REQUIRE(item == darray1[0]);
+                     break;
+                  case 1:
+                     REQUIRE(item == darray1[3]);
+                     break;
+                  case 2:
+                     REQUIRE(item == darray1[2]);
+                     break;
+                  case 3:
+                     REQUIRE(item == darray1[1]);
+                     break;
+                  case 4:
+                     REQUIRE(item == darray1[4]);
+                     break;
+                  default:
+                     FAIL("Index out of bounds in ranged-for");
+                     break;
+                  }
                }
-            }
-            else if constexpr (Bitness == 64) {
-               switch (i) {
-               case 0:
-                  REQUIRE(item == darray1[2]);
-                  break;
-               case 1:
-                  REQUIRE(item == darray1[1]);
-                  break;
-               case 2:
-                  REQUIRE(item == darray1[0]);
-                  break;
-               case 3:
-                  REQUIRE(item == darray1[3]);
-                  break;
-               case 4:
-                  REQUIRE(item == darray1[4]);
-                  break;
-               default:
-                  FAIL("Index out of bounds in ranged-for");
-                  break;
+               else if constexpr (Bitness == 64) {
+                  switch (i) {
+                  case 0:
+                     REQUIRE(item == darray1[2]);
+                     break;
+                  case 1:
+                     REQUIRE(item == darray1[1]);
+                     break;
+                  case 2:
+                     REQUIRE(item == darray1[0]);
+                     break;
+                  case 3:
+                     REQUIRE(item == darray1[3]);
+                     break;
+                  case 4:
+                     REQUIRE(item == darray1[4]);
+                     break;
+                  default:
+                     FAIL("Index out of bounds in ranged-for");
+                     break;
+                  }
                }
+               else break;
             }
-            else break;
 
             ++i;
          }
@@ -804,51 +806,53 @@ TEMPLATE_TEST_CASE(
          unsigned i = 0;
          const auto done = set.ForEach([&](const K& key) {
             // Different architectures result in different hashes       
-            if constexpr (Bitness == 32) {
-               switch (i) {
-               case 0:
-                  REQUIRE(key == darray1[0]);
-                  break;
-               case 1:
-                  REQUIRE(key == darray1[3]);
-                  break;
-               case 2:
-                  REQUIRE(key == darray1[2]);
-                  break;
-               case 3:
-                  REQUIRE(key == darray1[1]);
-                  break;
-               case 4:
-                  REQUIRE(key == darray1[4]);
-                  break;
-               default:
-                  FAIL("Index out of bounds in ranged-for");
-                  break;
+            if constexpr (CT::Dense<K>) {
+               if constexpr (Bitness == 32) {
+                  switch (i) {
+                  case 0:
+                     REQUIRE(key == darray1[0]);
+                     break;
+                  case 1:
+                     REQUIRE(key == darray1[3]);
+                     break;
+                  case 2:
+                     REQUIRE(key == darray1[2]);
+                     break;
+                  case 3:
+                     REQUIRE(key == darray1[1]);
+                     break;
+                  case 4:
+                     REQUIRE(key == darray1[4]);
+                     break;
+                  default:
+                     FAIL("Index out of bounds in ranged-for");
+                     break;
+                  }
                }
-            }
-            else if constexpr (Bitness == 64) {
-               switch (i) {
-               case 0:
-                  REQUIRE(key == darray1[2]);
-                  break;
-               case 1:
-                  REQUIRE(key == darray1[1]);
-                  break;
-               case 2:
-                  REQUIRE(key == darray1[0]);
-                  break;
-               case 3:
-                  REQUIRE(key == darray1[3]);
-                  break;
-               case 4:
-                  REQUIRE(key == darray1[4]);
-                  break;
-               default:
-                  FAIL("Index out of bounds in ranged-for");
-                  break;
+               else if constexpr (Bitness == 64) {
+                  switch (i) {
+                  case 0:
+                     REQUIRE(key == darray1[2]);
+                     break;
+                  case 1:
+                     REQUIRE(key == darray1[1]);
+                     break;
+                  case 2:
+                     REQUIRE(key == darray1[0]);
+                     break;
+                  case 3:
+                     REQUIRE(key == darray1[3]);
+                     break;
+                  case 4:
+                     REQUIRE(key == darray1[4]);
+                     break;
+                  default:
+                     FAIL("Index out of bounds in ranged-for");
+                     break;
+                  }
                }
+               else return false;
             }
-            else return false;
 
             ++i;
             return true;

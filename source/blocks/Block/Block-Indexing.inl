@@ -145,7 +145,6 @@ namespace Langulus::Anyness
    /// Get an element at an index, trying to interpret it as T                
    /// No conversion or copying shall occur in this routine, only pointer     
    /// arithmetic based on CTTI or RTTI                                       
-   ///   @attention assumes the container is typed                            
    ///   @tparam T - the type to interpret to                                 
    ///   @tparam IDX - the type used for indexing (deducible)                 
    ///   @param index - the index                                             
@@ -194,7 +193,6 @@ namespace Langulus::Anyness
    /// Get a constant element at an index, trying to interpret it as T        
    /// No conversion or copying shall occur in this routine, only pointer     
    /// arithmetic based on CTTI or RTTI                                       
-   ///   @attention assumes the container is typed                            
    ///   @tparam T - the type to interpret to                                 
    ///   @tparam IDX - the type used for indexing (deducible)                 
    ///   @param index - the index                                             

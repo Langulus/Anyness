@@ -140,17 +140,7 @@ namespace Langulus::Anyness
    ///   @return the hash of the contained element                            
    TEMPLATE_OWNED() LANGULUS(INLINED)
    Hash TOwned<T>::GetHash() const {
-      if constexpr (CT::Sparse<T>) {
-         if (not mValue)
-            return {};
-      }
-
-      if constexpr (CT::Hashable<T>)
-         return DenseCast(mValue).GetHash();
-      else if constexpr (CT::Sparse<T>)
-         return HashOf(mValue);
-      else
-         LANGULUS_ERROR("Contained value is not hashable");
+      return HashOf(mValue);
    }
 
    /// Perform a dynamic cast on the pointer                                  
