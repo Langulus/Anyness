@@ -239,17 +239,10 @@ namespace Langulus::Anyness
             if (*GetRawSparse() == nullptr)
                return {};
 
-         #if LANGULUS_FEATURE(MANAGED_REFLECTION)
-            // When reflection is managed, meta pointer can be used     
-            // instead of the hash - this speeds up hashing             
-            return HashOf(*GetRawSparse());
-         #else
-            // Otherwise always dereference the metas and get their hash
-            // as there may be many meta instances scattered in memory  
+            // Always dereference the metas and get their hash          
             try { return As<RTTI::Meta>().GetHash(); }
             catch (...) { }
             return HashOf(*GetRawSparse());
-         #endif
          }
          else if (mType->Is<Hash>())
             return Get<Hash>();
