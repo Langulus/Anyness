@@ -8,6 +8,7 @@
 ///                                                                           
 #pragma once
 #include "../Block.hpp"
+#include "Block-Indexing.inl"
 #include <RTTI/Hash.hpp>
 
 #define VERBOSE(...) //Logger::Verbose(_VA_ARGS_)
@@ -226,7 +227,7 @@ namespace Langulus::Anyness
    }
    
    /// Hash data inside memory block                                          
-   ///   @attention order matters, so you might want to normalize data first  
+   ///   @attention order matters, so you might want to Neat data first       
    ///   @return the hash                                                     
    inline Hash Block::GetHash() const {
       if (not mType or not mCount)
@@ -234,10 +235,24 @@ namespace Langulus::Anyness
 
       if (mCount == 1) {
          // Exactly one element means exactly one hash                  
-         // This also eliminates asymmetries when getting hash of block 
-         // and of templated element equivalents                        
-         if (mType->mIsSparse)
-            return GetElementResolved(0).GetHash();
+         if (mType->mIsSparse) {
+            if (*GetRawSparse() == nullptr)
+               return {};
+
+         #if LANGULUS_FEATURE(MANAGED_REFLECTION)
+            // When reflection is managed, meta pointer can be used     
+            // instead of the hash - this speeds up hashing             
+            return HashOf(*GetRawSparse());
+         #else
+            // Otherwise always dereference the metas and get their hash
+            // as there may be many meta instances scattered in memory  
+            try { return As<Meta>().GetHash(); }
+            catch (...) { }
+            return HashOf(*GetRawSparse());
+         #endif
+         }
+         else if (mType->Is<Hash>())
+            return Get<Hash>();
          else if (mType->mHasher)
             return mType->mHasher(mRaw);
          else if (mType->mIsPOD)
@@ -246,23 +261,38 @@ namespace Langulus::Anyness
             LANGULUS_OOPS(Access, "Unhashable type", ": ", GetToken());
       }
 
-      // Hashing multiple elements one by one, and then rehash all      
-      // the combined hashes                                            
+      // Hashing multiple elements                                      
       if (mType->mIsSparse) {
-         auto h = Block::From<Hash, true>();
-         h.AllocateFresh(h.RequestSize(mCount));
+      #if LANGULUS_FEATURE(MANAGED_REFLECTION)
+         // When reflection is managed, meta pointer can be used        
+         // instead of the hash - this speeds up hashing in containers  
+         return HashBytes(mRaw, static_cast<int>(GetBytesize()));
+      #else
+         // Otherwise always dereference the metas and get their hash   
+         // as there may be many meta instances scattered in memory     
+         if (mType->CastsTo<Meta>()) {
+            auto h = Block::From<Hash, true>();
+            h.AllocateFresh(h.RequestSize(mCount));
 
-         for (Count i = 0; i < mCount; ++i)
-            h.InsertInner(Abandon(GetElementResolved(i).GetHash()), i);
+            for (Count i = 0; i < mCount; ++i)
+               h.InsertInner(Abandon(As<Meta>(i).GetHash()), i);
 
-         const auto result = HashBytes<DefaultHashSeed, false>(
-            h.GetRaw(), static_cast<int>(h.GetBytesize())
-         );
+            const auto result = HashBytes<DefaultHashSeed, false>(
+               h.GetRaw(), static_cast<int>(h.GetBytesize()));
 
-         h.Free();
-         return result;
+            h.Free();
+            return result;
+         }
+         else return HashBytes(mRaw, static_cast<int>(GetBytesize()));
+      #endif
+      }
+      else if (mType->mIsPOD and not mType->mHasher) {
+         // Hash all PODs at once                                       
+         return HashBytes(mRaw, static_cast<int>(GetBytesize()));
       }
       else if (mType->mHasher) {
+         // Use the reflected hasher for each element, and then combine 
+         // hashes for a final one                                      
          auto h = Block::From<Hash, true>();
          h.AllocateFresh(h.RequestSize(mCount));
 
@@ -276,10 +306,6 @@ namespace Langulus::Anyness
 
          h.Free();
          return result;
-      }
-      else if (mType->mIsPOD) {
-         // POD data is an exception - just batch-hash it               
-         return HashBytes(mRaw, static_cast<int>(GetBytesize()));
       }
       else LANGULUS_OOPS(Access, "Unhashable type", ": ", GetToken());
       return {};

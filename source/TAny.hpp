@@ -255,6 +255,7 @@ namespace Langulus::Anyness
       NOD() bool CompareLoose(const TAny&) const noexcept;
       NOD() Count Matches(const TAny&) const noexcept;
       NOD() Count MatchesLoose(const TAny&) const noexcept;
+      NOD() Hash GetHash() const;
 
       template<bool ASCEND = false>
       void Sort();

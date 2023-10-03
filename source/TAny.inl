@@ -389,8 +389,7 @@ namespace Langulus::Anyness
    ///   @attention ignores sparsity and constness                            
    ///   @param type - the type to check for                                  
    ///   @return if this block contains data similar to 'type'                
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    bool TAny<T>::Is(DMeta type) const noexcept {
       return GetType() == type or (mType and mType->Is(type));
    }
@@ -409,8 +408,7 @@ namespace Langulus::Anyness
    /// Check if contained data exactly matches a given type                   
    ///   @param type - the type to check for                                  
    ///   @return if this block contains data of exactly 'type'                
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    bool TAny<T>::IsExact(DMeta type) const noexcept {
       return GetType() == type or (mType and mType->IsExact(type));
    }
@@ -1676,6 +1674,7 @@ namespace Langulus::Anyness
    ///   @return a container that represents the extended part                
    TEMPLATE()
    template<CT::Block WRAPPER>
+   LANGULUS(INLINED)
    WRAPPER TAny<T>::Extend(const Count& count) {
       const auto previousCount = mCount;
       AllocateMore<true>(mCount + count);
@@ -1803,44 +1802,90 @@ namespace Langulus::Anyness
       return t1 - GetRaw();
    }
   
+   /// Hash data inside memory block                                          
+   ///   @attention order matters, so you might want to Neat data first       
+   ///   @return the hash                                                     
+   TEMPLATE() LANGULUS(INLINED)
+   Hash TAny<T>::GetHash() const {
+      if (not mCount)
+         return {};
+
+      if (mCount == 1) {
+         // Exactly one element means exactly one hash                  
+         return HashOf(*GetRaw());
+      }
+
+      // Hashing multiple elements                                      
+      if constexpr (CT::Sparse<T>) {
+      #if LANGULUS_FEATURE(MANAGED_REFLECTION)
+         // When reflection is managed, meta pointer can be used        
+         // instead of the hash - this speeds up hashing in containers  
+         return HashBytes(mRaw, static_cast<int>(GetBytesize()));
+      #else
+         // Otherwise always dereference the metas and get their hash   
+         // as there may be many meta instances scattered in memory     
+         if constexpr (CT::Meta<T>) {
+            TAny<Hash> h;
+            h.Reserve(mCount);
+            for (auto& element : *this)
+               h << element ? element->GetHash() : Hash {};
+            return h.GetHash();
+         }
+         else return HashBytes(mRaw, static_cast<int>(GetBytesize()));
+      #endif
+      }
+      else if constexpr (CT::POD<T> and not CT::Hashable<T>) {
+         // Hash all PODs at once                                       
+         return HashBytes(mRaw, static_cast<int>(GetBytesize()));
+      }
+      else {
+         // Hash each element, and then combine hashes in a final one   
+         TAny<Hash> h;
+         h.Reserve(mCount);
+         for (auto& element : *this)
+            h << HashOf(element);
+         return h.GetHash();
+      }
+   }
+
    /// Get iterator to first element                                          
    ///   @return an iterator to the first element, or end if empty            
-   TEMPLATE()
+   TEMPLATE() LANGULUS(INLINED)
    typename TAny<T>::Iterator TAny<T>::begin() noexcept {
       return {GetRaw()};
    }
 
    /// Get iterator to end                                                    
    ///   @return an iterator to the end element                               
-   TEMPLATE()
+   TEMPLATE() LANGULUS(INLINED)
    typename TAny<T>::IteratorEnd TAny<T>::end() noexcept {
       return {GetRawEnd()};
    }
 
    /// Get iterator to the last element                                       
    ///   @return an iterator to the last element, or end if empty             
-   TEMPLATE()
+   TEMPLATE() LANGULUS(INLINED)
    typename TAny<T>::Iterator TAny<T>::last() noexcept {
       return {IsEmpty() ? GetRawEnd() : GetRawEnd() - 1};
    }
 
    /// Get iterator to first element                                          
    ///   @return a constant iterator to the first element, or end if empty    
-   TEMPLATE()
+   TEMPLATE() LANGULUS(INLINED)
    typename TAny<T>::ConstIterator TAny<T>::begin() const noexcept {
       return {GetRaw()};
    }
 
    /// Get iterator to end                                                    
    ///   @return a constant iterator to the end element                       
-   TEMPLATE()
+   TEMPLATE() LANGULUS(INLINED)
    typename TAny<T>::ConstIteratorEnd TAny<T>::end() const noexcept {
       return {GetRawEnd()};
    }
 
    /// Get iterator to the last valid element                                 
    ///   @return a constant iterator to the last element, or end if empty     
-   TEMPLATE()
+   TEMPLATE() LANGULUS(INLINED)
    typename TAny<T>::ConstIterator TAny<T>::last() const noexcept {
       return {IsEmpty() ? GetRawEnd(): GetRawEnd() - 1};
    }
@@ -1851,12 +1896,12 @@ namespace Langulus::Anyness
    /// Concatenate anything nonsemantic by copy                               
    ///   @param rhs - the element/block/array to copy-concatenate             
    ///   @return a new container, containing both blocks                      
-   TEMPLATE()
+   TEMPLATE() LANGULUS(INLINED)
    TAny<T> TAny<T>::operator + (const CT::NotSemantic auto& rhs) const {
       return operator + (Copy(rhs));
    }
 
-   TEMPLATE()
+   TEMPLATE() LANGULUS(INLINED)
    TAny<T> TAny<T>::operator + (CT::NotSemantic auto& rhs) const {
       return operator + (Copy(rhs));
    }
@@ -1864,7 +1909,7 @@ namespace Langulus::Anyness
    /// Concatenate anything nonsemantic by move                               
    ///   @param rhs - the element/block/array to move-concatenate             
    ///   @return a new container, containing both blocks                      
-   TEMPLATE()
+   TEMPLATE() LANGULUS(INLINED)
    TAny<T> TAny<T>::operator + (CT::NotSemantic auto&& rhs) const {
       return operator + (Move(rhs));
    }
@@ -1921,12 +1966,12 @@ namespace Langulus::Anyness
    /// Concatenate destructively anything nonsemantic by copy                 
    ///   @param rhs - the element/block/array to copy-concatenate             
    ///   @return a reference to this container                                
-   TEMPLATE()
+   TEMPLATE() LANGULUS(INLINED)
    TAny<T>& TAny<T>::operator += (const CT::NotSemantic auto& rhs) {
       return operator += (Copy(rhs));
    }
 
-   TEMPLATE()
+   TEMPLATE() LANGULUS(INLINED)
    TAny<T>& TAny<T>::operator += (CT::NotSemantic auto& rhs) {
       return operator += (Copy(rhs));
    }
@@ -1934,7 +1979,7 @@ namespace Langulus::Anyness
    /// Concatenate destructively anything nonsemantic by move                 
    ///   @param rhs - the element/block/array to move-concatenate             
    ///   @return a reference to this container                                
-   TEMPLATE()
+   TEMPLATE() LANGULUS(INLINED)
    TAny<T>& TAny<T>::operator += (CT::NotSemantic auto&& rhs) {
       return operator += (Move(rhs));
    }
@@ -1942,7 +1987,7 @@ namespace Langulus::Anyness
    /// Concatenate destructively anything using semantic                      
    ///   @param rhs - the element/block/array to semantically concatenate     
    ///   @return a reference to this container                                
-   TEMPLATE()
+   TEMPLATE() LANGULUS(INLINED)
    TAny<T>& TAny<T>::operator += (CT::Semantic auto&& rhs) {
       using S = Decay<decltype(rhs)>;
       using ST = TypeOf<S>;
