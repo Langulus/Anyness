@@ -9,10 +9,6 @@
 #pragma once
 #include "../blocks/Block.hpp"
 
-namespace Langulus::A
-{
-   struct Handle {};
-}
 
 namespace Langulus::Anyness
 {
@@ -24,7 +20,7 @@ namespace Langulus::Anyness
    /// track of pointers inserted to containers. This does not have ownership 
    /// and can be used as iterator only when EMBEDed.                         
    ///                                                                        
-   template<class T, bool EMBED>
+   template<CT::NotHandle T, bool EMBED>
    struct Handle : A::Handle {
       LANGULUS(TYPED) T;
       LANGULUS_BASES(A::Handle);
@@ -38,7 +34,7 @@ namespace Langulus::Anyness
       Conditional<EMBED, T*, T> mValue;
 
       // The entry                                                      
-      Conditional<EMBED && CT::Sparse<T>, Allocation**, Allocation*> mEntry;
+      Conditional<EMBED and CT::Sparse<T>, Allocation**, Allocation*> mEntry;
       /// @endcond show_protected                                             
 
    public:
@@ -47,12 +43,11 @@ namespace Langulus::Anyness
       constexpr Handle(const Handle&) noexcept = default;
       constexpr Handle(Handle&&) noexcept = default;
 
-      template<CT::Semantic S>
-      constexpr Handle(S&&) noexcept requires (!EMBED);
-
       constexpr Handle(T&, Allocation*&) IF_UNSAFE(noexcept) requires (EMBED and CT::Sparse<T>);
       constexpr Handle(T&, Allocation*) IF_UNSAFE(noexcept) requires (EMBED and CT::Dense<T>);
+
       constexpr Handle(T&&, Allocation* = nullptr) IF_UNSAFE(noexcept) requires (not EMBED);
+      constexpr Handle(CT::Semantic auto&&) noexcept requires (not EMBED);
 
       constexpr Handle& operator = (const Handle&) noexcept = default;
       constexpr Handle& operator = (Handle&&) noexcept = default;
@@ -65,13 +60,10 @@ namespace Langulus::Anyness
 
       void New(T, Allocation* = nullptr) noexcept requires CT::Sparse<T>;
       void New(T&&, Allocation* = nullptr) noexcept requires CT::Dense<T>;
-      template<CT::Semantic S>
-      void New(S&&);
-      template<CT::Semantic S>
-      void NewUnknown(DMeta, S&&);
+      void New(CT::Semantic auto&&);
+      void NewUnknown(DMeta, CT::Semantic auto&&);
 
-      template<CT::Semantic S>
-      void Assign(S&&);
+      void Assign(CT::Semantic auto&&);
 
       template<bool RHS_EMBED>
       void Swap(Handle<T, RHS_EMBED>&);
@@ -98,17 +90,13 @@ namespace Langulus::Anyness
       void DestroyUnknown(DMeta) const;
    };
    
-   template<class T>
+   template<CT::NotHandle T>
    using HandleLocal = Handle<T, false>;
 
+   /// A handle that has void T is just a type-erased Block                   
+   template<>
+   struct Handle<void> : Block {};
+
 } // namespace Langulus::Anyness
-
-namespace Langulus::CT
-{
-
-   template<class... T>
-   concept Handle = (DerivedFrom<T, A::Handle> && ...);
-
-} // namespace Langulus::CT
 
 #include "Handle.inl"

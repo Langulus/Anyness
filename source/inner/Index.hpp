@@ -94,14 +94,14 @@ namespace Langulus::Anyness
       constexpr Index(const T&) noexcept (sizeof(T) < sizeof(Type));
       template<CT::UnsignedInteger T>
       constexpr Index(const T&) noexcept (sizeof(T) <= sizeof(Type)/2);
-      template<CT::Real T>
-      constexpr Index(const T&);
+      constexpr Index(const CT::Real auto&);
 
       constexpr Index& operator = (const Index&) noexcept = default;
 
    public:
       NOD() constexpr Index Constrained(Count) const noexcept;
       NOD() Offset GetOffset() const;
+      NOD() Offset GetOffsetUnsafe() const noexcept;
 
       constexpr void Constrain(Count) noexcept;
       constexpr void Concat(const Index&) noexcept;
@@ -129,8 +129,6 @@ namespace Langulus::Anyness
       NOD() constexpr Index operator - () const noexcept;
 
       NOD() constexpr bool operator == (const Index&) const noexcept;
-      NOD() constexpr bool operator != (const Index&) const noexcept;
-
       NOD() constexpr bool operator < (const Index&) const noexcept;
       NOD() constexpr bool operator > (const Index&) const noexcept;
       NOD() constexpr bool operator <= (const Index&) const noexcept;

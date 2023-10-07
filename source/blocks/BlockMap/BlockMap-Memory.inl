@@ -153,7 +153,6 @@ namespace Langulus::Anyness
          return;
 
       // Reinsert everything                                            
-      ZeroMemory(mInfo, count);
       mValues.mCount = 0;
       IF_SAFE(oldKeys.mCount = oldCount);
       IF_SAFE(oldValues.mCount = oldCount);
@@ -184,6 +183,7 @@ namespace Langulus::Anyness
          val.Next();
       }
       
+      // Free the old allocation                                        
       if (oldValues.mEntry) {
          // Not reusing, so either deallocate, or dereference           
          // (keys are always present, if values are present)            

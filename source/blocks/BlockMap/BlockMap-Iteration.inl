@@ -529,4 +529,11 @@ namespace Langulus::Anyness
       return {Disown(mKey), Disown(mValue)};
    }
 
+   /// Explicit bool operator, to check if iterator is valid                  
+   template<bool MUTABLE>
+   LANGULUS(INLINED)
+   constexpr BlockMap::TIterator<MUTABLE>::operator bool() const noexcept {
+      return mInfo != mSentinel;
+   }
+
 } // namespace Langulus::Anyness

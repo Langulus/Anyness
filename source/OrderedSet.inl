@@ -82,7 +82,7 @@ namespace Langulus::Anyness
             else {
                for (auto key : *other) {
                   InsertUnkownInner<false>(
-                     GetBucket(hashmask, key),
+                     GetBucketUnknown(hashmask, key),
                      S::Nest(key)
                   );
                }

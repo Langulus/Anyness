@@ -21,10 +21,9 @@ namespace Langulus::Anyness
    Count BlockSet::Remove(const K& match) {
       static_assert(CT::Set<THIS>, "THIS must be a set type");
       auto& This = reinterpret_cast<THIS&>(*this);
-      const auto found = FindIndex<THIS>(match);
-      if (found != GetReserved()) {
-         // Key found, remove it                                        
-         This.RemoveIndex(found);
+      const auto found = FindInner<THIS>(match);
+      if (found != InvalidOffset) {
+         This.template RemoveInner<K>(found);
          return 1;
       }
 
@@ -33,9 +32,57 @@ namespace Langulus::Anyness
    }
    
    /// Erases element at a specific index                                     
+   ///   @attention assumes that index points to a valid entry                
+   ///   @param index - the index to remove                                   
+   template<class T>
+   void BlockSet::RemoveInner(const Offset& offset) IF_UNSAFE(noexcept) {
+      auto psl = GetInfo() + offset;
+      LANGULUS_ASSUME(DevAssumes, *psl, "Removing an invalid key");
+
+      const auto pslEnd = GetInfoEnd();
+      auto key = GetHandle<T>(offset);
+
+      // Destroy the key, info and value at the start                   
+      (key++).Destroy();
+      *(psl++) = 0;
+
+      // And shift backwards, until a zero or 1 is reached              
+      // That way we move every entry that is far from its start        
+      // closer to it. Moving is costly, unless you use pointers        
+      try_again:
+      while (*psl > 1) {
+         psl[-1] = (*psl) - 1;
+         (key - 1).New(Abandon(key));
+         (key++).Destroy();
+         *(psl++) = 0;
+      }
+
+      // Be aware, that psl might loop around                           
+      if (psl == pslEnd and *GetInfo() > 1) {
+         psl = GetInfo();
+         key = GetHandle<T>(0);
+
+         // Shift first entry to the back                               
+         const auto last = mKeys.mReserved - 1;
+         GetInfo()[last] = (*psl) - 1;
+
+         GetHandle<T>(last).New(Abandon(key));
+
+         (key++).Destroy();
+         *(psl++) = 0;
+
+         // And continue the vicious cycle                              
+         goto try_again;
+      }
+
+      // Success                                                        
+      --mKeys.mCount;
+   }
+
+   /// Erases element at a specific index                                     
    ///   @attention assumes that offset points to a valid entry               
    ///   @param offset - the index to remove                                  
-   inline void BlockSet::RemoveIndex(const Offset& offset) IF_UNSAFE(noexcept) {
+   inline void BlockSet::RemoveInnerUnknown(const Offset& offset) IF_UNSAFE(noexcept) {
       auto psl = GetInfo() + offset;
       LANGULUS_ASSUME(DevAssumes, *psl, "Removing an invalid key");
 
@@ -90,7 +137,8 @@ namespace Langulus::Anyness
    }
 
    /// Clears all data, but doesn't deallocate                                
-   inline void BlockSet::Clear() {
+   LANGULUS(INLINED)
+   void BlockSet::Clear() {
       if (IsEmpty())
          return;
 
@@ -112,7 +160,8 @@ namespace Langulus::Anyness
    }
 
    /// Clears all data and deallocates                                        
-   inline void BlockSet::Reset() {
+   LANGULUS(INLINED)
+   void BlockSet::Reset() {
       if (mKeys.mEntry) {
          if (mKeys.mEntry->GetUses() == 1) {
             // Remove all used keys and values, they're used only here  

@@ -9,22 +9,62 @@
 #pragma once
 #include "../BlockMap.hpp"
 
+
 namespace Langulus::Anyness
 {
    
    /// Erase a pair via key                                                   
-   ///   @tparam THIS - type of map to use for FindIndex and RemoveIndex      
-   ///   @tparam K - type of key (deducible)                                  
-   ///   @param match - the key to search for                                 
+   /// The key may not match the contained key type                           
+   ///   @tparam MAP - map we're removing from, using to deduce value type,   
+   ///                 and as runtime optimization                            
+   ///   @param key - the key to search for                                   
    ///   @return the number of removed pairs                                  
-   template<class THIS, CT::NotSemantic K>
-   Count BlockMap::RemoveKey(const K& match) {
-      static_assert(CT::Map<THIS>, "THIS must be a map type");
-      auto& This = reinterpret_cast<THIS&>(*this);
-      const auto found = FindIndex<THIS>(match);
-      if (found != GetReserved()) {
+   template<class MAP>
+   LANGULUS(INLINED)
+   Count BlockMap::RemoveKey(const CT::NotSemantic auto& key) {
+      static_assert(CT::Map<MAP>, "MAP must be a map type");
+      using K = Deref<decltype(key)>;
+      if (IsEmpty())
+         return 0;
+
+      auto& THIS = reinterpret_cast<MAP&>(*this);
+      if constexpr (CT::Array<K> and CT::ExactAsOneOf<Decvq<Deext<K>>, char, wchar_t>) {
+         if (THIS.template KeyIsSimilar<Text>()) {
+            // Implicitly make a text container on string literal       
+            return RemoveKeyInner<MAP>(Text {Disown(key)});
+         }
+         else if (THIS.template KeyIsSimilar<char*, wchar_t*>()) {
+            // Cast away the extent, search for pointer                 
+            return RemoveKeyInner<MAP>(static_cast<const Deext<K>*>(key));
+         }
+         else return 0;
+      }
+      else if (THIS.template KeyIsSimilar<K>())
+         return RemoveKeyInner<MAP>(key);
+      
+      return 0;
+   }
+      
+   /// Erase a pair via key (inner)                                           
+   ///   @attention assumes map is not empty                                  
+   ///   @attention assumes key is similar to the provided type               
+   ///   @tparam MAP - map we're removing from, using to deduce value type,   
+   ///                 and as runtime optimization                            
+   ///   @param key - the key to search for                                   
+   ///   @return the number of removed pairs                                  
+   template<class MAP>
+   LANGULUS(INLINED)
+   Count BlockMap::RemoveKeyInner(const CT::NotSemantic auto& key) {
+      static_assert(CT::Map<MAP>, "MAP must be a map type");
+      using K = Deref<decltype(key)>;
+
+      const auto found = FindInner(key);
+      if (found != InvalidOffset) {
          // Key found, remove the pair                                  
-         This.RemoveIndex(found);
+         if constexpr (CT::Typed<MAP>)
+            RemoveInner<K, typename MAP::Value>(found);
+         else
+            RemoveInner<K, void>(found);
          return 1;
       }
 
@@ -32,27 +72,60 @@ namespace Langulus::Anyness
       return 0;
    }
 
+   /// Erase pairs via value                                                  
+   /// The value may not match the contained value type                       
+   ///   @tparam MAP - map we're removing from, using to deduce value type,   
+   ///                 and as runtime optimization                            
+   ///   @param value - the values to search for                              
+   ///   @return the number of removed pairs                                  
+   template<class MAP>
+   LANGULUS(INLINED)
+   Count BlockMap::RemoveValue(const CT::NotSemantic auto& value) {
+      static_assert(CT::Map<MAP>, "MAP must be a map type");
+      using V = Deref<decltype(value)>;
+      if (IsEmpty())
+         return 0;
+
+      auto& THIS = reinterpret_cast<MAP&>(*this);
+      if constexpr (CT::Array<V> and CT::ExactAsOneOf<Decvq<Deext<V>>, char, wchar_t>) {
+         if (THIS.template ValueIsSimilar<Text>()) {
+            // Implicitly make a text container on string literal       
+            return RemoveValueInner<MAP>(Text {Disown(value)});
+         }
+         else if (THIS.template ValueIsSimilar<char*, wchar_t*>()) {
+            // Cast away the extent, search for pointer                 
+            return RemoveValueInner<MAP>(static_cast<const Deext<V>*>(value));
+         }
+         else return 0;
+      }
+      else if (THIS.template ValueIsSimilar<V>())
+         return RemoveValueInner<MAP>(value);
+
+      return 0;
+   }
+
    /// Erase all pairs with a given value                                     
-   ///   @tparam THIS - type of map to use for FindIndex and RemoveIndex      
-   ///   @tparam V - type of value to seek (deducible)                        
-   ///   @attention this is very significantly slower than removing a key     
+   ///   @attention this is significantly slower than removing a key          
    ///   @param match - the value to search for                               
    ///   @return the number of removed pairs                                  
-   template<class THIS, CT::NotSemantic V>
-   Count BlockMap::RemoveValue(const V& match) {
-      static_assert(CT::Map<THIS>, "THIS must be a map type");
+   template<class MAP>
+   Count BlockMap::RemoveValueInner(const CT::NotSemantic auto& value) {
+      static_assert(CT::Map<MAP>, "MAP must be a map type");
+      using V = Deref<decltype(value)>;
+
       Count removed {};
       auto psl = GetInfo();
       const auto pslEnd = GetInfoEnd();
       auto val = GetValueHandle<V>(0);
 
       while (psl != pslEnd) {
-         if (*psl and val.Get() == match) {
+         if (*psl and val.Get() == value) {
             // Remove every pair with matching value                    
-            if constexpr (CT::Typed<THIS>)
-               GetKeyHandle<typename THIS::Key>(psl - GetInfo()).Destroy();
+            if constexpr (CT::Typed<MAP>)
+               GetKeyHandle<typename MAP::Key>(psl - GetInfo()).Destroy();
             else
                GetKeyInner(psl - GetInfo()).CallUnknownDestructors();
+
             val.Destroy();
             *psl = 0;
             ++removed;
@@ -63,31 +136,56 @@ namespace Langulus::Anyness
       }
 
       // Fill gaps if any                                               
-      if constexpr (CT::Typed<THIS>)
-         ShiftPairs<typename THIS::Key, V>();
+      if constexpr (CT::Typed<MAP>)
+         ShiftPairs<typename MAP::Key, V>();
       else
          ShiftPairs<void, V>();
       return removed;
    }
-
-   /// Erases element at a specific index                                     
-   ///   @attention assumes that offset points to a valid entry               
-   ///   @param offset - the index to remove                                  
-   inline void BlockMap::RemoveIndex(const Offset& offset) IF_UNSAFE(noexcept) {
-      auto psl = GetInfo() + offset;
+   
+   /// Erases a statically typed pair at a specific index                     
+   ///   @attention assumes that index points to a valid entry                
+   ///   @attention assumes the map contains types similar to K and V, unless 
+   ///              one of those is void (aka type-erased)                    
+   ///   @param K - type of key (use void for type-erasure)                   
+   ///   @param V - type of value (use void for type-erasure)                 
+   ///   @param index - the index to remove                                   
+   template<class K, class V>
+   void BlockMap::RemoveInner(const Offset& index) IF_UNSAFE(noexcept) {
+      auto psl = GetInfo() + index;
       LANGULUS_ASSUME(DevAssumes, *psl, "Removing an invalid pair");
 
-      const auto pslEnd = GetInfoEnd();
-      auto key = GetKeyInner(offset);
-      auto val = GetValueInner(offset);
+      // Destroy the key, info and value at the start                   
+      // Use statically typed optimizations where possible              
+      auto key = [this, &index]{
+         if constexpr (CT::Void<K>) {
+            auto key = GetKeyInner(index);
+            key.CallUnknownDestructors();
+            key.Next();
+            return key;
+         }
+         else {
+            auto key = GetKeyHandle<Decvq<K>>(index);
+            (key++).Destroy();
+            return key;
+         }
+      }();
 
-      // Destroy the key, info and value at the offset                  
-      key.CallUnknownDestructors();
-      val.CallUnknownDestructors();
+      auto val = [this, &index] {
+         if constexpr (CT::Void<V>) {
+            auto val = GetValueInner(index);
+            val.CallUnknownDestructors();
+            val.Next();
+            return val;
+         }
+         else {
+            auto val = GetValueHandle<Decvq<V>>(index);
+            (val++).Destroy();
+            return val;
+         }
+      }();
 
       *(psl++) = 0;
-      key.Next();
-      val.Next();
 
       // And shift backwards, until a zero or 1 is reached              
       // That way we move every entry that is far from its start        
@@ -96,42 +194,75 @@ namespace Langulus::Anyness
       while (*psl > 1) {
          psl[-1] = (*psl) - 1;
 
-         // We're moving only a single element, so no chance of overlap 
-         const_cast<const Block&>(key).Prev()
-            .CallUnknownSemanticConstructors(1, Abandon(key));
-         const_cast<const Block&>(val).Prev()
-            .CallUnknownSemanticConstructors(1, Abandon(val));
+         #if LANGULUS_COMPILER_GCC()
+            #pragma GCC diagnostic push
+            #pragma GCC diagnostic ignored "-Wplacement-new"
+         #endif
 
-         key.CallUnknownDestructors();
-         val.CallUnknownDestructors();
+         if constexpr (CT::Void<K>) {
+            const_cast<const Block&>(key).Prev()
+               .CallUnknownSemanticConstructors(1, Abandon(key));
+            key.CallUnknownDestructors();
+            key.Next();
+         }
+         else {
+            (key - 1).New(Abandon(key));
+            (key++).Destroy();
+         }
+
+         if constexpr (CT::Void<V>) {
+            const_cast<const Block&>(val).Prev()
+               .CallUnknownSemanticConstructors(1, Abandon(val));
+            val.CallUnknownDestructors();
+            val.Next();
+         }
+         else {
+            (val - 1).New(Abandon(val));
+            (val++).Destroy();
+         }
+
+         #if LANGULUS_COMPILER_GCC()
+            #pragma GCC diagnostic pop
+         #endif
 
          *(psl++) = 0;
-         key.Next();
-         val.Next();
       }
 
-      // Be aware, that psl might loop around                           
-      if (psl == pslEnd and *GetInfo() > 1) UNLIKELY() {
-         psl = GetInfo();
-         key = GetKeyInner(0);
-         val = GetValueInner(0);
-
-         // Shift first entry to the back                               
+      // Be aware, that iterator might loop around                      
+      const auto pslEnd = GetInfoEnd();
+      if (psl == pslEnd and *GetInfo() > 1) {
          const auto last = mValues.mReserved - 1;
+         psl = GetInfo();
          GetInfo()[last] = (*psl) - 1;
 
-         // We're moving only a single element, so no chance of overlap 
-         GetKeyInner(last)
-            .CallUnknownSemanticConstructors(1, Abandon(key));
-         GetValueInner(last)
-            .CallUnknownSemanticConstructors(1, Abandon(val));
+         // Shift first pair to the back                                
+         if constexpr (CT::Void<K>) {
+            key = GetKeyInner(0);
+            GetKeyInner(last)
+               .CallUnknownSemanticConstructors(1, Abandon(key));
+            key.CallUnknownDestructors();
+            key.Next();
+         }
+         else {
+            key = GetKeyHandle<Decvq<K>>(0);
+            GetKeyHandle<Decvq<K>>(last).New(Abandon(key));
+            (key++).Destroy();
+         }
 
-         key.CallUnknownDestructors();
-         val.CallUnknownDestructors();
+         if constexpr (CT::Void<V>) {
+            val = GetValueInner(0);
+            GetValueInner(last)
+               .CallUnknownSemanticConstructors(1, Abandon(val));
+            val.CallUnknownDestructors();
+            val.Next();
+         }
+         else {
+            val = GetValueHandle<Decvq<V>>(0);
+            GetValueHandle<Decvq<V>>(last).New(Abandon(val));
+            (val++).Destroy();
+         }
 
          *(psl++) = 0;
-         key.Next();
-         val.Next();
 
          // And continue the vicious cycle                              
          goto try_again;
@@ -193,7 +324,8 @@ namespace Langulus::Anyness
    }
    
    /// If possible reallocates the map to a smaller one                       
-   inline void BlockMap::Compact() {
+   LANGULUS(INLINED)
+   void BlockMap::Compact() {
       //TODO();
    }
    
@@ -202,6 +334,7 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    void BlockMap::ClearInner() {
       LANGULUS_ASSUME(DevAssumes, not IsEmpty(), "Map is empty");
+
       auto inf = GetInfo();
       const auto infEnd = GetInfoEnd();
       while (inf != infEnd) {

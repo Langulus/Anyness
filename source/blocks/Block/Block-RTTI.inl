@@ -13,7 +13,7 @@ namespace Langulus::Anyness
 {
 
    /// Check if contained data loosely matches a given type, ignoring         
-   /// density and constness                                                  
+   /// density and cv-qualifiers                                              
    ///   @param type - the type to check for                                  
    ///   @return true if this block contains similar data                     
    LANGULUS(INLINED)
@@ -22,32 +22,51 @@ namespace Langulus::Anyness
    }
 
    /// Check if this container's data is similar to one of the listed types,  
-   /// ignoring density and constness                                         
+   /// ignoring density and cv-qualifiers                                     
    ///   @tparam T... - the types to compare against                          
    ///   @return true if data type is similar to at least one of the types    
    template<CT::Data... T>
    LANGULUS(INLINED)
    bool Block::Is() const {
-      return (Is(MetaData::Of<T>()) or ...);
+      return (Is(RTTI::MetaData::Of<T>()) or ...);
    }
 
-   /// Check if this container's data is exactly as one of the listed types,  
-   /// including by density and constness                                     
+   /// Check if contained data loosely matches a given type, ignoring         
+   /// cv-qualifiers only                                                     
+   ///   @param type - the type to check for                                  
+   ///   @return true if this block contains similar data                     
+   LANGULUS(INLINED)
+   bool Block::IsSimilar(DMeta type) const noexcept {
+      return mType == type or (mType and mType->IsSimilar(type));
+   }
+
+   /// Check if this container's data is similar to one of the listed types,  
+   /// ignoring cv-qualifiers only                                            
    ///   @tparam T... - the types to compare against                          
-   ///   @return true if data type exactly matches at least one type          
+   ///   @return true if data type is similar to at least one of the types    
    template<CT::Data... T>
    LANGULUS(INLINED)
-   bool Block::IsExact() const {
-      return (IsExact(MetaData::Of<T>()) or ...);
+   bool Block::IsSimilar() const {
+      return (IsSimilar(RTTI::MetaData::Of<T>()) or ...);
    }
 
    /// Check if this container's data is exactly the provided type,           
-   /// including the density and constness                                    
+   /// including the density and cv-qualifiers                                
    ///   @param type - the type to match                                      
    ///   @return true if data type matches type exactly                       
    LANGULUS(INLINED)
    bool Block::IsExact(DMeta type) const noexcept {
       return mType == type or (mType and mType->IsExact(type));
+   }
+
+   /// Check if this container's data is exactly as one of the listed types,  
+   /// including by density and cv-qualifiers                                 
+   ///   @tparam T... - the types to compare against                          
+   ///   @return true if data type exactly matches at least one type          
+   template<CT::Data... T>
+   LANGULUS(INLINED)
+   bool Block::IsExact() const {
+      return (IsExact(RTTI::MetaData::Of<T>()) or ...);
    }
 
    /// Check if contained data can be interpreted as a given type             
@@ -83,7 +102,7 @@ namespace Langulus::Anyness
    template<CT::Data T, bool BINARY_COMPATIBLE>
    LANGULUS(INLINED)
    bool Block::CastsTo() const {
-      return CastsToMeta<BINARY_COMPATIBLE>(MetaData::Of<T>());
+      return CastsToMeta<BINARY_COMPATIBLE>(RTTI::MetaData::Of<T>());
    }
 
    /// Check if this container's data can be represented as a specific number 
@@ -96,7 +115,7 @@ namespace Langulus::Anyness
    template<CT::Data T, bool BINARY_COMPATIBLE>
    LANGULUS(INLINED)
    bool Block::CastsTo(Count count) const {
-      return CastsToMeta<BINARY_COMPATIBLE>(MetaData::Of<T>(), count);
+      return CastsToMeta<BINARY_COMPATIBLE>(RTTI::MetaData::Of<T>(), count);
    }
    
    /// Reinterpret contents of this Block as the type and state of another    
@@ -248,12 +267,10 @@ namespace Langulus::Anyness
       
    /// Select a member by trait or index (or both)                            
    ///   @attention assumes block is not empty                                
-   ///   @tparam INDEX - type of index (deducible)                            
    ///   @param trait - the trait to get                                      
    ///   @param index - the trait index to get                                
    ///   @return the static memory block of the member                        
-   template<CT::Index INDEX>
-   Block Block::GetMember(TMeta trait, const INDEX& index) {
+   Block Block::GetMember(TMeta trait, const CT::Index auto& index) {
       // Scan immediate members                                         
       Offset offset = SimplifyMemberIndex(index);
       Offset counter = 0;
@@ -287,13 +304,11 @@ namespace Langulus::Anyness
 
    /// Select a member by trait or index (or both) (const)                    
    ///   @attention assumes block is not empty                                
-   ///   @tparam INDEX - type of index (deducible)                            
    ///   @param trait - the trait to get                                      
    ///   @param index - the trait index to get                                
    ///   @return the static constant memory block of the member               
-   template<CT::Index INDEX>
    LANGULUS(INLINED)
-   Block Block::GetMember(TMeta trait, const INDEX& index) const {
+   Block Block::GetMember(TMeta trait, const CT::Index auto& index) const {
       auto result = const_cast<Block*>(this)->GetMember(trait, index);
       result.MakeConst();
       return result;
@@ -301,12 +316,10 @@ namespace Langulus::Anyness
    
    /// Select a member by data type or index (or both)                        
    ///   @attention assumes block is not empty                                
-   ///   @tparam INDEX - type of index (deducible)                            
    ///   @param data - the type to search for                                 
    ///   @param index - the member index to get                               
    ///   @return the static memory block of the member                        
-   template<CT::Index INDEX>
-   Block Block::GetMember(DMeta data, const INDEX& index) {
+   Block Block::GetMember(DMeta data, const CT::Index auto& index) {
       // Scan immediate members                                         
       Offset offset = SimplifyMemberIndex(index);
       Offset counter = 0;
@@ -340,13 +353,11 @@ namespace Langulus::Anyness
 
    /// Select a member by data type or index (or both) (const)                
    ///   @attention assumes block is not empty                                
-   ///   @tparam INDEX - type of index (deducible)                            
    ///   @param data - the type to search for                                 
    ///   @param index - the trait index to get                                
    ///   @return the static constant memory block of the member               
-   template<CT::Index INDEX>
    LANGULUS(INLINED)
-   Block Block::GetMember(DMeta data, const INDEX& index) const {
+   Block Block::GetMember(DMeta data, const CT::Index auto& index) const {
       auto result = const_cast<Block*>(this)->GetMember(data, index);
       result.MakeConst();
       return result;
@@ -354,11 +365,9 @@ namespace Langulus::Anyness
 
    /// Select a member by index only                                          
    ///   @attention assumes block is not empty                                
-   ///   @tparam INDEX - type of index (deducible)                            
    ///   @param index - the member index to get                               
    ///   @return the static memory block of the member                        
-   template<CT::Index INDEX>
-   Block Block::GetMember(std::nullptr_t, const INDEX& index) {
+   Block Block::GetMember(std::nullptr_t, const CT::Index auto& index) {
       // Check immediate members first                                  
       Offset offset = SimplifyMemberIndex(index);
       if (offset < mType->mMembers.size())
@@ -380,12 +389,10 @@ namespace Langulus::Anyness
 
    /// Select a member by index only                                          
    ///   @attention assumes block is not empty                                
-   ///   @tparam INDEX - type of index (deducible)                            
    ///   @param index - the member index to get                               
    ///   @return the static constant memory block of the member               
-   template<CT::Index INDEX>
    LANGULUS(INLINED)
-   Block Block::GetMember(std::nullptr_t, const INDEX& index) const {
+   Block Block::GetMember(std::nullptr_t, const CT::Index auto& index) const {
       auto result = const_cast<Block*>(this)->GetMember(nullptr, index);
       result.MakeConst();
       return result;
@@ -444,7 +451,7 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    bool Block::Mutate() {
       static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
-      return Mutate<ALLOW_DEEPEN, WRAPPER>(MetaData::Of<T>());
+      return Mutate<ALLOW_DEEPEN, WRAPPER>(RTTI::MetaData::Of<T>());
    }
    
    /// Mutate to another compatible type, deepening the container if allowed  
@@ -527,7 +534,7 @@ namespace Langulus::Anyness
    template<CT::Data T, bool CONSTRAIN>
    LANGULUS(INLINED)
    void Block::SetType() {
-      SetType<CONSTRAIN>(MetaData::Of<Deref<T>>());
+      SetType<CONSTRAIN>(RTTI::MetaData::Of<Deref<T>>());
    }
    
    /// Reset the type of the block, unless it's type-constrained              
@@ -544,7 +551,8 @@ namespace Langulus::Anyness
    ///   @return the simple index                                             
    template<CT::Index INDEX>
    LANGULUS(INLINED)
-   Offset Block::SimplifyMemberIndex(const INDEX& index) const noexcept {
+   Offset Block::SimplifyMemberIndex(const INDEX& index) const 
+   noexcept(not LANGULUS_SAFE() and CT::Unsigned<INDEX>) {
       if constexpr (CT::Same<INDEX, Index>)
          return index.Constrained(mType->GetMemberCount()).GetOffset();
       else if constexpr (CT::Signed<INDEX>) {

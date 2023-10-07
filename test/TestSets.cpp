@@ -51,8 +51,8 @@ K CreateElement(const ALT_K& key) {
 /// Cross-container consistency tests                                         
 TEMPLATE_TEST_CASE(
    "Cross-container consistency tests for TOrderedSet/TUnorderedSet/OrderedSet/UnorderedSet", "[set]",
-   int,  Trait,  Traits::Count,  Any, 
-   int*, Trait*, Traits::Count*, Any*
+   int*, Trait*, Traits::Count*, Any*,
+   int,  Trait,  Traits::Count,  Any
 ) {
    GIVEN("A single element initialized sets of all kinds") {
       const auto element = CreateElement<TestType>(555);
@@ -88,38 +88,39 @@ TEMPLATE_TEST_CASE(
 /// to complex, from flat to deep                                             
 TEMPLATE_TEST_CASE(
    "TOrderedSet/TUnorderedSet/OrderedSet/UnorderedSet", "[set]",
+   (TypePair<TUnorderedSet<int*>, int*>),
+   (TypePair<TUnorderedSet<Trait*>, Trait*>),
+   (TypePair<TUnorderedSet<Traits::Count*>, Traits::Count*>),
+   (TypePair<TUnorderedSet<Any*>, Any*>),
+   (TypePair<TOrderedSet<int*>, int*>),
+   (TypePair<TOrderedSet<Trait*>, Trait*>),
+   (TypePair<TOrderedSet<Traits::Count*>, Traits::Count*>),
+   (TypePair<TOrderedSet<Any*>, Any*>),
+   (TypePair<UnorderedSet, int*>),
+   (TypePair<UnorderedSet, Trait*>),
+   (TypePair<UnorderedSet, Traits::Count*>),
+   (TypePair<UnorderedSet, Any*>),
+   (TypePair<OrderedSet, int*>),
+   (TypePair<OrderedSet, Trait*>),
+   (TypePair<OrderedSet, Traits::Count*>),
+   (TypePair<OrderedSet, Any*>),
+
    (TypePair<UnorderedSet, Any>),
    (TypePair<TUnorderedSet<int>, int>),
    (TypePair<TUnorderedSet<Trait>, Trait>),
    (TypePair<TUnorderedSet<Traits::Count>, Traits::Count>),
    (TypePair<TUnorderedSet<Any>, Any>),
-   (TypePair<TUnorderedSet<int*>, int*>),
-   (TypePair<TUnorderedSet<Trait*>, Trait*>),
-   (TypePair<TUnorderedSet<Traits::Count*>, Traits::Count*>),
-   (TypePair<TUnorderedSet<Any*>, Any*>),
    (TypePair<TOrderedSet<int>, int>),
    (TypePair<TOrderedSet<Trait>, Trait>),
    (TypePair<TOrderedSet<Traits::Count>, Traits::Count>),
    (TypePair<TOrderedSet<Any>, Any>),
-   (TypePair<TOrderedSet<int*>, int*>),
-   (TypePair<TOrderedSet<Trait*>, Trait*>),
-   (TypePair<TOrderedSet<Traits::Count*>, Traits::Count*>),
-   (TypePair<TOrderedSet<Any*>, Any*>),
    (TypePair<UnorderedSet, int>),
    (TypePair<UnorderedSet, Trait>),
    (TypePair<UnorderedSet, Traits::Count>),
-   (TypePair<UnorderedSet, int*>),
-   (TypePair<UnorderedSet, Trait*>),
-   (TypePair<UnorderedSet, Traits::Count*>),
-   (TypePair<UnorderedSet, Any*>),
    (TypePair<OrderedSet, int>),
    (TypePair<OrderedSet, Trait>),
    (TypePair<OrderedSet, Traits::Count>),
-   (TypePair<OrderedSet, Any>),
-   (TypePair<OrderedSet, int*>),
-   (TypePair<OrderedSet, Trait*>),
-   (TypePair<OrderedSet, Traits::Count*>),
-   (TypePair<OrderedSet, Any*>)
+   (TypePair<OrderedSet, Any>)
 ) {
    using T = typename TestType::Container;
    using K = typename TestType::Key;
@@ -207,9 +208,9 @@ TEMPLATE_TEST_CASE(
    GIVEN("A copy-initialized set instance") {
       const auto element = CreateElement<K>(555);
 
-      T set {element};
-
       WHEN("Given an element-constructed set") {
+         T set {element};
+
          THEN("These properties should be correct") {
             REQUIRE(set.IsTypeConstrained() == CT::Typed<T>);
             REQUIRE(set.GetType()->template Is<K>());
@@ -234,9 +235,9 @@ TEMPLATE_TEST_CASE(
          CreateElement<K>(5)
       };
 
-      T set {darray1};
-
       WHEN("Given a preinitialized set with 5 elements") {
+         T set {darray1};
+
          THEN("These properties should be correct") {
             REQUIRE(set.GetCount() == 5);
             REQUIRE(set.GetType()->template Is<K>());
@@ -520,7 +521,8 @@ TEMPLATE_TEST_CASE(
          #endif
       }
 
-      WHEN("The size is reduced by finding and removing elements by value, but reserved memory should remain the same on shrinking") {
+      for (int iii = 0; iii < 100; ++iii) {
+      WHEN(std::string("The size is reduced by finding and removing elements by value, but reserved memory should remain the same on shrinking #") + std::to_string(iii)) {
          const auto removed2 = set.Remove(darray1[1]);
          const auto removed4 = set.Remove(darray1[3]);
 
@@ -576,6 +578,8 @@ TEMPLATE_TEST_CASE(
             };
          #endif
       }
+      }
+
 
       WHEN("Removing non-available elements") {
          const auto removed9 = set.Remove(darray2[3]);

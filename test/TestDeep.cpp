@@ -56,9 +56,9 @@ SCENARIO("Deep sequential containers", "[any]") {
             REQUIRE(*pack.GetBlockDeep(3) == subpack3);
             REQUIRE(*pack.GetBlockDeep(4) == subpack1);
             REQUIRE(*pack.GetBlockDeep(5) == subpack2);
-            for (int i = 1; i < 11; ++i) {
-               REQUIRE(pack.GetElementDeep(i - 1) == i);
-               REQUIRE(pack.GetElementDeep(i - 1 + 10) == i);
+            for (int i = 0; i < 10; ++i) {
+               REQUIRE(pack.GetElementDeep(i) == i + 1);
+               REQUIRE(pack.GetElementDeep(i + 10) == i + 1);
             }
             REQUIRE(pack.GetElementDeep(666).IsEmpty());
          }

@@ -44,6 +44,12 @@ namespace Langulus::Anyness
       TPair& operator = (const TPair&) = default;
       TPair& operator = (TPair&&) noexcept = default;
 
+      /// Implicit casts to intermediate types                                
+      constexpr operator TPair<const Deref<K>&, const Deref<V>&>() const noexcept;
+      constexpr operator TPair<Deref<K>&, Deref<V>&>() const noexcept requires CT::Mutable<K, V>;
+      constexpr operator TPair<const Deref<K>&, Deref<V>&>() const noexcept requires CT::Mutable<V>;
+      constexpr operator TPair<Deref<K>&, const Deref<V>&>() const noexcept requires CT::Mutable<K>;
+
       NOD() Hash GetHash() const;
       NOD() DMeta GetKeyType() const noexcept;
       NOD() DMeta GetValueType() const noexcept;

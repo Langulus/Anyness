@@ -352,9 +352,13 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    constexpr Token Block::GetToken() const noexcept {
       #if LANGULUS_FEATURE(MANAGED_REFLECTION)
-         return IsUntyped() ? MetaData::DefaultToken : mType->GetShortestUnambiguousToken();
+         return IsUntyped()
+            ? RTTI::MetaData::DefaultToken
+            : mType->GetShortestUnambiguousToken();
       #else
-         return IsUntyped() ? MetaData::DefaultToken : mType->mToken;
+         return IsUntyped()
+            ? RTTI::MetaData::DefaultToken
+            : mType->mToken;
       #endif
    }
    

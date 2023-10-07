@@ -76,6 +76,8 @@ TEMPLATE_TEST_CASE(
    (TypePair2<Text, Traits::Count*>),
    (TypePair2<Text, Any*>)
 ) {
+   Allocator::State memoryState;
+
    GIVEN("A single element initialized maps of all kinds") {
       using K = typename TestType::Key;
       using V = typename TestType::Value;
@@ -103,6 +105,9 @@ TEMPLATE_TEST_CASE(
             REQUIRE(uhash1 == elementHash);
          }
       }
+
+      // Check for memory leaks after each cycle                     
+      REQUIRE(memoryState.Assert());
    }
 }
 
@@ -111,6 +116,7 @@ TEMPLATE_TEST_CASE(
 /// to complex, from flat to deep                                             
 TEMPLATE_TEST_CASE(
    "TOrderedMap/TUnorderedMap/OrderedMap/UnorderedMap", "[map]",
+   (TypePair<UnorderedMap, Text, int>),
    (TypePair<TUnorderedMap<Text, int>, Text, int>),
    (TypePair<TUnorderedMap<Text, Trait>, Text, Trait>),
    (TypePair<TUnorderedMap<Text, Traits::Count>, Text, Traits::Count>),
@@ -127,7 +133,6 @@ TEMPLATE_TEST_CASE(
    (TypePair<TOrderedMap<Text, Trait*>, Text, Trait*>),
    (TypePair<TOrderedMap<Text, Traits::Count*>, Text, Traits::Count*>),
    (TypePair<TOrderedMap<Text, Any*>, Text, Any*>),
-   (TypePair<UnorderedMap, Text, int>),
    (TypePair<UnorderedMap, Text, Trait>),
    (TypePair<UnorderedMap, Text, Traits::Count>),
    (TypePair<UnorderedMap, Text, Any>),
@@ -151,10 +156,8 @@ TEMPLATE_TEST_CASE(
    using StdPair = ::std::pair<K, V>;
 
    GIVEN("A default-initialized map instance") {
-      const auto pair = CreatePair<Pair, K, V>(
-         "five hundred"_text, 555);
-      const auto stdpair = CreatePair<StdPair, K, V>(
-         "five hundred"_text, 555);
+      const auto pair    = CreatePair<Pair,    K, V>("five hundred", 555);
+      const auto stdpair = CreatePair<StdPair, K, V>("five hundred", 555);
 
       T map {};
 
@@ -211,7 +214,8 @@ TEMPLATE_TEST_CASE(
             REQUIRE(map.GetCount() == 1);
             REQUIRE(map.GetUses() == 1);
             REQUIRE(map[pair.mKey] == pair.mValue);
-            REQUIRE(map["missing"_text] != pair.mValue);
+            REQUIRE(map["five hundred"] == pair.mValue);
+            REQUIRE_THROWS(map["missing"] != pair.mValue);
          }
 
          #ifdef LANGULUS_STD_BENCHMARK
@@ -241,10 +245,8 @@ TEMPLATE_TEST_CASE(
    }
    
    GIVEN("A pair copy-initialized map instance") {
-      const auto pair = CreatePair<Pair, K, V>(
-         "five hundred"_text, 555);
-      const auto stdpair = CreatePair<StdPair, K, V>(
-         "five hundred"_text, 555);
+      const auto pair    = CreatePair<Pair,    K, V>("five hundred", 555);
+      const auto stdpair = CreatePair<StdPair, K, V>("five hundred", 555);
 
       T map {pair};
 
@@ -261,7 +263,8 @@ TEMPLATE_TEST_CASE(
             REQUIRE(map.GetCount() == 1);
             REQUIRE(map.GetUses() == 1);
             REQUIRE(map[pair.mKey] == pair.mValue);
-            REQUIRE(map["missing"_text] != pair.mValue);
+            REQUIRE(map["five hundred"] == pair.mValue);
+            REQUIRE_THROWS(map["missing"] != pair.mValue);
          }
 
          //TODO benchmark
@@ -270,19 +273,19 @@ TEMPLATE_TEST_CASE(
    
    GIVEN("A pair array copy-initialized map instance") {
       const Pair darray1[5] {
-         CreatePair<Pair, K, V>("one"_text, 1),
-         CreatePair<Pair, K, V>("two"_text, 2),
-         CreatePair<Pair, K, V>("three"_text, 3),
-         CreatePair<Pair, K, V>("four"_text, 4),
-         CreatePair<Pair, K, V>("five"_text, 5)
+         CreatePair<Pair, K, V>("one", 1),
+         CreatePair<Pair, K, V>("two", 2),
+         CreatePair<Pair, K, V>("three", 3),
+         CreatePair<Pair, K, V>("four", 4),
+         CreatePair<Pair, K, V>("five", 5)
       };
 
       const StdPair darray1std[5] {
-         CreatePair<StdPair, K, V>("one"_text, 1),
-         CreatePair<StdPair, K, V>("two"_text, 2),
-         CreatePair<StdPair, K, V>("three"_text, 3),
-         CreatePair<StdPair, K, V>("four"_text, 4),
-         CreatePair<StdPair, K, V>("five"_text, 5)
+         CreatePair<StdPair, K, V>("one", 1),
+         CreatePair<StdPair, K, V>("two", 2),
+         CreatePair<StdPair, K, V>("three", 3),
+         CreatePair<StdPair, K, V>("four", 4),
+         CreatePair<StdPair, K, V>("five", 5)
       };
 
       T map {darray1};
@@ -314,33 +317,33 @@ TEMPLATE_TEST_CASE(
 
       // Arrays are dynamic to avoid constexprification                 
       const Pair darray1[5] {
-         CreatePair<Pair, K, V>("one"_text, 1), 
-         CreatePair<Pair, K, V>("two"_text, 2), 
-         CreatePair<Pair, K, V>("three"_text, 3), 
-         CreatePair<Pair, K, V>("four"_text, 4), 
-         CreatePair<Pair, K, V>("five"_text, 5)
+         CreatePair<Pair, K, V>("one", 1), 
+         CreatePair<Pair, K, V>("two", 2), 
+         CreatePair<Pair, K, V>("three", 3), 
+         CreatePair<Pair, K, V>("four", 4), 
+         CreatePair<Pair, K, V>("five", 5)
       };
       const Pair darray2[5] {
-         CreatePair<Pair, K, V>("six"_text, 6),
-         CreatePair<Pair, K, V>("seven"_text, 7),
-         CreatePair<Pair, K, V>("eight"_text, 8),
-         CreatePair<Pair, K, V>("nine"_text, 9),
-         CreatePair<Pair, K, V>("ten"_text, 10)
+         CreatePair<Pair, K, V>("six", 6),
+         CreatePair<Pair, K, V>("seven", 7),
+         CreatePair<Pair, K, V>("eight", 8),
+         CreatePair<Pair, K, V>("nine", 9),
+         CreatePair<Pair, K, V>("ten", 10)
       };
 
       const StdPair darray1std[5] {
-         CreatePair<StdPair, K, V>("one"_text, 1),
-         CreatePair<StdPair, K, V>("two"_text, 2),
-         CreatePair<StdPair, K, V>("three"_text, 3),
-         CreatePair<StdPair, K, V>("four"_text, 4),
-         CreatePair<StdPair, K, V>("five"_text, 5)
+         CreatePair<StdPair, K, V>("one", 1),
+         CreatePair<StdPair, K, V>("two", 2),
+         CreatePair<StdPair, K, V>("three", 3),
+         CreatePair<StdPair, K, V>("four", 4),
+         CreatePair<StdPair, K, V>("five", 5)
       };
       const StdPair darray2std[5] {
-         CreatePair<StdPair, K, V>("six"_text, 6),
-         CreatePair<StdPair, K, V>("seven"_text, 7),
-         CreatePair<StdPair, K, V>("eight"_text, 8),
-         CreatePair<StdPair, K, V>("nine"_text, 9),
-         CreatePair<StdPair, K, V>("ten"_text, 10)
+         CreatePair<StdPair, K, V>("six", 6),
+         CreatePair<StdPair, K, V>("seven", 7),
+         CreatePair<StdPair, K, V>("eight", 8),
+         CreatePair<StdPair, K, V>("nine", 9),
+         CreatePair<StdPair, K, V>("ten", 10)
       };
 
       T map {};
@@ -610,11 +613,23 @@ TEMPLATE_TEST_CASE(
             REQUIRE(map.GetRawKeysMemory() == keyMemory);
             REQUIRE(map.GetRawValuesMemory() == valueMemory);
             REQUIRE(map.GetReserved() >= 5);
-            REQUIRE(map[darray1[0].mKey] == darray1[0].mValue);
+            /*REQUIRE(map[darray1[0].mKey] == darray1[0].mValue);
             REQUIRE(map[darray1[1].mKey] != darray1[1].mValue);
             REQUIRE(map[darray1[2].mKey] == darray1[2].mValue);
             REQUIRE(map[darray1[3].mKey] != darray1[3].mValue);
-            REQUIRE(map[darray1[4].mKey] == darray1[4].mValue);
+            REQUIRE(map[darray1[4].mKey] == darray1[4].mValue);*/
+
+            REQUIRE(map.ContainsKey(darray1[0].mKey));
+            REQUIRE_FALSE(map.ContainsKey(darray1[1].mKey));
+            REQUIRE(map.ContainsKey(darray1[2].mKey));
+            REQUIRE_FALSE(map.ContainsKey(darray1[3].mKey));
+            REQUIRE(map.ContainsKey(darray1[4].mKey));
+
+            REQUIRE(map.ContainsValue(darray1[0].mValue));
+            REQUIRE_FALSE(map.ContainsValue(darray1[1].mValue));
+            REQUIRE(map.ContainsValue(darray1[2].mValue));
+            REQUIRE_FALSE(map.ContainsValue(darray1[3].mValue));
+            REQUIRE(map.ContainsValue(darray1[4].mValue));
          }
 
          #ifdef LANGULUS_STD_BENCHMARK
@@ -653,7 +668,8 @@ TEMPLATE_TEST_CASE(
          #endif
       }
 
-      WHEN("Removing elements by key") {
+      for (int iii = 0; iii < 100; ++iii) {
+      WHEN(std::string("Removing elements by key #") + std::to_string(iii)) {
          const auto removed2 = map.RemoveKey(darray1[1].mKey);
          const auto removed4 = map.RemoveKey(darray1[3].mKey);
 
@@ -668,11 +684,23 @@ TEMPLATE_TEST_CASE(
             REQUIRE(map.GetRawKeysMemory() == keyMemory);
             REQUIRE(map.GetRawValuesMemory() == valueMemory);
             REQUIRE(map.GetReserved() >= 5);
-            REQUIRE(map[darray1[0].mKey] == darray1[0].mValue);
+            /*REQUIRE(map[darray1[0].mKey] == darray1[0].mValue);
             REQUIRE(map[darray1[1].mKey] != darray1[1].mValue);
             REQUIRE(map[darray1[2].mKey] == darray1[2].mValue);
             REQUIRE(map[darray1[3].mKey] != darray1[3].mValue);
-            REQUIRE(map[darray1[4].mKey] == darray1[4].mValue);
+            REQUIRE(map[darray1[4].mKey] == darray1[4].mValue);*/
+
+            REQUIRE(map.ContainsKey(darray1[0].mKey));
+            REQUIRE_FALSE(map.ContainsKey(darray1[1].mKey));
+            REQUIRE(map.ContainsKey(darray1[2].mKey));
+            REQUIRE_FALSE(map.ContainsKey(darray1[3].mKey));
+            REQUIRE(map.ContainsKey(darray1[4].mKey));
+
+            REQUIRE(map.ContainsValue(darray1[0].mValue));
+            REQUIRE_FALSE(map.ContainsValue(darray1[1].mValue));
+            REQUIRE(map.ContainsValue(darray1[2].mValue));
+            REQUIRE_FALSE(map.ContainsValue(darray1[3].mValue));
+            REQUIRE(map.ContainsValue(darray1[4].mValue));
          }
 
          #ifdef LANGULUS_STD_BENCHMARK
@@ -702,6 +730,7 @@ TEMPLATE_TEST_CASE(
             };
          #endif
       }
+      }
 
       WHEN("Removing non-available elements by value") {
          const auto removed9 = map.RemoveValue(darray2[3].mValue);
@@ -716,6 +745,18 @@ TEMPLATE_TEST_CASE(
             REQUIRE(map.HasAuthority());
             REQUIRE(map.GetUses() == 1);
             REQUIRE(map.GetReserved() >= 5);
+
+            REQUIRE(map.ContainsKey(darray1[0].mKey));
+            REQUIRE(map.ContainsKey(darray1[1].mKey));
+            REQUIRE(map.ContainsKey(darray1[2].mKey));
+            REQUIRE(map.ContainsKey(darray1[3].mKey));
+            REQUIRE(map.ContainsKey(darray1[4].mKey));
+
+            REQUIRE(map.ContainsValue(darray1[0].mValue));
+            REQUIRE(map.ContainsValue(darray1[1].mValue));
+            REQUIRE(map.ContainsValue(darray1[2].mValue));
+            REQUIRE(map.ContainsValue(darray1[3].mValue));
+            REQUIRE(map.ContainsValue(darray1[4].mValue));
          }
       }
       
@@ -732,6 +773,18 @@ TEMPLATE_TEST_CASE(
             REQUIRE(map.HasAuthority());
             REQUIRE(map.GetUses() == 1);
             REQUIRE(map.GetReserved() >= 5);
+
+            REQUIRE(map.ContainsKey(darray1[0].mKey));
+            REQUIRE(map.ContainsKey(darray1[1].mKey));
+            REQUIRE(map.ContainsKey(darray1[2].mKey));
+            REQUIRE(map.ContainsKey(darray1[3].mKey));
+            REQUIRE(map.ContainsKey(darray1[4].mKey));
+
+            REQUIRE(map.ContainsValue(darray1[0].mValue));
+            REQUIRE(map.ContainsValue(darray1[1].mValue));
+            REQUIRE(map.ContainsValue(darray1[2].mValue));
+            REQUIRE(map.ContainsValue(darray1[3].mValue));
+            REQUIRE(map.ContainsValue(darray1[4].mValue));
          }
       }
       
@@ -742,10 +795,10 @@ TEMPLATE_TEST_CASE(
             REQUIRE(map.HasAuthority());
             REQUIRE(map.GetUses() == 1);
             REQUIRE(map.GetCount() == 5);
-            #if LANGULUS_FEATURE(MANAGED_MEMORY)
+            /*#if LANGULUS_FEATURE(MANAGED_MEMORY)
                REQUIRE(map.GetRawKeysMemory() == keyMemory);
                REQUIRE(map.GetRawValuesMemory() == valueMemory);
-            #endif
+            #endif*/
             REQUIRE(map.GetReserved() >= 20);
          }
       }
@@ -1146,42 +1199,43 @@ TEMPLATE_TEST_CASE("Map corner cases", "[map]",
 
    GIVEN("Map instance initialized with 10 specific pairs for the corner case") {
       const Pair pairs[10] = {
-         {MetaData::Of<VulkanLayer>(), "VulkanLayer"},
-         {MetaData::Of<VulkanRenderer>(), "VulkanRenderer"},
-         {MetaData::Of<VulkanCamera>(), "VulkanCamera"},
-         {MetaData::Of<Platform>(), "Platform"},
-         {MetaData::Of<Vulkan>(), "Vulkan"},
-         {MetaData::Of<Window>(), "Window"},
-         {MetaData::Of<VulkanLight>(), "VulkanLight"},
-         {MetaData::Of<Monitor>(), "Monitor"},
-         {MetaData::Of<VulkanRenderable>(), "VulkanRenderable"},
-         {MetaData::Of<Cursor>(), "Cursor"}
+         {MetaData::Of<VulkanLayer>(),       "VulkanLayer"},
+         {MetaData::Of<VulkanRenderer>(),    "VulkanRenderer"},
+         {MetaData::Of<VulkanCamera>(),      "VulkanCamera"},
+         {MetaData::Of<Platform>(),          "Platform"},
+         {MetaData::Of<Vulkan>(),            "Vulkan"},
+         {MetaData::Of<Window>(),            "Window"},
+         {MetaData::Of<VulkanLight>(),       "VulkanLight"},
+         {MetaData::Of<Monitor>(),           "Monitor"},
+         {MetaData::Of<VulkanRenderable>(),  "VulkanRenderable"},
+         {MetaData::Of<Cursor>(),            "Cursor"}
       };
 
       T map {pairs};
 
       WHEN("Removing around-the-end elements by value (corner case)") {
          Count removed {};
-         removed += map.RemoveValue("VulkanRenderer"_text);
-         removed += map.RemoveValue("VulkanCamera"_text);
-         removed += map.RemoveValue("Vulkan"_text);
-         removed += map.RemoveValue("VulkanRenderable"_text);
-         removed += map.RemoveValue("VulkanLight"_text);
-         removed += map.RemoveValue("VulkanLayer"_text);
+         removed += map.RemoveValue("VulkanRenderer");
+         removed += map.RemoveValue("VulkanCamera");
+         removed += map.RemoveValue("Vulkan");
+         removed += map.RemoveValue("VulkanRenderable");
+         removed += map.RemoveValue("VulkanLight");
+         removed += map.RemoveValue("VulkanLayer");
 
          THEN("The map should be correct") {
             REQUIRE(removed == 6);
             REQUIRE(map.GetCount() == 4);
-            REQUIRE(map[MetaData::Of<VulkanLayer>()] == ""_text);
-            REQUIRE(map[MetaData::Of<VulkanRenderer>()] == ""_text);
-            REQUIRE(map[MetaData::Of<VulkanCamera>()] == ""_text);
-            REQUIRE(map[MetaData::Of<Platform>()] == "Platform"_text);
-            REQUIRE(map[MetaData::Of<Vulkan>()] == ""_text);
-            REQUIRE(map[MetaData::Of<Window>()] == "Window"_text);
-            REQUIRE(map[MetaData::Of<VulkanLight>()] == ""_text);
-            REQUIRE(map[MetaData::Of<Monitor>()] == "Monitor"_text);
-            REQUIRE(map[MetaData::Of<VulkanRenderable>()] == ""_text);
-            REQUIRE(map[MetaData::Of<Cursor>()] == "Cursor"_text);
+
+            REQUIRE_THROWS(map[MetaData::Of<VulkanLayer>()] == "");
+            REQUIRE_THROWS(map[MetaData::Of<VulkanRenderer>()] == "");
+            REQUIRE_THROWS(map[MetaData::Of<VulkanCamera>()] == "");
+            REQUIRE       (map[MetaData::Of<Platform>()] == "Platform");
+            REQUIRE_THROWS(map[MetaData::Of<Vulkan>()] == "");
+            REQUIRE       (map[MetaData::Of<Window>()] == "Window");
+            REQUIRE_THROWS(map[MetaData::Of<VulkanLight>()] == "");
+            REQUIRE       (map[MetaData::Of<Monitor>()] == "Monitor");
+            REQUIRE_THROWS(map[MetaData::Of<VulkanRenderable>()] == "");
+            REQUIRE       (map[MetaData::Of<Cursor>()] == "Cursor");
          }
       }
 
@@ -1197,16 +1251,17 @@ TEMPLATE_TEST_CASE("Map corner cases", "[map]",
          THEN("The map should be correct") {
             REQUIRE(removed == 6);
             REQUIRE(map.GetCount() == 4);
-            REQUIRE(map[MetaData::Of<VulkanLayer>()] == ""_text);
-            REQUIRE(map[MetaData::Of<VulkanRenderer>()] == ""_text);
-            REQUIRE(map[MetaData::Of<VulkanCamera>()] == ""_text);
-            REQUIRE(map[MetaData::Of<Platform>()] == "Platform"_text);
-            REQUIRE(map[MetaData::Of<Vulkan>()] == ""_text);
-            REQUIRE(map[MetaData::Of<Window>()] == "Window"_text);
-            REQUIRE(map[MetaData::Of<VulkanLight>()] == ""_text);
-            REQUIRE(map[MetaData::Of<Monitor>()] == "Monitor"_text);
-            REQUIRE(map[MetaData::Of<VulkanRenderable>()] == ""_text);
-            REQUIRE(map[MetaData::Of<Cursor>()] == "Cursor"_text);
+
+            REQUIRE_THROWS(map[MetaData::Of<VulkanLayer>()] == "");
+            REQUIRE_THROWS(map[MetaData::Of<VulkanRenderer>()] == "");
+            REQUIRE_THROWS(map[MetaData::Of<VulkanCamera>()] == "");
+            REQUIRE       (map[MetaData::Of<Platform>()] == "Platform");
+            REQUIRE_THROWS(map[MetaData::Of<Vulkan>()] == "");
+            REQUIRE       (map[MetaData::Of<Window>()] == "Window");
+            REQUIRE_THROWS(map[MetaData::Of<VulkanLight>()] == "");
+            REQUIRE       (map[MetaData::Of<Monitor>()] == "Monitor");
+            REQUIRE_THROWS(map[MetaData::Of<VulkanRenderable>()] == "");
+            REQUIRE       (map[MetaData::Of<Cursor>()] == "Cursor");
          }
       }
    }

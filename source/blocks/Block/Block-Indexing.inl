@@ -82,23 +82,19 @@ namespace Langulus::Anyness
    }
 
    /// Access element at a specific index, and wrap it in a mutable Block     
-   ///   @tparam IDX - the type of index we're using (deducible)              
    ///   @param idx - the index                                               
    ///   @return mutable type-erased element, wrapped in a Block              
-   template<CT::Index IDX>
    LANGULUS(INLINED)
-   Block Block::operator[] (const IDX& idx) {
+   Block Block::operator[] (const CT::Index auto& idx) {
       const auto index = SimplifyIndex<void>(idx);
       return GetElement(index);
    }
 
    /// Access element at a specific index, and wrap it in a constant Block    
-   ///   @tparam IDX - the type of index we're using (deducible)              
    ///   @param idx - the index                                               
    ///   @return immutable type-erased element, wrapped in a Block            
-   template<CT::Index IDX>
    LANGULUS(INLINED)
-   Block Block::operator[] (const IDX& idx) const {
+   Block Block::operator[] (const CT::Index auto& idx) const {
       const auto index = SimplifyIndex<void>(idx);
       return GetElement(index);
    }
@@ -146,11 +142,10 @@ namespace Langulus::Anyness
    /// No conversion or copying shall occur in this routine, only pointer     
    /// arithmetic based on CTTI or RTTI                                       
    ///   @tparam T - the type to interpret to                                 
-   ///   @tparam IDX - the type used for indexing (deducible)                 
    ///   @param index - the index                                             
    ///   @return either pointer or reference to the element (depends on T)    
-   template<CT::Data T, CT::Index IDX>
-   decltype(auto) Block::As(const IDX& index) {
+   template<CT::Data T>
+   decltype(auto) Block::As(const CT::Index auto& index) {
       if (not mType)
          LANGULUS_THROW(Access, "Untyped block");
 
@@ -194,13 +189,12 @@ namespace Langulus::Anyness
    /// No conversion or copying shall occur in this routine, only pointer     
    /// arithmetic based on CTTI or RTTI                                       
    ///   @tparam T - the type to interpret to                                 
-   ///   @tparam IDX - the type used for indexing (deducible)                 
    ///   @param index - the index                                             
    ///   @return either pointer or reference to the element (depends on T)    
-   template<CT::Data T, CT::Index IDX>
+   template<CT::Data T>
    LANGULUS(INLINED)
-   decltype(auto) Block::As(const IDX& index) const {
-      return const_cast<Block&>(*this).template As<T, IDX>(index);
+   decltype(auto) Block::As(const CT::Index auto& index) const {
+      return const_cast<Block&>(*this).template As<T>(index);
    }
    
    /// Select an initialized region from the memory block                     
@@ -472,15 +466,12 @@ namespace Langulus::Anyness
    /// Swap two elements                                                      
    ///   @attention assumes T is exactly the contained type                   
    ///   @tparam T - the contained type                                       
-   ///   @tparam INDEX1 - type of the first index (deducible)                 
-   ///   @tparam INDEX2 - type of the second index (deducible)                
    ///   @param from_ - first index                                           
    ///   @param to_ - second index                                            
-   template<CT::Data T, CT::Index INDEX1, CT::Index INDEX2>
+   template<CT::Data T>
    LANGULUS(INLINED)
-   void Block::Swap(INDEX1 from_, INDEX2 to_) {
+   void Block::Swap(CT::Index auto from_, CT::Index auto to_) {
       LANGULUS_ASSUME(DevAssumes, IsExact<T>(), "Type mismatch");
-
       const auto from = SimplifyIndex(from_);
       const auto to = SimplifyIndex(to_);
       if (from >= mCount or to >= mCount or from == to)
@@ -711,7 +702,8 @@ namespace Langulus::Anyness
    ///   @return the offset                                                   
    template<class T, bool COUNT_CONSTRAINED, CT::Index INDEX>
    LANGULUS(INLINED)
-   Offset Block::SimplifyIndex(const INDEX& index) const noexcept(not LANGULUS_SAFE() and CT::Unsigned<INDEX>) {
+   Offset Block::SimplifyIndex(const INDEX& index) const
+   noexcept(not LANGULUS_SAFE() and CT::Unsigned<INDEX>) {
       if constexpr (CT::Same<INDEX, Index>) {
          // This is the most safe path, throws on errors                
          if constexpr (CT::Void<T>)

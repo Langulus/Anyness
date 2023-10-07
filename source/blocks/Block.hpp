@@ -22,6 +22,44 @@ namespace Langulus::Flow
 
 } // namespace Langulus::Flow
 
+namespace Langulus
+{
+   namespace A
+   {
+      struct Handle {};
+   }
+
+   namespace CT
+   {
+      namespace Inner
+      {
+         template<class T>
+         concept Iteratable = requires (T a) {
+            {a.begin()} -> Data;
+            {a.end()} -> Data;
+         };
+
+         template<class T>
+         concept IteratableInReverse = requires (T a) {
+            {a.rbegin()} -> Data;
+            {a.rend()} -> Data;
+         };
+      }
+
+      template<class... T>
+      concept Handle = (DerivedFrom<T, A::Handle> and ...);
+
+      template<class... T>
+      concept NotHandle = not Handle<T...>;
+
+      template<class... T>
+      concept Iteratable = (Inner::Iteratable<T> and ...);
+
+      template<class... T>
+      concept IteratableInReverse = (Inner::IteratableInReverse<T> and ...);
+   }
+}
+
 namespace Langulus::Anyness
 {
 
@@ -29,8 +67,7 @@ namespace Langulus::Anyness
    using RTTI::CMeta;
    using RTTI::TMeta;
 
-   /// Predeclarations                                                        
-   template<class T, bool EMBED = true>
+   template<CT::NotHandle, bool EMBED = true>
    struct Handle;
 
    class Any;
@@ -254,10 +291,12 @@ namespace Langulus::Anyness
       NOD() constexpr Byte* GetRaw() noexcept;
       NOD() constexpr const Byte* GetRaw() const noexcept;
       NOD() constexpr const Byte* GetRawEnd() const noexcept;
+
       NOD() IF_UNSAFE(constexpr)
       Byte** GetRawSparse() IF_UNSAFE(noexcept);
       NOD() IF_UNSAFE(constexpr)
       const Byte* const* GetRawSparse() const IF_UNSAFE(noexcept);
+
       template<CT::Data T>
       NOD() T* GetRawAs() noexcept;
       template<CT::Data T>
@@ -275,7 +314,7 @@ namespace Langulus::Anyness
       constexpr void MakeNow() noexcept;
 
    protected: IF_LANGULUS_TESTING(public:)
-      NOD() Allocation** GetEntries() IF_UNSAFE(noexcept);
+      NOD()       Allocation**       GetEntries()       IF_UNSAFE(noexcept);
       NOD() const Allocation* const* GetEntries() const IF_UNSAFE(noexcept);
 
    public:
@@ -347,8 +386,8 @@ namespace Langulus::Anyness
       template<Count COUNT = CountMax>
       NOD() Block GetDense() const;
 
-      template<CT::Data, CT::Index INDEX1, CT::Index INDEX2>
-      void Swap(INDEX1, INDEX2);
+      template<CT::Data>
+      void Swap(CT::Index auto, CT::Index auto);
 
       template<CT::Data T, Index INDEX>
       NOD() Index GetIndex() const IF_UNSAFE(noexcept) requires (CT::Sortable<T, T>);
@@ -376,10 +415,10 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Iteration                                                         
       ///                                                                     
-      template<bool REVERSE = false, bool MUTABLE = true, class F>
-      Count ForEachElement(F&&);
-      template<bool REVERSE = false, class F>
-      Count ForEachElement(F&&) const;
+      template<bool REVERSE = false, bool MUTABLE = true>
+      Count ForEachElement(auto&&);
+      template<bool REVERSE = false>
+      Count ForEachElement(auto&&) const;
       
       template<bool REVERSE = false, bool MUTABLE = true, class... F>
       Count ForEach(F&&...);
@@ -408,16 +447,16 @@ namespace Langulus::Anyness
 
    protected:
       template<class F>
-      static constexpr bool NoexceptIterator = 
-         not LANGULUS_SAFE() and noexcept(Fake<F&&>().operator() (Fake<ArgumentOf<F>>()));
+      static constexpr bool NoexceptIterator = not LANGULUS_SAFE()
+         and noexcept(Fake<F&&>().operator() (Fake<ArgumentOf<F>>()));
 
-      template<class R, CT::Data A, bool REVERSE, bool MUTABLE, class F>
-      Count ForEachInner(F&& f) noexcept(NoexceptIterator<decltype(f)>);
-      template<class R, CT::Data A, bool REVERSE, bool SKIP, bool MUTABLE, class F>
-      Count ForEachDeepInner(F&&);
+      template<class R, CT::Data A, bool REVERSE, bool MUTABLE>
+      Count ForEachInner(auto&& f) noexcept(NoexceptIterator<decltype(f)>);
+      template<class R, CT::Data A, bool REVERSE, bool SKIP, bool MUTABLE>
+      Count ForEachDeepInner(auto&&);
 
-      template<class R, CT::Data A, bool REVERSE = false, bool MUTABLE = false, class F>
-      void IterateInner(F&& f) noexcept(NoexceptIterator<decltype(f)>);
+      template<class R, CT::Data A, bool REVERSE = false, bool MUTABLE = false>
+      void IterateInner(auto&& f) noexcept(NoexceptIterator<decltype(f)>);
 
    public:
       ///                                                                     
@@ -426,6 +465,11 @@ namespace Langulus::Anyness
       NOD() bool Is(DMeta) const noexcept;
       template<CT::Data...>
       NOD() bool Is() const;
+
+      template<CT::Data...>
+      NOD() bool IsSimilar() const;
+      NOD() bool IsSimilar(DMeta) const noexcept;
+
       template<CT::Data...>
       NOD() bool IsExact() const;
       NOD() bool IsExact(DMeta) const noexcept;
@@ -453,18 +497,12 @@ namespace Langulus::Anyness
       NOD() Block GetMember(::std::nullptr_t);
       NOD() Block GetMember(::std::nullptr_t) const;
 
-      template<CT::Index INDEX>
-      NOD() Block GetMember(TMeta, const INDEX&);
-      template<CT::Index INDEX>
-      NOD() Block GetMember(TMeta, const INDEX&) const;
-      template<CT::Index INDEX>
-      NOD() Block GetMember(DMeta, const INDEX&);
-      template<CT::Index INDEX>
-      NOD() Block GetMember(DMeta, const INDEX&) const;
-      template<CT::Index INDEX>
-      NOD() Block GetMember(::std::nullptr_t, const INDEX&);
-      template<CT::Index INDEX>
-      NOD() Block GetMember(::std::nullptr_t, const INDEX&) const;
+      NOD() Block GetMember(TMeta, const CT::Index auto&);
+      NOD() Block GetMember(TMeta, const CT::Index auto&) const;
+      NOD() Block GetMember(DMeta, const CT::Index auto&);
+      NOD() Block GetMember(DMeta, const CT::Index auto&) const;
+      NOD() Block GetMember(::std::nullptr_t, const CT::Index auto&);
+      NOD() Block GetMember(::std::nullptr_t, const CT::Index auto&) const;
    
       NOD() Block GetBaseMemory(DMeta, const RTTI::Base&);
       NOD() Block GetBaseMemory(DMeta, const RTTI::Base&) const;
@@ -485,29 +523,28 @@ namespace Langulus::Anyness
       constexpr void ResetType() noexcept;
 
       template<CT::Index INDEX>
-      Offset SimplifyMemberIndex(const INDEX&) const noexcept;
+      Offset SimplifyMemberIndex(const INDEX&) const
+      noexcept(not LANGULUS_SAFE() and CT::Unsigned<INDEX>);
 
    public:
       ///                                                                     
       ///   Comparison                                                        
       ///                                                                     
-      template<CT::NotSemantic T>
-      bool operator == (const T&) const;
+      bool operator == (const CT::NotSemantic auto&) const;
 
       template<bool RESOLVE = true>
       NOD() bool Compare(const Block&) const;
       NOD() Hash GetHash() const;
 
-      template<bool REVERSE = false, CT::NotSemantic T>
-      NOD() Index FindKnown(const T&, const Offset& = 0) const;
+      template<bool REVERSE = false>
+      NOD() Index FindKnown(const CT::NotSemantic auto&, const Offset& = 0) const;
       template<bool REVERSE = false>
       NOD() Index FindUnknown(const Block&, const Offset& = 0) const;
-      template<bool REVERSE = false, CT::NotSemantic T>
-      NOD() Index FindDeep(const T&, Offset = 0) const;
+      template<bool REVERSE = false>
+      NOD() Index FindDeep(const CT::NotSemantic auto&, Offset = 0) const;
 
    protected:
-      template<class T>
-      NOD() bool CompareSingleValue(const T&) const;
+      NOD() bool CompareSingleValue(const CT::NotSemantic auto&) const;
       NOD() bool CompareStates(const Block&) const noexcept;
       NOD() bool CompareTypes(const Block&, RTTI::Base&) const;
       NOD() bool CallComparer(const Block&, const RTTI::Base&) const;
@@ -551,85 +588,77 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
-      template<bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T, CT::Index INDEX>
-      Count InsertAt(const T*, const T*, INDEX);
-      template<bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T, CT::Index INDEX>
-      Count InsertAt(const T&, INDEX);
-      template<bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T, CT::Index INDEX>
-      Count InsertAt(T&, INDEX);
-      template<bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T, CT::Index INDEX>
-      Count InsertAt(T&&, INDEX);
-      template<bool MUTABLE = true, CT::Data = Any, CT::Semantic S, CT::Index INDEX>
-      Count InsertAt(S&&, INDEX);
+      template<bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T>
+      Count InsertAt(const T*, const T*, CT::Index auto);
+      template<bool MUTABLE = true, CT::Data = Any>
+      Count InsertAt(const CT::NotSemantic auto&, CT::Index auto);
+      template<bool MUTABLE = true, CT::Data = Any>
+      Count InsertAt(CT::NotSemantic auto&, CT::Index auto);
+      template<bool MUTABLE = true, CT::Data = Any>
+      Count InsertAt(CT::NotSemantic auto&&, CT::Index auto);
+      template<bool MUTABLE = true, CT::Data = Any>
+      Count InsertAt(CT::Semantic auto&&, CT::Index auto);
 
       template<Index = IndexBack, bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T>
       Count Insert(const T*, const T*);
-      template<Index = IndexBack, bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T>
-      Count Insert(const T&);
-      template<Index = IndexBack, bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T>
-      Count Insert(T&);
-      template<Index = IndexBack, bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T>
-      Count Insert(T&&);
-      template<Index = IndexBack, bool MUTABLE = true, CT::Data = Any, CT::Semantic S>
-      Count Insert(S&&);
+      template<Index = IndexBack, bool MUTABLE = true, CT::Data = Any>
+      Count Insert(const CT::NotSemantic auto&);
+      template<Index = IndexBack, bool MUTABLE = true, CT::Data = Any>
+      Count Insert(CT::NotSemantic auto&);
+      template<Index = IndexBack, bool MUTABLE = true, CT::Data = Any>
+      Count Insert(CT::NotSemantic auto&&);
+      template<Index = IndexBack, bool MUTABLE = true, CT::Data = Any>
+      Count Insert(CT::Semantic auto&&);
 
-      template<bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T, CT::Index INDEX>
-      Count MergeAt(const T*, const T*, INDEX);
-      template<bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T, CT::Index INDEX>
-      Count MergeAt(const T&, INDEX);
-      template<bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T, CT::Index INDEX>
-      Count MergeAt(T&, INDEX);
-      template<bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T, CT::Index INDEX>
-      Count MergeAt(T&&, INDEX);
-      template<bool MUTABLE = true, CT::Data = Any, CT::Semantic S, CT::Index INDEX>
-      Count MergeAt(S&&, INDEX);
+      template<bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T>
+      Count MergeAt(const T*, const T*, CT::Index auto);
+      template<bool MUTABLE = true, CT::Data = Any>
+      Count MergeAt(const CT::NotSemantic auto&, CT::Index auto);
+      template<bool MUTABLE = true, CT::Data = Any>
+      Count MergeAt(CT::NotSemantic auto&, CT::Index auto);
+      template<bool MUTABLE = true, CT::Data = Any>
+      Count MergeAt(CT::NotSemantic auto&&, CT::Index auto);
+      template<bool MUTABLE = true, CT::Data = Any>
+      Count MergeAt(CT::Semantic auto&&, CT::Index auto);
 
       template<Index = IndexBack, bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T>
       Count Merge(const T*, const T*);
-      template<Index = IndexBack, bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T>
-      Count Merge(const T&);
-      template<Index = IndexBack, bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T>
-      Count Merge(T&);
-      template<Index = IndexBack, bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T>
-      Count Merge(T&&);
-      template<Index = IndexBack, bool MUTABLE = true, CT::Data = Any, CT::Semantic S>
-      Count Merge(S&&);
+      template<Index = IndexBack, bool MUTABLE = true, CT::Data = Any>
+      Count Merge(const CT::NotSemantic auto&);
+      template<Index = IndexBack, bool MUTABLE = true, CT::Data = Any>
+      Count Merge(CT::NotSemantic auto&);
+      template<Index = IndexBack, bool MUTABLE = true, CT::Data = Any>
+      Count Merge(CT::NotSemantic auto&&);
+      template<Index = IndexBack, bool MUTABLE = true, CT::Data = Any>
+      Count Merge(CT::Semantic auto&&);
 
-      template<CT::NotSemantic T, CT::Index INDEX>
-      Count InsertBlockAt(const T&, INDEX);
-      template<CT::NotSemantic T, CT::Index INDEX>
-      Count InsertBlockAt(T&, INDEX);
-      template<CT::NotSemantic T, CT::Index INDEX>
-      Count InsertBlockAt(T&&, INDEX);
-      template<CT::Semantic S, CT::Index INDEX>
-      Count InsertBlockAt(S&&, INDEX);
+      Count InsertBlockAt(const CT::NotSemantic auto&,  CT::Index auto);
+      Count InsertBlockAt(      CT::NotSemantic auto&,  CT::Index auto);
+      Count InsertBlockAt(      CT::NotSemantic auto&&, CT::Index auto);
+      Count InsertBlockAt(      CT::Semantic    auto&&, CT::Index auto);
 
-      template<Index = IndexBack, CT::NotSemantic T>
-      Count InsertBlock(const T&);
-      template<Index = IndexBack, CT::NotSemantic T>
-      Count InsertBlock(T&);
-      template<Index = IndexBack, CT::NotSemantic T>
-      Count InsertBlock(T&&);
-      template<Index = IndexBack, CT::Semantic S>
-      Count InsertBlock(S&&);
+      template<Index = IndexBack>
+      Count InsertBlock(const CT::NotSemantic auto&);
+      template<Index = IndexBack>
+      Count InsertBlock(CT::NotSemantic auto&);
+      template<Index = IndexBack>
+      Count InsertBlock(CT::NotSemantic auto&&);
+      template<Index = IndexBack>
+      Count InsertBlock(CT::Semantic auto&&);
 
-      template<CT::NotSemantic T, CT::Index INDEX>
-      Count MergeBlockAt(const T&, INDEX);
-      template<CT::NotSemantic T, CT::Index INDEX>
-      Count MergeBlockAt(T&, INDEX);
-      template<CT::NotSemantic T, CT::Index INDEX>
-      Count MergeBlockAt(T&&, INDEX);
-      template<CT::Semantic S, CT::Index INDEX>
-      Count MergeBlockAt(S&&, INDEX);
+      Count MergeBlockAt(const CT::NotSemantic auto&,  CT::Index auto);
+      Count MergeBlockAt(      CT::NotSemantic auto&,  CT::Index auto);
+      Count MergeBlockAt(      CT::NotSemantic auto&&, CT::Index auto);
+      Count MergeBlockAt(      CT::Semantic    auto&&, CT::Index auto);
    
-      template<Index = IndexBack, CT::NotSemantic T>
-      Count MergeBlock(const T&);
-      template<Index = IndexBack, CT::NotSemantic T>
-      Count MergeBlock(T&);
-      template<Index = IndexBack, CT::NotSemantic T>
-      Count MergeBlock(T&&);
-      template<Index = IndexBack, CT::Semantic S>
-      Count MergeBlock(S&&);
+      template<Index = IndexBack>
+      Count MergeBlock(const CT::NotSemantic auto&);
+      template<Index = IndexBack>
+      Count MergeBlock(CT::NotSemantic auto&);
+      template<Index = IndexBack>
+      Count MergeBlock(CT::NotSemantic auto&&);
+      template<Index = IndexBack>
+      Count MergeBlock(CT::Semantic auto&&);
    
       template<CT::Index IDX = Offset, class... A>
       Count EmplaceAt(const IDX&, A&&...);
@@ -641,41 +670,40 @@ namespace Langulus::Anyness
       template<CT::Data T, bool MOVE_STATE = true>
       T& Deepen();
 
-      template<bool CONCAT = true, bool DEEPEN = true, CT::Data = Any, CT::NotSemantic T, CT::Index INDEX>
-      Count SmartPushAt(const T&, INDEX, DataState = {});
-      template<bool CONCAT = true, bool DEEPEN = true, CT::Data = Any, CT::NotSemantic T, CT::Index INDEX>
-      Count SmartPushAt(T&, INDEX, DataState = {});
-      template<bool CONCAT = true, bool DEEPEN = true, CT::Data = Any, CT::NotSemantic T, CT::Index INDEX>
-      Count SmartPushAt(T&&, INDEX, DataState = {});
-      template<bool CONCAT = true, bool DEEPEN = true, CT::Data = Any, CT::Semantic S, CT::Index INDEX>
-      Count SmartPushAt(S&&, INDEX, DataState = {});
+      template<bool CONCAT = true, bool DEEPEN = true, CT::Data = Any>
+      Count SmartPushAt(const CT::NotSemantic auto&, CT::Index auto, DataState = {});
+      template<bool CONCAT = true, bool DEEPEN = true, CT::Data = Any>
+      Count SmartPushAt(CT::NotSemantic auto&, CT::Index auto, DataState = {});
+      template<bool CONCAT = true, bool DEEPEN = true, CT::Data = Any>
+      Count SmartPushAt(CT::NotSemantic auto&&, CT::Index auto, DataState = {});
+      template<bool CONCAT = true, bool DEEPEN = true, CT::Data = Any>
+      Count SmartPushAt(CT::Semantic auto&&, CT::Index auto, DataState = {});
 
-      template<Index = IndexBack, bool CONCAT = true, bool DEEPEN = true, CT::Data = Any, CT::NotSemantic T>
-      Count SmartPush(const T&, DataState = {});
-      template<Index = IndexBack, bool CONCAT = true, bool DEEPEN = true, CT::Data = Any, CT::NotSemantic T>
-      Count SmartPush(T&, DataState = {});
-      template<Index = IndexBack, bool CONCAT = true, bool DEEPEN = true, CT::Data = Any, CT::NotSemantic T>
-      Count SmartPush(T&&, DataState = {});
-      template<Index = IndexBack, bool CONCAT = true, bool DEEPEN = true, CT::Data = Any, CT::Semantic S>
-      Count SmartPush(S&&, DataState = {});
+      template<Index = IndexBack, bool CONCAT = true, bool DEEPEN = true, CT::Data = Any>
+      Count SmartPush(const CT::NotSemantic auto&, DataState = {});
+      template<Index = IndexBack, bool CONCAT = true, bool DEEPEN = true, CT::Data = Any>
+      Count SmartPush(CT::NotSemantic auto&, DataState = {});
+      template<Index = IndexBack, bool CONCAT = true, bool DEEPEN = true, CT::Data = Any>
+      Count SmartPush(CT::NotSemantic auto&&, DataState = {});
+      template<Index = IndexBack, bool CONCAT = true, bool DEEPEN = true, CT::Data = Any>
+      Count SmartPush(CT::Semantic auto&&, DataState = {});
 
    protected:
       template<CT::Semantic S, CT::NotSemantic T>
       void InsertInner(const T*, const T*, Offset);
-      template<CT::Semantic S>
-      void InsertInner(S&&, Offset);
+      void InsertInner(CT::Semantic auto&&, Offset);
       template<class... A>
       void EmplaceInner(const Block&, Count, A&&... arguments);
 
-      template<bool ALLOW_DEEPEN, CT::Data = Any, CT::Semantic S, CT::Index INDEX>
-      Count SmartConcatAt(const bool&, S&&, const DataState&, const INDEX&);
-      template<bool ALLOW_DEEPEN, Index INDEX = IndexBack, CT::Data = Any, CT::Semantic S>
-      Count SmartConcat(const bool&, S&&, const DataState&);
+      template<bool ALLOW_DEEPEN, CT::Data = Any>
+      Count SmartConcatAt(const bool&, CT::Semantic auto&&, const DataState&, const CT::Index auto&);
+      template<bool ALLOW_DEEPEN, Index INDEX = IndexBack, CT::Data = Any>
+      Count SmartConcat(const bool&, CT::Semantic auto&&, const DataState&);
 
-      template<bool ALLOW_DEEPEN, CT::Data = Any, CT::Semantic S, CT::Index INDEX>
-      Count SmartPushAtInner(S&&, const DataState&, const INDEX&);
-      template<bool ALLOW_DEEPEN, Index INDEX = IndexBack, CT::Data = Any, CT::Semantic S>
-      Count SmartPushInner(S&&, const DataState&);
+      template<bool ALLOW_DEEPEN, CT::Data = Any>
+      Count SmartPushAtInner(CT::Semantic auto&&, const DataState&, const CT::Index auto&);
+      template<bool ALLOW_DEEPEN, Index INDEX = IndexBack, CT::Data = Any>
+      Count SmartPushInner(CT::Semantic auto&&, const DataState&);
 
       void CallUnknownDefaultConstructors(Count) const;
       template<CT::Data T>
@@ -688,30 +716,26 @@ namespace Langulus::Anyness
       template<CT::Data, class... A>
       void CallKnownConstructors(Count, A&&...) const;
 
-      template<bool REVERSE = false, CT::Semantic S>
-      void CallUnknownSemanticConstructors(Count, S&&) const;
-      template<CT::Data, bool REVERSE = false, CT::Semantic S>
-      void CallKnownSemanticConstructors(Count, S&&) const;
-      template<CT::Semantic S>
-      void ShallowBatchPointerConstruction(Count, S&&) const;
+      template<bool REVERSE = false>
+      void CallUnknownSemanticConstructors(Count, CT::Semantic auto&&) const;
+      template<CT::Data, bool REVERSE = false>
+      void CallKnownSemanticConstructors(Count, CT::Semantic auto&&) const;
+      void ShallowBatchPointerConstruction(Count, CT::Semantic auto&&) const;
 
-      template<CT::Data, CT::Semantic S>
-      void CallKnownSemanticAssignment(Count, S&&) const;
+      template<CT::Data>
+      void CallKnownSemanticAssignment(Count, CT::Semantic auto&&) const;
 
    public:
-      template<CT::Semantic S>
-      void CallUnknownSemanticAssignment(Count, S&&) const;
+      void CallUnknownSemanticAssignment(Count, CT::Semantic auto&&) const;
 
    public:
       ///                                                                     
       ///   Removal                                                           
       ///                                                                     
-      template<bool REVERSE = false, CT::Data T>
-      Count Remove(const T&);
-      template<CT::Index INDEX>
-      Count RemoveIndex(const INDEX&, Count = 1);
-      template<CT::Index INDEX>
-      Count RemoveIndexDeep(INDEX);
+      template<bool REVERSE = false>
+      Count Remove(const CT::Data auto&);
+      Count RemoveIndex(const CT::Index auto&, Count = 1);
+      Count RemoveIndexDeep(CT::Index auto);
    
       void Trim(Count);
       void Optimize();
@@ -759,60 +783,66 @@ namespace Langulus::Anyness
       void Run(Flow::Verb&);
    };
 
-   /// Macro used to implement the standard container interface used in       
-   /// range-for-statements like for (auto& item : array)                     
-   /// In addition, a Reverse() function is added for reverse iteration       
-   #define RANGED_FOR_INTEGRATION(containerType, iteratorType) \
-      NOD() inline iteratorType* begin() noexcept { return GetRaw(); } \
-      NOD() inline iteratorType* end() noexcept { return GetRawEnd(); } \
-      NOD() inline iteratorType& last() noexcept { return *(GetRawEnd() - 1); } \
-      NOD() inline const iteratorType* begin() const noexcept { return GetRaw(); } \
-      NOD() inline const iteratorType* end() const noexcept { return GetRawEnd(); } \
-      NOD() inline const iteratorType& last() const noexcept { return *(GetRawEnd() - 1); } \
-      NOD() inline auto& size() const noexcept { return GetCount(); } \
-      NOD() inline Inner::TReverse<const containerType, iteratorType> Reverse() const noexcept { return {*this}; } \
-      NOD() inline Inner::TReverse<containerType, iteratorType> Reverse() noexcept { return {*this}; }
-
    namespace Inner
    {
 
       ///                                                                     
-      ///   Reverse adaptor for ranged-for expressions                        
+      ///   Reverse iteration adapter                                         
       ///                                                                     
-      template<class T, class E>
+      template<CT::IteratableInReverse T>
       class TReverse {
-      private:
-         using ITERATOR = ::std::conditional_t<::std::is_const_v<T>, const E*, E*>;
          T& mContainer;
 
       public:
-         TReverse() = delete;
-         TReverse(const TReverse&) = delete;
-         TReverse(TReverse&&) = delete;
-         TReverse(T&) noexcept;
+         auto begin() { return mContainer.rbegin(); }
+         auto end() { return mContainer.rend(); }
+      };
 
-         struct PointerWrapper {
-            PointerWrapper() = delete;
-            PointerWrapper(const PointerWrapper&) noexcept = default;
-            PointerWrapper(PointerWrapper&&) noexcept = default;
-            PointerWrapper(ITERATOR) noexcept;
 
-            bool operator == (ITERATOR) const noexcept;
-            bool operator != (ITERATOR) const noexcept;
-            PointerWrapper& operator ++ () noexcept;
-            PointerWrapper& operator -- () noexcept;
-            operator ITERATOR () const noexcept;
+      ///                                                                     
+      ///   Keep iterator when using ranged-for                               
+      ///                                                                     
+      /// When doing for(auto i : container), the statement always            
+      /// dereferences the iterator and 'i' always ends up with the contained 
+      /// type. This counteracts this, and makes 'i' be the iterator type.    
+      ///                                                                     
+      template<CT::Iteratable T>
+      class TKeepIterator {
+         T& mContainer;
 
-            ITERATOR mPointer;
+         struct Wrapper {
+            decltype(T::begin())& mIt;
+
+            decltype(auto) operator == (const Wrapper& rhs) const noexcept {
+               return mIt == rhs.mIt;
+            }
+
+            decltype(auto) operator *  () const noexcept { return mIt; }
+            decltype(auto) operator -> () const noexcept { return mIt; }
+
+            // Prefix operator                                          
+            Wrapper& operator ++ () noexcept { ++mIt; return *this; }
+
+            // Suffix operator                                          
+            Wrapper operator ++ (int) noexcept { return Wrapper {mIt++}; }
          };
 
-         NOD() PointerWrapper begin() const noexcept;
-         NOD() PointerWrapper end() const noexcept;
-         NOD() E& last() const noexcept;
-         NOD() Count size() const noexcept;
+      public:
+         auto begin() { return Wrapper {mContainer.begin()}; }
+         auto end()   { return Wrapper {mContainer.end()};   }
       };
 
    } // namespace Langulus::Anyness::Inner
+
+   LANGULUS(INLINED)
+   constexpr auto Reverse(CT::IteratableInReverse auto&& what) noexcept {
+      return Inner::TReverse<Deref<decltype(what)>> {what};
+   }
+
+   LANGULUS(INLINED)
+   constexpr auto KeepIterator(CT::Iteratable auto&& what) noexcept {
+      return Inner::TKeepIterator<Deref<decltype(what)>> {what};
+   }
 
 } // namespace Langulus::Anyness
 

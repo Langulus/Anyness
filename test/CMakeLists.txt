@@ -9,7 +9,8 @@ add_executable(LangulusAnynessTest
 	TestNeat.cpp
 	TestPointers.cpp
 	TestSets.cpp
-	TestTAny.cpp
+	TestTAnyDense.cpp
+	TestTAnySparse.cpp
 	TestText.cpp
 )
 

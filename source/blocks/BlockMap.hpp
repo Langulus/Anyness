@@ -14,11 +14,17 @@ namespace Langulus::Anyness
 {
 
    ///                                                                        
-   ///   Type-erased map block, base for all map types                        
+   ///   Type-erased map block, base for all map containers                   
    ///                                                                        
    ///   This is an inner structure, that doesn't reference any memory,       
    /// only provides the functionality to do so. You can use BlockMap as a    
-   /// lightweight intermediate structure for iteration, etc.                 
+   /// lightweight intermediate structure for iteration of maps - it is       
+   /// binary compatible with any other map, be it type-erased or not.        
+   ///   Unlike std::map, accessing elements via the subscript operator []    
+   /// doesn't implicitly add element, if map is mutable. This has always     
+   /// been a source of many subtle bugs, and generally the idea of           
+   /// completely changing the behavior of a program, by simply removing a    
+   /// 'const' qualifier doesn't seem like a sound design decision in my book 
    ///                                                                        
    class BlockMap {
    protected:
@@ -48,6 +54,7 @@ namespace Langulus::Anyness
 
       static constexpr bool Ownership = false;
       static constexpr bool Sequential = false;
+      static constexpr Offset InvalidOffset = -1;
 
       ///                                                                     
       ///   Construction & Assignment                                         
@@ -234,10 +241,29 @@ namespace Langulus::Anyness
       void Mutate();
       void Mutate(DMeta, DMeta);
       
-      template<class ALT_K>
-      NOD() constexpr bool KeyIs() const noexcept;
-      template<class ALT_V>
-      NOD() constexpr bool ValueIs() const noexcept;
+      NOD() bool KeyIs(DMeta) const noexcept;
+      template<CT::Data...>
+      NOD() bool KeyIs() const noexcept;
+
+      NOD() bool KeyIsSimilar(DMeta) const noexcept;
+      template<CT::Data...>
+      NOD() bool KeyIsSimilar() const noexcept;
+
+      NOD() bool KeyIsExact(DMeta) const noexcept;
+      template<CT::Data...>
+      NOD() bool KeyIsExact() const noexcept;
+
+      NOD() bool ValueIs(DMeta) const noexcept;
+      template<CT::Data...>
+      NOD() bool ValueIs() const noexcept;
+
+      NOD() bool ValueIsSimilar(DMeta) const noexcept;
+      template<CT::Data...>
+      NOD() bool ValueIsSimilar() const noexcept;
+
+      NOD() bool ValueIsExact(DMeta) const noexcept;
+      template<CT::Data...>
+      NOD() bool ValueIsExact() const noexcept;
 
       NOD() bool IsTypeCompatibleWith(const BlockMap&) const noexcept;
 
@@ -248,20 +274,32 @@ namespace Langulus::Anyness
 
       NOD() Hash GetHash() const;
 
-      template<CT::NotSemantic K>
-      NOD() bool ContainsKey(const K&) const;
-      template<CT::NotSemantic V>
-      NOD() bool ContainsValue(const V&) const;
-      template<CT::NotSemantic K, CT::NotSemantic V>
+      template<class MAP = BlockMap>
+      NOD() bool ContainsKey(const CT::NotSemantic auto&) const;
+      template<class MAP = BlockMap>
+      NOD() bool ContainsValue(const CT::NotSemantic auto&) const;
+      template<class MAP = BlockMap, CT::NotSemantic K, CT::NotSemantic V>
       NOD() bool ContainsPair(const TPair<K, V>&) const;
-      template<CT::NotSemantic K>
-      NOD() Index Find(const K&) const;
+
+      template<class MAP = BlockMap>
+      NOD() Index Find(const CT::NotSemantic auto&) const;
+      template<class MAP = BlockMap>
+      NOD() Iterator FindIt(const CT::NotSemantic auto&);
+      template<class MAP = BlockMap>
+      NOD() ConstIterator FindIt(const CT::NotSemantic auto&) const;
+
+      template<class MAP = BlockMap>
+      NOD() Block At(const CT::NotSemantic auto&);
+      template<class MAP = BlockMap>
+      NOD() Block At(const CT::NotSemantic auto&) const;
+
+      NOD() Block operator[] (const CT::NotSemantic auto&);
+      NOD() Block operator[] (const CT::NotSemantic auto&) const;
 
    protected:
-      template<class THIS = BlockMap, CT::NotSemantic K>
-      NOD() Offset FindIndex(const K&) const;
-      template<class THIS = BlockMap>
-      NOD() Offset FindIndexUnknown(const Block&) const;
+      template<class MAP = BlockMap>
+      NOD() Offset FindInner(const CT::NotSemantic auto&) const;
+      NOD() Offset FindInnerUnknown(const Block&) const;
 
    public:
       ///                                                                     
@@ -287,6 +325,61 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
+      template<bool ORDERED = false>
+      Count Insert(const CT::NotSemantic auto&,  const CT::NotSemantic auto&);
+      template<bool ORDERED = false>
+      Count Insert(const CT::NotSemantic auto&,        CT::NotSemantic auto&);
+      template<bool ORDERED = false>
+      Count Insert(const CT::NotSemantic auto&,        CT::NotSemantic auto&&);
+      template<bool ORDERED = false>
+      Count Insert(const CT::NotSemantic auto&,        CT::Semantic    auto&&);
+
+      template<bool ORDERED = false>
+      Count Insert(      CT::NotSemantic auto&,  const CT::NotSemantic auto&);
+      template<bool ORDERED = false>
+      Count Insert(      CT::NotSemantic auto&,        CT::NotSemantic auto&);
+      template<bool ORDERED = false>
+      Count Insert(      CT::NotSemantic auto&,        CT::NotSemantic auto&&);
+      template<bool ORDERED = false>
+      Count Insert(      CT::NotSemantic auto&,        CT::Semantic    auto&&);
+
+      template<bool ORDERED = false>
+      Count Insert(      CT::NotSemantic auto&&, const CT::NotSemantic auto&);
+      template<bool ORDERED = false>
+      Count Insert(      CT::NotSemantic auto&&,       CT::NotSemantic auto&);
+      template<bool ORDERED = false>
+      Count Insert(      CT::NotSemantic auto&&,       CT::NotSemantic auto&&);
+      template<bool ORDERED = false>
+      Count Insert(      CT::NotSemantic auto&&,       CT::Semantic    auto&&);
+
+      template<bool ORDERED = false>
+      Count Insert(      CT::Semantic    auto&&, const CT::NotSemantic auto&);
+      template<bool ORDERED = false>
+      Count Insert(      CT::Semantic    auto&&,       CT::NotSemantic auto&);
+      template<bool ORDERED = false>
+      Count Insert(      CT::Semantic    auto&&,       CT::NotSemantic auto&&);
+      template<bool ORDERED = false>
+      Count Insert(      CT::Semantic    auto&&,       CT::Semantic    auto&&);
+
+      template<bool ORDERED = false>
+      Count InsertBlock(CT::Semantic auto&&, CT::Semantic auto&&);
+
+      template<bool ORDERED = false>
+      Count InsertPair(const CT::Pair auto&);
+      template<bool ORDERED = false>
+      Count InsertPair(CT::Pair auto&);
+      template<bool ORDERED = false>
+      Count InsertPair(CT::Pair auto&&);
+      template<bool ORDERED = false>
+      Count InsertPair(CT::Semantic   auto&&);
+
+      template<bool ORDERED = false>
+      Count InsertPairBlock(CT::Semantic auto&&);
+
+      BlockMap& operator << (const CT::Pair auto&);
+      BlockMap& operator << (      CT::Pair auto&);
+      BlockMap& operator << (      CT::Pair auto&&);
+      BlockMap& operator << ( CT::Semantic  auto&&);
 
    protected:
       NOD() Size RequestKeyAndInfoSize(Count, Offset&) const IF_UNSAFE(noexcept);
@@ -298,33 +391,39 @@ namespace Langulus::Anyness
       template<class K, class V>
       void ShiftPairs();
 
-      template<bool CHECK_FOR_MATCH, CT::Semantic SK, CT::Semantic SV>
-      Offset InsertInner(const Offset&, SK&&, SV&&);
-      template<bool CHECK_FOR_MATCH, CT::Semantic SK, CT::Semantic SV>
-      Offset InsertInnerUnknown(const Offset&, SK&&, SV&&);
-
-      template<class, CT::Semantic S>
-      void InsertPairInner(const Count&, S&&);
+      template<bool CHECK_FOR_MATCH>
+      Offset InsertInner(const Offset&, CT::Semantic auto&&, CT::Semantic auto&&);
+      template<bool CHECK_FOR_MATCH>
+      Offset InsertInnerUnknown(const Offset&, CT::Semantic auto&&, CT::Semantic auto&&);
+      template<bool CHECK_FOR_MATCH>
+      void InsertPairInner(const Count&, CT::Semantic auto&&);
 
    public:
       ///                                                                     
       ///   Removal                                                           
       ///                                                                     
-      template<class THIS = BlockMap, CT::NotSemantic K>
-      Count RemoveKey(const K&);
-      template<class THIS = BlockMap, CT::NotSemantic V>
-      Count RemoveValue(const V&);
+      template<class MAP = BlockMap>
+      Count RemoveKey(const CT::NotSemantic auto&);
+      template<class MAP = BlockMap>
+      Count RemoveValue(const CT::NotSemantic auto&);
       template<CT::NotSemantic K, CT::NotSemantic V>
       Count RemovePair(const TPair<K, V>&);
-      Count RemoveIndex(const Index&);
 
       void Clear();
       void Reset();
       void Compact();
 
    protected:
+      template<class MAP = BlockMap>
+      Count RemoveKeyInner(const CT::NotSemantic auto&);
+      template<class MAP = BlockMap>
+      Count RemoveValueInner(const CT::NotSemantic auto&);
+      template<CT::NotSemantic K, CT::NotSemantic V>
+      Count RemovePairInner(const TPair<K, V>&);
+
       void ClearInner();
-      void RemoveIndex(const Offset&) IF_UNSAFE(noexcept);
+      template<class, class>
+      void RemoveInner(const Offset&) IF_UNSAFE(noexcept);
 
    #if LANGULUS(TESTING)
       public: NOD() constexpr const void* GetRawKeysMemory() const noexcept;
@@ -362,6 +461,8 @@ namespace Langulus::Anyness
 
       // Suffix operator                                                
       NOD() TIterator operator ++ (int) noexcept;
+
+      constexpr explicit operator bool() const noexcept;
    };
 
 } // namespace Langulus::Anyness

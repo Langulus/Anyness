@@ -39,6 +39,7 @@ namespace Langulus::Anyness
    public:
       static constexpr bool Ownership = false;
       static constexpr bool Sequential = false;
+      static constexpr Offset InvalidOffset = -1;
 
       ///                                                                     
       ///   Construction & Assignment                                         
@@ -172,8 +173,17 @@ namespace Langulus::Anyness
       void Mutate();
       void Mutate(DMeta);
 
-      template<class ALT_T>
-      NOD() constexpr bool Is() const noexcept;
+      NOD() bool Is(DMeta) const noexcept;
+      template<CT::Data...>
+      NOD() bool Is() const noexcept;
+
+      NOD() bool IsSimilar(DMeta) const noexcept;
+      template<CT::Data...>
+      NOD() bool IsSimilar() const noexcept;
+
+      NOD() bool IsExact(DMeta) const noexcept;
+      template<CT::Data...>
+      NOD() bool IsExact() const noexcept;
 
       NOD() bool IsTypeCompatibleWith(const BlockSet&) const noexcept;
 
@@ -188,10 +198,10 @@ namespace Langulus::Anyness
       NOD() Index Find(const CT::NotSemantic auto&) const;
 
    protected:
-      template<class THIS = BlockSet, CT::NotSemantic K>
-      NOD() Offset FindIndex(const K&) const;
       template<class THIS = BlockSet>
-      NOD() Offset FindIndexUnknown(const Block&) const;
+      NOD() Offset FindInner(const CT::NotSemantic auto&) const;
+      template<class THIS = BlockSet>
+      NOD() Offset FindInnerUnknown(const Block&) const;
 
    public:
       ///                                                                     
@@ -230,16 +240,16 @@ namespace Langulus::Anyness
       BlockSet& operator << (CT::Semantic auto&&);
 
    protected:
-      NOD() Size RequestKeyAndInfoSize(Count, Offset&) noexcept;
+      NOD() Size RequestKeyAndInfoSize(Count, Offset&) const IF_UNSAFE(noexcept);
 
       void Rehash(const Count&);
       template<class K>
       void ShiftPairs();
 
       template<bool CHECK_FOR_MATCH>
-      Offset InsertInnerUnknown(const Offset&, CT::Semantic auto&&);
-      template<bool CHECK_FOR_MATCH>
       Offset InsertInner(const Offset&, CT::Semantic auto&&);
+      template<bool CHECK_FOR_MATCH>
+      Offset InsertInnerUnknown(const Offset&, CT::Semantic auto&&);
 
       void CloneInner(const Block&, Block&) const;
 
@@ -247,9 +257,8 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Removal                                                           
       ///                                                                     
-      template<class THIS = BlockSet, CT::NotSemantic K>
-      Count Remove(const K&);
-      Count RemoveIndex(const Index&);
+      template<class THIS = BlockSet>
+      Count Remove(const CT::NotSemantic auto&);
 
       void Clear();
       void Reset();
@@ -257,7 +266,10 @@ namespace Langulus::Anyness
 
    protected:
       void ClearInner();
-      void RemoveIndex(const Offset&) IF_UNSAFE(noexcept);
+
+      template<class T>
+      void RemoveInner(const Offset&) IF_UNSAFE(noexcept);
+      void RemoveInnerUnknown(const Offset&) IF_UNSAFE(noexcept);
 
    #if LANGULUS(TESTING)
       public: NOD() constexpr const void* GetRawMemory() const noexcept;
