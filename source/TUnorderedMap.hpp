@@ -214,9 +214,6 @@ namespace Langulus::Anyness
 
       void ClearInner();
 
-      //template<class T>
-      //static void Overwrite(T&&, T&) noexcept;
-
       NOD() static Size RequestKeyAndInfoSize(Count, Offset&) noexcept;
       NOD() static Size RequestValuesSize(Count) noexcept;
 

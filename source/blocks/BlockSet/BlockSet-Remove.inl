@@ -33,17 +33,31 @@ namespace Langulus::Anyness
    
    /// Erases element at a specific index                                     
    ///   @attention assumes that index points to a valid entry                
+   ///   @attention assumes the set contains type similar to T, unless void   
+   ///              (aka type-erased)                                         
+   ///   @param T - type of key (use void for type-erasure)                   
    ///   @param index - the index to remove                                   
    template<class T>
-   void BlockSet::RemoveInner(const Offset& offset) IF_UNSAFE(noexcept) {
-      auto psl = GetInfo() + offset;
+   void BlockSet::RemoveInner(const Offset& index) IF_UNSAFE(noexcept) {
+      auto psl = GetInfo() + index;
       LANGULUS_ASSUME(DevAssumes, *psl, "Removing an invalid key");
 
-      const auto pslEnd = GetInfoEnd();
-      auto key = GetHandle<T>(offset);
+      // Destroy the keyand info at the start                           
+      // Use statically typed optimizations where possible              
+      auto key = [this, &index]{
+         if constexpr (CT::Void<T>) {
+            auto key = GetInner(index);
+            key.CallUnknownDestructors();
+            key.Next();
+            return key;
+         }
+         else {
+            auto key = GetHandle<Decvq<T>>(index);
+            (key++).Destroy();
+            return key;
+         }
+      }();
 
-      // Destroy the key, info and value at the start                   
-      (key++).Destroy();
       *(psl++) = 0;
 
       // And shift backwards, until a zero or 1 is reached              
@@ -52,81 +66,52 @@ namespace Langulus::Anyness
       try_again:
       while (*psl > 1) {
          psl[-1] = (*psl) - 1;
-         (key - 1).New(Abandon(key));
-         (key++).Destroy();
+
+         #if LANGULUS_COMPILER_GCC()
+            #pragma GCC diagnostic push
+            #pragma GCC diagnostic ignored "-Wplacement-new"
+         #endif
+
+         if constexpr (CT::Void<T>) {
+            const_cast<const Block&>(key).Prev()
+               .CallUnknownSemanticConstructors(1, Abandon(key));
+            key.CallUnknownDestructors();
+            key.Next();
+         }
+         else {
+            (key - 1).New(Abandon(key));
+            (key++).Destroy();
+         }
+
+         #if LANGULUS_COMPILER_GCC()
+            #pragma GCC diagnostic pop
+         #endif
+
          *(psl++) = 0;
       }
 
       // Be aware, that psl might loop around                           
+      const auto pslEnd = GetInfoEnd();
       if (psl == pslEnd and *GetInfo() > 1) {
-         psl = GetInfo();
-         key = GetHandle<T>(0);
-
-         // Shift first entry to the back                               
          const auto last = mKeys.mReserved - 1;
+         psl = GetInfo();
          GetInfo()[last] = (*psl) - 1;
 
-         GetHandle<T>(last).New(Abandon(key));
-
-         (key++).Destroy();
-         *(psl++) = 0;
-
-         // And continue the vicious cycle                              
-         goto try_again;
-      }
-
-      // Success                                                        
-      --mKeys.mCount;
-   }
-
-   /// Erases element at a specific index                                     
-   ///   @attention assumes that offset points to a valid entry               
-   ///   @param offset - the index to remove                                  
-   inline void BlockSet::RemoveInnerUnknown(const Offset& offset) IF_UNSAFE(noexcept) {
-      auto psl = GetInfo() + offset;
-      LANGULUS_ASSUME(DevAssumes, *psl, "Removing an invalid key");
-
-      const auto pslEnd = GetInfoEnd();
-      auto key = mKeys.GetElement(offset);
-
-      // Destroy the key, info and value at the offset                  
-      key.CallUnknownDestructors();
-
-      *(psl++) = 0;
-      key.Next();
-
-      // And shift backwards, until a zero or 1 is reached              
-      // That way we move every entry that is far from its start        
-      // closer to it. Moving is costly, unless you use pointers        
-      try_again:
-      while (*psl > 1) {
-         psl[-1] = (*psl) - 1;
-
-         // We're moving only a single element, so no chance of overlap 
-         const_cast<const Block&>(key).Prev()
-            .CallUnknownSemanticConstructors(1, Abandon(key));
-         key.CallUnknownDestructors();
-
-         *(psl++) = 0;
-         key.Next();
-      }
-
-      // Be aware, that psl might loop around                           
-      if (psl == pslEnd and *GetInfo() > 1) UNLIKELY() {
-         psl = GetInfo();
-         key = mKeys.GetElement();
-
          // Shift first entry to the back                               
-         const auto last = mKeys.mReserved - 1;
-         GetInfo()[last] = (*psl) - 1;
-
-         // We're moving only a single element, so no chance of overlap 
-         GetInner(last)
-            .CallUnknownSemanticConstructors(1, Abandon(key));
-         key.CallUnknownDestructors();
+         if constexpr (CT::Void<T>) {
+            key = GetInner(0);
+            GetInner(last)
+               .CallUnknownSemanticConstructors(1, Abandon(key));
+            key.CallUnknownDestructors();
+            key.Next();
+         }
+         else {
+            key = GetHandle<Decvq<T>>(0);
+            GetHandle<Decvq<T>>(last).New(Abandon(key));
+            (key++).Destroy();
+         }
 
          *(psl++) = 0;
-         key.Next();
 
          // And continue the vicious cycle                              
          goto try_again;
