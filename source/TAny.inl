@@ -1257,7 +1257,7 @@ namespace Langulus::Anyness
    Count TAny<T>::Remove(const ALT_T& item) {
       const auto found = Find<REVERSE>(item);
       if (found)
-         return RemoveIndex(found.GetOffset(), 1);
+         return RemoveIndex(found.GetOffsetUnsafe(), 1);
       return 0;
    }
 
@@ -1283,7 +1283,7 @@ namespace Langulus::Anyness
          if (idx.IsSpecial())
             return 0;
 
-         return RemoveIndex(idx.GetOffset(), count);
+         return RemoveIndex(idx.GetOffsetUnsafe(), count);
       }
       else {
          Offset idx;
@@ -1825,11 +1825,13 @@ namespace Langulus::Anyness
                h << element ? element->GetHash() : Hash {};
             return h.GetHash();
          }
-         else return HashBytes(mRaw, static_cast<int>(GetBytesize()));
+         else return HashBytes<DefaultHashSeed, false>(
+            mRaw, static_cast<int>(GetBytesize()));
       }
       else if constexpr (CT::POD<T> and not CT::Hashable<T>) {
          // Hash all PODs at once                                       
-         return HashBytes(mRaw, static_cast<int>(GetBytesize()));
+         return HashBytes<DefaultHashSeed, alignof(T) < Bitness / 8>(
+            mRaw, static_cast<int>(GetBytesize()));
       }
       else {
          // Hash each element, and then combine hashes in a final one   

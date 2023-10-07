@@ -15,11 +15,11 @@ namespace Langulus::Anyness
    /// Iterate each element block and execute F for it                        
    ///   @tparam REVERSE - whether to iterate in reverse                      
    ///   @tparam MUTABLE - are we executing in a mutable, or immutable blocks 
-   ///   @tparam F - the function signature (deducible)                       
    ///   @param call - function to execute for each element block             
    ///   @return the number of executions                                     
-   template<bool REVERSE, bool MUTABLE, class F>
-   Count Block::ForEachElement(F&& call) {
+   template<bool REVERSE, bool MUTABLE>
+   Count Block::ForEachElement(auto&& call) {
+      using F = Deref<decltype(call)>;
       using A = ArgumentOf<F>;
       using R = ReturnOf<F>;
 
@@ -47,12 +47,11 @@ namespace Langulus::Anyness
 
    /// Iterate each immutable element block and execute F for it              
    ///   @tparam REVERSE - whether to iterate in reverse                      
-   ///   @tparam F - the function signature                                   
    ///   @param call - function to execute for each constant element block    
    ///   @return the number of executions                                     
-   template<bool REVERSE, class F>
+   template<bool REVERSE>
    LANGULUS(INLINED)
-   Count Block::ForEachElement(F&& call) const {
+   Count Block::ForEachElement(auto&& call) const {
       return const_cast<Block&>(*this).template
          ForEachElement<REVERSE, false>(call);
    }
@@ -167,12 +166,11 @@ namespace Langulus::Anyness
    ///   @tparam REVERSE - whether to iterate in reverse                      
    ///	@tparam MUTABLE - whether or not a change to container is allowed    
    ///                     while iterating (iteration is slower if true)      
-   ///	@tparam F - function signature for f() (deducible)                   
    ///   @param f - the function to execute for each element of type A        
    ///   @return the number of executions that occured                        
-   template<class R, CT::Data A, bool REVERSE, bool MUTABLE, class F>
+   template<class R, CT::Data A, bool REVERSE, bool MUTABLE>
    LANGULUS(INLINED)
-   Count Block::ForEachInner(F&& f) noexcept(NoexceptIterator<decltype(f)>) {
+   Count Block::ForEachInner(auto&& f) noexcept(NoexceptIterator<decltype(f)>) {
       constexpr auto NOE = NoexceptIterator<decltype(f)>;
       if (CT::Block<Decay<A>> != IsDeep() or not CastsTo<A>())
          return 0;
@@ -214,8 +212,8 @@ namespace Langulus::Anyness
    ///                     while iterating (iteration is slower if true)      
    ///   @param call - the function to execute for each element of type A     
    ///   @return the number of executions that occured                        
-   template<class R, CT::Data A, bool REVERSE, bool SKIP, bool MUTABLE, class F>
-   Count Block::ForEachDeepInner(F&& call) {
+   template<class R, CT::Data A, bool REVERSE, bool SKIP, bool MUTABLE>
+   Count Block::ForEachDeepInner(auto&& call) {
       constexpr bool HasBreaker = CT::Bool<R>;
       using DA = Decay<A>;
 
@@ -248,7 +246,7 @@ namespace Langulus::Anyness
                [&counter, &call](BlockType group) {
                   counter += const_cast<DA*>(group)->
                      template ForEachDeepInner<R, A, REVERSE, SKIP, MUTABLE>(
-                        Forward<F>(call));
+                        ::std::move(call));
                }
             );
          }
@@ -261,13 +259,13 @@ namespace Langulus::Anyness
                [&counter, &call](BlockType group) {
                   counter += const_cast<Block&>(group).
                      template ForEachDeepInner<R, A, REVERSE, SKIP, MUTABLE>(
-                        Forward<F>(call));
+                        ::std::move(call));
                }
             );
          }
          else {
             // Equivalent to non-deep iteration                         
-            counter += ForEachInner<R, A, REVERSE, MUTABLE>(Forward<F>(call));
+            counter += ForEachInner<R, A, REVERSE, MUTABLE>(::std::move(call));
          }
       }
 
@@ -286,13 +284,13 @@ namespace Langulus::Anyness
    ///   @tparam MUTABLE - whether or not block's allowed to change during    
    ///                     iteration (iteration is slower if true)            
    ///   @param call - the constexpr noexcept function to call on each item   
-   template<class R, CT::Data A, bool REVERSE, bool MUTABLE, class F>
+   template<class R, CT::Data A, bool REVERSE, bool MUTABLE>
    LANGULUS(INLINED)
-   void Block::IterateInner(F&& f) noexcept(NoexceptIterator<decltype(f)>) {
+   void Block::IterateInner(auto&& f) noexcept(NoexceptIterator<decltype(f)>) {
       static_assert(CT::Complete<Decay<A>> or CT::Sparse<A>,
          "Can't iterate with incomplete type, use pointer instead");
-      static_assert(CT::Constant<A> or MUTABLE,
-         "Non constant iterator for constant memory is not allowed");
+      static_assert(CT::Constant<Deptr<A>> or MUTABLE,
+         "Non-constant iterator for constant memory is not allowed");
 
       LANGULUS_ASSUME(DevAssumes, IsTyped(),
          "Block is not typed");

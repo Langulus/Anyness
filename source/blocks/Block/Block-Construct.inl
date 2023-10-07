@@ -54,11 +54,8 @@ namespace Langulus::Anyness
    ///   @param count - initial element count and reserve                     
    ///   @param raw - pointer to the mutable memory                           
    LANGULUS(INLINED)
-   Block::Block(const DataState& state
-      , DMeta meta
-      , Count count
-      , void* raw
-   ) IF_UNSAFE(noexcept)
+   Block::Block(const DataState& state, DMeta meta, Count count, void* raw)
+      IF_UNSAFE(noexcept)
       : Block {
          state + DataState::Member,
          meta, count, raw, Allocator::Find(meta, raw)
@@ -72,13 +69,10 @@ namespace Langulus::Anyness
    ///   @param count - initial element count and reserve                     
    ///   @param raw - pointer to the constant memory                          
    LANGULUS(INLINED)
-   Block::Block(const DataState& state
-      , DMeta meta
-      , Count count
-      , const void* raw
-   ) IF_UNSAFE(noexcept)
+   Block::Block(const DataState& state, DMeta meta, Count count, const void* raw)
+      IF_UNSAFE(noexcept)
       : Block {state + DataState::Constant, meta, count, const_cast<void*>(raw)}
-   { }
+   {}
 
    /// Manual construction from mutable data and known entry                  
    ///   @attention assumes data is not sparse                                
@@ -88,19 +82,14 @@ namespace Langulus::Anyness
    ///   @param raw - pointer to the mutable memory                           
    ///   @param entry - the memory entry                                      
    LANGULUS(INLINED)
-   Block::Block(const DataState& state
-      , DMeta meta
-      , Count count
-      , void* raw
-      , Allocation* entry
-   ) IF_UNSAFE(noexcept)
+   Block::Block(const DataState& state, DMeta meta, Count count, void* raw, Allocation* entry)
+      IF_UNSAFE(noexcept)
       : mRaw {static_cast<Byte*>(raw)}
       , mState {state}
       , mCount {count}
       , mReserved {count}
       , mType {meta}
-      , mEntry {entry}
-   {
+      , mEntry {entry} {
       LANGULUS_ASSUME(DevAssumes, raw, "Invalid data pointer");
       LANGULUS_ASSUME(DevAssumes, meta, "Invalid data type");
       LANGULUS_ASSUME(DevAssumes, not meta->mIsSparse,
@@ -115,12 +104,8 @@ namespace Langulus::Anyness
    ///   @param raw - pointer to the constant memory                          
    ///   @param entry - the memory entry                                      
    LANGULUS(INLINED)
-   Block::Block(const DataState& state
-      , DMeta meta
-      , Count count
-      , const void* raw
-      , Allocation* entry
-   ) IF_UNSAFE(noexcept)
+   Block::Block(const DataState& state, DMeta meta, Count count, const void* raw, Allocation* entry)
+      IF_UNSAFE(noexcept)
       : Block {state + DataState::Constant, meta, count, const_cast<void*>(raw), entry}
    {}
    
@@ -133,9 +118,9 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Block Block::From(T value) requires CT::Sparse<T> {
       if constexpr (CONSTRAIN)
-         return {DataState::Member, MetaData::Of<Deptr<T>>(), 1, value};
+         return {DataState::Member, RTTI::MetaData::Of<Deptr<T>>(), 1, value};
       else
-         return {DataState::Static, MetaData::Of<Deptr<T>>(), 1, value};
+         return {DataState::Static, RTTI::MetaData::Of<Deptr<T>>(), 1, value};
    }
 
    /// Create a memory block from a count-terminated array pointer            
@@ -148,9 +133,9 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Block Block::From(T value, Count count) requires CT::Sparse<T> {
       if constexpr (CONSTRAIN)
-         return {DataState::Member, MetaData::Of<Deptr<T>>(), count, value};
+         return {DataState::Member, RTTI::MetaData::Of<Deptr<T>>(), count, value};
       else
-         return {DataState::Static, MetaData::Of<Deptr<T>>(), count, value};
+         return {DataState::Static, RTTI::MetaData::Of<Deptr<T>>(), count, value};
    }
 
    /// Create a dense memory block, by interfacing a single value             
@@ -177,7 +162,7 @@ namespace Langulus::Anyness
          // Any other value gets wrapped inside a temporary Block       
          result = {
             DataState::Static, 
-            MetaData::Of<Decvq<Deref<T>>>(), 
+            RTTI::MetaData::Of<Decvq<Deref<T>>>(),
             1, &value
          };
       }
@@ -195,9 +180,9 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Block Block::From() {
       if constexpr (CONSTRAIN)
-         return {DataState::Typed, MetaData::Of<T>()};
+         return {DataState::Typed, RTTI::MetaData::Of<T>()};
       else
-         return {MetaData::Of<T>()};
+         return {RTTI::MetaData::Of<T>()};
    }
 
    /// Semantic assignment                                                    

@@ -9,7 +9,7 @@
 #pragma once
 #include "Handle.hpp"
 
-#define TEMPLATE() template<class T, bool EMBED>
+#define TEMPLATE() template<CT::NotHandle T, bool EMBED>
 #define HAND() Handle<T, EMBED>
 
 namespace Langulus::Anyness
@@ -17,12 +17,10 @@ namespace Langulus::Anyness
 
    /// Semantically construct a handle from pointer/handle                    
    ///   @attention handles have no ownership, so no referencing happens      
-   ///   @tparam S - the semantic and type to use for the handle              
    ///   @param other - the value to use for construction                     
-   TEMPLATE()
-   template<CT::Semantic S>
-   LANGULUS(INLINED)
-   constexpr HAND()::Handle(S&& other) noexcept requires (not EMBED) {
+   TEMPLATE() LANGULUS(INLINED)
+   constexpr HAND()::Handle(CT::Semantic auto&& other) noexcept requires (not EMBED) {
+      using S = Deref<decltype(other)>;
       using ST = TypeOf<S>;
 
       if constexpr (CT::Handle<ST>) {
@@ -71,7 +69,7 @@ namespace Langulus::Anyness
                SemanticAssign<T>(mValue, other.template Forward<T>());
 
             if constexpr (CT::Sparse<T> and CT::Allocatable<DT> and (S::Keep or S::Move))
-               mEntry = Allocator::Find(MetaData::Of<DT>(), mValue);
+               mEntry = Allocator::Find(RTTI::MetaData::Of<DT>(), mValue);
             else
                mEntry = nullptr;
          }
@@ -227,10 +225,9 @@ namespace Langulus::Anyness
    /// Semantically assign anything at the handle, ignoring the old handle    
    ///   @tparam S - the semantic to use                                      
    ///   @param rhs - what are we assigning                                   
-   TEMPLATE()
-   template<CT::Semantic S>
-   LANGULUS(INLINED)
-   void HAND()::New(S&& rhs) {
+   TEMPLATE() LANGULUS(INLINED)
+   void HAND()::New(CT::Semantic auto&& rhs) {
+      using S = Deref<decltype(rhs)>;
       using ST = TypeOf<S>;
 
       if constexpr (S::Shallow and CT::Sparse<T>) {
@@ -344,10 +341,10 @@ namespace Langulus::Anyness
    ///   @tparam S - semantic to use for assignment (deducible)               
    ///   @param meta - the reflected type to use for assignment               
    ///   @param rhs - the data to assign                                      
-   TEMPLATE()
-   template<CT::Semantic S>
-   LANGULUS(INLINED)
-   void HAND()::NewUnknown(DMeta meta, S&& rhs) {
+   TEMPLATE() LANGULUS(INLINED)
+   void HAND()::NewUnknown(DMeta meta, CT::Semantic auto&& rhs) {
+      using S = Deref<decltype(rhs)>;
+
       if constexpr (S::Shallow) {
          // Do a copy/disown/abandon/move                               
          New(rhs.Forward());
@@ -375,10 +372,8 @@ namespace Langulus::Anyness
    /// Dereference/destroy the current handle contents, and set new ones      
    ///   @tparam S - the semantic to use for the assignment                   
    ///   @param rhs - new contents to assign                                  
-   TEMPLATE()
-   template<CT::Semantic S>
-   LANGULUS(INLINED)
-   void HAND()::Assign(S&& rhs) {
+   TEMPLATE() LANGULUS(INLINED)
+   void HAND()::Assign(CT::Semantic auto&& rhs) {
       Destroy();
       New(rhs.Forward());
    }

@@ -96,8 +96,8 @@ namespace Langulus::Anyness
       while (info != infoEnd) {
          if (*info) {
             const auto lhs = info - Base::GetInfo();
-            const auto rhs = other.FindIndex(Base::GetRaw(lhs));
-            if (rhs == other.GetReserved())
+            const auto rhs = other.FindInner(Base::GetRaw(lhs));
+            if (rhs == BlockMap::InvalidOffset)
                return false;
          }
 

@@ -14,25 +14,24 @@ namespace Langulus::Anyness
    
    /// Remove the first occurence of a given item                             
    ///   @tparam REVERSE - whether to search from the back                    
-   ///   @tparam T - the type to search for (deducible)                       
    ///   @param item - the item type to search for and remove                 
    ///   @return 1 if the element was found and removed, 0 otherwise          
-   template<bool REVERSE, CT::Data T>
+   template<bool REVERSE>
    LANGULUS(INLINED)
-   Count Block::Remove(const T& item) {
+   Count Block::Remove(const CT::Data auto& item) {
       const auto found = FindKnown<REVERSE>(item);
       if (found)
-         return RemoveIndex(found.GetOffset(), 1);
+         return RemoveIndex(found.GetOffsetUnsafe(), 1);
       return 0;
    }
    
    /// Remove sequential indices                                              
-   ///   @tparam INDEX - the type of indexing to use                          
    ///   @param index - index to start removing from                          
    ///   @param count - number of items to remove                             
    ///   @return the number of removed elements                               
-   template<CT::Index INDEX>
-   Count Block::RemoveIndex(const INDEX& index, const Count count) {
+   inline Count Block::RemoveIndex(const CT::Index auto& index, const Count count) {
+      using INDEX = Deref<decltype(index)>;
+
       if constexpr (CT::Same<INDEX, Index>) {
          // By special indices                                          
          if (index == IndexAll) {
@@ -47,7 +46,7 @@ namespace Langulus::Anyness
          if (idx.IsSpecial())
             return 0;
 
-         return RemoveIndex(idx.GetOffset(), count);
+         return RemoveIndex(idx.GetOffsetUnsafe(), count);
       }
       else {
          Offset idx;
@@ -103,12 +102,10 @@ namespace Langulus::Anyness
    }
 
    /// Remove a deep index corresponding to a whole sub-block                 
-   ///   @tparam INDEX - the type of indexing to use                          
    ///   @param index - index to remove                                       
    ///   @return 1 if block at that index was removed, 0 otherwise            
-   template<CT::Index INDEX>
-   Count Block::RemoveIndexDeep(INDEX index) {
-      if constexpr (not CT::Same<INDEX, Index>) {
+   inline Count Block::RemoveIndexDeep(CT::Index auto index) {
+      if constexpr (not CT::Same<decltype(index), Index>) {
          if (not IsDeep())
             return 0;
 

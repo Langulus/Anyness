@@ -11,18 +11,19 @@
 #include "Block-Indexing.inl"
 #include <RTTI/Hash.hpp>
 
-#define VERBOSE(...) //Logger::Verbose(_VA_ARGS_)
+#define VERBOSE(...)     //Logger::Verbose(_VA_ARGS_)
 #define VERBOSE_TAB(...) //auto tab = Logger::Section(__VA_ARGS__)
+
 
 namespace Langulus::Anyness
 {
    
    /// Compare to any other kind of deep container, or single custom element  
-   ///   @tparam T - type to use for comparison (deducible)                   
    ///   @param rhs - element to compare against                              
    ///   @return true if containers match                                     
-   template<CT::NotSemantic T>
-   bool Block::operator == (const T& rhs) const {
+   LANGULUS(INLINED)
+   bool Block::operator == (const CT::NotSemantic auto& rhs) const {
+      using T = Deref<decltype(rhs)>;
       if constexpr (CT::Deep<T>)
          return Compare(rhs) or CompareSingleValue<T>(rhs);
       else
@@ -248,10 +249,13 @@ namespace Langulus::Anyness
             return Get<Hash>();
          else if (mType->mHasher)
             return mType->mHasher(mRaw);
-         else if (mType->mIsPOD)
-            return HashBytes(mRaw, static_cast<int>(mType->mSize));
-         else
-            LANGULUS_OOPS(Access, "Unhashable type", ": ", GetToken());
+         else if (mType->mIsPOD) {
+            if (mType->mAlignment < Bitness/8)
+               return HashBytes<DefaultHashSeed, true>(mRaw, static_cast<int>(mType->mSize));
+            else
+               return HashBytes<DefaultHashSeed, false>(mRaw, static_cast<int>(mType->mSize));
+         }
+         else LANGULUS_OOPS(Access, "Unhashable type", ": ", GetToken());
       }
 
       // Hashing multiple elements                                      
@@ -261,8 +265,13 @@ namespace Langulus::Anyness
             auto h = Block::From<Hash, true>();
             h.AllocateFresh(h.RequestSize(mCount));
 
-            for (Count i = 0; i < mCount; ++i)
-               h.InsertInner(Copy(As<RTTI::Meta>(i).GetHash()), i);
+            for (Count i = 0; i < mCount; ++i) {
+               auto meta = As<const RTTI::Meta*>(i);
+               if (meta)
+                  h.InsertInner(Copy(meta->GetHash()), i);
+               else
+                  h.InsertInner(Copy(Hash {}), i);
+            }
 
             const auto result = HashBytes<DefaultHashSeed, false>(
                h.GetRaw(), static_cast<int>(h.GetBytesize()));
@@ -270,11 +279,7 @@ namespace Langulus::Anyness
             h.Free();
             return result;
          }
-         else return HashBytes(mRaw, static_cast<int>(GetBytesize()));
-      }
-      else if (mType->mIsPOD and not mType->mHasher) {
-         // Hash all PODs at once                                       
-         return HashBytes(mRaw, static_cast<int>(GetBytesize()));
+         else return HashBytes<DefaultHashSeed, false>(mRaw, static_cast<int>(GetBytesize()));
       }
       else if (mType->mHasher) {
          // Use the reflected hasher for each element, and then combine 
@@ -293,18 +298,25 @@ namespace Langulus::Anyness
          h.Free();
          return result;
       }
+      else if (mType->mIsPOD) {
+         if (mType->mAlignment < Bitness / 8)
+            return HashBytes<DefaultHashSeed, true>(mRaw, static_cast<int>(GetBytesize()));
+         else
+            return HashBytes<DefaultHashSeed, false>(mRaw, static_cast<int>(GetBytesize()));
+      }
       else LANGULUS_OOPS(Access, "Unhashable type", ": ", GetToken());
       return {};
    }
    
    /// Find first matching element position inside container                  
    ///   @tparam REVERSE - true to perform search in reverse                  
-   ///   @tparam T - type to use for comparison (deducible)                   
    ///   @param item - the item to search for                                 
    ///   @param cookie - continue search from a given offset                  
    ///   @return the index of the found item, or IndexNone if not found       
-   template<bool REVERSE, CT::NotSemantic T>
-   Index Block::FindKnown(const T& item, const Offset& cookie) const {
+   template<bool REVERSE>
+   Index Block::FindKnown(const CT::NotSemantic auto& item, const Offset& cookie) const {
+      using T = Deref<decltype(item)>;
+
       // First check if element is contained inside this block's        
       // memory, because if so, we can easily find it, without calling  
       // a single compare function                                      
@@ -392,12 +404,11 @@ namespace Langulus::Anyness
 
    /// Find first matching element position inside container, deeply          
    ///   @tparam REVERSE - true to perform search in reverse                  
-   ///   @tparam T - type to use for comparison (deducible)                   
    ///   @param item - the item to search for                                 
    ///   @param cookie - continue search from a given offset                  
    ///   @return the index of the found item, or IndexNone if not found       
-   template<bool REVERSE, CT::NotSemantic T>
-   Index Block::FindDeep(const T& item, Offset cookie) const {
+   template<bool REVERSE>
+   Index Block::FindDeep(const CT::NotSemantic auto& item, Offset cookie) const {
       Index found;
       ForEachDeep<REVERSE>([&](const Block& group) {
          if (cookie) {
@@ -406,7 +417,7 @@ namespace Langulus::Anyness
          }
 
          found = group.template FindKnown<REVERSE>(item);
-         return !found;
+         return not found;
       });
 
       return found;
@@ -415,9 +426,9 @@ namespace Langulus::Anyness
    /// Compare with one single value, if exactly one element is contained     
    ///   @param rhs - the value to compare against                            
    ///   @return true if elements are the same                                
-   template<class T>
    LANGULUS(INLINED)
-   bool Block::CompareSingleValue(const T& rhs) const {
+   bool Block::CompareSingleValue(const CT::NotSemantic auto& rhs) const {
+      using T = Deref<decltype(rhs)>;
       if (mCount != 1 or IsUntyped())
          return false;
 
@@ -427,12 +438,23 @@ namespace Langulus::Anyness
             return false;
          return GetRawAs<Block>()->Compare(rhs);
       }
+      else if constexpr (CT::Array<T> and CT::ExactAsOneOf<Decvq<Deext<T>>, char, wchar_t>) {
+         if (mType->template IsSimilar<Text>()) {
+            // Implicitly make a text container on string literal       
+            return *GetRawAs<Text>() == Text {Disown(rhs)};
+         }
+         else if (mType->template IsSimilar<char*, wchar_t*>()) {
+            // Cast away the extent, compare against pointer            
+            return *GetRawSparse() == static_cast<const void*>(rhs);
+         }
+         else return false;
+      }
       else {
          // Non-deep element compare                                    
          static_assert(CT::Inner::Comparable<T>,
             "T is not equality-comparable");
 
-         if (not mType->template IsExact<T>())
+         if (not mType->template IsSimilar<T>())
             return false;
          return *GetRawAs<T>() == rhs;
       }
@@ -515,8 +537,9 @@ namespace Langulus::Anyness
    ///   @return true if comparison returns true                              
    LANGULUS(INLINED)
    bool Block::CallComparer(const Block& right, const RTTI::Base& base) const {
-      return mRaw == right.mRaw 
-          or (mRaw and right.mRaw and base.mType->mComparer(mRaw, right.mRaw));
+      return  mRaw == right.mRaw 
+          or (mRaw and right.mRaw
+         and  base.mType->mComparer(mRaw, right.mRaw));
    }
 
    /// Gather items from input container, and fill output                     

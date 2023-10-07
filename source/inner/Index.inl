@@ -15,12 +15,14 @@ namespace Langulus::Anyness
 
    /// Constructor from special index                                         
    ///   @param value - the index to copy                                     
+   LANGULUS(INLINED)
    constexpr Index::Index(const SpecialIndices& value) noexcept
       : mIndex {value} { }
 
    /// Constructor from signed integer                                        
    ///   @param value - integer to set                                        
    template<CT::SignedInteger T>
+   LANGULUS(INLINED)
    constexpr Index::Index(const T& value) noexcept (sizeof(T) < sizeof(Type))
       : mIndex {value} {
       if constexpr (sizeof(T) >= sizeof(Type))
@@ -34,6 +36,7 @@ namespace Langulus::Anyness
    /// Constructor from unsigned integer                                      
    ///   @param value - integer to set                                        
    template<CT::UnsignedInteger T>
+   LANGULUS(INLINED)
    constexpr Index::Index(const T& value) noexcept (sizeof(T) <= sizeof(Type) / 2)
       : mIndex {static_cast<Type>(value)} {
       if constexpr (sizeof(T) > sizeof(Type)/2) {
@@ -44,8 +47,8 @@ namespace Langulus::Anyness
 
    /// Constructor from real number (round to nearest)                        
    ///   @param value - real to set                                           
-   template<CT::Real T>
-   constexpr Index::Index(const T& value)
+   LANGULUS(INLINED)
+   constexpr Index::Index(const CT::Real auto& value)
       : mIndex {static_cast<Type>(value)} {
       LANGULUS_ASSERT(IsArithmetic(), Access, "Index is not arithmetic");
    }
@@ -53,6 +56,7 @@ namespace Langulus::Anyness
    /// Constrain the index to some count (immutable)                          
    ///   If index is out of scope, return None                                
    ///   If index is special - return it as it is                             
+   LANGULUS(INLINED)
    constexpr Index Index::Constrained(const Count count) const noexcept {
       switch (mIndex) {
       case Auto: case First: case Front:
@@ -86,20 +90,30 @@ namespace Langulus::Anyness
    /// Get an unsigned offset from the index, if possible                     
    /// Throws Except::Access if not possible to extract index                 
    ///   @return a valid offset                                               
-   inline Offset Index::GetOffset() const {
+   LANGULUS(INLINED)
+   Offset Index::GetOffset() const {
       LANGULUS_ASSERT(not IsSpecial(), Access,
          "Can't convert index to offset");
+      return static_cast<Offset>(mIndex);
+   }
+   
+   /// Return the internal value without any safety checks                    
+   ///   @return the offset                                                   
+   LANGULUS(INLINED)
+   Offset Index::GetOffsetUnsafe() const noexcept {
       return static_cast<Offset>(mIndex);
    }
 
    /// Constrain the index to some count (destructive)                        
    ///   @param count - the count to constrain to                             
+   LANGULUS(INLINED)
    constexpr void Index::Constrain(const Count count) noexcept {
       *this = Constrained(count); 
    }
 
    /// Concatenate index (destructive)                                        
    ///   @param count - the count to constrain to                             
+   LANGULUS(INLINED)
    constexpr void Index::Concat(const Index& other) noexcept {
       if (IsSpecial())
          return;
@@ -114,83 +128,98 @@ namespace Langulus::Anyness
    }
 
    /// Check validity                                                         
+   LANGULUS(INLINED)
    constexpr bool Index::IsValid() const noexcept {
       return mIndex != None;
    }
 
    /// Check invalidity                                                       
+   LANGULUS(INLINED)
    constexpr bool Index::IsInvalid() const noexcept {
       return mIndex == None;
    }
 
    /// Check if index is special                                              
+   LANGULUS(INLINED)
    constexpr bool Index::IsSpecial() const noexcept {
       return mIndex < 0;
    }
 
    /// Check if index is special                                              
+   LANGULUS(INLINED)
    constexpr bool Index::IsReverse() const noexcept {
       return IsSpecial() and IsArithmetic();
    }
 
    /// Check if index is special                                              
+   LANGULUS(INLINED)
    constexpr bool Index::IsArithmetic() const noexcept {
       return mIndex >= Counter;
    }
 
    /// Return true if index is valid                                          
+   LANGULUS(INLINED)
    constexpr Index::operator bool () const noexcept {
       return IsValid();
    }
 
    /// Convert to any kind of number                                          
+   LANGULUS(INLINED)
    constexpr Index::operator const Type& () const noexcept {
       return mIndex;
    }
 
    /// Destructive increment by 1                                             
+   LANGULUS(INLINED)
    constexpr void Index::operator ++ () noexcept {
       if (IsArithmetic())
          ++mIndex; 
    }
 
    /// Destructive decrement by 1                                             
+   LANGULUS(INLINED)
    constexpr void Index::operator -- () noexcept {
       if (IsArithmetic())
          --mIndex;
    }
 
    /// Index - Index Arithmetics                                              
+   LANGULUS(INLINED)
    constexpr void Index::operator += (const Index& v) noexcept {
       if (not IsArithmetic() or not v.IsArithmetic())
          return; 
       mIndex += v.mIndex; 
    }
 
+   LANGULUS(INLINED)
    constexpr void Index::operator -= (const Index& v) noexcept {
       if (not IsArithmetic() or not v.IsArithmetic())
          return;
       mIndex -= v.mIndex; 
    }
 
+   LANGULUS(INLINED)
    constexpr void Index::operator *= (const Index& v) noexcept {
       if (not IsArithmetic() or not v.IsArithmetic())
          return;
       mIndex *= v.mIndex; 
    }
 
+   LANGULUS(INLINED)
    constexpr void Index::operator /= (const Index& v) noexcept {
       if (not IsArithmetic() or not v.IsArithmetic())
          return;
       mIndex /= v.mIndex; 
    }
 
+   LANGULUS(INLINED)
    constexpr Index Index::operator + (const Index& v) const noexcept {
       if (not IsArithmetic() or not v.IsArithmetic())
          return *this;
       return mIndex + v.mIndex; 
    }
 
+   LANGULUS(INLINED)
    constexpr Index Index::operator - (const Index& v) const noexcept {
       if (not IsArithmetic() or not v.IsArithmetic()
          or mIndex - v.mIndex < Counter)
@@ -198,12 +227,14 @@ namespace Langulus::Anyness
       return mIndex - v.mIndex; 
    }
 
+   LANGULUS(INLINED)
    constexpr Index Index::operator * (const Index& v) const noexcept {
       if (not IsArithmetic() or not v.IsArithmetic())
          return *this;
       return mIndex * v.mIndex; 
    }
 
+   LANGULUS(INLINED)
    constexpr Index Index::operator / (const Index& v) const noexcept {
       if (not IsArithmetic() or not v.IsArithmetic())
          return *this;
@@ -211,6 +242,7 @@ namespace Langulus::Anyness
    }
 
    /// Invert the index                                                       
+   LANGULUS(INLINED)
    constexpr Index Index::operator - () const noexcept {
       if (IsArithmetic())
          return *this; 
@@ -218,13 +250,12 @@ namespace Langulus::Anyness
    }
 
    /// Comparison                                                             
+   LANGULUS(INLINED)
    constexpr bool Index::operator == (const Index& v) const noexcept {
       return mIndex == v.mIndex;
    }
-   constexpr bool Index::operator != (const Index& v) const noexcept {
-      return mIndex != v.mIndex;
-   }
 
+   LANGULUS(INLINED)
    constexpr bool Index::operator < (const Index& v) const noexcept {
       switch (mIndex) {
       case All: case Many: case Single:
@@ -265,14 +296,17 @@ namespace Langulus::Anyness
       }
    }
 
+   LANGULUS(INLINED)
    constexpr bool Index::operator > (const Index& v) const noexcept {
       return *this != v and not (*this < v);
    }
 
+   LANGULUS(INLINED)
    constexpr bool Index::operator <= (const Index& v) const noexcept {
       return *this == v or (*this < v);
    }
 
+   LANGULUS(INLINED)
    constexpr bool Index::operator >= (const Index& v) const noexcept {
       return *this == v or not (*this < v);
    }

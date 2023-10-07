@@ -70,6 +70,29 @@ namespace Langulus::Anyness
       return {Langulus::Clone(mKey), Langulus::Clone(mValue)};
    }
 
+   TEMPLATE_PAIR() LANGULUS(INLINED)
+   constexpr PAIR()::operator TPair<const Deref<K>&, const Deref<V>&>() const noexcept {
+      return {mKey, mValue};
+   }
+
+   TEMPLATE_PAIR() LANGULUS(INLINED)
+   constexpr PAIR()::operator TPair<Deref<K>&, Deref<V>&>() const noexcept
+   requires CT::Mutable<K, V> {
+      return {mKey, mValue};
+   }
+
+   TEMPLATE_PAIR() LANGULUS(INLINED)
+   constexpr PAIR()::operator TPair<const Deref<K>&, Deref<V>&>() const noexcept
+   requires CT::Mutable<V> {
+      return {mKey, mValue};
+   }
+
+   TEMPLATE_PAIR() LANGULUS(INLINED)
+   constexpr PAIR()::operator TPair<Deref<K>&, const Deref<V>&>() const noexcept
+   requires CT::Mutable<K> {
+      return {mKey, mValue};
+   }
+
    /// Get the pair's hash                                                    
    ///   @attention hash is not cached, so this function is slow              
    ///   @return the hash                                                     

@@ -128,8 +128,8 @@ namespace Langulus::Anyness
       NOD() bool Contains(const T&) const;
       NOD() Index Find(const T&) const;
 
-   protected:
-      NOD() Offset FindIndex(const T&) const;
+   //protected:
+      //NOD() Offset FindIndex(const T&) const;
 
    public:
       ///                                                                     
@@ -171,8 +171,7 @@ namespace Langulus::Anyness
       ///   Removal                                                           
       ///                                                                     
       Count Remove(const T&);
-      Count RemoveIndex(const Index&);
-      Iterator RemoveIndex(const Iterator&);
+      Iterator RemoveIt(const Iterator&);
 
       void Clear();
       void Reset();
@@ -180,11 +179,9 @@ namespace Langulus::Anyness
 
    protected:
       void ClearInner();
-      template<class ALT_T>
-      static void RemoveInner(ALT_T*) noexcept;
+
       template<class ALT_T>
       static void Overwrite(ALT_T&&, ALT_T&) noexcept;
-      void RemoveIndex(const Offset&) IF_UNSAFE(noexcept);
    };
 
 

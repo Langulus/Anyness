@@ -568,32 +568,32 @@ namespace Langulus::Anyness
       else if constexpr (CT::Same<T, MetaData>) {
          // Insert an empty Construct to signify solo type ID           
          const auto meta = SparseCast(*rhs);
-         mAnythingElse[meta ? meta->mOrigin : nullptr] << Any {};
+         mAnythingElse.Insert(meta ? meta->mOrigin : nullptr, Any {});
       }
       else if constexpr (CT::Same<T, MetaTrait>) {
          // Insert empty Any to signify trait without content           
-         mTraits[SparseCast(*rhs)] << Any {};
+         mTraits.Insert(SparseCast(*rhs), Any {});
       }
       else if constexpr (CT::Same<T, MetaConst>) {
          // Expand the constant, and push it                            
          Any wrapped = Clone(Block {{}, SparseCast(*rhs)});
          const auto meta = wrapped.GetType() ? wrapped.GetType()->mOrigin : nullptr;
-         mAnythingElse[meta] << Abandon(wrapped);
+         mAnythingElse.Insert(meta, Abandon(wrapped));
       }
       else if constexpr (CT::Construct<T>) {
          // Construct's arguments are always Neat                       
          const auto meta = rhs->GetType() ? rhs->GetType()->mOrigin : nullptr;
-         mConstructs[meta] << Inner::DeConstruct {
+         mConstructs.Insert(meta, Inner::DeConstruct {
             rhs->GetHash(),
             rhs->GetCharge(),
             rhs->GetArgument()
-         };
+         });
       }
       else if constexpr (CT::Deep<T>) {
          // Push anything deep here, flattening it, unless it has state 
          if (rhs->GetUnconstrainedState()) {
             const auto meta = rhs->GetType() ? rhs->GetType()->mOrigin : nullptr;
-            mAnythingElse[meta] << Messy {rhs.Forward()};
+            mAnythingElse.Insert(meta, Messy {rhs.Forward()});
          }
          else if (rhs->IsDeep()) {
             rhs->ForEach([&](const Any& group) {
@@ -604,11 +604,11 @@ namespace Langulus::Anyness
             if (not rhs->ForEach(
                [&](const Construct& c) {
                   const auto meta = c.GetType() ? c.GetType()->mOrigin : nullptr;
-                  mConstructs[meta] << Inner::DeConstruct {
+                  mConstructs.Insert(meta, Inner::DeConstruct {
                      c.GetHash(),
                      c.GetCharge(),
                      c.GetArgument()
-                  };
+                  });
                },
                [&](const Neat& neat) {
                   Merge(neat);
@@ -617,23 +617,26 @@ namespace Langulus::Anyness
                   AddTrait(S::Nest(const_cast<Trait&>(trait)));
                },
                [&](const MetaData* meta) {
-                  mAnythingElse[meta ? meta->mOrigin : nullptr] << Any {};
+                  const auto dmeta = meta ? meta->mOrigin : nullptr;
+                  mAnythingElse.Insert(dmeta, Any {});
                },
                [&](const MetaTrait* meta) {
-                  mTraits[meta] << Any {};
+                  mTraits.Insert(meta, Any {});
                },
                [&](const MetaConst* meta) {
                   Any wrapped = Clone(Block {{}, meta});
                   const auto dmeta = wrapped.GetType() ? wrapped.GetType()->mOrigin : nullptr;
-                  mAnythingElse[dmeta] << Abandon(wrapped);
+                  mAnythingElse.Insert(dmeta, Abandon(wrapped));
                }
             )) {
-               mAnythingElse[rhs->GetType() ? rhs->GetType()->mOrigin : nullptr] << rhs.Forward();
+               const auto meta = rhs->GetType() ? rhs->GetType()->mOrigin : nullptr;
+               mAnythingElse.Insert(meta, rhs.Forward());
             }
          }
       }
       else {
-         mAnythingElse[MetaData::Of<Decay<T>>()] << rhs.Forward();
+         const auto meta = RTTI::MetaData::Of<Decay<T>>();
+         mAnythingElse.Insert(meta, rhs.Forward());
       }
 
       // Demand a new hash on the next compare                          

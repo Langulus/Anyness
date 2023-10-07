@@ -109,20 +109,25 @@ namespace Langulus::Anyness
       NOD() bool ContainsKey(const K&) const;
       NOD() bool ContainsValue(const V&) const requires (CT::Inner::Comparable<V>);
       NOD() bool ContainsPair(const Pair&) const requires (CT::Inner::Comparable<V>);
+
       NOD() Index Find(const K&) const;
+      NOD() Iterator FindIt(const K&);
+      NOD() ConstIterator FindIt(const K&) const;
 
       NOD() decltype(auto) At(const K&);
       NOD() decltype(auto) At(const K&) const;
 
-      NOD() decltype(auto) operator[] (const K&) const;
       NOD() decltype(auto) operator[] (const K&);
+      NOD() decltype(auto) operator[] (const K&) const;
 
+      NOD()       K& GetKey(const CT::Index auto&);
       NOD() const K& GetKey(const CT::Index auto&) const;
-      NOD() K& GetKey(const CT::Index auto&);
+
+      NOD()       V& GetValue(const CT::Index auto&);
       NOD() const V& GetValue(const CT::Index auto&) const;
-      NOD() V& GetValue(const CT::Index auto&);
+
+      NOD()      PairRef GetPair(const CT::Index auto&);
       NOD() PairConstRef GetPair(const CT::Index auto&) const;
-      NOD() PairRef GetPair(const CT::Index auto&);
 
       ///                                                                     
       ///   Iteration                                                         
@@ -150,16 +155,38 @@ namespace Langulus::Anyness
       ///   Insertion                                                         
       ///                                                                     
       Count Insert(const K&, const V&);
-      Count Insert(K&&, const V&);
-      Count Insert(const K&, V&&);
-      Count Insert(K&&, V&&);
-      template<CT::Semantic SK, CT::Semantic SV>
-      Count Insert(SK&&, SV&&) noexcept requires (CT::Exact<TypeOf<SK>, K> and CT::Exact<TypeOf<SV>, V>);
+      Count Insert(const K&,       V&);
+      Count Insert(const K&,       V&&);
+      Count Insert(const K&, CT::Semantic auto&&);
 
-      TUnorderedMap& operator << (const TPair<K, V>&);
-      TUnorderedMap& operator << (TPair<K, V>&&);
-      template<CT::Semantic S>
-      TUnorderedMap& operator << (S&&) noexcept requires (CT::Pair<TypeOf<S>>);
+      Count Insert(K&, const V&);
+      Count Insert(K&,       V&);
+      Count Insert(K&,       V&&);
+      Count Insert(K&, CT::Semantic auto&&);
+                   
+      Count Insert(K&&, const V&);
+      Count Insert(K&&,       V&);
+      Count Insert(K&&,       V&&);
+      Count Insert(K&&, CT::Semantic auto&&);
+
+      Count Insert(CT::Semantic auto&&, const V&);
+      Count Insert(CT::Semantic auto&&,       V&);
+      Count Insert(CT::Semantic auto&&,       V&&);
+      Count Insert(CT::Semantic auto&&, CT::Semantic auto&&);
+
+      Count InsertBlock(CT::Semantic auto&&, CT::Semantic auto&&);
+
+      Count InsertPair(const CT::Pair auto&);
+      Count InsertPair(      CT::Pair auto&);
+      Count InsertPair(      CT::Pair auto&&);
+      Count InsertPair(CT::Semantic   auto&&);
+
+      Count InsertPairBlock(CT::Semantic auto&&);
+
+      TUnorderedMap& operator << (const CT::Pair auto&);
+      TUnorderedMap& operator << (      CT::Pair auto&);
+      TUnorderedMap& operator << (      CT::Pair auto&&);
+      TUnorderedMap& operator << (CT::Semantic   auto&&);
 
       TUnorderedMap& operator += (const TUnorderedMap&);
 
@@ -169,8 +196,7 @@ namespace Langulus::Anyness
       Count RemoveKey(const K&);
       Count RemoveValue(const V&);
       Count RemovePair(const Pair&);
-      Count RemoveIndex(const Index&);
-      Iterator RemoveIndex(const Iterator&);
+      Iterator RemoveIt(const Iterator&);
 
       void Clear();
       void Reset();
@@ -186,9 +212,6 @@ namespace Langulus::Anyness
       void RehashKeys(const Count&, Block&);
       void RehashValues(const Count&, Block&);
 
-      template<bool CHECK_FOR_MATCH, CT::Semantic SK, CT::Semantic SV>
-      Offset InsertInner(const Offset&, SK&&, SV&&);
-
       void ClearInner();
 
       template<class T>
@@ -197,22 +220,18 @@ namespace Langulus::Anyness
       NOD() static Size RequestKeyAndInfoSize(Count, Offset&) noexcept;
       NOD() static Size RequestValuesSize(Count) noexcept;
 
-      void RemoveIndex(const Offset&) IF_UNSAFE(noexcept);
-
+      NOD()       TAny<K>& GetKeys() noexcept;
       NOD() const TAny<K>& GetKeys() const noexcept;
-      NOD() TAny<K>& GetKeys() noexcept;
+      NOD()       TAny<V>& GetValues() noexcept;
       NOD() const TAny<V>& GetValues() const noexcept;
-      NOD() TAny<V>& GetValues() noexcept;
-
-      NOD() Offset FindIndex(const K&) const;
 
    IF_LANGULUS_TESTING(public:)
-      NOD() constexpr const K& GetRawKey(Offset) const noexcept;
-      NOD() constexpr K& GetRawKey(Offset) noexcept;
+      NOD() constexpr       K&  GetRawKey(Offset) noexcept;
+      NOD() constexpr const K&  GetRawKey(Offset) const noexcept;
       NOD() constexpr Handle<K> GetKeyHandle(Offset) noexcept;
 
-      NOD() constexpr const V& GetRawValue(Offset) const noexcept;
-      NOD() constexpr V& GetRawValue(Offset) noexcept;
+      NOD() constexpr       V&  GetRawValue(Offset) noexcept;
+      NOD() constexpr const V&  GetRawValue(Offset) const noexcept;
       NOD() constexpr Handle<V> GetValueHandle(Offset) noexcept;
    };
 
@@ -247,6 +266,8 @@ namespace Langulus::Anyness
 
       // Suffix operator                                                
       NOD() TIterator operator ++ (int) noexcept;
+
+      constexpr explicit operator bool() const noexcept;
    };
 
 } // namespace Langulus::Anyness

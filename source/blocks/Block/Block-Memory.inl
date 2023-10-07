@@ -16,7 +16,8 @@ namespace Langulus::Anyness
    ///   @param count - the number of elements to request                     
    ///   @return both the provided byte size and reserved count               
    LANGULUS(INLINED)
-   RTTI::AllocationRequest Block::RequestSize(const Count& count) const IF_UNSAFE(noexcept) {
+   RTTI::AllocationRequest Block::RequestSize(const Count& count) const
+   IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, IsTyped(),
          "Requesting allocation size for an untyped container");
       return mType->RequestSize(count);

@@ -71,20 +71,18 @@ namespace Langulus::Anyness
    ///   @tparam MUTABLE - is it allowed the block to deepen or incorporate   
    ///                     the new insertion, if not compatible?              
    ///   @tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled   
-   ///   @tparam T - the type to insert (deducible)                           
-   ///   @tparam INDEX - the type of the index (deducible)                    
    ///   @param item - item to insert                                         
    ///   @param idx - the index to insert at                                  
    ///   @return number of inserted elements                                  
-   template<bool MUTABLE, CT::Data WRAPPER, CT::NotSemantic T, CT::Index INDEX>
+   template<bool MUTABLE, CT::Data WRAPPER>
    LANGULUS(INLINED)
-   Count Block::InsertAt(const T& item, INDEX idx) {
+   Count Block::InsertAt(const CT::NotSemantic auto& item, CT::Index auto idx) {
       return InsertAt<MUTABLE, WRAPPER>(Copy(item), idx);
    }
 
-   template<bool MUTABLE, CT::Data WRAPPER, CT::NotSemantic T, CT::Index INDEX>
+   template<bool MUTABLE, CT::Data WRAPPER>
    LANGULUS(INLINED)
-   Count Block::InsertAt(T& item, INDEX idx) {
+   Count Block::InsertAt(CT::NotSemantic auto& item, CT::Index auto idx) {
       return InsertAt<MUTABLE, WRAPPER>(Copy(item), idx);
    }
 
@@ -92,14 +90,12 @@ namespace Langulus::Anyness
    ///   @tparam MUTABLE - is it allowed the block to deepen or incorporate   
    ///                     the new insertion, if not compatible?              
    ///   @tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled   
-   ///   @tparam T - the type to insert (deducible)                           
-   ///   @tparam INDEX - the type of the index (deducible)                    
    ///   @param item - the item to move in                                    
    ///   @param idx - the index to insert at                                  
    ///   @return number of inserted elements                                  
-   template<bool MUTABLE, CT::Data WRAPPER, CT::NotSemantic T, CT::Index INDEX>
+   template<bool MUTABLE, CT::Data WRAPPER>
    LANGULUS(INLINED)
-   Count Block::InsertAt(T&& item, INDEX idx) {
+   Count Block::InsertAt(CT::NotSemantic auto&& item, CT::Index auto idx) {
       return InsertAt<MUTABLE, WRAPPER>(Move(item), idx);
    }
    
@@ -107,13 +103,12 @@ namespace Langulus::Anyness
    ///   @tparam MUTABLE - is it allowed the block to deepen or incorporate   
    ///                     the new insertion, if not compatible?              
    ///   @tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled   
-   ///   @tparam S - the type and semantic to use (deducible)                 
-   ///   @tparam INDEX - the type of the index (deducible)                    
    ///   @param item - the item to move in                                    
    ///   @param idx - the index to insert at                                  
    ///   @return number of inserted elements                                  
-   template<bool MUTABLE, CT::Data WRAPPER, CT::Semantic S, CT::Index INDEX>
-   Count Block::InsertAt(S&& item, INDEX idx) {
+   template<bool MUTABLE, CT::Data WRAPPER>
+   Count Block::InsertAt(CT::Semantic auto&& item, CT::Index auto idx) {
+      using S = Deref<decltype(item)>;
       using T = TypeOf<S>;
 
       static_assert(CT::Deep<WRAPPER>,
@@ -207,19 +202,17 @@ namespace Langulus::Anyness
    ///   @tparam MUTABLE - is it allowed the block to deepen or incorporate   
    ///                     the new insertion, if not compatible?              
    ///   @tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled   
-   ///   @tparam T - the type to insert (deducible)                           
-   ///   @tparam INDEX - the type of the index (deducible)                    
    ///   @param item - item to insert                                         
    ///   @return number of inserted elements                                  
-   template<Index INDEX, bool MUTABLE, CT::Data WRAPPER, CT::NotSemantic T>
+   template<Index INDEX, bool MUTABLE, CT::Data WRAPPER>
    LANGULUS(INLINED)
-   Count Block::Insert(const T& item) {
+   Count Block::Insert(const CT::NotSemantic auto& item) {
       return Insert<INDEX, MUTABLE, WRAPPER>(Copy(item));
    }
 
-   template<Index INDEX, bool MUTABLE, CT::Data WRAPPER, CT::NotSemantic T>
+   template<Index INDEX, bool MUTABLE, CT::Data WRAPPER>
    LANGULUS(INLINED)
-   Count Block::Insert(T& item) {
+   Count Block::Insert(CT::NotSemantic auto& item) {
       return Insert<INDEX, MUTABLE, WRAPPER>(Copy(item));
    }
 
@@ -228,13 +221,11 @@ namespace Langulus::Anyness
    ///   @tparam MUTABLE - is it allowed the block to deepen or incorporate   
    ///                     the new insertion, if not compatible?              
    ///   @tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled   
-   ///   @tparam T - the type to insert (deducible)                           
-   ///   @tparam INDEX - the type of the index (deducible)                    
    ///   @param item - item to insert                                         
    ///   @return number of inserted elements                                  
-   template<Index INDEX, bool MUTABLE, CT::Data WRAPPER, CT::NotSemantic T>
+   template<Index INDEX, bool MUTABLE, CT::Data WRAPPER>
    LANGULUS(INLINED)
-   Count Block::Insert(T&& item) {
+   Count Block::Insert(CT::NotSemantic auto&& item) {
       return Insert<INDEX, MUTABLE, WRAPPER>(Move(item));
    }
    
@@ -243,12 +234,11 @@ namespace Langulus::Anyness
    ///   @tparam MUTABLE - is it allowed the block to deepen or incorporate   
    ///                     the new insertion, if not compatible?              
    ///   @tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled   
-   ///   @tparam S - the type and semantic to use (deducible)                 
-   ///   @tparam INDEX - the type of the index (deducible)                    
    ///   @param item - item to insert                                         
    ///   @return number of inserted elements                                  
-   template<Index INDEX, bool MUTABLE, CT::Data WRAPPER, CT::Semantic S>
-   Count Block::Insert(S&& item) {
+   template<Index INDEX, bool MUTABLE, CT::Data WRAPPER>
+   Count Block::Insert(CT::Semantic auto&& item) {
+      using S = Deref<decltype(item)>;
       using T = TypeOf<S>;
 
       static_assert(CT::Deep<WRAPPER>,
@@ -292,13 +282,12 @@ namespace Langulus::Anyness
    ///                     the new insertion, if not compatible?              
    ///   @tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled   
    ///   @tparam T - the type to insert (deducible)                           
-   ///   @tparam INDEX - the type of the index (deducible)                    
    ///   @param start - pointer to the first item                             
    ///   @param end - pointer to the end of items                             
    ///   @param index - the special index to insert at                        
    ///   @return the number of inserted elements                              
-   template<bool MUTABLE, CT::Data WRAPPER, CT::NotSemantic T, CT::Index INDEX>
-   Count Block::MergeAt(const T* start, const T* end, INDEX index) {
+   template<bool MUTABLE, CT::Data WRAPPER, CT::NotSemantic T>
+   Count Block::MergeAt(const T* start, const T* end, CT::Index auto index) {
       auto offset = SimplifyIndex(index);
       Count added {};
       while (start != end) {
@@ -318,20 +307,18 @@ namespace Langulus::Anyness
    ///   @tparam MUTABLE - is it allowed the block to deepen or incorporate   
    ///                     the new insertion, if not compatible?              
    ///   @tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled   
-   ///   @tparam T - the type to insert (deducible)                           
-   ///   @tparam INDEX - the type of the index (deducible)                    
    ///   @param item - item to insert                                         
    ///   @param index - the special index to insert at                        
    ///   @return the number of inserted elements                              
-   template<bool MUTABLE, CT::Data WRAPPER, CT::NotSemantic T, CT::Index INDEX>
+   template<bool MUTABLE, CT::Data WRAPPER>
    LANGULUS(INLINED)
-   Count Block::MergeAt(const T& item, INDEX index) {
+   Count Block::MergeAt(const CT::NotSemantic auto& item, CT::Index auto index) {
       return MergeAt<MUTABLE, WRAPPER>(Copy(item), index);
    }
 
-   template<bool MUTABLE, CT::Data WRAPPER, CT::NotSemantic T, CT::Index INDEX>
+   template<bool MUTABLE, CT::Data WRAPPER>
    LANGULUS(INLINED)
-   Count Block::MergeAt(T& item, INDEX index) {
+   Count Block::MergeAt(CT::NotSemantic auto& item, CT::Index auto index) {
       return MergeAt<MUTABLE, WRAPPER>(Copy(item), index);
    }
 
@@ -340,14 +327,12 @@ namespace Langulus::Anyness
    ///   @tparam MUTABLE - is it allowed the block to deepen or incorporate   
    ///                     the new insertion, if not compatible?              
    ///   @tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled   
-   ///   @tparam T - the type to insert (deducible)                           
-   ///   @tparam INDEX - the type of the index (deducible)                    
    ///   @param item - item to insert                                         
    ///   @param index - the special index to insert at                        
    ///   @return the number of inserted elements                              
-   template<bool MUTABLE, CT::Data WRAPPER, CT::NotSemantic T, CT::Index INDEX>
+   template<bool MUTABLE, CT::Data WRAPPER>
    LANGULUS(INLINED)
-   Count Block::MergeAt(T&& item, INDEX index) {
+   Count Block::MergeAt(CT::NotSemantic auto&& item, CT::Index auto index) {
       return MergeAt<MUTABLE, WRAPPER>(Move(item), index);
    }
    
@@ -356,14 +341,12 @@ namespace Langulus::Anyness
    ///   @tparam MUTABLE - is it allowed the block to deepen or incorporate   
    ///                     the new insertion, if not compatible?              
    ///   @tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled   
-   ///   @tparam S - the type and semantic to use (deducible)                 
-   ///   @tparam INDEX - the type of the index (deducible)                    
    ///   @param item - item to insert                                         
    ///   @param index - the special index to insert at                        
    ///   @return the number of inserted elements                              
-   template<bool MUTABLE, CT::Data WRAPPER, CT::Semantic S, CT::Index INDEX>
+   template<bool MUTABLE, CT::Data WRAPPER>
    LANGULUS(INLINED)
-   Count Block::MergeAt(S&& item, INDEX index) {
+   Count Block::MergeAt(CT::Semantic auto&& item, CT::Index auto index) {
       if (not FindKnown(item.mValue))
          return InsertAt<MUTABLE, WRAPPER>(item.Forward(), index);
       return 0;
@@ -398,18 +381,17 @@ namespace Langulus::Anyness
    ///   @tparam MUTABLE - is it allowed the block to deepen or incorporate   
    ///                     the new insertion, if not compatible?              
    ///   @tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled   
-   ///   @tparam T - the type to insert (deducible)                           
    ///   @param item - item to insert                                         
    ///   @return the number of inserted elements                              
-   template<Index INDEX, bool MUTABLE, CT::Data WRAPPER, CT::NotSemantic T>
+   template<Index INDEX, bool MUTABLE, CT::Data WRAPPER>
    LANGULUS(INLINED)
-   Count Block::Merge(const T& item) {
+   Count Block::Merge(const CT::NotSemantic auto& item) {
       return Merge<INDEX, MUTABLE, WRAPPER>(Copy(item));
    }
 
-   template<Index INDEX, bool MUTABLE, CT::Data WRAPPER, CT::NotSemantic T>
+   template<Index INDEX, bool MUTABLE, CT::Data WRAPPER>
    LANGULUS(INLINED)
-   Count Block::Merge(T& item) {
+   Count Block::Merge(CT::NotSemantic auto& item) {
       return Merge<INDEX, MUTABLE, WRAPPER>(Copy(item));
    }
 
@@ -419,12 +401,11 @@ namespace Langulus::Anyness
    ///   @tparam MUTABLE - is it allowed the block to deepen or incorporate   
    ///                     the new insertion, if not compatible?              
    ///   @tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled   
-   ///   @tparam T - the type to insert (deducible)                           
    ///   @param item - item to insert                                         
    ///   @return the number of inserted elements                              
-   template<Index INDEX, bool MUTABLE, CT::Data WRAPPER, CT::NotSemantic T>
+   template<Index INDEX, bool MUTABLE, CT::Data WRAPPER>
    LANGULUS(INLINED)
-   Count Block::Merge(T&& item) {
+   Count Block::Merge(CT::NotSemantic auto&& item) {
       return Merge<INDEX, MUTABLE, WRAPPER>(Move(item));
    }
    
@@ -434,32 +415,27 @@ namespace Langulus::Anyness
    ///   @tparam MUTABLE - is it allowed the block to deepen or incorporate   
    ///                     the new insertion, if not compatible?              
    ///   @tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled   
-   ///   @tparam S - the type and semantic to use (deducible)                 
    ///   @param item - item to insert                                         
    ///   @return the number of inserted elements                              
-   template<Index INDEX, bool MUTABLE, CT::Data WRAPPER, CT::Semantic S>
+   template<Index INDEX, bool MUTABLE, CT::Data WRAPPER>
    LANGULUS(INLINED)
-   Count Block::Merge(S&& item) {
+   Count Block::Merge(CT::Semantic auto&& item) {
       if (not FindKnown(*item))
          return Insert<INDEX, MUTABLE, WRAPPER>(item.Forward());
       return 0;
    }
    
    /// Copy-insert all elements of a block at an index                        
-   ///   @tparam T - type of block (deducible)                                
-   ///   @tparam INDEX - type of indexing (deducible)                         
    ///   @param other - the block to insert                                   
    ///   @param idx - index to insert them at                                 
    ///   @return the number of inserted elements                              
-   template<CT::NotSemantic T, CT::Index INDEX>
    LANGULUS(INLINED)
-   Count Block::InsertBlockAt(const T& other, INDEX idx) {
+   Count Block::InsertBlockAt(const CT::NotSemantic auto& other, CT::Index auto idx) {
       return InsertBlockAt(Copy(other), idx);
    }
 
-   template<CT::NotSemantic T, CT::Index INDEX>
    LANGULUS(INLINED)
-   Count Block::InsertBlockAt(T& other, INDEX idx) {
+   Count Block::InsertBlockAt(CT::NotSemantic auto& other, CT::Index auto idx) {
       return InsertBlockAt(Copy(other), idx);
    }
 
@@ -469,21 +445,18 @@ namespace Langulus::Anyness
    ///   @param other - the block to insert                                   
    ///   @param idx - index to insert them at                                 
    ///   @return the number of inserted elements                              
-   template<CT::NotSemantic T, CT::Index INDEX>
    LANGULUS(INLINED)
-   Count Block::InsertBlockAt(T&& other, INDEX idx) {
+   Count Block::InsertBlockAt(CT::NotSemantic auto&& other, CT::Index auto idx) {
       return InsertBlockAt(Move(other), idx);
    }
 
    /// Semantically insert all elements of a block at an index                
-   ///   @tparam S - type and semantic to use (deducible)                     
-   ///   @tparam INDEX - type of indexing (deducible)                         
    ///   @param other - the block to insert                                   
    ///   @param idx - index to insert them at                                 
    ///   @return the number of inserted elements                              
-   template<CT::Semantic S, CT::Index INDEX>
    LANGULUS(INLINED)
-   Count Block::InsertBlockAt(S&& other, INDEX idx) {
+   Count Block::InsertBlockAt(CT::Semantic auto&& other, CT::Index auto idx) {
+      using S = Deref<decltype(other)>;
       using T = TypeOf<S>;
       static_assert(CT::Block<T>, "T must be a block type");
       if (other->IsEmpty())
@@ -512,39 +485,37 @@ namespace Langulus::Anyness
    
    /// Copy-insert all elements of a block either at the start or at end      
    ///   @tparam INDEX - either IndexBack or IndexFront                       
-   ///   @tparam T - type of the block to traverse (deducible)                
    ///   @param other - the block to insert                                   
    ///   @return the number of inserted elements                              
-   template<Index INDEX, CT::NotSemantic T>
+   template<Index INDEX>
    LANGULUS(INLINED)
-   Count Block::InsertBlock(const T& other) {
+   Count Block::InsertBlock(const CT::NotSemantic auto& other) {
       return InsertBlock<INDEX>(Copy(other));
    }
 
-   template<Index INDEX, CT::NotSemantic T>
+   template<Index INDEX>
    LANGULUS(INLINED)
-   Count Block::InsertBlock(T& other) {
+   Count Block::InsertBlock(CT::NotSemantic auto& other) {
       return InsertBlock<INDEX>(Copy(other));
    }
 
    /// Move-insert all elements of a block either at the start or at end      
    ///   @tparam INDEX - either IndexBack or IndexFront                       
-   ///   @tparam T - type of the block to traverse (deducible)                
    ///   @param other - the block to insert                                   
    ///   @return the number of inserted elements                              
-   template<Index INDEX, CT::NotSemantic T>
+   template<Index INDEX>
    LANGULUS(INLINED)
-   Count Block::InsertBlock(T&& other) {
+   Count Block::InsertBlock(CT::NotSemantic auto&& other) {
       return InsertBlock<INDEX>(Move(other));
    }
 
    /// Semantic-insert all elements of a block either at start or end         
    ///   @tparam INDEX - either IndexBack or IndexFront                       
-   ///   @tparam S - semantic to use for the copy (deducible)                 
    ///   @param other - the block to insert                                   
    ///   @return the number of inserted elements                              
-   template<Index INDEX, CT::Semantic S>
-   Count Block::InsertBlock(S&& other) {
+   template<Index INDEX>
+   Count Block::InsertBlock(CT::Semantic auto&& other) {
+      using S = Deref<decltype(other)>;
       using T = TypeOf<S>;
 
       static_assert(CT::Block<T>,
@@ -599,46 +570,37 @@ namespace Langulus::Anyness
    }
    
    /// Copy-insert each block element that is not found in this container     
-   ///   @tparam T - the block type to merge (deducible)                      
-   ///   @tparam INDEX - the type of indexing (deducible)                     
    ///   @param other - the block to insert                                   
    ///   @param index - special/simple index to insert at                     
    ///   @return the number of inserted elements                              
-   template<CT::NotSemantic T, CT::Index INDEX>
    LANGULUS(INLINED)
-   Count Block::MergeBlockAt(const T& other, INDEX index) {
+   Count Block::MergeBlockAt(const CT::NotSemantic auto& other, CT::Index auto index) {
       return MergeBlockAt(Copy(other), index);
    }
 
-   template<CT::NotSemantic T, CT::Index INDEX>
    LANGULUS(INLINED)
-   Count Block::MergeBlockAt(T& other, INDEX index) {
+   Count Block::MergeBlockAt(CT::NotSemantic auto& other, CT::Index auto index) {
       return MergeBlockAt(Copy(other), index);
    }
 
    /// Move-insert each block element that is not found in this container     
-   ///   @tparam T - the block type to merge (deducible)                      
-   ///   @tparam INDEX - the type of indexing (deducible)                     
    ///   @param other - the block to insert                                   
    ///   @param index - special/simple index to insert at                     
    ///   @return the number of inserted elements                              
-   template<CT::NotSemantic T, CT::Index INDEX>
    LANGULUS(INLINED)
-   Count Block::MergeBlockAt(T&& other, INDEX index) {
+   Count Block::MergeBlockAt(CT::NotSemantic auto&& other, CT::Index auto index) {
       return MergeBlockAt(Move(other), index);
    }
 
    /// Semantically insert each element that is not found in this container   
-   ///   @tparam S - the block type and semantic to use (deducible)           
-   ///   @tparam INDEX - the type of indexing (deducible)                     
    ///   @param other - the block to insert                                   
    ///   @param index - special/simple index to insert at                     
    ///   @return the number of inserted elements                              
-   template<CT::Semantic S, CT::Index INDEX>
-   Count Block::MergeBlockAt(S&& other, INDEX index) {
+   Count Block::MergeBlockAt(CT::Semantic auto&& other, CT::Index auto index) {
+      using S = Deref<decltype(other)>;
       static_assert(CT::Block<TypeOf<S>>,
          "S::Type must be a block type");
-      static_assert(CT::SameAsOneOf<INDEX, Index, Offset>,
+      static_assert(CT::SameAsOneOf<decltype(index), Index, Offset>,
          "INDEX must be an index type");
 
       Count inserted {};
@@ -654,41 +616,39 @@ namespace Langulus::Anyness
    /// Copy-insert each block element that is not found in this container     
    /// at a static index                                                      
    ///   @tparam INDEX - the index to insert at (IndexFront or IndexBack)     
-   ///   @tparam T - the type of block to merge with (deducible)              
    ///   @param other - the block to merge                                    
    ///   @return the number of inserted elements                              
-   template<Index INDEX, CT::NotSemantic T>
+   template<Index INDEX>
    LANGULUS(INLINED)
-   Count Block::MergeBlock(const T& other) {
+   Count Block::MergeBlock(const CT::NotSemantic auto& other) {
       return MergeBlock<INDEX>(Copy(other));
    }
 
-   template<Index INDEX, CT::NotSemantic T>
+   template<Index INDEX>
    LANGULUS(INLINED)
-   Count Block::MergeBlock(T& other) {
+   Count Block::MergeBlock(CT::NotSemantic auto& other) {
       return MergeBlock<INDEX>(Copy(other));
    }
 
    /// Move-insert each block element that is not found in this container     
    /// at a static index                                                      
    ///   @tparam INDEX - the index to insert at (IndexFront or IndexBack)     
-   ///   @tparam T - the type of block to merge with (deducible)              
    ///   @param other - the block to merge                                    
    ///   @return the number of inserted elements                              
-   template<Index INDEX, CT::NotSemantic T>
+   template<Index INDEX>
    LANGULUS(INLINED)
-   Count Block::MergeBlock(T&& other) {
+   Count Block::MergeBlock(CT::NotSemantic auto&& other) {
       return MergeBlock<INDEX>(Move(other));
    }
 
    /// Semantically insert each block element that is not found in this       
    /// container at a static index                                            
    ///   @tparam INDEX - the index to insert at (IndexFront or IndexBack)     
-   ///   @tparam S - the type and semantic to use (deducible)                 
    ///   @param other - the block to merge                                    
    ///   @return the number of inserted elements                              
-   template<Index INDEX, CT::Semantic S>
-   Count Block::MergeBlock(S&& other) {
+   template<Index INDEX>
+   Count Block::MergeBlock(CT::Semantic auto&& other) {
+      using S = Deref<decltype(other)>;
       static_assert(CT::Block<TypeOf<S>>,
          "S::Type must be a block type");
       static_assert(INDEX == IndexFront or INDEX == IndexBack,
@@ -850,24 +810,26 @@ namespace Langulus::Anyness
    ///   @tparam ALLOW_CONCAT - whether or not concatenation is allowed       
    ///   @tparam ALLOW_DEEPEN - whether or not deepening is allowed           
    ///   @tparam WRAPPER - type of container used for deepening or transfer   
-   ///   @tparam T - type of data to push (deducible)                         
-   ///   @tparam INDEX - type of index to use                                 
    ///   @param value - the value to smart-push                               
    ///   @param index - the index at which to insert (if needed)              
    ///   @param state - a state to apply after pushing is done                
    ///   @return the number of pushed items (zero if unsuccessful)            
-   template<bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data WRAPPER, CT::NotSemantic T, CT::Index INDEX>
+   template<bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data WRAPPER>
    LANGULUS(INLINED)
-   Count Block::SmartPushAt(const T& value, INDEX index, DataState state) {
+   Count Block::SmartPushAt(
+      const CT::NotSemantic auto& value, CT::Index auto index, DataState state
+   ) {
       return SmartPushAt<ALLOW_CONCAT, ALLOW_DEEPEN, WRAPPER>(
          Copy(value), index, state);
    }
 
    /// This is required to disambiguate calls correctly                       
    /// It's the same as the above                                             
-   template<bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data WRAPPER, CT::NotSemantic T, CT::Index INDEX>
+   template<bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data WRAPPER>
    LANGULUS(INLINED)
-   Count Block::SmartPushAt(T& value, INDEX index, DataState state) {
+   Count Block::SmartPushAt(
+      CT::NotSemantic auto& value, CT::Index auto index, DataState state
+   ) {
       return SmartPushAt<ALLOW_CONCAT, ALLOW_DEEPEN, WRAPPER>(
          Copy(value), index, state);
    }
@@ -877,15 +839,15 @@ namespace Langulus::Anyness
    ///   @tparam ALLOW_CONCAT - whether or not concatenation is allowed       
    ///   @tparam ALLOW_DEEPEN - whether or not deepening is allowed           
    ///   @tparam WRAPPER - type of container used for deepening or transfer   
-   ///   @tparam T - type of data to push (deducible)                         
-   ///   @tparam INDEX - type of index to use                                 
    ///   @param value - the value to smart-push                               
    ///   @param index - the index at which to insert (if needed)              
    ///   @param state - a state to apply after pushing is done                
    ///   @return the number of pushed items (zero if unsuccessful)            
-   template<bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data WRAPPER, CT::NotSemantic T, CT::Index INDEX>
+   template<bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data WRAPPER>
    LANGULUS(INLINED)
-   Count Block::SmartPushAt(T&& value, INDEX index, DataState state) {
+   Count Block::SmartPushAt(
+      CT::NotSemantic auto&& value, CT::Index auto index, DataState state
+   ) {
       return SmartPushAt<ALLOW_CONCAT, ALLOW_DEEPEN, WRAPPER>(
          Move(value), index, state);
    }
@@ -895,16 +857,16 @@ namespace Langulus::Anyness
    ///   @tparam ALLOW_CONCAT - whether or not concatenation is allowed       
    ///   @tparam ALLOW_DEEPEN - whether or not deepening is allowed           
    ///   @tparam WRAPPER - type of container used for deepening or transfer   
-   ///   @tparam S - type of data and semantic to push (deducible)            
-   ///   @tparam INDEX - type of index to use                                 
    ///   @param value - the value to smart-push                               
    ///   @param index - the index at which to insert (if needed)              
    ///   @param state - a state to apply after pushing is done                
    ///   @return the number of pushed items (zero if unsuccessful)            
-   template<bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data WRAPPER, CT::Semantic S, CT::Index INDEX>
-   Count Block::SmartPushAt(S&& value, INDEX index, DataState state) {
+   template<bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data WRAPPER>
+   Count Block::SmartPushAt(
+      CT::Semantic auto&& value, CT::Index auto index, DataState state
+   ) {
       static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
-
+      using S = Deref<decltype(value)>;
       using T = TypeOf<S>;
 
       if constexpr (CT::Deep<T>) {
@@ -939,22 +901,21 @@ namespace Langulus::Anyness
    ///   @tparam ALLOW_CONCAT - whether or not concatenation is allowed       
    ///   @tparam ALLOW_DEEPEN - whether or not deepening is allowed           
    ///   @tparam WRAPPER - type of container used for deepening or transfer   
-   ///   @tparam T - type of data to push (deducible)                         
    ///   @param value - the value to smart-push                               
    ///   @param state - a state to apply after pushing is done                
    ///   @return the number of pushed items (zero if unsuccessful)            
-   template<Index INDEX, bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data WRAPPER, CT::NotSemantic T>
+   template<Index INDEX, bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data WRAPPER>
    LANGULUS(INLINED)
-   Count Block::SmartPush(const T& value, DataState state) {
+   Count Block::SmartPush(const CT::NotSemantic auto& value, DataState state) {
       return SmartPush<INDEX, ALLOW_CONCAT, ALLOW_DEEPEN, WRAPPER>(
          Copy(value), state);
    }
 
    /// Required to disambiguate calls correctly                               
    /// It's the same as the above                                             
-   template<Index INDEX, bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data WRAPPER, CT::NotSemantic T>
+   template<Index INDEX, bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data WRAPPER>
    LANGULUS(INLINED)
-   Count Block::SmartPush(T& value, DataState state) {
+   Count Block::SmartPush(CT::NotSemantic auto& value, DataState state) {
       return SmartPush<INDEX, ALLOW_CONCAT, ALLOW_DEEPEN, WRAPPER>(
          Copy(value), state);
    }
@@ -965,13 +926,12 @@ namespace Langulus::Anyness
    ///   @tparam ALLOW_CONCAT - whether or not concatenation is allowed       
    ///   @tparam ALLOW_DEEPEN - whether or not deepening is allowed           
    ///   @tparam WRAPPER - type of container used for deepening or transfer   
-   ///   @tparam T - type of data to push (deducible)                         
    ///   @param value - the value to smart-push                               
    ///   @param state - a state to apply after pushing is done                
    ///   @return the number of pushed items (zero if unsuccessful)            
-   template<Index INDEX, bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data WRAPPER, CT::NotSemantic T>
+   template<Index INDEX, bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data WRAPPER>
    LANGULUS(INLINED)
-   Count Block::SmartPush(T&& value, DataState state) {
+   Count Block::SmartPush(CT::NotSemantic auto&& value, DataState state) {
       return SmartPush<INDEX, ALLOW_CONCAT, ALLOW_DEEPEN, WRAPPER>(
          Move(value), state);
    }
@@ -982,13 +942,13 @@ namespace Langulus::Anyness
    ///   @tparam ALLOW_CONCAT - whether or not concatenation is allowed       
    ///   @tparam ALLOW_DEEPEN - whether or not deepening is allowed           
    ///   @tparam WRAPPER - type of container used for deepening or transfer   
-   ///   @tparam S - type of data and semantic to push (deducible)            
    ///   @param value - the value to smart-push                               
    ///   @param state - a state to apply after pushing is done                
    ///   @return the number of pushed items (zero if unsuccessful)            
-   template<Index INDEX, bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data WRAPPER, CT::Semantic S>
-   Count Block::SmartPush(S&& value, DataState state) {
+   template<Index INDEX, bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data WRAPPER>
+   Count Block::SmartPush(CT::Semantic auto&& value, DataState state) {
       static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
+      using S = Deref<decltype(value)>;
       using T = TypeOf<S>;
 
       if constexpr (CT::Deep<T>) {
@@ -1089,15 +1049,11 @@ namespace Langulus::Anyness
    ///   @attention this is an inner function and should be used with caution 
    ///   @attention assumes required free space has been prepared at offset   
    ///   @attention assumes that TypeOf<S> is this container's type           
-   ///   @tparam S - the semantic & type to insert (deducible)                
-   ///   @param item - item to insert                                         
+   ///   @param item - item and semantic to insert                            
    ///   @param at - the offset at which to insert                            
-   template<CT::Semantic S>
-   void Block::InsertInner(S&& item, Offset at) {
-      using T = TypeOf<S>;
-      LANGULUS_ASSUME(DevAssumes, IsExact<T>(),
-         "Inserting incompatible type");
-
+   void Block::InsertInner(CT::Semantic auto&& item, Offset at) {
+      using T = TypeOf<decltype(item)>;
+      LANGULUS_ASSUME(DevAssumes, IsExact<T>(), "Inserting incompatible type");
       GetHandle<T>(at).New(item.Forward());
       ++mCount;
    }
@@ -1106,16 +1062,20 @@ namespace Langulus::Anyness
    /// Attempts to either concatenate elements, or deepen and push block      
    ///   @tparam ALLOW_DEEPEN - is the block allowed to change to deep type   
    ///   @tparam WRAPPER - type of block used when deepening                  
-   ///   @tparam S - the semantic and type we're concatenating (deducible)    
-   ///   @tparam INDEX - the type of indexing used (deducible)                
    ///   @param sc - is this block state-compliant for insertion              
    ///   @param value - the value to concatenate                              
    ///   @param state - the state to apply after concatenation                
    ///   @param index - the place to insert at                                
    ///   @return the number of inserted elements                              
-   template<bool ALLOW_DEEPEN, CT::Data WRAPPER, CT::Semantic S, CT::Index INDEX>
+   template<bool ALLOW_DEEPEN, CT::Data WRAPPER>
    LANGULUS(INLINED)
-   Count Block::SmartConcatAt(const bool& sc, S&& value, const DataState& state, const INDEX& index) {
+   Count Block::SmartConcatAt(
+      const bool& sc,
+      CT::Semantic auto&& value,
+      const DataState& state,
+      const CT::Index auto& index
+   ) {
+      using S = Deref<decltype(value)>;
       static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
       static_assert(CT::Deep<TypeOf<S>>, "S::Type must be deep");
 
@@ -1153,14 +1113,14 @@ namespace Langulus::Anyness
    ///   @tparam ALLOW_DEEPEN - is the block allowed to change to deep type   
    ///   @tparam INDEX - index to insert at (either IndexBack or IndexFront)  
    ///   @tparam WRAPPER - type of block used when deepening                  
-   ///   @tparam S - the semantic and type we're concatenating (deducible)    
    ///   @param sc - is this block state-compliant for insertion              
    ///   @param value - the value to concatenate                              
    ///   @param state - the state to apply after concatenation                
    ///   @return the number of inserted elements                              
-   template<bool ALLOW_DEEPEN, Index INDEX, CT::Data WRAPPER, CT::Semantic S>
+   template<bool ALLOW_DEEPEN, Index INDEX, CT::Data WRAPPER>
    LANGULUS(INLINED)
-   Count Block::SmartConcat(const bool& sc, S&& value, const DataState& state) {
+   Count Block::SmartConcat(const bool& sc, CT::Semantic auto&& value, const DataState& state) {
+      using S = Deref<decltype(value)>;
       static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
       static_assert(CT::Deep<TypeOf<S>>, "S::Type must be deep");
 
@@ -1196,15 +1156,17 @@ namespace Langulus::Anyness
    /// Inner smart-push function                                              
    ///   @tparam ALLOW_DEEPEN - is the block allowed to change to deep type   
    ///   @tparam WRAPPER - type of block used when deepening                  
-   ///   @tparam S - the semantic and type we're concatenating (deducible)    
-   ///   @tparam INDEX - the type of indexing used (deducible)                
    ///   @param value - the value to concatenate                              
    ///   @param state - the state to apply after concatenation                
    ///   @param index - the place to insert at                                
    ///   @return the number of inserted elements                              
-   template<bool ALLOW_DEEPEN, CT::Data WRAPPER, CT::Semantic S, CT::Index INDEX>
+   template<bool ALLOW_DEEPEN, CT::Data WRAPPER>
    LANGULUS(INLINED)
-   Count Block::SmartPushAtInner(S&& value, const DataState& state, const INDEX& index) {
+   Count Block::SmartPushAtInner(
+      CT::Semantic auto&& value, const DataState& state, const CT::Index auto& index
+   ) {
+      using S = Deref<decltype(value)>;
+
       if (IsUntyped() and IsInvalid()) {
          // Mutate-insert inside untyped container                      
          SetState(mState + state);
@@ -1249,13 +1211,16 @@ namespace Langulus::Anyness
    ///   @tparam ALLOW_DEEPEN - is the block allowed to change to deep type   
    ///   @tparam INDEX - index to insert at (either IndexBack or IndexFront)  
    ///   @tparam WRAPPER - type of block used when deepening                  
-   ///   @tparam S - the semantic and type we're concatenating (deducible)    
    ///   @param value - the value to concatenate                              
    ///   @param state - the state to apply after concatenation                
    ///   @return the number of inserted elements                              
-   template<bool ALLOW_DEEPEN, Index INDEX, CT::Data WRAPPER, CT::Semantic S>
+   template<bool ALLOW_DEEPEN, Index INDEX, CT::Data WRAPPER>
    LANGULUS(INLINED)
-   Count Block::SmartPushInner(S&& value, const DataState& state) {
+   Count Block::SmartPushInner(
+      CT::Semantic auto&& value, const DataState& state
+   ) {
+      using S = Deref<decltype(value)>;
+
       if (IsUntyped() and IsInvalid()) {
          // Mutate-insert inside untyped container                      
          SetState(mState + state);
@@ -1369,7 +1334,9 @@ namespace Langulus::Anyness
    ///   @attention assumes that none of the elements is initialized          
    ///   @param count - the number of elements to construct                   
    ///   @param descriptor - the descriptor to pass on to constructors        
-   inline void Block::CallUnknownDescriptorConstructors(Count count, const Neat& descriptor) const {
+   inline void Block::CallUnknownDescriptorConstructors(
+      Count count, const Neat& descriptor
+   ) const {
       LANGULUS_ASSUME(DevAssumes, count <= mReserved,
          "Count outside limits");
       LANGULUS_ASSERT(
@@ -1423,7 +1390,9 @@ namespace Langulus::Anyness
    ///   @param count - the number of elements to construct                   
    ///   @param descriptor - the descriptor to pass on to constructors        
    template<CT::Data T>
-   void Block::CallKnownDescriptorConstructors(const Count count, const Neat& descriptor) const {
+   void Block::CallKnownDescriptorConstructors(
+      const Count count, const Neat& descriptor
+   ) const {
       static_assert(CT::DescriptorMakable<T>,
          "T is not descriptor-constructible");
 
@@ -1530,8 +1499,11 @@ namespace Langulus::Anyness
    ///                     account for potential memory overlap               
    ///   @param count - number of elements to move-construct                  
    ///   @param source - the source of the elements to move                   
-   template<bool REVERSE, CT::Semantic S>
-   void Block::CallUnknownSemanticConstructors(const Count count, S&& source) const {
+   template<bool REVERSE>
+   void Block::CallUnknownSemanticConstructors(
+      const Count count, CT::Semantic auto&& source
+   ) const {
+      using S = Deref<decltype(source)>;
       static_assert(CT::Exact<TypeOf<S>, Block>,
          "S type must be exactly Block (build-time optimization)");
       LANGULUS_ASSUME(DevAssumes, count <= source->mCount and count <= mReserved,
@@ -1896,8 +1868,11 @@ namespace Langulus::Anyness
    ///                     account for potential memory overlap               
    ///   @param count - number of elements to move                            
    ///   @param source - the block of elements to move                        
-   template<CT::Data T, bool REVERSE, CT::Semantic S>
-   void Block::CallKnownSemanticConstructors(const Count count, S&& source) const {
+   template<CT::Data T, bool REVERSE>
+   void Block::CallKnownSemanticConstructors(
+      const Count count, CT::Semantic auto&& source
+   ) const {
+      using S = Deref<decltype(source)>;
       static_assert(CT::Exact<TypeOf<S>, Block>,
          "S type must be exactly Block (build-time optimization)");
       static_assert(CT::Sparse<T> or CT::Mutable<T>,
@@ -1998,11 +1973,12 @@ namespace Langulus::Anyness
    }
    
    /// Batch-optimized semantic pointer constructions                         
-   ///   @tparam S - the semantic and type to use                             
    ///   @param count - number of elements to construct                       
    ///   @param source - source                                               
-   template<CT::Semantic S>
-   void Block::ShallowBatchPointerConstruction(const Count count, S&& source) const {
+   inline void Block::ShallowBatchPointerConstruction(
+      const Count count, CT::Semantic auto&& source
+   ) const {
+      using S = Deref<decltype(source)>;
       static_assert(CT::Exact<TypeOf<S>, Block>,
          "S type must be exactly Block (build-time optimization)");
 
@@ -2052,11 +2028,12 @@ namespace Langulus::Anyness
    ///   @attention never modifies any block state                            
    ///   @attention assumes blocks are binary compatible                      
    ///   @attention assumes both blocks have at least 'count' items           
-   ///   @tparam S - semantic and block to use for the assignment (deducible) 
    ///   @param count - the number of elements to move-assign                 
    ///   @param source - the elements to assign                               
-   template<CT::Semantic S>
-   void Block::CallUnknownSemanticAssignment(const Count count, S&& source) const {
+   void Block::CallUnknownSemanticAssignment(
+      const Count count, CT::Semantic auto&& source
+   ) const {
+      using S = Deref<decltype(source)>;
       static_assert(CT::Exact<TypeOf<S>, Block>,
          "S type must be exactly Block (build-time optimization)");
 
@@ -2329,12 +2306,11 @@ namespace Langulus::Anyness
    ///   @attention assumes blocks are binary compatible                      
    ///   @attention assumes both blocks have at least 'count' items           
    ///   @tparam T - the type to use for the assignment                       
-   ///   @tparam S - semantic and block to use for the assignment (deducible) 
    ///   @param count - the number of elements to move-assign                 
    ///   @param source - the elements to assign                               
-   template<CT::Data T, CT::Semantic S>
-   void Block::CallKnownSemanticAssignment(Count, S&&) const {
-      static_assert(CT::Exact<TypeOf<S>, Block>,
+   template<CT::Data T>
+   void Block::CallKnownSemanticAssignment(Count, CT::Semantic auto&& s) const {
+      static_assert(CT::Exact<TypeOf<decltype(s)>, Block>,
          "S type must be exactly Block (build-time optimization)");
 
       TODO();

@@ -21,7 +21,28 @@ namespace Langulus::Anyness
          Roof2(count < MinimalAllocation ? MinimalAllocation : count)
       );
    }
-   
+    
+   /// Allocate a fresh set of keys (for internal use only)                   
+   ///   @attention doesn't initialize anything, but the memory state         
+   ///   @attention doesn't modify count, doesn't set info sentinel           
+   ///   @attention assumes count is a power-of-two                           
+   ///   @param count - the new number of elements                            
+   inline void BlockSet::AllocateFresh(const Count& count) {
+      LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(count),
+         "Table reallocation count is not a power-of-two");
+
+      Offset infoOffset;
+      const auto keyAndInfoSize = RequestKeyAndInfoSize(count, infoOffset);
+      mKeys.mEntry = Allocator::Allocate(mKeys.mType, keyAndInfoSize);
+      LANGULUS_ASSERT(mKeys.mEntry, Allocate, "Out of memory");
+
+      mKeys.mReserved = count;
+
+      // Precalculate the info pointer, it's costly                     
+      mKeys.mRaw = mKeys.mEntry->GetBlockStart();
+      mInfo = reinterpret_cast<InfoType*>(mKeys.mRaw + infoOffset);
+   }
+
    /// Allocate or reallocate key and info array                              
    ///   @attention assumes count is a power-of-two                           
    ///   @tparam REUSE - true to reallocate, false to allocate fresh          
@@ -37,7 +58,7 @@ namespace Langulus::Anyness
       const auto oldInfoEnd = oldInfo + oldCount;
 
       // Allocate new keys                                              
-      const Block oldKeys {mKeys};
+      Block oldKeys {mKeys};
       const auto keyAndInfoSize = RequestKeyAndInfoSize(count, infoOffset);
       if constexpr (REUSE)
          mKeys.mEntry = Allocator::Reallocate(keyAndInfoSize, mKeys.mEntry);
@@ -75,10 +96,9 @@ namespace Langulus::Anyness
             Rehash(oldCount);
             return;
          }
-         else ZeroMemory(mInfo, count);
       }
-      else ZeroMemory(mInfo, count);
-
+      
+      ZeroMemory(mInfo, count);
       if (oldKeys.IsEmpty()) {
          // There are no old values, the previous set was empty         
          // Just do an early return right here                          
@@ -90,59 +110,30 @@ namespace Langulus::Anyness
       auto key = oldKeys.GetElement();
       const auto hashmask = count - 1;
       while (oldInfo != oldInfoEnd) {
-         if (not *(oldInfo++)) {
-            key.Next();
-            continue;
+         if (*oldInfo) {
+            InsertInnerUnknown<false>(
+               GetBucketUnknown(hashmask, key),
+               Abandon(key)
+            );
+
+            if (not key.IsEmpty())
+               key.CallUnknownDestructors();
+            else
+               key.mCount = 1;
          }
 
-         InsertInnerUnknown<false>(
-            GetBucketUnknown(hashmask, key), 
-            Abandon(key)
-         );
-
-         if (not key.IsEmpty())
-            key.CallUnknownDestructors();
-         else
-            key.mCount = 1;
-
+         ++oldInfo;
          key.Next();
       }
 
       // Free the old allocations                                       
-      if constexpr (REUSE) {
-         // When reusing, keys and values can potentially remain same   
-         // Avoid deallocating them if that's the case                  
-         if (oldKeys.mEntry != mKeys.mEntry)
-            Allocator::Deallocate(oldKeys.mEntry);
-      }
-      else if (oldKeys.mEntry) {
+      if (oldKeys.mEntry) {
          // Not reusing, so either deallocate, or dereference           
          if (oldKeys.mEntry->GetUses() > 1)
             oldKeys.mEntry->Free();
          else
             Allocator::Deallocate(oldKeys.mEntry);
       }
-   }
-   
-   /// Allocate a fresh set of keys (for internal use only)                   
-   ///   @attention doesn't initialize anything, but the memory state         
-   ///   @attention doesn't modify count, doesn't set info sentinel           
-   ///   @attention assumes count is a power-of-two                           
-   ///   @param count - the new number of elements                            
-   inline void BlockSet::AllocateFresh(const Count& count) {
-      LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(count),
-         "Table reallocation count is not a power-of-two");
-
-      Offset infoOffset;
-      const auto keyAndInfoSize = RequestKeyAndInfoSize(count, infoOffset);
-      mKeys.mEntry = Allocator::Allocate(mKeys.mType, keyAndInfoSize);
-      LANGULUS_ASSERT(mKeys.mEntry, Allocate, "Out of memory");
-
-      mKeys.mReserved = count;
-
-      // Precalculate the info pointer, it's costly                     
-      mKeys.mRaw = mKeys.mEntry->GetBlockStart();
-      mInfo = reinterpret_cast<InfoType*>(mKeys.mRaw + infoOffset);
    }
 
    /// Reserves space for the specified number of pairs                       
