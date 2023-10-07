@@ -989,7 +989,7 @@ namespace Langulus::Anyness
       if (offset >= sentinel)
          return end();
 
-      RemoveInner(offset--); //TODO what if map shrinks, offset might become invalid? Doesn't shrink for now
+      RemoveInner<K, V>(offset--); //TODO what if map shrinks, offset might become invalid? Doesn't shrink for now
       
       while (offset < sentinel and not mInfo[offset])
          --offset;
