@@ -267,9 +267,8 @@ namespace Langulus::Anyness
    protected:
       void ClearInner();
 
-      template<class T>
+      template<class>
       void RemoveInner(const Offset&) IF_UNSAFE(noexcept);
-      void RemoveInnerUnknown(const Offset&) IF_UNSAFE(noexcept);
 
    #if LANGULUS(TESTING)
       public: NOD() constexpr const void* GetRawMemory() const noexcept;

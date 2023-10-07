@@ -730,7 +730,7 @@ namespace Langulus::Anyness
       if (offset >= sentinel)
          return end();
 
-      RemoveIndex(offset--); //TODO what if map shrinks, offset might become invalid? Doesn't shrink for now
+      RemoveInner<T>(offset--); //TODO what if map shrinks, offset might become invalid? Doesn't shrink for now
       
       while (offset < sentinel and 0 == mInfo[offset])
          --offset;
@@ -740,20 +740,6 @@ namespace Langulus::Anyness
 
       return {mInfo + offset, index.mSentinel, &GetRaw(offset)};
    }
-
-   /// Insert a single value or key, either sparse or dense                   
-   ///   @tparam T - the type to add, either key or value (deducible)         
-   ///   @param element - the address of the element to remove                
-   /*TABLE_TEMPLATE()
-   template<class ALT_T>
-   LANGULUS(INLINED)
-   void TABLE()::Overwrite(ALT_T&& from, ALT_T& to) noexcept {
-      // Remove the old entry                                           
-      RemoveInner(&to);
-
-      // Reconstruct the new one in place                               
-      new (&to) T {Forward<T>(from)};
-   }*/
 
    /// Erase a pair via key                                                   
    ///   @param match - the key to search for                                 
