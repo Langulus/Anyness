@@ -1014,7 +1014,7 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    void TABLE()::Overwrite(T&& from, T& to) noexcept {
       // Remove the old entry                                           
-      RemoveInner(&to);
+      RemoveInner<K, V>(&to);
 
       // Reconstruct the new one in place                               
       new (&to) T {Forward<T>(from)};
