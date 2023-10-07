@@ -180,8 +180,8 @@ namespace Langulus::Anyness
    protected:
       void ClearInner();
 
-      template<class ALT_T>
-      static void Overwrite(ALT_T&&, ALT_T&) noexcept;
+      /*template<class ALT_T>
+      static void Overwrite(ALT_T&&, ALT_T&) noexcept;*/
    };
 
 
