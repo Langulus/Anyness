@@ -46,8 +46,6 @@ namespace Langulus::Anyness
    }
       
    /// Erase a pair via key (inner)                                           
-   ///   @attention assumes map is not empty                                  
-   ///   @attention assumes key is similar to the provided type               
    ///   @tparam MAP - map we're removing from, using to deduce value type,   
    ///                 and as runtime optimization                            
    ///   @param key - the key to search for                                   
@@ -58,10 +56,10 @@ namespace Langulus::Anyness
       static_assert(CT::Map<MAP>, "MAP must be a map type");
       using K = Deref<decltype(key)>;
 
-      const auto found = FindInner(key);
+      const auto found = FindInner<MAP>(key);
       if (found != InvalidOffset) {
          // Key found, remove the pair                                  
-         if constexpr (CT::Typed<MAP>)
+         if constexpr (CT::TypedMap<MAP>)
             RemoveInner<K, typename MAP::Value>(found);
          else
             RemoveInner<K, void>(found);

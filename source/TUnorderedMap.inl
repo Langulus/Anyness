@@ -406,7 +406,7 @@ namespace Langulus::Anyness
    ///   @return the meta definition of the key type                          
    TABLE_TEMPLATE() LANGULUS(INLINED)
    DMeta TABLE()::GetKeyType() const {
-      mKeys.mType = MetaData::Of<K>();
+      mKeys.mType = RTTI::MetaData::Of<K>();
       return mKeys.mType;
    }
 
@@ -416,26 +416,144 @@ namespace Langulus::Anyness
    ///   @return the meta definition of the value type                        
    TABLE_TEMPLATE() LANGULUS(INLINED)
    DMeta TABLE()::GetValueType() const {
-      mValues.mType = MetaData::Of<V>();
+      mValues.mType = RTTI::MetaData::Of<V>();
       return mValues.mType;
    }
 
-   /// Check if key type exactly matches another                              
+   /// Check if key origin type matches any of the list                       
+   ///   @tparam K1, KN... - the list of types to compare against             
+   ///   @return true if key type matches at least one of the others          
    TABLE_TEMPLATE()
-   template<class ALT_K>
+   template<CT::Data K1, CT::Data... KN>
    LANGULUS(INLINED)
    constexpr bool TABLE()::KeyIs() const noexcept {
-      return CT::Same<K, ALT_K>;
+      return CT::SameAsOneOf<K, K1, KN...>;
    }
 
-   /// Check if value type exactly matches another                            
+   /// Check if key origin type matches another                               
+   ///   @param key - the key type to compare against                         
+   ///   @return true if key matches the contained key origin type            
+   TABLE_TEMPLATE() LANGULUS(INLINED)
+   constexpr bool TABLE()::KeyIs(DMeta key) const noexcept {
+      return GetKeyType()->Is(key);
+   }
+
+   /// Check if cv-unqualified key type matches any of the list               
+   ///   @tparam K1, KN... - the list of types to compare against             
+   ///   @return true if key type matches at least one of the others          
    TABLE_TEMPLATE()
-   template<class ALT_V>
+   template<CT::Data K1, CT::Data... KN>
+   LANGULUS(INLINED)
+   constexpr bool TABLE()::KeyIsSimilar() const noexcept {
+      return CT::SimilarAsOneOf<K, K1, KN...>;
+   }
+
+   /// Check if cv-unqualified key type matches another                       
+   ///   @param key - the key type to compare against                         
+   ///   @return true if key matches the contained key unqualified type       
+   TABLE_TEMPLATE() LANGULUS(INLINED)
+   constexpr bool TABLE()::KeyIsSimilar(DMeta key) const noexcept {
+      return GetKeyType()->IsSimilar(key);
+   }
+
+   /// Check if key type exactly matches any of the list                      
+   ///   @tparam K1, KN... - the list of types to compare against             
+   ///   @return true if key type matches at least one of the others          
+   TABLE_TEMPLATE()
+   template<CT::Data K1, CT::Data... KN>
+   LANGULUS(INLINED)
+   constexpr bool TABLE()::KeyIsExact() const noexcept {
+      return CT::ExactAsOneOf<K, K1, KN...>;
+   }
+
+   /// Check if key type exactly matches any of the list                      
+   ///   @param key - the key type to compare against                         
+   ///   @return true if key matches the contained key unqualified type       
+   TABLE_TEMPLATE() LANGULUS(INLINED)
+   constexpr bool TABLE()::KeyIsExact(DMeta key) const noexcept {
+      return GetKeyType()->IsExact(key);
+   }
+
+   /// Check if value origin type matches any of the list                     
+   ///   @tparam V1, VN... - the list of types to compare against             
+   ///   @return true if value type matches at least one of the others        
+   TABLE_TEMPLATE()
+   template<CT::Data V1, CT::Data... VN>
    LANGULUS(INLINED)
    constexpr bool TABLE()::ValueIs() const noexcept {
-      return CT::Same<V, ALT_V>;
+      return CT::SameAsOneOf<V, V1, VN...>;
    }
-         
+
+   /// Check if value origin type matches another                             
+   ///   @param value - the value type to compare against                     
+   ///   @return true if value matches the contained key origin type          
+   TABLE_TEMPLATE() LANGULUS(INLINED)
+   constexpr bool TABLE()::ValueIs(DMeta value) const noexcept {
+      return GetValueType()->Is(value);
+   }
+
+   /// Check if cv-unqualified value type matches any of the list             
+   ///   @tparam V1, VN... - the list of types to compare against             
+   ///   @return true if value type matches at least one of the others        
+   TABLE_TEMPLATE()
+   template<CT::Data V1, CT::Data... VN>
+   LANGULUS(INLINED)
+   constexpr bool TABLE()::ValueIsSimilar() const noexcept {
+      return CT::SimilarAsOneOf<V, V1, VN...>;
+   }
+
+   /// Check if cv-unqualified value type matches another                     
+   ///   @param value - the value type to compare against                     
+   ///   @return true if value matches the contained value unqualified type   
+   TABLE_TEMPLATE() LANGULUS(INLINED)
+   constexpr bool TABLE()::ValueIsSimilar(DMeta value) const noexcept {
+      return GetValueType()->IsSimilar(value);
+   }
+
+   /// Check if value type exactly matches any of the list                    
+   ///   @tparam V1, VN... - the list of types to compare against             
+   ///   @return true if value type matches at least one of the others        
+   TABLE_TEMPLATE()
+   template<CT::Data V1, CT::Data... VN>
+   LANGULUS(INLINED)
+   constexpr bool TABLE()::ValueIsExact() const noexcept {
+      return CT::ExactAsOneOf<V, V1, VN...>;
+   }
+
+   /// Check if value type exactly matches any of the list                      
+   ///   @param value - the value type to compare against                        
+   ///   @return true if value matches the contained value unqualified type      
+   TABLE_TEMPLATE() LANGULUS(INLINED)
+   constexpr bool TABLE()::ValueIsExact(DMeta value) const noexcept {
+      return GetValueType()->IsExact(value);
+   }
+
+   /// Checks type compatibility and sets type for the map                    
+   /// Does only compile-time checks for this templated variant               
+   ///   @tparam ALT_K - the key type to check                                
+   ///   @tparam ALT_V - the value type to check                              
+   TABLE_TEMPLATE()
+   template<CT::NotSemantic ALT_K, CT::NotSemantic ALT_V>
+   LANGULUS(INLINED)
+   constexpr void TABLE()::Mutate() noexcept {
+      static_assert(CT::Similar<K, ALT_K>,
+         "Can't mutate to incompatible key");
+      static_assert(CT::Similar<V, ALT_V>,
+         "Can't mutate to incompatible value");
+   }
+
+   /// Checks type compatibility and sets type for the type-erased map        
+   ///   @param key - the key type                                            
+   ///   @param value - the value type                                        
+   TABLE_TEMPLATE() LANGULUS(INLINED)
+   void TABLE()::Mutate(DMeta key, DMeta value) {
+      // Types known at compile-time, so check compatibility            
+      LANGULUS_ASSERT(GetKeyType()->IsSimilar(key), Mutate,
+         "Can't mutate to incompatible key");
+      LANGULUS_ASSERT(GetValueType()->IsSimilar(value), Mutate,
+         "Can't mutate to incompatible value");
+   }
+
    ///                                                                        
    /// All possible ways a key and value could be inserted to the map         
    ///                                                                        
@@ -520,6 +638,10 @@ namespace Langulus::Anyness
    ///   @return 1 if pair was inserted, zero otherwise                       
    TABLE_TEMPLATE() LANGULUS(INLINED)
    Count TABLE()::Insert(CT::Semantic auto&& key, CT::Semantic auto&& val) {
+      using SK = Decay<decltype(key)>;
+      using SV = Decay<decltype(val)>;
+
+      Mutate<TypeOf<SK>, TypeOf<SV>>();
       Reserve(GetCount() + 1);
       InsertInner<true>(
          GetBucket(GetReserved() - 1, *key),
@@ -1045,7 +1167,7 @@ namespace Langulus::Anyness
       while (info != infoEnd) {
          if (*info) {
             const auto lhs = info - GetInfo();
-            const auto rhs = other.FindInner(GetRawKey(lhs));
+            const auto rhs = other.template FindInner<TABLE()>(GetRawKey(lhs));
             if (rhs == InvalidOffset or GetRawValue(lhs) != other.GetRawValue(rhs))
                return false;
          }
@@ -1061,10 +1183,7 @@ namespace Langulus::Anyness
    ///   @return true if key is found, false otherwise                        
    TABLE_TEMPLATE() LANGULUS(INLINED)
    bool TABLE()::ContainsKey(const K& key) const {
-      if (IsEmpty())
-         return false;
-
-      return FindInner(key) != InvalidOffset;
+      return FindInner<TABLE()>(key) != InvalidOffset;
    }
 
    /// Search for a value inside the table                                    
@@ -1094,10 +1213,7 @@ namespace Langulus::Anyness
    ///   @return true if pair is found, false otherwise                       
    TABLE_TEMPLATE() LANGULUS(INLINED)
    bool TABLE()::ContainsPair(const Pair& pair) const requires (CT::Inner::Comparable<V>) {
-      if (IsEmpty())
-         return false;
-
-      const auto found = FindInner(pair.mKey);
+      const auto found = FindInner<TABLE()>(pair.mKey);
       return found != InvalidOffset and GetValue(found) == pair.mValue;
    }
 
@@ -1106,10 +1222,7 @@ namespace Langulus::Anyness
    ///   @return the index if key was found, or IndexNone if not              
    TABLE_TEMPLATE() LANGULUS(INLINED)
    Index TABLE()::Find(const K& key) const {
-      if (IsEmpty())
-         return IndexNone;
-
-      const auto offset = FindInner(key);
+      const auto offset = FindInner<TABLE()>(key);
       return offset != InvalidOffset ? Index {offset} : IndexNone;
    }
    
@@ -1118,15 +1231,14 @@ namespace Langulus::Anyness
    ///   @return the iterator                                                 
    TABLE_TEMPLATE() LANGULUS(INLINED)
    typename TABLE()::Iterator TABLE()::FindIt(const K& key) {
-      const auto found = Find(key);
-      if (not found)
+      const auto found = FindInner<TABLE()>(key);
+      if (found == InvalidOffset)
          return end();
 
-      const auto offset = found.GetOffsetUnsafe();
       return {
-         GetInfo() + offset, GetInfoEnd(),
-         &GetRawKey(offset),
-         &GetRawValue(offset)
+         GetInfo() + found, GetInfoEnd(),
+         &GetRawKey(found),
+         &GetRawValue(found)
       };
    }
       
@@ -1144,10 +1256,7 @@ namespace Langulus::Anyness
    ///   @return a reference to the value                                     
    TABLE_TEMPLATE() LANGULUS(INLINED)
    decltype(auto) TABLE()::At(const K& key) {
-      if (IsEmpty())
-         LANGULUS_OOPS(OutOfRange, "Map is empty");
-
-      const auto found = FindInner(key);
+      const auto found = FindInner<TABLE()>(key);
       LANGULUS_ASSERT(found != InvalidOffset, OutOfRange, "Key not found");
       return GetRawValue(found);
    }

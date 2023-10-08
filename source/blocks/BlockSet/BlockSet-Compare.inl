@@ -48,101 +48,146 @@ namespace Langulus::Anyness
    }
 
    /// Search for a key inside the table                                      
+   ///   @tparam SET - set we're searching in, potentially providing runtime  
+   ///                 optimization on type checks                            
    ///   @param key - the key to search for                                   
    ///   @return true if key is found, false otherwise                        
+   template<class SET>
    LANGULUS(INLINED)
    bool BlockSet::Contains(const CT::NotSemantic auto& key) const {
-      using T = Decvq<Deref<decltype(key)>>;
-      if (IsEmpty() or not mKeys.mType or not mKeys.mType->template IsExact<T>()) 
-         return false;
-
-      return FindInner<BlockSet, T>(key) != InvalidOffset;
+      return FindInner<SET>(key) != InvalidOffset;
    }
 
    /// Search for a key inside the table, and return it if found              
+   ///   @tparam SET - set we're searching in, potentially providing runtime  
+   ///                 optimization on type checks                            
    ///   @param key - the key to search for                                   
    ///   @return the index if key was found, or IndexNone if not              
+   template<class SET>
    LANGULUS(INLINED)
    Index BlockSet::Find(const CT::NotSemantic auto& key) const {
-      const auto offset = FindInner(key);
+      const auto offset = FindInner<SET>(key);
       return offset != InvalidOffset ? Index {offset} : IndexNone;
    }
 
+   /// Search for a key inside the table, and return an iterator to it        
+   ///   @tparam SET - set we're searching in, potentially providing runtime  
+   ///                 optimization on type checks                            
+   ///   @param key - the key to search for                                   
+   ///   @return the iterator                                                 
+   template<class SET>
+   LANGULUS(INLINED)
+   BlockSet::Iterator BlockSet::FindIt(const CT::NotSemantic auto& key) {
+      const auto offset = FindInner<SET>(key);
+      if (offset == InvalidOffset)
+         return end();
+
+      return {
+         GetInfo() + offset, GetInfoEnd(),
+         GetInner(offset)
+      };
+   }
+   
+   /// Search for a key inside the table, and return an iterator to it        
+   ///   @tparam SET - set we're searching in, potentially providing runtime  
+   ///                 optimization on type checks                            
+   ///   @param key - the key to search for                                   
+   ///   @return the iterator                                                 
+   template<class SET>
+   LANGULUS(INLINED)
+   BlockSet::ConstIterator BlockSet::FindIt(const CT::NotSemantic auto& key) const {
+      return const_cast<BlockSet*>(this)->template FindIt<SET>(key);
+   }
+
    /// Find the index of a pair by key                                        
-   ///   @attention assumes map is not empty                                  
-   ///   @attention assumes keys are of the exactly same type                 
-   ///   @tparam THIS - set to interpret this one as, for optimal bucketing   
+   /// The key may not match the contained key type                           
+   ///   @tparam SET - set we're searching in, potentially providing runtime  
+   ///                 optimization on type checks                            
    ///   @param match - the key to search for                                 
    ///   @return the index, or mValues.mReserved if not found                 
-   template<class THIS>
+   template<class SET>
    Offset BlockSet::FindInner(const CT::NotSemantic auto& match) const {
-      using K = Decvq<Deref<decltype(match)>>;
-      LANGULUS_ASSUME(DevAssumes, not IsEmpty(), "Set is empty");
-      LANGULUS_ASSUME(DevAssumes, mKeys.mType
-         and mKeys.mType->template IsExact<K>(), "Type mismatch");
-
-      static_assert(CT::Set<THIS>, "THIS must be a set type");
-      auto& This = reinterpret_cast<const THIS&>(*this);
-
-      // Get the starting index based on the key hash                   
-      const auto start = This.GetBucket(GetReserved() - 1, match);
-      auto info = GetInfo() + start;
-      if (not *info)
+      using K = Deref<decltype(match)>;
+      if (IsEmpty())
          return InvalidOffset;
 
-      // Test first candidate                                           
-      auto key = &GetRaw<K>(start);
-      if (*key == match)
-         return start;
+      static_assert(CT::Set<SET>, "SET must be a set type");
+      auto& THIS = reinterpret_cast<const SET&>(*this);
+      if constexpr (CT::Array<K> and CT::ExactAsOneOf<Decvq<Deext<K>>, char, wchar_t>) {
+         if (THIS.template IsSimilar<Text>()) {
+            // Implicitly make a text container on string literal       
+            return FindInner<SET>(Text {Disown(match)});
+         }
+         else if (THIS.template IsSimilar<char*, wchar_t*>()) {
+            // Cast away the extent, search for pointer                 
+            return FindInner<SET>(static_cast<const Deext<K>*>(match));
+         }
+         else return 0;
+      }
+      else {
+         if (not THIS.template IsSimilar<K>())
+            return InvalidOffset;
 
-      // Test all candidates on the right up until the end              
-      ++key;
-      ++info;
-
-      const auto infoEnd = GetInfoEnd();
-      const auto starti = static_cast<::std::ptrdiff_t>(start);
-      while (info != infoEnd) {
+         // Get the starting index based on the key hash                
+         const auto start = GetBucket(GetReserved() - 1, match);
+         auto info = GetInfo() + start;
          if (not *info)
             return InvalidOffset;
 
-         const ::std::ptrdiff_t index = info - GetInfo();
-         if (index - *info > starti)
+         // Test first candidate                                        
+         auto key = &GetRaw<K>(start);
+         if (*key == match)
+            return start;
+
+         // Test all candidates on the right up until the end           
+         ++key;
+         ++info;
+
+         const auto infoEnd = GetInfoEnd();
+         const auto starti = static_cast<::std::ptrdiff_t>(start);
+         while (info != infoEnd) {
+            if (not *info)
+               return InvalidOffset;
+
+            const ::std::ptrdiff_t index = info - GetInfo();
+            if (index - *info > starti)
+               return InvalidOffset;
+
+            if (*key == match)
+               return static_cast<Offset>(index);
+
+            ++key; ++info;
+         }
+
+         // Reached only if info has reached the end                    
+         // Keys might loop around, continue the search from the start  
+         info = GetInfo();
+         if (GetReserved() - *info > start)
             return InvalidOffset;
 
+         key = &GetRaw<K>(0);
          if (*key == match)
-            return static_cast<Offset>(index);
+            return 0;
 
-         ++key; ++info;
-      }
+         ++key;
+         ++info;
 
-      // Reached only if info has reached the end                       
-      // Keys might loop around, continue the search from the start     
-      info = GetInfo();
-      if (GetReserved() - *info > start)
+         while (info != infoEnd) {
+            if (not *info)
+               return InvalidOffset;
+
+            const Offset index = info - GetInfo();
+            if (GetReserved() - index - *info > start)
+               return InvalidOffset;
+
+            if (*key == match)
+               return index;
+
+            ++key; ++info;
+         }
+
          return InvalidOffset;
-
-      key = &GetRaw<K>(0);
-      if (*key == match)
-         return 0;
-
-      ++key;
-      ++info;
-
-      while (info != infoEnd) {
-         if (not *info)
-            return InvalidOffset;
-
-         const Offset index = info - GetInfo();
-         if (GetReserved() - index - *info > start)
-            return InvalidOffset;
-
-         if (*key == match)
-            return index;
-
-         ++key; ++info;
       }
-
-      return InvalidOffset;
    }
    
    /// Find the index of a pair by an unknown type-erased key                 
@@ -151,17 +196,12 @@ namespace Langulus::Anyness
    ///   @tparam THIS - set to interpret this one as, for optimal bucketing   
    ///   @param match - the key to search for                                 
    ///   @return the index, or mValues.mReserved if not found                 
-   template<class THIS>
-   Offset BlockSet::FindInnerUnknown(const Block& match) const {
-      LANGULUS_ASSUME(DevAssumes, not IsEmpty(), "Set is empty");
-      LANGULUS_ASSUME(DevAssumes, mKeys.mType
-         and mKeys.mType->IsExact(match.GetType()), "Type mismatch");
-
-      static_assert(CT::Set<THIS>, "THIS must be a set type");
-      auto& This = reinterpret_cast<const THIS&>(*this);
+   inline Offset BlockSet::FindInnerUnknown(const Block& match) const {
+      if (IsEmpty() or not IsSimilar(match.GetType()))
+         return InvalidOffset;
 
       // Get the starting index based on the key hash                   
-      const auto start = This.GetBucketUnknown(GetReserved() - 1, match);
+      const auto start = GetBucketUnknown(GetReserved() - 1, match);
       auto info = GetInfo() + start;
       if (not *info)
          return InvalidOffset;

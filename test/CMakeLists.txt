@@ -1,18 +1,10 @@
-add_executable(LangulusAnynessTest 
-	Main.cpp
-	TestBytes.cpp
-	TestConstruct.cpp
-	TestDeep.cpp
-	TestIncomplete.cpp
-	TestIteration.cpp
-	TestMaps.cpp
-	TestNeat.cpp
-	TestPointers.cpp
-	TestSets.cpp
-	TestTAnyDense.cpp
-	TestTAnySparse.cpp
-	TestText.cpp
+file(GLOB_RECURSE
+	LANGULUS_ANYNESS_TEST_SOURCES 
+	LIST_DIRECTORIES FALSE CONFIGURE_DEPENDS
+	*.cpp *.hpp
 )
+
+add_executable(LangulusAnynessTest ${LANGULUS_ANYNESS_TEST_SOURCES})
 
 target_link_libraries(LangulusAnynessTest
 	PRIVATE		LangulusAnyness

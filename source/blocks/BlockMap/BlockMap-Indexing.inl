@@ -167,59 +167,93 @@ namespace Langulus::Anyness
    Offset BlockMap::GetBucketUnknown(Offset mask, const Block& value) noexcept {
       return value.GetHash().mHash & mask;
    }
+
+   /// Get a key reference                                                    
+   ///   @attention assumes index is in container's limits                    
+   ///   @attention assumes K is similar to the contained key type            
+   ///   @tparam K - the type to reinterpret key as                           
+   ///   @param i - the key index                                             
+   ///   @return a reference to the key                                       
+   template<CT::Data K>
+   LANGULUS(INLINED)
+   constexpr K& BlockMap::GetRawKey(Offset i) IF_UNSAFE(noexcept) {
+      LANGULUS_ASSUME(DevAssumes, i < GetReserved(),
+         "Index out of limits when accessing map key",
+         ", index ", i, " is beyond the reserved ", GetReserved(), " elements");
+      LANGULUS_ASSUME(DevAssumes, mKeys.template IsSimilar<K>(),
+         "Wrong type when accessing map key",
+         ", using type `", NameOf<K>(),
+         "` instead of `", mKeys.GetType(), '`');
+      return GetKeys<K>().GetRaw()[i];
+   }
    
-   /// Get a raw key entry (const)                                            
-   ///   @param index - the key index                                         
-   ///   @return a constant reference to the element                          
    template<CT::Data K>
    LANGULUS(INLINED)
-   constexpr const K& BlockMap::GetRawKey(Offset index) const noexcept {
-      return GetKeys<K>().GetRaw()[index];
+   constexpr const K& BlockMap::GetRawKey(Offset i) const IF_UNSAFE(noexcept) {
+      return const_cast<BlockMap*>(this)->template GetRawKey<K>(i);
    }
 
-   /// Get a raw key entry                                                    
-   ///   @param index - the key index                                         
-   ///   @return a mutable reference to the element                           
-   template<CT::Data K>
-   LANGULUS(INLINED)
-   constexpr K& BlockMap::GetRawKey(Offset index) noexcept {
-      return GetKeys<K>().GetRaw()[index];
-   }
-
-   /// Get a key handle if sparse, or a key pointer                           
-   ///   @param index - the key index                                         
+   /// Get a key handle                                                       
+   ///   @attention assumes index is in container's limits                    
+   ///   @attention assumes K is similar to the contained key type            
+   ///   @tparam K - the type to reinterpret key as                           
+   ///   @param i - the key index                                             
    ///   @return the handle                                                   
    template<CT::Data K>
    LANGULUS(INLINED)
-   constexpr Handle<K> BlockMap::GetKeyHandle(Offset index) const noexcept {
-      return GetKeys<K>().GetHandle(index);
+   constexpr Handle<K> BlockMap::GetKeyHandle(Offset i) const IF_UNSAFE(noexcept) {
+      LANGULUS_ASSUME(DevAssumes, i < GetReserved(),
+         "Index out of limits when accessing map key",
+         ", index ", i, " is beyond the reserved ", GetReserved(), " elements");
+      LANGULUS_ASSUME(DevAssumes, mKeys.template IsSimilar<K>(),
+         "Wrong type when accessing map key",
+         ", using type `", NameOf<K>(),
+         "` instead of `", mKeys.GetType(), '`');
+      return GetKeys<K>().GetHandle(i);
    }
 
-   /// Get a raw value entry (const)                                          
-   ///   @param index - the value index                                       
-   ///   @return a constant reference to the element                          
+   /// Get a value reference                                                  
+   ///   @attention assumes index is in container's limits                    
+   ///   @attention assumes V is similar to the contained value type          
+   ///   @tparam V - the type to reinterpret value as                         
+   ///   @param i - the value index                                           
+   ///   @return a reference to the value                                     
    template<CT::Data V>
    LANGULUS(INLINED)
-   constexpr const V& BlockMap::GetRawValue(Offset index) const noexcept {
-      return GetValues<V>().GetRaw()[index];
+   constexpr V& BlockMap::GetRawValue(Offset i) IF_UNSAFE(noexcept) {
+      LANGULUS_ASSUME(DevAssumes, i < GetReserved(),
+         "Index out of limits when accessing map value",
+         ", index ", i, " is beyond the reserved ", GetReserved(), " elements");
+      LANGULUS_ASSUME(DevAssumes, mValues.template IsSimilar<V>(),
+         "Wrong type when accessing map value",
+         ", using type `", NameOf<V>(),
+         "` instead of `", mValues.GetType(), '`');
+      return GetValues<V>().GetRaw()[i];
    }
 
-   /// Get a raw value entry                                                  
-   ///   @param index - the value index                                       
-   ///   @return a mutable reference to the element                           
    template<CT::Data V>
    LANGULUS(INLINED)
-   constexpr V& BlockMap::GetRawValue(Offset index) noexcept {
-      return GetValues<V>().GetRaw()[index];
+   constexpr const V& BlockMap::GetRawValue(Offset i) const IF_UNSAFE(noexcept) {
+      return const_cast<BlockMap*>(this)->template GetRawValue<V>(i);
    }
    
-   /// Get a value handle if sparse, or a key pointer                         
-   ///   @param index - the value index                                       
+   /// Get a value handle                                                     
+   ///   @attention assumes index is in container's limits                    
+   ///   @attention assumes V is similar to the contained value type          
+   ///   @tparam V - the type to reinterpret value as                         
+   ///   @param i - the value index                                           
    ///   @return the handle                                                   
    template<CT::Data V>
    LANGULUS(INLINED)
-   constexpr Handle<V> BlockMap::GetValueHandle(Offset index) const noexcept {
-      return GetValues<V>().GetHandle(index);
+   constexpr Handle<V> BlockMap::GetValueHandle(Offset i) const IF_UNSAFE(noexcept) {
+      LANGULUS_ASSUME(DevAssumes, i < GetReserved(), 
+         "Index out of limits when accessing map value", 
+         ", index ", i, " is beyond the reserved ", GetReserved(), " elements");
+      LANGULUS_ASSUME(DevAssumes, mValues.template IsSimilar<V>(), 
+         "Wrong type when accessing map value", 
+         ", using type `", NameOf<V>(), 
+         "` instead of `", mValues.GetType(), '`');
+      return GetValues<V>().GetHandle(i);
    }
 
 } // namespace Langulus::Anyness

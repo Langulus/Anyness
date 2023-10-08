@@ -82,7 +82,7 @@ namespace Langulus::Anyness
             else {
                for (auto key : *other) {
                   InsertUnkownInner<false>(
-                     GetBucket(hashmask, key),
+                     GetBucketUnknown(hashmask, key),
                      S::Nest(key)
                   );
                }
@@ -223,96 +223,13 @@ namespace Langulus::Anyness
       return *this;
    }
    
-   /// Insert a single element inside table via copy                          
-   ///   @param key - the key to add                                          
-   ///   @return 1 if element was inserted, zero otherwise                    
-   LANGULUS(INLINED)
-   Count UnorderedSet::Insert(const CT::NotSemantic auto& key) {
-      return Insert(Copy(key));
-   }
-   
-   /// Insert a single element inside table via copy                          
-   ///   @param key - the key to add                                          
-   ///   @return 1 if element was inserted, zero otherwise                    
-   LANGULUS(INLINED)
-   Count UnorderedSet::Insert(CT::NotSemantic auto& key) {
-      return Insert(Copy(key));
-   }
-
-   /// Insert a single element inside table via move                          
-   ///   @param key - the key to add                                          
-   ///   @return 1 if element was inserted, zero otherwise                    
-   LANGULUS(INLINED)
-   Count UnorderedSet::Insert(CT::NotSemantic auto&& key) {
-      return Insert(Move(key));
-   }
-      
-   /// Semantically insert key                                                
-   ///   @param key - the key to insert                                       
-   ///   @return 1 if element was inserted, zero otherwise                    
-   LANGULUS(INLINED)
-   Count UnorderedSet::Insert(CT::Semantic auto&& key) {
-      using S = Decay<decltype(key)>;
-      using T = TypeOf<S>;
-
-      Mutate<T>();
-      Reserve(GetCount() + 1);
-      InsertInner<true>(
-         GetBucket(GetReserved() - 1, *key),
-         key.Forward()
-      );
-      return 1;
-   }
-   
    /// Copy-insert any element inside the set                                 
    ///   @param item - the element to insert                                  
    ///   @return a reference to this set for chaining                         
    LANGULUS(INLINED)
-   UnorderedSet& UnorderedSet::operator << (const CT::NotSemantic auto& item) {
-      return operator << (Copy(item));
-   }
-   
-   /// Copy-insert any element inside the set                                 
-   ///   @param item - the element to insert                                  
-   ///   @return a reference to this set for chaining                         
-   LANGULUS(INLINED)
-   UnorderedSet& UnorderedSet::operator << (CT::NotSemantic auto& item) {
-      return operator << (Copy(item));
-   }
-
-   /// Move-insert any element inside the set                                 
-   ///   @param item - the element to insert                                  
-   ///   @return a reference to this set for chaining                         
-   LANGULUS(INLINED)
-   UnorderedSet& UnorderedSet::operator << (CT::NotSemantic auto&& item) {
-      return operator << (Move(item));
-   }
-
-   /// Semantic insertion of any element inside the set                       
-   ///   @param item - the element to insert                                  
-   ///   @return a reference to this set for chaining                         
-   LANGULUS(INLINED)
-   UnorderedSet& UnorderedSet::operator << (CT::Semantic auto&& item) {
-      Insert(item.Forward());
+   UnorderedSet& UnorderedSet::operator << (auto&& item) {
+      BlockSet::Insert(Forward<decltype(item)>(item));
       return *this;
-   }
-   
-   /// Semantically insert a type-erased element                              
-   ///   @param key - the key to insert                                       
-   ///   @return 1 if element was inserted                                    
-   LANGULUS(INLINED)
-   Count UnorderedSet::InsertUnknown(CT::Semantic auto&& key) {
-      using S = Decay<decltype(key)>;
-      static_assert(CT::Exact<TypeOf<S>, Block>,
-         "S type must be exactly Block (build-time optimization)");
-
-      Mutate(key->mType);
-      Reserve(GetCount() + 1);
-      InsertInnerUnknown<true>(
-         GetBucketUnknown(GetReserved() - 1, *key),
-         key.Forward()
-      );
-      return 1;
    }
    
 } // namespace Langulus::Anyness

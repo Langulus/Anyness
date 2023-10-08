@@ -68,11 +68,6 @@ namespace Langulus::Anyness
       NOD() DMeta GetKeyType() const;
       NOD() DMeta GetValueType() const;
 
-      template<class>
-      NOD() constexpr bool KeyIs() const noexcept;
-      template<class>
-      NOD() constexpr bool ValueIs() const noexcept;
-
       NOD() constexpr bool IsKeyUntyped() const noexcept;
       NOD() constexpr bool IsValueUntyped() const noexcept;
 
@@ -101,6 +96,39 @@ namespace Langulus::Anyness
 
       void Reserve(const Count&);
 
+      ///                                                                     
+      ///   RTTI                                                              
+      ///                                                                     
+      template<CT::Data, CT::Data...>
+      NOD() constexpr bool KeyIs() const noexcept;
+      NOD() constexpr bool KeyIs(DMeta) const noexcept;
+
+      template<CT::Data, CT::Data...>
+      NOD() constexpr bool KeyIsSimilar() const noexcept;
+      NOD() constexpr bool KeyIsSimilar(DMeta) const noexcept;
+
+      template<CT::Data, CT::Data...>
+      NOD() constexpr bool KeyIsExact() const noexcept;
+      NOD() constexpr bool KeyIsExact(DMeta) const noexcept;
+
+      template<CT::Data, CT::Data...>
+      NOD() constexpr bool ValueIs() const noexcept;
+      NOD() constexpr bool ValueIs(DMeta) const noexcept;
+
+      template<CT::Data, CT::Data...>
+      NOD() constexpr bool ValueIsSimilar() const noexcept;
+      NOD() constexpr bool ValueIsSimilar(DMeta) const noexcept;
+
+      template<CT::Data, CT::Data...>
+      NOD() constexpr bool ValueIsExact() const noexcept;
+      NOD() constexpr bool ValueIsExact(DMeta) const noexcept;
+
+   protected:
+      template<CT::NotSemantic, CT::NotSemantic>
+      constexpr void Mutate() noexcept;
+      void Mutate(DMeta, DMeta);
+
+   public:
       ///                                                                     
       ///   Comparison                                                        
       ///                                                                     

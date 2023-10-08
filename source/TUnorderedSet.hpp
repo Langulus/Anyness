@@ -117,19 +117,34 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   RTTI                                                              
       ///                                                                     
-      template<class>
+      template<CT::Data, CT::Data...>
       NOD() constexpr bool Is() const noexcept;
+      NOD() constexpr bool Is(DMeta) const noexcept;
 
+      template<CT::Data, CT::Data...>
+      NOD() constexpr bool IsSimilar() const noexcept;
+      NOD() constexpr bool IsSimilar(DMeta) const noexcept;
+
+      template<CT::Data, CT::Data...>
+      NOD() constexpr bool IsExact() const noexcept;
+      NOD() constexpr bool IsExact(DMeta) const noexcept;
+
+   protected:
+      template<CT::NotSemantic>
+      constexpr void Mutate() noexcept;
+      void Mutate(DMeta);
+
+   public:
       ///                                                                     
       ///   Comparison                                                        
       ///                                                                     
       bool operator == (const TUnorderedSet&) const;
 
       NOD() bool Contains(const T&) const;
-      NOD() Index Find(const T&) const;
 
-   //protected:
-      //NOD() Offset FindIndex(const T&) const;
+      NOD() Index Find(const T&) const;
+      NOD() Iterator FindIt(const T&);
+      NOD() ConstIterator FindIt(const T&) const;
 
    public:
       ///                                                                     

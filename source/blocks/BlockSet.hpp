@@ -173,17 +173,17 @@ namespace Langulus::Anyness
       void Mutate();
       void Mutate(DMeta);
 
-      NOD() bool Is(DMeta) const noexcept;
-      template<CT::Data...>
+      template<CT::Data, CT::Data...>
       NOD() bool Is() const noexcept;
+      NOD() bool Is(DMeta) const noexcept;
 
-      NOD() bool IsSimilar(DMeta) const noexcept;
-      template<CT::Data...>
+      template<CT::Data, CT::Data...>
       NOD() bool IsSimilar() const noexcept;
+      NOD() bool IsSimilar(DMeta) const noexcept;
 
-      NOD() bool IsExact(DMeta) const noexcept;
-      template<CT::Data...>
+      template<CT::Data, CT::Data...>
       NOD() bool IsExact() const noexcept;
+      NOD() bool IsExact(DMeta) const noexcept;
 
       NOD() bool IsTypeCompatibleWith(const BlockSet&) const noexcept;
 
@@ -194,13 +194,19 @@ namespace Langulus::Anyness
 
       NOD() Hash GetHash() const;
 
+      template<class SET = BlockSet>
       NOD() bool Contains(const CT::NotSemantic auto&) const;
+
+      template<class SET = BlockSet>
       NOD() Index Find(const CT::NotSemantic auto&) const;
+      template<class SET = BlockSet>
+      NOD() Iterator FindIt(const CT::NotSemantic auto&);
+      template<class SET = BlockSet>
+      NOD() ConstIterator FindIt(const CT::NotSemantic auto&) const;
 
    protected:
-      template<class THIS = BlockSet>
+      template<class SET = BlockSet>
       NOD() Offset FindInner(const CT::NotSemantic auto&) const;
-      template<class THIS = BlockSet>
       NOD() Offset FindInnerUnknown(const Block&) const;
 
    public:

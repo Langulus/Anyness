@@ -8,6 +8,8 @@
 ///                                                                           
 #pragma once
 #include "../BlockSet.hpp"
+#include "../../blocks/Block/Block-Insert.inl"
+
 
 namespace Langulus::Anyness
 {
@@ -157,7 +159,10 @@ namespace Langulus::Anyness
       using T = TypeOf<decltype(value)>;
       Mutate<T>();
       Reserve(GetCount() + 1);
-      InsertInner<true>(GetBucket(value.mValue), value.Forward());
+      InsertInner<true>(
+         GetBucket(GetReserved() - 1, *value),
+         value.Forward()
+      );
       return 1;
    }
    

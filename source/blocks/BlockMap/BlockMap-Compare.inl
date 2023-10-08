@@ -26,8 +26,7 @@ namespace Langulus::Anyness
          if (*info) {
             const auto lhs = info - GetInfo();
             const auto rhs = other.FindInnerUnknown(GetKeyInner(lhs));
-            if (rhs == other.GetReserved()
-               or GetValueInner(lhs) != other.GetValueInner(rhs))
+            if (rhs == InvalidOffset or GetValueInner(lhs) != other.GetValueInner(rhs))
                return false;
          }
 
