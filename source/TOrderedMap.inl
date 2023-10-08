@@ -98,7 +98,7 @@ namespace Langulus::Anyness
       while (info != infoEnd) {
          if (*info) {
             const auto lhs = info - Base::GetInfo();
-            const auto rhs = other.FindInner(Base::GetRawKey(lhs));
+            const auto rhs = other.template FindInner<TABLE()>(Base::GetRawKey(lhs));
             if (rhs == BlockMap::InvalidOffset or Base::GetRawValue(lhs) != other.GetRawValue(rhs))
                return false;
          }

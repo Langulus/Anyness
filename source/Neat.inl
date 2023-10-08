@@ -592,17 +592,23 @@ namespace Langulus::Anyness
       else if constexpr (CT::Deep<T>) {
          // Push anything deep here, flattening it, unless it has state 
          if (rhs->GetUnconstrainedState()) {
+            // RHS has state, so just push it as it is to preserve it   
             const auto meta = rhs->GetType() ? rhs->GetType()->mOrigin : nullptr;
-            mAnythingElse.Insert(meta, Messy {rhs.Forward()});
+            if (mAnythingElse.ContainsKey(meta))
+               mAnythingElse[meta] << Messy {rhs.Forward()};
+            else
+               mAnythingElse.Insert(meta, TAny<Messy> {Messy {rhs.Forward()}});
          }
          else if (rhs->IsDeep()) {
+            // RHS is deep, flatten it                                  
             rhs->ForEach([&](const Any& group) {
                operator << (S::Nest(const_cast<Any&>(group)));
             });
          }
          else {
-            if (not rhs->ForEach(
+            const bool done = rhs->ForEach(
                [&](const Construct& c) {
+                  // RHS contains constructs, add them one by one       
                   const auto meta = c.GetType() ? c.GetType()->mOrigin : nullptr;
                   mConstructs.Insert(meta, Inner::DeConstruct {
                      c.GetHash(),
@@ -611,32 +617,45 @@ namespace Langulus::Anyness
                   });
                },
                [&](const Neat& neat) {
+                  // RHS contains Neats, merge them one by one          
                   Merge(neat);
                },
                [&](const Trait& trait) {
+                  // RHS contains traits, add them one by one           
                   AddTrait(S::Nest(const_cast<Trait&>(trait)));
                },
                [&](const MetaData* meta) {
+                  // RHS contains metadata, add them                    
                   const auto dmeta = meta ? meta->mOrigin : nullptr;
                   mAnythingElse.Insert(dmeta, Any {});
                },
                [&](const MetaTrait* meta) {
+                  // RHS contains metatraits, add them                  
                   mTraits.Insert(meta, Any {});
                },
                [&](const MetaConst* meta) {
-                  Any wrapped = Clone(Block {{}, meta});
-                  const auto dmeta = wrapped.GetType() ? wrapped.GetType()->mOrigin : nullptr;
-                  mAnythingElse.Insert(dmeta, Abandon(wrapped));
+                  // RHS contains metaconstants, expand and add them    
+                  operator << (Clone(Block {{}, meta}));
                }
-            )) {
+            );
+
+            if (not done) {
+               // RHS contains nothing special, just add it as it is    
                const auto meta = rhs->GetType() ? rhs->GetType()->mOrigin : nullptr;
-               mAnythingElse.Insert(meta, rhs.Forward());
+               if (mAnythingElse.ContainsKey(meta))
+                  mAnythingElse[meta] << rhs.Forward();
+               else
+                  mAnythingElse.Insert(meta, TAny<Messy> {rhs.Forward()});
             }
          }
       }
       else {
+         // RHS is nothing special, just add it as it is                
          const auto meta = RTTI::MetaData::Of<Decay<T>>();
-         mAnythingElse.Insert(meta, rhs.Forward());
+         if (mAnythingElse.ContainsKey(meta))
+            mAnythingElse[meta] << rhs.Forward();
+         else
+            mAnythingElse.Insert(meta, TAny<Messy> {Messy {rhs.Forward()}});
       }
 
       // Demand a new hash on the next compare                          

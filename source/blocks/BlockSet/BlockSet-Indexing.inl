@@ -92,45 +92,47 @@ namespace Langulus::Anyness
       return value.GetHash().mHash & mask;
    }
 
-   /// Get a mutable element reference                                        
+   /// Get a reference to a contained element                                 
    ///   @attention assumes index is in container's limits                    
-   ///   @attention assumes T is exactly the contained type                   
+   ///   @attention assumes T is similar to the contained type                
    ///   @tparam T - the type to reinterpret contained elements as            
    ///   @param i - the key index                                             
    ///   @return a constant reference to the element                          
    template<CT::Data T>
    LANGULUS(INLINED)
    constexpr T& BlockSet::GetRaw(Offset i) IF_UNSAFE(noexcept) {
-      LANGULUS_ASSUME(DevAssumes, i < GetReserved(), "Bad index");
-      LANGULUS_ASSUME(DevAssumes, mKeys.template IsExact<T>(), "Bad type");
+      LANGULUS_ASSUME(DevAssumes, i < GetReserved(),
+         "Index out of limits when accessing set value",
+         ", index ", i, " is beyond the reserved ", GetReserved(), " elements");
+      LANGULUS_ASSUME(DevAssumes, mKeys.template IsSimilar<T>(),
+         "Wrong type when accessing set value",
+         ", using type `", NameOf<T>(),
+         "` instead of `", mKeys.GetType(), '`');
       return mKeys.template GetRawAs<T>()[i];
    }
 
-   /// Get a constant element reference                                       
-   ///   @attention assumes index is in container's limits                    
-   ///   @attention assumes T is exactly the contained type                   
-   ///   @tparam T - the type to reinterpret contained elements as            
-   ///   @param i - the key index                                             
-   ///   @return a constant reference to the element                          
    template<CT::Data T>
    LANGULUS(INLINED)
    constexpr const T& BlockSet::GetRaw(Offset i) const IF_UNSAFE(noexcept) {
-      LANGULUS_ASSUME(DevAssumes, i < GetReserved(), "Bad index");
-      LANGULUS_ASSUME(DevAssumes, mKeys.template IsExact<T>(), "Bad type");
-      return mKeys.template GetRawAs<T>()[i];
+      return const_cast<BlockSet*>(this)->template GetRaw<T>(i);
    }
 
    /// Get an element handle                                                  
    ///   @attention assumes index is in container's limits                    
-   ///   @attention assumes T is exactly the contained type                   
+   ///   @attention assumes T is similar to the contained type                
    ///   @tparam T - the type to reinterpret contained elements as            
    ///   @param i - the key index                                             
    ///   @return the handle                                                   
    template<CT::Data T>
    LANGULUS(INLINED)
    constexpr Handle<T> BlockSet::GetHandle(Offset i) const IF_UNSAFE(noexcept) {
-      LANGULUS_ASSUME(DevAssumes, i < GetReserved(), "Bad index");
-      LANGULUS_ASSUME(DevAssumes, mKeys.template IsExact<T>(), "Bad type");
+      LANGULUS_ASSUME(DevAssumes, i < GetReserved(),
+         "Index out of limits when accessing set value",
+         ", index ", i, " is beyond the reserved ", GetReserved(), " elements");
+      LANGULUS_ASSUME(DevAssumes, mKeys.template IsSimilar<T>(),
+         "Wrong type when accessing set value",
+         ", using type `", NameOf<T>(),
+         "` instead of `", mKeys.GetType(), '`');
       return mKeys.template GetHandle<T>(i);
    }
 

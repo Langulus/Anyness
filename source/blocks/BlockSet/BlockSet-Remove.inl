@@ -12,18 +12,38 @@
 namespace Langulus::Anyness
 {
 
-   /// Erase an element by value                                              
-   ///   @tparam THIS - type of map to use for FindIndex and RemoveIndex      
-   ///   @tparam K - type of key (deducible)                                  
-   ///   @param match - the key to search for                                 
+   /// Erase a key                                                            
+   /// The key may not match the contained key type                           
+   ///   @tparam SET - set we're removing from, using to deduce type,         
+   ///                 and as runtime optimization                            
+   ///   @param key - the key to search for                                   
    ///   @return the number of removed pairs                                  
-   template<class THIS, CT::NotSemantic K>
-   Count BlockSet::Remove(const K& match) {
-      static_assert(CT::Set<THIS>, "THIS must be a set type");
-      auto& This = reinterpret_cast<THIS&>(*this);
-      const auto found = FindInner<THIS>(match);
+   template<class SET>
+   LANGULUS(INLINED)
+   Count BlockSet::Remove(const CT::NotSemantic auto& key) {
+      static_assert(CT::Set<SET>, "SET must be a set type");
+      using K = Deref<decltype(key)>;
+      if (IsEmpty())
+         return 0;
+
+      auto& THIS = reinterpret_cast<SET&>(*this);
+      Offset found = InvalidOffset;
+      if constexpr (CT::Array<K> and CT::ExactAsOneOf<Decvq<Deext<K>>, char, wchar_t>) {
+         if (THIS.template IsSimilar<Text>()) {
+            // Implicitly make a text container on string literal       
+            found = FindInner<SET>(Text {Disown(key)});
+         }
+         else if (THIS.template IsSimilar<char*, wchar_t*>()) {
+            // Cast away the extent, search for pointer                 
+            found = FindInner<SET>(static_cast<const Deext<K>*>(key));
+         }
+      }
+      else if (THIS.template IsSimilar<K>())
+         found = FindInner<SET>(key);
+
       if (found != InvalidOffset) {
-         This.template RemoveInner<K>(found);
+         // Key found, remove it                                        
+         RemoveInner<K>(found);
          return 1;
       }
 

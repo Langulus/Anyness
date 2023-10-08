@@ -12,8 +12,18 @@
 namespace Langulus::Anyness
 {
 
-   /// Check if contained data loosely matches a given type, ignoring         
-   /// density and cv-qualifiers                                              
+   /// Check if type origin is the same as one of the provided types          
+   ///   @attention ignores sparsity and cv-qualifiers                        
+   ///   @tparam T1, TN... - the types to compare against                     
+   ///   @return true if data type is similar to at least one of the types    
+   template<CT::Data T1, CT::Data... TN>
+   LANGULUS(INLINED)
+   bool Block::Is() const {
+      return mType and mType->template Is<T1, TN...>();
+   }
+
+   /// Check if type origin is the same as another                            
+   ///   @attention ignores sparsity and cv-qualifiers                        
    ///   @param type - the type to check for                                  
    ///   @return true if this block contains similar data                     
    LANGULUS(INLINED)
@@ -21,18 +31,18 @@ namespace Langulus::Anyness
       return mType == type or (mType and mType->Is(type));
    }
 
-   /// Check if this container's data is similar to one of the listed types,  
-   /// ignoring density and cv-qualifiers                                     
-   ///   @tparam T... - the types to compare against                          
+   /// Check if unqualified type is the same as one of the provided types     
+   ///   @attention ignores only cv-qualifiers                                
+   ///   @tparam T1, TN... - the types to compare against                     
    ///   @return true if data type is similar to at least one of the types    
-   template<CT::Data... T>
+   template<CT::Data T1, CT::Data... TN>
    LANGULUS(INLINED)
-   bool Block::Is() const {
-      return (Is(RTTI::MetaData::Of<T>()) or ...);
+   bool Block::IsSimilar() const {
+      return mType and mType->template IsSimilar<T1, TN...>();
    }
 
-   /// Check if contained data loosely matches a given type, ignoring         
-   /// cv-qualifiers only                                                     
+   /// Check if unqualified type is the same as another                       
+   ///   @attention ignores only cv-qualifiers                                
    ///   @param type - the type to check for                                  
    ///   @return true if this block contains similar data                     
    LANGULUS(INLINED)
@@ -40,33 +50,21 @@ namespace Langulus::Anyness
       return mType == type or (mType and mType->IsSimilar(type));
    }
 
-   /// Check if this container's data is similar to one of the listed types,  
-   /// ignoring cv-qualifiers only                                            
-   ///   @tparam T... - the types to compare against                          
-   ///   @return true if data type is similar to at least one of the types    
-   template<CT::Data... T>
+   /// Check if this type is exactly one of the provided types                
+   ///   @tparam T1, TN... - the types to compare against                     
+   ///   @return true if data type matches at least one type                  
+   template<CT::Data T1, CT::Data... TN>
    LANGULUS(INLINED)
-   bool Block::IsSimilar() const {
-      return (IsSimilar(RTTI::MetaData::Of<T>()) or ...);
+   bool Block::IsExact() const {
+      return mType and mType->template IsExact<T1, TN...>();
    }
 
-   /// Check if this container's data is exactly the provided type,           
-   /// including the density and cv-qualifiers                                
+   /// Check if this type is exactly another                                  
    ///   @param type - the type to match                                      
    ///   @return true if data type matches type exactly                       
    LANGULUS(INLINED)
    bool Block::IsExact(DMeta type) const noexcept {
       return mType == type or (mType and mType->IsExact(type));
-   }
-
-   /// Check if this container's data is exactly as one of the listed types,  
-   /// including by density and cv-qualifiers                                 
-   ///   @tparam T... - the types to compare against                          
-   ///   @return true if data type exactly matches at least one type          
-   template<CT::Data... T>
-   LANGULUS(INLINED)
-   bool Block::IsExact() const {
-      return (IsExact(RTTI::MetaData::Of<T>()) or ...);
    }
 
    /// Check if contained data can be interpreted as a given type             

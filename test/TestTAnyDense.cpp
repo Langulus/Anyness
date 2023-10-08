@@ -176,9 +176,9 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
       #endif
 
       WHEN("Assigned value by copy") {
-         if constexpr (CT::Deep<E> && CT::Typed<T>)
-            REQUIRE_THROWS(pack = element);
-         else
+         //if constexpr (CT::Deep<E> && CT::Typed<T>)
+        //    REQUIRE_THROWS(pack = element);
+         //else
             pack = element;
 
          THEN("Properties should match") {
@@ -251,9 +251,9 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
       
       WHEN("Assigned value by move") {
          auto movable = element;
-         if constexpr (CT::Deep<E> && CT::Typed<T>)
-            REQUIRE_THROWS(pack = ::std::move(movable));
-         else
+         //if constexpr (CT::Deep<E> && CT::Typed<T>)
+         //   REQUIRE_THROWS(pack = ::std::move(movable));
+         //else
             pack = ::std::move(movable);
 
          THEN("Properties should match") {
@@ -333,9 +333,9 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
       }
 
       WHEN("Assigned disowned value") {
-         if constexpr (CT::Deep<E> && CT::Typed<T>)
-            REQUIRE_THROWS(pack = Disown(element));
-         else
+         //if constexpr (CT::Deep<E> && CT::Typed<T>)
+         //   REQUIRE_THROWS(pack = Disown(element));
+         //else
             pack = Disown(element);
 
          THEN("Properties should match") {
@@ -408,9 +408,9 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
       
       WHEN("Assigned abandoned value") {
          auto movable = element;
-         if constexpr (CT::Deep<E> && CT::Typed<T>)
-            REQUIRE_THROWS(pack = Abandon(movable));
-         else
+         //if constexpr (CT::Deep<E> && CT::Typed<T>)
+         //   REQUIRE_THROWS(pack = Abandon(movable));
+         //else
             pack = Abandon(movable);
 
          THEN("Properties should match") {
@@ -1294,9 +1294,9 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
    }
 
    GIVEN("Container constructed by same container copy") {
-      if constexpr (CT::Deep<E> && CT::Typed<T>)
-         REQUIRE_THROWS(T {element});
-      else {
+      //if constexpr (CT::Deep<E> && CT::Typed<T>)
+      //   REQUIRE_THROWS(T {element});
+      //else {
          const T source {element};
          T pack {source};
 
@@ -1357,13 +1357,13 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                });
             };
          #endif
-      }
+      //}
    }
 
    GIVEN("Container constructed by value copy") {
-      if constexpr (CT::Deep<E> && CT::Typed<T>)
-         REQUIRE_THROWS(T {element});
-      else {
+      //if constexpr (CT::Deep<E> && CT::Typed<T>)
+      //   REQUIRE_THROWS(T {element});
+      //else {
          T pack {element};
 
          THEN("Properties should match") {
@@ -1803,16 +1803,16 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
                   });
             };
 #endif
-            }
+            //}
       }
    }
 
    GIVEN("Container constructed by value move") {
-      if constexpr (CT::Deep<E> && CT::Typed<T>) {
+      /*if constexpr (CT::Deep<E> && CT::Typed<T>) {
          E movable = element;
          REQUIRE_THROWS(T {::std::move(movable)});
       }
-      else {
+      else {*/
          E movable = element;
          T pack {::std::move(movable)};
 
@@ -1851,7 +1851,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
             else {
                REQUIRE(pack.template As<DenseE>().GetRaw() == sparseValue->GetRaw());
                if constexpr (CT::Typed<T>)
-                  REQUIRE(pack.template IsExact<typename T::Type>());
+                  REQUIRE(pack.template IsExact<TypeOf<T>>());
                REQUIRE(pack.template As<DenseE>() == denseValue);
                REQUIRE(*pack.template As<DenseE*>() == denseValue);
                REQUIRE_FALSE(pack.template As<DenseE>().IsStatic());
@@ -1877,7 +1877,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
             REQUIRE_FALSE(!pack);
             REQUIRE(pack.IsDense() == CT::Dense<E>);
             REQUIRE(pack.IsSparse() == CT::Sparse<E>);
-         }
+         //}
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("construction (single value move)") (timer meter) {
@@ -1908,9 +1908,9 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
    }
 
    GIVEN("Container constructed by disowned value") {
-      if constexpr (CT::Deep<E> && CT::Typed<T>)
+      /*if constexpr (CT::Deep<E> && CT::Typed<T>)
          REQUIRE_THROWS(T {Disown(element)});
-      else {
+      else {*/
          T pack {Disown(element)};
 
          THEN("Properties should match") {
@@ -1942,7 +1942,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
             else {
                REQUIRE(pack.template As<DenseE>().GetRaw() == sparseValue->GetRaw());
                if constexpr (CT::Typed<T>)
-                  REQUIRE(pack.template IsExact<typename T::Type>());
+                  REQUIRE(pack.template IsExact<TypeOf<T>>());
                REQUIRE(pack.template As<DenseE>() == denseValue);
                REQUIRE(*pack.template As<DenseE*>() == denseValue);
                REQUIRE(pack.template As<DenseE>().IsStatic());
@@ -1968,7 +1968,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
             REQUIRE_FALSE(!pack);
             REQUIRE(pack.IsDense() == CT::Dense<E>);
             REQUIRE(pack.IsSparse() == CT::Sparse<E>);
-         }
+         //}
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("construction (single disowned value)") (timer meter) {
@@ -1999,11 +1999,11 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
    }
     
    GIVEN("Container constructed by abandoned value") {
-      if constexpr (CT::Deep<E> && CT::Typed<T>) {
+      /*if constexpr (CT::Deep<E> && CT::Typed<T>) {
          E movable = element;
          REQUIRE_THROWS(T {Abandon(movable)});
       }
-      else {
+      else {*/
          E movable = element;
          T pack {Abandon(movable)};
 
@@ -2042,7 +2042,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
             else {
                REQUIRE(pack.template As<DenseE>().GetRaw() == sparseValue->GetRaw());
                if constexpr (CT::Typed<T>)
-                  REQUIRE(pack.template IsExact<typename T::Type>());
+                  REQUIRE(pack.template IsExact<TypeOf<T>>());
                REQUIRE(pack.template As<DenseE>() == denseValue);
                REQUIRE(*pack.template As<DenseE*>() == denseValue);
                REQUIRE_FALSE(pack.template As<DenseE>().IsStatic());
@@ -2068,7 +2068,7 @@ TEMPLATE_TEST_CASE("Any/TAny", "[any]",
             REQUIRE_FALSE(!pack);
             REQUIRE(pack.IsDense() == CT::Dense<E>);
             REQUIRE(pack.IsSparse() == CT::Sparse<E>);
-         }
+         //}
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("construction (single abandoned value)") (timer meter) {

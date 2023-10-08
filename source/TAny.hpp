@@ -130,13 +130,17 @@ namespace Langulus::Anyness
       template<CT::Data>
       NOD() bool CastsTo(Count) const;
 
-      NOD() bool Is(DMeta) const noexcept;
       template<CT::Data, CT::Data...>
       NOD() constexpr bool Is() const noexcept;
+      NOD() bool Is(DMeta) const noexcept;
 
-      NOD() bool IsExact(DMeta) const noexcept;
+      template<CT::Data, CT::Data...>
+      NOD() constexpr bool IsSimilar() const noexcept;
+      NOD() bool IsSimilar(DMeta) const noexcept;
+
       template<CT::Data, CT::Data...>
       NOD() constexpr bool IsExact() const noexcept;
+      NOD() bool IsExact(DMeta) const noexcept;
 
    public:
       ///                                                                     

@@ -48,6 +48,16 @@ namespace Langulus::Anyness
          );
       }
    }
+   
+   /// Check if this key type is similar to one of the listed types,          
+   /// ignoring density and cv-qualifiers                                     
+   ///   @tparam T1, TN... - the types to compare against                     
+   ///   @return true if key type is similar to at least one of the types     
+   template<CT::Data T1, CT::Data... TN>
+   LANGULUS(INLINED)
+   bool BlockMap::KeyIs() const noexcept {
+      return mKeys.template Is<T1, TN...>();
+   }
 
    /// Check if key type loosely matches a given type, ignoring               
    /// density and cv-qualifiers                                              
@@ -57,15 +67,15 @@ namespace Langulus::Anyness
    bool BlockMap::KeyIs(DMeta meta) const noexcept {
       return mKeys.Is(meta);
    }
-   
-   /// Check if this key type is similar to one of the listed types,          
-   /// ignoring density and cv-qualifiers                                     
-   ///   @tparam T... - the types to compare against                          
+
+   /// Check if key type is similar to one of the listed types,               
+   /// ignoring cv-qualifiers only                                            
+   ///   @tparam T1, TN... - the types to compare against                     
    ///   @return true if key type is similar to at least one of the types     
-   template<CT::Data... T>
+   template<CT::Data T1, CT::Data... TN>
    LANGULUS(INLINED)
-   bool BlockMap::KeyIs() const noexcept {
-      return mKeys.Is<T...>();
+   bool BlockMap::KeyIsSimilar() const noexcept {
+      return mKeys.template IsSimilar<T1, TN...>();
    }
 
    /// Check if key type loosely matches a given type, ignoring               
@@ -77,16 +87,16 @@ namespace Langulus::Anyness
       return mKeys.IsSimilar(meta);
    }
    
-   /// Check if key type is similar to one of the listed types,               
-   /// ignoring cv-qualifiers only                                            
-   ///   @tparam T... - the types to compare against                          
-   ///   @return true if key type is similar to at least one of the types     
-   template<CT::Data... T>
+   /// Check if key type is exactly as one of the listed types,               
+   /// including by density and cv-qualifiers                                 
+   ///   @tparam T1, TN... - the types to compare against                     
+   ///   @return true if key type exactly matches at least one type           
+   template<CT::Data T1, CT::Data... TN>
    LANGULUS(INLINED)
-   bool BlockMap::KeyIsSimilar() const noexcept {
-      return mKeys.IsSimilar<T...>();
+   bool BlockMap::KeyIsExact() const noexcept {
+      return mKeys.template IsExact<T1, TN...>();
    }
-
+   
    /// Check if key type is exactly the provided type,                        
    /// including the density and cv-qualifiers                                
    ///   @param type - the type to match                                      
@@ -96,14 +106,14 @@ namespace Langulus::Anyness
       return mKeys.IsExact(meta);
    }
    
-   /// Check if key type is exactly as one of the listed types,               
-   /// including by density and cv-qualifiers                                 
-   ///   @tparam T... - the types to compare against                          
-   ///   @return true if key type exactly matches at least one type           
-   template<CT::Data... T>
+   /// Check if this value type is similar to one of the listed types,        
+   /// ignoring density and cv-qualifiers                                     
+   ///   @tparam T1, TN... - the types to compare against                     
+   ///   @return true if value type is similar to at least one of the types   
+   template<CT::Data T1, CT::Data... TN>
    LANGULUS(INLINED)
-   bool BlockMap::KeyIsExact() const noexcept {
-      return mKeys.IsExact<T...>();
+   bool BlockMap::ValueIs() const noexcept {
+      return mValues.template Is<T1, TN...>();
    }
    
    /// Check if value type loosely matches a given type, ignoring             
@@ -114,15 +124,15 @@ namespace Langulus::Anyness
    bool BlockMap::ValueIs(DMeta meta) const noexcept {
       return mValues.Is(meta);
    }
-   
-   /// Check if this value type is similar to one of the listed types,        
-   /// ignoring density and cv-qualifiers                                     
-   ///   @tparam T... - the types to compare against                          
+
+   /// Check if value type is similar to one of the listed types,             
+   /// ignoring cv-qualifiers only                                            
+   ///   @tparam T1, TN... - the types to compare against                     
    ///   @return true if value type is similar to at least one of the types   
-   template<CT::Data... T>
+   template<CT::Data T1, CT::Data... TN>
    LANGULUS(INLINED)
-   bool BlockMap::ValueIs() const noexcept {
-      return mValues.Is<T...>();
+   bool BlockMap::ValueIsSimilar() const noexcept {
+      return mValues.template IsSimilar<T1, TN...>();
    }
 
    /// Check if value type loosely matches a given type, ignoring             
@@ -134,16 +144,16 @@ namespace Langulus::Anyness
       return mValues.IsSimilar(meta);
    }
    
-   /// Check if value type is similar to one of the listed types,             
-   /// ignoring cv-qualifiers only                                            
-   ///   @tparam T... - the types to compare against                          
-   ///   @return true if value type is similar to at least one of the types   
-   template<CT::Data... T>
+   /// Check if value type is exactly as one of the listed types,             
+   /// including by density and cv-qualifiers                                 
+   ///   @tparam T1, TN... - the types to compare against                     
+   ///   @return true if value type exactly matches at least one type         
+   template<CT::Data T1, CT::Data... TN>
    LANGULUS(INLINED)
-   bool BlockMap::ValueIsSimilar() const noexcept {
-      return mValues.IsSimilar<T...>();
+   bool BlockMap::ValueIsExact() const noexcept {
+      return mValues.template IsExact<T1, TN...>();
    }
-
+   
    /// Check if value type is exactly the provided type,                      
    /// including the density and cv-qualifiers                                
    ///   @param type - the type to match                                      
@@ -151,16 +161,6 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    bool BlockMap::ValueIsExact(DMeta meta) const noexcept {
       return mValues.IsExact(meta);
-   }
-   
-   /// Check if value type is exactly as one of the listed types,             
-   /// including by density and cv-qualifiers                                 
-   ///   @tparam T... - the types to compare against                          
-   ///   @return true if value type exactly matches at least one type         
-   template<CT::Data... T>
-   LANGULUS(INLINED)
-   bool BlockMap::ValueIsExact() const noexcept {
-      return mValues.IsExact<T...>();
    }
 
    /// Check if types of two maps are compatible for writing                  

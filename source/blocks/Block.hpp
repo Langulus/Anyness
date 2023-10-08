@@ -462,15 +462,15 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   RTTI                                                              
       ///                                                                     
-      NOD() bool Is(DMeta) const noexcept;
-      template<CT::Data...>
+      template<CT::Data, CT::Data...>
       NOD() bool Is() const;
+      NOD() bool Is(DMeta) const noexcept;
 
-      template<CT::Data...>
+      template<CT::Data, CT::Data...>
       NOD() bool IsSimilar() const;
       NOD() bool IsSimilar(DMeta) const noexcept;
 
-      template<CT::Data...>
+      template<CT::Data, CT::Data...>
       NOD() bool IsExact() const;
       NOD() bool IsExact(DMeta) const noexcept;
 

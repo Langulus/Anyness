@@ -65,29 +65,33 @@ namespace Langulus::Anyness
    TAny<T>::TAny(CT::Semantic auto&& other) : TAny {} {
       using S = Decay<decltype(other)>;
       using ST = TypeOf<S>;
+      mType = RTTI::MetaData::Of<T>();
 
       if constexpr (CT::Deep<ST>) {
-         // Constructing using deep source                              
-         mType = MetaData::Of<T>();
-
+         // Constructing using deep RHS                                 
          if constexpr (not CT::Typed<ST>) {
-            // Container is type-erased, do runtime type checks         
+            // RHS is type-erased, do runtime type checks               
             if (mType->IsExact(other->GetType())) {
                // If types are exactly the same, it is safe to directly 
-               // transfer the block                                    
+               // transfer the block, essentially converting a type     
+               // erased Any, to this TAny representation               
                BlockTransfer<TAny>(other.Forward());
                return;
             }
-
-            // Do more detailed checks, if provided type is base/child  
-            // of this typed container's type                           
-            LANGULUS_ASSERT(CastsToMeta(other->GetType()),
-               Construct, "Bad semantic-construction");
-
-            TODO();
+            else if constexpr (CT::Exact<T, ST>) {
+               // The deep RHS can be contained in this TAny, just      
+               // push it                                               
+               AllocateFresh(RequestSize(1));
+               InsertInner(other.Forward(), 0);
+               return;
+            }
+            else {
+               // Other corner cases?                                   
+               TODO();
+            }
          }
          else {
-            // Container is not type-erased, do compile-time checks     
+            // RHS is not type-erased, do compile-time checks           
             using ContainedType = TypeOf<ST>;
 
             if constexpr (CT::Exact<T, ContainedType>) {
@@ -96,10 +100,10 @@ namespace Langulus::Anyness
                BlockTransfer<TAny<T>>(other.Forward());
             }
             else if constexpr (CT::DerivedFrom<T, ContainedType>) {
-               // The statically typed 'other' contains items that are  
+               // The statically typed RHS contains items that are      
                // base of this container's type. Each element should be 
                // dynamically cast to this type                         
-               if constexpr (CT::Sparse<T> && CT::Sparse<ContainedType>) {
+               if constexpr (CT::Sparse<T, ContainedType>) {
                   for (auto pointer : *other) {
                      auto dcast = dynamic_cast<T>(&(*pointer));
                      if (dcast)
@@ -108,29 +112,19 @@ namespace Langulus::Anyness
                }
                else TODO();
             }
-            else if constexpr (CT::DerivedFrom<ContainedType, T>) {
-               // The statically typed 'other' contains items that are  
-               // derived from this container's type. Each element      
-               // should be down casted to this type                    
-               //TODO questionable slicing
-               if constexpr (CT::Sparse<T> && CT::Sparse<ContainedType>) {
-                  for (auto pointer : *other)
-                     (*this) << static_cast<T>(&(*pointer));
-               }
-               else TODO();
+            else {
+               // Other corner cases?                                   
+               TODO();
             }
-            else LANGULUS_ERROR("Bad semantic-construction");
          }
       }
       else if constexpr (CT::DerivedFrom<ST, TAny<T>>) {
          // Some containers, like Bytes and Text aren't CT::Deep, so    
          // we have this special case for them                          
-         mType = MetaData::Of<T>();
          BlockTransfer<TAny>(other.Forward());
       }
       else if constexpr (CT::Exact<T, ST>) {
          // Copy/Disown/Move/Abandon/Clone a compatible element         
-         mType = MetaData::Of<T>();
          AllocateFresh(RequestSize(1));
          InsertInner(other.Forward(), 0);
       }
@@ -139,14 +133,12 @@ namespace Langulus::Anyness
          if (other->empty())
             return;
 
-         mType = MetaData::Of<T>();
          const auto count = other->size();
          AllocateFresh(RequestSize(count));
          InsertInner<Copied<T>>(other->data(), other->data() + count, 0);
       }
       else if constexpr (CT::Array<ST> and CT::Exact<T, ::std::remove_extent_t<ST>>) {
          // Integration with bounded arrays                             
-         mType = MetaData::Of<T>();
          constexpr auto count = ExtentOf<ST>;
          AllocateFresh(RequestSize(count));
          InsertInner<Copied<T>>(*other, *other + count, 0);
@@ -385,42 +377,62 @@ namespace Langulus::Anyness
       return CastsToMeta(MetaData::Of<Decay<ALT_T>>(), count);
    }
 
-   /// Check if contained data is similar given type                          
-   ///   @attention ignores sparsity and constness                            
+   /// Check if type origin is the same as one of the provided types          
+   ///   @attention ignores sparsity and cv-qualifiers                        
+   ///   @tparam T1, TN... - the types to compare against                     
+   ///   @return true if data type matches at least one type                  
+   TEMPLATE()
+   template<CT::Data T1, CT::Data... TN>
+   LANGULUS(INLINED)
+   constexpr bool TAny<T>::Is() const noexcept {
+      return CT::SameAsOneOf<T, T1, TN...>;
+   }
+
+   /// Check if type origin is the same as one of the provided types          
+   ///   @attention ignores sparsity and cv-qualifiers                        
    ///   @param type - the type to check for                                  
    ///   @return if this block contains data similar to 'type'                
    TEMPLATE() LANGULUS(INLINED)
    bool TAny<T>::Is(DMeta type) const noexcept {
-      return GetType() == type or (mType and mType->Is(type));
+      return GetType()->Is(type);
    }
 
-   /// Check if this container's data is similar to one of the listed types   
-   ///   @attention ignores sparsity and constness                            
-   ///   @tparam T... - the types to compare against                          
+   /// Check if unqualified type is the same as one of the provided types     
+   ///   @attention ignores only cv-qualifiers                                
+   ///   @tparam T1, TN... - the types to compare against                     
    ///   @return true if data type matches at least one type                  
    TEMPLATE()
-   template<CT::Data ALT_T, CT::Data... ALT_MORE>
+   template<CT::Data T1, CT::Data... TN>
    LANGULUS(INLINED)
-   constexpr bool TAny<T>::Is() const noexcept {
-      return CT::Same<T, ALT_T, ALT_MORE...>;
+   constexpr bool TAny<T>::IsSimilar() const noexcept {
+      return CT::SimilarAsOneOf<T, T1, TN...>;
    }
 
-   /// Check if contained data exactly matches a given type                   
+   /// Check if unqualified type is the same as one of the provided types     
+   ///   @attention ignores only cv-qualifiers                                
+   ///   @param type - the type to check for                                  
+   ///   @return if this block contains data similar to 'type'                
+   TEMPLATE() LANGULUS(INLINED)
+   bool TAny<T>::IsSimilar(DMeta type) const noexcept {
+      return GetType()->IsSimilar(type);
+   }
+
+   /// Check if this type is exactly one of the provided types                
+   ///   @tparam T1, TN... - the types to compare against                     
+   ///   @return true if data type matches at least one type                  
+   TEMPLATE()
+   template<CT::Data T1, CT::Data... TN>
+   LANGULUS(INLINED)
+   constexpr bool TAny<T>::IsExact() const noexcept {
+      return CT::ExactAsOneOf<T, T1, TN...>;
+   }
+
+   /// Check if this type is exactly one of the provided types                
    ///   @param type - the type to check for                                  
    ///   @return if this block contains data of exactly 'type'                
    TEMPLATE() LANGULUS(INLINED)
    bool TAny<T>::IsExact(DMeta type) const noexcept {
-      return GetType() == type or (mType and mType->IsExact(type));
-   }
-
-   /// Check if this container's data is exactly as one of the listed types   
-   ///   @tparam T... - the types to compare against                          
-   ///   @return true if data type matches at least one type                  
-   TEMPLATE()
-   template<CT::Data ALT_T, CT::Data... ALT_MORE>
-   LANGULUS(INLINED)
-   constexpr bool TAny<T>::IsExact() const noexcept {
-      return CT::Exact<T, ALT_T, ALT_MORE...>;
+      return GetType()->IsExact(type);
    }
 
    /// Allocate 'count' elements and fill the container with zeroes           

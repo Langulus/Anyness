@@ -164,18 +164,18 @@ namespace Langulus::Anyness
       NOD() static Offset GetBucketUnknown(Offset, const Block&) noexcept;
 
       template<CT::Data K>
-      NOD() constexpr const K& GetRawKey(Offset) const noexcept;
+      NOD() constexpr const K& GetRawKey(Offset) const IF_UNSAFE(noexcept);
       template<CT::Data K>
-      NOD() constexpr K& GetRawKey(Offset) noexcept;
+      NOD() constexpr K& GetRawKey(Offset) IF_UNSAFE(noexcept);
       template<CT::Data K>
-      NOD() constexpr Handle<K> GetKeyHandle(Offset) const noexcept;
+      NOD() constexpr Handle<K> GetKeyHandle(Offset) const IF_UNSAFE(noexcept);
 
       template<CT::Data V>
-      NOD() constexpr const V& GetRawValue(Offset) const noexcept;
+      NOD() constexpr const V& GetRawValue(Offset) const IF_UNSAFE(noexcept);
       template<CT::Data V>
-      NOD() constexpr V& GetRawValue(Offset) noexcept;
+      NOD() constexpr V& GetRawValue(Offset) IF_UNSAFE(noexcept);
       template<CT::Data V>
-      NOD() constexpr Handle<V> GetValueHandle(Offset) const noexcept;
+      NOD() constexpr Handle<V> GetValueHandle(Offset) const IF_UNSAFE(noexcept);
 
    public:
       ///                                                                     
@@ -241,29 +241,29 @@ namespace Langulus::Anyness
       void Mutate();
       void Mutate(DMeta, DMeta);
       
-      NOD() bool KeyIs(DMeta) const noexcept;
-      template<CT::Data...>
+      template<CT::Data, CT::Data...>
       NOD() bool KeyIs() const noexcept;
+      NOD() bool KeyIs(DMeta) const noexcept;
 
-      NOD() bool KeyIsSimilar(DMeta) const noexcept;
-      template<CT::Data...>
+      template<CT::Data, CT::Data...>
       NOD() bool KeyIsSimilar() const noexcept;
+      NOD() bool KeyIsSimilar(DMeta) const noexcept;
 
-      NOD() bool KeyIsExact(DMeta) const noexcept;
-      template<CT::Data...>
+      template<CT::Data, CT::Data...>
       NOD() bool KeyIsExact() const noexcept;
+      NOD() bool KeyIsExact(DMeta) const noexcept;
 
-      NOD() bool ValueIs(DMeta) const noexcept;
-      template<CT::Data...>
+      template<CT::Data, CT::Data...>
       NOD() bool ValueIs() const noexcept;
+      NOD() bool ValueIs(DMeta) const noexcept;
 
-      NOD() bool ValueIsSimilar(DMeta) const noexcept;
-      template<CT::Data...>
+      template<CT::Data, CT::Data...>
       NOD() bool ValueIsSimilar() const noexcept;
+      NOD() bool ValueIsSimilar(DMeta) const noexcept;
 
-      NOD() bool ValueIsExact(DMeta) const noexcept;
-      template<CT::Data...>
+      template<CT::Data, CT::Data...>
       NOD() bool ValueIsExact() const noexcept;
+      NOD() bool ValueIsExact(DMeta) const noexcept;
 
       NOD() bool IsTypeCompatibleWith(const BlockMap&) const noexcept;
 
