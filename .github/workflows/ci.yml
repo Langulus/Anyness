@@ -1,5 +1,5 @@
 name: Langulus::Anyness CI
-on: [push, repository_dispatch]
+on: push
 concurrency:
   group: ${{ github.ref }}
   cancel-in-progress: true
