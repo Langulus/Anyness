@@ -133,7 +133,7 @@ namespace Langulus::Anyness
       Base::Reserve(Base::GetCount() + 1);
       Base::template InsertInner<true>(
          Base::GetBucket(Base::GetReserved() - 1, *key),
-         key.Forward()
+         key.ForwardPerfect()
       );
       return 1;
    }

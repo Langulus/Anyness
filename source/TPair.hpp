@@ -9,6 +9,7 @@
 #pragma once
 #include "Pair.hpp"
 
+
 namespace Langulus::Anyness
 {
 
@@ -24,31 +25,55 @@ namespace Langulus::Anyness
       Value mValue;
 
       TPair() = default;
-      TPair(const TPair&) = default;
+      TPair(TPair const&) = default;
       TPair(TPair&&) noexcept = default;
 
-      constexpr TPair(K, V) noexcept requires (not CT::Decayed<K, V>);
-      constexpr TPair(K&&, V&&) requires (CT::Decayed<K, V> and CT::MoveMakable<K, V>);
-      constexpr TPair(const K&, const V&) requires (CT::Decayed<K, V> and CT::CopyMakable<K, V>);
+      TPair(K, V) requires (not CT::Decayed<K, V>);
+
+      TPair(K const&, V const&)
+      requires (CT::Decayed<K, V> and CT::CopyMakable<K, V>);
+
+      TPair(K const&, V&&)
+      requires (CT::Decayed<K, V> and CT::CopyMakable<K> and CT::MoveMakable<V>);
+
+      TPair(K const&, CT::Semantic auto&&)
+      requires (CT::Decayed<K, V> and CT::CopyMakable<K>);
+
+      TPair(K&&, V const&)
+      requires (CT::Decayed<K, V> and CT::MoveMakable<K> and CT::CopyMakable<V>);
+
+      TPair(K&&, V&&)
+      requires (CT::Decayed<K, V> and CT::MoveMakable<K, V>);
+
+      TPair(K&&, CT::Semantic auto&&)
+      requires (CT::Decayed<K, V> and CT::MoveMakable<K>);
+
+      TPair(CT::Semantic auto&&, V const&)
+      requires (CT::Decayed<K, V> and CT::CopyMakable<V>);
+
+      TPair(CT::Semantic auto&&, V&&)
+      requires (CT::Decayed<K, V> and CT::MoveMakable<V>);
+
+      TPair(CT::Semantic auto&&, CT::Semantic auto&&) requires CT::Decayed<K, V>;
 
       constexpr void Swap(TPair&) noexcept requires CT::SwappableNoexcept<K, V>;
       constexpr void Swap(TPair&) requires CT::Swappable<K, V>;
 
       TPair Clone() const;
 
-      bool operator == (const TPair&) const;
+      bool operator == (TPair const&) const;
 
       const TPair* operator -> () const noexcept { return this; }
       TPair* operator -> () noexcept { return this; }
 
-      TPair& operator = (const TPair&) = default;
+      TPair& operator = (TPair const&) = default;
       TPair& operator = (TPair&&) noexcept = default;
 
       /// Implicit casts to intermediate types                                
-      constexpr operator TPair<const Deref<K>&, const Deref<V>&>() const noexcept;
-      constexpr operator TPair<Deref<K>&, Deref<V>&>() const noexcept requires CT::Mutable<K, V>;
-      constexpr operator TPair<const Deref<K>&, Deref<V>&>() const noexcept requires CT::Mutable<V>;
-      constexpr operator TPair<Deref<K>&, const Deref<V>&>() const noexcept requires CT::Mutable<K>;
+      constexpr operator TPair<Deref<K> const&, Deref<V> const&>() const noexcept;
+      constexpr operator TPair<Deref<K>&,       Deref<V>&>      () const noexcept requires CT::Mutable<K, V>;
+      constexpr operator TPair<Deref<K> const&, Deref<V>&>      () const noexcept requires CT::Mutable<V>;
+      constexpr operator TPair<Deref<K>&,       Deref<V> const&>() const noexcept requires CT::Mutable<K>;
 
       NOD() Hash GetHash() const;
       NOD() DMeta GetKeyType() const noexcept;

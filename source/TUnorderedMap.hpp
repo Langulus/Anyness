@@ -9,6 +9,7 @@
 #pragma once
 #include "UnorderedMap.hpp"
 
+
 namespace Langulus::Anyness
 {
 
@@ -25,15 +26,13 @@ namespace Langulus::Anyness
 
       using Key = K;
       using Value = V;
+      using Base = UnorderedMap;
       using Self = TUnorderedMap<K, V>;
       using Pair = TPair<K, V>;
       using PairRef = TPair<K&, V&>;
       using PairConstRef = TPair<const K&, const V&>;
 
       LANGULUS(TYPED) Pair;
-
-      static constexpr Count MinimalAllocation = 8;
-      static constexpr bool Ordered = false;
 
       template<bool MUTABLE>
       struct TIterator;
@@ -94,8 +93,6 @@ namespace Langulus::Anyness
 
       NOD() constexpr Size GetBytesize() const noexcept;
 
-      void Reserve(const Count&);
-
       ///                                                                     
       ///   RTTI                                                              
       ///                                                                     
@@ -132,11 +129,11 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Comparison                                                        
       ///                                                                     
-      bool operator == (const TUnorderedMap&) const requires (CT::Inner::Comparable<V>);
+      bool operator == (const TUnorderedMap&) const requires CT::Inner::Comparable<V>;
 
       NOD() bool ContainsKey(const K&) const;
-      NOD() bool ContainsValue(const V&) const requires (CT::Inner::Comparable<V>);
-      NOD() bool ContainsPair(const Pair&) const requires (CT::Inner::Comparable<V>);
+      NOD() bool ContainsValue(const V&) const requires CT::Inner::Comparable<V>;
+      NOD() bool ContainsPair(const Pair&) const requires CT::Inner::Comparable<V>;
 
       NOD() Index Find(const K&) const;
       NOD() Iterator FindIt(const K&);
@@ -183,36 +180,26 @@ namespace Langulus::Anyness
       ///   Insertion                                                         
       ///                                                                     
       Count Insert(const K&, const V&);
-      Count Insert(const K&,       V&);
       Count Insert(const K&,       V&&);
       Count Insert(const K&, CT::Semantic auto&&);
-
-      Count Insert(K&, const V&);
-      Count Insert(K&,       V&);
-      Count Insert(K&,       V&&);
-      Count Insert(K&, CT::Semantic auto&&);
                    
       Count Insert(K&&, const V&);
-      Count Insert(K&&,       V&);
       Count Insert(K&&,       V&&);
       Count Insert(K&&, CT::Semantic auto&&);
 
       Count Insert(CT::Semantic auto&&, const V&);
-      Count Insert(CT::Semantic auto&&,       V&);
       Count Insert(CT::Semantic auto&&,       V&&);
       Count Insert(CT::Semantic auto&&, CT::Semantic auto&&);
 
       Count InsertBlock(CT::Semantic auto&&, CT::Semantic auto&&);
 
       Count InsertPair(const CT::Pair auto&);
-      Count InsertPair(      CT::Pair auto&);
       Count InsertPair(      CT::Pair auto&&);
       Count InsertPair(CT::Semantic   auto&&);
 
       Count InsertPairBlock(CT::Semantic auto&&);
 
       TUnorderedMap& operator << (const CT::Pair auto&);
-      TUnorderedMap& operator << (      CT::Pair auto&);
       TUnorderedMap& operator << (      CT::Pair auto&&);
       TUnorderedMap& operator << (CT::Semantic   auto&&);
 
@@ -223,25 +210,9 @@ namespace Langulus::Anyness
       ///                                                                     
       Count RemoveKey(const K&);
       Count RemoveValue(const V&);
-      Count RemovePair(const Pair&);
       Iterator RemoveIt(const Iterator&);
 
-      void Clear();
-      void Reset();
-      void Compact();
-
    protected:
-      void AllocateFresh(const Count&);
-      template<bool REUSE>
-      void AllocateData(const Count&);
-      void AllocateInner(const Count&);
-
-      void Rehash(const Count&);
-      void RehashKeys(const Count&, Block&);
-      void RehashValues(const Count&, Block&);
-
-      void ClearInner();
-
       NOD() static Size RequestKeyAndInfoSize(Count, Offset&) noexcept;
       NOD() static Size RequestValuesSize(Count) noexcept;
 
@@ -280,10 +251,10 @@ namespace Langulus::Anyness
    public:
       NOD() bool operator == (const TIterator&) const noexcept;
 
-      NOD() PairRef operator * () const noexcept requires (MUTABLE);
-      NOD() PairConstRef operator * () const noexcept requires (not MUTABLE);
+      NOD() PairRef      operator *  () const noexcept requires (MUTABLE);
+      NOD() PairConstRef operator *  () const noexcept requires (not MUTABLE);
 
-      NOD() PairRef operator -> () const noexcept requires (MUTABLE);
+      NOD() PairRef      operator -> () const noexcept requires (MUTABLE);
       NOD() PairConstRef operator -> () const noexcept requires (not MUTABLE);
 
       // Prefix operator                                                

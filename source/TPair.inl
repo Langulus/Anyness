@@ -9,47 +9,75 @@
 #pragma once
 #include "TPair.hpp"
 
-#define TEMPLATE_PAIR() template<CT::Data K, CT::Data V>
+#define TEMPLATE() template<CT::Data K, CT::Data V>
 #define PAIR() TPair<K, V>
+
 
 namespace Langulus::Anyness
 {
 
-   /// Initialize manually by reference or pointer                            
-   ///   @param key - the key to use                                          
-   ///   @param value - the value to use                                      
-   TEMPLATE_PAIR() LANGULUS(INLINED)
-   constexpr PAIR()::TPair(K key, V value) noexcept requires (not CT::Decayed<K, V>)
+   TEMPLATE() LANGULUS(INLINED)
+   PAIR()::TPair(K key, V val) requires (not CT::Decayed<K, V>)
       : mKey {key}
-      , mValue {value} {}
+      , mValue {val} {}
 
-   /// Initialize manually by a move (noexcept)                               
-   ///   @param key - the key to use                                          
-   ///   @param value - the value to use                                      
-   TEMPLATE_PAIR() LANGULUS(INLINED)
-   constexpr PAIR()::TPair(K&& key, V&& value) requires (CT::Decayed<K, V> and CT::MoveMakable<K, V>)
-      : mKey {Forward<K>(key)}
-      , mValue {Forward<V>(value)} {}
+   TEMPLATE() LANGULUS(INLINED)
+   PAIR()::TPair(const K& key, const V& val)
+   requires (CT::Decayed<K, V> and CT::CopyMakable<K, V>)
+      : TPair {Copy(key), Copy(val)} {}
 
-   /// Initialize manually by a shallow-copy                                  
-   ///   @param key - the key to use                                          
-   ///   @param value - the value to use                                      
-   TEMPLATE_PAIR() LANGULUS(INLINED)
-   constexpr PAIR()::TPair(const K& key, const V& value) requires (CT::Decayed<K, V> and CT::CopyMakable<K, V>)
-      : mKey {key}
-      , mValue {value} {}
+   TEMPLATE() LANGULUS(INLINED)
+   PAIR()::TPair(const K& key, V&& val)
+   requires (CT::Decayed<K, V> and CT::CopyMakable<K> and CT::MoveMakable<V>)
+      : TPair {Copy(key), Move(val)} {}
+
+   TEMPLATE() LANGULUS(INLINED)
+   PAIR()::TPair(const K& key, CT::Semantic auto&& val)
+   requires (CT::Decayed<K, V> and CT::CopyMakable<K>)
+      : TPair {Copy(key), val.Forward()} {}
+
+   TEMPLATE() LANGULUS(INLINED)
+   PAIR()::TPair(K&& key, const V& val)
+   requires (CT::Decayed<K, V> and CT::MoveMakable<K> and CT::CopyMakable<V>)
+      : TPair {Move(key), Copy(val)} {}
+
+   TEMPLATE() LANGULUS(INLINED)
+   PAIR()::TPair(K&& key, V&& val)
+   requires (CT::Decayed<K, V> and CT::MoveMakable<K, V>)
+      : TPair {Move(key), Move(val)} {}
+
+   TEMPLATE() LANGULUS(INLINED)
+   PAIR()::TPair(K&& key, CT::Semantic auto&& val)
+   requires (CT::Decayed<K, V> and CT::MoveMakable<K>)
+      : TPair {Move(key), val.Forward()} {}
+
+   TEMPLATE() LANGULUS(INLINED)
+   PAIR()::TPair(CT::Semantic auto&& key, const V& val)
+   requires (CT::Decayed<K, V> and CT::CopyMakable<V>)
+      : TPair {key.Forward(), Copy(val)} {}
+
+   TEMPLATE() LANGULUS(INLINED)
+   PAIR()::TPair(CT::Semantic auto&& key, V&& val)
+   requires (CT::Decayed<K, V> and CT::MoveMakable<V>)
+      : TPair {key.Forward(), Move(val)} {}
+
+   TEMPLATE() LANGULUS(INLINED)
+   PAIR()::TPair(CT::Semantic auto&& key, CT::Semantic auto&& val) requires CT::Decayed<K, V>
+      : mKey {key.Forward()}
+      , mValue {val.Forward()} {}
 
    /// Swap (noexcept)                                                        
    ///   @param other - the pair to swap with                                 
-   TEMPLATE_PAIR() LANGULUS(INLINED)
-   constexpr void PAIR()::Swap(TPair& other) noexcept requires CT::SwappableNoexcept<K, V> {
+   TEMPLATE() LANGULUS(INLINED)
+   constexpr void PAIR()::Swap(TPair& other) noexcept
+   requires CT::SwappableNoexcept<K, V> {
       ::std::swap(mKey, other.mKey);
       ::std::swap(mValue, other.mValue);
    }
 
    /// Swap                                                                   
    ///   @param other - the pair to swap with                                 
-   TEMPLATE_PAIR() LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    constexpr void PAIR()::Swap(TPair& other) requires CT::Swappable<K, V> {
       ::std::swap(mKey, other.mKey);
       ::std::swap(mValue, other.mValue);
@@ -58,36 +86,36 @@ namespace Langulus::Anyness
    /// Comparison                                                             
    ///   @param rhs - pair to compare against                                 
    ///   @return true if pairs match                                          
-   TEMPLATE_PAIR() LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    bool PAIR()::operator == (const TPair& rhs) const {
       return mKey == rhs.mKey and mValue == rhs.mValue;
    }
 
    /// Clone the pair                                                         
    ///   @return a cloned pair                                                
-   TEMPLATE_PAIR() LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    PAIR() PAIR()::Clone() const {
       return {Langulus::Clone(mKey), Langulus::Clone(mValue)};
    }
 
-   TEMPLATE_PAIR() LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    constexpr PAIR()::operator TPair<const Deref<K>&, const Deref<V>&>() const noexcept {
       return {mKey, mValue};
    }
 
-   TEMPLATE_PAIR() LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    constexpr PAIR()::operator TPair<Deref<K>&, Deref<V>&>() const noexcept
    requires CT::Mutable<K, V> {
       return {mKey, mValue};
    }
 
-   TEMPLATE_PAIR() LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    constexpr PAIR()::operator TPair<const Deref<K>&, Deref<V>&>() const noexcept
    requires CT::Mutable<V> {
       return {mKey, mValue};
    }
 
-   TEMPLATE_PAIR() LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    constexpr PAIR()::operator TPair<Deref<K>&, const Deref<V>&>() const noexcept
    requires CT::Mutable<K> {
       return {mKey, mValue};
@@ -96,21 +124,21 @@ namespace Langulus::Anyness
    /// Get the pair's hash                                                    
    ///   @attention hash is not cached, so this function is slow              
    ///   @return the hash                                                     
-   TEMPLATE_PAIR() LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    Hash PAIR()::GetHash() const {
       return HashOf(mKey, mValue);
    }
 
    /// Get the type of the contained key                                      
    ///   @return the key type                                                 
-   TEMPLATE_PAIR() LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    DMeta PAIR()::GetKeyType() const noexcept {
       return MetaData::Of<K>();
    }
 
    /// Get the type of the contained value                                    
    ///   @return the value type                                               
-   TEMPLATE_PAIR() LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    DMeta PAIR()::GetValueType() const noexcept {
       return MetaData::Of<V>();
    }

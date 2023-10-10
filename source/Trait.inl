@@ -61,7 +61,7 @@ namespace Langulus::Anyness
          BlockTransfer<Any>(data.template Forward<Any>());
          mTraitType = data->GetTrait();
       }
-      else Any::CreateFrom(data.Forward());
+      else Any::CreateFrom(data.ForwardPerfect());
    }
 
    /// Pack any number of elements sequentially                               

@@ -11,6 +11,7 @@
 
 #define TEMPLATE_OWNED() template<CT::Data T>
 
+
 namespace Langulus::Anyness
 {
 
@@ -115,7 +116,7 @@ namespace Langulus::Anyness
       }
       else {
          // Assign a raw value                                          
-         SemanticAssign(mValue, rhs.Forward());
+         SemanticAssign(mValue, rhs.ForwardPerfect());
       }
 
       return *this;

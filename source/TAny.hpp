@@ -76,6 +76,7 @@ namespace Langulus::Anyness
       TAny& operator = (CT::Semantic auto&&);
 
    public:
+      NOD() static TAny From(const T*, const Count& = 1);
       NOD() static TAny From(CT::Semantic auto&&, const Count& = 1);
 
       template<CT::Data... LIST_T>
@@ -252,8 +253,11 @@ namespace Langulus::Anyness
       NOD() Index Find(const ALT_T&, const Offset& = 0) const noexcept;
 
       template<CT::Data ALT_T = T>
-      bool operator == (const TAny<ALT_T>&) const noexcept requires (CT::Inner::Comparable<T, ALT_T>);
-      bool operator == (const Any&) const noexcept requires (CT::Inner::Comparable<T>);
+      bool operator == (const TAny<ALT_T>&) const noexcept
+      requires (CT::Inner::Comparable<T, ALT_T>);
+
+      bool operator == (const Any&) const noexcept
+      requires (CT::Inner::Comparable<T>);
 
       NOD() bool Compare(const TAny&) const noexcept;
       NOD() bool CompareLoose(const TAny&) const noexcept;
@@ -348,13 +352,13 @@ namespace Langulus::Anyness
       NOD() constexpr bool operator == (const TIterator&) const noexcept;
 
       operator T& () const noexcept requires (MUTABLE);
-      operator const T& () const noexcept requires (!MUTABLE);
+      operator const T& () const noexcept requires (not MUTABLE);
 
       NOD() T& operator * () const noexcept requires (MUTABLE);
-      NOD() const T& operator * () const noexcept requires (!MUTABLE);
+      NOD() const T& operator * () const noexcept requires (not MUTABLE);
 
       NOD() T& operator -> () const noexcept requires (MUTABLE);
-      NOD() const T& operator -> () const noexcept requires (!MUTABLE);
+      NOD() const T& operator -> () const noexcept requires (not MUTABLE);
 
       // Prefix operator                                                
       constexpr TIterator& operator ++ () noexcept;

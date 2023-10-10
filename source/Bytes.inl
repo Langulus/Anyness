@@ -103,14 +103,14 @@ namespace Langulus::Anyness
    ///   @param size - number of bytes inside 'raw'                           
    LANGULUS(INLINED)
    Bytes::Bytes(const void* raw, const Size& size)
-      : Bytes {Copy(raw), size} {}
+      : Bytes {Copy(static_cast<const Byte*>(raw)), size} {}
 
    /// Construct manually via raw mutable memory pointer and size             
    ///   @param raw - raw memory to reference                                 
    ///   @param size - number of bytes inside 'raw'                           
    LANGULUS(INLINED)
    Bytes::Bytes(void* raw, const Size& size)
-      : Bytes {Copy(raw), size} {}
+      : Bytes {Copy(static_cast<Byte*>(raw)), size} {}
 
    /// Construct semantically via raw memory pointer, semantic, and size      
    ///   @param raw - raw memory and semantic to use                          

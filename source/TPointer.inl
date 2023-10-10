@@ -224,7 +224,7 @@ namespace Langulus::Anyness
                "Unrelated raw pointer"
             );
 
-            GetHandle().Assign(rhs.Forward());
+            GetHandle().Assign(rhs.ForwardPerfect());
          }
 
          if constexpr (S::Shallow and not S::Move and S::Keep) {

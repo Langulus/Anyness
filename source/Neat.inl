@@ -869,7 +869,7 @@ namespace Langulus::Anyness
    Count Neat::ForEachInner(F&& call) {
       using A = ArgumentOf<F>;
 
-      static_assert(CT::Constant<A> or MUTABLE,
+      static_assert(CT::Constant<Deptr<A>> or MUTABLE,
          "Non constant iterator for constant Neat block");
 
       if constexpr (CT::Deep<A>) {
@@ -1103,7 +1103,7 @@ namespace Langulus::Anyness
       using A = ArgumentOf<F>;
       using R = ReturnOf<F>;
 
-      static_assert(CT::Constant<A> or MUTABLE,
+      static_assert(CT::Constant<Deptr<A>> or MUTABLE,
          "Non constant iterator for constant Neat block");
 
       if constexpr (CT::Deep<A> && CT::Typed<A>) {

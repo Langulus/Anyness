@@ -67,7 +67,7 @@ namespace Langulus::Anyness
    using RTTI::CMeta;
    using RTTI::TMeta;
 
-   template<CT::NotHandle, bool EMBED = true>
+   template<class, bool EMBED = true>
    struct Handle;
 
    class Any;
@@ -795,7 +795,7 @@ namespace Langulus::Anyness
 
       public:
          auto begin() { return mContainer.rbegin(); }
-         auto end() { return mContainer.rend(); }
+         auto end()   { return mContainer.rend();   }
       };
 
 
@@ -810,10 +810,22 @@ namespace Langulus::Anyness
       class TKeepIterator {
          T& mContainer;
 
-         struct Wrapper {
-            decltype(T::begin())& mIt;
+      public:
+         TKeepIterator() = delete;
+         TKeepIterator(T& a) : mContainer {a} {}
 
-            decltype(auto) operator == (const Wrapper& rhs) const noexcept {
+         struct WrapEnd;
+
+         struct WrapBegin {
+         protected:
+            friend struct WrapEnd;
+            using Type = decltype(Fake<T&>().begin());
+            Type mIt;
+
+         public:
+            WrapBegin(const Type& it) : mIt {it} {}
+
+            bool operator == (const WrapBegin& rhs) const noexcept {
                return mIt == rhs.mIt;
             }
 
@@ -821,15 +833,28 @@ namespace Langulus::Anyness
             decltype(auto) operator -> () const noexcept { return mIt; }
 
             // Prefix operator                                          
-            Wrapper& operator ++ () noexcept { ++mIt; return *this; }
+            WrapBegin& operator ++ () noexcept { ++mIt; return *this; }
 
             // Suffix operator                                          
-            Wrapper operator ++ (int) noexcept { return Wrapper {mIt++}; }
+            WrapBegin operator ++ (int) noexcept { return mIt++; }
+         };
+
+         struct WrapEnd {
+         private:
+            using Type = decltype(Fake<T&>().end());
+            Type mIt;
+
+         public:
+            WrapEnd(const Type& it) : mIt {it} {}
+
+            bool operator == (const WrapBegin& rhs) const noexcept {
+               return mIt == rhs.mIt;
+            }
          };
 
       public:
-         auto begin() { return Wrapper {mContainer.begin()}; }
-         auto end()   { return Wrapper {mContainer.end()};   }
+         WrapBegin begin() { return mContainer.begin(); }
+         WrapEnd   end  () { return mContainer.end();   }
       };
 
    } // namespace Langulus::Anyness::Inner

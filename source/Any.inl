@@ -58,11 +58,11 @@ namespace Langulus::Anyness
    ///   @param other - the element/container to initialize with              
    LANGULUS(INLINED)
    Any::Any(CT::Semantic auto&& other) noexcept {
-      CreateFrom(other.Forward());
+      CreateFrom(other.ForwardPerfect());
    }
 
    /// Helper function for constructing an any from semantic                  
-   ///   @param other - the element/container to initialize with              
+   ///   @param other - the element/container and semantic to initialize with 
    LANGULUS(INLINED)
    void Any::CreateFrom(CT::Semantic auto&& other) noexcept {
       using S = Decay<decltype(other)>;
@@ -93,7 +93,7 @@ namespace Langulus::Anyness
             // Copy/Disown/Move/Abandon/Clone a single element          
             SetType<T>();
             AllocateFresh(RequestSize(1));
-            InsertInner(other.Forward(), 0);
+            InsertInner(other.ForwardPerfect(), 0);
          }
       }
       else LANGULUS_ERROR("Bad semantic constructor argument");
@@ -210,7 +210,6 @@ namespace Langulus::Anyness
    }
 
    /// Shallow copy assignment of anything                                    
-   ///   @tparam T - the type to copy (deducible)                             
    ///   @param other - the value to copy                                     
    ///   @return a reference to this container                                
    LANGULUS(INLINED)
@@ -224,7 +223,6 @@ namespace Langulus::Anyness
    }
 
    /// Move assignment of anything                                            
-   ///   @tparam T - the type to move in (deducible)                          
    ///   @param other - the value to move in                                  
    ///   @return a reference to this container                                
    LANGULUS(INLINED)
@@ -233,7 +231,6 @@ namespace Langulus::Anyness
    }
 
    /// Semantic assignment                                                    
-   ///   @tparam S - the semantic and type to assign (deducible)              
    ///   @param other - the container to semantically assign                  
    ///   @return a reference to this container                                
    Any& Any::operator = (CT::Semantic auto&& other) {
@@ -324,7 +321,7 @@ namespace Langulus::Anyness
                // Just destroy and reuse memory                         
                CallKnownDestructors<T>();
                mCount = 1;
-               SemanticNew<T>(mRaw, other.Forward());
+               SemanticNew<T>(mRaw, other.ForwardPerfect());
             }
          }
       }
@@ -542,13 +539,13 @@ namespace Langulus::Anyness
 
    /// An inner concatenation routine using semantics                         
    ///   @tparam WRAPPER - the type of the concatenated container             
-   ///   @tparam S - semantic to concatenate with (deducible)                 
    ///   @attention assumes TypeOf<S> is binary compatible to WRAPPER,        
    ///              despite being a block to reduce compilation time and RAM  
    ///   @param rhs - block and semantic to concatenate                       
    ///   @return the concatenated container                                   
-   template<CT::Block WRAPPER, CT::Semantic S>
-   WRAPPER Any::Concatenate(S&& other) const {
+   template<CT::Block WRAPPER>
+   WRAPPER Any::Concatenate(CT::Semantic auto&& other) const {
+      using S = Decay<decltype(other)>;
       using T = TypeOf<S>;
       using NestedT = Conditional<S::Move, WRAPPER&, const WRAPPER&>;
       static_assert(CT::Exact<T, Block>,
@@ -635,12 +632,11 @@ namespace Langulus::Anyness
    
    /// Find element(s) index inside container                                 
    ///   @tparam REVERSE - true to perform search in reverse                  
-   ///   @tparam BY_ADDRESS_ONLY - true to compare addresses only             
    ///   @param item - the item to search for                                 
    ///   @return the index of the found item, or IndexNone if none found      
-   template<bool REVERSE, CT::Data T>
+   template<bool REVERSE>
    LANGULUS(INLINED)
-   Index Any::Find(const T& item, const Offset& cookie) const {
+   Index Any::Find(const CT::Data auto& item, const Offset& cookie) const {
       return Block::template FindKnown<REVERSE>(item, cookie);
    }
 

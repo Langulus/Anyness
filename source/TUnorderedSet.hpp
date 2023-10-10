@@ -175,8 +175,8 @@ namespace Langulus::Anyness
 
       void Rehash(const Count&);
 
-      template<bool CHECK_FOR_MATCH, CT::Semantic S>
-      Offset InsertInner(const Offset&, S&&);
+      template<bool CHECK_FOR_MATCH>
+      Offset InsertInner(const Offset&, CT::Semantic auto&&);
 
       template<class ALT_T>
       void CloneInner(const ALT_T&, ALT_T&) const;

@@ -19,7 +19,6 @@ namespace Langulus::Anyness
    class UnorderedMap : public BlockMap {
    public:
       static constexpr bool Ownership = true;
-      static constexpr bool Ordered = false;
 
       constexpr UnorderedMap() noexcept = default;
       UnorderedMap(const UnorderedMap&);

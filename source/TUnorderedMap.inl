@@ -70,8 +70,8 @@ namespace Langulus::Anyness
       : TUnorderedMap {} {
       using S = Decay<decltype(other)>;
       using T = TypeOf<S>;
-      mKeys.mType = MetaData::Of<K>();
-      mValues.mType = MetaData::Of<V>();
+      mKeys.mType = RTTI::MetaData::Of<K>();
+      mValues.mType = RTTI::MetaData::Of<V>();
 
       if constexpr (CT::Map<T>) {
          // Construct from any kind of map                              
@@ -85,7 +85,7 @@ namespace Langulus::Anyness
             const auto hashmask = GetReserved() - 1;
             using TP = typename T::Pair;
             other->ForEach([this, hashmask](TP& pair) {
-               InsertPairInner<false>(hashmask, S::Nest(pair));
+               InsertPairInner<false, false>(hashmask, S::Nest(pair));
             });
          }
          else {
@@ -101,7 +101,7 @@ namespace Langulus::Anyness
          mInfo[MinimalAllocation] = 1;
 
          constexpr auto hashmask = MinimalAllocation - 1;
-         InsertPairInner<false>(hashmask, other.Forward());
+         InsertPairInner<false, false>(hashmask, other.ForwardPerfect());
       }
       else if constexpr (CT::Array<T>) {
          if constexpr (CT::Pair<Deext<T>>) {
@@ -113,7 +113,7 @@ namespace Langulus::Anyness
 
             constexpr auto hashmask = reserved - 1;
             for (auto& pair : *other)
-               InsertPairInner<true>(hashmask, S::Nest(pair));
+               InsertPairInner<true, false>(hashmask, S::Nest(pair));
          }
          else LANGULUS_ERROR("Unsupported semantic array constructor");
 
@@ -128,8 +128,8 @@ namespace Langulus::Anyness
    TABLE_TEMPLATE()
    template<CT::Data T1, CT::Data T2, CT::Data... TAIL>
    TABLE()::TUnorderedMap(T1&& t1, T2&& t2, TAIL&&... tail) {
-      mKeys.mType = MetaData::Of<K>();
-      mValues.mType = MetaData::Of<V>();
+      mKeys.mType = RTTI::MetaData::Of<K>();
+      mValues.mType = RTTI::MetaData::Of<V>();
 
       constexpr auto capacity = Roof2(
          sizeof...(TAIL) + 2 < MinimalAllocation
@@ -149,25 +149,7 @@ namespace Langulus::Anyness
    /// Destroys the map and all it's contents                                 
    TABLE_TEMPLATE()
    TABLE()::~TUnorderedMap() {
-      if (not mValues.mEntry)
-         return;
-
-      if (mValues.mEntry->GetUses() == 1) {
-         // Remove all used keys and values, they're used only here     
-         // This is a statically-optimized equivalent                   
-         ClearInner();
-
-         // Deallocate stuff                                            
-         Allocator::Deallocate(mKeys.mEntry);
-         Allocator::Deallocate(mValues.mEntry);
-      }
-      else {
-         // Data is used from multiple locations, just deref values     
-         // Notice we don't dereference keys, we use only value's refs  
-         // to save on some redundancy                                  
-         mValues.mEntry->Free();
-      }
-
+      Free<Self>();
       mValues.mEntry = nullptr;
    }
 
@@ -212,7 +194,6 @@ namespace Langulus::Anyness
    }
 
    /// Semantic assignment for an unordered map                               
-   ///   @tparam S - the semantic (deducible)                                 
    ///   @param rhs - the unordered map to use for construction               
    TABLE_TEMPLATE()
    TABLE()& TABLE()::operator = (CT::Semantic auto&& other) {
@@ -223,19 +204,20 @@ namespace Langulus::Anyness
          if (&static_cast<const BlockMap&>(*other) == this)
             return *this;
 
-         Reset();
+         Reset<Self>();
          new (this) Self {other.Forward()};
       }
       else if constexpr (CT::Pair<T>) {
          if (GetUses() != 1) {
             // Reset and allocate fresh memory                          
-            Free();
+            Free<Self>();
             new (this) Self {other.Forward()};
          }
          else {
             // Just destroy and reuse memory                            
-            Clear();
-            InsertPairInner<false>(GetReserved() - 1, other.Forward());
+            Clear<Self>();
+            InsertPairInner<false, false>(
+               GetReserved() - 1, other.ForwardPerfect());
          }
       }
       else LANGULUS_ERROR("Unsupported semantic assignment");
@@ -520,9 +502,9 @@ namespace Langulus::Anyness
       return CT::ExactAsOneOf<V, V1, VN...>;
    }
 
-   /// Check if value type exactly matches any of the list                      
-   ///   @param value - the value type to compare against                        
-   ///   @return true if value matches the contained value unqualified type      
+   /// Check if value type exactly matches any of the list                    
+   ///   @param value - the value type to compare against                     
+   ///   @return true if value matches the contained value unqualified type   
    TABLE_TEMPLATE() LANGULUS(INLINED)
    constexpr bool TABLE()::ValueIsExact(DMeta value) const noexcept {
       return GetValueType()->IsExact(value);
@@ -540,6 +522,10 @@ namespace Langulus::Anyness
          "Can't mutate to incompatible key");
       static_assert(CT::Similar<V, ALT_V>,
          "Can't mutate to incompatible value");
+
+      // Since this is not a type-erased map, GetType() will also set it
+      (void) GetKeyType();
+      (void) GetValueType();
    }
 
    /// Checks type compatibility and sets type for the type-erased map        
@@ -548,6 +534,7 @@ namespace Langulus::Anyness
    TABLE_TEMPLATE() LANGULUS(INLINED)
    void TABLE()::Mutate(DMeta key, DMeta value) {
       // Types known at compile-time, so check compatibility            
+      // Since this is not a type-erased map, GetType() will also set it
       LANGULUS_ASSERT(GetKeyType()->IsSimilar(key), Mutate,
          "Can't mutate to incompatible key");
       LANGULUS_ASSERT(GetValueType()->IsSimilar(value), Mutate,
@@ -563,11 +550,6 @@ namespace Langulus::Anyness
    }
 
    TABLE_TEMPLATE() LANGULUS(INLINED)
-   Count TABLE()::Insert(const K& k, V& v) {
-      return Insert(Copy(k), Copy(v));
-   }
-
-   TABLE_TEMPLATE() LANGULUS(INLINED)
    Count TABLE()::Insert(const K& k, V&& v) {
       return Insert(Copy(k), Move(v));
    }
@@ -578,32 +560,7 @@ namespace Langulus::Anyness
    }
 
    TABLE_TEMPLATE() LANGULUS(INLINED)
-   Count TABLE()::Insert(K& k, const V& v) {
-      return Insert(Copy(k), Copy(v));
-   }
-
-   TABLE_TEMPLATE() LANGULUS(INLINED)
-   Count TABLE()::Insert(K& k, V& v) {
-      return Insert(Copy(k), Copy(v));
-   }
-
-   TABLE_TEMPLATE() LANGULUS(INLINED)
-   Count TABLE()::Insert(K& k, V&& v) {
-      return Insert(Copy(k), Move(v));
-   }
-
-   TABLE_TEMPLATE() LANGULUS(INLINED)
-   Count TABLE()::Insert(K& k, CT::Semantic auto&& v) {
-      return Insert(Copy(k), v.Forward());
-   }
-
-   TABLE_TEMPLATE() LANGULUS(INLINED)
    Count TABLE()::Insert(K&& k, const V& v) {
-      return Insert(Move(k), Copy(v));
-   }
-
-   TABLE_TEMPLATE() LANGULUS(INLINED)
-   Count TABLE()::Insert(K&& k, V& v) {
       return Insert(Move(k), Copy(v));
    }
 
@@ -623,11 +580,6 @@ namespace Langulus::Anyness
    }
 
    TABLE_TEMPLATE() LANGULUS(INLINED)
-   Count TABLE()::Insert(CT::Semantic auto&& k, V& v) {
-      return Insert(k.Forward(), Copy(v));
-   }
-
-   TABLE_TEMPLATE() LANGULUS(INLINED)
    Count TABLE()::Insert(CT::Semantic auto&& k, V&& v) {
       return Insert(k.Forward(), Move(v));
    }
@@ -643,9 +595,10 @@ namespace Langulus::Anyness
 
       Mutate<TypeOf<SK>, TypeOf<SV>>();
       Reserve(GetCount() + 1);
-      InsertInner<true>(
+      InsertInner<true, false>(
          GetBucket(GetReserved() - 1, *key),
-         key.Forward(), val.Forward()
+         key.ForwardPerfect(),
+         val.ForwardPerfect()
       );
       return 1;
    }
@@ -666,13 +619,29 @@ namespace Langulus::Anyness
 
       Mutate(key->mType, val->mType);
       Reserve(GetCount() + 1);
-      InsertInnerUnknown<true>(
+      InsertInnerUnknown<true, false>(
          GetBucketUnknown(GetReserved() - 1, *key),
          key.Forward(), val.Forward()
       );
       return 1;
    }
    
+   /// Copy-insert any pair                                                   
+   ///   @param pair - the pair to insert                                     
+   ///   @return 1 if pair was inserted, zero otherwise                       
+   TABLE_TEMPLATE() LANGULUS(INLINED)
+   Count TABLE()::InsertPair(const CT::Pair auto& pair) {
+      return InsertPair(Copy(pair));
+   }
+
+   /// Move-insert any pair                                                   
+   ///   @param pair - the pair to insert                                     
+   ///   @return 1 if pair was inserted, zero otherwise                       
+   TABLE_TEMPLATE() LANGULUS(INLINED)
+   Count TABLE()::InsertPair(CT::Pair auto&& pair) {
+      return InsertPair(Move(pair));
+   }
+
    /// Semantically insert any pair                                           
    ///   @param pair - the pair to insert                                     
    ///   @return 1 if pair was inserted, zero otherwise                       
@@ -706,14 +675,6 @@ namespace Langulus::Anyness
    ///   @return a reference to this map for chaining                         
    TABLE_TEMPLATE() LANGULUS(INLINED)
    TABLE()& TABLE()::operator << (const CT::Pair auto& pair) {
-      return operator << (Copy(pair));
-   }
-
-   /// Copy-insert any pair inside the map                                    
-   ///   @param pair - the pair to insert                                     
-   ///   @return a reference to this map for chaining                         
-   TABLE_TEMPLATE() LANGULUS(INLINED)
-   TABLE()& TABLE()::operator << (CT::Pair auto& pair) {
       return operator << (Copy(pair));
    }
 
@@ -781,323 +742,22 @@ namespace Langulus::Anyness
       return valueByteSize;
    }
 
-   /// Reserves space for the specified number of pairs                       
-   ///   @attention does nothing if reserving less than current reserve       
-   ///   @param count - number of pairs to allocate                           
+   /// Erase a pair via key                                                   
+   ///   @param key - the key to search for                                   
+   ///   @return 1 if key was found and pair was removed                      
    TABLE_TEMPLATE() LANGULUS(INLINED)
-   void TABLE()::Reserve(const Count& count) {
-      AllocateInner(
-         Roof2(count < MinimalAllocation ? MinimalAllocation : count)
-      );
+   Count TABLE()::RemoveKey(const K& key) {
+      return BlockMap::template RemoveKey<TABLE()>(key);
    }
 
-   /// Allocate a fresh set keys and values (for internal use only)           
-   ///   @attention doesn't initialize anything, but the memory state         
-   ///   @attention doesn't modify count, doesn't set info sentinel           
-   ///   @attention assumes count is a power-of-two                           
-   ///   @param count - the new number of pairs                               
-   TABLE_TEMPLATE()
-   void TABLE()::AllocateFresh(const Count& count) {
-      LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(count),
-         "Table reallocation count is not a power-of-two");
-
-      Offset infoOffset;
-      const auto keyAndInfoSize = RequestKeyAndInfoSize(count, infoOffset);
-      mKeys.mEntry = Allocator::Allocate(mKeys.mType, keyAndInfoSize);
-      LANGULUS_ASSERT(mKeys.mEntry, Allocate, "Out of memory");
-
-      const auto valueByteSize = RequestValuesSize(count);
-      mValues.mEntry = Allocator::Allocate(mValues.mType, valueByteSize);
-
-      if (not mValues.mEntry) {
-         Allocator::Deallocate(mKeys.mEntry);
-         mKeys.mEntry = nullptr;
-         LANGULUS_THROW(Allocate, "Out of memory");
-      }
-
-      mValues.mRaw = mValues.mEntry->GetBlockStart();
-      mKeys.mReserved = mValues.mReserved = count;
-
-      // Precalculate the info pointer, it's costly                     
-      mKeys.mRaw = mKeys.mEntry->GetBlockStart();
-      mInfo = reinterpret_cast<InfoType*>(mKeys.mRaw + infoOffset);
-   }
-
-   /// Allocate or reallocate key and info array                              
-   ///   @attention assumes count is a power-of-two                           
-   ///   @tparam REUSE - true to reallocate, false to allocate fresh          
-   ///   @param count - the new number of pairs                               
-   TABLE_TEMPLATE()
-   template<bool REUSE>
-   void TABLE()::AllocateData(const Count& count) {
-      LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(count),
-         "Table reallocation count is not a power-of-two");
-
-      Offset infoOffset;
-      auto oldInfo = mInfo;
-      const auto oldCount = GetReserved();
-      const auto oldInfoEnd = oldInfo + oldCount;
-
-      // Allocate new keys                                              
-      const Block oldKeys {mKeys};
-      const auto keyAndInfoSize = RequestKeyAndInfoSize(count, infoOffset);
-      if constexpr (REUSE)
-         mKeys.mEntry = Allocator::Reallocate(keyAndInfoSize, mKeys.mEntry);
-      else {
-         mKeys.mType = MetaData::Of<K>();
-         mKeys.mEntry = Allocator::Allocate(mKeys.mType, keyAndInfoSize);
-      }
-
-      LANGULUS_ASSERT(mKeys.mEntry, Allocate, "Out of memory");
-
-      // Allocate new values                                            
-      const Block oldVals {mValues};
-      const auto valueByteSize = RequestValuesSize(count);
-      if constexpr (REUSE)
-         mValues.mEntry = Allocator::Reallocate(valueByteSize, mValues.mEntry);
-      else {
-         mValues.mType = MetaData::Of<V>();
-         mValues.mEntry = Allocator::Allocate(mValues.mType, valueByteSize);
-      }
-
-      if (not mValues.mEntry) {
-         Allocator::Deallocate(mKeys.mEntry);
-         mKeys.mEntry = nullptr;
-         LANGULUS_THROW(Allocate, "Out of memory");
-      }
-
-      mValues.mRaw = mValues.mEntry->GetBlockStart();
-      mKeys.mReserved = mValues.mReserved = count;
-
-      // Precalculate the info pointer, it's costly                     
-      mKeys.mRaw = mKeys.mEntry->GetBlockStart();
-      mInfo = reinterpret_cast<InfoType*>(mKeys.mRaw + infoOffset);
-      // Set the sentinel                                               
-      mInfo[count] = 1;
-
-      // Zero or move the info array                                    
-      if constexpr (REUSE) {
-         // Check if keys were reused                                   
-         if (mKeys.mEntry == oldKeys.mEntry) {
-            // Keys were reused, but info always moves (null the rest)  
-            MoveMemory(mInfo, oldInfo, oldCount);
-            ZeroMemory(mInfo + oldCount, count - oldCount);
-
-            // Data was reused, but entries always move if sparse keys  
-            if constexpr (CT::Sparse<K>) {
-               MoveMemory(
-                  mKeys.mRawSparse + count,
-                  mKeys.mRawSparse + oldCount,
-                  oldCount
-               );
-            };
-
-            if (mValues.mEntry == oldVals.mEntry) {
-               // Both keys and values remain in the same place         
-               // Data was reused, but entries always move if sparse val
-               if constexpr (CT::Sparse<V>) {
-                  MoveMemory(
-                     mValues.mRawSparse + count,
-                     mValues.mRawSparse + oldCount,
-                     oldCount
-                  );
-               };
-
-               Rehash(oldCount);
-               return;
-            }
-         }
-         else ZeroMemory(mInfo, count);
-      }
-      else ZeroMemory(mInfo, count);
-
-      if (oldVals.IsEmpty()) {
-         // There are no old values, the previous map was empty         
-         // Just do an early return right here                          
-         return;
-      }
-
-      // If reached, then keys or values (or both) moved                
-      // Reinsert all pairs to rehash                                   
-      mValues.mCount = 0;
-      auto key = oldKeys.GetHandle<K>(0);
-      auto val = oldVals.GetHandle<V>(0);
-      const auto hashmask = GetReserved() - 1;
-      while (oldInfo != oldInfoEnd) {
-         if (*oldInfo) {
-            const auto index = GetBucket(hashmask, key.Get());
-            InsertInner<false>(index, Abandon(key), Abandon(val));
-            key.Destroy();
-            val.Destroy();
-         }
-         
-         ++oldInfo;
-         ++key;
-         ++val;
-      }
-
-      // Free the old allocations                                       
-      if constexpr (REUSE) {
-         // When reusing, keys and values can potentially remain same   
-         // Avoid deallocating them if that's the case                  
-         if (oldVals.mEntry != mValues.mEntry)
-            Allocator::Deallocate(oldVals.mEntry);
-         if (oldKeys.mEntry != mKeys.mEntry)
-            Allocator::Deallocate(oldKeys.mEntry);
-      }
-      else if (oldVals.mEntry) {
-         // Not reusing, so either deallocate, or dereference           
-         // (keys are always present, if values are present)            
-         if (oldVals.mEntry->GetUses() > 1)
-            oldVals.mEntry->Free();
-         else {
-            Allocator::Deallocate(oldVals.mEntry);
-            Allocator::Deallocate(oldKeys.mEntry);
-         }
-      }
-   }
-
-   /// Rehashes each key and reinserts pair                                   
-   ///   @attention assumes counts are a power-of-two number                  
-   ///   @param oldCount - the old number of pairs                            
-   TABLE_TEMPLATE()
-   void TABLE()::Rehash(const Count& oldCount) {
-      LANGULUS_ASSUME(DevAssumes, mValues.mReserved > oldCount,
-         "New count is not larger than oldCount");
-      LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(mValues.mReserved),
-         "New count is not a power-of-two");
-      LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(oldCount),
-         "Old count is not a power-of-two");
-
-      auto oldKey = GetKeyHandle(0);
-      auto oldInfo = GetInfo();
-      const auto oldInfoEnd = oldInfo + oldCount;
-      const auto hashmask = mValues.mReserved - 1;
-
-      // First run: move elements closer to their new buckets           
-      while (oldInfo != oldInfoEnd) {
-         if (*oldInfo) {
-            // Rehash and check if hashes match                         
-            const Offset oldIndex = oldInfo - GetInfo();
-            Offset oldBucket = (oldCount + oldIndex) - *oldInfo + 1;
-            const auto newBucket = mValues.mReserved + GetBucket(hashmask, oldKey.Get());
-            if (oldBucket != newBucket) {
-               // Move pair only if it won't end up in same bucket      
-               auto oldValue = GetValueHandle(oldIndex);
-               HandleLocal<K> keyswap {Abandon(oldKey)};
-               HandleLocal<V> valswap {Abandon(oldValue)};
-
-               // Destroy the key, info and value                       
-               oldKey.Destroy();
-               oldValue.Destroy();
-               *oldInfo = 0;
-               --mValues.mCount;
-
-               // Reinsert at the new bucket                            
-               InsertInner<false>(
-                  newBucket - mValues.mReserved,
-                  Abandon(keyswap), Abandon(valswap)
-               );
-            }
-         }
-
-         ++oldKey;
-         ++oldInfo;
-      }
-
-      // First run might cause gaps                                     
-      // Second run: shift elements left, where possible                
-      BlockMap::template ShiftPairs<K, V>();
-   }
-
-   /// Reserves space for the specified number of pairs                       
-   ///   @attention does nothing if reserving less than current reserve       
-   ///   @attention assumes count is a power-of-two number                    
-   ///   @param count - number of pairs to allocate                           
+   /// Erase all pairs with a given value                                     
+   ///   @param value - the match to search for                               
+   ///   @return the number of removed pairs                                  
    TABLE_TEMPLATE() LANGULUS(INLINED)
-   void TABLE()::AllocateInner(const Count& count) {
-      // Shrinking is never allowed, you'll have to do it explicitly    
-      // via Compact()                                                  
-      if (count <= GetReserved())
-         return;
-
-      // Allocate/Reallocate the keys and info                          
-      if (IsAllocated() and GetUses() == 1)
-         AllocateData<true>(count);
-      else
-         AllocateData<false>(count);
+   Count TABLE()::RemoveValue(const V& value) {
+      return BlockMap::template RemoveValue<TABLE()>(value);
    }
-
-   /// Destroy everything valid inside the map                                
-   TABLE_TEMPLATE()
-   void TABLE()::ClearInner() {
-      auto inf = GetInfo();
-      const auto infEnd = GetInfoEnd();
-      while (inf != infEnd) {
-         if (*inf) {
-            const auto offset = inf - GetInfo();
-            GetKeyHandle(offset).Destroy();
-            GetValueHandle(offset).Destroy();
-         }
-
-         ++inf;
-      }
-   }
-
-   /// Clears all data, but doesn't deallocate, and retains state             
-   TABLE_TEMPLATE()
-   void TABLE()::Clear() {
-      if (IsEmpty())
-         return;
-
-      if (mValues.mEntry->GetUses() == 1) {
-         // Remove all used keys and values, they're used only here     
-         ClearInner();
-
-         // Clear all info to zero                                      
-         ZeroMemory(mInfo, GetReserved());
-         mValues.mCount = 0;
-      }
-      else {
-         // Data is used from multiple locations, don't change data     
-         // We're forced to dereference and reset memory pointers       
-         // Notice keys are not dereferenced, we use only value refs    
-         // to save on some redundancy                                  
-         mInfo = nullptr;
-         mValues.mEntry->Free();
-         mKeys.ResetMemory();
-         mValues.ResetMemory();
-      }
-   }
-
-   /// Clears all data, state, and deallocates                                
-   TABLE_TEMPLATE()
-   void TABLE()::Reset() {
-      if (not mValues.mEntry)
-         return;
-
-      if (mValues.mEntry->GetUses() == 1) {
-         // Remove all used keys and values, they're used only here     
-         ClearInner();
-
-         // No point in resetting info, we'll be deallocating it        
-         Allocator::Deallocate(mKeys.mEntry);
-         Allocator::Deallocate(mValues.mEntry);
-      }
-      else {
-         // Data is used from multiple locations, just deref values     
-         // Notice keys are not dereferenced, we use only value refs    
-         // to save on some redundancy                                  
-         mValues.mEntry->Free();
-      }
-
-      mInfo = nullptr;
-      mKeys.ResetState();
-      mKeys.ResetMemory();
-      mValues.ResetState();
-      mValues.ResetMemory();
-   }
-   
+     
    /// Safely erases element at a specific iterator                           
    ///   @attention assumes iterator is produced by this map instance         
    ///   @attention assumes that iterator points to a valid entry             
@@ -1127,38 +787,16 @@ namespace Langulus::Anyness
       };
    }
 
-   /// Erase a pair via key                                                   
-   ///   @param key - the key to search for                                   
-   ///   @return 1 if key was found and pair was removed                      
-   TABLE_TEMPLATE() LANGULUS(INLINED)
-   Count TABLE()::RemoveKey(const K& key) {
-      return BlockMap::template RemoveKey<TABLE()>(key);
-   }
-
-   /// Erase all pairs with a given value                                     
-   ///   @param value - the match to search for                               
-   ///   @return the number of removed pairs                                  
-   TABLE_TEMPLATE() LANGULUS(INLINED)
-   Count TABLE()::RemoveValue(const V& value) {
-      return BlockMap::template RemoveValue<TABLE()>(value);
-   }
-
-   /// If possible reallocates the map to a smaller one                       
-   TABLE_TEMPLATE()
-   void TABLE()::Compact() {
-      TODO();
-   }
-
 
    ///                                                                        
-   ///   SEARCH                                                               
+   ///   Comparison                                                           
    ///                                                                        
    
    /// Checks if both tables contain the same entries                         
    ///   @param other - the table to compare against                          
    ///   @return true if tables match                                         
    TABLE_TEMPLATE() LANGULUS(INLINED)
-   bool TABLE()::operator == (const TUnorderedMap& other) const requires (CT::Inner::Comparable<V>) {
+   bool TABLE()::operator == (const TUnorderedMap& other) const requires CT::Inner::Comparable<V> {
       if (other.GetCount() != GetCount())
          return false;
 
@@ -1190,7 +828,7 @@ namespace Langulus::Anyness
    ///   @param value - the value to search for                               
    ///   @return true if value is found, false otherwise                      
    TABLE_TEMPLATE()
-   bool TABLE()::ContainsValue(const V& match) const requires (CT::Inner::Comparable<V>) {
+   bool TABLE()::ContainsValue(const V& match) const requires CT::Inner::Comparable<V> {
       if (IsEmpty())
          return false;
 
@@ -1212,7 +850,7 @@ namespace Langulus::Anyness
    ///   @param pair - the pair to search for                                 
    ///   @return true if pair is found, false otherwise                       
    TABLE_TEMPLATE() LANGULUS(INLINED)
-   bool TABLE()::ContainsPair(const Pair& pair) const requires (CT::Inner::Comparable<V>) {
+   bool TABLE()::ContainsPair(const Pair& pair) const requires CT::Inner::Comparable<V> {
       const auto found = FindInner<TABLE()>(pair.mKey);
       return found != InvalidOffset and GetValue(found) == pair.mValue;
    }
