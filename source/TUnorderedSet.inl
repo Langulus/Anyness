@@ -108,7 +108,7 @@ namespace Langulus::Anyness
          // Insert a statically typed element                           
          InsertInner<false>(
             GetBucket(MinimalAllocation - 1, *other),
-            other.Forward()
+            other.ForwardPerfect()
          );
       }
       else if constexpr (CT::Array<ST>) {
@@ -624,9 +624,9 @@ namespace Langulus::Anyness
    ///   @param val - value to move in                                        
    ///   @return the index at which item was inserted                         
    TABLE_TEMPLATE()
-   template<bool CHECK_FOR_MATCH, CT::Semantic S>
-   Offset TABLE()::InsertInner(const Offset& start, S&& key) {
-      HandleLocal<T> keyswap {key.Forward()};
+   template<bool CHECK_FOR_MATCH>
+   Offset TABLE()::InsertInner(const Offset& start, CT::Semantic auto&& key) {
+      HandleLocal<T> keyswap {key.ForwardPerfect()};
 
       // Get the starting index based on the key hash                   
       auto psl = GetInfo() + start;
@@ -694,7 +694,7 @@ namespace Langulus::Anyness
       Reserve(GetCount() + 1);
       InsertInner<true>(
          GetBucket(GetReserved() - 1, *key),
-         key.Forward()
+         key.ForwardPerfect()
       );
       return 1;
    }

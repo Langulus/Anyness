@@ -143,7 +143,7 @@ namespace Langulus::Anyness
             );
       }
 
-      InsertInner(item.Forward(), index);
+      InsertInner(item.ForwardPerfect(), index);
       return 1;
    }
    
@@ -269,9 +269,9 @@ namespace Langulus::Anyness
                mCount, Abandon(CropInner(0, mCount))
             );
 
-         InsertInner(item.Forward(), 0);
+         InsertInner(item.ForwardPerfect(), 0);
       }
-      else InsertInner(item.Forward(), mCount);
+      else InsertInner(item.ForwardPerfect(), mCount);
 
       return 1;
    }
@@ -974,7 +974,7 @@ namespace Langulus::Anyness
       }
 
       return SmartPushInner<ALLOW_DEEPEN, INDEX, WRAPPER>(
-         value.Forward(), state);
+         value.ForwardPerfect(), state);
    }
    
    /// Inner semantic insertion function for a range                          

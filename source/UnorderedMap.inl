@@ -36,21 +36,18 @@ namespace Langulus::Anyness
       : UnorderedMap {Move(other)} {}
 
    /// Copy constructor from any map/pair                                     
-   ///   @tparam S - semantic and type (deducible)                            
    ///   @param other - the semantic type                                     
    LANGULUS(INLINED)
    UnorderedMap::UnorderedMap(const CT::NotSemantic auto& other)
       : UnorderedMap {Copy(other)} {}
    
    /// Copy constructor from any map/pair                                     
-   ///   @tparam S - semantic and type (deducible)                            
    ///   @param other - the semantic type                                     
    LANGULUS(INLINED)
    UnorderedMap::UnorderedMap(CT::NotSemantic auto& other)
       : UnorderedMap {Copy(other)} {}
    
    /// Move constructor from any map/pair                                     
-   ///   @tparam S - semantic and type (deducible)                            
    ///   @param other - the semantic type                                     
    LANGULUS(INLINED)
    UnorderedMap::UnorderedMap(CT::NotSemantic auto&& other)
@@ -78,7 +75,7 @@ namespace Langulus::Anyness
             const auto hashmask = GetReserved() - 1;
             using TP = typename T::Pair;
             other->ForEach([this, hashmask](TP& pair) {
-               InsertPairInner<UnorderedMap>(hashmask, S::Nest(pair));
+               InsertPairInner<false, false>(hashmask, S::Nest(pair));
             });
          }
          else {
@@ -97,7 +94,7 @@ namespace Langulus::Anyness
          mInfo[MinimalAllocation] = 1;
 
          constexpr auto hashmask = MinimalAllocation - 1;
-         InsertPairInner<false>(hashmask, other.Forward());
+         InsertPairInner<false, false>(hashmask, other.ForwardPerfect());
       }
       else if constexpr (CT::Array<T>) {
          if constexpr (CT::Pair<Deext<T>>) {
@@ -112,7 +109,7 @@ namespace Langulus::Anyness
 
             constexpr auto hashmask = reserved - 1;
             for (auto& pair : *other)
-               InsertPairInner<true>(hashmask, S::Nest(pair));
+               InsertPairInner<true, false>(hashmask, S::Nest(pair));
          }
          else LANGULUS_ERROR("Unsupported semantic array constructor");
 
@@ -159,7 +156,7 @@ namespace Langulus::Anyness
    /// Map destructor                                                         
    LANGULUS(INLINED)
    UnorderedMap::~UnorderedMap() {
-      Free();
+      Free<UnorderedMap>();
    }
 
    /// Copy assignment                                                        
@@ -212,19 +209,20 @@ namespace Langulus::Anyness
           == static_cast<const BlockMap*>(&*other))
             return *this;
 
-         Free();
+         Free<UnorderedMap>();
          new (this) UnorderedMap {other.Forward()};
       }
       else if constexpr (CT::Pair<T>) {
          if (GetUses() != 1) {
             // Reset and allocate fresh memory                          
-            Free();
+            Free<UnorderedMap>();
             new (this) UnorderedMap {other.Forward()};
          }
          else {
             // Just destroy and reuse memory                            
-            Clear();
-            InsertPairInner<false>(GetReserved() - 1, other.Forward());
+            Clear<UnorderedMap>();
+            InsertPairInner<false, false>(
+               GetReserved() - 1, other.ForwardPerfect());
          }
       }
       else LANGULUS_ERROR("Unsupported unordered map assignment");
@@ -237,7 +235,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this map for chaining                         
    LANGULUS(INLINED)
    UnorderedMap& UnorderedMap::operator << (auto&& pair) {
-      BlockMap::InsertPair(Forward<decltype(pair)>(pair));
+      InsertPair(Forward<decltype(pair)>(pair));
       return *this;
    }
 

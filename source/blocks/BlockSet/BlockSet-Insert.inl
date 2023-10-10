@@ -161,7 +161,7 @@ namespace Langulus::Anyness
       Reserve(GetCount() + 1);
       InsertInner<true>(
          GetBucket(GetReserved() - 1, *value),
-         value.Forward()
+         value.ForwardPerfect()
       );
       return 1;
    }
@@ -248,14 +248,14 @@ namespace Langulus::Anyness
 
    /// Inner insertion function                                               
    ///   @tparam CHECK_FOR_MATCH - false if you guarantee key doesn't exist   
-   ///   @tparam S - key type and semantic (deducible)                        
    ///   @param start - the starting index                                    
    ///   @param value - value & semantic to insert                            
    ///   @return the offset at which pair was inserted                        
-   template<bool CHECK_FOR_MATCH, CT::Semantic S>
-   Offset BlockSet::InsertInner(const Offset& start, S&& value) {
+   template<bool CHECK_FOR_MATCH>
+   Offset BlockSet::InsertInner(const Offset& start, CT::Semantic auto&& value) {
+      using S = Decay<decltype(value)>;
       using T = TypeOf<S>;
-      HandleLocal<T> swapper {value.Forward()};
+      HandleLocal<T> swapper {value.ForwardPerfect()};
 
       // Get the starting index based on the key hash                   
       auto psl = GetInfo() + start;
@@ -306,12 +306,12 @@ namespace Langulus::Anyness
    /// Inner insertion function based on reflected move-assignment            
    ///   @attention after this call, key and/or value might be empty          
    ///   @tparam CHECK_FOR_MATCH - false if you guarantee key doesn't exist   
-   ///   @tparam S - key type and semantic (deducible)                        
    ///   @param start - the starting index                                    
    ///   @param value - value & semantic to insert                            
    ///   @return the offset at which pair was inserted                        
-   template<bool CHECK_FOR_MATCH, CT::Semantic S>
-   Offset BlockSet::InsertInnerUnknown(const Offset& start, S&& value) {
+   template<bool CHECK_FOR_MATCH>
+   Offset BlockSet::InsertInnerUnknown(const Offset& start, CT::Semantic auto&& value) {
+      using S = Decay<decltype(value)>;
       static_assert(CT::Exact<TypeOf<S>, Block>,
          "S type must be exactly Block (build-time optimization)");
 

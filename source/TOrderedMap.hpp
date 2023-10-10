@@ -19,61 +19,90 @@ namespace Langulus::Anyness
    template<CT::Data K, CT::Data V>
    class TOrderedMap : public TUnorderedMap<K, V> {
    public:
-      using Key = K;
-      using Value = V;
       using Self = TOrderedMap<K, V>;
-      using Pair = TPair<K, V>;
-      using PairRef = TPair<K&, V&>;
-      using PairConstRef = TPair<const K&, const V&>;
       using Base = TUnorderedMap<K, V>;
+      using typename Base::Iterator;
+      using typename Base::ConstIterator;
+      using Base::mKeys;
+      using Base::mValues;
+      using Base::mInfo;
+      using Base::MinimalAllocation;
+      using Base::InvalidOffset;
 
       static constexpr bool Ordered = true;
 
-      using Base::TUnorderedMap;
-
+   public:
+      constexpr TOrderedMap();
       TOrderedMap(const TOrderedMap&);
       TOrderedMap(TOrderedMap&&) noexcept;
 
-      //TODO defined in header due to MSVC compiler bug (02/2023)       
-      // Might be fixed in the future                                   
-      template<CT::Semantic S>
-      constexpr TOrderedMap(S&& other) noexcept requires (CT::Exact<TypeOf<S>, Self>)
-         : Base {other.template Forward<Base>()} {}
+      TOrderedMap(const CT::NotSemantic auto&);
+      TOrderedMap(CT::NotSemantic auto&);
+      TOrderedMap(CT::NotSemantic auto&&);
+      TOrderedMap(CT::Semantic auto&&);
+
+      template<CT::Data T1, CT::Data T2, CT::Data... TAIL>
+      TOrderedMap(T1&&, T2&&, TAIL&&...);
 
       TOrderedMap& operator = (const TOrderedMap&);
       TOrderedMap& operator = (TOrderedMap&&) noexcept;
-      template<CT::Semantic S>
-      TOrderedMap& operator = (S&&) noexcept requires (CT::Exact<TypeOf<S>, Self>);
 
-      TOrderedMap& operator = (const Pair&);
-      TOrderedMap& operator = (Pair&&) noexcept;
-      template<CT::Semantic S>
-      TOrderedMap& operator = (S&&) noexcept requires (CT::Pair<TypeOf<S>>);
+      TOrderedMap& operator = (const CT::NotSemantic auto&);
+      TOrderedMap& operator = (CT::NotSemantic auto&);
+      TOrderedMap& operator = (CT::NotSemantic auto&&);
+      TOrderedMap& operator = (CT::Semantic auto&&);
 
       ///                                                                     
       ///   Comparison                                                        
       ///                                                                     
-      bool operator == (const TOrderedMap&) const;
+      NOD() bool ContainsKey(const K&) const;
+      NOD() bool ContainsValue(const V&) const requires CT::Inner::Comparable<V>;
+      NOD() bool ContainsPair(const Pair&) const requires CT::Inner::Comparable<V>;
+
+      NOD() Index Find(const K&) const;
+      NOD() Iterator FindIt(const K&);
+      NOD() ConstIterator FindIt(const K&) const;
+
+      NOD() decltype(auto) At(const K&);
+      NOD() decltype(auto) At(const K&) const;
+
+      NOD() decltype(auto) operator[] (const K&);
+      NOD() decltype(auto) operator[] (const K&) const;
 
       ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
       Count Insert(const K&, const V&);
+      Count Insert(const K&,       V&&);
+      Count Insert(const K&, CT::Semantic auto&&);
+                   
       Count Insert(K&&, const V&);
-      Count Insert(const K&, V&&);
-      Count Insert(K&&, V&&);
-      template<CT::Semantic SK, CT::Semantic SV>
-      Count Insert(SK&&, SV&&) noexcept requires (CT::Exact<TypeOf<SK>, K> and CT::Exact<TypeOf<SV>, V>);
+      Count Insert(K&&,       V&&);
+      Count Insert(K&&, CT::Semantic auto&&);
 
-      TOrderedMap& operator << (const TPair<K, V>&);
-      TOrderedMap& operator << (TPair<K, V>&&);
-      template<CT::Semantic S>
-      TOrderedMap& operator << (S&&) noexcept requires (CT::Pair<TypeOf<S>>);
+      Count Insert(CT::Semantic auto&&, const V&);
+      Count Insert(CT::Semantic auto&&,       V&&);
+      Count Insert(CT::Semantic auto&&, CT::Semantic auto&&);
+
+      Count InsertBlock(CT::Semantic auto&&, CT::Semantic auto&&);
+
+      Count InsertPair(const CT::Pair auto&);
+      Count InsertPair(      CT::Pair auto&&);
+      Count InsertPair(CT::Semantic   auto&&);
+
+      Count InsertPairBlock(CT::Semantic auto&&);
+
+      TOrderedMap& operator << (const CT::Pair auto&);
+      TOrderedMap& operator << (      CT::Pair auto&&);
+      TOrderedMap& operator << (CT::Semantic   auto&&);
+
+      TOrderedMap& operator += (const TOrderedMap&);
+
+      ///                                                                     
+      ///   Removal                                                           
+      ///                                                                     
+      Count RemoveKey(const K&);
+      Count RemoveValue(const V&);
    };
-
-
-   /// The default map is always ordered                                      
-   template<CT::Data K, CT::Data V>
-   using TMap = TOrderedMap<K, V>;
 
 } // namespace Langulus::Anyness

@@ -20,7 +20,7 @@ namespace Langulus::Anyness
    /// track of pointers inserted to containers. This does not have ownership 
    /// and can be used as iterator only when EMBEDed.                         
    ///                                                                        
-   template<CT::NotHandle T, bool EMBED>
+   template<class T, bool EMBED>
    struct Handle : A::Handle {
       LANGULUS(TYPED) T;
       LANGULUS_BASES(A::Handle);
@@ -59,6 +59,7 @@ namespace Langulus::Anyness
       NOD() Allocation*& GetEntry() const noexcept;
 
       void New(T, Allocation* = nullptr) noexcept requires CT::Sparse<T>;
+      void New(const T&, Allocation* = nullptr) noexcept requires CT::Dense<T>;
       void New(T&&, Allocation* = nullptr) noexcept requires CT::Dense<T>;
       void New(CT::Semantic auto&&);
       void NewUnknown(DMeta, CT::Semantic auto&&);

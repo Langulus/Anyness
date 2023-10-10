@@ -271,6 +271,9 @@ namespace Langulus::Anyness
    }
 
    /// Clears all data, but doesn't deallocate                                
+   ///   @tparam MAP - map we're searching in, potentially providing runtime  
+   ///                 optimization on type checks                            
+   template<class MAP>
    LANGULUS(INLINED)
    void BlockMap::Clear() {
       if (IsEmpty())
@@ -278,7 +281,7 @@ namespace Langulus::Anyness
 
       if (mValues.mEntry->GetUses() == 1) {
          // Remove all used keys and values, they're used only here     
-         ClearInner();
+         ClearInner<MAP>();
 
          // Clear all info to zero                                      
          ZeroMemory(mInfo, GetReserved());
@@ -295,15 +298,22 @@ namespace Langulus::Anyness
    }
 
    /// Clears all data and deallocates                                        
+   ///   @tparam MAP - map we're searching in, potentially providing runtime  
+   ///                 optimization on type checks                            
+   template<class MAP>
    LANGULUS(INLINED)
    void BlockMap::Reset() {
+      static_assert(CT::Map<MAP>, "MAP must be a map type");
+
       if (mValues.mEntry) {
          if (mValues.mEntry->GetUses() == 1) {
             // Remove all used keys and values, they're used only here  
             if (not IsEmpty())
-               ClearInner();
+               ClearInner<MAP>();
 
             // No point in resetting info, we'll be deallocating it     
+            LANGULUS_ASSUME(DevAssumes, mKeys.mEntry->GetUses() == 1,
+               "Bad assumption");
             Allocator::Deallocate(mKeys.mEntry);
             Allocator::Deallocate(mValues.mEntry);
          }
@@ -328,18 +338,28 @@ namespace Langulus::Anyness
    }
    
    /// Destroy everything valid inside the map                                
+   ///   @tparam MAP - map we're searching in, potentially providing runtime  
+   ///                 optimization on type checks                            
    ///   @attention assumes there's at least one valid pair                   
+   template<class MAP>
    LANGULUS(INLINED)
    void BlockMap::ClearInner() {
       LANGULUS_ASSUME(DevAssumes, not IsEmpty(), "Map is empty");
+      static_assert(CT::Map<MAP>, "MAP must be a map type");
 
       auto inf = GetInfo();
       const auto infEnd = GetInfoEnd();
       while (inf != infEnd) {
          if (*inf) {
             const auto offset = inf - GetInfo();
-            GetKeyInner(offset).CallUnknownDestructors();
-            GetValueInner(offset).CallUnknownDestructors();
+            if constexpr (CT::TypedMap<MAP>) {
+               GetKeyHandle  <typename MAP::Key>  (offset).Destroy();
+               GetValueHandle<typename MAP::Value>(offset).Destroy();
+            }
+            else {
+               GetKeyInner  (offset).CallUnknownDestructors();
+               GetValueInner(offset).CallUnknownDestructors();
+            }
          }
 
          ++inf;

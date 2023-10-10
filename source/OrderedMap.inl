@@ -75,7 +75,7 @@ namespace Langulus::Anyness
             const auto hashmask = GetReserved() - 1;
             using TP = typename T::Pair;
             other->ForEach([this, hashmask](TP& pair) {
-               InsertPairInner<OrderedMap>(hashmask, S::Nest(pair));
+               InsertPairInner<false, true>(hashmask, S::Nest(pair));
             });
          }
          else {
@@ -94,7 +94,7 @@ namespace Langulus::Anyness
          mInfo[MinimalAllocation] = 1;
 
          constexpr auto hashmask = MinimalAllocation - 1;
-         InsertPairInner<false>(hashmask, other.Forward());
+         InsertPairInner<false, true>(hashmask, other.ForwardPerfect());
       }
       else if constexpr (CT::Array<T>) {
          if constexpr (CT::Pair<Deext<T>>) {
@@ -109,7 +109,7 @@ namespace Langulus::Anyness
 
             constexpr auto hashmask = reserved - 1;
             for (auto& pair : *other)
-               InsertPairInner<true>(hashmask, S::Nest(pair));
+               InsertPairInner<true, true>(hashmask, S::Nest(pair));
          }
          else LANGULUS_ERROR("Unsupported semantic array constructor");
 
@@ -156,7 +156,7 @@ namespace Langulus::Anyness
    /// Map destructor                                                         
    LANGULUS(INLINED)
    OrderedMap::~OrderedMap() {
-      Free();
+      Free<OrderedMap>();
    }
    
    /// Copy assignment                                                        
@@ -208,23 +208,23 @@ namespace Langulus::Anyness
           == static_cast<const BlockMap*>(&*other))
             return *this;
 
-         Free();
+         Free<OrderedMap>();
          new (this) OrderedMap {other.Forward()};
       }
       else if constexpr (CT::Pair<T>) {
          if (GetUses() != 1) {
             // Reset and allocate fresh memory                          
-            Free();
+            Free<OrderedMap>();
             new (this) OrderedMap {other.Forward()};
          }
          else {
             // Just destroy and reuse memory                            
-            Clear();
-            InsertPairInner<false>(GetReserved() - 1, other.Forward());
+            Clear<OrderedMap>();
+            InsertPairInner<false, true>(
+               GetReserved() - 1, other.ForwardPerfect());
          }
       }
       else LANGULUS_ERROR("Unsupported ordered map assignment");
-
       return *this;
    }
 

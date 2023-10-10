@@ -13,6 +13,7 @@
 #define ITERATOR() typename TAny<T>::template TIterator<MUTABLE>
 #define ITERATOR_END() typename TAny<T>::template TIteratorEnd<MUTABLE>
 
+
 namespace Langulus::Anyness
 {
    

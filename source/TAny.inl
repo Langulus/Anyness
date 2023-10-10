@@ -13,6 +13,7 @@
 
 #define TEMPLATE() template<CT::Data T>
 
+
 namespace Langulus::Anyness
 {
 
@@ -126,9 +127,10 @@ namespace Langulus::Anyness
       else if constexpr (CT::Exact<T, ST>) {
          // Copy/Disown/Move/Abandon/Clone a compatible element         
          AllocateFresh(RequestSize(1));
-         InsertInner(other.Forward(), 0);
+         InsertInner(other.ForwardPerfect(), 0);
       }
-      else if constexpr (CT::BuiltinCharacter<T> and CT::Exact<ST, ::std::basic_string_view<T>>) {
+      else if constexpr (CT::BuiltinCharacter<T>
+                     and CT::Exact<ST, ::std::basic_string_view<T>>) {
          // Integration with std::string_view                           
          if (other->empty())
             return;
@@ -137,7 +139,8 @@ namespace Langulus::Anyness
          AllocateFresh(RequestSize(count));
          InsertInner<Copied<T>>(other->data(), other->data() + count, 0);
       }
-      else if constexpr (CT::Array<ST> and CT::Exact<T, ::std::remove_extent_t<ST>>) {
+      else if constexpr (CT::Array<ST>
+                     and CT::Exact<T, ::std::remove_extent_t<ST>>) {
          // Integration with bounded arrays                             
          constexpr auto count = ExtentOf<ST>;
          AllocateFresh(RequestSize(count));
@@ -168,6 +171,16 @@ namespace Langulus::Anyness
    TEMPLATE() LANGULUS(INLINED)
    TAny<T>::~TAny() {
       Free();
+   }
+
+   /// Construct manually by interfacing memory directly                      
+   /// Data will be copied, if not in jurisdiction, which involves a slow     
+   /// authority check                                                        
+   ///   @param what - data to shallow (or deep) copy                         
+   ///   @param count - number of items behind the pointer                    
+   TEMPLATE() LANGULUS(INLINED)
+   TAny<T> TAny<T>::From(const T* what, const Count& count) {
+      return From(Copy(what), count);
    }
 
    /// Construct manually by interfacing memory directly                      
@@ -295,7 +308,7 @@ namespace Langulus::Anyness
                );
                *GetEntries() = nullptr;
             }
-            else SemanticNew<T>(mRaw, other.Forward());
+            else SemanticNew<T>(mRaw, other.ForwardPerfect());
          }
       }
 
@@ -706,16 +719,12 @@ namespace Langulus::Anyness
 
    /// Copy-insert item(s) at an index                                        
    ///   @attention assumes index is in the container's limits, if simple     
-   ///   @tparam KEEP - whether or not to reference inserted data             
-   ///   @tparam IDX - type of indexing to use (deducible)                    
    ///   @param start - pointer to the first element to insert                
    ///   @param end - pointer to the end of elements to insert                
    ///   @param index - the index to insert at                                
    ///   @return number of inserted items                                     
-   TEMPLATE()
-   template<CT::Index IDX>
-   LANGULUS(INLINED)
-   Count TAny<T>::InsertAt(const T* start, const T* end, const IDX& index) {
+   TEMPLATE() LANGULUS(INLINED)
+   Count TAny<T>::InsertAt(const T* start, const T* end, const CT::Index auto& index) {
       const auto offset = SimplifyIndex<T>(index);
       const auto count = end - start;
       AllocateMore<false>(mCount + count);
@@ -739,36 +748,29 @@ namespace Langulus::Anyness
       return count;
    }
 
-   TEMPLATE()
-   template<CT::Index IDX>
-   LANGULUS(INLINED)
-   Count TAny<T>::InsertAt(const T& item, const IDX& index) {
+   TEMPLATE() LANGULUS(INLINED)
+   Count TAny<T>::InsertAt(const T& item, const CT::Index auto& index) {
       return InsertAt(Langulus::Copy(item), index);
    }
 
    /// Move-insert an item at an index                                        
    ///   @attention assumes index is in the container's limits, if simple     
-   ///   @tparam KEEP - whether or not to reference inserted data             
-   ///   @tparam IDX - type of indexing to use (deducible)                    
    ///   @param item - the item to move in                                    
    ///   @param index - the index to insert at                                
    ///   @return number of inserted items                                     
-   TEMPLATE()
-   template<CT::Index IDX>
-   LANGULUS(INLINED)
-   Count TAny<T>::InsertAt(T&& item, const IDX& index) {
+   TEMPLATE() LANGULUS(INLINED)
+   Count TAny<T>::InsertAt(T&& item, const CT::Index auto& index) {
       return InsertAt(Langulus::Move(item), index);
    }
 
    /// Move-insert an item at an index                                        
    ///   @attention assumes index is in the container's limits, if simple     
-   ///   @tparam IDX - type of indexing to use (deducible)                    
    ///   @param item - the item to move in                                    
    ///   @param index - the index to insert at                                
    ///   @return number of inserted items                                     
    TEMPLATE()
-   template<CT::Semantic S, CT::Index IDX>
-   Count TAny<T>::InsertAt(S&& item, const IDX& index) requires (CT::Exact<TypeOf<S>, T>) {
+   template<CT::Semantic S>
+   Count TAny<T>::InsertAt(S&& item, const CT::Index auto& index) requires (CT::Exact<TypeOf<S>, T>) {
       const auto offset = SimplifyIndex<T>(index);
       AllocateMore<false>(mCount + 1);
 
@@ -787,7 +789,7 @@ namespace Langulus::Anyness
             );
       }
 
-      InsertInner(item.Forward(), offset);
+      InsertInner(item.ForwardPerfect(), offset);
       return 1;
    }
 
@@ -880,9 +882,9 @@ namespace Langulus::Anyness
                mCount, Abandon(CropInner(0, mCount))
             );
 
-         InsertInner(item.Forward(), 0);
+         InsertInner(item.ForwardPerfect(), 0);
       }
-      else InsertInner(item.Forward(), mCount);
+      else InsertInner(item.ForwardPerfect(), mCount);
 
       return 1;
    }
@@ -1061,15 +1063,12 @@ namespace Langulus::Anyness
 
    /// Copy-insert elements that are not found, at an index                   
    ///   @attention assumes index is in container's limits, if simple         
-   ///   @tparam IDX - type for indexing (deducible)                          
    ///   @param start - pointer to the first element to insert                
    ///   @param end - pointer to the end of elements to insert                
    ///   @param index - the index to insert at                                
    ///   @return the number of inserted items                                 
-   TEMPLATE()
-   template<CT::Index IDX>
-   LANGULUS(INLINED)
-   Count TAny<T>::MergeAt(const T* start, const T* end, const IDX& index) {
+   TEMPLATE() LANGULUS(INLINED)
+   Count TAny<T>::MergeAt(const T* start, const T* end, const CT::Index auto& index) {
       auto offset = SimplifyIndex(index);
       Count added {};
       while (start != end) {
@@ -1084,36 +1083,30 @@ namespace Langulus::Anyness
       return added;
    }
 
-   TEMPLATE()
-   template<CT::Index IDX>
-   LANGULUS(INLINED)
-   Count TAny<T>::MergeAt(const T& item, const IDX& index) {
+   TEMPLATE() LANGULUS(INLINED)
+   Count TAny<T>::MergeAt(const T& item, const CT::Index auto& index) {
       return MergeAt(Copy(item), index);
    }
 
    /// Move-insert element, if not found, at an index                         
    ///   @attention assumes index is in container's limits, if simple         
-   ///   @tparam IDX - type for indexing (deducible)                          
    ///   @param item - the item to find and push                              
    ///   @param index - the index to insert at                                
    ///   @return the number of inserted items                                 
-   TEMPLATE()
-   template<CT::Index IDX>
-   LANGULUS(INLINED)
-   Count TAny<T>::MergeAt(T&& item, const IDX& index) {
+   TEMPLATE() LANGULUS(INLINED)
+   Count TAny<T>::MergeAt(T&& item, const CT::Index auto& index) {
       return MergeAt(Move(item), index);
    }
    
    /// Move-insert element, if not found, at an index                         
    ///   @attention assumes index is in container's limits, if simple         
-   ///   @tparam IDX - type for indexing (deducible)                          
    ///   @param item - the item to find and push                              
    ///   @param index - the index to insert at                                
    ///   @return the number of inserted items                                 
    TEMPLATE()
-   template<CT::Semantic S, CT::Index IDX>
+   template<CT::Semantic S>
    LANGULUS(INLINED)
-   Count TAny<T>::MergeAt(S&& item, const IDX& index) requires (CT::Exact<TypeOf<S>, T>) {
+   Count TAny<T>::MergeAt(S&& item, const CT::Index auto& index) requires (CT::Exact<TypeOf<S>, T>) {
       if (not Find(*item))
          return InsertAt(item.Forward(), index);
       return 0;
@@ -1279,8 +1272,9 @@ namespace Langulus::Anyness
    ///   @param count - number of elements to remove                          
    ///   @return the number of removed elements                               
    TEMPLATE()
-   template<CT::Index INDEX>
-   Count TAny<T>::RemoveIndex(const INDEX& index, Count count) {
+   Count TAny<T>::RemoveIndex(const CT::Index auto& index, Count count) {
+      using INDEX = Deref<decltype(index)>;
+
       if constexpr (CT::Same<INDEX, Index>) {
          // By special indices                                          
          if (index == IndexAll) {
@@ -1728,7 +1722,8 @@ namespace Langulus::Anyness
    TEMPLATE()
    template<CT::Data ALT_T>
    LANGULUS(INLINED)
-   bool TAny<T>::operator == (const TAny<ALT_T>& other) const noexcept requires (CT::Inner::Comparable<T, ALT_T>) {
+   bool TAny<T>::operator == (const TAny<ALT_T>& other) const noexcept
+   requires (CT::Inner::Comparable<T, ALT_T>) {
       if constexpr (CT::Same<T, ALT_T>)
          return Compare(other);
       else
@@ -1739,7 +1734,8 @@ namespace Langulus::Anyness
    ///   @param other - the block to compare with                             
    ///   @return true if both containers are identical                        
    TEMPLATE() LANGULUS(INLINED)
-   bool TAny<T>::operator == (const Any& other) const noexcept requires (CT::Inner::Comparable<T>) {
+   bool TAny<T>::operator == (const Any& other) const noexcept
+   requires (CT::Inner::Comparable<T>) {
       if (IsExact(other.GetType())) {
          // Use statically optimized routine if possible                
          return Compare(reinterpret_cast<const TAny<T>&>(other));

@@ -10,9 +10,9 @@
 #include <Anyness/Text.hpp>
 #include <Anyness/Trait.hpp>
 #include <Anyness/TUnorderedMap.hpp>
-#include <Anyness/TMap.hpp>
+#include <Anyness/TOrderedMap.hpp>
 #include <Anyness/UnorderedMap.hpp>
-#include <Anyness/Map.hpp>
+#include <Anyness/OrderedMap.hpp>
 #include <catch2/catch.hpp>
 #include <unordered_map>
 

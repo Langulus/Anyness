@@ -10,6 +10,7 @@
 #include "../TAny.hpp"
 #include "../TPair.hpp"
 
+
 namespace Langulus::Anyness
 {
 
@@ -28,7 +29,6 @@ namespace Langulus::Anyness
    ///                                                                        
    class BlockMap {
    protected:
-      static constexpr Count MinimalAllocation = 8;
       using InfoType = ::std::uint8_t;
 
       // A precomputed pointer for the info bytes                       
@@ -52,9 +52,11 @@ namespace Langulus::Anyness
    public:
       using Pair = Anyness::Pair;
 
+      static constexpr bool Ordered = false;
       static constexpr bool Ownership = false;
       static constexpr bool Sequential = false;
       static constexpr Offset InvalidOffset = -1;
+      static constexpr Count MinimalAllocation = 8;
 
       ///                                                                     
       ///   Construction & Assignment                                         
@@ -297,7 +299,7 @@ namespace Langulus::Anyness
       NOD() Block operator[] (const CT::NotSemantic auto&) const;
 
    protected:
-      template<class MAP = BlockMap>
+      template<class MAP>
       NOD() Offset FindInner(const CT::NotSemantic auto&) const;
       NOD() Offset FindInnerUnknown(const Block&) const;
 
@@ -305,19 +307,22 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Memory management                                                 
       ///                                                                     
+      template<class MAP = BlockMap>
       void Reserve(const Count&);
 
    protected:
       /// @cond show_protected                                                
       void AllocateFresh(const Count&);
-      template<bool REUSE>
+      template<bool REUSE, class MAP>
       void AllocateData(const Count&);
+      template<class MAP>
       void AllocateInner(const Count&);
 
       void Reference(const Count&) const noexcept;
       void Keep() const noexcept;
-      template<bool DESTROY>
+      template<bool DESTROY, class MAP>
       void Dereference(const Count&);
+      template<class MAP>
       void Free();
       /// @endcond                                                            
 
@@ -385,17 +390,20 @@ namespace Langulus::Anyness
       NOD() Size RequestKeyAndInfoSize(Count, Offset&) const IF_UNSAFE(noexcept);
       NOD() Size RequestValuesSize(Count) const IF_UNSAFE(noexcept);
       
+      template<class MAP>
       void Rehash(const Count&);
+      template<class MAP>
       void RehashKeys(const Count&, Block&);
+      template<class MAP>
       void RehashValues(const Count&, Block&);
       template<class K, class V>
       void ShiftPairs();
 
-      template<bool CHECK_FOR_MATCH>
+      template<bool CHECK_FOR_MATCH, bool ORDERED>
       Offset InsertInner(const Offset&, CT::Semantic auto&&, CT::Semantic auto&&);
-      template<bool CHECK_FOR_MATCH>
+      template<bool CHECK_FOR_MATCH, bool ORDERED>
       Offset InsertInnerUnknown(const Offset&, CT::Semantic auto&&, CT::Semantic auto&&);
-      template<bool CHECK_FOR_MATCH>
+      template<bool CHECK_FOR_MATCH, bool ORDERED>
       void InsertPairInner(const Count&, CT::Semantic auto&&);
 
    public:
@@ -409,18 +417,21 @@ namespace Langulus::Anyness
       template<CT::NotSemantic K, CT::NotSemantic V>
       Count RemovePair(const TPair<K, V>&);
 
+      template<class MAP = BlockMap>
       void Clear();
+      template<class MAP = BlockMap>
       void Reset();
       void Compact();
 
    protected:
-      template<class MAP = BlockMap>
+      template<class MAP>
       Count RemoveKeyInner(const CT::NotSemantic auto&);
-      template<class MAP = BlockMap>
+      template<class MAP>
       Count RemoveValueInner(const CT::NotSemantic auto&);
       template<CT::NotSemantic K, CT::NotSemantic V>
       Count RemovePairInner(const TPair<K, V>&);
 
+      template<class MAP>
       void ClearInner();
       template<class, class>
       void RemoveInner(const Offset&) IF_UNSAFE(noexcept);
