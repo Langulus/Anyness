@@ -78,9 +78,6 @@ namespace Langulus::Anyness
       ///                                                                     
       using Block::operator ==;
 
-   protected:
-      void CreateFrom(CT::Semantic auto&&) noexcept;
-
    public:
       NOD() static Any FromMeta(DMeta, const DataState& = {}) noexcept;
       NOD() static Any FromBlock(const Block&, const DataState& = {}) noexcept;

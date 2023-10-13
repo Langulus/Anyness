@@ -286,15 +286,13 @@ namespace Langulus::Anyness
          while (handle != handleEnd)
             (handle++).Destroy();
       }
-      else if constexpr (CT::Complete<Decay<T>>) {
-         if constexpr (not CT::POD<T> and CT::Destroyable<T>) {
-            // Destroy every dense element                              
-            using DT = Decay<T>;
-            auto data = mthis->template GetRawAs<T>();
-            const auto dataEnd = data + mCount;
-            while (data != dataEnd)
-               (data++)->~DT();
-         }
+      else if constexpr (CT::Destroyable<T>) {
+         // Destroy every dense element                                 
+         using DT = Decay<T>;
+         auto data = mthis->template GetRawAs<T>();
+         const auto dataEnd = data + mCount;
+         while (data != dataEnd)
+            (data++)->~DT();
       }
 
       // Always nullify upon destruction only if we're paranoid         

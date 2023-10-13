@@ -31,7 +31,7 @@ namespace Langulus::Anyness
 
          if constexpr (S::Shallow) {
             // Copy/Disown/Move/Abandon a handle                        
-            SemanticAssign<T>(mValue, S::Nest(other->Get()));
+            SemanticAssign(mValue, S::Nest(other->Get()));
 
             if constexpr (S::Keep or S::Move)
                mEntry = other->GetEntry();
@@ -68,7 +68,7 @@ namespace Langulus::Anyness
             if constexpr (CT::Sparse<T>)
                mValue = *other;
             else
-               SemanticAssign<T>(mValue, other.template ForwardPerfect<T>());
+               SemanticAssign(mValue, other.template ForwardPerfect<T>());
 
             if constexpr (CT::Sparse<T> and CT::Allocatable<DT> and (S::Keep or S::Move))
                mEntry = Allocator::Find(RTTI::MetaData::Of<DT>(), mValue);
@@ -232,7 +232,7 @@ namespace Langulus::Anyness
    ///   @param entry - the allocation that the value is part of              
    TEMPLATE() LANGULUS(INLINED)
    void HAND()::New(T&& value, Allocation* entry) noexcept requires CT::Dense<T> {
-      SemanticNew<T>(&Get(), Move(value));
+      SemanticNew(&Get(), Move(value));
       GetEntry() = entry;
    }
 
@@ -242,7 +242,7 @@ namespace Langulus::Anyness
    ///   @param entry - the allocation that the value is part of              
    TEMPLATE() LANGULUS(INLINED)
    void HAND()::New(const T& value, Allocation* entry) noexcept requires CT::Dense<T> {
-      SemanticNew<T>(&Get(), Copy(value));
+      SemanticNew(&Get(), Copy(value));
       GetEntry() = entry;
    }
 
@@ -329,11 +329,11 @@ namespace Langulus::Anyness
          // Do a copy/disown/abandon/move/clone inside a dense handle   
          if constexpr (CT::Handle<ST>) {
             static_assert(CT::Exact<T, TypeOf<ST>>, "Type mismatch");
-            SemanticNew<T>(&Get(), S::Nest(rhs->Get()));
+            SemanticNew(&Get(), S::Nest(rhs->Get()));
          }
          else {
             static_assert(CT::Exact<T, ST>, "Type mismatch");
-            SemanticNew<T>(&Get(), rhs.ForwardPerfect());
+            SemanticNew(&Get(), rhs.ForwardPerfect());
          }
       }
       else if constexpr (CT::Dense<Deptr<T>>) {
@@ -345,11 +345,11 @@ namespace Langulus::Anyness
 
          if constexpr (CT::Handle<ST>) {
             static_assert(CT::Exact<T, TypeOf<ST>>, "Type mismatch");
-            SemanticNew<DT>(pointer, S::Nest(*rhs->Get()));
+            SemanticNew(pointer, S::Nest(*rhs->Get()));
          }
          else {
             static_assert(CT::Exact<T, ST>, "Type mismatch");
-            SemanticNew<DT>(pointer, S::Nest(**rhs));
+            SemanticNew(pointer, S::Nest(**rhs));
          }
 
          Get() = pointer;
@@ -450,13 +450,11 @@ namespace Langulus::Anyness
                   // Release all nested indirection layers              
                   HandleLocal<Deptr<T>> {Copy(*Get())}.Destroy();
                }
-               else if constexpr (CT::Complete<Decay<T>>) {
-                  if constexpr (not CT::POD<T> and CT::Destroyable<T>) {
-                     // Pointer to a complete, destroyable dense        
-                     // Call the destructor                             
-                     using DT = Decay<T>;
-                     Get()->~DT();
-                  }
+               else if constexpr (CT::Destroyable<T>) {
+                  // Pointer to a complete, destroyable dense           
+                  // Call the destructor                                
+                  using DT = Decay<T>;
+                  Get()->~DT();
                }
 
                Allocator::Deallocate(GetEntry());
@@ -470,7 +468,7 @@ namespace Langulus::Anyness
       else if constexpr (EMBED) {
          // Handle is dense and embedded, we should call the remote     
          // destructor, but don't touch the entry, its irrelevant       
-         if constexpr (not CT::POD<T> and CT::Destroyable<T>)
+         if constexpr (CT::Destroyable<T>)
             Get().~T();
       }
    }

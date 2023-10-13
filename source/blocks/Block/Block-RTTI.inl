@@ -542,6 +542,19 @@ namespace Langulus::Anyness
          mType = nullptr;
    }
 
+   /// Check if a static type is compatible with the current state of the     
+   /// container - throws on incompatiblity                                   
+   ///   @tparam T - the type to check for compatibility                      
+   template<CT::Data T>
+   void Block::CheckType() const {
+      const auto meta = RTTI::MetaData::Of<T>();
+      LANGULUS_ASSERT(
+         not IsTypeConstrained() or CastsToMeta(meta),
+         Assign, "Incompatible types on assignment (flat)",
+         " of ", meta, " to ", mType
+      );
+   }
+
    /// Simplify an index by constraining it into number of members            
    ///   @attention assumes block is typed                                    
    ///   @tparam INDEX - the index to simplify (deducible)                    

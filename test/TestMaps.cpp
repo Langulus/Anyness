@@ -67,9 +67,9 @@ P CreatePair(const ALT_K& key, const ALT_V& value) {
 /// Cross-container consistency tests                                         
 TEMPLATE_TEST_CASE(
    "Cross-container consistency tests for TOrderedMap/TUnorderedMap/OrderedMap/UnorderedMap", "[map]",
+   (TypePair2<Text, int>),
    (TypePair2<Text, Trait>),
    (TypePair2<Text, Any>),
-   (TypePair2<Text, int>),
    (TypePair2<Text, Traits::Count>),
    (TypePair2<Text, int*>),
    (TypePair2<Text, Trait*>),
@@ -83,7 +83,7 @@ TEMPLATE_TEST_CASE(
       using V = typename TestType::Value;
 
       const auto pair = CreatePair<TPair<K, V>, K, V>(
-         "five hundred"_text, 555);
+         "five hundred", 555);
 
       TUnorderedMap<K, V> uset1 {pair};
       UnorderedMap uset2 {pair};

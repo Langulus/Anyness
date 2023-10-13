@@ -283,6 +283,46 @@ namespace Langulus::Anyness
       }
    }
    
+   /// Helper function for constructing an any from semantic                  
+   ///   @param other - the element/container and semantic to initialize with 
+   LANGULUS(INLINED)
+   void Block::CreateFrom(CT::Semantic auto&& other) {
+      using S = Decay<decltype(other)>;
+      using T = TypeOf<S>;
+
+      if constexpr (CT::Deep<T>) {
+         // Construct by using another container                        
+         BlockTransfer<Any>(other.Forward());
+      }
+      else if constexpr (CT::CustomData<T>) {
+         if constexpr (CT::Array<T>) {
+            using E = Deext<T>;
+            constexpr auto extent = ExtentOf<T>;
+
+            if constexpr (CT::StringLiteral<T>) {
+               // Construct by a character array, by implicitly         
+               // wrapping it inside a Text container                   
+               SetType<Text>();
+               AllocateFresh(RequestSize(1));
+               InsertInner(Abandon(Text {other.Forward()}), 0);
+            }
+            else {
+               // Construct by an array of elements                     
+               SetType<E>();
+               AllocateFresh(RequestSize(extent));
+               InsertInner<S>(*other, *other + extent, 0);
+            }
+         }
+         else {
+            // Construct using an arbitrary single element              
+            SetType<T>();
+            AllocateFresh(RequestSize(1));
+            InsertInner(other.ForwardPerfect(), 0);
+         }
+      }
+      else LANGULUS_ERROR("Bad semantic constructor argument");
+   }
+
    /// Swap contents of this block, with the contents of another, using       
    /// a temporary block, completely type-erased and as efficient as possible 
    ///   @attention assumes both containers have same initialized count       
