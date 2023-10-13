@@ -613,8 +613,8 @@ namespace Langulus::Anyness
       Text combined;
       combined.mType = MetaData::Of<Letter>();
       combined.AllocateFresh(RequestSize(mCount + rhs.mCount));
-      combined.InsertInner<Copied<Letter>>(GetRaw(), GetRawEnd(), 0);
-      combined.InsertInner<Copied<Letter>>(rhs.GetRaw(), rhs.GetRawEnd(), mCount);
+      combined.InsertInner<Copied>(GetRaw(), GetRawEnd(), 0);
+      combined.InsertInner<Copied>(rhs.GetRaw(), rhs.GetRawEnd(), mCount);
       return Abandon(combined);
    }
    
@@ -630,8 +630,8 @@ namespace Langulus::Anyness
       Text combined;
       combined.mType = MetaData::Of<Letter>();
       combined.AllocateFresh(leftside.RequestSize(leftside.mCount + rhs.mCount));
-      combined.InsertInner<Copied<Letter>>(leftside.GetRaw(), leftside.GetRawEnd(), 0);
-      combined.InsertInner<Copied<Letter>>(rhs.GetRaw(), rhs.GetRawEnd(), leftside.mCount);
+      combined.InsertInner<Copied>(leftside.GetRaw(), leftside.GetRawEnd(), 0);
+      combined.InsertInner<Copied>(rhs.GetRaw(), rhs.GetRawEnd(), leftside.mCount);
       return Abandon(combined);
    }
 
@@ -645,7 +645,7 @@ namespace Langulus::Anyness
 
       mType = MetaData::Of<Letter>();
       AllocateMore(mCount + rhs.mCount);
-      InsertInner<Copied<Letter>>(rhs.GetRaw(), rhs.GetRawEnd(), mCount);
+      InsertInner<Copied>(rhs.GetRaw(), rhs.GetRawEnd(), mCount);
       return *this;
    }
 

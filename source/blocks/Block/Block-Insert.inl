@@ -63,7 +63,7 @@ namespace Langulus::Anyness
             );
       }
 
-      InsertInner<Copied<T>>(start, end, index);
+      InsertInner<Copied>(start, end, index);
       return count;
    }
 
@@ -190,9 +190,9 @@ namespace Langulus::Anyness
                mCount, Abandon(CropInner(0, mCount))
             );
 
-         InsertInner<Copied<T>>(start, end, 0);
+         InsertInner<Copied>(start, end, 0);
       }
-      else InsertInner<Copied<T>>(start, end, mCount);
+      else InsertInner<Copied>(start, end, mCount);
 
       return count;
    }
@@ -980,15 +980,13 @@ namespace Langulus::Anyness
    /// Inner semantic insertion function for a range                          
    ///   @attention this is an inner function and should be used with caution 
    ///   @attention assumes required free space has been prepared at offset   
-   ///   @attention assumes that TypeOf<S> is this container's type           
-   ///   @tparam S - the semantic to insert                                   
-   ///   @tparam T - the type to insert (deducible)                           
+   ///   @attention assumes that T is this container's type                   
    ///   @param start - start of range                                        
    ///   @param end - end of range                                            
    ///   @param at - the offset at which to start inserting                   
-   template<CT::Semantic S, CT::NotSemantic T>
+   template<template<class> class S, CT::NotSemantic T> requires CT::Semantic<S<T>>
    void Block::InsertInner(const T* start, const T* end, Offset at) {
-      static_assert(CT::Exact<TypeOf<S>, T>,
+      static_assert(CT::Exact<TypeOf<S<T>>, T>,
          "S type must be exactly T (build-time optimization)");
       static_assert(CT::Sparse<T> or CT::Insertable<T>,
          "Dense type is not insertable");
@@ -997,18 +995,19 @@ namespace Langulus::Anyness
 
       const auto count = end - start;
       if constexpr (CT::Sparse<T>) {
-         if constexpr (S::Shallow) {
-            // Pointer copy/move/abandon/disown                         
+         if constexpr (S<T>::Shallow) {
+            // Copy all pointers at once                                
             CopyMemory(GetRawAs<T>() + at, start, count);
 
             #if LANGULUS_FEATURE(MANAGED_MEMORY)
                // If we're using managed memory, we can search if each  
                // pointer is owned by us, and get its allocation entry  
-               if constexpr (CT::Allocatable<Deptr<T>> and S::Keep) {
+               // You can avoid this by using the Disowned semantic     
+               if constexpr (CT::Allocatable<Deptr<T>> and S<T>::Keep) {
                   auto it = start;
                   auto entry = GetEntries() + at;
                   while (it != end) {
-                     *entry = Allocator::Find(MetaData::Of<Deptr<T>>(), it);
+                     *entry = Allocator::Find(RTTI::MetaData::Of<Deptr<T>>(), it);
                      if (*entry)
                         (*entry)->Keep();
 
@@ -1026,7 +1025,7 @@ namespace Langulus::Anyness
          }
       }
       else {
-         // Handle dense data copy/move/abandon/disown/clone            
+         // Insert dense data                                           
          static_assert(not CT::Abstract<T>,
             "Can't insert abstract item in dense container");
 
@@ -1035,11 +1034,12 @@ namespace Langulus::Anyness
             // Optimized POD range insertion                            
             CopyMemory(data, start, count);
          }
-         else {
+         else if constexpr (CT::SemanticMakable<S, T>) {
             // Call semantic construction for each element in range     
             while (start != end)
-               SemanticNew<T>(data++, S::Nest(*(start++)));
+               SemanticNew(data++, S<T>::Nest(*(start++)));
          }
+         else LANGULUS_ERROR("Missing semantic-constructor");
       }
 
       mCount += count;
@@ -1918,7 +1918,7 @@ namespace Langulus::Anyness
                auto src = source->template GetRawAs<T>();
                const auto srcEnd = src + count;
                while (src != srcEnd) {
-                  SemanticNew<DT>(dst, Clone(**src));
+                  SemanticNew(dst, Clone(**src));
                   handle.New(dst, clonedCoalescedSrc.mEntry);
 
                   ++dst;
@@ -1958,7 +1958,7 @@ namespace Langulus::Anyness
          }
          const auto lhsEnd = REVERSE ? lhs - count : lhs + count;
          while (lhs != lhsEnd) {
-            SemanticNew<T>(lhs, S::Nest(*rhs));
+            SemanticNew(lhs, S::Nest(*rhs));
 
             if constexpr (REVERSE) {
                --lhs;

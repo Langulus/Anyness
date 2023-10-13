@@ -226,6 +226,7 @@ namespace Langulus::Anyness
    protected:
       template<class TO>
       void BlockTransfer(CT::Semantic auto&&);
+      void CreateFrom(CT::Semantic auto&&);
       void SwapUnknown(CT::Semantic auto&&);
       template<CT::Data>
       void SwapKnown(Block&);
@@ -522,6 +523,9 @@ namespace Langulus::Anyness
 
       constexpr void ResetType() noexcept;
 
+      template<CT::Data>
+      void CheckType() const;
+
       template<CT::Index INDEX>
       Offset SimplifyMemberIndex(const INDEX&) const
       noexcept(not LANGULUS_SAFE() and CT::Unsigned<INDEX>);
@@ -689,7 +693,7 @@ namespace Langulus::Anyness
       Count SmartPush(CT::Semantic auto&&, DataState = {});
 
    protected:
-      template<CT::Semantic S, CT::NotSemantic T>
+      template<template<class> class S, CT::NotSemantic T> requires CT::Semantic<S<T>>
       void InsertInner(const T*, const T*, Offset);
       void InsertInner(CT::Semantic auto&&, Offset);
       template<class... A>

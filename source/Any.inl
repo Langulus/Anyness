@@ -61,44 +61,6 @@ namespace Langulus::Anyness
       CreateFrom(other.ForwardPerfect());
    }
 
-   /// Helper function for constructing an any from semantic                  
-   ///   @param other - the element/container and semantic to initialize with 
-   LANGULUS(INLINED)
-   void Any::CreateFrom(CT::Semantic auto&& other) noexcept {
-      using S = Decay<decltype(other)>;
-      using T = TypeOf<S>;
-
-      if constexpr (CT::Deep<T>) {
-         // Copy/Disown/Move/Abandon/Clone a deep container             
-         BlockTransfer<Any>(other.Forward());
-      }
-      else if constexpr (CT::CustomData<T>) {
-         if constexpr (CT::Array<T>) {
-            if constexpr (CT::ExactAsOneOf<Deext<T>, char, wchar_t>) {
-               // Copy/Disown/Move/Abandon/Clone a text literal         
-               SetType<Text>();
-               AllocateFresh(RequestSize(1));
-               InsertInner(Abandon(Text {other.Forward()}), 0);
-            }
-            else {
-               // Copy/Disown/Move/Abandon/Clone an array of elements   
-               SetType<Deext<T>>();
-               AllocateFresh(RequestSize(ExtentOf<T>));
-               Offset offset {};
-               for (auto& element : *other)
-                  InsertInner(S::Nest(element), offset++);
-            }
-         }
-         else {
-            // Copy/Disown/Move/Abandon/Clone a single element          
-            SetType<T>();
-            AllocateFresh(RequestSize(1));
-            InsertInner(other.ForwardPerfect(), 0);
-         }
-      }
-      else LANGULUS_ERROR("Bad semantic constructor argument");
-   }
-
    /// Pack any number of elements sequentially                               
    /// If any of the types doesn't match exactly, the container becomes deep  
    /// to incorporate all elements                                            
@@ -256,15 +218,14 @@ namespace Langulus::Anyness
       else if constexpr (CT::CustomData<T>) {
          // Assign a non-deep value                                     
          if constexpr (CT::Array<T>) {
-            if constexpr (CT::ExactAsOneOf<Deext<T>, char, wchar_t>) {
-               const auto meta = MetaData::Of<Text>();
-               LANGULUS_ASSERT(
-                  not IsTypeConstrained() or CastsToMeta(meta),
-                  Assign, "Incompatible types on assignment (flat)",
-                  " of ", meta, " to ", mType
-               );
+            using E = Deext<T>;
+            constexpr auto extent = ExtentOf<T>;
 
-               // Copy/Disown/Move/Abandon/Clone a text literal         
+            if constexpr (CT::StringLiteral<T>) {
+               // Assign a text literal, by inplicitly creating a Text  
+               // container and wrapping it inside it                   
+               CheckType<Text>();
+
                if (GetUses() != 1 or mType->mIsSparse) {
                   // Reset and allocate fresh memory                    
                   Reset();
@@ -273,45 +234,32 @@ namespace Langulus::Anyness
                else {
                   // Just destroy and reuse memory                      
                   CallKnownDestructors<Text>();
-                  mCount = 1;
-                  SemanticNew<Text>(mRaw, Abandon(Text {other.Forward()}));
+                  InsertInner(Abandon(Text {other.Forward()}), 0);
                }
             }
             else {
-               const auto meta = MetaData::Of<Deext<T>>();
-               LANGULUS_ASSERT(
-                  not IsTypeConstrained() or CastsToMeta(meta),
-                  Assign, "Incompatible types on assignment (flat)",
-                  " of ", meta, " to ", mType
-               );
+               // Assign an array of elements                           
+               CheckType<E>();
 
-               // Copy/Disown/Move/Abandon/Clone an array of elements   
-               if (GetUses() != 1 or mType->mIsSparse != CT::Sparse<Deext<T>>) {
+               if (GetUses() != 1 or mType->mIsSparse != CT::Sparse<E>) {
                   // Reset and allocate fresh memory                    
                   Reset();
-                  SetType<Deext<T>>();
-                  AllocateFresh(RequestSize(ExtentOf<T>));
+                  SetType<E>();
+                  AllocateFresh(RequestSize(extent));
                }
                else {
                   // Just destroy and reuse memory                      
-                  CallKnownDestructors<Deext<T>>();
-                  AllocateMore<false, true>(ExtentOf<T>);
+                  CallKnownDestructors<E>();
+                  AllocateMore<false, true>(extent);
                }
 
-               Offset offset {};
-               for (auto& element : *other)
-                  InsertInner(S::Nest(element), offset++);
+               InsertInner<S>(*other, *other + extent, 0);
             }
          }
          else {
-            const auto meta = MetaData::Of<T>();
-            LANGULUS_ASSERT(
-               not IsTypeConstrained() or CastsToMeta(meta),
-               Assign, "Incompatible types on assignment (flat)",
-               " of ", meta, " to ", mType
-            );
+            // Assign a single element                                  
+            CheckType<T>();
 
-            // Copy/Disown/Move/Abandon/Clone a single element          
             if (GetUses() != 1 or mType->mIsSparse != CT::Sparse<T>) {
                // Reset and allocate fresh memory                       
                Reset();
@@ -320,8 +268,7 @@ namespace Langulus::Anyness
             else {
                // Just destroy and reuse memory                         
                CallKnownDestructors<T>();
-               mCount = 1;
-               SemanticNew<T>(mRaw, other.ForwardPerfect());
+               InsertInner(other.ForwardPerfect(), 0);
             }
          }
       }
