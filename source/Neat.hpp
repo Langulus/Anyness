@@ -229,8 +229,13 @@ namespace Langulus::Anyness
       void Merge(const Neat&);
 
    protected:
-      template<CT::Semantic S>
-      void AddTrait(S&&) requires (CT::TraitBased<TypeOf<S>>);
+      void AddTrait(CT::Semantic auto&&);
+      void AddTrait(TMeta);
+
+      void AddData(CT::Semantic auto&&);
+      void AddData(DMeta);
+
+      void AddConstruct(CT::Semantic auto&&);
 
       template<Offset... IDX>
       bool ExtractTraitInner(const TAny<Any>&, ::std::integer_sequence<Offset, IDX...>, CT::Data auto&...) const;

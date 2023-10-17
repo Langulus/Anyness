@@ -222,8 +222,8 @@ namespace Langulus::Anyness
             constexpr auto extent = ExtentOf<T>;
 
             if constexpr (CT::StringLiteral<T>) {
-               // Assign a text literal, by inplicitly creating a Text  
-               // container and wrapping it inside it                   
+               // Assign a text literal, by implicitly creating a Text  
+               // container and wrapping it inside                      
                CheckType<Text>();
 
                if (GetUses() != 1 or mType->mIsSparse) {
@@ -232,9 +232,14 @@ namespace Langulus::Anyness
                   operator << (Text {other.Forward()});
                }
                else {
-                  // Just destroy and reuse memory                      
-                  CallKnownDestructors<Text>();
-                  InsertInner(Abandon(Text {other.Forward()}), 0);
+                  // Destroy all elements, except the first one, and    
+                  // assign to it                                       
+                  if (mCount > 1) {
+                     CropInner(1, mCount - 1).
+                        template CallKnownDestructors<Text>();
+                     mCount = 1;
+                  }
+                  SemanticAssign(Get<Text>(), Abandon(Text {other.Forward()}));
                }
             }
             else {
@@ -246,14 +251,20 @@ namespace Langulus::Anyness
                   Reset();
                   SetType<E>();
                   AllocateFresh(RequestSize(extent));
+                  InsertInner<S>(*other, *other + extent, 0);
                }
                else {
-                  // Just destroy and reuse memory                      
-                  CallKnownDestructors<E>();
-                  AllocateMore<false, true>(extent);
-               }
+                  // Destroy all elements, except the required number,  
+                  // and assign to them                                 
+                  if (mCount > extent) {
+                     CropInner(extent, mCount - extent).
+                        template CallKnownDestructors<E>();
+                     mCount = extent;
+                  }
 
-               InsertInner<S>(*other, *other + extent, 0);
+                  for (Offset i = 0; i < extent; ++i)
+                     GetHandle<E>(i).Assign(S::Nest((*other)[i]));
+               }
             }
          }
          else {
@@ -266,9 +277,14 @@ namespace Langulus::Anyness
                operator << (other.Forward());
             }
             else {
-               // Just destroy and reuse memory                         
-               CallKnownDestructors<T>();
-               InsertInner(other.ForwardPerfect(), 0);
+               // Destroy all elements, except the first one, and       
+               // assign to it                                          
+               if (mCount > 1) {
+                  CropInner(1, mCount - 1).
+                     template CallKnownDestructors<T>();
+                  mCount = 1;
+               }
+               GetHandle<T>(0).Assign(other.ForwardPerfect());
             }
          }
       }
@@ -690,7 +706,7 @@ namespace Langulus::Anyness
          return;
       }
       else if constexpr (sizeof...(A) == 1) {
-         using F = Decvq<Deref<typename TTypeList<A...>::First>>;
+         using F = Decvq<Deref<FirstOf<A...>>>;
 
          if constexpr (CT::Exact<Neat, F>) {
             // Attempt descriptor-construction                          

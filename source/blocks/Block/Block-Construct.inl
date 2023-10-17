@@ -82,7 +82,7 @@ namespace Langulus::Anyness
    ///   @param raw - pointer to the mutable memory                           
    ///   @param entry - the memory entry                                      
    LANGULUS(INLINED)
-   Block::Block(const DataState& state, DMeta meta, Count count, void* raw, Allocation* entry)
+   Block::Block(const DataState& state, DMeta meta, Count count, void* raw, const Allocation* entry)
       IF_UNSAFE(noexcept)
       : mRaw {static_cast<Byte*>(raw)}
       , mState {state}
@@ -104,7 +104,7 @@ namespace Langulus::Anyness
    ///   @param raw - pointer to the constant memory                          
    ///   @param entry - the memory entry                                      
    LANGULUS(INLINED)
-   Block::Block(const DataState& state, DMeta meta, Count count, const void* raw, Allocation* entry)
+   Block::Block(const DataState& state, DMeta meta, Count count, const void* raw, const Allocation* entry)
       IF_UNSAFE(noexcept)
       : Block {state + DataState::Constant, meta, count, const_cast<void*>(raw), entry}
    {}
@@ -357,7 +357,7 @@ namespace Langulus::Anyness
 
       // Cleanup temporary                                              
       temporary.CallUnknownDestructors();
-      Allocator::Deallocate(temporary.mEntry);
+      Allocator::Deallocate(const_cast<Allocation*>(temporary.mEntry));
    }
 
    /// Swap contents of this block, with the contents of another, using       
@@ -391,7 +391,7 @@ namespace Langulus::Anyness
 
       // Cleanup temporary                                              
       temporary.CallKnownDestructors<T>();
-      Allocator::Deallocate(temporary.mEntry);
+      Allocator::Deallocate(const_cast<Allocation*>(temporary.mEntry));
    }
 
 } // namespace Langulus::Anyness

@@ -60,7 +60,26 @@ namespace Langulus::Anyness
       using S = Decay<decltype(other)>;
       using T = TypeOf<S>;
 
-      if constexpr (CT::Map<T>) {
+      if constexpr (CT::Array<T>) {
+         if constexpr (CT::Pair<Deext<T>>) {
+            // Construct from an array of pairs                         
+            mKeys.mType = (*other)[0].GetKeyType();
+            mValues.mType = (*other)[0].GetValueType();
+
+            constexpr auto reserved = Roof2(ExtentOf<T>);
+            AllocateFresh(reserved);
+            ZeroMemory(mInfo, reserved);
+            mInfo[reserved] = 1;
+
+            constexpr auto hashmask = reserved - 1;
+            for (auto& pair : *other)
+               InsertPairInner<true, true>(hashmask, S::Nest(pair));
+         }
+         else LANGULUS_ERROR("Unsupported semantic array constructor");
+
+         //TODO perhaps constructor from map array, by merging them?
+      }
+      else if constexpr (CT::Map<T>) {
          // Construct from any kind of map                              
          if constexpr (not T::Ordered) {
             // We have to reinsert everything, because source is        
@@ -95,25 +114,6 @@ namespace Langulus::Anyness
 
          constexpr auto hashmask = MinimalAllocation - 1;
          InsertPairInner<false, true>(hashmask, other.ForwardPerfect());
-      }
-      else if constexpr (CT::Array<T>) {
-         if constexpr (CT::Pair<Deext<T>>) {
-            // Construct from an array of pairs                         
-            mKeys.mType = (*other)[0].GetKeyType();
-            mValues.mType = (*other)[0].GetValueType();
-
-            constexpr auto reserved = Roof2(ExtentOf<T>);
-            AllocateFresh(reserved);
-            ZeroMemory(mInfo, reserved);
-            mInfo[reserved] = 1;
-
-            constexpr auto hashmask = reserved - 1;
-            for (auto& pair : *other)
-               InsertPairInner<true, true>(hashmask, S::Nest(pair));
-         }
-         else LANGULUS_ERROR("Unsupported semantic array constructor");
-
-         //TODO perhaps constructor from map array, by merging them?
       }
       else LANGULUS_ERROR("Unsupported semantic constructor");
    }

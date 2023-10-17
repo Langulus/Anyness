@@ -73,7 +73,23 @@ namespace Langulus::Anyness
       mKeys.mType = RTTI::MetaData::Of<K>();
       mValues.mType = RTTI::MetaData::Of<V>();
 
-      if constexpr (CT::Map<T>) {
+      if constexpr (CT::Array<T>) {
+         if constexpr (CT::Pair<Deext<T>>) {
+            // Construct from an array of pairs                         
+            constexpr auto reserved = Roof2(ExtentOf<T>);
+            AllocateFresh(reserved);
+            ZeroMemory(mInfo, reserved);
+            mInfo[reserved] = 1;
+
+            constexpr auto hashmask = reserved - 1;
+            for (auto& pair : *other)
+               InsertPairInner<true, false>(hashmask, S::Nest(pair));
+         }
+         else LANGULUS_ERROR("Unsupported semantic array constructor");
+
+         //TODO perhaps constructor from map array, by merging them?
+      }
+      else if constexpr (CT::Map<T>) {
          // Construct from any kind of map                              
          if constexpr (T::Ordered) {
             // We have to reinsert everything, because source is        
@@ -102,22 +118,6 @@ namespace Langulus::Anyness
 
          constexpr auto hashmask = MinimalAllocation - 1;
          InsertPairInner<false, false>(hashmask, other.ForwardPerfect());
-      }
-      else if constexpr (CT::Array<T>) {
-         if constexpr (CT::Pair<Deext<T>>) {
-            // Construct from an array of pairs                         
-            constexpr auto reserved = Roof2(ExtentOf<T>);
-            AllocateFresh(reserved);
-            ZeroMemory(mInfo, reserved);
-            mInfo[reserved] = 1;
-
-            constexpr auto hashmask = reserved - 1;
-            for (auto& pair : *other)
-               InsertPairInner<true, false>(hashmask, S::Nest(pair));
-         }
-         else LANGULUS_ERROR("Unsupported semantic array constructor");
-
-         //TODO perhaps constructor from map array, by merging them?
       }
       else LANGULUS_ERROR("Unsupported semantic constructor");
    }
@@ -1247,6 +1247,17 @@ namespace Langulus::Anyness
    ///                                                                        
    ///   Unordered map iterator                                               
    ///                                                                        
+
+   /// Construct from a mutable iterator                                      
+   ///   @param other - the mutable iterator                                  
+   TABLE_TEMPLATE()
+   template<bool MUTABLE>
+   LANGULUS(INLINED)
+   TABLE()::TIterator<MUTABLE>::TIterator(const TIterator<true>& other) noexcept
+      : mInfo {other.mInfo}
+      , mSentinel {other.mSentinel}
+      , mKey {other.mKey}
+      , mValue {other.mValue} {}
 
    /// Construct an iterator                                                  
    ///   @param info - the info pointer                                       

@@ -50,7 +50,17 @@ namespace Langulus::Anyness
       using S = Decay<decltype(other)>;
       using T = TypeOf<S>;
 
-      if constexpr (CT::DerivedFrom<T, Base>) {
+      if constexpr (CT::Array<T>) {
+         // Integration with bounded arrays                             
+         static_assert(CT::POD<::std::remove_extent_t<T>>,
+            "Bounded array should be made of CT::POD elements");
+
+         new (this) Bytes {Base::From(
+            S::Nest(reinterpret_cast<const Byte*>(*other)),
+            sizeof(T)
+         )};
+      }
+      else if constexpr (CT::DerivedFrom<T, Base>) {
          // Transfer any TAny<Byte> based container                     
          mType = MetaData::Of<Byte>();
          BlockTransfer<Base>(other.Forward());
@@ -64,16 +74,6 @@ namespace Langulus::Anyness
          new (this) Bytes {Base::From(
             S::Nest(reinterpret_cast<const Byte*>(other->data())),
             other->size()
-         )};
-      }
-      else if constexpr (CT::Array<T>) {
-         // Integration with bounded arrays                             
-         static_assert(CT::POD<::std::remove_extent_t<T>>,
-            "Bounded array should be made of CT::POD elements");
-
-         new (this) Bytes {Base::From(
-            S::Nest(reinterpret_cast<const Byte*>(*other)),
-            sizeof(T)
          )};
       }
       else if constexpr (CT::Meta<T>) {
@@ -90,10 +90,6 @@ namespace Langulus::Anyness
             S::Nest(reinterpret_cast<const Byte*>(&(*other))),
             sizeof(T)
          )};
-      }
-      else if constexpr (CT::Neat<T>) {
-         // Descriptor constructor - check if Neat contains bytes       
-         TODO();
       }
       else LANGULUS_ERROR("Bad semantic construction");
    }

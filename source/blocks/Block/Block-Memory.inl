@@ -99,7 +99,7 @@ namespace Langulus::Anyness
          }
          mEntry = Allocator::Reallocate(
             request.mByteSize * (mType->mIsSparse ? 2:1),
-            mEntry
+            const_cast<Allocation*>(mEntry)
          );
          mReserved = request.mElementCount;
       #endif
@@ -143,7 +143,7 @@ namespace Langulus::Anyness
          Block previousBlock {*this};
          mEntry = Allocator::Reallocate(
             request.mByteSize * (mType->mIsSparse ? 2 : 1),
-            mEntry
+            const_cast<Allocation*>(mEntry)
          );
          LANGULUS_ASSERT(mEntry, Allocate, "Out of memory");
          mReserved = request.mElementCount;
@@ -246,7 +246,7 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    void Block::Reference(const Count& times) const noexcept {
       if (mEntry)
-         mEntry->Keep(times);
+         const_cast<Allocation*>(mEntry)->Keep(times);
    }
    
    /// Reference memory block once                                            
@@ -273,9 +273,9 @@ namespace Langulus::Anyness
             if (mCount)
                CallUnknownDestructors();
          }
-         Allocator::Deallocate(mEntry);
+         Allocator::Deallocate(const_cast<Allocation*>(mEntry));
       }
-      else mEntry->Free(times);
+      else const_cast<Allocation*>(mEntry)->Free(times);
 
       mEntry = nullptr;
       return;
@@ -329,7 +329,7 @@ namespace Langulus::Anyness
       , DMeta meta
       , Count count
       , const void* raw
-      , Allocation* entry
+      , const Allocation* entry
    ) {
       SetMemory(
          state + DataState::Constant, meta, count, 
@@ -346,7 +346,7 @@ namespace Langulus::Anyness
       , DMeta meta
       , Count count
       , void* raw
-      , Allocation* entry
+      , const Allocation* entry
    ) {
       LANGULUS_ASSUME(DevAssumes, raw, "Invalid data pointer");
       LANGULUS_ASSUME(DevAssumes, meta, "Invalid data type");

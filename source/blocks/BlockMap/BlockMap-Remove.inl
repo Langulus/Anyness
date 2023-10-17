@@ -291,7 +291,7 @@ namespace Langulus::Anyness
          // Data is used from multiple locations, don't change data     
          // We're forced to dereference and reset memory pointers       
          mInfo = nullptr;
-         mValues.mEntry->Free();
+         const_cast<Allocation*>(mValues.mEntry)->Free();
          mKeys.ResetMemory();
          mValues.ResetMemory();
       }
@@ -314,12 +314,12 @@ namespace Langulus::Anyness
             // No point in resetting info, we'll be deallocating it     
             LANGULUS_ASSUME(DevAssumes, mKeys.mEntry->GetUses() == 1,
                "Bad assumption");
-            Allocator::Deallocate(mKeys.mEntry);
-            Allocator::Deallocate(mValues.mEntry);
+            Allocator::Deallocate(const_cast<Allocation*>(mKeys.mEntry));
+            Allocator::Deallocate(const_cast<Allocation*>(mValues.mEntry));
          }
          else {
             // Data is used from multiple locations, just deref values  
-            mValues.mEntry->Free();
+            const_cast<Allocation*>(mValues.mEntry)->Free();
          }
 
          mInfo = nullptr;

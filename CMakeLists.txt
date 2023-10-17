@@ -11,10 +11,10 @@ if(PROJECT_IS_TOP_LEVEL OR NOT LANGULUS)
 
     # Add Langulus::Core/Logger/RTTI/Fractalloc/SIMD libraries              
     fetch_langulus_module(Core   GIT_TAG aa10e0428766faa58d4782e06ec9b10fa7d65818)
-    fetch_langulus_module(Logger GIT_TAG 3314fbe)
-    fetch_langulus_module(RTTI   GIT_TAG 5d2d5618751a6bb74163d6a8672cdd966bfa88e9)
+    fetch_langulus_module(Logger GIT_TAG 3314fbe3bf5611a5bd9ee649f2a6ba5c43f6b4c4)
+    fetch_langulus_module(RTTI   GIT_TAG f8cde45800a6d9b59a6cff872c96e27828608f2d)
     if(LANGULUS_FEATURE_MANAGED_MEMORY)
-        fetch_langulus_module(Fractalloc GIT_TAG 4985d65)
+        fetch_langulus_module(Fractalloc GIT_TAG 8ff8e85a09f35a406a6578e383b0a727a622f691)
     endif()
     fetch_langulus_module(SIMD   GIT_TAG 57e150d)
 endif()

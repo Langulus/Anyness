@@ -110,10 +110,6 @@ namespace Langulus::Anyness
          // Assign a nullptr (simply reset this)                        
          Reset();
       }
-      else if constexpr (CT::Neat<ST>) {
-         // Use a Neat to initialize the owned value                    
-         TODO();
-      }
       else {
          // Assign a raw value                                          
          SemanticAssign(mValue, rhs.ForwardPerfect());

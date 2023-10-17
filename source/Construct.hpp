@@ -9,6 +9,7 @@
 #pragma once
 #include "Neat.hpp"
 
+
 namespace Langulus::Anyness
 {
 

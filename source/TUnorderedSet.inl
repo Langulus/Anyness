@@ -66,7 +66,17 @@ namespace Langulus::Anyness
       using ST = TypeOf<S>;
       mKeys.mType = MetaData::Of<T>();
 
-      if constexpr (CT::Set<ST>) {
+      if constexpr (CT::Array<ST>) {
+         if constexpr (CT::Exact<T, Deext<ST>>) {
+            // Construct from an array of elements                      
+            for (auto& key : *other)
+               Insert(S::Nest(key));
+         }
+         else LANGULUS_ERROR("Unsupported semantic array constructor");
+
+         //TODO perhaps constructor from set array, by merging them?
+      }
+      else if constexpr (CT::Set<ST>) {
          // Construct from any kind of set                              
          if constexpr (ST::Ordered) {
             // We have to reinsert everything, because source is        
@@ -100,7 +110,7 @@ namespace Langulus::Anyness
          }
       }
       else if constexpr (CT::Exact<T, ST>) {
-         // Construct from any kind of element                          
+         // Construct from T                                            
          AllocateFresh(MinimalAllocation);
          ZeroMemory(mInfo, MinimalAllocation);
          mInfo[MinimalAllocation] = 1;
@@ -111,19 +121,17 @@ namespace Langulus::Anyness
             other.ForwardPerfect()
          );
       }
-      else if constexpr (CT::Array<ST>) {
-         if constexpr (CT::Exact<T, Deext<ST>>) {
-            // Construct from an array of elements                      
-            for (auto& key : *other)
-               Insert(S::Nest(key));
-         }
-         else LANGULUS_ERROR("Unsupported semantic array constructor");
+      else if constexpr (::std::constructible_from<T, S&&>) {
+         // Construct from compatible element                           
+         AllocateFresh(MinimalAllocation);
+         ZeroMemory(mInfo, MinimalAllocation);
+         mInfo[MinimalAllocation] = 1;
 
-         //TODO perhaps constructor from map array, by merging them?
-      }
-      else if constexpr (CT::Neat<ST>) {
-         // Descriptor constructor - check if Neat contains Ts          
-         TODO();
+         // Insert a statically typed element                           
+         InsertInner<false>(
+            GetBucket(MinimalAllocation - 1, *other),
+            Abandon(T {other.Forward()})
+         );
       }
       else LANGULUS_ERROR("Unsupported semantic constructor");
    }
@@ -163,11 +171,11 @@ namespace Langulus::Anyness
          ClearInner();
 
          // Deallocate stuff                                            
-         Allocator::Deallocate(mKeys.mEntry);
+         Allocator::Deallocate(const_cast<Allocation*>(mKeys.mEntry));
       }
       else {
          // Data is used from multiple locations, just deref            
-         mKeys.mEntry->Free();
+         const_cast<Allocation*>(mKeys.mEntry)->Free();
       }
 
       mKeys.mEntry = nullptr;
@@ -473,7 +481,8 @@ namespace Langulus::Anyness
       const Block oldKeys {mKeys};
       const auto keyAndInfoSize = RequestKeyAndInfoSize(count, infoOffset);
       if constexpr (REUSE)
-         mKeys.mEntry = Allocator::Reallocate(keyAndInfoSize, mKeys.mEntry);
+         mKeys.mEntry = Allocator::Reallocate(
+            keyAndInfoSize, const_cast<Allocation*>(mKeys.mEntry));
       else {
          mKeys.mType = MetaData::Of<T>();
          mKeys.mEntry = Allocator::Allocate(mKeys.mType, keyAndInfoSize);
@@ -539,14 +548,14 @@ namespace Langulus::Anyness
          // When reusing, keys and values can potentially remain same   
          // Avoid deallocating them if that's the case                  
          if (oldKeys.mEntry != mKeys.mEntry)
-            Allocator::Deallocate(oldKeys.mEntry);
+            Allocator::Deallocate(const_cast<Allocation*>(oldKeys.mEntry));
       }
       else if (oldKeys.mEntry) {
          // Not reusing, so either deallocate, or dereference           
          if (oldKeys.mEntry->GetUses() > 1)
-            oldKeys.mEntry->Free();
+            const_cast<Allocation*>(oldKeys.mEntry)->Free();
          else
-            Allocator::Deallocate(oldKeys.mEntry);
+            Allocator::Deallocate(const_cast<Allocation*>(oldKeys.mEntry));
       }
    }
 
@@ -734,7 +743,7 @@ namespace Langulus::Anyness
          // Notice keys are not dereferenced, we use only value refs    
          // to save on some redundancy                                  
          mInfo = nullptr;
-         mKeys.mEntry->Free();
+         const_cast<Allocation*>(mKeys.mEntry)->Free();
          mKeys.ResetMemory();
       }
    }
@@ -750,13 +759,13 @@ namespace Langulus::Anyness
          ClearInner();
 
          // No point in resetting info, we'll be deallocating it        
-         Allocator::Deallocate(mKeys.mEntry);
+         Allocator::Deallocate(const_cast<Allocation*>(mKeys.mEntry));
       }
       else {
          // Data is used from multiple locations, just deref values     
          // Notice keys are not dereferenced, we use only value refs    
          // to save on some redundancy                                  
-         mKeys.mEntry->Free();
+         const_cast<Allocation*>(mKeys.mEntry)->Free();
       }
 
       mInfo = nullptr;

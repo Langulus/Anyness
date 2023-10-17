@@ -583,14 +583,15 @@ namespace Langulus::Anyness
       mState -= DataState::MissingFuture;
    }
 
-   /// Get entry array when block is sparse                                   
+   /// Get entry array when block is sparse (const)                           
    ///   @attention entries exist only for sparse containers                  
    ///   @return the array of entries                                         
    LANGULUS(INLINED)
-   Allocation** Block::GetEntries() IF_UNSAFE(noexcept) {
+   const Allocation** Block::GetEntries() IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, IsSparse(),
          "Entries do not exist for dense container");
-      return reinterpret_cast<Allocation**>(mRawSparse + mReserved);
+      return const_cast<const Allocation**>(
+         reinterpret_cast<Allocation**>(mRawSparse + mReserved));
    }
 
    /// Get entry array when block is sparse (const)                           
@@ -598,9 +599,7 @@ namespace Langulus::Anyness
    ///   @return the array of entries                                         
    LANGULUS(INLINED)
    const Allocation* const* Block::GetEntries() const IF_UNSAFE(noexcept) {
-      LANGULUS_ASSUME(DevAssumes, IsSparse(),
-         "Entries do not exist for dense container");
-      return reinterpret_cast<const Allocation* const*>(mRawSparse + mReserved);
+      return const_cast<Block*>(this)->GetEntries();
    }
 
 } // namespace Langulus::Anyness
