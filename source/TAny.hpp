@@ -394,10 +394,10 @@ namespace Langulus::Anyness
       NOD() constexpr bool operator == (const TIteratorEnd&) const noexcept;
 
       // Prefix operator                                                
-      constexpr TIteratorEnd& operator ++ () const noexcept;
+      //constexpr TIteratorEnd& operator ++ () const noexcept;
 
       // Suffix operator                                                
-      NOD() constexpr TIteratorEnd operator ++ (int) const noexcept;
+      //NOD() constexpr TIteratorEnd operator ++ (int) const noexcept;
    };
 
 } // namespace Langulus::Anyness

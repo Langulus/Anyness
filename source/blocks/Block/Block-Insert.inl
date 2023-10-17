@@ -1009,7 +1009,7 @@ namespace Langulus::Anyness
                   while (it != end) {
                      *entry = Allocator::Find(RTTI::MetaData::Of<Deptr<T>>(), it);
                      if (*entry)
-                        (*entry)->Keep();
+                        const_cast<Allocation*>(*entry)->Keep();
 
                      ++it;
                      ++entry;
@@ -1362,7 +1362,7 @@ namespace Langulus::Anyness
             while (lhsPtr != lhsEnd) {
                mType->mOrigin->mDescriptorConstructor(rhs, descriptor);
                *(lhsPtr++) = rhs;
-               *(lhsEnt++) = allocation;
+               const_cast<const Allocation*&>(*(lhsEnt++)) = allocation;
                rhs += mType->mOrigin->mSize;
             }
          }
@@ -1511,348 +1511,133 @@ namespace Langulus::Anyness
       LANGULUS_ASSUME(DevAssumes, mType->IsExact(source->mType),
          "LHS and RHS are different types");
 
+      // First make sure that reflected constructors are available      
+      // There's no point in iterating anything otherwise               
+      if constexpr (S::Move) {
+         if constexpr (S::Keep) {
+            LANGULUS_ASSERT(
+               mType->mIsSparse or mType->mMoveConstructor, Construct,
+               "Can't move-construct elements "
+               "- no move-constructor was reflected"
+            );
+         }
+         else {
+            LANGULUS_ASSERT(
+               mType->mIsSparse or mType->mAbandonConstructor, Construct,
+               "Can't abandon-construct elements "
+               "- no abandon-constructor was reflected"
+            );
+         }
+      }
+      else if constexpr (S::Shallow) {
+         if constexpr (S::Keep) {
+            LANGULUS_ASSERT(
+               mType->mIsSparse or mType->mCopyConstructor, Construct,
+               "Can't copy-construct elements"
+               " - no copy-constructor was reflected");
+         }
+         else {
+            LANGULUS_ASSERT(
+               mType->mIsSparse or mType->mDisownConstructor, Construct,
+               "Can't disown-construct elements"
+               " - no disown-constructor was reflected");
+         }
+      }
+      else {
+         LANGULUS_ASSERT(
+            mType->mIsSparse or mType->mCloneConstructor, Construct,
+            "Can't clone-construct elements"
+            " - no clone-constructor was reflected");
+      }
+
       auto mthis = const_cast<Block*>(this);
-      if (mType->mIsSparse and source->mType->mIsSparse) {
+      if (mType->mIsSparse) {
+         // Both LHS and RHS are sparse                                 
          if constexpr (S::Shallow) {
             // Shallow pointer transfer                                 
             ShallowBatchPointerConstruction(count, source.Forward());
          }
-         else if (mType->mIsUnallocatable or not mType->mCloneConstructor) {
-            // Shallow pointer transfer, because its requesting to      
-            // clone unallocatable/unclonable data, such as meta        
-            // definitions, or factory elements                         
+         else if (not mType->mDeptr->mIsSparse
+                  and (mType->mIsUnallocatable or not mType->mCloneConstructor)
+         ) {
+            // We early-return with an enforced shallow pointer         
+            // transfer, because its requesting to clone                
+            // unallocatable/unclonable/abstract data, such as metas    
             ShallowBatchPointerConstruction(count, Copy(*source));
          }
-         else {
-            // Clone                                                    
-            if (mType->mDeptr->mIsSparse or not mType->mResolver) {
-               // If contained type is not resolvable, or its deptr     
-               // version is still a pointer, we can coalesce all       
-               // clones into a single allocation (optimization)        
-               Block clonedCoalescedSrc {mType->mDeptr};
-               clonedCoalescedSrc.AllocateFresh(clonedCoalescedSrc.RequestSize(count));
-               clonedCoalescedSrc.mCount = count;
+         else if (mType->mDeptr->mIsSparse or not mType->mResolver) {
+            // If contained type is not resolvable (or is just          
+            // another level of indirection), we can coalesce all       
+            // clones into a single allocation                          
+            Block clonedCoalescedSrc {mType->mDeptr};
+            clonedCoalescedSrc.AllocateFresh(
+               clonedCoalescedSrc.RequestSize(count));
+            clonedCoalescedSrc.mCount = count;
 
-               // Clone each inner element                              
-               auto lhs = mthis->template GetHandle<Byte*>(0);
-               const auto lhsEnd = lhs.mValue + count;
-               auto dst = clonedCoalescedSrc.GetElement();
-               auto src = source->GetElement();
-               while (lhs != lhsEnd) {
-                  dst.CallUnknownSemanticConstructors(
-                     1, Clone(src.template GetDense<1>())
-                  );
+            // Clone each inner element by nesting this call            
+            auto lhs = mthis->template GetHandle<Byte*>(0);
+            const auto lhsEnd = lhs.mValue + count;
+            auto dst = clonedCoalescedSrc.GetElement();
+            auto src = source->GetElement();
+            while (lhs != lhsEnd) {
+               dst.CallUnknownSemanticConstructors(
+                  1, Clone(src.template GetDense<1>())
+               );
 
-                  lhs.New(dst.mRaw, clonedCoalescedSrc.mEntry);
-                  dst.Next();
-                  src.Next();
-                  ++lhs;
-               }
-
-               clonedCoalescedSrc.mEntry->Keep(count - 1);
+               lhs.New(dst.mRaw, clonedCoalescedSrc.mEntry);
+               dst.Next();
+               src.Next();
+               ++lhs;
             }
-            else {
-               // Type can be resolved to objects of varying size, so   
-               // we are forced to make a separate allocation for each  
-               // element                                               
-               TODO();
-            }
+
+            const_cast<Allocation*>(clonedCoalescedSrc.mEntry)->Keep(count - 1);
          }
-
-         return;
+         else {
+            // Type is resolved to dense elements of varying size,      
+            // so we are forced to make a separate allocation for       
+            // each of them                                             
+            TODO();
+         }
       }
-      else if (mType->mIsPOD and mType->mIsSparse == source->mType->mIsSparse) {
-         // Both dense and POD                                          
-         // Copy/Disown/Move/Abandon/Clone                              
+      else if (mType->mIsPOD) {
+         // Both are POD - Copy/Disown/Move/Abandon/Clone by memcpy     
+         // all at once (batch optimization)                            
          const auto bytesize = mType->mSize * count;
-         if constexpr (S::Move or REVERSE)
+         if constexpr (REVERSE)
             MoveMemory(mRaw, source->mRaw, bytesize);
          else
             CopyMemory(mRaw, source->mRaw, bytesize);
-         return;
-      }
-
-      if (mType->mIsSparse) {
-         // LHS is pointer, RHS must be dense                           
-         // Copy each pointer from RHS (can't move them)                
-         auto lhs = mthis->template GetHandle<Byte*>(0);
-         const auto lhsEnd = lhs.mValue + count;
-         auto rhs = source->template GetHandle<Byte>(0);
-         const auto rhsStride = source->mType->mSize;
-         while (lhs != lhsEnd) {
-            lhs.NewUnknown(mType, S::Nest(rhs));
-            ++lhs;
-            rhs += rhsStride;
-         }
-
-         if constexpr (S::Shallow) {
-            // We have to reference RHS by the number of pointers we    
-            // made. Since we're converting dense to sparse, the        
-            // referencing is MANDATORY!                                
-            source->mEntry->Keep(count);
-         }
       }
       else {
-         // LHS is dense                                                
-         if constexpr (S::Move) {
-            if constexpr (S::Keep) {
-               LANGULUS_ASSERT(
-                  mType->mMoveConstructor, Construct,
-                  "Can't move-construct elements "
-                  "- no move-constructor was reflected"
-               );
-            }
-            else {
-               LANGULUS_ASSERT(
-                  mType->mAbandonConstructor or mType->mMoveConstructor, Construct,
-                  "Can't abandon-construct elements "
-                  "- no abandon-constructor was reflected"
-               );
-            }
-         }
-         else {
-            if constexpr (S::Keep) {
-               if constexpr (S::Shallow) {
-                  LANGULUS_ASSERT(
-                     mType->mCopyConstructor, Construct,
-                     "Can't copy-construct elements"
-                     " - no copy-constructor was reflected");
-               }
-               else {
-                  LANGULUS_ASSERT(
-                     mType->mCloneConstructor or mType->mCopyConstructor, Construct,
-                     "Can't clone-construct elements"
-                     " - no copy/clone-constructor was reflected");
-               }
-            }
-            else {
-               LANGULUS_ASSERT(
-                  mType->mDisownConstructor or mType->mCopyConstructor, Construct,
-                  "Can't disown-construct elements"
-                  " - no disown-constructor was reflected");
-            }
-         }
+         // Both RHS and LHS are dense and non-POD                      
+         // We invoke reflected constructors for each element           
+         const auto stride = mType->mSize;
+         auto lhs = mRaw + (REVERSE ? (count - 1) * stride : 0);
+         auto rhs = source->mRaw + (REVERSE ? (count - 1) * stride : 0);
+         const auto rhsEnd = REVERSE ? rhs - count * stride : rhs + count * stride;
 
-         if constexpr (S::Move) {
-            // Moving construction                                      
+         while (rhs != rhsEnd) {
+            if constexpr (S::Move) {
+               if constexpr (S::Keep)
+                  mType->mMoveConstructor(rhs, lhs);
+               else
+                  mType->mAbandonConstructor(rhs, lhs);
+            }
+            else if constexpr (S::Shallow) {
+               if constexpr (S::Keep)
+                  mType->mCopyConstructor(rhs, lhs);
+               else
+                  mType->mDisownConstructor(rhs, lhs);
+            }
+            else mType->mCloneConstructor(rhs, lhs);
+
             if constexpr (REVERSE) {
-               const auto lhsStride = mType->mSize;
-               auto lhs = mRaw + (count - 1) * lhsStride;
-
-               if (source->mType->mIsSparse) {
-                  // RHS is pointer, LHS is dense                       
-                  // Move each dense element from RHS                   
-                  auto rhs = source->mRawSparse + count - 1;
-                  const auto rhsEnd = rhs - count;
-                  if constexpr (S::Keep) {
-                     // Move required                                   
-                     while (rhs != rhsEnd) {
-                        mType->mMoveConstructor(*(rhs--), lhs);
-                        lhs -= lhsStride;
-                     }
-                  }
-                  else if (mType->mAbandonConstructor) {
-                     // Attempt abandon                                 
-                     while (rhs != rhsEnd) {
-                        mType->mAbandonConstructor(*(rhs--), lhs);
-                        lhs -= lhsStride;
-                     }
-                  }
-                  else {
-                     // Fallback to move if abandon not available       
-                     while (rhs != rhsEnd) {
-                        mType->mMoveConstructor(*(rhs--), lhs);
-                        lhs -= lhsStride;
-                     }
-                  }
-               }
-               else {
-                  // Both RHS and LHS are dense                         
-                  auto rhs = source->mRaw + (count - 1) * lhsStride;
-                  const auto rhsEnd = rhs - count * lhsStride;
-                  if constexpr (S::Keep) {
-                     // Move required                                   
-                     while (rhs != rhsEnd) {
-                        mType->mMoveConstructor(rhs, lhs);
-                        lhs -= lhsStride;
-                        rhs -= lhsStride;
-                     }
-                  }
-                  else if (mType->mAbandonConstructor) {
-                     // Attempt abandon                                 
-                     while (rhs != rhsEnd) {
-                        mType->mAbandonConstructor(rhs, lhs);
-                        lhs -= lhsStride;
-                        rhs -= lhsStride;
-                     }
-                  }
-                  else {
-                     // Fallback to move if abandon not available       
-                     while (rhs != rhsEnd) {
-                        mType->mMoveConstructor(rhs, lhs);
-                        lhs -= lhsStride;
-                        rhs -= lhsStride;
-                     }
-                  }
-               }
+               lhs -= stride;
+               rhs -= stride;
             }
             else {
-               auto lhs = mRaw;
-               const auto lhsStride = mType->mSize;
-
-               if (source->mType->mIsSparse) {
-                  // RHS is pointer, LHS is dense                       
-                  // Move each dense element from RHS                   
-                  auto rhs = source->mRawSparse;
-                  const auto rhsEnd = rhs + count;
-                  if constexpr (S::Keep) {
-                     // Move required                                   
-                     while (rhs != rhsEnd) {
-                        mType->mMoveConstructor(*(rhs++), lhs);
-                        lhs += lhsStride;
-                     }
-                  }
-                  else if (mType->mAbandonConstructor) {
-                     // Attempt abandon                                 
-                     while (rhs != rhsEnd) {
-                        mType->mAbandonConstructor(*(rhs++), lhs);
-                        lhs += lhsStride;
-                     }
-                  }
-                  else {
-                     // Fallback to move if abandon not available       
-                     while (rhs != rhsEnd) {
-                        mType->mMoveConstructor(*(rhs++), lhs);
-                        lhs += lhsStride;
-                     }
-                  }
-               }
-               else {
-                  // Both RHS and LHS are dense                         
-                  auto rhs = source->mRaw;
-                  const auto rhsEnd = rhs + count * lhsStride;
-                  if constexpr (S::Keep) {
-                     // Move required                                   
-                     while (rhs != rhsEnd) {
-                        mType->mMoveConstructor(rhs, lhs);
-                        lhs += lhsStride;
-                        rhs += lhsStride;
-                     }
-                  }
-                  else if (mType->mAbandonConstructor) {
-                     // Attempt abandon                                 
-                     while (rhs != rhsEnd) {
-                        mType->mAbandonConstructor(rhs, lhs);
-                        lhs += lhsStride;
-                        rhs += lhsStride;
-                     }
-                  }
-                  else {
-                     // Fallback to move if abandon not available       
-                     while (rhs != rhsEnd) {
-                        mType->mMoveConstructor(rhs, lhs);
-                        lhs += lhsStride;
-                        rhs += lhsStride;
-                     }
-                  }
-               }
-            }
-         }
-         else {
-            // Copy construction                                        
-            auto lhs = mRaw;
-            const auto lhsStride = mType->mSize;
-
-            if (source->mType->mIsSparse) {
-               // RHS is pointer, LHS is dense                          
-               // Shallow-copy or clone each dense element from RHS     
-               auto rhs = source->mRawSparse;
-               const auto rhsEnd = rhs + count;
-               if constexpr (S::Keep) {
-                  if constexpr (S::Shallow) {
-                     // Copy required                                   
-                     while (rhs != rhsEnd) {
-                        mType->mCopyConstructor(*(rhs++), lhs);
-                        lhs += lhsStride;
-                     }
-                  }
-                  else if (mType->mCloneConstructor) {
-                     // Attempt clone                                   
-                     while (rhs != rhsEnd) {
-                        mType->mCloneConstructor(*(rhs++), lhs);
-                        lhs += lhsStride;
-                     }
-                  }
-                  else {
-                     // Fallback to copy if clone not available         
-                     while (rhs != rhsEnd) {
-                        mType->mCopyConstructor(*(rhs++), lhs);
-                        lhs += lhsStride;
-                     }
-                  }
-               }
-               else if (mType->mDisownConstructor) {
-                  // Attempt disown                                     
-                  while (rhs != rhsEnd) {
-                     mType->mDisownConstructor(*(rhs++), lhs);
-                     lhs += lhsStride;
-                  }
-               }
-               else {
-                  // Fallback to copy if disown not available           
-                  while (rhs != rhsEnd) {
-                     mType->mCopyConstructor(*(rhs++), lhs);
-                     lhs += lhsStride;
-                  }
-               }
-            }
-            else {
-               // Both RHS and LHS are dense                            
-               // Call the reflected copy-constructor for each element  
-               auto rhs = source->mRaw;
-               const auto rhsEnd = rhs + count * lhsStride;
-               if constexpr (S::Keep) {
-                  if constexpr (S::Shallow) {
-                     // Copy required                                   
-                     while (rhs != rhsEnd) {
-                        mType->mCopyConstructor(rhs, lhs);
-                        lhs += lhsStride;
-                        rhs += lhsStride;
-                     }
-                  }
-                  else if (mType->mCloneConstructor) {
-                     // Attempt clone                                   
-                     while (rhs != rhsEnd) {
-                        mType->mCloneConstructor(rhs, lhs);
-                        lhs += lhsStride;
-                        rhs += lhsStride;
-                     }
-                  }
-                  else {
-                     // Fallback to copy if clone not available         
-                     while (rhs != rhsEnd) {
-                        mType->mCopyConstructor(rhs, lhs);
-                        lhs += lhsStride;
-                        rhs += lhsStride;
-                     }
-                  }
-               }
-               else if (mType->mDisownConstructor) {
-                  // Attempt disown                                     
-                  while (rhs != rhsEnd) {
-                     mType->mDisownConstructor(rhs, lhs);
-                     lhs += lhsStride;
-                     rhs += lhsStride;
-                  }
-               }
-               else {
-                  // Fallback to copy if disown not available           
-                  while (rhs != rhsEnd) {
-                     mType->mCopyConstructor(rhs, lhs);
-                     lhs += lhsStride;
-                     rhs += lhsStride;
-                  }
-               }
+               lhs += stride;
+               rhs += stride;
             }
          }
       }
@@ -1875,8 +1660,6 @@ namespace Langulus::Anyness
       using S = Deref<decltype(source)>;
       static_assert(CT::Exact<TypeOf<S>, Block>,
          "S type must be exactly Block (build-time optimization)");
-      static_assert(CT::Sparse<T> or CT::Mutable<T>,
-         "Can't move-construct in container of constant elements");
 
       LANGULUS_ASSUME(DevAssumes, count <= source->mCount and count <= mReserved,
          "Count outside limits");
@@ -1885,8 +1668,6 @@ namespace Langulus::Anyness
       LANGULUS_ASSUME(DevAssumes, source->template IsExact<T>(),
          "T doesn't match RHS type",
          ": ", source->GetType(), " != ", RTTI::MetaData::Of<T>());
-      LANGULUS_ASSUME(DevAssumes, IsSparse() == source->IsSparse(),
-         "Blocks are not of same sparsity");
 
       const auto mthis = const_cast<Block*>(this);
       if constexpr (CT::Sparse<T>) {
@@ -1896,53 +1677,48 @@ namespace Langulus::Anyness
             // Shallow pointer transfer                                 
             ShallowBatchPointerConstruction(count, source.Forward());
          }
-         else if constexpr (CT::Unallocatable<DT> or not CT::CloneMakable<DT>) {
-            // Shallow pointer transfer, because its requesting to      
-            // clone unallocatable/unclonable data, such as meta        
-            // definitions, or factory elements                         
+         else if constexpr (CT::Unallocatable<T> or not CT::CloneMakable<T>) {
+            // We early-return with an enforced shallow pointer         
+            // transfer, because its requesting to clone                
+            // unallocatable/unclonable/abstract data, such as metas    
             ShallowBatchPointerConstruction(count, Copy(*source));
          }
-         else {
-            // Clone                                                    
-            if constexpr (CT::Sparse<DT> or not CT::Resolvable<T>) {
-               // If contained type is not resolvable, or its deptr     
-               // version is still a pointer, we can coalesce all       
-               // clones into a single allocation (optimization)        
-               Block clonedCoalescedSrc {mType->mDeptr};
-               clonedCoalescedSrc.AllocateFresh(clonedCoalescedSrc.RequestSize(count));
-               clonedCoalescedSrc.mCount = count;
+         else if constexpr (CT::Sparse<DT> or not CT::Resolvable<T>) {
+            // If contained type is not resolvable, or its deptr        
+            // version is still a pointer, we can coalesce all          
+            // clones into a single allocation (optimization)           
+            Block clonedCoalescedSrc {mType->mDeptr};
+            clonedCoalescedSrc.AllocateFresh(clonedCoalescedSrc.RequestSize(count));
+            clonedCoalescedSrc.mCount = count;
 
-               // Clone each inner element                              
-               auto handle = GetHandle<T>(0);
-               auto dst = clonedCoalescedSrc.template GetRawAs<DT>();
-               auto src = source->template GetRawAs<T>();
-               const auto srcEnd = src + count;
-               while (src != srcEnd) {
-                  SemanticNew(dst, Clone(**src));
-                  handle.New(dst, clonedCoalescedSrc.mEntry);
+            // Clone each inner element                                 
+            auto handle = GetHandle<T>(0);
+            auto dst = clonedCoalescedSrc.template GetRawAs<DT>();
+            auto src = source->template GetRawAs<T>();
+            const auto srcEnd = src + count;
+            while (src != srcEnd) {
+               SemanticNew(dst, Clone(**src));
+               handle.New(dst, clonedCoalescedSrc.mEntry);
 
-                  ++dst;
-                  ++src;
-                  ++handle;
-               }
-
-               clonedCoalescedSrc.mEntry->Keep(count - 1);
+               ++dst;
+               ++src;
+               ++handle;
             }
-            else {
-               // Type can be resolved to objects of varying size, so   
-               // we are forced to make a separate allocation for each  
-               // element                                               
-               TODO();
-            }
+
+            const_cast<Allocation*>(clonedCoalescedSrc.mEntry)->Keep(count - 1);
          }
-
-         return;
+         else {
+            // Type can be resolved to objects of varying size, so      
+            // we are forced to make a separate allocation for each     
+            // element                                                  
+            TODO();
+         }
       }
       else if constexpr (CT::POD<T>) {
-         // We're constructing dense POD data                           
+         // Both RHS and LHS are dense and POD                          
          auto lhs = mthis->template GetRawAs<T>();
          auto rhs = source->template GetRawAs<T>();
-         if constexpr (S::Move or REVERSE)
+         if constexpr (REVERSE)
             MoveMemory(lhs, rhs, count);
          else
             CopyMemory(lhs, rhs, count);
@@ -1973,6 +1749,7 @@ namespace Langulus::Anyness
    }
    
    /// Batch-optimized semantic pointer constructions                         
+   ///   @attention overwrites pointers without dereferencing their memory    
    ///   @param count - number of elements to construct                       
    ///   @param source - source                                               
    inline void Block::ShallowBatchPointerConstruction(
@@ -1988,7 +1765,6 @@ namespace Langulus::Anyness
       const auto entriesDst = mthis->GetEntries();
       const auto entriesSrc = source->GetEntries();
 
-      // Copy/Disown/Move/Abandon                                       
       if constexpr (S::Move) {
          // Move/Abandon                                                
          MoveMemory(pointersDst, pointersSrc, count);
@@ -2012,7 +1788,7 @@ namespace Langulus::Anyness
             const auto entryEnd = entry + count;
             while (entry != entryEnd) {
                if (*entry)
-                  (*entry)->Keep();
+                  const_cast<Allocation*>(*entry)->Keep();
                ++entry;
             }
          }
@@ -2024,8 +1800,9 @@ namespace Langulus::Anyness
    }
    
    /// Call semantic assignment in a region                                   
-   ///   @attention don't assign to overlapping memory regions!               
    ///   @attention never modifies any block state                            
+   ///   @attention assumes blocks don't overlap (sparse elements may still   
+   ///      overlap, but this is handled in the assignment operators)         
    ///   @attention assumes blocks are binary compatible                      
    ///   @attention assumes both blocks have at least 'count' items           
    ///   @param count - the number of elements to move-assign                 
@@ -2042,8 +1819,47 @@ namespace Langulus::Anyness
       LANGULUS_ASSUME(DevAssumes, mType->IsExact(source->mType),
          "LHS and RHS are different types");
 
+      // First make sure that reflected assigners are available         
+      // There's no point in iterating anything otherwise               
+      if constexpr (S::Move) {
+         if constexpr (S::Keep) {
+            LANGULUS_ASSERT(
+               mType->mIsSparse or mType->mMoveAssigner, Construct,
+               "Can't move-assign elements "
+               "- no move-assigner was reflected"
+            );
+         }
+         else {
+            LANGULUS_ASSERT(
+               mType->mIsSparse or mType->mAbandonAssigner, Construct,
+               "Can't abandon-assign elements "
+               "- no abandon-assigner was reflected"
+            );
+         }
+      }
+      else if constexpr (S::Shallow) {
+         if constexpr (S::Keep) {
+            LANGULUS_ASSERT(
+               mType->mIsSparse or mType->mCopyAssigner, Construct,
+               "Can't copy-assign elements"
+               " - no copy-assigner was reflected");
+         }
+         else {
+            LANGULUS_ASSERT(
+               mType->mIsSparse or mType->mDisownAssigner, Construct,
+               "Can't disown-assign elements"
+               " - no disown-assigner was reflected");
+         }
+      }
+      else {
+         LANGULUS_ASSERT(
+            mType->mIsSparse or mType->mCloneAssigner, Construct,
+            "Can't clone-assign elements"
+            " - no clone-assigner was reflected");
+      }
+
       const auto mthis = const_cast<Block*>(this);
-      if (mType->mIsSparse and source->mType->mIsSparse) {
+      if (mType->mIsSparse) {
          // Since we're overwriting pointers, we have to dereference    
          // the old ones, but conditionally reference the new ones      
          auto lhs = mthis->GetRawSparse();
@@ -2057,15 +1873,15 @@ namespace Langulus::Anyness
                // Free old LHS                                          
                if ((*lhsEntry)->GetUses() == 1) {
                   mType->mOrigin->mDestructor(*lhs);
-                  Allocator::Deallocate(*lhsEntry);
+                  Allocator::Deallocate(const_cast<Allocation*>(*lhsEntry));
                }
-               else (*lhsEntry)->Free();
+               else const_cast<Allocation*>(*lhsEntry)->Free();
             }
 
             if constexpr (S::Move) {
                // Move/Abandon RHS in LHS                               
                *lhs = const_cast<Byte*>(*rhs);
-               *lhsEntry = const_cast<Allocation*>(*rhsEntry);
+               *lhsEntry = *rhsEntry;
                *rhsEntry = nullptr;
 
                if constexpr (S::Keep) {
@@ -2078,9 +1894,9 @@ namespace Langulus::Anyness
                *lhs = const_cast<Byte*>(*rhs);
 
                if constexpr (S::Keep) {
-                  *lhsEntry = const_cast<Allocation*>(*rhsEntry);
+                  *lhsEntry = *rhsEntry;
                   if (*lhsEntry)
-                     (*lhsEntry)->Keep();
+                     const_cast<Allocation*>(*lhsEntry)->Keep();
                }
                else *lhsEntry = nullptr;
             }
@@ -2094,208 +1910,38 @@ namespace Langulus::Anyness
             ++lhsEntry;
             ++rhsEntry;
          }
-
-         return;
       }
-      else if (mType->mIsPOD and mType->mIsSparse == source->mType->mIsSparse) {
+      else if (mType->mIsPOD) {
+         // Both RHS and LHS are dense and POD                          
+         // So we batch-overwrite them at once                          
          const auto bytesize = mType->mSize * count;
-         if constexpr (S::Move)
-            MoveMemory(mRaw, source->mRaw, bytesize);
-         else
-            CopyMemory(mRaw, source->mRaw, bytesize);
-         return;
-      }
-
-      if (mType->mIsSparse) {
-         // LHS is pointer, RHS must be dense                           
-         // Move each pointer from RHS                                  
-         auto lhs = mRawSparse;
-         auto lhsEntry = mthis->GetEntries();
-         const auto lhsEnd = lhs + count;
-         auto rhs = source->mRaw;
-         const auto rhsStride = source->mType->mSize;
-         while (lhs != lhsEnd) {
-            if (*lhsEntry) {
-               // Free old LHS                                       
-               if ((*lhsEntry)->GetUses() == 1) {
-                  mType->mOrigin->mDestructor(*lhs);
-                  Allocator::Deallocate(*lhsEntry);
-               }
-               else (*lhsEntry)->Free();
-            }
-
-            if constexpr (S::Move or S::Shallow) {
-               // Set LHS to point to dense RHS element                 
-               *lhs = const_cast<Byte*>(rhs);
-               *lhsEntry = source->mEntry;
-
-               // We're converting dense to sparse, so reference     
-               if (*lhsEntry)
-                  (*lhsEntry)->Keep();
-            }
-            else {
-               // Clone RHS and set a pointer to it in LHS              
-               TODO();
-            }
-         
-            ++lhs;
-            ++lhsEntry;
-            rhs += rhsStride;
-         }
+         CopyMemory(mRaw, source->mRaw, bytesize);
       }
       else {
-         // LHS is dense                                                
-         if constexpr (S::Move) {
-            if constexpr (S::Keep) {
-               LANGULUS_ASSERT(mType->mMover, Construct,
-                  "Can't move-assign elements"
-                  " - no move-assignment was reflected");
-            }
-            else {
-               LANGULUS_ASSERT(mType->mMover or mType->mAbandonMover, Construct,
-                  "Can't abandon-assign elements"
-                  " - no abandon-assignment was reflected");
-            }
-         }
-         else {
-            if constexpr (not S::Shallow) {
-               LANGULUS_ASSERT(mType->mCloneCopier or mType->mCopier, Construct,
-                  "Can't clone/copy-assign elements"
-                  " - no clone/copy-assignment was reflected");
-            }
-            else if constexpr (S::Keep) {
-               LANGULUS_ASSERT(mType->mCopier, Construct,
-                  "Can't copy-assign elements"
-                  " - no copy-assignment was reflected");
-            }
-            else {
-               LANGULUS_ASSERT(mType->mCopier or mType->mDisownCopier, Construct,
-                  "Can't disown-assign elements"
-                  " - no disown-assignment was reflected");
-            }
-         }
-
+         // Both RHS and LHS are dense and non-POD                      
+         // We invoke reflected assignments for each element            
+         const auto stride = mType->mSize;
          auto lhs = mRaw;
-         const auto lhsStride = mType->mSize;
+         auto rhs = source->mRaw;
+         const auto rhsEnd = rhs + count * stride;
 
-         if constexpr (S::Move) {
-            // Moving/Abandoning                                        
-            if (source->mType->mIsSparse) {
-               // RHS is pointer, LHS is dense                          
-               // Copy each dense element from RHS                      
-               auto rhs = source->mRawSparse;
-               const auto rhsEnd = rhs + count;
-               if constexpr (S::Keep) {
-                  // Move required                                      
-                  while (rhs != rhsEnd) {
-                     mType->mMover(*(rhs++), lhs);
-                     lhs += lhsStride;
-                  }
-               }
-               else if (mType->mAbandonMover) {
-                  // Attempt abandon                                    
-                  while (rhs != rhsEnd) {
-                     mType->mAbandonMover(*(rhs++), lhs);
-                     lhs += lhsStride;
-                  }
-               }
-               else {
-                  // Fallback to move if abandon not available          
-                  while (rhs != rhsEnd) {
-                     mType->mMover(*(rhs++), lhs);
-                     lhs += lhsStride;
-                  }
-               }
+         while (rhs != rhsEnd) {
+            if constexpr (S::Move) {
+               if constexpr (S::Keep)
+                  mType->mMoveAssigner(rhs, lhs);
+               else
+                  mType->mAbandonAssigner(rhs, lhs);
             }
-            else {
-               // Both RHS and LHS are dense                            
-               auto rhs = source->mRaw;
-               const auto rhsEnd = rhs + count * lhsStride;
-               if constexpr (S::Keep) {
-                  // Move required                                      
-                  while (rhs != rhsEnd) {
-                     mType->mMover(rhs, lhs);
-                     lhs += lhsStride;
-                     rhs += lhsStride;
-                  }
-               }
-               else if (mType->mAbandonMover) {
-                  // Attempt abandon                                    
-                  while (rhs != rhsEnd) {
-                     mType->mAbandonMover(rhs, lhs);
-                     lhs += lhsStride;
-                     rhs += lhsStride;
-                  }
-               }
-               else {
-                  // Fallback to move if abandon not available          
-                  while (rhs != rhsEnd) {
-                     mType->mMover(rhs, lhs);
-                     lhs += lhsStride;
-                     rhs += lhsStride;
-                  }
-               }
+            else if constexpr (S::Shallow) {
+               if constexpr (S::Keep)
+                  mType->mCopyAssigner(rhs, lhs);
+               else
+                  mType->mDisownAssigner(rhs, lhs);
             }
-         }
-         else {
-            // Copying/Disowning/Cloning                                
-            if (source->mType->mIsSparse) {
-               // RHS is pointer, LHS is dense                          
-               // Shallow-copy each dense element from RHS              
-               auto rhs = source->mRawSparse;
-               const auto rhsEnd = rhs + count;
-               if constexpr (S::Keep) {
-                  // Move required                                      
-                  while (rhs != rhsEnd) {
-                     mType->mCopier(*(rhs++), lhs);
-                     lhs += lhsStride;
-                  }
-               }
-               else if (mType->mDisownCopier) {
-                  // Attempt abandon                                    
-                  while (rhs != rhsEnd) {
-                     mType->mDisownCopier(*(rhs++), lhs);
-                     lhs += lhsStride;
-                  }
-               }
-               else {
-                  // Fallback to move if abandon not available          
-                  while (rhs != rhsEnd) {
-                     mType->mCopier(*(rhs++), lhs);
-                     lhs += lhsStride;
-                  }
-               }
-            }
-            else {
-               // Both RHS and LHS are dense                            
-               // Call the reflected copy-constructor for each element  
-               auto rhs = source->mRaw;
-               const auto rhsEnd = rhs + count * lhsStride;
-               if constexpr (S::Keep) {
-                  // Move required                                      
-                  while (rhs != rhsEnd) {
-                     mType->mCopier(rhs, lhs);
-                     lhs += lhsStride;
-                     rhs += lhsStride;
-                  }
-               }
-               else if (mType->mDisownCopier) {
-                  // Attempt abandon                                    
-                  while (rhs != rhsEnd) {
-                     mType->mDisownCopier(rhs, lhs);
-                     lhs += lhsStride;
-                     rhs += lhsStride;
-                  }
-               }
-               else {
-                  // Fallback to move if abandon not available          
-                  while (rhs != rhsEnd) {
-                     mType->mCopier(rhs, lhs);
-                     lhs += lhsStride;
-                     rhs += lhsStride;
-                  }
-               }
-            }
+            else mType->mCloneAssigner(rhs, lhs);
+
+            lhs += stride;
+            rhs += stride;
          }
       }
    }
@@ -2309,11 +1955,86 @@ namespace Langulus::Anyness
    ///   @param count - the number of elements to move-assign                 
    ///   @param source - the elements to assign                               
    template<CT::Data T>
-   void Block::CallKnownSemanticAssignment(Count, CT::Semantic auto&& s) const {
-      static_assert(CT::Exact<TypeOf<decltype(s)>, Block>,
+   void Block::CallKnownSemanticAssignment(Count count, CT::Semantic auto&& source) const {
+      using S = Deref<decltype(source)>;
+      static_assert(CT::Exact<TypeOf<S>, Block>,
          "S type must be exactly Block (build-time optimization)");
+      static_assert(CT::Mutable<T>,
+         "Can't assign to container filled with constant items");
 
-      TODO();
+      LANGULUS_ASSUME(DevAssumes, count <= source->mCount and count <= mReserved,
+         "Count outside limits");
+      LANGULUS_ASSUME(DevAssumes, IsExact<T>(),
+         "T doesn't match LHS type");
+      LANGULUS_ASSUME(DevAssumes, source->template IsExact<T>(),
+         "T doesn't match RHS type",
+         ": ", source->GetType(), " != ", RTTI::MetaData::Of<T>());
+
+      const auto mthis = const_cast<Block*>(this);
+      if constexpr (CT::Sparse<T>) {
+         // We're reassigning pointers                                  
+         using DT = Deptr<T>;
+
+         if constexpr (S::Shallow) {
+            // Shallow pointer transfer                                 
+            CallKnownDestructors<T>();
+            ShallowBatchPointerConstruction(count, source.Forward());
+         }
+         else if constexpr (CT::Unallocatable<T> or not CT::CloneAssignable<T>) {
+            // We early-return with an enforced shallow pointer         
+            // transfer, because its requesting to clone                
+            // unallocatable/unclonable/abstract data, such as metas    
+            CallKnownDestructors<T>();
+            ShallowBatchPointerConstruction(count, Copy(*source));
+         }
+         else if constexpr (CT::Sparse<DT> or not CT::Resolvable<T>) {
+            // If contained type is not resolvable, or its deptr        
+            // version is still a pointer, we can coalesce all          
+            // clones into a single allocation (optimization)           
+            Block clonedCoalescedSrc {mType->mDeptr};
+            clonedCoalescedSrc.AllocateFresh(clonedCoalescedSrc.RequestSize(count));
+            clonedCoalescedSrc.mCount = count;
+
+            // Clone each inner element                                 
+            auto handle = GetHandle<T>(0);
+            auto dst = clonedCoalescedSrc.template GetRawAs<DT>();
+            auto src = source->template GetRawAs<T>();
+            const auto srcEnd = src + count;
+            while (src != srcEnd) {
+               SemanticNew(dst, Clone(**src));
+               handle.Assign(dst, clonedCoalescedSrc.mEntry);
+               ++dst;
+               ++src;
+               ++handle;
+            }
+
+            clonedCoalescedSrc.mEntry->Keep(count - 1);
+         }
+         else {
+            // Type can be resolved to objects of varying size, so      
+            // we are forced to make a separate allocation for each     
+            // element                                                  
+            TODO();
+         }
+      }
+      else if constexpr (CT::POD<T>) {
+         // Both RHS and LHS are dense and POD                          
+         // So we batch-overwrite them at once                          
+         const auto bytesize = mType->mSize * count;
+         CopyMemory(mRaw, source->mRaw, bytesize);
+      }
+      else {
+         // Both RHS and LHS are dense and non POD                      
+         // Assign to each element                                      
+         auto lhs = mthis->template GetRawAs<T>();
+         auto rhs = source->template GetRawAs<T>();
+         const auto lhsEnd = lhs + count;
+         while (lhs != lhsEnd) {
+            SemanticAssign(lhs, S::Nest(*rhs));
+            ++lhs;
+            ++rhs;
+         }
+      }
    }
 
 } // namespace Langulus::Anyness

@@ -43,7 +43,7 @@ namespace Langulus::Anyness
       mValues.mEntry = Allocator::Allocate(mValues.mType, valueByteSize);
 
       if (not mValues.mEntry) {
-         Allocator::Deallocate(mKeys.mEntry);
+         Allocator::Deallocate(const_cast<Allocation*>(mKeys.mEntry));
          mKeys.mEntry = nullptr;
          LANGULUS_THROW(Allocate, "Out of memory");
       }
@@ -79,7 +79,8 @@ namespace Langulus::Anyness
       Block oldKeys {mKeys};
       const auto keyAndInfoSize = RequestKeyAndInfoSize(count, infoOffset);
       if constexpr (REUSE)
-         mKeys.mEntry = Allocator::Reallocate(keyAndInfoSize, mKeys.mEntry);
+         mKeys.mEntry = Allocator::Reallocate(
+            keyAndInfoSize, const_cast<Allocation*>(mKeys.mEntry));
       else
          mKeys.mEntry = Allocator::Allocate(mKeys.mType, keyAndInfoSize);
 
@@ -90,12 +91,13 @@ namespace Langulus::Anyness
       Block oldVals {mValues};
       const auto valueByteSize = RequestValuesSize(count);
       if constexpr (REUSE)
-         mValues.mEntry = Allocator::Reallocate(valueByteSize, mValues.mEntry);
+         mValues.mEntry = Allocator::Reallocate(
+            valueByteSize, const_cast<Allocation*>(mValues.mEntry));
       else
          mValues.mEntry = Allocator::Allocate(mValues.mType, valueByteSize);
 
       if (not mValues.mEntry) {
-         Allocator::Deallocate(mKeys.mEntry);
+         Allocator::Deallocate(const_cast<Allocation*>(mKeys.mEntry));
          mKeys.mEntry = nullptr;
          LANGULUS_THROW(Allocate,
             "Out of memory on allocating/reallocating values");
@@ -143,14 +145,14 @@ namespace Langulus::Anyness
             else {
                // Only values moved, reinsert them, rehash the rest     
                RehashKeys<MAP>(oldCount, oldVals);
-               Allocator::Deallocate(oldVals.mEntry);
+               Allocator::Deallocate(const_cast<Allocation*>(oldVals.mEntry));
             }
             return;
          }
          else if (mValues.mEntry == oldVals.mEntry) {
             // Only keys moved, reinsert them, rehash the rest          
             RehashValues<MAP>(oldCount, oldKeys);
-            Allocator::Deallocate(oldKeys.mEntry);
+            Allocator::Deallocate(const_cast<Allocation*>(oldKeys.mEntry));
             return;
          }
       }
@@ -232,28 +234,28 @@ namespace Langulus::Anyness
          if (oldVals.mEntry != mValues.mEntry) {
             LANGULUS_ASSUME(DevAssumes, oldVals.mEntry->GetUses() == 1,
                "Bad assumption");
-            Allocator::Deallocate(oldVals.mEntry);
+            Allocator::Deallocate(const_cast<Allocation*>(oldVals.mEntry));
          }
 
          if (oldKeys.mEntry != mKeys.mEntry) {
             LANGULUS_ASSUME(DevAssumes, oldKeys.mEntry->GetUses() == 1,
                "Bad assumption");
-            Allocator::Deallocate(oldKeys.mEntry);
+            Allocator::Deallocate(const_cast<Allocation*>(oldKeys.mEntry));
          }
       }
       else if (oldVals.mEntry) {
          // Not reusing, so either deallocate, or dereference           
          // (keys are always present, if values are present)            
          if (oldVals.mEntry->GetUses() > 1) {
-            oldVals.mEntry->Free();
+            const_cast<Allocation*>(oldVals.mEntry)->Free();
             LANGULUS_ASSUME(DevAssumes, oldKeys.mEntry->GetUses() == 1,
                "Bad assumption");
          }
          else {
             LANGULUS_ASSUME(DevAssumes, oldKeys.mEntry->GetUses() == 1,
                "Bad assumption");
-            Allocator::Deallocate(oldVals.mEntry);
-            Allocator::Deallocate(oldKeys.mEntry);
+            Allocator::Deallocate(const_cast<Allocation*>(oldVals.mEntry));
+            Allocator::Deallocate(const_cast<Allocation*>(oldKeys.mEntry));
          }
       }
    }
@@ -317,14 +319,14 @@ namespace Langulus::Anyness
          // Deallocate stuff                                            
          LANGULUS_ASSUME(DevAssumes, mKeys.mEntry->GetUses() == 1,
             "Bad assumption");
-         Allocator::Deallocate(mKeys.mEntry);
-         Allocator::Deallocate(mValues.mEntry);
+         Allocator::Deallocate(const_cast<Allocation*>(mKeys.mEntry));
+         Allocator::Deallocate(const_cast<Allocation*>(mValues.mEntry));
       }
       else {
          // Data is used from multiple locations, just deref values     
          // Notice how we don't dereference keys, since we use only the 
          // values' references to save on some redundancy               
-         mValues.mEntry->Free();
+         const_cast<Allocation*>(mValues.mEntry)->Free();
       }
    }
 

@@ -141,7 +141,7 @@ namespace Langulus::Anyness
       : mEndMarker {end} {}
 
    /// Prefix increment operator, does nothing                                
-   TEMPLATE()
+   /*TEMPLATE()
    template<bool MUTABLE>
    LANGULUS(INLINED)
    constexpr ITERATOR_END()& TAny<T>::TIteratorEnd<MUTABLE>::operator ++ () const noexcept {
@@ -156,7 +156,7 @@ namespace Langulus::Anyness
    constexpr ITERATOR_END() TAny<T>::TIteratorEnd<MUTABLE>::operator ++ (int) const noexcept {
       // Does nothing intentionally, it's an end iterator               
       return *this;
-   }
+   }*/
 
    /// Compare iterators                                                      
    ///   @param rhs - the other iterator                                      

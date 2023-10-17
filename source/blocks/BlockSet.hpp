@@ -278,7 +278,7 @@ namespace Langulus::Anyness
 
    #if LANGULUS(TESTING)
       public: NOD() constexpr const void* GetRawMemory() const noexcept;
-      public: NOD() Allocation* GetEntry() const noexcept;
+      public: NOD() const Allocation* GetEntry() const noexcept;
    #endif
    };
 

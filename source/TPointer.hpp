@@ -53,7 +53,7 @@ namespace Langulus::Anyness
 
    protected:
       using Base::mValue;
-      Allocation* mEntry {};
+      const Allocation* mEntry {};
    
       void ResetInner();
 
@@ -98,7 +98,9 @@ namespace Langulus::Anyness
       using Base::operator *;
 
       template<class ALT_T, bool ALT_DR>
-      NOD() bool operator == (const TPointer<ALT_T, ALT_DR>&) const noexcept requires (CT::Inner::Comparable<T*, ALT_T*>);
+      NOD() bool operator == (const TPointer<ALT_T, ALT_DR>&) const noexcept
+      requires (CT::Inner::Comparable<T*, ALT_T*>);
+
       NOD() bool operator == (::std::nullptr_t) const noexcept;
    };
 

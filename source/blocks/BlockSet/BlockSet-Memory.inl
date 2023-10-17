@@ -61,7 +61,7 @@ namespace Langulus::Anyness
       Block oldKeys {mKeys};
       const auto keyAndInfoSize = RequestKeyAndInfoSize(count, infoOffset);
       if constexpr (REUSE)
-         mKeys.mEntry = Allocator::Reallocate(keyAndInfoSize, mKeys.mEntry);
+         mKeys.mEntry = Allocator::Reallocate(keyAndInfoSize, const_cast<Allocation*>(mKeys.mEntry));
       else
          mKeys.mEntry = Allocator::Allocate(mKeys.mType, keyAndInfoSize);
 
@@ -130,9 +130,9 @@ namespace Langulus::Anyness
       if (oldKeys.mEntry) {
          // Not reusing, so either deallocate, or dereference           
          if (oldKeys.mEntry->GetUses() > 1)
-            oldKeys.mEntry->Free();
+            const_cast<Allocation*>(oldKeys.mEntry)->Free();
          else
-            Allocator::Deallocate(oldKeys.mEntry);
+            Allocator::Deallocate(const_cast<Allocation*>(oldKeys.mEntry));
       }
    }
 
@@ -188,11 +188,11 @@ namespace Langulus::Anyness
          }
 
          // Deallocate stuff                                            
-         Allocator::Deallocate(mKeys.mEntry);
+         Allocator::Deallocate(const_cast<Allocation*>(mKeys.mEntry));
       }
       else {
          // Data is used from multiple locations, just deref            
-         mKeys.mEntry->Free();
+         const_cast<Allocation*>(mKeys.mEntry)->Free();
       }
    }
 

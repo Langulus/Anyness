@@ -86,7 +86,8 @@ namespace Langulus::Anyness
    ///   @param v - a reference to the element                                
    ///   @param e - a reference to the element's entry                        
    TEMPLATE() LANGULUS(INLINED)
-   constexpr HAND()::Handle(T& v, Allocation*& e) IF_UNSAFE(noexcept) requires (EMBED and CT::Sparse<T>)
+   constexpr HAND()::Handle(T& v, const Allocation*& e) IF_UNSAFE(noexcept)
+   requires (EMBED and CT::Sparse<T>)
       : mValue {&v}
       , mEntry {&e} {
       static_assert(CT::NotHandle<T>, "Handles can't be nested");
@@ -96,7 +97,8 @@ namespace Langulus::Anyness
    ///   @param v - a reference to the element                                
    ///   @param e - the entry (optional)                                      
    TEMPLATE() LANGULUS(INLINED)
-   constexpr HAND()::Handle(T& v, Allocation* e) IF_UNSAFE(noexcept) requires (EMBED and CT::Dense<T>)
+   constexpr HAND()::Handle(T& v, const Allocation* e) IF_UNSAFE(noexcept)
+   requires (EMBED and CT::Dense<T>)
       : mValue {&v}
       , mEntry {e} {
       static_assert(CT::NotHandle<T>, "Handles can't be nested");
@@ -106,19 +108,22 @@ namespace Langulus::Anyness
    ///   @param v - the element                                               
    ///   @param e - the entry (optional)                                      
    TEMPLATE() LANGULUS(INLINED)
-   constexpr HAND()::Handle(T&& v, Allocation* e) IF_UNSAFE(noexcept) requires (not EMBED)
+   constexpr HAND()::Handle(T&& v, const Allocation* e) IF_UNSAFE(noexcept)
+   requires (not EMBED)
       : mValue {Forward<T>(v)}
       , mEntry {e} {
       static_assert(CT::NotHandle<T>, "Handles can't be nested");
    }
 
    TEMPLATE() LANGULUS(INLINED)
-   constexpr bool HAND()::operator == (const T* rhs) const noexcept requires (EMBED) {
+   constexpr bool HAND()::operator == (const T* rhs) const noexcept
+   requires (EMBED) {
       return mValue == rhs;
    }
       
    TEMPLATE() LANGULUS(INLINED)
-   constexpr bool HAND()::operator == (const HAND()& rhs) const noexcept requires (EMBED) {
+   constexpr bool HAND()::operator == (const HAND()& rhs) const noexcept
+   requires (EMBED) {
       return mValue == rhs.mValue;
    }
       
@@ -209,11 +214,11 @@ namespace Langulus::Anyness
    
    /// Get the entry                                                          
    TEMPLATE() LANGULUS(INLINED)
-   Allocation*& HAND()::GetEntry() const noexcept {
+   const Allocation*& HAND()::GetEntry() const noexcept {
       if constexpr (Embedded and CT::Sparse<T>)
-         return const_cast<Allocation*&>(*mEntry);
+         return const_cast<const Allocation*&>(*mEntry);
       else
-         return const_cast<Allocation*&>(mEntry);
+         return const_cast<const Allocation*&>(mEntry);
    }
 
    /// Assign a new pointer and entry at the handle                           
@@ -221,7 +226,7 @@ namespace Langulus::Anyness
    ///   @param pointer - the new pointer to assign                           
    ///   @param entry - the allocation that the pointer is part of            
    TEMPLATE() LANGULUS(INLINED)
-   void HAND()::New(T pointer, Allocation* entry) noexcept requires CT::Sparse<T> {
+   void HAND()::New(T pointer, const Allocation* entry) noexcept requires CT::Sparse<T> {
       Get() = pointer;
       GetEntry() = entry;
    }
@@ -231,7 +236,7 @@ namespace Langulus::Anyness
    ///   @param value - the new value to assign                               
    ///   @param entry - the allocation that the value is part of              
    TEMPLATE() LANGULUS(INLINED)
-   void HAND()::New(T&& value, Allocation* entry) noexcept requires CT::Dense<T> {
+   void HAND()::New(T&& value, const Allocation* entry) noexcept requires CT::Dense<T> {
       SemanticNew(&Get(), Move(value));
       GetEntry() = entry;
    }
@@ -241,7 +246,7 @@ namespace Langulus::Anyness
    ///   @param value - the new value to assign                               
    ///   @param entry - the allocation that the value is part of              
    TEMPLATE() LANGULUS(INLINED)
-   void HAND()::New(const T& value, Allocation* entry) noexcept requires CT::Dense<T> {
+   void HAND()::New(const T& value, const Allocation* entry) noexcept requires CT::Dense<T> {
       SemanticNew(&Get(), Copy(value));
       GetEntry() = entry;
    }
@@ -298,7 +303,7 @@ namespace Langulus::Anyness
             else if constexpr (S::Keep) {
                // Copying RHS, but keep it only if not disowning it     
                if (GetEntry())
-                  GetEntry()->Keep();
+                  const_cast<Allocation*>(GetEntry())->Keep();
             }
          }
          else if constexpr (CT::Nullptr<ST>) {
@@ -321,7 +326,7 @@ namespace Langulus::Anyness
 
             if constexpr (S::Keep) {
                if (GetEntry())
-                  GetEntry()->Keep();
+                  const_cast<Allocation*>(GetEntry())->Keep();
             }
          }
       }
@@ -351,37 +356,6 @@ namespace Langulus::Anyness
             static_assert(CT::Exact<T, ST>, "Type mismatch");
             SemanticNew(pointer, S::Nest(**rhs));
          }
-
-         Get() = pointer;
-         GetEntry() = entry;
-      }
-      else {
-         //clone an indirection layer by nesting semanticnewhandle      
-         TODO();
-      }
-   }
-   
-   /// Semantically assign anything at the handle                             
-   ///   @param meta - the reflected type to use for assignment               
-   ///   @param rhs - the data to assign                                      
-   TEMPLATE() LANGULUS(INLINED)
-   void HAND()::NewUnknown(DMeta meta, CT::Semantic auto&& rhs) {
-      using S = Deref<decltype(rhs)>;
-
-      if constexpr (S::Shallow) {
-         // Do a copy/disown/abandon/move                               
-         New(rhs.ForwardPerfect());
-      }
-      else if (not meta->mDeptr->mIsSparse) {
-         // Do a clone                                                  
-         const auto bytesize = meta->mDeptr->RequestSize(1).mByteSize;
-         auto entry = Allocator::Allocate(meta->mDeptr, bytesize);
-         auto pointer = entry->GetBlockStart();
-
-         if constexpr (CT::Handle<TypeOf<S>>)
-            SemanticNewUnknown(meta->mDeptr, pointer, S::Nest(rhs->mValue));
-         else
-            SemanticNewUnknown(meta->mDeptr, pointer, rhs.ForwardPerfect());
 
          Get() = pointer;
          GetEntry() = entry;
@@ -457,9 +431,9 @@ namespace Langulus::Anyness
                   Get()->~DT();
                }
 
-               Allocator::Deallocate(GetEntry());
+               Allocator::Deallocate(const_cast<Allocation*>(GetEntry()));
             }
-            else GetEntry()->Free();
+            else const_cast<Allocation*>(GetEntry())->Free();
          }
 
          if constexpr (RESET)
@@ -478,7 +452,7 @@ namespace Langulus::Anyness
    /// Does absolutely nothing for dense handles, they are destroyed when     
    /// handle is destroyed                                                    
    ///   @tparam RESET - whether or not to reset pointers to null             
-   ///   @param meta - the true type behind the Byte pointer in handle        
+   ///   @param meta - the true type behind the pointer in this handle        
    TEMPLATE()
    template<bool RESET>
    void HAND()::DestroyUnknown(DMeta meta) const {
@@ -496,14 +470,14 @@ namespace Langulus::Anyness
                      Copy(*reinterpret_cast<Byte**>(Get()))
                   }.DestroyUnknown(meta->mDeptr);
                }
-               else if (not meta->mIsPOD and meta->mDeptr->mDestructor) {
-                  // Call the destructor                                
-                  meta->mDeptr->mDestructor(Get());
+               else if (meta->mDestructor) {
+                  // Call the origin's destructor, if available         
+                  meta->mDestructor(Get());
                }
 
-               Allocator::Deallocate(GetEntry());
+               Allocator::Deallocate(const_cast<Allocation*>(GetEntry()));
             }
-            else GetEntry()->Free();
+            else const_cast<Allocation*>(GetEntry())->Free();
          }
 
          if constexpr (RESET)

@@ -190,7 +190,7 @@ namespace Langulus::Anyness
       mutable DMeta mType {};
       // Pointer to the allocated block. If entry is zero, then data is 
       // static, or we simply have no authority over it (just a view)   
-      Allocation* mEntry {};
+      const Allocation* mEntry {};
 
    public:
       ///                                                                     
@@ -207,8 +207,8 @@ namespace Langulus::Anyness
       Block(const DataState&, CMeta) IF_UNSAFE(noexcept);
       Block(const DataState&, DMeta, Count, const void*) IF_UNSAFE(noexcept);
       Block(const DataState&, DMeta, Count, void*) IF_UNSAFE(noexcept);
-      Block(const DataState&, DMeta, Count, const void*, Allocation*) IF_UNSAFE(noexcept);
-      Block(const DataState&, DMeta, Count, void*, Allocation*) IF_UNSAFE(noexcept);
+      Block(const DataState&, DMeta, Count, const void*, const Allocation*) IF_UNSAFE(noexcept);
+      Block(const DataState&, DMeta, Count, void*, const Allocation*) IF_UNSAFE(noexcept);
    
       template<bool CONSTRAIN = false, CT::Data T>
       NOD() static Block From(T) requires CT::Sparse<T>;
@@ -315,8 +315,8 @@ namespace Langulus::Anyness
       constexpr void MakeNow() noexcept;
 
    protected: IF_LANGULUS_TESTING(public:)
-      NOD()       Allocation**       GetEntries()       IF_UNSAFE(noexcept);
       NOD() const Allocation* const* GetEntries() const IF_UNSAFE(noexcept);
+      NOD() const Allocation**       GetEntries()       IF_UNSAFE(noexcept);
 
    public:
       ///                                                                     
@@ -583,9 +583,9 @@ namespace Langulus::Anyness
       void SetMemory(const DataState&, DMeta, Count, const void*) IF_UNSAFE(noexcept);
       void SetMemory(const DataState&, DMeta, Count, void*) IF_UNSAFE(noexcept);
       IF_UNSAFE(constexpr)
-      void SetMemory(const DataState&, DMeta, Count, const void*, Allocation*);
+      void SetMemory(const DataState&, DMeta, Count, const void*, const Allocation*);
       IF_UNSAFE(constexpr)
-      void SetMemory(const DataState&, DMeta, Count, void*, Allocation*);
+      void SetMemory(const DataState&, DMeta, Count, void*, const Allocation*);
       /// @endcond                                                            
 
    public:

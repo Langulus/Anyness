@@ -566,38 +566,26 @@ namespace Langulus::Anyness
          AddTrait(rhs.Forward());
       }
       else if constexpr (CT::Same<T, MetaData>) {
-         // Insert an empty Construct to signify solo type ID           
-         const auto meta = SparseCast(*rhs);
-         mAnythingElse.Insert(meta ? meta->mOrigin : nullptr, Any {});
+         // Insert an empty data to signify solo type ID                
+         AddData(*rhs);
       }
       else if constexpr (CT::Same<T, MetaTrait>) {
          // Insert empty Any to signify trait without content           
-         mTraits.Insert(SparseCast(*rhs), Any {});
+         AddTrait(*rhs);
       }
       else if constexpr (CT::Same<T, MetaConst>) {
          // Expand the constant, and push it                            
-         Any wrapped = Clone(Block {{}, SparseCast(*rhs)});
-         const auto meta = wrapped.GetType() ? wrapped.GetType()->mOrigin : nullptr;
-         mAnythingElse.Insert(meta, Abandon(wrapped));
+         operator << (Clone(Block {{}, *rhs}));
       }
       else if constexpr (CT::Construct<T>) {
          // Construct's arguments are always Neat                       
-         const auto meta = rhs->GetType() ? rhs->GetType()->mOrigin : nullptr;
-         mConstructs.Insert(meta, Inner::DeConstruct {
-            rhs->GetHash(),
-            rhs->GetCharge(),
-            rhs->GetArgument()
-         });
+         AddConstruct(rhs.Forward());
       }
       else if constexpr (CT::Deep<T>) {
          // Push anything deep here, flattening it, unless it has state 
          if (rhs->GetUnconstrainedState()) {
-            // RHS has state, so just push it as it is to preserve it   
-            const auto meta = rhs->GetType() ? rhs->GetType()->mOrigin : nullptr;
-            if (mAnythingElse.ContainsKey(meta))
-               mAnythingElse[meta] << Messy {rhs.Forward()};
-            else
-               mAnythingElse.Insert(meta, TAny<Messy> {Messy {rhs.Forward()}});
+            // RHS has state, so just push it as it is, to preserve it  
+            AddData(rhs.Forward());
          }
          else if (rhs->IsDeep()) {
             // RHS is deep, flatten it                                  
@@ -609,12 +597,7 @@ namespace Langulus::Anyness
             const bool done = rhs->ForEach(
                [&](const Construct& c) {
                   // RHS contains constructs, add them one by one       
-                  const auto meta = c.GetType() ? c.GetType()->mOrigin : nullptr;
-                  mConstructs.Insert(meta, Inner::DeConstruct {
-                     c.GetHash(),
-                     c.GetCharge(),
-                     c.GetArgument()
-                  });
+                  AddConstruct(S::Nest(const_cast<Construct&>(c)));
                },
                [&](const Neat& neat) {
                   // RHS contains Neats, merge them one by one          
@@ -626,12 +609,11 @@ namespace Langulus::Anyness
                },
                [&](const MetaData* meta) {
                   // RHS contains metadata, add them                    
-                  const auto dmeta = meta ? meta->mOrigin : nullptr;
-                  mAnythingElse.Insert(dmeta, Any {});
+                  AddData(meta);
                },
                [&](const MetaTrait* meta) {
                   // RHS contains metatraits, add them                  
-                  mTraits.Insert(meta, Any {});
+                  AddTrait(meta);
                },
                [&](const MetaConst* meta) {
                   // RHS contains metaconstants, expand and add them    
@@ -641,19 +623,16 @@ namespace Langulus::Anyness
 
             if (not done) {
                // RHS contains nothing special, just add it as it is    
-               const auto meta = rhs->GetType() ? rhs->GetType()->mOrigin : nullptr;
-               if (mAnythingElse.ContainsKey(meta))
-                  mAnythingElse[meta] << rhs.Forward();
-               else
-                  mAnythingElse.Insert(meta, TAny<Messy> {rhs.Forward()});
+               AddData(rhs.Forward());
             }
          }
       }
       else {
          // RHS is nothing special, just add it as it is                
          const auto meta = RTTI::MetaData::Of<Decay<T>>();
-         if (mAnythingElse.ContainsKey(meta))
-            mAnythingElse[meta] << rhs.Forward();
+         const auto found = mAnythingElse.FindIt(meta);
+         if (found)
+            found->mValue << rhs.Forward();
          else
             mAnythingElse.Insert(meta, TAny<Messy> {Messy {rhs.Forward()}});
       }
@@ -715,12 +694,11 @@ namespace Langulus::Anyness
          // Check anything deep here, flattening it, unless it is OR    
          if (rhs->GetUnsconstrainedState())
             return operator << (rhs.Forward());
-         else {
-            rhs->ForEach([&](const Any& group) {
-               if (not GetData(group.GetType()))
-                  operator << (S::Nest(const_cast<Any&>(group)));
-            });
-         }
+
+         rhs->ForEach([&](const Any& group) {
+            if (not GetData(group.GetType()))
+               operator << (S::Nest(const_cast<Any&>(group)));
+         });
       }
       else {
          // Check anything else                                         
@@ -736,10 +714,12 @@ namespace Langulus::Anyness
    ///   @param index - the index we're interested with if repeated           
    ///   @return a reference to this construct for chaining                   
    inline Neat& Neat::Set(const Trait& trait, const Offset& index) {
-      auto found = mTraits.Find(trait.GetTrait());
+      const auto meta = trait.GetTrait();
+      auto found = mTraits.FindIt(meta);
+
       if (found) {
          // A group of similar traits was found                         
-         auto& group = mTraits.GetValue(found);
+         auto& group = found->mValue;
          if (group.GetCount() > index)
             group[index] = static_cast<const Any&>(trait);
          else
@@ -747,7 +727,7 @@ namespace Langulus::Anyness
       }
       else {
          // If reached, a new trait group to be inserted                
-         mTraits[trait.GetTrait()] << static_cast<const Any&>(trait);
+         mTraits.Insert(meta, static_cast<const Any&>(trait));
       }
 
       mHash = {};
@@ -756,18 +736,85 @@ namespace Langulus::Anyness
 
    /// Push a trait to the appropriate bucket                                 
    ///   @attention this is an inner function that doesn't affect the hash    
-   ///   @tparam S - the semantic to use for the insertion (deducible)        
    ///   @param messy - the trait and semantic to use                         
-   ///   @return a reference to this container                                
-   template<CT::Semantic S>
    LANGULUS(INLINED)
-   void Neat::AddTrait(S&& messy) requires (CT::TraitBased<TypeOf<S>>) {
-      // Normalize trait contents and push sort it by its               
-      // trait type                                                     
+   void Neat::AddTrait(CT::Semantic auto&& messy) {
+      static_assert(CT::TraitBased<TypeOf<decltype(messy)>>);
+      Any wrapper;
       if (messy->IsDeep())
-         mTraits[messy->GetTrait()] << Neat {messy.template Forward<Any>()};
+         wrapper = Neat {messy.template Forward<Any>()};
       else
-         mTraits[messy->GetTrait()] << messy.template Forward<Any>();
+         wrapper = messy.template Forward<Any>();
+
+      const auto meta = messy->GetTrait();
+      auto found = mTraits.FindIt(meta);
+      if (found)
+         found->mValue << Abandon(wrapper);
+      else
+         mTraits.Insert(meta, TAny<Any> {Abandon(wrapper)});
+   }
+
+   /// Push an empty trait to the appropriate bucket                          
+   ///   @attention this is an inner function that doesn't affect the hash    
+   ///   @param trait - the trait type                                        
+   LANGULUS(INLINED)
+   void Neat::AddTrait(TMeta trait) {
+      auto found = mTraits.FindIt(trait);
+      if (found)
+         found->mValue << Any {};
+      else
+         mTraits.Insert(trait, TAny<Any> { Any {} });
+   }
+   
+   /// Push a trait to the appropriate bucket                                 
+   ///   @attention this is an inner function that doesn't affect the hash    
+   ///   @param messy - the trait and semantic to use                         
+   LANGULUS(INLINED)
+   void Neat::AddData(CT::Semantic auto&& messy) {
+      static_assert(CT::Deep<TypeOf<decltype(messy)>>);
+      const auto meta = messy->GetType() ? messy->GetType()->mOrigin : nullptr;
+      auto found = mAnythingElse.FindIt(meta);
+      if (found)
+         found->mValue << messy.Forward();
+      else
+         mAnythingElse.Insert(meta, TAny<Messy> {messy.Forward()});
+   }
+
+   /// Push a construct to the appropriate bucket                             
+   ///   @attention this is an inner function that doesn't affect the hash    
+   ///   @param messy - the construct and semantic to use                     
+   LANGULUS(INLINED)
+   void Neat::AddConstruct(CT::Semantic auto&& messy) {
+      static_assert(CT::Construct<TypeOf<decltype(messy)>>);
+      const auto meta = messy->GetType() ? messy->GetType()->mOrigin : nullptr;
+      const auto found = mConstructs.FindIt(meta);
+      if (found) {
+         found->mValue << Inner::DeConstruct {
+            messy->GetHash(),
+            messy->GetCharge(),
+            messy.template Forward<Neat>()
+         };
+      }
+      else {
+         mConstructs.Insert(meta, Inner::DeConstruct {
+            messy->GetHash(),
+            messy->GetCharge(),
+            messy.template Forward<Neat>()
+         });
+      }
+   }
+
+   /// Push an empty data descriptor to the appropriate bucket                
+   ///   @attention this is an inner function that doesn't affect the hash    
+   ///   @param meta - the meta type                                          
+   LANGULUS(INLINED)
+   void Neat::AddData(DMeta meta) {
+      const auto dmeta = meta ? meta->mOrigin : nullptr;
+      auto found = mAnythingElse.FindIt(dmeta);
+      if (found)
+         found->mValue << Any {};
+      else
+         mAnythingElse.Insert(dmeta, TAny<Messy> {Any {}});
    }
 
    /// Get a tagged argument inside constructor                               
@@ -776,13 +823,11 @@ namespace Langulus::Anyness
    ///   @return selected data or nullptr if none was found                   
    ///   @attention if not nullptr, returned Any might contain a Neat         
    inline const Any* Neat::Get(TMeta meta, const Offset& index) const {
-      auto found = mTraits.Find(meta);
+      auto found = mTraits.FindIt(meta);
       if (found) {
-         auto& group = mTraits.GetValue(found);
-         if (group.GetCount() > index) {
-            // Found                                                    
+         auto& group = found->mValue;
+         if (group.GetCount() > index)
             return &group[index];
-         }
       }
 
       // Not found                                                      
@@ -816,11 +861,9 @@ namespace Langulus::Anyness
          return 0;
 
       Count result = 0;
-      (void) (... or (
-         0 != (result = ForEachInner<MUTABLE>(
-            Forward<F>(call))
-         )
-      ));
+      (void) (... or (0 != (result = ForEachInner<MUTABLE>(
+         Forward<F>(call))
+      )));
       return result;
    }
 
@@ -868,7 +911,6 @@ namespace Langulus::Anyness
    template<bool MUTABLE, class F>
    Count Neat::ForEachInner(F&& call) {
       using A = ArgumentOf<F>;
-
       static_assert(CT::Constant<Deptr<A>> or MUTABLE,
          "Non constant iterator for constant Neat block");
 
@@ -1102,7 +1144,6 @@ namespace Langulus::Anyness
    Count Neat::ForEachTail(F&& call) {
       using A = ArgumentOf<F>;
       using R = ReturnOf<F>;
-
       static_assert(CT::Constant<Deptr<A>> or MUTABLE,
          "Non constant iterator for constant Neat block");
 

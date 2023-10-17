@@ -128,28 +128,11 @@ namespace Langulus::Anyness
       else TODO();
    }
 
-   /// Remove elements on the back                                            
+   /// Remove elements at the back                                            
    ///   @param count - the new count                                         
    inline void Block::Trim(const Count count) {
       if (count >= mCount)
          return;
-
-      if (IsConstant() or IsStatic()) {
-         if (mType->mIsPOD) {
-            // If data is POD and elements are on the back, we can      
-            // get around constantness and staticness, by simply        
-            // truncating the count without any reprecussions           
-            mCount = count;
-         }
-         else {
-            LANGULUS_ASSERT(not IsConstant(), Access,
-               "Removing from constant container");
-            LANGULUS_ASSERT(not IsStatic(), Access,
-               "Removing from static container");
-         }
-
-         return;
-      }
 
       // Call destructors and change count                              
       CropInner(count, mCount - count).CallUnknownDestructors();
@@ -210,7 +193,7 @@ namespace Langulus::Anyness
       else {
          // If reached, then data is referenced from multiple places    
          // Don't call destructors, just clear it up and dereference    
-         mEntry->Free();
+         const_cast<Allocation*>(mEntry)->Free();
          mRaw = nullptr;
          mEntry = nullptr;
          mCount = mReserved = 0;
@@ -244,7 +227,8 @@ namespace Langulus::Anyness
 
       const auto mthis = const_cast<Block*>(this);
       if (mType->mIsSparse) {
-         // Destroy every sparse element                                
+         // Destroy all indirection layers, if their references reach   
+         // 1, and destroy the dense element, if it has destructor      
          auto handle = mthis->template GetHandle<Byte*>(0);
          const auto handleEnd = handle.mValue + mCount;
          while (handle != handleEnd) {
@@ -252,7 +236,7 @@ namespace Langulus::Anyness
             ++handle;
          }
       }
-      else if (not mType->mIsPOD and mType->mDestructor) {
+      else if (mType->mDestructor) {
          // Destroy every dense element                                 
          auto data = mthis->GetRaw();
          const auto dataEnd = data + mType->mSize * mCount;
@@ -280,19 +264,24 @@ namespace Langulus::Anyness
 
       const auto mthis = const_cast<Block*>(this);
       if constexpr (CT::Sparse<T>) {
-         // Destroy all indirection layers                              
+         // Destroy all indirection layers, if their references reach   
+         // 1, and destroy the dense element, if it has destructor      
          auto handle = GetHandle<T>(0);
          const auto handleEnd = handle.mValue + mCount;
-         while (handle != handleEnd)
-            (handle++).Destroy();
+         while (handle != handleEnd) {
+            handle.Destroy();
+            ++handle;
+         }
       }
       else if constexpr (CT::Destroyable<T>) {
          // Destroy every dense element                                 
          using DT = Decay<T>;
          auto data = mthis->template GetRawAs<T>();
          const auto dataEnd = data + mCount;
-         while (data != dataEnd)
-            (data++)->~DT();
+         while (data != dataEnd) {
+            data->~DT();
+            ++data;
+         }
       }
 
       // Always nullify upon destruction only if we're paranoid         

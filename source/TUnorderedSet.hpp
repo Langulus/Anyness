@@ -205,6 +205,7 @@ namespace Langulus::Anyness
    struct TUnorderedSet<T>::TIterator {
    protected:
       friend class TUnorderedSet<T>;
+      friend class TOrderedSet<T>;
 
       const InfoType* mInfo {};
       const InfoType* mSentinel {};

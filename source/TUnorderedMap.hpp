@@ -240,6 +240,7 @@ namespace Langulus::Anyness
    struct TUnorderedMap<K, V>::TIterator {
    protected:
       friend class TUnorderedMap<K, V>;
+      friend class TOrderedMap<K, V>;
 
       const InfoType* mInfo {};
       const InfoType* mSentinel {};
@@ -249,6 +250,8 @@ namespace Langulus::Anyness
       TIterator(const InfoType*, const InfoType*, const K*, const V*) noexcept;
 
    public:
+      TIterator(const TIterator<true>&) noexcept;
+
       NOD() bool operator == (const TIterator&) const noexcept;
 
       NOD() PairRef      operator *  () const noexcept requires (MUTABLE);

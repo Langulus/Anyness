@@ -85,7 +85,7 @@ namespace Langulus::Anyness
       }
 
       NOD() LANGULUS(INLINED)
-      static constexpr Allocation* Find(RTTI::DMeta, const void*) noexcept {
+      static constexpr const Allocation* Find(RTTI::DMeta, const void*) noexcept {
          return nullptr;
       }
 

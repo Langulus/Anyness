@@ -34,7 +34,7 @@ namespace Langulus::Anyness
       Conditional<EMBED, T*, T> mValue;
 
       // The entry                                                      
-      Conditional<EMBED and CT::Sparse<T>, Allocation**, Allocation*> mEntry;
+      Conditional<EMBED and CT::Sparse<T>, const Allocation**, const Allocation*> mEntry;
       /// @endcond show_protected                                             
 
    public:
@@ -43,10 +43,10 @@ namespace Langulus::Anyness
       constexpr Handle(const Handle&) noexcept = default;
       constexpr Handle(Handle&&) noexcept = default;
 
-      constexpr Handle(T&, Allocation*&) IF_UNSAFE(noexcept) requires (EMBED and CT::Sparse<T>);
-      constexpr Handle(T&, Allocation*) IF_UNSAFE(noexcept) requires (EMBED and CT::Dense<T>);
+      constexpr Handle(T&, const Allocation*&) IF_UNSAFE(noexcept) requires (EMBED and CT::Sparse<T>);
+      constexpr Handle(T&, const Allocation* ) IF_UNSAFE(noexcept) requires (EMBED and CT::Dense<T>);
 
-      constexpr Handle(T&&, Allocation* = nullptr) IF_UNSAFE(noexcept) requires (not EMBED);
+      constexpr Handle(T&&, const Allocation* = nullptr) IF_UNSAFE(noexcept) requires (not EMBED);
       constexpr Handle(CT::Semantic auto&&) noexcept requires (not EMBED);
 
       constexpr Handle& operator = (const Handle&) noexcept = default;
@@ -56,13 +56,12 @@ namespace Langulus::Anyness
       constexpr bool operator == (const Handle&) const noexcept requires (EMBED);
 
       NOD() T& Get() const noexcept;
-      NOD() Allocation*& GetEntry() const noexcept;
+      NOD() const Allocation*& GetEntry() const noexcept;
 
-      void New(T, Allocation* = nullptr) noexcept requires CT::Sparse<T>;
-      void New(const T&, Allocation* = nullptr) noexcept requires CT::Dense<T>;
-      void New(T&&, Allocation* = nullptr) noexcept requires CT::Dense<T>;
+      void New(T,        const Allocation* = nullptr) noexcept requires CT::Sparse<T>;
+      void New(const T&, const Allocation* = nullptr) noexcept requires CT::Dense<T>;
+      void New(T&&,      const Allocation* = nullptr) noexcept requires CT::Dense<T>;
       void New(CT::Semantic auto&&);
-      void NewUnknown(DMeta, CT::Semantic auto&&);
 
       void Assign(CT::Semantic auto&&);
 

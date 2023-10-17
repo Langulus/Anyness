@@ -68,7 +68,14 @@ namespace Langulus::Anyness
       using ST = TypeOf<S>;
       mType = RTTI::MetaData::Of<T>();
 
-      if constexpr (CT::Deep<ST>) {
+      if constexpr (CT::Array<ST>
+                    and CT::Exact<T, ::std::remove_extent_t<ST>>) {
+         // Integration with bounded arrays                             
+         constexpr auto count = ExtentOf<ST>;
+         AllocateFresh(RequestSize(count));
+         InsertInner<Copied<T>>(*other, *other + count, 0);
+      }
+      else if constexpr (CT::Deep<ST>) {
          // Constructing using deep RHS                                 
          if constexpr (not CT::Typed<ST>) {
             // RHS is type-erased, do runtime type checks               
@@ -138,17 +145,6 @@ namespace Langulus::Anyness
          const auto count = other->size();
          AllocateFresh(RequestSize(count));
          InsertInner<Copied<T>>(other->data(), other->data() + count, 0);
-      }
-      else if constexpr (CT::Array<ST>
-                     and CT::Exact<T, ::std::remove_extent_t<ST>>) {
-         // Integration with bounded arrays                             
-         constexpr auto count = ExtentOf<ST>;
-         AllocateFresh(RequestSize(count));
-         InsertInner<Copied<T>>(*other, *other + count, 0);
-      }
-      else if constexpr (CT::Neat<ST>) {
-         // Descriptor constructor - check if Neat contains Ts          
-         TODO();
       }
       else LANGULUS_ERROR("Bad semantic construction");
    }
@@ -227,12 +223,12 @@ namespace Langulus::Anyness
                CallKnownDestructors<T>();
          }
 
-         Allocator::Deallocate(mEntry);
+         Allocator::Deallocate(const_cast<Allocation*>(mEntry));
          mEntry = nullptr;
          return;
       }
 
-      mEntry->Free();
+      const_cast<Allocation*>(mEntry)->Free();
       mEntry = nullptr;
    }
 
@@ -1541,7 +1537,7 @@ namespace Langulus::Anyness
          Block previousBlock {*this};
          mEntry = Allocator::Reallocate(
             request.mByteSize * (CT::Sparse<T> ? 2 : 1),
-            mEntry
+            const_cast<Allocation*>(mEntry)
          );
          LANGULUS_ASSERT(mEntry, Allocate, "Out of memory");
          mReserved = request.mElementCount;
@@ -1641,7 +1637,7 @@ namespace Langulus::Anyness
          if (request.mElementCount != mReserved) {
             (void)Allocator::Reallocate(
                request.mByteSize * (CT::Sparse<T> ? 2 : 1),
-               mEntry
+               const_cast<Allocation*>(mEntry)
             );
             mReserved = request.mElementCount;
          }

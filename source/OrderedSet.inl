@@ -59,7 +59,12 @@ namespace Langulus::Anyness
       using S = Decay<decltype(other)>;
       using T = TypeOf<S>;
 
-      if constexpr (CT::Set<T>) {
+      if constexpr (CT::Array<T>) {
+         // Construct from array of elements                            
+         for (auto& key : *other)
+            Insert(S::Nest(key));
+      }
+      else if constexpr (CT::Set<T>) {
          // Construct from any kind of set                              
          if constexpr (not T::Ordered) {
             // We have to reinsert everything, because source is        
@@ -93,11 +98,6 @@ namespace Langulus::Anyness
             // and uses the same bucketing approach                     
             BlockTransfer<OrderedSet>(other.Forward());
          }
-      }
-      else if constexpr (CT::Array<T>) {
-         // Construct from array of elements                            
-         for (auto& key : *other)
-            Insert(S::Nest(key));
       }
       else {
          // Construct from any kind of pair                             
