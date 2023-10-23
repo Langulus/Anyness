@@ -13,7 +13,7 @@ jobs:
         build: [Debug, Release]
         arch: [x86, x64]
         managed: [ON, OFF]
-        cxx: [g++, clang++, ClangCl, v143]
+        cxx: [g++, clang++-16, ClangCl, v143]
 
         exclude:
           - os: ubuntu-22.04
@@ -23,7 +23,7 @@ jobs:
           - os: windows-latest
             cxx: g++
           - os: windows-latest
-            cxx: clang++
+            cxx: clang++-16
 
         include:
           - os: ubuntu-22.04
