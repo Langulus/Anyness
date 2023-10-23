@@ -61,10 +61,12 @@ jobs:
           sudo apt install g++-multilib
 
       - if: matrix.cxx == 'clang++-16'
-        name: Installing Clang 16+
+        name: Installing Clang 16
         run: |
+          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+          sudo apt-add-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-16 main"
           sudo apt update
-          sudo apt install clang++-16
+          sudo apt install clang-16
 
       - if: matrix.os == 'ubuntu-22.04'
         name: Configure (Linux)
