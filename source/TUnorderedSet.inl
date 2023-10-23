@@ -487,7 +487,7 @@ namespace Langulus::Anyness
       mKeys.mReserved = count;
 
       // Precalculate the info pointer, it's costly                     
-      mKeys.mRaw = mKeys.mEntry->GetBlockStart();
+      mKeys.mRaw = const_cast<Byte*>(mKeys.mEntry->GetBlockStart());
       mInfo = reinterpret_cast<InfoType*>(mKeys.mRaw + infoOffset);
    }
 
@@ -522,7 +522,7 @@ namespace Langulus::Anyness
       mKeys.mReserved = count;
 
       // Precalculate the info pointer, it's costly                     
-      mKeys.mRaw = mKeys.mEntry->GetBlockStart();
+      mKeys.mRaw = const_cast<Byte*>(mKeys.mEntry->GetBlockStart());
       mInfo = reinterpret_cast<InfoType*>(mKeys.mRaw + infoOffset);
       // Set the sentinel                                               
       mInfo[count] = 1;
