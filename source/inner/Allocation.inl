@@ -14,10 +14,12 @@ namespace Langulus::Anyness
 {
    namespace Inner
    {
+
       /// Fast log2                                                           
       /// https://stackoverflow.com/questions/11376288                        
       ///   @param u - number                                                 
       ///   @return the log2                                                  
+      LANGULUS(INLINED)
       constexpr Size FastLog2(Size x) noexcept {
          return x < 2 
             ? 0 : Size{8 * sizeof(Size)} - ::std::countl_zero(x) - Size{1};
@@ -27,6 +29,7 @@ namespace Langulus::Anyness
       /// https://stackoverflow.com/questions/757059                          
       ///   @param n - number                                                 
       ///   @return the least significant bit                                 
+      LANGULUS(INLINED)
       constexpr Size LSB(const Size& n) noexcept {
          #if LANGULUS(BITNESS) == 32
             constexpr Size DeBruijnBitPosition[32] = {
@@ -48,6 +51,7 @@ namespace Langulus::Anyness
             #error Implement for your architecture
          #endif
       }
+
    } // namespace Langulus::Anyness::Inner
 
 
@@ -56,6 +60,7 @@ namespace Langulus::Anyness
    ///      beginning of a heap allocation of size GetNewAllocationSize()     
    ///   @param bytes - the number of allocated bytes                         
    ///   @param pool - the pool/handle of the entry                           
+   LANGULUS(INLINED)
    constexpr Allocation::Allocation(const Size& bytes, Pool* pool) noexcept
       : mAllocatedBytes {bytes}
       , mReferences {1}
@@ -63,6 +68,7 @@ namespace Langulus::Anyness
 
    /// Get the size of the Allocation structure, rounded up for alignment     
    ///   @return the byte size of the entry, including alignment              
+   LANGULUS(INLINED)
    constexpr Size Allocation::GetSize() noexcept {
       static_assert(IsPowerOfTwo(Alignment),
          "Alignment is not a power-of-two number");
@@ -73,6 +79,7 @@ namespace Langulus::Anyness
    /// The layout is: [Allocation::GetSize()][client memory]                  
    ///   @param size - the usable number of bytes required                    
    ///   @return the byte size for a new Allocation, including padding        
+   LANGULUS(INLINED)
    constexpr Size Allocation::GetNewAllocationSize(const Size& size) noexcept {
       const Size minimum = Allocation::GetMinAllocation();
       const Size proposed = Allocation::GetSize() + size;
@@ -81,44 +88,51 @@ namespace Langulus::Anyness
 
    /// Get the minimum possible allocation, including the overhead            
    ///   @return the byte size                                                
+   LANGULUS(INLINED)
    constexpr Size Allocation::GetMinAllocation() noexcept {
       return Allocation::GetSize() + Alignment;
    }
 
    /// Check if the memory of the entry is in use                             
    ///   @return true if entry has any references                             
+   LANGULUS(INLINED)
    constexpr const Count& Allocation::GetUses() const noexcept {
       return mReferences;
    }
 
    /// Return the aligned start of usable block memory (const)                
    ///   @return pointer to the entry's memory                                
-   inline const Byte* Allocation::GetBlockStart() const noexcept {
+   LANGULUS(INLINED)
+   const Byte* Allocation::GetBlockStart() const noexcept {
       const auto entryStart = reinterpret_cast<const Byte*>(this);
       return entryStart + Allocation::GetSize();
    }
 
    /// Return the end of usable block memory (always const)                   
    ///   @return pointer to the entry's memory end                            
-   inline const Byte* Allocation::GetBlockEnd() const noexcept {
+   LANGULUS(INLINED)
+   const Byte* Allocation::GetBlockEnd() const noexcept {
       return GetBlockStart() + mAllocatedBytes;
    }
 
    /// Return the aligned start of usable block memory                        
    ///   @return pointer to the entry's publicly usable memory                
-   inline Byte* Allocation::GetBlockStart() noexcept {
+   LANGULUS(INLINED)
+   Byte* Allocation::GetBlockStart() noexcept {
       const auto entryStart = reinterpret_cast<Byte*>(this);
       return entryStart + Allocation::GetSize();
    }
    
    /// Get the total of the entry, and its allocated data, in bytes           
    ///   @return the byte size of the entry plus the usable region after it   
+   LANGULUS(INLINED)
    constexpr Size Allocation::GetTotalSize() const noexcept {
       return Allocation::GetSize() + mAllocatedBytes;
    }
 
    /// Get the number of allocated bytes in this entry                        
    ///   @return the byte size of usable memory region                        
+   LANGULUS(INLINED)
    constexpr const Size& Allocation::GetAllocatedSize() const noexcept {
       return mAllocatedBytes;
    }
@@ -126,7 +140,8 @@ namespace Langulus::Anyness
    /// Check if memory address is inside this entry                           
    ///   @param address - address to check if inside this entry               
    ///   @return true if address is inside                                    
-   inline bool Allocation::Contains(const void* address) const noexcept {
+   LANGULUS(INLINED)
+   bool Allocation::Contains(const void* address) const noexcept {
       const auto a = reinterpret_cast<const Byte*>(address);
       const auto blockStart = GetBlockStart();
       return a >= blockStart and a < blockStart + mAllocatedBytes;
@@ -135,7 +150,8 @@ namespace Langulus::Anyness
    /// Test if one entry overlaps another                                     
    ///   @param other - entry to check for collision                          
    ///   @return true if memories dont intersect                              
-   inline bool Allocation::CollisionFree(const Allocation& other) const noexcept {
+   LANGULUS(INLINED)
+   bool Allocation::CollisionFree(const Allocation& other) const noexcept {
       const auto blockStart1 = GetBlockStart();
       const auto blockStart2 = other.GetBlockStart();
       return 
@@ -146,28 +162,33 @@ namespace Langulus::Anyness
    /// Get the start of the entry as a given type                             
    ///   @return a pointer to the first element                               
    template<class T>
+   LANGULUS(INLINED)
    NOD() T* Allocation::As() const noexcept {
       return reinterpret_cast<T*>(const_cast<Allocation*>(this)->GetBlockStart());
    }
 
    /// Reference the entry once                                               
+   LANGULUS(INLINED)
    constexpr void Allocation::Keep() noexcept {
       ++mReferences;
    }
 
    /// Reference the entry 'c' times                                          
    ///   @param c - the number of references to add                           
+   LANGULUS(INLINED)
    constexpr void Allocation::Keep(const Count& c) noexcept {
       mReferences += c;
    }
 
    /// Dereference the entry once                                             
+   LANGULUS(INLINED)
    constexpr void Allocation::Free() noexcept {
       --mReferences;
    }
 
    /// Dereference the entry 'c' times                                        
    ///   @param c - the number of references to remove                        
+   LANGULUS(INLINED)
    constexpr void Allocation::Free(const Count& c) noexcept {
       mReferences -= c;
    }
