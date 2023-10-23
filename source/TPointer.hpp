@@ -10,28 +10,6 @@
 #include "TOwned.hpp"
 #include "inner/Handle.hpp"
 
-namespace Langulus
-{
-   namespace A
-   {
-      /// An abstract shared pointer                                          
-      struct Pointer : Owned {
-         LANGULUS_BASES(Owned);
-      };
-   }
-
-   namespace CT
-   {
-      /// Anything derived from A::Pointer                                    
-      template<class... T>
-      concept Pointer = (DerivedFrom<T, A::Pointer> and ...);
-
-      /// Anything usable to initialize a shared pointer                      
-      template<class... T>
-      concept PointerRelated = ((Pointer<T> or Sparse<T> or Nullptr<T>) and ...);
-   }
-
-} // namespace Langulus
 
 namespace Langulus::Anyness
 {
@@ -44,10 +22,8 @@ namespace Langulus::Anyness
    /// it's equivalent to std::shared_ptr                                     
    ///                                                                        
    template<class T, bool DR>
-   class TPointer 
-      : public A::Pointer
-      , public TOwned<Conditional<CT::Constant<T>, const T*, T*>> {
-      using Base = TOwned<Conditional<CT::Constant<T>, const T*, T*>>;
+   class TPointer : public TOwned<T*> {
+      using Base = TOwned<T*>;
       using Self = TPointer<T, DR>;
       using Type = TypeOf<Base>;
 
@@ -58,9 +34,6 @@ namespace Langulus::Anyness
       void ResetInner();
 
    public:
-      LANGULUS(ABSTRACT) false;
-      LANGULUS(TYPED) Type;
-
       constexpr TPointer() noexcept = default;
 
       TPointer(const TPointer&);
@@ -69,7 +42,8 @@ namespace Langulus::Anyness
       TPointer(const CT::PointerRelated auto&);
       TPointer(CT::PointerRelated auto&);
       TPointer(CT::PointerRelated auto&&);
-      TPointer(CT::Semantic auto&&);
+      TPointer(CT::ShallowSemantic auto&&);
+      TPointer(CT::DeepSemantic auto&&) requires CT::CloneMakable<T>;
 
       ~TPointer();
 
@@ -89,19 +63,20 @@ namespace Langulus::Anyness
       TPointer& operator = (const CT::PointerRelated auto&);
       TPointer& operator = (CT::PointerRelated auto&);
       TPointer& operator = (CT::PointerRelated auto&&);
-      TPointer& operator = (CT::Semantic auto&&);
+      TPointer& operator = (CT::ShallowSemantic auto&&);
+      TPointer& operator = (CT::DeepSemantic auto&&) requires CT::CloneAssignable<T>;
 
       NOD() operator TPointer<const T, DR>() const noexcept requires CT::Mutable<T>;
 
       using Base::operator bool;
       using Base::operator ->;
-      using Base::operator *;
 
-      template<class ALT_T, bool ALT_DR>
-      NOD() bool operator == (const TPointer<ALT_T, ALT_DR>&) const noexcept
-      requires (CT::Inner::Comparable<T*, ALT_T*>);
+      NOD() const T* operator * () const noexcept;
+      NOD()       T* operator * () noexcept;
 
-      NOD() bool operator == (::std::nullptr_t) const noexcept;
+   private:
+      void ConstructFrom(CT::Semantic auto&&);
+      TPointer& AssignFrom(CT::Semantic auto&&);
    };
 
    /// A shared pointer, that provides ownership and basic reference counting 
@@ -117,23 +92,6 @@ namespace Langulus::Anyness
    /// THive and Hive (component factories for example)                       
    template<class T>
    using Ref = TPointer<T, true>;
-
-   /// Get value behind Ptr/Ref/Own                                           
-   ///   @param value - the container to decay                                
-   ///   @return the contained value                                          
-   LANGULUS(INLINED)
-   decltype(auto) PointerDecay(const CT::Pointer auto& value) {
-      using T = TypeOf<Decay<decltype(value)>>;
-      return static_cast<const T&>(value);
-   }
-   
-   /// Get value behind Ptr/Ref/Own                                           
-   ///   @param value - the container to decay                                
-   ///   @return the contained value                                          
-   LANGULUS(INLINED)
-   decltype(auto) PointerDecay(const CT::Sparse auto& value) {
-      return value;
-   }
 
 } // namespace Langulus::Anyness
 

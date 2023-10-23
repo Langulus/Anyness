@@ -57,11 +57,10 @@ namespace Langulus::Anyness
    TABLE()::TUnorderedSet(CT::NotSemantic auto&& other)
       : TUnorderedSet {Move(other)} {}
 
-   /// Semantic constructor from any set/element                              
+   /// A general semantic constructor from any set/element                    
    ///   @param other - the semantic type                                     
    TABLE_TEMPLATE() LANGULUS(INLINED)
-   TABLE()::TUnorderedSet(CT::Semantic auto&& other)
-      : TUnorderedSet {} {
+   void TABLE()::ConstructFrom(CT::Semantic auto&& other) {
       using S = Decay<decltype(other)>;
       using ST = TypeOf<S>;
       mKeys.mType = MetaData::Of<T>();
@@ -118,7 +117,7 @@ namespace Langulus::Anyness
          // Insert a statically typed element                           
          InsertInner<false>(
             GetBucket(MinimalAllocation - 1, *other),
-            other.ForwardPerfect()
+            other.Forward()
          );
       }
       else if constexpr (::std::constructible_from<T, S&&>) {
@@ -134,6 +133,22 @@ namespace Langulus::Anyness
          );
       }
       else LANGULUS_ERROR("Unsupported semantic constructor");
+   }
+
+   /// Shallow semantic constructor from any set/element                      
+   ///   @param other - the semantic type                                     
+   TABLE_TEMPLATE() LANGULUS(INLINED)
+   TABLE()::TUnorderedSet(CT::ShallowSemantic auto&& other)
+      : TUnorderedSet {} {
+      ConstructFrom(other.Forward());
+   }
+
+   /// Deep semantic constructor from any set/element                         
+   ///   @param other - the semantic type                                     
+   TABLE_TEMPLATE() LANGULUS(INLINED)
+   TABLE()::TUnorderedSet(CT::DeepSemantic auto&& other) requires CT::CloneMakable<T>
+      : TUnorderedSet {} {
+      ConstructFrom(other.Forward());
    }
 
    /// Create from a list of elements                                         
@@ -221,10 +236,10 @@ namespace Langulus::Anyness
       return operator = (Move(rhs));
    }
    
-   /// Semantic assignment for any set/element                                
-   ///   @param rhs - the set/element to use for construction                 
+   /// General semantic assignment for any set/element                        
+   ///   @param rhs - the set/element to use for assignment                   
    TABLE_TEMPLATE()
-   TABLE()& TABLE()::operator = (CT::Semantic auto&& rhs) {
+   TABLE()& TABLE()::AssignFrom(CT::Semantic auto&& rhs) {
       using S = Decay<decltype(rhs)>;
       using ST = TypeOf<S>;
 
@@ -242,6 +257,20 @@ namespace Langulus::Anyness
       else LANGULUS_ERROR("Unsupported semantic assignment");
 
       return *this;
+   }
+
+   /// Shallow semantic assignment for any set/element                        
+   ///   @param rhs - the set/element to use for construction                 
+   TABLE_TEMPLATE()
+   TABLE()& TABLE()::operator = (CT::ShallowSemantic auto&& rhs) {
+      return AssignFrom(rhs.Forward());
+   }
+
+   /// Deep semantic assignment for any set/element                           
+   ///   @param rhs - the set/element to use for construction                 
+   TABLE_TEMPLATE()
+   TABLE()& TABLE()::operator = (CT::DeepSemantic auto&& rhs) requires CT::CloneAssignable<T> {
+      return AssignFrom(rhs.Forward());
    }
 
    /// Templated tables are always typed                                      
@@ -635,7 +664,7 @@ namespace Langulus::Anyness
    TABLE_TEMPLATE()
    template<bool CHECK_FOR_MATCH>
    Offset TABLE()::InsertInner(const Offset& start, CT::Semantic auto&& key) {
-      HandleLocal<T> keyswap {key.ForwardPerfect()};
+      HandleLocal<T> keyswap {key.Forward()};
 
       // Get the starting index based on the key hash                   
       auto psl = GetInfo() + start;
@@ -703,7 +732,7 @@ namespace Langulus::Anyness
       Reserve(GetCount() + 1);
       InsertInner<true>(
          GetBucket(GetReserved() - 1, *key),
-         key.ForwardPerfect()
+         key.Forward()
       );
       return 1;
    }

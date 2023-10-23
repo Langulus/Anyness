@@ -24,6 +24,18 @@ namespace Langulus::Anyness
          Charge mCharge;
          Any mData;
 
+         DeConstruct(const Hash& hash, const Charge& charge, CT::Semantic auto&& data)
+            : mHash {hash}
+            , mCharge {charge}
+            , mData {data.Forward()} {}
+
+         template<CT::Semantic S>
+         LANGULUS(INLINED)
+         DeConstruct(S&& other)
+            : mHash {other->mHash}
+            , mCharge {other->mCharge}
+            , mData {S::Nest(other->mData)} {}
+
          LANGULUS(INLINED)
          Hash GetHash() const noexcept {
             return mHash;

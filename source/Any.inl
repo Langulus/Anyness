@@ -58,7 +58,7 @@ namespace Langulus::Anyness
    ///   @param other - the element/container to initialize with              
    LANGULUS(INLINED)
    Any::Any(CT::Semantic auto&& other) noexcept {
-      CreateFrom(other.ForwardPerfect());
+      CreateFrom(other.Forward());
    }
 
    /// Pack any number of elements sequentially                               
@@ -284,7 +284,7 @@ namespace Langulus::Anyness
                      template CallKnownDestructors<T>();
                   mCount = 1;
                }
-               GetHandle<T>(0).Assign(other.ForwardPerfect());
+               GetHandle<T>(0).Assign(other.Forward());
             }
          }
       }

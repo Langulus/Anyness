@@ -24,6 +24,18 @@ namespace Langulus
       /// Anything derived from A::Owned                                      
       template<class... T>
       concept Owned = (DerivedFrom<T, A::Owned> and ...);
+
+      /// Anything not derived from A::Owned                                  
+      template<class... T>
+      concept NotOwned = CT::Data<T...> and not Owned<T...>;
+
+      /// Any owned pointer                                                   
+      template<class... T>
+      concept Pointer = Owned<T...> and Sparse<TypeOf<T>...>;
+
+      /// Anything usable to initialize a shared pointer                      
+      template<class... T>
+      concept PointerRelated = ((Pointer<T> or Sparse<T> or Nullptr<T>) and ...);
    }
 
 } // namespace Langulus
@@ -34,9 +46,14 @@ namespace Langulus::Anyness
    ///                                                                        
    ///   An owned value, dense or sparse                                      
    ///                                                                        
-   /// Provides ownership and MADCC, for when you need to cleanup after a     
-   /// move. By default, fundamental types and pointers are not reset after   
-   /// a move. Wrapping them inside this ensures they are.                    
+   /// Provides ownership and semantics, for when you need to cleanup after a 
+   /// move, for example. By default, fundamental types are not reset after a 
+   /// move - wrapping them inside this ensures they are.                     
+   ///   @attention this container is suboptimal for pointers, because it     
+   ///              will constantly search the allocation corresponding to    
+   ///              them, as it doesn't cache it in order to minimize size.   
+   ///              For pointers, use Ptr or Ref instead. This doesn't really 
+   ///              matter, if built without the MANAGED_MEMORY feature       
    ///                                                                        
    template<CT::Data T>
    class TOwned : public A::Owned {
@@ -56,7 +73,8 @@ namespace Langulus::Anyness
       constexpr TOwned(const CT::NotSemantic auto&);
       constexpr TOwned(CT::NotSemantic auto&);
       constexpr TOwned(CT::NotSemantic auto&&);
-      constexpr TOwned(CT::Semantic auto&&);
+      TOwned(CT::ShallowSemantic auto&&);
+      TOwned(CT::DeepSemantic auto&&) requires CT::CloneMakable<T>;
 
       NOD() DMeta GetType() const;
 
@@ -71,7 +89,8 @@ namespace Langulus::Anyness
       constexpr TOwned& operator = (const CT::NotSemantic auto&);
       constexpr TOwned& operator = (CT::NotSemantic auto&);
       constexpr TOwned& operator = (CT::NotSemantic auto&&);
-      constexpr TOwned& operator = (CT::Semantic auto&&);
+      TOwned& operator = (CT::ShallowSemantic auto&&);
+      TOwned& operator = (CT::DeepSemantic auto&&) requires CT::CloneAssignable<T>;
 
       NOD() Hash GetHash() const;
 
@@ -81,23 +100,54 @@ namespace Langulus::Anyness
       template<class>
       NOD() auto As() const noexcept requires CT::Sparse<T>;
 
-      NOD() T operator -> () const requires CT::Sparse<T>;
-      NOD() T operator -> () requires CT::Sparse<T>;
-      NOD() decltype(auto) operator * () const requires CT::Sparse<T>;
-      NOD() decltype(auto) operator * () requires CT::Sparse<T>;
+      NOD() auto operator -> () const;
+      NOD() auto operator -> ();
+      NOD() const T& operator * () const; 
+      NOD()       T& operator * ();
 
       NOD() explicit operator bool() const noexcept;
-      NOD() operator const T&() const noexcept;
-      NOD() operator T&() noexcept;
+      NOD() explicit operator const T&() const noexcept;
+      NOD() explicit operator T&() noexcept;
 
-      NOD() bool operator == (const T&) const noexcept requires CT::Inner::Comparable<T>;
-      NOD() bool operator == (::std::nullptr_t) const noexcept requires CT::Sparse<T>;
+   private:
+      void ConstructFrom(CT::Semantic auto&&);
+      TOwned& AssignFrom(CT::Semantic auto&&);
    };
 
    /// Just a short handle for value with ownership                           
    /// If sparse/fundamental, value will be explicitly nulled after a move    
    template<class T>
    using Own = TOwned<T>;
+
+   template<CT::Data T1, CT::Data T2>
+   LANGULUS(INLINED)
+   bool operator == (const TOwned<T1>& lhs, const TOwned<T2>& rhs) noexcept requires CT::Inner::Comparable<T1, T2> {
+      return *lhs == *rhs;
+   }
+
+   template<CT::Data T1, CT::NotOwned T2>
+   LANGULUS(INLINED)
+   bool operator == (const TOwned<T1>& lhs, const T2& rhs) noexcept requires CT::Inner::Comparable<T1, T2> {
+      return *lhs == rhs;
+   }
+
+   template<CT::Data T1, CT::NotOwned T2>
+   LANGULUS(INLINED)
+   bool operator == (const T2& lhs, const TOwned<T1>& rhs) noexcept requires CT::Inner::Comparable<T2, T1> {
+      return lhs == *rhs;
+   }
+
+   template<CT::Data T1, CT::Data T2>
+   LANGULUS(INLINED)
+   bool operator == (const TOwned<T1>& lhs, ::std::nullptr_t) noexcept requires CT::Sparse<T1> {
+      return *lhs == nullptr;
+   }
+
+   template<CT::Data T1, CT::Data T2>
+   LANGULUS(INLINED)
+   bool operator == (::std::nullptr_t, const TOwned<T1>& rhs) noexcept requires CT::Sparse<T1> {
+      return *rhs == nullptr;
+   }
 
 } // namespace Langulus::Anyness
 

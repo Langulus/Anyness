@@ -124,8 +124,7 @@ namespace Langulus::Anyness
       Reserve(GetCount() + 1);
       InsertInner<true, ORDERED>(
          GetBucket(GetReserved() - 1, *key), 
-         key.ForwardPerfect(),
-         value.ForwardPerfect()
+         key.Forward(), value.Forward()
       );
       return 1;
    }
@@ -484,8 +483,7 @@ namespace Langulus::Anyness
                
                InsertInnerUnknown<false, MAP::Ordered>(
                   newBucket - mValues.mReserved,
-                  Copy(oldKey),
-                  Abandon(valswap)
+                  Copy(oldKey), Abandon(valswap)
                );
 
                valswap.Free();
@@ -577,8 +575,8 @@ namespace Langulus::Anyness
       using SV = Deref<decltype(val)>;
       using K = Conditional<CT::Handle<TypeOf<SK>>, TypeOf<TypeOf<SK>>, TypeOf<SK>>;
       using V = Conditional<CT::Handle<TypeOf<SV>>, TypeOf<TypeOf<SV>>, TypeOf<SV>>;
-      HandleLocal<K> keyswapper {key.ForwardPerfect()};
-      HandleLocal<V> valswapper {val.ForwardPerfect()};
+      HandleLocal<K> keyswapper {key.Forward()};
+      HandleLocal<V> valswapper {val.Forward()};
 
       // Get the starting index based on the key hash                   
       auto psl = GetInfo() + start;

@@ -161,7 +161,7 @@ namespace Langulus::Anyness
       Reserve(GetCount() + 1);
       InsertInner<true>(
          GetBucket(GetReserved() - 1, *value),
-         value.ForwardPerfect()
+         value.Forward()
       );
       return 1;
    }
@@ -255,7 +255,7 @@ namespace Langulus::Anyness
    Offset BlockSet::InsertInner(const Offset& start, CT::Semantic auto&& value) {
       using S = Decay<decltype(value)>;
       using T = TypeOf<S>;
-      HandleLocal<T> swapper {value.ForwardPerfect()};
+      HandleLocal<T> swapper {value.Forward()};
 
       // Get the starting index based on the key hash                   
       auto psl = GetInfo() + start;

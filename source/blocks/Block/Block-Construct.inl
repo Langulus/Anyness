@@ -317,7 +317,7 @@ namespace Langulus::Anyness
             // Construct using an arbitrary single element              
             SetType<T>();
             AllocateFresh(RequestSize(1));
-            InsertInner(other.ForwardPerfect(), 0);
+            InsertInner(other.Forward(), 0);
          }
       }
       else LANGULUS_ERROR("Bad semantic constructor argument");

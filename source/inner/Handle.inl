@@ -68,7 +68,7 @@ namespace Langulus::Anyness
             if constexpr (CT::Sparse<T>)
                mValue = *other;
             else
-               SemanticAssign(mValue, other.template ForwardPerfect<T>());
+               SemanticAssign(mValue, other.template Forward<T>());
 
             if constexpr (CT::Sparse<T> and CT::Allocatable<DT> and (S::Keep or S::Move))
                mEntry = Allocator::Find(RTTI::MetaData::Of<DT>(), mValue);
@@ -320,7 +320,7 @@ namespace Langulus::Anyness
                "Type mismatch"
             );
 
-            HandleLocal<T> rhsh {rhs.ForwardPerfect()};
+            HandleLocal<T> rhsh {rhs.Forward()};
             Get() = rhsh.Get();
             GetEntry() = rhsh.GetEntry();
 
@@ -338,27 +338,40 @@ namespace Langulus::Anyness
          }
          else {
             static_assert(CT::Exact<T, ST>, "Type mismatch");
-            SemanticNew(&Get(), rhs.ForwardPerfect());
+            SemanticNew(&Get(), rhs.Forward());
          }
       }
       else if constexpr (CT::Dense<Deptr<T>>) {
-         // Do a clone                                                  
-         using DT = Decay<T>;
-         auto meta = MetaData::Of<DT>();
-         auto entry = Allocator::Allocate(meta, meta->RequestSize(1).mByteSize);
-         auto pointer = entry->template As<DT>();
-
-         if constexpr (CT::Handle<ST>) {
-            static_assert(CT::Exact<T, TypeOf<ST>>, "Type mismatch");
-            SemanticNew(pointer, S::Nest(*rhs->Get()));
+         // Do a clone, unless T is meta                                
+         if constexpr (CT::Meta<T>) {
+            // If T is meta, just copy pointer                          
+            Get() = rhs->Get();
+            GetEntry() = nullptr;
+         }
+         else if constexpr (CT::Resolvable<T>) {
+            // If T is resolvable, we need to always clone the resolved 
+            // (a.k.a the most concrete) type                           
+            TODO();
          }
          else {
-            static_assert(CT::Exact<T, ST>, "Type mismatch");
-            SemanticNew(pointer, S::Nest(**rhs));
-         }
+            // Otherwise attempt cloning DT conventionally              
+            using DT = Decay<T>;
+            auto meta = MetaData::Of<DT>();
+            auto entry = Allocator::Allocate(meta, meta->RequestSize(1).mByteSize);
+            auto pointer = entry->template As<DT>();
 
-         Get() = pointer;
-         GetEntry() = entry;
+            if constexpr (CT::Handle<ST>) {
+               static_assert(CT::Exact<T, TypeOf<ST>>, "Type mismatch");
+               SemanticNew(pointer, S::Nest(*rhs->Get()));
+            }
+            else {
+               static_assert(CT::Exact<T, ST>, "Type mismatch");
+               SemanticNew(pointer, S::Nest(**rhs));
+            }
+
+            Get() = pointer;
+            GetEntry() = entry;
+         }
       }
       else {
          //clone an indirection layer by nesting semanticnewhandle      
@@ -372,7 +385,7 @@ namespace Langulus::Anyness
    TEMPLATE() LANGULUS(INLINED)
    void HAND()::Assign(CT::Semantic auto&& rhs) {
       Destroy();
-      New(rhs.ForwardPerfect());
+      New(rhs.Forward());
    }
    
    /// Swap two handles                                                       

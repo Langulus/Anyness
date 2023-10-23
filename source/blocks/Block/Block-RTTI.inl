@@ -9,6 +9,7 @@
 #pragma once
 #include "../Block.hpp"
 
+
 namespace Langulus::Anyness
 {
 
@@ -461,7 +462,11 @@ namespace Langulus::Anyness
    bool Block::Mutate(DMeta meta) {
       static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
 
-      if (not mType or (not mState.IsTyped() and mType->mIsAbstract and IsEmpty() and meta->CastsTo(mType))) {
+      if (not mType or (not mState.IsTyped()
+                        and mType->mIsAbstract
+                        and IsEmpty()
+                        and meta->CastsTo(mType))
+      ) {
          // Undefined/abstract containers can mutate freely             
          SetType<false>(meta);
       }

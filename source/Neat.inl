@@ -632,7 +632,7 @@ namespace Langulus::Anyness
          const auto meta = RTTI::MetaData::Of<Decay<T>>();
          const auto found = mAnythingElse.FindIt(meta);
          if (found)
-            found->mValue << rhs.Forward();
+            found->mValue << Messy {rhs.Forward()};
          else
             mAnythingElse.Insert(meta, TAny<Messy> {Messy {rhs.Forward()}});
       }

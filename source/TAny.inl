@@ -60,20 +60,36 @@ namespace Langulus::Anyness
    TAny<T>::TAny(CT::NotSemantic auto&& other)
       : TAny {Move(other)} {}
 
+   /// Shallow semantic construction from any container/element               
+   ///   @param other - the container/element and semantic                    
+   TEMPLATE() LANGULUS(INLINED)
+   TAny<T>::TAny(CT::ShallowSemantic auto&& other)
+      : TAny {} {
+      ConstructFrom(other.Forward());
+   }
+   
+   /// Deep semantic construction from any container/element                  
+   ///   @param other - the container/element and semantic                    
+   TEMPLATE() LANGULUS(INLINED)
+   TAny<T>::TAny(CT::DeepSemantic auto&& other) requires CT::CloneMakable<T>
+      : TAny {} {
+      ConstructFrom(other.Forward());
+   }
+   
    /// Semantic construction from any container/element                       
    ///   @param other - the container/element and semantic                    
    TEMPLATE() LANGULUS(INLINED)
-   TAny<T>::TAny(CT::Semantic auto&& other) : TAny {} {
+   void TAny<T>::ConstructFrom(CT::Semantic auto&& other) {
       using S = Decay<decltype(other)>;
       using ST = TypeOf<S>;
       mType = RTTI::MetaData::Of<T>();
 
       if constexpr (CT::Array<ST>
-                    and CT::Exact<T, ::std::remove_extent_t<ST>>) {
+                and CT::Exact<T, ::std::remove_extent_t<ST>>) {
          // Integration with bounded arrays                             
          constexpr auto count = ExtentOf<ST>;
          AllocateFresh(RequestSize(count));
-         InsertInner<Copied<T>>(*other, *other + count, 0);
+         InsertInner<Copied>(*other, *other + count, 0);
       }
       else if constexpr (CT::Deep<ST>) {
          // Constructing using deep RHS                                 
@@ -134,7 +150,7 @@ namespace Langulus::Anyness
       else if constexpr (CT::Exact<T, ST>) {
          // Copy/Disown/Move/Abandon/Clone a compatible element         
          AllocateFresh(RequestSize(1));
-         InsertInner(other.ForwardPerfect(), 0);
+         InsertInner(other.Forward(), 0);
       }
       else if constexpr (CT::BuiltinCharacter<T>
                      and CT::Exact<ST, ::std::basic_string_view<T>>) {
@@ -144,7 +160,7 @@ namespace Langulus::Anyness
 
          const auto count = other->size();
          AllocateFresh(RequestSize(count));
-         InsertInner<Copied<T>>(other->data(), other->data() + count, 0);
+         InsertInner<Copied>(other->data(), other->data() + count, 0);
       }
       else LANGULUS_ERROR("Bad semantic construction");
    }
@@ -271,12 +287,27 @@ namespace Langulus::Anyness
       return operator = (Move(other));
    }
 
-   /// Shallow-copy disowned runtime container without referencing contents   
-   /// This is a bit slower, because checks type compatibility at runtime     
+   /// Shallow semantic assignment                                            
    ///   @param other - the container to shallow-copy                         
    ///   @return a reference to this container                                
    TEMPLATE() LANGULUS(INLINED)
-   TAny<T>& TAny<T>::operator = (CT::Semantic auto&& other) {
+   TAny<T>& TAny<T>::operator = (CT::ShallowSemantic auto&& other) {
+      return AssignFrom(other.Forward());
+   }
+   
+   /// Deep semantic assignment                                               
+   ///   @param other - the container to shallow-copy                         
+   ///   @return a reference to this container                                
+   TEMPLATE() LANGULUS(INLINED)
+   TAny<T>& TAny<T>::operator = (CT::DeepSemantic auto&& other) requires CT::CloneAssignable<T> {
+      return AssignFrom(other.Forward());
+   }
+   
+   /// Generic semantic assignment                                            
+   ///   @param other - the container to shallow-copy                         
+   ///   @return a reference to this container                                
+   TEMPLATE() LANGULUS(INLINED)
+   TAny<T>& TAny<T>::AssignFrom(CT::Semantic auto&& other) {
       using S = Decay<decltype(other)>;
 
       if constexpr (CT::Deep<TypeOf<S>>) {
@@ -304,7 +335,7 @@ namespace Langulus::Anyness
                );
                *GetEntries() = nullptr;
             }
-            else SemanticNew(mRaw, other.ForwardPerfect());
+            else SemanticNew(mRaw, other.Forward());
          }
       }
 
@@ -785,7 +816,7 @@ namespace Langulus::Anyness
             );
       }
 
-      InsertInner(item.ForwardPerfect(), offset);
+      InsertInner(item.Forward(), offset);
       return 1;
    }
 
@@ -878,9 +909,9 @@ namespace Langulus::Anyness
                mCount, Abandon(CropInner(0, mCount))
             );
 
-         InsertInner(item.ForwardPerfect(), 0);
+         InsertInner(item.Forward(), 0);
       }
-      else InsertInner(item.ForwardPerfect(), mCount);
+      else InsertInner(item.Forward(), mCount);
 
       return 1;
    }
@@ -914,7 +945,8 @@ namespace Langulus::Anyness
       }
 
       CropInner(offset, 0)
-         .template CallKnownConstructors<T, A...>(1, Forward<A>(arguments)...);
+         .template CallKnownConstructors<T, A...>(
+            1, Forward<A>(arguments)...);
 
       ++mCount;
       return 1;
@@ -950,11 +982,13 @@ namespace Langulus::Anyness
                mCount, Abandon(CropInner(0, mCount))
             );
 
-         Block::CallKnownConstructors<T, A...>(1, Forward<A>(arguments)...);
+         Block::CallKnownConstructors<T, A...>(
+            1, Forward<A>(arguments)...);
       }
       else {
          CropInner(mCount, 0)
-            .template CallKnownConstructors<T, A...>(1, Forward<A>(arguments)...);
+            .template CallKnownConstructors<T, A...>(
+               1, Forward<A>(arguments)...);
       }
 
       ++mCount;
@@ -993,7 +1027,8 @@ namespace Langulus::Anyness
 
       // Call constructors                                              
       CropInner(mCount, 0)
-         .template CallKnownConstructors<T>(count, Forward<A>(arguments)...);
+         .template CallKnownConstructors<T>(
+            count, Forward<A>(arguments)...);
 
       mCount += count;
       return count;
@@ -1810,7 +1845,7 @@ namespace Langulus::Anyness
    ///   @attention order matters, so you might want to Neat data first       
    ///   @return the hash                                                     
    TEMPLATE() LANGULUS(INLINED)
-   Hash TAny<T>::GetHash() const {
+   Hash TAny<T>::GetHash() const requires CT::Hashable<T> {
       if (not mCount)
          return {};
 
@@ -1832,7 +1867,7 @@ namespace Langulus::Anyness
          else return HashBytes<DefaultHashSeed, false>(
             mRaw, static_cast<int>(GetBytesize()));
       }
-      else if constexpr (CT::POD<T> and not CT::Hashable<T>) {
+      else if constexpr (CT::POD<T> and not CT::Inner::HasGetHashMethod<T>) {
          // Hash all PODs at once                                       
          return HashBytes<DefaultHashSeed, alignof(T) < Bitness / 8>(
             mRaw, static_cast<int>(GetBytesize()));
