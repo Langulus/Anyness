@@ -190,7 +190,7 @@ namespace Langulus::Anyness
    /// If data is incomplete or not hashable, hash the pointer instead        
    ///   @return the hash of the contained element                            
    TEMPLATE() LANGULUS(INLINED)
-   Hash TME()::GetHash() const {
+   Hash TME()::GetHash() const requires CT::Hashable<T> {
       return HashOf(mValue);
    }
 
