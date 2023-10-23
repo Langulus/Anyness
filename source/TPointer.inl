@@ -134,7 +134,7 @@ namespace Langulus::Anyness
       );
       LANGULUS_ASSERT(pointer.mEntry, Allocate, "Out of memory");
       pointer.mValue = reinterpret_cast<decltype(pointer.mValue)>(
-         pointer.mEntry->GetBlockStart());
+         const_cast<Byte*>(pointer.mEntry->GetBlockStart()));
       new (pointer.mValue) Decay<T> {Forward<ARGS>(arguments)...};
       *this = Move(pointer);
    }
