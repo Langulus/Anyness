@@ -60,6 +60,12 @@ jobs:
           sudo apt update
           sudo apt install g++-multilib
 
+      - if: matrix.cxx == 'clang++-16'
+        name: Installing Clang 16+
+        run: |
+          sudo apt update
+          sudo apt install clang++-16
+
       - if: matrix.os == 'ubuntu-22.04'
         name: Configure (Linux)
         run: >
