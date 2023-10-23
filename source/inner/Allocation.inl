@@ -154,17 +154,17 @@ namespace Langulus::Anyness
    bool Allocation::CollisionFree(const Allocation& other) const noexcept {
       const auto blockStart1 = GetBlockStart();
       const auto blockStart2 = other.GetBlockStart();
-      return 
-         (blockStart2 - blockStart1) > ::std::ptrdiff_t(mAllocatedBytes) and
-         (blockStart1 - blockStart2) > ::std::ptrdiff_t(other.mAllocatedBytes);
+      return (blockStart2 - blockStart1) > ::std::ptrdiff_t(mAllocatedBytes)
+         and (blockStart1 - blockStart2) > ::std::ptrdiff_t(other.mAllocatedBytes);
    }
 
    /// Get the start of the entry as a given type                             
    ///   @return a pointer to the first element                               
    template<class T>
    LANGULUS(INLINED)
-   NOD() T* Allocation::As() const noexcept {
-      return reinterpret_cast<T*>(const_cast<Allocation*>(this)->GetBlockStart());
+   T* Allocation::As() const noexcept {
+      return reinterpret_cast<T*>(
+         const_cast<Allocation*>(this)->GetBlockStart());
    }
 
    /// Reference the entry once                                               
