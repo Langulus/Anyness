@@ -2021,7 +2021,8 @@ namespace Langulus::Anyness
                ++handle;
             }
 
-            clonedCoalescedSrc.mEntry->Keep(count - 1);
+            const_cast<Allocation*>(clonedCoalescedSrc.mEntry)
+               ->Keep(count - 1);
          }
          else {
             // Type can be resolved to objects of varying size, so      
