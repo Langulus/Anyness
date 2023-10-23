@@ -84,10 +84,10 @@ namespace Langulus::Anyness
 
    /// Deep semantic construction                                             
    ///   @param other - the value & semantic to use for initialization        
-   TEMPLATE() LANGULUS(INLINED)
+   /*TEMPLATE() LANGULUS(INLINED)
    TME()::TOwned(CT::DeepSemantic auto&& other) requires CT::CloneMakable<T> {
       ConstructFrom(other.Forward());
-   }
+   }*/
 
    /// Reset the value                                                        
    TEMPLATE() LANGULUS(INLINED)
@@ -167,10 +167,10 @@ namespace Langulus::Anyness
    /// Semantically assign from any pointer/shared pointer/nullptr/related    
    ///   @param rhs - the value and semantic to assign                        
    ///   @return a reference to this shared pointer                           
-   TEMPLATE() LANGULUS(INLINED)
+   /*TEMPLATE() LANGULUS(INLINED)
    TME()& TME()::operator = (CT::DeepSemantic auto&& rhs) requires CT::CloneAssignable<T> {
       return AssignFrom(rhs.Forward());
-   }
+   }*/
 
    /// Get a reference to the contained value (const)                         
    ///   @return the contained value reference                                
