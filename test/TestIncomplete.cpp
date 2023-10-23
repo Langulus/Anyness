@@ -34,9 +34,9 @@ struct Thing final : Resolvable {
 
    TOwned<Thing*> mOwned;
    Ptr<Thing> mOwner;
-   TAny<Thing*> mChildren;
+   /*TAny<Thing*> mChildren;
    UnitMap mUnits;
-   TraitMap mTraits;
+   TraitMap mTraits;*/
 };
 
 Thing::Thing() : Resolvable {MetaData::Of<Thing>()} {}
