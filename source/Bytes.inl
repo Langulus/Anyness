@@ -265,7 +265,7 @@ namespace Langulus::Anyness
          const auto request = RequestSize(mCount);
          result.mEntry = Allocator::Allocate(nullptr, request.mByteSize);
          LANGULUS_ASSERT(result.mEntry, Allocate, "Out of memory");
-         result.mRaw = result.mEntry->GetBlockStart();
+         result.mRaw = const_cast<Byte*>(result.mEntry->GetBlockStart());
          result.mReserved = request.mElementCount;
          CopyMemory(result.mRaw, mRaw, mCount);
       }
