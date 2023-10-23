@@ -84,10 +84,12 @@ namespace Langulus::Anyness
 
    /// Deep semantic construction                                             
    ///   @param other - the value & semantic to use for initialization        
-   /*TEMPLATE() LANGULUS(INLINED)
-   TME()::TOwned(CT::DeepSemantic auto&& other) requires CT::CloneMakable<T> {
+   TEMPLATE()
+   template<class K>
+   LANGULUS(INLINED)
+   TME()::TOwned(CT::DeepSemantic auto&& other) requires CT::CloneMakable<K> {
       ConstructFrom(other.Forward());
-   }*/
+   }
 
    /// Reset the value                                                        
    TEMPLATE() LANGULUS(INLINED)
