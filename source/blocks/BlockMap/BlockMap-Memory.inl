@@ -48,11 +48,11 @@ namespace Langulus::Anyness
          LANGULUS_THROW(Allocate, "Out of memory");
       }
 
-      mValues.mRaw = mValues.mEntry->GetBlockStart();
+      mValues.mRaw = const_cast<Byte*>(mValues.mEntry->GetBlockStart());
       mKeys.mReserved = mValues.mReserved = count;
 
       // Precalculate the info pointer, it's costly                     
-      mKeys.mRaw = mKeys.mEntry->GetBlockStart();
+      mKeys.mRaw = const_cast<Byte*>(mKeys.mEntry->GetBlockStart());
       mInfo = reinterpret_cast<InfoType*>(mKeys.mRaw + infoOffset);
    }
 
@@ -103,11 +103,11 @@ namespace Langulus::Anyness
             "Out of memory on allocating/reallocating values");
       }
 
-      mValues.mRaw = mValues.mEntry->GetBlockStart();
+      mValues.mRaw = const_cast<Byte*>(mValues.mEntry->GetBlockStart());
       mKeys.mReserved = mValues.mReserved = count;
 
       // Precalculate the info pointer, it's costly                     
-      mKeys.mRaw = mKeys.mEntry->GetBlockStart();
+      mKeys.mRaw = const_cast<Byte*>(mKeys.mEntry->GetBlockStart());
       mInfo = reinterpret_cast<InfoType*>(mKeys.mRaw + infoOffset);
       // Set the sentinel                                               
       mInfo[count] = 1;

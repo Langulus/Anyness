@@ -355,7 +355,7 @@ namespace Langulus::Anyness
 
          if (mEntry != previousBlock.mEntry) {
             // Memory moved, and we should move all elements in it      
-            mutableThis->mRaw = mEntry->GetBlockStart();
+            mutableThis->mRaw = const_cast<Byte*>(mEntry->GetBlockStart());
             CopyMemory(mutableThis->mRaw, previousBlock.mRaw, mCount);
             previousBlock.Free();
          }

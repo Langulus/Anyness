@@ -1591,7 +1591,7 @@ namespace Langulus::Anyness
                // additional memory allocated for each pointer's        
                // entry, if managed memory is enabled                   
                if constexpr (CT::AbandonMakable<T> or CT::MoveMakable<T> or CT::CopyMakable<T>) {
-                  mRaw = mEntry->GetBlockStart();
+                  mRaw = const_cast<Byte*>(mEntry->GetBlockStart());
                   CallKnownSemanticConstructors<T>(
                      previousBlock.mCount, Abandon(previousBlock)
                   );
@@ -1690,7 +1690,7 @@ namespace Langulus::Anyness
          GetType(), request.mByteSize * (CT::Sparse<T> ? 2 : 1)
       );
       LANGULUS_ASSERT(mEntry, Allocate, "Out of memory");
-      mRaw = mEntry->GetBlockStart();
+      mRaw = const_cast<Byte*>(mEntry->GetBlockStart());
       mReserved = request.mElementCount;
    }
 

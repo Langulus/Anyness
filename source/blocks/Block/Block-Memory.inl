@@ -161,7 +161,7 @@ namespace Langulus::Anyness
                // Also, make sure to free the previous mEntry if moved  
                // Sparse containers have additional memory allocated for
                // each pointer's entry, if managed memory is enabled    
-               mRaw = mEntry->GetBlockStart();
+               mRaw = const_cast<Byte*>(mEntry->GetBlockStart());
                CallUnknownSemanticConstructors(previousBlock.mCount,
                   Abandon(previousBlock));
             }
@@ -206,7 +206,7 @@ namespace Langulus::Anyness
          mType, request.mByteSize * (mType->mIsSparse ? 2 : 1)
       );
       LANGULUS_ASSERT(mEntry, Allocate, "Out of memory");
-      mRaw = mEntry->GetBlockStart();
+      mRaw = const_cast<Byte*>(mEntry->GetBlockStart());
       mReserved = request.mElementCount;
    }
 
