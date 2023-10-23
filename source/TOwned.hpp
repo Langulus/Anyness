@@ -75,8 +75,7 @@ namespace Langulus::Anyness
       constexpr TOwned(CT::NotSemantic auto&);
       constexpr TOwned(CT::NotSemantic auto&&);
       TOwned(CT::ShallowSemantic auto&&);
-      template<class K = T>
-      TOwned(CT::DeepSemantic auto&&) requires CT::CloneMakable<K>;
+      TOwned(CT::DeepSemantic auto&&) requires CT::CloneMakable<T>;
 
       NOD() DMeta GetType() const;
 
@@ -92,9 +91,9 @@ namespace Langulus::Anyness
       constexpr TOwned& operator = (CT::NotSemantic auto&);
       constexpr TOwned& operator = (CT::NotSemantic auto&&);
       TOwned& operator = (CT::ShallowSemantic auto&&);
-      //TOwned& operator = (CT::DeepSemantic auto&&) requires CT::CloneAssignable<T>;
+      TOwned& operator = (CT::DeepSemantic auto&&) requires CT::CloneAssignable<T>;
 
-      //NOD() Hash GetHash() const requires CT::Hashable<T>;
+      NOD() Hash GetHash() const requires CT::Hashable<T>;
 
       NOD() const T& Get() const noexcept;
       NOD() T& Get() noexcept;

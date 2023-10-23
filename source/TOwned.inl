@@ -84,10 +84,8 @@ namespace Langulus::Anyness
 
    /// Deep semantic construction                                             
    ///   @param other - the value & semantic to use for initialization        
-   TEMPLATE()
-   template<class K>
-   LANGULUS(INLINED)
-   TME()::TOwned(CT::DeepSemantic auto&& other) requires CT::CloneMakable<K> {
+   TEMPLATE() LANGULUS(INLINED)
+   TME()::TOwned(CT::DeepSemantic auto&& other) requires CT::CloneMakable<T> {
       ConstructFrom(other.Forward());
    }
 
@@ -169,10 +167,10 @@ namespace Langulus::Anyness
    /// Semantically assign from any pointer/shared pointer/nullptr/related    
    ///   @param rhs - the value and semantic to assign                        
    ///   @return a reference to this shared pointer                           
-   /*TEMPLATE() LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    TME()& TME()::operator = (CT::DeepSemantic auto&& rhs) requires CT::CloneAssignable<T> {
       return AssignFrom(rhs.Forward());
-   }*/
+   }
 
    /// Get a reference to the contained value (const)                         
    ///   @return the contained value reference                                
@@ -191,10 +189,10 @@ namespace Langulus::Anyness
    /// Get the hash of the contained dense data, if hashable                  
    /// If data is incomplete or not hashable, hash the pointer instead        
    ///   @return the hash of the contained element                            
-   /*TEMPLATE() LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    Hash TME()::GetHash() const requires CT::Hashable<T> {
       return HashOf(mValue);
-   }*/
+   }
 
    /// Perform a dynamic cast on the pointer                                  
    ///   @tparam D - the desired type to cast to                              
