@@ -189,10 +189,10 @@ namespace Langulus::Anyness
    /// Get the hash of the contained dense data, if hashable                  
    /// If data is incomplete or not hashable, hash the pointer instead        
    ///   @return the hash of the contained element                            
-   TEMPLATE() LANGULUS(INLINED)
+   /*TEMPLATE() LANGULUS(INLINED)
    Hash TME()::GetHash() const requires CT::Hashable<T> {
       return HashOf(mValue);
-   }
+   }*/
 
    /// Perform a dynamic cast on the pointer                                  
    ///   @tparam D - the desired type to cast to                              

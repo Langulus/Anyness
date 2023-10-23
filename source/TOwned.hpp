@@ -93,7 +93,7 @@ namespace Langulus::Anyness
       TOwned& operator = (CT::ShallowSemantic auto&&);
       //TOwned& operator = (CT::DeepSemantic auto&&) requires CT::CloneAssignable<T>;
 
-      NOD() Hash GetHash() const requires CT::Hashable<T>;
+      //NOD() Hash GetHash() const requires CT::Hashable<T>;
 
       NOD() const T& Get() const noexcept;
       NOD() T& Get() noexcept;
