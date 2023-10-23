@@ -110,7 +110,7 @@ namespace Langulus::Anyness
          // Insert a statically typed element                           
          InsertInner<false>(
             GetBucket(MinimalAllocation - 1, *other),
-            other.ForwardPerfect()
+            other.Forward()
          );
       }
    }
@@ -215,7 +215,7 @@ namespace Langulus::Anyness
             // Insert a statically typed pair                           
             InsertInner<false>(
                GetBucket(GetReserved() - 1, *other),
-               other.ForwardPerfect()
+               other.Forward()
             );
          }
       }
@@ -258,7 +258,7 @@ namespace Langulus::Anyness
       Reserve(GetCount() + 1);
       InsertInner<true>(
          GetBucket(GetReserved() - 1, *key),
-         key.ForwardPerfect()
+         key.Forward()
       );
       return 1;
    }

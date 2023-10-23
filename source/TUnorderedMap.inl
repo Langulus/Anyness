@@ -117,7 +117,7 @@ namespace Langulus::Anyness
          mInfo[MinimalAllocation] = 1;
 
          constexpr auto hashmask = MinimalAllocation - 1;
-         InsertPairInner<false, false>(hashmask, other.ForwardPerfect());
+         InsertPairInner<false, false>(hashmask, other.Forward());
       }
       else LANGULUS_ERROR("Unsupported semantic constructor");
    }
@@ -217,7 +217,7 @@ namespace Langulus::Anyness
             // Just destroy and reuse memory                            
             Clear<Self>();
             InsertPairInner<false, false>(
-               GetReserved() - 1, other.ForwardPerfect());
+               GetReserved() - 1, other.Forward());
          }
       }
       else LANGULUS_ERROR("Unsupported semantic assignment");
@@ -597,8 +597,7 @@ namespace Langulus::Anyness
       Reserve(GetCount() + 1);
       InsertInner<true, false>(
          GetBucket(GetReserved() - 1, *key),
-         key.ForwardPerfect(),
-         val.ForwardPerfect()
+         key.Forward(), val.Forward()
       );
       return 1;
    }

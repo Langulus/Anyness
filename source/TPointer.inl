@@ -10,54 +10,54 @@
 #include "TPointer.hpp"
 #include "TOwned.inl"
 
-#define TEMPLATE_SHARED() template<class T, bool DR>
-#define SHARED_POINTER() TPointer<T, DR>
+#define TEMPLATE() template<class T, bool DR>
+#define TME() TPointer<T, DR>
 
 
 namespace Langulus::Anyness
 {
    
    /// Get handle representation of the contained pointer                     
-   TEMPLATE_SHARED() LANGULUS(INLINED)
-   auto SHARED_POINTER()::GetHandle() const {
-      const auto mthis = const_cast<SHARED_POINTER()*>(this);
+   TEMPLATE() LANGULUS(INLINED)
+   auto TME()::GetHandle() const {
+      const auto mthis = const_cast<TME()*>(this);
       return Handle<Type> {mthis->mValue, mthis->mEntry};
    }
 
    /// Copy constructor                                                       
    ///   @param other - pointer to reference                                  
-   TEMPLATE_SHARED() LANGULUS(INLINED)
-   SHARED_POINTER()::TPointer(const TPointer& other)
+   TEMPLATE() LANGULUS(INLINED)
+   TME()::TPointer(const TPointer& other)
       : TPointer {Copy(other)} {}
 
    /// Move constructor                                                       
    ///   @param other - pointer to move                                       
-   TEMPLATE_SHARED() LANGULUS(INLINED)
-   SHARED_POINTER()::TPointer(TPointer&& other)
+   TEMPLATE() LANGULUS(INLINED)
+   TME()::TPointer(TPointer&& other)
       : TPointer {Move(other)} {}
 
    /// Copy construct from any pointer/shared pointer/nullptr/related pointer 
    ///   @param value - the value to use for initialization                   
-   TEMPLATE_SHARED() LANGULUS(INLINED)
-   SHARED_POINTER()::TPointer(const CT::PointerRelated auto& value)
+   TEMPLATE() LANGULUS(INLINED)
+   TME()::TPointer(const CT::PointerRelated auto& value)
       : TPointer {Copy(value)} {}
 
    /// Copy construct from any pointer/shared pointer/nullptr/related pointer 
    ///   @param value - the value to use for initialization                   
-   TEMPLATE_SHARED() LANGULUS(INLINED)
-   SHARED_POINTER()::TPointer(CT::PointerRelated auto& value)
+   TEMPLATE() LANGULUS(INLINED)
+   TME()::TPointer(CT::PointerRelated auto& value)
       : TPointer {Copy(value)} {}
 
    /// Move construct from any pointer/shared pointer/nullptr/related pointer 
    ///   @param value - the value to use for initialization                   
-   TEMPLATE_SHARED() LANGULUS(INLINED)
-   SHARED_POINTER()::TPointer(CT::PointerRelated auto&& value)
+   TEMPLATE() LANGULUS(INLINED)
+   TME()::TPointer(CT::PointerRelated auto&& value)
       : TPointer {Move(value)} {}
 
    /// Semantic construction from any pointer/shared pointer/nullptr/related  
    ///   @param other - the value & semantic to use for initialization        
-   TEMPLATE_SHARED() LANGULUS(INLINED)
-   SHARED_POINTER()::TPointer(CT::Semantic auto&& other) {
+   TEMPLATE() LANGULUS(INLINED)
+   void TME()::ConstructFrom(CT::Semantic auto&& other) {
       using S = Decay<decltype(other)>;
       using ST = TypeOf<S>;
 
@@ -98,9 +98,23 @@ namespace Langulus::Anyness
       else LANGULUS_ERROR("Bad semantic construction");
    }
 
+   /// Semantic construction from any pointer/shared pointer/nullptr/related  
+   ///   @param other - the value & semantic to use for initialization        
+   TEMPLATE() LANGULUS(INLINED)
+   TME()::TPointer(CT::ShallowSemantic auto&& other) {
+      ConstructFrom(other.Forward());
+   }
+
+   /// Semantic construction from any pointer/shared pointer/nullptr/related  
+   ///   @param other - the value & semantic to use for initialization        
+   TEMPLATE() LANGULUS(INLINED)
+   TME()::TPointer(CT::DeepSemantic auto&& other) requires CT::CloneMakable<T> {
+      ConstructFrom(other.Forward());
+   }
+
    /// Shared pointer destruction                                             
-   TEMPLATE_SHARED() LANGULUS(INLINED)
-   SHARED_POINTER()::~TPointer() {
+   TEMPLATE() LANGULUS(INLINED)
+   TME()::~TPointer() {
       if (mValue)
          ResetInner();
    }
@@ -109,10 +123,10 @@ namespace Langulus::Anyness
    ///   @tparam ...ARGS - the deduced arguments                              
    ///   @param arguments - the arguments                                     
    ///   @return the new instance                                             
-   TEMPLATE_SHARED()
+   TEMPLATE()
    template<class... ARGS>
    LANGULUS(INLINED)
-   void SHARED_POINTER()::New(ARGS&&... arguments) {
+   void TME()::New(ARGS&&... arguments) {
       TPointer pointer;
       pointer.mEntry = Allocator::Allocate(
          RTTI::MetaData::Of<Decay<T>>(), 
@@ -127,8 +141,8 @@ namespace Langulus::Anyness
 
    /// Reset the pointer                                                      
    ///   @attention assumes mValue is a valid pointer                         
-   TEMPLATE_SHARED() LANGULUS(INLINED)
-   void SHARED_POINTER()::ResetInner() {
+   TEMPLATE() LANGULUS(INLINED)
+   void TME()::ResetInner() {
       // Do referencing in the element itself, if available             
       if constexpr (DR and CT::Referencable<T>) {
          if (mValue->GetReferences() > 1)
@@ -139,8 +153,8 @@ namespace Langulus::Anyness
    }
 
    /// Reset the pointer                                                      
-   TEMPLATE_SHARED() LANGULUS(INLINED)
-   void SHARED_POINTER()::Reset() {
+   TEMPLATE() LANGULUS(INLINED)
+   void TME()::Reset() {
       if (mValue) {
          ResetInner();
          mValue = {};
@@ -150,48 +164,48 @@ namespace Langulus::Anyness
    /// Copy-assignment                                                        
    ///   @param rhs - pointer to reference                                    
    ///   @return a reference to this shared pointer                           
-   TEMPLATE_SHARED() LANGULUS(INLINED)
-   SHARED_POINTER()& SHARED_POINTER()::operator = (const TPointer& rhs) {
+   TEMPLATE() LANGULUS(INLINED)
+   TME()& TME()::operator = (const TPointer& rhs) {
       return operator = (Copy(rhs));
    }
 
    /// Move-assignment                                                        
    ///   @param rhs - pointer to move                                         
    ///   @return a reference to this shared pointer                           
-   TEMPLATE_SHARED() LANGULUS(INLINED)
-   SHARED_POINTER()& SHARED_POINTER()::operator = (TPointer&& rhs) {
+   TEMPLATE() LANGULUS(INLINED)
+   TME()& TME()::operator = (TPointer&& rhs) {
       return operator = (Move(rhs));
    }
 
    /// Copy-assign from any pointer/shared pointer/nullptr/related pointer    
    ///   @param rhs - the value to assign                                     
    ///   @return a reference to this shared pointer                           
-   TEMPLATE_SHARED() LANGULUS(INLINED)
-   SHARED_POINTER()& SHARED_POINTER()::operator = (const CT::PointerRelated auto& rhs) {
+   TEMPLATE() LANGULUS(INLINED)
+   TME()& TME()::operator = (const CT::PointerRelated auto& rhs) {
       return operator = (Copy(rhs));
    }
 
    /// Copy-assign from any pointer/shared pointer/nullptr/related pointer    
    ///   @param rhs - the value to assign                                     
    ///   @return a reference to this shared pointer                           
-   TEMPLATE_SHARED() LANGULUS(INLINED)
-   SHARED_POINTER()& SHARED_POINTER()::operator = (CT::PointerRelated auto& rhs) {
+   TEMPLATE() LANGULUS(INLINED)
+   TME()& TME()::operator = (CT::PointerRelated auto& rhs) {
       return operator = (Copy(rhs));
    }
 
    /// Move-assign from any pointer/shared pointer/nullptr/related pointer    
    ///   @param rhs - the value to assign                                     
    ///   @return a reference to this shared pointer                           
-   TEMPLATE_SHARED() LANGULUS(INLINED)
-   SHARED_POINTER()& SHARED_POINTER()::operator = (CT::PointerRelated auto&& rhs) {
+   TEMPLATE() LANGULUS(INLINED)
+   TME()& TME()::operator = (CT::PointerRelated auto&& rhs) {
       return operator = (Move(rhs));
    }
 
    /// Semantically assign from any pointer/shared pointer/nullptr/related    
    ///   @param rhs - the value and semantic to assign                        
    ///   @return a reference to this shared pointer                           
-   TEMPLATE_SHARED() LANGULUS(INLINED)
-   SHARED_POINTER()& SHARED_POINTER()::operator = (CT::Semantic auto&& rhs) {
+   TEMPLATE() LANGULUS(INLINED)
+   TME()& TME()::AssignFrom(CT::Semantic auto&& rhs) {
       using S = Decay<decltype(rhs)>;
       using ST = TypeOf<S>;
 
@@ -224,7 +238,7 @@ namespace Langulus::Anyness
                "Unrelated raw pointer"
             );
 
-            GetHandle().Assign(rhs.ForwardPerfect());
+            GetHandle().Assign(rhs.Forward());
          }
 
          if constexpr (S::Shallow and not S::Move and S::Keep) {
@@ -237,34 +251,50 @@ namespace Langulus::Anyness
          return *this;
       }
    }
+   
+   /// Semantically assign from any pointer/shared pointer/nullptr/related    
+   ///   @param rhs - the value and semantic to assign                        
+   ///   @return a reference to this shared pointer                           
+   TEMPLATE() LANGULUS(INLINED)
+   TME()& TME()::operator = (CT::ShallowSemantic auto&& rhs) {
+      return AssignFrom(rhs.Forward());
+   }
+   
+   /// Semantically assign from any pointer/shared pointer/nullptr/related    
+   ///   @param rhs - the value and semantic to assign                        
+   ///   @return a reference to this shared pointer                           
+   TEMPLATE() LANGULUS(INLINED)
+   TME()& TME()::operator = (CT::DeepSemantic auto&& rhs) requires CT::CloneAssignable<T> {
+      return AssignFrom(rhs.Forward());
+   }
 
    /// Cast to a constant pointer, if mutable                                 
    ///   @return the constant equivalent to this pointer                      
-   TEMPLATE_SHARED() LANGULUS(INLINED)
-   SHARED_POINTER()::operator TPointer<const T, DR>() const noexcept requires CT::Mutable<T> {
+   TEMPLATE() LANGULUS(INLINED)
+   TME()::operator TPointer<const T, DR>() const noexcept requires CT::Mutable<T> {
       return {mValue};
    }
 
    /// Check if we have authority over the memory                             
    ///   @return true if we own the memory behind the pointer                 
-   TEMPLATE_SHARED() LANGULUS(INLINED)
-   constexpr bool SHARED_POINTER()::HasAuthority() const noexcept {
+   TEMPLATE() LANGULUS(INLINED)
+   constexpr bool TME()::HasAuthority() const noexcept {
       return mEntry;
    }
       
    /// Get the references for the entry, where this pointer resides in        
    ///   @attention returns zero if pointer is not managed                    
    ///   @return number of uses for the pointer's memory                      
-   TEMPLATE_SHARED() LANGULUS(INLINED)
-   constexpr Count SHARED_POINTER()::GetUses() const noexcept {
+   TEMPLATE() LANGULUS(INLINED)
+   constexpr Count TME()::GetUses() const noexcept {
       return mEntry ? mEntry->GetUses() : 0;
    }
                
    /// Get the block of the contained pointer                                 
    /// Can be invoked by the reflected resolver                               
    ///   @return the pointer, interfaced via a memory block                   
-   TEMPLATE_SHARED() LANGULUS(INLINED)
-   Block SHARED_POINTER()::GetBlock() const {
+   TEMPLATE() LANGULUS(INLINED)
+   Block TME()::GetBlock() const {
       return {
          DataState::Constrained,
          Base::GetType(), 1, &(mValue),
@@ -273,26 +303,21 @@ namespace Langulus::Anyness
       };
    }
 
-   /// Compare any similar shared pointer                                     
-   ///   @tparam ALT_T - type of rhs pointer                                  
-   ///   @tparam ALT_DR - referencing type of rhs pointer                     
-   ///   @param rhs - the pointer to compare against                          
-   ///   @return true if pointers match                                       
-   TEMPLATE_SHARED()
-   template<class ALT_T, bool ALT_DR>
-   LANGULUS(INLINED)
-   bool SHARED_POINTER()::operator == (const TPointer<ALT_T, ALT_DR>& rhs) const noexcept requires (CT::Inner::Comparable<T*, ALT_T*>) {
-      return mValue == rhs.mValue;
+   /// Access the pointer (always const)                                      
+   ///   @return the contained pointer                                        
+   TEMPLATE() LANGULUS(INLINED)
+   const T* TME()::operator * () const noexcept {
+      return mValue;
    }
 
-   /// Check if shared pointer is valid, by comparing it with nullptr         
-   ///   @return true if pointer is nullptr                                   
-   TEMPLATE_SHARED() LANGULUS(INLINED)
-   bool SHARED_POINTER()::operator == (::std::nullptr_t) const noexcept {
-      return mValue == nullptr;
+   /// Access the pointer (always const)                                      
+   ///   @return the contained pointer                                        
+   TEMPLATE() LANGULUS(INLINED)
+   T* TME()::operator * () noexcept {
+      return mValue;
    }
 
 } // namespace Langulus::Anyness
 
-#undef TEMPLATE_SHARED
-#undef SHARED_POINTER
+#undef TEMPLATE
+#undef TME

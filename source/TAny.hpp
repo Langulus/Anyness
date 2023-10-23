@@ -51,7 +51,9 @@ namespace Langulus::Anyness
       using IteratorEnd = TIteratorEnd<true>;
       using ConstIteratorEnd = TIteratorEnd<false>;
 
-   public:
+      ///                                                                     
+      ///   Construction                                                      
+      ///                                                                     
       constexpr TAny();
       
       TAny(const TAny&);
@@ -60,20 +62,29 @@ namespace Langulus::Anyness
       TAny(const CT::NotSemantic auto&);
       TAny(CT::NotSemantic auto&);
       TAny(CT::NotSemantic auto&&);
-      TAny(CT::Semantic auto&&);
+      TAny(CT::ShallowSemantic auto&&);
+      TAny(CT::DeepSemantic auto&&) requires CT::CloneMakable<T>;
 
       template<CT::Data T1, CT::Data T2, CT::Data... TAIL>
       TAny(T1&&, T2&&, TAIL&&...);
 
       ~TAny();
 
+      ///                                                                     
+      ///   Assignment                                                        
+      ///                                                                     
       TAny& operator = (const TAny&);
       TAny& operator = (TAny&&);
 
       TAny& operator = (const CT::NotSemantic auto&);
       TAny& operator = (CT::NotSemantic auto&);
       TAny& operator = (CT::NotSemantic auto&&);
-      TAny& operator = (CT::Semantic auto&&);
+      TAny& operator = (CT::ShallowSemantic auto&&);
+      TAny& operator = (CT::DeepSemantic auto&&) requires CT::CloneAssignable<T>;
+
+   private:
+      void ConstructFrom(CT::Semantic auto&&);
+      TAny& AssignFrom(CT::Semantic auto&&);
 
    public:
       NOD() static TAny From(const T*, const Count& = 1);
@@ -263,7 +274,7 @@ namespace Langulus::Anyness
       NOD() bool CompareLoose(const TAny&) const noexcept;
       NOD() Count Matches(const TAny&) const noexcept;
       NOD() Count MatchesLoose(const TAny&) const noexcept;
-      NOD() Hash GetHash() const;
+      NOD() Hash GetHash() const requires CT::Hashable<T>;
 
       template<bool ASCEND = false>
       void Sort();

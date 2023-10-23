@@ -113,7 +113,7 @@ namespace Langulus::Anyness
          mInfo[MinimalAllocation] = 1;
 
          constexpr auto hashmask = MinimalAllocation - 1;
-         InsertPairInner<false, true>(hashmask, other.ForwardPerfect());
+         InsertPairInner<false, true>(hashmask, other.Forward());
       }
       else LANGULUS_ERROR("Unsupported semantic constructor");
    }
@@ -221,7 +221,7 @@ namespace Langulus::Anyness
             // Just destroy and reuse memory                            
             Clear<OrderedMap>();
             InsertPairInner<false, true>(
-               GetReserved() - 1, other.ForwardPerfect());
+               GetReserved() - 1, other.Forward());
          }
       }
       else LANGULUS_ERROR("Unsupported ordered map assignment");

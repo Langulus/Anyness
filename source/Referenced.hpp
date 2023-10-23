@@ -9,6 +9,7 @@
 #pragma once
 #include "inner/Config.hpp"
 
+
 namespace Langulus::Anyness
 {
 
@@ -17,32 +18,34 @@ namespace Langulus::Anyness
    ///                                                                        
    /// Provides the interface to be considered CT::Referencable               
    /// The destructor of this type guarantees, that after destruction, the    
-   /// member mReferences is zeroed                                           
+   /// member mReferences is zeroed.                                          
    ///                                                                        
    class Referenced {
-      Count mReferences {1};
+      mutable Count mReferences = 1;
 
    public:
-      void Keep() const noexcept {
-         LANGULUS_ASSUME(DevAssumes, mReferences > 0,
-            "Reference count resurrection");
-         ++const_cast<Count&>(mReferences);
+      LANGULUS(INLINED)
+      constexpr ~Referenced() noexcept {
+         mReferences = 0;
       }
 
+      LANGULUS(INLINED)
+      void Keep() const IF_UNSAFE(noexcept) {
+         LANGULUS_ASSUME(DevAssumes, mReferences > 0,
+            "Reference count resurrection");
+         ++mReferences;
+      }
+
+      LANGULUS(INLINED)
       Count Free() const IF_UNSAFE(noexcept) {
          LANGULUS_ASSUME(DevAssumes, mReferences > 1,
             "Last dereference is reserved for destructor only");
-         return --const_cast<Count&>(mReferences);
+         return --mReferences;
       }
 
-      Count GetReferences() const noexcept {
+      LANGULUS(INLINED)
+      constexpr Count GetReferences() const noexcept {
          return mReferences;
-      }
-
-      ~Referenced() {
-         /*LANGULUS_ASSUME(DevAssumes, mReferences == 1,
-            "Destroying a referenced element, that is still in use");*/
-         mReferences = 0;
       }
    };
 

@@ -111,7 +111,7 @@ namespace Langulus::Anyness
 
          constexpr auto hashmask = MinimalAllocation - 1;
          Base::template InsertPairInner<false, true>(
-            hashmask, other.ForwardPerfect());
+            hashmask, other.Forward());
       }
       else LANGULUS_ERROR("Unsupported semantic constructor");
    }
@@ -205,7 +205,7 @@ namespace Langulus::Anyness
             Base::template Clear<Self>();
             Base::template InsertPairInner<false, true>(
                Base::GetReserved() - 1,
-               other.ForwardPerfect()
+               other.Forward()
             );
          }
       }
@@ -271,7 +271,7 @@ namespace Langulus::Anyness
       Base::template Reserve<Self>(Base::GetCount() + 1);
       Base::template InsertInner<true, true>(
          Base::GetBucket(Base::GetReserved() - 1, *key),
-         key.ForwardPerfect(), val.ForwardPerfect()
+         key.Forward(), val.Forward()
       );
       return 1;
    }

@@ -143,7 +143,7 @@ namespace Langulus::Anyness
             );
       }
 
-      InsertInner(item.ForwardPerfect(), index);
+      InsertInner(item.Forward(), index);
       return 1;
    }
    
@@ -269,9 +269,9 @@ namespace Langulus::Anyness
                mCount, Abandon(CropInner(0, mCount))
             );
 
-         InsertInner(item.ForwardPerfect(), 0);
+         InsertInner(item.Forward(), 0);
       }
-      else InsertInner(item.ForwardPerfect(), mCount);
+      else InsertInner(item.Forward(), mCount);
 
       return 1;
    }
@@ -974,7 +974,7 @@ namespace Langulus::Anyness
       }
 
       return SmartPushInner<ALLOW_DEEPEN, INDEX, WRAPPER>(
-         value.ForwardPerfect(), state);
+         value.Forward(), state);
    }
    
    /// Inner semantic insertion function for a range                          
@@ -1734,7 +1734,20 @@ namespace Langulus::Anyness
          }
          const auto lhsEnd = REVERSE ? lhs - count : lhs + count;
          while (lhs != lhsEnd) {
-            SemanticNew(lhs, S::Nest(*rhs));
+            if constexpr (CT::Abandoned<S> and not CT::AbandonMakable<T>) {
+               if constexpr (CT::MoveMakable<T>) {
+                  // We can fallback to move-construction, but report   
+                  // a performance warning                              
+                  IF_SAFE(Logger::Warning(
+                     "Move used, instead of abandon - implement an "
+                     "abandon-constructor for type ", NameOf<T>(),
+                     " to fix this warning"
+                  ));
+                  SemanticNew(lhs, Move(*rhs));
+               }
+               else LANGULUS_ERROR("T is not movable/abandon-constructible");
+            }
+            else SemanticNew(lhs, S::Nest(*rhs));
 
             if constexpr (REVERSE) {
                --lhs;

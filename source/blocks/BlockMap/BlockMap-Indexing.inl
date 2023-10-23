@@ -182,8 +182,7 @@ namespace Langulus::Anyness
          ", index ", i, " is beyond the reserved ", GetReserved(), " elements");
       LANGULUS_ASSUME(DevAssumes, mKeys.template IsSimilar<K>(),
          "Wrong type when accessing map key",
-         ", using type `", NameOf<K>(),
-         "` instead of `", mKeys.GetType(), '`');
+         ", using type `", NameOf<K>(), "` instead of `", mKeys.GetType(), '`');
       return GetKeys<K>().GetRaw()[i];
    }
    
@@ -207,8 +206,7 @@ namespace Langulus::Anyness
          ", index ", i, " is beyond the reserved ", GetReserved(), " elements");
       LANGULUS_ASSUME(DevAssumes, mKeys.template IsSimilar<K>(),
          "Wrong type when accessing map key",
-         ", using type `", NameOf<K>(),
-         "` instead of `", mKeys.GetType(), '`');
+         ", using type `", NameOf<K>(), "` instead of `", mKeys.GetType(), '`');
       return GetKeys<K>().GetHandle(i);
    }
 
@@ -226,8 +224,7 @@ namespace Langulus::Anyness
          ", index ", i, " is beyond the reserved ", GetReserved(), " elements");
       LANGULUS_ASSUME(DevAssumes, mValues.template IsSimilar<V>(),
          "Wrong type when accessing map value",
-         ", using type `", NameOf<V>(),
-         "` instead of `", mValues.GetType(), '`');
+         ", using type `", NameOf<V>(), "` instead of `", mValues.GetType(), '`');
       return GetValues<V>().GetRaw()[i];
    }
 
@@ -251,8 +248,7 @@ namespace Langulus::Anyness
          ", index ", i, " is beyond the reserved ", GetReserved(), " elements");
       LANGULUS_ASSUME(DevAssumes, mValues.template IsSimilar<V>(), 
          "Wrong type when accessing map value", 
-         ", using type `", NameOf<V>(), 
-         "` instead of `", mValues.GetType(), '`');
+         ", using type `", NameOf<V>(), "` instead of `", mValues.GetType(), '`');
       return GetValues<V>().GetHandle(i);
    }
 

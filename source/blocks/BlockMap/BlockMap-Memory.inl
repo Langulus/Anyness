@@ -310,10 +310,8 @@ namespace Langulus::Anyness
 
       if (mValues.mEntry->GetUses() == 1) {
          if constexpr (DESTROY) {
-            if (not IsEmpty()) {
-               // Destroy all keys and values                           
+            if (not IsEmpty())
                ClearInner<MAP>();
-            }
          }
 
          // Deallocate stuff                                            

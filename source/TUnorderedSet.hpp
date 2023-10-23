@@ -42,7 +42,8 @@ namespace Langulus::Anyness
       TUnorderedSet(const CT::NotSemantic auto&);
       TUnorderedSet(CT::NotSemantic auto&);
       TUnorderedSet(CT::NotSemantic auto&&);
-      TUnorderedSet(CT::Semantic auto&&);
+      TUnorderedSet(CT::ShallowSemantic auto&&);
+      TUnorderedSet(CT::DeepSemantic auto&&) requires CT::CloneMakable<T>;
 
       template<CT::Data T1, CT::Data T2, CT::Data... TAIL>
       TUnorderedSet(T1&&, T2&&, TAIL&&...);
@@ -55,7 +56,12 @@ namespace Langulus::Anyness
       TUnorderedSet& operator = (const CT::NotSemantic auto&);
       TUnorderedSet& operator = (CT::NotSemantic auto&);
       TUnorderedSet& operator = (CT::NotSemantic auto&&);
-      TUnorderedSet& operator = (CT::Semantic auto&&);
+      TUnorderedSet& operator = (CT::ShallowSemantic auto&&);
+      TUnorderedSet& operator = (CT::DeepSemantic auto&&) requires CT::CloneAssignable<T>;
+
+   private:
+      void ConstructFrom(CT::Semantic auto&&);
+      TUnorderedSet& AssignFrom(CT::Semantic auto&&);
 
    public:
       ///                                                                     
