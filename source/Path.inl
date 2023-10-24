@@ -24,6 +24,15 @@ namespace Langulus::Anyness
    Path::Path(Text&& other)
       : Text {Forward<Text>(other)} {}
 
+   /// Descriptor-constructor                                                 
+   ///   @param describe - the descriptor                                     
+   LANGULUS(INLINED)
+   Path::Path(Describe&& describe) {
+      LANGULUS_ASSUME(UserAssumes, *describe,
+         "Empty descriptor for ", NameOf<Path>());
+      describe->ExtractData<Text>(*this);
+   }
+
    /// Return the lowercase file extension (the part after the last '.')      
    ///   @return a cloned text container with the extension                   
    LANGULUS(INLINED)
