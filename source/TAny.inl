@@ -97,16 +97,18 @@ namespace Langulus::Anyness
             // RHS is type-erased, do runtime type checks               
             if (mType->IsExact(other->GetType())) {
                // If types are exactly the same, it is safe to directly 
-               // transfer the block, essentially converting a type     
+               // absorb the block, essentially converting a type-      
                // erased Any, to this TAny representation               
                BlockTransfer<TAny>(other.Forward());
                return;
             }
-            else if constexpr (CT::Exact<T, ST>) {
-               // The deep RHS can be contained in this TAny, just      
+            else if constexpr (CT::Deep<T> and not CT::Typed<T>) {
+               // All deep containers are binary-compatible with each   
+               // other (unless typed), so RHS can be contained in this 
+               // TAny, just reinterpret it as the type-erased T, and   
                // push it                                               
                AllocateFresh(RequestSize(1));
-               InsertInner(other.Forward(), 0);
+               InsertInner(Abandon(T {other.Forward()}), 0);
                return;
             }
             else {
