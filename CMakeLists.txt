@@ -10,13 +10,13 @@ if(PROJECT_IS_TOP_LEVEL OR NOT LANGULUS)
     include(LangulusUtilities.cmake)
 
     # Add Langulus::Core/Logger/RTTI/Fractalloc/SIMD libraries              
-    fetch_langulus_module(Core   GIT_TAG 21cf8d630324518797087a811860b102daf27d08)
+    fetch_langulus_module(Core   GIT_TAG d52feac3e995e3eeac44fadd7812361919b73a11)
     fetch_langulus_module(Logger GIT_TAG 3314fbe3bf5611a5bd9ee649f2a6ba5c43f6b4c4)
-    fetch_langulus_module(RTTI   GIT_TAG 0505d7ad0e8031e3f1038c1fe6b6396bac3f9ab6)
+    fetch_langulus_module(RTTI   GIT_TAG 50494f0906e6f5bb8eee4e95ad68dcd856af2227)
     if(LANGULUS_FEATURE_MANAGED_MEMORY)
-        fetch_langulus_module(Fractalloc GIT_TAG 8ff8e85a09f35a406a6578e383b0a727a622f691)
+        fetch_langulus_module(Fractalloc GIT_TAG 62a235d9d940afa9fffac328217161598ab555c6)
     endif()
-    fetch_langulus_module(SIMD   GIT_TAG 57e150d)
+    fetch_langulus_module(SIMD   GIT_TAG 1dfcea70cd1dcbc08c8295fea0f49e21a642aa45)
 endif()
 
 # Build and install Anyness library                                         
