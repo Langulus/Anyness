@@ -12,7 +12,6 @@ function(fetch_langulus_module NAME GIT_TAG TAG)
         Langulus${NAME}
         GIT_REPOSITORY  https://github.com/Langulus/${NAME}.git
         GIT_TAG         ${TAG}
-        GIT_SHALLOW     TRUE
         SOURCE_DIR      "${LANGULUS_EXTERNAL_DIRECTORY}/${NAME}-src"
         SUBBUILD_DIR    "${CMAKE_BINARY_DIR}/external/${NAME}-subbuild"
         ${ARGN}
