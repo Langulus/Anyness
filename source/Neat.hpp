@@ -78,6 +78,7 @@ namespace Langulus::Anyness
       // by their order of appearance. Their contents are also          
       // nest-normalized all the way through                            
       TUnorderedMap<DMeta, TAny<Inner::DeConstruct>> mConstructs;
+
       // Any other block type that doesn't fit in the above is sorted   
       // first by the block type, then by the order of appearance       
       // These sub-blocks won't contain Neat elements                   
@@ -253,6 +254,17 @@ namespace Langulus::Anyness
       bool ExtractTraitInner(const TAny<Any>&, ::std::integer_sequence<Offset, IDX...>, CT::Data auto&...) const;
       template<Offset>
       bool ExtractTraitInnerInner(const TAny<Any>&, CT::Data auto&) const;
+
+   public:
+      ///                                                                     
+      ///   Removal                                                           
+      ///                                                                     
+      template<CT::Data T, bool EMPTY_TOO = false>
+      Count RemoveData();
+      template<CT::Data T>
+      Count RemoveConstructs();
+      template<CT::Trait T, bool EMPTY_TOO = false>
+      Count RemoveTrait();
    };
 
 } // namespace Langulus::Anyness

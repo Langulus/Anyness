@@ -57,7 +57,7 @@ namespace Langulus::Anyness
       NOD() Bytes Clone() const;
       NOD() Bytes Crop(const Offset&, const Count&) const;
       NOD() Bytes Crop(const Offset&, const Count&);
-      Bytes& Remove(const Offset&, const Count&);
+      Bytes& RemoveIndex(const Offset&, const Count&);
       Bytes Extend(const Count&);
       Hash GetHash() const;
 

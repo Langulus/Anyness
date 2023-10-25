@@ -615,18 +615,14 @@ namespace Langulus::Anyness
    /// Access typed dense elements by index                                   
    ///   @param idx - the index to get                                        
    ///   @return a reference to the element                                   
-   TEMPLATE()
-   template<CT::Index IDX>
-   LANGULUS(INLINED)
-   const T& TAny<T>::operator [] (const IDX& index) const {
+   TEMPLATE() LANGULUS(INLINED)
+   const T& TAny<T>::operator [] (const CT::Index auto& index) const {
       const auto offset = SimplifyIndex<T>(index);
       return GetRaw()[offset];
    }
 
-   TEMPLATE()
-   template<CT::Index IDX>
-   LANGULUS(INLINED)
-   T& TAny<T>::operator [] (const IDX& index) {
+   TEMPLATE() LANGULUS(INLINED)
+   T& TAny<T>::operator [] (const CT::Index auto& index) {
       const auto offset = SimplifyIndex<T>(index);
       return GetRaw()[offset];
    }
@@ -1402,7 +1398,7 @@ namespace Langulus::Anyness
    ///   @param count - number of elements to remove                          
    ///   @return the iterator of the previous element, unless index is first  
    TEMPLATE()
-   typename TAny<T>::Iterator TAny<T>::RemoveIndex(const Iterator& index, Count count) {
+   typename TAny<T>::Iterator TAny<T>::RemoveIt(const Iterator& index, Count count) {
       const auto rawend = GetRawEnd();
       if (index.mElement >= rawend)
          return {rawend};

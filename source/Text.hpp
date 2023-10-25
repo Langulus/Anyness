@@ -79,7 +79,7 @@ namespace Langulus::Anyness
       NOD() Text Crop(Offset, Count) const;
       NOD() Text Crop(Offset, Count);
       NOD() Text Strip(Letter) const;
-      Text& Remove(Offset, Count);
+      Text& RemoveIndex(Offset, Count);
       Text Extend(Count);
 
       NOD() operator Token () const noexcept;

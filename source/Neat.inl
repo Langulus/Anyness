@@ -968,13 +968,13 @@ namespace Langulus::Anyness
       if constexpr (CT::Trait<A>) {
          // Static trait provided, extract filter                       
          const auto filter = Decay<A>::GetTrait();
-         const auto found = mTraits.Find(filter);
+         const auto found = mTraits.FindIt(filter);
          if (not found)
             return 0;
 
          // Iterate all relevant traits                                 
          Count index {};
-         for (auto& data : mTraits.GetValue(found)) {
+         for (auto& data : found->mValue) {
             // Create a temporary trait                                 
             Decay<A> temporaryTrait {data};
 
@@ -1147,16 +1147,16 @@ namespace Langulus::Anyness
       static_assert(CT::Constant<Deptr<A>> or MUTABLE,
          "Non constant iterator for constant Neat block");
 
-      if constexpr (CT::Deep<A> && CT::Typed<A>) {
+      if constexpr (CT::Deep<A> and CT::Typed<A>) {
          // Statically typed container provided, extract filter         
          const auto filter = MetaData::Of<Decay<TypeOf<A>>>;
-         const auto found = mAnythingElse.Find(filter);
+         const auto found = mAnythingElse.FindIt(filter);
          if (not found)
             return 0;
 
          // Iterate all relevant datas                                  
          Count index {};
-         for (auto& data : mAnythingElse.GetValue(found)) {
+         for (auto& data : found->mValue) {
             auto& dataTyped = reinterpret_cast<Decay<A>&>(data);
             if constexpr (CT::Bool<R>) {
                // If F returns bool, you can decide when to break the   
@@ -1193,13 +1193,13 @@ namespace Langulus::Anyness
       else {
          // Anything else                                               
          const auto filter = MetaData::Of<Decay<A>>();
-         const auto found = mAnythingElse.Find(filter);
+         const auto found = mAnythingElse.FindIt(filter);
          if (not found)
             return 0;
 
          // Iterate all relevant datas                                  
          Count index {};
-         for (auto& data : mAnythingElse.GetValue(found)) {
+         for (auto& data : found->mValue) {
             auto& dataTyped = reinterpret_cast<TAny<Deref<A>>&>(data);
             for (auto& element : dataTyped) {
                if constexpr (CT::Bool<R>) {
@@ -1223,6 +1223,100 @@ namespace Langulus::Anyness
    Count Neat::ForEachTail(F&& call) const {
       return const_cast<Neat*>(this)->template
          ForEachTail<false>(Forward<F>(call));
+   }
+
+   /// Remove data, that matches the given type                               
+   ///   @tparam T - type of data to remove                                   
+   ///   @tparam EMPTY_TOO - use true, to remove all empty data entries, that 
+   ///                       are usually produced, by pushing DMeta           
+   ///                       (disabled by default)                            
+   ///   @return the number of removed data entries                           
+   template<CT::Data T, bool EMPTY_TOO>
+   Count Neat::RemoveData() {
+      const auto filter = MetaData::Of<Decay<T>>();
+      const auto found = mAnythingElse.FindIt(filter);
+      if (not found)
+         return 0;
+
+      if constexpr (EMPTY_TOO) {
+         // Remove everything                                           
+         const auto count = found->mValue.GetCount();
+         mAnythingElse.RemoveIt(found);
+         return count;
+      }
+
+      Count count = 0;
+      for (auto data : KeepIterator(found->mValue)) {
+         if (not *data)
+            continue;
+
+         // Remove only matching data entries, that aren't empty        
+         data = found->mValue.RemoveIt(data);
+         ++count;
+      }
+
+      if (not found->mValue)
+         mAnythingElse.RemoveIt(found);
+      return count;
+   }
+
+   /// Remove constructs, that match the given type                           
+   ///   @tparam T - type of construct to remove                              
+   ///   @return the number of removed constructs                             
+   template<CT::Data T>
+   Count Neat::RemoveConstructs() {
+      const auto filter = MetaData::Of<Decay<T>>();
+      const auto found = mConstructs.FindIt(filter);
+      if (not found)
+         return 0;
+
+      Count count = 0;
+      for (auto data : KeepIterator(found->mValue)) {
+         if (not *data)
+            continue;
+
+         data = found->mValue.RemoveIt(data);
+         ++count;
+      }
+
+      if (not found->mValue)
+         mConstructs.RemoveIt(found);
+      return count;
+   }
+
+   /// Remove traits, that match the given trait type                         
+   ///   @tparam T - type of trait to remove                                  
+   ///   @tparam EMPTY_TOO - use true, to remove all empty trait entries, that
+   ///                       are usually produced, by pushing TMeta           
+   ///                       (disabled by default)                            
+   ///   @return the number of removed trait entries                          
+   template<CT::Trait T, bool EMPTY_TOO>
+   Count Neat::RemoveTrait() {
+      const auto filter = MetaTrait::Of<T>();
+      const auto found = mTraits.FindIt(filter);
+      if (not found)
+         return 0;
+
+      if constexpr (EMPTY_TOO) {
+         // Remove everything                                           
+         const auto count = found->mValue.GetCount();
+         mTraits.RemoveIt(found);
+         return count;
+      }
+
+      Count count = 0;
+      for (auto data : KeepIterator(found->mValue)) {
+         if (not *data)
+            continue;
+
+         // Remove only matching trait entries, that aren't empty       
+         data = found->mValue.RemoveIt(data);
+         ++count;
+      }
+
+      if (not found->mValue)
+         mTraits.RemoveIt(found);
+      return count;
    }
 
 } // namespace Langulus::Anyness

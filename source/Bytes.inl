@@ -302,7 +302,7 @@ namespace Langulus::Anyness
    ///   @param end - the ending offset                                       
    ///   @return a reference to the byte container                            
    LANGULUS(INLINED)
-   Bytes& Bytes::Remove(const Offset& start, const Offset& end) {
+   Bytes& Bytes::RemoveIndex(const Offset& start, const Offset& end) {
       if (IsEmpty() or IsStatic() or start >= end)
          return *this;
       
