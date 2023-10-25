@@ -127,7 +127,7 @@ namespace Langulus::Anyness
       ///   Removal                                                           
       ///                                                                     
       using Block::RemoveIndex;
-      Iterator RemoveIndex(const Iterator&, Count = 1);
+      Iterator RemoveIt(const Iterator&, Count = 1);
 
       ///                                                                     
       ///   Concatenation                                                     

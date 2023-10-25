@@ -534,7 +534,7 @@ namespace Langulus::Anyness
    ///   @param end - the ending character                                    
    ///   @return a reference to this text                                     
    LANGULUS(INLINED)
-   Text& Text::Remove(Count start, Count end) {
+   Text& Text::RemoveIndex(Count start, Count end) {
       LANGULUS_ASSUME(UserAssumes, end >= start, "end < start");
       const auto removed = ::std::min(end, mCount) - ::std::min(start, mCount);
       if (0 == mCount or 0 == removed)

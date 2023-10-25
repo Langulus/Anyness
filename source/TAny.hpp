@@ -108,17 +108,15 @@ namespace Langulus::Anyness
 
    public:
       NOD() const T& Last() const;
-      NOD() T& Last();
+      NOD()       T& Last();
 
       template<CT::Data = T>
       NOD() decltype(auto) Get(const Offset&) const noexcept;
       template<CT::Data = T>
       NOD() decltype(auto) Get(const Offset&) noexcept;
 
-      template<CT::Index IDX>
-      NOD() const T& operator [] (const IDX&) const;
-      template<CT::Index IDX>
-      NOD() T& operator [] (const IDX&);
+      NOD() const T& operator [] (const CT::Index auto&) const;
+      NOD()       T& operator [] (const CT::Index auto&);
 
       NOD() constexpr bool IsUntyped() const noexcept;
       NOD() constexpr bool IsTypeConstrained() const noexcept;
@@ -204,14 +202,11 @@ namespace Langulus::Anyness
       template<CT::Semantic S>
       TAny& operator >> (S&&) requires (CT::Exact<TypeOf<S>, T>);
 
-      template<CT::Index IDX = Offset>
-      Count MergeAt(const T*, const T*, const IDX&);
-      template<CT::Index IDX = Offset>
-      Count MergeAt(const T&, const IDX&);
-      template<CT::Index IDX = Offset>
-      Count MergeAt(T&&, const IDX&);
-      template<CT::Semantic S, CT::Index IDX = Offset>
-      Count MergeAt(S&&, const IDX&) requires (CT::Exact<TypeOf<S>, T>);
+      Count MergeAt(const T*, const T*, const CT::Index auto&);
+      Count MergeAt(const T&, const CT::Index auto&);
+      Count MergeAt(T&&, const CT::Index auto&);
+      template<CT::Semantic S>
+      Count MergeAt(S&&, const CT::Index auto&) requires (CT::Exact<TypeOf<S>, T>);
 
       template<Index = IndexBack>
       Count Merge(const T*, const T*);
@@ -241,11 +236,10 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Removal                                                           
       ///                                                                     
-      template<bool REVERSE = false, CT::Data ALT_T>
-      Count Remove(const ALT_T&);
-      template<CT::Index INDEX>
-      Count RemoveIndex(const INDEX&, Count = 1);
-      Iterator RemoveIndex(const Iterator&, Count = 1);
+      template<bool REVERSE = false>
+      Count Remove(const CT::Data auto&);
+      Count RemoveIndex(const CT::Index auto&, Count = 1);
+      Iterator RemoveIt(const Iterator&, Count = 1);
 
       void Trim(const Count&);
       template<CT::Block WRAPPER = TAny>
@@ -260,8 +254,8 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Search                                                            
       ///                                                                     
-      template<bool REVERSE = false, CT::Data ALT_T>
-      NOD() Index Find(const ALT_T&, const Offset& = 0) const noexcept;
+      template<bool REVERSE = false>
+      NOD() Index Find(const CT::Data auto&, const Offset& = 0) const noexcept;
 
       template<CT::Data ALT_T = T>
       bool operator == (const TAny<ALT_T>&) const noexcept
@@ -403,12 +397,6 @@ namespace Langulus::Anyness
       template<bool RHS_MUTABLE>
       NOD() constexpr bool operator == (const TIterator<RHS_MUTABLE>&) const noexcept;
       NOD() constexpr bool operator == (const TIteratorEnd&) const noexcept;
-
-      // Prefix operator                                                
-      //constexpr TIteratorEnd& operator ++ () const noexcept;
-
-      // Suffix operator                                                
-      //NOD() constexpr TIteratorEnd operator ++ (int) const noexcept;
    };
 
 } // namespace Langulus::Anyness
