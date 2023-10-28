@@ -89,23 +89,23 @@ namespace Langulus::Anyness
       ///   Construction                                                      
       ///                                                                     
       constexpr Neat() = default;
-      explicit Neat(const Neat&);
-      explicit Neat(Neat&&) noexcept;
+      Neat(const Neat&);
+      Neat(Neat&&) noexcept;
 
       template<CT::Semantic S>
-      explicit Neat(S&&) requires (CT::Neat<TypeOf<S>>);
+      Neat(S&&) requires (CT::Neat<TypeOf<S>>);
 
       template<CT::NotSemantic T>
-      explicit Neat(const T&) requires (not CT::Neat<T>);
+      Neat(const T&) requires (not CT::Neat<T>);
       template<CT::NotSemantic T>
-      explicit Neat(T&) requires (not CT::Neat<T>);
+      Neat(T&) requires (not CT::Neat<T>);
       template<CT::NotSemantic T>
-      explicit Neat(T&&) requires (not CT::Neat<T>);
+      Neat(T&&) requires (not CT::Neat<T>);
       template<CT::Semantic S>
-      explicit Neat(S&&) requires (not CT::Neat<TypeOf<S>>);
+      Neat(S&&) requires (not CT::Neat<TypeOf<S>>);
 
       template<CT::Data T1, CT::Data T2, CT::Data... TAIL>
-      explicit Neat(T1&&, T2&&, TAIL&&...);
+      Neat(T1&&, T2&&, TAIL&&...);
 
       ///                                                                     
       ///   Assignment                                                        

@@ -72,7 +72,7 @@ namespace Langulus::Anyness
       using Base::operator ->;
 
       NOD() const T* operator * () const noexcept;
-      NOD()       T* operator * () noexcept;
+      NOD()       T* operator * ()       noexcept;
 
    private:
       void ConstructFrom(CT::Semantic auto&&);
