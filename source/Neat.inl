@@ -557,7 +557,13 @@ namespace Langulus::Anyness
       using S = Decay<decltype(rhs)>;
       using T = TypeOf<S>;
 
-      if constexpr (CT::Neat<T>) {
+      if constexpr (CT::Array<T>) {
+         if constexpr (CT::StringLiteral<T>)
+            operator << (Abandon(Text {rhs.Forward()}));
+         else for (auto& element : *rhs)
+            operator << (S::Nest(element));
+      }
+      else if constexpr (CT::Neat<T>) {
          // Merge neats                                                 
          Merge(rhs.Forward());
       }
