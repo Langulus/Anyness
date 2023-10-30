@@ -20,6 +20,10 @@ namespace Langulus::Anyness
 
    using RTTI::MetaData;
 
+   /// Default construction with nullptr_t                                    
+   LANGULUS(INLINED)
+   constexpr Text::Text(::std::nullptr_t) {}
+   
    /// Text container copy-construction from base                             
    ///   @param other - container to reference                                
    LANGULUS(INLINED)
@@ -60,7 +64,7 @@ namespace Langulus::Anyness
       using T = TypeOf<S>;
       mType = MetaData::Of<TypeOf<Base>>();
 
-      if constexpr (Relevant<S>) {
+      if constexpr (CT::DerivedFrom<T, Base>) {
          BlockTransfer<Text>(other.template Forward<Base>());
 
          // Base constructor should handle initialization from anything 
@@ -69,17 +73,38 @@ namespace Langulus::Anyness
          if constexpr (not CT::Text<T>)
             mCount = strnlen(GetRaw(), mCount);
       }
-      else if constexpr (CT::Exact<T, Letter>) {
+      else if constexpr (CT::Similar<T, Letter>) {
+         // Initialize using a single character                         
          AllocateFresh(RequestSize(1));
-         mRaw[0] = reinterpret_cast<Byte&>(*other);
+         mRaw[0] = reinterpret_cast<const Byte&>(*other);
       }
-      else if constexpr (RawTextPointer<S>) {
+      else if constexpr (CT::StringPointer<T>) {
+         // Initialize from unbounded array                             
          const Count count = *other ? ::std::strlen(*other) : 0;
-         if constexpr (CT::Sparse<T>)
-            SetMemory(DataState::Constrained, mType, count, *other, nullptr);
-         else
-            SetMemory(DataState::Constrained, mType, 1, &(*other), nullptr);
+         if (not count)
+            return;
 
+         SetMemory(DataState::Constrained, mType, count, *other, nullptr);
+         if constexpr (not S::Move and S::Keep)
+            TakeAuthority();
+      }
+      else if constexpr (CT::StringLiteral<T>) {
+         // Initialize from bounded array                               
+         const Count count = *other ? strnlen(*other, ExtentOf<T>) : 0;
+         if (not count)
+            return;
+
+         SetMemory(DataState::Constrained, mType, count, *other, nullptr);
+         if constexpr (not S::Move and S::Keep)
+            TakeAuthority();
+      }
+      else if constexpr (CT::Similar<T, CompatibleStdString>
+                      or CT::Similar<T, CompatibleStdStringView>) {
+         // Initialize from std::string/std::string_view                
+         if (other->empty())
+            return;
+
+         SetMemory(DataState::Constrained, mType, other->size(), other->data(), nullptr);
          if constexpr (not S::Move and S::Keep)
             TakeAuthority();
       }
@@ -251,7 +276,6 @@ namespace Langulus::Anyness
    }
    
    /// Semantic assignment                                                    
-   ///   @tparam S - the semantic and type of assignment (deducible)          
    ///   @param rhs - the right hand side                                     
    ///   @return a reference to this container                                
    LANGULUS(INLINED)
@@ -259,7 +283,7 @@ namespace Langulus::Anyness
       using S = Decay<decltype(rhs)>;
       using T = TypeOf<S>;
 
-      if constexpr (Relevant<S>) {
+      if constexpr (CT::DerivedFrom<T, Base>) {
          Base::operator = (rhs.template Forward<Base>());
 
          // Base constructor should handle initialization from anything 
@@ -268,10 +292,40 @@ namespace Langulus::Anyness
          if constexpr (not CT::Text<T>)
             mCount = strnlen(GetRaw(), mCount);
       }
-      else if constexpr (CT::Same<T, Letter>)
+      else if constexpr (CT::Similar<T, Letter>) {
          Base::operator = (rhs.Forward());
-      else
-         LANGULUS_ERROR("Bad semantic assignment");
+      }
+      else if constexpr (CT::StringPointer<T>) {
+         // Initialize from unbounded array                             
+         const Count count = *rhs ? ::std::strlen(*rhs) : 0;
+         if (not count)
+            Clear();
+         else {
+            Reset();
+            new (this) Text {rhs.Forward(), count};
+         }
+      }
+      else if constexpr (CT::StringLiteral<T>) {
+         // Initialize from bounded array                               
+         const Count count = *rhs ? strnlen(*rhs, ExtentOf<T>) : 0;
+         if (not count)
+            Clear();
+         else {
+            Reset();
+            new (this) Text {rhs.Forward(), count};
+         }
+      }
+      else if constexpr (CT::Similar<T, CompatibleStdString>
+                      or CT::Similar<T, CompatibleStdStringView>) {
+         // Initialize from std::string/std::string_view                
+         if (rhs->empty())
+            Clear();
+         else {
+            Reset();
+            new (this) Text {rhs.Forward()};
+         }
+      }
+      else LANGULUS_ERROR("Bad semantic assignment");
       return *this;
    }
 

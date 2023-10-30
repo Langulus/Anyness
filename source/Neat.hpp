@@ -24,17 +24,18 @@ namespace Langulus::Anyness
          Charge mCharge;
          Any mData;
 
-         DeConstruct(const Hash& hash, const Charge& charge, CT::Semantic auto&& data)
+         template<template<class> class S>
+         DeConstruct(const Hash& hash, const Charge& charge, S<Neat>&& data)
             : mHash {hash}
             , mCharge {charge}
             , mData {data.Forward()} {}
 
-         template<CT::Semantic S>
+         template<template<class> class S>
          LANGULUS(INLINED)
-         DeConstruct(S&& other)
+         DeConstruct(S<DeConstruct>&& other)
             : mHash {other->mHash}
             , mCharge {other->mCharge}
-            , mData {S::Nest(other->mData)} {}
+            , mData {S<Any> {other->mData}} {}
 
          LANGULUS(INLINED)
          Hash GetHash() const noexcept {
@@ -65,6 +66,8 @@ namespace Langulus::Anyness
    ///                                                                        
    class Neat {
    protected:
+      friend class Construct;
+
       // The hash of the container                                      
       // Kept as first member, in order to quickly access it            
       mutable Hash mHash;
