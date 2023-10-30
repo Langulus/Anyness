@@ -441,7 +441,7 @@ namespace Langulus::Anyness
    template<CT::Trait... T>
    LANGULUS(INLINED)
    bool Neat::ExtractTrait(CT::Data auto&... values) const {
-      return (ExtractTraitInner<T>(values...) || ...);
+      return (ExtractTraitInner<T>(values...) or ...);
    }
    
    /// Extract a trait from the descriptor                                    
