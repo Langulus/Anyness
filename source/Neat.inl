@@ -412,6 +412,7 @@ namespace Langulus::Anyness
    }
 
    /// Set a default trait, if such wasn't already set                        
+   //TODO isn't this like simply merge?? also make merge test only by trait id when merging traits!
    ///   @tparam T - trait to set                                             
    ///   @param value - the value to assign                                   
    template<CT::Trait T>
@@ -530,6 +531,7 @@ namespace Langulus::Anyness
    }
    
    /// Push and sort anything non-semantic by a shallow-copy                  
+   ///   @attention hash will be recomputed on demand                         
    ///   @param rhs - the thing to push                                       
    ///   @return a reference to this Neat container                           
    Neat& Neat::operator << (const CT::NotSemantic auto& rhs) {
@@ -537,6 +539,7 @@ namespace Langulus::Anyness
    }
 
    /// Push and sort anything non-semantic by a shallow-copy                  
+   ///   @attention hash will be recomputed on demand                         
    ///   @param rhs - the thing to push                                       
    ///   @return a reference to this Neat container                           
    Neat& Neat::operator << (CT::NotSemantic auto& rhs) {
@@ -544,6 +547,7 @@ namespace Langulus::Anyness
    }
 
    /// Push and sort anything non-semantic by a move                          
+   ///   @attention hash will be recomputed on demand                         
    ///   @param rhs - the thing to push                                       
    ///   @return a reference to this Neat container                           
    Neat& Neat::operator << (CT::NotSemantic auto&& rhs) {
@@ -551,6 +555,7 @@ namespace Langulus::Anyness
    }
 
    /// Push and sort anything semantically                                    
+   ///   @attention hash will be recomputed on demand                         
    ///   @param rhs - the thing to push, as well as the semantic to use       
    ///   @return a reference to this Neat container                           
    Neat& Neat::operator << (CT::Semantic auto&& rhs) {
@@ -649,6 +654,7 @@ namespace Langulus::Anyness
    }
 
    /// Merge anything non-semantic by a shallow-copy, if it doesn't exist yet 
+   ///   @attention hash will be recomputed on demand, if anything was pushed 
    ///   @param rhs - the thing to push                                       
    ///   @return a reference to this Neat container                           
    Neat& Neat::operator <<= (const CT::NotSemantic auto& rhs) {
@@ -656,6 +662,7 @@ namespace Langulus::Anyness
    }
 
    /// Merge anything non-semantic by a shallow-copy, if it doesn't exist yet 
+   ///   @attention hash will be recomputed on demand, if anything was pushed 
    ///   @param rhs - the thing to push                                       
    ///   @return a reference to this Neat container                           
    Neat& Neat::operator <<= (CT::NotSemantic auto& rhs) {
@@ -663,6 +670,7 @@ namespace Langulus::Anyness
    }
 
    /// Merge anything non-semantic by a move, if it doesn't exist yet         
+   ///   @attention hash will be recomputed on demand, if anything was pushed 
    ///   @param rhs - the thing to push                                       
    ///   @return a reference to this Neat container                           
    Neat& Neat::operator <<= (CT::NotSemantic auto&& rhs) {
@@ -670,6 +678,7 @@ namespace Langulus::Anyness
    }
 
    /// Merge anything semantically, if it doesn't exist yet                   
+   ///   @attention hash will be recomputed on demand, if anything was pushed 
    ///   @param rhs - the thing to push, as well as the semantic to use       
    ///   @return a reference to this Neat container                           
    Neat& Neat::operator <<= (CT::Semantic auto&& rhs) {
@@ -716,6 +725,7 @@ namespace Langulus::Anyness
    }
 
    /// Set a tagged argument inside constructor                               
+   ///   @attention hash will be recomputed on demand                         
    ///   @param trait - trait to set                                          
    ///   @param index - the index we're interested with if repeated           
    ///   @return a reference to this construct for chaining                   
@@ -791,21 +801,22 @@ namespace Langulus::Anyness
    ///   @param messy - the construct and semantic to use                     
    LANGULUS(INLINED)
    void Neat::AddConstruct(CT::Semantic auto&& messy) {
-      static_assert(CT::Construct<TypeOf<decltype(messy)>>);
+      using S = Decay<decltype(messy)>;
+      static_assert(CT::Construct<TypeOf<S>>);
       const auto meta = messy->GetType() ? messy->GetType()->mOrigin : nullptr;
       const auto found = mConstructs.FindIt(meta);
       if (found) {
          found->mValue << Inner::DeConstruct {
             messy->GetHash(),
             messy->GetCharge(),
-            messy.template Forward<Neat>()
+            S::Nest(messy->GetDescriptor())
          };
       }
       else {
          mConstructs.Insert(meta, Inner::DeConstruct {
             messy->GetHash(),
             messy->GetCharge(),
-            messy.template Forward<Neat>()
+            S::Nest(messy->GetDescriptor())
          });
       }
    }
@@ -1095,12 +1106,12 @@ namespace Langulus::Anyness
                      // Make sure change is commited before proceeding  
                      if constexpr (CT::Deep<A>) {
                         data.mHash = temporaryConstruct.template Get<Construct>().GetHash();
-                        data.mData = temporaryConstruct.template Get<Construct>().GetArgument();
+                        data.mData = temporaryConstruct.template Get<Construct>().GetDescriptor();
                         data.mCharge = temporaryConstruct.template Get<Construct>().GetCharge();
                      }
                      else {
                         data.mHash = temporaryConstruct.GetHash();
-                        data.mData = temporaryConstruct.GetArgument();
+                        data.mData = temporaryConstruct.GetDescriptor();
                         data.mCharge = temporaryConstruct.GetCharge();
                      }
                   }
@@ -1115,12 +1126,12 @@ namespace Langulus::Anyness
                   // Make sure change is commited before proceeding     
                   if constexpr (CT::Deep<A>) {
                      data.mHash = temporaryConstruct.template Get<Construct>().GetHash();
-                     data.mData = temporaryConstruct.template Get<Construct>().GetArgument();
+                     data.mData = temporaryConstruct.template Get<Construct>().GetDescriptor();
                      data.mCharge = temporaryConstruct.template Get<Construct>().GetCharge();
                   }
                   else {
                      data.mHash = temporaryConstruct.GetHash();
-                     data.mData = temporaryConstruct.GetArgument();
+                     data.mData = temporaryConstruct.GetDescriptor();
                      data.mCharge = temporaryConstruct.GetCharge();
                   }
                }

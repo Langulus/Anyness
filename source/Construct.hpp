@@ -21,22 +21,26 @@ namespace Langulus::Anyness
    /// used in Verbs::Create to provide instructions on how to instantiate a  
    /// data type.                                                             
    ///                                                                        
-   class Construct : public Neat, public Charge {
+   class Construct {
    private:
       // What are we constructing?                                      
-      DMeta mType {};
+      DMeta  mType {};
+      // What properties does the thing have?                           
+      Neat   mDescriptor;
+      // How many things, when, at what frequency/priority?             
+      Charge mCharge;
 
    public:
       LANGULUS(POD) false;
       LANGULUS_BASES(Neat, Charge);
       LANGULUS_CONVERSIONS();
 
-      constexpr Construct() noexcept;
+      constexpr Construct() noexcept = default;
       Construct(const Construct&) noexcept;
       Construct(Construct&&) noexcept;
 
-      template<CT::Semantic S>
-      Construct(S&&) requires (CT::Construct<TypeOf<S>>);
+      template<template<class> class S>
+      Construct(S<Construct>&&) requires CT::Semantic<S<Construct>>;
 
       Construct(DMeta);
 
@@ -57,14 +61,13 @@ namespace Langulus::Anyness
          Construct(const Token&, T&, const Charge& = {});
          template<CT::NotSemantic T = Any>
          Construct(const Token&, T&&, const Charge& = {});
-         template<CT::Semantic S>
-         Construct(const Token&, S&&, const Charge& = {});
+         Construct(const Token&, CT::Semantic auto&&, const Charge& = {});
       #endif
 
       Construct& operator = (const Construct&) noexcept;
       Construct& operator = (Construct&&) noexcept;
-      template<CT::Semantic S>
-      Construct& operator = (S&&) requires (CT::Construct<TypeOf<S>>);
+      template<template<class> class S>
+      Construct& operator = (S<Construct>&&) requires CT::Semantic<S<Construct>>;
 
    public:
       NOD() Hash GetHash() const;
@@ -95,11 +98,10 @@ namespace Langulus::Anyness
       template<CT::Data T>
       NOD() bool Is() const;
 
-      NOD() const Neat& GetArgument() const noexcept;
-      NOD() Neat& GetArgument() noexcept;
-
+      NOD() const Neat& GetDescriptor() const noexcept;
+      NOD()       Neat& GetDescriptor()       noexcept;
       NOD() const Charge& GetCharge() const noexcept;
-      NOD() Charge& GetCharge() noexcept;
+      NOD()       Charge& GetCharge()       noexcept;
 
       NOD() DMeta GetType() const noexcept;
       NOD() Token GetToken() const noexcept;
@@ -115,6 +117,9 @@ namespace Langulus::Anyness
 
       // Intentionally left undefined                                   
       NOD() explicit operator Debug() const;
+
+      Construct& operator << (auto&&);
+      Construct& operator <<= (auto&&);
    };
 
 } // namespace Langulus::Anyness

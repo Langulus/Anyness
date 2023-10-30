@@ -28,18 +28,13 @@ namespace Langulus::Anyness
       using CompatibleStdString = ::std::basic_string<Letter>;
       using CompatibleStdStringView = ::std::basic_string_view<Letter>;
 
-   protected:
-      template<CT::Semantic S>
-      static constexpr bool Relevant = (CT::DerivedFrom<TypeOf<S>, Base>);
-      template<CT::Semantic S>
-      static constexpr bool RawTextPointer = CT::BuiltinCharacter<TypeOf<S>> and CT::Sparse<TypeOf<S>>;
-
    private:
       explicit Text(const Base&);
       explicit Text(Base&&) noexcept;
 
    public:
       constexpr Text() = default;
+      constexpr Text(::std::nullptr_t);
 
       Text(const Text&);
       Text(Text&&) noexcept;
