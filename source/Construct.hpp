@@ -31,10 +31,6 @@ namespace Langulus::Anyness
       Charge mCharge;
 
    public:
-      LANGULUS(POD) false;
-      LANGULUS_BASES(Neat, Charge);
-      LANGULUS_CONVERSIONS();
-
       constexpr Construct() noexcept = default;
       Construct(const Construct&) noexcept;
       Construct(Construct&&) noexcept;
