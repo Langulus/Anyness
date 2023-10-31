@@ -36,7 +36,7 @@ namespace Langulus::Anyness
       : mType {other->mType}
       , mDescriptor {S<Neat> {other->mDescriptor}}
       , mCharge {other->mCharge} {
-      if constexpr (other.Move and other.Keep) {
+      if constexpr (S<Construct>::Move and S<Construct>::Keep) {
          other->ResetCharge();
          other->mType = {};
       }
@@ -138,7 +138,7 @@ namespace Langulus::Anyness
       mDescriptor = S<Neat> {rhs->mDescriptor};
       mCharge = rhs->mCharge;
 
-      if constexpr (rhs.Move and rhs.Keep) {
+      if constexpr (S<Construct>::Move and S<Construct>::Keep) {
          rhs->ResetCharge();
          rhs->mType = {};
       }
