@@ -38,7 +38,7 @@ namespace Langulus::Anyness
       , mCharge {other->mCharge} {
       if constexpr (other.Move and other.Keep) {
          other->ResetCharge();
-         other->mType = nullptr;
+         other->mType = {};
       }
    }
 
@@ -134,12 +134,13 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Construct& Construct::operator = (S<Construct>&& rhs)
    requires CT::Semantic<S<Construct>> {
+      mType = rhs->mType;
       mDescriptor = S<Neat> {rhs->mDescriptor};
       mCharge = rhs->mCharge;
 
       if constexpr (rhs.Move and rhs.Keep) {
          rhs->ResetCharge();
-         rhs->mType = nullptr;
+         rhs->mType = {};
       }
       return *this;
    }
@@ -206,13 +207,8 @@ namespace Langulus::Anyness
    ///   @return the hash of the content                                      
    LANGULUS(INLINED)
    Hash Construct::GetHash() const {
-      if (mDescriptor.mHash)
-         return mDescriptor.mHash;
-
       // Hash is the same as the Neat base, but with the type on top    
-      if (mType)
-         mDescriptor.mHash = HashOf(mType, mDescriptor);
-      return mDescriptor.GetHash();
+      return mType ? HashOf(mType, mDescriptor) : mDescriptor.GetHash();
    }
 
    /// Clears arguments and charge, but doesn't deallocate                    
