@@ -1277,6 +1277,17 @@ namespace Langulus::Anyness
       , mKey {key}
       , mValue {value} {}
 
+   TABLE_TEMPLATE()
+   template<bool MUTABLE>
+   LANGULUS(INLINED)
+   TABLE()::TIterator<MUTABLE>& TABLE()::TIterator<MUTABLE>::operator = (const TABLE()::TIterator<MUTABLE>& rhs) noexcept {
+      mInfo = rhs.mInfo;
+      mSentinel = rhs.mSentinel;
+      mKey = rhs.mKey;
+      mValue = rhs.mValue;
+      return *this;
+   }
+
    /// Prefix increment operator                                              
    ///   @attention assumes iterator points to a valid element                
    ///   @return the modified iterator                                        

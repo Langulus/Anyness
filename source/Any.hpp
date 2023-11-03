@@ -31,6 +31,19 @@ namespace Langulus::Anyness
       LANGULUS(POD) false;
       LANGULUS_BASES(Block);
 
+   protected: IF_LANGULUS_TESTING(public:)
+      #if LANGULUS_DEBUG()
+         using Block::mRawChar;
+      #endif
+
+      using Block::mRaw;
+      using Block::mRawSparse;
+      using Block::mState;
+      using Block::mCount;
+      using Block::mReserved;
+      using Block::mType;
+      using Block::mEntry;
+
    public:
       static constexpr bool Ownership = true;
 

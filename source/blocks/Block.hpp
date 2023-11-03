@@ -170,7 +170,7 @@ namespace Langulus::Anyness
       template<class, bool>
       friend struct ::Langulus::Flow::ArithmeticVerb;
 
-   private: IF_LANGULUS_TESTING(public:)
+   public:
       union {
          #if LANGULUS_DEBUG()
             char* mRawChar;
