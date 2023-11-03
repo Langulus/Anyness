@@ -724,7 +724,7 @@ namespace Langulus::Anyness
       return *this;
    }
 
-   /// Set a tagged argument inside constructor                               
+   /// Set a tagged argument inside constructor by shallow copy               
    ///   @attention hash will be recomputed on demand                         
    ///   @param trait - trait to set                                          
    ///   @param index - the index we're interested with if repeated           
@@ -744,6 +744,32 @@ namespace Langulus::Anyness
       else {
          // If reached, a new trait group to be inserted                
          mTraits.Insert(meta, static_cast<const Any&>(trait));
+      }
+
+      mHash = {};
+      return *this;
+   }
+   
+   /// Set a tagged argument inside constructor by moving                     
+   ///   @attention hash will be recomputed on demand                         
+   ///   @param trait - trait to set                                          
+   ///   @param index - the index we're interested with if repeated           
+   ///   @return a reference to this construct for chaining                   
+   inline Neat& Neat::Set(Trait&& trait, const Offset& index) {
+      const auto meta = trait.GetTrait();
+      auto found = mTraits.FindIt(meta);
+
+      if (found) {
+         // A group of similar traits was found                         
+         auto& group = found->mValue;
+         if (group.GetCount() > index)
+            group[index] = Forward<Any>(trait);
+         else
+            group << Forward<Any>(trait);
+      }
+      else {
+         // If reached, a new trait group to be inserted                
+         mTraits.Insert(meta, Forward<Any>(trait));
       }
 
       mHash = {};

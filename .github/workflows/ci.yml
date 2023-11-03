@@ -46,11 +46,6 @@ jobs:
     name: "${{matrix.os}}-${{matrix.cxx}}-${{matrix.build}}-${{matrix.arch}}${{matrix.suffix}}"
     runs-on: ${{matrix.os}}
     steps:
-      - name: Dispatch Trigger
-        if: ${{ startsWith(github.event.action, 'Dependency') }}
-        run: >
-          echo "Triggered by dependency: ${{github.event.client_payload.cause}}"
-
       - name: Clone
         uses: actions/checkout@v3
 

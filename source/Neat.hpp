@@ -239,8 +239,7 @@ namespace Langulus::Anyness
       Neat& operator <<= (CT::Semantic auto&&);
 
       Neat& Set(const Trait&, const Offset& = 0);
-      template<CT::Trait T>
-      void Set(CT::Semantic auto&&) const;
+      Neat& Set(Trait&&, const Offset& = 0);
 
       void Merge(const Neat&);
 

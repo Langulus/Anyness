@@ -251,6 +251,7 @@ namespace Langulus::Anyness
 
    public:
       TIterator(const TIterator<true>&) noexcept;
+      TIterator& operator = (const TIterator&) noexcept;
 
       NOD() bool operator == (const TIterator&) const noexcept;
 
