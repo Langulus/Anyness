@@ -6,9 +6,9 @@
 /// Distributed under GNU General Public License v3+                          
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
-#include "Main.hpp"
 #include <Anyness/Neat.hpp>
-#include <catch2/catch.hpp>
+#include "Common.hpp"
+
 
 SCENARIO("Data normalization", "[neat]") {
 	GIVEN("A complex descriptor") {

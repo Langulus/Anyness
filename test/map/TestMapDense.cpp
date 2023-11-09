@@ -6,148 +6,40 @@
 /// Distributed under GNU General Public License v3+                          
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
-#include "Main.hpp"
 #include <Anyness/Text.hpp>
 #include <Anyness/Trait.hpp>
 #include <Anyness/TUnorderedMap.hpp>
 #include <Anyness/TOrderedMap.hpp>
 #include <Anyness/UnorderedMap.hpp>
 #include <Anyness/OrderedMap.hpp>
-#include <catch2/catch.hpp>
 #include <unordered_map>
+#include "../Common.hpp"
 
-LANGULUS_EXCEPTION_HANDLER
-
-using uint = unsigned int;
-using timer = Catch::Benchmark::Chronometer;
-template<class T>
-using some = std::vector<T>;
-template<class T>
-using uninitialized = Catch::Benchmark::storage_for<T>;
-
-template<class C, class K, class V>
-struct TypePair {
-   using Container = C;
-   using Key = K;
-   using Value = V;
-};
-
-template<class K, class V>
-struct TypePair2 {
-   using Key = K;
-   using Value = V;
-};
-
-namespace std {
-   template<>
-   struct hash<Text> {
-      size_t operator()(const Text& str) const noexcept {
-         return str.GetHash().mHash;
-      }
-   };
-}
-
-template<class P, class K, class V, class ALT_K, class ALT_V>
-P CreatePair(const ALT_K& key, const ALT_V& value) {
-   K keyValue;
-   if constexpr (CT::Sparse<K>)
-      keyValue = new Decay<K> {key};
-   else
-      keyValue = key;
-
-   V valueValue;
-   if constexpr (CT::Sparse<V>)
-      valueValue = new Decay<V> {value};
-   else
-      valueValue = value;
-
-   return P {keyValue, valueValue};
-}
-
-/// Cross-container consistency tests                                         
-TEMPLATE_TEST_CASE(
-   "Cross-container consistency tests for TOrderedMap/TUnorderedMap/OrderedMap/UnorderedMap", "[map]",
-   (TypePair2<Text, int>),
-   (TypePair2<Text, Trait>),
-   (TypePair2<Text, Any>),
-   (TypePair2<Text, Traits::Count>),
-   (TypePair2<Text, int*>),
-   (TypePair2<Text, Trait*>),
-   (TypePair2<Text, Traits::Count*>),
-   (TypePair2<Text, Any*>)
-) {
-   Allocator::State memoryState;
-
-   GIVEN("A single element initialized maps of all kinds") {
-      using K = typename TestType::Key;
-      using V = typename TestType::Value;
-
-      const auto pair = CreatePair<TPair<K, V>, K, V>(
-         "five hundred", 555);
-
-      TUnorderedMap<K, V> uset1 {pair};
-      UnorderedMap uset2 {pair};
-      TOrderedMap<K, V> oset1 {pair};
-      OrderedMap oset2 {pair};
-
-      WHEN("Their hashes are taken") {
-         const auto elementHash = HashOf(pair);
-
-         const auto uhash1 = uset1.GetHash();
-         const auto uhash2 = uset2.GetHash();
-         const auto ohash1 = oset1.GetHash();
-         const auto ohash2 = oset2.GetHash();
-
-         THEN("These hashes should all be the same as the element") {
-            REQUIRE(uhash1 == uhash2);
-            REQUIRE(ohash1 == ohash2);
-            REQUIRE(uhash1 == ohash1);
-            REQUIRE(uhash1 == elementHash);
-         }
-      }
-
-      // Check for memory leaks after each cycle                     
-      REQUIRE(memoryState.Assert());
-   }
-}
 
 /// The main test for TOrderedMap/TUnorderedMap/OrderedMap/UnorderedMap       
 /// containers, with all kinds of items, from sparse to dense, from trivial   
 /// to complex, from flat to deep                                             
 TEMPLATE_TEST_CASE(
-   "TOrderedMap/TUnorderedMap/OrderedMap/UnorderedMap", "[map]",
-   (TypePair<TUnorderedMap<Text, Trait*>, Text, Trait*>),
-   (TypePair<UnorderedMap, Text, int>),
-   (TypePair<TUnorderedMap<Text, int>, Text, int>),
-   (TypePair<TUnorderedMap<Text, Trait>, Text, Trait>),
-   (TypePair<TUnorderedMap<Text, Traits::Count>, Text, Traits::Count>),
-   (TypePair<TUnorderedMap<Text, Any>, Text, Any>),
-   (TypePair<TUnorderedMap<Text, int*>, Text, int*>),
-   (TypePair<TUnorderedMap<Text, Traits::Count*>, Text, Traits::Count*>),
-   (TypePair<TUnorderedMap<Text, Any*>, Text, Any*>),
-   (TypePair<TOrderedMap<Text, int>, Text, int>),
-   (TypePair<TOrderedMap<Text, Trait>, Text, Trait>),
-   (TypePair<TOrderedMap<Text, Traits::Count>, Text, Traits::Count>),
-   (TypePair<TOrderedMap<Text, Any>, Text, Any>),
-   (TypePair<TOrderedMap<Text, int*>, Text, int*>),
-   (TypePair<TOrderedMap<Text, Trait*>, Text, Trait*>),
-   (TypePair<TOrderedMap<Text, Traits::Count*>, Text, Traits::Count*>),
-   (TypePair<TOrderedMap<Text, Any*>, Text, Any*>),
-   (TypePair<UnorderedMap, Text, Trait>),
-   (TypePair<UnorderedMap, Text, Traits::Count>),
-   (TypePair<UnorderedMap, Text, Any>),
-   (TypePair<UnorderedMap, Text, int*>),
-   (TypePair<UnorderedMap, Text, Trait*>),
-   (TypePair<UnorderedMap, Text, Traits::Count*>),
-   (TypePair<UnorderedMap, Text, Any*>),
-   (TypePair<OrderedMap, Text, int>),
-   (TypePair<OrderedMap, Text, Trait>),
-   (TypePair<OrderedMap, Text, Traits::Count>),
-   (TypePair<OrderedMap, Text, Any>),
-   (TypePair<OrderedMap, Text, int*>),
-   (TypePair<OrderedMap, Text, Trait*>),
-   (TypePair<OrderedMap, Text, Traits::Count*>),
-   (TypePair<OrderedMap, Text, Any*>)
+   "Dense TOrderedMap/TUnorderedMap/OrderedMap/UnorderedMap", "[map]",
+   (MapPair<TUnorderedMap<Text, int>, Text, int>),
+   (MapPair<TUnorderedMap<Text, Trait>, Text, Trait>),
+   (MapPair<TUnorderedMap<Text, Traits::Count>, Text, Traits::Count>),
+   (MapPair<TUnorderedMap<Text, Any>, Text, Any>),
+
+   (MapPair<TOrderedMap<Text, int>, Text, int>),
+   (MapPair<TOrderedMap<Text, Trait>, Text, Trait>),
+   (MapPair<TOrderedMap<Text, Traits::Count>, Text, Traits::Count>),
+   (MapPair<TOrderedMap<Text, Any>, Text, Any>),
+
+   (MapPair<UnorderedMap, Text, int>),
+   (MapPair<UnorderedMap, Text, Trait>),
+   (MapPair<UnorderedMap, Text, Traits::Count>),
+   (MapPair<UnorderedMap, Text, Any>),
+
+   (MapPair<OrderedMap, Text, int>),
+   (MapPair<OrderedMap, Text, Trait>),
+   (MapPair<OrderedMap, Text, Traits::Count>),
+   (MapPair<OrderedMap, Text, Any>)
 ) {
    using T = typename TestType::Container;
    using K = typename TestType::Key;
@@ -1172,97 +1064,4 @@ TEMPLATE_TEST_CASE(
          }
       }
    }*/
-}
-
-struct VulkanLayer {};
-struct VulkanRenderer {};
-struct VulkanCamera {};
-struct Platform {};
-struct Vulkan {};
-struct Window {};
-struct VulkanLight {};
-struct Monitor {};
-struct VulkanRenderable {};
-struct Cursor {};
-
-/// Testing some corner cases encountered during the use of the container     
-TEMPLATE_TEST_CASE("Map corner cases", "[map]",
-   (TypePair<UnorderedMap, DMeta, Text>),
-   (TypePair<TUnorderedMap<DMeta, Text>, DMeta, Text>),
-   (TypePair<TOrderedMap<DMeta, Text>, DMeta, Text>),
-   (TypePair<OrderedMap, DMeta, Text>)
-) {
-   using T = typename TestType::Container;
-   using K = typename TestType::Key;
-   using V = typename TestType::Value;
-   using Pair = TPair<K, V>;
-
-   GIVEN("Map instance initialized with 10 specific pairs for the corner case") {
-      const Pair pairs[10] = {
-         {MetaData::Of<VulkanLayer>(),       "VulkanLayer"},
-         {MetaData::Of<VulkanRenderer>(),    "VulkanRenderer"},
-         {MetaData::Of<VulkanCamera>(),      "VulkanCamera"},
-         {MetaData::Of<Platform>(),          "Platform"},
-         {MetaData::Of<Vulkan>(),            "Vulkan"},
-         {MetaData::Of<Window>(),            "Window"},
-         {MetaData::Of<VulkanLight>(),       "VulkanLight"},
-         {MetaData::Of<Monitor>(),           "Monitor"},
-         {MetaData::Of<VulkanRenderable>(),  "VulkanRenderable"},
-         {MetaData::Of<Cursor>(),            "Cursor"}
-      };
-
-      T map {pairs};
-
-      WHEN("Removing around-the-end elements by value (corner case)") {
-         Count removed {};
-         removed += map.RemoveValue("VulkanRenderer");
-         removed += map.RemoveValue("VulkanCamera");
-         removed += map.RemoveValue("Vulkan");
-         removed += map.RemoveValue("VulkanRenderable");
-         removed += map.RemoveValue("VulkanLight");
-         removed += map.RemoveValue("VulkanLayer");
-
-         THEN("The map should be correct") {
-            REQUIRE(removed == 6);
-            REQUIRE(map.GetCount() == 4);
-
-            REQUIRE_THROWS(map[MetaData::Of<VulkanLayer>()] == "");
-            REQUIRE_THROWS(map[MetaData::Of<VulkanRenderer>()] == "");
-            REQUIRE_THROWS(map[MetaData::Of<VulkanCamera>()] == "");
-            REQUIRE       (map[MetaData::Of<Platform>()] == "Platform");
-            REQUIRE_THROWS(map[MetaData::Of<Vulkan>()] == "");
-            REQUIRE       (map[MetaData::Of<Window>()] == "Window");
-            REQUIRE_THROWS(map[MetaData::Of<VulkanLight>()] == "");
-            REQUIRE       (map[MetaData::Of<Monitor>()] == "Monitor");
-            REQUIRE_THROWS(map[MetaData::Of<VulkanRenderable>()] == "");
-            REQUIRE       (map[MetaData::Of<Cursor>()] == "Cursor");
-         }
-      }
-
-      WHEN("Removing around-the-end elements by key (corner case)") {
-         Count removed {};
-         removed += map.RemoveKey(MetaData::Of<VulkanRenderer>());
-         removed += map.RemoveKey(MetaData::Of<VulkanCamera>());
-         removed += map.RemoveKey(MetaData::Of<Vulkan>());
-         removed += map.RemoveKey(MetaData::Of<VulkanRenderable>());
-         removed += map.RemoveKey(MetaData::Of<VulkanLight>());
-         removed += map.RemoveKey(MetaData::Of<VulkanLayer>());
-
-         THEN("The map should be correct") {
-            REQUIRE(removed == 6);
-            REQUIRE(map.GetCount() == 4);
-
-            REQUIRE_THROWS(map[MetaData::Of<VulkanLayer>()] == "");
-            REQUIRE_THROWS(map[MetaData::Of<VulkanRenderer>()] == "");
-            REQUIRE_THROWS(map[MetaData::Of<VulkanCamera>()] == "");
-            REQUIRE       (map[MetaData::Of<Platform>()] == "Platform");
-            REQUIRE_THROWS(map[MetaData::Of<Vulkan>()] == "");
-            REQUIRE       (map[MetaData::Of<Window>()] == "Window");
-            REQUIRE_THROWS(map[MetaData::Of<VulkanLight>()] == "");
-            REQUIRE       (map[MetaData::Of<Monitor>()] == "Monitor");
-            REQUIRE_THROWS(map[MetaData::Of<VulkanRenderable>()] == "");
-            REQUIRE       (map[MetaData::Of<Cursor>()] == "Cursor");
-         }
-      }
-   }
 }

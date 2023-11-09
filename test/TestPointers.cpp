@@ -6,11 +6,10 @@
 /// Distributed under GNU General Public License v3+                          
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
-#include "Main.hpp"
 #include <Anyness/Text.hpp>
 #include <Anyness/Ref.hpp>
 #include <Anyness/Referenced.hpp>
-#include <catch2/catch.hpp>
+#include "Common.hpp"
 
 
 /// Simple type for testing Ref                                              
@@ -23,8 +22,6 @@ struct RT : Referenced {
       return data;
    }
 };
-
-LANGULUS_EXCEPTION_HANDLER
 
 ///                                                                           
 TEMPLATE_TEST_CASE("Shared pointer", "[TPointer]",

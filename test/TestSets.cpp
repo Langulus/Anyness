@@ -6,47 +6,15 @@
 /// Distributed under GNU General Public License v3+                          
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
-#include "Main.hpp"
 #include <Anyness/Text.hpp>
 #include <Anyness/Trait.hpp>
 #include <Anyness/TUnorderedSet.hpp>
 #include <Anyness/UnorderedSet.hpp>
 #include <Anyness/TSet.hpp>
 #include <Anyness/Set.hpp>
-#include <catch2/catch.hpp>
 #include <unordered_set>
+#include "Common.hpp"
 
-LANGULUS_EXCEPTION_HANDLER
-
-using uint = unsigned int;
-using timer = Catch::Benchmark::Chronometer;
-template<class T>
-using some = std::vector<T>;
-template<class T>
-using uninitialized = Catch::Benchmark::storage_for<T>;
-
-template<class C, class K>
-struct TypePair {
-   using Container = C;
-   using Key = K;
-};
-
-namespace std {
-   template<>
-   struct hash<Text> {
-      size_t operator()(const Text& str) const noexcept {
-         return str.GetHash().mHash;
-      }
-   };
-}
-
-template<class K, class ALT_K>
-K CreateElement(const ALT_K& key) {
-   if constexpr (CT::Sparse<K>)
-      return new Decay<K> {key};
-   else
-      return key;
-}
 
 /// Cross-container consistency tests                                         
 TEMPLATE_TEST_CASE(
@@ -122,8 +90,8 @@ TEMPLATE_TEST_CASE(
    (TypePair<OrderedSet, Traits::Count>),
    (TypePair<OrderedSet, Any>)
 ) {
-   using T = typename TestType::Container;
-   using K = typename TestType::Key;
+   using T = typename TestType::LHS;
+   using K = typename TestType::RHS;
 
    GIVEN("A default-initialized set instance") {
       const auto element = CreateElement<K>(555);
@@ -888,8 +856,8 @@ TEMPLATE_TEST_CASE("Set corner cases", "[set]",
    (TypePair<TOrderedSet<DMeta>, DMeta>),
    (TypePair<OrderedSet, DMeta>)
 ) {
-   using T = typename TestType::Container;
-   using K = typename TestType::Key;
+   using T = typename TestType::LHS;
+   using K = typename TestType::RHS;
 
    GIVEN("Map instance initialized with 10 specific pairs for the corner case") {
       const K keys[10] = {

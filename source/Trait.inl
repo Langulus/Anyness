@@ -551,7 +551,7 @@ namespace Langulus::Anyness
    template<class TRAIT>
    LANGULUS(INLINED)
    TMeta StaticTrait<TRAIT>::GetTrait() {
-      return RTTI::MetaTrait::Of<TRAIT>();
+      return MetaTrait::Of<TRAIT>();
    }
 
 } // namespace Langulus::Anyness

@@ -1007,7 +1007,7 @@ namespace Langulus::Anyness
                   auto it = start;
                   auto entry = GetEntries() + at;
                   while (it != end) {
-                     *entry = Allocator::Find(RTTI::MetaData::Of<Deptr<T>>(), it);
+                     *entry = Allocator::Find(MetaData::Of<Deptr<T>>(), it);
                      if (*entry)
                         const_cast<Allocation*>(*entry)->Keep();
 
@@ -1667,7 +1667,7 @@ namespace Langulus::Anyness
          "T doesn't match LHS type");
       LANGULUS_ASSUME(DevAssumes, source->template IsExact<T>(),
          "T doesn't match RHS type",
-         ": ", source->GetType(), " != ", RTTI::MetaData::Of<T>());
+         ": ", source->GetType(), " != ", MetaData::Of<T>());
 
       const auto mthis = const_cast<Block*>(this);
       if constexpr (CT::Sparse<T>) {
@@ -1981,7 +1981,7 @@ namespace Langulus::Anyness
          "T doesn't match LHS type");
       LANGULUS_ASSUME(DevAssumes, source->template IsExact<T>(),
          "T doesn't match RHS type",
-         ": ", source->GetType(), " != ", RTTI::MetaData::Of<T>());
+         ": ", source->GetType(), " != ", MetaData::Of<T>());
 
       const auto mthis = const_cast<Block*>(this);
       if constexpr (CT::Sparse<T>) {

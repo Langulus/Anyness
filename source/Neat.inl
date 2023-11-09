@@ -16,9 +16,6 @@
 namespace Langulus::Anyness
 {
 
-   using RTTI::MetaTrait;
-   using RTTI::MetaConst;
-
    /// Copy-constructor                                                       
    ///   @param other - neat container to shallow-copy                        
    LANGULUS(INLINED)
@@ -640,7 +637,7 @@ namespace Langulus::Anyness
       }
       else {
          // RHS is nothing special, just add it as it is                
-         const auto meta = RTTI::MetaData::Of<Decay<T>>();
+         const auto meta = MetaData::Of<Decay<T>>();
          const auto found = mAnythingElse.FindIt(meta);
          if (found)
             found->mValue << Messy {rhs.Forward()};

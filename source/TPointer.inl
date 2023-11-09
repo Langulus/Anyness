@@ -129,7 +129,7 @@ namespace Langulus::Anyness
    void TME()::New(ARGS&&... arguments) {
       TPointer pointer;
       pointer.mEntry = Allocator::Allocate(
-         RTTI::MetaData::Of<Decay<T>>(), 
+         MetaData::Of<Decay<T>>(), 
          sizeof(Decay<T>)
       );
       LANGULUS_ASSERT(pointer.mEntry, Allocate, "Out of memory");

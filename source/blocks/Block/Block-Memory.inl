@@ -16,7 +16,7 @@ namespace Langulus::Anyness
    ///   @param count - the number of elements to request                     
    ///   @return both the provided byte size and reserved count               
    LANGULUS(INLINED)
-   RTTI::AllocationRequest Block::RequestSize(const Count& count) const
+   AllocationRequest Block::RequestSize(const Count& count) const
    IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, IsTyped(),
          "Requesting allocation size for an untyped container");
@@ -199,7 +199,7 @@ namespace Langulus::Anyness
    ///   @attention changes entry, memory and reserve count                   
    ///   @param request - request to fulfill                                  
    LANGULUS(INLINED)
-   void Block::AllocateFresh(const RTTI::AllocationRequest& request) {
+   void Block::AllocateFresh(const AllocationRequest& request) {
       // Sparse containers have additional memory allocated             
       // for each pointer's entry                                       
       mEntry = Allocator::Allocate(

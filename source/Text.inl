@@ -18,8 +18,6 @@
 namespace Langulus::Anyness
 {
 
-   using RTTI::MetaData;
-
    /// Default construction with nullptr_t                                    
    LANGULUS(INLINED)
    constexpr Text::Text(::std::nullptr_t) {}

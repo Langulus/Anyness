@@ -63,6 +63,10 @@ namespace Langulus
 namespace Langulus::Anyness
 {
 
+   using RTTI::AllocationRequest;
+   using RTTI::MetaData;
+   using RTTI::MetaConst;
+   using RTTI::MetaTrait;
    using RTTI::DMeta;
    using RTTI::CMeta;
    using RTTI::TMeta;
@@ -264,7 +268,6 @@ namespace Langulus::Anyness
       NOD() constexpr bool IsMutable() const noexcept;
       NOD() constexpr bool IsStatic() const noexcept;
       NOD() constexpr bool IsAbstract() const noexcept;
-      NOD() constexpr bool IsDefaultable() const noexcept;
       NOD() constexpr bool IsOr() const noexcept;
       NOD() constexpr bool IsEmpty() const noexcept;
       NOD() constexpr bool IsValid() const noexcept;
@@ -562,7 +565,7 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Memory management                                                 
       ///                                                                     
-      NOD() RTTI::AllocationRequest RequestSize(const Count&) const IF_UNSAFE(noexcept);
+      NOD() AllocationRequest RequestSize(const Count&) const IF_UNSAFE(noexcept);
       void Reserve(Count);
       template<bool CREATE = false, bool SETSIZE = false>
       void AllocateMore(Count);
@@ -573,7 +576,7 @@ namespace Langulus::Anyness
       /// @cond show_protected                                                
       template<bool CREATE = false>
       void AllocateInner(const Count&);
-      void AllocateFresh(const RTTI::AllocationRequest&);
+      void AllocateFresh(const AllocationRequest&);
       void AllocateRegion(const Block&, Offset, Block&);
       void Reference(const Count&) const noexcept;
       void Keep() const noexcept;
@@ -879,13 +882,17 @@ namespace Langulus::Anyness
 namespace Langulus::CT
 {
 
+   /// Any origin type that inherits Block                                    
+   template<class... T>
+   concept BlockBased = (DerivedFrom<T, Anyness::Block> and ...);
+
    /// A reflected block type is any type that inherits Block, and is         
    /// binary compatible to a Block - this is a mandatory requirement for     
    /// any CT::Deep type                                                      
    /// Keep in mind, that sparse types are never considered Block!            
    template<class... T>
-   concept Block = ((DerivedFrom<T, Anyness::Block> 
-      and sizeof(T) == sizeof(Anyness::Block)) and ...);
+   concept Block = BlockBased<T...>
+       and ((sizeof(T) == sizeof(Anyness::Block)) and ...);
 
    /// A deep type is any type with a true static member T::CTTI_Deep,        
    /// is binary compatible with Block, as well as having the same interface  

@@ -6,11 +6,11 @@
 /// Distributed under GNU General Public License v3+                          
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
-#include "Main.hpp"
 #include <Anyness/Text.hpp>
 #include <Anyness/Path.hpp>
 #include <Anyness/Trait.hpp>
-#include <catch2/catch.hpp>
+#include "Common.hpp"
+
 
 /// A type that is reflected, as convertible to Debug                         
 struct Stringifiable {
@@ -30,13 +30,6 @@ struct StringifiableConst {
    }
 };
 
-template<class L, class R>
-struct TypePair {
-   using LHS = L;
-   using RHS = R;
-};
-
-LANGULUS_EXCEPTION_HANDLER
 
 ///                                                                           
 /// Possible states:                                                          
@@ -74,7 +67,9 @@ void CheckState_Abandoned(const Text&);
 ///      - semantic-initialized from sparse element, bound-terminated         
 ///      - semantic-initialized from sparse element, count-terminated         
 
-TEMPLATE_TEST_CASE("Testing text containers", "[text]", Text, Debug, Path) {
+TEMPLATE_TEST_CASE("Testing text containers", "[text]",
+   Text, Debug, Path
+) {
    IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
    GIVEN("Default text container") {
@@ -373,7 +368,9 @@ TEMPLATE_TEST_CASE("Testing text containers", "[text]", Text, Debug, Path) {
    }
 }
 
-TEMPLATE_TEST_CASE("Unsigned number stringification", "[text]", /*uint8_t,*/ uint16_t, uint32_t, uint64_t) {
+TEMPLATE_TEST_CASE("Unsigned number stringification", "[text]",
+   /*uint8_t,*/ uint16_t, uint32_t, uint64_t
+) {
    WHEN("Constructed Text with a number") {
       Text* text = new Text {TestType{66}};
 
@@ -606,22 +603,23 @@ void CheckState_Default(const Text& text) {
    REQUIRE_FALSE(text.IsDeep());
    REQUIRE_FALSE(text.IsSparse());
    REQUIRE_FALSE(text.IsEncrypted());
-   REQUIRE_FALSE(text.IsFuture());
-   REQUIRE_FALSE(text.IsPast());
    REQUIRE_FALSE(text.IsMissing());
    REQUIRE_FALSE(text.IsOr());
    REQUIRE_FALSE(text.IsStatic());
+   REQUIRE      (text.IsTyped());
    REQUIRE_FALSE(text.IsUntyped());
    REQUIRE_FALSE(text.IsValid());
+   REQUIRE      (text.IsInvalid());
    REQUIRE_FALSE(text.IsAllocated());
+   REQUIRE      (text.IsEmpty());
    REQUIRE_FALSE(text.HasAuthority());
    REQUIRE      (text.IsTypeConstrained());
    REQUIRE      (text.GetType() == MetaData::Of<Letter>());
    REQUIRE      (text.template Is<Letter>());
    REQUIRE      (text.IsNow());
-   REQUIRE      (text.IsInvalid());
+   REQUIRE_FALSE(text.IsFuture());
+   REQUIRE_FALSE(text.IsPast());
    REQUIRE      (text.IsDense());
-   REQUIRE      (text.IsDefaultable());
    REQUIRE      (text.GetCount() == 0);
    REQUIRE      (text.GetReserved() == 0);
    REQUIRE      (text.GetUses() == 0);
@@ -644,22 +642,23 @@ void CheckState_OwnedEmpty(const Text& text) {
    REQUIRE_FALSE(text.IsDeep());
    REQUIRE_FALSE(text.IsSparse());
    REQUIRE_FALSE(text.IsEncrypted());
-   REQUIRE_FALSE(text.IsFuture());
-   REQUIRE_FALSE(text.IsPast());
    REQUIRE_FALSE(text.IsMissing());
    REQUIRE_FALSE(text.IsOr());
    REQUIRE_FALSE(text.IsStatic());
+   REQUIRE      (text.IsTyped());
    REQUIRE_FALSE(text.IsUntyped());
    REQUIRE_FALSE(text.IsValid());
+   REQUIRE      (text.IsInvalid());
    REQUIRE      (text.IsAllocated());
+   REQUIRE      (text.IsEmpty());
    REQUIRE      (text.HasAuthority());
    REQUIRE      (text.IsTypeConstrained());
    REQUIRE      (text.GetType() == MetaData::Of<Letter>());
    REQUIRE      (text.template Is<Letter>());
    REQUIRE      (text.IsNow());
-   REQUIRE      (text.IsInvalid());
+   REQUIRE_FALSE(text.IsFuture());
+   REQUIRE_FALSE(text.IsPast());
    REQUIRE      (text.IsDense());
-   REQUIRE      (text.IsDefaultable());
    REQUIRE      (text.GetCount() == 0);
    REQUIRE      (text.GetReserved() > 0);
    REQUIRE      (text.GetUses() == 1);
@@ -682,20 +681,22 @@ void CheckState_OwnedFull(const Text& text) {
    REQUIRE_FALSE(text.IsDeep());
    REQUIRE_FALSE(text.IsSparse());
    REQUIRE_FALSE(text.IsEncrypted());
-   REQUIRE_FALSE(text.IsFuture());
-   REQUIRE_FALSE(text.IsPast());
    REQUIRE_FALSE(text.IsMissing());
    REQUIRE_FALSE(text.IsOr());
+   REQUIRE      (text.IsTyped());
    REQUIRE_FALSE(text.IsUntyped());
+   REQUIRE      (text.IsValid());
    REQUIRE_FALSE(text.IsInvalid());
    REQUIRE_FALSE(text.IsStatic());
    REQUIRE      (text.IsAllocated());
+   REQUIRE_FALSE(text.IsEmpty());
    REQUIRE      (text.HasAuthority());
    REQUIRE      (text.IsTypeConstrained());
    REQUIRE      (text.GetType() == MetaData::Of<Letter>());
    REQUIRE      (text.template Is<Letter>());
    REQUIRE      (text.IsNow());
-   REQUIRE      (text.IsValid());
+   REQUIRE_FALSE(text.IsFuture());
+   REQUIRE_FALSE(text.IsPast());
    REQUIRE      (text.IsDense());
    REQUIRE      (text.GetCount() > 0);
    REQUIRE      (text.GetReserved() > 0);

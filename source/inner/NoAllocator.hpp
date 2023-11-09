@@ -10,6 +10,7 @@
 #include "Allocation.hpp"
 #include <unordered_set>
 
+
 namespace Langulus::Anyness
 {
    
@@ -51,7 +52,7 @@ namespace Langulus::Anyness
       };
 
       NOD() LANGULUS(INLINED)
-      static Allocation* Allocate(RTTI::DMeta, const Size& size) IF_UNSAFE(noexcept) {
+      static Allocation* Allocate(DMeta, const Size& size) IF_UNSAFE(noexcept) {
          LANGULUS_ASSUME(DevAssumes, size, "Zero allocation is not allowed");
          return AlignedAllocate<Allocation>(size);
       }
@@ -85,12 +86,12 @@ namespace Langulus::Anyness
       }
 
       NOD() LANGULUS(INLINED)
-      static constexpr const Allocation* Find(RTTI::DMeta, const void*) noexcept {
+      static constexpr const Allocation* Find(DMeta, const void*) noexcept {
          return nullptr;
       }
 
       NOD() LANGULUS(INLINED)
-      static constexpr bool CheckAuthority(RTTI::DMeta, const void*) noexcept {
+      static constexpr bool CheckAuthority(DMeta, const void*) noexcept {
          return false;
       }
 

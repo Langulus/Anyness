@@ -17,7 +17,7 @@ namespace Langulus::Anyness
    template<CT::Data T>
    LANGULUS(INLINED)
    void BlockSet::Mutate() {
-      Mutate(RTTI::MetaData::Of<T>());
+      Mutate(MetaData::Of<T>());
    }
 
    /// Checks type compatibility and sets type for the type-erased map        

@@ -26,9 +26,73 @@ inline const Byte* asbytes(const void* a) noexcept {
 	return reinterpret_cast<const Byte*>(a);
 }
 
-/// See https://github.com/catchorg/Catch2/blob/devel/docs/tostring.md        
-#define LANGULUS_EXCEPTION_HANDLER \
-   CATCH_TRANSLATE_EXCEPTION(::Langulus::Exception const& ex) { \
-      const Text serialized {ex}; \
-      return ::std::string {Token {serialized}}; \
+using uint = unsigned int;
+
+template<class T>
+using some = std::vector<T>;
+
+template<class L, class R>
+struct TypePair {
+   using LHS = L;
+   using RHS = R;
+};
+
+
+template<CT::Dense T, class ALT_T>
+T CreateElement(const ALT_T& e) {
+   T element;
+   if constexpr (CT::Same<T, ALT_T>)
+      element = e;
+   else if constexpr (not CT::Same<T, Block>)
+      element = Decay<T> {e};
+   else {
+      element = Block {};
+      element.Insert(e);
    }
+
+   return element;
+}
+
+template<CT::Sparse T, class ALT_T>
+T CreateElement(const ALT_T& e) {
+   T element;
+   if constexpr (not CT::Same<T, Block>)
+      element = new Decay<T> {e};
+   else {
+      element = new Block {};
+      element->Insert(e);
+   }
+
+   return element;
+}
+
+
+template<class C, class K, class V>
+struct MapPair {
+   using Container = C;
+   using Key = K;
+   using Value = V;
+};
+
+template<class K, class V>
+struct MapPair2 {
+   using Key = K;
+   using Value = V;
+};
+
+template<class P, class K, class V, class ALT_K, class ALT_V>
+P CreatePair(const ALT_K& key, const ALT_V& value) {
+   return P {
+      CreateElement<K>(key),
+      CreateElement<V>(value)
+   };
+}
+
+namespace std {
+   template<>
+   struct hash<Text> {
+      size_t operator()(const Text& str) const noexcept {
+         return str.GetHash().mHash;
+      }
+   };
+}

@@ -154,7 +154,7 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Construct Construct::From(HEAD&& head, TAIL&&... tail) {
       static_assert(CT::Decayed<T>, "T must be fully decayed");
-      const auto meta = RTTI::MetaData::Of<T>();
+      const auto meta = MetaData::Of<T>();
       if constexpr (sizeof...(tail) == 0)
          return Construct {meta, Forward<HEAD>(head)};
       else
@@ -168,7 +168,7 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Construct Construct::From() {
       static_assert(CT::Decayed<T>, "T must be fully decayed");
-      return Construct {RTTI::MetaData::Of<T>()};
+      return Construct {MetaData::Of<T>()};
    }
 
 #if LANGULUS_FEATURE(MANAGED_REFLECTION)
@@ -264,7 +264,7 @@ namespace Langulus::Anyness
    bool Construct::CastsTo() const {
       if (not mType)
          return false;
-      return CastsTo(RTTI::MetaData::Of<T>());
+      return CastsTo(MetaData::Of<T>());
    }
 
    /// Check if construct type fully matches a given static type              
@@ -274,7 +274,7 @@ namespace Langulus::Anyness
    bool Construct::Is() const {
       if (not mType)
          return false;
-      return Is(RTTI::MetaData::Of<T>());
+      return Is(MetaData::Of<T>());
    }
 
    /// Get the argument for the construct                                     
@@ -318,7 +318,7 @@ namespace Langulus::Anyness
    Token Construct::GetToken() const noexcept {
       #if LANGULUS_FEATURE(MANAGED_REFLECTION)
          return mType ? mType->GetShortestUnambiguousToken()
-                      : RTTI::MetaData::DefaultToken;
+                      : MetaData::DefaultToken;
       #else
          return mType ? mType->mToken
                       : MetaData::DefaultToken;
