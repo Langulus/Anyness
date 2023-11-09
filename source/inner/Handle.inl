@@ -71,7 +71,7 @@ namespace Langulus::Anyness
                SemanticAssign(mValue, other.template Forward<T>());
 
             if constexpr (CT::Sparse<T> and CT::Allocatable<DT> and (S::Keep or S::Move))
-               mEntry = Allocator::Find(RTTI::MetaData::Of<DT>(), mValue);
+               mEntry = Allocator::Find(MetaData::Of<DT>(), mValue);
             else
                mEntry = nullptr;
          }

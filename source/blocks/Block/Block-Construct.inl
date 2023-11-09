@@ -118,9 +118,9 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Block Block::From(T value) requires CT::Sparse<T> {
       if constexpr (CONSTRAIN)
-         return {DataState::Member, RTTI::MetaData::Of<Deptr<T>>(), 1, value};
+         return {DataState::Member, MetaData::Of<Deptr<T>>(), 1, value};
       else
-         return {DataState::Static, RTTI::MetaData::Of<Deptr<T>>(), 1, value};
+         return {DataState::Static, MetaData::Of<Deptr<T>>(), 1, value};
    }
 
    /// Create a memory block from a count-terminated array pointer            
@@ -133,9 +133,9 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Block Block::From(T value, Count count) requires CT::Sparse<T> {
       if constexpr (CONSTRAIN)
-         return {DataState::Member, RTTI::MetaData::Of<Deptr<T>>(), count, value};
+         return {DataState::Member, MetaData::Of<Deptr<T>>(), count, value};
       else
-         return {DataState::Static, RTTI::MetaData::Of<Deptr<T>>(), count, value};
+         return {DataState::Static, MetaData::Of<Deptr<T>>(), count, value};
    }
 
    /// Create a dense memory block, by interfacing a single value             
@@ -162,7 +162,7 @@ namespace Langulus::Anyness
          // Any other value gets wrapped inside a temporary Block       
          result = {
             DataState::Static, 
-            RTTI::MetaData::Of<Decvq<Deref<T>>>(),
+            MetaData::Of<Decvq<Deref<T>>>(),
             1, &value
          };
       }
@@ -180,9 +180,9 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Block Block::From() {
       if constexpr (CONSTRAIN)
-         return {DataState::Typed, RTTI::MetaData::Of<T>()};
+         return {DataState::Typed, MetaData::Of<T>()};
       else
-         return {RTTI::MetaData::Of<T>()};
+         return {MetaData::Of<T>()};
    }
 
    /// Semantic assignment                                                    

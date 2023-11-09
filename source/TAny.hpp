@@ -118,10 +118,10 @@ namespace Langulus::Anyness
       NOD() const T& operator [] (const CT::Index auto&) const;
       NOD()       T& operator [] (const CT::Index auto&);
 
+      NOD() constexpr bool IsTyped() const noexcept;
       NOD() constexpr bool IsUntyped() const noexcept;
       NOD() constexpr bool IsTypeConstrained() const noexcept;
       NOD() constexpr bool IsAbstract() const noexcept;
-      NOD() constexpr bool IsDefaultable() const noexcept;
       NOD() constexpr bool IsDeep() const noexcept;
       NOD() constexpr bool IsSparse() const noexcept;
       NOD() constexpr bool IsDense() const noexcept;
@@ -156,7 +156,7 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Memory management                                                 
       ///                                                                     
-      NOD() RTTI::AllocationRequest RequestSize(const Count&) const noexcept;
+      NOD() AllocationRequest RequestSize(const Count&) const noexcept;
       void Reserve(Count);
       template<bool CREATE = false, bool SETSIZE = false>
       void AllocateMore(Count);
@@ -318,7 +318,7 @@ namespace Langulus::Anyness
       void Run(Flow::Verb&);
 
    protected:
-      void AllocateFresh(const RTTI::AllocationRequest&);
+      void AllocateFresh(const AllocationRequest&);
 
       constexpr void ResetState() noexcept;
       constexpr void ResetType() noexcept;

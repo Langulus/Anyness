@@ -9,6 +9,7 @@
 #pragma once
 #include <Core/Common.hpp>
 
+
 #if defined(LANGULUS_EXPORT_ALL) or defined(LANGULUS_EXPORT_ANYNESS)
    #define LANGULUS_API_ANYNESS() LANGULUS_EXPORT()
 #else

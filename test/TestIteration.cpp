@@ -6,11 +6,9 @@
 /// Distributed under GNU General Public License v3+                          
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
-#include "Main.hpp"
 #include <Anyness/Text.hpp>
-#include <catch2/catch.hpp>
+#include "Common.hpp"
 
-LANGULUS_EXCEPTION_HANDLER
 
 SCENARIO("Iterating containers", "[iteration]") {
    GIVEN("Templated Any with some POD items") {

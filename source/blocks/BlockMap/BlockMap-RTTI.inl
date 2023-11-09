@@ -18,7 +18,7 @@ namespace Langulus::Anyness
    template<CT::NotSemantic K, CT::NotSemantic V>
    LANGULUS(INLINED)
    void BlockMap::Mutate() {
-      Mutate(RTTI::MetaData::Of<K>(), RTTI::MetaData::Of<V>());
+      Mutate(MetaData::Of<K>(), MetaData::Of<V>());
    }
 
    /// Checks type compatibility and sets type for the type-erased map        

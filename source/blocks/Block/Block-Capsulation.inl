@@ -226,13 +226,6 @@ namespace Langulus::Anyness
    constexpr bool Block::IsAbstract() const noexcept {
       return mType and mType->mIsAbstract;
    }
-
-   /// Check if contained type is default-constructible                       
-   ///   @return true if the contents of this pack are constructible          
-   LANGULUS(INLINED)
-   constexpr bool Block::IsDefaultable() const noexcept {
-      return mType and mType->mDefaultConstructor;
-   }
    
    /// Check if block is inhibitory (or) container                            
    ///   @return true if this is an inhibitory container                      
@@ -353,11 +346,11 @@ namespace Langulus::Anyness
    constexpr Token Block::GetToken() const noexcept {
       #if LANGULUS_FEATURE(MANAGED_REFLECTION)
          return IsUntyped()
-            ? RTTI::MetaData::DefaultToken
+            ? MetaData::DefaultToken
             : mType->GetShortestUnambiguousToken();
       #else
          return IsUntyped()
-            ? RTTI::MetaData::DefaultToken
+            ? MetaData::DefaultToken
             : mType->mToken;
       #endif
    }

@@ -101,7 +101,7 @@ namespace Langulus::Anyness
    template<CT::Data T, bool BINARY_COMPATIBLE>
    LANGULUS(INLINED)
    bool Block::CastsTo() const {
-      return CastsToMeta<BINARY_COMPATIBLE>(RTTI::MetaData::Of<T>());
+      return CastsToMeta<BINARY_COMPATIBLE>(MetaData::Of<T>());
    }
 
    /// Check if this container's data can be represented as a specific number 
@@ -114,7 +114,7 @@ namespace Langulus::Anyness
    template<CT::Data T, bool BINARY_COMPATIBLE>
    LANGULUS(INLINED)
    bool Block::CastsTo(Count count) const {
-      return CastsToMeta<BINARY_COMPATIBLE>(RTTI::MetaData::Of<T>(), count);
+      return CastsToMeta<BINARY_COMPATIBLE>(MetaData::Of<T>(), count);
    }
    
    /// Reinterpret contents of this Block as the type and state of another    
@@ -450,7 +450,7 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    bool Block::Mutate() {
       static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
-      return Mutate<ALLOW_DEEPEN, WRAPPER>(RTTI::MetaData::Of<T>());
+      return Mutate<ALLOW_DEEPEN, WRAPPER>(MetaData::Of<T>());
    }
    
    /// Mutate to another compatible type, deepening the container if allowed  
@@ -537,7 +537,7 @@ namespace Langulus::Anyness
    template<CT::Data T, bool CONSTRAIN>
    LANGULUS(INLINED)
    void Block::SetType() {
-      SetType<CONSTRAIN>(RTTI::MetaData::Of<Deref<T>>());
+      SetType<CONSTRAIN>(MetaData::Of<Deref<T>>());
    }
    
    /// Reset the type of the block, unless it's type-constrained              
@@ -552,7 +552,7 @@ namespace Langulus::Anyness
    ///   @tparam T - the type to check for compatibility                      
    template<CT::Data T>
    void Block::CheckType() const {
-      const auto meta = RTTI::MetaData::Of<T>();
+      const auto meta = MetaData::Of<T>();
       LANGULUS_ASSERT(
          not IsTypeConstrained() or CastsToMeta(meta),
          Assign, "Incompatible types on assignment (flat)",

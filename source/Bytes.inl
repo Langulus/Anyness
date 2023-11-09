@@ -415,11 +415,11 @@ namespace Langulus::Anyness
          const Token token {GetRawAs<Letter>() + read, count};
          if constexpr (CT::Same<META, MetaData>)
             result = RTTI::GetMetaData(token);
-         else if constexpr (CT::Same<META, RTTI::MetaVerb>)
+         else if constexpr (CT::Same<META, MetaVerb>)
             result = RTTI::GetMetaVerb(token);
-         else if constexpr (CT::Same<META, RTTI::MetaTrait>)
+         else if constexpr (CT::Same<META, MetaTrait>)
             result = RTTI::GetMetaTrait(token);
-         else if constexpr (CT::Same<META, RTTI::MetaConst>)
+         else if constexpr (CT::Same<META, MetaConst>)
             result = RTTI::GetMetaConstant(token);
          else
             LANGULUS_ERROR("Unsupported meta deserialization");

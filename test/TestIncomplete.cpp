@@ -6,13 +6,13 @@
 /// Distributed under GNU General Public License v3+                          
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
-#include "Main.hpp"
 #include <Anyness/Text.hpp>
 #include <Anyness/Trait.hpp>
 #include <Anyness/Own.hpp>
 #include <Anyness/Ref.hpp>
 #include <Anyness/TUnorderedMap.hpp>
-#include <catch2/catch.hpp>
+#include "Common.hpp"
+
 
 struct Resolvable {
    Resolvable(DMeta d) : mMeta {d} {}
@@ -40,8 +40,6 @@ struct Thing final : Resolvable {
 };
 
 Thing::Thing() : Resolvable {MetaData::Of<Thing>()} {}
-
-LANGULUS_EXCEPTION_HANDLER
 
 SCENARIO("Testing incomplete type hierarchy", "[incomplete]") {
    GIVEN("A thing instance") {

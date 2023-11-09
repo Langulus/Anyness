@@ -17,8 +17,6 @@
 namespace Langulus::Anyness
 {
 
-   using RTTI::MetaData;
-
    /// Default construction                                                   
    /// TAny is always type-constrained, but its type is set on demand to      
    /// avoid requesting meta definitions before meta database initialization, 
@@ -82,7 +80,7 @@ namespace Langulus::Anyness
    void TAny<T>::ConstructFrom(CT::Semantic auto&& other) {
       using S = Decay<decltype(other)>;
       using ST = TypeOf<S>;
-      mType = RTTI::MetaData::Of<T>();
+      mType = MetaData::Of<T>();
 
       if constexpr (CT::Array<ST>
                 and CT::Exact<T, ::std::remove_extent_t<ST>>) {
@@ -560,9 +558,9 @@ namespace Langulus::Anyness
    ///   @param count - the number of elements to request                     
    ///   @returns both the provided byte size and reserved count              
    TEMPLATE() LANGULUS(INLINED)
-   RTTI::AllocationRequest TAny<T>::RequestSize(const Count& count) const noexcept {
+   AllocationRequest TAny<T>::RequestSize(const Count& count) const noexcept {
       if constexpr (CT::Fundamental<T> or CT::Exact<T, Byte>) {
-         RTTI::AllocationRequest result;
+         AllocationRequest result;
          result.mByteSize = ::std::max(Roof2(count * sizeof(T)), Alignment);
          result.mElementCount = result.mByteSize / sizeof(T);
          return result;
@@ -646,6 +644,14 @@ namespace Langulus::Anyness
    }
    
    /// Templated Any containers are always typed                              
+   ///   @return true                                                         
+   TEMPLATE() LANGULUS(INLINED)
+   constexpr bool TAny<T>::IsTyped() const noexcept {
+      return true;
+   }
+   
+   /// Templated Any containers are never untyped                             
+   ///   @return false                                                        
    TEMPLATE() LANGULUS(INLINED)
    constexpr bool TAny<T>::IsUntyped() const noexcept {
       return false;
@@ -662,13 +668,6 @@ namespace Langulus::Anyness
    TEMPLATE() LANGULUS(INLINED)
    constexpr bool TAny<T>::IsAbstract() const noexcept {
       return CT::Abstract<T>;
-   }
-   
-   /// Check if contained type is default-constructible                       
-   /// This is a statically optimized alternative to Block::IsDefaultable     
-   TEMPLATE() LANGULUS(INLINED)
-   constexpr bool TAny<T>::IsDefaultable() const noexcept {
-      return CT::Defaultable<T>;
    }
    
    /// Check if contained type is deep                                        
@@ -1681,7 +1680,7 @@ namespace Langulus::Anyness
    ///   @attention changes entry, memory and reserve count                   
    ///   @param request - request to fulfill                                  
    TEMPLATE() LANGULUS(INLINED)
-   void TAny<T>::AllocateFresh(const RTTI::AllocationRequest& request) {
+   void TAny<T>::AllocateFresh(const AllocationRequest& request) {
       // Sparse containers have additional memory allocated             
       // for each pointer's entry                                       
       mEntry = Allocator::Allocate(

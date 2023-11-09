@@ -52,18 +52,6 @@ namespace Langulus::Anyness
       return mValues.IsAbstract() and mKeys.IsDense();
    }
    
-   /// Check if key type is default-constructible                             
-   LANGULUS(INLINED)
-   constexpr bool BlockMap::IsKeyConstructible() const noexcept {
-      return mKeys.IsDefaultable();
-   }
-   
-   /// Check if value type is default-constructible                           
-   LANGULUS(INLINED)
-   constexpr bool BlockMap::IsValueConstructible() const noexcept {
-      return mValues.IsDefaultable();
-   }
-   
    /// Check if key type is deep                                              
    LANGULUS(INLINED)
    constexpr bool BlockMap::IsKeyDeep() const noexcept {

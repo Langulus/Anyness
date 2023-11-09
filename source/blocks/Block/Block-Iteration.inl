@@ -298,12 +298,12 @@ namespace Langulus::Anyness
          "Block is empty", " (of type `", mType, "`)");
       LANGULUS_ASSUME(DevAssumes, IsSparse() == CT::Sparse<A>,
          "Sparseness mismatch", 
-         " (`", mType, "` compared against `", RTTI::MetaData::Of<A>(), "`)"
+         " (`", mType, "` compared against `", MetaData::Of<A>(), "`)"
       );
 
       if constexpr (CT::Dense<A>) {
          LANGULUS_ASSUME(DevAssumes, (CastsTo<A, true>()),
-            "Incompatible iterator type", " `", RTTI::MetaData::Of<A>(),
+            "Incompatible iterator type", " `", MetaData::Of<A>(),
             "` (iterating block of type `", mType, "`)"
          );
       }

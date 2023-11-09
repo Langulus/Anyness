@@ -6,15 +6,11 @@
 /// Distributed under GNU General Public License v3+                          
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
-#include "Main.hpp"
 #include <Anyness/Text.hpp>
-#include <catch2/catch.hpp>
 #include <any>
 #include <vector>
+#include "Common.hpp"
 
-LANGULUS_EXCEPTION_HANDLER
-
-using uint = unsigned int;
 
 SCENARIO("Deep sequential containers", "[any]") {
    GIVEN("Any with some deep items") {

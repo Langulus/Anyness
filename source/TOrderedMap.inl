@@ -59,8 +59,8 @@ namespace Langulus::Anyness
       : Base {} {
       using S = Decay<decltype(other)>;
       using T = TypeOf<S>;
-      mKeys.mType   = RTTI::MetaData::Of<K>();
-      mValues.mType = RTTI::MetaData::Of<V>();
+      mKeys.mType   = MetaData::Of<K>();
+      mValues.mType = MetaData::Of<V>();
 
       if constexpr (CT::Array<T>) {
          if constexpr (CT::Pair<Deext<T>>) {
@@ -122,8 +122,8 @@ namespace Langulus::Anyness
    TABLE_TEMPLATE()
    template<CT::Data T1, CT::Data T2, CT::Data... TAIL>
    TABLE()::TOrderedMap(T1&& t1, T2&& t2, TAIL&&... tail) {
-      mKeys.mType = RTTI::MetaData::Of<K>();
-      mValues.mType = RTTI::MetaData::Of<V>();
+      mKeys.mType = MetaData::Of<K>();
+      mValues.mType = MetaData::Of<V>();
 
       constexpr auto capacity = Roof2(
          sizeof...(TAIL) + 2 < MinimalAllocation
