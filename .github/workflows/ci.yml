@@ -26,6 +26,10 @@ jobs:
             cxx: clang++-16
 
         include:
+          - cxx: g++
+            c: g
+          - cxx: clang++-16
+            c: clang-16
           - os: ubuntu-22.04
             arch: x86
             cmake_args: "-DCMAKE_CXX_FLAGS=-m32"
@@ -67,7 +71,7 @@ jobs:
         name: Configure (Linux)
         run: >
           mkdir build && cd build && cmake ..
-          -DCMAKE_C_COMPILER=${{matrix.cxx}}
+          -DCMAKE_C_COMPILER=${{matrix.c}}
           -DCMAKE_CXX_COMPILER=${{matrix.cxx}}
           ${{matrix.cmake_args}}
           -DCMAKE_BUILD_TYPE=${{matrix.build}}
