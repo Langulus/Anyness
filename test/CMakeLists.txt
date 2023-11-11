@@ -16,4 +16,9 @@ add_test(
 	COMMAND		LangulusAnynessTest
 )
 
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+	# There are some tests that involve safety when self = self is performed	
+    target_compile_options(LangulusAnynessTest PRIVATE -Wno-self-assign-overloaded)
+endif()
+
 langulus_copy_dlls(LangulusAnynessTest ON LangulusAnynessTest)
