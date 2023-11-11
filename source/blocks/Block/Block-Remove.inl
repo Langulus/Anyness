@@ -212,7 +212,7 @@ namespace Langulus::Anyness
    /// Type constraints shall remain, if any                                  
    LANGULUS(INLINED)
    constexpr void Block::ResetState() noexcept {
-      mState = mState.mState & DataState::Typed;
+      mState &= DataState::Typed;
       ResetType();
    }
    
