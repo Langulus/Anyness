@@ -8,7 +8,6 @@
 ///                                                                           
 #pragma once
 #include "Construct.hpp"
-#include "Neat.inl"
 
 
 namespace Langulus::Anyness
