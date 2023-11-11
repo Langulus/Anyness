@@ -12,6 +12,7 @@
 #include "../inner/Index.hpp"
 #include "../inner/Iterator.hpp"
 
+
 namespace Langulus::Flow
 {
 
@@ -67,9 +68,11 @@ namespace Langulus::Anyness
    using RTTI::MetaData;
    using RTTI::MetaConst;
    using RTTI::MetaTrait;
+   using RTTI::MetaVerb;
    using RTTI::DMeta;
    using RTTI::CMeta;
    using RTTI::TMeta;
+   using RTTI::VMeta;
 
    template<class, bool EMBED = true>
    struct Handle;

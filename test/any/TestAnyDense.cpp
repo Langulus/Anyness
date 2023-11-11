@@ -55,7 +55,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
 
       #ifdef LANGULUS_STD_BENCHMARK
          BENCHMARK_ADVANCED("default construction") (timer meter) {
-            #include "CollectGarbage.inl"
+            IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
             some<uninitialized<T>> storage(meter.runs());
             meter.measure([&](int i) {
                return storage[i].construct();
@@ -63,7 +63,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
          };
 
          BENCHMARK_ADVANCED("std::vector::default construction") (timer meter) {
-            #include "CollectGarbage.inl"
+            IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
             some<uninitialized<StdT>> storage(meter.runs());
             meter.measure([&](int i) {
                return storage[i].construct();
@@ -71,7 +71,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
          };
 
          BENCHMARK_ADVANCED("std::any::default construction") (timer meter) {
-            #include "CollectGarbage.inl"
+            IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
             some<uninitialized<std::any>> storage(meter.runs());
             meter.measure([&](int i) {
                return storage[i].construct();
@@ -102,7 +102,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("operator = (single value copy)") (timer meter) {
-               #include "CollectGarbage.inl"
+               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<T> storage(meter.runs());
                meter.measure([&](int i) {
                   return storage[i] = value;
@@ -110,7 +110,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
             };
 
             BENCHMARK_ADVANCED("std::vector::operator = (single value copy)") (timer meter) {
-               #include "CollectGarbage.inl"
+               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<StdT> storage(meter.runs());
                meter.measure([&](int i) {
                   return storage[i] = {value};
@@ -118,7 +118,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
             };
 
             BENCHMARK_ADVANCED("std::any::operator = (single value copy)") (timer meter) {
-               #include "CollectGarbage.inl"
+               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<std::any> storage(meter.runs());
                meter.measure([&](int i) {
                   return storage[i] = value;
@@ -154,7 +154,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("operator = (single value move)") (timer meter) {
-               #include "CollectGarbage.inl"
+               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<T> storage(meter.runs());
                meter.measure([&](int i) {
                   return storage[i] = ::std::move(value);
@@ -162,7 +162,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
             };
 
             BENCHMARK_ADVANCED("std::vector::operator = (single value move)") (timer meter) {
-               #include "CollectGarbage.inl"
+               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<StdT> storage(meter.runs());
                meter.measure([&](int i) {
                   return storage[i] = {::std::move(value)};
@@ -170,7 +170,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
             };
 
             BENCHMARK_ADVANCED("std::any::operator = (single value move)") (timer meter) {
-               #include "CollectGarbage.inl"
+               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<std::any> storage(meter.runs());
                meter.measure([&](int i) {
                   return storage[i] = ::std::move(value);
@@ -203,7 +203,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("operator = (single disowned value)") (timer meter) {
-               #include "CollectGarbage.inl"
+               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<T> storage(meter.runs());
                meter.measure([&](int i) {
                   return storage[i] = Disown(value);
@@ -211,7 +211,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
             };
 
             BENCHMARK_ADVANCED("std::vector::operator = (single value copy)") (timer meter) {
-               #include "CollectGarbage.inl"
+               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<StdT> storage(meter.runs());
                meter.measure([&](int i) {
                   return storage[i] = {value};
@@ -219,7 +219,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
             };
 
             BENCHMARK_ADVANCED("std::any::operator = (single value copy)") (timer meter) {
-               #include "CollectGarbage.inl"
+               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<std::any> storage(meter.runs());
                meter.measure([&](int i) {
                   return storage[i] = value;
@@ -256,7 +256,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("operator = (single abandoned value)") (timer meter) {
-               #include "CollectGarbage.inl"
+               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<T> storage(meter.runs());
                meter.measure([&](int i) {
                   return storage[i] = Abandon(value);
@@ -264,7 +264,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
             };
 
             BENCHMARK_ADVANCED("std::vector::operator = (single value move)") (timer meter) {
-               #include "CollectGarbage.inl"
+               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<StdT> storage(meter.runs());
                meter.measure([&](int i) {
                   return storage[i] = {::std::move(value)};
@@ -272,7 +272,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
             };
 
             BENCHMARK_ADVANCED("std::any::operator = (single value move)") (timer meter) {
-               #include "CollectGarbage.inl"
+               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<std::any> storage(meter.runs());
                meter.measure([&](int i) {
                   return storage[i] = ::std::move(value);
@@ -288,7 +288,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("operator = (self)") (timer meter) {
-               #include "CollectGarbage.inl"
+               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<T> storage(meter.runs());
                meter.measure([&](int i) {
                   return storage[i] = storage[i];
@@ -296,7 +296,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
             };
 
             BENCHMARK_ADVANCED("std::vector::operator = (self)") (timer meter) {
-#include "CollectGarbage.inl"
+               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<StdT> storage(meter.runs());
                meter.measure([&](int i) {
                   return storage[i] = storage[i];
@@ -304,13 +304,13 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
             };
 
             BENCHMARK_ADVANCED("std::any::operator = (self)") (timer meter) {
-#include "CollectGarbage.inl"
+               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<std::any> storage(meter.runs());
                meter.measure([&](int i) {
                   return storage[i] = storage[i];
                   });
             };
-#endif
+         #endif
       }
 
       WHEN("Populated using Any::New") {
@@ -1037,7 +1037,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
 
       #ifdef LANGULUS_STD_BENCHMARK
          BENCHMARK_ADVANCED("construction (single container copy)") (timer meter) {
-            #include "CollectGarbage.inl"
+            IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
             some<uninitialized<T>> storage(meter.runs());
             meter.measure([&](int i) {
                return storage[i].construct(source);
@@ -1045,7 +1045,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
          };
 
          BENCHMARK_ADVANCED("std::vector::construction (single container copy)") (timer meter) {
-            #include "CollectGarbage.inl"
+            IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
             StdT source {1, 555};
             some<uninitialized<StdT>> storage(meter.runs());
             meter.measure([&](int i) {
@@ -1054,7 +1054,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
          };
 
          BENCHMARK_ADVANCED("std::any::construction (single container copy)") (timer meter) {
-            #include "CollectGarbage.inl"
+            IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
             std::any source {555};
             some<uninitialized<std::any>> storage(meter.runs());
             meter.measure([&](int i) {
@@ -1098,7 +1098,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
 
       #ifdef LANGULUS_STD_BENCHMARK
          BENCHMARK_ADVANCED("construction (single value copy)") (timer meter) {
-            #include "CollectGarbage.inl"
+            IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
             some<uninitialized<T>> storage(meter.runs());
             meter.measure([&](int i) {
                return storage[i].construct(value);
@@ -1106,7 +1106,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
          };
 
          BENCHMARK_ADVANCED("std::vector::construction (single value copy)") (timer meter) {
-            #include "CollectGarbage.inl"
+            IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
             some<uninitialized<StdT>> storage(meter.runs());
             meter.measure([&](int i) {
                return storage[i].construct(1, value);
@@ -1114,7 +1114,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
          };
 
          BENCHMARK_ADVANCED("std::any::construction (single value copy)") (timer meter) {
-            #include "CollectGarbage.inl"
+            IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
             some<uninitialized<std::any>> storage(meter.runs());
             meter.measure([&](int i) {
                return storage[i].construct(value);
@@ -1147,7 +1147,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("operator = (single value copy)") (timer meter) {
-               #include "CollectGarbage.inl"
+               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<T> storage(meter.runs(), element);
                meter.measure([&](int i) {
                   return storage[i] = value;
@@ -1155,7 +1155,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
             };
 
             BENCHMARK_ADVANCED("std::vector::operator = (single value copy)") (timer meter) {
-               #include "CollectGarbage.inl"
+               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<StdT> storage(meter.runs(), element);
                meter.measure([&](int i) {
                   return storage[i] = {value};
@@ -1163,7 +1163,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
             };
 
             BENCHMARK_ADVANCED("std::any::operator = (single value copy)") (timer meter) {
-               #include "CollectGarbage.inl"
+               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<std::any> storage(meter.runs(), element);
                meter.measure([&](int i) {
                   return storage[i] = value;
@@ -1199,7 +1199,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("operator = (single value move)") (timer meter) {
-               #include "CollectGarbage.inl"
+               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<T> storage(meter.runs(), element);
                meter.measure([&](int i) {
                   return storage[i] = ::std::move(value);
@@ -1207,7 +1207,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
             };
 
             BENCHMARK_ADVANCED("std::vector::operator = (single value move)") (timer meter) {
-               #include "CollectGarbage.inl"
+               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<StdT> storage(meter.runs(), element);
                meter.measure([&](int i) {
                   return storage[i] = {::std::move(value)};
@@ -1215,7 +1215,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
             };
 
             BENCHMARK_ADVANCED("std::any::operator = (single value move)") (timer meter) {
-               #include "CollectGarbage.inl"
+               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<std::any> storage(meter.runs(), element);
                meter.measure([&](int i) {
                   return storage[i] = ::std::move(value);
@@ -1249,7 +1249,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("operator = (single disowned value)") (timer meter) {
-               #include "CollectGarbage.inl"
+               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<T> storage(meter.runs(), element);
                meter.measure([&](int i) {
                   return storage[i] = Disown(value);
@@ -1257,7 +1257,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
             };
 
             BENCHMARK_ADVANCED("std::vector::operator = (single value copy)") (timer meter) {
-               #include "CollectGarbage.inl"
+               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<StdT> storage(meter.runs(), element);
                meter.measure([&](int i) {
                   return storage[i] = {value};
@@ -1265,7 +1265,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
             };
 
             BENCHMARK_ADVANCED("std::any::operator = (single value copy)") (timer meter) {
-               #include "CollectGarbage.inl"
+               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<std::any> storage(meter.runs(), element);
                meter.measure([&](int i) {
                   return storage[i] = value;
@@ -1303,7 +1303,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("operator = (single abandoned value)") (timer meter) {
-               #include "CollectGarbage.inl"
+               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<T> storage(meter.runs(), element);
                meter.measure([&](int i) {
                   return storage[i] = Abandon(value);
@@ -1311,7 +1311,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
             };
 
             BENCHMARK_ADVANCED("std::vector::operator = (single value move)") (timer meter) {
-               #include "CollectGarbage.inl"
+               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<StdT> storage(meter.runs(), element);
                meter.measure([&](int i) {
                   return storage[i] = {::std::move(value)};
@@ -1319,7 +1319,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
             };
 
             BENCHMARK_ADVANCED("std::any::operator = (single value move)") (timer meter) {
-               #include "CollectGarbage.inl"
+               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<std::any> storage(meter.runs(), element);
                meter.measure([&](int i) {
                   return storage[i] = ::std::move(value);
@@ -1335,7 +1335,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
 
          #ifdef LANGULUS_STD_BENCHMARK
             BENCHMARK_ADVANCED("operator = (self)") (timer meter) {
-               #include "CollectGarbage.inl"
+               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<T> storage(meter.runs(), element);
                meter.measure([&](int i) {
                   return storage[i] = storage[i];
@@ -1343,7 +1343,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
             };
 
             BENCHMARK_ADVANCED("std::vector::operator = (self)") (timer meter) {
-               #include "CollectGarbage.inl"
+               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<StdT> storage(meter.runs(), element);
                meter.measure([&](int i) {
                   return storage[i] = storage[i];
@@ -1351,7 +1351,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
             };
 
             BENCHMARK_ADVANCED("std::any::operator = (self)") (timer meter) {
-               #include "CollectGarbage.inl"
+               IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
                some<std::any> storage(meter.runs(), element);
                meter.measure([&](int i) {
                   return storage[i] = storage[i];
@@ -1372,31 +1372,31 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
          REQUIRE(pack.IsDeep() == (CT::Deep<Decay<E>> and not CT::Same<T, E>));
          REQUIRE(pack.IsAllocated());
 
-#ifdef LANGULUS_STD_BENCHMARK
+      #ifdef LANGULUS_STD_BENCHMARK
          BENCHMARK_ADVANCED("operator = (self)") (timer meter) {
-#include "CollectGarbage.inl"
+            IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
             some<T> storage(meter.runs(), element);
             meter.measure([&](int i) {
                return storage[i] = storage[i];
-               });
+            });
          };
 
          BENCHMARK_ADVANCED("std::vector::operator = (self)") (timer meter) {
-#include "CollectGarbage.inl"
+            IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
             some<StdT> storage(meter.runs(), element);
             meter.measure([&](int i) {
                return storage[i] = storage[i];
-               });
+            });
          };
 
          BENCHMARK_ADVANCED("std::any::operator = (self)") (timer meter) {
-#include "CollectGarbage.inl"
+            IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
             some<std::any> storage(meter.runs(), element);
             meter.measure([&](int i) {
                return storage[i] = storage[i];
-               });
+            });
          };
-#endif
+      #endif
       }
    }
 
@@ -1448,7 +1448,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
 
       #ifdef LANGULUS_STD_BENCHMARK
          BENCHMARK_ADVANCED("construction (single value move)") (timer meter) {
-            #include "CollectGarbage.inl"
+            IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
             some<uninitialized<T>> storage(meter.runs());
             meter.measure([&](int i) {
                return storage[i].construct(::std::move(value));
@@ -1456,7 +1456,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
          };
 
          BENCHMARK_ADVANCED("std::vector::construction (single value move)") (timer meter) {
-            #include "CollectGarbage.inl"
+            IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
             some<uninitialized<StdT>> storage(meter.runs());
             meter.measure([&](int i) {
                return storage[i].construct(1, ::std::move(value));
@@ -1464,7 +1464,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
          };
 
          BENCHMARK_ADVANCED("std::any::construction (single value move)") (timer meter) {
-            #include "CollectGarbage.inl"
+            IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
             some<uninitialized<std::any>> storage(meter.runs());
             meter.measure([&](int i) {
                return storage[i].construct(::std::move(value));
@@ -1516,7 +1516,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
 
    #ifdef LANGULUS_STD_BENCHMARK
       BENCHMARK_ADVANCED("construction (single disowned value)") (timer meter) {
-         #include "CollectGarbage.inl"
+         IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
          some<uninitialized<T>> storage(meter.runs());
          meter.measure([&](int i) {
             return storage[i].construct(Disowned(value));
@@ -1524,7 +1524,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
       };
 
       BENCHMARK_ADVANCED("std::vector::construction (single value copy)") (timer meter) {
-         #include "CollectGarbage.inl"
+         IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
          some<uninitialized<StdT>> storage(meter.runs());
          meter.measure([&](int i) {
             return storage[i].construct(1, value);
@@ -1532,7 +1532,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
       };
 
       BENCHMARK_ADVANCED("std::any::construction (single value copy)") (timer meter) {
-         #include "CollectGarbage.inl"
+         IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
          some<uninitialized<std::any>> storage(meter.runs());
          meter.measure([&](int i) {
             return storage[i].construct(value);
@@ -1588,7 +1588,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
 
    #ifdef LANGULUS_STD_BENCHMARK
       BENCHMARK_ADVANCED("construction (single abandoned value)") (timer meter) {
-         #include "CollectGarbage.inl"
+         IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
          some<uninitialized<T>> storage(meter.runs());
          meter.measure([&](int i) {
             return storage[i].construct(Abandon(value));
@@ -1596,7 +1596,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
       };
 
       BENCHMARK_ADVANCED("std::vector::construction (single value move)") (timer meter) {
-         #include "CollectGarbage.inl"
+         IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
          some<uninitialized<StdT>> storage(meter.runs());
          meter.measure([&](int i) {
             return storage[i].construct(1, ::std::move(value));
@@ -1604,7 +1604,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
       };
 
       BENCHMARK_ADVANCED("std::any::construction (single value move)") (timer meter) {
-         #include "CollectGarbage.inl"
+         IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
          some<uninitialized<std::any>> storage(meter.runs());
          meter.measure([&](int i) {
             return storage[i].construct(::std::move(value));
@@ -2329,18 +2329,8 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
          REQUIRE(pack.GetUses() == 1);
 
          for (unsigned i = 0; i < 5; ++i) {
-            if constexpr (CT::Dense<E>) {
-               REQUIRE(pack[i] == darray1[i]);
-               REQUIRE(clone[i] == darray1[i]);
-            }
-            else if constexpr (CT::Sparse<E>) {
-               REQUIRE(pack[i] == darray1[i]);
-               REQUIRE(clone[i] != darray1[i]);
-               if constexpr (CT::Typed<T>)
-                  REQUIRE(DenseCast(clone[i]) == DenseCast(darray1[i]));
-               else
-                  REQUIRE(DenseCast(clone[i].template Get<E>()) == DenseCast(darray1[i]));
-            }
+            REQUIRE(pack[i] == darray1[i]);
+            REQUIRE(clone[i] == darray1[i]);
          }
       }
 
@@ -2372,17 +2362,11 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
          Any another_pack5;
          another_pack5 << CreateElement<E>(1) << CreateElement<E>(2) << CreateElement<E>(3) << CreateElement<E>(4) << CreateElement<E>(5);
 
-         if constexpr (CT::Sparse<E>)
-            REQUIRE(pack != another_pack1);
-         else
-            REQUIRE(pack == another_pack1);
+         REQUIRE(pack == another_pack1);
          REQUIRE(pack != another_pack2);
          REQUIRE(pack != another_pack3);
          //REQUIRE(pack != another_pack4);
-         if constexpr (CT::Sparse<E>)
-            REQUIRE(pack != another_pack5);
-         else
-            REQUIRE(pack == another_pack5);
+         REQUIRE(pack == another_pack5);
       }
 
       WHEN("A forward value-based search is performed on existent value") {
@@ -2845,14 +2829,8 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
 
          REQUIRE(pack1.GetUses() == 2);
          REQUIRE(pack2.GetUses() == 1);
-         if constexpr (CT::Sparse<E>) {
-            REQUIRE(pack1 != pack2);
-            REQUIRE(pack2 != memory1);
-         }
-         else {
-            REQUIRE(pack1 == pack2);
-            REQUIRE(pack2 == memory1);
-         }
+         REQUIRE(pack1 == pack2);
+         REQUIRE(pack2 == memory1);
          REQUIRE(pack2 != memory2);
       }
 
