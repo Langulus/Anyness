@@ -88,7 +88,7 @@ jobs:
           -DLANGULUS_FEATURE_MANAGED_REFLECTION=${{matrix.managed}}
 
       - name: Build
-        run: cmake --build out --config ${{matrix.build}}
+        run: cmake --build build --config ${{matrix.build}}
 
       - name: Test
-        run: cd out && ctest -V -C ${{matrix.build}}
+        run: cd build && ctest -V -C ${{matrix.build}}
