@@ -27,7 +27,7 @@ jobs:
 
         include:
           - cxx: g++
-            c: g
+            c: gcc
           - cxx: clang++-16
             c: clang-16
           - os: ubuntu-22.04
