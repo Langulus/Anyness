@@ -83,16 +83,15 @@ namespace Langulus::Anyness
       mType = MetaData::Of<T>();
 
       if constexpr (CT::Array<ST>
-                and CT::Exact<T, ::std::remove_extent_t<ST>>) {
+               and  CT::Exact<T, ::std::remove_extent_t<ST>>) {
          // Integration with bounded arrays                             
          constexpr auto count = ExtentOf<ST>;
          AllocateFresh(RequestSize(count));
          InsertInner<Copied>(*other, *other + count, 0);
       }
       else if constexpr (CT::Deep<ST>) {
-         // Constructing using deep RHS                                 
          if constexpr (not CT::Typed<ST>) {
-            // RHS is type-erased, do runtime type checks               
+            // RHS is type-erased deep, do runtime type checks          
             if (mType->IsExact(other->GetType())) {
                // If types are exactly the same, it is safe to directly 
                // absorb the block, essentially converting a type-      
@@ -115,7 +114,7 @@ namespace Langulus::Anyness
             }
          }
          else {
-            // RHS is not type-erased, do compile-time checks           
+            // RHS is not type-erased deep, do compile-time checks      
             using ContainedType = TypeOf<ST>;
 
             if constexpr (CT::Exact<T, ContainedType>) {
@@ -142,25 +141,20 @@ namespace Langulus::Anyness
             }
          }
       }
-      else if constexpr (CT::DerivedFrom<ST, TAny<T>>) {
+      else if constexpr (CT::DerivedFrom<ST, TAny<T>>
+                    and  sizeof(ST) == sizeof(TAny<T>)) {
          // Some containers, like Bytes and Text aren't CT::Deep, so    
-         // we have this special case for them                          
+         // we have this special case for them, only if they're binary- 
+         // compatible                                                  
          BlockTransfer<TAny>(other.Forward());
       }
-      else if constexpr (CT::Exact<T, ST>) {
-         // Copy/Disown/Move/Abandon/Clone a compatible element         
+      else if constexpr (requires { T(other.Forward()); }) {
+         // Element is semantically-constructible from argument         
          AllocateFresh(RequestSize(1));
-         InsertInner(other.Forward(), 0);
-      }
-      else if constexpr (CT::BuiltinCharacter<T>
-                     and CT::Exact<ST, ::std::basic_string_view<T>>) {
-         // Integration with std::string_view                           
-         if (other->empty())
-            return;
-
-         const auto count = other->size();
-         AllocateFresh(RequestSize(count));
-         InsertInner<Copied>(other->data(), other->data() + count, 0);
+         if constexpr (CT::AbandonMakable<T>)
+            InsertInner(Abandon(T (other.Forward())), 0);
+         else
+            InsertInner(Move(T (other.Forward())), 0);
       }
       else LANGULUS_ERROR("Bad semantic construction");
    }
