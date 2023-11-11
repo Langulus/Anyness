@@ -9,6 +9,7 @@
 #pragma once
 #include "../Block.hpp"
 #include "../../inner/Handle.hpp"
+#include "../../inner/Index.inl"
 
 
 namespace Langulus::Anyness

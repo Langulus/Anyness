@@ -86,5 +86,3 @@ namespace Langulus::Anyness
    };
 
 } // namespace Langulus::Anyness
-
-#include "Allocation.inl"

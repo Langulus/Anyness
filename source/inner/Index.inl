@@ -14,12 +14,6 @@
 namespace Langulus::Anyness
 {
 
-   /// Constructor from special index                                         
-   ///   @param value - the index to copy                                     
-   LANGULUS(INLINED)
-   constexpr Index::Index(const SpecialIndices& value) noexcept
-      : mIndex {value} { }
-
    /// Constructor from signed integer                                        
    ///   @param value - integer to set                                        
    template<CT::SignedInteger T>

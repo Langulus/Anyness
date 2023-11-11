@@ -90,7 +90,8 @@ namespace Langulus::Anyness
    public:
       constexpr Index() noexcept = default;
       constexpr Index(const Index&) noexcept = default;
-      constexpr Index(const SpecialIndices&) noexcept;
+      constexpr Index(const SpecialIndices& value) noexcept
+         : mIndex {value} { }
       template<CT::SignedInteger T>
       constexpr Index(const T&) noexcept (sizeof(T) < sizeof(Type));
       template<CT::UnsignedInteger T>
@@ -135,6 +136,21 @@ namespace Langulus::Anyness
       NOD() constexpr bool operator <= (const Index&) const noexcept;
       NOD() constexpr bool operator >= (const Index&) const noexcept;
    };
+   
+   constexpr Index IndexAll      {Index::All};
+   constexpr Index IndexMany     {Index::Many};
+   constexpr Index IndexSingle   {Index::Single};
+   constexpr Index IndexNone     {Index::None};
+   constexpr Index IndexFront    {Index::Front};
+   constexpr Index IndexMiddle   {Index::Middle};
+   constexpr Index IndexBack     {Index::Back};
+   constexpr Index IndexMode     {Index::Mode};
+   constexpr Index IndexBiggest  {Index::Biggest};
+   constexpr Index IndexSmallest {Index::Smallest};
+   constexpr Index IndexAuto     {Index::Auto};
+   constexpr Index IndexRandom   {Index::Random};
+   constexpr Index IndexFirst    {Index::First};
+   constexpr Index IndexLast     {Index::Last};
 
 } // namespace Langulus::Anyness
 
@@ -146,25 +162,3 @@ namespace Langulus::CT
    concept Index = Integer<T> or Same<T, Anyness::Index>;
 
 } // namespace Langulus::CT
-
-#include "Index.inl"
-
-namespace Langulus::Anyness
-{
-
-   constexpr Index IndexAll {Index::All};
-   constexpr Index IndexMany {Index::Many};
-   constexpr Index IndexSingle {Index::Single};
-   constexpr Index IndexNone {Index::None};
-   constexpr Index IndexFront {Index::Front};
-   constexpr Index IndexMiddle {Index::Middle};
-   constexpr Index IndexBack {Index::Back};
-   constexpr Index IndexMode {Index::Mode};
-   constexpr Index IndexBiggest {Index::Biggest};
-   constexpr Index IndexSmallest {Index::Smallest};
-   constexpr Index IndexAuto {Index::Auto};
-   constexpr Index IndexRandom {Index::Random};
-   constexpr Index IndexFirst {Index::First};
-   constexpr Index IndexLast {Index::Last};
-
-} // namespace Langulus::Anyness
