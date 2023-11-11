@@ -64,6 +64,7 @@ void Helper_TestSame(const LHS& lhs, const RHS& rhs) {
    REQUIRE(lhs == rhs);
    REQUIRE(lhs.IsDeep() == rhs.IsDeep());
    REQUIRE(lhs.IsConstant() == rhs.IsConstant());
+   REQUIRE(lhs.GetUnconstrainedState() == rhs.GetUnconstrainedState());
 }
 
 
@@ -131,16 +132,11 @@ void CheckState_OwnedEmpty(const auto& any) {
    REQUIRE_FALSE(any.IsCompressed());
    REQUIRE      (any.IsConstant() == CT::Constant<E>);
    REQUIRE_FALSE(any.IsEncrypted());
-   REQUIRE_FALSE(any.IsMissing());
-   REQUIRE_FALSE(any.IsOr());
    REQUIRE_FALSE(any.IsStatic());
    REQUIRE_FALSE(any.IsValid());
    REQUIRE      (any.IsInvalid());
    REQUIRE      (any.IsAllocated());
    REQUIRE      (any.HasAuthority());
-   REQUIRE      (any.IsNow());
-   REQUIRE_FALSE(any.IsFuture());
-   REQUIRE_FALSE(any.IsPast());
    REQUIRE      (any.IsEmpty());
    REQUIRE      (any.GetCount() == 0);
    REQUIRE      (any.GetReserved() > 0);
@@ -161,16 +157,11 @@ void CheckState_OwnedFull(const auto& any) {
    REQUIRE_FALSE(any.IsCompressed());
    REQUIRE      (any.IsConstant() == CT::Constant<E>);
    REQUIRE_FALSE(any.IsEncrypted());
-   REQUIRE_FALSE(any.IsMissing());
-   REQUIRE_FALSE(any.IsOr());
    REQUIRE      (any.IsValid());
    REQUIRE_FALSE(any.IsInvalid());
    REQUIRE_FALSE(any.IsStatic());
    REQUIRE      (any.IsAllocated());
    REQUIRE      (any.HasAuthority());
-   REQUIRE      (any.IsNow());
-   REQUIRE_FALSE(any.IsFuture());
-   REQUIRE_FALSE(any.IsPast());
    REQUIRE_FALSE(any.IsEmpty());
    REQUIRE      (any.GetCount() > 0);
    REQUIRE      (any.GetReserved() > 0);

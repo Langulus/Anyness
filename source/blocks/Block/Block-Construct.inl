@@ -198,8 +198,10 @@ namespace Langulus::Anyness
       return operator = (*rhs);
    }
    
-   /// Semantically transfer the members of one block onto another            
+   /// Semantically transfer the members of one block onto another with the   
+   /// smallest number of instructions possible                               
    ///   @attention will not set mType if TO is type-constrained              
+   ///   @attention will not set mRaw, mReserved, mEntry, if 'from' is empty  
    ///   @tparam TO - the type of block we're transferring to                 
    ///   @param from - the block and semantic to transfer from                
    template<class TO>
@@ -223,9 +225,6 @@ namespace Langulus::Anyness
          // we don't affect Typed state                                 
          mState = from->mState + DataState::Typed;
       }
-
-      if (IsEmpty())
-         return;
 
       if constexpr (S::Shallow) {
          // We're transferring via a shallow semantic                   
@@ -262,6 +261,8 @@ namespace Langulus::Anyness
          // We're cloning, so we guarantee, that data is no longer      
          // static and constant (unless mType is constant)              
          mState -= DataState::Static | DataState::Constant;
+         if (0 == mCount)
+            return;
          
          if constexpr (CT::Typed<FROM>) {
             auto asTo = reinterpret_cast<FROM*>(this);

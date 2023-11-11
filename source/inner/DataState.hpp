@@ -97,6 +97,7 @@ namespace Langulus::Anyness
       NOD() constexpr DataState operator - (const DataState&) const noexcept;
       constexpr DataState& operator += (const DataState&) noexcept;
       constexpr DataState& operator -= (const DataState&) noexcept;
+      constexpr DataState& operator &= (const DataState&) noexcept;
       
       NOD() constexpr bool operator & (const DataState&) const noexcept;
       NOD() constexpr bool operator % (const DataState&) const noexcept;

@@ -365,7 +365,7 @@ namespace Langulus::Anyness
    /// Reset container state (inner function)                                 
    TEMPLATE() LANGULUS(INLINED)
    constexpr void TAny<T>::ResetState() noexcept {
-      mState = mState.mState & DataState::Typed;
+      mState &= DataState::Typed;
    }
 
    /// Reset container type (does nothing for typed container)                

@@ -143,6 +143,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
          }
          else if constexpr (CT::Same<E, T>) {
             Helper_TestSame(pack, element);
+
             REQUIRE(pack.GetUses() == element.GetUses());
             REQUIRE(pack.GetUses() == 2);
             REQUIRE(pack.IsStatic() == element.IsStatic());
@@ -193,6 +194,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
          }
          else if constexpr (CT::Same<E, T>) {
             Helper_TestSame(pack, element);
+
             REQUIRE(pack.GetUses() == 0);
             REQUIRE(pack.IsStatic());
             REQUIRE_FALSE(pack.HasAuthority());
@@ -246,6 +248,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
          }
          else if constexpr (CT::Same<E, T>) {
             Helper_TestSame(pack, element);
+
             REQUIRE(pack.GetUses() == 2);
             REQUIRE(pack.IsStatic() == element.IsStatic());
             REQUIRE(pack.HasAuthority() == element.HasAuthority());
@@ -718,7 +721,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
 
       WHEN("Pack is cloned") {
          pack.MakeOr();
-         T clone = Langulus::Clone(pack);
+         T clone = Clone(pack);
 
          REQUIRE(clone.GetRaw() == pack.GetRaw());
          REQUIRE(clone.GetCount() == pack.GetCount());
