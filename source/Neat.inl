@@ -31,15 +31,15 @@ namespace Langulus::Anyness
    /// Semantic constructor from Neat                                         
    ///   @tparam S - semantic to use (deducible)                              
    ///   @param other - the container to use                                  
-   template<CT::Semantic S>
+   template<template<class> class S>
    LANGULUS(INLINED)
-   Neat::Neat(S&& other) requires (CT::Neat<TypeOf<S>>)
+   Neat::Neat(S<Neat>&& other) requires CT::Semantic<S<Neat>>
       : mHash {other->mHash}
-      , mTraits {S::Nest(other->mTraits)}
-      , mConstructs {S::Nest(other->mConstructs)}
-      , mAnythingElse {S::Nest(other->mAnythingElse)} {
+      , mTraits {S<Neat>::Nest(other->mTraits)}
+      , mConstructs {S<Neat>::Nest(other->mConstructs)}
+      , mAnythingElse {S<Neat>::Nest(other->mAnythingElse)} {
       // Reset remote hash if moving                                    
-      if constexpr (S::Move and S::Keep)
+      if constexpr (S<Neat>::Move and S<Neat>::Keep)
          other->mHash = {};
    }
 
@@ -94,18 +94,16 @@ namespace Langulus::Anyness
    ///   @tparam S - semantic to use (deducible)                              
    ///   @param other - normalized descriptor to assign                       
    ///   @return a reference to this descriptor                               
+   template<template<class> class S>
    LANGULUS(INLINED)
-   Neat& Neat::operator = (CT::Semantic auto&& other) {
-      using S = Decay<decltype(other)>;
-      static_assert(CT::Neat<TypeOf<S>>, "S type must be Neat");
-
-      mTraits = S::Nest(other->mTraits);
-      mConstructs = S::Nest(other->mConstructs);
-      mAnythingElse = S::Nest(other->mAnythingElse);
+   Neat& Neat::operator = (S<Neat>&& other) requires CT::Semantic<S<Neat>> {
+      mTraits = S<Neat>::Nest(other->mTraits);
+      mConstructs = S<Neat>::Nest(other->mConstructs);
+      mAnythingElse = S<Neat>::Nest(other->mAnythingElse);
       mHash = other->mHash;
 
       // Reset remote hash if moving                                    
-      if constexpr (S::Move and S::Keep)
+      if constexpr (S<Neat>::Move and S<Neat>::Keep)
          other->mHash = {};
       return *this;
    }

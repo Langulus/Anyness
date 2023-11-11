@@ -95,9 +95,8 @@ namespace Langulus::Anyness
       constexpr Neat() = default;
       Neat(const Neat&);
       Neat(Neat&&) noexcept;
-
-      template<CT::Semantic S>
-      Neat(S&&) requires (CT::Neat<TypeOf<S>>);
+      template<template<class> class S>
+      Neat(S<Neat>&&) requires CT::Semantic<S<Neat>>;
 
       template<CT::NotSemantic T>
       Neat(const T&) requires (not CT::Neat<T>);
@@ -116,7 +115,8 @@ namespace Langulus::Anyness
       ///                                                                     
       Neat& operator = (const Neat&) = default;
       Neat& operator = (Neat&&) noexcept = default;
-      Neat& operator = (CT::Semantic auto&&);
+      template<template<class> class S>
+      Neat& operator = (S<Neat>&&) requires CT::Semantic<S<Neat>>;
 
       ///                                                                     
       ///   Comparison                                                        

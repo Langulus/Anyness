@@ -8,4 +8,3 @@
 ///                                                                           
 #pragma once
 #include "../../source/Construct.inl"
-#include "../../source/Neat.inl"
