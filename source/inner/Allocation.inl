@@ -10,6 +10,7 @@
 #include "Allocation.hpp"
 #include <Core/Utilities.hpp>
 
+
 namespace Langulus::Anyness
 {
    namespace Inner

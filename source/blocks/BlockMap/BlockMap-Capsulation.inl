@@ -9,6 +9,7 @@
 #pragma once
 #include "../BlockMap.hpp"
 
+
 namespace Langulus::Anyness
 {
    

@@ -10,6 +10,7 @@
 #include "Config.hpp"
 #include <RTTI/MetaData.hpp>
 
+
 namespace Langulus::Anyness
 {
 

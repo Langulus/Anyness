@@ -7,6 +7,7 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
+#include "TAny.hpp"
 #include "Trait.hpp"
 #include "TUnorderedMap.hpp"
 #include "inner/Charge.hpp"
@@ -131,11 +132,11 @@ namespace Langulus::Anyness
       ///   Encapsulation                                                     
       ///                                                                     
       NOD() Hash GetHash() const;
-      NOD() constexpr bool IsEmpty() const noexcept;
+      NOD() bool IsEmpty() const noexcept;
       NOD() bool IsMissing() const;
       NOD() bool IsMissingDeep() const;
 
-      NOD() constexpr explicit operator bool() const noexcept;
+      NOD() explicit operator bool() const noexcept;
 
       // Intentionally left undefined                                   
       template<CT::Text T>

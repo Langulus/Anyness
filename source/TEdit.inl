@@ -11,6 +11,7 @@
 
 #define TEMPLATE() template<DenseTypedBlock T>
 
+
 namespace Langulus::Anyness
 {
 

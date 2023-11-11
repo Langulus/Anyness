@@ -27,7 +27,6 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
    using T = typename TestType::LHS;
    using E = typename TestType::RHS;
    using DenseE = Decay<E>;
-   using SparseE = E*;
       
    E element = CreateElement<E>(555);
    const DenseE& denseValue {DenseCast(element)};
@@ -189,8 +188,6 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
             REQUIRE(pack.template As<DenseE>() == denseValue);
             REQUIRE(*pack.template As<DenseE*>() == denseValue);
             REQUIRE(pack.GetUses() == 1);
-            REQUIRE_FALSE(pack.IsStatic());
-            REQUIRE(pack.HasAuthority());
          }
          else if constexpr (CT::Same<E, T>) {
             Helper_TestSame(pack, element);
@@ -243,8 +240,6 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
             REQUIRE(pack.template As<DenseE>() == denseValue);
             REQUIRE(*pack.template As<DenseE*>() == denseValue);
             REQUIRE(pack.GetUses() == 1);
-            REQUIRE(pack.HasAuthority());
-            REQUIRE_FALSE(pack.IsStatic());
          }
          else if constexpr (CT::Same<E, T>) {
             Helper_TestSame(pack, element);
@@ -326,15 +321,9 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
 
          const auto created = pack.New(3, darray2[0]);
 
+         CheckState_OwnedFull<E>(pack);
          REQUIRE(pack.GetCount() == 3);
          REQUIRE(created == 3);
-         REQUIRE(pack.GetType()->template IsExact<E>());
-         REQUIRE(pack.GetType()->template Is<DenseE>());
-         REQUIRE(pack.GetType()->template Is<SparseE>());
-         REQUIRE(pack.IsDense() == CT::Dense<E>);
-         REQUIRE(pack.IsSparse() == CT::Sparse<E>);
-         REQUIRE(pack.IsTypeConstrained() == CT::Typed<T>);
-         REQUIRE(pack.GetRaw() != nullptr);
          REQUIRE(pack.GetUses() == 1);
          for (auto it : pack)
             REQUIRE(it == darray2[0]);
@@ -343,9 +332,9 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
       WHEN("Shallow-copy more of the same stuff to the back (<<)") {
          pack << darray2[0] << darray2[1] << darray2[2] << darray2[3] << darray2[4];
 
+         CheckState_OwnedFull<E>(pack);
          REQUIRE(pack.GetCount() == 5);
          REQUIRE(pack.GetReserved() >= 5);
-         REQUIRE(pack.template IsExact<E>());
          for (unsigned i = 0; i < 5; ++i)
             REQUIRE(pack[i] == darray2[i]);
          
@@ -376,9 +365,9 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
       WHEN("Shallow-copy more of the same stuff to the front (>>)") {
          pack >> darray2[0] >> darray2[1] >> darray2[2] >> darray2[3] >> darray2[4];
 
+         CheckState_OwnedFull<E>(pack);
          REQUIRE(pack.GetCount() == 5);
          REQUIRE(pack.GetReserved() >= 5);
-         REQUIRE(pack.template IsExact<E>());
          for (unsigned i = 0; i < 5; ++i)
             REQUIRE(pack[i] == darray2[4-i]);
          
@@ -409,9 +398,9 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
       WHEN("Shallow-copy an array to the back") {
          pack.template Insert<IndexBack>(darray2, darray2 + 5);
 
+         CheckState_OwnedFull<E>(pack);
          REQUIRE(pack.GetCount() == 5);
          REQUIRE(pack.GetReserved() >= 5);
-         REQUIRE(pack.template IsExact<E>());
          for (unsigned i = 0; i < 5; ++i)
             REQUIRE(pack[i] == darray2[i]);
          
@@ -437,9 +426,9 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
       WHEN("Shallow-copy an array to the front") {
          pack.template Insert<IndexFront>(darray2, darray2 + 5);
 
+         CheckState_OwnedFull<E>(pack);
          REQUIRE(pack.GetCount() == 5);
          REQUIRE(pack.GetReserved() >= 5);
-         REQUIRE(pack.template IsExact<E>());
          for (unsigned i = 0; i < 5; ++i)
             REQUIRE(pack[i] == darray2[i]);
          
@@ -486,9 +475,9 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
             << ::std::move(darray3[3])
             << ::std::move(darray3[4]);
 
+         CheckState_OwnedFull<E>(pack);
          REQUIRE(pack.GetCount() == 5);
          REQUIRE(pack.GetReserved() >= 5);
-         REQUIRE(pack.template IsExact<E>());
          for (unsigned i = 0; i < 5; ++i)
             REQUIRE(pack[i] == darray3backup[i]);
          
@@ -545,9 +534,9 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
             >> ::std::move(darray3[3])
             >> ::std::move(darray3[4]);
 
+         CheckState_OwnedFull<E>(pack);
          REQUIRE(pack.GetCount() == 5);
          REQUIRE(pack.GetReserved() >= 5);
-         REQUIRE(pack.template IsExact<E>());
          for (unsigned i = 0; i < 5; ++i)
             REQUIRE(pack[i] == darray3backup[4 - i]);
          
@@ -583,20 +572,24 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
       WHEN("Insert single item at a specific place by shallow-copy") {
          const auto i666 = CreateElement<E>(666);
          REQUIRE_THROWS(pack.InsertAt(i666, 0));
+         CheckState_Default<E>(pack);
       }
 
       WHEN("Insert multiple items at a specific place by shallow-copy") {
          REQUIRE_THROWS(pack.InsertAt(darray2, darray2 + 5, 0));
-      }
+         CheckState_Default<E>(pack);
+                  }
 
       WHEN("Insert single item at a specific place by move") {
          auto i666 = CreateElement<E>(666);
          REQUIRE_THROWS(pack.InsertAt(::std::move(i666), 0));
+         CheckState_Default<E>(pack);
       }
 
       WHEN("Emplace item at a specific place") {
          auto i666 = CreateElement<E>(666);
          REQUIRE_THROWS(pack.EmplaceAt(0, ::std::move(i666)));
+         CheckState_Default<E>(pack);
       }
 
       WHEN("Emplace item at the front") {
@@ -606,9 +599,9 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
          if constexpr (CT::Typed<T>) {
             pack.template Emplace<IndexFront>(::std::move(i666));
 
+            CheckState_OwnedFull<E>(pack);
             REQUIRE(pack.GetCount() == 1);
             REQUIRE(pack.GetReserved() >= 1);
-            REQUIRE(pack.template IsExact<E>());
             REQUIRE(pack[0] == i666backup);
 
             #ifdef LANGULUS_STD_BENCHMARK
@@ -635,6 +628,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
          }
          else {
             REQUIRE_THROWS(pack.template Emplace<IndexFront>(::std::move(i666)));
+            CheckState_Default<E>(pack);
          }
       }
       
@@ -644,9 +638,9 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
          if constexpr (CT::Typed<T>) {
             pack.template Emplace<IndexBack>(::std::move(i666));
 
+            CheckState_OwnedFull<E>(pack);
             REQUIRE(pack.GetCount() == 1);
             REQUIRE(pack.GetReserved() >= 1);
-            REQUIRE(pack.template IsExact<E>());
             REQUIRE(pack[0] == i666backup);
 
             #ifdef LANGULUS_STD_BENCHMARK
@@ -673,79 +667,68 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
          }
          else {
             REQUIRE_THROWS(pack.template Emplace<IndexBack>(::std::move(i666)));
+            CheckState_Default<E>(pack);
          }
       }
 
       WHEN("Removing non-available elements") {
          const auto removed9 = pack.Remove(darray2[3]);
 
+         CheckState_Default<E>(pack);
          REQUIRE(removed9 == 0);
-         REQUIRE(!pack);
       }    
 
       WHEN("More capacity is reserved") {
          if constexpr (CT::Typed<T>) {
             pack.Reserve(20);
 
+            CheckState_OwnedEmpty<E>(pack);
             REQUIRE(pack.GetCount() == 0);
             REQUIRE(pack.GetReserved() >= 20);
          }
          else {
             REQUIRE_THROWS(pack.Reserve(20));
+            CheckState_Default<E>(pack);
          }
       }
 
-      WHEN("Pack is cleared") {
+      WHEN("Empty pack is cleared") {
          pack.Clear();
 
-         REQUIRE(!pack);
+         CheckState_Default<E>(pack);
       }
 
-      WHEN("Pack is reset") {
+      WHEN("Empty pack is reset") {
          pack.Reset();
 
-         REQUIRE(!pack);
+         CheckState_Default<E>(pack);
       }
 
-      WHEN("Pack is shallow-copied") {
+      WHEN("Empty pack with state is shallow-copied") {
          pack.MakeOr();
          auto copy = pack;
 
-         REQUIRE(copy.GetRaw() == pack.GetRaw());
-         REQUIRE(copy.GetCount() == pack.GetCount());
-         REQUIRE(copy.GetReserved() == pack.GetReserved());
+         Helper_TestSame(copy, pack);
          REQUIRE(copy.GetState() == pack.GetState());
-         REQUIRE(copy.GetType() == pack.GetType());
          REQUIRE(copy.GetUses() == 0);
       }
 
-      WHEN("Pack is cloned") {
+      WHEN("Empty pack with state is cloned") {
          pack.MakeOr();
          T clone = Clone(pack);
 
-         REQUIRE(clone.GetRaw() == pack.GetRaw());
-         REQUIRE(clone.GetCount() == pack.GetCount());
-         REQUIRE(clone.GetReserved() == clone.GetReserved());
+         Helper_TestSame(clone, pack);
          REQUIRE(clone.GetState() == pack.GetState());
-         REQUIRE(clone.GetType() == pack.GetType());
          REQUIRE(clone.GetUses() == 0);
-         REQUIRE(pack.GetUses() == 0);
       }
 
-      WHEN("Pack is moved") {
+      WHEN("Empty pack with state is moved") {
+         pack.MakeOr();
          T movable = pack;
-         movable.MakeOr();
          const T moved = ::std::move(movable);
 
-         REQUIRE(movable.GetRaw() == nullptr);
-         REQUIRE(movable.GetCount() == 0);
-         REQUIRE(movable.GetReserved() == 0);
-         REQUIRE(movable.IsTypeConstrained() == CT::Typed<T>);
-         REQUIRE(pack.GetRaw() == moved.GetRaw());
-         REQUIRE(pack.GetCount() == moved.GetCount());
-         REQUIRE(pack.GetReserved() == moved.GetReserved());
-         REQUIRE(pack.GetState() + DataState::Or == moved.GetState());
-         REQUIRE(pack.GetType() == moved.GetType());
+         CheckState_Default<E>(movable);
+         Helper_TestSame(moved, pack);
       }
 
       WHEN("Packs are compared") {
@@ -810,9 +793,9 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
       WHEN("Merge-copy an element to the back, if not found (<<=)") {
          pack <<= darray2[3];
 
+         CheckState_OwnedFull<E>(pack);
          REQUIRE(pack.GetCount() == 1);
          REQUIRE(pack.GetReserved() >= 1);
-         REQUIRE(pack.template IsExact<E>());
          REQUIRE(pack[0] == darray2[3]);
          
          #ifdef LANGULUS_STD_BENCHMARK
@@ -839,9 +822,9 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
       WHEN("Merge-copy an element to the front, if not found (>>=)") {
          pack >>= darray2[3];
 
+         CheckState_OwnedFull<E>(pack);
          REQUIRE(pack.GetCount() == 1);
          REQUIRE(pack.GetReserved() >= 1);
-         REQUIRE(pack.template IsExact<E>());
          REQUIRE(pack[0] == darray2[3]);
          
          #ifdef LANGULUS_STD_BENCHMARK
@@ -869,9 +852,9 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
          auto moved = darray2[3];
          pack <<= ::std::move(moved);
 
+         CheckState_OwnedFull<E>(pack);
          REQUIRE(pack.GetCount() == 1);
          REQUIRE(pack.GetReserved() >= 1);
-         REQUIRE(pack.template IsExact<E>());
          REQUIRE(pack[0] == darray2[3]);
          
          #ifdef LANGULUS_STD_BENCHMARK
@@ -899,9 +882,9 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
          auto moved = darray2[3];
          pack >>= ::std::move(moved);
 
+         CheckState_OwnedFull<E>(pack);
          REQUIRE(pack.GetCount() == 1);
          REQUIRE(pack.GetReserved() >= 1);
-         REQUIRE(pack.template IsExact<E>());
          REQUIRE(pack[0] == darray2[3]);
          
          #ifdef LANGULUS_STD_BENCHMARK
@@ -937,9 +920,9 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
 
       WHEN("ForEach flat dense element (mutable)") {
          const auto foreachit = const_cast<T&>(pack).ForEach(
-            [&](int&) {FAIL(); },
-            [&](Trait&) {FAIL(); },
-            [&](Any&) {FAIL(); }
+            [&](int&)         {FAIL(); },
+            [&](Trait&)       {FAIL(); },
+            [&](Any&)         {FAIL(); }
          );
 
          REQUIRE(0 == foreachit);
@@ -947,9 +930,9 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
 
       WHEN("ForEach flat sparse element (immutable)") {
          const auto foreachit = const_cast<const T&>(pack).ForEach(
-            [&](const int*) {FAIL(); },
+            [&](const int*)   {FAIL(); },
             [&](const Trait*) {FAIL(); },
-            [&](const Any*) {FAIL(); }
+            [&](const Any*)   {FAIL(); }
          );
 
          REQUIRE(0 == foreachit);
@@ -957,9 +940,9 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
 
       WHEN("ForEach flat sparse element (mutable)") {
          const auto foreachit = const_cast<T&>(pack).ForEach(
-            [&](int*) {FAIL(); },
-            [&](Trait*) {FAIL(); },
-            [&](Any*) {FAIL(); }
+            [&](int*)         {FAIL(); },
+            [&](Trait*)       {FAIL(); },
+            [&](Any*)         {FAIL(); }
          );
 
          REQUIRE(0 == foreachit);
@@ -967,9 +950,9 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
 
       WHEN("ForEachRev flat dense element (immutable)") {
          const auto foreachit = const_cast<const T&>(pack).ForEachRev(
-            [&](const int&) {FAIL(); },
+            [&](const int&)   {FAIL(); },
             [&](const Trait&) {FAIL(); },
-            [&](const Any&) {FAIL(); }
+            [&](const Any&)   {FAIL(); }
          );
 
          REQUIRE(0 == foreachit);
@@ -977,9 +960,9 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
 
       WHEN("ForEachRev flat dense element (mutable)") {
          const auto foreachit = pack.ForEachRev(
-            [&](const int&) {FAIL(); },
+            [&](const int&)   {FAIL(); },
             [&](const Trait&) {FAIL(); },
-            [&](const Any&) {FAIL(); }
+            [&](const Any&)   {FAIL(); }
          );
 
          REQUIRE(0 == foreachit);
@@ -987,9 +970,9 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
 
       WHEN("ForEachRev flat sparse element (immutable)") {
          const auto foreachit = const_cast<const T&>(pack).ForEachRev(
-            [&](const int*) {FAIL(); },
+            [&](const int*)   {FAIL(); },
             [&](const Trait*) {FAIL(); },
-            [&](const Any*) {FAIL(); }
+            [&](const Any*)   {FAIL(); }
          );
 
          REQUIRE(0 == foreachit);
@@ -997,9 +980,9 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
 
       WHEN("ForEachRev flat sparse element (mutable)") {
          const auto foreachit = pack.ForEachRev(
-            [&](const int*) {FAIL(); },
+            [&](const int*)   {FAIL(); },
             [&](const Trait*) {FAIL(); },
-            [&](const Any*) {FAIL(); }
+            [&](const Any*)   {FAIL(); }
          );
 
          REQUIRE(0 == foreachit);
@@ -1010,32 +993,19 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
       const T source {element};
       T pack {source};
 
-      REQUIRE(pack.GetType() != nullptr);
       if constexpr (CT::Flat<E>) {
-         REQUIRE(pack.template IsExact<E>());
-         REQUIRE(pack.template Is<DenseE>());
-         REQUIRE(pack.template Is<SparseE>());
+         CheckState_OwnedFull<E>(pack);
          REQUIRE(pack.template As<DenseE>() == denseValue);
          REQUIRE(*pack.template As<DenseE*>() == denseValue);
          REQUIRE(pack.GetUses() == 2);
-         REQUIRE(pack.IsDeep() == CT::Deep<Decay<E>>);
       }
       else if constexpr (CT::Same<E, T>) {
-         REQUIRE(pack.IsExact(element.GetType()));
-         REQUIRE(pack == source);
-         REQUIRE(pack == element);
+         Helper_TestSame(pack, element);
+         Helper_TestSame(pack, source);
          REQUIRE(pack.GetUses() == 3);
-         REQUIRE(pack.IsDeep() == element.IsDeep());
       }
 
-      REQUIRE(pack.GetRaw() != nullptr);
       REQUIRE_THROWS(pack.template As<float>() == 0.0f);
-      REQUIRE_FALSE(!pack);
-      REQUIRE(pack.IsDense() == CT::Dense<E>);
-      REQUIRE(pack.IsSparse() == CT::Sparse<E>);
-      REQUIRE_FALSE(pack.IsStatic());
-      REQUIRE_FALSE(pack.IsConstant());
-      REQUIRE(pack.HasAuthority());
       REQUIRE_THROWS(pack.template As<float*>() == nullptr);
 
       #ifdef LANGULUS_STD_BENCHMARK
@@ -1070,34 +1040,19 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
    GIVEN("Container constructed by value copy") {
       T pack {element};
 
-      THEN("Properties should match") {
-         REQUIRE(pack.GetRaw() != nullptr);
-         REQUIRE(pack.GetType() != nullptr);
-         if constexpr (CT::Flat<E>) {
-            REQUIRE(pack.template IsExact<E>());
-            REQUIRE(pack.template Is<DenseE>());
-            REQUIRE(pack.template Is<SparseE>());
-            REQUIRE(pack.template As<DenseE>() == denseValue);
-            REQUIRE(*pack.template As<DenseE*>() == denseValue);
-            REQUIRE(pack.GetUses() == 1);
-            REQUIRE(pack.IsDeep() == CT::Deep<Decay<E>>);
-         }
-         else if constexpr (CT::Same<E, T>) {
-            REQUIRE(pack.IsExact(element.GetType()));
-            REQUIRE(pack == element);
-            REQUIRE(pack.GetUses() == 2);
-            REQUIRE(pack.IsDeep() == element.IsDeep());
-         }
-
-         REQUIRE_THROWS(pack.template As<float>() == 0.0f);
-         REQUIRE_THROWS(pack.template As<float*>() == nullptr);
-         REQUIRE_FALSE(!pack);
-         REQUIRE(pack.IsDense() == CT::Dense<E>);
-         REQUIRE(pack.IsSparse() == CT::Sparse<E>);
-         REQUIRE_FALSE(pack.IsStatic());
-         REQUIRE_FALSE(pack.IsConstant());
-         REQUIRE(pack.HasAuthority());
+      if constexpr (CT::Flat<E>) {
+         CheckState_OwnedFull<E>(pack);
+         REQUIRE(pack.template As<DenseE>() == denseValue);
+         REQUIRE(*pack.template As<DenseE*>() == denseValue);
+         REQUIRE(pack.GetUses() == 1);
       }
+      else if constexpr (CT::Same<E, T>) {
+         Helper_TestSame(pack, element);
+         REQUIRE(pack.GetUses() == 2);
+      }
+
+      REQUIRE_THROWS(pack.template As<float>() == 0.0f);
+      REQUIRE_THROWS(pack.template As<float*>() == nullptr);
 
       #ifdef LANGULUS_STD_BENCHMARK
          BENCHMARK_ADVANCED("construction (single value copy)") (timer meter) {
@@ -1128,17 +1083,14 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
       WHEN("Assigned compatible value by copy") {
          pack = element;
 
-
          if constexpr (CT::Flat<E>) {
             CheckState_OwnedFull<E>(pack);
-
             REQUIRE(pack.template As<DenseE>() == denseValue);
             REQUIRE(*pack.template As<DenseE*>() == denseValue);
             REQUIRE(pack.GetUses() == 1);
          }
          else if constexpr (CT::Same<E, T>) {
             Helper_TestSame(pack, element);
-
             REQUIRE(pack.GetUses() == element.GetUses());
             REQUIRE(pack.GetUses() == 2);
             REQUIRE(pack.IsStatic() == element.IsStatic());
@@ -1184,14 +1136,12 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
 
          if constexpr (CT::Flat<E>) {
             CheckState_OwnedFull<E>(pack);
-
             REQUIRE(pack.template As<DenseE>() == denseValue);
             REQUIRE(*pack.template As<DenseE*>() == denseValue);
             REQUIRE(pack.GetUses() == 1);
          }
          else if constexpr (CT::Same<E, T>) {
             Helper_TestSame(pack, element);
-
             REQUIRE(pack.GetUses() == 2);
             REQUIRE(pack.IsStatic() == element.IsStatic());
             REQUIRE(pack.HasAuthority() == element.HasAuthority());
@@ -1232,16 +1182,12 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
 
          if constexpr (CT::Flat<E>) {
             CheckState_OwnedFull<E>(pack);
-
             REQUIRE(pack.template As<DenseE>() == denseValue);
             REQUIRE(*pack.template As<DenseE*>() == denseValue);
             REQUIRE(pack.GetUses() == 1);
-            REQUIRE_FALSE(pack.IsStatic());
-            REQUIRE(pack.HasAuthority());
          }
          else if constexpr (CT::Same<E, T>) {
             Helper_TestSame(pack, element);
-
             REQUIRE(pack.GetUses() == 0);
             REQUIRE(pack.IsStatic());
             REQUIRE_FALSE(pack.HasAuthority());
@@ -1286,16 +1232,12 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
 
          if constexpr (CT::Flat<E>) {
             CheckState_OwnedFull<E>(pack);
-
             REQUIRE(pack.template As<DenseE>() == denseValue);
             REQUIRE(*pack.template As<DenseE*>() == denseValue);
             REQUIRE(pack.GetUses() == 1);
-            REQUIRE(pack.HasAuthority());
-            REQUIRE_FALSE(pack.IsStatic());
          }
          else if constexpr (CT::Same<E, T>) {
             Helper_TestSame(pack, element);
-
             REQUIRE(pack.GetUses() == 2);
             REQUIRE(pack.IsStatic() == element.IsStatic());
             REQUIRE(pack.HasAuthority() == element.HasAuthority());
@@ -1412,17 +1354,12 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
 
       if constexpr (CT::Flat<E>) {
          CheckState_OwnedFull<E>(pack);
-
          REQUIRE(pack.template As<DenseE>() == denseValue);
          REQUIRE(*pack.template As<DenseE*>() == denseValue);
          REQUIRE(pack.GetUses() == 1);
-         REQUIRE(pack.HasAuthority());
-         REQUIRE_FALSE(pack.IsStatic());
-         REQUIRE_FALSE(pack.IsConstant());
       }
       else if constexpr (CT::Same<E, T>) {
          Helper_TestSame(pack, element);
-
          REQUIRE(pack.GetUses() == 2);
          REQUIRE(pack.IsStatic() == element.IsStatic());
          REQUIRE(pack.HasAuthority() == element.HasAuthority());
@@ -1481,16 +1418,12 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
 
       if constexpr (CT::Flat<E>) {
          CheckState_OwnedFull<E>(pack);
-
          REQUIRE(pack.template As<DenseE>() == denseValue);
          REQUIRE(*pack.template As<DenseE*>() == denseValue);
          REQUIRE(pack.GetUses() == 1);
-         REQUIRE_FALSE(pack.IsStatic());
-         REQUIRE(pack.HasAuthority());
       }
       else if constexpr (CT::Same<E, T>) {
          Helper_TestSame(pack, element);
-
          REQUIRE(pack.GetUses() == 0);
          REQUIRE(pack.IsStatic());
          REQUIRE_FALSE(pack.HasAuthority());
@@ -1553,12 +1486,9 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
 
       if constexpr (CT::Flat<E>) {
          CheckState_OwnedFull<E>(pack);
-
          REQUIRE(pack.template As<DenseE>() == denseValue);
          REQUIRE(*pack.template As<DenseE*>() == denseValue);
          REQUIRE(pack.GetUses() == 1);
-         REQUIRE(pack.HasAuthority());
-         REQUIRE_FALSE(pack.IsStatic());
       }
       else if constexpr (CT::Same<E, T>) {
          Helper_TestSame(pack, element);
@@ -1620,17 +1550,11 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
       if constexpr (!CT::Typed<T>) {
          const T pack {element, element};
 
-         REQUIRE(pack.template IsExact<E>());
+         CheckState_OwnedFull<E>(pack);
          REQUIRE(pack.GetCount() == 2);
          REQUIRE(pack.GetReserved() >= 2);
-         REQUIRE(pack.IsDense() == CT::Dense<E>);
-         REQUIRE(pack.IsSparse() == CT::Sparse<E>);
-         REQUIRE_FALSE(pack.IsStatic());
-         REQUIRE_FALSE(pack.IsConstant());
-         REQUIRE(pack.HasAuthority());
-         for (auto& e : pack) {
+         for (auto& e : pack)
             REQUIRE(e == element);
-         }
       }
    }
 
@@ -1638,13 +1562,9 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
       if constexpr (!CT::Typed<T>) {
          const T pack {denseValue, sparseValue};
 
-         REQUIRE(pack.template IsExact<Any>());
+         CheckState_OwnedFull<Any>(pack);
          REQUIRE(pack.GetCount() == 2);
          REQUIRE(pack.GetReserved() >= 2);
-         REQUIRE(pack.IsDense());
-         REQUIRE_FALSE(pack.IsStatic());
-         REQUIRE_FALSE(pack.IsConstant());
-         REQUIRE(pack.HasAuthority());
          REQUIRE(pack[0] == Any {denseValue});
          REQUIRE(pack[1] == Any {sparseValue});
       }
@@ -1656,28 +1576,28 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
       const auto previousReserved = pack.GetReserved();
       const auto memory = pack.GetRaw();
       
+      CheckState_OwnedFull<E>(pack);
       REQUIRE(pack.GetCount() == 5);
       REQUIRE(pack.GetReserved() >= 5);
-      REQUIRE(pack.template IsExact<E>());
       REQUIRE(pack.GetRaw());
       for (unsigned i = 0; i < pack.GetCount(); ++i)
          REQUIRE(pack[i] == darray1[i]);
-      REQUIRE_FALSE(pack.IsConstant());
 
       WHEN("Shallow-copy more of the same stuff to the back (<<)") {
          pack << darray2[0] << darray2[1] << darray2[2] << darray2[3] << darray2[4];
 
+         CheckState_OwnedFull<E>(pack);
          REQUIRE(pack.GetCount() == 10);
          REQUIRE(pack.GetReserved() >= 10);
-         REQUIRE(pack.template IsExact<E>());
+
          for (unsigned i = 0; i < 5; ++i)
             REQUIRE(pack[i] == darray1[i]);
          for (unsigned i = 5; i < pack.GetCount(); ++i)
             REQUIRE(pack[i] == darray2[i-5]);
+
          #if LANGULUS_FEATURE(MANAGED_MEMORY)
-            if constexpr (CT::Same<E, int>) {
+            if constexpr (CT::Same<E, int>)
                REQUIRE(pack.GetRaw() == memory);
-            }
          #endif
          
          #ifdef LANGULUS_STD_BENCHMARK
@@ -1707,17 +1627,18 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
       WHEN("Shallow-copy more of the same stuff to the front (>>)") {
          pack >> darray2[0] >> darray2[1] >> darray2[2] >> darray2[3] >> darray2[4];
 
+         CheckState_OwnedFull<E>(pack);
          REQUIRE(pack.GetCount() == 10);
          REQUIRE(pack.GetReserved() >= 10);
-         REQUIRE(pack.template IsExact<E>());
+
          for (unsigned i = 5; i > 0; --i)
             REQUIRE(pack[5 - i] == darray2[i - 1]);
          for (unsigned i = 5; i < pack.GetCount(); ++i)
             REQUIRE(pack[i] == darray1[i-5]);
+
          #if LANGULUS_FEATURE(MANAGED_MEMORY)
-            if constexpr (CT::Same<E, int>) {
+            if constexpr (CT::Same<E, int>)
                REQUIRE(pack.GetRaw() == memory);
-            }
          #endif
          
          #ifdef LANGULUS_STD_BENCHMARK
@@ -1747,13 +1668,15 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
       WHEN("Shallow-copy an array to the back") {
          pack.template Insert<IndexBack>(darray2, darray2 + 5);
 
+         CheckState_OwnedFull<E>(pack);
          REQUIRE(pack.GetCount() == 10);
          REQUIRE(pack.GetReserved() >= 10);
-         REQUIRE(pack.template IsExact<E>());
+
          for (unsigned i = 0; i < 5; ++i)
             REQUIRE(pack[i] == darray1[i]);
          for (unsigned i = 5; i < pack.GetCount(); ++i)
             REQUIRE(pack[i] == darray2[i-5]);
+
          #if LANGULUS_FEATURE(MANAGED_MEMORY)
             if constexpr (CT::Same<E, int>) {
                REQUIRE(pack.GetRaw() == memory);
@@ -1782,13 +1705,15 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
       WHEN("Shallow-copy an array to the front") {
          pack.template Insert<IndexFront>(darray2, darray2 + 5);
 
+         CheckState_OwnedFull<E>(pack);
          REQUIRE(pack.GetCount() == 10);
          REQUIRE(pack.GetReserved() >= 10);
-         REQUIRE(pack.template IsExact<E>());
+
          for (unsigned i = 0; i < 5; ++i)
             REQUIRE(pack[i] == darray2[i]);
          for (unsigned i = 5; i < pack.GetCount(); ++i)
             REQUIRE(pack[i] == darray1[i-5]);
+
          #if LANGULUS_FEATURE(MANAGED_MEMORY)
             if constexpr (CT::Same<E, int>) {
                REQUIRE(pack.GetRaw() == memory);
@@ -1838,13 +1763,12 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
             << ::std::move(darray3[3])
             << ::std::move(darray3[4]);
 
+         CheckState_OwnedFull<E>(pack);
          REQUIRE(pack.GetCount() == 10);
          REQUIRE(pack.GetReserved() >= 10);
-         REQUIRE(pack.template IsExact<E>());
 
          for (unsigned i = 0; i < 5; ++i)
             REQUIRE(pack[i] == darray1[i]);
-
          for (unsigned i = 5; i < pack.GetCount(); ++i)
             REQUIRE(pack[i] == darray3backup[i - 5]);
 
@@ -1905,13 +1829,12 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
             >> ::std::move(darray3[3])
             >> ::std::move(darray3[4]);
 
+         CheckState_OwnedFull<E>(pack);
          REQUIRE(pack.GetCount() == 10);
          REQUIRE(pack.GetReserved() >= 10);
-         REQUIRE(pack.template IsExact<E>());
 
          for (unsigned i = 5; i > 0; --i)
             REQUIRE(pack[5 - i] == darray3backup[i - 1]);
-
          for (unsigned i = 5; i < pack.GetCount(); ++i)
             REQUIRE(pack[i] == darray1[i - 5]);
 
@@ -1952,9 +1875,9 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
          const auto i666 = CreateElement<E>(666);
          pack.InsertAt(i666, 3);
 
+         CheckState_OwnedFull<E>(pack);
          REQUIRE(pack.GetCount() == 6);
          REQUIRE(pack.GetReserved() >= 6);
-         REQUIRE(pack.template IsExact<E>());
          #if LANGULUS_FEATURE(MANAGED_MEMORY)
             REQUIRE(pack.GetRaw() == memory);
          #endif
@@ -1991,9 +1914,9 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
       WHEN("Insert multiple items at a specific place by shallow-copy") {
          pack.InsertAt(darray2, darray2 + 5, 3);
 
+         CheckState_OwnedFull<E>(pack);
          REQUIRE(pack.GetCount() == 10);
          REQUIRE(pack.GetReserved() >= 10);
-         REQUIRE(pack.template IsExact<E>());
          #if LANGULUS_FEATURE(MANAGED_MEMORY)
             REQUIRE(pack.GetRaw() == memory);
          #endif
@@ -2036,9 +1959,9 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
          const auto i666backup = i666;
          pack.InsertAt(::std::move(i666), 3);
 
+         CheckState_OwnedFull<E>(pack);
          REQUIRE(pack.GetCount() == 6);
          REQUIRE(pack.GetReserved() >= 6);
-         REQUIRE(pack.template IsExact<E>());
          #if LANGULUS_FEATURE(MANAGED_MEMORY)
             REQUIRE(pack.GetRaw() == memory);
          #endif
@@ -2077,9 +2000,9 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
          const auto i666backup = i666;
          pack.EmplaceAt(3, ::std::move(i666));
 
+         CheckState_OwnedFull<E>(pack);
          REQUIRE(pack.GetCount() == 6);
          REQUIRE(pack.GetReserved() >= 6);
-         REQUIRE(pack.template IsExact<E>());
          #if LANGULUS_FEATURE(MANAGED_MEMORY)
             REQUIRE(pack.GetRaw() == memory);
          #endif
@@ -2118,9 +2041,9 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
          const auto i666backup = i666;
          pack.template Emplace<IndexFront>(::std::move(i666));
 
+         CheckState_OwnedFull<E>(pack);
          REQUIRE(pack.GetCount() == 6);
          REQUIRE(pack.GetReserved() >= 6);
-         REQUIRE(pack.template IsExact<E>());
          #if LANGULUS_FEATURE(MANAGED_MEMORY)
             REQUIRE(pack.GetRaw() == memory);
          #endif
@@ -2159,9 +2082,9 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
          const auto i666backup = i666;
          pack.template Emplace<IndexBack>(::std::move(i666));
 
+         CheckState_OwnedFull<E>(pack);
          REQUIRE(pack.GetCount() == 6);
          REQUIRE(pack.GetReserved() >= 6);
-         REQUIRE(pack.template IsExact<E>());
          #if LANGULUS_FEATURE(MANAGED_MEMORY)
             REQUIRE(pack.GetRaw() == memory);
          #endif
@@ -2321,7 +2244,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
 
       WHEN("Pack is cloned") {
          pack.MakeOr();
-         T clone = Langulus::Clone(pack);
+         T clone = Clone(pack);
 
          REQUIRE(clone.GetRaw() != pack.GetRaw());
          REQUIRE(clone.GetCount() == pack.GetCount());
@@ -2355,15 +2278,32 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
 
       WHEN("Packs are compared") {
          T another_pack1;
-         another_pack1 << CreateElement<E>(1) << CreateElement<E>(2) << CreateElement<E>(3) << CreateElement<E>(4) << CreateElement<E>(5);
+         another_pack1 << CreateElement<E>(1)
+                       << CreateElement<E>(2)
+                       << CreateElement<E>(3)
+                       << CreateElement<E>(4)
+                       << CreateElement<E>(5);
          T another_pack2;
-         another_pack2 << CreateElement<E>(2) << CreateElement<E>(2) << CreateElement<E>(3) << CreateElement<E>(4) << CreateElement<E>(5);
+         another_pack2 << CreateElement<E>(2)
+                       << CreateElement<E>(2)
+                       << CreateElement<E>(3)
+                       << CreateElement<E>(4)
+                       << CreateElement<E>(5);
          T another_pack3;
-         another_pack3 << CreateElement<E>(1) << CreateElement<E>(2) << CreateElement<E>(3) << CreateElement<E>(4) << CreateElement<E>(5) << CreateElement<E>(6);
+         another_pack3 << CreateElement<E>(1)
+                       << CreateElement<E>(2)
+                       << CreateElement<E>(3)
+                       << CreateElement<E>(4)
+                       << CreateElement<E>(5)
+                       << CreateElement<E>(6);
          TAny<uint> another_pack4;
          another_pack4 << uint(1) << uint(2) << uint(3) << uint(4) << uint(5);
          Any another_pack5;
-         another_pack5 << CreateElement<E>(1) << CreateElement<E>(2) << CreateElement<E>(3) << CreateElement<E>(4) << CreateElement<E>(5);
+         another_pack5 << CreateElement<E>(1)
+                       << CreateElement<E>(2)
+                       << CreateElement<E>(3)
+                       << CreateElement<E>(4)
+                       << CreateElement<E>(5);
 
          REQUIRE(pack == another_pack1);
          REQUIRE(pack != another_pack2);
@@ -2403,17 +2343,16 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
       WHEN("Merge-copy an element to the back, if not found (<<=)") {
          pack <<= darray2[3];
 
+         CheckState_OwnedFull<E>(pack);
          REQUIRE(pack.GetCount() == 6);
          REQUIRE(pack.GetReserved() >= 6);
-         REQUIRE(pack.template IsExact<E>());
          for (unsigned i = 0; i < 5; ++i)
             REQUIRE(pack[i] == darray1[i]);
          REQUIRE(pack[5] == darray2[3]);
 
          #if LANGULUS_FEATURE(MANAGED_MEMORY)
-            if constexpr (CT::Same<E, int>) {
+            if constexpr (CT::Same<E, int>)
                REQUIRE(pack.GetRaw() == memory);
-            }
          #endif
          
          #ifdef LANGULUS_STD_BENCHMARK
@@ -2440,17 +2379,16 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
       WHEN("Merge-copy an element to the front, if not found (>>=)") {
          pack >>= darray2[3];
 
+         CheckState_OwnedFull<E>(pack);
          REQUIRE(pack.GetCount() == 6);
          REQUIRE(pack.GetReserved() >= 6);
-         REQUIRE(pack.template IsExact<E>());
          REQUIRE(pack[0] == darray2[3]);
          for (unsigned i = 1; i < 6; ++i)
             REQUIRE(pack[i] == darray1[i-1]);
 
          #if LANGULUS_FEATURE(MANAGED_MEMORY)
-            if constexpr (CT::Same<E, int>) {
+            if constexpr (CT::Same<E, int>)
                REQUIRE(pack.GetRaw() == memory);
-            }
          #endif
          
          #ifdef LANGULUS_STD_BENCHMARK
@@ -2478,17 +2416,16 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
          auto moved = darray2[3];
          pack <<= ::std::move(moved);
 
+         CheckState_OwnedFull<E>(pack);
          REQUIRE(pack.GetCount() == 6);
          REQUIRE(pack.GetReserved() >= 6);
-         REQUIRE(pack.template IsExact<E>());
          for (unsigned i = 0; i < 5; ++i)
             REQUIRE(pack[i] == darray1[i]);
          REQUIRE(pack[5] == darray2[3]);
 
          #if LANGULUS_FEATURE(MANAGED_MEMORY)
-            if constexpr (CT::Same<E, int>) {
+            if constexpr (CT::Same<E, int>)
                REQUIRE(pack.GetRaw() == memory);
-            }
          #endif
          
          #ifdef LANGULUS_STD_BENCHMARK
@@ -2516,17 +2453,16 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
          auto moved = darray2[3];
          pack >>= ::std::move(moved);
 
+         CheckState_OwnedFull<E>(pack);
          REQUIRE(pack.GetCount() == 6);
          REQUIRE(pack.GetReserved() >= 6);
-         REQUIRE(pack.template IsExact<E>());
          REQUIRE(pack[0] == darray2[3]);
          for (unsigned i = 1; i < 6; ++i)
             REQUIRE(pack[i] == darray1[i-1]);
 
          #if LANGULUS_FEATURE(MANAGED_MEMORY)
-            if constexpr (CT::Same<E, int>) {
+            if constexpr (CT::Same<E, int>)
                REQUIRE(pack.GetRaw() == memory);
-            }
          #endif
          
          #ifdef LANGULUS_STD_BENCHMARK
@@ -2828,7 +2764,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
       }
 
       WHEN("Clone-assign pack1 in pack2") {
-         pack2 = Langulus::Clone(pack1);
+         pack2 = Clone(pack1);
 
          REQUIRE(pack1.GetUses() == 2);
          REQUIRE(pack2.GetUses() == 1);
@@ -2838,7 +2774,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
       }
 
       WHEN("Clone-assign pack1 in pack2, then reset pack1") {
-         pack2 = Langulus::Clone(pack1);
+         pack2 = Clone(pack1);
          const T memory3 = pack2;
          pack1.Reset();
 

@@ -10,6 +10,7 @@
 #include <Core/Utilities.hpp>
 #include <RTTI/Assume.hpp>
 
+
 namespace Langulus::Anyness
 {
 

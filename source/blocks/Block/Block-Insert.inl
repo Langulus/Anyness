@@ -10,7 +10,6 @@
 #include "Block-Construct.inl"
 #include "Block-Indexing.inl"
 #include "Block-Capsulation.inl"
-#include "../../Neat.inl"
 
 
 namespace Langulus::Anyness

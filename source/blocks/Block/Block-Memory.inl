@@ -9,6 +9,7 @@
 #pragma once
 #include "Block-Indexing.inl"
 
+
 namespace Langulus::Anyness
 {
 

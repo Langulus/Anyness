@@ -9,6 +9,7 @@
 #pragma once
 #include "../Block.hpp"
 
+
 namespace Langulus::Anyness
 {
    

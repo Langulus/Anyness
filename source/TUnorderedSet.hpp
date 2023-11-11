@@ -9,6 +9,7 @@
 #pragma once
 #include "UnorderedSet.hpp"
 
+
 namespace Langulus::Anyness
 {
 
