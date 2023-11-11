@@ -916,12 +916,20 @@ namespace Langulus::CT
    template<class... T>
    concept CustomData = ((Data<T> and Flat<T> and NotSemantic<T>) and ...);
 
-   /// Check if Ts are Neat(s)                                                
+   /// Check if origin of T(s) are Neat(s)                                    
    template<class... T>
    concept Neat = ((Exact<Decay<T>, Anyness::Neat>) and ...);
 
-   /// Check if Ts are Construct(s)                                           
+   /// Check if origin of T(s) aren't Neat(s)                                 
+   template<class... T>
+   concept Messy = not Neat<T...>;
+
+   /// Check if origin of T(s) are Construct(s)                               
    template<class... T>
    concept Construct = ((Exact<Decay<T>, Anyness::Construct>) and ...);
+
+   /// Check if origin of T(s) aren't Construct(s)                            
+   template<class... T>
+   concept NotConstruct = not Construct<T...>;
 
 } // namespace Langulus::CT

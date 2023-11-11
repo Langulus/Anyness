@@ -66,10 +66,9 @@ jobs:
       - if: matrix.os == 'ubuntu-22.04'
         name: Configure (Linux)
         run: >
-          cmake
+          mkdir build && cd build && cmake ..
+          -DCMAKE_C_COMPILER=${{matrix.cxx}}
           -DCMAKE_CXX_COMPILER=${{matrix.cxx}}
-          -S .
-          -B out
           ${{matrix.cmake_args}}
           -DCMAKE_BUILD_TYPE=${{matrix.build}}
           -DLANGULUS_FEATURE_MANAGED_MEMORY=${{matrix.managed}}
@@ -78,9 +77,7 @@ jobs:
       - if: matrix.os == 'windows-latest'
         name: Configure (Windows)
         run: >
-          cmake
-          -S .
-          -B out
+          mkdir build && cd build && cmake ..
           ${{matrix.cmake_args}} -T "${{matrix.cxx}}"
           -DCMAKE_BUILD_TYPE=${{matrix.build}}
           -DLANGULUS_FEATURE_MANAGED_MEMORY=${{matrix.managed}}

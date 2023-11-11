@@ -48,7 +48,7 @@ namespace Langulus::Anyness
    ///   @param messy - the messy thing to copy                               
    template<CT::NotSemantic T>
    LANGULUS(INLINED)
-   Neat::Neat(const T& messy) requires (not CT::Neat<T>)
+   Neat::Neat(const T& messy) requires CT::Messy<T>
       : Neat {Copy(messy)} {}
 
    /// Copy-constructor from anything messy                                   
@@ -56,7 +56,7 @@ namespace Langulus::Anyness
    ///   @param messy - the messy thing to copy                               
    template<CT::NotSemantic T>
    LANGULUS(INLINED)
-   Neat::Neat(T& messy) requires (not CT::Neat<T>)
+   Neat::Neat(T& messy) requires CT::Messy<T>
       : Neat {Copy(messy)} {}
 
    /// Move-constructor from anything messy                                   
@@ -64,7 +64,7 @@ namespace Langulus::Anyness
    ///   @param messy - the messy thing to move                               
    template<CT::NotSemantic T>
    LANGULUS(INLINED)
-   Neat::Neat(T&& messy) requires (not CT::Neat<T>)
+   Neat::Neat(T&& messy) requires CT::Messy<T>
       : Neat {Move(messy)} {}
 
    /// Semantic constructor from anything messy                               
@@ -74,7 +74,7 @@ namespace Langulus::Anyness
    ///   @param messy - the messy stuff to normalize                          
    template<CT::Semantic S>
    LANGULUS(INLINED)
-   Neat::Neat(S&& messy) requires (not CT::Neat<TypeOf<S>>) {
+   Neat::Neat(S&& messy) requires CT::Messy<TypeOf<S>> {
       operator << (messy.Forward());
    }
    
@@ -1355,6 +1355,34 @@ namespace Langulus::Anyness
       if (not found->mValue)
          mTraits.RemoveIt(found);
       return count;
+   }
+
+
+
+
+   template<template<class> class S>
+   Inner::DeConstruct::DeConstruct(const Hash& hash, const Charge& charge, S<Neat>&& data)
+      : mHash {hash}
+      , mCharge {charge}
+      , mData {data.Forward()} {}
+
+   template<template<class> class S>
+   LANGULUS(INLINED)
+   Inner::DeConstruct::DeConstruct(S<DeConstruct>&& other)
+      : mHash {other->mHash}
+      , mCharge {other->mCharge}
+      , mData {S<Any> {other->mData}} {}
+
+   LANGULUS(INLINED)
+   Hash Inner::DeConstruct::GetHash() const noexcept {
+      return mHash;
+   }
+
+   LANGULUS(INLINED)
+   bool Inner::DeConstruct::operator == (const DeConstruct& rhs) const {
+      return mHash == rhs.mHash
+         and mCharge == rhs.mCharge
+         and mData == rhs.mData;
    }
 
 } // namespace Langulus::Anyness

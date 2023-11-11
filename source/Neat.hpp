@@ -26,29 +26,13 @@ namespace Langulus::Anyness
          Any mData;
 
          template<template<class> class S>
-         DeConstruct(const Hash& hash, const Charge& charge, S<Neat>&& data)
-            : mHash {hash}
-            , mCharge {charge}
-            , mData {data.Forward()} {}
-
+         DeConstruct(const Hash&, const Charge&, S<Neat>&&);
          template<template<class> class S>
-         LANGULUS(INLINED)
-         DeConstruct(S<DeConstruct>&& other)
-            : mHash {other->mHash}
-            , mCharge {other->mCharge}
-            , mData {S<Any> {other->mData}} {}
+         DeConstruct(S<DeConstruct>&&);
 
-         LANGULUS(INLINED)
-         Hash GetHash() const noexcept {
-            return mHash;
-         }
+         Hash GetHash() const noexcept;
 
-         LANGULUS(INLINED)
-         bool operator == (const DeConstruct& rhs) const {
-            return mHash == rhs.mHash
-               and mCharge == rhs.mCharge
-               and mData == rhs.mData;
-         }
+         bool operator == (const DeConstruct&) const;
       };
 
    } // namespace Langulus::Anyness::Inner
@@ -99,13 +83,13 @@ namespace Langulus::Anyness
       Neat(S<Neat>&&) requires CT::Semantic<S<Neat>>;
 
       template<CT::NotSemantic T>
-      Neat(const T&) requires (not CT::Neat<T>);
+      Neat(const T&) requires CT::Messy<T>;
       template<CT::NotSemantic T>
-      Neat(T&) requires (not CT::Neat<T>);
+      Neat(T&) requires CT::Messy<T>;
       template<CT::NotSemantic T>
-      Neat(T&&) requires (not CT::Neat<T>);
+      Neat(T&&) requires CT::Messy<T>;
       template<CT::Semantic S>
-      Neat(S&&) requires (not CT::Neat<TypeOf<S>>);
+      Neat(S&&) requires CT::Messy<TypeOf<S>>;
 
       template<CT::Data T1, CT::Data T2, CT::Data... TAIL>
       Neat(T1&&, T2&&, TAIL&&...);
