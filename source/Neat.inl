@@ -211,7 +211,7 @@ namespace Langulus::Anyness
    /// Check if the container is empty                                        
    ///   @return true if empty                                                
    LANGULUS(INLINED)
-   constexpr bool Neat::IsEmpty() const noexcept {
+   bool Neat::IsEmpty() const noexcept {
       return mTraits.IsEmpty()
          and mConstructs.IsEmpty()
          and mAnythingElse.IsEmpty();
@@ -237,7 +237,7 @@ namespace Langulus::Anyness
    /// Check if the container is not empty                                    
    ///   @return true if not empty                                            
    LANGULUS(INLINED)
-   constexpr Neat::operator bool() const noexcept {
+   Neat::operator bool() const noexcept {
       return not IsEmpty();
    }
 

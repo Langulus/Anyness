@@ -9,6 +9,7 @@
 #pragma once
 #include "Block-Iteration.inl"
 
+
 namespace Langulus::Anyness
 {
    

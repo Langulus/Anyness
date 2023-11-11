@@ -6,7 +6,7 @@
 /// Distributed under GNU General Public License v3+                          
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
-#include <Anyness/Neat.hpp>
+#include <Anyness/Construct.hpp>
 #include "Common.hpp"
 
 
@@ -15,7 +15,7 @@ SCENARIO("Constructs", "[construct]") {
 		Any descriptor;
 
 		WHEN("Normalized") {
-			Neat normalized {descriptor};
+			Construct c;
 
 			THEN("The requirements should be met") {
 				REQUIRE(true);

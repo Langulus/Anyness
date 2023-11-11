@@ -9,6 +9,7 @@
 #pragma once
 #include "DataState.hpp"
 
+
 namespace Langulus::Anyness
 {
 

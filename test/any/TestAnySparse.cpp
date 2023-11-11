@@ -29,7 +29,6 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
    using T = typename TestType::LHS;
    using E = typename TestType::RHS;
    using DenseE = Decay<E>;
-   using SparseE = E*;
       
    E element = CreateElement<E>(555);
    const DenseE& denseValue {DenseCast(element)};
@@ -674,7 +673,7 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
          CheckState_Default<E>(pack);
       }
 
-      WHEN("Empty pack is shallow-copied") {
+      WHEN("Empty pack with state is shallow-copied") {
          pack.MakeOr();
          auto copy = pack;
 
@@ -683,7 +682,7 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
          REQUIRE(copy.GetUses() == 0);
       }
 
-      WHEN("Empty pack is cloned") {
+      WHEN("Empty pack with state is cloned") {
          pack.MakeOr();
          T clone = Clone(pack);
 
@@ -692,13 +691,13 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
          REQUIRE(clone.GetUses() == 0);
       }
 
-      WHEN("Empty pack is moved") {
+      WHEN("Empty pack with state is moved") {
          pack.MakeOr();
          T movable = pack;
          const T moved = ::std::move(movable);
 
-         Helper_TestSame(moved, pack);
          CheckState_Default<E>(movable);
+         Helper_TestSame(moved, pack);
       }
 
       WHEN("Packs are compared") {
@@ -764,7 +763,6 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
          pack <<= darray2[3];
 
          CheckState_OwnedFull<E>(pack);
-
          REQUIRE(pack.GetCount() == 1);
          REQUIRE(pack.GetReserved() >= 1);
          REQUIRE(pack[0] == darray2[3]);
@@ -794,7 +792,6 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
          pack >>= darray2[3];
 
          CheckState_OwnedFull<E>(pack);
-
          REQUIRE(pack.GetCount() == 1);
          REQUIRE(pack.GetReserved() >= 1);
          REQUIRE(pack[0] == darray2[3]);
@@ -825,7 +822,6 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
          pack <<= ::std::move(moved);
 
          CheckState_OwnedFull<E>(pack);
-
          REQUIRE(pack.GetCount() == 1);
          REQUIRE(pack.GetReserved() >= 1);
          REQUIRE(pack[0] == darray2[3]);
@@ -856,7 +852,6 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
          pack >>= ::std::move(moved);
 
          CheckState_OwnedFull<E>(pack);
-
          REQUIRE(pack.GetCount() == 1);
          REQUIRE(pack.GetReserved() >= 1);
          REQUIRE(pack[0] == darray2[3]);
@@ -884,9 +879,9 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
 
       WHEN("ForEach flat dense element (immutable)") {
          const auto foreachit = const_cast<const T&>(pack).ForEach(
-            [&](const int&)    {FAIL();},
-            [&](const Trait&)  {FAIL();},
-            [&](const Any&)    {FAIL();}
+            [&](const int&)   {FAIL();},
+            [&](const Trait&) {FAIL();},
+            [&](const Any&)   {FAIL();}
          );
 
          REQUIRE(0 == foreachit);
@@ -914,9 +909,9 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
 
       WHEN("ForEach flat sparse element (mutable)") {
          const auto foreachit = const_cast<T&>(pack).ForEach(
-            [&](int*)      {FAIL(); },
-            [&](Trait*)    {FAIL(); },
-            [&](Any*)      {FAIL(); }
+            [&](int*)         {FAIL(); },
+            [&](Trait*)       {FAIL(); },
+            [&](Any*)         {FAIL(); }
          );
 
          REQUIRE(0 == foreachit);
@@ -970,10 +965,10 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
          const T source {element};
          T pack {source};
 
+         CheckState_OwnedFull<E>(pack);
          REQUIRE(pack.template As<DenseE>() == denseValue);
          REQUIRE(*pack.template As<DenseE*>() == denseValue);
          REQUIRE(pack.GetUses() == 2);
-         CheckState_OwnedFull<E>(pack);
          REQUIRE_THROWS(pack.template As<float>() == 0.0f);
          REQUIRE_THROWS(pack.template As<float*>() == nullptr);
 
@@ -2106,7 +2101,7 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
          }
       #endif
 
-      WHEN("Pack is shallow-copied") {
+      WHEN("Empty pack with state is shallow-copied") {
          pack.MakeOr();
          auto copy = pack;
 
