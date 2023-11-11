@@ -119,5 +119,3 @@ namespace Langulus::Anyness
    };
    
 } // namespace Langulus::Anyness
-
-#include "DataState.inl"

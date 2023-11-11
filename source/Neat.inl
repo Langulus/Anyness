@@ -11,6 +11,7 @@
 #include "Trait.inl"
 #include "Construct.inl"
 #include "TUnorderedMap.inl"
+#include "inner/Charge.inl"
 
 
 namespace Langulus::Anyness

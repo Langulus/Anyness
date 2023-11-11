@@ -8,6 +8,7 @@
 ///                                                                           
 #pragma once
 #include "Block-Iteration.inl"
+#include "../../inner/DataState.inl"
 
 
 namespace Langulus::Anyness

@@ -98,5 +98,3 @@ namespace Langulus::Anyness
    struct Handle<void> : Block {};
 
 } // namespace Langulus::Anyness
-
-#include "Handle.inl"
