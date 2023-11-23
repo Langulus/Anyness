@@ -41,13 +41,3 @@ function(fetch_external_module NAME GIT_REPOSITORY REPO GIT_TAG TAG)
     set(${NAME}_SOURCE_DIR "${${LOWERCASE_NAME}_SOURCE_DIR}" CACHE INTERNAL "")
     set(${NAME}_BINARY_DIR "${${LOWERCASE_NAME}_BINARY_DIR}" CACHE INTERNAL "")
 endfunction()
-
-function(langulus_copy_dlls TARGET ON THIS)
-    if(WIN32 AND LANGULUS_SHARED_LIBRARIES)
-        add_custom_command(
-            TARGET ${THIS} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_RUNTIME_DLLS:${TARGET}>" "$<TARGET_FILE_DIR:${TARGET}>"
-            COMMAND_EXPAND_LISTS
-        )
-    endif()
-endfunction()

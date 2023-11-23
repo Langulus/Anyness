@@ -7,6 +7,9 @@ project(LangulusAnyness
 
 # Check if this project is built as standalone, or a part of something else 
 if(PROJECT_IS_TOP_LEVEL OR NOT LANGULUS)
+	set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
+	set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin/lib)
+
     include(LangulusUtilities.cmake)
 
     # Add Langulus::Core/Logger/RTTI/Fractalloc/SIMD libraries              
