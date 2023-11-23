@@ -230,16 +230,20 @@ namespace Langulus::Anyness
    ///   @attention assumes contained pointer is valid                        
    ///   @return the contained constant reference                             
    TEMPLATE() LANGULUS(INLINED)
-   const T& TME()::operator * () const {
-      return mValue;
+   auto& TME()::operator * () const IF_UNSAFE(noexcept)
+   requires (CT::Sparse<T> and not CT::Void<Decay<T>>) {
+      LANGULUS_ASSUME(UserAssumes, mValue, "Dereferening null pointer");
+      return *mValue;
    }
 
    /// Access the dereferenced pointer                                        
    ///   @attention assumes contained pointer is valid                        
    ///   @return the contained mutable reference                              
    TEMPLATE() LANGULUS(INLINED)
-   T& TME()::operator * () {
-      return mValue;
+   auto& TME()::operator * () IF_UNSAFE(noexcept)
+   requires (CT::Sparse<T> and not CT::Void<Decay<T>>) {
+      LANGULUS_ASSUME(UserAssumes, mValue, "Dereferening null pointer");
+      return *mValue;
    }
 
    /// Explicit boolean cast                                                  

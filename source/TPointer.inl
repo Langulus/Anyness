@@ -303,20 +303,6 @@ namespace Langulus::Anyness
       };
    }
 
-   /// Access the pointer (always const)                                      
-   ///   @return the contained pointer                                        
-   TEMPLATE() LANGULUS(INLINED)
-   const T* TME()::operator * () const noexcept {
-      return mValue;
-   }
-
-   /// Access the pointer (always const)                                      
-   ///   @return the contained pointer                                        
-   TEMPLATE() LANGULUS(INLINED)
-   T* TME()::operator * () noexcept {
-      return mValue;
-   }
-
 } // namespace Langulus::Anyness
 
 #undef TEMPLATE

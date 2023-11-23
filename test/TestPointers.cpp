@@ -44,7 +44,7 @@ TEMPLATE_TEST_CASE("Shared pointer", "[TPointer]",
          pointer.New(5);
 
          THEN("Should have exactly one reference and jurisdiction") {
-            REQUIRE(**pointer == 5);
+            REQUIRE(*pointer == 5);
             REQUIRE(pointer.HasAuthority());
             REQUIRE(pointer.GetUses() == 1);
          }
@@ -56,8 +56,8 @@ TEMPLATE_TEST_CASE("Shared pointer", "[TPointer]",
 
          THEN("Should have exactly two references and jurisdiction") {
             REQUIRE(pointer == pointer2);
-            REQUIRE(**pointer == 5);
-            REQUIRE(**pointer2 == 5);
+            REQUIRE(*pointer == 5);
+            REQUIRE(*pointer2 == 5);
             REQUIRE(pointer.HasAuthority());
             REQUIRE(pointer2.HasAuthority());
             REQUIRE(pointer.GetUses() == 2);
@@ -72,7 +72,7 @@ TEMPLATE_TEST_CASE("Shared pointer", "[TPointer]",
          THEN("Should have exactly one reference and jurisdiction") {
             REQUIRE_FALSE(pointer);
             REQUIRE(pointer2);
-            REQUIRE(**pointer2 == 5);
+            REQUIRE(*pointer2 == 5);
             REQUIRE_FALSE(pointer.HasAuthority());
             REQUIRE(pointer2.HasAuthority());
             REQUIRE(pointer.GetUses() == 0);
@@ -88,8 +88,8 @@ TEMPLATE_TEST_CASE("Shared pointer", "[TPointer]",
 
          THEN("Old memory should be freed, but still be in jurisdiction") {
             REQUIRE(pointer == pointer2);
-            REQUIRE(**pointer == 6);
-            REQUIRE(**pointer2 == 6);
+            REQUIRE(*pointer == 6);
+            REQUIRE(*pointer2 == 6);
             #if LANGULUS_FEATURE(MANAGED_MEMORY)
                REQUIRE(Allocator::CheckAuthority(pointer.GetType(), backup));
                REQUIRE_FALSE(Allocator::Find(pointer.GetType(), backup));
@@ -107,7 +107,7 @@ TEMPLATE_TEST_CASE("Shared pointer", "[TPointer]",
 
          THEN("Should have exactly two references and jurisdiction, if NEWDELETE and MANAGED_MEMORY features are enabled") {
             REQUIRE(pointer == rawBackUp);
-            REQUIRE(**pointer == *rawBackUp);
+            REQUIRE(*pointer == *rawBackUp);
             REQUIRE(raw == rawBackUp);
             #if LANGULUS_FEATURE(NEWDELETE)
                REQUIRE(pointer.HasAuthority());
@@ -150,7 +150,7 @@ TEMPLATE_TEST_CASE("Shared pointer", "[TPointer]",
 
          THEN("Should have exactly one reference and jurisdiction") {
             REQUIRE(pointer == raw);
-            REQUIRE(**pointer == *raw);
+            REQUIRE(*pointer == *raw);
             #if LANGULUS_FEATURE(NEWDELETE)
                REQUIRE(pointer.HasAuthority());
                REQUIRE(pointer.GetReferences() == 2);
@@ -181,7 +181,7 @@ TEMPLATE_TEST_CASE("Double-referenced shared pointer", "[TPointer]",
          pointer.New(5);
 
          THEN("Should have exactly one reference and jurisdiction") {
-            REQUIRE(**pointer == 5);
+            REQUIRE(*pointer == 5);
             REQUIRE(pointer.HasAuthority());
             REQUIRE(pointer.GetUses() == 1);
             if constexpr (CT::Referencable<TT>)
@@ -195,8 +195,8 @@ TEMPLATE_TEST_CASE("Double-referenced shared pointer", "[TPointer]",
 
          THEN("Should have exactly two references and jurisdiction") {
             REQUIRE(pointer == pointer2);
-            REQUIRE(**pointer == 5);
-            REQUIRE(**pointer2 == 5);
+            REQUIRE(*pointer == 5);
+            REQUIRE(*pointer2 == 5);
             REQUIRE(pointer.HasAuthority());
             REQUIRE(pointer2.HasAuthority());
             REQUIRE(pointer.GetUses() == 2);
@@ -213,7 +213,7 @@ TEMPLATE_TEST_CASE("Double-referenced shared pointer", "[TPointer]",
          THEN("Should have exactly one reference and jurisdiction") {
             REQUIRE_FALSE(pointer);
             REQUIRE(pointer2);
-            REQUIRE(**pointer2 == 5);
+            REQUIRE(*pointer2 == 5);
             REQUIRE_FALSE(pointer.HasAuthority());
             REQUIRE(pointer2.HasAuthority());
             REQUIRE(pointer.GetUses() == 0);
@@ -231,8 +231,8 @@ TEMPLATE_TEST_CASE("Double-referenced shared pointer", "[TPointer]",
 
          THEN("Old memory should be freed, but still be in jurisdiction") {
             REQUIRE(pointer == pointer2);
-            REQUIRE(**pointer == 6);
-            REQUIRE(**pointer2 == 6);
+            REQUIRE(*pointer == 6);
+            REQUIRE(*pointer2 == 6);
             #if LANGULUS_FEATURE(MANAGED_MEMORY)
                REQUIRE(Allocator::CheckAuthority(pointer.GetType(), backup));
                REQUIRE_FALSE(Allocator::Find(pointer.GetType(), backup));
@@ -252,7 +252,7 @@ TEMPLATE_TEST_CASE("Double-referenced shared pointer", "[TPointer]",
 
          THEN("Should have exactly two references and jurisdiction, if NEWDELETE and MANAGED_MEMORY features are enabled") {
             REQUIRE(pointer == rawBackUp);
-            REQUIRE(**pointer == *rawBackUp);
+            REQUIRE(*pointer == *rawBackUp);
             REQUIRE(raw == rawBackUp);
             #if LANGULUS_FEATURE(NEWDELETE)
                REQUIRE(pointer.HasAuthority());
@@ -295,7 +295,7 @@ TEMPLATE_TEST_CASE("Double-referenced shared pointer", "[TPointer]",
 
          THEN("Should have exactly one reference and jurisdiction") {
             REQUIRE(pointer == raw);
-            REQUIRE(**pointer == *raw);
+            REQUIRE(*pointer == *raw);
             #if LANGULUS_FEATURE(NEWDELETE)
                REQUIRE(pointer.HasAuthority());
                REQUIRE(pointer.GetReferences() == 2);
