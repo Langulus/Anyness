@@ -103,12 +103,15 @@ namespace Langulus::Anyness
 
       NOD() auto operator -> () const;
       NOD() auto operator -> ();
-      NOD() const T& operator * () const; 
-      NOD()       T& operator * ();
+
+      NOD() auto& operator * () const IF_UNSAFE(noexcept)
+         requires (CT::Sparse<T> and not CT::Void<Decay<T>>);
+      NOD() auto& operator * ()       IF_UNSAFE(noexcept)
+         requires (CT::Sparse<T> and not CT::Void<Decay<T>>);
 
       NOD() explicit operator bool() const noexcept;
-      NOD() explicit operator const T&() const noexcept;
-      NOD() explicit operator T&() noexcept;
+      NOD() operator const T&() const noexcept;
+      NOD() operator T&() noexcept;
 
    private:
       void ConstructFrom(CT::Semantic auto&&);
@@ -123,31 +126,31 @@ namespace Langulus::Anyness
    template<CT::Data T1, CT::Data T2>
    LANGULUS(INLINED)
    bool operator == (const TOwned<T1>& lhs, const TOwned<T2>& rhs) noexcept requires CT::Inner::Comparable<T1, T2> {
-      return *lhs == *rhs;
+      return lhs.Get() == rhs.Get();
    }
 
    template<CT::Data T1, CT::NotOwned T2>
    LANGULUS(INLINED)
    bool operator == (const TOwned<T1>& lhs, const T2& rhs) noexcept requires CT::Inner::Comparable<T1, T2> {
-      return *lhs == rhs;
+      return lhs.Get() == rhs;
    }
 
    template<CT::Data T1, CT::NotOwned T2>
    LANGULUS(INLINED)
    bool operator == (const T2& lhs, const TOwned<T1>& rhs) noexcept requires CT::Inner::Comparable<T2, T1> {
-      return lhs == *rhs;
+      return lhs == rhs.Get();
    }
 
    template<CT::Data T1, CT::Data T2>
    LANGULUS(INLINED)
    bool operator == (const TOwned<T1>& lhs, ::std::nullptr_t) noexcept requires CT::Sparse<T1> {
-      return *lhs == nullptr;
+      return lhs.Get() == nullptr;
    }
 
    template<CT::Data T1, CT::Data T2>
    LANGULUS(INLINED)
    bool operator == (::std::nullptr_t, const TOwned<T1>& rhs) noexcept requires CT::Sparse<T1> {
-      return *rhs == nullptr;
+      return rhs.Get() == nullptr;
    }
 
 } // namespace Langulus::Anyness

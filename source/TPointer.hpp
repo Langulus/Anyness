@@ -67,12 +67,12 @@ namespace Langulus::Anyness
       TPointer& operator = (CT::DeepSemantic auto&&) requires CT::CloneAssignable<T>;
 
       NOD() operator TPointer<const T, DR>() const noexcept requires CT::Mutable<T>;
+      NOD() operator const T& () const noexcept;
+      NOD() operator T () noexcept;
 
       using Base::operator bool;
       using Base::operator ->;
-
-      NOD() const T* operator * () const noexcept;
-      NOD()       T* operator * ()       noexcept;
+      using Base::operator *;
 
    private:
       void ConstructFrom(CT::Semantic auto&&);
