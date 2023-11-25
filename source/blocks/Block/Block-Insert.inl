@@ -1337,11 +1337,11 @@ namespace Langulus::Anyness
       Count count, const Neat& descriptor
    ) const {
       LANGULUS_ASSUME(DevAssumes, count <= mReserved,
-         "Count outside limits");
+         "Count outside limits", '(', count, " > ", mReserved);
       LANGULUS_ASSERT(
          mType->mDescriptorConstructor, Construct,
-         "Can't descriptor-construct elements"
-         " - no descriptor-constructor reflected"
+         "Can't descriptor-construct ", '`', mType,
+         "` - no descriptor-constructor reflected"
       );
 
       if (mType->mDeptr) {

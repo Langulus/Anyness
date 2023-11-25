@@ -87,12 +87,12 @@ namespace Langulus::Anyness
          }
       }
       else if constexpr (CT::DerivedFrom<ST, T>) {
-         // Move/Abandon/Disown/Copy/Clone raw pointer                  
+         // Always copy, and thus reference raw pointers                
          Type converted = static_cast<Type>(*other);
-         GetHandle().New(S::Nest(converted));
+         GetHandle().New(Copy(converted));
 
-         // Always reference value, if double-referenced and not cloned 
-         if constexpr (S::Shallow and DR and CT::Referencable<T>)
+         // Always reference value, if double-referenced                
+         if constexpr (DR and CT::Referencable<T>)
             mValue->Keep();
       }
       else LANGULUS_ERROR("Bad semantic construction");
@@ -231,6 +231,13 @@ namespace Langulus::Anyness
             );
 
             GetHandle().Assign(S::Nest(rhs->GetHandle()));
+
+            if constexpr (S::Shallow and not S::Move and S::Keep) {
+               if constexpr (DR and CT::Referencable<T>) {
+                  if (mValue)
+                     mValue->Keep();
+               }
+            }
          }
          else {
             static_assert(
@@ -238,10 +245,9 @@ namespace Langulus::Anyness
                "Unrelated raw pointer"
             );
 
-            GetHandle().Assign(rhs.Forward());
-         }
+            // Raw pointers are always copied, and thus referenced      
+            GetHandle().Assign(Copy(*rhs));
 
-         if constexpr (S::Shallow and not S::Move and S::Keep) {
             if constexpr (DR and CT::Referencable<T>) {
                if (mValue)
                   mValue->Keep();

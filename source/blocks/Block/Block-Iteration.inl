@@ -173,34 +173,34 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Count Block::ForEachInner(auto&& f) noexcept(NoexceptIterator<decltype(f)>) {
       constexpr auto NOE = NoexceptIterator<decltype(f)>;
-      if (CT::Block<Decay<A>> != IsDeep() or not CastsTo<A>())
-         return 0;
+      if ((CT::Block<Decay<A>> and IsDeep()) or CastsTo<A>()) {
+         Count index = 0;
+         if (mType->mIsSparse) {
+            // Iterate using pointers of A                              
+            using DA = Conditional<MUTABLE, Decay<A>*, const Decay<A>*>;
+            IterateInner<R, DA, REVERSE, MUTABLE>(
+               [&index, &f](DA element) noexcept(NOE) -> R {
+                  ++index;
+                  if constexpr (CT::Sparse<A>)  return f(element);
+                  else                          return f(*element);
+               }
+            );
+         }
+         else {
+            // Iterate using references of A                            
+            using DA = Conditional<MUTABLE, Decay<A>&, const Decay<A>&>;
+            IterateInner<R, DA, REVERSE, MUTABLE>(
+               [&index, &f](DA element) noexcept(NOE) -> R {
+                  ++index;
+                  if constexpr (CT::Sparse<A>)  return f(&element);
+                  else                          return f(element);
+               }
+            );
+         }
 
-      Count index = 0;
-      if (mType->mIsSparse) {
-         // Iterate using pointers of A                                 
-         using DA = Conditional<MUTABLE, Decay<A>*, const Decay<A>*>;
-         IterateInner<R, DA, REVERSE, MUTABLE>(
-            [&index, &f](DA element) noexcept(NOE) -> R {
-               ++index;
-               if constexpr (CT::Sparse<A>)  return f(element);
-               else                          return f(*element);
-            }
-         );
+         return index;
       }
-      else {
-         // Iterate using references of A                               
-         using DA = Conditional<MUTABLE, Decay<A>&, const Decay<A>&>;
-         IterateInner<R, DA, REVERSE, MUTABLE>(
-            [&index, &f](DA element) noexcept(NOE) -> R {
-               ++index;
-               if constexpr (CT::Sparse<A>)  return f(&element);
-               else                          return f(element);
-            }
-         );
-      }
-
-      return index;
+      else return 0;
    }
    
    /// Iterate and execute call for each deep element                         
