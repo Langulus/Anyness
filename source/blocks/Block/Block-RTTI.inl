@@ -130,7 +130,7 @@ namespace Langulus::Anyness
       if (not CompareTypes(pattern, common) or not common.mBinaryCompatible)
          return {};
 
-      const Size baseBytes = (common.mType->mSize * common.mCount)
+      const Size baseBytes = (common.GetType()->mSize * common.mCount)
          / pattern.GetStride();
       const Size resultSize = pattern.IsEmpty()
          ? baseBytes : (baseBytes / pattern.mCount) * pattern.mCount;
@@ -191,7 +191,7 @@ namespace Langulus::Anyness
 
       // No such trait found, so check in bases                         
       for (auto& base : mType->mBases) {
-         const auto found = GetBaseMemory(base.mType, base)
+         const auto found = GetBaseMemory(base.GetType(), base)
             .GetMember(trait);
          if (found.IsTyped())
             return found;
@@ -224,7 +224,7 @@ namespace Langulus::Anyness
 
       // No such data found, so check in bases                          
       for (auto& base : mType->mBases) {
-         const auto found = GetBaseMemory(base.mType, base)
+         const auto found = GetBaseMemory(base.GetType(), base)
             .GetMember(data);
          if (found.IsTyped())
             return found;
@@ -290,12 +290,12 @@ namespace Langulus::Anyness
       // If reached, then nothing found in local members, so check bases
       offset -= counter;
       for (auto& base : mType->mBases) {
-         auto found = GetBaseMemory(base.mType, base)
+         auto found = GetBaseMemory(base.GetType(), base)
             .GetMember(trait, offset);
          if (found.IsTyped())
             return found;
 
-         offset -= base.mType->GetMemberCount();
+         offset -= base.GetType()->GetMemberCount();
       }
 
       return {};
@@ -339,12 +339,12 @@ namespace Langulus::Anyness
       // If reached, then nothing found in local members, so check bases
       offset -= counter;
       for (auto& base : mType->mBases) {
-         const auto found = GetBaseMemory(base.mType, base)
+         const auto found = GetBaseMemory(base.GetType(), base)
             .GetMember(data, offset);
          if (found.IsTyped())
             return found;
 
-         offset -= base.mType->GetMemberCount();
+         offset -= base.GetType()->GetMemberCount();
       }
 
       return {};
@@ -375,12 +375,12 @@ namespace Langulus::Anyness
       // If reached, then nothing found in local members, so check bases
       offset -= mType->mMembers.size();
       for (auto& base : mType->mBases) {
-         const auto found = GetBaseMemory(base.mType, base)
+         const auto found = GetBaseMemory(base.GetType(), base)
             .GetMember(nullptr, offset);
          if (found.IsTyped())
             return found;
 
-         offset -= base.mType->GetMemberCount();
+         offset -= base.GetType()->GetMemberCount();
       }
 
       return {};
@@ -429,7 +429,7 @@ namespace Langulus::Anyness
    ///   @return the static block for the base                                
    LANGULUS(INLINED)
    Block Block::GetBaseMemory(const RTTI::Base& base) {
-      return GetBaseMemory(base.mType, base);
+      return GetBaseMemory(base.GetType(), base);
    }
 
    /// Get the memory block corresponding to a base (const)                   
@@ -438,7 +438,7 @@ namespace Langulus::Anyness
    ///   @return the static immutable block for the base                      
    LANGULUS(INLINED)
    Block Block::GetBaseMemory(const RTTI::Base& base) const {
-      return GetBaseMemory(base.mType, base);
+      return GetBaseMemory(base.GetType(), base);
    }
    
    /// Mutate the block to a different type, if possible                      

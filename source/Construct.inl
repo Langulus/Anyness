@@ -329,7 +329,9 @@ namespace Langulus::Anyness
    ///   @return the type of the producer                                     
    LANGULUS(INLINED)
    DMeta Construct::GetProducer() const noexcept {
-      return mType ? mType->mProducer : nullptr;
+      if (mType and mType->mProducerRetriever)
+         return mType->mProducerRetriever();
+      return nullptr;
    }
 
    /// Push anything to the descriptor                                        

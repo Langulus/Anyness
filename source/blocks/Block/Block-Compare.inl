@@ -126,7 +126,7 @@ namespace Langulus::Anyness
       }
 
       if (  (IsSparse() and baseForComparison.mBinaryCompatible)
-         or (baseForComparison.mType->mIsPOD and baseForComparison.mBinaryCompatible)
+         or (baseForComparison.GetType()->mIsPOD and baseForComparison.mBinaryCompatible)
       ) {
          // Just compare the memory directly (optimization)             
          // Regardless if types are sparse or dense, as long as they    
@@ -141,7 +141,7 @@ namespace Langulus::Anyness
          
          VERBOSE(Logger::Green, "POD/pointers memory is the same ", Logger::Yellow, "(fast)");
       }
-      else if (baseForComparison.mType->mComparer) {
+      else if (baseForComparison.GetType()->mComparer) {
          if (IsSparse()) {
             if constexpr (RESOLVE) {
                // Resolve all elements one by one and compare them by   
@@ -518,7 +518,7 @@ namespace Langulus::Anyness
       else {
          // Types match exactly, or their origins match exactly         
          if (mType->mOrigin) {
-            common.mType = mType->mOrigin;
+            common.mTypeRetriever = mType->mOrigin->mGenerator;
             common.mBinaryCompatible = true;
             return true;
          }
@@ -539,7 +539,7 @@ namespace Langulus::Anyness
    bool Block::CallComparer(const Block& right, const RTTI::Base& base) const {
       return  mRaw == right.mRaw 
           or (mRaw and right.mRaw
-         and  base.mType->mComparer(mRaw, right.mRaw));
+         and  base.GetType()->mComparer(mRaw, right.mRaw));
    }
 
    /// Gather items from input container, and fill output                     
