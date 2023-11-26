@@ -299,11 +299,18 @@ namespace Langulus::Anyness
       return mType and mType->mIsNullifiable;
    }
 
-   /// Check if the memory block contains memory blocks                       
-   ///   @return true if the memory block contains memory blocks              
+   /// Check if the memory block contains memory blocks considered deep       
+   ///   @return true if the memory block contains deep memory blocks         
    LANGULUS(INLINED)
    constexpr bool Block::IsDeep() const noexcept {
       return mType and mType->mIsDeep and mType->template CastsTo<Block, true>();
+   }
+
+   /// Check if the memory block contains memory blocks                       
+   ///   @return true if the memory block contains memory blocks              
+   LANGULUS(INLINED)
+   constexpr bool Block::IsBlock() const noexcept {
+      return mType and mType->template CastsTo<Block, true>();
    }
    
    /// Check phase compatibility                                              

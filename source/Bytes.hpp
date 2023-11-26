@@ -26,9 +26,6 @@ namespace Langulus::Anyness
    private:
       using Base = TAny<Byte>;
 
-      //template<CT::Semantic S>
-      //static constexpr bool Relevant = CT::DerivedFrom<TypeOf<S>, Base>;
-
    public:
       constexpr Bytes() = default;
 
@@ -117,6 +114,6 @@ namespace Langulus::CT
 
    /// Concept for differentiating managed Anyness Text types                 
    template<class T>
-   concept Bytes = DerivedFrom<T, ::Langulus::Anyness::Bytes>;
+   concept Bytes = DerivedFrom<T, Anyness::Bytes>;
 
 } // namespace Langulus::CT
