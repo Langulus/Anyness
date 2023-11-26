@@ -7,19 +7,16 @@ project(LangulusAnyness
 
 # Check if this project is built as standalone, or a part of something else 
 if(PROJECT_IS_TOP_LEVEL OR NOT LANGULUS)
-	set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
-	set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin/lib)
-
     include(LangulusUtilities.cmake)
 
     # Add Langulus::Core/Logger/RTTI/Fractalloc/SIMD libraries              
-    fetch_langulus_module(Core   GIT_TAG 0097bd180a5c625f88db0db0514bbf93aff53c7a)
-    fetch_langulus_module(Logger GIT_TAG b63513abb9fb3014107335949e17e41e6e8a334b)
-    fetch_langulus_module(RTTI   GIT_TAG f7c610255b819b99a6adcdefa970387490093c25)
+    fetch_langulus_module(Core   GIT_TAG 11f1ae8b23562ea759f0a0388d505b9a8ce39253)
+    fetch_langulus_module(Logger GIT_TAG 21c138042da9fbe03abbdc303934183d08e03655)
+    fetch_langulus_module(RTTI   GIT_TAG 2b2cde5fb80a5fbb32b29019972e59ce04dde6ba)
     if(LANGULUS_FEATURE_MANAGED_MEMORY)
-        fetch_langulus_module(Fractalloc GIT_TAG 17a8741cfa252b30e20257bb9d953d89278c4039)
+        fetch_langulus_module(Fractalloc GIT_TAG f0670504fd5ec06ce82810e44320819d2e39189c)
     endif()
-    fetch_langulus_module(SIMD   GIT_TAG 3cfb3bd47a8e0d610e0d473d74fbbde14dcea298)
+    fetch_langulus_module(SIMD   GIT_TAG 1391ffacc287399921f63351349c4a36890d11b5)
 endif()
 
 # Build and install Anyness library                                         
