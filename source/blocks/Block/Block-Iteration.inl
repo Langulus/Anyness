@@ -173,7 +173,8 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Count Block::ForEachInner(auto&& f) noexcept(NoexceptIterator<decltype(f)>) {
       constexpr auto NOE = NoexceptIterator<decltype(f)>;
-      if ((CT::Block<Decay<A>> and IsDeep()) or CastsTo<A>()) {
+      if ((CT::Deep<Decay<A>> and IsDeep())
+      or (not CT::Deep<Decay<A>> and CastsTo<A>())) {
          Count index = 0;
          if (mType->mIsSparse) {
             // Iterate using pointers of A                              

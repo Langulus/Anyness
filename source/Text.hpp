@@ -22,7 +22,7 @@ namespace Langulus::Anyness
       using Base = TAny<Letter>;
       LANGULUS(DEEP) false;
       LANGULUS(POD) false;
-      LANGULUS_BASES(A::Text, Base);
+      LANGULUS_BASES(A::Text, TAny<Letter>);
       LANGULUS(FILES) "txt";
 
       using CompatibleStdString = ::std::basic_string<Letter>;

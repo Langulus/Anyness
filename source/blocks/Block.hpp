@@ -281,6 +281,7 @@ namespace Langulus::Anyness
       NOD() constexpr bool IsResolvable() const noexcept;
       NOD() constexpr bool IsNullifiable() const noexcept;
       NOD() constexpr bool IsDeep() const noexcept;
+      NOD() constexpr bool IsBlock() const noexcept;
       NOD() constexpr bool CanFitPhase(const Block&) const noexcept;
       NOD() constexpr bool CanFitState(const Block&) const noexcept;
       NOD() constexpr bool CanFitOrAnd(const Block&) const noexcept;
