@@ -108,7 +108,7 @@ namespace Langulus::Anyness
          mInfo[MinimalAllocation] = 1;
 
          // Insert a statically typed element                           
-         InsertInner<false>(
+         InsertInner<false, true>(
             GetBucket(MinimalAllocation - 1, *other),
             other.Forward()
          );
@@ -143,7 +143,7 @@ namespace Langulus::Anyness
    /// Set destructor                                                         
    LANGULUS(INLINED)
    OrderedSet::~OrderedSet() {
-      Free();
+      Free<OrderedSet>();
    }
 
    /// Copy assignment                                                        
@@ -199,21 +199,21 @@ namespace Langulus::Anyness
           == static_cast<const BlockSet*>(&*other))
             return *this;
 
-         Free();
+         Free<OrderedSet>();
          new (this) OrderedSet {other.Forward()};
       }
       else {
          if (GetUses() != 1) {
             // Reset and allocate fresh memory                          
-            Free();
+            Free<OrderedSet>();
             new (this) OrderedSet {other.Forward()};
          }
          else {
             // Just destroy and reuse memory                            
-            Clear();
+            Clear<OrderedSet>();
 
             // Insert a statically typed pair                           
-            InsertInner<false>(
+            InsertInner<false, true>(
                GetBucket(GetReserved() - 1, *other),
                other.Forward()
             );
@@ -223,95 +223,30 @@ namespace Langulus::Anyness
       return *this;
    }
    
-   /// Insert a single element inside table via copy                          
-   ///   @param key - the key to add                                          
+   /// Insert a single element inside table via semantic or not               
+   ///   @param key - the key (optionally in a semantic) to add               
    ///   @return 1 if element was inserted, zero otherwise                    
    LANGULUS(INLINED)
-   Count OrderedSet::Insert(const CT::NotSemantic auto& key) {
-      return Insert(Copy(key));
-   }
-   
-   /// Insert a single element inside table via copy                          
-   ///   @param key - the key to add                                          
-   ///   @return 1 if element was inserted, zero otherwise                    
-   LANGULUS(INLINED)
-   Count OrderedSet::Insert(CT::NotSemantic auto& key) {
-      return Insert(Copy(key));
-   }
-
-   /// Insert a single element inside table via move                          
-   ///   @param key - the key to add                                          
-   ///   @return 1 if element was inserted, zero otherwise                    
-   LANGULUS(INLINED)
-   Count OrderedSet::Insert(CT::NotSemantic auto&& key) {
-      return Insert(Move(key));
-   }
-      
-   /// Semantically insert key                                                
-   ///   @param key - the key to insert                                       
-   ///   @return 1 if element was inserted, zero otherwise                    
-   Count OrderedSet::Insert(CT::Semantic auto&& key) {
-      using S = Decay<decltype(key)>;
-      using T = TypeOf<S>;
-
-      Mutate<T>();
-      Reserve(GetCount() + 1);
-      InsertInner<true>(
-         GetBucket(GetReserved() - 1, *key),
-         key.Forward()
+   Count OrderedSet::Insert(auto&& key) {
+      return BlockSet::Insert<true>(
+         Forward<Deref<decltype(key)>>(key)
       );
-      return 1;
-   }
-   
-   /// Copy-insert any element inside the set                                 
-   ///   @param item - the element to insert                                  
-   ///   @return a reference to this set for chaining                         
-   LANGULUS(INLINED)
-   OrderedSet& OrderedSet::operator << (const CT::NotSemantic auto& item) {
-      return operator << (Copy(item));
-   }
-   
-   /// Copy-insert any element inside the set                                 
-   ///   @param item - the element to insert                                  
-   ///   @return a reference to this set for chaining                         
-   LANGULUS(INLINED)
-   OrderedSet& OrderedSet::operator << (CT::NotSemantic auto& item) {
-      return operator << (Copy(item));
    }
 
-   /// Move-insert any element inside the set                                 
-   ///   @param item - the element to insert                                  
-   ///   @return a reference to this set for chaining                         
    LANGULUS(INLINED)
-   OrderedSet& OrderedSet::operator << (CT::NotSemantic auto&& item) {
-      return operator << (Move(item));
+   Count OrderedSet::InsertBlock(auto&& key) {
+      return BlockSet::InsertBlock<true>(
+         Forward<Deref<decltype(key)>>(key)
+      );
    }
 
-   /// Semantic insertion of any element inside the set                       
-   ///   @param item - the element to insert                                  
+   /// Insert any kind of key, semantic or not                                
+   ///   @param key - the key to insert                                       
    ///   @return a reference to this set for chaining                         
    LANGULUS(INLINED)
-   OrderedSet& OrderedSet::operator << (CT::Semantic auto&& item) {
-      Insert(item.Forward());
+   OrderedSet& OrderedSet::operator << (auto&& key) {
+      BlockSet::Insert<true>(Forward<decltype(key)>(key));
       return *this;
    }
-   
-   /// Semantically insert a type-erased element                              
-   ///   @param key - the key to insert                                       
-   ///   @return 1 if element was inserted                                    
-   LANGULUS(INLINED)
-   Count OrderedSet::InsertUnknown(CT::Semantic auto&& key) {
-      using S = Decay<decltype(key)>;
-      static_assert(CT::Exact<TypeOf<S>, Block>,
-         "S type must be exactly Block (build-time optimization)");
 
-      Mutate(key->mType);
-      Reserve(GetCount() + 1);
-      InsertInnerUnknown<true>(
-         GetBucketUnknown(GetReserved() - 1, *key),
-         key.Forward()
-      );
-      return 1;
-   }
-   
 } // namespace Langulus::Anyness

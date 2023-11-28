@@ -108,7 +108,7 @@ namespace Langulus::Anyness
          mInfo[MinimalAllocation] = 1;
 
          // Insert a statically typed element                           
-         InsertInner<false>(
+         InsertInner<false, false>(
             GetBucket(MinimalAllocation - 1, *other),
             other.Forward()
          );
@@ -143,7 +143,7 @@ namespace Langulus::Anyness
    /// Set destructor                                                         
    LANGULUS(INLINED)
    UnorderedSet::~UnorderedSet() {
-      Free();
+      Free<UnorderedSet>();
    }
 
    /// Copy assignment                                                        
@@ -199,21 +199,21 @@ namespace Langulus::Anyness
           == static_cast<const BlockSet*>(&*other))
             return *this;
 
-         Free();
+         Free<UnorderedSet>();
          new (this) UnorderedSet {other.Forward()};
       }
       else {
          if (GetUses() != 1) {
             // Reset and allocate fresh memory                          
-            Free();
+            Free<UnorderedSet>();
             new (this) UnorderedSet {other.Forward()};
          }
          else {
             // Just destroy and reuse memory                            
-            Clear();
+            Clear<UnorderedSet>();
 
             // Insert an element                                        
-            InsertInner<false>(
+            InsertInner<false, false>(
                GetBucket(GetReserved() - 1, *other),
                other.Forward()
             );
@@ -228,7 +228,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this set for chaining                         
    LANGULUS(INLINED)
    UnorderedSet& UnorderedSet::operator << (auto&& item) {
-      BlockSet::Insert(Forward<decltype(item)>(item));
+      Insert(Forward<decltype(item)>(item));
       return *this;
    }
    

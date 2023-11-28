@@ -239,7 +239,7 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   RTTI                                                              
       ///                                                                     
-      template<CT::NotSemantic K, CT::NotSemantic V>
+      template<CT::NotSemantic, CT::NotSemantic>
       void Mutate();
       void Mutate(DMeta, DMeta);
       

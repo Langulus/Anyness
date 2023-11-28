@@ -17,28 +17,33 @@
 namespace Langulus::Anyness
 {
 
-   /// Copy-constructor                                                       
-   ///   @param other - the map to copy                                       
-   TEMPLATE()
-   TABLE()::TOrderedSet(const TOrderedSet& other)
-      : Self {Copy(other)} { }
+   /// Default construction                                                   
+   TEMPLATE() LANGULUS(INLINED)
+   constexpr TABLE()::TOrderedSet()
+      : Base {} {}
 
-   /// Move-constructor                                                       
-   ///   @param other - the map to move                                       
-   TEMPLATE()
+   /// Shallow-copy construction                                              
+   ///   @param other - the table to copy                                     
+   TEMPLATE() LANGULUS(INLINED)
+   TABLE()::TOrderedSet(const TOrderedSet& other)
+      : Self {Copy(other)} {}
+
+   /// Move construction                                                      
+   ///   @param other - the table to move                                     
+   TEMPLATE() LANGULUS(INLINED)
    TABLE()::TOrderedSet(TOrderedSet&& other) noexcept
-      : Self {Move(other)} { }
+      : Self {Move(other)} {}
 
    /// Copy assignment                                                        
    ///   @param rhs - the map to copy                                         
-   TEMPLATE()
+   TEMPLATE() LANGULUS(INLINED)
    TABLE()& TABLE()::operator = (const TOrderedSet& rhs) {
       return operator = (Copy(rhs));
    }
 
    /// Move assignment                                                        
    ///   @param rhs - the map to move                                         
-   TEMPLATE()
+   TEMPLATE() LANGULUS(INLINED)
    TABLE()& TABLE()::operator = (TOrderedSet&& rhs) noexcept {
       return operator = (Move(rhs));
    }
@@ -46,7 +51,7 @@ namespace Langulus::Anyness
    /// Assign a single element by copy                                        
    ///   @param rhs - the element to assign                                   
    ///   @return a reference to this set for chaining                         
-   TEMPLATE()
+   TEMPLATE() LANGULUS(INLINED)
    TABLE()& TABLE()::operator = (const T& rhs) {
       return operator = (Copy(rhs));
    }
@@ -54,7 +59,7 @@ namespace Langulus::Anyness
    /// Assign a single element by move                                        
    ///   @param rhs - the element to assign                                   
    ///   @return a reference to this set for chaining                         
-   TEMPLATE()
+   TEMPLATE() LANGULUS(INLINED)
    TABLE()& TABLE()::operator = (T&& rhs) {
       return operator = (Move(rhs));
    }
@@ -62,7 +67,7 @@ namespace Langulus::Anyness
    /// Semantic assignment for an ordered set                                 
    ///   @tparam S - the semantic (deducible)                                 
    ///   @param rhs - the ordered set to use for construction                 
-   TEMPLATE()
+   TEMPLATE() LANGULUS(INLINED)
    TABLE()& TABLE()::operator = (CT::Semantic auto&& rhs) {
       using S = Decay<decltype(rhs)>;
       using ST = TypeOf<S>;
@@ -166,7 +171,5 @@ namespace Langulus::Anyness
 
 } // namespace Langulus::Anyness
 
-#undef TABLE
 #undef TEMPLATE
-
-   
+#undef TABLE

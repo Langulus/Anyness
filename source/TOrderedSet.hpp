@@ -27,6 +27,7 @@ namespace Langulus::Anyness
 
       using Base::TUnorderedSet;
 
+      constexpr TOrderedSet();
       TOrderedSet(const TOrderedSet&);
       TOrderedSet(TOrderedSet&&) noexcept;
 

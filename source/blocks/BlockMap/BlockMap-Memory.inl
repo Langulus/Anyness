@@ -260,7 +260,7 @@ namespace Langulus::Anyness
          }
       }
    }
-   
+
    /// Reserves space for the specified number of pairs                       
    ///   @attention does nothing if reserving less than current reserve       
    ///   @attention assumes count is a power-of-two number                    

@@ -49,7 +49,7 @@ namespace Langulus::Anyness
    ///   @tparam MAP - map we're removing from, using to deduce value type,   
    ///                 and as runtime optimization                            
    ///   @param key - the key to search for                                   
-   ///   @return the number of removed pairs                                  
+   ///   @return 1 if pair was removed                                  
    template<class MAP>
    LANGULUS(INLINED)
    Count BlockMap::RemoveKeyInner(const CT::NotSemantic auto& key) {

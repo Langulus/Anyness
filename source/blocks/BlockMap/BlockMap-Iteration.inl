@@ -60,7 +60,8 @@ namespace Langulus::Anyness
 
    /// Get iterator to first element                                          
    ///   @return a constant iterator to the first element, or end if empty    
-   inline typename BlockMap::ConstIterator BlockMap::begin() const noexcept {
+   LANGULUS(INLINED)
+   typename BlockMap::ConstIterator BlockMap::begin() const noexcept {
       if (IsEmpty())
          return end();
 
@@ -85,7 +86,8 @@ namespace Langulus::Anyness
 
    /// Get iterator to the last valid element                                 
    ///   @return a constant iterator to the last element, or end if empty     
-   inline typename BlockMap::ConstIterator BlockMap::last() const noexcept {
+   LANGULUS(INLINED)
+   typename BlockMap::ConstIterator BlockMap::last() const noexcept {
       if (IsEmpty())
          return end();
 
@@ -101,7 +103,7 @@ namespace Langulus::Anyness
       };
    }
 
-   /// Execute a call for each type-erased pair inside the map                
+   /// Execute a call for each  pair inside the map                
    ///   @tparam REVERSE - whether or not to iterate in reverse               
    ///   @tparam F - the call to execute for each pair (deducible)            
    ///   @param call - the function to execute for each pair                  

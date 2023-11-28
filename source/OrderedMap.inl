@@ -227,7 +227,11 @@ namespace Langulus::Anyness
       else LANGULUS_ERROR("Unsupported ordered map assignment");
       return *this;
    }
-
+   
+   /// Insert a pair inside table via semantic or not                          
+   ///   @param k - the key (optionally in a semantic) to add                                          
+   ///   @param v - the value (optionally in a semantic) to add                                          
+   ///   @return 1 if pair was inserted, zero otherwise                    
    LANGULUS(INLINED)
    Count OrderedMap::Insert(auto&& k, auto&& v) {
       return BlockMap::Insert<true>(
