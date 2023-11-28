@@ -141,13 +141,10 @@ namespace Langulus::Anyness
       NOD() ConstIterator end() const noexcept;
       NOD() ConstIterator last() const noexcept;
 
-      template<bool REVERSE = false, class F>
-      Count ForEach(F&&) const;
-
-      template<bool REVERSE = false, bool MUTABLE = true, class F>
-      Count ForEachElement(F&&);
-      template<bool REVERSE = false, class F>
-      Count ForEachElement(F&&) const;
+      template<bool REVERSE = false, bool MUTABLE = true>
+      Count ForEachElement(auto&&);
+      template<bool REVERSE = false>
+      Count ForEachElement(auto&&) const;
 
       template<bool REVERSE = false, bool MUTABLE = true, class... F>
       Count ForEach(F&&...);
@@ -159,13 +156,30 @@ namespace Langulus::Anyness
       template<bool REVERSE = false, bool SKIP = true, class... F>
       Count ForEachDeep(F&&...) const;
 
+      template<bool MUTABLE, class... F>
+      Count ForEachElementRev(F&&...);
+      template<class... F>
+      Count ForEachElementRev(F&&...) const;
+
+      template<bool MUTABLE, class... F>
+      Count ForEachRev(F&&...);
+      template<class... F>
+      Count ForEachRev(F&&...) const;
+
+      template<bool SKIP, bool MUTABLE, class... F>
+      Count ForEachDeepRev(F&&...);
+      template<bool SKIP, class... F>
+      Count ForEachDeepRev(F&&...) const;
+
    protected:
-      template<bool REVERSE, bool MUTABLE, class F>
-      Count ForEachElement(Block&, F&&);
-      template<class R, CT::Data A, bool REVERSE, bool MUTABLE, class F>
-      Count ForEachInner(Block&, F&&);
-      template<class R, CT::Data A, bool REVERSE, bool SKIP, bool MUTABLE, class F>
-      Count ForEachDeepInner(Block&, F&&);
+      template<class F>
+      static constexpr bool NoexceptIterator = not LANGULUS_SAFE()
+         and noexcept(Fake<F&&>().operator() (Fake<ArgumentOf<F>>()));
+
+      template<class R, CT::Data A, bool REVERSE, bool MUTABLE>
+      Count ForEachInner(auto&& f) noexcept(NoexceptIterator<decltype(f)>);
+      template<class R, CT::Data A, bool REVERSE, bool SKIP, bool MUTABLE>
+      Count ForEachDeepInner(auto&&);
 
    public:
       ///                                                                     
