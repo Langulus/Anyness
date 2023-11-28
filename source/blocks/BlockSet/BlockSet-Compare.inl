@@ -105,7 +105,7 @@ namespace Langulus::Anyness
    ///   @tparam SET - set we're searching in, potentially providing runtime  
    ///                 optimization on type checks                            
    ///   @param match - the key to search for                                 
-   ///   @return the index, or mValues.mReserved if not found                 
+   ///   @return the index, or InvalidOffset if not found                 
    template<class SET>
    Offset BlockSet::FindInner(const CT::NotSemantic auto& match) const {
       using K = Deref<decltype(match)>;
@@ -187,6 +187,7 @@ namespace Langulus::Anyness
             ++key; ++info;
          }
 
+         // No such key was found                                       
          return InvalidOffset;
       }
    }
@@ -194,9 +195,8 @@ namespace Langulus::Anyness
    /// Find the index of a pair by an unknown type-erased key                 
    ///   @attention assumes map is not empty                                  
    ///   @attention assumes keys are of the exactly same type                 
-   ///   @tparam THIS - set to interpret this one as, for optimal bucketing   
    ///   @param match - the key to search for                                 
-   ///   @return the index, or mValues.mReserved if not found                 
+   ///   @return the index, or InvalidOffset if not found                 
    inline Offset BlockSet::FindInnerUnknown(const Block& match) const {
       if (IsEmpty() or not IsSimilar(match.GetType()))
          return InvalidOffset;

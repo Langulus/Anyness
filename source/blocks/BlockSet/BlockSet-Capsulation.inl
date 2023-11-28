@@ -12,7 +12,7 @@
 
 namespace Langulus::Anyness
 {
-      
+   
    /// Templated tables are always typed                                      
    ///   @return false                                                        
    LANGULUS(INLINED)
@@ -139,15 +139,21 @@ namespace Langulus::Anyness
    /// Check if the set is marked missing                                     
    ///   @return true if the set is marked as missing                         
    LANGULUS(INLINED)
-   constexpr bool BlockSet::IsMissing() const noexcept {
+   bool BlockSet::IsMissing() const noexcept {
       return mKeys.IsMissing();
    }
    
    /// Check if the set contains at least one missing entry (nested)          
    ///   @return true if the set has missing entries                          
    LANGULUS(INLINED)
-   constexpr bool BlockSet::IsMissingDeep() const {
-      return mKeys.IsMissingDeep();
+   bool BlockSet::IsMissingDeep() const {
+      bool missing = false;
+      ForEachDeep([&](const Block& value) {
+         missing = value.IsMissing();
+         return not missing;
+      });
+
+      return missing;
    }
 
    /// Check if the memory for the table is owned by us                       

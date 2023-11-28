@@ -46,18 +46,10 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
-      Count Insert(const CT::NotSemantic auto&);
-      Count Insert(CT::NotSemantic auto&);
-      Count Insert(CT::NotSemantic auto&&);
-      Count Insert(CT::Semantic auto&&);
+      Count Insert(auto&&);
+      Count InsertBlock(auto&&);
 
-      OrderedSet& operator << (const CT::NotSemantic auto&);
-      OrderedSet& operator << (CT::NotSemantic auto&);
-      OrderedSet& operator << (CT::NotSemantic auto&&);
-      OrderedSet& operator << (CT::Semantic auto&&);
-
-   protected:
-      Count InsertUnknown(CT::Semantic auto&&);
+      OrderedSet& operator << (auto&&);
    };
 
 } // namespace Langulus::Anyness

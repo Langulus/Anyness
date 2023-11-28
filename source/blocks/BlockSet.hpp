@@ -22,7 +22,6 @@ namespace Langulus::Anyness
    ///                                                                        
    class BlockSet {
    protected:
-      static constexpr Count MinimalAllocation = 8;
       using InfoType = ::std::uint8_t;
 
       // A precomputed pointer for the info bytes                       
@@ -38,9 +37,11 @@ namespace Langulus::Anyness
       Block mKeys;
 
    public:
+      static constexpr bool Ordered = false;
       static constexpr bool Ownership = false;
       static constexpr bool Sequential = false;
       static constexpr Offset InvalidOffset = -1;
+      static constexpr Count MinimalAllocation = 8;
 
       ///                                                                     
       ///   Construction & Assignment                                         
@@ -78,8 +79,9 @@ namespace Langulus::Anyness
       NOD() constexpr Count GetReserved() const noexcept;
       NOD() constexpr bool IsEmpty() const noexcept;
       NOD() constexpr bool IsAllocated() const noexcept;
-      NOD() constexpr bool IsMissing() const noexcept;
-      NOD() constexpr bool IsMissingDeep() const;
+      NOD() bool IsMissing() const noexcept;
+      NOD() bool IsMissingDeep() const;
+
       NOD() constexpr bool HasAuthority() const noexcept;
       NOD() constexpr Count GetUses() const noexcept;
 
@@ -139,6 +141,9 @@ namespace Langulus::Anyness
       NOD() ConstIterator end() const noexcept;
       NOD() ConstIterator last() const noexcept;
 
+      template<bool REVERSE = false, class F>
+      Count ForEach(F&&) const;
+
       template<bool REVERSE = false, bool MUTABLE = true, class F>
       Count ForEachElement(F&&);
       template<bool REVERSE = false, class F>
@@ -155,24 +160,23 @@ namespace Langulus::Anyness
       Count ForEachDeep(F&&...) const;
 
    protected:
-      template<bool MUTABLE, bool REVERSE, class F>
-      Count ForEachSplitter(Block&, F&&);
-      template<bool SKIP, bool MUTABLE, bool REVERSE, class F>
-      Count ForEachDeepSplitter(Block&, F&&);
+      template<bool REVERSE, bool MUTABLE, class F>
+      Count ForEachElement(Block&, F&&);
       template<class R, CT::Data A, bool REVERSE, bool MUTABLE, class F>
       Count ForEachInner(Block&, F&&);
       template<class R, CT::Data A, bool REVERSE, bool SKIP, bool MUTABLE, class F>
       Count ForEachDeepInner(Block&, F&&);
-      template<bool REVERSE, bool MUTABLE, class F>
-      Count ForEachElement(Block&, F&&);
 
    public:
       ///                                                                     
       ///   RTTI                                                              
       ///                                                                     
-      template<CT::Data T>
+      template<CT::NotSemantic>
       void Mutate();
       void Mutate(DMeta);
+      template<CT::Data, CT::Data...>
+      NOD() bool IsExact() const noexcept;
+      NOD() bool IsExact(DMeta) const noexcept;
 
       template<CT::Data, CT::Data...>
       NOD() bool Is() const noexcept;
@@ -182,9 +186,6 @@ namespace Langulus::Anyness
       NOD() bool IsSimilar() const noexcept;
       NOD() bool IsSimilar(DMeta) const noexcept;
 
-      template<CT::Data, CT::Data...>
-      NOD() bool IsExact() const noexcept;
-      NOD() bool IsExact(DMeta) const noexcept;
 
       NOD() bool IsTypeCompatibleWith(const BlockSet&) const noexcept;
 
@@ -206,7 +207,7 @@ namespace Langulus::Anyness
       NOD() ConstIterator FindIt(const CT::NotSemantic auto&) const;
 
    protected:
-      template<class SET = BlockSet>
+      template<class SET>
       NOD() Offset FindInner(const CT::NotSemantic auto&) const;
       NOD() Offset FindInnerUnknown(const Block&) const;
 
@@ -214,19 +215,22 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Memory management                                                 
       ///                                                                     
+      template<class SET = BlockSet>
       void Reserve(const Count&);
-      
+
    protected:
       /// @cond show_protected                                                
-      template<bool REUSE>
-      void Allocate(const Count&);
       void AllocateFresh(const Count&);
+      template<bool REUSE, class SET>
+      void AllocateData(const Count&);
+      template<class SET>
       void AllocateInner(const Count&);
 
       void Reference(const Count&) const noexcept;
       void Keep() const noexcept;
-      template<bool DESTROY>
+      template<bool DESTROY, class SET>
       void Dereference(const Count&);
+      template<class SET>
       void Free();
       /// @endcond                                                            
 
@@ -234,12 +238,23 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
+      template<bool ORDERED = false>
       Count Insert(const CT::NotSemantic auto&);
+      template<bool ORDERED = false>
+      Count Insert(CT::NotSemantic auto&);
+      template<bool ORDERED = false>
       Count Insert(CT::NotSemantic auto&&);
+      template<bool ORDERED = false>
       Count Insert(CT::Semantic auto&&);
 
+      template<bool ORDERED = false>
+      Count InsertBlock(CT::Semantic auto&&);
+
+      template<bool ORDERED = false>
       Count Merge(const BlockSet&);
+      template<bool ORDERED = false>
       Count Merge(BlockSet&&);
+      template<bool ORDERED = false>
       Count Merge(CT::Semantic auto&&);
 
       BlockSet& operator << (const CT::NotSemantic auto&);
@@ -249,33 +264,37 @@ namespace Langulus::Anyness
    protected:
       NOD() Size RequestKeyAndInfoSize(Count, Offset&) const IF_UNSAFE(noexcept);
 
+      template<class SET>
       void Rehash(const Count&);
       template<class K>
       void ShiftPairs();
 
-      template<bool CHECK_FOR_MATCH>
+      template<bool CHECK_FOR_MATCH, bool ORDERED>
       Offset InsertInner(const Offset&, CT::Semantic auto&&);
-      template<bool CHECK_FOR_MATCH>
+      template<bool CHECK_FOR_MATCH, bool ORDERED>
       Offset InsertInnerUnknown(const Offset&, CT::Semantic auto&&);
-
-      void CloneInner(const Block&, Block&) const;
 
    public:
       ///                                                                     
       ///   Removal                                                           
       ///                                                                     
-      template<class THIS = BlockSet>
+      template<class SET = BlockSet>
       Count Remove(const CT::NotSemantic auto&);
 
+      template<class SET = BlockSet>
       void Clear();
+      template<class SET = BlockSet>
       void Reset();
       void Compact();
 
    protected:
+      template<class SET>
       void ClearInner();
 
-      template<class>
+      template<class K>
       void RemoveInner(const Offset&) IF_UNSAFE(noexcept);
+      template<class SET>
+      Count RemoveKeyInner(const CT::NotSemantic auto&);
 
    #if LANGULUS(TESTING)
       public: NOD() constexpr const void* GetRawMemory() const noexcept;
@@ -312,6 +331,8 @@ namespace Langulus::Anyness
 
       // Suffix operator                                                
       NOD() TIterator operator ++ (int) noexcept;
+
+      constexpr explicit operator bool() const noexcept;
    };
 
 } // namespace Langulus::Anyness
