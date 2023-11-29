@@ -180,7 +180,7 @@ namespace Langulus::Anyness
             // Iterate using pointers of A                              
             using DA = Conditional<MUTABLE, Decay<A>*, const Decay<A>*>;
             IterateInner<R, DA, REVERSE, MUTABLE>(
-               [&index, &f](DA element) noexcept(NOE) -> R {
+               mCount, [&index, &f](DA element) noexcept(NOE) -> R {
                   ++index;
                   if constexpr (CT::Sparse<A>)  return f(element);
                   else                          return f(*element);
@@ -191,7 +191,7 @@ namespace Langulus::Anyness
             // Iterate using references of A                            
             using DA = Conditional<MUTABLE, Decay<A>&, const Decay<A>&>;
             IterateInner<R, DA, REVERSE, MUTABLE>(
-               [&index, &f](DA element) noexcept(NOE) -> R {
+               mCount, [&index, &f](DA element) noexcept(NOE) -> R {
                   ++index;
                   if constexpr (CT::Sparse<A>)  return f(&element);
                   else                          return f(element);
@@ -288,7 +288,7 @@ namespace Langulus::Anyness
    ///   @param call - the constexpr noexcept function to call on each item   
    template<class R, CT::Data A, bool REVERSE, bool MUTABLE>
    LANGULUS(INLINED)
-   void Block::IterateInner(auto&& f) noexcept(NoexceptIterator<decltype(f)>) {
+   void Block::IterateInner(const Count& count, auto&& f) noexcept(NoexceptIterator<decltype(f)>) {
       static_assert(CT::Complete<Decay<A>> or CT::Sparse<A>,
          "Can't iterate with incomplete type, use pointer instead");
       static_assert(CT::Constant<Deptr<A>> or MUTABLE,
@@ -317,16 +317,16 @@ namespace Langulus::Anyness
       UNUSED() Count initialCount;
       if constexpr (MUTABLE) {
          initialData = GetRawAs<DA>();
-         initialCount = mCount;
+         initialCount = count;
       }
 
       // Prepare for the loop                                           
       constexpr bool HasBreaker = CT::Bool<R>;
       auto data = GetRawAs<DA>();
       if constexpr (REVERSE)
-         data += mCount - 1;
+         data += count - 1;
 
-      auto dataEnd = REVERSE ? GetRawAs<DA>() - 1 : GetRawAs<DA>() + mCount;
+      auto dataEnd = REVERSE ? GetRawAs<DA>() - 1 : GetRawAs<DA>() + count;
       while (data != dataEnd) {
          // Execute function                                            
          if constexpr (HasBreaker) {
@@ -348,15 +348,15 @@ namespace Langulus::Anyness
                if constexpr (REVERSE)
                   dataEnd = GetRawAs<DA>() - 1;
                else
-                  dataEnd = GetRawAs<DA>() + mCount;
+                  dataEnd = GetRawAs<DA>() + count;
 
                initialData = GetRawAs<DA>();
             }
 
-            if (mCount > initialCount) {
+            if (count > initialCount) {
                // Something was inserted at that position, so make sure 
                // we skip the addition and extend the 'dataEnd'         
-               const auto addition = mCount - initialCount;
+               const auto addition = count - initialCount;
                if constexpr (REVERSE)
                   data -= addition;
                else {
@@ -364,18 +364,18 @@ namespace Langulus::Anyness
                   dataEnd += addition;
                }
 
-               initialCount = mCount;
+               initialCount = count;
             }
-            else if (mCount < initialCount) {
+            else if (count < initialCount) {
                // Something was removed at current position, so make    
                // sure we don't advance the iterator - it's already on  
                // the next relevant element. There is no danger for     
                // memory moving in this case                            
-               const auto removed = initialCount - mCount;
+               const auto removed = initialCount - count;
                if constexpr (!REVERSE)
                   dataEnd -= removed;
 
-               initialCount = mCount;
+               initialCount = count;
 
                // Skip incrementing/decrementing                        
                continue;
