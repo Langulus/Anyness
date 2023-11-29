@@ -106,7 +106,7 @@ namespace Langulus::Anyness
 
       Count counter = 1;
       const_cast<Block*>(this)->IterateInner<void, const Block&>(
-         [&counter](const Block& block) noexcept {
+         mCount, [&counter](const Block& block) noexcept {
             counter += block.GetCountDeep();
          }
       );
@@ -124,7 +124,7 @@ namespace Langulus::Anyness
 
       Count counter = 0;
       const_cast<Block*>(this)->IterateInner<void, const Block&>(
-         [&counter](const Block& block) noexcept {
+         mCount, [&counter](const Block& block) noexcept {
             counter += block.GetCountElementsDeep();
          }
       );

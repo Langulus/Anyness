@@ -169,6 +169,7 @@ namespace Langulus::Anyness
             // Iterate using pointers of A                              
             using DA = Conditional<MUTABLE, Decay<A>*, const Decay<A>*>;
             mKeys.IterateInner<R, DA, REVERSE, MUTABLE>(
+               mKeys.mReserved,
                [&](DA element) noexcept(NOE) -> R {
                   if (not mInfo[index++]) {
                      if constexpr (CT::Bool<R>)
@@ -187,6 +188,7 @@ namespace Langulus::Anyness
             // Iterate using references of A                            
             using DA = Conditional<MUTABLE, Decay<A>&, const Decay<A>&>;
             mKeys.IterateInner<R, DA, REVERSE, MUTABLE>(
+               mKeys.mReserved,
                [&](DA element) noexcept(NOE) -> R {
                   if (not mInfo[index++]) {
                      if constexpr (CT::Bool<R>)

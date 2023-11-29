@@ -464,7 +464,7 @@ namespace Langulus::Anyness
       Count ForEachDeepInner(auto&&);
 
       template<class R, CT::Data A, bool REVERSE = false, bool MUTABLE = false>
-      void IterateInner(auto&& f) noexcept(NoexceptIterator<decltype(f)>);
+      void IterateInner(const Count&, auto&& f) noexcept(NoexceptIterator<decltype(f)>);
 
    public:
       ///                                                                     
