@@ -214,7 +214,10 @@ namespace Langulus::Anyness
             // Rehash and check if hashes match                         
             const Offset oldIndex = oldInfo - GetInfo();
             Offset oldBucket = (oldCount + oldIndex) - *oldInfo + 1;
-            Offset newBucket = oldCount;
+            if (oldBucket > oldCount)
+               oldBucket -= oldCount;
+
+            Offset newBucket = 0;
             if constexpr (CT::TypedSet<SET>)
                newBucket += GetBucket(hashmask, oldKey.Get());
             else
@@ -234,8 +237,7 @@ namespace Langulus::Anyness
 
                   // Reinsert at the new bucket                         
                   InsertInner<false, SET::Ordered>(
-                     newBucket - oldCount,
-                     Abandon(keyswap)
+                     newBucket, Abandon(keyswap)
                   );
                }
                else {
@@ -250,8 +252,7 @@ namespace Langulus::Anyness
                   --mKeys.mCount;
 
                   InsertInnerUnknown<false, SET::Ordered>(
-                     newBucket - oldCount,
-                     Abandon(keyswap)
+                     newBucket, Abandon(keyswap)
                   );
 
                   keyswap.Free();

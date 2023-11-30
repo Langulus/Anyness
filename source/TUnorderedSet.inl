@@ -611,7 +611,10 @@ namespace Langulus::Anyness
             // Rehash and check if hashes match                         
             const Offset oldIndex = oldInfo - GetInfo();
             Offset oldBucket = (oldCount + oldIndex) - *oldInfo + 1;
-            const auto newBucket = mKeys.mReserved + GetBucket(hashmask, oldKey.Get());
+            if (oldBucket > oldCount)
+               oldBucket -= oldCount;
+
+            const auto newBucket = GetBucket(hashmask, oldKey.Get());
             if (oldBucket != newBucket) {
                // Move element only if it won't end up in same bucket   
                HandleLocal<T> keyswap {Abandon(oldKey)};
@@ -622,9 +625,7 @@ namespace Langulus::Anyness
                --mKeys.mCount;
 
                // Reinsert at the new bucket                            
-               InsertInner<false>(
-                  newBucket - mKeys.mReserved, Abandon(keyswap)
-               );
+               InsertInner<false>(newBucket, Abandon(keyswap));
             }
          }
 
