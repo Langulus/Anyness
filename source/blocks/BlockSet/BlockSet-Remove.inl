@@ -41,7 +41,7 @@ namespace Langulus::Anyness
       }
       else if (THIS.template IsSimilar<K>())
          return RemoveKeyInner<SET>(key);
-                                               
+      
       return 0;
    }
    

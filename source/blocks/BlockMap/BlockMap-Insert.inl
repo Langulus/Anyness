@@ -285,7 +285,7 @@ namespace Langulus::Anyness
 
       static_assert(CT::Map<MAP>, "MAP must be a map type");
       UNUSED() auto& THIS = reinterpret_cast<const MAP&>(*this); //TODO
-      auto oldKey = [this]() {
+      auto oldKey = [this] {
          if constexpr (CT::TypedMap<MAP>)
             return GetKeyHandle<typename MAP::Key>(0);
          else

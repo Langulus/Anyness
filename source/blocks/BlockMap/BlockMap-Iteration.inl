@@ -13,96 +13,6 @@
 namespace Langulus::Anyness
 {
 
-   /// Get iterator to first element                                          
-   ///   @return an iterator to the first element, or end if empty            
-   LANGULUS(INLINED)
-   typename BlockMap::Iterator BlockMap::begin() noexcept {
-      if (IsEmpty())
-         return end();
-
-      // Seek first valid info, or hit sentinel at the end              
-      auto info = GetInfo();
-      while (not *info) ++info;
-
-      const auto offset = info - GetInfo();
-      return {
-         info, GetInfoEnd(),
-         GetKeyInner(offset),
-         GetValueInner(offset)
-      };
-   }
-
-   /// Get iterator to end                                                    
-   ///   @return an iterator to the end element                               
-   LANGULUS(INLINED)
-   typename BlockMap::Iterator BlockMap::end() noexcept {
-      return {GetInfoEnd(), GetInfoEnd(), {}, {}};
-   }
-
-   /// Get iterator to the last element                                       
-   ///   @return an iterator to the last element, or end if empty             
-   LANGULUS(INLINED)
-   typename BlockMap::Iterator BlockMap::last() noexcept {
-      if (IsEmpty())
-         return end();
-
-      // Seek first valid info in reverse, until one past first is met  
-      auto info = GetInfoEnd();
-      while (info >= GetInfo() and not *--info);
-
-      const auto offset = info - GetInfo();
-      return {
-         info, GetInfoEnd(),
-         GetKeyInner(offset),
-         GetValueInner(offset)
-      };
-   }
-
-   /// Get iterator to first element                                          
-   ///   @return a constant iterator to the first element, or end if empty    
-   LANGULUS(INLINED)
-   typename BlockMap::ConstIterator BlockMap::begin() const noexcept {
-      if (IsEmpty())
-         return end();
-
-      // Seek first valid info, or hit sentinel at the end              
-      auto info = GetInfo();
-      while (not *info) ++info;
-
-      const auto offset = info - GetInfo();
-      return {
-         info, GetInfoEnd(), 
-         GetKeyInner(offset),
-         GetValueInner(offset)
-      };
-   }
-
-   /// Get iterator to end                                                    
-   ///   @return a constant iterator to the end element                       
-   LANGULUS(INLINED)
-   typename BlockMap::ConstIterator BlockMap::end() const noexcept {
-      return {GetInfoEnd(), GetInfoEnd(), {}, {}};
-   }
-
-   /// Get iterator to the last valid element                                 
-   ///   @return a constant iterator to the last element, or end if empty     
-   LANGULUS(INLINED)
-   typename BlockMap::ConstIterator BlockMap::last() const noexcept {
-      if (IsEmpty())
-         return end();
-
-      // Seek first valid info in reverse, until one past first is met  
-      auto info = GetInfoEnd();
-      while (info >= GetInfo() and not *--info);
-
-      const auto offset = info - GetInfo();
-      return {
-         info, GetInfoEnd(),
-         GetKeyInner(offset),
-         GetValueInner(offset)
-      };
-   }
-
    /// Execute a call for each  pair inside the map                
    ///   @tparam REVERSE - whether or not to iterate in reverse               
    ///   @tparam F - the call to execute for each pair (deducible)            
@@ -245,49 +155,76 @@ namespace Langulus::Anyness
    /// You can break the loop, by returning false inside f()                  
    ///   @param f - the function to call for each key block                   
    ///   @return the number of successful f() executions                      
-   template<bool REVERSE, bool MUTABLE, class F>
-   Count BlockMap::ForEachElement(Block& part, F&& call) {
-      if (IsEmpty())
-         return 0;
-
+   template<bool REVERSE, bool MUTABLE>
+   Count BlockMap::ForEachElement(Block& part, auto&& call) {
+      using F = Deref<decltype(call)>;
       using A = ArgumentOf<F>;
       using R = ReturnOf<F>;
 
       static_assert(CT::Block<A>,
-         "Function argument must be a CT::Block type");
+         "Function argument must be a CT::Block binary-compatible type");
       static_assert(CT::Constant<A> or MUTABLE,
          "Non constant iterator for constant memory block");
 
-      Count index {};
-      while (index < GetReserved()) {
-         if (not mInfo[index]) {
-            ++index;
+      auto info = mInfo;
+      const auto infoEnd = mInfo + GetReserved();
+      while (info != infoEnd) {
+         if (not *info) {
+            ++info;
             continue;
          }
 
+         const Offset index = info - mInfo;
          A block = part.GetElement(index);
          if constexpr (CT::Bool<R>) {
             if (not call(block))
-               return ++index;
+               return index + 1;
          }
          else call(block);
 
-         ++index;
+         ++info;
       }
 
-      return index;
+      return info - mInfo;
    }
-
-   /// Iterate and execute call for each element                              
-   ///   @param call - the function to execute for each element of type T     
+   
+   /// Iterate and execute call for each deep element                         
+   ///   @tparam R - the function return type (deduced)                       
+   ///               if R is boolean, loop will cease on returning false      
+   ///   @tparam A - the function argument type (deduced)                     
+   ///               A must be a CT::Block type                               
+   ///   @tparam REVERSE - whether to iterate in reverse                      
+   ///   @tparam MUTABLE - whether or not a change to container is allowed    
+   ///                     while iterating (iteration is slower if true)      
+   ///   @param call - the function to execute for each element of type A     
    ///   @return the number of executions that occured                        
-   template<class R, CT::Data A, bool REVERSE, bool SKIP, bool MUTABLE, class F>
-   Count BlockMap::ForEachDeepInner(Block& part, F&& call) {
+   template<class R, CT::Data A, bool REVERSE, bool SKIP, bool MUTABLE>
+   Count BlockMap::ForEachDeepInner(Block& part, auto&& call) {
+      constexpr bool HasBreaker = CT::Bool<R>;
       using DA = Decay<A>;
 
       Count counter = 0;
       if constexpr (CT::Deep<DA>) {
          using BlockType = Conditional<MUTABLE, DA*, const DA*>;
+
+         if (not SKIP or not part.IsDeep()) {
+            // Always execute for intermediate/non-deep *this           
+            ++counter;
+            if constexpr (CT::Dense<A>) {
+               if constexpr (HasBreaker) {
+                  if (not call(*reinterpret_cast<BlockType>(&part)))
+                     return counter;
+               }
+               else call(*reinterpret_cast<BlockType>(&part));
+            }
+            else {
+               if constexpr (HasBreaker) {
+                  if (not call(reinterpret_cast<BlockType>(&part)))
+                     return counter;
+               }
+               else call(reinterpret_cast<BlockType>(&part));
+            }
+         }
 
          if (part.IsDeep()) {
             // Iterate using a block type                               
@@ -295,12 +232,10 @@ namespace Langulus::Anyness
                [&counter, &call](BlockType group) {
                   counter += const_cast<DA*>(group)->
                      template ForEachDeepInner<R, A, REVERSE, SKIP, MUTABLE>(
-                        Forward<F>(call));
+                        ::std::move(call));
                }
             );
          }
-
-         return counter;
       }
       else {
          if (part.IsDeep()) {
@@ -310,17 +245,17 @@ namespace Langulus::Anyness
                [&counter, &call](BlockType group) {
                   counter += const_cast<Block&>(group).
                      template ForEachDeepInner<R, A, REVERSE, SKIP, MUTABLE>(
-                        Forward<F>(call));
+                        ::std::move(call));
                }
             );
          }
          else {
             // Equivalent to non-deep iteration                         
-            counter += ForEachInner<R, A, REVERSE, MUTABLE>(part, Forward<F>(call));
+            counter += ForEachInner<R, A, REVERSE, MUTABLE>(part, ::std::move(call));
          }
-
-         return counter;
       }
+
+      return counter;
    }
 
    /// Iterate all keys inside the map, and perform f() on them               
@@ -463,6 +398,95 @@ namespace Langulus::Anyness
          ForEachValueDeep<REVERSE, SKIP, false>(Forward<F>(f)...);
    }
 
+   /// Get iterator to first element                                          
+   ///   @return an iterator to the first element, or end if empty            
+   LANGULUS(INLINED)
+   typename BlockMap::Iterator BlockMap::begin() noexcept {
+      if (IsEmpty())
+         return end();
+
+      // Seek first valid info, or hit sentinel at the end              
+      auto info = GetInfo();
+      while (not *info) ++info;
+
+      const auto offset = info - GetInfo();
+      return {
+         info, GetInfoEnd(),
+         GetKeyInner(offset),
+         GetValueInner(offset)
+      };
+   }
+
+   /// Get iterator to end                                                    
+   ///   @return an iterator to the end element                               
+   LANGULUS(INLINED)
+   typename BlockMap::Iterator BlockMap::end() noexcept {
+      return {GetInfoEnd(), GetInfoEnd(), {}, {}};
+   }
+
+   /// Get iterator to the last element                                       
+   ///   @return an iterator to the last element, or end if empty             
+   LANGULUS(INLINED)
+   typename BlockMap::Iterator BlockMap::last() noexcept {
+      if (IsEmpty())
+         return end();
+
+      // Seek first valid info in reverse, until one past first is met  
+      auto info = GetInfoEnd();
+      while (info >= GetInfo() and not *--info);
+
+      const auto offset = info - GetInfo();
+      return {
+         info, GetInfoEnd(),
+         GetKeyInner(offset),
+         GetValueInner(offset)
+      };
+   }
+
+   /// Get iterator to first element                                          
+   ///   @return a constant iterator to the first element, or end if empty    
+   LANGULUS(INLINED)
+   typename BlockMap::ConstIterator BlockMap::begin() const noexcept {
+      if (IsEmpty())
+         return end();
+
+      // Seek first valid info, or hit sentinel at the end              
+      auto info = GetInfo();
+      while (not *info) ++info;
+
+      const auto offset = info - GetInfo();
+      return {
+         info, GetInfoEnd(), 
+         GetKeyInner(offset),
+         GetValueInner(offset)
+      };
+   }
+
+   /// Get iterator to end                                                    
+   ///   @return a constant iterator to the end element                       
+   LANGULUS(INLINED)
+   typename BlockMap::ConstIterator BlockMap::end() const noexcept {
+      return {GetInfoEnd(), GetInfoEnd(), {}, {}};
+   }
+
+   /// Get iterator to the last valid element                                 
+   ///   @return a constant iterator to the last element, or end if empty     
+   LANGULUS(INLINED)
+   typename BlockMap::ConstIterator BlockMap::last() const noexcept {
+      if (IsEmpty())
+         return end();
+
+      // Seek first valid info in reverse, until one past first is met  
+      auto info = GetInfoEnd();
+      while (info >= GetInfo() and not *--info);
+
+      const auto offset = info - GetInfo();
+      return {
+         info, GetInfoEnd(),
+         GetKeyInner(offset),
+         GetValueInner(offset)
+      };
+   }
 
    ///                                                                        
    ///   Map iterator                                                         

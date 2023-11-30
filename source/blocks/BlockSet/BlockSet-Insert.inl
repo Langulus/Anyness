@@ -135,8 +135,12 @@ namespace Langulus::Anyness
    ///   @return a reference to this set for chaining                         
    LANGULUS(INLINED)
    BlockSet& BlockSet::operator << (const CT::NotSemantic auto& item) {
-      Insert(Copy(item));
-      return *this;
+      return operator << (Copy(item));
+   }
+
+   LANGULUS(INLINED)
+   BlockSet& BlockSet::operator << (CT::NotSemantic auto& item) {
+      return operator << (Copy(item));
    }
 
    /// Merge an element via move                                              
@@ -144,8 +148,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this set for chaining                         
    LANGULUS(INLINED)
    BlockSet& BlockSet::operator << (CT::NotSemantic auto&& item) {
-      Insert(Move(item));
-      return *this;
+      return operator << (Move(item));
    }
 
    /// Merge an element via semantic                                          
