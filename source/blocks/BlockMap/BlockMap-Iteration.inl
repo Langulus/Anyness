@@ -13,7 +13,7 @@
 namespace Langulus::Anyness
 {
 
-   /// Execute a call for each  pair inside the map                
+   /// Execute a call for each pair inside the map                            
    ///   @tparam REVERSE - whether or not to iterate in reverse               
    ///   @tparam F - the call to execute for each pair (deducible)            
    ///   @param call - the function to execute for each pair                  
