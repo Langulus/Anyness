@@ -90,7 +90,7 @@ namespace Langulus::Anyness
       if constexpr (REUSE) {
          // Check if keys were reused                                   
          if (mKeys.mEntry == oldKeys.mEntry) {
-            // Keys were reused, but info always moves (null the rest)  
+            // Data was reused, but info always moves (null the rest)   
             MoveMemory(mInfo, oldInfo, oldCount);
             ZeroMemory(mInfo + oldCount, count - oldCount);
 
@@ -116,7 +116,7 @@ namespace Langulus::Anyness
          return;
       }
 
-      // If reached, then keys moved - reinsert all pairs to rehash     
+      // If reached, then keys moved - reinsert all keys to rehash     
       static_assert(CT::Set<SET>, "SET must be a set type");
       UNUSED() auto& THIS = reinterpret_cast<const SET&>(*this); //TODO
       mKeys.mCount = 0;

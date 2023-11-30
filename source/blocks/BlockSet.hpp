@@ -7,7 +7,7 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "../TAny.inl"
+#include "../TAny.hpp"
 
 
 namespace Langulus::Anyness
@@ -76,6 +76,8 @@ namespace Langulus::Anyness
       NOD() constexpr Size GetStride() const noexcept;
       NOD() constexpr Size GetBytesize() const noexcept;
       NOD() constexpr Count GetCount() const noexcept;
+      NOD() Count GetCountDeep() const noexcept;
+      NOD() Count GetCountElementsDeep() const noexcept;
       NOD() constexpr Count GetReserved() const noexcept;
       NOD() constexpr bool IsEmpty() const noexcept;
       NOD() constexpr bool IsAllocated() const noexcept;
@@ -98,6 +100,9 @@ namespace Langulus::Anyness
       NOD() const InfoType* GetInfo() const noexcept;
       NOD() InfoType* GetInfo() noexcept;
       NOD() const InfoType* GetInfoEnd() const noexcept;
+
+      NOD() Count GetCountDeep(const Block&) const noexcept;
+      NOD() Count GetCountElementsDeep(const Block&) const noexcept;
 
    public:
       ///                                                                     
@@ -189,10 +194,6 @@ namespace Langulus::Anyness
       void Mutate();
       void Mutate(DMeta);
       template<CT::Data, CT::Data...>
-      NOD() bool IsExact() const noexcept;
-      NOD() bool IsExact(DMeta) const noexcept;
-
-      template<CT::Data, CT::Data...>
       NOD() bool Is() const noexcept;
       NOD() bool Is(DMeta) const noexcept;
 
@@ -200,6 +201,9 @@ namespace Langulus::Anyness
       NOD() bool IsSimilar() const noexcept;
       NOD() bool IsSimilar(DMeta) const noexcept;
 
+      template<CT::Data, CT::Data...>
+      NOD() bool IsExact() const noexcept;
+      NOD() bool IsExact(DMeta) const noexcept;
 
       NOD() bool IsTypeCompatibleWith(const BlockSet&) const noexcept;
 
@@ -272,6 +276,7 @@ namespace Langulus::Anyness
       Count Merge(CT::Semantic auto&&);
 
       BlockSet& operator << (const CT::NotSemantic auto&);
+      BlockSet& operator << (CT::NotSemantic auto&);
       BlockSet& operator << (CT::NotSemantic auto&&);
       BlockSet& operator << (CT::Semantic auto&&);
 

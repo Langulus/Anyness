@@ -44,7 +44,7 @@ namespace Langulus::Anyness
       
       return 0;
    }
-      
+   
    /// Erase a pair via key (inner)                                           
    ///   @tparam MAP - map we're removing from, using to deduce value type,   
    ///                 and as runtime optimization                            

@@ -124,8 +124,8 @@ namespace Langulus::Anyness
             // Data was reused, but entries always move if sparse keys  
             if (mKeys.IsSparse()) {
                MoveMemory(
-                  mKeys.mRawSparse + count, 
-                  mKeys.mRawSparse + oldCount, 
+                  mKeys.mRawSparse + count,
+                  mKeys.mRawSparse + oldCount,
                   oldCount
                );
             };
