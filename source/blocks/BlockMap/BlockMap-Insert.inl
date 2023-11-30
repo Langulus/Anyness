@@ -302,7 +302,7 @@ namespace Langulus::Anyness
             // Rehash and check if hashes match                         
             const Offset oldIndex = oldInfo - GetInfo();
             Offset oldBucket = (oldCount + oldIndex) - *oldInfo + 1;
-            auto newBucket = mValues.mReserved;
+            Offset newBucket = 0;
             if constexpr (CT::TypedMap<MAP>)
                newBucket += GetBucket(hashmask, oldKey.Get());
             else
@@ -325,9 +325,8 @@ namespace Langulus::Anyness
                   --mValues.mCount;
 
                   // Reinsert at the new bucket                         
-                  LANGULUS_ASSUME(DevAssumes, newBucket >= mValues.mReserved, "Oops");
                   InsertInner<false, MAP::Ordered>(
-                     newBucket - mValues.mReserved,
+                     newBucket,
                      Abandon(keyswap), Abandon(valswap)
                   );
                }
@@ -349,9 +348,8 @@ namespace Langulus::Anyness
                   *oldInfo = 0;
                   --mValues.mCount;
 
-                  LANGULUS_ASSUME(DevAssumes, newBucket >= mValues.mReserved, "Oops");
                   InsertInnerUnknown<false, MAP::Ordered>(
-                     newBucket - mValues.mReserved,
+                     newBucket,
                      Abandon(keyswap), Abandon(valswap)
                   );
 
@@ -407,7 +405,7 @@ namespace Langulus::Anyness
             // Rehash and check if hashes match                         
             const Offset oldIndex = oldInfo - GetInfo();
             Offset oldBucket = (oldCount + oldIndex) - *oldInfo + 1;
-            const auto newBucket = mValues.mReserved + GetBucketUnknown(hashmask, oldKey);
+            const auto newBucket = GetBucketUnknown(hashmask, oldKey);
             if (oldBucket != newBucket) {
                // Move pair only if it won't end up in same bucket      
                Block keyswap {mKeys.GetState(), GetKeyType()};
@@ -420,9 +418,8 @@ namespace Langulus::Anyness
                *oldInfo = 0;
                --mValues.mCount;
                
-               LANGULUS_ASSUME(DevAssumes, newBucket >= mValues.mReserved, "Oops");
                InsertInnerUnknown<false, MAP::Ordered>(
-                  newBucket - mValues.mReserved, 
+                  newBucket, 
                   Abandon(keyswap), 
                   Copy(values.GetElement(oldIndex))
                );
@@ -470,7 +467,7 @@ namespace Langulus::Anyness
             // Rehash and check if hashes match                         
             const Offset oldIndex = oldInfo - GetInfo();
             Offset oldBucket = (oldCount + oldIndex) - *oldInfo + 1;
-            const auto newBucket = mValues.mReserved + GetBucketUnknown(hashmask, oldKey);
+            const auto newBucket = GetBucketUnknown(hashmask, oldKey);
             if (oldBucket != newBucket) {
                // Move pair only if it won't end up in same bucket      
                auto oldValue = GetValueInner(oldIndex);
@@ -484,9 +481,8 @@ namespace Langulus::Anyness
                *oldInfo = 0;
                --mValues.mCount;
                
-               LANGULUS_ASSUME(DevAssumes, newBucket >= mValues.mReserved, "Oops");
                InsertInnerUnknown<false, MAP::Ordered>(
-                  newBucket - mValues.mReserved,
+                  newBucket,
                   Copy(oldKey), Abandon(valswap)
                );
 
