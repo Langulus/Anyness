@@ -302,7 +302,7 @@ namespace Langulus::Anyness
             // Rehash and check if hashes match                         
             const Offset oldIndex = oldInfo - GetInfo();
             Offset oldBucket = (oldCount + oldIndex) - *oldInfo + 1;
-            Offset newBucket = 0;
+            Offset newBucket = oldCount;
             if constexpr (CT::TypedMap<MAP>)
                newBucket += GetBucket(hashmask, oldKey.Get());
             else
@@ -326,7 +326,7 @@ namespace Langulus::Anyness
 
                   // Reinsert at the new bucket                         
                   InsertInner<false, MAP::Ordered>(
-                     newBucket,
+                     newBucket - oldCount,
                      Abandon(keyswap), Abandon(valswap)
                   );
                }
@@ -349,7 +349,7 @@ namespace Langulus::Anyness
                   --mValues.mCount;
 
                   InsertInnerUnknown<false, MAP::Ordered>(
-                     newBucket,
+                     newBucket - oldCount,
                      Abandon(keyswap), Abandon(valswap)
                   );
 
@@ -405,7 +405,7 @@ namespace Langulus::Anyness
             // Rehash and check if hashes match                         
             const Offset oldIndex = oldInfo - GetInfo();
             Offset oldBucket = (oldCount + oldIndex) - *oldInfo + 1;
-            const auto newBucket = GetBucketUnknown(hashmask, oldKey);
+            const auto newBucket = oldCount + GetBucketUnknown(hashmask, oldKey);
             if (oldBucket != newBucket) {
                // Move pair only if it won't end up in same bucket      
                Block keyswap {mKeys.GetState(), GetKeyType()};
@@ -419,7 +419,7 @@ namespace Langulus::Anyness
                --mValues.mCount;
                
                InsertInnerUnknown<false, MAP::Ordered>(
-                  newBucket, 
+                  newBucket - oldCount,
                   Abandon(keyswap), 
                   Copy(values.GetElement(oldIndex))
                );
@@ -467,7 +467,7 @@ namespace Langulus::Anyness
             // Rehash and check if hashes match                         
             const Offset oldIndex = oldInfo - GetInfo();
             Offset oldBucket = (oldCount + oldIndex) - *oldInfo + 1;
-            const auto newBucket = GetBucketUnknown(hashmask, oldKey);
+            const auto newBucket = oldCount + GetBucketUnknown(hashmask, oldKey);
             if (oldBucket != newBucket) {
                // Move pair only if it won't end up in same bucket      
                auto oldValue = GetValueInner(oldIndex);
@@ -482,7 +482,7 @@ namespace Langulus::Anyness
                --mValues.mCount;
                
                InsertInnerUnknown<false, MAP::Ordered>(
-                  newBucket,
+                  newBucket - oldCount,
                   Copy(oldKey), Abandon(valswap)
                );
 
