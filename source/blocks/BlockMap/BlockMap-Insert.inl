@@ -302,16 +302,13 @@ namespace Langulus::Anyness
             // Rehash and check if hashes match                         
             const Offset oldIndex = oldInfo - GetInfo();
             Offset oldBucket = (oldCount + oldIndex) - *oldInfo + 1;
-            if (oldBucket > oldCount)
-               oldBucket -= oldCount;
-
             Offset newBucket = 0;
             if constexpr (CT::TypedMap<MAP>)
                newBucket += GetBucket(hashmask, oldKey.Get());
             else
                newBucket += GetBucketUnknown(hashmask, oldKey);
 
-            if (oldBucket != newBucket) {
+            if (oldBucket < oldCount or oldBucket - oldCount != newBucket) {
                // Move pair only if it won't end up in same bucket      
                if constexpr (CT::TypedMap<MAP>) {
                   using K = typename MAP::Key;
@@ -408,11 +405,8 @@ namespace Langulus::Anyness
             // Rehash and check if hashes match                         
             const Offset oldIndex = oldInfo - GetInfo();
             Offset oldBucket = (oldCount + oldIndex) - *oldInfo + 1;
-            if (oldBucket > oldCount)
-               oldBucket -= oldCount;
-
             const auto newBucket = GetBucketUnknown(hashmask, oldKey);
-            if (oldBucket != newBucket) {
+            if (oldBucket < oldCount or oldBucket - oldCount != newBucket) {
                // Move pair only if it won't end up in same bucket      
                Block keyswap {mKeys.GetState(), GetKeyType()};
                keyswap.AllocateFresh(keyswap.RequestSize(1));
@@ -473,11 +467,8 @@ namespace Langulus::Anyness
             // Rehash and check if hashes match                         
             const Offset oldIndex = oldInfo - GetInfo();
             Offset oldBucket = (oldCount + oldIndex) - *oldInfo + 1;
-            if (oldBucket > oldCount)
-               oldBucket -= oldCount;
-
             const auto newBucket = GetBucketUnknown(hashmask, oldKey);
-            if (oldBucket != newBucket) {
+            if (oldBucket < oldCount or oldBucket - oldCount != newBucket) {
                // Move pair only if it won't end up in same bucket      
                auto oldValue = GetValueInner(oldIndex);
                Block valswap {mValues.GetState(), GetValueType()};

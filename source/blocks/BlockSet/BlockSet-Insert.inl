@@ -214,16 +214,13 @@ namespace Langulus::Anyness
             // Rehash and check if hashes match                         
             const Offset oldIndex = oldInfo - GetInfo();
             Offset oldBucket = (oldCount + oldIndex) - *oldInfo + 1;
-            if (oldBucket > oldCount)
-               oldBucket -= oldCount;
-
             Offset newBucket = 0;
             if constexpr (CT::TypedSet<SET>)
                newBucket += GetBucket(hashmask, oldKey.Get());
             else
                newBucket += GetBucketUnknown(hashmask, oldKey);
 
-            if (oldBucket != newBucket) {
+            if (oldBucket < oldCount or oldBucket - oldCount != newBucket) {
                // Move it only if it won't end up in same bucket        
                if constexpr (CT::TypedSet<SET>) {
                   using K = TypeOf<SET>;
