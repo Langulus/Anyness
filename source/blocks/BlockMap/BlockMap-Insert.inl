@@ -325,7 +325,7 @@ namespace Langulus::Anyness
                   --mValues.mCount;
 
                   // Reinsert at the new bucket                         
-                  LANGULUS_ASSUME(DevAssumes, newBucket > mValues.mReserved, "Oops");
+                  LANGULUS_ASSUME(DevAssumes, newBucket >= mValues.mReserved, "Oops");
                   InsertInner<false, MAP::Ordered>(
                      newBucket - mValues.mReserved,
                      Abandon(keyswap), Abandon(valswap)
@@ -349,7 +349,7 @@ namespace Langulus::Anyness
                   *oldInfo = 0;
                   --mValues.mCount;
 
-                  LANGULUS_ASSUME(DevAssumes, newBucket > mValues.mReserved, "Oops");
+                  LANGULUS_ASSUME(DevAssumes, newBucket >= mValues.mReserved, "Oops");
                   InsertInnerUnknown<false, MAP::Ordered>(
                      newBucket - mValues.mReserved,
                      Abandon(keyswap), Abandon(valswap)
@@ -420,7 +420,7 @@ namespace Langulus::Anyness
                *oldInfo = 0;
                --mValues.mCount;
                
-               LANGULUS_ASSUME(DevAssumes, newBucket > mValues.mReserved, "Oops");
+               LANGULUS_ASSUME(DevAssumes, newBucket >= mValues.mReserved, "Oops");
                InsertInnerUnknown<false, MAP::Ordered>(
                   newBucket - mValues.mReserved, 
                   Abandon(keyswap), 
@@ -484,7 +484,7 @@ namespace Langulus::Anyness
                *oldInfo = 0;
                --mValues.mCount;
                
-               LANGULUS_ASSUME(DevAssumes, newBucket > mValues.mReserved, "Oops");
+               LANGULUS_ASSUME(DevAssumes, newBucket >= mValues.mReserved, "Oops");
                InsertInnerUnknown<false, MAP::Ordered>(
                   newBucket - mValues.mReserved,
                   Copy(oldKey), Abandon(valswap)

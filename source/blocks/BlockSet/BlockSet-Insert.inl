@@ -233,7 +233,7 @@ namespace Langulus::Anyness
                   --mKeys.mCount;
 
                   // Reinsert at the new bucket                         
-                  LANGULUS_ASSUME(DevAssumes, newBucket > mKeys.mReserved, "Oops");
+                  LANGULUS_ASSUME(DevAssumes, newBucket >= mKeys.mReserved, "Oops");
                   InsertInner<false, SET::Ordered>(
                      newBucket - mKeys.mReserved,
                      Abandon(keyswap)
@@ -250,7 +250,7 @@ namespace Langulus::Anyness
                   *oldInfo = 0;
                   --mKeys.mCount;
 
-                  LANGULUS_ASSUME(DevAssumes, newBucket > mKeys.mReserved, "Oops");
+                  LANGULUS_ASSUME(DevAssumes, newBucket >= mKeys.mReserved, "Oops");
                   InsertInnerUnknown<false, SET::Ordered>(
                      newBucket - mKeys.mReserved,
                      Abandon(keyswap)
