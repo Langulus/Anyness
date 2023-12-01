@@ -326,6 +326,7 @@ TEMPLATE_TEST_CASE(
          REQUIRE(set.Contains(darray2[1]));
 
          if constexpr (CT::Typed<T> and CT::Sparse<K>) {
+            Logger::Special("INSERTING: ", reinterpret_cast<std::uintptr_t>(darray2[2]));
             Logger::Special("Set before: ");
             for (auto& i : set)
                Logger::Append(reinterpret_cast<std::uintptr_t>(i), ", ");
