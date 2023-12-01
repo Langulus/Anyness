@@ -105,7 +105,7 @@ namespace Langulus::Anyness
    ///   @tparam SET - set we're searching in, potentially providing runtime  
    ///                 optimization on type checks                            
    ///   @param match - the key to search for                                 
-   ///   @return the index, or InvalidOffset if not found                 
+   ///   @return the index, or InvalidOffset if not found                     
    template<class SET>
    Offset BlockSet::FindInner(const CT::NotSemantic auto& match) const {
       using K = Deref<decltype(match)>;
@@ -123,7 +123,7 @@ namespace Langulus::Anyness
             // Cast away the extent, search for pointer                 
             return FindInner<SET>(static_cast<const Deext<K>*>(match));
          }
-         else return 0;
+         else return InvalidOffset;
       }
       else {
          if (not THIS.template IsSimilar<K>())
@@ -163,7 +163,7 @@ namespace Langulus::Anyness
          // Reached only if info has reached the end                    
          // Keys might loop around, continue the search from the start  
          info = GetInfo();
-         if (GetReserved() - *info > start)
+         if (GetReserved() - *info >= start)
             return InvalidOffset;
 
          key = &GetRaw<K>(0);
@@ -178,7 +178,7 @@ namespace Langulus::Anyness
                return InvalidOffset;
 
             const Offset index = info - GetInfo();
-            if (GetReserved() - index - *info > start)
+            if (GetReserved() - index - *info >= start)
                return InvalidOffset;
 
             if (*key == match)
@@ -196,7 +196,7 @@ namespace Langulus::Anyness
    ///   @attention assumes map is not empty                                  
    ///   @attention assumes keys are of the exactly same type                 
    ///   @param match - the key to search for                                 
-   ///   @return the index, or InvalidOffset if not found                 
+   ///   @return the index, or InvalidOffset if not found                     
    inline Offset BlockSet::FindInnerUnknown(const Block& match) const {
       if (IsEmpty() or not IsSimilar(match.GetType()))
          return InvalidOffset;
@@ -236,7 +236,7 @@ namespace Langulus::Anyness
       // Reached only if info has reached the end                       
       // Keys might loop around, continue the search from the start     
       info = GetInfo();
-      if (GetReserved() - *info > start)
+      if (GetReserved() - *info >= start)
          return InvalidOffset;
 
       key = GetInner(0);
@@ -251,7 +251,7 @@ namespace Langulus::Anyness
             return InvalidOffset;
 
          const Offset index = info - GetInfo();
-         if (GetReserved() - index - *info > start)
+         if (GetReserved() - index - *info >= start)
             return InvalidOffset;
 
          if (key == match)
