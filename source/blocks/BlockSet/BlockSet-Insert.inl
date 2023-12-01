@@ -289,8 +289,7 @@ namespace Langulus::Anyness
                to -= mKeys.mReserved;
 
             InfoType attempt = 1;
-            while (mInfo[to]
-              and attempt < *oldInfo) {
+            while (mInfo[to] and attempt < *oldInfo) {
                // Might loop around                                     
                ++to;
                if (to >= mKeys.mReserved)
