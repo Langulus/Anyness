@@ -151,7 +151,7 @@ namespace Langulus::Anyness
                return InvalidOffset;
 
             const ::std::ptrdiff_t index = info - GetInfo();
-            if (index - *info > starti)
+            if (index - *info >= starti)
                return InvalidOffset;
 
             if (*key == match)
