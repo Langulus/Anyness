@@ -511,9 +511,9 @@ namespace Langulus::Anyness
             const Offset oldIndex = oldInfo - GetInfo();
 
             // Might loop around                                        
-            Offset to = oldIndex - (*oldInfo - 1);
+            Offset to = (mKeys.mReserved + oldIndex) - *oldInfo + 1;
             if (to >= mValues.mReserved)
-               to += mValues.mReserved;
+               to -= mValues.mReserved;
 
             InfoType attempt = 1;
             while (mInfo[to] and attempt < *oldInfo) {
@@ -521,7 +521,6 @@ namespace Langulus::Anyness
                ++to;
                if (to >= mValues.mReserved)
                   to -= mValues.mReserved;
-
                ++attempt;
             }
 
