@@ -60,6 +60,8 @@ namespace Langulus::Anyness
          "Table reallocation count is not a power-of-two");
       LANGULUS_ASSUME(DevAssumes, mKeys.mType,
          "Key type haven't been set");
+      static_assert(CT::Set<SET>, "SET must be a set type");
+      UNUSED() auto& THIS = reinterpret_cast<const SET&>(*this); //TODO
 
       Offset infoOffset;
       auto oldInfo = mInfo;
@@ -68,7 +70,7 @@ namespace Langulus::Anyness
 
       // Allocate new keys                                              
       Block oldKeys {mKeys};
-      const auto keyAndInfoSize = RequestKeyAndInfoSize(count, infoOffset);
+      const auto keyAndInfoSize = THIS.RequestKeyAndInfoSize(count, infoOffset);
       if constexpr (REUSE)
          mKeys.mEntry = Allocator::Reallocate(
             keyAndInfoSize, const_cast<Allocation*>(mKeys.mEntry));
@@ -95,7 +97,7 @@ namespace Langulus::Anyness
             ZeroMemory(mInfo + oldCount, count - oldCount);
 
             // Data was reused, but entries always move if sparse keys  
-            if (mKeys.IsSparse()) {
+            if (THIS.IsSparse()) {
                MoveMemory(
                   mKeys.mRawSparse + count,
                   mKeys.mRawSparse + oldCount,
@@ -117,8 +119,6 @@ namespace Langulus::Anyness
       }
 
       // If reached, then keys moved - reinsert all keys to rehash     
-      static_assert(CT::Set<SET>, "SET must be a set type");
-      UNUSED() auto& THIS = reinterpret_cast<const SET&>(*this); //TODO
       mKeys.mCount = 0;
       IF_SAFE(oldKeys.mCount = oldCount);
       
