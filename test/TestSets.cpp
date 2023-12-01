@@ -327,6 +327,7 @@ TEMPLATE_TEST_CASE(
 
          if constexpr (CT::Typed<T> and CT::Sparse<K>) {
             Logger::Special("INSERTING: ", reinterpret_cast<std::uintptr_t>(darray2[2]));
+            Logger::Special("Count and reserved before: ", set.GetCount(), "/", set.GetReserved());
             Logger::Special("Set before: ");
             for (auto& i : set)
                Logger::Append(reinterpret_cast<std::uintptr_t>(i), ", ");
@@ -336,6 +337,7 @@ TEMPLATE_TEST_CASE(
          set << darray2[2];
 
          if constexpr (CT::Typed<T> and CT::Sparse<K>) {
+            Logger::Special("Count and reserved after: ", set.GetCount(), "/", set.GetReserved());
             Logger::Special("Set after: ");
             for (auto& i : set)
                Logger::Append(reinterpret_cast<std::uintptr_t>(i), ", ");
