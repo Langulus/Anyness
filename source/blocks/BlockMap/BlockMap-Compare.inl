@@ -213,7 +213,7 @@ namespace Langulus::Anyness
             // Cast away the extent, search for pointer                 
             return FindInner<MAP>(static_cast<const Deext<K>*>(match));
          }
-         else return 0;
+         else return InvalidOffset;
       }
       else {
          if (not THIS.template KeyIsSimilar<K>())
