@@ -325,7 +325,22 @@ TEMPLATE_TEST_CASE(
          REQUIRE(set.Contains(darray2[0]));
          REQUIRE(set.Contains(darray2[1]));
 
+         if constexpr (CT::Typed<T> and CT::Sparse<K>) {
+            Logger::Special("Set before: ");
+            for (auto& i : set)
+               Logger::Append(reinterpret_cast<std::uintptr_t>(i), ", ");
+         }
+
+         const auto backup = darray2[2];
          set << darray2[2];
+
+         if constexpr (CT::Typed<T> and CT::Sparse<K>) {
+            Logger::Special("Set after: ");
+            for (auto& i : set)
+               Logger::Append(reinterpret_cast<std::uintptr_t>(i), ", ");
+         }
+
+         REQUIRE(backup == darray2[2]);
 
          for (auto& i : darray1)
             REQUIRE(set.Contains(i));
