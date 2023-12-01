@@ -213,7 +213,7 @@ namespace Langulus::Anyness
          if (*oldInfo) {
             // Rehash and check if hashes match                         
             const Offset oldIndex = oldInfo - GetInfo();
-            Offset oldBucket = (oldCount + oldIndex) - *oldInfo + 1;
+            Offset oldBucket = (oldCount + oldIndex) - *oldInfo - 1;
             Offset newBucket = 0;
             if constexpr (CT::TypedSet<SET>)
                newBucket += GetBucket(hashmask, oldKey.Get());
