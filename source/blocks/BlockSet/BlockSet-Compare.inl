@@ -145,17 +145,12 @@ namespace Langulus::Anyness
          ++info;
 
          const auto infoEnd = GetInfoEnd();
-         const auto starti = static_cast<::std::ptrdiff_t>(start);
          while (info != infoEnd) {
             if (not *info)
                return InvalidOffset;
 
-            const ::std::ptrdiff_t index = info - GetInfo();
-            if (index - *info >= starti)
-               return InvalidOffset;
-
             if (*key == match)
-               return static_cast<Offset>(index);
+               return info - GetInfo();
 
             ++key; ++info;
          }
@@ -173,16 +168,12 @@ namespace Langulus::Anyness
          ++key;
          ++info;
 
-         while (info != infoEnd) {
+         while (info < GetInfo() + start) {
             if (not *info)
                return InvalidOffset;
 
-            const Offset index = info - GetInfo();
-            if (GetReserved() - index - *info >= start)
-               return InvalidOffset;
-
             if (*key == match)
-               return index;
+               return info - GetInfo();
 
             ++key; ++info;
          }
