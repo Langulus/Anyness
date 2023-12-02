@@ -144,7 +144,7 @@ namespace Langulus::Anyness
          ++key;
          ++info;
 
-         const auto infoEnd = GetInfoEnd();
+         auto infoEnd = GetInfoEnd();
          while (info != infoEnd) {
             if (not *info)
                return InvalidOffset;
@@ -158,7 +158,7 @@ namespace Langulus::Anyness
          // Reached only if info has reached the end                    
          // Keys might loop around, continue the search from the start  
          info = GetInfo();
-         if (GetReserved() - *info >= start)
+         if (not *info)
             return InvalidOffset;
 
          key = &GetRaw<K>(0);
@@ -168,7 +168,8 @@ namespace Langulus::Anyness
          ++key;
          ++info;
 
-         while (info < GetInfo() + start) {
+         infoEnd = GetInfo() + start;
+         while (info != infoEnd) {
             if (not *info)
                return InvalidOffset;
 
@@ -207,18 +208,13 @@ namespace Langulus::Anyness
       key.Next();
       ++info;
 
-      const auto infoEnd = GetInfoEnd();
-      const auto starti = static_cast<::std::ptrdiff_t>(start);
+      auto infoEnd = GetInfoEnd();
       while (info != infoEnd) {
          if (not *info)
             return InvalidOffset;
 
-         const ::std::ptrdiff_t index = info - GetInfo();
-         if (index - *info > starti)
-            return InvalidOffset;
-
          if (key == match)
-            return static_cast<Offset>(index);
+            return info - GetInfo();
 
          ++info;
          key.Next();
@@ -227,7 +223,7 @@ namespace Langulus::Anyness
       // Reached only if info has reached the end                       
       // Keys might loop around, continue the search from the start     
       info = GetInfo();
-      if (GetReserved() - *info >= start)
+      if (not *info)
          return InvalidOffset;
 
       key = GetInner(0);
@@ -237,16 +233,13 @@ namespace Langulus::Anyness
       key.Next();
       ++info;
 
+      infoEnd = GetInfo() + start;
       while (info != infoEnd) {
          if (not *info)
             return InvalidOffset;
 
-         const Offset index = info - GetInfo();
-         if (GetReserved() - index - *info >= start)
-            return InvalidOffset;
-
          if (key == match)
-            return index;
+            return info - GetInfo();
 
          ++info;
          key.Next();
