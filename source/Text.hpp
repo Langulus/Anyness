@@ -135,13 +135,13 @@ namespace Langulus::Anyness
 namespace Langulus::CT
 {
 
-   /// Concept for differentiating managed Anyness Text types                 
-   template<class T>
-   concept Text = DerivedFrom<T, ::Langulus::Anyness::Text>;
+   /// Concept for differentiating managed text types                         
+   template<class...T>
+   concept Text = (DerivedFrom<T, Anyness::Text> and ...);
 
    /// Concept for differentiating managed Anyness Text types                 
-   template<class T>
-   concept NotText = not Text<T>;
+   template<class...T>
+   concept NotText = not Text<T...>;
 
    namespace Inner
    {
@@ -159,13 +159,13 @@ namespace Langulus::CT
    /// A stringifiable type is one that has either an implicit or explicit    
    /// cast operator to Text type. Reverse conversion through                 
    /// constructors is avoided to mitigate ambiguity problems.                
-   template<class... T>
+   template<class...T>
    concept Stringifiable = (Inner::Stringifiable<T> and ...);
 
    /// A debuggable type is one that has either an implicit or explicit       
    /// cast operator to Debug type. Reverse conversion through                
    /// constructors is avoided to mitigate ambiguity problems.                
-   template<class... T>
+   template<class...T>
    concept Debuggable = ((Inner::Stringifiable<T> or Inner::Debuggable<T>) and ...);
 
 } // namespace Langulus::CT
