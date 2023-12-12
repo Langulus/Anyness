@@ -25,7 +25,7 @@ namespace Langulus::Anyness
 
    public:
       LANGULUS(INLINED)
-      constexpr ~Referenced() noexcept {
+      virtual ~Referenced() {
          mReferences = 0;
       }
 
