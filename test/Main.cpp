@@ -11,7 +11,7 @@
 #define CATCH_CONFIG_RUNNER
 #include <catch2/catch.hpp>
 
-LANGULUS_RTTI_BOUNDARY("MAIN")
+LANGULUS_RTTI_BOUNDARY(RTTI::MainBoundary)
 
 int main(int argc, char* argv[]) {
 	Catch::Session session;
