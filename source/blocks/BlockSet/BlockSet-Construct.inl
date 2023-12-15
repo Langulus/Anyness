@@ -56,7 +56,7 @@ namespace Langulus::Anyness
       }
       else {
          // TO is statically typed                                      
-         mKeys.mType = MetaData::Of<TypeOf<TO>>();
+         mKeys.mType = MetaDataOf<TypeOf<TO>>();
          mKeys.mState = other->mKeys.mState + DataState::Typed;
       }
 

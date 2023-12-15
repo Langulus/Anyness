@@ -62,7 +62,7 @@ namespace Langulus::Anyness
       }
       else if constexpr (CT::DerivedFrom<T, Base>) {
          // Transfer any TAny<Byte> based container                     
-         mType = MetaData::Of<Byte>();
+         mType = MetaDataOf<Byte>();
          BlockTransfer<Base>(other.Forward());
       }
       else if constexpr (CT::Exact<T, Token>) {
@@ -400,30 +400,28 @@ namespace Langulus::Anyness
 
    /// A snippet for conveniently deserializing a meta from binary            
    ///   @tparam META - type of meta we're deserializing (deducible)          
-   ///   @param source - the bytes to deserialize                             
    ///   @param result - [out] the deserialized meta goes here                
    ///   @param read - byte offset inside 'from'                              
    ///   @param header - environment header                                   
    ///   @param loader - loader for streaming                                 
    ///   @return number of read bytes                                         
    template<class META>
-   Size Bytes::DeserializeMeta(META const*& result, Offset read, const Header& header, const Loader& loader) const {
+   Size Bytes::DeserializeMeta(META& result, Offset read, const Header& header, const Loader& loader) const {
       Count count = 0;
       read = DeserializeAtom(count, read, header, loader);
       if (count) {
          RequestMoreBytes(read, count, loader);
          const Token token {GetRawAs<Letter>() + read, count};
-         if constexpr (CT::Same<META, MetaData>)
+         if constexpr (CT::Same<META, DMeta>)
             result = RTTI::GetMetaData(token);
-         else if constexpr (CT::Same<META, MetaVerb>)
+         else if constexpr (CT::Same<META, VMeta>)
             result = RTTI::GetMetaVerb(token);
-         else if constexpr (CT::Same<META, MetaTrait>)
+         else if constexpr (CT::Same<META, TMeta>)
             result = RTTI::GetMetaTrait(token);
-         else if constexpr (CT::Same<META, MetaConst>)
+         else if constexpr (CT::Same<META, CMeta>)
             result = RTTI::GetMetaConstant(token);
          else
             LANGULUS_ERROR("Unsupported meta deserialization");
-
          return read + count;
       }
 

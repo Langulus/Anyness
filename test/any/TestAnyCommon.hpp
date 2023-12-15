@@ -48,7 +48,7 @@ template<class E>
 void Helper_TestType(const auto& any) {
    REQUIRE      (any.IsTyped());
    REQUIRE_FALSE(any.IsUntyped());
-   REQUIRE      (any.GetType() == MetaData::Of<E>());
+   REQUIRE      (any.GetType() == MetaDataOf<E>());
    REQUIRE      (any.GetType()->template IsSimilar<const E>());
    REQUIRE      (any.GetType()->template IsExact<E>());
    REQUIRE      (any.GetType()->template Is<E*>());

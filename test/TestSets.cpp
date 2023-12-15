@@ -19,8 +19,8 @@
 /// Cross-container consistency tests                                         
 TEMPLATE_TEST_CASE(
    "Cross-container consistency tests for TOrderedSet/TUnorderedSet/OrderedSet/UnorderedSet", "[set]",
-   int*, Trait*, Traits::Count*, Any*,
-   int,  Trait,  Traits::Count,  Any
+   int,  Trait,  Traits::Count,  Any,
+   int*, Trait*, Traits::Count*, Any*
 ) {
    GIVEN("A single element initialized sets of all kinds") {
       const auto element = CreateElement<TestType>(555);
@@ -38,12 +38,10 @@ TEMPLATE_TEST_CASE(
          const auto ohash1 = oset1.GetHash();
          const auto ohash2 = oset2.GetHash();
 
-         THEN("These hashes should all be the same as the element") {
-            REQUIRE(uhash1 == uhash2);
-            REQUIRE(ohash1 == ohash2);
-            REQUIRE(uhash1 == ohash1);
-            REQUIRE(uhash1 == elementHash);
-         }
+         REQUIRE(uhash1 == uhash2);
+         REQUIRE(ohash1 == ohash2);
+         REQUIRE(uhash1 == ohash1);
+         REQUIRE(uhash1 == elementHash);
       }
 
       if constexpr (CT::Sparse<TestType>)
@@ -879,42 +877,42 @@ TEMPLATE_TEST_CASE("Set corner cases", "[set]",
 
    GIVEN("Map instance initialized with 10 specific pairs for the corner case") {
       const K keys[10] = {
-         MetaData::Of<VulkanLayer>(),
-         MetaData::Of<VulkanRenderer>(),
-         MetaData::Of<VulkanCamera>(),
-         MetaData::Of<Platform>(),
-         MetaData::Of<Vulkan>(),
-         MetaData::Of<Window>(),
-         MetaData::Of<VulkanLight>(),
-         MetaData::Of<Monitor>(),
-         MetaData::Of<VulkanRenderable>(),
-         MetaData::Of<Cursor>()
+         MetaOf<VulkanLayer>(),
+         MetaOf<VulkanRenderer>(),
+         MetaOf<VulkanCamera>(),
+         MetaOf<Platform>(),
+         MetaOf<Vulkan>(),
+         MetaOf<Window>(),
+         MetaOf<VulkanLight>(),
+         MetaOf<Monitor>(),
+         MetaOf<VulkanRenderable>(),
+         MetaOf<Cursor>()
       };
 
       T set {keys};
 
       WHEN("Removing around-the-end elements (corner case)") {
          Count removed {};
-         removed += set.Remove(MetaData::Of<VulkanRenderer>());
-         removed += set.Remove(MetaData::Of<VulkanCamera>());
-         removed += set.Remove(MetaData::Of<Vulkan>());
-         removed += set.Remove(MetaData::Of<VulkanRenderable>());
-         removed += set.Remove(MetaData::Of<VulkanLight>());
-         removed += set.Remove(MetaData::Of<VulkanLayer>());
+         removed += set.Remove(MetaOf<VulkanRenderer>());
+         removed += set.Remove(MetaOf<VulkanCamera>());
+         removed += set.Remove(MetaOf<Vulkan>());
+         removed += set.Remove(MetaOf<VulkanRenderable>());
+         removed += set.Remove(MetaOf<VulkanLight>());
+         removed += set.Remove(MetaOf<VulkanLayer>());
 
          THEN("The set should be correct") {
             REQUIRE(removed == 6);
             REQUIRE(set.GetCount() == 4);
-            REQUIRE_FALSE(set.Contains(MetaData::Of<VulkanLayer>()));
-            REQUIRE_FALSE(set.Contains(MetaData::Of<VulkanRenderer>()));
-            REQUIRE_FALSE(set.Contains(MetaData::Of<VulkanCamera>()));
-            REQUIRE_FALSE(set.Contains(MetaData::Of<Vulkan>()));
-            REQUIRE_FALSE(set.Contains(MetaData::Of<VulkanLight>()));
-            REQUIRE_FALSE(set.Contains(MetaData::Of<VulkanRenderable>()));
-            REQUIRE(set.Contains(MetaData::Of<Platform>()));
-            REQUIRE(set.Contains(MetaData::Of<Window>()));
-            REQUIRE(set.Contains(MetaData::Of<Monitor>()));
-            REQUIRE(set.Contains(MetaData::Of<Cursor>()));
+            REQUIRE_FALSE(set.Contains(MetaOf<VulkanLayer>()));
+            REQUIRE_FALSE(set.Contains(MetaOf<VulkanRenderer>()));
+            REQUIRE_FALSE(set.Contains(MetaOf<VulkanCamera>()));
+            REQUIRE_FALSE(set.Contains(MetaOf<Vulkan>()));
+            REQUIRE_FALSE(set.Contains(MetaOf<VulkanLight>()));
+            REQUIRE_FALSE(set.Contains(MetaOf<VulkanRenderable>()));
+            REQUIRE(set.Contains(MetaOf<Platform>()));
+            REQUIRE(set.Contains(MetaOf<Window>()));
+            REQUIRE(set.Contains(MetaOf<Monitor>()));
+            REQUIRE(set.Contains(MetaOf<Cursor>()));
          }
       }
    }

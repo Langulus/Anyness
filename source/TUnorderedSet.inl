@@ -63,7 +63,7 @@ namespace Langulus::Anyness
    void TABLE()::ConstructFrom(CT::Semantic auto&& other) {
       using S = Decay<decltype(other)>;
       using ST = TypeOf<S>;
-      mKeys.mType = MetaData::Of<T>();
+      mKeys.mType = MetaDataOf<T>();
 
       if constexpr (CT::Array<ST>) {
          if constexpr (CT::Exact<T, Deext<ST>>) {
@@ -157,7 +157,7 @@ namespace Langulus::Anyness
    TEMPLATE()
    template<CT::Data T1, CT::Data T2, CT::Data... TAIL>
    TABLE()::TUnorderedSet(T1&& t1, T2&& t2, TAIL&&... tail) {
-      mKeys.mType = MetaData::Of<T>();
+      mKeys.mType = MetaDataOf<T>();
 
       constexpr auto capacity = Roof2(
          sizeof...(TAIL) + 2 < MinimalAllocation
@@ -361,7 +361,7 @@ namespace Langulus::Anyness
    ///   @return the meta definition of the key type                          
    TEMPLATE() LANGULUS(INLINED)
    DMeta TABLE()::GetType() const {
-      mKeys.mType = MetaData::Of<T>();
+      mKeys.mType = MetaDataOf<T>();
       return mKeys.mType;
    }
 
@@ -513,7 +513,7 @@ namespace Langulus::Anyness
          mKeys.mEntry = Allocator::Reallocate(
             keyAndInfoSize, const_cast<Allocation*>(mKeys.mEntry));
       else {
-         mKeys.mType = MetaData::Of<T>();
+         mKeys.mType = MetaDataOf<T>();
          mKeys.mEntry = Allocator::Allocate(mKeys.mType, keyAndInfoSize);
       }
 

@@ -88,11 +88,11 @@ P CreatePair(const ALT_K& key, const ALT_V& value) {
    };
 }
 
-namespace std {
+/*namespace std {
    template<>
    struct hash<Text> {
       size_t operator()(const Text& str) const noexcept {
          return str.GetHash().mHash;
       }
    };
-}
+}*/

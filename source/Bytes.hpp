@@ -103,7 +103,7 @@ namespace Langulus::Anyness
          NOD() Size DeserializeAtom(Offset&, Offset, const Header&, const Loader&) const;
 
          template<class META>
-         NOD() Size DeserializeMeta(META const*&, Offset, const Header&, const Loader&) const;
+         NOD() Size DeserializeMeta(META&, Offset, const Header&, const Loader&) const;
       #endif
    };
 

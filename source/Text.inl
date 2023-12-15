@@ -60,7 +60,7 @@ namespace Langulus::Anyness
    Text::Text(CT::Semantic auto&& other) {
       using S = Decay<decltype(other)>;
       using T = TypeOf<S>;
-      mType = MetaData::Of<TypeOf<Base>>();
+      mType = MetaDataOf<TypeOf<Base>>();
 
       if constexpr (CT::DerivedFrom<T, Base>) {
          BlockTransfer<Text>(other.template Forward<Base>());
@@ -140,20 +140,8 @@ namespace Langulus::Anyness
    /// Stringify meta                                                         
    ///   @param meta - the definition to stringify                            
    LANGULUS(INLINED)
-   Text::Text(const RTTI::Meta& meta)
-      #if LANGULUS_FEATURE(MANAGED_REFLECTION)
-         : Text {meta.GetShortestUnambiguousToken()} {}
-      #else
-         : Text {meta.mToken} {}
-      #endif
-
-   /// Stringify meta                                                         
-   ///   @param meta - the definition to stringify                            
-   LANGULUS(INLINED)
-   Text::Text(const RTTI::Meta* meta) {
-      if (meta)
-         *this = Text {*meta};
-   }
+   Text::Text(const CT::Meta auto& meta)
+      : Text {meta.GetToken()} {}
    
    /// Construct from a single character                                      
    ///   @param anyCharacter - the character                                  
@@ -664,7 +652,7 @@ namespace Langulus::Anyness
          return *this;
 
       Text combined;
-      combined.mType = MetaData::Of<Letter>();
+      combined.mType = MetaDataOf<Letter>();
       combined.AllocateFresh(RequestSize(mCount + rhs.mCount));
       combined.InsertInner<Copied>(GetRaw(), GetRawEnd(), 0);
       combined.InsertInner<Copied>(rhs.GetRaw(), rhs.GetRawEnd(), mCount);
@@ -681,7 +669,7 @@ namespace Langulus::Anyness
 
       Text leftside {lhs};
       Text combined;
-      combined.mType = MetaData::Of<Letter>();
+      combined.mType = MetaDataOf<Letter>();
       combined.AllocateFresh(leftside.RequestSize(leftside.mCount + rhs.mCount));
       combined.InsertInner<Copied>(leftside.GetRaw(), leftside.GetRawEnd(), 0);
       combined.InsertInner<Copied>(rhs.GetRaw(), rhs.GetRawEnd(), leftside.mCount);
@@ -696,7 +684,7 @@ namespace Langulus::Anyness
       if (rhs.IsEmpty())
          return *this;
 
-      mType = MetaData::Of<Letter>();
+      mType = MetaDataOf<Letter>();
       AllocateMore(mCount + rhs.mCount);
       InsertInner<Copied>(rhs.GetRaw(), rhs.GetRawEnd(), mCount);
       return *this;

@@ -8,6 +8,7 @@
 ///                                                                           
 #pragma once
 #include <Core/Common.hpp>
+#include <RTTI/Meta.hpp>
 
 
 #if defined(LANGULUS_EXPORT_ALL) or defined(LANGULUS_EXPORT_ANYNESS)

@@ -71,7 +71,7 @@ namespace Langulus::Anyness
                SemanticAssign(mValue, other.template Forward<T>());
 
             if constexpr (CT::Sparse<T> and CT::Allocatable<DT> and (S::Keep or S::Move))
-               mEntry = Allocator::Find(MetaData::Of<DT>(), mValue);
+               mEntry = Allocator::Find(MetaDataOf<DT>(), mValue);
             else
                mEntry = nullptr;
          }
@@ -356,7 +356,7 @@ namespace Langulus::Anyness
          else {
             // Otherwise attempt cloning DT conventionally              
             using DT = Decay<T>;
-            auto meta = MetaData::Of<DT>();
+            auto meta = MetaDataOf<DT>();
             auto entry = Allocator::Allocate(meta, meta->RequestSize(1).mByteSize);
             auto pointer = entry->template As<DT>();
 

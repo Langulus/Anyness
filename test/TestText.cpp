@@ -226,7 +226,7 @@ TEMPLATE_TEST_CASE("Testing text containers", "[text]",
          REQUIRE(text.GetCount() == 0);
          REQUIRE(text.GetReserved() == 0);
          REQUIRE(text.GetRaw() == nullptr);
-         REQUIRE(text.GetType() == MetaData::Of<Letter>());
+         REQUIRE(text.GetType() == MetaOf<Letter>());
          REQUIRE_FALSE(text.HasAuthority());
          REQUIRE(text != "test");
       }
@@ -439,8 +439,8 @@ TEMPLATE_TEST_CASE("Logging text containers", "[text]", Text, Debug, Path) {
 
 TEMPLATE_TEST_CASE("Reflected coverters to text", "[text]", Stringifiable, StringifiableConst) {
    GIVEN("A stringifiable type") {
-      const auto debugMeta = MetaData::Of<Debug>();
-      const auto meta = MetaData::Of<TestType>();
+      const auto debugMeta = MetaOf<Debug>();
+      const auto meta = MetaOf<TestType>();
       TestType instance;
 
       WHEN("Converted") {
@@ -562,7 +562,7 @@ void CheckState_Default(const Text& text) {
    REQUIRE      (text.IsEmpty());
    REQUIRE_FALSE(text.HasAuthority());
    REQUIRE      (text.IsTypeConstrained());
-   REQUIRE      (text.GetType() == MetaData::Of<Letter>());
+   REQUIRE      (text.GetType() == MetaOf<Letter>());
    REQUIRE      (text.template Is<Letter>());
    REQUIRE      (text.IsNow());
    REQUIRE_FALSE(text.IsFuture());
@@ -601,7 +601,7 @@ void CheckState_OwnedEmpty(const Text& text) {
    REQUIRE      (text.IsEmpty());
    REQUIRE      (text.HasAuthority());
    REQUIRE      (text.IsTypeConstrained());
-   REQUIRE      (text.GetType() == MetaData::Of<Letter>());
+   REQUIRE      (text.GetType() == MetaOf<Letter>());
    REQUIRE      (text.template Is<Letter>());
    REQUIRE      (text.IsNow());
    REQUIRE_FALSE(text.IsFuture());
@@ -640,7 +640,7 @@ void CheckState_OwnedFull(const Text& text) {
    REQUIRE_FALSE(text.IsEmpty());
    REQUIRE      (text.HasAuthority());
    REQUIRE      (text.IsTypeConstrained());
-   REQUIRE      (text.GetType() == MetaData::Of<Letter>());
+   REQUIRE      (text.GetType() == MetaOf<Letter>());
    REQUIRE      (text.template Is<Letter>());
    REQUIRE      (text.IsNow());
    REQUIRE_FALSE(text.IsFuture());

@@ -111,10 +111,8 @@ namespace Langulus::Anyness
    /// If we already have jurisdiction, then nothing happens                  
    LANGULUS(INLINED)
    void Block::TakeAuthority() {
-      if (mEntry or not mRaw) {
-         // We already own this memory, or there's nothing to own       
+      if (mEntry or not mRaw)
          return;
-      }
 
       // Clone everything and overwrite this block                      
       Block clone {*this};

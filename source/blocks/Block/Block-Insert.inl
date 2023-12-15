@@ -1006,7 +1006,7 @@ namespace Langulus::Anyness
                   auto it = start;
                   auto entry = GetEntries() + at;
                   while (it != end) {
-                     *entry = Allocator::Find(MetaData::Of<Deptr<T>>(), it);
+                     *entry = Allocator::Find(MetaDataOf<Deptr<T>>(), it);
                      if (*entry)
                         const_cast<Allocation*>(*entry)->Keep();
 
@@ -1407,7 +1407,7 @@ namespace Langulus::Anyness
          auto lhsEnt = const_cast<Block*>(this)->GetEntries();
          const auto lhsEnd = lhsPtr + count;
          const auto allocation = Allocator::Allocate(
-            MetaData::Of<Decay<T>>(),
+            MetaDataOf<Decay<T>>(),
             sizeof(Decay<T>) * count
          );
          allocation->Keep(count - 1);
@@ -1666,7 +1666,7 @@ namespace Langulus::Anyness
          "T doesn't match LHS type");
       LANGULUS_ASSUME(DevAssumes, source->template IsExact<T>(),
          "T doesn't match RHS type",
-         ": ", source->GetType(), " != ", MetaData::Of<T>());
+         ": ", source->GetType(), " != ", MetaDataOf<T>());
 
       const auto mthis = const_cast<Block*>(this);
       if constexpr (CT::Sparse<T>) {
@@ -1980,7 +1980,7 @@ namespace Langulus::Anyness
          "T doesn't match LHS type");
       LANGULUS_ASSUME(DevAssumes, source->template IsExact<T>(),
          "T doesn't match RHS type",
-         ": ", source->GetType(), " != ", MetaData::Of<T>());
+         ": ", source->GetType(), " != ", MetaDataOf<T>());
 
       const auto mthis = const_cast<Block*>(this);
       if constexpr (CT::Sparse<T>) {

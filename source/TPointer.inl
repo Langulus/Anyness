@@ -35,81 +35,47 @@ namespace Langulus::Anyness
    TEMPLATE() LANGULUS(INLINED)
    TME()::TPointer(TPointer&& other)
       : TPointer {Move(other)} {}
+   
+   /// Semantic construction                                                  
+   ///   @param other - the value to initialize with                          
+   TEMPLATE()
+   template<template<class> class S>
+   LANGULUS(INLINED)
+   TME()::TPointer(S<TPointer>&& other) requires CT::Inner::SemanticMakable<S, Type> {
+      using SS = S<TPointer>;
+      GetHandle().New(SS::Nest(other->GetHandle()));
 
-   /// Copy construct from any pointer/shared pointer/nullptr/related pointer 
-   ///   @param value - the value to use for initialization                   
-   TEMPLATE() LANGULUS(INLINED)
-   TME()::TPointer(const CT::PointerRelated auto& value)
-      : TPointer {Copy(value)} {}
+      if constexpr (SS::Move) {
+         // Remote value is removed, if moved and double-referenced     
+         if constexpr (DR and CT::Referencable<T>)
+            other->mValue = {};
+      }
+      else if constexpr (SS::Shallow and SS::Keep) {
+         // Reference value, if double-referenced and copied            
+         if constexpr (DR and CT::Referencable<T>)
+            mValue->Keep();
+      }
+   }
 
-   /// Copy construct from any pointer/shared pointer/nullptr/related pointer 
-   ///   @param value - the value to use for initialization                   
-   TEMPLATE() LANGULUS(INLINED)
-   TME()::TPointer(CT::PointerRelated auto& value)
-      : TPointer {Copy(value)} {}
-
-   /// Move construct from any pointer/shared pointer/nullptr/related pointer 
-   ///   @param value - the value to use for initialization                   
-   TEMPLATE() LANGULUS(INLINED)
-   TME()::TPointer(CT::PointerRelated auto&& value)
-      : TPointer {Move(value)} {}
-
-   /// Semantic construction from any pointer/shared pointer/nullptr/related  
-   ///   @param other - the value & semantic to use for initialization        
-   TEMPLATE() LANGULUS(INLINED)
-   void TME()::ConstructFrom(CT::Semantic auto&& other) {
-      using S = Decay<decltype(other)>;
-      using ST = TypeOf<S>;
-
-      if constexpr (CT::Nullptr<ST>) {
+   /// Forward any compatible arguments towards contained value constructor   
+   ///   @param arguments... - the arguments to forward                       
+   TEMPLATE()
+   template<CT::Sparse A>
+   LANGULUS(INLINED)
+   TME()::TPointer(A&& other) requires ::std::constructible_from<Type, A&&> {
+      if constexpr (CT::Nullptr<A>) {
          // Assign a nullptr                                            
          return;
       }
-      else if constexpr (CT::Pointer<ST>) {
-         // Move/Abandon/Disown/Copy/Clone another TPointer, as long as 
-         // it is related                                               
-         static_assert(
-            CT::Exact<Type, TypeOf<ST>> or CT::DerivedFrom<TypeOf<ST>, T>,
-            "Unrelated type inside shared pointer"
-         );
-
-         GetHandle().New(S::Nest(other->GetHandle()));
-         
-         if constexpr (S::Move) {
-            // Remote value is removed, if moved and double-referenced  
-            if constexpr (DR and CT::Referencable<T>)
-               other->mValue = {};
-         }
-         else if constexpr (S::Shallow and S::Keep) {
-            // Reference value, if double-referenced and copied         
-            if constexpr (DR and CT::Referencable<T>)
-               mValue->Keep();
-         }
-      }
-      else if constexpr (CT::DerivedFrom<ST, T>) {
+      else {
          // Always copy, and thus reference raw pointers                
-         Type converted = static_cast<Type>(*other);
+         auto converted = static_cast<Type>(other);
          GetHandle().New(Copy(converted));
 
          // Always reference value, if double-referenced                
          if constexpr (DR and CT::Referencable<T>)
             mValue->Keep();
       }
-      else LANGULUS_ERROR("Bad semantic construction");
-   }
-
-   /// Semantic construction from any pointer/shared pointer/nullptr/related  
-   ///   @param other - the value & semantic to use for initialization        
-   TEMPLATE() LANGULUS(INLINED)
-   TME()::TPointer(CT::ShallowSemantic auto&& other) {
-      ConstructFrom(other.Forward());
-   }
-
-   /// Semantic construction from any pointer/shared pointer/nullptr/related  
-   ///   @param other - the value & semantic to use for initialization        
-   TEMPLATE() LANGULUS(INLINED)
-   TME()::TPointer(CT::DeepSemantic auto&& other) requires CT::CloneMakable<T> {
-      ConstructFrom(other.Forward());
    }
 
    /// Shared pointer destruction                                             
@@ -129,7 +95,7 @@ namespace Langulus::Anyness
    void TME()::New(ARGS&&... arguments) {
       TPointer pointer;
       pointer.mEntry = Allocator::Allocate(
-         MetaData::Of<Decay<T>>(), 
+         MetaDataOf<Decay<T>>(), 
          sizeof(Decay<T>)
       );
       LANGULUS_ASSERT(pointer.mEntry, Allocate, "Out of memory");
@@ -279,6 +245,16 @@ namespace Langulus::Anyness
    TEMPLATE() LANGULUS(INLINED)
    TME()::operator TPointer<const T, DR>() const noexcept requires CT::Mutable<T> {
       return {mValue};
+   }
+
+   TEMPLATE() LANGULUS(INLINED)
+   TME()::operator const T& () const noexcept {
+      return mValue;
+   }
+
+   TEMPLATE() LANGULUS(INLINED)
+   TME()::operator T () noexcept {
+      return mValue;
    }
 
    /// Check if we have authority over the memory                             

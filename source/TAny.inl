@@ -80,10 +80,9 @@ namespace Langulus::Anyness
    void TAny<T>::ConstructFrom(CT::Semantic auto&& other) {
       using S = Decay<decltype(other)>;
       using ST = TypeOf<S>;
-      mType = MetaData::Of<T>();
+      mType = MetaDataOf<T>();
 
-      if constexpr (CT::Array<ST>
-               and  CT::Exact<T, ::std::remove_extent_t<ST>>) {
+      if constexpr (CT::Array<ST> and CT::Similar<T, Deext<ST>>) {
          // Integration with bounded arrays                             
          constexpr auto count = ExtentOf<ST>;
          AllocateFresh(RequestSize(count));
@@ -117,7 +116,7 @@ namespace Langulus::Anyness
             // RHS is not type-erased deep, do compile-time checks      
             using ContainedType = TypeOf<ST>;
 
-            if constexpr (CT::Exact<T, ContainedType>) {
+            if constexpr (CT::Similar<T, ContainedType>) {
                // If types are exactly the same, it is safe to directly 
                // transfer the block                                    
                BlockTransfer<TAny<T>>(other.Forward());
@@ -142,7 +141,7 @@ namespace Langulus::Anyness
          }
       }
       else if constexpr (CT::DerivedFrom<ST, TAny<T>>
-                    and  sizeof(ST) == sizeof(TAny<T>)) {
+                    and sizeof(ST) == sizeof(TAny<T>)) {
          // Some containers, like Bytes and Text aren't CT::Deep, so    
          // we have this special case for them, only if they're binary- 
          // compatible                                                  
@@ -151,10 +150,13 @@ namespace Langulus::Anyness
       else if constexpr (requires { T(other.Forward()); }) {
          // Element is semantically-constructible from argument         
          AllocateFresh(RequestSize(1));
-         if constexpr (CT::AbandonMakable<T>)
+         if constexpr (CT::Sparse<T> or CT::Similar<T, ST>)
+            InsertInner(other.Forward(), 0);
+         else if constexpr (CT::AbandonMakable<T>)
             InsertInner(Abandon(T (other.Forward())), 0);
-         else
+         else if constexpr (CT::MoveMakable<T>)
             InsertInner(Move(T (other.Forward())), 0);
+         else LANGULUS_ERROR("Bad semantic construction");
       }
       else LANGULUS_ERROR("Bad semantic construction");
    }
@@ -166,7 +168,7 @@ namespace Langulus::Anyness
    TEMPLATE()
    template<CT::Data T1, CT::Data T2, CT::Data... TAIL>
    TAny<T>::TAny(T1&& t1, T2&& t2, TAIL&&... tail) {
-      mType = MetaData::Of<T>();
+      mType = MetaDataOf<T>();
       AllocateFresh(RequestSize(sizeof...(TAIL) + 2));
       Insert(Forward<T1>(t1));
       Insert(Forward<T2>(t2));
@@ -216,7 +218,7 @@ namespace Langulus::Anyness
    ///   @return the meta definition of the type                              
    TEMPLATE() LANGULUS(INLINED)
    DMeta TAny<T>::GetType() const noexcept {
-      mType = MetaData::Of<T>();
+      mType = MetaDataOf<T>();
       return mType;
    }
 
@@ -396,7 +398,7 @@ namespace Langulus::Anyness
    template<CT::Data ALT_T>
    LANGULUS(INLINED)
    bool TAny<T>::CastsTo() const {
-      return CastsToMeta(MetaData::Of<Decay<ALT_T>>());
+      return CastsToMeta(MetaDataOf<Decay<ALT_T>>());
    }
 
    /// Check if this container's data can be represented as a specific number 
@@ -408,7 +410,7 @@ namespace Langulus::Anyness
    template<CT::Data ALT_T>
    LANGULUS(INLINED)
    bool TAny<T>::CastsTo(Count count) const {
-      return CastsToMeta(MetaData::Of<Decay<ALT_T>>(), count);
+      return CastsToMeta(MetaDataOf<Decay<ALT_T>>(), count);
    }
 
    /// Check if type origin is the same as one of the provided types          
@@ -470,16 +472,19 @@ namespace Langulus::Anyness
    }
 
    /// Allocate 'count' elements and fill the container with zeroes           
+   /// If T is not CT::Nullifiable, this function does default construction,  
+   /// which would be slower, than batch zeroing                              
    TEMPLATE() LANGULUS(INLINED)
    void TAny<T>::Null(const Count& count) {
-      static_assert(CT::Sparse<T> or CT::Nullifiable<T>, "T is not nullifiable");
+      if constexpr (CT::Nullifiable<T>) {
+         if (count < mReserved)
+            AllocateLess(count);
+         else
+            AllocateMore<false, true>(count);
 
-      if (count < mReserved)
-         AllocateLess(count);
-      else
-         AllocateMore<false, true>(count);
-
-      ZeroMemory(GetRaw(), count);
+         ZeroMemory(GetRaw(), count);
+      }
+      else New(count);
    }
 
    /// Clear the container, destroying all elements,                          
@@ -709,15 +714,6 @@ namespace Langulus::Anyness
    TEMPLATE() LANGULUS(INLINED)
    constexpr bool TAny<T>::IsResolvable() const noexcept {
       return CT::Resolvable<T>;
-   }
-
-   /// Check if block data can be safely set to zero bytes                    
-   /// This is tied to LANGULUS(NULLIFIABLE) reflection parameter             
-   /// This is a statically optimized alternative to Block::IsNullifiable     
-   ///   @return true if contained data can be memset(0) safely               
-   TEMPLATE() LANGULUS(INLINED)
-   constexpr bool TAny<T>::IsNullifiable() const noexcept {
-      return CT::Nullifiable<T>;
    }
 
    /// Get the size of a single contained element, in bytes                   
@@ -1488,7 +1484,7 @@ namespace Langulus::Anyness
    /// If we have jurisdiction, the memory won't move at all                  
    TEMPLATE() LANGULUS(INLINED)
    void TAny<T>::TakeAuthority() {
-      TAny<T> clone {Clone(*this)};
+      TAny<T> clone = Clone(*this);
       Free();
       CopyMemory<void, void>(this, &clone, sizeof(TAny<T>));
       clone.mEntry = nullptr;
@@ -1624,7 +1620,7 @@ namespace Langulus::Anyness
       }
       else {
          // Allocate a fresh set of elements                            
-         mType = MetaData::Of<T>();
+         mType = MetaDataOf<T>();
          AllocateFresh(request);
 
          if constexpr (CREATE) {
@@ -1773,19 +1769,20 @@ namespace Langulus::Anyness
    ///   @return true if both containers match loosely                        
    TEMPLATE()
    bool TAny<T>::CompareLoose(const TAny& other) const noexcept {
-      static_assert(CT::Character<T>,
-         "Can't do a loose match on non-character container");
+      if constexpr (CT::Character<T>) {
+         if (mRaw == other.mRaw)
+            return mCount == other.mCount;
+         else if (mCount != other.mCount)
+            return false;
 
-      if (mRaw == other.mRaw)
-         return mCount == other.mCount;
-      else if (mCount != other.mCount)
-         return false;
-
-      auto t1 = GetRaw();
-      auto t2 = other.GetRaw();
-      while (t1 < GetRawEnd() and ::std::tolower(*t1) == ::std::tolower(*(t2++)))
-         ++t1;
-      return (t1 - GetRaw()) == mCount;
+         auto t1 = GetRaw();
+         auto t2 = other.GetRaw();
+         while (t1 < GetRawEnd() and ::std::tolower(*t1)
+                                  == ::std::tolower(*(t2++)))
+            ++t1;
+         return (t1 - GetRaw()) == mCount;
+      }
+      else return Compare(other);
    }
 
    /// Count how many consecutive elements match in two containers            
@@ -1802,13 +1799,6 @@ namespace Langulus::Anyness
       const auto t2end = other.GetRawEnd();
       while (t1 != t1end and t2 != t2end and *t1 == *(t2++))
          ++t1;
-
-      /*
-      __m128i first = _mm_loadu_si128( reinterpret_cast<__m128i*>( &arr1 ) );
-      __m128i second = _mm_loadu_si128( reinterpret_cast<__m128i*>( &arr2 ) );
-      return std::popcount(_mm_movemask_epi8( _mm_cmpeq_epi8( first, second ) ));
-      */
-
       return t1 - GetRaw();
    }
 
@@ -1818,18 +1808,20 @@ namespace Langulus::Anyness
    ///   @return the number of matching symbols                               
    TEMPLATE()
    Count TAny<T>::MatchesLoose(const TAny& other) const noexcept {
-      static_assert(CT::Character<T>,
-         "Can't do a loose match on non-character container");
-      if (mRaw == other.mRaw)
-         return ::std::min(mCount, other.mCount);
+      if constexpr (CT::Character<T>) {
+         if (mRaw == other.mRaw)
+            return ::std::min(mCount, other.mCount);
 
-      auto t1 = GetRaw();
-      auto t2 = other.GetRaw();
-      const auto t1end = GetRawEnd();
-      const auto t2end = other.GetRawEnd();
-      while (t1 != t1end and t2 != t2end and ::std::tolower(*t1) == ::std::tolower(*(t2++)))
-         ++t1;
-      return t1 - GetRaw();
+         auto t1 = GetRaw();
+         auto t2 = other.GetRaw();
+         const auto t1end = GetRawEnd();
+         const auto t2end = other.GetRawEnd();
+         while (t1 != t1end and t2 != t2end and ::std::tolower(*t1)
+                                             == ::std::tolower(*(t2++)))
+            ++t1;
+         return t1 - GetRaw();
+      }
+      else return Matches(other);
    }
   
    /// Hash data inside memory block                                          
@@ -1951,7 +1943,7 @@ namespace Langulus::Anyness
             return *this;
 
          TAny<T> combined;
-         combined.mType = MetaData::Of<T>();
+         combined.mType = MetaDataOf<T>();
          combined.AllocateFresh(RequestSize(mCount + rhs->mCount));
          combined.InsertInner<Copied>(GetRaw(), GetRawEnd(), 0);
          combined.InsertInner<S>(rhs->GetRaw(), rhs->GetRawEnd(), mCount);
@@ -1963,7 +1955,7 @@ namespace Langulus::Anyness
             return *this;
 
          TAny<T> combined;
-         combined.mType = MetaData::Of<T>();
+         combined.mType = MetaDataOf<T>();
          const auto strsize = rhs->size();
          combined.AllocateFresh(RequestSize(mCount + strsize));
          combined.InsertInner<Copied>(GetRaw(), GetRawEnd(), 0);
@@ -1973,7 +1965,7 @@ namespace Langulus::Anyness
       else if constexpr (CT::Array<ALT> and CT::Exact<T, ::std::remove_extent_t<ALT>>) {
          // Concatenate T[N] if TAny is compatible                      
          TAny<T> combined;
-         combined.mType = MetaData::Of<T>();
+         combined.mType = MetaDataOf<T>();
          constexpr auto strsize = ExtentOf<ALT>;
          combined.AllocateFresh(RequestSize(mCount + strsize));
          combined.InsertInner<Copied>(GetRaw(), GetRawEnd(), 0);
@@ -2016,7 +2008,7 @@ namespace Langulus::Anyness
          if (rhs->IsEmpty())
             return *this;
 
-         mType = MetaData::Of<T>();
+         mType = MetaDataOf<T>();
          AllocateMore(mCount + rhs->mCount);
          InsertInner<S>(rhs->GetRaw(), rhs->GetRawEnd(), mCount);
          return *this;
@@ -2026,7 +2018,7 @@ namespace Langulus::Anyness
          if (rhs->empty())
             return *this;
 
-         mType = MetaData::Of<T>();
+         mType = MetaDataOf<T>();
          const auto strsize = rhs->size();
          AllocateMore(mCount + strsize);
          InsertInner<Copied>(rhs->data(), rhs->data() + strsize, mCount);
@@ -2034,7 +2026,7 @@ namespace Langulus::Anyness
       }
       else if constexpr (CT::Array<ALT> and CT::Exact<T, ::std::remove_extent_t<ALT>>) {
          // Concatenate T[N] if TAny is compatible                      
-         mType = MetaData::Of<T>();
+         mType = MetaDataOf<T>();
          constexpr auto strsize = ExtentOf<ALT>;
          AllocateMore(mCount + strsize);
          InsertInner<S>(*rhs, *rhs + strsize, mCount);

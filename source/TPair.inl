@@ -133,14 +133,14 @@ namespace Langulus::Anyness
    ///   @return the key type                                                 
    TEMPLATE() LANGULUS(INLINED)
    DMeta PAIR()::GetKeyType() const noexcept {
-      return MetaData::Of<K>();
+      return MetaDataOf<K>();
    }
 
    /// Get the type of the contained value                                    
    ///   @return the value type                                               
    TEMPLATE() LANGULUS(INLINED)
    DMeta PAIR()::GetValueType() const noexcept {
-      return MetaData::Of<V>();
+      return MetaDataOf<V>();
    }
 
 } // namespace Langulus::Anyness

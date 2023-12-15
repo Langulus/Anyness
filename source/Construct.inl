@@ -154,7 +154,7 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Construct Construct::From(HEAD&& head, TAIL&&... tail) {
       static_assert(CT::Decayed<T>, "T must be fully decayed");
-      const auto meta = MetaData::Of<T>();
+      const auto meta = MetaDataOf<T>();
       if constexpr (sizeof...(tail) == 0)
          return Construct {meta, Forward<HEAD>(head)};
       else
@@ -168,7 +168,7 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Construct Construct::From() {
       static_assert(CT::Decayed<T>, "T must be fully decayed");
-      return Construct {MetaData::Of<T>()};
+      return Construct {MetaDataOf<T>()};
    }
 
 #if LANGULUS_FEATURE(MANAGED_REFLECTION)
@@ -180,10 +180,7 @@ namespace Langulus::Anyness
    template<CT::Data HEAD, CT::Data... TAIL>
    LANGULUS(INLINED)
    Construct Construct::FromToken(const Token& token, HEAD&& head, TAIL&&... tail) {
-      const auto meta = dynamic_cast<DMeta>(
-         RTTI::DisambiguateMeta(token)
-      );
-
+      const auto meta = RTTI::DisambiguateMeta(token);
       if constexpr (sizeof...(tail) == 0)
          return Construct {meta, Forward<HEAD>(head)};
       else
@@ -195,10 +192,7 @@ namespace Langulus::Anyness
    ///   @return the request                                                  
    LANGULUS(INLINED)
    Construct Construct::FromToken(const Token& token) {
-      const auto meta = dynamic_cast<DMeta>(
-         RTTI::DisambiguateMeta(token)
-      );
-      return Construct {meta};
+      return Construct {RTTI::DisambiguateMeta(token)};
    }
 #endif
    
@@ -264,7 +258,7 @@ namespace Langulus::Anyness
    bool Construct::CastsTo() const {
       if (not mType)
          return false;
-      return CastsTo(MetaData::Of<T>());
+      return CastsTo(MetaDataOf<T>());
    }
 
    /// Check if construct type fully matches a given static type              
@@ -274,7 +268,7 @@ namespace Langulus::Anyness
    bool Construct::Is() const {
       if (not mType)
          return false;
-      return Is(MetaData::Of<T>());
+      return Is(MetaDataOf<T>());
    }
 
    /// Get the argument for the construct                                     
@@ -316,13 +310,7 @@ namespace Langulus::Anyness
    ///   @return the token, if type is set, or default token if not           
    LANGULUS(INLINED)
    Token Construct::GetToken() const noexcept {
-      #if LANGULUS_FEATURE(MANAGED_REFLECTION)
-         return mType ? mType->GetShortestUnambiguousToken()
-                      : MetaData::DefaultToken;
-      #else
-         return mType ? mType->mToken
-                      : MetaData::DefaultToken;
-      #endif
+      return mType.GetToken();
    }
 
    /// Get the producer of the construct                                      

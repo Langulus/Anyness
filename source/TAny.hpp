@@ -127,7 +127,6 @@ namespace Langulus::Anyness
       NOD() constexpr bool IsDense() const noexcept;
       NOD() constexpr bool IsPOD() const noexcept;
       NOD() constexpr bool IsResolvable() const noexcept;
-      NOD() constexpr bool IsNullifiable() const noexcept;
 
       NOD() constexpr Size GetStride() const noexcept;
       NOD() constexpr Size GetBytesize() const noexcept;

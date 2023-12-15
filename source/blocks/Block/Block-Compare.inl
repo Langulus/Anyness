@@ -106,7 +106,8 @@ namespace Langulus::Anyness
       RTTI::Base baseForComparison {};
       if constexpr (RESOLVE) {
          // We will test type for each resolved element, individually   
-         if (not IsResolvable()and not right.IsResolvable() and not CompareTypes(right, baseForComparison)) {
+         if (not IsResolvable() and not right.IsResolvable()
+             and not CompareTypes(right, baseForComparison)) {
             // Types differ and are not resolvable                      
             VERBOSE(Logger::Red,
                "Data types are not related: ",
@@ -126,7 +127,7 @@ namespace Langulus::Anyness
       }
 
       if (  (IsSparse() and baseForComparison.mBinaryCompatible)
-         or (baseForComparison.GetType()->mIsPOD and baseForComparison.mBinaryCompatible)
+         or (baseForComparison.mType->mIsPOD and baseForComparison.mBinaryCompatible)
       ) {
          // Just compare the memory directly (optimization)             
          // Regardless if types are sparse or dense, as long as they    
@@ -141,7 +142,7 @@ namespace Langulus::Anyness
          
          VERBOSE(Logger::Green, "POD/pointers memory is the same ", Logger::Yellow, "(fast)");
       }
-      else if (baseForComparison.GetType()->mComparer) {
+      else if (baseForComparison.mType->mComparer) {
          if (IsSparse()) {
             if constexpr (RESOLVE) {
                // Resolve all elements one by one and compare them by   
@@ -518,7 +519,7 @@ namespace Langulus::Anyness
       else {
          // Types match exactly, or their origins match exactly         
          if (mType->mOrigin) {
-            common.mTypeRetriever = mType->mOrigin->mGenerator;
+            common.mType = mType->mOrigin;
             common.mBinaryCompatible = true;
             return true;
          }
@@ -539,7 +540,7 @@ namespace Langulus::Anyness
    bool Block::CallComparer(const Block& right, const RTTI::Base& base) const {
       return  mRaw == right.mRaw 
           or (mRaw and right.mRaw
-         and  base.GetType()->mComparer(mRaw, right.mRaw));
+         and  base.mType->mComparer(mRaw, right.mRaw));
    }
 
    /// Gather items from input container, and fill output                     

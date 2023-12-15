@@ -101,7 +101,7 @@ namespace Langulus::Anyness
       }
       else {
          // Construct from any kind of pair                             
-         mKeys.mType = MetaData::Of<T>();
+         mKeys.mType = MetaDataOf<T>();
 
          AllocateFresh(MinimalAllocation);
          ZeroMemory(mInfo, MinimalAllocation);
@@ -121,9 +121,9 @@ namespace Langulus::Anyness
    template<CT::Data T1, CT::Data T2, CT::Data... TAIL>
    OrderedSet::OrderedSet(T1&& t1, T2&& t2, TAIL&&... tail) {
       if constexpr (CT::Semantic<T1>)
-         mKeys.mType = MetaData::Of<TypeOf<T1>>();
+         mKeys.mType = MetaDataOf<TypeOf<T1>>();
       else
-         mKeys.mType = MetaData::Of<T1>();
+         mKeys.mType = MetaDataOf<T1>();
 
       constexpr auto capacity = Roof2(
          sizeof...(TAIL) + 2 < MinimalAllocation
