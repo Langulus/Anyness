@@ -42,9 +42,8 @@ namespace Langulus::Anyness
       TPointer(TPointer&&);
       template<template<class> class S>
       TPointer(S<TPointer>&&) requires CT::Inner::SemanticMakable<S, Type>;
-
-      template<CT::Sparse A>
-      TPointer(A&&) requires ::std::constructible_from<Type, A&&>;
+      template<class A>
+      TPointer(A&&) requires CT::Inner::MakableFrom<Type, A&&>;
 
       ~TPointer();
 

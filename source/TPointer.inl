@@ -60,9 +60,9 @@ namespace Langulus::Anyness
    /// Forward any compatible arguments towards contained value constructor   
    ///   @param arguments... - the arguments to forward                       
    TEMPLATE()
-   template<CT::Sparse A>
+   template<class A>
    LANGULUS(INLINED)
-   TME()::TPointer(A&& other) requires ::std::constructible_from<Type, A&&> {
+   TME()::TPointer(A&& other) requires CT::Inner::MakableFrom<Type, A&&> {
       if constexpr (CT::Nullptr<A>) {
          // Assign a nullptr                                            
          return;
