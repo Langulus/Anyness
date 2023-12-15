@@ -39,7 +39,7 @@ struct Thing final : Resolvable {
    TraitMap mTraits;
 };
 
-Thing::Thing() : Resolvable {MetaData::Of<Thing>()} {}
+Thing::Thing() : Resolvable {MetaOf<Thing>()} {}
 
 SCENARIO("Testing incomplete type hierarchy", "[incomplete]") {
    GIVEN("A thing instance") {

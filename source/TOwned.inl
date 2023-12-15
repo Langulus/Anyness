@@ -272,7 +272,7 @@ namespace Langulus::Anyness
    ///   @return the type of the contained value                              
    TEMPLATE() LANGULUS(INLINED)
    DMeta TME()::GetType() const {
-      return MetaData::Of<Decay<T>>();
+      return MetaDataOf<Decay<T>>();
    }
 
    /// Get a block representation of the contained value                      

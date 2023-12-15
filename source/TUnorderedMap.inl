@@ -70,8 +70,8 @@ namespace Langulus::Anyness
       : TUnorderedMap {} {
       using S = Decay<decltype(other)>;
       using T = TypeOf<S>;
-      mKeys.mType = MetaData::Of<K>();
-      mValues.mType = MetaData::Of<V>();
+      mKeys.mType = MetaDataOf<K>();
+      mValues.mType = MetaDataOf<V>();
 
       if constexpr (CT::Array<T>) {
          if constexpr (CT::Pair<Deext<T>>) {
@@ -128,8 +128,8 @@ namespace Langulus::Anyness
    TEMPLATE()
    template<CT::Data T1, CT::Data T2, CT::Data... TAIL>
    TABLE()::TUnorderedMap(T1&& t1, T2&& t2, TAIL&&... tail) {
-      mKeys.mType = MetaData::Of<K>();
-      mValues.mType = MetaData::Of<V>();
+      mKeys.mType = MetaDataOf<K>();
+      mValues.mType = MetaDataOf<V>();
 
       constexpr auto capacity = Roof2(
          sizeof...(TAIL) + 2 < MinimalAllocation
@@ -388,7 +388,7 @@ namespace Langulus::Anyness
    ///   @return the meta definition of the key type                          
    TEMPLATE() LANGULUS(INLINED)
    DMeta TABLE()::GetKeyType() const {
-      mKeys.mType = MetaData::Of<K>();
+      mKeys.mType = MetaDataOf<K>();
       return mKeys.mType;
    }
 
@@ -398,7 +398,7 @@ namespace Langulus::Anyness
    ///   @return the meta definition of the value type                        
    TEMPLATE() LANGULUS(INLINED)
    DMeta TABLE()::GetValueType() const {
-      mValues.mType = MetaData::Of<V>();
+      mValues.mType = MetaDataOf<V>();
       return mValues.mType;
    }
 

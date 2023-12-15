@@ -101,7 +101,7 @@ namespace Langulus::Anyness
    template<CT::Data T, bool BINARY_COMPATIBLE>
    LANGULUS(INLINED)
    bool Block::CastsTo() const {
-      return CastsToMeta<BINARY_COMPATIBLE>(MetaData::Of<T>());
+      return CastsToMeta<BINARY_COMPATIBLE>(MetaDataOf<T>());
    }
 
    /// Check if this container's data can be represented as a specific number 
@@ -114,7 +114,7 @@ namespace Langulus::Anyness
    template<CT::Data T, bool BINARY_COMPATIBLE>
    LANGULUS(INLINED)
    bool Block::CastsTo(Count count) const {
-      return CastsToMeta<BINARY_COMPATIBLE>(MetaData::Of<T>(), count);
+      return CastsToMeta<BINARY_COMPATIBLE>(MetaDataOf<T>(), count);
    }
    
    /// Reinterpret contents of this Block as the type and state of another    
@@ -130,7 +130,7 @@ namespace Langulus::Anyness
       if (not CompareTypes(pattern, common) or not common.mBinaryCompatible)
          return {};
 
-      const Size baseBytes = (common.GetType()->mSize * common.mCount)
+      const Size baseBytes = (common.mType->mSize * common.mCount)
          / pattern.GetStride();
       const Size resultSize = pattern.IsEmpty()
          ? baseBytes : (baseBytes / pattern.mCount) * pattern.mCount;
@@ -191,7 +191,7 @@ namespace Langulus::Anyness
 
       // No such trait found, so check in bases                         
       for (auto& base : mType->mBases) {
-         const auto found = GetBaseMemory(base.GetType(), base)
+         const auto found = GetBaseMemory(base.mType, base)
             .GetMember(trait);
          if (found.IsTyped())
             return found;
@@ -224,7 +224,7 @@ namespace Langulus::Anyness
 
       // No such data found, so check in bases                          
       for (auto& base : mType->mBases) {
-         const auto found = GetBaseMemory(base.GetType(), base)
+         const auto found = GetBaseMemory(base.mType, base)
             .GetMember(data);
          if (found.IsTyped())
             return found;
@@ -290,12 +290,12 @@ namespace Langulus::Anyness
       // If reached, then nothing found in local members, so check bases
       offset -= counter;
       for (auto& base : mType->mBases) {
-         auto found = GetBaseMemory(base.GetType(), base)
+         auto found = GetBaseMemory(base.mType, base)
             .GetMember(trait, offset);
          if (found.IsTyped())
             return found;
 
-         offset -= base.GetType()->GetMemberCount();
+         offset -= base.mType->GetMemberCount();
       }
 
       return {};
@@ -339,12 +339,12 @@ namespace Langulus::Anyness
       // If reached, then nothing found in local members, so check bases
       offset -= counter;
       for (auto& base : mType->mBases) {
-         const auto found = GetBaseMemory(base.GetType(), base)
+         const auto found = GetBaseMemory(base.mType, base)
             .GetMember(data, offset);
          if (found.IsTyped())
             return found;
 
-         offset -= base.GetType()->GetMemberCount();
+         offset -= base.mType->GetMemberCount();
       }
 
       return {};
@@ -375,12 +375,12 @@ namespace Langulus::Anyness
       // If reached, then nothing found in local members, so check bases
       offset -= mType->mMembers.size();
       for (auto& base : mType->mBases) {
-         const auto found = GetBaseMemory(base.GetType(), base)
+         const auto found = GetBaseMemory(base.mType, base)
             .GetMember(nullptr, offset);
          if (found.IsTyped())
             return found;
 
-         offset -= base.GetType()->GetMemberCount();
+         offset -= base.mType->GetMemberCount();
       }
 
       return {};
@@ -429,7 +429,7 @@ namespace Langulus::Anyness
    ///   @return the static block for the base                                
    LANGULUS(INLINED)
    Block Block::GetBaseMemory(const RTTI::Base& base) {
-      return GetBaseMemory(base.GetType(), base);
+      return GetBaseMemory(base.mType, base);
    }
 
    /// Get the memory block corresponding to a base (const)                   
@@ -438,7 +438,7 @@ namespace Langulus::Anyness
    ///   @return the static immutable block for the base                      
    LANGULUS(INLINED)
    Block Block::GetBaseMemory(const RTTI::Base& base) const {
-      return GetBaseMemory(base.GetType(), base);
+      return GetBaseMemory(base.mType, base);
    }
    
    /// Mutate the block to a different type, if possible                      
@@ -450,7 +450,7 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    bool Block::Mutate() {
       static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
-      return Mutate<ALLOW_DEEPEN, WRAPPER>(MetaData::Of<T>());
+      return Mutate<ALLOW_DEEPEN, WRAPPER>(MetaDataOf<T>());
    }
    
    /// Mutate to another compatible type, deepening the container if allowed  
@@ -537,7 +537,7 @@ namespace Langulus::Anyness
    template<CT::Data T, bool CONSTRAIN>
    LANGULUS(INLINED)
    void Block::SetType() {
-      SetType<CONSTRAIN>(MetaData::Of<Deref<T>>());
+      SetType<CONSTRAIN>(MetaDataOf<Deref<T>>());
    }
    
    /// Reset the type of the block, unless it's type-constrained              
@@ -552,7 +552,7 @@ namespace Langulus::Anyness
    ///   @tparam T - the type to check for compatibility                      
    template<CT::Data T>
    void Block::CheckType() const {
-      const auto meta = MetaData::Of<T>();
+      const auto meta = MetaDataOf<T>();
       LANGULUS_ASSERT(
          not IsTypeConstrained() or CastsToMeta(meta),
          Assign, "Incompatible types on assignment (flat)",

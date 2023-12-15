@@ -337,7 +337,7 @@ namespace Langulus::Anyness
    template<CT::Data T>
    LANGULUS(INLINED)
    TAny<Messy>* Neat::GetData() {
-      return GetData(MetaData::Of<Decay<T>>());
+      return GetData(MetaDataOf<Decay<T>>());
    }
 
    /// Get list of data, corresponding to a static type (const)               
@@ -346,7 +346,7 @@ namespace Langulus::Anyness
    template<CT::Data T>
    LANGULUS(INLINED)
    const TAny<Messy>* Neat::GetData() const {
-      return GetData(MetaData::Of<Decay<T>>());
+      return GetData(MetaDataOf<Decay<T>>());
    }
       
    /// Get list of data, corresponding to a type                              
@@ -375,7 +375,7 @@ namespace Langulus::Anyness
    template<CT::Data T>
    LANGULUS(INLINED)
    TAny<Inner::DeConstruct>* Neat::GetConstructs() {
-      return GetConstructs(MetaData::Of<Decay<T>>());
+      return GetConstructs(MetaDataOf<Decay<T>>());
    }
 
    /// Get list of constructs, corresponding to a static type (const)         
@@ -384,7 +384,7 @@ namespace Langulus::Anyness
    template<CT::Data T>
    LANGULUS(INLINED)
    const TAny<Inner::DeConstruct>* Neat::GetConstructs() const {
-      return GetConstructs(MetaData::Of<Decay<T>>());
+      return GetConstructs(MetaDataOf<Decay<T>>());
    }
    
    /// Get list of constructs, corresponding to a type                        
@@ -572,15 +572,15 @@ namespace Langulus::Anyness
          // Insert trait to its bucket                                  
          AddTrait(rhs.Forward());
       }
-      else if constexpr (CT::Same<T, MetaData>) {
+      else if constexpr (CT::Same<T, DMeta>) {
          // Insert an empty data to signify solo type ID                
          AddData(*rhs);
       }
-      else if constexpr (CT::Same<T, MetaTrait>) {
+      else if constexpr (CT::Same<T, TMeta>) {
          // Insert empty Any to signify trait without content           
          AddTrait(*rhs);
       }
-      else if constexpr (CT::Same<T, MetaConst>) {
+      else if constexpr (CT::Same<T, CMeta>) {
          // Expand the constant, and push it                            
          operator << (Clone(Block {{}, *rhs}));
       }
@@ -614,15 +614,15 @@ namespace Langulus::Anyness
                   // RHS contains traits, add them one by one           
                   AddTrait(S::Nest(const_cast<Trait&>(trait)));
                },
-               [&](const MetaData* meta) {
+               [&](const DMeta& meta) {
                   // RHS contains metadata, add them                    
                   AddData(meta);
                },
-               [&](const MetaTrait* meta) {
+               [&](const TMeta& meta) {
                   // RHS contains metatraits, add them                  
                   AddTrait(meta);
                },
-               [&](const MetaConst* meta) {
+               [&](const CMeta& meta) {
                   // RHS contains metaconstants, expand and add them    
                   operator << (Clone(Block {{}, meta}));
                }
@@ -636,7 +636,7 @@ namespace Langulus::Anyness
       }
       else {
          // RHS is nothing special, just add it as it is                
-         const auto meta = MetaData::Of<Decay<T>>();
+         const auto meta = MetaDataOf<Decay<T>>();
          const auto found = mAnythingElse.FindIt(meta);
          if (found)
             found->mValue << Messy {rhs.Forward()};
@@ -686,7 +686,7 @@ namespace Langulus::Anyness
          if (not GetTraits(rhs->GetTrait()))
             return operator << (rhs.Forward());
       }
-      else if constexpr (CT::Same<T, MetaTrait>) {
+      else if constexpr (CT::Same<T, TMeta>) {
          // Check if the trait already exists, before pushing it        
          if (not GetTraits(SparseCast(*rhs)))
             return operator << (rhs.Forward());
@@ -696,7 +696,7 @@ namespace Langulus::Anyness
          if (not GetConstructs(rhs->GetType()))
             return operator << (rhs.Forward());
       }
-      else if constexpr (CT::Same<T, MetaData>) {
+      else if constexpr (CT::Same<T, DMeta>) {
          // Check if the construct already exists, before pushing it    
          if (not GetData(SparseCast(*rhs)))
             return operator << (rhs.Forward());
@@ -1188,7 +1188,7 @@ namespace Langulus::Anyness
 
       if constexpr (CT::Deep<A> and CT::Typed<A>) {
          // Statically typed container provided, extract filter         
-         const auto filter = MetaData::Of<Decay<TypeOf<A>>>;
+         const auto filter = MetaDataOf<Decay<TypeOf<A>>>;
          const auto found = mAnythingElse.FindIt(filter);
          if (not found)
             return 0;
@@ -1231,7 +1231,7 @@ namespace Langulus::Anyness
       }
       else {
          // Anything else                                               
-         const auto filter = MetaData::Of<Decay<A>>();
+         const auto filter = MetaDataOf<Decay<A>>();
          const auto found = mAnythingElse.FindIt(filter);
          if (not found)
             return 0;
@@ -1272,7 +1272,7 @@ namespace Langulus::Anyness
    ///   @return the number of removed data entries                           
    template<CT::Data T, bool EMPTY_TOO>
    Count Neat::RemoveData() {
-      const auto filter = MetaData::Of<Decay<T>>();
+      const auto filter = MetaDataOf<Decay<T>>();
       const auto found = mAnythingElse.FindIt(filter);
       if (not found)
          return 0;
@@ -1304,7 +1304,7 @@ namespace Langulus::Anyness
    ///   @return the number of removed constructs                             
    template<CT::Data T>
    Count Neat::RemoveConstructs() {
-      const auto filter = MetaData::Of<Decay<T>>();
+      const auto filter = MetaDataOf<Decay<T>>();
       const auto found = mConstructs.FindIt(filter);
       if (not found)
          return 0;
@@ -1331,7 +1331,7 @@ namespace Langulus::Anyness
    ///   @return the number of removed trait entries                          
    template<CT::Trait T, bool EMPTY_TOO>
    Count Neat::RemoveTrait() {
-      const auto filter = MetaTrait::Of<T>();
+      const auto filter = MetaTraitOf<T>();
       const auto found = mTraits.FindIt(filter);
       if (not found)
          return 0;

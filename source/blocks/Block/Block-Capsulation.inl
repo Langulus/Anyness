@@ -291,14 +291,6 @@ namespace Langulus::Anyness
       return mType and mType->mIsSparse and mType->mResolver;
    }
 
-   /// Check if block data can be safely set to zero bytes                    
-   /// This is tied to `LANGULUS(NULLIFIABLE) true` reflection member         
-   ///   @return true if contained data can be zeroed safely                  
-   LANGULUS(INLINED)
-   constexpr bool Block::IsNullifiable() const noexcept {
-      return mType and mType->mIsNullifiable;
-   }
-
    /// Check if the memory block contains memory blocks considered deep       
    ///   @return true if the memory block contains deep memory blocks         
    LANGULUS(INLINED)
@@ -353,15 +345,7 @@ namespace Langulus::Anyness
    ///   @return the token                                                    
    LANGULUS(INLINED)
    constexpr Token Block::GetToken() const noexcept {
-      #if LANGULUS_FEATURE(MANAGED_REFLECTION)
-         return IsUntyped()
-            ? MetaData::DefaultToken
-            : mType->GetShortestUnambiguousToken();
-      #else
-         return IsUntyped()
-            ? MetaData::DefaultToken
-            : mType->mToken;
-      #endif
+      return mType.GetToken();
    }
    
    /// Get the size of a single element (in bytes)                            
@@ -431,7 +415,7 @@ namespace Langulus::Anyness
    template<CT::Data T>
    LANGULUS(INLINED)
    constexpr bool Block::IsInsertable() const noexcept {
-      return IsInsertable(MetaData::Of<T>());
+      return IsInsertable(MetaDataOf<T>());
    }
 
    /// Get the raw data inside the container                                  

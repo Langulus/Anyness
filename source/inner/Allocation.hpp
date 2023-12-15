@@ -16,9 +16,6 @@ namespace Langulus::Anyness
 {
 
    using RTTI::AllocationRequest;
-   using RTTI::MetaData;
-   using RTTI::MetaConst;
-   using RTTI::MetaTrait;
    using RTTI::DMeta;
    using RTTI::CMeta;
    using RTTI::TMeta;

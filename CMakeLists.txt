@@ -29,6 +29,7 @@ add_library(LangulusAnyness ${LANGULUS_LIBRARY_TYPE}
     $<$<BOOL:${LANGULUS_FEATURE_MANAGED_MEMORY}>:$<TARGET_OBJECTS:LangulusFractalloc>>
     $<$<BOOL:${LANGULUS_FEATURE_COMPRESSION}>:source/verbs/Compress.cpp>
     $<$<BOOL:${LANGULUS_FEATURE_ENCRYPTION}>:source/verbs/Encrypt.cpp>
+    source/Referenced.cpp
 )
 
 target_include_directories(LangulusAnyness PUBLIC include

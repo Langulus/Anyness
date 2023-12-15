@@ -126,7 +126,7 @@ namespace Langulus::Anyness
    template<CT::Data T>
    LANGULUS(INLINED)
    Any Any::From(const DataState& state) noexcept {
-      return Block {state, MetaData::Of<T>()};
+      return Block {state, MetaDataOf<T>()};
    }
 
    /// Pack any number of similarly typed elements sequentially               

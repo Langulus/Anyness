@@ -65,14 +65,11 @@ namespace Langulus::Anyness
 {
 
    using RTTI::AllocationRequest;
-   using RTTI::MetaData;
-   using RTTI::MetaConst;
-   using RTTI::MetaTrait;
-   using RTTI::MetaVerb;
    using RTTI::DMeta;
    using RTTI::CMeta;
    using RTTI::TMeta;
    using RTTI::VMeta;
+   using RTTI::AMeta;
 
    template<class, bool EMBED = true>
    struct Handle;
@@ -279,7 +276,6 @@ namespace Langulus::Anyness
       NOD() constexpr bool IsSparse() const noexcept;
       NOD() constexpr bool IsPOD() const noexcept;
       NOD() constexpr bool IsResolvable() const noexcept;
-      NOD() constexpr bool IsNullifiable() const noexcept;
       NOD() constexpr bool IsDeep() const noexcept;
       NOD() constexpr bool IsBlock() const noexcept;
       NOD() constexpr bool CanFitPhase(const Block&) const noexcept;

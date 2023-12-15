@@ -191,7 +191,7 @@ namespace Langulus::CT
 #define LANGULUS_DEFINE_TRAIT(T, INFOSTRING) \
    namespace Langulus::Traits \
    { \
-      struct T : public Anyness::StaticTrait<T> { \
+      struct T : Anyness::StaticTrait<T> { \
          LANGULUS(INFO) INFOSTRING; \
          using StaticTrait::StaticTrait; \
          using StaticTrait::operator =; \
@@ -204,7 +204,7 @@ namespace Langulus::CT
 #define LANGULUS_DEFINE_TRAIT_WITH_PROPERTIES(T, INFOSTRING, PROPERTIES) \
    namespace Langulus::Traits \
    { \
-      struct T : public Anyness::StaticTrait<T> { \
+      struct T : Anyness::StaticTrait<T> { \
          LANGULUS(INFO) INFOSTRING; \
          using StaticTrait::StaticTrait; \
          using StaticTrait::operator =; \

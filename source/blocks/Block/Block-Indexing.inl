@@ -474,8 +474,8 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    void Block::Swap(CT::Index auto from_, CT::Index auto to_) {
       LANGULUS_ASSUME(DevAssumes, IsExact<T>(), "Type mismatch");
-      const auto from = SimplifyIndex(from_);
-      const auto to = SimplifyIndex(to_);
+      const auto from = SimplifyIndex<T>(from_);
+      const auto to = SimplifyIndex<T>(to_);
       if (from >= mCount or to >= mCount or from == to)
          return;
 

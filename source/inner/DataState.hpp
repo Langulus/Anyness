@@ -8,7 +8,6 @@
 ///                                                                           
 #pragma once
 #include "Config.hpp"
-#include <RTTI/MetaData.hpp>
 
 
 namespace Langulus::Anyness

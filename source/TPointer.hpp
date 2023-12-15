@@ -27,6 +27,8 @@ namespace Langulus::Anyness
       using Self = TPointer<T, DR>;
       using Type = TypeOf<Base>;
 
+      LANGULUS(NULLIFIABLE) true;
+
    protected:
       using Base::mValue;
       const Allocation* mEntry {};
@@ -38,12 +40,11 @@ namespace Langulus::Anyness
 
       TPointer(const TPointer&);
       TPointer(TPointer&&);
+      template<template<class> class S>
+      TPointer(S<TPointer>&&) requires CT::Inner::SemanticMakable<S, Type>;
 
-      TPointer(const CT::PointerRelated auto&);
-      TPointer(CT::PointerRelated auto&);
-      TPointer(CT::PointerRelated auto&&);
-      TPointer(CT::ShallowSemantic auto&&);
-      TPointer(CT::DeepSemantic auto&&) requires CT::CloneMakable<T>;
+      template<CT::Sparse A>
+      TPointer(A&&) requires ::std::constructible_from<Type, A&&>;
 
       ~TPointer();
 
@@ -75,7 +76,6 @@ namespace Langulus::Anyness
       using Base::operator *;
 
    private:
-      void ConstructFrom(CT::Semantic auto&&);
       TPointer& AssignFrom(CT::Semantic auto&&);
    };
 

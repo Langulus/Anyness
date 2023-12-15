@@ -20,33 +20,15 @@ namespace Langulus::Anyness
    /// The destructor of this type guarantees, that after destruction, the    
    /// member mReferences is zeroed.                                          
    ///                                                                        
-   class Referenced {
+   class LANGULUS_API(ANYNESS) Referenced {
       mutable Count mReferences = 1;
 
    public:
-      LANGULUS(INLINED)
-      virtual ~Referenced() {
-         mReferences = 0;
-      }
+      ~Referenced();
 
-      LANGULUS(INLINED)
-      void Keep() const IF_UNSAFE(noexcept) {
-         LANGULUS_ASSUME(DevAssumes, mReferences > 0,
-            "Reference count resurrection");
-         ++mReferences;
-      }
-
-      LANGULUS(INLINED)
-      Count Free() const IF_UNSAFE(noexcept) {
-         LANGULUS_ASSUME(DevAssumes, mReferences > 1,
-            "Last dereference is reserved for destructor only");
-         return --mReferences;
-      }
-
-      LANGULUS(INLINED)
-      constexpr Count GetReferences() const noexcept {
-         return mReferences;
-      }
+      void  Keep() const IF_UNSAFE(noexcept);
+      Count Free() const IF_UNSAFE(noexcept);
+      Count GetReferences() const noexcept;
    };
 
 } // namespace Langulus::Anyness

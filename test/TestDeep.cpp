@@ -654,7 +654,7 @@ SCENARIO("Deep sequential containers", "[any]") {
          auto element = pack.GetElement(e);
          RTTI::Base base;
          REQUIRE(element.GetType()->GetBase<Block>(0, base));
-         auto baseBlock = element.GetBaseMemory(MetaData::Of<Block>(), base);
+         auto baseBlock = element.GetBaseMemory(MetaOf<Block>(), base);
          baseRange.InsertBlock(baseBlock);
       }
 
