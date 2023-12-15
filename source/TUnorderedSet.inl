@@ -39,139 +39,102 @@ namespace Langulus::Anyness
    TABLE()::TUnorderedSet(TUnorderedSet&& other)
       : TUnorderedSet {Move(other)} {}
 
-   /// Copy-constructor from any set/element                                  
-   ///   @param other - the semantic type                                     
-   TEMPLATE() LANGULUS(INLINED)
-   TABLE()::TUnorderedSet(const CT::NotSemantic auto& other)
-      : TUnorderedSet {Copy(other)} {}
+   /// Semantic-construction                                                  
+   ///   @param other - the table to use to construct                         
+   TEMPLATE()
+   template<template<class> class S>
+   LANGULUS(INLINED)
+   TABLE()::TUnorderedSet(S<TUnorderedSet>&& other)
+   requires (CT::Inner::SemanticMakable<S,T>) {
+      BlockTransfer<TUnorderedSet>(other.Forward());
+   }
+
+   /// Create from a list of elements, each of which can be used to construct 
+   /// an element inside the set - each argument can be semantic or not       
+   ///   @param t1 - first element                                            
+   ///   @param tail - tail of elements (optional)                            
+   TEMPLATE()
+   template<class T1, class... TAIL>
+   TABLE()::TUnorderedSet(T1&& t1, TAIL&&... tail)
+   requires (CT::Inner::MakableFrom<T, T1, TAIL...>) {
+      Insert(Forward<T1>(t1), Forward<TAIL>(tail)...);
+   }
    
-   /// Copy-constructor from any set/element                                  
-   ///   @param other - the semantic type                                     
+   /// Create from a list of elements, some/all of which can't be used to     
+   /// construct an element inside the set - each argument can be semantic or 
+   /// not, and also supports arrays, as well as other kinds of sets          
+   ///   @param t1 - first element                                            
+   ///   @param tail - tail of elements (optional)                            
+   TEMPLATE()
+   template<class T1, class... TAIL>
+   TABLE()::TUnorderedSet(T1&& t1, TAIL&&... tail)
+   requires (not CT::Inner::MakableFrom<T, T1, TAIL...>) {
+      UnfoldInsertion(Forward<T1>(t1));
+      (UnfoldInsertion(Forward<TAIL>(tail)), ...);
+   }
+
+   /// Insert an element, array of elements, or another set                   
+   ///   @param other - the argument to infold and insert, can be semantic    
+   ///   @return the number of inserted elements after unfolding              
    TEMPLATE() LANGULUS(INLINED)
-   TABLE()::TUnorderedSet(CT::NotSemantic auto& other)
-      : TUnorderedSet {Copy(other)} {}
+   Count TABLE()::UnfoldInsertion(auto&& item) {
+      using S = SemanticOf<decltype(item)>;
+      using T1 = TypeOf<S>;
 
-   /// Move-constructor from any set/element                                  
-   ///   @param other - the semantic type                                     
-   TEMPLATE() LANGULUS(INLINED)
-   TABLE()::TUnorderedSet(CT::NotSemantic auto&& other)
-      : TUnorderedSet {Move(other)} {}
-
-   /// A general semantic constructor from any set/element                    
-   ///   @param other - the semantic type                                     
-   TEMPLATE() LANGULUS(INLINED)
-   void TABLE()::ConstructFrom(CT::Semantic auto&& other) {
-      using S = Decay<decltype(other)>;
-      using ST = TypeOf<S>;
-      mKeys.mType = MetaDataOf<T>();
-
-      if constexpr (CT::Array<ST>) {
-         if constexpr (CT::Exact<T, Deext<ST>>) {
-            // Construct from an array of elements                      
-            for (auto& key : *other)
-               Insert(S::Nest(key));
-         }
-         else LANGULUS_ERROR("Unsupported semantic array constructor");
-
-         //TODO perhaps constructor from set array, by merging them?
+      if constexpr (CT::Inner::MakableFrom<T, T1>) {
+         // Some of the arguments might still be used directly to       
+         // make an element, forward these to standard insertion here   
+         return Insert(Forward<T1>(item));
       }
-      else if constexpr (CT::Set<ST>) {
-         // Construct from any kind of set                              
-         if constexpr (ST::Ordered) {
+      else if constexpr (CT::Array<T1>) {
+         if constexpr (CT::Inner::MakableFrom<T, Deext<T1>>) {
+            // Construct from an array of elements, each of which can   
+            // be used to initialize a T, nesting any semantic while    
+            // doing it                                                 
+            for (auto& key : item)
+               Insert(S::Nest(key));
+            return ExtentOf<T1>;
+         }
+         else {
+            // Construct from an array of elements, which can't be used 
+            // to directly construct Ts, so nest the unfolding insert   
+            Count inserted = 0;
+            for (auto& key : item)
+               inserted += UnfoldInsertion(S::Nest(key));
+            return inserted;
+         }
+      }
+      else if constexpr (CT::Set<T1>) {
+         // Construct from any kind of set (ordered or not), even sets  
+         // of a different, but compatible type                         
+         Count inserted = 0;
+         if constexpr (T1::Ordered) {
             // We have to reinsert everything, because source is        
             // ordered and uses a different bucketing approach          
-            AllocateFresh(other->GetReserved());
-            ZeroMemory(mInfo, GetReserved());
-            mInfo[GetReserved()] = 1;
-
-            const auto hashmask = GetReserved() - 1;
-            if constexpr (CT::TypedSet<ST>) {
-               for (auto& key : *other) {
-                  InsertInner<false>(
-                     GetBucket(hashmask, key),
-                     S::Nest(key)
-                  );
+            if constexpr (CT::TypedSet<T1>) {
+               // The set type is known at compile-time                 
+               for (auto& key : item) {
+                  if constexpr (CT::Inner::MakableFrom<T, TypeOf<T1>>)
+                     inserted += Insert(S::Nest(key));
+                  else
+                     inserted += UnfoldInsertion(S::Nest(key));
                }
             }
             else {
-               for (auto key : *other) {
-                  InsertUnkownInner<false>(
-                     GetBucket(hashmask, key),
-                     S::Nest(key)
-                  );
-               }
+               // The set is type-erased                                
+               for (auto key : item)
+                  inserted += InsertBlock(S::Nest(key));
             }
          }
          else {
             // We can directly interface set, because it is unordered   
             // and uses the same bucketing approach                     
-            BlockTransfer<TUnorderedSet>(other.Forward());
+            BlockTransfer<TUnorderedSet>(S::Nest(item));
          }
+
+         return inserted;
       }
-      else if constexpr (CT::Exact<T, ST>) {
-         // Construct from T                                            
-         AllocateFresh(MinimalAllocation);
-         ZeroMemory(mInfo, MinimalAllocation);
-         mInfo[MinimalAllocation] = 1;
-
-         // Insert a statically typed element                           
-         InsertInner<false>(
-            GetBucket(MinimalAllocation - 1, *other),
-            other.Forward()
-         );
-      }
-      else if constexpr (::std::constructible_from<T, S&&>) {
-         // Construct from compatible element                           
-         AllocateFresh(MinimalAllocation);
-         ZeroMemory(mInfo, MinimalAllocation);
-         mInfo[MinimalAllocation] = 1;
-
-         // Insert a statically typed element                           
-         InsertInner<false>(
-            GetBucket(MinimalAllocation - 1, *other),
-            Abandon(T {other.Forward()})
-         );
-      }
-      else LANGULUS_ERROR("Unsupported semantic constructor");
-   }
-
-   /// Shallow semantic constructor from any set/element                      
-   ///   @param other - the semantic type                                     
-   TEMPLATE() LANGULUS(INLINED)
-   TABLE()::TUnorderedSet(CT::ShallowSemantic auto&& other)
-      : TUnorderedSet {} {
-      ConstructFrom(other.Forward());
-   }
-
-   /// Deep semantic constructor from any set/element                         
-   ///   @param other - the semantic type                                     
-   TEMPLATE() LANGULUS(INLINED)
-   TABLE()::TUnorderedSet(CT::DeepSemantic auto&& other) requires CT::CloneMakable<T>
-      : TUnorderedSet {} {
-      ConstructFrom(other.Forward());
-   }
-
-   /// Create from a list of elements                                         
-   ///   @param head - first element                                          
-   ///   @param tail - tail of elements                                       
-   TEMPLATE()
-   template<CT::Data T1, CT::Data T2, CT::Data... TAIL>
-   TABLE()::TUnorderedSet(T1&& t1, T2&& t2, TAIL&&... tail) {
-      mKeys.mType = MetaDataOf<T>();
-
-      constexpr auto capacity = Roof2(
-         sizeof...(TAIL) + 2 < MinimalAllocation
-            ? MinimalAllocation
-            : sizeof...(TAIL) + 2
-      );
-
-      AllocateFresh(capacity);
-      ZeroMemory(mInfo, capacity);
-      mInfo[capacity] = 1;
-
-      Insert(Forward<T1>(t1));
-      Insert(Forward<T2>(t2));
-      (Insert(Forward<TAIL>(tail)), ...);
+      else LANGULUS_ERROR("Can't insert argument");
    }
 
    /// Destroys the set and all it's contents                                 
@@ -418,29 +381,15 @@ namespace Langulus::Anyness
    constexpr bool TABLE()::IsExact(DMeta value) const noexcept {
       return GetType()->IsExact(value);
    }
-
-   /// Copy-insert a pair inside the map                                      
-   ///   @param rhs - the pair to insert                                      
-   ///   @return a reference to this table for chaining                       
-   TEMPLATE() LANGULUS(INLINED)
-   TABLE()& TABLE()::operator << (const T& rhs) {
-      return operator << (Copy(rhs));
-   }
-
-   /// Move-insert a pair inside the map                                      
-   ///   @param rhs - the pair to insert                                      
-   ///   @return a reference to this table for chaining                       
-   TEMPLATE() LANGULUS(INLINED)
-   TABLE()& TABLE()::operator << (T&& rhs) {
-      return operator << (Move(rhs));
-   }
    
    /// Move-insert a pair inside the map                                      
    ///   @param rhs - the pair to insert                                      
    ///   @return a reference to this table for chaining                       
-   TEMPLATE() LANGULUS(INLINED)
-   TABLE()& TABLE()::operator << (CT::Semantic auto&& rhs) {
-      Insert(rhs.Forward());
+   TEMPLATE()
+   template<class T1>
+   LANGULUS(INLINED)
+   TABLE()& TABLE()::operator << (T1&& rhs) requires CT::Inner::MakableFrom<T, T1&&> {
+      Insert(Forward<T1>(rhs));
       return *this;
    }
 
@@ -657,12 +606,11 @@ namespace Langulus::Anyness
    ///   @tparam CHECK_FOR_MATCH - false if you guarantee key doesn't exist   
    ///   @param start - the starting index                                    
    ///   @param key - key to move in                                          
-   ///   @param val - value to move in                                        
    ///   @return the index at which item was inserted                         
    TEMPLATE()
-   template<bool CHECK_FOR_MATCH>
-   Offset TABLE()::InsertInner(const Offset& start, CT::Semantic auto&& key) {
-      HandleLocal<T> keyswap {key.Forward()};
+   template<bool CHECK_FOR_MATCH, class T1>
+   Offset TABLE()::InsertInner(const Offset& start, T1&& key) {
+      HandleLocal<T> keyswap {Forward<T1>(key)};
 
       // Get the starting index based on the key hash                   
       auto psl = GetInfo() + start;
@@ -702,37 +650,24 @@ namespace Langulus::Anyness
       return index;
    }
 
-   /// Merge an element by copy                                               
-   ///   @param key - the key to merge                                        
-   ///   @return 1 if pair was inserted, zero otherwise                       
-   TEMPLATE() LANGULUS(INLINED)
-   Count TABLE()::Insert(const T& key) {
-      return Insert(Copy(key));
-   }
-
-   /// Merge an element by moving                                             
-   ///   @param key - the key to merge                                        
-   ///   @return 1 if pair was inserted, zero otherwise                       
-   TEMPLATE() LANGULUS(INLINED)
-   Count TABLE()::Insert(T&& key) {
-      return Insert(Move(key));
-   }
-
    /// Merge an element via semantic                                          
    ///   @param key - the key to add                                          
    ///   @return 1 if pair was inserted, zero otherwise                       
-   TEMPLATE() LANGULUS(INLINED)
-   Count TABLE()::Insert(CT::Semantic auto&& key) {
-      using S = Decay<decltype(key)>;
-      static_assert(CT::Exact<TypeOf<S>, T>, 
-         "Inserted element inside semantic is not T");
-
-      Reserve(GetCount() + 1);
+   TEMPLATE()
+   template<class T1, class... TAIL>
+   LANGULUS(INLINED)
+   Count TABLE()::Insert(T1&& t1, TAIL&&...tail)
+   requires CT::Inner::MakableFrom<T, T1&&, TAIL&&...> {
+      Reserve(GetCount() + 1 + sizeof...(TAIL));
       InsertInner<true>(
-         GetBucket(GetReserved() - 1, *key),
-         key.Forward()
+         GetBucket(GetReserved() - 1, DesemCast(t1)),
+         Forward<T1>(t1)
       );
-      return 1;
+      (InsertInner<true>(
+         GetBucket(GetReserved() - 1, DesemCast(tail)),
+         Forward<TAIL>(tail)
+      ), ...);
+      return 1 + sizeof...(TAIL);
    }
 
    /// Destroy everything valid inside the map                                

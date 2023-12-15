@@ -1464,7 +1464,7 @@ namespace Langulus::Anyness
                (*lhs = ... = arguments.mPointer);
                (*lhsEntry = ... = arguments.mEntry);
             }
-            else if constexpr (::std::constructible_from<T, AA>) {
+            else if constexpr (CT::Inner::MakableFrom<T, AA>) {
                // Set pointer and find entry                            
                (*lhs = ... = arguments);
                *lhsEntry = Allocator::Find(mType, *lhs);

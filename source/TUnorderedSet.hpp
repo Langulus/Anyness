@@ -39,16 +39,12 @@ namespace Langulus::Anyness
 
       TUnorderedSet(const TUnorderedSet&);
       TUnorderedSet(TUnorderedSet&&);
-
-      TUnorderedSet(const CT::NotSemantic auto&);
-      TUnorderedSet(CT::NotSemantic auto&);
-      TUnorderedSet(CT::NotSemantic auto&&);
-      TUnorderedSet(CT::ShallowSemantic auto&&);
-      TUnorderedSet(CT::DeepSemantic auto&&) requires CT::CloneMakable<T>;
-
-      template<CT::Data T1, CT::Data T2, CT::Data... TAIL>
-      TUnorderedSet(T1&&, T2&&, TAIL&&...);
-
+      template<template<class> class S>
+      TUnorderedSet(S<TUnorderedSet>&&) requires (CT::Inner::SemanticMakable<S,T>);
+      template<class T1, class...TAIL>
+      TUnorderedSet(T1&&, TAIL&&...) requires (CT::Inner::MakableFrom<T,T1,TAIL...>);
+      template<class T1, class...TAIL>
+      TUnorderedSet(T1&&, TAIL&&...) requires (not CT::Inner::MakableFrom<T,T1,TAIL...>);
       ~TUnorderedSet();
 
       TUnorderedSet& operator = (const TUnorderedSet&);
@@ -61,7 +57,6 @@ namespace Langulus::Anyness
       TUnorderedSet& operator = (CT::DeepSemantic auto&&) requires CT::CloneAssignable<T>;
 
    private:
-      void ConstructFrom(CT::Semantic auto&&);
       TUnorderedSet& AssignFrom(CT::Semantic auto&&);
 
    public:
@@ -169,21 +164,20 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
-      Count Insert(const T&);
-      Count Insert(T&&);
-      Count Insert(CT::Semantic auto&&);
+      template<class T1, class... TAIL>
+      Count Insert(T1&&, TAIL&&...) requires CT::Inner::MakableFrom<T, T1&&, TAIL&&...>;
 
-      TUnorderedSet& operator << (const T&);
-      TUnorderedSet& operator << (T&&);
-      TUnorderedSet& operator << (CT::Semantic auto&&);
+      template<class T1>
+      TUnorderedSet& operator << (T1&&) requires CT::Inner::MakableFrom<T, T1&&>;
 
    protected:
       NOD() static Size RequestKeyAndInfoSize(Count, Offset&) noexcept;
 
       void Rehash(const Count&);
 
-      template<bool CHECK_FOR_MATCH>
-      Offset InsertInner(const Offset&, CT::Semantic auto&&);
+      Count UnfoldInsertion(auto&&);
+      template<bool CHECK_FOR_MATCH, class T1>
+      Offset InsertInner(const Offset&, T1&&);
 
       template<class ALT_T>
       void CloneInner(const ALT_T&, ALT_T&) const;
