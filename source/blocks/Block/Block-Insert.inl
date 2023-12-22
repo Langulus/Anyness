@@ -14,651 +14,340 @@
 
 namespace Langulus::Anyness
 {
-   
-   /// Insert a range of elements by shallow-copy                             
-   ///   @tparam MUTABLE - is it allowed the block to deepen or incorporate   
-   ///                     the new insertion, if not compatible?              
-   ///   @tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled   
-   ///   @tparam T - the type to insert (deducible)                           
-   ///   @tparam INDEX - the type of the index (deducible)                    
-   ///   @param start - pointer to the first item                             
-   ///   @param end - pointer to the end of items                             
-   ///   @param idx - the index to insert at                                  
-   ///   @return number of inserted elements                                  
-   template<bool MUTABLE, CT::Data WRAPPER, CT::NotSemantic T, CT::Index INDEX>
-   Count Block::InsertAt(const T* start, const T* end, INDEX idx) {
-      static_assert(CT::Deep<WRAPPER>,
-         "WRAPPER must be deep");
-      static_assert(CT::Sparse<T> or CT::Mutable<T>,
-         "Can't copy-insert into container of constant elements");
+         
+   /// Inner semantic insertion function for a range                          
+   ///   @tparam FORCE - insert even if types mismatch, by making this block  
+   ///                   deep with provided type - use void to disable        
+   ///   @param index - the offset at which to start inserting                
+   ///   @param start - start of range                                        
+   ///   @param end - end of range                                            
+   template<CT::Block THIS, class FORCE, template<class> class S, CT::Sparse T1, CT::Sparse T2>
+   void Block::InsertContiguousInner(CT::Index auto index, S<T1>&& start, T2 end)
+   requires (CT::Semantic<S<T1>> and CT::Similar<T1, T2>) {
+      using T = Deptr<T1>;
+      static_assert(CT::Insertable<T>,
+         "Dense type is not insertable");
 
-      const auto index = SimplifyIndex<T>(idx);
-
-      if constexpr (MUTABLE) {
+      auto& ME = reinterpret_cast<THIS&>(*this);
+      if constexpr (not CT::Void<FORCE>) {
          // Type may mutate                                             
-         if (Mutate<T, true, WRAPPER>()) {
-            WRAPPER temp;
-            temp.template SetType<T, false>();
-            temp.template Insert<IndexBack, false>(start, end);
-            return InsertAt<false>(Abandon(temp), index);
+         if (Mutate<THIS, T, FORCE>()) {
+            // If reached, then type mutated to a deep type             
+            FORCE temp;
+            temp.template InsertContiguous<FORCE, void>(
+               IndexBack, Forward<S<T1>>(start), end);
+            Insert<THIS, void>(index, Abandon(temp));
+            return;
          }
       }
+      else {
+         // Type can't mutate, but we still have to check it            
+         LANGULUS_ASSERT(ME.template IsSimilar<T>(), Meta,
+            "Inserting incompatible type `", MetaDataOf<T>(),
+            "` to container of type `", ME.GetType(), '`'
+         );
+      }
 
-      // Allocate                                                       
+      // If reached, we have compatible type, so allocate               
+      const Offset idx = SimplifyIndex<T>(index);
       const auto count = end - start;
       AllocateMore<false>(mCount + count);
 
-      if (index < mCount) {
+      if (idx < mCount) {
          // Move memory if required                                     
          LANGULUS_ASSERT(GetUses() == 1, Move,
             "Moving elements that are used from multiple places");
 
          // We're moving to the right, so make sure we do it in reverse 
          // to avoid any potential overlap                              
-         const auto moved = mCount - index;
-         CropInner(index + count, moved)
+         const auto moved = mCount - idx;
+         CropInner(idx + count, moved)
             .template CallKnownSemanticConstructors<T, true>(
-               moved, Abandon(CropInner(index, moved))
+               moved, Abandon(CropInner(idx, moved))
             );
       }
 
-      InsertInner<Copied>(start, end, index);
-      return count;
-   }
+      if constexpr (CT::Sparse<T>) {
+         if constexpr (S<T>::Shallow) {
+            // Copy all pointers at once                                
+            CopyMemory(GetRawAs<T>() + idx, start, count);
 
-   /// Insert a single element by shallow-copy                                
-   ///   @tparam MUTABLE - is it allowed the block to deepen or incorporate   
-   ///                     the new insertion, if not compatible?              
-   ///   @tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled   
-   ///   @param item - item to insert                                         
-   ///   @param idx - the index to insert at                                  
-   ///   @return number of inserted elements                                  
-   template<bool MUTABLE, CT::Data WRAPPER>
-   LANGULUS(INLINED)
-   Count Block::InsertAt(const CT::NotSemantic auto& item, CT::Index auto idx) {
-      return InsertAt<MUTABLE, WRAPPER>(Copy(item), idx);
-   }
+            #if LANGULUS_FEATURE(MANAGED_MEMORY)
+               // If we're using managed memory, we can search if each  
+               // pointer is owned by us, and get its allocation entry  
+               // You can avoid this by using the Disowned semantic     
+               if constexpr (CT::Allocatable<Deptr<T>> and S<T>::Keep) {
+                  auto it = start;
+                  auto entry = GetEntries() + idx;
+                  while (it != end) {
+                     *entry = Allocator::Find(MetaDataOf<Deptr<T>>(), it);
+                     if (*entry)
+                        const_cast<Allocation*>(*entry)->Keep();
 
-   template<bool MUTABLE, CT::Data WRAPPER>
-   LANGULUS(INLINED)
-   Count Block::InsertAt(CT::NotSemantic auto& item, CT::Index auto idx) {
-      return InsertAt<MUTABLE, WRAPPER>(Copy(item), idx);
-   }
-
-   /// Insert a single element by move                                        
-   ///   @tparam MUTABLE - is it allowed the block to deepen or incorporate   
-   ///                     the new insertion, if not compatible?              
-   ///   @tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled   
-   ///   @param item - the item to move in                                    
-   ///   @param idx - the index to insert at                                  
-   ///   @return number of inserted elements                                  
-   template<bool MUTABLE, CT::Data WRAPPER>
-   LANGULUS(INLINED)
-   Count Block::InsertAt(CT::NotSemantic auto&& item, CT::Index auto idx) {
-      return InsertAt<MUTABLE, WRAPPER>(Move(item), idx);
-   }
-   
-   /// Insert a single element by a semantic                                  
-   ///   @tparam MUTABLE - is it allowed the block to deepen or incorporate   
-   ///                     the new insertion, if not compatible?              
-   ///   @tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled   
-   ///   @param item - the item to move in                                    
-   ///   @param idx - the index to insert at                                  
-   ///   @return number of inserted elements                                  
-   template<bool MUTABLE, CT::Data WRAPPER>
-   Count Block::InsertAt(CT::Semantic auto&& item, CT::Index auto idx) {
-      using S = Deref<decltype(item)>;
-      using T = TypeOf<S>;
-
-      static_assert(CT::Deep<WRAPPER>,
-         "WRAPPER must be deep");
-      static_assert(CT::Sparse<T> or CT::Mutable<T>,
-         "Can't move-insert into container of constant elements");
-
-      const auto index = SimplifyIndex<T>(idx);
-
-      if constexpr (MUTABLE) {
-         // Type may mutate                                             
-         if (Mutate<T, true, WRAPPER>()) {
-            return InsertAt<false>(
-               Abandon(WRAPPER {item.Forward()}), index);
+                     ++it;
+                     ++entry;
+                  }
+               }
+               else
+            #endif
+               ZeroMemory(GetEntries() + idx, count);
+         }
+         else {
+            // Pointer clone                                            
+            TODO();
          }
       }
+      else {
+         // Insert dense data                                           
+         static_assert(not CT::Abstract<T>,
+            "Can't insert abstract item in dense container");
 
-      // Allocate                                                       
+         auto to = GetRawAs<T>() + idx;
+         auto from = *start;
+         if constexpr (CT::POD<T>) {
+            // Optimized POD range insertion                            
+            CopyMemory(to, from, count);
+         }
+         else if constexpr (CT::SemanticMakable<S, T>) {
+            // Call semantic construction for each element in range     
+            while (to != from)
+               SemanticNew(to++, S<T>::Nest(*(from++)));
+         }
+         else LANGULUS_ERROR("Missing semantic-constructor");
+      }
+
+      mCount += count;
+   }
+
+   /// Inner semantic insertion function                                      
+   ///   @attention this is an inner function and should be used with caution 
+   ///   @attention assumes required free space has been prepared at offset   
+   ///   @attention assumes that TypeOf<S> is exactly this container's type   
+   ///   @tparam FORCE - insert even if types mismatch, by making this block  
+   ///                   deep with provided type - use void to disable        
+   ///   @param index - the offset at which to insert                         
+   ///   @param item - item and semantic to insert                            
+   template<CT::Block THIS, class FORCE>
+   void Block::InsertInner(CT::Index auto index, auto&& item) {
+      using S = SemanticOf<decltype(item)>;
+      using T = TypeOf<S>;
+      static_assert(CT::Insertable<T>,
+         "Dense type is not insertable");
+
+      auto& ME = reinterpret_cast<THIS&>(*this);
+      if constexpr (not CT::Void<FORCE>) {
+         // Type may mutate                                             
+         if (Mutate<THIS, T, FORCE>()) {
+            // If reached, then type mutated to a deep type             
+            FORCE temp {S::Nest(item)};
+            Insert<THIS, void>(index, Abandon(temp));
+            return;
+         }
+      }
+      else {
+         // Type can't mutate, but we still have to check it            
+         LANGULUS_ASSERT(ME.template IsSimilar<T>(), Meta,
+            "Inserting incompatible type `", MetaDataOf<T>(),
+            "` to container of type `", ME.GetType(), '`'
+         );
+      }
+
+      // If reached, we have compatible type, so allocate               
+      const Offset idx = SimplifyIndex<T>(index);
       AllocateMore<false>(mCount + 1);
 
-      if (index < mCount) {
+      if (idx < mCount) {
          // Move memory if required                                     
          LANGULUS_ASSERT(GetUses() == 1, Move,
             "Moving elements that are used from multiple places");
 
          // We're moving to the right, so make sure we do it in reverse 
          // to avoid any potential overlap                              
-         const auto moved = mCount - index;
-         CropInner(index + 1, moved)
+         const auto moved = mCount - idx;
+         CropInner(idx + 1, moved)
             .template CallKnownSemanticConstructors<T, true>(
-               moved, Abandon(CropInner(index, moved))
+               moved, Abandon(CropInner(idx, moved))
             );
       }
 
-      InsertInner(item.Forward(), index);
-      return 1;
-   }
-   
-   /// Insert a range of elements by shallow-copy at a static index           
-   ///   @tparam INDEX - use IndexBack or IndexFront to append accordingly    
-   ///   @tparam MUTABLE - is it allowed the block to deepen or incorporate   
-   ///                     the new insertion, if not compatible?              
-   ///   @tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled   
-   ///   @tparam T - the type to insert (deducible)                           
-   ///   @param start - pointer to the first item                             
-   ///   @param end - pointer to the end of items                             
-   ///   @return number of inserted elements                                  
-   template<Index INDEX, bool MUTABLE, CT::Data WRAPPER, CT::NotSemantic T>
-   Count Block::Insert(const T* start, const T* end) {
-      static_assert(CT::Deep<WRAPPER>,
-         "WRAPPER must be deep");
-      static_assert(INDEX == IndexFront or INDEX == IndexBack,
-         "INDEX can be either IndexBack or IndexFront; "
-         "use Block::InsertAt to insert at specific offset");
-
-      if constexpr (MUTABLE) {
-         // Type may mutate                                             
-         if (Mutate<T, true, WRAPPER>()) {
-            WRAPPER temp;
-            temp.template SetType<T, false>();
-            temp.template Insert<IndexBack, false>(start, end);
-            return Insert<INDEX, false>(Abandon(temp));
-         }
-      }
-
-      // Allocate                                                       
-      const auto count = end - start;
-      AllocateMore<false>(mCount + count);
-
-      if constexpr (INDEX == IndexFront) {
-         // Move memory if required                                     
-         LANGULUS_ASSERT(GetUses() == 1, Move,
-            "Moving elements that are used from multiple places");
-
-         // We're moving to the right, so make sure we do it in reverse 
-         // to avoid any overlap                                        
-         CropInner(count, 0)
-            .template CallKnownSemanticConstructors<T, true>(
-               mCount, Abandon(CropInner(0, mCount))
-            );
-
-         InsertInner<Copied>(start, end, 0);
-      }
-      else InsertInner<Copied>(start, end, mCount);
-
-      return count;
+      LANGULUS_ASSUME(DevAssumes, IsExact<T>(), "Inserting incompatible type");
+      GetHandle<T>(idx).New(S::Nest(item));
+      ++mCount;
    }
 
-   /// Insert a single element by shallow-copy at a static index              
-   ///   @tparam INDEX - use IndexBack or IndexFront to append accordingly    
-   ///   @tparam MUTABLE - is it allowed the block to deepen or incorporate   
-   ///                     the new insertion, if not compatible?              
-   ///   @tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled   
-   ///   @param item - item to insert                                         
-   ///   @return number of inserted elements                                  
-   template<Index INDEX, bool MUTABLE, CT::Data WRAPPER>
-   LANGULUS(INLINED)
-   Count Block::Insert(const CT::NotSemantic auto& item) {
-      return Insert<INDEX, MUTABLE, WRAPPER>(Copy(item));
-   }
-
-   template<Index INDEX, bool MUTABLE, CT::Data WRAPPER>
-   LANGULUS(INLINED)
-   Count Block::Insert(CT::NotSemantic auto& item) {
-      return Insert<INDEX, MUTABLE, WRAPPER>(Copy(item));
-   }
-
-   /// Insert a single element by move at a static index                      
-   ///   @tparam INDEX - use IndexBack or IndexFront to append accordingly    
-   ///   @tparam MUTABLE - is it allowed the block to deepen or incorporate   
-   ///                     the new insertion, if not compatible?              
-   ///   @tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled   
-   ///   @param item - item to insert                                         
-   ///   @return number of inserted elements                                  
-   template<Index INDEX, bool MUTABLE, CT::Data WRAPPER>
-   LANGULUS(INLINED)
-   Count Block::Insert(CT::NotSemantic auto&& item) {
-      return Insert<INDEX, MUTABLE, WRAPPER>(Move(item));
-   }
-   
-   /// Insert a single element by semantic at a static index                  
-   ///   @tparam INDEX - use IndexBack or IndexFront to append accordingly    
-   ///   @tparam MUTABLE - is it allowed the block to deepen or incorporate   
-   ///                     the new insertion, if not compatible?              
-   ///   @tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled   
-   ///   @param item - item to insert                                         
-   ///   @return number of inserted elements                                  
-   template<Index INDEX, bool MUTABLE, CT::Data WRAPPER>
-   Count Block::Insert(CT::Semantic auto&& item) {
-      using S = Deref<decltype(item)>;
+   /// Insert an element, or an array of elements                             
+   ///   @tparam FORCE - insert even if types mismatch, by making this block  
+   ///                   deep with provided type - use void to disable        
+   ///   @param index - the index at which to insert                          
+   ///   @param item - the argument to unfold and insert, can be semantic     
+   ///   @return the number of inserted elements after unfolding              
+   template<CT::Block THIS, class FORCE>
+   Count Block::UnfoldInsert(CT::Index auto index, auto&& item) {
+      using S = SemanticOf<decltype(item)>;
       using T = TypeOf<S>;
+      
+      if constexpr (CT::Array<T>) {
+         if constexpr (CT::StringLiteral<T>) {
+            // Implicitly convert string literals to Text containers    
+            InsertInner<THIS, FORCE>(index, Text {S::Nest(item)});
+            return 1;
+         }
+         else {
+            // Insert the array                                         
+            InsertContiguousInner<THIS, FORCE>(index, S::Nest(item));
+            return ExtentOf<T>;
+         }
+      }
+      else {
+         // Some of the arguments might still be used directly to       
+         // make an element, forward these to standard insertion here   
+         InsertInner<THIS, FORCE>(index, S::Nest(item));
+         return 1;
+      }
+   }
 
-      static_assert(CT::Deep<WRAPPER>,
-         "WRAPPER must be deep");
-      static_assert(INDEX == IndexFront or INDEX == IndexBack,
-         "INDEX can be either IndexBack or IndexFront; "
-         "use Block::InsertAt to insert at specific offset");
+   /// Insert an element, or an array of elements, if not found               
+   ///   @tparam FORCE - insert even if types mismatch, by making this block  
+   ///                   deep with provided type - use void to disable        
+   ///   @param index - the index at which to insert                          
+   ///   @param item - the argument to unfold and insert, can be semantic     
+   ///   @return the number of inserted elements after unfolding              
+   template<CT::Block THIS, class FORCE>
+   Count Block::UnfoldMerge(CT::Index auto index, auto&& item) {
+      using S = SemanticOf<decltype(item)>;
+      using T = TypeOf<S>;
+      
+      if constexpr (CT::Array<T>) {
+         if constexpr (CT::StringLiteral<T>) {
+            // Implicitly convert string literals to Text containers    
+            if (CT::Void<FORCE> and not IsSimilar<Text>())
+               return 0;
 
-      if constexpr (MUTABLE) {
-         // Type may mutate                                             
-         if (Mutate<T, true, WRAPPER>()) {
-            return Insert<INDEX, false>(Abandon(WRAPPER {item.Forward()}));
+            Text text {S::Nest(item)};
+            if (not IsSimilar<Text>() or not FindKnown(text)) {
+               InsertInner<FORCE>(index, Abandon(text));
+               return 1;
+            }
+         }
+         else {
+            // Insert the array                                         
+            if (CT::Void<FORCE> and not IsSimilar<Deext<T>>())
+               return 0;
+
+            constexpr auto count = ExtentOf<T>;
+            if (not IsSimilar<Deext<T>>()
+            or  not FindContiguousKnown(DesemCast(item), DesemCast(item) + count)) {
+               InsertContiguousInner<FORCE>(index, S::Nest(item), DesemCast(item) + count);
+               return count;
+            }
+         }
+      }
+      else {
+         // Some of the arguments might still be used directly to       
+         // make an element, forward these to standard insertion here   
+         if (CT::Void<FORCE> and not IsSimilar<T>())
+            return 0;
+
+         if (not IsSimilar<T>() or not FindKnown(DesemCast(item))) {
+            InsertInner<FORCE>(index, S::Nest(item));
+            return 1;
          }
       }
 
-      // Allocate                                                       
-      AllocateMore<false>(mCount + 1);
+      return 0;
+   }
 
-      if constexpr (INDEX == IndexFront) {
-         // Move memory if required                                     
-         LANGULUS_ASSERT(GetUses() == 1, Move,
-            "Moving elements that are used from multiple places");
-
-         // We're moving to the right, so make sure we do it in reverse 
-         // to avoid any potential overlap                              
-         CropInner(1, 0)
-            .template CallKnownSemanticConstructors<T, true>(
-               mCount, Abandon(CropInner(0, mCount))
-            );
-
-         InsertInner(item.Forward(), 0);
-      }
-      else InsertInner(item.Forward(), mCount);
-
-      return 1;
+   /// Insert elements at a given index, semantically or not                  
+   ///   @tparam FORCE - insert even if types mismatch, by making this block  
+   ///                   deep with provided type - use void to disable        
+   ///   @param index - the index at which to insert                          
+   ///   @param t1 - the first item to insert                                 
+   ///   @param tail... - the rest of items to insert (optional)              
+   ///   @return number of inserted elements                                  
+   template<CT::Block THIS, class FORCE, class T1, class...TAIL> LANGULUS(INLINED)
+   Count Block::Insert(CT::Index auto idx, T1&& t1, TAIL&&...tail) {
+      Count inserted = 0;
+      inserted += UnfoldInsert<THIS, FORCE>(idx, Forward<T1>(t1));
+      ((inserted += UnfoldInsert<THIS, FORCE>(idx + inserted, Forward<TAIL>(tail))), ...);
+      return inserted;
    }
    
-   /// Merge a range of elements by shallow-copy                              
-   /// Each element will be pushed only if not found in block                 
-   ///   @tparam MUTABLE - is it allowed the block to deepen or incorporate   
-   ///                     the new insertion, if not compatible?              
-   ///   @tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled   
-   ///   @tparam T - the type to insert (deducible)                           
-   ///   @param start - pointer to the first item                             
-   ///   @param end - pointer to the end of items                             
-   ///   @param index - the special index to insert at                        
+   /// Insert all elements of a block at an index, semantically or not        
+   ///   @tparam FORCE - insert even if types mismatch, by making this block  
+   ///                   deep with provided type - use void to disable        
+   ///   @param idx - index to insert them at                                 
+   ///   @param other - the block to insert                                   
    ///   @return the number of inserted elements                              
-   template<bool MUTABLE, CT::Data WRAPPER, CT::NotSemantic T>
-   Count Block::MergeAt(const T* start, const T* end, CT::Index auto index) {
-      auto offset = SimplifyIndex(index);
-      Count added {};
-      while (start != end) {
-         if (not FindKnown(*start)) {
-            added += InsertAt<MUTABLE, WRAPPER>(Copy(*start), offset);
-            ++offset;
-         }
+   template<CT::Block THIS, class FORCE, class T> LANGULUS(INLINED)
+   Count Block::InsertBlock(CT::Index auto idx, T&& other)
+   requires CT::Block<Desem<T>> {
+      using S = SemanticOf<decltype(other)>;
+      using ST = TypeOf<S>;
+      auto& rhs = const_cast<Block&>(static_cast<const Block&>(DesemCast(other)));
 
-         ++start;
+      if (rhs.IsEmpty())
+         return 0;
+
+      // Allocate region and type-check                                 
+      auto region = AllocateRegion<THIS>(rhs, SimplifyIndex<ST>(idx));
+
+      if constexpr (CT::Typed<ST>) {
+         region.template CallKnownSemanticConstructors<TypeOf<ST>>(
+            rhs.GetCount(), S::Nest(rhs)
+         );
+      }
+      else {
+         region.CallUnknownSemanticConstructors(
+            rhs.GetCount(), S::Nest(rhs)
+         );
       }
 
-      return added;
-   }
+      mCount += rhs.GetCount();
 
-   /// Merge a single element by shallow-copy                                 
-   /// Element will be pushed only if not found in block                      
-   ///   @tparam MUTABLE - is it allowed the block to deepen or incorporate   
-   ///                     the new insertion, if not compatible?              
-   ///   @tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled   
-   ///   @param item - item to insert                                         
-   ///   @param index - the special index to insert at                        
-   ///   @return the number of inserted elements                              
-   template<bool MUTABLE, CT::Data WRAPPER>
-   LANGULUS(INLINED)
-   Count Block::MergeAt(const CT::NotSemantic auto& item, CT::Index auto index) {
-      return MergeAt<MUTABLE, WRAPPER>(Copy(item), index);
-   }
-
-   template<bool MUTABLE, CT::Data WRAPPER>
-   LANGULUS(INLINED)
-   Count Block::MergeAt(CT::NotSemantic auto& item, CT::Index auto index) {
-      return MergeAt<MUTABLE, WRAPPER>(Copy(item), index);
-   }
-
-   /// Merge a single element by move                                         
-   /// Element will be pushed only if not found in block                      
-   ///   @tparam MUTABLE - is it allowed the block to deepen or incorporate   
-   ///                     the new insertion, if not compatible?              
-   ///   @tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled   
-   ///   @param item - item to insert                                         
-   ///   @param index - the special index to insert at                        
-   ///   @return the number of inserted elements                              
-   template<bool MUTABLE, CT::Data WRAPPER>
-   LANGULUS(INLINED)
-   Count Block::MergeAt(CT::NotSemantic auto&& item, CT::Index auto index) {
-      return MergeAt<MUTABLE, WRAPPER>(Move(item), index);
+      if constexpr (S::Move and S::Keep and ST::Ownership) {
+         // All elements were moved, only empty husks remain            
+         // so destroy them, and discard ownership of 'other'           
+         const auto pushed = rhs.GetCount();
+         rhs.Free();
+         rhs.mEntry = nullptr;
+         return pushed;
+      }
+      else return rhs.GetCount();
    }
    
    /// Merge a single element by a semantic                                   
    /// Element will be pushed only if not found in block                      
-   ///   @tparam MUTABLE - is it allowed the block to deepen or incorporate   
-   ///                     the new insertion, if not compatible?              
-   ///   @tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled   
-   ///   @param item - item to insert                                         
-   ///   @param index - the special index to insert at                        
+   ///   @tparam FORCE - insert even if types mismatch, by making this block  
+   ///                   deep with provided type - use void to disable        
+   ///   @param index - the index at which to insert                          
+   ///   @param t1 - the first item to insert                                 
+   ///   @param tail... - the rest of items to insert (optional)              
    ///   @return the number of inserted elements                              
-   template<bool MUTABLE, CT::Data WRAPPER>
-   LANGULUS(INLINED)
-   Count Block::MergeAt(CT::Semantic auto&& item, CT::Index auto index) {
-      if (not FindKnown(item.mValue))
-         return InsertAt<MUTABLE, WRAPPER>(item.Forward(), index);
-      return 0;
-   }
-
-   /// Merge a range of elements by shallow-copy at a static index            
-   /// Each element will be pushed only if not found in block                 
-   ///   @tparam INDEX - static index (either IndexFront or IndexBack)        
-   ///   @tparam MUTABLE - is it allowed the block to deepen or incorporate   
-   ///                     the new insertion, if not compatible?              
-   ///   @tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled   
-   ///   @tparam T - the type to insert (deducible)                           
-   ///   @param start - pointer to the first item                             
-   ///   @param end - pointer to the end of items                             
-   ///   @return the number of inserted elements                              
-   template<Index INDEX, bool MUTABLE, CT::Data WRAPPER, CT::NotSemantic T>
-   LANGULUS(INLINED)
-   Count Block::Merge(const T* start, const T* end) {
-      Count added {};
-      while (start != end) {
-         if (not FindKnown(*start))
-            added += Insert<INDEX, MUTABLE, WRAPPER, T>(Copy(*start));
-         ++start;
-      }
-
-      return added;
-   }
-
-   /// Merge an elements by shallow-copy at a static index                    
-   /// Each element will be pushed only if not found in block                 
-   ///   @tparam INDEX - static index (either IndexFront or IndexBack)        
-   ///   @tparam MUTABLE - is it allowed the block to deepen or incorporate   
-   ///                     the new insertion, if not compatible?              
-   ///   @tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled   
-   ///   @param item - item to insert                                         
-   ///   @return the number of inserted elements                              
-   template<Index INDEX, bool MUTABLE, CT::Data WRAPPER>
-   LANGULUS(INLINED)
-   Count Block::Merge(const CT::NotSemantic auto& item) {
-      return Merge<INDEX, MUTABLE, WRAPPER>(Copy(item));
-   }
-
-   template<Index INDEX, bool MUTABLE, CT::Data WRAPPER>
-   LANGULUS(INLINED)
-   Count Block::Merge(CT::NotSemantic auto& item) {
-      return Merge<INDEX, MUTABLE, WRAPPER>(Copy(item));
-   }
-
-   /// Merge an elements by move at a static index                            
-   /// Each element will be pushed only if not found in block                 
-   ///   @tparam INDEX - static index (either IndexFront or IndexBack)        
-   ///   @tparam MUTABLE - is it allowed the block to deepen or incorporate   
-   ///                     the new insertion, if not compatible?              
-   ///   @tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled   
-   ///   @param item - item to insert                                         
-   ///   @return the number of inserted elements                              
-   template<Index INDEX, bool MUTABLE, CT::Data WRAPPER>
-   LANGULUS(INLINED)
-   Count Block::Merge(CT::NotSemantic auto&& item) {
-      return Merge<INDEX, MUTABLE, WRAPPER>(Move(item));
-   }
-   
-   /// Merge an elements by semantic at a static index                        
-   /// Each element will be pushed only if not found in block                 
-   ///   @tparam INDEX - static index (either IndexFront or IndexBack)        
-   ///   @tparam MUTABLE - is it allowed the block to deepen or incorporate   
-   ///                     the new insertion, if not compatible?              
-   ///   @tparam WRAPPER - the type to use to deepen, if MUTABLE is enabled   
-   ///   @param item - item to insert                                         
-   ///   @return the number of inserted elements                              
-   template<Index INDEX, bool MUTABLE, CT::Data WRAPPER>
-   LANGULUS(INLINED)
-   Count Block::Merge(CT::Semantic auto&& item) {
-      if (not FindKnown(*item))
-         return Insert<INDEX, MUTABLE, WRAPPER>(item.Forward());
-      return 0;
-   }
-   
-   /// Copy-insert all elements of a block at an index                        
-   ///   @param other - the block to insert                                   
-   ///   @param idx - index to insert them at                                 
-   ///   @return the number of inserted elements                              
-   LANGULUS(INLINED)
-   Count Block::InsertBlockAt(const CT::NotSemantic auto& other, CT::Index auto idx) {
-      return InsertBlockAt(Copy(other), idx);
-   }
-
-   LANGULUS(INLINED)
-   Count Block::InsertBlockAt(CT::NotSemantic auto& other, CT::Index auto idx) {
-      return InsertBlockAt(Copy(other), idx);
-   }
-
-   /// Move-insert all elements of a block at an index                        
-   ///   @tparam T - type of block (deducible)                                
-   ///   @tparam INDEX - type of indexing (deducible)                         
-   ///   @param other - the block to insert                                   
-   ///   @param idx - index to insert them at                                 
-   ///   @return the number of inserted elements                              
-   LANGULUS(INLINED)
-   Count Block::InsertBlockAt(CT::NotSemantic auto&& other, CT::Index auto idx) {
-      return InsertBlockAt(Move(other), idx);
-   }
-
-   /// Semantically insert all elements of a block at an index                
-   ///   @param other - the block to insert                                   
-   ///   @param idx - index to insert them at                                 
-   ///   @return the number of inserted elements                              
-   LANGULUS(INLINED)
-   Count Block::InsertBlockAt(CT::Semantic auto&& other, CT::Index auto idx) {
-      using S = Deref<decltype(other)>;
-      using T = TypeOf<S>;
-      static_assert(CT::Block<T>, "T must be a block type");
-      if (other->IsEmpty())
-         return 0;
-
-      Block region;
-      AllocateRegion(*other, SimplifyIndex<T>(idx), region);
-      if (region.IsAllocated()) {
-         if constexpr (CT::Typed<T>) {
-            region.CallKnownSemanticConstructors<TypeOf<T>>(
-               other->mCount, other.template Forward<Block>()
-            );
-         }
-         else {
-            region.CallUnknownSemanticConstructors(
-               other->mCount, other.template Forward<Block>()
-            );
-         }
-
-         mCount += other->mCount;
-         return other->mCount;
-      }
-
-      return 0;
-   }
-   
-   /// Copy-insert all elements of a block either at the start or at end      
-   ///   @tparam INDEX - either IndexBack or IndexFront                       
-   ///   @param other - the block to insert                                   
-   ///   @return the number of inserted elements                              
-   template<Index INDEX>
-   LANGULUS(INLINED)
-   Count Block::InsertBlock(const CT::NotSemantic auto& other) {
-      return InsertBlock<INDEX>(Copy(other));
-   }
-
-   template<Index INDEX>
-   LANGULUS(INLINED)
-   Count Block::InsertBlock(CT::NotSemantic auto& other) {
-      return InsertBlock<INDEX>(Copy(other));
-   }
-
-   /// Move-insert all elements of a block either at the start or at end      
-   ///   @tparam INDEX - either IndexBack or IndexFront                       
-   ///   @param other - the block to insert                                   
-   ///   @return the number of inserted elements                              
-   template<Index INDEX>
-   LANGULUS(INLINED)
-   Count Block::InsertBlock(CT::NotSemantic auto&& other) {
-      return InsertBlock<INDEX>(Move(other));
-   }
-
-   /// Semantic-insert all elements of a block either at start or end         
-   ///   @tparam INDEX - either IndexBack or IndexFront                       
-   ///   @param other - the block to insert                                   
-   ///   @return the number of inserted elements                              
-   template<Index INDEX>
-   Count Block::InsertBlock(CT::Semantic auto&& other) {
-      using S = Deref<decltype(other)>;
-      using T = TypeOf<S>;
-
-      static_assert(CT::Block<T>,
-         "S::Type must be a block type");
-      static_assert(INDEX == IndexFront or INDEX == IndexBack,
-         "INDEX must be either IndexFront or IndexEnd;"
-         " use InsertBlockAt for specific indices");
-
-      if (other->IsEmpty())
-         return 0;
-
-      // Type may mutate, but never deepen                              
-      Mutate<false>(other->mType);
-
-      // Allocate the required memory - this will not initialize it     
-      AllocateMore<false>(mCount + other->mCount);
-
-      if constexpr (INDEX == IndexFront) {
-         // Move memory if required                                     
-         LANGULUS_ASSERT(GetUses() == 1, Move,
-            "Inserting requires moving elements, "
-            "that are used from multiple location");
-
-         // We're moving to the right to form the gap, so we have to    
-         // call abandon-constructors in reverse to avoid overlap       
-         CropInner(other->mCount, 0)
-            .template CallUnknownSemanticConstructors<true>(
-               mCount, Abandon(CropInner(0, mCount))
-            );
-
-         CropInner(0, 0)
-            .CallUnknownSemanticConstructors(
-               other->mCount, other.template Forward<Block>());
-      }
-      else {
-         CropInner(mCount, 0)
-            .CallUnknownSemanticConstructors(
-               other->mCount, other.template Forward<Block>());
-      }
-
-      mCount += other->mCount;
-
-      if constexpr (S::Move and S::Keep and T::Ownership) {
-         // All elements were moved, only empty husks remain            
-         // so destroy them, and discard ownership of 'other'           
-         const auto pushed = other->mCount;
-         other->Free();
-         other->mEntry = nullptr;
-         return pushed;
-      }
-      else return other->mCount;
-   }
-   
-   /// Copy-insert each block element that is not found in this container     
-   ///   @param other - the block to insert                                   
-   ///   @param index - special/simple index to insert at                     
-   ///   @return the number of inserted elements                              
-   LANGULUS(INLINED)
-   Count Block::MergeBlockAt(const CT::NotSemantic auto& other, CT::Index auto index) {
-      return MergeBlockAt(Copy(other), index);
-   }
-
-   LANGULUS(INLINED)
-   Count Block::MergeBlockAt(CT::NotSemantic auto& other, CT::Index auto index) {
-      return MergeBlockAt(Copy(other), index);
-   }
-
-   /// Move-insert each block element that is not found in this container     
-   ///   @param other - the block to insert                                   
-   ///   @param index - special/simple index to insert at                     
-   ///   @return the number of inserted elements                              
-   LANGULUS(INLINED)
-   Count Block::MergeBlockAt(CT::NotSemantic auto&& other, CT::Index auto index) {
-      return MergeBlockAt(Move(other), index);
-   }
-
-   /// Semantically insert each element that is not found in this container   
-   ///   @param other - the block to insert                                   
-   ///   @param index - special/simple index to insert at                     
-   ///   @return the number of inserted elements                              
-   Count Block::MergeBlockAt(CT::Semantic auto&& other, CT::Index auto index) {
-      using S = Deref<decltype(other)>;
-      static_assert(CT::Block<TypeOf<S>>,
-         "S::Type must be a block type");
-      static_assert(CT::SameAsOneOf<decltype(index), Index, Offset>,
-         "INDEX must be an index type");
-
-      Count inserted {};
-      for (Count i = 0; i < other->GetCount(); ++i) {
-         auto right = other->GetElement(i);
-         if (not FindUnknown(right))
-            inserted += InsertBlockAt(S::Nest(right), index);
-      }
-
+   template<CT::Block THIS, class FORCE, class T1, class...TAIL> LANGULUS(INLINED)
+   Count Block::Merge(CT::Index auto index, T1&& t1, TAIL&&...tail) {
+      Count inserted = 0;
+      inserted += UnfoldMerge<THIS, FORCE>(index, Forward<T1>(t1));
+      ((inserted += UnfoldMerge<THIS, FORCE>(index + inserted, Forward<TAIL>(tail))), ...);
       return inserted;
    }
 
-   /// Copy-insert each block element that is not found in this container     
-   /// at a static index                                                      
-   ///   @tparam INDEX - the index to insert at (IndexFront or IndexBack)     
-   ///   @param other - the block to merge                                    
+   /// Semantically insert each element that is not found in this container   
+   ///   @tparam FORCE - insert even if types mismatch, by making this block  
+   ///                   deep with provided type - use void to disable        
+   ///   @param index - special/simple index to insert at                     
+   ///   @param other - the block to insert                                   
    ///   @return the number of inserted elements                              
-   template<Index INDEX>
-   LANGULUS(INLINED)
-   Count Block::MergeBlock(const CT::NotSemantic auto& other) {
-      return MergeBlock<INDEX>(Copy(other));
-   }
+   template<CT::Block THIS, class FORCE, class T> LANGULUS(INLINED)
+   Count Block::MergeBlock(CT::Index auto index, T&& other)
+   requires CT::Block<Desem<T>> {
+      using S = SemanticOf<decltype(other)>;
+      decltype(auto) rhs = DesemCast(other);
 
-   template<Index INDEX>
-   LANGULUS(INLINED)
-   Count Block::MergeBlock(CT::NotSemantic auto& other) {
-      return MergeBlock<INDEX>(Copy(other));
-   }
-
-   /// Move-insert each block element that is not found in this container     
-   /// at a static index                                                      
-   ///   @tparam INDEX - the index to insert at (IndexFront or IndexBack)     
-   ///   @param other - the block to merge                                    
-   ///   @return the number of inserted elements                              
-   template<Index INDEX>
-   LANGULUS(INLINED)
-   Count Block::MergeBlock(CT::NotSemantic auto&& other) {
-      return MergeBlock<INDEX>(Move(other));
-   }
-
-   /// Semantically insert each block element that is not found in this       
-   /// container at a static index                                            
-   ///   @tparam INDEX - the index to insert at (IndexFront or IndexBack)     
-   ///   @param other - the block to merge                                    
-   ///   @return the number of inserted elements                              
-   template<Index INDEX>
-   Count Block::MergeBlock(CT::Semantic auto&& other) {
-      using S = Deref<decltype(other)>;
-      static_assert(CT::Block<TypeOf<S>>,
-         "S::Type must be a block type");
-      static_assert(INDEX == IndexFront or INDEX == IndexBack,
-         "INDEX must be either IndexFront or IndexBack");
-
-      //TODO do a pass first and allocate & move once instead of each time?
-      Count inserted {};
-      for (Count i = 0; i < other->GetCount(); ++i) {
-         auto right = other->GetElementResolved(i);
-         if (not FindUnknown(right))
-            inserted += InsertBlock<INDEX>(S::Nest(right));
+      Count inserted = 0;
+      for (Count i = 0; i < rhs.GetCount(); ++i) {
+         auto element = rhs.GetElement(i);
+         if (not FindUnknown(element))
+            inserted += InsertBlock<THIS, FORCE>(index, S::Nest(element));
       }
 
       return inserted;
@@ -682,74 +371,58 @@ namespace Langulus::Anyness
    ///   @param idx - the index to emplace at                                 
    ///   @param arguments... - the arguments to forward to constructor        
    ///   @return 1 if the element was emplaced successfully                   
-   template<CT::Index IDX, class... A>
-   LANGULUS(INLINED)
-   Count Block::EmplaceAt(const IDX& idx, A&&... arguments) {
-      // Allocate the required memory - this will not initialize it     
-      AllocateMore<false>(mCount + 1);
+   template<CT::Block THIS, class... A> LANGULUS(INLINED)
+   Count Block::Emplace(CT::Index auto idx, A&&... arguments) {
+      if constexpr (CT::Typed<THIS>) {
+         using T = TypeOf<THIS>;
 
-      const auto index = SimplifyIndex<void, false>(idx);
-      if (index < mCount) {
+         AllocateMore(mCount + 1);
+         const auto offset = SimplifyIndex<T>(idx);
+         if (offset < mCount) {
+            // Move memory if required                                  
+            LANGULUS_ASSERT(GetUses() == 1, Move,
+               "Emplacing elements to memory block, used from multiple places, "
+               "requires memory to move");
+
+            // We're moving to the right, so make sure we do it in      
+            // reverse to avoid any overlap                             
+            const auto tail = mCount - offset;
+            CropInner(offset + 1, 0)
+               .template CallKnownSemanticConstructors<T, true>(
+                  tail, Abandon(CropInner(offset, tail))
+               );
+         }
+
+         CropInner(offset, 0)
+            .template CallKnownConstructors<T, A...>(
+               1, Forward<A>(arguments)...);
+
+         ++mCount;
+      }
+      else {
          // Move memory if required                                     
-         LANGULUS_ASSERT(GetUses() == 1, Move,
-            "Moving elements that are used from multiple places");
+         AllocateMore(mCount + 1);
+         const auto offset = SimplifyIndex<void, false>(idx);
+         if (offset < mCount) {
+            // Move memory if required                                  
+            LANGULUS_ASSERT(GetUses() == 1, Move,
+               "Moving elements that are used from multiple places");
 
-         // We need to shift elements right from the insertion point    
-         // Therefore, we call move constructors in reverse, to avoid   
-         // memory overlap                                              
-         const auto moved = mCount - index;
-         CropInner(index + 1, 0)
-            .template CallUnknownSemanticConstructors<true>(
-               moved, Abandon(CropInner(index, moved))
-            );
+            // We need to shift elements right from the insertion point 
+            // Therefore, we call move constructors in reverse, to      
+            // avoid memory overlap                                     
+            const auto moved = mCount - offset;
+            CropInner(offset + 1, 0)
+               .template CallUnknownSemanticConstructors<true>(
+                  moved, Abandon(CropInner(offset, moved))
+               );
+         }
+
+         // Pick the region that should be overwritten with new stuff   
+         const auto region = CropInner(offset, 0);
+         EmplaceInner<THIS>(region, 1, Forward<A>(arguments)...);
       }
 
-      // Pick the region that should be overwritten with new stuff      
-      const auto region = CropInner(index, 0);
-      EmplaceInner(region, 1, Forward<A>(arguments)...);
-      return 1;
-   }
-
-   /// Construct an item of this container's type at front/back               
-   /// by forwarding A... as constructor arguments                            
-   /// Since this container is type-erased and exact constructor signatures   
-   /// aren't reflected, the following constructors will be attempted:        
-   ///   1. If A is a single argument of exactly the same type, the reflected 
-   ///      move constructor will be used, if available                       
-   ///   2. If A is empty, the reflected default constructor is used          
-   ///   3. If A is not empty, not exactly same as the contained type, or     
-   ///      is more than a single argument, then all arguments will be        
-   ///      wrapped in an Any, and then forwarded to the descriptor-          
-   ///      constructor, if such is reflected                                 
-   ///   If none of these constructors are available, or block is not typed,  
-   ///   this function throws Except::Allocate                                
-   ///   @tparam INDEX - the index to emplace at, IndexFront or IndexBack     
-   ///   @tparam A... - argument types (deducible)                            
-   ///   @param arguments... - the arguments to forward to constructor        
-   ///   @return 1 if the element was emplaced successfully                   
-   template<Index INDEX, class... A>
-   LANGULUS(INLINED)
-   Count Block::Emplace(A&&... arguments) {
-      // Allocate the required memory - this will not initialize it     
-      AllocateMore<false>(mCount + 1);
-
-      if constexpr (INDEX == IndexFront) {
-         // Move memory if required                                     
-         LANGULUS_ASSERT(GetUses() == 1, Move,
-            "Moving elements that are used from multiple places");
-
-         // We need to shift elements right from the insertion point    
-         // Therefore, we call move constructors in reverse, to avoid   
-         // potential memory overlap                                    
-         CropInner(1, 0)
-            .template CallUnknownSemanticConstructors<true>(
-               mCount, Abandon(CropInner(0, mCount))
-            );
-      }
-
-      // Pick the region that should be overwritten with new stuff      
-      const auto region = CropInner(INDEX == IndexFront ? 0 : mCount, 0);
-      EmplaceInner(region, 1, Forward<A>(arguments)...);
       return 1;
    }
    
@@ -757,394 +430,133 @@ namespace Langulus::Anyness
    /// Elements will be added to the back of the container                    
    /// If none of the constructors are available, or block is not typed,      
    /// this function throws Except::Allocate                                  
-   ///   @tparam ...A - arguments for construction (deducible)                
    ///   @param count - number of elements to construct                       
-   ///   @param ...arguments - constructor arguments                          
+   ///   @param ...arguments - constructor arguments (optional)               
    ///   @return the number of new elements                                   
-   template<class... A>
-   LANGULUS(INLINED)
+   template<CT::Block THIS, class... A> LANGULUS(INLINED)
    Count Block::New(Count count, A&&... arguments) {
       // Allocate the required memory - this will not initialize it     
-      AllocateMore<false>(mCount + count);
+      LANGULUS_ASSUME(UserAssumes, count, "Zero count not allowed");
+      AllocateMore(mCount + count);
 
       // Pick the region that should be overwritten with new stuff      
       const auto region = CropInner(mCount, 0);
-      EmplaceInner(region, count, Forward<A>(arguments)...);
+      EmplaceInner<THIS>(region, count, Forward<A>(arguments)...);
       return count;
    }
    
    /// Wrap all contained elements inside a sub-block, making this one deep   
    ///   @tparam T - the type of deep container to use                        
-   ///   @tparam MOVE_STATE - whether or not to send the current orness over  
+   ///   @tparam TRANSFER_OR - whether to send the current orness deeper      
    ///   @return a reference to this container                                
-   template<CT::Data T, bool MOVE_STATE>
-   LANGULUS(INLINED)
+   template<CT::Deep T, bool TRANSFER_OR, CT::Block THIS> LANGULUS(INLINED)
    T& Block::Deepen() {
-      static_assert(CT::Deep<T>, "T must be deep");
-
-      LANGULUS_ASSERT(not IsTypeConstrained() or Is<T>(),
-         Mutate, "Incompatible type");
+      if constexpr (CT::Typed<THIS> and not CT::Similar<T, TypeOf<THIS>>)
+         LANGULUS_ERROR("Can't deepen with incompatible type");
+      else {
+         auto& me = reinterpret_cast<THIS&>(*this);
+         LANGULUS_ASSERT(not me.IsTypeConstrained()
+                          or me.template IsSimilar<T>(),
+            Mutate, "Can't deepen with incompatible type");
+      }
 
       // Back up the state so that we can restore it if not moved over  
-      UNUSED() const DataState state {mState.mState & DataState::Or};
-      if constexpr (not MOVE_STATE)
+      UNUSED() const DataState state = mState.mState & DataState::Or;
+      if constexpr (not TRANSFER_OR)
          mState -= state;
 
       // Allocate a new T and move this inside it                       
       Block wrapper;
       wrapper.template SetType<T, false>();
       wrapper.template AllocateMore<true>(1);
-      wrapper.template Get<Block>() = ::std::move(*this);
+      wrapper.template Get<Block>() = *this;
       *this = wrapper;
       
       // Restore the state if not moved over                            
-      if constexpr (not MOVE_STATE)
+      if constexpr (not TRANSFER_OR)
          mState += state;
 
       return Get<T>();
    }
-   
-   /// A copy-insert that uses the best approach to push anything inside      
-   /// container in order to keep hierarchy and states, but also reuse memory 
-   ///   @tparam ALLOW_CONCAT - whether or not concatenation is allowed       
-   ///   @tparam ALLOW_DEEPEN - whether or not deepening is allowed           
-   ///   @tparam WRAPPER - type of container used for deepening or transfer   
-   ///   @param value - the value to smart-push                               
-   ///   @param index - the index at which to insert (if needed)              
-   ///   @param state - a state to apply after pushing is done                
-   ///   @return the number of pushed items (zero if unsuccessful)            
-   template<bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data WRAPPER>
-   LANGULUS(INLINED)
-   Count Block::SmartPushAt(
-      const CT::NotSemantic auto& value, CT::Index auto index, DataState state
-   ) {
-      return SmartPushAt<ALLOW_CONCAT, ALLOW_DEEPEN, WRAPPER>(
-         Copy(value), index, state);
-   }
-
-   /// This is required to disambiguate calls correctly                       
-   /// It's the same as the above                                             
-   template<bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data WRAPPER>
-   LANGULUS(INLINED)
-   Count Block::SmartPushAt(
-      CT::NotSemantic auto& value, CT::Index auto index, DataState state
-   ) {
-      return SmartPushAt<ALLOW_CONCAT, ALLOW_DEEPEN, WRAPPER>(
-         Copy(value), index, state);
-   }
-
-   /// A move-insert that uses the best approach to push anything inside      
-   /// container in order to keep hierarchy and states, but also reuse memory 
-   ///   @tparam ALLOW_CONCAT - whether or not concatenation is allowed       
-   ///   @tparam ALLOW_DEEPEN - whether or not deepening is allowed           
-   ///   @tparam WRAPPER - type of container used for deepening or transfer   
-   ///   @param value - the value to smart-push                               
-   ///   @param index - the index at which to insert (if needed)              
-   ///   @param state - a state to apply after pushing is done                
-   ///   @return the number of pushed items (zero if unsuccessful)            
-   template<bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data WRAPPER>
-   LANGULUS(INLINED)
-   Count Block::SmartPushAt(
-      CT::NotSemantic auto&& value, CT::Index auto index, DataState state
-   ) {
-      return SmartPushAt<ALLOW_CONCAT, ALLOW_DEEPEN, WRAPPER>(
-         Move(value), index, state);
-   }
 
    /// Semantic-insert that uses the best approach to push anything inside    
    /// container in order to keep hierarchy and states, but also reuse memory 
    ///   @tparam ALLOW_CONCAT - whether or not concatenation is allowed       
-   ///   @tparam ALLOW_DEEPEN - whether or not deepening is allowed           
-   ///   @tparam WRAPPER - type of container used for deepening or transfer   
-   ///   @param value - the value to smart-push                               
+   ///   @tparam FORCE - insert even if types mismatch, by making this block  
+   ///                   deep with provided type - use void to disable        
+   ///   @tparam THIS - the type of the block, used for absorbtion            
    ///   @param index - the index at which to insert (if needed)              
+   ///   @param value - the value to smart-push                               
    ///   @param state - a state to apply after pushing is done                
    ///   @return the number of pushed items (zero if unsuccessful)            
-   template<bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data WRAPPER>
-   Count Block::SmartPushAt(
-      CT::Semantic auto&& value, CT::Index auto index, DataState state
+   template<bool ALLOW_CONCAT, class FORCE, CT::Block THIS>
+   Count Block::SmartPush(
+      CT::Index auto index, auto&& value, DataState state
    ) {
-      static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
-      using S = Deref<decltype(value)>;
+      using S = SemanticOf<decltype(value)>;
       using T = TypeOf<S>;
 
       if constexpr (CT::Deep<T>) {
          // We're inserting a deep item, so we can do various smart     
          // things before inserting, like absorbing and concatenating   
-         if (not value->IsValid())
+         if (not DesemCast(value).IsValid())
             return 0;
 
-         const bool stateCompliant = CanFitState(*value);
-         if (IsEmpty() and not value->IsStatic() and stateCompliant) {
+         const bool stateCompliant = CanFitState(DesemCast(value));
+         if (IsEmpty() and not DesemCast(value).IsStatic() and stateCompliant) {
             Free();
-            BlockTransfer<WRAPPER>(value.Forward());
+            BlockTransfer<THIS>(S::Nest(value));
             return 1;
          }
 
          if constexpr (ALLOW_CONCAT) {
-            const auto done = SmartConcatAt<ALLOW_DEEPEN, WRAPPER>(
-               stateCompliant, value.Forward(), state, index);
+            const auto done = SmartConcat<THIS, FORCE>(
+               index, stateCompliant, S::Nest(value), state);
 
             if (done)
                return done;
          }
       }
 
-      return SmartPushAtInner<ALLOW_DEEPEN, WRAPPER>(
-         value.Forward(), state, index);
-   }
-   
-   /// A smart copy-insert uses the best approach to push anything inside     
-   /// container in order to keep hierarchy and states, but also reuse memory 
-   ///   @tparam INDEX - either IndexFront or IndexBack to insert there       
-   ///   @tparam ALLOW_CONCAT - whether or not concatenation is allowed       
-   ///   @tparam ALLOW_DEEPEN - whether or not deepening is allowed           
-   ///   @tparam WRAPPER - type of container used for deepening or transfer   
-   ///   @param value - the value to smart-push                               
-   ///   @param state - a state to apply after pushing is done                
-   ///   @return the number of pushed items (zero if unsuccessful)            
-   template<Index INDEX, bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data WRAPPER>
-   LANGULUS(INLINED)
-   Count Block::SmartPush(const CT::NotSemantic auto& value, DataState state) {
-      return SmartPush<INDEX, ALLOW_CONCAT, ALLOW_DEEPEN, WRAPPER>(
-         Copy(value), state);
+      return SmartPushInner<THIS, FORCE>(index, S::Nest(value), state);
    }
 
-   /// Required to disambiguate calls correctly                               
-   /// It's the same as the above                                             
-   template<Index INDEX, bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data WRAPPER>
-   LANGULUS(INLINED)
-   Count Block::SmartPush(CT::NotSemantic auto& value, DataState state) {
-      return SmartPush<INDEX, ALLOW_CONCAT, ALLOW_DEEPEN, WRAPPER>(
-         Copy(value), state);
-   }
-   
-   /// A smart move-insert uses the best approach to push anything inside     
-   /// container in order to keep hierarchy and states, but also reuse memory 
-   ///   @tparam INDEX - either IndexFront or IndexBack to insert there       
-   ///   @tparam ALLOW_CONCAT - whether or not concatenation is allowed       
-   ///   @tparam ALLOW_DEEPEN - whether or not deepening is allowed           
-   ///   @tparam WRAPPER - type of container used for deepening or transfer   
-   ///   @param value - the value to smart-push                               
-   ///   @param state - a state to apply after pushing is done                
-   ///   @return the number of pushed items (zero if unsuccessful)            
-   template<Index INDEX, bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data WRAPPER>
-   LANGULUS(INLINED)
-   Count Block::SmartPush(CT::NotSemantic auto&& value, DataState state) {
-      return SmartPush<INDEX, ALLOW_CONCAT, ALLOW_DEEPEN, WRAPPER>(
-         Move(value), state);
-   }
-
-   /// Semantic-insert that uses the best approach to push anything inside    
-   /// container in order to keep hierarchy and states, but also reuse memory 
-   ///   @tparam INDEX - either IndexFront or IndexBack to insert there       
-   ///   @tparam ALLOW_CONCAT - whether or not concatenation is allowed       
-   ///   @tparam ALLOW_DEEPEN - whether or not deepening is allowed           
-   ///   @tparam WRAPPER - type of container used for deepening or transfer   
-   ///   @param value - the value to smart-push                               
-   ///   @param state - a state to apply after pushing is done                
-   ///   @return the number of pushed items (zero if unsuccessful)            
-   template<Index INDEX, bool ALLOW_CONCAT, bool ALLOW_DEEPEN, CT::Data WRAPPER>
-   Count Block::SmartPush(CT::Semantic auto&& value, DataState state) {
-      static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
-      using S = Deref<decltype(value)>;
-      using T = TypeOf<S>;
-
-      if constexpr (CT::Deep<T>) {
-         // We're inserting a deep item, so we can do various smart     
-         // things before inserting, like absorbing and concatenating   
-         if (not value->IsValid())
-            return 0;
-
-         const bool stateCompliant = CanFitState(*value);
-         if (IsEmpty() and not value->IsStatic() and stateCompliant) {
-            Free();
-            BlockTransfer<WRAPPER>(value.Forward());
-            return 1;
-         }
-
-         if constexpr (ALLOW_CONCAT) {
-            const auto done = SmartConcat<ALLOW_DEEPEN, INDEX, WRAPPER>(
-               stateCompliant, value.Forward(), state);
-
-            if (done)
-               return done;
-         }
-      }
-
-      return SmartPushInner<ALLOW_DEEPEN, INDEX, WRAPPER>(
-         value.Forward(), state);
-   }
-   
-   /// Inner semantic insertion function for a range                          
-   ///   @attention this is an inner function and should be used with caution 
-   ///   @attention assumes required free space has been prepared at offset   
-   ///   @attention assumes that T is this container's type                   
-   ///   @param start - start of range                                        
-   ///   @param end - end of range                                            
-   ///   @param at - the offset at which to start inserting                   
-   template<template<class> class S, CT::NotSemantic T> requires CT::Semantic<S<T>>
-   void Block::InsertInner(const T* start, const T* end, Offset at) {
-      static_assert(CT::Exact<TypeOf<S<T>>, T>,
-         "S type must be exactly T (build-time optimization)");
-      static_assert(CT::Sparse<T> or CT::Insertable<T>,
-         "Dense type is not insertable");
-      LANGULUS_ASSUME(DevAssumes, IsExact<T>(),
-         "Inserting incompatible type");
-
-      const auto count = end - start;
-      if constexpr (CT::Sparse<T>) {
-         if constexpr (S<T>::Shallow) {
-            // Copy all pointers at once                                
-            CopyMemory(GetRawAs<T>() + at, start, count);
-
-            #if LANGULUS_FEATURE(MANAGED_MEMORY)
-               // If we're using managed memory, we can search if each  
-               // pointer is owned by us, and get its allocation entry  
-               // You can avoid this by using the Disowned semantic     
-               if constexpr (CT::Allocatable<Deptr<T>> and S<T>::Keep) {
-                  auto it = start;
-                  auto entry = GetEntries() + at;
-                  while (it != end) {
-                     *entry = Allocator::Find(MetaDataOf<Deptr<T>>(), it);
-                     if (*entry)
-                        const_cast<Allocation*>(*entry)->Keep();
-
-                     ++it;
-                     ++entry;
-                  }
-               }
-               else
-            #endif
-               ZeroMemory(GetEntries() + at, count);
-         }
-         else {
-            // Pointer clone                                            
-            TODO();
-         }
-      }
-      else {
-         // Insert dense data                                           
-         static_assert(not CT::Abstract<T>,
-            "Can't insert abstract item in dense container");
-
-         auto data = GetRawAs<T>() + at;
-         if constexpr (CT::POD<T>) {
-            // Optimized POD range insertion                            
-            CopyMemory(data, start, count);
-         }
-         else if constexpr (CT::SemanticMakable<S, T>) {
-            // Call semantic construction for each element in range     
-            while (start != end)
-               SemanticNew(data++, S<T>::Nest(*(start++)));
-         }
-         else LANGULUS_ERROR("Missing semantic-constructor");
-      }
-
-      mCount += count;
-   }
-
-   /// Inner semantic insertion function                                      
-   ///   @attention this is an inner function and should be used with caution 
-   ///   @attention assumes required free space has been prepared at offset   
-   ///   @attention assumes that TypeOf<S> is this container's type           
-   ///   @param item - item and semantic to insert                            
-   ///   @param at - the offset at which to insert                            
-   void Block::InsertInner(CT::Semantic auto&& item, Offset at) {
-      using T = TypeOf<decltype(item)>;
-      LANGULUS_ASSUME(DevAssumes, IsExact<T>(), "Inserting incompatible type");
-      GetHandle<T>(at).New(item.Forward());
-      ++mCount;
-   }
    
    /// Smart concatenation inner call, used by smart push                     
    /// Attempts to either concatenate elements, or deepen and push block      
-   ///   @tparam ALLOW_DEEPEN - is the block allowed to change to deep type   
-   ///   @tparam WRAPPER - type of block used when deepening                  
-   ///   @param sc - is this block state-compliant for insertion              
-   ///   @param value - the value to concatenate                              
-   ///   @param state - the state to apply after concatenation                
+   ///   @tparam THIS - the type of the block, used for absorbtion            
+   ///   @tparam FORCE - insert even if types mismatch, by making this block  
+   ///                   deep with provided type - use void to disable        
    ///   @param index - the place to insert at                                
-   ///   @return the number of inserted elements                              
-   template<bool ALLOW_DEEPEN, CT::Data WRAPPER>
-   LANGULUS(INLINED)
-   Count Block::SmartConcatAt(
-      const bool& sc,
-      CT::Semantic auto&& value,
-      const DataState& state,
-      const CT::Index auto& index
-   ) {
-      using S = Deref<decltype(value)>;
-      static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
-      static_assert(CT::Deep<TypeOf<S>>, "S::Type must be deep");
-
-      // If this container is compatible and concatenation is           
-      // enabled, try concatenating the two containers                  
-      const bool typeCompliant = IsUntyped()
-              or (ALLOW_DEEPEN and value->IsDeep())
-              or CanFit(value->GetType());
-
-      if (not IsConstant() and not IsStatic() and typeCompliant and sc
-         // Make sure container is or-compliant after the change        
-         and not (mCount > 1 and not IsOr() and state.IsOr())) {
-         if (IsUntyped()) {
-            // Block insert never mutates, so make sure type            
-            // is valid before insertion                                
-            SetType<false>(value->GetType());
-         }
-         else {
-            if constexpr (ALLOW_DEEPEN) {
-               if (not IsDeep() and value->IsDeep())
-                  Deepen<WRAPPER, false>();
-            }
-         }
-
-         const auto cat = InsertBlockAt(value.Forward(), index);
-         mState += state;
-         return cat;
-      }
-
-      return 0;
-   }
-
-   /// Smart concatenation inner call, used by smart push                     
-   /// Attempts to either concatenate elements, or deepen and push block      
-   ///   @tparam ALLOW_DEEPEN - is the block allowed to change to deep type   
-   ///   @tparam INDEX - index to insert at (either IndexBack or IndexFront)  
-   ///   @tparam WRAPPER - type of block used when deepening                  
    ///   @param sc - is this block state-compliant for insertion              
    ///   @param value - the value to concatenate                              
    ///   @param state - the state to apply after concatenation                
    ///   @return the number of inserted elements                              
-   template<bool ALLOW_DEEPEN, Index INDEX, CT::Data WRAPPER>
-   LANGULUS(INLINED)
-   Count Block::SmartConcat(const bool& sc, CT::Semantic auto&& value, const DataState& state) {
-      using S = Deref<decltype(value)>;
-      static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
-      static_assert(CT::Deep<TypeOf<S>>, "S::Type must be deep");
+   template<CT::Block THIS, class FORCE, template<class> class S, CT::Deep T> LANGULUS(INLINED)
+   Count Block::SmartConcat(CT::Index auto index, bool sc, S<T>&& value, DataState state)
+   requires CT::Semantic<S<T>> {
+      auto& me = reinterpret_cast<THIS&>(*this);
 
       // If this container is compatible and concatenation is           
       // enabled, try concatenating the two containers                  
-      const bool typeCompliant = IsUntyped()
-              or (ALLOW_DEEPEN and value->IsDeep())
-              or Is(value->GetType());
+      const bool typeCompliant = me.IsUntyped()
+              or (not CT::Void<FORCE> and value->IsDeep())
+              or me.IsSimilar(value->GetType());
 
-      if (not IsConstant() and not IsStatic() and typeCompliant and sc
+      if (not me.IsConstant() and not me.IsStatic() and typeCompliant and sc
          // Make sure container is or-compliant after the change        
-         and not (mCount > 1 and not IsOr() and state.IsOr())) {
-         if (IsUntyped()) {
+         and not (me.GetCount() > 1 and not me.IsOr() and state.IsOr())) {
+         if (me.IsUntyped()) {
             // Block insert never mutates, so make sure type            
             // is valid before insertion                                
             SetType<false>(value->GetType());
          }
-         else {
-            if constexpr (ALLOW_DEEPEN) {
-               if (not IsDeep() and value->IsDeep())
-                  Deepen<WRAPPER, false>();
-            }
+         else if constexpr (not CT::Void<FORCE>) {
+            if (not me.IsDeep() and value->IsDeep())
+               Deepen<FORCE, false, THIS>();
          }
 
-         const auto cat = InsertBlock<INDEX>(value.Forward());
+         const auto cat = InsertBlock<THIS, void>(index, value.Forward());
          mState += state;
          return cat;
       }
@@ -1153,112 +565,76 @@ namespace Langulus::Anyness
    }
    
    /// Inner smart-push function                                              
-   ///   @tparam ALLOW_DEEPEN - is the block allowed to change to deep type   
-   ///   @tparam WRAPPER - type of block used when deepening                  
+   ///   @tparam FORCE - insert even if types mismatch, by making this block  
+   ///                   deep with provided type - use void to disable        
+   ///   @param index - the place to insert at                                
    ///   @param value - the value to concatenate                              
    ///   @param state - the state to apply after concatenation                
-   ///   @param index - the place to insert at                                
    ///   @return the number of inserted elements                              
-   template<bool ALLOW_DEEPEN, CT::Data WRAPPER>
-   LANGULUS(INLINED)
-   Count Block::SmartPushAtInner(
-      CT::Semantic auto&& value, const DataState& state, const CT::Index auto& index
-   ) {
-      using S = Deref<decltype(value)>;
-
+   template<CT::Block THIS, class FORCE, template<class> class S, class T> LANGULUS(INLINED)
+   Count Block::SmartPushInner(CT::Index auto index, S<T>&& value, DataState state)
+   requires CT::Semantic<S<T>> {
       if (IsUntyped() and IsInvalid()) {
          // Mutate-insert inside untyped container                      
          SetState(mState + state);
-         return InsertAt<true>(value.Forward(), index);
+         return Insert<THIS, void>(index, value.Forward());
       }
-      else if (IsExact<TypeOf<S>>()) {
+      else if (IsExact<T>()) {
          // Insert to a same-typed container                            
          SetState(mState + state);
-         return InsertAt<false>(value.Forward(), index);
+         return Insert<THIS, void>(index, value.Forward());
       }
       else if (IsEmpty() and mType and not IsTypeConstrained()) {
          // If incompatibly typed but empty and not constrained, we     
          // can still reset the container and reuse it                  
          Reset();
          SetState(mState + state);
-         return InsertAt<true>(value.Forward(), index);
+         return Insert<THIS, void>(index, value.Forward());
       }
       else if (IsDeep()) {
          // If this is deep, then push value wrapped in a container     
          if (mCount > 1 and not IsOr() and state.IsOr()) {
             // If container is not or-compliant after insertion, we     
             // need	to add another layer                               
-            Deepen<WRAPPER, false>();
+            Deepen<THIS, true, THIS>();
             SetState(mState + state);
          }
          else SetState(mState + state);
 
-         return InsertAt<false>(Abandon(WRAPPER {value.Forward()}), index);
+         return Insert<THIS, void>(index, THIS {value.Forward()});
       }
 
-      if constexpr (ALLOW_DEEPEN) {
+      if constexpr (not CT::Void<FORCE>) {
          // If this is reached, all else failed, but we are allowed to  
          // deepen, so do it                                            
-         Deepen<WRAPPER, false>();
+         Deepen<FORCE, false, THIS>();
          SetState(mState + state);
-         return InsertAt<false>(Abandon(WRAPPER {value.Forward()}), index);
-      }
-      else return 0;
-   }
-
-   /// Inner smart-push function at a static index                            
-   ///   @tparam ALLOW_DEEPEN - is the block allowed to change to deep type   
-   ///   @tparam INDEX - index to insert at (either IndexBack or IndexFront)  
-   ///   @tparam WRAPPER - type of block used when deepening                  
-   ///   @param value - the value to concatenate                              
-   ///   @param state - the state to apply after concatenation                
-   ///   @return the number of inserted elements                              
-   template<bool ALLOW_DEEPEN, Index INDEX, CT::Data WRAPPER>
-   LANGULUS(INLINED)
-   Count Block::SmartPushInner(
-      CT::Semantic auto&& value, const DataState& state
-   ) {
-      using S = Deref<decltype(value)>;
-
-      if (IsUntyped() and IsInvalid()) {
-         // Mutate-insert inside untyped container                      
-         SetState(mState + state);
-         return Insert<INDEX, true>(value.Forward());
-      }
-      else if (IsExact<TypeOf<S>>()) {
-         // Insert to a same-typed container                            
-         SetState(mState + state);
-         return Insert<INDEX, false>(value.Forward());
-      }
-      else if (IsEmpty() and mType and not IsTypeConstrained()) {
-         // If incompatibly typed but empty and not constrained, we     
-         // can still reset the container and reuse it                  
-         Reset();
-         SetState(mState + state);
-         return Insert<INDEX, true>(value.Forward());
-      }
-      else if (IsDeep()) {
-         // If this is deep, then push value wrapped in a container     
-         if (mCount > 1 and not IsOr() and state.IsOr()) {
-            // If container is not or-compliant after insertion, we     
-            // need to add another layer                                
-            Deepen<WRAPPER, false>();
-         }
-
-         SetState(mState + state);
-         return Insert<INDEX, false>(Abandon(WRAPPER {value.Forward()}));
-      }
-
-      if constexpr (ALLOW_DEEPEN) {
-         // If this is reached, all else failed, but we are allowed to  
-         // deepen, so do it                                            
-         Deepen<WRAPPER, false>();
-         SetState(mState + state);
-         return Insert<INDEX, false>(Abandon(WRAPPER {value.Forward()}));
+         return Insert<THIS, void>(index, FORCE {value.Forward()});
       }
       else return 0;
    }
    
+   /// Concatenate this, and another block into a new block, semantically     
+   ///   @tparam THIS - the type of the resulting container                   
+   ///   @param rhs - block and semantic to concatenate with (right side)     
+   ///   @return the concatenated container                                   
+   template<CT::Block THIS, template<class> class S, CT::Block T>
+   THIS Block::ConcatBlock(S<T>&& rhs) const requires CT::Semantic<S<T>> {
+      auto& lhs = reinterpret_cast<const THIS&>(*this);
+      if (IsEmpty())
+         return {rhs.Forward()};
+      else if (rhs->IsEmpty())
+         return lhs;
+
+      THIS result;
+      if constexpr (not CT::Typed<THIS>)
+         result.SetType(mType);
+      result.AllocateFresh(result.RequestSize(mCount + rhs->GetCount()));
+      result.template InsertBlock<THIS>(0, Copy(lhs));
+      result.template InsertBlock<THIS>(mCount, rhs.Forward());
+      return Abandon(result);
+   }
+
    /// Call default constructors in a region and initialize memory            
    ///   @attention never modifies any block state                            
    ///   @attention assumes block has at least 'count' elements reserved      

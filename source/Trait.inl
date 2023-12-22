@@ -18,70 +18,46 @@ namespace Langulus::Anyness
    ///   @param other - the trait to copy                                     
    LANGULUS(INLINED)
    Trait::Trait(const Trait& other)
-      : Any {static_cast<const Any&>(other)}
-      , mTraitType {other.mTraitType} {}
+      : Trait {Copy(other)} {}
 
    /// Move constructor                                                       
    ///   @param other - the trait to move                                     
    LANGULUS(INLINED)
    Trait::Trait(Trait&& other) noexcept
-      : Any {Forward<Any>(other)}
-      , mTraitType {other.mTraitType} {}
+      : Trait {Move(other)} {}
 
-   /// Manual trait construction by copy                                      
-   ///   @tparam T - type of the contained data                               
-   ///   @param data - data to copy inside trait                              
-   LANGULUS(INLINED)
-   Trait::Trait(const CT::NotSemantic auto& data)
-      : Trait {Copy(data)} {}
+   /// Unfold constructor, any element can be a semantic                      
+   /// If there's only one argument, that is deep or a trait, it will be      
+   /// absorbed                                                               
+   ///   @param t1 - first argument                                           
+   ///   @param tail - the rest of the arguments (optional)                   
+   template<class T1, class...TAIL> LANGULUS(INLINED)
+   Trait::Trait(T1&& t1, TAIL&&... tail)
+   requires CT::Inner::UnfoldInsertable<T1, TAIL...> {
+      if constexpr (sizeof...(TAIL) == 0) {
+         using S = SemanticOf<T1>;
+         using T = TypeOf<S>;
 
-   /// Manual trait construction by copy                                      
-   ///   @tparam T - type of the contained data                               
-   ///   @param data - data to copy inside trait                              
-   LANGULUS(INLINED)
-   Trait::Trait(CT::NotSemantic auto& data)
-      : Trait {Copy(data)} {}
-
-   /// Manual trait construction by movement                                  
-   ///   @tparam T - type of the contained data                               
-   ///   @param data - data to move inside trait                              
-   LANGULUS(INLINED)
-   Trait::Trait(CT::NotSemantic auto&& data)
-      : Trait {Move(data)} {}
-
-   /// Semantic trait construction                                            
-   ///   @tparam T - type of the contained data                               
-   ///   @param data - data to move inside trait                              
-   template<CT::Semantic S>
-   LANGULUS(INLINED)
-   Trait::Trait(S&& data) {
-      using T = TypeOf<S>;
-
-      if constexpr (CT::TraitBased<T>) {
-         BlockTransfer<Any>(data.template Forward<Any>());
-         mTraitType = data->GetTrait();
+         if constexpr (CT::TraitBased<T>) {
+            BlockTransfer<Any>(S::Nest(t1).template Forward<Any>());
+            mTraitType = DesemCast(t1).GetTrait();
+         }
+         else if constexpr (CT::Deep<T>) {
+            BlockTransfer<Any>(S::Nest(t1));
+         }
+         else {
+            Insert<Any>(0, Forward<T1>(t1));
+         }
       }
-      else Any::CreateFrom(data.Forward());
+      else Insert<Any>(0, Forward<T1>(t1), Forward<TAIL>(tail)...);
    }
-
-   /// Pack any number of elements sequentially                               
-   /// If any of the types doesn't match exactly, the container becomes deep  
-   /// to incorporate all elements                                            
-   ///   @param head - first element                                          
-   ///   @param tail... - the rest of the elements                            
-   template<CT::Data T1, CT::Data T2, CT::Data... TAIL>
-   LANGULUS(INLINED)
-   Trait::Trait(T1&& t1, T2&& t2, TAIL&&... tail)
-      : Any {Forward<T1>(t1), Forward<T2>(t2), Forward<TAIL>(tail)...} { }
 
    /// Create a trait from a trait and data types                             
    ///   @tparam T - type of trait                                            
    ///   @tparam D - type of data                                             
    ///   @return a trait preconfigured with the provided types                
-   template<CT::Data T, CT::Data D>
-   LANGULUS(INLINED)
+   template<CT::Trait T, CT::Data D> LANGULUS(INLINED)
    Trait Trait::From() {
-      static_assert(CT::Trait<T>, "T must be a trait definition");
       Trait temp {Block::From<D>()};
       temp.SetTrait<T>();
       return Abandon(temp);
@@ -89,79 +65,45 @@ namespace Langulus::Anyness
 
    /// Create a trait from a trait definition and data                        
    ///   @tparam T - type of trait                                            
-   ///   @tparam D - type of data (deducible)                                 
-   ///   @param stuff - the data to set inside trait                          
-   ///   @return a trait preconfigured with the provided types                
-   template<CT::Data T, CT::Data D>
-   LANGULUS(INLINED)
-   Trait Trait::From(const D& stuff) {
-      static_assert(CT::Trait<T>, "T must be a trait definition");
-      Trait temp {stuff};
+   ///   @param stuff - the data to initialize trait with                     
+   ///   @return a trait preconfigured with the provided types and contents   
+   template<CT::Trait T> LANGULUS(INLINED)
+   Trait Trait::From(auto&& stuff) {
+      Trait temp {Forward<Deref<decltype(stuff)>>(stuff)};
       temp.SetTrait<T>();
       return Abandon(temp);
    }
 
-   /// Create a trait from a trait definition by moving data                  
-   ///   @tparam T - type of trait                                            
-   ///   @tparam D - type of data (deducible)                                 
-   ///   @param stuff - the data to set inside trait                          
-   ///   @return a trait preconfigured with the provided types                
-   template<CT::Data T, CT::Data D>
+   /// Create a trait from a runtime trait definition and data                
+   ///   @param meta - the trait definition                                   
+   ///   @param stuff - the data to initialize trait with                     
+   ///   @return the trait                                                    
    LANGULUS(INLINED)
-   Trait Trait::From(D&& stuff) {
-      static_assert(CT::Trait<T>, "T must be a trait definition");
-      Trait temp {Forward<D>(stuff)};
-      temp.SetTrait<T>();
+   Trait Trait::From(TMeta meta, auto&& stuff) {
+      Trait temp {Forward<Deref<decltype(stuff)>>(stuff)};
+      temp.SetTrait(meta);
       return Abandon(temp);
    }
 
-   /// Create a trait from a trait definition and copy of data                
-   ///   @tparam DATA - type of data to shallow-copy                          
-   ///   @param meta - the trait definition                                   
-   ///   @param stuff - the data to copy                                      
-   ///   @return the trait                                                    
-   template<CT::Data DATA>
-   LANGULUS(INLINED)
-   Trait Trait::From(TMeta meta, const DATA& stuff) {
-      Trait result {stuff};
-      result.SetTrait(meta);
-      return Abandon(result);
-   }
-
-   /// Create a trait from a trait definition and moved data                  
-   ///   @tparam DATA - type of data to move in                               
-   ///   @param meta - the trait definition                                   
-   ///   @param stuff - the data to copy                                      
-   ///   @return the trait                                                    
-   template<CT::Data DATA>
-   LANGULUS(INLINED)
-   Trait Trait::From(TMeta meta, DATA&& stuff) {
-      Trait result {Forward<DATA>(stuff)};
-      result.SetTrait(meta);
-      return Abandon(result);
-   }
-
-   /// Create a trait from a trait definition and data                        
+   /// Create a trait from a runtime trait definition and data type           
    LANGULUS(INLINED)
    Trait Trait::FromMeta(TMeta tmeta, DMeta dmeta) {
-      Trait result {Block(DataState::Default, dmeta)};
-      result.SetTrait(tmeta);
-      return Abandon(result);
+      Trait temp {Block(DataState::Default, dmeta)};
+      temp.SetTrait(tmeta);
+      return Abandon(temp);
    }
 
-   /// Set the trait type via a static type                                   
+   /// Set the trait type statically                                          
    ///   @tparam T - the trait                                                
-   template<CT::Data T>
-   LANGULUS(INLINED)
+   template<CT::Trait T> LANGULUS(INLINED)
    void Trait::SetTrait() noexcept {
-      static_assert(CT::Trait<T>, "TRAIT must be a trait definition");
-      mTraitType = T::GetTrait();
+      mTraitType = MetaTraitOf<T>();
    }
 
-   /// Set the trait type via a dynamic type                                  
-   ///   @tparam trait - the trait                                            
+   /// Set the trait type dynamically                                         
+   ///   @param trait - the trait                                             
    LANGULUS(INLINED)
-   constexpr void Trait::SetTrait(TMeta trait) noexcept {
+   void Trait::SetTrait(TMeta trait) noexcept {
       mTraitType = trait;
    }
 
@@ -172,27 +114,35 @@ namespace Langulus::Anyness
       return mTraitType;
    }
 
-   /// Check if trait is valid                                                
+   /// Check if trait is valid, that is, it's typed and has contents          
    ///   @return true if trait is valid                                       
    LANGULUS(INLINED)
    bool Trait::IsTraitValid() const noexcept {
-      return mTraitType and not Any::IsEmpty();
+      return mTraitType and not IsEmpty();
    }
 
-   /// Check if trait is similar to another                                   
+   /// Check if trait and data types match another trait                      
    ///   @param other - the trait to test against                             
-   ///   @return true if trait is valid                                       
+   ///   @return true if traits are similar                                   
    LANGULUS(INLINED)
-   bool Trait::IsSimilar(const Trait& other) const noexcept {
-      return mTraitType->Is(other.mTraitType) and other.CastsToMeta(GetType());
+   bool Trait::IsTraitSimilar(const CT::TraitBased auto& other) const noexcept {
+      return mTraitType == other.GetTrait() and other.CastsToMeta(GetType());
    }
 
-   /// Check if trait is a specific type                                      
-   ///   @param traitId - the id to match                                     
-   ///   @return true if ID matches                                           
-   LANGULUS(INLINED)
-   bool Trait::TraitIs(TMeta trait) const {
-      return mTraitType == trait or (mTraitType and mTraitType->Is(trait));
+   /// Check if a trait matches one of a set of trait types                   
+   ///   @tparam T... - the trait list                                        
+   ///   @return true if this trait is one of the given types                 
+   template<CT::Trait T1, CT::Trait...TN> LANGULUS(INLINED)
+   bool Trait::TraitIs() const {
+      return TraitIs(MetaTraitOf<T1>(), MetaTraitOf<TN>()...);
+   }
+
+   /// Check if a trait matches one of a set of trait types                   
+   ///   @param traits... - the traits to match                               
+   ///   @return true if this trait is one of the given types                 
+   template<class T1, class...TN> LANGULUS(INLINED)
+   bool Trait::TraitIs(T1 t1, TN...tN) const requires CT::Exact<TMeta, T1, TN...> {
+      return mTraitType == t1 or ((mTraitType == tN) or ...);
    }
 
    /// Check if trait has correct data (always true if trait has no filter)   
@@ -204,354 +154,184 @@ namespace Langulus::Anyness
       return CastsToMeta(mTraitType->mDataType);
    }
 
-   /// Check if a trait matches one of a set of trait types                   
-   ///   @tparam T... - the trait list                                        
-   ///   @return true if this trait is one of the given types                 
-   template<CT::Data... T>
-   LANGULUS(INLINED)
-   bool Trait::TraitIs() const {
-      static_assert(CT::Trait<T...>, "Ts must be trait definitions");
-      return (TraitIs(T::GetTrait()) or ...);
-   }
-
-   /// Compare traits                                                         
+   /// Compare traits with other traits, or by contents                       
    ///   @param other - the thing to compare with                             
    ///   @return true if things are the same                                  
-   template<CT::Data T>
    LANGULUS(INLINED)
-   bool Trait::operator == (const T& other) const {
-      if constexpr (CT::TraitBased<T>)
-         return TraitIs(DenseCast(other).mTraitType)
-            and Any::operator == (static_cast<const Any&>(DenseCast(other)));
-      else
-         return Any::operator == (other);
+   bool Trait::operator == (const auto& rhs) const {
+      using T = Deref<decltype(rhs)>;
+
+      if constexpr (CT::TraitBased<T>) {
+         return TraitIs(rhs.GetTrait())
+            and Any::operator == (static_cast<const Any&>(rhs));
+      }
+      else return Any::operator == (rhs);
    }
 
-   /// Copy-assign trait                                                      
+   /// Copy-assignment                                                        
    ///   @param other - the trait to copy                                     
    ///   @return a reference to this trait                                    
    LANGULUS(INLINED)
    Trait& Trait::operator = (const Trait& rhs) {
-      return operator = (Langulus::Copy(rhs));
+      return operator = (Copy(rhs));
    }
 
-   /// Move a trait                                                           
+   /// Move-assignment                                                        
    ///   @param other - the trait to move                                     
    ///   @return a reference to this trait                                    
    LANGULUS(INLINED)
-   Trait& Trait::operator = (Trait&& rhs) noexcept {
+   Trait& Trait::operator = (Trait&& rhs) {
       return operator = (Move(rhs));
    }
 
+   /// Unfold assignment, semantic or not                                     
+   /// If argument is deep or trait, it will be absorbed                      
+   ///   @param rhs - right hand side                                         
+   ///   @return a reference to this trait                                    
    LANGULUS(INLINED)
-   Trait& Trait::operator = (const CT::NotSemantic auto& rhs) {
-      return operator = (Copy(rhs));
-   }
+   Trait& Trait::operator = (CT::Inner::UnfoldInsertable auto&& rhs) {
+      using S = SemanticOf<decltype(rhs)>;
+      using T = TypeOf<S>;
 
-   LANGULUS(INLINED)
-   Trait& Trait::operator = (CT::NotSemantic auto& rhs) {
-      return operator = (Copy(rhs));
-   }
-
-   LANGULUS(INLINED)
-   Trait& Trait::operator = (CT::NotSemantic auto&& rhs) {
-      return operator = (Move(rhs));
-   }
-
-   LANGULUS(INLINED)
-   Trait& Trait::operator = (CT::Semantic auto&& rhs) {
-      using S = Decay<decltype(rhs)>;
-
-      if constexpr (CT::Deep<TypeOf<S>>)
-         Any::operator = (rhs.template Forward<Any>());
-      else if constexpr (CT::TraitBased<TypeOf<S>>) {
-         Any::operator = (rhs.template Forward<Any>());
-         mTraitType = rhs->GetTrait();
+      if constexpr (CT::TraitBased<T>) {
+         Any::operator = (S::Nest(rhs).template Forward<Any>());
+         mTraitType = DesemCast(rhs).GetTrait();
       }
-      else Any::operator = (rhs.Forward());
-      return *this;
-   }
-   
-   /// Copy-concatenate with any other trait                                  
-   ///   @param rhs - the right operand                                       
-   ///   @return the combined container                                       
-   LANGULUS(INLINED)
-   Trait Trait::operator + (const Trait& rhs) const {
-      auto result = Any::operator + (static_cast<const Block&>(rhs));
-      return Trait::From(
-         GetTrait() ? GetTrait() : rhs.GetTrait(),
-         Abandon(result)
-      );
-   }
-   
-   /// Move-concatenate with any other trait                                  
-   ///   @param rhs - the right operand                                       
-   ///   @return the combined container                                       
-   LANGULUS(INLINED)
-   Trait Trait::operator + (Trait&& rhs) const {
-      auto result = Any::operator + (Forward<Block>(rhs));
-      return Trait::From(
-         GetTrait() ? GetTrait() : rhs.GetTrait(),
-         Abandon(result)
-      );
-   }
-   
-   /// Copy-concatenate with any deep type                                    
-   ///   @param rhs - the right operand                                       
-   ///   @return the combined container                                       
-   LANGULUS(INLINED)
-   Trait Trait::operator + (const CT::Deep auto& rhs) const {
-      return operator + (Copy(rhs));
-   }
-
-   LANGULUS(INLINED)
-   Trait Trait::operator + (CT::Deep auto& rhs) const {
-      return operator + (Copy(rhs));
-   }
-
-   /// Move-concatenate with any deep type                                    
-   ///   @param rhs - the right operand                                       
-   ///   @return the combined container                                       
-   LANGULUS(INLINED)
-   Trait Trait::operator + (CT::Deep auto&& rhs) const {
-      return operator + (Move(rhs));
-   }
-
-   /// Semantically concatenate with any deep type                            
-   ///   @param rhs - the right operand                                       
-   ///   @return the combined container                                       
-   LANGULUS(INLINED)
-   Trait Trait::operator + (CT::Semantic auto&& rhs) const {
-      auto result = Any::operator + (rhs.template Forward<Block>());
-      return Trait::From(GetTrait(), Abandon(result));
-   }
-
-   /// Destructive copy-concatenate with any trait                            
-   ///   @param rhs - the right operand                                       
-   ///   @return a reference to this modified container                       
-   LANGULUS(INLINED)
-   Trait& Trait::operator += (const Trait& rhs) {
-      return operator += (Copy(static_cast<const Block&>(rhs)));
-   }
-   
-   /// Destructive copy-concatenate with any trait                            
-   ///   @param rhs - the right operand                                       
-   ///   @return a reference to this modified container                       
-   LANGULUS(INLINED)
-   Trait& Trait::operator += (Trait&& rhs) {
-      return operator += (Forward<Block>(rhs));
-   }
-   
-   /// Destructive copy-concatenate with any deep type                        
-   ///   @param rhs - the right operand                                       
-   ///   @return a reference to this modified container                       
-   LANGULUS(INLINED)
-   Trait& Trait::operator += (const CT::Deep auto& rhs) {
-      return operator += (Copy(rhs));
-   }
-
-   LANGULUS(INLINED)
-   Trait& Trait::operator += (CT::Deep auto& rhs) {
-      return operator += (Copy(rhs));
-   }
-
-   /// Destructive move-concatenate with any deep type                        
-   ///   @param rhs - the right operand                                       
-   ///   @return a reference to this modified container                       
-   LANGULUS(INLINED)
-   Trait& Trait::operator += (CT::Deep auto&& rhs) {
-      return operator += (Move(rhs));
-   }
-
-   /// Destructive semantically concatenate with any deep type                
-   ///   @param rhs - the right operand                                       
-   ///   @return a reference to this modified container                       
-   LANGULUS(INLINED)
-   Trait& Trait::operator += (CT::Semantic auto&& rhs) {
-      Any::operator += (rhs.template Forward<Block>());
+      else if constexpr (CT::Deep<T>)
+         Any::operator = (S::Nest(rhs).template Forward<Any>());
+      else
+         Any::operator = (S::Nest(rhs).Forward());
       return *this;
    }
 
+   /// Concatenate with traits/deep types, semantically or not                
+   ///   @attention trait type will be set, if not set yet, and rhs is trait  
+   ///   @param rhs - the right operand                                       
+   ///   @return the combined container                                       
+   LANGULUS(INLINED)
+   Trait Trait::operator + (CT::Inner::UnfoldInsertable auto&& rhs) const {
+      using S = SemanticOf<decltype(rhs)>;
+      using T = TypeOf<S>;
 
+      if constexpr (CT::TraitBased<T>) {
+         auto result = Any::operator + (S::Nest(rhs).template Forward<Any>());
+         return Trait::From(
+            GetTrait() ? GetTrait() : DesemCast(rhs).GetTrait(),
+            Abandon(result)
+         );
+      }
+      else {
+         auto result = Any::operator + (S::Nest(rhs).Forward());
+         return Trait::From(GetTrait(), Abandon(result));
+      }
+   }
+
+   /// Destructively concatenate with traits/deep types, semantically or not  
+   ///   @attention trait type will be set, if not set yet, and rhs is trait  
+   ///   @param rhs - the right operand                                       
+   ///   @return a reference to this modified container                       
+   LANGULUS(INLINED)
+   Trait& Trait::operator += (CT::Inner::UnfoldInsertable auto&& rhs) {
+      using S = SemanticOf<decltype(rhs)>;
+      using T = TypeOf<S>;
+
+      if constexpr (CT::TraitBased<T>) {
+         Any::operator += (S::Nest(rhs).template Forward<Any>());
+         if (not GetTrait())
+            SetTrait(DesemCast(rhs).GetTrait());
+      }
+      else Any::operator += (S::Nest(rhs).Forward());
+      return *this;
+   }
 
 
    ///                                                                        
    ///   Static trait implementation                                          
    ///                                                                        
-   
-   /// Default trait construction                                             
-   template<class TRAIT>
-   LANGULUS(INLINED)
-   StaticTrait<TRAIT>::StaticTrait() {
-      SetTrait<TRAIT>();
-   }
+   #define TEMPLATE() template<class TRAIT>
+   #define TME() StaticTrait<TRAIT>
 
-   template<class TRAIT>
-   LANGULUS(INLINED)
-   StaticTrait<TRAIT>::StaticTrait(const StaticTrait& other)
+   TEMPLATE() LANGULUS(INLINED)
+   TME()::StaticTrait(const StaticTrait& other)
       : Trait {Copy(other)} {}
 
-   template<class TRAIT>
-   LANGULUS(INLINED)
-   StaticTrait<TRAIT>::StaticTrait(StaticTrait&& other)
+   TEMPLATE() LANGULUS(INLINED)
+   TME()::StaticTrait(StaticTrait&& other)
       : Trait {Move(other)} {}
 
-   template<class TRAIT>
-   template<CT::NotSemantic T>
-   LANGULUS(INLINED)
-   StaticTrait<TRAIT>::StaticTrait(const T& other)
-      : Trait {Copy(other)} {
-      SetTrait<TRAIT>();
-   }
-
-   template<class TRAIT>
-   template<CT::NotSemantic T>
-   LANGULUS(INLINED)
-   StaticTrait<TRAIT>::StaticTrait(T& other)
-      : Trait {Copy(other)} {
-      SetTrait<TRAIT>();
-   }
-
-   template<class TRAIT>
-   template<CT::NotSemantic T>
-   LANGULUS(INLINED)
-   StaticTrait<TRAIT>::StaticTrait(T&& other)
-      : Trait {Move(other)} {
-      SetTrait<TRAIT>();
-   }
-
-   template<class TRAIT>
-   template<CT::Semantic S>
-   StaticTrait<TRAIT>::StaticTrait(S&& other)
-      : Trait {other.Forward()} {
-      SetTrait<TRAIT>();
-   }
-
-   template<class TRAIT>
-   template<CT::Data T1, CT::Data T2, CT::Data... TAIL>
-   LANGULUS(INLINED)
-   StaticTrait<TRAIT>::StaticTrait(T1&& t1, T2&& t2, TAIL&&... tail)
-      : Trait {Forward<T1>(t1), Forward<T2>(t2), Forward<TAIL>(tail)...} {
-      SetTrait<TRAIT>();
-   }
-
-   template<class TRAIT>
-   LANGULUS(INLINED)
-   StaticTrait<TRAIT>& StaticTrait<TRAIT>::operator = (const StaticTrait& rhs) {
-      return operator = (Copy(rhs));
-   }
-
-   template<class TRAIT>
-   LANGULUS(INLINED)
-   StaticTrait<TRAIT>& StaticTrait<TRAIT>::operator = (StaticTrait&& rhs) {
-      return operator = (Move(rhs));
-   }
-
-   template<class TRAIT>
-   template<CT::NotSemantic T>
-   LANGULUS(INLINED)
-   StaticTrait<TRAIT>& StaticTrait<TRAIT>::operator = (const T& rhs) {
-      return operator = (Copy(rhs));
-   }
-
-   template<class TRAIT>
-   template<CT::NotSemantic T>
-   LANGULUS(INLINED)
-   StaticTrait<TRAIT>& StaticTrait<TRAIT>::operator = (T& rhs) {
-      return operator = (Copy(rhs));
-   }
-
-   template<class TRAIT>
-   template<CT::NotSemantic T>
-   LANGULUS(INLINED)
-   StaticTrait<TRAIT>& StaticTrait<TRAIT>::operator = (T&& rhs) {
-      return operator = (Move(rhs));
-   }
-
-   template<class TRAIT>
-   template<CT::Semantic S>
-   LANGULUS(INLINED)
-   StaticTrait<TRAIT>& StaticTrait<TRAIT>::operator = (S&& rhs) {
-      if constexpr (CT::Deep<TypeOf<S>> or CT::TraitBased<TypeOf<S>>)
-         Any::operator = (rhs.template Forward<Any>());
-      else
-         Any::operator = (rhs.Forward());
+   TEMPLATE() LANGULUS(INLINED)
+   TME()& TME()::operator = (const StaticTrait& rhs) {
+      Trait::operator = (Copy(rhs));
       return *this;
    }
 
-   /// Concatenate the contents of a trait to this trait                      
-   ///   @param rhs - the deep container to concatenate                       
-   ///   @return the concatenated trait                                       
-   template<class TRAIT>
-   LANGULUS(INLINED)
-   TRAIT StaticTrait<TRAIT>::operator + (const Trait& other) const {
-      return TRAIT {Any::operator + (static_cast<const Any&>(other))};
-   }
-
-   /// Concatenate the contents of a deep container to this trait             
-   ///   @param rhs - the deep container to concatenate                       
-   ///   @return the concatenated trait                                       
-   template<class TRAIT>
-   template<CT::Deep T>
-   LANGULUS(INLINED)
-   TRAIT StaticTrait<TRAIT>::operator + (const T& rhs) const {
-      return TRAIT {Any::operator + (rhs)};
-   }
-
-   /// Concatenate the contents of a trait to this trait                      
-   ///   @param rhs - the deep container to concatenate                       
-   ///   @return a reference to this trait                                    
-   template<class TRAIT>
-   LANGULUS(INLINED)
-   TRAIT& StaticTrait<TRAIT>::operator += (const Trait& rhs) {
-      Any::operator += (static_cast<const Any&>(rhs));
+   TEMPLATE() LANGULUS(INLINED)
+   TME()& TME()::operator = (StaticTrait&& rhs) {
+      Trait::operator = (Move(rhs));
       return *this;
    }
-
-   /// Concatenate the contents of a deep container to this trait             
-   ///   @param rhs - the deep container to concatenate                       
-   ///   @return a reference to this trait                                    
-   template<class TRAIT>
-   template<CT::Deep T>
-   LANGULUS(INLINED)
-   TRAIT& StaticTrait<TRAIT>::operator += (const T& rhs) {
-      Any::operator += (rhs);
-      return *this;
-   }
-
-   /// Compare two traits                                                     
-   ///   @param rhs - the trait to compare against                            
-   ///   @return true if traits match by contents and type                    
-   template<class TRAIT>
-   template<CT::Data T>
-   LANGULUS(INLINED)
-   bool StaticTrait<TRAIT>::operator == (const T& rhs) const {
-      if constexpr (CT::Same<T, StaticTrait<TRAIT>>)
-         return Any::operator == (static_cast<const Any&>(DenseCast(rhs)));
-      else if constexpr (CT::TraitBased<T>)
-         return Trait::operator == (static_cast<const Trait&>(DenseCast(rhs)));
-      else
-         return Any::operator == (rhs);
-   }
-
-   /// Set the data type of the trait                                         
+   
+   /// Create a similar trait, that has a specific data type, but no contents 
    ///   @tparam T - the data type to set                                     
    ///   @return the empty trait of the given type                            
-   template<class TRAIT>
-   template<CT::Data T>
-   LANGULUS(INLINED)
-   TRAIT StaticTrait<TRAIT>::OfType() {
+   TEMPLATE() template<CT::Data T> LANGULUS(INLINED)
+   TRAIT TME()::OfType() {
       TRAIT instance;
       instance.template SetType<T>();
       return instance;
    }
    
-   /// Get the trait meta definition                                          
-   ///   @return the meta trait                                               
-   template<class TRAIT>
-   LANGULUS(INLINED)
-   TMeta StaticTrait<TRAIT>::GetTrait() {
-      return MetaTraitOf<TRAIT>();
+   /// Get the trait type                                                     
+   ///   @return the trait type                                               
+   TEMPLATE() LANGULUS(INLINED)
+   TMeta TME()::GetTrait() const noexcept {
+      return (mTraitType = MetaTraitOf<TRAIT>());
    }
+
+   /// Check if trait is valid, that is, it's typed and has contents          
+   ///   @return true if trait is valid                                       
+   TEMPLATE() LANGULUS(INLINED)
+   constexpr bool TME()::IsTraitValid() const noexcept {
+      return not IsEmpty();
+   }
+
+   /// Check if trait and data types match another trait                      
+   ///   @param other - the trait to test against                             
+   ///   @return true if traits are similar                                   
+   TEMPLATE() LANGULUS(INLINED)
+   constexpr bool TME()::IsTraitSimilar(const CT::TraitBased auto& other) const noexcept {
+      using T = Deref<decltype(other)>;
+      if constexpr (CT::Trait<T>)
+         return CT::Similar<TRAIT, T>;
+      else
+         return Trait::IsTraitSimilar(other);
+   }
+
+   /// Check if a trait matches one of a set of trait types                   
+   ///   @tparam T... - the trait list                                        
+   ///   @return true if this trait is one of the given types                 
+   TEMPLATE() template<CT::Trait T1, CT::Trait...TN> LANGULUS(INLINED)
+   constexpr bool TME()::TraitIs() const {
+      return CT::ExactAsOneOf<TRAIT, T1, TN...>;
+   }
+
+   /// Check if a trait matches one of a set of trait types                   
+   ///   @param traits... - the traits to match                               
+   ///   @return true if this trait is one of the given types                 
+   TEMPLATE() template<class T1, class...TN> LANGULUS(INLINED)
+   constexpr bool TME()::TraitIs(T1 t1, TN...tN) const requires CT::Exact<TMeta, T1, TN...> {
+      (void) GetTrait();
+      return mTraitType == t1 or ((mTraitType == tN) or ...);
+   }
+
+   /// Check if trait has correct data (always true if trait has no filter)   
+   ///   @return true if trait definition filter is compatible                
+   TEMPLATE() LANGULUS(INLINED)
+   constexpr bool TME()::HasCorrectData() const {
+      return CastsToMeta(GetTrait()->mDataType);
+   }
+
+   #undef TME
+   #undef TEMPLATE
 
 } // namespace Langulus::Anyness

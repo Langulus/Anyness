@@ -10,7 +10,7 @@
 #include "Config.hpp"
 
 
-namespace Langulus::Anyness
+namespace Langulus
 {
 
    ///                                                                        
@@ -117,4 +117,4 @@ namespace Langulus::Anyness
       constexpr void Reset() noexcept;
    };
    
-} // namespace Langulus::Anyness
+} // namespace Langulus

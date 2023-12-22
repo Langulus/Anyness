@@ -40,101 +40,21 @@ namespace Langulus::Anyness
       : TUnorderedSet {Move(other)} {}
 
    /// Semantic-construction                                                  
-   ///   @param other - the table to use to construct                         
-   TEMPLATE()
-   template<template<class> class S>
-   LANGULUS(INLINED)
+   ///   @param other - the set and semantic to construct with                
+   TEMPLATE() template<template<class> class S> LANGULUS(INLINED)
    TABLE()::TUnorderedSet(S<TUnorderedSet>&& other)
    requires (CT::Inner::SemanticMakable<S,T>) {
       BlockTransfer<TUnorderedSet>(other.Forward());
    }
-
-   /// Create from a list of elements, each of which can be used to construct 
-   /// an element inside the set - each argument can be semantic or not       
-   ///   @param t1 - first element                                            
-   ///   @param tail - tail of elements (optional)                            
-   TEMPLATE()
-   template<class T1, class... TAIL>
-   TABLE()::TUnorderedSet(T1&& t1, TAIL&&... tail)
-   requires (CT::Inner::MakableFrom<T, T1, TAIL...>) {
-      Insert(Forward<T1>(t1), Forward<TAIL>(tail)...);
-   }
    
-   /// Create from a list of elements, some/all of which can't be used to     
-   /// construct an element inside the set - each argument can be semantic or 
-   /// not, and also supports arrays, as well as other kinds of sets          
+   /// Create from a list of elements, each of them can be semantic or not,   
+   /// an array, as well as any other kinds of sets                           
    ///   @param t1 - first element                                            
    ///   @param tail - tail of elements (optional)                            
-   TEMPLATE()
-   template<class T1, class... TAIL>
+   TEMPLATE() template<class T1, class... TAIL> LANGULUS(INLINED)
    TABLE()::TUnorderedSet(T1&& t1, TAIL&&... tail)
-   requires (not CT::Inner::MakableFrom<T, T1, TAIL...>) {
-      UnfoldInsertion(Forward<T1>(t1));
-      (UnfoldInsertion(Forward<TAIL>(tail)), ...);
-   }
-
-   /// Insert an element, array of elements, or another set                   
-   ///   @param other - the argument to infold and insert, can be semantic    
-   ///   @return the number of inserted elements after unfolding              
-   TEMPLATE() LANGULUS(INLINED)
-   Count TABLE()::UnfoldInsertion(auto&& item) {
-      using S = SemanticOf<decltype(item)>;
-      using T1 = TypeOf<S>;
-
-      if constexpr (CT::Inner::MakableFrom<T, T1>) {
-         // Some of the arguments might still be used directly to       
-         // make an element, forward these to standard insertion here   
-         return Insert(Forward<T1>(item));
-      }
-      else if constexpr (CT::Array<T1>) {
-         if constexpr (CT::Inner::MakableFrom<T, Deext<T1>>) {
-            // Construct from an array of elements, each of which can   
-            // be used to initialize a T, nesting any semantic while    
-            // doing it                                                 
-            for (auto& key : item)
-               Insert(S::Nest(key));
-            return ExtentOf<T1>;
-         }
-         else {
-            // Construct from an array of elements, which can't be used 
-            // to directly construct Ts, so nest the unfolding insert   
-            Count inserted = 0;
-            for (auto& key : item)
-               inserted += UnfoldInsertion(S::Nest(key));
-            return inserted;
-         }
-      }
-      else if constexpr (CT::Set<T1>) {
-         // Construct from any kind of set (ordered or not), even sets  
-         // of a different, but compatible type                         
-         Count inserted = 0;
-         if constexpr (T1::Ordered) {
-            // We have to reinsert everything, because source is        
-            // ordered and uses a different bucketing approach          
-            if constexpr (CT::TypedSet<T1>) {
-               // The set type is known at compile-time                 
-               for (auto& key : item) {
-                  if constexpr (CT::Inner::MakableFrom<T, TypeOf<T1>>)
-                     inserted += Insert(S::Nest(key));
-                  else
-                     inserted += UnfoldInsertion(S::Nest(key));
-               }
-            }
-            else {
-               // The set is type-erased                                
-               for (auto key : item)
-                  inserted += InsertBlock(S::Nest(key));
-            }
-         }
-         else {
-            // We can directly interface set, because it is unordered   
-            // and uses the same bucketing approach                     
-            BlockTransfer<TUnorderedSet>(S::Nest(item));
-         }
-
-         return inserted;
-      }
-      else LANGULUS_ERROR("Can't insert argument");
+   requires (CT::Inner::UnfoldMakableFrom<T, T1, TAIL...>) {
+      Insert(Forward<T1>(t1), Forward<TAIL>(tail)...);
    }
 
    /// Destroys the set and all it's contents                                 
@@ -331,9 +251,7 @@ namespace Langulus::Anyness
    /// Check if value origin type matches any of the list                     
    ///   @tparam T1, TN... - the list of types to compare against             
    ///   @return true if value type matches at least one of the others        
-   TEMPLATE()
-   template<CT::Data T1, CT::Data... TN>
-   LANGULUS(INLINED)
+   TEMPLATE() template<CT::Data T1, CT::Data... TN> LANGULUS(INLINED)
    constexpr bool TABLE()::Is() const noexcept {
       return CT::SameAsOneOf<T, T1, TN...>;
    }
@@ -349,9 +267,7 @@ namespace Langulus::Anyness
    /// Check if cv-unqualified value type matches any of the list             
    ///   @tparam T1, TN... - the list of types to compare against             
    ///   @return true if value type matches at least one of the others        
-   TEMPLATE()
-   template<CT::Data T1, CT::Data... TN>
-   LANGULUS(INLINED)
+   TEMPLATE() template<CT::Data T1, CT::Data... TN> LANGULUS(INLINED)
    constexpr bool TABLE()::IsSimilar() const noexcept {
       return CT::SimilarAsOneOf<T, T1, TN...>;
    }
@@ -367,9 +283,7 @@ namespace Langulus::Anyness
    /// Check if value type exactly matches any of the list                    
    ///   @tparam T1, TN... - the list of types to compare against             
    ///   @return true if value type matches at least one of the others        
-   TEMPLATE()
-   template<CT::Data T1, CT::Data... TN>
-   LANGULUS(INLINED)
+   TEMPLATE() template<CT::Data T1, CT::Data... TN> LANGULUS(INLINED)
    constexpr bool TABLE()::IsExact() const noexcept {
       return CT::ExactAsOneOf<T, T1, TN...>;
    }
@@ -380,17 +294,6 @@ namespace Langulus::Anyness
    TEMPLATE() LANGULUS(INLINED)
    constexpr bool TABLE()::IsExact(DMeta value) const noexcept {
       return GetType()->IsExact(value);
-   }
-   
-   /// Move-insert a pair inside the map                                      
-   ///   @param rhs - the pair to insert                                      
-   ///   @return a reference to this table for chaining                       
-   TEMPLATE()
-   template<class T1>
-   LANGULUS(INLINED)
-   TABLE()& TABLE()::operator << (T1&& rhs) requires CT::Inner::MakableFrom<T, T1&&> {
-      Insert(Forward<T1>(rhs));
-      return *this;
    }
 
    /// Request a new size of keys and info via the value container            
@@ -444,8 +347,7 @@ namespace Langulus::Anyness
    ///   @attention assumes count is a power-of-two                           
    ///   @tparam REUSE - true to reallocate, false to allocate fresh          
    ///   @param count - the new number of pairs                               
-   TEMPLATE()
-   template<bool REUSE>
+   TEMPLATE() template<bool REUSE>
    void TABLE()::AllocateData(const Count& count) {
       LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(count),
          "Table reallocation count is not a power-of-two");
@@ -607,8 +509,7 @@ namespace Langulus::Anyness
    ///   @param start - the starting index                                    
    ///   @param key - key to move in                                          
    ///   @return the index at which item was inserted                         
-   TEMPLATE()
-   template<bool CHECK_FOR_MATCH, class T1>
+   TEMPLATE() template<bool CHECK_FOR_MATCH, class T1>
    Offset TABLE()::InsertInner(const Offset& start, T1&& key) {
       HandleLocal<T> keyswap {Forward<T1>(key)};
 
@@ -649,25 +550,112 @@ namespace Langulus::Anyness
       ++mKeys.mCount;
       return index;
    }
+   
+   /// Insert an element, array of elements, or another set                   
+   ///   @param item - the argument to unfold and insert, can be semantic     
+   ///   @return the number of inserted elements after unfolding              
+   TEMPLATE() LANGULUS(INLINED)
+   Count TABLE()::UnfoldInsertion(auto&& item) {
+      using S = SemanticOf<decltype(item)>;
+      using T1 = TypeOf<S>;
+
+      if constexpr (CT::Inner::MakableFrom<T, T1>) {
+         // Some of the arguments might still be used directly to       
+         // make an element, forward these to standard insertion here   
+         Reserve(GetCount() + 1);
+         InsertInner<true>(
+            GetBucket(GetReserved() - 1, DesemCast(item)),
+            Forward<T1>(item)
+         );
+         return 1;
+      }
+      else if constexpr (CT::Array<T1>) {
+         if constexpr (CT::Inner::MakableFrom<T, Deext<T1>>) {
+            // Construct from an array of elements, each of which can   
+            // be used to initialize a T, nesting any semantic while    
+            // doing it                                                 
+            Reserve(GetCount() + ExtentOf<T1>);
+            for (auto& key : item) {
+               InsertInner<true>(
+                  GetBucket(GetReserved() - 1, DesemCast(key)),
+                  S::Nest(key)
+               );
+            }
+            return ExtentOf<T1>;
+         }
+         else if constexpr (CT::Inner::MakableFrom<T, Unfold<Deext<T1>>>) {
+            // Construct from an array of elements, which can't be used 
+            // to directly construct Ts, so nest the unfolding insert   
+            Count inserted = 0;
+            for (auto& key : item)
+               inserted += UnfoldInsertion(S::Nest(key));
+            return inserted;
+         }
+         else LANGULUS_ERROR("Array elements aren't insertable");
+      }
+      else if constexpr (CT::Set<T1>) {
+         // Construct from any kind of set (ordered or not, type-erased 
+         // or not), even sets of a different, but (fold)compatible type
+         if constexpr (CT::TypedSet<T1>) {
+            // The contained type is known at compile-time              
+            using T2 = TypeOf<T1>;
+            if constexpr (CT::Inner::MakableFrom<T, T2>) {
+               // Each set element can be mapped to one T element       
+               Reserve(GetCount() + item.GetCount());
+               for (auto& key : item) {
+                  InsertInner<true>(
+                     GetBucket(GetReserved() - 1, key),
+                     S::Nest(key)
+                  );
+               }
+               return item.GetCount();
+            }
+            else if constexpr (CT::Inner::MakableFrom<T, Unfold<T2>>) {
+               // Set elements need to be unfolded, in order to be      
+               // inserted as Ts                                        
+               Count inserted = 0;
+               for (auto& key : item)
+                  inserted += UnfoldInsertion(S::Nest(key));
+               return inserted;
+            }
+            else LANGULUS_ERROR("Set elements aren't insertable");
+         }
+         else {
+            // The set is type-erased                                   
+            LANGULUS_ASSERT(IsSimilar(item.GetType()), Meta, "Type mismatch");
+            Reserve(GetCount() + item.GetCount());
+            for (auto& key : item) {
+               InsertInnerUnknown<true, Ordered>(
+                  GetBucketUnknown(GetReserved() - 1, key),
+                  S::Nest(key)
+               );
+            }
+            return item.GetCount();
+         }
+      }
+      else LANGULUS_ERROR("Can't insert argument");
+   }
 
    /// Merge an element via semantic                                          
    ///   @param key - the key to add                                          
    ///   @return 1 if pair was inserted, zero otherwise                       
-   TEMPLATE()
-   template<class T1, class... TAIL>
-   LANGULUS(INLINED)
+   TEMPLATE() template<class T1, class... TAIL> LANGULUS(INLINED)
    Count TABLE()::Insert(T1&& t1, TAIL&&...tail)
-   requires CT::Inner::MakableFrom<T, T1&&, TAIL&&...> {
-      Reserve(GetCount() + 1 + sizeof...(TAIL));
-      InsertInner<true>(
-         GetBucket(GetReserved() - 1, DesemCast(t1)),
-         Forward<T1>(t1)
-      );
-      (InsertInner<true>(
-         GetBucket(GetReserved() - 1, DesemCast(tail)),
-         Forward<TAIL>(tail)
-      ), ...);
-      return 1 + sizeof...(TAIL);
+   requires CT::Inner::UnfoldMakableFrom<T, T1, TAIL...> {
+      Count inserted = 0;
+      inserted += UnfoldInsertion(Forward<T1>(t1));
+      ((inserted += UnfoldInsertion(Forward<TAIL>(tail))), ...);
+      return inserted;
+   }
+   
+   /// Move-insert a pair inside the map                                      
+   ///   @param rhs - the pair to insert                                      
+   ///   @return a reference to this table for chaining                       
+   TEMPLATE() template<class T1> LANGULUS(INLINED)
+   TABLE()& TABLE()::operator << (T1&& rhs)
+   requires CT::Inner::UnfoldMakableFrom<T, T1> {
+      Insert(Forward<T1>(rhs));
+      return *this;
    }
 
    /// Destroy everything valid inside the map                                
@@ -996,8 +984,7 @@ namespace Langulus::Anyness
    /// You can break the loop, by returning false inside f()                  
    ///   @param f - the function to call for each key block                   
    ///   @return the number of successful f() executions                      
-   TEMPLATE()
-   template<class F>
+   TEMPLATE() template<class F>
    Count TABLE()::ForEachElement(F&& f) const {
       using A = ArgumentOf<F>;
       using R = ReturnOf<F>;
@@ -1021,8 +1008,7 @@ namespace Langulus::Anyness
    /// You can break the loop, by returning false inside f()                  
    ///   @param f - the function to call for each key block                   
    ///   @return the number of successful f() executions                      
-   TEMPLATE()
-   template<class F>
+   TEMPLATE() template<class F>
    Count TABLE()::ForEachElement(F&& f) {
       using A = ArgumentOf<F>;
       using R = ReturnOf<F>;
@@ -1051,9 +1037,7 @@ namespace Langulus::Anyness
    ///   @param info - the info pointer                                       
    ///   @param sentinel - the end of info pointers                           
    ///   @param value - pointer to the value element                          
-   TEMPLATE()
-   template<bool MUTABLE>
-   LANGULUS(INLINED)
+   TEMPLATE() template<bool MUTABLE> LANGULUS(INLINED)
    TABLE()::TIterator<MUTABLE>::TIterator(
       const InfoType* info, 
       const InfoType* sentinel, 
@@ -1066,9 +1050,7 @@ namespace Langulus::Anyness
    /// Prefix increment operator                                              
    ///   @attention assumes iterator points to a valid element                
    ///   @return the modified iterator                                        
-   TEMPLATE()
-   template<bool MUTABLE>
-   LANGULUS(INLINED)
+   TEMPLATE() template<bool MUTABLE> LANGULUS(INLINED)
    typename ITERATOR()& TABLE()::TIterator<MUTABLE>::operator ++ () noexcept {
       if (mInfo == mSentinel)
          return *this;
@@ -1084,9 +1066,7 @@ namespace Langulus::Anyness
    /// Suffix increment operator                                              
    ///   @attention assumes iterator points to a valid element                
    ///   @return the previous value of the iterator                           
-   TEMPLATE()
-   template<bool MUTABLE>
-   LANGULUS(INLINED)
+   TEMPLATE() template<bool MUTABLE> LANGULUS(INLINED)
    typename ITERATOR() TABLE()::TIterator<MUTABLE>::operator ++ (int) noexcept {
       const auto backup = *this;
       operator ++ ();
@@ -1096,45 +1076,35 @@ namespace Langulus::Anyness
    /// Compare unordered map entries                                          
    ///   @param rhs - the other iterator                                      
    ///   @return true if entries match                                        
-   TEMPLATE()
-   template<bool MUTABLE>
-   LANGULUS(INLINED)
+   TEMPLATE() template<bool MUTABLE> LANGULUS(INLINED)
    bool TABLE()::TIterator<MUTABLE>::operator == (const TIterator& rhs) const noexcept {
       return mInfo == rhs.mInfo;
    }
 
    /// Iterator access operator                                               
    ///   @return a pair at the current iterator position                      
-   TEMPLATE()
-   template<bool MUTABLE>
-   LANGULUS(INLINED)
+   TEMPLATE() template<bool MUTABLE> LANGULUS(INLINED)
    T& TABLE()::TIterator<MUTABLE>::operator * () const noexcept requires (MUTABLE) {
       return {*const_cast<T*>(mValue)};
    }
 
    /// Iterator access operator                                               
    ///   @return a pair at the current iterator position                      
-   TEMPLATE()
-   template<bool MUTABLE>
-   LANGULUS(INLINED)
+   TEMPLATE() template<bool MUTABLE> LANGULUS(INLINED)
    const T& TABLE()::TIterator<MUTABLE>::operator * () const noexcept requires (!MUTABLE) {
       return {*mValue};
    }
 
    /// Iterator access operator                                               
    ///   @return a pair at the current iterator position                      
-   TEMPLATE()
-   template<bool MUTABLE>
-   LANGULUS(INLINED)
+   TEMPLATE() template<bool MUTABLE> LANGULUS(INLINED)
    T& TABLE()::TIterator<MUTABLE>::operator -> () const noexcept requires (MUTABLE) {
       return **this;
    }
 
    /// Iterator access operator                                               
    ///   @return a pair at the current iterator position                      
-   TEMPLATE()
-   template<bool MUTABLE>
-   LANGULUS(INLINED)
+   TEMPLATE() template<bool MUTABLE> LANGULUS(INLINED)
    const T& TABLE()::TIterator<MUTABLE>::operator -> () const noexcept requires (!MUTABLE) {
       return **this;
    }

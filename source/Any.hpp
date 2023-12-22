@@ -26,8 +26,6 @@ namespace Langulus::Anyness
    /// binary-compatible.                                                     
    ///                                                                        
    class Any : public Block {
-      LANGULUS(DEEP) true;
-      LANGULUS(UNINSERTABLE) false;
       LANGULUS(POD) false;
       LANGULUS_BASES(Block);
 
@@ -61,17 +59,12 @@ namespace Langulus::Anyness
       ///   Construction                                                      
       ///                                                                     
       constexpr Any() noexcept = default;
-
       Any(const Any&);
       Any(Any&&) noexcept;
 
-      Any(const CT::NotSemantic auto&);
-      Any(CT::NotSemantic auto&);
-      Any(CT::NotSemantic auto&&);
-      Any(CT::Semantic auto&&) noexcept;
-
-      template<CT::Data T1, CT::Data T2, CT::Data... TN>
-      Any(T1&&, T2&&, TN&&...);
+      template<class T1, class...TAIL>
+      Any(T1&&, TAIL&&...)
+      requires CT::Inner::UnfoldInsertable<T1, TAIL...>;
 
       ~Any();
    
@@ -80,11 +73,7 @@ namespace Langulus::Anyness
       ///                                                                     
       Any& operator = (const Any&);
       Any& operator = (Any&&) noexcept;
-
-      Any& operator = (const CT::NotSemantic auto&);
-      Any& operator = (CT::NotSemantic auto&);
-      Any& operator = (CT::NotSemantic auto&&);
-      Any& operator = (CT::Semantic auto&&);
+      Any& operator = (CT::Inner::UnfoldInsertable auto&&);
 
       ///                                                                     
       ///   Comparison                                                        
@@ -116,25 +105,11 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
-      Any& operator << (const CT::NotSemantic auto&);
-      Any& operator << (CT::NotSemantic auto&);
-      Any& operator << (CT::NotSemantic auto&&);
-      Any& operator << (CT::Semantic auto&&);
-   
-      Any& operator >> (const CT::NotSemantic auto&);
-      Any& operator >> (CT::NotSemantic auto&);
-      Any& operator >> (CT::NotSemantic auto&&);
-      Any& operator >> (CT::Semantic auto&&);
+      Any& operator <<  (CT::Inner::UnfoldInsertable auto&&);
+      Any& operator >>  (CT::Inner::UnfoldInsertable auto&&);
 
-      Any& operator <<= (const CT::NotSemantic auto&);
-      Any& operator <<= (CT::NotSemantic auto&);
-      Any& operator <<= (CT::NotSemantic auto&&);
-      Any& operator <<= (CT::Semantic auto&&);
-
-      Any& operator >>= (const CT::NotSemantic auto&);
-      Any& operator >>= (CT::NotSemantic auto&);
-      Any& operator >>= (CT::NotSemantic auto&&);
-      Any& operator >>= (CT::Semantic auto&&);
+      Any& operator <<= (CT::Inner::UnfoldInsertable auto&&);
+      Any& operator >>= (CT::Inner::UnfoldInsertable auto&&);
 
       ///                                                                     
       ///   Removal                                                           
@@ -145,15 +120,8 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Concatenation                                                     
       ///                                                                     
-      NOD() Any operator + (const CT::Deep auto&) const;
-      NOD() Any operator + (CT::Deep auto&) const;
-      NOD() Any operator + (CT::Deep auto&&) const;
-      NOD() Any operator + (CT::Semantic auto&&) const;
-
-      Any& operator += (const CT::Deep auto&);
-      Any& operator += (CT::Deep auto&);
-      Any& operator += (CT::Deep auto&&);
-      Any& operator += (CT::Semantic auto&&);
+      NOD() Any operator + (CT::Inner::UnfoldInsertable auto&&) const;
+      Any& operator += (CT::Inner::UnfoldInsertable auto&&);
 
       ///                                                                     
       ///   Iteration                                                         
@@ -164,10 +132,6 @@ namespace Langulus::Anyness
       NOD() ConstIterator begin() const noexcept;
       NOD() ConstIterator end() const noexcept;
       NOD() ConstIterator last() const noexcept;
-
-   protected:
-      template<CT::Block WRAPPER, CT::Semantic S>
-      WRAPPER Concatenate(S&&) const;
    };
 
 

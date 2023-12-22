@@ -237,15 +237,8 @@ namespace Langulus::Anyness
 
       if (mCount == 1) {
          // Exactly one element means exactly one hash                  
-         if (mType->mIsSparse) {
-            if (*GetRawSparse() == nullptr)
-               return {};
-
-            // Always dereference the metas and get their hash          
-            try { return As<RTTI::Meta>().GetHash(); }
-            catch (...) { }
+         if (mType->mIsSparse)
             return HashOf(*GetRawSparse());
-         }
          else if (mType->Is<Hash>())
             return Get<Hash>();
          else if (mType->mHasher)
@@ -261,43 +254,17 @@ namespace Langulus::Anyness
 
       // Hashing multiple elements                                      
       if (mType->mIsSparse) {
-         if (mType->CastsTo<RTTI::Meta>()) {
-            // Always dereference the metas and get their hash          
-            auto h = Block::From<Hash, true>();
-            h.AllocateFresh(h.RequestSize(mCount));
-
-            for (Count i = 0; i < mCount; ++i) {
-               auto meta = As<const RTTI::Meta*>(i);
-               if (meta)
-                  h.InsertInner(Copy(meta->GetHash()), i);
-               else
-                  h.InsertInner(Copy(Hash {}), i);
-            }
-
-            const auto result = HashBytes<DefaultHashSeed, false>(
-               h.GetRaw(), static_cast<int>(h.GetBytesize()));
-
-            h.Free();
-            return result;
-         }
-         else return HashBytes<DefaultHashSeed, false>(mRaw, static_cast<int>(GetBytesize()));
+         return HashBytes<DefaultHashSeed, false>(mRaw, static_cast<int>(GetBytesize()));
       }
       else if (mType->mHasher) {
          // Use the reflected hasher for each element, and then combine 
          // hashes for a final one                                      
-         auto h = Block::From<Hash, true>();
-         h.AllocateFresh(h.RequestSize(mCount));
-
-         for (Count i = 0; i < mCount; ++i) {
-            const auto element = GetElement(i);
-            h.InsertInner(Copy(mType->mHasher(element.mRaw)), i);
-         }
-
-         const auto result = HashBytes<DefaultHashSeed, false>(
-            h.GetRaw(), static_cast<int>(h.GetBytesize()));
-
-         h.Free();
-         return result;
+         TAny<Hash> h;
+         h.Reserve(mCount);
+         ForEachElement([&](const Block& element) {
+            h << mType->mHasher(element.mRaw);
+         });
+         return h.GetHash();
       }
       else if (mType->mIsPOD) {
          if (mType->mAlignment < Bitness / 8)
@@ -550,24 +517,16 @@ namespace Langulus::Anyness
    ///   @param output - [in/out] container that collects results             
    ///   @return the number of gathered elements                              
    template<bool REVERSE>
-   Count Block::GatherInner(const Block& input, CT::Data auto& output) {
-      static_assert(CT::Block<decltype(output)>,
-         "Output must be a block type");
-
-      Count count {};
+   Count Block::GatherInner(const CT::Block auto& input, CT::Block auto& output) {
       if (input.IsDeep() and not output.IsDeep()) {
+         Count count = 0;
          ForEach<REVERSE>([&](const Block& i) {
             count += GatherInner<REVERSE>(i, output);
          });
          return count;
       }
 
-      if (output.IsConcatable(input)) {
-         // Catenate input if compatible                                
-         count += output.template InsertBlock<IndexBack>(input);
-      }
-
-      return count;
+      return output.InsertBlock(IndexBack, input);
    }
 
    /// Gather items of specific phase from input container and fill output    
@@ -578,10 +537,7 @@ namespace Langulus::Anyness
    ///   @param state - the data state filter                                 
    ///   @return the number of gathered elements                              
    template<bool REVERSE>
-   Count Block::GatherPolarInner(DMeta type, const Block& input, CT::Data auto& output, DataState state) {
-      static_assert(CT::Block<decltype(output)>,
-         "Output must be a block type");
-
+   Count Block::GatherPolarInner(DMeta type, const CT::Block auto& input, CT::Block auto& output, DataState state) {
       if (input.GetState() % state) {
          if (input.IsNow() and input.IsDeep()) {
             // Phases don't match, but we can dig deeper if deep        
@@ -591,7 +547,7 @@ namespace Langulus::Anyness
                GatherPolarInner<REVERSE>(type, i, localOutput, state);
             });
             localOutput.MakeNow();
-            const auto inserted = output.SmartPush(Abandon(localOutput));
+            const auto inserted = output.SmartPush(IndexBack, Abandon(localOutput));
             localOutput.Free();
             return inserted;
          }
@@ -610,7 +566,7 @@ namespace Langulus::Anyness
       Block localOutput {input.GetState(), type};
       GatherInner<REVERSE>(input, localOutput);
       localOutput.MakeNow();
-      const auto inserted = output.InsertBlock(Abandon(localOutput));
+      const auto inserted = output.InsertBlock(IndexBack, Abandon(localOutput));
       localOutput.Free();
       return inserted;
    }

@@ -79,20 +79,13 @@ namespace Langulus::Anyness
       constexpr Neat() = default;
       Neat(const Neat&);
       Neat(Neat&&) noexcept;
+
       template<template<class> class S>
       Neat(S<Neat>&&) requires CT::Semantic<S<Neat>>;
 
-      template<CT::NotSemantic T>
-      Neat(const T&) requires CT::Messy<T>;
-      template<CT::NotSemantic T>
-      Neat(T&) requires CT::Messy<T>;
-      template<CT::NotSemantic T>
-      Neat(T&&) requires CT::Messy<T>;
-      template<CT::Semantic S>
-      Neat(S&&) requires CT::Messy<TypeOf<S>>;
-
-      template<CT::Data T1, CT::Data T2, CT::Data... TAIL>
-      Neat(T1&&, T2&&, TAIL&&...);
+      template<class T1, class...TAIL>
+      Neat(T1&&, TAIL&&...)
+      requires CT::Inner::UnfoldInsertable<T1, TAIL...>;
 
       ///                                                                     
       ///   Assignment                                                        
@@ -213,29 +206,25 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
-      Neat& operator << (const CT::NotSemantic auto&);
-      Neat& operator << (CT::NotSemantic auto&);
-      Neat& operator << (CT::NotSemantic auto&&);
-      Neat& operator << (CT::Semantic auto&&);
+      template<class T1, class... TAIL>
+      Count Insert(T1&&, TAIL&&...);
 
-      Neat& operator <<= (const CT::NotSemantic auto&);
-      Neat& operator <<= (CT::NotSemantic auto&);
-      Neat& operator <<= (CT::NotSemantic auto&&);
-      Neat& operator <<= (CT::Semantic auto&&);
-
-      Neat& Set(const Trait&, const Offset& = 0);
-      Neat& Set(Trait&&, const Offset& = 0);
+      Neat& operator << (auto&&);
 
       void Merge(const Neat&);
 
+      Neat& operator <<= (auto&&);
+
+      Neat& Set(const Trait&, const Offset & = 0);
+      Neat& Set(Trait&&, const Offset & = 0);
+
    protected:
-      void AddTrait(CT::Semantic auto&&);
-      void AddTrait(TMeta);
+      Count UnfoldInsertion(auto&&);
+      void InsertInner(auto&&);
 
-      void AddData(CT::Semantic auto&&);
-      void AddData(DMeta);
-
-      void AddConstruct(CT::Semantic auto&&);
+      void AddTrait(auto&&);
+      void AddData(auto&&);
+      void AddConstruct(auto&&);
 
       template<Offset... IDX>
       bool ExtractTraitInner(const TAny<Any>&, ::std::integer_sequence<Offset, IDX...>, CT::Data auto&...) const;

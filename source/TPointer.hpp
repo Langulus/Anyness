@@ -68,7 +68,7 @@ namespace Langulus::Anyness
 
       NOD() operator TPointer<const T, DR>() const noexcept requires CT::Mutable<T>;
       NOD() operator const T& () const noexcept;
-      NOD() operator T () noexcept;
+      //NOD() operator T* () const noexcept;
 
       using Base::operator bool;
       using Base::operator ->;

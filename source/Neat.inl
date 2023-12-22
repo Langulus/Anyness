@@ -29,11 +29,10 @@ namespace Langulus::Anyness
    Neat::Neat(Neat&& other) noexcept
       : Neat {Move(other)} {}
 
-   /// Semantic constructor from Neat                                         
+   /// Semantic constructor                                                   
    ///   @tparam S - semantic to use (deducible)                              
    ///   @param other - the container to use                                  
-   template<template<class> class S>
-   LANGULUS(INLINED)
+   template<template<class> class S> LANGULUS(INLINED)
    Neat::Neat(S<Neat>&& other) requires CT::Semantic<S<Neat>>
       : mHash {other->mHash}
       , mTraits {S<Neat>::Nest(other->mTraits)}
@@ -44,51 +43,14 @@ namespace Langulus::Anyness
          other->mHash = {};
    }
 
-   /// Copy-constructor from anything messy                                   
-   ///   @tparam T - messy type to use (deducible)                            
-   ///   @param messy - the messy thing to copy                               
-   template<CT::NotSemantic T>
-   LANGULUS(INLINED)
-   Neat::Neat(const T& messy) requires CT::Messy<T>
-      : Neat {Copy(messy)} {}
-
-   /// Copy-constructor from anything messy                                   
-   ///   @tparam T - messy type to use (deducible)                            
-   ///   @param messy - the messy thing to copy                               
-   template<CT::NotSemantic T>
-   LANGULUS(INLINED)
-   Neat::Neat(T& messy) requires CT::Messy<T>
-      : Neat {Copy(messy)} {}
-
-   /// Move-constructor from anything messy                                   
-   ///   @tparam T - messy type to use (deducible)                            
-   ///   @param messy - the messy thing to move                               
-   template<CT::NotSemantic T>
-   LANGULUS(INLINED)
-   Neat::Neat(T&& messy) requires CT::Messy<T>
-      : Neat {Move(messy)} {}
-
-   /// Semantic constructor from anything messy                               
-   /// If container, it compiles it, by grouping elements in predictable      
-   /// ways, ensuring further comparisons are fast & orderless. Nested        
-   /// contents are normalized only if deep                                   
-   ///   @param messy - the messy stuff to normalize                          
-   template<CT::Semantic S>
-   LANGULUS(INLINED)
-   Neat::Neat(S&& messy) requires CT::Messy<TypeOf<S>> {
-      operator << (messy.Forward());
-   }
-   
-   /// Pack any number of elements sequentially                               
-   /// If any of the types doesn't match exactly, the container becomes deep  
-   /// to incorporate all elements                                            
-   ///   @param head - first element                                          
-   ///   @param tail... - the rest of the elements                            
-   template<CT::Data T1, CT::Data T2, CT::Data... TAIL>
-   Neat::Neat(T1&& t1, T2&& t2, TAIL&&... tail) {
-      operator << (Forward<T1>(t1));
-      operator << (Forward<T2>(t2));
-      (operator << (Forward<TAIL>(tail)), ...);
+   /// Tidy up any number of elements sequentially, each element can be       
+   /// semantic or not. Deep contents are normalized only for CT::Deep        
+   ///   @param t1 - first element                                            
+   ///   @param tail... - the rest of the elements (optional)                 
+   template<class T1, class...TAIL> LANGULUS(INLINED)
+   Neat::Neat(T1&& t1, TAIL&&... tail)
+   requires CT::Inner::UnfoldInsertable<T1, TAIL...> {
+      Insert(Forward<T1>(t1), Forward<TAIL>(tail)...);
    }
 
    /// Semantic assignment with another normalized descriptor                 
@@ -525,159 +487,156 @@ namespace Langulus::Anyness
 
       return 0;
    }
-   
-   /// Push and sort anything non-semantic by a shallow-copy                  
-   ///   @attention hash will be recomputed on demand                         
-   ///   @param rhs - the thing to push                                       
-   ///   @return a reference to this Neat container                           
-   Neat& Neat::operator << (const CT::NotSemantic auto& rhs) {
-      return operator << (Copy(rhs));
-   }
-
-   /// Push and sort anything non-semantic by a shallow-copy                  
-   ///   @attention hash will be recomputed on demand                         
-   ///   @param rhs - the thing to push                                       
-   ///   @return a reference to this Neat container                           
-   Neat& Neat::operator << (CT::NotSemantic auto& rhs) {
-      return operator << (Copy(rhs));
-   }
-
-   /// Push and sort anything non-semantic by a move                          
-   ///   @attention hash will be recomputed on demand                         
-   ///   @param rhs - the thing to push                                       
-   ///   @return a reference to this Neat container                           
-   Neat& Neat::operator << (CT::NotSemantic auto&& rhs) {
-      return operator << (Move(rhs));
-   }
 
    /// Push and sort anything semantically                                    
    ///   @attention hash will be recomputed on demand                         
-   ///   @param rhs - the thing to push, as well as the semantic to use       
-   ///   @return a reference to this Neat container                           
-   Neat& Neat::operator << (CT::Semantic auto&& rhs) {
-      using S = Decay<decltype(rhs)>;
+   ///   @param item - the thing to push, as well as the semantic to use      
+   LANGULUS(INLINED)
+   void Neat::InsertInner(auto&& item) {
+      using S = SemanticOf<decltype(item)>;
       using T = TypeOf<S>;
 
-      if constexpr (CT::Array<T>) {
-         if constexpr (CT::StringLiteral<T>)
-            operator << (Abandon(Text {rhs.Forward()}));
-         else for (auto& element : *rhs)
-            operator << (S::Nest(element));
-      }
-      else if constexpr (CT::Neat<T>) {
-         // Merge neats                                                 
-         Merge(rhs.Forward());
-      }
-      else if constexpr (CT::TraitBased<T>) {
+      if constexpr (CT::TraitBased<T>) {
          // Insert trait to its bucket                                  
-         AddTrait(rhs.Forward());
+         AddTrait(S::Nest(item));
       }
       else if constexpr (CT::Same<T, DMeta>) {
          // Insert an empty data to signify solo type ID                
-         AddData(*rhs);
+         AddData(S::Nest(item));
       }
       else if constexpr (CT::Same<T, TMeta>) {
          // Insert empty Any to signify trait without content           
-         AddTrait(*rhs);
+         AddTrait(S::Nest(item));
       }
       else if constexpr (CT::Same<T, CMeta>) {
          // Expand the constant, and push it                            
-         operator << (Clone(Block {{}, *rhs}));
+         operator << (Clone(Block {{}, DesemCast(item)}));
       }
       else if constexpr (CT::Construct<T>) {
          // Construct's arguments are always Neat                       
-         AddConstruct(rhs.Forward());
-      }
-      else if constexpr (CT::Deep<T>) {
-         // Push anything deep here, flattening it, unless it has state 
-         if (rhs->GetUnconstrainedState()) {
-            // RHS has state, so just push it as it is, to preserve it  
-            AddData(rhs.Forward());
-         }
-         else if (rhs->IsDeep()) {
-            // RHS is deep, flatten it                                  
-            rhs->ForEach([&](const Any& group) {
-               operator << (S::Nest(const_cast<Any&>(group)));
-            });
-         }
-         else {
-            const bool done = rhs->ForEach(
-               [&](const Construct& c) {
-                  // RHS contains constructs, add them one by one       
-                  AddConstruct(S::Nest(const_cast<Construct&>(c)));
-               },
-               [&](const Neat& neat) {
-                  // RHS contains Neats, merge them one by one          
-                  Merge(neat);
-               },
-               [&](const Trait& trait) {
-                  // RHS contains traits, add them one by one           
-                  AddTrait(S::Nest(const_cast<Trait&>(trait)));
-               },
-               [&](const DMeta& meta) {
-                  // RHS contains metadata, add them                    
-                  AddData(meta);
-               },
-               [&](const TMeta& meta) {
-                  // RHS contains metatraits, add them                  
-                  AddTrait(meta);
-               },
-               [&](const CMeta& meta) {
-                  // RHS contains metaconstants, expand and add them    
-                  operator << (Clone(Block {{}, meta}));
-               }
-            );
-
-            if (not done) {
-               // RHS contains nothing special, just add it as it is    
-               AddData(rhs.Forward());
-            }
-         }
+         AddConstruct(S::Nest(item));
       }
       else {
          // RHS is nothing special, just add it as it is                
          const auto meta = MetaDataOf<Decay<T>>();
          const auto found = mAnythingElse.FindIt(meta);
          if (found)
-            found->mValue << Messy {rhs.Forward()};
+            found->mValue << Messy {item.Forward()};
          else
-            mAnythingElse.Insert(meta, TAny<Messy> {Messy {rhs.Forward()}});
+            mAnythingElse.Insert(meta, TAny<Messy> {Messy {item.Forward()}});
       }
 
       // Demand a new hash on the next compare                          
       mHash = {};
+   }
+
+   /// Insert an element, array of elements, or another set                   
+   ///   @param item - the argument to unfold and insert, can be semantic     
+   ///   @return the number of inserted elements after unfolding              
+   LANGULUS(INLINED)
+   Count Neat::UnfoldInsertion(auto&& item) {
+      using S = SemanticOf<decltype(item)>;
+      using T = TypeOf<S>;
+
+      if constexpr (CT::Array<T>) {
+         if constexpr (CT::StringLiteral<T>) {
+            // Implicitly convert string literals to Text containers    
+            InsertInner(Text {S::Nest(item)});
+            return 1;
+         }
+         else {
+            // Unfold-insert anything else                              
+            Count inserted = 0;
+            for (auto& key : item)
+               inserted += UnfoldInsertion(S::Nest(key));
+            return inserted;
+         }
+      }
+      else if constexpr (CT::Neat<T>) {
+         // Insert Neat, by inserting each element from it              
+         Count inserted = 0;
+         DesemCast(item).ForEach([&](const Any& subitem) {
+            inserted += UnfoldInsertion(
+               S::Nest(const_cast<Any&>(subitem)));
+         });
+         return inserted;
+      }
+      else if constexpr (CT::Deep<T>) {
+         // Push anything deep here, flattening it, unless it has state 
+         if (DesemCast(item).GetUnconstrainedState()) {
+            // Item has state, so just push it as it is, to preserve it 
+            InsertInner(S::Nest(item));
+            return 1;
+         }
+         else if (DesemCast(item).IsDeep()) {
+            // Item is deep, flatten it                                 
+            Count inserted = 0;
+            DesemCast(item).ForEach([&](const Any& subitem) {
+               inserted += UnfoldInsertion(
+                  S::Nest(const_cast<Any&>(subitem)));
+            });
+            return inserted;
+         }
+         else {
+            // Item is not deep, filter based on type                   
+            const auto inserted = DesemCast(item).ForEach(
+               [&](const Construct& c) {
+                  InsertInner(S::Nest(const_cast<Construct&>(c)));
+               },
+               [&](const Neat& neat) {
+                  UnfoldInsertion(S::Nest(const_cast<Neat&>(neat)));
+               },
+               [&](const Trait& trait) {
+                  InsertInner(S::Nest(const_cast<Trait&>(trait)));
+               },
+               [&](const DMeta& meta) {InsertInner(meta);},
+               [&](const TMeta& meta) {InsertInner(meta);},
+               [&](const CMeta& meta) {InsertInner(meta);}
+            );
+
+            if (not inserted) {
+               // Item contains nothing special, just add it as it is   
+               InsertInner(S::Nest(item));
+               return 1;
+            }
+
+            return inserted;
+         }
+      }
+      else {
+         // Some of the arguments might still be used directly to       
+         // make an element, forward these to standard insertion here   
+         InsertInner(S::Nest(item));
+         return 1;
+      }
+   }
+
+   /// Push and sort anything, semantically or not                            
+   ///   @param key - the key to add                                          
+   ///   @return 1 if pair was inserted, zero otherwise                       
+   template<class T1, class... TAIL> LANGULUS(INLINED)
+   Count Neat::Insert(T1&& t1, TAIL&&...tail) {
+      Count inserted = 0;
+      inserted += UnfoldInsertion(Forward<T1>(t1));
+      ((inserted += UnfoldInsertion(Forward<TAIL>(tail))), ...);
+      return inserted;
+   }
+   
+   /// Push and sort anything, semantically or not                            
+   ///   @param rhs - the pair to insert                                      
+   ///   @return a reference to this table for chaining                       
+   LANGULUS(INLINED)
+   Neat& Neat::operator << (auto&& rhs) {
+      Insert(Forward<Deref<decltype(rhs)>>(rhs));
       return *this;
-   }
-
-   /// Merge anything non-semantic by a shallow-copy, if it doesn't exist yet 
-   ///   @attention hash will be recomputed on demand, if anything was pushed 
-   ///   @param rhs - the thing to push                                       
-   ///   @return a reference to this Neat container                           
-   Neat& Neat::operator <<= (const CT::NotSemantic auto& rhs) {
-      return operator <<= (Copy(rhs));
-   }
-
-   /// Merge anything non-semantic by a shallow-copy, if it doesn't exist yet 
-   ///   @attention hash will be recomputed on demand, if anything was pushed 
-   ///   @param rhs - the thing to push                                       
-   ///   @return a reference to this Neat container                           
-   Neat& Neat::operator <<= (CT::NotSemantic auto& rhs) {
-      return operator <<= (Copy(rhs));
-   }
-
-   /// Merge anything non-semantic by a move, if it doesn't exist yet         
-   ///   @attention hash will be recomputed on demand, if anything was pushed 
-   ///   @param rhs - the thing to push                                       
-   ///   @return a reference to this Neat container                           
-   Neat& Neat::operator <<= (CT::NotSemantic auto&& rhs) {
-      return operator <<= (Move(rhs));
    }
 
    /// Merge anything semantically, if it doesn't exist yet                   
    ///   @attention hash will be recomputed on demand, if anything was pushed 
    ///   @param rhs - the thing to push, as well as the semantic to use       
    ///   @return a reference to this Neat container                           
-   Neat& Neat::operator <<= (CT::Semantic auto&& rhs) {
+   LANGULUS(INLINED)
+   Neat& Neat::operator <<= (auto&& rhs) {
       using S = Decay<decltype(rhs)>;
       using T = TypeOf<S>;
 
@@ -774,86 +733,98 @@ namespace Langulus::Anyness
 
    /// Push a trait to the appropriate bucket                                 
    ///   @attention this is an inner function that doesn't affect the hash    
-   ///   @param messy - the trait and semantic to use                         
+   ///   @param messy - the trait (and semantic) to insert                    
    LANGULUS(INLINED)
-   void Neat::AddTrait(CT::Semantic auto&& messy) {
-      static_assert(CT::TraitBased<TypeOf<decltype(messy)>>);
-      Any wrapper;
-      if (messy->IsDeep())
-         wrapper = Neat {messy.template Forward<Any>()};
-      else
-         wrapper = messy.template Forward<Any>();
+   void Neat::AddTrait(auto&& messy) {
+      using S = SemanticOf<decltype(messy)>;
+      using T = TypeOf<S>;
 
-      const auto meta = messy->GetTrait();
-      auto found = mTraits.FindIt(meta);
-      if (found)
-         found->mValue << Abandon(wrapper);
-      else
-         mTraits.Insert(meta, TAny<Any> {Abandon(wrapper)});
-   }
+      if constexpr (CT::TraitBased<T>) {
+         // Insert a trait container                                    
+         Any wrapper;
+         if (messy->IsDeep())
+            wrapper = Neat {messy.template Forward<Any>()};
+         else
+            wrapper = messy.template Forward<Any>();
 
-   /// Push an empty trait to the appropriate bucket                          
-   ///   @attention this is an inner function that doesn't affect the hash    
-   ///   @param trait - the trait type                                        
-   LANGULUS(INLINED)
-   void Neat::AddTrait(TMeta trait) {
-      auto found = mTraits.FindIt(trait);
-      if (found)
-         found->mValue << Any {};
-      else
-         mTraits.Insert(trait, TAny<Any> { Any {} });
+         const auto meta = messy->GetTrait();
+         auto found = mTraits.FindIt(meta);
+         if (found)
+            found->mValue << Abandon(wrapper);
+         else
+            mTraits.Insert(meta, TAny<Any> {Abandon(wrapper)});
+      }
+      else if constexpr (CT::Exact<T, TMeta>) {
+         // Insert trait without contents                               
+         auto trait = DesemCast(messy);
+         auto found = mTraits.FindIt(trait);
+         if (found)
+            found->mValue << Any {};
+         else
+            mTraits.Insert(trait, TAny<Any> { Any {} });
+      }
+      else LANGULUS_ERROR("Can't insert trait");
    }
    
-   /// Push a trait to the appropriate bucket                                 
+   /// Push data to the appropriate bucket                                    
    ///   @attention this is an inner function that doesn't affect the hash    
-   ///   @param messy - the trait and semantic to use                         
+   ///   @param messy - the data (and semantic) to insert                     
    LANGULUS(INLINED)
-   void Neat::AddData(CT::Semantic auto&& messy) {
-      static_assert(CT::Deep<TypeOf<decltype(messy)>>);
-      const auto meta = messy->GetType() ? messy->GetType()->mOrigin : nullptr;
-      auto found = mAnythingElse.FindIt(meta);
-      if (found)
-         found->mValue << messy.Forward();
-      else
-         mAnythingElse.Insert(meta, TAny<Messy> {messy.Forward()});
+   void Neat::AddData(auto&& messy) {
+      using S = SemanticOf<decltype(messy)>;
+      using T = TypeOf<S>;
+
+      if constexpr (CT::Deep<T>) {
+         // Insert deep data - we have to flatten it                    
+         const auto meta = messy->GetType()
+            ? messy->GetType()->mOrigin : nullptr;
+         auto found = mAnythingElse.FindIt(meta);
+         if (found)
+            found->mValue << messy.Forward();
+         else
+            mAnythingElse.Insert(meta, TAny<Messy> {messy.Forward()});
+      }
+      else if constexpr (CT::Exact<T, DMeta>) {
+         // Insert data without contents                                
+         auto meta = DesemCast(messy);
+         auto dmeta = meta ? meta->mOrigin : nullptr;
+         auto found = mAnythingElse.FindIt(dmeta);
+         if (found)
+            found->mValue << Any {};
+         else
+            mAnythingElse.Insert(dmeta, TAny<Messy> {Any {}});
+      }
+      else LANGULUS_ERROR("Can't insert data");
    }
 
    /// Push a construct to the appropriate bucket                             
    ///   @attention this is an inner function that doesn't affect the hash    
    ///   @param messy - the construct and semantic to use                     
    LANGULUS(INLINED)
-   void Neat::AddConstruct(CT::Semantic auto&& messy) {
-      using S = Decay<decltype(messy)>;
-      static_assert(CT::Construct<TypeOf<S>>);
-      const auto meta = messy->GetType() ? messy->GetType()->mOrigin : nullptr;
-      const auto found = mConstructs.FindIt(meta);
-      if (found) {
-         found->mValue << Inner::DeConstruct {
-            messy->GetHash(),
-            messy->GetCharge(),
-            S::Nest(messy->GetDescriptor())
-         };
-      }
-      else {
-         mConstructs.Insert(meta, Inner::DeConstruct {
-            messy->GetHash(),
-            messy->GetCharge(),
-            S::Nest(messy->GetDescriptor())
-         });
-      }
-   }
+   void Neat::AddConstruct(auto&& messy) {
+      using S = SemanticOf<decltype(messy)>;
+      using T = TypeOf<S>;
 
-   /// Push an empty data descriptor to the appropriate bucket                
-   ///   @attention this is an inner function that doesn't affect the hash    
-   ///   @param meta - the meta type                                          
-   LANGULUS(INLINED)
-   void Neat::AddData(DMeta meta) {
-      const auto dmeta = meta ? meta->mOrigin : nullptr;
-      auto found = mAnythingElse.FindIt(dmeta);
-      if (found)
-         found->mValue << Any {};
-      else
-         mAnythingElse.Insert(dmeta, TAny<Messy> {Any {}});
+      if constexpr (CT::Construct<T>) {
+         const auto meta = messy->GetType()
+            ? messy->GetType()->mOrigin : nullptr;
+         const auto found = mConstructs.FindIt(meta);
+         if (found) {
+            found->mValue << Inner::DeConstruct {
+               messy->GetHash(),
+               messy->GetCharge(),
+               S::Nest(messy->GetDescriptor())
+            };
+         }
+         else {
+            mConstructs.Insert(meta, Inner::DeConstruct {
+               messy->GetHash(),
+               messy->GetCharge(),
+               S::Nest(messy->GetDescriptor())
+            });
+         }
+      }
+      else LANGULUS_ERROR("Can't insert construct");
    }
 
    /// Get a tagged argument inside constructor                               
@@ -901,8 +872,8 @@ namespace Langulus::Anyness
 
       Count result = 0;
       (void) (... or (0 != (result = ForEachInner<MUTABLE>(
-         Forward<F>(call))
-      )));
+         Forward<F>(call)
+      ))));
       return result;
    }
 

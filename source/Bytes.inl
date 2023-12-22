@@ -15,83 +15,43 @@
 namespace Langulus::Anyness
 {
 
-   /// Byte container copy-construction                                       
+   /// Copy-constructor                                                       
    ///   @param other - container to reference                                
    LANGULUS(INLINED)
    Bytes::Bytes(const Bytes& other)
       : Bytes {Copy(other)} {}
 
-   /// Byte container move-construction                                       
+   /// Move-constructor                                                       
    ///   @param other - container to move                                     
    LANGULUS(INLINED)
    Bytes::Bytes(Bytes&& other) noexcept
       : Bytes {Move(other)} {}
 
-   /// Copy-construction from any container/element                           
-   ///   @param other - container/element to shallow-copy                     
-   LANGULUS(INLINED)
-   Bytes::Bytes(const CT::NotSemantic auto& other)
-      : Bytes {Copy(other)} {}
-
-   LANGULUS(INLINED)
-   Bytes::Bytes(CT::NotSemantic auto& other)
-      : Bytes {Copy(other)} {}
-
-   /// Move-construction from any container/element                           
-   ///   @param other - container/element to move                             
-   LANGULUS(INLINED)
-   Bytes::Bytes(CT::NotSemantic auto&& other)
-      : Bytes {Move(other)} {}
-
-   /// Semantic construction from any container/element                       
+   /// Semantic constructor                                                   
    ///   @param other - the container/element and the semantic                
+   template<template<class> class S> LANGULUS(INLINED)
+   Bytes::Bytes(S<Bytes>&& other) requires CT::Semantic<S<Bytes>> {
+      mType = MetaDataOf<Byte>();
+      BlockTransfer<Base>(other.Forward());
+   }
+
+   /// Construct from anything else                                           
+   ///   @param other - an array, range, or anything POD                      
+   template<class T> LANGULUS(INLINED)
+   Bytes::Bytes(T&& other) requires (CT::Inner::UnfoldMakableFrom<Byte, T>
+                                 or (CT::POD<T> and CT::Dense<T>)) {
+      UnfoldInsert(0, Forward<T>(other));
+   }
+
+   /// Serialize a meta definition                                            
+   ///   @param meta - the definition to serialize                            
    LANGULUS(INLINED)
-   Bytes::Bytes(CT::Semantic auto&& other) : Bytes {} {
-      using S = Decay<decltype(other)>;
-      using T = TypeOf<S>;
-
-      if constexpr (CT::Array<T>) {
-         // Integration with bounded arrays                             
-         static_assert(CT::POD<::std::remove_extent_t<T>>,
-            "Bounded array should be made of CT::POD elements");
-
-         new (this) Bytes {Base::From(
-            S::Nest(reinterpret_cast<const Byte*>(*other)),
-            sizeof(T)
-         )};
+   Bytes::Bytes(const CT::Meta auto& meta) {
+      if (meta) {
+         *this += Bytes {Count {meta->mToken.size()}};
+         *this += Bytes {meta->mToken};
       }
-      else if constexpr (CT::DerivedFrom<T, Base>) {
-         // Transfer any TAny<Byte> based container                     
-         mType = MetaDataOf<Byte>();
-         BlockTransfer<Base>(other.Forward());
-      }
-      else if constexpr (CT::Exact<T, Token>) {
-         // Integration with std::string_view                           
-         // Copies the string as a byte sequence                        
-         if (other->empty())
-            return;
-
-         new (this) Bytes {Base::From(
-            S::Nest(reinterpret_cast<const Byte*>(other->data())),
-            other->size()
-         )};
-      }
-      else if constexpr (CT::Meta<T>) {
-         // Serialize any meta definition                               
-         if (*other) {
-            *this += Bytes {Count {(*other)->mToken.size()}};
-            *this += Bytes {(*other)->mToken};
-         }
-         else *this += Bytes {Count {0}};
-      }
-      else if constexpr (CT::POD<T> && CT::Dense<T>) {
-         // Copy/Move/Abandon/Disown/Clone anything dense and POD       
-         new (this) Bytes {Base::From(
-            S::Nest(reinterpret_cast<const Byte*>(&(*other))),
-            sizeof(T)
-         )};
-      }
-      else LANGULUS_ERROR("Bad semantic construction");
+      else *this += Bytes {Count {0}};
    }
 
    /// Construct manually via raw constant memory pointer and size            
@@ -111,9 +71,8 @@ namespace Langulus::Anyness
    /// Construct semantically via raw memory pointer, semantic, and size      
    ///   @param raw - raw memory and semantic to use                          
    ///   @param size - number of bytes inside 'raw'                           
-   template<CT::Semantic S>
-   LANGULUS(INLINED)
-   Bytes::Bytes(S&& raw, const Size& size) requires (CT::Sparse<TypeOf<S>>)
+   template<template<class> class S, CT::Sparse T> LANGULUS(INLINED)
+   Bytes::Bytes(S<T>&& raw, const Size& size) requires CT::Semantic<S<T>>
       : TAny {TAny::From(raw.Forward(), size)} { }
 
    /// Shallow copy assignment from immutable byte container                  
@@ -131,50 +90,57 @@ namespace Langulus::Anyness
    Bytes& Bytes::operator = (Bytes&& rhs) {
       return operator = (Move(rhs));
    }
-   
-   /// Copy-assign an unknown container                                       
-   /// This is a bit slower, because it checks type compatibility at runtime  
-   ///   @param other - the container to shallow-copy                         
-   ///   @return a reference to this container                                
-   LANGULUS(INLINED)
-   Bytes& Bytes::operator = (const CT::NotSemantic auto& other) {
-      return operator = (Copy(other));
-   }
-   
-   LANGULUS(INLINED)
-   Bytes& Bytes::operator = (CT::NotSemantic auto& other) {
-      return operator = (Copy(other));
-   }
-
-   /// Move-assign an unknown container                                       
-   /// This is a bit slower, because it checks type compatibility at runtime  
-   ///   @param other - the container to move                                 
-   ///   @return a reference to this container                                
-   LANGULUS(INLINED)
-   Bytes& Bytes::operator = (CT::NotSemantic auto&& other) {
-      return operator = (Move(other));
-   }
 
    /// Shallow-copy disowned runtime container without referencing contents   
    /// This is a bit slower, because checks type compatibility at runtime     
    ///   @param other - the container to shallow-copy                         
    ///   @return a reference to this container                                
-   LANGULUS(INLINED)
-   Bytes& Bytes::operator = (CT::Semantic auto&& other) {
-      using S = Decay<decltype(other)>;
-      using T = TypeOf<S>;
-
-      if constexpr (CT::DerivedFrom<T, Base>) {
-         if (static_cast<const Block*>(this)
-            == static_cast<const Block*>(&*other))
+   template<template<class> class S> LANGULUS(INLINED)
+   Bytes& Bytes::operator = (S<Bytes>&& other) requires CT::Semantic<S<Bytes>> {
+      if (static_cast<const Block*>(this)
+       == static_cast<const Block*>(&*other))
             return *this;
-      }
 
       Free();
       new (this) Bytes {other.Forward()};
       return *this;
    }
+   
+   /// Insert an element, or an array of elements                             
+   ///   @param index - the index at which to insert                          
+   ///   @param item - the argument to unfold and insert, can be semantic     
+   ///   @return the number of inserted elements after unfolding              
+   Count Bytes::UnfoldInsert(CT::Index auto index, auto&& item) {
+      using S = SemanticOf<decltype(item)>;
+      using T = TypeOf<S>;
+      
+      if constexpr (CT::Array<T>) {
+         using TT = Deext<T>;
 
+         if constexpr (CT::POD<TT> and CT::Dense<TT>) {
+            // Insert as byte array                                     
+            auto bytes = static_cast<const Byte*>(DesemCast(item));
+            InsertContiguousInner<Bytes, void>(0,
+               Copy(bytes), bytes + sizeof(T));
+            return sizeof(T);
+         }
+         else {
+            // Unfold and serialize elements, one by one                
+            Count inserted = 0;
+            for (auto& element : DesemCast(item))
+               inserted += UnfoldInsert(inserted, Copy(element));
+            return inserted;
+         }
+      }
+      else if constexpr (CT::POD<T> and CT::Dense<T>) {
+         // Insert as byte array                                        
+         auto bytes = static_cast<const Byte*>(DesemCast(item));
+         InsertContiguousInner<Bytes, void>(0,
+            Copy(bytes), bytes + sizeof(T));
+         return sizeof(T);
+      }
+      else LANGULUS_ERROR("Unable to insert as bytes");
+   }
 
    ///                                                                        
    ///   Concatenation                                                        
@@ -185,7 +151,7 @@ namespace Langulus::Anyness
    ///   @return the combined container                                       
    LANGULUS(INLINED)
    Bytes Bytes::operator + (const Bytes& rhs) const {
-      return Concatenate<Bytes>(Copy(static_cast<const Block&>(rhs)));
+      return operator + (Copy(rhs));
    }
 
    /// Move-concatenate with another TAny                                     
@@ -193,20 +159,15 @@ namespace Langulus::Anyness
    ///   @return the combined container                                       
    LANGULUS(INLINED)
    Bytes Bytes::operator + (Bytes&& rhs) const {
-      return Concatenate<Bytes>(Move(Forward<Block>(rhs)));
+      return operator + (Move(rhs));
    }
 
    /// Move-concatenate with another TAny                                     
    ///   @param rhs - the right operand                                       
    ///   @return the combined container                                       
-   LANGULUS(INLINED)
-   Bytes Bytes::operator + (CT::Semantic auto&& rhs) const {
-      using S = Decay<decltype(rhs)>;
-
-      if constexpr (CT::DerivedFrom<TypeOf<S>, Base>)
-         return Concatenate<Bytes>(rhs.template Forward<Block>());
-      else
-         LANGULUS_ERROR("Bad semantic concatenation");
+   template<template<class> class S> LANGULUS(INLINED)
+   Bytes Bytes::operator + (S<Bytes>&& rhs) const requires CT::Semantic<S<Bytes>> {
+      return ConcatBlock<Bytes>(rhs.Forward());
    }
 
    /// Destructive copy-concatenate with another TAny                         
@@ -214,8 +175,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this modified container                       
    LANGULUS(INLINED)
    Bytes& Bytes::operator += (const Bytes& rhs) {
-      InsertBlock(rhs);
-      return *this;
+      return operator += (Copy(rhs));
    }
 
    /// Destructive move-concatenate with any deep type                        
@@ -223,22 +183,16 @@ namespace Langulus::Anyness
    ///   @return a reference to this modified container                       
    LANGULUS(INLINED)
    Bytes& Bytes::operator += (Bytes&& rhs) {
-      InsertBlock(Forward<Bytes>(rhs));
-      return *this;
+      return operator += (Move(rhs));
    }
 
    /// Destructive move-concatenate with any deep type                        
    ///   @param rhs - the right operand                                       
    ///   @return a reference to this modified container                       
-   LANGULUS(INLINED)
-   Bytes& Bytes::operator += (CT::Semantic auto&& rhs) {
-      using S = Decay<decltype(rhs)>;
-
-      if constexpr (CT::DerivedFrom<TypeOf<S>, Base>) {
-         InsertBlock(rhs.Forward());
-         return *this;
-      }
-      else LANGULUS_ERROR("Bad semantic concatenation");
+   template<template<class> class S> LANGULUS(INLINED)
+   Bytes& Bytes::operator += (S<Bytes>&& rhs) requires CT::Semantic<S<Bytes>> {
+      InsertBlock<Bytes, void>(IndexBack, rhs.Forward());
+      return *this;
    }
    
    /// Hash the byte sequence                                                 
@@ -284,7 +238,7 @@ namespace Langulus::Anyness
    ///   @return a new container that references the original memory          
    LANGULUS(INLINED)
    Bytes Bytes::Crop(const Offset& start, const Count& count) const {
-      return TAny::Crop<Bytes>(start, count);
+      return Block::Crop<Bytes>(start, count);
    }
 
    /// Pick a part of the byte array                                          
@@ -293,7 +247,7 @@ namespace Langulus::Anyness
    ///   @return a new container that references the original memory          
    LANGULUS(INLINED)
    Bytes Bytes::Crop(const Offset& start, const Count& count) {
-      return TAny::Crop<Bytes>(start, count);
+      return Block::Crop<Bytes>(start, count);
    }
 
    /// Remove a region of bytes                                               

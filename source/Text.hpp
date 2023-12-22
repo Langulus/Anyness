@@ -11,6 +11,23 @@
 #include <string>
 
 
+namespace Langulus::CT
+{
+   namespace Inner
+   {
+      template<class T>
+      concept Text = T::CTTI_TextTrait and CT::Block<T>;
+   }
+
+   /// Concept for differentiating managed text types                         
+   template<class...T>
+   concept Text = (Inner::Text<Decay<T>> and ...);
+
+   template<class...T>
+   concept NotText = not Text<T...>;
+
+} // namespace Langulus::CT
+
 namespace Langulus::Anyness
 {
 
@@ -20,6 +37,8 @@ namespace Langulus::Anyness
    class Text : public TAny<Letter> {
    public:
       using Base = TAny<Letter>;
+      static constexpr bool CTTI_TextTrait = true;
+
       LANGULUS(DEEP) false;
       LANGULUS(POD) false;
       LANGULUS_BASES(A::Text, TAny<Letter>);
@@ -31,13 +50,29 @@ namespace Langulus::Anyness
    private:
       explicit Text(const Base&);
       explicit Text(Base&&) noexcept;
+      template<template<class> class S>
+      explicit Text(S<Base>&&) requires CT::Semantic<S<Base>>;
 
    public:
-      constexpr Text() = default;
-      constexpr Text(::std::nullptr_t);
-
+      constexpr Text() noexcept = default;
+      constexpr Text(::std::nullptr_t) noexcept;
       Text(const Text&);
       Text(Text&&) noexcept;
+
+      template<template<class> class S, CT::Inner::Text T>
+      Text(S<T>&&) requires CT::Semantic<S<T>>;
+
+      template<template<class> class S, CT::DenseCharacter T>
+      Text(S<T>&&) requires CT::Semantic<S<T>>;
+
+      template<template<class> class S, CT::StringPointer T>
+      Text(S<T>&&) requires CT::Semantic<S<T>>;
+
+      template<template<class> class S, CT::StringLiteral T>
+      Text(S<T>&&) requires CT::Semantic<S<T>>;
+
+      template<template<class> class S, CT::StandardContiguousContainer T>
+      Text(S<T>&&) requires (CT::Semantic<S<T>> and CT::DenseCharacter<TypeOf<T>>);
 
       Text(const CompatibleStdString&);
       Text(const CompatibleStdStringView&);
@@ -45,7 +80,6 @@ namespace Langulus::Anyness
       Text(const CT::Meta auto&);
       Text(const Letter&);
       Text(const CT::DenseBuiltinNumber auto&);
-      Text(CT::Semantic auto&&);
 
       // Bounded array constructor                                      
       template<Count C>
@@ -133,25 +167,16 @@ namespace Langulus::Anyness
 
 namespace Langulus::CT
 {
-
-   /// Concept for differentiating managed text types                         
-   template<class...T>
-   concept Text = (DerivedFrom<T, Anyness::Text> and ...);
-
-   /// Concept for differentiating managed Anyness Text types                 
-   template<class...T>
-   concept NotText = not Text<T...>;
-
    namespace Inner
    {
       template<class T>
-      concept Stringifiable = not Text<T> and not Same<T, ::Langulus::Token()> and (
-         requires (T& a) { a.operator ::Langulus::Anyness::Text(); }
+      concept Stringifiable = not Text<T> and not StandardContiguousContainer<T> and (
+         requires (T& a) { a.operator Anyness::Text(); }
       );
 
       template<class T>
-      concept Debuggable = not Text<T> and not Same<T, ::Langulus::Token()> and (
-         requires (T& a) { a.operator ::Langulus::Anyness::Debug(); }
+      concept Debuggable = not Text<T> and not StandardContiguousContainer<T> and (
+         requires (T& a) { a.operator Anyness::Debug(); }
       );
    }
 

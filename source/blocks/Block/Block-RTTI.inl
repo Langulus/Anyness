@@ -443,25 +443,21 @@ namespace Langulus::Anyness
    
    /// Mutate the block to a different type, if possible                      
    ///   @tparam T - the type to change to                                    
-   ///   @tparam ALLOW_DEEPEN - are we allowed to mutate to WRAPPER?          
-   ///   @tparam WRAPPER - container to use for deepening, if allowed         
+   ///   @tparam FORCE - insert even if types mismatch, by making this block  
+   ///                   deep with provided type - use void to disable        
    ///   @return true if block was deepened to incorporate the new type       
-   template<CT::Data T, bool ALLOW_DEEPEN, CT::Data WRAPPER>
-   LANGULUS(INLINED)
+   template<CT::Block THIS, CT::Data T, class FORCE> LANGULUS(INLINED)
    bool Block::Mutate() {
-      static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
-      return Mutate<ALLOW_DEEPEN, WRAPPER>(MetaDataOf<T>());
+      return Mutate<THIS, FORCE>(MetaDataOf<T>());
    }
    
    /// Mutate to another compatible type, deepening the container if allowed  
-   ///   @tparam ALLOW_DEEPEN - are we allowed to mutate to WRAPPER?          
-   ///   @tparam WRAPPER - container to use for deepening, if allowed         
+   ///   @tparam FORCE - insert even if types mismatch, by making this block  
+   ///                   deep with provided type - use void to disable        
    ///   @param meta - the type to mutate into                                
    ///   @return true if block was deepened to incorporate the new type       
-   template<bool ALLOW_DEEPEN, CT::Data WRAPPER>
+   template<CT::Block THIS, class FORCE>
    bool Block::Mutate(DMeta meta) {
-      static_assert(CT::Deep<WRAPPER>, "WRAPPER must be deep");
-
       if (not mType or (not mState.IsTyped()
                         and mType->mIsAbstract
                         and IsEmpty()
@@ -470,17 +466,17 @@ namespace Langulus::Anyness
          // Undefined/abstract containers can mutate freely             
          SetType<false>(meta);
       }
-      else if (mType->IsExact(meta)) {
-         // No need to mutate - types are exactly the same              
+      else if (mType->IsSimilar(meta)) {
+         // No need to mutate - types are compatible                    
          return false;
       }
       else if (not IsInsertable(meta)) {
-         // Not insertable due to some reasons                          
-         if constexpr (ALLOW_DEEPEN) {
+         // Not insertable because of reasons                           
+         if constexpr (not CT::Void<FORCE>) {
             if (not IsTypeConstrained()) {
                // Container is not type-constrained, so we can safely   
                // deepen it, to incorporate the new data                
-               Deepen<WRAPPER>();
+               Deepen<FORCE, true, THIS>();
                return true;
             }
 

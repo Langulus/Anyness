@@ -27,14 +27,17 @@ namespace Langulus::Anyness
 
    public:
       static constexpr bool Embedded = EMBED;
+      using ValueType = Conditional<Embedded, T*, T>;
+      using EntryType = Conditional<Embedded and CT::Sparse<T>,
+         const Allocation**, const Allocation*>;
 
       friend class Block;
       /// @cond show_protected                                                
       // The value                                                      
-      Conditional<EMBED, T*, T> mValue;
+      ValueType mValue;
 
       // The entry                                                      
-      Conditional<EMBED and CT::Sparse<T>, const Allocation**, const Allocation*> mEntry;
+      EntryType mEntry;
       /// @endcond show_protected                                             
 
    public:
@@ -43,17 +46,25 @@ namespace Langulus::Anyness
       constexpr Handle(const Handle&) noexcept = default;
       constexpr Handle(Handle&&) noexcept = default;
 
-      constexpr Handle(T&, const Allocation*&) IF_UNSAFE(noexcept) requires (EMBED and CT::Sparse<T>);
-      constexpr Handle(T&, const Allocation* ) IF_UNSAFE(noexcept) requires (EMBED and CT::Dense<T>);
+      constexpr Handle(T&, const Allocation*&) IF_UNSAFE(noexcept)
+      requires (Embedded and CT::Sparse<T>);
 
-      constexpr Handle(T&&, const Allocation* = nullptr) IF_UNSAFE(noexcept) requires (not EMBED);
-      constexpr Handle(CT::Semantic auto&&) noexcept requires (not EMBED);
+      constexpr Handle(T&, const Allocation*) IF_UNSAFE(noexcept)
+      requires (Embedded and CT::Dense<T>);
+
+      template<CT::NotHandle T1>
+      constexpr Handle(T1&&, const Allocation* = nullptr)
+      requires (not Embedded and CT::Inner::MakableFrom<T, T1>);
+
+      template<template<class> class S, CT::Handle H>
+      constexpr Handle(S<H>&&)
+      requires (CT::Inner::MakableFrom<T, S<TypeOf<H>>>);
 
       constexpr Handle& operator = (const Handle&) noexcept = default;
       constexpr Handle& operator = (Handle&&) noexcept = default;
 
-      constexpr bool operator == (const T*) const noexcept requires (EMBED);
-      constexpr bool operator == (const Handle&) const noexcept requires (EMBED);
+      constexpr bool operator == (const T*) const noexcept requires Embedded;
+      constexpr bool operator == (const Handle&) const noexcept requires Embedded;
 
       NOD() T& Get() const noexcept;
       NOD() const Allocation*& GetEntry() const noexcept;
@@ -73,16 +84,16 @@ namespace Langulus::Anyness
       NOD() bool Compare(const Handle<T, RHS_EMBED>&) const;
 
       // Prefix operators                                               
-      Handle& operator ++ () noexcept requires (EMBED);
-      Handle& operator -- () noexcept requires (EMBED);
+      Handle& operator ++ () noexcept requires Embedded;
+      Handle& operator -- () noexcept requires Embedded;
 
       // Suffix operators                                               
-      NOD() Handle operator ++ (int) noexcept requires (EMBED);
-      NOD() Handle operator -- (int) noexcept requires (EMBED);
-      NOD() Handle operator + (Offset) noexcept requires (EMBED);
-      NOD() Handle operator - (Offset) noexcept requires (EMBED);
-      Handle& operator += (Offset) noexcept requires (EMBED);
-      Handle& operator -= (Offset) noexcept requires (EMBED);
+      NOD() Handle operator ++ (int) noexcept requires Embedded;
+      NOD() Handle operator -- (int) noexcept requires Embedded;
+      NOD() Handle operator + (Offset) noexcept requires Embedded;
+      NOD() Handle operator - (Offset) noexcept requires Embedded;
+      Handle& operator += (Offset) noexcept requires Embedded;
+      Handle& operator -= (Offset) noexcept requires Embedded;
 
       template<bool RESET = false>
       void Destroy() const;

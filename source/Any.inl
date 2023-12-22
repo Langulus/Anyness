@@ -24,66 +24,37 @@
 namespace Langulus::Anyness
 {
 
-   /// Copy constructor - does only a shallow copy                            
+   /// Shallow-copy constructor                                               
    ///   @param other - the container to shallow-copy                         
    LANGULUS(INLINED)
    Any::Any(const Any& other)
       : Any {Copy(other)} {}
 
-   /// Move constructor - transfers ownership                                 
+   /// Move constructor                                                       
    ///   @param other - the container to move                                 
    LANGULUS(INLINED)
    Any::Any(Any&& other) noexcept
       : Any {Move(other)} {}
 
-   /// Construct by shallow-copying element/container                         
-   ///   @param other - the element/container to shallow-copy                 
-   LANGULUS(INLINED)
-   Any::Any(const CT::NotSemantic auto& other)
-      : Any {Copy(other)} {}
+   /// Unfold constructor                                                     
+   /// If there's one deep argument, it will be absorbed                      
+   /// If any of the element types don't match exactly, the container becomes 
+   /// deep in order to incorporate them                                      
+   ///   @param t1 - first element (can be semantic)                          
+   ///   @param tail... - the rest of the elements (optional, can be semantic)
+   template<class T1, class...TAIL> LANGULUS(INLINED)
+   Any::Any(T1&& t1, TAIL&&... tail)
+   requires CT::Inner::UnfoldInsertable<T1, TAIL...> {
+      if constexpr (sizeof...(TAIL) == 0) {
+         using S = SemanticOf<T1>;
+         using T = TypeOf<S>;
 
-   /// Construct by shallow-copying element/container                         
-   ///   @param other - the element/container to shallow-copy                 
-   LANGULUS(INLINED)
-   Any::Any(CT::NotSemantic auto& other)
-      : Any {Copy(other)} {}
-
-   /// Construct by moving element/container                                  
-   ///   @param other - the element/container to move                         
-   LANGULUS(INLINED)
-   Any::Any(CT::NotSemantic auto&& other)
-      : Any {Move(other)} {}
-
-   /// Semantic constructor from deep container or custom data element        
-   ///   @param other - the element/container to initialize with              
-   LANGULUS(INLINED)
-   Any::Any(CT::Semantic auto&& other) noexcept {
-      CreateFrom(other.Forward());
-   }
-
-   /// Pack any number of elements sequentially                               
-   /// If any of the types doesn't match exactly, the container becomes deep  
-   /// to incorporate all elements                                            
-   ///   @param head - first element                                          
-   ///   @param tail... - the rest of the elements                            
-   template<CT::Data T1, CT::Data T2, CT::Data... TN>
-   Any::Any(T1&& t1, T2&& t2, TN&&... tail) {
-      if constexpr (CT::Exact<T1, T2, TN...>) {
-         // All types are the same, so pack them tightly                
-         SetType<Decvq<Deref<T1>>>();
-         AllocateFresh(RequestSize(sizeof...(TN) + 2));
-         Insert(Forward<T1>(t1));
-         Insert(Forward<T2>(t2));
-         (Insert(Forward<TN>(tail)), ...);
+         if constexpr (CT::Deep<T>)
+            BlockTransfer<Any>(S::Nest(t1));
+         else
+            Insert<Any>(0, Forward<T1>(t1));
       }
-      else {
-         // Types differ, so wrap each of them in a separate Any        
-         SetType<Any>();
-         AllocateFresh(RequestSize(sizeof...(TN) + 2));
-         Insert(Abandon(Any {Forward<T1>(t1)}));
-         Insert(Abandon(Any {Forward<T2>(t2)}));
-         (Insert(Abandon(Any {Forward<TN>(tail)})), ...);
-      }
+      else Insert<Any>(0, Forward<T1>(t1), Forward<TAIL>(tail)...);
    }
 
    /// Destruction                                                            
@@ -123,8 +94,7 @@ namespace Langulus::Anyness
    ///   @tparam T - the contained type                                       
    ///   @param state - optional state of the container                       
    ///   @return the new container instance                                   
-   template<CT::Data T>
-   LANGULUS(INLINED)
+   template<CT::Data T> LANGULUS(INLINED)
    Any Any::From(const DataState& state) noexcept {
       return Block {state, MetaDataOf<T>()};
    }
@@ -140,8 +110,7 @@ namespace Langulus::Anyness
    ///   @param t2 - second element                                           
    ///   @param tail... - the rest of the elements                            
    ///   @returns the new container containing the data                       
-   template<class AS, CT::Data T1, CT::Data T2, CT::Data... TN>
-   LANGULUS(INLINED)
+   template<class AS, CT::Data T1, CT::Data T2, CT::Data... TN> LANGULUS(INLINED)
    Any Any::WrapAs(T1&& t1, T2&& t2, TN&&... tail) {
       if constexpr (CT::Void<AS>) {
          static_assert(CT::Exact<T1, T2, TN...>, "Type mismatch");
@@ -171,124 +140,31 @@ namespace Langulus::Anyness
       return operator = (Move(other));
    }
 
-   /// Shallow copy assignment of anything                                    
-   ///   @param other - the value to copy                                     
+   /// Element/container assignment, semantic or not                          
+   ///   @param other - the element, or container to assign                   
    ///   @return a reference to this container                                
    LANGULUS(INLINED)
-   Any& Any::operator = (const CT::NotSemantic auto& other) {
-      return operator = (Copy(other));
-   }
-   
-   LANGULUS(INLINED)
-   Any& Any::operator = (CT::NotSemantic auto& other) {
-      return operator = (Copy(other));
-   }
-
-   /// Move assignment of anything                                            
-   ///   @param other - the value to move in                                  
-   ///   @return a reference to this container                                
-   LANGULUS(INLINED)
-   Any& Any::operator = (CT::NotSemantic auto&& other) {
-      return operator = (Move(other));
-   }
-
-   /// Semantic assignment                                                    
-   ///   @param other - the container to semantically assign                  
-   ///   @return a reference to this container                                
-   Any& Any::operator = (CT::Semantic auto&& other) {
-      using S = Decay<decltype(other)>;
+   Any& Any::operator = (CT::Inner::UnfoldInsertable auto&& other) {
+      using S = SemanticOf<decltype(other)>;
       using T = TypeOf<S>;
-      static_assert(CT::Insertable<T>, "T must be an insertable type");
 
       if constexpr (CT::Deep<T>) {
          // Assign a container                                          
-         if (this == &*other)
+         if (this == &*S::Nest(other))
             return *this;
 
-         // Since Any is type-erased, we make a runtime type check      
-         LANGULUS_ASSERT(
-            not IsTypeConstrained() or CastsToMeta(other->GetType()),
-            Assign, "Incompatible types on assignment (deep)",
-            " of ", other->GetType(), " to ", mType
-         );
-
-         Free();
-         new (this) Any {other.Forward()};
+         Clear();
+         InsertBlock<Any, void>(0, S::Nest(other));
       }
-      else if constexpr (CT::CustomData<T>) {
-         // Assign a non-deep value                                     
-         if constexpr (CT::Array<T>) {
-            using E = Deext<T>;
-            constexpr auto extent = ExtentOf<T>;
-
-            if constexpr (CT::StringLiteral<T>) {
-               // Assign a text literal, by implicitly creating a Text  
-               // container and wrapping it inside                      
-               CheckType<Text>();
-
-               if (GetUses() != 1 or mType->mIsSparse) {
-                  // Reset and allocate fresh memory                    
-                  Reset();
-                  operator << (Text {other.Forward()});
-               }
-               else {
-                  // Destroy all elements, except the first one, and    
-                  // assign to it                                       
-                  if (mCount > 1) {
-                     CropInner(1, mCount - 1).
-                        template CallKnownDestructors<Text>();
-                     mCount = 1;
-                  }
-                  SemanticAssign(Get<Text>(), Abandon(Text {other.Forward()}));
-               }
-            }
-            else {
-               // Assign an array of elements                           
-               CheckType<E>();
-
-               if (GetUses() != 1 or mType->mIsSparse != CT::Sparse<E>) {
-                  // Reset and allocate fresh memory                    
-                  Reset();
-                  SetType<E>();
-                  AllocateFresh(RequestSize(extent));
-                  InsertInner<S>(*other, *other + extent, 0);
-               }
-               else {
-                  // Destroy all elements, except the required number,  
-                  // and assign to them                                 
-                  if (mCount > extent) {
-                     CropInner(extent, mCount - extent).
-                        template CallKnownDestructors<E>();
-                     mCount = extent;
-                  }
-
-                  for (Offset i = 0; i < extent; ++i)
-                     GetHandle<E>(i).Assign(S::Nest((*other)[i]));
-               }
-            }
-         }
-         else {
-            // Assign a single element                                  
-            CheckType<T>();
-
-            if (GetUses() != 1 or mType->mIsSparse != CT::Sparse<T>) {
-               // Reset and allocate fresh memory                       
-               Reset();
-               operator << (other.Forward());
-            }
-            else {
-               // Destroy all elements, except the first one, and       
-               // assign to it                                          
-               if (mCount > 1) {
-                  CropInner(1, mCount - 1).
-                     template CallKnownDestructors<T>();
-                  mCount = 1;
-               }
-               GetHandle<T>(0).Assign(other.Forward());
-            }
-         }
+      else if constexpr (CT::Insertable<T>) {
+         // Unfold-insert                                               
+         Clear();
+         UnfoldInsert<Any, void>(0, S::Nest(other));
       }
-      else LANGULUS_ERROR("Bad semantic constructor argument");
+      else LANGULUS_ERROR(
+         "Can't be assigned: argument is neither deep, "
+         "nor insertable on its own"
+      );
       return *this;
    }
 
@@ -315,66 +191,12 @@ namespace Langulus::Anyness
       }
    }
 
-   /// Copy-insert an element (including arrays) at the back                  
-   ///   @param other - the data to insert                                    
-   ///   @return a reference to this container for chaining                   
-   LANGULUS(INLINED)
-   Any& Any::operator << (const CT::NotSemantic auto& other) {
-      Insert<IndexBack>(Copy(other));
-      return *this;
-   }
-
-   /// Used to disambiguate from the && variant                               
-   /// Dimo, I know you want to remove this, but don't, said Dimo to himself  
-   /// after actually deleting this function numerous times                   
-   LANGULUS(INLINED)
-   Any& Any::operator << (CT::NotSemantic auto& other) {
-      Insert<IndexBack>(Copy(other));
-      return *this;
-   }
-
    /// Move-insert an element at the back                                     
    ///   @param other - the data to insert                                    
    ///   @return a reference to this container for chaining                   
    LANGULUS(INLINED)
-   Any& Any::operator << (CT::NotSemantic auto&& other) {
-      Insert<IndexBack>(Move(other));
-      return *this;
-   }
-
-   /// Move-insert an element at the back                                     
-   ///   @param other - the data to insert                                    
-   ///   @return a reference to this container for chaining                   
-   LANGULUS(INLINED)
-   Any& Any::operator << (CT::Semantic auto&& other) {
-      Insert<IndexBack>(other.Forward());
-      return *this;
-   }
-
-   /// Copy-insert an element (including arrays) at the front                 
-   ///   @param other - the data to insert                                    
-   ///   @return a reference to this container for chaining                   
-   LANGULUS(INLINED)
-   Any& Any::operator >> (const CT::NotSemantic auto& other) {
-      Insert<IndexFront>(Copy(other));
-      return *this;
-   }
-
-   /// Used to disambiguate from the && variant                               
-   /// Dimo, I know you want to remove this, but don't, said Dimo to himself  
-   /// after actually deleting this function numerous times                   
-   LANGULUS(INLINED)
-   Any& Any::operator >> (CT::NotSemantic auto& other) {
-      Insert<IndexFront>(Copy(other));
-      return *this;
-   }
-
-   /// Move-insert element at the front                                       
-   ///   @param other - the data to insert                                    
-   ///   @return a reference to this container for chaining                   
-   LANGULUS(INLINED)
-   Any& Any::operator >> (CT::NotSemantic auto&& other) {
-      Insert<IndexFront>(Move(other));
+   Any& Any::operator << (CT::Inner::UnfoldInsertable auto&& other) {
+      Insert<Any>(IndexBack, Forward<Deref<decltype(other)>>(other));
       return *this;
    }
    
@@ -382,26 +204,8 @@ namespace Langulus::Anyness
    ///   @param other - the data to insert                                    
    ///   @return a reference to this container for chaining                   
    LANGULUS(INLINED)
-   Any& Any::operator >> (CT::Semantic auto&& other) {
-      Insert<IndexFront>(other.Forward());
-      return *this;
-   }
-
-   /// Merge data (including arrays) at the back                              
-   ///   @param other - the data to insert                                    
-   ///   @return a reference to this container for chaining                   
-   LANGULUS(INLINED)
-   Any& Any::operator <<= (const CT::NotSemantic auto& other) {
-      Merge<IndexBack, true>(Copy(other));
-      return *this;
-   }
-
-   /// Used to disambiguate from the && variant                               
-   /// Dimo, I know you want to remove this, but don't, said Dimo to himself  
-   /// after actually deleting this function numerous times                   
-   LANGULUS(INLINED)
-   Any& Any::operator <<= (CT::NotSemantic auto& other) {
-      Merge<IndexBack, true>(Copy(other));
+   Any& Any::operator >> (CT::Inner::UnfoldInsertable auto&& other) {
+      Insert<Any>(IndexFront, Forward<Deref<decltype(other)>>(other));
       return *this;
    }
 
@@ -409,35 +213,8 @@ namespace Langulus::Anyness
    ///   @param other - the data to insert                                    
    ///   @return a reference to this container for chaining                   
    LANGULUS(INLINED)
-   Any& Any::operator <<= (CT::NotSemantic auto&& other) {
-      Merge<IndexBack, true>(Move(other));
-      return *this;
-   }
-
-   /// Merge data at the back by move-insertion                               
-   ///   @param other - the data to insert                                    
-   ///   @return a reference to this container for chaining                   
-   LANGULUS(INLINED)
-   Any& Any::operator <<= (CT::Semantic auto&& other) {
-      Merge<IndexBack, true>(other.Forward());
-      return *this;
-   }
-
-   /// Merge data at the front                                                
-   ///   @param other - the data to insert                                    
-   ///   @return a reference to this container for chaining                   
-   LANGULUS(INLINED)
-   Any& Any::operator >>= (const CT::NotSemantic auto& other) {
-      Merge<IndexFront, true>(Copy(other));
-      return *this;
-   }
-
-   /// Used to disambiguate from the && variant                               
-   /// Dimo, I know you want to remove this, but don't, said Dimo to himself  
-   /// after actually deleting this function numerous times                   
-   LANGULUS(INLINED)
-   Any& Any::operator >>= (CT::NotSemantic auto& other) {
-      Merge<IndexFront, true>(Copy(other));
+   Any& Any::operator <<= (CT::Inner::UnfoldInsertable auto&& other) {
+      Merge<Any>(IndexBack, Forward<Deref<decltype(other)>>(other));
       return *this;
    }
 
@@ -445,17 +222,8 @@ namespace Langulus::Anyness
    ///   @param other - the data to insert                                    
    ///   @return a reference to this container for chaining                   
    LANGULUS(INLINED)
-   Any& Any::operator >>= (CT::NotSemantic auto&& other) {
-      Merge<IndexFront, true>(Move(other));
-      return *this;
-   }
-
-   /// Merge data at the front by move-insertion                              
-   ///   @param other - the data to insert                                    
-   ///   @return a reference to this container for chaining                   
-   LANGULUS(INLINED)
-   Any& Any::operator >>= (CT::Semantic auto&& other) {
-      Merge<IndexFront, true>(other.Forward());
+   Any& Any::operator >>= (CT::Inner::UnfoldInsertable auto&& other) {
+      Merge<Any>(IndexFront, Forward<Deref<decltype(other)>>(other));
       return *this;
    }
 
@@ -481,7 +249,7 @@ namespace Langulus::Anyness
    ///   @return the container                                                
    LANGULUS(INLINED)
    Any Any::Crop(const Offset& start, const Count& count) const {
-      return Any {Block::Crop(start, count)};
+      return Block::Crop<Any>(start, count);
    }
 
    /// Pick a region and reference it from another container                  
@@ -490,106 +258,30 @@ namespace Langulus::Anyness
    ///   @return the container                                                
    LANGULUS(INLINED)
    Any Any::Crop(const Offset& start, const Count& count) {
-      return Any {Block::Crop(start, count)};
+      return Block::Crop<Any>(start, count);
    }
-
-
 
 
    ///                                                                        
    ///   Concatenation                                                        
    ///                                                                        
 
-   /// An inner concatenation routine using semantics                         
-   ///   @tparam WRAPPER - the type of the concatenated container             
-   ///   @attention assumes TypeOf<S> is binary compatible to WRAPPER,        
-   ///              despite being a block to reduce compilation time and RAM  
-   ///   @param rhs - block and semantic to concatenate                       
-   ///   @return the concatenated container                                   
-   template<CT::Block WRAPPER>
-   WRAPPER Any::Concatenate(CT::Semantic auto&& other) const {
-      using S = Decay<decltype(other)>;
-      using T = TypeOf<S>;
-      using NestedT = Conditional<S::Move, WRAPPER&, const WRAPPER&>;
-      static_assert(CT::Exact<T, Block>,
-         "S type must be exactly Block (build-time optimization)");
-
-      auto& lhs = reinterpret_cast<const WRAPPER&>(*this);
-      auto& rhs = reinterpret_cast<NestedT>(*other);
-      if (IsEmpty())
-         return S::Nest(rhs);
-      else if (rhs.IsEmpty())
-         return lhs;
-
-      WRAPPER result;
-      if constexpr (not CT::Typed<WRAPPER>)
-         result.SetType(mType);
-
-      result.AllocateFresh(result.RequestSize(mCount + rhs.mCount));
-      result.InsertBlock(lhs);
-      result.InsertBlock(S::Nest(rhs));
-      return Abandon(result);
-   }
-
-   /// Copy-concatenate with any deep type                                    
+   /// Concatenate with any deep type, semantically or not                    
    ///   @param rhs - the right operand                                       
    ///   @return the combined container                                       
    LANGULUS(INLINED)
-   Any Any::operator + (const CT::Deep auto& rhs) const {
-      return Concatenate<Any>(Copy(static_cast<const Block&>(rhs)));
+   Any Any::operator + (CT::Inner::UnfoldInsertable auto&& rhs) const {
+      using S = SemanticOf<decltype(rhs)>;
+      return ConcatBlock<Any>(S::Nest(rhs));
    }
 
-   LANGULUS(INLINED)
-   Any Any::operator + (CT::Deep auto& rhs) const {
-      return Concatenate<Any>(Copy(static_cast<const Block&>(rhs)));
-   }
-
-   /// Move-concatenate with any deep type                                    
-   ///   @param rhs - the right operand                                       
-   ///   @return the combined container                                       
-   LANGULUS(INLINED)
-   Any Any::operator + (CT::Deep auto&& rhs) const {
-      return Concatenate<Any>(Move(Forward<Block>(rhs)));
-   }
-
-   /// Semantically concatenate with any deep type                            
-   ///   @param rhs - the right operand                                       
-   ///   @return the combined container                                       
-   LANGULUS(INLINED)
-   Any Any::operator + (CT::Semantic auto&& rhs) const {
-      return Concatenate<Any>(rhs.template Forward<Block>());
-   }
-
-   /// Destructive copy-concatenate with any deep type                        
+   /// Destructive concatenate with any deep type, semantically or not        
    ///   @param rhs - the right operand                                       
    ///   @return a reference to this modified container                       
    LANGULUS(INLINED)
-   Any& Any::operator += (const CT::Deep auto& rhs) {
-      InsertBlock(Copy(rhs));
-      return *this;
-   }
-
-   LANGULUS(INLINED)
-   Any& Any::operator += (CT::Deep auto& rhs) {
-      InsertBlock(Copy(rhs));
-      return *this;
-   }
-
-   /// Destructive move-concatenate with any deep type                        
-   ///   @param rhs - the right operand                                       
-   ///   @return a reference to this modified container                       
-   LANGULUS(INLINED)
-   Any& Any::operator += (CT::Deep auto&& rhs) {
-      InsertBlock(Move(rhs));
-      return *this;
-   }
-
-   /// Destructive semantically concatenate with any deep type                
-   ///   @param rhs - the right operand                                       
-   ///   @return a reference to this modified container                       
-   LANGULUS(INLINED)
-   Any& Any::operator += (CT::Semantic auto&& rhs) {
-      InsertBlock(rhs.Forward());
+   Any& Any::operator += (CT::Inner::UnfoldInsertable auto&& rhs) {
+      using S = SemanticOf<decltype(rhs)>;
+      InsertBlock<Any, void>(IndexBack, S::Nest(rhs));
       return *this;
    }
    
@@ -597,8 +289,7 @@ namespace Langulus::Anyness
    ///   @tparam REVERSE - true to perform search in reverse                  
    ///   @param item - the item to search for                                 
    ///   @return the index of the found item, or IndexNone if none found      
-   template<bool REVERSE>
-   LANGULUS(INLINED)
+   template<bool REVERSE> LANGULUS(INLINED)
    Index Any::Find(const CT::Data auto& item, const Offset& cookie) const {
       return Block::template FindKnown<REVERSE>(item, cookie);
    }
@@ -696,7 +387,7 @@ namespace Langulus::Anyness
    ///   @param count - the number of elements to emplace                     
    ///   @param arguments... - the arguments to forward to constructor        
    ///   @return the number of emplaced elements                              
-   template<class... A>
+   template<CT::Block THIS, class... A>
    void Block::EmplaceInner(const Block& region, Count count, A&&... arguments) {
       if constexpr (sizeof...(A) == 0) {
          // Attempt default construction                                
@@ -745,16 +436,14 @@ namespace Langulus::Anyness
 
    /// Construct an iterator                                                  
    ///   @param value - pointer to the value element                          
-   template<bool MUTABLE>
-   LANGULUS(INLINED)
+   template<bool MUTABLE> LANGULUS(INLINED)
    Any::TIterator<MUTABLE>::TIterator(const Block& value) noexcept
       : mValue {value} {}
 
    /// Prefix increment operator                                              
    ///   @attention assumes iterator points to a valid element                
    ///   @return the modified iterator                                        
-   template<bool MUTABLE>
-   LANGULUS(INLINED)
+   template<bool MUTABLE> LANGULUS(INLINED)
    typename Any::TIterator<MUTABLE>& Any::TIterator<MUTABLE>::operator ++ () noexcept {
       mValue.mRaw += mValue.GetStride();
       return *this;
@@ -763,8 +452,7 @@ namespace Langulus::Anyness
    /// Suffix increment operator                                              
    ///   @attention assumes iterator points to a valid element                
    ///   @return the previous value of the iterator                           
-   template<bool MUTABLE>
-   LANGULUS(INLINED)
+   template<bool MUTABLE> LANGULUS(INLINED)
    typename Any::TIterator<MUTABLE> Any::TIterator<MUTABLE>::operator ++ (int) noexcept {
       const auto backup = *this;
       operator ++ ();
@@ -774,16 +462,14 @@ namespace Langulus::Anyness
    /// Compare block entries                                                  
    ///   @param rhs - the other iterator                                      
    ///   @return true if entries match                                        
-   template<bool MUTABLE>
-   LANGULUS(INLINED)
+   template<bool MUTABLE> LANGULUS(INLINED)
    bool Any::TIterator<MUTABLE>::operator == (const TIterator& rhs) const noexcept {
       return mValue.mRaw == rhs.mValue.mRaw;
    }
 
    /// Iterator access operator                                               
    ///   @return a pair at the current iterator position                      
-   template<bool MUTABLE>
-   LANGULUS(INLINED)
+   template<bool MUTABLE> LANGULUS(INLINED)
    const Block& Any::TIterator<MUTABLE>::operator * () const noexcept {
       return mValue;
    }

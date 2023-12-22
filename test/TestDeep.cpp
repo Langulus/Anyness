@@ -13,6 +13,9 @@
 
 
 SCENARIO("Deep sequential containers", "[any]") {
+
+   static_assert(sizeof(A::Block) == sizeof(Block));
+
    GIVEN("Any with some deep items") {
       IF_LANGULUS_MANAGED_MEMORY(Allocator::CollectGarbage());
 
@@ -255,7 +258,7 @@ SCENARIO("Deep sequential containers", "[any]") {
       }
 
       WHEN("Smart pushing different type without retainment") {
-         auto result = subpack1.SmartPush<IndexBack, true, false>('?');
+         auto result = subpack1.SmartPush<true, void>(IndexBack, '?');
 
          THEN("The pack must remain unchanged") {
             REQUIRE(result == 0);
@@ -267,7 +270,7 @@ SCENARIO("Deep sequential containers", "[any]") {
          Any deepened;
          deepened << int(1) << int(2) << int(3) << int(4) << int(5);
 
-         auto result = deepened.SmartPush<IndexBack, false, true>('?');
+         auto result = deepened.SmartPush<false>(IndexBack, '?');
 
          THEN("The pack must get deeper and contain it") {
             REQUIRE(result == 1);
@@ -283,7 +286,7 @@ SCENARIO("Deep sequential containers", "[any]") {
          deepened << int(1) << int(2) << int(3) << int(4) << int(5);
          auto pushed = Any::FromMeta(nullptr, DataState::Missing);
 
-         auto result = deepened.SmartPush<IndexBack, true, true>(pushed);
+         auto result = deepened.SmartPush(IndexBack, pushed);
 
          THEN("The pack must get deeper and contain it") {
             REQUIRE(result == 1);
@@ -299,7 +302,7 @@ SCENARIO("Deep sequential containers", "[any]") {
          auto pushed = Any::FromMeta(nullptr, DataState::Missing);
          auto pushed2 = Any::FromMeta(nullptr, DataState {});
 
-         auto result = pushed2.SmartPush<IndexBack, true, true>(pushed);
+         auto result = pushed2.SmartPush(IndexBack, pushed);
 
          THEN("The pack must get deeper and contain it") {
             REQUIRE(result == 1);
@@ -310,7 +313,7 @@ SCENARIO("Deep sequential containers", "[any]") {
 
       WHEN("Smart pushing to an empty container (concat & retain enabled)") {
          Any pushed;
-         auto result = pushed.SmartPush<IndexBack, true, true>(pack);
+         auto result = pushed.SmartPush(IndexBack, pack);
 
          THEN("The empty container becomes the pushed container") {
             REQUIRE(pushed == pack);
@@ -322,7 +325,7 @@ SCENARIO("Deep sequential containers", "[any]") {
          Any pushed;
          pushed << 666;
          pushed.MakeOr();
-         auto result = pushed.SmartPush<IndexBack, true, true>('?');
+         auto result = pushed.SmartPush(IndexBack, '?');
 
          THEN("State should be moved to the top") {
             REQUIRE(result == 1);
@@ -655,7 +658,7 @@ SCENARIO("Deep sequential containers", "[any]") {
          RTTI::Base base;
          REQUIRE(element.GetType()->GetBase<Block>(0, base));
          auto baseBlock = element.GetBaseMemory(MetaOf<Block>(), base);
-         baseRange.InsertBlock(baseBlock);
+         baseRange.InsertBlock(IndexBack, baseBlock);
       }
 
       WHEN("The Block bases from the subpacks are coalesced in a single container") {
