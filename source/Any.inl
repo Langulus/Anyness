@@ -42,9 +42,9 @@ namespace Langulus::Anyness
    /// deep in order to incorporate them                                      
    ///   @param t1 - first element (can be semantic)                          
    ///   @param tail... - the rest of the elements (optional, can be semantic)
-   template<class T1, class...TAIL> LANGULUS(INLINED)
-   Any::Any(T1&& t1, TAIL&&... tail)
-   requires CT::Inner::UnfoldInsertable<T1, TAIL...> {
+   template<class T1, class...TAIL>
+   requires CT::Inner::UnfoldInsertable<T1, TAIL...> LANGULUS(INLINED)
+   Any::Any(T1&& t1, TAIL&&... tail) {
       if constexpr (sizeof...(TAIL) == 0) {
          using S = SemanticOf<T1>;
          using T = TypeOf<S>;
@@ -125,46 +125,43 @@ namespace Langulus::Anyness
    }
    
    /// Shallow-copy assignment                                                
-   ///   @param other - the container to copy                                 
+   ///   @param rhs - the container to copy                                   
    ///   @return a reference to this container                                
    LANGULUS(INLINED)
-   Any& Any::operator = (const Any& other) {
-      return operator = (Copy(other));
+   Any& Any::operator = (const Any& rhs) {
+      return operator = (Copy(rhs));
    }
 
    /// Move assignment                                                        
-   ///   @param other - the container to move and reset                       
+   ///   @param rhs - the container to move and reset                         
    ///   @return a reference to this container                                
    LANGULUS(INLINED)
-   Any& Any::operator = (Any&& other) noexcept {
-      return operator = (Move(other));
+   Any& Any::operator = (Any&& rhs) noexcept {
+      return operator = (Move(rhs));
    }
 
    /// Element/container assignment, semantic or not                          
-   ///   @param other - the element, or container to assign                   
+   ///   @param rhs - the element, or container to assign                     
    ///   @return a reference to this container                                
    LANGULUS(INLINED)
-   Any& Any::operator = (CT::Inner::UnfoldInsertable auto&& other) {
-      using S = SemanticOf<decltype(other)>;
+   Any& Any::operator = (CT::Inner::UnfoldInsertable auto&& rhs) {
+      using S = SemanticOf<decltype(rhs)>;
       using T = TypeOf<S>;
 
       if constexpr (CT::Deep<T>) {
-         // Assign a container                                          
-         if (this == &*S::Nest(other))
+         // Potentially absorb a container                              
+         if (this == &*S::Nest(rhs))
             return *this;
 
-         Clear();
-         InsertBlock<Any, void>(0, S::Nest(other));
+         Free();
+         new (this) Any {S::Nest(rhs)};
       }
-      else if constexpr (CT::Insertable<T>) {
+      else {
          // Unfold-insert                                               
          Clear();
-         UnfoldInsert<Any, void>(0, S::Nest(other));
+         UnfoldInsert<Any, void>(0, S::Nest(rhs));
       }
-      else LANGULUS_ERROR(
-         "Can't be assigned: argument is neither deep, "
-         "nor insertable on its own"
-      );
+
       return *this;
    }
 

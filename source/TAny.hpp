@@ -10,6 +10,22 @@
 #include "Any.hpp"
 
 
+namespace Langulus::CT
+{
+
+   /// Concept for recognizing arguments, with which a statically typed       
+   /// container can be constructed                                           
+   template<class T, class...A>
+   concept DeepMakable = Inner::UnfoldMakableFrom<T, A...>
+        or (sizeof...(A) == 1 and Deep<Desem<FirstOf<A...>>>);
+
+   /// Concept for recognizing argument, with which a statically typed        
+   /// container can be assigned                                              
+   template<class T, class A>
+   concept DeepAssignable = Inner::UnfoldMakableFrom<T, A> or Deep<Desem<A>>;
+
+} // namespace Langulus::CT
+
 namespace Langulus::Anyness
 {
    
@@ -59,13 +75,9 @@ namespace Langulus::Anyness
       TAny(const TAny&);
       TAny(TAny&&) noexcept;
 
-      template<template<class> class S>
-      TAny(S<TAny>&&)
-      requires CT::Inner::SemanticMakable<S, T>;
-
       template<class T1, class...TAIL>
-      TAny(T1&&, TAIL&&...)
-      requires CT::Inner::UnfoldMakableFrom<T, T1, TAIL...>;
+      requires CT::DeepMakable<T, T1, TAIL...>
+      TAny(T1&&, TAIL&&...);
 
       ~TAny();
 
@@ -75,13 +87,8 @@ namespace Langulus::Anyness
       TAny& operator = (const TAny&);
       TAny& operator = (TAny&&);
 
-      template<class T1>
-      TAny& operator = (T1&&)
-      requires CT::Inner::UnfoldMakableFrom<T, T1>;
-
-   private:
-      void ConstructFrom(CT::Semantic auto&&);
-      TAny& AssignFrom(CT::Semantic auto&&);
+      template<class T1> requires CT::DeepAssignable<T, T1>
+      TAny& operator = (T1&&);
 
    public:
       NOD() static TAny From(const T*, const Count& = 1);
@@ -163,38 +170,38 @@ namespace Langulus::Anyness
       ///   Insertion                                                         
       ///                                                                     
       template<class T1, class...TAIL>
-      Count Insert(CT::Index auto, T1&&, TAIL&&...)
-      requires CT::Inner::UnfoldMakableFrom<T, T1, TAIL...>;
+      requires CT::Inner::UnfoldMakableFrom<T, T1, TAIL...>
+      Count Insert(CT::Index auto, T1&&, TAIL&&...);
 
       template<class...A>
-      Count Emplace(CT::Index auto, A&&...)
-      requires CT::Inner::MakableFrom<T, A...>;
+      requires CT::Inner::MakableFrom<T, A...>
+      Count Emplace(CT::Index auto, A&&...);
 
       Count New(Count = 1);
 
       template<class...A>
-      Count New(Count, A&&...)
-      requires CT::Inner::MakableFrom<T, A...>;
+      requires CT::Inner::MakableFrom<T, A...>
+      Count New(Count, A&&...);
 
       template<class T1>
-      TAny& operator << (T1&&)
-      requires CT::Inner::UnfoldMakableFrom<T, T1>;
+      requires CT::Inner::UnfoldMakableFrom<T, T1>
+      TAny& operator << (T1&&);
 
       template<class T1>
-      TAny& operator >> (T1&&)
-      requires CT::Inner::UnfoldMakableFrom<T, T1>;
+      requires CT::Inner::UnfoldMakableFrom<T, T1>
+      TAny& operator >> (T1&&);
 
       template<class T1, class...TAIL>
-      Count Merge(CT::Index auto, T1&&, TAIL&&...)
-      requires CT::Inner::UnfoldMakableFrom<T, T1, TAIL...>;
+      requires CT::Inner::UnfoldMakableFrom<T, T1, TAIL...>
+      Count Merge(CT::Index auto, T1&&, TAIL&&...);
 
       template<class T1>
-      TAny& operator <<= (T1&&)
-      requires CT::Inner::UnfoldMakableFrom<T, T1>;
+      requires CT::Inner::UnfoldMakableFrom<T, T1>
+      TAny& operator <<= (T1&&);
 
       template<class T1>
-      TAny& operator >>= (T1&&)
-      requires CT::Inner::UnfoldMakableFrom<T, T1>;
+      requires CT::Inner::UnfoldMakableFrom<T, T1>
+      TAny& operator >>= (T1&&);
 
    private:
       // Disable these inherited functions                              
@@ -224,8 +231,8 @@ namespace Langulus::Anyness
       NOD() Index Find(const CT::Data auto&, const Offset& = 0) const noexcept;
 
       template<CT::Data ALT_T = T>
-      bool operator == (const TAny<ALT_T>&) const noexcept
-      requires (CT::Inner::Comparable<T, ALT_T>);
+      requires (CT::Inner::Comparable<T, ALT_T>)
+      bool operator == (const TAny<ALT_T>&) const noexcept;
 
       bool operator == (const Any&) const noexcept
       requires (CT::Inner::Comparable<T>);
@@ -253,13 +260,11 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Concatenation                                                     
       ///                                                                     
-      template<class T1>
-      NOD() TAny operator + (T1&&) const
-      requires CT::Inner::UnfoldMakableFrom<T, T1>;
+      template<class T1> requires CT::DeepMakable<T, T1>
+      NOD() TAny operator + (T1&&) const;
 
-      template<class T1>
-      TAny& operator += (T1&&)
-      requires CT::Inner::UnfoldMakableFrom<T, T1>;
+      template<class T1> requires CT::DeepMakable<T, T1>
+      TAny& operator += (T1&&);
 
       ///                                                                     
       ///   Iteration                                                         

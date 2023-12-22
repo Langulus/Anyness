@@ -63,8 +63,8 @@ namespace Langulus::Anyness
       Any(Any&&) noexcept;
 
       template<class T1, class...TAIL>
-      Any(T1&&, TAIL&&...)
-      requires CT::Inner::UnfoldInsertable<T1, TAIL...>;
+      requires CT::Inner::UnfoldInsertable<T1, TAIL...>
+      Any(T1&&, TAIL&&...);
 
       ~Any();
    
@@ -120,8 +120,8 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Concatenation                                                     
       ///                                                                     
-      NOD() Any operator + (CT::Inner::UnfoldInsertable auto&&) const;
-      Any& operator += (CT::Inner::UnfoldInsertable auto&&);
+      NOD() Any  operator +  (CT::Inner::UnfoldInsertable auto&&) const;
+            Any& operator += (CT::Inner::UnfoldInsertable auto&&);
 
       ///                                                                     
       ///   Iteration                                                         
