@@ -20,93 +20,95 @@ namespace Langulus::Anyness
 
    /// Default construction with nullptr_t                                    
    LANGULUS(INLINED)
-   constexpr Text::Text(::std::nullptr_t) {}
+   constexpr Text::Text(::std::nullptr_t) noexcept {}
    
    /// Text container copy-construction from base                             
    ///   @param other - container to reference                                
    LANGULUS(INLINED)
    Text::Text(const Base& other)
-      : Base {other} {
-      // TAny's have no null-termination considerations, add them here  
-      mCount = strnlen(GetRaw(), mCount);
-   }
+      : Text {Copy(other)} { }
 
    /// Text container move-construction from base                             
    ///   @param other - container to move                                     
    LANGULUS(INLINED)
    Text::Text(Base&& other) noexcept
-      : Base {Forward<Base>(other)} {
+      : Text {Move(other)} { }
+
+   /// Text container semantic-construction from base                         
+   ///   @param other - container to move                                     
+   template<template<class> class S> LANGULUS(INLINED)
+   Text::Text(S<Base>&& other) requires CT::Semantic<S<Base>>
+      : Base {other.Forward()} {
       // TAny's have no null-termination considerations, add them here  
       mCount = strnlen(GetRaw(), mCount);
    }
 
-   /// Text container copy-construction                                       
-   /// Notice how container is explicitly cast to base class when forwarded   
-   /// If that is not done, TAny will use the CT::Deep constructor instead    
+   /// Shallow-copy constructor                                               
    ///   @param other - container to reference                                
    LANGULUS(INLINED)
    Text::Text(const Text& other)
-      : Base {static_cast<const Base&>(other)} {}
+      : Text {Copy(other)} { }
 
-   /// Text container move-construction                                       
+   /// Move constructor                                                       
    ///   @param other - container to move                                     
    LANGULUS(INLINED)
    Text::Text(Text&& other) noexcept
-      : Base {Forward<Base>(other)} {}
+      : Text {Move(other)} { }
 
    /// Semantic text constructor                                              
    ///   @param other - the text container to use semantically                
-   LANGULUS(INLINED)
-   Text::Text(CT::Semantic auto&& other) {
-      using S = Decay<decltype(other)>;
-      using T = TypeOf<S>;
+   template<template<class> class S, CT::Inner::Text T> LANGULUS(INLINED)
+   Text::Text(S<T>&& other) requires CT::Semantic<S<T>>
+      : Base {other.template Forward<Base>()} { }
+
+   /// Construct from single character                                        
+   ///   @param other - the character to copy                                 
+   template<template<class> class S, CT::DenseCharacter T> LANGULUS(INLINED)
+   Text::Text(S<T>&& other) requires CT::Semantic<S<T>> {
       mType = MetaDataOf<TypeOf<Base>>();
+      AllocateFresh(RequestSize(1));
+      mRaw[0] = reinterpret_cast<const Byte&>(*other);      //TODO utf8
+   }
 
-      if constexpr (CT::DerivedFrom<T, Base>) {
-         BlockTransfer<Text>(other.template Forward<Base>());
+   /// Construct from a c-style string                                        
+   ///   @param other - the string and semantic                               
+   template<template<class> class S, CT::StringPointer T> LANGULUS(INLINED)
+   Text::Text(S<T>&& other) requires CT::Semantic<S<T>> {
+      mType = MetaDataOf<TypeOf<Base>>();
+      const Count count = *other ? ::std::strlen(*other) : 0;
+      if (not count)
+         return;
 
-         // Base constructor should handle initialization from anything 
-         // TAny<Letter> based, but it will not make any null-          
-         // termination corrections, so we have to do them here         
-         if constexpr (not CT::Text<T>)
-            mCount = strnlen(GetRaw(), mCount);
-      }
-      else if constexpr (CT::Similar<T, Letter>) {
-         // Initialize using a single character                         
-         AllocateFresh(RequestSize(1));
-         mRaw[0] = reinterpret_cast<const Byte&>(*other);
-      }
-      else if constexpr (CT::StringPointer<T>) {
-         // Initialize from unbounded array                             
-         const Count count = *other ? ::std::strlen(*other) : 0;
-         if (not count)
-            return;
+      SetMemory(DataState::Constrained, mType, count, *other, nullptr);
+      if constexpr (not S<T>::Move and S<T>::Keep)
+         TakeAuthority();
+   }
 
-         SetMemory(DataState::Constrained, mType, count, *other, nullptr);
-         if constexpr (not S::Move and S::Keep)
-            TakeAuthority();
-      }
-      else if constexpr (CT::StringLiteral<T>) {
-         // Initialize from bounded array                               
-         const Count count = *other ? strnlen(*other, ExtentOf<T>) : 0;
-         if (not count)
-            return;
+   /// Construct from a bounded character array                               
+   ///   @param other - the string and semantic                               
+   template<template<class> class S, CT::StringLiteral T> LANGULUS(INLINED)
+   Text::Text(S<T>&& other) requires CT::Semantic<S<T>> {
+      mType = MetaDataOf<TypeOf<Base>>();
+      const Count count = *other ? strnlen(*other, ExtentOf<T>) : 0;
+      if (not count)
+         return;
 
-         SetMemory(DataState::Constrained, mType, count, *other, nullptr);
-         if constexpr (not S::Move and S::Keep)
-            TakeAuthority();
-      }
-      else if constexpr (CT::Similar<T, CompatibleStdString>
-                      or CT::Similar<T, CompatibleStdStringView>) {
-         // Initialize from std::string/std::string_view                
-         if (other->empty())
-            return;
+      SetMemory(DataState::Constrained, mType, count, *other, nullptr);
+      if constexpr (not S<T>::Move and S<T>::Keep)
+         TakeAuthority();
+   }
 
-         SetMemory(DataState::Constrained, mType, other->size(), other->data(), nullptr);
-         if constexpr (not S::Move and S::Keep)
-            TakeAuthority();
-      }
-      else LANGULUS_ERROR("Bad semantic construction");
+   /// Construct from a bounded character array                               
+   ///   @param other - the string and semantic                               
+   template<template<class> class S, CT::StandardContiguousContainer T> LANGULUS(INLINED)
+   Text::Text(S<T>&& other) requires (CT::Semantic<S<T>> and CT::DenseCharacter<TypeOf<T>>) {
+      mType = MetaDataOf<TypeOf<Base>>();
+      if (other->empty())
+         return;
+
+      SetMemory(DataState::Constrained, mType, other->size(), other->data(), nullptr);
+      if constexpr (not S<T>::Move and S<T>::Keep)
+         TakeAuthority();
    }
 
    /// Construct from compatible std::string                                  
@@ -270,7 +272,7 @@ namespace Langulus::Anyness
       using T = TypeOf<S>;
 
       if constexpr (CT::DerivedFrom<T, Base>) {
-         Base::operator = (rhs.template Forward<Base>());
+         Base::operator = (S::Nest(rhs).template Forward<Base>());
 
          // Base constructor should handle initialization from anything 
          // TAny<Letter> based, but it will not make any null-          
@@ -533,7 +535,7 @@ namespace Langulus::Anyness
    ///   @return new text that references the original memory                 
    LANGULUS(INLINED)
    Text Text::Crop(Count start, Count count) const {
-      return Text {Base::Crop(start, count)};
+      return Block::Crop<Text>(start, count);
    }
 
    /// Pick a part of the text                                                
@@ -542,7 +544,7 @@ namespace Langulus::Anyness
    ///   @return new text that references the original memory                 
    LANGULUS(INLINED)
    Text Text::Crop(Count start, Count count) {
-      return Text {Base::Crop(start, count)};
+      return Block::Crop<Text>(start, count);
    }
 
    /// Remove all instances of a symbol from the text container               
@@ -648,32 +650,16 @@ namespace Langulus::Anyness
    ///   @return the concatenated text container                              
    LANGULUS(INLINED)
    Text Text::operator + (const Text& rhs) const {
-      if (rhs.IsEmpty())
-         return *this;
-
-      Text combined;
-      combined.mType = MetaDataOf<Letter>();
-      combined.AllocateFresh(RequestSize(mCount + rhs.mCount));
-      combined.InsertInner<Copied>(GetRaw(), GetRawEnd(), 0);
-      combined.InsertInner<Copied>(rhs.GetRaw(), rhs.GetRawEnd(), mCount);
-      return Abandon(combined);
+      return ConcatBlock<Text>(Copy(rhs));
    }
    
-   /// Concatenate two text containers                                        
+   /// Concatenate two text containers, left one being a null-terminated raw  
+   ///   @param lhs - left hand side                                          
    ///   @param rhs - right hand side                                         
    ///   @return the concatenated text container                              
    LANGULUS(INLINED)
    Text operator + (const char* lhs, const Text& rhs) {
-      if (rhs.IsEmpty())
-         return Text {lhs};
-
-      Text leftside {lhs};
-      Text combined;
-      combined.mType = MetaDataOf<Letter>();
-      combined.AllocateFresh(leftside.RequestSize(leftside.mCount + rhs.mCount));
-      combined.InsertInner<Copied>(leftside.GetRaw(), leftside.GetRawEnd(), 0);
-      combined.InsertInner<Copied>(rhs.GetRaw(), rhs.GetRawEnd(), leftside.mCount);
-      return Abandon(combined);
+      return Text {Disown(lhs)} + rhs;
    }
 
    /// Concatenate (destructively) text container                             
@@ -681,12 +667,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container                                
    LANGULUS(INLINED)
    Text& Text::operator += (const Text& rhs) {
-      if (rhs.IsEmpty())
-         return *this;
-
-      mType = MetaDataOf<Letter>();
-      AllocateMore(mCount + rhs.mCount);
-      InsertInner<Copied>(rhs.GetRaw(), rhs.GetRawEnd(), mCount);
+      InsertBlock<Text, void>(IndexBack, Copy(rhs));
       return *this;
    }
 

@@ -10,7 +10,7 @@
 #include "DataState.hpp"
 
 
-namespace Langulus::Anyness
+namespace Langulus
 {
 
    /// Manual construction                                                    
@@ -159,4 +159,4 @@ namespace Langulus::Anyness
       mState = DataState::Default;
    }
 
-} // namespace Langulus::Anyness
+} // namespace Langulus

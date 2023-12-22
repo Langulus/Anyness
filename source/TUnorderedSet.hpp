@@ -36,15 +36,17 @@ namespace Langulus::Anyness
       ///   Construction & Assignment                                         
       ///                                                                     
       constexpr TUnorderedSet();
-
       TUnorderedSet(const TUnorderedSet&);
       TUnorderedSet(TUnorderedSet&&);
+
       template<template<class> class S>
-      TUnorderedSet(S<TUnorderedSet>&&) requires (CT::Inner::SemanticMakable<S,T>);
+      TUnorderedSet(S<TUnorderedSet>&&)
+      requires (CT::Inner::SemanticMakable<S, T>);
+
       template<class T1, class...TAIL>
-      TUnorderedSet(T1&&, TAIL&&...) requires (CT::Inner::MakableFrom<T,T1,TAIL...>);
-      template<class T1, class...TAIL>
-      TUnorderedSet(T1&&, TAIL&&...) requires (not CT::Inner::MakableFrom<T,T1,TAIL...>);
+      TUnorderedSet(T1&&, TAIL&&...)
+      requires (CT::Inner::UnfoldMakableFrom<T, T1, TAIL...>);
+
       ~TUnorderedSet();
 
       TUnorderedSet& operator = (const TUnorderedSet&);
@@ -165,10 +167,12 @@ namespace Langulus::Anyness
       ///   Insertion                                                         
       ///                                                                     
       template<class T1, class... TAIL>
-      Count Insert(T1&&, TAIL&&...) requires CT::Inner::MakableFrom<T, T1&&, TAIL&&...>;
+      Count Insert(T1&&, TAIL&&...)
+      requires CT::Inner::UnfoldMakableFrom<T, T1, TAIL...>;
 
       template<class T1>
-      TUnorderedSet& operator << (T1&&) requires CT::Inner::MakableFrom<T, T1&&>;
+      TUnorderedSet& operator << (T1&&)
+      requires CT::Inner::UnfoldMakableFrom<T, T1>;
 
    protected:
       NOD() static Size RequestKeyAndInfoSize(Count, Offset&) noexcept;

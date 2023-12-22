@@ -16,78 +16,12 @@
 namespace Langulus::Anyness
 {
 
-   /// Semantically construct a handle from pointer/handle                    
-   ///   @attention handles have no ownership, so no referencing happens      
-   ///   @param other - the value to use for construction                     
-   TEMPLATE() LANGULUS(INLINED)
-   constexpr HAND()::Handle(CT::Semantic auto&& other) noexcept requires (not EMBED) {
-      using S = Deref<decltype(other)>;
-      using ST = TypeOf<S>;
-
-      if constexpr (CT::Handle<ST>) {
-         using HT = TypeOf<ST>;
-         static_assert(CT::NotHandle<HT>, "Handles can't be nested");
-         static_assert(CT::Exact<T, HT>, "Type mismatch");
-
-         if constexpr (S::Shallow) {
-            // Copy/Disown/Move/Abandon a handle                        
-            SemanticAssign(mValue, S::Nest(other->Get()));
-
-            if constexpr (S::Keep or S::Move)
-               mEntry = other->GetEntry();
-            else
-               mEntry = nullptr;
-
-            if constexpr (S::Move) {
-               // Reset remote entry, when moving                       
-               other->GetEntry() = nullptr;
-
-               // Optionally reset remote value, if not abandoned       
-               if constexpr (S::Keep and CT::Sparse<T, HT>)
-                  other->Get() = nullptr;
-            }
-         }
-         else {
-            // Clone a handle                                           
-            TODO();
-         }
-      }
-      else {
-         // Assigning mutable pointer to a const handle is allowed      
-         using DT = Deptr<T>;
-         static_assert((CT::Mutable<DT> and CT::Exact<T, ST>)
-            or (CT::Constant<DT> and CT::Exact<T, const Deptr<ST>*>),
-            "Type mismatch"
-         );
-
-         if constexpr (S::Shallow) {
-            // Copy/Disown/Move/Abandon a pointer                       
-            // Since pointers don't have ownership, it's just a copy    
-            // with an optional entry search, if not disowned, and if   
-            // managed memory is enabled                                
-            if constexpr (CT::Sparse<T>)
-               mValue = *other;
-            else
-               SemanticAssign(mValue, other.template Forward<T>());
-
-            if constexpr (CT::Sparse<T> and CT::Allocatable<DT> and (S::Keep or S::Move))
-               mEntry = Allocator::Find(MetaDataOf<DT>(), mValue);
-            else
-               mEntry = nullptr;
-         }
-         else {
-            // Clone a pointer                                          
-            TODO();
-         }
-      }
-   }
-
    /// Create an embedded handle                                              
    ///   @param v - a reference to the element                                
    ///   @param e - a reference to the element's entry                        
    TEMPLATE() LANGULUS(INLINED)
    constexpr HAND()::Handle(T& v, const Allocation*& e) IF_UNSAFE(noexcept)
-   requires (EMBED and CT::Sparse<T>)
+   requires (Embedded and CT::Sparse<T>)
       : mValue {&v}
       , mEntry {&e} {
       static_assert(CT::NotHandle<T>, "Handles can't be nested");
@@ -98,7 +32,7 @@ namespace Langulus::Anyness
    ///   @param e - the entry (optional)                                      
    TEMPLATE() LANGULUS(INLINED)
    constexpr HAND()::Handle(T& v, const Allocation* e) IF_UNSAFE(noexcept)
-   requires (EMBED and CT::Dense<T>)
+   requires (Embedded and CT::Dense<T>)
       : mValue {&v}
       , mEntry {e} {
       static_assert(CT::NotHandle<T>, "Handles can't be nested");
@@ -107,30 +41,81 @@ namespace Langulus::Anyness
    /// Create a standalone handle                                             
    ///   @param v - the element                                               
    ///   @param e - the entry (optional)                                      
-   TEMPLATE() LANGULUS(INLINED)
-   constexpr HAND()::Handle(T&& v, const Allocation* e) IF_UNSAFE(noexcept)
-   requires (not EMBED)
-      : mValue {Forward<T>(v)}
+   TEMPLATE()
+   template<CT::NotHandle T1>
+   LANGULUS(INLINED)
+   constexpr HAND()::Handle(T1&& v, const Allocation* e)
+   requires (not Embedded and CT::Inner::MakableFrom<T, T1>)
+      : mValue {Forward<T1>(v)}
       , mEntry {e} {
-      static_assert(CT::NotHandle<T>, "Handles can't be nested");
+      if constexpr (CT::Semantic<T1> and CT::Sparse<T>) {
+         if constexpr (T1::Shallow) {
+            // Copy/Disown/Move/Abandon a pointer                       
+            // Since pointers don't have ownership, it's just a copy    
+            // with an optional entry search, if not disowned, and if   
+            // managed memory is enabled                                
+            using DT = Deptr<T>;
+            if constexpr (CT::Allocatable<DT> and (T1::Keep or T1::Move))
+               mEntry = Allocator::Find(MetaDataOf<DT>(), mValue);
+         }
+         else {
+            // Clone a pointer                                          
+            TODO();
+         }
+      }
+   }
+
+   /// Semantically construct using handle of any compatible type             
+   ///   @param other - the handle and semantic to construct with             
+   TEMPLATE()
+   template<template<class> class S, CT::Handle H>
+   LANGULUS(INLINED)
+   constexpr HAND()::Handle(S<H>&& other)
+   requires (CT::Inner::MakableFrom<T, S<TypeOf<H>>>)
+      : mValue {S<TypeOf<H>>(other->Get())}
+      , mEntry {other->GetEntry()} {
+      using HT = TypeOf<H>;
+      static_assert(CT::NotHandle<HT>, "Handles can't be nested");
+      static_assert(CT::Exact<T, HT>, "Handle types must match exactly");
+
+      if constexpr (not Embedded) {
+         if constexpr (S<H>::Shallow) {
+            // Copy/Disown/Move/Abandon a handle                        
+            if constexpr (not S<H>::Keep)
+               mEntry = nullptr;
+
+            if constexpr (S<H>::Move) {
+               // Always reset remote entry, when moving                
+               other->GetEntry() = nullptr;
+
+               // Also reset remote value, if not an abandoned pointer  
+               if constexpr (S<H>::Keep and CT::Sparse<HT>)
+                  other->Get() = nullptr;
+            }
+         }
+         else {
+            // Clone a handle                                           
+            TODO();
+         }
+      }
    }
 
    TEMPLATE() LANGULUS(INLINED)
    constexpr bool HAND()::operator == (const T* rhs) const noexcept
-   requires (EMBED) {
+   requires Embedded {
       return mValue == rhs;
    }
       
    TEMPLATE() LANGULUS(INLINED)
    constexpr bool HAND()::operator == (const HAND()& rhs) const noexcept
-   requires (EMBED) {
+   requires Embedded {
       return mValue == rhs.mValue;
    }
       
    /// Prefix increment operator                                              
    ///   @return the next handle                                              
    TEMPLATE() LANGULUS(INLINED)
-   HAND()& HAND()::operator ++ () noexcept requires (EMBED) {
+   HAND()& HAND()::operator ++ () noexcept requires Embedded {
       ++mValue;
       if constexpr (CT::Sparse<T>)
          ++mEntry;
@@ -140,7 +125,7 @@ namespace Langulus::Anyness
    /// Prefix decrement operator                                              
    ///   @return the next handle                                              
    TEMPLATE() LANGULUS(INLINED)
-   HAND()& HAND()::operator -- () noexcept requires (EMBED) {
+   HAND()& HAND()::operator -- () noexcept requires Embedded {
       --mValue;
       if constexpr (CT::Sparse<T>)
          --mEntry;
@@ -150,7 +135,7 @@ namespace Langulus::Anyness
    /// Prefix increment operator                                              
    ///   @return the next handle                                              
    TEMPLATE() LANGULUS(INLINED)
-   HAND()& HAND()::operator += (Offset offset) noexcept requires (EMBED) {
+   HAND()& HAND()::operator += (Offset offset) noexcept requires Embedded {
       mValue += offset;
       if constexpr (CT::Sparse<T>)
          mEntry += offset;
@@ -160,7 +145,7 @@ namespace Langulus::Anyness
    /// Prefix decrement operator                                              
    ///   @return the next handle                                              
    TEMPLATE() LANGULUS(INLINED)
-   HAND()& HAND()::operator -= (Offset offset) noexcept requires (EMBED) {
+   HAND()& HAND()::operator -= (Offset offset) noexcept requires Embedded {
       mValue -= offset;
       if constexpr (CT::Sparse<T>)
          mEntry -= offset;
@@ -170,7 +155,7 @@ namespace Langulus::Anyness
    /// Suffix increment operator                                              
    ///   @return the previous value of the handle                             
    TEMPLATE() LANGULUS(INLINED)
-   HAND() HAND()::operator ++ (int) noexcept requires (EMBED) {
+   HAND() HAND()::operator ++ (int) noexcept requires Embedded {
       const auto backup = *this;
       operator ++ ();
       return backup;
@@ -179,7 +164,7 @@ namespace Langulus::Anyness
    /// Suffix decrement operator                                              
    ///   @return the previous value of the handle                             
    TEMPLATE() LANGULUS(INLINED)
-   HAND() HAND()::operator -- (int) noexcept requires (EMBED) {
+   HAND() HAND()::operator -- (int) noexcept requires Embedded {
       const auto backup = *this;
       operator -- ();
       return backup;
@@ -189,7 +174,7 @@ namespace Langulus::Anyness
    ///   @param offset - the offset to apply                                  
    ///   @return the offsetted handle                                         
    TEMPLATE() LANGULUS(INLINED)
-   HAND() HAND()::operator + (Offset offset) noexcept requires (EMBED) {
+   HAND() HAND()::operator + (Offset offset) noexcept requires Embedded {
       auto backup = *this;
       return backup += offset;
    }
@@ -198,7 +183,7 @@ namespace Langulus::Anyness
    ///   @param offset - the offset to apply                                  
    ///   @return the offsetted handle                                         
    TEMPLATE() LANGULUS(INLINED)
-   HAND() HAND()::operator - (Offset offset) noexcept requires (EMBED) {
+   HAND() HAND()::operator - (Offset offset) noexcept requires Embedded {
       auto backup = *this;
       return backup -= offset;
    }

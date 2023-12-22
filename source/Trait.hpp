@@ -10,6 +10,47 @@
 #include "Any.hpp"
 
 
+namespace Langulus
+{
+   namespace A
+   {
+
+      ///                                                                     
+      /// An abstract Trait structure                                         
+      /// It defines the size for CT::Trait and CT::TraitBased concepts       
+      ///                                                                     
+      struct Trait : Anyness::Any {
+         LANGULUS(ABSTRACT) true;
+         LANGULUS(DEEP) false;
+         LANGULUS_BASES(Any);
+
+      protected:
+         mutable TMeta mTraitType {};
+      };
+
+   } // namespace Langulus::A
+
+   namespace CT
+   {
+
+      /// A TraitBased type is any type that inherits A::Trait, and is binary 
+      /// compatible to it                                                    
+      template<class...T>
+      concept TraitBased = ((DerivedFrom<T, A::Trait>
+            and sizeof(T) == sizeof(A::Trait)
+         ) and ...);
+
+      /// A reflected trait type is any type that inherits Trait, is not Trait
+      /// itself, and is binary compatible to a Trait                         
+      template<class...T>
+      concept Trait = TraitBased<T...> and (
+            requires { {T::CTTI_Trait} -> Exact<Token>; 
+         } and ...);
+
+   } // namespace Langulus::CT
+
+} // namespace Langulus
+
 namespace Langulus::Anyness
 {
 
@@ -21,91 +62,58 @@ namespace Langulus::Anyness
    /// contains a count variable, you can tag it with a Traits::Count tag     
    ///   Traits are used to access members of objects at runtime, or access   
    /// global objects, or supply paremeters for content desciptors, such as   
-   /// Flow::Construct, as well as parameters for any Flow::Verb call         
+   /// Construct, as well as parameters for any Flow::Verb call               
    ///                                                                        
-   class Trait : public Any {
-      LANGULUS(DEEP) false;
-      LANGULUS_BASES(Any);
-
-   private:
-      TMeta mTraitType {};
+   struct Trait : A::Trait {
+      LANGULUS(ABSTRACT) false;
+      LANGULUS_BASES(A::Trait);
 
    public:
       constexpr Trait() noexcept = default;
-
       Trait(const Trait&);
       Trait(Trait&&) noexcept;
 
-      Trait(const CT::NotSemantic auto&);
-      Trait(CT::NotSemantic auto&);
-      Trait(CT::NotSemantic auto&&);
-
-      template<CT::Semantic S>
-      Trait(S&&);
-
-      template<CT::Data T1, CT::Data T2, CT::Data... TAIL>
-      Trait(T1&&, T2&&, TAIL&&...);
+      template<class T1, class...TAIL>
+      Trait(T1&&, TAIL&&...)
+      requires CT::Inner::UnfoldInsertable<T1, TAIL...>;
 
       Trait& operator = (const Trait&);
-      Trait& operator = (Trait&&) noexcept;
-
-      Trait& operator = (const CT::NotSemantic auto&);
-      Trait& operator = (CT::NotSemantic auto&);
-      Trait& operator = (CT::NotSemantic auto&&);
-      Trait& operator = (CT::Semantic auto&&);
+      Trait& operator = (Trait&&);
+      Trait& operator = (CT::Inner::UnfoldInsertable auto&&);
 
    public:
-      template<CT::Data TRAIT, CT::Data DATA>
+      template<CT::Trait, CT::Data>
       NOD() static Trait From();
-      template<CT::Data DATA>
-      NOD() static Trait From(TMeta, const DATA&);
-      template<CT::Data DATA>
-      NOD() static Trait From(TMeta, DATA&&);
-
-      template<CT::Data TRAIT, CT::Data DATA>
-      NOD() static Trait From(const DATA&);
-      template<CT::Data TRAIT, CT::Data DATA>
-      NOD() static Trait From(DATA&&);
-
       NOD() static Trait FromMeta(TMeta, DMeta);
 
-   public:
-      template<CT::Data T>
-      void SetTrait() noexcept;
-      constexpr void SetTrait(TMeta) noexcept;
+      template<CT::Trait>
+      NOD() static Trait From(auto&&);
+      NOD() static Trait From(TMeta, auto&&);
 
-      template<CT::Data... T>
+   public:
+      template<CT::Trait>
+      void SetTrait() noexcept;
+      void SetTrait(TMeta) noexcept;
+
+      template<CT::Trait, CT::Trait...>
       NOD() bool TraitIs() const;
-      NOD() bool TraitIs(TMeta) const;
+      template<class T1, class...TN>
+      NOD() bool TraitIs(T1, TN...) const requires CT::Exact<TMeta, T1, TN...>;
 
       NOD() TMeta GetTrait() const noexcept;
 
       NOD() bool IsTraitValid() const noexcept;
-      NOD() bool IsSimilar(const Trait&) const noexcept;
+      NOD() bool IsTraitSimilar(const CT::TraitBased auto&) const noexcept;
       NOD() bool HasCorrectData() const;
 
-      template<CT::Data T>
-      NOD() bool operator == (const T&) const;
+      NOD() bool operator == (const auto&) const;
 
-
+   public:
       ///                                                                     
       ///   Concatenation                                                     
       ///                                                                     
-      NOD() Trait operator + (const Trait&) const;
-      NOD() Trait operator + (Trait&&) const;
-
-      NOD() Trait operator + (const CT::Deep auto&) const;
-      NOD() Trait operator + (CT::Deep auto&) const;
-      NOD() Trait operator + (CT::Deep auto&&) const;
-      NOD() Trait operator + (CT::Semantic auto&&) const;
-
-      Trait& operator += (const Trait&);
-      Trait& operator += (Trait&&);
-
-      Trait& operator += (const CT::Deep auto&);
-      Trait& operator += (CT::Deep auto&);
-      Trait& operator += (CT::Deep auto&&);
-      Trait& operator += (CT::Semantic auto&&);
+      NOD() Trait operator + (CT::Inner::UnfoldInsertable auto&&) const;
+      Trait& operator += (CT::Inner::UnfoldInsertable auto&&);
    };
 
 
@@ -114,79 +122,42 @@ namespace Langulus::Anyness
    /// using it as a CRTP                                                     
    ///                                                                        
    template<class TRAIT>
-   struct StaticTrait : public Trait {
-   public:
+   struct StaticTrait : Trait {
       LANGULUS(TRAIT) RTTI::LastCppNameOf<TRAIT>();
       LANGULUS_BASES(Trait);
 
       using TraitType = TRAIT;
 
-      StaticTrait();
-
+   public:
+      using Trait::Trait;
       StaticTrait(const StaticTrait&);
       StaticTrait(StaticTrait&&);
 
-      template<CT::NotSemantic T>
-      StaticTrait(const T&);
-      template<CT::NotSemantic T>
-      StaticTrait(T&);
-      template<CT::NotSemantic T>
-      StaticTrait(T&&);
+      template<CT::Data>
+      NOD() static TRAIT OfType();
 
-      template<CT::Semantic S>
-      StaticTrait(S&&);
-
-      template<CT::Data T1, CT::Data T2, CT::Data... TAIL>
-      StaticTrait(T1&&, T2&&, TAIL&&...);
-
+      using Trait::operator =;
       StaticTrait& operator = (const StaticTrait&);
       StaticTrait& operator = (StaticTrait&&);
 
-      template<CT::NotSemantic T>
-      StaticTrait& operator = (const T&);
-      template<CT::NotSemantic T>
-      StaticTrait& operator = (T&);
-      template<CT::NotSemantic T>
-      StaticTrait& operator = (T&&);
+   public:
+      template<CT::Trait, CT::Trait...>
+      NOD() constexpr bool TraitIs() const;
+      template<class T1, class...TN>
+      NOD() constexpr bool TraitIs(T1, TN...) const requires CT::Exact<TMeta, T1, TN...>;
 
-      template<CT::Semantic S>
-      StaticTrait& operator = (S&&);
+      NOD() TMeta GetTrait() const noexcept;
 
-      TRAIT operator + (const Trait&) const;
-      template<CT::Deep T>
-      TRAIT operator + (const T&) const;
+      NOD() constexpr bool IsTraitValid() const noexcept;
+      NOD() constexpr bool IsTraitSimilar(const CT::TraitBased auto&) const noexcept;
+      NOD() constexpr bool HasCorrectData() const;
 
-      TRAIT& operator += (const Trait&);
-      template<CT::Deep T>
-      TRAIT& operator += (const T&);
-
-      template<CT::Data T>
-      NOD() bool operator == (const T&) const;
-
-      template<CT::Data T>
-      NOD() static TRAIT OfType();
-
-      NOD() static TMeta GetTrait();
+   private:
+      using Trait::SetTrait;
    };
 
 } // namespace Langulus::Anyness
 
-namespace Langulus::CT
-{
-
-   /// A TraitBased type is any type that inherits Trait, and is binary       
-   /// compatible to a Trait                                                  
-   template<class... T>
-   concept TraitBased = ((DerivedFrom<T, Anyness::Trait>
-         and sizeof(T) == sizeof(Anyness::Trait)
-      ) and ...);
-
-   /// A reflected trait type is any type that inherits Trait, is not Trait   
-   /// itself, and is binary compatible to a Trait                            
-   template<class... T>
-   concept Trait = TraitBased<T...> and ((not Same<T, Anyness::Trait>) and ...);
-
-} // namespace Langulus::CT
 
 #define LANGULUS_DEFINE_TRAIT(T, INFOSTRING) \
    namespace Langulus::Traits \

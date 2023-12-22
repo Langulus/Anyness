@@ -213,10 +213,13 @@ namespace Langulus::Anyness
    ///   @param other - the memory we'll be inserting                         
    ///   @param index - the place we'll be inserting at                       
    ///   @param region - the newly allocated region (!mCount, only mReserved) 
-   ///   @return number if inserted items in case of mutation                 
-   inline void Block::AllocateRegion(const Block& other, Offset index, Block& region) {
+   template<CT::Block THIS>
+   Block Block::AllocateRegion(const Block& other, Offset index) {
+      LANGULUS_ASSUME(DevAssumes, not other.IsEmpty(), "Empty region");
+
       // Type may mutate, but never deepen                              
-      Mutate<false>(other.mType);
+      // This also acts as a type-check                                 
+      Mutate<THIS, void>(other.mType);
 
       // Allocate the required memory - this will not initialize it     
       AllocateMore<false>(mCount + other.mCount);
@@ -237,7 +240,7 @@ namespace Langulus::Anyness
       }
 
       // Pick the region that should be overwritten with new stuff      
-      region = CropInner(index, 0);
+      return CropInner(index, 0);
    }
 
    /// Reference memory block if we own it                                    

@@ -25,10 +25,109 @@ namespace Langulus::Flow
 
 namespace Langulus
 {
+
+   using RTTI::DMeta;
+   using RTTI::CMeta;
+   using RTTI::TMeta;
+   using RTTI::VMeta;
+   using RTTI::AMeta;
+
+   namespace Anyness
+   {
+      using RTTI::AllocationRequest;
+
+      template<class, bool EMBED = true>
+      struct Handle;
+
+      class Any;
+      template<CT::Data>
+      class TAny;
+
+      class BlockMap;
+      class OrderedMap;
+      class UnorderedMap;
+      template<CT::Data, CT::Data>
+      class TOrderedMap;
+      template<CT::Data, CT::Data>
+      class TUnorderedMap;
+
+      class BlockSet;
+      class OrderedSet;
+      class UnorderedSet;
+      template<CT::Data>
+      class TOrderedSet;
+      template<CT::Data>
+      class TUnorderedSet;
+
+      class Bytes;
+      class Text;
+      struct Path;
+
+      template<CT::Data>
+      class TOwned;
+      template<class, bool>
+      class TPointer;
+
+      class Construct;
+      using Messy = Any;
+      class Neat;
+   }
+
    namespace A
    {
+
       struct Handle {};
-   }
+
+      ///                                                                     
+      /// An abstract Block structure                                         
+      /// It defines the size for CT::Block and CT::Deep concepts             
+      ///                                                                     
+      struct Block {
+         LANGULUS(ABSTRACT) true;
+         LANGULUS(DEEP) true;
+         LANGULUS(POD) true;
+
+         union {
+            #if LANGULUS_DEBUG()
+               char* mRawChar;
+            #endif
+            // Raw pointer to first element inside the memory block     
+            Byte* mRaw {};
+            Byte** mRawSparse;
+         };
+   
+         // The data state                                              
+         DataState mState {DataState::Default};
+         // Number of initialized elements inside memory block          
+         Count mCount {};
+         // Number of allocated elements in the memory block            
+         Count mReserved {};
+         // Meta data about the elements inside the memory block        
+         mutable DMeta mType {};
+         // Pointer to the allocated block. If entry is zero, then data 
+         // is static, or we simply have no authority over it (just a   
+         // view)                                                       
+         const Allocation* mEntry {};
+
+      public:
+         constexpr Block() noexcept = default;
+         constexpr Block(const Block&) noexcept = default;
+         constexpr Block(Block&&) noexcept = default;
+
+         constexpr Block(DMeta) noexcept;
+         constexpr Block(const DataState&, DMeta) noexcept;
+
+         Block(const DataState&, CMeta) IF_UNSAFE(noexcept);
+         Block(const DataState&, DMeta, Count, const void*) IF_UNSAFE(noexcept);
+         Block(const DataState&, DMeta, Count, void*) IF_UNSAFE(noexcept);
+         Block(const DataState&, DMeta, Count, const void*, const Allocation*) IF_UNSAFE(noexcept);
+         Block(const DataState&, DMeta, Count, void*, const Allocation*) IF_UNSAFE(noexcept);
+
+         constexpr Block& operator = (const Block&) noexcept = default;
+         constexpr Block& operator = (Block&&) noexcept = default;
+      };
+
+   } // namespace Langulus::A
 
    namespace CT
    {
@@ -58,66 +157,67 @@ namespace Langulus
 
       template<class... T>
       concept IteratableInReverse = (Inner::IteratableInReverse<T> and ...);
-   }
-}
+
+      /// Any origin type that inherits Block                                 
+      template<class... T>
+      concept BlockBased = (DerivedFrom<T, A::Block> and ...);
+
+      /// A reflected block type is any type that inherits Block, and is      
+      /// binary compatible to a Block - this is a mandatory requirement for  
+      /// any CT::Deep type                                                   
+      /// Keep in mind, that sparse types are never considered Block!         
+      template<class... T>
+      concept Block = BlockBased<T...>
+          and ((sizeof(T) == sizeof(A::Block)) and ...);
+
+      /// A deep type is any type with a true static member T::CTTI_Deep,     
+      /// is binary compatible with Block, and having the same interface      
+      /// If no such member/base exists, the type is assumed NOT deep by      
+      /// default. Deep types are considered iteratable, and verbs are        
+      /// executed in each of their elements/members, instead on the type     
+      /// itself. Use LANGULUS(DEEP) macro as member to tag deep types        
+      /// Keep in mind, that sparse types are never considered Deep!          
+      template<class... T>
+      concept Deep = ((Block<T> and Decay<T>::CTTI_Deep) and ...);
+
+      /// Type that is not deep, see CT::Deep                                 
+      template<class... T>
+      concept Flat = ((not Deep<T>) and ...);
+
+      /// Check if origin of T(s) are Neat(s)                                 
+      template<class... T>
+      concept Neat = ((Exact<Decay<T>, Anyness::Neat>) and ...);
+
+      /// Check if origin of T(s) aren't Neat(s)                              
+      template<class... T>
+      concept Messy = not Neat<T...>;
+
+      /// Check if origin of T(s) are Construct(s)                            
+      template<class... T>
+      concept Construct = ((Exact<Decay<T>, Anyness::Construct>) and ...);
+
+      /// Check if origin of T(s) aren't Construct(s)                         
+      template<class... T>
+      concept NotConstruct = not Construct<T...>;
+
+   } // namespace Langulus::CT
+
+} // namespace Langulus
 
 namespace Langulus::Anyness
 {
 
-   using RTTI::AllocationRequest;
-   using RTTI::DMeta;
-   using RTTI::CMeta;
-   using RTTI::TMeta;
-   using RTTI::VMeta;
-   using RTTI::AMeta;
-
-   template<class, bool EMBED = true>
-   struct Handle;
-
-   class Any;
-   template<CT::Data>
-   class TAny;
-   
-   class BlockMap;
-   class OrderedMap;
-   class UnorderedMap;
-   template<CT::Data, CT::Data>
-   class TOrderedMap;
-   template<CT::Data, CT::Data>
-   class TUnorderedMap;
-   
-   class BlockSet;
-   class OrderedSet;
-   class UnorderedSet;
-   template<CT::Data>
-   class TOrderedSet;
-   template<CT::Data>
-   class TUnorderedSet;
-   
-   class Bytes;
-   class Text;
-   struct Path;
-   
-   template<CT::Data>
-   class TOwned;
-   template<class, bool>
-   class TPointer;
-   
-   class Construct;
-   using Messy = Any;
-   class Neat;
-
-#if LANGULUS_FEATURE(COMPRESSION)
-   /// Compression types, analogous to zlib's                                 
-   enum class Compression {
-      None = 0,
-      Fastest = 1,
-      Balanced = 5,
-      Smallest = 9,
+   #if LANGULUS_FEATURE(COMPRESSION)
+      /// Compression types, analogous to zlib's                              
+      enum class Compression {
+         None = 0,
+         Fastest = 1,
+         Balanced = 5,
+         Smallest = 9,
       
-      Default = Fastest
-   };
-#endif
+         Default = Fastest
+      };
+   #endif
 
    
    ///                                                                        
@@ -128,10 +228,9 @@ namespace Langulus::Anyness
    /// only provides the functionality to do so. You can use Block as a       
    /// lightweight intermediate structure for iteration, etc.                 
    ///                                                                        
-   class Block {
+   class Block : public A::Block {
    public:
-      LANGULUS(DEEP) true;
-      LANGULUS(POD) true;
+      LANGULUS(ABSTRACT) false;
 
       static constexpr bool Ownership = false;
       static constexpr bool Sequential = true;
@@ -175,44 +274,10 @@ namespace Langulus::Anyness
       friend struct ::Langulus::Flow::ArithmeticVerb;
 
    public:
-      union {
-         #if LANGULUS_DEBUG()
-            char* mRawChar;
-         #endif
-         // Raw pointer to first element inside the memory block        
-         Byte* mRaw {};
-         Byte** mRawSparse;
-      };
-   
-      // The data state                                                 
-      DataState mState {DataState::Default};
-      // Number of initialized elements inside memory block             
-      Count mCount {};
-      // Number of allocated elements in the memory block               
-      Count mReserved {};
-      // Meta data about the elements inside the memory block           
-      mutable DMeta mType {};
-      // Pointer to the allocated block. If entry is zero, then data is 
-      // static, or we simply have no authority over it (just a view)   
-      const Allocation* mEntry {};
-
-   public:
       ///                                                                     
       ///   Construction & Assignment                                         
       ///                                                                     
-      constexpr Block() noexcept = default;
-      constexpr Block(const Block&) noexcept = default;
-      constexpr Block(Block&&) noexcept = default;
-      constexpr Block(CT::Semantic auto&&) noexcept;
-         
-      constexpr Block(DMeta) noexcept;
-      constexpr Block(const DataState&, DMeta) noexcept;
-
-      Block(const DataState&, CMeta) IF_UNSAFE(noexcept);
-      Block(const DataState&, DMeta, Count, const void*) IF_UNSAFE(noexcept);
-      Block(const DataState&, DMeta, Count, void*) IF_UNSAFE(noexcept);
-      Block(const DataState&, DMeta, Count, const void*, const Allocation*) IF_UNSAFE(noexcept);
-      Block(const DataState&, DMeta, Count, void*, const Allocation*) IF_UNSAFE(noexcept);
+      using A::Block::Block;
    
       template<bool CONSTRAIN = false, CT::Data T>
       NOD() static Block From(T) requires CT::Sparse<T>;
@@ -223,9 +288,7 @@ namespace Langulus::Anyness
       template<CT::Data T, bool CONSTRAIN = false>
       NOD() static Block From();
 
-      constexpr Block& operator = (const Block&) noexcept = default;
-      constexpr Block& operator = (Block&&) noexcept = default;
-      constexpr Block& operator = (CT::Semantic auto&&) noexcept;
+      using A::Block::operator =;
          
    protected:
       template<class TO>
@@ -359,10 +422,10 @@ namespace Langulus::Anyness
       template<CT::Data T, bool FATAL_FAILURE = true, CT::Index IDX = Offset>
       NOD() T AsCast(const IDX& = {}) const;
    
-      NOD() IF_UNSAFE(constexpr)
-      Block Crop(const Offset&, const Count&) IF_UNSAFE(noexcept);
-      NOD() IF_UNSAFE(constexpr)
-      Block Crop(const Offset&, const Count&) const IF_UNSAFE(noexcept);
+      template<CT::Block THIS> NOD() IF_UNSAFE(constexpr)
+      THIS Crop(const Offset&, const Count&) IF_UNSAFE(noexcept);
+      template<CT::Block THIS> NOD() IF_UNSAFE(constexpr)
+      THIS Crop(const Offset&, const Count&) const IF_UNSAFE(noexcept);
 
       NOD() Block GetElementDense(Offset);
       NOD() Block GetElementDense(Offset) const;
@@ -519,9 +582,9 @@ namespace Langulus::Anyness
       void SetType();
 
    protected:
-      template<CT::Data, bool ALLOW_DEEPEN, CT::Data = Any>
+      template<CT::Block THIS, CT::Data, class FORCE = Any>
       bool Mutate();
-      template<bool ALLOW_DEEPEN, CT::Data = Any>
+      template<CT::Block THIS, class FORCE = Any>
       bool Mutate(DMeta);
 
       constexpr void ResetType() noexcept;
@@ -557,9 +620,9 @@ namespace Langulus::Anyness
       NOD() bool CallComparer(const Block&, const RTTI::Base&) const;
 
       template<bool REVERSE = false>
-      Count GatherInner(const Block&, CT::Data auto&);
+      Count GatherInner(const CT::Block auto&, CT::Block auto&);
       template<bool REVERSE = false>
-      Count GatherPolarInner(DMeta, const Block&, CT::Data auto&, DataState);
+      Count GatherPolarInner(DMeta, const CT::Block auto&, CT::Block auto&, DataState);
 
    public:
       ///                                                                     
@@ -577,7 +640,8 @@ namespace Langulus::Anyness
       template<bool CREATE = false>
       void AllocateInner(const Count&);
       void AllocateFresh(const AllocationRequest&);
-      void AllocateRegion(const Block&, Offset, Block&);
+      template<CT::Block THIS>
+      Block AllocateRegion(const Block&, Offset);
       void Reference(const Count&) const noexcept;
       void Keep() const noexcept;
       template<bool DESTROY>
@@ -595,122 +659,58 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
-      template<bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T>
-      Count InsertAt(const T*, const T*, CT::Index auto);
-      template<bool MUTABLE = true, CT::Data = Any>
-      Count InsertAt(const CT::NotSemantic auto&, CT::Index auto);
-      template<bool MUTABLE = true, CT::Data = Any>
-      Count InsertAt(CT::NotSemantic auto&, CT::Index auto);
-      template<bool MUTABLE = true, CT::Data = Any>
-      Count InsertAt(CT::NotSemantic auto&&, CT::Index auto);
-      template<bool MUTABLE = true, CT::Data = Any>
-      Count InsertAt(CT::Semantic auto&&, CT::Index auto);
+      template<CT::Block THIS = Any, class FORCE = Any, class T1, class...TAIL>
+      Count Insert(CT::Index auto, T1&&, TAIL&&...);
 
-      template<Index = IndexBack, bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T>
-      Count Insert(const T*, const T*);
-      template<Index = IndexBack, bool MUTABLE = true, CT::Data = Any>
-      Count Insert(const CT::NotSemantic auto&);
-      template<Index = IndexBack, bool MUTABLE = true, CT::Data = Any>
-      Count Insert(CT::NotSemantic auto&);
-      template<Index = IndexBack, bool MUTABLE = true, CT::Data = Any>
-      Count Insert(CT::NotSemantic auto&&);
-      template<Index = IndexBack, bool MUTABLE = true, CT::Data = Any>
-      Count Insert(CT::Semantic auto&&);
+      template<CT::Block THIS = Any, class FORCE = Any, class T>
+      Count InsertBlock(CT::Index auto, T&&)
+      requires CT::Block<Desem<T>>;
 
-      template<bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T>
-      Count MergeAt(const T*, const T*, CT::Index auto);
-      template<bool MUTABLE = true, CT::Data = Any>
-      Count MergeAt(const CT::NotSemantic auto&, CT::Index auto);
-      template<bool MUTABLE = true, CT::Data = Any>
-      Count MergeAt(CT::NotSemantic auto&, CT::Index auto);
-      template<bool MUTABLE = true, CT::Data = Any>
-      Count MergeAt(CT::NotSemantic auto&&, CT::Index auto);
-      template<bool MUTABLE = true, CT::Data = Any>
-      Count MergeAt(CT::Semantic auto&&, CT::Index auto);
+      template<CT::Block THIS = Any, class FORCE = Any, class T1, class...TAIL>
+      Count Merge(CT::Index auto, T1&&, TAIL&&...);
 
-      template<Index = IndexBack, bool MUTABLE = true, CT::Data = Any, CT::NotSemantic T>
-      Count Merge(const T*, const T*);
-      template<Index = IndexBack, bool MUTABLE = true, CT::Data = Any>
-      Count Merge(const CT::NotSemantic auto&);
-      template<Index = IndexBack, bool MUTABLE = true, CT::Data = Any>
-      Count Merge(CT::NotSemantic auto&);
-      template<Index = IndexBack, bool MUTABLE = true, CT::Data = Any>
-      Count Merge(CT::NotSemantic auto&&);
-      template<Index = IndexBack, bool MUTABLE = true, CT::Data = Any>
-      Count Merge(CT::Semantic auto&&);
-
-      Count InsertBlockAt(const CT::NotSemantic auto&,  CT::Index auto);
-      Count InsertBlockAt(      CT::NotSemantic auto&,  CT::Index auto);
-      Count InsertBlockAt(      CT::NotSemantic auto&&, CT::Index auto);
-      Count InsertBlockAt(      CT::Semantic    auto&&, CT::Index auto);
-
-      template<Index = IndexBack>
-      Count InsertBlock(const CT::NotSemantic auto&);
-      template<Index = IndexBack>
-      Count InsertBlock(CT::NotSemantic auto&);
-      template<Index = IndexBack>
-      Count InsertBlock(CT::NotSemantic auto&&);
-      template<Index = IndexBack>
-      Count InsertBlock(CT::Semantic auto&&);
-
-      Count MergeBlockAt(const CT::NotSemantic auto&,  CT::Index auto);
-      Count MergeBlockAt(      CT::NotSemantic auto&,  CT::Index auto);
-      Count MergeBlockAt(      CT::NotSemantic auto&&, CT::Index auto);
-      Count MergeBlockAt(      CT::Semantic    auto&&, CT::Index auto);
+      template<CT::Block THIS = Any, class FORCE = Any, class T>
+      Count MergeBlock(CT::Index auto, T&&)
+      requires CT::Block<Desem<T>>;
    
-      template<Index = IndexBack>
-      Count MergeBlock(const CT::NotSemantic auto&);
-      template<Index = IndexBack>
-      Count MergeBlock(CT::NotSemantic auto&);
-      template<Index = IndexBack>
-      Count MergeBlock(CT::NotSemantic auto&&);
-      template<Index = IndexBack>
-      Count MergeBlock(CT::Semantic auto&&);
-   
-      template<CT::Index IDX = Offset, class... A>
-      Count EmplaceAt(const IDX&, A&&...);
-      template<Index = IndexBack, class... A>
-      Count Emplace(A&&...);
-      template<class... A>
+      template<CT::Block THIS = Any, class...A>
+      Count Emplace(CT::Index auto, A&&...);
+
+      template<CT::Block THIS = Any, class...A>
       Count New(Count, A&&...);
 
-      template<CT::Data T, bool MOVE_STATE = true>
+      template<bool CONCAT = true, class FORCE = Any, CT::Block THIS = Any>
+      Count SmartPush(CT::Index auto, auto&&, DataState = {});
+
+      template<CT::Deep T, bool TRANSFER_OR = true, CT::Block THIS = Any>
       T& Deepen();
 
-      template<bool CONCAT = true, bool DEEPEN = true, CT::Data = Any>
-      Count SmartPushAt(const CT::NotSemantic auto&, CT::Index auto, DataState = {});
-      template<bool CONCAT = true, bool DEEPEN = true, CT::Data = Any>
-      Count SmartPushAt(CT::NotSemantic auto&, CT::Index auto, DataState = {});
-      template<bool CONCAT = true, bool DEEPEN = true, CT::Data = Any>
-      Count SmartPushAt(CT::NotSemantic auto&&, CT::Index auto, DataState = {});
-      template<bool CONCAT = true, bool DEEPEN = true, CT::Data = Any>
-      Count SmartPushAt(CT::Semantic auto&&, CT::Index auto, DataState = {});
-
-      template<Index = IndexBack, bool CONCAT = true, bool DEEPEN = true, CT::Data = Any>
-      Count SmartPush(const CT::NotSemantic auto&, DataState = {});
-      template<Index = IndexBack, bool CONCAT = true, bool DEEPEN = true, CT::Data = Any>
-      Count SmartPush(CT::NotSemantic auto&, DataState = {});
-      template<Index = IndexBack, bool CONCAT = true, bool DEEPEN = true, CT::Data = Any>
-      Count SmartPush(CT::NotSemantic auto&&, DataState = {});
-      template<Index = IndexBack, bool CONCAT = true, bool DEEPEN = true, CT::Data = Any>
-      Count SmartPush(CT::Semantic auto&&, DataState = {});
-
    protected:
-      template<template<class> class S, CT::NotSemantic T> requires CT::Semantic<S<T>>
-      void InsertInner(const T*, const T*, Offset);
-      void InsertInner(CT::Semantic auto&&, Offset);
-      template<class... A>
-      void EmplaceInner(const Block&, Count, A&&... arguments);
+      template<CT::Block THIS, class FORCE = Any, template<class> class S, CT::Sparse T1, CT::Sparse T2>
+      void InsertContiguousInner(CT::Index auto, S<T1>&&, T2)
+      requires (CT::Semantic<S<T1>> and CT::Similar<T1, T2>);
 
-      template<bool ALLOW_DEEPEN, CT::Data = Any>
-      Count SmartConcatAt(const bool&, CT::Semantic auto&&, const DataState&, const CT::Index auto&);
-      template<bool ALLOW_DEEPEN, Index INDEX = IndexBack, CT::Data = Any>
-      Count SmartConcat(const bool&, CT::Semantic auto&&, const DataState&);
+      template<CT::Block THIS, class FORCE = Any>
+      void InsertInner(CT::Index auto, auto&&);
 
-      template<bool ALLOW_DEEPEN, CT::Data = Any>
-      Count SmartPushAtInner(CT::Semantic auto&&, const DataState&, const CT::Index auto&);
-      template<bool ALLOW_DEEPEN, Index INDEX = IndexBack, CT::Data = Any>
-      Count SmartPushInner(CT::Semantic auto&&, const DataState&);
+      template<CT::Block THIS, class... A>
+      void EmplaceInner(const Block&, Count, A&&...);
+
+      template<CT::Block THIS, class FORCE = Any>
+      Count UnfoldInsert(CT::Index auto, auto&&);
+      template<CT::Block THIS, class FORCE = Any>
+      Count UnfoldMerge(CT::Index auto, auto&&);
+
+      template<CT::Block THIS, class FORCE = Any, template<class> class S, CT::Deep T>
+      Count SmartConcat(const CT::Index auto, bool, S<T>&&, DataState)
+      requires CT::Semantic<S<T>>;
+
+      template<CT::Block THIS, class FORCE = Any, template<class> class S, class T>
+      Count SmartPushInner(const CT::Index auto, S<T>&&, DataState)
+      requires CT::Semantic<S<T>>;
+
+      template<CT::Block THIS, template<class> class S, CT::Block T>
+      THIS ConcatBlock(S<T>&&) const requires CT::Semantic<S<T>>;
 
       void CallUnknownDefaultConstructors(Count) const;
       template<CT::Data T>
@@ -877,56 +877,3 @@ namespace Langulus::Anyness
    }
 
 } // namespace Langulus::Anyness
-
-
-namespace Langulus::CT
-{
-
-   /// Any origin type that inherits Block                                    
-   template<class... T>
-   concept BlockBased = (DerivedFrom<T, Anyness::Block> and ...);
-
-   /// A reflected block type is any type that inherits Block, and is         
-   /// binary compatible to a Block - this is a mandatory requirement for     
-   /// any CT::Deep type                                                      
-   /// Keep in mind, that sparse types are never considered Block!            
-   template<class... T>
-   concept Block = BlockBased<T...>
-       and ((sizeof(T) == sizeof(Anyness::Block)) and ...);
-
-   /// A deep type is any type with a true static member T::CTTI_Deep,        
-   /// is binary compatible with Block, as well as having the same interface  
-   /// If no such member/base exists, the type is assumed NOT deep by         
-   /// default. Deep types are considered iteratable, and verbs are           
-   /// executed in each of their elements/members, instead on the type        
-   /// itself. Use LANGULUS(DEEP) macro as member to tag deep types           
-   /// Keep in mind, that sparse types are never considered Deep!             
-   template<class... T>
-   concept Deep = ((Block<T> and Decay<T>::CTTI_Deep) and ...);
-
-   /// Type that is not deep, see CT::Deep                                    
-   template<class... T>
-   concept Flat = ((not Deep<T>) and ...);
-
-   /// Check if a type can be handled generically by templates, and           
-   /// doesn't	require any special handling                                   
-   template<class... T>
-   concept CustomData = ((Data<T> and Flat<T> and NotSemantic<T>) and ...);
-
-   /// Check if origin of T(s) are Neat(s)                                    
-   template<class... T>
-   concept Neat = ((Exact<Decay<T>, Anyness::Neat>) and ...);
-
-   /// Check if origin of T(s) aren't Neat(s)                                 
-   template<class... T>
-   concept Messy = not Neat<T...>;
-
-   /// Check if origin of T(s) are Construct(s)                               
-   template<class... T>
-   concept Construct = ((Exact<Decay<T>, Anyness::Construct>) and ...);
-
-   /// Check if origin of T(s) aren't Construct(s)                            
-   template<class... T>
-   concept NotConstruct = not Construct<T...>;
-
-} // namespace Langulus::CT

@@ -31,24 +31,22 @@ namespace Langulus::Anyness
 
       Bytes(const Bytes&);
       Bytes(Bytes&&) noexcept;
-
-      Bytes(const CT::NotSemantic auto&);
-      Bytes(CT::NotSemantic auto&);
-      Bytes(CT::NotSemantic auto&&);
-      Bytes(CT::Semantic auto&&);
+      template<template<class> class S>
+      Bytes(S<Bytes>&&) requires CT::Semantic<S<Bytes>>;
+      template<class T>
+      Bytes(T&&) requires (CT::Inner::UnfoldMakableFrom<Byte, T>
+                       or (CT::POD<T> and CT::Dense<T>));
+      Bytes(const CT::Meta auto&);
 
       Bytes(const void*, const Size&);
       Bytes(void*, const Size&);
-      template<CT::Semantic S>
-      Bytes(S&&, const Size&) requires (CT::Sparse<TypeOf<S>>);
+      template<template<class> class S, CT::Sparse T>
+      Bytes(S<T>&&, const Size&) requires CT::Semantic<S<T>>;
 
       Bytes& operator = (const Bytes&);
       Bytes& operator = (Bytes&&);
-
-      Bytes& operator = (const CT::NotSemantic auto&);
-      Bytes& operator = (CT::NotSemantic auto&);
-      Bytes& operator = (CT::NotSemantic auto&&);
-      Bytes& operator = (CT::Semantic auto&&);
+      template<template<class> class S>
+      Bytes& operator = (S<Bytes>&&) requires CT::Semantic<S<Bytes>>;
       
    public:
       NOD() Bytes Clone() const;
@@ -65,12 +63,18 @@ namespace Langulus::Anyness
       ///                                                                     
       NOD() Bytes operator + (const Bytes&) const;
       NOD() Bytes operator + (Bytes&&) const;
-      NOD() Bytes operator + (CT::Semantic auto&&) const;
+      template<template<class> class S>
+      NOD() Bytes operator + (S<Bytes>&&) const requires CT::Semantic<S<Bytes>>;
 
       Bytes& operator += (const Bytes&);
       Bytes& operator += (Bytes&&);
-      Bytes& operator += (CT::Semantic auto&&);
+      template<template<class> class S>
+      Bytes& operator += (S<Bytes>&&) requires CT::Semantic<S<Bytes>>;
 
+   protected:
+      Count UnfoldInsert(CT::Index auto, auto&&);
+
+   public:
       ///                                                                     
       ///   Deserialization                                                   
       ///                                                                     

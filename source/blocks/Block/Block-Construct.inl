@@ -10,18 +10,8 @@
 #include "../Block.hpp"
 
 
-namespace Langulus::Anyness
+namespace Langulus::A
 {
-   
-   /// Semantic copy (block has no ownership, so always just shallow copy)    
-   ///   @param other - the block to shallow-copy                             
-   LANGULUS(INLINED)
-   constexpr Block::Block(CT::Semantic auto&& other) noexcept
-      : Block {*other} {
-      using S = Decay<decltype(other)>;
-      static_assert(CT::Exact<TypeOf<S>, Block>,
-         "S type must be exactly Block (build-time optimization)");
-   }
 
    /// Manual construction via type                                           
    ///   @param meta - the type of the memory block                           
@@ -109,6 +99,80 @@ namespace Langulus::Anyness
       IF_UNSAFE(noexcept)
       : Block {state + DataState::Constant, meta, count, const_cast<void*>(raw), entry}
    {}
+
+} // namespace Langulus::A
+
+
+namespace Langulus::Anyness
+{
+
+   /// Manual construction via type                                           
+   ///   @param meta - the type of the memory block                           
+   /*LANGULUS(INLINED)
+   constexpr Block::Block(DMeta meta) noexcept
+      : A::Block {meta} {}
+
+   /// Manual construction via state and type                                 
+   ///   @param state - the initial state of the container                    
+   ///   @param meta - the type of the memory block                           
+   LANGULUS(INLINED)
+   constexpr Block::Block(const DataState& state, DMeta meta) noexcept
+      : A::Block {state, meta} {}
+   
+   /// Manual construction via state and a reflected constant                 
+   ///   @param state - the initial state of the container                    
+   ///   @param meta - the constant definition                                
+   LANGULUS(INLINED)
+   Block::Block(const DataState& state, CMeta meta) IF_UNSAFE(noexcept)
+      : A::Block {state, meta} {}
+   
+   /// Manual construction from mutable data                                  
+   /// This constructor has runtime overhead if managed memory is enabled     
+   ///   @attention assumes data is not sparse                                
+   ///   @param state - the initial state of the container                    
+   ///   @param meta - the type of the memory block                           
+   ///   @param count - initial element count and reserve                     
+   ///   @param raw - pointer to the mutable memory                           
+   LANGULUS(INLINED)
+   Block::Block(const DataState& state, DMeta meta, Count count, void* raw)
+      IF_UNSAFE(noexcept)
+      : A::Block {state, meta, count, raw} {}
+   
+   /// Manual construction from constant data                                 
+   /// This constructor has runtime overhead if managed memory is enabled     
+   ///   @attention assumes data is not sparse                                
+   ///   @param state - the initial state of the container                    
+   ///   @param meta - the type of the memory block                           
+   ///   @param count - initial element count and reserve                     
+   ///   @param raw - pointer to the constant memory                          
+   LANGULUS(INLINED)
+   Block::Block(const DataState& state, DMeta meta, Count count, const void* raw)
+      IF_UNSAFE(noexcept)
+      : A::Block {state, meta, count, raw} {}
+
+   /// Manual construction from mutable data and known entry                  
+   ///   @attention assumes data is not sparse                                
+   ///   @param state - the initial state of the container                    
+   ///   @param meta - the type of the memory block                           
+   ///   @param count - initial element count and reserve                     
+   ///   @param raw - pointer to the mutable memory                           
+   ///   @param entry - the memory entry                                      
+   LANGULUS(INLINED)
+   Block::Block(const DataState& state, DMeta meta, Count count, void* raw, const Allocation* entry)
+      IF_UNSAFE(noexcept)
+      : A::Block {state, meta, count, raw, entry} {}
+   
+   /// Manual construction from constant data and known entry                 
+   ///   @attention assumes data is not sparse                                
+   ///   @param state - the initial state of the container                    
+   ///   @param meta - the type of the memory block                           
+   ///   @param count - initial element count and reserve                     
+   ///   @param raw - pointer to the constant memory                          
+   ///   @param entry - the memory entry                                      
+   LANGULUS(INLINED)
+   Block::Block(const DataState& state, DMeta meta, Count count, const void* raw, const Allocation* entry)
+      IF_UNSAFE(noexcept)
+      : A::Block {state, meta, count, raw, entry} {}*/
    
    /// Create a dense memory block, by interfacing a single pointer           
    ///   @tparam CONSTRAIN - makes container type-constrained                 
@@ -177,26 +241,12 @@ namespace Langulus::Anyness
    ///   @tparam T - the type of the container                                
    ///   @tparam CONSTRAIN - makes container type-constrained                 
    ///   @return the block                                                    
-   template<CT::Data T, bool CONSTRAIN>
-   LANGULUS(INLINED)
+   template<CT::Data T, bool CONSTRAIN> LANGULUS(INLINED)
    Block Block::From() {
       if constexpr (CONSTRAIN)
          return {DataState::Typed, MetaDataOf<T>()};
       else
          return {MetaDataOf<T>()};
-   }
-
-   /// Semantic assignment                                                    
-   /// Blocks have no ownership, so this always results in a block transfer   
-   ///   @attention will never affect RHS                                     
-   ///   @param rhs - the block to shallow copy                               
-   ///   @return a reference to this block                                    
-   LANGULUS(INLINED)
-   constexpr Block& Block::operator = (CT::Semantic auto&& rhs) noexcept {
-      using S = Decay<decltype(rhs)>;
-      static_assert(CT::Exact<TypeOf<S>, Block>,
-         "S type must be exactly Block (build-time optimization)");
-      return operator = (*rhs);
    }
    
    /// Semantically transfer the members of one block onto another with the   
@@ -285,44 +335,16 @@ namespace Langulus::Anyness
       }
    }
    
-   /// Helper function for constructing an any from semantic                  
+   /// Helper function for constructing from a single item                    
+   ///   @attention if 'other' is CT::Deep, it will be absorbed               
    ///   @param other - the element/container and semantic to initialize with 
    LANGULUS(INLINED)
    void Block::CreateFrom(CT::Semantic auto&& other) {
-      using S = Decay<decltype(other)>;
-      using T = TypeOf<S>;
-
-      if constexpr (CT::Deep<T>) {
-         // Construct by using another container                        
+      using T = TypeOf<decltype(other)>;
+      if constexpr (CT::Deep<T>)
          BlockTransfer<Any>(other.Forward());
-      }
-      else if constexpr (CT::CustomData<T>) {
-         if constexpr (CT::Array<T>) {
-            using E = Deext<T>;
-            constexpr auto extent = ExtentOf<T>;
-
-            if constexpr (CT::StringLiteral<T>) {
-               // Construct by a character array, by implicitly         
-               // wrapping it inside a Text container                   
-               SetType<Text>();
-               AllocateFresh(RequestSize(1));
-               InsertInner(Abandon(Text {other.Forward()}), 0);
-            }
-            else {
-               // Construct by an array of elements                     
-               SetType<E>();
-               AllocateFresh(RequestSize(extent));
-               InsertInner<S>(*other, *other + extent, 0);
-            }
-         }
-         else {
-            // Construct using an arbitrary single element              
-            SetType<T>();
-            AllocateFresh(RequestSize(1));
-            InsertInner(other.Forward(), 0);
-         }
-      }
-      else LANGULUS_ERROR("Bad semantic constructor argument");
+      else
+         UnfoldInsertion<false>(0, other.Forward());
    }
 
    /// Swap contents of this block, with the contents of another, using       

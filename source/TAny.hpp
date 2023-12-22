@@ -24,7 +24,8 @@ namespace Langulus::Anyness
    /// (by checking result of doing something like pack.IsExact<my type>())   
    /// you can then directly reinterpret_cast that Any to an equivalent       
    /// TAny<of the type you checked for>, essentially converting your         
-   /// type-erased container to a statically-optimized equivalent.            
+   /// type-erased container to a statically-optimized equivalent. Anyness    
+   /// provides a strong guarantee that this operation is completely safe.    
    ///                                                                        
    template<CT::Data T>
    class TAny : public Any {
@@ -55,18 +56,16 @@ namespace Langulus::Anyness
       ///   Construction                                                      
       ///                                                                     
       constexpr TAny();
-      
       TAny(const TAny&);
       TAny(TAny&&) noexcept;
 
-      TAny(const CT::NotSemantic auto&);
-      TAny(CT::NotSemantic auto&);
-      TAny(CT::NotSemantic auto&&);
-      TAny(CT::ShallowSemantic auto&&);
-      TAny(CT::DeepSemantic auto&&) requires CT::CloneMakable<T>;
+      template<template<class> class S>
+      TAny(S<TAny>&&)
+      requires CT::Inner::SemanticMakable<S, T>;
 
-      template<CT::Data T1, CT::Data T2, CT::Data... TAIL>
-      TAny(T1&&, T2&&, TAIL&&...);
+      template<class T1, class...TAIL>
+      TAny(T1&&, TAIL&&...)
+      requires CT::Inner::UnfoldMakableFrom<T, T1, TAIL...>;
 
       ~TAny();
 
@@ -76,11 +75,9 @@ namespace Langulus::Anyness
       TAny& operator = (const TAny&);
       TAny& operator = (TAny&&);
 
-      TAny& operator = (const CT::NotSemantic auto&);
-      TAny& operator = (CT::NotSemantic auto&);
-      TAny& operator = (CT::NotSemantic auto&&);
-      TAny& operator = (CT::ShallowSemantic auto&&);
-      TAny& operator = (CT::DeepSemantic auto&&) requires CT::CloneAssignable<T>;
+      template<class T1>
+      TAny& operator = (T1&&)
+      requires CT::Inner::UnfoldMakableFrom<T, T1>;
 
    private:
       void ConstructFrom(CT::Semantic auto&&);
@@ -165,70 +162,42 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
-      template<CT::Index IDX = Offset>
-      Count InsertAt(const T*, const T*, const IDX&);
-      template<CT::Index IDX = Offset>
-      Count InsertAt(const T&, const IDX&);
-      template<CT::Index IDX = Offset>
-      Count InsertAt(T&&, const IDX&);
-      template<CT::Semantic S, CT::Index IDX = Offset>
-      Count InsertAt(S&&, const IDX&) requires (CT::Exact<TypeOf<S>, T>);
+      template<class T1, class...TAIL>
+      Count Insert(CT::Index auto, T1&&, TAIL&&...)
+      requires CT::Inner::UnfoldMakableFrom<T, T1, TAIL...>;
 
-      template<Index = IndexBack, bool MUTABLE = false>
-      Count Insert(const T*, const T*);
-      template<Index = IndexBack>
-      Count Insert(const T&);
-      template<Index = IndexBack>
-      Count Insert(T&&);
-      template<Index = IndexBack, CT::Semantic S>
-      Count Insert(S&&) requires (CT::Exact<TypeOf<S>, T>);
+      template<class...A>
+      Count Emplace(CT::Index auto, A&&...)
+      requires CT::Inner::MakableFrom<T, A...>;
 
-      template<CT::Index IDX = Offset, class... A>
-      Count EmplaceAt(const IDX&, A&&...);
-      template<Index = IndexBack, class... A>
-      Count Emplace(A&&...);
       Count New(Count = 1);
-      template<class... A>
-      Count New(Count, A&&...);
 
-      TAny& operator << (const T&);
-      TAny& operator << (T&&);
-      template<CT::Semantic S>
-      TAny& operator << (S&&) requires (CT::Exact<TypeOf<S>, T>);
+      template<class...A>
+      Count New(Count, A&&...)
+      requires CT::Inner::MakableFrom<T, A...>;
 
-      TAny& operator >> (const T&);
-      TAny& operator >> (T&&);
-      template<CT::Semantic S>
-      TAny& operator >> (S&&) requires (CT::Exact<TypeOf<S>, T>);
+      template<class T1>
+      TAny& operator << (T1&&)
+      requires CT::Inner::UnfoldMakableFrom<T, T1>;
 
-      Count MergeAt(const T*, const T*, const CT::Index auto&);
-      Count MergeAt(const T&, const CT::Index auto&);
-      Count MergeAt(T&&, const CT::Index auto&);
-      template<CT::Semantic S>
-      Count MergeAt(S&&, const CT::Index auto&) requires (CT::Exact<TypeOf<S>, T>);
+      template<class T1>
+      TAny& operator >> (T1&&)
+      requires CT::Inner::UnfoldMakableFrom<T, T1>;
 
-      template<Index = IndexBack>
-      Count Merge(const T*, const T*);
-      template<Index = IndexBack>
-      Count Merge(const T&);
-      template<Index = IndexBack>
-      Count Merge(T&&);
-      template<Index = IndexBack, CT::Semantic S>
-      Count Merge(S&&) requires (CT::Exact<TypeOf<S>, T>);
+      template<class T1, class...TAIL>
+      Count Merge(CT::Index auto, T1&&, TAIL&&...)
+      requires CT::Inner::UnfoldMakableFrom<T, T1, TAIL...>;
 
-      TAny& operator <<= (const T&);
-      TAny& operator <<= (T&&);
-      template<CT::Semantic S>
-      TAny& operator <<= (S&&) requires (CT::Exact<TypeOf<S>, T>);
+      template<class T1>
+      TAny& operator <<= (T1&&)
+      requires CT::Inner::UnfoldMakableFrom<T, T1>;
 
-      TAny& operator >>= (const T&);
-      TAny& operator >>= (T&&);
-      template<CT::Semantic S>
-      TAny& operator >>= (S&&) requires (CT::Exact<TypeOf<S>, T>);
+      template<class T1>
+      TAny& operator >>= (T1&&)
+      requires CT::Inner::UnfoldMakableFrom<T, T1>;
 
    private:
       // Disable these inherited functions                              
-      using Any::SmartPushAt;
       using Any::SmartPush;
 
    public:
@@ -241,10 +210,8 @@ namespace Langulus::Anyness
       Iterator RemoveIt(const Iterator&, Count = 1);
 
       void Trim(const Count&);
-      template<CT::Block WRAPPER = TAny>
-      NOD() WRAPPER Crop(const Offset&, const Count&) const;
-      template<CT::Block WRAPPER = TAny>
-      NOD() WRAPPER Crop(const Offset&, const Count&);
+      NOD() TAny Crop(const Offset&, const Count&) const;
+      NOD() TAny Crop(const Offset&, const Count&);
 
       void Clear();
       void Reset();
@@ -286,17 +253,13 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Concatenation                                                     
       ///                                                                     
-      NOD() TAny operator + (const CT::NotSemantic auto&) const;
-      NOD() TAny operator + (CT::NotSemantic auto&) const;
-      NOD() TAny operator + (CT::NotSemantic auto&&) const;
-      template<template<class> class S, CT::NotSemantic ALT> requires CT::Semantic<S<ALT>>
-      NOD() TAny operator + (S<ALT>&&) const;
+      template<class T1>
+      NOD() TAny operator + (T1&&) const
+      requires CT::Inner::UnfoldMakableFrom<T, T1>;
 
-      TAny& operator += (const CT::NotSemantic auto&);
-      TAny& operator += (CT::NotSemantic auto&);
-      TAny& operator += (CT::NotSemantic auto&&);
-      template<template<class> class S, CT::NotSemantic ALT> requires CT::Semantic<S<ALT>>
-      TAny& operator += (S<ALT>&&);
+      template<class T1>
+      TAny& operator += (T1&&)
+      requires CT::Inner::UnfoldMakableFrom<T, T1>;
 
       ///                                                                     
       ///   Iteration                                                         
