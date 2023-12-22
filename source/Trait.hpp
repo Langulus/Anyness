@@ -36,16 +36,15 @@ namespace Langulus
       /// A TraitBased type is any type that inherits A::Trait, and is binary 
       /// compatible to it                                                    
       template<class...T>
-      concept TraitBased = ((DerivedFrom<T, A::Trait>
-            and sizeof(T) == sizeof(A::Trait)
-         ) and ...);
+      concept TraitBased = (DerivedFrom<T, A::Trait> and ...);
 
       /// A reflected trait type is any type that inherits Trait, is not Trait
       /// itself, and is binary compatible to a Trait                         
       template<class...T>
-      concept Trait = TraitBased<T...> and (
-            requires { {T::CTTI_Trait} -> Exact<Token>; 
-         } and ...);
+      concept Trait = TraitBased<T...> and ((
+            sizeof(T) == sizeof(A::Trait)
+            and requires { {T::CTTI_Trait} -> Exact<Token>; }
+         ) and ...);
 
    } // namespace Langulus::CT
 

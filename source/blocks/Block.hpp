@@ -158,11 +158,11 @@ namespace Langulus
       template<class... T>
       concept IteratableInReverse = (Inner::IteratableInReverse<T> and ...);
 
-      /// Any origin type that inherits Block                                 
+      /// Any origin type that inherits A::Block                              
       template<class... T>
       concept BlockBased = (DerivedFrom<T, A::Block> and ...);
 
-      /// A reflected block type is any type that inherits Block, and is      
+      /// A reflected block type is any type that is BlockBased, and is       
       /// binary compatible to a Block - this is a mandatory requirement for  
       /// any CT::Deep type                                                   
       /// Keep in mind, that sparse types are never considered Block!         
@@ -267,7 +267,7 @@ namespace Langulus::Anyness
       friend class Neat;
       friend class Construct;
 
-      friend class ::Langulus::Flow::Verb;
+      friend struct ::Langulus::Flow::Verb;
       template<class>
       friend struct ::Langulus::Flow::StaticVerb;
       template<class, bool>

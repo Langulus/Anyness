@@ -41,111 +41,53 @@ namespace Langulus::Anyness
    TEMPLATE() LANGULUS(INLINED)
    TAny<T>::TAny(TAny&& other) noexcept
       : TAny {Move(other)} {}
-
-   /// Semantic-construction                                                  
-   ///   @param other - the TAny and semantic to construct with               
-   TEMPLATE() template<template<class> class S> LANGULUS(INLINED)
-   TAny<T>::TAny(S<TAny>&& other)
-   requires (CT::Inner::SemanticMakable<S,T>) {
-      BlockTransfer<TAny>(other.Forward());
-   }
    
    /// Create from a list of elements, each of them can be semantic or not,   
    /// an array, as well as any other kinds of anies                          
    ///   @param t1 - first element                                            
    ///   @param tail - tail of elements (optional)                            
-   TEMPLATE() template<class T1, class... TAIL> LANGULUS(INLINED)
-   TAny<T>::TAny(T1&& t1, TAIL&&... tail)
-   requires (CT::Inner::UnfoldMakableFrom<T, T1, TAIL...>) {
-      Insert(IndexFront, Forward<T1>(t1), Forward<TAIL>(tail)...);
-   }
-   
-   /// Semantic construction from any container/element                       
-   ///   @param other - the container/element and semantic                    
-   /*TEMPLATE() LANGULUS(INLINED)
-   void TAny<T>::ConstructFrom(CT::Semantic auto&& other) {
-      using S = Decay<decltype(other)>;
-      using ST = TypeOf<S>;
-      mType = MetaDataOf<T>();
+   TEMPLATE() template<class T1, class... TAIL>
+   requires CT::DeepMakable<T, T1, TAIL...> LANGULUS(INLINED)
+   TAny<T>::TAny(T1&& t1, TAIL&&... tail) {
+      if constexpr (sizeof...(TAIL) == 0) {
+         using S = SemanticOf<T1>;
+         using ST = TypeOf<S>;
 
-      if constexpr (CT::Array<ST> and CT::Similar<T, Deext<ST>>) {
-         // Integration with bounded arrays                             
-         constexpr auto count = ExtentOf<ST>;
-         AllocateFresh(RequestSize(count));
-         InsertInner<Copied>(*other, *other + count, 0);
-      }
-      else if constexpr (CT::Deep<ST>) {
-         if constexpr (not CT::Typed<ST>) {
-            // RHS is type-erased deep, do runtime type checks          
-            if (mType->IsExact(other->GetType())) {
-               // If types are exactly the same, it is safe to directly 
-               // absorb the block, essentially converting a type-      
-               // erased Any, to this TAny representation               
-               BlockTransfer<TAny>(other.Forward());
-               return;
+         if constexpr (CT::Deep<ST>) {
+            if constexpr (CT::Similar<TAny<T>, ST>) {
+               // Type is exactly the same, just transfer block         
+               BlockTransfer<TAny>(S::Nest(t1));
             }
-            else if constexpr (CT::Deep<T> and not CT::Typed<T>) {
-               // All deep containers are binary-compatible with each   
-               // other (unless typed), so RHS can be contained in this 
-               // TAny, just reinterpret it as the type-erased T, and   
-               // push it                                               
-               AllocateFresh(RequestSize(1));
-               InsertInner(Abandon(T {other.Forward()}), 0);
-               return;
-            }
-            else {
-               // Other corner cases?                                   
-               TODO();
-            }
-         }
-         else {
-            // RHS is not type-erased deep, do compile-time checks      
-            using ContainedType = TypeOf<ST>;
-
-            if constexpr (CT::Similar<T, ContainedType>) {
-               // If types are exactly the same, it is safe to directly 
-               // transfer the block                                    
-               BlockTransfer<TAny<T>>(other.Forward());
-            }
-            else if constexpr (CT::DerivedFrom<T, ContainedType>) {
-               // The statically typed RHS contains items that are      
-               // base of this container's type. Each element should be 
-               // dynamically cast to this type                         
-               if constexpr (CT::Sparse<T, ContainedType>) {
-                  for (auto pointer : *other) {
+            else if constexpr (CT::Typed<ST>) {
+               // Not type-erased deep, do compile-time type checks     
+               using STT = TypeOf<ST>;
+               if constexpr (CT::DerivedFrom<T, STT> and CT::Sparse<T, STT>) {
+                  // The statically typed deep contains items that are  
+                  // base of this container's type. Each element should 
+                  // be dynamically cast to this type                   
+                  for (auto pointer : DesemCast(t1)) {
                      auto dcast = dynamic_cast<T>(&(*pointer));
                      if (dcast)
                         (*this) << dcast;
                   }
                }
-               else TODO();
+               else Insert(0, Forward<T1>(t1));
             }
             else {
-               // Other corner cases?                                   
-               TODO();
+               // Type-erased deep, do run-time type checks             
+               if (mType == DesemCast(t1).GetType()) {
+                  // If types are exactly the same, it is safe to       
+                  // absorb the block, essentially converting a type-   
+                  // erased Any back to its TAny equivalent             
+                  BlockTransfer<TAny>(S::Nest(t1));
+               }
+               else Insert(0, Forward<T1>(t1));
             }
          }
+         else Insert(0, Forward<T1>(t1));
       }
-      else if constexpr (CT::DerivedFrom<ST, TAny<T>>
-                    and sizeof(ST) == sizeof(TAny<T>)) {
-         // Some containers, like Bytes and Text aren't CT::Deep, so    
-         // we have this special case for them, only if they're binary- 
-         // compatible                                                  
-         BlockTransfer<TAny>(other.Forward());
-      }
-      else if constexpr (requires { T(other.Forward()); }) {
-         // Element is semantically-constructible from argument         
-         AllocateFresh(RequestSize(1));
-         if constexpr (CT::Sparse<T> or CT::Similar<T, ST>)
-            InsertInner(other.Forward(), 0);
-         else if constexpr (CT::AbandonMakable<T>)
-            InsertInner(Abandon(T (other.Forward())), 0);
-         else if constexpr (CT::MoveMakable<T>)
-            InsertInner(Move(T (other.Forward())), 0);
-         else LANGULUS_ERROR("Bad semantic construction");
-      }
-      else LANGULUS_ERROR("Bad semantic construction");
-   }*/
+      else Insert(0, Forward<T1>(t1), Forward<TAIL>(tail)...);
+   }
 
    /// Destructor                                                             
    TEMPLATE() LANGULUS(INLINED)
@@ -217,55 +159,42 @@ namespace Langulus::Anyness
    }
 
    /// Shallow-copy assignment                                                
-   ///   @param other - the container to shallow-copy                         
+   ///   @param rhs - the container to shallow-copy                           
    ///   @return a reference to this container                                
    TEMPLATE() LANGULUS(INLINED)
-   TAny<T>& TAny<T>::operator = (const TAny& other) {
-      return operator = (Copy(other));
+   TAny<T>& TAny<T>::operator = (const TAny& rhs) {
+      return operator = (Copy(rhs));
    }
 
    /// Move assignment                                                        
-   ///   @param other - the container to move                                 
+   ///   @param rhs - the container to move                                   
    ///   @return a reference to this container                                
    TEMPLATE() LANGULUS(INLINED)
-   TAny<T>& TAny<T>::operator = (TAny&& other) {
-      return operator = (Move(other));
+   TAny<T>& TAny<T>::operator = (TAny&& rhs) {
+      return operator = (Move(rhs));
    }
-   
-   /// Generic semantic assignment                                            
-   ///   @param other - the container to shallow-copy                         
-   ///   @return a reference to this container                                
-   TEMPLATE() LANGULUS(INLINED)
-   TAny<T>& TAny<T>::AssignFrom(CT::Semantic auto&& other) {
-      using S = Decay<decltype(other)>;
 
-      if constexpr (CT::Deep<TypeOf<S>>) {
-         if (static_cast<const Block*>(this)
-          == static_cast<const Block*>(&*other))
+   /// Generic assignment                                                     
+   ///   @param rhs - the element/array/container to assign                   
+   ///   @return a reference to this container                                
+   TEMPLATE() template<class T1>
+   requires CT::DeepAssignable<T, T1> LANGULUS(INLINED)
+   TAny<T>& TAny<T>::operator = (T1&& rhs) {
+      using S = SemanticOf<T1>;
+      using ST = TypeOf<S>;
+
+      if constexpr (CT::Deep<ST>) {
+         // Potentially absorb a container                              
+         if (this == &*S::Nest(rhs))
             return *this;
 
          Free();
-         new (this) TAny {other.Forward()};
+         new (this) TAny {S::Nest(rhs)};
       }
       else {
-         if (GetUses() != 1) {
-            // Reset and allocate fresh memory                          
-            Reset();
-            operator << (other.Forward());
-         }
-         else {
-            // Just destroy and reuse memory                            
-            CallKnownDestructors<T>();
-            mCount = 1;
-
-            if constexpr (CT::Sparse<T>) {
-               *mRawSparse = const_cast<Byte*>(
-                  reinterpret_cast<const Byte*>(*other)
-               );
-               *GetEntries() = nullptr;
-            }
-            else SemanticNew(mRaw, other.Forward());
-         }
+         // Unfold-insert                                               
+         Clear();
+         UnfoldInsert<TAny, void>(0, S::Nest(rhs));
       }
 
       return *this;
@@ -654,9 +583,9 @@ namespace Langulus::Anyness
    ///   @param t1 - the first element                                        
    ///   @param tail - the rest of the elements (optional)                    
    ///   @return number of inserted items                                     
-   TEMPLATE() template<class T1, class...TAIL> LANGULUS(INLINED)
-   Count TAny<T>::Insert(CT::Index auto index, T1&& t1, TAIL&&...tail)
-   requires CT::Inner::UnfoldMakableFrom<T, T1, TAIL...> {
+   TEMPLATE() template<class T1, class...TAIL>
+   requires CT::Inner::UnfoldMakableFrom<T, T1, TAIL...> LANGULUS(INLINED)
+   Count TAny<T>::Insert(CT::Index auto index, T1&& t1, TAIL&&...tail) {
       Count inserted = 0;
       inserted   += UnfoldInsert<TAny, void>(index, Forward<T1>(t1));
       ((inserted += UnfoldInsert<TAny, void>(index + inserted, Forward<TAIL>(tail))), ...);
@@ -669,8 +598,8 @@ namespace Langulus::Anyness
    ///   @param arguments... - the arguments for the element's constructor    
    ///   @return 1 if the item was emplaced, 0 if not                         
    TEMPLATE() template<class...A>
-   Count TAny<T>::Emplace(CT::Index auto at, A&&...arguments)
-   requires CT::Inner::MakableFrom<T, A...> {
+   requires CT::Inner::MakableFrom<T, A...> LANGULUS(INLINED)
+   Count TAny<T>::Emplace(CT::Index auto at, A&&...arguments) {
       return Block::Emplace<TAny>(at, Forward<A>(arguments)...);
    }
 
@@ -697,9 +626,9 @@ namespace Langulus::Anyness
    ///   @param count - number of elements to construct                       
    ///   @param ...arguments - constructor arguments                          
    ///   @return the number of new elements                                   
-   TEMPLATE() template<class... A> LANGULUS(INLINED)
-   Count TAny<T>::New(Count count, A&&... arguments)
-   requires CT::Inner::MakableFrom<T, A...> {
+   TEMPLATE() template<class... A>
+   requires CT::Inner::MakableFrom<T, A...> LANGULUS(INLINED)
+   Count TAny<T>::New(Count count, A&&... arguments) {
       // Allocate                                                       
       AllocateMore<false>(mCount + count);
 
@@ -715,9 +644,9 @@ namespace Langulus::Anyness
    /// Insert an element at the back of the container                         
    ///   @param rhs - the element to insert                                   
    ///   @return a reference to this container for chaining                   
-   TEMPLATE() template<class T1> LANGULUS(INLINED)
-   TAny<T>& TAny<T>::operator << (T1&& rhs)
-   requires CT::Inner::UnfoldMakableFrom<T, T1> {
+   TEMPLATE() template<class T1>
+   requires CT::Inner::UnfoldMakableFrom<T, T1> LANGULUS(INLINED)
+   TAny<T>& TAny<T>::operator << (T1&& rhs) {
       Insert(IndexBack, Forward<T1>(rhs));
       return *this;
    }
@@ -725,9 +654,9 @@ namespace Langulus::Anyness
    /// Insert an element at the front of the container                        
    ///   @param rhs - the element to insert                                   
    ///   @return a reference to this container for chaining                   
-   TEMPLATE() template<class T1> LANGULUS(INLINED)
-   TAny<T>& TAny<T>::operator >> (T1&& rhs)
-   requires CT::Inner::UnfoldMakableFrom<T, T1> {
+   TEMPLATE() template<class T1>
+   requires CT::Inner::UnfoldMakableFrom<T, T1> LANGULUS(INLINED)
+   TAny<T>& TAny<T>::operator >> (T1&& rhs) {
       Insert(IndexFront, Forward<T1>(rhs));
       return *this;
    }
@@ -738,9 +667,9 @@ namespace Langulus::Anyness
    ///   @param t1 - the first item to insert                                 
    ///   @param tail... - the rest of items to insert (optional)              
    ///   @return the number of inserted elements                              
-   TEMPLATE() template<class T1, class...TAIL> LANGULUS(INLINED)
-   Count TAny<T>::Merge(CT::Index auto index, T1&& t1, TAIL&&...tail)
-   requires CT::Inner::UnfoldMakableFrom<T, T1, TAIL...> {
+   TEMPLATE() template<class T1, class...TAIL>
+   requires CT::Inner::UnfoldMakableFrom<T, T1, TAIL...> LANGULUS(INLINED)
+   Count TAny<T>::Merge(CT::Index auto index, T1&& t1, TAIL&&...tail) {
       Count inserted = 0;
       inserted += UnfoldMerge(index, Forward<T1>(t1));
       ((inserted += UnfoldMerge(index + inserted, Forward<TAIL>(tail))), ...);
@@ -750,9 +679,9 @@ namespace Langulus::Anyness
    /// Merge an element at the back of the container                          
    ///   @param rhs - the element to insert                                   
    ///   @return a reference to this container for chaining                   
-   TEMPLATE() template<class T1> LANGULUS(INLINED)
-   TAny<T>& TAny<T>::operator <<= (T1&& other)
-   requires CT::Inner::UnfoldMakableFrom<T, T1> {
+   TEMPLATE() template<class T1>
+   requires CT::Inner::UnfoldMakableFrom<T, T1> LANGULUS(INLINED)
+   TAny<T>& TAny<T>::operator <<= (T1&& other) {
       Merge(IndexBack, Forward<T1>(other));
       return *this;
    }
@@ -760,9 +689,9 @@ namespace Langulus::Anyness
    /// Merge an element at the front of the container                         
    ///   @param rhs - the element to insert                                   
    ///   @return a reference to this container for chaining                   
-   TEMPLATE() template<class T1> LANGULUS(INLINED)
-   TAny<T>& TAny<T>::operator >>= (T1&& other)
-   requires CT::Inner::UnfoldMakableFrom<T, T1> {
+   TEMPLATE() template<class T1>
+   requires CT::Inner::UnfoldMakableFrom<T, T1> LANGULUS(INLINED)
+   TAny<T>& TAny<T>::operator >>= (T1&& other) {
       Merge(IndexFront, Forward<T1>(other));
       return *this;
    }
@@ -1235,9 +1164,9 @@ namespace Langulus::Anyness
    /// Compare with another container of the same type                        
    ///   @param other - the container to compare with                         
    ///   @return true if both containers are identical                        
-   TEMPLATE() template<CT::Data ALT_T> LANGULUS(INLINED)
-   bool TAny<T>::operator == (const TAny<ALT_T>& other) const noexcept
-   requires (CT::Inner::Comparable<T, ALT_T>) {
+   TEMPLATE() template<CT::Data ALT_T>
+   requires (CT::Inner::Comparable<T, ALT_T>) LANGULUS(INLINED)
+   bool TAny<T>::operator == (const TAny<ALT_T>& other) const noexcept{
       if constexpr (CT::Same<T, ALT_T>)
          return Compare(other);
       else
@@ -1411,9 +1340,9 @@ namespace Langulus::Anyness
    /// Concatenate anything, semantically or not                              
    ///   @param rhs - the element/block/array to copy-concatenate             
    ///   @return a new container, containing both blocks                      
-   TEMPLATE() template<class T1> LANGULUS(INLINED)
-   TAny<T> TAny<T>::operator + (T1&& rhs) const
-   requires CT::Inner::UnfoldMakableFrom<T, T1> {
+   TEMPLATE() template<class T1>
+   requires CT::DeepMakable<T, T1> LANGULUS(INLINED)
+   TAny<T> TAny<T>::operator + (T1&& rhs) const {
       using S = SemanticOf<decltype(rhs)>;
       return ConcatBlock<TAny>(S::Nest(rhs));
    }
@@ -1421,9 +1350,9 @@ namespace Langulus::Anyness
    /// Concatenate destructively, semantically or not                         
    ///   @param rhs - the element/block/array to semantically concatenate     
    ///   @return a reference to this container                                
-   TEMPLATE() template<class T1> LANGULUS(INLINED)
-   TAny<T>& TAny<T>::operator += (T1&& rhs)
-   requires CT::Inner::UnfoldMakableFrom<T, T1> {
+   TEMPLATE() template<class T1>
+   requires CT::DeepMakable<T, T1> LANGULUS(INLINED)
+   TAny<T>& TAny<T>::operator += (T1&& rhs) {
       using S = SemanticOf<decltype(rhs)>;
       InsertBlock<TAny, void>(IndexBack, S::Nest(rhs));
       return *this;

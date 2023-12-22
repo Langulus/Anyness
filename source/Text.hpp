@@ -169,16 +169,18 @@ namespace Langulus::CT
 {
    namespace Inner
    {
+
       template<class T>
       concept Stringifiable = not Text<T> and not StandardContiguousContainer<T> and (
-         requires (T& a) { a.operator Anyness::Text(); }
+         requires (T& a) { a.operator ::Langulus::Anyness::Text(); }
       );
 
       template<class T>
       concept Debuggable = not Text<T> and not StandardContiguousContainer<T> and (
-         requires (T& a) { a.operator Anyness::Debug(); }
+         requires (T& a) { a.operator ::Langulus::Anyness::Debug(); }
       );
-   }
+
+   } // namespace Langulus::CT::Inner
 
    /// A stringifiable type is one that has either an implicit or explicit    
    /// cast operator to Text type. Reverse conversion through                 
