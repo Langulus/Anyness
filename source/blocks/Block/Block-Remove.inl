@@ -18,8 +18,7 @@ namespace Langulus::Anyness
    ///   @tparam REVERSE - whether to search from the back                    
    ///   @param item - the item type to search for and remove                 
    ///   @return 1 if the element was found and removed, 0 otherwise          
-   template<bool REVERSE>
-   LANGULUS(INLINED)
+   template<bool REVERSE> LANGULUS(INLINED)
    Count Block::Remove(const CT::Data auto& item) {
       const auto found = FindKnown<REVERSE>(item);
       if (found)
@@ -31,7 +30,7 @@ namespace Langulus::Anyness
    ///   @param index - index to start removing from                          
    ///   @param count - number of items to remove                             
    ///   @return the number of removed elements                               
-   inline Count Block::RemoveIndex(const CT::Index auto& index, const Count count) {
+   inline Count Block::RemoveIndex(CT::Index auto index, const Count count) {
       using INDEX = Deref<decltype(index)>;
 
       if constexpr (CT::Same<INDEX, Index>) {

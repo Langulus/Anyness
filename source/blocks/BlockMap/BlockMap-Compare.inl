@@ -53,8 +53,7 @@ namespace Langulus::Anyness
    ///                 optimization on type checks                            
    ///   @param key - the key to search for                                   
    ///   @return true if key is found, false otherwise                        
-   template<class MAP>
-   LANGULUS(INLINED)
+   template<class MAP> LANGULUS(INLINED)
    bool BlockMap::ContainsKey(const CT::NotSemantic auto& key) const {
       return FindInner<MAP>(key) != InvalidOffset;
    }
@@ -64,8 +63,7 @@ namespace Langulus::Anyness
    ///                 optimization on type checks                            
    ///   @param value - the value to search for                               
    ///   @return true if value is found, false otherwise                      
-   template<class MAP>
-   LANGULUS(INLINED)
+   template<class MAP> LANGULUS(INLINED)
    bool BlockMap::ContainsValue(const CT::NotSemantic auto& value) const {
       static_assert(CT::Map<MAP>, "MAP must be a map type");
       auto& THIS = reinterpret_cast<const MAP&>(*this);
@@ -94,8 +92,7 @@ namespace Langulus::Anyness
    ///   @tparam V - value type                                               
    ///   @param pair - the pair to search for                                 
    ///   @return true if pair is found, false otherwise                       
-   template<class MAP, CT::NotSemantic K, CT::NotSemantic V>
-   LANGULUS(INLINED)
+   template<class MAP, CT::NotSemantic K, CT::NotSemantic V> LANGULUS(INLINED)
    bool BlockMap::ContainsPair(const TPair<K, V>& pair) const {
       static_assert(CT::Map<MAP>, "MAP must be a map type");
       auto& THIS = reinterpret_cast<MAP&>(*this);
@@ -111,8 +108,7 @@ namespace Langulus::Anyness
    ///                 optimization on type checks                            
    ///   @param key - the key to search for                                   
    ///   @return the index if key was found, or IndexNone if not              
-   template<class MAP>
-   LANGULUS(INLINED)
+   template<class MAP> LANGULUS(INLINED)
    Index BlockMap::Find(const CT::NotSemantic auto& key) const {
       const auto offset = FindInner<MAP>(key);
       return offset != InvalidOffset ? Index {offset} : IndexNone;
@@ -123,8 +119,7 @@ namespace Langulus::Anyness
    ///                 optimization on type checks                            
    ///   @param key - the key to search for                                   
    ///   @return the iterator                                                 
-   template<class MAP>
-   LANGULUS(INLINED)
+   template<class MAP> LANGULUS(INLINED)
    BlockMap::Iterator BlockMap::FindIt(const CT::NotSemantic auto& key) {
       const auto offset = FindInner<MAP>(key);
       if (offset == InvalidOffset)
@@ -142,8 +137,7 @@ namespace Langulus::Anyness
    ///                 optimization on type checks                            
    ///   @param key - the key to search for                                   
    ///   @return the iterator                                                 
-   template<class MAP>
-   LANGULUS(INLINED)
+   template<class MAP> LANGULUS(INLINED)
    BlockMap::ConstIterator BlockMap::FindIt(const CT::NotSemantic auto& key) const {
       return const_cast<BlockMap*>(this)->template FindIt<MAP>(key);
    }
@@ -154,8 +148,7 @@ namespace Langulus::Anyness
    ///                 optimization on type checks                            
    ///   @param key - the key to search for                                   
    ///   @return the value, wrapped in a type-erased block                    
-   template<class MAP>
-   LANGULUS(INLINED)
+   template<class MAP> LANGULUS(INLINED)
    Block BlockMap::At(const CT::NotSemantic auto& key) {
       const auto found = FindInner<MAP>(key);
       LANGULUS_ASSERT(found != InvalidOffset, OutOfRange, "Key not found");
@@ -168,8 +161,7 @@ namespace Langulus::Anyness
    ///                 optimization on type checks                            
    ///   @param key - the key to search for                                   
    ///   @return the value, wrapped in a type-erased block                    
-   template<class MAP>
-   LANGULUS(INLINED)
+   template<class MAP> LANGULUS(INLINED)
    Block BlockMap::At(const CT::NotSemantic auto& key) const {
       return const_cast<BlockMap*>(this)->template At<MAP>(key);
    }

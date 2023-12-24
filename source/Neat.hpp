@@ -26,7 +26,7 @@ namespace Langulus::Anyness
          Any mData;
 
          template<template<class> class S>
-         DeConstruct(const Hash&, const Charge&, S<Neat>&&);
+         DeConstruct(Hash, const Charge&, S<Neat>&&);
          template<template<class> class S>
          DeConstruct(S<DeConstruct>&&);
 
@@ -119,37 +119,39 @@ namespace Langulus::Anyness
       template<CT::Text T>
       NOD() T SerializeAs() const;
 
-      template<CT::Trait T>
+      template<CT::Trait>
       TAny<Any>* GetTraits();
-      template<CT::Trait T>
-      const TAny<Any>* GetTraits() const;
 
-      TAny<Any>* GetTraits(TMeta);
+      template<CT::Trait>
+      const TAny<Any>* GetTraits() const;
+            TAny<Any>* GetTraits(TMeta);
       const TAny<Any>* GetTraits(TMeta) const;
 
-      template<CT::Data T>
+      template<CT::Data>
       TAny<Messy>* GetData();
-      template<CT::Data T>
+
+      template<CT::Data>
       const TAny<Messy>* GetData() const;
       
-      TAny<Messy>* GetData(DMeta);
+            TAny<Messy>* GetData(DMeta);
       const TAny<Messy>* GetData(DMeta) const;
       
-      template<CT::Data T>
+      template<CT::Data>
       TAny<Inner::DeConstruct>* GetConstructs();
-      template<CT::Data T>
+
+      template<CT::Data>
       const TAny<Inner::DeConstruct>* GetConstructs() const;
 
-      TAny<Inner::DeConstruct>* GetConstructs(DMeta);
+            TAny<Inner::DeConstruct>* GetConstructs(DMeta);
       const TAny<Inner::DeConstruct>* GetConstructs(DMeta) const;
 
-      template<CT::Trait T>
+      template<CT::Trait>
       void SetDefaultTrait(CT::Data auto&&);
 
-      template<CT::Trait T>
+      template<CT::Trait>
       void OverwriteTrait(CT::Data auto&&);
 
-      template<CT::Trait... T>
+      template<CT::Trait...>
       bool ExtractTrait(CT::Data auto&...) const;
       Count ExtractData(CT::Data auto&) const;
 
@@ -159,12 +161,12 @@ namespace Langulus::Anyness
       //    #include <Flow/Verbs/Interpret.hpp>                         
       Count ExtractDataAs(CT::Data auto&) const;
 
-      NOD() const Any* Get(TMeta, const Offset& = 0) const;
-      template<CT::Trait T>
-      NOD() const Any* Get(const Offset& = 0) const;
+      template<CT::Trait>
+      NOD() const Any* Get(Offset = 0) const;
+      NOD() const Any* Get(TMeta, Offset = 0) const;
 
    protected:
-      template<CT::Trait T>
+      template<CT::Trait>
       bool ExtractTraitInner(CT::Data auto&...) const;
 
    public:
@@ -206,7 +208,7 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
-      template<class T1, class... TAIL>
+      template<class T1, class...TAIL>
       Count Insert(T1&&, TAIL&&...);
 
       Neat& operator << (auto&&);
@@ -215,11 +217,10 @@ namespace Langulus::Anyness
 
       Neat& operator <<= (auto&&);
 
-      Neat& Set(const Trait&, const Offset & = 0);
-      Neat& Set(Trait&&, const Offset & = 0);
+      Neat& Set(CT::TraitBased auto&&, Offset = 0);
 
    protected:
-      Count UnfoldInsertion(auto&&);
+      Count UnfoldInsert(auto&&);
       void InsertInner(auto&&);
 
       void AddTrait(auto&&);
@@ -235,11 +236,11 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Removal                                                           
       ///                                                                     
-      template<CT::Data T, bool EMPTY_TOO = false>
+      template<CT::Data, bool EMPTY_TOO = false>
       Count RemoveData();
-      template<CT::Data T>
+      template<CT::Data>
       Count RemoveConstructs();
-      template<CT::Trait T, bool EMPTY_TOO = false>
+      template<CT::Trait, bool EMPTY_TOO = false>
       Count RemoveTrait();
    };
 

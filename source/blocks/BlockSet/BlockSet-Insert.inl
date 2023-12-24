@@ -17,20 +17,17 @@ namespace Langulus::Anyness
    ///                                                                        
    /// All possible ways a key could be inserted to the set                   
    ///                                                                        
-   template<bool ORDERED>
-   LANGULUS(INLINED)
+   template<bool ORDERED> LANGULUS(INLINED)
    Count BlockSet::Insert(const CT::NotSemantic auto& k) {
       return Insert<ORDERED>(Copy(k));
    }
 
-   template<bool ORDERED>
-   LANGULUS(INLINED)
+   template<bool ORDERED> LANGULUS(INLINED)
    Count BlockSet::Insert(CT::NotSemantic auto& k) {
       return Insert<ORDERED>(Copy(k));
    }
 
-   template<bool ORDERED>
-   LANGULUS(INLINED)
+   template<bool ORDERED> LANGULUS(INLINED)
    Count BlockSet::Insert(CT::NotSemantic auto&& k) {
       return Insert<ORDERED>(Move(k));
    }
@@ -38,8 +35,7 @@ namespace Langulus::Anyness
    /// Semantically insert key                                                
    ///   @param key - the key to insert                                       
    ///   @return 1 if key was inserted, zero otherwise                        
-   template<bool ORDERED>
-   LANGULUS(INLINED)
+   template<bool ORDERED> LANGULUS(INLINED)
    Count BlockSet::Insert(CT::Semantic auto&& key) {
       using S = Decay<decltype(key)>;
       using K = TypeOf<S>;
@@ -57,8 +53,7 @@ namespace Langulus::Anyness
    ///   @tparam ORDERED - the bucketing approach to use                      
    ///   @param key - the key to insert                                       
    ///   @return 1 if key was inserted                                        
-   template<bool ORDERED>
-   LANGULUS(INLINED)
+   template<bool ORDERED> LANGULUS(INLINED)
    Count BlockSet::InsertBlock(CT::Semantic auto&& key) {
       using S = Decay<decltype(key)>;
 
@@ -77,8 +72,7 @@ namespace Langulus::Anyness
    /// Merge the contents of two sets by shallow copy                         
    ///   @param set - the set to merge with this one                          
    ///   @return the number of elements that were inserted                    
-   template<bool ORDERED>
-   LANGULUS(INLINED)
+   template<bool ORDERED> LANGULUS(INLINED)
    Count BlockSet::Merge(const BlockSet& set) {
       return Merge<ORDERED>(Copy(set));
    }
@@ -86,8 +80,7 @@ namespace Langulus::Anyness
    /// Merge the contents of two sets by move                                 
    ///   @param set - the set to merge with this one                          
    ///   @return the number of elements that were inserted                    
-   template<bool ORDERED>
-   LANGULUS(INLINED)
+   template<bool ORDERED> LANGULUS(INLINED)
    Count BlockSet::Merge(BlockSet&& set) {
       return Merge<ORDERED>(Move(set));
    }
@@ -95,8 +88,7 @@ namespace Langulus::Anyness
    /// Merge the contents of two sets by using a semantic                     
    ///   @param set - the set to merge with this one                          
    ///   @return the size of provided set                                     
-   template<bool ORDERED>
-   LANGULUS(INLINED)
+   template<bool ORDERED> LANGULUS(INLINED)
    Count BlockSet::Merge(CT::Semantic auto&& set) {
       using S = Decay<decltype(set)>;
       using T = TypeOf<S>;

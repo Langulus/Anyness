@@ -16,8 +16,7 @@ namespace Langulus::Anyness
    /// Checks type compatibility and sets type for the type-erased map        
    ///   @tparam K - the key type                                             
    ///   @tparam V - the value type                                           
-   template<CT::NotSemantic K, CT::NotSemantic V>
-   LANGULUS(INLINED)
+   template<CT::NotSemantic K, CT::NotSemantic V> LANGULUS(INLINED)
    void BlockMap::Mutate() {
       Mutate(MetaDataOf<K>(), MetaDataOf<V>());
    }
@@ -54,8 +53,7 @@ namespace Langulus::Anyness
    /// ignoring density and cv-qualifiers                                     
    ///   @tparam T1, TN... - the types to compare against                     
    ///   @return true if key type is similar to at least one of the types     
-   template<CT::Data T1, CT::Data... TN>
-   LANGULUS(INLINED)
+   template<CT::Data T1, CT::Data...TN> LANGULUS(INLINED)
    bool BlockMap::KeyIs() const noexcept {
       return mKeys.template Is<T1, TN...>();
    }
@@ -73,8 +71,7 @@ namespace Langulus::Anyness
    /// ignoring cv-qualifiers only                                            
    ///   @tparam T1, TN... - the types to compare against                     
    ///   @return true if key type is similar to at least one of the types     
-   template<CT::Data T1, CT::Data... TN>
-   LANGULUS(INLINED)
+   template<CT::Data T1, CT::Data...TN> LANGULUS(INLINED)
    bool BlockMap::KeyIsSimilar() const noexcept {
       return mKeys.template IsSimilar<T1, TN...>();
    }
@@ -92,8 +89,7 @@ namespace Langulus::Anyness
    /// including by density and cv-qualifiers                                 
    ///   @tparam T1, TN... - the types to compare against                     
    ///   @return true if key type exactly matches at least one type           
-   template<CT::Data T1, CT::Data... TN>
-   LANGULUS(INLINED)
+   template<CT::Data T1, CT::Data...TN> LANGULUS(INLINED)
    bool BlockMap::KeyIsExact() const noexcept {
       return mKeys.template IsExact<T1, TN...>();
    }
@@ -111,8 +107,7 @@ namespace Langulus::Anyness
    /// ignoring density and cv-qualifiers                                     
    ///   @tparam T1, TN... - the types to compare against                     
    ///   @return true if value type is similar to at least one of the types   
-   template<CT::Data T1, CT::Data... TN>
-   LANGULUS(INLINED)
+   template<CT::Data T1, CT::Data...TN> LANGULUS(INLINED)
    bool BlockMap::ValueIs() const noexcept {
       return mValues.template Is<T1, TN...>();
    }
@@ -130,8 +125,7 @@ namespace Langulus::Anyness
    /// ignoring cv-qualifiers only                                            
    ///   @tparam T1, TN... - the types to compare against                     
    ///   @return true if value type is similar to at least one of the types   
-   template<CT::Data T1, CT::Data... TN>
-   LANGULUS(INLINED)
+   template<CT::Data T1, CT::Data...TN> LANGULUS(INLINED)
    bool BlockMap::ValueIsSimilar() const noexcept {
       return mValues.template IsSimilar<T1, TN...>();
    }
@@ -149,8 +143,7 @@ namespace Langulus::Anyness
    /// including by density and cv-qualifiers                                 
    ///   @tparam T1, TN... - the types to compare against                     
    ///   @return true if value type exactly matches at least one type         
-   template<CT::Data T1, CT::Data... TN>
-   LANGULUS(INLINED)
+   template<CT::Data T1, CT::Data...TN> LANGULUS(INLINED)
    bool BlockMap::ValueIsExact() const noexcept {
       return mValues.template IsExact<T1, TN...>();
    }

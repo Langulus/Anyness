@@ -41,9 +41,7 @@ namespace Langulus::Anyness
    /// Create a standalone handle                                             
    ///   @param v - the element                                               
    ///   @param e - the entry (optional)                                      
-   TEMPLATE()
-   template<CT::NotHandle T1>
-   LANGULUS(INLINED)
+   TEMPLATE() template<CT::NotHandle T1> LANGULUS(INLINED)
    constexpr HAND()::Handle(T1&& v, const Allocation* e)
    requires (not Embedded and CT::Inner::MakableFrom<T, T1>)
       : mValue {Forward<T1>(v)}
@@ -67,9 +65,7 @@ namespace Langulus::Anyness
 
    /// Semantically construct using handle of any compatible type             
    ///   @param other - the handle and semantic to construct with             
-   TEMPLATE()
-   template<template<class> class S, CT::Handle H>
-   LANGULUS(INLINED)
+   TEMPLATE() template<template<class> class S, CT::Handle H> LANGULUS(INLINED)
    constexpr HAND()::Handle(S<H>&& other)
    requires (CT::Inner::MakableFrom<T, S<TypeOf<H>>>)
       : mValue {S<TypeOf<H>>(other->Get())}
@@ -376,9 +372,7 @@ namespace Langulus::Anyness
    /// Swap two handles                                                       
    ///   @tparam RHS_EMBED - right handle embedness (deducible)               
    ///   @param rhs - right hand side                                         
-   TEMPLATE()
-   template<bool RHS_EMBED>
-   LANGULUS(INLINED)
+   TEMPLATE() template<bool RHS_EMBED> LANGULUS(INLINED)
    void HAND()::Swap(Handle<T, RHS_EMBED>& rhs) {
       HandleLocal<T> tmp {Abandon(*this)};
       New(Abandon(rhs));
@@ -396,9 +390,7 @@ namespace Langulus::Anyness
    /// Compare the contents of the handle with another handle                 
    ///   @param rhs - handle to compare against                               
    ///   @return true if contents are equal                                   
-   TEMPLATE()
-   template<bool RHS_EMBED>
-   LANGULUS(INLINED)
+   TEMPLATE() template<bool RHS_EMBED> LANGULUS(INLINED)
    bool HAND()::Compare(const Handle<T, RHS_EMBED>& rhs) const {
       return Get() == rhs.Get();
    }
@@ -408,8 +400,7 @@ namespace Langulus::Anyness
    /// Does absolutely nothing for dense handles, they are destroyed when     
    /// handle is destroyed                                                    
    ///   @tparam RESET - whether or not to reset pointers to null             
-   TEMPLATE()
-   template<bool RESET>
+   TEMPLATE() template<bool RESET>
    void HAND()::Destroy() const {
       if constexpr (CT::Sparse<T>) {
          // Handle is sparse, we should handle each indirection layer   
@@ -451,8 +442,7 @@ namespace Langulus::Anyness
    /// handle is destroyed                                                    
    ///   @tparam RESET - whether or not to reset pointers to null             
    ///   @param meta - the true type behind the pointer in this handle        
-   TEMPLATE()
-   template<bool RESET>
+   TEMPLATE() template<bool RESET>
    void HAND()::DestroyUnknown(DMeta meta) const {
       if constexpr (CT::Sparse<T>) {
          LANGULUS_ASSUME(DevAssumes, meta->mIsSparse,

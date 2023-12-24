@@ -559,7 +559,7 @@ namespace Langulus::Anyness
       // Input is flat and neutral/same                                 
       if (not type) {
          // Output is any, so no need to iterate                        
-         return output.SmartPush(input);
+         return output.SmartPush(IndexBack, input);
       }
 
       // Iterate subpacks if any                                        

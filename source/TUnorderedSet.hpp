@@ -31,7 +31,6 @@ namespace Langulus::Anyness
 
       static constexpr bool Ordered = false;
 
-   public:
       ///                                                                     
       ///   Construction & Assignment                                         
       ///                                                                     
@@ -40,12 +39,12 @@ namespace Langulus::Anyness
       TUnorderedSet(TUnorderedSet&&);
 
       template<template<class> class S>
-      TUnorderedSet(S<TUnorderedSet>&&)
-      requires (CT::Inner::SemanticMakable<S, T>);
+      requires CT::Inner::SemanticMakable<S, T>
+      TUnorderedSet(S<TUnorderedSet>&&);
 
       template<class T1, class...TAIL>
-      TUnorderedSet(T1&&, TAIL&&...)
-      requires (CT::Inner::UnfoldMakableFrom<T, T1, TAIL...>);
+      requires CT::Inner::UnfoldMakableFrom<T, T1, TAIL...>
+      TUnorderedSet(T1&&, TAIL&&...);
 
       ~TUnorderedSet();
 
@@ -76,7 +75,6 @@ namespace Langulus::Anyness
       NOD() constexpr Size GetStride() const noexcept;
       NOD() constexpr Size GetBytesize() const noexcept;
 
-   public:
       ///                                                                     
       ///   Indexing                                                          
       ///                                                                     
@@ -145,12 +143,10 @@ namespace Langulus::Anyness
       bool operator == (const TUnorderedSet&) const;
 
       NOD() bool Contains(const T&) const;
-
       NOD() Index Find(const T&) const;
       NOD() Iterator FindIt(const T&);
       NOD() ConstIterator FindIt(const T&) const;
 
-   public:
       ///                                                                     
       ///   Memory management                                                 
       ///                                                                     
@@ -167,19 +163,19 @@ namespace Langulus::Anyness
       ///   Insertion                                                         
       ///                                                                     
       template<class T1, class... TAIL>
-      Count Insert(T1&&, TAIL&&...)
-      requires CT::Inner::UnfoldMakableFrom<T, T1, TAIL...>;
+      requires CT::Inner::UnfoldMakableFrom<T, T1, TAIL...>
+      Count Insert(T1&&, TAIL&&...);
 
       template<class T1>
-      TUnorderedSet& operator << (T1&&)
-      requires CT::Inner::UnfoldMakableFrom<T, T1>;
+      requires CT::Inner::UnfoldMakableFrom<T, T1>
+      TUnorderedSet& operator << (T1&&);
 
    protected:
       NOD() static Size RequestKeyAndInfoSize(Count, Offset&) noexcept;
 
       void Rehash(const Count&);
+      Count UnfoldInsert(auto&&);
 
-      Count UnfoldInsertion(auto&&);
       template<bool CHECK_FOR_MATCH, class T1>
       Offset InsertInner(const Offset&, T1&&);
 
@@ -221,10 +217,10 @@ namespace Langulus::Anyness
    public:
       NOD() bool operator == (const TIterator&) const noexcept;
 
-      NOD() T& operator * () const noexcept requires (MUTABLE);
+      NOD()       T& operator * () const noexcept requires (MUTABLE);
       NOD() const T& operator * () const noexcept requires (!MUTABLE);
 
-      NOD() T& operator -> () const noexcept requires (MUTABLE);
+      NOD()       T& operator -> () const noexcept requires (MUTABLE);
       NOD() const T& operator -> () const noexcept requires (!MUTABLE);
 
       // Prefix operator                                                

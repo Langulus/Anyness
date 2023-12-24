@@ -43,7 +43,7 @@ namespace Langulus
       template<class...T>
       concept Trait = TraitBased<T...> and ((
             sizeof(T) == sizeof(A::Trait)
-            and requires { {T::CTTI_Trait} -> Exact<Token>; }
+            and requires { {T::CTTI_Trait} -> Similar<Token>; }
          ) and ...);
 
    } // namespace Langulus::CT
@@ -73,8 +73,8 @@ namespace Langulus::Anyness
       Trait(Trait&&) noexcept;
 
       template<class T1, class...TAIL>
-      Trait(T1&&, TAIL&&...)
-      requires CT::Inner::UnfoldInsertable<T1, TAIL...>;
+      requires CT::Inner::UnfoldInsertable<T1, TAIL...>
+      Trait(T1&&, TAIL&&...);
 
       Trait& operator = (const Trait&);
       Trait& operator = (Trait&&);
@@ -96,8 +96,10 @@ namespace Langulus::Anyness
 
       template<CT::Trait, CT::Trait...>
       NOD() bool TraitIs() const;
+
       template<class T1, class...TN>
-      NOD() bool TraitIs(T1, TN...) const requires CT::Exact<TMeta, T1, TN...>;
+      requires CT::Exact<TMeta, T1, TN...>
+      NOD() bool TraitIs(T1, TN...) const;
 
       NOD() TMeta GetTrait() const noexcept;
 
@@ -142,8 +144,10 @@ namespace Langulus::Anyness
    public:
       template<CT::Trait, CT::Trait...>
       NOD() constexpr bool TraitIs() const;
+
       template<class T1, class...TN>
-      NOD() constexpr bool TraitIs(T1, TN...) const requires CT::Exact<TMeta, T1, TN...>;
+      requires CT::Exact<TMeta, T1, TN...>
+      NOD() constexpr bool TraitIs(T1, TN...) const;
 
       NOD() TMeta GetTrait() const noexcept;
 

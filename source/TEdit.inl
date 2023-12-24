@@ -136,7 +136,7 @@ namespace Langulus::Anyness
    ///   @return a reference to the editor for chaining                       
    TEMPLATE() LANGULUS(INLINED)
    TEdit<T>& TEdit<T>::operator << (const T& other) {
-      mSource.InsertBlockAt(other, mEnd);
+      mSource.InsertBlock(mEnd, other);
       return *this;
    }
 
@@ -145,7 +145,7 @@ namespace Langulus::Anyness
    ///   @return a reference to the editor for chaining                       
    TEMPLATE() LANGULUS(INLINED)
    TEdit<T>& TEdit<T>::operator >> (const T& other) {
-      const auto concatenated = mSource.InsertBlockAt(other, mStart);
+      const auto concatenated = mSource.InsertBlock(mStart, other);
       mStart += concatenated;
       mEnd += concatenated;
       return *this;
@@ -204,8 +204,7 @@ namespace Langulus::Anyness
    /// Insert single element at the end of the selection                      
    ///   @param other - the element to insert                                 
    ///   @return a reference to the editor for chaining                       
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    TEdit<T>& TEdit<T>::operator << (const TypeOf<T>& other) {
       mSource.InsertAt(other, mEnd);
       return *this;
@@ -214,8 +213,7 @@ namespace Langulus::Anyness
    /// Insert single element at the start of the selection                    
    ///   @param other - the element to insert                                 
    ///   @return a reference to the editor for chaining                       
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    TEdit<T>& TEdit<T>::operator >> (const TypeOf<T>& other) {
       const auto concatenated = mSource.InsertAt(other, mStart);
       mStart += concatenated;
@@ -228,8 +226,7 @@ namespace Langulus::Anyness
    /// replacement                                                            
    ///   @param other - the element to use for replacement                    
    ///   @return a reference to the editor for chaining                       
-   TEMPLATE()
-   LANGULUS(INLINED)
+   TEMPLATE() LANGULUS(INLINED)
    TEdit<T>& TEdit<T>::Replace(const TypeOf<T>& other) {
       return Replace(T {other});
    }

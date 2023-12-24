@@ -101,9 +101,9 @@ namespace Langulus::Anyness
 
       NOD() DMeta GetType() const noexcept;
       NOD() const T* GetRaw() const noexcept;
-      NOD() T* GetRaw() noexcept;
+      NOD()       T* GetRaw()       noexcept;
       NOD() const T* GetRawEnd() const noexcept;
-      NOD() decltype(auto) GetHandle(Offset) IF_UNSAFE(noexcept);
+      NOD() decltype(auto) GetHandle(Offset)       IF_UNSAFE(noexcept);
       NOD() decltype(auto) GetHandle(Offset) const IF_UNSAFE(noexcept);
 
 
@@ -174,8 +174,8 @@ namespace Langulus::Anyness
       Count Insert(CT::Index auto, T1&&, TAIL&&...);
 
       template<class...A>
-      requires CT::Inner::MakableFrom<T, A...>
-      Count Emplace(CT::Index auto, A&&...);
+      requires ::std::constructible_from<T, A...>
+      Conditional<CT::Sparse<T>, T, T&> Emplace(CT::Index auto, A&&...);
 
       Count New(Count = 1);
 
@@ -325,13 +325,13 @@ namespace Langulus::Anyness
       NOD() constexpr bool operator == (const TIteratorEnd<RHS_MUTABLE>&) const noexcept;
       NOD() constexpr bool operator == (const TIterator&) const noexcept;
 
-      operator T& () const noexcept requires (MUTABLE);
+      operator       T& () const noexcept requires (MUTABLE);
       operator const T& () const noexcept requires (not MUTABLE);
 
-      NOD() T& operator * () const noexcept requires (MUTABLE);
-      NOD() const T& operator * () const noexcept requires (not MUTABLE);
+      NOD()       T& operator *  () const noexcept requires (MUTABLE);
+      NOD() const T& operator *  () const noexcept requires (not MUTABLE);
 
-      NOD() T& operator -> () const noexcept requires (MUTABLE);
+      NOD()       T& operator -> () const noexcept requires (MUTABLE);
       NOD() const T& operator -> () const noexcept requires (not MUTABLE);
 
       // Prefix operator                                                

@@ -19,8 +19,7 @@ namespace Langulus::Anyness
    ///                 and as runtime optimization                            
    ///   @param key - the key to search for                                   
    ///   @return the number of removed pairs                                  
-   template<class MAP>
-   LANGULUS(INLINED)
+   template<class MAP> LANGULUS(INLINED)
    Count BlockMap::RemoveKey(const CT::NotSemantic auto& key) {
       static_assert(CT::Map<MAP>, "MAP must be a map type");
       using K = Deref<decltype(key)>;
@@ -50,8 +49,7 @@ namespace Langulus::Anyness
    ///                 and as runtime optimization                            
    ///   @param key - the key to search for                                   
    ///   @return 1 if pair was removed                                  
-   template<class MAP>
-   LANGULUS(INLINED)
+   template<class MAP> LANGULUS(INLINED)
    Count BlockMap::RemoveKeyInner(const CT::NotSemantic auto& key) {
       static_assert(CT::Map<MAP>, "MAP must be a map type");
       using K = Deref<decltype(key)>;
@@ -76,8 +74,7 @@ namespace Langulus::Anyness
    ///                 and as runtime optimization                            
    ///   @param value - the values to search for                              
    ///   @return the number of removed pairs                                  
-   template<class MAP>
-   LANGULUS(INLINED)
+   template<class MAP> LANGULUS(INLINED)
    Count BlockMap::RemoveValue(const CT::NotSemantic auto& value) {
       static_assert(CT::Map<MAP>, "MAP must be a map type");
       using V = Deref<decltype(value)>;
@@ -273,8 +270,7 @@ namespace Langulus::Anyness
    /// Clears all data, but doesn't deallocate                                
    ///   @tparam MAP - map we're searching in, potentially providing runtime  
    ///                 optimization on type checks                            
-   template<class MAP>
-   LANGULUS(INLINED)
+   template<class MAP> LANGULUS(INLINED)
    void BlockMap::Clear() {
       if (IsEmpty())
          return;
@@ -300,8 +296,7 @@ namespace Langulus::Anyness
    /// Clears all data and deallocates                                        
    ///   @tparam MAP - map we're searching in, potentially providing runtime  
    ///                 optimization on type checks                            
-   template<class MAP>
-   LANGULUS(INLINED)
+   template<class MAP> LANGULUS(INLINED)
    void BlockMap::Reset() {
       static_assert(CT::Map<MAP>, "MAP must be a map type");
 
@@ -341,8 +336,7 @@ namespace Langulus::Anyness
    ///   @tparam MAP - map we're searching in, potentially providing runtime  
    ///                 optimization on type checks                            
    ///   @attention assumes there's at least one valid pair                   
-   template<class MAP>
-   LANGULUS(INLINED)
+   template<class MAP> LANGULUS(INLINED)
    void BlockMap::ClearInner() {
       LANGULUS_ASSUME(DevAssumes, not IsEmpty(), "Map is empty");
       static_assert(CT::Map<MAP>, "MAP must be a map type");

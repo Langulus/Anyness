@@ -424,7 +424,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
       }
 
       WHEN("Shallow-copy an array to the front") {
-         pack.Insert(IndexFront, darray2, darray2 + 5);
+         pack.Insert(IndexFront, darray2);
 
          CheckState_OwnedFull<E>(pack);
          REQUIRE(pack.GetCount() == 5);
@@ -588,7 +588,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
 
       WHEN("Emplace item at a specific place") {
          auto i666 = CreateElement<E>(666);
-         REQUIRE_THROWS(pack.EmplaceAt(0, ::std::move(i666)));
+         REQUIRE_THROWS(pack.Emplace(0, ::std::move(i666)));
          CheckState_Default<E>(pack);
       }
 
@@ -611,7 +611,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
                      o << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
 
                   meter.measure([&](int i) {
-                     return storage[i].template Emplace<IndexFront>(::std::move(i666d));
+                     return storage[i].Emplace(IndexFront, ::std::move(i666d));
                   });
                };
 
@@ -627,7 +627,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
             #endif
          }
          else {
-            REQUIRE_THROWS(pack.template Emplace<IndexFront>(::std::move(i666)));
+            REQUIRE_THROWS(pack.Emplace(IndexFront, ::std::move(i666)));
             CheckState_Default<E>(pack);
          }
       }
@@ -650,7 +650,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
                      o << darray1[0] << darray1[1] << darray1[2] << darray1[3] << darray1[4];
 
                   meter.measure([&](int i) {
-                     return storage[i].template Emplace<IndexBack>(::std::move(i666d));
+                     return storage[i].Emplace(IndexBack, ::std::move(i666d));
                   });
                };
 
@@ -666,7 +666,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
             #endif
          }
          else {
-            REQUIRE_THROWS(pack.template Emplace<IndexBack>(::std::move(i666)));
+            REQUIRE_THROWS(pack.Emplace(IndexBack, ::std::move(i666)));
             CheckState_Default<E>(pack);
          }
       }
@@ -1666,7 +1666,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
       }
 
       WHEN("Shallow-copy an array to the back") {
-         pack.template Insert<IndexBack>(darray2, darray2 + 5);
+         pack.Insert(IndexBack, darray2);
 
          CheckState_OwnedFull<E>(pack);
          REQUIRE(pack.GetCount() == 10);
@@ -1703,7 +1703,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
       }
 
       WHEN("Shallow-copy an array to the front") {
-         pack.template Insert<IndexFront>(darray2, darray2 + 5);
+         pack.Insert(IndexFront, darray2);
 
          CheckState_OwnedFull<E>(pack);
          REQUIRE(pack.GetCount() == 10);
@@ -1873,7 +1873,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
       
       WHEN("Insert single item at a specific place by shallow-copy") {
          const auto i666 = CreateElement<E>(666);
-         pack.InsertAt(i666, 3);
+         pack.Insert(3, i666);
 
          CheckState_OwnedFull<E>(pack);
          REQUIRE(pack.GetCount() == 6);
@@ -1912,7 +1912,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
       }
 
       WHEN("Insert multiple items at a specific place by shallow-copy") {
-         pack.InsertAt(darray2, darray2 + 5, 3);
+         pack.Insert(3, darray2);
 
          CheckState_OwnedFull<E>(pack);
          REQUIRE(pack.GetCount() == 10);
@@ -1957,7 +1957,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
       WHEN("Insert single item at a specific place by move") {
          auto i666 = CreateElement<E>(666);
          const auto i666backup = i666;
-         pack.InsertAt(::std::move(i666), 3);
+         pack.Insert(3, ::std::move(i666));
 
          CheckState_OwnedFull<E>(pack);
          REQUIRE(pack.GetCount() == 6);
@@ -1998,7 +1998,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
       WHEN("Emplace item at a specific place") {
          auto i666 = CreateElement<E>(666);
          const auto i666backup = i666;
-         pack.EmplaceAt(3, ::std::move(i666));
+         pack.Emplace(3, ::std::move(i666));
 
          CheckState_OwnedFull<E>(pack);
          REQUIRE(pack.GetCount() == 6);
@@ -2039,7 +2039,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
       WHEN("Emplace item at the front") {
          auto i666 = CreateElement<E>(666);
          const auto i666backup = i666;
-         pack.template Emplace<IndexFront>(::std::move(i666));
+         pack.Emplace(IndexFront, ::std::move(i666));
 
          CheckState_OwnedFull<E>(pack);
          REQUIRE(pack.GetCount() == 6);
@@ -2080,7 +2080,7 @@ TEMPLATE_TEST_CASE("Dense Any/TAny", "[any]",
       WHEN("Emplace item at the back") {
          auto i666 = CreateElement<E>(666);
          const auto i666backup = i666;
-         pack.template Emplace<IndexBack>(::std::move(i666));
+         pack.Emplace(IndexBack, ::std::move(i666));
 
          CheckState_OwnedFull<E>(pack);
          REQUIRE(pack.GetCount() == 6);

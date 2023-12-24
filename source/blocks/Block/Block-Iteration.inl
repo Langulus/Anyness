@@ -50,8 +50,7 @@ namespace Langulus::Anyness
    ///   @tparam REVERSE - whether to iterate in reverse                      
    ///   @param call - function to execute for each constant element block    
    ///   @return the number of executions                                     
-   template<bool REVERSE>
-   LANGULUS(INLINED)
+   template<bool REVERSE> LANGULUS(INLINED)
    Count Block::ForEachElement(auto&& call) const {
       return const_cast<Block&>(*this).template
          ForEachElement<REVERSE, false>(call);
@@ -68,8 +67,7 @@ namespace Langulus::Anyness
    ///   @tparam F - the function signatures (deducible)                      
    ///   @param calls - all potential functions to iterate with               
    ///   @return the number of executions                                     
-   template<bool REVERSE, bool MUTABLE, class... F>
-   LANGULUS(INLINED)
+   template<bool REVERSE, bool MUTABLE, class... F> LANGULUS(INLINED)
    Count Block::ForEach(F&&... calls) {
       if (IsEmpty())
          return 0;
@@ -83,8 +81,7 @@ namespace Langulus::Anyness
       return result;
    }
 
-   template<bool REVERSE, class... F>
-   LANGULUS(INLINED)
+   template<bool REVERSE, class... F> LANGULUS(INLINED)
    Count Block::ForEach(F&&... calls) const {
       return const_cast<Block&>(*this).template
          ForEach<REVERSE, false>(Forward<F>(calls)...);
@@ -105,8 +102,7 @@ namespace Langulus::Anyness
    ///   @param calls - all potential functions to iterate with               
    ///   @return the number of executions                                     
    template<bool REVERSE, bool SKIP, bool MUTABLE, class... F>
-   LANGULUS(INLINED)
-   Count Block::ForEachDeep(F&&... calls) {
+   LANGULUS(INLINED) Count Block::ForEachDeep(F&&... calls) {
       Count result = 0;
       ((result += ForEachDeepInner<ReturnOf<F>, ArgumentOf<F>, REVERSE, SKIP, MUTABLE>(
          Forward<F>(calls))
@@ -114,45 +110,38 @@ namespace Langulus::Anyness
       return result;
    }
 
-   template<bool REVERSE, bool SKIP, class... F>
-   LANGULUS(INLINED)
+   template<bool REVERSE, bool SKIP, class... F> LANGULUS(INLINED)
    Count Block::ForEachDeep(F&&... calls) const {
       return const_cast<Block&>(*this).template
          ForEachDeep<REVERSE, SKIP, false>(Forward<F>(calls)...);
    }
 
-   template<bool MUTABLE, class... F>
-   LANGULUS(INLINED)
+   template<bool MUTABLE, class... F> LANGULUS(INLINED)
    Count Block::ForEachElementRev(F&&... f) {
       return ForEachElement<true, MUTABLE, F...>(Forward<F>(f)...);
    }
 
-   template<class... F>
-   LANGULUS(INLINED)
+   template<class... F> LANGULUS(INLINED)
    Count Block::ForEachElementRev(F&&... f) const {
       return ForEachElement<true, F...>(Forward<F>(f)...);
    }
 
-   template<bool MUTABLE, class... F>
-   LANGULUS(INLINED)
+   template<bool MUTABLE, class... F> LANGULUS(INLINED)
    Count Block::ForEachRev(F&&... f) {
       return ForEach<true, MUTABLE, F...>(Forward<F>(f)...);
    }
 
-   template<class... F>
-   LANGULUS(INLINED)
+   template<class... F> LANGULUS(INLINED)
    Count Block::ForEachRev(F&&... f) const {
       return ForEach<true, F...>(Forward<F>(f)...);
    }
 
-   template<bool SKIP, bool MUTABLE, class... F>
-   LANGULUS(INLINED)
+   template<bool SKIP, bool MUTABLE, class... F> LANGULUS(INLINED)
    Count Block::ForEachDeepRev(F&&... f) {
       return ForEachDeep<true, SKIP, MUTABLE, F...>(Forward<F>(f)...);
    }
 
-   template<bool SKIP, class... F>
-   LANGULUS(INLINED)
+   template<bool SKIP, class... F> LANGULUS(INLINED)
    Count Block::ForEachDeepRev(F&&... f) const {
       return ForEachDeep<true, SKIP, F...>(Forward<F>(f)...);
    }
@@ -169,8 +158,7 @@ namespace Langulus::Anyness
    ///                     while iterating (iteration is slower if true)      
    ///   @param f - the function to execute for each element of type A        
    ///   @return the number of executions that occured                        
-   template<class R, CT::Data A, bool REVERSE, bool MUTABLE>
-   LANGULUS(INLINED)
+   template<class R, CT::Data A, bool REVERSE, bool MUTABLE> LANGULUS(INLINED)
    Count Block::ForEachInner(auto&& f) noexcept(NoexceptIterator<decltype(f)>) {
       constexpr auto NOE = NoexceptIterator<decltype(f)>;
       if ((CT::Deep<Decay<A>> and IsDeep())
@@ -286,8 +274,7 @@ namespace Langulus::Anyness
    ///   @tparam MUTABLE - whether or not block's allowed to change during    
    ///                     iteration (iteration is slower if true)            
    ///   @param call - the constexpr noexcept function to call on each item   
-   template<class R, CT::Data A, bool REVERSE, bool MUTABLE>
-   LANGULUS(INLINED)
+   template<class R, CT::Data A, bool REVERSE, bool MUTABLE> LANGULUS(INLINED)
    void Block::IterateInner(const Count& count, auto&& f) noexcept(NoexceptIterator<decltype(f)>) {
       static_assert(CT::Complete<Decay<A>> or CT::Sparse<A>,
          "Can't iterate with incomplete type, use pointer instead");

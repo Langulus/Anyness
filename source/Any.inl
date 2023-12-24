@@ -68,7 +68,7 @@ namespace Langulus::Anyness
    ///   @param state - optional state of the container                       
    ///   @return the new container instance                                   
    LANGULUS(INLINED)
-   Any Any::FromMeta(DMeta type, const DataState& state) noexcept {
+   Any Any::FromMeta(DMeta type, DataState state) noexcept {
       return Any {Block {state, type}};
    }
 
@@ -77,7 +77,7 @@ namespace Langulus::Anyness
    ///   @param state - additional state of the container                     
    ///   @return the new container instance                                   
    LANGULUS(INLINED)
-   Any Any::FromBlock(const Block& block, const DataState& state) noexcept {
+   Any Any::FromBlock(const Block& block, DataState state) noexcept {
       return Any::FromMeta(block.GetType(), block.GetUnconstrainedState() + state);
    }
 
@@ -86,7 +86,7 @@ namespace Langulus::Anyness
    ///   @param state - additional state of the container                     
    ///   @return the new container instance                                   
    LANGULUS(INLINED)
-   Any Any::FromState(const Block& block, const DataState& state) noexcept {
+   Any Any::FromState(const Block& block, DataState state) noexcept {
       return Any::FromMeta(nullptr, block.GetUnconstrainedState() + state);
    }
 
@@ -95,7 +95,7 @@ namespace Langulus::Anyness
    ///   @param state - optional state of the container                       
    ///   @return the new container instance                                   
    template<CT::Data T> LANGULUS(INLINED)
-   Any Any::From(const DataState& state) noexcept {
+   Any Any::From(DataState state) noexcept {
       return Block {state, MetaDataOf<T>()};
    }
 

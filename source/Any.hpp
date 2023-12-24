@@ -67,7 +67,16 @@ namespace Langulus::Anyness
       Any(T1&&, TAIL&&...);
 
       ~Any();
-   
+
+      NOD() static Any FromMeta(DMeta, DataState = {}) noexcept;
+      NOD() static Any FromBlock(const Block&, DataState = {}) noexcept;
+      NOD() static Any FromState(const Block&, DataState = {}) noexcept;
+      template<CT::Data T>
+      NOD() static Any From(DataState = {}) noexcept;
+
+      template<class AS = void, CT::Data T1, CT::Data T2, CT::Data... TN>
+      NOD() static Any WrapAs(T1&&, T2&&, TN&&...);
+
       ///                                                                     
       ///   Assignment                                                        
       ///                                                                     
@@ -80,22 +89,10 @@ namespace Langulus::Anyness
       ///                                                                     
       using Block::operator ==;
 
+      template<bool REVERSE = false>
+      Index Find(const CT::Data auto&, const Offset & = 0) const;
+
    public:
-      NOD() static Any FromMeta(DMeta, const DataState& = {}) noexcept;
-      NOD() static Any FromBlock(const Block&, const DataState& = {}) noexcept;
-      NOD() static Any FromState(const Block&, const DataState& = {}) noexcept;
-      template<CT::Data T>
-      NOD() static Any From(const DataState& = {}) noexcept;
-
-      template<class AS = void, CT::Data T1, CT::Data T2, CT::Data... TN>
-      NOD() static Any WrapAs(T1&&, T2&&, TN&&...);
-
-      void Clear();
-      void Reset();
-
-      template<bool REVERSE = false, CT::Data T>
-      Index Find(const T&, const Offset& = 0) const;
-
       using Block::Swap;
       void Swap(Any&) noexcept;
 
@@ -116,6 +113,9 @@ namespace Langulus::Anyness
       ///                                                                     
       using Block::RemoveIndex;
       Iterator RemoveIt(const Iterator&, Count = 1);
+
+      void Clear();
+      void Reset();
 
       ///                                                                     
       ///   Concatenation                                                     

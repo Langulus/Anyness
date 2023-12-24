@@ -53,8 +53,7 @@ namespace Langulus::Anyness
    ///                 optimization on type checks                            
    ///   @param key - the key to search for                                   
    ///   @return true if key is found, false otherwise                        
-   template<class SET>
-   LANGULUS(INLINED)
+   template<class SET> LANGULUS(INLINED)
    bool BlockSet::Contains(const CT::NotSemantic auto& key) const {
       return FindInner<SET>(key) != InvalidOffset;
    }
@@ -64,8 +63,7 @@ namespace Langulus::Anyness
    ///                 optimization on type checks                            
    ///   @param key - the key to search for                                   
    ///   @return the index if key was found, or IndexNone if not              
-   template<class SET>
-   LANGULUS(INLINED)
+   template<class SET> LANGULUS(INLINED)
    Index BlockSet::Find(const CT::NotSemantic auto& key) const {
       const auto offset = FindInner<SET>(key);
       return offset != InvalidOffset ? Index {offset} : IndexNone;
@@ -76,8 +74,7 @@ namespace Langulus::Anyness
    ///                 optimization on type checks                            
    ///   @param key - the key to search for                                   
    ///   @return the iterator                                                 
-   template<class SET>
-   LANGULUS(INLINED)
+   template<class SET> LANGULUS(INLINED)
    BlockSet::Iterator BlockSet::FindIt(const CT::NotSemantic auto& key) {
       const auto offset = FindInner<SET>(key);
       if (offset == InvalidOffset)
@@ -94,8 +91,7 @@ namespace Langulus::Anyness
    ///                 optimization on type checks                            
    ///   @param key - the key to search for                                   
    ///   @return the iterator                                                 
-   template<class SET>
-   LANGULUS(INLINED)
+   template<class SET> LANGULUS(INLINED)
    BlockSet::ConstIterator BlockSet::FindIt(const CT::NotSemantic auto& key) const {
       return const_cast<BlockSet*>(this)->template FindIt<SET>(key);
    }

@@ -54,8 +54,8 @@ namespace Langulus::Anyness
          using ST = TypeOf<S>;
 
          if constexpr (CT::Deep<ST>) {
-            if constexpr (CT::Similar<TAny<T>, ST>) {
-               // Type is exactly the same, just transfer block         
+            if constexpr (CT::Inner::BinaryCompatible<TAny<T>, ST>) {
+               // Type is binary compatible, just transfer block        
                BlockTransfer<TAny>(S::Nest(t1));
             }
             else if constexpr (CT::Typed<ST>) {
@@ -431,10 +431,10 @@ namespace Langulus::Anyness
          return static_cast<const Decay<ALT_T>*>(&element);
       else if constexpr (CT::Sparse<T> and CT::Dense<ALT_T>)
          // Sparse -> Dense (returning a reference)                     
-         return static_cast<const Decay<ALT_T>&>(*element.mPointer);
+         return static_cast<const Decay<ALT_T>&>(*element);
       else
          // Sparse -> Sparse (returning a reference to pointer)         
-         return static_cast<const Decay<ALT_T>* const&>(element.mPointer);
+         return static_cast<const Decay<ALT_T>*>(element);
    }
 
    /// Get an element in the way you want (unsafe)                            
@@ -450,10 +450,10 @@ namespace Langulus::Anyness
          return static_cast<Decay<ALT_T>*>(&element);
       else if constexpr (CT::Sparse<T> and CT::Dense<ALT_T>)
          // Sparse -> Dense (returning a reference)                     
-         return static_cast<Decay<ALT_T>&>(*element.mPointer);
+         return static_cast<Decay<ALT_T>&>(*element);
       else
          // Sparse -> Sparse (returning a reference to pointer)         
-         return static_cast<Decay<ALT_T>*&>(element.mPointer);
+         return static_cast<Decay<ALT_T>*>(element);
    }
 
    /// Access typed dense elements by index                                   
@@ -587,8 +587,8 @@ namespace Langulus::Anyness
    requires CT::Inner::UnfoldMakableFrom<T, T1, TAIL...> LANGULUS(INLINED)
    Count TAny<T>::Insert(CT::Index auto index, T1&& t1, TAIL&&...tail) {
       Count inserted = 0;
-      inserted   += UnfoldInsert<TAny, void>(index, Forward<T1>(t1));
-      ((inserted += UnfoldInsert<TAny, void>(index + inserted, Forward<TAIL>(tail))), ...);
+      inserted   += UnfoldInsert<TAny>(index, Forward<T1>(t1));
+      ((inserted += UnfoldInsert<TAny>(index + inserted, Forward<TAIL>(tail))), ...);
       return inserted;
    }
 
@@ -598,9 +598,11 @@ namespace Langulus::Anyness
    ///   @param arguments... - the arguments for the element's constructor    
    ///   @return 1 if the item was emplaced, 0 if not                         
    TEMPLATE() template<class...A>
-   requires CT::Inner::MakableFrom<T, A...> LANGULUS(INLINED)
-   Count TAny<T>::Emplace(CT::Index auto at, A&&...arguments) {
-      return Block::Emplace<TAny>(at, Forward<A>(arguments)...);
+   requires ::std::constructible_from<T, A...> LANGULUS(INLINED)
+   Conditional<CT::Sparse<T>, T, T&>
+   TAny<T>::Emplace(CT::Index auto at, A&&...arguments) {
+      Block::Emplace<TAny>(at, Forward<A>(arguments)...);
+      return Get(mCount - 1);
    }
 
    /// Create N new elements, using default construction                      
@@ -661,18 +663,18 @@ namespace Langulus::Anyness
       return *this;
    }
 
-   /// Merge a single element by a semantic                                   
+   /// Merge elements                                                         
    /// Element will be pushed only if not found in block                      
    ///   @param index - the index at which to insert                          
    ///   @param t1 - the first item to insert                                 
    ///   @param tail... - the rest of items to insert (optional)              
-   ///   @return the number of inserted elements                              
+   ///   @return the number of inserted items                                 
    TEMPLATE() template<class T1, class...TAIL>
    requires CT::Inner::UnfoldMakableFrom<T, T1, TAIL...> LANGULUS(INLINED)
    Count TAny<T>::Merge(CT::Index auto index, T1&& t1, TAIL&&...tail) {
       Count inserted = 0;
-      inserted += UnfoldMerge(index, Forward<T1>(t1));
-      ((inserted += UnfoldMerge(index + inserted, Forward<TAIL>(tail))), ...);
+      inserted   += UnfoldMerge<TAny>(index, Forward<T1>(t1));
+      ((inserted += UnfoldMerge<TAny>(index + inserted, Forward<TAIL>(tail))), ...);
       return inserted;
    }
 

@@ -18,92 +18,77 @@ namespace Langulus::Anyness
    /// All possible ways a key and value could be inserted to the map         
    ///                                                                        
 
-   template<bool ORDERED>
-   LANGULUS(INLINED)
+   template<bool ORDERED> LANGULUS(INLINED)
    Count BlockMap::Insert(const CT::NotSemantic auto& k, const CT::NotSemantic auto& v) {
       return Insert<ORDERED>(Copy(k), Copy(v));
    }
 
-   template<bool ORDERED>
-   LANGULUS(INLINED)
+   template<bool ORDERED> LANGULUS(INLINED)
    Count BlockMap::Insert(const CT::NotSemantic auto& k, CT::NotSemantic auto& v) {
       return Insert<ORDERED>(Copy(k), Copy(v));
    }
 
-   template<bool ORDERED>
-   LANGULUS(INLINED)
+   template<bool ORDERED> LANGULUS(INLINED)
    Count BlockMap::Insert(const CT::NotSemantic auto& k, CT::NotSemantic auto&& v) {
       return Insert<ORDERED>(Copy(k), Move(v));
    }
 
-   template<bool ORDERED>
-   LANGULUS(INLINED)
+   template<bool ORDERED> LANGULUS(INLINED)
    Count BlockMap::Insert(const CT::NotSemantic auto& k, CT::Semantic auto&& v) {
       return Insert<ORDERED>(Copy(k), v.Forward());
    }
 
-   template<bool ORDERED>
-   LANGULUS(INLINED)
+   template<bool ORDERED> LANGULUS(INLINED)
    Count BlockMap::Insert(CT::NotSemantic auto& k, const CT::NotSemantic auto& v) {
       return Insert<ORDERED>(Copy(k), Copy(v));
    }
 
-   template<bool ORDERED>
-   LANGULUS(INLINED)
+   template<bool ORDERED> LANGULUS(INLINED)
    Count BlockMap::Insert(CT::NotSemantic auto& k, CT::NotSemantic auto& v) {
       return Insert<ORDERED>(Copy(k), Copy(v));
    }
 
-   template<bool ORDERED>
-   LANGULUS(INLINED)
+   template<bool ORDERED> LANGULUS(INLINED)
    Count BlockMap::Insert(CT::NotSemantic auto& k, CT::NotSemantic auto&& v) {
       return Insert<ORDERED>(Copy(k), Move(v));
    }
 
-   template<bool ORDERED>
-   LANGULUS(INLINED)
+   template<bool ORDERED> LANGULUS(INLINED)
    Count BlockMap::Insert(CT::NotSemantic auto& k, CT::Semantic auto&& v) {
       return Insert<ORDERED>(Copy(k), v.Forward());
    }
 
-   template<bool ORDERED>
-   LANGULUS(INLINED)
+   template<bool ORDERED> LANGULUS(INLINED)
    Count BlockMap::Insert(CT::NotSemantic auto&& k, const CT::NotSemantic auto& v) {
       return Insert<ORDERED>(Move(k), Copy(v));
    }
 
-   template<bool ORDERED>
-   LANGULUS(INLINED)
+   template<bool ORDERED> LANGULUS(INLINED)
    Count BlockMap::Insert(CT::NotSemantic auto&& k, CT::NotSemantic auto& v) {
       return Insert<ORDERED>(Move(k), Copy(v));
    }
 
-   template<bool ORDERED>
-   LANGULUS(INLINED)
+   template<bool ORDERED> LANGULUS(INLINED)
    Count BlockMap::Insert(CT::NotSemantic auto&& k, CT::NotSemantic auto&& v) {
       return Insert<ORDERED>(Move(k), Move(v));
    }
 
-   template<bool ORDERED>
-   LANGULUS(INLINED)
+   template<bool ORDERED> LANGULUS(INLINED)
    Count BlockMap::Insert(CT::NotSemantic auto&& k, CT::Semantic auto&& v) {
       return Insert<ORDERED>(Move(k), v.Forward());
    }
 
-   template<bool ORDERED>
-   LANGULUS(INLINED)
+   template<bool ORDERED> LANGULUS(INLINED)
    Count BlockMap::Insert(CT::Semantic auto&& k, const CT::NotSemantic auto& v) {
       return Insert<ORDERED>(k.Forward(), Copy(v));
    }
 
-   template<bool ORDERED>
-   LANGULUS(INLINED)
+   template<bool ORDERED> LANGULUS(INLINED)
    Count BlockMap::Insert(CT::Semantic auto&& k, CT::NotSemantic auto& v) {
       return Insert<ORDERED>(k.Forward(), Copy(v));
    }
 
-   template<bool ORDERED>
-   LANGULUS(INLINED)
+   template<bool ORDERED> LANGULUS(INLINED)
    Count BlockMap::Insert(CT::Semantic auto&& k, CT::NotSemantic auto&& v) {
       return Insert<ORDERED>(k.Forward(), Move(v));
    }
@@ -112,8 +97,7 @@ namespace Langulus::Anyness
    ///   @param key - the key to insert                                       
    ///   @param value - the value to insert                                   
    ///   @return 1 if pair was inserted, zero otherwise                       
-   template<bool ORDERED>
-   LANGULUS(INLINED)
+   template<bool ORDERED> LANGULUS(INLINED)
    Count BlockMap::Insert(CT::Semantic auto&& key, CT::Semantic auto&& value) {
       using SK = Decay<decltype(key)>;
       using SV = Decay<decltype(value)>;
@@ -134,8 +118,7 @@ namespace Langulus::Anyness
    ///   @param key - the key to insert                                       
    ///   @param value - the value to insert                                   
    ///   @return 1 if pair was inserted or value was overwritten              
-   template<bool ORDERED>
-   LANGULUS(INLINED)
+   template<bool ORDERED> LANGULUS(INLINED)
    Count BlockMap::InsertBlock(CT::Semantic auto&& key, CT::Semantic auto&& val) {
       using SK = Decay<decltype(key)>;
       using SV = Decay<decltype(val)>;
@@ -154,20 +137,17 @@ namespace Langulus::Anyness
       return 1;
    }
    
-   template<bool ORDERED>
-   LANGULUS(INLINED)
+   template<bool ORDERED> LANGULUS(INLINED)
    Count BlockMap::InsertPair(const CT::Pair auto& pair) {
       return InsertPair<ORDERED>(Copy(pair));
    }
 
-   template<bool ORDERED>
-   LANGULUS(INLINED)
+   template<bool ORDERED> LANGULUS(INLINED)
    Count BlockMap::InsertPair(CT::Pair auto& pair) {
       return InsertPair<ORDERED>(Copy(pair));
    }
 
-   template<bool ORDERED>
-   LANGULUS(INLINED)
+   template<bool ORDERED> LANGULUS(INLINED)
    Count BlockMap::InsertPair(CT::Pair auto&& pair) {
       return InsertPair<ORDERED>(Move(pair));
    }
@@ -176,8 +156,7 @@ namespace Langulus::Anyness
    ///   @tparam ORDERED - the bucketing approach to use                      
    ///   @param pair - the pair to insert                                     
    ///   @return 1 if pair was inserted, zero otherwise                       
-   template<bool ORDERED>
-   LANGULUS(INLINED)
+   template<bool ORDERED> LANGULUS(INLINED)
    Count BlockMap::InsertPair(CT::Semantic auto&& pair) {
       using S = Decay<decltype(pair)>;
       using T = TypeOf<S>;
@@ -192,8 +171,7 @@ namespace Langulus::Anyness
    ///   @tparam ORDERED - the bucketing approach to use                      
    ///   @param pair - the pair to insert                                     
    ///   @return 1 if pair was inserted or value was overwritten              
-   template<bool ORDERED>
-   LANGULUS(INLINED)
+   template<bool ORDERED> LANGULUS(INLINED)
    Count BlockMap::InsertPairBlock(CT::Semantic auto&& pair) {
       using S = Decay<decltype(pair)>;
       using T = TypeOf<S>;

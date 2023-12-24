@@ -161,32 +161,28 @@ namespace Langulus::Anyness
 
    /// Get the templated key container                                        
    ///   @attention for internal use only, elements might not be initialized  
-   template<CT::Data K>
-   LANGULUS(INLINED)
+   template<CT::Data K> LANGULUS(INLINED)
    const TAny<K>& BlockMap::GetKeys() const noexcept {
       return reinterpret_cast<const TAny<K>&>(mKeys);
    }
 
    /// Get the templated key container                                        
    ///   @attention for internal use only, elements might not be initialized  
-   template<CT::Data K>
-   LANGULUS(INLINED)
+   template<CT::Data K> LANGULUS(INLINED)
    TAny<K>& BlockMap::GetKeys() noexcept {
       return reinterpret_cast<TAny<K>&>(mKeys);
    }
 
    /// Get the templated values container                                     
    ///   @attention for internal use only, elements might not be initialized  
-   template<CT::Data V>
-   LANGULUS(INLINED)
+   template<CT::Data V> LANGULUS(INLINED)
    const TAny<V>& BlockMap::GetValues() const noexcept {
       return reinterpret_cast<const TAny<V>&>(mValues);
    }
 
    /// Get the templated values container                                     
    ///   @attention for internal use only, elements might not be initialized  
-   template<CT::Data V>
-   LANGULUS(INLINED)
+   template<CT::Data V> LANGULUS(INLINED)
    TAny<V>& BlockMap::GetValues() noexcept {
       return reinterpret_cast<TAny<V>&>(mValues);
    }

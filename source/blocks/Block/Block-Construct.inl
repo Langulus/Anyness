@@ -74,7 +74,7 @@ namespace Langulus::A
    ///   @param entry - the memory entry                                      
    LANGULUS(INLINED)
    Block::Block(const DataState& state, DMeta meta, Count count, void* raw, const Allocation* entry)
-      IF_UNSAFE(noexcept)
+   IF_UNSAFE(noexcept)
       : mRaw {static_cast<Byte*>(raw)}
       , mState {state}
       , mCount {count}
@@ -105,82 +105,12 @@ namespace Langulus::A
 
 namespace Langulus::Anyness
 {
-
-   /// Manual construction via type                                           
-   ///   @param meta - the type of the memory block                           
-   /*LANGULUS(INLINED)
-   constexpr Block::Block(DMeta meta) noexcept
-      : A::Block {meta} {}
-
-   /// Manual construction via state and type                                 
-   ///   @param state - the initial state of the container                    
-   ///   @param meta - the type of the memory block                           
-   LANGULUS(INLINED)
-   constexpr Block::Block(const DataState& state, DMeta meta) noexcept
-      : A::Block {state, meta} {}
-   
-   /// Manual construction via state and a reflected constant                 
-   ///   @param state - the initial state of the container                    
-   ///   @param meta - the constant definition                                
-   LANGULUS(INLINED)
-   Block::Block(const DataState& state, CMeta meta) IF_UNSAFE(noexcept)
-      : A::Block {state, meta} {}
-   
-   /// Manual construction from mutable data                                  
-   /// This constructor has runtime overhead if managed memory is enabled     
-   ///   @attention assumes data is not sparse                                
-   ///   @param state - the initial state of the container                    
-   ///   @param meta - the type of the memory block                           
-   ///   @param count - initial element count and reserve                     
-   ///   @param raw - pointer to the mutable memory                           
-   LANGULUS(INLINED)
-   Block::Block(const DataState& state, DMeta meta, Count count, void* raw)
-      IF_UNSAFE(noexcept)
-      : A::Block {state, meta, count, raw} {}
-   
-   /// Manual construction from constant data                                 
-   /// This constructor has runtime overhead if managed memory is enabled     
-   ///   @attention assumes data is not sparse                                
-   ///   @param state - the initial state of the container                    
-   ///   @param meta - the type of the memory block                           
-   ///   @param count - initial element count and reserve                     
-   ///   @param raw - pointer to the constant memory                          
-   LANGULUS(INLINED)
-   Block::Block(const DataState& state, DMeta meta, Count count, const void* raw)
-      IF_UNSAFE(noexcept)
-      : A::Block {state, meta, count, raw} {}
-
-   /// Manual construction from mutable data and known entry                  
-   ///   @attention assumes data is not sparse                                
-   ///   @param state - the initial state of the container                    
-   ///   @param meta - the type of the memory block                           
-   ///   @param count - initial element count and reserve                     
-   ///   @param raw - pointer to the mutable memory                           
-   ///   @param entry - the memory entry                                      
-   LANGULUS(INLINED)
-   Block::Block(const DataState& state, DMeta meta, Count count, void* raw, const Allocation* entry)
-      IF_UNSAFE(noexcept)
-      : A::Block {state, meta, count, raw, entry} {}
-   
-   /// Manual construction from constant data and known entry                 
-   ///   @attention assumes data is not sparse                                
-   ///   @param state - the initial state of the container                    
-   ///   @param meta - the type of the memory block                           
-   ///   @param count - initial element count and reserve                     
-   ///   @param raw - pointer to the constant memory                          
-   ///   @param entry - the memory entry                                      
-   LANGULUS(INLINED)
-   Block::Block(const DataState& state, DMeta meta, Count count, const void* raw, const Allocation* entry)
-      IF_UNSAFE(noexcept)
-      : A::Block {state, meta, count, raw, entry} {}*/
    
    /// Create a dense memory block, by interfacing a single pointer           
    ///   @tparam CONSTRAIN - makes container type-constrained                 
-   ///   @tparam T - the type of the pointer to wrap (deducible)              
    ///   @param value - the pointer to interface                              
    ///   @return the block                                                    
-   template<bool CONSTRAIN, CT::Data T>
-   LANGULUS(INLINED)
+   template<bool CONSTRAIN, CT::Data T> LANGULUS(INLINED)
    Block Block::From(T value) requires CT::Sparse<T> {
       if constexpr (CONSTRAIN)
          return {DataState::Member, MetaDataOf<Deptr<T>>(), 1, value};
@@ -190,12 +120,10 @@ namespace Langulus::Anyness
 
    /// Create a memory block from a count-terminated array pointer            
    ///   @tparam CONSTRAIN - makes container type-constrained                 
-   ///   @tparam T - the type of the pointer to wrap (deducible)              
    ///   @param value - the pointer to the first element                      
    ///   @param count - the number of elements                                
    ///   @return the block                                                    
-   template<bool CONSTRAIN, CT::Data T>
-   LANGULUS(INLINED)
+   template<bool CONSTRAIN, CT::Data T> LANGULUS(INLINED)
    Block Block::From(T value, Count count) requires CT::Sparse<T> {
       if constexpr (CONSTRAIN)
          return {DataState::Member, MetaDataOf<Deptr<T>>(), count, value};
@@ -209,10 +137,8 @@ namespace Langulus::Anyness
    /// Anything else will be interfaced via a new Block                       
    ///   @attention value's memory lifetime is your responsibility            
    ///   @tparam CONSTRAIN - makes container type-constrained                 
-   ///   @tparam T - the type of the value to wrap (deducible)                
    ///   @return a block that wraps the dense value                           
-   template<bool CONSTRAIN, CT::Data T>
-   LANGULUS(INLINED)
+   template<bool CONSTRAIN, CT::Data T> LANGULUS(INLINED)
    Block Block::From(T& value) requires CT::Dense<T> {
       Block result;
       if constexpr (CT::Resolvable<T>) {
@@ -225,7 +151,7 @@ namespace Langulus::Anyness
       }
       else {
          // Any other value gets wrapped inside a temporary Block       
-         result = {
+         result = Block {
             DataState::Static, 
             MetaDataOf<Decvq<Deref<T>>>(),
             1, &value
@@ -255,8 +181,7 @@ namespace Langulus::Anyness
    ///   @attention will not set mRaw, mReserved, mEntry, if 'from' is empty  
    ///   @tparam TO - the type of block we're transferring to                 
    ///   @param from - the block and semantic to transfer from                
-   template<class TO>
-   LANGULUS(INLINED)
+   template<class TO> LANGULUS(INLINED)
    void Block::BlockTransfer(CT::Semantic auto&& from) {
       using S = Decay<decltype(from)>;
       using FROM = TypeOf<S>;
@@ -344,7 +269,7 @@ namespace Langulus::Anyness
       if constexpr (CT::Deep<T>)
          BlockTransfer<Any>(other.Forward());
       else
-         UnfoldInsertion<false>(0, other.Forward());
+         UnfoldInsert<false>(0, other.Forward());
    }
 
    /// Swap contents of this block, with the contents of another, using       
