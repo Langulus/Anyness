@@ -490,8 +490,8 @@ namespace Langulus::Anyness
    ///   @tparam T - the type to use for comparison                           
    ///   @tparam INDEX - either IndexBiggest or IndexSmallest                 
    ///   @return the index of the biggest element T inside this block         
-   template<CT::Data T, Index INDEX> LANGULUS(INLINED)
-   Index Block::GetIndex() const IF_UNSAFE(noexcept) requires (CT::Sortable<T, T>) {
+   template<CT::Data T, Index INDEX> requires CT::Sortable<T, T>
+   LANGULUS(INLINED) Index Block::GetIndex() const IF_UNSAFE(noexcept) {
       if (IsEmpty())
          return IndexNone;
 

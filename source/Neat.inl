@@ -57,8 +57,7 @@ namespace Langulus::Anyness
    ///   @tparam S - semantic to use (deducible)                              
    ///   @param other - normalized descriptor to assign                       
    ///   @return a reference to this descriptor                               
-   template<template<class> class S>
-   LANGULUS(INLINED)
+   template<template<class> class S> LANGULUS(INLINED)
    Neat& Neat::operator = (S<Neat>&& other) requires CT::Semantic<S<Neat>> {
       mTraits = S<Neat>::Nest(other->mTraits);
       mConstructs = S<Neat>::Nest(other->mConstructs);
@@ -251,10 +250,9 @@ namespace Langulus::Anyness
    ///   @return the trait list, or nullptr if no such list exists            
    ///   @attention the list can be empty, if trait was provided with no      
    ///              contents                                                  
-   template<CT::Trait T>
-   LANGULUS(INLINED)
+   template<CT::Trait T> LANGULUS(INLINED)
    TAny<Any>* Neat::GetTraits() {
-      return GetTraits(T::GetTrait());
+      return GetTraits(MetaTraitOf<T>());
    }
 
    /// Get list of traits, corresponding to a static trait (const)            
@@ -262,10 +260,9 @@ namespace Langulus::Anyness
    ///   @return the trait list, or nullptr if no such list exists            
    ///   @attention the list can be empty, if trait was provided with no      
    ///              contents                                                  
-   template<CT::Trait T>
-   LANGULUS(INLINED)
+   template<CT::Trait T> LANGULUS(INLINED)
    const TAny<Any>* Neat::GetTraits() const {
-      return GetTraits(T::GetTrait());
+      return GetTraits(MetaTraitOf<T>());
    }
    
    /// Get list of traits, corresponding to a type                            
@@ -279,7 +276,6 @@ namespace Langulus::Anyness
       auto found = mTraits.Find(t);
       if (not found)
          return nullptr;
-      
       return &mTraits.GetValue(found);
    }
 
@@ -296,8 +292,7 @@ namespace Langulus::Anyness
    /// Get list of data, corresponding to a static type                       
    ///   @tparam T - type to search for                                       
    ///   @return the data list, or nullptr if no such list exists             
-   template<CT::Data T>
-   LANGULUS(INLINED)
+   template<CT::Data T> LANGULUS(INLINED)
    TAny<Messy>* Neat::GetData() {
       return GetData(MetaDataOf<Decay<T>>());
    }
@@ -305,8 +300,7 @@ namespace Langulus::Anyness
    /// Get list of data, corresponding to a static type (const)               
    ///   @tparam T - type to search for                                       
    ///   @return the data list, or nullptr if no such list exists             
-   template<CT::Data T>
-   LANGULUS(INLINED)
+   template<CT::Data T> LANGULUS(INLINED)
    const TAny<Messy>* Neat::GetData() const {
       return GetData(MetaDataOf<Decay<T>>());
    }
@@ -319,7 +313,6 @@ namespace Langulus::Anyness
       auto found = mAnythingElse.Find(d ? d->mOrigin : nullptr);
       if (not found)
          return nullptr;
-      
       return &mAnythingElse.GetValue(found);
    }
 
@@ -334,8 +327,7 @@ namespace Langulus::Anyness
    /// Get list of constructs, corresponding to a static type                 
    ///   @tparam T - type to search for                                       
    ///   @return the construct list, or nullptr if no such list exists        
-   template<CT::Data T>
-   LANGULUS(INLINED)
+   template<CT::Data T> LANGULUS(INLINED)
    TAny<Inner::DeConstruct>* Neat::GetConstructs() {
       return GetConstructs(MetaDataOf<Decay<T>>());
    }
@@ -343,8 +335,7 @@ namespace Langulus::Anyness
    /// Get list of constructs, corresponding to a static type (const)         
    ///   @tparam T - type to search for                                       
    ///   @return the construct list, or nullptr if no such list exists        
-   template<CT::Data T>
-   LANGULUS(INLINED)
+   template<CT::Data T> LANGULUS(INLINED)
    const TAny<Inner::DeConstruct>* Neat::GetConstructs() const {
       return GetConstructs(MetaDataOf<Decay<T>>());
    }
@@ -357,7 +348,6 @@ namespace Langulus::Anyness
       auto found = mConstructs.Find(d ? d->mOrigin : nullptr);
       if (not found)
          return nullptr;
-      
       return &mConstructs.GetValue(found);
    }
 
@@ -373,8 +363,7 @@ namespace Langulus::Anyness
    //TODO isn't this like simply merge?? also make merge test only by trait id when merging traits!
    ///   @tparam T - trait to set                                             
    ///   @param value - the value to assign                                   
-   template<CT::Trait T>
-   LANGULUS(INLINED)
+   template<CT::Trait T> LANGULUS(INLINED)
    void Neat::SetDefaultTrait(CT::Data auto&& value) {
       auto found = GetTraits<T>();
       if (found and *found)
@@ -386,19 +375,17 @@ namespace Langulus::Anyness
    /// Overwrite trait, or add a new one, if not already set                  
    ///   @tparam T - trait to set                                             
    ///   @param value - the value to assign                                   
-   template<CT::Trait T>
-   LANGULUS(INLINED)
+   template<CT::Trait T> LANGULUS(INLINED)
    void Neat::OverwriteTrait(CT::Data auto&& value) {
       // Trait was found, overwrite it                                  
-      mTraits[T::GetTrait()] = ::std::move(value);
+      mTraits[MetaTraitOf<T>()] = ::std::move(value);
    }
 
    /// Extract a trait from the descriptor                                    
    ///   @tparam T... - trait(s) we're searching for                          
    ///   @param values - [out] where to save the value, if found              
    ///   @return true if value changed                                        
-   template<CT::Trait... T>
-   LANGULUS(INLINED)
+   template<CT::Trait...T> LANGULUS(INLINED)
    bool Neat::ExtractTrait(CT::Data auto&... values) const {
       return (ExtractTraitInner<T>(values...) or ...);
    }
@@ -407,8 +394,7 @@ namespace Langulus::Anyness
    ///   @tparam T - trait we're searching for                                
    ///   @param values - [out] where to save the value, if found              
    ///   @return true if value changed                                        
-   template<CT::Trait T>
-   LANGULUS(INLINED)
+   template<CT::Trait T> LANGULUS(INLINED)
    bool Neat::ExtractTraitInner(CT::Data auto&... values) const {
       auto found = GetTraits<T>();
       if (found) {
@@ -422,7 +408,7 @@ namespace Langulus::Anyness
    }
 
    ///                                                                        
-   template<Offset... IDX>
+   template<Offset...IDX>
    bool Neat::ExtractTraitInner(
       const TAny<Any>& found, 
       ::std::integer_sequence<Offset, IDX...>, 
@@ -521,9 +507,9 @@ namespace Langulus::Anyness
          const auto meta = MetaDataOf<Decay<T>>();
          const auto found = mAnythingElse.FindIt(meta);
          if (found)
-            found->mValue << Messy {item.Forward()};
+            found->mValue << Messy {S::Nest(item)};
          else
-            mAnythingElse.Insert(meta, TAny<Messy> {Messy {item.Forward()}});
+            mAnythingElse.Insert(meta, TAny<Messy> {Messy {S::Nest(item)}});
       }
 
       // Demand a new hash on the next compare                          
@@ -534,7 +520,7 @@ namespace Langulus::Anyness
    ///   @param item - the argument to unfold and insert, can be semantic     
    ///   @return the number of inserted elements after unfolding              
    LANGULUS(INLINED)
-   Count Neat::UnfoldInsertion(auto&& item) {
+   Count Neat::UnfoldInsert(auto&& item) {
       using S = SemanticOf<decltype(item)>;
       using T = TypeOf<S>;
 
@@ -548,7 +534,7 @@ namespace Langulus::Anyness
             // Unfold-insert anything else                              
             Count inserted = 0;
             for (auto& key : item)
-               inserted += UnfoldInsertion(S::Nest(key));
+               inserted += UnfoldInsert(S::Nest(key));
             return inserted;
          }
       }
@@ -556,7 +542,7 @@ namespace Langulus::Anyness
          // Insert Neat, by inserting each element from it              
          Count inserted = 0;
          DesemCast(item).ForEach([&](const Any& subitem) {
-            inserted += UnfoldInsertion(
+            inserted += UnfoldInsert(
                S::Nest(const_cast<Any&>(subitem)));
          });
          return inserted;
@@ -572,7 +558,7 @@ namespace Langulus::Anyness
             // Item is deep, flatten it                                 
             Count inserted = 0;
             DesemCast(item).ForEach([&](const Any& subitem) {
-               inserted += UnfoldInsertion(
+               inserted += UnfoldInsert(
                   S::Nest(const_cast<Any&>(subitem)));
             });
             return inserted;
@@ -584,7 +570,7 @@ namespace Langulus::Anyness
                   InsertInner(S::Nest(const_cast<Construct&>(c)));
                },
                [&](const Neat& neat) {
-                  UnfoldInsertion(S::Nest(const_cast<Neat&>(neat)));
+                  UnfoldInsert(S::Nest(const_cast<Neat&>(neat)));
                },
                [&](const Trait& trait) {
                   InsertInner(S::Nest(const_cast<Trait&>(trait)));
@@ -617,8 +603,8 @@ namespace Langulus::Anyness
    template<class T1, class... TAIL> LANGULUS(INLINED)
    Count Neat::Insert(T1&& t1, TAIL&&...tail) {
       Count inserted = 0;
-      inserted += UnfoldInsertion(Forward<T1>(t1));
-      ((inserted += UnfoldInsertion(Forward<TAIL>(tail))), ...);
+      inserted   += UnfoldInsert(Forward<T1>(t1));
+      ((inserted += UnfoldInsert(Forward<TAIL>(tail))), ...);
       return inserted;
    }
    
@@ -637,35 +623,36 @@ namespace Langulus::Anyness
    ///   @return a reference to this Neat container                           
    LANGULUS(INLINED)
    Neat& Neat::operator <<= (auto&& rhs) {
-      using S = Decay<decltype(rhs)>;
+      using S = SemanticOf<decltype(rhs)>;
       using T = TypeOf<S>;
+      decltype(auto) rhsd = DesemCast(rhs);
 
       if constexpr (CT::TraitBased<T>) {
          // Check if the trait already exists, before pushing it        
-         if (not GetTraits(rhs->GetTrait()))
-            return operator << (rhs.Forward());
+         if (not GetTraits(rhsd.GetTrait()))
+            return operator << (S::Nest(rhs));
       }
       else if constexpr (CT::Same<T, TMeta>) {
          // Check if the trait already exists, before pushing it        
-         if (not GetTraits(SparseCast(*rhs)))
-            return operator << (rhs.Forward());
+         if (not GetTraits(rhsd))
+            return operator << (S::Nest(rhs));
       }
       else if constexpr (CT::Construct<T>) {
          // Check if the construct already exists, before pushing it    
-         if (not GetConstructs(rhs->GetType()))
-            return operator << (rhs.Forward());
+         if (not GetConstructs(rhsd.GetType()))
+            return operator << (S::Nest(rhs));
       }
       else if constexpr (CT::Same<T, DMeta>) {
          // Check if the construct already exists, before pushing it    
-         if (not GetData(SparseCast(*rhs)))
-            return operator << (rhs.Forward());
+         if (not GetData(rhsd))
+            return operator << (S::Nest(rhs));
       }
       else if constexpr (CT::Deep<T>) {
          // Check anything deep here, flattening it, unless it is OR    
-         if (rhs->GetUnsconstrainedState())
-            return operator << (rhs.Forward());
+         if (rhsd.GetUnsconstrainedState())
+            return operator << (S::Nest(rhs));
 
-         rhs->ForEach([&](const Any& group) {
+         rhsd.ForEach([&](const Any& group) {
             if (not GetData(group.GetType()))
                operator << (S::Nest(const_cast<Any&>(group)));
          });
@@ -673,35 +660,9 @@ namespace Langulus::Anyness
       else {
          // Check anything else                                         
          if (not GetData<T>())
-            return operator << (rhs.Forward());
+            return operator << (S::Nest(rhs));
       }
 
-      return *this;
-   }
-
-   /// Set a tagged argument inside constructor by shallow copy               
-   ///   @attention hash will be recomputed on demand                         
-   ///   @param trait - trait to set                                          
-   ///   @param index - the index we're interested with if repeated           
-   ///   @return a reference to this construct for chaining                   
-   inline Neat& Neat::Set(const Trait& trait, const Offset& index) {
-      const auto meta = trait.GetTrait();
-      auto found = mTraits.FindIt(meta);
-
-      if (found) {
-         // A group of similar traits was found                         
-         auto& group = found->mValue;
-         if (group.GetCount() > index)
-            group[index] = static_cast<const Any&>(trait);
-         else
-            group << static_cast<const Any&>(trait);
-      }
-      else {
-         // If reached, a new trait group to be inserted                
-         mTraits.Insert(meta, static_cast<const Any&>(trait));
-      }
-
-      mHash = {};
       return *this;
    }
    
@@ -710,7 +671,7 @@ namespace Langulus::Anyness
    ///   @param trait - trait to set                                          
    ///   @param index - the index we're interested with if repeated           
    ///   @return a reference to this construct for chaining                   
-   inline Neat& Neat::Set(Trait&& trait, const Offset& index) {
+   inline Neat& Neat::Set(CT::TraitBased auto&& trait, Offset index) {
       const auto meta = trait.GetTrait();
       auto found = mTraits.FindIt(meta);
 
@@ -832,7 +793,7 @@ namespace Langulus::Anyness
    ///   @param index - the index we're interested in, if repeated            
    ///   @return selected data or nullptr if none was found                   
    ///   @attention if not nullptr, returned Any might contain a Neat         
-   inline const Any* Neat::Get(TMeta meta, const Offset& index) const {
+   inline const Any* Neat::Get(TMeta meta, Offset index) const {
       auto found = mTraits.FindIt(meta);
       if (found) {
          auto& group = found->mValue;
@@ -848,10 +809,9 @@ namespace Langulus::Anyness
    ///   @tparam T - the type of trait to search for                          
    ///   @return selected data or nullptr if none was found                   
    ///   @attention if not nullptr, returned Any might contain a Neat         
-   template<CT::Trait T>
-   LANGULUS(INLINED)
-   const Any* Neat::Get(const Offset& index) const {
-      return Get(T::GetTrait(), index);
+   template<CT::Trait T> LANGULUS(INLINED)
+   const Any* Neat::Get(Offset index) const {
+      return Get(MetaTraitOf<T>(), index);
    }
 
    /// Iterate through all relevant bucketed items                            
@@ -1331,15 +1291,13 @@ namespace Langulus::Anyness
 
 
 
-
    template<template<class> class S>
-   Inner::DeConstruct::DeConstruct(const Hash& hash, const Charge& charge, S<Neat>&& data)
+   Inner::DeConstruct::DeConstruct(Hash hash, const Charge& charge, S<Neat>&& data)
       : mHash {hash}
       , mCharge {charge}
       , mData {data.Forward()} {}
 
-   template<template<class> class S>
-   LANGULUS(INLINED)
+   template<template<class> class S> LANGULUS(INLINED)
    Inner::DeConstruct::DeConstruct(S<DeConstruct>&& other)
       : mHash {other->mHash}
       , mCharge {other->mCharge}

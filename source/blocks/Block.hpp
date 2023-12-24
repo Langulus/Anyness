@@ -180,6 +180,11 @@ namespace Langulus
       template<class... T>
       concept Deep = ((Block<T> and Decay<T>::CTTI_Deep) and ...);
 
+      /// Check if Ts can be deepened 'WITH' the provided type                
+      template<class WITH, class... T>
+      concept CanBeDeepened = Deep<T...> and not CT::Void<WITH>
+          and ((not CT::Typed<T> or CT::Similar<WITH, TypeOf<T>>) and ...);
+
       /// Type that is not deep, see CT::Deep                                 
       template<class... T>
       concept Flat = ((not Deep<T>) and ...);
@@ -457,7 +462,9 @@ namespace Langulus::Anyness
       void Swap(CT::Index auto, CT::Index auto);
 
       template<CT::Data T, Index INDEX>
-      NOD() Index GetIndex() const IF_UNSAFE(noexcept) requires (CT::Sortable<T, T>);
+      requires CT::Sortable<T, T>
+      NOD() Index GetIndex() const IF_UNSAFE(noexcept);
+
       template<CT::Data>
       NOD() Index GetIndexMode(Count&) const IF_UNSAFE(noexcept);
 
@@ -476,7 +483,8 @@ namespace Langulus::Anyness
       NOD() Block Prev() const IF_UNSAFE(noexcept);
 
       template<class, bool COUNT_CONSTRAINED = true, CT::Index INDEX>
-      Offset SimplifyIndex(const INDEX&) const noexcept(not LANGULUS_SAFE() and CT::Unsigned<INDEX>);
+      Offset SimplifyIndex(const INDEX&) const
+      noexcept(not LANGULUS_SAFE() and CT::Unsigned<INDEX>);
 
    public:
       ///                                                                     
@@ -564,12 +572,12 @@ namespace Langulus::Anyness
       NOD() Block GetMember(::std::nullptr_t);
       NOD() Block GetMember(::std::nullptr_t) const;
 
-      NOD() Block GetMember(TMeta, const CT::Index auto&);
-      NOD() Block GetMember(TMeta, const CT::Index auto&) const;
-      NOD() Block GetMember(DMeta, const CT::Index auto&);
-      NOD() Block GetMember(DMeta, const CT::Index auto&) const;
-      NOD() Block GetMember(::std::nullptr_t, const CT::Index auto&);
-      NOD() Block GetMember(::std::nullptr_t, const CT::Index auto&) const;
+      NOD() Block GetMember(TMeta, CT::Index auto);
+      NOD() Block GetMember(TMeta, CT::Index auto) const;
+      NOD() Block GetMember(DMeta, CT::Index auto);
+      NOD() Block GetMember(DMeta, CT::Index auto) const;
+      NOD() Block GetMember(::std::nullptr_t, CT::Index auto);
+      NOD() Block GetMember(::std::nullptr_t, CT::Index auto) const;
    
       NOD() Block GetBaseMemory(DMeta, const RTTI::Base&);
       NOD() Block GetBaseMemory(DMeta, const RTTI::Base&) const;
@@ -663,15 +671,15 @@ namespace Langulus::Anyness
       Count Insert(CT::Index auto, T1&&, TAIL&&...);
 
       template<CT::Block THIS = Any, class FORCE = Any, class T>
-      Count InsertBlock(CT::Index auto, T&&)
-      requires CT::Block<Desem<T>>;
+      requires CT::Block<Desem<T>>
+      Count InsertBlock(CT::Index auto, T&&);
 
       template<CT::Block THIS = Any, class FORCE = Any, class T1, class...TAIL>
       Count Merge(CT::Index auto, T1&&, TAIL&&...);
 
       template<CT::Block THIS = Any, class FORCE = Any, class T>
-      Count MergeBlock(CT::Index auto, T&&)
-      requires CT::Block<Desem<T>>;
+      requires CT::Block<Desem<T>>
+      Count MergeBlock(CT::Index auto, T&&);
    
       template<CT::Block THIS = Any, class...A>
       Count Emplace(CT::Index auto, A&&...);
@@ -682,13 +690,14 @@ namespace Langulus::Anyness
       template<bool CONCAT = true, class FORCE = Any, CT::Block THIS = Any>
       Count SmartPush(CT::Index auto, auto&&, DataState = {});
 
-      template<CT::Deep T, bool TRANSFER_OR = true, CT::Block THIS = Any>
+      template<CT::Deep T, bool TRANSFER_OR = true, CT::Block THIS>
+      requires CT::CanBeDeepened<T, THIS>
       T& Deepen();
 
    protected:
       template<CT::Block THIS, class FORCE = Any, template<class> class S, CT::Sparse T1, CT::Sparse T2>
-      void InsertContiguousInner(CT::Index auto, S<T1>&&, T2)
-      requires (CT::Semantic<S<T1>> and CT::Similar<T1, T2>);
+      requires (CT::Semantic<S<T1>> and CT::Similar<T1, T2>)
+      void InsertContiguousInner(CT::Index auto, S<T1>&&, T2);
 
       template<CT::Block THIS, class FORCE = Any>
       void InsertInner(CT::Index auto, auto&&);
@@ -702,15 +711,16 @@ namespace Langulus::Anyness
       Count UnfoldMerge(CT::Index auto, auto&&);
 
       template<CT::Block THIS, class FORCE = Any, template<class> class S, CT::Deep T>
-      Count SmartConcat(const CT::Index auto, bool, S<T>&&, DataState)
-      requires CT::Semantic<S<T>>;
+      requires CT::Semantic<S<T>>
+      Count SmartConcat(const CT::Index auto, bool, S<T>&&, DataState);
 
       template<CT::Block THIS, class FORCE = Any, template<class> class S, class T>
-      Count SmartPushInner(const CT::Index auto, S<T>&&, DataState)
-      requires CT::Semantic<S<T>>;
+      requires CT::Semantic<S<T>>
+      Count SmartPushInner(const CT::Index auto, S<T>&&, DataState);
 
       template<CT::Block THIS, template<class> class S, CT::Block T>
-      THIS ConcatBlock(S<T>&&) const requires CT::Semantic<S<T>>;
+      requires CT::Semantic<S<T>>
+      THIS ConcatBlock(S<T>&&) const;
 
       void CallUnknownDefaultConstructors(Count) const;
       template<CT::Data T>
@@ -741,7 +751,7 @@ namespace Langulus::Anyness
       ///                                                                     
       template<bool REVERSE = false>
       Count Remove(const CT::Data auto&);
-      Count RemoveIndex(const CT::Index auto&, Count = 1);
+      Count RemoveIndex(CT::Index auto, Count = 1);
       Count RemoveIndexDeep(CT::Index auto);
    
       void Trim(Count);

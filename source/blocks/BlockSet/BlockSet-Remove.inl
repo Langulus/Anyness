@@ -19,8 +19,7 @@ namespace Langulus::Anyness
    ///                 and as runtime optimization                            
    ///   @param key - the key to search for                                   
    ///   @return the number of removed pairs                                  
-   template<class SET>
-   LANGULUS(INLINED)
+   template<class SET> LANGULUS(INLINED)
    Count BlockSet::Remove(const CT::NotSemantic auto& key) {
       static_assert(CT::Set<SET>, "SET must be a set type");
       using K = Deref<decltype(key)>;
@@ -50,8 +49,7 @@ namespace Langulus::Anyness
    ///                 and as runtime optimization                            
    ///   @param key - the key to search for                                   
    ///   @return 1 if pair was removed                                        
-   template<class SET>
-   LANGULUS(INLINED)
+   template<class SET> LANGULUS(INLINED)
    Count BlockSet::RemoveKeyInner(const CT::NotSemantic auto& key) {
       static_assert(CT::Set<SET>, "SET must be a set type");
       using K = Deref<decltype(key)>;
@@ -160,8 +158,7 @@ namespace Langulus::Anyness
    /// Clears all data, but doesn't deallocate                                
    ///   @tparam SET - set we're searching in, potentially providing runtime  
    ///                 optimization on type checks                            
-   template<class SET>
-   LANGULUS(INLINED)
+   template<class SET> LANGULUS(INLINED)
    void BlockSet::Clear() {
       if (IsEmpty())
          return;
@@ -186,8 +183,7 @@ namespace Langulus::Anyness
    /// Clears all data and deallocates                                        
    ///   @tparam SET - set we're searching in, potentially providing runtime  
    ///                 optimization on type checks                            
-   template<class SET>
-   LANGULUS(INLINED)
+   template<class SET> LANGULUS(INLINED)
    void BlockSet::Reset() {
       static_assert(CT::Set<SET>, "SET must be a set type");
       
@@ -222,8 +218,7 @@ namespace Langulus::Anyness
    ///   @tparam SET - set we're searching in, potentially providing runtime  
    ///                 optimization on type checks                            
    ///   @attention assumes there's at least one valid key                    
-   template<class SET>
-   LANGULUS(INLINED)
+   template<class SET> LANGULUS(INLINED)
    void BlockSet::ClearInner() {
       LANGULUS_ASSUME(DevAssumes, not IsEmpty(), "Set is empty");
       static_assert(CT::Set<SET>, "SET must be a set type");

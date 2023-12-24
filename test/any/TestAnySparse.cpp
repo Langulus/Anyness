@@ -539,24 +539,24 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
       
       WHEN("Insert single item at a specific place by shallow-copy") {
          const auto i666 = CreateElement<E>(666);
-         REQUIRE_THROWS(pack.InsertAt(i666, 0));
+         REQUIRE_THROWS(pack.Insert(0, i666));
          CheckState_Default<E>(pack);
       }
 
       WHEN("Insert multiple items at a specific place by shallow-copy") {
-         REQUIRE_THROWS(pack.InsertAt(darray2, darray2 + 5, 0));
+         REQUIRE_THROWS(pack.Insert(0, darray2));
          CheckState_Default<E>(pack);
       }
 
       WHEN("Insert single item at a specific place by move") {
          auto i666 = CreateElement<E>(666);
-         REQUIRE_THROWS(pack.InsertAt(::std::move(i666), 0));
+         REQUIRE_THROWS(pack.Insert(0, ::std::move(i666)));
          CheckState_Default<E>(pack);
       }
 
       WHEN("Emplace item at a specific place") {
          auto i666 = CreateElement<E>(666);
-         REQUIRE_THROWS(pack.EmplaceAt(0, ::std::move(i666)));
+         REQUIRE_THROWS(pack.Emplace(0, ::std::move(i666)));
          CheckState_Default<E>(pack);
       }
 
@@ -565,7 +565,7 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
          const auto i666backup = i666;
 
          if constexpr (CT::Typed<T>) {
-            pack.template Emplace<IndexFront>(::std::move(i666));
+            pack.Emplace(IndexFront, ::std::move(i666));
 
             CheckState_OwnedFull<E>(pack);
             REQUIRE(pack.GetCount() == 1);
@@ -595,7 +595,7 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
             #endif
          }
          else {
-            REQUIRE_THROWS(pack.template Emplace<IndexFront>(::std::move(i666)));
+            REQUIRE_THROWS(pack.Emplace(IndexFront, ::std::move(i666)));
             CheckState_Default<E>(pack);
          }
       }
@@ -605,7 +605,7 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
          const auto i666backup = i666;
 
          if constexpr (CT::Typed<T>) {
-            pack.template Emplace<IndexBack>(::std::move(i666));
+            pack.Emplace(IndexBack, ::std::move(i666));
 
             CheckState_OwnedFull<E>(pack);
             REQUIRE(pack.GetCount() == 1);
@@ -635,7 +635,7 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
             #endif
          }
          else {
-            REQUIRE_THROWS(pack.template Emplace<IndexBack>(::std::move(i666)));
+            REQUIRE_THROWS(pack.Emplace(IndexBack, ::std::move(i666)));
             CheckState_Default<E>(pack);
          }
       }
@@ -1536,7 +1536,7 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
       }
 
       WHEN("Shallow-copy an array to the back") {
-         pack.template Insert<IndexBack>(darray2, darray2 + 5);
+         pack.Insert(IndexBack, darray2);
 
          REQUIRE(pack.GetCount() == 10);
          REQUIRE(pack.GetReserved() >= 10);
@@ -1573,7 +1573,7 @@ TEMPLATE_TEST_CASE("Sparse Any/TAny", "[any]",
       }
 
       WHEN("Shallow-copy an array to the front") {
-         pack.template Insert<IndexFront>(darray2, darray2 + 5);
+         pack.Insert(IndexFront, darray2);
 
          REQUIRE(pack.GetCount() == 10);
          REQUIRE(pack.GetReserved() >= 10);

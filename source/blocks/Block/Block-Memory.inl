@@ -325,8 +325,7 @@ namespace Langulus::Anyness
    /// Sets the currently interfaced memory                                   
    ///   @attention for internal used only, use only if you know what you're  
    ///              doing!                                                    
-   LANGULUS(INLINED)
-   IF_UNSAFE(constexpr)
+   LANGULUS(INLINED) IF_UNSAFE(constexpr)
    void Block::SetMemory(const DataState& state
       , DMeta meta
       , Count count
@@ -342,8 +341,7 @@ namespace Langulus::Anyness
    /// Sets the currently interfaces memory                                   
    ///   @attention for internal used only, use only if you know what you're  
    ///              doing!                                                    
-   LANGULUS(INLINED)
-   IF_UNSAFE(constexpr)
+   LANGULUS(INLINED) IF_UNSAFE(constexpr)
    void Block::SetMemory(const DataState& state
       , DMeta meta
       , Count count

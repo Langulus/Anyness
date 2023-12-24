@@ -39,8 +39,7 @@ namespace Langulus::Anyness
    /// Semantically transfer the members of one set onto another              
    ///   @tparam TO - the type of set we're transferring to                   
    ///   @param from - the set and semantic to transfer from                  
-   template<class TO>
-   LANGULUS(INLINED)
+   template<class TO> LANGULUS(INLINED)
    void BlockSet::BlockTransfer(CT::Semantic auto&& other) {
       using S = Decay<decltype(other)>;
       using FROM = TypeOf<S>;

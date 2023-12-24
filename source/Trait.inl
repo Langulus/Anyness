@@ -31,10 +31,10 @@ namespace Langulus::Anyness
    /// absorbed                                                               
    ///   @param t1 - first argument                                           
    ///   @param tail - the rest of the arguments (optional)                   
-   template<class T1, class...TAIL> LANGULUS(INLINED)
-   Trait::Trait(T1&& t1, TAIL&&... tail)
-   requires CT::Inner::UnfoldInsertable<T1, TAIL...> {
-      if constexpr (sizeof...(TAIL) == 0) {
+   template<class T1, class...TAIL>
+   requires CT::Inner::UnfoldInsertable<T1, TAIL...> LANGULUS(INLINED)
+   Trait::Trait(T1&& t1, TAIL&&... tail) {
+      if constexpr (sizeof...(TAIL) == 0 and not CT::Array<T1>) {
          using S = SemanticOf<T1>;
          using T = TypeOf<S>;
 
@@ -140,8 +140,9 @@ namespace Langulus::Anyness
    /// Check if a trait matches one of a set of trait types                   
    ///   @param traits... - the traits to match                               
    ///   @return true if this trait is one of the given types                 
-   template<class T1, class...TN> LANGULUS(INLINED)
-   bool Trait::TraitIs(T1 t1, TN...tN) const requires CT::Exact<TMeta, T1, TN...> {
+   template<class T1, class...TN>
+   requires CT::Exact<TMeta, T1, TN...> LANGULUS(INLINED)
+   bool Trait::TraitIs(T1 t1, TN...tN) const {
       return mTraitType == t1 or ((mTraitType == tN) or ...);
    }
 
@@ -318,8 +319,9 @@ namespace Langulus::Anyness
    /// Check if a trait matches one of a set of trait types                   
    ///   @param traits... - the traits to match                               
    ///   @return true if this trait is one of the given types                 
-   TEMPLATE() template<class T1, class...TN> LANGULUS(INLINED)
-   constexpr bool TME()::TraitIs(T1 t1, TN...tN) const requires CT::Exact<TMeta, T1, TN...> {
+   TEMPLATE() template<class T1, class...TN>
+   requires CT::Exact<TMeta, T1, TN...> LANGULUS(INLINED)
+   constexpr bool TME()::TraitIs(T1 t1, TN...tN) const {
       (void) GetTrait();
       return mTraitType == t1 or ((mTraitType == tN) or ...);
    }

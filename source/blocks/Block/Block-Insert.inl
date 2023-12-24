@@ -16,39 +16,40 @@ namespace Langulus::Anyness
 {
          
    /// Inner semantic insertion function for a range                          
+   ///   @attention assumes that T1 pointer continuously leads to T2          
    ///   @tparam FORCE - insert even if types mismatch, by making this block  
    ///                   deep with provided type - use void to disable        
    ///   @param index - the offset at which to start inserting                
-   ///   @param start - start of range                                        
+   ///   @param semanticStart - start of the range, combined with a semantic  
    ///   @param end - end of range                                            
    template<CT::Block THIS, class FORCE, template<class> class S, CT::Sparse T1, CT::Sparse T2>
-   void Block::InsertContiguousInner(CT::Index auto index, S<T1>&& start, T2 end)
-   requires (CT::Semantic<S<T1>> and CT::Similar<T1, T2>) {
-      using T = Deptr<T1>;
-      static_assert(CT::Insertable<T>,
-         "Dense type is not insertable");
+   requires (CT::Semantic<S<T1>> and CT::Similar<T1, T2>)
+   void Block::InsertContiguousInner(CT::Index auto index, S<T1>&& semanticStart, T2 end) {
+      using T = Decvq<Deptr<T1>>;
+      static_assert(CT::Insertable<T>, "Dense type is not insertable");
+      decltype(auto) start = *semanticStart;
+      auto& me = reinterpret_cast<THIS&>(*this);
 
-      auto& ME = reinterpret_cast<THIS&>(*this);
-      if constexpr (not CT::Void<FORCE>) {
+      if constexpr (CT::CanBeDeepened<FORCE, THIS>) {
          // Type may mutate                                             
          if (Mutate<THIS, T, FORCE>()) {
             // If reached, then type mutated to a deep type             
             FORCE temp;
-            temp.template InsertContiguous<FORCE, void>(
-               IndexBack, Forward<S<T1>>(start), end);
+            temp.template InsertContiguousInner<FORCE, void>(
+               0, Forward<S<T1>>(semanticStart), end);
             Insert<THIS, void>(index, Abandon(temp));
             return;
          }
       }
       else {
          // Type can't mutate, but we still have to check it            
-         LANGULUS_ASSERT(ME.template IsSimilar<T>(), Meta,
+         LANGULUS_ASSERT(me.template IsSimilar<T>(), Meta,
             "Inserting incompatible type `", MetaDataOf<T>(),
-            "` to container of type `", ME.GetType(), '`'
+            "` to container of type `", me.GetType(), '`'
          );
       }
 
-      // If reached, we have compatible type, so allocate               
+      // If reached, we have binary compatible type, so allocate        
       const Offset idx = SimplifyIndex<T>(index);
       const auto count = end - start;
       AllocateMore<false>(mCount + count);
@@ -103,7 +104,7 @@ namespace Langulus::Anyness
             "Can't insert abstract item in dense container");
 
          auto to = GetRawAs<T>() + idx;
-         auto from = *start;
+         auto from = start;
          if constexpr (CT::POD<T>) {
             // Optimized POD range insertion                            
             CopyMemory(to, from, count);
@@ -131,11 +132,11 @@ namespace Langulus::Anyness
    void Block::InsertInner(CT::Index auto index, auto&& item) {
       using S = SemanticOf<decltype(item)>;
       using T = TypeOf<S>;
-      static_assert(CT::Insertable<T>,
+      static_assert(CT::Inner::Insertable<T>,
          "Dense type is not insertable");
 
-      auto& ME = reinterpret_cast<THIS&>(*this);
-      if constexpr (not CT::Void<FORCE>) {
+      auto& me = reinterpret_cast<THIS&>(*this);
+      if constexpr (CT::CanBeDeepened<FORCE, THIS>) {
          // Type may mutate                                             
          if (Mutate<THIS, T, FORCE>()) {
             // If reached, then type mutated to a deep type             
@@ -146,9 +147,9 @@ namespace Langulus::Anyness
       }
       else {
          // Type can't mutate, but we still have to check it            
-         LANGULUS_ASSERT(ME.template IsSimilar<T>(), Meta,
+         LANGULUS_ASSERT(me.template IsSimilar<T>(), Meta,
             "Inserting incompatible type `", MetaDataOf<T>(),
-            "` to container of type `", ME.GetType(), '`'
+            "` to container of type `", me.GetType(), '`'
          );
       }
 
@@ -194,7 +195,9 @@ namespace Langulus::Anyness
          }
          else {
             // Insert the array                                         
-            InsertContiguousInner<THIS, FORCE>(index, S::Nest(item));
+            auto* raw = DesemCast(item);
+            InsertContiguousInner<THIS, FORCE>(
+               index, S::Nest(raw), raw + ExtentOf<T>);
             return ExtentOf<T>;
          }
       }
@@ -267,7 +270,7 @@ namespace Langulus::Anyness
    template<CT::Block THIS, class FORCE, class T1, class...TAIL> LANGULUS(INLINED)
    Count Block::Insert(CT::Index auto idx, T1&& t1, TAIL&&...tail) {
       Count inserted = 0;
-      inserted += UnfoldInsert<THIS, FORCE>(idx, Forward<T1>(t1));
+      inserted +=   UnfoldInsert<THIS, FORCE>(idx, Forward<T1>(t1));
       ((inserted += UnfoldInsert<THIS, FORCE>(idx + inserted, Forward<TAIL>(tail))), ...);
       return inserted;
    }
@@ -278,12 +281,13 @@ namespace Langulus::Anyness
    ///   @param idx - index to insert them at                                 
    ///   @param other - the block to insert                                   
    ///   @return the number of inserted elements                              
-   template<CT::Block THIS, class FORCE, class T> LANGULUS(INLINED)
-   Count Block::InsertBlock(CT::Index auto idx, T&& other)
-   requires CT::Block<Desem<T>> {
+   template<CT::Block THIS, class FORCE, class T>
+   requires CT::Block<Desem<T>> LANGULUS(INLINED)
+   Count Block::InsertBlock(CT::Index auto idx, T&& other) {
       using S = SemanticOf<decltype(other)>;
       using ST = TypeOf<S>;
-      auto& rhs = const_cast<Block&>(static_cast<const Block&>(DesemCast(other)));
+      auto& rhs = const_cast<Block&>(
+         static_cast<const Block&>(DesemCast(other)));
 
       if (rhs.IsEmpty())
          return 0;
@@ -326,7 +330,7 @@ namespace Langulus::Anyness
    template<CT::Block THIS, class FORCE, class T1, class...TAIL> LANGULUS(INLINED)
    Count Block::Merge(CT::Index auto index, T1&& t1, TAIL&&...tail) {
       Count inserted = 0;
-      inserted += UnfoldMerge<THIS, FORCE>(index, Forward<T1>(t1));
+      inserted +=   UnfoldMerge<THIS, FORCE>(index, Forward<T1>(t1));
       ((inserted += UnfoldMerge<THIS, FORCE>(index + inserted, Forward<TAIL>(tail))), ...);
       return inserted;
    }
@@ -337,9 +341,9 @@ namespace Langulus::Anyness
    ///   @param index - special/simple index to insert at                     
    ///   @param other - the block to insert                                   
    ///   @return the number of inserted elements                              
-   template<CT::Block THIS, class FORCE, class T> LANGULUS(INLINED)
-   Count Block::MergeBlock(CT::Index auto index, T&& other)
-   requires CT::Block<Desem<T>> {
+   template<CT::Block THIS, class FORCE, class T>
+   requires CT::Block<Desem<T>> LANGULUS(INLINED)
+   Count Block::MergeBlock(CT::Index auto index, T&& other) {
       using S = SemanticOf<decltype(other)>;
       decltype(auto) rhs = DesemCast(other);
 
@@ -375,6 +379,8 @@ namespace Langulus::Anyness
    Count Block::Emplace(CT::Index auto idx, A&&... arguments) {
       if constexpr (CT::Typed<THIS>) {
          using T = TypeOf<THIS>;
+         if constexpr (not ::std::constructible_from<T, A...>)
+            LANGULUS_ERROR("T is not constructible with the given arguments");
 
          AllocateMore(mCount + 1);
          const auto offset = SimplifyIndex<T>(idx);
@@ -449,16 +455,13 @@ namespace Langulus::Anyness
    ///   @tparam T - the type of deep container to use                        
    ///   @tparam TRANSFER_OR - whether to send the current orness deeper      
    ///   @return a reference to this container                                
-   template<CT::Deep T, bool TRANSFER_OR, CT::Block THIS> LANGULUS(INLINED)
-   T& Block::Deepen() {
-      if constexpr (CT::Typed<THIS> and not CT::Similar<T, TypeOf<THIS>>)
-         LANGULUS_ERROR("Can't deepen with incompatible type");
-      else {
-         auto& me = reinterpret_cast<THIS&>(*this);
-         LANGULUS_ASSERT(not me.IsTypeConstrained()
-                          or me.template IsSimilar<T>(),
-            Mutate, "Can't deepen with incompatible type");
-      }
+   template<CT::Deep T, bool TRANSFER_OR, CT::Block THIS>
+   requires CT::CanBeDeepened<T, THIS>
+   LANGULUS(INLINED) T& Block::Deepen() {
+      auto& me = reinterpret_cast<THIS&>(*this);
+      LANGULUS_ASSERT(not me.IsTypeConstrained()
+                        or me.template IsSimilar<T>(),
+         Mutate, "Can't deepen with incompatible type");
 
       // Back up the state so that we can restore it if not moved over  
       UNUSED() const DataState state = mState.mState & DataState::Or;
@@ -532,9 +535,11 @@ namespace Langulus::Anyness
    ///   @param value - the value to concatenate                              
    ///   @param state - the state to apply after concatenation                
    ///   @return the number of inserted elements                              
-   template<CT::Block THIS, class FORCE, template<class> class S, CT::Deep T> LANGULUS(INLINED)
-   Count Block::SmartConcat(CT::Index auto index, bool sc, S<T>&& value, DataState state)
-   requires CT::Semantic<S<T>> {
+   template<CT::Block THIS, class FORCE, template<class> class S, CT::Deep T>
+   requires CT::Semantic<S<T>> LANGULUS(INLINED)
+   Count Block::SmartConcat(
+      CT::Index auto index, bool sc, S<T>&& value, DataState state
+   ) {
       auto& me = reinterpret_cast<THIS&>(*this);
 
       // If this container is compatible and concatenation is           
@@ -571,9 +576,11 @@ namespace Langulus::Anyness
    ///   @param value - the value to concatenate                              
    ///   @param state - the state to apply after concatenation                
    ///   @return the number of inserted elements                              
-   template<CT::Block THIS, class FORCE, template<class> class S, class T> LANGULUS(INLINED)
-   Count Block::SmartPushInner(CT::Index auto index, S<T>&& value, DataState state)
-   requires CT::Semantic<S<T>> {
+   template<CT::Block THIS, class FORCE, template<class> class S, class T>
+   requires CT::Semantic<S<T>> LANGULUS(INLINED)
+   Count Block::SmartPushInner(
+      CT::Index auto index, S<T>&& value, DataState state
+   ) {
       if (IsUntyped() and IsInvalid()) {
          // Mutate-insert inside untyped container                      
          SetState(mState + state);
@@ -619,7 +626,8 @@ namespace Langulus::Anyness
    ///   @param rhs - block and semantic to concatenate with (right side)     
    ///   @return the concatenated container                                   
    template<CT::Block THIS, template<class> class S, CT::Block T>
-   THIS Block::ConcatBlock(S<T>&& rhs) const requires CT::Semantic<S<T>> {
+   requires CT::Semantic<S<T>> LANGULUS(INLINED)
+   THIS Block::ConcatBlock(S<T>&& rhs) const {
       auto& lhs = reinterpret_cast<const THIS&>(*this);
       if (IsEmpty())
          return {rhs.Forward()};

@@ -94,16 +94,14 @@ namespace Langulus::Anyness
 
    /// Get the templated values container                                     
    ///   @attention for internal use only, elements might not be initialized  
-   template<CT::Data T>
-   LANGULUS(INLINED)
+   template<CT::Data T> LANGULUS(INLINED)
    const TAny<T>& BlockSet::GetValues() const noexcept {
       return reinterpret_cast<const TAny<T>&>(mKeys);
    }
 
    /// Get the templated values container                                     
    ///   @attention for internal use only, elements might not be initialized  
-   template<CT::Data T>
-   LANGULUS(INLINED)
+   template<CT::Data T> LANGULUS(INLINED)
    TAny<T>& BlockSet::GetValues() noexcept {
       return reinterpret_cast<TAny<T>&>(mKeys);
    }

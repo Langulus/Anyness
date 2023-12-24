@@ -18,8 +18,7 @@ namespace Langulus::Anyness
    ///   @tparam SET - set we're searching in, potentially providing runtime  
    ///                 optimization on type checks                            
    ///   @param count - number of pairs to allocate                           
-   template<class SET>
-   LANGULUS(INLINED)
+   template<class SET> LANGULUS(INLINED)
    void BlockSet::Reserve(const Count& count) {
       AllocateInner<SET>(
          Roof2(count < MinimalAllocation ? MinimalAllocation : count)
@@ -178,8 +177,7 @@ namespace Langulus::Anyness
    ///   @tparam SET - set we're searching in, potentially providing runtime  
    ///                 optimization on type checks                            
    ///   @param count - number of pairs to allocate                           
-   template<class SET>
-   LANGULUS(INLINED)
+   template<class SET> LANGULUS(INLINED)
    void BlockSet::AllocateInner(const Count& count) {
       // Shrinking is never allowed, you'll have to do it explicitly    
       // via Compact()                                                  
@@ -240,8 +238,7 @@ namespace Langulus::Anyness
    ///   @tparam SET - set we're searching in, potentially providing runtime  
    ///                 optimization on type checks                            
    ///   @attention this never modifies any state, except mKeys.mEntry        
-   template<class SET>
-   LANGULUS(INLINED)
+   template<class SET> LANGULUS(INLINED)
    void BlockSet::Free() {
       return Dereference<true, SET>(1);
    }

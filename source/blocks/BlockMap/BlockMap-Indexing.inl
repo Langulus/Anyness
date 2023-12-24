@@ -175,8 +175,7 @@ namespace Langulus::Anyness
    ///   @tparam K - the type to reinterpret key as                           
    ///   @param i - the key index                                             
    ///   @return a reference to the key                                       
-   template<CT::Data K>
-   LANGULUS(INLINED)
+   template<CT::Data K> LANGULUS(INLINED)
    constexpr K& BlockMap::GetRawKey(Offset i) IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, i < GetReserved(),
          "Index out of limits when accessing map key",
@@ -187,8 +186,7 @@ namespace Langulus::Anyness
       return GetKeys<K>().GetRaw()[i];
    }
    
-   template<CT::Data K>
-   LANGULUS(INLINED)
+   template<CT::Data K> LANGULUS(INLINED)
    constexpr const K& BlockMap::GetRawKey(Offset i) const IF_UNSAFE(noexcept) {
       return const_cast<BlockMap*>(this)->template GetRawKey<K>(i);
    }
@@ -199,8 +197,7 @@ namespace Langulus::Anyness
    ///   @tparam K - the type to reinterpret key as                           
    ///   @param i - the key index                                             
    ///   @return the handle                                                   
-   template<CT::Data K>
-   LANGULUS(INLINED)
+   template<CT::Data K> LANGULUS(INLINED)
    constexpr Handle<K> BlockMap::GetKeyHandle(Offset i) const IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, i < GetReserved(),
          "Index out of limits when accessing map key",
@@ -217,8 +214,7 @@ namespace Langulus::Anyness
    ///   @tparam V - the type to reinterpret value as                         
    ///   @param i - the value index                                           
    ///   @return a reference to the value                                     
-   template<CT::Data V>
-   LANGULUS(INLINED)
+   template<CT::Data V> LANGULUS(INLINED)
    constexpr V& BlockMap::GetRawValue(Offset i) IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, i < GetReserved(),
          "Index out of limits when accessing map value",
@@ -229,8 +225,7 @@ namespace Langulus::Anyness
       return GetValues<V>().GetRaw()[i];
    }
 
-   template<CT::Data V>
-   LANGULUS(INLINED)
+   template<CT::Data V> LANGULUS(INLINED)
    constexpr const V& BlockMap::GetRawValue(Offset i) const IF_UNSAFE(noexcept) {
       return const_cast<BlockMap*>(this)->template GetRawValue<V>(i);
    }
@@ -241,8 +236,7 @@ namespace Langulus::Anyness
    ///   @tparam V - the type to reinterpret value as                         
    ///   @param i - the value index                                           
    ///   @return the handle                                                   
-   template<CT::Data V>
-   LANGULUS(INLINED)
+   template<CT::Data V> LANGULUS(INLINED)
    constexpr Handle<V> BlockMap::GetValueHandle(Offset i) const IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, i < GetReserved(), 
          "Index out of limits when accessing map value", 

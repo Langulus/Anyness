@@ -18,8 +18,7 @@ namespace Langulus::Anyness
    ///   @tparam MAP - map we're searching in, potentially providing runtime  
    ///                 optimization on type checks                            
    ///   @param count - number of pairs to allocate                           
-   template<class MAP>
-   LANGULUS(INLINED)
+   template<class MAP> LANGULUS(INLINED)
    void BlockMap::Reserve(const Count& count) {
       AllocateInner<MAP>(
          Roof2(count < MinimalAllocation ? MinimalAllocation : count)
@@ -267,8 +266,7 @@ namespace Langulus::Anyness
    ///   @tparam MAP - map we're searching in, potentially providing runtime  
    ///                 optimization on type checks                            
    ///   @param count - number of pairs to allocate                           
-   template<class MAP>
-   LANGULUS(INLINED)
+   template<class MAP> LANGULUS(INLINED)
    void BlockMap::AllocateInner(const Count& count) {
       // Shrinking is never allowed, you'll have to do it explicitly    
       // via Compact()                                                  
@@ -334,8 +332,7 @@ namespace Langulus::Anyness
    ///   @tparam MAP - map we're searching in, potentially providing runtime  
    ///                 optimization on type checks                            
    ///   @attention this doesn't modify any immediate map state               
-   template<class MAP>
-   LANGULUS(INLINED)
+   template<class MAP> LANGULUS(INLINED)
    void BlockMap::Free() {
       return Dereference<true, MAP>(1);
    }

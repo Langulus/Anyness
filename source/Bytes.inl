@@ -120,23 +120,23 @@ namespace Langulus::Anyness
          if constexpr (CT::POD<TT> and CT::Dense<TT>) {
             // Insert as byte array                                     
             auto bytes = static_cast<const Byte*>(DesemCast(item));
-            InsertContiguousInner<Bytes, void>(0,
-               Copy(bytes), bytes + sizeof(T));
+            InsertContiguousInner<Bytes, void>(
+               index, Copy(bytes), bytes + sizeof(T));
             return sizeof(T);
          }
          else {
             // Unfold and serialize elements, one by one                
             Count inserted = 0;
             for (auto& element : DesemCast(item))
-               inserted += UnfoldInsert(inserted, Copy(element));
+               inserted += UnfoldInsert(index + inserted, Copy(element));
             return inserted;
          }
       }
       else if constexpr (CT::POD<T> and CT::Dense<T>) {
          // Insert as byte array                                        
-         auto bytes = static_cast<const Byte*>(DesemCast(item));
-         InsertContiguousInner<Bytes, void>(0,
-            Copy(bytes), bytes + sizeof(T));
+         auto bytes = reinterpret_cast<const Byte*>(&DesemCast(item));
+         InsertContiguousInner<Bytes, void>(
+            index, Copy(bytes), bytes + sizeof(T));
          return sizeof(T);
       }
       else LANGULUS_ERROR("Unable to insert as bytes");

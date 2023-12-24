@@ -41,9 +41,9 @@ namespace Langulus::Anyness
 
    /// Semantic-construction                                                  
    ///   @param other - the set and semantic to construct with                
-   TEMPLATE() template<template<class> class S> LANGULUS(INLINED)
-   TABLE()::TUnorderedSet(S<TUnorderedSet>&& other)
-   requires (CT::Inner::SemanticMakable<S,T>) {
+   TEMPLATE() template<template<class> class S>
+   requires (CT::Inner::SemanticMakable<S, T>) LANGULUS(INLINED)
+   TABLE()::TUnorderedSet(S<TUnorderedSet>&& other) {
       BlockTransfer<TUnorderedSet>(other.Forward());
    }
    
@@ -51,9 +51,9 @@ namespace Langulus::Anyness
    /// an array, as well as any other kinds of sets                           
    ///   @param t1 - first element                                            
    ///   @param tail - tail of elements (optional)                            
-   TEMPLATE() template<class T1, class... TAIL> LANGULUS(INLINED)
-   TABLE()::TUnorderedSet(T1&& t1, TAIL&&... tail)
-   requires (CT::Inner::UnfoldMakableFrom<T, T1, TAIL...>) {
+   TEMPLATE() template<class T1, class... TAIL>
+   requires (CT::Inner::UnfoldMakableFrom<T, T1, TAIL...>) LANGULUS(INLINED)
+   TABLE()::TUnorderedSet(T1&& t1, TAIL&&... tail) {
       Insert(Forward<T1>(t1), Forward<TAIL>(tail)...);
    }
 
@@ -555,21 +555,11 @@ namespace Langulus::Anyness
    ///   @param item - the argument to unfold and insert, can be semantic     
    ///   @return the number of inserted elements after unfolding              
    TEMPLATE() LANGULUS(INLINED)
-   Count TABLE()::UnfoldInsertion(auto&& item) {
+   Count TABLE()::UnfoldInsert(auto&& item) {
       using S = SemanticOf<decltype(item)>;
       using T1 = TypeOf<S>;
 
-      if constexpr (CT::Inner::MakableFrom<T, T1>) {
-         // Some of the arguments might still be used directly to       
-         // make an element, forward these to standard insertion here   
-         Reserve(GetCount() + 1);
-         InsertInner<true>(
-            GetBucket(GetReserved() - 1, DesemCast(item)),
-            Forward<T1>(item)
-         );
-         return 1;
-      }
-      else if constexpr (CT::Array<T1>) {
+      if constexpr (CT::Array<T1>) {
          if constexpr (CT::Inner::MakableFrom<T, Deext<T1>>) {
             // Construct from an array of elements, each of which can   
             // be used to initialize a T, nesting any semantic while    
@@ -588,10 +578,20 @@ namespace Langulus::Anyness
             // to directly construct Ts, so nest the unfolding insert   
             Count inserted = 0;
             for (auto& key : item)
-               inserted += UnfoldInsertion(S::Nest(key));
+               inserted += UnfoldInsert(S::Nest(key));
             return inserted;
          }
          else LANGULUS_ERROR("Array elements aren't insertable");
+      }
+      else if constexpr (CT::Inner::MakableFrom<T, T1>) {
+         // Some of the arguments might still be used directly to       
+         // make an element, forward these to standard insertion here   
+         Reserve(GetCount() + 1);
+         InsertInner<true>(
+            GetBucket(GetReserved() - 1, DesemCast(item)),
+            Forward<T1>(item)
+         );
+         return 1;
       }
       else if constexpr (CT::Set<T1>) {
          // Construct from any kind of set (ordered or not, type-erased 
@@ -615,7 +615,7 @@ namespace Langulus::Anyness
                // inserted as Ts                                        
                Count inserted = 0;
                for (auto& key : item)
-                  inserted += UnfoldInsertion(S::Nest(key));
+                  inserted += UnfoldInsert(S::Nest(key));
                return inserted;
             }
             else LANGULUS_ERROR("Set elements aren't insertable");
@@ -636,24 +636,24 @@ namespace Langulus::Anyness
       else LANGULUS_ERROR("Can't insert argument");
    }
 
-   /// Merge an element via semantic                                          
-   ///   @param key - the key to add                                          
-   ///   @return 1 if pair was inserted, zero otherwise                       
-   TEMPLATE() template<class T1, class... TAIL> LANGULUS(INLINED)
-   Count TABLE()::Insert(T1&& t1, TAIL&&...tail)
-   requires CT::Inner::UnfoldMakableFrom<T, T1, TAIL...> {
+   /// Insert elements, semantically or not                                   
+   ///   @param t1, tail... - elements to insert                              
+   ///   @return the number of inserted elements                              
+   TEMPLATE() template<class T1, class... TAIL>
+   requires CT::Inner::UnfoldMakableFrom<T, T1, TAIL...> LANGULUS(INLINED)
+   Count TABLE()::Insert(T1&& t1, TAIL&&...tail){
       Count inserted = 0;
-      inserted += UnfoldInsertion(Forward<T1>(t1));
-      ((inserted += UnfoldInsertion(Forward<TAIL>(tail))), ...);
+      inserted   += UnfoldInsert(Forward<T1>(t1));
+      ((inserted += UnfoldInsert(Forward<TAIL>(tail))), ...);
       return inserted;
    }
    
    /// Move-insert a pair inside the map                                      
    ///   @param rhs - the pair to insert                                      
    ///   @return a reference to this table for chaining                       
-   TEMPLATE() template<class T1> LANGULUS(INLINED)
-   TABLE()& TABLE()::operator << (T1&& rhs)
-   requires CT::Inner::UnfoldMakableFrom<T, T1> {
+   TEMPLATE() template<class T1>
+   requires CT::Inner::UnfoldMakableFrom<T, T1> LANGULUS(INLINED)
+   TABLE()& TABLE()::operator << (T1&& rhs){
       Insert(Forward<T1>(rhs));
       return *this;
    }

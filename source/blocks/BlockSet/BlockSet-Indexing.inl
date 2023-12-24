@@ -99,8 +99,7 @@ namespace Langulus::Anyness
    ///   @tparam T - the type to reinterpret contained elements as            
    ///   @param i - the key index                                             
    ///   @return a constant reference to the element                          
-   template<CT::Data T>
-   LANGULUS(INLINED)
+   template<CT::Data T> LANGULUS(INLINED)
    constexpr T& BlockSet::GetRaw(Offset i) IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, i < GetReserved(),
          "Index out of limits when accessing set value",
@@ -112,8 +111,7 @@ namespace Langulus::Anyness
       return mKeys.template GetRawAs<T>()[i];
    }
 
-   template<CT::Data T>
-   LANGULUS(INLINED)
+   template<CT::Data T> LANGULUS(INLINED)
    constexpr const T& BlockSet::GetRaw(Offset i) const IF_UNSAFE(noexcept) {
       return const_cast<BlockSet*>(this)->template GetRaw<T>(i);
    }
@@ -124,8 +122,7 @@ namespace Langulus::Anyness
    ///   @tparam T - the type to reinterpret contained elements as            
    ///   @param i - the key index                                             
    ///   @return the handle                                                   
-   template<CT::Data T>
-   LANGULUS(INLINED)
+   template<CT::Data T> LANGULUS(INLINED)
    constexpr Handle<T> BlockSet::GetHandle(Offset i) const IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, i < GetReserved(),
          "Index out of limits when accessing set value",
