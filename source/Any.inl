@@ -43,8 +43,8 @@ namespace Langulus::Anyness
    ///   @param t1 - first element (can be semantic)                          
    ///   @param tail... - the rest of the elements (optional, can be semantic)
    template<class T1, class...TAIL>
-   requires CT::Inner::UnfoldInsertable<T1, TAIL...> LANGULUS(INLINED)
-   Any::Any(T1&& t1, TAIL&&... tail) {
+   requires CT::Inner::UnfoldInsertable<T1, TAIL...>
+   LANGULUS(INLINED) Any::Any(T1&& t1, TAIL&&... tail) {
       if constexpr (sizeof...(TAIL) == 0) {
          using S = SemanticOf<T1>;
          using T = TypeOf<S>;
@@ -52,15 +52,15 @@ namespace Langulus::Anyness
          if constexpr (CT::Deep<T>)
             BlockTransfer<Any>(S::Nest(t1));
          else
-            Insert<Any>(0, Forward<T1>(t1));
+            Insert<Any, Any, true>(IndexBack, Forward<T1>(t1));
       }
-      else Insert<Any>(0, Forward<T1>(t1), Forward<TAIL>(tail)...);
+      else Insert<Any, Any, true>(IndexBack, Forward<T1>(t1), Forward<TAIL>(tail)...);
    }
 
    /// Destruction                                                            
    LANGULUS(INLINED)
    Any::~Any() {
-      Free();
+      Free<Any>();
    }
 
    /// Create an empty Any from a dynamic type and state                      
@@ -110,8 +110,8 @@ namespace Langulus::Anyness
    ///   @param t2 - second element                                           
    ///   @param tail... - the rest of the elements                            
    ///   @returns the new container containing the data                       
-   template<class AS, CT::Data T1, CT::Data T2, CT::Data... TN> LANGULUS(INLINED)
-   Any Any::WrapAs(T1&& t1, T2&& t2, TN&&... tail) {
+   template<class AS, CT::Data T1, CT::Data T2, CT::Data... TN>
+   LANGULUS(INLINED) Any Any::WrapAs(T1&& t1, T2&& t2, TN&&... tail) {
       if constexpr (CT::Void<AS>) {
          static_assert(CT::Exact<T1, T2, TN...>, "Type mismatch");
          return {Forward<T1>(t1), Forward<T2>(t2), Forward<TN>(tail)...};
@@ -150,16 +150,17 @@ namespace Langulus::Anyness
 
       if constexpr (CT::Deep<T>) {
          // Potentially absorb a container                              
-         if (this == &*S::Nest(rhs))
+         if (static_cast<const Block*>(this)
+          == static_cast<const Block*>(&DesemCast(rhs)))
             return *this;
 
-         Free();
+         Free<Any>();
          new (this) Any {S::Nest(rhs)};
       }
       else {
          // Unfold-insert                                               
          Clear();
-         UnfoldInsert<Any, void>(0, S::Nest(rhs));
+         UnfoldInsert<Any, void, true>(IndexFront, S::Nest(rhs));
       }
 
       return *this;
@@ -193,7 +194,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container for chaining                   
    LANGULUS(INLINED)
    Any& Any::operator << (CT::Inner::UnfoldInsertable auto&& other) {
-      Insert<Any>(IndexBack, Forward<Deref<decltype(other)>>(other));
+      Insert<Any, Any, true>(IndexBack, Forward<decltype(other)>(other));
       return *this;
    }
    
@@ -202,7 +203,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container for chaining                   
    LANGULUS(INLINED)
    Any& Any::operator >> (CT::Inner::UnfoldInsertable auto&& other) {
-      Insert<Any>(IndexFront, Forward<Deref<decltype(other)>>(other));
+      Insert<Any, Any, true>(IndexFront, Forward<decltype(other)>(other));
       return *this;
    }
 
@@ -211,7 +212,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container for chaining                   
    LANGULUS(INLINED)
    Any& Any::operator <<= (CT::Inner::UnfoldInsertable auto&& other) {
-      Merge<Any>(IndexBack, Forward<Deref<decltype(other)>>(other));
+      Merge<Any, Any, true>(IndexBack, Forward<decltype(other)>(other));
       return *this;
    }
 
@@ -220,14 +221,14 @@ namespace Langulus::Anyness
    ///   @return a reference to this container for chaining                   
    LANGULUS(INLINED)
    Any& Any::operator >>= (CT::Inner::UnfoldInsertable auto&& other) {
-      Merge<Any>(IndexFront, Forward<Deref<decltype(other)>>(other));
+      Merge<Any, Any, true>(IndexFront, Forward<decltype(other)>(other));
       return *this;
    }
 
    /// Reset the container                                                    
    LANGULUS(INLINED)
    void Any::Reset() {
-      Free();
+      Free<Any>();
       mRaw = nullptr;
       mCount = mReserved = 0;
       ResetState();

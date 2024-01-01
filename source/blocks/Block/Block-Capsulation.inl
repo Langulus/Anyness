@@ -412,8 +412,7 @@ namespace Langulus::Anyness
    /// Check if a static type can be inserted                                 
    ///   @tparam T - the type to check                                        
    ///   @return true if able to insert an instance of the type to this block 
-   template<CT::Data T>
-   LANGULUS(INLINED)
+   template<CT::Data T> LANGULUS(INLINED)
    constexpr bool Block::IsInsertable() const noexcept {
       return IsInsertable(MetaDataOf<T>());
    }
@@ -422,7 +421,7 @@ namespace Langulus::Anyness
    ///   @attention as unsafe as it gets, but as fast as it gets              
    ///   @return a pointer to the first allocated element                     
    LANGULUS(INLINED)
-   constexpr Byte* Block::GetRaw() noexcept {
+   constexpr void* Block::GetRaw() noexcept {
       return mRaw;
    }
 
@@ -430,7 +429,7 @@ namespace Langulus::Anyness
    ///   @attention as unsafe as it gets, but as fast as it gets              
    ///   @return a pointer to the first allocated element                     
    LANGULUS(INLINED)
-   constexpr const Byte* Block::GetRaw() const noexcept {
+   constexpr const void* Block::GetRaw() const noexcept {
       return mRaw;
    }
 
@@ -439,34 +438,51 @@ namespace Langulus::Anyness
    ///   @attention the resulting pointer never points to a valid element     
    ///   @return a pointer to the last+1 element (never initialized)          
    LANGULUS(INLINED)
-   constexpr const Byte* Block::GetRawEnd() const noexcept {
+   constexpr const void* Block::GetRawEnd() const noexcept {
       return mRaw + GetBytesize();
    }
 
    /// Get a pointer array - useful only for sparse containers                
    ///   @return the raw data as an array of pointers                         
    LANGULUS(INLINED) IF_UNSAFE(constexpr)
-   Byte** Block::GetRawSparse() IF_UNSAFE(noexcept) {
+   void** Block::GetRawSparse() IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, IsSparse(),
          "Representing dense data as sparse");
-      return mRawSparse;
+      return reinterpret_cast<void**>(mRawSparse);
    }
 
    /// Get a constant pointer array - useful only for sparse containers       
    ///   @return the raw data as an array of constant pointers                
    LANGULUS(INLINED) IF_UNSAFE(constexpr)
-   const Byte* const* Block::GetRawSparse() const IF_UNSAFE(noexcept) {
+   const void* const* Block::GetRawSparse() const IF_UNSAFE(noexcept) {
       LANGULUS_ASSUME(DevAssumes, IsSparse(),
          "Representing dense data as sparse");
-      return mRawSparse;
+      return reinterpret_cast<void**>(mRawSparse);
+   }
+   
+   /// Get a pointer array - useful only for sparse containers                
+   ///   @return the raw data as an array of pointers                         
+   template<CT::Data T> LANGULUS(INLINED)
+   T** Block::GetRawSparseAs() IF_UNSAFE(noexcept) {
+      LANGULUS_ASSUME(DevAssumes, IsSparse(),
+         "Representing dense data as sparse");
+      return reinterpret_cast<T**>(mRawSparse);
+   }
+
+   /// Get a constant pointer array - useful only for sparse containers       
+   ///   @return the raw data as an array of constant pointers                
+   template<CT::Data T> LANGULUS(INLINED)
+   const T* const* Block::GetRawSparseAs() const IF_UNSAFE(noexcept) {
+      LANGULUS_ASSUME(DevAssumes, IsSparse(),
+         "Representing dense data as sparse");
+      return reinterpret_cast<T**>(mRawSparse);
    }
    
    /// Get the raw data inside the container, reinterpreted as some type      
    ///   @attention as unsafe as it gets, but as fast as it gets              
    ///   @tparam T - the type we're interpreting as                           
    ///   @return a pointer to the first element of type T                     
-   template<CT::Data T>
-   LANGULUS(INLINED)
+   template<CT::Data T> LANGULUS(INLINED)
    T* Block::GetRawAs() noexcept {
       return reinterpret_cast<T*>(mRaw);
    }
@@ -475,8 +491,7 @@ namespace Langulus::Anyness
    ///   @attention as unsafe as it gets, but as fast as it gets              
    ///   @tparam T - the type we're interpreting as                           
    ///   @return a pointer to the first element of type T                     
-   template<CT::Data T>
-   LANGULUS(INLINED)
+   template<CT::Data T> LANGULUS(INLINED)
    const T* Block::GetRawAs() const noexcept {
       return reinterpret_cast<const T*>(mRaw);
    }
@@ -486,8 +501,7 @@ namespace Langulus::Anyness
    ///   @attention as unsafe as it gets, but as fast as it gets              
    ///   @tparam T - the type we're interpreting as                           
    ///   @return a pointer to the last+1 element of type T                    
-   template<CT::Data T>
-   LANGULUS(INLINED)
+   template<CT::Data T> LANGULUS(INLINED)
    const T* Block::GetRawEndAs() const noexcept {
       return reinterpret_cast<const T*>(GetRawEnd());
    }

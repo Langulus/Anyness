@@ -203,26 +203,21 @@ namespace Langulus::Anyness
    void BlockSet::Keep() const noexcept {
       Reference(1);
    }
-         
-   /// Dereference memory block                                               
+
+   /// Dereference memory block once and destroy all elements if data was     
+   /// fully dereferenced                                                     
    ///   @attention this never modifies any state, except mKeys.mEntry        
-   ///   @tparam DESTROY - whether to call destructors on full dereference    
-   ///   @tparam SET - set we're searching in, potentially providing runtime  
-   ///                 optimization on type checks                            
-   ///   @param times - number of references to subtract                      
-   template<bool DESTROY, class SET>
-   void BlockSet::Dereference(const Count& times) {
+   template<CT::Set THIS> LANGULUS(INLINED)
+   void BlockSet::Free() {
       if (not mKeys.mEntry)
          return;
 
       LANGULUS_ASSUME(DevAssumes,
-         mKeys.mEntry->GetUses() >= times, "Bad memory dereferencing");
+         mKeys.mEntry->GetUses() >= 1, "Bad memory dereferencing");
 
       if (mKeys.mEntry->GetUses() == 1) {
-         if constexpr (DESTROY) {
-            if (not IsEmpty())
-               ClearInner<SET>();
-         }
+         if (not IsEmpty())
+            ClearInner<THIS>();
 
          // Deallocate stuff                                            
          Allocator::Deallocate(const_cast<Allocation*>(mKeys.mEntry));
@@ -231,16 +226,6 @@ namespace Langulus::Anyness
          // Data is used from multiple locations, just deref            
          const_cast<Allocation*>(mKeys.mEntry)->Free();
       }
-   }
-
-   /// Dereference memory block once and destroy all elements if data was     
-   /// fully dereferenced                                                     
-   ///   @tparam SET - set we're searching in, potentially providing runtime  
-   ///                 optimization on type checks                            
-   ///   @attention this never modifies any state, except mKeys.mEntry        
-   template<class SET> LANGULUS(INLINED)
-   void BlockSet::Free() {
-      return Dereference<true, SET>(1);
    }
 
 } // namespace Langulus::Anyness

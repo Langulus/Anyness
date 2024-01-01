@@ -17,12 +17,17 @@ namespace Langulus::CT
    /// container can be constructed                                           
    template<class T, class...A>
    concept DeepMakable = Inner::UnfoldMakableFrom<T, A...>
-        or (sizeof...(A) == 1 and Deep<Desem<FirstOf<A...>>>);
+        or (sizeof...(A) == 1 and Block<Desem<FirstOf<A...>>>
+           and SemanticOf<FirstOf<A...>>::Shallow or (
+              Inner::SemanticMakableAlt<typename SemanticOf<FirstOf<A...>>::template As<T>>
+        ));
 
    /// Concept for recognizing argument, with which a statically typed        
    /// container can be assigned                                              
    template<class T, class A>
-   concept DeepAssignable = Inner::UnfoldMakableFrom<T, A> or Deep<Desem<A>>;
+   concept DeepAssignable = Inner::UnfoldMakableFrom<T, A> or (Block<Desem<A>>
+       and SemanticOf<A>::Shallow or (
+          Inner::SemanticAssignableAlt<typename SemanticOf<A>::template As<T>>));
 
 } // namespace Langulus::CT
 
@@ -51,6 +56,11 @@ namespace Langulus::Anyness
       LANGULUS_BASES(Any);
 
    public:
+      static_assert(CT::Inner::Insertable<T>,
+         "Contained type is not insertable");
+      static_assert(CT::Inner::Allocatable<T>,
+         "Contained type is not allocatable");
+
       static constexpr bool Ownership = true;
 
       template<CT::Data, CT::Data>
@@ -91,13 +101,12 @@ namespace Langulus::Anyness
       TAny& operator = (T1&&);
 
    public:
-      NOD() static TAny From(const T*, const Count& = 1);
-      NOD() static TAny From(CT::Semantic auto&&, const Count& = 1);
+      NOD() static TAny From(auto&&, Count = 1);
 
       template<CT::Data... LIST_T>
       NOD() static TAny Wrap(LIST_T&&...);
    
-      void Null(const Count&);
+      void Null(Count);
 
       NOD() DMeta GetType() const noexcept;
       NOD() const T* GetRaw() const noexcept;
@@ -115,12 +124,12 @@ namespace Langulus::Anyness
       NOD()       T& Last();
 
       template<CT::Data = T>
-      NOD() decltype(auto) Get(const Offset&) const noexcept;
+      NOD() decltype(auto) Get(Offset) const noexcept;
       template<CT::Data = T>
-      NOD() decltype(auto) Get(const Offset&) noexcept;
+      NOD() decltype(auto) Get(Offset) noexcept;
 
-      NOD() const T& operator [] (const CT::Index auto&) const;
-      NOD()       T& operator [] (const CT::Index auto&);
+      NOD() const T& operator [] (CT::Index auto) const;
+      NOD()       T& operator [] (CT::Index auto);
 
       NOD() constexpr bool IsTyped() const noexcept;
       NOD() constexpr bool IsUntyped() const noexcept;
@@ -159,21 +168,16 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Memory management                                                 
       ///                                                                     
-      NOD() AllocationRequest RequestSize(const Count&) const noexcept;
       void Reserve(Count);
-      template<bool CREATE = false, bool SETSIZE = false>
-      void AllocateMore(Count);
-      void AllocateLess(Count);
-      void TakeAuthority();
 
       ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
-      template<class T1, class...TAIL>
+      template<bool MOVE_ASIDE = true, class T1, class...TAIL>
       requires CT::Inner::UnfoldMakableFrom<T, T1, TAIL...>
       Count Insert(CT::Index auto, T1&&, TAIL&&...);
 
-      template<class...A>
+      template<bool MOVE_ASIDE = true, class...A>
       requires ::std::constructible_from<T, A...>
       Conditional<CT::Sparse<T>, T, T&> Emplace(CT::Index auto, A&&...);
 
@@ -191,7 +195,7 @@ namespace Langulus::Anyness
       requires CT::Inner::UnfoldMakableFrom<T, T1>
       TAny& operator >> (T1&&);
 
-      template<class T1, class...TAIL>
+      template<bool MOVE_ASIDE = true, class T1, class...TAIL>
       requires CT::Inner::UnfoldMakableFrom<T, T1, TAIL...>
       Count Merge(CT::Index auto, T1&&, TAIL&&...);
 
@@ -213,22 +217,21 @@ namespace Langulus::Anyness
       ///                                                                     
       template<bool REVERSE = false>
       Count Remove(const CT::Data auto&);
-      Count RemoveIndex(const CT::Index auto&, Count = 1);
+      Count RemoveIndex(CT::Index auto, Count = 1);
       Iterator RemoveIt(const Iterator&, Count = 1);
 
-      void Trim(const Count&);
-      NOD() TAny Crop(const Offset&, const Count&) const;
-      NOD() TAny Crop(const Offset&, const Count&);
+      void Trim(Count);
+      NOD() TAny Crop(Offset, Count) const;
+      NOD() TAny Crop(Offset, Count);
 
       void Clear();
       void Reset();
-      void Free();
 
       ///                                                                     
       ///   Search                                                            
       ///                                                                     
       template<bool REVERSE = false>
-      NOD() Index Find(const CT::Data auto&, const Offset& = 0) const noexcept;
+      NOD() Index Find(const CT::Data auto&, Offset = 0) const noexcept;
 
       template<CT::Data ALT_T = T>
       requires (CT::Inner::Comparable<T, ALT_T>)
@@ -247,10 +250,9 @@ namespace Langulus::Anyness
       void Sort();
 
       template<CT::Block WRAPPER = TAny>
-      NOD() WRAPPER Extend(const Count&);
+      NOD() WRAPPER Extend(Count);
 
-      void Swap(const Offset&, const Offset&);
-      void Swap(const Index&, const Index&);
+      void Swap(CT::Index auto, CT::Index auto);
 
       template<bool REVERSE = false>
       Count GatherFrom(const Block&);

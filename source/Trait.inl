@@ -46,10 +46,10 @@ namespace Langulus::Anyness
             BlockTransfer<Any>(S::Nest(t1));
          }
          else {
-            Insert<Any>(0, Forward<T1>(t1));
+            Insert<Any>(IndexBack, Forward<T1>(t1));
          }
       }
-      else Insert<Any>(0, Forward<T1>(t1), Forward<TAIL>(tail)...);
+      else Insert<Any>(IndexBack, Forward<T1>(t1), Forward<TAIL>(tail)...);
    }
 
    /// Create a trait from a trait and data types                             

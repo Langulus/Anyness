@@ -28,7 +28,7 @@ namespace Langulus::Anyness
    ///   @return true if this block contains similar data                     
    LANGULUS(INLINED)
    bool Block::Is(DMeta type) const noexcept {
-      return mType == type or (mType and mType->Is(type));
+      return mType &= type;
    }
 
    /// Check if unqualified type is the same as one of the provided types     
@@ -46,7 +46,7 @@ namespace Langulus::Anyness
    ///   @return true if this block contains similar data                     
    LANGULUS(INLINED)
    bool Block::IsSimilar(DMeta type) const noexcept {
-      return mType == type or (mType and mType->IsSimilar(type));
+      return mType |= type;
    }
 
    /// Check if this type is exactly one of the provided types                
@@ -62,7 +62,7 @@ namespace Langulus::Anyness
    ///   @return true if data type matches type exactly                       
    LANGULUS(INLINED)
    bool Block::IsExact(DMeta type) const noexcept {
-      return mType == type or (mType and mType->IsExact(type));
+      return mType == type;
    }
 
    /// Check if contained data can be interpreted as a given type             
@@ -177,7 +177,7 @@ namespace Langulus::Anyness
    inline Block Block::GetMember(TMeta trait) {
       // Scan members                                                   
       for (auto& member : mType->mMembers) {
-         if (member.TraitIs(trait))
+         if (member.GetTrait() == trait)
             return GetMember(member);
       }
 
@@ -266,7 +266,7 @@ namespace Langulus::Anyness
       Offset offset = SimplifyMemberIndex(index);
       Offset counter = 0;
       for (auto& member : mType->mMembers) {
-         if (trait and not member.TraitIs(trait))
+         if (trait and member.GetTrait() != trait)
             continue;
 
          // Matched, but check index first                              

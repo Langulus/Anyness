@@ -87,8 +87,8 @@ namespace Langulus::Anyness
          }
          else if (mType->mComparer) {
             // Call compare operator for each element pair              
-            auto lhs = GetRaw();
-            auto rhs = right.GetRaw();
+            auto lhs = GetRawAs<Byte>();
+            auto rhs = right.GetRawAs<Byte>();
             const auto lhsEnd = GetRawEnd();
             while (lhs != lhsEnd) {
                if (not mType->mComparer(lhs, rhs))
@@ -548,7 +548,7 @@ namespace Langulus::Anyness
             });
             localOutput.MakeNow();
             const auto inserted = output.SmartPush(IndexBack, Abandon(localOutput));
-            localOutput.Free();
+            localOutput.Free<Any>();
             return inserted;
          }
 
@@ -567,7 +567,7 @@ namespace Langulus::Anyness
       GatherInner<REVERSE>(input, localOutput);
       localOutput.MakeNow();
       const auto inserted = output.InsertBlock(IndexBack, Abandon(localOutput));
-      localOutput.Free();
+      localOutput.Free<Any>();
       return inserted;
    }
 

@@ -18,82 +18,118 @@ namespace Langulus::Anyness
    ///   @tparam REVERSE - whether to search from the back                    
    ///   @param item - the item type to search for and remove                 
    ///   @return 1 if the element was found and removed, 0 otherwise          
-   template<bool REVERSE> LANGULUS(INLINED)
+   template<CT::Block THIS, bool REVERSE> LANGULUS(INLINED)
    Count Block::Remove(const CT::Data auto& item) {
       const auto found = FindKnown<REVERSE>(item);
-      if (found)
-         return RemoveIndex(found.GetOffsetUnsafe(), 1);
-      return 0;
+      return found ? RemoveIndex<THIS>(found.GetOffsetUnsafe(), 1) : 0;
    }
    
    /// Remove sequential indices                                              
    ///   @param index - index to start removing from                          
-   ///   @param count - number of items to remove                             
+   ///   @param count - number of contiguous items to remove                  
    ///   @return the number of removed elements                               
-   inline Count Block::RemoveIndex(CT::Index auto index, const Count count) {
+   template<CT::Block THIS>
+   Count Block::RemoveIndex(CT::Index auto index, const Count count) {
       using INDEX = Deref<decltype(index)>;
 
       if constexpr (CT::Same<INDEX, Index>) {
          // By special indices                                          
          if (index == IndexAll) {
             const auto oldCount = mCount;
-            Free();
+            Free<THIS>();
             ResetMemory();
             ResetState();
             return oldCount;
          }
 
-         const auto idx = Constrain(index);
+         Index idx;
+         if constexpr (CT::Typed<THIS>)
+            idx = ConstrainMore<TypeOf<THIS>>(index);
+         else
+            idx = Constrain(index);
          if (idx.IsSpecial())
             return 0;
 
-         return RemoveIndex(idx.GetOffsetUnsafe(), count);
+         return RemoveIndex<THIS>(idx.GetOffsetUnsafe(), count);
       }
       else {
-         Offset idx;
-         if constexpr (CT::Signed<INDEX>) {
-            if (index < 0)
-               idx = mCount - static_cast<Offset>(-index);
-            else
-               idx = static_cast<Offset>(index);
-         }
-         else idx = index;
-
-         // By simple index (signed or not)                             
-         LANGULUS_ASSUME(DevAssumes, idx + count <= mCount, "Out of range");
-
-         if (IsConstant() or IsStatic()) {
-            if (mType->mIsPOD and idx + count >= mCount) {
-               // If data is POD and elements are on the back, we can   
-               // get around constantness and staticness, by simply     
-               // truncating the count without any reprecussions        
-               const auto removed = mCount - idx;
-               mCount = idx;
-               return removed;
-            }
-            else {
-               LANGULUS_ASSERT(not IsConstant(), Access,
-                  "Removing from constant container");
-               LANGULUS_ASSERT(not IsStatic(), Access,
-                  "Removing from static container");
-               return 0;
-            }
-         }
-
-         // First call the destructors on the correct region            
+         // By simple index                                             
+         Offset idx = index;
          const auto ender = idx + count;
          const auto removed = ender - idx;
-         CropInner(idx, removed).CallUnknownDestructors();
+         LANGULUS_ASSUME(DevAssumes, ender <= mCount, "Out of range");
 
-         if (ender < mCount) {
-            // Fill gap by invoking abandon-constructors                
-            // We're moving to the left, so no reverse is required      
-            LANGULUS_ASSERT(GetUses() == 1, Move, "Moving elements in use");
-            const auto tail = mCount - ender;
-            CropInner(idx, 0)
-               .CallUnknownSemanticConstructors(
-                  tail, Abandon(CropInner(ender, tail))
-               );
+         if constexpr (CT::Typed<THIS>) {
+            using T = TypeOf<THIS>;
+
+            if (IsStatic() and ender == mCount) {
+               // If data is static and elements are on the back, we    
+               // can get around constantness and staticness, by        
+               // truncating the count without any reprecussions        
+               // We can't destroy static element anyways               
+               mCount = idx;
+               return count;
+            }
+
+            LANGULUS_ASSERT(GetUses() == 1, Move,
+               "Removing elements from memory block, used from multiple places, "
+               "requires memory to move");
+            LANGULUS_ASSERT(IsMutable(), Access,
+               "Attempting to remove from constant container");
+            LANGULUS_ASSERT(not IsStatic(), Access,
+               "Attempting to remove from static container");
+
+            if constexpr (CT::Sparse<T> or CT::POD<T>) {
+               MoveMemory(GetRawAs<T>() + idx, GetRawAs<T>() + ender, mCount - ender);
+            }
+            else {
+               // Call the destructors on the correct region            
+               CropInner(idx, count)
+                  .template CallKnownDestructors<T>();
+
+               if (ender < mCount) {
+                  // Fill gap	if any by invoking move constructions     
+                  // Moving to the left, so no overlap possible         
+                  const auto tail = mCount - ender;
+                  CropInner(idx, 0)
+                     .template CallKnownSemanticConstructors<T>(
+                        tail, Abandon(CropInner(ender, tail))
+                     );
+               }
+            }
+         }
+         else {
+            if (IsConstant() or IsStatic()) {
+               if (mType->mIsPOD and idx + count >= mCount) {
+                  // If data is POD and elements are on the back, we can
+                  // get around constantness and staticness, by simply  
+                  // truncating the count without any reprecussions     
+                  const auto removed = mCount - idx;
+                  mCount = idx;
+                  return removed;
+               }
+               else {
+                  LANGULUS_ASSERT(not IsConstant(), Access,
+                     "Removing from constant container");
+                  LANGULUS_ASSERT(not IsStatic(), Access,
+                     "Removing from static container");
+                  return 0;
+               }
+            }
+
+            // First call the destructors on the correct region         
+            CropInner(idx, removed).CallUnknownDestructors();
+
+            if (ender < mCount) {
+               // Fill gap by invoking abandon-constructors             
+               // We're moving to the left, so no reverse is required   
+               LANGULUS_ASSERT(GetUses() == 1, Move, "Moving elements in use");
+               const auto tail = mCount - ender;
+               CropInner(idx, 0)
+                  .CallUnknownSemanticConstructors(
+                     tail, Abandon(CropInner(ender, tail))
+                  );
+            }
          }
 
          // Change count                                                
@@ -105,6 +141,7 @@ namespace Langulus::Anyness
    /// Remove a deep index corresponding to a whole sub-block                 
    ///   @param index - index to remove                                       
    ///   @return 1 if block at that index was removed, 0 otherwise            
+   template<CT::Block THIS>
    inline Count Block::RemoveIndexDeep(CT::Index auto index) {
       if constexpr (not CT::Same<decltype(index), Index>) {
          if (not IsDeep())
@@ -114,11 +151,11 @@ namespace Langulus::Anyness
 
          for (Count i = 0; i != mCount; i += 1) {
             if (index == 0)
-               return RemoveIndex(i);
+               return RemoveIndex<THIS>(i);
 
             auto ith = As<Block*>(i);
             const auto count = ith->GetCountDeep();
-            if (index <= count and ith->RemoveIndexDeep(index))
+            if (index <= count and ith->RemoveIndexDeep<THIS>(index))
                return 1;
 
             index -= count;
@@ -131,18 +168,23 @@ namespace Langulus::Anyness
 
    /// Remove elements at the back                                            
    ///   @param count - the new count                                         
+   template<CT::Block THIS>
    inline void Block::Trim(const Count count) {
       if (count >= mCount)
          return;
 
       // Call destructors and change count                              
-      CropInner(count, mCount - count).CallUnknownDestructors();
+      if constexpr (CT::Typed<THIS>)
+         CropInner(count, mCount - count).CallKnownDestructors<TypeOf<THIS>>();
+      else
+         CropInner(count, mCount - count).CallUnknownDestructors();
       mCount = count;
    }
 
    /// Flattens unnecessarily deep containers and combines their states       
    /// when possible                                                          
    /// Discards ORness if container has only one element                      
+   template<CT::Block THIS>
    inline void Block::Optimize() {
       if (IsOr() and GetCount() == 1)
          MakeAnd();
@@ -150,24 +192,24 @@ namespace Langulus::Anyness
       while (GetCount() == 1 and IsDeep()) {
          auto& subPack = As<Block>();
          if (not CanFitState(subPack)) {
-            subPack.Optimize();
+            subPack.Optimize<Block>();
             if (subPack.IsEmpty())
-               Reset();
+               Reset<THIS>();
             return;
          }
 
          Block temporary {subPack};
          subPack.ResetMemory();
-         Free();
+         Free<THIS>();
          *this = temporary;
       }
 
       if (GetCount() > 1 and IsDeep()) {
          for (Count i = 0; i < mCount; ++i) {
             auto& subBlock = As<Block>(i);
-            subBlock.Optimize();
+            subBlock.Optimize<Block>();
             if (subBlock.IsEmpty()) {
-               RemoveIndex(i);
+               RemoveIndex<THIS>(i);
                --i;
             }
          }
@@ -175,7 +217,7 @@ namespace Langulus::Anyness
    }
 
    /// Destroy all elements, but don't deallocate memory if possible          
-   LANGULUS(INLINED)
+   template<CT::Block THIS> LANGULUS(INLINED)
    void Block::Clear() {
       if (not mEntry) {
          // Data is either static or unallocated                        
@@ -188,7 +230,10 @@ namespace Langulus::Anyness
       if (mEntry->GetUses() == 1) {
          // Entry is used only in this block, so it's safe to           
          // destroy all elements. We can reuse the entry                
-         CallUnknownDestructors();
+         if constexpr (CT::Typed<THIS>)
+            CallKnownDestructors<TypeOf<THIS>>();
+         else
+            CallUnknownDestructors();
          mCount = 0;
       }
       else {
@@ -202,9 +247,9 @@ namespace Langulus::Anyness
    }
 
    /// Destroy all elements, deallocate block and reset state                 
-   LANGULUS(INLINED)
+   template<CT::Block THIS> LANGULUS(INLINED)
    void Block::Reset() {
-      Free();
+      Free<THIS>();
       ResetMemory();
       ResetState();
    }
@@ -239,7 +284,7 @@ namespace Langulus::Anyness
       }
       else if (mType->mDestructor) {
          // Destroy every dense element                                 
-         auto data = mthis->GetRaw();
+         auto data = mthis->template GetRawAs<Byte>();
          const auto dataEnd = data + mType->mSize * mCount;
          while (data != dataEnd) {
             mType->mDestructor(data);

@@ -310,13 +310,13 @@ namespace Langulus::Anyness
                }
                else {
                   Block keyswap {mKeys.GetState(), GetKeyType()};
-                  keyswap.AllocateFresh(keyswap.RequestSize(1));
+                  keyswap.AllocateFresh(keyswap.RequestSize<Any>(1));
                   keyswap.CallUnknownSemanticConstructors(1, Abandon(oldKey));
                   keyswap.mCount = 1;
 
                   auto oldValue = GetValueInner(oldIndex);
                   Block valswap {mValues.GetState(), GetValueType()};
-                  valswap.AllocateFresh(valswap.RequestSize(1));
+                  valswap.AllocateFresh(valswap.RequestSize<Any>(1));
                   valswap.CallUnknownSemanticConstructors(1, Abandon(oldValue));
                   valswap.mCount = 1;
 
@@ -387,7 +387,7 @@ namespace Langulus::Anyness
             if (oldBucket < oldCount or oldBucket - oldCount != newBucket) {
                // Move pair only if it won't end up in same bucket      
                Block keyswap {mKeys.GetState(), GetKeyType()};
-               keyswap.AllocateFresh(keyswap.RequestSize(1));
+               keyswap.AllocateFresh(keyswap.RequestSize<Any>(1));
                keyswap.CallUnknownSemanticConstructors(1, Abandon(oldKey));
                keyswap.mCount = 1;
                
@@ -450,7 +450,7 @@ namespace Langulus::Anyness
                // Move pair only if it won't end up in same bucket      
                auto oldValue = GetValueInner(oldIndex);
                Block valswap {mValues.GetState(), GetValueType()};
-               valswap.AllocateFresh(valswap.RequestSize(1));
+               valswap.AllocateFresh(valswap.RequestSize<Any>(1));
                valswap.CallUnknownSemanticConstructors(1, Abandon(oldValue));
                valswap.mCount = 1;
                
@@ -647,10 +647,8 @@ namespace Langulus::Anyness
 
          if (attempts > *psl) {
             // The pair we're inserting is closer to bucket, so swap    
-            GetKeyInner(index)
-               .SwapUnknown(key.Forward());
-            GetValueInner(index)
-               .SwapUnknown(val.Forward());
+            GetKeyInner(index).template   SwapInner<Any>(key.Forward());
+            GetValueInner(index).template SwapInner<Any>(val.Forward());
 
             ::std::swap(attempts, *psl);
             if (insertedAt == mValues.mReserved)

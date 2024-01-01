@@ -66,7 +66,7 @@ namespace Langulus::Anyness
    template<template<class> class S, CT::DenseCharacter T> LANGULUS(INLINED)
    Text::Text(S<T>&& other) requires CT::Semantic<S<T>> {
       mType = MetaDataOf<TypeOf<Base>>();
-      AllocateFresh(RequestSize(1));
+      AllocateFresh(RequestSize<Text>(1));
       mRaw[0] = reinterpret_cast<const Byte&>(*other);      //TODO utf8
    }
 
@@ -81,7 +81,7 @@ namespace Langulus::Anyness
 
       SetMemory(DataState::Constrained, mType, count, *other, nullptr);
       if constexpr (not S<T>::Move and S<T>::Keep)
-         TakeAuthority();
+         TakeAuthority<Text>();
    }
 
    /// Construct from a bounded character array                               
@@ -95,7 +95,7 @@ namespace Langulus::Anyness
 
       SetMemory(DataState::Constrained, mType, count, *other, nullptr);
       if constexpr (not S<T>::Move and S<T>::Keep)
-         TakeAuthority();
+         TakeAuthority<Text>();
    }
 
    /// Construct from a bounded character array                               
@@ -108,7 +108,7 @@ namespace Langulus::Anyness
 
       SetMemory(DataState::Constrained, mType, other->size(), other->data(), nullptr);
       if constexpr (not S<T>::Move and S<T>::Keep)
-         TakeAuthority();
+         TakeAuthority<Text>();
    }
 
    /// Construct from compatible std::string                                  
@@ -389,7 +389,7 @@ namespace Langulus::Anyness
          }
 
          Block previousBlock {*this};
-         const auto request = RequestSize(mCount + 1);
+         const auto request = RequestSize<Text>(mCount + 1);
          mutableThis->mEntry = Allocator::Reallocate(
             request.mByteSize, const_cast<Allocation*>(mEntry));
          LANGULUS_ASSERT(mEntry, Allocate, "Out of memory");
@@ -399,7 +399,7 @@ namespace Langulus::Anyness
             // Memory moved, and we should move all elements in it      
             mutableThis->mRaw = const_cast<Byte*>(mEntry->GetBlockStart());
             CopyMemory(mutableThis->mRaw, previousBlock.mRaw, mCount);
-            previousBlock.Free();
+            previousBlock.Free<Text>();
          }
 
          // Add the null-termination                                    
@@ -409,7 +409,7 @@ namespace Langulus::Anyness
       else {
          // We have to branch-off and make another allocation           
          Text result;
-         const auto request = RequestSize(mCount + 1);
+         const auto request = RequestSize<Text>(mCount + 1);
          result.mType = mType;
          result.AllocateFresh(request);
          result.mCount = mCount;
@@ -570,28 +570,6 @@ namespace Langulus::Anyness
       return result;
    }
 
-   /// Remove a part of the text                                              
-   ///   @attention assumes end >= start                                      
-   ///   @param start - the starting character                                
-   ///   @param end - the ending character                                    
-   ///   @return a reference to this text                                     
-   LANGULUS(INLINED)
-   Text& Text::RemoveIndex(Count start, Count end) {
-      LANGULUS_ASSUME(UserAssumes, end >= start, "end < start");
-      const auto removed = ::std::min(end, mCount) - ::std::min(start, mCount);
-      if (0 == mCount or 0 == removed)
-         return *this;
-
-      LANGULUS_ASSERT(IsMutable(), Destruct,
-         "Can't remove from constant container");
-
-      if (end < mCount)
-         MoveMemory(mRaw + start, mRaw + end, mCount - end);
-
-      mCount -= removed;
-      return *this;
-   }
-
    /// Extend the text container and return a referenced part of it           
    ///   @return an array that represents the extended part                   
    LANGULUS(INLINED)
@@ -667,7 +645,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container                                
    LANGULUS(INLINED)
    Text& Text::operator += (const Text& rhs) {
-      InsertBlock<Text, void>(IndexBack, Copy(rhs));
+      InsertBlock<Text, void, true>(IndexBack, Copy(rhs));
       return *this;
    }
 

@@ -20,8 +20,7 @@ namespace Langulus::Anyness
 
    /// Default construction                                                   
    TEMPLATE() LANGULUS(INLINED)
-   constexpr TABLE()::TUnorderedSet()
-      : UnorderedSet {} {
+   constexpr TABLE()::TUnorderedSet() {
       mKeys.mState = DataState::Typed;
       if constexpr (CT::Constant<T>)
          mKeys.MakeConst();
@@ -38,122 +37,113 @@ namespace Langulus::Anyness
    TEMPLATE() LANGULUS(INLINED)
    TABLE()::TUnorderedSet(TUnorderedSet&& other)
       : TUnorderedSet {Move(other)} {}
-
-   /// Semantic-construction                                                  
-   ///   @param other - the set and semantic to construct with                
-   TEMPLATE() template<template<class> class S>
-   requires (CT::Inner::SemanticMakable<S, T>) LANGULUS(INLINED)
-   TABLE()::TUnorderedSet(S<TUnorderedSet>&& other) {
-      BlockTransfer<TUnorderedSet>(other.Forward());
-   }
    
    /// Create from a list of elements, each of them can be semantic or not,   
    /// an array, as well as any other kinds of sets                           
    ///   @param t1 - first element                                            
    ///   @param tail - tail of elements (optional)                            
-   TEMPLATE() template<class T1, class... TAIL>
-   requires (CT::Inner::UnfoldMakableFrom<T, T1, TAIL...>) LANGULUS(INLINED)
+   TEMPLATE() template<class T1, class...TAIL>
+   requires CT::DeepSetMakable<T, T1, TAIL...> LANGULUS(INLINED)
    TABLE()::TUnorderedSet(T1&& t1, TAIL&&... tail) {
-      Insert(Forward<T1>(t1), Forward<TAIL>(tail)...);
+      if constexpr (sizeof...(TAIL) == 0) {
+         using S = SemanticOf<T1>;
+         using ST = TypeOf<S>;
+
+         if constexpr (CT::Set<ST>) {
+            if constexpr (CT::Typed<ST>) {
+               // Not type-erased set, do compile-time type checks      
+               using STT = TypeOf<ST>;
+               if constexpr (CT::Similar<T, STT>) {
+                  // Type is binary compatible, just transfer set       
+                  BlockTransfer<TUnorderedSet>(S::Nest(t1));
+               }
+               else if constexpr (CT::Sparse<T, STT>) {
+                  if constexpr (CT::DerivedFrom<T, STT>) {
+                     // The statically typed set contains items that    
+                     // are base of this container's type. Each element 
+                     // should be dynamically cast to this type         
+                     for (auto pointer : DesemCast(t1)) {
+                        auto dcast = dynamic_cast<T>(&(*pointer));
+                        if (dcast)
+                           (*this) << dcast;
+                     }
+                  }
+                  else if constexpr (CT::DerivedFrom<STT, T>) {
+                     // The statically typed set contains items that    
+                     // are derived from this container's type. Each    
+                     // element should be statically sliced to this type
+                     for (auto pointer : DesemCast(t1))
+                        (*this) << static_cast<T>(&(*pointer));
+                  }
+                  else Insert(Forward<T1>(t1));
+               }
+               else Insert(Forward<T1>(t1));
+            }
+            else {
+               // Type-erased set, do run-time type checks              
+               if (mKeys.mType == DesemCast(t1).GetType()) {
+                  // If types are exactly the same, it is safe to       
+                  // absorb the set, essentially converting a type-     
+                  // erased Set back to its TSet equivalent             
+                  BlockTransfer<TUnorderedSet>(S::Nest(t1));
+               }
+               else Insert(Forward<T1>(t1));
+            }
+         }
+         else Insert(Forward<T1>(t1));
+      }
+      else Insert(Forward<T1>(t1), Forward<TAIL>(tail)...);
    }
 
    /// Destroys the set and all it's contents                                 
    TEMPLATE()
    TABLE()::~TUnorderedSet() {
-      if (not mKeys.mEntry)
-         return;
-
-      if (mKeys.mEntry->GetUses() == 1) {
-         // Remove all used keys, they're used only here                
-         // This is a statically-optimized equivalent                   
-         ClearInner();
-
-         // Deallocate stuff                                            
-         Allocator::Deallocate(const_cast<Allocation*>(mKeys.mEntry));
-      }
-      else {
-         // Data is used from multiple locations, just deref            
-         const_cast<Allocation*>(mKeys.mEntry)->Free();
-      }
-
-      mKeys.mEntry = nullptr;
+      Free<TUnorderedSet>();
    }
 
-   /// Creates a shallow copy of the given table                              
-   ///   @param rhs - the table to reference                                  
-   ///   @return a reference to this table                                    
+   /// Shallow-copy assignment                                                
+   ///   @param rhs - the container to shallow-copy                           
+   ///   @return a reference to this container                                
    TEMPLATE() LANGULUS(INLINED)
    TABLE()& TABLE()::operator = (const TUnorderedSet& rhs) {
+      static_assert(CT::DeepSetAssignable<T, Copied<TUnorderedSet<T>>>);
       return operator = (Copy(rhs));
    }
 
-   /// Move a table                                                           
-   ///   @param rhs - the table to move                                       
-   ///   @return a reference to this table                                    
+   /// Move assignment                                                        
+   ///   @param rhs - the container to move                                   
+   ///   @return a reference to this container                                
    TEMPLATE() LANGULUS(INLINED)
    TABLE()& TABLE()::operator = (TUnorderedSet&& rhs) {
+      static_assert(CT::DeepSetAssignable<T, Moved<TUnorderedSet<T>>>);
       return operator = (Move(rhs));
-   }
-   
-   /// Insert a single element into a cleared set                             
-   ///   @param rhs - the element to copy                                     
-   ///   @return a reference to this table                                    
-   TEMPLATE() LANGULUS(INLINED)
-   TABLE()& TABLE()::operator = (const CT::NotSemantic auto& rhs) {
-      return operator = (Copy(rhs));
-   }
-   
-   /// Insert a single element into a cleared set                             
-   ///   @param rhs - the element to copy                                     
-   ///   @return a reference to this table                                    
-   TEMPLATE() LANGULUS(INLINED)
-   TABLE()& TABLE()::operator = (CT::NotSemantic auto& rhs) {
-      return operator = (Copy(rhs));
    }
 
-   /// Emplace a single element into a cleared set                            
-   ///   @param rhs - the element to emplace                                  
-   ///   @return a reference to this table                                    
-   TEMPLATE() LANGULUS(INLINED)
-   TABLE()& TABLE()::operator = (CT::NotSemantic auto&& rhs) {
-      return operator = (Move(rhs));
-   }
-   
-   /// General semantic assignment for any set/element                        
-   ///   @param rhs - the set/element to use for assignment                   
-   TEMPLATE()
-   TABLE()& TABLE()::AssignFrom(CT::Semantic auto&& rhs) {
-      using S = Decay<decltype(rhs)>;
+   /// Generic assignment                                                     
+   ///   @param rhs - the element/array/container to assign                   
+   ///   @return a reference to this container                                
+   TEMPLATE() template<class T1>
+   requires CT::DeepSetAssignable<T, T1> LANGULUS(INLINED)
+   TABLE()& TABLE()::operator = (T1&& rhs) {
+      using S = SemanticOf<T1>;
       using ST = TypeOf<S>;
-
+       
       if constexpr (CT::Set<ST>) {
-         if (&static_cast<const BlockSet&>(*rhs) == this)
+         // Potentially absorb a set                                    
+         if (static_cast<const BlockSet*>(this)
+          == static_cast<const BlockSet*>(&DesemCast(rhs)))
             return *this;
 
-         Reset();
-         new (this) Self {rhs.Forward()};
+         Free<TUnorderedSet>();
+         new (this) TUnorderedSet {S::Nest(rhs)};
       }
-      else if constexpr (CT::Exact<T, ST>) {
+      else {
+         // Unfold-insert                                               
          Clear();
-         Insert(rhs.Forward());
+         UnfoldInsert(S::Nest(rhs));
       }
-      else LANGULUS_ERROR("Unsupported semantic assignment");
 
       return *this;
-   }
-
-   /// Shallow semantic assignment for any set/element                        
-   ///   @param rhs - the set/element to use for construction                 
-   TEMPLATE()
-   TABLE()& TABLE()::operator = (CT::ShallowSemantic auto&& rhs) {
-      return AssignFrom(rhs.Forward());
-   }
-
-   /// Deep semantic assignment for any set/element                           
-   ///   @param rhs - the set/element to use for construction                 
-   TEMPLATE()
-   TABLE()& TABLE()::operator = (CT::DeepSemantic auto&& rhs) requires CT::CloneAssignable<T> {
-      return AssignFrom(rhs.Forward());
    }
 
    /// Templated tables are always typed                                      
@@ -589,7 +579,7 @@ namespace Langulus::Anyness
          Reserve(GetCount() + 1);
          InsertInner<true>(
             GetBucket(GetReserved() - 1, DesemCast(item)),
-            Forward<T1>(item)
+            S::Nest(item)
          );
          return 1;
       }

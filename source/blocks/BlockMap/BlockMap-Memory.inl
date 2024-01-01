@@ -292,26 +292,23 @@ namespace Langulus::Anyness
    void BlockMap::Keep() const noexcept {
       Reference(1);
    }
-         
-   /// Dereference memory block                                               
-   ///   @attention this never modifies any state, except mValues.mEntry      
-   ///   @tparam DESTROY - whether to call destructors on full dereference    
+
+   /// Dereference memory block once and destroy all elements if data was     
+   /// fully dereferenced                                                     
    ///   @tparam MAP - map we're searching in, potentially providing runtime  
    ///                 optimization on type checks                            
-   ///   @param times - number of references to subtract                      
-   template<bool DESTROY, class MAP>
-   void BlockMap::Dereference(const Count& times) {
+   ///   @attention this doesn't modify any immediate map state               
+   template<class MAP> LANGULUS(INLINED)
+   void BlockMap::Free() {
       if (not mValues.mEntry)
          return;
 
       LANGULUS_ASSUME(DevAssumes,
-         mValues.mEntry->GetUses() >= times, "Bad memory dereferencing");
+         mValues.mEntry->GetUses() >= 1, "Bad memory dereferencing");
 
       if (mValues.mEntry->GetUses() == 1) {
-         if constexpr (DESTROY) {
-            if (not IsEmpty())
-               ClearInner<MAP>();
-         }
+         if (not IsEmpty())
+            ClearInner<MAP>();
 
          // Deallocate stuff                                            
          LANGULUS_ASSUME(DevAssumes, mKeys.mEntry->GetUses() == 1,
@@ -325,16 +322,6 @@ namespace Langulus::Anyness
          // values' references to save on some redundancy               
          const_cast<Allocation*>(mValues.mEntry)->Free();
       }
-   }
-
-   /// Dereference memory block once and destroy all elements if data was     
-   /// fully dereferenced                                                     
-   ///   @tparam MAP - map we're searching in, potentially providing runtime  
-   ///                 optimization on type checks                            
-   ///   @attention this doesn't modify any immediate map state               
-   template<class MAP> LANGULUS(INLINED)
-   void BlockMap::Free() {
-      return Dereference<true, MAP>(1);
    }
 
 } // namespace Langulus::Anyness

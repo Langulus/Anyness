@@ -320,8 +320,6 @@ namespace Langulus::Anyness
 
       void Reference(const Count&) const noexcept;
       void Keep() const noexcept;
-      template<bool DESTROY, class MAP>
-      void Dereference(const Count&);
       template<class MAP>
       void Free();
       /// @endcond                                                            

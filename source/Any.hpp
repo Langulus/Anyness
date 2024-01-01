@@ -111,7 +111,6 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Removal                                                           
       ///                                                                     
-      using Block::RemoveIndex;
       Iterator RemoveIt(const Iterator&, Count = 1);
 
       void Clear();
