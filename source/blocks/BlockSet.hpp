@@ -10,6 +10,47 @@
 #include "../TAny.hpp"
 
 
+namespace Langulus
+{
+   namespace A
+   {
+      class BlockSet {
+      protected:
+         using InfoType = ::std::uint8_t;
+
+         // A precomputed pointer for the info bytes                    
+         // Points to an offset inside mKeys allocation                 
+         // Each byte represents an entry, and can be three things:     
+         //    0 - the index is not used, data is not initialized       
+         //    1 - the index is used, key is exactly where it should be 
+         //   2+ - the index is used, but bucket is info-1 buckets to   
+         //         the right of this index                             
+         InfoType* mInfo {};
+
+         // The block that contains the keys and info bytes             
+         Anyness::Block mKeys;
+      };
+
+   } // namespace Langulus::A
+
+   namespace CT
+   {
+
+      /// A reflected set type is any type that publicly inherits A::BlockSet 
+      /// and is binary compatible to it                                      
+      /// Keep in mind, that sparse types are never considered CT::Set!       
+      template<class...T>
+      concept Set = ((DerivedFrom<T, A::BlockSet>
+          and sizeof(T) == sizeof(A::BlockSet)) and ...);
+
+      /// Check if a type is a statically typed set                           
+      template<class...T>
+      concept TypedSet = Set<T...> and Typed<T...>;
+
+   } // namespace Langulus::CT
+
+} // namespace Langulus
+
 namespace Langulus::Anyness
 {
 
@@ -20,22 +61,7 @@ namespace Langulus::Anyness
    /// only provides the functionality to do so. You can use BlockSet as a    
    /// lightweight intermediate structure for iteration, etc.                 
    ///                                                                        
-   class BlockSet {
-   protected:
-      using InfoType = ::std::uint8_t;
-
-      // A precomputed pointer for the info bytes                       
-      // Points to an offset inside mKeys allocation                    
-      // Each byte represents an entry, and can be three things:        
-      //    0 - the index is not used, data is not initialized          
-      //    1 - the index is used, and key is exactly where it should be
-      //   2+ - the index is used, but bucket is info-1 buckets to      
-      //         the right of this index                                
-      InfoType* mInfo {};
-
-      // The block that contains the keys and info bytes                
-      Block mKeys;
-
+   class BlockSet : public A::BlockSet {
    public:
       static constexpr bool Ordered = false;
       static constexpr bool Ownership = false;
@@ -246,9 +272,7 @@ namespace Langulus::Anyness
 
       void Reference(const Count&) const noexcept;
       void Keep() const noexcept;
-      template<bool DESTROY, class SET>
-      void Dereference(const Count&);
-      template<class SET>
+      template<CT::Set THIS>
       void Free();
       /// @endcond                                                            
 
@@ -355,20 +379,3 @@ namespace Langulus::Anyness
    };
 
 } // namespace Langulus::Anyness
-
-
-namespace Langulus::CT
-{
-
-   /// A reflected set type is any type that inherits BlockSet, and is        
-   /// binary compatible to a BlockSet                                        
-   /// Keep in mind, that sparse types are never considered CT::Set!          
-   template<class... T>
-   concept Set = ((DerivedFrom<T, Anyness::BlockSet>
-       and sizeof(T) == sizeof(Anyness::BlockSet)) and ...);
-
-   /// Check if a type is a statically typed set                              
-   template<class... T>
-   concept TypedSet = Set<T...> and Typed<T...>;
-
-} // namespace Langulus::CT

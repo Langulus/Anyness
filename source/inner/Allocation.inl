@@ -177,7 +177,7 @@ namespace Langulus::Anyness
    /// Reference the entry 'c' times                                          
    ///   @param c - the number of references to add                           
    LANGULUS(INLINED)
-   constexpr void Allocation::Keep(const Count& c) noexcept {
+   constexpr void Allocation::Keep(Count c) noexcept {
       mReferences += c;
    }
 
@@ -190,7 +190,7 @@ namespace Langulus::Anyness
    /// Dereference the entry 'c' times                                        
    ///   @param c - the number of references to remove                        
    LANGULUS(INLINED)
-   constexpr void Allocation::Free(const Count& c) noexcept {
+   constexpr void Allocation::Free(Count c) noexcept {
       mReferences -= c;
    }
 

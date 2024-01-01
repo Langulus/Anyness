@@ -106,59 +106,58 @@ namespace Langulus::A
 namespace Langulus::Anyness
 {
    
-   /// Create a dense memory block, by interfacing a single pointer           
-   ///   @tparam CONSTRAIN - makes container type-constrained                 
-   ///   @param value - the pointer to interface                              
-   ///   @return the block                                                    
-   template<bool CONSTRAIN, CT::Data T> LANGULUS(INLINED)
-   Block Block::From(T value) requires CT::Sparse<T> {
-      if constexpr (CONSTRAIN)
-         return {DataState::Member, MetaDataOf<Deptr<T>>(), 1, value};
-      else
-         return {DataState::Static, MetaDataOf<Deptr<T>>(), 1, value};
-   }
+   /// Construct manually by interfacing memory directly                      
+   /// Data will only be interfaced, never owned or copied, so semantic is    
+   /// ignored, but left out for compatiblity with other interfaces           
+   ///   @tparam CONSTRAIN_TYPE - whether to make the resulting Block         
+   ///      type-constrained                                                  
+   ///   @param what - data to interface                                      
+   ///   @param count - number of items, in case 'what' is sparse             
+   ///   @return the provided data, wrapped inside a Block                    
+   template<bool CONSTRAIN_TYPE> LANGULUS(INLINED)
+   Block Block::From(auto&& what, Count count) {
+      using S = SemanticOf<decltype(what)>;
+      using ST = TypeOf<S>;
 
-   /// Create a memory block from a count-terminated array pointer            
-   ///   @tparam CONSTRAIN - makes container type-constrained                 
-   ///   @param value - the pointer to the first element                      
-   ///   @param count - the number of elements                                
-   ///   @return the block                                                    
-   template<bool CONSTRAIN, CT::Data T> LANGULUS(INLINED)
-   Block Block::From(T value, Count count) requires CT::Sparse<T> {
-      if constexpr (CONSTRAIN)
-         return {DataState::Member, MetaDataOf<Deptr<T>>(), count, value};
-      else
-         return {DataState::Static, MetaDataOf<Deptr<T>>(), count, value};
-   }
-
-   /// Create a dense memory block, by interfacing a single value             
-   /// If value is resolvable, GetBlock() will produce the Block              
-   /// If value is deep, the value's block will be copied                     
-   /// Anything else will be interfaced via a new Block                       
-   ///   @attention value's memory lifetime is your responsibility            
-   ///   @tparam CONSTRAIN - makes container type-constrained                 
-   ///   @return a block that wraps the dense value                           
-   template<bool CONSTRAIN, CT::Data T> LANGULUS(INLINED)
-   Block Block::From(T& value) requires CT::Dense<T> {
       Block result;
-      if constexpr (CT::Resolvable<T>) {
-         // Resolve a runtime-resolvable value                          
-         result = value.GetBlock();
+      if constexpr (CT::Array<ST>) {
+         // ... from a bounded array                                    
+         count *= ExtentOf<ST>;
+         result.SetMemory(
+            DataState::Constrained,
+            MetaDataOf<Deext<ST>>(), count,
+            DesemCast(what), nullptr
+         );
       }
-      else if constexpr (CT::Deep<T>) {
-         // Static cast to Block if CT::Deep                            
-         result.operator = (value);
+      else if constexpr (CT::Sparse<ST>) {
+         // ... from a pointer                                          
+         result.SetMemory(
+            DataState::Constrained,
+            MetaDataOf<Deptr<ST>>(), count,
+            DesemCast(what), nullptr
+         );
       }
       else {
-         // Any other value gets wrapped inside a temporary Block       
-         result = Block {
-            DataState::Static, 
-            MetaDataOf<Decvq<Deref<T>>>(),
-            1, &value
-         };
+         // ... from a value                                            
+         if constexpr (CT::Resolvable<ST>) {
+            // Resolve a runtime-resolvable value                       
+            result = DesemCast(what).GetBlock();
+         }
+         else if constexpr (CT::Deep<ST>) {
+            // Static cast to Block if CT::Deep                         
+            result.operator = (DesemCast(what));
+         }
+         else {
+            // Any other value gets wrapped inside a temporary Block    
+            result.SetMemory(
+               DataState::Constrained,
+               MetaDataOf<ST>(), 1,
+               &DesemCast(what), nullptr
+            );
+         }
       }
-      
-      if constexpr (CONSTRAIN)
+
+      if constexpr (CONSTRAIN_TYPE)
          result.MakeTypeConstrained();
       return result;
    }
@@ -181,13 +180,9 @@ namespace Langulus::Anyness
    ///   @attention will not set mRaw, mReserved, mEntry, if 'from' is empty  
    ///   @tparam TO - the type of block we're transferring to                 
    ///   @param from - the block and semantic to transfer from                
-   template<class TO> LANGULUS(INLINED)
-   void Block::BlockTransfer(CT::Semantic auto&& from) {
-      using S = Decay<decltype(from)>;
-      using FROM = TypeOf<S>;
-      static_assert(CT::Block<TO>, "TO must be a block type");
-      static_assert(CT::Block<FROM>, "FROM must be a block type");
-
+   template<CT::Block TO, template<class> class S, CT::Block FROM>
+   requires CT::Semantic<S<FROM>> LANGULUS(INLINED)
+   void Block::BlockTransfer(S<FROM>&& from) {
       mCount = from->mCount;
 
       if constexpr (not CT::Typed<TO>) {
@@ -202,16 +197,16 @@ namespace Langulus::Anyness
          mState = from->mState + DataState::Typed;
       }
 
-      if constexpr (S::Shallow) {
+      if constexpr (S<FROM>::Shallow) {
          // We're transferring via a shallow semantic                   
          mRaw = from->mRaw;
          mReserved = from->mReserved;
 
-         if constexpr (S::Keep) {
+         if constexpr (S<FROM>::Keep) {
             // Move/Copy other                                          
             mEntry = from->mEntry;
 
-            if constexpr (S::Move) {
+            if constexpr (S<FROM>::Move) {
                if constexpr (not FROM::Ownership) {
                   // Since we are not aware if that block is referenced 
                   // or not we reference it just in case, and we also   
@@ -227,7 +222,7 @@ namespace Langulus::Anyness
             }
             else Keep();
          }
-         else if constexpr (S::Move) {
+         else if constexpr (S<FROM>::Move) {
             // Abandon other                                            
             mEntry = from->mEntry;
             from->mEntry = nullptr;
@@ -240,20 +235,15 @@ namespace Langulus::Anyness
          if (0 == mCount)
             return;
          
-         if constexpr (CT::Typed<FROM>) {
-            auto asTo = reinterpret_cast<FROM*>(this);
-            asTo->AllocateFresh(asTo->RequestSize(mCount));
-            CallKnownSemanticConstructors<TypeOf<FROM>>(
-               mCount, from.template Forward<Block>());
-         }
-         else if constexpr (CT::Typed<TO>) {
-            auto asTo = reinterpret_cast<TO*>(this);
-            asTo->AllocateFresh(asTo->RequestSize(mCount));
-            CallKnownSemanticConstructors<TypeOf<TO>>(
+         if constexpr (CT::Typed<FROM> or CT::Typed<TO>) {
+            using B = Conditional<CT::Typed<FROM>, FROM, TO>;
+            auto asTo = reinterpret_cast<B*>(this);
+            asTo->AllocateFresh(asTo->template RequestSize<B>(mCount));
+            CallKnownSemanticConstructors<TypeOf<B>>(
                mCount, from.template Forward<Block>());
          }
          else {
-            AllocateFresh(RequestSize(mCount));
+            AllocateFresh(RequestSize<Any>(mCount));
             CallUnknownSemanticConstructors(
                mCount, from.template Forward<Block>());
          }
@@ -273,73 +263,55 @@ namespace Langulus::Anyness
    }
 
    /// Swap contents of this block, with the contents of another, using       
-   /// a temporary block, completely type-erased and as efficient as possible 
+   /// a temporary block                                                      
    ///   @attention assumes both containers have same initialized count       
-   ///   @attention assumes both containers have same type                    
+   ///   @attention assumes T is the type of this and rhs                     
    ///   @param rhs - the block to swap with                                  
-   void Block::SwapUnknown(CT::Semantic auto&& rhs) {
-      using S = Decay<decltype(rhs)>;
-      static_assert(CT::Exact<TypeOf<S>, Block>,
-         "S type must be exactly Block (build-time optimization)");
-
+   template<CT::Block THIS, template<class> class S>
+   requires CT::Semantic<S<Block>>
+   void Block::SwapInner(S<Block>&& rhs) {
       LANGULUS_ASSUME(DevAssumes, rhs->mCount == mCount,
          "Count mismatch");
       LANGULUS_ASSUME(DevAssumes, mCount,
          "Can't swap zero count");
-      LANGULUS_ASSUME(DevAssumes, IsExact(rhs->GetType()),
+      LANGULUS_ASSUME(DevAssumes, IsSimilar(rhs->GetType()),
          "Type mismatch");
 
       Block temporary {mState, mType};
-      temporary.AllocateFresh(temporary.RequestSize(mCount));
+      temporary.AllocateFresh(temporary.RequestSize<THIS>(mCount));
       temporary.mCount = mCount;
 
-      // Abandon this to temporary                                      
-      temporary.CallUnknownSemanticConstructors(mCount, Abandon(*this));
-      // Destroy elements in this                                       
-      CallUnknownDestructors();
-      // Abandon rhs to this                                            
-      CallUnknownSemanticConstructors(rhs->mCount, rhs.Forward());
-      // Destroy elements in rhs                                        
-      rhs->CallUnknownDestructors();
-      // Abandon temporary to rhs                                       
-      rhs->CallUnknownSemanticConstructors(temporary.mCount, Abandon(temporary));
+      if constexpr (CT::Typed<THIS>) {
+         using T = TypeOf<THIS>;
 
-      // Cleanup temporary                                              
-      temporary.CallUnknownDestructors();
-      Allocator::Deallocate(const_cast<Allocation*>(temporary.mEntry));
-   }
+         // Abandon this to temporary                                   
+         temporary.CallKnownSemanticConstructors<T>(mCount, Abandon(*this));
+         // Destroy elements in this                                    
+         CallKnownDestructors<T>();
+         // Abandon rhs to this                                         
+         CallKnownSemanticConstructors<T>(rhs->mCount, rhs.Forward());
+         // Destroy elements in rhs                                     
+         rhs->template CallKnownDestructors<T>();
+         // Abandon temporary to rhs                                    
+         rhs->template CallKnownSemanticConstructors<T>(temporary.mCount, Abandon(temporary));
+         // Cleanup temporary                                           
+         temporary.CallKnownDestructors<T>();
+      }
+      else {
+         // Abandon this to temporary                                   
+         temporary.CallUnknownSemanticConstructors(mCount, Abandon(*this));
+         // Destroy elements in this                                    
+         CallUnknownDestructors();
+         // Abandon rhs to this                                         
+         CallUnknownSemanticConstructors(rhs->mCount, rhs.Forward());
+         // Destroy elements in rhs                                     
+         rhs->CallUnknownDestructors();
+         // Abandon temporary to rhs                                    
+         rhs->CallUnknownSemanticConstructors(temporary.mCount, Abandon(temporary));
+         // Cleanup temporary                                           
+         temporary.CallUnknownDestructors();
+      }
 
-   /// Swap contents of this block, with the contents of another, using       
-   /// a temporary block, statically optimized and as efficient as possible   
-   ///   @attention assumes both containers have same initialized count       
-   ///   @attention assumes T is the type of this and rhs                     
-   ///   @param rhs - the block to swap with                                  
-   template<CT::Data T>
-   void Block::SwapKnown(Block& rhs) {
-      LANGULUS_ASSUME(DevAssumes, rhs.mCount == mCount,
-         "Count mismatch");
-      LANGULUS_ASSUME(DevAssumes, mCount,
-         "Can't swap zero count");
-      LANGULUS_ASSUME(DevAssumes, IsExact<T>() and rhs.IsExact<T>(),
-         "Type mismatch");
-
-      Block temporary {mState, mType};
-      temporary.AllocateFresh(temporary.RequestSize(mCount));
-      temporary.mCount = mCount;
-
-      // Abandon this to temporary                                      
-      temporary.CallKnownSemanticConstructors<T>(mCount, Abandon(*this));
-      // Destroy elements in this                                       
-      CallKnownDestructors<T>();
-      // Abandon rhs to this                                            
-      CallKnownSemanticConstructors<T>(rhs.mCount, Abandon(rhs));
-      // Destroy elements in rhs                                        
-      rhs.CallKnownDestructors<T>();
-      // Abandon temporary to rhs                                       
-      rhs.CallKnownSemanticConstructors<T>(temporary.mCount, Abandon(temporary));
-
-      // Cleanup temporary                                              
-      temporary.CallKnownDestructors<T>();
       Allocator::Deallocate(const_cast<Allocation*>(temporary.mEntry));
    }
 

@@ -8,6 +8,7 @@
 ///                                                                           
 #pragma once
 #include "Handle.hpp"
+#include "../TPointer.hpp"
 
 #define TEMPLATE() template<class T, bool EMBED>
 #define HAND() Handle<T, EMBED>
@@ -295,12 +296,7 @@ namespace Langulus::Anyness
          else {
             // RHS is not a handle, but we'll wrap it in a handle, in   
             // order to find its entry (if managed memory is enabled)   
-            // Assigning mutable pointer to a const handle is allowed   
-            static_assert((CT::Mutable<Deptr<T>> and CT::Exact<T, ST>)
-                       or (CT::Constant<Deptr<T>> and CT::Exact<T, const Deptr<ST>*>),
-               "Type mismatch"
-            );
-
+            static_assert(CT::Similar<T, ST>, "Type mismatch");
             HandleLocal<T> rhsh {rhs.Forward()};
             Get() = rhsh.Get();
             GetEntry() = rhsh.GetEntry();
@@ -313,14 +309,14 @@ namespace Langulus::Anyness
       }
       else if constexpr (CT::Dense<T>) {
          // Do a copy/disown/abandon/move/clone inside a dense handle   
-         if constexpr (CT::Handle<ST>) {
-            static_assert(CT::Exact<T, TypeOf<ST>>, "Type mismatch");
+         if constexpr (CT::Handle<ST> and CT::Similar<T, TypeOf<ST>>)
             SemanticNew(&Get(), S::Nest(rhs->Get()));
-         }
-         else {
-            static_assert(CT::Exact<T, ST>, "Type mismatch");
+         else if constexpr (CT::Similar<T, ST>)
             SemanticNew(&Get(), rhs.Forward());
-         }
+         else if constexpr (CT::Pointer<T> and CT::Similar<TypeOf<T>, ST>)
+            SemanticNew(&Get(), rhs.Forward());
+         else
+            LANGULUS_ERROR("Can't initialize dense T");
       }
       else if constexpr (CT::Dense<Deptr<T>>) {
          // Do a clone, unless T is meta                                

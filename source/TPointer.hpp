@@ -68,7 +68,6 @@ namespace Langulus::Anyness
 
       NOD() operator TPointer<const T, DR>() const noexcept requires CT::Mutable<T>;
       NOD() operator const T& () const noexcept;
-      //NOD() operator T* () const noexcept;
 
       using Base::operator bool;
       using Base::operator ->;
@@ -110,10 +109,10 @@ namespace fmt
       template<class CONTEXT>
       LANGULUS(INLINED)
       auto format(T const& element, CONTEXT& ctx) {
-         if (element == nullptr) {
+         if (not element) {
             const auto type = element.GetType();
             if (type)
-               return fmt::format_to(ctx.out(), "{}(null)", *type);
+               return fmt::format_to(ctx.out(), "{}(null)", type);
             else
                return fmt::format_to(ctx.out(), "null");
          }

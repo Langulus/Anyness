@@ -116,8 +116,9 @@ namespace Langulus::Anyness
    }
    
    /// Create from a list of elements                                         
-   ///   @param head - first element                                          
-   ///   @param tail - tail of elements                                       
+   ///   @param t1 - first element                                            
+   ///   @param t2 - second element                                           
+   ///   @param tail - tail of elements (optional)                            
    template<CT::Data T1, CT::Data T2, CT::Data... TAIL>
    UnorderedSet::UnorderedSet(T1&& t1, T2&& t2, TAIL&&... tail) {
       if constexpr (CT::Semantic<T1>)
@@ -128,8 +129,7 @@ namespace Langulus::Anyness
       constexpr auto capacity = Roof2(
          sizeof...(TAIL) + 2 < MinimalAllocation
             ? MinimalAllocation
-            : sizeof...(TAIL) + 2
-      );
+            : sizeof...(TAIL) + 2);
 
       AllocateFresh(capacity);
       ZeroMemory(mInfo, capacity);
@@ -143,6 +143,7 @@ namespace Langulus::Anyness
    /// Set destructor                                                         
    LANGULUS(INLINED)
    UnorderedSet::~UnorderedSet() {
+      static_assert(CT::Set<UnorderedSet>);
       Free<UnorderedSet>();
    }
 

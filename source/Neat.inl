@@ -921,8 +921,8 @@ namespace Langulus::Anyness
    ///      container, temporary instances will be created on the stack when  
    ///      iterated. If iterator is mutable, any changes to these temporary  
    ///      instances will be used to overwite the real contents.             
-   ///   @tparam F - the function signature (deducible)                       
    ///   @tparam MUTABLE - whether changes inside container are allowed       
+   ///   @tparam F - the function signature (deducible)                       
    ///   @param call - the function to execute for each trait                 
    ///   @return the number of executions of 'call'                           
    template<bool MUTABLE, class F>
@@ -935,15 +935,15 @@ namespace Langulus::Anyness
       static_assert(CT::Constant<A> or MUTABLE,
          "Non constant iterator for constant Neat block");
 
+      Count index = 0;
       if constexpr (CT::Trait<A>) {
          // Static trait provided, extract filter                       
-         const auto filter = Decay<A>::GetTrait();
+         const auto filter = MetaTraitOf<Decay<A>>();
          const auto found = mTraits.FindIt(filter);
          if (not found)
-            return 0;
+            return index;
 
          // Iterate all relevant traits                                 
-         Count index {};
          for (auto& data : found->mValue) {
             // Create a temporary trait                                 
             Decay<A> temporaryTrait {data};
@@ -970,22 +970,32 @@ namespace Langulus::Anyness
 
             ++index;
          }
-
-         return index;
       }
+      else {
+         // Iterate all traits                                          
+         for (auto group : mTraits) {
+            for (auto& data : group.mValue) {
+               // Create a temporary trait                              
+               Conditional<CT::Deep<A>, Any, Trait> temporaryTrait
+                  = Trait::From(group.mKey, data);
 
-      // Iterate all traits                                             
-      Count index {};
-      for (auto group : mTraits) {
-         for (auto& data : group.mValue) {
-            // Create a temporary trait                                 
-            Conditional<CT::Deep<A>, Any, Trait> temporaryTrait
-               = Trait::From(group.mKey, data);
+               if constexpr (CT::Bool<R>) {
+                  // If F returns bool, you can decide when to break    
+                  // the loop by simply returning Flow::Break           
+                  if (not call(temporaryTrait)) {
+                     if constexpr (CT::Mutable<A>) {
+                        // Make sure change is committed                
+                        if constexpr (CT::Deep<A>)
+                           data = static_cast<const Any&>(temporaryTrait.template Get<Trait>());
+                        else
+                           data = static_cast<const Any&>(temporaryTrait);
+                     }
+                     return index + 1;
+                  }
+               }
+               else {
+                  call(temporaryTrait);
 
-            if constexpr (CT::Bool<R>) {
-               // If F returns bool, you can decide when to break the   
-               // loop by simply returning Flow::Break (or just false)  
-               if (not call(temporaryTrait)) {
                   if constexpr (CT::Mutable<A>) {
                      // Make sure change is commited before proceeding  
                      if constexpr (CT::Deep<A>)
@@ -993,22 +1003,10 @@ namespace Langulus::Anyness
                      else
                         data = static_cast<const Any&>(temporaryTrait);
                   }
-                  return index + 1;
                }
-            }
-            else {
-               call(temporaryTrait);
 
-               if constexpr (CT::Mutable<A>) {
-                  // Make sure change is commited before proceeding     
-                  if constexpr (CT::Deep<A>)
-                     data = static_cast<const Any&>(temporaryTrait.template Get<Trait>());
-                  else
-                     data = static_cast<const Any&>(temporaryTrait);
-               }
+               ++index;
             }
-
-            ++index;
          }
       }
 

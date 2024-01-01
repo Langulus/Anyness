@@ -10,6 +10,27 @@
 #include "UnorderedSet.hpp"
 
 
+namespace Langulus::CT
+{
+
+   /// Concept for recognizing arguments, with which a statically typed       
+   /// set can be constructed                                                 
+   template<class T, class...A>
+   concept DeepSetMakable = Inner::UnfoldMakableFrom<T, A...>
+        or (sizeof...(A) == 1 and Set<Desem<FirstOf<A...>>>
+           and SemanticOf<FirstOf<A...>>::Shallow or (
+              Inner::SemanticMakableAlt<typename SemanticOf<FirstOf<A...>>::template As<T>>
+        ));
+
+   /// Concept for recognizing argument, with which a statically typed        
+   /// set can be assigned                                                    
+   template<class T, class A>
+   concept DeepSetAssignable = Inner::UnfoldMakableFrom<T, A> or (Set<Desem<A>>
+       and SemanticOf<A>::Shallow or (
+          Inner::SemanticAssignableAlt<typename SemanticOf<A>::template As<T>>));
+
+} // namespace Langulus::CT
+
 namespace Langulus::Anyness
 {
 
@@ -38,12 +59,8 @@ namespace Langulus::Anyness
       TUnorderedSet(const TUnorderedSet&);
       TUnorderedSet(TUnorderedSet&&);
 
-      template<template<class> class S>
-      requires CT::Inner::SemanticMakable<S, T>
-      TUnorderedSet(S<TUnorderedSet>&&);
-
       template<class T1, class...TAIL>
-      requires CT::Inner::UnfoldMakableFrom<T, T1, TAIL...>
+      requires CT::DeepSetMakable<T, T1, TAIL...>
       TUnorderedSet(T1&&, TAIL&&...);
 
       ~TUnorderedSet();
@@ -51,11 +68,8 @@ namespace Langulus::Anyness
       TUnorderedSet& operator = (const TUnorderedSet&);
       TUnorderedSet& operator = (TUnorderedSet&&);
 
-      TUnorderedSet& operator = (const CT::NotSemantic auto&);
-      TUnorderedSet& operator = (CT::NotSemantic auto&);
-      TUnorderedSet& operator = (CT::NotSemantic auto&&);
-      TUnorderedSet& operator = (CT::ShallowSemantic auto&&);
-      TUnorderedSet& operator = (CT::DeepSemantic auto&&) requires CT::CloneAssignable<T>;
+      template<class T1> requires CT::DeepSetAssignable<T, T1>
+      TUnorderedSet& operator = (T1&&);
 
    private:
       TUnorderedSet& AssignFrom(CT::Semantic auto&&);

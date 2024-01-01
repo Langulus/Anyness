@@ -113,7 +113,7 @@ namespace Langulus::Anyness
 
       Byte* pointer;
       if (mType->mIsSparse)
-         pointer = GetRawSparse()[idx] + baseOffset;
+         pointer = GetRawSparseAs<Byte>()[idx] + baseOffset;
       else
          pointer = At(mType->mSize * idx) + baseOffset;
 
@@ -446,7 +446,7 @@ namespace Langulus::Anyness
             "Trying to interface incomplete data as dense");
 
          copy.mEntry = *GetEntries();
-         copy.mRaw = *GetRawSparse();
+         copy.mRaw = *mRawSparse;
          copy.mType = copy.mType->mDeptr;
          --counter;
       }
@@ -684,25 +684,23 @@ namespace Langulus::Anyness
 
    /// Convert an index to an offset                                          
    /// Complex indices will be fully constrained                              
-   /// Signed index types will be checked for negative indices (for reverses) 
-   /// Unsigned indices are directly forwarded without any overhead           
+   /// Unsigned/signed integers are directly forwarded without any overhead   
    ///   @attention assumes T is correct for type-erased containers           
-   ///   @attention assumes index is in container count limit, if unsigned,   
-   ///              and COUNT_CONSTRAINED is true                             
-   ///   @attention assumes index is in container reserve limit, if unsigned, 
-   ///              and COUNT_CONSTRAINED is false                            
+   ///   @attention assumes index is in container count limit, if integer,    
+   ///      and COUNT_CONSTRAINED is true                                     
+   ///   @attention assumes index is in container reserve limit, if integer,  
+   ///      and COUNT_CONSTRAINED is false                                    
    ///   @tparam T - the type we're indexing, used for additional special     
-   ///               index handling, like Min and Max, that require type info 
-   ///               use void to skip these indices at no cost                
+   ///      index handling, like Min and Max, that require type info          
+   ///      use void to skip these indices at no cost                         
    ///   @tparam COUNT_CONSTRAINED - will check count limits if true or       
-   ///                               reserve limit if false, when DevAssumes  
-   ///                               is enabled                               
+   ///      reserve limit if false, when DevAssumes is enabled                
    ///   @tparam INDEX - type of the index to simplify                        
    ///   @param index - the index to simplify                                 
-   ///   @return the offset                                                   
+   ///   @return the simplified index, as a simple offset                     
    template<class T, bool COUNT_CONSTRAINED, CT::Index INDEX> LANGULUS(INLINED)
    Offset Block::SimplifyIndex(const INDEX& index) const
-   noexcept(not LANGULUS_SAFE() and CT::Unsigned<INDEX>) {
+   noexcept(not LANGULUS_SAFE() and CT::BuiltinInteger<INDEX>) {
       if constexpr (CT::Same<INDEX, Index>) {
          // This is the most safe path, throws on errors                
          if constexpr (CT::Void<T>)
@@ -714,33 +712,21 @@ namespace Langulus::Anyness
             return ConstrainMore<T, COUNT_CONSTRAINED>(index).GetOffset();
          }
       }
-      else if constexpr (CT::Signed<INDEX>) {
-         // Somewhat safe, default literal type is signed               
-         if (index < 0) {
-            const auto unsign = static_cast<Offset>(-index);
-            LANGULUS_ASSERT(
-               unsign <= (COUNT_CONSTRAINED ? mCount : mReserved), Access,
-               "Reverse index out of count range"
-            );
-            return mCount - unsign;
-         }
-         else {
-            const auto unsign = static_cast<Offset>(index);
-            LANGULUS_ASSERT(
-               unsign < (COUNT_CONSTRAINED ? mCount : mReserved), Access,
-               "Signed index out of count range"
-            );
-            return unsign;
-         }
-      }
       else {
          // Unsafe, works only on assumptions                           
-         // Using an unsigned index explicitly makes a statement, that  
+         // Using an integer index explicitly makes a statement, that   
          // you know what you're doing                                  
          LANGULUS_ASSUME(UserAssumes, 
-            index < (COUNT_CONSTRAINED ? mCount : mReserved),
-            "Unsigned index out of range"
+            index < static_cast<INDEX>(COUNT_CONSTRAINED ? mCount : mReserved),
+            "Integer index out of range"
          );
+
+         if constexpr (CT::Signed<INDEX>) {
+            LANGULUS_ASSUME(UserAssumes, index >= 0, 
+               "Integer index is below zero, use Index for reverse indices instead"
+            );
+         }
+
          return index;
       }
    }

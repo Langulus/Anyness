@@ -231,7 +231,7 @@ namespace Langulus::Anyness
                }
                else {
                   Block keyswap {mKeys.GetState(), GetType()};
-                  keyswap.AllocateFresh(keyswap.RequestSize(1));
+                  keyswap.AllocateFresh(keyswap.RequestSize<Any>(1));
                   keyswap.CallUnknownSemanticConstructors(1, Abandon(oldKey));
                   keyswap.mCount = 1;
 
@@ -399,7 +399,7 @@ namespace Langulus::Anyness
 
          if (attempts > *psl) {
             // The pair we're inserting is closer to bucket, so swap    
-            GetInner(index).SwapUnknown(key.Forward());
+            GetInner(index).SwapInner<Any>(key.Forward());
             ::std::swap(attempts, *psl);
             if (insertedAt == mKeys.mReserved)
                insertedAt = index;

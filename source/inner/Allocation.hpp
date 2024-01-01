@@ -77,9 +77,9 @@ namespace Langulus::Anyness
       NOD() T* As() const noexcept;
 
       constexpr void Keep() noexcept;
-      constexpr void Keep(const Count&) noexcept;
+      constexpr void Keep(Count) noexcept;
       constexpr void Free() noexcept;
-      constexpr void Free(const Count&) noexcept;
+      constexpr void Free(Count) noexcept;
    };
 
 } // namespace Langulus::Anyness

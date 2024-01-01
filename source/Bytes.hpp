@@ -37,11 +37,7 @@ namespace Langulus::Anyness
       Bytes(T&&) requires (CT::Inner::UnfoldMakableFrom<Byte, T>
                        or (CT::POD<T> and CT::Dense<T>));
       Bytes(const CT::Meta auto&);
-
-      Bytes(const void*, const Size&);
-      Bytes(void*, const Size&);
-      template<template<class> class S, CT::Sparse T>
-      Bytes(S<T>&&, const Size&) requires CT::Semantic<S<T>>;
+      Bytes(auto&&, const Size&);
 
       Bytes& operator = (const Bytes&);
       Bytes& operator = (Bytes&&);
@@ -52,7 +48,7 @@ namespace Langulus::Anyness
       NOD() Bytes Clone() const;
       NOD() Bytes Crop(const Offset&, const Count&) const;
       NOD() Bytes Crop(const Offset&, const Count&);
-      Bytes& RemoveIndex(const Offset&, const Count&);
+
       Bytes Extend(const Count&);
       Hash GetHash() const;
 

@@ -43,7 +43,7 @@ namespace Langulus
       template<class...T>
       concept Trait = TraitBased<T...> and ((
             sizeof(T) == sizeof(A::Trait)
-            and requires { {T::CTTI_Trait} -> Similar<Token>; }
+            and requires { {Decay<T>::CTTI_Trait} -> Similar<Token>; }
          ) and ...);
 
    } // namespace Langulus::CT
