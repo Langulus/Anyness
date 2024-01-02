@@ -14,11 +14,21 @@ namespace Langulus
 {
    namespace A
    {
-      class BlockSet {
-      protected:
-         using InfoType = ::std::uint8_t;
 
-         // A precomputed pointer for the info bytes                    
+      ///                                                                     
+      /// An abstract Set structure                                           
+      /// It defines the size for CT::Set concept                             
+      ///                                                                     
+      struct BlockSet {
+         using InfoType = ::std::uint8_t;
+         using OrderType = Offset;
+
+         static constexpr bool Sequential = false;
+         static constexpr Offset InvalidOffset = -1;
+         static constexpr Count MinimalAllocation = 8;
+
+      protected:
+         // A precomputed pointer for the info (and ordering) bytes     
          // Points to an offset inside mKeys allocation                 
          // Each byte represents an entry, and can be three things:     
          //    0 - the index is not used, data is not initialized       
@@ -29,6 +39,14 @@ namespace Langulus
 
          // The block that contains the keys and info bytes             
          Anyness::Block mKeys;
+
+      public:
+         constexpr BlockSet() noexcept = default;
+         constexpr BlockSet(const BlockSet&) noexcept = default;
+         constexpr BlockSet(BlockSet&&) noexcept = default;
+
+         constexpr BlockSet& operator = (const BlockSet&) noexcept = default;
+         constexpr BlockSet& operator = (BlockSet&&) noexcept = default;
       };
 
    } // namespace Langulus::A
@@ -63,29 +81,18 @@ namespace Langulus::Anyness
    ///                                                                        
    class BlockSet : public A::BlockSet {
    public:
-      static constexpr bool Ordered = false;
       static constexpr bool Ownership = false;
-      static constexpr bool Sequential = false;
-      static constexpr Offset InvalidOffset = -1;
-      static constexpr Count MinimalAllocation = 8;
 
       ///                                                                     
       ///   Construction & Assignment                                         
       ///                                                                     
-      constexpr BlockSet() noexcept = default;
-      constexpr BlockSet(const BlockSet&) noexcept = default;
-      constexpr BlockSet(BlockSet&&) noexcept = default;
-      constexpr BlockSet(CT::Semantic auto&&) noexcept;
-
-      constexpr BlockSet& operator = (const BlockSet&) noexcept = default;
-      constexpr BlockSet& operator = (BlockSet&&) noexcept = default;
-      constexpr BlockSet& operator = (CT::Semantic auto&&) noexcept;
+      using A::BlockSet::BlockSet;
+      using A::BlockSet::operator =;
 
    protected:
-      template<class T>
-      void BlockTransfer(CT::Semantic auto&&);
-      template<class T>
-      void BlockClone(const BlockSet&);
+      template<CT::Set TO, template<class> class S, CT::Set FROM>
+      requires CT::Semantic<S<FROM>>
+      void BlockTransfer(S<FROM>&&);
 
    public:
       ///                                                                     
@@ -94,8 +101,6 @@ namespace Langulus::Anyness
       NOD() DMeta GetType() const noexcept;
       NOD() constexpr bool IsUntyped() const noexcept;
       NOD() constexpr bool IsTypeConstrained() const noexcept;
-      NOD() constexpr bool IsAbstract() const noexcept;
-      NOD() constexpr bool IsConstructible() const noexcept;
       NOD() constexpr bool IsDeep() const noexcept;
       NOD() constexpr bool IsSparse() const noexcept;
       NOD() constexpr bool IsDense() const noexcept;
@@ -109,6 +114,7 @@ namespace Langulus::Anyness
       NOD() constexpr bool IsAllocated() const noexcept;
       NOD() bool IsMissing() const noexcept;
       NOD() bool IsMissingDeep() const;
+      NOD() bool IsOrdered() const noexcept;
 
       NOD() constexpr bool HasAuthority() const noexcept;
       NOD() constexpr Count GetUses() const noexcept;
@@ -280,29 +286,12 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
-      template<bool ORDERED = false>
-      Count Insert(const CT::NotSemantic auto&);
-      template<bool ORDERED = false>
-      Count Insert(CT::NotSemantic auto&);
-      template<bool ORDERED = false>
-      Count Insert(CT::NotSemantic auto&&);
-      template<bool ORDERED = false>
-      Count Insert(CT::Semantic auto&&);
+      template<CT::Set THIS = UnorderedSet, class T1, class...TAIL>
+      Count Insert(T1&&, TAIL&&...);
 
-      template<bool ORDERED = false>
-      Count InsertBlock(CT::Semantic auto&&);
-
-      template<bool ORDERED = false>
-      Count Merge(const BlockSet&);
-      template<bool ORDERED = false>
-      Count Merge(BlockSet&&);
-      template<bool ORDERED = false>
-      Count Merge(CT::Semantic auto&&);
-
-      BlockSet& operator << (const CT::NotSemantic auto&);
-      BlockSet& operator << (CT::NotSemantic auto&);
-      BlockSet& operator << (CT::NotSemantic auto&&);
-      BlockSet& operator << (CT::Semantic auto&&);
+      template<CT::Set THIS = UnorderedSet, class T>
+      requires CT::Set<Desem<T>>
+      Count InsertBlock(T&&);
 
    protected:
       NOD() Size RequestKeyAndInfoSize(Count, Offset&) const IF_UNSAFE(noexcept);
@@ -312,10 +301,11 @@ namespace Langulus::Anyness
       template<class K>
       void ShiftPairs();
 
-      template<bool CHECK_FOR_MATCH, bool ORDERED>
-      Offset InsertInner(const Offset&, CT::Semantic auto&&);
-      template<bool CHECK_FOR_MATCH, bool ORDERED>
-      Offset InsertInnerUnknown(const Offset&, CT::Semantic auto&&);
+      template<CT::Set THIS, bool CHECK_FOR_MATCH>
+      Offset InsertInner(Offset, CT::Semantic auto&&);
+
+      template<CT::Set THIS>
+      Count UnfoldInsert(auto&&);
 
    public:
       ///                                                                     

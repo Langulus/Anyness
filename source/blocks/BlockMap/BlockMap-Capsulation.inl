@@ -41,18 +41,6 @@ namespace Langulus::Anyness
       return mValues.IsTypeConstrained();
    }
    
-   /// Check if key type is abstract                                          
-   LANGULUS(INLINED)
-   constexpr bool BlockMap::IsKeyAbstract() const noexcept {
-      return mKeys.IsAbstract() and mKeys.IsDense();
-   }
-   
-   /// Check if value type is abstract                                        
-   LANGULUS(INLINED)
-   constexpr bool BlockMap::IsValueAbstract() const noexcept {
-      return mValues.IsAbstract() and mKeys.IsDense();
-   }
-   
    /// Check if key type is deep                                              
    LANGULUS(INLINED)
    constexpr bool BlockMap::IsKeyDeep() const noexcept {
@@ -80,13 +68,13 @@ namespace Langulus::Anyness
    /// Check if the key type is not a pointer                                 
    LANGULUS(INLINED)
    constexpr bool BlockMap::IsKeyDense() const noexcept {
-      return mKeys.IsDense();
+      return not IsKeySparse();
    }
 
    /// Check if the value type is not a pointer                               
    LANGULUS(INLINED)
    constexpr bool BlockMap::IsValueDense() const noexcept {
-      return mValues.IsDense();
+      return not IsValueSparse();
    }
 
    /// Get the size of a single key, in bytes                                 
@@ -129,13 +117,13 @@ namespace Langulus::Anyness
    /// Get the key meta data                                                  
    LANGULUS(INLINED)
    DMeta BlockMap::GetKeyType() const noexcept {
-      return mKeys.GetType();
+      return mKeys.mType;
    }
 
    /// Get the value meta data                                                
    LANGULUS(INLINED)
    DMeta BlockMap::GetValueType() const noexcept {
-      return mValues.GetType();
+      return mValues.mType;
    }
 
    /// Get the info array (const)                                             
@@ -159,39 +147,51 @@ namespace Langulus::Anyness
       return mInfo + GetReserved();
    }
 
-   /// Get the templated key container                                        
+   /// Get the key container                                                  
    ///   @attention for internal use only, elements might not be initialized  
-   template<CT::Data K> LANGULUS(INLINED)
-   const TAny<K>& BlockMap::GetKeys() const noexcept {
-      return reinterpret_cast<const TAny<K>&>(mKeys);
+   template<CT::Map THIS> LANGULUS(INLINED)
+   auto& BlockMap::GetKeys() const noexcept {
+      if constexpr (CT::Typed<THIS>)
+         return reinterpret_cast<const TAny<typename THIS::Key>&>(mKeys);
+      else
+         return reinterpret_cast<const Any&>(mKeys);
    }
 
    /// Get the templated key container                                        
    ///   @attention for internal use only, elements might not be initialized  
-   template<CT::Data K> LANGULUS(INLINED)
-   TAny<K>& BlockMap::GetKeys() noexcept {
-      return reinterpret_cast<TAny<K>&>(mKeys);
+   template<CT::Map THIS> LANGULUS(INLINED)
+   auto& BlockMap::GetKeys() noexcept {
+      if constexpr (CT::Typed<THIS>)
+         return reinterpret_cast<TAny<typename THIS::Key>&>(mKeys);
+      else
+         return reinterpret_cast<Any&>(mKeys);
    }
 
    /// Get the templated values container                                     
    ///   @attention for internal use only, elements might not be initialized  
-   template<CT::Data V> LANGULUS(INLINED)
-   const TAny<V>& BlockMap::GetValues() const noexcept {
-      return reinterpret_cast<const TAny<V>&>(mValues);
+   template<CT::Map THIS> LANGULUS(INLINED)
+   auto& BlockMap::GetValues() const noexcept {
+      if constexpr (CT::Typed<THIS>)
+         return reinterpret_cast<const TAny<typename THIS::Value>&>(mValues);
+      else
+         return reinterpret_cast<const Any&>(mValues);
    }
 
    /// Get the templated values container                                     
    ///   @attention for internal use only, elements might not be initialized  
-   template<CT::Data V> LANGULUS(INLINED)
-   TAny<V>& BlockMap::GetValues() noexcept {
-      return reinterpret_cast<TAny<V>&>(mValues);
+   template<CT::Map THIS> LANGULUS(INLINED)
+   auto& BlockMap::GetValues() noexcept {
+      if constexpr (CT::Typed<THIS>)
+         return reinterpret_cast<TAny<typename THIS::Value>&>(mValues);
+      else
+         return reinterpret_cast<Any&>(mValues);
    }
 
    /// Get the number of inserted pairs                                       
    ///   @return the number of inserted pairs                                 
    LANGULUS(INLINED)
    constexpr Count BlockMap::GetCount() const noexcept {
-      return mValues.GetCount();
+      return mKeys.mCount;
    }
 
    /// Get the number of deep key containers                                  
@@ -268,40 +268,44 @@ namespace Langulus::Anyness
    ///   @return the number of allocated pairs                                
    LANGULUS(INLINED)
    constexpr Count BlockMap::GetReserved() const noexcept {
-      return mValues.GetReserved();
+      return mKeys.mReserved;
    }
 
    /// Check if there are any pairs in this map                               
    ///   @return true if there's at least one pair available                  
    LANGULUS(INLINED)
    constexpr bool BlockMap::IsEmpty() const noexcept {
-      return mValues.IsEmpty();
+      return mKeys.IsEmpty();
    }
 
    /// Check if the map has been allocated                                    
    ///   @return true if the map uses dynamic memory                          
    LANGULUS(INLINED)
    constexpr bool BlockMap::IsAllocated() const noexcept {
-      return mValues.IsAllocated();
+      return mKeys.IsAllocated();
    }
    
-   /// Check if the map is marked missing                                     
+   /// Check if keys or values are marked missing                             
    ///   @return true if the map is marked missing                            
    LANGULUS(INLINED)
    bool BlockMap::IsMissing() const noexcept {
-      return mValues.IsMissing();
+      return mKeys.IsMissing() or mValues.IsMissing();
    }
    
    /// Check if the map contains at least one missing entry (nested)          
    ///   @return true if the map has missing entries                          
    LANGULUS(INLINED)
    bool BlockMap::IsMissingDeep() const {
-      bool missing = false;
-      ForEachValueDeep([&](const Block& value) {
-         missing = value.IsMissing();
-         return not missing;
-      });
+      if (IsMissing())
+         return true;
 
+      bool missing = false;
+      ForEachKeyDeep([&](const Block& key) {
+         return not (missing = key.IsMissing());
+      });
+      ForEachValueDeep([&](const Block& val) {
+         return not (missing = val.IsMissing());
+      });
       return missing;
    }
 
@@ -319,7 +323,7 @@ namespace Langulus::Anyness
    ///   @return the number of references                                     
    LANGULUS(INLINED)
    constexpr Count BlockMap::GetUses() const noexcept {
-      return mValues.GetUses();
+      return mKeys.GetUses();
    }
    
    /// Explicit bool cast operator, for use in if statements                  

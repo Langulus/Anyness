@@ -26,13 +26,7 @@ namespace Langulus::Anyness
    constexpr bool BlockSet::IsTypeConstrained() const noexcept {
       return mKeys.IsTypeConstrained();
    }
-   
-   /// Check if key type is abstract                                          
-   LANGULUS(INLINED)
-   constexpr bool BlockSet::IsAbstract() const noexcept {
-      return mKeys.IsAbstract() and mKeys.IsDense();
-   }
-   
+
    /// Check if key type is deep                                              
    LANGULUS(INLINED)
    constexpr bool BlockSet::IsDeep() const noexcept {

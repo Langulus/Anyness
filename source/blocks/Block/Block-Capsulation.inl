@@ -222,13 +222,6 @@ namespace Langulus::Anyness
       return mRaw and (mState.IsStatic() or not mEntry);
    }
    
-   /// Check if contained type is abstract                                    
-   ///   @return true if the type of this pack is abstract                    
-   LANGULUS(INLINED)
-   constexpr bool Block::IsAbstract() const noexcept {
-      return mType and mType->mIsAbstract;
-   }
-   
    /// Check if block is inhibitory (or) container                            
    ///   @return true if this is an inhibitory container                      
    LANGULUS(INLINED)

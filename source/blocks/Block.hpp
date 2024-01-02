@@ -13,66 +13,8 @@
 #include "../inner/Iterator.hpp"
 
 
-namespace Langulus::Flow
-{
-
-   /// Just syntax sugar, for breaking ForEach loop                           
-   constexpr bool Break = false;
-   /// Just syntax sugar, for continuing ForEach loop                         
-   constexpr bool Continue = true;
-
-} // namespace Langulus::Flow
-
 namespace Langulus
 {
-
-   using RTTI::DMeta;
-   using RTTI::CMeta;
-   using RTTI::TMeta;
-   using RTTI::VMeta;
-   using RTTI::AMeta;
-
-   namespace Anyness
-   {
-      using RTTI::AllocationRequest;
-
-      template<class, bool EMBED = true>
-      struct Handle;
-
-      class Any;
-      template<CT::Data>
-      class TAny;
-
-      class BlockMap;
-      class OrderedMap;
-      class UnorderedMap;
-      template<CT::Data, CT::Data>
-      class TOrderedMap;
-      template<CT::Data, CT::Data>
-      class TUnorderedMap;
-
-      class BlockSet;
-      class OrderedSet;
-      class UnorderedSet;
-      template<CT::Data>
-      class TOrderedSet;
-      template<CT::Data>
-      class TUnorderedSet;
-
-      class Bytes;
-      class Text;
-      struct Path;
-
-      template<CT::Data>
-      class TOwned;
-      template<class, bool>
-      class TPointer;
-
-      class Construct;
-      using Messy = Any;
-      class Neat;
-   }
-
    namespace A
    {
 
@@ -86,7 +28,7 @@ namespace Langulus
          LANGULUS(ABSTRACT) true;
          LANGULUS(DEEP) true;
          LANGULUS(POD) true;
-
+      protected:
          union {
             #if LANGULUS_DEBUG()
                char* mRawChar;
@@ -245,20 +187,16 @@ namespace Langulus::Anyness
       friend class TAny;
 
       friend class BlockMap;
-      friend class OrderedMap;
-      friend class UnorderedMap;
-      template<CT::Data, CT::Data>
-      friend class TOrderedMap;
-      template<CT::Data, CT::Data>
-      friend class TUnorderedMap;
+      template<bool>
+      friend struct Map;
+      template<CT::Data, CT::Data, bool>
+      friend struct TMap;
 
       friend class BlockSet;
-      friend class OrderedSet;
-      friend class UnorderedSet;
-      template<CT::Data>
-      friend class TOrderedSet;
-      template<CT::Data>
-      friend class TUnorderedSet;
+      template<bool>
+      friend struct Set;
+      template<CT::Data, bool>
+      friend struct TSet;
 
       friend class Bytes;
       friend class Text;
@@ -330,7 +268,6 @@ namespace Langulus::Anyness
       NOD() constexpr bool IsConstant() const noexcept;
       NOD() constexpr bool IsMutable() const noexcept;
       NOD() constexpr bool IsStatic() const noexcept;
-      NOD() constexpr bool IsAbstract() const noexcept;
       NOD() constexpr bool IsOr() const noexcept;
       NOD() constexpr bool IsEmpty() const noexcept;
       NOD() constexpr bool IsValid() const noexcept;

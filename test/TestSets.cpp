@@ -8,8 +8,6 @@
 ///                                                                           
 #include <Anyness/Text.hpp>
 #include <Anyness/Trait.hpp>
-#include <Anyness/TUnorderedSet.hpp>
-#include <Anyness/UnorderedSet.hpp>
 #include <Anyness/TSet.hpp>
 #include <Anyness/Set.hpp>
 #include <unordered_set>

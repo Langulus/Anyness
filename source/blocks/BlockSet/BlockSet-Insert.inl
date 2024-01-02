@@ -14,90 +14,75 @@
 namespace Langulus::Anyness
 {
       
-   ///                                                                        
-   /// All possible ways a key could be inserted to the set                   
-   ///                                                                        
-   template<bool ORDERED> LANGULUS(INLINED)
-   Count BlockSet::Insert(const CT::NotSemantic auto& k) {
-      return Insert<ORDERED>(Copy(k));
+   /// Insert an element, or an array of elements                             
+   ///   @param item - the argument to unfold and insert, can be semantic     
+   ///   @return the number of inserted elements after unfolding              
+   template<CT::Set THIS>
+   Count BlockSet::UnfoldInsert(auto&& item) {
+      using S = SemanticOf<decltype(item)>;
+      using T = TypeOf<S>;
+
+      if constexpr (CT::Array<T>) {
+         if constexpr (CT::StringLiteral<T>) {
+            // Implicitly convert string literals to Text containers    
+            Reserve(GetCount() + 1);
+            Text text {S::Nest(item)};
+            return InsertInner<THIS, true>(
+               GetBucket(GetReserved() - 1, text),
+               Abandon(text)
+            );
+         }
+         else {
+            // Insert the array                                         
+            Reserve(GetCount() + ExtentOf<T>);
+            Count inserted = 0;
+            for (auto& e : Desem(item)) {
+               inserted += InsertInner<THIS, true>(
+                  GetBucket(GetReserved() - 1, e),
+                  S::Nest(e)
+               );
+            }
+            return inserted;
+         }
+      }
+      else {
+         // Some of the arguments might still be used directly to       
+         // make an element, forward these to standard insertion here   
+         Reserve(GetCount() + 1);
+         return InsertInner<THIS, true>(
+            GetBucket(GetReserved() - 1, Desem(item)),
+            S::Nest(item)
+         );
+      }
+
+      return inserted;
    }
 
-   template<bool ORDERED> LANGULUS(INLINED)
-   Count BlockSet::Insert(CT::NotSemantic auto& k) {
-      return Insert<ORDERED>(Copy(k));
-   }
-
-   template<bool ORDERED> LANGULUS(INLINED)
-   Count BlockSet::Insert(CT::NotSemantic auto&& k) {
-      return Insert<ORDERED>(Move(k));
-   }
-   
-   /// Semantically insert key                                                
-   ///   @param key - the key to insert                                       
-   ///   @return 1 if key was inserted, zero otherwise                        
-   template<bool ORDERED> LANGULUS(INLINED)
-   Count BlockSet::Insert(CT::Semantic auto&& key) {
-      using S = Decay<decltype(key)>;
-      using K = TypeOf<S>;
-
-      Mutate<K>();
-      Reserve(GetCount() + 1);
-      InsertInner<true, ORDERED>(
-         GetBucket(GetReserved() - 1, *key), 
-         key.Forward()
-      );
-      return 1;
+   /// Insert elements, semantically or not                                   
+   ///   @param t1 - the first item to insert                                 
+   ///   @param tail... - the rest of items to insert (optional)              
+   ///   @return number of inserted elements                                  
+   template<CT::Set THIS, class T1, class...TAIL> LANGULUS(INLINED)
+   Count BlockSet::Insert(T1&& t1, TAIL&&...tail) {
+      Count inserted = 0;
+        inserted += UnfoldInsert<THIS>(Forward<T1>(t1));
+      ((inserted += UnfoldInsert<THIS>(Forward<TAIL>(tail))), ...);
+      return inserted;
    }
    
    /// Semantically insert a type-erased key                                  
-   ///   @tparam ORDERED - the bucketing approach to use                      
-   ///   @param key - the key to insert                                       
-   ///   @return 1 if key was inserted                                        
-   template<bool ORDERED> LANGULUS(INLINED)
-   Count BlockSet::InsertBlock(CT::Semantic auto&& key) {
-      using S = Decay<decltype(key)>;
+   ///   @param item - the block to insert                                    
+   ///   @return number of inserted elements                                  
+   template<CT::Set THIS, class T>
+   requires CT::Set<Desem<T>> LANGULUS(INLINED)
+   Count BlockSet::InsertBlock(T&& item) {
+      using S = SemanticOf<decltype(item)>;
+      using ST = TypeOf<S>;
 
-      static_assert(CT::Exact<TypeOf<S>, Block>,
-         "S type must be exactly Block (build-time optimization)");
-
-      Mutate(key->mType);
-      Reserve(GetCount() + 1);
-      InsertInnerUnknown<true, ORDERED>(
-         GetBucketUnknown(GetReserved() - 1, *key),
-         key.Forward()
-      );
-      return 1;
-   }
-
-   /// Merge the contents of two sets by shallow copy                         
-   ///   @param set - the set to merge with this one                          
-   ///   @return the number of elements that were inserted                    
-   template<bool ORDERED> LANGULUS(INLINED)
-   Count BlockSet::Merge(const BlockSet& set) {
-      return Merge<ORDERED>(Copy(set));
-   }
- 
-   /// Merge the contents of two sets by move                                 
-   ///   @param set - the set to merge with this one                          
-   ///   @return the number of elements that were inserted                    
-   template<bool ORDERED> LANGULUS(INLINED)
-   Count BlockSet::Merge(BlockSet&& set) {
-      return Merge<ORDERED>(Move(set));
-   }
- 
-   /// Merge the contents of two sets by using a semantic                     
-   ///   @param set - the set to merge with this one                          
-   ///   @return the size of provided set                                     
-   template<bool ORDERED> LANGULUS(INLINED)
-   Count BlockSet::Merge(CT::Semantic auto&& set) {
-      using S = Decay<decltype(set)>;
-      using T = TypeOf<S>;
-      static_assert(CT::Set<T>, "You can only merge other sets");
- 
-      if constexpr (CT::Typed<T>) {
+      if constexpr (CT::Typed<ST> or CT::Typed<THIS>) {
          // Merging with a statically typed set                         
-         Mutate<TypeOf<T>>(set->GetType());
-         Reserve(GetCount() + set->GetCount());
+         using STT = Conditional<CT::Typed<ST>, TypeOf<ST>, TypeOf<THIS>>;
+         Reserve(GetCount() + DesemCast(item).GetCount());
  
          for (auto& it : *set) {
             InsertInner<true, ORDERED>(
@@ -108,7 +93,6 @@ namespace Langulus::Anyness
       }
       else {
          // Merging with a type-erased set                              
-         Mutate(set->GetType());
          Reserve(GetCount() + set->GetCount());
  
          for (Block it : static_cast<const BlockSet&>(*set)) {
@@ -120,36 +104,6 @@ namespace Langulus::Anyness
       }
 
       return set->GetCount();
-   }
-
-   /// Merge an element via copy                                              
-   ///   @param item - the value to merge                                     
-   ///   @return a reference to this set for chaining                         
-   LANGULUS(INLINED)
-   BlockSet& BlockSet::operator << (const CT::NotSemantic auto& item) {
-      return operator << (Copy(item));
-   }
-
-   LANGULUS(INLINED)
-   BlockSet& BlockSet::operator << (CT::NotSemantic auto& item) {
-      return operator << (Copy(item));
-   }
-
-   /// Merge an element via move                                              
-   ///   @param item - the value to merge                                     
-   ///   @return a reference to this set for chaining                         
-   LANGULUS(INLINED)
-   BlockSet& BlockSet::operator << (CT::NotSemantic auto&& item) {
-      return operator << (Move(item));
-   }
-
-   /// Merge an element via semantic                                          
-   ///   @param item - the value to merge                                     
-   ///   @return a reference to this set for chaining                         
-   LANGULUS(INLINED)
-   BlockSet& BlockSet::operator << (CT::Semantic auto&& item) {
-      Insert(item.Forward());
-      return *this;
    }
    
    /// Request a new size of keys and info                                    
