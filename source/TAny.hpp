@@ -63,8 +63,6 @@ namespace Langulus::Anyness
 
       static constexpr bool Ownership = true;
 
-      template<CT::Data, CT::Data>
-      friend class TUnorderedMap;
       friend class Any;
       friend class Block;
 
@@ -134,7 +132,6 @@ namespace Langulus::Anyness
       NOD() constexpr bool IsTyped() const noexcept;
       NOD() constexpr bool IsUntyped() const noexcept;
       NOD() constexpr bool IsTypeConstrained() const noexcept;
-      NOD() constexpr bool IsAbstract() const noexcept;
       NOD() constexpr bool IsDeep() const noexcept;
       NOD() constexpr bool IsSparse() const noexcept;
       NOD() constexpr bool IsDense() const noexcept;

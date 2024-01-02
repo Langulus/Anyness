@@ -11,6 +11,78 @@
 #include "../TPair.hpp"
 
 
+namespace Langulus
+{
+   namespace A
+   {
+
+      ///                                                                     
+      /// An abstract Map structure                                           
+      /// It defines the size for CT::Map concept                             
+      ///                                                                     
+      struct BlockMap {
+         using InfoType = ::std::uint8_t;
+         using OrderType = Offset;
+
+         static constexpr bool Sequential = false;
+         static constexpr Offset InvalidOffset = -1;
+         static constexpr Count MinimalAllocation = 8;
+
+      protected:
+         // A precomputed pointer for the info/ordering bytes           
+         // Points to an offset inside mKeys allocation                 
+         // Each byte represents a pair, and can be three things:       
+         //    0 - the index is not used, data is not initialized       
+         //    1 - the index is used, and key is where it should be     
+         //   2+ - the index is used, but bucket is info-1 buckets to   
+         //         the right of this index                             
+         InfoType* mInfo {};
+
+         // The block that contains the keys and info bytes             
+         // Also keeps track of count and reserve                       
+         Anyness::Block mKeys;
+
+         // The block that contains the values                          
+         // Count and reserve in this block are redundant and shouldn't 
+         // be used for any purpose. The benefit is, that we can access 
+         // the values block without any cost via pointer arithmetic,   
+         // instead of generating Block instances at runtime            
+         // This incurs 8 bytes or 16 bytes of memory overhead per map, 
+         // depending on architecture. Optimizing this in the future    
+         // will definitely break binary compatibility, and would       
+         // involve a lot of boilerplate code that duplicates Block     
+         // functionality. I've decided to make the sacrifice...        
+         Anyness::Block mValues;
+
+      public:
+         constexpr BlockMap() noexcept = default;
+         constexpr BlockMap(const BlockMap&) noexcept = default;
+         constexpr BlockMap(BlockMap&&) noexcept = default;
+
+         constexpr BlockMap& operator = (const BlockMap&) noexcept = default;
+         constexpr BlockMap& operator = (BlockMap&&) noexcept = default;
+      };
+
+   } // namespace Langulus::A
+
+   namespace CT
+   {
+
+      /// A reflected map type is any type that inherits BlockMap, and is     
+      /// binary compatible to a BlockMap                                     
+      /// Keep in mind, that sparse types are never considered CT::Map!       
+      template<class... T>
+      concept Map = ((DerivedFrom<T, A::BlockMap>
+          and sizeof(T) == sizeof(A::BlockMap)) and ...);
+
+      /// Check if a type is a statically typed map                           
+      template<class... T>
+      concept TypedMap = Map<T...> and Typed<T...>;
+
+   } // namespace Langulus::CT
+
+} // namespace Langulus
+
 namespace Langulus::Anyness
 {
 
@@ -27,54 +99,22 @@ namespace Langulus::Anyness
    /// completely changing the behavior of a program, by simply removing a    
    /// 'const' qualifier doesn't seem like a sound design decision in my book 
    ///                                                                        
-   class BlockMap {
-   protected:
-      using InfoType = ::std::uint8_t;
-
-      // A precomputed pointer for the info bytes                       
-      // Points to an offset inside mKeys allocation                    
-      // Each byte represents a pair, and can be three things:          
-      //    0 - the index is not used, data is not initialized          
-      //    1 - the index is used, and key is exactly where it should be
-      //   2+ - the index is used, but bucket is info-1 buckets to      
-      //         the right of this index                                
-      InfoType* mInfo {};
-
-      // The block that contains the keys and info bytes                
-      Block mKeys;
-
-      // The block that contains the values                             
-      // It's size and reserve also used for the keys and tombstones    
-      // The redundant data inside mKeys is required for binary         
-      // compatibility with the type-erased equivalents                 
-      Block mValues;
-
+   class BlockMap : public A::BlockMap {
    public:
       using Pair = Anyness::Pair;
 
-      static constexpr bool Ordered = false;
       static constexpr bool Ownership = false;
-      static constexpr bool Sequential = false;
-      static constexpr Offset InvalidOffset = -1;
-      static constexpr Count MinimalAllocation = 8;
 
       ///                                                                     
       ///   Construction & Assignment                                         
       ///                                                                     
-      constexpr BlockMap() noexcept = default;
-      constexpr BlockMap(const BlockMap&) noexcept = default;
-      constexpr BlockMap(BlockMap&&) noexcept = default;
-      constexpr BlockMap(CT::Semantic auto&&) noexcept;
-
-      constexpr BlockMap& operator = (const BlockMap&) noexcept = default;
-      constexpr BlockMap& operator = (BlockMap&&) noexcept = default;
-      constexpr BlockMap& operator = (CT::Semantic auto&&) noexcept;
+      using A::BlockMap::BlockMap;
+      using A::BlockMap::operator =;
 
    protected:
-      template<class T>
-      void BlockTransfer(CT::Semantic auto&&);
-      template<class T>
-      void BlockClone(const BlockMap&);
+      template<CT::Map TO, template<class> class S, CT::Map FROM>
+      requires CT::Semantic<S<FROM>>
+      void BlockTransfer(S<FROM>&&);
 
    public:
       ///                                                                     
@@ -127,14 +167,14 @@ namespace Langulus::Anyness
       DEBUGGERY(void Dump() const);
 
    protected:
-      template<CT::Data K>
-      NOD() const TAny<K>& GetKeys() const noexcept;
-      template<CT::Data K>
-      NOD() TAny<K>& GetKeys() noexcept;
-      template<CT::Data V>
-      NOD() const TAny<V>& GetValues() const noexcept;
-      template<CT::Data V>
-      NOD() TAny<V>& GetValues() noexcept;
+      template<CT::Map THIS>
+      NOD() auto& GetKeys() const noexcept;
+      template<CT::Map THIS>
+      NOD() auto& GetKeys() noexcept;
+      template<CT::Map THIS>
+      NOD() auto& GetValues() const noexcept;
+      template<CT::Map THIS>
+      NOD() auto& GetValues() noexcept;
 
       NOD() const InfoType* GetInfo() const noexcept;
       NOD() InfoType* GetInfo() noexcept;
@@ -147,37 +187,37 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Indexing                                                          
       ///                                                                     
-      NOD() Block GetKey(const CT::Index auto&);
-      NOD() Block GetKey(const CT::Index auto&) const;
-      NOD() Block GetValue(const CT::Index auto&);
-      NOD() Block GetValue(const CT::Index auto&) const;
-      NOD() Pair GetPair(const CT::Index auto&);
-      NOD() Pair GetPair(const CT::Index auto&) const;
+      NOD() Block GetKey  (CT::Index auto);
+      NOD() Block GetKey  (CT::Index auto) const;
+      NOD() Block GetValue(CT::Index auto);
+      NOD() Block GetValue(CT::Index auto) const;
+      NOD() Pair  GetPair (CT::Index auto);
+      NOD() Pair  GetPair (CT::Index auto) const;
 
    protected:
-      NOD() Block GetKeyInner(const Offset&) IF_UNSAFE(noexcept);
-      NOD() Block GetKeyInner(const Offset&) const IF_UNSAFE(noexcept);
-      NOD() Block GetValueInner(const Offset&) IF_UNSAFE(noexcept);
-      NOD() Block GetValueInner(const Offset&) const IF_UNSAFE(noexcept);
-      NOD() Pair GetPairInner(const Offset&) IF_UNSAFE(noexcept);
-      NOD() Pair GetPairInner(const Offset&) const IF_UNSAFE(noexcept);
+      NOD() Block GetKeyInner  (Offset)       IF_UNSAFE(noexcept);
+      NOD() Block GetKeyInner  (Offset) const IF_UNSAFE(noexcept);
+      NOD() Block GetValueInner(Offset)       IF_UNSAFE(noexcept);
+      NOD() Block GetValueInner(Offset) const IF_UNSAFE(noexcept);
+      NOD() Pair  GetPairInner (Offset)       IF_UNSAFE(noexcept);
+      NOD() Pair  GetPairInner (Offset) const IF_UNSAFE(noexcept);
 
       NOD() static Offset GetBucket(Offset, const CT::NotSemantic auto&) noexcept;
       NOD() static Offset GetBucketUnknown(Offset, const Block&) noexcept;
 
-      template<CT::Data K>
-      NOD() constexpr const K& GetRawKey(Offset) const IF_UNSAFE(noexcept);
-      template<CT::Data K>
-      NOD() constexpr K& GetRawKey(Offset) IF_UNSAFE(noexcept);
-      template<CT::Data K>
-      NOD() constexpr Handle<K> GetKeyHandle(Offset) const IF_UNSAFE(noexcept);
+      template<CT::Map THIS>
+      NOD() auto& GetRawKey(Offset) const IF_UNSAFE(noexcept);
+      template<CT::Map THIS>
+      NOD() auto& GetRawKey(Offset)       IF_UNSAFE(noexcept);
+      template<CT::Map THIS>
+      NOD() auto  GetKeyHandle(Offset) const IF_UNSAFE(noexcept);
 
-      template<CT::Data V>
-      NOD() constexpr const V& GetRawValue(Offset) const IF_UNSAFE(noexcept);
-      template<CT::Data V>
-      NOD() constexpr V& GetRawValue(Offset) IF_UNSAFE(noexcept);
-      template<CT::Data V>
-      NOD() constexpr Handle<V> GetValueHandle(Offset) const IF_UNSAFE(noexcept);
+      template<CT::Map THIS>
+      NOD() auto& GetRawValue(Offset) const IF_UNSAFE(noexcept);
+      template<CT::Map THIS>
+      NOD() auto& GetRawValue(Offset)       IF_UNSAFE(noexcept);
+      template<CT::Map THIS>
+      NOD() auto  GetValueHandle(Offset) const IF_UNSAFE(noexcept);
 
    public:
       ///                                                                     
@@ -475,20 +515,3 @@ namespace Langulus::Anyness
    };
 
 } // namespace Langulus::Anyness
-
-
-namespace Langulus::CT
-{
-
-   /// A reflected map type is any type that inherits BlockMap, and is        
-   /// binary compatible to a BlockMap                                        
-   /// Keep in mind, that sparse types are never considered CT::Map!          
-   template<class... T>
-   concept Map = ((DerivedFrom<T, Anyness::BlockMap>
-       and sizeof(T) == sizeof(Anyness::BlockMap)) and ...);
-   
-   /// Check if a type is a statically typed map                              
-   template<class... T>
-   concept TypedMap = Map<T...> and Typed<T...>;
-
-} // namespace Langulus::CT

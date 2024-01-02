@@ -517,14 +517,7 @@ namespace Langulus::Anyness
    constexpr bool TAny<T>::IsTypeConstrained() const noexcept {
       return true;
    }
-   
-   /// Check if contained type is abstract                                    
-   /// This is a statically optimized alternative to Block::IsAbstract        
-   TEMPLATE() LANGULUS(INLINED)
-   constexpr bool TAny<T>::IsAbstract() const noexcept {
-      return CT::Abstract<T>;
-   }
-   
+      
    /// Check if contained type is deep                                        
    /// This is a statically optimized alternative to Block::IsDeep            
    ///   @return true if this container contains deep items                   

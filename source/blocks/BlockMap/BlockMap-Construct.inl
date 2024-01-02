@@ -13,69 +13,41 @@
 namespace Langulus::Anyness
 {
    
-   /// Semantic copy (block has no ownership, so always just shallow copy)    
-   ///   @param other - the block to shallow-copy                             
-   LANGULUS(INLINED)
-   constexpr BlockMap::BlockMap(CT::Semantic auto&& other) noexcept
-      : BlockMap {*other} {
-      using S = Decay<decltype(other)>;
-      static_assert(CT::Exact<TypeOf<S>, BlockMap>,
-         "S type must be exactly BlockMap (build-time optimization)");
-   }
-
-   /// Semantic assignment                                                    
-   /// Blocks have no ownership, so this always results in a block transfer   
-   ///   @attention will never affect RHS                                     
-   ///   @param rhs - the block to shallow copy                               
-   ///   @return a reference to this set                                      
-   LANGULUS(INLINED)
-   constexpr BlockMap& BlockMap::operator = (CT::Semantic auto&& rhs) noexcept {
-      using S = Decay<decltype(rhs)>;
-      static_assert(CT::Exact<TypeOf<S>, BlockMap>,
-         "S type must be exactly BlockMap (build-time optimization)");
-      return operator = (*rhs);
-   }
-   
    /// Semantically transfer the members of one map onto another              
    ///   @tparam TO - the type of map we're transferring to                   
    ///   @param other - the map and semantic to transfer from                 
-   template<class TO> LANGULUS(INLINED)
-   void BlockMap::BlockTransfer(CT::Semantic auto&& other) {
-      using S = Decay<decltype(other)>;
-      using FROM = TypeOf<S>;
-      static_assert(CT::Map<TO>, "TO must be a map type");
-      static_assert(CT::Map<FROM>, "FROM must be a map type");
-
-      mValues.mCount = other->mValues.mCount;
+   template<CT::Map TO, template<class> class S, CT::Map FROM>
+   requires CT::Semantic<S<FROM>> LANGULUS(INLINED)
+   void BlockMap::BlockTransfer(S<FROM>&& other) {
+      mKeys.mCount = other->mKeys.mCount;
 
       if constexpr (not CT::TypedMap<TO>) {
          // TO is not statically typed                                  
          mKeys.mType = other->GetKeyType();
-         mKeys.mState = other->mKeys.mState;
          mValues.mType = other->GetValueType();
+         mKeys.mState = other->mKeys.mState;
          mValues.mState = other->mValues.mState;
       }
       else {
          // TO is statically typed                                      
          mKeys.mType = MetaDataOf<typename TO::Key>();
-         mKeys.mState = other->mKeys.mState + DataState::Typed;
          mValues.mType = MetaDataOf<typename TO::Value>();
-         mValues.mState = other->mValues.mState + DataState::Typed;
+         mKeys.mState = other->mKeys.mState + DataState::Typed;
+         mValues.mState = other->mStateValues + DataState::Typed;
       }
 
-      if constexpr (S::Shallow) {
+      if constexpr (S<FROM>::Shallow) {
          mKeys.mRaw = other->mKeys.mRaw;
          mKeys.mReserved = other->mKeys.mReserved;
          mValues.mRaw = other->mValues.mRaw;
-         mValues.mReserved = other->mValues.mReserved;
          mInfo = other->mInfo;
 
-         if constexpr (S::Keep) {
+         if constexpr (S<FROM>::Keep) {
             // Move/Copy other                                          
             mKeys.mEntry = other->mKeys.mEntry;
             mValues.mEntry = other->mValues.mEntry;
 
-            if constexpr (S::Move) {
+            if constexpr (S<FROM>::Move) {
                if constexpr (not FROM::Ownership) {
                   // Since we are not aware if that block is referenced 
                   // or not we reference it just in case, and we also   
@@ -93,7 +65,7 @@ namespace Langulus::Anyness
             }
             else Keep();
          }
-         else if constexpr (S::Move) {
+         else if constexpr (S<FROM>::Move) {
             // Abandon other                                            
             mKeys.mEntry = other->mKeys.mEntry;
             mValues.mEntry = other->mValues.mEntry;
@@ -106,22 +78,44 @@ namespace Langulus::Anyness
          mKeys.mState -= DataState::Static;
          mValues.mState -= DataState::Static;
 
-         if constexpr (CT::TypedMap<TO>)
-            BlockClone<TO>(*other);
-         else if constexpr (CT::TypedMap<FROM>)
-            BlockClone<FROM>(*other);
-         else {
-            // Use type-erased cloning                                  
-            auto asTo = reinterpret_cast<TO*>(this);
-            asTo->AllocateFresh(other->GetReserved());
+         if constexpr (CT::TypedMap<TO> or CT::TypedMap<FROM>) {
+            using B = Conditional<CT::Typed<FROM>, FROM, TO>;
+            auto asFrom = reinterpret_cast<const B*>(&*other);
+            auto asTo = reinterpret_cast<B*>(this);
+            asTo->AllocateFresh(asFrom->GetReserved());
 
             // Clone info array                                         
-            CopyMemory(asTo->mInfo, other->mInfo, GetReserved() + 1);
+            CopyMemory(asTo->mInfo, asFrom->mInfo, GetReserved() + 1);
 
+            // Clone keys and values                                    
             auto info = asTo->GetInfo();
             const auto infoEnd = asTo->GetInfoEnd();
-            auto dstKey = asTo->GetKeyInner(0);
-            auto dstVal = asTo->GetValueInner(0);
+            auto dstKey = asTo->GetKeyHandle(0);
+            auto dstVal = asTo->GetValueHandle(0);
+            auto srcKey = asFrom->GetKeyHandle(0);
+            auto srcVal = asFrom->GetValueHandle(0);
+            while (info != infoEnd) {
+               if (*info) {
+                  dstKey.New(Clone(srcKey));
+                  dstVal.New(Clone(srcVal));
+               }
+
+               ++info;
+               ++dstKey; ++dstVal;
+               ++srcKey; ++srcVal;
+            }
+         }
+         else {
+            // Use type-erased cloning                                  
+            AllocateFresh(other->GetReserved());
+
+            // Clone info array                                         
+            CopyMemory(mInfo, other->mInfo, GetReserved() + 1);
+
+            auto info = GetInfo();
+            const auto infoEnd = GetInfoEnd();
+            auto dstKey = GetKeyInner(0);
+            auto dstVal = GetValueInner(0);
             auto srcKey = other->GetKeyInner(0);
             auto srcVal = other->GetValueInner(0);
             while (info != infoEnd) {
@@ -137,42 +131,6 @@ namespace Langulus::Anyness
                srcKey.Next(); srcVal.Next();
             }
          }
-      }
-   }
-   
-   /// Clone info, keys and values from a statically typed map                
-   ///   @attention assumes this is not allocated                             
-   ///   @tparam T - the statically optimized type of map we're using         
-   ///   @param other - the map we'll be cloning                              
-   template<class T>
-   void BlockMap::BlockClone(const BlockMap& other) {
-      static_assert(CT::TypedMap<T>, "T must be statically typed map");
-      LANGULUS_ASSUME(DevAssumes, not mValues.mRaw, "Map is already allocated");
-
-      // Use statically optimized cloning                               
-      auto asFrom = reinterpret_cast<T*>(&const_cast<BlockMap&>(other));
-      auto asTo = reinterpret_cast<T*>(this);
-      asTo->AllocateFresh(other.GetReserved());
-
-      // Clone info array                                               
-      CopyMemory(asTo->mInfo, asFrom->mInfo, GetReserved() + 1);
-
-      // Clone keys and values                                          
-      auto info = asTo->GetInfo();
-      const auto infoEnd = asTo->GetInfoEnd();
-      auto dstKey = asTo->GetKeyHandle(0);
-      auto dstVal = asTo->GetValueHandle(0);
-      auto srcKey = asFrom->GetKeyHandle(0);
-      auto srcVal = asFrom->GetValueHandle(0);
-      while (info != infoEnd) {
-         if (*info) {
-            dstKey.New(Clone(srcKey));
-            dstVal.New(Clone(srcVal));
-         }
-
-         ++info;
-         ++dstKey; ++dstVal;
-         ++srcKey; ++srcVal;
       }
    }
 

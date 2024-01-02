@@ -7,7 +7,7 @@
 /// See LICENSE file, or https://www.gnu.org/licenses                         
 ///                                                                           
 #pragma once
-#include "UnorderedSet.hpp"
+#include "Set.hpp"
 #include "blocks/BlockSet/BlockSet-Construct.inl"
 #include "blocks/BlockSet/BlockSet-Capsulation.inl"
 #include "blocks/BlockSet/BlockSet-Indexing.inl"
