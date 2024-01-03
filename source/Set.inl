@@ -18,219 +18,111 @@
 #include "blocks/BlockSet/BlockSet-Remove.inl"
 #include "blocks/BlockSet/BlockSet-Iteration.inl"
 
+#define TEMPLATE() template<bool ORDERED>
+#define TABLE() Set<ORDERED>
+
 
 namespace Langulus::Anyness
 {
 
-   /// Copy constructor                                                       
-   ///   @param other - set to shallow-copy                                   
-   LANGULUS(INLINED)
-   UnorderedSet::UnorderedSet(const UnorderedSet& other)
-      : UnorderedSet {Copy(other)} {}
+   /// Shallow-copy constructor                                               
+   ///   @param other - the container to shallow-copy                         
+   TEMPLATE() LANGULUS(INLINED)
+   TABLE()::Set(const Set& other)
+      : Set {Copy(other)} {}
 
    /// Move constructor                                                       
-   ///   @param other - set to move                                           
-   LANGULUS(INLINED)
-   UnorderedSet::UnorderedSet(UnorderedSet&& other) 
-      : UnorderedSet {Move(other)} {}
+   ///   @param other - the container to move                                 
+   TEMPLATE() LANGULUS(INLINED)
+   TABLE()::Set(Set&& other)
+      : Set {Move(other)} {}
+   
+   /// Unfold constructor                                                     
+   /// If there's one set argument, it will be absorbed                       
+   ///   @param t1 - first element (can be semantic)                          
+   ///   @param tail... - the rest of the elements (optional, can be semantic)
+   TEMPLATE() template<class T1, class...TAIL>
+   requires CT::Inner::UnfoldInsertable<T1, TAIL...>
+   LANGULUS(INLINED) TABLE()::Set(T1&& t1, TAIL&&...tail) {
+      if constexpr (sizeof...(TAIL) == 0) {
+         using S = SemanticOf<T1>;
+         using T = TypeOf<S>;
 
-   /// Constructor from any set/element by copy                               
-   ///   @param other - the set/element                                       
-   LANGULUS(INLINED)
-   UnorderedSet::UnorderedSet(const CT::NotSemantic auto& other)
-      : UnorderedSet {Copy(other)} {}
-   
-   /// Constructor from any set/element by copy                               
-   ///   @param other - the set/element                                       
-   LANGULUS(INLINED)
-   UnorderedSet::UnorderedSet(CT::NotSemantic auto& other)
-      : UnorderedSet {Copy(other)} {}
-   
-   /// Constructor from any set/element by move                               
-   ///   @param other - the set/element                                       
-   LANGULUS(INLINED)
-   UnorderedSet::UnorderedSet(CT::NotSemantic auto&& other)
-      : UnorderedSet {Move(other)} {}
-   
-   /// Semantic constructor from any set/element                              
-   ///   @param other - the semantic type                                     
-   LANGULUS(INLINED)
-   UnorderedSet::UnorderedSet(CT::Semantic auto&& other) {
-      using S = Decay<decltype(other)>;
-      using T = TypeOf<S>;
-
-      if constexpr (CT::Array<T>) {
-         // Construct from array of elements                            
-         for (auto& key : *other)
-            Insert(S::Nest(key));
+         if constexpr (CT::Set<T>)
+            BlockTransfer<Set>(S::Nest(t1));
+         else
+            Insert<Set>(Forward<T1>(t1));
       }
-      else if constexpr (CT::Set<T>) {
-         // Construct from any kind of set                              
-         if constexpr (T::Ordered) {
-            // We have to reinsert everything, because source is        
-            // ordered and uses a different bucketing approach          
-            mKeys.mType = other->GetType();
-
-            AllocateFresh(other->GetReserved());
-            ZeroMemory(mInfo, GetReserved());
-            mInfo[GetReserved()] = 1;
-
-            const auto hashmask = GetReserved() - 1;
-            if constexpr (CT::TypedSet<T>) {
-               for (auto& key : *other) {
-                  InsertInner<false>(
-                     GetBucket(hashmask, key),
-                     S::Nest(key)
-                  );
-               }
-            }
-            else {
-               for (auto key : *other) {
-                  InsertUnkownInner<false>(
-                     GetBucketUnknown(hashmask, key),
-                     S::Nest(key)
-                  );
-               }
-            }
-         }
-         else {
-            // We can directly interface set, because it is unordered   
-            // and uses the same bucketing approach                     
-            BlockTransfer<UnorderedSet>(other.Forward());
-         }
-      }
-      else {
-         // Construct from any kind of element                          
-         mKeys.mType = MetaDataOf<T>();
-
-         AllocateFresh(MinimalAllocation);
-         ZeroMemory(mInfo, MinimalAllocation);
-         mInfo[MinimalAllocation] = 1;
-
-         // Insert a statically typed element                           
-         InsertInner<false, false>(
-            GetBucket(MinimalAllocation - 1, *other),
-            other.Forward()
-         );
-      }
-   }
-   
-   /// Create from a list of elements                                         
-   ///   @param t1 - first element                                            
-   ///   @param t2 - second element                                           
-   ///   @param tail - tail of elements (optional)                            
-   template<CT::Data T1, CT::Data T2, CT::Data... TAIL>
-   UnorderedSet::UnorderedSet(T1&& t1, T2&& t2, TAIL&&... tail) {
-      if constexpr (CT::Semantic<T1>)
-         mKeys.mType = MetaDataOf<TypeOf<T1>>();
-      else
-         mKeys.mType = MetaDataOf<T1>();
-
-      constexpr auto capacity = Roof2(
-         sizeof...(TAIL) + 2 < MinimalAllocation
-            ? MinimalAllocation
-            : sizeof...(TAIL) + 2);
-
-      AllocateFresh(capacity);
-      ZeroMemory(mInfo, capacity);
-      mInfo[capacity] = 1;
-
-      Insert(Forward<T1>(t1));
-      Insert(Forward<T2>(t2));
-      (Insert(Forward<TAIL>(tail)), ...);
+      else Insert<Set>(Forward<T1>(t1), Forward<TAIL>(tail)...);
    }
 
    /// Set destructor                                                         
-   LANGULUS(INLINED)
-   UnorderedSet::~UnorderedSet() {
-      static_assert(CT::Set<UnorderedSet>);
-      Free<UnorderedSet>();
+   TEMPLATE() LANGULUS(INLINED)
+   TABLE()::~Set() {
+      Free<Set>();
    }
 
    /// Copy assignment                                                        
    ///   @param rhs - unordered set to copy-insert                            
    ///   @return a reference to this set                                      
-   LANGULUS(INLINED)
-   UnorderedSet& UnorderedSet::operator = (const UnorderedSet& rhs) {
+   TEMPLATE() LANGULUS(INLINED)
+   TABLE()& TABLE()::operator = (const Set& rhs) {
       return operator = (Copy(rhs));
    }
 
    /// Move assignment                                                        
    ///   @param rhs - unordered set to move-insert                            
    ///   @return a reference to this set                                      
-   LANGULUS(INLINED)
-   UnorderedSet& UnorderedSet::operator = (UnorderedSet&& rhs) {
+   TEMPLATE() LANGULUS(INLINED)
+   TABLE()& TABLE()::operator = (Set&& rhs) {
       return operator = (Move(rhs));
    }
 
-   /// Assign any set/element by copy                                         
-   ///   @param other - the set/element to assign                             
-   ///   @return a reference to this set                                      
-   LANGULUS(INLINED)
-   UnorderedSet& UnorderedSet::operator = (const CT::NotSemantic auto& other) {
-      return operator = (Copy(other));
-   }
-
-   /// Assign any set/element by copy                                         
-   ///   @param other - the set/element to assign                             
-   ///   @return a reference to this set                                      
-   LANGULUS(INLINED)
-   UnorderedSet& UnorderedSet::operator = (CT::NotSemantic auto& other) {
-      return operator = (Copy(other));
-   }
-   
-   /// Assign any set/element by move                                         
-   ///   @param other - the set/element to assign                             
-   ///   @return a reference to this set                                      
-   LANGULUS(INLINED)
-   UnorderedSet& UnorderedSet::operator = (CT::NotSemantic auto&& other) {
-      return operator = (Move(other));
-   }
-
-   /// Assign from any set/element by a semantic                              
-   ///   @param other - the semantic type                                     
-   ///   @return a reference to this set                                      
-   LANGULUS(INLINED)
-   UnorderedSet& UnorderedSet::operator = (CT::Semantic auto&& other) {
-      using S = Decay<decltype(other)>;
+   /// Pair/map assignment, semantic or not                                   
+   ///   @param rhs - the pair, or map to assign                              
+   ///   @return a reference to this container                                
+   TEMPLATE() LANGULUS(INLINED)
+   TABLE()& TABLE()::operator = (CT::Inner::UnfoldInsertable auto&& rhs) {
+      using S = SemanticOf<decltype(rhs)>;
       using T = TypeOf<S>;
 
       if constexpr (CT::Set<T>) {
+         // Potentially absorb a container                              
          if (static_cast<const BlockSet*>(this)
-          == static_cast<const BlockSet*>(&*other))
+          == static_cast<const BlockSet*>(&DesemCast(rhs)))
             return *this;
 
-         Free<UnorderedSet>();
-         new (this) UnorderedSet {other.Forward()};
+         Free<Set>();
+         new (this) Set {S::Nest(rhs)};
       }
       else {
-         if (GetUses() != 1) {
-            // Reset and allocate fresh memory                          
-            Free<UnorderedSet>();
-            new (this) UnorderedSet {other.Forward()};
-         }
-         else {
-            // Just destroy and reuse memory                            
-            Clear<UnorderedSet>();
-
-            // Insert an element                                        
-            InsertInner<false, false>(
-               GetBucket(GetReserved() - 1, *other),
-               other.Forward()
-            );
-         }
+         // Unfold-insert                                               
+         Clear();
+         UnfoldInsert<Set>(S::Nest(rhs));
       }
 
       return *this;
    }
-   
-   /// Copy-insert any element inside the set                                 
-   ///   @param item - the element to insert                                  
-   ///   @return a reference to this set for chaining                         
-   LANGULUS(INLINED)
-   UnorderedSet& UnorderedSet::operator << (auto&& item) {
-      Insert(Forward<decltype(item)>(item));
+
+   /// Insert an element                                                      
+   ///   @param other - the data to insert                                    
+   ///   @return a reference to this container for chaining                   
+   TEMPLATE() LANGULUS(INLINED)
+   TABLE()& TABLE()::operator << (CT::Inner::UnfoldInsertable auto&& other) {
+      UnfoldInsert<Set>(Forward<decltype(other)>(other));
       return *this;
    }
    
+   /// Insert an element                                                      
+   ///   @param other - the data to insert                                    
+   ///   @return a reference to this container for chaining                   
+   TEMPLATE() LANGULUS(INLINED)
+   TABLE()& TABLE()::operator >> (CT::Inner::UnfoldInsertable auto&& other) {
+      UnfoldInsert<Set>(Forward<decltype(other)>(other));
+      return *this;
+   }
+
 } // namespace Langulus::Anyness
+
+#undef TEMPLATE
+#undef TABLE

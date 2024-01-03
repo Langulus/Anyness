@@ -54,8 +54,6 @@ namespace Langulus::Anyness
             S::Nest(item)
          );
       }
-
-      return inserted;
    }
 
    /// Insert elements, semantically or not                                   
@@ -70,8 +68,8 @@ namespace Langulus::Anyness
       return inserted;
    }
    
-   /// Semantically insert a type-erased key                                  
-   ///   @param item - the block to insert                                    
+   /// Insert all elements of a set, semantically or not                      
+   ///   @param item - the set to insert                                      
    ///   @return number of inserted elements                                  
    template<CT::Set THIS, class T>
    requires CT::Set<Desem<T>> LANGULUS(INLINED)
@@ -79,13 +77,14 @@ namespace Langulus::Anyness
       using S = SemanticOf<decltype(item)>;
       using ST = TypeOf<S>;
 
+      const auto count = DesemCast(item).GetCount();
+      Reserve(GetCount() + count);
+
       if constexpr (CT::Typed<ST> or CT::Typed<THIS>) {
          // Merging with a statically typed set                         
-         using STT = Conditional<CT::Typed<ST>, TypeOf<ST>, TypeOf<THIS>>;
-         Reserve(GetCount() + DesemCast(item).GetCount());
- 
-         for (auto& it : *set) {
-            InsertInner<true, ORDERED>(
+         using SET = Conditional<CT::Typed<ST>, ST, THIS>;
+         for (auto& it : reinterpret_cast<const SET&>(DesemCast(item))) {
+            InsertInner<THIS, true>(
                GetBucket(GetReserved() - 1, it),
                S::Nest(it)
             );
@@ -93,17 +92,15 @@ namespace Langulus::Anyness
       }
       else {
          // Merging with a type-erased set                              
-         Reserve(GetCount() + set->GetCount());
- 
-         for (Block it : static_cast<const BlockSet&>(*set)) {
-            InsertInnerUnknown<true, ORDERED>(
+         for (Block it : static_cast<const BlockSet&>(DesemCast(item))) {
+            InsertInnerUnknown<THIS, true>(
                GetBucketUnknown(GetReserved() - 1, it),
                S::Nest(it)
             );
          }
       }
 
-      return set->GetCount();
+      return count;
    }
    
    /// Request a new size of keys and info                                    
@@ -268,14 +265,13 @@ namespace Langulus::Anyness
 
    /// Inner insertion function                                               
    ///   @tparam CHECK_FOR_MATCH - false if you guarantee key doesn't exist   
-   ///   @tparam ORDERED - the bucketing approach to use                      
    ///   @param start - the starting index                                    
    ///   @param key - key & semantic to insert                                
    ///   @return the offset at which pair was inserted                        
-   template<bool CHECK_FOR_MATCH, bool ORDERED>
-   Offset BlockSet::InsertInner(const Offset& start, CT::Semantic auto&& key) {
-      using S = Deref<decltype(key)>;
-      using K = Conditional<CT::Handle<TypeOf<S>>, TypeOf<TypeOf<S>>, TypeOf<S>>;
+   template<CT::Set THIS, bool CHECK_FOR_MATCH, template<class> class S, CT::Data T>
+   requires CT::Semantic<S<T>>
+   Offset BlockSet::InsertInner(Offset start, S<T>&& key) {
+      using K = Conditional<CT::Handle<T>, TypeOf<T>, T>;
       HandleLocal<K> keyswapper {key.Forward()};
 
       // Get the starting index based on the key hash                   
@@ -324,18 +320,14 @@ namespace Langulus::Anyness
       return insertedAt;
    }
    
-   /// Inner insertion function based on reflected move-assignment            
+   /// Inner insertion function from type-erased block                        
    ///   @tparam CHECK_FOR_MATCH - false if you guarantee key doesn't exist   
-   ///   @tparam ORDERED - the bucketing approach to use                      
    ///   @param start - the starting index                                    
-   ///   @param key - value & semantic to insert                              
+   ///   @param key - key & semantic to insert                                
    ///   @return the offset at which pair was inserted                        
-   template<bool CHECK_FOR_MATCH, bool ORDERED>
-   Offset BlockSet::InsertInnerUnknown(const Offset& start, CT::Semantic auto&& key) {
-      using S = Deref<decltype(key)>;
-      static_assert(CT::Exact<TypeOf<S>, Block>,
-         "S type must be exactly Block (build-time optimization)");
-
+   template<CT::Set THIS, bool CHECK_FOR_MATCH, template<class> class S>
+   requires CT::Semantic<S<Block>>
+   Offset BlockSet::InsertInnerUnknown(Offset start, S<Block>&& key) {
       // Get the starting index based on the key hash                   
       auto psl = GetInfo() + start;
       const auto pslEnd = GetInfoEnd();
@@ -379,7 +371,7 @@ namespace Langulus::Anyness
       if (insertedAt == mKeys.mReserved)
          insertedAt = index;
 
-      if constexpr (S::Move) {
+      if constexpr (S<Block>::Move) {
          key->CallUnknownDestructors();
          key->mCount = 0;
       }

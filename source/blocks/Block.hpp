@@ -706,20 +706,20 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Removal                                                           
       ///                                                                     
-      template<CT::Block THIS = Any, bool REVERSE = false>
-      Count Remove(const CT::Data auto&);
-      template<CT::Block THIS = Any>
+      template<CT::Block = Any, bool REVERSE = false>
+      Count Remove(const CT::NotSemantic auto&);
+      template<CT::Block = Any>
       Count RemoveIndex(CT::Index auto, Count = 1);
-      template<CT::Block THIS = Any>
+      template<CT::Block = Any>
       Count RemoveIndexDeep(CT::Index auto);
    
-      template<CT::Block THIS = Any>
+      template<CT::Block = Any>
       void Trim(Count);
-      template<CT::Block THIS = Any>
+      template<CT::Block = Any>
       void Optimize();
-      template<CT::Block THIS = Any>
+      template<CT::Block = Any>
       void Clear();
-      template<CT::Block THIS = Any>
+      template<CT::Block = Any>
       void Reset();
 
       constexpr void ResetState() noexcept;

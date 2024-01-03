@@ -107,13 +107,6 @@ namespace Langulus::Anyness
       }
    #endif
 
-   /// Get the size of all pairs, in bytes                                    
-   ///   @return the total amount of initialized bytes                        
-   LANGULUS(INLINED)
-   constexpr Size BlockMap::GetBytesize() const noexcept {
-      return sizeof(Pair) * GetCount(); 
-   }
-
    /// Get the key meta data                                                  
    LANGULUS(INLINED)
    DMeta BlockMap::GetKeyType() const noexcept {

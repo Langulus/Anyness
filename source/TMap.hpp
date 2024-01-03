@@ -40,9 +40,6 @@ namespace Langulus::Anyness
    ///                                                                        
    template<CT::Data K, CT::Data V, bool ORDERED>
    struct TMap : Map<ORDERED> {
-      static_assert(CT::Inner::Comparable<K>,
-         "Map's key type must be equality-comparable to itself");
-
       using Key = K;
       using Value = V;
       using Base = Map<ORDERED>;
@@ -59,6 +56,14 @@ namespace Langulus::Anyness
       using Iterator = TIterator<true>;
       using ConstIterator = TIterator<false>;
 
+   protected:
+      static_assert(CT::Inner::Comparable<K>,
+         "Map's key type must be equality-comparable to itself");
+
+      using Base::mKeys;
+      using Base::mValues;
+
+   public:
       ///                                                                     
       ///   Construction                                                      
       ///                                                                     
@@ -78,7 +83,8 @@ namespace Langulus::Anyness
       TMap& operator = (const TMap&);
       TMap& operator = (TMap&&);
 
-      template<class T1> requires CT::DeepMapAssignable<K, V, T1>
+      template<class T1>
+      requires CT::DeepMapAssignable<K, V, T1>
       TMap& operator = (T1&&);
 
    public:
@@ -108,8 +114,6 @@ namespace Langulus::Anyness
 
       NOD() constexpr Size GetKeyStride() const noexcept;
       NOD() constexpr Size GetValueStride() const noexcept;
-
-      NOD() constexpr Size GetBytesize() const noexcept;
 
       ///                                                                     
       ///   RTTI                                                              
@@ -147,11 +151,16 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Comparison                                                        
       ///                                                                     
-      bool operator == (const TMap&) const requires CT::Inner::Comparable<V>;
+      bool operator == (const TMap&) const
+      requires CT::Inner::Comparable<V>;
 
       NOD() bool ContainsKey(const K&) const;
-      NOD() bool ContainsValue(const V&) const requires CT::Inner::Comparable<V>;
-      NOD() bool ContainsPair(const Pair&) const requires CT::Inner::Comparable<V>;
+
+      NOD() bool ContainsValue(const V&) const
+      requires CT::Inner::Comparable<V>;
+
+      NOD() bool ContainsPair(const Pair&) const
+      requires CT::Inner::Comparable<V>;
 
       NOD() Index Find(const K&) const;
       NOD() Iterator FindIt(const K&);
@@ -163,14 +172,14 @@ namespace Langulus::Anyness
       NOD() decltype(auto) operator[] (const K&);
       NOD() decltype(auto) operator[] (const K&) const;
 
-      NOD()       K& GetKey(const CT::Index auto&);
-      NOD() const K& GetKey(const CT::Index auto&) const;
+      NOD()       K& GetKey(CT::Index auto);
+      NOD() const K& GetKey(CT::Index auto) const;
 
-      NOD()       V& GetValue(const CT::Index auto&);
-      NOD() const V& GetValue(const CT::Index auto&) const;
+      NOD()       V& GetValue(CT::Index auto);
+      NOD() const V& GetValue(CT::Index auto) const;
 
-      NOD()      PairRef GetPair(const CT::Index auto&);
-      NOD() PairConstRef GetPair(const CT::Index auto&) const;
+      NOD()      PairRef GetPair(CT::Index auto);
+      NOD() PairConstRef GetPair(CT::Index auto) const;
 
       ///                                                                     
       ///   Iteration                                                         

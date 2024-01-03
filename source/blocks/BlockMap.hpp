@@ -147,7 +147,6 @@ namespace Langulus::Anyness
       NOD() constexpr Size GetKeyStride() const noexcept;
       NOD() constexpr Size GetValueStride() const noexcept;
 
-      NOD() constexpr Size GetBytesize() const noexcept;
       NOD() constexpr Count GetCount() const noexcept;
       NOD() Count GetKeyCountDeep() const noexcept;
       NOD() Count GetKeyCountElementsDeep() const noexcept;
@@ -368,106 +367,60 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
-      template<bool ORDERED = false>
-      Count Insert(const CT::NotSemantic auto&,  const CT::NotSemantic auto&);
-      template<bool ORDERED = false>
-      Count Insert(const CT::NotSemantic auto&,        CT::NotSemantic auto&);
-      template<bool ORDERED = false>
-      Count Insert(const CT::NotSemantic auto&,        CT::NotSemantic auto&&);
-      template<bool ORDERED = false>
-      Count Insert(const CT::NotSemantic auto&,        CT::Semantic    auto&&);
+      template<CT::Map>
+      Count Insert(auto&&, auto&&);
 
-      template<bool ORDERED = false>
-      Count Insert(      CT::NotSemantic auto&,  const CT::NotSemantic auto&);
-      template<bool ORDERED = false>
-      Count Insert(      CT::NotSemantic auto&,        CT::NotSemantic auto&);
-      template<bool ORDERED = false>
-      Count Insert(      CT::NotSemantic auto&,        CT::NotSemantic auto&&);
-      template<bool ORDERED = false>
-      Count Insert(      CT::NotSemantic auto&,        CT::Semantic    auto&&);
+      template<CT::Map, class T1, class T2>
+      requires CT::Block<Desem<T1>, Desem<T2>>
+      Count InsertBlock(T1&&, T2&&);
 
-      template<bool ORDERED = false>
-      Count Insert(      CT::NotSemantic auto&&, const CT::NotSemantic auto&);
-      template<bool ORDERED = false>
-      Count Insert(      CT::NotSemantic auto&&,       CT::NotSemantic auto&);
-      template<bool ORDERED = false>
-      Count Insert(      CT::NotSemantic auto&&,       CT::NotSemantic auto&&);
-      template<bool ORDERED = false>
-      Count Insert(      CT::NotSemantic auto&&,       CT::Semantic    auto&&);
-
-      template<bool ORDERED = false>
-      Count Insert(      CT::Semantic    auto&&, const CT::NotSemantic auto&);
-      template<bool ORDERED = false>
-      Count Insert(      CT::Semantic    auto&&,       CT::NotSemantic auto&);
-      template<bool ORDERED = false>
-      Count Insert(      CT::Semantic    auto&&,       CT::NotSemantic auto&&);
-      template<bool ORDERED = false>
-      Count Insert(      CT::Semantic    auto&&,       CT::Semantic    auto&&);
-
-      template<bool ORDERED = false>
-      Count InsertBlock(CT::Semantic auto&&, CT::Semantic auto&&);
-
-      template<bool ORDERED = false>
-      Count InsertPair(const CT::Pair auto&);
-      template<bool ORDERED = false>
-      Count InsertPair(CT::Pair auto&);
-      template<bool ORDERED = false>
-      Count InsertPair(CT::Pair auto&&);
-      template<bool ORDERED = false>
-      Count InsertPair(CT::Semantic   auto&&);
-
-      template<bool ORDERED = false>
-      Count InsertPairBlock(CT::Semantic auto&&);
-
-      BlockMap& operator << (const CT::Pair auto&);
-      BlockMap& operator << (      CT::Pair auto&);
-      BlockMap& operator << (      CT::Pair auto&&);
-      BlockMap& operator << ( CT::Semantic  auto&&);
+      template<CT::Map, class T1, class...TAIL>
+      Count InsertPair(T1&&, TAIL&&...);
 
    protected:
       NOD() Size RequestKeyAndInfoSize(Count, Offset&) const IF_UNSAFE(noexcept);
       NOD() Size RequestValuesSize(Count) const IF_UNSAFE(noexcept);
       
-      template<class MAP>
-      void Rehash(const Count&);
-      template<class MAP>
-      void RehashKeys(const Count&, Block&);
-      template<class MAP>
-      void RehashValues(const Count&, Block&);
-      template<class K, class V>
+      template<CT::Map>
+      void Rehash(Count);
+      template<CT::Map>
+      void RehashKeys(Count, Block&);
+      template<CT::Map>
+      void RehashValues(Count, Block&);
+      template<CT::Map>
       void ShiftPairs();
 
-      template<bool CHECK_FOR_MATCH, bool ORDERED>
-      Offset InsertInner(const Offset&, CT::Semantic auto&&, CT::Semantic auto&&);
-      template<bool CHECK_FOR_MATCH, bool ORDERED>
-      Offset InsertInnerUnknown(const Offset&, CT::Semantic auto&&, CT::Semantic auto&&);
-      template<bool CHECK_FOR_MATCH, bool ORDERED>
-      void InsertPairInner(const Count&, CT::Semantic auto&&);
+      template<CT::Map, bool CHECK_FOR_MATCH>
+      Offset InsertInner(Offset, CT::Semantic auto&&, CT::Semantic auto&&);
+      template<CT::Map, bool CHECK_FOR_MATCH>
+      Offset InsertInnerUnknown(Offset, CT::Semantic auto&&, CT::Semantic auto&&);
+      template<CT::Map, bool CHECK_FOR_MATCH>
+      void InsertPairInner(Count, CT::Semantic auto&&);
 
    public:
       ///                                                                     
       ///   Removal                                                           
       ///                                                                     
-      template<class MAP = BlockMap>
+      template<CT::Map>
       Count RemoveKey(const CT::NotSemantic auto&);
-      template<class MAP = BlockMap>
+      template<CT::Map>
       Count RemoveValue(const CT::NotSemantic auto&);
-      template<CT::NotSemantic K, CT::NotSemantic V>
-      Count RemovePair(const TPair<K, V>&);
+      template<CT::Map>
+      Count RemovePair(const CT::Pair auto&);
 
-      template<class MAP = BlockMap>
+      template<CT::Map>
       void Clear();
-      template<class MAP = BlockMap>
+      template<CT::Map>
       void Reset();
       void Compact();
 
    protected:
-      template<class MAP>
+      template<CT::Map>
       Count RemoveKeyInner(const CT::NotSemantic auto&);
-      template<class MAP>
+      template<CT::Map>
       Count RemoveValueInner(const CT::NotSemantic auto&);
-      template<CT::NotSemantic K, CT::NotSemantic V>
-      Count RemovePairInner(const TPair<K, V>&);
+      template<CT::Map>
+      Count RemovePairInner(const CT::Pair auto&);
 
       template<class MAP>
       void ClearInner();

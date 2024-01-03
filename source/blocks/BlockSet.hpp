@@ -105,7 +105,6 @@ namespace Langulus::Anyness
       NOD() constexpr bool IsSparse() const noexcept;
       NOD() constexpr bool IsDense() const noexcept;
       NOD() constexpr Size GetStride() const noexcept;
-      NOD() constexpr Size GetBytesize() const noexcept;
       NOD() constexpr Count GetCount() const noexcept;
       NOD() Count GetCountDeep() const noexcept;
       NOD() Count GetCountElementsDeep() const noexcept;
@@ -286,10 +285,10 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
-      template<CT::Set THIS = UnorderedSet, class T1, class...TAIL>
+      template<CT::Set = UnorderedSet, class T1, class...TAIL>
       Count Insert(T1&&, TAIL&&...);
 
-      template<CT::Set THIS = UnorderedSet, class T>
+      template<CT::Set = UnorderedSet, class T>
       requires CT::Set<Desem<T>>
       Count InsertBlock(T&&);
 
@@ -301,10 +300,15 @@ namespace Langulus::Anyness
       template<class K>
       void ShiftPairs();
 
-      template<CT::Set THIS, bool CHECK_FOR_MATCH>
-      Offset InsertInner(Offset, CT::Semantic auto&&);
+      template<CT::Set, bool CHECK_FOR_MATCH, template<class> class S, CT::Data T>
+      requires CT::Semantic<S<T>>
+      Offset InsertInner(Offset, S<T>&&);
 
-      template<CT::Set THIS>
+      template<CT::Set, bool CHECK_FOR_MATCH, template<class> class S>
+      requires CT::Semantic<S<Block>>
+      Offset InsertInnerUnknown(Offset, S<Block>&&);
+
+      template<CT::Set>
       Count UnfoldInsert(auto&&);
 
    public:

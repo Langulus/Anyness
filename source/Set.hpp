@@ -44,18 +44,8 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Insertion                                                         
       ///                                                                     
-      Set& operator <<  (CT::Inner::UnfoldInsertable auto&&);
-      Set& operator >>  (CT::Inner::UnfoldInsertable auto&&);
-
-      ///                                                                     
-      ///   Iteration                                                         
-      ///                                                                     
-      NOD() Iterator begin() noexcept;
-      NOD() Iterator end() noexcept;
-      NOD() Iterator last() noexcept;
-      NOD() ConstIterator begin() const noexcept;
-      NOD() ConstIterator end() const noexcept;
-      NOD() ConstIterator last() const noexcept;
+      Set& operator << (CT::Inner::UnfoldInsertable auto&&);
+      Set& operator >> (CT::Inner::UnfoldInsertable auto&&);
    };
 
 } // namespace Langulus::Anyness
