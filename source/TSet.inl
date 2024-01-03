@@ -55,7 +55,7 @@ namespace Langulus::Anyness
                using STT = TypeOf<ST>;
                if constexpr (CT::Similar<T, STT>) {
                   // Type is binary compatible, just transfer set       
-                  BlockTransfer<TUnorderedSet>(S::Nest(t1));
+                  BlockTransfer<TSet>(S::Nest(t1));
                }
                else if constexpr (CT::Sparse<T, STT>) {
                   if constexpr (CT::DerivedFrom<T, STT>) {
@@ -85,7 +85,7 @@ namespace Langulus::Anyness
                   // If types are exactly the same, it is safe to       
                   // absorb the set, essentially converting a type-     
                   // erased Set back to its TSet equivalent             
-                  BlockTransfer<TUnorderedSet>(S::Nest(t1));
+                  BlockTransfer<TSet>(S::Nest(t1));
                }
                else Insert(Forward<T1>(t1));
             }
@@ -134,8 +134,8 @@ namespace Langulus::Anyness
           == static_cast<const BlockSet*>(&DesemCast(rhs)))
             return *this;
 
-         Free<TUnorderedSet>();
-         new (this) TUnorderedSet {S::Nest(rhs)};
+         Free<TSet>();
+         new (this) TSet {S::Nest(rhs)};
       }
       else {
          // Unfold-insert                                               
@@ -207,13 +207,6 @@ namespace Langulus::Anyness
    TEMPLATE() LANGULUS(INLINED)
    constexpr Handle<T> TABLE()::GetHandle(Offset index) noexcept {
       return GetValues().GetHandle(index);
-   }
-
-   /// Get the size of all elements, in bytes                                 
-   ///   @return the total amount of initialized bytes                        
-   TEMPLATE() LANGULUS(INLINED)
-   constexpr Size TABLE()::GetBytesize() const noexcept {
-      return sizeof(T) * GetCount(); 
    }
 
    /// Get the key meta data                                                  
@@ -747,7 +740,7 @@ namespace Langulus::Anyness
    ///   @param other - the table to compare against                          
    ///   @return true if tables match                                         
    TEMPLATE() LANGULUS(INLINED)
-   bool TABLE()::operator == (const TUnorderedSet& other) const {
+   bool TABLE()::operator == (const TSet& other) const {
       if (other.GetCount() != GetCount())
          return false;
 

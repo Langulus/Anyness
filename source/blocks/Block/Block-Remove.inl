@@ -19,7 +19,7 @@ namespace Langulus::Anyness
    ///   @param item - the item type to search for and remove                 
    ///   @return 1 if the element was found and removed, 0 otherwise          
    template<CT::Block THIS, bool REVERSE> LANGULUS(INLINED)
-   Count Block::Remove(const CT::Data auto& item) {
+   Count Block::Remove(const CT::NotSemantic auto& item) {
       const auto found = FindKnown<REVERSE>(item);
       return found ? RemoveIndex<THIS>(found.GetOffsetUnsafe(), 1) : 0;
    }

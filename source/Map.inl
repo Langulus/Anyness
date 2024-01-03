@@ -58,71 +58,6 @@ namespace Langulus::Anyness
       else InsertPair<Map>(Forward<T1>(t1), Forward<TAIL>(tail)...);
    }
 
-   /// Semantic constructor from any map/pair                                 
-   ///   @param other - the semantic type and map/pair to initialize with     
-   TEMPLATE() LANGULUS(INLINED)
-   TABLE()::Map(CT::Semantic auto&& other) {
-      using S = Decay<decltype(other)>;
-      using T = TypeOf<S>;
-
-      if constexpr (CT::Array<T>) {
-         if constexpr (CT::Pair<Deext<T>>) {
-            // Construct from an array of pairs                         
-            mKeys.mType = (*other)[0].GetKeyType();
-            mValues.mType = (*other)[0].GetValueType();
-
-            constexpr auto reserved = Roof2(ExtentOf<T>);
-            AllocateFresh(reserved);
-            ZeroMemory(mInfo, reserved);
-            mInfo[reserved] = 1;
-
-            constexpr auto hashmask = reserved - 1;
-            for (auto& pair : *other)
-               InsertPairInner<true, false>(hashmask, S::Nest(pair));
-         }
-         else LANGULUS_ERROR("Unsupported semantic array constructor");
-
-         //TODO perhaps constructor from map array, by merging them?
-      }
-      else if constexpr (CT::Map<T>) {
-         // Construct from any kind of map                              
-         if constexpr (T::Ordered) {
-            // We have to reinsert everything, because source is        
-            // ordered and uses a different bucketing approach          
-            mKeys.mType = other->GetKeyType();
-            mValues.mType = other->GetValueType();
-
-            AllocateFresh(other->GetReserved());
-            ZeroMemory(mInfo, GetReserved());
-            mInfo[GetReserved()] = 1;
-
-            const auto hashmask = GetReserved() - 1;
-            using TP = typename T::Pair;
-            other->ForEach([this, hashmask](TP& pair) {
-               InsertPairInner<false, false>(hashmask, S::Nest(pair));
-            });
-         }
-         else {
-            // We can directly interface map, because it is unordered   
-            // and uses the same bucketing approach                     
-            BlockTransfer<UnorderedMap>(other.Forward());
-         }
-      }
-      else if constexpr (CT::Pair<T>) {
-         // Construct from any kind of pair                             
-         mKeys.mType = other->GetKeyType();
-         mValues.mType = other->GetValueType();
-
-         AllocateFresh(MinimalAllocation);
-         ZeroMemory(mInfo, MinimalAllocation);
-         mInfo[MinimalAllocation] = 1;
-
-         constexpr auto hashmask = MinimalAllocation - 1;
-         InsertPairInner<false, false>(hashmask, other.Forward());
-      }
-      else LANGULUS_ERROR("Unsupported semantic constructor");
-   }
-
    /// Map destructor                                                         
    TEMPLATE() LANGULUS(INLINED)
    TABLE()::~Map() {
@@ -176,7 +111,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container for chaining                   
    TEMPLATE() LANGULUS(INLINED)
    TABLE()& TABLE()::operator << (CT::Inner::UnfoldInsertable auto&& other) {
-      InsertPair<Map>(Forward<decltype(other)>(other));
+      UnfoldInsert<Map>(Forward<decltype(other)>(other));
       return *this;
    }
    
@@ -185,7 +120,7 @@ namespace Langulus::Anyness
    ///   @return a reference to this container for chaining                   
    TEMPLATE() LANGULUS(INLINED)
    TABLE()& TABLE()::operator >> (CT::Inner::UnfoldInsertable auto&& other) {
-      InsertPair<Map>(Forward<decltype(other)>(other));
+      UnfoldInsert<Map>(Forward<decltype(other)>(other));
       return *this;
    }
 

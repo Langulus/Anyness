@@ -199,15 +199,18 @@ namespace Langulus::Anyness
    ///   @return the handle                                                   
    template<CT::Map THIS> LANGULUS(INLINED)
    auto BlockMap::GetKeyHandle(Offset i) const IF_UNSAFE(noexcept) {
-      using K = typename THIS::Key;
-
       LANGULUS_ASSUME(DevAssumes, i < GetReserved(),
          "Index out of limits when accessing map key",
          ", index ", i, " is beyond the reserved ", GetReserved(), " elements");
-      LANGULUS_ASSUME(DevAssumes, mKeys.template IsSimilar<K>(),
-         "Wrong type when accessing map key",
-         ", using type `", NameOf<K>(), "` instead of `", mKeys.GetType(), '`');
-      return GetKeys<THIS>().GetHandle(i);
+
+      if constexpr (CT::TypedMap<THIS>) {
+         using K = typename THIS::Key;
+         LANGULUS_ASSUME(DevAssumes, mKeys.template IsSimilar<K>(),
+            "Wrong type when accessing map key",
+            ", using type `", NameOf<K>(), "` instead of `", mKeys.GetType(), '`');
+         return GetKeys<THIS>().GetHandle(i);
+      }
+      else return GetKeyInner(i);
    }
 
    /// Get a value reference                                                  

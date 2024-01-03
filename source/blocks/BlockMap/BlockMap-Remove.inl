@@ -13,54 +13,46 @@
 namespace Langulus::Anyness
 {
    
-   /// Erase a pair via key                                                   
-   /// The key may not match the contained key type                           
-   ///   @tparam MAP - map we're removing from, using to deduce value type,   
-   ///                 and as runtime optimization                            
+   /// Erase a pair via a key match                                           
    ///   @param key - the key to search for                                   
    ///   @return the number of removed pairs                                  
-   template<class MAP> LANGULUS(INLINED)
+   template<CT::Map THIS> LANGULUS(INLINED)
    Count BlockMap::RemoveKey(const CT::NotSemantic auto& key) {
-      static_assert(CT::Map<MAP>, "MAP must be a map type");
-      using K = Deref<decltype(key)>;
       if (IsEmpty())
          return 0;
 
-      auto& THIS = reinterpret_cast<MAP&>(*this);
-      if constexpr (CT::Array<K> and CT::ExactAsOneOf<Decvq<Deext<K>>, char, wchar_t>) {
-         if (THIS.template KeyIsSimilar<Text>()) {
+      using K = Deref<decltype(key)>;
+      auto& me = reinterpret_cast<THIS&>(*this);
+
+      if (me.template KeyIsSimilar<K>()
+      or (CT::Typed<THIS> and ::std::equality_comparable_with<THIS::Key, K>)) {
+         return RemoveKeyInner<THIS>(key);
+      }
+      else if constexpr (CT::StringLiteral<K>) {
+         if (me.template KeyIsSimilar<Text>()) {
             // Implicitly make a text container on string literal       
-            return RemoveKeyInner<MAP>(Text {Disown(key)});
+            return RemoveKeyInner<THIS>(Text {Disown(key)});
          }
-         else if (THIS.template KeyIsSimilar<char*, wchar_t*>()) {
+         else if (me.template KeyIsSimilar<char*, wchar_t*>()) {
             // Cast away the extent, search for pointer                 
-            return RemoveKeyInner<MAP>(static_cast<const Deext<K>*>(key));
+            return RemoveKeyInner<THIS>(static_cast<const Deext<K>*>(key));
          }
          else return 0;
       }
-      else if (THIS.template KeyIsSimilar<K>())
-         return RemoveKeyInner<MAP>(key);
-      
+
       return 0;
    }
    
    /// Erase a pair via key (inner)                                           
-   ///   @tparam MAP - map we're removing from, using to deduce value type,   
-   ///                 and as runtime optimization                            
    ///   @param key - the key to search for                                   
-   ///   @return 1 if pair was removed                                  
-   template<class MAP> LANGULUS(INLINED)
+   ///   @return 1 if pair was removed                                        
+   template<CT::Map THIS> LANGULUS(INLINED)
    Count BlockMap::RemoveKeyInner(const CT::NotSemantic auto& key) {
-      static_assert(CT::Map<MAP>, "MAP must be a map type");
       using K = Deref<decltype(key)>;
-
-      const auto found = FindInner<MAP>(key);
+      const auto found = FindInner<THIS>(key);
       if (found != InvalidOffset) {
          // Key found, remove the pair                                  
-         if constexpr (CT::TypedMap<MAP>)
-            RemoveInner<K, typename MAP::Value>(found);
-         else
-            RemoveInner<K, void>(found);
+         RemoveInner<THIS>(found);
          return 1;
       }
 
@@ -69,32 +61,31 @@ namespace Langulus::Anyness
    }
 
    /// Erase pairs via value                                                  
-   /// The value may not match the contained value type                       
-   ///   @tparam MAP - map we're removing from, using to deduce value type,   
-   ///                 and as runtime optimization                            
    ///   @param value - the values to search for                              
    ///   @return the number of removed pairs                                  
-   template<class MAP> LANGULUS(INLINED)
+   template<CT::Map THIS> LANGULUS(INLINED)
    Count BlockMap::RemoveValue(const CT::NotSemantic auto& value) {
-      static_assert(CT::Map<MAP>, "MAP must be a map type");
-      using V = Deref<decltype(value)>;
       if (IsEmpty())
          return 0;
 
-      auto& THIS = reinterpret_cast<MAP&>(*this);
-      if constexpr (CT::Array<V> and CT::ExactAsOneOf<Decvq<Deext<V>>, char, wchar_t>) {
-         if (THIS.template ValueIsSimilar<Text>()) {
+      using V = Deref<decltype(value)>;
+      auto& me = reinterpret_cast<THIS&>(*this);
+
+      if (me.template ValueIsSimilar<V>()
+      or (CT::Typed<THIS> and ::std::equality_comparable_with<THIS::Value, V>)) {
+         return RemoveValueInner<THIS>(value);
+      }
+      else if constexpr (CT::StringLiteral<V>) {
+         if (me.template ValueIsSimilar<Text>()) {
             // Implicitly make a text container on string literal       
-            return RemoveValueInner<MAP>(Text {Disown(value)});
+            return RemoveValueInner<THIS>(Text {Disown(value)});
          }
-         else if (THIS.template ValueIsSimilar<char*, wchar_t*>()) {
+         else if (me.template ValueIsSimilar<char*, wchar_t*>()) {
             // Cast away the extent, search for pointer                 
-            return RemoveValueInner<MAP>(static_cast<const Deext<V>*>(value));
+            return RemoveValueInner<THIS>(static_cast<const Deext<V>*>(value));
          }
          else return 0;
       }
-      else if (THIS.template ValueIsSimilar<V>())
-         return RemoveValueInner<MAP>(value);
 
       return 0;
    }
@@ -103,12 +94,11 @@ namespace Langulus::Anyness
    ///   @attention this is significantly slower than removing a key          
    ///   @param match - the value to search for                               
    ///   @return the number of removed pairs                                  
-   template<class MAP>
+   template<CT::Map THIS>
    Count BlockMap::RemoveValueInner(const CT::NotSemantic auto& value) {
-      static_assert(CT::Map<MAP>, "MAP must be a map type");
       using V = Deref<decltype(value)>;
 
-      Count removed {};
+      Count removed = 0;
       auto psl = GetInfo();
       const auto pslEnd = GetInfoEnd();
       auto val = GetValueHandle<V>(0);
@@ -116,8 +106,8 @@ namespace Langulus::Anyness
       while (psl != pslEnd) {
          if (*psl and val.Get() == value) {
             // Remove every pair with matching value                    
-            if constexpr (CT::Typed<MAP>)
-               GetKeyHandle<typename MAP::Key>(psl - GetInfo()).Destroy();
+            if constexpr (CT::Typed<THIS>)
+               GetKeyHandle<typename THIS::Key>(psl - GetInfo()).Destroy();
             else
                GetKeyInner(psl - GetInfo()).CallUnknownDestructors();
 
@@ -131,10 +121,7 @@ namespace Langulus::Anyness
       }
 
       // Fill gaps if any                                               
-      if constexpr (CT::Typed<MAP>)
-         ShiftPairs<typename MAP::Key, V>();
-      else
-         ShiftPairs<void, V>();
+      ShiftPairs<THIS>();
       return removed;
    }
    

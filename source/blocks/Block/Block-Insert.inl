@@ -366,7 +366,7 @@ namespace Langulus::Anyness
    LANGULUS(INLINED)
    Count Block::Insert(CT::Index auto idx, T1&& t1, TAIL&&...tail) {
       Count inserted = 0;
-      inserted   += UnfoldInsert<THIS, FORCE, MOVE_ASIDE>(
+        inserted += UnfoldInsert<THIS, FORCE, MOVE_ASIDE>(
          idx, Forward<T1>(t1));
       ((inserted += UnfoldInsert<THIS, FORCE, MOVE_ASIDE>(
          idx, Forward<TAIL>(tail))), ...);

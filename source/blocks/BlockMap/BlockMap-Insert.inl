@@ -13,205 +13,54 @@
 
 namespace Langulus::Anyness
 {
-      
-   ///                                                                        
-   /// All possible ways a key and value could be inserted to the map         
-   ///                                                                        
-
-   template<bool ORDERED> LANGULUS(INLINED)
-   Count BlockMap::Insert(const CT::NotSemantic auto& k, const CT::NotSemantic auto& v) {
-      return Insert<ORDERED>(Copy(k), Copy(v));
-   }
-
-   template<bool ORDERED> LANGULUS(INLINED)
-   Count BlockMap::Insert(const CT::NotSemantic auto& k, CT::NotSemantic auto& v) {
-      return Insert<ORDERED>(Copy(k), Copy(v));
-   }
-
-   template<bool ORDERED> LANGULUS(INLINED)
-   Count BlockMap::Insert(const CT::NotSemantic auto& k, CT::NotSemantic auto&& v) {
-      return Insert<ORDERED>(Copy(k), Move(v));
-   }
-
-   template<bool ORDERED> LANGULUS(INLINED)
-   Count BlockMap::Insert(const CT::NotSemantic auto& k, CT::Semantic auto&& v) {
-      return Insert<ORDERED>(Copy(k), v.Forward());
-   }
-
-   template<bool ORDERED> LANGULUS(INLINED)
-   Count BlockMap::Insert(CT::NotSemantic auto& k, const CT::NotSemantic auto& v) {
-      return Insert<ORDERED>(Copy(k), Copy(v));
-   }
-
-   template<bool ORDERED> LANGULUS(INLINED)
-   Count BlockMap::Insert(CT::NotSemantic auto& k, CT::NotSemantic auto& v) {
-      return Insert<ORDERED>(Copy(k), Copy(v));
-   }
-
-   template<bool ORDERED> LANGULUS(INLINED)
-   Count BlockMap::Insert(CT::NotSemantic auto& k, CT::NotSemantic auto&& v) {
-      return Insert<ORDERED>(Copy(k), Move(v));
-   }
-
-   template<bool ORDERED> LANGULUS(INLINED)
-   Count BlockMap::Insert(CT::NotSemantic auto& k, CT::Semantic auto&& v) {
-      return Insert<ORDERED>(Copy(k), v.Forward());
-   }
-
-   template<bool ORDERED> LANGULUS(INLINED)
-   Count BlockMap::Insert(CT::NotSemantic auto&& k, const CT::NotSemantic auto& v) {
-      return Insert<ORDERED>(Move(k), Copy(v));
-   }
-
-   template<bool ORDERED> LANGULUS(INLINED)
-   Count BlockMap::Insert(CT::NotSemantic auto&& k, CT::NotSemantic auto& v) {
-      return Insert<ORDERED>(Move(k), Copy(v));
-   }
-
-   template<bool ORDERED> LANGULUS(INLINED)
-   Count BlockMap::Insert(CT::NotSemantic auto&& k, CT::NotSemantic auto&& v) {
-      return Insert<ORDERED>(Move(k), Move(v));
-   }
-
-   template<bool ORDERED> LANGULUS(INLINED)
-   Count BlockMap::Insert(CT::NotSemantic auto&& k, CT::Semantic auto&& v) {
-      return Insert<ORDERED>(Move(k), v.Forward());
-   }
-
-   template<bool ORDERED> LANGULUS(INLINED)
-   Count BlockMap::Insert(CT::Semantic auto&& k, const CT::NotSemantic auto& v) {
-      return Insert<ORDERED>(k.Forward(), Copy(v));
-   }
-
-   template<bool ORDERED> LANGULUS(INLINED)
-   Count BlockMap::Insert(CT::Semantic auto&& k, CT::NotSemantic auto& v) {
-      return Insert<ORDERED>(k.Forward(), Copy(v));
-   }
-
-   template<bool ORDERED> LANGULUS(INLINED)
-   Count BlockMap::Insert(CT::Semantic auto&& k, CT::NotSemantic auto&& v) {
-      return Insert<ORDERED>(k.Forward(), Move(v));
-   }
    
-   /// Semantically insert key and value                                      
+   /// Manually insert pair, semantically or not                              
    ///   @param key - the key to insert                                       
-   ///   @param value - the value to insert                                   
+   ///   @param val - the value to insert                                     
    ///   @return 1 if pair was inserted, zero otherwise                       
-   template<bool ORDERED> LANGULUS(INLINED)
-   Count BlockMap::Insert(CT::Semantic auto&& key, CT::Semantic auto&& value) {
-      using SK = Decay<decltype(key)>;
-      using SV = Decay<decltype(value)>;
-      using K = TypeOf<SK>;
-      using V = TypeOf<SV>;
+   template<CT::Map THIS> LANGULUS(INLINED)
+   Count BlockMap::Insert(auto&& key, auto&& val) {
+      using SK = SemanticOf<decltype(key)>;
+      using SV = SemanticOf<decltype(val)>;
 
-      Mutate<K, V>();
+      Mutate<TypeOf<SK>, TypeOf<SV>>();
       Reserve(GetCount() + 1);
-      InsertInner<true, ORDERED>(
-         GetBucket(GetReserved() - 1, *key), 
-         key.Forward(), value.Forward()
+      InsertInner<THIS, true>(
+         GetBucket(GetReserved() - 1, DesemCast(key)), 
+         SK::Nest(key), SV::Nest(val)
       );
       return 1;
    }
    
-   /// Semantically insert a type-erased pair                                 
-   ///   @tparam ORDERED - the bucketing approach to use                      
+   /// Manually insert type-rased pair, semantically or not                   
    ///   @param key - the key to insert                                       
-   ///   @param value - the value to insert                                   
+   ///   @param val - the value to insert                                     
    ///   @return 1 if pair was inserted or value was overwritten              
-   template<bool ORDERED> LANGULUS(INLINED)
-   Count BlockMap::InsertBlock(CT::Semantic auto&& key, CT::Semantic auto&& val) {
-      using SK = Decay<decltype(key)>;
-      using SV = Decay<decltype(val)>;
+   template<CT::Map THIS, class T1, class T2>
+   requires CT::Block<Desem<T1>, Desem<T2>> LANGULUS(INLINED)
+   Count BlockMap::InsertBlock(T1&& key, T2&& val) {
+      using SK = SemanticOf<decltype(key)>;
+      using SV = SemanticOf<decltype(val)>;
 
-      static_assert(CT::Exact<TypeOf<SK>, Block>,
-         "SK type must be exactly Block (build-time optimization)");
-      static_assert(CT::Exact<TypeOf<SV>, Block>,
-         "SV type must be exactly Block (build-time optimization)");
-
-      Mutate(key->mType, val->mType);
+      Mutate(DesemCast(key).mType, DesemCast(val).mType);
       Reserve(GetCount() + 1);
-      InsertInnerUnknown<true, ORDERED>(
-         GetBucketUnknown(GetReserved() - 1, *key),
-         key.Forward(), val.Forward()
+      InsertInnerUnknown<THIS, true>(
+         GetBucketUnknown(GetReserved() - 1, DesemCast(key)),
+         SK::Nest(key), SV::Nest(val)
       );
       return 1;
    }
-   
-   template<bool ORDERED> LANGULUS(INLINED)
-   Count BlockMap::InsertPair(const CT::Pair auto& pair) {
-      return InsertPair<ORDERED>(Copy(pair));
-   }
 
-   template<bool ORDERED> LANGULUS(INLINED)
-   Count BlockMap::InsertPair(CT::Pair auto& pair) {
-      return InsertPair<ORDERED>(Copy(pair));
-   }
-
-   template<bool ORDERED> LANGULUS(INLINED)
-   Count BlockMap::InsertPair(CT::Pair auto&& pair) {
-      return InsertPair<ORDERED>(Move(pair));
-   }
-
-   /// Semantically insert any pair                                           
-   ///   @tparam ORDERED - the bucketing approach to use                      
-   ///   @param pair - the pair to insert                                     
-   ///   @return 1 if pair was inserted, zero otherwise                       
-   template<bool ORDERED> LANGULUS(INLINED)
-   Count BlockMap::InsertPair(CT::Semantic auto&& pair) {
-      using S = Decay<decltype(pair)>;
-      using T = TypeOf<S>;
-
-      if constexpr (CT::TypedPair<T>)
-         return Insert<ORDERED>(S::Nest(pair->mKey), S::Nest(pair->mValue));
-      else
-         return InsertUnknown<ORDERED>(S::Nest(pair->mKey), S::Nest(pair->mValue));
-   }
-
-   /// Semantically insert a type-erased pair                                 
-   ///   @tparam ORDERED - the bucketing approach to use                      
-   ///   @param pair - the pair to insert                                     
-   ///   @return 1 if pair was inserted or value was overwritten              
-   template<bool ORDERED> LANGULUS(INLINED)
-   Count BlockMap::InsertPairBlock(CT::Semantic auto&& pair) {
-      using S = Decay<decltype(pair)>;
-      using T = TypeOf<S>;
-      static_assert(CT::Pair<T> and not CT::TypedPair<T>,
-         "SP's type must be type-erased pair type");
-
-      return InsertUnknown<ORDERED>(S::Nest(pair->mKey), S::Nest(pair->mValue));
-   }
-
-   /// Copy-insert any pair inside the map                                    
-   ///   @param pair - the pair to insert                                     
-   ///   @return a reference to this map for chaining                         
-   LANGULUS(INLINED)
-   BlockMap& BlockMap::operator << (const CT::Pair auto& pair) {
-      return operator << (Copy(pair));
-   }
-
-   /// Copy-insert any pair inside the map                                    
-   ///   @param pair - the pair to insert                                     
-   ///   @return a reference to this map for chaining                         
-   LANGULUS(INLINED)
-   BlockMap& BlockMap::operator << (CT::Pair auto& pair) {
-      return operator << (Copy(pair));
-   }
-
-   /// Move-insert any pair inside the map                                    
-   ///   @param pair - the pair to insert                                     
-   ///   @return a reference to this map for chaining                         
-   LANGULUS(INLINED)
-   BlockMap& BlockMap::operator << (CT::Pair auto&& pair) {
-      return operator << (Move(pair));
-   }
-
-   /// Semantic insertion of any pair inside the map                          
-   ///   @param pair - the pair to insert                                     
-   ///   @return a reference to this map for chaining                         
-   LANGULUS(INLINED)
-   BlockMap& BlockMap::operator << (CT::Semantic auto&& pair) {
-      InsertPair(pair.Forward());
-      return *this;
+   /// Unfold-insert pairs, semantically or not                               
+   ///   @param t1 - the first pair to insert                                 
+   ///   @param tail... - the rest of the pairs to insert (optional)          
+   ///   @return the number of inserted pairs                                 
+   template<CT::Map THIS, class T1, class...TAIL>
+   Count BlockMap::InsertPair(T1&& t1, TAIL&&...tail) {
+      Count inserted = 0;
+        inserted += UnfoldInsert<THIS>(Forward<T1>(t1));
+      ((inserted += UnfoldInsert<THIS>(Forward<TAIL>(tail))), ...);
+      return inserted;
    }
 
    /// Request a new size of keys and info via the value container            
@@ -249,11 +98,9 @@ namespace Langulus::Anyness
    /// Rehashes and reinserts each pair in the same block                     
    ///   @attention assumes count and oldCount are power-of-two               
    ///   @attention assumes count > oldCount                                  
-   ///   @tparam MAP - map we're searching in, potentially providing runtime  
-   ///                 optimization on type checks                            
    ///   @param oldCount - the old number of pairs                            
-   template<class MAP>
-   void BlockMap::Rehash(const Count& oldCount) {
+   template<CT::Map THIS>
+   void BlockMap::Rehash(Count oldCount) {
       LANGULUS_ASSUME(DevAssumes, mValues.mReserved > oldCount,
          "New count is not larger than oldCount");
       LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(mValues.mReserved),
@@ -261,15 +108,7 @@ namespace Langulus::Anyness
       LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(oldCount),
          "Old count is not a power-of-two");
 
-      static_assert(CT::Map<MAP>, "MAP must be a map type");
-      UNUSED() auto& THIS = reinterpret_cast<const MAP&>(*this); //TODO
-      auto oldKey = [this] {
-         if constexpr (CT::TypedMap<MAP>)
-            return GetKeyHandle<typename MAP::Key>(0);
-         else
-            return GetKeyInner(0);
-      }();
-
+      auto oldKey = GetKeyHandle<THIS>(0);
       auto oldInfo = GetInfo();
       const auto oldInfoEnd = oldInfo + oldCount;
       const auto hashmask = mValues.mReserved - 1;
@@ -281,18 +120,18 @@ namespace Langulus::Anyness
             const Offset oldIndex = oldInfo - GetInfo();
             Offset oldBucket = (oldCount + oldIndex) - *oldInfo + 1;
             Offset newBucket = 0;
-            if constexpr (CT::TypedMap<MAP>)
+            if constexpr (CT::TypedMap<THIS>)
                newBucket += GetBucket(hashmask, oldKey.Get());
             else
                newBucket += GetBucketUnknown(hashmask, oldKey);
 
             if (oldBucket < oldCount or oldBucket - oldCount != newBucket) {
                // Move pair only if it won't end up in same bucket      
-               if constexpr (CT::TypedMap<MAP>) {
-                  using K = typename MAP::Key;
-                  using V = typename MAP::Value;
+               if constexpr (CT::TypedMap<THIS>) {
+                  using K = typename THIS::Key;
+                  using V = typename THIS::Value;
 
-                  auto oldValue = GetValueHandle<V>(oldIndex);
+                  auto oldValue = GetValueHandle<THIS>(oldIndex);
                   HandleLocal<K> keyswap {Abandon(oldKey)};
                   HandleLocal<V> valswap {Abandon(oldValue)};
 
@@ -303,9 +142,8 @@ namespace Langulus::Anyness
                   --mValues.mCount;
 
                   // Reinsert at the new bucket                         
-                  InsertInner<false, MAP::Ordered>(
-                     newBucket,
-                     Abandon(keyswap), Abandon(valswap)
+                  InsertInner<THIS, false>(
+                     newBucket, Abandon(keyswap), Abandon(valswap)
                   );
                }
                else {
@@ -326,9 +164,8 @@ namespace Langulus::Anyness
                   *oldInfo = 0;
                   --mValues.mCount;
 
-                  InsertInnerUnknown<false, MAP::Ordered>(
-                     newBucket,
-                     Abandon(keyswap), Abandon(valswap)
+                  InsertInnerUnknown<THIS, false>(
+                     newBucket, Abandon(keyswap), Abandon(valswap)
                   );
 
                   keyswap.Free();
@@ -337,7 +174,7 @@ namespace Langulus::Anyness
             }
          }
 
-         if constexpr (CT::TypedMap<MAP>)
+         if constexpr (CT::TypedMap<THIS>)
             ++oldKey;
          else
             oldKey.Next();
@@ -347,22 +184,17 @@ namespace Langulus::Anyness
 
       // First run might cause gaps                                     
       // Second run: shift elements left, where possible                
-      if constexpr (CT::TypedMap<MAP>)
-         ShiftPairs<typename MAP::Key, typename MAP::Value>();
-      else
-         ShiftPairs<void, void>();
+      ShiftPairs<THIS>();
    }
    
    /// Rehashes and reinserts each key in the same block, and moves all       
    /// values in from the provided block                                      
    ///   @attention assumes count and oldCount are power-of-two               
    ///   @attention assumes count > oldCount                                  
-   ///   @tparam MAP - map we're searching in, potentially providing runtime  
-   ///                 optimization on type checks                            
    ///   @param oldCount - the old number of pairs                            
    ///   @param values - the source of values                                 
-   template<class MAP>
-   void BlockMap::RehashKeys(const Count& oldCount, Block& values) {
+   template<CT::Map THIS>
+   void BlockMap::RehashKeys(Count oldCount, Block& values) {
       LANGULUS_ASSUME(DevAssumes, mValues.mReserved > oldCount,
          "New count is not larger than oldCount");
       LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(mValues.mReserved),
@@ -370,8 +202,6 @@ namespace Langulus::Anyness
       LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(oldCount),
          "Old count is not a power-of-two");
 
-      static_assert(CT::Map<MAP>, "MAP must be a map type");
-      UNUSED() auto& THIS = reinterpret_cast<const MAP&>(*this); //TODO
       auto oldKey = GetKeyInner(0);
       auto oldInfo = GetInfo();
       const auto oldInfoEnd = oldInfo + oldCount;
@@ -396,7 +226,7 @@ namespace Langulus::Anyness
                *oldInfo = 0;
                --mValues.mCount;
                
-               InsertInnerUnknown<false, MAP::Ordered>(
+               InsertInnerUnknown<THIS, false>(
                   newBucket,
                   Abandon(keyswap), 
                   Copy(values.GetElement(oldIndex))
@@ -412,19 +242,17 @@ namespace Langulus::Anyness
 
       // First run might cause gaps                                     
       // Second run: shift elements left, where possible                
-      ShiftPairs<void, void>();
+      ShiftPairs<THIS>();
    }
    
    /// Rehashes and reinserts each value in the same block, and moves all     
    /// keys in from the provided block                                        
    ///   @attention assumes count and oldCount are power-of-two               
    ///   @attention assumes count > oldCount                                  
-   ///   @tparam MAP - map we're searching in, potentially providing runtime  
-   ///                 optimization on type checks                            
    ///   @param oldCount - the old number of pairs                            
    ///   @param keys - the source of keys                                     
-   template<class MAP>
-   void BlockMap::RehashValues(const Count& oldCount, Block& keys) {
+   template<CT::Map THIS>
+   void BlockMap::RehashValues(Count oldCount, Block& keys) {
       LANGULUS_ASSUME(DevAssumes, mValues.mReserved > oldCount,
          "New count is not larger than oldCount");
       LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(mValues.mReserved),
@@ -432,8 +260,6 @@ namespace Langulus::Anyness
       LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(oldCount),
          "Old count is not a power-of-two");
 
-      static_assert(CT::Map<MAP>, "MAP must be a map type");
-      UNUSED() auto& THIS = reinterpret_cast<const MAP&>(*this); //TODO
       auto oldKey = keys.GetElement(0);
       auto oldInfo = GetInfo();
       const auto oldInfoEnd = oldInfo + oldCount;
@@ -459,7 +285,7 @@ namespace Langulus::Anyness
                *oldInfo = 0;
                --mValues.mCount;
                
-               InsertInnerUnknown<false, MAP::Ordered>(
+               InsertInnerUnknown<THIS, false>(
                   newBucket,
                   Copy(oldKey), Abandon(valswap)
                );
@@ -478,10 +304,11 @@ namespace Langulus::Anyness
    }
    
    /// Shift elements left, where possible                                    
-   ///   @param K - type of key (use void for type-erasure)                   
-   ///   @param V - type of value (use void for type-erasure)                 
-   template<class K, class V>
+   template<CT::Map THIS>
    void BlockMap::ShiftPairs() {
+      using K = Conditional<CT::Typed<THIS>, THIS::Key,   void>;
+      using V = Conditional<CT::Typed<THIS>, THIS::Value, void>;
+
       auto oldInfo = mInfo;
       const auto newInfoEnd = GetInfoEnd();
       while (oldInfo != newInfoEnd) {
@@ -539,14 +366,13 @@ namespace Langulus::Anyness
    
    /// Inner insertion function                                               
    ///   @tparam CHECK_FOR_MATCH - false if you guarantee key doesn't exist   
-   ///   @tparam ORDERED - the bucketing approach to use                      
    ///   @param start - the starting index                                    
    ///   @param key - key & semantic to insert                                
    ///   @param val - value & semantic to insert                              
    ///   @return the offset at which pair was inserted                        
-   template<bool CHECK_FOR_MATCH, bool ORDERED>
+   template<CT::Map THIS, bool CHECK_FOR_MATCH>
    Offset BlockMap::InsertInner(
-      const Offset& start, CT::Semantic auto&& key, CT::Semantic auto&& val
+      Offset start, CT::Semantic auto&& key, CT::Semantic auto&& val
    ) {
       using SK = Deref<decltype(key)>;
       using SV = Deref<decltype(val)>;
@@ -606,14 +432,13 @@ namespace Langulus::Anyness
    
    /// Inner insertion function based on reflected move-assignment            
    ///   @tparam CHECK_FOR_MATCH - false if you guarantee key doesn't exist   
-   ///   @tparam ORDERED - the bucketing approach to use                      
    ///   @param start - the starting index                                    
    ///   @param key - key to move in                                          
    ///   @param val - value to move in                                        
    ///   @return the offset at which pair was inserted                        
-   template<bool CHECK_FOR_MATCH, bool ORDERED>
+   template<CT::Map THIS, bool CHECK_FOR_MATCH>
    Offset BlockMap::InsertInnerUnknown(
-      const Offset& start, CT::Semantic auto&& key, CT::Semantic auto&& val
+      Offset start, CT::Semantic auto&& key, CT::Semantic auto&& val
    ) {
       using SK = Deref<decltype(key)>;
       using SV = Deref<decltype(val)>;
@@ -694,11 +519,10 @@ namespace Langulus::Anyness
    
    /// Insert any pair into a preinitialized map                              
    ///   @tparam CHECK_FOR_MATCH - false if you guarantee key doesn't exist   
-   ///   @tparam ORDERED - the bucketing approach to use                      
    ///   @param hashmask - precalculated hashmask                             
    ///   @param pair - the semantic and pair type to insert                   
-   template<bool CHECK_FOR_MATCH, bool ORDERED>
-   void BlockMap::InsertPairInner(const Count& hashmask, CT::Semantic auto&& pair) {
+   template<CT::Map THIS, bool CHECK_FOR_MATCH>
+   void BlockMap::InsertPairInner(Count hashmask, CT::Semantic auto&& pair) {
       using S = Deref<decltype(pair)>;
       using ST = TypeOf<S>;
       static_assert(CT::Pair<ST>, "ST must be a pair type");

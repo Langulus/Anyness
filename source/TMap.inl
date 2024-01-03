@@ -23,8 +23,7 @@ namespace Langulus::Anyness
 
    /// Default construction                                                   
    TEMPLATE() LANGULUS(INLINED)
-   constexpr TABLE()::TMap()
-      : Map<ORDERED> {} {
+   constexpr TABLE()::TMap() : Map<ORDERED> {} {
       mKeys.mState = DataState::Typed;
       mValues.mState = DataState::Typed;
       if constexpr (CT::Constant<K>)
@@ -44,95 +43,49 @@ namespace Langulus::Anyness
    TEMPLATE() LANGULUS(INLINED)
    TABLE()::TMap(TMap&& other) noexcept
       : TMap {Move(other)} {}
-
-   /// Semantic constructor from any map/pair                                 
-   ///   @param other - the semantic and map/pair to initialize with          
-   TEMPLATE() LANGULUS(INLINED)
-   TABLE()::TMap(CT::Semantic auto&& other)
-      : TMap {} {
-      using S = Decay<decltype(other)>;
-      using T = TypeOf<S>;
-      mKeys.mType = MetaDataOf<K>();
-      mValues.mType = MetaDataOf<V>();
-
-      if constexpr (CT::Array<T>) {
-         if constexpr (CT::Pair<Deext<T>>) {
-            // Construct from an array of pairs                         
-            constexpr auto reserved = Roof2(ExtentOf<T>);
-            AllocateFresh(reserved);
-            ZeroMemory(mInfo, reserved);
-            mInfo[reserved] = 1;
-
-            constexpr auto hashmask = reserved - 1;
-            for (auto& pair : *other)
-               InsertPairInner<true, false>(hashmask, S::Nest(pair));
-         }
-         else LANGULUS_ERROR("Unsupported semantic array constructor");
-
-         //TODO perhaps constructor from map array, by merging them?
-      }
-      else if constexpr (CT::Map<T>) {
-         // Construct from any kind of map                              
-         if constexpr (T::Ordered) {
-            // We have to reinsert everything, because source is        
-            // ordered and uses a different bucketing approach          
-            AllocateFresh(other->GetReserved());
-            ZeroMemory(mInfo, GetReserved());
-            mInfo[GetReserved()] = 1;
-
-            const auto hashmask = GetReserved() - 1;
-            using TP = typename T::Pair;
-            other->ForEach([this, hashmask](TP& pair) {
-               InsertPairInner<false, false>(hashmask, S::Nest(pair));
-            });
-         }
-         else {
-            // We can directly interface map, because it is unordered   
-            // and uses the same bucketing approach                     
-            BlockTransfer<TUnorderedMap>(other.Forward());
-         }
-      }
-      else if constexpr (CT::Pair<T>) {
-         // Construct from any kind of pair                             
-         AllocateFresh(MinimalAllocation);
-         ZeroMemory(mInfo, MinimalAllocation);
-         mInfo[MinimalAllocation] = 1;
-
-         constexpr auto hashmask = MinimalAllocation - 1;
-         InsertPairInner<false, false>(hashmask, other.Forward());
-      }
-      else LANGULUS_ERROR("Unsupported semantic constructor");
-   }
    
-   /// Create from a list of elements                                         
-   ///   @param head - first element                                          
-   ///   @param tail - tail of elements                                       
-   TEMPLATE()
-   template<CT::Data T1, CT::Data T2, CT::Data... TAIL>
-   TABLE()::TMap(T1&& t1, T2&& t2, TAIL&&... tail) {
-      mKeys.mType = MetaDataOf<K>();
-      mValues.mType = MetaDataOf<V>();
+   /// Create from a list of pairs, each of them can be semantic or not,      
+   /// an array, as well as any other kinds of maps                           
+   ///   @param t1 - first element                                            
+   ///   @param tail - tail of elements (optional)                            
+   TEMPLATE() template<class T1, class...TAIL>
+   requires CT::DeepMapMakable<K, V, T1, TAIL...> LANGULUS(INLINED)
+   TABLE()::TMap(T1&& t1, TAIL&&... tail) {
+      if constexpr (sizeof...(TAIL) == 0) {
+         using S = SemanticOf<T1>;
+         using ST = TypeOf<S>;
 
-      constexpr auto capacity = Roof2(
-         sizeof...(TAIL) + 2 < MinimalAllocation
-            ? MinimalAllocation
-            : sizeof...(TAIL) + 2
-      );
-
-      AllocateFresh(capacity);
-      ZeroMemory(mInfo, capacity);
-      mInfo[capacity] = 1;
-
-      Insert(Forward<T1>(t1));
-      Insert(Forward<T2>(t2));
-      (Insert(Forward<TAIL>(tail)), ...);
+         if constexpr (CT::Map<ST>) {
+            if constexpr (CT::Typed<ST>) {
+               // Not type-erased map, do compile-time type checks      
+               using STT = TypeOf<ST>;
+               if constexpr (CT::Similar<Pair, STT>) {
+                  // Type is binary compatible, just transfer           
+                  BlockTransfer<TMap>(S::Nest(t1));
+               }
+               else InsertPair(Forward<T1>(t1));
+            }
+            else {
+               // Type-erased map, do run-time type checks              
+               if (mKeys.mType   == DesemCast(t1).GetKeyType()
+               and mValues.mType == DesemCast(t1).GetValueType()) {
+                  // If types are exactly the same, it is safe to       
+                  // absorb the set, essentially converting a type-     
+                  // erased Set back to its TSet equivalent             
+                  BlockTransfer<TMap>(S::Nest(t1));
+               }
+               else InsertPair(Forward<T1>(t1));
+            }
+         }
+         else InsertPair(Forward<T1>(t1));
+      }
+      else InsertPair(Forward<T1>(t1), Forward<TAIL>(tail)...);
    }
 
    /// Destroys the map and all it's contents                                 
    TEMPLATE()
    TABLE()::~TMap() {
-      Free<Self>();
-      mValues.mEntry = nullptr;
+      Free<TMap>();
    }
 
    /// Move a table                                                           
@@ -150,35 +103,30 @@ namespace Langulus::Anyness
    TABLE()& TABLE()::operator = (const TMap& pair) {
       return operator = (Copy(pair));
    }
-
-   /// Semantic assignment for an unordered map                               
-   ///   @param rhs - the unordered map to use for construction               
-   TEMPLATE()
-   TABLE()& TABLE()::operator = (CT::Semantic auto&& other) {
-      using S = Decay<decltype(other)>;
-      using T = TypeOf<S>;
-
-      if constexpr (CT::Map<T>) {
-         if (&static_cast<const BlockMap&>(*other) == this)
+   
+   /// Generic assignment                                                     
+   ///   @param rhs - the element/array/container to assign                   
+   ///   @return a reference to this container                                
+   TEMPLATE() template<class T1>
+   requires CT::DeepMapAssignable<K, V, T1> LANGULUS(INLINED)
+   TABLE()& TABLE()::operator = (T1&& rhs) {
+      using S = SemanticOf<T1>;
+      using ST = TypeOf<S>;
+       
+      if constexpr (CT::Map<ST>) {
+         // Potentially absorb a set                                    
+         if (static_cast<const BlockMap*>(this)
+          == static_cast<const BlockMap*>(&DesemCast(rhs)))
             return *this;
 
-         Reset<Self>();
-         new (this) Self {other.Forward()};
+         Free<TMap>();
+         new (this) TMap {S::Nest(rhs)};
       }
-      else if constexpr (CT::Pair<T>) {
-         if (GetUses() != 1) {
-            // Reset and allocate fresh memory                          
-            Free<Self>();
-            new (this) Self {other.Forward()};
-         }
-         else {
-            // Just destroy and reuse memory                            
-            Clear<Self>();
-            InsertPairInner<false, false>(
-               GetReserved() - 1, other.Forward());
-         }
+      else {
+         // Unfold-insert                                               
+         Clear();
+         UnfoldInsert(S::Nest(rhs));
       }
-      else LANGULUS_ERROR("Unsupported semantic assignment");
 
       return *this;
    }
@@ -331,13 +279,6 @@ namespace Langulus::Anyness
    TEMPLATE() LANGULUS(INLINED)
    constexpr Handle<V> TABLE()::GetValueHandle(Offset index) noexcept {
       return GetValues().GetHandle(index);
-   }
-
-   /// Get the size of all pairs, in bytes                                    
-   ///   @return the total amount of initialized bytes                        
-   TEMPLATE() LANGULUS(INLINED)
-   constexpr Size TABLE()::GetBytesize() const noexcept {
-      return sizeof(Pair) * GetCount(); 
    }
 
    /// Get the key meta data                                                  
@@ -499,14 +440,15 @@ namespace Langulus::Anyness
          "Can't mutate to incompatible value");
    }
    
-   /// Semantically insert key and value                                      
+   /// Insert pair, by manually providing key and value, semantically or not  
    ///   @param key - the key to insert                                       
    ///   @param val - the value to insert                                     
    ///   @return 1 if pair was inserted, zero otherwise                       
-   TEMPLATE() LANGULUS(INLINED)
-   Count TABLE()::Insert(CT::Semantic auto&& key, CT::Semantic auto&& val) {
-      using SK = Decay<decltype(key)>;
-      using SV = Decay<decltype(val)>;
+   TEMPLATE() template<class K1, class V1>
+   requires (CT::Inner::MakableFrom<K, K1> and CT::Inner::MakableFrom<V, V1>)
+   LANGULUS(INLINED) Count TABLE()::Insert(K1&& key, V1&& val) {
+      using SK = SemanticOf<decltype(key)>;
+      using SV = SemanticOf<decltype(val)>;
 
       Mutate<TypeOf<SK>, TypeOf<SV>>();
       Reserve(GetCount() + 1);

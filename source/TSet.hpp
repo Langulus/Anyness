@@ -39,14 +39,21 @@ namespace Langulus::Anyness
    ///                                                                        
    template<CT::Data T, bool ORDERED = false>
    struct TSet : Set<ORDERED> {
+      using Value = T;
+      using Base = Set<ORDERED>;
+      using Self = TSet<T, ORDERED>;
+      LANGULUS(TYPED) T;
+
+   protected:
       static_assert(CT::Inner::Comparable<T>,
          "Set's type must be equality-comparable to itself");
 
-      using Value = T;
-      using Self = TUnorderedSet<T>;
+      using typename Base::InfoType;
+      using Base::MinimalAllocation;
+      using Base::mKeys;
+      using Base::mInfo;
 
-      LANGULUS(TYPED) T;
-
+   public:
       ///                                                                     
       ///   Construction & Assignment                                         
       ///                                                                     
@@ -66,9 +73,6 @@ namespace Langulus::Anyness
       template<class T1> requires CT::DeepSetAssignable<T, T1>
       TSet& operator = (T1&&);
 
-   private:
-      TSet& AssignFrom(CT::Semantic auto&&);
-
    public:
       ///                                                                     
       ///   Capsulation                                                       
@@ -80,16 +84,22 @@ namespace Langulus::Anyness
       NOD() constexpr bool IsSparse() const noexcept;
       NOD() constexpr bool IsDense() const noexcept;
       NOD() constexpr Size GetStride() const noexcept;
-      NOD() constexpr Size GetBytesize() const noexcept;
+
+      using Base::GetReserved;
+      using Base::GetInfo;
+      using Base::GetInfoEnd;
+      using Base::IsAllocated;
+      using Base::GetUses;
+      using Base::GetCount;
 
       ///                                                                     
       ///   Indexing                                                          
       ///                                                                     
-      NOD()       T& Get(const CT::Index auto&);
-      NOD() const T& Get(const CT::Index auto&) const;
+      NOD()       T& Get(CT::Index auto);
+      NOD() const T& Get(CT::Index auto) const;
 
-      NOD()       T& operator[] (const CT::Index auto&);
-      NOD() const T& operator[] (const CT::Index auto&) const;
+      NOD()       T& operator[] (CT::Index auto);
+      NOD() const T& operator[] (CT::Index auto) const;
       
    protected:
       NOD() const TAny<T>& GetValues() const noexcept;
@@ -157,13 +167,13 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Memory management                                                 
       ///                                                                     
-      void Reserve(const Count&);
+      void Reserve(Count);
 
    protected:
-      void AllocateFresh(const Count&);
+      void AllocateFresh(Count);
       template<bool REUSE>
-      void AllocateData(const Count&);
-      void AllocateInner(const Count&);
+      void AllocateData(Count);
+      void AllocateInner(Count);
 
    public:
       ///                                                                     
@@ -180,11 +190,11 @@ namespace Langulus::Anyness
    protected:
       NOD() static Size RequestKeyAndInfoSize(Count, Offset&) noexcept;
 
-      void Rehash(const Count&);
+      void Rehash(Count);
       Count UnfoldInsert(auto&&);
 
       template<bool CHECK_FOR_MATCH, class T1>
-      Offset InsertInner(const Offset&, T1&&);
+      Offset InsertInner(Offset, T1&&);
 
       template<class ALT_T>
       void CloneInner(const ALT_T&, ALT_T&) const;
@@ -206,14 +216,15 @@ namespace Langulus::Anyness
 
 
    ///                                                                        
-   ///   Unordered set iterator                                               
+   ///   Set iterator                                                         
    ///                                                                        
    template<CT::Data T, bool ORDERED> template<bool MUTABLE>
    struct TSet<T, ORDERED>::TIterator {
    protected:
-      friend class TOrderedSet<T>;
-      friend class TUnorderedSet<T>;
+      friend TOrderedSet<T>;
+      friend TUnorderedSet<T>;
 
+      using typename TSet<T, ORDERED>::InfoType;
       const InfoType* mInfo {};
       const InfoType* mSentinel {};
       const T* mValue {};

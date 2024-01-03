@@ -52,13 +52,6 @@ namespace Langulus::Anyness
       return mKeys.GetStride();
    }
 
-   /// Get the size of all elements, in bytes                                 
-   ///   @return the total amount of initialized bytes                        
-   LANGULUS(INLINED)
-   constexpr Size BlockSet::GetBytesize() const noexcept {
-      return GetStride() * GetCount(); 
-   }
-
    /// Get the type of the set                                                
    LANGULUS(INLINED)
    DMeta BlockSet::GetType() const noexcept {
