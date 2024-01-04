@@ -99,7 +99,7 @@ namespace Langulus::Anyness
       }
       else {
          // Unfold-insert                                               
-         Clear();
+         Clear<Map>();
          UnfoldInsert<Map>(S::Nest(rhs));
       }
 

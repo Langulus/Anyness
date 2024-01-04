@@ -113,12 +113,24 @@ namespace Langulus::Anyness
    ///   @param request - number of keys to allocate                          
    ///   @param infoStart - [out] the offset at which info bytes start        
    ///   @return the requested byte size                                      
-   LANGULUS(INLINED)
-   Size BlockSet::RequestKeyAndInfoSize(const Count request, Offset& infoStart) const IF_UNSAFE(noexcept) {
-      LANGULUS_ASSUME(DevAssumes, mKeys.mType, "Key type was not set");
-      auto keymemory = request * mKeys.mType->mSize;
-      if (mKeys.mType->mIsSparse)
-         keymemory *= 2;
+   template<CT::Set THIS> LANGULUS(INLINED)
+   Size BlockSet::RequestKeyAndInfoSize(
+      const Count request, Offset& infoStart
+   ) const IF_UNSAFE(noexcept) {
+      Size keymemory;
+      if constexpr (CT::Typed<THIS>) {
+         using T = TypeOf<THIS>;
+         keymemory = request * sizeof(T);
+         if constexpr (CT::Sparse<T>)
+            keymemory *= 2;
+      }
+      else {
+         LANGULUS_ASSUME(DevAssumes, mKeys.mType, "Key type was not set");
+         keymemory = request * mKeys.mType->mSize;
+         if (mKeys.mType->mIsSparse)
+            keymemory *= 2;
+      }
+
       infoStart = keymemory + Alignment - (keymemory % Alignment);
       return infoStart + request + 1;
    }
@@ -126,10 +138,8 @@ namespace Langulus::Anyness
    /// Rehashes and reinserts each pair in the same block                     
    ///   @attention assumes count and oldCount are power-of-two               
    ///   @attention assumes count > oldCount                                  
-   ///   @tparam SET - set we're searching in, potentially providing runtime  
-   ///                 optimization on type checks                            
    ///   @param oldCount - the old number of pairs                            
-   template<class SET>
+   template<CT::Set THIS>
    void BlockSet::Rehash(const Count& oldCount) {
       LANGULUS_ASSUME(DevAssumes, mKeys.mReserved > oldCount,
          "New count is not larger than oldCount");
@@ -138,15 +148,8 @@ namespace Langulus::Anyness
       LANGULUS_ASSUME(DevAssumes, IsPowerOfTwo(oldCount),
          "Old count is not a power-of-two");
 
-      static_assert(CT::Set<SET>, "SET must be a set type");
-      UNUSED() auto& THIS = reinterpret_cast<const SET&>(*this); //TODO
-      auto oldKey = [this] {
-         if constexpr (CT::TypedSet<SET>)
-            return GetHandle<TypeOf<SET>>(0);
-         else
-            return GetInner(0);
-      }();
-
+      UNUSED() auto& me = reinterpret_cast<const THIS&>(*this);
+      auto oldKey = GetHandle<THIS>(0);
       auto oldInfo = GetInfo();
       const auto oldInfoEnd = oldInfo + oldCount;
       const auto hashmask = mKeys.mReserved - 1;
@@ -158,15 +161,15 @@ namespace Langulus::Anyness
             const Offset oldIndex = oldInfo - GetInfo();
             Offset oldBucket = (oldCount + oldIndex) - *oldInfo + 1;
             Offset newBucket = 0;
-            if constexpr (CT::TypedSet<SET>)
+            if constexpr (CT::TypedSet<THIS>)
                newBucket += GetBucket(hashmask, oldKey.Get());
             else
                newBucket += GetBucketUnknown(hashmask, oldKey);
 
             if (oldBucket < oldCount or oldBucket - oldCount != newBucket) {
                // Move it only if it won't end up in same bucket        
-               if constexpr (CT::TypedSet<SET>) {
-                  using K = TypeOf<SET>;
+               if constexpr (CT::TypedSet<THIS>) {
+                  using K = TypeOf<THIS>;
 
                   HandleLocal<K> keyswap {Abandon(oldKey)};
 
@@ -176,9 +179,7 @@ namespace Langulus::Anyness
                   --mKeys.mCount;
 
                   // Reinsert at the new bucket                         
-                  InsertInner<false, SET::Ordered>(
-                     newBucket, Abandon(keyswap)
-                  );
+                  InsertInner<THIS, false>(newBucket, Abandon(keyswap));
                }
                else {
                   Block keyswap {mKeys.GetState(), GetType()};
@@ -191,16 +192,13 @@ namespace Langulus::Anyness
                   *oldInfo = 0;
                   --mKeys.mCount;
 
-                  InsertInnerUnknown<false, SET::Ordered>(
-                     newBucket, Abandon(keyswap)
-                  );
-
+                  InsertInnerUnknown<THIS, false>(newBucket, Abandon(keyswap));
                   keyswap.Free();
                }
             }
          }
 
-         if constexpr (CT::TypedSet<SET>)
+         if constexpr (CT::TypedSet<THIS>)
             ++oldKey;
          else
             oldKey.Next();
@@ -210,16 +208,13 @@ namespace Langulus::Anyness
 
       // First run might cause gaps                                     
       // Second run: shift elements left, where possible                
-      if constexpr (CT::TypedSet<SET>)
-         ShiftPairs<TypeOf<SET>>();
-      else
-         ShiftPairs<void>();
+      ShiftPairs<THIS>();
    }
    
    /// Shift elements left, where possible                                    
-   ///   @param K - type of key (use void for type-erasure)                   
-   template<class K>
+   template<CT::Set THIS>
    void BlockSet::ShiftPairs() {
+      using K = Conditional<CT::Typed<THIS>, TypeOf<THIS>, void>;
       auto oldInfo = mInfo;
       const auto newInfoEnd = GetInfoEnd();
       while (oldInfo != newInfoEnd) {

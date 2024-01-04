@@ -85,14 +85,14 @@ namespace Langulus::Anyness
    /// Destroys the map and all it's contents                                 
    TEMPLATE()
    TABLE()::~TMap() {
-      Free<TMap>();
+      BlockMap::Free<TMap>();
    }
 
    /// Move a table                                                           
    ///   @param pair - the table to move                                      
    ///   @return a reference to this table                                    
    TEMPLATE() LANGULUS(INLINED)
-   TABLE()& TABLE()::operator = (TMap&& pair) noexcept {
+   TABLE()& TABLE()::operator = (TMap&& pair) {
       return operator = (Move(pair));
    }
 
@@ -114,18 +114,18 @@ namespace Langulus::Anyness
       using ST = TypeOf<S>;
        
       if constexpr (CT::Map<ST>) {
-         // Potentially absorb a set                                    
+         // Potentially absorb the container                            
          if (static_cast<const BlockMap*>(this)
           == static_cast<const BlockMap*>(&DesemCast(rhs)))
             return *this;
 
-         Free<TMap>();
+         BlockMap::Free<TMap>();
          new (this) TMap {S::Nest(rhs)};
       }
       else {
          // Unfold-insert                                               
-         Clear();
-         UnfoldInsert(S::Nest(rhs));
+         BlockMap::ClearInner<TMap>();
+         UnfoldInsert<TMap>(S::Nest(rhs));
       }
 
       return *this;
@@ -439,7 +439,14 @@ namespace Langulus::Anyness
       LANGULUS_ASSERT(GetValueType()->IsSimilar(value), Mutate,
          "Can't mutate to incompatible value");
    }
-   
+
+   /// Reserve a new table size                                               
+   ///   @param count - the number of elements to reserve                     
+   TEMPLATE() LANGULUS(INLINED)
+   void TABLE()::Reserve(Count count) {
+      return BlockMap::Reserve<TMap>(count);
+   }
+
    /// Insert pair, by manually providing key and value, semantically or not  
    ///   @param key - the key to insert                                       
    ///   @param val - the value to insert                                     
@@ -452,69 +459,129 @@ namespace Langulus::Anyness
 
       Mutate<TypeOf<SK>, TypeOf<SV>>();
       Reserve(GetCount() + 1);
-      InsertInner<true, false>(
-         GetBucket(GetReserved() - 1, *key),
-         key.Forward(), val.Forward()
+      InsertInner<TMap, true>(
+         GetBucket(GetReserved() - 1, DesemCast(key)),
+         SK::Nest(key), SV::Nest(val)
       );
       return 1;
    }
    
-   /// Semantically insert a type-erased pair                                 
-   ///   @param key - the key to insert                                       
-   ///   @param value - the value to insert                                   
-   ///   @return 1 if pair was inserted or value was overwritten              
+   /// Insert pair(s) by manually providing key and value blocks              
+   ///   @attention only the overlapping elements will be inserted            
+   ///   @param key - the key block to insert                                 
+   ///   @param val - the value block to insert                               
+   ///   @return the number of inserted pairs                                 
    TEMPLATE() LANGULUS(INLINED)
-   Count TABLE()::InsertBlock(CT::Semantic auto&& key, CT::Semantic auto&& val) {
-      using SK = Decay<decltype(key)>;
-      using SV = Decay<decltype(val)>;
+   Count TABLE()::InsertBlock(auto&& key, auto&& val) {
+      using SK = SemanticOf<decltype(key)>;
+      using SV = SemanticOf<decltype(val)>;
+      using KB = TypeOf<SK>;
+      using VB = TypeOf<SV>;
+      static_assert(CT::Block<KB>, "Key type must be a block type");
+      static_assert(CT::Block<VB>, "Value type must be a block type");
 
-      static_assert(CT::Exact<TypeOf<SK>, Block>,
-         "SK type must be exactly Block (build-time optimization)");
-      static_assert(CT::Exact<TypeOf<SV>, Block>,
-         "SV type must be exactly Block (build-time optimization)");
+      if constexpr (not CT::Typed<KB> or not CT::Typed<VB>) {
+         // Run-time type check required                                
+         Mutate(DesemCast(key).GetType(),
+                DesemCast(val).GetType());
+      }
+      else {
+         // Compile-time type check                                     
+         static_assert(CT::Inner::MakableFrom<K, TypeOf<KB>>,
+            "Key is not constructible from the provided key block");
+         static_assert(CT::Inner::MakableFrom<V, TypeOf<VB>>,
+            "Value is not constructible from the provided value block");
+      }
 
-      Mutate(key->mType, val->mType);
-      Reserve(GetCount() + 1);
-      InsertInnerUnknown<true, false>(
-         GetBucketUnknown(GetReserved() - 1, *key),
-         key.Forward(), val.Forward()
-      );
-      return 1;
+      const auto count = ::std::min(DesemCast(key).GetCount(),
+                                    DesemCast(val).GetCount());
+      Reserve(GetCount() + count);
+
+      for (Offset i = 0; i < count; ++i) {
+         if constexpr (not CT::Typed<KB> or not CT::Typed<VB>) {
+            // Type-erased insertion                                    
+            auto keyBlock = DesemCast(key).GetElement(i);
+            InsertInnerUnknown<TMap, true>(
+               GetBucketUnknown(GetReserved() - 1, keyBlock),
+               SK::Nest(keyBlock),
+               SV::Nest(DesemCast(val).GetElement(i))
+            );
+         }
+         else {
+            // Static type insertion                                    
+            auto& keyRef = DesemCast(key)[i];
+            InsertInner<TMap, true>(
+               GetBucket(GetReserved() - 1, keyRef),
+               SK::Nest(keyRef),
+               SV::Nest(DesemCast(val)[i])
+            );
+         }
+      }
+      return count;
    }
 
-   /// Semantically insert any pair                                           
-   ///   @param pair - the pair to insert                                     
-   ///   @return 1 if pair was inserted, zero otherwise                       
-   TEMPLATE() LANGULUS(INLINED)
-   Count TABLE()::InsertPair(CT::Semantic auto&& pair) {
-      using S = Decay<decltype(pair)>;
-      using T = TypeOf<S>;
-      static_assert(CT::Pair<T>, "T must be a pair");
-
-      if constexpr (CT::TypedPair<T>)
-         return Insert(S::Nest(pair->mKey), S::Nest(pair->mValue));
-      else
-         return InsertUnknown(S::Nest(pair->mKey), S::Nest(pair->mValue));
+   /// Unfold-insert pairs, semantically or not                               
+   ///   @param t1, tail... - pairs, or arrays of pairs, to insert            
+   ///   @return the number of inserted pairs                                 
+   TEMPLATE() template<class T1, class...TAIL>
+   requires CT::Inner::UnfoldMakableFrom<TPair<K, V>, T1, TAIL...>
+   LANGULUS(INLINED) Count TABLE()::InsertPair(T1&& t1, TAIL&&...tail) {
+      Count inserted = 0;
+        inserted += UnfoldInsert(Forward<T1>(t1));
+      ((inserted += UnfoldInsert(Forward<TAIL>(tail))), ...);
+      return inserted;
    }
 
-   /// Semantically insert a type-erased pair                                 
-   ///   @param pair - the pair to insert                                     
-   ///   @return 1 if pair was inserted or value was overwritten              
+   /// Insert a block of pair(s)                                              
+   ///   @param pairs - the block of pairs, semantic or not                   
+   ///   @return the number of inserted pairs                                 
    TEMPLATE() LANGULUS(INLINED)
-   Count TABLE()::InsertPairBlock(CT::Semantic auto&& pair) {
-      using S = Decay<decltype(pair)>;
-      using T = TypeOf<S>;
-      static_assert(CT::Pair<T> and not CT::TypedPair<T>,
-         "SP's type must be type-erased pair type");
+   Count TABLE()::InsertPairBlock(auto&& pairs) {
+      using S = SemanticOf<decltype(pairs)>;
+      using SB = TypeOf<S>;
+      static_assert(CT::Block<SB>, "Pairs must be inside a block type");
+      Count inserted = 0;
 
-      return InsertUnknown(S::Nest(pair->mKey), S::Nest(pair->mValue));
+      if constexpr (not CT::Typed<SB>) {
+         // Insert pairs from a type-erased block...                    
+         if (DesemCast(pairs).template CastsTo<Anyness::Pair>()) {
+            // ...as type-erased pairs                                  
+            DesemCast(pairs).ForEach([&](const Anyness::Pair& p) {
+               inserted += InsertPair(S::Nest(const_cast<Anyness::Pair&>(p)));
+            });
+         }
+         else if (DesemCast(pairs).template CastsTo<Pair>()) {
+            // ...as exactly typed pairs                                
+            DesemCast(pairs).ForEach([&](const Pair& p) {
+               inserted += InsertPair(S::Nest(const_cast<Pair&>(p)));
+            });
+         }
+      }
+      else if constexpr (CT::Pair<TypeOf<SB>>) {
+         // Insert pairs from a statically-typed block                  
+         for (auto& p : DesemCast(pairs))
+            inserted += InsertPair(S::Nest(p));
+      }
+
+      return inserted;
    }
 
-   /// Semantic insertion of any pair inside the map                          
+   /// Insert pair                                                            
    ///   @param pair - the pair to insert                                     
    ///   @return a reference to this map for chaining                         
-   TEMPLATE() LANGULUS(INLINED)
-   TABLE()& TABLE()::operator << (CT::Semantic auto&& pair) {
+   TEMPLATE() template<class T1>
+   requires CT::Inner::UnfoldMakableFrom<TPair<K, V>, T1> LANGULUS(INLINED)
+   TABLE()& TABLE()::operator << (T1&& pair) {
+      InsertPair(pair.Forward());
+      return *this;
+   }
+
+   /// Insert pair                                                            
+   ///   @param pair - the pair to insert                                     
+   ///   @return a reference to this map for chaining                         
+   TEMPLATE() template<class T1>
+   requires CT::Inner::UnfoldMakableFrom<TPair<K, V>, T1> LANGULUS(INLINED)
+   TABLE()& TABLE()::operator >> (T1&& pair) {
       InsertPair(pair.Forward());
       return *this;
    }
@@ -535,23 +602,6 @@ namespace Langulus::Anyness
          else Insert(pair.mKey, pair.mValue);
       }
       return *this;
-   }
-
-   /// Request a new size of keys and info via the value container            
-   /// The memory layout is:                                                  
-   ///   [keys for each bucket]                                               
-   ///         [padding for alignment]                                        
-   ///               [info for each bucket]                                   
-   ///                     [one sentinel byte for terminating loops]          
-   ///   @param infoStart - [out] the offset at which info bytes start        
-   ///   @return the requested byte size                                      
-   TEMPLATE() LANGULUS(INLINED)
-   Size TABLE()::RequestKeyAndInfoSize(const Count count, Offset& infoStart) noexcept {
-      Size keymemory = count * sizeof(K);
-      if constexpr (CT::Sparse<K>)
-         keymemory *= 2;
-      infoStart = keymemory + Alignment - (keymemory % Alignment);
-      return infoStart + count + 1;
    }
 
    /// Request a new size of value container                                  
@@ -611,6 +661,24 @@ namespace Langulus::Anyness
       };
    }
 
+   /// Destroy all contained pairs, but don't deallocate                      
+   TEMPLATE()
+   void TABLE()::Clear() {
+      return BlockMap::Clear<TMap>();
+   }
+
+   /// Destroy all contained pairs and deallocate                             
+   TEMPLATE()
+   void TABLE()::Reset() {
+      return BlockMap::Reset<TMap>();
+   }
+
+   /// Reduce reserved size, depending on number of contained elements        
+   TEMPLATE()
+   void TABLE()::Compact() {
+      return BlockMap::Compact<TMap>();
+   }
+
 
    ///                                                                        
    ///   Comparison                                                           
@@ -629,7 +697,7 @@ namespace Langulus::Anyness
       while (info != infoEnd) {
          if (*info) {
             const auto lhs = info - GetInfo();
-            const auto rhs = other.template FindInner<TABLE()>(GetRawKey(lhs));
+            const auto rhs = other.template FindInner<TMap>(GetRawKey(lhs));
             if (rhs == InvalidOffset or GetRawValue(lhs) != other.GetRawValue(rhs))
                return false;
          }
@@ -645,7 +713,7 @@ namespace Langulus::Anyness
    ///   @return true if key is found, false otherwise                        
    TEMPLATE() LANGULUS(INLINED)
    bool TABLE()::ContainsKey(const K& key) const {
-      return FindInner<TABLE()>(key) != InvalidOffset;
+      return FindInner<TMap>(key) != InvalidOffset;
    }
 
    /// Search for a value inside the table                                    
@@ -675,7 +743,7 @@ namespace Langulus::Anyness
    ///   @return true if pair is found, false otherwise                       
    TEMPLATE() LANGULUS(INLINED)
    bool TABLE()::ContainsPair(const Pair& pair) const requires CT::Inner::Comparable<V> {
-      const auto found = FindInner<TABLE()>(pair.mKey);
+      const auto found = FindInner<TMap>(pair.mKey);
       return found != InvalidOffset and GetValue(found) == pair.mValue;
    }
 
@@ -684,7 +752,7 @@ namespace Langulus::Anyness
    ///   @return the index if key was found, or IndexNone if not              
    TEMPLATE() LANGULUS(INLINED)
    Index TABLE()::Find(const K& key) const {
-      const auto offset = FindInner<TABLE()>(key);
+      const auto offset = FindInner<TMap>(key);
       return offset != InvalidOffset ? Index {offset} : IndexNone;
    }
    
@@ -693,7 +761,7 @@ namespace Langulus::Anyness
    ///   @return the iterator                                                 
    TEMPLATE() LANGULUS(INLINED)
    typename TABLE()::Iterator TABLE()::FindIt(const K& key) {
-      const auto found = FindInner<TABLE()>(key);
+      const auto found = FindInner<TMap>(key);
       if (found == InvalidOffset)
          return end();
 
@@ -718,7 +786,7 @@ namespace Langulus::Anyness
    ///   @return a reference to the value                                     
    TEMPLATE() LANGULUS(INLINED)
    decltype(auto) TABLE()::At(const K& key) {
-      const auto found = FindInner<TABLE()>(key);
+      const auto found = FindInner<TMap>(key);
       LANGULUS_ASSERT(found != InvalidOffset, OutOfRange, "Key not found");
       return GetRawValue(found);
    }
@@ -752,28 +820,28 @@ namespace Langulus::Anyness
    ///   @attention for internal use only, elements might not be initialized  
    TEMPLATE() LANGULUS(INLINED)
    const TAny<K>& TABLE()::GetKeys() const noexcept {
-      return BlockMap::GetKeys<K>();
+      return BlockMap::GetKeys<TMap>();
    }
 
    /// Get the templated key container                                        
    ///   @attention for internal use only, elements might not be initialized  
    TEMPLATE() LANGULUS(INLINED)
    TAny<K>& TABLE()::GetKeys() noexcept {
-      return BlockMap::GetKeys<K>();
+      return BlockMap::GetKeys<TMap>();
    }
 
    /// Get the templated values container                                     
    ///   @attention for internal use only, elements might not be initialized  
    TEMPLATE() LANGULUS(INLINED)
    const TAny<V>& TABLE()::GetValues() const noexcept {
-      return BlockMap::GetValues<V>();
+      return BlockMap::GetValues<TMap>();
    }
 
    /// Get the templated values container                                     
    ///   @attention for internal use only, elements might not be initialized  
    TEMPLATE() LANGULUS(INLINED)
    TAny<V>& TABLE()::GetValues() noexcept {
-      return BlockMap::GetValues<V>();
+      return BlockMap::GetValues<TMap>();
    }
 
    /// Get a key at an index                                                  
@@ -781,7 +849,7 @@ namespace Langulus::Anyness
    ///   @param index - the index                                             
    ///   @return the mutable key reference                                    
    TEMPLATE() LANGULUS(INLINED)
-   K& TABLE()::GetKey(const CT::Index auto& index) {
+   K& TABLE()::GetKey(CT::Index auto index) {
       if (IsEmpty())
          LANGULUS_OOPS(OutOfRange, "Map is empty");
 
@@ -796,7 +864,7 @@ namespace Langulus::Anyness
    ///   @param index - the index                                             
    ///   @return the constant key reference                                   
    TEMPLATE() LANGULUS(INLINED)
-   const K& TABLE()::GetKey(const CT::Index auto& index) const {
+   const K& TABLE()::GetKey(CT::Index auto index) const {
       return const_cast<TABLE()*>(this)->GetKey(index);
    }
 
@@ -805,7 +873,7 @@ namespace Langulus::Anyness
    ///   @param i - the index                                                 
    ///   @return the mutable value reference                                  
    TEMPLATE() LANGULUS(INLINED)
-   V& TABLE()::GetValue(const CT::Index auto& index) {
+   V& TABLE()::GetValue(CT::Index auto index) {
       if (IsEmpty())
          LANGULUS_OOPS(OutOfRange, "Map is empty");
 
@@ -820,7 +888,7 @@ namespace Langulus::Anyness
    ///   @param index - the index                                             
    ///   @return the constant value reference                                 
    TEMPLATE() LANGULUS(INLINED)
-   const V& TABLE()::GetValue(const CT::Index auto& index) const {
+   const V& TABLE()::GetValue(CT::Index auto index) const {
       return const_cast<TABLE()*>(this)->GetValue(index);
    }
 
@@ -829,7 +897,7 @@ namespace Langulus::Anyness
    ///   @param i - the index                                                 
    ///   @return the mutable pair reference                                   
    TEMPLATE() LANGULUS(INLINED)
-   typename TABLE()::PairRef TABLE()::GetPair(const CT::Index auto& i) {
+   typename TABLE()::PairRef TABLE()::GetPair(CT::Index auto i) {
       if (IsEmpty())
          LANGULUS_OOPS(OutOfRange, "Map is empty");
 
@@ -842,7 +910,7 @@ namespace Langulus::Anyness
    ///   @param i - the index                                                 
    ///   @return the constant pair reference                                  
    TEMPLATE() LANGULUS(INLINED)
-   typename TABLE()::PairConstRef TABLE()::GetPair(const CT::Index auto& i) const {
+   typename TABLE()::PairConstRef TABLE()::GetPair(CT::Index auto i) const {
       return const_cast<TABLE()*>(this)->GetPair(i);
    }
    
@@ -860,7 +928,8 @@ namespace Langulus::Anyness
 
       // Seek first valid info, or hit sentinel at the end              
       auto info = GetInfo();
-      while (not *info) ++info;
+      while (not *info)
+         ++info;
 
       const auto offset = info - GetInfo();
       return {
@@ -886,7 +955,8 @@ namespace Langulus::Anyness
 
       // Seek first valid info in reverse, until one past first is met  
       auto info = GetInfoEnd();
-      while (info >= GetInfo() and not *--info);
+      while (info >= GetInfo() and not *--info)
+         ;
 
       const auto offset = info - GetInfo();
       return {
@@ -905,7 +975,8 @@ namespace Langulus::Anyness
 
       // Seek first valid info, or hit sentinel at the end              
       auto info = GetInfo();
-      while (not *info) ++info;
+      while (not *info)
+         ++info;
 
       const auto offset = info - GetInfo();
       return {
@@ -931,7 +1002,8 @@ namespace Langulus::Anyness
 
       // Seek first valid info in reverse, until one past first is met  
       auto info = GetInfoEnd();
-      while (info >= GetInfo() and not *--info);
+      while (info >= GetInfo() and not *--info)
+         ;
 
       const auto offset = info - GetInfo();
       return {
@@ -948,7 +1020,8 @@ namespace Langulus::Anyness
    decltype(auto) TABLE()::Last() {
       LANGULUS_ASSERT(!IsEmpty(), Access, "Can't get last index");
       auto info = GetInfoEnd();
-      while (info >= GetInfo() and not *--info);
+      while (info >= GetInfo() and not *--info)
+         ;
       return GetPair(static_cast<Offset>(info - GetInfo()));
    }
 
@@ -959,7 +1032,8 @@ namespace Langulus::Anyness
    decltype(auto) TABLE()::Last() const {
       LANGULUS_ASSERT(!IsEmpty(), Access, "Can't get last index");
       auto info = GetInfoEnd();
-      while (info >= GetInfo() and not *--info);
+      while (info >= GetInfo() and not *--info)
+         ;
       return GetPair(static_cast<Offset>(info - GetInfo()));
    }
 
@@ -1125,7 +1199,8 @@ namespace Langulus::Anyness
 
       // Seek next valid info, or hit sentinel at the end               
       const auto previous = mInfo;
-      while (not *++mInfo);
+      while (not *++mInfo)
+         ;
       const auto offset = mInfo - previous;
       mKey += offset;
       mValue += offset;

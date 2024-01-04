@@ -245,18 +245,18 @@ namespace Langulus::Anyness
 
       NOD() Hash GetHash() const;
 
-      template<class SET = BlockSet>
+      template<CT::Set = BlockSet>
       NOD() bool Contains(const CT::NotSemantic auto&) const;
 
-      template<class SET = BlockSet>
+      template<CT::Set = BlockSet>
       NOD() Index Find(const CT::NotSemantic auto&) const;
-      template<class SET = BlockSet>
+      template<CT::Set = BlockSet>
       NOD() Iterator FindIt(const CT::NotSemantic auto&);
-      template<class SET = BlockSet>
+      template<CT::Set = BlockSet>
       NOD() ConstIterator FindIt(const CT::NotSemantic auto&) const;
 
    protected:
-      template<class SET>
+      template<CT::Set>
       NOD() Offset FindInner(const CT::NotSemantic auto&) const;
       NOD() Offset FindInnerUnknown(const Block&) const;
 
@@ -264,20 +264,21 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Memory management                                                 
       ///                                                                     
-      template<class SET = BlockSet>
-      void Reserve(const Count&);
+      template<CT::Set = BlockSet>
+      void Reserve(Count);
 
    protected:
       /// @cond show_protected                                                
-      void AllocateFresh(const Count&);
-      template<bool REUSE, class SET>
-      void AllocateData(const Count&);
-      template<class SET>
-      void AllocateInner(const Count&);
+      template<CT::Set>
+      void AllocateFresh(Count);
+      template<CT::Set, bool REUSE>
+      void AllocateData(Count);
+      template<CT::Set>
+      void AllocateInner(Count);
 
-      void Reference(const Count&) const noexcept;
+      void Reference(Count) const noexcept;
       void Keep() const noexcept;
-      template<CT::Set THIS>
+      template<CT::Set>
       void Free();
       /// @endcond                                                            
 
@@ -293,11 +294,12 @@ namespace Langulus::Anyness
       Count InsertBlock(T&&);
 
    protected:
+      template<CT::Set>
       NOD() Size RequestKeyAndInfoSize(Count, Offset&) const IF_UNSAFE(noexcept);
 
-      template<class SET>
+      template<CT::Set>
       void Rehash(const Count&);
-      template<class K>
+      template<CT::Set>
       void ShiftPairs();
 
       template<CT::Set, bool CHECK_FOR_MATCH, template<class> class S, CT::Data T>
@@ -315,22 +317,22 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Removal                                                           
       ///                                                                     
-      template<class SET = BlockSet>
+      template<CT::Set = BlockSet>
       Count Remove(const CT::NotSemantic auto&);
 
-      template<class SET = BlockSet>
+      template<CT::Set = BlockSet>
       void Clear();
-      template<class SET = BlockSet>
+      template<CT::Set = BlockSet>
       void Reset();
       void Compact();
 
    protected:
-      template<class SET>
+      template<CT::Set>
       void ClearInner();
 
-      template<class K>
+      template<CT::Set>
       void RemoveInner(const Offset&) IF_UNSAFE(noexcept);
-      template<class SET>
+      template<CT::Set>
       Count RemoveKeyInner(const CT::NotSemantic auto&);
 
    #if LANGULUS(TESTING)

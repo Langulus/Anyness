@@ -18,16 +18,17 @@ namespace Langulus::CT
    template<class T, class...A>
    concept DeepMakable = Inner::UnfoldMakableFrom<T, A...>
         or (sizeof...(A) == 1 and Block<Desem<FirstOf<A...>>>
-           and SemanticOf<FirstOf<A...>>::Shallow or (
-              Inner::SemanticMakableAlt<typename SemanticOf<FirstOf<A...>>::template As<T>>
+           and (SemanticOf<FirstOf<A...>>::Shallow
+             or Inner::SemanticMakableAlt<typename SemanticOf<FirstOf<A...>>::template As<T>>
         ));
 
    /// Concept for recognizing argument, with which a statically typed        
    /// container can be assigned                                              
    template<class T, class A>
    concept DeepAssignable = Inner::UnfoldMakableFrom<T, A> or (Block<Desem<A>>
-       and SemanticOf<A>::Shallow or (
-          Inner::SemanticAssignableAlt<typename SemanticOf<A>::template As<T>>));
+       and (SemanticOf<A>::Shallow
+         or Inner::SemanticAssignableAlt<typename SemanticOf<A>::template As<T>>)
+       );
 
 } // namespace Langulus::CT
 

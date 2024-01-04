@@ -166,17 +166,17 @@ namespace Langulus::Anyness
       DEBUGGERY(void Dump() const);
 
    protected:
-      template<CT::Map THIS>
+      template<CT::Map>
       NOD() auto& GetKeys() const noexcept;
-      template<CT::Map THIS>
+      template<CT::Map>
       NOD() auto& GetKeys() noexcept;
-      template<CT::Map THIS>
+      template<CT::Map>
       NOD() auto& GetValues() const noexcept;
-      template<CT::Map THIS>
+      template<CT::Map>
       NOD() auto& GetValues() noexcept;
 
       NOD() const InfoType* GetInfo() const noexcept;
-      NOD() InfoType* GetInfo() noexcept;
+      NOD()       InfoType* GetInfo() noexcept;
       NOD() const InfoType* GetInfoEnd() const noexcept;
 
       NOD() Count GetCountDeep(const Block&) const noexcept;
@@ -204,18 +204,18 @@ namespace Langulus::Anyness
       NOD() static Offset GetBucket(Offset, const CT::NotSemantic auto&) noexcept;
       NOD() static Offset GetBucketUnknown(Offset, const Block&) noexcept;
 
-      template<CT::Map THIS>
+      template<CT::Map>
       NOD() auto& GetRawKey(Offset) const IF_UNSAFE(noexcept);
-      template<CT::Map THIS>
+      template<CT::Map>
       NOD() auto& GetRawKey(Offset)       IF_UNSAFE(noexcept);
-      template<CT::Map THIS>
+      template<CT::Map>
       NOD() auto  GetKeyHandle(Offset) const IF_UNSAFE(noexcept);
 
-      template<CT::Map THIS>
+      template<CT::Map>
       NOD() auto& GetRawValue(Offset) const IF_UNSAFE(noexcept);
-      template<CT::Map THIS>
+      template<CT::Map>
       NOD() auto& GetRawValue(Offset)       IF_UNSAFE(noexcept);
-      template<CT::Map THIS>
+      template<CT::Map>
       NOD() auto  GetValueHandle(Offset) const IF_UNSAFE(noexcept);
 
    public:
@@ -315,30 +315,30 @@ namespace Langulus::Anyness
 
       NOD() Hash GetHash() const;
 
-      template<class MAP = BlockMap>
+      template<CT::Map = BlockMap>
       NOD() bool ContainsKey(const CT::NotSemantic auto&) const;
-      template<class MAP = BlockMap>
+      template<CT::Map = BlockMap>
       NOD() bool ContainsValue(const CT::NotSemantic auto&) const;
-      template<class MAP = BlockMap, CT::NotSemantic K, CT::NotSemantic V>
-      NOD() bool ContainsPair(const TPair<K, V>&) const;
+      template<CT::Map = BlockMap>
+      NOD() bool ContainsPair(const CT::Pair auto&) const;
 
-      template<class MAP = BlockMap>
+      template<CT::Map = BlockMap>
       NOD() Index Find(const CT::NotSemantic auto&) const;
-      template<class MAP = BlockMap>
+      template<CT::Map = BlockMap>
       NOD() Iterator FindIt(const CT::NotSemantic auto&);
-      template<class MAP = BlockMap>
+      template<CT::Map = BlockMap>
       NOD() ConstIterator FindIt(const CT::NotSemantic auto&) const;
 
-      template<class MAP = BlockMap>
+      template<CT::Map = BlockMap>
       NOD() Block At(const CT::NotSemantic auto&);
-      template<class MAP = BlockMap>
+      template<CT::Map = BlockMap>
       NOD() Block At(const CT::NotSemantic auto&) const;
 
       NOD() Block operator[] (const CT::NotSemantic auto&);
       NOD() Block operator[] (const CT::NotSemantic auto&) const;
 
    protected:
-      template<class MAP>
+      template<CT::Map>
       NOD() Offset FindInner(const CT::NotSemantic auto&) const;
       NOD() Offset FindInnerUnknown(const Block&) const;
 
@@ -346,20 +346,21 @@ namespace Langulus::Anyness
       ///                                                                     
       ///   Memory management                                                 
       ///                                                                     
-      template<class MAP = BlockMap>
-      void Reserve(const Count&);
+      template<CT::Map = BlockMap>
+      void Reserve(Count);
 
    protected:
       /// @cond show_protected                                                
-      void AllocateFresh(const Count&);
-      template<bool REUSE, class MAP>
-      void AllocateData(const Count&);
-      template<class MAP>
-      void AllocateInner(const Count&);
+      template<CT::Map>
+      void AllocateFresh(Count);
+      template<CT::Map, bool REUSE>
+      void AllocateData(Count);
+      template<CT::Map>
+      void AllocateInner(Count);
 
-      void Reference(const Count&) const noexcept;
+      void Reference(Count) const noexcept;
       void Keep() const noexcept;
-      template<class MAP>
+      template<CT::Map>
       void Free();
       /// @endcond                                                            
 
@@ -378,6 +379,7 @@ namespace Langulus::Anyness
       Count InsertPair(T1&&, TAIL&&...);
 
    protected:
+      template<CT::Map>
       NOD() Size RequestKeyAndInfoSize(Count, Offset&) const IF_UNSAFE(noexcept);
       NOD() Size RequestValuesSize(Count) const IF_UNSAFE(noexcept);
       
@@ -392,10 +394,14 @@ namespace Langulus::Anyness
 
       template<CT::Map, bool CHECK_FOR_MATCH>
       Offset InsertInner(Offset, CT::Semantic auto&&, CT::Semantic auto&&);
-      template<CT::Map, bool CHECK_FOR_MATCH>
-      Offset InsertInnerUnknown(Offset, CT::Semantic auto&&, CT::Semantic auto&&);
-      template<CT::Map, bool CHECK_FOR_MATCH>
-      void InsertPairInner(Count, CT::Semantic auto&&);
+
+      template<CT::Map, bool CHECK_FOR_MATCH, template<class> class S1, template<class> class S2, CT::Block T>
+      requires CT::Semantic<S1<T>, S2<T>>
+      Offset InsertInnerUnknown(Offset, S1<T>&&, S2<T>&&);
+
+      template<CT::Map, bool CHECK_FOR_MATCH, template<class> class S, CT::Pair T>
+      requires CT::Semantic<S<T>>
+      void InsertPairInner(Count, S<T>&&);
 
    public:
       ///                                                                     
@@ -412,6 +418,7 @@ namespace Langulus::Anyness
       void Clear();
       template<CT::Map>
       void Reset();
+      template<CT::Map>
       void Compact();
 
    protected:
@@ -422,10 +429,10 @@ namespace Langulus::Anyness
       template<CT::Map>
       Count RemovePairInner(const CT::Pair auto&);
 
-      template<class MAP>
+      template<CT::Map>
       void ClearInner();
-      template<class, class>
-      void RemoveInner(const Offset&) IF_UNSAFE(noexcept);
+      template<CT::Map>
+      void RemoveInner(Offset) IF_UNSAFE(noexcept);
 
    #if LANGULUS(TESTING)
       public: NOD() constexpr const void* GetRawKeysMemory() const noexcept;

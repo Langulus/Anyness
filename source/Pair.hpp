@@ -63,12 +63,15 @@ namespace Langulus
 
       /// Check if T is a pair type                                           
       ///	@attention not a test for binary compatibility!                   
-      template<class... T>
+      template<class...T>
       concept Pair = ((Dense<T> and DerivedFrom<T, A::Pair>) and ...);
 
       /// Check if a type is a statically typed pair                          
-      template<class... T>
-      concept TypedPair = ((Pair<T> and requires { typename T::Key; typename T::Value; }) and ...);
+      template<class...T>
+      concept TypedPair = ((Pair<T> and requires {
+            typename Decay<T>::Key;
+            typename Decay<T>::Value;
+         }) and ...);
 
    } // namespace Langulus::CT
 

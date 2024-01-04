@@ -188,8 +188,6 @@ namespace Langulus::Anyness
       TSet& operator << (T1&&);
 
    protected:
-      NOD() static Size RequestKeyAndInfoSize(Count, Offset&) noexcept;
-
       void Rehash(Count);
       Count UnfoldInsert(auto&&);
 

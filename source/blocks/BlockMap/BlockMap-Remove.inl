@@ -25,7 +25,7 @@ namespace Langulus::Anyness
       auto& me = reinterpret_cast<THIS&>(*this);
 
       if (me.template KeyIsSimilar<K>()
-      or (CT::Typed<THIS> and ::std::equality_comparable_with<THIS::Key, K>)) {
+      or (CT::Typed<THIS> and ::std::equality_comparable_with<typename THIS::Key, K>)) {
          return RemoveKeyInner<THIS>(key);
       }
       else if constexpr (CT::StringLiteral<K>) {
@@ -48,7 +48,6 @@ namespace Langulus::Anyness
    ///   @return 1 if pair was removed                                        
    template<CT::Map THIS> LANGULUS(INLINED)
    Count BlockMap::RemoveKeyInner(const CT::NotSemantic auto& key) {
-      using K = Deref<decltype(key)>;
       const auto found = FindInner<THIS>(key);
       if (found != InvalidOffset) {
          // Key found, remove the pair                                  
@@ -72,7 +71,7 @@ namespace Langulus::Anyness
       auto& me = reinterpret_cast<THIS&>(*this);
 
       if (me.template ValueIsSimilar<V>()
-      or (CT::Typed<THIS> and ::std::equality_comparable_with<THIS::Value, V>)) {
+      or (CT::Typed<THIS> and ::std::equality_comparable_with<typename THIS::Value, V>)) {
          return RemoveValueInner<THIS>(value);
       }
       else if constexpr (CT::StringLiteral<V>) {
@@ -127,18 +126,15 @@ namespace Langulus::Anyness
    
    /// Erases a statically typed pair at a specific index                     
    ///   @attention assumes that index points to a valid entry                
-   ///   @attention assumes the map contains types similar to K and V, unless 
-   ///              one of those is void (aka type-erased)                    
-   ///   @param K - type of key (use void for type-erasure)                   
-   ///   @param V - type of value (use void for type-erasure)                 
    ///   @param index - the index to remove                                   
-   template<class K, class V>
-   void BlockMap::RemoveInner(const Offset& index) IF_UNSAFE(noexcept) {
+   template<CT::Map THIS>
+   void BlockMap::RemoveInner(Offset index) IF_UNSAFE(noexcept) {
       auto psl = GetInfo() + index;
       LANGULUS_ASSUME(DevAssumes, *psl, "Removing an invalid pair");
 
       // Destroy the key, info and value at the start                   
       // Use statically typed optimizations where possible              
+      using K = Conditional<CT::Typed<THIS>, typename THIS::Key, void>;
       auto key = [this, &index]{
          if constexpr (CT::Void<K>) {
             auto key = GetKeyInner(index);
@@ -153,6 +149,7 @@ namespace Langulus::Anyness
          }
       }();
 
+      using V = Conditional<CT::Typed<THIS>, typename THIS::value, void>;
       auto val = [this, &index] {
          if constexpr (CT::Void<V>) {
             auto val = GetValueInner(index);
@@ -255,16 +252,14 @@ namespace Langulus::Anyness
    }
 
    /// Clears all data, but doesn't deallocate                                
-   ///   @tparam MAP - map we're searching in, potentially providing runtime  
-   ///                 optimization on type checks                            
-   template<class MAP> LANGULUS(INLINED)
+   template<CT::Map THIS> LANGULUS(INLINED)
    void BlockMap::Clear() {
       if (IsEmpty())
          return;
 
       if (mValues.mEntry->GetUses() == 1) {
          // Remove all used keys and values, they're used only here     
-         ClearInner<MAP>();
+         ClearInner<THIS>();
 
          // Clear all info to zero                                      
          ZeroMemory(mInfo, GetReserved());
@@ -281,17 +276,13 @@ namespace Langulus::Anyness
    }
 
    /// Clears all data and deallocates                                        
-   ///   @tparam MAP - map we're searching in, potentially providing runtime  
-   ///                 optimization on type checks                            
-   template<class MAP> LANGULUS(INLINED)
+   template<CT::Map THIS> LANGULUS(INLINED)
    void BlockMap::Reset() {
-      static_assert(CT::Map<MAP>, "MAP must be a map type");
-
       if (mValues.mEntry) {
          if (mValues.mEntry->GetUses() == 1) {
             // Remove all used keys and values, they're used only here  
             if (not IsEmpty())
-               ClearInner<MAP>();
+               ClearInner<THIS>();
 
             // No point in resetting info, we'll be deallocating it     
             LANGULUS_ASSUME(DevAssumes, mKeys.mEntry->GetUses() == 1,
@@ -314,37 +305,41 @@ namespace Langulus::Anyness
    }
    
    /// If possible reallocates the map to a smaller one                       
-   LANGULUS(INLINED)
+   template<CT::Map THIS> LANGULUS(INLINED)
    void BlockMap::Compact() {
-      //TODO();
+      TODO();
    }
    
-   /// Destroy everything valid inside the map                                
-   ///   @tparam MAP - map we're searching in, potentially providing runtime  
-   ///                 optimization on type checks                            
-   ///   @attention assumes there's at least one valid pair                   
-   template<class MAP> LANGULUS(INLINED)
+   /// Destroy everything valid inside the map, but don't deallocate          
+   ///   @attention doesn't affect count, or any container state              
+   template<CT::Map THIS> LANGULUS(INLINED)
    void BlockMap::ClearInner() {
-      LANGULUS_ASSUME(DevAssumes, not IsEmpty(), "Map is empty");
-      static_assert(CT::Map<MAP>, "MAP must be a map type");
-
+      auto remaining = GetCount();
       auto inf = GetInfo();
       const auto infEnd = GetInfoEnd();
-      while (inf != infEnd) {
+
+      while (inf != infEnd and remaining) {
          if (*inf) {
             const auto offset = inf - GetInfo();
-            if constexpr (CT::TypedMap<MAP>) {
-               GetKeyHandle  <typename MAP::Key>  (offset).Destroy();
-               GetValueHandle<typename MAP::Value>(offset).Destroy();
+            auto key = GetKeyHandle<THIS>(offset);
+            auto val = GetValueHandle<THIS>(offset);
+
+            if constexpr (CT::TypedMap<THIS>) {
+               key.Destroy();
+               val.Destroy();
             }
             else {
-               GetKeyInner  (offset).CallUnknownDestructors();
-               GetValueInner(offset).CallUnknownDestructors();
+               key.CallUnknownDestructors();
+               val.CallUnknownDestructors();
             }
+
+            --remaining;
          }
 
          ++inf;
       }
+
+      LANGULUS_ASSUME(DevAssumes, not remaining, "Leftover");
    }
 
 } // namespace Langulus::Anyness
